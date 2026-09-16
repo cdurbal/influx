@@ -1,0 +1,47 @@
+# --- Dependencies ---
+node_modules/
+.pnpm-store/
+
+# --- Environment & secrets (never commit — see skill env-secrets) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Build outputs ---
+dist/
+build/
+out/
+.next/
+.turbo/
+*.tsbuildinfo
+
+# --- Tests & coverage ---
+coverage/
+playwright-report/
+test-results/
+
+# --- Supabase local ---
+supabase/.temp/
+supabase/.branches/
+
+# --- Logs ---
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# --- Claude Code: keep shared agents/skills, ignore personal settings ---
+.claude/settings.local.json
