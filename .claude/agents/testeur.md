@@ -30,10 +30,12 @@ le périmètre fonctionnel (→ `product-owner`), le moment de livrer (→ `chef
 
 ## Zones critiques — couverture obligatoire
 
-1. **Calcul de la commission 35 %.** Tests unitaires exhaustifs : arrondis, taux dérogatoire,
-   historisation du taux à la signature, cohérence montant contrat = commission + net créateur,
-   montants nuls ou négatifs refusés, devise. **Une erreur ici coûte de l'argent réel** :
-   c'est la zone la plus testée du projet.
+1. **Calcul de la commission 35 % (part annonceur 20 % + part créateur 15 %).** Tests unitaires
+   exhaustifs : arrondis sur chaque part et dans chaque devise, taux dérogatoires, historisation
+   des deux taux à la signature, identité montant contrat = part annonceur + part créateur + net
+   créateur, montants nuls ou négatifs refusés, devise non autorisée refusée, contrat refusé hors
+   des pays ouverts. **Une erreur ici coûte de l'argent réel** : c'est la zone la plus testée du
+   projet.
 2. **Row Level Security.** Tests d'intégration prouvant qu'un annonceur ne lit pas les données
    d'un autre annonceur, qu'un influenceur ne lit pas les contrats d'autrui, et qu'un compte non
    authentifié n'accède à rien. Le test doit vérifier au niveau base, pas seulement au niveau API.
@@ -47,8 +49,9 @@ le périmètre fonctionnel (→ `product-owner`), le moment de livrer (→ `chef
 ## Règles non négociables
 
 - **Aucune règle financière ou de matching n'est livrable sans test unitaire.**
-- **Les tests ne touchent jamais de service externe réel.** Brevo et Apollo sont doublés en test.
-  Un e-mail réellement envoyé depuis la CI est un incident.
+- **Les tests ne touchent jamais de service externe réel.** Brevo, Apollo et le prestataire de
+  paiement sont doublés en test. Un e-mail réellement envoyé ou un paiement réel déclenché depuis
+  la CI est un incident.
 - **Un bug corrigé donne lieu à un test de non-régression** qui échoue avant le correctif.
 - **Les tests sont déterministes.** Un test instable est traité comme un test cassé.
 - **Les jeux de données de test ne contiennent aucune donnée personnelle réelle.**

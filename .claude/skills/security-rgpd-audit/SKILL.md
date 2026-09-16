@@ -53,7 +53,9 @@ effort. Pas de remarque générique.
 ### Robustesse
 
 - [ ] Limitation de débit sur authentification, inscription et endpoints coûteux
-- [ ] Webhooks entrants : signature vérifiée, rejeu impossible, traitement idempotent
+- [ ] Webhooks entrants (dont le prestataire de paiement) : signature vérifiée, rejeu impossible,
+      traitement idempotent
+- [ ] Contrôle des pays ouverts aux contrats effectué côté serveur, jamais seulement dans l'UI
 - [ ] Erreurs sans fuite d'information technique vers l'utilisateur
 - [ ] Dépendances sans vulnérabilité connue critique ou élevée
 - [ ] Journalisation des accès aux données sensibles, **sans y écrire les données elles-mêmes**
@@ -92,10 +94,12 @@ effort. Pas de remarque générique.
 
 ### Transparence et documents
 
-- [ ] CGU, CGV, politique de confidentialité, mentions légales, politique cookies en ligne
-- [ ] **Contrat d'intermédiation** disponible, matérialisant la commission de 35 %
-- [ ] **Taux de 35 % énoncé clairement et accessible avant tout engagement** (risque de pratique
-      commerciale trompeuse dans le cas contraire)
+- [ ] CGU, CGV, politique de confidentialité, mentions légales, politique cookies en ligne, **en
+      français et en anglais**
+- [ ] **Contrat d'intermédiation** disponible, matérialisant la commission de 35 % et ses deux
+      parts (20 % annonceur, 15 % créateur)
+- [ ] **Taux de 35 % et sa répartition énoncés clairement et accessibles avant tout engagement**
+      (risque de pratique commerciale trompeuse dans le cas contraire)
 - [ ] Bandeau cookies conforme : refus aussi simple que l'acceptation, aucun traceur non
       essentiel avant consentement
 
@@ -108,15 +112,29 @@ effort. Pas de remarque générique.
 ### Sous-traitants et transferts
 
 - [ ] Registre des traitements à jour
-- [ ] Brevo, Apollo.io, Supabase, Railway identifiés comme destinataires ou sous-traitants
-- [ ] Localisation des données connue, UE privilégiée ; transferts hors UE encadrés
+- [ ] Brevo, Apollo.io, Supabase, Railway et le prestataire de paiement identifiés comme
+      destinataires ou sous-traitants
+- [ ] Localisation des données connue (UE par défaut, à confirmer après D25) ; transferts
+      internationaux encadrés
 - [ ] Contrats de sous-traitance en place
+- [ ] Représentant dans l'UE désigné si la société est établie hors UE
+
+### Cadre multi-pays
+
+- [ ] Pays des utilisateurs concernés identifiés ; exigences locales vérifiées en plus du niveau
+      RGPD (LGPD au Brésil, Loi 25 au Québec, lois des États américains, CASL pour la prospection
+      au Canada…)
+- [ ] Base légale de la prospection Apollo validée pour chaque pays ciblé
+- [ ] Contrats uniquement possibles dans les pays ouverts, eux-mêmes validés (D26)
+- [ ] Règles de l'influence commerciale des pays ouverts respectées (D21)
+- [ ] Obligations déclaratives de la plateforme traitées pour les créateurs particuliers (D24)
 
 ### Cas particulier : influenceurs mineurs
 
-- [ ] Vérification d'âge prévue
-- [ ] Régime spécifique traité (législation française sur les enfants influenceurs), **ou**
-      exclusion des mineurs assumée et énoncée dans les CGU
+- [ ] Mineurs **exclus au MVP** (D15) : attestation de majorité selon le pays de résidence,
+      contrôle avant signature, exclusion énoncée dans les CGU
+- [ ] Toute ouverture aux mineurs est précédée du traitement des régimes spécifiques (ex.
+      législation française sur les enfants influenceurs)
 
 ---
 

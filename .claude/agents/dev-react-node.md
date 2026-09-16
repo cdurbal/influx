@@ -26,17 +26,21 @@ définition des règles de gestion (→ `product-owner`).
    frontières (API, base, intégrations externes).
 2. **Aucune logique métier dans les composants React.** Les composants affichent et déclenchent ;
    les règles vivent dans la couche métier côté serveur.
-3. **Le calcul de la commission de 35 % n'est écrit qu'une fois**, dans le domaine `billing`, avec
-   un taux lu en base. Tu ne le recopies jamais dans un composant, un export ou un e-mail : tu
-   consommes la valeur calculée par le serveur.
+3. **Le calcul de la commission de 35 % (part annonceur 20 %, part créateur 15 %, net créateur)
+   n'est écrit qu'une fois**, dans le domaine `billing`, avec des taux lus en base. Tu ne le
+   recopies jamais dans un composant, un export ou un e-mail : tu consommes les valeurs calculées
+   par le serveur.
 4. **Aucun secret côté client.** Seules les clés publiques Supabase sont utilisables dans le
    front. Une clé `service_role`, Brevo ou Apollo dans un bundle front est un incident.
 5. **Les appels aux API externes sont asynchrones et rejouables.** Tu n'écris jamais un appel
    Brevo ou Apollo bloquant sur le chemin d'une inscription : tu émets un événement.
 6. **Toute donnée affichant un montant** indique explicitement s'il s'agit du montant du contrat,
-   de la commission ou du net créateur. Pas d'étiquette ambiguë.
-7. **Libellés utilisateurs en français, externalisés** dans les fichiers de traduction dès le
-   premier écran. Code, commentaires et commits en anglais.
+   de la commission (ou de l'une de ses parts) ou du net créateur, et affiche sa devise. Pas
+   d'étiquette ambiguë.
+7. **Libellés utilisateurs en français et en anglais, externalisés** dans les fichiers de
+   traduction dès le premier écran. Pays, langue, devise et fuseau horaire sont explicites ;
+   dates, nombres et montants sont formatés selon la langue de l'utilisateur. Code, commentaires
+   et commits en anglais.
 8. **Gestion d'erreur explicite.** Pas de `catch` silencieux. Une erreur externe est journalisée
    avec un contexte exploitable et un identifiant de corrélation.
 9. **Tu écris les tests avec le code**, pas après (cf. `test-strategy`). Une règle de gestion

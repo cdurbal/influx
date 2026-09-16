@@ -41,6 +41,23 @@ Ces deux voies coexistent en permanence. L'algorithme **ne remplace pas** l'agen
 le priorise et lui fait gagner du temps. Toute fonctionnalité de matching doit donc être
 consultable, explicable et surchargeable manuellement depuis le backoffice.
 
+### Portée internationale
+
+INFLUX vend **à l'international dès le lancement** (arbitrage du fondateur, 2026-09-16).
+
+| Règle | Détail |
+|---|---|
+| Zones visées | France et francophonie, reste de l'Europe, Amérique du Nord, Brésil |
+| Inscriptions | Ouvertes **dans le monde entier** : tout inscrit est un lead Brevo / Apollo.io |
+| Contrats | Possibles **uniquement entre parties situées dans des pays ouverts**. La liste est stockée en base et élargie pays par pays après validation juridique, fiscale et paiement (D26). |
+| Langues au lancement | **Français et anglais**. Le portugais est recommandé avant l'ouverture des contrats au Brésil. |
+| Société | Pas encore créée ; pays d'établissement à choisir, potentiellement hors UE et hors États-Unis (D25) |
+
+Aucun agent ne suppose un cadre exclusivement français : droit, fiscalité, devise et langue
+dépendent du pays de la société et de celui des utilisateurs.
+
+Le périmètre et l'ordre de livraison du MVP sont détaillés dans **`docs/cadrage-mvp.md`**.
+
 ### Positionnement concurrentiel
 
 Référence UX/UI à égaler puis dépasser : **https://wekollab.fr/**.
@@ -52,18 +69,33 @@ d'inscription, lisibilité des profils, fluidité de la mise en relation). INFLU
 
 ## 3. Modèle économique — INVARIANT MÉTIER
 
-> ### 💰 **Commission de 35 % sur le montant de chaque contrat signé via INFLUX.**
+> ### 💰 **Commission de 35 % sur le montant de chaque contrat signé via INFLUX : 20 % à la charge de l'annonceur + 15 % à la charge du créateur.**
 
 C'est l'invariant le plus structurant du projet. Il conditionne l'architecture données, les
 écrans, les contrats, la facturation et le discours commercial.
 
 | Règle | Détail |
 |---|---|
-| Assiette | Montant du contrat signé entre l'annonceur et l'influenceur **via l'intermédiaire d'INFLUX**. L'assiette exacte (HT ou TTC) est une décision ouverte, cf. §13. |
-| Taux | **35 %**, valeur par défaut de la plateforme. |
-| Paramétrabilité | Le taux doit être **stocké en base et paramétrable**, jamais codé en dur. Des taux dérogatoires (partenariats, offres de lancement) seront nécessaires. Chaque contrat fige le taux appliqué **au moment de la signature** (historisation obligatoire). |
+| Assiette | Montant du contrat signé entre l'annonceur et l'influenceur **via l'intermédiaire d'INFLUX**. **Le montant du contrat est le coût total pour l'annonceur** : la commission est incluse, jamais ajoutée. Le traitement fiscal (hors taxes ou taxes comprises, TVA / GST / sales tax) dépend des pays : décision ouverte D7. |
+| Taux | **35 % au total**, répartis en **part annonceur 20 %** et **part créateur 15 %**, valeurs par défaut de la plateforme (arbitrage du fondateur, 2026-09-16). |
+| Paramétrabilité | **Les deux taux** sont **stockés en base et paramétrables**, jamais codés en dur. Des taux dérogatoires (partenariats, offres de lancement) seront nécessaires. Chaque contrat fige **les deux taux** appliqués **au moment de la signature** (historisation obligatoire). |
+| Identité comptable | `montant du contrat = part annonceur + part créateur + net créateur`, toujours vraie, arrondis compris (règle d'arrondi : D19). |
+| Devise | Une devise unique par contrat, choisie dans une liste fermée (D27). |
+| Flux financier | **INFLUX encaisse et reverse via un prestataire de paiement agréé** (D8 tranchée ; choix du prestataire : D9). L'annonceur paie le montant du contrat, INFLUX retient les deux parts et reverse le net créateur après validation de la publication. |
+| Pays | Un contrat n'est possible qu'entre parties situées dans des **pays ouverts** (D26). |
 | Fait générateur | La **signature du contrat** via la plateforme. Un contrat conclu hors plateforme après mise en relation INFLUX constitue un contournement : la traçabilité de la mise en relation doit permettre de le détecter. |
-| Conséquence produit | Toute campagne, tout échange et toute signature doivent être **traçables dans INFLUX**. Un parcours qui pousse les parties à s'échanger leurs coordonnées hors plateforme détruit le modèle économique : c'est un critère de rejet en revue UX. |
+| Conséquence produit | Toute campagne, tout échange, toute signature et **tout paiement** doivent être **traçables dans INFLUX**. Un parcours qui pousse les parties à s'échanger leurs coordonnées hors plateforme détruit le modèle économique : c'est un critère de rejet en revue UX. |
+
+**Exemple de référence** (à reproduire dans toute spécification financière) :
+
+| Élément | Valeur |
+|---|---|
+| Montant du contrat (coût total annonceur, dans la devise du contrat) | 2 000,00 |
+| Part annonceur INFLUX (20 %) | 400,00 |
+| Part créateur INFLUX (15 %) | 300,00 |
+| Commission INFLUX totale (35 %) | 700,00 |
+| Net créateur reversé | 1 300,00 |
+| Vérification | 400 + 300 + 1 300 = 2 000 ✅ |
 
 **Inscription libre et gratuite** pour les deux profils. La monétisation intervient uniquement
 à la signature. Il n'y a pas d'abonnement au lancement (décision réversible, §13).
@@ -89,15 +121,17 @@ une **fonctionnalité de premier plan**, pas un « nice to have » de fin de bac
 Parcours cible :
 
 1. **Découverte** — landing page, proposition de valeur claire, preuve sociale.
-2. **Inscription libre** — création de compte, choix du profil « Annonceur ».
+2. **Inscription libre** — création de compte, choix du profil « Annonceur », pays et langue.
 3. **Création de profil** — entreprise, secteur, produits, budget indicatif, objectifs.
 4. **Publication d'une campagne** — brief, produit à promouvoir, formats attendus, budget,
    période, cibles (audience, thématique, zone géographique).
 5. **Mise en relation** — réception de profils proposés (algorithme + agent humain),
-   consultation des profils influenceurs, shortlist.
+   consultation des profils influenceurs (pseudos masqués jusqu'à la signature, D16), shortlist.
 6. **Négociation** — échanges via messagerie interne (traçables).
-7. **Contractualisation** — génération du contrat, montant, application de la commission 35 %.
-8. **Suivi** — livrables, validation, paiement, bilan de campagne.
+7. **Contractualisation** — génération du contrat (uniquement si les deux parties sont dans des
+   pays ouverts), montant dans la devise du contrat, commission 35 % et ses deux parts explicites.
+8. **Suivi** — paiement en ligne via INFLUX (moment exact : D20), livrables, validation, bilan de
+   campagne.
 
 ### 4.2 Influenceur (créateur de contenu)
 
@@ -107,19 +141,23 @@ de temps en prospection.
 Parcours cible :
 
 1. **Découverte** — landing dédiée créateurs, promesse « des marques viennent à vous ».
-2. **Inscription libre** — création de compte, choix du profil « Influenceur ».
-3. **Création de profil** — réseaux, thématiques, audience (volume, démographie), formats
-   proposés, tarifs indicatifs, portfolio / campagnes passées.
+2. **Inscription libre** — création de compte, choix du profil « Influenceur », pays et langue,
+   attestation de majorité (mineurs exclus au MVP, D15).
+3. **Création de profil** — réseaux, thématiques, audience (volume, démographie, pays), formats
+   proposés, tarifs indicatifs (avec devise), portfolio / campagnes passées.
 4. **Découverte de campagnes** — fil de campagnes ouvertes + propositions ciblées reçues.
 5. **Candidature / réponse** à une proposition.
 6. **Négociation** — messagerie interne.
-7. **Contractualisation** — contrat signé, rémunération nette connue **avant** signature.
-8. **Exécution** — dépôt des livrables, validation par l'annonceur, paiement.
+7. **Contractualisation** — contrat signé, rémunération nette connue **avant** signature ;
+   vérification d'identité et coordonnées bancaires auprès du prestataire de paiement au premier
+   contrat. Tout créateur majeur peut signer, particuliers compris (D17).
+8. **Exécution** — dépôt des livrables, validation par l'annonceur, reversement du net créateur
+   par INFLUX.
 
 > ⚠️ **Point UX sensible.** L'influenceur doit comprendre sans ambiguïté ce qu'il touche
 > réellement. Toute interface affichant un montant doit lever le doute entre *montant du
-> contrat*, *commission INFLUX* et *net créateur*. C'est un point de contrôle obligatoire
-> pour `expert-ux` et `expert-paiement-facturation`.
+> contrat*, *commission INFLUX* (et ses deux parts) et *net créateur*, toujours avec la devise.
+> C'est un point de contrôle obligatoire pour `expert-ux` et `expert-paiement-facturation`.
 
 ### 4.3 Agent interne INFLUX (backoffice)
 
@@ -133,9 +171,12 @@ Parcours cible :
 3. **Matching assisté** — voir les suggestions de l'algorithme, les surcharger, forcer une mise
    en relation, annoter.
 4. **Pilotage des campagnes marketing** — sélection d'un segment, **déclenchement d'envois via
-   l'API Brevo directement depuis le backoffice**, suivi des performances.
+   l'API Brevo directement depuis le backoffice**, suivi des performances (premier ajout après
+   le MVP ; au MVP, envois depuis Brevo sur des segments synchronisés).
 5. **Suivi des leads** — état de synchronisation Brevo / Apollo.io, relance des échecs.
-6. **Facturation** — contrats signés, commissions dues, encaissements, exports comptables.
+6. **Facturation** — contrats signés, parts de commission, encaissements, reversements,
+   remboursements, exports comptables, par devise.
+7. **Pays ouverts** — gestion de la liste des pays dans lesquels les contrats sont autorisés.
 
 Le backoffice est un **produit à part entière**, pas un écran d'admin bricolé. Il est utilisé
 tous les jours par l'équipe et porte la rentabilité opérationnelle.
@@ -167,12 +208,15 @@ tokens du design system.
    ni le même onboarding, ni le même vocabulaire.
 3. **Inscription sans friction.** Le minimum d'informations pour créer le compte ; le profil se
    complète progressivement (profil complété = meilleur matching, à rendre visible).
-4. **Transparence financière permanente.** Le montant du contrat, la commission 35 % et le net
-   créateur sont toujours explicites. Jamais de coût découvert en fin de parcours.
+4. **Transparence financière permanente.** Le montant du contrat, la commission 35 % (part
+   annonceur 20 %, part créateur 15 %) et le net créateur sont toujours explicites, avec leur
+   devise. Jamais de coût découvert en fin de parcours.
 5. **Tout se passe dans INFLUX.** Les parcours ne doivent pas encourager la sortie de plateforme.
 6. **Mobile-first.** Les influenceurs consultent majoritairement sur mobile.
 7. **Accessibilité.** Contrastes conformes WCAG AA au minimum — le vert de marque ne doit jamais
    être le seul porteur d'information (état, erreur, succès).
+8. **Bilingue dès le lancement.** Chaque écran, e-mail et document existe en français et en
+   anglais. Dates, nombres et montants suivent les formats de la langue de l'utilisateur.
 
 ---
 
@@ -200,16 +244,20 @@ Supabase direct, structure monorepo ou multi-repo, outillage de test. Voir §13.
 - **Nommage** : `camelCase` (variables/fonctions), `PascalCase` (composants/types),
   `SCREAMING_SNAKE_CASE` (constantes), `kebab-case` (fichiers non-composants).
 - **Langue du code** : identifiants, commentaires et messages de commit **en anglais**. Les
-  libellés affichés aux utilisateurs sont **en français**, externalisés dans des fichiers de
-  traduction dès le départ (une ouverture à l'international est probable).
+  libellés affichés aux utilisateurs sont **en français et en anglais** dès le lancement,
+  externalisés dans des fichiers de traduction (d'autres langues suivront, portugais en premier
+  candidat).
+- **International par défaut.** Pays (ISO 3166-1), langue, devise (ISO 4217) et fuseau horaire
+  sont des données explicites. Aucune hypothèse implicite « France / euro / français » dans le code.
 - **Pas de secret dans le code.** Toutes les clés (Supabase, Brevo, Apollo, Railway) passent par
   des variables d'environnement — voir la skill `env-secrets`.
 - **Commits** : convention *Conventional Commits* (`feat:`, `fix:`, `chore:`, `docs:`…).
 - **Branches** : `main` protégée, travail sur `feat/<sujet>` ou `fix/<sujet>`, merge par Pull
   Request avec revue.
 - **Un module = une responsabilité.** Aucune logique métier dans les composants React.
-- **Logique financière centralisée.** Le calcul de la commission n'existe qu'à **un seul endroit**
-  dans tout le code. Toute duplication est un défaut bloquant.
+- **Logique financière centralisée.** Le calcul de la commission (ses deux parts et le net
+  créateur) n'existe qu'à **un seul endroit** dans tout le code. Toute duplication est un défaut
+  bloquant.
 
 ---
 
@@ -248,8 +296,11 @@ Supabase direct, structure monorepo ou multi-repo, outillage de test. Voir §13.
                    │  Postgres   │      │  ┌─────────┐ ┌──────────┐ │
                    │  Auth       │      │  │  Brevo  │ │ Apollo.io│ │
                    │  Storage    │      │  └─────────┘ └──────────┘ │
-                   │  RLS        │      │   (file d'événements)     │
-                   └─────────────┘      └───────────────────────────┘
+                   │  RLS        │      │  ┌──────────────────────┐ │
+                   └─────────────┘      │  │ Paiement (D9)        │ │
+                                        │  └──────────────────────┘ │
+                                        │   (file d'événements)     │
+                                        └───────────────────────────┘
 
         Code : GitHub  ──────►  CI/CD  ──────►  Déploiement : Railway
 ```
@@ -263,10 +314,10 @@ Supabase direct, structure monorepo ou multi-repo, outillage de test. Voir §13.
 | `campaigns` | Campagnes, briefs, budgets, formats, statuts |
 | `matching` | Scoring et proposition de mises en relation, surcharge manuelle |
 | `messaging` | Échanges traçables entre parties |
-| `contracts` | Contrats, signature, montants, taux de commission historisé |
-| `billing` | Commissions, facturation, encaissements, exports |
+| `contracts` | Contrats, signature, montants et devise, taux de commission historisés (deux parts), contrôle des pays ouverts |
+| `billing` | Parts de commission, encaissement et reversement via le prestataire de paiement, remboursements, facturation, exports |
 | `leads` | Capture de leads et synchronisation Brevo / Apollo.io |
-| `backoffice` | Pilotage interne, campagnes Brevo, supervision |
+| `backoffice` | Pilotage interne, pays ouverts aux contrats, campagnes Brevo, supervision |
 
 ### Principes d'architecture
 
@@ -284,9 +335,10 @@ Supabase direct, structure monorepo ou multi-repo, outillage de test. Voir §13.
 
 | Service | Rôle dans INFLUX | Points d'attention |
 |---|---|---|
-| **Supabase** | Base PostgreSQL, authentification, stockage de fichiers (portfolios, livrables, contrats), RLS | Ne jamais exposer la `service_role key` côté client. Migrations versionnées dans Git. |
-| **Brevo** | Emailing transactionnel, nurturing, CRM, **campagnes déclenchées depuis le backoffice via API** | Rate limits, idempotence, gestion des désinscriptions (obligation légale), segmentation par type de profil. Skill : `brevo-campaign`. |
-| **Apollo.io** | Prospection commerciale sortante sur les leads annonceurs | Qualification avant envoi (ne pas polluer la base), mapping des champs, conformité de la prospection B2B. Skill : `apollo-lead-sync`. |
+| **Supabase** | Base PostgreSQL, authentification, stockage de fichiers (portfolios, livrables, contrats), RLS | Ne jamais exposer la `service_role key` côté client. Migrations versionnées dans Git. Hébergement UE par défaut, à confirmer après D25. |
+| **Brevo** | Emailing transactionnel, nurturing, CRM, **campagnes déclenchées depuis le backoffice via API** | Rate limits, idempotence, gestion des désinscriptions (obligation légale), segmentation par type de profil, **langue et pays**. Skill : `brevo-campaign`. |
+| **Apollo.io** | Prospection commerciale sortante sur les leads annonceurs | Qualification avant envoi (ne pas polluer la base), mapping des champs, conformité de la prospection B2B **selon le pays** (UE, CASL au Canada…). Skill : `apollo-lead-sync`. |
+| **Prestataire de paiement** (à choisir, D9) | Encaissement du montant du contrat, vérification d'identité des créateurs, conservation des fonds, reversement international du net créateur, remboursements | Compatible avec le pays de la société (D25), les pays ouverts (D26) et les devises (D27). Webhooks signés et idempotents. Aucune donnée de carte chez INFLUX. Skill : `contract-commission`. |
 | **GitHub** | Hébergement du code, Pull Requests, revue, CI | `main` protégée, secrets dans GitHub Secrets. |
 | **Railway** | Déploiement de l'API et des fronts, environnements | Séparation `staging` / `production`, variables d'environnement par environnement. Skill : `railway-deploy`. |
 
@@ -298,9 +350,10 @@ Supabase direct, structure monorepo ou multi-repo, outillage de test. Voir §13.
 consommé de façon asynchrone :
 
 - → **Brevo** : création/mise à jour du contact, affectation à la bonne liste, entrée dans le
-  scénario de nurturing correspondant au type de profil.
-- → **Apollo.io** : prioritairement pour les **annonceurs** (cible de prospection commerciale),
-  enrichissement et séquence commerciale.
+  scénario de nurturing correspondant au type de profil et à la langue.
+- → **Apollo.io** : prioritairement pour les **annonceurs** qualifiés (cible de prospection
+  commerciale), dans les pays où la base légale de la prospection est validée ; enrichissement et
+  séquence commerciale.
 
 Chaque tentative est journalisée avec son statut. Le backoffice expose les échecs et permet le
 rejeu. **Le consentement de l'utilisateur conditionne l'envoi marketing** (cf. RGPD, §9).
@@ -309,15 +362,18 @@ rejeu. **Le consentement de l'utilisateur conditionne l'envoi marketing** (cf. R
 
 ## 9. Données personnelles et conformité
 
-INFLUX traite des données personnelles des deux côtés du marché, et des données financières.
+INFLUX traite des données personnelles des deux côtés du marché, dans plusieurs pays, et des
+données financières.
 
 | Sujet | Exigence |
 |---|---|
-| Base légale | Consentement explicite pour le marketing (Brevo/Apollo), exécution du contrat pour le reste. Case à cocher non pré-cochée à l'inscription. |
+| Cadre applicable | **Principe proposé** (à valider par `expert-conformite-rgpd`) : le **niveau RGPD s'applique à tous les utilisateurs**, complété par les exigences propres à chaque zone — LGPD (Brésil), Loi 25 (Québec), lois des États américains (ex. CCPA), CASL (prospection au Canada). Si la société est établie hors UE (D25) : représentant dans l'UE (art. 27 RGPD), et au Royaume-Uni si nécessaire. |
+| Base légale | Consentement explicite pour le marketing (Brevo/Apollo), exécution du contrat pour le reste. Case à cocher non pré-cochée à l'inscription. La base légale de la prospection Apollo est validée pays par pays. |
 | Droits des personnes | Accès, rectification, suppression, portabilité, opposition — à prévoir dès la conception, y compris la propagation de la suppression vers Brevo et Apollo. |
-| Documents obligatoires | CGU, CGV, politique de confidentialité, mentions légales, politique cookies, **contrat d'intermédiation** matérialisant la commission de 35 %. |
-| Statut d'INFLUX | Intermédiaire de mise en relation — les obligations d'information et de transparence des plateformes s'appliquent. |
-| Mineurs | Certains influenceurs peuvent être mineurs : vérification d'âge et régime spécifique à traiter explicitement (législation française sur les enfants influenceurs). |
+| Documents obligatoires | CGU, CGV, politique de confidentialité, mentions légales, politique cookies, **contrat d'intermédiation** matérialisant la commission de 35 % et ses deux parts — **en français et en anglais**, validés par un juriste pour chaque pays ouvert aux contrats. |
+| Statut d'INFLUX | Intermédiaire de mise en relation — obligations d'information et de transparence des plateformes selon les pays (DSA dans l'UE…) ; règles de l'influence commerciale propres à chaque pays ouvert (D21). |
+| Mineurs | **Exclus au MVP** (D15) : attestation de majorité selon le pays de résidence, contrôle avant signature, exclusion énoncée dans les CGU. Tout régime spécifique (ex. législation française sur les enfants influenceurs) est à traiter avant une éventuelle ouverture aux mineurs. |
+| Fiscalité des utilisateurs | Déclarations de la plateforme selon les pays (DAC7 dans l'UE, formulaires 1099 aux États-Unis…), en particulier pour les créateurs particuliers (D24). |
 | Sécurité | Chiffrement en transit et au repos, RLS Supabase, principe du moindre privilège, journalisation des accès aux données sensibles. |
 
 Agents référents : `expert-conformite-rgpd` (conformité) et `expert-cybersecurite` (sécurité
@@ -373,8 +429,8 @@ technique). Skill dédiée : `security-rgpd-audit`.
 3. **Pas d'invention hors périmètre.** Un agent qui manque d'une information structurante
    l'inscrit en décision ouverte (§13) et propose des options argumentées — il ne choisit pas seul.
 4. **Toute décision structurante est écrite** dans ce CLAUDE.md (section concernée + §13 mise à jour).
-5. **Aucun agent ne modifie le modèle économique.** Le taux de 35 % et sa mécanique relèvent du
-   fondateur seul.
+5. **Aucun agent ne modifie le modèle économique.** Le taux de 35 %, sa répartition (20 %
+   annonceur / 15 % créateur) et sa mécanique relèvent du fondateur seul.
 6. **Aucun agent ne crée ni ne supprime de dépôt distant, et n'exécute de déploiement en
    production, sans confirmation explicite du fondateur.**
 7. **Cohérence UI.** Toute contribution visuelle passe par les tokens du design system (skill
@@ -408,7 +464,7 @@ Claude le sélectionner sur la base de sa `description`.
 | `product-owner` | Le fondateur n'est pas développeur. Sans traducteur entre l'intention métier et une spécification testable, chaque développement repose sur des suppositions. Cet agent produit user stories, règles de gestion et critères d'acceptation — le chaînon manquant entre `chef-de-projet` et `dev-react-node`. |
 | `expert-matching` | La mise en relation **est** le produit. Ni l'architecte (technique) ni le développeur (implémentation) ne portent la logique métier du scoring : critères, pondérations, explicabilité, articulation avec l'intervention humaine. Le brief impose un dispositif hybride algorithme + agents humains : il mérite un responsable dédié. |
 | `expert-integrations-api` | Brevo et Apollo.io sont des dépendances externes critiques (un lead non synchronisé est un lead perdu) et fragiles (rate limits, pannes, évolutions d'API). Cet agent détient les contrats d'interface, le mapping des champs, l'idempotence et les stratégies de reprise sur erreur. |
-| `expert-paiement-facturation` | La commission de 35 % implique calcul, historisation du taux, facturation, TVA, encaissement, reversement au créateur et exports comptables. Domaine à risque financier et légal qui ne se délègue ni au développeur ni au marketing. |
+| `expert-paiement-facturation` | La commission de 35 % (20 % annonceur + 15 % créateur) implique calcul, historisation des taux, facturation, taxes selon les pays, encaissement, reversement international au créateur, devises et exports comptables. Domaine à risque financier et légal qui ne se délègue ni au développeur ni au marketing. |
 | `expert-conformite-rgpd` | Données personnelles des deux profils, envoi vers deux outils tiers, contrats d'intermédiation, présence possible d'influenceurs mineurs. La conformité conditionne le droit d'exploiter la plateforme : elle a besoin d'un porteur avec droit de veto, distinct de la sécurité technique. |
 
 ---
@@ -427,7 +483,7 @@ pour une tâche récurrente ou spécialisée du projet.
 | `apollo-lead-sync` | Synchroniser un lead vers Apollo.io, mapper les champs, gérer la qualification et les erreurs. | `expert-integrations-api`, `expert-marketing` |
 | `lead-pipeline` | Concevoir ou modifier le pipeline événementiel de capture et de distribution des leads (émission, file, retries, supervision). | `architecte`, `expert-integrations-api` |
 | `matching-spec` | Définir ou faire évoluer les critères, pondérations et règles du moteur de mise en relation. | `expert-matching`, `product-owner` |
-| `contract-commission` | Générer un modèle de contrat, appliquer et historiser la commission 35 %, calculer le net créateur. | `expert-paiement-facturation`, `expert-conformite-rgpd` |
+| `contract-commission` | Générer un modèle de contrat, appliquer et historiser la commission 35 % (part annonceur et part créateur), calculer le net créateur, encadrer l'encaissement et le reversement. | `expert-paiement-facturation`, `expert-conformite-rgpd` |
 | `railway-deploy` | Configurer un service, un environnement ou un déploiement Railway ; diagnostiquer un déploiement en échec. | `integrateur` |
 | `env-secrets` | Ajouter, faire tourner ou documenter une variable d'environnement / un secret (Supabase, Brevo, Apollo, Railway, GitHub). | `integrateur`, `expert-cybersecurite` |
 | `test-strategy` | Définir le plan de test d'une fonctionnalité, choisir le bon niveau de test, fixer le « prêt à livrer ». | `testeur`, `dev-react-node` |
@@ -438,24 +494,43 @@ pour une tâche récurrente ou spécialisée du projet.
 ## 13. Décisions ouvertes
 
 À trancher par l'agent indiqué, **avant** l'implémentation concernée. Ne pas inventer de réponse
-hors de ce cadre ; mettre ce tableau à jour à chaque arbitrage.
+hors de ce cadre ; mettre ce tableau à jour à chaque arbitrage. Les lots cités sont ceux de
+`docs/cadrage-mvp.md`.
 
-| # | Sujet | Arbitre | Statut |
-|---|---|---|---|
-| D1 | Framework React : Vite (SPA) vs Next.js (SSR/SEO) — impacte fortement le SEO de la partie publique | `architecte` | Ouverte |
-| D2 | Framework backend Node : Express / Fastify / NestJS | `architecte` | Ouverte |
-| D3 | Structure du dépôt : monorepo (front + back + backoffice) vs multi-repo | `architecte` | Ouverte |
-| D4 | Librairie UI : headless + utilitaire CSS, ou bibliothèque de composants — doit servir la charte noir/vert | `architecte` + `expert-ux` | Ouverte |
-| D5 | Accès aux données : client Supabase direct, ORM (Prisma/Drizzle) ou couche d'accès maison | `expert-database` + `architecte` | Ouverte |
-| D6 | Palette exacte : nuance de vert de marque, échelle de gris, tokens clair/sombre | `expert-ux` + Fondateur | Ouverte |
-| D7 | Assiette de la commission : HT ou TTC ; traitement de la TVA | `expert-paiement-facturation` + Fondateur | Ouverte |
-| D8 | Flux financier : INFLUX encaisse et reverse (tiers de confiance) ou facture sa seule commission | `expert-paiement-facturation` + Fondateur | Ouverte |
-| D9 | Prestataire de paiement (Stripe Connect ou équivalent), si encaissement par INFLUX | `expert-paiement-facturation` + `architecte` | Ouverte |
-| D10 | Signature électronique des contrats : solution tierce ou acceptation en ligne horodatée | `expert-conformite-rgpd` + `architecte` | Ouverte |
-| D11 | Version 1 du matching : règles explicites pondérées ou approche par score appris | `expert-matching` | Ouverte |
-| D12 | Backoffice : application séparée ou espace protégé de l'app membres | `architecte` + `product-owner` | Ouverte |
-| D13 | Périmètre du MVP et ordre de livraison des lots | `chef-de-projet` + Fondateur | Ouverte |
-| D14 | Modèle d'abonnement complémentaire à la commission (à moyen terme) | Fondateur | Ouverte |
+| # | Sujet | Arbitre | Statut | Échéance |
+|---|---|---|---|---|
+| D1 | Framework React : Vite (SPA) vs Next.js (SSR/SEO) — impacte fortement le SEO de la partie publique, bilingue | `architecte` | Ouverte | Lot 0 |
+| D2 | Framework backend Node : Express / Fastify / NestJS | `architecte` | Ouverte | Lot 0 |
+| D3 | Structure du dépôt : monorepo (front + back + backoffice) vs multi-repo | `architecte` | Ouverte | Lot 0 |
+| D4 | Librairie UI : headless + utilitaire CSS, ou bibliothèque de composants — doit servir la charte noir/vert | `architecte` + `expert-ux` | Ouverte | Lot 0 |
+| D5 | Accès aux données : client Supabase direct, ORM (Prisma/Drizzle) ou couche d'accès maison | `expert-database` + `architecte` | Ouverte | Lot 0 |
+| D6 | Palette exacte : nuance de vert de marque, échelle de gris, tokens clair/sombre | `expert-ux` + Fondateur | Ouverte | Fin du Lot 0 |
+| D7 | Traitement fiscal de la commission : montants hors taxes ou taxes comprises ; TVA / GST / sales tax sur chaque part, selon le pays de la société et celui des parties | `expert-paiement-facturation` + expert-comptable + Fondateur | Ouverte (dépend de D25) | Avant le Lot 4 |
+| D8 | Flux financier : INFLUX encaisse et reverse, ou facture sa seule commission | `expert-paiement-facturation` + Fondateur | **Tranchée (2026-09-16)** : INFLUX encaisse le montant du contrat et reverse le net créateur via un prestataire de paiement agréé | — |
+| D9 | Prestataire de paiement (Stripe Connect ou équivalent) : compatible avec le pays de la société, les reversements internationaux et le multi-devises | `expert-paiement-facturation` + `architecte` | Ouverte, **bloquante** (dépend de D25) | Étude au Lot 2, tranchée avant le Lot 3 |
+| D10 | Signature électronique des contrats : solution tierce ou acceptation en ligne horodatée (valeur juridique selon les pays) | `expert-conformite-rgpd` + `architecte` | Ouverte | Avant le Lot 4 |
+| D11 | Version 1 du matching : règles explicites pondérées ou approche par score appris | `expert-matching` | Ouverte, repoussée : pas d'algorithme au MVP, collecte des données dès les Lots 2 et 3 | Après le MVP |
+| D12 | Backoffice : application séparée ou espace protégé de l'app membres | `architecte` + `product-owner` | Ouverte | Lot 0 |
+| D13 | Périmètre du MVP et ordre de livraison des lots | `chef-de-projet` + Fondateur | **Tranchée (2026-09-16)** : MVP « opéré par l'équipe », Lots 0 à 5 — voir `docs/cadrage-mvp.md` | — |
+| D14 | Modèle d'abonnement complémentaire à la commission (à moyen terme) | Fondateur | Ouverte | Après le pilote |
+| D15 | Influenceurs mineurs : exclusion ou régime spécifique | Fondateur + `expert-conformite-rgpd` | **Tranchée (2026-09-16)** : exclus au MVP | — |
+| D16 | Pseudos et liens réseaux visibles ou non avant la signature | Fondateur + `expert-ux` + `expert-conformite-rgpd` | **Tranchée (2026-09-16)** : masqués jusqu'à la signature (statistiques vérifiées, portfolio, badge) | — |
+| D17 | Qui peut signer un contrat | Fondateur + `expert-paiement-facturation` + `expert-conformite-rgpd` | **Tranchée (2026-09-16)** : tout créateur majeur, particuliers compris | — |
+| D18 | Mécanisme de file d'attente pour la synchronisation des leads | `architecte` | Ouverte | Lot 0 |
+| D19 | Règle d'arrondi sur les deux parts et dans chaque devise, attribution du reliquat | `expert-paiement-facturation` | Ouverte | Lot 4 |
+| D20 | Moment du paiement, annulation, litige, remboursement : sort de chaque part | `expert-paiement-facturation` + Fondateur | Ouverte | Lot 4 |
+| D21 | Règles de l'influence commerciale et statut d'INFLUX par pays ouvert (loi française du 9 juin 2023, FTC, ASA, Bureau de la concurrence du Canada, CONAR…) ; DSA pour les utilisateurs de l'UE | `expert-conformite-rgpd` + juristes | Ouverte | Niveau de base avant le Lot 1 ; chaque pays avant son ouverture |
+| D22 | Facturation électronique selon le pays de la société | `expert-paiement-facturation` + expert-comptable | Ouverte (dépend de D25) | Lot 4 |
+| D23 | Structure des factures quand la commission est incluse dans le contrat : qui facture quoi à qui, mentions, taxes | `expert-paiement-facturation` + expert-comptable | Ouverte | Étude dès le Lot 1, tranchée avant le Lot 4 |
+| D24 | Créateurs particuliers : déclarations fiscales de la plateforme (DAC7, 1099…), part créateur facturée à un consommateur, risque de requalification | `expert-conformite-rgpd` + `expert-paiement-facturation` + expert-comptable | Ouverte | Lot 2 |
+| D25 | **Pays d'établissement de la société.** Critères : prestataire de paiement et reversements vers les zones visées, compte bancaire multi-devises, taxes sur les commissions, déclarations fiscales de la plateforme, droit applicable aux CGU, obligations RGPD, crédibilité auprès des annonceurs, coût | **Fondateur** + avocat fiscaliste international ; dossier préparé par `expert-paiement-facturation` + `expert-conformite-rgpd` | Ouverte, **la plus structurante** | Avant la mise en ligne du Lot 1 |
+| D26 | Pays ouverts aux contrats : première vague (1 à 3 pays recommandés) puis vagues suivantes | Fondateur + `expert-conformite-rgpd` + `expert-paiement-facturation` | Ouverte | Étude au Lot 2, tranchée avant le Lot 4 |
+| D27 | Devises : liste fermée liée aux pays ouverts, devise fixée par contrat, prise en charge des frais de conversion | `expert-paiement-facturation` + Fondateur | Ouverte | Avant le Lot 2 |
+
+**Autres arbitrages du fondateur (2026-09-16)** : répartition de la commission 20 % / 15 % incluse
+dans le contrat (§3) ; portée internationale, inscriptions partout et contrats par pays ouverts,
+français et anglais au lancement (§2) ; pas de remise de lancement générale ; au moins une personne
+à plein temps sur le backoffice ; envoi des campagnes Brevo depuis le backoffice juste après le MVP.
 
 ---
 
@@ -473,35 +548,66 @@ hors de ce cadre ; mettre ce tableau à jour à chaque arbitrage.
 - [ ] Protéger la branche `main` (PR obligatoire, revue requise)
 - [ ] Configurer les GitHub Secrets nécessaires au CI/CD
 
-### 14.2 Comptes et services externes
+### 14.2 Société, marque et conseils
 
-- [ ] Créer le projet **Supabase** (région UE pour le RGPD) et récupérer les clés
+À lancer en premier : ces étapes conditionnent la mise en ligne du Lot 1 et le paiement.
+
+- [ ] Mandater un **avocat fiscaliste international** et choisir le pays d'établissement de la
+      société (D25)
+- [ ] Recherche d'antériorité et dépôt de la marque **INFLUX** dans les zones visées (UE,
+      États-Unis, Canada, Brésil)
+- [ ] Créer la société et ouvrir un compte bancaire multi-devises
+- [ ] Mandater un juriste (numérique, consommation, influence commerciale) pour les documents en
+      français et en anglais, puis des juristes locaux pour chaque pays ouvert aux contrats
+- [ ] Mandater un expert-comptable dans le pays de la société
+- [ ] Si la société est établie hors UE : désigner un représentant dans l'UE (et au Royaume-Uni si
+      nécessaire)
+
+### 14.3 Comptes et services externes
+
+GitHub, Supabase et Railway peuvent être ouverts avant la création de la société, puis transférés.
+Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la société.
+
+- [ ] Créer le projet **Supabase** (région UE par défaut, à confirmer après D25) et récupérer les clés
 - [ ] Créer le compte **Railway**, les environnements `staging` et `production`
 - [ ] Créer le compte **Brevo**, générer la clé API, préparer les listes et attributs de contact
+      (dont langue et pays)
 - [ ] Créer le compte **Apollo.io**, générer la clé API, définir les séquences commerciales
-- [ ] Réserver le nom de domaine et configurer les DNS (+ authentification e-mail SPF/DKIM/DMARC
+- [ ] Ouvrir le compte chez le **prestataire de paiement** retenu (D9), pendant le Lot 2
+- [ ] Réserver les noms de domaine et configurer les DNS (+ authentification e-mail SPF/DKIM/DMARC
       pour Brevo)
+- [ ] Signer les contrats de sous-traitance des données (Brevo, Apollo.io, Supabase, Railway,
+      prestataire de paiement) et tenir le registre des traitements
 
-### 14.3 Cadrage produit
+### 14.4 Cadrage produit
 
-- [ ] Valider avec le fondateur le périmètre du **MVP** (D13)
-- [ ] Trancher les décisions D1 à D5 (`architecte`)
+- [x] Valider avec le fondateur le périmètre du **MVP** (D13) — **fait le 2026-09-16**, voir
+      `docs/cadrage-mvp.md`
+- [ ] Trancher D1 à D5, D12 et D18 (`architecte`)
 - [ ] Figer la palette et les tokens (D6, `expert-ux` + fondateur)
-- [ ] Trancher le modèle financier D7/D8/D9 (`expert-paiement-facturation` + fondateur)
+- [ ] Trancher le modèle financier restant : D7, D9, D19, D20, D22, D23, D27
+      (`expert-paiement-facturation` + fondateur)
+- [ ] Trancher D24, D25 et D26 (fondateur, avec `expert-conformite-rgpd` et
+      `expert-paiement-facturation`)
 - [ ] Faire rédiger/valider les documents légaux par un juriste (CGU, CGV, contrat
-      d'intermédiation, politique de confidentialité) — les agents préparent, un professionnel valide
+      d'intermédiation, politique de confidentialité), en français et en anglais — les agents
+      préparent, un professionnel valide
 
-### 14.4 Ordre de travail recommandé
+### 14.5 Ordre de travail : lots du MVP
 
-1. Cadrage MVP avec `chef-de-projet` et `product-owner`
-2. Décisions d'architecture avec `architecte` (D1→D5)
-3. Design system et parcours clés avec `expert-ux` (D6)
-4. Modèle de données avec `expert-database`
-5. Socle technique et CI/CD avec `integrateur`
-6. Parcours d'inscription + capture de leads (valeur business immédiate)
-7. Campagnes, matching, messagerie
-8. Contrats, commission, facturation
-9. Backoffice et pilotage Brevo
+Détail, agents, skills et dépendances dans `docs/cadrage-mvp.md`.
+
+| Lot | Contenu | Durée indicative |
+|---|---|---|
+| 0. Socle | D1–D5, D12, D18 ; dépôt, CI, environnements, secrets, tokens ; français et anglais ; pays, langue, devise dans le modèle de données ; rôles et RLS | 1–2 sem. |
+| 1. Leads (1re mise en ligne) | Pages publiques bilingues, inscription, synchronisation Brevo / Apollo, backoffice de suivi, documents légaux | 3–4 sem. |
+| 2. Profils et campagnes | Profils vérifiés, création et validation de campagnes | 2–3 sem. |
+| 3. Mise en relation et messagerie | Mise en relation manuelle outillée, messagerie tracée, détection des coordonnées | 3–4 sem. |
+| 4. Contrat, paiement, commission | Contrat, taux 20 % / 15 % figés, prestataire de paiement, reversement, factures, pays ouverts | 6–9 sem. |
+| 5. Livraison et ouverture | Parcours de bout en bout, audit sécurité et conformité, lancement de la première vague | 1–2 sem. |
+
+Le calendrier réel dépend d'abord de la création de la société (D25) et des validations juridiques
+par pays.
 
 ---
 
@@ -514,8 +620,12 @@ hors de ce cadre ; mettre ce tableau à jour à chaque arbitrage.
 | **Mise en relation** | Mise en contact qualifiée entre un annonceur et un influenceur, algorithmique et/ou opérée par un agent INFLUX. |
 | **Campagne** | Offre publiée par un annonceur : brief, produit, formats, budget, période. |
 | **Contrat** | Accord signé via INFLUX entre un annonceur et un influenceur. Fait générateur de la commission. |
-| **Commission** | Part revenant à INFLUX : **35 %** du montant du contrat par défaut, taux historisé à la signature. |
-| **Net créateur** | Montant perçu par l'influenceur après commission. |
+| **Commission** | Part revenant à INFLUX : **35 %** du montant du contrat par défaut, somme de la part annonceur et de la part créateur, taux historisés à la signature. |
+| **Part annonceur** | Partie de la commission à la charge de l'annonceur : **20 %** du montant du contrat par défaut, incluse dans le montant du contrat. |
+| **Part créateur** | Partie de la commission à la charge du créateur : **15 %** du montant du contrat par défaut. |
+| **Net créateur** | Montant reversé à l'influenceur : montant du contrat − commission (65 % par défaut). |
+| **Pays ouvert** | Pays dans lequel les contrats sont autorisés après validation juridique, fiscale et paiement (D26). Les inscriptions restent possibles partout. |
+| **Prestataire de paiement** | Établissement agréé qui encaisse le montant du contrat pour INFLUX, vérifie l'identité des créateurs et reverse le net créateur (D9). |
 | **Lead** | Inscription ou manifestation d'intérêt à synchroniser vers Brevo et/ou Apollo.io. |
 | **Backoffice** | Application interne de pilotage utilisée par les agents INFLUX. |
 | **Agent INFLUX** | Collaborateur humain de la plateforme (à ne pas confondre avec un agent Claude Code). |

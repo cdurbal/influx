@@ -34,13 +34,26 @@ Agents concernés : `expert-database` (principal), `architecte`, `dev-react-node
 ### Argent — critique
 
 - **Jamais de `float` / `double`.** Entiers en plus petite unité monétaire, ou `numeric` exact.
-- **Devise explicite** sur tout montant.
-- **Le taux de commission est une colonne, pas une constante.** Valeur par défaut 35 %,
-  paramétrable, avec possibilité de taux dérogatoire.
-- **Le taux appliqué est historisé sur le contrat** au moment de la signature. Une évolution du
-  taux plateforme ne modifie jamais un contrat déjà signé.
-- Conserver les composantes du calcul (montant du contrat, taux, commission, net créateur) et
-  pas seulement le résultat.
+- **Devise explicite** (code ISO 4217) sur tout montant ; une devise unique par contrat, parmi
+  les devises autorisées (D27).
+- **Les taux de commission sont des colonnes, pas des constantes.** Deux taux : **part
+  annonceur** (défaut 20 %) et **part créateur** (défaut 15 %), soit 35 % au total ; paramétrables,
+  avec possibilité de taux dérogatoires.
+- **Les deux taux appliqués sont historisés sur le contrat** au moment de la signature. Une
+  évolution des taux plateforme ne modifie jamais un contrat déjà signé.
+- Conserver les composantes du calcul (montant du contrat, devise, taux des deux parts, part
+  annonceur, part créateur, net créateur) et pas seulement le résultat. Contrainte `CHECK` :
+  `part annonceur + part créateur + net créateur = montant du contrat`.
+- Conserver les références du prestataire de paiement (paiement, reversement, remboursement)
+  pour le rapprochement comptable. Aucune donnée de carte en base.
+
+### International
+
+- **Pays** (code ISO 3166-1 alpha-2) et **langue** explicites sur les comptes ; pays des parties
+  historisé sur le contrat.
+- **Horodatages en `timestamptz`**, jamais sans fuseau.
+- **La liste des pays ouverts aux contrats est une table**, administrable depuis le backoffice,
+  pas une constante (D26).
 
 ### Sécurité et accès
 
@@ -85,7 +98,8 @@ Agents concernés : `expert-database` (principal), `architecte`, `dev-react-node
 
 - [ ] RLS activée et politiques écrites pour chaque rôle sur chaque table touchée
 - [ ] Aucun montant en flottant, devise présente
-- [ ] Taux de commission historisé au contrat, pas recalculé
+- [ ] Taux des deux parts de commission historisés au contrat, pas recalculés
+- [ ] Pays, langue et fuseau horaire explicites là où ils s'appliquent
 - [ ] Consentement marketing modélisé si la table alimente Brevo ou Apollo
 - [ ] Durée de conservation définie pour toute donnée personnelle
 - [ ] Journal d'audit alimenté sur les entités sensibles

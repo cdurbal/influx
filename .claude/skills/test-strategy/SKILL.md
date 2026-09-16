@@ -23,16 +23,21 @@ coûteux et fragile : on le réserve aux parcours qui font gagner de l'argent.
 
 ## Zones critiques — couverture obligatoire
 
-### 1. Commission 35 % — la plus testée du projet
+### 1. Commission 35 % (part annonceur 20 % + part créateur 15 %) — la plus testée du projet
 
-- [ ] Calcul nominal, avec vérification de l'identité `contrat = commission + net`
-- [ ] Tous les cas d'arrondi, attribution du reliquat
-- [ ] Taux dérogatoire
-- [ ] **Immuabilité du taux après signature** (modifier le taux plateforme ne change pas un
-      contrat existant)
-- [ ] Montant nul ou négatif refusé
+- [ ] Calcul nominal, avec vérification de l'identité
+      `contrat = part annonceur + part créateur + net`
+- [ ] Tous les cas d'arrondi, sur chaque part et dans chaque devise autorisée, attribution du
+      reliquat
+- [ ] Taux dérogatoire, sur une part ou les deux
+- [ ] **Immuabilité des deux taux après signature** (modifier les taux plateforme ne change pas
+      un contrat existant)
+- [ ] Montant nul ou négatif refusé ; devise non autorisée refusée
+- [ ] Contrat refusé si une partie est hors des pays ouverts
 - [ ] Montant ou taux venant du client refusé
-- [ ] Cohérence entre le montant affiché, le montant du contrat et le montant facturé
+- [ ] Cohérence entre le montant affiché, le montant du contrat, le montant encaissé, le montant
+      reversé et les montants facturés
+- [ ] Webhooks du prestataire de paiement : signature vérifiée, rejeu idempotent (doublure)
 
 ### 2. Row Level Security
 
@@ -68,8 +73,9 @@ Tester **au niveau base**, pas seulement au niveau API :
 ## Règles non négociables
 
 1. **Aucune règle financière ou de matching n'est livrable sans test unitaire.**
-2. **Aucun test ne touche un service externe réel.** Brevo et Apollo sont doublés.
-   Un e-mail réellement envoyé depuis la CI est un incident.
+2. **Aucun test ne touche un service externe réel.** Brevo, Apollo et le prestataire de paiement
+   sont doublés. Un e-mail réellement envoyé ou un paiement réel déclenché depuis la CI est un
+   incident.
 3. **Un bug corrigé donne lieu à un test de non-régression**, qui échoue avant le correctif et
    passe après.
 4. **Les tests sont déterministes.** Un test instable est traité comme un test cassé, pas comme

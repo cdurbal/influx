@@ -44,6 +44,8 @@ Mapper au minimum, en accord avec `expert-marketing` :
 | Attribut | Usage |
 |---|---|
 | Type de profil | **annonceur** ou **influenceur** — segmentation la plus structurante |
+| Langue | **français** ou **anglais** — choix de la version de chaque e-mail |
+| Pays | segmentation par marché, pays ouvert ou non aux contrats, règles locales |
 | Étape de funnel | inscrit · profil complété · campagne publiée · en négociation · contrat signé |
 | Complétude du profil | déclenche les relances de complétion |
 | Secteur / thématique | personnalisation du contenu |
@@ -57,20 +59,25 @@ Brevo, type, valeur par défaut, comportement si absent).
 
 Bienvenue annonceur · Bienvenue influenceur · Relance profil incomplet · Campagne sans
 proposition · Mise en relation sans réponse · **Négociation sans signature** (le plus rentable) ·
-Post-contrat · Réactivation.
+Post-contrat · Réactivation · Ouverture d'un pays aux contrats.
+
+Chaque scénario existe **en français et en anglais** et part dans la langue du contact.
 
 ## E-mails transactionnels
 
 Distincts des campagnes marketing : ils relèvent de l'exécution du contrat, pas du consentement
-marketing. Exemples : confirmation d'inscription, notification de mise en relation, réception
-d'un message, contrat signé, facture.
+marketing. Envoyés dans la langue de l'utilisateur. Exemples : confirmation d'inscription,
+notification de mise en relation, réception d'un message, contrat signé, paiement reçu,
+reversement effectué, facture.
 
 > Ne jamais glisser de contenu promotionnel dans un e-mail transactionnel pour contourner
 > l'absence de consentement — c'est un manquement.
 
 ## Campagnes déclenchées depuis le backoffice
 
-Exigence explicite du projet. Mécanique attendue :
+Exigence explicite du projet, **prévue juste après le MVP** (voir `docs/cadrage-mvp.md`). Au MVP,
+l'équipe envoie depuis l'interface Brevo, sur les segments synchronisés par INFLUX. Mécanique
+attendue :
 
 1. L'agent interne sélectionne un **segment** (issu des attributs ci-dessus).
 2. Il choisit un **modèle de message** et le prévisualise.

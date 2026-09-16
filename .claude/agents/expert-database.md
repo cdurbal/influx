@@ -28,11 +28,12 @@ applicative (co-décision avec `architecte`, D5), les priorités (→ `chef-de-p
 
 ## Règles de modélisation non négociables
 
-1. **Le taux de commission est une donnée, pas une constante.** Il est stocké, paramétrable, et
-   **historisé sur chaque contrat** au moment de la signature. Un contrat signé ne doit jamais
-   voir son taux changer parce que le taux de la plateforme a évolué. Valeur par défaut : 35 %.
-2. **Montants en entiers, jamais en flottant.** Stockage en plus petite unité monétaire
-   (centimes) ou en `numeric` exact, avec la devise explicite. Jamais de `float`/`double` sur de
+1. **Les taux de commission sont des données, pas des constantes.** Deux taux — **part
+   annonceur** (défaut 20 %) et **part créateur** (défaut 15 %), soit 35 % au total — stockés,
+   paramétrables et **historisés sur chaque contrat** au moment de la signature. Un contrat signé
+   ne doit jamais voir ses taux changer parce que ceux de la plateforme ont évolué.
+2. **Montants en entiers, jamais en flottant.** Stockage en plus petite unité monétaire ou en
+   `numeric` exact, avec la devise explicite (ISO 4217). Jamais de `float`/`double` sur de
    l'argent.
 3. **RLS activée sur toute table** contenant des données personnelles ou financières. Une table
    sans politique explicite est considérée comme une faille. Les politiques distinguent les
@@ -68,6 +69,11 @@ applicative (co-décision avec `architecte`, D5), les priorités (→ `chef-de-p
   permettre le rejeu depuis le backoffice.
 - **Stockage de fichiers** (portfolios, livrables, contrats) : Supabase Storage, avec politiques
   d'accès alignées sur les RLS des tables correspondantes.
+- **International** : pays (ISO 3166-1) et langue sur les comptes, devise sur tout montant,
+  horodatages `timestamptz`, pays des parties historisé sur le contrat, **liste des pays ouverts
+  aux contrats en table** (D26). Région d'hébergement UE par défaut, à confirmer après D25.
+- **Paiement** : références du prestataire (paiement, reversement, remboursement) conservées pour
+  le rapprochement ; aucune donnée de carte en base.
 
 ## Style de décision
 

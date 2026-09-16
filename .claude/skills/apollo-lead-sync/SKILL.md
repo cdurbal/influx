@@ -44,6 +44,8 @@ Agents concernés : `expert-integrations-api` (principal), `expert-marketing`,
 Un lead annonceur est éligible à Apollo lorsqu'il présente un potentiel commercial réel :
 
 - [ ] Type de profil = **annonceur**
+- [ ] **Pays du contact dans lequel la base légale de la prospection est validée** par
+      `expert-conformite-rgpd` (les règles diffèrent : UE, Canada avec la CASL, États-Unis…)
 - [ ] Adresse e-mail professionnelle vérifiée
 - [ ] Entreprise identifiée (nom, et si possible site et secteur)
 - [ ] Profil suffisamment complété, ou campagne publiée
@@ -63,7 +65,7 @@ absent). À couvrir au minimum :
 |---|---|
 | Contact | prénom, nom, e-mail professionnel, fonction, téléphone si fourni |
 | Entreprise | raison sociale, site web, secteur, taille si connue |
-| Contexte INFLUX | date d'inscription, complétude du profil, budget indicatif, campagne publiée (oui/non), source d'acquisition |
+| Contexte INFLUX | date d'inscription, pays, langue, pays ouvert aux contrats (oui/non), complétude du profil, budget indicatif et devise, campagne publiée (oui/non), source d'acquisition |
 
 Le contexte INFLUX est ce qui permet à l'équipe commerciale de personnaliser son approche :
 c'est la valeur ajoutée de la synchronisation, ne pas l'omettre.
@@ -74,6 +76,8 @@ Définies par `expert-marketing`, implémentées ici. Principes :
 
 - **Une séquence par niveau de maturité** : nouvel inscrit, profil complété sans campagne,
   campagne publiée sans mise en relation, négociation sans signature.
+- **Dans la langue du contact** (français ou anglais), et seulement dans les pays où la
+  prospection est validée.
 - **Sortie automatique de séquence** dès qu'un contrat est signé ou qu'un agent interne prend
   la main : un prospect devenu client ne doit plus recevoir de séquence de prospection.
 - **Retour d'information vers INFLUX** : état de la séquence, réponses obtenues, si l'API le
@@ -90,10 +94,13 @@ Définies par `expert-marketing`, implémentées ici. Principes :
 
 ## Conformité
 
-- La prospection B2B repose généralement sur l'**intérêt légitime**, mais elle exige information
-  des personnes, droit d'opposition simple et effectif, et pertinence du ciblage professionnel.
+- **La base légale dépend du pays du contact.** Dans l'UE, la prospection B2B repose généralement
+  sur l'**intérêt légitime**, avec information des personnes, droit d'opposition simple et
+  effectif, et pertinence du ciblage professionnel. D'autres pays sont plus stricts (au Canada, la
+  CASL exige un consentement exprès ou tacite) ou fonctionnent sur le droit d'opposition (États-Unis).
 - Les messages de prospection identifient clairement INFLUX et sa finalité.
-- **`expert-conformite-rgpd` valide la base légale et les mentions avant la première séquence.**
+- **`expert-conformite-rgpd` valide la base légale et les mentions pour chaque pays avant la
+  première séquence dans ce pays.**
 
 ## Tests
 
@@ -111,4 +118,4 @@ sortie de séquence après signature.
 - [ ] Clé en variable d'environnement, distincte par environnement
 - [ ] Journalisation et rejeu disponibles au backoffice
 - [ ] Doublures de test en place
-- [ ] Validation `expert-conformite-rgpd` sur la base légale et les mentions
+- [ ] Validation `expert-conformite-rgpd` sur la base légale et les mentions, pour chaque pays ciblé

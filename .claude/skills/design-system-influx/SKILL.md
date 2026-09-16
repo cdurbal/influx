@@ -60,7 +60,9 @@ sinon toute évolution de la marque casse la sémantique des états.
    - [ ] Erreur (message actionnable, pas de trace technique)
    - [ ] Accès refusé
    - [ ] Succès / confirmation
-5. **Écrire les microcopies** : français, direct, sans jargon, orienté bénéfice.
+5. **Écrire les microcopies** en **français et en anglais**, ton direct, sans jargon, orienté
+   bénéfice. Aucun texte en dur : tout passe par les fichiers de traduction. Prévoir des libellés
+   de longueur variable selon la langue.
 6. **Vérifier l'accessibilité** (ci-dessous).
 7. **Lister les tokens utilisés** et les nouveaux tokens proposés.
 
@@ -79,8 +81,10 @@ sinon toute évolution de la marque casse la sémantique des états.
 
 - [ ] **Mobile-first** sur tous les parcours influenceurs.
 - [ ] **Affichage des montants** : impossible de confondre *montant du contrat*, *commission
-      INFLUX (35 %)* et *net créateur*. Chaque montant est étiqueté. L'influenceur voit son net
-      **avant** de signer.
+      INFLUX (35 % : part annonceur 20 % + part créateur 15 %)* et *net créateur*. Chaque montant
+      est étiqueté et affiché avec sa devise, au format de la langue de l'utilisateur.
+      L'influenceur voit son net **avant** de signer.
+- [ ] **Bilingue** : l'écran existe en français et en anglais, sans texte en dur.
 - [ ] **Pas d'incitation à sortir de la plateforme** : aucun écran n'encourage l'échange de
       coordonnées directes.
 - [ ] **Deux portes d'entrée** : le discours et le vocabulaire diffèrent entre annonceur et
