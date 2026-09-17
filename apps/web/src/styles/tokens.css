@@ -227,6 +227,25 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.5),
     0 24px 56px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
 
+  /*
+   * ---------- Hero metal-card visuals (fondateur, 2026-09-17) ----------
+   * The two hero photos are mounted on physical-format black metal cards, not just framed: the
+   * card itself keeps the real ID-1 ratio (ISO/IEC 7810, 85.6 × 53.98 mm — the format used by
+   * Visa/Mastercard), displayed portrait (long edge top-to-bottom, short edge left-to-right, per
+   * fondateur, 2026-09-17), even where the photo itself is narrower and doesn't reach the card's
+   * full width. A pronounced static perspective tilt (fondateur, 2026-09-17: "on ne voit pas
+   * assez bien la 3D") fans the two cards at opposing angles. `perspective-hero-card` goes on the
+   * containing element, `rotate-x-hero-*`/`rotate-y-hero-*` on the metal-card frame itself so
+   * the tilt is properly foreshortened. No animation — a fixed transform, so no reduced-motion
+   * handling needed.
+   */
+  --aspect-card-id1: 53.98 / 85.6;
+  --perspective-hero-card: 900px;
+  --rotate-hero-main-x: 6deg;
+  --rotate-hero-main-y: -16deg;
+  --rotate-hero-secondary-x: -8deg;
+  --rotate-hero-secondary-y: 18deg;
+
   /* ---------- Breakpoints, mobile-first (03 §6) ---------- */
   --breakpoint-sm: 480px;
   --breakpoint-md: 768px;

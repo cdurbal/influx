@@ -402,6 +402,33 @@ contrôle ne repose sur une ombre seule.
 - Pas de compteur animé, pas de parallaxe, pas d'apparition au défilement : les chiffres sont
   affichés directement.
 
+### 9 bis. Cartes du Hero : format réel et relief 3D
+
+| Token | Valeur | Usage |
+|---|---|---|
+| `aspect-card-id1` | `53.98 / 85.6` | Ratio réel du format **ID-1** (ISO/IEC 7810 : 85,6 × 53,98 mm), utilisé par les cartes Visa/Mastercard, affiché **en portrait** (partie la plus longue de haut en bas, fondateur 2026-09-17). Posé sur le cadre carte des deux photos du Hero : la carte garde ce ratio même si la photo qu'elle contient est plus étroite et ne couvre pas toute sa largeur/longueur |
+| `perspective-hero-card` | `900px` | Posé sur le conteneur de chaque photo du Hero (`perspective`), pour que l'inclinaison de la carte à l'intérieur soit correctement mise en fuite. Valeur resserrée (fondateur, 2026-09-17 : « on ne voit pas assez bien la 3D ») pour un relief plus marqué |
+| `rotate-hero-main-x` | `6deg` | Inclinaison axe X de la carte de la photo principale (`rotate-x-hero-main-x`) |
+| `rotate-hero-main-y` | `-16deg` | Inclinaison axe Y de la carte de la photo principale (`rotate-y-hero-main-y`) |
+| `rotate-hero-secondary-x` | `-8deg` | Inclinaison axe X de la carte de la photo secondaire (`rotate-x-hero-secondary-x`) |
+| `rotate-hero-secondary-y` | `18deg` | Inclinaison axe Y de la carte de la photo secondaire (`rotate-y-hero-secondary-y`), opposée à la principale pour un effet « en éventail » |
+
+Chaque cadre carte est un conteneur `flex` au ratio `aspect-card-id1`, centré horizontalement et
+aligné en haut verticalement (`items-start justify-center`, fondateur 2026-09-17 : « l'image doit
+être centrée en haut de la carte ») : la photo garde son propre ratio (`aspect-square` pour la
+secondaire, `aspect-4/3`/`aspect-4/5` pour la principale) et est dimensionnée à `h-4/5` (80 % de
+la hauteur intérieure de la carte, fondateur 2026-09-17 : « l'image ne doit pas faire toute la
+hauteur de la carte pour pouvoir voir le métal »). Le mat métallique reste donc visible sur les
+côtés et en dessous de la photo, ce qui est l'effet recherché (carte au format réel, photo
+simplement posée dessus, en haut).
+
+Inclinaison **statique**, sans animation : pas de règle `prefers-reduced-motion` nécessaire. Les
+deux photos du Hero sont chacune montées sur leur propre cadre `background-image-metal-card` +
+`shadow-metal-card` (voir §2.3 et §7) : un conteneur externe porte `perspective-hero-card`, le
+cadre carte interne porte le ratio `aspect-card-id1` et les deux rotations — cohérent avec la
+doctrine « un élément isolé », appliquée ici à deux éléments distincts plutôt qu'à une grille
+répétée.
+
 ## 10. Superposition (z-index)
 
 | Token | Valeur | Usage |

@@ -359,9 +359,17 @@ Desktop 1440
 | `ph.images.hero01.alt` | Texte alternatif de IMG-HERO-01 | 125 | Oui |
 
 - **Tokens** : rôles Overline, Display (`measure-heading`), Lead ; réassurance Small
-  `color-text-secondary` + `[i:check]` `color-text-brand` ; IMG-HERO-02 `shadow-md`, `z-raised` ;
-  puce `color-surface-raised`, `shadow-md`, `radius-pill`, `font-size-sm`, `space-inset-button`.
-- **Images** : IMG-HERO-01 (informative, prioritaire) ; IMG-HERO-02 (décorative, ≥ `lg`).
+  `color-text-secondary` + `[i:check]` `color-text-brand` ; puce `color-surface-raised`,
+  `shadow-md`, `radius-pill`, `font-size-sm`, `space-inset-button`.
+- **Images** : IMG-HERO-01 (informative, prioritaire) et IMG-HERO-02 (décorative, ≥ `lg`) sont
+  chacune montées sur son propre cadre « carte métallisée » premium (fondateur, 2026-09-17,
+  cohérent avec §3.4/§3.9/§3.12 : `background-image-metal-card`, `border-border-default`,
+  `shadow-metal-card`, `radius-xl`, mat de `space-3`), légèrement inclinée en 3D via
+  `perspective-hero-card` sur le conteneur et `rotate-x-hero-*`/`rotate-y-hero-*` sur le cadre
+  (inclinaisons opposées entre principale et secondaire pour un effet « en éventail »).
+  IMG-HERO-02 garde en plus `z-raised`. Inclinaison statique, sans animation ; le mat de la carte
+  (0,75 rem par photo) ne modifie ni les ratios d'image ni la position du bloc texte, donc le test
+  des 10 secondes (CA3) reste respecté à 375×667 et 1440×900.
 - **Interactions** : aucune (CTA sans effet).
 - **Accessibilité** : seul `h1` de la page ; chaque bouton `aria-describedby` = sa ligne de
   public ; ordre DOM = ordre visuel (texte avant image).

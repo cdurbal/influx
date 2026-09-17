@@ -43,18 +43,24 @@ export async function HeroSection({ content }: HeroSectionProps) {
         </div>
 
         <div className="grid grid-cols-1 gap-grid-gap lg:col-span-6 lg:grid-cols-12 lg:items-start">
-          <ResponsiveImage
-            image={content.secondaryImage}
-            sizes="heroSecondary"
-            className="z-(--z-raised) hidden aspect-square w-full rounded-lg shadow-md lg:col-span-5 lg:mt-9 lg:block"
-          />
-          <div className="relative lg:col-span-7">
-            <ResponsiveImage
-              image={content.mainImage}
-              sizes="heroMain"
-              eager
-              className="aspect-4/3 w-full rounded-lg lg:aspect-4/5"
-            />
+          <div className="perspective-hero-card z-(--z-raised) hidden lg:col-span-5 lg:mt-9 lg:block">
+            <div className="aspect-card-id1 flex w-full items-start justify-center rotate-x-hero-secondary-x rotate-y-hero-secondary-y rounded-xl border-(length:--border-width-thin) border-border-default bg-metal-card p-3 shadow-metal-card">
+              <ResponsiveImage
+                image={content.secondaryImage}
+                sizes="heroSecondary"
+                className="aspect-square h-4/5 max-w-full rounded-lg"
+              />
+            </div>
+          </div>
+          <div className="perspective-hero-card relative lg:col-span-7">
+            <div className="aspect-card-id1 flex w-full items-start justify-center rotate-x-hero-main-x rotate-y-hero-main-y rounded-xl border-(length:--border-width-thin) border-border-default bg-metal-card p-3 shadow-metal-card">
+              <ResponsiveImage
+                image={content.mainImage}
+                sizes="heroMain"
+                eager
+                className="aspect-4/3 h-4/5 max-w-full rounded-lg lg:aspect-4/5"
+              />
+            </div>
             <p
               aria-hidden="true"
               className="absolute bottom-4 left-4 z-(--z-raised) inline-flex items-center gap-2 rounded-pill bg-surface-raised px-inset-button-x py-inset-button-y text-sm font-medium text-text-primary shadow-md"
