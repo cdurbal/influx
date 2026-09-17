@@ -100,6 +100,18 @@
   --color-data-creator-share: var(--color-brand-primary);
   --color-data-net-creator: var(--color-brand-subtle-bg);
 
+  /*
+   * ---------- Backgrounds: premium metal card (fondateur, 2026-09-17, effet carte métallisée
+   * inspiré de wekollab.fr) ----------
+   * A single spotlight treatment for isolated premium elements (key figure, messaging mockup,
+   * pricing breakdown) — never for repeated card grids. Top-left sheen mimics light on brushed
+   * metal, paired with border-border-default and shadow-lg for the raised edge.
+   */
+  --background-image-metal-card:
+    radial-gradient(120% 140% at 18% -12%, rgba(255, 255, 255, 0.14), transparent 55%),
+    radial-gradient(90% 100% at 100% 115%, rgba(255, 255, 255, 0.05), transparent 60%),
+    linear-gradient(160deg, #2a2a2f 0%, #17171a 45%, #0a0a0b 100%);
+
   /* ---------- Typography: families (03 §4.1) ---------- */
   --font-base:
     system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,

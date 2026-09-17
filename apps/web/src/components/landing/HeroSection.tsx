@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { AudienceDoors } from "@/components/ui/AudienceDoors";
 import { CheckIcon, InboxIcon } from "@/components/ui/icons";
+import { mutedTitleTags } from "@/components/ui/rich-text";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
 import type { HeroContent } from "@/content/landing-content";
 
@@ -26,7 +27,7 @@ export async function HeroSection({ content }: HeroSectionProps) {
             id="hero-title"
             className="max-w-(--measure-heading) text-display font-extrabold tracking-display text-text-primary"
           >
-            {t("title")}
+            {t.rich("title", mutedTitleTags)}
           </h1>
           <p className="max-w-(--measure-text) text-lead text-text-secondary">
             {t("lead")}

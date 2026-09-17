@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
+import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import type { LandingImage, WhyInfluxItemId } from "@/content/landing-content";
 
@@ -23,7 +24,7 @@ export async function WhyInfluxSection({ images }: WhyInfluxSectionProps) {
         <SectionHeader
           titleId="why-influx-title"
           overline={t("overline")}
-          title={t("title")}
+          title={t.rich("title", mutedTitleTags)}
           lead={t("lead")}
         />
         <ul className="grid grid-cols-1 gap-grid-gap lg:grid-cols-3">

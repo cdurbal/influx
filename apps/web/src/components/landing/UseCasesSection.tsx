@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
+import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import type { LandingImage, UseCaseId } from "@/content/landing-content";
 
@@ -25,7 +26,7 @@ export async function UseCasesSection({ images }: UseCasesSectionProps) {
         <SectionHeader
           titleId="use-cases-title"
           overline={t("overline")}
-          title={t("title")}
+          title={t.rich("title", mutedTitleTags)}
           lead={t("lead")}
         />
         <ul className="grid grid-cols-1 gap-grid-gap md:grid-cols-2">

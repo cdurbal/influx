@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { CheckIcon } from "@/components/ui/icons";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
+import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { getLocalizedCountryOptions } from "@/content/country-codes";
 import type { LandingImage, MockupNotice } from "@/content/landing-content";
@@ -102,7 +103,7 @@ export async function StartFormSection({
           <SectionHeader
             titleId="start-form-title"
             overline={t("startForm.overline")}
-            title={t("startForm.title")}
+            title={t.rich("startForm.title", mutedTitleTags)}
             lead={t("startForm.lead")}
           />
           <ResponsiveImage

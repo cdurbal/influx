@@ -86,10 +86,11 @@ La proposition repose sur **deux verts complémentaires**, recalibrés pour rest
 | `color-surface-raised` | `#1A1A1D` | Éléments flottants : bannière cookies, menu mobile, carte du formulaire (avec ombre) |
 | `color-surface-hover` | `#1F1F23` | Survol des éléments neutres |
 | `color-surface-brand-subtle` | `#0F2118` | Alias de `color-brand-subtle-bg` pour les surfaces |
-| `color-surface-accent` | `#29E075` | Bandeau chiffre clé (section 2) |
+| `color-surface-accent` | `#29E075` | Non utilisé par le code depuis le 2026-09-17 (le bandeau chiffre clé, section 2, est passé au fond métallisé `background-image-metal-card` ci-dessous, sur demande du fondateur). Token conservé, palette D6 non remise en cause, disponible pour un futur accent |
 | `color-surface-inverse` | `#F5F5F7` | Appel final (section 15), pied de page, cadre de la maquette de téléphone — bloc **clair** posé sur la page sombre, effet de contraste assumé |
 | `color-surface-inverse-raised` | `#E8E8EA` | Cartes, bulles et survol sur les sections claires « inverse » |
 | `color-overlay-scrim` | `rgba(0, 0, 0, 0.7)` | Voile derrière le menu mobile ouvert |
+| `background-image-metal-card` | `radial-gradient(...) , radial-gradient(...), linear-gradient(160deg, #2A2A2F, #17171A, #0A0A0B)` | Fond « carte métallisée » premium (fondateur, 2026-09-17, inspiré de wekollab.fr) : bandeau chiffre clé (section 2), carte de mock messagerie (section 7), panneau de détail de la commission (section 12). Toujours combiné à `border-border-default` et `shadow-lg`. Réservé à un élément isolé par section, jamais à une grille de cartes répétées |
 
 ### 2.4 Bordures et séparateurs
 
@@ -160,7 +161,7 @@ dark. Rappel des seuils : **4,5:1** texte courant, **3:1** texte large et compos
 | `color-text-on-action` #0A0A0A | `color-action-primary-bg` #29E075 | 11,33:1 | ✅ | Bouton principal ; segment « part créateur » de la barre de répartition |
 | `color-text-on-action` #0A0A0A | `color-action-primary-bg-hover` #22C766 | 8,89:1 | ✅ | Bouton principal, survol |
 | `color-text-on-action` #0A0A0A | `color-action-primary-bg-active` #1BB857 | 7,58:1 | ✅ | Bouton principal, pressé |
-| `color-text-on-accent` #0A0A0A | `color-surface-accent` #29E075 | 11,33:1 | ✅ | Bandeau chiffre clé |
+| `color-text-on-accent` #0A0A0A | `color-surface-accent` #29E075 | 11,33:1 | ✅ | Non utilisé actuellement (voir 2.3) ; combinaison conservée si un futur accent réutilise ce token |
 | `color-text-inverse` #0A0A0A | `color-surface-inverse` #F5F5F7 | 18,18:1 | ✅ | Appel final, pied de page, maquette de téléphone ; segment « part annonceur » de la barre de répartition |
 | `color-text-inverse-secondary` #52525B | `color-surface-inverse` #F5F5F7 | 7,10:1 | ✅ | Textes secondaires sur sections claires « inverse » |
 | `color-text-inverse` #0A0A0A | `color-surface-inverse-raised` #E8E8EA | 16,18:1 | ✅ | Cartes et bulles sur sections claires « inverse » |

@@ -1,10 +1,12 @@
+import type { ReactNode } from "react";
 import { cn } from "./class-names";
 
 type SectionHeaderProps = {
   /** id of the h2, referenced by the section's aria-labelledby. */
   titleId: string;
   overline?: string;
-  title: string;
+  /** Plain string, or rich text (e.g. `t.rich(..., mutedTitleTags)` for a two-tone title). */
+  title: ReactNode;
   lead?: string;
   /**
    * "stacked": overline, title and lead one under the other (default).

@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { Accordion, type AccordionItem } from "@/components/ui/Accordion";
 import { MailIcon } from "@/components/ui/icons";
+import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 
 type FaqSectionProps = {
@@ -49,7 +50,7 @@ export async function FaqSection({ contactEmail }: FaqSectionProps) {
             <SectionHeader
               titleId="faq-title"
               overline={t("overline")}
-              title={t("title")}
+              title={t.rich("title", mutedTitleTags)}
               lead={t("lead")}
             />
             {/* Desktop position of the contact prompt; the mobile one follows the questions. */}

@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { AudienceDoors } from "@/components/ui/AudienceDoors";
 import { cn } from "@/components/ui/class-names";
 import { CreatorCardGrid } from "@/components/ui/CreatorCardGrid";
+import { mutedTitleTags } from "@/components/ui/rich-text";
 import type { CreatorCard } from "@/content/landing-content";
 
 type FinalCtaSectionProps = {
@@ -30,7 +31,7 @@ export async function FinalCtaSection({
             id="final-cta-title"
             className="text-heading-2 font-bold tracking-heading text-text-primary"
           >
-            {t("title")}
+            {t.rich("title", mutedTitleTags)}
           </h2>
           <p className="max-w-(--measure-text) text-lead text-text-secondary">
             {t("lead")}

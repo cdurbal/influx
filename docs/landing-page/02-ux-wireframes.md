@@ -378,19 +378,31 @@ Mobile 375                          Desktop 1440
 │      (font-size-figure-xl)    │   │   (figure-xl, col.1-5)│ deux lignes          (col. 6-12) │
 │  Libellé du chiffre (ICU)     │   │                       │ Mention de source {F}            │
 │  Mention de source {F}        │   └──────────────────────────────────────────────────────────┘
-└───────────────────────────────┘     fond color-surface-accent
+└───────────────────────────────┘     carte fond background-image-metal-card
+                                       posée sur fond color-surface-muted
 ```
+
+**Mise à jour du 2026-09-17 (fondateur) :** le bandeau plein largeur en `color-surface-accent`
+(vert) est supprimé. Le contenu est désormais posé dans une carte « métallisée » premium
+(`background-image-metal-card` + `border-border-default` + `shadow-lg`, voir 03 §2.3), centrée
+dans une section en `color-surface-muted`. Le chiffre reste un accent de marque
+(`color-text-brand-strong`), le libellé passe en blanc (`color-text-primary`) et la fin de phrase
+(« entre marques et créateurs dans INFLUX ») en gris clair (`color-text-secondary`, tag ICU
+`<muted>`) — même convention de titre bicolore (première partie blanche, seconde grise) reprise
+sur les titres `h1`/`h2` de toutes les sections de la page (fondateur, 2026-09-17).
 
 | Clé | Rôle | Max | Fictif |
 |---|---|---|---|
 | `landing.keyFigure.srTitle` | `h2` masqué visuellement | 30 | Non |
 | `ph.keyFigure.value` | Nombre (jamais un montant d'argent, jamais un pays) | — | **Oui** |
-| `landing.keyFigure.statement` | ICU : `{value, number}` + libellé, dans un seul `<p>` | 90 | Non |
+| `landing.keyFigure.statement` | ICU : `{value, number}` + libellé (tags `<highlight>` et `<muted>`), dans un seul `<p>` | 90 | Non |
 | `ph.keyFigure.sourceNote` | Mention de source (§2.7) | 60 | **Oui** |
 
-- **Tokens** : `color-surface-accent`, `color-text-on-accent` (chiffre et libellé), source
-  `color-text-secondary` en `font-size-sm` (4,76:1), rôle Figure `font-size-figure-xl`, marges
-  verticales `space-8` (mobile) → `space-10` (desktop). **Images** : aucune.
+- **Tokens** : `background-image-metal-card`, `border-border-default`, `shadow-lg` (carte),
+  `color-text-brand-strong` (chiffre), `color-text-primary` (libellé), `color-text-secondary`
+  (fin de phrase et source, `font-size-sm`, 4,76:1 sur la carte), rôle Figure
+  `font-size-figure-xl`, marges verticales `space-8` (mobile) → `space-10` (desktop).
+  **Images** : aucune.
 - **Interactions** : aucune. **Accessibilité** : chiffre et libellé dans le même `<p>` (lecture
   « 12 400 … » d'un seul tenant) ; focus éventuel `color-focus-ring` (9,86:1).
 - **États** : vide → section non rendue.

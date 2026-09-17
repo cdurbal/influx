@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { CreatorCardGrid } from "@/components/ui/CreatorCardGrid";
+import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import type { CreatorCard } from "@/content/landing-content";
 
@@ -24,7 +25,7 @@ export async function CreatorShowcaseSection({
         <SectionHeader
           titleId="creator-showcase-title"
           overline={t("overline")}
-          title={t("title")}
+          title={t.rich("title", mutedTitleTags)}
           lead={t("lead")}
           layout="split"
         />

@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { TrendingUpIcon } from "@/components/ui/icons";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
+import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import type { FeaturedResult } from "@/content/landing-content";
 
@@ -26,7 +27,7 @@ export async function FeaturedResultSection({
         <SectionHeader
           titleId="featured-result-title"
           overline={t("overline")}
-          title={t("title")}
+          title={t.rich("title", mutedTitleTags)}
           className="lg:col-span-6 lg:col-start-7 lg:row-start-1 lg:self-end"
         />
         <ResponsiveImage

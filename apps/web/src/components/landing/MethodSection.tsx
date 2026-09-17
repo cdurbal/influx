@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { Accordion, type AccordionItem } from "@/components/ui/Accordion";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
+import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import type { LandingImage } from "@/content/landing-content";
 
@@ -32,7 +33,7 @@ export async function MethodSection({ image }: MethodSectionProps) {
         <SectionHeader
           titleId="method-title"
           overline={t("overline")}
-          title={t("title")}
+          title={t.rich("title", mutedTitleTags)}
           lead={t("lead")}
           className="lg:col-span-7"
         />

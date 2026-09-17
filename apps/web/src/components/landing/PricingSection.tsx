@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { cn } from "@/components/ui/class-names";
 import { CheckIcon, InfoIcon } from "@/components/ui/icons";
+import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 
 /*
@@ -30,11 +31,11 @@ export async function PricingSection() {
           <SectionHeader
             titleId="pricing-title"
             overline={t("overline")}
-            title={t("title")}
+            title={t.rich("title", mutedTitleTags)}
             lead={t("lead")}
           />
 
-          <div className="flex flex-col gap-6 rounded-xl bg-surface-card p-inset-card shadow-sm">
+          <div className="flex flex-col gap-6 rounded-xl border-(length:--border-width-thin) border-border-default bg-metal-card p-inset-card shadow-lg">
             <div className="flex flex-col gap-4">
               <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <span className="text-heading-3 font-semibold text-text-primary">

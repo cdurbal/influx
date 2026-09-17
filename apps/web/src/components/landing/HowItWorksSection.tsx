@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { AudienceDoors } from "@/components/ui/AudienceDoors";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
+import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import type { HowItWorksStepId, LandingImage } from "@/content/landing-content";
 
@@ -27,7 +28,7 @@ export async function HowItWorksSection({ images }: HowItWorksSectionProps) {
         <SectionHeader
           titleId="how-it-works-title"
           overline={t("overline")}
-          title={t("title")}
+          title={t.rich("title", mutedTitleTags)}
           lead={t("lead")}
         />
         <ol className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-grid-gap">

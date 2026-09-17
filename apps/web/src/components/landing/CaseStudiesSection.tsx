@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/Button";
 import { Carousel, type CarouselSlide } from "@/components/ui/Carousel";
 import { PlayIcon } from "@/components/ui/icons";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
+import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import type { CaseStudies } from "@/content/landing-content";
 
@@ -76,7 +77,7 @@ export async function CaseStudiesSection({
         <SectionHeader
           titleId="case-studies-title"
           overline={t("caseStudies.overline")}
-          title={t("caseStudies.title")}
+          title={t.rich("caseStudies.title", mutedTitleTags)}
           lead={t("caseStudies.lead")}
         />
         <Carousel

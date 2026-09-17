@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/Button";
 import { CreatorCardGrid } from "@/components/ui/CreatorCardGrid";
+import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import type { CreatorNetwork } from "@/content/landing-content";
 
@@ -30,7 +31,7 @@ export async function CreatorNetworkSection({
           <SectionHeader
             titleId="creator-network-title"
             overline={t("creatorNetwork.overline")}
-            title={t("creatorNetwork.title")}
+            title={t.rich("creatorNetwork.title", mutedTitleTags)}
             lead={t("creatorNetwork.lead")}
             className="lg:col-span-7"
           />

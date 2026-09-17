@@ -50,23 +50,23 @@
   },
   "hero": {
     "overline": "Marketplace marques et créateurs",
-    "title": "Marques et créateurs : de la rencontre au contrat, au même endroit",
+    "title": "Marques et créateurs : <muted>de la rencontre au contrat, au même endroit</muted>",
     "lead": "L’équipe INFLUX propose aux marques des créateurs vérifiés et aux créateurs des campagnes qui leur ressemblent. Messagerie, contrat et paiement : tout se passe ici.",
     "reassurance": "Inscription gratuite. Commission INFLUX uniquement sur les contrats signés.",
     "visualChip": "Nouvelle proposition reçue"
   },
   "keyFigure": {
     "srTitle": "INFLUX en chiffres",
-    "statement": "{value, plural, one {<highlight>#</highlight> contrat signé} other {<highlight>#</highlight> contrats signés}} entre marques et créateurs dans INFLUX"
+    "statement": "{value, plural, one {<highlight>#</highlight> contrat signé} other {<highlight>#</highlight> contrats signés}} <muted>entre marques et créateurs dans INFLUX</muted>"
   },
   "creatorShowcase": {
     "overline": "Créateurs sélectionnés",
-    "title": "Des profils vérifiés, choisis pour votre brief",
+    "title": "Des profils vérifiés, <muted>choisis pour votre brief</muted>",
     "lead": "Pour chaque campagne, notre équipe vous propose des créateurs dont la thématique, l’audience et les formats répondent à votre brief. Vous décidez avec qui avancer."
   },
   "featuredResult": {
     "overline": "Résultat de campagne",
-    "title": "Quand le profil colle au produit, l’audience répond",
+    "title": "Quand le profil colle au produit, <muted>l’audience répond</muted>",
     "valueDisplay": "{value, number, ::percent .0}",
     "trendDisplay": "{value, number, ::sign-always .0} pt en {months, plural, one {# mois} other {# mois}}",
     "trendUp": "en hausse"
@@ -76,14 +76,14 @@
   },
   "caseStudies": {
     "overline": "Études de cas",
-    "title": "Campagnes signées et livrées dans INFLUX",
+    "title": "Campagnes signées <muted>et livrées dans INFLUX</muted>",
     "lead": "Chaque exemple précise le secteur, les formats, la durée et le nombre de créateurs, avec l’indicateur suivi par la marque.",
     "metricDisplay": "{value, number, ::percent sign-always}",
     "videoButton": "Voir la vidéo"
   },
   "problem": {
     "overline": "Ce qui freine vos campagnes",
-    "title": "Entre relances et accords informels, les collaborations s’enlisent",
+    "title": "Entre relances et accords informels, <muted>les collaborations s’enlisent</muted>",
     "lead": "Messages sans réponse, tarifs flous, accords passés en quelques lignes : sans cadre commun, chaque collaboration repart de zéro.",
     "painPoints": {
       "search": "Des heures à repérer des profils, sans savoir si leurs statistiques sont fiables.",
@@ -100,7 +100,7 @@
   },
   "method": {
     "overline": "Notre méthode",
-    "title": "Du brief au reversement, six étapes suivies par l’équipe",
+    "title": "Du brief au reversement, <muted>six étapes suivies par l’équipe</muted>",
     "lead": "L’équipe INFLUX intervient à chaque étape clé. Tout se passe dans la plateforme et reste tracé, pour protéger la marque comme le créateur.",
     "steps": {
       "brief": {
@@ -131,13 +131,13 @@
   },
   "creatorNetwork": {
     "overline": "Réseau de créateurs",
-    "title": "Votre profil présenté par l’équipe aux marques de votre univers",
+    "title": "Votre profil présenté par l’équipe <muted>aux marques de votre univers</muted>",
     "lead": "Complétez votre profil, faites vérifier vos statistiques et consultez les campagnes ouvertes. Votre pseudo reste masqué jusqu’à la signature du contrat.",
     "countLabel": "{count, plural, one {<highlight>#</highlight> créateur vérifié} other {<highlight>#</highlight> créateurs vérifiés}}"
   },
   "useCases": {
     "overline": "Cas d’usage",
-    "title": "Votre objectif guide le choix des créateurs",
+    "title": "Votre objectif <muted>guide le choix des créateurs</muted>",
     "lead": "Contenus pour vos canaux, offre à relayer, sortie d’un produit ou présence dans la durée : indiquez votre objectif dans le brief, l’équipe s’en sert pour choisir les profils.",
     "formatsLabel": "Formats :",
     "items": {
@@ -165,7 +165,7 @@
   },
   "howItWorks": {
     "overline": "Pour commencer",
-    "title": "Trois étapes pour démarrer, que vous soyez marque ou créateur",
+    "title": "Trois étapes pour démarrer, <muted>que vous soyez marque ou créateur</muted>",
     "lead": "L’inscription est gratuite et ne demande que l’essentiel. Plus votre profil est complet, mieux l’équipe peut vous proposer des mises en relation pertinentes.",
     "audience": {
       "advertiser": "Marques :",
@@ -192,7 +192,7 @@
   },
   "pricing": {
     "overline": "Tarifs transparents",
-    "title": "Gratuit à l’inscription, commission seulement sur contrat signé",
+    "title": "Gratuit à l’inscription, <muted>commission seulement sur contrat signé</muted>",
     "lead": "La commission INFLUX est le prix d’un service : sélection des créateurs par l’équipe, messagerie dédiée, contrat et paiement sécurisés. Rien n’est dû à INFLUX sans contrat signé.",
     "rate": {
       "label": "Commission INFLUX",
@@ -260,7 +260,7 @@
   },
   "whyInflux": {
     "overline": "Pourquoi INFLUX",
-    "title": "Tout est fait pour que la collaboration aboutisse",
+    "title": "Tout est fait <muted>pour que la collaboration aboutisse</muted>",
     "lead": "Une équipe qui sélectionne, un cadre qui protège, un seul endroit pour tout suivre : voici ce que la commission INFLUX vous apporte.",
     "items": {
       "qualifiedMatching": {
@@ -279,7 +279,7 @@
   },
   "faq": {
     "overline": "Questions fréquentes",
-    "title": "Tout savoir avant de vous inscrire",
+    "title": "Tout savoir <muted>avant de vous inscrire</muted>",
     "lead": "Argent, pays, profils, messagerie : l’essentiel à savoir, pour les marques comme pour les créateurs.",
     "items": {
       "signupCost": {
@@ -318,12 +318,12 @@
     "contactPrompt": "Une autre question ? Écrivez-nous :"
   },
   "finalCta": {
-    "title": "Votre prochaine collaboration commence ici",
+    "title": "Votre prochaine collaboration <muted>commence ici</muted>",
     "lead": "Marques, publiez votre brief. Créateurs, complétez votre profil. L’équipe INFLUX fait les présentations."
   },
   "startForm": {
     "overline": "Créer un compte",
-    "title": "Créez votre compte en trois étapes",
+    "title": "Créez votre compte <muted>en trois étapes</muted>",
     "lead": "Choisissez votre profil, indiquez l’essentiel, puis acceptez les conditions. Le reste de votre profil se complète ensuite, à votre rythme.",
     "reassurance": {
       "free": "Aucun abonnement : l’inscription est gratuite",

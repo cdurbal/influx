@@ -50,23 +50,23 @@
   },
   "hero": {
     "overline": "Brand and creator marketplace",
-    "title": "Brands and creators: from introduction to contract, in one place",
+    "title": "Brands and creators: <muted>from introduction to contract, in one place</muted>",
     "lead": "The INFLUX team introduces brands to verified creators, and creators to campaigns that fit them. Messaging, contract and payment all happen here.",
     "reassurance": "Free to sign up. INFLUX commission only on signed contracts.",
     "visualChip": "New proposal received"
   },
   "keyFigure": {
     "srTitle": "INFLUX in numbers",
-    "statement": "{value, plural, one {<highlight>#</highlight> contract signed} other {<highlight>#</highlight> contracts signed}} between brands and creators on INFLUX"
+    "statement": "{value, plural, one {<highlight>#</highlight> contract signed} other {<highlight>#</highlight> contracts signed}} <muted>between brands and creators on INFLUX</muted>"
   },
   "creatorShowcase": {
     "overline": "Hand-picked creators",
-    "title": "Verified profiles, chosen for your brief",
+    "title": "Verified profiles, <muted>chosen for your brief</muted>",
     "lead": "For each campaign, our team suggests creators whose topics, audience and formats fit your brief. You decide who to move forward with."
   },
   "featuredResult": {
     "overline": "Campaign result",
-    "title": "When the profile fits the product, the audience responds",
+    "title": "When the profile fits the product, <muted>the audience responds</muted>",
     "valueDisplay": "{value, number, ::percent .0}",
     "trendDisplay": "{value, number, ::sign-always .0} pts in {months, plural, one {# month} other {# months}}",
     "trendUp": "rising"
@@ -76,14 +76,14 @@
   },
   "caseStudies": {
     "overline": "Case studies",
-    "title": "Campaigns signed and delivered on INFLUX",
+    "title": "Campaigns signed <muted>and delivered on INFLUX</muted>",
     "lead": "Each example shows the sector, formats, duration and number of creators, along with the metric the brand tracked.",
     "metricDisplay": "{value, number, ::percent sign-always}",
     "videoButton": "Watch the video"
   },
   "problem": {
     "overline": "What slows your campaigns down",
-    "title": "Between follow-ups and informal deals, collaborations stall",
+    "title": "Between follow-ups and informal deals, <muted>collaborations stall</muted>",
     "lead": "Unanswered messages, unclear rates, deals agreed in a few lines: without a shared framework, every collaboration starts from scratch.",
     "painPoints": {
       "search": "Hours spent spotting profiles, without knowing if their stats are reliable.",
@@ -100,7 +100,7 @@
   },
   "method": {
     "overline": "Our method",
-    "title": "From brief to payout, six steps overseen by our team",
+    "title": "From brief to payout, <muted>six steps overseen by our team</muted>",
     "lead": "The INFLUX team steps in at key stages. Everything happens on the platform and stays on record, protecting brands and creators alike.",
     "steps": {
       "brief": {
@@ -131,13 +131,13 @@
   },
   "creatorNetwork": {
     "overline": "Creator network",
-    "title": "Our team presents your profile to brands in your space",
+    "title": "Our team presents your profile <muted>to brands in your space</muted>",
     "lead": "Complete your profile, get your stats verified and browse open campaigns. Your username stays hidden until the contract is signed.",
     "countLabel": "{count, plural, one {<highlight>#</highlight> verified creator} other {<highlight>#</highlight> verified creators}}"
   },
   "useCases": {
     "overline": "Use cases",
-    "title": "Your goal shapes which creators we suggest",
+    "title": "Your goal <muted>shapes which creators we suggest</muted>",
     "lead": "Content for your channels, an offer to push, a product release or a lasting presence: state your goal in the brief, and our team uses it to pick profiles.",
     "formatsLabel": "Formats:",
     "items": {
@@ -165,7 +165,7 @@
   },
   "howItWorks": {
     "overline": "Getting started",
-    "title": "Three steps to get started, whether you’re a brand or a creator",
+    "title": "Three steps to get started, <muted>whether you’re a brand or a creator</muted>",
     "lead": "Signing up is free and only asks for the essentials. The more complete your profile, the better our team can suggest relevant introductions.",
     "audience": {
       "advertiser": "Brands:",
@@ -192,7 +192,7 @@
   },
   "pricing": {
     "overline": "Transparent pricing",
-    "title": "Free to join, commission only on signed contracts",
+    "title": "Free to join, <muted>commission only on signed contracts</muted>",
     "lead": "The INFLUX commission is the price of a service: team-selected creators, dedicated messaging, secure contract and payment. Nothing is owed to INFLUX without a signed contract.",
     "rate": {
       "label": "INFLUX commission",
@@ -260,7 +260,7 @@
   },
   "whyInflux": {
     "overline": "Why INFLUX",
-    "title": "Built to see every collaboration through",
+    "title": "Built to see <muted>every collaboration through</muted>",
     "lead": "A team that selects, a framework that protects, one place to follow everything: that’s what the INFLUX commission pays for.",
     "items": {
       "qualifiedMatching": {
@@ -279,7 +279,7 @@
   },
   "faq": {
     "overline": "Frequently asked questions",
-    "title": "What to know before you sign up",
+    "title": "What to know <muted>before you sign up</muted>",
     "lead": "Money, countries, profiles, messaging: the essentials, for brands and creators alike.",
     "items": {
       "signupCost": {
@@ -318,12 +318,12 @@
     "contactPrompt": "Another question? Write to us:"
   },
   "finalCta": {
-    "title": "Your next collaboration starts here",
+    "title": "Your next collaboration <muted>starts here</muted>",
     "lead": "Brands, publish your brief. Creators, complete your profile. The INFLUX team makes the introductions."
   },
   "startForm": {
     "overline": "Create an account",
-    "title": "Create your account in three steps",
+    "title": "Create your account <muted>in three steps</muted>",
     "lead": "Choose your profile, enter the essentials, then accept the terms. You can complete the rest of your profile later, at your own pace.",
     "reassurance": {
       "free": "No subscription: signing up is free",

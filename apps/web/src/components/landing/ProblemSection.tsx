@@ -9,6 +9,7 @@ import {
   RepeatIcon,
 } from "@/components/ui/icons";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
+import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import type { ProblemContent } from "@/content/landing-content";
 
@@ -37,7 +38,7 @@ export async function ProblemSection({ content }: ProblemSectionProps) {
           <SectionHeader
             titleId="problem-title"
             overline={t("problem.overline")}
-            title={t("problem.title")}
+            title={t.rich("problem.title", mutedTitleTags)}
             lead={t("problem.lead")}
           />
           <ul className="flex flex-col gap-4">
@@ -63,7 +64,7 @@ export async function ProblemSection({ content }: ProblemSectionProps) {
               sizes="sideDecoration"
               className="hidden aspect-4/5 w-9/12 self-end rounded-lg lg:block"
             />
-            <div className="z-(--z-raised) flex flex-col rounded-xl border-(length:--border-width-thin) border-border-default bg-surface-card shadow-lg lg:absolute lg:top-1/2 lg:left-0 lg:w-8/12 lg:-translate-y-1/2">
+            <div className="z-(--z-raised) flex flex-col rounded-xl border-(length:--border-width-thin) border-border-default bg-metal-card shadow-lg lg:absolute lg:top-1/2 lg:left-0 lg:w-8/12 lg:-translate-y-1/2">
               <p className="flex items-center gap-2 border-b-(length:--border-width-thin) border-border-subtle px-inset-card py-4 font-semibold text-text-primary">
                 <LockIcon
                   aria-hidden="true"

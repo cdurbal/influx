@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { mutedTitleTags } from "@/components/ui/rich-text";
 import type { KeyFigure } from "@/content/landing-content";
 
 type KeyFigureSectionProps = {
@@ -10,27 +11,27 @@ export async function KeyFigureSection({ figure }: KeyFigureSectionProps) {
   const t = await getTranslations("landing.keyFigure");
 
   return (
-    <section
-      aria-labelledby="key-figure-title"
-      className="bg-surface-accent text-text-on-accent"
-    >
+    <section aria-labelledby="key-figure-title" className="bg-surface-muted">
       <h2 id="key-figure-title" className="sr-only">
         {t("srTitle")}
       </h2>
-      <div className="mx-auto flex max-w-(--container-max) flex-col gap-2 px-page-gutter py-8 text-center lg:py-10 lg:text-left">
-        <p className="flex flex-col items-center gap-2 text-heading-3 font-semibold lg:flex-row lg:gap-grid-gap">
-          {t.rich("statement", {
-            value: figure.value,
-            highlight: (chunks) => (
-              <span className="text-figure-xl font-extrabold tracking-display tabular-nums lg:w-5/12 lg:shrink-0">
-                {chunks}
-              </span>
-            ),
-          })}
-        </p>
-        <p className="text-sm text-text-secondary lg:ml-auto lg:w-7/12">
-          {figure.sourceNote}
-        </p>
+      <div className="mx-auto px-page-gutter py-section-block">
+        <div className="mx-auto flex max-w-(--container-max) flex-col gap-2 rounded-xl border-(length:--border-width-thin) border-border-default bg-metal-card p-inset-card text-center shadow-lg lg:text-left">
+          <p className="flex flex-col items-center gap-2 text-heading-3 font-semibold text-text-primary lg:flex-row lg:gap-grid-gap">
+            {t.rich("statement", {
+              value: figure.value,
+              highlight: (chunks) => (
+                <span className="text-figure-xl font-extrabold tracking-display text-text-brand-strong tabular-nums lg:w-5/12 lg:shrink-0">
+                  {chunks}
+                </span>
+              ),
+              muted: mutedTitleTags.muted,
+            })}
+          </p>
+          <p className="text-sm text-text-secondary lg:ml-auto lg:w-7/12">
+            {figure.sourceNote}
+          </p>
+        </div>
       </div>
     </section>
   );
