@@ -11,6 +11,7 @@ export const IMAGE_SIZES = {
   thirdDesktop: "(min-width: 1024px) 400px, 100vw",
   caseStudy: "(min-width: 1024px) 500px, 90vw",
   sideDecoration: "(min-width: 1024px) 500px, 1px",
+  badgeIcon: "32px",
 } as const;
 
 export type ImageSizesKey = keyof typeof IMAGE_SIZES;

@@ -72,6 +72,9 @@
   --color-border-error: #f87171;
   --color-border-inverse: #d4d4d8;
 
+  /* ---------- Color: decorative video progress bar (hero short-video mockup) ---------- */
+  --color-decorative-progress: #f61c0d88;
+
   /* ---------- Colors: feedback, distinct from brand green (03 §2.5) ---------- */
   --color-feedback-success-text: #2dd4bf;
   --color-feedback-success-bg: #0d2b28;
@@ -146,6 +149,30 @@
       rgba(255, 255, 255, 0.04) 76%,
       transparent 96%
     );
+
+  /*
+   * ---------- Background: phone-frame brushed metal (PhoneFrame, hero short-video visual) ------
+   * Unlike background-image-metal-card's single diagonal sheen, a phone's rounded aluminium/steel
+   * band catches light along BOTH its left and right edges at once when viewed frontally: two
+   * vertical rim-light bands near each side, on a near-black body, plus the same soft top-left
+   * spotlight and top-to-bottom falloff as the rest of the metal system for visual consistency.
+   */
+  --background-image-phone-metal:
+    linear-gradient(
+      90deg,
+      #050505 0%,
+      #0a0a0a 3%,
+      #4b4b54 6%,
+      #16161a 10%,
+      #050505 46%,
+      #050505 54%,
+      #16161a 90%,
+      #5a5a64 94%,
+      #0a0a0a 97%,
+      #050505 100%
+    ),
+    radial-gradient(120% 90% at 15% -10%, rgba(255, 255, 255, 0.18), transparent 55%),
+    linear-gradient(180deg, #1c1c1f 0%, #0a0a0a 40%, #030303 100%);
 
   /* ---------- Typography: families (03 §4.1) ---------- */
   --font-base:
@@ -251,6 +278,17 @@
   --shadow-metal-card:
     inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.5),
     0 24px 56px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  /*
+   * Visible device thickness for PhoneFrame: two solid, unblurred steps offset down and to the
+   * side (they follow its border-radius, unlike a blurred drop shadow) read as the dark bevelled
+   * edge of a physical phone body seen from an angle, matching the direction of
+   * rotate-y-hero-main-y. Inset hairlines bevel the rim where it meets the screen, on top of the
+   * same rim-light elevation as shadow-lg.
+   */
+  --shadow-phone-frame:
+    3px 5px 0 0 #030303, 6px 10px 0 0 #000000,
+    inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.6),
+    0 28px 60px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.07);
 
   /*
    * ---------- Hero metal-card visuals (fondateur, 2026-09-17) ----------
@@ -265,7 +303,11 @@
    * handling needed.
    */
   --aspect-card-id1: 53.98 / 85.6;
+  /** Portrait smartphone screen ratio, used by PhoneFrame (short-video hero visual). */
+  --aspect-phone-frame: 9 / 19.5;
   --perspective-hero-card: 900px;
+  --size-phone-notch-width: 5rem;
+  --size-phone-notch-height: 1.25rem;
   --rotate-hero-main-x: 6deg;
   --rotate-hero-main-y: -16deg;
   --rotate-hero-secondary-x: -8deg;
