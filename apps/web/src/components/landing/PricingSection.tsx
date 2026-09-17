@@ -35,7 +35,7 @@ export async function PricingSection() {
             lead={t("lead")}
           />
 
-          <div className="flex flex-col gap-6 rounded-xl border-(length:--border-width-thin) border-border-default bg-metal-card p-inset-card shadow-lg">
+          <div className="flex flex-col gap-6 rounded-xl border-(length:--border-width-thin) border-border-default bg-metal-card p-inset-card shadow-metal-card">
             <div className="flex flex-col gap-4">
               <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <span className="text-heading-3 font-semibold text-text-primary">

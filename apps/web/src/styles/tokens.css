@@ -102,15 +102,25 @@
 
   /*
    * ---------- Backgrounds: premium metal card (fondateur, 2026-09-17, effet carte métallisée
-   * inspiré de wekollab.fr) ----------
+   * inspiré de wekollab.fr ; intensité relevée le 2026-09-17 pour un rendu façon carte noire
+   * Visa Infinite) ----------
    * A single spotlight treatment for isolated premium elements (key figure, messaging mockup,
-   * pricing breakdown) — never for repeated card grids. Top-left sheen mimics light on brushed
-   * metal, paired with border-border-default and shadow-lg for the raised edge.
+   * pricing breakdown) — never for repeated card grids. A diagonal sheen mimics light raking
+   * across brushed metal, paired with border-border-default and shadow-metal-card for the
+   * beveled raised edge.
    */
   --background-image-metal-card:
-    radial-gradient(120% 140% at 18% -12%, rgba(255, 255, 255, 0.14), transparent 55%),
-    radial-gradient(90% 100% at 100% 115%, rgba(255, 255, 255, 0.05), transparent 60%),
-    linear-gradient(160deg, #2a2a2f 0%, #17171a 45%, #0a0a0b 100%);
+    linear-gradient(
+      115deg,
+      transparent 32%,
+      rgba(255, 255, 255, 0.05) 46%,
+      rgba(255, 255, 255, 0.12) 50%,
+      rgba(255, 255, 255, 0.05) 54%,
+      transparent 68%
+    ),
+    radial-gradient(120% 140% at 18% -12%, rgba(255, 255, 255, 0.2), transparent 55%),
+    radial-gradient(90% 100% at 100% 115%, rgba(255, 255, 255, 0.06), transparent 60%),
+    linear-gradient(160deg, #2e2e33 0%, #19191c 45%, #08080a 100%);
 
   /* ---------- Typography: families (03 §4.1) ---------- */
   --font-base:
@@ -208,6 +218,14 @@
     0 8px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
   --shadow-lg:
     0 24px 56px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  /*
+   * Dedicated elevation for the premium metal-card spotlight (background-image-metal-card):
+   * same outer rim-light shadow as shadow-lg, plus two inset hairlines (light top / dark bottom)
+   * to read as a beveled metal edge, like the rigid edge of a Visa Infinite-style black card.
+   */
+  --shadow-metal-card:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+    0 24px 56px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
 
   /* ---------- Breakpoints, mobile-first (03 §6) ---------- */
   --breakpoint-sm: 480px;

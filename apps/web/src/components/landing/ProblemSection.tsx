@@ -64,7 +64,7 @@ export async function ProblemSection({ content }: ProblemSectionProps) {
               sizes="sideDecoration"
               className="hidden aspect-4/5 w-9/12 self-end rounded-lg lg:block"
             />
-            <div className="z-(--z-raised) flex flex-col rounded-xl border-(length:--border-width-thin) border-border-default bg-metal-card shadow-lg lg:absolute lg:top-1/2 lg:left-0 lg:w-8/12 lg:-translate-y-1/2">
+            <div className="z-(--z-raised) flex flex-col rounded-xl border-(length:--border-width-thin) border-border-default bg-metal-card shadow-metal-card lg:absolute lg:top-1/2 lg:left-0 lg:w-8/12 lg:-translate-y-1/2">
               <p className="flex items-center gap-2 border-b-(length:--border-width-thin) border-border-subtle px-inset-card py-4 font-semibold text-text-primary">
                 <LockIcon
                   aria-hidden="true"

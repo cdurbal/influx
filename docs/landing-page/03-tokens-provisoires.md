@@ -90,7 +90,7 @@ La proposition repose sur **deux verts complémentaires**, recalibrés pour rest
 | `color-surface-inverse` | `#F5F5F7` | Appel final (section 15), pied de page, cadre de la maquette de téléphone — bloc **clair** posé sur la page sombre, effet de contraste assumé |
 | `color-surface-inverse-raised` | `#E8E8EA` | Cartes, bulles et survol sur les sections claires « inverse » |
 | `color-overlay-scrim` | `rgba(0, 0, 0, 0.7)` | Voile derrière le menu mobile ouvert |
-| `background-image-metal-card` | `radial-gradient(...) , radial-gradient(...), linear-gradient(160deg, #2A2A2F, #17171A, #0A0A0B)` | Fond « carte métallisée » premium (fondateur, 2026-09-17, inspiré de wekollab.fr) : bandeau chiffre clé (section 2), carte de mock messagerie (section 7), panneau de détail de la commission (section 12). Toujours combiné à `border-border-default` et `shadow-lg`. Réservé à un élément isolé par section, jamais à une grille de cartes répétées |
+| `background-image-metal-card` | `linear-gradient(115deg, ...) , radial-gradient(...) , radial-gradient(...), linear-gradient(160deg, #2E2E33, #19191C, #08080A)` | Fond « carte métallisée » premium (fondateur, 2026-09-17, inspiré de wekollab.fr ; intensité relevée le 2026-09-17 pour un rendu façon carte noire Visa Infinite, avec bande de reflet diagonale) : bandeau chiffre clé (section 2), carte de mock messagerie (section 7), panneau de détail de la commission (section 12). Toujours combiné à `border-border-default` et `shadow-metal-card`. Réservé à un élément isolé par section, jamais à une grille de cartes répétées |
 
 ### 2.4 Bordures et séparateurs
 
@@ -357,6 +357,7 @@ enrichis par `min-width`.
 | `shadow-sm` | `0 1px 2px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04)` | Cartes au repos |
 | `shadow-md` | `0 8px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)` | Cartes survolées, carte du formulaire |
 | `shadow-lg` | `0 24px 56px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06)` | Bannière cookies, menu mobile, maquette de téléphone |
+| `shadow-metal-card` | `inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.5), 0 24px 56px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06)` | Bord biseauté du fond `background-image-metal-card` (bandeau chiffre clé, mock messagerie, détail commission) — filets internes haut clair / bas sombre en plus de l'ombre externe, effet tranche de carte métallique |
 
 **Mise à jour dark theme (2026-09-17).** Une ombre portée noire pure se voit à peine sur un fond
 déjà quasi noir : chaque niveau ajoute donc un filet quasi transparent blanc (`rgba(255,255,255,…)`

@@ -16,7 +16,7 @@ export async function KeyFigureSection({ figure }: KeyFigureSectionProps) {
         {t("srTitle")}
       </h2>
       <div className="mx-auto px-page-gutter py-section-block">
-        <div className="mx-auto flex max-w-(--container-max) flex-col gap-2 rounded-xl border-(length:--border-width-thin) border-border-default bg-metal-card p-inset-card text-center shadow-lg lg:text-left">
+        <div className="mx-auto flex max-w-(--container-max) flex-col gap-2 rounded-xl border-(length:--border-width-thin) border-border-default bg-metal-card p-inset-card text-center shadow-metal-card lg:text-left">
           <p className="flex flex-col items-center gap-2 text-heading-3 font-semibold text-text-primary lg:flex-row lg:gap-grid-gap">
             {t.rich("statement", {
               value: figure.value,
