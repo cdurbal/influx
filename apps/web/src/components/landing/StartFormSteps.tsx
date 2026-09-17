@@ -211,7 +211,7 @@ export function StartFormSteps({
 
   if (step === "done") {
     return (
-      <div className="rounded-lg bg-surface-raised p-inset-card shadow-md">
+      <div className="rounded-xl border-(length:--border-width-thin) border-border-default bg-metal-card p-inset-card shadow-metal-card">
         <div className="flex flex-col items-start gap-4 rounded-md border-(length:--border-width-thin) border-feedback-info-border bg-feedback-info-bg p-inset-card">
           <h3
             id={`${ID}-notice-title`}
@@ -239,7 +239,7 @@ export function StartFormSteps({
   const isCreator = values.profile === "creator";
 
   return (
-    <div className="rounded-lg bg-surface-raised p-inset-card shadow-md">
+    <div className="rounded-xl border-(length:--border-width-thin) border-border-default bg-metal-card p-inset-card shadow-metal-card">
       <form
         aria-labelledby={titleId}
         noValidate
