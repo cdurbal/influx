@@ -1,0 +1,20 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Supply-chain protections (docs/landing-page/01-architecture.md §3 and §9.1)
+# Refuse any version published less than one day ago (value in minutes).
+minimumReleaseAge: 1440
+# Dependency install scripts are blocked unless explicitly allowed below.
+strictDepBuilds: true
+# Refuse transitive dependencies coming from git, tarball URLs or other exotic sources.
+blockExoticSubdeps: true
+# Exact versions in package.json.
+savePrefix: ""
+
+# Build scripts: false by default; true only when build or dev fails without it (01 §12).
+# These packages ship prebuilt binaries: their install scripts are not needed.
+allowBuilds:
+  "@parcel/watcher": false
+  "@swc/core": false
+  unrs-resolver: false

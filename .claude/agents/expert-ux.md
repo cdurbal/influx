@@ -1,6 +1,6 @@
 ---
 name: expert-ux
-description: Responsable de l'expérience utilisateur et du design system d'INFLUX. Conçoit les parcours annonceur, influenceur et backoffice, définit la charte noir/vert et veille à l'accessibilité. Référence concurrentielle à égaler : wekollab.fr. À solliciter avant la conception de tout écran.
+description: "Responsable de l'expérience utilisateur et du design system d'INFLUX. Conçoit les parcours annonceur, influenceur et backoffice, définit la charte noir/vert et veille à l'accessibilité. Référence concurrentielle à égaler : wekollab.fr. À solliciter avant la conception de tout écran."
 tools: Read, Grep, Glob, Write, Edit, WebFetch, WebSearch
 model: opus
 color: green

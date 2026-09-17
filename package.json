@@ -1,0 +1,22 @@
+{
+  "name": "influx",
+  "private": true,
+  "packageManager": "pnpm@11.27.0",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @influx/web dev",
+    "start": "pnpm --filter @influx/web start",
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck",
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm format:check && pnpm typecheck && pnpm lint && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "prettier": "3.9.6"
+  }
+}
