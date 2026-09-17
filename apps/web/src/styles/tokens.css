@@ -61,6 +61,8 @@
   --color-surface-inverse: #f5f5f7;
   --color-surface-inverse-raised: #e8e8ea;
   --color-overlay-scrim: rgba(0, 0, 0, 0.7);
+  /* Fill of the blurred, rotated hero halo rectangle (03 §9 ter) — color-text-primary at 7%. */
+  --color-overlay-hero-halo: rgba(245, 245, 247, 0.07);
 
   /* ---------- Colors: borders (03 §2.4) ---------- */
   --color-border-subtle: #1c1c1f;
@@ -121,6 +123,29 @@
     radial-gradient(120% 140% at 18% -12%, rgba(255, 255, 255, 0.2), transparent 55%),
     radial-gradient(90% 100% at 100% 115%, rgba(255, 255, 255, 0.06), transparent 60%),
     linear-gradient(160deg, #2e2e33 0%, #19191c 45%, #08080a 100%);
+
+  /*
+   * ---------- Backgrounds: section ambient halo (expert-ux, 2026-09-17, benchmark wekollab.fr,
+   * angle and softness confirmed on a reference screenshot from the fondateur) ----------
+   * A soft diagonal beam of light across a whole section — the same raking-light technique as
+   * `background-image-metal-card`'s diagonal sheen, stretched from one isolated element to the
+   * full section, echoing the halo above wekollab.fr's proof section. Off-center toward the
+   * right so it reads as ambient light drifting across the section, not a reflection on one piece
+   * of content (that reading stays reserved for `background-image-metal-card`). Purely
+   * decorative: paired with `aria-hidden`, no pointer events, and a negative z-index (`z-behind`)
+   * so it never sits above the section's own content. Peak opacity (7%) keeps it far below
+   * anything that could affect the WCAG AA contrast of the text painted above it.
+   */
+  --background-image-halo-ambient:
+    linear-gradient(
+      100deg,
+      transparent 18%,
+      rgba(255, 255, 255, 0.02) 38%,
+      rgba(255, 255, 255, 0.05) 52%,
+      rgba(255, 255, 255, 0.09) 63%,
+      rgba(255, 255, 255, 0.04) 76%,
+      transparent 96%
+    );
 
   /* ---------- Typography: families (03 §4.1) ---------- */
   --font-base:
@@ -246,6 +271,20 @@
   --rotate-hero-secondary-x: -8deg;
   --rotate-hero-secondary-y: 18deg;
 
+  /*
+   * ---------- Hero ambient halo (expert-ux, 2026-09-17, reproduit d'un élément de référence
+   * wekollab.fr fourni par le fondateur) ----------
+   * A single blurred, rotated rectangle of foreground color behind the hero photos: the blur
+   * itself creates the soft falloff, so unlike `background-image-halo-ambient` (section 6) no
+   * gradient stops are needed. Sized against the whole hero section (not just the photo column)
+   * via a dedicated `absolute inset-0 overflow-hidden` layer, so it isn't clipped to a sliver
+   * behind the cards. `lg` only, alongside the rest of the fanned-card treatment; geometry
+   * (position, size) lives in :root, consumed via `top-(--…)` etc. Static, so no
+   * `prefers-reduced-motion` handling needed.
+   */
+  --rotate-hero-halo: 14deg;
+  --blur-hero-halo: 40px;
+
   /* ---------- Breakpoints, mobile-first (03 §6) ---------- */
   --breakpoint-sm: 480px;
   --breakpoint-md: 768px;
@@ -273,6 +312,9 @@
 /* Tokens without a Tailwind namespace (01 §4, 02 §2.9). */
 :root {
   /* Stacking (03 §10) */
+  /* Decorative layer sitting behind a section's in-flow content (e.g. the ambient halo): the
+   * section needs `isolate` so this negative value stays scoped to it. */
+  --z-behind: -1;
   --z-base: 0;
   --z-raised: 10;
   --z-header: 100;
@@ -302,6 +344,16 @@
   --size-mobile-menu-max-height: calc(100dvh - var(--header-height));
   /* Derived, no new visual value: carousel slide leaves space-7 of the next slide visible (02 §3.8) */
   --size-carousel-slide: calc(100% - var(--spacing-7));
+  /*
+   * Hero ambient halo geometry (see --rotate-hero-halo/--blur-hero-halo): position and size of
+   * the blurred rectangle within the whole hero section (not just the photo column, so it isn't
+   * clipped to a sliver behind the cards), consumed as top/left/w/h arbitrary values. Reproduced
+   * from a wekollab.fr reference element (fondateur, 2026-09-17).
+   */
+  --inset-hero-halo-top: -10%;
+  --inset-hero-halo-left: 56%;
+  --size-hero-halo-width: 26%;
+  --size-hero-halo-height: 130%;
 
   /* Borders and focus (03 §7) */
   --border-width-thin: 1px;

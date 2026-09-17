@@ -360,7 +360,14 @@ Desktop 1440
 
 - **Tokens** : rôles Overline, Display (`measure-heading`), Lead ; réassurance Small
   `color-text-secondary` + `[i:check]` `color-text-brand` ; puce `color-surface-raised`,
-  `shadow-md`, `radius-pill`, `font-size-sm`, `space-inset-button`.
+  `shadow-md`, `radius-pill`, `font-size-sm`, `space-inset-button`. Halo d'ambiance sur toute la
+  section (pas seulement la colonne photo, pour ne pas être réduit à un filet derrière les
+  cartes), ≥ `lg` seulement (`rotate-hero-halo`, `blur-hero-halo`, `inset-hero-halo-top`,
+  `inset-hero-halo-left`, `size-hero-halo-width`, `size-hero-halo-height`, `z-behind`,
+  fondateur 2026-09-17, reproduit d'un élément de référence wekollab.fr) : rectangle
+  `color-overlay-hero-halo` (`color-text-primary` à 7 % d'opacité), flouté et pivoté, dans une
+  couche dédiée `absolute inset-0 overflow-hidden` posée derrière le contenu de la section —
+  `aria-hidden`, sans effet sur le contraste.
 - **Images** : IMG-HERO-01 (informative, prioritaire) et IMG-HERO-02 (décorative, ≥ `lg`) sont
   chacune montées sur son propre cadre « carte métallisée » premium (fondateur, 2026-09-17,
   cohérent avec §3.4/§3.9/§3.12 : `background-image-metal-card`, `border-border-default`,
@@ -545,7 +552,10 @@ Mobile 375                          Desktop 1440
 
 - **Tokens** : `color-surface-muted` ; diapositive `color-surface-card`, `radius-lg`,
   `shadow-sm`, `space-inset-card` ; secteur `color-text-brand` (5,21:1 sur carte) ; indicateur
-  Figure `font-size-figure-lg` ; bordure visible de la suivante : `space-7` ; §2.5.
+  Figure `font-size-figure-lg` ; bordure visible de la suivante : `space-7` ; §2.5. Halo
+  d'ambiance en biais sur toute la section (`background-image-halo-ambient`, `z-behind`,
+  composant `SectionHalo`, fondateur 2026-09-17, inspiré de wekollab.fr) : section posée en
+  `relative isolate overflow-hidden`, halo `aria-hidden` sans effet sur le contraste.
 - **Images** : IMG-CASE-01 à 05 (informatives).
 - **Interactions** : `[◁]` `[▷]`, balayage. **Bouton vidéo : sans effet.**
 - **Accessibilité** : §2.5 ; chaque bouton vidéo a `aria-describedby` = le `h3` de sa diapositive

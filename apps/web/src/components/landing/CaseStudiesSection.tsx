@@ -4,6 +4,7 @@ import { Carousel, type CarouselSlide } from "@/components/ui/Carousel";
 import { PlayIcon } from "@/components/ui/icons";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
 import { mutedTitleTags } from "@/components/ui/rich-text";
+import { SectionHalo } from "@/components/ui/SectionHalo";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import type { CaseStudies } from "@/content/landing-content";
 
@@ -72,7 +73,11 @@ export async function CaseStudiesSection({
   );
 
   return (
-    <section aria-labelledby="case-studies-title" className="bg-surface-muted">
+    <section
+      aria-labelledby="case-studies-title"
+      className="relative isolate overflow-hidden bg-surface-muted"
+    >
+      <SectionHalo />
       <div className="mx-auto flex max-w-(--container-max) flex-col gap-section-header px-page-gutter py-section-block">
         <SectionHeader
           titleId="case-studies-title"

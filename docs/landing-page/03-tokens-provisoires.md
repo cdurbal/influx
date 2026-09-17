@@ -90,7 +90,9 @@ La proposition repose sur **deux verts complémentaires**, recalibrés pour rest
 | `color-surface-inverse` | `#F5F5F7` | Appel final (section 15), pied de page, cadre de la maquette de téléphone — bloc **clair** posé sur la page sombre, effet de contraste assumé |
 | `color-surface-inverse-raised` | `#E8E8EA` | Cartes, bulles et survol sur les sections claires « inverse » |
 | `color-overlay-scrim` | `rgba(0, 0, 0, 0.7)` | Voile derrière le menu mobile ouvert |
+| `color-overlay-hero-halo` | `rgba(245, 245, 247, 0.1)` | `color-text-primary` à 10 % d'opacité figé en token (pas de modificateur `/10` en dur, CA22) : remplissage du rectangle du halo d'ambiance du Hero (§9 ter), avant flou et rotation |
 | `background-image-metal-card` | `linear-gradient(115deg, ...) , radial-gradient(...) , radial-gradient(...), linear-gradient(160deg, #2E2E33, #19191C, #08080A)` | Fond « carte métallisée » premium (fondateur, 2026-09-17, inspiré de wekollab.fr ; intensité relevée le 2026-09-17 pour un rendu façon carte noire Visa Infinite, avec bande de reflet diagonale) : bandeau chiffre clé (section 2), carte de mock messagerie (section 7), panneau de détail de la commission (section 12). Toujours combiné à `border-border-default` et `shadow-metal-card`. Réservé à un élément isolé par section, jamais à une grille de cartes répétées |
+| `background-image-halo-ambient` | `linear-gradient(100deg, transparent 18%, rgba(255, 255, 255, 0.02) 38%, rgba(255, 255, 255, 0.05) 52%, rgba(255, 255, 255, 0.09) 63%, rgba(255, 255, 255, 0.04) 76%, transparent 96%)` | Halo lumineux d'ambiance en biais sur toute une section (expert-ux, 2026-09-17, inspiré du halo au-dessus de la section preuves de wekollab.fr, angle confirmé sur une capture de référence du fondateur) : même technique de reflet diagonal que `background-image-metal-card`, étendue à toute la section 6 (`SectionHalo`, `CaseStudiesSection.tsx`) via `z-behind`, sur une section en `relative isolate overflow-hidden`. Décalé vers la droite pour lire comme une lumière ambiante plutôt qu'un reflet posé sur un élément — cette lecture reste réservée à `background-image-metal-card`. Purement décoratif : `aria-hidden`, sans interaction, opacité crête 9 %, sans effet sur le contraste AA du texte posé au-dessus |
 
 ### 2.4 Bordures et séparateurs
 
@@ -429,10 +431,33 @@ cadre carte interne porte le ratio `aspect-card-id1` et les deux rotations — c
 doctrine « un élément isolé », appliquée ici à deux éléments distincts plutôt qu'à une grille
 répétée.
 
+### 9 ter. Halo d'ambiance du Hero
+
+| Token | Valeur | Usage |
+|---|---|---|
+| `rotate-hero-halo` | `14deg` | Rotation du rectangle flouté du halo (expert-ux, 2026-09-17, reproduit d'un élément de référence wekollab.fr fourni par le fondateur) |
+| `blur-hero-halo` | `40px` | Flou du rectangle : contrairement à `background-image-halo-ambient` (section 6, §2.3), c'est le flou lui-même qui crée le dégradé, pas des arrêts de couleur |
+| `inset-hero-halo-top` | `-10%` | Décalage vertical du halo par rapport à toute la section Hero (déborde légèrement en haut, contenu par `overflow-hidden`) |
+| `inset-hero-halo-left` | `56%` | Décalage horizontal du halo dans toute la section Hero |
+| `size-hero-halo-width` | `26%` | Largeur du halo, en % de toute la section Hero |
+| `size-hero-halo-height` | `130%` | Hauteur du halo, en % de toute la section Hero (déborde en haut et en bas, contenu par `overflow-hidden`) |
+
+Le halo est un simple rectangle `color-overlay-hero-halo` (`color-text-primary` à 7 % d'opacité,
+figé en token RGBA — pas de modificateur d'opacité numérique en dur, CA22), pivoté et flouté.
+Il est posé dans une couche dédiée `absolute inset-0 overflow-hidden`, **sibling** du contenu de
+la section plutôt qu'un ancêtre partagé avec les cartes : ça évite de réduire le halo à un filet
+coincé derrière les cartes (premier essai, corrigé par le fondateur, 2026-09-17) tout en laissant
+les ombres des cartes intactes (aucun risque de découpe par un `overflow-hidden` commun). Visible
+seulement à partir de `lg`, comme le reste du traitement « cartes en éventail ». Purement
+décoratif : `aria-hidden`, `z-behind` pour rester sous le contenu de la section, sans interaction,
+sans effet sur le contraste AA du texte (dimensionné pour rester du côté photo, jamais superposé
+au texte).
+
 ## 10. Superposition (z-index)
 
 | Token | Valeur | Usage |
 |---|---|---|
+| `z-behind` | `-1` | Halo d'ambiance décoratif (`background-image-halo-ambient`), derrière le contenu d'une section en `isolate` |
 | `z-base` | `0` | Contenu |
 | `z-raised` | `10` | Badges posés sur images, carte flottante du hero |
 | `z-header` | `100` | En-tête collant |

@@ -17,7 +17,13 @@ export async function HeroSection({ content }: HeroSectionProps) {
   const t = await getTranslations("landing.hero");
 
   return (
-    <section aria-labelledby="hero-title" className="bg-surface-page">
+    <section aria-labelledby="hero-title" className="relative isolate bg-surface-page">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block"
+      >
+        <div className="absolute top-(--inset-hero-halo-top) left-(--inset-hero-halo-left) z-(--z-behind) h-(--size-hero-halo-height) w-(--size-hero-halo-width) rotate-hero-halo bg-overlay-hero-halo blur-hero-halo" />
+      </div>
       <div className="mx-auto grid max-w-(--container-max) grid-cols-1 gap-8 px-page-gutter pt-6 pb-section-block lg:grid-cols-12 lg:items-center lg:gap-grid-gap lg:pt-section-block">
         <div className="flex flex-col gap-4 lg:col-span-6">
           <p className="text-sm font-semibold uppercase leading-snug tracking-overline text-text-brand">
