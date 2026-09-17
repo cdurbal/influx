@@ -9,7 +9,7 @@ type FinalCtaSectionProps = {
   cardsSourceNote: string;
 };
 
-/** Section 15 (02 §3.17): last reminder of the two doors, on a dark surface. */
+/** Section 15 (02 §3.17): last reminder of the two doors, on a slightly raised dark surface. */
 export async function FinalCtaSection({
   cards,
   cardsSourceNote,
@@ -18,11 +18,7 @@ export async function FinalCtaSection({
   const hasCards = cards.length > 0;
 
   return (
-    <section
-      aria-labelledby="final-cta-title"
-      data-surface="inverse"
-      className="bg-surface-inverse text-text-inverse"
-    >
+    <section aria-labelledby="final-cta-title" className="bg-surface-muted">
       <div className="mx-auto grid max-w-(--container-max) grid-cols-1 gap-8 px-page-gutter py-section-block lg:grid-cols-12 lg:items-center lg:gap-grid-gap">
         <div
           className={cn(
@@ -32,21 +28,20 @@ export async function FinalCtaSection({
         >
           <h2
             id="final-cta-title"
-            className="text-heading-2 font-bold tracking-heading text-text-inverse"
+            className="text-heading-2 font-bold tracking-heading text-text-primary"
           >
             {t("title")}
           </h2>
-          <p className="max-w-(--measure-text) text-lead text-text-inverse-secondary">
+          <p className="max-w-(--measure-text) text-lead text-text-secondary">
             {t("lead")}
           </p>
-          <AudienceDoors idPrefix="final-cta" tone="inverse" />
+          <AudienceDoors idPrefix="final-cta" />
         </div>
         {hasCards ? (
           <CreatorCardGrid
             cards={cards}
             sourceNote={cardsSourceNote}
             columnsClassName="lg:grid-cols-3"
-            tone="inverse"
             className="lg:col-span-7 lg:col-start-6"
           />
         ) : null}

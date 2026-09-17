@@ -11,10 +11,11 @@
  * Tailwind namespace (01 §4, 02 §2.9). Tokens without a Tailwind namespace live in :root and are
  * used as `z-(--z-header)`, `min-h-(--size-touch-target)`, `max-w-(--container-max)`, etc.
  *
- * Convention "inverse" : la base du site est sombre. Les tokens *-inverse (surface-inverse,
- * text-inverse, action-inverse-bg…) désignent donc les rares sections volontairement CLAIRES
- * posées sur la page sombre (footer, CTA final) — un effet de contraste assumé, pas une bascule
- * vers un thème clair global.
+ * Convention "inverse" : la base du site est sombre, sans exception (fondateur, 2026-09-17,
+ * abroge l'ancien principe de sections claires plein écran). Les tokens *-inverse
+ * (surface-inverse, text-inverse, action-inverse-bg…) ne servent plus qu'à des accents ponctuels
+ * de petite taille sur fond sombre (puce d'un graphique, cadre d'un mockup téléphone) — jamais à
+ * une section pleine largeur.
  */
 
 @theme static {

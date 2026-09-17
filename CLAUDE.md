@@ -193,7 +193,7 @@ tous les jours par l'équipe et porte la rentabilité opérationnelle.
 | Couleur de marque | **Vert** — couleur d'accent, d'action et de succès, recalibrée pour rester lisible (WCAG AA) et premium sur fond sombre |
 | Typographie | **Texte clair sur fond sombre** — contraste fort, lisibilité maximale |
 | Base | **Dark theme par défaut** : fond noir profond nuancé (pas de noir pur), surfaces qui s'éclaircissent légèrement par élévation (carte, survol, panneau surélevé), respiration généreuse |
-| Sections « inverse » | Quelques sections volontairement **claires** posées sur la page sombre (footer, CTA final) créent un effet de contraste assumé — ce n'est pas une bascule vers un thème clair global |
+| Fond de page | **Aucune exception.** L'arrière-plan reste sombre sur toute la plateforme, y compris le footer et le CTA final — décision du fondateur qui abroge l'ancien principe de sections « inverse » claires (2026-09-17). Les tokens `*-inverse` ne servent plus qu'à des accents ponctuels de petite taille (puce, cadre de mockup), jamais à une section pleine largeur. |
 | Référence | https://wekollab.fr/ — niveau de finition à égaler (sur wekollab, en clair ; l'exigence de finition et de clarté du parcours vaut aussi en dark) |
 
 **Les valeurs hexadécimales sont figées (D6 tranchée par le fondateur, 2026-09-17)** : dark theme
