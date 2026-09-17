@@ -42,9 +42,12 @@ function findMatches(pattern: RegExp, files: readonly string[]): string[] {
   );
 }
 
-describe("G1: no link, mailto or tel (CA6)", () => {
-  it("finds no href=, mailto: or tel:", () => {
-    expect(findMatches(/href=|mailto:|\btel:/, SCOPED_FILES)).toEqual([]);
+describe("G1: no mailto or tel shortcut (CA6, revised 00-cadrage.md §8)", () => {
+  // href= itself was reintroduced on 2026-09-17 for in-app navigation between the account/login
+  // pages (docs/landing-page/00-cadrage.md §8): only the CA6, no-href part is abrogated. Direct
+  // mailto:/tel: shortcuts stay forbidden — the contact e-mail remains plain text (CA6 residual).
+  it("finds no mailto: or tel:", () => {
+    expect(findMatches(/mailto:|\btel:/, SCOPED_FILES)).toEqual([]);
   });
 });
 

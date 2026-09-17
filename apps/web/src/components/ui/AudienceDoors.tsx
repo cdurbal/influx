@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
-import { Button } from "./Button";
 import { cn } from "./class-names";
+import { LinkButton } from "./LinkButton";
 
 type AudienceDoorsProps = {
   /** Unique prefix for the audience line ids referenced by aria-describedby. */
@@ -12,7 +12,8 @@ type AudienceDoorsProps = {
 
 /**
  * The "two doors" pair (02 §2.2): advertiser (primary) then creator (secondary), each preceded by
- * a line naming its audience, linked to the button with aria-describedby. Buttons have no effect.
+ * a line naming its audience, linked to the button with aria-describedby. Each opens the matching
+ * step of the account creation mockup (docs/landing-page/00-cadrage.md §6).
  */
 export async function AudienceDoors({
   idPrefix,
@@ -38,20 +39,25 @@ export async function AudienceDoors({
         <p id={advertiserLineId} className={audienceClassName}>
           {t("doors.advertiserAudience")}
         </p>
-        <Button variant="primary" aria-describedby={advertiserLineId}>
+        <LinkButton
+          href="/signup/advertiser"
+          variant="primary"
+          aria-describedby={advertiserLineId}
+        >
           {t("cta.advertiser")}
-        </Button>
+        </LinkButton>
       </div>
       <div className="flex flex-col gap-1">
         <p id={creatorLineId} className={audienceClassName}>
           {t("doors.creatorAudience")}
         </p>
-        <Button
+        <LinkButton
+          href="/signup/creator"
           variant={tone === "inverse" ? "secondaryInverse" : "secondary"}
           aria-describedby={creatorLineId}
         >
           {t("cta.creator")}
-        </Button>
+        </LinkButton>
       </div>
     </div>
   );

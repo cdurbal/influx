@@ -39,7 +39,7 @@ export default async function LandingPage({ params }: PageProps<"/[locale]">) {
 
   return (
     <>
-      <SiteHeader contactEmail={content.contact.email} />
+      <SiteHeader />
       <main id="main">
         <HeroSection content={content.hero} />
         {content.keyFigure ? (

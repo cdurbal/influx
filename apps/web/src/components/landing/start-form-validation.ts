@@ -34,8 +34,11 @@ export const STEP_FIELDS: Readonly<
   3: ["adult", "terms"],
 };
 
-/** "x@y.z" shape only (02 §3.18); the real check happens at Lot 1. */
-const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/**
+ * "x@y.z" shape only (02 §3.18); the real check happens at Lot 1. Exported so the login form
+ * (components/auth) applies the same rule instead of a second copy.
+ */
+export const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function createInitialValues(language: string): StartFormValues {
   return {

@@ -6,16 +6,15 @@ import nextTypescript from "eslint-config-next/typescript";
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import betterTailwindcss from "eslint-plugin-better-tailwindcss";
 
-// CA6, CA11, CA22, CA8, CA23: forbidden JSX syntax.
+// CA11, CA22, CA8, CA23: forbidden JSX syntax.
+// Real in-app navigation (href, next-intl Link) was reintroduced on 2026-09-17 for the
+// clickable account/login prototype — see docs/landing-page/00-cadrage.md §6. Third-party
+// embeds stay forbidden (CA11): no iframe, script, video, audio, embed or object element.
 const RESTRICTED_SYNTAX = [
   {
-    selector: "JSXAttribute[name.name='href']",
-    message: 'Mockup: no links (CA6). Use a <button type="button">.',
-  },
-  {
     selector:
-      "JSXOpeningElement[name.name=/^(a|iframe|script|video|audio|embed|object)$/]",
-    message: "Forbidden element in the mockup (CA6, CA11).",
+      "JSXOpeningElement[name.name=/^(iframe|script|video|audio|embed|object)$/]",
+    message: "Forbidden element in the mockup (CA11).",
   },
   {
     selector: "JSXAttribute[name.name='style']",
@@ -42,7 +41,8 @@ const RESTRICTED_SYNTAX = [
 ];
 
 const RESTRICTED_IMPORT_PATHS = [
-  { name: "next/link", message: "Mockup: no links (CA6)." },
+  // Use next-intl's <Link> (src/i18n/navigation.ts) instead: it keeps the locale prefix.
+  { name: "next/link", message: "Use the localized <Link> from @/i18n/navigation." },
   { name: "next/form", message: "The mockup form sends nothing (CA8)." },
   { name: "next/script", message: "No scripts (CA11)." },
   { name: "next/font/google", message: "No third-party fonts (CA11)." },

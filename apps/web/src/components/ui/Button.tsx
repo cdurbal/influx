@@ -21,7 +21,11 @@ type ButtonProps = Omit<ComponentPropsWithRef<"button">, "type"> & {
   children: ReactNode;
 };
 
-const VARIANT_CLASSES: Record<ButtonVariant, string> = {
+/** Shared with LinkButton so a link and a button of the same variant render identically. */
+export const BUTTON_BASE_CLASSES =
+  "inline-flex items-center justify-center gap-2 text-center font-medium leading-snug transition-colors";
+
+export const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary: cn(
     "rounded-pill bg-action-primary-bg px-inset-button-x py-inset-button-y text-text-on-action",
     "hover:bg-action-primary-bg-hover active:bg-action-primary-bg-active",
@@ -50,7 +54,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   ),
 };
 
-const SIZE_CLASSES: Record<ButtonSize, string> = {
+export const SIZE_CLASSES: Record<ButtonSize, string> = {
   md: cn("min-h-(--size-button-md)"),
   lg: cn("min-h-(--size-button-lg)"),
 };
@@ -72,7 +76,7 @@ export function Button({
       {...rest}
       type="button"
       className={cn(
-        "inline-flex items-center justify-center gap-2 text-center font-medium leading-snug transition-colors",
+        BUTTON_BASE_CLASSES,
         VARIANT_CLASSES[variant],
         variant !== "icon" &&
           variant !== "text" &&

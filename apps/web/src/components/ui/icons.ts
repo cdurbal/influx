@@ -12,6 +12,7 @@ export {
   Clock as ClockIcon,
   FileCheck as FileCheckIcon,
   FileQuestionMark as FileQuestionIcon,
+  Globe as GlobeIcon,
   Inbox as InboxIcon,
   Info as InfoIcon,
   Lock as LockIcon,

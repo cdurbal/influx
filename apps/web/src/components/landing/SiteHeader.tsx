@@ -1,20 +1,19 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/Button";
-import { MailIcon } from "@/components/ui/icons";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { LinkButton } from "@/components/ui/LinkButton";
 import {
   SiteHeaderMobileMenu,
   type HeaderNavItem,
 } from "./SiteHeaderMobileMenu";
 
-type SiteHeaderProps = {
-  contactEmail: string;
-};
-
 const NAV_IDS = ["method", "creators", "useCases", "pricing", "faq"] as const;
 
-/** Sticky header (02 §3.2): brand, menu, contact email, FR/EN switcher and the two doors. */
-export async function SiteHeader({ contactEmail }: SiteHeaderProps) {
+/**
+ * Sticky header (Malt-style order, 2026-09-17): brand, menu, signup, login and a language menu
+ * (globe + 2-letter code, scales past FR/EN). No contact e-mail: moved out of the header.
+ */
+export async function SiteHeader() {
   const t = await getTranslations("landing");
   const locale = await getLocale();
   const navItems: HeaderNavItem[] = NAV_IDS.map((id) => ({
@@ -40,16 +39,18 @@ export async function SiteHeader({ contactEmail }: SiteHeaderProps) {
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
-          <p className="hidden items-center gap-2 text-sm text-text-secondary 2xl:flex">
-            <MailIcon
-              aria-hidden="true"
-              className="size-(--size-icon-md) shrink-0"
-            />
-            <span className="sr-only">{t("header.contactLabel")}</span>
-            <span>{contactEmail}</span>
-          </p>
+          <div className="hidden lg:block">
+            <LinkButton href="/signup" variant="primary" size="md">
+              {t("common.cta.signup")}
+            </LinkButton>
+          </div>
+          <div className="hidden lg:block">
+            <LinkButton href="/login" variant="text" size="md">
+              {t("common.cta.login")}
+            </LinkButton>
+          </div>
           <LanguageSwitcher
-            groupLabel={t("header.languageSwitcher.label")}
+            label={t("header.languageSwitcher.label")}
             currentLocale={locale}
             options={[
               {
@@ -64,24 +65,12 @@ export async function SiteHeader({ contactEmail }: SiteHeaderProps) {
               },
             ]}
           />
-          <div className="hidden lg:block">
-            <Button variant="primary" size="md">
-              {t("common.cta.advertiser")}
-            </Button>
-          </div>
-          <div className="hidden xl:block">
-            <Button variant="secondary" size="md">
-              {t("common.cta.creator")}
-            </Button>
-          </div>
           <SiteHeaderMobileMenu
             menuButtonLabel={t("header.menuButton")}
             navLabel={t("header.navLabel")}
             navItems={navItems}
-            advertiserCta={t("common.cta.advertiser")}
-            creatorCta={t("common.cta.creator")}
-            contactLabel={t("header.contactLabel")}
-            email={contactEmail}
+            loginCta={t("common.cta.login")}
+            signupCta={t("common.cta.signup")}
           />
         </div>
       </div>

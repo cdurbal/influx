@@ -34,3 +34,15 @@ export const ISO_COUNTRY_CODES: readonly string[] = [
   "YE", "YT",
   "ZA", "ZM", "ZW",
 ];
+
+/** Every ISO 3166-1 country, named and sorted in the given page locale. */
+export function getLocalizedCountryOptions(
+  locale: string,
+): { code: string; name: string }[] {
+  const displayNames = new Intl.DisplayNames([locale], { type: "region" });
+  const collator = new Intl.Collator(locale);
+  return ISO_COUNTRY_CODES.map((code) => ({
+    code,
+    name: displayNames.of(code) ?? code,
+  })).sort((first, second) => collator.compare(first.name, second.name));
+}

@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/class-names";
-import { CloseIcon, MailIcon, MenuIcon } from "@/components/ui/icons";
+import { CloseIcon, MenuIcon } from "@/components/ui/icons";
+import { LinkButton } from "@/components/ui/LinkButton";
 
 export type HeaderNavItem = { id: string; label: string };
 
@@ -11,10 +12,8 @@ type SiteHeaderMobileMenuProps = {
   menuButtonLabel: string;
   navLabel: string;
   navItems: readonly HeaderNavItem[];
-  advertiserCta: string;
-  creatorCta: string;
-  contactLabel: string;
-  email: string;
+  loginCta: string;
+  signupCta: string;
 };
 
 const PANEL_ID = "site-header-mobile-menu";
@@ -22,16 +21,14 @@ const PANEL_ID = "site-header-mobile-menu";
 /**
  * Mobile menu below breakpoint lg (02 §3.2). Opening moves focus to the first entry, makes main
  * and footer inert and locks page scroll; Escape, the close button or a click on the scrim close
- * it and return focus to the menu button. Entries, CTAs and email have no effect (CA7).
+ * it and return focus to the menu button. Entries and CTAs have no effect (CA7).
  */
 export function SiteHeaderMobileMenu({
   menuButtonLabel,
   navLabel,
   navItems,
-  advertiserCta,
-  creatorCta,
-  contactLabel,
-  email,
+  loginCta,
+  signupCta,
 }: SiteHeaderMobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -138,20 +135,12 @@ export function SiteHeaderMobileMenu({
           </ul>
         </nav>
         <div className="mt-4 flex flex-col gap-stack-sm border-t-(length:--border-width-thin) border-border-subtle pt-4">
-          <Button variant="primary" size="lg" fullWidth>
-            {advertiserCta}
-          </Button>
-          <Button variant="secondary" size="lg" fullWidth>
-            {creatorCta}
-          </Button>
-          <p className="mt-2 flex items-center gap-2 text-sm text-text-secondary">
-            <MailIcon
-              aria-hidden="true"
-              className="size-(--size-icon-md) shrink-0"
-            />
-            <span className="sr-only">{contactLabel}</span>
-            <span className="break-all">{email}</span>
-          </p>
+          <LinkButton href="/signup" variant="primary" size="lg" fullWidth>
+            {signupCta}
+          </LinkButton>
+          <LinkButton href="/login" variant="secondary" size="lg" fullWidth>
+            {loginCta}
+          </LinkButton>
         </div>
       </div>
     </div>

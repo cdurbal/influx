@@ -200,3 +200,39 @@ marche · 12 Tarifs transparents · 13 Pourquoi INFLUX · 14 FAQ · 15 Appel fin
 | Socle choisi pour une seule page, inadapté aux Lots 1 à 4 | Technique | `architecte` décide sur les besoins de tout le MVP, pas de la seule page |
 | Palette provisoire prise pour définitive | Projet | Tokens marqués « provisoire, D6 » ; validation visuelle du fondateur |
 | Nom INFLUX non vérifié (antériorité de marque) | Légal / commercial | Prérequis 2 de `cadrage-mvp.md` à lancer par le fondateur avant d'investir dans la marque |
+
+## 8. Évolution — prototype cliquable (2026-09-17)
+
+**Demande du fondateur** : pouvoir présenter à ses associés un parcours de création de compte
+« à la Malt.fr » — un bouton « Créer mon compte » menant au choix marque / créateur, un bouton
+« Me connecter », et des pages dédiées, avec une authentification simulée. Le bouton « Créer une
+campagne » (porte annonceur) est conservé.
+
+**Effet sur les critères d'acceptation ci-dessus** : la maquette n'est plus une page unique sans
+navigation. En conséquence :
+
+- **CA6 est abrogé.** `href`, `<a>` et le composant `Link` localisé (`src/i18n/navigation.ts`)
+  sont désormais autorisés dans tout `apps/web`, pour la navigation entre les pages de la
+  maquette uniquement. Restent interdits, à l'identique : `iframe`, `script`, `video`, `audio`,
+  `embed`, `object`, et tout import `next/script` ou `next/font/google` (CA11).
+- **CA7 est étendu** : les boutons « Créer une campagne », « Recevoir des offres », « Créer mon
+  compte » et « Me connecter » ont désormais un effet (navigation vers une nouvelle page), en plus
+  des interactions déjà listées.
+- **CA8 reste tenu dans son esprit** sur les nouvelles pages (`/signup`, `/signup/advertiser`,
+  `/signup/creator`, `/login`, `/space`) : aucune requête réseau (`fetch` et assimilés toujours
+  interdits par ESLint), aucun stockage (cookies, `localStorage`, `sessionStorage`), aucun compte
+  réellement créé. « Me connecter » accepte tout e-mail bien formé et tout mot de passe non vide
+  et navigue vers `/space` : ce n'est pas une vérification d'identifiants. Chaque page concernée
+  porte une mention « Maquette » explicite en FR et en EN.
+- La liste « hors périmètre » du §3 (« pages annonceur et créateur dédiées ») est corrigée
+  d'autant : ces pages existent maintenant comme coquilles de démonstration (formulaire de
+  compte, page de connexion, espace membre générique), sans back-office, matching, messagerie ni
+  contrat réels — toujours hors périmètre du Lot 1.
+- CA1 à CA5, CA9 à CA28 restent inchangés et continuent de s'appliquer à la page d'accueil.
+
+**Implémentation** : `apps/web/eslint.config.mjs` (règles `no-restricted-syntax` /
+`no-restricted-imports` resserrées à CA11 pour les éléments interdits, navigation réautorisée) ;
+nouvelles pages sous `src/app/[locale]/{signup,signup/advertiser,signup/creator,login,space}` ;
+composants `src/components/auth/*` et `src/components/account/*` ; nouveau namespace de
+traduction `auth` dans `src/locales/{fr,en}/landing.json`, parité FR/EN vérifiée au typecheck
+(CA23) comme le reste du fichier.

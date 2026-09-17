@@ -2,7 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { CheckIcon } from "@/components/ui/icons";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import { ISO_COUNTRY_CODES } from "@/content/country-codes";
+import { getLocalizedCountryOptions } from "@/content/country-codes";
 import type { LandingImage, MockupNotice } from "@/content/landing-content";
 import { StartFormSteps, type StartFormLabels } from "./StartFormSteps";
 
@@ -12,16 +12,6 @@ type StartFormSectionProps = {
 };
 
 const REASSURANCE_IDS = ["free", "progressive", "noPayment"] as const;
-
-/** Every ISO 3166-1 country, named and sorted in the page language (02 §3.18). */
-function getCountryOptions(locale: string): { code: string; name: string }[] {
-  const displayNames = new Intl.DisplayNames([locale], { type: "region" });
-  const collator = new Intl.Collator(locale);
-  return ISO_COUNTRY_CODES.map((code) => ({
-    code,
-    name: displayNames.of(code) ?? code,
-  })).sort((first, second) => collator.compare(first.name, second.name));
-}
 
 /** Section 16 (02 §3.18): mockup sign-up in three steps. Nothing is sent or stored (CA8). */
 export async function StartFormSection({
@@ -139,7 +129,7 @@ export async function StartFormSection({
           <StartFormSteps
             titleId="start-form-title"
             labels={labels}
-            countries={getCountryOptions(locale)}
+            countries={getLocalizedCountryOptions(locale)}
             pageLocale={locale}
           />
         </div>
