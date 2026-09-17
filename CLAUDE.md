@@ -190,16 +190,19 @@ tous les jours par l'équipe et porte la rentabilité opérationnelle.
 | Élément | Règle |
 |---|---|
 | Nom | **INFLUX** (toujours en capitales dans l'UI et les documents) |
-| Couleur de marque | **Vert** — couleur d'accent, d'action et de succès |
-| Typographie | **Noir** pour le texte — contraste fort, lisibilité maximale |
-| Base | Fonds clairs, beaucoup de blanc, respiration généreuse |
-| Référence | https://wekollab.fr/ — niveau de finition à égaler |
+| Couleur de marque | **Vert** — couleur d'accent, d'action et de succès, recalibrée pour rester lisible (WCAG AA) et premium sur fond sombre |
+| Typographie | **Texte clair sur fond sombre** — contraste fort, lisibilité maximale |
+| Base | **Dark theme par défaut** : fond noir profond nuancé (pas de noir pur), surfaces qui s'éclaircissent légèrement par élévation (carte, survol, panneau surélevé), respiration généreuse |
+| Sections « inverse » | Quelques sections volontairement **claires** posées sur la page sombre (footer, CTA final) créent un effet de contraste assumé — ce n'est pas une bascule vers un thème clair global |
+| Référence | https://wekollab.fr/ — niveau de finition à égaler (sur wekollab, en clair ; l'exigence de finition et de clarté du parcours vaut aussi en dark) |
 
-**Les valeurs hexadécimales exactes (nuance de vert, échelle de gris, tokens de thème) ne sont
-pas encore figées** : c'est une décision ouverte (§13) qui sera tranchée par `expert-ux` avec
-validation du fondateur, puis formalisée via la skill `design-system-influx`. Aucun agent ne
-doit inventer et disséminer des couleurs arbitraires dans le code : toute couleur passe par les
-tokens du design system.
+**Les valeurs hexadécimales sont figées (D6 tranchée par le fondateur, 2026-09-17)** : dark theme
+par défaut sur toute la plateforme (landing, app membres, backoffice), vert de marque recalibré
+pour le fond sombre, noir profond nuancé façon référence premium (Linear / Vercel / Apple), jamais
+de noir pur. Implémentation de référence : `apps/web/src/styles/tokens.css`. Toute évolution de
+palette reste soumise à la même règle : aucun agent ne doit inventer et disséminer des couleurs
+arbitraires dans le code, toute couleur passe par les tokens du design system
+(skill `design-system-influx`).
 
 ### 5.2 Principes UX non négociables
 
@@ -234,9 +237,25 @@ Ces choix sont **imposés par le fondateur** et ne sont pas rediscutables par le
 | Emailing / CRM | **Brevo** (API) |
 | Prospection commerciale | **Apollo.io** (API) |
 
-Sont **ouverts** et relèvent de l'agent `architecte` : framework React (Vite / Next.js),
-framework backend Node (Express / Fastify / NestJS), librairie UI, gestion d'état, ORM ou accès
-Supabase direct, structure monorepo ou multi-repo, outillage de test. Voir §13.
+### Choix techniques tranchés (2026-09-16)
+
+Décidés par `architecte` (options écartées, conséquences et réversibilité :
+`docs/landing-page/01-architecture.md`).
+
+| Domaine | Choix | Décision |
+|---|---|---|
+| Framework React | **Next.js** (App Router) : pages publiques pré-rendues par langue, servies par Node.js. `apps/web` rend des pages, sans logique métier ni secret | D1 |
+| Structure du dépôt | **Monorepo** géré par **pnpm 11** (activé par corepack) : `apps/*` pour les applications, `packages/*` pour le code partagé (créé au premier besoin réel) ; pas d'outil d'orchestration | D3 |
+| UI et styles | **Tailwind CSS v4** alimenté **uniquement** par le fichier de tokens `apps/web/src/styles/tokens.css` ; pas de bibliothèque de composants ; primitives accessibles « headless » choisies au premier besoin réel | D4 |
+| Traduction | **next-intl** ; messages JSON au format ICU par langue (`apps/web/src/locales/<langue>/`) | D28 |
+| Qualité | Node.js 22 LTS (passage à 24 LTS avant la première mise en ligne), TypeScript 6.0 strict, ESLint 9, Prettier, **Vitest** | — |
+
+**Emplacements** : `apps/web` (pages publiques ; app membres proposée par défaut, à confirmer au
+Lot 2) ; `apps/api` réservé à l'API Node (D2) ; backoffice dans `apps/backoffice` ou dans un espace
+de `apps/web` selon D12 ; `supabase/` réservé aux migrations.
+
+Restent **ouverts** : framework backend Node (D2), accès aux données (D5), place du backoffice (D12),
+file d'attente des leads (D18), gestion d'état (aucune librairie tant qu'aucun besoin réel). Voir §13.
 
 ### Conventions de code attendues
 
@@ -499,12 +518,12 @@ hors de ce cadre ; mettre ce tableau à jour à chaque arbitrage. Les lots cité
 
 | # | Sujet | Arbitre | Statut | Échéance |
 |---|---|---|---|---|
-| D1 | Framework React : Vite (SPA) vs Next.js (SSR/SEO) — impacte fortement le SEO de la partie publique, bilingue | `architecte` | Ouverte | Lot 0 |
+| D1 | Framework React : Vite (SPA) vs Next.js (SSR/SEO) — impacte fortement le SEO de la partie publique, bilingue | `architecte` | **Tranchée (2026-09-16)** : Next.js (App Router), pages publiques pré-rendues par langue, sans logique métier dans le front — voir `docs/landing-page/01-architecture.md` | — |
 | D2 | Framework backend Node : Express / Fastify / NestJS | `architecte` | Ouverte | Lot 0 |
-| D3 | Structure du dépôt : monorepo (front + back + backoffice) vs multi-repo | `architecte` | Ouverte | Lot 0 |
-| D4 | Librairie UI : headless + utilitaire CSS, ou bibliothèque de composants — doit servir la charte noir/vert | `architecte` + `expert-ux` | Ouverte | Lot 0 |
+| D3 | Structure du dépôt : monorepo (front + back + backoffice) vs multi-repo | `architecte` | **Tranchée (2026-09-16)** : monorepo pnpm 11 (`apps/*`, `packages/*`), sans orchestrateur ; ne tranche pas D12 | — |
+| D4 | Librairie UI : headless + utilitaire CSS, ou bibliothèque de composants — doit servir la charte noir/vert | `architecte` + `expert-ux` | **Tranchée (2026-09-16)** : Tailwind CSS v4 alimenté uniquement par un fichier de tokens unique, sans bibliothèque de composants ; nommage des tokens à confirmer par `expert-ux` | — |
 | D5 | Accès aux données : client Supabase direct, ORM (Prisma/Drizzle) ou couche d'accès maison | `expert-database` + `architecte` | Ouverte | Lot 0 |
-| D6 | Palette exacte : nuance de vert de marque, échelle de gris, tokens clair/sombre | `expert-ux` + Fondateur | Ouverte | Fin du Lot 0 |
+| D6 | Palette exacte : nuance de vert de marque, échelle de gris, tokens clair/sombre | `expert-ux` + Fondateur | **Tranchée (2026-09-17)** : dark theme par défaut sur toute la plateforme, noir profond nuancé, vert de marque recalibré pour le fond sombre (WCAG AA) — voir `apps/web/src/styles/tokens.css` et §5.1 | — |
 | D7 | Traitement fiscal de la commission : montants hors taxes ou taxes comprises ; TVA / GST / sales tax sur chaque part, selon le pays de la société et celui des parties | `expert-paiement-facturation` + expert-comptable + Fondateur | Ouverte (dépend de D25) | Avant le Lot 4 |
 | D8 | Flux financier : INFLUX encaisse et reverse, ou facture sa seule commission | `expert-paiement-facturation` + Fondateur | **Tranchée (2026-09-16)** : INFLUX encaisse le montant du contrat et reverse le net créateur via un prestataire de paiement agréé | — |
 | D9 | Prestataire de paiement (Stripe Connect ou équivalent) : compatible avec le pays de la société, les reversements internationaux et le multi-devises | `expert-paiement-facturation` + `architecte` | Ouverte, **bloquante** (dépend de D25) | Étude au Lot 2, tranchée avant le Lot 3 |
@@ -526,6 +545,7 @@ hors de ce cadre ; mettre ce tableau à jour à chaque arbitrage. Les lots cité
 | D25 | **Pays d'établissement de la société.** Critères : prestataire de paiement et reversements vers les zones visées, compte bancaire multi-devises, taxes sur les commissions, déclarations fiscales de la plateforme, droit applicable aux CGU, obligations RGPD, crédibilité auprès des annonceurs, coût | **Fondateur** + avocat fiscaliste international ; dossier préparé par `expert-paiement-facturation` + `expert-conformite-rgpd` | Ouverte, **la plus structurante** | Avant la mise en ligne du Lot 1 |
 | D26 | Pays ouverts aux contrats : première vague (1 à 3 pays recommandés) puis vagues suivantes | Fondateur + `expert-conformite-rgpd` + `expert-paiement-facturation` | Ouverte | Étude au Lot 2, tranchée avant le Lot 4 |
 | D27 | Devises : liste fermée liée aux pays ouverts, devise fixée par contrat, prise en charge des frais de conversion | `expert-paiement-facturation` + Fondateur | Ouverte | Avant le Lot 2 |
+| D28 | Librairie de traduction (français et anglais au lancement, formats de nombres et montants selon la langue) | `architecte` | **Tranchée (2026-09-16)** : next-intl, messages JSON ICU par langue, parité des clés FR/EN vérifiée à la compilation | — |
 
 **Autres arbitrages du fondateur (2026-09-16)** : répartition de la commission 20 % / 15 % incluse
 dans le contrat (§3) ; portée internationale, inscriptions partout et contrats par pays ouverts,
@@ -584,7 +604,8 @@ Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la sociét
 - [x] Valider avec le fondateur le périmètre du **MVP** (D13) — **fait le 2026-09-16**, voir
       `docs/cadrage-mvp.md`
 - [ ] Trancher D1 à D5, D12 et D18 (`architecte`)
-- [ ] Figer la palette et les tokens (D6, `expert-ux` + fondateur)
+- [x] Figer la palette et les tokens (D6, `expert-ux` + fondateur) — **fait le 2026-09-17**, dark
+      theme par défaut, voir `apps/web/src/styles/tokens.css`
 - [ ] Trancher le modèle financier restant : D7, D9, D19, D20, D22, D23, D27
       (`expert-paiement-facturation` + fondateur)
 - [ ] Trancher D24, D25 et D26 (fondateur, avec `expert-conformite-rgpd` et

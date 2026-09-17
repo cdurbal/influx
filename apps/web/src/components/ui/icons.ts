@@ -1,0 +1,27 @@
+// Single import point for lucide-react icons (01 §7, §11 rule 7).
+// Icons are decorative by default: render them with aria-hidden and token size classes.
+export {
+  BadgeCheck as BadgeCheckIcon,
+  Briefcase as BriefcaseIcon,
+  Camera as CameraIcon,
+  Check as CheckIcon,
+  ChevronDown as ChevronDownIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  CircleAlert as CircleAlertIcon,
+  Clock as ClockIcon,
+  FileCheck as FileCheckIcon,
+  FileQuestionMark as FileQuestionIcon,
+  Inbox as InboxIcon,
+  Info as InfoIcon,
+  Lock as LockIcon,
+  Mail as MailIcon,
+  MapPin as MapPinIcon,
+  Menu as MenuIcon,
+  Pause as PauseIcon,
+  Play as PlayIcon,
+  Repeat as RepeatIcon,
+  TrendingUp as TrendingUpIcon,
+  TriangleAlert as TriangleAlertIcon,
+  X as CloseIcon,
+} from "lucide-react";
