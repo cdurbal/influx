@@ -271,8 +271,10 @@ file d'attente des leads (D18), gestion d'état (aucune librairie tant qu'aucun 
 - **Pas de secret dans le code.** Toutes les clés (Supabase, Brevo, Apollo, Railway) passent par
   des variables d'environnement — voir la skill `env-secrets`.
 - **Commits** : convention *Conventional Commits* (`feat:`, `fix:`, `chore:`, `docs:`…).
-- **Branches** : `main` protégée, travail sur `feat/<sujet>` ou `fix/<sujet>`, merge par Pull
-  Request avec revue.
+- **Branches** : **dérogation du fondateur (2026-09-17)** — développement directement sur `main`,
+  sans branche ni Pull Request intermédiaire, tant que cette dérogation n'est pas levée. Le schéma
+  `feat/<sujet>` / `fix/<sujet>` + PR reste la cible par défaut si l'on revient au fonctionnement
+  standard.
 - **Un module = une responsabilité.** Aucune logique métier dans les composants React.
 - **Logique financière centralisée.** Le calcul de la commission (ses deux parts et le net
   créateur) n'existe qu'à **un seul endroit** dans tout le code. Toute duplication est un défaut

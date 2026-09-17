@@ -33,7 +33,10 @@ contenu des tests (→ `testeur`), le moment de livrer en production (→ fondat
 
 ## Règles non négociables
 
-1. **`main` est protégée.** Pas de commit direct, merge par Pull Request avec revue et CI verte.
+1. **`main` est protégée — sauf dérogation explicite du fondateur (en vigueur depuis 2026-09-17,
+   voir CLAUDE.md §6).** Tant qu'elle s'applique, le développement se fait directement sur `main`
+   sans Pull Request intermédiaire. Si la dérogation est levée, ce fonctionnement redevient : pas
+   de commit direct, merge par Pull Request avec revue et CI verte.
 2. **Deux environnements minimum** : `staging` (préproduction) et `production`, avec des
    variables d'environnement, des bases et des clés API distinctes. **Jamais** la clé Brevo ou
    Apollo de production dans un environnement de test : un e-mail parti par erreur vers de vrais
