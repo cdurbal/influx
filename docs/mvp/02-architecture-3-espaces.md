@@ -1,0 +1,1399 @@
+# Architecture des trois espaces — D12, D2, D5, D18 et D37 tranchées
+
+> **Date :** 2026-09-18 · **Auteur :** agent `architecte` · **Statut :** décisions prises, applicables au Lot 0
+> **Skills appliquées :** `supabase-schema`, `lead-pipeline`, `env-secrets`
+>
+> **Ce que ce document tranche :** la place du backoffice (**D12**), le framework backend Node
+> (**D2**), la couche d'accès aux données (**D5**), le mécanisme de file des leads (**D18**) et la
+> méthode d'authentification (**D37**, ouverte le 2026-09-18). Il fige la structure du dépôt, le
+> contrat entre l'API et les fronts, la frontière entre ce que fait la RLS et ce qu'elle ne peut pas
+> faire, et la sortie du mode maquette de `apps/web`.
+>
+> **Ce qu'il ne tranche pas :** le modèle de données détaillé (`expert-database`, document `04`), la
+> matrice des droits et les politiques RLS ligne à ligne (`expert-cybersecurite` + `architecte`,
+> document `03`), le plan de test (`testeur`, document `18`), la configuration Railway concrète
+> (`integrateur`, Lot 0).
+>
+> **À lire avec :** `docs/mvp/00-cadrage-mvp-v2.md` (périmètre, 7 lots), `docs/mvp/01-intermediation-courtee.md`
+> (**document pivot, il contraint ce document**) et `docs/landing-page/01-architecture.md` (D1, D3,
+> D4, D28 tranchées le 2026-09-16, socle de `apps/web`).
+>
+> **Source de vérité :** `CLAUDE.md`. En cas d'écart, `CLAUDE.md` prime et c'est ce document qui est
+> corrigé.
+
+---
+
+> ## ⚠ Révision du 2026-09-18 — après revue de `expert-cybersecurite`
+>
+> `expert-cybersecurite` a rendu son avis dans **`docs/mvp/03-matrice-des-droits-et-rls.md`** :
+> **favorable sous conditions**. Aucune des cinq décisions (D12, D2, D5, D18, D37) n'est remise en
+> cause. Trois constats bloquants portaient sur **mon texte** et sont corrigés dans cette version :
+>
+> | Constat | Ce qui était écrit | Ce qui est corrigé |
+> |---|---|---|
+> | **B1** | Le §2.5 fondait l'anonymisation sur « aucun `GRANT` au rôle annonceur », présenté comme un acquis plus fort qu'une politique | **Inexact en configuration Supabase standard** : `advertiser`, `creator`, `agent` et `admin` y sont **le même rôle Postgres `authenticated`**. Il n'existe alors aucun rôle annonceur à qui refuser un droit, et la protection ne tient que par **un seul** contrôle. Le §2.5 énonce désormais cela comme une **condition à créer** : quatre rôles Postgres distincts et un `SET LOCAL ROLE` par transaction. Corrigé aussi aux §0, §5, §9.3, §10.1 et §15 |
+> | **B2** | Le §10 autorisait des opérations en `service_role`, rôle `BYPASSRLS` | **Le rôle Postgres `service_role` n'est plus utilisé nulle part.** Remplacé par des rôles d'exécution dédiés **sans `BYPASSRLS`** et par la **liste fermée de cinq opérations élevées** (E-1 à E-5) du document `03` §P7. La **clé d'API HTTP** `SUPABASE_SERVICE_ROLE_KEY` reste, pour Auth et les URL signées : ce sont deux objets différents qui portent le même nom |
+> | **B3** | La question « schémas par domaine ou schéma unique » était laissée ouverte (§14.2, n° 5) | **Tranchée : schémas par domaine**, pour raison de sécurité. Aucune table métier dans `public`, `REVOKE ALL` sur `anon` et `authenticated` |
+>
+> Les passages révisés portent la mention **« Révisé le 2026-09-18 (revue `expert-cybersecurite`) »**.
+> Pour la matrice des droits complète, les politiques et les tests exigibles, ce document renvoie
+> désormais à `docs/mvp/03-matrice-des-droits-et-rls.md`, qui fait foi sur ces sujets.
+
+---
+
+## 0. Synthèse
+
+| # | Sujet | Décision | Réversibilité |
+|---|---|---|---|
+| **D12** | Place du backoffice | **Deux applications, trois espaces.** `apps/backoffice` séparée (hôte distinct, Next.js, `noindex`, MFA obligatoire, session courte) ; espace marque et espace créateur dans `apps/web` | **Élevée** dans le sens qui compte (fusionner plus tard est mécanique) |
+| **D2** | Framework backend Node | **Fastify 5** dans `apps/api`, avec un **worker** issu du même paquet et déployé comme service Railway distinct | Moyenne |
+| **D5** | Accès aux données | **Drizzle** comme constructeur de requêtes typé ; **migrations en SQL pur** dans `supabase/migrations` ; `@supabase/supabase-js` **cantonné à `apps/api`** (Auth et URL signées du Storage) | Moyenne à élevée (couche `repository` par domaine) |
+| **D18** | File des leads | **Table `outbox_events` + worker `FOR UPDATE SKIP LOCKED`**, priorité aux révocations, verrou consultatif **de transaction** par sujet. Ni Redis, ni BullMQ, ni pgmq | **Élevée** |
+| **D37** | Authentification | **Membres : code à usage unique à 6 chiffres par e-mail, sans mot de passe.** **Backoffice : mot de passe + TOTP obligatoire, `aal2` vérifié côté serveur et en RLS.** Session en cookie `httpOnly` posé par `apps/api`, aucun jeton en JavaScript | Élevée (ajouter le mot de passe coûte 2-3 jours) |
+| **Règle** | Front ↔ Supabase | **Le front ne parle jamais directement à Supabase pour de la donnée métier.** Il parle à `apps/api`. Les fronts ne portent **aucune clé Supabase**, pas même `anon` | Faible à défaire, et c'est voulu |
+| **Règle** | Anonymisation | **Séparation d'objets en base**, pas filtre de colonnes en code — **et cela suppose de créer quatre rôles Postgres distincts** (`influx_advertiser`, `influx_creator`, `influx_agent`, `influx_admin`), sans quoi il n'existe aucun rôle annonceur à qui refuser un droit. La révélation est une politique SQL. *Révisé le 2026-09-18 (revue `expert-cybersecurite`, B1)* | Faible à défaire, et c'est voulu |
+| **Règle** | Rôles d'exécution | **Aucun rôle utilisé à l'exécution n'a `BYPASSRLS` ni `SUPERUSER`.** Le rôle Postgres `service_role` n'est utilisé nulle part. *Ajouté le 2026-09-18 (revue `expert-cybersecurite`, B2)* | Faible à défaire, et c'est voulu |
+| **Règle** | Schémas | **Aucune table métier dans `public`** : un schéma Postgres par domaine, `REVOKE ALL` sur `anon` et `authenticated`. *Ajouté le 2026-09-18 (revue `expert-cybersecurite`, B3)* | Faible après le Lot 0 |
+| **Exposition** | `apps/api` | **Non exposée publiquement.** Les fronts l'atteignent par le réseau privé Railway, via un passe-plat sans logique. Ni CORS, ni cookie inter-sites | Élevée |
+
+**Trois conséquences à retenir si vous ne lisez que cette page.**
+
+1. Il y aura **quatre services par environnement** sur Railway (`web`, `backoffice`, `api`,
+   `worker`), soit huit au total, et **deux projets Supabase** (`staging`, `production`). C'est un
+   coût que le fondateur doit valider (§16).
+2. **Aucune clé Supabase n'atteint jamais un navigateur.** C'est plus strict que l'orientation du
+   plan (« la clé `anon` ne sert qu'à la session ») : la session elle-même est gérée côté serveur.
+3. **Il n'y a pas de mot de passe pour les membres au MVP.** C'est une décision de produit autant
+   que de sécurité, elle doit être vue par le fondateur et validée par `expert-cybersecurite`.
+
+---
+
+## 1. Ce que le métier impose à l'architecture
+
+Les contraintes ci-dessous ne sont pas des préférences techniques : elles viennent de
+`docs/mvp/00-cadrage-mvp-v2.md` et `docs/mvp/01-intermediation-courtee.md`, et **chacune élimine au
+moins une option** dans les sections qui suivent.
+
+| # | Contrainte métier | Origine | Ce qu'elle impose techniquement |
+|---|---|---|---|
+| **C1** | La marque cherche des créateurs **anonymisés** : pseudos, `@`, liens, captures masqués tant que la mise en relation n'est pas ouverte | A2, D16 | L'anonymisation doit être **exécutoire en base**, et les requêtes doivent être **écrites par le serveur**, jamais par le navigateur (k-anonymat, pagination plafonnée, export interdit sont des règles de *forme de requête*, pas de ligne) |
+| **C2** | Trois déclencheurs alimentent une **file de validation** ; la proposition INFLUX la court-circuite mais produit le même objet | A3bis, doc 01 §4 | Un objet `introduction` unique, un service applicatif qui porte la machine à états, et une opération **transactionnelle** : révélation + conversation + événement chaîné + e-mails, tout ou rien |
+| **C3** | Conversation à trois, commercial **visible et nommé** ; **chaque lecture par un agent est journalisée** | A3, A10 | Une politique RLS ne sait pas écrire une ligne : il faut une fonction `SECURITY DEFINER` et **retirer tout autre chemin de lecture** au rôle agent |
+| **C4** | Registre d'audit **append-only chaîné**, impossible à réécrire | M4 | `REVOKE UPDATE, DELETE` + trigger + chaînage par empreinte + **sérialisation des écritures** + vérification périodique. Rien de tout cela n'est exprimable dans un ORM |
+| **C5** | Contrat et paiement **hors application** ; le commercial saisit montant et commission | A1, A8 | **Aucun taux, aucune multiplication** nulle part. Table `commission_rates` créée et vide |
+| **C6** | Un lead non synchronisé est un lead perdu ; un échec Brevo/Apollo ne fait jamais échouer une inscription | `CLAUDE.md` §7, skill `lead-pipeline` | File **persistée et transactionnelle** : l'événement s'écrit dans la même transaction que le fait métier |
+| **C7** | Le backoffice voit **toutes les identités, toutes les conversations, toutes les affaires** | §6.3 du cadrage | Surface privilégiée : isolement d'hôte, MFA, session courte, et **aucune autorisation par masquage d'UI** |
+| **C8** | Mise en ligne progressive **dès le Lot 1** (semaine 5) | A6 | Le socle doit être livrable en 1-2 semaines et supporter un site public déjà en production pendant qu'on construit le reste |
+| **C9** | Un développeur à plein temps, des agents IA, un poste Windows | §7 du cadrage | Peu de pièces, outils standard, mêmes commandes en local et en CI. **Toute complexité doit se payer en sécurité ou en vitesse, sinon elle est refusée** |
+
+---
+
+## 2. La règle architecturale centrale
+
+### 2.1 L'énoncé
+
+> **Le front ne parle jamais directement à Supabase pour de la donnée métier. Il parle à `apps/api`.**
+>
+> Corollaire retenu ici, plus strict que l'orientation du plan : **les fronts ne portent aucune clé
+> Supabase, pas même `anon`.** La session elle-même est gérée par `apps/api`.
+
+### 2.2 Pourquoi — cinq raisons, par ordre de force
+
+Il faut être honnête sur un point avant de défendre la règle : **Supabase, correctement configuré,
+*peut* faire respecter l'anonymisation.** La RLS avec refus par défaut et des `GRANT` de colonnes
+bien posés sont un mécanisme solide. Le problème n'est pas que ce soit impossible — c'est que ce
+soit **impossible à garantir dans la durée avec un développeur et des agents IA**.
+
+1. **La surface de la règle devient le schéma entier, pour toujours.** Si le navigateur peut
+   interroger PostgREST, alors *chaque* table, *chaque* vue et *chaque* fonction atteignable par le
+   rôle `authenticated` doit être correcte — y compris celle qu'on ajoutera dans la précipitation au
+   Lot 5. Un `REVOKE` oublié sur une colonne ajoutée casse l'anonymisation **silencieusement** : pas
+   d'erreur, pas de test rouge, pas de trace en revue. Avec une API, ajouter une colonne ne l'expose
+   pas : il faut l'ajouter au schéma de réponse, et cet ajout se voit dans une Pull Request.
+2. **Les garde-fous de la recherche sont des règles de *forme de requête*, pas de ligne.**
+   K-anonymat à 5, pagination plafonnée, limitation de débit, journalisation des recherches, export
+   interdit (cadrage §10.2 et document `10`) : **aucune** de ces règles ne s'exprime en politique
+   RLS. Elles supposent que quelqu'un d'autre que le navigateur écrive la requête. Un point d'accès
+   PostgREST laisse le client choisir `select`, `order`, `limit`, `offset` et les jointures : il
+   contourne les cinq d'un coup.
+3. **A10 exige de journaliser des lectures.** Une lecture directe depuis le navigateur ne laisse
+   aucune trace applicative que nous maîtrisons. Les journaux PostgREST ne sont ni un journal
+   d'audit, ni conservables, ni attribuables à un acte métier.
+4. **La révélation d'identité doit être atomique.** Le document `01` §3, étape 5, l'écrit :
+   « Immédiat, dans une seule transaction » — poser `identity_revealed_at`, créer la conversation et
+   ses trois participants, écrire l'événement chaîné, mettre les deux e-mails en file.
+   **PostgREST ne sait pas faire de transaction multi-requêtes.** On pourrait tout enfermer dans une
+   fonction SQL, mais on aurait alors écrit l'API en PL/pgSQL — le pire des deux mondes.
+5. **Le schéma deviendrait l'API publique.** Chaque nom de colonne, chaque type, chaque énumération
+   serait un contrat exposé au navigateur : toute migration devient un changement cassant pour le
+   front, et le renommage d'une colonne un sujet de coordination.
+
+### 2.3 Ce qu'elle coûte — sans l'enjoliver
+
+| Coût | Ampleur | Atténuation |
+|---|---|---|
+| Un point d'accès par écran, au lieu d'une requête écrite dans le composant | ~1 schéma zod + 1 gestionnaire + 1 fonction de dépôt par écran, soit un surcoût réel de l'ordre de **20 à 30 %** du temps de développement d'un écran de lecture | Les schémas servent aussi de validation d'entrée, de filtre de sortie et de types partagés : une partie du coût est rendue |
+| Un saut réseau de plus (front → api) | Quelques millisecondes sur le réseau privé Railway, même région | Mesuré, jamais supposé. Si la latence devient un sujet, elle se règle par mise en cache, pas par exposition de la base |
+| Pas d'abonnement temps réel gratuit depuis le navigateur | Nul au MVP : la messagerie temps réel est **hors périmètre** (cadrage §8) | Rafraîchissement périodique. Le temps réel se rouvrira avec un canal serveur (SSE depuis `apps/api`) |
+| Deux applications de plus à déployer et à surveiller | 4 services Railway par environnement | `integrateur` automatise au Lot 0, une fois |
+| Le téléversement de fichiers ne peut pas passer « tout seul » | Le navigateur doit obtenir une autorisation | Exception n° 2 ci-dessous |
+
+### 2.4 Les deux seules exceptions, nommées et bornées
+
+| # | Exception | Pourquoi elle est acceptable | Garde-fou |
+|---|---|---|---|
+| **E1** | **Le navigateur téléverse un fichier directement vers Supabase Storage**, avec une **URL signée émise par `apps/api`** | Faire transiter des visuels de portfolio par `apps/api` gaspillerait de la bande passante et de la mémoire sans rien apporter : l'URL signée porte une autorisation unique, limitée à un chemin, une méthode et une durée | *Révisé le 2026-09-18 (revue `expert-cybersecurite`, point 6).* L'URL est émise après contrôle par `apps/api` (rôle, propriétaire, taille, type), sa durée de vie est **courte** (≤ 5 min), son émission est **journalisée**. Aucun jeton, aucune clé n'est remis au navigateur. **Compartiments privés et séparés par sensibilité** (`portfolio`, `verification`), avec limites de type et de taille **réglées au niveau du compartiment** — c'est la seule limite que Supabase applique réellement au téléversement direct. **Chemin de l'objet calculé par le serveur, jamais le nom de fichier d'origine** (`story-marie-dupont-instagram.png` révèle exactement ce que A2 protège, et un nom de fichier voyage dans les URL signées, les journaux et les en-têtes `Referer`). Après téléversement : vérification du type réel par les octets d'en-tête et **ré-encodage des images pour supprimer les métadonnées EXIF** — une capture d'écran de téléphone porte fréquemment une géolocalisation. **Exception à l'exception : la LECTURE d'une pièce de vérification ne passe jamais par une URL signée remise au navigateur** ; elle transite par `apps/api`, qui journalise chaque consultation. Une URL signée qui fuite est une pièce d'identité qui circule |
+| **E2** | **Le navigateur est redirigé vers un fournisseur externe** si un jour un `OAuth` est ouvert (D37, hors MVP) | La redirection est le protocole ; il n'y a pas d'alternative | Flux PKCE **initié et terminé par `apps/api`** ; le vérificateur ne quitte pas le serveur |
+
+Toute autre exception passe par `architecte` **et** `expert-cybersecurite`, par écrit, dans ce
+document.
+
+### 2.5 Corollaire — l'anonymisation est une séparation d'objets
+
+> **Révisé le 2026-09-18 (revue `expert-cybersecurite`, constat bloquant B1).** La version initiale
+> de cette section fondait l'anonymisation sur « aucun `GRANT` au rôle annonceur sur l'objet
+> identifiant », et présentait cette absence de droit comme **acquise** et « plus forte qu'une
+> politique ». **C'était inexact.** En configuration Supabase standard, `advertiser`, `creator`,
+> `agent` et `admin` sont **le même rôle Postgres : `authenticated`**. Il n'existe donc, par défaut,
+> **aucun rôle annonceur à qui refuser un droit** : la protection ne reposerait que sur **un seul**
+> contrôle — la politique RLS — alors que ce document en annonçait deux. La section est réécrite pour
+> énoncer la séparation de rôles comme **une condition à créer au Lot 0**, et non comme un acquis.
+
+> **L'anonymisation n'est pas un filtre de colonnes en code. C'est une séparation d'objets en base,
+> doublée d'une absence de droit — et cette absence de droit n'existe que si l'on crée d'abord les
+> rôles qui la portent.**
+
+#### Condition préalable : quatre rôles Postgres distincts *(BLOQUANT, Lot 0)*
+
+| Rôle Postgres | Porté par | Connexion directe |
+|---|---|---|
+| `influx_app` | Rôle de **connexion** de `apps/api`. Ni propriétaire, ni `BYPASSRLS`, ni `SUPERUSER`, **ni membre d'un rôle élevé** | Oui, c'est lui qui est dans `DATABASE_URL` |
+| `influx_advertiser` · `influx_creator` · `influx_agent` · `influx_admin` | Rôles **sans droit de connexion**, dont `influx_app` est membre | Non |
+
+Chaque transaction utilisateur prend le rôle correspondant à l'utilisateur, **après avoir lu son rôle
+métier en base** (§7, précision 2), puis pose ses réclamations :
+
+```sql
+begin;
+  set local role influx_advertiser;                       -- ou creator / agent / admin
+  select set_config('request.jwt.claims', $1::text, true);
+  select set_config('influx.account',     $2::text, true);
+  select set_config('influx.role',        $3::text, true);
+  select set_config('influx.aal',         $4::text, true);
+  -- … requêtes du domaine, sous RLS …
+commit;
+```
+
+**Ce que la séparation de rôles apporte concrètement**, et qui n'existe pas sans elle :
+
+- les `GRANT` et `REVOKE` deviennent **réels, par rôle, et lisibles dans la migration** ;
+- les politiques s'écrivent `TO influx_advertiser`, donc elles se relisent ;
+- une politique mal écrite sur une table ajoutée dans la précipitation au Lot 5 est **rattrapée par
+  l'absence de `GRANT`** — c'est-à-dire la défense en profondeur que ce document promettait ;
+- `influx_app` ne doit **pas** être membre d'un rôle élevé, faute de quoi un `RESET ROLE` ou un
+  `SET ROLE` dans la même session rendrait la séparation inopérante. Les accès élevés passent par une
+  **seconde grappe de connexions**, avec un autre rôle et une autre variable d'environnement (§5).
+
+**Effort : une demi-journée à une journée au Lot 0.** Coût de ne pas le faire : l'invariant produit
+A2 ne tient que par un fil.
+
+#### La séparation d'objets
+
+| Objet | Contenu | `GRANT SELECT` accordé à |
+|---|---|---|
+| `profiles.creator_public_profiles` (**anonymisé**) | Thématiques, pays, tranches d'audience, formats, tarifs indicatifs, portfolio **modéré**, badge et sa date, identifiant public **opaque et aléatoire** | `influx_advertiser`, `influx_creator`, `influx_agent`, `influx_admin` |
+| `profiles.creator_identities` (**identifiant**) | Nom légal, pseudos, `@`, liens de réseaux, captures, coordonnées, pièces de vérification | `influx_creator` (lui-même), `influx_agent`, `influx_admin`. **Aucun `GRANT` à `influx_advertiser`** |
+
+Règles d'exécution, non négociables :
+
+1. **Deux tables, jamais une table et une vue.** Une vue `security_invoker = true` exige de l'appelant
+   les droits sur la table sous-jacente : l'annonceur devrait donc obtenir un `GRANT` sur l'objet
+   identifiant, ce qui annulerait tout l'intérêt. Et une vue **sans** `security_invoker` s'exécute
+   avec les droits de son propriétaire et **contourne la RLS des tables sous-jacentes** — le piège
+   classique, qui annulerait le dispositif entier. Toute vue que nous créons porte
+   `security_invoker = true`, sans exception.
+2. **La révélation est exposée à l'annonceur par un chemin unique et étroit** : une vue
+   `security_invoker = true` `profiles.creator_identities_revealed`, dont le prédicat porte la
+   condition de révélation. **C'est une politique SQL, jamais un `if` applicatif :**
+   `USING (EXISTS (SELECT 1 FROM matching.introductions i WHERE i.creator_id = creator_identities.creator_id
+   AND i.advertiser_id = influx.current_advertiser() AND i.identity_revealed_at IS NOT NULL))`.
+   Formulation de référence et conditions d'accès complètes : `docs/mvp/03-matrice-des-droits-et-rls.md`
+   §3.2 C(11) et §P5, qui font foi. Types et index : `expert-database`, document `04`.
+3. **L'identifiant public est opaque, aléatoire, et distinct de l'identifiant de compte.** Jamais une
+   séquence (elle divulgue l'ordre d'inscription et permet l'énumération), jamais dérivé de
+   l'identifiant de compte (la corrélation entre les deux couches deviendrait triviale côté client).
+4. **Deuxième ligne de défense côté API :** toute route déclare un **schéma de réponse**, et le
+   sérialiseur de Fastify supprime tout ce qui n'y figure pas (§4). Si une colonne identifiante
+   s'échappait de la base, elle ne sortirait pas de l'API.
+5. **Troisième ligne : un test.** Pour chaque route accessible au rôle annonceur, un test vérifie
+   qu'aucun champ identifiant n'apparaît dans la réponse, y compris quand la base en contient.
+   Ce test appartient au document `18` (`testeur`).
+6. **Aucun annonceur n'accède jamais à une pièce de vérification**, y compris après révélation et y
+   compris avec l'accord du créateur : ces captures contiennent des données personnelles **de tiers**
+   (document `03` §3.2, C(13)).
+7. **Le masquage côté marque (D40)** suivra exactement le même mécanisme s'il est retenu : deux
+   objets, pas un filtre.
+
+---
+
+## 3. D12 — Place du backoffice
+
+### Contexte
+
+Le backoffice est le seul endroit d'INFLUX qui voit **toutes les identités de créateurs, toutes les
+conversations et toutes les affaires** (C7). C'est aussi la surface qui porte les actions les plus
+lourdes de conséquences : validation d'une mise en relation, révélation d'identité, suspension d'un
+compte, envoi d'e-mails, saisie des montants. D12 était ouverte depuis le 2026-09-16 ; le cadrage du
+2026-09-18 la rend décidable, parce qu'il dit enfin ce que le backoffice contient.
+
+### Options
+
+| Option | Avantages | Inconvénients |
+|---|---|---|
+| **A. Espace protégé de `apps/web`** (groupe de routes `/(ops)`) | Une seule application, un seul déploiement, une seule session, un seul jeu de composants et de tokens ; le moins de travail au Lot 0 | **Rayon d'explosion partagé** : même processus, même bundle, même origine, même cookie, même CSP, mêmes dépendances que le site public. Une faille de routage ou de rendu expose la surface la plus sensible du produit. Un import maladroit fait fuiter du code ou des données d'agent dans le bundle public. Aucun durcissement différencié possible (MFA, session courte, liste d'IP) sans le subir côté public |
+| **B. Application Next.js séparée `apps/backoffice`, hôte distinct** | Cookie de session **scoped à l'hôte** : une faille XSS du site public ne peut pas le lire ni l'envoyer ; CSP, durée de session, MFA et limitation de débit propres ; `noindex` au niveau de l'hôte ; service Railway indépendant, arrêtable seul ; mêmes outils que `apps/web` (Tailwind, tokens, ESLint, Vitest), donc **un seul modèle mental pour le développeur** | Une application de plus à créer, déployer et maintenir ; quelques primitives UI à partager (→ `packages/ui`) ; un nom de domaine de plus |
+| **C. Application SPA Vite séparée** | Aucune surface de rendu serveur, donc aucune exposition à la classe de failles « rendu serveur » de Next.js | **Deux frameworks front dans le dépôt** pour un seul développeur : deux chaînes de build, deux configurations ESLint, deux façons de router, deux façons de charger les tokens. Coût permanent, gain marginal une fois que le serveur Next du backoffice ne fait plus que servir une coquille (voir la décision) |
+| **D. Outil tiers (Retool, Forest Admin, Supabase Studio)** | Rien à développer au départ | Exige de donner à un tiers un accès large à la base, donc à **toutes les identités et toutes les conversations** : contraire à A2 et A10, et un sous-traitant de plus à contractualiser. La file de validation, la conversation à trois et le pipeline commercial sont des **parcours métier**, pas des tableaux CRUD : ils seraient inutilisables (A3bis exige « trois clics ») |
+
+### Grille
+
+| Critère (poids) | A. Espace de `web` | **B. App séparée Next** | C. App séparée Vite | D. Outil tiers |
+|---|---|---|---|---|
+| Stack imposée, Railway, Supabase (éliminatoire) | Oui | Oui | Oui | **Non** (accès tiers à la base) |
+| Isolement de la surface privilégiée (fort) | **Faible** | Élevé | Élevé | Faible |
+| Simplicité pour un effectif d'un développeur (fort) | Élevée | Moyenne | **Faible** (2 frameworks) | Élevée au départ, faible ensuite |
+| Coût de sortie / réversibilité (fort) | Faible, mais **dans le mauvais sens** (scinder plus tard) | **Élevée** (fusionner plus tard est mécanique) | Moyenne | Faible |
+| Adéquation aux parcours métier (A3bis : trois clics) | Bonne | **Bonne** | Bonne | Mauvaise |
+| Coût d'exploitation (moyen) | Nul | 1 service + 1 domaine | 1 service + 1 domaine | Abonnement |
+
+### Décision : **B — deux applications, trois espaces**
+
+```
+apps/web          →  app.influx.<tld>   public + espace marque + espace créateur
+apps/backoffice   →  ops.influx.<tld>   espace commercial + espace admin
+apps/api          →  réseau privé Railway, AUCUN hôte public
+```
+
+L'espace marque et l'espace créateur **restent dans `apps/web`** : ils partagent
+l'authentification, le design, la messagerie, la session et la moitié des écrans. Les séparer
+serait de la sur-ingénierie — ils n'ont pas de différence de privilège, seulement une différence de
+rôle, que la RLS et les contrats d'API traitent déjà.
+
+**L'argument décisif est la CVE-2025-29927** (mars 2025) : un en-tête HTTP forgé,
+`x-middleware-subrequest`, permettait de **court-circuiter entièrement le middleware de Next.js**.
+Ce document citait déjà cette faille le 2026-09-16 pour justifier la règle « le proxy ne sert jamais
+à autoriser ». Cette règle reste vraie, mais elle ne suffit pas ici : ce qui compte, c'est que dans
+l'option A, **une faille de routage, de rendu ou de cache dans l'application publique donnerait
+accès à la surface backoffice du même processus**. Next.js a connu deux failles critiques en
+dix-huit mois (la seconde, CVE-2025-55182, une exécution de code à distance via les composants
+serveur React). La discipline de mise à jour est nécessaire ; l'isolement est ce qui rend la
+prochaine faille survivable.
+
+**Le durcissement fait partie de la décision** (mise en œuvre détaillée : document `03`) :
+
+| Mesure | Détail |
+|---|---|
+| Hôte distinct | Sous-domaine dédié, non référencé, jamais lié depuis le site public |
+| Non-indexation | En-tête `X-Robots-Tag: noindex, nofollow` sur **toutes** les réponses. **Pas** de `Disallow` global dans `robots.txt` : un chemin interdit n'est pas exploré, donc la consigne `noindex` n'est jamais lue et l'URL peut malgré tout être indexée |
+| Cookie | Nom préfixé `__Host-`, donc `Secure`, `Path=/`, **sans attribut `Domain`** : le cookie ne peut pas être partagé avec l'hôte public. `SameSite=Strict` |
+| MFA | **Obligatoire** (D37, §7). `aal2` vérifié par `apps/api` **et** dans les politiques RLS |
+| Session | 8 h maximum, inactivité 30 min, ré-authentification pour les actions sensibles (export, suppression, envoi d'e-mails) |
+| Inscription | **Impossible.** Les comptes agent et admin sont créés par invitation d'un admin, jamais par un formulaire public |
+| En-têtes | CSP propre, plus stricte que celle du site public (aucune image distante, aucun script tiers, `frame-ancestors 'none'`) |
+| Langue | **Français uniquement** au MVP (D36 ouverte) : `apps/backoffice` **n'embarque pas next-intl** tant que D36 n'est pas tranchée. C'est autant de travail en moins, et un `packages/i18n` non créé |
+
+### Conséquences
+
+- **Code :** une application Next.js supplémentaire, App Router, mêmes conventions que `apps/web`
+  (tokens, Tailwind, ESLint, Vitest), **sans next-intl, sans contenu fictif, sans SEO**. Le serveur
+  Next du backoffice ne rend qu'une coquille et **ne lit jamais la base** : toutes les données
+  viennent de `apps/api`.
+- **Déploiement :** un service Railway de plus par environnement, un domaine de plus, un certificat
+  de plus.
+- **Coûts :** un service Railway léger (le backoffice sert quelques dizaines de sessions), un nom de
+  domaine ou un sous-domaine.
+- **Sécurité :** c'est l'objet de la décision. Le point à ne pas rater est que **l'isolement d'hôte
+  n'est une protection que si la session n'est pas partagée** — d'où le cookie sans attribut
+  `Domain` et le passe-plat de §9.3.
+- **UX :** `expert-ux` produit deux systèmes cohérents mais distincts. Le backoffice est dense
+  (tableaux, files, filtres) ; il consomme les mêmes tokens, pas les mêmes gabarits.
+
+### Si l'on se trompe
+
+Si maintenir deux applications se révèle trop lourd pour un développeur, **fusionner est
+mécanique** : déplacer les routes de `apps/backoffice/src/app/**` dans un groupe de routes de
+`apps/web`, unifier la session, supprimer un service Railway. Une à deux journées.
+
+L'inverse — extraire un backoffice d'une application publique — coûte le même travail **plus** une
+migration de session, **plus** la période pendant laquelle le risque a existé. On choisit donc la
+séparation maintenant, parce que c'est le sens dans lequel l'erreur se rattrape le moins cher.
+
+### Réversibilité
+
+**Élevée** dans le sens utile (fusionner). Faible dans l'autre, et c'est précisément pourquoi on
+tranche ainsi.
+
+---
+
+## 4. D2 — Framework backend Node
+
+### Contexte
+
+`apps/api` porte les domaines `identity`, `profiles`, `campaigns`, `search`, `verification`,
+`matching`, `messaging`, `billing`, `leads`, `backoffice`. Il détient **seul** les secrets serveur,
+il est le seul à ouvrir des transactions, il écrit le registre chaîné (par des fonctions dédiées,
+jamais sous un rôle qui contourne la RLS), et il fournit le même contrat à deux fronts. Il doit en
+outre fournir un **processus de fond** (C6) que le modèle de requête/réponse ne couvre pas.
+
+### Options
+
+| Option | Avantages | Inconvénients |
+|---|---|---|
+| **A. Fastify 5** | Validation **par schéma**, entrée *et sortie*, branchée sur zod via un fournisseur de types : les schémas de `packages/contracts` deviennent la validation d'exécution, pas seulement des types. **Sérialisation par schéma de réponse : ce qui n'est pas déclaré ne sort pas** (deuxième ligne de défense de l'anonymisation, §2.5). Journalisation structurée `pino` native avec identifiant de requête (matière du journal d'audit). Encapsulation par greffon = frontières de domaines naturelles. `fastify.inject()` : tests de bout en bout sans serveur ni navigateur | Écosystème plus petit qu'Express ; conventions propres à apprendre (greffons, décorateurs, cycle de vie) |
+| **B. Express 5** | Le plus répandu, le plus documenté, le plus simple à lire ; stable ; depuis la v5, les rejets de promesses sont bien transmis au gestionnaire d'erreurs | Ni validation, ni sérialisation, ni journalisation structurée : tout est à assembler soi-même, donc **à discipliner soi-même**. Pas d'encapsulation : un intergiciel posé pour un domaine s'applique à tout. Le filtre de sortie par schéma — celui qui protège l'anonymisation — devrait être réécrit à la main |
+| **C. NestJS** | Structure imposée, injection de dépendances, modules : excellent pour une équipe qui grossit | Trop lourd pour un développeur : décorateurs, métadonnées, conteneur d'injection, davantage de dépendances, démarrage plus lent, et une convention de framework qui imprègne tout le code métier. On paierait aujourd'hui une structure dont on n'a pas le problème (C9) |
+| **D. Pas d'`apps/api` : Route Handlers Next.js + Supabase** | Une application de moins, un déploiement de moins, pas de passe-plat, pas de saut réseau. C'est le défaut de l'écosystème en 2026 | Analysé en détail ci-dessous : **écarté** |
+| **E. Hono** | Très léger, très rapide, API standard du Web, portable | Nous n'avons besoin d'aucune portabilité multi-environnements d'exécution ; l'écosystème Node spécifique (journalisation, arrêt propre, métriques) est plus mince que celui de Fastify. Aucun gain qui compense |
+
+### Pourquoi l'option D est écartée — l'examen demandé
+
+L'option « tout dans Next.js » mérite d'être prise au sérieux : elle supprime une application, un
+déploiement et le passe-plat. Dans un produit sans invariant d'anonymisation et sans traitement de
+fond, **ce serait la bonne réponse**. Ici, elle est écartée pour quatre raisons cumulatives.
+
+1. **Elle rend C1 invérifiable.** Dans un même processus, le rendu des pages et le client privilégié
+   cohabitent. Un `select` trop large dans un composant serveur fait sortir des colonnes
+   identifiantes dans la charge utile RSC — laquelle part au navigateur — **sans passer par le
+   moindre schéma de réponse ni la moindre revue de contrat**. La frontière réseau et le schéma de
+   sortie de Fastify sont ce qui rend l'anonymisation *contrôlable*, pas seulement *correcte le jour
+   où on l'écrit*.
+2. **Il faut un worker de toute façon.** Le pipeline de leads exige un processus long, avec
+   réessais, temporisation et tâches périodiques (C6). Next.js n'offre aucun modèle de processus de
+   fond. Il faudrait donc un second service — qui aurait besoin de son propre accès à la base, donc
+   d'un paquet partagé de schéma et de dépôts. **On serait alors à 80 % de `apps/api`, sans en avoir
+   la discipline.**
+3. **Concentration du risque.** Loger `identity`, `messaging`, `billing`, l'accès à la base **et** la
+   clé d'API `service_role` dans le processus qui sert la page d'accueil publique, c'est faire de chaque
+   faille de rendu ou de routage une compromission totale. Les deux CVE critiques de Next.js
+   mentionnées au §3 ne sont pas un argument contre Next.js — c'est un argument contre **cette**
+   concentration.
+4. **Le registre chaîné et les transactions.** L'écriture chaînée (C4) et la révélation atomique
+   (C2) demandent des transactions explicites, sérialisées, avec verrou. C'est faisable dans un
+   Route Handler, mais le modèle d'exécution de Next.js (par requête, potentiellement réinvoqué,
+   potentiellement en périphérie) rend la discipline de connexion et de transaction beaucoup plus
+   fragile — pour zéro bénéfice.
+
+Ce qu'on paie pour écarter D, dit franchement : une application de plus, un déploiement de plus, un
+passe-plat de quinze lignes par front, un saut réseau, et des types à partager par paquet plutôt
+qu'à importer directement.
+
+### Grille
+
+| Critère (poids) | **A. Fastify** | B. Express 5 | C. NestJS | D. Next.js seul |
+|---|---|---|---|---|
+| Stack imposée et Railway (éliminatoire) | Oui | Oui | Oui | Oui |
+| Sert C1 (anonymisation exécutoire) (fort) | **Oui, par schéma de réponse** | À écrire soi-même | Oui, plus lourd | **Non** |
+| Sert C4/C6 (audit, worker) (fort) | Oui | Oui | Oui | **Non** |
+| Simplicité pour un développeur (fort) | Bonne | **Très bonne** | Faible | Très bonne |
+| Coût de sortie (fort) | Moyen (routes et greffons à réécrire) | Faible | Élevé | — |
+| Maturité et maintenance (moyen) | Élevée (v5 LTS, correctifs réguliers) | Très élevée | Élevée | Élevée |
+| Performance (moyen) | Élevée, mesurée | Correcte | Correcte | — |
+
+### Décision : **A — Fastify 5** (`apps/api`), plus un **worker issu du même paquet**
+
+```
+apps/api/
+├── src/main.ts        entrée HTTP        → service Railway « api »
+└── src/worker.ts      entrée worker      → service Railway « worker »
+```
+
+Un seul paquet, un seul `package.json`, un seul build, **deux points d'entrée**, **deux services
+Railway**. Le worker ne démarre pas de serveur HTTP public ; il expose au plus un `/health` interne
+pour la sonde Railway.
+
+**Règles qui font partie de la décision :**
+
+1. **Toute route déclare un schéma de requête *et* un schéma de réponse**, tous deux issus de
+   `packages/contracts`. Une route sans schéma de réponse est refusée en revue : c'est la deuxième
+   ligne de défense de l'anonymisation.
+2. **Un greffon par domaine**, monté sous son préfixe. Un domaine n'importe jamais le `repository.ts`
+   d'un autre domaine ; il passe par une fonction exportée de son `service.ts`. Règle vérifiée par
+   `no-restricted-imports`.
+3. **Journalisation `pino` structurée**, un identifiant de requête par appel, propagé dans l'enveloppe
+   d'erreur et dans toutes les lignes de journal. **Aucune donnée personnelle superflue** dans les
+   journaux (skill `lead-pipeline`, règle 8) : ni corps de message, ni adresse e-mail complète.
+4. **Aucun accès direct à la grappe de connexions dans un gestionnaire de route.** Le seul chemin est
+   `withUserTransaction()` ou `withElevatedTransaction()` (§5).
+5. **Arrêt propre** sur `SIGTERM` : fin des requêtes en cours, fermeture des connexions. Railway
+   redéploie souvent ; un arrêt brutal au milieu d'une révélation d'identité est inacceptable.
+
+### Conséquences
+
+- **Code :** `apps/api` est le seul endroit où vivent la logique métier, les secrets serveur et les
+  transactions. `apps/web` et `apps/backoffice` **rendent des pages** (règle déjà posée le
+  2026-09-16 pour `apps/web`, désormais étendue au backoffice).
+- **Déploiement :** deux services Railway construits depuis le même paquet, avec deux commandes de
+  démarrage.
+- **Coûts :** deux services légers de plus par environnement.
+- **Sécurité :** surface HTTP unique et **non exposée publiquement** (§12). Le filtre de sortie par
+  schéma est un gain net.
+
+### Si l'on se trompe
+
+Si Fastify se révèle un frein, porter vers Express est un travail mécanique : les greffons
+deviennent des routeurs, les schémas restent (ils sont dans `packages/contracts`) et s'appliquent
+alors par un intergiciel de validation écrit une fois. Les services, dépôts et migrations ne bougent
+pas. Estimation : 3 à 5 jours à la taille du MVP. **Le coût de sortie est concentré dans la couche
+HTTP, qui est mince par construction.**
+
+### Réversibilité
+
+**Moyenne**, et elle reste moyenne parce que la logique métier ne dépend pas du framework.
+
+---
+
+## 5. D5 — Accès aux données
+
+### Contexte
+
+La base est la source de vérité (`CLAUDE.md` §7). Elle porte des politiques RLS, des `GRANT` et
+`REVOKE` de colonnes, des déclencheurs, des fonctions `SECURITY DEFINER`, un registre chaîné et des
+contraintes de machine à états. **Aucun de ces objets n'est exprimable dans le langage de schéma
+d'un ORM.** La question n'est donc pas « quel ORM », mais « quelle couche de requêtes typée, sans
+que l'outil réclame la propriété du schéma ».
+
+### Options
+
+| Option | Avantages | Inconvénients |
+|---|---|---|
+| **A. `@supabase/supabase-js` partout** | Un seul client, celui de la plateforme ; Auth, Storage et données dans le même objet | Pousse la clé et PostgREST vers le front (§2) ; **pas de transaction multi-requêtes** (rédhibitoire pour C2 et C4) ; requêtes complexes (facettes, k-anonymat, tri explicable) illisibles ou impossibles |
+| **B. Prisma** | Très répandu, excellente expérience de développement, migrations guidées | Son moteur de migrations **veut posséder le schéma** : politiques RLS, `GRANT`/`REVOKE`, déclencheurs et fonctions vivent hors de son modèle, donc en dérive permanente, avec un `migrate` qui propose de supprimer ce qu'il ne connaît pas. Se connecte par défaut avec un rôle propriétaire, qui **contourne la RLS**. Frictions connues avec le multiplexeur de connexions Supabase. **Incompatible avec la façon dont nous protégeons les données** |
+| **C. Drizzle + pilote `postgres`** | Schéma déclaré en TypeScript, typage complet des résultats ; **le SQL reste du SQL** : `drizzle-kit generate` produit un fichier que l'on relit et versionne, sans jamais appliquer de différentiel en production ; échappatoire `sql\`\`` toujours disponible pour les requêtes que l'outil ne sait pas exprimer ; très peu de dépendances | Encore en version 0.4x (pré-1.0) : l'API bouge. Écosystème plus jeune que Prisma |
+| **D. SQL brut + `postgres.js`** | Zéro abstraction, zéro surprise, portable | Aucun typage des résultats : chaque migration devient une chasse au `grep`. Les erreurs se découvrent à l'exécution |
+| **E. Kysely** | Constructeur de requêtes pur, typage excellent, ne touche jamais aux migrations | Types dérivés de la base par génération (ou écrits à la main) : un aller-retour de plus. Très proche de C en résultat ; départage par l'écosystème et par la génération de SQL à partir du schéma TypeScript |
+
+### Grille
+
+| Critère (poids) | A. supabase-js | B. Prisma | **C. Drizzle** | D. SQL brut | E. Kysely |
+|---|---|---|---|---|---|
+| Compatible RLS, `GRANT`, déclencheurs, `SECURITY DEFINER` (**éliminatoire**) | Partiel | **Non** | Oui | Oui | Oui |
+| Transactions multi-requêtes (**éliminatoire**, C2/C4) | **Non** | Oui | Oui | Oui | Oui |
+| Typage des résultats (fort) | Moyen | Élevé | Élevé | **Nul** | Élevé |
+| Migrations qui restent du SQL relu (fort) | — | Non | **Oui** | Oui | Oui |
+| Coût de sortie (fort) | — | Élevé | Moyen | Faible | Moyen |
+| Maturité (moyen) | Élevée | Élevée | **Moyenne (pré-1.0)** | Élevée | Élevée |
+
+### Décision : **C — Drizzle**, avec six règles qui comptent autant que le choix
+
+*(Règle 3 révisée et règle 4 ajoutée le 2026-09-18, après la revue de `expert-cybersecurite`.)*
+
+1. **Les migrations sont des fichiers SQL relus et versionnés dans `supabase/migrations`**, appliqués
+   par la CLI Supabase. `drizzle-kit generate` peut servir à **rédiger un brouillon** à partir du
+   schéma TypeScript ; le fichier SQL relu est la source de vérité. **`drizzle-kit push` est
+   interdit** : il applique un différentiel sans relecture et ignore tout ce qu'il ne modélise pas
+   (politiques, droits, déclencheurs).
+2. **`@supabase/supabase-js` est cantonné à `apps/api`** et à deux usages seulement : **Auth**
+   (GoTrue) et **URL signées du Storage**. Il est importable depuis un unique module
+   `src/platform/supabase.ts`, et une règle ESLint interdit son import ailleurs. Il **ne sert jamais
+   à lire ou écrire une table métier**.
+3. **La base est atteinte par deux chemins, et deux seulement** — *révisé le 2026-09-18 (revue
+   `expert-cybersecurite`, constat bloquant B2)* **:**
+
+| Fonction | Rôle Postgres pris | Usage | RLS |
+|---|---|---|---|
+| `withUserTransaction(request, fn)` | `influx_advertiser` · `influx_creator` · `influx_agent` · `influx_admin`, via `SET LOCAL ROLE` | **Toute requête déclenchée par un utilisateur**, membre ou agent | **Appliquée**, avec les réclamations de l'utilisateur |
+| `withElevatedTransaction(operation, fn)` | `influx_auth` · `influx_worker` · `influx_privacy`, **aucun avec `BYPASSRLS`** | **Uniquement** les cinq opérations de la liste fermée E-1 à E-5 du document `03` §P7 | **Appliquée aussi** : ces rôles ont des `GRANT` et des politiques **nommés table par table** |
+
+   **Ce qui a changé et pourquoi.** La version initiale prévoyait un `withServiceTransaction` opérant
+   sous le rôle Postgres `service_role`, qui porte `BYPASSRLS`. C'est refusé, et l'argument est
+   imparable : **un rôle `BYPASSRLS` employé à l'exécution rend tous les tests de RLS facultatifs sans
+   le moindre symptôme** — il suffit d'un appel mal placé pour que la garantie disparaisse, sans
+   qu'aucun test ne rougisse. Le worker n'a pas besoin de *contourner* la RLS, il a besoin de **droits
+   explicites** : le « contournement » devient alors visible et relisible dans la migration, table par
+   table.
+
+   **Règle absolue : aucun rôle utilisé à l'exécution n'a `rolbypassrls` ni `rolsuper`** — vérifié par
+   un test de CI (document `03` §8, T4). Le rôle Postgres `service_role` n'est utilisé **nulle part**.
+
+   **Ne pas confondre deux objets homonymes :** la **clé d'API HTTP** `SUPABASE_SERVICE_ROLE_KEY`
+   reste employée par `apps/api` et le worker, mais **uniquement pour GoTrue (Auth) et les URL
+   signées du Storage** — jamais pour atteindre une table. C'est une clé d'API, pas un rôle Postgres.
+
+   `operation` n'est pas un texte libre : c'est une valeur d'une **union fermée** déclarée dans
+   `packages/contracts`, limitée aux cinq opérations E-1 à E-5. Tout ajout est une modification du
+   document `03`, signée par `expert-cybersecurite`.
+
+   **Tout le reste passe par une fonction `SECURITY DEFINER` étroite**, qui vérifie elle-même le rôle
+   et l'`aal` de son appelant, journalise, et porte obligatoirement `SET search_path = ''` puis
+   `REVOKE EXECUTE … FROM PUBLIC` suivi d'un `GRANT` nominatif. Une transaction élevée est un chèque
+   en blanc ; une fonction `SECURITY DEFINER` est une opération nommée.
+
+   Le compte de connexion de `apps/api` est un rôle dédié (`influx_app`) qui n'est **ni propriétaire
+   d'aucun objet, ni `BYPASSRLS`, ni `SUPERUSER`, ni membre d'un rôle élevé** — cette dernière
+   condition est indispensable : sans elle, un `RESET ROLE` ou un `SET ROLE` dans la même session
+   annulerait la séparation. Les accès élevés passent donc par une **seconde grappe de connexions**,
+   avec un rôle différent et une variable d'environnement différente.
+
+   `set_config(..., true)` est **local à la transaction** : hors transaction, le contexte n'existe
+   pas et les politiques voient un utilisateur anonyme. C'est pourquoi **toute lecture passe par une
+   transaction**, même une simple lecture. Ce comportement est un garde-fou : il transforme l'oubli
+   d'ouvrir une transaction en « zéro ligne » plutôt qu'en « toutes les lignes ».
+
+4. **Aucune table métier dans le schéma `public`** — *ajouté le 2026-09-18 (revue
+   `expert-cybersecurite`, constat bloquant B3)*. Supabase expose une API PostgREST publique sur les
+   schémas configurés, `public` par défaut, atteignable avec la clé `anon`. Cette clé est **publique
+   par conception** : on ne protège pas une base en pariant sur la confidentialité d'une clé qui n'est
+   pas un secret. Donc : **un schéma Postgres par domaine** (`identity`, `profiles`, `campaigns`,
+   `search`, `verification`, `matching`, `messaging`, `billing`, `leads`, `audit`), aucun d'eux
+   déclaré dans les schémas exposés par PostgREST, et `REVOKE ALL` sur `anon` et `authenticated`
+   (schémas, tables, et `ALTER DEFAULT PRIVILEGES` cohérents). Conséquence heureuse : **même si la clé
+   `anon` fuitait, il n'y aurait rien à lire.** Effort nul si c'est décidé maintenant, migration
+   pénible si on s'en aperçoit au Lot 3.
+
+5. **Contraintes d'exploitation Supabase à connaître dès le Lot 0** (elles ont des conséquences
+   directes sur D18) :
+   - Connexion via le **multiplexeur en mode transaction** : désactiver les requêtes préparées
+     (`prepare: false` côté pilote).
+   - **`LISTEN`/`NOTIFY` ne fonctionne pas** à travers ce multiplexeur → le worker **interroge**, il
+     n'écoute pas (§6).
+   - Les **verrous consultatifs de session** ne fonctionnent pas non plus → utiliser exclusivement
+     les verrous **de transaction** (`pg_advisory_xact_lock`, `pg_try_advisory_xact_lock`).
+   - Montants : entiers en plus petite unité monétaire ou `numeric` exact, **jamais de flottant**
+     (skill `supabase-schema`). Le pilote doit renvoyer les `numeric` en chaîne, jamais en `number`.
+
+6. **Une couche `repository.ts` par domaine.** Aucun appel Drizzle en dehors. C'est ce qui rend le
+   choix réversible : basculer vers Kysely ou vers du SQL brut ne touche que ces fichiers.
+
+### Conséquences
+
+- **Code :** `apps/api/src/db/schema/*.ts` (déclaration du schéma, alignée à la main sur le SQL),
+  `apps/api/src/db/index.ts` (grappe de connexions, les deux fonctions de transaction),
+  `<domaine>/repository.ts` (requêtes).
+- **Déploiement :** une variable `DATABASE_URL` pointant sur le multiplexeur, une `DIRECT_URL` pour
+  l'application des migrations en CI.
+- **Coûts :** aucun.
+- **Sécurité :** c'est le point central. La RLS s'applique réellement parce que l'application se
+  connecte avec un rôle non privilégié, prend le rôle de l'utilisateur et pose les réclamations dans
+  la transaction. **Un rôle propriétaire ou `BYPASSRLS` dans `DATABASE_URL` annulerait toute la RLS
+  en silence**, sans le moindre symptôme : d'où les tests explicites du document `03` §8 (T4 : aucun
+  rôle d'exécution ne porte `rolbypassrls` ni `rolsuper`). À noter également : `ENABLE ROW LEVEL
+  SECURITY` **ne suffit pas** — le propriétaire d'une table échappe à ses propres politiques tant
+  qu'on n'a pas ajouté `FORCE ROW LEVEL SECURITY` (document `03` §P1).
+
+### Si l'on se trompe
+
+Le risque identifié est la **version pré-1.0 de Drizzle**. Parade : version **exacte** épinglée
+(règle `savePrefix: ''` déjà en place), montée de version traitée comme un changement à part
+entière, et couche `repository` qui confine la surface d'API. Si une version majeure casse trop de
+choses, la bascule vers Kysely touche les fichiers `repository.ts` et le schéma TypeScript — **pas
+les migrations, pas les politiques, pas la logique métier**. Estimation : 3 à 5 jours.
+
+### Réversibilité
+
+**Moyenne à élevée.** Les migrations SQL, les politiques et les données sont, elles, entièrement
+indépendantes du choix.
+
+---
+
+## 6. D18 — File de synchronisation des leads
+
+### Contexte
+
+Skill `lead-pipeline` : une inscription ne doit **jamais** échouer parce qu'un service externe est
+indisponible ; les événements doivent être persistés, ordonnés par lead, réessayés, rejouables
+manuellement, et les révocations doivent passer devant. Ajout du document `01` : les **e-mails
+transactionnels de révélation d'identité** (M2) doivent être envoyés de façon fiable, rejoués en cas
+d'échec, et remonter en alerte en cas d'échec définitif — **c'est exactement le même besoin**.
+
+### Options
+
+| Option | Avantages | Inconvénients |
+|---|---|---|
+| **A. Table `outbox_events` + worker `FOR UPDATE SKIP LOCKED`** | **L'insertion de l'événement est dans la même transaction que le fait métier** : il n'existe pas de fait sans événement, ni d'événement sans fait. Aucune infrastructure nouvelle. Rejeu = `UPDATE`. Supervision = `SELECT`. Sauvegardé avec la base | Interrogation périodique (latence de quelques secondes) ; il faut écrire la boucle et la temporisation soi-même (≈ 150 lignes) |
+| **B. Redis + BullMQ** | Outil de file mature, temporisation et réessais fournis, tableau de bord existant | Un service Railway de plus, une dépendance de plus, un mode de panne de plus, un sous-traitant de données de plus. **Et surtout : la mise en file ne serait plus dans la transaction métier** — il faudrait donc une table d'attente de toute façon pour ne rien perdre. On paierait deux mécanismes pour le travail d'un seul |
+| **C. pgmq / Supabase Queues** | C'est la même idée que A, empaquetée, avec une API de file | Une extension de plus à installer, à mettre à jour et à comprendre ; une API de file au lieu de SQL simple ; aucun gain à notre volume (quelques centaines d'événements par jour au pilote). À rouvrir si le volume l'exige |
+| **D. `pg_cron` seul** | Intégré à Supabase | Planifie, ne met pas en file : ni ordre, ni réessai par destination, ni rejeu unitaire. Insuffisant |
+
+### Décision : **A**
+
+**Une ligne par (fait, destination).** L'émission insère N lignes dans la même transaction que le
+fait métier.
+
+| Colonne (indicative — le modèle exact relève de `expert-database`) | Rôle |
+|---|---|
+| `id`, `event_id` | Identité de la ligne ; `event_id` regroupe les lignes d'un même fait (affichage backoffice) |
+| `event_type` | `lead.created`, `lead.updated`, `consent.revoked`, `account.deleted`, `introduction.revealed`… — **nommé au passé** |
+| `destination` | `brevo_contact`, `apollo_contact`, `brevo_transactional` |
+| `subject_key` | Clé d'ordonnancement : identifiant du lead, ou de la mise en relation |
+| `priority` | `0` = urgent (`consent.revoked`, `account.deleted`, e-mails de révélation) · `100` = normal |
+| `payload` | **Identifiants uniquement.** Le consommateur relit la base pour l'état à jour |
+| `idempotency_key` | Clé stable, transmise au service externe |
+| `status` | `pending` · `processing` · `succeeded` · `failed` · `skipped` |
+| `attempts`, `available_at` | Réessais et temporisation |
+| `last_error_code`, `last_error_message` | **Cause en clair**, lisible au backoffice (skill `lead-pipeline`) |
+| `created_at`, `updated_at`, `completed_at` | Traçabilité |
+
+**Sélection d'un lot par le worker :**
+
+```
+SELECT ... FROM leads.outbox_events
+ WHERE status = 'pending' AND available_at <= now()
+ ORDER BY priority, available_at, id
+ LIMIT 20
+ FOR UPDATE SKIP LOCKED
+```
+
+**Ordre par sujet :** avant de traiter une ligne, le worker tente
+`pg_try_advisory_xact_lock(hashtextextended(subject_key, 0))`. S'il n'obtient pas le verrou, il
+**passe** la ligne (elle repassera au tour suivant) plutôt que d'attendre. Verrou **de transaction**
+obligatoire : les verrous de session ne survivent pas au multiplexeur (§5).
+
+**Concurrence : un seul worker au MVP.** À ce volume, l'ordre est alors trivialement respecté ; le
+verrou consultatif est la garantie qui reste valable le jour où l'on passe à deux.
+
+**Réessais :** temporisation exponentielle avec dispersion aléatoire (1 min, 3, 10, 30, 2 h, 6 h),
+**6 tentatives**, puis `failed` — visible et rejouable au backoffice. Une erreur `4xx` non
+récupérable (contact invalide, consentement absent côté service) passe directement en `failed` ou
+`skipped`, sans consommer les six tentatives.
+
+**Consentement revérifié à la consommation**, pas à l'émission (skill `lead-pipeline`, règle 2) :
+entre les deux, il a pu être retiré. Absence de consentement → `skipped`, journalisé comme tel, et
+distingué d'une erreur au backoffice.
+
+**Ce que la file transporte aussi :** les e-mails transactionnels de mise en relation (M2). Même
+mécanisme, priorité `0`, `messageId` renvoyé par Brevo **conservé** sur la ligne (document `01` §9)
+— c'est le lien entre notre registre interne et la preuve détenue par un tiers.
+
+**Purge :** les lignes `succeeded` sont purgées après 30 jours ; les lignes `failed` sont conservées
+jusqu'à traitement explicite. Les faits eux-mêmes restent dans le registre d'audit, qui n'est
+**jamais** purgé (M4).
+
+### Conséquences
+
+- **Code :** une table, une fonction d'émission (`enqueue(tx, event)`), une boucle de worker, un
+  connecteur par destination (`expert-integrations-api`, skills `brevo-campaign` et
+  `apollo-lead-sync`).
+- **Déploiement :** aucun composant nouveau. Le worker est le service déjà prévu par D2.
+- **Coûts :** nuls.
+- **Sécurité :** charge utile réduite à des identifiants → aucune donnée personnelle superflue en
+  base de file ni dans les journaux.
+
+### Si l'on se trompe
+
+Si le volume dépasse ce qu'une interrogation périodique absorbe (ordre de grandeur : plusieurs
+dizaines d'événements par seconde, très au-delà du pilote), la bascule vers pgmq ou vers une file
+dédiée se fait **derrière la même fonction `enqueue()`** : la table reste comme journal, le
+consommateur change. Aucun appelant métier n'est touché.
+
+### Réversibilité
+
+**Élevée.**
+
+---
+
+## 7. D37 — Méthode d'authentification *(décision nouvelle)*
+
+### Contexte
+
+Le prototype `apps/web/src/components/account/AccountForm.tsx` ne comporte **aucun champ mot de
+passe** et aucun document ne tranche la question. Il faut décider avant le Lot 0, parce que le
+modèle de session conditionne la structure des trois espaces.
+
+Trois populations, trois besoins :
+
+| Population | Contexte | Contrainte dominante |
+|---|---|---|
+| **Créateur** | Mobile, jeune, arrive depuis un lien ou un réseau | **Aucune friction**, et pas de gestionnaire de mots de passe |
+| **Marque** | Bureau, e-mail professionnel, usage épisodique | Attente d'un parcours « professionnel », reprise de session facile |
+| **Agent / admin** | Backoffice, tous les jours, accès à **toutes** les identités et **toutes** les conversations | **MFA obligatoire, session courte, révocation immédiate** |
+
+### Options
+
+| Option | Avantages | Inconvénients |
+|---|---|---|
+| **A. Mot de passe + e-mail vérifié** | Familier, indépendant de la délivrabilité e-mail à chaque connexion | Parcours de réinitialisation à construire ; bourrage d'identifiants et réutilisation de mots de passe ; responsabilité en cas de fuite ; une étape de vérification d'e-mail **en plus** de l'inscription |
+| **B. Lien magique (clic dans l'e-mail)** | Zéro mot de passe, vérifie l'adresse par construction | **Casse sur mobile** : le lien s'ouvre dans le navigateur intégré à l'application de messagerie, donc la session atterrit dans un autre navigateur que celui où l'utilisateur a commencé. Pour une population mobile, c'est un tueur de conversion. Les protections anti-hameçonnage des messageries d'entreprise « cliquent » parfois le lien et le consomment |
+| **C. Connexion via un tiers (Google, réseaux sociaux)** | Un clic, pas d'e-mail à délivrer | Un fournisseur d'identité de plus, un écran de consentement, une dépendance juridique ; **le rattachement de comptes** (même adresse par deux chemins) est une source classique de prise de contrôle de compte. **Instagram / TikTok : à refuser explicitement**, parce qu'une connexion par le réseau serait lue comme une **vérification d'audience** — précisément ce que le badge doit affirmer (D34) et que nous ne pouvons pas affirmer au MVP |
+| **D. Code à usage unique à 6 chiffres par e-mail** | Le code se **retape dans l'onglet d'origine** : aucun changement de navigateur, fonctionne parfaitement sur mobile. **Vérifie l'adresse par construction**, donc supprime l'étape « confirmez votre e-mail » — et l'adresse vérifiée est exactement ce dont le Lot 1 a besoin pour Brevo et Apollo. Aucun secret durable côté utilisateur, donc rien à voler, rien à réinitialiser | **La délivrabilité de l'e-mail devient la disponibilité du produit.** Un code en indésirable = un utilisateur bloqué. Limitation de débit et anti-énumération à écrire sérieusement |
+| **E. Clés d'accès (passkeys)** | Le meilleur niveau de sécurité et d'ergonomie à terme | Parcours de secours indispensable (nouvel appareil, appareil perdu), donc **une deuxième méthode de toute façon**. Prématuré au MVP |
+
+### Décision
+
+**Membres (marque et créateur) : option D seule. Backoffice : option A + TOTP obligatoire.**
+
+| | **Espace membres** | **Backoffice** |
+|---|---|---|
+| Méthode | **Code à 6 chiffres par e-mail**, même parcours pour l'inscription et la connexion | **Mot de passe + TOTP obligatoire** |
+| Mot de passe | **Non implémenté au MVP** | Obligatoire, politique de longueur minimale, vérification contre les mots de passe compromis |
+| Second facteur | Non (le code *est* le facteur) | **Obligatoire**, inscription du second facteur imposée à la première connexion |
+| Vérification d'e-mail | **Implicite** : réussir la connexion prouve l'adresse | Compte créé par invitation d'un admin |
+| Auto-inscription | Oui | **Impossible** |
+| Durée de vie du code | 10 min, 5 tentatives, invalidé après usage | — |
+| Session | 30 jours glissants, renouvellement silencieux | **8 h maximum, inactivité 30 min** |
+| Cookie | `__Host-`, `httpOnly`, `Secure`, `SameSite=Lax` | `__Host-`, `httpOnly`, `Secure`, **`SameSite=Strict`** |
+| Contrôle serveur | Rôle lu **en base**, pas dans le jeton | Rôle **et `aal2`** vérifiés à chaque requête **et** dans les politiques RLS |
+
+**Trois précisions qui font partie de la décision :**
+
+1. **Aucun jeton n'atteint jamais le JavaScript.** La session est un cookie `httpOnly` posé par
+   `apps/api` et relayé par le passe-plat (§9.3). `localStorage`, `sessionStorage` et
+   `document.cookie` restent **interdits par ESLint** dans les deux fronts, définitivement. Une
+   faille XSS sur le site public ne permet alors ni de lire la session, ni de l'exfiltrer.
+2. **Le rôle métier n'est pas dans le jeton.** Il est lu en base par une fonction `STABLE` appelée
+   dans les politiques (`influx.current_role()`). Raison : un rôle inscrit dans un JWT reste valide
+   jusqu'à l'expiration du jeton — **un agent suspendu conserverait ses droits pendant une heure**.
+   Sur une surface qui voit toutes les identités, la révocation doit être immédiate. Coût : une
+   lecture indexée par évaluation de politique, à mesurer par `expert-database`.
+3. **`aal2` est vérifié deux fois** : par `apps/api` avant d'exécuter quoi que ce soit pour un rôle
+   `agent` ou `admin`, **et** dans les politiques RLS des objets sensibles. Un contrôle côté API
+   seul serait un « masquage d'UI » déguisé.
+
+**Anti-abus, au Lot 0 :** limitation de débit sur la demande de code par adresse **et** par IP ;
+réponse **identique** que le compte existe ou non (pas d'énumération) ; code à usage unique lié à la
+session d'origine ; journalisation des échecs répétés.
+
+### Ce que cela change pour le prototype existant
+
+`AccountForm.tsx` est **déjà compatible** : l'absence de champ mot de passe n'était pas un oubli,
+c'est la forme correcte. Ce qui manque : un **second écran de saisie du code**, et le déplacement de
+la validation (format d'e-mail, majorité, CGU, consentement) **du client vers le serveur**, où elle
+devient un schéma de `packages/contracts`. La validation client reste, en confort, à partir du même
+schéma.
+
+### Si l'on se trompe
+
+Deux seuils, mesurés dès le Lot 1 :
+
+- **plus de 15 % des demandes de code sans connexion aboutie dans les 10 minutes**, ou
+- **délai médian de réception du code supérieur à 60 secondes**,
+
+alors on ajoute le mot de passe comme méthode complémentaire au lot suivant. Supabase Auth le
+fournit nativement : c'est un formulaire, un parcours de réinitialisation et une politique de
+robustesse, soit **2 à 3 jours**. Aucun schéma, aucune politique, aucun écran existant n'est à
+reprendre.
+
+Risque inverse, à dire aussi : si la délivrabilité s'effondre (domaine mal authentifié, réputation
+d'envoi dégradée), **plus personne ne se connecte**. Parades : SPF/DKIM/DMARC dès le Lot 1 (déjà un
+prérequis du cadrage), **flux transactionnel séparé du flux marketing** chez Brevo, surveillance du
+délai de délivrance, et alerte si le taux d'échec dépasse un seuil.
+
+### Réversibilité
+
+**Élevée.**
+
+### Avis de `expert-cybersecurite` — **rendu le 2026-09-18 : D37 validée, sous deux conditions**
+
+D37 est **validée telle qu'elle est décidée ci-dessus**, au motif qu'**au MVP un compte membre ne
+contient aucun moyen de paiement** : il contient des données personnelles et des conversations
+commerciales. Deux conditions s'ajoutent, et elles font désormais partie de la décision.
+
+| # | Condition | Pourquoi |
+|---|---|---|
+| **1** | **La validation tombe automatiquement le jour où la V2 introduit des coordonnées bancaires** : un second facteur deviendra alors **obligatoire côté membres**. Écrit ici pour que personne ne l'oublie dans dix-huit mois | Le raisonnement qui autorise l'absence de mot de passe aujourd'hui repose entièrement sur l'absence d'enjeu financier dans le compte |
+| **2** | **Le changement d'adresse e-mail exige une confirmation depuis l'ancienne adresse ET depuis la nouvelle**, avec ré-authentification (document `03` §3.1, C(2)) | Sans mot de passe, l'adresse e-mail **est** le compte. Une boîte compromise pendant dix minutes suffirait sinon à se l'approprier **définitivement**. C'est le point critique de toute authentification sans mot de passe, et il est facile à oublier |
+
+Les autres points soumis (durées de session et de code, `aal2` en RLS, rôle lu en base, seuils de
+limitation de débit, anti-énumération, passe-plat, inscription et récupération du second facteur du
+backoffice) sont instruits dans `docs/mvp/03-matrice-des-droits-et-rls.md`. Récapitulatif au §14.1.
+
+---
+
+## 8. Structure du dépôt cible
+
+> **Règle de création : on ne crée un paquet qu'au premier besoin réel.** Un paquet créé « au cas
+> où » devient un dépotoir de dépendances croisées. Le lot indiqué est le lot de **création**, pas
+> de réservation.
+
+```
+influx/
+├── apps/
+│   ├── web/                     @influx/web — Next.js 16 · PUBLIC + ESPACE MARQUE + ESPACE CRÉATEUR
+│   │   │                        existe déjà (Lot 0 : sortie du mode maquette, §13)
+│   │   └── src/
+│   │       ├── app/[locale]/    pages publiques et espaces membres
+│   │       ├── app/api/[...path]/route.ts   ⚠ UNIQUE route : passe-plat vers apps/api (§9.3)
+│   │       ├── server/          appel de l'API depuis les composants serveur (seul endroit où
+│   │       │                    « fetch » est autorisé)
+│   │       ├── components/      RENDU UNIQUEMENT — jamais de logique métier
+│   │       ├── i18n/ locales/   next-intl, FR + EN (D28)
+│   │       └── styles/tokens.css  FICHIER DE TOKENS UNIQUE (D4, D6)
+│   │       ▸ ne doit JAMAIS contenir : une clé Supabase, une clé Brevo/Apollo, une requête SQL,
+│   │         un import de @supabase/*, drizzle, pg ou postgres, un calcul de montant,
+│   │         un taux de commission, une Server Action
+│   │
+│   ├── backoffice/              @influx/backoffice — Next.js · ESPACE COMMERCIAL + ADMIN     ◀ Lot 0
+│   │   │                        hôte distinct · noindex · MFA · session courte · FR seul (D36)
+│   │   └── src/
+│   │       ├── app/             files de validation, conversations, pipeline commercial, comptes
+│   │       ├── app/api/[...path]/route.ts   passe-plat, identique à celui de web
+│   │       ├── server/          appel de l'API
+│   │       └── styles/tokens.css  ré-export ou copie contrôlée des mêmes tokens
+│   │       ▸ ne doit JAMAIS contenir : next-intl tant que D36 n'est pas tranchée, de contenu
+│   │         fictif, de SEO, de lecture directe de la base, une autorisation par masquage d'UI
+│   │
+│   └── api/                     @influx/api — Fastify 5 · SEUL À PARLER À LA BASE ET AUX      ◀ Lot 0
+│       │                        SERVICES EXTERNES · seul détenteur des secrets serveur
+│       └── src/
+│           ├── main.ts          entrée HTTP    → service Railway « api »
+│           ├── worker.ts        entrée worker  → service Railway « worker »
+│           ├── server.ts        construction Fastify : greffons, hooks, erreurs
+│           ├── config/          lecture + validation zod des variables d'env, ÉCHEC AU DÉMARRAGE
+│           ├── db/              deux grappes de connexions (rôle utilisateur / rôles élevés SANS
+│           │                    BYPASSRLS), withUserTransaction, withElevatedTransaction,
+│           │                    schéma Drizzle (aligné à la main sur le SQL)
+│           ├── platform/        journalisation, enveloppe d'erreur, idempotence, limitation de
+│           │                    débit, cache JWKS, supabase.ts (SEUL import de @supabase/*,
+│           │                    et uniquement pour Auth et les URL signées du Storage)
+│           └── domains/
+│               ├── identity/        comptes, rôles, sessions, CGU versionnées
+│               ├── profiles/        profils marque et créateur, complétude, deux couches
+│               ├── campaigns/       campagnes, validation avant publication
+│               ├── search/          recherche anonymisée + vue commerciale identifiée   ◀ nouveau
+│               ├── verification/    preuves, badge, péremption                          ◀ nouveau
+│               ├── matching/        introductions, file de validation, révélation
+│               ├── messaging/       conversations à trois, lectures journalisées
+│               ├── billing/         deals — AUCUN CALCUL, AUCUN TAUX au MVP
+│               ├── leads/           outbox, connecteurs Brevo et Apollo
+│               └── backoffice/      tableaux de bord, files, supervision
+│           ▸ chaque domaine : routes.ts · service.ts · repository.ts · schema interne
+│           ▸ un domaine n'importe JAMAIS le repository.ts d'un autre domaine
+│
+├── packages/
+│   ├── contracts/               @influx/contracts — schémas zod + types + codes d'erreur  ◀ Lot 0
+│   │   ▸ contient : schémas de requête et de réponse, énumérations partagées (statuts
+│   │     d'introduction, états d'affaire, motifs de refus), format de la référence MER-…,
+│   │     union fermée des codes d'erreur
+│   │   ▸ ne doit JAMAIS contenir : accès à la base, secret, React, appel réseau, texte affiché
+│   │     à l'utilisateur (il est dans les fichiers de traduction), effet de bord
+│   │
+│   ├── domain/                  @influx/domain — règles pures                            ◀ Lot 2
+│   │   ▸ contient : découpage anonyme / identifiant d'un profil, calcul de complétude,
+│   │     détection de coordonnées, transitions autorisées des machines à états,
+│   │     formatage de la référence MER-…
+│   │   ▸ ne doit JAMAIS contenir : entrée/sortie, base, réseau, horloge implicite
+│   │     (l'instant est injecté), ET SURTOUT AUCUN CALCUL DE COMMISSION — au MVP il n'en
+│   │     existe aucun (C5) ; en V2 il vivra dans apps/api/src/domains/billing, à un seul
+│   │     endroit, conformément à CLAUDE.md §6
+│   │   ▸ créé au Lot 2, parce que c'est le premier moment où deux applications ont besoin
+│   │     de la même règle (complétude affichée côté membre ET côté backoffice)
+│   │
+│   ├── ui/                      @influx/ui — primitives partagées                        ◀ Lot 2
+│   │   ▸ contient : les primitives de apps/web/src/components/ui RÉELLEMENT utilisées par
+│   │     les deux applications, et les tokens
+│   │   ▸ ne doit JAMAIS contenir : une page, un appel réseau, une règle métier, un libellé
+│   │     (les libellés arrivent par props — convention déjà en vigueur)
+│   │   ▸ créé quand le backoffice a besoin de la deuxième primitive, pas de la première
+│   │
+│   └── i18n/                    @influx/i18n                             ◀ Lot 5, ou JAMAIS
+│       ▸ créé uniquement si D36 rend le backoffice bilingue. Sinon il n'existe pas
+│
+└── supabase/                                                                            ◀ Lot 0
+    ├── migrations/              fichiers SQL numérotés, un changement cohérent par fichier,
+    │                            INCLUANT politiques RLS, GRANT/REVOKE, déclencheurs,
+    │                            fonctions SECURITY DEFINER, index justifiés
+    └── seed/                    comptes de démonstration par rôle (Lot 0)
+        ▸ ne doit JAMAIS contenir : de donnée réelle, de secret, de script appliqué en production
+```
+
+**Ce qui n'est pas créé, et pourquoi :** pas d'orchestrateur de tâches (D3 : inutile à deux ou trois
+applications) ; pas de paquet `config` partagé (la configuration diffère trop entre un front et un
+worker) ; pas de paquet `db` séparé (le schéma appartient à `apps/api`, seul à parler à la base) ;
+pas de paquet `utils` (c'est le nom qu'on donne à un paquet dont on ne sait pas dire le rôle).
+
+---
+
+## 9. Le contrat entre l'API et les fronts
+
+### 9.1 Où vivent les schémas, comment les types sont partagés
+
+**`packages/contracts` est la frontière.** Un schéma zod par opération, exporté avec son type inféré.
+
+```
+packages/contracts/src/
+├── errors.ts                 union fermée des codes d'erreur + enveloppe
+├── common.ts                 pagination, tri, identifiants, devise, pays, langue
+├── identity/                 requestCode, verifyCode, session, acceptTerms
+├── profiles/                 …
+├── search/                   facettes, résultat anonymisé, résultat identifié (backoffice)
+├── matching/                 introductions, file de validation, révélation
+├── messaging/                …
+└── billing/                  deals — montants saisis, JAMAIS de taux
+```
+
+| Consommateur | Usage |
+|---|---|
+| `apps/api` | **Validation d'exécution** de la requête **et schéma de réponse** — le sérialiseur supprime tout champ non déclaré (§2.5) |
+| `apps/web`, `apps/backoffice` | **Types uniquement**, plus la validation côté client des formulaires à partir du même schéma (confort, jamais une garantie) |
+
+Un même schéma sert donc de validation d'entrée, de filtre de sortie et de type partagé : c'est ce
+qui rend le surcoût de la règle §2 supportable.
+
+**Règle de nommage des couches anonyme et identifiante :** les schémas de réponse anonymisés et
+identifiants sont **deux types distincts**, avec des noms qui ne se confondent pas
+(`CreatorPublicProfile` / `CreatorIdentity`). Aucune fonction ne convertit l'un en l'autre côté
+front. Les mélanger doit être une erreur de compilation.
+
+### 9.2 Versionnement, erreurs, idempotence
+
+| Sujet | Règle |
+|---|---|
+| **Version** | Préfixe `/v1` dès le premier jour. Un changement cassant crée `/v2` ; un ajout de champ est libre (le schéma de réponse filtre, donc ajouter ne casse rien) |
+| **Enveloppe d'erreur** | `{ "error": { "code": "...", "message": "...", "details": …, "requestId": "..." } }` |
+| **Codes** | Union **fermée** déclarée dans `packages/contracts`. Le front traduit `code` en clé de traduction ; **`message` n'est jamais affiché tel quel** (il est en anglais, technique, et peut contenir du contexte) |
+| **Statuts HTTP** | `400` validation · `401` non authentifié · `403` interdit · `404` introuvable · `409` conflit d'état (transition interdite, double traitement d'une file) · `429` limitation de débit · `500` erreur interne (jamais de détail) |
+| **Identifiant de requête** | Généré par Fastify, renvoyé dans l'enveloppe et présent dans chaque ligne de journal. Affiché discrètement au backoffice sur les erreurs, pour le diagnostic |
+| **Idempotence** | En-tête `Idempotency-Key` **obligatoire** sur les créations à effet externe ou multiple : proposition INFLUX sur plusieurs créateurs, envoi d'e-mails, saisie d'une affaire. Réponse rejouée à l'identique pendant 24 h |
+| **Pagination** | Par curseur, **plafonnée** côté serveur (le client ne choisit pas la taille au-delà du plafond) |
+
+### 9.3 Comment l'authentification circule
+
+C'est le mécanisme qui rend l'isolement d'hôte de D12 réellement opérant.
+
+```
+  Navigateur                Front (Next)              apps/api (Fastify)        Supabase
+      │                          │                            │                    │
+      │ POST /api/v1/…           │                            │                    │
+      │ cookie __Host-influx-…   │                            │                    │
+      ├─────────────────────────►│                            │                    │
+      │                 passe-plat SANS logique :             │                    │
+      │                 relaie méthode, chemin, corps,        │                    │
+      │                 cookie, Accept-Language, req-id       │                    │
+      │                          ├───────────────────────────►│                    │
+      │                          │  réseau privé Railway      │ vérifie le JWT     │
+      │                          │  (api.railway.internal)    │ ES256 via JWKS     │
+      │                          │                            │ en cache local     │
+      │                          │                            │                    │
+      │                          │                     BEGIN                       │
+      │                          │                     lecture indexée du rôle     │
+      │                          │                       métier et de l'état de    │
+      │                          │                       suspension (jamais le JWT)│
+      │                          │                     SET LOCAL ROLE influx_<rôle>│
+      │                          │                     set_config('request.jwt.    │
+      │                          │                        claims', …, true)        │
+      │                          │                     set_config('influx.role' /  │
+      │                          │                        '.account' / '.aal', …)  │
+      │                          │                     … requêtes Drizzle sous RLS │
+      │                          │                     COMMIT                      │
+      │                          │                            │                    │
+      │                          │◄───────────────────────────┤ réponse filtrée    │
+      │◄─────────────────────────┤ relaie Set-Cookie éventuel │ par le schéma      │
+```
+
+**Pourquoi un passe-plat plutôt que des appels directs du navigateur vers `apps/api`.** Si le
+navigateur appelait `api.influx.<tld>` directement, il faudrait soit un cookie posé sur le domaine
+parent — **partagé entre le site public et le backoffice, ce qui annule l'isolement de D12** —, soit
+un cookie inter-sites `SameSite=None`, fragile face aux restrictions de cookies tiers des
+navigateurs. Le passe-plat rend l'appel **de même origine** : cookie de première partie, portée à
+l'hôte, aucun CORS, aucune préflight, et `apps/api` **n'a besoin d'aucun hôte public**.
+
+**Ce que le passe-plat a le droit de faire — et rien d'autre :**
+
+| Autorisé | Interdit |
+|---|---|
+| Relayer méthode, chemin, chaîne de requête, corps | Lire ou interpréter le corps |
+| Relayer une **liste blanche** d'en-têtes (`cookie`, `content-type`, `accept`, `accept-language`, `idempotency-key`, `x-request-id`) | Relayer un en-tête arbitraire |
+| Relayer `Set-Cookie` vers le navigateur | Fabriquer ou modifier un cookie |
+| Imposer une taille maximale de corps et un délai maximal | Contenir la moindre règle métier, autorisation ou transformation |
+
+C'est une **exception explicite et bornée** à la règle « pas de Route Handler dans `apps/web` »
+posée le 2026-09-16, accordée ici par `architecte` conformément à la clause d'exception de ce
+document, et à valider par `expert-cybersecurite`.
+
+**Où vit la session.** `apps/api` détient le cycle complet : demande de code, vérification,
+émission du cookie, renouvellement silencieux, déconnexion. Les fronts **ne portent aucune clé
+Supabase**. Si cette exigence se révélait coûteuse à l'usage (par exemple pour un futur flux OAuth),
+l'échappatoire documentée est d'autoriser `@supabase/ssr` **dans la seule couche serveur du front**,
+jamais dans un composant client — et cela demanderait une décision écrite, pas un contournement.
+
+**Réclamations posées dans la transaction** — *révisé le 2026-09-18 (revue `expert-cybersecurite`,
+B1)*. Le **rôle métier** (`advertiser`, `creator`, `agent`, `admin`) n'est **pas** dans le jeton : il
+est lu en base, **une fois par transaction** et non à chaque évaluation de politique (§7, précision 2
+et document `03` §P3). La transaction pose ensuite `request.jwt.claims` (au minimum `sub`, `aal`,
+`email`) **et** les réglages `influx.role`, `influx.account`, `influx.aal`, puis **prend le rôle
+Postgres correspondant** par `SET LOCAL ROLE influx_<rôle>`. Les politiques lisent alors
+`current_setting('influx.role', true)` : une lecture mémoire, sans jointure.
+
+Deux règles de rédaction qui découlent de ce mécanisme (document `03` §P4) : toute condition d'accès
+est **positive**, de sorte qu'un réglage absent refuse l'accès au lieu de l'ouvrir ; et **aucune
+politique ne contient de négation sur un réglage de session**. Toute fonction appelée dans une
+politique est `STABLE` et porte `SET search_path = ''`.
+
+---
+
+## 10. Où s'applique la RLS, et où elle ne suffit pas
+
+> **Révisé le 2026-09-18 (revue `expert-cybersecurite`).** La matrice complète des droits, objet par
+> objet et action par action, les dix principes RLS et les tests exigibles en intégration continue
+> vivent désormais dans **`docs/mvp/03-matrice-des-droits-et-rls.md`**, qui **fait foi** sur ces
+> sujets. La présente section conserve uniquement la frontière d'architecture : ce que la RLS fait,
+> et ce qu'elle ne sait pas faire.
+
+**La RLS est activée sur toutes les tables, en refus par défaut**, avec `FORCE ROW LEVEL SECURITY`
+en plus de `ENABLE` — sans `FORCE`, le propriétaire de la table échappe à ses propres politiques, et
+l'oubli est silencieux. Une table sans politique explicite est traitée comme une faille (skill
+`supabase-schema`). Mais il faut dire clairement ce que la RLS ne sait pas faire, sinon on lui
+confiera des garanties qu'elle ne tiendra pas.
+
+### 10.1 Ce que la RLS fait bien
+
+| Garantie | Mécanisme |
+|---|---|
+| « Je ne vois que mes données » | Politique sur le propriétaire de la ligne |
+| « La marque ne voit l'identité d'un créateur qu'après révélation » | Politique testant l'existence d'une `introduction` avec `identity_revealed_at` non nul |
+| « L'annonceur n'a aucun droit sur l'objet identifiant » | **Absence de `GRANT` à `influx_advertiser`** — plus fort qu'une politique, **mais uniquement une fois les quatre rôles créés** (§2.5). Avec le rôle `authenticated` unique de la configuration Supabase par défaut, cette garantie **n'existe pas**. *Révisé le 2026-09-18 (B1)* |
+| « Seul un agent avec `aal2` accède aux objets du backoffice » | Politique testant `influx.current_role()` **et** `influx.current_aal()`, en condition positive (§9.3) |
+| « Personne ne modifie une ligne du registre d'audit » | `REVOKE UPDATE, DELETE, TRUNCATE` à **tous** les rôles applicatifs **et à tous les rôles d'exécution**, plus un déclencheur. L'`INSERT` n'est accordé qu'à un rôle d'écriture d'audit dédié, appelé par `audit.append(...)` |
+
+### 10.2 Ce que la RLS **ne sait pas faire** — et ce qui le fait à sa place
+
+| # | Besoin | Pourquoi la RLS ne suffit pas | Mécanisme retenu |
+|---|---|---|---|
+| **1** | **Journaliser chaque lecture d'une conversation par un agent** (A10) | Une politique **autorise ou refuse** ; elle n'écrit pas. Une expression `USING` doit être sans effet de bord : Postgres l'évalue un nombre de fois indéterminé, et rien ne garantit une écriture par lecture métier — un journal alimenté par une politique serait **faux**, ce qui est pire qu'un journal absent | **Fonction `SECURITY DEFINER`** `messaging.read_conversation(...)` : elle écrit le journal d'accès (qui, quand, quelle conversation, quel écran, participant ou non, identifiant de requête — **jamais le contenu d'un message**) **puis** retourne les messages. **Et surtout : `REVOKE SELECT ON messaging.messages, messaging.conversations FROM influx_agent, influx_admin`** — sans ce `REVOKE`, il resterait un chemin de lecture non journalisé et la garantie serait décorative. *Révisé le 2026-09-18 : la fonction s'applique à **toutes** les lectures d'un rôle `agent` ou `admin`, **participant ou non**. Distinguer les deux cas créerait une branche qui finirait par être mal évaluée (réattribution, agent qui rejoint le fil) ; la qualité de participant est enregistrée comme **donnée du journal**, pas comme condition d'accès. Mise en œuvre complète : document `03` §5* |
+| **2** | **Append-only réel du registre** (C4) | Une politique n'empêche pas un futur `GRANT` distrait | `REVOKE UPDATE, DELETE` **+** déclencheur `BEFORE UPDATE OR DELETE` qui lève une exception. Le `REVOKE` protège du code, le déclencheur protège d'une migration (document `01` §M4) |
+| **3** | **Chaînage sans trou de séquence** | Deux insertions concurrentes liraient la même « ligne précédente » | Écriture du registre **sérialisée** : verrou consultatif de transaction sur une clé constante par chaîne, ou lecture `FOR UPDATE` de la dernière ligne. Vérification périodique par le worker |
+| **4** | **`identity_revealed_at` écrit une seule fois** | Une politique ne distingue pas « écrire » de « réécrire » sur une colonne | `REVOKE UPDATE (identity_revealed_at)` + déclencheur refusant le passage d'une valeur non nulle à une autre |
+| **5** | **K-anonymat, pagination plafonnée, limitation de débit, export interdit, journalisation des recherches** | Ce sont des règles sur la **forme et la fréquence** des requêtes, pas sur les lignes | **`apps/api`, domaine `search`.** C'est la justification directe de la règle §2 |
+| **6** | **Transitions d'états d'une affaire** (document `01` §6.1) | Une politique ne connaît pas l'état antérieur d'une machine à états complexe | `CHECK` pour les invariants simples (`commission ≤ montant`, `signed_at > identity_revealed_at`), déclencheur pour les transitions, machine à états dans `packages/domain` pour l'expérience de développement. **La base reste l'arbitre** |
+| **7** | **Consentement revérifié au moment de l'envoi** | Le consentement n'est pas une propriété de la ligne d'événement | Logique du worker (§6) |
+| **8** | **Le Storage** | Les politiques du Storage s'appliquent à `storage.objects`, mais **une URL signée les contourne par conception** | `apps/api` décide **avant** d'émettre l'URL, journalise l'émission, borne la durée. Compartiments **privés** en toutes circonstances, séparés par sensibilité, limites de type et de taille au niveau du compartiment, chemin calculé par le serveur, EXIF supprimés, quotas par compte. **Les pièces de vérification ne sont jamais servies par URL signée** (§2.4, E1 ; document `03` §P10) |
+| **9** | **Un rôle `BYPASSRLS` contourne toute la RLS** | C'est sa raison d'être — et c'est précisément pourquoi il ne doit pas exister à l'exécution | *Révisé le 2026-09-18 (revue `expert-cybersecurite`, constat bloquant B2).* **Le rôle Postgres `service_role` n'est utilisé nulle part.** Les traitements de fond utilisent des rôles dédiés **sans `BYPASSRLS`** (`influx_auth`, `influx_worker`, `influx_privacy`), avec des `GRANT` et des politiques **nommés table par table** : le « contournement » devient visible et relisible dans la migration. Seules les **cinq opérations** E-1 à E-5 de la liste fermée du document `03` §P7 peuvent appeler `withElevatedTransaction`, et **trois d'entre elles ne sont pas appelables depuis une route HTTP**. Tout le reste passe par une fonction `SECURITY DEFINER` étroite. Tests : aucun rôle d'exécution ne porte `rolbypassrls` ni `rolsuper` (document `03` §8, T4), et aucun appel hors liste |
+
+### 10.3 La RLS est testée, jamais supposée
+
+Trois familles de tests, à la charge de `testeur` (document `18`), exécutées en CI sur une base
+jetable :
+
+1. **Par rôle et par table** : chaque rôle tente chaque opération sur chaque table ; le résultat
+   attendu est déclaré dans un tableau. Une table nouvelle sans ligne dans ce tableau **fait échouer
+   la CI**.
+2. **Anonymisation de bout en bout** : une marque interroge chaque route accessible et **aucun champ
+   identifiant** n'apparaît dans la réponse, y compris quand la base en contient — puis la même route
+   après révélation, et le champ apparaît.
+3. **Connexion non privilégiée** : le rôle de `DATABASE_URL` n'est ni propriétaire, ni `BYPASSRLS`,
+   ni `SUPERUSER`, ni membre d'un rôle élevé ; **aucun rôle utilisé à l'exécution ne porte
+   `rolbypassrls` ni `rolsuper`** ; et une lecture hors transaction ne retourne rien.
+   *Révisé le 2026-09-18 (revue `expert-cybersecurite`, B2).*
+
+Le catalogue complet des tests exigibles en intégration continue (T1 à T16, dont l'échec de la CI sur
+toute table nouvelle absente de la matrice des droits) est dans `docs/mvp/03-matrice-des-droits-et-rls.md`
+§8. `testeur` les reprend dans le document `18`.
+
+---
+
+## 11. Le worker
+
+### 11.1 Ce qu'il traite
+
+| Famille | Contenu | Déclenchement |
+|---|---|---|
+| **File `outbox_events`** | Contacts Brevo, contacts Apollo, **e-mails transactionnels de mise en relation** (M2), désinscriptions, propagation des suppressions | Interrogation toutes les 2 s en activité, 5 s au repos |
+| **Relances commerciales** | `signed` sans commission facturée à J+7 · `commission_invoiced` sans encaissement à J+30 · fil silencieux à 14 j (document `01` §6.4) | Tâche quotidienne |
+| **Intégrité du registre** | **Vérification de la chaîne d'empreintes** et des trous de séquence, alerte sur rupture (M4, point 4 : « une chaîne jamais vérifiée n'est pas une chaîne ») | Tâche nocturne |
+| **Péremptions** | Badge à 90 jours (D34), propositions INFLUX non acceptées (document `01` §4.3), codes d'authentification expirés | Tâche quotidienne |
+| **Rétention** | Purges définies par `expert-conformite-rgpd`. **Jamais le registre d'audit** | Tâche quotidienne |
+
+### 11.2 Déploiement
+
+- **Même paquet, même build, même image que `apps/api`** ; commande de démarrage différente
+  (`node dist/worker.js`).
+- **Service Railway distinct**, sans domaine public, **une seule instance** au MVP.
+- Redémarrages fréquents (redéploiements) : le traitement est donc **au-moins-une-fois**, d'où
+  l'obligation de clés d'idempotence sur chaque destination.
+- **Arrêt propre sur `SIGTERM`** : le lot en cours se termine, les verrous se libèrent avec la
+  transaction, aucun événement n'est perdu (il reste `pending`).
+- Variables d'environnement : les mêmes que `apps/api`, **plus** les clés Brevo et Apollo, **moins**
+  ce qui concerne le serveur HTTP.
+- **Rôle de base : `influx_worker`, sans `BYPASSRLS`**, avec des `GRANT` et des politiques nommés
+  table par table (§5, règle 3). Le worker n'est autorisé qu'aux opérations **E-3**
+  (`leads.drain_outbox`) et **E-4** (`maintenance.run_periodic`) de la liste fermée du document `03`
+  §P7, dont **aucune n'est appelable depuis une route HTTP**.
+  *Ajouté le 2026-09-18 (revue `expert-cybersecurite`, B2).*
+
+### 11.3 Surveillance
+
+| Signal | Où | Seuil d'alerte |
+|---|---|---|
+| **Âge du plus vieux événement `pending`** | `/health` du worker + écran backoffice | > 5 min (priorité 0) · > 30 min (normal) |
+| **Nombre d'événements `failed`** | Écran backoffice, cause en clair, rejeu unitaire ou en lot | > 0 : traitement requis, jamais laissé en l'état (indicateur n° 5 du cadrage) |
+| **Battement de cœur** | Une ligne mise à jour à chaque tour de boucle | Aucun battement depuis 60 s = worker mort |
+| **Dernière vérification de chaîne** | Date et résultat | Échec = **alerte immédiate**, c'est une atteinte à la preuve |
+| **Journaux** | `pino` en JSON vers les journaux Railway | Aucune donnée personnelle superflue |
+
+Le backoffice lit ces valeurs **depuis la base**, pas depuis le worker : il continue d'afficher un
+état juste même si le worker est arrêté.
+
+---
+
+## 12. Conséquences sur Railway et Supabase
+
+### 12.1 Services
+
+| Service | Contenu | Exposition | Construit depuis |
+|---|---|---|---|
+| `web` | `apps/web` (`next start`) | **Public**, domaine principal | racine, `pnpm --filter @influx/web` |
+| `backoffice` | `apps/backoffice` (`next start`) | **Public mais non référencé**, sous-domaine dédié | racine, `pnpm --filter @influx/backoffice` |
+| `api` | `apps/api` (`node dist/main.js`) | **Réseau privé uniquement — aucun domaine public** | racine, `pnpm --filter @influx/api` |
+| `worker` | `apps/api` (`node dist/worker.js`) | **Aucune** | même build que `api` |
+
+`web` et `backoffice` joignent `api` par le réseau privé Railway (`api.railway.internal`). Deux
+points d'attention pour `integrateur` : le réseau privé est **IPv6**, le serveur Fastify doit donc
+écouter sur `::` ; et les chemins surveillés de chaque service doivent inclure `packages/**` et
+`pnpm-lock.yaml` pour qu'un changement de contrat redéploie ce qu'il faut.
+
+**Conséquence de sécurité majeure : `apps/api` n'a pas de surface publique.** Il n'existe aucune URL
+d'API à découvrir, à balayer ou à attaquer directement. Le seul chemin est le passe-plat, qui n'a pas
+de logique.
+
+### 12.2 Environnements
+
+**Deux environnements Railway** (`staging`, `production`) et **deux projets Supabase distincts** —
+pas deux schémas dans un même projet. Raison : les rôles, les extensions, les réglages d'Auth et les
+politiques sont **au niveau du projet** ; un projet partagé signifierait que le code de `staging`
+peut atteindre les données de production. C'est un coût assumé (deux projets à payer et à
+sauvegarder).
+
+### 12.3 Variables d'environnement
+
+Skill `env-secrets`. **Une clé distincte par environnement, sans exception.** Validation zod au
+démarrage : une variable requise manquante fait **échouer le démarrage** avec un message clair.
+
+| Variable | `web` | `backoffice` | `api` | `worker` | Nature |
+|---|---|---|---|---|---|
+| `INFLUX_ENV` (`staging` \| `production`) | ✔ | ✔ | ✔ | ✔ | Publique |
+| `INFLUX_PUBLIC_SITE_URL` | ✔ | — | ✔ | ✔ | Publique |
+| `INFLUX_API_INTERNAL_URL` | ✔ | ✔ | — | — | Interne |
+| `DATABASE_URL` (multiplexeur, rôle `influx_app`) | — | — | ✔ | — | **Secrète** |
+| `ELEVATED_DATABASE_URL` (seconde grappe : `influx_auth`, `influx_worker`, `influx_privacy` — **aucun avec `BYPASSRLS`**) | — | — | ✔ | ✔ | **Secrète** |
+| `DIRECT_DATABASE_URL` (rôle de migration, **propriétaire des objets**) | — | — | — | — | **Secrète, CI uniquement** — jamais dans un service d'exécution |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | — | — | ✔ | — | **Serveur uniquement** — la clé anonyme ne quitte pas `apps/api`, et **n'est de toute façon pas un secret** : c'est pourquoi aucune table métier ne vit dans `public` (§5, règle 4) |
+| `SUPABASE_SERVICE_ROLE_KEY` — **clé d'API HTTP**, à ne pas confondre avec le rôle Postgres `service_role`, qui n'est utilisé nulle part | — | — | ✔ | ✔ | **Secrète, jamais dans un bundle.** Usage limité à GoTrue (création de compte, second facteur) et aux URL signées du Storage. **Jamais pour atteindre une table** |
+| `SUPABASE_JWKS_URL` | — | — | ✔ | — | Publique par nature |
+| `BREVO_API_KEY`, `APOLLO_API_KEY` | — | — | — | ✔ | **Secrète** |
+| `SESSION_COOKIE_SECRET` | — | — | ✔ | — | **Secrète** |
+| `SYNC_MODE` (`live` \| `dry_run`) | — | — | — | ✔ | Garde-fou, §12.4 |
+| `NON_PRODUCTION_RECIPIENT_ALLOWLIST` | — | — | — | ✔ | Garde-fou, §12.4 |
+
+**Les deux fronts ne détiennent aucun secret.** C'est vérifiable : une règle ESLint interdit
+`process.env` en dehors de `src/config/` dans `apps/web` et `apps/backoffice`, et la configuration
+n'y déclare que des valeurs publiques.
+
+### 12.4 Le garde-fou : impossible d'envoyer un vrai e-mail depuis `staging`
+
+Risque explicitement listé au cadrage (§10.2 : « e-mail envoyé par erreur depuis l'environnement de
+test »). **Trois verrous indépendants**, parce qu'un seul finit toujours par sauter :
+
+1. **Clés distinctes.** `staging` utilise un compte Brevo de test et une clé Apollo de test. Les
+   clés de production ne sont **jamais** saisies dans l'environnement `staging`. Elles ne se
+   ressemblent pas et ne sont pas interchangeables.
+2. **Mode explicite.** `SYNC_MODE=dry_run` en `staging` : le connecteur **n'appelle rien**, marque la
+   ligne `succeeded` avec `dry_run: true` et journalise ce qu'il aurait envoyé. Le pipeline est donc
+   testé de bout en bout, sans aucun appel sortant.
+3. **Liste blanche de destinataires.** Si `INFLUX_ENV !== 'production'` **et** que `SYNC_MODE=live`
+   (cas d'un test volontaire de bout en bout), tout destinataire dont le domaine n'est pas dans
+   `NON_PRODUCTION_RECIPIENT_ALLOWLIST` est marqué `skipped_non_production`. **Le connecteur ne peut
+   physiquement pas écrire à une vraie adresse de client.**
+
+Symétriquement, **le worker refuse de démarrer** si `INFLUX_ENV=production` et que `SYNC_MODE` vaut
+`dry_run` : une production silencieusement muette serait aussi grave qu'un envoi de test réel.
+Chacun de ces trois verrous fait l'objet d'un test (document `18`).
+
+---
+
+## 13. Sortie du mode maquette de `apps/web`
+
+`apps/web` est verrouillée en maquette par des règles ESLint (`apps/web/eslint.config.mjs`) et des
+tests de garde (`apps/web/tests/guards.test.ts`, G1 à G7). Ces verrous ont bien fonctionné : ils
+doivent être **levés chirurgicalement**, pas supprimés en bloc.
+
+> **Note de correction :** le fichier se trouve bien en `apps/web/tests/guards.test.ts` (et non
+> `apps/web/src/tests/`), conformément à l'arborescence de `docs/landing-page/01-architecture.md` §7.
+
+### 13.1 Tests de garde
+
+| Test | Vérifie aujourd'hui | Décision | Ce qui le remplace |
+|---|---|---|---|
+| **G1** | Aucun `mailto:` ni `tel:` | **Conservé au Lot 0, resserré au Lot 1** | Interdiction maintenue **dans l'espace membres et dans tout composant affichant du contenu utilisateur** (c'est un vecteur de contournement, `CLAUDE.md` §3). Autorisé sur les pages légales et la page de contact publique |
+| **G2** | Aucune URL `http(s)://` | **Levé au Lot 1** | Remplacé par : (a) une garde **resserrée** — aucune URL littérale hors de `src/config/` et `src/locales/` (les URL viennent de la configuration ou des traductions) ; (b) une **CSP `default-src 'self'`** avec `connect-src` explicite, appliquée en production et **testée**, qui rend la règle vérifiable à l'exécution plutôt qu'à la lecture |
+| **G3** | Aucune couleur ni longueur en dur hors fichiers de tokens | **Conservé définitivement, et étendu** à `apps/backoffice` et `packages/ui` | — (c'est l'invariant du design system, `CLAUDE.md` §10.3 règle 7) |
+| **G4** | Chaque photo est créditée | **Conservé tant que `src/content/placeholders/` existe**, supprimé avec lui au Lot 1 | La procédure de retrait est déjà écrite (`01-architecture.md` §6.1) |
+| **G5** | Aucun `route.ts` sous `src/app` | **Levé et remplacé par une garde plus stricte** | **Liste blanche** : le seul fichier de route autorisé est `src/app/api/[...path]/route.ts`, et son contenu **ne doit contenir aucun import de `@supabase/*`, `drizzle-orm`, `pg`, `postgres`, aucune lecture de variable d'environnement secrète, et aucun `if` métier**. C'est une garantie **meilleure** que « zéro route » : elle survit à la vraie application |
+| **G6** | `IS_MOCKUP === true` tant que le fictif existe | **Conservé jusqu'au retrait du module fictif au Lot 1**, puis supprimé | La non-indexation devient une affaire d'environnement : `staging` non indexé par en-tête, `production` indexé — réglage d'`integrateur`, plus une constante de code |
+| **G7** | Aucun conflit de classes Tailwind | **Conservé et étendu** à `apps/backoffice` et `packages/ui` | — |
+| *(garde annexe)* | Parité des clés FR/EN | **Conservée**, étendue à tous les fichiers de traduction (pas seulement `landing.json`) | — |
+| *(garde annexe)* | Aucune API réseau ni stockage | **Scindée** : voir §13.2 | — |
+| *(garde annexe)* | Valeurs fictives confinées, `CreatorCard` sans champ d'identité | **Conservée**, et la seconde **promue en règle permanente** : aucun type exposé à une marque ne porte de champ identifiant (D16, A2) | Doublée par les tests d'anonymisation de §10.3 |
+
+### 13.2 Règles ESLint
+
+| Règle | Décision |
+|---|---|
+| Interdiction de `fetch` et consorts | **Scindée.** `fetch` devient autorisé **dans le seul module `src/server/api-client.ts`** et interdit partout ailleurs : aucun composant n'appelle jamais le réseau directement |
+| Interdiction de `localStorage`, `sessionStorage`, `indexedDB`, `document.cookie`, `cookieStore`, `sendBeacon` | **Conservée définitivement.** La session est un cookie `httpOnly` ; aucun jeton ne doit pouvoir être lu par du JavaScript (D37) |
+| Interdiction de `'use server'` (Server Actions) | **Conservée définitivement.** Une Server Action est un point d'accès RPC à contrat implicite ; nos contrats sont explicites et vivent dans `packages/contracts` |
+| Interdiction des attributs `style`, `action`, `formAction` | `style` **conservé** (invariant tokens) ; `action`/`formAction` **levés** au Lot 1 (les formulaires réels soumettent) |
+| Interdiction d'importer `next/link`, `next/form`, `next/script`, `next/font/google` | **Conservée** (`next/link` : on utilise le lien localisé de next-intl) |
+| Interdiction d'importer le module fictif hors de deux fichiers | **Supprimée avec le module**, au Lot 1 |
+| `react/jsx-no-literals` | **Conservée** (bilingue par construction) |
+| `@typescript-eslint/no-explicit-any` | **Conservée** (`CLAUDE.md` §6) |
+| Classes Tailwind inconnues et valeurs arbitraires | **Conservées et étendues** aux nouveaux paquets |
+| **Nouvelle règle** | **Interdire l'import de `@supabase/*`, `drizzle-orm`, `pg`, `postgres` dans `apps/web` et `apps/backoffice`** — c'est la règle §2 rendue structurelle plutôt que morale |
+| **Nouvelle règle** | **Interdire `process.env` hors de `src/config/`** dans les deux fronts |
+| **Nouvelle règle** | Dans `apps/api` : **interdire l'import de `@supabase/*` hors de `src/platform/supabase.ts`**, et l'import croisé d'un `repository.ts` d'un autre domaine |
+
+### 13.3 Ordre des opérations au Lot 0 et au Lot 1
+
+1. **Lot 0** — créer `apps/api`, `apps/backoffice`, `packages/contracts`, `supabase/` ; étendre G3 et
+   G7 aux nouveaux paquets ; ajouter les trois nouvelles règles ESLint ; brancher la CI. **Aucune
+   garde de `apps/web` n'est levée à ce stade** : le site reste une maquette.
+2. **Lot 1** — dans le même changement : retirer le module fictif, retirer G4 et G6, lever G2 et
+   remplacer par la garde resserrée plus la CSP, lever G5 et le remplacer par la liste blanche,
+   resserrer G1, ouvrir `fetch` dans le seul client d'API, brancher l'inscription réelle sur
+   `apps/api`. **Le bandeau « Maquette » disparaît dans le même commit que la première donnée
+   réelle**, jamais avant.
+
+---
+
+## 14. Ce qui reste ouvert
+
+### 14.1 Avis de `expert-cybersecurite` — **rendu le 2026-09-18, favorable sous conditions**
+
+Les neuf points soumis ont été instruits dans **`docs/mvp/03-matrice-des-droits-et-rls.md`**. Aucune
+des cinq décisions n'est remise en cause. Trois constats bloquants portaient sur **ce document** et
+sont intégrés dans la présente version (B1 au §2.5, B2 aux §5 et §10.2, B3 au §5). État des neuf
+points :
+
+| # | Sujet | Suite donnée |
+|---|---|---|
+| 1 | **D37 dans son ensemble** : code à usage unique sans mot de passe côté membres, MFA côté backoffice, durées, anti-énumération, limitation de débit | **Validé**, avec une **condition de caducité à inscrire maintenant** : la validation de l'authentification sans mot de passe **tombe automatiquement** le jour où la V2 introduit des coordonnées bancaires ; un second facteur deviendra alors obligatoire **côté membres**. Exigence ajoutée : le **changement d'adresse e-mail exige une confirmation depuis l'ancienne et depuis la nouvelle** — sans mot de passe, une boîte compromise dix minutes suffirait sinon à s'approprier un compte définitivement |
+| 2 | **`aal2` vérifié dans les politiques RLS** | **Validé**, avec la règle de rédaction **P4** : condition **positive**, jamais de négation sur un réglage de session, pour qu'un contexte absent refuse au lieu d'ouvrir |
+| 3 | **Rôle métier lu en base plutôt que dans le jeton** | **Validé**, avec une mise en œuvre qui supprime l'objection de performance : **une lecture indexée par transaction**, pas une par évaluation de politique (§9.3) |
+| 4 | **Le passe-plat** de §9.3 | **Validé** dans sa forme bornée (liste blanche d'en-têtes, aucune logique) |
+| 5 | **Les trois CSP** et les en-têtes de sécurité | Instruit au document `03` |
+| 6 | **L'exception E1** (URL signée du Storage) | **Validée pour le portfolio, refusée pour les pièces de vérification** : celles-ci transitent par `apps/api`, qui journalise chaque consultation — une URL signée qui fuite d'un journal ou d'un en-tête `Referer` est une pièce d'identité qui circule. Exigences ajoutées : compartiments **privés** et séparés par sensibilité, limites de type et de taille **au niveau du compartiment**, chemin d'objet calculé par le serveur (**jamais le nom de fichier d'origine**), et **ré-encodage des images pour supprimer les métadonnées EXIF** — une capture d'écran de téléphone porte fréquemment une géolocalisation |
+| 7 | **La liste des opérations élevées** | **Tranchée** : cinq opérations E-1 à E-5, union fermée dans `packages/contracts`, dont trois non appelables depuis une route HTTP. Et le rôle `service_role` est **supprimé de l'exécution** (B2) |
+| 8 | **Les trois verrous du garde-fou `staging`** (§12.4) | **Validés** |
+| 9 | **Inscription et récupération du second facteur** du backoffice | Instruit au document `03` |
+
+**Deux points nouveaux, non soulevés par moi, à porter au Lot 0** parce qu'ils touchent
+l'architecture et non seulement les droits :
+
+- **La dérogation du fondateur du 2026-09-17 supprime les Pull Requests**, or toute migration touchant
+  `audit.*`, une politique, un `GRANT`, un `REVOKE`, une fonction `SECURITY DEFINER` ou un attribut de
+  rôle devrait être vue par `expert-cybersecurite`. Parade proportionnée retenue, **sans revenir sur
+  la dérogation** : un contrôle de CI qui **échoue** quand un fichier de `supabase/migrations/**`
+  contient l'un de ces motifs, sauf si le message de commit porte le marqueur
+  `security-reviewed: <date>`. Coût : deux heures. **À intégrer par `integrateur` au Lot 0.**
+- **Publication externe quotidienne de l'empreinte de tête** de la chaîne d'audit, par e-mail
+  transactionnel. Une preuve auto-produite vaut par sa cohérence avec des éléments détenus par des
+  tiers (document `01` §M4) : cela place une copie horodatée hors de toute base que nous
+  administrons. Coût : une demi-journée. Passe par la file `outbox_events` (§6), destination
+  `brevo_transactional`.
+
+### 14.2 À décider avec `expert-database` (documents `03` et `04`)
+
+| # | Sujet |
+|---|---|
+| 1 | ~~Forme exacte : deux tables, une table plus une vue, ou une vue matérialisée ?~~ — **TRANCHÉE le 2026-09-18 (revue `expert-cybersecurite`, §P5) : deux tables**, `profiles.creator_public_profiles` et `profiles.creator_identities`. Ni vue seule (`security_invoker` exigerait un `GRANT` de l'annonceur sur l'objet identifiant ; sans `security_invoker`, la vue contournerait la RLS), ni vue matérialisée. Reste à `expert-database` : les colonnes, les types, les index, et la vue `creator_identities_revealed` qui porte le prédicat de révélation |
+| 2 | Implémentation du **chaînage** : algorithme d'empreinte, sérialisation des écritures, format de la séquence, requête de vérification nocturne |
+| 3 | Coût réel de la lecture du rôle métier (§7, précision 2) — à **mesurer**, pas à supposer. *Précision du 2026-09-18 : la mise en œuvre retenue est **une lecture indexée par transaction**, et non une lecture par évaluation de politique ; les politiques lisent ensuite `current_setting('influx.role', true)`, une lecture mémoire* |
+| 4 | Index de `outbox_events` (partiel sur `status = 'pending'`) et des files de validation |
+| 5 | ~~Répartition en schémas Postgres par domaine ou schéma unique~~ — **TRANCHÉE le 2026-09-18 (revue `expert-cybersecurite`, constat bloquant B3) : schémas par domaine**, pour raison de sécurité. Supabase expose PostgREST sur `public` avec la clé `anon`, qui est publique par conception ; aucune table métier ne doit s'y trouver, aucun de nos schémas n'est exposé à PostgREST, et `anon` comme `authenticated` restent **vides de droits** sur nos données. Reste à `expert-database` : la répartition exacte des tables entre les dix schémas (§5, règle 4) |
+| 6 | Règles de rétention et de purge, avec `expert-conformite-rgpd` |
+| 7 | *Ajouté le 2026-09-18 :* le **chemin de lecture de la révélation** — vue `security_invoker = true` `profiles.creator_identities_revealed` portant le prédicat de révélation, et **un seul chemin** (document `03` §P5) |
+
+### 14.3 Dépendances sur d'autres décisions
+
+| Décision | Effet sur ce document |
+|---|---|
+| **D36** (langue du backoffice) | Détermine si `packages/i18n` est créé au Lot 5 ou jamais. **Tant qu'elle est ouverte, `apps/backoffice` reste en français, sans next-intl** |
+| **D39** (SLA de la file de validation) | Détermine les seuils d'alerte et les tâches d'escalade du worker |
+| **D40** (masquage symétrique côté marque) | S'il est retenu, il applique **exactement** le même mécanisme qu'au §2.5 : deux objets, pas un filtre |
+| **D34** (badge) | Détermine la tâche de péremption à 90 jours du worker |
+| **D25** (pays de la société) | Détermine la région d'hébergement Supabase, à confirmer avant le Lot 1 |
+
+---
+
+## 15. Conventions pour `dev-react-node`
+
+Elles complètent les douze conventions de `docs/landing-page/01-architecture.md` §11, qui restent
+applicables à `apps/web`.
+
+1. **Aucune logique métier dans un composant React**, dans aucune des deux applications. Un composant
+   reçoit des données et des libellés, il affiche. Règle déjà posée par `CLAUDE.md` §6, réaffirmée.
+2. **Aucun front n'importe `@supabase/*`, `drizzle-orm`, `pg` ni `postgres`.** Vérifié par ESLint.
+3. **Aucun accès réseau hors de `src/server/api-client.ts`** dans un front. Ce module est le seul à
+   connaître l'URL de l'API.
+4. **Aucun accès à la base hors de `withUserTransaction` / `withElevatedTransaction`** dans
+   `apps/api`. `withElevatedTransaction` n'accepte qu'une valeur de la **liste fermée** E-1 à E-5 ;
+   tout le reste passe par une fonction `SECURITY DEFINER` étroite. **Aucun rôle utilisé à
+   l'exécution n'a `BYPASSRLS` ni `SUPERUSER`**, et le rôle Postgres `service_role` n'est utilisé
+   nulle part. *Révisé le 2026-09-18 (revue `expert-cybersecurite`, B2).*
+4 bis. **Toute fonction `SECURITY DEFINER` porte `SET search_path = ''`**, qualifie tous ses objets
+   par leur schéma, et se termine par `REVOKE EXECUTE … FROM PUBLIC` puis un `GRANT` nominatif. Par
+   défaut, **tout le monde peut exécuter une fonction** : ne pas révoquer revient à la publier.
+4 ter. **Aucune table métier dans `public`** : un schéma par domaine, `REVOKE ALL` sur `anon` et
+   `authenticated`. Toute table nouvelle est déclarée dans la matrice du document `03` §3 **avant**
+   d'être créée — sans quoi la CI échoue.
+5. **Toute route de l'API déclare un schéma de requête et un schéma de réponse** issus de
+   `packages/contracts`. Sans schéma de réponse, la route est refusée en revue.
+6. **Les types anonymisé et identifiant ne se convertissent jamais** l'un en l'autre côté front. Les
+   confondre doit être une erreur de compilation.
+7. **Aucun taux, aucune multiplication de montant, nulle part** — ni serveur, ni front, ni export,
+   ni e-mail (C5, document `01` §7). La seule arithmétique autorisée est l'addition et la
+   soustraction de montants **saisis**.
+8. **Montants** : entiers en plus petite unité monétaire ou `numeric` exact, devise ISO 4217
+   explicite, **jamais de flottant**, jamais de montant sans sa devise à l'affichage.
+9. **Horodatages en `timestamptz`**, formatés à l'affichage selon la langue de l'utilisateur.
+10. **Tout événement métier synchronisable est mis en file dans la même transaction que le fait.**
+    Jamais d'appel HTTP externe dans une transaction, jamais d'appel externe sur le chemin d'une
+    inscription.
+11. **Tout accès privilégié laisse une trace** : lecture de conversation par un agent, émission
+    d'URL signée, action de masse, export. Si l'action n'est pas traçable, elle n'est pas écrite.
+12. **Aucun secret dans le code, aucune valeur de secret dans un journal.** Toute variable nouvelle
+    passe par la skill `env-secrets` et est documentée dans `.env.example` avec une valeur factice.
+13. **TypeScript strict, aucun `any`** sans justification écrite en commentaire (`CLAUDE.md` §6).
+14. **Commits** en anglais, *Conventional Commits*, directement sur `main` tant que la dérogation du
+    fondateur du 2026-09-17 n'est pas levée.
+15. **Avant d'utiliser une API d'une dépendance, lire la documentation de la version installée**,
+    pas un article de blog.
+
+---
+
+## 16. Points à faire valider par le fondateur
+
+| # | Point | Pourquoi c'est à vous |
+|---|---|---|
+| 1 | **Quatre services Railway par environnement** (`web`, `backoffice`, `api`, `worker`), soit **huit au total** | Coût d'exploitation mensuel récurrent |
+| 2 | **Deux projets Supabase distincts** (`staging` et `production`), pas un seul partagé | Coût, et c'est la seule façon d'empêcher le code de test d'atteindre les données réelles |
+| 3 | **Un sous-domaine dédié au backoffice**, non référencé, jamais lié depuis le site public | Choix de nom de domaine, à faire au moment de la réservation (prérequis n° 3 du cadrage) |
+| 4 | **Pas de mot de passe pour les membres au MVP** : on se connecte avec un code à 6 chiffres reçu par e-mail | C'est visible par vos utilisateurs. C'est aussi ce que font Notion, Slack ou Vercel, mais c'est votre produit |
+| 5 | **Pas de connexion via Google, Instagram ou TikTok au MVP** | Un clic de moins à l'inscription. Refusé pour l'instant parce qu'une connexion par Instagram serait comprise comme une vérification d'audience, ce que seul le badge doit affirmer |
+| 6 | **Le backoffice sera en français uniquement** tant que D36 n'est pas tranchée | Si vous prévoyez un commercial non francophone, dites-le maintenant : cela change le chiffrage du Lot 5 |
+| 7 | **La délivrabilité des e-mails devient la disponibilité du produit** (conséquence du point 4) | Cela rend l'authentification du domaine (SPF, DKIM, DMARC) **bloquante** pour le Lot 1, et non plus seulement recommandée |
+
+---
+
+## 17. Mises à jour des autres documents
+
+| Document | Ce qui est fait | Par qui |
+|---|---|---|
+| `docs/landing-page/01-architecture.md` | **Fait le 2026-09-18 par `architecte`** : §11 règle 5 corrigée (bannière cookies à **deux** boutons, incohérence I4) ; §3, §13 et §14 mis à jour — les emplacements `apps/api`, `apps/backoffice`, `packages/` et `supabase/` ne sont plus « réservés, à trancher » mais **figés par D2, D5 et D12**, avec renvoi vers le présent document (incohérence I10) | `architecte` |
+| `CLAUDE.md` §6, §7, §13 | D2, D5, D12, D18 passées à « Tranchée (2026-09-18) » ; D37 ajoutée et tranchée ; domaines `search` et `verification` ajoutés au §7 ; emplacements figés au §6 | **`chef-de-projet`** — ce document ne modifie pas `CLAUDE.md` |
+| `docs/mvp/03-matrice-des-droits-et-rls.md` | **Écrit le 2026-09-18.** Avis favorable sous conditions ; **fait foi** sur la matrice des droits, les dix principes RLS, la lecture journalisée des conversations, l'isolement du backoffice et les tests de sécurité exigibles. Ses constats B1, B2 et B3 sont intégrés au présent document | `expert-cybersecurite` + `architecte` |
+| `docs/mvp/04-modele-de-donnees-mvp.md` | Reprend §5, §6 et §10 et produit le schéma, les politiques et les migrations | `expert-database` |
+| `docs/mvp/18-plan-de-test-mvp.md` | Reprend §10.3, §12.4 et §13 comme socle du « prêt à livrer » du Lot 0 | `testeur` |
+
+---
+
+## Sources (vérifiées le 2026-09-18)
+
+- [Fastify — versions et support long terme](https://fastify.dev/docs/latest/Reference/LTS/)
+- [fastify sur npm](https://www.npmjs.com/package/fastify)
+- [Drizzle ORM — Row-Level Security](https://orm.drizzle.team/docs/rls)
+- [drizzle-orm sur npm](https://www.npmjs.com/package/drizzle-orm)
+- [Exemple de référence : Drizzle + RLS Supabase par transaction](https://github.com/rphlmr/drizzle-supabase-rls)
+- [Supabase — Introducing JWT Signing Keys](https://supabase.com/blog/jwt-signing-keys)
+- [Supabase — JSON Web Tokens](https://supabase.com/docs/guides/auth/jwts)
+- [Supabase — nouvelles clés d'API et authentification asymétrique](https://supabase.com/docs/guides/self-hosting/self-hosted-auth-keys)
+- [Railway — déploiement d'un monorepo](https://docs.railway.com/deployments/monorepo)
+- [CVE-2025-55182 (Vercel)](https://vercel.com/changelog/cve-2025-55182)

@@ -95,8 +95,9 @@ d'acquisition doit rester bas ; l'enjeu est la qualité et la complétude des pr
 
 Les envois de campagnes doivent être **déclenchables depuis le backoffice via l'API Brevo** :
 tu définis les segments et les contenus, `expert-integrations-api` construit le mécanisme. Ce
-déclenchement est le premier ajout prévu après le MVP ; en attendant, l'équipe envoie depuis
-Brevo sur les segments synchronisés (voir `docs/cadrage-mvp.md`).
+déclenchement **fait partie du MVP, au Lot 5** (arbitrage A4 du fondateur, 2026-09-18), avec trois
+sources de destinataires encadrées : contacts de la plateforme, segments Brevo, et saisie libre
+plafonnée et journalisée. Voir `docs/mvp/00-cadrage-mvp-v2.md`.
 
 Chaque scénario existe en français et en anglais.
 

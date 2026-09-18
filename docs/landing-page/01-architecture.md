@@ -32,8 +32,9 @@
 
 1. **Référencement bilingue au Lot 1** : chaque langue doit recevoir un HTML complet dès la première
    réponse (titre, description, `lang`, liens de langue alternatifs, aperçus de partage).
-2. **Même socle pour la suite** : app membres (Lots 2 à 4), API Node (D2), backoffice (D12 reste
-   ouverte), migrations Supabase.
+2. **Même socle pour la suite** : app membres (Lots 2 à 4), API Node (D2), backoffice (D12),
+   migrations Supabase. *(Mise à jour du 2026-09-18 : D2 et D12 sont tranchées — voir*
+   *`docs/mvp/02-architecture-3-espaces.md`.)*
 3. **Stack imposée** (React/TS, Node/TS, Railway) : critère éliminatoire.
 4. **Tout le style par tokens**, contrôlable par recherche textuelle (CA22).
 5. **Aucun texte en dur**, clés FR/EN identiques et vérifiables (CA23) ; **fictif isolé et
@@ -135,13 +136,20 @@ Une équipe, une CI, des revues par Pull Request.
 
 **A. Monorepo `apps/*` + `packages/*`, géré par pnpm 11, activé par corepack** (fourni avec Node 22).
 
+> **Mise à jour du 2026-09-18 (`architecte`, incohérence I10).** Les emplacements ci-dessous ne sont
+> plus « réservés, à trancher » : **D12, D2 et D5 sont tranchées** dans
+> **`docs/mvp/02-architecture-3-espaces.md`**, qui fait désormais foi pour la structure du dépôt, le
+> contrat entre l'API et les fronts et l'accès aux données. Le tableau ci-dessous est corrigé en
+> conséquence ; le reste du présent document (D1, D3, D4, D28 et le socle de `apps/web`) reste
+> valable.
+
 | Emplacement | Rôle | État |
 |---|---|---|
-| `apps/web` | Pages publiques ; l'app membres y est **proposée** par défaut au Lot 2 (à confirmer alors) | Créé à l'étape 5 |
-| `apps/api` | API Node (D2) : domaines `identity`, `billing`, `leads`, etc. | Réservé, non créé |
-| `apps/backoffice` **ou** un espace de `apps/web` | Backoffice : la structure accepte les deux, **D12 reste ouverte** (l'isolement d'une surface privilégiée sera un critère) | Réservé, non créé |
-| `packages/*` | Code réellement partagé (probablement les contrats d'API au Lot 1) | Créé au premier besoin réel |
-| `supabase/` | Migrations versionnées (`expert-database`, D5) | Réservé, non créé |
+| `apps/web` | Pages publiques **+ espace marque et espace créateur** (confirmé par D12 le 2026-09-18) | Créé à l'étape 5 |
+| `apps/api` | **API Fastify 5 (D2)** : domaines `identity`, `profiles`, `campaigns`, `search`, `verification`, `matching`, `messaging`, `billing`, `leads`, `backoffice`. **Seul détenteur de la `service_role key`**, non exposé publiquement. Fournit aussi le **worker** (second point d'entrée, service Railway distinct) | À créer au Lot 0 |
+| `apps/backoffice` | **Application séparée (D12)** : espace commercial et admin, hôte distinct, `noindex`, MFA obligatoire, session courte. L'option « espace de `apps/web` » est **écartée** : le backoffice voit toutes les identités, toutes les conversations et toutes les affaires | À créer au Lot 0 |
+| `packages/*` | `contracts` (schémas zod partagés) au **Lot 0** ; `domain` et `ui` au **Lot 2** ; `i18n` au Lot 5 ou jamais (dépend de D36). Règle : **un paquet n'est créé qu'au premier besoin réel** | `contracts` au Lot 0 |
+| `supabase/` | **Migrations SQL relues et versionnées** (`migrations/`) et jeu de démonstration (`seed/`). Les migrations restent du SQL : `drizzle-kit push` est interdit (D5) | À créer au Lot 0 |
 
 **Pourquoi pnpm plutôt que npm.** npm est déjà installé, mais pnpm 11 protège par défaut contre les
 paquets compromis (vagues d'attaques de 2025) :
@@ -695,7 +703,14 @@ le dépôt).
    - menu mobile : `aria-expanded`, fermeture par Échap, retour du focus sur le bouton ;
    - formulaire : `label` associé à chaque champ, erreurs reliées par `aria-describedby` et
      `aria-invalid`, annonce du changement d'étape et du message final dans une zone `aria-live` ;
-   - bannière cookies : région nommée, trois boutons de même niveau visuel.
+   - bannière cookies : région nommée, **deux** boutons de même niveau visuel (« Tout accepter » et
+     « Tout refuser »).
+     > **Correction du 2026-09-18 (`architecte`, incohérence I4).** Cette règle décrivait
+     > « trois boutons ». C'était faux : `docs/landing-page/11-consentement-cookies.md` §8 a
+     > supprimé le bouton « Personnaliser » et `CookieBanner.tsx` n'en compte que deux, de même
+     > style, même taille et même poids (refuser doit être aussi simple qu'accepter). La même
+     > divergence subsiste dans `02-ux-wireframes.md` §3.20 : elle relève d'`expert-ux`
+     > (incohérence I3).
 6. **Images** : uniquement via `ui/ResponsiveImage.tsx`. Texte alternatif fourni par le contenu
    (chaîne vide si décorative). L'attribut `sizes` prend ses valeurs dans `src/styles/image-sizes.ts`,
    seule exception documentée à G3 : un attribut HTML ne peut pas lire une variable CSS. Ces valeurs
@@ -739,7 +754,12 @@ le dépôt).
   l'accord du fondateur.
 - Tests de bout en bout (Playwright) : au Lot 1, pour le parcours d'inscription.
 - Primitives headless, gestion d'état, validation de schémas : au premier besoin réel.
-- **D2, D5, D12, D18 restent ouvertes.**
+- ~~**D2, D5, D12, D18 restent ouvertes.**~~
+  > **Mise à jour du 2026-09-18 (`architecte`, incohérence I10).** **D2** (Fastify 5), **D5**
+  > (Drizzle + migrations SQL, `@supabase/supabase-js` cantonné à `apps/api`), **D12** (backoffice
+  > en application séparée) et **D18** (table `outbox_events` + worker) sont **tranchées**, ainsi que
+  > **D37** (authentification), ouverte le même jour. Voir
+  > **`docs/mvp/02-architecture-3-espaces.md`**.
 
 ---
 
@@ -754,7 +774,8 @@ le dépôt).
 | Pas de redirection selon la langue du navigateur pendant la maquette (`localeDetection: false`) | `expert-ux` |
 | Next.js et sa surface serveur : discipline de mise à jour, en-têtes et CSP avant la première mise en ligne | `expert-cybersecurite` |
 | Passage à Node 24 LTS avant la première mise en ligne | `integrateur` |
-| App membres dans `apps/web` par défaut, à confirmer au Lot 2 ; D12 inchangée | `chef-de-projet`, `product-owner` |
+| ~~App membres dans `apps/web` par défaut, à confirmer au Lot 2 ; D12 inchangée~~ — **tranché le 2026-09-18** (I10) : l'espace marque et l'espace créateur **restent dans `apps/web`** ; le backoffice part dans `apps/backoffice`, application séparée sur un hôte distinct. Voir `docs/mvp/02-architecture-3-espaces.md` §3 | Décidé par `architecte` ; coûts d'hébergement à valider par le **fondateur** |
+| Nouveaux points ouverts par D2, D5, D12, D18 et D37 : authentification sans mot de passe côté membres, MFA du backoffice, passe-plat des fronts vers l'API, CSP des trois hôtes, garde-fou d'envoi en `staging` | `expert-cybersecurite` (**veto bloquant**) — liste complète en `docs/mvp/02-architecture-3-espaces.md` §14.1 |
 
 ---
 

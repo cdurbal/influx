@@ -1,3 +1,21 @@
+> # ⛔ DOCUMENT PÉRIMÉ — 2026-09-18
+>
+> **Ce document n'est plus la référence du MVP.** Il est remplacé par
+> **`docs/mvp/00-cadrage-mvp-v2.md`** (cadrage « place de marché courtée », validé par le fondateur
+> le 2026-09-18). Il est conservé **uniquement comme mémoire des arbitrages du 2026-09-16** : ne pas
+> le citer, ne pas s'en servir pour spécifier, ne pas le reprendre dans un lot.
+>
+> **Points explicitement abrogés :**
+>
+> | Où | Ce qui est abrogé | Par |
+> |---|---|---|
+> | §4.1 OUT | « Recherche libre dans l'annuaire des créateurs » — la recherche **entre** dans le MVP, en version anonymisée | Arbitrage **A2** du 2026-09-18 |
+> | §4.3 OUT | « Envoi des campagnes Brevo depuis le backoffice » — il **entre** dans le MVP (Lot 5) | Arbitrage **A4** du 2026-09-18 |
+> | §5, Lot 4 | Contrat, signature, paiement, calcul et facturation de la commission dans l'application — **reportés en V2** ; au MVP le contrat part hors plateforme et le paiement se fait à la confiance | Arbitrage **A1** du 2026-09-18 |
+> | §1, ligne « Circuit de l'argent (D8) » | « **Le prestataire retient les 35 %** » est **faux** : c'est **INFLUX** qui retient les deux parts et reverse le net créateur, conformément à `CLAUDE.md` §3. Erreur relevée au point T10 de `docs/landing-page/06-revue-paiement.md` et jamais corrigée | Correction **I1**, 2026-09-18 |
+>
+> Tout le reste du document est conservé tel quel, daté du 2026-09-16.
+
 # Cadrage du MVP INFLUX
 
 > **Statut :** validé par le fondateur le 2026-09-16 (décision D13).

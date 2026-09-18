@@ -56,7 +56,15 @@ INFLUX vend **à l'international dès le lancement** (arbitrage du fondateur, 20
 Aucun agent ne suppose un cadre exclusivement français : droit, fiscalité, devise et langue
 dépendent du pays de la société et de celui des utilisateurs.
 
-Le périmètre et l'ordre de livraison du MVP sont détaillés dans **`docs/cadrage-mvp.md`**.
+Le périmètre et l'ordre de livraison du MVP sont détaillés dans **`docs/mvp/00-cadrage-mvp-v2.md`**
+(2026-09-18), qui abroge `docs/cadrage-mvp.md`.
+
+> **Au MVP, INFLUX est une place de marché *courtée*.** La découverte est libre — la marque cherche
+> des créateurs, le créateur postule aux campagnes — mais **aucune négociation ne se déroule sans un
+> commercial INFLUX présent dans la conversation**, et c'est lui qui peut aussi rapprocher lui-même
+> une marque et un créateur sur une campagne. Ce métier est aujourd'hui exercé de façon informelle et
+> physique par l'un des fondateurs : **la plateforme sert à le structurer et à le passer à
+> l'échelle.** L'algorithme de matching (D11) reste reporté après le MVP.
 
 ### Positionnement concurrentiel
 
@@ -86,6 +94,32 @@ C'est l'invariant le plus structurant du projet. Il conditionne l'architecture d
 | Fait générateur | La **signature du contrat** via la plateforme. Un contrat conclu hors plateforme après mise en relation INFLUX constitue un contournement : la traçabilité de la mise en relation doit permettre de le détecter. |
 | Conséquence produit | Toute campagne, tout échange, toute signature et **tout paiement** doivent être **traçables dans INFLUX**. Un parcours qui pousse les parties à s'échanger leurs coordonnées hors plateforme détruit le modèle économique : c'est un critère de rejet en revue UX. |
 
+> *Note de cohérence (2026-09-18).* L'ancien cadrage `docs/cadrage-mvp.md` §1 indiquait à tort que
+> « le prestataire retient les 35 % ». C'est **INFLUX** qui retient les deux parts et reverse le net
+> créateur : la ligne « Flux financier » ci-dessus fait foi. L'erreur avait été relevée au point T10
+> de `docs/landing-page/06-revue-paiement.md` sans jamais être corrigée ; elle l'est ici.
+
+> ### ⏳ Régime transitoire du MVP (2026-09-18)
+>
+> Le **fait générateur reste la signature du contrat** : l'invariant ci-dessus ne bouge pas.
+>
+> Mais **au MVP, le contrat est envoyé et signé hors plateforme par le commercial** — par e-mail,
+> via DocuSign ou en main propre, à sa discrétion — et **le paiement se fait à la confiance**
+> (arbitrage A1 du fondateur). **La plateforme n'encaisse rien et ne calcule rien.** Elle
+> **enregistre l'affaire et la commission convenue**, saisies par le commercial dans le pipeline
+> commercial du backoffice (arbitrage A8).
+>
+> **Interdiction formelle au MVP : aucun taux et aucun calcul de commission dans le code.** La table
+> `commission_rates` est créée, elle reste vide. Le commercial saisit le montant négocié et le
+> montant de commission convenu ; l'application les enregistre et les additionne, elle ne les déduit
+> jamais d'un taux.
+>
+> L'encaissement et le reversement **dans** la plateforme reviennent en **V2**, avec D9 (prestataire
+> de paiement) et D25 (pays de la société).
+>
+> Régime complet : `docs/mvp/01-intermediation-courtee.md`. Périmètre :
+> `docs/mvp/00-cadrage-mvp-v2.md`.
+
 **Exemple de référence** (à reproduire dans toute spécification financière) :
 
 | Élément | Valeur |
@@ -113,6 +147,17 @@ une **fonctionnalité de premier plan**, pas un « nice to have » de fin de bac
 ---
 
 ## 4. Personas et parcours utilisateurs
+
+> **Ces parcours sont la cible, pas le MVP.** Au MVP (2026-09-18), trois étapes diffèrent pour
+> l'annonceur comme pour le créateur :
+> - la **recherche** est ouverte, mais sur des **profils anonymisés** (A2) ;
+> - **aucune conversation ne s'ouvre sans validation d'un commercial**, qui y participe ensuite comme
+>   intermédiaire visible et nommé (A3, A9) — et qui peut aussi **initier lui-même** la mise en
+>   relation sur une campagne (A3bis) ;
+> - **le contrat et le paiement sortent de la plateforme** (A1, §3) : le commercial envoie le contrat
+>   et le paiement se fait à la confiance.
+>
+> Périmètre exact par persona : `docs/mvp/00-cadrage-mvp-v2.md`.
 
 ### 4.1 Annonceur (marque / e-commerçant)
 
@@ -161,22 +206,37 @@ Parcours cible :
 
 ### 4.3 Agent interne INFLUX (backoffice)
 
-**Ce qu'il veut :** piloter l'activité, faire matcher, relancer, encaisser.
+**Ce qu'il veut :** faire l'intermédiaire, conclure des affaires, et savoir combien elles rapportent.
+
+Le commercial INFLUX n'est pas un modérateur qui surveille des échanges : **il est partie prenante de
+chaque mise en relation**. C'est le métier que l'un des fondateurs exerce déjà de façon informelle et
+physique ; la plateforme sert à le structurer et à le passer à l'échelle.
 
 Parcours cible :
 
-1. **Tableau de bord** — inscriptions du jour, campagnes ouvertes, mises en relation en cours,
-   contrats signés, CA commissionné.
-2. **Gestion des comptes** — modération, vérification, qualification des profils.
-3. **Matching assisté** — voir les suggestions de l'algorithme, les surcharger, forcer une mise
-   en relation, annoter.
-4. **Pilotage des campagnes marketing** — sélection d'un segment, **déclenchement d'envois via
-   l'API Brevo directement depuis le backoffice**, suivi des performances (premier ajout après
-   le MVP ; au MVP, envois depuis Brevo sur des segments synchronisés).
-5. **Suivi des leads** — état de synchronisation Brevo / Apollo.io, relance des échecs.
-6. **Facturation** — contrats signés, parts de commission, encaissements, reversements,
-   remboursements, exports comptables, par devise.
-7. **Pays ouverts** — gestion de la liste des pays dans lesquels les contrats sont autorisés.
+1. **Tableau de bord** — demandes à valider et leur ancienneté, affaires en cours, commission
+   encaissée de la semaine.
+2. **File de validation** — valider, refuser avec un motif typé, ou **s'attribuer** une demande de
+   contact (venue d'une marque) ou une candidature (venue d'un créateur). **Rien ne circule entre
+   deux membres sans son accord.**
+3. **Proposition INFLUX** — **initier lui-même une mise en relation** entre une marque et un ou
+   plusieurs créateurs, sur une campagne donnée, sans demande préalable d'aucune des deux parties.
+   C'est le geste métier central : il doit être au moins aussi rapide dans l'outil qu'un coup de fil.
+4. **Conversation à trois** — participer à la négociation comme **intermédiaire visible et nommé**,
+   aux côtés de la marque et du créateur ; conduire la négociation jusqu'à l'accord. Toute lecture
+   d'une conversation par un agent non participant est horodatée et attribuée.
+5. **Contrat hors plateforme** — envoyer le contrat par le moyen de son choix (e-mail, DocuSign,
+   en main propre) et suivre sa signature (voir le régime transitoire du MVP, §3).
+6. **Pipeline commercial** — enregistrer l'affaire : montant négocié, devise, **commission due et
+   commission encaissée**, dates, mode d'envoi du contrat, commercial responsable. L'application
+   enregistre ce qui est saisi, **elle ne calcule rien**.
+7. **Gestion des comptes** — valider les profils, attribuer et retirer le badge « vérifié »,
+   suspendre, annoter, valider les campagnes avant publication.
+8. **Suivi des leads** — état de synchronisation Brevo / Apollo.io, cause des échecs en clair,
+   relance unitaire ou en lot.
+9. **Envoi d'e-mails** — sélection d'un segment et **déclenchement d'envois via l'API Brevo
+   directement depuis le backoffice**, à partir de trois sources encadrées (contacts de la
+   plateforme, segments Brevo, saisie libre plafonnée), suivi des performances.
 
 Le backoffice est un **produit à part entière**, pas un écran d'admin bricolé. Il est utilisé
 tous les jours par l'équipe et porte la rentabilité opérationnelle.
@@ -250,12 +310,42 @@ Décidés par `architecte` (options écartées, conséquences et réversibilité
 | Traduction | **next-intl** ; messages JSON au format ICU par langue (`apps/web/src/locales/<langue>/`) | D28 |
 | Qualité | Node.js 22 LTS (passage à 24 LTS avant la première mise en ligne), TypeScript 6.0 strict, ESLint 9, Prettier, **Vitest** | — |
 
-**Emplacements** : `apps/web` (pages publiques ; app membres proposée par défaut, à confirmer au
-Lot 2) ; `apps/api` réservé à l'API Node (D2) ; backoffice dans `apps/backoffice` ou dans un espace
-de `apps/web` selon D12 ; `supabase/` réservé aux migrations.
+### Choix techniques tranchés (2026-09-18)
 
-Restent **ouverts** : framework backend Node (D2), accès aux données (D5), place du backoffice (D12),
-file d'attente des leads (D18), gestion d'état (aucune librairie tant qu'aucun besoin réel). Voir §13.
+Décidés par `architecte` (options écartées, grilles d'arbitrage, conséquences et réversibilité :
+**`docs/mvp/02-architecture-3-espaces.md`**).
+
+| Domaine | Choix | Décision |
+|---|---|---|
+| Place du backoffice | **Deux applications, trois espaces** : `apps/backoffice` séparée (hôte distinct, `noindex`, MFA, session courte, inscription impossible) car elle voit toutes les identités, toutes les conversations et toutes les affaires. Marque et créateur restent dans `apps/web` | D12 |
+| Framework backend | **Fastify 5** dans `apps/api`, plus un **worker** issu du même paquet, déployé comme service Railway distinct | D2 |
+| Accès aux données | **Drizzle** comme constructeur de requêtes typé ; **migrations en SQL relu** dans `supabase/migrations` (`drizzle-kit push` interdit) ; `@supabase/supabase-js` cantonné à `apps/api`. Connexion sous **rôles Postgres dédiés, aucun avec `BYPASSRLS`** ; **un schéma par domaine, aucune table métier dans `public`**, `REVOKE ALL` sur `anon` et `authenticated` | D5 |
+| File des leads | Table **`outbox_events`** + worker `FOR UPDATE SKIP LOCKED`, verrou consultatif **de transaction**, priorité aux révocations. Ni Redis, ni BullMQ. Elle transporte aussi **les e-mails transactionnels de révélation d'identité** | D18 |
+| Authentification | **Membres : code à 6 chiffres par e-mail, aucun mot de passe.** Backoffice : mot de passe + **TOTP obligatoire**, second facteur vérifié côté serveur *et* en RLS. Pas de connexion Google / Instagram / TikTok au MVP. **Validée sous conditions par `expert-cybersecurite`, avec clause de caducité** : le jour où l'encaissement entre dans l'application (V2), un second facteur devient obligatoire côté membres | D37 |
+
+> **Les rôles applicatifs doivent être de vrais rôles Postgres.** En configuration Supabase standard,
+> `advertiser`, `creator`, `agent` et `admin` sont **le même rôle Postgres `authenticated`** : il n'y
+> a alors aucun « rôle annonceur » à qui refuser un droit, et l'anonymisation ne tient plus que par
+> un seul contrôle. Quatre rôles Postgres distincts et un `SET LOCAL ROLE` par transaction sont donc
+> obligatoires. De même, **aucun rôle d'exécution ne doit porter `BYPASSRLS`** — sinon tous les tests
+> de RLS deviennent facultatifs sans le moindre symptôme. Détail :
+> `docs/mvp/03-matrice-des-droits-et-rls.md`.
+
+**Emplacements figés** : `apps/web` (pages publiques + espace marque + espace créateur) ;
+`apps/backoffice` (espace commercial et administrateur) ; `apps/api` (API Node, **seul détenteur de
+la `service_role key`**) ; `packages/{contracts,domain,ui,i18n}` créés au premier besoin réel ;
+`supabase/{migrations,seed}`.
+
+> **Deux règles d'architecture non négociables.**
+> 1. **Le front ne parle jamais à Supabase pour de la donnée métier**, et ne porte **aucune clé
+>    Supabase, pas même `anon`**. Il parle à `apps/api`, qui n'est pas exposée publiquement et que
+>    les fronts joignent par le réseau privé via un passe-plat sans logique. C'est la condition pour
+>    que l'anonymisation des profils créateurs soit réellement exécutoire.
+> 2. **L'anonymisation est une séparation d'objets, pas un filtre de colonnes en code** : profil
+>    identifiant sans aucun `GRANT` au rôle annonceur d'un côté, profil public anonymisé de l'autre.
+>    La révélation est une politique SQL, doublée d'un filtre de sortie et d'un test automatisé.
+
+Reste **ouvert** : la gestion d'état côté front (aucune librairie tant qu'aucun besoin réel).
 
 ### Conventions de code attendues
 
@@ -333,8 +423,10 @@ file d'attente des leads (D18), gestion d'état (aucune librairie tant qu'aucun 
 | `identity` | Comptes, authentification, rôles (annonceur / influenceur / agent / admin) |
 | `profiles` | Profils annonceurs et influenceurs, complétude, vérification |
 | `campaigns` | Campagnes, briefs, budgets, formats, statuts |
-| `matching` | Scoring et proposition de mises en relation, surcharge manuelle |
-| `messaging` | Échanges traçables entre parties |
+| `search` | Recherche de créateurs (anonymisée côté annonceur, identifiée côté commercial) et de campagnes, facettes, tri explicable |
+| `verification` | Preuves d'audience et de propriété de compte, badge « Vérifié », péremption et contestation |
+| `matching` | Mise en relation : les trois déclencheurs, file de validation, attribution, révélation d'identité, preuve d'intermédiation. Scoring algorithmique reporté après le MVP (D11) |
+| `messaging` | Échanges traçables entre parties, **conversation à trois** avec le commercial INFLUX, lectures journalisées |
 | `contracts` | Contrats, signature, montants et devise, taux de commission historisés (deux parts), contrôle des pays ouverts |
 | `billing` | Parts de commission, encaissement et reversement via le prestataire de paiement, remboursements, facturation, exports |
 | `leads` | Capture de leads et synchronisation Brevo / Apollo.io |
@@ -432,7 +524,8 @@ technique). Skill dédiée : `security-rgpd-audit`.
 | Implémentation applicative | `dev-react-node` | `architecte` + `testeur` |
 | Parcours, maquettes, design system | `expert-ux` | Fondateur (branding) |
 | Funnel, segments, contenus CRM | `expert-marketing` | `chef-de-projet` |
-| Algorithme et règles de matching | `expert-matching` | `product-owner` |
+| Recherche de créateurs, facettes, anonymisation, et règles de matching | `expert-matching` | `product-owner` |
+| Preuve d'intermédiation, pipeline commercial, suivi de la commission | `expert-paiement-facturation` | Fondateur |
 | Contrats d'API externes, mapping, résilience | `expert-integrations-api` | `architecte` |
 | Commission, facturation, flux financiers | `expert-paiement-facturation` | Fondateur |
 | Git, CI/CD, déploiement Railway | `integrateur` | `architecte` |
@@ -483,7 +576,7 @@ Claude le sélectionner sur la base de sa `description`.
 | Agent | Justification de l'ajout |
 |---|---|
 | `product-owner` | Le fondateur n'est pas développeur. Sans traducteur entre l'intention métier et une spécification testable, chaque développement repose sur des suppositions. Cet agent produit user stories, règles de gestion et critères d'acceptation — le chaînon manquant entre `chef-de-projet` et `dev-react-node`. |
-| `expert-matching` | La mise en relation **est** le produit. Ni l'architecte (technique) ni le développeur (implémentation) ne portent la logique métier du scoring : critères, pondérations, explicabilité, articulation avec l'intervention humaine. Le brief impose un dispositif hybride algorithme + agents humains : il mérite un responsable dédié. |
+| `expert-matching` | La mise en relation **est** le produit. Ni l'architecte (technique) ni le développeur (implémentation) ne portent la logique métier des critères : facettes, pondérations, explicabilité, articulation avec l'intervention humaine. Depuis le 2026-09-18, il porte aussi **la recherche de créateurs et son anonymisation** — car les critères de recherche d'aujourd'hui deviendront les critères de score de demain, et une facette sans avenir dans le scoring ne doit pas être créée. |
 | `expert-integrations-api` | Brevo et Apollo.io sont des dépendances externes critiques (un lead non synchronisé est un lead perdu) et fragiles (rate limits, pannes, évolutions d'API). Cet agent détient les contrats d'interface, le mapping des champs, l'idempotence et les stratégies de reprise sur erreur. |
 | `expert-paiement-facturation` | La commission de 35 % (20 % annonceur + 15 % créateur) implique calcul, historisation des taux, facturation, taxes selon les pays, encaissement, reversement international au créateur, devises et exports comptables. Domaine à risque financier et légal qui ne se délègue ni au développeur ni au marketing. |
 | `expert-conformite-rgpd` | Données personnelles des deux profils, envoi vers deux outils tiers, contrats d'intermédiation, présence possible d'influenceurs mineurs. La conformité conditionne le droit d'exploiter la plateforme : elle a besoin d'un porteur avec droit de veto, distinct de la sécurité technique. |
@@ -503,8 +596,12 @@ pour une tâche récurrente ou spécialisée du projet.
 | `brevo-campaign` | Intégrer l'API Brevo, synchroniser un contact, construire l'envoi de campagne depuis le backoffice. | `expert-integrations-api`, `expert-marketing` |
 | `apollo-lead-sync` | Synchroniser un lead vers Apollo.io, mapper les champs, gérer la qualification et les erreurs. | `expert-integrations-api`, `expert-marketing` |
 | `lead-pipeline` | Concevoir ou modifier le pipeline événementiel de capture et de distribution des leads (émission, file, retries, supervision). | `architecte`, `expert-integrations-api` |
-| `matching-spec` | Définir ou faire évoluer les critères, pondérations et règles du moteur de mise en relation. | `expert-matching`, `product-owner` |
-| `contract-commission` | Générer un modèle de contrat, appliquer et historiser la commission 35 % (part annonceur et part créateur), calculer le net créateur, encadrer l'encaissement et le reversement. | `expert-paiement-facturation`, `expert-conformite-rgpd` |
+| `matching-spec` | Définir ou faire évoluer la **recherche de créateurs** (facettes, anonymisation par tranches, k-anonymat, tri explicable, vue commerciale identifiée) puis les critères et pondérations du futur moteur de mise en relation. | `expert-matching`, `product-owner` |
+| `intermediation-tracking` | **Tracer une mise en relation courtée**, de son origine à la commission encaissée : les trois déclencheurs (dont la proposition initiée par le commercial), la file de validation, l'attribution, la révélation d'identité horodatée, le registre d'audit, le pipeline d'affaire. | `expert-paiement-facturation`, `chef-de-projet` |
+| `messaging-spec` | Concevoir la **messagerie à trois** : conditions d'ouverture d'une conversation, commercial visible et nommé, visibilité avant et après révélation, notifications sans le texte, lecture journalisée. | `product-owner`, `expert-conformite-rgpd` |
+| `profile-verification` | Vérifier un profil et attribuer le **badge « Vérifié »** à la main : niveaux, pièces acceptées, procédure de l'agent, motifs de refus, péremption, retrait et contestation. | `product-owner`, `expert-conformite-rgpd` |
+| `backoffice-ops` | Concevoir un écran ou une opération du **backoffice** : file de validation, verrou anti-double-traitement, SLA, motifs typés, actions de masse, traçage des actions et lectures privilégiées. | `product-owner`, `expert-ux` |
+| `contract-commission` | Générer un modèle de contrat, appliquer et historiser la commission 35 % (part annonceur et part créateur), calculer le net créateur, encadrer l'encaissement et le reversement. **Hors périmètre du MVP** (régime transitoire §3) : utile à partir de la V2. | `expert-paiement-facturation`, `expert-conformite-rgpd` |
 | `railway-deploy` | Configurer un service, un environnement ou un déploiement Railway ; diagnostiquer un déploiement en échec. | `integrateur` |
 | `env-secrets` | Ajouter, faire tourner ou documenter une variable d'environnement / un secret (Supabase, Brevo, Apollo, Railway, GitHub). | `integrateur`, `expert-cybersecurite` |
 | `test-strategy` | Définir le plan de test d'une fonctionnalité, choisir le bon niveau de test, fixer le « prêt à livrer ». | `testeur`, `dev-react-node` |
@@ -516,28 +613,28 @@ pour une tâche récurrente ou spécialisée du projet.
 
 À trancher par l'agent indiqué, **avant** l'implémentation concernée. Ne pas inventer de réponse
 hors de ce cadre ; mettre ce tableau à jour à chaque arbitrage. Les lots cités sont ceux de
-`docs/cadrage-mvp.md`.
+`docs/mvp/00-cadrage-mvp-v2.md` (7 lots, 0 à 6).
 
 | # | Sujet | Arbitre | Statut | Échéance |
 |---|---|---|---|---|
 | D1 | Framework React : Vite (SPA) vs Next.js (SSR/SEO) — impacte fortement le SEO de la partie publique, bilingue | `architecte` | **Tranchée (2026-09-16)** : Next.js (App Router), pages publiques pré-rendues par langue, sans logique métier dans le front — voir `docs/landing-page/01-architecture.md` | — |
-| D2 | Framework backend Node : Express / Fastify / NestJS | `architecte` | Ouverte | Lot 0 |
+| D2 | Framework backend Node : Express / Fastify / NestJS | `architecte` | **Tranchée (2026-09-18)** : Fastify 5 dans `apps/api`, plus un worker issu du même paquet déployé comme service Railway distinct — voir `docs/mvp/02-architecture-3-espaces.md` | — |
 | D3 | Structure du dépôt : monorepo (front + back + backoffice) vs multi-repo | `architecte` | **Tranchée (2026-09-16)** : monorepo pnpm 11 (`apps/*`, `packages/*`), sans orchestrateur ; ne tranche pas D12 | — |
 | D4 | Librairie UI : headless + utilitaire CSS, ou bibliothèque de composants — doit servir la charte noir/vert | `architecte` + `expert-ux` | **Tranchée (2026-09-16)** : Tailwind CSS v4 alimenté uniquement par un fichier de tokens unique, sans bibliothèque de composants ; nommage des tokens à confirmer par `expert-ux` | — |
-| D5 | Accès aux données : client Supabase direct, ORM (Prisma/Drizzle) ou couche d'accès maison | `expert-database` + `architecte` | Ouverte | Lot 0 |
+| D5 | Accès aux données : client Supabase direct, ORM (Prisma/Drizzle) ou couche d'accès maison | `expert-database` + `architecte` | **Tranchée (2026-09-18)** : Drizzle, migrations en SQL relu dans `supabase/migrations` (`drizzle-kit push` interdit), `@supabase/supabase-js` cantonné à `apps/api`, connexion sous **rôles Postgres dédiés sans `BYPASSRLS`**, **un schéma par domaine** et rien dans `public` | — |
 | D6 | Palette exacte : nuance de vert de marque, échelle de gris, tokens clair/sombre | `expert-ux` + Fondateur | **Tranchée (2026-09-17)** : dark theme par défaut sur toute la plateforme, noir profond nuancé, vert de marque recalibré pour le fond sombre (WCAG AA) — voir `apps/web/src/styles/tokens.css` et §5.1 | — |
 | D7 | Traitement fiscal de la commission : montants hors taxes ou taxes comprises ; TVA / GST / sales tax sur chaque part, selon le pays de la société et celui des parties | `expert-paiement-facturation` + expert-comptable + Fondateur | Ouverte (dépend de D25) | Avant le Lot 4 |
 | D8 | Flux financier : INFLUX encaisse et reverse, ou facture sa seule commission | `expert-paiement-facturation` + Fondateur | **Tranchée (2026-09-16)** : INFLUX encaisse le montant du contrat et reverse le net créateur via un prestataire de paiement agréé | — |
 | D9 | Prestataire de paiement (Stripe Connect ou équivalent) : compatible avec le pays de la société, les reversements internationaux et le multi-devises | `expert-paiement-facturation` + `architecte` | Ouverte, **bloquante** (dépend de D25) | Étude au Lot 2, tranchée avant le Lot 3 |
 | D10 | Signature électronique des contrats : solution tierce ou acceptation en ligne horodatée (valeur juridique selon les pays) | `expert-conformite-rgpd` + `architecte` | Ouverte | Avant le Lot 4 |
 | D11 | Version 1 du matching : règles explicites pondérées ou approche par score appris | `expert-matching` | Ouverte, repoussée : pas d'algorithme au MVP, collecte des données dès les Lots 2 et 3 | Après le MVP |
-| D12 | Backoffice : application séparée ou espace protégé de l'app membres | `architecte` + `product-owner` | Ouverte | Lot 0 |
-| D13 | Périmètre du MVP et ordre de livraison des lots | `chef-de-projet` + Fondateur | **Tranchée (2026-09-16)** : MVP « opéré par l'équipe », Lots 0 à 5 — voir `docs/cadrage-mvp.md` | — |
+| D12 | Backoffice : application séparée ou espace protégé de l'app membres | `architecte` + `product-owner` | **Tranchée (2026-09-18)** : **application séparée** `apps/backoffice`, hôte distinct, `noindex`, MFA, session courte, inscription impossible. Marque et créateur restent dans `apps/web` : deux applications, trois espaces | — |
+| D13 | Périmètre du MVP et ordre de livraison des lots | `chef-de-projet` + Fondateur | **Re-tranchée (2026-09-18)** : MVP **place de marché courtée**, **7 lots (0 à 6)**, 18 à 25 semaines — voir `docs/mvp/00-cadrage-mvp-v2.md`. *Abroge l'arbitrage du 2026-09-16 (« MVP opéré par l'équipe », Lots 0 à 5, `docs/cadrage-mvp.md`, document périmé).* | — |
 | D14 | Modèle d'abonnement complémentaire à la commission (à moyen terme) | Fondateur | Ouverte | Après le pilote |
 | D15 | Influenceurs mineurs : exclusion ou régime spécifique | Fondateur + `expert-conformite-rgpd` | **Tranchée (2026-09-16)** : exclus au MVP | — |
-| D16 | Pseudos et liens réseaux visibles ou non avant la signature | Fondateur + `expert-ux` + `expert-conformite-rgpd` | **Tranchée (2026-09-16)** : masqués jusqu'à la signature (statistiques vérifiées, portfolio, badge) | — |
+| D16 | Pseudos et liens réseaux visibles ou non avant la signature | Fondateur + `expert-ux` + `expert-conformite-rgpd` | **Tranchée (2026-09-16), étendue le 2026-09-18 (A2)** : masqués (statistiques vérifiées, portfolio, badge). Le MVP n'ayant pas de signature dans la plateforme, le point de révélation devient **l'ouverture de la mise en relation par un commercial**. Voir D40 pour la symétrie côté marque | — |
 | D17 | Qui peut signer un contrat | Fondateur + `expert-paiement-facturation` + `expert-conformite-rgpd` | **Tranchée (2026-09-16)** : tout créateur majeur, particuliers compris | — |
-| D18 | Mécanisme de file d'attente pour la synchronisation des leads | `architecte` | Ouverte | Lot 0 |
+| D18 | Mécanisme de file d'attente pour la synchronisation des leads | `architecte` | **Tranchée (2026-09-18)** : table `outbox_events` + worker `FOR UPDATE SKIP LOCKED`, verrou consultatif de transaction, priorité aux révocations ; elle transporte aussi les e-mails transactionnels de révélation d'identité | — |
 | D19 | Règle d'arrondi sur les deux parts et dans chaque devise, attribution du reliquat | `expert-paiement-facturation` | Ouverte | Lot 4 |
 | D20 | Moment du paiement, annulation, litige, remboursement : sort de chaque part | `expert-paiement-facturation` + Fondateur | Ouverte | Lot 4 |
 | D21 | Règles de l'influence commerciale et statut d'INFLUX par pays ouvert (loi française du 9 juin 2023, FTC, ASA, Bureau de la concurrence du Canada, CONAR…) ; DSA pour les utilisateurs de l'UE | `expert-conformite-rgpd` + juristes | Ouverte | Niveau de base avant le Lot 1 ; chaque pays avant son ouverture |
@@ -548,11 +645,39 @@ hors de ce cadre ; mettre ce tableau à jour à chaque arbitrage. Les lots cité
 | D26 | Pays ouverts aux contrats : première vague (1 à 3 pays recommandés) puis vagues suivantes | Fondateur + `expert-conformite-rgpd` + `expert-paiement-facturation` | Ouverte | Étude au Lot 2, tranchée avant le Lot 4 |
 | D27 | Devises : liste fermée liée aux pays ouverts, devise fixée par contrat, prise en charge des frais de conversion | `expert-paiement-facturation` + Fondateur | Ouverte | Avant le Lot 2 |
 | D28 | Librairie de traduction (français et anglais au lancement, formats de nombres et montants selon la langue) | `architecte` | **Tranchée (2026-09-16)** : next-intl, messages JSON ICU par langue, parité des clés FR/EN vérifiée à la compilation | — |
+| D29 | Durée de la fenêtre de non-contournement et régime de la clause (**rédaction asymétrique** : ferme côté annonceur B2B, loyauté et obligation de déclaration côté créateur particulier, où une clause pénale risque la nullité) | **Fondateur** + juriste, dossier par `expert-conformite-rgpd` | Ouverte | Avant le Lot 1 (CGU) |
+| D30 | Politique de signalement des coordonnées dans la messagerie (signaler / masquer / bloquer) et interdiction des pièces jointes | `product-owner` + `expert-ux` + Fondateur | Ouverte | Avant le Lot 4 |
+| D31 | *Sans objet.* La déclaration de la suite donnée par les utilisateurs est remplacée par la saisie de l'issue par le commercial (arbitrage A8) | — | **Close (2026-09-18)** | — |
+| D32 | Portée de la clause de non-contournement pendant le pilote | **Fondateur** | **Tranchée (2026-09-18, A5)** : clause posée dès les premières CGU, **usage suspendu pendant le pilote** par un moratoire daté, révocable et conditionné à la déclaration de l'affaire. Rédaction à valider par un juriste | — |
+| D33 | Périmètre de la synchronisation vers Apollo : tous les inscrits ou annonceurs + créateurs professionnels seulement | `expert-conformite-rgpd` (**veto**) + Fondateur | **Ouverte.** Orientation du fondateur (A7, 2026-09-18) : **tous les inscrits**, particuliers compris — **prise contre la recommandation**. Veto maintenu, **validation d'un juriste obligatoire avant la mise en ligne du Lot 1**. Périmètre lu en configuration, valeur d'attente conservatrice | Lot 1 |
+| D34 | Libellé, niveaux et péremption du badge « Vérifié » — ce qu'il affirme et ce qu'il n'affirme pas (**il ne garantit ni l'authenticité des abonnés, ni la performance**) | `product-owner` + `expert-conformite-rgpd` | Ouverte | Lot 2 |
+| D35 | Plafonds et conditions de la saisie libre d'adresses pour les e-mails du backoffice ; définition d'« adresse professionnelle » ; rôle habilité | `expert-conformite-rgpd` (**veto**) + Fondateur | Ouverte | Lot 5 |
+| D36 | Langue du backoffice (français confirmé ou bilingue) | Fondateur | Ouverte | Lot 5 |
+| D37 | Méthode d'authentification | `architecte` + `expert-cybersecurite` + `expert-ux` | **Tranchée (2026-09-18)** : membres = **code à 6 chiffres par e-mail, sans mot de passe** ; backoffice = mot de passe + **TOTP obligatoire** ; pas de connexion Google / Instagram / TikTok au MVP. **Validée sous conditions par `expert-cybersecurite`**, avec **clause de caducité** : l'absence de second facteur côté membres n'est acceptable que parce qu'un compte ne contient aucune coordonnée bancaire au MVP — **dès que l'encaissement entre dans l'application (V2), un second facteur devient obligatoire** | — |
+| D38 | Masse critique de profils publiés avant d'ouvrir la recherche libre aux marques (une recherche vide est pire que pas de recherche) | `chef-de-projet` + Fondateur | Ouverte | Lot 3 |
+| D39 | SLA de la file de validation | **Fondateur** + `product-owner` | **Tranchée (2026-09-18)** : **1 jour ouvré** pour traiter une demande de contact ou une candidature. Délai affiché aux deux parties, alerte interne au bout de quelques heures, escalade au-delà. Le respect du délai est un indicateur suivi : un délai affiché puis non tenu abîme plus la confiance qu'un délai plus long tenu | — |
+| D40 | Masquage symétrique des coordonnées côté marque | Fondateur + `expert-ux` + `expert-conformite-rgpd` | **Tranchée (2026-09-18)** : **oui, masquage symétrique**. Nom, logo, site et secteur de la marque restent publics ; **e-mail et téléphone de l'interlocuteur ne sont visibles qu'après ouverture de la mise en relation**. Sans cela, un créateur contacte la marque en direct et le commercial est contourné dans l'autre sens | — |
+| D41 | Un compte peut-il être à la fois annonceur et créateur ? | Fondateur + `product-owner` | **Tranchée (2026-09-18)** : **un rôle par compte au MVP**, parcours nets et anonymisation garantie ; mais **le modèle de données prévoit dès le Lot 0 la liaison compte ↔ rôles**, pour que l'ouverture ultérieure ne coûte qu'un écran au lieu d'une migration sur des données en production | — |
+
+> **Décisions reportées en V2 par l'arbitrage A1 (2026-09-18).** Le contrat, la signature,
+> l'encaissement, le reversement et la facturation sortent du MVP : le contrat est envoyé et signé
+> hors plateforme par le commercial et le paiement se fait à la confiance (§3, régime transitoire).
+> Sont donc **reportées après le MVP** : **D7** (fiscalité de la commission), **D9** (prestataire de
+> paiement), **D10** (signature électronique), **D19** (arrondi), **D20** (annulation et litige),
+> **D22** (facturation électronique), **D23** (structure des factures), **D26** (pays ouverts aux
+> contrats) et **D27** (devises).
+> **Deux réserves importantes.** **D25** (pays de la société) reste la décision la plus urgente du
+> projet : sans société, pas de mentions légales ni de CGU, donc pas de mise en ligne du Lot 1 vers
+> la semaine 5. Et **D7 / D23 se réactivent plus tôt que prévu** : si le commercial encaisse une
+> commission dès le pilote, la question fiscale se pose au premier euro, pas en V2.
 
 **Autres arbitrages du fondateur (2026-09-16)** : répartition de la commission 20 % / 15 % incluse
 dans le contrat (§3) ; portée internationale, inscriptions partout et contrats par pays ouverts,
 français et anglais au lancement (§2) ; pas de remise de lancement générale ; au moins une personne
-à plein temps sur le backoffice ; envoi des campagnes Brevo depuis le backoffice juste après le MVP.
+à plein temps sur le backoffice ; ~~envoi des campagnes Brevo depuis le backoffice juste après le
+MVP~~ — **abrogé le 2026-09-18 (arbitrage A4) : l'envoi des e-mails Brevo depuis le backoffice entre
+dans le MVP, au Lot 5**, avec trois sources de destinataires encadrées (contacts de la plateforme,
+segments Brevo, saisie libre plafonnée). Voir `docs/mvp/00-cadrage-mvp-v2.md`.
 
 ---
 
@@ -595,17 +720,23 @@ Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la sociét
 - [ ] Créer le compte **Brevo**, générer la clé API, préparer les listes et attributs de contact
       (dont langue et pays)
 - [ ] Créer le compte **Apollo.io**, générer la clé API, définir les séquences commerciales
-- [ ] Ouvrir le compte chez le **prestataire de paiement** retenu (D9), pendant le Lot 2
-- [ ] Réserver les noms de domaine et configurer les DNS (+ authentification e-mail SPF/DKIM/DMARC
-      pour Brevo)
+- [ ] ~~Ouvrir le compte chez le **prestataire de paiement** retenu (D9), pendant le Lot 2~~ —
+      **reporté en V2** (A1 : le paiement sort du MVP)
+- [ ] Réserver les noms de domaine et configurer les DNS, dont **un sous-domaine dédié au
+      backoffice** (D12)
+- [ ] **Authentifier le domaine d'envoi (SPF, DKIM, DMARC) — bloquant pour le Lot 1**, et non plus
+      seulement recommandé : depuis D37, les membres se connectent par un **code à 6 chiffres reçu
+      par e-mail**. Un e-mail qui n'arrive pas n'est plus une gêne marketing, c'est **une
+      impossibilité de se connecter**. La délivrabilité devient la disponibilité du produit
 - [ ] Signer les contrats de sous-traitance des données (Brevo, Apollo.io, Supabase, Railway,
       prestataire de paiement) et tenir le registre des traitements
 
 ### 14.4 Cadrage produit
 
-- [x] Valider avec le fondateur le périmètre du **MVP** (D13) — **fait le 2026-09-16**, voir
-      `docs/cadrage-mvp.md`
-- [ ] Trancher D1 à D5, D12 et D18 (`architecte`)
+- [x] Valider avec le fondateur le périmètre du **MVP** (D13) — **re-tranché le 2026-09-18**, place
+      de marché courtée, 7 lots, voir `docs/mvp/00-cadrage-mvp-v2.md`
+- [ ] Trancher D2, D5, D12, D18 et D37 (`architecte`) — voir `docs/mvp/02-architecture-3-espaces.md`
+- [ ] Trancher D29, D32 (rédaction), D33, D39 et D40 — les cinq décisions qui bloquent les Lots 1 à 4
 - [x] Figer la palette et les tokens (D6, `expert-ux` + fondateur) — **fait le 2026-09-17**, dark
       theme par défaut, voir `apps/web/src/styles/tokens.css`
 - [ ] Trancher le modèle financier restant : D7, D9, D19, D20, D22, D23, D27
@@ -618,19 +749,27 @@ Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la sociét
 
 ### 14.5 Ordre de travail : lots du MVP
 
-Détail, agents, skills et dépendances dans `docs/cadrage-mvp.md`.
+Détail, agents, skills et dépendances dans **`docs/mvp/00-cadrage-mvp-v2.md`**
+(`docs/cadrage-mvp.md` est périmé depuis le 2026-09-18).
+
+**MVP « place de marché courtée », 7 lots, 18 à 25 semaines** (D13, re-tranchée le 2026-09-18).
 
 | Lot | Contenu | Durée indicative |
 |---|---|---|
-| 0. Socle | D1–D5, D12, D18 ; dépôt, CI, environnements, secrets, tokens ; français et anglais ; pays, langue, devise dans le modèle de données ; rôles et RLS | 1–2 sem. |
-| 1. Leads (1re mise en ligne) | Pages publiques bilingues, inscription, synchronisation Brevo / Apollo, backoffice de suivi, documents légaux | 3–4 sem. |
-| 2. Profils et campagnes | Profils vérifiés, création et validation de campagnes | 2–3 sem. |
-| 3. Mise en relation et messagerie | Mise en relation manuelle outillée, messagerie tracée, détection des coordonnées | 3–4 sem. |
-| 4. Contrat, paiement, commission | Contrat, taux 20 % / 15 % figés, prestataire de paiement, reversement, factures, pays ouverts | 6–9 sem. |
-| 5. Livraison et ouverture | Parcours de bout en bout, audit sécurité et conformité, lancement de la première vague | 1–2 sem. |
+| 0. Socle | D2, D5, D12, D18, D37 ; dépôt, CI, environnements, secrets ; `apps/api`, `apps/backoffice`, `packages/`, `supabase/` ; rôles et commercial responsable ; CGU versionnées ; journal d'audit append-only ; RLS testée ; sortie du mode maquette | 1–2 sem. |
+| 1. Inscription et leads *(1re mise en ligne)* | Pages publiques bilingues, inscription réelle, synchronisation Brevo + Apollo, backoffice de suivi, documents légaux **dont la clause de non-contournement** | 3–4 sem. |
+| 2. Profils, réseaux, audience, badge | Profil marque, profil créateur en deux couches (anonyme / identifiée), preuves, file de vérification, **badge « Vérifié » attribué à la main** | 3–4 sem. |
+| 3. Campagnes et recherche anonymisée | Création et validation de campagnes, **recherche de créateurs anonymisée** côté marque et **identifiée côté commercial**, recherche de campagnes | 3–4 sem. |
+| 4. Mise en relation courtée et messagerie | Les 3 déclencheurs **dont la proposition initiée par le commercial**, file de validation, révélation d'identité horodatée, **conversation à trois**, signalement des coordonnées | 4–5 sem. |
+| 5. Backoffice, pipeline commercial et e-mails | Tableau de bord, files, **pipeline d'affaire et commission encaissée**, supervision des leads, envoi d'e-mails Brevo par 3 sources, demandes RGPD | 3–4 sem. |
+| 6. Recette, audit, ouverture | Parcours de bout en bout, audit sécurité et conformité, procédures écrites, lancement du pilote | 1–2 sem. |
 
 Le calendrier réel dépend d'abord de la création de la société (D25) et des validations juridiques
-par pays.
+par pays. Avec la mise en ligne progressive (A6), **la société doit exister vers la semaine 5**.
+
+> **Le plafond de croissance de ce MVP est humain, pas technique.** Chaque négociation mobilise un
+> commercial. L'indicateur qui dira si la plateforme fait réellement passer le métier à l'échelle est
+> le **nombre d'affaires traitées par commercial et par semaine**.
 
 ---
 

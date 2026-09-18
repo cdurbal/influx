@@ -1,6 +1,6 @@
 ---
 name: brevo-campaign
-description: Intégrer l'API Brevo dans INFLUX — synchronisation des contacts, segmentation, scénarios de nurturing, e-mails transactionnels et déclenchement de campagnes depuis le backoffice. À utiliser pour toute connexion à Brevo, tout envoi d'e-mail et toute question de délivrabilité ou de désinscription.
+description: Intégrer l'API Brevo dans INFLUX — synchronisation des contacts, segmentation, scénarios de nurturing, e-mails transactionnels (dont la confirmation de mise en relation) et envois depuis le backoffice avec ses trois sources de destinataires. À utiliser pour toute connexion à Brevo, tout envoi d'e-mail et toute question de cadence, de délivrabilité ou de désinscription.
 ---
 
 # Intégration Brevo
@@ -18,6 +18,10 @@ Agents concernés : `expert-integrations-api` (principal), `expert-marketing`,
 2. Vérifier avec `expert-marketing` le segment, la liste et le scénario visés.
 3. Vérifier avec `expert-conformite-rgpd` la base légale et le consentement requis.
 4. Vérifier que la clé API est bien gérée (skill `env-secrets`).
+5. Avant toute implémentation de la **saisie libre** d'adresses, vérifier l'état de **D35**
+   (plafonds et conditions), arbitrée par `expert-conformite-rgpd` (**veto**) et le fondateur.
+   Tant que D35 est ouverte, la saisie libre ne se développe pas au-delà de la mécanique décrite
+   ici, et aucun plafond n'est figé dans le code.
 
 ## Règles non négociables
 
@@ -36,6 +40,11 @@ Agents concernés : `expert-integrations-api` (principal), `expert-marketing`,
 7. **Toute tentative est journalisée** : événement, opération, statut, réponse, horodatage.
    Le backoffice affiche les échecs et permet le rejeu.
 8. **Respect des limites de débit** : file d'attente, temporisation exponentielle plafonnée.
+9. **Cadence plafonnée.** Aucun contact ne reçoit plus de N e-mails marketing par période
+   glissante, **toutes sources de destinataires confondues** (voir « Cadence maximale par
+   contact »). C'est ainsi qu'on brûle une base : la règle n'est pas négociable au cas par cas.
+10. **Une adresse saisie librement n'entre jamais dans la base de contacts.** Elle part en
+    **liste de suppression**, et l'envoi est journalisé nominativement.
 
 ## Attributs de contact INFLUX
 
@@ -73,19 +82,108 @@ reversement effectué, facture.
 > Ne jamais glisser de contenu promotionnel dans un e-mail transactionnel pour contourner
 > l'absence de consentement — c'est un manquement.
 
-## Campagnes déclenchées depuis le backoffice
+Le cas le plus sensible, l'**e-mail de mise en relation**, a sa propre section plus bas.
 
-Exigence explicite du projet, **prévue juste après le MVP** (voir `docs/cadrage-mvp.md`). Au MVP,
-l'équipe envoie depuis l'interface Brevo, sur les segments synchronisés par INFLUX. Mécanique
-attendue :
+## Envois déclenchés depuis le backoffice
 
-1. L'agent interne sélectionne un **segment** (issu des attributs ci-dessus).
-2. Il choisit un **modèle de message** et le prévisualise.
-3. Le système affiche le **volume de destinataires** et écarte les non-consentants et les
-   désinscrits.
-4. **Confirmation explicite** avant envoi — un envoi de masse ne se déclenche jamais d'un seul clic.
-5. L'envoi est **journalisé** : qui, quand, quel segment, quel volume, quel modèle.
-6. Les **résultats remontent** dans le backoffice (ouvertures, clics, désinscriptions, rebonds).
+> **Correction du 2026-09-18 (arbitrage A4 du fondateur).** L'envoi d'e-mails depuis le backoffice
+> **fait partie du périmètre du MVP** (Lot 5). La formulation précédente de cette skill — envois
+> « prévus juste après le MVP », l'équipe envoyant en attendant depuis l'interface Brevo — **est
+> abrogée**. Elle renvoyait à `docs/cadrage-mvp.md`, lui-même remplacé par
+> `docs/mvp/00-cadrage-mvp-v2.md`. La spécification détaillée est
+> `docs/mvp/16-backoffice-emails-brevo.md`, produite par `expert-marketing`,
+> `expert-integrations-api` et `expert-conformite-rgpd`.
+
+Les agents envoient depuis le backoffice à partir de **trois sources de destinataires** distinctes,
+qui n'ont ni la même base légale ni les mêmes garde-fous.
+
+### Les trois sources de destinataires
+
+| Source | Base légale | Contrôles obligatoires | Volume |
+|---|---|---|---|
+| **Contacts plateforme** — segment INFLUX construit sur les attributs ci-dessus | **Consentement** recueilli à l'inscription (case non pré-cochée, date et source enregistrées) | Consentement **revérifié au moment de l'envoi**, jamais à la constitution du segment — il a pu être retiré depuis · liste de suppression appliquée · **langue et pays du contact respectés** (version FR ou EN, règles locales) · rebonds durs écartés · cadence vérifiée | **Masse** |
+| **Segment Brevo** — segment défini et maintenu dans Brevo | Consentement **côté Brevo** : sur ce périmètre, **Brevo fait foi** | Segment **lu au moment de l'envoi**, jamais figé à l'avance · **jamais recopié dans la base INFLUX**, ni les adresses ni les personnes · **volume affiché avant confirmation** · cadence portée par une condition d'exclusion **dans le segment Brevo** | **Masse** |
+| **Saisie libre** — l'agent tape une adresse | **Aucune. C'est de la prospection.** Elle s'apprécie au cas par cas et pays par pays | **Envoi unitaire uniquement** : une adresse, jamais de liste collée ni d'import · **plafond par agent et par jour** · **adresse professionnelle uniquement** · **motif obligatoire saisi par l'agent**, conservé · **lien de désinscription obligatoire** · **journalisation nominative** (agent, adresse, motif, modèle, horodatage) · **l'adresse part en liste de suppression, jamais dans la base de contacts** · réservée à un rôle habilité (`agent` et `admin` restent distincts) | **1** |
+
+Deux règles transverses :
+
+- **Une seule source par envoi.** Mélanger un segment consenti et des adresses prospectées rendrait
+  la base légale indémontrable.
+- **Les trois sources partagent le même journal d'envoi** et la même règle de cadence.
+
+> **Les conditions exactes et les plafonds de la saisie libre relèvent de D35**, arbitrée par
+> `expert-conformite-rgpd` (**veto**) et le fondateur. Tant que D35 est ouverte, aucune valeur de
+> plafond n'est écrite en dur : elle est **lue dans la configuration**, modifiable sans
+> redéploiement, et chaque modification est journalisée.
+
+### Cadence maximale par contact
+
+Un contact ne doit pas être sur-sollicité, quelle que soit la source qui l'atteint.
+
+| Règle | Valeur par défaut **proposée** |
+|---|---|
+| E-mails marketing par contact, sur 7 jours glissants | **2** |
+| E-mails marketing par contact, sur 30 jours glissants | **6** |
+| Délai minimal entre deux e-mails marketing au même contact | **48 h** |
+
+- Ces valeurs sont **proposées, pas tranchées** : à confirmer par `expert-marketing` et
+  `expert-conformite-rgpd`, rattachées à **D35**. Elles vivent en configuration, pas dans le code.
+- **Toutes sources confondues** : un contact touché par un segment Brevo puis par un segment INFLUX
+  a bien reçu deux e-mails.
+- **Les e-mails transactionnels ne sont pas comptés** (exécution du service). Ils ne doivent jamais
+  servir de véhicule promotionnel pour contourner la cadence.
+- Un contact au-delà du plafond est **écarté automatiquement** ; l'agent voit le nombre d'écartés et
+  le motif, et l'écartement est journalisé. Ce n'est pas une erreur.
+
+> **Limite assumée sur la source « segment Brevo ».** INFLUX ne lit pas les destinataires d'un
+> segment Brevo : il **ne peut donc pas** y vérifier la cadence contact par contact. La cadence y
+> est portée **côté Brevo**, par une condition d'exclusion du segment appuyée sur deux attributs de
+> contact **tenus à jour par INFLUX** : `dernier_envoi_marketing_le` et `nb_envois_marketing_30j`.
+> Les contacts présents dans Brevo mais inconnus d'INFLUX ne sont couverts que par cette condition.
+> Cette limite est documentée et acceptée ; il revient à `expert-marketing` d'intégrer la condition
+> d'exclusion à chaque définition de segment.
+
+### Mécanique d'envoi
+
+1. **Choix de la source** — une seule parmi les trois — et du périmètre.
+2. **Choix du modèle** et **aperçu obligatoire**, rendu réel, **dans les deux langues** si le
+   périmètre est mixte. Aucun envoi possible sans aperçu affiché.
+3. **Calcul du volume au moment de l'envoi** (pas à la constitution du segment) et **affichage
+   détaillé des écartés par motif** : sans consentement, désinscrits, rebonds durs, en liste de
+   suppression, hors cadence, langue ou pays non couverts.
+4. **Double confirmation** : deux actions distinctes et de nature différente — par exemple une case
+   de confirmation explicite **puis** la ressaisie du volume ou du nom du segment. Jamais deux clics
+   au même endroit. Un envoi de masse ne part jamais d'un seul geste.
+5. **Fenêtre d'annulation de 5 minutes** après le lancement : l'envoi est mis en attente et
+   réellement annulable, sans effet, depuis le backoffice. L'annulation est journalisée.
+6. **Journalisation nominative** : qui, quand, quelle source, quel segment ou quelle adresse, quel
+   volume, quel modèle, quelle langue, le motif s'il s'agit d'une saisie libre, et l'annulation
+   éventuelle.
+7. **Remontée des résultats** dans le backoffice : ouvertures, clics, désinscriptions, rebonds,
+   plaintes.
+8. **Toute désinscription remonte immédiatement** dans INFLUX et vaut retrait du consentement.
+
+## E-mails transactionnels de mise en relation
+
+> Au MVP, quand un commercial **ouvre une mise en relation**, **un e-mail part aux deux parties**.
+> Il porte la **référence de la mise en relation** (forme `MER-2026-000123`) et **la date
+> d'ouverture**. C'est à la fois la confirmation professionnelle attendue par les deux parties et un
+> élément de preuve.
+
+- **E-mail transactionnel** relevant de l'**exécution du service**, pas du consentement marketing.
+  Il part donc même sans consentement marketing — et **ne contient aucun contenu promotionnel**.
+- **Idempotent** : un et un seul e-mail par mise en relation et par destinataire. Clé d'idempotence
+  stable = identifiant de la mise en relation + destinataire + type d'e-mail. Un rejeu du pipeline
+  ne renvoie jamais l'e-mail.
+- **Le `messageId` retourné par Brevo est conservé**, rattaché à la mise en relation dans le
+  registre d'événements : il **corrobore la preuve d'intermédiation** — un tiers a horodaté l'envoi.
+- **Une mise en relation sans `messageId` confirmé remonte au backoffice** comme preuve incomplète,
+  et reste rejouable.
+- Envoi **après** la révélation d'identité, dans la langue de chaque partie, **un e-mail par
+  partie** — jamais les deux en copie.
+- **Les notifications de messagerie ne contiennent jamais le texte des messages.**
+- Voir la skill **`intermediation-tracking`** pour la définition de l'objet mise en relation, du
+  registre chaîné et de ce qui fait preuve.
 
 ## Délivrabilité
 
@@ -93,6 +191,19 @@ attendue :
 - Montée en volume progressive sur un domaine neuf.
 - Surveillance des taux de rebond et de plainte ; nettoyage des adresses invalides.
 - Séparer si possible les flux transactionnel et marketing pour protéger la réputation.
+
+## Garde-fou d'environnement
+
+> **Un e-mail réellement envoyé depuis `staging` est un incident.** Le risque est aggravé depuis
+> A4 : le backoffice peut désormais déclencher des envois, y compris de masse.
+
+- **Clés distinctes par environnement**, la clé de production n'existe jamais ailleurs qu'en
+  production (skill **`env-secrets`**).
+- Hors production : intégration **désactivée**, ou envoi **redirigé** vers une liste fermée
+  d'adresses internes autorisées. Jamais de destinataire réel.
+- **Bandeau d'environnement visible en permanence** dans un backoffice non production.
+- **La saisie libre est désactivée hors production**, sans exception.
+- Tout envoi réel constaté depuis un environnement de test **se déclare comme incident**.
 
 ## Gestion des erreurs
 
@@ -118,3 +229,14 @@ service indisponible, rejeu (idempotence), désinscription propagée, limite de 
 - [ ] Mapping des attributs documenté
 - [ ] Doublures de test en place
 - [ ] Validation `expert-conformite-rgpd` sur le consentement et les mentions
+- [ ] Source de destinataires identifiée, et une seule par envoi
+- [ ] Consentement revérifié **au moment de l'envoi**, pas à la constitution du segment
+- [ ] Segment Brevo lu à l'envoi, jamais recopié dans INFLUX
+- [ ] Saisie libre : unitaire, plafonnée, motif saisi, désinscription, liste de suppression
+- [ ] Cadence par contact vérifiée, toutes sources confondues
+- [ ] Aperçu affiché, volume et écartés détaillés, double confirmation
+- [ ] Fenêtre d'annulation de 5 minutes opérationnelle
+- [ ] Journalisation nominative de l'envoi et de l'annulation
+- [ ] E-mail de mise en relation idempotent, `messageId` conservé
+- [ ] Envoi vers un destinataire réel impossible hors production
+- [ ] État de **D35** vérifié avant toute implémentation de la saisie libre
