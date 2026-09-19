@@ -109,6 +109,21 @@
 > propre ni objet rattaché, et son histoire est déjà au registre. **Amorçages** : la file
 > `email_send_failures` et les alertes **AL42 à AL48**.
 >
+> **Mise à jour du 2026-09-19 (cinquième passe) — D43 intégrée.** L'architecte a tranché
+> (`02` §18) : le **code de connexion (`P0`) part de façon synchrone depuis `apps/api`**, hors de
+> `leads.outbox_events`, et **`leads.transactional_sends` est un journal, jamais une file**. Six
+> conséquences en base : la **sémantique de `status`** écrite en commentaire (`queued` = *tentative
+> engagée, issue inconnue*, pas *travail à prendre*) avec la liste des gestes de file **interdits** ;
+> les **droits**, qui manquaient — `influx_auth` insère et met à jour les **seules colonnes
+> d'issue**, `influx_worker` n'écrit que `delivered_at`, **rien pour les rôles membres** ; la **liste
+> fermée des trois `failure_code`**, en correspondance exacte avec les trois causes de `05` RG60 ;
+> **aucun index sur `status`**, avec la raison écrite — *un index de prise est une file qui
+> s'ignore* ; la **purge des utilisateurs GoTrue orphelins à 24 h** (**E-4**), conséquence directe de
+> la création inconditionnelle d'utilisateur qui supprime l'oracle d'énumération ; et
+> **`identity.auth_request_throttle`**, les compteurs de débit de `05` RG44 — sans eux, l'indicateur
+> « demandes sans connexion aboutie » serait faux, **une demande plafonnée n'écrivant aucune ligne de
+> journal**. Six points au **§12.10**, dont cinq pour `expert-cybersecurite`.
+>
 > **Corrections demandées par `product-owner` après `05-spec-inscription-et-leads.md` :** trois
 > champs collectés à l'inscription n'avaient pas de place avant le Lot 2. Corrigé — **statut déclaré**
 > (`accounts.declared_status`, Lot 1, historisé dans le registre, §5.1), **nom d'entreprise**
@@ -214,7 +229,7 @@ La justification du choix « schémas par domaine plutôt que schéma unique » 
 |---|---|---|
 | `influx` | Fonctions utilitaires et fonctions d'accès au contexte (`current_account_id`, `current_account_role`, déclencheurs génériques). **Aucune table** | 0 |
 | `reference` | Listes fermées partagées : pays, devises, langues, thématiques, formats, réseaux, secteurs, droits d'usage, **tons éditoriaux, fréquences de publication, régions**, bornes de tranches (audience, **engagement**, **âge**, **genre d'audience**, prix **avec leurs bornes nettes**), **types de campagne** | 0, 2 puis 3 |
-| `identity` | Comptes, rôles, pays et langue, **commercial responsable**, profils d'agents, versions de CGU, acceptations, consentements | 0 |
+| `identity` | Comptes, rôles, pays et langue, **commercial responsable**, profils d'agents, versions de CGU, acceptations, consentements, **compteurs de débit de la demande de code** | 0 puis 1 |
 | `audit` | **Registre chaîné append-only**, types d'événements, résultats des vérifications de chaîne | 0 |
 | `billing` | **`commission_rates` créée et vide** (Lot 0) ; **`deals`**, ses motifs de perte, ses transitions et l'historique de ses montants — **au Lot 4, parce que l'affaire naît dans la transaction de révélation** ; seule la **saisie** des montants arrive au Lot 5 | 0 puis **4** |
 | `leads` | `outbox_events`, état de synchronisation Brevo / Apollo par contact **et compteurs de cadence marketing**, **journal des e-mails transactionnels** (dont le code de connexion) | 1 |
@@ -235,14 +250,14 @@ voie (`docs/mvp/02-architecture-3-espaces.md` §2).
 | Lot | Tables créées |
 |---|---|
 | **0 — Socle** | `reference.countries` · `reference.currencies` · `reference.languages` · `identity.accounts` · **`identity.account_roles`** *(D41)* · `identity.agent_profiles` · `identity.terms_versions` · `identity.terms_acceptances` · `identity.consent_events` · `audit.event_types` · `audit.audit_events` · `audit.chain_checks` · `billing.commission_rates` *(vide)* · `backoffice.ownership_assignments` |
-| **1 — Inscription et leads** | `leads.outbox_events` · `leads.contact_sync_states` · **`leads.sync_settings`** · **`identity.email_delivery_incidents`** · **`profiles.advertiser_profiles` *(forme minimale, avancée depuis le Lot 2)*** · **`backoffice.queues`** · `backoffice.sla_policies` · **`backoffice.alert_definitions`** · **`backoffice.dual_control_requests`** · **`leads.transactional_sends`** |
+| **1 — Inscription et leads** | `leads.outbox_events` · `leads.contact_sync_states` · **`leads.sync_settings`** · **`identity.email_delivery_incidents`** · **`profiles.advertiser_profiles` *(forme minimale, avancée depuis le Lot 2)*** · **`backoffice.queues`** · `backoffice.sla_policies` · **`backoffice.alert_definitions`** · **`backoffice.dual_control_requests`** · **`leads.transactional_sends`** · **`identity.auth_request_throttle`** |
 | **2 — Profils, badge** | `reference.topics` · `reference.formats` · `reference.networks` · `reference.sectors` · `reference.usage_rights` · `reference.audience_bands` · `reference.price_bands` · *(`profiles.advertiser_profiles` : **extension** de la table créée au Lot 1)* · `profiles.advertiser_contact_details` · `profiles.creator_public_profiles` · `profiles.creator_public_networks` · `profiles.creator_public_audience` · `profiles.creator_public_rates` · `profiles.creator_social_accounts` · `profiles.creator_identities` · `profiles.creator_audience_breakdowns` · `profiles.creator_rate_cards` · `profiles.creator_topics` · `profiles.creator_formats` · `profiles.creator_refused_sectors` · `profiles.portfolio_items` · `verification.rejection_reasons` · `verification.verification_requests` · `verification.ownership_codes` · `verification.evidence_files` · `verification.badges` · `verification.disputes` · **`reference.engagement_bands`** · **`reference.age_bands`** · **`reference.audience_genders`** · **`reference.editorial_tones`** · **`reference.publication_frequencies`** · **`reference.regions`** · **`profiles.creator_tones`** · **`profiles.creator_usage_rights`** · **`profiles.moderated_fields`** · **`profiles.profile_field_revisions`** · **`verification.revocation_reasons`** |
 | **3 — Campagnes et recherche** | `campaigns.rejection_reasons` · `campaigns.campaigns` · `campaigns.campaign_deliverables` · `campaigns.campaign_audience_targets` · `campaigns.campaign_topics` · `search.search_queries` · `search.search_impressions` · `search.shortlists` · `search.shortlist_items` · **`reference.campaign_types`** · **`campaigns.campaign_key_messages`** · **`campaigns.campaign_usage_territories`** · **`campaigns.campaign_price_bands`** · **`campaigns.requested_items`** · **`campaigns.campaign_requested_items`** · **`campaigns.campaign_published_snapshots`** · **`search.search_settings`** · **`search.facet_settings`** · **`search.facet_config_versions`** · **`search.explanation_reasons`** · **`search.impression_reasons`** · **`search.supply_counters`** · **`backoffice.operational_settings`** · **`matching.block_reasons`** · **`matching.party_blocks`** *(les deux dernières arrivent au Lot 3 bien que le reste du schéma `matching` arrive au Lot 4 : le blocage est une exclusion de recherche, §5.6)* |
 | **4 — Mise en relation et messagerie** | `matching.rejection_reasons` · `matching.introductions` · **`matching.interest_submissions`** *(ex-`application_details`)* · **`matching.interest_submission_formats`** *(ex-`application_formats`)* · **`matching.application_drafts`** · **`matching.application_draft_formats`** · **`matching.application_quotas`** · `matching.reference_counters` · **`matching.decline_reasons`** · **`matching.introduction_transitions`** · **`matching.introduction_emails`** · `messaging.closure_reasons` · `messaging.report_reasons` · `messaging.conversations` · `messaging.conversation_participants` · `messaging.messages` · `messaging.conversation_reads` · `messaging.conversation_access_log` · `messaging.contact_detections` · `messaging.reports` · `messaging.documents` · **`messaging.access_reasons`** · **`messaging.pause_reasons`** · **`messaging.conversation_state_transitions`** · **`messaging.document_labels`** · **`messaging.document_rejection_reasons`** · **`messaging.document_downloads`** · **`billing.lost_reasons`** · **`billing.cancellation_reasons`** · **`billing.non_monetary_reasons`** · **`billing.deal_state_transitions`** · **`billing.deals`** · **`billing.deal_field_changes`** · **`backoffice.alert_closure_reasons`** · **`backoffice.alert_instances`** *(les six premières **avancées depuis le Lot 5** : l'affaire est créée par `matching.reveal_identity()`, §5.6)* |
 | **5 — Backoffice et pipeline** | **`billing.commission_receipts`** *(la seule table `billing` du Lot 5 : elle arrive avec la première saisie de règlement, `14` E1)* · `backoffice.internal_notes` · **`backoffice.suspension_reasons`** · **`backoffice.suspension_lift_reasons`** · `backoffice.account_suspensions` · **`backoffice.exports`** · `backoffice.email_send_limits` · **`backoffice.email_templates`** · **`backoffice.brevo_allowed_segments`** · **`backoffice.email_send_transitions`** · `backoffice.email_sends` · `backoffice.email_send_recipients` · `backoffice.data_subject_requests` |
 | **6 — Recette** | Aucune table nouvelle. Vérification de la couverture RLS, des index réellement utilisés et des purges |
 
-**Total : 134 tables et 1 vue**, dont **44 tables de référence** (des listes fermées de quelques
+**Total : 135 tables et 1 vue**, dont **44 tables de référence** (des listes fermées de quelques
 lignes chacune) et une quinzaine de tables de jointure. Le modèle « réel » tient donc en une
 quarantaine d'entités. Chaque table de ce document est citée par un document de cadrage ou par une
 skill : aucune n'a été créée « au cas où ».
@@ -3702,6 +3717,155 @@ comment on column leads.transactional_sends.priority is
    sans quoi l''interrupteur d''urgence coupe au hasard.';
 ```
 
+##### **D43 : cette table est un journal, jamais une file** (tranchée le 2026-09-19)
+
+`docs/mvp/02-architecture-3-espaces.md` §18 tranche deux choses qui changent la lecture de cette
+table. La première : **le `P0` — le code de connexion — est envoyé de façon synchrone par `apps/api`,
+sans passer par `leads.outbox_events`** (D18 reste entière pour `P1` et `P2`). La seconde :
+`transactional_sends` est **un journal, et rien d'autre**.
+
+**La sémantique de `status` n'est donc pas celle d'une ligne de file, et c'est écrit en base :**
+
+```sql
+comment on column leads.transactional_sends.status is
+  'ATTENTION — LA SEMANTIQUE DIFFERE DE CELLE D''UNE LIGNE DE FILE (D43, 02 §18.8).
+   queued  = *** TENTATIVE ENGAGEE, ISSUE INCONNUE ***, et NON « en attente d''un traitement ».
+             Personne ne viendra prendre cette ligne : il n''existe aucun consommateur.
+             Une ligne P0 restee queued plus de quelques minutes signale un PROCESSUS INTERROMPU
+             AU MILIEU D''UNE REQUETE. C''est un INDICATEUR D''EXPLOITATION, jamais un
+             declencheur de reprise.
+   sent    = accepte par Brevo, provider_message_id renseigne.
+   failed  = refuse, expire, ou disjoncteur ouvert ; failure_code renseigne (liste fermee).
+   delivered = ecrit PLUS TARD par le webhook Brevo consomme par le worker. C''est la SEULE
+             ecriture asynchrone sur cette table, et elle ne porte que les colonnes d''accuse.
+   Ce qui ne doit jamais attendre, c''est l''ENVOI ; la CONFIRMATION d''un envoi deja parti,
+   elle, arrive par le chemin ordinaire.';
+
+comment on table leads.transactional_sends is
+  'Journal des e-mails transactionnels HORS mise en relation (16 RG94, ecart 4).
+   *** CE N''EST PAS UNE FILE (D43, 02 §18.8). *** Le seul mecanisme de file du projet est
+   leads.outbox_events (D18) ; un second mecanisme ne par glissement d''un journal serait un
+   mecanisme que personne n''a concu, supervise ni teste.
+   SONT INTERDITS SUR CETTE TABLE, et leur absence se verifie en relisant le code :
+     - tout SELECT ... FOR UPDATE, SKIP LOCKED ou verrou consultatif ;
+     - tout index destine a PRENDRE du travail, en particulier sur status ;
+     - toute boucle de worker qui LIT cette table pour decider d''un envoi ;
+     - tout reessai declenche depuis cette table (G2, 05 RG60, test T10) ;
+     - tout bouton « rejouer » au backoffice sur une ligne P0 — rejouer, c''est renvoyer un code
+       que personne n''attend plus ; la personne redemande, elle seule.
+   Meme forme que matching.introduction_emails (§5.6) et deliberement distincte : celle-la porte
+   une PREUVE D''INTERMEDIATION, celle-ci un DIAGNOSTIC D''EXPLOITATION.
+   NE CONTIENT JAMAIS LE CORPS, NI L''OBJET, NI — SURTOUT — LE CODE A SIX CHIFFRES :
+   un secret d''authentification ne se journalise nulle part, jamais (03 §Secrets).
+   Depuis D37, c''est la table qui permet de repondre a « je n''ai pas recu mon code »
+   autrement que par une supposition.';
+```
+
+**Les trois causes d'échec d'un `P0`, en liste fermée** — correspondance **exacte** avec `05` RG60,
+parce que ce sont les trois messages distincts que la personne voit à l'écran :
+
+| `failure_code` | Cause `05` RG60 | Ce qu'elle révèle (`02` §18.5 R3) |
+|---|---|---|
+| **`undeliverable_address`** | **(a)** adresse non délivrable | Une propriété **de l'adresse**, et seulement sur un **refus du fournisseur portant sur l'adresse** — on ne consulte **jamais** `email_status` ni les incidents **avant** d'envoyer, un contrôle préalable ferait de notre état interne un oracle |
+| **`provider_unavailable`** | **(b)** service d'envoi indisponible | Un état **global**, identique pour tout le monde. Couvre aussi le **disjoncteur ouvert** et le dépassement du délai d'attente (G1) |
+| **`rate_limited`** | **(c)** plafond de demandes atteint | Une propriété **du demandeur**. **Cette valeur n'apparaît quasiment jamais dans le journal** : une demande plafonnée n'écrit **aucune ligne** (ci-dessous) |
+
+```sql
+alter table leads.transactional_sends
+  add constraint transactional_sends_p0_failure_codes
+      check (priority <> 'p0'
+             or failure_code is null
+             or failure_code in ('undeliverable_address','provider_unavailable','rate_limited'));
+
+comment on constraint transactional_sends_p0_failure_codes on leads.transactional_sends is
+  'Trois causes, et trois seulement, en correspondance EXACTE avec 05 RG60 : ce sont les trois
+   messages distincts affiches a la personne. Un message generique unique serait une faute —
+   il la laisserait essayer indefiniment (RG60).
+   Les trois sont des proprietes de l''ADRESSE, du DEMANDEUR ou du FOURNISSEUR : aucune ne
+   depend de l''existence, du role, de l''etat ni de l''historique d''un compte (02 §18.5,
+   03 A-5). C''est ce qui rend l''invariant anti-enumeration testable.
+   Une quatrieme valeur ajoutee ici sans relire 05 RG60 serait un oracle de plus.';
+```
+
+> **Aucun index sur `status`, et c'est une décision, pas un oubli.** `02` §18.8 l'interdit
+> nommément : **un index de prise est une file qui s'ignore**. Le jour où quelqu'un ajoute
+> `create index ... on transactional_sends (status) where status = 'queued'`, la table a déjà
+> changé de nature — il ne manque plus que la boucle qui la lit. Les **deux** index de cette table
+> sont des index de **lecture** : `priority = 'p0'` pour l'alerte **AL48**, et
+> `(account_id, created_at desc)` pour le support. La surveillance des lignes `queued` anciennes est
+> un **indicateur**, calculé par le contrôle nocturne sur la fenêtre des dernières 24 heures — un
+> balayage de quelques centaines de lignes, sans index.
+
+**La clé d'idempotence de `16` RG89 n'ajoute aucune colonne.** Le code de connexion appartient à la
+famille « une fois par **occurrence** » : sa clé est **`auth.login_code:<id de la ligne de journal>`**
+— l'identifiant `bigint` de la ligne écrite **avant** l'appel à Brevo. Deux demandes de code
+produisent deux lignes, donc deux clés, donc **deux e-mails, et c'est voulu** (`16` RG89, point 2).
+La « double ceinture » de RG90 est ici asymétrique et il faut le dire : la ceinture locale est
+l'**unicité de `provider_message_id`** (qui protège l'accusé de réception), l'en-tête
+`Idempotency-Key` protégeant l'appel lui-même. Il n'existe **pas** de contrainte d'unicité sur
+« une occurrence », et il ne doit pas y en avoir : elle empêcherait la seconde demande légitime.
+
+#### `identity.auth_request_throttle` — les compteurs de débit, que le journal ne remplace pas
+
+> **Conséquence directe de D43, et elle manquait.** Une demande **plafonnée** (cause (c)) n'appelle
+> pas Brevo, donc **n'écrit aucune ligne** dans `transactional_sends` : c'est cohérent — on ne
+> journalise pas un envoi qui n'a pas eu lieu — mais cela rend l'indicateur « **demandes sans
+> connexion aboutie** » faux si on le calcule sur le seul journal. Les demandes refusées au plafond
+> en sont **absentes par construction**, et ce sont précisément celles qu'un abus produit en masse.
+> Les plafonds de `05` RG44 n'avaient par ailleurs **aucun support en base**.
+
+*Table du **Lot 1**, à **durée de vie courte** : c'est un compteur d'exploitation, pas un historique.*
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `scope` | `identity.throttle_scope` | `not null` — **`email`** · **`ip`** (les deux niveaux de `05` RG44) |
+| **`scope_key_hash`** | `bytea` | `not null` — **empreinte** de l'adresse normalisée ou de l'IP, **jamais la valeur en clair** |
+| `window_code` | `text` | `not null check (window_code in ('15m','1h'))` — 3 par 15 min et 10 par heure pour une adresse, 20 par heure pour une IP |
+| `window_started_at` | `timestamptz` | `not null` |
+| `request_count` | `smallint` | `not null default 0 check (request_count >= 0)` |
+| **`denied_count`** | `smallint` | `not null default 0` — **les demandes refusées au plafond**, celles qui n'existent nulle part ailleurs |
+| `failed_verification_count` | `smallint` | `not null default 0` — le second plafond par IP de RG44 |
+| `last_request_at` | `timestamptz` | `not null` |
+| `expires_at` | `timestamptz` | `not null` — purge automatique |
+
+```sql
+alter table identity.auth_request_throttle
+  add constraint auth_throttle_pk
+      primary key (scope, scope_key_hash, window_code);
+
+create index auth_request_throttle_expiry_idx
+  on identity.auth_request_throttle (expires_at);
+
+comment on table identity.auth_request_throttle is
+  'Compteurs de debit de la demande de code de connexion (05 RG44, trois niveaux).
+   POURQUOI UNE TABLE PLUTOT QU''UN CALCUL SUR LE JOURNAL : une demande plafonnee n''ecrit
+   AUCUNE ligne dans leads.transactional_sends (aucun envoi n''a eu lieu), et une demande
+   refusee avant appel non plus. Compter les abus sur le journal reviendrait donc a compter
+   exactement ce qui n''y est pas. denied_count est la seule trace chiffree d''un abus.
+   L''INDICATEUR « demandes sans connexion aboutie » SE LIT SUR LES DEUX SOURCES :
+   le journal pour les envois partis, ces compteurs pour les demandes refusees.
+   *** AUCUNE ADRESSE, AUCUNE IP EN CLAIR. *** scope_key_hash est une empreinte calculee avec un
+   poivre serveur : une table de compteurs en clair serait un annuaire des adresses sollicitees,
+   y compris celles qui n''ont jamais de compte (02 §18.5 R1 : un utilisateur GoTrue est cree
+   inconditionnellement, donc toute adresse essayee passe ici).
+   L''egalite de traitement (03 A-5) impose que ces compteurs soient lus et ecrits de la meme
+   facon pour une adresse connue et une adresse inconnue.';
+
+comment on column identity.auth_request_throttle.denied_count is
+  'Un depassement de plafond N''INVALIDE JAMAIS le code en cours et ne bloque jamais un compte
+   (05 RG45) : il empeche seulement l''envoi d''un NOUVEAU code. Le blocage vise l''attaquant,
+   jamais la victime — sinon demander des codes en boucle suffirait a empecher quelqu''un de se
+   connecter.
+   RESERVE D''EXPLOITATION (02 §18.5) : un echec de cause (b), panne du fournisseur, ne doit PAS
+   consommer le quota par ADRESSE — sinon une panne de trois minutes verrouille un quart d''heure
+   ceux qui ont eu la mauvaise idee de reessayer, et la panne survit a la panne. Il consomme en
+   revanche le quota par IP, qui est l''anti-abus. Point soumis a expert-cybersecurite (§12.10).';
+```
+
+**Durée de vie : 30 jours**, par `expires_at`, purgée avec les autres (§9.3). Au-delà, un compteur
+de fenêtre glissante n'a plus aucun usage — et le conserver reviendrait à garder l'empreinte
+d'adresses que nous ne connaissons pas.
+
 #### `leads.sync_settings` — la configuration est une donnée (Lot 1)
 
 *Le périmètre Apollo, la base légale par pays, les pays exclus, les plafonds de débit et le calendrier
@@ -4669,6 +4833,54 @@ create trigger audit_events_no_truncate
 | `billing.commission_rates` | — | — | L | L | — |
 | `audit.audit_events` | — | — | L (filtré) | L | **insertion seule** |
 | `leads.outbox_events` | — | — | L + rejeu | L + rejeu | L + E |
+| **`leads.transactional_sends`** | **—** | **—** | **L** | **L** | **E** *(voir ci-dessous : deux rôles distincts)* |
+| **`identity.auth_request_throttle`** | **—** | **—** | **—** | **L** (agrégats) | **E** |
+
+**Deux rôles, deux droits distincts sur `leads.transactional_sends`** — la table n'était dans aucune
+ligne de cette matrice, et deux écrivains très différents s'y succèdent (D43) :
+
+```sql
+-- l'envoi synchrone du code : apps/api, en operation elevee E-1 (03 P7)
+grant insert on leads.transactional_sends to influx_auth;
+grant update (status, provider_message_id, sent_at, failed_at, failure_code)
+  on leads.transactional_sends to influx_auth;
+
+-- l'accuse de reception, plus tard, par le webhook : le worker
+grant update (status, delivered_at)
+  on leads.transactional_sends to influx_worker;
+
+-- lecture d'exploitation : support et supervision
+grant select on leads.transactional_sends to influx_agent, influx_admin;
+
+-- et RIEN, jamais, pour les roles membres
+revoke all on leads.transactional_sends from influx_advertiser, influx_creator;
+
+-- les compteurs de debit ne sont ecrits que par le chemin d'authentification
+grant select, insert, update on identity.auth_request_throttle to influx_auth;
+grant select on identity.auth_request_throttle to influx_admin;
+revoke all on identity.auth_request_throttle
+  from influx_advertiser, influx_creator, influx_agent;
+```
+
+Trois points qui font la valeur de ces quatre lignes :
+
+1. **`UPDATE` restreint aux colonnes d'issue.** Ni `email_code`, ni `priority`, ni `account_id`, ni
+   `created_at` ne sont modifiables **par personne**. Une ligne de journal dont on peut réécrire le
+   destinataire ou la priorité après coup ne prouve plus rien — et `priority` est précisément ce que
+   l'interrupteur d'urgence lit (`16` RG122).
+2. **Le worker n'écrit que `delivered_at`.** C'est la seule écriture asynchrone admise sur cette
+   table (`02` §18.8) : il ne peut ni marquer `failed`, ni inventer un `provider_message_id`, ni
+   réécrire une issue déjà constatée par `apps/api`.
+3. **Aucun rôle membre n'a le moindre droit**, pas même en lecture sur ses propres lignes. Un membre
+   n'a pas à savoir combien de codes ont été demandés pour son adresse, et un attaquant encore
+   moins : ce serait l'oracle que tout `02` §18.5 s'emploie à supprimer. La réponse « je n'ai pas
+   reçu mon code » passe par le support, donc par un agent.
+
+> **`influx_auth` est un rôle applicatif de plus, et il doit être déclaré comme tel** (§3.2). Ce
+> n'est pas `influx_service` : il porte **uniquement** le chemin d'authentification, ne lit aucune
+> donnée métier, et son `GRANT` se relit en quatre lignes. `03` P7 le prévoit déjà en opération
+> élevée **E-1** ; ce document ajoute seulement les droits de table correspondants. **Nom et
+> périmètre exact à confirmer par `expert-cybersecurite`** (§12.10).
 
 Les cases les plus significatives : **l'annonceur n'a aucun droit sur `creator_identities` ni sur
 `billing.deals`** ; **personne ne peut modifier le registre**, y compris le rôle de service ;
@@ -4976,6 +5188,8 @@ les préparer serait inventer.
 | **Journal des exports** | **`backoffice.exports`** | **Sans purge** | — | Il **vit dans le registre** (`export.produced`) : purger la table sans purger le registre créerait une incohérence, et purger le registre est interdit (`01` M4) |
 | **Encaissements** | **`billing.commission_receipts`** | **10 ans** | `received_on` | Même régime que les affaires : pièce comptable. **Aucune suppression physique** (R6) |
 | **Envois d'e-mails** | **`backoffice.email_sends`, `backoffice.email_send_recipients`** | **3 ans** | `created_at` | `16` RG112, écart 11. Même justification que `introduction_emails` : prouver **à qui** INFLUX a écrit, **sur quelle base légale** et **avec quel modèle**, aussi longtemps qu'une réclamation est possible. **Valeur d'attente** (`16` Q5), veto `expert-conformite-rgpd` |
+| **Compteurs de débit d'authentification** | **`identity.auth_request_throttle`** | **30 jours** | `expires_at` | Compteur d'exploitation, pas historique. Au-delà, une fenêtre glissante n'a plus d'usage — et l'on garderait l'empreinte d'adresses que nous ne connaissons pas |
+| **Utilisateurs Supabase Auth orphelins** | *(schéma `auth`, hors de nos tables)* | **24 heures** | Création | Conséquence de la création inconditionnelle d'utilisateur (`02` §18.5) — procédure au §9.3 |
 | **Journal transactionnel** | **`leads.transactional_sends`** | **13 mois** | `created_at` | Diagnostic d'exploitation, pas preuve : assez pour couvrir une saisonnalité complète de délivrabilité, et bien moins que les envois marketing. Ne contient **ni corps, ni code** |
 | **Suspensions** | `backoffice.account_suspensions` | **5 ans** après la levée | `ended_at` | Une suspension est une décision opposable : le titulaire peut la contester, et INFLUX doit pouvoir l'expliquer |
 | Incidents de délivrance | `identity.email_delivery_incidents` | **24 mois** | `occurred_at` | Diagnostic d'un compte fermé et suivi de la réputation d'envoi ; au-delà, sans usage |
@@ -5027,6 +5241,35 @@ Une tâche quotidienne du worker, une requête par catégorie, **bornée en volu
 passage) pour ne jamais tenir un verrou long. Chaque purge écrit un résumé dans le registre
 (`retention.purged`, avec le nombre de lignes et la catégorie) : **on doit pouvoir prouver que la
 rétention est appliquée**, pas seulement écrite.
+
+#### Une purge d'un genre différent : les utilisateurs Supabase Auth sans compte (D43, `02` §18.5)
+
+Elle ne porte pas sur nos tables, et c'est pour cela qu'elle risquait de n'être écrite nulle part.
+
+**D'où vient le problème.** Pour que la réponse à une demande de code **ne dépende d'aucune propriété
+du compte** (`05` RG46, `03` A-5), le gestionnaire exécute **exactement la même suite d'appels** que
+l'adresse existe ou non : l'utilisateur GoTrue est créé **inconditionnellement** — l'erreur « déjà
+existant » est avalée — *puis* le code est demandé. Supprimer la branche plutôt que la masquer est la
+bonne décision : un `if (compte existe)` réintroduirait une différence de durée **corrélée à ce que
+l'on protège**, qu'aucun plancher de réponse ne masquerait dans la queue de distribution.
+
+**La conséquence est mécanique :** *toute* adresse essayée, y compris au hasard par un robot, laisse
+un utilisateur dans le schéma `auth` de Supabase — sans jamais devenir un compte INFLUX.
+
+| Quoi | Utilisateurs `auth.users` **sans ligne `identity.accounts`** correspondante |
+|---|---|
+| **Quand** | **24 heures** après leur création |
+| **Comment** | Tâche périodique, opération élevée **E-4** (`maintenance.run_periodic`, `03` P7). **Par l'API d'administration de GoTrue**, jamais par un `DELETE` sur le schéma `auth` — nous ne modifions jamais un schéma qui appartient à Supabase (§5.1, `accounts.auth_user_id` n'a d'ailleurs **volontairement pas** de clé étrangère) |
+| **Garde-fou** | Le rapprochement se fait sur `identity.accounts.auth_user_id`, **jamais sur l'adresse** : un compte supprimé logiquement (`status = 'deleted'`) garde sa ligne, donc son utilisateur GoTrue n'est **pas** purgé |
+| **Trace** | Un résumé au registre, comme toute purge : `retention.purged`, catégorie `auth_orphan_users`, avec le nombre |
+
+> **Pourquoi 24 heures et pas moins.** Le délai doit couvrir un parcours d'inscription interrompu et
+> repris le lendemain matin : purger à une heure ferait perdre le code en cours de quelqu'un qui
+> déjeune. Il doit rester court parce que la table `auth.users` est, sans cette purge, **un annuaire
+> en croissance libre des adresses essayées** — exactement ce que la limitation de débit de `05` RG44
+> et l'empreinte de `identity.auth_request_throttle` s'emploient à ne pas constituer de notre côté.
+> **À soumettre à `expert-cybersecurite`** (§12.10) : c'est lui qui arbitre le compromis entre la
+> fenêtre de reprise et la surface d'énumération.
 
 ---
 
@@ -5228,7 +5471,7 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0101 | `leads_outbox` | `outbox_events`, `contact_sync_states`, index partiels, contrainte RG35 | Oui |
 | 0102 | `backoffice_queues_and_sla` | **`queues`** (catalogue des files, `15` RG26) puis `sla_policies` **avec sa clé étrangère vers `queues`** + **valeur de départ de D39 : décision sous 1 jour ouvré** + **`is_provisional`** sur les quatre délais proposés et non validés (`15` Q2 à Q4) | Oui |
 | **0107** | **`backoffice_alerts_and_dual_control`** | **`alert_definitions`** (catalogue AL1 à **AL48**, chargé lot par lot), **`dual_control_requests`** et ses contraintes, **les codes `dual_control.*`, `settings.changed` et `ownership.reassigned`** | Oui |
-| **0108** | **`leads_transactional_sends`** | **`transactional_sends`** append-only, `priority` **sans valeur par défaut**, ses deux index partiels, **les compteurs de cadence** sur `contact_sync_states` (`16` RG80) | Oui |
+| **0108** | **`leads_transactional_sends`** | **`transactional_sends`** append-only, `priority` **sans valeur par défaut**, **la liste fermée des trois `failure_code` d'un `P0`** (D43, `05` RG60), ses deux index de **lecture** — **et aucun sur `status`** —, les `GRANT` de `influx_auth` et `influx_worker`, **`identity.auth_request_throttle`** (`05` RG44), **les compteurs de cadence** sur `contact_sync_states` (`16` RG80). **Cette migration est la plus précoce de toutes les corrections de cette série : le code de connexion existe dès la première mise en ligne** | Oui |
 | 0103 | `leads_sync_settings` | Table de configuration + **`apollo_scope = 'annonceurs_et_createurs_pro'`** (valeur d'attente de D33) | Oui |
 | 0104 | `identity_signup_fields` | `accounts.declared_status` (**`not null`**), `email_status`, `email_undeliverable_at`, `set_declared_status()`, `correct_email()` | Oui tant qu'aucun compte réel n'existe ; **`declared_status` devient non annulable ensuite** |
 | 0105 | `identity_email_health` | `email_delivery_incidents`, append-only, index d'idempotence | Oui |
@@ -5429,6 +5672,17 @@ pour que le modèle ne comporte pas de manque, et chacun peut être rouvert par 
 | 5 | **Seuils de cadence et de déclenchement automatique de l'interrupteur** (`16` RG123) | En configuration (`operational_settings`), **valeurs d'attente**, recalibrées après un mois de mesure | `expert-marketing` + **Fondateur** |
 | 6 | **`email_send_recipients.send_source` est une quatrième dénormalisation** | Assumée : c'est la **seule** façon d'écrire de façon déclarative « aucune ligne pour un segment Brevo » — un `CHECK` ne lit pas la table parente. Même nature que `billing.deals.revealed_at` (§10.8) | `architecte` |
 
+### 12.10 Points à valider, ouverts par D43 (2026-09-19)
+
+| # | Point | Choix conservateur retenu | Arbitre |
+|---|---|---|---|
+| 1 | **Le rôle `influx_auth`** — un sixième rôle applicatif, porteur du seul chemin d'authentification | Créé et **cantonné** : `INSERT` sur `leads.transactional_sends`, `UPDATE` sur ses **cinq colonnes d'issue**, écriture des compteurs de débit, **et rien d'autre**. Ce n'est **pas** `influx_service`, dont le périmètre est bien plus large. `03` P7 le prévoit déjà en opération élevée **E-1** ; seuls les droits de table sont ajoutés ici. **Nom et périmètre exacts à confirmer** | **`expert-cybersecurite` — veto** |
+| 2 | **Purge des utilisateurs GoTrue orphelins à 24 h** (`02` §18.5, **E-4**) | **24 heures**, par l'API d'administration, **jamais par un `DELETE` sur le schéma `auth`**, rapprochement sur `auth_user_id` et **jamais sur l'adresse**. Le délai est un compromis entre la fenêtre de reprise d'une inscription interrompue et la surface d'énumération | **`expert-cybersecurite`** + `expert-conformite-rgpd` |
+| 3 | **Un échec de cause (b) ne doit pas consommer le quota par adresse** (`02` §18.5, corollaire) | Écrit en commentaire sur `denied_count`, **non implémenté en contrainte** : c'est une règle du code appelant, la base ne sait pas d'où vient l'incrément. Sinon une panne de trois minutes chez Brevo verrouille un quart d'heure ceux qui ont réessayé — **la panne survivrait à la panne** | **`expert-cybersecurite`** |
+| 4 | **Empreinte plutôt qu'adresse en clair** dans `auth_request_throttle` | **Empreinte avec poivre serveur.** Une table de compteurs en clair serait un annuaire des adresses sollicitées, **y compris celles qui n'auront jamais de compte**. Le poivre doit vivre en variable d'environnement, jamais en base — sans quoi l'empreinte ne protège de rien | **`expert-cybersecurite`** (skill `env-secrets`) |
+| 5 | **Plafond de la grappe de connexions élevée de `apps/api`** (garde-fou **G5**, valeur de départ 5) | **Hors du modèle de données**, mais il m'est adressé : je retiens **5 connexions** comme valeur de départ, à mesurer dès que le volume réel du pilote est connu. C'est ce plafond, et non une priorité, qui empêche une rafale de `P0` d'assécher le worker | `architecte` + `expert-database` |
+| 6 | **Risque résiduel de la cause (a)** — un refus du fournisseur portant sur l'adresse apprend qu'elle a déjà reçu un e-mail d'INFLUX | **Accepté et écrit**, conformément à `02` §18.5 : très en deçà d'une énumération de comptes, non exploitable à l'échelle (20 demandes/heure/IP), et le supprimer coûterait le message unique que `05` RG60 refuse. Côté base, la garantie est **l'absence de toute consultation préalable** de `email_status` ou des incidents — aucune requête du chemin d'envoi ne les lit | **`expert-cybersecurite` — veto** |
+
 ---
 
 ## 13. Impacts sur le code existant
@@ -5495,6 +5749,9 @@ un litige n'est pas un état, et le code doit être relu là où il le croyait. 
 - [x] **Écarts `14` (E1 à E11) et `15` (12 points) intégrés (2026-09-19, troisième passe)** :
       11 tables ajoutées, 8 modifiées, 23 codes d'événements, 6 durées de conservation, 17 index.
       L'écart bloquant E1 (encaissement unique) est corrigé par `billing.commission_receipts`
+- [x] **D43 intégrée (2026-09-19, cinquième passe)** : `transactional_sends` documentée comme
+      **journal et non file**, droits posés, trois `failure_code`, **aucun index sur `status`**,
+      purge GoTrue à 24 h rattachée à **E-4**, et `identity.auth_request_throttle` ajoutée
 - [x] **11 écarts du document `16` intégrés (2026-09-19, quatrième passe)** : 4 tables ajoutées,
       5 modifiées, 2 durées de conservation, 6 index, file et alertes amorcées. **Aucune adresse
       recopiée quand un compte existe**, sur aucune des trois tables d'envoi

@@ -1524,4 +1524,479 @@ Deux écrans, selon qu'il existe ou non un second `admin` actif. **La bascule es
 
 ---
 
-<!-- SUITE -->
+## 4. Composants transverses
+
+> Onze composants couvrent **tous** les écrans de ce document. C'est le rapport qui compte : moins
+> de composants, plus d'écrans cohérents, et des raccourcis qui s'apprennent une fois.
+
+### 4.1 Tableau dense (`BoTable`)
+
+Le composant le plus utilisé du backoffice. **Tableaux plutôt que cartes, partout** (`15` RG112) :
+une carte par élément fait défiler, un tableau fait comparer.
+
+| Caractéristique | Valeur | Raison |
+|---|---|---|
+| Hauteur de ligne | `spacing-bo-row-h` = **2,25 rem** (36 px) **nouveau** | ~20 lignes visibles sur un écran de 1080 px sans défilement. Une ligne de 56 px n'en montre que 12 : 40 % d'information perdue par écran |
+| Remplissage de cellule | `spacing-bo-cell-y` = `spacing-1` · `spacing-bo-cell-x` = `spacing-3` **nouveaux** | La respiration de la landing (`spacing-inset-card`) est ici un défaut |
+| Taille de texte | `text-sm` en corps, `text-xs` en en-tête | En dessous de `text-sm`, la lecture en continu fatigue sur huit heures |
+| Nombres | `font-variant-numeric-amount` (tabulaire) **obligatoire** | Des montants non alignés ne se comparent pas |
+| En-tête | `<th scope="col">`, **collant** sous la bande de tête, `color-surface-muted` | |
+| Ligne survolée / focalisée | `color-bo-row-hover` **nouveau** + **bordure gauche de 2 px** `color-brand-primary` | La couleur seule ne suffit pas au clavier |
+| Zébrure | **Aucune** | Elle entre en conflit avec l'état de ligne (hors délai, verrouillée, bloquée), qui doit rester lisible |
+| Sélection | Case en colonne 1, **seulement sur les files à action de masse** | Une case inutile invite à un geste impossible |
+| Tri | Une seule colonne à la fois, marqueur `▲`/`▼` **plus** `aria-sort` | |
+| Pagination | Plafonnée serveur, pied « page n/m », **jamais « charger plus »** (`15` RG34) | Anti-aspiration |
+| Ligne vide | Jamais une cellule blanche : **« non renseigné »** écrit (`15` cas limite 1) | Un vide se lit comme un bogue |
+
+### 4.2 Barre de filtres (`BoFilters`)
+
+Les six filtres communs (`15` RG33) **dans le même ordre sur les 16 files**, puis un séparateur,
+puis les filtres propres. Chaque filtre actif devient une **puce retirable** sous la barre. Un
+bouton `[· Réinitialiser]` apparaît dès qu'un filtre est actif. L'état est dans l'URL (`15` RG121),
+sans donnée personnelle. **Aucun filtre ne s'ajoute sans passer par `chef-de-projet`** : un écran à
+quinze filtres n'est plus un outil.
+
+### 4.3 Sélecteur de motif typé (`BoReasonPicker`)
+
+Le composant qui porte le principe directeur du backoffice. Il apparaît partout : refus, suspension,
+levée, réattribution, classement d'alerte, lecture de conversation, annulation d'envoi, clôture
+d'affaire, levée de verrou.
+
+```
+┌ Refuser cette demande ──────────────────────────────────────────────┐
+│ Motif *  (liste fermée)                                             │
+│  (•) Ce créateur ne correspond pas à ce que vous décrivez           │
+│      → message à la marque :                                        │
+│        « Ce créateur ne correspond pas à ce que vous décrivez. »    │
+│        Corrigible : oui — la marque pourra redemander.              │
+│  ( ) L'écart entre le budget et les tarifs est trop important       │
+│  ( ) Le motif ne permet pas de préparer la mise en relation         │
+│  ( ) Le message contient une adresse, un numéro ou un lien          │
+│  ( ) La campagne rattachée n'est plus ouverte                       │
+│  ( ) Ce créateur n'est pas disponible          Corrigible : non     │
+│  ( ) Une mise en relation est déjà en cours    Corrigible : non     │
+│  ( ) Autre — commentaire interne obligatoire                        │
+│                                                                      │
+│ Commentaire interne (facultatif, invisible du membre)               │
+│  ┌────────────────────────────────────────────────────────────┐     │
+│  └────────────────────────────────────────────────────────────┘     │
+│                             [□ Annuler ‹Échap›]  [■ Refuser]        │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+| Règle | Détail |
+|---|---|
+| **Liste fermée, 5 à 10 entrées** | `backoffice-ops` étape 2. Au-delà, plus personne ne lit |
+| **Boutons radio, jamais une liste déroulante** | Une liste déroulante cache les options et pousse à prendre la première. Ici, on veut que l'agent **voie** les huit motifs |
+| **Le message envoyé au membre est affiché sous le motif sélectionné** | `15` RG7 : il n'existe aucune décision muette, et aucun agent ne doit découvrir après coup ce qu'INFLUX a écrit en son nom |
+| **Le caractère corrigible est écrit** | Il change ce que l'agent dira au téléphone |
+| **« Autre » impose un commentaire** | `15` RG8. Sa fréquence est surveillée : au-delà de 10 % sur un mois, **AL38** — la liste est incomplète |
+| **Texte libre en complément, jamais seul** | `15` RG7 |
+| **Le champ n'est jamais perdu** | `Échap` ferme le panneau **en conservant la saisie** (`15` RG116) |
+
+### 4.4 Dialogue de confirmation — deux gestes de nature différente (`BoHardConfirm`)
+
+Pour les actions de masse d'envoi (M3) et toute action irréversible à fort volume. **Jamais deux
+clics au même endroit** (`16` RG26, `15` RG129).
+
+```
+┌ Confirmer l'envoi ──────────────────────────────────────────────────┐
+│ Source        Contacts de la plateforme                             │
+│ Base légale   Consentement marketing, revérifié à l'envoi           │
+│ Périmètre     « Créateurs FR actifs 30 j »                          │
+│ Volume        3 842 destinataires                                    │
+│ Modèle        « Relance créateurs » v4 — validé le 12/09 par ⟨Nom⟩  │
+│ Langues       français, anglais                                      │
+│                                                                      │
+│ [ ] J'ai lu ce qui précède et je confirme que cet envoi sera        │
+│     IRRÉVERSIBLE passé le délai d'annulation de 5 minutes.          │
+│                                                                      │
+│ Geste 2 — ressaisissez le volume exact au clavier :                 │
+│     ┌──────────┐   (le collage et l'auto-complétion sont refusés)   │
+│     └──────────┘                                                     │
+│                                                                      │
+│ Second facteur (code à 6 chiffres)  [      ]                        │
+│                              [□ Annuler]   [■ Programmer l'envoi]   │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+Une case **plus** une ressaisie clavier **plus** un second facteur : trois natures de geste
+différentes. Le champ de ressaisie refuse `paste` et `autocomplete` — non par coquetterie : c'est le
+seul moyen que le chiffre soit **lu** avant d'être validé.
+
+### 4.5 Écran de confirmation différée (`BoDeferredConfirm`)
+
+Spécifié en §3.13.c. Trois invariants : **écran distinct** (pas un dialogue), **compte à rebours de
+60 s écrit et annoncé**, **le mot « affaibli » en toutes lettres** tant que le contrôle par les pairs
+n'existe pas.
+
+### 4.6 Bandeau d'environnement (`BoEnvBanner`)
+
+Trois valeurs : `PRODUCTION` · `RECETTE` · `LOCAL`. En production : un point discret et le mot. Hors
+production : **toute la barre de tête change de fond** (`color-bo-env-nonprod-bg` **nouveau**, jaune
+sourd) et le mot est en capitales. Raison : `16` §J — un agent qui croit être en recette alors qu'il
+est en production envoie de vrais e-mails à de vraies personnes. La couleur est doublée du mot, et
+le mot figure aussi dans le `<title>` de l'onglet.
+
+### 4.7 Bandeau de procédure dégradée (`BoDegradedBanner`)
+
+`bo.dualControl.degraded`, ton **information**, permanent tant qu'il n'existe pas deux `admin`
+actifs (`15` RG107, CA71). Non refermable : un bandeau qu'on peut fermer disparaît le premier jour.
+`[· En savoir plus]` ouvre une page d'une demi-page qui explique ce que le mode protège et ce qu'il
+ne protège pas.
+
+### 4.8 Indicateur de journalisation (`BoLoggedMarker`)
+
+Trois formes, une seule sémantique — **« cet acte est enregistré »** :
+
+| Forme | Où | Exemple |
+|---|---|---|
+| **Marqueur ▮ dans un titre** | Écran dont **l'ouverture** est journalisée | Fiche de compte, écran de décision, recherche identifiée |
+| **Ligne sous le titre** | Détail de ce qui est enregistré | « Consultation enregistrée : ⟨nom⟩, 19/09 09 h 42. » |
+| **Suffixe de bouton** | Action dont **le déclenchement** est journalisé | « Lire ce fil (lecture journalisée) », « Ouvrir la pièce 1 (journalisée) » |
+
+**Le lecteur doit voir qu'il est journalisé.** Ce n'est pas une menace, c'est ce qui rend la
+supervision annoncée aux membres crédible (`15` RG35, `12` RG55). Un marqueur discret mais
+systématique vaut mieux qu'un avertissement spectaculaire qu'on cesse de lire en trois jours.
+
+### 4.9 Marqueur de vue identifiée (`BoIdentifiedFrame`)
+
+**Barre verticale pleine de 4 px à gauche de la zone de contenu** (`color-bo-identified-accent`
+**nouveau**) + chapeau écrit « ⬥ VUE IDENTIFIÉE ». Appliqué à : la recherche en vue identifiée, la
+fiche créateur, le bloc « Le créateur » de l'écran de décision, le bloc « Interlocuteur » de la
+fiche marque, la conversation.
+
+**Pourquoi une barre et pas une couleur de fond** : la barre survit à une capture d'écran recadrée,
+à une impression en noir et blanc et à un vidéoprojecteur mal réglé. Une teinte de fond, non. Le
+risque visé est concret : un commercial qui partage son écran avec une marque.
+
+### 4.10 Affichage d'un montant (`BoAmount`)
+
+| Règle | Détail |
+|---|---|
+| **Trois libellés imposés** | *Montant négocié* · *Commission convenue* · *Commission encaissée* (`15` RG5). Jamais « budget », « cachet », « rémunération », « total » |
+| **Devise sur chaque montant** | `2 700,00 EUR`. Jamais la devise en en-tête de colonne seule |
+| **Chiffres tabulaires** | `font-variant-numeric-amount` |
+| **Insécable** | Le montant et sa devise ne se coupent jamais en fin de ligne |
+| **Format selon la langue de l'interface** | `15` RG12, ICU, jamais de concaténation |
+| **Aucun total toutes devises, aucun pourcentage, aucun net créateur** | `15` RG4, RG19. Un agrégat est **toujours par devise**, avec la mention `bo.amount.byCurrency` |
+| **Valeur absente ≠ zéro** | Une commission non saisie s'affiche **`—`**, jamais `0,00` |
+
+### 4.11 Raccourcis clavier (`BoShortcuts`)
+
+Les huit raccourcis de `15` RG114 sont **identiques dans les 16 files** — c'est l'homogénéité qui
+les rend utiles. Ce document en ajoute trois, de navigation seulement, sans effet de bord :
+
+| Touche | Geste | Source |
+|---|---|---|
+| `j` / `k` | Entrée suivante / précédente | `15` RG114 |
+| `Entrée` | Ouvrir l'entrée **et la prendre en charge** | `15` RG114, RG27 C1 |
+| `v` | Valider — **ouvre le récapitulatif** si l'action est révélante ou irréversible | `15` RG114, RG115 |
+| `r` | Refuser — ouvre le sélecteur de motif, **jamais un refus direct** | `15` RG114 |
+| `n` | Ajouter une note interne | `15` RG114 |
+| `l` | Relâcher le verrou | `15` RG114 |
+| `Échap` | Fermer le panneau en cours, **sans perdre la saisie** | `15` RG114, RG116 |
+| `?` | Afficher la liste des raccourcis | `15` RG114 |
+| `⌘K` / `Ctrl K` | Recherche globale | **ajout §1.5** |
+| `g` puis `1…7` | Aller à l'entrée n du rail | **ajout §1.2** |
+| `espace` | Cocher / décocher la ligne focalisée (files à sélection) | **ajout §3.3** |
+
+**Aucun raccourci ne déclenche une action irréversible sans confirmation** (`15` RG115). `‹?›`
+affiche un panneau listant les raccourcis **du contexte courant**, pas une liste générique.
+
+### 4.12 États, messages et erreurs (`BoFeedback`)
+
+| Règle | Détail |
+|---|---|
+| **Quatre états explicites par écran** | Repos · chargement · succès · échec. **Aucun écran ne reste muet après une action** (`15` RG117) |
+| **Un message d'erreur reste 6 s minimum** ou jusqu'à fermeture explicite | `15` RG117, CA77. Un message qui disparaît avant d'être lu n'a pas été affiché |
+| **Jamais de trace technique** | `15` CA74. Cause en français courant, puis `[· Détail technique]` replié pour l'`admin` |
+| **Aucune animation décorative, aucun délai artificiel** | `15` RG118. Le seul délai autorisé est celui de la confirmation différée, et il est annoncé et compté |
+| **Chargement : squelette à hauteur fixe** | Pas de spinner qui saute, pas de décalage de contenu |
+| **Ce qui n'est pas montré est dit** | `15` RG123 : « Les données d'enrichissement Apollo ne sont pas affichées dans INFLUX. » — plutôt qu'un vide qu'on prendra pour un bogue |
+| **Refus de droit** | `bo.action.forbidden`, **nomme le rôle requis**, tentative journalisée (`15` RG110) |
+
+---
+
+## 5. Vérification du chronométrage
+
+> **Chaque clic économisé au backoffice est de la capacité commerciale gagnée** (`15` §Besoin).
+> Cette section chronomètre les cinq gestes les plus fréquents **sur papier**, avant qu'une ligne de
+> code ne soit écrite. Un geste qui dépasse sa cible n'est pas « à optimiser plus tard » : il est
+> mal conçu.
+
+**Méthode.** Une *interaction* = un geste discret de l'utilisateur : une frappe de raccourci, un
+clic, un choix dans une liste, une validation de champ. La saisie d'un texte compte pour **une**
+interaction (c'est le champ, pas les caractères). On compte à partir du moment où l'agent a l'écran
+de départ sous les yeux.
+
+| # | Geste | Interactions | dont champs à saisir | dont décisions | Cible | Verdict |
+|---|---|---|---|---|---|---|
+| **1a** | **Décider une demande** — validation simple, depuis la file, entrée focalisée : `‹Entrée›` (ouvre + prend en charge) → lecture → `‹v›` | **2** | 0 | 1 | ≤ 3 | ✅ |
+| **1b** | *idem*, **validation révélante** : `‹Entrée›` → `‹v›` (ouvre le récapitulatif) → `[⚠ Je confirme]` | **3** | 0 | 2 | ≤ 4 | ✅ La friction supplémentaire est **voulue** : la révélation est irréversible |
+| **1c** | *idem*, **refus** : `‹Entrée›` → `‹r›` → choisir le motif → `[■ Refuser]` | **4** | 0 | 2 | ≤ 5 | ✅ |
+| **2** | **Proposer 5 créateurs**, depuis une campagne publiée : `[■ Proposer des créateurs]` → 5 sélections → `[■ Proposer à la campagne (5)]` → motif commun → `[■ Envoyer les 5]` | **9** (dont **5 de sélection**) | 1 | 2 | ≤ 10 · **≤ 4 hors sélection** | ✅ **3 clics à partir d'une sélection faite**, conforme à `13` RG54 |
+| **3a** | **Renseigner une affaire** — passage `négociation → signée`, montant et devise déjà saisis : ouvrir → transition → date de signature · commission convenue · base fiscale montant · base fiscale commission · payeur · note de commission → `[■ Enregistrer]` → `[■ Confirmer]` (récapitulatif `14` RG38) | **10** | 6 | 2 | ≤ 12 | ✅ |
+| **3b** | *idem* **depuis `ouverte`**, tout à saisir : + montant · devise · mode d'envoi · date d'envoi | **14** | 10 | 3 | ≤ 15 | ⚠️ À la limite. **Aucun champ ne peut être retiré** : tous sont exigés par `14` §C, et **aucun ne peut être pré-rempli** (`14` RG46). Le levier n'est pas l'écran, c'est de saisir au fil de l'eau plutôt qu'en une fois |
+| **4a** | **Lire une conversation — participant** : ouvrir depuis le tableau de bord ou l'affaire | **1** | 0 | 0 | **1** | ✅ Motif `suivi_de_l_affaire` retenu automatiquement (`12` RG56) : **friction nulle sur le geste quotidien** |
+| **4b** | **Lire une conversation — non participant** : `[· Lire ce fil (lecture journalisée)]` → choisir le motif → `[■ Ouvrir le fil]` | **3** | 0 | 1 | ≤ 3 | ✅ La friction est **le produit**, pas un défaut (`12` RG57) |
+| **5a** | **Vérifier un badge** — niveau 2, une pièce, octroi : `‹Entrée›` → ouvrir la pièce → abonnés constatés · période début · période fin → `‹v›` | **6** | 3 | 1 | ≤ 8 | ✅ |
+| **5b** | *idem* **refus** : `‹Entrée›` → ouvrir la pièce → `‹r›` → motif → `[■ Refuser]` | **5** | 0 | 2 | ≤ 6 | ✅ |
+
+### Ce que ce décompte a changé dans la conception
+
+| Décision prise à cause du chronométrage | Gain |
+|---|---|
+| **Ouvrir = prendre en charge** (`15` RG27 C1) | −1 interaction sur **chacune** des 16 files, à chaque entrée. Sur 60 décisions/jour : 60 clics |
+| **Enchaînement automatique vers l'entrée suivante** (§2.6) | −2 interactions par décision (retour à la liste + rechercher la suivante) |
+| **Panneau latéral pour la proposition**, sans changement d'écran | −2 interactions et, surtout, la sélection reste visible derrière : l'agent ne revérifie pas |
+| **Motif automatique pour l'agent participant** | −2 interactions **par lecture de fil**, soit le geste le plus répété de la journée d'un commercial |
+| **Pré-remplissage des facettes depuis le brief** (`10` RG73) | −4 à −8 interactions par proposition |
+| **Aucun clic « prendre en charge » sur les files 12 et 16** (pas de verrou) | −1 par rejeu, et le rejeu est souvent en lot |
+
+### Le contre-exemple à garder en tête
+
+L'implémentation actuelle de la file de vérification (§7.3, écart **E4**) demande **un clic
+« Prendre en charge » après ouverture**. Sur cette file seule, à 30 vérifications par jour, c'est
+30 clics quotidiens — et surtout, c'est **une exception au gabarit** : l'agent doit se souvenir que
+cette file-là ne se comporte pas comme les quinze autres. Le coût réel n'est pas le clic, c'est la
+rupture d'automatisme.
+
+---
+
+## 6. Extensions de tokens proposées
+
+> **Règle de méthode** (`design-system-influx`, « Ajouter un token ») : vérifier d'abord qu'aucun
+> token existant ne couvre le besoin — c'est le cas le plus fréquent. Sur **douze** besoins
+> identifiés, **neuf sont des alias sans nouvelle valeur** et **deux seulement** introduisent une
+> couleur nouvelle. **D6 n'est pas rouverte.**
+
+### 6.1 Densité — aucune couleur, aucun contraste à vérifier
+
+Le backoffice a un registre visuel différent du site public : la respiration généreuse de la
+landing (`spacing-inset-card`, `size-touch-target` à 2,75 rem) y coûte 40 % de l'information
+visible par écran.
+
+| Token | Valeur | Rôle | Quand ne pas l'utiliser |
+|---|---|---|---|
+| `--spacing-bo-row-h` | **`2.25rem`** *(nouveau)* | Hauteur de ligne du tableau dense | Jamais hors d'un `BoTable` ; jamais sur une liste destinée à un membre |
+| `--spacing-bo-cell-y` | `var(--spacing-1)` *(alias)* | Remplissage vertical de cellule | — |
+| `--spacing-bo-cell-x` | `var(--spacing-3)` *(alias)* | Remplissage horizontal de cellule | — |
+| `--spacing-bo-rail-w` | **`15rem`** *(nouveau)* | Largeur du rail de navigation | — |
+| `--spacing-bo-panel-w` | **`30rem`** *(nouveau)* | Largeur du panneau latéral (proposition, motif, suspension) | Au-delà, le panneau masque la liste qu'il faut garder visible |
+| `--size-bo-control` | **`1.75rem`** *(nouveau)* | Hauteur minimale d'un contrôle en ligne de tableau. **28 px ≥ les 24 px exigés par WCAG 2.2 AA (2.5.8)** | **Interdit sur `apps/web`** : les parcours membres restent à `size-touch-target` (2,75 rem), mobile-first |
+
+### 6.2 Vue identifiée — la seule nouvelle famille de couleur
+
+**Le besoin qu'aucun token existant ne couvre.** Il faut distinguer, d'un coup d'œil et sur une
+capture d'écran recadrée, un écran qui montre des identités que les membres ne voient pas. Aucune
+couleur existante ne convient : le **vert** est l'action et le succès, le **jaune** l'alerte, le
+**rouge** l'erreur, le **bleu** l'information. Utiliser l'une d'elles créerait une ambiguïté
+permanente — « est-ce une alerte ou une vue identifiée ? ». Il faut une **cinquième teinte, sans
+autre emploi**.
+
+| Token | Valeur | Rôle | Quand ne pas l'utiliser |
+|---|---|---|---|
+| `--color-bo-identified-accent` | **`#a78bfa`** *(nouveau)* | Barre verticale de 4 px, chapeau « ⬥ VUE IDENTIFIÉE », marqueur ⬥ | **Jamais** pour une action, un état de succès, une alerte. **Jamais dans `apps/web`** : ce token n'existe que là où des identités internes sont visibles |
+| `--color-bo-identified-bg` | **`#17121f`** *(nouveau)* | Fond très sourd d'un bloc en vue identifiée (bloc « Interlocuteur », bloc « Le créateur ») | Jamais sur une section pleine page : la barre et le libellé portent l'information, le fond ne fait que l'appuyer |
+
+**Contrastes calculés** (WCAG 2.x, luminance relative) :
+
+| Paire | Ratio | Exigence | Verdict |
+|---|---|---|---|
+| `#a78bfa` sur `--color-surface-page` `#0a0a0a` | **7,27 : 1** | 4,5 : 1 (texte) | ✅ AAA |
+| `#a78bfa` sur `--color-surface-card` `#131315` | **6,82 : 1** | 4,5 : 1 | ✅ AAA |
+| `#a78bfa` sur `--color-bo-identified-bg` `#17121f` | **6,73 : 1** | 3 : 1 (barre de 4 px = composant d'interface) | ✅ |
+| `--color-text-primary` `#f5f5f7` sur `#17121f` | **16,89 : 1** | 4,5 : 1 | ✅ AAA |
+| `--color-text-secondary` `#a1a1aa` sur `#17121f` | **6,45 : 1** | 4,5 : 1 | ✅ |
+
+> **La couleur n'est jamais seule porteuse** (`15` RG119). La vue identifiée est signalée par
+> **trois** moyens simultanés : une **forme** (barre verticale pleine), un **texte** (« ⬥ VUE
+> IDENTIFIÉE — vous voyez les noms… »), une **couleur**. Le premier survit à une impression en noir
+> et blanc et à une capture recadrée ; c'est celui qui compte.
+
+### 6.3 Statuts de SLA — trois alias, aucune nouvelle valeur
+
+| Token | Valeur | Rôle |
+|---|---|---|
+| `--color-bo-sla-ontime-text` | `var(--color-text-secondary)` | « dans 6 h 40 » — **délibérément neutre** : l'état normal ne doit pas crier, sinon l'anormal ne se voit plus |
+| `--color-bo-sla-due-text` | `var(--color-feedback-warning-text)` | « dans 45 min » — sous 25 % du délai restant |
+| `--color-bo-sla-overdue-text` | `var(--color-feedback-error-text)` | « HORS DÉLAI depuis 3 h 12 » |
+
+| Paire | Ratio sur `#131315` | Verdict |
+|---|---|---|
+| `#a1a1aa` (à l'heure) | **7,24 : 1** | ✅ |
+| `#fbbf24` (proche) | **11,12 : 1** | ✅ |
+| `#f87171` (hors délai) | **6,71 : 1** | ✅ |
+
+**Chacun est doublé d'un libellé écrit et d'un glyphe** (`○` · `⚑` · `⚑` + capitales), jamais de la
+seule couleur (`15` CA15).
+
+### 6.4 Alertes, environnement et lignes — six alias
+
+| Token | Valeur | Rôle | Contraste |
+|---|---|---|---|
+| `--color-bo-alert-state` | `var(--color-feedback-info-text)` | Alerte **d'état** (se referme seule) | `#60a5fa` sur `#131315` = **7,30 : 1** ✅ |
+| `--color-bo-alert-event` | `var(--color-feedback-warning-text)` | Alerte **d'événement** (à classer) | **11,12 : 1** ✅ |
+| `--color-bo-alert-event-bg` | `var(--color-feedback-warning-bg)` | Fond de ligne d'une alerte d'événement non classée | texte `#fbbf24` sur `#2b2008` = **9,58 : 1** ✅ |
+| `--color-bo-env-nonprod-bg` | `var(--color-feedback-warning-bg)` | Fond de la bande de tête hors production | idem ✅ |
+| `--color-bo-env-nonprod-text` | `var(--color-feedback-warning-text)` | Mot « RECETTE » / « LOCAL » | idem ✅ |
+| `--color-bo-row-hover` | `var(--color-surface-hover)` | Ligne survolée ou focalisée, **doublée d'une bordure gauche de 2 px** `var(--color-brand-primary)` | Surface, pas de texte |
+
+> **Les deux natures d'alerte ne se distinguent pas par la couleur seule** (`15` RG64, RG66). Une
+> alerte d'état porte le libellé « se referme seule » et **n'a pas de bouton de classement** ; une
+> alerte d'événement porte « à classer » et un bouton. La couleur n'est qu'un renfort.
+
+### 6.5 Où ces tokens vivent
+
+`apps/backoffice` **importe le même `tokens.css`** que `apps/web` (D4 : Tailwind v4 alimenté
+**uniquement** par le fichier de tokens), **plus** un fichier d'extension
+`apps/backoffice/src/styles/tokens-backoffice.css` contenant **uniquement** les douze tokens
+ci-dessus. Aucune couleur, aucun espacement, aucun rayon en dur ailleurs (`15` RG120, CA78 ;
+`CLAUDE.md` §10.3 point 7). **Voir l'écart d'implémentation E1 en §7.3 : ce n'est pas le cas
+aujourd'hui.**
+
+---
+
+## 7. Incohérences relevées, écarts d'implémentation, points à valider
+
+### 7.1 Incohérences entre spécifications
+
+Chacune est signalée à l'agent qui fait autorité. **Ce document n'en corrige aucune** : il applique
+l'hypothèse indiquée et la rend visible.
+
+| # | Incohérence | Hypothèse appliquée ici | Arbitre |
+|---|---|---|---|
+| **I1** | **Collision de numéro de file.** L'additif `15` RG125 attribue le **numéro 14** à `email_send_failures`, déjà pris par `data_subject_requests` dans RG29. Deux files portent le même numéro | `email_send_failures` prend le **numéro 16**. Le catalogue compte **16 files**, pas 15 | `product-owner` |
+| **I2** | **Une troisième issue de file.** `15` RG27 C6 : « **deux issues, jamais trois** — aucune mise de côté, aucune attente de correction ». Or la file de vérification prévoit une remise en file pour blocage technique (`08` RG50), implémentée comme un troisième onglet « À réexaminer » (§7.3, E5) | La remise en file **n'est pas une issue** : c'est un **relâchement de verrou motivé** (`15` RG27 C3, `‹l›`). L'écran n'offre que deux issues ; « je rends la main » existe déjà et suffit | `product-owner` + `expert-ux` |
+| **I3** | **Le net créateur.** `15` RG4 : « **aucun écran de ce document n'affiche un net créateur** ». `14` RG37 : « le net créateur indicatif est une soustraction affichée », et `14` RG38 l'inscrit dans le récapitulatif de confirmation. **Contradiction frontale** entre deux documents du même lot | **`15` RG4 l'emporte** : aucun écran de ce document n'affiche de net créateur. Raison : au MVP, INFLUX ne verse rien et ne garantit rien ; afficher un « net » crée une attente qu'aucune règle ne tient, et c'est précisément l'ambiguïté que `CLAUDE.md` §4.2 interdit | **`expert-paiement-facturation`** + `product-owner` |
+| **I4** | **Qui écrit sur une affaire.** `14` RG39 restreint au commercial responsable et à `admin` ; `03` §3.5 accorde l'écriture à tout `agent`. `14` le signale déjà mais rien n'est tranché | L'écran applique **`14` RG39** (le plus restrictif) : un autre agent lit, et voit « Vous n'êtes pas responsable de cette affaire. [· Demander la réattribution] ». Si `03` l'emporte, l'écran perd un bouton, pas une règle | `expert-cybersecurite` + `expert-database` |
+| **I5** | **Trois actions ou deux issues ?** `13` RG38 : « trois actions, et trois seulement : valider, refuser, **réattribuer** ». `15` RG27 C6 : « deux issues ». Lu vite, on croit à une contradiction | **Ce n'en est pas une, mais elle mérite d'être écrite** : réattribuer **n'est pas une issue** — l'entrée reste dans la file, seul son responsable change. L'écran le traduit en plaçant la réattribution **en haut à droite**, hors du bloc « Décision » | — *(clarification, aucun arbitrage requis)* |
+| **I6** | **La question ouverte Q1 de `15` est déjà résolue dans `05`.** `15` Q1 pose une contradiction entre `05` RG106 (« export admin de la liste des inscrits ») et `03` C(17). Or `05` RG106 dit **aujourd'hui** : « **Aucun export nominatif de la liste des inscrits, pour aucun rôle, `admin` compris.** » | **Aucune contradiction ne subsiste.** Q1 peut être close sans arbitrage. Ce document applique l'interdiction | `chef-de-projet` *(clôture de Q1)* |
+| **I7** | **Le tableau de bord est en lecture seule, mais y affiche des alertes à classer.** `15` RG16 interdit toute action au tableau de bord ; RG18 bloc 1 y affiche « mes alertes ouvertes non classées ». Classer est une action | Le bloc 1 **compte et oriente** ; le classement se fait au **centre d'alertes** (rail, entrée 6). Chaque ligne est un lien, pas un bouton | — *(clarification)* |
+| **I8** | **Tri par défaut, toujours ouvert (`15` Q5).** `06`, `07`, `08` RG62 et `09` écrivent « ancienneté croissante » ; `13` RG19 et `15` RG27 C5 écrivent « échéance croissante » | **Échéance croissante partout** (`15` RG27 C5). C'est le seul tri juste quand deux délais coexistent dans une file (`campaigns` : 1 j / 2 j) | `product-owner` + `expert-ux` |
+| **I9** | **Deux gestes fréquents sans raccourci.** `15` RG114 couvre huit gestes, mais ni la **réattribution** (l'une des trois actions de `13` RG38), ni la recherche globale | Ce document ajoute `‹⌘K›`, `‹g puis n›` et `‹espace›` (§4.11). **La réattribution reste volontairement sans raccourci** : c'est un geste rare et engageant, un raccourci l'exposerait à la frappe réflexe | `expert-ux` *(tranché ici)* |
+| **I10** | **Nombre d'alertes.** Le catalogue `15` RG68 en compte 41 ; l'additif RG126 en ajoute 7 (AL42–AL48) | **48 alertes.** Le centre d'alertes et le compteur du rail les couvrent toutes | — |
+| **I11** | **Écrire à un seul membre inscrit est impossible.** `16` RG25 prévoit un plancher de volume et « suggère la fiche du compte » quand il y a moins de 2 destinataires — **mais aucun écran ne permet d'envoyer un e-mail depuis une fiche de compte**. La source 3 est de la *prospection* (adresse non inscrite, aucune base légale acquise), pas un message à un membre | **Manque fonctionnel.** En l'état, un commercial qui veut écrire à un membre sort de la plateforme — ce que `CLAUDE.md` §5.2 point 5 interdit. Proposition : un envoi transactionnel unitaire depuis la fiche, modèle validé, consentement non requis (exécution de la relation), journalisé | `expert-marketing` + **`expert-conformite-rgpd` (veto)** |
+| **I12** | **La file 11 `documents` est conditionnelle** (`12` Q5, canal non tranché ; PDF refusé par `03` E1-9) | L'écran est spécifié et **activable en configuration** (`is_active` de `backoffice.queues`). S'il est écarté, le catalogue passe à 15 files — **la file ne doit pas être retirée du code**, sinon la rouvrir coûte un chantier | Fondateur + `expert-cybersecurite` |
+| **I13** | **La file 9 `team_selection` n'a pas de motifs de refus.** `10` RG61 et RG84 créent la file et son délai, mais aucune liste fermée de motifs n'existe — or `15` RG7 l'exige pour toute décision | **Manque.** Liste à écrire avant le Lot 5. En attendant, l'écran de décision de la file 9 réutilise la **liste A** de `13` RG83, qui couvre les mêmes cas | `product-owner` |
+| **I14** | **La file 5 `verification_disputes` exige un « agent différent du décideur »** (`15` RG29). Aucune règle ne dit ce qui se passe quand l'équipe compte **une seule personne**, cas réel du pilote | L'écran **masque l'entrée à son décideur d'origine** (comme `15` RG36) et, s'il n'existe aucun autre agent, affiche « Aucun examinateur disponible — cette contestation doit attendre un second agent », **sans bloquer le délai**. C'est un cas où le produit doit dire qu'il ne peut pas, plutôt que simuler un réexamen | `product-owner` + Fondateur *(lié à Q13 de `15`)* |
+
+### 7.2 Manques relevés dans les spécifications
+
+| # | Manque | Conséquence à l'écran |
+|---|---|---|
+| **M1** | Aucun document ne fixe **l'ordre ni le regroupement** des 16 files dans la navigation | Proposé ici (§1.3), à valider par `chef-de-projet` |
+| **M2** | Aucun document ne définit **ce qui est visible en permanence** dans le backoffice | Proposé ici (§1.4) : environnement, recherche, alertes, rôle, bandeaux conditionnels |
+| **M3** | `15` RG104 prévoit un plafond « fiches distinctes ouvertes par 24 h **à régler au Lot 5** » | L'écran affiche le compteur du jour à l'agent lui-même (« 34 fiches consultées aujourd'hui ») : le rendre visible vaut mieux que le surveiller en silence. Valeur à fixer |
+| **M4** | Aucune spécification ne décrit **le comportement d'un écran sous 1024 px** au backoffice | Tranché ici : une colonne, pas de tableau, message « Cet écran est conçu pour un poste de travail ». Le backoffice n'est pas mobile-first |
+| **M5** | La **langue du backoffice (D36)** reste ouverte, mais les 16 libellés de file, les ~90 motifs typés et les 48 intitulés d'alerte doivent exister en **deux langues dès le premier jour**, parce qu'ils sortent du backoffice (`15` RG124, Q12) | Toutes les clés de ce document sont fournies FR/EN |
+
+### 7.3 Écarts constatés dans l'implémentation en cours
+
+> Lecture de `apps/backoffice/src` le 2026-09-19, **sans aucune modification**. Un seul écran existe
+> (file de vérification + tiroir de décision) plus une page de connexion et une page « leads ».
+> L'intention est bonne et la file est reconnaissable ; les écarts portent sur des règles que
+> `15` qualifie de **défauts bloquants**. Destinataires : `dev-react-node` et `architecte`.
+
+| # | Écart | Règle enfreinte | Gravité |
+|---|---|---|---|
+| **E1** | `apps/backoffice/src/app/globals.css` fait `@import "tailwindcss"` **sans importer `tokens.css`**, et pose deux couleurs en dur (`#0f172a`, `#f8fafc`) dans `@layer base` | **D4** (Tailwind v4 alimenté **uniquement** par le fichier de tokens), `15` RG120, CA78, `CLAUDE.md` §10.3 point 7 | **Bloquant** |
+| **E2** | Toute la palette utilisée est celle de Tailwind par défaut — `bg-slate-900`, `text-emerald-400`, `bg-amber-500/10`, `border-rose-800`, `bg-blue-600` — soit **aucune couleur du design system INFLUX**. Le vert de marque n'apparaît nulle part ; `slate-850` et `slate-750` n'existent même pas dans Tailwind | `15` RG120, CA78 | **Bloquant** |
+| **E3** | **Aucune internationalisation** : tous les libellés sont en dur en français dans le JSX | `15` RG11, RG124, `CLAUDE.md` §6 | **Bloquant** |
+| **E4** | Ouvrir une entrée **ne la prend pas en charge** : le tiroir s'ouvre, affiche les données, puis propose un bouton « Prendre en charge ». La lecture a donc lieu **avant** le verrou, et un clic de plus est exigé | `15` RG27 C1, CA11 ; `13` RG27 ; `08` RG64 | **Bloquant** |
+| **E5** | Un **troisième onglet de décision**, « À réexaminer » | `15` RG27 C6, CA17 (« deux issues, jamais trois ») — voir **I2** | **Bloquant** |
+| **E6** | La liste **n'est pas triée par échéance** et **les entrées hors délai ne sont pas remontées en tête** : l'ordre est celui de l'API | `15` RG27 C5, CA15 | **Bloquant** |
+| **E7** | Le hors délai est signalé par une **couleur** (`text-rose-400`) et un glyphe `⚑` **sans libellé écrit** | `15` RG119, CA15 (« un SLA dépassé ne se signale pas uniquement en rouge ») | **Bloquant** |
+| **E8** | Le verrou affiche `claimedBy.slice(0, 6)` — **un fragment d'identifiant technique**, pas un nom. Attendu : « En cours — Marie D., depuis 09 h 42 » | `15` RG27 C2, CA12 | Majeur |
+| **E9** | La liste charge **toute la file** puis filtre côté client, **sans aucune pagination** | `15` RG34, CA18 (pagination plafonnée **côté serveur**, défilement et chargement intégral interdits — garde-fou anti-aspiration) | **Bloquant** |
+| **E10** | Les compteurs de tête n'affichent pas **l'ancienneté de la plus ancienne entrée**, compteur permanent obligatoire. En revanche une carte « Badges délivrés (session) » a été ajoutée, qui n'est spécifiée nulle part et dont la portée (« session ») n'a aucun sens métier | `15` RG28, CA6 | Majeur |
+| **E11** | **Un seul état vide**, « Aucune demande … correspondant aux critères ». Ni « dernière traitée il y a n min », ni distinction **vide / bloquée** | `15` RG24, RG32, CA6, CA7 | Majeur |
+| **E12** | Les **codes de règles** apparaissent dans l'interface : « Identifiant @ constaté en ligne (RG45) * », « Motif de rejet typé (Liste fermée RG57) », « Décision de l'agent (RG47, RG49, RG56) » | Aucune règle ne l'interdit explicitement, mais un agent n'a pas à lire une référence de spécification. C'est du bruit sur un écran utilisé huit heures par jour | Mineur, à corriger |
+| **E13** | Ni **rail de navigation**, ni **bandeau d'environnement**, ni **bandeau de contrôle affaibli**, ni indicateur de rôle | `15` RG107, CA71 ; `16` §J ; §1.4 de ce document | Majeur |
+| **E14** | La file de vérification n'a **qu'une vue créateurs** ; l'onglet **Marques** est absent, alors que la file 4 en porte deux | `15` RG29 file 4, `08` RG61 | Majeur |
+| **E15** | Le créateur est identifié par `accountId.slice(0, 8)` : **impossible de décider sans ouvrir autre chose** | `13` RG32, `08` RG63 (« chaque entrée affiche, **sans avoir à l'ouvrir**, … ») | Majeur |
+| **E16** | **Aucun raccourci clavier** ; toutes les actions passent par la souris | `15` RG113, RG114, CA75 | Majeur |
+| **E17** | Les pièces s'ouvrent par `<a href="/api/storage/files/⟨id⟩" target="_blank">`. Le relais par l'API est correct (`03` BO-5) — **mais rien ne garantit ici que chaque ouverture soit journalisée séparément**, et le lien est copiable | `03` C(14), T9 ; `15` RG109-8 | **À vérifier côté API** |
+| **E18** | `payload: any`, `err: any` dans le tiroir de décision | `CLAUDE.md` §6 (« le `any` est interdit sauf justification en commentaire ») | Mineur — hors périmètre UX, signalé à `dev-react-node` |
+
+> **Ce qui est déjà juste et mérite d'être conservé** : le tableau plutôt que des cartes ; le verrou
+> visible avec son état ; les motifs de refus lus depuis une **liste fermée typée**
+> (`VERIFICATION_REJECTION_REASONS`) ; **le message envoyé au créateur affiché avant la décision** ;
+> le commentaire obligatoire sur le motif « autre » ; le marqueur `▮` déjà présent sur les boutons
+> de consultation. Le squelette est bon : les écarts sont de conformité, pas de conception.
+
+### 7.4 Ce qui reste à valider par le fondateur
+
+| # | Point | Pourquoi il lui revient |
+|---|---|---|
+| **V1** | **Les deux nouvelles couleurs de la vue identifiée** (`#a78bfa`, `#17121f`, §6.2) | Toute extension de palette relève du fondateur (**D6**, `CLAUDE.md` §5.1). Contrastes calculés et conformes ; la teinte reste un choix de marque |
+| **V2** | **La langue du backoffice** (**D36**) | Le français est la valeur d'attente. Les motifs et leurs messages aux membres existent dans les deux langues dès le premier jour — c'est déjà tranché par `15` Q12, mais l'interface elle-même attend l'arbitrage |
+| **V3** | **Deux comptes distincts ou étape d'élévation** pour la personne qui cumule `agent` et `admin` (`15` RG108, **Q13**) | Ce document affiche le rôle en permanence dans la bande de tête ; si l'élévation est retenue, un écran d'élévation s'y ajoute. **Les deux sont acceptables ; l'absence des deux ne l'est pas** |
+| **V4** | **L'affichage du net créateur** (incohérence **I3**) | Le fondateur valide la transparence financière (`CLAUDE.md` §4.2). Ce document a tranché pour l'absence totale au MVP ; c'est un choix de discours autant que d'écran |
+| **V5** | **Un envoi transactionnel unitaire depuis la fiche de compte** (manque **I11**) | Sans lui, un commercial qui doit écrire à un membre sort de la plateforme. Avec lui, une nouvelle surface d'envoi apparaît — **veto `expert-conformite-rgpd`** attendu |
+| **V6** | **Le seuil de fiches distinctes consultées par 24 h** (**M3**, `15` RG104) | Trop bas, il gêne un commercial actif ; trop haut, il ne détecte rien |
+| **V7** | **Le canal de documents** (`12` **Q5**, file 11) | Son maintien conditionne une file, un écran et une charge de modération quotidienne |
+
+---
+
+## 8. Récapitulatif — les écrans spécifiés
+
+| # | Écran | § | Rôles | Lot |
+|---|---|---|---|---|
+| 1 | Rail de navigation et bande de tête permanente | 1.2, 1.4 | `agent` `admin` | 0 → 5 |
+| 2 | Recherche globale (`⌘K`) | 1.5 | `agent` `admin` | 5 |
+| 3 | Tableau de bord `agent` — 5 blocs | 1.6 | `agent` | 5 |
+| 4 | Tableau de bord `admin` — 8 blocs | 1.6 | `admin` | 5 |
+| 5 | **Gabarit de file** — liste, filtres, compteurs, états vide / bloquée | 2.2, 2.3, 2.8 | `agent` `admin` | 1 → 5 |
+| 6 | **Gabarit de décision** — 5 blocs, 2 issues | 2.5, 2.6 | `agent` `admin` | 1 → 5 |
+| 7 | Les 16 files, colonnes et issues | 2.7 | `agent` `admin` | 1 → 5 |
+| 8 | Décision sur une demande de contact / candidature | 3.1 | `agent` `admin` | 4 |
+| 9 | Confirmation d'une révélation d'identité | 3.1 | `agent` `admin` | 4 |
+| 10 | **Proposition INFLUX** — panneau et compte rendu | 3.2 | `agent` `admin` | 4 |
+| 11 | Recherche de créateurs en **vue identifiée** | 3.3 | `agent` `admin` | 3 |
+| 12 | Conversation — motif de lecture préalable | 3.4.a | `agent` `admin` | 4 |
+| 13 | Conversation — fil à trois | 3.4.b | `agent` `admin` | 4 |
+| 14 | Conversation — ajout d'un agent | 3.4.c | `agent` `admin` | 4 |
+| 15 | Journal des lectures de conversations | 3.4.d | `admin` | 5 |
+| 16 | **Fiche de compte marque** — 11 blocs | 3.5 | `agent` `admin` | 2 |
+| 17 | **Fiche de compte créateur** — 13 blocs | 3.6 | `agent` `admin` | 2 |
+| 18 | Vérification d'un profil et attribution du badge | 3.7 | `agent` `admin` | 2 |
+| 19 | Validation d'une campagne | 3.8 | `agent` `admin` | 3 |
+| 20 | Revue renforcée — deux examens | 3.8 | `agent` + `admin` | 3 |
+| 21 | Liste des affaires et totaux par devise | 3.9.a | `agent` `admin` | 5 |
+| 22 | Fiche d'affaire — états, montants, encaissements | 3.9.b | responsable, `admin` | 5 |
+| 23 | E-mails — écran 1, « Mes envois » | 3.10 | `agent` `admin` | 5 |
+| 24 | E-mails — écran 2, la source | 3.10 | `agent` `admin` | 5 |
+| 25 | E-mails — écran 3, le périmètre | 3.10 | `agent` `admin` | 5 |
+| 26 | E-mails — écran 4, modèle, langue, aperçu | 3.10 | `agent` `admin` | 5 |
+| 27 | E-mails — écran 5, volume et écartés | 3.10 | `agent` `admin` | 5 |
+| 28 | E-mails — écran 6, double confirmation | 3.10, 4.4 | `agent` `admin` | 5 |
+| 29 | E-mails — écran 7, fenêtre d'annulation | 3.10 | tous rôles internes | 5 |
+| 30 | E-mails transactionnels et délivrabilité du code | 3.10 | `admin` | 5 |
+| 31 | Interrupteur d'urgence des envois | 3.10 | `admin` | 5 |
+| 32 | Supervision des leads — échecs de synchronisation | 3.11 | `agent` `admin` | 1 |
+| 33 | Adresses injoignables | 3.11 | `agent`, correction `admin` | 1 |
+| 34 | Demande relative aux données personnelles — 7 étapes | 3.12 | instruction `agent`, exécution `admin` | 5 |
+| 35 | Liste et fiche des comptes internes | 3.13.a | `admin` | 0 → 5 |
+| 36 | Désactivation d'un compte interne (refus motivé) | 3.13.a | `admin` | 5 |
+| 37 | Transfert de portefeuille (M5) | 3.13.a | `admin` | 5 |
+| 38 | Compte de secours | 3.13.b | `admin` + fondateur | 0 |
+| 39 | Double validation — forme cible | 3.13.c | `admin` | 5 |
+| 40 | Confirmation différée — forme dégradée | 3.13.c, 4.5 | `agent` `admin` | 0 → 5 |
+| 41 | Panneau de suspension et de levée | 4.3, 3.13.c | `agent` demande, `admin` lève | 5 |
+| 42 | Panneau de réattribution | 2.5, 3.5 | `agent` `admin` | 4 |
+| 43 | Centre d'alertes — 48 alertes, état / événement | 1.2, 6.4 | `agent` `admin` | 5 |
+| 44 | Écran d'export — E1 à E4 | 3.12, 6.4 | `admin` (E4 : `agent`) | 5 |
+
+**44 écrans**, construits sur **11 composants transverses** (§4) et **un gabarit de file unique**
+appliqué à 16 files.
+
+---
+
+**Ce document ne modifie aucun autre fichier.** Les incohérences de §7.1 sont adressées à
+`product-owner`, `expert-paiement-facturation` et `chef-de-projet` ; les manques de §7.2 à
+`product-owner` ; les écarts d'implémentation de §7.3 à `dev-react-node` et `architecte` ; les
+extensions de tokens de §6 au **fondateur** (**D6**) ; la validation d'accessibilité finale à
+`testeur` (document `18`). Les écrans destinés aux membres relèvent de
+`docs/mvp/17-parcours-et-ecrans-espaces-membres.md`.

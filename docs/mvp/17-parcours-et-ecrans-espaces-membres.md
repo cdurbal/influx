@@ -1134,7 +1134,1198 @@ est conservé** · *refusé* motif typé, visible du seul déposant · *succès*
 
 ---
 
-<!-- SUITE -->
+## 5. Espace créateur
+
+**Population :** un créateur majeur, particulier ou professionnel, **sur mobile**, souvent
+interrompu. **Tâche :** comprendre ce qu'on lui propose et **combien il touche**, sans lire un
+contrat. **Vocabulaire :** offre, contenu, tarif, ce que je perçois, délai — jamais « annonceur »,
+jamais « intermédiation ».
+
+**Règle de conception propre à cet espace :** chaque écran tient une promesse en une phrase, et
+**une seule action principale** est atteignable au pouce. Tout écran de cet espace est conçu à
+375 px d'abord, puis étendu.
+
+### 5.1 C1 — Accueil créateur
+
+```
+Mobile 375
+┌───────────────────────────────┐
+│ INFLUX      [i:bell]²  [FR|EN]│
+├───────────────────────────────┤
+│ Bonjour                   h1  │
+│                               │
+│ ┌───────────────────────────┐ │
+│ │ [i:alert] À FAIRE         │ │  n'affiche que l'actionnable ;
+│ │ • 1 mise en relation à    │ │  zéro élément → bloc absent
+│ │   accepter    [■ Voir]    │ │
+│ │ • Vos chiffres datent du  │ │  creatorProfile.figures.stale
+│ │   4 déc. Au-delà de       │ │  07 RG50 — factuel, pas culpabilisant
+│ │   90 jours, votre profil  │ │
+│ │   est affiché plus bas.   │ │
+│ │   [□ Mettre à jour]       │ │
+│ └───────────────────────────┘ │
+│                               │
+│ ┌───────────────────────────┐ │
+│ │ MON PROFIL                │ │
+│ │ Publié ✓ · Profil 7K3M    │ │  alias rappelé : c'est ainsi
+│ │ Complétude 74 % ▓▓▓▓▓▓▓░  │ │  que les marques le voient
+│ │ Sans répartition          │ │  creatorProfile.alias.explain
+│ │ d'audience par pays, vous │ │
+│ │ n'apparaissez pas quand   │ │  message factuel et vérifiable
+│ │ une marque filtre sur un  │ │  07 RG90
+│ │ pays. [□ Compléter]       │ │
+│ └───────────────────────────┘ │
+│                               │
+│ CAMPAGNES POUR VOUS           │
+│ ┌───────────────────────────┐ │
+│ │ carte de campagne (§5.5)  │ │  3 cartes maximum
+│ └───────────────────────────┘ │
+│ [□ Voir toutes les campagnes] │
+│                               │
+│ 3 candidatures actives sur 10 │  11 RG63, compteur permanent
+└───────────────────────────────┘
+```
+
+**Compte tout neuf** (§2.4) : le bloc « À faire » contient une seule entrée — « Faites vérifier un
+compte pour publier votre profil » (`08` RG16) — et le fil des campagnes est **déjà consultable**
+(`09` RG99, `11` RG13). Un encart pédagogique unique explique les trois notions d'argent, **sans
+aucun chiffre** (§7.3).
+
+**États :** *chargement* squelettes · *vide* décrit ci-dessus · *erreur* bandeau + réessayer ·
+*profil suspendu* bandeau neutre, fil inaccessible, candidatures clôturées (`11` RG23, RG80) ·
+*succès* sans objet.
+
+### 5.2 C2 — Profil créateur : sept blocs, trois couches, une complétude honnête
+
+C'est le formulaire le plus long du produit. Il est donc découpé en **sept sections navigables**,
+chacune ouvrable indépendamment, avec **enregistrement automatique** (`07` RG111) et **étiquette de
+couche sur chaque champ** (`07` RG21).
+
+```
+Mobile 375 — sommaire du profil
+┌───────────────────────────────┐
+│ Mon profil                h1  │
+│ Publié ✓ · Profil 7K3M        │
+│ ┌───────────────────────────┐ │
+│ │ Complétude 74 %           │ │
+│ │ ▓▓▓▓▓▓▓░░                 │ │
+│ │ Il manque pour publier :  │ │  liste NOMINATIVE, jamais « 3 champs »
+│ │ disponibilité, tarif      │ │  07 RG89, RG90
+│ │ indicatif.                │ │
+│ └───────────────────────────┘ │
+│                               │
+│ 1 Présentation           ✓ [›]│
+│ 2 Ligne éditoriale       ✓ [›]│
+│ 3 Réseaux sociaux       2 [›] │  badges par réseau (§5.3)
+│ 4 Audience               ✓ [›]│
+│ 5 Mon offre et mes tarifs ! [›]│  « ! » = incomplet, doublé du texte
+│ 6 Portfolio            3/8 [›]│
+│ 7 Visibilité             ✓ [›]│
+│                               │
+│ [■ Publier mon profil]        │  jamais désactivé : au clic, il
+└───────────────────────────────┘  affiche ce qui manque et y emmène
+
+Desktop : sommaire en colonne de gauche (ancres), sections empilées à droite,
+colonne de complétude collante à droite. Trois colonnes, pas deux.
+```
+
+**Bloc 1 — Présentation.** L'écran le plus contre-intuitif du produit : on demande à un créateur de
+**ne pas** se nommer. L'explication précède la saisie, elle ne la suit pas.
+
+```
+┌───────────────────────────────────────────────────────────┐
+│ 1. Présentation                                           │
+│ ┌───────────────────────────────────────────────────────┐ │
+│ │ [i:shield] Votre alias : Profil 7K3M                  │ │
+│ │ Les marques vous voient sous ce nom tant qu'aucune    │ │  creatorProfile.
+│ │ mise en relation n'est ouverte. Votre pseudo, vos     │ │  alias.explain
+│ │ liens et vos chiffres exacts ne leur sont             │ │  07 RG23, RG24
+│ │ communiqués qu'à ce moment-là, et à elles seules.     │ │
+│ │ L'alias est attribué à vie : ni vous, ni INFLUX ne    │ │
+│ │ pouvez le changer.                                    │ │
+│ └───────────────────────────────────────────────────────┘ │
+│                                                           │
+│ Titre court * (20–120)          [Visible de toutes les    │
+│ ┌─────────────────────────────┐  marques]                 │
+│ │                     0/120   │                           │
+│ └─────────────────────────────┘                           │
+│ Sans pseudo, sans @, sans lien, sans nom de marque.  RG25 │
+│                                                           │
+│ Bio * (150–800)                 [Visible de toutes les    │
+│ ┌─────────────────────────────┐  marques]                 │
+│ │                     0/800   │                           │
+│ └─────────────────────────────┘                           │
+│                                                           │
+│ ┌─ [i:eye-off] Visible uniquement par vous et l'équipe ──┐│
+│ │ Nom et prénom légaux   [              ]  (au 1er badge)││
+│ │ Téléphone              [              ]                ││
+│ │ E-mail de contact      [              ]                ││
+│ └────────────────────────────────────────────────────────┘│
+│ Aucune photo de profil n'est demandée : elle permettrait  │
+│ de vous retrouver en une recherche d'image.       RG29    │
+└───────────────────────────────────────────────────────────┘
+```
+
+**Les trois étiquettes de couche, libellés imposés** (`07` RG112) :
+
+| Étiquette affichée | Clé | Forme |
+|---|---|---|
+| Visible de toutes les marques inscrites. | `creatorProfile.layer.public` | `[i:globe]` + texte, `color-surface-raised` |
+| Visible uniquement après l'ouverture d'une mise en relation. | `creatorProfile.layer.revealed` | `[i:lock]` + texte, `color-brand-subtle-bg` |
+| Visible uniquement par vous et l'équipe INFLUX. | `creatorProfile.layer.internal` | `[i:eye-off]` + texte, `color-text-tertiary` |
+
+> **Écart relevé dans l'implémentation en cours** (§10, E2) : les libellés codés aujourd'hui
+> (« Couche A · Public Anonyme », « Couche I · Révélé sur accord », « Couche N · Interne INFLUX »)
+> exposent un vocabulaire interne. Les codes A / I / N sont un outil de spécification, **pas un
+> libellé d'interface**. Les libellés ci-dessus font foi.
+
+**Bloc 4 — Audience.** Tous les libellés portent sur **l'audience**, jamais sur le créateur
+(`07` RG55) : « 25-34 ans » se lit « part de votre audience âgée de 25 à 34 ans », et le formulaire
+l'écrit ainsi. La somme d'une dimension ne peut dépasser 100, le reliquat s'affiche
+automatiquement comme **« autres »** et n'est jamais complété par le système (`07` RG57).
+
+**Bloc 6 — Portfolio.** 3 à 8 visuels, modération **un élément = une décision** (`07` RG78). Chaque
+visuel porte son état écrit : en cours de modération (`creatorProfile.portfolio.pending`),
+approuvé, refusé + motif. La mention `creatorProfile.portfolio.notice` — « vos visuels approuvés
+sont visibles de toutes les marques inscrites, **avant** toute mise en relation » — est **au-dessus
+de la zone de dépôt**, pas en dessous : c'est là que se perd l'anonymat.
+
+**Bloc 7 — Visibilité.** Un seul interrupteur global (`07` RG8) avec sa conséquence écrite :
+`creatorProfile.visibility.off`.
+
+**États :** *chargement* squelette de sommaire · *vide* sections vides + complétude réelle +
+liste nominative · *erreur de saisie* par champ, focus au premier invalide,
+`creatorProfile.errors.identifierInText` en avertissement **non bloquant** (c'est le modérateur qui
+décide, `07` RG27) · *erreur d'enregistrement* bandeau de reprise, aucune perte · *accès refusé*
+sans objet · *succès* « Profil soumis à validation. Réponse sous 1 jour ouvré. » ; si déjà publié,
+`creatorProfile.status.pendingWithPublished`.
+
+### 5.3 C3 — Réseaux, preuves et badges
+
+Une ligne par réseau (`07` RG41). Chaque ligne est une **carte autonome** portant ses chiffres, sa
+date et ses deux badges.
+
+```
+Mobile 375
+┌───────────────────────────────────────────┐
+│ 3. Réseaux sociaux         [□ Ajouter]    │
+│ ┌───────────────────────────────────────┐ │
+│ │ Instagram · compte principal          │ │
+│ │ @lea.beauty      [Visible après une   │ │  couche I
+│ │ instagram.com/…   mise en relation]   │ │
+│ │ ─────────────────────────────────────  │ │
+│ │ Abonnés            [   48 200 ]       │ │  valeur exacte saisie,
+│ │ Les marques voient : 25 k – 100 k     │ │  tranche dérivée affichée
+│ │                              RG22,45  │ │  sous le champ
+│ │ Taux d'engagement  [   3,4   ] %      │ │
+│ │ [i:eye-off] Non affiché aux marques   │ │  RG48 — absent, pas
+│ │ tant qu'INFLUX ne l'a pas constaté.   │ │  « non vérifié »
+│ │ Portée moyenne / publication [      ] │ │
+│ │ Fréquence de publication      [v]     │ │
+│ │ Mis à jour le 12 mars      (auto)     │ │  RG50 — non saisissable
+│ │ ─────────────────────────────────────  │ │
+│ │ ✓ Compte vérifié — Instagram,         │ │  libellé 08 RG10,
+│ │   le 3 mars 2026                      │ │  DATE OBLIGATOIRE
+│ │   INFLUX a constaté que ce compte     │ │
+│ │   vous appartient.                    │ │
+│ │                                       │ │
+│ │ [!] Audience vérifiée le 1er janv.    │ │  état « à rafraîchir »
+│ │     2026 — vérification à rafraîchir. │ │  08 RG10, péremption 90 j
+│ │     [■ Renvoyer une capture]          │ │
+│ └───────────────────────────────────────┘ │
+└───────────────────────────────────────────┘
+```
+
+**Parcours « faire vérifier un compte »** (`08` §C), en trois écrans mobiles :
+
+| Écran | Contenu | Règle |
+|---|---|---|
+| 1. Ce que le badge affirme | Les quatre affirmations **et** la liste de ce qu'il n'affirme pas — dont « INFLUX ne se prononce pas sur l'authenticité des abonnés ». Au même endroit que le badge, pas dans une aide | `08` RG1, RG2, RG7 |
+| 2. Copier le code | Code à usage unique, bouton « Copier », instruction par réseau, `[■ J'ai collé le code]` | `08` RG51 : c'est **l'agent qui constate en ligne**, une capture ne vaut jamais preuve |
+| 3. Confirmation | « Demande envoyée. Un agent INFLUX vérifiera votre compte. » + délai annoncé + état visible dans la ligne de réseau | `08` §G |
+
+**Parcours « faire vérifier une audience »** : exige « Compte vérifié » sur le **même réseau**
+(`08` RG12) — la condition est **écrite avant** le bouton, jamais découverte après un refus. Le
+dépôt demande une capture du **tableau de bord natif, de moins de 30 jours**, avec des consignes de
+cadrage explicites (`07` RG54 : une pièce trop large est refusée, parce qu'elle contient des
+données de tiers).
+
+**Les quatre états d'un badge**, tous avec libellé écrit et date (`08` RG4, RG10) :
+
+| État | Affichage | Forme |
+|---|---|---|
+| Absent | Aucun badge, `[□ Faire vérifier]` | — |
+| Demandé | « Demande en cours depuis le {date} » | `[i:clock]` + `color-text-secondary` |
+| Actif | « Audience vérifiée — Instagram, le {date} » + sous-ligne d'exactitude | `[i:badge-check]` + `color-brand-subtle-bg` + `color-text-brand-strong` |
+| À rafraîchir | « Audience vérifiée le {date} — vérification à rafraîchir. » | `[i:alert-triangle]` + `color-feedback-warning-*` |
+| Refusé | Motif typé + ce qu'il faut faire | `[i:x-circle]` + `color-feedback-error-*` |
+
+**Interdits d'affichage rappelés** : aucun badge global, aucun « Créateur vérifié », aucun
+superlatif, aucune étoile (`08` RG6, RG13). Ces libellés sont **provisoires au titre de D34** et
+doivent être relus par un juriste avant tout affichage (`08` RG10, Q1).
+
+### 5.4 C4 — Mon offre et mes tarifs : l'écran de la transparence financière
+
+**L'écran le plus dangereux du produit côté créateur** (`07` RG65). Un créateur qui saisit « ce que
+je veux toucher » là où le produit attend « ce que la marque paie » se trompe de 35 %.
+
+```
+Mobile 375
+┌───────────────────────────────────────────┐
+│ 5. Mon offre et mes tarifs                │
+│ ┌───────────────────────────────────────┐ │
+│ │ [i:info] Indiquez ce que la marque    │ │  creatorProfile.rate.hint
+│ │ paie au total. Ce que vous percevez   │ │  AVANT le champ, jamais après
+│ │ s'affiche juste en dessous.  RG65     │ │
+│ └───────────────────────────────────────┘ │
+│                                           │
+│ Ligne 1 — Instagram · Story    [✕]        │
+│ Réseau [Instagram v]  Format [Story v]    │
+│                                           │
+│ Ce que la marque paie au total *          │
+│ ┌─────────────────┐ Devise [EUR v]        │
+│ │        750      │                       │  VALEUR EXACTE (couche N)
+│ └─────────────────┘                       │  07 RG66
+│ Les marques voient la tranche             │
+│ 500 – 1 000 EUR.                          │  tranche dérivée par le
+│                                           │  système, jamais choisie
+│ ┌───────────────────────────────────────┐ │
+│ │ CE QUE LA MARQUE PAIE AU TOTAL        │ │
+│ │ 500 – 1 000 EUR                       │ │  data-advertiser-share
+│ │ ─────────────────────────────────────  │ │
+│ │ COMMISSION INFLUX                     │ │
+│ │ 20 % à la charge de la marque,        │ │  data-creator-share
+│ │ 15 % à votre charge                   │ │
+│ │ ─────────────────────────────────────  │ │
+│ │ CE QUE VOUS PERCEVEZ, ESTIMATION      │ │  data-net-creator
+│ │ ≈ 325 – 650 EUR                       │ │  lu dans le référentiel
+│ │                              RG69,72  │ │  des tranches, jamais calculé
+│ └───────────────────────────────────────┘ │
+│ Estimation indicative, aux taux par       │  creatorProfile.rate.notice
+│ défaut de la plateforme. Elle ne vaut     │  mention FIXE, toujours
+│ pas engagement : les taux applicables     │  présente
+│ sont figés à la signature du contrat.     │
+│                                           │
+│ Délai de livraison habituel       [v]     │
+│ Exclusivité acceptée              [v]     │
+│ Droits d'usage INCLUS dans ce tarif  [ ]… │  deux listes distinctes,
+│ Droits d'usage EN OPTION             [ ]… │  jamais fusionnées — RG73
+│                                           │
+│ [□ Ajouter une ligne de tarif]            │
+└───────────────────────────────────────────┘
+```
+
+| Point | Décision |
+|---|---|
+| **Trois notions, trois lignes, un seul bloc** | Jamais dans trois endroits de l'écran, jamais dans un repli. Toujours avec la devise. Ordre imposé : coût total → commission → net (`07` RG69) |
+| **Le net n'est jamais calculé dans l'écran** | Il est **lu** dans `reference.price_bands` (`07` RG72). L'écran affiche « ≈ » parce que la valeur vient d'une tranche, pas d'un calcul sur le montant saisi |
+| Saisie en valeur exacte | Le créateur saisit un montant ; **le système dérive la tranche** et l'écran montre immédiatement ce que la marque verra (`07` RG22, RG66) |
+| Devise obligatoire | Une tranche sans devise n'existe pas (`07` RG66). Aucune conversion (`07` RG67) |
+| Jamais « HT » ni « TTC » | D7 est ouverte (`07` RG71). Aucun écran ne l'affirme |
+| Symétrie | Ce bloc **n'existe dans aucun écran servi à une marque** (`07` RG70) |
+
+**États :** *vide* aucune ligne de tarif → encart « Ajoutez au moins un tarif pour publier votre
+profil » + bouton · *erreur* montant nul ou négatif refusé côté navigateur **et** serveur, message
+dédié · *chargement* le bloc des trois notions affiche des tirets, jamais un zéro (un « 0 € »
+transitoire est un mensonge) · *succès* enregistrement automatique, horodaté.
+
+### 5.5 C5 — Le fil des campagnes
+
+```
+Mobile 375
+┌───────────────────────────────┐
+│ Campagnes                 h1  │
+│ [□ Filtres (2)]  [Récentes v] │
+│ ┌───────────────────────────┐ │
+│ │ [i:info] Nous avons       │ │  RG31 — pré-sélection
+│ │ pré-rempli vos thématiques│ │  VISIBLE, NOMMÉE, RETIRABLE
+│ │ et vos réseaux. [◦ Retirer]│ │
+│ └───────────────────────────┘ │
+│ 14 campagnes                  │  RG35 — nombre affiché AVANT la liste
+│                               │  (contrairement à la recherche marque :
+│ ┌───────────────────────────┐ │   ici rien à ré-identifier)
+│ │ ▣  Marque Alpha           │ │
+│ │    ✓ Marque vérifiée      │ │  + sa DATE — 06 RG53
+│ │      le 3 mars 2026       │ │
+│ │ Rentrée beauté 2026   (h3)│ │
+│ │ Beauté · Instagram        │ │
+│ │ 2 stories + 1 reel        │ │  livrables (réseau, format, quantité)
+│ │ ───────────────────────── │ │
+│ │ Ce que la marque paie au  │ │  09 RG60 — libellé imposé
+│ │ total : 1 000 – 2 000 EUR │ │
+│ │ Vous percevriez ≈ 650 –   │ │  net en TRANCHE, avec « ≈ »
+│ │ 1 300 EUR                 │ │
+│ │ Rémunération en numéraire │ │
+│ │ ───────────────────────── │ │
+│ │ Audience visée : France   │ │
+│ │ Candidatures avant le     │ │
+│ │ 28 mars                   │ │
+│ │ [■ Voir la campagne]      │ │
+│ └───────────────────────────┘ │
+│ …                             │
+│ [□ Voir la suite]             │  pagination explicite — RG36
+└───────────────────────────────┘
+```
+
+| Élément | Règle |
+|---|---|
+| Carte | **Exactement** les informations de `11` RG15, rien de plus |
+| Montant | Fourchette + devise + **mention fixe** `11` RG19, et le net estimé en tranche. Les deux notions sont **côte à côte sur la carte**, pas seulement sur la fiche : un créateur trie au pouce, il ne doit pas ouvrir pour savoir |
+| Aucun compteur | Ni candidatures reçues, ni vues, ni popularité (`11` RG25) |
+| Campagne close | Restée visible **7 jours**, en grisé, **sans bouton**, avec le libellé « candidatures closes » (`11` RG26). Une campagne qui s'évapore fait croire à un bug |
+| Réservée aux vérifiés | Mention **écrite en toutes lettres** sur la carte (`11` RG15) |
+| Autre devise | Les campagnes dans une autre devise sont **regroupées à part**, jamais converties ni exclues silencieusement (`11` RG28) |
+| Profil en brouillon | Le fil reste lisible ; chaque carte porte `application.blocked.profileDraft` **à la place** du bouton (`11` RG23, RG46) |
+
+**États :** *chargement* 3 squelettes de carte · *vide avec filtres* l'écran **nomme les critères
+actifs** et propose de retirer le plus restrictif ; il ne prétend jamais qu'aucune campagne n'existe
+(`11` RG30) · *vide sans filtre* « Aucune campagne ouverte pour le moment. Complétez votre profil :
+c'est ce que regarde un commercial INFLUX quand il rapproche une marque d'un créateur. » · *erreur*
+bandeau + réessayer, filtres conservés · *campagne disparue* « Cette campagne n'est plus ouverte »,
+jamais une erreur technique (`11` RG24).
+
+### 5.6 C6 et C7 — Fiche de campagne et candidature
+
+**Fiche.** Tout ce que la carte porte, plus le brief détaillé, le produit, les droits d'usage, les
+langues et le bloc marque **sans coordonnées** (`11` RG16, `06` RG74). Trois encarts obligatoires :
+
+| Encart | Clé | Quand |
+|---|---|---|
+| Ce que devient votre contenu | `campaign.usageRights.warning` | Si achat média + illimité + mondial (`09` RG40) |
+| Divulgation du caractère commercial | `campaign.disclosure.notice` | Si rémunéré ou produit offert (`09` RG32) |
+| Candidater n'ouvre pas de conversation | `campaign.application.validationNotice` | **Toujours**, au-dessus du bouton (`09` RG80) |
+
+**Aucun moyen de contacter la marque** n'existe sur cette page : ni bouton, ni adresse, ni lien
+(`09` RG81). Le seul geste possible est la candidature.
+
+**Candidature.** Formulaire **unique et fixe**, identique pour toutes les campagnes (`11` RG47, et
+la réconciliation de `09` RG77) : une marque ne peut pas désactiver la motivation.
+
+```
+Mobile 375
+┌───────────────────────────────────────────┐
+│ Candidater · Rentrée beauté 2026      [✕] │
+│                                           │
+│ ┌───────────────────────────────────────┐ │
+│ │ Cette marque attache une importance   │ │  09 RG77 — mise en avant
+│ │ particulière à : proposition de       │ │  INFORMATIVE, n'ajoute
+│ │ concept, disponibilité.               │ │  aucun champ
+│ └───────────────────────────────────────┘ │
+│                                           │
+│ ┌───────────────────────────────────────┐ │
+│ │ Ce que le commercial INFLUX verra     │ │  RG48 — rappel en LECTURE
+│ │ de votre profil : Profil 7K3M ·       │ │  SEULE, rien n'est redemandé
+│ │ Beauté · France · Instagram 25-100 k  │ │
+│ │ ✓ Compte vérifié   [◦ Voir mon profil]│ │
+│ └───────────────────────────────────────┘ │
+│                                           │
+│ Votre motivation * (120–2 000)            │
+│ ┌───────────────────────────────────────┐ │
+│ │                            0/2000     │ │
+│ └───────────────────────────────────────┘ │
+│ Ni lien, ni @, ni coordonnée : ils seront │  11 RG50
+│ partagés une fois la mise en relation     │
+│ ouverte.                                  │
+│                                           │
+│ Proposition de concept (facultatif)       │
+│ ┌───────────────────────────────────────┐ │
+│ └───────────────────────────────────────┘ │
+│                                           │
+│ Formats proposés *                        │
+│ [x] Story Instagram   [ ] Reel Instagram  │  restreint à l'intersection
+│                                           │  campagne × profil — RG47
+│ Votre tarif pour cette campagne *         │
+│ [i:info] Indiquez ce que la marque paie   │  application.rate.hint
+│ au total pour cette campagne.             │
+│ ┌─────────────┐ EUR (devise de la         │
+│ │    1 500    │      campagne)     RG54   │
+│ └─────────────┘                           │
+│ ┌───────────────────────────────────────┐ │
+│ │ La marque paie au total    1 500 EUR  │ │
+│ │ Commission INFLUX  20 % marque,       │ │
+│ │                    15 % vous          │ │
+│ │ Vous percevriez  ≈ 650 – 1 300 EUR    │ │  application.rate.net
+│ └───────────────────────────────────────┘ │  tranche du référentiel
+│ Estimation indicative, aux taux par       │  application (11 RG58)
+│ défaut de la plateforme…                  │
+│                                           │
+│ [ ] Je suis disponible sur la période     │  non pré-cochée — RG47
+│     annoncée. *                           │
+│ [ ] J'accepte cette mise en relation…     │  intro.accept.consent,
+│     (version {v} du {date})  [◦ CGU] *    │  non pré-cochée — 13 RG70
+│                                           │
+│ 3 candidatures actives sur 10       RG63  │
+│ [□ Enregistrer]      [■ Vérifier et       │
+│                          envoyer]         │
+└───────────────────────────────────────────┘
+```
+
+**Écran récapitulatif avant envoi** (`11` RG53), obligatoire : campagne, formats, tarif, net
+estimé, ce que verra le commercial, et le rappel `application.submit.notice` — « la marque ne
+recevra votre candidature qu'après validation par INFLUX ».
+
+**Si le tarif dépasse la fourchette annoncée** : accepté, avec `application.rate.aboveRange`
+(`11` RG56). Un créateur n'a pas à être empêché de demander son prix.
+
+**Les cinq conditions pour candidater** (`11` RG46) sont affichées **chacune avec son message
+propre** ; aucun bouton désactivé sans explication : `application.blocked.profileDraft`,
+`application.blocked.verifiedOnly` (en nommant les réseaux concernés),
+`application.quota.reached`, « vous avez déjà candidaté le … », « aucun format commun avec les
+livrables de cette campagne ».
+
+**États :** *chargement* squelette de formulaire · *brouillon* enregistré automatiquement, bandeau
+« Brouillon enregistré à 14 h 07 » — et l'écran dit qu'un brouillon **n'est pas une candidature**
+(`11` RG52) · *erreur de saisie* par champ + focus · *coordonnée détectée*
+`application.errors.contactInText`, **non bloquant** (`11` RG51) · *plafond atteint*
+`application.quota.reached`, qui **explique ce qui libère une place** et ne propose jamais de payer
+· *succès* `application.status.sent` avec la date et le délai annoncé.
+
+### 5.7 C8 — Mes candidatures : les huit états
+
+```
+Mobile 375
+┌───────────────────────────────────────────┐
+│ Mes candidatures                      h1  │
+│ 3 actives sur 10 ▓▓▓░░░░░░░               │
+│ [ Actives | Terminées ]                   │
+│ ┌───────────────────────────────────────┐ │
+│ │ Rentrée beauté 2026 · Marque Alpha    │ │
+│ │ [i:clock] Envoyée le 12 mars — en     │ │  états 2 ET 3 : MÊME
+│ │ cours d'examen par INFLUX. Réponse    │ │  LIBELLÉ (11 RG72)
+│ │ sous 1 jour ouvré.                    │ │
+│ │ [◦ Retirer ma candidature]            │ │
+│ ├───────────────────────────────────────┤ │
+│ │ Test UGC crème · Marque Bêta          │ │
+│ │ [i:check] Validée par INFLUX et       │ │  état 4
+│ │ transmise à la marque le 10 mars.     │ │
+│ ├───────────────────────────────────────┤ │
+│ │ Noël 2025 · Marque Gamma              │ │
+│ │ [i:handshake] Mise en relation        │ │  état 5
+│ │ ouverte — MER-2026-000123             │ │
+│ │ [■ Ouvrir la conversation]            │ │
+│ ├───────────────────────────────────────┤ │
+│ │ Été 2026 · Marque Delta               │ │
+│ │ [i:x] INFLUX n'a pas transmis cette   │ │  état 6 — motif typé,
+│ │ candidature : {motif}                 │ │  attribué à INFLUX,
+│ │ [□ Candidater à nouveau]  (si le      │ │  JAMAIS à la marque
+│ │ motif est corrigible — RG67)          │ │
+│ └───────────────────────────────────────┘ │
+└───────────────────────────────────────────┘
+```
+
+| # | État | Libellé imposé (`11` RG71) | Clé |
+|---|---|---|---|
+| 1 | Brouillon | « Brouillon enregistré » | — |
+| 2 | Envoyée | « Envoyée le {date} — en cours d'examen par INFLUX, réponse sous 1 jour ouvré » | `application.status.sent` |
+| 3 | En cours d'examen | **Le même libellé que l'état 2** | idem |
+| 4 | Validée, transmise | « Validée par INFLUX et transmise à la marque le {date} » | `application.status.forwarded` |
+| 5 | Mise en relation ouverte | « Mise en relation ouverte — référence MER-… » | `intro.status.opened` |
+| 6 | Refusée par INFLUX | « INFLUX n'a pas transmis cette candidature : {motif} » | `application.status.rejected` |
+| 7 | Retirée | « Vous avez retiré cette candidature le … » | — |
+| 8 | Clôturée sans suite | « Cette candidature est clôturée : {cause neutre} » | `application.status.closed` |
+
+**Le point de conception le plus important de cet écran :** dans les états 6 et 8, **aucun libellé
+n'attribue la décision à la marque**. Un créateur ne doit jamais lire un refus comme un rejet par
+une marque (`11` RG77, RG78) : il ne saura jamais qu'une marque n'a pas répondu. Aucune formulation
+du type « la marque n'a pas donné suite » n'est autorisée dans cet écran.
+
+**Dépassement du délai :** `application.status.late`, à l'écran uniquement.
+
+**États :** *chargement* squelettes · *vide* « Aucune candidature. Parcourez les campagnes
+ouvertes. » + bouton · *erreur* bandeau + réessayer · *plafond* bandeau en tête, avec ce qui libère
+une place · *succès* confirmation en ligne après un retrait, place libérée **immédiatement visible
+dans le compteur** (`11` RG76).
+
+### 5.8 C9 — Conversation, et les autres écrans créateur
+
+La conversation est **identique à §4.7** : même en-tête, même bandeau de supervision, même
+détection avant envoi, même interdiction de pièce jointe. Deux différences de contenu :
+
+| | Côté marque | Côté créateur |
+|---|---|---|
+| Nom de l'autre partie | Le **pseudo principal révélé** (`12` RG5) | Le **nom commercial**, puis prénom et fonction de l'interlocuteur révélé |
+| Fiche de l'autre partie | Profil créateur, couches A + I | Profil marque + bloc interlocuteur révélé, précédé de `brandProfile.contact.revealNotice` (`06` RG42) |
+
+Le bloc interlocuteur révélé est accompagné de sa mention fixe et **chaque consultation est
+journalisée** (`06` RG41) — le créateur n'en est pas informé écran par écran, mais la politique de
+confidentialité le couvre.
+
+| Autre écran | Contenu | Règles |
+|---|---|---|
+| Invitations reçues | Les mises en relation à l'état 3 : proposition INFLUX ou demande de marque validée. Une carte, une action : `[■ Examiner]` → §7.2 | `13` RG66, RG100 |
+| Mon profil vu par une marque | Prévisualisation de la **carte anonyme réelle** servie par l'API, pas une reconstitution | Symétrique de `09` RG102 ; **manque dans `07`**, voir §10 |
+| Preuves déposées | Liste des pièces, état, motif de refus, rappel que les pièces ne sont **jamais** visibles d'une marque | `07` RG54, `08` §I |
+| Contester un badge retiré | Formulaire de contestation, motif, pièce | `08` §H |
+
+---
+
+## 6. Écrans transverses
+
+Ces écrans existent dans les deux espaces, sous « Mon compte ». Leur **structure** est commune ;
+leur **vocabulaire** suit le rôle (« votre entreprise » / « votre profil de créateur »).
+
+### 6.1 T1 — Mes informations
+
+Les champs du Lot 1, modifiables : adresse e-mail, pays, langue, statut déclaré (créateur), nom
+d'entreprise (marque). Deux règles d'écran :
+
+- Toute modification de pays, langue, statut ou nom d'entreprise **émet un `lead.updated`**
+  (`05` RG15, RG73) : l'écran ne le dit pas en jargon, mais la mention d'information de la
+  politique de confidentialité est accessible depuis la page.
+- Le **changement d'adresse e-mail** est un parcours à part (`05` RG58) : re-authentification par
+  code, puis confirmation **depuis l'ancienne et la nouvelle adresse**, dans un délai de 24 heures.
+  L'écran affiche un état d'attente explicite (« En attente de confirmation : 1 sur 2 · expire le
+  {date} ») et rappelle que **l'adresse de connexion reste l'ancienne** tant que les deux n'ont pas
+  répondu.
+
+### 6.2 T2 — Mes préférences de communication
+
+```
+┌───────────────────────────────────────────────────────────┐
+│ Mes préférences de communication                     h1   │
+│                                                           │
+│ ┌───────────────────────────────────────────────────────┐ │
+│ │ E-mails commerciaux et prospection                    │ │
+│ │ État : accordé                                        │ │  RG95 — valeur,
+│ │ Le 12 janvier 2026, par vous, à l'inscription.        │ │  date ET origine
+│ │                                                       │ │  en clair
+│ │ [□ Retirer mon consentement]                          │ │  UNE action, sans
+│ │ Effet immédiat. Aucune justification demandée.        │ │  justification — RG34
+│ └───────────────────────────────────────────────────────┘ │
+│                                                           │
+│ ┌───────────────────────────────────────────────────────┐ │
+│ │ [i:info] Ce que le retrait ne change pas              │ │  RG35, RG94
+│ │ • Votre code de connexion continue d'arriver.         │ │
+│ │ • Les messages liés à vos mises en relation aussi.    │ │
+│ │ • Votre compte et vos accès sont inchangés.           │ │
+│ └───────────────────────────────────────────────────────┘ │
+└───────────────────────────────────────────────────────────┘
+```
+
+Les trois origines possibles sont affichées **en toutes lettres** (`05` RG95) : « par vous, à
+l'inscription » · « par vous, depuis votre espace » · « par un lien de désinscription dans un
+e-mail ». Une désinscription revenue de Brevo n'est **jamais** présentée comme une erreur
+(`05` RG96), et la valeur affichée est celle de Brevo, qui fait foi (`05` RG90).
+
+### 6.3 T3 — Mes données : export, suppression, et **ce qui survit**
+
+L'écran le plus délicat du §6, parce qu'il doit dire une vérité désagréable sans la cacher.
+
+```
+Mobile 375
+┌───────────────────────────────────────────┐
+│ Mes données                           h1  │
+│                                           │
+│ ┌───────────────────────────────────────┐ │
+│ │ Exporter mes données                  │ │
+│ │ Vous recevez un fichier lisible avec  │ │
+│ │ vos informations, votre profil, vos   │ │
+│ │ candidatures et vos échanges.         │ │
+│ │ [□ Exporter]  → code de vérification  │ │  RG57 — re-authentification
+│ └───────────────────────────────────────┘ │
+│                                           │
+│ ┌───────────────────────────────────────┐ │
+│ │ Supprimer mon compte                  │ │
+│ │ [× Supprimer mon compte]              │ │  destructif : libellé
+│ └───────────────────────────────────────┘ │  explicite, jamais une icône
+└───────────────────────────────────────────┘
+
+Écran de confirmation de suppression — en deux temps, jamais en un clic
+┌───────────────────────────────────────────────────────────┐
+│ Supprimer votre compte INFLUX                             │
+│                                                           │
+│ CE QUI DISPARAÎT                                          │
+│ • Votre profil et tout son contenu (textes, visuels,      │
+│   chiffres, pièces déposées).                             │
+│ • Vos candidatures et vos sélections en cours.            │
+│ • Votre contact chez Brevo et chez Apollo.io : la         │
+│   suppression leur est transmise en priorité.   05 RG73   │
+│ • Votre accès : vous ne pourrez plus vous connecter.      │
+│                                                           │
+│ CE QUI EST CONSERVÉ, ET POURQUOI                          │
+│ • Les **conversations** dont vous étiez participant       │
+│   restent lisibles de l'autre partie et d'INFLUX : elles  │
+│   ne vous appartiennent pas seul.        12 RG109         │
+│ • La **trace des mises en relation** ouvertes             │
+│   (référence, dates, versions de CGU acceptées), sous     │
+│   une forme qui ne vous nomme plus.      05 RG70, 01 M4   │
+│ • Les **e-mails déjà envoyés** : ils sont sortis de nos   │
+│   systèmes et nous ne pouvons pas les rappeler.  13 RG78  │
+│ • Les écritures du **journal d'activité**, qui ne         │
+│   peuvent pas être modifiées.                             │
+│ Durées de conservation : voir la politique de             │
+│ confidentialité.  [◦ Lire]                                │
+│                                                           │
+│ Une nouvelle inscription avec la même adresse créera un   │
+│ compte entièrement nouveau, sans lien avec celui-ci.      │
+│                                                  05 RG70  │
+│                                                           │
+│ Tapez SUPPRIMER pour confirmer  [            ]            │
+│ [□ Annuler]              [× Supprimer définitivement]     │
+│                          → puis code de vérification      │
+└───────────────────────────────────────────────────────────┘
+```
+
+| Décision | Justification |
+|---|---|
+| Les deux listes sont **côte à côte, de même poids typographique** | Cacher « ce qui est conservé » dans un lien serait exactement le « coût découvert en fin de parcours » interdit par `CLAUDE.md` §5.2 point 4 |
+| Le vocabulaire évite « preuve légale », « valeur probante », « horodatage certifié » | Interdits par `12` RG105 et `01` M4. On écrit « journal d'activité », « historique de la mise en relation » |
+| Re-authentification par code | Exigée pour export, suppression et changement d'adresse (`05` RG57) |
+| Confirmation par saisie d'un mot | Un bouton rouge seul se clique par réflexe ; taper un mot exige une intention |
+| Une mise en relation ouverte n'empêche pas la suppression | Mais l'écran l'annonce : « 1 conversation ouverte sera close et l'autre partie en sera informée » (message système `party.account_deleted`, `12` RG14) |
+
+> **À valider par `expert-conformite-rgpd`** (§9) : la formulation exacte des deux listes, les
+> durées à afficher, et le sort d'une conversation en cours. `12` RG109 renvoie à `01` ; les durées
+> ne sont pas fixées dans ce document et ne doivent pas l'être par l'interface.
+
+### 6.4 T4 — Mes sessions
+
+Liste des sessions actives : date de création, dernière activité, **pays approximatif**, navigateur
+(`05` RG56). Un bouton `[× Fermer toutes les sessions]`, qui déconnecte aussi l'appareil courant et
+le dit avant. La session courante est marquée « cet appareil ».
+
+L'e-mail de connexion depuis un appareil inconnu (`05` RG55) renvoie vers cet écran : c'est le seul
+geste de reprise en main disponible sans mot de passe.
+
+### 6.5 T5 — Notifications
+
+**Il n'existe aucun centre de notifications au MVP** : ni historique, ni préférences par type. La
+cloche de l'en-tête agrège **uniquement** ce qui attend une action, et mène aux écrans concernés.
+Raison : chaque notification du produit est déjà portée par un écran d'état (candidatures, mises en
+relation, conversations) ; un second inventaire divergerait du premier.
+
+| Canal | Règle |
+|---|---|
+| E-mail transactionnel | Ne contient **jamais** le texte d'un message (`12` RG90), jamais de coordonnée de l'autre partie, jamais de pièce jointe (`13` RG112) |
+| Cadence membre | Immédiat au premier message non lu, puis **au plus un rappel par 24 h** tant que le fil n'est pas ouvert ; l'ouverture réarme le cycle (`12` RG93, RG94) |
+| Pas de réponse par e-mail | Les e-mails partent d'une adresse qui n'accepte pas de réponse, et le disent (`12` RG96) |
+| Aucun autre canal | Ni SMS, ni notification poussée, ni messagerie tierce (`12` RG100) |
+| Marketing | Strictement séparé du transactionnel ; le retrait de consentement ne coupe jamais un code de connexion (`05` RG35) |
+
+### 6.6 T6 — Aide
+
+Une page unique, par rôle, sans formulaire de contact générique : **le seul canal de contact sans
+connexion est celui de `05` RG65** (impossibilité de recevoir un code), et il ne met jamais deux
+membres en relation. Contenu : comment fonctionne la mise en relation, ce qu'affirme un badge, ce
+que voit l'autre partie, comment sont calculés les montants affichés, comment exercer ses droits.
+
+### 6.7 États d'erreur et hors ligne, valables partout
+
+| Situation | Écran | Règle |
+|---|---|---|
+| **Hors ligne** | Bandeau non bloquant en tête : « Vous êtes hors ligne. Vos modifications seront enregistrées à la reconnexion. » Les actions d'envoi affichent une explication écrite, jamais un bouton muet | Les brouillons locaux survivent (`06` RG83, `07` RG111, `11` RG52) |
+| **Erreur serveur (5xx)** | « Nous ne parvenons pas à … pour le moment. Vos réponses sont conservées : réessayez dans quelques minutes. » + `[■ Réessayer]`. **Jamais de trace technique** | `05` RG112 `signup.errors.unavailable`, `05` RG114 |
+| **404 sur une ressource d'un autre membre** | Page « Cette page n'existe pas ou ne vous est pas accessible », **identique** dans les deux cas | `12` RG34, `09` RG100 : ne jamais révéler qu'une ressource existe |
+| **Session expirée** | Retour à l'écran 1 avec la destination mémorisée, message « Votre session a expiré. Reconnectez-vous. » | `05` RG54 |
+| **Compte suspendu en cours de session** | Session révoquée immédiatement, écran neutre `auth.suspended.notice` | `05` RG69 |
+| **Nouvelle version de CGU** | Écran bloquant de ré-acceptation, avant toute page ; refuser déconnecte **sans supprimer le compte** | `05` RG28 |
+| **Plafond de débit atteint** | Message nommant le plafond, ce qui le libère et quand ; jamais une page blanche ni une dégradation silencieuse | `10` RG64, `11` RG63, `12` RG40 |
+| **Mouvement réduit** | Toutes les durées passent à `duration-instant` ; aucune animation de compteur, aucun défilement automatique | tokens.css, `prefers-reduced-motion` |
+| **Zoom 200 % / 320 px** | Aucun défilement horizontal ; les montants sont insécables ; les libellés de boutons passent sur deux lignes plutôt que d'être tronqués | `02` §2.8 |
+
+---
+
+## 7. Les deux écrans qui portent la valeur et le risque
+
+### 7.1 La carte créateur anonyme
+
+**Le problème à résoudre en une phrase :** faire naître l'envie de demander une mise en relation
+**sans montrer personne**. Une carte anonyme ratée produit soit une fuite d'identité, soit une
+place de marché que personne n'utilise. Les deux sont fatales.
+
+**Ce qui remplace l'identité**, dans cet ordre de poids visuel :
+
+1. **le visuel de portfolio modéré** — la seule preuve de savoir-faire disponible ;
+2. **le titre court** — la promesse éditoriale, écrite par le créateur ;
+3. **les badges datés** — ce qu'INFLUX a constaté, et quand ;
+4. **la ligne « Proposé car »** — pourquoi ce profil est là, en faits vérifiables sur la carte ;
+5. **le tarif en tranche** — la compatibilité économique, première cause d'échec en négociation.
+
+```
+Desktop — carte dans la grille (3 colonnes)      Mobile — carte pleine largeur
+┌──────────────────────────────────┐   ┌───────────────────────────────────────┐
+│ ▣ visuel de portfolio approuvé   │   │ ┌─────────┬───────────────────────────┐│
+│   (4:5, 1 visuel sur la carte,   │   │ │▣ visuel │ Profil 7K3M               ││
+│    3 sur la fiche — RG50)        │   │ │  (4:5)  │ Beauté · France           ││
+├──────────────────────────────────┤   │ │  w-1/3  │ ✓ Audience vérifiée       ││
+│ Profil 7K3M                 (h3) │   │ │         │   Instagram, 12 mars      ││
+│ Beauté · France                  │   │ └─────────┴───────────────────────────┘│
+│                          RG24    │   │ « Créatrice beauté clean, tutoriels   ││
+│ ✓ Audience vérifiée — Instagram, │   │   courts et tests de produits »       ││
+│   le 12 mars 2026        [i:info]│   │ ───────────────────────────────────── ││
+│ ✓ Compte vérifié — TikTok,       │   │ Instagram  25 k – 100 k   principal   ││
+│   le 3 mars 2026                 │   │ TikTok     10 k – 25 k                ││
+│ ─────────────────────────────────│   │ Plus de 70 % d'audience en France     ││
+│ « Créatrice beauté clean,        │   │ 25-34 ans majoritaires · mixte        ││
+│   tutoriels courts et tests »    │   │ Engagement 3-5 % (constaté 12 mars)   ││
+│                          h3+body │   │ FR, EN · Story, Reel                  ││
+│ ─────────────────────────────────│   │ ───────────────────────────────────── ││
+│ Instagram  25 k – 100 k principal│   │ Story Instagram   500 – 1 000 EUR     ││
+│ TikTok     10 k – 25 k           │   │ Reel Instagram  1 000 – 2 000 EUR     ││
+│ Plus de 70 % d'audience en France│   │ coût total pour vous                  ││
+│ 25-34 ans · audience mixte       │   │ Droits inclus : organique · Option :  ││
+│ Engagement 3-5 %                 │   │ paid ads · Exclusivité : 1 mois       ││
+│   constaté le 12 mars            │   │ Livraison 7-14 j · Dispo < 2 semaines ││
+│ FR, EN · Story, Reel             │   │   déclarée le 10 mars                 ││
+│ ─────────────────────────────────│   │ Chiffres mis à jour le 12 mars        ││
+│ Story Instagram   500 – 1 000 EUR│   │ ───────────────────────────────────── ││
+│ Reel Instagram  1 000 – 2 000 EUR│   │ Proposé car : thématique beauté       ││
+│ coût total pour vous             │   │ correspondante · plus de 70 %         ││
+│ Droits inclus : organique        │   │ d'audience en France · fourchette     ││
+│ En option : paid ads             │   │ tarifaire compatible avec votre       ││
+│ Exclusivité acceptée : 1 mois    │   │ budget indicatif · audience vérifiée  ││
+│ Livraison 7-14 j                 │   │ le 12 mars 2026.               RG41   ││
+│ Dispo < 2 semaines, décl. 10 mars│   │ [i:alert] Point de vigilance :        ││
+│ Chiffres mis à jour le 12 mars   │   │ profil récent.                 RG42   ││
+│ ─────────────────────────────────│   │ ───────────────────────────────────── ││
+│ Proposé car : thématique beauté  │   │ [□ Ajouter à ma sélection]            ││
+│ correspondante · plus de 70 %    │   │ [■ Demander une mise en relation]     ││
+│ d'audience en France · …   RG41  │   │ Un commercial INFLUX valide votre     ││
+│ [i:alert] Profil récent.   RG42  │   │ demande et vous met en relation. RG52 ││
+│ ─────────────────────────────────│   └───────────────────────────────────────┘│
+│ [□ Ajouter à ma sélection]       │
+│ [■ Demander une mise en relation]│
+│ Un commercial INFLUX valide      │
+│ votre demande et vous met en     │
+│ relation.                  RG52  │
+└──────────────────────────────────┘
+```
+
+**Les huit règles de conception de cette carte**
+
+| # | Règle | Source |
+|---|---|---|
+| 1 | **Aucun champ de la liste fermée de `10` RG48**, ni à l'écran, ni dans la réponse d'API, **pas même vide ni nul** | `10` RG48, `07` RG18 |
+| 2 | **Aucune photo, aucun avatar, aucune initiale, aucune couleur dérivée du nom** — une pastille colorée stable serait un identifiant visuel | `07` RG29 |
+| 3 | **Chaque chiffre porte sa source et sa date**, sans exception. Un chiffre sans date n'est pas affiché | `07` RG49, `08` RG4 |
+| 4 | **Uniquement des tranches.** Une explication ne contient jamais un pourcentage exact : « 72 % » s'écrit « plus de 70 % » | `07` RG58, `10` RG41 règle 4 |
+| 5 | **Le taux d'engagement n'apparaît que s'il a été constaté.** Non vérifié, il est **absent** — pas affiché avec une réserve | `07` RG48 |
+| 6 | **La fiche n'est pas plus riche que la carte** : mêmes champs, en plus grand, 3 visuels au lieu de 1 | `10` RG50 |
+| 7 | **Deux actions, et deux seulement.** Pas de « voir plus tard », pas de « ne plus proposer », pas de partage | `10` RG51, RG56 |
+| 8 | **Le point de vigilance est affiché quand il est vrai**, même s'il dessert le profil. Une liste sans réserve est lue comme une liste vendue | `10` RG42 |
+
+**Hiérarchie visuelle.** Le visuel occupe le haut (desktop) ou le tiers gauche (mobile) ; l'alias
+est en `text-heading-3` ; le titre court en `text-md` ; les tranches et libellés en `text-sm`
+`color-text-secondary` ; les dates et sources en `text-xs` `color-text-tertiary` ; les montants en
+`text-amount-md` (token proposé, §8) avec `font-variant-numeric-amount`. La ligne « Proposé car »
+est sur `color-surface-raised`, séparée par un filet : c'est une **affirmation d'INFLUX**, pas une
+déclaration du créateur, et cette différence doit se voir.
+
+**Accessibilité.** La carte est un `<li>` contenant un `<article aria-labelledby>` ; **la carte
+entière n'est pas un lien** (deux actions distinctes cohabitent). Les badges sont du texte, pas des
+images. L'ordre du DOM suit l'ordre visuel. Le visuel porte `alt=""` (décoratif : sa légende
+modérée, quand elle existe, est un texte adjacent). Contrastes : `color-text-brand-strong` sur
+`color-brand-subtle-bg` pour le badge = **12,0:1** (calcul en §8.3) ; le couple le plus bas de la
+carte est `color-text-tertiary` sur `color-surface-card` = **5,2:1**, au-dessus du seuil AA.
+
+**États de la carte :** *chargement* squelette au ratio exact du visuel, aucun décalage · *sans
+visuel approuvé* la carte s'affiche **sans image**, le titre remonte, la grille ne casse pas
+(`07` cas limite 1) · *déjà demandé* bouton inactif + `search.action.requestSent` · *déjà en
+relation* `search.state.alreadyIntroduced` + `search.action.openConversation` · *tarif dans une
+autre devise* mention `search.warning.otherCurrency` et **aucune comparaison de montant** ·
+*chiffres périmés* mention `search.warning.staleFigures`, profil rétrogradé dans le tri mais
+**jamais masqué** (`10` RG39).
+
+### 7.2 L'écran d'acceptation et de révélation d'identité
+
+**Le moment le plus sensible du produit.** Un seul écran, servi aux deux populations, avec trois
+variantes de bandeau selon l'origine (`13` RG66). Il n'y a **pas** d'écran par déclencheur.
+
+```
+Mobile 375 — écran plein, pas une modale : on n'accepte pas dans une fenêtre
+┌───────────────────────────────────────────┐
+│ [◁ Retour]                                │
+├───────────────────────────────────────────┤
+│ ┌───────────────────────────────────────┐ │
+│ │ INFLUX vous propose cette campagne.   │ │  ① bandeau selon l'origine
+│ │                              13 RG66  │ │  (3 variantes)
+│ └───────────────────────────────────────┘ │
+│                                           │
+│ Mise en relation MER-2026-000123     h1   │  ② la référence, en premier
+│ Proposée par Thomas — INFLUX              │  ③ un humain NOMMÉ
+│                                           │
+│ ── LA CAMPAGNE ──────────────────────────  │  ④
+│ Rentrée beauté 2026 · Marque Alpha        │
+│ 2 stories + 1 reel Instagram              │
+│ Période : 1er – 30 avril 2026             │
+│ ┌───────────────────────────────────────┐ │
+│ │ La marque paie au total               │ │  côté créateur seulement :
+│ │ 1 000 – 2 000 EUR                     │ │  net en TRANCHE
+│ │ Commission INFLUX 20 % marque,        │ │  13 RG69 #3
+│ │ 15 % vous                             │ │
+│ │ Vous percevriez ≈ 650 – 1 300 EUR     │ │
+│ └───────────────────────────────────────┘ │
+│ Estimation indicative… (mention fixe)     │
+│                                           │
+│ ── QUI VOUS EST PROPOSÉ ─────────────────  │  ⑤ état de visibilité du
+│ Marque Alpha · Beauté · 11-50 salariés    │  moment : identifiée sans
+│ France · exemple.com                      │  coordonnées côté créateur ;
+│ ✓ Marque vérifiée le 3 mars 2026          │  ANONYME côté marque
+│ Interlocuteur : partenariats et influence │  13 RG71 : aucune coordonnée,
+│ (coordonnées communiquées à l'ouverture)  │  ni à l'écran ni dans l'API
+│                                           │
+│ ── POURQUOI VOUS ────────────────────────  │  ⑥ le motif ÉCRIT
+│ « Votre audience française et vos tests   │
+│ de produits correspondent au brief. »     │
+│ — Thomas, INFLUX                          │
+│                                           │
+│ ┌───────────────────────────────────────┐ │
+│ │ SI VOUS ACCEPTEZ                      │ │  ⑦ trois phrases, 13 RG69 #6
+│ │ • Votre identité et les informations  │ │
+│ │   de votre profil seront montrées à   │ │
+│ │   la marque AU MÊME INSTANT que les   │ │
+│ │   siennes vous seront montrées.       │ │
+│ │ • Une conversation s'ouvre avec       │ │  intro.accept.ifAccepted
+│ │   Thomas, d'INFLUX.                   │ │
+│ │ • Nous vous envoyons à tous les deux  │ │
+│ │   une confirmation par e-mail.        │ │
+│ ├───────────────────────────────────────┤ │
+│ │ SI VOUS REFUSEZ                       │ │  ⑧ intro.accept.ifDeclined
+│ │ Rien n'est communiqué. La marque      │ │
+│ │ n'apprend pas votre motif. Vous       │ │
+│ │ pourrez être sollicité sur une autre  │ │
+│ │ campagne.                             │ │
+│ ├───────────────────────────────────────┤ │
+│ │ SI VOUS NE RÉPONDEZ PAS               │ │  ⑨ intro.accept.ifNoAnswer
+│ │ Nous vous relancerons. Sans réponse   │ │
+│ │ avant le 19 mars, cette mise en       │ │
+│ │ relation sera clôturée et rien ne     │ │
+│ │ sera communiqué.                      │ │
+│ └───────────────────────────────────────┘ │
+│                                           │
+│ ┌───────────────────────────────────────┐ │
+│ │ [i:eye] Cette conversation sera       │ │  supervision ANNONCÉE ICI,
+│ │ suivie par INFLUX : un commercial y   │ │  pas seulement dans le fil
+│ │ participe en permanence, un autre     │ │  12 RG102, RG103
+│ │ agent peut la lire, et chaque lecture │ │
+│ │ est horodatée et attribuée.           │ │
+│ │ [◦ En savoir plus]                    │ │
+│ └───────────────────────────────────────┘ │
+│                                           │
+│ [ ] J'accepte cette mise en relation.     │  ⑩ case NON PRÉ-COCHÉE,
+│     Mon identité et les informations de   │  libellé IMPOSÉ 13 RG70
+│     mon profil seront communiquées à      │
+│     l'autre partie au moment où les       │
+│     siennes me seront communiquées. J'ai  │
+│     pris connaissance des conditions      │
+│     générales d'utilisation (version 3    │
+│     du 2 mars 2026), dont la clause de    │
+│     non-contournement.                    │
+│     [◦ Lire les CGU]  [◦ Résumé de la     │  ⑪ résumé en langage
+│      clause en langage courant]           │  courant — 13 RG69 #10
+│                                           │
+│ [■ Accepter]     ← inactif tant que la    │  ⑫ refus AUSSI VISIBLE
+│ [□ Refuser]         case n'est pas cochée │  que l'acceptation
+└───────────────────────────────────────────┘
+
+Desktop : une seule colonne container-narrow, même ordre. PAS de colonne de droite :
+un écran d'engagement se lit de haut en bas, et le bouton d'acceptation ne doit jamais
+être atteignable avant d'avoir croisé les blocs ⑦ ⑧ ⑨ ⑩.
+```
+
+**Les onze points obligatoires de `13` RG69 sont tous présents, dans l'ordre exact de la règle.**
+La numérotation du schéma le rend vérifiable en revue.
+
+| Décision de conception | Justification |
+|---|---|
+| **Écran plein, jamais une modale** | Une modale se ferme par inadvertance et se lit mal sur mobile. C'est un acte, pas une confirmation |
+| **Le refus est un bouton, pas un lien discret** | `13` RG69 #11 : « un refus difficile à trouver est un consentement extorqué » |
+| **Le bouton d'acceptation est inactif tant que la case n'est pas cochée**, et le contrôle est **refait côté serveur** | `13` RG70. L'état inactif est **expliqué à côté du bouton** : « Cochez la case ci-dessus pour accepter » |
+| **La supervision est annoncée sur cet écran**, pas seulement dans le fil | `12` RG102 : cinq endroits, dont l'écran d'information. L'annoncer après acceptation serait une supervision découverte |
+| **Aucune coordonnée**, ni à l'écran ni dans la réponse d'API | `13` RG71. C'est un point de test, pas une intention |
+| Le **motif écrit** est cité tel quel, attribué à son auteur | `13` RG69 #5 : c'est ce qui distingue un rapprochement d'un envoi de masse |
+| Le net créateur en tranche n'apparaît **que côté créateur** | `13` RG69 #3, `09` RG61 |
+| Ré-acceptation si la version de CGU a changé | `13` RG68 : l'initiateur revoit le même écran, avant toute révélation |
+
+**Les quatre états de cet écran, et le cinquième qui n'existe pas**
+
+| État | Écran |
+|---|---|
+| **Invitation en attente** | L'écran ci-dessus. Compte à rebours en texte : « Réponse attendue avant le 19 mars » |
+| **J'ai accepté, l'autre pas encore** | L'écran est remplacé par `intro.status.waitingOther` : « Vous avez accepté le {date}. Nous attendons la réponse de l'autre partie. » **Il n'indique jamais** qui est l'autre partie, si elle a ouvert l'invitation, ni si elle hésite (`13` RG73) |
+| **Révélation** (la seconde acceptation) | Transition immédiate vers un écran de succès : référence, identités désormais visibles des deux côtés, `[■ Ouvrir la conversation]`, et la mention que **deux e-mails de confirmation ont été envoyés** (`13` RG74, RG78). Le focus est porté sur le titre de l'écran de succès |
+| **Refus** | Écran de confirmation sobre : « C'est noté. L'autre partie n'apprendra pas votre motif. » Motif choisi dans une liste fermée, dont `intro.decline.preExisting` (`13` RG88) |
+| ~~Annulation après acceptation~~ | **N'existe pas.** La révélation est irréversible (`13` RG75). Aucun écran ne propose de « dé-révéler » : la seule sortie est la clôture de la conversation, avec un motif |
+
+**Autres états :** *chargement* squelette **sans** la case à cocher (elle n'apparaît qu'avec le
+texte de CGU réellement chargé — on ne coche pas une case dont le texte n'est pas là) · *erreur à
+l'acceptation* message dans l'écran, case conservée cochée, `[■ Réessayer]` ; **en aucun cas un
+état partiel**, la révélation est tout ou rien (`13` RG74) · *invitation expirée* « Cette mise en
+relation a été clôturée le {date}. Rien n'a été communiqué. » · *accès refusé* 404 neutre ·
+*e-mail de confirmation non parti* **rien n'est affiché au membre** : c'est une alerte backoffice
+(`13` RG80), pas une inquiétude à transférer à l'utilisateur.
+
+**Accessibilité.** Un seul `h1` ; les blocs ⑦ ⑧ ⑨ sont une `<dl>` ou trois `<section>` titrées en
+`h2`, jamais un paragraphe unique ; la case à cocher a une zone cliquable couvrant tout son libellé
+(long : plus de 300 caractères) et son état est annoncé ; le bouton inactif porte
+`aria-disabled="true"` **et** un texte d'explication relié par `aria-describedby` — jamais un
+`disabled` muet ; la mention de supervision est dans le flux de lecture, pas dans une infobulle.
+
+### 7.3 La règle d'affichage des montants, applicable partout
+
+| Destinataire | Ce qui s'affiche | Ce qui ne s'affiche jamais |
+|---|---|---|
+| **Marque** | Le **coût total** qu'elle paie, avec sa devise, et la mention indicative applicable | Le net créateur, sous aucune forme, en aucun écran, dans aucune réponse (`06` RG32, `09` RG61, `11` RG59) |
+| **Créateur** | **Trois notions dans un seul bloc, dans cet ordre** : ce que la marque paie au total → commission INFLUX (20 % marque, 15 % vous) → ce que vous percevez, estimation. Toujours avec la devise | Un net sans son coût total, un pourcentage isolé, un montant sans devise |
+
+**Forme imposée du bloc à trois notions :**
+
+```
+┌─────────────────────────────────────────────┐
+│ CE QUE LA MARQUE PAIE AU TOTAL              │  libellé en text-xs, majuscules
+│ 1 000 – 2 000 EUR                           │  valeur en text-amount-md,
+│ ─────────────────────────────────────────── │  tabular-nums, filet séparateur
+│ COMMISSION INFLUX                           │  data-advertiser-share /
+│ 20 % à la charge de la marque,              │  data-creator-share : pastilles
+│ 15 % à votre charge                         │  de rappel, jamais seules
+│ ─────────────────────────────────────────── │  porteuses de l'information
+│ CE QUE VOUS PERCEVEZ, ESTIMATION            │
+│ ≈ 650 – 1 300 EUR                           │  data-net-creator
+└─────────────────────────────────────────────┘
+Mention fixe, immédiatement dessous, jamais repliée.
+```
+
+- **Format localisé** : `1 000,00 €` / `€1,000.00`, `35 %` / `35%`, via next-intl. Jamais de
+  concaténation, jamais de symbole codé en dur (`CLAUDE.md` §5.2 point 8).
+- **Insécable** : montant et devise ne se séparent jamais en fin de ligne.
+- **Le mot « environ »** accompagne tout net issu d'une tranche (`09` RG60, `11` RG57).
+- **Jamais « HT » ni « TTC »** tant que D7 est ouverte (`07` RG71, `09` RG67).
+- **Aucun taux n'est écrit en dur dans un composant** : « 35 % », « 20 % », « 15 % » sont des
+  valeurs de **clés de traduction**, au même titre que le reste de la phrase (§10, E4).
+
+---
+
+## 8. Tokens
+
+### 8.1 Tokens existants utilisés, par famille
+
+| Famille | Tokens employés dans ce document |
+|---|---|
+| Surfaces | `color-surface-page`, `-muted`, `-card`, `-raised`, `-hover`, `-brand-subtle` |
+| Texte | `color-text-primary`, `-secondary`, `-tertiary`, `-brand`, `-brand-strong`, `-on-action`, `-disabled` |
+| Actions | `color-action-primary-bg` (+ `-hover`, `-active`), `color-action-secondary-bg` (+ `-hover`, `-active`), `color-action-secondary-border`, `color-action-disabled-bg` |
+| Bordures | `color-border-subtle`, `-default`, `-strong`, `-selected`, `-error` |
+| Sémantique | `color-feedback-success-*`, `-warning-*`, `-error-*`, `-info-*` (les quatre familles complètes : texte, fond, bordure, icône) |
+| Données financières | `color-data-advertiser-share`, `color-data-creator-share`, `color-data-net-creator` — **créés pour la landing (`02` §2.9), réemployés ici pour le bloc à trois notions**, exactement dans le rôle prévu |
+| Marque | `color-brand-primary`, `-accent`, `-subtle-bg`, `-subtle-border` |
+| Focus | `color-focus-ring`, `focus-ring-width`, `focus-ring-offset` |
+| Typographie | `text-xs`, `-sm`, `-md`, `-lead`, `-heading-3`, `-heading-2`, `text-amount-lg`, poids `regular` → `bold`, `leading-*`, `tracking-*`, `font-variant-numeric-amount` |
+| Espacement | `spacing-1` à `spacing-9`, `spacing-stack-sm/md/lg`, `spacing-inset-card`, `spacing-inset-button-x/y`, `spacing-grid-gap`, `spacing-page-gutter` |
+| Formes | `radius-sm`, `-md`, `-lg`, `-pill`, `shadow-sm`, `-md`, `-lg` |
+| Tailles | `size-touch-target`, `size-button-md/lg`, `size-input`, `size-checkbox`, `size-icon-sm/md/lg` |
+| Structure | `header-height`, `sticky-top-offset`, `container-max`, `container-narrow`, `measure-text`, `z-base/raised/header/overlay`, `breakpoint-sm` → `2xl` |
+| Mouvement | `duration-fast/base/slow`, `ease-standard`, `ease-exit` |
+
+**Non employés, volontairement :** `background-image-metal-card`, `background-image-phone-metal`,
+`--rotate-hero-*`, `--blur-hero-halo`, `color-mockup-banner-*`, `color-decorative-progress`. Ces
+tokens appartiennent au registre **éditorial** de la landing. Un espace de travail consulté tous
+les jours n'a pas besoin d'effets premium sur chaque carte : ils ralentissent la lecture et
+alourdissent le rendu d'une grille de 12 cartes. `background-image-halo-ambient` peut servir
+**une fois** par espace, en fond d'en-tête d'accueil, jamais dans une liste.
+
+**Tokens `*-inverse` :** aucun usage. Conformément à la décision du fondateur du 2026-09-17, aucune
+section claire pleine largeur n'existe dans les espaces membres.
+
+### 8.2 Tokens proposés
+
+**Aucune nouvelle valeur de couleur n'est proposée.** Les onze tokens de couleur ci-dessous sont
+des **alias** : ils nomment un rôle d'espace membre sur une valeur déjà arbitrée en D6, pour qu'un
+composant ne référence jamais une couleur « par apparence ». Trois tokens de taille et un token de
+typographie portent, eux, de nouvelles valeurs, sans effet sur les contrastes.
+
+| Token proposé | Valeur | Rôle | Quand ne pas l'utiliser |
+|---|---|---|---|
+| `color-nav-item-active-bg` | = `color-surface-hover` | Fond de l'item de navigation actif | Survol simple (utiliser `color-surface-hover` directement) |
+| `color-nav-item-active-indicator` | = `color-brand-primary` | Trait de 2 px de l'item actif | Seul porteur de l'état : toujours avec `aria-current` et la graisse |
+| `color-progress-track` | = `color-surface-raised` | Rail de la barre de complétude | Barre de chargement indéterminée |
+| `color-progress-fill` | = `color-brand-primary` | Remplissage de la complétude | Indicateur de succès ou d'erreur |
+| `color-skeleton-base` | = `color-surface-raised` | Bloc de chargement | État vide (un squelette permanent est un défaut) |
+| `color-skeleton-sheen` | = `color-surface-hover` | Balayage du squelette | Sans `prefers-reduced-motion`, le balayage est supprimé |
+| `color-message-self-bg` | = `color-surface-raised` | Bulle « moi » | Message système |
+| `color-message-other-bg` | = `color-surface-card` | Bulle de l'autre partie | Message d'agent |
+| `color-message-agent-bg` | = `color-brand-subtle-bg` | Bulle du commercial INFLUX | Seul porteur du rôle : toujours avec la pastille « INFLUX » |
+| `color-message-agent-border` | = `color-brand-subtle-border` | Bordure de la bulle d'agent | — |
+| `color-detection-highlight-bg` | = `color-feedback-warning-bg` | Surlignage d'un passage détecté **dans son propre brouillon** | Un message déjà envoyé : rien n'est jamais surligné après coup |
+| `text-amount-md` | **`1.125rem`** (nouvelle valeur) | Montant dans une carte ou un bloc de tranche | Montant de titre (`text-amount-lg`) ou montant en ligne de tableau (`text-sm`) |
+| `size-nav-bottom-height` | **`3.5rem`** (nouvelle valeur) | Hauteur de la barre de navigation mobile | — |
+| `size-logo-brand-sm` / `-md` | **`2.5rem` / `4rem`** (nouvelles valeurs) | Logo de marque en ligne de liste / en en-tête de campagne | Visuel de portfolio (ratio 4:5) |
+| `z-nav-bottom` | **`90`** (nouvelle valeur, `:root`) | Barre de navigation mobile, **sous** `z-header` (100) | — |
+
+**Justification de `text-amount-md`.** Le seul token de montant existant, `text-amount-lg`, est un
+`clamp(1.75rem … 2.5rem)` conçu pour un chiffre clé de landing. Dans une carte de campagne ou dans
+le bloc à trois notions, il écrase tout le reste et casse la grille à 375 px. `text-heading-3`
+serait le repli naturel, mais il porte `tracking-heading` et une hauteur de ligne de titre, ce qui
+désaligne les chiffres tabulaires. Une valeur fixe, non fluide, est ici volontaire : un montant ne
+doit pas changer de taille entre deux points de rupture, sous peine de sembler changer de valeur.
+
+**Justification de `size-nav-bottom-height`.** `size-touch-target` (2,75 rem) est la cible
+minimale ; une barre à cette hauteur exacte ne laisse pas la place au libellé sous l'icône. 3,5 rem
+donne une cible pleine hauteur **et** un libellé lisible, sans empiéter sur le contenu (qui reçoit
+un `padding-bottom` égal à cette valeur plus `spacing-5`).
+
+### 8.3 Contrastes calculés (WCAG 2.1, valeurs de `tokens.css`)
+
+| Premier plan | Fond | Ratio | Seuil | Verdict |
+|---|---|---|---|---|
+| `color-text-primary` #f5f5f7 | `color-surface-page` #0a0a0a | **18,2:1** | 4,5 | ✅ |
+| `color-text-secondary` #a1a1aa | `color-surface-page` | **7,7:1** | 4,5 | ✅ |
+| `color-text-secondary` | `color-surface-card` #131315 | **7,3:1** | 4,5 | ✅ |
+| `color-text-tertiary` #86868f | `color-surface-page` | **5,5:1** | 4,5 | ✅ (dates, sources) |
+| `color-text-tertiary` | `color-surface-card` | **5,2:1** | 4,5 | ✅ — **couple le plus bas du document** |
+| `color-text-brand` #29e075 | `color-surface-page` | **12,7:1** | 4,5 | ✅ |
+| `color-text-brand` | `color-surface-card` | **12,1:1** | 4,5 | ✅ |
+| `color-text-brand-strong` #6ff2a8 | `color-brand-subtle-bg` #0f2118 | **12,0:1** | 4,5 | ✅ (badge « vérifié ») |
+| `color-feedback-warning-text` #fbbf24 | `color-surface-card` | **11,3:1** | 4,5 | ✅ (« à rafraîchir ») |
+| `color-feedback-error-text` #f87171 | `color-surface-page` | **7,2:1** | 4,5 | ✅ |
+| `color-feedback-error-text` | `color-surface-card` | **6,8:1** | 4,5 | ✅ |
+| `color-feedback-info-text` #60a5fa | `color-surface-page` | **7,8:1** | 4,5 | ✅ |
+| `color-feedback-success-text` #2dd4bf | `color-surface-page` | **10,6:1** | 4,5 | ✅ |
+| `color-text-on-action` #0a0a0a | `color-action-primary-bg` #29e075 | **12,7:1** | 4,5 | ✅ |
+| `color-brand-primary` #22c55e (trait de 2 px) | `color-surface-page` | **8,7:1** | 3,0 | ✅ |
+| `color-surface-raised` #1a1a1d | `color-surface-page` | **1,14:1** | 3,0 | ⚠️ **Insuffisant seul** |
+
+> **Conséquence de la dernière ligne, applicable partout.** Sur ce fond quasi noir, une élévation
+> par la seule surface ne se voit pas. Toute carte, toute bulle et tout panneau porte donc
+> **obligatoirement** une bordure `color-border-default` ou `-subtle`, ou l'un des `shadow-*` (qui
+> embarquent un filet blanc à faible opacité). Un composant qui distingue deux niveaux par la seule
+> couleur de surface est refusé en revue.
+
+**Le vert n'est jamais seul.** Récapitulatif des états portés par le vert dans ce document, et de
+leur second porteur : item de navigation actif → `aria-current` + graisse ; badge vérifié → icône
+`[i:badge-check]` + texte + date ; bulle d'agent → pastille « INFLUX » + nom + bordure ; net
+créateur → libellé « ce que vous percevez, estimation » ; complétude → pourcentage écrit + liste
+nominative ; profil publié → le mot « Publié » + sa date.
+
+---
+
+## 9. Écarts et manques constatés
+
+### 9.1 Dans les spécifications fonctionnelles
+
+Ces points sont apparus **en dessinant les écrans**. Ils ne sont pas tranchés ici : ils remontent à
+`product-owner`.
+
+| # | Constat | Document | Proposition |
+|---|---|---|---|
+| **S1** | **`09` RG102 donne à la marque une prévisualisation « ce que voit un créateur ». L'équivalent n'existe pas côté créateur.** Or c'est le créateur qui prend le risque d'anonymat : il devrait pouvoir voir sa **carte anonyme réelle**, telle que servie à une marque | `07`, `10` | Ajouter une règle symétrique à `07` : prévisualisation de la carte anonyme, servie par la **même** interface que la recherche, jamais reconstituée. Écran prévu au §5.8 |
+| **S2** | **Le créateur ne sait pas ce que le commercial voit de lui.** `11` RG48 prévoit un rappel « ce que le commercial verra » sur le formulaire de candidature, mais aucune règle ne décrit la **vue commerciale identifiée** (`10` §H) du point de vue du créateur informé | `07`, `10` | Trancher : soit une mention permanente dans le profil (« l'équipe INFLUX voit votre profil en identité complète »), soit une clause de la politique de confidentialité. En l'état, le §5.2 affiche l'étiquette de couche N, qui le dit déjà — mais l'information de la personne mérite mieux qu'une étiquette de champ |
+| **S3** | **`11` RG67 suppose un attribut « corrigible » sur les motifs de refus**, qui n'existe ni dans `11` RG92 ni dans les listes fermées de `06` RG66 et `09` RG90. Sans lui, l'écran « Candidater à nouveau » ne peut pas décider s'il affiche le bouton | `11` | Ajouter la colonne « corrigible (oui/non) » aux trois listes fermées de motifs. C'est un attribut de donnée, pas une règle d'écran |
+| **S4** | **Aucune règle ne dit ce qu'un membre voit quand une conversation est archivée** (`12` RG23, RG111). « Lisible » suffit-il ? Apparaît-elle encore dans la liste ? Sous quel libellé ? | `12` | Proposition d'écran : onglet « Terminées », libellé « Archivée le {date} — lecture seule ». À confirmer |
+| **S5** | **Le compteur de candidatures actives (`11` RG63) et le plafond P2 (5 par jour glissant) ne sont pas affichés au même endroit.** Un créateur bloqué par P2 alors que son compteur P1 indique « 3 sur 10 » lira une contradiction | `11` | Afficher les deux plafonds dans le même bloc, ou ne nommer que celui qui bloque, avec sa date de libération |
+| **S6** | **`13` RG69 #8 annonce une clôture « au bout de 7 jours »**, et `11` RG78 fixe 7 jours **calendaires** pour une candidature validée non acceptée. L'écran d'acceptation affiche une **date** ; il faut donc que la date soit calculée et servie par l'API, pas recalculée par le front | `13` | Exposer `expires_at` dans la charge utile de l'invitation. Point d'implémentation, à confirmer par `product-owner` et `architecte` |
+| **S7** | **Le libellé « MARQUE » / « CRÉATEUR » du rappel de porte (écran 1) n'a pas de clé définie** dans `05` RG112, alors que tous les autres messages du parcours y figurent | `05` | Ajouter `auth.step1.roleRecap.advertiser` et `.creator` à la table de RG112 (proposées au §3.1) |
+
+### 9.2 Dans l'implémentation en cours (lecture seule, aucune modification)
+
+Composants lus le 2026-09-19 : `apps/web/src/components/creator/RateCardEditor.tsx`,
+`creator/creator-profile-labels.ts`, `packages/contracts/src/creator-profile.ts`. **Les
+spécifications `06`, `07` et `08` font foi** ; ces écarts sont signalés à `dev-react-node` et à
+`architecte`, sans préjuger d'un arbitrage.
+
+| # | Écart constaté | Règle en cause | Effet |
+|---|---|---|---|
+| **E1** | **Le tarif se choisit dans une liste de tranches** (`<select>` de `PRICE_BAND_OPTIONS`), et la valeur exacte (`exactAmountMinor`) est posée en dur à la création d'une ligne, sans champ de saisie | `07` RG22 et RG66 : le tarif est **saisi en valeur exacte** (couche N) et **le système en dérive la tranche** | Deux conséquences : la couche N est vide de sens, et la tranche déclarée n'est plus adossée à un montant réel — donc la comparaison avec un budget de campagne devient déclarative. Le §5.4 dessine la saisie exacte attendue |
+| **E2** | **Les étiquettes de couche exposent le vocabulaire interne** : « Couche A · Public Anonyme », « Couche I · Révélé sur accord », « Couche N · Interne INFLUX » | `07` RG112 : libellés imposés — « Visible de toutes les marques inscrites », « Visible uniquement après l'ouverture d'une mise en relation », « Visible uniquement par vous et l'équipe INFLUX » | Un créateur ne sait pas ce qu'est une « couche A ». Les codes A/I/N sont un outil de spécification. Libellés du §5.2 |
+| **E3** | **Les listes fermées sont codées en dur dans le composant, en français uniquement** (formats, réseaux, tranches de prix, droits d'usage, disponibilité), et les tranches sont libellées **en euros en dur** (« Moins de 250 € ») alors que la devise est un champ | D28, `06` RG26, `07` RG66 (« une tranche sans devise n'existe pas »), `04` R8 (libellés depuis les fichiers de traduction) | L'écran est monolingue et mono-devise. C'est le point le plus coûteux à rattraper plus tard |
+| **E4** | **Le taux figure en dur dans le code applicatif** : `STANDARD_COMMISSION_DISPLAY = "35 % (Barème standard)"` | `CLAUDE.md` §3, régime transitoire : « aucun taux et aucun calcul de commission dans le code » ; `07` RG69 fixe le libellé exact | Même à titre d'affichage, un taux littéral dans un composant est ce que le contrôle T16 cherche à interdire. La phrase doit venir d'une clé (`creatorProfile.rate.net`) |
+| **E5** | **Le montant net est formaté à la main** : `Math.round(min/100)` puis `« … € »` concaténé | `CLAUDE.md` §5.2 point 8, D28 | Arrondi à l'euro, séparateurs et position du symbole non localisés ; en anglais, le rendu est faux |
+| **E6** | **Le net est peint avec les tokens `feedback-success-*`** (texte teal + icône de tendance) | `design-system-influx` : marque et succès sont deux tokens distincts ; `02` §2.9 a créé `color-data-net-creator` pour ce rôle exact | Un montant n'est pas un succès. Une flèche montante suggère en outre une performance qu'INFLUX ne mesure pas (`08` RG2) |
+| **E7** | *Point positif, à conserver* : `getEstimatedNetForPriceBand` **lit** les bornes nettes dans le référentiel (`ref.netMinAmountMinor`) et ne multiplie rien | `07` RG72 | Conforme. C'est la partie la plus risquée du sujet, et elle est juste |
+
+---
+
+## 10. Ce qui reste à valider
+
+### 10.1 Par le fondateur
+
+| # | Point | Pourquoi il ne peut pas être tranché ici |
+|---|---|---|
+| F1 | **Les 15 tokens proposés au §8.2**, dont 4 portent une nouvelle valeur non chromatique (`text-amount-md`, `size-nav-bottom-height`, `size-logo-brand-sm/-md`, `z-nav-bottom`) | Toute extension du design system passe par le fondateur pour ce qui touche la marque, par `expert-ux` pour le reste (D6, skill `design-system-influx`) |
+| F2 | **L'absence de photo de profil créateur assumée jusque dans l'espace membre** : un créateur trouvera l'espace « froid ». La compensation retenue est le portfolio et le titre court | C'est un arbitrage produit visible, pas un détail visuel |
+| F3 | **La navigation à 5 items et le choix de ne pas donner d'onglet au profil** | Décision structurante sur ce que le produit rend prioritaire |
+| F4 | **Le vocabulaire des deux espaces** : « campagne / brief / livrables » côté marque, « offre / contenu / ce que je perçois » côté créateur. La copie finale relève de `expert-marketing`, l'intention relève du fondateur | §1.1 |
+| F5 | **Les libellés de badge de `08` RG10 restent provisoires (D34)** et sont repris tels quels au §5.3 | D34 n'est pas tranchée ; aucun badge ne doit s'afficher avant |
+
+### 10.2 Par `expert-conformite-rgpd` (veto)
+
+| # | Point | Renvoi |
+|---|---|---|
+| C1 | **La mention d'information de l'écran 1** (finalités, Brevo et Apollo.io nommés, droits, lien) : formulation, longueur, et le fait qu'elle soit **dépliée** et non repliée | `05` RG6 ; §3.1 |
+| C2 | **Une case de consentement ou deux** (Q10 de `05`). Le §3.4 en dessine une ; la variante à deux cases est décrite et ne change que ce bloc | `05` RG33 |
+| C3 | **Le texte de l'écran d'acceptation** : les blocs ⑦ ⑧ ⑨ ⑩ ⑪, et en particulier le **résumé en langage courant de la clause de non-contournement**, qui n'existe pas encore | `13` RG69 #10, RG70 ; §7.2 |
+| C4 | **L'annonce de la supervision sur l'écran d'acceptation**, en plus des cinq endroits de `12` RG102 — c'est un sixième endroit, proposé ici parce qu'accepter une mise en relation, c'est accepter d'entrer dans une conversation supervisée | `12` RG102, RG107 ; §7.2 |
+| C5 | **Les deux listes de l'écran de suppression** (« ce qui disparaît » / « ce qui est conservé »), leur formulation et les durées à afficher | `05` RG70, `12` RG109 ; §6.3 |
+| C6 | **Le libellé de l'attestation de majorité**, qui renvoie au droit du pays déclaré et non à un âge | `05` RG19 ; §3.4 |
+| C7 | **La mention « INFLUX ne se prononce pas sur l'authenticité des abonnés »** affichée au même endroit que le badge, sur mobile comme sur desktop — elle ne doit jamais glisser dans une page d'aide | `08` RG10, Q3 ; §5.3 |
+| C8 | **L'écran d'information avant le premier message** : le fait qu'il n'ait **pas** de case à cocher (ce n'est pas un consentement, `12` RG104) et que sa prise de connaissance soit horodatée | `12` RG103 ; §4.7 |
+
+### 10.3 Par `product-owner`
+
+| # | Point | Renvoi |
+|---|---|---|
+| P1 | **Les sept écarts S1 à S7 du §9.1** | §9.1 |
+| P2 | **Le découpage de la création de campagne en 5 étapes** (regroupement des 8 blocs de `09`) : c'est une décision d'ergonomie qui touche l'ordre des règles obligatoires | §4.3 |
+| P3 | **Le contenu exact du bloc « à faire » de chaque accueil** : quels faits y remontent, dans quel ordre de priorité | §4.1, §5.1 |
+| P4 | **L'absence de centre de notifications** et le fait que la cloche n'agrège que l'actionnable | §6.5 |
+| P5 | **La formulation des messages d'accueil vide**, qui doivent rester factuels et vérifiables (`06` RG61, `07` RG90) : aucun n'a encore de clé | §2.4 |
+
+### 10.4 Par `architecte` et `dev-react-node`
+
+| # | Point | Renvoi |
+|---|---|---|
+| A1 | **Les sept écarts E1 à E7 du §9.2** | §9.2 |
+| A2 | **`expires_at` servi par l'API** pour l'écran d'acceptation (S6) | §9.1 |
+| A3 | **La prévisualisation créateur (S1) doit appeler la même interface que la recherche marque**, pas une route dédiée : deux chemins divergeraient | §5.8 |
+| A4 | **Le contrôle de la case d'acceptation est refait côté serveur** (`13` RG70) : l'état inactif du bouton est un confort, jamais une protection | §7.2 |
+
+---
+
+## 11. Récapitulatif des écrans spécifiés
+
+| Réf. | Écran | Section | Niveau |
+|---|---|---|---|
+| — | Architecture de l'information, navigation mobile et desktop, routage | §2 | Détaillé |
+| E1 | Adresse e-mail | §3.1 | Détaillé |
+| E2 | Code à 6 chiffres | §3.2 | Détaillé |
+| E2b | « Je ne reçois pas le code » | §3.3 | Détaillé |
+| E3 | Informations complémentaires — variantes marque et créateur | §3.4 | Détaillé |
+| M1 | Accueil marque | §4.1 | Détaillé |
+| M2 | Profil marque (4 blocs, couches, 5 états) | §4.2 | Détaillé |
+| M3 | Création de campagne (8 blocs en 5 étapes) | §4.3 | Détaillé |
+| M4 | Recherche de créateurs anonymisée (+ 3 états spécifiques) | §4.4 | Détaillé |
+| M5 | Demander une mise en relation | §4.5 | Détaillé |
+| M6 | Suivi des demandes et mises en relation (8 états) | §4.6 | Détaillé |
+| M7 | Conversation à trois | §4.7 | Détaillé |
+| M8 | Canal de documents | §4.8 | Détaillé |
+| M9–M14 | Liste des campagnes · fiche de campagne · prévisualisation créateur · sélections · « ce que voit un créateur de mon profil » · demande de sélection à l'équipe | §4.9 | Tableau |
+| C1 | Accueil créateur | §5.1 | Détaillé |
+| C2 | Profil créateur (7 blocs, 3 couches, complétude) | §5.2 | Détaillé |
+| C3 | Réseaux, preuves et badges (+ 2 parcours de vérification) | §5.3 | Détaillé |
+| C4 | Mon offre et mes tarifs — transparence financière | §5.4 | Détaillé |
+| C5 | Fil des campagnes | §5.5 | Détaillé |
+| C6 | Fiche de campagne | §5.6 | Détaillé |
+| C7 | Candidature (+ récapitulatif avant envoi) | §5.6 | Détaillé |
+| C8 | Mes candidatures (8 états) | §5.7 | Détaillé |
+| C9 | Conversation créateur (delta avec M7) | §5.8 | Détaillé |
+| C10–C13 | Invitations reçues · mon profil vu par une marque · preuves déposées · contester un badge | §5.8 | Tableau |
+| T1 | Mes informations (+ changement d'adresse) | §6.1 | Détaillé |
+| T2 | Mes préférences de communication | §6.2 | Détaillé |
+| T3 | Mes données : export, suppression, ce qui survit | §6.3 | Détaillé |
+| T4 | Mes sessions | §6.4 | Détaillé |
+| T5 | Notifications | §6.5 | Règles |
+| T6 | Aide | §6.6 | Règles |
+| T7 | États d'erreur, hors ligne, session expirée, ré-acceptation de CGU | §6.7 | Tableau |
+| **★1** | **La carte créateur anonyme** | §7.1 | **Détail renforcé** |
+| **★2** | **L'écran d'acceptation et de révélation** | §7.2 | **Détail renforcé** |
+| **★3** | **Le bloc à trois notions financières** | §7.3 | **Détail renforcé** |
+
+**Total : 37 écrans ou familles d'écrans**, dont 26 avec wireframe, contenu, états, clés, tokens et
+accessibilité.
+
+
+
+
+
 
 
 

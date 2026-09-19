@@ -253,30 +253,30 @@ Ce qui reste vrai de l'ancien texte : le critère de choix — *la solution la p
 garantisse persistance, ordre par lead, réessai et rejeu manuel, sans infrastructure difficile à
 exploiter sur Railway* — et il continue de s'appliquer à toute évolution.
 
-### Question ouverte pour `architecte` — le mécanisme du chemin `P0`
+### Le chemin `P0` — **D43, tranchée le 2026-09-19 par `architecte`**
 
-> **Je ne tranche pas ce point : il relève de l'architecture, pas de l'intégration.** Ce qui suit
-> énonce la contrainte, les options et ma recommandation, pour que la décision soit rapide.
+> **La question ouverte laissée ici le 2026-09-19 est close le jour même.** Exposé complet —
+> options écartées, grille, énumération de comptes, famine, contrat d'implémentation :
+> `docs/mvp/02-architecture-3-espaces.md` **§18 (D43)**, qui fait foi.
 
-**La contrainte, elle, n'est pas négociable** : `05` RG59 et `16` RG86 interdisent que le code de
-connexion entre dans une file partagée avec les synchronisations de contacts. **D18 n'est pas
-remise en cause** — `P1` et `P2` restent dans `outbox_events`, comme prévu. **Seul le `P0` en
-sort.** Deux points restent à décider :
+**D18 n'est pas remise en cause** : `P1` et `P2` restent dans `outbox_events`. **Seul le `P0` en
+sort.**
 
-| # | Point à trancher | Options | Ma recommandation |
-|---|---|---|---|
-| **a** | **Par où passe un `P0` ?** | **(i)** appel **synchrone** depuis `apps/api`, dans la requête, sans file ; **(ii)** file séparée dédiée, consommée par un worker distinct ; **(iii)** même table `outbox_events` avec une priorité plus haute et un worker réservé | **(i)**. C'est le seul qui garantisse le délai **par construction** plutôt que par réglage, et il n'a rien à préserver en cas d'échec : la personne attend devant son écran, voit la cause et redemande (`05` RG60, RG64). (iii) rouvrirait exactement le risque que RG59 ferme |
-| **b** | **`leads.transactional_sends` est-il un journal, ou aussi une file ?** | **(i)** journal d'envoi seul, la file restant `outbox_events` pour les `P1`/`P2` ; **(ii)** table à double rôle, journal **et** file | **(i)**. Un journal qui devient une file finit par avoir deux vérités sur l'état d'une ligne. La table est aujourd'hui un **écart signalé de `16` §Impacts** (point 4) : elle n'existe pas encore dans `04` |
+| # | Décision |
+|---|---|
+| **a** | **(i) — appel synchrone dans la requête**, depuis `apps/api`, sans file. Le délai est garanti par construction, et un `P0` n'a **rien à découpler** : son échec ne laisse derrière lui aucune action métier à préserver (`16` RG87). Cinq garde-fous en font partie : délais d'attente bornés (GoTrue 2 s, Brevo 3 s, budget total 5 s), **une seule tentative, aucun réessai**, **plancher de réponse constant de 1 000 ms sur toutes les issues**, **aucun appel externe pendant qu'une transaction est ouverte**, grappe de connexions élevée plafonnée. (ii) fait du délai un réglage et rend l'échec invisible ; (iii) rouvre exactement le risque que `05` RG59 ferme |
+| **b** | **(i) — journal seul.** `leads.transactional_sends` n'est **jamais** une file : aucun `FOR UPDATE`, aucun index de prise, aucun consommateur, aucun rejeu. Pour un `P0`, `status = 'queued'` signifie « tentative engagée, issue inconnue », **pas** « travail à prendre » — c'est un indicateur d'exploitation |
 
-**Conséquences à peser, à l'attention d'`architecte` :** l'option (a-i) met un appel externe **dans
-le chemin de la requête utilisateur**, ce qui impose un **délai d'attente court et explicite**, et
-un comportement d'échec soigné — c'est précisément ce que `05` §G spécifie déjà. Elle suppose aussi
-que le fournisseur tienne son débit sur la catégorie transactionnelle, ce que les limites vérifiées
-au `16` §M2 rendent confortable.
+**Deux conséquences qui débordent l'intégration**, et qu'il faut connaître avant d'écrire le
+connecteur : **c'est `apps/api` qui envoie l'e-mail, pas Supabase Auth** (le code est obtenu de
+GoTrue sans qu'aucun e-mail parte, puis envoyé par nous — sans quoi ni `messageId`, ni phrase de
+correspondance, ni cause d'échec affichable) ; et **la non-énumération se tient en supprimant la
+branche, pas en la masquant** : même suite d'appels pour une adresse connue et inconnue, plus le
+plancher constant.
 
-**Décision attendue avant** : l'implémentation du Lot 1 (le code de connexion arrive avec
-l'inscription). **Arbitre : `architecte`**, avec `expert-database` pour la forme de
-`leads.transactional_sends` et l'avis d'`expert-cybersecurite` sur le délai d'attente en requête.
+**Reste ouvert, et ce n'est pas un sujet d'intégration :** l'**expéditeur de secours** pour le seul
+`P0` (`16` **Q8**, arbitre : **fondateur**). Au MVP, il n'y en a pas — une panne durable de Brevo
+empêche toute connexion de membre. Limite assumée et écrite.
 
 ## Checklist
 
@@ -296,4 +296,5 @@ l'inscription). **Arbitre : `architecte`**, avec `expert-database` pour la forme
       aucun envoi (T5)
 - [ ] **Aucune famine des révocations** : objectif de 5 minutes tenu malgré les `P0` (T8)
 - [ ] **Aucun appel externe effectué en tenant un verrou de transaction** (T9, **D18**)
-- [ ] **Question ouverte du chemin `P0` tranchée par `architecte`** avant l'implémentation du Lot 1
+- [ ] **Chemin `P0` conforme à D43** : envoi synchrone dans la requête, aucune file, journal seul
+      (`02` §18)

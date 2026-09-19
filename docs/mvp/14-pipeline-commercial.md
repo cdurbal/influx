@@ -404,9 +404,19 @@ la signature et les encaissements ; elle est autorisée pour une facture (factur
 **RG36** — **Tous les horodatages sont datés avec leur fuseau.** Une date de signature sans fuseau
 n'est pas une preuve, c'est une approximation.
 
-**RG37** — **Le net créateur indicatif est une soustraction affichée, jamais une colonne stockée.**
-`montant du contrat − commission convenue`. Il est étiqueté *« net créateur indicatif »*, jamais
-« net créateur » tout court : au MVP, INFLUX ne verse rien et ne garantit rien de ce montant.
+**RG37** — **Aucun net créateur n'est affiché ni stocké dans le pipeline commercial.**
+L'application enregistre et additionne des montants saisis ; elle n'en tire aucun « net ».
+
+> **Règle réécrite le 2026-09-19 (arbitrage `chef-de-projet`).** La première rédaction affichait un
+> « net créateur indicatif » obtenu par soustraction (`montant du contrat − commission convenue`).
+> Elle contredisait `15` RG4 (« aucun écran de ce document n'affiche un net créateur ») et la doctrine
+> du MVP (l'application ne calcule rien). Raisons de trancher pour l'absence d'affichage : (1) au
+> MVP INFLUX ne verse rien et ne garantit rien à un créateur, un « net » affiché se lirait comme une
+> promesse ; (2) la commission convenue est un montant **saisi**, pas nécessairement le barème de 35 %
+> (dérogations, cas de l'exemple 2 700 / 700 ci-dessous), donc la différence n'a pas de signification
+> stable ; (3) **le seul net affiché dans le produit est l'estimation faite au créateur sur son propre
+> profil, lue dans le référentiel des tranches** (`07` RG69-72), jamais dans une affaire. Le commercial,
+> qui négocie, connaît le montant que touche le créateur : il n'a pas besoin que l'outil le déduise.
 
 **RG38** — **Un récapitulatif de confirmation précède tout enregistrement de montants**, en toutes
 lettres, avec la devise sur chaque ligne :
@@ -414,7 +424,6 @@ lettres, avec la devise sur chaque ligne :
 > Vous enregistrez :
 > **Montant du contrat** 2 700,00 EUR (coût total pour l'annonceur, commission comprise)
 > **Commission convenue** 700,00 EUR — part annonceur 400,00 EUR, part créateur 300,00 EUR
-> **Net créateur indicatif** 2 000,00 EUR
 > **Base fiscale** : hors taxes · **Devise** : EUR
 
 **RG39** — **La saisie est réservée au commercial responsable et à l'administrateur.** Un autre agent
@@ -574,7 +583,7 @@ date du dernier mouvement.
 
 **RG66** — **Chaque montant affiché porte sa devise et son étiquette.** Jamais un nombre nu. Les
 étiquettes autorisées sont : *montant du contrat*, *commission convenue*, *commission encaissée*,
-*reste dû*, *net créateur indicatif*, *abandon de créance*. Aucune autre.
+*reste dû*, *abandon de créance*. Aucune autre (en particulier **aucun** « net créateur », RG37).
 
 **RG67** — **Tout total est un total par devise**, présenté comme tel :
 « 4 200,00 EUR · 1 500,00 USD », jamais « 5 700,00 ». Il n'existe aucun total général, aucune
@@ -1026,8 +1035,8 @@ la signature.
 *alors* le changement est refusé par déclencheur.
 
 **CA27** — *Étant donné* des montants saisis, *quand* le commercial valide, *alors* un récapitulatif
-affiche montant du contrat, commission convenue, parts saisies, net créateur indicatif et base
-fiscale, chacun avec sa devise, avant tout enregistrement.
+affiche montant du contrat, commission convenue, parts saisies et base fiscale, chacun avec sa
+devise, **sans aucun net créateur** (RG37), avant tout enregistrement.
 
 **CA28** — *Étant donné* un agent qui n'est pas responsable de l'affaire, *quand* il tente une
 écriture, *alors* elle est refusée par la politique d'accès et la tentative est journalisée.

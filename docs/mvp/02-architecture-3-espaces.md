@@ -1662,3 +1662,107 @@ retourne un jour contre une obligation légale (test **T8** : une révocation pr
 
 **T8 reste exigé malgré tout.** Un raisonnement qui conclut « la famine est impossible » se teste,
 précisément parce qu'il conclut cela.
+
+### 18.10 Contrat d'implémentation — `POST /v1/auth/request-code`
+
+> **Destiné à qui implémente le Lot 1.** L'ordre des opérations n'est pas une suggestion : chaque
+> inversion casse une règle nommée. À lire avec `05` §F et §G, qui restent la spécification.
+
+| # | Étape | Détail |
+|---|---|---|
+| **1** | Démarrer le chronomètre du **plancher** (G3) | Dès la réception, avant toute validation |
+| **2** | Valider (zod, `packages/contracts`) et **normaliser** l'adresse | Minuscules et espaces retirés. Aucune autre normalisation : retirer les points ou le sous-adressage fusionnerait des adresses distinctes |
+| **3** | **Transaction n° 1**, élevée, opération **E-1** `identity.request_code` (rôle `influx_auth`) | a. contrôler **et incrémenter** les compteurs de débit par adresse et par IP (`05` RG44) ; b. **si plafond atteint** : valider la transaction et sortir en issue **(c)** — **aucun code n'est produit, aucune ligne de journal n'est écrite, le code en cours reste valide** (RG45, RG50) ; c. tirer la **phrase de correspondance** (RG48) et déterminer la **langue** ; d. résoudre l'éventuel `account_id` ; e. **insérer la ligne `leads.transactional_sends`** : `email_code = 'auth.login_code'`, `priority = 'p0'`, `status = 'queued'`, `locale`, `template_ref` + `template_version` **copiée**, `account_id` **xor** `recipient_email`, `outbox_event_id` **nul** ; f. **valider**. La clé d'idempotence est `auth.login_code:<id de la ligne>` |
+| **4** | **Aucune transaction ouverte** à partir d'ici (G4) | C'est le point à ne pas rater : plus aucun verrou n'est tenu pendant les appels externes |
+| **5** | GoTrue, appel 1 : **créer l'utilisateur, inconditionnellement** | L'erreur « existe déjà » est **avalée**. Inconditionnel = pas de branche = pas d'oracle temporel (R1) |
+| **6** | GoTrue, appel 2 : **générer le code à 6 chiffres sans qu'aucun e-mail parte** | Délai d'attente cumulé des étapes 5-6 : **2 000 ms**. Le code reste **en mémoire**, jamais écrit |
+| **7** | Brevo : **un envoi transactionnel unitaire**, gabarit `auth.login_code`, en-tête `Idempotency-Key` de l'étape 3 | **Une seule tentative**, délai d'attente **3 000 ms**. Un destinataire, jamais de copie (RG91). Contenu : RG49 (pas de code dans l'objet, aucun lien, heure et contexte, phrase de correspondance, mention « INFLUX ne vous demandera jamais ce code ») |
+| **8** | **Transaction n° 2**, élevée, **E-1** | `status = 'sent'` + `provider_message_id` + `sent_at`, **ou** `status = 'failed'` + `failure_code` + `failed_at`. Aucune autre colonne n'est réécrite (table append-only pour le reste) |
+| **9** | Poser le **cookie de parcours** (15 min, `__Host-`, `httpOnly`, `SameSite=Lax`) — **uniquement si l'issue est `sent`** | Il porte l'adresse normalisée et la phrase de correspondance (RG47, RG48). **Il ne porte jamais le code** |
+| **10** | Rendre la réponse à `max(temps écoulé, 1 000 ms)` | Sur **toutes** les issues, y compris (c) et la validation en échec |
+
+**Ce que contient la réponse HTTP — et ce qu'elle ne contient jamais.**
+
+| | Contenu |
+|---|---|
+| **Statut** | **`200` dans tous les cas où la requête est bien formée**, y compris plafond atteint et panne du fournisseur. Exception explicite et bornée au tableau du §9.2 : faire varier le statut HTTP ferait varier le comportement des fronts et des intermédiaires selon l'issue, pour un gain nul. Une requête **mal formée** reste un `400`, et elle l'est indépendamment de tout compte |
+| **Corps** | `outcome` dans une **union fermée** : `sent` · `undeliverable` · `provider_unavailable` · `rate_limited` (les trois causes de RG60, plus le succès) ; `retryAfterSeconds` (60, RG50) ; `matchingPhrase` **seulement si `sent`** |
+| **Jamais** | Le code. Le `provider_message_id`. L'identifiant de la ligne de journal. L'existence du compte, son rôle, son état, la date de sa dernière connexion. Un message technique du fournisseur. Un délai différent selon le compte |
+
+**Trois erreurs d'implémentation à écarter d'avance**, parce qu'elles sont naturelles :
+
+1. **Envelopper les étapes 3 à 8 dans une seule transaction.** C'est la faute qui tient un verrou
+   pendant 5 secondes d'appels externes (G4, test T9).
+2. **Écrire une ligne dans `outbox_events` « pour la traçabilité ».** Le test **T1** échouerait, et
+   il est écrit pour cela.
+3. **Ajouter un réessai « juste au cas où »** à l'étape 7. Test **T10**.
+
+### 18.11 Conséquences
+
+- **Code :** un module `apps/api/src/domains/identity/login-code.ts` (le gestionnaire, le
+  disjoncteur, le plancher), un connecteur d'envoi transactionnel unitaire déjà nécessaire par
+  ailleurs, deux transactions élevées **E-1** déjà prévues par `03` §P7. **Aucun composant nouveau,
+  aucune dépendance nouvelle, aucune table nouvelle.**
+- **Déploiement :** inchangé. Toujours quatre services par environnement. Le worker ne connaît pas
+  le `P0`.
+- **Coûts :** nuls, hors volume d'envoi Brevo déjà prévu.
+- **Sécurité :** le point sensible est traité au §18.5 (énumération) et au §18.7 (le code ne
+  transite que par la mémoire). Le gain net est qu'un chemin critique **n'a aucune pièce mobile** :
+  pas de file, pas d'ordonnancement, pas d'interrupteur d'urgence à contourner (`16` RG122 devient
+  vrai **par construction**, puisque l'interrupteur agit sur une file que le `P0` n'emprunte pas).
+- **Exploitation :** un incident d'envoi est visible **immédiatement**, par l'utilisateur et par
+  AL48, au lieu d'être découvert par une réclamation.
+
+### 18.12 Si l'on se trompe
+
+Deux erreurs possibles, et leurs signaux :
+
+| Erreur | Signal mesuré | Correction |
+|---|---|---|
+| **L'appel dans la requête est trop lent ou trop fragile** | Indicateur p90 de `16` RG98 durablement au-dessus de **180 s**, ou taux d'échec de transport significatif hors incident Brevo | Basculer sur l'option **(ii)** — file séparée dédiée. Le contrat HTTP ne change pas ; seul le corps du gestionnaire change, et l'écran perd l'affichage immédiat de la cause. **Une à deux journées**, parce que le journal existe déjà et qu'il suffit d'en faire lire les lignes `queued` par le worker |
+| **Le plancher de 1 000 ms est jugé trop pénalisant** | Retour d'`expert-ux` sur la perception du parcours | C'est une valeur de configuration. La baisser est immédiat ; la supprimer demande l'avis d'`expert-cybersecurite`, car elle porte une partie de la garantie RG46 |
+
+### 18.13 Réversibilité
+
+**Élevée, dans les deux sens.** L'envoi `P0` est une fonction appelée à un seul endroit ; la file
+dédiée qu'on lui substituerait lirait le journal qui existe déjà. Le choix (b) — journal seul — est
+ce qui rend ce retour en arrière peu coûteux : **une table qui n'est pas déjà une mauvaise file peut
+en devenir une bonne.**
+
+### 18.14 Ce que cet addendum demande aux autres agents
+
+**À `expert-database` (document `04`), cinq points — cet addendum ne modifie pas `04` :**
+
+| # | Point |
+|---|---|
+| 1 | **Commenter la sémantique de `status` pour un `P0`** (§18.8) : `queued` = « tentative engagée, issue inconnue », **jamais** un travail à prendre. Et inscrire dans le commentaire de la table qu'elle **n'est pas une file** |
+| 2 | **Droits** : `leads.transactional_sends` n'apparaît pas dans la matrice du §6 de `04`. Il y faut `INSERT` + `UPDATE` **restreint aux colonnes d'issue** pour `influx_auth` (E-1) et `influx_worker` (accusés de réception), lecture pour `agent` et `admin`, **rien pour les rôles membres** |
+| 3 | **Liste fermée des `failure_code` d'un `P0`**, en correspondance exacte avec les trois causes de `05` RG60, pour que l'écran et le backoffice disent la même chose |
+| 4 | **Aucun index sur `status`** pour cette table, et la raison écrite en commentaire (§18.8) |
+| 5 | **Purge des utilisateurs GoTrue sans ligne `identity.accounts` après 24 h**, rattachée à **E-4** (`maintenance.run_periodic`) — conséquence directe de la règle R1 (§18.5) |
+
+**À `expert-cybersecurite` (avis attendu, veto) :** l'invariant de non-énumération reformulé
+(§18.5), l'**oracle résiduel** de la cause (a), la règle « un échec de cause (b) ne consomme pas le
+quota par adresse », la création inconditionnelle d'un utilisateur GoTrue et sa purge, le plancher
+de 1 000 ms, et le `200` uniforme du §18.10.
+
+**Au fondateur :** **`16` Q8** — au MVP, une panne durable de Brevo empêche **toute connexion de
+membre**. Limite assumée, sans expéditeur de secours. C'est une décision de risque, pas une
+décision technique.
+
+**À `testeur` (document `18`) :** les tests **T1 à T10** de la skill `lead-pipeline` restent
+exigés ; **T3 et T4 deviennent structurels** (le `P0` n'emprunte ni la file ni l'interrupteur, donc
+le test vérifie l'absence de chemin, pas un délai). S'y ajoutent, propres à D43 : temps de réponse
+indiscernable entre adresse connue et inconnue **sur la distribution, pas sur une mesure** ; aucun
+appel externe sous transaction ouverte ; ligne de journal écrite **avant** l'appel ; code absent de
+tout journal, trace, réponse et cookie ; nouveau code invalidant le précédent côté GoTrue ; plafond
+atteint n'invalidant pas le code en cours ; échec de cause (b) ne consommant pas le quota par
+adresse ; disjoncteur ouvert rendant une réponse **toujours plancher-normalisée**.
+
+### Sources (vérifiées le 2026-09-19)
+
+- [Supabase Auth — `generateLink` (admin) : renvoie `email_otp` et **n'envoie aucun e-mail**](https://supabase.com/docs/reference/javascript/auth-admin-generatelink)
+- [Supabase Auth — `verifyOtp`](https://supabase.com/docs/reference/javascript/auth-verifyotp)
+- [Supabase Auth — Send Email Hook (écarté : exige un point d'accès joignable depuis Supabase)](https://supabase.com/docs/guides/auth/auth-hooks/send-email-hook)
+- [Brevo — API d'envoi transactionnel](https://developers.brevo.com/reference/sendtransacemail)
+- `docs/mvp/16-backoffice-emails-brevo.md` §M2 (limites de débit, relevées le 2026-09-19)
