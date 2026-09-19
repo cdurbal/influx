@@ -651,9 +651,17 @@ dépassement des seuils de délivrabilité de RG63.
 principal, part synchronisée vers Brevo en moins d'une heure, part synchronisée vers Apollo en moins de
 24 heures, **nombre d'échecs non traités** (cible : zéro).
 
-**RG106** — L'**export** de la liste des inscrits est réservé au rôle `admin`, exige une
-re-authentification et un **motif**, et est journalisé nominativement. Il ne contient aucune donnée
-absente de l'écran.
+**RG106** — **Aucun export nominatif de la liste des inscrits, pour aucun rôle, `admin` compris.**
+Seul est autorisé un **export agrégé, sans aucune ligne nominative** (comptes par pays, par langue,
+par profil, par période, par état de synchronisation), qui exige une re-authentification et un
+**motif** et est journalisé nominativement.
+
+> **Règle abrogée et remplacée le 2026-09-19 (arbitrage `chef-de-projet`).** La première rédaction
+> autorisait à `admin` l'export de la liste des inscrits. Or cette liste **est** l'annuaire, et
+> `03` C(17) interdit l'export de l'annuaire à tout le monde, administrateurs compris, en visant
+> explicitement l'export CSV d'une liste. `03` fait autorité (veto `expert-cybersecurite`) ; le
+> besoin de synchronisation avec Brevo et Apollo est couvert par le pipeline de leads, pas par un
+> fichier. Voir `15` RG92 et sa Q1.
 
 **RG107** — Le backoffice v0 ne montre **jamais** : un code de connexion, un mot de passe, le contenu
 d'un e-mail envoyé à une personne, ni aucune donnée enrichie par Apollo.
@@ -774,7 +782,7 @@ marque n'est jamais le seul porteur d'un état.
 |---|---|
 | Un compte interne se connecte sur l'espace membre | Vérification normale puis refus d'ouverture de session, avec renvoi vers l'espace interne (RG68) |
 | Un membre appelle directement une adresse du backoffice | Refus, journalisé |
-| Un agent tente un export | Refus : l'export est réservé au rôle `admin` (RG106) |
+| Un agent ou un admin tente un export nominatif | Refus : aucun export nominatif n'existe (RG106) ; seul l'export agrégé est possible |
 | Un agent tente de changer le périmètre Apollo ou le rôle d'un compte | Refus : réservé au rôle `admin` (RG81, RG108) |
 | Un membre tente de lire les données d'un autre membre | Refus au niveau de la base, pas seulement de l'interface |
 

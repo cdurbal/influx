@@ -658,6 +658,7 @@ hors de ce cadre ; mettre ce tableau à jour à chaque arbitrage. Les lots cité
 | D39 | SLA de la file de validation | **Fondateur** + `product-owner` | **Tranchée (2026-09-18)** : **1 jour ouvré** pour traiter une demande de contact ou une candidature. Délai affiché aux deux parties, alerte interne au bout de quelques heures, escalade au-delà. Le respect du délai est un indicateur suivi : un délai affiché puis non tenu abîme plus la confiance qu'un délai plus long tenu | — |
 | D40 | Masquage symétrique des coordonnées côté marque | Fondateur + `expert-ux` + `expert-conformite-rgpd` | **Tranchée (2026-09-18)** : **oui, masquage symétrique**. Nom, logo, site et secteur de la marque restent publics ; **e-mail et téléphone de l'interlocuteur ne sont visibles qu'après ouverture de la mise en relation**. Sans cela, un créateur contacte la marque en direct et le commercial est contourné dans l'autre sens | — |
 | D41 | Un compte peut-il être à la fois annonceur et créateur ? | Fondateur + `product-owner` | **Tranchée (2026-09-18)** : **un rôle par compte au MVP**, parcours nets et anonymisation garantie ; mais **le modèle de données prévoit dès le Lot 0 la liaison compte ↔ rôles**, pour que l'ouverture ultérieure ne coûte qu'un écran au lieu d'une migration sur des données en production | — |
+| D42 | **Renouvellement d'une collaboration** entre deux parties déjà mises en relation sur une même campagne. Aujourd'hui aucun chemin : une nouvelle mise en relation est bloquée tant que la précédente est active, et rien ne dit comment en ouvrir une nouvelle une fois la première close. C'est pourtant **le cas de contournement le plus probable** (les deux parties se connaissent déjà). Recommandation : renouvellement possible **uniquement par proposition INFLUX**, une fois la précédente en état terminal, avec lien vers la mise en relation d'origine ; la créance (D29) reste rattachée à la première révélation | Fondateur + `chef-de-projet` + `product-owner` (avis `expert-matching`) | Ouverte, **à trancher avant le Lot 4** | Avant le Lot 4 |
 
 > **Décisions reportées en V2 par l'arbitrage A1 (2026-09-18).** Le contrat, la signature,
 > l'encaissement, le reversement et la facturation sortent du MVP : le contrat est envoyé et signé
@@ -670,6 +671,16 @@ hors de ce cadre ; mettre ce tableau à jour à chaque arbitrage. Les lots cité
 > projet : sans société, pas de mentions légales ni de CGU, donc pas de mise en ligne du Lot 1 vers
 > la semaine 5. Et **D7 / D23 se réactivent plus tôt que prévu** : si le commercial encaisse une
 > commission dès le pilote, la question fiscale se pose au premier euro, pas en V2.
+>
+> **Deux préconditions ajoutées le 2026-09-19 (`docs/mvp/14-pipeline-commercial.md`).**
+> **(1) Aucun encaissement de commission avant que D25 soit tranchée et la société créée :** sans
+> société, compte professionnel et numéro de TVA, aucune facture valide n'est émissible ; encaisser
+> au nom d'une personne physique crée un revenu à déclarer et un risque de requalification. Le
+> pipeline peut enregistrer des encaissements dès le Lot 5, mais **le pilote ne doit pas en produire
+> tant que la société n'existe pas** (arbitre : fondateur, expert-comptable, avocat fiscaliste).
+> **(2) D20 (sort de chaque part en cas d'annulation, de litige ou de non-livraison) ne peut pas
+> attendre la V2 :** le premier litige surviendra pendant le pilote. À instruire après les dix
+> premières affaires signées, avant si un litige apparaît.
 
 **Autres arbitrages du fondateur (2026-09-16)** : répartition de la commission 20 % / 15 % incluse
 dans le contrat (§3) ; portée internationale, inscriptions partout et contrats par pays ouverts,

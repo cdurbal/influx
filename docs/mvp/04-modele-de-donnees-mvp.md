@@ -13,6 +13,66 @@
 > **D40** (masquage symétrique) : **oui**. Les coordonnées de l'interlocuteur d'une marque suivent
 > **exactement la même mécanique de révélation** que les réseaux d'un créateur — §5.2, §6.2.
 >
+> **Mise à jour du 2026-09-19, après les spécifications `06` à `11` — 34 corrections intégrées.**
+> Six documents de spécification des Lots 2 et 3 ont relu ce modèle et signalé des manques ; cinq
+> d'entre eux ont été signalés **indépendamment par deux ou trois documents**, ce qui les rend
+> prioritaires. Ce qui change :
+> **`profiles`** — état `suspendu` sur les profils marque et créateur (`06`, `07`, `09`) ;
+> conservation de **la dernière version validée** pendant une re-validation partielle
+> (`06`, `07`, `09`) ; sept champs de profil créateur ajoutés, portée moyenne comprise (`07`) ;
+> `GRANT` de révélation élargi aux chiffres exacts (`07`, ferme **Q3** du §12.4).
+> **`reference`** — **bornes nettes** sur `price_bands` (`07`, `09`), `engagement_bands`,
+> `age_bands`, `audience_genders`, `editorial_tones`, `publication_frequencies`, `regions`,
+> `campaign_types`.
+> **`verification`** — PDF retiré des pièces (alignement sur `03` E1-9, qui fait autorité),
+> référentiel des **motifs de retrait**, état **« à reconfirmer »**, identifiant du compte
+> **observé au moment du constat** (`08`).
+> **`campaigns`** — type de campagne, quatre textes distincts et messages clés, dotation, droits
+> d'usage remontés au niveau de la campagne avec durée et territoires, **quatre dates nommées**
+> et ordonnées, nature de la rémunération, nombre de créateurs, tranches de budget dérivées,
+> éléments demandés, ciblage d'audience détaillé, revue renforcée à deux validateurs, six états
+> (`09`).
+> **`search`** — **table de blocage entre parties** (`matching.party_blocks`, le manque le plus
+> important de la liste), réglages et facettes en table, tri et version des facettes journalisés,
+> raisons d'explication rattachées aux impressions, compteurs de masse critique (`10`).
+> **`matching`** — compteurs de candidatures, motifs **corrigibles**, sous-motif d'expiration,
+> brouillon de candidature, et **résolution de la collision d'index unique partiel** par
+> `matching.interest_submissions` (`11`).
+> **`audit`** — `campaign.published` et `campaign.updated` (`09`).
+> **Vérifié sans modification :** la contrainte `introductions_reveal_requires_both_acceptances`
+> reste **inconditionnelle** (§5.6) ; rien dans ce document ne la restreint à une origine, et
+> `matching.reveal_identity()` la contrôle de la même façon pour les trois origines. C'est cette
+> version qui fait foi, `03` C(21) a été aligné le 2026-09-19.
+> **Ce qui reste à valider ailleurs est regroupé au §12.6.**
+>
+> **Mise à jour du 2026-09-19 (seconde passe), après les spécifications `12` et `13` — 16 corrections
+> intégrées.** Les deux documents du Lot 4 — la messagerie à trois et la file de validation — ont relu
+> ce modèle et signalé seize manques. Ce qui change :
+> **`messaging`** — les deux indicateurs qui distinguent une maladresse d'un contournement assumé sur
+> `contact_detections` (`12` RG45) ; un **motif typé de lecture** (`messaging.access_reasons`) sur le
+> journal des lectures, qui ne portait que l'écran (`12` RG56 à RG58) ; `read_session_id`, cité par
+> `03` §5.2 ; **pause motivée et attribuée**, **réouverture réellement possible** et table des
+> transitions autorisées (`12` RG17, RG20, RG22) ; **date de mise à disposition** et **journal des
+> téléchargements** sur `documents` (`12` RG71, RG75).
+> **`identity`** — la **prise de connaissance** de l'information « ces échanges sont supervisés »
+> rejoint `terms_acceptances` au lieu d'une table de plus, avec une **nature** qui distingue une prise
+> de connaissance d'une acceptation (`12` RG104).
+> **`matching`** — deux sous-motifs d'expiration manquants (`13` RG95) ; le **refus par une partie**,
+> qui n'avait aucun support : côté, liste B de motifs **jamais communiqués à l'autre partie**, et
+> horodatage (`13` RG82 à RG90) ; `proposal_batch_id`, qui rend le geste commercial mesurable
+> (`13` RG53 à RG59) ; le **`messageId` du prestataire d'envoi** conservé dans
+> `matching.introduction_emails` (`13` RG79) ; les **transitions depuis `approved`** rendues
+> réversibles tant que rien n'est révélé (`13` RG102, RG103).
+> **`audit`** — **35 codes d'événements** ajoutés, 17 pour la messagerie et 18 pour le cycle de la
+> file et de la mise en relation.
+> **Non traité ici, volontairement :** le contrat d'appelant des fonctions de révélation d'identité
+> (`13` écarts 4 et 5) appartient à `expert-cybersecurite` et au document `03`.
+> **`billing`** — **`deals`, `lost_reasons`, `deal_state_transitions` et `deal_field_changes`
+> avancées du Lot 5 au Lot 4** : l'affaire est créée **automatiquement, à l'état `open`, dans la
+> transaction de révélation** (arbitrage `chef-de-projet` du 2026-09-19, §5.6 et §12.7 point 1).
+> Sans elle, une mise en relation perdue n'aurait nulle part où porter son **motif de perte typé**.
+> **Un point conservateur reste signalé au §12.7** : un fil archivé ne se rouvre pas.
+>
 > **Corrections demandées par `product-owner` après `05-spec-inscription-et-leads.md` :** trois
 > champs collectés à l'inscription n'avaient pas de place avant le Lot 2. Corrigé — **statut déclaré**
 > (`accounts.declared_status`, Lot 1, historisé dans le registre, §5.1), **nom d'entreprise**
@@ -117,18 +177,18 @@ La justification du choix « schémas par domaine plutôt que schéma unique » 
 | Schéma | Contenu | Lot d'apparition |
 |---|---|---|
 | `influx` | Fonctions utilitaires et fonctions d'accès au contexte (`current_account_id`, `current_account_role`, déclencheurs génériques). **Aucune table** | 0 |
-| `reference` | Listes fermées partagées : pays, devises, langues, thématiques, formats, réseaux, secteurs, droits d'usage, bornes de tranches | 0 puis 2 |
+| `reference` | Listes fermées partagées : pays, devises, langues, thématiques, formats, réseaux, secteurs, droits d'usage, **tons éditoriaux, fréquences de publication, régions**, bornes de tranches (audience, **engagement**, **âge**, **genre d'audience**, prix **avec leurs bornes nettes**), **types de campagne** | 0, 2 puis 3 |
 | `identity` | Comptes, rôles, pays et langue, **commercial responsable**, profils d'agents, versions de CGU, acceptations, consentements | 0 |
 | `audit` | **Registre chaîné append-only**, types d'événements, résultats des vérifications de chaîne | 0 |
-| `billing` | **`commission_rates` créée et vide** (Lot 0) ; **`deals`** et l'historique de leurs montants (Lot 5) | 0 puis 5 |
+| `billing` | **`commission_rates` créée et vide** (Lot 0) ; **`deals`**, ses motifs de perte, ses transitions et l'historique de ses montants — **au Lot 4, parce que l'affaire naît dans la transaction de révélation** ; seule la **saisie** des montants arrive au Lot 5 | 0 puis **4** |
 | `leads` | `outbox_events`, état de synchronisation Brevo / Apollo par contact | 1 |
 | `profiles` | Profil marque, **profil créateur en trois objets**, réseaux, audience, tarifs, portfolio, complétude | 2 |
 | `verification` | Demandes de vérification, codes de propriété, pièces, décisions, badges et péremption, contestations | 2 |
 | `campaigns` | Campagnes et leurs blocs, livrables, ciblage, validation | 3 |
 | `search` | Journal des recherches, impressions et rangs cliqués, sélections (shortlists) | 3 |
-| `matching` | **`introductions`**, détail des candidatures, motifs de refus, file de validation | 4 |
-| `messaging` | Conversations, participants, messages, lectures, **journal des lectures par un agent**, signalements, détections, documents | 4 |
-| `backoffice` | Notes internes, suspensions, envois d'e-mails et destinataires, demandes RGPD, politiques de SLA | 1 puis 5 |
+| `matching` | **`introductions`**, expressions d'intérêt, brouillons, compteurs de plafonds, motifs de refus **par INFLUX et par une partie**, file de validation, **transitions autorisées**, **e-mails de mise en relation**, **blocage entre parties** | **3** *(blocage)* puis 4 |
+| `messaging` | Conversations, participants, messages, lectures, **journal des lectures par un agent et ses motifs typés**, motifs de pause, transitions d'état, signalements, détections, documents et **journal de leurs téléchargements** | 4 |
+| `backoffice` | Notes internes, suspensions, envois d'e-mails et destinataires, demandes RGPD, politiques de SLA, **paramètres d'exploitation** | 1, 3 puis 5 |
 
 Le schéma `public` **reste vide**. C'est une décision de sécurité autant que d'hygiène : c'est le
 seul schéma exposé par défaut par PostgREST, et nous ne voulons aucune table atteignable par cette
@@ -140,13 +200,13 @@ voie (`docs/mvp/02-architecture-3-espaces.md` §2).
 |---|---|
 | **0 — Socle** | `reference.countries` · `reference.currencies` · `reference.languages` · `identity.accounts` · **`identity.account_roles`** *(D41)* · `identity.agent_profiles` · `identity.terms_versions` · `identity.terms_acceptances` · `identity.consent_events` · `audit.event_types` · `audit.audit_events` · `audit.chain_checks` · `billing.commission_rates` *(vide)* · `backoffice.ownership_assignments` |
 | **1 — Inscription et leads** | `leads.outbox_events` · `leads.contact_sync_states` · **`leads.sync_settings`** · **`identity.email_delivery_incidents`** · **`profiles.advertiser_profiles` *(forme minimale, avancée depuis le Lot 2)*** · `backoffice.sla_policies` |
-| **2 — Profils, badge** | `reference.topics` · `reference.formats` · `reference.networks` · `reference.sectors` · `reference.usage_rights` · `reference.audience_bands` · `reference.price_bands` · *(`profiles.advertiser_profiles` : **extension** de la table créée au Lot 1)* · `profiles.advertiser_contact_details` · `profiles.creator_public_profiles` · `profiles.creator_public_networks` · `profiles.creator_public_audience` · `profiles.creator_public_rates` · `profiles.creator_social_accounts` · `profiles.creator_identities` · `profiles.creator_audience_breakdowns` · `profiles.creator_rate_cards` · `profiles.creator_topics` · `profiles.creator_formats` · `profiles.creator_refused_sectors` · `profiles.portfolio_items` · `verification.rejection_reasons` · `verification.verification_requests` · `verification.ownership_codes` · `verification.evidence_files` · `verification.badges` · `verification.disputes` |
-| **3 — Campagnes et recherche** | `campaigns.rejection_reasons` · `campaigns.campaigns` · `campaigns.campaign_deliverables` · `campaigns.campaign_audience_targets` · `campaigns.campaign_topics` · `search.search_queries` · `search.search_impressions` · `search.shortlists` · `search.shortlist_items` |
-| **4 — Mise en relation et messagerie** | `matching.rejection_reasons` · `matching.introductions` · `matching.application_details` · `matching.application_formats` · `matching.reference_counters` · `messaging.closure_reasons` · `messaging.report_reasons` · `messaging.conversations` · `messaging.conversation_participants` · `messaging.messages` · `messaging.conversation_reads` · `messaging.conversation_access_log` · `messaging.contact_detections` · `messaging.reports` · `messaging.documents` |
-| **5 — Backoffice et pipeline** | `billing.lost_reasons` · `billing.deal_state_transitions` · `billing.deals` · `billing.deal_field_changes` · `backoffice.internal_notes` · `backoffice.account_suspensions` · `backoffice.email_send_limits` · `backoffice.email_sends` · `backoffice.email_send_recipients` · `backoffice.data_subject_requests` |
+| **2 — Profils, badge** | `reference.topics` · `reference.formats` · `reference.networks` · `reference.sectors` · `reference.usage_rights` · `reference.audience_bands` · `reference.price_bands` · *(`profiles.advertiser_profiles` : **extension** de la table créée au Lot 1)* · `profiles.advertiser_contact_details` · `profiles.creator_public_profiles` · `profiles.creator_public_networks` · `profiles.creator_public_audience` · `profiles.creator_public_rates` · `profiles.creator_social_accounts` · `profiles.creator_identities` · `profiles.creator_audience_breakdowns` · `profiles.creator_rate_cards` · `profiles.creator_topics` · `profiles.creator_formats` · `profiles.creator_refused_sectors` · `profiles.portfolio_items` · `verification.rejection_reasons` · `verification.verification_requests` · `verification.ownership_codes` · `verification.evidence_files` · `verification.badges` · `verification.disputes` · **`reference.engagement_bands`** · **`reference.age_bands`** · **`reference.audience_genders`** · **`reference.editorial_tones`** · **`reference.publication_frequencies`** · **`reference.regions`** · **`profiles.creator_tones`** · **`profiles.creator_usage_rights`** · **`profiles.moderated_fields`** · **`profiles.profile_field_revisions`** · **`verification.revocation_reasons`** |
+| **3 — Campagnes et recherche** | `campaigns.rejection_reasons` · `campaigns.campaigns` · `campaigns.campaign_deliverables` · `campaigns.campaign_audience_targets` · `campaigns.campaign_topics` · `search.search_queries` · `search.search_impressions` · `search.shortlists` · `search.shortlist_items` · **`reference.campaign_types`** · **`campaigns.campaign_key_messages`** · **`campaigns.campaign_usage_territories`** · **`campaigns.campaign_price_bands`** · **`campaigns.requested_items`** · **`campaigns.campaign_requested_items`** · **`campaigns.campaign_published_snapshots`** · **`search.search_settings`** · **`search.facet_settings`** · **`search.facet_config_versions`** · **`search.explanation_reasons`** · **`search.impression_reasons`** · **`search.supply_counters`** · **`backoffice.operational_settings`** · **`matching.block_reasons`** · **`matching.party_blocks`** *(les deux dernières arrivent au Lot 3 bien que le reste du schéma `matching` arrive au Lot 4 : le blocage est une exclusion de recherche, §5.6)* |
+| **4 — Mise en relation et messagerie** | `matching.rejection_reasons` · `matching.introductions` · **`matching.interest_submissions`** *(ex-`application_details`)* · **`matching.interest_submission_formats`** *(ex-`application_formats`)* · **`matching.application_drafts`** · **`matching.application_draft_formats`** · **`matching.application_quotas`** · `matching.reference_counters` · **`matching.decline_reasons`** · **`matching.introduction_transitions`** · **`matching.introduction_emails`** · `messaging.closure_reasons` · `messaging.report_reasons` · `messaging.conversations` · `messaging.conversation_participants` · `messaging.messages` · `messaging.conversation_reads` · `messaging.conversation_access_log` · `messaging.contact_detections` · `messaging.reports` · `messaging.documents` · **`messaging.access_reasons`** · **`messaging.pause_reasons`** · **`messaging.conversation_state_transitions`** · **`messaging.document_labels`** · **`messaging.document_rejection_reasons`** · **`messaging.document_downloads`** · **`billing.lost_reasons`** · **`billing.deal_state_transitions`** · **`billing.deals`** · **`billing.deal_field_changes`** *(les quatre **avancées depuis le Lot 5** : l'affaire est créée par `matching.reveal_identity()`, §5.6)* |
+| **5 — Backoffice et pipeline** | *(aucune table `billing` nouvelle : les quatre sont créées au Lot 4 ; le Lot 5 n'apporte que les écrans de saisie)* · `backoffice.internal_notes` · `backoffice.account_suspensions` · `backoffice.email_send_limits` · `backoffice.email_sends` · `backoffice.email_send_recipients` · `backoffice.data_subject_requests` |
 | **6 — Recette** | Aucune table nouvelle. Vérification de la couverture RLS, des index réellement utilisés et des purges |
 
-**Total : 80 tables et 1 vue**, dont **18 tables de référence** (des listes fermées de quelques
+**Total : 119 tables et 1 vue**, dont **35 tables de référence** (des listes fermées de quelques
 lignes chacune) et une quinzaine de tables de jointure. Le modèle « réel » tient donc en une
 quarantaine d'entités. Chaque table de ce document est citée par un document de cadrage ou par une
 skill : aucune n'a été créée « au cas où ».
@@ -246,13 +306,39 @@ point pour `expert-cybersecurite` (§12).
 
 ### 4.1 `influx` — fonctions de contexte
 
-Aucune table. Quatre fonctions, toutes `STABLE` et `SECURITY INVOKER` sauf mention contraire.
+> **Correspondance des noms de fonctions de contexte, arrêtée le 2026-09-19.** Point de cohérence
+> renvoyé par `docs/mvp/03-matrice-des-droits-et-rls.md` §3.4 : deux jeux de noms coexistaient pour
+> les mêmes fonctions. **Ce sont les noms de ce document qui survivent**, pour deux raisons — ils
+> sont déjà employés dans la totalité du SQL des §5 à §7, et `influx.current_role()` était à une
+> qualification de schéma près de `current_role`, **fonction native de PostgreSQL qui renvoie le rôle
+> *Postgres*** : deux notions qu'une politique RLS ne doit jamais confondre.
+>
+> | Nom dans `03` (première rédaction) | Nom retenu | Est-ce la même fonction ? |
+> |---|---|---|
+> | `influx.current_account()` | **`influx.current_account_id()`** | **Oui.** Substitution purement mécanique, aucun changement de sens |
+> | `influx.current_role()` | **`influx.current_account_role()`** | **Oui.** Idem, et le nom retenu lève l'ambiguïté avec `current_role` natif |
+> | `influx.current_aal()` | **`influx.current_aal()`, conservée** — `influx.has_aal2()` s'y ajoute | **Non : ce sont deux fonctions**, et les deux restent (ci-dessous) |
+>
+> **`current_aal()` et `has_aal2()` ne font pas la même chose, et c'est voulu.** La première **lit le
+> niveau** (`text` : `aal1`, `aal2`, ou `null` si le contexte est absent) ; la seconde est son
+> **enveloppe booléenne**, `coalesce(influx.current_aal() = 'aal2', false)`. Les deux sont sûres
+> devant l'absence de contexte (`03` P4 : une valeur manquante refuse l'accès), et aucune des deux
+> n'est une négation. On écrit `has_aal2()` là où une politique attend un booléen, et
+> `current_aal() = 'aal2'` là où le document `03` démontre la formulation positive — le jour où un
+> troisième niveau existera, c'est `current_aal()` qui servira, sans réécrire une seule politique.
+>
+> **`03` a été corrigé le 2026-09-19 pour les deux premières lignes seulement**, par substitution
+> d'identifiants. **Aucune règle d'autorisation n'a changé**, et `03` reste l'arbitre du contrôle
+> d'accès.
+
+Aucune table. **Six** fonctions, toutes `STABLE` et `SECURITY INVOKER` sauf mention contraire.
 
 | Fonction | Rôle |
 |---|---|
 | `influx.current_account_id() → uuid` | Renvoie `identity.accounts.id` du porteur de session, à partir de `auth.uid()` (lu dans `request.jwt.claims`, posé par `apps/api` dans la transaction) |
 | `influx.current_account_role() → identity.account_role` | Rôle métier **lu en base**, jamais dans le jeton (D37, précision 2). Voir le coût au §7.3 |
-| `influx.has_aal2() → boolean` | Lit `request.jwt.claims ->> 'aal'`. Utilisé par les politiques des objets du backoffice |
+| `influx.current_aal() → text` | **Le niveau d'authentification brut** (`aal1` · `aal2` · `null`), lu dans `request.jwt.claims`. Renvoie `null` si le contexte est absent — donc toute comparaison refuse |
+| `influx.has_aal2() → boolean` | **Enveloppe booléenne** de la précédente : `coalesce(influx.current_aal() = 'aal2', false)`. Utilisée par les politiques des objets du backoffice |
 | `influx.touch_updated_at()` | Déclencheur générique `BEFORE UPDATE` |
 | `influx.assert_append_only()` | Déclencheur générique `BEFORE UPDATE OR DELETE`, lève une exception |
 
@@ -292,8 +378,15 @@ anglais n'est stocké** (R8) : la colonne `label_key` pointe vers les fichiers d
 | `reference.formats` | `code text` | `network_code` nullable, `label_key` | 2 |
 | `reference.sectors` | `code text` | `label_key`, **`is_sensitive boolean`** (alcool, jeux, santé, finance…) | 2 |
 | `reference.usage_rights` | `code text` | `label_key` | 2 |
-| `reference.audience_bands` | `code text` | `min_followers bigint`, `max_followers bigint` nullable | 2 |
-| `reference.price_bands` | `(currency, code)` | `min_amount_minor`, `max_amount_minor` | 2 |
+| `reference.audience_bands` | `code text` | `min_followers bigint`, `max_followers bigint` nullable. **Sert aussi de référentiel de portée moyenne** (§5.2) | 2 |
+| `reference.engagement_bands` | `code text` | `min_rate_bp integer`, `max_rate_bp integer` nullable, `label_key`, `introduced_at`, `retired_at`. **Bornes en points de base entiers** (350 = 3,50 %), jamais en flottant | 2 |
+| `reference.age_bands` | `code text` | `min_age smallint not null`, `max_age smallint` nullable — `18_24`, `25_34`, `35_44`, `45_plus`. **`check (min_age >= 18)` : aucune tranche mineure n'est modélisable** (D15) | 2 |
+| `reference.audience_genders` | `code text` | `female_majority` (≥ 60 %), `mixed`, `male_majority` (≥ 60 %) — **tranches, jamais un pourcentage** | 2 |
+| `reference.editorial_tones` | `code text` | Les sept tons de `07` RG34, `label_key`, `introduced_at`, `retired_at` | 2 |
+| `reference.publication_frequencies` | `code text` | `daily` · `several_per_week` · `weekly` · `biweekly` · `monthly_or_less`, `sort_order` | 2 |
+| `reference.regions` | `(country_code, code)` | Niveau administratif 1 (ISO 3166-2), `label_key`, `is_active`. **Chargée pays par pays**, à la demande : charger le monde entier au Lot 2 serait 4 000 lignes inutilisées | 2 |
+| `reference.price_bands` | `(currency, code)` | `min_amount_minor`, `max_amount_minor`, **`net_min_amount_minor`, `net_max_amount_minor`**, `net_basis_label`, `net_computed_at`, `introduced_at`, `retired_at` (ci-dessous) | 2 |
+| `reference.campaign_types` | `code text` | Les **sept** types de `09` RG18, **sans valeur `other`**, `label_key`, `introduced_at`, `retired_at` | 3 |
 
 **`reference.currencies.minor_unit` est la colonne la plus importante de ce schéma.** C'est elle qui
 dit comment interpréter un `bigint` : `200000` vaut 2 000,00 EUR mais 200 000 JPY. Sans elle, le
@@ -303,6 +396,69 @@ premier contrat en yen produit une erreur d'un facteur 100.
 qu'adossée à une devise. C'est aussi ce qui rend visible, dès aujourd'hui, la donnée manquante
 signalée par `matching-spec` (« règle de conversion entre devises », bloquante dès qu'une seconde
 devise existe — D27, V2).
+
+#### Les bornes nettes de `reference.price_bands` — la seule façon d'afficher un net sans calculer un taux
+
+`07` RG72 et `09` RG59 demandent la même chose, indépendamment : **afficher au créateur un net
+estimé sans qu'aucune multiplication d'un montant par un taux n'existe dans le code applicatif**.
+C'est une exigence structurelle, pas un confort : `03` C(32) interdit d'écrire dans
+`billing.commission_rates` et le contrôle d'intégration continue T16 échoue sur toute multiplication
+d'un montant par une constante dans `apps/` et `packages/`.
+
+La seule forme compatible est de **stocker les bornes nettes comme des données du référentiel**,
+calculées **une fois**, à la main, dans la migration qui crée la version du référentiel — au même
+titre que les bornes brutes :
+
+```sql
+alter table reference.price_bands
+  add column net_min_amount_minor bigint,
+  add column net_max_amount_minor bigint,
+  add column net_basis_label      text,
+  add column net_computed_at      timestamptz,
+  add column introduced_at        timestamptz not null default now(),
+  add column retired_at           timestamptz,
+
+  -- les deux bornes nettes vont ensemble, ou aucune
+  add constraint price_bands_net_pair
+      check (num_nonnulls(net_min_amount_minor, net_max_amount_minor) in (0, 2)),
+  -- un net ne depasse jamais le brut, et ne descend jamais sous zero
+  add constraint price_bands_net_within_gross
+      check (net_min_amount_minor is null
+             or (net_min_amount_minor >= 0
+                 and net_max_amount_minor >= net_min_amount_minor
+                 and net_min_amount_minor <= min_amount_minor
+                 and (max_amount_minor is null or net_max_amount_minor <= max_amount_minor))),
+  -- un net sans base ecrite n'est pas opposable
+  add constraint price_bands_net_needs_basis
+      check (net_min_amount_minor is null
+             or (net_basis_label is not null and net_computed_at is not null));
+
+comment on column reference.price_bands.net_min_amount_minor is
+  'Borne basse du net createur pour cette tranche, en plus petite unite monetaire.
+   VALEUR DE DONNEE, CALCULEE HORS APPLICATION, ECRITE PAR UNE MIGRATION RELUE.
+   Le code ne la recalcule jamais et ne multiplie jamais un montant par un taux (03 C(32), T16).
+   Nulle = aucun net affiche pour cette devise (09 RG59, cas limite) : on n''estime pas a la volee.';
+
+comment on column reference.price_bands.net_basis_label is
+  'Base ecrite du calcul, en clair et non exploitable par le code
+   (ex. « bareme plateforme 35 % au 2026-09-19 »). Sert a la relecture et a l''audit,
+   jamais a un calcul.';
+
+-- meme regime que billing.commission_rates : personne n'ecrit ce referentiel depuis l'application
+revoke insert, update, delete on reference.price_bands
+  from influx_advertiser, influx_creator, influx_agent, influx_admin, influx_service;
+```
+
+Trois conséquences à assumer :
+
+1. **Le net affiché est un « environ »**, et il doit être écrit ainsi partout (`09` RG60, `07` RG70).
+   Une tranche donne un ordre de grandeur, pas un montant dû.
+2. **Changer les taux de la plateforme ne réécrit pas l'histoire** : on **retire** la version du
+   référentiel (`retired_at`) et on en **introduit** une nouvelle. Les affaires et les campagnes qui
+   citent un code de tranche continuent de citer la version qui était en vigueur.
+3. **La table des taux reste vide et inaccessible.** Ce que l'on introduit ici n'est pas un taux,
+   c'est une borne monétaire figée — mais elle **en dérive économiquement**, ce qui doit être validé
+   par `expert-paiement-facturation` et le fondateur (§12.6, point 1).
 
 ### 4.3 `audit` — le registre chaîné
 
@@ -322,6 +478,79 @@ C'est la table la plus contrainte du modèle. Elle porte **M2 et M4** de
 Pourquoi une table plutôt qu'un `enum` : ajouter un type d'événement au Lot 5 ne doit pas exiger un
 `ALTER TYPE` (non utilisable dans la même transaction que son usage), et l'on veut pouvoir compter
 les événements par domaine et par gravité par simple jointure.
+
+**Codes ajoutés au Lot 3** (`09`, Impacts ; `10` RG28). Ce sont des **données**, chargées par la
+migration `0301` : les ajouter n'exige aucun changement de schéma.
+
+| Code | `domain` | `subject_type` | `severity` | Fait relaté |
+|---|---|---|---|---|
+| `campaign.submitted` | `campaigns` | `campaign` | `info` | La marque soumet sa campagne à validation |
+| **`campaign.published`** | `campaigns` | `campaign` | `sensitive` | Décision humaine de publication (`09` RG5), avec le ou **les deux** validateurs |
+| **`campaign.updated`** | `campaigns` | `campaign` | `info` | Modification d'une campagne publiée, avec le régime appliqué (re-validation ou effet immédiat, `09` RG7) |
+| `campaign.rejected` | `campaigns` | `campaign` | `sensitive` | Refus avec motif typé |
+| `campaign.paused` · `campaign.closed` | `campaigns` | `campaign` | `info` | Mise en pause, clôture (y compris automatique) |
+| `block.created` · `block.lifted` | `matching` | `party_block` | `sensitive` | Blocage entre deux parties, posé ou retiré (`10` RG28) |
+| `search.settings_changed` | `search` | `search_setting` | `sensitive` | Modification d'un réglage de recherche ou d'une facette (`10` RG2, RG11) |
+
+Les deux premiers étaient explicitement manquants (`09`, Impacts) ; les autres sont leurs frères de
+la même migration — un cycle de vie dont seuls deux événements sur six seraient journalisés ne
+prouve rien.
+
+**Codes ajoutés au Lot 4, cycle de la file et de la mise en relation** (`13`, Impacts, écart 9 —
+**18 codes**). Mêmes remarques : ce sont des **données**, chargées par la migration `0401`, et
+l'ajout d'un code n'exige aucun changement de schéma.
+
+| Code | `domain` | `subject_type` | `severity` | Fait relaté |
+|---|---|---|---|---|
+| `introduction.created` | `matching` | `introduction` | `info` | Entrée en file, quel que soit le déclencheur (`13` RG100, état 1) |
+| `introduction.claimed` | `matching` | `introduction` | `info` | Prise en charge par un commercial : le verrou est posé (`13` RG102) |
+| `introduction.claim_released` | `matching` | `introduction` | `info` | Le titulaire rend la main sans décider |
+| `introduction.claim_expired` | `matching` | `introduction` | `info` | Verrou expiré (`claim_expiry_minutes`, alerte A3) |
+| **`introduction.reviewed`** | `matching` | `introduction` | **`sensitive`** | **Ouverture de l'écran de décision : un rôle interne a vu deux identités non révélées** (`13` RG109, point 10). C'est le pendant de `conversation.read` pour l'amont |
+| `introduction.approved` | `matching` | `introduction` | `sensitive` | Validation par le commercial titulaire (état 3) |
+| `introduction.rejected` | `matching` | `introduction` | `sensitive` | **Refus A**, par INFLUX, avec le motif typé de la liste A (`13` RG83) |
+| `introduction.party_accepted` | `matching` | `introduction` | `sensitive` | Acceptation d'une partie, avec son côté et sa version de CGU |
+| `introduction.party_declined` | `matching` | `introduction` | `sensitive` | **Refus B**, par une partie, avec le côté et le motif de la **liste B** (`13` RG90). **Le motif n'est jamais restitué à l'autre partie, y compris depuis ce registre** |
+| **`introduction.identity_revealed`** | `matching` | `introduction` | **`critical`** | La révélation simultanée (état 4). Le code existait déjà en exemple au §4.3 ; il est ici **inscrit dans le référentiel** |
+| `introduction.withdrawn` | `matching` | `introduction` | `info` | Retrait par l'initiateur, ou par le commercial pour une proposition |
+| `introduction.expired` | `matching` | `introduction` | `info` | Clôture sans suite, **avec son sous-motif** (`13` RG95) |
+| `introduction.reassigned` | `matching` | `introduction` | `sensitive` | Changement de commercial responsable, motif typé (`backoffice-ops` règle 18) |
+| `introduction.reminder_sent` | `matching` | `introduction` | `info` | Relance J+3 ou J+6, avec la partie relancée (`13` RG92) |
+| `introduction.email_delivered` | `matching` | `introduction` | `info` | Accusé du prestataire d'envoi, **avec le `messageId`** (`13` RG79) |
+| `introduction.email_failed` | `matching` | `introduction` | `sensitive` | Échec définitif après rejeux : **une mise en relation sans preuve externe** (alerte A8) |
+| `introduction.batch_created` | `matching` | `introduction_batch` | `info` | Envoi groupé d'une proposition INFLUX, avec le nombre de créateurs (`13` RG54) |
+| `introduction.cap_reached` | `matching` | `account` | `info` | Plafond atteint : sélection de 20, 60 propositions par jour, plafonds de candidature (`13` RG53) |
+
+> **`introduction.batch_created` porte `subject_type = 'introduction_batch'` et
+> `subject_id = proposal_batch_id`.** C'est le seul sujet du registre qui ne corresponde pas à une
+> table : le lot n'a **pas** de table à lui (§5.6), et le registre n'a jamais eu de clé étrangère
+> vers ses sujets — c'est précisément ce qui l'autorise.
+
+**Codes ajoutés au Lot 4, messagerie** (`12`, Impacts, manque 6 — **17 codes**, chargés par les
+migrations `0403` et `0405`).
+
+| Code | `domain` | `subject_type` | `severity` | Fait relaté |
+|---|---|---|---|---|
+| `conversation.opened` | `messaging` | `conversation` | `info` | Ouverture du fil et de ses trois participants (`12` RG1, RG2) |
+| `conversation.paused` · `conversation.resumed` | `messaging` | `conversation` | `info` | Pause et reprise, **avec le motif typé et l'auteur** (`12` RG17, RG19) |
+| `conversation.closed` | `messaging` | `conversation` | `sensitive` | Clôture, avec son motif typé (`12` RG20) |
+| `conversation.reopened` | `messaging` | `conversation` | `sensitive` | **Réouverture**, avec son motif (`12` RG22). C'est le registre, et non une colonne écrasée, qui porte la suite des clôtures et des réouvertures |
+| `conversation.archived` | `messaging` | `conversation` | `info` | Archivage, automatique à 90 jours ou manuel (`12` RG23) |
+| `conversation.agent_joined` · `conversation.agent_left` | `messaging` | `conversation` | `sensitive` | Entrée et sortie d'un agent, nommé et horodaté. **Jamais un ajout silencieux** (`12` RG8, RG9) |
+| `conversation.write_closed_by_block` | `messaging` | `conversation` | `sensitive` | Fermeture de l'écriture des deux parties à la suite d'un blocage (`12` RG87). Le blocage lui-même reste journalisé par `block.created` / `block.lifted`, créés au Lot 3 |
+| `conversation.read` | `messaging` | `conversation` | `sensitive` | Lecture par un rôle interne, **avec son motif typé** (`12` RG55, A10). Doublon assumé avec `messaging.conversation_access_log` : le journal détaillé sert l'exploitation, le registre sert la preuve |
+| `report.created` · `report.decided` | `messaging` | `report` | `sensitive` | Signalement émis, puis issue typée (`12` RG82, RG84) |
+| `detection.reviewed` | `messaging` | `contact_detection` | `sensitive` | Classement d'une détection par un commercial (`12` RG50) |
+| `document.uploaded` | `messaging` | `document` | `info` | Dépôt d'un document *(conditionnel au canal de documents)* |
+| `document.reviewed` | `messaging` | `document` | `sensitive` | Contrôle par un agent, accepté ou refusé avec motif (`12` RG73) |
+| `document.available` | `messaging` | `document` | `info` | **Mise à disposition de l'autre partie** — distincte du contrôle (`12` RG74) |
+| `document.downloaded` | `messaging` | `document` | `info` | Téléchargement, avec son auteur (`12` RG75) |
+
+> **Pourquoi `document.uploaded`, `document.available` et `document.downloaded` sont trois codes et
+> non un seul.** Le dépôt, la mise à disposition et le téléchargement se produisent à trois instants,
+> sous la responsabilité de trois personnes différentes, et c'est exactement la question qu'on posera
+> en cas de litige : « qui a mis ce fichier à la disposition de qui, et quand l'a-t-il récupéré ? »
+> Un code unique rendrait la réponse impossible.
 
 #### `audit.audit_events` — le registre
 
@@ -634,12 +863,12 @@ encore responsable d'une mise en relation active ou d'une affaire ouverte.
 | Colonne | Type | Contrainte |
 |---|---|---|
 | `id` | `uuid` | PK |
-| `document_kind` | `identity.document_kind` | `not null` — `terms_of_service` · `privacy_policy` · `cookie_policy` |
+| `document_kind` | `identity.document_kind` | `not null` — `terms_of_service` · `privacy_policy` · `cookie_policy` · **`supervision_notice`** *(Lot 4, `12` RG103)* |
 | `locale` | `char(2)` | `not null references reference.languages(code)` |
 | `version_label` | `text` | `not null` — ex. `2026-09-v1` |
 | `content_uri` | `text` | `not null` — chemin du document publié |
 | `content_hash` | `bytea` | `not null` — empreinte du texte exact publié |
-| `requires_acceptance` | `boolean` | `not null` — vrai pour les CGU, faux pour la politique de confidentialité |
+| `requires_acceptance` | `boolean` | `not null` — vrai pour les CGU, faux pour la politique de confidentialité **et pour l'information de supervision** (`12` RG104 : ce n'est pas un consentement) |
 | `published_at` | `timestamptz` | `not null` |
 | `effective_from` | `timestamptz` | `not null` |
 | `effective_to` | `timestamptz` | `check (effective_to is null or effective_to > effective_from)` |
@@ -668,7 +897,8 @@ précis.* C'est la table qui rend la clause de non-contournement opposable (A5).
 | `terms_version_id` | `uuid` | `not null references identity.terms_versions(id)` | **Quelle version** |
 | `content_hash` | `bytea` | `not null` | **Copie** de l'empreinte du texte au moment de l'acceptation (R7) |
 | `accepted_at` | `timestamptz` | `not null` | **Quand** |
-| `channel` | `identity.acceptance_channel` | `not null` — `signup` · `re_acceptance` · `introduction_screen` | **Par quel moyen** |
+| `nature` | `identity.acceptance_nature` | `not null default 'acceptance'` — `acceptance` · **`acknowledgement`** | **Accepter ou avoir pris connaissance** — deux actes juridiquement distincts (`12` RG104) |
+| `channel` | `identity.acceptance_channel` | `not null` — `signup` · `re_acceptance` · `introduction_screen` · **`supervision_notice_screen`** | **Par quel moyen** |
 | `introduction_id` | `uuid` | FK, nullable | Acceptation spécifique à une mise en relation (proposition INFLUX, §5.6) |
 | `locale` | `char(2)` | `not null` | La langue dans laquelle le texte a été présenté |
 | `ip_address` | `inet` | — | Élément de preuve. **Donnée personnelle** : conservation et opportunité à valider par `expert-conformite-rgpd` (§12.2) |
@@ -682,6 +912,58 @@ create unique index terms_acceptances_unique_idx
 
 **Table append-only** (`REVOKE UPDATE, DELETE`) : une acceptation ne se corrige pas, elle se complète
 par une nouvelle. Et chaque acceptation écrit aussi une ligne dans `audit.audit_events`.
+
+##### La prise de connaissance de la supervision : une **nature** de plus, pas une table de plus (`12` manque 4)
+
+`12` RG103 et RG104 exigent que la prise de connaissance de l'information « ces échanges sont
+supervisés » soit **horodatée, avec la version du texte et la langue**, avant le premier message —
+et RG104 précise, à juste titre, que **ce n'est pas un consentement** : on ne demande pas une
+autorisation qu'on ne pourrait pas refuser sans fermer le produit.
+
+**Décision : on étend `terms_acceptances`, on ne crée pas de table.** Trois raisons, dans cet ordre :
+
+1. Les colonnes demandées sont **déjà toutes là** : `terms_version_id`, `content_hash` copiée,
+   `accepted_at`, `locale`, `ip_address`, `user_agent`, l'unicité par compte et par version, et le
+   régime append-only. Une table jumelle aurait dupliqué neuf colonnes sur dix.
+2. La question posée deux ans plus tard est **la même** pour les deux actes : « quel texte exact
+   cette personne a-t-elle eu sous les yeux, quand, et dans quelle langue ? ». Deux tables
+   répondraient à la même question de deux endroits, et **divergeraient**.
+3. L'immuabilité de `terms_versions` (déclencheur `BEFORE UPDATE`) protège déjà le texte de
+   l'information de supervision **exactement comme** elle protège les CGU.
+
+Ce qu'il fallait ajouter, en revanche, c'est **la distinction juridique**, qu'une table séparée
+aurait portée par son nom et qu'une colonne doit désormais porter explicitement :
+
+```sql
+create type identity.acceptance_nature as enum ('acceptance', 'acknowledgement');
+
+alter table identity.terms_acceptances
+  add column nature identity.acceptance_nature not null default 'acceptance',
+
+  -- l'ecran d'information de supervision ne produit JAMAIS une acceptation,
+  -- et une acceptation ne passe JAMAIS par cet ecran
+  add constraint terms_acceptances_notice_is_acknowledgement
+      check ((channel = 'supervision_notice_screen') = (nature = 'acknowledgement'));
+
+comment on column identity.terms_acceptances.nature is
+  'acceptance : la personne a accepte un document qui exige une acceptation (CGU).
+   acknowledgement : la personne a PRIS CONNAISSANCE d''une information qu''elle ne pouvait pas
+   refuser sans renoncer au produit — information de supervision des echanges (12 RG103, RG104).
+   CE N''EST PAS UN CONSENTEMENT et cette ligne ne doit jamais etre presentee comme tel,
+   ni dans le produit, ni dans un export, ni devant une autorite.
+   La qualification de la base legale appartient a expert-conformite-rgpd (12 Q1, veto).';
+```
+
+**Ce que la base garantit alors :** une seule prise de connaissance par compte et par version de
+l'information (l'index unique existant suffit : `introduction_id` reste nul), la **version exacte du
+texte** par `content_hash`, la **langue** par `locale`, et l'impossibilité de réécrire l'histoire.
+« L'écran ne réapparaît pas à la deuxième conversation » (`12` CA56) devient une lecture indexée,
+pas une règle d'écran : l'application cherche une ligne `acknowledgement` pour la version en
+vigueur de `supervision_notice`, et l'affiche si elle n'existe pas.
+
+**Une conséquence à assumer :** le jour où le texte de l'information change, une **nouvelle version**
+est publiée et l'écran **réapparaît une fois** à chaque membre. C'est voulu — une information
+modifiée dont personne n'a repris connaissance n'est pas une information donnée.
 
 #### `identity.consent_events`
 
@@ -782,10 +1064,15 @@ fusionne dans l'objet 3 avec des `GRANT` de colonnes — plus fragile, et c'est 
 | `availability_band` | `text` | — | `lt_2w` · `lt_1m` · `full` |
 | `availability_declared_at` | `timestamptz` | — | Une disponibilité sans date ne vaut rien |
 | `accepts_non_monetary` | `boolean` | `not null default false` | F13 |
-| `max_exclusivity_band` | `text` | — | F15 |
+| `max_exclusivity_band` | `text` | `check (... in ('none','le_1m','le_3m','negotiable'))` | F15. **Mêmes bornes que `campaigns.exclusivity_band`** (`09` RG42) : deux vocabulaires rendraient tout rapprochement faux |
+| `residence_country_code` | `char(2)` | `not null references reference.countries(code)` | Repris du compte au Lot 1 (`07` RG36) |
+| `residence_region_code` | `text` | FK composite `reference.regions (country_code, code)` | **Région de résidence**, niveau administratif 1 (`07` RG37). Affichée **seulement si au moins 5 profils publiés partagent le couple (pays, région)** — le seuil est lu dans `search.search_settings`, jamais codé en dur, et l'évaluation est faite par `apps/api` comme les autres garde-fous de forme de requête. **Jamais une facette** (`07` RG38) |
+| `travel_scope` | `text` | `check (travel_scope in ('none','domestic','international'))` | **Déplacements possibles** (`07` RG39). Aucune distance, aucun rayon, aucun point de départ : ce sont des données de localisation fine |
+| `delivery_lead_band` | `text` | `check (... in ('lt_7d','7_14d','15_30d','gt_30d'))` | **Délai de livraison habituel** (`07`, bloc 5) |
+| `collaboration_experience_band` | `text` | `check (... in ('none','1_5','6_20','gt_20'))` | **Expérience de collaborations** (`07` RG32) : une tranche déclarative, **jamais une liste de marques** — une liste de marques identifie le créateur en une recherche web |
 | `figures_updated_at` | `timestamptz` | — | **Date de dernière mise à jour des chiffres**, affichée partout |
 | `completeness_percent` | `smallint` | `not null default 0 check (between 0 and 100)` | Calculé par `packages/domain`, stocké pour le tri |
-| `status` | `profiles.profile_status` | `not null default 'draft'` | `draft` · `pending_review` · `published` · `rejected` |
+| `status` | `profiles.profile_status` | `not null default 'draft'` | **Cinq valeurs : `draft` · `pending_review` · `published` · `rejected` · `suspended`.** L'état `suspended` était manquant et a été réclamé **indépendamment par `06`, `07` et `09`** : il est posé par un administrateur seul, retire le profil de la recherche et de toute publication **sans rien détruire**, et une campagne dont la marque est suspendue cesse d'être visible (`09` RG11). **La même énumération sert aux deux profils**, marque et créateur |
 | `is_searchable` | `boolean` | `not null default true` | **Droit d'opposition** : le créateur peut se retirer de la recherche. Question ouverte de `matching-spec` A12 |
 | `published_at` | `timestamptz` | — | — |
 | `created_at`, `updated_at` | `timestamptz` | `not null` | — |
@@ -794,11 +1081,13 @@ Satellites, tous rattachés par `account_id` et **tous en tranches** :
 
 | Table | Clé | Contenu |
 |---|---|---|
-| `profiles.creator_public_networks` | `(account_id, network_code)` | `audience_band`, `engagement_band` (**nul si non vérifié**), `is_verified`, `verified_at`, `figures_measured_at` |
+| `profiles.creator_public_networks` | `(account_id, network_code)` | `audience_band` (FK `reference.audience_bands`), **`reach_band`** (FK `reference.audience_bands` — **portée moyenne par publication**, `07` RG47), `engagement_band` (**FK `reference.engagement_bands`, nul si non vérifié**, `07` RG48), **`publication_frequency_code`** (FK `reference.publication_frequencies`), `is_primary` (**exactement une ligne à vrai**, index unique partiel), `is_verified`, `verified_at`, `figures_measured_at` |
 | `profiles.creator_public_audience` | `(account_id, network_code, dimension, bucket)` | Répartition **de l'audience** par pays, âge, genre, **en tranches et agrégée** (A12 : jamais un attribut du créateur) |
 | `profiles.creator_public_rates` | `(account_id, network_code, format_code, currency)` | `price_band_code` — FK composite vers `reference.price_bands(currency, code)` |
 | `profiles.creator_topics` | `(account_id, topic_code)` | `is_primary boolean`, ≤ 3 secondaires (contrainte par déclencheur de comptage) |
 | `profiles.creator_formats` | `(account_id, format_code)` | Formats proposés |
+| `profiles.creator_tones` | `(account_id, tone_code)` | **Ton éditorial**, FK `reference.editorial_tones`, **≤ 2** (déclencheur de comptage, comme les thématiques secondaires) — `07` RG34 |
+| `profiles.creator_usage_rights` | `(account_id, usage_right_code)` | **Droits d'usage inclus / en option**, FK `reference.usage_rights` + `inclusion` `check (inclusion in ('included','optional'))`. La clé primaire garantit qu'un même droit **ne peut pas être à la fois inclus et en option** (`07` RG73) |
 | `profiles.portfolio_items` | `id` | `storage_path`, `caption`, `moderation_status`, `moderated_by_agent_id`, `moderated_at`, `rejection_reason_code`, `exif_stripped boolean not null`, `display_order` |
 
 **`portfolio_items` mérite une attention particulière** : `matching-spec` A9 en fait « la fuite
@@ -823,6 +1112,7 @@ une date ou un booléen. Jamais un nombre brut, jamais un texte non modéré.*
 | `profile_url` | `text` | `check (profile_url ~ '^https://')` |
 | `followers_count` | `bigint` | `check (followers_count >= 0)` — **valeur exacte** |
 | `engagement_rate` | `numeric(6,4)` | `check (between 0 and 1)` — **exact, jamais un flottant** |
+| `avg_reach_per_post` | `bigint` | `check (avg_reach_per_post >= 0)` — **portée moyenne par publication** (`07` RG47), valeur exacte. Déclarée **par publication, jamais par mois** : c'est le libellé qui donne son sens au nombre |
 | `figures_source` | `text` | `check (... in ('declared','agent_observed'))` |
 | `figures_measured_at` | `timestamptz` | — |
 | `is_ownership_verified` | `boolean` | `not null default false` |
@@ -835,13 +1125,32 @@ Le **sous-ensemble révélable** est explicite dans le `GRANT` :
 
 ```sql
 grant select (id, creator_account_id, network_code, handle, profile_url,
+              followers_count, engagement_rate, avg_reach_per_post,
+              figures_source, figures_measured_at,
               is_ownership_verified, verified_at)
   on profiles.creator_social_accounts to influx_advertiser;
 ```
 
-`followers_count` et `engagement_rate` **ne figurent pas dans ce `GRANT`** : même après révélation,
-la marque voit le pseudo et le lien, pas les chiffres exacts (elle voit les tranches et le badge).
-C'est un choix de modélisation qui mérite une confirmation de `product-owner` (§12.4, Q3).
+**Le `GRANT` est élargi aux chiffres exacts : Q3 du §12.4 est close par `07` RG45 et RG59.** La
+première rédaction excluait `followers_count` et `engagement_rate`, y compris après révélation.
+`product-owner` a tranché dans l'autre sens, et l'argument est bon : **une fois le `@` connu, la
+marque lit le nombre d'abonnés publiquement sur le réseau**. Le lui cacher ajoute de la friction
+sans rien protéger, et pousse à sortir de la plateforme pour vérifier.
+
+Trois conditions accompagnent cet élargissement, et elles sont dans le `GRANT` lui-même :
+
+1. **`figures_source` et `figures_measured_at` sont ouvertes avec les chiffres**, jamais sans. Un
+   nombre sans sa source ni sa date est un nombre qu'on ne peut pas contester (`07` RG45, RG50).
+2. **Le badge continue de ne constater qu'en tranches.** Ce que la marque lit ici est le
+   **déclaratif du créateur** ou le constat d'un agent ; ce que le badge affirme reste
+   `verification.badges` (§5.3). Les deux ne se confondent pas.
+3. **Rien de tout cela n'est lisible avant révélation** : la politique du §6.2 (a) est inchangée, et
+   la **vitrine anonymisée ne gagne aucune colonne exacte** — la règle de revue du paragraphe
+   précédent reste entière.
+
+> **Cet élargissement reste soumis à `expert-cybersecurite`** : le §12.1, point 3, lui renvoie
+> explicitement « la liste exacte des colonnes ouvertes après révélation ». `03` ne l'énumère pas à
+> ce jour. En cas de désaccord, c'est `03` qui tranche et ce document qui est corrigé.
 
 #### `profiles.creator_identities` — l'objet jamais révélé
 
@@ -908,6 +1217,83 @@ tables, sans reprise de droits.
 > plus une reprise de droits » à « un `GRANT` et une politique ». C'est l'illustration exacte de la
 > règle R2.
 
+> **Le profil marque porte la même énumération de statut** (`profiles.profile_status`, cinq valeurs
+> depuis cette version) et **le même mécanisme de re-validation partielle** que le profil créateur :
+> `06` point 4 et `07` point 6 décrivent exactement le même besoin sur deux objets différents. Voir
+> ci-dessous.
+
+#### La dernière version validée survit à une re-validation partielle
+
+**Trois documents indépendants ont signalé le même manque** (`06` point 4, `07` point 6, `09`
+point 12) : quand un membre corrige une faute de frappe sur un élément modéré, son profil ou sa
+campagne repasse en validation — et **disparaît** jusqu'à la décision de l'agent. Une correction de
+faute rend donc invisible ; c'est un défaut produit majeur, et c'est un manque de modèle.
+
+**Deux mécaniques différentes, parce que les deux objets ne se re-valident pas de la même façon.**
+
+| Objet | Régime de re-validation | Forme retenue |
+|---|---|---|
+| **Profil** (marque et créateur) | **Partielle** : seuls **les éléments modifiés** repassent en examen, les autres champs restent à effet immédiat (`06` RG9, `07` RG9) | La ligne vivante porte **toujours la version validée** ; les valeurs soumises attendent dans `profiles.profile_field_revisions` |
+| **Campagne** | **Globale** : la campagne entière repasse en `à valider` (`09` RG7) | La **dernière version publiée** est figée dans `campaigns.campaign_published_snapshots` et c'est **elle** que lit un créateur (§5.4) |
+
+Pour le profil, la forme « pendant » est meilleure que la forme « instantané » : elle évite de
+figer les champs à **effet immédiat** (chiffres, tarifs, disponibilité, secteurs refusés), qui
+doivent continuer à bouger pendant l'examen.
+
+#### `profiles.moderated_fields` — la liste fermée de ce qui se re-valide
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `code` | `text` | **PK** — ex. `creator.headline`, `creator.network_handle`, `advertiser.brand_name` |
+| `profile_kind` | `profiles.profile_kind` | `not null` — `advertiser` · `creator` |
+| `target_table` | `text` | `not null` — la table portant la valeur, pour la fonction d'application |
+| `label_key` | `text` | `not null` — clé de traduction (R8) |
+| `is_active` | `boolean` | `not null default true` |
+
+Une table plutôt qu'un `enum` : la liste des champs modérés bougera au fil de la modération réelle,
+et le backoffice doit pouvoir en désactiver un sans migration (§3.1).
+
+#### `profiles.profile_field_revisions` — la valeur soumise, en attente de décision
+
+| Colonne | Type | Contrainte | Rôle |
+|---|---|---|---|
+| `id` | `uuid` | PK | — |
+| `account_id` | `uuid` | `not null references identity.accounts(id)` | Le propriétaire du profil |
+| `field_code` | `text` | `not null references profiles.moderated_fields(code)` | **Ce qui change** |
+| `row_key` | `text` | — | Discriminant quand le champ est porté par une ligne fille (réseau, visuel de portfolio) |
+| `proposed_value` | `jsonb` | `not null check (pg_column_size(proposed_value) <= 8000)` | **La valeur soumise, pas la valeur publiée** |
+| `status` | `profiles.revision_status` | `not null default 'pending_review'` | `pending_review` · `approved` · `rejected` · `withdrawn` · `superseded` |
+| `submitted_at` | `timestamptz` | `not null default now()` | — |
+| `claimed_by_agent_id`, `claimed_at` | — | — | Même verrou de file qu'ailleurs (§5.6) |
+| `decided_by_agent_id`, `decided_at` | — | `check (status not in ('approved','rejected') or decided_by_agent_id is not null)` | Décision humaine obligatoire |
+| `rejection_reason_code` | `text` | FK, `check (status <> 'rejected' or rejection_reason_code is not null)` | Motif **typé**, jamais muet |
+| `sla_due_at` | `timestamptz` | `not null` | Calculé une fois, depuis `backoffice.sla_policies` (D39) |
+| `created_at`, `updated_at` | `timestamptz` | `not null` | — |
+
+```sql
+-- une seule revision en attente par champ (et par ligne fille) : une resoumission remplace
+create unique index profile_field_revisions_pending_idx
+  on profiles.profile_field_revisions (account_id, field_code, coalesce(row_key, ''))
+  where status = 'pending_review';
+
+comment on table profiles.profile_field_revisions is
+  'Valeurs soumises a moderation et EN ATTENTE. La ligne vivante du profil porte toujours la
+   derniere version VALIDEE : un profil ne devient jamais invisible parce que son auteur a corrige
+   une faute de frappe (06 RG9, 07 RG9, 09 RG7). A l''approbation, la fonction applique la valeur
+   sur la table cible et passe la revision a approved, dans la meme transaction.';
+```
+
+**Le profil ne change pas d'état pour une re-validation partielle.** `status` reste `published` ; ce
+qui est « en attente de validation » est **la révision**, pas le profil. C'est la seule lecture
+compatible avec « la dernière version validée reste affichée » — et elle a l'avantage de rendre la
+file de validation lisible : le backoffice liste des **révisions**, avec leur champ et leur
+ancienneté, pas des profils entiers à relire.
+
+**Les visuels de portfolio gardent leur mécanique propre** (`portfolio_items.moderation_status` et
+le déclencheur qui repasse à `pending` quand `storage_path` change) : un visuel est un objet, pas un
+champ, et son ancienne version reste affichée tant que la nouvelle n'est pas approuvée.
+
+
 ---
 
 ### 5.3 `verification` — preuves, badge, péremption (Lot 2)
@@ -945,16 +1331,49 @@ conditionnelle atomique** — voir le motif commun au §5.6, partagé avec la fi
 #### `verification.ownership_codes`
 
 `id`, `account_id`, `social_account_id`, `code text not null unique`, `expires_at not null`,
-`observed_by_agent_id`, `observed_at`, `revoked_at`, `created_at`.
+`observed_by_agent_id`, `observed_at`, **`observed_handle`**, **`observed_platform_account_ref`**,
+`revoked_at`, `created_at`.
 **L'agent constate lui-même le code en ligne** (règle 15) : `observed_by_agent_id` est donc
 obligatoire pour qu'une demande de propriété soit approuvée.
+
+> **Les deux colonnes ajoutées disent *ce qui* a été observé, et pas seulement *qui* l'a observé**
+> (`08`, écart 5). Sans elles, **RG78 est inapplicable** : on ne peut pas détecter qu'un badge porte
+> sur un compte qui a changé d'identifiant ou de titulaire, puisque rien n'a gardé trace de
+> l'identifiant vu le jour du constat.
+>
+> ```sql
+> comment on column verification.ownership_codes.observed_handle is
+>   'Identifiant @ du compte tel que l''agent l''a LU EN LIGNE au moment du constat (R7).
+>    Jamais recopie depuis le declaratif du createur, jamais mis a jour ensuite.
+>    C''est la valeur qu''on compare a l''identifiant courant pour detecter un changement (08 RG78).';
+>
+> comment on column verification.ownership_codes.observed_platform_account_ref is
+>   'Identifiant interne stable du compte chez le reseau (numeric user id), quand le reseau
+>    l''expose. Un pseudo change, cet identifiant non : c''est le seul element qui distingue
+>    « le meme compte renomme » de « un autre compte qui a repris le pseudo ». Nullable :
+>    tous les reseaux ne l''affichent pas.';
+> ```
+>
+> `check ((observed_at is null) = (observed_handle is null))` : un constat sans ce qui a été
+> constaté n'est pas un constat.
 
 #### `verification.evidence_files`
 
 `id`, `verification_request_id`, `storage_path` (compartiment **privé** `verification-evidence`),
-`content_type check (... in ('image/png','image/jpeg','application/pdf'))`, `byte_size`,
+`content_type check (content_type in ('image/png','image/jpeg'))`, `byte_size`,
 `checksum bytea`, `capture_period_start date`, `capture_period_end date`,
 `uploaded_by_account_id`, `uploaded_at`, `retention_due_at not null`, `deleted_at`.
+
+> **Le PDF est retiré, et `03` fait autorité.** La première rédaction autorisait
+> `application/pdf` ; la condition **E1-9** de `03` §6.6 le refuse au MVP, et `08` RG34 tranche dans
+> le même sens : **images uniquement**. `03` est le document à veto de `expert-cybersecurite` : la
+> contrainte est resserrée, jamais assouplie. La raison tient en une phrase : un PDF est un format
+> **actif** (scripts, contenus incorporés, calques) que personne chez INFLUX ne sait désarmer au
+> Lot 2, alors qu'une image est ré-encodée et débarrassée de ses métadonnées au dépôt.
+>
+> Conséquence de mise en œuvre : la restriction est portée **deux fois**, par le `CHECK` ci-dessus
+> **et** par la configuration du compartiment Storage (§5.11). Un contrôle d'API seul serait
+> contournable par une URL signée mal cadrée.
 
 **Ce qui rend cette table sensible :** les captures d'espaces analytiques contiennent presque
 toujours **des données de tiers** (commentateurs, miniatures, visages). Trois garanties :
@@ -982,8 +1401,10 @@ donnée.* Le modèle doit rendre chacun de ces quatre mots vérifiable.
 | `observed_period_start`, `observed_period_end` | `date` | La période lisible sur la pièce |
 | `declared_followers_at_decision` | `bigint` | Copie du déclaré **au moment de la décision** |
 | `expires_at` | `timestamptz` | `not null` pour `audience_verified` (90 jours, D34) |
-| `state` | `verification.badge_state` | `active` · `to_refresh` · `expired` · `revoked` |
-| `revoked_at`, `revocation_reason_code` | — | Retrait hors péremption (4 cas, règle 21) |
+| `state` | `verification.badge_state` | **Cinq valeurs : `active` · `to_refresh` · `to_reconfirm` · `expired` · `revoked`.** `to_reconfirm` (`08` RG78) n'est **pas** `expired` : le badge n'est pas périmé, c'est **l'identité du compte observé qui est en doute** après un changement de pseudo. Il reste **visible du créateur** et **n'est pas affiché comme actif à une marque** |
+| `revoked_at`, `revocation_reason_code` | `text references verification.revocation_reasons(code)` | Retrait hors péremption. **Le référentiel manquait** (`08` écart 2) : `revocation_reason_code` pointait dans le vide |
+| `observed_handle_at_decision` | `text` | **L'identifiant `@` lu en ligne le jour de la décision** (R7). C'est lui que la tâche quotidienne compare à l'identifiant courant pour lever une entrée « identifiant modifié à contrôler » (`08` RG78) |
+| `observed_platform_account_ref` | `text` | Identifiant interne stable du compte chez le réseau, si le réseau l'expose |
 | `created_at`, `updated_at` | `timestamptz` | — |
 
 ```sql
@@ -995,8 +1416,34 @@ alter table verification.badges
 
 create unique index badges_active_unique_idx
   on verification.badges (account_id, coalesce(social_account_id,'000...'::uuid), level)
-  where state in ('active','to_refresh');
+  where state in ('active','to_refresh','to_reconfirm');
 ```
+
+**`to_reconfirm` entre dans l'index d'unicité, et c'est délibéré** : un badge en cours de
+reconfirmation occupe la place. Sans cela, un créateur qui change de pseudo pourrait obtenir un
+second badge du même niveau sur le même réseau pendant que le premier attend un constat.
+
+#### `verification.revocation_reasons` — les motifs de retrait, distincts des motifs de refus
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `code` | `text` | **PK** |
+| `label_key`, `message_key` | `text` | `not null` — libellé interne et message envoyé au créateur (R8) |
+| `requires_comment` | `boolean` | `not null default false` |
+| `notifies_member` | `boolean` | `not null default true` |
+| `escalates_to_admin` | `boolean` | `not null default false` |
+| `is_active` | `boolean` | `not null default true` |
+
+Cinq codes chargés par la migration (`08` RG73) : `forged_evidence`, `account_closed`,
+`owner_changed`, `terms_breach`, **`influx_error`**.
+
+> **Pourquoi une table distincte de `verification.rejection_reasons`** : refuser une demande et
+> retirer un badge déjà accordé sont deux actes différents, avec deux messages différents, deux
+> publics différents et deux statistiques différentes. Les fondre dans une liste unique à colonne
+> `scope` interdirait la vraie clé étrangère (§3.1) — et surtout, **`influx_error` n'a de sens que
+> du côté du retrait** : c'est le motif qui dit qu'INFLUX s'est trompé, et sa fréquence est
+> l'indicateur de qualité de la procédure (`08` RG74). Noyé parmi des motifs qui accusent le
+> créateur, il ne serait jamais choisi.
 
 **L'écart déclaré / constaté** (`declared_followers_at_decision` − `observed_followers`) n'est jamais
 publié : c'est un signal interne pour le commercial (règle 5 de l'étape 4 de la skill). Il est calculé
@@ -1014,47 +1461,392 @@ personnes), `decided_at`, `outcome`.
 #### `campaigns.campaigns`
 
 *L'offre d'une marque : le brief, les livrables, le budget, le calendrier et les modalités de
-candidature.* Huit blocs, dont un **interne**.
+candidature.* **Neuf blocs, dont un interne.** `09` a relevé **douze écarts** sur cette table : elle
+est la plus largement corrigée de cette version.
 
 | Bloc | Colonnes |
 |---|---|
-| Identification | `id`, `advertiser_account_id`, `title` (≤ 140), `status`, `created_at`, `updated_at`, `published_at` |
-| Produit | `sector_code` (FK vers `reference.sectors`), `product_description` (≤ 4 000). **Le caractère sensible du secteur n'est pas recopié ici** : il se lit sur `reference.sectors.is_sensitive` (voir la note ci-dessous) |
+| Identification | `id`, `advertiser_account_id`, `title` (10 à 140), **`campaign_type_code`** (FK `reference.campaign_types`), `status`, `internal_reference` (≤ 40, **interne à la marque**), `created_at`, `updated_at`, `published_at` |
+| **Textes** | **`public_summary`** (120 à 400), **`brief`** (300 à 4 000), **`product_description`** (20 à 600), **`restrictions`** (≤ 1 000) + table `campaigns.campaign_key_messages` |
+| Produit et dotation | `sector_code` (FK `reference.sectors`), **`product_is_sent`**, **`product_value_band_code`** + **`product_value_currency`**, **`creator_keeps_product`**, **`shipping_costs_borne_by`** |
 | Livrables | table `campaigns.campaign_deliverables` |
+| **Droits et exclusivité** | **`usage_rights_code`** (FK), **`usage_rights_duration_band`**, **`usage_rights_territory_scope`**, **`exclusivity_band`** + table `campaigns.campaign_usage_territories` |
 | Ciblage | tables `campaigns.campaign_audience_targets` et `campaigns.campaign_topics` |
-| Budget | `per_creator_amount_min_minor`, `per_creator_amount_max_minor`, `currency`, **`total_budget_minor` (interne)** |
-| Calendrier | `starts_on date`, `ends_on date`, `publication_deadline date` |
-| Candidature | `verified_only boolean`, `max_applications smallint`, `applications_close_at` |
-| Interne | `owner_agent_id`, `internal_note`, `reviewed_by_agent_id`, `review_decided_at`, `rejection_reason_code` |
+| Budget | `per_creator_amount_min_minor`, `per_creator_amount_max_minor`, `currency`, **`remuneration_kind`**, **`creators_wanted`**, **`total_budget_minor` (interne)** + table `campaigns.campaign_price_bands` |
+| Calendrier | **`applications_close_on`**, **`content_due_on`**, `starts_on`, `ends_on` — **quatre dates civiles nommées** |
+| Candidature | `verified_only boolean`, `max_applications smallint`, **`active_applications_count`** + table `campaigns.campaign_requested_items` |
+| Interne | `owner_agent_id`, `internal_note`, `reviewed_by_agent_id`, `review_decided_at`, `rejection_reason_code`, **`second_reviewed_by_agent_id`**, **`second_review_decided_at`**, **`authorizations_declared_at`**, **`authorizations_declared_by_account_id`**, **`authorizations_declaration_locale`**, **`authorizations_declaration_hash`** |
 
 > **Note de modélisation.** Une colonne générée ne peut pas lire une autre table ; le caractère
 > sensible du secteur se lit donc par jointure sur `reference.sectors.is_sensitive`. C'est une
-> jointure sur une table de dix lignes : aucune raison de la dénormaliser.
+> jointure sur une table de dix lignes : aucune raison de la dénormaliser. **`09` RG84 va plus
+> loin : ce caractère ne doit jamais être recopié sur la campagne** — c'est pourquoi la revue
+> renforcée est contrôlée par un déclencheur qui lit le référentiel, et non par une colonne booléenne
+> de commodité (voir plus bas).
 
-Contraintes argent et calendrier, toutes déclaratives :
+#### Les six états, et rien d'autre
+
+```sql
+create type campaigns.campaign_status as enum
+  ('draft', 'pending_review', 'published', 'paused', 'closed', 'rejected');
+```
+
+`09` RG3 en exige **six**, et l'énumération n'était pas écrite dans la première version de ce
+document. `paused` et `closed` manquaient à l'appel de fait : sans eux, « en pause » se serait
+traduit par un booléen à côté du statut, c'est-à-dire par deux vérités sur le même sujet. `closed`
+est **irréversible** (transition contrôlée par déclencheur, comme `billing.deals`).
+
+**`campaigns.rejection_reasons`** — la liste de motifs de la file de validation des campagnes,
+citée au §2.2 et au §3.1 mais **jamais définie jusqu'ici** (relevé par le contrôle de complétude du
+2026-09-19). Même forme que ses sœurs, une table par file : `code` **PK**, `label_key`,
+`message_key` (le message envoyé à la marque, R8), **`is_correctable boolean not null`** *(sans
+valeur par défaut, même raisonnement que `matching.rejection_reasons`)*, `requires_comment`,
+`sort_order`, `is_active`. Codes du MVP (`09` RG9) : `brief_incomplet` · `budget_incoherent` ·
+`dates_incoherentes` · `secteur_sensible_sans_mention` · `contenu_illicite` ·
+`coordonnees_dans_le_brief` · `doublon` · `autre`.
+
+#### Le type de campagne : une table de référence, pas un `enum`
+
+`reference.campaign_types` porte les **sept** valeurs de `09` RG18, **sans valeur `other`**. C'est
+une taxonomie destinée à servir de critère de rapprochement demain (§3.1, troisième cas) : elle est
+donc **versionnée** — on ne réécrit jamais un code utilisé, on le retire (`retired_at`) et on en
+introduit un autre. Une valeur `other` en ferait un texte libre déguisé (`matching-spec` A2).
+
+#### Quatre textes, et non un seul
+
+Le champ unique `product_description` (≤ 4 000) fusionnait **quatre objets de nature différente**
+(`09` écart 2). Deux conséquences que le champ unique rendait impossibles :
+
+1. **Afficher une carte de campagne courte sans exposer le brief complet.** La carte lit
+   `public_summary` (120 à 400 caractères) ; le brief ne part que sur la fiche.
+2. **Modérer précisément.** Un refus porte sur « le brief contient une coordonnée directe », pas sur
+   « le texte de la campagne ». Avec la table de révisions du §5.2, chaque texte est un champ
+   modéré distinct : corriger le brief ne remet pas le résumé en examen.
 
 ```sql
 alter table campaigns.campaigns
+  add constraint campaigns_summary_length
+      check (public_summary is null or length(btrim(public_summary)) between 120 and 400),
+  add constraint campaigns_brief_length
+      check (brief is null or length(btrim(brief)) between 300 and 4000),
+  add constraint campaigns_product_length
+      check (product_description is null or length(btrim(product_description)) between 20 and 600),
+  add constraint campaigns_restrictions_length
+      check (restrictions is null or length(restrictions) <= 1000),
+  -- les quatre textes obligatoires le sont A LA SOUMISSION, pas au brouillon
+  add constraint campaigns_texts_required_when_submitted
+      check (status = 'draft'
+             or (public_summary is not null and brief is not null
+                 and product_description is not null));
+```
+
+`campaigns.campaign_key_messages` : `(campaign_id, position smallint)` **PK**,
+`body text not null check (length(btrim(body)) between 10 and 200)`, `created_at`.
+`check (position between 1 and 5)` — **1 à 5 puces** (`09` RG24, RG27). Une table fille plutôt qu'un
+tableau de textes : les puces sont **modérées une par une** et une seule d'entre elles peut porter le
+motif de refus.
+
+#### La dotation
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `product_is_sent` | `boolean` | **`not null`, sans valeur par défaut à l'écran** (`09` RG29) |
+| `product_value_band_code` | `text` | FK composite vers `reference.price_bands (currency, code)` avec `product_value_currency` — **une tranche, jamais un montant exact** (`09` RG30) |
+| `product_value_currency` | `char(3)` | FK `reference.currencies` |
+| `creator_keeps_product` | `boolean` | Conservé ou à rendre — « un produit à rendre n'est pas une rémunération » |
+| `shipping_costs_borne_by` | `text` | `check (... in ('brand','creator'))` |
+
+```sql
+alter table campaigns.campaigns
+  add constraint campaigns_gift_fields_consistency
+      check (
+        case when product_is_sent
+             then product_value_band_code is not null
+              and product_value_currency  is not null
+              and creator_keeps_product   is not null
+              and shipping_costs_borne_by is not null
+             else product_value_band_code is null
+              and product_value_currency  is null
+              and creator_keeps_product   is null
+              and shipping_costs_borne_by is null
+        end);
+```
+
+**La valeur de la dotation ne s'additionne jamais à la fourchette de rémunération** (`09` RG31) :
+ce sont deux colonnes distinctes, dans deux unités différentes (une tranche, une fourchette exacte),
+et aucune vue ne les somme. L'articulation des deux est **déclarée** par `remuneration_kind`.
+
+#### Les droits d'usage remontent au niveau de la campagne
+
+`09` RG41 est net : les droits d'usage, leur durée, leur territoire et l'exclusivité sont des
+**conditions de la campagne entière**, pas des attributs d'une ligne de livrable — « une campagne
+dont le reel et la story auraient des droits différents est deux campagnes ». `usage_rights_code` et
+`exclusivity_band` **quittent donc `campaign_deliverables`** pour `campaigns.campaigns`, et deux
+manques sont comblés au passage : la **durée** et le **territoire**.
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `usage_rights_code` | `text` | `not null references reference.usage_rights(code)` |
+| `usage_rights_duration_band` | `text` | `check (... in ('1m','3m','6m','12m','unlimited'))` — `09` RG39 |
+| `usage_rights_territory_scope` | `text` | `check (... in ('worldwide','selected_countries'))` |
+| `exclusivity_band` | `text` | `check (... in ('none','le_1m','le_3m','negotiable'))` — **mêmes bornes que le profil créateur** (`09` RG42) |
+
+```sql
+alter table campaigns.campaigns
+  -- des droits sans duree ni territoire n'existent pas dans ce produit (RG39)
+  add constraint campaigns_usage_rights_need_terms
+      check (usage_rights_code = 'none'
+             or (usage_rights_duration_band is not null
+                 and usage_rights_territory_scope is not null)),
+  -- une campagne UGC ne peut pas ne pas ceder de droits (RG43)
+  add constraint campaigns_ugc_requires_usage_rights
+      check (campaign_type_code <> 'ugc_delivered' or usage_rights_code <> 'none');
+```
+
+`campaigns.campaign_usage_territories` : `(campaign_id, country_code)` **PK**, FK
+`reference.countries`. Obligatoire dès que `usage_rights_territory_scope = 'selected_countries'` —
+et, comme toute contrainte « au moins un fils », **portée par la fonction de soumission et une
+requête de contrôle**, pas par une contrainte déclarative (même aveu qu'au §5.7 : je préfère le dire
+que de laisser croire à une garantie qui n'existe pas).
+
+#### Quatre dates nommées, et un ordre écrit en base
+
+`publication_deadline` était ambiguë : elle pouvait désigner la date limite de candidature comme la
+fin de la période de publication. Elle **disparaît**, remplacée par les quatre dates de `09` RG69,
+toutes des **dates civiles** (R4, `09` RG73) :
+
+| Colonne | Caractère | Ce qu'elle dit |
+|---|---|---|
+| `applications_close_on` | **Obligatoire** | Date limite de candidature. Au-delà, la campagne n'accepte plus de candidature mais **reste lisible** (`09` RG72) |
+| `content_due_on` | Recommandée | Date de livraison des contenus à la marque |
+| `starts_on` | **Obligatoire** | Début de la période de publication |
+| `ends_on` | **Obligatoire** | Fin de la période de publication |
+
+```sql
+alter table campaigns.campaigns
+  -- RG70 : l'ordre des quatre dates, en une seule contrainte lisible
+  add constraint campaigns_dates_ordered
+      check (
+        applications_close_on <= coalesce(content_due_on, starts_on)
+        and coalesce(content_due_on, applications_close_on) <= starts_on
+        and starts_on <= ends_on),
+  -- RG74 : au-dela de 12 mois, c'est un contrat d'ambassadeur, pas une campagne
+  add constraint campaigns_publication_window_max_12m
+      check (ends_on <= starts_on + interval '12 months'),
+  -- RG71 : aucune des quatre dates n'est dans le passe A LA PUBLICATION.
+  -- Non declaratif (depend de now()) : controle par la fonction de publication, qui refuse
+  -- avec le motif type « calendrier depasse ».
+  add constraint campaigns_dates_required_when_submitted
+      check (status = 'draft'
+             or (applications_close_on is not null and starts_on is not null and ends_on is not null));
+```
+
+> **Une contrainte qui compare une date à `now()` ne peut pas être déclarative** : `CHECK` doit être
+> immuable. Le contrôle « aucune date dans le passé » vit donc dans la fonction de publication, et
+> c'est dit ici pour que personne ne croie la base garante de cette règle-là.
+
+#### Budget : nature, nombre de créateurs, et tranches dérivées
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `remuneration_kind` | `campaigns.remuneration_kind` | `not null` — `cash` · `cash_and_gift` · `gift_only` · `affiliate` (`09` RG62). **Un `enum` et non une table** : le code branche dessus (§3.1, premier cas) |
+| `creators_wanted` | `smallint` | `check (creators_wanted between 1 and 50)` (`09` RG66) |
+
+```sql
+alter table campaigns.campaigns
+  -- RG63 : « dotation seule » signifie qu'il n'y a pas de fourchette en numeraire
+  add constraint campaigns_gift_only_has_no_cash_range
+      check (remuneration_kind <> 'gift_only'
+             or num_nonnulls(per_creator_amount_min_minor, per_creator_amount_max_minor) = 0),
+  -- RG62 : « numeraire et dotation » suppose un produit envoye
+  add constraint campaigns_cash_and_gift_requires_product
+      check (remuneration_kind <> 'cash_and_gift' or product_is_sent),
+  -- RG55, RG64 : toute autre nature exige une fourchette, meme estimee (affiliation comprise)
+  add constraint campaigns_cash_range_required
+      check (status = 'draft' or remuneration_kind = 'gift_only'
+             or (per_creator_amount_min_minor is not null and per_creator_amount_max_minor is not null)),
+  -- RG68 : un minimum strictement positif, un maximum au moins egal
+  add constraint campaigns_min_amount_positive
+      check (per_creator_amount_min_minor is null or per_creator_amount_min_minor > 0),
   add constraint campaigns_budget_range
       check (per_creator_amount_min_minor is null
              or per_creator_amount_max_minor is null
              or per_creator_amount_min_minor <= per_creator_amount_max_minor),
+  -- un montant sans devise n'existe pas (R3), dotation comprise
   add constraint campaigns_amount_needs_currency
-      check (num_nonnulls(per_creator_amount_min_minor, per_creator_amount_max_minor) = 0
-             or currency is not null),
-  add constraint campaigns_dates_ordered
-      check (ends_on is null or starts_on is null or ends_on >= starts_on),
-  add constraint campaigns_published_needs_review
-      check (status <> 'published' or reviewed_by_agent_id is not null);
+      check (num_nonnulls(per_creator_amount_min_minor, per_creator_amount_max_minor,
+                          total_budget_minor) = 0
+             or currency is not null);
 ```
 
-**Ce qui rend cette table sensible :** `total_budget_minor` est une **donnée interne** — le cadrage
-dit « rémunération par créateur publiée, budget total interne ». Aucun `GRANT` de cette colonne au
-rôle créateur. C'est exactement le genre de règle qu'un filtre applicatif oublie un jour.
+**Le rapport maximum / minimum supérieur à 10 n'est pas une contrainte** : `09` RG68 demande une
+**alerte au modérateur**, pas un refus. Une fourchette de 100 à 50 000 est une absence de budget,
+mais c'est au modérateur de le dire, pas à la base de le refuser.
 
-`campaigns.campaign_deliverables` : `(campaign_id, network_code, format_code)`, `quantity`,
-`usage_rights_code` (FK), `exclusivity_band`, `notes`. Les **droits d'usage et l'exclusivité** sont
-« les deux premières causes de désaccord en négociation » : ils sont structurés, pas en texte libre.
+**`campaigns.campaign_price_bands` — la tranche de budget dérivée** (`09` écart 7, RG59) :
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `campaign_id` | `uuid` | **PK avec `price_band_code`**, FK |
+| `currency` | `char(3)` | `not null` — la devise de la campagne, recopiée pour porter la clé étrangère composite |
+| `price_band_code` | `text` | `not null`, FK composite `(currency, price_band_code) → reference.price_bands (currency, code)` |
+| `derived_at` | `timestamptz` | `not null` — quand la dérivation a été faite |
+
+*Une fourchette exacte 1 000 – 2 000 EUR couvre une à plusieurs tranches du référentiel ; d'où une
+table fille et non une colonne.* Cette table sert **deux usages, et c'est ce qui la justifie** :
+
+1. **Le filtrage** de la recherche de campagnes côté créateur, qui compare des **codes**, jamais des
+   montants ;
+2. **L'affichage du net créateur estimé**, lu directement dans `reference.price_bands.net_*` — donc
+   **sans aucune multiplication d'un montant par un taux** (`09` RG59, `03` C(32), contrôle T16).
+
+La dérivation est faite **à la publication**, une fois, par une fonction déterministe ; elle est
+refaite si la fourchette change (ce qui repasse de toute façon en validation, `09` RG7). Si la devise
+ne dispose d'aucune tranche, la table reste vide : **le net n'est alors pas affiché**, jamais estimé
+à la volée (`09`, cas limite).
+
+#### Candidature : ce que la marque demande, et ce qui est compté
+
+`campaigns.requested_items` (référentiel, cinq codes de `09` RG77) et
+`campaigns.campaign_requested_items` `(campaign_id, item_code)` **PK**, **≤ 4** par déclencheur de
+comptage.
+
+```sql
+comment on table campaigns.campaign_requested_items is
+  'Elements que la marque met en avant a l''intention du createur (09 RG77).
+   CHAMP INFORMATIF UNIQUEMENT (arbitrage chef-de-projet du 2026-09-19) :
+   il ne modifie AUCUN champ du formulaire de candidature, qui est unique et fixe (11 RG47).
+   La motivation reste obligatoire sur toute candidature, quelle que soit la campagne :
+   c''est cette invariance qui garantit le motif ecrit exige par A9.
+   Toute lecture de cette table qui conditionnerait un champ de formulaire est un defaut.';
+```
+
+**`active_applications_count`** (`integer not null default 0`) est maintenue par déclencheur sur
+`matching.introductions` : c'est le compteur que `max_applications` contraint (§5.6, `11` écart 2).
+
+#### La revue renforcée à deux validateurs
+
+`reviewed_by_agent_id` était **unique** : il n'y avait aucune place pour le second décideur qu'exige
+`09` RG85 sur un secteur sensible, ni pour la déclaration d'autorisations.
+
+| Colonne | Type | Rôle |
+|---|---|---|
+| `second_reviewed_by_agent_id` | `uuid` | FK interne. **Doit différer du premier** |
+| `second_review_decided_at` | `timestamptz` | — |
+| `authorizations_declared_at` | `timestamptz` | Horodatage de la case **non pré-cochée** de RG85 |
+| `authorizations_declared_by_account_id` | `uuid` | FK — **qui** a déclaré, côté marque |
+| `authorizations_declaration_locale` | `char(2)` | La langue dans laquelle le texte a été présenté |
+| `authorizations_declaration_hash` | `bytea` | **Empreinte du texte exact affiché** — même mécanique que `identity.terms_acceptances` : une déclaration dont on ne sait plus ce qu'elle disait ne prouve rien |
+
+```sql
+alter table campaigns.campaigns
+  add constraint campaigns_published_needs_review
+      check (status <> 'published' or reviewed_by_agent_id is not null),
+  add constraint campaigns_second_reviewer_is_distinct
+      check (second_reviewed_by_agent_id is null
+             or second_reviewed_by_agent_id <> reviewed_by_agent_id),
+  add constraint campaigns_declaration_is_complete
+      check (authorizations_declared_at is null
+             or (authorizations_declared_by_account_id is not null
+                 and authorizations_declaration_locale is not null
+                 and authorizations_declaration_hash   is not null));
+```
+
+**Le reste ne peut pas être déclaratif, et c'est assumé** : « une campagne de secteur sensible exige
+un second validateur et une déclaration » suppose de lire `reference.sectors.is_sensitive`, ce qu'un
+`CHECK` ne sait pas faire — et `09` RG84 interdit de recopier ce caractère sur la campagne. Un
+déclencheur `BEFORE UPDATE` `campaigns.assert_enhanced_review()` fait la jointure et refuse le
+passage à `published` si le second validateur ou la déclaration manque. C'est le **seul** endroit du
+domaine `campaigns` où une règle de publication n'est pas déclarative ; elle est doublée d'un test
+d'intégration.
+
+#### `campaigns.campaign_published_snapshots` — ce qu'un créateur lit
+
+*La dernière version publiée d'une campagne, figée, et servie telle quelle pendant qu'une nouvelle
+version est en examen.*
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `id` | `uuid` | PK |
+| `campaign_id` | `uuid` | `not null` FK |
+| `version` | `smallint` | `not null`, `unique (campaign_id, version)` |
+| `payload` | `jsonb` | `not null check (pg_column_size(payload) <= 32000)` — **la projection publiée**, codes et montants uniquement |
+| `content_hash` | `bytea` | `not null` — empreinte de ce qui a été montré aux créateurs |
+| `published_at` | `timestamptz` | `not null` |
+| `published_by_agent_id` | `uuid` | `not null` FK interne |
+| `second_published_by_agent_id` | `uuid` | FK interne — revue renforcée |
+| `created_at` | `timestamptz` | `not null` |
+
+Et sur la campagne : `current_snapshot_id uuid references campaigns.campaign_published_snapshots(id)`.
+
+**Deux bénéfices, dont un que je n'attendais pas en écrivant la correction :**
+
+1. **La dernière version validée reste affichée** pendant une re-validation (`09` RG7) : la ligne
+   vivante peut repasser en `pending_review`, l'instantané, lui, ne bouge pas.
+2. **Le budget total interne ne peut pas fuiter.** Le rôle créateur ne lit **jamais** la ligne
+   vivante : il lit l'instantané, qui **ne contient structurellement pas** `total_budget_minor`,
+   `internal_reference` ni `internal_note` (`09` RG65). Ce n'est plus un `GRANT` de colonne à ne pas
+   oublier — c'est une donnée qui n'existe pas dans l'objet lu.
+
+> **Un `jsonb`, et j'assume l'exception** (la seconde du modèle, avec `leads.sync_settings`). Une
+> table de versions à colonnes identiques doublerait trente colonnes et leurs contraintes, et
+> divergerait à la première évolution du schéma. Ici, l'instantané n'est pas une source de vérité :
+> **c'est une copie datée de ce qui a été montré**, dont la forme est validée par un schéma zod dans
+> `packages/contracts` et dont l'empreinte est conservée. La vérité reste la ligne vivante.
+
+#### Les tables filles du ciblage et des livrables
+
+`campaigns.campaign_deliverables` : `(campaign_id, network_code, format_code)` **PK**, `quantity`,
+`notes`. **`usage_rights_code` et `exclusivity_band` n'y sont plus** : ils ont remonté sur la
+campagne (RG41).
+
+**`campaigns.campaign_audience_targets`, détaillée** (`09` écart 10, `10`). Une ligne par valeur
+visée, **toujours un code de liste fermée, jamais un pourcentage** :
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `campaign_id` | `uuid` | `not null` FK |
+| `dimension` | `campaigns.audience_dimension` | `not null` — `country` · `language` · `audience_band` · `age_band` · `audience_gender` |
+| `country_code` | `char(2)` | FK `reference.countries` |
+| `language_code` | `char(2)` | FK `reference.languages` |
+| `audience_band_code` | `text` | FK `reference.audience_bands` |
+| `age_band_code` | `text` | FK `reference.age_bands` |
+| `audience_gender_code` | `text` | FK `reference.audience_genders` |
+| `value_code` | `text` | **colonne générée `stored`** = `coalesce(...)` des cinq précédentes |
+
+```sql
+alter table campaigns.campaign_audience_targets
+  add constraint audience_targets_exactly_one_value
+      check (num_nonnulls(country_code, language_code, audience_band_code,
+                          age_band_code, audience_gender_code) = 1),
+  add constraint audience_targets_value_matches_dimension
+      check ((dimension = 'country'         and country_code         is not null)
+          or (dimension = 'language'        and language_code        is not null)
+          or (dimension = 'audience_band'   and audience_band_code   is not null)
+          or (dimension = 'age_band'        and age_band_code        is not null)
+          or (dimension = 'audience_gender' and audience_gender_code is not null)),
+  add primary key (campaign_id, dimension, value_code);
+```
+
+**Cinq colonnes typées plutôt qu'un couple `(dimension, value_code)` en texte libre** : c'est la
+seule forme qui garde une **vraie clé étrangère** par dimension (R1). Le prix est une colonne
+générée ; le bénéfice est qu'un code de pays inexistant ou une tranche d'âge inventée sont refusés
+**par la base**, et que les mêmes référentiels servent au profil créateur et à la campagne — sans
+quoi aucun rapprochement, humain aujourd'hui ou pondéré demain, ne serait possible
+(`09` RG49 à RG54).
+
+**Aucune tranche d'âge sous 18 ans n'est modélisable** : `reference.age_bands` porte
+`check (min_age >= 18)`. Une campagne ne peut donc pas viser une audience mineure, même par erreur
+de saisie (`09` RG51, D15).
+
+`campaigns.campaign_topics` : `(campaign_id, topic_code)`, ≤ 3 (déclencheur de comptage), FK
+`reference.topics` — **le même référentiel que les thématiques d'un créateur** (`09` RG54).
+
+**Ce qui rend `campaigns.campaigns` sensible :** `total_budget_minor`, `internal_reference` et
+`internal_note` sont des **données internes à la marque** — le cadrage dit « rémunération par
+créateur publiée, budget total interne ». Depuis cette version, la protection n'est plus seulement
+un `GRANT` de colonne à ne pas oublier : **le rôle créateur lit l'instantané publié, jamais la ligne
+vivante**.
 
 ---
 
@@ -1066,9 +1858,21 @@ rôle créateur. C'est exactement le genre de règle qu'un filtre applicatif oub
 garde-fou anti-aspiration et **le jeu de données qui permettra de régler D11**.
 
 `id`, `account_id`, `actor_role`, `view_mode` (`advertiser_anonymous` · `agent_identified`),
-`campaign_id` (nullable), `filters jsonb not null`, `result_count int not null`,
-`page_reached smallint not null`, `blocked_by_k_anonymity boolean not null`,
-`request_id`, `created_at`. **Append-only.**
+`campaign_id` (nullable), `filters jsonb not null`, **`sort_code text not null`**,
+**`facet_config_version bigint not null references search.facet_config_versions(version)`**,
+`result_count int not null`, `page_reached smallint not null`,
+`blocked_by_k_anonymity boolean not null`, `request_id`, `created_at`. **Append-only.**
+
+> **Les deux colonnes ajoutées sont ce qui rend le journal interprétable** (`10` écart 4). Sans le
+> **tri actif** et sans la **version des facettes en vigueur au moment de la recherche**, une mesure
+> avant / après un changement de pondération ou d'ouverture de facette (`10` RG88) ne veut rien
+> dire : on comparerait deux populations de requêtes produites par deux moteurs différents, sans
+> savoir lequel a produit quoi. Ce sont **deux colonnes qui coûtent seize octets** et sans
+> lesquelles tout le journal perd sa seconde finalité.
+>
+> `sort_code` est une liste fermée contrôlée par `CHECK` : le tri par défaut de `10` RG35 (`default`)
+> est le seul au Lot 3, mais le jour où un second tri apparaît, les recherches passées restent
+> lisibles.
 
 #### `search.search_impressions`
 
@@ -1083,6 +1887,88 @@ tard.
 `search.shortlist_items` (`shortlist_id`, `creator_account_id`, `added_at`, `note`) : la sélection
 privée de la marque. **Aucune notification au créateur** : l'ajout à une sélection n'est pas un acte
 de mise en relation.
+
+#### `search.impression_reasons` — l'explication affichée, rejouable et mesurable
+
+*Les 2 à 4 raisons montrées sur une carte (« Proposé car : … »), rattachées à l'impression qui les a
+portées.*
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `search_query_id` | `uuid` | **PK avec les deux suivantes**, FK composite vers `search.search_impressions` |
+| `creator_account_id` | `uuid` | idem |
+| `reason_code` | `text` | `not null references search.explanation_reasons(code)` |
+| `position` | `smallint` | `not null check (position between 1 and 4)` — l'ordre d'affichage, qui suit les paliers de `10` RG35 |
+| `reason_params` | `jsonb` | `not null default '{}' check (pg_column_size(reason_params) <= 500)` — **codes et tranches uniquement** |
+
+`search.explanation_reasons` est le référentiel des raisons (`code`, `label_key`, `tier` — le palier
+de tri dont la raison est issue, `is_active`).
+
+**Pourquoi rattacher l'explication à l'impression plutôt que la recalculer** (`10` écart 5) : parce
+que le calcul changera. Les paliers de tri, les facettes ouvertes et les libellés évolueront, et
+rejouer aujourd'hui l'explication d'une recherche de mars ne reproduira pas ce que la marque a lu.
+Or la question qui compte pour D11 est précisément **« quelle raison affichée a converti ? »** :
+elle exige la raison **telle qu'elle a été montrée**.
+
+**Deux garanties de fond, portées par la forme de la table :**
+
+1. **`reason_params` ne contient jamais un nombre exact** (`10` RG41, règle 4). Une explication
+   stocke `{"threshold_band":"gt_70"}`, jamais `{"share":72}` : un pourcentage exact dans une
+   explication annule la facette qu'il illustre, et il serait ici **conservé** — donc exportable.
+2. **Aucun libellé français ni anglais** (R8) : un code, des paramètres, et les fragments ICU
+   vivent dans `next-intl` (`10` RG41, règle 6).
+
+Volume : 2 à 4 lignes par impression, soit au plus 48 par recherche. Négligeable, et irremplaçable
+plus tard.
+
+#### `search.facet_settings`, `search.facet_config_versions` et `search.search_settings`
+
+*Ce qui est ouvert, ce qui est plafonné, et depuis quand.* Trois documents demandent la même chose
+sous trois angles (`10` écarts 2 et 3) : **les réglages de la recherche sont des données, pas des
+constantes**.
+
+| Table | Clé | Contenu |
+|---|---|---|
+| `search.facet_settings` | `facet_code` **PK** | `wave smallint not null` (vague d'ouverture), `is_open boolean not null`, `display_order smallint not null`, `updated_by_account_id`, `updated_at` — `10` RG11 |
+| `search.facet_config_versions` | `version bigint identity` **PK** | `changed_at`, `changed_by_account_id`, `snapshot jsonb not null`, `note`. **Append-only** : une ligne par changement de configuration de facettes |
+| `search.search_settings` | `key text` **PK**, liste fermée par `CHECK` | `value jsonb not null`, `updated_by_account_id`, `updated_at` |
+
+Clés de `search.search_settings`, fermées par `CHECK` (`10` RG2, RG57, RG63) :
+`is_open_to_advertisers`, `k_anonymity_threshold` (5), `page_size` (12), `max_pages` (5),
+`rate_limits` (30/h, 200/j, 60 profils ouverts/j), `cold_profile_quota`,
+`critical_mass_thresholds` (30 profils publiés, 5 par thématique), `alert_thresholds`,
+`region_display_threshold` (5, lu par `profiles.creator_public_profiles.residence_region_code`).
+
+Trois garanties, calquées sur `leads.sync_settings` (§5.8) : l'écriture est réservée à
+`influx_admin` par une fonction `SECURITY DEFINER` qui **écrit un événement chaîné
+`search.settings_changed`** (ancienne et nouvelle valeur) ; **toute modification de `facet_settings`
+insère une ligne dans `facet_config_versions`**, ce qui donne à `search_queries` la version à
+recopier ; et la lecture se fait **à chaque recherche**, jamais au démarrage du service.
+
+> **La même exception clé/valeur qu'au §5.8, pour la même raison** : la liste des clés est fermée
+> par un `CHECK`, chaque valeur a son schéma zod, et l'alternative — une colonne par réglage —
+> imposerait une migration à chaque nouveau plafond, c'est-à-dire exactement ce que « modifiable
+> sans redéploiement » cherche à éviter.
+
+#### `search.supply_counters` — les compteurs de masse critique (D38)
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `snapshot_on` | `date` | **PK avec les deux suivantes** |
+| `dimension` | `text` | `not null check (dimension in ('global','topic','country'))` |
+| `dimension_value` | `text` | `not null default '*'` |
+| `published_profiles_count` | `integer` | `not null check (>= 0)` |
+| `searchable_profiles_count` | `integer` | `not null check (>= 0)` |
+| `computed_at` | `timestamptz` | `not null` |
+
+Une ligne par jour et par valeur, écrite par la tâche quotidienne (`10` RG2). Elle sert à
+**proposer** l'ouverture de la recherche, jamais à l'activer : l'atteinte des seuils lève une alerte
+au backoffice, la bascule de `search_settings.is_open_to_advertisers` reste **une décision humaine**.
+
+Pourquoi stocker plutôt que compter à la demande : ce qu'on veut savoir n'est pas « combien
+aujourd'hui », c'est **« la courbe monte-t-elle ? »**. Une série datée répond aux deux ; un `count(*)`
+ne répond qu'à la première, et jamais rétrospectivement. L'index partiel
+`creator_public_profiles (status, is_searchable)` du §10.3 sert exactement à alimenter cette tâche.
 
 **Ce qui rend ces tables sensibles :** `filters` décrit ce qu'une marque cherche — une information
 commerciale. Et le journal sert **deux finalités** (sécurité anti-aspiration, amélioration produit),
@@ -1103,6 +1989,7 @@ l'objet dont tout le modèle économique dépend.
 | `reference` | `text` | `not null unique check (reference ~ '^MER-\d{4}-\d{6}$')` | `MER-2026-000123`. Citée dans les e-mails, les fils et la future facture |
 | `origin` | `matching.introduction_origin` | `not null`, **immuable** (déclencheur) | `brand_contact_request` · `creator_application` · `influx_proposal` |
 | `origin_reason` | `text` | `check (origin <> 'influx_proposal' or length(btrim(coalesce(origin_reason,''))) >= 10)` | **Motif écrit obligatoire** pour la proposition INFLUX |
+| **`proposal_batch_id`** | `uuid` | `check (proposal_batch_id is null or origin = 'influx_proposal')` | **Le lot d'envoi d'une proposition INFLUX** (`13` RG53 à RG59). Sans table associée, ci-dessous |
 | `advertiser_account_id` | `uuid` | `not null` FK | — |
 | `creator_account_id` | `uuid` | `not null` FK, `check (<> advertiser_account_id)` | — |
 | `campaign_id` | `uuid` | FK, `check (origin = 'brand_contact_request' or campaign_id is not null)` | Obligatoire pour la candidature et la proposition |
@@ -1114,8 +2001,14 @@ l'objet dont tout le modèle économique dépend.
 | `advertiser_accepted_at` | `timestamptz` | — | Acceptation **à l'écran de cette mise en relation** |
 | `creator_accepted_at` | `timestamptz` | — | Idem |
 | `identity_revealed_at` | `timestamptz` | **write-once** (déclencheur + `REVOKE UPDATE` de colonne) | Date de naissance de la créance V2, point de départ de D29 |
-| `status` | `matching.introduction_status` | `not null default 'pending_review'` | `pending_review` · `in_review` · `approved` · `rejected` · `withdrawn` · `expired` |
-| `rejection_reason_code` | `text` | FK, `check (status <> 'rejected' or rejection_reason_code is not null)` | Motif **typé**, jamais muet |
+| `status` | `matching.introduction_status` | `not null default 'pending_review'` | `pending_review` · `in_review` · `approved` · `rejected` · `withdrawn` · `expired`. **`approved` n'est terminal qu'une fois révélée** (`13` RG103, ci-dessous) |
+| `rejection_reason_code` | `text` | FK `matching.rejection_reasons`, `check (status <> 'rejected' or rejection_reason_code is not null)` | Motif **typé**, jamais muet. La valeur **`declined_by_party`** distingue le refus B du refus A (ci-dessous) |
+| `expiry_reason` | `matching.expiry_reason` | `check ((status = 'expired') = (expiry_reason is not null))` | **Le sous-motif de la clôture sans suite** (`11` écart 4, RG77), **sept** valeurs : `campaign_closed` · `application_deadline_passed` · `advertiser_suspended` · `creator_unavailable` · `no_advertiser_answer` · **`no_creator_answer`** · **`no_answer_both_parties`** (`13` RG95 ; les deux dernières manquaient). Sans lui, le tableau de bord confond **une campagne fermée** et **une marque silencieuse** — deux problèmes opposés, l'un de catalogue, l'autre de relance commerciale. Le message envoyé au créateur, lui, reste **neutre et identique** (`11` RG77) : le sous-motif est interne |
+| **`declining_side`** | `matching.party_side` | `check ((declining_side is not null) = (rejection_reason_code = 'declined_by_party'))` | **Refus B** : quelle partie a refusé — `advertiser` · `creator` (`13` RG82) |
+| **`decline_reason_code`** | `text` | `references matching.decline_reasons(code)`, `check (decline_reason_code is null or declining_side is not null)` | Motif de la **liste B**, **jamais communiqué à l'autre partie** |
+| **`decline_comment`** | `text` | `check (length(decline_comment) <= 1000)` | Commentaire facultatif de la partie qui refuse. Jamais transmis (`13` RG87) |
+| **`declined_at`** | `timestamptz` | `check ((declining_side is null) = (declined_at is null))` | Horodatage du refus B |
+| **`declined_by_account_id`** | `uuid` | FK, `check ((declining_side is null) = (declined_by_account_id is null))` | L'auteur réel du refus, jamais déduit du côté |
 | `sla_due_at` | `timestamptz` | `not null` | Calculé **une fois**, à la création, depuis `backoffice.sla_policies` (**D39 : 1 jour ouvré**) |
 | `claimed_by_agent_id`, `claimed_at` | — | — | Prise en charge, verrou |
 | `decided_at` | `timestamptz` | — | Mesure de la file |
@@ -1203,30 +2096,150 @@ create trigger introductions_write_once
   for each row execute function matching.assert_reveal_is_write_once();
 
 revoke update (identity_revealed_at, origin, reference, advertiser_country_at_intro,
-               creator_country_at_intro)
+               creator_country_at_intro,
+               -- ajoutees le 2026-09-19 : l'acceptation et l'etat ne s'ecrivent QUE par fonction
+               advertiser_accepted_at, creator_accepted_at,
+               advertiser_terms_version_id, creator_terms_version_id,
+               status, owner_agent_id)
   on matching.introductions from influx_agent, influx_admin, influx_advertiser, influx_creator;
 ```
 
-Aucun rôle applicatif ne peut écrire ces colonnes par une mise à jour ordinaire. **La seule porte est
-une fonction `SECURITY DEFINER`**, qui exécute en une transaction l'intégralité de l'étape 5 du
-processus (document `01` §3) :
+Aucun rôle applicatif ne peut écrire ces colonnes par une mise à jour ordinaire. **Les seules portes
+sont des fonctions `SECURITY DEFINER`** — et elles sont **quatre**, pas une.
+
+#### Les quatre fonctions du cycle de mise en relation (corrigé le 2026-09-19)
+
+> **Correction.** `docs/mvp/03-matrice-des-droits-et-rls.md` C(21) décrivait, dans sa première
+> rédaction, **une seule** fonction atomique nommée `open_introduction(...)`, censée vérifier que
+> son appelant est **un agent avec `aal2`**. La spécification `docs/mvp/13-file-de-validation-et-mise-en-relation.md`
+> §F établit que le déclencheur réel de la révélation est **la seconde acceptation d'un membre**
+> (RG74), pas une action de commercial : la condition était inexécutable, et le nom
+> `open_introduction()` entrait en collision avec la fonction de **création** décrite ici même.
+> C(21) a été réécrite en **quatre contrats** (C(21a) à C(21d)) le 2026-09-19 ; ce paragraphe en est
+> la contrepartie dans le modèle de données. **Les deux documents disent désormais exactement la même
+> chose, et `03` fait foi sur le contrôle d'accès.**
+
+| Moment | Fonction | Appelant | Pose `identity_revealed_at` ? | `03` |
+|---|---|---|---|---|
+| **0. Création** | `matching.open_introduction(...)` | Membre initiateur, ou agent `aal2` (proposition INFLUX) | **Non** | C(21a) |
+| **1. Décision** | `matching.approve_introduction(...)` | Agent `aal2` **titulaire du verrou** | **Non**, sauf la branche `13` RG43 | C(21b) |
+| **2. Acceptation** | `matching.record_introduction_acceptance(...)` | **La marque ou le créateur, pour lui-même** | **Non** directement | C(21c) |
+| **2bis. Refus** | `matching.record_introduction_decline(...)` | Idem, mêmes contrôles | **Jamais** | C(21c) |
+| **3. Révélation** | `matching.reveal_identity(...)` | **Aucun rôle applicatif** — appelée en interne par 1 et 2 | **Oui, seule porte** | C(21d) |
+
+**Le rôle propriétaire.** Les quatre fonctions appartiennent à un rôle dédié
+`influx_intro_owner` (`NOLOGIN`, **non accordé à `influx_app`**, membre d'aucun rôle applicatif),
+seul détenteur des droits d'écriture sur `identity_revealed_at`, `messaging.conversations` et
+`messaging.conversation_participants`. C'est **la propriété commune** qui permet aux moments 1 et 2
+d'appeler le moment 3 : `reveal_identity` ne reçoit **aucun `GRANT EXECUTE`**, donc aucun droit ne
+peut être élargi un jour par distraction.
+
+```sql
+revoke execute on all functions in schema matching from public;
+
+grant execute on function matching.open_introduction(...)
+  to influx_advertiser, influx_creator, influx_agent, influx_admin;
+grant execute on function matching.approve_introduction(...)
+  to influx_agent, influx_admin;                 -- aal2 verifie DANS la fonction
+grant execute on function matching.record_introduction_acceptance(...)
+  to influx_advertiser, influx_creator;          -- et a personne d'autre : ni agent, ni admin
+grant execute on function matching.record_introduction_decline(...)
+  to influx_advertiser, influx_creator;
+-- matching.reveal_identity(uuid) : AUCUN grant, jamais.
+```
+
+**Moment 2 — l'acceptation d'un membre**, qui est le déclencheur réel de la révélation :
+
+```sql
+create or replace function matching.record_introduction_acceptance(
+          p_introduction_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''                             -- P7 : obligatoire, objets tous qualifies
+as $$
+declare
+  v_intro   matching.introductions%rowtype;
+  v_account uuid := influx.current_account_id();
+  v_side    text;
+  v_terms   uuid := identity.current_terms_version_id();   -- lue EN BASE, jamais recue du client
+begin
+  select * into v_intro
+    from matching.introductions
+   where id = p_introduction_id
+   for update;                                   -- serialise deux acceptations concurrentes
+
+  -- meme erreur pour "n'existe pas" et "vous n'en etes pas partie" (03 T14, IDOR)
+  if not found
+     or v_account is null
+     or v_account not in (v_intro.advertiser_account_id, v_intro.creator_account_id)
+     or influx.is_suspended(v_account) then
+    raise exception 'forbidden' using errcode = 'insufficient_privilege';
+  end if;
+
+  v_side := case when v_account = v_intro.advertiser_account_id
+                 then 'advertiser' else 'creator' end;     -- DEDUIT, jamais recu en parametre
+
+  if v_intro.status <> 'approved' or v_intro.identity_revealed_at is not null then
+    raise exception 'introduction not open for acceptance' using errcode = '55006';
+  end if;
+
+  -- deja accepte : refus, SAUF re-acceptation pour changement de version de CGU (13 RG68, Q3)
+  ...
+
+  update matching.introductions
+     set advertiser_accepted_at      = case when v_side = 'advertiser'
+                                            then now() else advertiser_accepted_at end,
+         advertiser_terms_version_id = case when v_side = 'advertiser'
+                                            then v_terms else advertiser_terms_version_id end,
+         creator_accepted_at         = case when v_side = 'creator'
+                                            then now() else creator_accepted_at end,
+         creator_terms_version_id    = case when v_side = 'creator'
+                                            then v_terms else creator_terms_version_id end
+   where id = p_introduction_id
+  returning * into v_intro;
+
+  perform audit.append('introduction.party_accepted', jsonb_build_object(
+            'introduction_id', p_introduction_id, 'side', v_side,
+            'terms_version_id', v_terms));
+
+  -- LE point : la revelation est la consequence mecanique de la SECONDE acceptation
+  if v_intro.advertiser_accepted_at is not null
+     and v_intro.creator_accepted_at is not null then
+    perform set_config('influx.reveal_ctx', p_introduction_id::text, true);  -- local a la transaction
+    perform matching.reveal_identity(p_introduction_id);
+  end if;
+end;
+$$;
+```
+
+**Moment 3 — la révélation**, inchangée dans son effet, resserrée dans son contrat d'appel :
 
 ```sql
 create or replace function matching.reveal_identity(p_introduction_id uuid)
 returns void
 language plpgsql
 security definer
-set search_path = matching, messaging, audit, leads, pg_catalog
+set search_path = ''                             -- corrige le 2026-09-19 (03 P7, regle 1)
 as $$
 declare v_intro matching.introductions%rowtype; v_conversation_id uuid;
 begin
+  -- garde-fou anti-appel direct : SECONDE barriere. La premiere est l'absence de GRANT EXECUTE.
+  if current_setting('influx.reveal_ctx', true) is distinct from p_introduction_id::text then
+    raise exception 'reveal_identity is not directly callable' using errcode = '55006';
+  end if;
+
   select * into strict v_intro
     from matching.introductions
    where id = p_introduction_id
    for update;                                   -- sérialise deux révélations concurrentes
 
+  -- re-verification COMPLETE et volontairement redondante : on ne fait pas confiance a l'appelant
   if v_intro.identity_revealed_at is not null then
     raise exception 'already revealed' using errcode = '55006';
+  end if;
+  if v_intro.status <> 'approved' then
+    raise exception 'introduction must be approved first' using errcode = '55006';
   end if;
   if v_intro.advertiser_accepted_at is null or v_intro.creator_accepted_at is null then
     raise exception 'both parties must accept first' using errcode = '55006';
@@ -1236,14 +2249,28 @@ begin
      set identity_revealed_at = now()
    where id = p_introduction_id;                 -- autorisé : le propriétaire de la fonction a le droit
 
-  -- 1 conversation + 3 participants + 1 événement chaîné + 2 e-mails en file
+  -- 1 evenement chaine + 1 conversation + 3 participants + 1 affaire (deals, etat open)
+  -- + 2 e-mails en file + 1 notification au commercial responsable
+  -- (arbitrage chef-de-projet, 2026-09-19 : l'affaire naît a la revelation ; billing.deals est cree
+  -- des le Lot 4 pour cette raison, seule la saisie des montants arrive au Lot 5)
   ...                                            -- tout ou rien
 end;
 $$;
 ```
 
 C'est la traduction exacte de la contrainte **C2** du document `02` : « révélation + conversation +
-événement chaîné + e-mails, tout ou rien ».
+événement chaîné + e-mails, tout ou rien » — la création de l'**affaire** (`billing.deals`, état
+`open`, `13` RG74 point 4) y est ajoutée le 2026-09-19, sans quoi l'indicateur « révélée sans état
+d'affaire à 30 jours » (**A6**) n'aurait aucune ligne à interroger.
+
+**Moment 1 — la décision du commercial** (`matching.approve_introduction`) n'est pas détaillée ici :
+elle pose `status = 'approved'`, `owner_agent_id` et `decided_at`, écrit `introduction.approved` et
+met les invitations en file. Elle vérifie **elle-même** que l'appelant est un agent en `aal2`,
+**titulaire du verrou** (`claimed_by_agent_id`), sans conflit d'intérêt. Elle appelle
+`reveal_identity()` **dans un seul cas** : les deux acceptations existaient déjà avant la validation
+(`13` RG43 — la marque a demandé le contact *et* le créateur a candidaté sur la même campagne), et
+cette branche-là exige une confirmation séparée et un second facteur frais (`03` C(21b)).
+**Valider n'est pas révéler** (`13` RG42).
 
 #### Le verrou anti-double-traitement de la file
 
@@ -1264,14 +2291,591 @@ returning id;
 Zéro ligne renvoyée ⇒ un autre commercial a pris la main : `apps/api` répond `409` avec le nom du
 titulaire, jamais un écran d'erreur (`intermediation-tracking` étape 3, point 2).
 
-#### `matching.application_details`
+#### Les deux refus ne sont pas le même objet — `matching.decline_reasons` (`13` écart 2)
 
-Extension 1-1 **optionnelle** de `introductions`, présente uniquement pour
-`origin = 'creator_application'` : `introduction_id` (PK, FK), `pitch` (≤ 2 000),
-`proposed_amount_minor`, `currency`, `created_at` ; plus `matching.application_formats`
-(`introduction_id`, `network_code`, `format_code`) pour les formats proposés. Une table d'extension
-plutôt que six colonnes nullables : la contrainte « ces champs n'existent que pour ce déclencheur »
-devient structurelle.
+> **C'est le manque le plus lourd de conséquence des deux documents du Lot 4.** `13` RG82 établit
+> qu'il existe **deux refus distincts**, à deux moments, par deux acteurs, avec deux listes de motifs
+> et deux messages. Le modèle n'en connaissait qu'un. En l'état, un refus de partie se serait rangé
+> dans la liste A — celle d'INFLUX — et **toute statistique de refus aurait été fausse, dans les deux
+> sens** : des refus attribués à INFLUX qu'il n'a pas prononcés, et des refus de parties invisibles.
+
+| | **Refus A — INFLUX refuse** | **Refus B — une partie refuse** |
+|---|---|---|
+| Quand | Avant validation, dans la file (`in_review` → `rejected`) | **Après** validation, à l'écran d'acceptation (`approved` non révélée → `rejected`) |
+| Support | `rejection_reason_code` → `matching.rejection_reasons` (**liste A**) | `rejection_reason_code = 'declined_by_party'` **plus** `declining_side`, `decline_reason_code` → `matching.decline_reasons` (**liste B**) |
+| Qui décide | Le commercial titulaire du verrou | La marque **ou** le créateur, pour lui-même |
+| Ce qu'en sait l'autre partie | **Rien, jamais** (`03` C(18)) | Un message neutre, **jamais le motif, jamais qui a refusé** (`13` RG88) |
+
+**`matching.decline_reasons` — la liste B.** Table de référence de la même forme que les autres
+listes de motifs (§3.1), **une table par file** et non une colonne `scope` :
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `code` | `text` | **PK** — `not_available` · `not_relevant` · `terms_not_suitable` · **`pre_existing_relationship`** · `no_longer_interested` · `other` (`13` RG87) |
+| `label_key` | `text` | `not null` (R8) — aucun libellé français ou anglais en base |
+| `available_to_side` | `text` | `not null check (available_to_side in ('advertiser','creator','any'))` — `any` pour les six motifs du MVP |
+| `triggers_internal_task` | `boolean` | `not null default false` — **vrai pour `pre_existing_relationship` seulement** |
+| `requires_comment` | `boolean` | `not null default false` — **faux partout** : `13` RG89, refuser ne se justifie pas |
+| `sort_order` | `smallint` | `not null` — l'ordre de l'écran de refus est une donnée, pas un `order by code` |
+| `is_active` | `boolean` | `not null default true` |
+| `introduced_at`, `retired_at` | `timestamptz` | Un code utilisé ne s'écrase jamais, il se retire (§3.1) |
+
+```sql
+create type matching.party_side as enum ('advertiser', 'creator');
+
+comment on table matching.decline_reasons is
+  'LISTE B : motifs de refus d''une mise en relation PAR UNE PARTIE sollicitee (13 RG87).
+   DISTINCTE de matching.rejection_reasons (liste A), qui porte les refus decides par INFLUX.
+   Les confondre produirait le pire des malentendus : un createur qui croit avoir ete rejete par
+   une marque qui n''a jamais rien vu de lui (13 RG82).';
+
+comment on column matching.introductions.decline_reason_code is
+  'Motif de refus choisi par la partie sollicitee (liste B).
+   *** JAMAIS COMMUNIQUE A L''AUTRE PARTIE, SOUS AUCUNE FORME, Y COMPRIS AGREGEE (13 RG88). ***
+   L''autre partie recoit exactement ceci, et rien d''autre :
+   « INFLUX n''a pas pu ouvrir cette mise en relation. »
+   Elle n''apprend NI le motif, NI qui a refuse, NI que l''autre avait accepte.
+   Aucune route de apps/api servant un role membre ne selectionne cette colonne, ni declining_side,
+   ni decline_comment, ni declined_by_account_id, ni declined_at : ces cinq colonnes sont lues par
+   les seuls roles internes. Un GRANT de colonne ne suffit pas a lui seul a le garantir — c''est
+   un point de revue du document 03 et un test du document 18.';
+
+comment on column matching.introductions.declining_side is
+  'Cote qui a refuse (13 RG82). DEDUIT du compte appelant par la fonction d''enregistrement du
+   refus, JAMAIS recu en parametre : un cote recu du client est un cote falsifiable.
+   Meme regime de confidentialite que decline_reason_code ci-dessus.';
+
+comment on column matching.decline_reasons.triggers_internal_task is
+  'pre_existing_relationship declenche une tache commerciale (appeler) ET consigne une relation
+   preexistante au sens de la clause de sauvegarde des CGU (13 RG87, 01 §8.1).
+   Reconstituer cette information deux ans plus tard est impossible : c''est la raison d''etre
+   de ce motif, et la seule valeur vraie de cette colonne au MVP.';
+```
+
+**Et un code de plus dans la liste A** : `declined_by_party`, `is_correctable = false`,
+`requires_comment = false`. Il n'est **pas** proposé à un agent dans l'écran de refus : c'est la
+fonction d'enregistrement du refus B (`matching.record_introduction_decline`, ci-dessus) qui le pose,
+et c'est lui seul qui autorise les cinq colonnes de refus de partie à être non nulles. Deux listes de
+motifs, un seul statut `rejected`, et une requête de pilotage qui ne ment pas :
+
+```sql
+-- repartition des refus, liste A et liste B SEPAREMENT (13, Indicateurs)
+select coalesce(d.code, r.code) as reason_code,
+       (i.declining_side is not null) as by_party,
+       count(*)
+  from matching.introductions i
+  left join matching.rejection_reasons r on r.code = i.rejection_reason_code
+  left join matching.decline_reasons   d on d.code = i.decline_reason_code
+ where i.status = 'rejected'
+ group by 1, 2;
+```
+
+**Le contrôle « autre » sous 10 %** (`13` RG86) se lit sur la même requête, par liste : c'est le
+signal que la liste est incomplète, et il ne veut rien dire si les deux listes sont mélangées.
+
+#### `proposal_batch_id` — le lot d'une proposition INFLUX, sans table de lot (`13` écart 3)
+
+`13` RG54 : le commercial sélectionne jusqu'à 20 créateurs et envoie **en une seule action** ; RG55
+affiche « N mises en relation distinctes seront créées ». Chacune est bien une mise en relation
+autonome — c'est le principe, et il ne bouge pas. Mais **le geste commercial, lui, est unique**, et
+c'est lui que le tableau de bord doit mesurer : combien de propositions parties, quel taux
+d'acceptation par envoi, quel commercial, quel motif commun.
+
+```sql
+alter table matching.introductions
+  add column proposal_batch_id uuid,
+  add constraint introductions_batch_requires_proposal
+      check (proposal_batch_id is null or origin = 'influx_proposal');
+
+create index introductions_proposal_batch_idx
+  on matching.introductions (proposal_batch_id)
+  where proposal_batch_id is not null;
+
+comment on column matching.introductions.proposal_batch_id is
+  'Identifiant commun aux mises en relation creees par UN SEUL envoi groupe (13 RG54).
+   Genere par apps/api au clic 3, jamais par la base : il doit etre connu AVANT la premiere
+   insertion pour que les N lignes le partagent dans la meme transaction.
+   AUCUNE TABLE DE LOT : un lot n''a ni cycle de vie, ni etat, ni droit propre — il n''a que des
+   membres. Une table matching.proposal_batches n''aurait porte que created_by et created_at,
+   deja presents sur chaque ligne et deja dans le registre (introduction.batch_created).
+   Le jour ou un lot aura un etat (modele reutilisable, envoi differe), la table se creera et
+   cette colonne deviendra sa cle etrangere, sans reprise de donnees.';
+```
+
+**Ce que cela rend possible en une requête** : « mes propositions de la semaine, par lot, avec leur
+taux d'acceptation ». Sans cette colonne, la question est **inaccessible** — vingt lignes créées à la
+même seconde par le même agent ne sont pas un lot, ce sont vingt coïncidences, et un envoi partiel
+(`13` RG58, « ce qui n'est pas parti et pourquoi ») devient impossible à reconstituer.
+
+```sql
+select i.proposal_batch_id,
+       min(i.created_at)                                              as sent_at,
+       count(*)                                                       as proposed,
+       count(*) filter (where i.identity_revealed_at is not null)     as opened,
+       count(*) filter (where i.declining_side is not null)           as declined_by_party
+  from matching.introductions i
+ where i.owner_agent_id = $1
+   and i.proposal_batch_id is not null
+ group by i.proposal_batch_id
+ order by sent_at desc;
+```
+
+#### `matching.introduction_transitions` — `approved` n'est terminal qu'une fois révélée (`13` écart 6)
+
+`13` RG102 et RG103 tranchent un écart avec la skill `intermediation-tracking`, et le modèle suit :
+**une mise en relation validée mais non révélée reste réversible** vers refusée par une partie,
+retirée, ou clôturée sans suite. C'est même le **cas nominal** de la proposition INFLUX — on valide
+d'abord, on demande ensuite. Sans cette réversibilité, un refus de partie après validation n'a
+**nulle part où aller**.
+
+La règle tient en deux temps, et le second est la vraie garantie :
+
+| Condition | Ce qui est permis |
+|---|---|
+| `identity_revealed_at is null` | Les transitions de la table ci-dessous, **y compris depuis `approved`** |
+| `identity_revealed_at is not null` | **Aucun changement de statut, jamais, par personne.** L'état 4 est terminal (`13` RG102) |
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `from_status` | `matching.introduction_status` | **PK avec les deux suivantes** |
+| `to_status` | `matching.introduction_status` | **PK**, `check (to_status <> from_status)` |
+| `allowed_actor` | `text` | **PK**, `check (allowed_actor in ('agent','party','initiator','system'))` |
+| `requires_reason` | `boolean` | `not null default false` — motif typé obligatoire sur cette transition |
+| `is_active` | `boolean` | `not null default true` |
+
+```sql
+comment on table matching.introduction_transitions is
+  'Transitions autorisees d''une mise en relation (13 RG102). DONNEE, pas code : ouvrir une
+   transition est une ligne relue en migration, jamais un deploiement applicatif.
+   Meme forme et meme intention que billing.deal_state_transitions (§5.9).
+   allowed_actor documente QUI peut faire la transition ; l''autorisation reelle est portee par
+   les fonctions du §5.6 et par les politiques du document 03. La base garantit la FORME du
+   graphe d''etats, pas le droit d''agir — ne jamais confondre les deux.';
+```
+
+Données chargées par la migration `0401`, transcription exacte de `13` RG102 :
+
+| `from_status` | `to_status` | `allowed_actor` | `requires_reason` |
+|---|---|---|---|
+| `pending_review` | `in_review` | `agent` | non |
+| `pending_review`, `in_review` | `withdrawn` | `initiator` | non |
+| `pending_review`, `in_review` | `expired` | `system` | **oui** (`expiry_reason`) |
+| `in_review` | `approved` | `agent` | non |
+| `in_review` | `rejected` | `agent` | **oui** (liste A) |
+| **`approved`** | **`rejected`** | **`party`** | **oui** (liste B **et** `declining_side`) |
+| **`approved`** | **`withdrawn`** | `initiator`, `agent` | non |
+| **`approved`** | **`expired`** | `system` | **oui** (`expiry_reason`) |
+
+Et le déclencheur, qui fait tenir les deux temps ensemble :
+
+```sql
+create or replace function matching.assert_status_transition()
+returns trigger language plpgsql as $$
+begin
+  if new.status is not distinct from old.status then
+    return new;
+  end if;
+
+  -- 1. une mise en relation REVELEE ne change plus jamais d'etat (13 RG102, etat 4 terminal)
+  if old.identity_revealed_at is not null then
+    raise exception 'introduction % is revealed: status is frozen at %', old.reference, old.status
+      using errcode = '55006';
+  end if;
+
+  -- 2. la transition doit exister dans la table de donnees
+  if not exists (select 1
+                   from matching.introduction_transitions t
+                  where t.from_status = old.status
+                    and t.to_status   = new.status
+                    and t.is_active) then
+    raise exception 'forbidden transition % -> % (introduction %)',
+      old.status, new.status, old.reference using errcode = '55006';
+  end if;
+
+  -- 3. un refus de partie exige son cote, son horodatage et son auteur
+  if new.status = 'rejected' and new.rejection_reason_code = 'declined_by_party'
+     and (new.declining_side is null
+          or new.declined_at is null
+          or new.declined_by_account_id is null) then
+    raise exception 'a party decline needs a side, a timestamp and an author (introduction %)',
+      old.reference using errcode = '23514';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger introductions_status_transition
+  before update of status on matching.introductions
+  for each row execute function matching.assert_status_transition();
+```
+
+**Ce que la contrainte existante devient : rien, et c'est le bon résultat.**
+`introductions_reveal_requires_approval` (`identity_revealed_at is null or status = 'approved'`)
+**reste inchangée et reste juste** — elle disait déjà « on ne révèle qu'une validée », et le point 1
+du déclencheur y ajoute « et une fois révélée, on ne quitte plus `approved` ». Les deux ensemble
+donnent exactement les états 3 et 4 de `13` RG100, **sans colonne d'état supplémentaire** : l'état
+« révélée » **est** `status = 'approved' and identity_revealed_at is not null`, et il se lit en une
+expression. Ajouter une sixième valeur `revealed` à l'énumération aurait dédoublé la vérité et
+permis, un jour, qu'une ligne soit `approved` avec une date de révélation.
+
+> **Écart réglé, et il faut le dire dans ce sens-là.** La skill `intermediation-tracking` décrit
+> `approved` comme terminal dès la validation. Ce document suit `13` RG103 : **c'est la skill qui est
+> à aligner**, pas le modèle. Le signalement appartient à `chef-de-projet` (`13` Q2).
+
+#### L'affaire naît à la révélation — arbitrage rendu le 2026-09-19 (`13` écart 7)
+
+> **Tranché par `chef-de-projet` le 2026-09-19.** `billing.deals` est créée **automatiquement, à
+> l'état `open`, dans la transaction de révélation**, une affaire par mise en relation. C'est ce que
+> posent `03` C(21) étape 4, `13` RG74 point 4 et le document pivot `01` §6. **J'avais proposé
+> l'option inverse (création différée par le commercial) : elle est écartée, et j'écris ici pourquoi
+> l'arbitrage est le bon, parce que la raison compte plus que la décision.**
+
+**La raison décisive n'est pas l'alerte A6, c'est le motif de perte.** Une mise en relation qui
+n'aboutit pas doit pouvoir porter un **motif de perte typé** (`billing.lost_reasons`), et ce motif
+n'a **nulle part où se ranger** s'il n'existe pas d'affaire : `matching.introductions` s'arrête à la
+révélation, et son `rejection_reason_code` décrit un refus **avant** ouverture, pas une négociation
+qui échoue **après**. Sans affaire créée d'office, toute mise en relation ouverte puis perdue
+disparaît de la mesure — et c'est exactement la donnée de transformation qu'attend **A8**. Un objet
+créé seulement quand quelqu'un pense à le créer ne mesure que la discipline de saisie.
+
+**Ce que devient mon objection de fond — la seule qui tenait.** Le cycle de dépendance entre
+migrations était réel : `billing.deals` au Lot 5, la révélation au Lot 4, donc `0402` dépendant de
+`0501`. **Il se règle en avançant les quatre tables `billing` au Lot 4** (§2.2, §11.2) :
+`lost_reasons`, `deal_state_transitions`, `deals` et `deal_field_changes` sont créées par la
+migration **`0402a`, juste avant `0402`**. Seule la **saisie** des montants — écrans, validations,
+pipeline — reste au Lot 5. Créer une table n'est pas construire un écran.
+
+**Trois conséquences, à lire ensemble :**
+
+1. **L'affaire à l'état `open` est vide, et c'est licite.** Les contraintes de `billing.deals`
+   (§5.9) sont **par état** : `deals_negotiating_requires_amount`,
+   `deals_signed_requires_commission`, `deals_lost_requires_reason` ne s'appliquent qu'aux états
+   correspondants. À l'état `open`, seules `introduction_id`, `owner_agent_id`, `revealed_at` et
+   `state` sont renseignées — toutes **copiées de la mise en relation** dans la même transaction, et
+   aucune ne demande de décision humaine. Aucune contrainte n'est relâchée pour l'occasion.
+2. **L'alerte A6 change de requête, et elle y gagne.** Elle ne cherche plus une **ligne absente**
+   mais une **affaire immobile** — ce qui est la vraie question posée (`01` §11 : contournement ou
+   saisie négligée ?) :
+
+   ```sql
+   -- A6 : revelee depuis 30 jours, affaire jamais sortie de l'etat initial
+   select d.id, i.reference, d.revealed_at, d.owner_agent_id
+     from billing.deals d
+     join matching.introductions i on i.id = d.introduction_id
+    where d.state = 'open'
+      and d.revealed_at < now() - interval '30 days';
+   ```
+
+   Servie par un index partiel (§10.7), là où la jointure externe balayait `introductions`.
+3. **Le contrôle « pas d'affaire orpheline » devient un contrôle dans les deux sens.**
+   `deals.introduction_id not null unique` interdisait déjà une affaire sans mise en relation ; la
+   création d'office ajoute la réciproque — **une mise en relation révélée sans affaire est
+   désormais une anomalie**, détectable par une requête de contrôle nocturne et non plus un état
+   normal du produit :
+
+   ```sql
+   -- controle nocturne : doit toujours renvoyer zero ligne
+   select i.reference
+     from matching.introductions i
+     left join billing.deals d on d.introduction_id = i.id
+    where i.identity_revealed_at is not null
+      and d.id is null;
+   ```
+
+**L'invariant, lui, n'a jamais bougé :**
+`deals.introduction_id not null unique references matching.introductions(id)` — **pas d'affaire
+orpheline, au plus une affaire par mise en relation**. Seul le *moment* de la création était en
+discussion ; il est tranché.
+
+#### `matching.introduction_emails` — la preuve qui sort du système (`13` écart 8)
+
+`13` RG78 et RG79 : l'e-mail de confirmation de mise en relation est **la preuve la plus forte et la
+moins chère** du dispositif, précisément parce qu'il **sort** du système d'INFLUX — copie chez le
+prestataire d'envoi, chez les deux fournisseurs de messagerie, souvent chez les parties elles-mêmes,
+et **aucune de ces copies n'est sous notre contrôle**. Encore faut-il pouvoir les retrouver : sans le
+`messageId` renvoyé par le prestataire, **le lien entre notre registre interne et la preuve détenue
+par un tiers est rompu**. Le modèle n'avait aucun endroit où le poser.
+
+*Table du Lot 4, **append-only** pour tout ce qui décrit l'envoi ; seules les colonnes d'accusé de
+réception sont écrites après coup, par le worker.*
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `id` | `uuid` | PK |
+| `introduction_id` | `uuid` | `not null references matching.introductions(id)` |
+| `recipient_account_id` | `uuid` | `not null` FK — **le destinataire réel**, jamais une adresse recopiée |
+| `recipient_side` | `text` | `not null check (recipient_side in ('advertiser','creator','agent'))` |
+| `email_kind` | `matching.introduction_email_kind` | `not null` — `invitation` · `reminder` · `reveal_confirmation` · `decline_neutral` · `expiry_neutral` · `rejection_motivated` · `agent_instruction` (`13` RG111) |
+| `reminder_stage` | `smallint` | `check ((email_kind = 'reminder') = (reminder_stage is not null))` — 3 ou 6 (`13` RG92) |
+| `locale` | `char(2)` | `not null` FK `reference.languages` — **la langue dans laquelle la preuve a été envoyée** (`13` RG119) |
+| `outbox_event_id` | `uuid` | FK `leads.outbox_events(id)` — le lien avec la file, ses rejeux et son rejeu manuel |
+| **`provider_message_id`** | `text` | `unique` — **le `messageId` de RG79**. Nul tant que le prestataire n'a pas accepté l'envoi |
+| `provider` | `text` | `not null default 'brevo'` |
+| `status` | `matching.email_status` | `not null default 'queued'` — `queued` · `sent` · `delivered` · `failed` |
+| `sent_at`, `delivered_at`, `failed_at` | `timestamptz` | Chronologie contrôlée ci-dessous |
+| `failure_code` | `text` | `check ((status = 'failed') = (failure_code is not null))` |
+| `created_at` | `timestamptz` | `not null` |
+
+```sql
+alter table matching.introduction_emails
+  -- un envoi accepte par le prestataire a forcement un identifiant chez lui
+  add constraint introduction_emails_sent_needs_message_id
+      check (status in ('queued','failed') or provider_message_id is not null),
+  add constraint introduction_emails_chronology
+      check (coalesce(delivered_at, 'infinity') >= coalesce(sent_at, '-infinity')),
+  add constraint introduction_emails_failed_has_date
+      check ((status = 'failed') = (failed_at is not null));
+
+-- une seule confirmation de revelation par destinataire et par mise en relation
+create unique index introduction_emails_reveal_idx
+  on matching.introduction_emails (introduction_id, recipient_account_id)
+  where email_kind = 'reveal_confirmation';
+
+-- alerte A8 : les envois definitivement en echec, c'est-a-dire les mises en relation sans preuve externe
+create index introduction_emails_failed_idx
+  on matching.introduction_emails (introduction_id)
+  where status = 'failed';
+
+comment on table matching.introduction_emails is
+  'Journal des e-mails transactionnels d''une mise en relation, et SEUL emplacement du messageId
+   renvoye par le prestataire d''envoi (13 RG79). Sert a retrouver, chez un tiers, la copie d''un
+   e-mail que nous ne controlons pas : c''est precisement ce qui lui donne sa valeur de
+   corroboration (01 M2, skill intermediation-tracking).
+   NE CONTIENT NI OBJET, NI CORPS, NI ADRESSE : le destinataire est un identifiant de compte,
+   l''adresse se lit sur identity.accounts sous RLS, et le texte vit dans les fichiers de
+   traduction (R8).
+   VOCABULAIRE : cette table est un JOURNAL D''ENVOI. Les termes « preuve legale »,
+   « horodatage certifie » et « valeur probante » restent interdits dans le produit comme dans
+   les ecrans qui l''affichent (01 M4, 12 RG105).';
+
+comment on column matching.introduction_emails.provider_message_id is
+  'Identifiant attribue par le prestataire (Brevo). UNIQUE : un webhook rejoue qui porte le meme
+   identifiant echoue au lieu de creer une seconde ligne — c''est l''idempotence, obtenue par une
+   contrainte et non par du code. Un rejeu qui produit un NOUVEL identifiant cree, lui, une
+   nouvelle ligne : deux envois ont reellement eu lieu, et le journal doit le dire.';
+```
+
+**Pourquoi une table plutôt qu'une colonne sur `introductions`, ou une ligne de registre.** Une
+colonne ne tiendrait pas : il y a **au moins quatre e-mails** par mise en relation — deux
+invitations, deux confirmations — plus les deux relances et la consigne au commercial. Le registre,
+lui, est **immuable par construction**, or l'accusé de réception du prestataire arrive **après**
+l'envoi, par webhook, et l'état d'un envoi **change** (`queued` → `sent` → `delivered` ou `failed`).
+Une ligne de registre qu'il faudrait mettre à jour n'est pas une ligne de registre. Le partage est
+donc net : le registre reçoit les **faits** (`introduction.email_delivered`,
+`introduction.email_failed`), cette table porte **l'état courant et la référence externe**.
+
+#### `matching.interest_submissions` — la correction de la collision d'index unique partiel
+
+*Ce que **chaque partie** a écrit pour demander la mise en relation : une candidature, une demande
+de contact, ou les deux sur la même mise en relation.*
+
+**Le défaut signalé par `11` (écart 6) est réel, et il bloque un cas normal.** L'ancienne table
+`matching.application_details` était une extension **1-1** de `introductions`, réservée à
+`origin = 'creator_application'`. Or l'index unique partiel `introductions_active_pair_idx`
+interdit — à raison — une seconde mise en relation active sur le même triplet (marque, créateur,
+campagne). Conséquence : **quand une demande de contact de la même marque sur la même campagne
+existe déjà, la candidature du créateur n'a nulle part où se ranger.** Et le comportement attendu
+est écrit noir sur blanc dans `11` (cas limite) : « la candidature **ne crée pas de seconde mise en
+relation** : son contenu est rattaché à l'entrée existante comme élément d'instruction pour le
+commercial ».
+
+**Correction : la charge utile cesse d'être une extension 1-1 de la mise en relation et devient une
+table fille, une ligne par partie qui s'est exprimée.**
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `id` | `uuid` | PK |
+| `introduction_id` | `uuid` | `not null references matching.introductions(id)` |
+| `submitted_by_account_id` | `uuid` | `not null` FK — **l'auteur réel** |
+| `submitted_by_role` | `identity.account_role` | `not null check (submitted_by_role in ('advertiser','creator'))` |
+| `kind` | `matching.submission_kind` | `not null` — `brand_contact_request` · `creator_application` |
+| `pitch` | `text` | `check (length(btrim(pitch)) between 120 and 2000)` — la motivation (`11` RG47) |
+| `concept` | `text` | `check (length(concept) <= 1000)` |
+| `proposed_amount_minor` | `bigint` | `check (proposed_amount_minor is null or proposed_amount_minor > 0)` |
+| `currency` | `char(3)` | FK, `check ((proposed_amount_minor is null) = (currency is null))` — **un tarif sans devise n'existe pas** (`11` RG54) |
+| `accepts_gift` | `boolean` | Case **non pré-cochée** de `11` RG47 |
+| `available_on_period` | `boolean` | Idem |
+| `terms_version_id` | `uuid` | FK — l'acceptation à l'écran, rattachée à sa version |
+| `created_at` | `timestamptz` | `not null` — **append-only, aucune modification, aucune suppression** |
+
+```sql
+-- une partie s'exprime au plus une fois par mise en relation
+alter table matching.interest_submissions
+  add constraint interest_submissions_one_per_kind unique (introduction_id, kind);
+
+comment on table matching.interest_submissions is
+  'Charge utile des expressions d''interet rattachees a une mise en relation (ex-application_details).
+   Une ligne par partie : la candidature d''un createur ET la demande de contact d''une marque
+   peuvent coexister sur la MEME introduction (11, cas limite « demande deja en file »).
+   introductions.origin reste la PREMIERE origine et demeure immuable (11 RG82) :
+   une candidature ne devient jamais une demande de contact.
+   La presence des deux lignes est le signal le plus fort du produit — les deux parties se sont
+   cherchees — et elle est lisible en une jointure par le commercial.';
+```
+
+`matching.interest_submission_formats` (`submission_id`, `network_code`, `format_code`) remplace
+`matching.application_formats` : les formats proposés appartiennent à la soumission, pas à la mise
+en relation.
+
+**Ce qui ne change pas, et qui était bon :** l'index unique partiel reste tel quel — il n'y a
+toujours **qu'une mise en relation active par triplet**, et c'est ce qui empêche les doublons de
+file. Ce qui change, c'est qu'on ne confond plus **l'objet** (la mise en relation) avec **les gestes
+qui l'ont provoquée**.
+
+**Ce que le créateur voit reste inchangé :** son état de candidature est « envoyée ». Il n'apprend
+**jamais** qu'une demande de contact le concernait (`03` C(18)) — la table est lue par les agents,
+et la politique du rôle créateur ne renvoie que **ses propres** soumissions.
+
+#### `matching.application_drafts` — le brouillon, qui n'est pas une candidature
+
+`11` RG52 : la candidature est enregistrée en brouillon pendant la rédaction, « un créateur
+interrompu ne recommence jamais ». Le modèle n'avait aucun endroit pour ça (`11` écart 5).
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `creator_account_id` | `uuid` | **PK avec `campaign_id`**, FK |
+| `campaign_id` | `uuid` | `not null` FK |
+| `pitch`, `concept` | `text` | **Sans borne basse** : un brouillon incomplet est normal, c'est tout son intérêt |
+| `proposed_amount_minor`, `currency` | — | Mêmes contraintes de couple que ci-dessus |
+| `accepts_gift`, `available_on_period` | `boolean` | — |
+| `updated_at` | `timestamptz` | `not null` |
+| `expires_at` | `timestamptz` | `not null` — purge automatique |
+
+`matching.application_draft_formats` porte les formats pré-sélectionnés.
+
+**Trois propriétés que la base garantit, et qui sont des règles produit** (`11` RG52) :
+
+1. **Un brouillon n'est pas une entrée en file** : il vit dans une table distincte de
+   `introductions`. Il ne peut donc pas être pris en charge, ni validé, ni compté.
+2. **Il ne compte dans aucun plafond** : les compteurs ci-dessous lisent `introductions`, jamais
+   cette table.
+3. **Il n'appartient qu'à son auteur** : `GRANT` au seul rôle `influx_creator`, politique
+   `creator_account_id = (select influx.current_account_id())`, **aucun droit pour un agent**. Un
+   brouillon n'est pas une intention opposable ; le lire serait lire par-dessus l'épaule.
+
+**Choix de conservation, le plus conservateur** (`11` Q12 ouverte) : le brouillon est supprimé
+physiquement à la fermeture de la campagne ou à `expires_at` (30 jours d'inactivité, valeur de
+départ **en table**). C'est la seule table du modèle où la suppression physique est admise, parce
+qu'elle ne touche **ni une mise en relation, ni une affaire, ni un journal** (R6) : rien ne s'est
+passé. À confirmer par `product-owner` (§12.6).
+
+#### `matching.application_quotas` — le compteur en face du plafond
+
+`11` écart 2 : `max_applications` existait sans rien pour le contraindre. Deux plafonds, donc deux
+compteurs, et **aucun des deux ne peut être un `count(*)` fait au moment du clic** — entre le compte
+et l'insertion, deux candidatures simultanées passent toutes les deux.
+
+| Où | Colonne / table | Plafond contraint |
+|---|---|---|
+| **Par campagne** | `campaigns.campaigns.active_applications_count integer not null default 0` | **P3** : `max_applications` (30 par défaut). À l'atteinte, la campagne passe en « candidatures closes » (`11` RG65) |
+| **Par créateur** | `matching.application_quotas (creator_account_id PK, active_applications_count, applications_today_count, counted_on date, max_active_applications smallint, updated_at)` | **P1** (10 candidatures actives) et **P2** (5 nouvelles par jour glissant) |
+
+```sql
+-- la contrainte EST le plafond : l'insertion echoue, elle ne « depasse » jamais
+alter table campaigns.campaigns
+  add constraint campaigns_applications_within_cap
+      check (max_applications is null or active_applications_count <= max_applications);
+
+alter table matching.application_quotas
+  add constraint application_quotas_within_cap
+      check (max_active_applications is null
+             or active_applications_count <= max_active_applications);
+```
+
+Les deux compteurs sont maintenus par **un déclencheur sur `matching.introductions`** (insertion,
+changement de statut), jamais par le code applicatif : un compteur tenu à la main diverge en trois
+semaines. La **fermeture atomique** exigée par `11` est alors gratuite — le déclencheur incrémente,
+la contrainte refuse, la transaction échoue, et `apps/api` répond « candidatures closes » sans avoir
+jamais eu à lire le compteur avant d'écrire.
+
+`max_active_applications` nullable = **le plafond global** de
+`backoffice.operational_settings ('application_caps')` s'applique ; non nul = dérogation nominative
+accordée par un administrateur, journalisée (`11` RG69).
+
+**Deux dénormalisations de plus, assumées et justifiées** (§10.8) : sans elles, le plafond n'est pas
+tenable sous concurrence. C'est exactement le critère de R10 — une mesure, pas une intuition.
+
+#### `matching.party_blocks` — le blocage entre une marque et un créateur (Lot 3)
+
+> **C'est le manque le plus important de toute la relecture** (`10` écart 1). Le blocage est une
+> **exclusion de premier rang** de la recherche (`10` RG28) et il n'avait **aucun support en base** :
+> ni table, ni colonne, ni référentiel de motifs.
+
+*Bien que le reste du schéma `matching` arrive au Lot 4, ces deux tables arrivent au **Lot 3** : la
+recherche de créateurs en dépend dès son ouverture. Le schéma, lui, existe depuis la migration
+`0001`.*
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `id` | `uuid` | PK |
+| `advertiser_account_id` | `uuid` | `not null` FK |
+| `creator_account_id` | `uuid` | `not null` FK, `check (<> advertiser_account_id)` |
+| `blocked_by_account_id` | `uuid` | `not null` FK — **qui a posé le blocage** : l'une des deux parties, ou un rôle interne |
+| `blocked_by_side` | `text` | `not null check (blocked_by_side in ('advertiser','creator','influx'))` |
+| `reason_code` | `text` | `not null references matching.block_reasons(code)` — **motif typé, jamais muet** |
+| `comment` | `text` | `check (length(comment) <= 1000)`, obligatoire si `block_reasons.requires_comment` |
+| `created_at` | `timestamptz` | `not null` |
+| `lifted_at` | `timestamptz` | — |
+| `lifted_by_account_id`, `lift_reason_code` | — | `check ((lifted_at is null) = (lifted_by_account_id is null))` |
+
+```sql
+-- un seul blocage actif par couple, quel que soit celui qui l'a pose
+create unique index party_blocks_active_idx
+  on matching.party_blocks (advertiser_account_id, creator_account_id)
+  where lifted_at is null;
+
+comment on table matching.party_blocks is
+  'Blocage declare entre une marque et un createur (10 RG28). EFFET SYMETRIQUE A LA LECTURE :
+   si l''un bloque l''autre, AUCUN DES DEUX n''apparait dans les resultats de l''autre, quel que
+   soit le sens du blocage. L''exclusion est SILENCIEUSE (10 RG29) : le profil est absent, il
+   n''entre pas dans le nombre de resultats, aucun message, aucun emplacement grise.
+   Le motif n''est JAMAIS expose a la partie bloquee ni journalise a son niveau (10 RG30).
+   Pose et retire depuis l''espace membre ou par un role interne, toujours journalise
+   (audit : block.created / block.lifted).';
+```
+
+`matching.block_reasons` : `code` **PK**, `label_key`, `available_to_side`
+(`advertiser` · `creator` · `influx` · `any`), `requires_comment`, `is_active`. Une liste **par
+partie** : les motifs qu'une marque invoque ne sont pas ceux qu'un créateur invoque.
+
+**Le blocage n'est pas une suppression** : les mises en relation ouvertes et les conversations en
+cours ne sont **pas** détruites — le blocage porte sur la découverte et sur toute **nouvelle**
+mise en relation. Ce que la base garantit en plus : la fonction `matching.open_introduction()`
+refuse d'ouvrir une mise en relation sur un couple bloqué, et le refus est journalisé côté interne
+seulement.
+
+**Ce qui rend cette table sensible :** elle est lue à **chaque** recherche, pour **chaque** ligne de
+résultat, et une erreur de sens (bloquant / bloqué inversés) est indétectable à l'œil — d'où le
+choix de deux colonnes nommées par rôle (`advertiser_account_id`, `creator_account_id`) plutôt que
+`blocker_id` / `blocked_id`, et d'un **effet symétrique** qui rend l'inversion sans conséquence.
+
+#### `matching.rejection_reasons` — un motif corrigible n'a pas le même effet qu'un motif définitif
+
+`11` RG67 et RG92 : après un refus, **une seconde et dernière candidature** est possible sur la même
+campagne **si et seulement si** le motif est marqué corrigible. L'attribut manquait (`11` écart 3).
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `code` | `text` | **PK** |
+| `label_key`, `message_key` | `text` | `not null` (R8) |
+| **`is_correctable`** | `boolean` | `not null` — **sans valeur par défaut** |
+| `requires_comment` | `boolean` | `not null default false` |
+| `is_active` | `boolean` | `not null default true` |
+
+```sql
+comment on column matching.rejection_reasons.is_correctable is
+  'Vrai : le createur peut corriger et recandidater UNE SEULE FOIS sur la meme campagne,
+   tant qu''elle est ouverte (11 RG67, plafond P4). Faux : toute nouvelle candidature est
+   refusee, avec un message qui nomme le motif precedent et propose d''autres campagnes.
+   PAS DE VALEUR PAR DEFAUT : celui qui ajoute un motif doit trancher. Un defaut a vrai
+   rouvrirait la porte a chaque nouveau motif ; un defaut a faux fermerait un parcours
+   sans que personne l''ait decide.';
+```
+
+La règle « une seule seconde chance » se lit sans table supplémentaire : elle compte les
+`interest_submissions` de type `creator_application` déjà rattachées au couple (créateur, campagne),
+y compris sur une mise en relation refusée.
 
 #### `matching.reference_counters`
 
@@ -1289,8 +2893,8 @@ trouée invite les questions.
 
 `id`, **`introduction_id uuid not null unique references matching.introductions(id)`**, `state`
 (`open` · `active` · `paused` · `closed` · `archived`), `opened_at not null`,
-`last_message_at`, `closed_at`, `closure_reason_code` (FK, `check (state <> 'closed' or ... is not
-null)`), `archived_at`, `created_at`, `updated_at`.
+`last_message_at`, `archived_at`, `created_at`, `updated_at`, **plus les colonnes de pause, de
+clôture et de réouverture décrites deux paragraphes plus bas** (`12` manque 3).
 
 > **Écart assumé avec `intermediation-tracking`.** La skill liste `conversation_id` parmi les champs
 > de `introductions`. Je ne le crée pas : la relation 1-1 est portée par
@@ -1301,6 +2905,164 @@ null)`), `archived_at`, `created_at`, `updated_at`.
 
 `last_message_at` est l'une des **trois seules dénormalisations** du modèle (§10.7) : elle est
 justifiée par la requête de liste de conversations, triée par activité, sur les trois espaces.
+
+##### Pause, clôture et réouverture : un motif, un auteur, et aucune impasse (`12` manque 3)
+
+> **Deux défauts signalés par `12`, et ils se tiennent.** Le champ de pause n'avait **ni motif ni
+> auteur** — alors que `12` RG17 en fait une décision humaine à motif typé obligatoire. Et la
+> contrainte de clôture, écrite comme un état terminal, **rendait la réouverture impossible à écrire
+> proprement** : `12` RG22 autorise explicitement un agent à rouvrir un fil clos, avec motif et
+> message système. Corrigé des deux côtés.
+
+| Colonne | Type | Contrainte | Pourquoi |
+|---|---|---|---|
+| `paused_at` | `timestamptz` | `check ((state = 'paused') = (paused_at is not null))` | **La pause est un état daté**, pas un booléen |
+| `pause_reason_code` | `text` | `references messaging.pause_reasons(code)`, `check ((paused_at is null) = (pause_reason_code is null))` | **Motif typé obligatoire** (`12` RG17, CA10) |
+| `paused_by_account_id` | `uuid` | FK interne, `check ((paused_at is null) = (paused_by_account_id is null))` | **Une décision humaine a un auteur.** La pause n'est jamais automatique |
+| `pause_comment` | `text` | `check (length(pause_comment) <= 1000)`, obligatoire si `pause_reasons.requires_comment` | Complément interne, jamais montré aux parties (`12` RG32) |
+| `closed_at` | `timestamptz` | `check ((state = 'closed') = (closed_at is not null))` | **Décrit la clôture *en cours*, pas l'historique** |
+| `closure_reason_code` | `text` | FK `messaging.closure_reasons`, `check ((closed_at is null) = (closure_reason_code is null))` | Motif typé obligatoire (`12` RG20) |
+| `closed_by_account_id` | `uuid` | FK interne, même couple | — |
+| `closure_comment` | `text` | Obligatoire sur le motif `autre` (`12` RG20) | — |
+| `reopened_at`, `reopened_by_account_id` | `timestamptz`, `uuid` | Couple lié | **La dernière** réouverture |
+| `reopen_count` | `smallint` | `not null default 0` | Compteur, pour l'alerte du backoffice : un fil rouvert trois fois est un signal |
+| `archived_at` | `timestamptz` | `check ((state = 'archived') = (archived_at is not null))` | Automatique à 90 jours après clôture, ou manuel (`12` RG23) |
+
+**Le point qui règle la réouverture : les colonnes de clôture décrivent la clôture *en cours*, et
+elles sont remises à `null` quand le fil est rouvert.** L'historique, lui, ne vit pas dans ces
+colonnes — il vit **dans le registre**, exactement comme `12` RG22 le demande (« l'historique des
+clôtures et réouvertures successives vit dans le registre, pas dans une colonne écrasée ») :
+`conversation.closed` et `conversation.reopened`, chacun avec son auteur, sa date et son motif.
+
+```sql
+alter table messaging.conversations
+  -- une cloture en cours a TOUJOURS son motif, son auteur et sa date : les quatre ensemble
+  add constraint conversations_closure_is_complete
+      check (num_nonnulls(closed_at, closure_reason_code, closed_by_account_id) in (0, 3)),
+  add constraint conversations_closed_state_matches
+      check ((state = 'closed') = (closed_at is not null)),
+  -- une pause en cours : idem
+  add constraint conversations_pause_is_complete
+      check (num_nonnulls(paused_at, pause_reason_code, paused_by_account_id) in (0, 3)),
+  add constraint conversations_paused_state_matches
+      check ((state = 'paused') = (paused_at is not null)),
+  -- on ne rouvre que ce qui a ete clos : un compteur non nul suppose une reouverture datee
+  add constraint conversations_reopen_is_complete
+      check ((reopen_count = 0) = (reopened_at is null)
+             and (reopened_at is null) = (reopened_by_account_id is null)),
+  -- un fil archive est un fil qui a ete clos
+  add constraint conversations_archive_follows_closure
+      check (archived_at is null or archived_at >= opened_at);
+
+comment on column messaging.conversations.closure_reason_code is
+  'Motif de la cloture EN COURS (12 RG20). REMIS A NULL A LA REOUVERTURE (12 RG22) :
+   cette colonne decrit l''etat actuel, jamais l''histoire.
+   L''histoire des clotures et des reouvertures successives est dans audit.audit_events
+   (conversation.closed / conversation.reopened), qui est append-only et chaine.
+   AFFICHAGE : en clair aux agents, sous un libelle NEUTRE aux parties (12 RG32).
+   Un motif interne comme signalement_fonde n''est jamais montre a une partie.';
+
+comment on column messaging.conversations.reopen_count is
+  'Nombre de reouvertures. Colonne de PILOTAGE, pas de preuve : la preuve est au registre.
+   Un fil rouvert plusieurs fois signale une negociation mal cloturee ou une file mal tenue ;
+   au-dela du seuil de backoffice.operational_settings, une alerte est levee.';
+```
+
+**`messaging.pause_reasons` — le référentiel manquant.** Même forme que `messaging.closure_reasons`
+et `messaging.report_reasons` (§3.1, une table par file) :
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `code` | `text` | **PK** — `attente_element_marque` · `attente_element_createur` · `verification_en_cours` · `instruction_signalement` · `mediation` · `autre` |
+| `label_key`, `message_key` | `text` | `not null` (R8). `message_key` porte le **libellé neutre montré aux parties**, distinct du libellé interne |
+| `requires_comment` | `boolean` | `not null default false` — **vrai sur `autre`** |
+| `is_active` | `boolean` | `not null default true` |
+| `sort_order` | `smallint` | `not null` |
+
+**`messaging.conversation_state_transitions` — le graphe d'états, en données.** Cinq états
+(`12` RG15), et une réouverture qui n'était exprimable nulle part :
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `from_state` | `messaging.conversation_state` | **PK avec les deux suivantes** |
+| `to_state` | `messaging.conversation_state` | **PK**, `check (to_state <> from_state)` |
+| `allowed_actor` | `text` | **PK**, `check (allowed_actor in ('agent','system'))` — **aucune partie ne change l'état d'un fil** |
+| `requires_reason` | `boolean` | `not null default false` |
+| `is_active` | `boolean` | `not null default true` |
+
+| `from_state` | `to_state` | `allowed_actor` | `requires_reason` |
+|---|---|---|---|
+| `open` | `active` | `system` | non — **automatique au premier message, y compris celui du commercial** (`12` RG16) |
+| `open`, `active` | `paused` | `agent` | **oui** (`12` RG17) |
+| `paused` | `active` | `agent` | non (`12` RG19) |
+| `open`, `active`, `paused` | `closed` | `agent` | **oui** (`12` RG20) |
+| **`closed`** | **`active`** | **`agent`** | **oui** — **la réouverture** (`12` RG22) |
+| `closed` | `archived` | `agent`, `system` | non (`12` RG23) |
+
+```sql
+comment on table messaging.conversation_state_transitions is
+  'Graphe des etats d''une conversation (12 RG15 a RG23), en DONNEES.
+   Trois proprietes que la table rend vraies par construction :
+   1. AUCUNE transition ne mene a une suppression — clore, archiver et supprimer sont trois choses
+      differentes, et la troisieme n''existe pas au MVP, pour personne (12 RG24) ;
+   2. AUCUNE ligne n''a allowed_actor = ''party'' : une partie ne met en pause, ne clot, ni ne
+      rouvre jamais un fil ;
+   3. closed -> active EXISTE : la cloture n''est pas terminale (12 RG22).
+   archived n''a AUCUNE transition sortante : choix conservateur, signale au §12.7 point 2.';
+```
+
+Et le déclencheur correspondant, sur le modèle de celui de `billing.deals` :
+
+```sql
+create or replace function messaging.assert_conversation_transition()
+returns trigger language plpgsql as $$
+begin
+  if new.state is not distinct from old.state then
+    return new;
+  end if;
+
+  if not exists (select 1
+                   from messaging.conversation_state_transitions t
+                  where t.from_state = old.state
+                    and t.to_state   = new.state
+                    and t.is_active) then
+    raise exception 'forbidden conversation transition % -> % (conversation %)',
+      old.state, new.state, old.id using errcode = '55006';
+  end if;
+
+  -- la reouverture efface la cloture EN COURS et incremente le compteur ;
+  -- l'histoire reste au registre (12 RG22)
+  if old.state = 'closed' and new.state = 'active' then
+    new.closed_at            := null;
+    new.closure_reason_code  := null;
+    new.closed_by_account_id := null;
+    new.closure_comment      := null;
+    new.reopened_at          := now();
+    new.reopen_count         := old.reopen_count + 1;
+  end if;
+
+  -- la reprise efface la pause EN COURS, meme raisonnement
+  if old.state = 'paused' and new.state = 'active' then
+    new.paused_at            := null;
+    new.pause_reason_code    := null;
+    new.paused_by_account_id := null;
+    new.pause_comment        := null;
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger conversations_state_transition
+  before update of state on messaging.conversations
+  for each row execute function messaging.assert_conversation_transition();
+```
+
+**Une conséquence à assumer, et elle est bonne :** `12` cas limite n° 4 (« deux agents clôturent le
+même fil au même instant ») se règle **sans code applicatif**. Le premier passe, le second trouve
+`old.state = 'closed'` et sa transition `closed → closed` n'existe pas — la transaction échoue,
+« aucun motif n'est écrasé », et `apps/api` répond `409` avec le nom de celui qui a clos. Le même
+mécanisme couvre la pause, la reprise et la réouverture concurrentes.
 
 #### `messaging.conversation_participants`
 
@@ -1366,10 +3128,77 @@ suivante, qui est un objet différent et ne doit pas être confondue avec un acc
 *Chaque fois qu'un agent ouvre une conversation, la trace est écrite avant que les messages ne
 sortent.* C'est l'exécution d'A10.
 
-`id bigint identity`, `conversation_id`, `agent_account_id`, `accessed_at not null`,
-`was_participant boolean not null`, `surface` (`backoffice_queue` · `backoffice_deal` ·
-`backoffice_search` · `member_app`), `access_scope` (`thread` · `export`), `request_id`,
-`message_count_returned int`.
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `id` | `bigint` | `generated always as identity` |
+| `conversation_id` | `uuid` | `not null` FK |
+| `agent_account_id` | `uuid` | `not null` FK |
+| `accessed_at` | `timestamptz` | `not null default clock_timestamp()` |
+| `was_participant` | `boolean` | `not null` — **au moment de la lecture** (R7), jamais recalculé après coup |
+| **`reason_code`** | `text` | **`not null references messaging.access_reasons(code)`** — le **motif typé** (`12` RG56) |
+| **`reason_comment`** | `text` | `check (length(reason_comment) <= 1000)`, **obligatoire** si `access_reasons.requires_comment` |
+| **`read_session_id`** | `uuid` | `not null` — regroupe les appels d'une même consultation (`03` §5.2) |
+| `surface` | `messaging.access_surface` | `not null` — `backoffice_queue` · `backoffice_deal` · `backoffice_search` · `backoffice_reports` · `member_app` |
+| `access_scope` | `text` | `not null check (access_scope in ('thread','export'))` — `export` **n'est utilisé par aucun chemin au MVP** (`12` RG62) |
+| `request_id` | `text` | Rapprochement avec les journaux `pino` |
+| `cursor_before`, `page_limit` | — | Les bornes de pagination (`12` RG58) |
+| `message_count_returned` | `integer` | `not null` — **un compteur, jamais un extrait** |
+
+**Le motif typé était le manque le plus grave de la messagerie** (`12` manque 2). La table portait
+`surface`, qui dit **l'écran**, pas **la raison légitime** : sans motif, A10 trace l'accès mais pas
+sa légitimité, et la promesse faite aux utilisateurs (« chacune de ces lectures est horodatée,
+attribuée et conservée », `12` RG103) devient invérifiable sur le seul point qui compte — *pourquoi*.
+
+**`messaging.access_reasons` — la liste fermée des motifs de lecture** (`12` RG56) :
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `code` | `text` | **PK** — `suivi_de_l_affaire` · `continuite_de_service` · `reprise_de_dossier` · `instruction_signalement` · `litige_ou_contestation` · `controle_qualite` · `demande_rgpd` · `incident_de_securite` · `autre` |
+| `label_key` | `text` | `not null` (R8) |
+| **`is_auto_selectable`** | `boolean` | `not null default false` — **vrai pour `suivi_de_l_affaire` seulement** |
+| `requires_comment` | `boolean` | `not null default false` — **vrai pour `autre`** (`12` RG56) |
+| `requires_participation` | `boolean` | `not null default false` — **vrai pour `suivi_de_l_affaire`** : on ne « suit » pas l'affaire d'un autre |
+| `is_reviewed_weekly` | `boolean` | `not null default false` — **vrai pour `autre`**, motif surveillé chaque semaine |
+| `sort_order` | `smallint` | `not null` |
+| `is_active` | `boolean` | `not null default true` |
+
+```sql
+comment on table messaging.access_reasons is
+  'Motifs types d''une lecture de conversation par un role interne (12 RG56).
+   LISTE FERMEE : un motif libre serait un motif vide. is_auto_selectable = true uniquement pour
+   suivi_de_l_affaire, retenu AUTOMATIQUEMENT quand l''agent est participant — aucune friction
+   sur le geste quotidien (12 RG56, CA30). Pour un agent NON participant, le motif est choisi
+   AVANT que le moindre message ne soit affiche (12 RG57, CA31) : un motif choisi apres coup ne
+   vaut rien, et c''est la fonction de lecture qui le garantit, pas l''ecran.
+   incident_de_securite est ajoute a la liste de 12 RG56 : une investigation apres incident est
+   une raison legitime, et l''absence du motif pousserait a cocher ''autre''.';
+
+comment on column messaging.conversation_access_log.reason_code is
+  'NOT NULL SANS VALEUR PAR DEFAUT : il n''existe aucun moyen d''ecrire une lecture sans motif.
+   C''est la difference entre tracer un acces et pouvoir en rendre compte (12 RG58).';
+```
+
+**`read_session_id` : la colonne existe, et voici ce qu'elle fait.** `03` §5.2 la cite pour
+« regrouper les lectures à l'affichage » ; `12` la signalait absente de `04` (manque 7). Elle est
+**générée par `apps/api` à l'ouverture d'un fil** et repassée à chaque page suivante. Sans elle,
+un agent qui fait défiler cinq pages produit cinq lignes indiscernables de cinq consultations, et la
+revue hebdomadaire X4 — « classement des agents par nombre de fils distincts lus » — mesure la
+pagination au lieu de l'attention. **Aucun autre mécanisme ne la remplace** : `request_id` change à
+chaque appel (c'est son rôle), et `accessed_at` ne permet qu'un regroupement par fenêtre de temps,
+c'est-à-dire une heuristique.
+
+```sql
+-- X4 : fils distincts reellement ouverts par agent sur 24 h (12 RG61, seuil de depart : 40)
+select agent_account_id, count(distinct conversation_id) as threads,
+       count(distinct read_session_id)                   as sessions
+  from messaging.conversation_access_log
+ where accessed_at > now() - interval '24 hours'
+ group by agent_account_id
+having count(distinct conversation_id) > 40;
+```
+
+**Ce qui n'y est pas, et n'y sera jamais :** le contenu d'un message, un extrait, un aperçu, un
+objet, un nom. Journaliser l'accès, pas la donnée.
 
 Écrite par la fonction `SECURITY DEFINER` `messaging.read_conversation(p_conversation_id)`, qui
 journalise **puis** retourne les messages. La garantie décisive n'est pas la fonction, c'est le
@@ -1392,32 +3221,214 @@ et le même déclencheur. **À confirmer par `expert-cybersecurite` et `expert-c
 
 #### `messaging.contact_detections`
 
-`id`, `message_id` FK, `detection_type` (`email` · `phone` · `social_handle` · `messaging_link` ·
-`iban` · `url`), `match_start int`, `match_end int`, `detector_version text not null`,
-`reviewed_by_agent_id`, `reviewed_at`, `review_outcome` (`legitimate` · `circumvention_suspected` ·
-`false_positive`), `created_at`.
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `id` | `uuid` | PK |
+| `message_id` | `uuid` | `not null references messaging.messages(id)` |
+| `detection_type` | `messaging.detection_type` | `not null` — `email` · `phone` · `social_handle` · `messaging_link` · `iban` · `url` (`12` RG47) |
+| `match_start`, `match_end` | `integer` | `not null`, `check (match_end > match_start and match_start >= 0)` — **des positions, jamais du texte** |
+| `detector_version` | `text` | `not null` — rejeu du corpus sans réécrire l'historique |
+| **`warned_before_send`** | `boolean` | `not null` — **l'émetteur a vu l'avertissement avant l'envoi** (`12` RG45) |
+| **`sent_despite_warning`** | `boolean` | `not null` — **il a choisi « Envoyer quand même »** (`12` RG45, CA22) |
+| `reviewed_by_agent_id` | `uuid` | FK interne |
+| `reviewed_at` | `timestamptz` | Couple lié au suivant |
+| `review_outcome` | `messaging.review_outcome` | `legitimate` · `circumvention_suspected` · `false_positive` (`12` RG50) |
+| `created_at` | `timestamptz` | `not null` — **append-only sauf les trois colonnes de classement** |
+
+```sql
+alter table messaging.contact_detections
+  -- on ne peut pas avoir envoye "malgre l'avertissement" sans avoir ete averti
+  add constraint contact_detections_warning_consistency
+      check (not sent_despite_warning or warned_before_send),
+  add constraint contact_detections_review_is_complete
+      check (num_nonnulls(reviewed_by_agent_id, reviewed_at, review_outcome) in (0, 3));
+
+comment on column messaging.contact_detections.warned_before_send is
+  'Vrai si le controle prealable a affiche l''avertissement a l''emetteur AVANT l''envoi
+   (12 RG42, RG43). Faux dans deux cas legitimes : detection ajoutee par une version
+   posterieure du detecteur, ou chemin d''envoi sans ecran (import, rattrapage).
+   ATTENTION : le controle prealable NE STOCKE RIEN (12 RG44). Un brouillon corrige avant envoi
+   ne laisse aucune trace — cette colonne ne decrit que les messages REELLEMENT envoyes.';
+
+comment on column messaging.contact_detections.sent_despite_warning is
+  'Vrai si l''emetteur a choisi « Envoyer quand meme » apres l''avertissement (12 RG45, CA22).
+   *** C''EST LA DONNEE LA PLUS UTILE DU DISPOSITIF. *** Un partage involontaire et un partage
+   assume apres avertissement ne disent pas la meme chose, et seul le second merite l''attention
+   du commercial. C''est aussi l''indicateur de contournement le plus honnete du MVP
+   (12, Indicateurs) : « part des detections envoyees malgre l''avertissement ».
+   NE DECLENCHE AUCUNE SANCTION AUTOMATIQUE (12 RG48, M5 allege) : on signale, on ne masque pas,
+   on ne bloque pas. Cette colonne alimente une conversation entre humains.';
+```
 
 **On stocke le type et la position, jamais une copie du texte détecté** (`intermediation-tracking`,
-section détection). Le message est déjà stocké ; en recopier un extrait doublerait l'exposition d'une
-donnée personnelle sans rien apporter. `detector_version` permet de rejouer le corpus quand la
-détection évoluera.
+section détection ; `12` RG46, CA23). Le message est déjà stocké ; en recopier un extrait doublerait
+l'exposition d'une donnée personnelle sans rien apporter — et reviendrait à construire, à côté de la
+messagerie, **l'annuaire qu'on cherche précisément à éviter**. `detector_version` permet de rejouer
+le corpus quand la détection évoluera, **sans jamais réécrire une détection passée** (`12`, cas
+limite « le détecteur est mis à jour »).
 
-#### `messaging.reports` et `messaging.documents`
+**La détection s'applique aussi aux messages des agents** (`12` RG49) : la table ne porte aucune
+condition sur le rôle de l'auteur. Une détection sur un message d'agent est visible de
+**l'administrateur**, pas des parties — c'est une règle de politique RLS, pas de schéma (`03`).
 
-- `messaging.reports` : `id`, `conversation_id`, `message_id` (nullable), `reporter_account_id`,
-  `reason_code` (FK `messaging.report_reasons`), `comment`, `status`, `claimed_by_agent_id`,
-  `decided_at`, `outcome_code`, `sla_due_at`, `created_at`.
-- `messaging.documents` : `id`, **`introduction_id`** (rattaché à la mise en relation, pas au
-  message), `uploaded_by_account_id`, `storage_path`, `label_code` (liste fermée),
-  `original_filename` (**stocké pour l'agent, jamais renvoyé à un membre** — c'est un champ de texte
-  libre, donc un vecteur de coordonnées : `devis-jean-0612345678.pdf`),
-  `content_type check (... in ('application/pdf','image/png','image/jpeg'))`, `byte_size`,
-  `moderation_status`, `moderated_by_agent_id`, `moderated_at`, `rejection_reason_code`,
-  `created_at`.
+```sql
+-- liste de travail du commercial : detections non classees, les assumees d'abord (12 RG99)
+create index contact_detections_pending_idx
+  on messaging.contact_detections (sent_despite_warning desc, created_at desc)
+  where reviewed_at is null;
+```
 
-  > **Conditionnelle.** Le canal de documents est une **proposition** de `messaging-spec` (question
-  > ouverte n° 4, arbitre : le fondateur). Si elle est écartée, ces deux tables ne sont pas créées :
-  > aucune autre table n'en dépend.
+#### `messaging.reports`
+
+`id`, `conversation_id`, `message_id` (nullable), `reporter_account_id`, `reason_code`
+(FK `messaging.report_reasons`), `comment`, `status`, `claimed_by_agent_id`, `decided_at`,
+`outcome_code`, `sla_due_at`, `created_at`.
+
+```sql
+-- anti-abus : 5 signalements actifs par compte (12 RG85), valeur en table
+create index reports_active_by_reporter_idx
+  on messaging.reports (reporter_account_id)
+  where status in ('open','in_review');
+```
+
+La **personne visée n'est jamais informée** de l'existence d'un signalement (`12` RG83) : aucune
+colonne ne la désigne, et aucune politique ne lui donne de lecture sur cette table. Le signalant, lui,
+apprend que son signalement a été **traité**, `outcome_code` restant interne (`12` RG84).
+
+#### `messaging.documents` — le canal contrôlé (conditionnel)
+
+> **Périmètre conditionnel, inchangé.** Le canal de documents est une **proposition** de
+> `messaging-spec` (question ouverte n° 4, reprise en `12` Q5, arbitre : le fondateur, avec **veto de
+> `expert-cybersecurite` sur l'absence d'analyse antivirale**). S'il est écarté, les **trois** tables
+> de ce paragraphe ne sont pas créées : aucune autre table n'en dépend.
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `id` | `uuid` | PK |
+| **`introduction_id`** | `uuid` | `not null` FK — **rattaché à la mise en relation, pas au message** (`12` RG66) |
+| `uploaded_by_account_id` | `uuid` | `not null` FK |
+| `storage_path` | `text` | `not null unique` — compartiment privé, jamais d'URL publique |
+| `label_code` | `text` | `not null` FK `messaging.document_labels` — `brief` · `moodboard` · `exemple_de_contenu` · `charte_de_marque` · `planning` · `autre` (`12` RG69). **Ni `contrat`, ni `devis`, ni `facture`** (`12` RG70, CA41) |
+| `label_comment` | `text` | Obligatoire sur `autre` |
+| `original_filename` | `text` | **Stocké pour l'agent, jamais renvoyé à un membre** — champ de texte libre, donc vecteur de coordonnées (`devis-jean-0612345678.pdf`, `12` RG69) |
+| `content_type` | `text` | `not null check (content_type in ('image/png','image/jpeg','application/pdf'))` — **voir la réserve E1-9 ci-dessous** |
+| `byte_size` | `bigint` | `not null check (byte_size > 0 and byte_size <= 10485760)` — 10 Mo (`12` RG68) |
+| `moderation_status` | `messaging.moderation_status` | `not null default 'pending'` — `pending` · `approved` · `rejected` |
+| `moderated_by_agent_id`, `moderated_at` | — | Couple lié au statut |
+| `rejection_reason_code` | `text` | FK **`messaging.document_rejection_reasons`**, `check ((moderation_status = 'rejected') = (rejection_reason_code is not null))` (`12` RG73) |
+| **`available_at`** | `timestamptz` | **La mise à disposition de l'autre partie** — distincte du dépôt **et** du contrôle (`12` RG71, RG74) |
+| `review_due_at` | `timestamptz` | `not null` — 1 jour ouvré, lu dans `backoffice.sla_policies` (`12` RG71) |
+| `created_at` | `timestamptz` | `not null` — **la date de dépôt** |
+
+**Trois dates, et non une seule : c'est tout l'objet de la correction** (`12` manque 5). Le dépôt
+(`created_at`), le contrôle (`moderated_at`) et la **mise à disposition** (`available_at`) se
+produisent à trois instants, sous la responsabilité de deux personnes différentes. Tant que
+`available_at` est nul, **l'autre partie ne voit rien** — ni le document, ni son existence, ni un
+emplacement en attente (`12` RG72, CA37) : c'est cette colonne, et elle seule, que la politique RLS
+du destinataire interroge.
+
+```sql
+alter table messaging.documents
+  -- un document mis a disposition a forcement ete accepte
+  add constraint documents_available_requires_approval
+      check (available_at is null or moderation_status = 'approved'),
+  add constraint documents_moderation_is_complete
+      check ((moderation_status = 'pending')
+             = (num_nonnulls(moderated_by_agent_id, moderated_at) = 0)),
+  add constraint documents_chronology
+      check (coalesce(available_at, 'infinity') >= coalesce(moderated_at, '-infinity')),
+  -- 10 documents par mise en relation (12 RG68) : contrainte tenue par declencheur,
+  -- un CHECK ne peut pas compter des lignes soeurs
+  add constraint documents_size_within_cap
+      check (byte_size <= 10485760);
+
+comment on column messaging.documents.available_at is
+  'Instant ou le document devient visible de L''AUTRE partie (12 RG71, RG74).
+   DISTINCT de created_at (depot) et de moderated_at (controle) : un agent peut accepter un
+   document sans le mettre a disposition dans la meme seconde, et un document DEPOSE PUIS
+   CONTROLE APRES LA CLOTURE du fil est mis a disposition SANS ROUVRIR le fil (12, cas limite).
+   NUL = l''autre partie ne voit RIEN : ni le document, ni son existence, ni un emplacement en
+   attente, ni un decompte (12 RG72). C''est cette colonne que lit la politique RLS du
+   destinataire — pas moderation_status, qui dirait seulement que quelqu''un a decide.
+   La mise a disposition produit le message systeme document.available (12 RG74) et
+   l''evenement de registre du meme nom.';
+
+comment on column messaging.documents.original_filename is
+  'Nom de fichier d''origine. *** JAMAIS RENVOYE A UN MEMBRE, y compris au deposant (12 RG69). ***
+   C''est un champ de TEXTE LIBRE choisi par un membre, donc un vecteur de coordonnees.
+   Visible du seul agent qui controle. Le membre voit label_code, rendu dans sa langue.';
+```
+
+> **Réserve à lever avant la migration `0405` — le PDF.** `03` **E1-9** pose « images uniquement
+> (PNG, JPEG, WebP), **PDF refusé au MVP** », parce qu'un PDF servi depuis notre origine est un
+> **document actif**. La règle vise explicitement le portfolio et les pièces de vérification ; son
+> motif, lui, vaut tout autant ici. Or `12` RG68 liste **PDF, PNG, JPEG** — un brief sans PDF n'est
+> pas un brief. **Position conservatrice retenue :** la valeur `application/pdf` figure dans la
+> contrainte **mais n'est activée qu'à deux conditions**, posées par E1-9 elle-même — servi depuis
+> une **origine distincte**, en `Content-Disposition: attachment`. `03` **E1-11** demandait par
+> ailleurs la réouverture du sujet antiviral « si un canal de documents est ouvert » : **il l'est
+> ici**. Les deux points partent en **§12.7, point 3**, veto `expert-cybersecurite` (`12` Q5).
+> Tant qu'ils ne sont pas levés, la migration charge la contrainte **sans** `application/pdf` :
+> retirer une valeur d'un `CHECK` est une migration destructive, en ajouter une ne l'est pas.
+
+**`messaging.document_labels`** : `code` PK, `label_key`, `requires_comment` (**vrai sur `autre`**),
+`sort_order`, `is_active`. Liste fermée de six valeurs, **dont l'absence de `contrat`, `devis` et
+`facture` est une décision de produit** (`12` RG70) : le contrat est hors application (**A1**) et ce
+canal ne doit pas le devenir par glissement.
+
+**`messaging.document_rejection_reasons`** : `code` PK, `label_key`, `message_key` (le message
+**envoyé au seul déposant**), `requires_comment`, `sort_order`, `is_active`. Codes du MVP :
+`illisible` · `hors_sujet` · `coordonnees_dans_le_document` · `format_non_conforme` ·
+`contenu_contractuel` · `autre`. C'est la cible de la clé étrangère `rejection_reason_code`, qui
+jusqu'ici n'en avait aucune — **une clé étrangère sans table est une contrainte qui n'existe pas**.
+
+```sql
+comment on table messaging.document_rejection_reasons is
+  'Motifs de refus d''un document (12 RG73). Le refus est notifie AU SEUL DEPOSANT et
+   N''EST PAS un message systeme : l''autre partie n''a jamais su que le document existait
+   (12 RG73, CA39). Une table par file (§3.1) : ces motifs n''ont rien a voir avec ceux d''une
+   cloture de fil, d''un signalement ou d''une campagne.';
+```
+
+#### `messaging.document_downloads` — le journal des téléchargements (`12` manque 5)
+
+`12` RG75 exige que **le dépôt, le contrôle, la mise à disposition et *chaque téléchargement***
+soient journalisés avec leur auteur et leur date. Les trois premiers sont des colonnes de la table
+ci-dessus ; le quatrième est **un fait répétable**, donc une ligne.
+
+*Table **append-only**, `REVOKE UPDATE, DELETE` à tous les rôles + déclencheur
+`influx.assert_append_only()`.*
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `id` | `bigint` | `generated always as identity` |
+| `document_id` | `uuid` | `not null references messaging.documents(id)` |
+| `downloaded_by_account_id` | `uuid` | `not null` FK — **l'auteur réel**, membre ou agent |
+| `downloader_role` | `messaging.participant_role` | `not null` — copie au moment du téléchargement (R7) |
+| `downloaded_at` | `timestamptz` | `not null default clock_timestamp()` |
+| `request_id` | `text` | Rapprochement avec les journaux applicatifs |
+| `signed_url_expires_at` | `timestamptz` | `not null` — **l'URL signée émise**, jamais l'URL elle-même |
+
+```sql
+create index document_downloads_by_document_idx
+  on messaging.document_downloads (document_id, downloaded_at desc);
+
+comment on table messaging.document_downloads is
+  'Un telechargement = une ligne (12 RG75). APPEND-ONLY, pas d''updated_at.
+   Repond a la seule question qui compte en cas de litige : « qui a recupere ce fichier,
+   et quand ? ». Le simple fait qu''un document soit mis a disposition ne prouve pas qu''il ait
+   ete lu — c''est pourquoi la date de mise a disposition (documents.available_at) NE SUFFIT PAS
+   et ne remplace pas cette table.
+   NE CONTIENT JAMAIS l''URL signee elle-meme, seulement sa date d''expiration : une URL signee
+   journalisee est une URL signee qui fuit.
+   Ecrite par la fonction SECURITY DEFINER qui emet l''URL, AVANT de l''emettre — meme doctrine
+   que messaging.read_conversation() : on journalise, PUIS on sert.';
+```
+
+**Une conséquence de conception à noter** : `access_scope = 'export'` de
+`messaging.conversation_access_log` et ce journal-ci sont **deux objets différents**. Télécharger un
+document mis à disposition est un geste normal du produit ; exporter une conversation n'existe pas au
+MVP (`12` RG62). Les confondre ferait passer l'un pour l'autre dans la revue hebdomadaire.
 
 ---
 
@@ -1562,7 +3573,18 @@ Le retrait du droit d'insertion à **tous** les rôles, y compris `influx_servic
 transforme l'intention en garantie : au MVP, il est **impossible** de remplir cette table depuis
 l'application. La remplir sera un acte délibéré, écrit, relu et versionné.
 
-#### `billing.deals` — le pipeline commercial (Lot 5)
+#### `billing.deals` — le pipeline commercial (**table créée au Lot 4**, écrans au Lot 5)
+
+> **Avancée du Lot 5 au Lot 4 le 2026-09-19** (arbitrage `chef-de-projet`). L'affaire est créée
+> **dans la transaction de révélation**, à l'état `open` (§5.6) : la table doit donc exister avant
+> `matching.reveal_identity()`, c'est-à-dire à la migration **`0402a`**. Ce qui reste au Lot 5 est
+> le **produit** — écrans du pipeline, saisie et validation des montants, exports. La table,
+> ses transitions, ses motifs de perte et son historique de montants, eux, arrivent au Lot 4.
+>
+> **Ce que porte une affaire à l'état `open` :** `introduction_id`, `owner_agent_id`, `revealed_at`
+> et `state`, **tous copiés de la mise en relation** dans la même transaction. Aucun montant, aucune
+> devise, aucune date de contrat — et aucune contrainte relâchée pour autant : les contraintes de
+> cette table sont **par état** (ci-dessous), et aucune ne s'applique à `open`.
 
 > **Note d'emplacement.** Le plan d'exécution range `deals` dans le domaine `backoffice`.
 > `01-intermediation-courtee.md` §9 et `02-architecture-3-espaces.md` §8 le rangent dans `billing`.
@@ -1655,6 +3677,7 @@ Append-only. « Un montant écrasé sans trace est un montant perdu » (document
 |---|---|---|
 | `backoffice.ownership_assignments` | **Historique des commerciaux responsables successifs.** `account_id` / `introduction_id` / `deal_id` nullables avec `check (num_nonnulls(...) = 1)`, `agent_account_id`, `assigned_at`, `unassigned_at`, `assigned_by_account_id`, `reason_code`. `backoffice-ops` règle 18 : l'historique est conservé, pas écrasé | 0 |
 | `backoffice.sla_policies` | `queue_code` PK, `target_claim_minutes`, `target_decision_minutes`, `business_hours jsonb`, `escalate_after_minutes`, `is_active`. **D39 tranchée : décision sous 1 jour ouvré.** Valeur de départ chargée par la migration `0102` — `target_decision_minutes = 480` (un jour ouvré de 8 h), `escalate_after_minutes = 480`, `business_hours` couvrant du lundi au vendredi. **Le délai reste une donnée, pas une constante** : le resserrer sera une mise à jour de ligne | 1 |
+| **`backoffice.operational_settings`** | **Les plafonds et délais d'exploitation qui ne sont ni des SLA ni des réglages de recherche**, en clé/valeur à liste fermée (`key text PK check (key in (…))`, `value jsonb`, `updated_by_account_id`, `updated_at`), même régime que `leads.sync_settings` : écriture par fonction `SECURITY DEFINER` réservée à `influx_admin`, chaque modification journalisée. Clés du Lot 3 : `application_caps` (P1 = 10, P2 = 5/jour, P3 = 30, P4 = 1 seconde chance), `campaign_caps` (10 campagnes simultanées, 50 créateurs recherchés), `claim_expiry_minutes` (30), `ownership_code_ttl_days` (7), `badge_grace_days`, `verified_only_enabled` (**faux au lancement**, D38), `campaign_autoclose_days` (30), `application_draft_ttl_days` (30), `unanswered_application_days` (7). **Les six documents de spécification exigent tous la même chose : ces valeurs sont des données, pas des constantes** | 3 |
 | `backoffice.internal_notes` | Notes internes **immuables** (on ajoute, on ne corrige pas), rattachées à exactement un sujet | 5 |
 | `backoffice.account_suspensions` | `account_id`, `reason_code`, `comment`, `started_at`, `ended_at`, `suspended_by`, `lifted_by`. Le motif **n'est jamais divulgué à l'autre partie** d'une conversation | 5 |
 | `backoffice.email_send_limits` | `(role_code, source)` PK, `max_recipients_per_send`, `max_recipients_per_day`. **Les plafonds de D35 sont des données** | 5 |
@@ -1821,7 +3844,11 @@ create trigger audit_events_no_truncate
 | `profiles.creator_identities` | **—** | L + E | L | L | L |
 | `profiles.advertiser_contact_details` | L + E (la sienne) | **L après révélation, colonnes limitées** (D40) | L | L | L |
 | `verification.evidence_files` | **—** | L (les siennes) | L (journalisé) | L | — |
-| `campaigns.campaigns` | L + E (les siennes) | L (publiées, sans budget total) | L | L | L |
+| `campaigns.campaigns` | L + E (les siennes) | **—** *(le créateur lit l'instantané, jamais la ligne vivante)* | L | L | L |
+| `campaigns.campaign_published_snapshots` | L | **L** | L | L | L |
+| `matching.party_blocks` | L + E (les siens) | L + E (les siens) | L + E | L + E | L |
+| `matching.application_drafts` | **—** | L + E (les siens) | **—** | **—** | — |
+| `reference.price_bands` (bornes nettes comprises) | L | L | L | L | L |
 | `matching.introductions` | L (les siennes) | L (les siennes) | L + E | L + E | F |
 | `matching.introductions.identity_revealed_at` | — | — | **F** | **F** | **F** |
 | `messaging.messages` | L (ses fils) + E | L (ses fils) + E | **F** | **F** | — |
@@ -2130,6 +4157,8 @@ les préparer serait inventer.
 | Badges et décisions | `verification.badges`, `verification_requests` | **3 ans** | `decided_at` | Historique de responsabilité : INFLUX répond de ce qu'il a affirmé |
 | Messages | `messaging.messages` | **3 ans** après la clôture de la conversation | `closed_at` | Preuve d'une négociation d'où peut naître une créance V2 (D29) |
 | Journal des lectures | `messaging.conversation_access_log` | **3 ans** | `accessed_at` | Contrepartie de la supervision annoncée (A10) : elle doit être vérifiable aussi longtemps que les échanges |
+| **Documents et téléchargements** | `messaging.documents`, **`messaging.document_downloads`** | **3 ans** après la clôture de la conversation | `closed_at` du fil | **Même durée que les messages** : un brief transmis fait partie de la négociation. Les octets sortent du Storage à la même échéance, le journal des téléchargements reste pendant la même durée |
+| **Journal d'envoi des e-mails** | **`matching.introduction_emails`** | **3 ans** | `created_at` | Corroboration externe d'une mise en relation (`13` RG79). Ne contient ni adresse ni texte : sa conservation coûte peu et son absence rendrait la preuve externe introuvable |
 | Incidents de délivrance | `identity.email_delivery_incidents` | **24 mois** | `occurred_at` | Diagnostic d'un compte fermé et suivi de la réputation d'envoi ; au-delà, sans usage |
 | Journal des recherches | `search.search_queries`, `search_impressions` | **12 mois** | `created_at` | Double finalité (anti-aspiration, amélioration produit) ; au-delà, l'intérêt décroît vite |
 | File de synchronisation | `leads.outbox_events` | `succeeded` : **30 jours** · `failed` : jusqu'à traitement | `completed_at` | Document `02` §6 |
@@ -2227,6 +4256,14 @@ planificateur**.
 | `portfolio_items (account_id, display_order) where moderation_status = 'approved'` | Les 1 à 3 visuels d'une carte, sans jamais toucher les visuels non modérés |
 | `verification.badges (expires_at) where state = 'active'` | **Tâche quotidienne de péremption à 90 jours** (D34) : sans cet index, elle balaie toute la table chaque nuit |
 | `search_queries (account_id, created_at desc)` | Limitation de débit (30/h, 200/j) et détection d'affinage — lecture à **chaque** recherche |
+| `party_blocks (advertiser_account_id, creator_account_id)` **unique partiel**, `where lifted_at is null` | **Exclusion de premier rang de la recherche** (`10` RG28), évaluée pour chaque résultat. L'unicité **est** la contrainte ; l'index n'en est que l'effet |
+| `party_blocks (creator_account_id) where lifted_at is null` | Le sens inverse : « ce créateur est-il bloqué par quelqu'un ? », lu par la recherche de campagnes et par `open_introduction()` |
+| `profile_field_revisions (sla_due_at) where status = 'pending_review'` | **File de validation des révisions**, triée par échéance. Index partiel : il ne contient que ce qui est en attente |
+| `campaigns (status, applications_close_on) where status = 'published'` | Le fil de campagnes côté créateur : publiées, non encore fermées aux candidatures, triées par échéance |
+| `campaigns (advertiser_account_id, status)` | « Mes campagnes » côté marque, et le plafond de 10 campagnes simultanées (`09` RG15) |
+| `campaigns (created_at) where status = 'pending_review'` | File « campagnes à valider » du backoffice, triée par ancienneté croissante (`09` RG87) |
+| `campaign_price_bands (currency, price_band_code)` | Filtre « tranche de budget » de la recherche de campagnes : une comparaison de **codes**, jamais de montants |
+| `supply_counters (dimension, dimension_value, snapshot_on desc)` | Courbe de masse critique par thématique (D38), lue au tableau de bord et par la tâche d'alerte |
 
 > **Seuil de réexamen, écrit à l'avance.** Dès que `creator_public_profiles` dépasse **20 000 lignes
 > publiées** ou que le p95 de la recherche dépasse **150 ms** mesuré par `pg_stat_statements`, on
@@ -2258,6 +4295,14 @@ mesure le demandera, pas avant (R9).
 | `introductions (creator_account_id, status)` | Côté créateur : « mes demandes en cours » |
 | `introductions (reference)` **unique** | Recherche par référence `MER-…` depuis un e-mail ou un appel |
 | `introductions (advertiser_account_id, creator_account_id, coalesce(campaign_id,…))` **unique partiel** | Blocage des doublons — contrainte, pas optimisation |
+| `interest_submissions (introduction_id, kind)` **unique** | Une expression d'intérêt par partie et par mise en relation ; sert aussi à charger les deux soumissions d'un coup pour le commercial |
+| `interest_submissions (submitted_by_account_id, created_at desc)` | « Mes candidatures » côté créateur, et le décompte de la seconde chance après un refus corrigible (`11` RG67) |
+| `application_drafts (expires_at)` | **Purge quotidienne** des brouillons abandonnés. Sans lui, la tâche balaie toute la table chaque nuit |
+| `introductions (campaign_id, status) where origin = 'creator_application'` | Reconstruction et contrôle du compteur `active_applications_count` (`11` P3), et statistiques de candidature par campagne |
+| **`introductions (proposal_batch_id) where proposal_batch_id is not null`** | **Suivi d'un envoi groupé** : « mes propositions de la semaine, par lot, avec leur taux d'acceptation » (`13` RG54 à RG59). Index partiel : seules les propositions INFLUX y entrent |
+| **`introduction_emails (introduction_id) where status = 'failed'`** | **Alerte A8** : les mises en relation sans preuve externe. Doit rester vide — l'index ne coûte donc presque rien (`13` RG80) |
+| **`introduction_emails (introduction_id, recipient_account_id) where email_kind = 'reveal_confirmation'`** **unique** | Une seule confirmation de révélation par destinataire : contrainte, pas optimisation |
+| **`introduction_emails (provider_message_id)`** **unique** | Idempotence du webhook d'accusé de réception, et recherche depuis une réclamation (« retrouvez-moi cet e-mail ») |
 
 ### 10.6 Messagerie — Lot 4
 
@@ -2268,26 +4313,40 @@ mesure le demandera, pas avant (R9).
 | `conversations (last_message_at desc)` | Tri de cette liste par activité |
 | `conversation_access_log (conversation_id, accessed_at desc)` | « Qui a lu ce fil ? » — à la demande d'un utilisateur ou d'une autorité |
 | `conversation_access_log (agent_account_id, accessed_at desc)` | « Qu'a lu cet agent ? » — revue de conformité |
-| `contact_detections (created_at desc) where reviewed_at is null` | Liste d'alertes du backoffice (M6) |
+| `contact_detections (sent_despite_warning desc, created_at desc) where reviewed_at is null` | Liste d'alertes du backoffice (M6). **L'ordre des colonnes est le message** : les envois assumés après avertissement remontent en tête, ce sont les seuls qui méritent un appel (`12` RG45) |
+| **`conversation_access_log (read_session_id)`** | Regroupement des appels d'une même consultation à l'affichage et dans la revue X4 (`03` §5.2) — sans lui, la pagination se compte comme des lectures |
+| **`conversation_access_log (reason_code, accessed_at desc)`** | « Lectures par un agent non participant, par semaine et par motif » (`12`, Indicateurs) : l'indicateur qui rend la supervision annoncée mesurable |
+| **`documents (introduction_id) where moderation_status = 'pending'`** | **File de contrôle des documents** et alerte de dépassement du SLA (`12` RG71, RG99) |
+| **`document_downloads (document_id, downloaded_at desc)`** | « Qui a récupéré ce fichier, et quand ? » — la seule question posée en cas de litige (`12` RG75) |
 
-### 10.7 Pipeline commercial — Lot 5
+### 10.7 Pipeline commercial — Lot 4 *(table)* puis Lot 5 *(écrans)*
 
 | Index | Requête |
 |---|---|
+| **`deals (revealed_at) where state = 'open'`** | **Alerte A6** : affaire créée à la révélation et **jamais sortie de son état initial après 30 jours** — signal de contournement **ou** de saisie négligée (`01` §11, `13` RG106). Index partiel, **nécessaire dès le Lot 4** puisque l'affaire y naît. Il remplace la jointure externe sur `introductions` de l'ancienne rédaction |
 | `deals (owner_agent_id, state)` | Pipeline d'un commercial |
 | `deals (state, signed_at) where state = 'signed' and commission_invoiced_at is null` | **Relance J+7** : affaire signée dont la commission n'est pas facturée |
 | `deals (commission_invoiced_at) where state = 'commission_invoiced' and commission_received_at is null` | **Relance J+30** |
 | `deals (commission_received_at, currency) where commission_received_amount_minor is not null` | Indicateur n° 1 : **commission encaissée par devise et par mois**, et rapprochement bancaire |
 
-### 10.8 Les trois seules dénormalisations du modèle
+### 10.8 Les cinq dénormalisations du modèle
 
-| Colonne | Requête qui l'impose | Maintenue par |
+| Colonne | Requête ou règle qui l'impose | Maintenue par |
 |---|---|---|
 | `conversations.last_message_at` | Liste des conversations triée par activité, sur trois espaces. Sans elle, un `max()` corrélé sur `messages` à chaque affichage | Déclencheur `AFTER INSERT` sur `messages` |
 | `leads.contact_sync_states` | Écran « inscrits et état de synchronisation » : un `DISTINCT ON` sur toute la file à chaque affichage | Le worker, en fin de traitement |
 | `billing.deals.revealed_at` | Copie de `identity_revealed_at` qui rend la contrainte `signed_at >= revealed_at` **déclarative** au lieu d'exiger un déclencheur avec sous-requête | Posée à la création de l'affaire, jamais modifiée |
+| **`campaigns.campaigns.active_applications_count`** | **Ce n'est pas une optimisation, c'est une correction.** Le plafond P3 (`11`) doit **fermer atomiquement** la campagne : un `count(*)` lu avant l'insertion laisse passer deux candidatures simultanées. Le compteur est la ligne que la transaction verrouille, et la contrainte `check (… <= max_applications)` refuse l'insertion en trop | Déclencheur sur `matching.introductions` |
+| **`matching.application_quotas`** | Même raisonnement pour les plafonds P1 et P2 côté créateur, plus le compteur journalier glissant qu'aucune requête ne peut tenir sans une ligne à verrouiller | Déclencheur sur `matching.introductions` + réinitialisation quotidienne de `counted_on` |
 
-Toute autre dénormalisation proposée devra s'accompagner d'une **mesure**, pas d'une intuition (R10).
+Les deux ajouts de cette version ne sont pas des copies de confort : **sans eux, une règle de
+gestion est fausse sous concurrence**. C'est le seul motif qui fait céder R10 — une mesure ou une
+impossibilité démontrée, jamais une intuition de performance.
+
+**Un cas voisin, qui n'est pas une dénormalisation :** `campaigns.campaign_published_snapshots` ne
+duplique pas une donnée vivante, il **conserve une version datée de ce qui a été montré**, au même
+titre que `terms_acceptances.content_hash` ou que les pays recopiés sur une mise en relation (R7).
+La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 
 ---
 
@@ -2331,23 +4390,31 @@ Toute autre dénormalisation proposée devra s'accompagner d'une **mesure**, pas
 | 0105 | `identity_email_health` | `email_delivery_incidents`, append-only, index d'idempotence | Oui |
 | 0106 | `profiles_advertiser_minimal` | Schéma `profiles`, privilèges par défaut, `advertiser_profiles` **en forme minimale** (nom d'entreprise) | Oui |
 | **Lot 2** | | | |
-| 0201 | `reference_taxonomies` | `topics`, `networks`, `formats`, `sectors`, `usage_rights`, `audience_bands`, `price_bands` | Oui |
+| 0201 | `reference_taxonomies` | `topics`, `networks`, `formats`, `sectors`, `usage_rights`, `audience_bands`, **`engagement_bands`**, **`age_bands`** (`check (min_age >= 18)`), **`audience_genders`**, **`editorial_tones`**, **`publication_frequencies`**, **`regions`**, `price_bands` **avec ses bornes nettes et son `REVOKE`** | Oui |
 | 0202 | `profiles_advertiser_full` | **Extension** de `advertiser_profiles` (colonnes du Lot 2, toutes nullables, aucune donnée à migrer) + `advertiser_contact_details` | Oui |
-| 0203 | `profiles_creator_public` | Vitrine anonymisée et ses satellites | Oui |
-| 0204 | `profiles_creator_identity` | Objets révélable et identifiant, `REVOKE` au rôle annonceur | Oui |
+| 0203 | `profiles_creator_public` | Vitrine anonymisée et ses satellites, **les sept champs ajoutés par `07`**, `creator_tones`, `creator_usage_rights`, **`profile_status` à cinq valeurs** | Oui |
+| 0204 | `profiles_creator_identity` | Objets révélable et identifiant, `avg_reach_per_post`, **`GRANT` de révélation élargi aux chiffres exacts** (§5.2), `REVOKE` au rôle annonceur sur l'objet identifiant | Oui |
 | 0205 | `profiles_portfolio` | `portfolio_items`, compartiment `portfolio`, politiques Storage | Oui |
-| 0206 | `verification_core` | Demandes, codes, pièces, badges, contestations, motifs | Oui |
+| 0206 | `verification_core` | Demandes, codes, pièces (**images uniquement**), badges, contestations, motifs de refus, **`revocation_reasons`**, **état `to_reconfirm`**, **identifiant observé au constat** | Oui |
+| 0207 | `profiles_revisions` | `moderated_fields`, `profile_field_revisions`, index de file, fonction d'application d'une révision approuvée | Oui |
 | **Lot 3** | | | |
-| 0301 | `campaigns_core` | Campagnes et blocs, motifs de refus | Oui |
-| 0302 | `search_journal` | `search_queries`, `search_impressions`, `shortlists` | Oui |
+| 0301 | `campaigns_core` | `reference.campaign_types`, campagnes (**six états, quatre textes, dotation, droits d'usage, quatre dates, nature de la rémunération**), livrables, ciblage détaillé, messages clés, territoires, éléments demandés, motifs de refus, **types d'événements `campaign.*`** | Oui |
+| 0302 | `campaigns_publication` | `campaign_published_snapshots`, `campaign_price_bands`, fonction de publication (dérivation des tranches, contrôle des dates, revue renforcée à deux validateurs) | Oui |
+| 0303 | `search_journal` | `search_queries` (**tri et version des facettes compris**), `search_impressions`, `explanation_reasons`, `impression_reasons`, `shortlists` | Oui |
+| 0304 | `search_settings` | `search_settings`, `facet_settings`, `facet_config_versions`, `supply_counters`, fonction d'écriture réservée à `influx_admin` | Oui |
+| 0305 | `matching_party_blocks` | **`block_reasons`, `party_blocks`** et leurs politiques — au Lot 3, parce que la recherche en dépend | Oui |
+| 0306 | `backoffice_operational_settings` | Table clé/valeur des plafonds et délais d'exploitation + valeurs de départ (`11` P1 à P4, `09` RG15, RG88, `08` RG100) | Oui |
 | **Lot 4** | | | |
-| 0401 | `matching_introductions` | `introductions`, motifs, compteur de référence, contraintes, write-once | **Partiellement** : le schéma s'annule, la preuve non |
-| 0402 | `matching_reveal_function` | `reveal_identity()` `SECURITY DEFINER`, `REVOKE` de colonnes | Oui |
-| 0403 | `messaging_core` | Conversations, participants, messages, lectures | Oui |
-| 0404 | `messaging_supervision` | `conversation_access_log`, `read_conversation()`, **`REVOKE SELECT` sur `messages` aux agents** | Oui |
-| 0405 | `messaging_safety` | `contact_detections`, `reports`, `documents` *(conditionnel)* | Oui |
+| 0401 | `matching_introductions` | `introductions` (**`expiry_reason` à sept valeurs**, **`proposal_batch_id`**, **les cinq colonnes de refus de partie**), `rejection_reasons` (**`is_correctable`**, + le code `declined_by_party`), **`decline_reasons` (liste B)**, **`introduction_transitions` et son déclencheur**, `interest_submissions` et leurs formats, compteur de référence, contraintes, write-once, **les 18 codes `introduction.*` de `audit.event_types`** | **Partiellement** : le schéma s'annule, la preuve non |
+| 0402b | `matching_quotas_and_drafts` | `application_quotas`, `application_drafts` et leurs formats, déclencheurs de comptage, contraintes de plafond, purge | Oui |
+| **0402a** | **`billing_deals_at_reveal`** | **`lost_reasons`, `deal_state_transitions`, `deals`, `deal_field_changes`** et le déclencheur d'historisation — **avancées du Lot 5** (arbitrage du 2026-09-19). **Dépendance stricte : doit s'appliquer avant `0402`**, qui crée l'affaire à la révélation | Oui tant qu'aucune affaire réelle n'existe ; **non** ensuite (donnée comptable, §11.3) |
+| 0402 | `matching_reveal_function` | `reveal_identity()` `SECURITY DEFINER`, `REVOKE` de colonnes, **création de l'affaire à l'état `open`**. **Dépend de `0402a`** | Oui |
+| **0402c** | **`matching_introduction_emails`** | **`introduction_emails`**, ses contraintes de chronologie, ses trois index, l'unicité du `provider_message_id` | Oui |
+| 0403 | `messaging_core` | Conversations (**pause motivée, clôture réouvrable, `reopen_count`**), **`pause_reasons`**, **`conversation_state_transitions` et son déclencheur**, participants, messages, lectures, **les 10 codes `conversation.*` de `audit.event_types`** | Oui |
+| 0404 | `messaging_supervision` | **`access_reasons`**, `conversation_access_log` (**`reason_code` non nul, `read_session_id`**), `read_conversation()`, **`REVOKE SELECT` sur `messages` aux agents** | Oui |
+| 0405 | `messaging_safety` | `contact_detections` (**`warned_before_send`, `sent_despite_warning`**), `reports`, **`document_labels`**, **`document_rejection_reasons`**, `documents` (**`available_at`**), **`document_downloads`**, **les 7 codes `report.*`, `detection.*` et `document.*`** *(les quatre tables de documents restent conditionnelles au canal)* | Oui |
 | **Lot 5** | | | |
-| 0501 | `billing_deals` | `deals`, transitions, `deal_field_changes`, déclencheur d'historisation | Oui |
+| ~~0501~~ | ~~`billing_deals`~~ | **Supprimée le 2026-09-19 : son contenu est passé en `0402a`** (Lot 4). Le Lot 5 n'apporte **aucune table `billing` nouvelle** — seulement les écrans de saisie du pipeline | — |
 | 0502 | `backoffice_operations` | Notes, suspensions, plafonds et envois d'e-mails, demandes RGPD | Oui |
 | **Lot 6** | | | |
 | 0601 | `retention_jobs` | Fonctions de purge, index de purge manquants | Oui |
@@ -2358,6 +4425,7 @@ Toute autre dénormalisation proposée devra s'accompagner d'une **mesure**, pas
 |---|---|
 | `0006 audit_chain` | Dès la première ligne, annuler c'est **détruire la preuve**. Techniquement faisable, **interdit par décision** |
 | `0401 matching_introductions` | Le schéma s'annule tant qu'aucune mise en relation n'existe. Après : `identity_revealed_at` n'est **pas reconstituable** |
+| `0402a billing_deals_at_reveal` | Le schéma s'annule tant qu'aucune affaire n'existe. Après : **perte comptable** (§9.1, 10 ans). Et l'annuler sans annuler `0402` casserait la transaction de révélation — **les deux migrations s'annulent ensemble ou pas du tout** |
 | `0204 profiles_creator_identity` | Le `REVOKE` au rôle annonceur ne doit **jamais** être annulé. Toute migration future qui le rétablirait est un défaut bloquant, à détecter par le test du document `18` |
 | Toute migration qui supprime une colonne de montant ou de date | Perte comptable. Procédure du §11.4 obligatoire |
 
@@ -2432,7 +4500,7 @@ l'interface Supabase. Le rôle qui applique les migrations est **le propriétair
 |---|---|---|
 | ~~Q1~~ | ~~Un utilisateur peut-il être à la fois annonceur et créateur ?~~ | **Close le 2026-09-18 par D41** : un rôle par compte au MVP, liaison `identity.account_roles` posée dès le Lot 0, dette chiffrée au **§5.1.1**. Deux points restent à `product-owner` le jour de l'ouverture : la **candidature à sa propre campagne** (à interdire) et l'**exclusion de soi-même des résultats de recherche** |
 | **Q2** | **Une mise en relation peut-elle donner lieu à plusieurs affaires** (une seconde collaboration avec la même marque, plus tard) ? Le modèle pose `deals.introduction_id` **unique** | Si la réponse est oui, l'unicité saute et le rattachement comptable devient ambigu. Ma recommandation : garder l'unicité, une nouvelle collaboration = une nouvelle mise en relation |
-| **Q3** | **Après révélation, la marque voit-elle les chiffres exacts d'audience**, ou seulement les tranches et le badge ? | Le §5.2 propose **tranches seulement** (`followers_count` hors du `GRANT`). C'est cohérent avec le badge, qui constate en tranches, mais c'est une règle produit |
+| ~~Q3~~ | ~~Après révélation, la marque voit-elle les chiffres exacts d'audience ?~~ | **Close le 2026-09-19 par `07` RG45 et RG59 : chiffres exacts visibles après révélation**, accompagnés obligatoirement de leur source et de leur date. Le `GRANT` du §5.2 est élargi en conséquence. **Reste soumis à `expert-cybersecurite`** (§12.1, point 3), qui arbitre la liste exacte des colonnes révélées |
 | **Q4** | **Plafond de candidatures actives** par créateur, **durée de validité** du code de propriété, **délai de grâce** après péremption du badge | Ce sont des paramètres ; je les veux **en table** (`backoffice.sla_policies` ou équivalent), pas en constantes — mais il faut des valeurs de départ |
 | **Q5** | **Le canal de documents** (§5.7) est-il retenu ? | Deux tables et un compartiment Storage en dépendent, rien d'autre |
 
@@ -2444,6 +4512,50 @@ l'interface Supabase. Le rôle qui applique les migrations est **le propriétair
 | 2 | **La table des taux de commission est créée et verrouillée.** Personne ne peut y écrire depuis l'application : la remplir, en V2, exigera une modification de la base relue et validée | C'est le garde-fou qui garantit qu'aucun « 35 % » ne se glissera quelque part dans le code d'ici là |
 | 3 | **Le registre de preuve protège contre le code, pas contre vous.** Celui qui détient le projet Supabase peut tout effacer. Parade gratuite proposée : **recevoir chaque mois par e-mail l'empreinte de tête du registre** (64 caractères). Un tiers en détient alors une copie datée | Cela transforme une preuve interne en preuve difficilement contestable, pour zéro euro. À accepter ou à refuser |
 | 4 | **D41, D39 et D40 sont intégrées** (2026-09-18). Ce qu'il faut en retenir : le double rôle reste **fermé** au MVP, mais la porte est posée et son ouverture est chiffrée à **8 à 12 jours** au lieu de 3 à 5 semaines (**§5.1.1**) ; le délai de la file est **1 jour ouvré**, réglable sans déploiement ; les coordonnées d'une marque sont désormais **masquées jusqu'à la mise en relation**, comme celles d'un créateur | Ce sont vos arbitrages : ce paragraphe est là pour que vous puissiez vérifier qu'ils ont été compris comme vous les avez posés |
+
+### 12.6 Points à valider, ouverts par la relecture des documents `06` à `11` (2026-09-19)
+
+Chacun de ces points a été **tranché dans le sens le plus conservateur** pour que le modèle ne
+comporte pas de manque ; chacun peut être rouvert par son arbitre.
+
+| # | Point | Choix conservateur retenu | Arbitre |
+|---|---|---|---|
+| 1 | **Bornes nettes dans `reference.price_bands`** | Colonnes nullables, écrites **par migration relue uniquement**, `REVOKE` à tous les rôles, base du calcul écrite en clair, affichage « environ ». **C'est la seule forme qui affiche un net sans multiplier un montant par un taux** — mais ces bornes **dérivent économiquement de la commission de 35 %**, ce qui doit être vu et accepté, pas glissé dans un référentiel | `expert-paiement-facturation` + **Fondateur** (§3 de `CLAUDE.md`) ; `architecte` pour T16 |
+| 2 | **`GRANT` élargi aux chiffres exacts après révélation** | Élargi (`07` RG45), avec `figures_source` et `figures_measured_at` **obligatoirement** dans le même `GRANT` | `expert-cybersecurite` — **veto**, §12.1 point 3 |
+| 3 | **Région de résidence et `reference.regions`** | Colonne ajoutée, **jamais une facette de recherche**, affichée au-delà d'un seuil de 5 profils lu en table. La ville reste en couche identifiante tant que **Q2 de `07`** n'est pas tranchée | `expert-conformite-rgpd` — **veto** ; `expert-ux` pour l'affichage |
+| 4 | **Suppression physique des brouillons de candidature** | Admise, **seule exception à R6** : un brouillon ne touche ni mise en relation, ni affaire, ni journal. Durée par défaut 30 jours, en table | `expert-conformite-rgpd` + `product-owner` (`11` Q12) |
+| 5 | **`campaign_published_snapshots` en `jsonb`** | Retenu, avec empreinte et schéma zod. Un instantané conserve **ce qui a été montré aux créateurs** : sa durée de conservation et son sort à l'anonymisation d'un compte doivent être écrits au §9 | `expert-conformite-rgpd` — **veto** ; `architecte` pour la forme |
+| 6 | **`matching.party_blocks`** | Effet **symétrique**, exclusion **silencieuse**, motif **jamais** exposé à la partie bloquée. Un blocage levé est **conservé** (`lifted_at`), jamais supprimé : c'est un élément de contexte commercial et de sécurité | `expert-cybersecurite` (forme de l'exclusion) + `expert-conformite-rgpd` (conservation, information de la personne) |
+| 7 | **`search.impression_reasons`** | Raisons **conservées** avec leurs paramètres en codes et tranches, jamais en valeurs exactes. Double finalité déjà signalée au §12.2 point 5 : cette table l'étend | `expert-conformite-rgpd` — **veto** |
+| 8 | **`reach_band` réutilise `reference.audience_bands`** | Réutilisé plutôt que créer un référentiel de portée : un vocabulaire unique pour deux comptages de personnes. **À confirmer** — une portée moyenne et un nombre d'abonnés n'ont pas les mêmes ordres de grandeur, et des bornes mal calibrées rendraient la facette inutile | `expert-matching` + `product-owner` |
+| 9 | **Bornes de `reference.engagement_bands`** | Un référentiel **global**, en points de base. Un taux d'engagement « bon » n'a pourtant pas la même valeur selon le réseau : la calibration par réseau est possible sans changement de schéma (colonne `network_code` à ajouter) | `expert-matching` |
+| 10 | **Second validateur de la revue renforcée** | `09` RG85 autorise « un admin, ou un agent approuvé par un second rôle interne distinct » ; `03` §3.2 impose la double validation administrateur. La base exige seulement **deux personnes distinctes**, la règle plus stricte est appliquée par la fonction de publication | `expert-cybersecurite` — **veto** |
+| 11 | **Emplacement des paramètres d'exploitation** | `backoffice.operational_settings` (§5.10), clé/valeur à liste fermée, sur le modèle éprouvé de `leads.sync_settings`. Les SLA restent dans `backoffice.sla_policies`, les réglages de recherche dans `search.search_settings` | `architecte` + `chef-de-projet` |
+
+**Écarts signalés par les spécifications et *non* traités dans cette version**, parce qu'ils
+supposent un arbitrage produit ou juridique, et non un choix de modélisation. Ils sont listés ici
+pour qu'aucun ne se perde :
+
+| Origine | Écart | Pourquoi je ne l'ai pas tranché |
+|---|---|---|
+| `06`, écarts 1 à 3 | `legal_name` doit quitter la couche publique du profil marque ; `contact_role` doit la rejoindre ; le **pays** et le **numéro d'immatriculation** manquent pour le badge « Marque vérifiée » | Les deux premiers sont des **arbitrages de visibilité** (`06` Q1, RGPD : une raison sociale peut être le nom d'une personne physique) ; le troisième dépend de la liste des registres consultables (`06` Q7). Ce sont des déplacements de colonnes sans reprise de droits, à faire dès l'arbitrage rendu — `product-owner` + `expert-conformite-rgpd` |
+| `07`, écart 2 | La ville doit passer de la couche jamais révélée à la couche révélable | **Q2 de `07`** est ouverte ; la valeur d'attente conservatrice (maintien en couche identifiante) est conservée |
+| `08`, écarts 4, 7 et 8 | Motifs typés, issues et délais sur `verification.disputes` ; compteur de demandes et de refus par triplet (RG60) ; version des instructions de capture acceptée au dépôt | Trois ajouts additifs et peu coûteux, hors de la liste des 34 corrections demandées. À traiter dans la même migration `0206` dès validation de `product-owner` et `expert-conformite-rgpd` (le troisième est une pièce de preuve RGPD, `08` Q2) |
+
+### 12.7 Points à valider, ouverts par les spécifications `12` et `13` (2026-09-19)
+
+Même règle qu'au §12.6 : chacun de ces points a été **tranché dans le sens le plus conservateur**
+pour que le modèle ne comporte pas de manque, et chacun peut être rouvert par son arbitre.
+
+| # | Point | Choix conservateur retenu | Arbitre |
+|---|---|---|---|
+| 1 | ~~**Moment de création de l'affaire (`billing.deals`)**~~ | **TRANCHÉ le 2026-09-19 par `chef-de-projet` — et dans le sens inverse de ma proposition.** L'affaire est créée **automatiquement, à l'état `open`, dans la transaction de révélation**, une par mise en relation (`03` C(21) étape 4, `13` RG74, `01` §6). **Raison décisive :** sans affaire, une mise en relation **perdue** n'a nulle part où porter son **motif de perte typé**, et la donnée de transformation attendue par **A8** disparaît. Mon objection de dépendance entre migrations était fondée et se règle autrement : **les quatre tables `billing` sont avancées au Lot 4** (migration `0402a`, juste avant `0402`) ; seule la **saisie** des montants reste au Lot 5. Détail et conséquences au **§5.6** | **Clos** — `chef-de-projet`, 2026-09-19 |
+| 2 | **Un fil archivé peut-il être rouvert ?** `12` RG22 autorise la réouverture d'un fil **clos** ; l'archivage intervient 90 jours après la clôture et RG111 précise qu'un fil archivé reste lisible | **Non au MVP** : `archived` n'a **aucune transition sortante** dans `messaging.conversation_state_transitions`. Rouvrir une négociation endormie depuis trois mois produit une **nouvelle** mise en relation, donc une preuve d'intermédiation neuve — ce qui est plus sain pour la créance V2. Ouvrir cette transition est **une ligne de données**, si le produit le demande | `product-owner` (`12` Q7) |
+| 3 | **PDF dans le canal de documents, et absence d'analyse antivirale** — `12` RG68 liste PDF, PNG, JPEG ; `03` **E1-9** refuse le PDF au MVP, et **E1-11** demande explicitement la réouverture du sujet antiviral « si un canal de documents est ouvert » | **`application/pdf` n'est pas chargé dans la contrainte tant que les deux conditions d'E1-9 ne sont pas tenues** (origine distincte, `Content-Disposition: attachment`). Ajouter une valeur à un `CHECK` n'est pas une migration destructive ; en retirer une l'est | **`expert-cybersecurite` — veto** (`12` Q5) + Fondateur pour le périmètre du canal |
+| 4 | **Base légale de la prise de connaissance de la supervision** — `identity.terms_acceptances.nature = 'acknowledgement'` (`12` RG104) | La ligne est enregistrée comme une **prise de connaissance**, jamais comme un consentement, et la contrainte de base l'empêche d'être présentée autrement. **La qualification juridique, elle, n'est pas tranchée ici** | **`expert-conformite-rgpd` — veto** (`12` Q1) + juriste |
+| 5 | **Conservation des refus de partie et de leurs motifs** — `13` Q11 | Conservation **au même titre que la mise en relation** (les colonnes vivent sur `introductions`), donc **sans purge propre** : purger le motif d'un refus laisserait une mise en relation refusée sans raison. Le motif reste **invisible de l'autre partie pour toujours**, ce qui est une règle d'accès, pas de durée | `expert-conformite-rgpd` — **veto** |
+| 6 | **Plafond de 10 documents par mise en relation** (`12` RG68) | Tenu par **déclencheur**, pas par `CHECK` : une contrainte ne peut pas compter des lignes sœurs. Même schéma que les plafonds de candidature (§5.6), donc **atomique sous concurrence**. La valeur part dans `backoffice.operational_settings` | `product-owner` (valeur) ; la forme est tranchée |
+| 7 | **Durée de conservation des documents et de leur journal de téléchargement** | Alignée sur les messages : **3 ans après la clôture du fil** (§9.1). Les octets sortent du Storage à la même échéance ; le journal, qui ne contient aucun contenu, reste | `expert-conformite-rgpd` — **veto** |
 
 ---
 
@@ -2458,10 +4570,20 @@ reprises.
 | `supabase/migrations` | À créer au Lot 0 avec les migrations 0001 à 0008. Rien avant la validation des documents `00` à `04` |
 | `apps/api/src/db/schema/*.ts` | Déclaration Drizzle **alignée à la main** sur le SQL, avec `pgSchema()` pour chacun des treize schémas. Le SQL fait foi, pas le TypeScript |
 | `apps/api/src/db/index.ts` | `withUserTransaction` doit, dans l'ordre : ouvrir la transaction, poser `request.jwt.claims`, **résoudre `account_id` et le rôle en une seule requête jointe `accounts ⋈ account_roles`**, puis `SET LOCAL ROLE` le rôle applicatif correspondant (§3.2). Le jour où D41 s'ouvrira, c'est **ce point précis** qui changera : le rôle deviendra un contexte explicite de la requête au lieu d'une déduction (§5.1.1, chantier n° 2) |
-| `packages/contracts` | Les types `enum` PostgreSQL de ce document (statuts de mise en relation, états d'affaire, rôles, origines) sont la **source** des unions fermées zod. Un écart entre les deux doit faire échouer la compilation |
+| `packages/contracts` | Les types `enum` PostgreSQL de ce document (statuts de mise en relation, états d'affaire, rôles, origines) sont la **source** des unions fermées zod. Un écart entre les deux doit faire échouer la compilation. **Ajoutés en 2026-09-19** : `campaigns.campaign_status` (six valeurs), `campaigns.remuneration_kind`, `campaigns.audience_dimension`, `matching.expiry_reason`, `matching.submission_kind`, `profiles.profile_status` (**cinq** valeurs, l'ajout de `suspended` **casse tout `switch` exhaustif existant — c'est voulu**), `profiles.profile_kind`, `profiles.revision_status`, `verification.badge_state` (**cinq** valeurs).
+**Ajoutés en seconde passe le 2026-09-19** (`12`, `13`) : `matching.party_side`,
+`matching.introduction_email_kind`, `matching.email_status`, `identity.acceptance_nature`,
+`messaging.conversation_state` (**cinq** valeurs), `messaging.access_surface`,
+`messaging.detection_type`, `messaging.review_outcome`, `messaging.moderation_status`, et
+**deux valeurs de plus** sur des types existants — `matching.expiry_reason` passe à **sept**
+(`no_creator_answer`, `no_answer_both_parties`) et `identity.document_kind` à **quatre**
+(`supervision_notice`) : **les `switch` exhaustifs existants cessent de compiler, c'est voulu**. Trois schémas zod sont en outre exigés par les `jsonb` à liste fermée : `search.search_settings`, `backoffice.operational_settings`, `campaigns.campaign_published_snapshots.payload` |
+| `apps/api` — domaine `campaigns` | **Le rôle créateur ne lit jamais la ligne vivante d'une campagne** : il lit `campaign_published_snapshots`. Toute route qui sert une campagne à un créateur depuis `campaigns.campaigns` est un défaut bloquant — c'est ce qui protège `total_budget_minor` autrement que par un `GRANT` de colonne à ne pas oublier |
+| `apps/api` — affichage des montants | **Aucune multiplication d'un montant par un taux, nulle part.** Le net créateur affiché vient de `reference.price_bands.net_min_amount_minor` / `net_max_amount_minor`, lu tel quel. Si ces colonnes sont nulles pour la devise, **le net n'est pas affiché** — jamais estimé à la volée (`09` RG59, `07` RG72, contrôle T16) |
+| `packages/domain` — plafonds | Les plafonds de candidature ne sont **jamais** vérifiés par un `count(*)` suivi d'une insertion : on insère, et on traite l'échec de contrainte (`campaigns_applications_within_cap`, `application_quotas_within_cap`) comme la réponse « candidatures closes ». C'est la seule forme correcte sous concurrence |
 | `packages/domain` (Lot 2) | Porte le **découpage anonyme / révélable / identifiant** et le **calcul des tranches**. Fonctions pures, testées : ce sont elles qui garantissent qu'aucune valeur exacte n'atterrit dans la vitrine |
 | `apps/web` — prototype `AccountForm.tsx` | Les champs du prototype correspondent à `accounts` : e-mail, pays, langue, attestation de majorité, consentement — **plus deux champs à ajouter** : le **statut déclaré** (particulier / professionnel, sans valeur pré-sélectionnée, RG18) et le **nom d'entreprise** côté annonceur (RG11, qui alimente `profiles.advertiser_profiles`). Le rôle part dans `account_roles`, **le consentement devient une ligne de `consent_events`, pas une colonne**, et la case reste non pré-cochée |
-| `apps/api/src/domains/billing` | **Vide de tout calcul au MVP.** Il n'expose que la lecture et l'écriture de `deals`, avec des contrôles d'addition et de comparaison |
+| `apps/api/src/domains/billing` | **Vide de tout calcul au MVP.** Il n'expose que la lecture et l'écriture de `deals`, avec des contrôles d'addition et de comparaison. **Il ne crée pas l'affaire** : elle naît dans `matching.reveal_identity()` à l'état `open` (§5.6), dès le **Lot 4**. Toute route qui insère dans `billing.deals` est un défaut — il n'y a qu'une porte |
 | Document `18` (`testeur`) | Trois tests qui viennent directement d'ici : (a) le rôle de `DATABASE_URL` n'est ni propriétaire ni `BYPASSRLS` ; (b) une marque n'obtient **aucune** colonne identifiante, avant comme après révélation, sur **toutes** les routes ; (c) toute table nouvelle sans ligne dans la matrice du document `03` fait échouer la CI |
 
 ---
@@ -2481,6 +4603,18 @@ reprises.
 - [x] Réversibilité documentée migration par migration, impossibilités expliquées (§11.3)
 - [x] Tests d'intégration RLS demandés à `testeur` (§13)
 - [x] Revue `expert-cybersecurite` demandée (§12.1) · revue `expert-conformite-rgpd` demandée (§12.2)
+- [x] **34 corrections des documents `06` à `11` intégrées (2026-09-19)** ; les arbitrages qui
+      dépassent le périmètre de `expert-database` sont tranchés au plus conservateur et listés
+      au **§12.6**, avec les trois écarts délibérément non tranchés
+- [x] **16 corrections des documents `12` et `13` intégrées (2026-09-19, seconde passe)** :
+      neuf tables ajoutées, huit tables modifiées, **35 codes d'événements**, sept points
+      conservateurs au **§12.7**. Le contrat d'appel des fonctions de révélation appartient à
+      `expert-cybersecurite` (`03` C(21a) à C(21d)) et n'a pas été touché ici
+- [x] **Affaire créée à la révélation** (arbitrage `chef-de-projet`, 2026-09-19) : les quatre tables
+      `billing` sont **avancées au Lot 4**, migration `0402a` avant `0402`, et l'alerte A6 devient un
+      index partiel sur `deals (revealed_at) where state = 'open'` (§5.6, §10.7, §11.2)
+- [x] **Noms des fonctions de contexte unifiés** entre `03` et `04` (§4.1, encadré du 2026-09-19) :
+      substitution d'identifiants dans `03`, aucune règle d'autorisation modifiée
 
 ---
 

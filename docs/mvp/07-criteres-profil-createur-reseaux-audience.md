@@ -723,9 +723,14 @@ définition d'une promesse invérifiable.
 
 ### J — Backoffice : validation, modération, badges, correction
 
-**RG92** — Le backoffice expose **trois files distinctes**, jamais fusionnées : « profils créateur à
-valider », « visuels de portfolio à modérer », « demandes de badge ». Elles sont également distinctes
+**RG92** — Le backoffice expose **deux files distinctes** propres au créateur, jamais fusionnées :
+« profils créateur à valider » et « visuels de portfolio à modérer ». Elles sont également distinctes
 des files du profil marque (document `06` RG63).
+
+> **Correction du 2026-09-19 (arbitrage `chef-de-projet`).** La première rédaction annonçait une
+> troisième file « demandes de badge ». `08` RG61 spécifie **une seule file technique de vérification**
+> (créateurs et marques), présentée en deux vues ; c'est elle qui fait foi, `08` étant plus récent
+> et plus précis sur ce point. Catalogue complet des files : `15` §C.
 
 **RG93** — Chaque file est triée par ancienneté croissante et affiche, par entrée : alias, date de
 soumission, ancienneté, éléments modifiés depuis la dernière validation, alertes de détection, agent

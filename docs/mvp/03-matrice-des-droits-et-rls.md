@@ -1,6 +1,15 @@
 # Matrice des droits, RLS et contrôles d'accès du MVP
 
-> **Date :** 2026-09-18
+> **Date :** 2026-09-18 · **Révision du 2026-09-19** : la condition **C(21)** a été **entièrement
+> réécrite** après la spécification `docs/mvp/13-file-de-validation-et-mise-en-relation.md` (§F, §I
+> et sa question **Q5**). Sa première rédaction exigeait que la fonction de révélation vérifie que
+> son appelant est **un agent avec `aal2`**, alors que le déclencheur réel est **la seconde
+> acceptation d'un membre** : la condition était inexécutable, et elle réutilisait le nom
+> `open_introduction()` déjà pris par la fonction de **création** de `04` §5.6. C(21) définit
+> désormais **quatre contrats distincts** — C(21a) création, C(21b) décision du commercial,
+> C(21c) acceptation d'un membre, C(21d) révélation interne — et le test **T18** les vérifie.
+> `docs/mvp/04-modele-de-donnees-mvp.md` §5.6 a été corrigé dans le même mouvement, pour que le
+> contrat de sécurité reste **un et un seul** dans les deux documents.
 > **Auteurs :** `expert-cybersecurite` (rédacteur, **veto bloquant**) + `architecte` (co-signataire
 > pour les points d'architecture)
 > **Statut :** **avis de sécurité rendu — favorable sous conditions.** Les conditions marquées
@@ -191,7 +200,7 @@ erreur.
   définitivement. Point critique en l'absence de mot de passe (§6.1).
 - **C(3)** — **Aucun agent ni administrateur ne peut agir sur son propre compte** : attribution de
   rôle, plafond, suspension, levée de suspension. Exprimé en politique :
-  `WITH CHECK (target_account_id <> influx.current_account())`.
+  `WITH CHECK (target_account_id <> influx.current_account_id())`.
 - **C(4)** — Propagation d'une suppression validée : révocation des sessions, purge dans les
   destinations externes. Opération de worker, jamais déclenchée par une route HTTP.
 - **C(5)** — Une acceptation de CGU est **écrite une fois, jamais modifiée**. La table est en ajout
@@ -312,20 +321,22 @@ create policy creator_identity_read_after_reveal
 | Demande de contact — lire | S | **—** C(18) | L · J | L · J | L |
 | Candidature — créer | — | S C(19) | — | — | — |
 | Candidature — lire | **—** C(18) | S | L · J | L · J | L |
+| Mise en relation — **créer** (`matching.open_introduction()`) | S C(21a) | S C(21a) | ✔ · J C(21a) | ✔ · J C(21a) | — |
 | File de validation — lire | — | — | ✔ · J | ✔ · J | — |
 | File — prendre en charge (verrou nominatif) | — | — | ✔ · J | ✔ · J | — |
 | File — lever un verrou orphelin | — | — | — | ✔ · J | ✔ C(20) |
-| File — **valider et s'attribuer** | — | — | ✔ · J | ✔ · J | — |
+| File — **valider et s'attribuer** (`approve_introduction()`) | — | — | ✔ · J C(21b) | ✔ · J C(21b) | — |
 | File — refuser avec motif typé | — | — | ✔ · J | ✔ · J | — |
-| **Proposition INFLUX — créer** | **⛔** | **⛔** | ✔ · J | ✔ · J | — |
-| Proposition INFLUX — accepter | S | S | — | — | — |
+| **Proposition INFLUX — créer** | **⛔** | **⛔** | ✔ · J C(21a) | ✔ · J C(21a) | — |
+| **Mise en relation — enregistrer _sa propre_ acceptation** | S · J C(21c) | S · J C(21c) | **⛔** | **⛔** | **⛔** |
+| **Mise en relation — enregistrer _son propre_ refus** | S · J C(21c) | S · J C(21c) | **⛔** | **⛔** | **⛔** |
 | Mise en relation (`introductions`) — lire | S | S | L · J | L · J | L |
-| Mise en relation — **poser `identity_revealed_at`** | — | — | — | — | ✔ C(21) |
+| Mise en relation — **poser `identity_revealed_at`** | **⛔** | **⛔** | **⛔** | **⛔** | **⛔ C(21d)** |
 | Mise en relation — **modifier `identity_revealed_at`** | ⛔ | ⛔ | ⛔ | ⛔ | ⛔ |
 | Mise en relation — réattribuer le commercial | — | — | ✔ · J C(22) | ✔ · J | — |
 | **Conversation — lire** | C(23) | C(23) | **C(24) · J** | **C(24) · J** | — |
 | Conversation — écrire un message | C(23) | C(23) | C(24) | C(24) | — |
-| Conversation — **ouvrir** | ⛔ | ⛔ | **—** C(21) | **—** C(21) | ✔ C(21) |
+| Conversation — **ouvrir** | **⛔** | **⛔** | **⛔** C(21d) | **⛔** C(21d) | **⛔** C(21d) |
 | Conversation — **rejoindre** en cours de route | ⛔ | ⛔ | ✔ · J C(25) | ✔ · J C(25) | — |
 | Conversation — mettre en pause, clore avec motif | — | — | ✔ · J | ✔ · J | — |
 | Message — modifier ou supprimer | ⛔ | ⛔ | ⛔ | ⛔ | ⛔ |
@@ -347,21 +358,123 @@ create policy creator_identity_read_after_reveal
   client, et journalisé quand il est atteint.
 - **C(20)** — Expiration automatique du verrou après le délai écrit (skill `backoffice-ops`, étape 10),
   exécutée par le worker.
-- **C(21) — Point structurant.** **La révélation d'identité et l'ouverture de la conversation ne sont
-  pas des écritures de rôle, ce sont une opération atomique unique.** Aucun rôle humain ne peut poser
-  `identity_revealed_at` directement ni insérer une ligne dans `conversations`. La transaction unique
-  (poser la date, créer la conversation et ses trois participants, écrire l'événement chaîné, mettre
-  les deux e-mails en file) est exécutée par une fonction `SECURITY DEFINER`
-  `matching.open_introduction(...)` qui vérifie elle-même que l'appelant est un agent avec `aal2`,
-  que la mise en relation est en état `approved`, et que **les deux acceptations existent — toujours,
-  quelle que soit l'origine** (`04-modele-de-donnees-mvp.md`, contrainte
-  `introductions_reveal_requires_both_acceptances`, sans exception). *Correction du 2026-09-19 :
-  la première rédaction de cette règle limitait l'exigence des deux acceptations à la proposition
-  INFLUX ; c'était inexact. `01-intermediation-courtee.md` §4.3 décrit un mécanisme universel
-  (l'acceptation spécifique à l'écran avant révélation), et `04` l'a implémenté sans condition —
-  y compris pour une demande de contact ou une candidature, personne n'est exposé sans avoir
-  lui-même cliqué.* `identity_revealed_at` est en **écriture unique** : `REVOKE UPDATE
-  (identity_revealed_at)` plus un déclencheur qui refuse le passage d'une valeur non nulle à une autre.
+- **C(21) — Point structurant, réécrit le 2026-09-19 : trois moments, trois appelants, trois
+  contrats de sécurité.**
+
+  > **L'erreur initiale, en une phrase :** la première rédaction traitait la révélation d'identité
+  > comme une action de commercial — « une fonction `matching.open_introduction(...)` qui vérifie que
+  > l'appelant est un agent avec `aal2` » — alors que le déclencheur réel est **la seconde
+  > acceptation d'un membre** (`13` RG74), et elle réutilisait au passage le nom
+  > `open_introduction()` que `04` §5.6 donne déjà à la **création** d'une mise en relation ; la
+  > condition était donc à la fois **inexécutable** (aucun agent n'appelle cette fonction au moment
+  > de la révélation) et **ambiguë** (deux opérations distinctes sous un même nom).
+
+  **Ce que la correction ne change pas :** l'invariant reste entier — `identity_revealed_at` n'est
+  posé que par une seule porte, dans une transaction unique, et **jamais sans les deux acceptations,
+  quelle que soit l'origine** (`04`, contrainte `introductions_reveal_requires_both_acceptances`,
+  inconditionnelle, confirmée le 2026-09-19 ; `01` §4.3 ; `13` RG5). Ce qui change, c'est **qui
+  appelle quoi**, donc ce que chaque fonction doit vérifier de son appelant. *(La correction
+  précédente du 2026-09-19, qui avait rendu l'exigence des deux acceptations universelle au lieu de
+  la réserver à la proposition INFLUX, reste acquise et n'est pas remise en cause ici.)*
+
+  **Les quatre fonctions et leurs noms faisant foi** (alignés sur `04` §5.6 ; tout autre nom dans un
+  document, une migration ou un appel applicatif est une erreur à corriger, pas une variante) :
+
+  | Moment | Fonction | Appelant réel | Pose `identity_revealed_at` ? |
+  |---|---|---|---|
+  | **0. Création** | `matching.open_introduction(...)` | Le membre initiateur (demande de contact, candidature) **ou** un agent (proposition INFLUX) | **Non, jamais** |
+  | **1. Décision** | `matching.approve_introduction(...)` | Un **agent** `aal2`, **titulaire du verrou** | **Non** — sauf la branche unique de `13` RG43 |
+  | **2. Acceptation** | `matching.record_introduction_acceptance(...)` | **La marque ou le créateur, pour lui-même**, en `aal1` | **Non directement** : elle appelle le moment 3 **si et seulement si** elle vient d'enregistrer la **seconde** acceptation |
+  | **3. Révélation** | `matching.reveal_identity(...)` | **Aucun rôle applicatif.** Appelée **en interne** par les moments 1 (branche RG43) et 2 | **Oui — la seule porte** |
+
+  Le refus d'une partie à l'écran d'acceptation est le symétrique exact du moment 2 :
+  `matching.record_introduction_decline(...)`, **mêmes contrôles d'appelant**, motif de la liste B
+  obligatoire (`13` RG87), et **aucune révélation dans aucun cas**.
+
+  **C(21a) — Moment 0, la création (`matching.open_introduction`).**
+
+  | | |
+  |---|---|
+  | **Qui peut appeler** | `influx_advertiser` (demande de contact), `influx_creator` (candidature), `influx_agent` et `influx_admin` en `aal2` (proposition INFLUX). `REVOKE EXECUTE ... FROM PUBLIC` puis `GRANT` nominatif |
+  | **Vérifié avant exécution** | Le compte engagé est **le sien** (un membre ne crée jamais une mise en relation pour un tiers) et n'est **pas suspendu** ; l'origine est **cohérente avec le rôle** de l'appelant — un membre ne crée jamais une `influx_proposal` ; **aucun blocage actif** entre les deux parties (`matching.party_blocks`) ; **aucun doublon actif** sur le triplet (`introductions_active_pair_idx`) ; pour un agent, **aucun conflit d'intérêt** (`13` RG35) ; les plafonds côté serveur (C(19), `13` RG53) ; la campagne est **publiée** quand elle est requise |
+  | **Ce qu'elle fait** | Alloue la référence `MER-AAAA-NNNNNN`, copie les **pays des deux parties**, enregistre l'acceptation **de l'initiateur seul** avec sa version de CGU, calcule `sla_due_at` **une fois**, écrit l'événement chaîné `introduction.created` ; pour une proposition INFLUX, pose directement `status = 'approved'`, `owner_agent_id` = l'auteur et `proposal_batch_id` |
+  | **`SECURITY DEFINER` ?** | **Oui, nécessaire.** Elle lit `matching.party_blocks`, que l'appelant **ne doit pas pouvoir lire** — le motif d'un blocage et son auteur ne sont jamais exposés à la partie bloquée (`04` §5.6, `10` RG30) —, et elle écrit `matching.reference_counters` et le registre chaîné, sur lesquels aucun rôle applicatif n'a de droit. Sans élévation, il faudrait accorder ces lectures au membre : le blocage deviendrait un oracle |
+  | **Forme du refus** | **Un seul message générique** côté membre (`10` RG29, exclusion silencieuse) ; le motif réel — blocage, doublon, plafond — n'existe que dans le registre interne. Côté agent, le compte rendu d'échec partiel de `13` RG60 s'applique, **sans jamais afficher le motif du blocage ni son auteur** |
+
+  **C(21b) — Moment 1, la décision du commercial (`matching.approve_introduction`).**
+
+  | | |
+  |---|---|
+  | **Qui peut appeler** | `influx_agent` et `influx_admin` **uniquement**. **Aucun membre, jamais** : c'est ici, et ici seulement, que `aal2` a un sens dans ce cycle |
+  | **Vérifié avant exécution** | Rôle `agent` ou `admin` **et** `influx.current_aal() = 'aal2'` (formulation positive, P4) ; compte non suspendu ; `status = 'in_review'` **et `claimed_by_agent_id` = l'appelant** — on ne valide jamais une entrée dont un collègue tient le verrou (`13` RG29) ; verrou non expiré ; **aucun conflit d'intérêt** (`13` RG35) |
+  | **Ce qu'elle fait** | Dans une seule transaction : `status = 'approved'`, `owner_agent_id` = l'appelant (figé, `13` RG40), `decided_at = now()`, événement chaîné `introduction.approved`, puis **mise en file des invitations** vers la ou les parties qui n'ont pas encore accepté. **Elle ne pose pas `identity_revealed_at` et ne crée aucune conversation** (`13` RG42 : valider n'est pas révéler) |
+  | **La seule branche révélante** | Si, au moment de la validation, **les deux acceptations existent déjà** (`13` RG43 : la marque a demandé le contact *et* le créateur a candidaté sur la même campagne), la fonction appelle `matching.reveal_identity()` **en interne, dans la même transaction**. Cette branche — et elle seule — exige en plus : une **confirmation séparée** du geste de validation (`13` RG44), un **second facteur frais** (`R`, §1.3 PD2 et PD3) et un traçage à deux horodatages, marqué `dual_control: 'degraded_single_operator'` tant qu'une seule personne opère. Dans tous les autres cas, **aucune friction supplémentaire** : rien d'irréversible ne se produit |
+  | **`SECURITY DEFINER` ?** | **Oui, nécessaire.** Les agents n'ont **aucun `GRANT UPDATE` sur `matching.introductions.status`** : un `UPDATE` ordinaire contournerait le verrou, le contrôle de conflit d'intérêt et la table des transitions. La fonction écrit en outre le registre chaîné et la file d'envoi, interdits aux rôles humains (C(37), P8) |
+  | **Ce qui n'est pas dans cette fonction** | Le **refus** (`matching.reject_introduction`, motif typé de la liste A obligatoire), la **réattribution** (C(22)), et la **prise en charge** — cette dernière n'est pas une fonction mais une **transition conditionnelle atomique** (`04` §5.6, `13` RG28) : `where status = 'pending_review'`, zéro ligne modifiée signifie qu'un collègue a pris la main. Une transition conditionnelle suffit là où il n'y a ni élévation ni écriture privilégiée ; on n'élève pas par habitude |
+
+  **C(21c) — Moment 2, l'acceptation d'un membre (`matching.record_introduction_acceptance`).**
+
+  | | |
+  |---|---|
+  | **Qui peut appeler** | `influx_advertiser` et `influx_creator` **uniquement, et pour eux-mêmes**. **`REVOKE EXECUTE` à `influx_agent`, `influx_admin`, `influx_worker` et `PUBLIC`** : un commercial ne doit pas pouvoir enregistrer l'acceptation d'une partie, même avec son accord verbal. Sur le seul acte qui rend la clause de non-contournement opposable sur ce dossier (`13` RG72), un consentement saisi par un tiers n'est pas un consentement — même raisonnement qu'en C(36) |
+  | **Ni `aal2`, ni rôle interne** | Les membres s'authentifient **sans mot de passe et sans second facteur** au MVP (§6.1, D37) : exiger `aal2` ici rendrait l'acceptation **impossible pour tout le monde**. C'est exactement l'erreur corrigée. Le contrôle pertinent n'est pas le niveau d'authentification, c'est **l'appartenance à cette mise en relation précise** |
+  | **Vérifié avant exécution** | 1. `influx.current_account_id()` **est égal à `advertiser_account_id` ou à `creator_account_id`** de **cette** mise en relation ; le côté (`advertiser` / `creator`) en est **déduit**, jamais reçu en paramètre. 2. Le compte n'est **pas suspendu**. 3. `status = 'approved'` — on n'accepte ni une entrée en attente, ni une entrée refusée, retirée ou clôturée. 4. `identity_revealed_at is null`. 5. **Son propre horodatage d'acceptation est encore nul** ; une seconde acceptation est refusée, **sauf** le cas de ré-acceptation pour changement de version de CGU (`13` RG68, question **Q3** encore ouverte), qui remplace la version, re-date, et écrit `introduction.party_reaccepted`. 6. La version de CGU enregistrée est **la version en vigueur lue en base**, jamais celle envoyée par le client. 7. La ligne est verrouillée par `select … for update` **avant** toute lecture des deux horodatages : c'est ce qui sérialise deux acceptations simultanées et interdit la double révélation |
+  | **Ce qu'elle fait** | Pose `advertiser_accepted_at` **ou** `creator_accepted_at` — celui du côté déduit, **jamais l'autre** — et la version de CGU correspondante ; écrit l'événement chaîné `introduction.party_accepted` ; **puis, si et seulement si les deux horodatages sont désormais non nuls, appelle `matching.reveal_identity()` dans la même transaction**. Sinon elle rend la main et l'écran d'attente de `13` RG73 s'affiche, sans jamais dire qui est l'autre partie ni ce qu'elle fait |
+  | **`SECURITY DEFINER` ?** | **Oui, nécessaire, et ce n'est pas un détail de forme.** Les membres n'ont **aucun `GRANT UPDATE`** sur `matching.introductions`. Sans élévation il faudrait leur en accorder un, et une politique RLS — qui **autorise une ligne** mais ne contrôle ni les colonnes écrites, ni la valeur écrite, ni ce qui se passe ensuite — laisserait le membre choisir son horodatage, choisir sa version de CGU, écrire l'horodatage **de l'autre partie**, et n'enchaînerait dans la même transaction ni l'événement d'audit ni la révélation. **Une politique RLS ne sait pas rendre une suite d'écritures atomique** : c'est exactement ce qu'énonce P9 |
+  | **Défense en profondeur** | La politique RLS de **lecture** reste écrite et ciblée (`advertiser_account_id = influx.current_account_id() or creator_account_id = influx.current_account_id()`), et un `REVOKE UPDATE` **de colonne** couvre `advertiser_accepted_at`, `creator_accepted_at`, les deux `*_terms_version_id` et `status` pour les quatre rôles applicatifs. Deux barrières indépendantes, pas une |
+  | **Forme du refus** | `forbidden`, avec un **code de réponse identique** pour « cette mise en relation n'existe pas » et « vous n'en êtes pas partie » (T14, IDOR). Sinon la seule existence d'un identifiant apprend à un tiers qu'une marque s'intéresse à un créateur — information aussi sensible que celle que protège C(18) |
+
+  **C(21d) — Moment 3, la révélation (`matching.reveal_identity`) : une opération interne, appelable
+  par personne.**
+
+  | | |
+  |---|---|
+  | **Qui peut appeler** | **Aucun rôle applicatif.** Ni membre, ni agent, ni administrateur, ni worker. `REVOKE EXECUTE ON FUNCTION matching.reveal_identity(uuid) FROM PUBLIC, influx_advertiser, influx_creator, influx_agent, influx_admin, influx_worker, influx_app;` **et aucun `GRANT`**. Les deux seuls appelants sont `matching.record_introduction_acceptance` (cas nominal) et `matching.approve_introduction` (branche RG43), qui s'exécutent **sous le même rôle propriétaire** : l'exécution leur est ouverte **par la propriété, pas par un droit accordé** — il n'existe littéralement aucun `GRANT` qu'une migration distraite pourrait élargir |
+  | **Le rôle propriétaire** | Un rôle dédié `influx_intro_owner`, `NOLOGIN`, **non accordé à `influx_app`** et membre d'aucun rôle applicatif. Il détient les seuls droits d'écriture sur `identity_revealed_at`, `messaging.conversations` et `messaging.conversation_participants`. Si `influx_app` en était membre, un `SET ROLE` consécutif à une injection rouvrirait la porte : il ne l'est pas (P2, corollaire) |
+  | **Vérifié avant exécution** | **Elle re-vérifie l'invariant complet sans faire confiance à son appelant** : `select … for update` sur la ligne ; `identity_revealed_at is null` (sinon erreur `55006`) ; `status = 'approved'` ; **les deux horodatages d'acceptation sont non nuls** ; les deux versions de CGU sont présentes. Ce contrôle est **délibérément redondant** avec celui de l'appelant et avec la contrainte de base : trois barrières sur le chemin le plus critique du produit, parce qu'une seule suffirait à tout perdre |
+  | **Garde-fou anti-appel direct** | En complément de l'absence de droit : la fonction exige un **marqueur de contexte de transaction** posé par l'appelant légitime (`influx.reveal_ctx` = identifiant de la mise en relation, écrit par `set_config(…, true)`, donc local à la transaction). Absence ou valeur différente ⇒ exception. C'est une **seconde** barrière, jamais la première : la garantie reste l'absence de `GRANT EXECUTE` |
+  | **Ce qu'elle fait — tout ou rien** | 1. `identity_revealed_at = now()` ; 2. événement chaîné `introduction.identity_revealed` (gravité **critique**) ; 3. création de la **conversation** et de ses **trois participants** — marque, créateur, commercial responsable ; 4. création de l'**affaire** (`billing.deals`) à l'état `open`, rattachée à la mise en relation (C(27)) ; 5. mise en file des **deux e-mails de confirmation** ; 6. notification au commercial responsable. Si une seule de ces écritures échoue, **aucune ne subsiste** (`13` RG74 ; contrainte C2 du document `02`) |
+  | **`SECURITY DEFINER` ?** | **Oui, et c'est la seule raison d'être de cette fonction.** Elle écrit `identity_revealed_at`, colonne **révoquée à tous les rôles applicatifs** et protégée par le déclencheur d'écriture unique, et elle insère dans `messaging.conversations`, sur laquelle **personne n'a de `GRANT INSERT`** (ligne « Conversation — ouvrir » du §3.4 : ⛔ pour les cinq rôles). Aucune autre construction ne permet d'exécuter ces six écritures dans une transaction unique sans donner à un rôle un droit permanent qu'il pourrait ensuite employer seul |
+  | **Ce qui reste interdit à tout le monde** | Modifier ou effacer `identity_revealed_at` une fois posé : `REVOKE UPDATE` de colonne **plus** le déclencheur `introductions_write_once` (`04` §5.6). Il n'existe **aucun bouton « révéler »**, ni aucun bouton « dé-révéler », pour aucun rôle (`13` RG6 et RG75) |
+
+  **Le tableau des droits d'exécution, en une vue** — à reproduire tel quel dans la migration `0402` :
+
+  ```sql
+  revoke execute on all functions in schema matching from public;
+
+  grant execute on function matching.open_introduction(...)
+    to influx_advertiser, influx_creator, influx_agent, influx_admin;
+  grant execute on function matching.approve_introduction(...)
+    to influx_agent, influx_admin;
+  grant execute on function matching.record_introduction_acceptance(...)
+    to influx_advertiser, influx_creator;          -- et a personne d'autre
+  grant execute on function matching.record_introduction_decline(...)
+    to influx_advertiser, influx_creator;
+  -- matching.reveal_identity(uuid) : AUCUN grant, jamais.
+  -- Propriete de influx_intro_owner, appelee uniquement par les deux fonctions
+  -- ci-dessus, qui ont le meme proprietaire.
+  ```
+
+  **Les quatre fonctions obéissent sans exception aux règles de P7** : `SET search_path = ''`, tous
+  les objets qualifiés par leur schéma, `REVOKE EXECUTE FROM PUBLIC` puis `GRANT` nominatif,
+  vérification du rôle et de l'état de suspension **par la fonction elle-même**, appel de
+  `audit.append(...)` plutôt qu'écriture directe du registre. Ce sont des fonctions
+  `SECURITY DEFINER`, **pas des opérations élevées** : la liste fermée E-1 à E-5 du P7 reste à
+  **cinq entrées**, et `withElevatedTransaction` n'est appelée nulle part dans ce cycle.
+
+  **Vérifié par les tests T2, T14 et T18** (§8).
+
+  **Deux points de cohérence renvoyés à `expert-database` et `architecte`, sans effet sur le contrat
+  de sécurité ci-dessus.** *(1)* **Tranché le 2026-09-19 :** les fonctions de contexte portaient deux
+  noms dans les deux documents. Ce sont **les noms de `04` §4.1 qui survivent** —
+  `influx.current_account_id()` et `influx.current_account_role()` — et ce document a été corrigé par
+  **substitution d'identifiants, sans qu'aucune règle change**. `influx.current_aal()` est
+  **conservée** telle quelle : elle renvoie le niveau brut, tandis que `influx.has_aal2()` en est
+  l'enveloppe booléenne — **deux fonctions, pas deux noms**. Correspondance complète et justification
+  dans l'encadré en tête de `04` §4.1. *(2)* Les deux
+  nouvelles fonctions `approve_introduction()` et `record_introduction_acceptance()` **n'existent pas
+  encore** dans `04` §5.6 : elles y ont été ajoutées le 2026-09-19 en même temps que cette correction,
+  pour que le contrat reste **un et un seul** dans les deux documents.
 - **C(22)** — La réattribution conserve **l'historique des responsables successifs**, jamais écrasé
   (skill `backoffice-ops`, règle 18), et elle est un **préalable obligatoire** à la désactivation d'un
   compte agent (règle 19).
@@ -574,7 +687,7 @@ comparaison avec `NULL` vaut `NULL`, donc « refusé ».
 
 ```sql
 -- BON : absence de contexte ⇒ refus
-using (influx.current_role() = 'agent' and influx.current_aal() = 'aal2')
+using (influx.current_account_role() = 'agent' and influx.current_aal() = 'aal2')
 
 -- MAUVAIS : absence de contexte ⇒ NOT NULL ⇒ NULL ⇒ refus par chance, pas par construction
 using (not (influx.current_aal() = 'aal1'))
@@ -836,8 +949,8 @@ create function messaging.read_conversation(
   set search_path = ''
 as $$
 declare
-  v_account uuid := influx.current_account();
-  v_role    text := influx.current_role();
+  v_account uuid := influx.current_account_id();
+  v_role    text := influx.current_account_role();
   v_is_part boolean;
 begin
   if v_role not in ('agent','admin') or influx.current_aal() <> 'aal2' then
@@ -1034,7 +1147,7 @@ create policy backoffice_read_requires_mfa
   on messaging.conversation_access_log
   for select
   to influx_admin
-  using (influx.current_role() = 'admin' and influx.current_aal() = 'aal2');
+  using (influx.current_account_role() = 'admin' and influx.current_aal() = 'aal2');
 ```
 
 ### 6.3 — Point 3 : le rôle métier lu en base plutôt que dans le jeton
@@ -1342,6 +1455,7 @@ qui ne s'exécute pas à chaque fois n'existe pas.
 | **T15** | **Limitation de débit.** 429 effectif sur la connexion, l'inscription, la recherche, le détail de profil et les routes coûteuses. La limite est appliquée dans `apps/api`, **jamais** dans le front, et elle porte sur le compte **et** sur l'IP | Une limite posée dans le front est contournée par le premier appel qui ne passe pas par le front | 1 |
 | **T16** | **Aucun calcul de commission.** Analyse statique : aucune multiplication d'un montant par une constante numérique dans `apps/` et `packages/`. `commission_rates` est vide et aucun rôle applicatif n'a de droit d'écriture dessus | `CLAUDE.md` §3 et §6, `01-intermediation-courtee.md` §7. C'est une règle métier **et** une règle d'intégrité | 0 |
 | **T17** | **Garde-fou `staging`.** Les quatre verrous du §6.8, chacun testé séparément, plus le refus de démarrage en production avec `dry_run` | `02-architecture` §12.4 | 1 |
+| **T18** | **Le cycle de révélation, moment par moment** (C(21a) à C(21d)). **a)** `has_function_privilege` sur `matching.reveal_identity(uuid)` est **faux pour les six rôles** — `influx_app`, les quatre rôles applicatifs et `influx_worker` — et un appel direct depuis chacun d'eux **échoue**. **b)** Un agent `aal2` valide une entrée : `status = 'approved'`, `identity_revealed_at` **reste nul**, **aucune ligne** dans `conversations`. **c)** Un agent qui n'est pas titulaire du verrou ⇒ refus. **d)** Une partie accepte : son seul horodatage est posé, celui de l'autre reste nul, rien n'est révélé, la réponse ne contient **aucun élément identifiant de l'autre partie**. **e)** Un tiers, puis un agent, puis un administrateur tentent d'enregistrer l'acceptation d'une partie ⇒ refus, **même code de réponse** qu'une mise en relation inexistante. **f)** La **seconde** acceptation produit, en une transaction, `identity_revealed_at`, l'événement chaîné, la conversation, **trois** participants, l'affaire et **deux** e-mails en file ; une panne simulée sur l'un des six ⇒ **aucun des six** ne subsiste. **g)** Deux acceptations **concurrentes** (la première et la seconde jouées en parallèle) ⇒ **une seule** révélation, **un seul** événement, **une seule** conversation. **h)** Un `UPDATE` direct de `identity_revealed_at`, `advertiser_accepted_at`, `creator_accepted_at` ou `status` par chacun des quatre rôles applicatifs ⇒ échec | Que l'invariant A2 / D16 ne dépende ni de la discipline d'un développeur, ni de l'ordre des appels, ni de l'absence de concurrence. **C'est le test le plus important du Lot 4** | 4 |
 
 ---
 
@@ -1451,7 +1565,7 @@ seul à pouvoir accepter.
 | Document | Ce qui doit y être repris | Par qui |
 |---|---|---|
 | `docs/mvp/02-architecture-3-espaces.md` §2.5 et §10 | La correction B1 (quatre rôles Postgres) et B2 (`service_role` non utilisé). Les deux touchent des affirmations aujourd'hui inexactes | `architecte` |
-| `docs/mvp/04-modele-de-donnees-mvp.md` | Schémas par domaine (P6), forme des deux objets créateur (P5), append-only (P8), fonctions `SECURITY DEFINER` (P7), coût mesuré de `influx.current_role()` (P3) | `expert-database` |
+| `docs/mvp/04-modele-de-donnees-mvp.md` | Schémas par domaine (P6), forme des deux objets créateur (P5), append-only (P8), fonctions `SECURITY DEFINER` (P7), coût mesuré de `influx.current_account_role()` (P3) | `expert-database` |
 | `docs/mvp/18-plan-de-test-mvp.md` | Les tests T1 à T17 du §8, et les contrôles X1 à X4 du §5.3 | `testeur` |
 | `CLAUDE.md` §6 et §13 | D37 passée à « tranchée et **validée sous conditions** par `expert-cybersecurite` », avec renvoi au §6.1 du présent document et mention de la **clause de caducité** en V2 | `chef-de-projet` |
 | `docs/legal/` (Lot 1) | Supervision des conversations (A10), journalisation des lectures, conservation probatoire du registre, pièces de vérification | `expert-conformite-rgpd` |
