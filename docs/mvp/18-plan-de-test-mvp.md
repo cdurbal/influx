@@ -622,6 +622,8 @@ select rolname, rolsuper, rolbypassrls
 | **T16.3** | `billing.commission_rates` est **vide** après migration |
 | **T16.4** | Aucun rôle applicatif, **y compris `admin` et `service`**, ne peut y insérer une ligne |
 | **T16.5** | Aucun montant n'est stocké ni transporté en **flottant** : tous les champs monétaires sont `bigint` en plus petite unité, accompagnés d'une devise |
+| **T16.6** | **Exemption nommée (2026-09-19).** La seule multiplication de montant autorisée est la fonction unique de conversion d'unité monétaire de `packages/domain` (`2 000,00 EUR` ↔ `200000`), dont le facteur est lu dans `reference.currencies.minor_unit`. L'analyse statique de T16.1 **exempte cette fonction et elle seule**, par annotation nominative ; toute autre multiplication échoue |
+| **T16.7** | **L'exemption ne s'étend pas.** Une seconde fonction annotée comme exemptée, ou une annotation posée ailleurs que sur la fonction de conversion, fait échouer la CI ; le facteur ne peut jamais être un littéral (test sur le corps de la fonction) |
 
 ---
 

@@ -1456,3 +1456,164 @@ des codes et des identifiants **et aucune donnée personnelle**.
 `expert-database` ; les tests attendus sont adressés à `testeur` (document `18`) ; la mise à jour de
 `CLAUDE.md` §13 relève de `chef-de-projet` ; la validation de §G relève d'`expert-conformite-rgpd`
 (**veto**) et celle de §I, §J et §K d'`expert-cybersecurite` (**veto**).
+
+---
+
+## Additif du document 16 (2026-09-19)
+
+> **Auteur de l'additif :** `expert-integrations-api`, sur demande de `chef-de-projet`.
+> **Objet :** raccorder `docs/mvp/16-backoffice-emails-brevo.md` (volet e-mails du Lot 5) au
+> présent document, qui fédère les files, les alertes, les actions de masse et les plafonds.
+> **Il répond à la question ouverte Q9 de `16` et aux cinq écarts que `16` a relevés avec `15`.**
+>
+> **Convention de numérotation :** le corps du document s'arrête à **RG124**. L'additif utilise
+> **RG125 à RG131**, sans aucun suffixe `bis` et **sans toucher à la numérotation existante**.
+> Les alertes reprennent la série `AL…` du §F, à partir d'**AL42**. La nouvelle file prend le
+> numéro **14** dans le catalogue de RG29.
+>
+> **Ce que cet additif ne fait pas :** il ne réécrit aucune règle existante. Là où il complète une
+> règle (RG29, RG86, RG104, RG109), il le dit explicitement et cite la règle complétée. Le
+> **contenu** du périmètre e-mail — sources, bases légales, modèles, cadence, contrat Brevo —
+> reste spécifié par `16`, qui fait autorité sur ces sujets.
+
+### RG125 — Une quatorzième file au catalogue de RG29 : `email_send_failures`
+
+**RG125** — Les échecs d'envoi d'e-mails forment une file, et cette file **figure au catalogue**.
+Sans elle, elle serait **orpheline** au sens de RG26 : personne n'en mesurerait le délai, personne
+ne saurait qui doit la traiter, et elle s'allongerait sans que quiconque le voie.
+
+| # | `queue_code` | File | Ce qui y entre | Spécifiée par | Délai de décision | Objectif interne de prise en charge | Verrou | Qui traite | Action de masse |
+|---|---|---|---|---|---|---|---|---|---|
+| **14** | **`email_send_failures`** | **Échecs d'envoi d'e-mails** | Ligne en échec définitif d'un envoi du backoffice **ou** d'un e-mail transactionnel (`16` §K) | **`16`** RG126 à RG130 | **2 j ouvrés** *(aligné sur Q4)* | — | **Aucun** (même régime que `lead_sync_failures`, RG30) | `agent`, `admin` | **Oui** — rejeu en lot, **plafond 200**, idempotent |
+
+Trois précisions qui évitent les confusions les plus probables :
+
+1. **Elle est distincte de `lead_sync_failures`** (file 12). Celle-ci porte les échecs de
+   *synchronisation de contact* ; la nouvelle porte les échecs d'*envoi d'e-mail*. Les confondre
+   ferait disparaître les seconds derrière les premiers.
+2. **Un échec définitif d'e-mail de confirmation de mise en relation y entre**, et il déclenche en
+   plus **AL10** : une mise en relation sans e-mail confirmé est **sans preuve externe**
+   (`13` RG80). C'est la seule entrée de cette file qui ait une conséquence probatoire.
+3. **Une ligne « écartée » n'y entre jamais** — sans consentement, hors cadence, désinscrit : ce
+   sont des **cas normaux**, jamais des échecs (`05` RG100, `16` RG23, RG130). Le compteur de cette
+   file ne mélange pas les deux, faute de quoi il deviendrait illisible en une semaine.
+
+### RG126 — Sept alertes de plus au catalogue du §F : AL42 à AL48
+
+**RG126** — Les alertes qui suivent complètent le catalogue de RG68, dans le même format et sous le
+même régime : **un code, un seuil écrit en table, un destinataire nommé, une action possible**
+(RG63). Aucune n'est portée par la seule couleur (RG66), aucune ne déclenche de sanction
+automatique (RG65) — **à une exception près, AL42, explicitée ci-dessous**.
+
+| Code | Alerte | Seuil de départ (en table) | Nature | Destinataire | Action attendue | Source |
+|---|---|---|---|---|---|---|
+| **AL42** | **Taux de plainte pour spam au-delà du seuil** | **0,3 %** sur 24 h glissantes, toutes sources marketing confondues | Événement | **`admin` + fondateur**, immédiatement | **L'interrupteur d'urgence s'est déjà activé** : instruire, puis lever à la main | `16` RG123 |
+| **AL43** | **Taux de rebond dur au-delà du seuil** | **5 %** sur un envoi, ou **2 %** sur 24 h | Événement | `admin` | Nettoyer la source, vérifier la provenance des adresses | `16` RG123 |
+| **AL44** | **Quota Brevo proche ou atteint** | **80 %** d'une des trois catégories d'appel | État | `admin` | Étaler les envois, ou revoir le palier de l'offre | `16` RG128 |
+| **AL45** | **Interrupteur d'urgence actif** | Dès l'activation, automatique ou manuelle | État | **Tous les rôles internes + fondateur** | Traiter la cause, puis lever avec motif | `16` RG121, RG124 |
+| **AL46** | **Modèle d'e-mail modifié chez Brevo depuis sa validation** | Écart d'empreinte constaté avant un envoi | Événement | `admin` | Relire et revalider. **L'envoi est refusé en attendant** | `16` RG69 |
+| **AL47** | **Envoi bloqué par écart de volume** | **10 %** ou **50 destinataires**, le plus petit des deux | Événement | **L'auteur de l'envoi + `admin`** | Reconfirmer en connaissance de cause, ou abandonner | `16` RG31 |
+| **AL48** | **Délivrabilité du code de connexion hors seuil** | Délai médian > **60 s** · 9ᵉ cas sur 10 > **180 s** · demandes sans connexion aboutie sous 10 min > **15 %** · part « délivrés » < **97 %** | État | **`admin`, immédiatement** | **Incident : des gens ne peuvent pas entrer dans leur compte** (**D37**) | `16` RG98, RG99 |
+
+**Deux remarques qui valent d'être écrites :**
+
+- **AL42 est la seule alerte du catalogue qui déclenche une action automatique** — la suspension
+  des envois marketing. Elle ne contredit pas RG65 (« aucune alerte ne déclenche de sanction
+  automatique ») : **aucune personne n'est sanctionnée**, c'est INFLUX qui cesse d'écrire. La
+  suspension est conservatrice, et **la reprise, elle, est toujours humaine** (`16` RG124).
+- **AL48 est la plus importante des sept, et de loin.** Les six autres protègent du chiffre
+  d'affaires ; celle-ci protège l'accès au produit. Elle a sa place au **bloc 7** du tableau de
+  bord `admin` (RG21), en tête.
+
+### RG127 — Ce qui rend l'annulation d'un envoi de masse réelle (complète M3, RG86)
+
+**RG127** — L'action de masse **M3 (envoi d'e-mails Brevo)** est complétée par trois mécanismes,
+sans lesquels sa « fenêtre d'annulation de 5 minutes » et sa « réversibilité annoncée » seraient
+des promesses creuses :
+
+1. **Rien n'est transmis à Brevo pendant la fenêtre.** C'est le seul mécanisme qui rende
+   l'annulation réelle plutôt que cosmétique. Un envoi déjà transmis puis « annulé » chez nous
+   serait un envoi parti (`16` RG28).
+2. **N'importe quel `agent` ou `admin` peut annuler, pas seulement l'auteur**, depuis un bandeau
+   présent sur **tous** les écrans du backoffice. Un incident se constate parfois par-dessus
+   l'épaule du voisin. Fermer son navigateur n'annule rien et n'empêche pas d'annuler depuis un
+   autre poste.
+3. **Le périmètre est recalculé à la fin de la fenêtre**, et **l'envoi est bloqué si le volume
+   s'écarte de plus de 10 % ou 50 destinataires** du volume confirmé (AL47, `16` RG30 et RG31).
+   Cinq minutes suffisent à ce que des gens se désinscrivent ; un écart de cette ampleur signifie
+   que le périmètre n'était pas celui qu'on croyait.
+
+La colonne « Réversibilité annoncée » de M3 reste exacte — « irréversible passé la fenêtre, dit en
+toutes lettres avant l'envoi » — et RG127 dit **par quel mécanisme** elle est vraie.
+
+### RG128 — Trois plafonds de plus pour les envois d'e-mails (complète RG104)
+
+**RG128** — La ligne « Destinataires par envoi d'e-mails, et par jour » de RG104 est **insuffisante
+pour la saisie libre**, où le risque n'est pas le volume d'un envoi mais **l'accumulation**. Trois
+plafonds s'y ajoutent, tous en table, tous modifiables par `admin` seulement, avec `2V` et
+journalisation, **jamais sur son propre compte** :
+
+| Plafond | Valeur d'attente `agent` | Valeur d'attente `admin` | Table | Pourquoi |
+|---|---|---|---|---|
+| Envois de prospection par **mois glissant** | **50** | **100** | `email_send_limits` | Sans lui, dix par jour font deux cents par mois : la campagne déguisée est reconstituée par accumulation |
+| Envois par **organisation (domaine)** sur 90 jours | **3** | **3** | `email_send_limits` | Trois personnes d'une même entreprise, pas tout l'organigramme |
+| **Sollicitations par adresse** | **1, définitivement** | **1** | Index d'unicité | **Aucune relance de prospection au MVP** : elle double le risque juridique pour un gain marginal (`16` RG55) |
+
+Ces valeurs relèvent de **D35** (`expert-conformite-rgpd`, **veto**, et fondateur) : ce sont des
+**valeurs d'attente conservatrices**, jamais des constantes de code.
+
+### RG129 — Ce qui empêche un envoi de masse sans double confirmation (complète l'interdit 10 de RG109)
+
+**RG129** — La ligne 10 du tableau de RG109 — « Envoyer un e-mail de masse sans double
+confirmation » — cite « contrainte de base sur `email_sends`, fenêtre d'annulation ». **Une
+interdiction sans mécanisme n'est qu'un vœu** (RG109) : voici les quatre mécanismes qui la rendent
+vraie, à faire figurer dans la colonne « ce qui l'empêche ».
+
+| Mécanisme | Effet |
+|---|---|
+| **Deux gestes de nature différente** — une case explicite **puis** la ressaisie au clavier du volume ou du nom du segment, dans un champ qui refuse le collage et l'auto-complétion | Interdit la confirmation réflexe en deux clics au même endroit |
+| **Re-authentification TOTP fraîche**, et **procédure dégradée PD1 à PD7** tant qu'une seule personne cumule `agent` et `admin` (RG9), l'écran disant en toutes lettres que le contrôle est affaibli | Interdit l'envoi depuis une session laissée ouverte |
+| **`confirmed_at` et `confirmed_by_account_id` non nuls**, contrainte en base : un envoi ne quitte pas `pending_confirmation` sans eux | Interdit de contourner l'écran par un appel direct à l'API |
+| **Aucun appel sortant pendant la fenêtre d'annulation** (RG127-1) | Fait que même une confirmation erronée reste rattrapable pendant 5 minutes |
+
+**Vérifié par** : `03` §3.5 pour la double validation, `04` §5.10 pour les contraintes de base, et
+les critères d'acceptation CA12 à CA17 de `16`.
+
+### RG130 — Rejeu et idempotence des envois d'e-mails (aligné sur M1 et RG91)
+
+**RG130** — Le rejeu d'un échec d'envoi, unitaire ou en lot, **conserve la clé d'idempotence** :
+aucun doublon chez Brevo, **aucun e-mail déjà envoyé n'est renvoyé** (RG91, `05` RG102). Le
+compte rendu nomme ce qui a été remis en file, ce qui a été ignoré et pourquoi, ce qui a été
+refusé (RG88, exigence « échec partiel »). **Une ligne écartée n'est pas rejouable** : si la
+situation de la personne a changé, c'est un **nouvel envoi** qui la touchera, jamais la
+résurrection d'un ancien.
+
+### RG131 — Ce que cet additif ne couvre pas, et où le trouver
+
+**RG131** — La ligne « L'envoi d'e-mails Brevo depuis le backoffice » du §Hors périmètre reste
+valable dans son principe — **ce document n'en fixe que le cadre d'action de masse, d'alerte, de
+file et de plafond** — mais elle est mise à jour sur un point : **le document attendu existe
+désormais**, c'est `docs/mvp/16-backoffice-emails-brevo.md` (155 règles, 116 critères
+d'acceptation). Il fait autorité sur :
+
+| Sujet | Où |
+|---|---|
+| Les trois sources de destinataires et leurs bases légales | `16` §C, §D, §E |
+| Le parcours d'envoi, écran par écran | `16` §B |
+| La bibliothèque de modèles et leur validation | `16` §F |
+| La cadence par contact, toutes sources confondues | `16` §G |
+| Le catalogue des e-mails transactionnels et leur idempotence | `16` §H |
+| Ce qui remonte de Brevo, en agrégat ou en nominatif | `16` §I |
+| Le garde-fou d'environnement et l'interrupteur d'urgence | `16` §J |
+| Ce qui ne doit jamais partir dans un e-mail (17 interdits) | `16` §L |
+| Le contrat d'interface Brevo, les webhooks et les variables d'environnement | `16` §M |
+
+**Onze écarts avec `04` (modèle de données) sont signalés dans `16` §Impacts** et adressés à
+`expert-database` — dont l'absence de bibliothèque de modèles, de table des segments autorisés, de
+journal des transactionnels hors mise en relation, et d'emplacement pour l'interrupteur d'urgence.
+Ils ne sont **pas** traités ici.
+
+**Deux validations restent ouvertes sur ce périmètre** : **`expert-conformite-rgpd` (veto)** sur
+D35, la légalité de la prospection pays par pays, le suivi nominatif des ouvertures et les durées
+de conservation ; **`expert-cybersecurite` (veto)** sur l'**absence de signature des webhooks
+Brevo** et les six compensations retenues (`16` **Q3**).

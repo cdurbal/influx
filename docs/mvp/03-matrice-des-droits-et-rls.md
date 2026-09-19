@@ -1457,6 +1457,15 @@ qui ne s'exécute pas à chaque fois n'existe pas.
 | **T17** | **Garde-fou `staging`.** Les quatre verrous du §6.8, chacun testé séparément, plus le refus de démarrage en production avec `dry_run` | `02-architecture` §12.4 | 1 |
 | **T18** | **Le cycle de révélation, moment par moment** (C(21a) à C(21d)). **a)** `has_function_privilege` sur `matching.reveal_identity(uuid)` est **faux pour les six rôles** — `influx_app`, les quatre rôles applicatifs et `influx_worker` — et un appel direct depuis chacun d'eux **échoue**. **b)** Un agent `aal2` valide une entrée : `status = 'approved'`, `identity_revealed_at` **reste nul**, **aucune ligne** dans `conversations`. **c)** Un agent qui n'est pas titulaire du verrou ⇒ refus. **d)** Une partie accepte : son seul horodatage est posé, celui de l'autre reste nul, rien n'est révélé, la réponse ne contient **aucun élément identifiant de l'autre partie**. **e)** Un tiers, puis un agent, puis un administrateur tentent d'enregistrer l'acceptation d'une partie ⇒ refus, **même code de réponse** qu'une mise en relation inexistante. **f)** La **seconde** acceptation produit, en une transaction, `identity_revealed_at`, l'événement chaîné, la conversation, **trois** participants, l'affaire et **deux** e-mails en file ; une panne simulée sur l'un des six ⇒ **aucun des six** ne subsiste. **g)** Deux acceptations **concurrentes** (la première et la seconde jouées en parallèle) ⇒ **une seule** révélation, **un seul** événement, **une seule** conversation. **h)** Un `UPDATE` direct de `identity_revealed_at`, `advertiser_accepted_at`, `creator_accepted_at` ou `status` par chacun des quatre rôles applicatifs ⇒ échec | Que l'invariant A2 / D16 ne dépende ni de la discipline d'un développeur, ni de l'ordre des appels, ni de l'absence de concurrence. **C'est le test le plus important du Lot 4** | 4 |
 
+> **Précision du 2026-09-19 — exemption nommée du test T16 (arbitrage `chef-de-projet`, sur signalement
+> de `expert-database`, `04` §5.9 et `14` E11).** Il existe **une seule** multiplication d'un montant qui
+> soit légitime : la **conversion d'unité monétaire** entre la saisie décimale d'un écran et le `bigint`
+> en unités mineures (`2 000,00 EUR` ↔ `200000`). Le facteur vient de `reference.currencies.minor_unit`,
+> **jamais d'un littéral**. Cette conversion vit dans **une fonction unique de `packages/domain`**,
+> annotée, testée, et **exemptée nommément** du contrôle. Sans exemption nommée, l'équipe désactiverait
+> T16 — et un contrôle désactivé ne protège rien. Toute autre multiplication d'un montant reste un échec
+> bloquant. Le contenu exact de l'annotation d'exemption est à fixer par `expert-cybersecurite` (veto).
+
 ---
 
 ## 9. Verdict d'étape

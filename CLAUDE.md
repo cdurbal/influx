@@ -735,9 +735,12 @@ Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la sociét
       **reporté en V2** (A1 : le paiement sort du MVP)
 - [ ] Réserver les noms de domaine et configurer les DNS, dont **un sous-domaine dédié au
       backoffice** (D12)
-- [ ] **Authentifier le domaine d'envoi (SPF, DKIM, DMARC) — bloquant pour le Lot 1**, et non plus
-      seulement recommandé : depuis D37, les membres se connectent par un **code à 6 chiffres reçu
-      par e-mail**. Un e-mail qui n'arrive pas n'est plus une gêne marketing, c'est **une
+- [ ] **Authentifier les trois domaines d'envoi (SPF, DKIM, DMARC) — bloquant pour le Lot 1**, et
+      non plus seulement recommandé : **trois flux, trois sous-domaines** (transactionnel,
+      newsletter, prospection — `docs/mvp/16-backoffice-emails-brevo.md` RG9), tous authentifiés
+      **avant le premier envoi**. Depuis D37, les membres se connectent par un **code à 6 chiffres
+      reçu par e-mail** : une plainte de prospection sur un domaine partagé rendrait la plateforme
+      **inaccessible**. Un e-mail qui n'arrive pas n'est plus une gêne marketing, c'est **une
       impossibilité de se connecter**. La délivrabilité devient la disponibilité du produit
 - [ ] Signer les contrats de sous-traitance des données (Brevo, Apollo.io, Supabase, Railway,
       prestataire de paiement) et tenir le registre des traitements

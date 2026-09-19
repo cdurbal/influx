@@ -67,11 +67,47 @@
 > file et de la mise en relation.
 > **Non traité ici, volontairement :** le contrat d'appelant des fonctions de révélation d'identité
 > (`13` écarts 4 et 5) appartient à `expert-cybersecurite` et au document `03`.
-> **`billing`** — **`deals`, `lost_reasons`, `deal_state_transitions` et `deal_field_changes`
-> avancées du Lot 5 au Lot 4** : l'affaire est créée **automatiquement, à l'état `open`, dans la
+> **`billing`** — **`deals`, ses trois référentiels de motifs, ses transitions et
+> `deal_field_changes` avancées du Lot 5 au Lot 4** : l'affaire est créée **automatiquement, à l'état `open`, dans la
 > transaction de révélation** (arbitrage `chef-de-projet` du 2026-09-19, §5.6 et §12.7 point 1).
 > Sans elle, une mise en relation perdue n'aurait nulle part où porter son **motif de perte typé**.
 > **Un point conservateur reste signalé au §12.7** : un fil archivé ne se rouvre pas.
+>
+> **Mise à jour du 2026-09-19 (troisième passe), après les spécifications `14` et `15` — les écarts
+> E1 à E11 et les douze points du backoffice intégrés.**
+> **`billing`** — **`commission_receipts`** (l'écart **bloquant** `14` E1 : le règlement standard se
+> fait **en deux fois par deux payeurs**, et la paire de colonnes d'encaissement unique écrasait le
+> premier) ; `commission_shortfall_note` **renommée** `commission_variance_note`, la contrainte ne
+> visant que le **trop-perçu** ; montant **nul autorisé** avec motif typé ; état **`cancelled`**
+> distinct de `lost` ; **`stalled` et `disputed` redeviennent des attributs** ; **bases fiscales** et
+> **payeur de la commission avec ses deux parts saisies**, seule matière pour instruire **D7** et
+> **D23** ; champs de mesure du contournement ; motif **obligatoire** sur les champs financiers.
+> **`backoffice`** — six tables qui manquaient : **`queues`** (sans elle, « une file hors catalogue
+> n'existe pas » était invérifiable), **`alert_definitions`** et **`alert_instances`** (les 41 alertes
+> vivaient en requêtes éparpillées), **`dual_control_requests`** (`03` PD4 décrivait des colonnes sans
+> table), **`exports`** (**agrégés seulement** : `05` RG106 est abrogée, alignement sur `03` C(17)),
+> **`suspension_reasons`** et ses motifs de levée ; notes internes et demandes RGPD complétées.
+> **`identity`** — `agent_profiles` porte enfin `is_active`, **`is_break_glass`** (le compte de
+> secours existe **dès le Lot 0**) et l'absence déclarée.
+> **`audit`** — **23 codes** de plus, dont cinq chargés aux Lots 0 et 1 parce que les actes qu'ils
+> tracent existent dès le premier jour.
+> **Neuf points conservateurs au §12.8**, dont la restriction d'écriture au commercial responsable,
+> **volontairement non tranchée** : c'est une règle d'autorisation, elle appartient à `03`.
+>
+> **Mise à jour du 2026-09-19 (quatrième passe), après la spécification `16` — les 11 écarts
+> intégrés.** **`backoffice`** — quatre tables : **`email_templates`** (aucun envoi improvisé,
+> empreinte du contenu validé **revérifiée avant chaque envoi**), **`brevo_allowed_segments`** (sans
+> liste fermée, n'importe quel segment improvisé chez Brevo devient envoyable en deux clics),
+> **`email_send_transitions`**, et onze colonnes sur `email_sends` — dont le **volume recalculé à la
+> fin de la fenêtre d'annulation** et les cinq champs de la saisie libre. **`email_send_recipients`
+> cesse de recopier les adresses** : unicité sur `coalesce(account_id::text, lower(email_address))`,
+> adresse stockée pour la seule saisie libre, **table vide pour un segment Brevo**. Trois plafonds de
+> plus (mensuel, par domaine, une sollicitation par adresse). **`leads`** — les deux **compteurs de
+> cadence** et **`transactional_sends`**, le journal qui manquait pour répondre à « je n'ai pas reçu
+> mon code » : depuis **D37**, c'est une question de disponibilité, pas de délivrabilité.
+> **L'interrupteur d'urgence** est une clé de configuration, pas une table — il n'a ni historique
+> propre ni objet rattaché, et son histoire est déjà au registre. **Amorçages** : la file
+> `email_send_failures` et les alertes **AL42 à AL48**.
 >
 > **Corrections demandées par `product-owner` après `05-spec-inscription-et-leads.md` :** trois
 > champs collectés à l'inscription n'avaient pas de place avant le Lot 2. Corrigé — **statut déclaré**
@@ -181,14 +217,14 @@ La justification du choix « schémas par domaine plutôt que schéma unique » 
 | `identity` | Comptes, rôles, pays et langue, **commercial responsable**, profils d'agents, versions de CGU, acceptations, consentements | 0 |
 | `audit` | **Registre chaîné append-only**, types d'événements, résultats des vérifications de chaîne | 0 |
 | `billing` | **`commission_rates` créée et vide** (Lot 0) ; **`deals`**, ses motifs de perte, ses transitions et l'historique de ses montants — **au Lot 4, parce que l'affaire naît dans la transaction de révélation** ; seule la **saisie** des montants arrive au Lot 5 | 0 puis **4** |
-| `leads` | `outbox_events`, état de synchronisation Brevo / Apollo par contact | 1 |
+| `leads` | `outbox_events`, état de synchronisation Brevo / Apollo par contact **et compteurs de cadence marketing**, **journal des e-mails transactionnels** (dont le code de connexion) | 1 |
 | `profiles` | Profil marque, **profil créateur en trois objets**, réseaux, audience, tarifs, portfolio, complétude | 2 |
 | `verification` | Demandes de vérification, codes de propriété, pièces, décisions, badges et péremption, contestations | 2 |
 | `campaigns` | Campagnes et leurs blocs, livrables, ciblage, validation | 3 |
 | `search` | Journal des recherches, impressions et rangs cliqués, sélections (shortlists) | 3 |
 | `matching` | **`introductions`**, expressions d'intérêt, brouillons, compteurs de plafonds, motifs de refus **par INFLUX et par une partie**, file de validation, **transitions autorisées**, **e-mails de mise en relation**, **blocage entre parties** | **3** *(blocage)* puis 4 |
 | `messaging` | Conversations, participants, messages, lectures, **journal des lectures par un agent et ses motifs typés**, motifs de pause, transitions d'état, signalements, détections, documents et **journal de leurs téléchargements** | 4 |
-| `backoffice` | Notes internes, suspensions, envois d'e-mails et destinataires, demandes RGPD, politiques de SLA, **paramètres d'exploitation** | 1, 3 puis 5 |
+| `backoffice` | **Catalogue des files**, politiques de SLA, **catalogue et instances d'alertes**, **demandes de double validation**, paramètres d'exploitation, notes internes, suspensions et leurs motifs, **journal des exports**, envois d'e-mails et destinataires, demandes RGPD | 1, 3, 4 puis 5 |
 
 Le schéma `public` **reste vide**. C'est une décision de sécurité autant que d'hygiène : c'est le
 seul schéma exposé par défaut par PostgREST, et nous ne voulons aucune table atteignable par cette
@@ -199,14 +235,14 @@ voie (`docs/mvp/02-architecture-3-espaces.md` §2).
 | Lot | Tables créées |
 |---|---|
 | **0 — Socle** | `reference.countries` · `reference.currencies` · `reference.languages` · `identity.accounts` · **`identity.account_roles`** *(D41)* · `identity.agent_profiles` · `identity.terms_versions` · `identity.terms_acceptances` · `identity.consent_events` · `audit.event_types` · `audit.audit_events` · `audit.chain_checks` · `billing.commission_rates` *(vide)* · `backoffice.ownership_assignments` |
-| **1 — Inscription et leads** | `leads.outbox_events` · `leads.contact_sync_states` · **`leads.sync_settings`** · **`identity.email_delivery_incidents`** · **`profiles.advertiser_profiles` *(forme minimale, avancée depuis le Lot 2)*** · `backoffice.sla_policies` |
+| **1 — Inscription et leads** | `leads.outbox_events` · `leads.contact_sync_states` · **`leads.sync_settings`** · **`identity.email_delivery_incidents`** · **`profiles.advertiser_profiles` *(forme minimale, avancée depuis le Lot 2)*** · **`backoffice.queues`** · `backoffice.sla_policies` · **`backoffice.alert_definitions`** · **`backoffice.dual_control_requests`** · **`leads.transactional_sends`** |
 | **2 — Profils, badge** | `reference.topics` · `reference.formats` · `reference.networks` · `reference.sectors` · `reference.usage_rights` · `reference.audience_bands` · `reference.price_bands` · *(`profiles.advertiser_profiles` : **extension** de la table créée au Lot 1)* · `profiles.advertiser_contact_details` · `profiles.creator_public_profiles` · `profiles.creator_public_networks` · `profiles.creator_public_audience` · `profiles.creator_public_rates` · `profiles.creator_social_accounts` · `profiles.creator_identities` · `profiles.creator_audience_breakdowns` · `profiles.creator_rate_cards` · `profiles.creator_topics` · `profiles.creator_formats` · `profiles.creator_refused_sectors` · `profiles.portfolio_items` · `verification.rejection_reasons` · `verification.verification_requests` · `verification.ownership_codes` · `verification.evidence_files` · `verification.badges` · `verification.disputes` · **`reference.engagement_bands`** · **`reference.age_bands`** · **`reference.audience_genders`** · **`reference.editorial_tones`** · **`reference.publication_frequencies`** · **`reference.regions`** · **`profiles.creator_tones`** · **`profiles.creator_usage_rights`** · **`profiles.moderated_fields`** · **`profiles.profile_field_revisions`** · **`verification.revocation_reasons`** |
 | **3 — Campagnes et recherche** | `campaigns.rejection_reasons` · `campaigns.campaigns` · `campaigns.campaign_deliverables` · `campaigns.campaign_audience_targets` · `campaigns.campaign_topics` · `search.search_queries` · `search.search_impressions` · `search.shortlists` · `search.shortlist_items` · **`reference.campaign_types`** · **`campaigns.campaign_key_messages`** · **`campaigns.campaign_usage_territories`** · **`campaigns.campaign_price_bands`** · **`campaigns.requested_items`** · **`campaigns.campaign_requested_items`** · **`campaigns.campaign_published_snapshots`** · **`search.search_settings`** · **`search.facet_settings`** · **`search.facet_config_versions`** · **`search.explanation_reasons`** · **`search.impression_reasons`** · **`search.supply_counters`** · **`backoffice.operational_settings`** · **`matching.block_reasons`** · **`matching.party_blocks`** *(les deux dernières arrivent au Lot 3 bien que le reste du schéma `matching` arrive au Lot 4 : le blocage est une exclusion de recherche, §5.6)* |
-| **4 — Mise en relation et messagerie** | `matching.rejection_reasons` · `matching.introductions` · **`matching.interest_submissions`** *(ex-`application_details`)* · **`matching.interest_submission_formats`** *(ex-`application_formats`)* · **`matching.application_drafts`** · **`matching.application_draft_formats`** · **`matching.application_quotas`** · `matching.reference_counters` · **`matching.decline_reasons`** · **`matching.introduction_transitions`** · **`matching.introduction_emails`** · `messaging.closure_reasons` · `messaging.report_reasons` · `messaging.conversations` · `messaging.conversation_participants` · `messaging.messages` · `messaging.conversation_reads` · `messaging.conversation_access_log` · `messaging.contact_detections` · `messaging.reports` · `messaging.documents` · **`messaging.access_reasons`** · **`messaging.pause_reasons`** · **`messaging.conversation_state_transitions`** · **`messaging.document_labels`** · **`messaging.document_rejection_reasons`** · **`messaging.document_downloads`** · **`billing.lost_reasons`** · **`billing.deal_state_transitions`** · **`billing.deals`** · **`billing.deal_field_changes`** *(les quatre **avancées depuis le Lot 5** : l'affaire est créée par `matching.reveal_identity()`, §5.6)* |
-| **5 — Backoffice et pipeline** | *(aucune table `billing` nouvelle : les quatre sont créées au Lot 4 ; le Lot 5 n'apporte que les écrans de saisie)* · `backoffice.internal_notes` · `backoffice.account_suspensions` · `backoffice.email_send_limits` · `backoffice.email_sends` · `backoffice.email_send_recipients` · `backoffice.data_subject_requests` |
+| **4 — Mise en relation et messagerie** | `matching.rejection_reasons` · `matching.introductions` · **`matching.interest_submissions`** *(ex-`application_details`)* · **`matching.interest_submission_formats`** *(ex-`application_formats`)* · **`matching.application_drafts`** · **`matching.application_draft_formats`** · **`matching.application_quotas`** · `matching.reference_counters` · **`matching.decline_reasons`** · **`matching.introduction_transitions`** · **`matching.introduction_emails`** · `messaging.closure_reasons` · `messaging.report_reasons` · `messaging.conversations` · `messaging.conversation_participants` · `messaging.messages` · `messaging.conversation_reads` · `messaging.conversation_access_log` · `messaging.contact_detections` · `messaging.reports` · `messaging.documents` · **`messaging.access_reasons`** · **`messaging.pause_reasons`** · **`messaging.conversation_state_transitions`** · **`messaging.document_labels`** · **`messaging.document_rejection_reasons`** · **`messaging.document_downloads`** · **`billing.lost_reasons`** · **`billing.cancellation_reasons`** · **`billing.non_monetary_reasons`** · **`billing.deal_state_transitions`** · **`billing.deals`** · **`billing.deal_field_changes`** · **`backoffice.alert_closure_reasons`** · **`backoffice.alert_instances`** *(les six premières **avancées depuis le Lot 5** : l'affaire est créée par `matching.reveal_identity()`, §5.6)* |
+| **5 — Backoffice et pipeline** | **`billing.commission_receipts`** *(la seule table `billing` du Lot 5 : elle arrive avec la première saisie de règlement, `14` E1)* · `backoffice.internal_notes` · **`backoffice.suspension_reasons`** · **`backoffice.suspension_lift_reasons`** · `backoffice.account_suspensions` · **`backoffice.exports`** · `backoffice.email_send_limits` · **`backoffice.email_templates`** · **`backoffice.brevo_allowed_segments`** · **`backoffice.email_send_transitions`** · `backoffice.email_sends` · `backoffice.email_send_recipients` · `backoffice.data_subject_requests` |
 | **6 — Recette** | Aucune table nouvelle. Vérification de la couverture RLS, des index réellement utilisés et des purges |
 
-**Total : 119 tables et 1 vue**, dont **35 tables de référence** (des listes fermées de quelques
+**Total : 134 tables et 1 vue**, dont **44 tables de référence** (des listes fermées de quelques
 lignes chacune) et une quinzaine de tables de jointure. Le modèle « réel » tient donc en une
 quarantaine d'entités. Chaque table de ce document est citée par un document de cadrage ou par une
 skill : aucune n'a été créée « au cas où ».
@@ -546,6 +582,32 @@ migrations `0403` et `0405`).
 | `document.available` | `messaging` | `document` | `info` | **Mise à disposition de l'autre partie** — distincte du contrôle (`12` RG74) |
 | `document.downloaded` | `messaging` | `document` | `info` | Téléchargement, avec son auteur (`12` RG75) |
 
+**Codes ajoutés au Lot 5, backoffice et vie du compte** (`15`, écart 12 — **23 codes**). Certains
+sont chargés plus tôt, avec le lot qui crée le fait : la colonne « Lot » le dit.
+
+| Code | `domain` | `subject_type` | `severity` | Lot | Fait relaté |
+|---|---|---|---|---|---|
+| `account.suspended` · `account.suspension_lifted` | `backoffice` | `account` | `critical` | 5 | Suspension et levée, **avec leur motif typé** (`15` RG52, RG55) |
+| `account.note_added` | `backoffice` | `account` | `info` | 5 | Note interne ajoutée — **immuable**, donc jamais de `note_edited` |
+| `account.field_corrected` | `backoffice` | `account` | `sensitive` | 5 | Correction d'une donnée de compte par un interne (`15`, `09` RG94) |
+| `ownership.reassigned` | `backoffice` | `account` | `sensitive` | 1 | Changement de commercial responsable, motif typé |
+| `ownership.bulk_transferred` | `backoffice` | `account` | `critical` | 5 | Transfert **en masse** d'un portefeuille — rare, donc d'autant plus à tracer |
+| `queue.claim_forced_release` | `backoffice` | `queue_entry` | `sensitive` | 4 | Verrou orphelin levé par un administrateur : **le titulaire dépossédé en est informé** (`15` C4, `03` C(20)) |
+| `alert.acknowledged` · `alert.closed` | `backoffice` | `alert_instance` | `info` | 4 | Prise en charge et classement d'une alerte d'événement (`15` RG69) |
+| `dual_control.requested` · `dual_control.confirmed` · `dual_control.expired` | `backoffice` | `dual_control_request` | `critical` | 1 | Le contrôle à quatre yeux, de bout en bout (`03` PD4, `15` RG31) |
+| `export.produced` | `backoffice` | `export` | `critical` | 5 | Export produit, **avec ses filtres exacts et l'empreinte du fichier** (`15` RG94) |
+| `privacy.request_received` · `privacy.identity_verified` · `privacy.request_executed` · `privacy.request_closed` | `backoffice` | `data_subject_request` | `critical` | 5 | Les quatre moments d'une demande relative aux données personnelles (`15` §G). **`identity_verified` est un code à part** : exécuter un effacement sans avoir vérifié qui demande est le pire des scénarios |
+| `agent.invited` · `agent.role_changed` · `agent.deactivated` · `agent.mfa_reset` | `identity` | `account` | `critical` | 0 | Cycle de vie d'un compte interne. **`mfa_reset` est `critical`** : c'est une primitive de prise de contrôle |
+| **`agent.break_glass_login`** | `identity` | `account` | **`critical`** | **0** | **Connexion du compte de secours** (`15` RG103, AL33). Alerte immédiate au fondateur, justification écrite sous 24 h |
+| `settings.changed` | `backoffice` | `setting` | `sensitive` | 1 | Modification d'un paramètre d'exploitation, d'un plafond ou d'un SLA, **nominativement** |
+
+> **`agent.*` et `dual_control.*` arrivent aux Lots 0 et 1, pas au Lot 5**, alors que le reste du
+> backoffice arrive au Lot 5 : les comptes internes et le compte de secours existent **dès le premier
+> jour** (`15` RG103), et la première action à double validation est la correction d'une adresse
+> e-mail (`identity.correct_email()`, Lot 1), qui est une **primitive de prise de contrôle de
+> compte**. Journaliser à partir du Lot 5 laisserait quatre lots sans trace sur exactement les actes
+> qui en ont le plus besoin.
+
 > **Pourquoi `document.uploaded`, `document.available` et `document.downloaded` sont trois codes et
 > non un seul.** Le dépôt, la mise à disposition et le téléchargement se produisent à trois instants,
 > sous la responsabilité de trois personnes différentes, et c'est exactement la question qu'on posera
@@ -849,12 +911,47 @@ la contrainte renvoie à ce paragraphe. Celui qui voudra la retirer lira d'abord
 *Les informations internes d'un agent ou d'un administrateur — jamais visibles d'un membre.*
 
 `account_id` (PK, FK), `first_name`, `job_title`, `invited_by_account_id`, `invited_at`,
-`activated_at`, `deactivated_at`, `mfa_enrolled_at`, `requires_reassignment boolean`,
-`created_at`, `updated_at`.
+`activated_at`, `mfa_enrolled_at`, `requires_reassignment boolean`, `created_at`, `updated_at`,
+**plus les six colonnes ajoutées par `15`** (écart 8) :
+
+| Colonne | Type | Contrainte | Pourquoi (`15`) |
+|---|---|---|---|
+| **`is_active`** | `boolean` | `not null default true`, `check (is_active = (deactivated_at is null))` | **RG105** : un compte interne **n'est jamais supprimé** — ses actions passées conservent son nom, sinon six mois de journal deviennent illisibles |
+| `deactivated_at` | `timestamptz` | Couple lié à `is_active` | Idem |
+| **`deactivated_by_account_id`** | `uuid` | FK interne, `check ((deactivated_at is null) = (deactivated_by_account_id is null))` | Une désactivation a un auteur |
+| **`is_break_glass`** | `boolean` | `not null default false` | **RG103** : le **compte de secours**, qui existe **dès le Lot 0** (`03` MFA-10, constat bloquant B7) |
+| **`absence_from`, `absence_to`** | `date` | `check (absence_to is null or absence_to >= absence_from)` | **RG62** et **RG106** : une absence **déclarée** ne change aucun droit et ne réattribue rien — elle alimente l'alerte **AL41** et le motif de lecture `continuite_de_service` |
+
+```sql
+-- un seul compte de secours, et il se voit
+create unique index agent_profiles_break_glass_idx
+  on identity.agent_profiles (is_break_glass)
+  where is_break_glass;
+
+-- AL41 : responsabilites d'un agent absent ou desactive (15 RG60, RG62)
+create index agent_profiles_absent_idx
+  on identity.agent_profiles (absence_from, absence_to)
+  where absence_from is not null;
+
+comment on column identity.agent_profiles.is_break_glass is
+  'Compte administrateur de secours (15 RG103, 03 MFA-10). Adresse DISTINCTE, jamais un alias
+   d''une adresse personnelle ; TOTP sur un appareil hors ligne ; codes de secours imprimes et
+   scelles. TOUTE connexion declenche une alerte immediate au fondateur (AL33) et une ligne
+   d''audit (agent.break_glass_login), et son usage est justifie par ecrit sous 24 heures.
+   Il n''est JAMAIS utilise pour le travail quotidien.
+   Index unique partiel : il n''y en a qu''un, et sa multiplication serait le premier symptome
+   d''un probleme.';
+
+comment on column identity.agent_profiles.absence_from is
+  'Periode d''absence DECLAREE (15 RG62, RG106). Elle ne change AUCUN droit et ne reattribue
+   RIEN : aucune reattribution automatique au MVP. Elle sert a trois choses seulement —
+   l''alerte AL41, la justification du motif de lecture continuite_de_service (12 RG56),
+   et la lisibilite de la file pour les collegues.';
+```
 
 `requires_reassignment` matérialise la règle 19 de `backoffice-ops` : **la réattribution est un
-préalable à la désactivation**. Le déclencheur qui pose `deactivated_at` refuse si le compte est
-encore responsable d'une mise en relation active ou d'une affaire ouverte.
+préalable à la désactivation** (`15` RG60, RG105). Le déclencheur qui pose `deactivated_at` refuse si
+le compte est encore responsable d'une mise en relation active ou d'une affaire ouverte.
 
 #### `identity.terms_versions`
 
@@ -2541,9 +2638,10 @@ créé seulement quand quelqu'un pense à le créer ne mesure que la discipline 
 
 **Ce que devient mon objection de fond — la seule qui tenait.** Le cycle de dépendance entre
 migrations était réel : `billing.deals` au Lot 5, la révélation au Lot 4, donc `0402` dépendant de
-`0501`. **Il se règle en avançant les quatre tables `billing` au Lot 4** (§2.2, §11.2) :
-`lost_reasons`, `deal_state_transitions`, `deals` et `deal_field_changes` sont créées par la
-migration **`0402a`, juste avant `0402`**. Seule la **saisie** des montants — écrans, validations,
+`0501`. **Il se règle en avançant les tables `billing` de l'affaire au Lot 4** (§2.2, §11.2) :
+`lost_reasons`, `cancellation_reasons`, `non_monetary_reasons`, `deal_state_transitions`, `deals`
+et `deal_field_changes` sont créées par la migration **`0402a`, juste avant `0402`** ; seul
+`billing.commission_receipts` reste au Lot 5, avec la première saisie de règlement (`14` E1). Seule la **saisie** des montants — écrans, validations,
 pipeline — reste au Lot 5. Créer une table n'est pas construire un écran.
 
 **Trois conséquences, à lire ensemble :**
@@ -3503,6 +3601,107 @@ affiche une ligne par compte avec son état Brevo et son état Apollo. Le calcul
 `identity.consent_events` (`granted = false`, `source = 'brevo_webhook'`) **et** pose
 `unsubscribed_at` ici. La vérité du consentement reste à un seul endroit.
 
+##### Les deux compteurs de cadence (`16` écart 3, RG80)
+
+`16` RG80 impose deux compteurs par contact, poussés vers les attributs Brevo du même nom :
+`LAST_MARKETING_SENT_AT` et `MARKETING_SENDS_30D`. **Ils n'avaient aucun emplacement.** Deux
+colonnes ici, et non une table ni une vue :
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| **`last_marketing_sent_at`** | `timestamptz` | Dernière transmission marketing **réussie**, quelle que soit la source |
+| **`marketing_sends_30d`** | `smallint` | `not null default 0 check (marketing_sends_30d >= 0)` — fenêtre glissante de 30 jours |
+| **`marketing_counters_at`** | `timestamptz` | `not null default now()` — **date de recalcul** de la fenêtre |
+
+```sql
+comment on column leads.contact_sync_states.marketing_sends_30d is
+  'Compteur de cadence sur 30 jours glissants (16 RG80), pousse vers l''attribut Brevo
+   MARKETING_SENDS_30D par la file habituelle.
+   ICI PLUTOT QUE DANS UNE TABLE A PART : le compteur est un ETAT DE SYNCHRONISATION par
+   (compte, destination) — exactement ce que porte deja cette table — et le worker qui l''ecrit
+   est celui qui ecrit deja la ligne. Une table de plus aurait impose une seconde ecriture dans
+   la meme transaction pour la meme personne.
+   PAS UNE VUE : une vue recalculee a chaque envoi balaierait la file entiere, et le compteur
+   doit etre POUSSE vers Brevo, donc materialise.
+   marketing_counters_at dit QUAND la fenetre a ete recalculee : un compteur glissant qu''on ne
+   sait pas dater ne se distingue pas d''un compteur fige.';
+
+comment on column leads.contact_sync_states.last_marketing_sent_at is
+  'Un contact hors cadence est ECARTE AUTOMATIQUEMENT, et c''est un cas normal (16 RG81) :
+   l''ecartement est journalise, il n''apparait JAMAIS dans les echecs, et il n''existe aucun
+   bouton « envoyer quand meme ».
+   Les scenarios de nurturing automatiques comptent dans la cadence (16 RG83) : un e-mail parti
+   sans passer par le backoffice reste un e-mail recu par la personne.';
+```
+
+#### `leads.transactional_sends` — le journal des transactionnels hors mise en relation (`16` écart 4)
+
+> **`matching.introduction_emails` ne couvre que la mise en relation.** `16` RG94 exige que le
+> `messageId` soit conservé pour **tout** e-mail transactionnel — à commencer par le **code de
+> connexion**, qui est depuis **D37** le moyen d'authentification des membres. Quand quelqu'un dit
+> « je n'ai pas reçu mon code », il n'existait **aucune ligne à interroger**.
+
+*Table du **Lot 1** — elle arrive avec le premier e-mail transactionnel, donc avec l'inscription.
+**Append-only** sur tout ce qui décrit l'envoi ; seules les colonnes d'accusé sont écrites après.*
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `id` | `bigint` | `generated always as identity` |
+| `email_code` | `text` | `not null` — le code de l'e-mail (`auth.login_code`, `auth.new_device`, `message.notification`…) |
+| **`priority`** | `leads.send_priority` | `not null` — **`p0` · `p1` · `p2`**. `p0` = **le code de connexion**, que l'interrupteur d'urgence ne coupe jamais (`16` RG122) |
+| `account_id` | `uuid` | FK, **nullable** — un destinataire n'est pas toujours un compte |
+| `recipient_email` | `text` | **Nullable et renseignée uniquement si `account_id` est nul** — même doctrine que `email_send_recipients` |
+| `locale` | `char(2)` | `not null` FK `reference.languages` |
+| `template_ref` | `text` | FK `backoffice.email_templates` |
+| `template_version` | `integer` | **Copiée** (R7) : la version envoyée, pas la version actuelle |
+| `outbox_event_id` | `uuid` | FK `leads.outbox_events(id)` |
+| **`provider_message_id`** | `text` | `unique` — **le `messageId` de RG94** |
+| `status` | `matching.email_status` | `not null default 'queued'` — même type que le journal de mise en relation |
+| `sent_at`, `delivered_at`, `failed_at` | `timestamptz` | Chronologie contrôlée |
+| `failure_code` | `text` | `check ((status = 'failed') = (failure_code is not null))` |
+| `created_at` | `timestamptz` | `not null` |
+
+```sql
+alter table leads.transactional_sends
+  add constraint transactional_sends_recipient_xor
+      check ((recipient_email is not null) = (account_id is null)),
+  add constraint transactional_sends_sent_needs_message_id
+      check (status in ('queued','failed') or provider_message_id is not null),
+  add constraint transactional_sends_chronology
+      check (coalesce(delivered_at, 'infinity') >= coalesce(sent_at, '-infinity'));
+
+-- AL48 : delivrabilite du code de connexion (16 RG98). C'est un incident, pas un indicateur :
+-- des gens ne peuvent pas se connecter.
+create index transactional_sends_login_code_idx
+  on leads.transactional_sends (created_at desc)
+  where priority = 'p0';
+
+-- « je n'ai pas recu mon code » : la question posee au support, indexee telle quelle
+create index transactional_sends_by_account_idx
+  on leads.transactional_sends (account_id, created_at desc)
+  where account_id is not null;
+
+comment on table leads.transactional_sends is
+  'Journal des e-mails transactionnels HORS mise en relation (16 RG94, ecart 4).
+   Meme forme et meme doctrine que matching.introduction_emails (§5.6), et deliberement une
+   table distincte : celui-la porte une PREUVE D''INTERMEDIATION rattachee a une introduction et
+   conservee comme telle ; celui-ci porte un DIAGNOSTIC D''EXPLOITATION, sans sujet metier commun.
+   *** NE CONTIENT JAMAIS LE CORPS, NI L''OBJET, NI — SURTOUT — LE CODE A SIX CHIFFRES. ***
+   Le code est un secret d''authentification : il ne se journalise pas, nulle part, jamais
+   (03 §Secrets). Ce que cette table sait dire, c''est QU''UN e-mail est parti, QUAND, VERS QUI,
+   DANS QUELLE LANGUE, et ce que le prestataire en a fait.
+   Depuis D37, c''est la table qui permet de repondre a « je n''ai pas recu mon code » autrement
+   que par une supposition.';
+
+comment on column leads.transactional_sends.priority is
+  'p0 = code de connexion et alertes critiques internes : JAMAIS coupe par l''interrupteur
+   d''urgence (16 RG122), y compris au niveau all_paused.
+   p1 et p2 = notifications et e-mails de service, mis EN ATTENTE (jamais perdus) si
+   l''interrupteur passe en all_paused.
+   NOT NULL SANS DEFAUT : un envoi dont personne n''a decide la priorite ne doit pas exister,
+   sans quoi l''interrupteur d''urgence coupe au hasard.';
+```
+
 #### `leads.sync_settings` — la configuration est une donnée (Lot 1)
 
 *Le périmètre Apollo, la base légale par pays, les pays exclus, les plafonds de débit et le calendrier
@@ -3600,17 +3799,29 @@ l'application. La remplir sera un acte délibéré, écrit, relu et versionné.
 | `state` | `billing.deal_state` | `not null default 'open'` |
 | `revealed_at` | `timestamptz` | `not null` — **copie** de `identity_revealed_at` (R7), ce qui rend la contrainte chronologique déclarative |
 | `currency` | `char(3)` | FK `reference.currencies` |
-| `negotiated_amount_minor` | `bigint` | `check (negotiated_amount_minor is null or negotiated_amount_minor > 0)` |
-| `agreed_commission_amount_minor` | `bigint` | `check (… > 0)` |
+| `negotiated_amount_minor` | `bigint` | **`check (negotiated_amount_minor is null or negotiated_amount_minor >= 0)`** — **zéro autorisé** (`14` E4, ci-dessous) |
+| **`non_monetary_reason_code`** | `text` | FK `billing.non_monetary_reasons`, obligatoire si le montant vaut zéro (`14` E4) |
+| `agreed_commission_amount_minor` | `bigint` | `check (… >= 0)` |
 | `agreed_commission_note` | `text` | Texte libre (« barème standard 35 % »), **jamais un taux exploité par le code** |
+| **`commission_payer`** | `billing.commission_payer` | `advertiser` · `creator` · `both` — **qui règle la commission** (`14` E8) |
+| **`advertiser_share_amount_minor`** | `bigint` | **Saisie**, jamais dérivée d'un taux (`14` E8) |
+| **`creator_share_amount_minor`** | `bigint` | Idem. Contrôle d'**addition** ci-dessous |
+| **`amount_tax_basis`** | `billing.tax_basis` | `hors_taxes` · `taxes_comprises` · `inconnue` — base fiscale du **montant de la collaboration** (`14` E7) |
+| **`commission_tax_basis`** | `billing.tax_basis` | Idem pour la **commission**. Les deux obligatoires à `signed` |
 | `contract_sent_at`, `contract_sent_channel` | — | `email` · `docusign` · `in_person` · `other` |
 | `signed_at` | `timestamptz` | — |
 | `commission_invoiced_at`, `commission_invoice_ref` | — | Référence de facture **externe** |
-| `commission_received_amount_minor`, `commission_received_at` | — | — |
-| `commission_shortfall_note` | `text` | Justification obligatoire si encaissé < convenu |
+| ~~`commission_received_amount_minor`, `commission_received_at`~~ | — | **Supprimées (`14` E1)** : remplacées par `billing.commission_receipts` et deux colonnes **dérivées** ci-dessous |
+| **`commission_received_total_minor`** | `bigint` | **Somme dérivée** des règlements, maintenue par déclencheur. **Une addition, jamais un taux** |
+| **`commission_last_receipt_on`** | `date` | Date du dernier mouvement, dérivée. Sert aux relances et à l'âge du reste dû |
+| ~~`commission_shortfall_note`~~ → **`commission_variance_note`** | `text` | **Renommée (`14` E2)** : la contrainte visait le **trop-perçu**, pas le manque. Voir le commentaire SQL |
 | `lost_reason_code`, `lost_at` | — | FK `billing.lost_reasons` |
-| `disputed_note` | `text` | — |
-| `stalled_since` | `timestamptz` | Alimenté par la tâche quotidienne |
+| **`cancellation_reason_code`**, **`cancelled_at`** | — | FK **`billing.cancellation_reasons`** — l'annulation n'est **pas** un échec commercial (`14` E5) |
+| **`stalled_since`** | `timestamptz` | **Attribut, pas état** (`14` E6). Alimenté par la tâche quotidienne |
+| **`disputed_since`**, `disputed_note`, **`disputed_resolved_at`** | — | **Attributs, pas état** (`14` E6) : un litige ne doit **jamais** effacer l'information « signé » |
+| **`estimated_external_amount_minor`** | `bigint` | **Montant estimé de la *collaboration* conclue hors INFLUX** — jamais d'une commission (`14` E9) |
+| **`estimated_confidence`** | `billing.estimate_confidence` | `faible` · `moyenne` · `elevee` |
+| **`estimated_source`** | `text` | D'où vient l'estimation (déclaration, capture publique, dire du commercial) |
 | `created_at`, `updated_at` | `timestamptz` | `not null` |
 
 Les contraintes financières, **toutes déclaratives** :
@@ -3619,21 +3830,60 @@ Les contraintes financières, **toutes déclaratives** :
 alter table billing.deals
   add constraint deals_amount_needs_currency
       check (num_nonnulls(negotiated_amount_minor, agreed_commission_amount_minor,
-                          commission_received_amount_minor) = 0 or currency is not null),
+                          advertiser_share_amount_minor, creator_share_amount_minor) = 0
+             or currency is not null),
   add constraint deals_commission_within_amount
       check (agreed_commission_amount_minor is null
              or negotiated_amount_minor is null
              or agreed_commission_amount_minor <= negotiated_amount_minor),
-  add constraint deals_received_within_agreed
-      check (commission_received_amount_minor is null
+
+  -- 14 E8 : les deux parts SAISIES font la commission convenue. Une ADDITION, pas un taux.
+  add constraint deals_shares_sum_to_commission
+      check (num_nonnulls(advertiser_share_amount_minor, creator_share_amount_minor) = 0
              or agreed_commission_amount_minor is null
-             or commission_received_amount_minor <= agreed_commission_amount_minor
-             or commission_shortfall_note is not null),
+             or coalesce(advertiser_share_amount_minor, 0)
+              + coalesce(creator_share_amount_minor, 0) = agreed_commission_amount_minor),
+  add constraint deals_payer_matches_shares
+      check (commission_payer is null
+             or (commission_payer = 'advertiser' and coalesce(creator_share_amount_minor, 0) = 0)
+             or (commission_payer = 'creator'    and coalesce(advertiser_share_amount_minor, 0) = 0)
+             or  commission_payer = 'both'),
+
+  -- 14 E1 + E2 : le total encaisse est une SOMME DERIVEE ; seul le TROP-PERCU exige une note
+  add constraint deals_received_within_agreed
+      check (commission_received_total_minor is null
+             or agreed_commission_amount_minor is null
+             or commission_received_total_minor <= agreed_commission_amount_minor
+             or commission_variance_note is not null),
+
+  -- 14 E4 : montant nul = contrepartie non monetaire, et il faut dire laquelle
+  add constraint deals_zero_amount_needs_reason
+      check (negotiated_amount_minor is null
+             or negotiated_amount_minor > 0
+             or non_monetary_reason_code is not null),
+
+  -- 14 E7 : les deux bases fiscales sont obligatoires des la signature
+  add constraint deals_signed_requires_tax_basis
+      check (state <> 'signed'
+             or (amount_tax_basis is not null and commission_tax_basis is not null)),
+
+  -- 14 E9 : l'estimation de contournement ne vit qu'avec son motif de perte
+  add constraint deals_estimate_requires_lost_reason
+      check (estimated_external_amount_minor is null
+             or (lost_reason_code = 'conclu_hors_influx'
+                 and estimated_confidence is not null
+                 and estimated_source is not null)),
+
   add constraint deals_signed_after_reveal
       check (signed_at is null or signed_at >= revealed_at),
   add constraint deals_chronology
-      check (coalesce(commission_received_at, 'infinity') >= coalesce(commission_invoiced_at,'-infinity')
-         and coalesce(commission_invoiced_at,'infinity')  >= coalesce(signed_at,'-infinity')),
+      check (coalesce(commission_invoiced_at, 'infinity') >= coalesce(signed_at, '-infinity')),
+
+  -- 14 E6 : litige et enlisement sont des ATTRIBUTS, avec leur propre chronologie
+  add constraint deals_dispute_chronology
+      check (disputed_resolved_at is null
+             or (disputed_since is not null and disputed_resolved_at >= disputed_since)),
+
   -- champs obligatoires par etat (document 01 §6.1)
   add constraint deals_negotiating_requires_amount
       check (state <> 'negotiating' or (negotiated_amount_minor is not null and currency is not null)),
@@ -3643,7 +3893,45 @@ alter table billing.deals
       check (state <> 'signed' or (signed_at is not null and negotiated_amount_minor is not null
              and agreed_commission_amount_minor is not null)),
   add constraint deals_lost_requires_reason
-      check (state <> 'lost' or lost_reason_code is not null);
+      check (state <> 'lost' or lost_reason_code is not null),
+  -- 14 E5 : l'annulation a sa propre liste de motifs
+  add constraint deals_cancelled_requires_reason
+      check (state <> 'cancelled' or (cancellation_reason_code is not null and cancelled_at is not null));
+
+comment on column billing.deals.commission_variance_note is
+  'Ex-commission_shortfall_note, RENOMMEE le 2026-09-19 (14 E2).
+   L''ancien nom decrivait l''INVERSE de ce que la contrainte controle : shortfall = manque,
+   alors que deals_received_within_agreed ne se declenche QUE sur le TROP-PERCU
+   (total encaisse > commission convenue). Un encaissement partiel, lui, est normal et attendu :
+   c''est le cas standard du reglement en deux fois par deux payeurs (14 RG55).
+   Un nom trompeur sur une contrainte financiere finit toujours par etre mal lu.';
+
+comment on column billing.deals.commission_received_total_minor is
+  'SOMME DERIVEE des lignes de billing.commission_receipts, maintenue par declencheur.
+   Une addition de montants en unites mineures n''est PAS un calcul de commission :
+   aucun taux, aucune multiplication, aucun arrondi (CLAUDE.md §3, controle T16).
+   Colonne de lecture : personne ne l''ecrit a la main, et REVOKE UPDATE l''interdit.';
+
+comment on column billing.deals.amount_tax_basis is
+  'Base fiscale du montant de la collaboration : hors_taxes, taxes_comprises, ou inconnue
+   (14 E7, RG33). SAISIE, jamais deduite. DONNEE IRRECUPERABLE APRES COUP : personne ne saura,
+   dans six mois, si le 2 000 note en mars etait HT ou TTC. C''est la seule matiere qui rendra
+   D7 et D23 instruisables sur des cas reels plutot que sur des hypotheses.
+   inconnue est autorisee AVANT la signature et interdite apres (deals_signed_requires_tax_basis).';
+
+comment on column billing.deals.estimated_external_amount_minor is
+  'Montant estime de la COLLABORATION conclue hors INFLUX (14 E9, RG95).
+   *** JAMAIS UNE COMMISSION, JAMAIS CONVERTI EN CREANCE. *** Aucun taux ne lui est applique,
+   nulle part. C''est une mesure du contournement, pas une facture : l''y transformer serait
+   reclamer une somme sur une imputation non prouvee.
+   N''existe qu''avec lost_reason_code = ''conclu_hors_influx'', son niveau de confiance et sa
+   source. Donnee personnelle indirecte : conservation a trancher (D29, 14 Q11, §12.7).';
+
+comment on column billing.deals.disputed_since is
+  'ATTRIBUT, PAS ETAT (14 E6). Une affaire signee en litige reste SIGNEE : faire de disputed
+   un etat effacerait l''information la plus importante de la ligne — qu''un contrat existe.
+   Meme raisonnement pour stalled_since, alimente par la tache quotidienne.
+   billing.deal_state ne contient donc NI stalled NI disputed, contrairement a 01 §6.1.';
 ```
 
 C'est l'illustration la plus nette de la doctrine : **l'exemple de référence du document `01` §6.3
@@ -3658,6 +3946,130 @@ devient une ligne de données, pas un déploiement.
 **Devise immuable après signature** : le même déclencheur refuse un changement de `currency` lorsque
 `state` a dépassé `signed`.
 
+##### Les états de l'affaire, corrigés par `14` (E5 et E6)
+
+```sql
+create type billing.deal_state as enum
+  ('open', 'negotiating', 'contract_sent', 'signed',
+   'commission_invoiced', 'commission_received', 'lost', 'cancelled');
+```
+
+Deux corrections, et elles vont dans des sens opposés :
+
+- **`cancelled` entre** (`14` E5). Sans lui, une collaboration annulée après signature — voire après
+  encaissement — se rangeait dans `lost`, c'est-à-dire parmi les **échecs commerciaux**. Ce n'en est
+  pas un : le commercial a fait son travail, et confondre les deux fausse le seul indicateur de
+  transformation du pilote. `billing.cancellation_reasons` est **distincte** de `billing.lost_reasons`
+  pour la même raison qu'il y a deux listes de refus au §5.6 : *« ils se sont désistés »* et *« je
+  n'ai pas conclu »* ne se comptent pas ensemble.
+- **`stalled` et `disputed` sortent** (`14` E6). `01` §6.1 les traitait comme des états ; ce sont des
+  **attributs**. Une affaire signée en litige reste signée — la faire basculer dans un état `disputed`
+  effacerait l'information la plus importante de la ligne, et il faudrait ensuite *deviner* où elle
+  revient quand le litige se règle. Ils deviennent `stalled_since`, `disputed_since`,
+  `disputed_note`, `disputed_resolved_at`.
+
+**`billing.cancellation_reasons`** : `code` PK, `label_key`, `applies_after_signature boolean`,
+`requires_comment`, `sort_order`, `is_active`. Codes du MVP : `desistement_marque` ·
+`desistement_createur` · `campagne_annulee` · `accord_non_trouve_apres_signature` ·
+`force_majeure` · `erreur_de_saisie` · `other`.
+
+**`billing.non_monetary_reasons`** (`14` E4) : `code` PK, `label_key`, `requires_comment`,
+`sort_order`, `is_active`. Codes : `dotation_produit` · `echange_de_visibilite` ·
+`collaboration_test` · `other`.
+
+```sql
+comment on table billing.non_monetary_reasons is
+  'Pourquoi une collaboration a un montant nul (14 E4). Le cas est reel — dotation produit,
+   echange de visibilite — et la contrainte stricte > 0 le bloquait purement et simplement.
+   Le montant passe a >= 0 AVEC un motif typé obligatoire : autoriser zero sans exiger de dire
+   pourquoi aurait ouvert la porte au zero par negligence, qui est indistinguable a la lecture.
+   Une affaire a zero ne produit aucune commission : c''est une donnee de marche, pas un revenu.';
+```
+
+#### `billing.commission_receipts` — un encaissement n'est pas un événement unique (`14` E1, **bloquant**)
+
+> **C'est l'écart le plus grave signalé par `14`.** `billing.deals` portait
+> `commission_received_amount_minor` et `commission_received_at` : **une seule ligne d'encaissement**.
+> Or le **cas standard** du pilote est un règlement **en deux fois par deux payeurs** — l'annonceur
+> règle sa part, le créateur la sienne (`14` RG55, `CLAUDE.md` §3). Le second encaissement **écrasait
+> le premier**, en silence, sur la donnée la plus sensible du produit. S'y ajoutent les
+> remboursements et les abandons de créance, qui n'avaient nulle part où exister.
+
+*Table du **Lot 5**, **append-only** (`REVOKE UPDATE, DELETE` + déclencheur). Une correction n'écrase
+pas une ligne : elle en ajoute une, de sens inverse — c'est la règle d'une écriture comptable.*
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `id` | `uuid` | PK |
+| `deal_id` | `uuid` | `not null references billing.deals(id)` |
+| `kind` | `billing.receipt_kind` | `not null` — `paiement` · `remboursement` · `abandon_de_creance` |
+| `amount_minor` | `bigint` | `not null check (amount_minor > 0)` — **toujours positif** ; c'est `kind` qui porte le sens |
+| `currency` | `char(3)` | `not null` FK, **égale à celle de l'affaire** (déclencheur) |
+| `payer_side` | `matching.party_side` | Qui a réglé — **la colonne qui rend le règlement en deux fois lisible** (`14` E1) |
+| `received_on` | `date` | `not null` — **date civile** : un règlement bancaire est daté du jour, pas de la seconde (§3, R4) |
+| `payment_method` | `billing.payment_method` | `not null` — `virement` · `carte` · `cheque` · `especes` · `compensation` · `autre` |
+| `external_ref` | `text` | Référence de rapprochement (relevé, virement). `check (length(external_ref) <= 140)` |
+| `note` | `text` | `check (length(note) <= 1000)`, **obligatoire** sur `remboursement` et `abandon_de_creance` |
+| `recorded_by_account_id` | `uuid` | `not null` FK interne — **l'auteur réel de la saisie** |
+| `recorded_at` | `timestamptz` | `not null default now()` |
+
+```sql
+alter table billing.commission_receipts
+  add constraint receipts_reason_required
+      check (kind = 'paiement' or length(btrim(coalesce(note, ''))) >= 10),
+  -- 14 Q2 : les especes sont interdites pendant le pilote, mais restent SAISISSABLES
+  -- pour enregistrer un fait deja survenu. C'est l'exploitation qui interdit, pas le schema.
+  add constraint receipts_cash_is_flagged
+      check (payment_method <> 'especes' or length(btrim(coalesce(note, ''))) >= 10);
+
+create index commission_receipts_by_deal_idx
+  on billing.commission_receipts (deal_id, received_on);
+
+comment on table billing.commission_receipts is
+  'Mouvements de commission d''une affaire (14 E1). APPEND-ONLY : une erreur se corrige par une
+   ligne de sens inverse, jamais par une modification — c''est la regle d''une ecriture comptable,
+   et c''est ce qui rend l''historique opposable.
+   PLUSIEURS LIGNES PAR AFFAIRE, C''EST LE CAS NOMINAL : l''annonceur regle sa part, le createur
+   la sienne (CLAUDE.md §3, 14 RG55). L''ancienne paire de colonnes sur billing.deals rendait ce
+   cas standard IMPOSSIBLE sans perte de donnee.
+   AUCUN TAUX, AUCUNE MULTIPLICATION : le total sur l''affaire est une addition.';
+
+comment on column billing.commission_receipts.amount_minor is
+  'TOUJOURS POSITIF. Le sens du mouvement est porte par kind, jamais par le signe : un montant
+   negatif se lit mal, se somme mal, et se saisit mal. Le total de l''affaire vaut
+   sum(paiement) - sum(remboursement) - sum(abandon_de_creance).';
+```
+
+**Le total sur l'affaire est une somme, et c'est tout.** Un déclencheur `AFTER INSERT` recalcule
+`deals.commission_received_total_minor` et `commission_last_receipt_on`. On pourrait s'en passer et
+faire la somme à la lecture ; la colonne existe parce que **la relance J+30 et l'indicateur n° 1 la
+lisent sur toutes les affaires à la fois** (§10.7), et parce que la contrainte de trop-perçu doit
+être **déclarative**.
+
+```sql
+-- 14 E10 : « signee sans facture » et « facturee sans encaissement » sont DERIVABLES.
+-- Un index partiel suffit ; une colonne « facture manquante » serait une verite dupliquee.
+create index deals_signed_without_invoice_idx
+  on billing.deals (signed_at)
+  where state = 'signed' and commission_invoice_ref is null;
+
+create index deals_invoiced_unpaid_idx
+  on billing.deals (commission_invoiced_at)
+  where commission_invoiced_at is not null
+    and (commission_received_total_minor is null
+         or commission_received_total_minor < agreed_commission_amount_minor);
+```
+
+> **L'exception unique au contrôle T16** (`14` E11). Le contrôle d'intégration continue T16 échoue
+> sur **toute multiplication d'un montant par une constante** dans `apps/` et `packages/`. Il existe
+> **une** exception légitime, et une seule : la **conversion d'unité monétaire** entre la saisie
+> décimale d'un écran et le `bigint` en unités mineures — `2 000,00 EUR` ↔ `200000`, le facteur
+> venant de `reference.currencies.minor_unit`, **jamais d'un littéral**. Cette conversion vit dans
+> **une fonction unique de `packages/domain`**, annotée, testée, et **exemptée nommément** du
+> contrôle. Sans exemption nommée, l'équipe désactivera T16 — et un contrôle désactivé ne protège
+> rien. **À porter dans `03` §8 T16 par `expert-cybersecurite` et dans le plan de test de
+> `testeur`** (§12.7).
+
 #### `billing.deal_field_changes`
 
 *Toute modification d'un montant ou d'une date est historisée : qui, quand, ancienne valeur, nouvelle
@@ -3665,9 +4077,38 @@ valeur.* Écrite par un **déclencheur**, pas par le code applicatif — c'est c
 incontournable.
 
 `id bigint identity`, `deal_id`, `field_name text not null`, `old_value text`, `new_value text`,
-`changed_by_account_id not null`, `changed_at not null`, `reason text`.
+`changed_by_account_id not null`, `changed_at not null`, **`is_financial_field boolean generated
+always as stored`**, `reason text`.
 
 Append-only. « Un montant écrasé sans trace est un montant perdu » (document `01` §6.2).
+
+**Le motif devient obligatoire sur les champs financiers** (`14` E3). Il était facultatif partout,
+ce qui revenait à autoriser la correction silencieuse d'un montant déjà saisi — exactement ce que
+cette table est censée empêcher :
+
+```sql
+alter table billing.deal_field_changes
+  add column is_financial_field boolean
+    generated always as (field_name in (
+        'negotiated_amount_minor', 'agreed_commission_amount_minor',
+        'advertiser_share_amount_minor', 'creator_share_amount_minor',
+        'currency', 'amount_tax_basis', 'commission_tax_basis',
+        'commission_payer', 'signed_at', 'commission_invoiced_at')) stored,
+
+  add constraint deal_field_changes_financial_needs_reason
+      check (not is_financial_field or length(btrim(coalesce(reason, ''))) >= 10);
+
+comment on column billing.deal_field_changes.is_financial_field is
+  'Colonne GENEREE : la liste des champs financiers est dans la definition, pas dans le code
+   applicatif — un declencheur qui oublierait un champ ne pourrait pas contourner la contrainte.
+   Ajouter un champ financier demain = une migration relue, et c''est voulu (14 E3).';
+
+comment on column billing.deal_field_changes.reason is
+  'FACULTATIF sur les champs non financiers, OBLIGATOIRE (10 caracteres au moins) sur les
+   montants, la devise, les parts, les bases fiscales, le payeur et les dates de signature et de
+   facturation. Corriger un montant sans dire pourquoi est indistinguable d''une falsification
+   six mois plus tard (15, point 3 des ecarts ; 09 RG94).';
+```
 
 ---
 
@@ -3676,14 +4117,25 @@ Append-only. « Un montant écrasé sans trace est un montant perdu » (document
 | Table | Rôle | Lot |
 |---|---|---|
 | `backoffice.ownership_assignments` | **Historique des commerciaux responsables successifs.** `account_id` / `introduction_id` / `deal_id` nullables avec `check (num_nonnulls(...) = 1)`, `agent_account_id`, `assigned_at`, `unassigned_at`, `assigned_by_account_id`, `reason_code`. `backoffice-ops` règle 18 : l'historique est conservé, pas écrasé | 0 |
-| `backoffice.sla_policies` | `queue_code` PK, `target_claim_minutes`, `target_decision_minutes`, `business_hours jsonb`, `escalate_after_minutes`, `is_active`. **D39 tranchée : décision sous 1 jour ouvré.** Valeur de départ chargée par la migration `0102` — `target_decision_minutes = 480` (un jour ouvré de 8 h), `escalate_after_minutes = 480`, `business_hours` couvrant du lundi au vendredi. **Le délai reste une donnée, pas une constante** : le resserrer sera une mise à jour de ligne | 1 |
+| **`backoffice.queues`** | **Le catalogue des files** (`15` RG26, RG29) : `queue_code` **PK**, `label_key`, `spec_document` (le document qui fait autorité), `handled_by_roles text[]`, `allows_bulk_action boolean`, `has_lock boolean`, `is_active`, `introduced_at`, `retired_at`. **Sans elle, « une file absente du catalogue n'existe pas » est un vœu** : c'est cette table qui rend la règle vérifiable | **1** |
+| `backoffice.sla_policies` | **`queue_code` PK, désormais `references backoffice.queues(code)`**, `target_claim_minutes`, `target_decision_minutes`, `business_hours jsonb`, `escalate_after_minutes`, `is_active`. **D39 tranchée : décision sous 1 jour ouvré.** Valeur de départ chargée par la migration `0102` — `target_decision_minutes = 480` (un jour ouvré de 8 h), `escalate_after_minutes = 480`, `business_hours` couvrant du lundi au vendredi. **Le délai reste une donnée, pas une constante** : le resserrer sera une mise à jour de ligne. **Quatre files ont un délai différent** (`15` RG29, ci-dessous) | 1 |
+| **`backoffice.alert_definitions`** | **Le catalogue des 41 alertes AL1 à AL41** (`15` §F) : `code` **PK**, `label_key`, `nature` (`etat` · `evenement`, `15` RG64), `threshold_value jsonb`, `recipient_role`, `source_document`, `is_active`. Les seuils sont des **données** : les 41 alertes vivaient jusqu'ici en requêtes éparpillées dans dix documents | **1** |
+| **`backoffice.alert_closure_reasons`** | Motifs de classement d'une alerte d'événement (`15` RG69) : `traitee` · `sans_suite` · `faux_positif` · `doublon` · `other` (commentaire obligatoire). `code` PK, `label_key`, `requires_comment`, `is_active` | **4** |
+| **`backoffice.alert_instances`** | **Les alertes d'événement**, celles qui doivent être classées par un humain (`15` RG64, RG69) : `id`, `alert_code` FK, `subject_type`, `subject_id`, `opened_at`, `acknowledged_by_account_id`, `acknowledged_at`, `closed_at`, `closure_reason_code` FK, `closure_comment`. **Les alertes d'état n'ont pas de ligne** : elles se lèvent et se referment seules | **4** |
+| **`backoffice.dual_control_requests`** | **Les demandes de seconde validation** (`03` PD4, `15` RG31, file 15) : `id`, `action_code` (liste fermée), `payload jsonb`, `requested_by_account_id`, `requested_at`, `expires_at`, `state` (`pending` · `confirmed` · `expired` · `cancelled` · `degraded`), `confirmed_by_account_id`, `confirmed_at`, `degraded_justification`. `03` en décrivait les colonnes ; **aucune table ne les portait** | **1** |
 | **`backoffice.operational_settings`** | **Les plafonds et délais d'exploitation qui ne sont ni des SLA ni des réglages de recherche**, en clé/valeur à liste fermée (`key text PK check (key in (…))`, `value jsonb`, `updated_by_account_id`, `updated_at`), même régime que `leads.sync_settings` : écriture par fonction `SECURITY DEFINER` réservée à `influx_admin`, chaque modification journalisée. Clés du Lot 3 : `application_caps` (P1 = 10, P2 = 5/jour, P3 = 30, P4 = 1 seconde chance), `campaign_caps` (10 campagnes simultanées, 50 créateurs recherchés), `claim_expiry_minutes` (30), `ownership_code_ttl_days` (7), `badge_grace_days`, `verified_only_enabled` (**faux au lancement**, D38), `campaign_autoclose_days` (30), `application_draft_ttl_days` (30), `unanswered_application_days` (7). **Les six documents de spécification exigent tous la même chose : ces valeurs sont des données, pas des constantes** | 3 |
-| `backoffice.internal_notes` | Notes internes **immuables** (on ajoute, on ne corrige pas), rattachées à exactement un sujet | 5 |
-| `backoffice.account_suspensions` | `account_id`, `reason_code`, `comment`, `started_at`, `ended_at`, `suspended_by`, `lifted_by`. Le motif **n'est jamais divulgué à l'autre partie** d'une conversation | 5 |
-| `backoffice.email_send_limits` | `(role_code, source)` PK, `max_recipients_per_send`, `max_recipients_per_day`. **Les plafonds de D35 sont des données** | 5 |
-| `backoffice.email_sends` | `source` (`platform_contacts` · `brevo_segment` · `manual_entry`), `legal_basis`, `created_by_agent_id`, `subject`, `template_ref`, `status`, `scheduled_for`, **`cancel_window_ends_at`** (fenêtre d'annulation de 5 min), `confirmed_at`, `confirmed_by_account_id`, `recipient_count` | 5 |
-| `backoffice.email_send_recipients` | `email_send_id`, `account_id` (nullable), `email_address`, `consent_checked_at`, `status`, `provider_message_id`, `skip_reason`. `unique (email_send_id, email_address)` | 5 |
-| `backoffice.data_subject_requests` | `request_type` (`access` · `rectification` · `erasure` · `portability` · `objection` · `restriction`), `received_at`, `due_at` (= reçu + 30 jours, colonne **générée**), `status`, `handled_by_agent_id`, `completed_at`, `outcome_code` | 5 |
+| `backoffice.internal_notes` | Notes internes **immuables** (on ajoute, on ne corrige pas), rattachées à exactement un sujet. **Complétée (`15`, écart 3) :** **`subject_type`** (`backoffice.note_subject` : `account` · `introduction` · `deal` · `campaign` · `data_subject_request`), `subject_id`, **`author_account_id not null`**, `body` borné, `created_at` — et **`REVOKE UPDATE, DELETE` + `influx.assert_append_only()`** : « immuable » est désormais garanti en base, pas par convention | 5 |
+| **`backoffice.suspension_reasons`** | Les **huit** motifs de `15` RG52 : `code` PK, `label_key`, **`message_key`** (le message envoyé au titulaire — **il n'existe aucune suspension muette**), **`requires_admin_escalation boolean`** (vrai sur `suspected_circumvention`), **`discloses_real_reason boolean`** (**faux** sur `suspected_circumvention`, `15` RG53), `requires_comment`, `is_active` | **5** |
+| **`backoffice.suspension_lift_reasons`** | Les cinq motifs de `15` RG55 : `erreur_interne` (message avec excuses explicites) · `situation_regularisee` · `decision_revue` · `fin_de_la_mesure` · `other`. `code` PK, `label_key`, `message_key`, `requires_comment`, `is_active` | **5** |
+| `backoffice.account_suspensions` | `account_id`, **`reason_code` FK `suspension_reasons`**, `comment`, `started_at`, `ended_at`, `suspended_by`, `lifted_by`, **`lift_reason_code` FK `suspension_lift_reasons`** avec `check ((ended_at is null) = (lift_reason_code is null))`. Le motif **n'est jamais divulgué à l'autre partie** d'une conversation | 5 |
+| **`backoffice.exports`** | **Le journal des exports** (`15` RG94 à RG96) : `id`, `export_kind` (`backoffice.export_kind`, liste fermée), `requested_by_account_id`, `requested_at`, `filters jsonb` (**les filtres exacts**), `row_count`, **`file_sha256 bytea not null`**, `storage_path`, `link_expires_at`, `downloaded_at`. **Agrégats seulement**, jamais de ligne nominative (ci-dessous) | **5** |
+| `backoffice.email_send_limits` | `(role_code, source)` PK, `max_recipients_per_send`, `max_recipients_per_day`, **`max_sends_per_month`**, **`max_sends_per_domain_90d`**, **`one_solicitation_per_address boolean`** (`16` RG54, RG55). **Les plafonds de D35 sont des données** | 5 |
+| **`backoffice.email_templates`** | **La bibliothèque de modèles** (`16` RG65 à RG69) : `template_ref` **PK**, `name`, `nature` (`transactional` · `marketing` · `prospecting`), `version`, `status` (`draft` · `validated` · `retired`), `declared_variables jsonb`, `sender_identity`, **`content_sha256`** (empreinte du contenu validé, **revérifiée avant chaque envoi**), `validated_by_account_id`, `validated_at`, `locales_complete boolean`. **Aucun envoi improvisé n'existe** | **5** |
+| **`backoffice.brevo_allowed_segments`** | **La liste fermée des segments envoyables** (`16` RG42) : `brevo_segment_id` **PK**, `name`, `population_note`, `legal_basis`, **`has_cadence_exclusion boolean`**, `declared_by_account_id`, `declared_at`, `is_active`. **Sans elle, n'importe quel segment improvisé chez Brevo devient envoyable en deux clics** | **5** |
+| **`backoffice.email_send_transitions`** | Le graphe d'états d'un envoi (`16` RG6), en données, sur le modèle de `billing.deal_state_transitions` : `from_status`, `to_status`, `allowed_actor`, `requires_reason`, `is_active` | **5** |
+| `backoffice.email_sends` | `source` (`platform_contacts` · `brevo_segment` · `manual_entry`), `legal_basis`, `created_by_agent_id`, `subject`, **`template_ref` FK `email_templates`**, **`status` en liste fermée de huit valeurs** (`16` RG6), `scheduled_for`, **`cancel_window_ends_at`** (fenêtre d'annulation de 5 min), `confirmed_at`, `confirmed_by_account_id`, `recipient_count` **et son origine** — plus les **onze colonnes ajoutées par `16`**, détaillées ci-dessous | 5 |
+| `backoffice.email_send_recipients` | `email_send_id`, `account_id` (nullable), **`email_address` nullable — renseignée pour la seule source `manual_entry`**, `consent_checked_at`, `status`, `provider_message_id`, `skip_reason`. **Unicité réécrite** (`16` écart 1) et **table vide pour `brevo_segment`** (`16` écart 2), ci-dessous | 5 |
+| `backoffice.data_subject_requests` | `request_type` (`access` · `rectification` · `erasure` · `portability` · `objection` · `restriction`), `received_at`, `due_at` (= reçu + 30 jours, colonne **générée**), `status`, `handled_by_agent_id`, `completed_at`, `outcome_code`. **Complétée (`15`, écart 4) :** **`requester_account_id` nullable** — *un demandeur n'est pas toujours un membre*, **`requester_email`**, **`channel`** (`self_service` · `email` · `oral_consigne`), **`identity_verified_at`**, **`identity_verification_method`**, **`scope_note`**, **`refusal_reason_code`**, **`response_sent_at`**, **`response_provider_message_id`**, et `outcome_code` en **liste fermée** (`15` RG77 : `satisfaite` · `satisfaite_partiellement` · `refusee` · `sans_objet` · `abandonnee`) | 5 |
 
 **`backoffice.email_sends` est la table la plus sensible du backoffice** : elle porte un risque
 juridique direct (A4, D35, veto `expert-conformite-rgpd`). Trois garanties en base :
@@ -3691,6 +4143,366 @@ juridique direct (A4, D35, veto `expert-conformite-rgpd`). Trois garanties en ba
 confirmation différée ; `check (recipient_count <= …)` contrôlé par déclencheur contre
 `email_send_limits` ; et `consent_checked_at not null` sur chaque destinataire de source
 `platform_contacts`.
+
+#### `backoffice.email_sends` — les onze colonnes ajoutées par `16` (écarts 7 et 9)
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `status` | `backoffice.email_send_status` | `not null` — **huit valeurs** (`16` RG6) : `draft` · `pending_confirmation` · `scheduled` · `sending` · `sent` · `partially_sent` · `cancelled` · `blocked`. Transitions portées par `email_send_transitions` + déclencheur |
+| **`cancelled_at`, `cancelled_by_account_id`, `cancel_reason_code`** | — | `check ((status = 'cancelled') = (cancelled_at is not null))`. Trois causes : annulation humaine, **interrupteur d'urgence**, expiration |
+| **`recipient_count_source`** | `backoffice.count_source` | `not null` — **`counted`** (INFLUX a compté) · **`brevo_declared`** (chiffre annoncé par Brevo, `16` RG43) |
+| **`recipient_count_at`** | `timestamptz` | Horodatage du comptage — un volume sans date ne veut rien dire |
+| **`final_recipient_count`, `final_count_at`** | — | **Le volume recalculé à la fin de la fenêtre d'annulation** (`16` RG28 à RG31, écart 7). L'écart avec `recipient_count` **bloque** l'envoi au-delà du seuil (alerte AL47) |
+| **`manual_country_code`** | `char(2)` | FK `reference.countries` — **pays déclaré** de la source 3 |
+| **`manual_organisation`** | `text` | L'organisation visée (`16` RG54 : plafond par domaine sur 90 jours) |
+| **`manual_reason_code`** | `text` | **Motif codé** de la sollicitation |
+| **`manual_reason_text`** | `text` | **Son texte**, `check (length(btrim(manual_reason_text)) >= 20)` (`16` CA, ≥ 20 caractères) |
+| **`manual_attestation_at`** | `timestamptz` | La **case d'attestation** cochée, horodatée. Pas un booléen : on veut savoir *quand* |
+
+```sql
+alter table backoffice.email_sends
+  -- 16 ecart 9 : les cinq champs de la source 3 sont obligatoires SI ET SEULEMENT SI c'est elle
+  add constraint email_sends_manual_fields_required
+      check ((source = 'manual_entry') = (num_nonnulls(
+                manual_country_code, manual_organisation, manual_reason_code,
+                manual_reason_text, manual_attestation_at) = 5)),
+
+  -- 16 ecart 2 : le volume d'un segment Brevo est DECLARE par Brevo, jamais compte par nous
+  add constraint email_sends_count_source_matches
+      check ((source = 'brevo_segment') = (recipient_count_source = 'brevo_declared')),
+
+  -- 16 RG28 a RG31 : rien ne part avant la fin de la fenetre, et le volume est RECALCULE
+  add constraint email_sends_final_count_after_window
+      check (final_count_at is null
+             or (cancel_window_ends_at is not null and final_count_at >= cancel_window_ends_at)),
+  add constraint email_sends_sent_requires_final_count
+      check (status not in ('sending', 'sent', 'partially_sent')
+             or final_recipient_count is not null),
+
+  add constraint email_sends_cancel_is_complete
+      check (num_nonnulls(cancelled_at, cancelled_by_account_id, cancel_reason_code) in (0, 3));
+
+comment on column backoffice.email_sends.final_recipient_count is
+  'Volume RECALCULE a la fin de la fenetre d''annulation (16 RG28 a RG31, ecart 7).
+   AUCUN APPEL SORTANT VERS BREVO PENDANT LA FENETRE : c''est ce qui rend l''annulation reelle,
+   et non un simple bouton qui arrive trop tard (15 interdit 10).
+   Un ecart de plus de 10 % ou de 50 destinataires avec recipient_count BLOQUE l''envoi
+   (status = blocked) et leve AL47 : entre la preparation et l''envoi, une population a change,
+   et personne ne doit decouvrir apres coup qu''elle a ecrit a trois fois plus de monde.';
+
+comment on column backoffice.email_sends.recipient_count_source is
+  'brevo_declared = chiffre ANNONCE PAR BREVO, non verifie par INFLUX (16 RG43).
+   Il doit etre affiche avec cette mention, en toutes lettres. Confondre un chiffre verifie et
+   un chiffre declare est la facon la plus simple de croire qu''on maitrise un volume.';
+
+comment on column backoffice.email_sends.manual_reason_text is
+  'Pourquoi cette personne precise est sollicitee, ecrit par l''agent, 20 caracteres au moins
+   (16, source 3). Ce n''est pas une formalite : l''agent doit pouvoir dire D''OU VIENT
+   l''adresse, ce qui exclut l''extraction automatisee, l''achat de fichier, la copie d''un
+   annuaire — y compris le notre (03 C(17)) — et l''adresse devinee.
+   Avec manual_attestation_at, c''est la seule piece qui documente la base legale d''une
+   prospection individuelle le jour ou elle est contestee.';
+```
+
+#### `backoffice.email_send_recipients` — cesser de recopier les adresses (`16` écarts 1 et 2)
+
+> **L'incohérence était réelle et je la corrige telle quelle.** `unique (email_send_id,
+> email_address)` **obligeait** à recopier l'adresse de chaque destinataire — y compris pour la
+> source `platform_contacts`, où la personne **a déjà un compte**. Or `matching.introduction_emails`
+> a précisément renoncé à ce geste trois mois plus tôt (« ne contient ni objet, ni corps, ni
+> adresse », §5.6). Deux tables voisines, deux doctrines opposées : c'est le genre d'écart qui finit
+> par se résoudre du mauvais côté.
+
+```sql
+alter table backoffice.email_send_recipients
+  alter column email_address drop not null,
+
+  -- l'adresse n'est recopiee QUE la ou il n'existe aucun compte a designer
+  add constraint recipients_address_only_for_manual
+      check ((email_address is not null) = (account_id is null)),
+
+  -- 16 ecart 2 : un segment Brevo ne produit AUCUNE ligne ici
+  add constraint recipients_never_for_brevo_segment
+      check (send_source <> 'brevo_segment');
+
+-- unicite sur le compte OU sur l'adresse normalisee, selon ce qui identifie la personne
+create unique index email_send_recipients_unique_idx
+  on backoffice.email_send_recipients
+     (email_send_id, coalesce(account_id::text, lower(email_address)));
+
+comment on column backoffice.email_send_recipients.email_address is
+  'NULLE pour platform_contacts : le destinataire est designe par account_id, et son adresse se
+   lit sur identity.accounts sous RLS (16 ecart 1). Recopier une adresse qu''on possede deja,
+   c''est creer une seconde verite qui divergera au premier changement d''adresse — et une
+   surface de fuite de plus dans une table exportable.
+   NON NULLE pour manual_entry seulement : il n''existe alors AUCUN compte a designer, et
+   l''adresse EST la donnee de l''envoi.
+   VIDE pour brevo_segment : aucun destinataire de segment n''entre dans la base INFLUX,
+   ni adresse, ni personne, ni compteur individuel (16 RG44).';
+
+comment on constraint recipients_never_for_brevo_segment on backoffice.email_send_recipients is
+  'Un segment Brevo ne produit aucune ligne de destinataire (16 RG44, RG49). Les chiffres de cet
+   envoi sont des AGREGATS portes par backoffice.email_sends (recipient_count,
+   recipient_count_source = brevo_declared). Sans cette contrainte, un developpeur presse
+   « completerait » la table en recopiant le segment depuis Brevo — et reconstituerait chez nous
+   exactement l''annuaire que RG44 interdit.';
+```
+
+`send_source` est une **colonne dénormalisée** de `email_sends.source`, maintenue par déclencheur :
+c'est la seule façon d'écrire la contrainte ci-dessus de façon **déclarative** — un `CHECK` ne peut
+pas lire la table parente. Quatrième dénormalisation du modèle, et elle est du même type que
+`billing.deals.revealed_at` (§10.8) : une copie qui rend une contrainte possible, pas une
+optimisation.
+
+#### `backoffice.email_send_limits` — trois plafonds de plus (`16` écart 10, RG54)
+
+| Colonne ajoutée | Valeur de départ `agent` / `admin` | Ce qu'elle empêche |
+|---|---|---|
+| **`max_sends_per_month`** | 50 / 100 | **Le contournement par accumulation** : dix envois par jour tous les jours font une campagne |
+| **`max_sends_per_domain_90d`** | 3 / 3 | Trois personnes d'une même entreprise, **pas tout l'organigramme** |
+| **`one_solicitation_per_address`** | `true` | `16` RG55 : **une adresse n'est sollicitée qu'une fois, et jamais relancée** au MVP |
+
+```sql
+-- 16 RG55 : la seconde sollicitation d'une meme adresse est REFUSEE, pas deconseillee.
+-- Index unique global (tous envois confondus) sur la seule source ou l'adresse existe.
+create unique index email_recipients_one_solicitation_idx
+  on backoffice.email_send_recipients (lower(email_address))
+  where email_address is not null;
+
+comment on index backoffice.email_recipients_one_solicitation_idx is
+  'RG55 : aucune relance de prospection au MVP. Une seconde tentative sur la meme adresse echoue
+   a l''insertion, et l''ecran affiche la date et l''auteur de la premiere.
+   La relance doublerait le risque juridique pour un gain commercial marginal (D35).
+   Le jour ou elle sera autorisee, cet index devient partiel sur une fenetre glissante :
+   une migration d''une ligne, et une decision explicite — pas un oubli.';
+```
+
+#### `backoffice.email_templates` — aucun envoi improvisé (`16` écart 5, RG65 à RG69)
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `template_ref` | `text` | **PK** — référence stable, citée par `email_sends` |
+| `name` | `text` | `not null` |
+| `nature` | `backoffice.template_nature` | `not null` — `transactional` · `marketing` · `prospecting` |
+| `version` | `integer` | `not null` |
+| `status` | `backoffice.template_status` | `not null default 'draft'` — `draft` · `validated` · `retired` |
+| `declared_variables` | `jsonb` | `not null default '[]'` — les variables que l'envoi peut renseigner, **et aucune autre** |
+| `sender_identity` | `text` | `not null` — l'expéditeur, donc le sous-domaine (`16` RG9 : trois flux, trois sous-domaines) |
+| **`content_sha256`** | `bytea` | **Empreinte du contenu validé**, `check ((status = 'validated') = (content_sha256 is not null))` |
+| `locales_complete` | `boolean` | `not null` — `check (status <> 'validated' or locales_complete)` |
+| `validated_by_account_id`, `validated_at` | — | `check ((status = 'validated') = (num_nonnulls(validated_by_account_id, validated_at) = 2))` |
+
+```sql
+comment on column backoffice.email_templates.content_sha256 is
+  'Empreinte du contenu au moment de la validation (16 RG69). RECALCULEE AVANT CHAQUE ENVOI :
+   un modele heberge chez Brevo peut y etre modifie sans qu''INFLUX en sache rien — c''est la
+   faiblesse assumee de RG67. En cas d''ecart, l''envoi est REFUSE, le modele repasse en draft,
+   et l''alerte AL46 part a l''administrateur. On ne discute pas d''un texte qu''on n''a pas relu.';
+
+comment on column backoffice.email_templates.locales_complete is
+  'Parite francais / anglais (16 RG66). Un modele dont une langue manque n''est PAS VALIDABLE,
+   donc pas envoyable : la contrainte le rend impossible, pas seulement deconseille.
+   C''est la transposition, pour les e-mails, de la parite des cles de traduction verifiee a la
+   compilation (D28).';
+
+comment on table backoffice.email_templates is
+  'Bibliotheque des modeles (16 RG65). OU VIT LE TEXTE depend de la nature, et ce n''est pas une
+   incoherence : transactionnel = fichiers de traduction d''INFLUX, versionnes dans le depot,
+   Brevo n''assure que le transport (04 R8) ; marketing et prospection = modeles Brevo,
+   references ici — exiger un deploiement pour changer une accroche tuerait l''usage.
+   Cette table porte la REFERENCE et la PREUVE dans les deux cas, jamais le corps du message.';
+```
+
+#### `backoffice.brevo_allowed_segments` — la liste fermée (`16` écart 6, RG42)
+
+`brevo_segment_id` **PK**, `name`, `population_note`, `legal_basis`, **`has_cadence_exclusion
+boolean not null`**, `declared_by_account_id`, `declared_at`, `is_active`, `retired_at`.
+
+```sql
+comment on table backoffice.brevo_allowed_segments is
+  'Segments Brevo envoyables depuis le backoffice (16 RG42). LISTE FERMEE, alimentee par
+   expert-marketing avec l''accord d''expert-conformite-rgpd.
+   SANS ELLE, N''IMPORTE QUEL SEGMENT IMPROVISE CHEZ BREVO DEVIENT ENVOYABLE EN DEUX CLICS —
+   c''est exactement le trou que l''arbitrage A4 cherchait a fermer.
+   has_cadence_exclusion = false rend le segment NON SELECTIONNABLE : sur un segment Brevo, la
+   cadence est portee cote Brevo (RG46), et un segment qui ne la porte pas ne l''applique pas.
+   C''est le seul endroit du dispositif ou INFLUX delegue une regle qu''il ne peut pas verifier,
+   et il le dit a chaque envoi (RG82).';
+```
+
+#### L'interrupteur d'urgence (`16` écart 8, RG121) — une clé, pas une table
+
+**Clé `email_kill_switch` dans `backoffice.operational_settings`**, même régime que les autres :
+écriture par fonction `SECURITY DEFINER` réservée à `influx_admin`, motif obligatoire, journalisation
+nominative (`settings.changed`). Valeur : `{"level": "off" | "marketing_paused" | "all_paused",
+"reason": "…", "activated_at": "…", "activated_by": "…"}`.
+
+**Pourquoi une clé de configuration et non une table.** L'interrupteur n'a **ni historique propre, ni
+cycle de vie, ni objet rattaché** : c'est un état unique, global, à deux niveaux. Son historique
+existe déjà — dans le registre, par `settings.changed`, horodaté et nominatif. Une table
+`email_kill_switch` n'aurait jamais contenu qu'une ligne, et il aurait fallu se demander laquelle
+fait foi.
+
+> **Ce que la base ne garantit pas, et qu'il faut dire.** `16` RG122 pose que **le code de connexion
+> n'est jamais coupé** — même par `all_paused`, qui ne met en attente que P1 et P2. Aucune contrainte
+> de base ne peut tenir cette règle : c'est le **worker** qui la tient, en lisant la priorité de
+> l'envoi avant l'interrupteur. La base y contribue d'un seul côté, mais il est décisif : la
+> **priorité est une colonne obligatoire** du journal transactionnel ci-dessous, donc un envoi sans
+> priorité n'existe pas, et un envoi P0 est toujours reconnaissable. Couper P0 fermerait la
+> plateforme à tous ses membres pour régler un problème de réputation (D37). **Contrôle attendu du
+> document `18`.**
+
+#### `backoffice.queues` — le catalogue qui rend la règle vérifiable (`15`, écart 1)
+
+`15` RG26 : « une file absente du catalogue **n'existe pas** ». Sans table, la phrase est un vœu —
+rien n'empêche un développeur de créer une seizième file dans un écran. La clé étrangère
+`sla_policies.queue_code → queues.code` la rend **exécutoire** : **une file sans délai est
+impossible, et un délai sans file l'est tout autant.**
+
+```sql
+alter table backoffice.sla_policies
+  add constraint sla_policies_queue_fk
+      foreign key (queue_code) references backoffice.queues (code);
+
+comment on table backoffice.queues is
+  'Catalogue ferme des files du backoffice (15 RG26, RG29). Les 15 files du MVP y sont chargees
+   par migration, lot par lot : une file arrive avec le lot qui la remplit.
+   spec_document nomme le document qui fait autorite sur le CONTENU de la file ; ce modele, lui,
+   ne fait autorite que sur la forme. Transposition de la regle de lecture n° 1 de 03 §2.
+   CONTROLE ATTENDU (document 18) : toute file servie par apps/backoffice a une ligne ici.';
+```
+
+**Quatre files n'ont pas le délai commun d'un jour ouvré** (`15` RG29). Ce sont des **valeurs
+d'attente non validées**, chargées comme telles :
+
+| `queue_code` | Délai de décision | Statut |
+|---|---|---|
+| `verification_disputes` | **5 jours ouvrés** | **Proposition `15` Q2 — non validée** |
+| `team_selection` | **1 jour ouvré** | **Proposition `15` Q3 — non validée** |
+| `lead_sync_failures` | **2 jours ouvrés**, **aucun verrou** (`15` RG30 : le rejeu est idempotent) | **Proposition `15` Q4 — non validée** |
+| `email_delivery_incidents` | **2 jours ouvrés** | **Proposition `15` Q4 — non validée** |
+| `data_subject_requests` | **30 jours calendaires** (délai légal), objectif interne 10 jours ouvrés | Délai **légal**, pas une proposition |
+| `dual_control_pending` | **24 h**, puis **expiration** (`15` RG31) | Tranché par `15` |
+
+Elles sont marquées `is_provisional = true` dans `sla_policies` — une colonne qui ne coûte rien et
+qui empêche qu'une proposition devienne une règle par simple écoulement du temps (§12.7).
+
+**Une seizième file, chargée en amorçage** (`16`, écart 1 avec `15`) : **`email_send_failures`** —
+délai **2 jours ouvrés** *(provisoire)*, **aucun verrou** (le rejeu est idempotent, même
+raisonnement que `lead_sync_failures`), traitée par `agent` et `admin`, **action de masse autorisée**
+(rejeu en lot, plafond 200). Elle est chargée comme les quinze autres : une ligne dans
+`backoffice.queues`, **donc une ligne obligatoire dans `sla_policies`** — c'est la clé étrangère qui
+le garantit, et c'est précisément ce que `15` RG26 demandait de rendre vérifiable.
+
+**Sept définitions d'alerte de plus, AL42 à AL48** (`16` RG131), chargées dans
+`backoffice.alert_definitions` avec leur seuil de départ :
+
+| Code | Nature | Seuil de départ | Destinataire |
+|---|---|---|---|
+| **AL42** Taux de plainte au-delà du seuil | `evenement` | 0,3 % / 24 h | `admin` + fondateur |
+| **AL43** Taux de rebond dur au-delà du seuil | `evenement` | 5 % sur un envoi | `admin` |
+| **AL44** Quota Brevo proche ou atteint | `etat` | 80 % d'une catégorie | `admin` |
+| **AL45** Interrupteur d'urgence actif | `etat` | Dès l'activation | Tous + fondateur |
+| **AL46** Modèle modifié chez Brevo depuis sa validation | `evenement` | Écart d'empreinte | `admin` |
+| **AL47** Envoi bloqué par écart de volume | `evenement` | 10 % ou 50 destinataires | L'auteur + `admin` |
+| **AL48** Délivrabilité du code de connexion hors seuil | `etat` | Seuils de `16` RG98 | `admin`, **immédiatement** |
+
+> **AL48 n'est pas un indicateur de délivrabilité, c'est un incident de disponibilité.** Depuis
+> **D37**, un code de connexion qui n'arrive pas n'est pas une gêne marketing : **des gens ne peuvent
+> pas se connecter**. C'est la raison d'être de `leads.transactional_sends` (§5.8) et de son index
+> partiel sur `priority = 'p0'` — sans eux, l'alerte n'aurait aucune ligne à interroger.
+
+#### Les alertes deviennent des lignes — `alert_definitions` et `alert_instances` (`15`, écart 5)
+
+`15` §F catalogue **41 alertes** (AL1 à AL41) qui n'existaient jusqu'ici que sous forme de requêtes
+dérivées, dispersées dans dix documents. Deux tables, parce que `15` RG64 distingue **deux natures**
+qu'il ne faut pas confondre :
+
+| Nature | Ce que la base porte | Pourquoi |
+|---|---|---|
+| **Alerte d'état** | **Rien qu'une définition.** La condition est une requête ; l'alerte se lève et se referme **seule** | Matérialiser « décision hors délai » créerait une ligne à effacer dès que la décision est prise — une dénormalisation à entretenir (R10) |
+| **Alerte d'événement** | **Une ligne dans `alert_instances`**, qu'un humain doit classer | « Coordonnée détectée dans un fil » ne disparaît pas toute seule : quelqu'un doit l'avoir lue et avoir décidé (`15` RG69). **Sans instance, RG64 et RG69 ne sont pas implémentables** |
+
+```sql
+-- une seule instance ouverte par (code, objet) : un fait ne se signale pas deux fois
+create unique index alert_instances_open_idx
+  on backoffice.alert_instances (alert_code, subject_type, subject_id)
+  where closed_at is null;
+
+-- file de travail : les alertes ouvertes, les plus anciennes d'abord
+create index alert_instances_pending_idx
+  on backoffice.alert_instances (alert_code, opened_at)
+  where closed_at is null;
+
+comment on table backoffice.alert_instances is
+  'Alertes d''EVENEMENT uniquement (15 RG64). Une alerte d''etat n''a jamais de ligne ici.
+   AUCUNE DISPARITION SILENCIEUSE : une instance se ferme avec un motif typé et un auteur.
+   La part de faux_positif par code est l''indicateur qui dit si un seuil est mal regle
+   (15 RG69) ; au-dela de 50 instances ouvertes sur un meme code, une alerte de second rang
+   part a l''administrateur (15 RG67) — requete sur cet index, pas colonne.
+   AUCUNE ALERTE NE DECLENCHE DE SANCTION AUTOMATIQUE (15 RG65, 01 M5) : elle informe un humain.
+   AUCUNE ALERTE NE PART VERS BREVO NI APOLLO, y compris agregee (15 RG70).';
+```
+
+#### `backoffice.dual_control_requests` — les colonnes décrites par `03` PD4 ont enfin une table (`15`, écart 6)
+
+`03` PD4 décrit `requested_by`, `requested_at`, `confirmed_by`, `confirmed_at` et un marqueur
+`dual_control`… **sur aucune table**. La file 15 du backoffice (`dual_control_pending`) et `15` RG31
+n'avaient donc rien à interroger.
+
+```sql
+alter table backoffice.dual_control_requests
+  -- 15 RG31 : une demande expire au bout de 24 h, parametre en table
+  add constraint dual_control_expiry_after_request
+      check (expires_at > requested_at),
+  -- backoffice-ops, interdit n° 46 : jamais sa propre seconde validation
+  add constraint dual_control_second_pair_of_eyes
+      check (confirmed_by_account_id is null
+             or confirmed_by_account_id <> requested_by_account_id),
+  add constraint dual_control_confirmed_is_complete
+      check ((state = 'confirmed') = (num_nonnulls(confirmed_by_account_id, confirmed_at) = 2)),
+  -- le mode degrade (une seule personne dans l'equipe) EXIGE une justification ecrite
+  add constraint dual_control_degraded_needs_justification
+      check (state <> 'degraded'
+             or length(btrim(coalesce(degraded_justification, ''))) >= 20);
+
+comment on constraint dual_control_second_pair_of_eyes on backoffice.dual_control_requests is
+  'Une personne ne confirme jamais sa propre demande. C''est la seule chose que la base puisse
+   garantir du controle a quatre yeux — le reste (qui a le droit de confirmer quoi) appartient
+   au document 03. Tant qu''une seule personne cumule agent et admin, l''etat degraded est la
+   verite : un controle affaibli, COMPTE ET LU chaque semaine (15 RG22), qui tombe a zero
+   a l''arrivee du second administrateur.';
+```
+
+#### `backoffice.exports` — et l'interdiction qui va avec (`15`, écart 7)
+
+`15` RG94 exige, pour chaque export : l'auteur, la date, le type, **les filtres exacts**, le nombre
+de lignes et **l'empreinte du fichier**. L'empreinte n'est pas un raffinement : sans elle, on ne
+peut pas dire, six mois plus tard, si un fichier qui circule vient bien de là.
+
+```sql
+-- 15 RG96 : 5 exports par compte interne et par jour ouvre, plafond en table
+create index exports_by_account_day_idx
+  on backoffice.exports (requested_by_account_id, requested_at desc);
+
+comment on table backoffice.exports is
+  'Journal des exports produits depuis le backoffice (15 RG94 a RG96).
+   *** AUCUN EXPORT NOMINATIF. *** Les exports du MVP sont AGREGES : compteurs, delais,
+   repartitions par motif, montants par devise et par mois. Aucune ligne ne porte un nom, une
+   adresse e-mail, un pseudo, un identifiant de compte ni un contenu de message.
+   05 RG106 (export nominatif de la liste des inscrits) est ABROGE depuis le 2026-09-19, aligne
+   sur 03 C(17) : « aucun role interne n''exporte l''annuaire, sous quelque forme que ce soit,
+   y compris par une pagination detournee ».
+   Un export est livre par lien court a usage unique, jamais en piece jointe (15 RG95) :
+   une piece jointe voyage, se transfere, et finit dans des boites que personne ne controle.
+   file_sha256 est NOT NULL : un export sans empreinte n''est pas tracable, donc n''existe pas.';
+```
+
+**Clés ajoutées à `backoffice.operational_settings`** (`15` RG104, `14` Q13) : `exports_per_day` (5),
+`alert_open_instances_threshold` (50, `15` RG67), `deal_amount_missing_days` (**14 j** vers le
+responsable, **30 j** vers l'administrateur — `14` Q13, valeurs d'attente),
+`deal_receivable_age_days` (90), `dual_control_expiry_hours` (24),
+`deal_write_off_approval_minor` (**50 000**, soit 500,00 EUR — `14` Q5, valeur d'attente).
 
 ---
 
@@ -4159,6 +4971,13 @@ les préparer serait inventer.
 | Journal des lectures | `messaging.conversation_access_log` | **3 ans** | `accessed_at` | Contrepartie de la supervision annoncée (A10) : elle doit être vérifiable aussi longtemps que les échanges |
 | **Documents et téléchargements** | `messaging.documents`, **`messaging.document_downloads`** | **3 ans** après la clôture de la conversation | `closed_at` du fil | **Même durée que les messages** : un brief transmis fait partie de la négociation. Les octets sortent du Storage à la même échéance, le journal des téléchargements reste pendant la même durée |
 | **Journal d'envoi des e-mails** | **`matching.introduction_emails`** | **3 ans** | `created_at` | Corroboration externe d'une mise en relation (`13` RG79). Ne contient ni adresse ni texte : sa conservation coûte peu et son absence rendrait la preuve externe introuvable |
+| **Notes internes** | **`backoffice.internal_notes`** | **Vie du compte ou de l'objet + 3 ans** | `deleted_at` du sujet | Alignées sur ce qu'elles commentent (`15`, écart 11). Une note qui survit à son sujet est une donnée personnelle orpheline ; une note purgée avant lui rend l'historique incompréhensible |
+| **Instances d'alerte** | **`backoffice.alert_instances`** | **24 mois** | `closed_at` | Assez pour régler les seuils sur une saisonnalité complète (`15` RG67), pas assez pour constituer un dossier sur une personne |
+| **Journal des exports** | **`backoffice.exports`** | **Sans purge** | — | Il **vit dans le registre** (`export.produced`) : purger la table sans purger le registre créerait une incohérence, et purger le registre est interdit (`01` M4) |
+| **Encaissements** | **`billing.commission_receipts`** | **10 ans** | `received_on` | Même régime que les affaires : pièce comptable. **Aucune suppression physique** (R6) |
+| **Envois d'e-mails** | **`backoffice.email_sends`, `backoffice.email_send_recipients`** | **3 ans** | `created_at` | `16` RG112, écart 11. Même justification que `introduction_emails` : prouver **à qui** INFLUX a écrit, **sur quelle base légale** et **avec quel modèle**, aussi longtemps qu'une réclamation est possible. **Valeur d'attente** (`16` Q5), veto `expert-conformite-rgpd` |
+| **Journal transactionnel** | **`leads.transactional_sends`** | **13 mois** | `created_at` | Diagnostic d'exploitation, pas preuve : assez pour couvrir une saisonnalité complète de délivrabilité, et bien moins que les envois marketing. Ne contient **ni corps, ni code** |
+| **Suspensions** | `backoffice.account_suspensions` | **5 ans** après la levée | `ended_at` | Une suspension est une décision opposable : le titulaire peut la contester, et INFLUX doit pouvoir l'expliquer |
 | Incidents de délivrance | `identity.email_delivery_incidents` | **24 mois** | `occurred_at` | Diagnostic d'un compte fermé et suivi de la réputation d'envoi ; au-delà, sans usage |
 | Journal des recherches | `search.search_queries`, `search_impressions` | **12 mois** | `created_at` | Double finalité (anti-aspiration, amélioration produit) ; au-delà, l'intérêt décroît vite |
 | File de synchronisation | `leads.outbox_events` | `succeeded` : **30 jours** · `failed` : jusqu'à traitement | `completed_at` | Document `02` §6 |
@@ -4326,8 +5145,31 @@ mesure le demandera, pas avant (R9).
 | **`deals (revealed_at) where state = 'open'`** | **Alerte A6** : affaire créée à la révélation et **jamais sortie de son état initial après 30 jours** — signal de contournement **ou** de saisie négligée (`01` §11, `13` RG106). Index partiel, **nécessaire dès le Lot 4** puisque l'affaire y naît. Il remplace la jointure externe sur `introductions` de l'ancienne rédaction |
 | `deals (owner_agent_id, state)` | Pipeline d'un commercial |
 | `deals (state, signed_at) where state = 'signed' and commission_invoiced_at is null` | **Relance J+7** : affaire signée dont la commission n'est pas facturée |
-| `deals (commission_invoiced_at) where state = 'commission_invoiced' and commission_received_at is null` | **Relance J+30** |
-| `deals (commission_received_at, currency) where commission_received_amount_minor is not null` | Indicateur n° 1 : **commission encaissée par devise et par mois**, et rapprochement bancaire |
+| `deals (commission_invoiced_at) where commission_invoiced_at is not null and (commission_received_total_minor is null or commission_received_total_minor < agreed_commission_amount_minor)` | **Relance J+30** — réécrit sur le **total dérivé** (`14` E1) : l'ancienne forme, fondée sur une date d'encaissement unique, ratait toute affaire réglée **partiellement** |
+| **`commission_receipts (received_on, currency)`** | **Indicateur n° 1 : commission encaissée par devise et par mois** (`14`), et rapprochement bancaire. Il **remplace** l'index sur les deux colonnes supprimées de `deals` : l'agrégat se fait désormais sur les mouvements, qui sont la vérité |
+| **`commission_receipts (deal_id, received_on)`** | Les règlements d'une affaire, dans l'ordre — l'écran de fiche, et le recalcul du total dérivé |
+| **`deals (signed_at) where state = 'signed' and commission_invoice_ref is null`** | **`14` E10** : « signée sans facture à J+7 », **doit tendre vers zéro**. Index partiel plutôt qu'une colonne « facture manquante » : la vérité n'est pas dupliquée |
+| **`deals (lost_at) where lost_reason_code = 'conclu_hors_influx'`** | Mesure du contournement : montants estimés par devise et par niveau de confiance (`14` E9). **Jamais convertie en commission** |
+| **`deals (revealed_at) where state = 'open' and negotiated_amount_minor is null`** | **`14` RG8bis / Q13** : affaire ouverte **sans montant** à 14 puis 30 jours. Distinct de l'alerte A6 (affaire immobile) : ici, c'est le **montant** qui manque, pas le mouvement |
+
+### 10.7bis Backoffice — Lots 1, 4 et 5
+
+| Index | Requête |
+|---|---|
+| `alert_instances (alert_code, subject_type, subject_id) where closed_at is null` **unique** | **Un fait ne se signale pas deux fois** : contrainte, pas optimisation (`15` RG64) |
+| `alert_instances (alert_code, opened_at) where closed_at is null` | File de travail des alertes ouvertes, les plus anciennes d'abord ; sert aussi au seuil de second rang des 50 instances (`15` RG67) |
+| `dual_control_requests (state, expires_at) where state = 'pending'` | **File 15** du backoffice et tâche d'expiration à 24 h (`15` RG31) |
+| `exports (requested_by_account_id, requested_at desc)` | Plafond de **5 exports par jour ouvré** et détection d'une série (`15` RG96) |
+| `internal_notes (subject_type, subject_id, created_at desc)` | « Les notes sur cet objet » — l'encadré présent sur toutes les fiches du backoffice |
+| `account_suspensions (account_id) where ended_at is null` | **La suspension en cours d'un compte**, lue à chaque ouverture de session : partiel, donc minuscule |
+| `agent_profiles (is_break_glass) where is_break_glass` **unique** | Il n'y a **qu'un** compte de secours (`15` RG103) ; sa multiplication serait le premier symptôme d'un problème |
+| `email_send_recipients (email_send_id, coalesce(account_id::text, lower(email_address)))` **unique** | **`16` écart 1** : un destinataire une seule fois par envoi, **sans recopier l'adresse** quand un compte existe |
+| `email_send_recipients (lower(email_address)) where email_address is not null` **unique** | **`16` RG55** : une adresse de prospection n'est sollicitée **qu'une fois, définitivement**. Contrainte, pas optimisation |
+| `email_sends (status, cancel_window_ends_at) where status = 'scheduled'` | La tâche qui **recalcule le volume** à la fin de la fenêtre d'annulation (`16` RG28 à RG31) |
+| `email_sends (created_by_agent_id, created_at desc) where source = 'manual_entry'` | Consommation des **plafonds de saisie libre par agent** — jour, mois glissant, domaine (`16` RG54) : le chiffre qui révèle une dérive avant qu'elle ne devienne une campagne |
+| `transactional_sends (created_at desc) where priority = 'p0'` | **AL48** : délivrabilité du **code de connexion** (`16` RG98). Partiel, donc minuscule, et c'est le seul index dont dépend une alerte de disponibilité |
+| `transactional_sends (account_id, created_at desc) where account_id is not null` | « Je n'ai pas reçu mon code » — la question du support, indexée telle quelle |
+| `data_subject_requests (due_at) where completed_at is null` | Les demandes **en retard ou proches du délai légal de 30 jours** — la seule file dont le dépassement est une infraction |
 
 ### 10.8 Les cinq dénormalisations du modèle
 
@@ -4377,14 +5219,16 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0001 | `init_schemas_and_roles` | Schémas, cinq rôles + `influx_app` `NOINHERIT`, `ALTER DEFAULT PRIVILEGES` par schéma, `public` vidé | **Oui** (`drop schema … cascade` sur une base vide) |
 | 0002 | `influx_helpers` | `current_account_id`, `current_account_role`, `has_aal2`, `touch_updated_at`, `assert_append_only` | Oui |
 | 0003 | `reference_core` | `countries`, `currencies`, `languages` + leurs données | Oui |
-| 0004 | `identity_core` | `accounts`, **`account_roles` avec la contrainte D41**, `owner_agent_id` et sa clé étrangère composite, `agent_profiles`, `grant_role()`, RLS | Oui tant qu'aucun compte réel n'existe |
+| 0004 | `identity_core` | `accounts`, **`account_roles` avec la contrainte D41**, `owner_agent_id` et sa clé étrangère composite, `agent_profiles` (**`is_active`, `is_break_glass`, absence déclarée, `deactivated_by`**), `grant_role()`, RLS, **les cinq codes `agent.*` dont `agent.break_glass_login`** | Oui tant qu'aucun compte réel n'existe |
 | 0005 | `identity_terms_and_consent` | `terms_versions`, `terms_acceptances`, `consent_events`, append-only | Oui (idem) |
 | 0006 | `audit_chain` | `event_types`, `audit_events`, `chain_checks`, `append_event()`, `REVOKE`, déclencheurs, ligne de genèse | **Non** dès la première ligne réelle : annuler, c'est détruire la preuve |
 | 0007 | `billing_commission_rates_empty` | Table **vide**, commentaire SQL, `REVOKE INSERT` à tous | Oui |
 | 0008 | `backoffice_ownership` | `ownership_assignments` | Oui |
 | **Lot 1** | | | |
 | 0101 | `leads_outbox` | `outbox_events`, `contact_sync_states`, index partiels, contrainte RG35 | Oui |
-| 0102 | `backoffice_sla_policies` | Table + **valeur de départ de D39 : décision sous 1 jour ouvré** | Oui |
+| 0102 | `backoffice_queues_and_sla` | **`queues`** (catalogue des files, `15` RG26) puis `sla_policies` **avec sa clé étrangère vers `queues`** + **valeur de départ de D39 : décision sous 1 jour ouvré** + **`is_provisional`** sur les quatre délais proposés et non validés (`15` Q2 à Q4) | Oui |
+| **0107** | **`backoffice_alerts_and_dual_control`** | **`alert_definitions`** (catalogue AL1 à **AL48**, chargé lot par lot), **`dual_control_requests`** et ses contraintes, **les codes `dual_control.*`, `settings.changed` et `ownership.reassigned`** | Oui |
+| **0108** | **`leads_transactional_sends`** | **`transactional_sends`** append-only, `priority` **sans valeur par défaut**, ses deux index partiels, **les compteurs de cadence** sur `contact_sync_states` (`16` RG80) | Oui |
 | 0103 | `leads_sync_settings` | Table de configuration + **`apollo_scope = 'annonceurs_et_createurs_pro'`** (valeur d'attente de D33) | Oui |
 | 0104 | `identity_signup_fields` | `accounts.declared_status` (**`not null`**), `email_status`, `email_undeliverable_at`, `set_declared_status()`, `correct_email()` | Oui tant qu'aucun compte réel n'existe ; **`declared_status` devient non annulable ensuite** |
 | 0105 | `identity_email_health` | `email_delivery_incidents`, append-only, index d'idempotence | Oui |
@@ -4407,15 +5251,18 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | **Lot 4** | | | |
 | 0401 | `matching_introductions` | `introductions` (**`expiry_reason` à sept valeurs**, **`proposal_batch_id`**, **les cinq colonnes de refus de partie**), `rejection_reasons` (**`is_correctable`**, + le code `declined_by_party`), **`decline_reasons` (liste B)**, **`introduction_transitions` et son déclencheur**, `interest_submissions` et leurs formats, compteur de référence, contraintes, write-once, **les 18 codes `introduction.*` de `audit.event_types`** | **Partiellement** : le schéma s'annule, la preuve non |
 | 0402b | `matching_quotas_and_drafts` | `application_quotas`, `application_drafts` et leurs formats, déclencheurs de comptage, contraintes de plafond, purge | Oui |
-| **0402a** | **`billing_deals_at_reveal`** | **`lost_reasons`, `deal_state_transitions`, `deals`, `deal_field_changes`** et le déclencheur d'historisation — **avancées du Lot 5** (arbitrage du 2026-09-19). **Dépendance stricte : doit s'appliquer avant `0402`**, qui crée l'affaire à la révélation | Oui tant qu'aucune affaire réelle n'existe ; **non** ensuite (donnée comptable, §11.3) |
+| **0402a** | **`billing_deals_at_reveal`** | **`lost_reasons`, `cancellation_reasons`, `non_monetary_reasons`, `deal_state_transitions`** (avec `cancelled`, **sans** `stalled` ni `disputed`), **`deals`** (bases fiscales, payeur et parts saisies, attributs de litige et d'enlisement, champs d'estimation de contournement), **`deal_field_changes`** avec `is_financial_field` et son motif obligatoire, et le déclencheur d'historisation — **avancées du Lot 5** (arbitrage du 2026-09-19). **Dépendance stricte : doit s'appliquer avant `0402`**, qui crée l'affaire à la révélation | Oui tant qu'aucune affaire réelle n'existe ; **non** ensuite (donnée comptable, §11.3) |
 | 0402 | `matching_reveal_function` | `reveal_identity()` `SECURITY DEFINER`, `REVOKE` de colonnes, **création de l'affaire à l'état `open`**. **Dépend de `0402a`** | Oui |
 | **0402c** | **`matching_introduction_emails`** | **`introduction_emails`**, ses contraintes de chronologie, ses trois index, l'unicité du `provider_message_id` | Oui |
 | 0403 | `messaging_core` | Conversations (**pause motivée, clôture réouvrable, `reopen_count`**), **`pause_reasons`**, **`conversation_state_transitions` et son déclencheur**, participants, messages, lectures, **les 10 codes `conversation.*` de `audit.event_types`** | Oui |
 | 0404 | `messaging_supervision` | **`access_reasons`**, `conversation_access_log` (**`reason_code` non nul, `read_session_id`**), `read_conversation()`, **`REVOKE SELECT` sur `messages` aux agents** | Oui |
+| **0406** | **`backoffice_alert_instances`** | **`alert_closure_reasons`**, **`alert_instances`** et ses deux index, **les codes `alert.*` et `queue.claim_forced_release`**. Au Lot 4 : les premières alertes d'événement sont les détections de coordonnées et les signalements | Oui |
 | 0405 | `messaging_safety` | `contact_detections` (**`warned_before_send`, `sent_despite_warning`**), `reports`, **`document_labels`**, **`document_rejection_reasons`**, `documents` (**`available_at`**), **`document_downloads`**, **les 7 codes `report.*`, `detection.*` et `document.*`** *(les quatre tables de documents restent conditionnelles au canal)* | Oui |
 | **Lot 5** | | | |
 | ~~0501~~ | ~~`billing_deals`~~ | **Supprimée le 2026-09-19 : son contenu est passé en `0402a`** (Lot 4). Le Lot 5 n'apporte **aucune table `billing` nouvelle** — seulement les écrans de saisie du pipeline | — |
-| 0502 | `backoffice_operations` | Notes, suspensions, plafonds et envois d'e-mails, demandes RGPD | Oui |
+| 0501 | **`billing_commission_receipts`** | **`commission_receipts`** append-only, ses contraintes, son index, le déclencheur qui maintient `deals.commission_received_total_minor` (`14` E1) | Oui tant qu'aucun règlement réel n'existe ; **non** ensuite |
+| **0503** | **`backoffice_email_sending`** | **`email_templates`**, **`brevo_allowed_segments`**, **`email_send_transitions`** et son déclencheur, les **onze colonnes** de `email_sends`, la **réécriture de l'unicité** de `email_send_recipients` et ses deux index, les **trois plafonds** de `email_send_limits`, la clé `email_kill_switch` | Oui |
+| 0502 | `backoffice_operations` | Notes **avec `subject_type`, auteur et ajout seul**, **`suspension_reasons`** et **`suspension_lift_reasons`**, suspensions, **`exports`**, plafonds et envois d'e-mails, demandes RGPD **complétées** (`15`, écart 4), **les 14 codes `account.*`, `ownership.bulk_transferred`, `export.produced` et `privacy.*`** | Oui |
 | **Lot 6** | | | |
 | 0601 | `retention_jobs` | Fonctions de purge, index de purge manquants | Oui |
 
@@ -4549,13 +5396,38 @@ pour que le modèle ne comporte pas de manque, et chacun peut être rouvert par 
 
 | # | Point | Choix conservateur retenu | Arbitre |
 |---|---|---|---|
-| 1 | ~~**Moment de création de l'affaire (`billing.deals`)**~~ | **TRANCHÉ le 2026-09-19 par `chef-de-projet` — et dans le sens inverse de ma proposition.** L'affaire est créée **automatiquement, à l'état `open`, dans la transaction de révélation**, une par mise en relation (`03` C(21) étape 4, `13` RG74, `01` §6). **Raison décisive :** sans affaire, une mise en relation **perdue** n'a nulle part où porter son **motif de perte typé**, et la donnée de transformation attendue par **A8** disparaît. Mon objection de dépendance entre migrations était fondée et se règle autrement : **les quatre tables `billing` sont avancées au Lot 4** (migration `0402a`, juste avant `0402`) ; seule la **saisie** des montants reste au Lot 5. Détail et conséquences au **§5.6** | **Clos** — `chef-de-projet`, 2026-09-19 |
+| 1 | ~~**Moment de création de l'affaire (`billing.deals`)**~~ | **TRANCHÉ le 2026-09-19 par `chef-de-projet` — et dans le sens inverse de ma proposition.** L'affaire est créée **automatiquement, à l'état `open`, dans la transaction de révélation**, une par mise en relation (`03` C(21) étape 4, `13` RG74, `01` §6). **Raison décisive :** sans affaire, une mise en relation **perdue** n'a nulle part où porter son **motif de perte typé**, et la donnée de transformation attendue par **A8** disparaît. Mon objection de dépendance entre migrations était fondée et se règle autrement : **six tables `billing` sont avancées au Lot 4** (migration `0402a`, juste avant `0402`) ; seules la **saisie** des montants et la table des règlements (`commission_receipts`) restent au Lot 5. Détail et conséquences au **§5.6** | **Clos** — `chef-de-projet`, 2026-09-19 |
 | 2 | **Un fil archivé peut-il être rouvert ?** `12` RG22 autorise la réouverture d'un fil **clos** ; l'archivage intervient 90 jours après la clôture et RG111 précise qu'un fil archivé reste lisible | **Non au MVP** : `archived` n'a **aucune transition sortante** dans `messaging.conversation_state_transitions`. Rouvrir une négociation endormie depuis trois mois produit une **nouvelle** mise en relation, donc une preuve d'intermédiation neuve — ce qui est plus sain pour la créance V2. Ouvrir cette transition est **une ligne de données**, si le produit le demande | `product-owner` (`12` Q7) |
 | 3 | **PDF dans le canal de documents, et absence d'analyse antivirale** — `12` RG68 liste PDF, PNG, JPEG ; `03` **E1-9** refuse le PDF au MVP, et **E1-11** demande explicitement la réouverture du sujet antiviral « si un canal de documents est ouvert » | **`application/pdf` n'est pas chargé dans la contrainte tant que les deux conditions d'E1-9 ne sont pas tenues** (origine distincte, `Content-Disposition: attachment`). Ajouter une valeur à un `CHECK` n'est pas une migration destructive ; en retirer une l'est | **`expert-cybersecurite` — veto** (`12` Q5) + Fondateur pour le périmètre du canal |
 | 4 | **Base légale de la prise de connaissance de la supervision** — `identity.terms_acceptances.nature = 'acknowledgement'` (`12` RG104) | La ligne est enregistrée comme une **prise de connaissance**, jamais comme un consentement, et la contrainte de base l'empêche d'être présentée autrement. **La qualification juridique, elle, n'est pas tranchée ici** | **`expert-conformite-rgpd` — veto** (`12` Q1) + juriste |
 | 5 | **Conservation des refus de partie et de leurs motifs** — `13` Q11 | Conservation **au même titre que la mise en relation** (les colonnes vivent sur `introductions`), donc **sans purge propre** : purger le motif d'un refus laisserait une mise en relation refusée sans raison. Le motif reste **invisible de l'autre partie pour toujours**, ce qui est une règle d'accès, pas de durée | `expert-conformite-rgpd` — **veto** |
 | 6 | **Plafond de 10 documents par mise en relation** (`12` RG68) | Tenu par **déclencheur**, pas par `CHECK` : une contrainte ne peut pas compter des lignes sœurs. Même schéma que les plafonds de candidature (§5.6), donc **atomique sous concurrence**. La valeur part dans `backoffice.operational_settings` | `product-owner` (valeur) ; la forme est tranchée |
 | 7 | **Durée de conservation des documents et de leur journal de téléchargement** | Alignée sur les messages : **3 ans après la clôture du fil** (§9.1). Les octets sortent du Storage à la même échéance ; le journal, qui ne contient aucun contenu, reste | `expert-conformite-rgpd` — **veto** |
+
+### 12.8 Points à valider, ouverts par les spécifications `14` et `15` (2026-09-19)
+
+| # | Point | Choix conservateur retenu | Arbitre |
+|---|---|---|---|
+| 1 | **Écriture d'une affaire réservée au commercial responsable** (`14` RG39 vs `03` §3.5, qui l'accorde à tout agent) | **Non tranché ici, volontairement** — c'est une règle d'autorisation, pas de modélisation. La base pose ce qu'il faut pour l'appliquer si elle est retenue (`deals.owner_agent_id not null`, historique dans `backoffice.ownership_assignments`) et **rien qui l'empêche**. Aucune contrainte de propriétaire n'est écrite tant que `03` n'a pas tranché | `expert-cybersecurite` + `chef-de-projet` (`14` **Q7**) |
+| 2 | **Quatre délais de file proposés et non validés** — `verification_disputes` 5 j, `team_selection` 1 j, `lead_sync_failures` et `email_delivery_incidents` 2 j | Chargés **marqués `is_provisional = true`** dans `backoffice.sla_policies`. Une proposition ne doit pas devenir une règle par simple écoulement du temps ; la colonne rend l'état visible dans le tableau de bord | `chef-de-projet` + `product-owner` (`15` **Q2 à Q4**) |
+| 3 | **Encaissement en espèces** (`14` Q2) | Le mode `especes` **reste saisissable** — il faut pouvoir enregistrer un fait déjà survenu — mais exige une note et lève une alerte. **C'est l'exploitation qui l'interdit pendant le pilote, pas le schéma** : un schéma qui empêche d'enregistrer la réalité produit des données fausses | **Fondateur** + expert-comptable |
+| 4 | **Exemption nommée du contrôle T16 pour la conversion d'unité monétaire** (`14` E11) | Documentée au §5.9. **À porter dans `03` §8 T16 et dans le plan de test** : sans exemption nommée, l'équipe désactivera le contrôle, et un contrôle désactivé ne protège rien | `expert-cybersecurite` (`03`) + `testeur` (`18`) |
+| 5 | **Conservation du montant estimé d'un contournement** (`14` Q11) | Conservé avec l'affaire (10 ans) **en l'état**, faute de mieux : c'est une donnée personnelle indirecte **et une imputation non prouvée**. La proposition de `14` — conservation le temps de la fenêtre **D29** puis agrégation anonyme — est plus juste et **exige une purge partielle par colonne**, que je n'écris pas avant l'arbitrage | `expert-conformite-rgpd` — **veto** + Fondateur |
+| 6 | **`data_subject_requests.request_type` contient `restriction`**, absent des cinq droits cités par `CLAUDE.md` §9 | **Conservé** : la limitation du traitement est un droit du RGPD (art. 18), et retirer une valeur d'une énumération après coup est une migration destructive, alors que l'ajouter ne l'est pas | `expert-conformite-rgpd` (`15` **Q6**) |
+| 7 | **`claim_expiry_minutes` global ou par file** (`15`, écart 9) | **Global**, position actuelle, cohérente avec les six documents qui écrivent tous « 30 minutes ». Le passage à une valeur par file est **une colonne sur `backoffice.queues`**, pas une refonte | `chef-de-projet` |
+| 8 | **Seuil d'abandon de créance exigeant l'accord du fondateur** (`14` Q5) et **délais de l'alerte « montant non saisi »** (`14` Q13) | Chargés comme **valeurs d'attente** dans `operational_settings` : 500,00 EUR, 14 j puis 30 j. En table, donc recalibrables sans déploiement | **Fondateur** + `chef-de-projet` |
+| 9 | **Six durées de conservation nouvelles** (notes internes, alertes, exports, encaissements, suspensions, journal d'envoi) | Proposées au §9.1, dans le sens le plus conservateur pour les pièces comptables (10 ans) et le plus court pour les données de pilotage (24 mois) | `expert-conformite-rgpd` — **veto** |
+
+### 12.9 Points à valider, ouverts par la spécification `16` (2026-09-19)
+
+| # | Point | Choix conservateur retenu | Arbitre |
+|---|---|---|---|
+| 1 | **Conservation des envois d'e-mails** (`16` écart 11, Q5) | **3 ans** sur `created_at` pour `email_sends` et `email_send_recipients`, **13 mois** pour `leads.transactional_sends` — qui est un diagnostic, pas une preuve. **Valeurs d'attente** | `expert-conformite-rgpd` — **veto** |
+| 2 | **Suivi nominatif des ouvertures et des clics** (`16`, écart 8 avec la skill) | **Rien en base.** Aucune colonne d'ouverture ni de clic n'existe sur `email_send_recipients` : agrégat par défaut, nominatif **par exception seulement**. Ajouter la colonne « au cas où » reviendrait à décider par défaut ce qui doit être décidé explicitement | `expert-conformite-rgpd` — **veto** + `expert-marketing` |
+| 3 | **Webhooks Brevo sans signature** (`16`, écart 1 avec la skill — vérifié le 2026-09-19 : ni HMAC, ni JWT, ni en-tête de signature) | Côté base, la parade est l'**idempotence par contrainte** : `provider_message_id` **unique** sur les deux journaux d'envoi, `provider_event_id` **unique** sur `identity.email_delivery_incidents`. Un webhook rejoué ou forgé en double **échoue à l'écriture**. Cela ne remplace pas l'authentification de l'appelant | **`expert-cybersecurite` — veto** |
+| 4 | **Le code de connexion n'est jamais coupé par l'interrupteur** (`16` RG122) | **Aucune contrainte de base ne peut le garantir** — c'est le worker qui lit la priorité. La base y contribue par une seule chose, et elle compte : `transactional_sends.priority` est **`not null` sans valeur par défaut**, donc un envoi P0 est toujours reconnaissable. **Contrôle attendu du document `18`** | `architecte` + `testeur` |
+| 5 | **Seuils de cadence et de déclenchement automatique de l'interrupteur** (`16` RG123) | En configuration (`operational_settings`), **valeurs d'attente**, recalibrées après un mois de mesure | `expert-marketing` + **Fondateur** |
+| 6 | **`email_send_recipients.send_source` est une quatrième dénormalisation** | Assumée : c'est la **seule** façon d'écrire de façon déclarative « aucune ligne pour un segment Brevo » — un `CHECK` ne lit pas la table parente. Même nature que `billing.deals.revealed_at` (§10.8) | `architecte` |
 
 ---
 
@@ -4577,7 +5449,14 @@ reprises.
 `messaging.detection_type`, `messaging.review_outcome`, `messaging.moderation_status`, et
 **deux valeurs de plus** sur des types existants — `matching.expiry_reason` passe à **sept**
 (`no_creator_answer`, `no_answer_both_parties`) et `identity.document_kind` à **quatre**
-(`supervision_notice`) : **les `switch` exhaustifs existants cessent de compiler, c'est voulu**. Trois schémas zod sont en outre exigés par les `jsonb` à liste fermée : `search.search_settings`, `backoffice.operational_settings`, `campaigns.campaign_published_snapshots.payload` |
+(`supervision_notice`) : **les `switch` exhaustifs existants cessent de compiler, c'est voulu**.
+**Ajoutés en troisième passe** (`14`, `15`) : `billing.receipt_kind`, `billing.payment_method`,
+`billing.tax_basis`, `billing.commission_payer`, `billing.estimate_confidence`,
+`backoffice.export_kind`, `backoffice.note_subject`, `backoffice.alert_nature`,
+`backoffice.dual_control_state`, `backoffice.dsr_channel` — et surtout **`billing.deal_state`
+change deux fois** : `cancelled` **entre**, `stalled` et `disputed` **sortent** (`14` E5, E6).
+Ce dernier point casse tout `switch` écrit sur l'ancienne liste, **et c'est exactement le but** :
+un litige n'est pas un état, et le code doit être relu là où il le croyait. Trois schémas zod sont en outre exigés par les `jsonb` à liste fermée : `search.search_settings`, `backoffice.operational_settings`, `campaigns.campaign_published_snapshots.payload` |
 | `apps/api` — domaine `campaigns` | **Le rôle créateur ne lit jamais la ligne vivante d'une campagne** : il lit `campaign_published_snapshots`. Toute route qui sert une campagne à un créateur depuis `campaigns.campaigns` est un défaut bloquant — c'est ce qui protège `total_budget_minor` autrement que par un `GRANT` de colonne à ne pas oublier |
 | `apps/api` — affichage des montants | **Aucune multiplication d'un montant par un taux, nulle part.** Le net créateur affiché vient de `reference.price_bands.net_min_amount_minor` / `net_max_amount_minor`, lu tel quel. Si ces colonnes sont nulles pour la devise, **le net n'est pas affiché** — jamais estimé à la volée (`09` RG59, `07` RG72, contrôle T16) |
 | `packages/domain` — plafonds | Les plafonds de candidature ne sont **jamais** vérifiés par un `count(*)` suivi d'une insertion : on insère, et on traite l'échec de contrainte (`campaigns_applications_within_cap`, `application_quotas_within_cap`) comme la réponse « candidatures closes ». C'est la seule forme correcte sous concurrence |
@@ -4613,6 +5492,14 @@ reprises.
 - [x] **Affaire créée à la révélation** (arbitrage `chef-de-projet`, 2026-09-19) : les quatre tables
       `billing` sont **avancées au Lot 4**, migration `0402a` avant `0402`, et l'alerte A6 devient un
       index partiel sur `deals (revealed_at) where state = 'open'` (§5.6, §10.7, §11.2)
+- [x] **Écarts `14` (E1 à E11) et `15` (12 points) intégrés (2026-09-19, troisième passe)** :
+      11 tables ajoutées, 8 modifiées, 23 codes d'événements, 6 durées de conservation, 17 index.
+      L'écart bloquant E1 (encaissement unique) est corrigé par `billing.commission_receipts`
+- [x] **11 écarts du document `16` intégrés (2026-09-19, quatrième passe)** : 4 tables ajoutées,
+      5 modifiées, 2 durées de conservation, 6 index, file et alertes amorcées. **Aucune adresse
+      recopiée quand un compte existe**, sur aucune des trois tables d'envoi
+- [x] **Aucun export nominatif possible** : `backoffice.exports` est documentée comme
+      **agrégée seulement**, `05` RG106 abrogée, alignement sur `03` C(17)
 - [x] **Noms des fonctions de contexte unifiés** entre `03` et `04` (§4.1, encadré du 2026-09-19) :
       substitution d'identifiants dans `03`, aucune règle d'autorisation modifiée
 

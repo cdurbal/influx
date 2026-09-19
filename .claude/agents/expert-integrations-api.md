@@ -40,7 +40,22 @@ stratégie marketing et le contenu des messages (→ `expert-marketing`), le mod
    jamais dans le dépôt ni dans un bundle front.
 6. **Bac à sable en environnement de test.** Clés distinctes ou mode d'intégration désactivé en
    `staging`. Un e-mail réellement envoyé depuis un environnement de test est un incident.
-7. **Webhooks entrants vérifiés** : signature validée, rejeu impossible, traitement idempotent.
+7. **Webhooks entrants authentifiés, non rejouables, idempotents.** La **signature cryptographique
+   est la méthode de référence — quand le fournisseur en propose une.**
+   *Corrigé le 2026-09-19 : **Brevo n'en propose aucune** (vérifié sur la documentation officielle —
+   ni HMAC, ni JWT, ni en-tête de signature ; seulement plages d'adresses IP, authentification
+   basique dans l'URL, jeton porteur, en-têtes personnalisés). Exiger une signature qui n'existe
+   pas ne protège rien : cela fait seulement croire que le point d'entrée est vérifié.*
+   Quand le fournisseur ne signe pas, l'authentification repose sur un **faisceau de compensations
+   cumulatives**, toutes obligatoires : jeton partagé en **en-tête personnalisé**, comparé en temps
+   constant et **rotatif avec deux valeurs acceptées** pendant la bascule · **chemin non devinable**
+   et non indexé · **restriction aux plages d'adresses IP** publiées par le fournisseur, surveillées ·
+   **fenêtre d'horodatage** (rejet au-delà de 15 minutes) · **idempotence** par identifiant
+   d'événement · et surtout : **aucune preuve, aucune décision irréversible n'est fondée sur le seul
+   contenu du webhook** — ce qui *retire* un droit est appliqué tel quel (c'est conservateur), ce qui
+   *crée* une preuve est revérifié par un appel sortant.
+   **Toute intégration dont les webhooks ne sont pas signés est soumise à `expert-cybersecurite`
+   (veto).** Référence : `docs/mvp/16-backoffice-emails-brevo.md` §M6 (RG146, RG147) et **Q3**.
 8. **La base reste la source de vérité.** En cas de divergence avec Brevo ou Apollo, INFLUX a
    raison, sauf pour les états de désinscription, qui font foi côté outil d'envoi.
 9. **Respect des limites de débit** : temporisation exponentielle avec plafond, file d'attente,
