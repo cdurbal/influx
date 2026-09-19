@@ -2,12 +2,12 @@ import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { AuthHeader } from "@/components/auth/AuthHeader";
-import { LoginForm, type LoginFormLabels } from "@/components/auth/LoginForm";
+import { MemberAuthFlow } from "@/components/auth/OtpCodeInput";
 import { LinkButton } from "@/components/ui/LinkButton";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { routing } from "@/i18n/routing";
 
-/** Mocked login page (docs/landing-page/00-cadrage.md §6): see components/auth/LoginForm.tsx. */
+/** Auth OTP login page (Mission 1.4 & D37) */
 export default async function LoginPage({
   params,
 }: PageProps<"/[locale]/login">) {
@@ -17,21 +17,6 @@ export default async function LoginPage({
   }
   setRequestLocale(locale);
   const t = await getTranslations("landing");
-
-  const labels: LoginFormLabels = {
-    requiredMark: t("startForm.requiredMark"),
-    email: {
-      label: t("auth.login.email.label"),
-      errorRequired: t("auth.login.email.errors.required"),
-      errorFormat: t("auth.login.email.errors.format"),
-    },
-    password: {
-      label: t("auth.login.password.label"),
-      hint: t("auth.login.password.hint"),
-      errorRequired: t("auth.login.password.errors.required"),
-    },
-    submit: t("auth.login.submit"),
-  };
 
   return (
     <>
@@ -44,7 +29,7 @@ export default async function LoginPage({
             title={t("auth.login.title")}
             lead={t("auth.login.lead")}
           />
-          <LoginForm labels={labels} />
+          <MemberAuthFlow mode="login" locale={locale} />
           <p className="flex flex-wrap items-center gap-2 text-md text-text-secondary">
             {t("auth.login.signupPrompt")}
             <LinkButton href="/signup" variant="text">

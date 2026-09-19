@@ -8,6 +8,14 @@ const nextConfig: NextConfig = {
   agentRules: false,
   poweredByHeader: false,
   // No images.remotePatterns: remote images are refused (CA11, 01 §6.3).
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: "http://localhost:4000/api/:path*",
+      },
+    ];
+  },
 };
 
 export default withNextIntl(nextConfig);

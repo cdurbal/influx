@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "tsx watch src/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
@@ -15,6 +16,7 @@
   },
   "devDependencies": {
     "@types/node": "22.20.3",
+    "tsx": "4.23.13",
     "typescript": "6.0.3",
     "vitest": "4.1.11"
   }

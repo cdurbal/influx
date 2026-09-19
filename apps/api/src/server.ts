@@ -2,6 +2,8 @@ import fastifyCookie from "@fastify/cookie";
 import fastifyCors from "@fastify/cors";
 import fastify, { type FastifyInstance } from "fastify";
 import { devRoutes } from "./routes/dev-routes";
+import { authRoutes } from "./routes/auth-routes";
+import { leadRoutes } from "./routes/lead-routes";
 
 export interface ServerOptions {
   logger?: boolean;
@@ -12,9 +14,13 @@ export function createApp(options: ServerOptions = {}): FastifyInstance {
     logger: options.logger ?? false,
   });
 
-  // CORS config for frontend apps
+  // CORS config for frontend apps (Web on 3000/3001, Backoffice on 3002)
   app.register(fastifyCors, {
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "http://localhost:3002",
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   });
@@ -36,8 +42,10 @@ export function createApp(options: ServerOptions = {}): FastifyInstance {
     });
   });
 
-  // Register dev control routes
+  // Register routes
   app.register(devRoutes);
+  app.register(authRoutes);
+  app.register(leadRoutes);
 
   return app;
 }
