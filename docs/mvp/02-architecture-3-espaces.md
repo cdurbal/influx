@@ -1561,3 +1561,104 @@ panne. Il consomme en revanche le quota par IP, qui est l'anti-abus. (Point soum
 | Que voit l'exploitation ? | Une ligne `failed` dans `leads.transactional_sends`, les six indicateurs de `16` RG98 et l'alerte **AL48**, immédiate, vers `admin`. **Un `P0` lent ne se découvre pas par une réclamation** |
 | Réessaie-t-on tout seul ? | **Non** (G2). Un **disjoncteur** simple évite seulement de tenir 3 000 ms pour rien : après **5 échecs de transport consécutifs**, les demandes reçoivent immédiatement la cause (b) pendant **30 secondes**, puis un appel de test rouvre le circuit. Le disjoncteur est **global** : son état ne dépend d'aucune adresse, il ne crée donc aucun oracle |
 | Et si Brevo est durablement hors service ? | **Personne ne se connecte, et c'est une limite assumée du MVP** (`16` RG122 et Q8). Il n'y a **pas** d'expéditeur de secours au Lot 1. Si le fondateur veut supprimer ce point de défaillance unique, c'est un second prestataire d'envoi réservé au seul `P0` — **chiffrable, non retenu par défaut** |
+
+### 18.7 Conséquence non évidente : **c'est `apps/api` qui envoie l'e-mail, pas Supabase Auth**
+
+Le document `04` (§2) pose que « les codes d'authentification appartiennent à Supabase Auth ». Cela
+reste vrai — **nous ne stockons ni le code, ni son empreinte**. Mais il faut distinguer deux choses
+que la configuration par défaut confond : *qui produit le code* et *qui envoie l'e-mail*.
+
+**Laisser GoTrue envoyer l'e-mail lui-même (SMTP configuré) est écarté**, pour quatre raisons
+cumulatives :
+
+1. **Aucune trace exploitable.** Pas d'`Idempotency-Key`, pas de `messageId` renvoyé, donc pas de
+   ligne utilisable dans `leads.transactional_sends` — et donc aucune réponse à « je n'ai pas reçu
+   mon code » autre qu'une supposition (`04` §5.8, `16` RG94).
+2. **La phrase de correspondance anti-hameçonnage** de `05` RG48 et `03` A-6 doit être **la même à
+   l'écran et dans l'e-mail**, tirée par nous à chaque demande. Un gabarit GoTrue ne la porte pas.
+3. **L'échec ne serait pas connu du gestionnaire**, donc impossible à afficher : la décision (a)
+   perdrait sa raison d'être.
+4. **Le contenu de `05` RG49 et `16` RG100** (langue du destinataire, heure et contexte de la
+   demande, mention « INFLUX ne vous demandera jamais ce code », **aucun lien**, version de gabarit
+   journalisée) n'est pas tenable dans des gabarits que nous n'instrumentons pas.
+
+**Le « Send Email Hook » de Supabase Auth est écarté pour une raison dirimante** : c'est GoTrue, un
+service hébergé par Supabase, qui appellerait notre point d'accès. Il faudrait donc **exposer
+publiquement `apps/api`**, ce que le §12 interdit. Une exception à la règle centrale de ce document
+pour un gain nul : non.
+
+**Chemin retenu**, sans ajouter le moindre composant :
+
+```
+apps/api  ──(1) admin: créer l'utilisateur, inconditionnellement (erreur « existe déjà » avalée)──►  GoTrue
+apps/api  ──(2) admin: générer le lien → récupère le CODE À 6 CHIFFRES, sans qu'aucun e-mail parte ─►  GoTrue
+apps/api  ──(3) envoi transactionnel unitaire, gabarit auth.login_code, Idempotency-Key ───────────►  Brevo
+```
+
+La vérification reste un appel GoTrue standard. **Le code ne transite que par la mémoire de
+`apps/api` et par le corps de l'appel à Brevo** : il n'est écrit nulle part — ni en base, ni dans un
+journal, ni dans une trace d'erreur, ni dans une réponse d'API (`05` RG52, `16` interdit 5).
+**L'objet du gabarit ne contient jamais le code** (A-7).
+
+Deux points à vérifier à l'implémentation plutôt qu'à supposer : que la génération d'un nouveau code
+**invalide bien le précédent** côté GoTrue (`05` RG41, `03` A-1 — c'est la condition la plus souvent
+oubliée), et que la **durée de validité** du projet Supabase est réglée à **10 minutes** (RG40). Ce
+sont deux tests, pas deux hypothèses.
+
+### 18.8 Décision (b) : `leads.transactional_sends` est **un journal, et rien d'autre**
+
+La recommandation d'`expert-integrations-api` est suivie, pour la raison qu'il donne — une table à
+double rôle finit avec deux vérités sur l'état d'une ligne — et pour une raison de conception :
+**le seul mécanisme de file du projet est `outbox_events` (D18)**. Un second mécanisme de file, né
+par glissement d'un journal, serait un mécanisme que personne n'a conçu, supervisé ni testé.
+
+**Ce que la décision interdit, explicitement, pour que personne n'ait à le deviner :**
+
+| Interdit sur `leads.transactional_sends` | Pourquoi |
+|---|---|
+| Tout `SELECT … FOR UPDATE`, `SKIP LOCKED`, verrou consultatif | Ce sont les gestes d'une file. Leur absence est ce qui rend la règle vérifiable en relisant le code |
+| Tout index destiné à **prendre** du travail (typiquement sur `status`) | Un index de prise est une file qui s'ignore. Les deux index de `04` §5.8 sont des index de **lecture** (alerte AL48, support) |
+| Toute boucle de worker qui **lit** cette table pour décider d'un envoi | Il n'existe **aucun consommateur** de cette table. Elle est écrite par qui envoie, lue par le backoffice |
+| Tout réessai déclenché depuis cette table | G2, `05` RG60, test T10 |
+| Tout bouton « rejouer » au backoffice sur une ligne `P0` | Rejouer, c'est renvoyer un code que personne n'attend plus. La personne redemande, elle seule |
+
+**La sémantique de `status` pour une ligne `P0` doit être écrite dans le commentaire de la table**,
+car elle diffère de celle d'une ligne de file :
+
+| Valeur | Sens pour un `P0` |
+|---|---|
+| `queued` | **« Tentative engagée, issue inconnue »** — et non « en attente d'un traitement ». Une ligne `P0` restée `queued` plus de quelques minutes signale un **processus interrompu au milieu d'une requête** : c'est un **indicateur d'exploitation**, jamais un déclencheur de reprise |
+| `sent` | Accepté par Brevo, `provider_message_id` renseigné |
+| `failed` | Refusé, expiré ou disjoncteur ouvert ; `failure_code` renseigné dans la liste fermée |
+| `delivered` | Écrit **plus tard**, par le webhook Brevo consommé par le worker. C'est la seule écriture asynchrone sur cette table, et elle ne porte que les colonnes d'accusé |
+
+Cette dernière ligne mérite d'être soulignée : **le `P0` n'écrit rien dans `outbox_events`, mais le
+retour de délivrance, lui, arrive par le chemin ordinaire** (webhook → worker → mise à jour de la
+colonne d'accusé). Il n'y a là aucune contradiction : ce qui ne doit jamais attendre, c'est
+l'**envoi**, pas la **confirmation** d'un envoi déjà parti.
+
+### 18.9 La famine, et pourquoi elle est écartée par construction
+
+`expert-integrations-api` relève à juste titre qu'une règle de priorité sans test de famine se
+retourne un jour contre une obligation légale (test **T8** : une révocation prise en charge sous
+5 minutes malgré les `P0`). Trois constats, dans cet ordre :
+
+1. **Les deux chemins sont disjoints.** Après cette décision, un `P0` n'écrit dans
+   `outbox_events` ni ligne, ni verrou, ni index : « `P0` passe devant les révocations » n'est même
+   plus un ordonnancement, c'est **l'absence de file d'attente commune**. La question de l'ordre ne
+   se pose plus.
+2. **La seule ressource partagée est le budget de débit du fournisseur**, et Brevo sépare les
+   catégories : transactionnel ≈ **1 000 requêtes/seconde**, contacts ≈ **10/seconde** (`16` §M2).
+   Un compteur de débit **par catégorie, jamais global** (règle 12 de la skill) rend l'interférence
+   impossible dans les deux sens. Au volume du pilote — quelques codes par minute — la marge est de
+   plusieurs ordres de grandeur.
+3. **Il reste une ressource partagée, et c'est la vraie** : les **connexions à la base**. Une rafale
+   de demandes de code ouvre des transactions élevées dans `apps/api` (opération **E-1**) ; le
+   worker, lui, est un **processus séparé avec sa propre grappe** (D2), mais tous deux tirent sur le
+   même budget de connexions du projet Supabase. D'où le garde-fou **G5** : la grappe élevée de
+   `apps/api` est **plafonnée explicitement** (valeur de départ : **5 connexions**, à confirmer par
+   `expert-database`), de sorte qu'aucune rafale de `P0` ne puisse assécher le worker. C'est ce
+   plafond, et non la priorité, qui empêche la famine.
+
+**T8 reste exigé malgré tout.** Un raisonnement qui conclut « la famine est impossible » se teste,
+précisément parce qu'il conclut cela.
