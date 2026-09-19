@@ -353,10 +353,15 @@ create policy creator_identity_read_after_reveal
   (poser la date, créer la conversation et ses trois participants, écrire l'événement chaîné, mettre
   les deux e-mails en file) est exécutée par une fonction `SECURITY DEFINER`
   `matching.open_introduction(...)` qui vérifie elle-même que l'appelant est un agent avec `aal2`,
-  que la mise en relation est en état `approved`, et que les deux acceptations existent quand
-  l'origine l'exige (proposition INFLUX, `01-intermediation-courtee.md` §4.3). `identity_revealed_at`
-  est en **écriture unique** : `REVOKE UPDATE (identity_revealed_at)` plus un déclencheur qui refuse le
-  passage d'une valeur non nulle à une autre.
+  que la mise en relation est en état `approved`, et que **les deux acceptations existent — toujours,
+  quelle que soit l'origine** (`04-modele-de-donnees-mvp.md`, contrainte
+  `introductions_reveal_requires_both_acceptances`, sans exception). *Correction du 2026-09-19 :
+  la première rédaction de cette règle limitait l'exigence des deux acceptations à la proposition
+  INFLUX ; c'était inexact. `01-intermediation-courtee.md` §4.3 décrit un mécanisme universel
+  (l'acceptation spécifique à l'écran avant révélation), et `04` l'a implémenté sans condition —
+  y compris pour une demande de contact ou une candidature, personne n'est exposé sans avoir
+  lui-même cliqué.* `identity_revealed_at` est en **écriture unique** : `REVOKE UPDATE
+  (identity_revealed_at)` plus un déclencheur qui refuse le passage d'une valeur non nulle à une autre.
 - **C(22)** — La réattribution conserve **l'historique des responsables successifs**, jamais écrasé
   (skill `backoffice-ops`, règle 18), et elle est un **préalable obligatoire** à la désactivation d'un
   compte agent (règle 19).

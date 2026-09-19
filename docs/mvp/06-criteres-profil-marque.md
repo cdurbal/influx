@@ -60,8 +60,8 @@ Trois raisons d'être, dans cet ordre :
 |---|---|
 | **Annonceur** (titulaire du compte marque) | Complète son profil, le soumet, le corrige, demande le badge « Marque vérifiée », consulte sa complétude |
 | **Créateur** | **Lit** un profil marque dans deux contextes seulement : une campagne publiée, une mise en relation ouverte. Il ne recherche jamais une marque |
-| **Commercial INFLUX** (rôle `agent`) | Valide ou refuse un profil avec un motif typé, modère les textes et le logo, corrige un champ, instruit la vérification, attribue le badge, appelle l'interlocuteur |
-| **Administrateur INFLUX** (rôle `admin`) | Tout ce qui précède, plus : suspension d'un profil, retrait d'un badge, correction d'un champ interne, export |
+| **Commercial INFLUX** (rôle `agent`) | Valide ou refuse un profil avec un motif typé, modère les textes et le logo, corrige un champ, instruit la vérification, attribue **ou retire** le badge (retrait sous double validation, voir `03`), appelle l'interlocuteur |
+| **Administrateur INFLUX** (rôle `admin`) | Tout ce qui précède, sans restriction, plus : suspension d'un profil, correction d'un champ interne, export |
 | **Système** | Calcule la complétude, détecte les coordonnées dans les textes, détecte les doublons de domaine, émet les événements de leads, périme le badge |
 | **Brevo / Apollo.io** (externes) | Reçoivent les attributs d'enrichissement du contact, dans les limites du consentement et du périmètre du Lot 1 |
 
@@ -664,7 +664,7 @@ espacements passent par les tokens (`design-system-influx`).
 | Un créateur appelle directement l'adresse d'un profil marque hors des deux contextes autorisés | Refus au niveau de la base, journalisé (RG73, RG75) |
 | Un créateur demande la charge utile d'un profil marque avant révélation | Les champs masqués **ne figurent pas dans la réponse**, pas même vides (RG39) |
 | Un annonceur tente de lire le profil d'une autre marque | Refus : il n'existe aucun chemin de lecture d'un profil marque par un annonceur |
-| Un agent tente de retirer un badge | Refus : le retrait est réservé au rôle `admin` avec double validation |
+| Un agent tente de retirer un badge **seul, sans seconde validation** | Refus : le retrait exige une double validation — approbation d'un admin distinct, ou confirmation différée journalisée si un seul opérateur est disponible (voir `03`, `08` RG75) |
 | Un agent tente d'exporter la liste des marques | Refus : l'export est réservé au rôle `admin`, avec re-authentification, motif et journal |
 | Un annonceur tente de modifier lui-même son état en « publié » | Refus côté serveur : seul un rôle interne publie (RG6) |
 
