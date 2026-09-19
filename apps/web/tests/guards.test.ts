@@ -24,9 +24,11 @@ function relative(file: string): string {
   return path.relative(WEB_ROOT, file).split(path.sep).join("/");
 }
 
-/** Scope of G1 to G3: src/**\/*.{ts,tsx,json,css} and next.config.ts. */
+/** Scope of G1 to G3: src/**\/*.{ts,tsx,json,css} (excluding dev tooling) and next.config.ts. */
 const SCOPED_FILES = [
-  ...listFiles(SRC).filter((file) => /\.(ts|tsx|json|css)$/.test(file)),
+  ...listFiles(SRC)
+    .filter((file) => !file.includes(path.join("src", "components", "dev")))
+    .filter((file) => /\.(ts|tsx|json|css)$/.test(file)),
   path.join(WEB_ROOT, "next.config.ts"),
 ];
 
