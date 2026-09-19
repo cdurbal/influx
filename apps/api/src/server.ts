@@ -4,6 +4,10 @@ import fastify, { type FastifyInstance } from "fastify";
 import { devRoutes } from "./routes/dev-routes";
 import { authRoutes } from "./routes/auth-routes";
 import { leadRoutes } from "./routes/lead-routes";
+import { brandProfileRoutes } from "./routes/brand-profile-routes";
+import { creatorProfileRoutes } from "./routes/creator-profile-routes";
+import { storageRoutes } from "./routes/storage-routes";
+import { verificationRoutes } from "./routes/verification-routes";
 
 export interface ServerOptions {
   logger?: boolean;
@@ -46,6 +50,10 @@ export function createApp(options: ServerOptions = {}): FastifyInstance {
   app.register(devRoutes);
   app.register(authRoutes);
   app.register(leadRoutes);
+  app.register(brandProfileRoutes);
+  app.register(creatorProfileRoutes);
+  app.register(storageRoutes);
+  app.register(verificationRoutes);
 
   return app;
 }

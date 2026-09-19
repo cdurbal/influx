@@ -37,6 +37,8 @@ export interface MockStoreSnapshot {
   messages: Record<string, unknown>[];
   deals: Record<string, unknown>[];
   verificationRequests: Record<string, unknown>[];
+  ownershipCodes?: Record<string, unknown>[];
+  badges?: Record<string, unknown>[];
   auditEvents: AuditEventRecord[];
   outboxEvents: OutboxEventRecord[];
 }
@@ -55,6 +57,9 @@ export class MockStore {
   public messages = new Map<string, Record<string, unknown>[]>();
   public deals = new Map<string, Record<string, unknown>>();
   public verificationRequests = new Map<string, Record<string, unknown>>();
+  public ownershipCodes = new Map<string, Record<string, unknown>>();
+  public badges = new Map<string, Record<string, unknown>>();
+  public storageFiles = new Map<string, Record<string, unknown>>();
   public auditEvents: AuditEventRecord[] = [];
   public outboxEvents: OutboxEventRecord[] = [];
 
@@ -85,6 +90,9 @@ export class MockStore {
     this.messages.clear();
     this.deals.clear();
     this.verificationRequests.clear();
+    this.ownershipCodes.clear();
+    this.badges.clear();
+    this.storageFiles.clear();
     this.auditEvents = [];
     this.outboxEvents = [];
 
@@ -123,6 +131,8 @@ export class MockStore {
       messages: Array.from(this.messages.values()).flat(),
       deals: Array.from(this.deals.values()),
       verificationRequests: Array.from(this.verificationRequests.values()),
+      ownershipCodes: Array.from(this.ownershipCodes.values()),
+      badges: Array.from(this.badges.values()),
       auditEvents: [...this.auditEvents],
       outboxEvents: [...this.outboxEvents],
     };
@@ -194,6 +204,18 @@ export class MockStore {
       for (const item of snapshot.verificationRequests) {
         const id = item.id as string;
         if (id) this.verificationRequests.set(id, item);
+      }
+    }
+    if (snapshot.ownershipCodes) {
+      for (const item of snapshot.ownershipCodes) {
+        const id = item.id as string;
+        if (id) this.ownershipCodes.set(id, item);
+      }
+    }
+    if (snapshot.badges) {
+      for (const item of snapshot.badges) {
+        const id = item.id as string;
+        if (id) this.badges.set(id, item);
       }
     }
     if (snapshot.auditEvents) {

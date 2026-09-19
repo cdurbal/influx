@@ -38,6 +38,8 @@ export const AccountSchema = z.object({
   declaredStatus: DeclaredStatusSchema.optional(),
   emailStatus: EmailStatusSchema.default("unverified"),
   ownerAgentId: z.string().uuid().nullable().optional(),
+  isAdultAttested: z.boolean().default(true).optional(),
+  adultAttestedAt: z.string().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

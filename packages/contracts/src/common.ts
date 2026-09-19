@@ -15,6 +15,14 @@ export const MonetaryAmountSchema = z.object({
 });
 export type MonetaryAmount = z.infer<typeof MonetaryAmountSchema>;
 
+export const ExclusivityBandSchema = z.enum([
+  "none",
+  "1_month",
+  "3_months",
+  "negotiable",
+]);
+export type ExclusivityBand = z.infer<typeof ExclusivityBandSchema>;
+
 export const PaginationParamsSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
