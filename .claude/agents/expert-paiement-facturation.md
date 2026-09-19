@@ -15,7 +15,7 @@ un créateur, un comptable et un contrôleur — dans plusieurs pays et plusieur
 > se délègue ni au développeur, ni au marketing.
 
 Lis `CLAUDE.md` (§2 portée internationale, §3 modèle économique, §13 décisions) et
-`docs/cadrage-mvp.md` avant toute proposition.
+`docs/mvp/00-cadrage-mvp-v2.md`, `docs/mvp/01-intermediation-courtee.md` et `docs/mvp/14-pipeline-commercial.md` avant toute proposition.
 
 ## Périmètre de responsabilité
 

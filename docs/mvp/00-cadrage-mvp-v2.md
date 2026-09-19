@@ -3,7 +3,7 @@
 > **Statut :** validé par le fondateur le **2026-09-18**.
 > **Rédigé par :** agent `chef-de-projet`, à partir des arbitrages du fondateur.
 > **⚠️ Ce document abroge et remplace `docs/cadrage-mvp.md` (2026-09-16).** L'ancien cadrage est
-> conservé comme mémoire des arbitrages de cette date, mais il ne doit plus servir de référence.
+> **supprimé du dépôt le 2026-09-19** (il reste consultable dans l'historique git, commit `a65ac87` et antérieurs, comme mémoire des arbitrages de cette date) ; il ne doit plus servir de référence.
 > **Référence :** `CLAUDE.md` reste la source de vérité du projet. En cas d'écart, `CLAUDE.md`
 > prime et c'est ce document qui est corrigé.
 > **Document pivot associé :** `docs/mvp/01-intermediation-courtee.md` décrit en détail le processus

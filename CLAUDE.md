@@ -57,7 +57,7 @@ Aucun agent ne suppose un cadre exclusivement français : droit, fiscalité, dev
 dépendent du pays de la société et de celui des utilisateurs.
 
 Le périmètre et l'ordre de livraison du MVP sont détaillés dans **`docs/mvp/00-cadrage-mvp-v2.md`**
-(2026-09-18), qui abroge `docs/cadrage-mvp.md`.
+(2026-09-18), qui abroge l'ancien cadrage `docs/cadrage-mvp.md` (supprimé du dépôt le 2026-09-19).
 
 > **Au MVP, INFLUX est une place de marché *courtée*.** La découverte est libre — la marque cherche
 > des créateurs, le créateur postule aux campagnes — mais **aucune négociation ne se déroule sans un
@@ -764,7 +764,7 @@ Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la sociét
 ### 14.5 Ordre de travail : lots du MVP
 
 Détail, agents, skills et dépendances dans **`docs/mvp/00-cadrage-mvp-v2.md`**
-(`docs/cadrage-mvp.md` est périmé depuis le 2026-09-18).
+(l'ancien `docs/cadrage-mvp.md` a été supprimé le 2026-09-19).
 
 **MVP « place de marché courtée », 7 lots, 18 à 25 semaines** (D13, re-tranchée le 2026-09-18).
 

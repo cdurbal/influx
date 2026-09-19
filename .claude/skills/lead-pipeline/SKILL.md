@@ -180,6 +180,32 @@ Les envois `P0` ont leur propre suivi, distinct de celui des leads : **six indic
 délivrabilité du code de connexion** avec leurs seuils, et une alerte immédiate au dépassement
 (`16` RG98, RG99, alerte **AL48** de `15`). Un `P0` lent ne se découvre pas par une réclamation.
 
+### Les tests attendus — à reporter à `testeur` (document `18`)
+
+> **Sans ces tests, tout ce qui précède est une intention.** La règle 11 dit explicitement
+> qu'aucune contrainte de base ne tient le comportement du `P0` : il n'y a donc **que** le test
+> pour le démontrer. Un pipeline dont la priorité n'est pas testée est un pipeline dont la
+> priorité n'existe pas.
+
+| # | Test | Ce qu'il doit démontrer |
+|---|---|---|
+| **T1** | **Le `P0` ne passe pas par la file partagée** | Une demande de code de connexion **n'écrit aucune ligne** dans `outbox_events`. Test structurel, pas de mise en scène |
+| **T2** | **Priorité obligatoire** | Insérer un envoi **sans priorité** échoue. Un nouveau point d'appel ne peut pas hériter d'un défaut |
+| **T3** | **File saturée, code délivré** | Avec quelques milliers d'événements en attente dans `outbox_events`, un code de connexion part **dans le même ordre de grandeur de délai** qu'avec une file vide |
+| **T4** | **Interrupteur d'urgence actionné, code délivré** | Niveau « tout suspendu » : les `P1` et `P2` sont en attente, **le code de connexion et les alertes critiques internes partent** (`16` RG122) |
+| **T5** | **Saturation des contacts, envois intacts** | Une réponse `429` sur la catégorie « contacts » **ne ralentit aucun envoi transactionnel** : budgets de débit séparés (règle 12) |
+| **T6** | **Panne totale d'Apollo** | Aucun effet mesurable sur le délai des e-mails ni sur Brevo (règle 4) |
+| **T7** | **Ordre `P0` → révocation → `P1` → `P2`** | Les quatre émis à la même seconde sortent dans cet ordre |
+| **T8** | **Une révocation reste dans son objectif** | Même avec des `P0` qui la doublent en continu, une révocation est prise en charge **sous 5 minutes** (`05` RG92). C'est le test qui empêche la règle « `P0` d'abord » de dégénérer en famine |
+| **T9** | **Aucun appel externe sous verrou** | Un fournisseur volontairement lent ne bloque ni la file, ni les autres consommateurs (**D18**) |
+| **T10** | **Le `P0` ne se rejoue pas tout seul** | Un échec d'envoi de code **ne crée aucune tentative automatique** : l'échec est affiché, la personne redemande (`05` RG60) |
+
+**T8 mérite une phrase d'explication**, parce que c'est le test que l'on oublie : faire passer
+`P0` devant crée mécaniquement un **risque de famine** pour ce qui est derrière. Il est ici
+théorique — le volume de codes de connexion est sans commune mesure avec la capacité d'envoi — mais
+une règle de priorité sans test de famine est une règle qui se retourne un jour contre une
+obligation légale.
+
 ## Supervision au backoffice (exigence produit)
 
 L'agent interne doit pouvoir :
@@ -201,14 +227,56 @@ L'agent interne doit pouvoir :
    `apollo-lead-sync`).
 5. **Définir ce que voit le backoffice.**
 6. **Écrire les tests** : service indisponible, rejeu, consentement retiré entre émission et
-   consommation, ordre des événements, quota dépassé.
+   consommation, ordre des événements, quota dépassé. *(Ajouté le 2026-09-19.)* Si l'étape produit
+   un e-mail, ajouter les tests T1 à T10 applicables — et **d'abord T3 et T4** : file saturée et
+   interrupteur actionné, le code de connexion part quand même.
+7. **Choisir la priorité** *(ajouté le 2026-09-19)*. Toute étape qui envoie un e-mail déclare sa
+   priorité `P0`, `P1` ou `P2` **explicitement** (règle 10). En cas de doute, une seule question :
+   *si cet e-mail n'arrive pas, la personne est-elle empêchée d'utiliser le produit ?* Si oui,
+   c'est un `P0`, et il n'y en a presque aucun.
 
 ## Choix techniques
 
-Le mécanisme exact de file (table Postgres traitée en tâche de fond, service de file dédié…)
-est une **décision ouverte** relevant de `architecte`. Critère de tranchage : la solution la plus
-simple qui garantisse persistance, ordre par lead, réessai et rejeu manuel — sans ajouter
-d'infrastructure difficile à exploiter sur Railway.
+> **Mise à jour du 2026-09-19. La formulation précédente est abrogée** : elle présentait le
+> mécanisme de file comme une « décision ouverte » alors que **D18 est tranchée depuis le
+> 2026-09-18** (`docs/mvp/02-architecture-3-espaces.md`). Laisser une décision tranchée écrite
+> comme ouverte est le meilleur moyen qu'elle soit re-tranchée différemment par le prochain
+> lecteur.
+
+**D18, tranchée :** table **`leads.outbox_events`** + worker `FOR UPDATE SKIP LOCKED`, **verrou
+consultatif de transaction**, **priorité aux révocations**. Ni Redis, ni BullMQ. Le worker est
+issu du même paquet que `apps/api` et déployé comme **service Railway distinct**. La file
+transporte aussi les e-mails transactionnels de révélation d'identité — c'est-à-dire, dans le
+vocabulaire de cette skill, les **`P1`**.
+
+Ce qui reste vrai de l'ancien texte : le critère de choix — *la solution la plus simple qui
+garantisse persistance, ordre par lead, réessai et rejeu manuel, sans infrastructure difficile à
+exploiter sur Railway* — et il continue de s'appliquer à toute évolution.
+
+### Question ouverte pour `architecte` — le mécanisme du chemin `P0`
+
+> **Je ne tranche pas ce point : il relève de l'architecture, pas de l'intégration.** Ce qui suit
+> énonce la contrainte, les options et ma recommandation, pour que la décision soit rapide.
+
+**La contrainte, elle, n'est pas négociable** : `05` RG59 et `16` RG86 interdisent que le code de
+connexion entre dans une file partagée avec les synchronisations de contacts. **D18 n'est pas
+remise en cause** — `P1` et `P2` restent dans `outbox_events`, comme prévu. **Seul le `P0` en
+sort.** Deux points restent à décider :
+
+| # | Point à trancher | Options | Ma recommandation |
+|---|---|---|---|
+| **a** | **Par où passe un `P0` ?** | **(i)** appel **synchrone** depuis `apps/api`, dans la requête, sans file ; **(ii)** file séparée dédiée, consommée par un worker distinct ; **(iii)** même table `outbox_events` avec une priorité plus haute et un worker réservé | **(i)**. C'est le seul qui garantisse le délai **par construction** plutôt que par réglage, et il n'a rien à préserver en cas d'échec : la personne attend devant son écran, voit la cause et redemande (`05` RG60, RG64). (iii) rouvrirait exactement le risque que RG59 ferme |
+| **b** | **`leads.transactional_sends` est-il un journal, ou aussi une file ?** | **(i)** journal d'envoi seul, la file restant `outbox_events` pour les `P1`/`P2` ; **(ii)** table à double rôle, journal **et** file | **(i)**. Un journal qui devient une file finit par avoir deux vérités sur l'état d'une ligne. La table est aujourd'hui un **écart signalé de `16` §Impacts** (point 4) : elle n'existe pas encore dans `04` |
+
+**Conséquences à peser, à l'attention d'`architecte` :** l'option (a-i) met un appel externe **dans
+le chemin de la requête utilisateur**, ce qui impose un **délai d'attente court et explicite**, et
+un comportement d'échec soigné — c'est précisément ce que `05` §G spécifie déjà. Elle suppose aussi
+que le fournisseur tienne son débit sur la catégorie transactionnelle, ce que les limites vérifiées
+au `16` §M2 rendent confortable.
+
+**Décision attendue avant** : l'implémentation du Lot 1 (le code de connexion arrive avec
+l'inscription). **Arbitre : `architecte`**, avec `expert-database` pour la forme de
+`leads.transactional_sends` et l'avis d'`expert-cybersecurite` sur le délai d'attente en requête.
 
 ## Checklist
 
@@ -221,3 +289,11 @@ d'infrastructure difficile à exploiter sur Railway.
 - [ ] Rejeu manuel disponible
 - [ ] Tests de panne externe et de rejeu écrits
 - [ ] Aucune donnée personnelle superflue dans les journaux
+- [ ] **Priorité `P0` / `P1` / `P2` déclarée explicitement** pour toute sortie d'e-mail (règle 10)
+- [ ] **Le `P0` n'écrit aucune ligne dans `outbox_events`** (T1)
+- [ ] **Code de connexion délivré file saturée et interrupteur actionné** (T3, T4)
+- [ ] **Budgets de débit séparés par catégorie d'appel** — un `429` sur les contacts ne retarde
+      aucun envoi (T5)
+- [ ] **Aucune famine des révocations** : objectif de 5 minutes tenu malgré les `P0` (T8)
+- [ ] **Aucun appel externe effectué en tenant un verrou de transaction** (T9, **D18**)
+- [ ] **Question ouverte du chemin `P0` tranchée par `architecte`** avant l'implémentation du Lot 1

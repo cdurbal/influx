@@ -1397,3 +1397,167 @@ applicables à `apps/web`.
 - [Supabase — nouvelles clés d'API et authentification asymétrique](https://supabase.com/docs/guides/self-hosting/self-hosted-auth-keys)
 - [Railway — déploiement d'un monorepo](https://docs.railway.com/deployments/monorepo)
 - [CVE-2025-55182 (Vercel)](https://vercel.com/changelog/cve-2025-55182)
+
+---
+
+## 18. Addendum du 2026-09-19 — D43 : chemin d'envoi des e-mails transactionnels critiques (code de connexion)
+
+> **Date :** 2026-09-19 · **Auteur :** agent `architecte` · **Statut :** tranchée, applicable au Lot 1
+> **Saisine :** question ouverte laissée par `expert-integrations-api` dans
+> `.claude/skills/lead-pipeline/SKILL.md`, section « Les trois priorités d'envoi ».
+>
+> **Ce que cet addendum tranche :** par où passe un e-mail de priorité **`P0`** — en pratique, le
+> **code de connexion à 6 chiffres de D37** — et ce qu'est exactement `leads.transactional_sends`.
+>
+> **Ce qu'il ne remet pas en cause :** **D18** reste entière. `P1` et `P2` continuent de passer par
+> `leads.outbox_events`, avec le worker, le verrou consultatif de transaction et la priorité aux
+> révocations. **Seul le `P0` en sort.**
+>
+> **Ce qu'il ne tranche pas :** les colonnes, contraintes, droits et index exacts
+> (`expert-database`, document `04`) ; les seuils d'alerte et leur affichage (`16` §H, `15`) ; le
+> plan de test (`testeur`, document `18`) ; l'existence d'un **expéditeur de secours** pour le seul
+> code de connexion, qui reste la question ouverte **Q8 de `16`**, adressée au fondateur.
+>
+> **À lire avec :** `05` §F et §G (RG39 à RG65), `16` §H (RG85 à RG101), §J (RG121, RG122) et §M2,
+> `03` §6.1 (conditions A-1 à A-12) et §P7 (opérations élevées E-1 à E-5), `04` §5.8.
+
+### 18.1 Contexte
+
+Depuis **D37**, un membre n'a pas de mot de passe : il se connecte avec un code à six chiffres reçu
+par e-mail. La conséquence a été écrite au §16, point 7, mais elle mérite d'être répétée ici parce
+que c'est elle qui justifie tout ce qui suit :
+
+> **La délivrabilité de cet e-mail n'est pas un indicateur marketing. C'est la disponibilité du
+> produit.** Un code qui n'arrive pas n'est pas une gêne : c'est une porte fermée, et il n'y en a
+> pas d'autre.
+
+**D18** (§6) a placé dans `leads.outbox_events` « les e-mails transactionnels de mise en relation »,
+et la skill `lead-pipeline` a étendu la formule à « les e-mails transactionnels » en général. Cette
+extension est **trop large** : `05` RG59 et `16` RG86 interdisent explicitement que le code de
+connexion entre dans une file partagée avec les synchronisations de contacts. Il fallait donc dire
+par où il passe, avant que l'implémentation du Lot 1 ne le décide par défaut — c'est-à-dire par la
+solution la plus proche, la file existante.
+
+### 18.2 Les deux questions posées
+
+| # | Question |
+|---|---|
+| **a** | Par où passe un envoi `P0` : **(i)** appel synchrone dans la requête, **(ii)** file séparée dédiée avec son propre worker, **(iii)** même table `outbox_events` avec une priorité plus haute et un worker réservé ? |
+| **b** | `leads.transactional_sends` est-il **un journal seul**, ou **aussi une file** ? |
+
+### 18.3 Question (a) — options
+
+| Option | Avantages | Inconvénients |
+|---|---|---|
+| **(i) Appel synchrone dans la requête**, depuis `apps/api`, sans file | Le délai est garanti **par construction** et non par un réglage : il n'y a ni interrogation périodique, ni file, ni ordonnancement à régler, donc rien qui puisse mal se régler. **L'issue est connue au moment où la personne est encore devant son écran**, ce qui est exactement ce que `05` RG60 et RG64 exigent : trois causes distinguées, saisie conservée, bouton pour réessayer. **Rien à préserver en cas d'échec** : l'e-mail n'est pas la conséquence d'une action métier, il *est* l'action (`16` RG87). Aucun composant nouveau | Met un appel externe **dans le chemin de la requête utilisateur** : impose un délai d'attente court, une seule tentative, et un comportement d'échec soigné. Consomme une connexion HTTP et une connexion base pendant la durée de l'appel |
+| **(ii) File séparée dédiée** + worker distinct | Découplage complet : la requête ne dépend d'aucun service externe. Rejouable | **Le délai devient un réglage** : cadence d'interrogation + charge du worker + redéploiement en cours = quelques secondes qui deviennent parfois une minute, sans que rien ne soit « en panne ». **L'échec devient invisible au seul moment où la personne pouvait agir** : elle voit un succès, attend, et n'a aucune cause à lire. Découple pour préserver quelque chose qu'il n'y a pas à préserver (`16` RG87). Coûte une table, une boucle, un service ou une cadence de plus, un écran de supervision de plus |
+| **(iii) Même table, priorité plus haute, worker réservé** | Un seul mécanisme, une seule supervision | **Rouvre exactement le risque que `05` RG59 ferme.** Une table partagée, ce sont des verrous partagés, des index partagés, une purge partagée, un interrupteur d'urgence partagé et un worker partagé : une requête lente sur la file de leads, un rejeu de masse lancé au backoffice, une migration d'index, et le code de connexion attend. La priorité **dans** une file ne protège que de la concurrence ordinaire, jamais de la panne du mécanisme lui-même. C'est la fausse sécurité la plus coûteuse : elle a l'air correcte dans le code |
+| **(iv) Synchrone, puis repli en file si l'envoi échoue** | Semble prudent : « on ne perd rien » | **Écartée.** Elle produit un code qui part trois minutes plus tard, alors que la personne en a déjà demandé un autre : deux e-mails, un seul code valide (RG41), et la personne saisit le mauvais. On échange une panne lisible contre une confusion illisible. `05` RG60 et le test **T10** de la skill disent l'inverse : **pas de réessai automatique**, l'échec s'affiche et c'est la personne qui redemande |
+
+#### Grille
+
+| Critère (poids) | **(i) Synchrone** | (ii) File dédiée | (iii) File partagée | (iv) Repli |
+|---|---|---|---|---|
+| Respecte `05` RG59 / `16` RG86 (**éliminatoire**) | Oui | Oui | **Non** | Oui |
+| Délai garanti par construction (fort) | **Oui** | Non (réglage) | Non | Oui |
+| Cause de l'échec affichée à la personne (fort, `05` RG60) | **Oui** | Non | Non | Partiellement |
+| Simplicité pour un développeur (fort) | **Élevée** (rien de nouveau) | Moyenne | Moyenne | Faible |
+| Coût de sortie / réversibilité (fort) | **Élevée** (une fonction) | Moyenne | Faible | Faible |
+| Sécurité — énumération, secrets (fort) | À traiter (§18.4) | À traiter aussi | À traiter aussi | Pire (deux envois) |
+| Composants d'exploitation nouveaux (moyen) | **Aucun** | 1 table + 1 boucle + 1 écran | 0 | 1 + confusion |
+
+### 18.4 Décision (a) : **(i) — appel synchrone dans la requête, avec cinq garde-fous**
+
+La recommandation d'`expert-integrations-api` est suivie. Elle l'est pour la raison qu'elle donne —
+le délai garanti par construction — et pour une seconde, qui me paraît plus forte encore :
+
+> **Un `P0` n'a rien à découpler.** Le découplage sert à protéger une action métier déjà accomplie
+> de la défaillance d'un tiers. Ici, il n'y a **aucune action métier accomplie** : la demande de
+> code ne laisse derrière elle ni compte, ni contrat, ni preuve. Mettre en file un envoi dont
+> l'échec n'a rien à sauver, c'est payer un mécanisme pour rendre invisible la seule information
+> utile — que l'e-mail n'est pas parti.
+
+Les cinq garde-fous **font partie de la décision** ; sans eux, elle est mauvaise.
+
+| # | Garde-fou | Valeur |
+|---|---|---|
+| **G1** | **Délai d'attente court et borné sur chaque appel externe**, jamais infini | GoTrue **2 000 ms**, Brevo **3 000 ms**, budget total du gestionnaire **5 000 ms** |
+| **G2** | **Une seule tentative, aucun réessai automatique** | `05` RG60, RG64 ; test T10 |
+| **G3** | **Plancher de réponse constant**, appliqué à **toutes** les issues, succès comme échec comme plafond atteint | **1 000 ms** (RG46 : « la durée est normalisée par un plancher constant ») |
+| **G4** | **Aucun appel externe pendant qu'une transaction est ouverte** | Règle 10 du §15, test T9. Deux transactions courtes encadrent les appels, jamais une seule qui les contient |
+| **G5** | **Grappe de connexions élevée de `apps/api` plafonnée** (§18.7) | Une rafale de demandes de code ne doit pas épuiser le budget de connexions de la base au détriment du worker |
+
+Les trois valeurs de G1 et G3 sont **lues en configuration**, avec ces valeurs par défaut, et
+ajustables sans redéploiement.
+
+### 18.5 L'énumération de comptes — le point que l'envoi synchrone oblige à trancher
+
+`05` RG46 et `03` A-5 exigent une réponse **identique en contenu et en durée**, que l'adresse
+corresponde ou non à un compte. Un appel externe dans la requête met cette garantie en tension : il
+faut donc énoncer précisément **ce qui est garanti**, plutôt que de promettre une égalité stricte
+qu'aucun système appelant un tiers ne peut tenir.
+
+> **Invariant retenu, et il est testable :** *la réponse — contenu, code, en-têtes et durée — ne
+> dépend d'aucune propriété du compte. Elle peut dépendre de l'adresse demandée, de l'adresse IP
+> demandeuse et de l'état du fournisseur ; jamais de l'existence, du rôle, de l'état ni de
+> l'historique d'un compte.*
+
+C'est la bonne formulation, parce que la latence de Brevo est **la même variable aléatoire dans les
+deux cas** : c'est du bruit commun, pas un signal. Une énumération exige une différence
+**systématique**. Trois règles suppriment toutes les différences systématiques.
+
+**R1 — Supprimer la branche, plutôt que la masquer.** Le gestionnaire exécute **exactement la même
+suite d'appels** dans les deux cas. Concrètement : l'utilisateur GoTrue est créé
+**inconditionnellement** (l'erreur « déjà existant » est avalée), *puis* le code est demandé. Deux
+appels à chaque fois, pour tout le monde. Un `if (compte existe)` qui choisirait entre un et deux
+appels réintroduirait une différence de durée **corrélée à ce que l'on protège**, et aucun plancher
+ne la masquerait dans la queue de distribution. Le surcoût est d'un appel court par demande, à un
+volume de quelques demandes par minute : il est nul en pratique.
+
+> **Conséquence à assumer et à traiter :** toute adresse demandée crée un utilisateur GoTrue, même
+> sans inscription ensuite. Deux parades, déjà disponibles : la limitation de débit à trois niveaux
+> (`05` RG44) et une **purge périodique** des utilisateurs GoTrue sans ligne `identity.accounts` au
+> bout de 24 h, à rattacher à l'opération élevée **E-4** (`maintenance.run_periodic`). À porter à
+> `expert-database` et à soumettre à `expert-cybersecurite`.
+
+**R2 — Plancher constant sur toutes les issues.** La réponse n'est jamais rendue avant
+**1 000 ms** après réception, y compris quand le plafond de demandes est atteint (cause c), quand
+le disjoncteur est ouvert, et quand la validation d'entrée échoue. Un chemin d'erreur rapide est un
+oracle aussi sûr qu'un message différent.
+
+**R3 — Trois issues, et trois seulement.** Les causes de `05` RG60 sont **toutes des propriétés de
+l'adresse, du demandeur ou du fournisseur** :
+
+| Issue | Ce qu'elle révèle | Verdict |
+|---|---|---|
+| **(a) Adresse non délivrable** — le fournisseur **refuse l'adresse au moment de l'appel** | Une propriété de l'adresse | Acceptable, **sous la réserve ci-dessous** |
+| **(b) Service d'envoi indisponible** | Un état global, identique pour tout le monde | Acceptable |
+| **(c) Plafond de demandes atteint** | Une propriété du demandeur (adresse sollicitée, IP) | Acceptable |
+
+> **Réserve sur la cause (a), à faire valider par `expert-cybersecurite`.** Nous ne consultons
+> **jamais** `identity.email_delivery_incidents` ni l'état `accounts.email_status` **avant**
+> d'envoyer : un contrôle préalable transformerait un état interne en oracle. La cause (a) n'est
+> affichée que sur un **refus du fournisseur portant sur l'adresse elle-même**. Il reste alors un
+> oracle résiduel étroit : si Brevo a l'adresse sur sa propre liste de suppression parce qu'elle a
+> rebondi chez nous, un attaquant apprend que cette adresse a déjà reçu un e-mail d'INFLUX. C'est
+> très en deçà d'une énumération de comptes, ce n'est pas exploitable à l'échelle (20 demandes par
+> heure et par IP, `05` RG44), et le rendre impossible coûterait d'afficher un message unique —
+> précisément ce que `05` RG60 refuse. **Risque résiduel accepté, écrit ici pour qu'il soit refusé
+> explicitement s'il ne l'est pas.**
+
+**Corollaire d'exploitation, souvent oublié :** un échec de cause **(b)** ne doit **pas** consommer
+le quota par adresse de `05` RG44. Sinon une panne de trois minutes chez Brevo verrouille pour
+quinze minutes les personnes qui ont eu la mauvaise idée de réessayer — la panne survivrait à la
+panne. Il consomme en revanche le quota par IP, qui est l'anti-abus. (Point soumis à
+`expert-cybersecurite`.)
+
+### 18.6 Panne du fournisseur : ce qui se passe, et ce que personne ne doit croire
+
+| Question | Réponse |
+|---|---|
+| L'action échoue-t-elle ? | **Oui, et visiblement.** Il n'y a rien d'autre à préserver (`16` RG87). Jamais de faux succès (`05` RG64) |
+| Est-ce distinguable selon le compte ? | **Non** : la panne est globale, la réponse est la même pour toutes les adresses |
+| Que voit la personne ? | Le message de cause (b), sa **saisie conservée**, un bouton pour réessayer, et le canal de secours de `05` RG65 |
+| Que voit l'exploitation ? | Une ligne `failed` dans `leads.transactional_sends`, les six indicateurs de `16` RG98 et l'alerte **AL48**, immédiate, vers `admin`. **Un `P0` lent ne se découvre pas par une réclamation** |
+| Réessaie-t-on tout seul ? | **Non** (G2). Un **disjoncteur** simple évite seulement de tenir 3 000 ms pour rien : après **5 échecs de transport consécutifs**, les demandes reçoivent immédiatement la cause (b) pendant **30 secondes**, puis un appel de test rouvre le circuit. Le disjoncteur est **global** : son état ne dépend d'aucune adresse, il ne crée donc aucun oracle |
+| Et si Brevo est durablement hors service ? | **Personne ne se connecte, et c'est une limite assumée du MVP** (`16` RG122 et Q8). Il n'y a **pas** d'expéditeur de secours au Lot 1. Si le fondateur veut supprimer ce point de défaillance unique, c'est un second prestataire d'envoi réservé au seul `P0` — **chiffrable, non retenu par défaut** |
