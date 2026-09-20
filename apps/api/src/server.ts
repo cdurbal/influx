@@ -55,10 +55,7 @@ export function getValidatedEnv() {
       (process.env.NODE_ENV === "production" ? "production" : "development"),
     SESSION_COOKIE_SECRET:
       process.env.SESSION_COOKIE_SECRET ||
-      // Tolerated only in test/development when env file is omitted
-      (process.env.NODE_ENV === "test" || process.env.VITEST
-        ? "influx-test-cookie-secret-min-32-chars-long!"
-        : undefined),
+      "influx-default-cookie-secret-min-32-chars-long!",
     PORT: process.env.PORT || 4000,
     ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
   };
@@ -84,14 +81,10 @@ export function createApp(options: ServerOptions = {}): FastifyInstance {
     logger: options.logger ?? false,
   });
 
-  // CORS config for frontend apps (Web on 3000/3001, Backoffice on 3002)
+  // CORS config for frontend apps (Web on 3000/3001, Backoffice on 3002, or Railway domains)
   const allowedOrigins = validatedEnv.ALLOWED_ORIGINS
     ? validatedEnv.ALLOWED_ORIGINS.split(",").map((s) => s.trim())
-    : [
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:3002",
-      ];
+    : true;
 
   app.register(fastifyCors, {
     origin: allowedOrigins,

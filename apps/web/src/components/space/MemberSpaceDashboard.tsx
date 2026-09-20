@@ -486,7 +486,11 @@ export function MemberSpaceDashboard({ locale }: MemberSpaceDashboardProps) {
         </div>
 
         <a
-          href="http://localhost:3002/queues/campaigns"
+          href={
+            process.env.NEXT_PUBLIC_BACKOFFICE_URL
+              ? `${process.env.NEXT_PUBLIC_BACKOFFICE_URL}/queues/campaigns`
+              : "http://localhost:3002/queues/campaigns"
+          }
           target="_blank"
           rel="noopener noreferrer"
           className="shrink-0 rounded-lg bg-surface-card border border-border-selected px-4 py-2 text-xs font-semibold text-text-brand hover:bg-surface-raised transition-colors"

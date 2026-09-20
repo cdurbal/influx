@@ -9,10 +9,11 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // No images.remotePatterns: remote images are refused (CA11, 01 §6.3).
   async rewrites() {
+    const apiDestination = process.env.API_URL || "http://localhost:4000";
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:4000/api/:path*",
+        destination: `${apiDestination}/api/:path*`,
       },
     ];
   },
