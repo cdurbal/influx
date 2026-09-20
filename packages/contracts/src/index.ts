@@ -5,4 +5,6 @@ export * from "./brand-profile";
 export * from "./creator-profile";
 export * from "./storage";
 export * from "./verification";
+export * from "./campaign";
+export * from "./search";
 export { z } from "zod";

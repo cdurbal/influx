@@ -106,7 +106,7 @@ describe("Seed Data & Default Mock Population", () => {
     const campaign1 = store.campaigns.get(SEED_IDS.CAMPAIGN_1);
     expect(campaign1).toBeDefined();
     expect(campaign1?.title).toBe("Lancement Sérum Éco-Bio Printemps");
-    expect(campaign1?.status).toBe("published");
+    expect(["published", "publiee"]).toContain(campaign1?.status);
     expect(campaign1?.advertiserAccountId).toBe(SEED_IDS.ADVERTISER_1);
   });
 

@@ -8,6 +8,8 @@ import { brandProfileRoutes } from "./routes/brand-profile-routes";
 import { creatorProfileRoutes } from "./routes/creator-profile-routes";
 import { storageRoutes } from "./routes/storage-routes";
 import { verificationRoutes } from "./routes/verification-routes";
+import { campaignRoutes } from "./routes/campaign-routes";
+import { searchRoutes } from "./routes/search-routes";
 
 import { existsSync } from "node:fs";
 import path from "node:path";
@@ -120,6 +122,8 @@ export function createApp(options: ServerOptions = {}): FastifyInstance {
   app.register(creatorProfileRoutes);
   app.register(storageRoutes);
   app.register(verificationRoutes);
+  app.register(campaignRoutes);
+  app.register(searchRoutes);
 
   return app;
 }

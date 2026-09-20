@@ -15,13 +15,24 @@ export default function DashboardLayout({
   const navItems = [
     { label: bo.nav.dashboard, href: "#", badge: null },
     {
-      label: bo.nav.queues,
+      label: "File 4 · Badges",
       href: "/queues/verification",
-      badge: "File 4",
-      active: pathname.startsWith("/queues"),
+      badge: "Niv. 1 & 2",
+      active: pathname.startsWith("/queues/verification"),
+    },
+    {
+      label: "File 7 · Campagnes",
+      href: "/queues/campaigns",
+      badge: "Modération",
+      active: pathname.startsWith("/queues/campaigns"),
     },
     { label: bo.nav.accounts, href: "#", badge: null },
-    { label: bo.nav.creatorSearch, href: "#", badge: null },
+    {
+      label: "Créateurs (Identifié)",
+      href: "/creators/search",
+      badge: "Vue réelle",
+      active: pathname.startsWith("/creators/search"),
+    },
     { label: bo.nav.deals, href: "#", badge: null },
     { label: bo.nav.alerts, href: "#", badge: null },
     { label: bo.nav.admin, href: "#", badge: null },

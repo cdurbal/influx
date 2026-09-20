@@ -451,3 +451,38 @@ export function calculateBrandProfileCompleteness(
     missingRequiredForPublish,
   };
 }
+
+/**
+ * Filtre strictement le profil marque vers sa vue publique créateur (RG74, RG98)
+ * Omet contactFirstName, contactEmail, contactPhone, contactPageUrl.
+ */
+export function sanitizeBrandProfileToPublic(
+  profile: BrandProfile,
+): BrandProfilePublicView {
+  return BrandProfilePublicViewSchema.parse({
+    id: profile.id,
+    companyName: profile.companyName,
+    logoUrl: profile.logoUrl ?? null,
+    sector: profile.sector,
+    secondarySectors: profile.secondarySectors || [],
+    companySize: profile.companySize,
+    country: profile.country,
+    targetMarkets: profile.targetMarkets || [profile.country],
+    languages: profile.languages || ["fr"],
+    website: profile.website ?? null,
+    presentation: profile.presentation,
+    topics: profile.topics || [],
+    targetNetworks: profile.targetNetworks || [],
+    expectedFormats: profile.expectedFormats || [],
+    indicativeBudgetBand: profile.indicativeBudgetBand ?? null,
+    currency: profile.currency || "EUR",
+    usageRights: profile.usageRights || [],
+    exclusivity: profile.exclusivity ?? null,
+    nonMonetaryCounterpart: profile.nonMonetaryCounterpart || false,
+    targetAudienceCountries: profile.targetAudienceCountries || ["FR"],
+    collaborationRhythm: profile.collaborationRhythm ?? null,
+    contactRole: profile.contactRole || "marketing",
+    badgeStatus: profile.badgeStatus || "none",
+    badgeVerifiedAt: profile.badgeVerifiedAt ?? null,
+  });
+}

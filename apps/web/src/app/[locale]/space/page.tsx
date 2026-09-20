@@ -7,7 +7,9 @@ import { LinkButton } from "@/components/ui/LinkButton";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { routing } from "@/i18n/routing";
 
-function isKnownProfile(value: string | undefined): value is "advertiser" | "creator" {
+function isKnownProfile(
+  value: string | undefined,
+): value is "advertiser" | "creator" {
   return value === "advertiser" || value === "creator";
 }
 
@@ -57,6 +59,31 @@ export default async function MemberSpacePage({
             />
             {t("space.mockupNotice")}
           </p>
+          {profile === "creator" && (
+            <div className="flex flex-wrap gap-4 pt-2">
+              <LinkButton href="/creator/campaigns" variant="primary">
+                {locale === "en"
+                  ? "Browse Open Campaigns"
+                  : "Trouver une campagne"}
+              </LinkButton>
+              <LinkButton href="/creator/profile" variant="secondary">
+                {locale === "en" ? "My Creator Profile" : "Mon profil créateur"}
+              </LinkButton>
+            </div>
+          )}
+          {profile === "advertiser" && (
+            <div className="flex flex-wrap gap-4 pt-2">
+              <LinkButton href="/advertiser/creators" variant="primary">
+                {locale === "en" ? "Search Creators" : "Recherche de créateurs"}
+              </LinkButton>
+              <LinkButton href="/advertiser/campaigns" variant="secondary">
+                {locale === "en" ? "My Campaigns" : "Mes campagnes"}
+              </LinkButton>
+              <LinkButton href="/advertiser/profile" variant="secondary">
+                {locale === "en" ? "My Brand Profile" : "Mon profil marque"}
+              </LinkButton>
+            </div>
+          )}
           <LinkButton href="/" variant="secondary" className="self-start">
             {t("space.backHome")}
           </LinkButton>

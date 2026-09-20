@@ -22,6 +22,7 @@ export const ExclusivityBandSchema = z.enum([
   "negotiable",
 ]);
 export type ExclusivityBand = z.infer<typeof ExclusivityBandSchema>;
+export const EXCLUSIVITY_BANDS = ExclusivityBandSchema.options;
 
 export const PaginationParamsSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

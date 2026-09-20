@@ -39,6 +39,12 @@ export interface MockStoreSnapshot {
   verificationRequests: Record<string, unknown>[];
   ownershipCodes?: Record<string, unknown>[];
   badges?: Record<string, unknown>[];
+  searchQueries?: Record<string, unknown>[];
+  searchImpressions?: Record<string, unknown>[];
+  shortlists?: Record<string, unknown>[];
+  shortlistItems?: Record<string, unknown>[];
+  teamSelectionRequests?: Record<string, unknown>[];
+  userBlocks?: Record<string, unknown>[];
   auditEvents: AuditEventRecord[];
   outboxEvents: OutboxEventRecord[];
 }
@@ -60,6 +66,19 @@ export class MockStore {
   public ownershipCodes = new Map<string, Record<string, unknown>>();
   public badges = new Map<string, Record<string, unknown>>();
   public storageFiles = new Map<string, Record<string, unknown>>();
+  public searchQueries = new Map<string, Record<string, unknown>>();
+  public searchImpressions = new Map<string, Record<string, unknown>[]>();
+  public shortlists = new Map<string, Record<string, unknown>>();
+  public shortlistItems = new Map<string, Record<string, unknown>[]>();
+  public teamSelectionRequests = new Map<string, Record<string, unknown>>();
+  public userBlocks = new Map<string, Record<string, unknown>>();
+  public searchSettings = {
+    isOpenToAdvertisers: true,
+    kAnonymityThreshold: 5,
+    pageSize: 12,
+    maxPages: 5,
+    coldProfileQuota: 2,
+  };
   public auditEvents: AuditEventRecord[] = [];
   public outboxEvents: OutboxEventRecord[] = [];
 
@@ -93,6 +112,19 @@ export class MockStore {
     this.ownershipCodes.clear();
     this.badges.clear();
     this.storageFiles.clear();
+    this.searchQueries.clear();
+    this.searchImpressions.clear();
+    this.shortlists.clear();
+    this.shortlistItems.clear();
+    this.teamSelectionRequests.clear();
+    this.userBlocks.clear();
+    this.searchSettings = {
+      isOpenToAdvertisers: true,
+      kAnonymityThreshold: 5,
+      pageSize: 12,
+      maxPages: 5,
+      coldProfileQuota: 2,
+    };
     this.auditEvents = [];
     this.outboxEvents = [];
 
@@ -133,6 +165,12 @@ export class MockStore {
       verificationRequests: Array.from(this.verificationRequests.values()),
       ownershipCodes: Array.from(this.ownershipCodes.values()),
       badges: Array.from(this.badges.values()),
+      searchQueries: Array.from(this.searchQueries.values()),
+      searchImpressions: Array.from(this.searchImpressions.values()).flat(),
+      shortlists: Array.from(this.shortlists.values()),
+      shortlistItems: Array.from(this.shortlistItems.values()).flat(),
+      teamSelectionRequests: Array.from(this.teamSelectionRequests.values()),
+      userBlocks: Array.from(this.userBlocks.values()),
       auditEvents: [...this.auditEvents],
       outboxEvents: [...this.outboxEvents],
     };
@@ -216,6 +254,52 @@ export class MockStore {
       for (const item of snapshot.badges) {
         const id = item.id as string;
         if (id) this.badges.set(id, item);
+      }
+    }
+    if (snapshot.searchQueries) {
+      for (const item of snapshot.searchQueries) {
+        const id = item.id as string;
+        if (id) this.searchQueries.set(id, item);
+      }
+    }
+    if (snapshot.searchImpressions) {
+      for (const item of snapshot.searchImpressions) {
+        const qId = item.searchQueryId as string;
+        if (qId) {
+          const list = this.searchImpressions.get(qId) || [];
+          list.push(item);
+          this.searchImpressions.set(qId, list);
+        }
+      }
+    }
+    if (snapshot.shortlists) {
+      for (const item of snapshot.shortlists) {
+        const id = item.id as string;
+        if (id) this.shortlists.set(id, item);
+      }
+    }
+    if (snapshot.shortlistItems) {
+      for (const item of snapshot.shortlistItems) {
+        const sId = item.shortlistId as string;
+        if (sId) {
+          const list = this.shortlistItems.get(sId) || [];
+          list.push(item);
+          this.shortlistItems.set(sId, list);
+        }
+      }
+    }
+    if (snapshot.teamSelectionRequests) {
+      for (const item of snapshot.teamSelectionRequests) {
+        const id = item.id as string;
+        if (id) this.teamSelectionRequests.set(id, item);
+      }
+    }
+    if (snapshot.userBlocks) {
+      for (const item of snapshot.userBlocks) {
+        const id =
+          (item.id as string) ||
+          `${item.blockerAccountId}_${item.blockedAccountId}`;
+        this.userBlocks.set(id, item);
       }
     }
     if (snapshot.auditEvents) {
