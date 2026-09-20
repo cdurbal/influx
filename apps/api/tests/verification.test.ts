@@ -276,6 +276,27 @@ describe("Mission 2.6 : Service d'attribution et péremption de badge", () => {
       expect(found.network).toBe("youtube");
     });
 
+    it("supporte la pagination et renvoie les métriques SLA côté serveur (B-E6, B-E9)", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/backoffice/queues/verification?page=1&limit=10",
+        headers: { authorization: `Bearer ${agentToken}` },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const data = res.json();
+      expect(data.page).toBe(1);
+      expect(data.limit).toBe(10);
+      expect(data.total).toBeGreaterThanOrEqual(1);
+      expect(data.totalPages).toBeGreaterThanOrEqual(1);
+      expect(data.metrics).toBeDefined();
+      expect(typeof data.metrics.totalPending).toBe("number");
+      expect(typeof data.metrics.totalBreached).toBe("number");
+      expect(Array.isArray(data.items)).toBe(true);
+      expect(data.items[0]).toHaveProperty("creatorAlias");
+      expect(data.items[0]).toHaveProperty("slaBreached");
+    });
+
     it("permet à un agent de prendre en charge une demande avec verrou de 30 minutes (RG43, RG64)", async () => {
       const { request } = await verificationService.requestVerification(
         creatorAccount,

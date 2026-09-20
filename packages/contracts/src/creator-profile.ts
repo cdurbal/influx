@@ -244,6 +244,22 @@ export function getEstimatedNetForPriceBand(
   };
 }
 
+/**
+ * Dérive automatiquement la tranche de tarif à partir du montant exact saisi (RG22, RG66)
+ */
+export function calculatePriceBandFromAmount(
+  amountMinor: number,
+  _currency: string = "EUR",
+): PriceBand {
+  if (amountMinor < 25000) return "lt_250";
+  if (amountMinor < 50000) return "250_500";
+  if (amountMinor < 100000) return "500_1000";
+  if (amountMinor < 200000) return "1000_2000";
+  if (amountMinor < 500000) return "2000_5000";
+  if (amountMinor < 1000000) return "5000_10000";
+  return "plus_10000";
+}
+
 // ==========================================
 // 3. Sous-modèles par couche
 // ==========================================

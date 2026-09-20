@@ -2,19 +2,20 @@
 
 import {
   PriceBandSchema,
+  calculatePriceBandFromAmount,
   getEstimatedNetForPriceBand,
   type CreatorOfferInternal,
   type PriceBand,
   type AvailabilityBand,
   type ExclusivityBand,
   type DeliveryLeadBand,
+  type Currency,
 } from "@influx/contracts";
 import { inputClassName } from "@/components/ui/form-controls";
 import {
   BriefcaseIcon,
   CircleAlertIcon,
   InfoIcon,
-  TrendingUpIcon,
 } from "@/components/ui/icons";
 import type { CreatorProfileLabels } from "./creator-profile-labels";
 
@@ -26,6 +27,7 @@ export interface RateCardEditorProps {
   onChangeAvailability: (val: AvailabilityBand) => void;
   onChangeAcceptsGifts: (val: boolean) => void;
   labels: CreatorProfileLabels;
+  locale?: string;
 }
 
 const FORMAT_OPTIONS = [
@@ -53,14 +55,12 @@ const NETWORK_OPTIONS = [
   { value: "pinterest", label: "Pinterest" },
 ] as const;
 
-const PRICE_BAND_OPTIONS: { value: PriceBand; label: string }[] = [
-  { value: "lt_250", label: "Moins de 250 € (Micro-format)" },
-  { value: "250_500", label: "250 € à 500 €" },
-  { value: "500_1000", label: "500 € à 1 000 €" },
-  { value: "1000_2000", label: "1 000 € à 2 000 €" },
-  { value: "2000_5000", label: "2 000 € à 5 000 €" },
-  { value: "5000_10000", label: "5 000 € à 10 000 €" },
-  { value: "plus_10000", label: "Plus de 10 000 € (Grand projet)" },
+const CURRENCY_OPTIONS: { value: Currency; label: string }[] = [
+  { value: "EUR", label: "EUR (€)" },
+  { value: "USD", label: "USD ($)" },
+  { value: "GBP", label: "GBP (£)" },
+  { value: "CAD", label: "CAD ($)" },
+  { value: "BRL", label: "BRL (R$)" },
 ];
 
 const DELIVERY_LEAD_OPTIONS: { value: DeliveryLeadBand; label: string }[] = [
@@ -87,10 +87,50 @@ const USAGE_RIGHTS_AVAILABLE = [
   { id: "print_pos", label: "Affichage print / PLV boutique" },
 ] as const;
 
-const STANDARD_COMMISSION_DISPLAY = "35 % (Barème standard)";
 const AVAILABILITY_2W_LABEL = "Disponible sous 2 semaines";
 const AVAILABILITY_1M_LABEL = "Disponible sous 1 mois";
 const AVAILABILITY_FULL_LABEL = "Complet / Indisponible actuellement";
+
+function formatCurrencyAmount(
+  amount: number,
+  currency: string = "EUR",
+  locale: string = "fr-FR",
+): string {
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    return `${amount} ${currency}`;
+  }
+}
+
+function getPriceBandDisplay(
+  band: PriceBand,
+  currency: string = "EUR",
+  locale: string = "fr-FR",
+): string {
+  switch (band) {
+    case "lt_250":
+      return `Moins de ${formatCurrencyAmount(250, currency, locale)}`;
+    case "250_500":
+      return `${formatCurrencyAmount(250, currency, locale)} – ${formatCurrencyAmount(500, currency, locale)}`;
+    case "500_1000":
+      return `${formatCurrencyAmount(500, currency, locale)} – ${formatCurrencyAmount(1000, currency, locale)}`;
+    case "1000_2000":
+      return `${formatCurrencyAmount(1000, currency, locale)} – ${formatCurrencyAmount(2000, currency, locale)}`;
+    case "2000_5000":
+      return `${formatCurrencyAmount(2000, currency, locale)} – ${formatCurrencyAmount(5000, currency, locale)}`;
+    case "5000_10000":
+      return `${formatCurrencyAmount(5000, currency, locale)} – ${formatCurrencyAmount(10000, currency, locale)}`;
+    case "plus_10000":
+      return `Plus de ${formatCurrencyAmount(10000, currency, locale)}`;
+    default:
+      return band;
+  }
+}
 
 export function RateCardEditor({
   offers,
@@ -100,23 +140,32 @@ export function RateCardEditor({
   onChangeAvailability,
   onChangeAcceptsGifts,
   labels,
+  locale = "fr-FR",
 }: RateCardEditorProps) {
   const l = labels.rates;
   const layers = labels.layers;
 
   function handleAddOffer() {
+    const defaultAmountMinor = 75000;
+    const defaultCurrency = "EUR";
+    const derivedBand = calculatePriceBandFromAmount(
+      defaultAmountMinor,
+      defaultCurrency,
+    );
+    const netInfo = getEstimatedNetForPriceBand(derivedBand, defaultCurrency);
+
     const newOffer: CreatorOfferInternal = {
       format: "post",
       network: "instagram",
-      priceBand: "500_1000",
-      currency: "EUR",
+      priceBand: derivedBand,
+      currency: defaultCurrency,
       deliveryLeadBand: "7_14d",
       includedUsageRights: ["digital_organic"],
       optionalUsageRights: ["digital_paid_ads"],
       exclusivity: "none",
-      exactAmountMinor: 75000,
-      estimatedNetMinMinor: 32500,
-      estimatedNetMaxMinor: 65000,
+      exactAmountMinor: defaultAmountMinor,
+      estimatedNetMinMinor: netInfo.minNetMinor,
+      estimatedNetMaxMinor: netInfo.maxNetMinor,
     };
     onChangeOffers([...offers, newOffer]);
   }
@@ -126,27 +175,47 @@ export function RateCardEditor({
     onChangeOffers(updated);
   }
 
-  function handleUpdateOffer(
+  function handleUpdateExactAmount(index: number, exactAmountMajor: number) {
+    const updated = [...offers];
+    const current = { ...updated[index] };
+    const amountMinor = Math.max(100, Math.round(exactAmountMajor * 100));
+    const currency = current.currency || "EUR";
+    const derivedBand = calculatePriceBandFromAmount(amountMinor, currency);
+    const netInfo = getEstimatedNetForPriceBand(derivedBand, currency);
+
+    current.exactAmountMinor = amountMinor;
+    current.priceBand = derivedBand;
+    current.estimatedNetMinMinor = netInfo.minNetMinor;
+    current.estimatedNetMaxMinor = netInfo.maxNetMinor;
+
+    updated[index] = current as CreatorOfferInternal;
+    onChangeOffers(updated);
+  }
+
+  function handleUpdateCurrency(index: number, currency: Currency) {
+    const updated = [...offers];
+    const current = { ...updated[index] };
+    const amountMinor = current.exactAmountMinor || 75000;
+    const derivedBand = calculatePriceBandFromAmount(amountMinor, currency);
+    const netInfo = getEstimatedNetForPriceBand(derivedBand, currency);
+
+    current.currency = currency;
+    current.priceBand = derivedBand;
+    current.estimatedNetMinMinor = netInfo.minNetMinor;
+    current.estimatedNetMaxMinor = netInfo.maxNetMinor;
+
+    updated[index] = current as CreatorOfferInternal;
+    onChangeOffers(updated);
+  }
+
+  function handleUpdateOfferField(
     index: number,
     field: keyof CreatorOfferInternal,
     value: unknown,
   ) {
     const updated = [...offers];
     const current = { ...updated[index] };
-
-    if (field === "priceBand") {
-      const pb = value as PriceBand;
-      const netInfo = getEstimatedNetForPriceBand(
-        pb,
-        current.currency || "EUR",
-      );
-      current.priceBand = pb;
-      current.estimatedNetMinMinor = netInfo.minNetMinor;
-      current.estimatedNetMaxMinor = netInfo.maxNetMinor;
-    } else {
-      (current as Record<string, unknown>)[field] = value;
-    }
-
+    (current as Record<string, unknown>)[field] = value;
     updated[index] = current as CreatorOfferInternal;
     onChangeOffers(updated);
   }
@@ -159,7 +228,7 @@ export function RateCardEditor({
       ? offer.includedUsageRights.filter((r) => r !== rightId)
       : [...offer.includedUsageRights, rightId];
 
-    handleUpdateOffer(index, "includedUsageRights", updatedRights);
+    handleUpdateOfferField(index, "includedUsageRights", updatedRights);
   }
 
   function handleToggleOptionalRight(index: number, rightId: string) {
@@ -170,7 +239,7 @@ export function RateCardEditor({
       ? offer.optionalUsageRights.filter((r) => r !== rightId)
       : [...offer.optionalUsageRights, rightId];
 
-    handleUpdateOffer(index, "optionalUsageRights", updatedRights);
+    handleUpdateOfferField(index, "optionalUsageRights", updatedRights);
   }
 
   return (
@@ -178,7 +247,7 @@ export function RateCardEditor({
       {/* Alerte primordiale RG65 : Coût marque total vs Net perçu */}
       <div className="flex items-start gap-3 rounded-md border-(length:--border-width-thin) border-border-selected bg-surface-card p-4 text-text-primary">
         <InfoIcon
-          className="size-(--size-icon-md) shrink-0 text-text-brand"
+          className="size-(--size-icon-md) shrink-0 text-text-brand mt-0.5"
           aria-hidden="true"
         />
         <div className="flex flex-col gap-1 text-xs">
@@ -222,30 +291,36 @@ export function RateCardEditor({
             </select>
           </label>
 
-          <label className="flex items-center gap-3 pt-4 text-sm text-text-primary">
+          <label className="flex items-center gap-3 pt-5 text-xs text-text-primary">
             <input
               type="checkbox"
               checked={acceptsNonMonetaryCounterpart}
               onChange={(e) => onChangeAcceptsGifts(e.target.checked)}
-              className="size-(--size-icon-sm) rounded-sm border-(length:--border-width-thin) border-border-subtle bg-surface-page"
+              className="size-4 rounded border-border-strong text-text-brand focus:ring-focus-ring"
             />
-            <span className="text-xs text-text-secondary">
-              {l.acceptsGiftsLabel}
-            </span>
+            <div className="flex flex-col">
+              <span className="font-semibold">{l.acceptsGiftsLabel}</span>
+              <span className="text-text-tertiary">
+                Produits offerts ou dotations acceptés en complément ou alternative
+              </span>
+            </div>
           </label>
         </div>
       </div>
 
-      {/* Offers List */}
+      {/* Rate card list */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <span className="text-heading-3 font-semibold text-text-primary">
-            {l.title}
-          </span>
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold text-text-primary">
+              {l.title}
+            </span>
+            <span className="text-xs text-text-tertiary">{l.subtitle}</span>
+          </div>
           <button
             type="button"
             onClick={handleAddOffer}
-            className="rounded-md border-(length:--border-width-thin) border-border-selected px-3 py-2 text-xs font-medium text-text-brand hover:bg-surface-raised"
+            className="rounded-md border-(length:--border-width-thin) border-border-strong bg-surface-raised px-3 py-1.5 text-xs font-semibold text-text-primary hover:bg-surface-hover"
           >
             {l.addOfferBtn}
           </button>
@@ -268,14 +343,12 @@ export function RateCardEditor({
           </div>
         ) : (
           offers.map((offer, idx) => {
+            const currency = offer.currency || "EUR";
             const pb = PriceBandSchema.safeParse(offer.priceBand).success
               ? (offer.priceBand as PriceBand)
-              : "500_1000";
-            const netInfo = getEstimatedNetForPriceBand(
-              pb,
-              offer.currency || "EUR",
-            );
+              : calculatePriceBandFromAmount(offer.exactAmountMinor || 75000, currency);
 
+            const netInfo = getEstimatedNetForPriceBand(pb, currency);
             const minNetEur = Math.round(netInfo.minNetMinor / 100);
             const maxNetEur = Math.round(netInfo.maxNetMinor / 100);
 
@@ -283,10 +356,9 @@ export function RateCardEditor({
             const formatOptionLabel =
               FORMAT_OPTIONS.find((f) => f.value === offer.format)?.label ||
               offer.format;
-            const priceBandLabel =
-              PRICE_BAND_OPTIONS.find((p) => p.value === offer.priceBand)
-                ?.label || offer.priceBand;
-            const netRangeDisplay = `${minNetEur} € – ${maxNetEur} €`;
+            const priceBandLabel = getPriceBandDisplay(pb, currency, locale);
+            const netRangeDisplay = `≈ ${formatCurrencyAmount(minNetEur, currency, locale)} – ${formatCurrencyAmount(maxNetEur, currency, locale)}`;
+            const currentExactMajor = (offer.exactAmountMinor || 75000) / 100;
 
             return (
               <div
@@ -312,14 +384,14 @@ export function RateCardEditor({
                   </button>
                 </div>
 
-                {/* Primary offer fields */}
+                {/* Primary offer fields : Format, Réseau, Montant exact & Devise */}
                 <div className="grid gap-4 sm:grid-cols-3">
                   <label className="flex flex-col gap-1 text-xs text-text-secondary">
                     <span>{l.formatLabel}</span>
                     <select
                       value={offer.format}
                       onChange={(e) =>
-                        handleUpdateOffer(idx, "format", e.target.value)
+                        handleUpdateOfferField(idx, "format", e.target.value)
                       }
                       className={inputClassName(false)}
                     >
@@ -336,7 +408,7 @@ export function RateCardEditor({
                     <select
                       value={offer.network}
                       onChange={(e) =>
-                        handleUpdateOffer(idx, "network", e.target.value)
+                        handleUpdateOfferField(idx, "network", e.target.value)
                       }
                       className={inputClassName(false)}
                     >
@@ -348,28 +420,45 @@ export function RateCardEditor({
                     </select>
                   </label>
 
-                  <label className="flex flex-col gap-1 text-xs text-text-secondary">
-                    <span>{l.priceBandLabel}</span>
-                    <select
-                      value={offer.priceBand}
-                      onChange={(e) =>
-                        handleUpdateOffer(idx, "priceBand", e.target.value)
-                      }
-                      className={inputClassName(false)}
-                    >
-                      {PRICE_BAND_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  {/* M1 : Saisie en valeur exacte (Couche N) + dérivation automatique */}
+                  <div className="flex flex-col gap-1 text-xs text-text-secondary">
+                    <span>{l.priceBandLabel} (Montant exact indicatif)</span>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        step="10"
+                        value={currentExactMajor}
+                        onChange={(e) =>
+                          handleUpdateExactAmount(idx, Number(e.target.value))
+                        }
+                        className={`${inputClassName(false)} flex-1`}
+                        placeholder="Ex: 750"
+                      />
+                      <select
+                        value={currency}
+                        onChange={(e) =>
+                          handleUpdateCurrency(idx, e.target.value as Currency)
+                        }
+                        className={`${inputClassName(false)} w-24`}
+                      >
+                        {CURRENCY_OPTIONS.map((c) => (
+                          <option key={c.value} value={c.value}>
+                            {c.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <span className="text-xs text-text-tertiary">
+                      Tranche dérivée pour les marques : <strong className="text-text-primary">{priceBandLabel}</strong>
+                    </span>
+                  </div>
                 </div>
 
-                {/* 3 Notions Panel (RG69) */}
+                {/* 3 Notions Panel (07 RG69, 17 §5.4) — Aucun calcul applicatif de taux (A1, M4) */}
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className="flex flex-col gap-1 rounded-md border-(length:--border-width-thin) border-border-subtle bg-surface-page p-3">
-                    <span className="text-xs font-medium text-text-secondary">
+                    <span className="text-xs font-medium text-text-secondary uppercase tracking-wider">
                       {l.notions.totalCostLabel}
                     </span>
                     <span className="text-xs text-text-tertiary">
@@ -381,35 +470,35 @@ export function RateCardEditor({
                   </div>
 
                   <div className="flex flex-col gap-1 rounded-md border-(length:--border-width-thin) border-border-subtle bg-surface-page p-3">
-                    <span className="text-xs font-medium text-text-secondary">
+                    <span className="text-xs font-medium text-text-secondary uppercase tracking-wider">
                       {l.notions.influxCommissionLabel}
                     </span>
                     <span className="text-xs text-text-tertiary">
                       {l.notions.influxCommissionDesc}
                     </span>
-                    <span className="pt-1 text-xs font-semibold text-text-tertiary">
-                      {STANDARD_COMMISSION_DISPLAY}
+                    <span className="pt-1 text-xs font-medium text-text-secondary">
+                      20 % à la charge de la marque, 15 % à votre charge
                     </span>
                   </div>
 
+                  {/* M6 : Montant net neutre, sans flèche montante ni tokens de succès */}
                   <div className="flex flex-col gap-1 rounded-md border-(length:--border-width-thin) border-border-subtle bg-surface-page p-3">
-                    <span className="text-xs font-medium text-text-brand">
+                    <span className="text-xs font-medium text-text-brand uppercase tracking-wider">
                       {l.notions.netEstimatedLabel}
                     </span>
                     <span className="text-xs text-text-tertiary">
                       {l.notions.netEstimatedDesc}
                     </span>
-                    <div className="flex items-center gap-2 pt-1">
-                      <TrendingUpIcon
-                        className="size-(--size-icon-sm) text-feedback-success-icon"
-                        aria-hidden="true"
-                      />
-                      <span className="text-sm font-bold text-feedback-success-text">
-                        {netRangeDisplay}
-                      </span>
-                    </div>
+                    <span className="pt-1 text-sm font-bold text-text-primary">
+                      {netRangeDisplay}
+                    </span>
                   </div>
                 </div>
+
+                {/* Mention légale obligatoire fixe (17 §5.4) */}
+                <p className="text-xs text-text-tertiary italic">
+                  Estimation indicative, aux taux par défaut de la plateforme. Elle ne vaut pas engagement : les taux applicables sont figés à la signature du contrat.
+                </p>
 
                 {/* Logistics & Conditions */}
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -418,7 +507,7 @@ export function RateCardEditor({
                     <select
                       value={offer.deliveryLeadBand || "7_14d"}
                       onChange={(e) =>
-                        handleUpdateOffer(
+                        handleUpdateOfferField(
                           idx,
                           "deliveryLeadBand",
                           e.target.value as DeliveryLeadBand,
@@ -439,7 +528,7 @@ export function RateCardEditor({
                     <select
                       value={offer.exclusivity || "none"}
                       onChange={(e) =>
-                        handleUpdateOffer(
+                        handleUpdateOfferField(
                           idx,
                           "exclusivity",
                           e.target.value as ExclusivityBand,
@@ -456,56 +545,49 @@ export function RateCardEditor({
                   </label>
                 </div>
 
-                {/* Usage Rights (RG73) */}
-                <div className="flex flex-col gap-2 pt-2">
-                  <span className="text-xs font-semibold text-text-primary">
-                    {l.usageRightsTitle}
-                  </span>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {/* Inclus */}
-                    <div className="flex flex-col gap-2 rounded-md border-(length:--border-width-thin) border-border-subtle bg-surface-page p-3">
-                      <span className="text-xs font-medium text-text-primary">
-                        {l.includedRightsLabel}
-                      </span>
+                {/* Usage Rights (Included vs Optional) */}
+                <div className="grid gap-4 sm:grid-cols-2 pt-2 border-t-(length:--border-width-thin) border-border-subtle">
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs font-semibold text-text-primary">
+                      {l.includedRightsLabel}
+                    </span>
+                    <div className="flex flex-col gap-1.5">
                       {USAGE_RIGHTS_AVAILABLE.map((right) => (
                         <label
-                          key={`inc-${idx}-${right.id}`}
+                          key={`inc-${right.id}`}
                           className="flex items-center gap-2 text-xs text-text-secondary"
                         >
                           <input
                             type="checkbox"
-                            checked={offer.includedUsageRights.includes(
-                              right.id,
-                            )}
+                            checked={offer.includedUsageRights.includes(right.id)}
                             onChange={() =>
                               handleToggleIncludedRight(idx, right.id)
                             }
-                            className="size-(--size-icon-sm) rounded-sm border-(length:--border-width-thin) border-border-subtle"
+                            className="size-3.5 rounded border-border-strong text-text-brand focus:ring-focus-ring"
                           />
                           <span>{right.label}</span>
                         </label>
                       ))}
                     </div>
+                  </div>
 
-                    {/* En option */}
-                    <div className="flex flex-col gap-2 rounded-md border-(length:--border-width-thin) border-border-subtle bg-surface-page p-3">
-                      <span className="text-xs font-medium text-text-primary">
-                        {l.optionalRightsLabel}
-                      </span>
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs font-semibold text-text-primary">
+                      {l.optionalRightsLabel}
+                    </span>
+                    <div className="flex flex-col gap-1.5">
                       {USAGE_RIGHTS_AVAILABLE.map((right) => (
                         <label
-                          key={`opt-${idx}-${right.id}`}
+                          key={`opt-${right.id}`}
                           className="flex items-center gap-2 text-xs text-text-secondary"
                         >
                           <input
                             type="checkbox"
-                            checked={offer.optionalUsageRights.includes(
-                              right.id,
-                            )}
+                            checked={offer.optionalUsageRights.includes(right.id)}
                             onChange={() =>
                               handleToggleOptionalRight(idx, right.id)
                             }
-                            className="size-(--size-icon-sm) rounded-sm border-(length:--border-width-thin) border-border-subtle"
+                            className="size-3.5 rounded border-border-strong text-text-brand focus:ring-focus-ring"
                           />
                           <span>{right.label}</span>
                         </label>

@@ -372,6 +372,30 @@ export interface VerificationRequest {
   updatedAt: string;
 }
 
+export interface VerificationQueueItem extends VerificationRequest {
+  creatorAlias?: string;
+  claimedByAgentName?: string | null;
+  slaBreached: boolean;
+  slaOverdueHours: number;
+}
+
+export interface VerificationQueueMetrics {
+  totalPending: number;
+  totalInReview: number;
+  totalBreached: number;
+  oldestPendingHours: number;
+}
+
+export interface VerificationQueueResponse {
+  items: VerificationQueueItem[];
+  queue: VerificationQueueItem[]; // Alias for backward compatibility
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  metrics: VerificationQueueMetrics;
+}
+
 export interface Badge {
   id: string;
   accountId: string;

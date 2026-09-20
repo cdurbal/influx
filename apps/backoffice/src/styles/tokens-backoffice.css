@@ -1,0 +1,32 @@
+/*
+ * INFLUX Backoffice Design Tokens extension (Lot 5, spec 17b §6)
+ * Source: docs/mvp/17b-parcours-et-ecrans-backoffice.md §6
+ */
+
+@theme static {
+  /* 6.1 Densité */
+  --spacing-bo-row-h: 2.25rem;
+  --spacing-bo-cell-y: var(--spacing-1);
+  --spacing-bo-cell-x: var(--spacing-3);
+  --spacing-bo-rail-w: 15rem;
+  --spacing-bo-panel-w: 30rem;
+  --size-bo-control: 1.75rem;
+
+  /* 6.2 Vue identifiée */
+  --color-bo-identified-accent: #a78bfa;
+  --color-bo-identified-bg: #17121f;
+
+  /* 6.3 Statuts de SLA */
+  --color-bo-sla-ontime-text: var(--color-text-secondary);
+  --color-bo-sla-due-text: var(--color-feedback-warning-text);
+  --color-bo-sla-overdue-text: var(--color-feedback-error-text);
+
+  /* 6.4 Alertes, environnement et lignes */
+  --color-bo-alert-state: var(--color-feedback-info-text);
+  --color-bo-alert-event: var(--color-feedback-warning-text);
+  --color-bo-alert-event-bg: var(--color-feedback-warning-bg);
+  --color-bo-env-nonprod-bg: var(--color-feedback-warning-bg);
+  --color-bo-env-nonprod-text: var(--color-feedback-warning-text);
+  --color-bo-row-hover: var(--color-surface-hover);
+}
+

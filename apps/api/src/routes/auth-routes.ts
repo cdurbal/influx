@@ -41,15 +41,20 @@ function setSessionCookie(
   reply: FastifyReply,
   token: string,
   maxAgeSeconds: number = 30 * 24 * 60 * 60,
+  isBackoffice: boolean = false,
 ): void {
-  const isProd = process.env.NODE_ENV === "production";
+  const isProd =
+    process.env.INFLUX_ENV === "production" ||
+    process.env.INFLUX_ENV === "staging";
+
+  const sameSite = isBackoffice ? "strict" : "lax";
 
   if (typeof (reply as any).setCookie === "function") {
     (reply as any).setCookie(SESSION_COOKIE_NAME, token, {
       path: "/",
       httpOnly: true,
       secure: isProd,
-      sameSite: "lax",
+      sameSite,
       maxAge: maxAgeSeconds,
     });
   } else {
@@ -58,7 +63,7 @@ function setSessionCookie(
       `${SESSION_COOKIE_NAME}=${encodeURIComponent(token)}`,
       "Path=/",
       "HttpOnly",
-      "SameSite=Lax",
+      `SameSite=${isBackoffice ? "Strict" : "Lax"}`,
       `Max-Age=${maxAgeSeconds}`,
     ];
     if (isProd) {
@@ -212,8 +217,8 @@ export const authRoutes: FastifyPluginAsync<{
         code,
       });
 
-      // Pose du cookie de session backoffice (D37 : 8h max, httpOnly, sameSite)
-      setSessionCookie(reply, result.token, 8 * 60 * 60);
+      // Pose du cookie de session backoffice (D37 : 8h max, httpOnly, sameSite: strict)
+      setSessionCookie(reply, result.token, 8 * 60 * 60, true);
 
       return reply.status(200).send({
         success: true,

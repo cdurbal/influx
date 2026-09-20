@@ -19,6 +19,8 @@ import {
   type CreatorProfile,
   type CreatorNetworkInternal,
   type EngagementBand,
+  type VerificationQueueItem,
+  type VerificationQueueResponse,
 } from "@influx/contracts";
 import { MockStore } from "../mocks/mock-store";
 
@@ -188,7 +190,7 @@ export class VerificationService {
   }
 
   /**
-   * Consultation de la file de vérification par un agent (RG61, RG62, RG64)
+   * Consultation de la file de vérification par un agent (RG61, RG62, RG64, B-E6, B-E9)
    */
   public getVerificationQueue(
     agentAccount: Account,
@@ -196,8 +198,10 @@ export class VerificationService {
       status?: VerificationStatus;
       network?: string;
       requestedLevel?: VerificationLevel;
+      page?: number;
+      limit?: number;
     },
-  ): VerificationRequest[] {
+  ): VerificationQueueResponse {
     if (agentAccount.role !== "agent" && agentAccount.role !== "admin") {
       throw new Error("Accès réservé aux agents et administrateurs");
     }
@@ -223,22 +227,130 @@ export class VerificationService {
       }
     }
 
-    // Filtrage
-    return requests
-      .filter((req) => {
-        if (filter?.status && req.status !== filter.status) return false;
-        if (filter?.network && req.network !== filter.network) return false;
-        if (
-          filter?.requestedLevel &&
-          req.requestedLevel !== filter.requestedLevel
+    // Calcul des métriques globales sur toute la file
+    let totalPending = 0;
+    let totalInReview = 0;
+    let totalBreached = 0;
+    let oldestPendingTime: number | null = null;
+
+    for (const req of requests) {
+      if (req.status === "pending") totalPending++;
+      if (req.status === "in_review") totalInReview++;
+
+      const isBreached = now > new Date(req.slaDueAt);
+      if (
+        isBreached &&
+        (req.status === "pending" || req.status === "in_review")
+      ) {
+        totalBreached++;
+      }
+
+      if (req.status === "pending" || req.status === "in_review") {
+        const createdMs = new Date(req.createdAt).getTime();
+        if (oldestPendingTime === null || createdMs < oldestPendingTime) {
+          oldestPendingTime = createdMs;
+        }
+      }
+    }
+
+    const oldestPendingHours = oldestPendingTime
+      ? Math.max(
+          0,
+          Math.round((now.getTime() - oldestPendingTime) / (1000 * 3600)),
         )
-          return false;
-        return true;
-      })
-      .sort(
-        (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-      ); // RG62 : Tri par ancienneté croissante par défaut
+      : 0;
+
+    // Enrichissement des items (creatorAlias, claimedByAgentName, SLA status)
+    const enrichedItems: VerificationQueueItem[] = requests.map((req) => {
+      const accId = req.accountId || (req as any).creatorAccountId || "";
+      const slaDueAtStr =
+        req.slaDueAt ||
+        req.createdAt ||
+        (req as any).submittedAt ||
+        now.toISOString();
+      const isBreached = now > new Date(slaDueAtStr);
+      const overdueHours = isBreached
+        ? Math.max(
+            1,
+            Math.round(
+              (now.getTime() - new Date(slaDueAtStr).getTime()) / (1000 * 3600),
+            ),
+          )
+        : 0;
+
+      // Résolution de l'alias créateur
+      const creatorProfile = accId
+        ? (this.store.creatorProfiles.get(accId) as CreatorProfile | undefined)
+        : undefined;
+      const creatorAlias =
+        creatorProfile?.alias ||
+        (accId ? `Créateur #${accId.slice(0, 4)}` : "Créateur inconnu");
+
+      // Résolution du nom de l'agent tenant le verrou
+      let claimedByAgentName: string | null = null;
+      if (req.claimedByAgentId) {
+        const agent = this.store.accounts.get(req.claimedByAgentId);
+        if (agent) {
+          claimedByAgentName =
+            agent.id === "88888888-8888-4888-8888-888888888888"
+              ? "Alexandre INFLUX"
+              : (agent.email.split("@")[0] ?? "Agent");
+        }
+      }
+
+      return {
+        ...req,
+        accountId: accId,
+        slaDueAt: slaDueAtStr,
+        creatorAlias,
+        claimedByAgentName,
+        slaBreached: isBreached,
+        slaOverdueHours: overdueHours,
+      };
+    });
+
+    // Filtrage
+    const filtered = enrichedItems.filter((req) => {
+      if (filter?.status && req.status !== filter.status) return false;
+      if (filter?.network && req.network !== filter.network) return false;
+      if (
+        filter?.requestedLevel &&
+        req.requestedLevel !== filter.requestedLevel
+      )
+        return false;
+      return true;
+    });
+
+    // B-E6 : Tri par échéance croissante, HORS DÉLAI EN TÊTE
+    filtered.sort((a, b) => {
+      // 1. Les entrées hors délai en tête absolue
+      if (a.slaBreached && !b.slaBreached) return -1;
+      if (!a.slaBreached && b.slaBreached) return 1;
+      // 2. Tri par date d'échéance SLA croissante
+      return new Date(a.slaDueAt).getTime() - new Date(b.slaDueAt).getTime();
+    });
+
+    // B-E9 : Pagination côté serveur plafonnée
+    const page = Math.max(1, Number(filter?.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(filter?.limit) || 20));
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const paginated = filtered.slice((page - 1) * limit, page * limit);
+
+    return {
+      items: paginated,
+      queue: paginated,
+      total,
+      page,
+      limit,
+      totalPages,
+      metrics: {
+        totalPending,
+        totalInReview,
+        totalBreached,
+        oldestPendingHours,
+      },
+    };
   }
 
   /**

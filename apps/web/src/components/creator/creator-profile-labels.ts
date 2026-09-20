@@ -269,12 +269,13 @@ export const FR_CREATOR_PROFILE_LABELS: CreatorProfileLabels = {
     other: "Des ajustements complémentaires sont requis avant publication.",
   },
   layers: {
-    publicBadge: "Couche A · Public Anonyme",
-    publicDesc: "Visible de toutes les marques inscrites.",
-    revealedBadge: "Couche I · Révélé sur accord",
+    publicBadge: "Visible de toutes les marques inscrites",
+    publicDesc: "Visible de toutes les marques inscrites sur la plateforme.",
+    revealedBadge:
+      "Visible uniquement après l'ouverture d'une mise en relation",
     revealedDesc:
-      "Visible uniquement après l'ouverture simultanée d'une mise en relation.",
-    internalBadge: "Couche N · Interne INFLUX",
+      "Visible uniquement après l'ouverture d'une mise en relation validée.",
+    internalBadge: "Visible uniquement par vous et l'équipe INFLUX",
     internalDesc:
       "Strictement confidentiel. Visible uniquement par vous et l'équipe INFLUX.",
   },
@@ -553,11 +554,11 @@ export const EN_CREATOR_PROFILE_LABELS: CreatorProfileLabels = {
     other: "Adjustments are required prior to approval.",
   },
   layers: {
-    publicBadge: "Layer A · Anonymous Public",
-    publicDesc: "Visible to every registered brand.",
-    revealedBadge: "Layer I · Revealed on agreement",
-    revealedDesc: "Visible only after a mutual introduction is opened.",
-    internalBadge: "Layer N · INFLUX Internal",
+    publicBadge: "Visible to all registered brands",
+    publicDesc: "Visible to all registered brands on the platform.",
+    revealedBadge: "Visible only after introduction is opened",
+    revealedDesc: "Visible only after an introduction is validated and opened.",
+    internalBadge: "Visible only to you and INFLUX team",
     internalDesc:
       "Strictly confidential. Visible only to you and the INFLUX team.",
   },

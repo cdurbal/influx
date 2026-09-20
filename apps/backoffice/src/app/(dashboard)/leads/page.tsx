@@ -52,7 +52,7 @@ export default function LeadsSupervisionPage() {
         const json = await res.json();
         setData(json);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Erreur chargement leads:", err);
     } finally {
       setLoading(false);
@@ -86,10 +86,12 @@ export default function LeadsSupervisionPage() {
           message: result.message || "Échec du rejeu du lead.",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Erreur réseau lors du rejeu.";
       setNotification({
         type: "error",
-        message: err.message || "Erreur réseau lors du rejeu.",
+        message: msg,
       });
     } finally {
       setReplayingId(null);
@@ -100,20 +102,20 @@ export default function LeadsSupervisionPage() {
     switch (status) {
       case "synced":
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-subtle-bg text-brand-primary border border-brand-subtle-border">
             ● Synchronisé
           </span>
         );
       case "failed":
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-feedback-error-bg text-feedback-error-text border border-feedback-error-border">
             ▲ Échec
           </span>
         );
       case "pending":
       default:
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-feedback-warning-bg text-feedback-warning-text border border-feedback-warning-border">
             ○ En attente
           </span>
         );
@@ -121,15 +123,21 @@ export default function LeadsSupervisionPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 p-6 lg:p-10 font-sans">
+    <div className="min-h-screen bg-surface-page text-text-primary p-6 lg:p-10 font-sans">
       <div className="max-w-7xl mx-auto flex flex-col gap-8">
         {/* Entête */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border-default pb-6">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-brand-primary uppercase tracking-wider">
+                Supervision Technique
+              </span>
+              <span className="text-xs text-text-tertiary">▮ Journalisé</span>
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-text-primary mt-1">
               Supervision des Leads & Outbox
             </h1>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-text-secondary mt-1">
               Synchronisation événementielle Brevo (segmentation) & Apollo
               (enrichissement B2B annonceurs)
             </p>
@@ -138,7 +146,7 @@ export default function LeadsSupervisionPage() {
             <button
               onClick={fetchLeads}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium bg-surface-card hover:bg-surface-hover text-text-primary border border-border-default rounded-lg transition-colors cursor-pointer disabled:opacity-50"
             >
               {loading ? "Actualisation..." : "Rafraîchir"}
             </button>
@@ -148,16 +156,17 @@ export default function LeadsSupervisionPage() {
         {/* Notifications */}
         {notification && (
           <div
+            role="status"
             className={`p-4 rounded-lg border text-sm flex items-center justify-between ${
               notification.type === "success"
-                ? "bg-emerald-950/40 border-emerald-800 text-emerald-200"
-                : "bg-rose-950/40 border-rose-800 text-rose-200"
+                ? "bg-brand-subtle-bg border-brand-subtle-border text-brand-primary"
+                : "bg-feedback-error-bg border-feedback-error-border text-feedback-error-text"
             }`}
           >
             <span>{notification.message}</span>
             <button
               onClick={() => setNotification(null)}
-              className="text-xs underline opacity-80 hover:opacity-100"
+              className="text-xs underline opacity-80 hover:opacity-100 cursor-pointer"
             >
               Fermer
             </button>
@@ -166,54 +175,54 @@ export default function LeadsSupervisionPage() {
 
         {/* Cartes métriques */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          <div className="bg-surface-card border border-border-default rounded-xl p-5">
+            <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">
               Total Inscrits
             </p>
-            <p className="text-3xl font-extrabold text-white mt-2">
+            <p className="text-3xl font-extrabold text-text-primary mt-2">
               {data.total}
             </p>
           </div>
-          <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
-            <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+          <div className="bg-surface-card border border-border-default rounded-xl p-5">
+            <p className="text-xs font-semibold text-brand-primary uppercase tracking-wider">
               Synchronisés (Brevo/Apollo)
             </p>
-            <p className="text-3xl font-extrabold text-emerald-400 mt-2">
+            <p className="text-3xl font-extrabold text-brand-primary mt-2">
               {data.synced}
             </p>
           </div>
-          <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
-            <p className="text-xs font-semibold text-rose-400 uppercase tracking-wider">
+          <div className="bg-surface-card border border-border-default rounded-xl p-5">
+            <p className="text-xs font-semibold text-feedback-error-text uppercase tracking-wider">
               En Échec
             </p>
-            <p className="text-3xl font-extrabold text-rose-400 mt-2">
+            <p className="text-3xl font-extrabold text-feedback-error-text mt-2">
               {data.failed}
             </p>
           </div>
-          <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
-            <p className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
+          <div className="bg-surface-card border border-border-default rounded-xl p-5">
+            <p className="text-xs font-semibold text-feedback-warning-text uppercase tracking-wider">
               En Attente
             </p>
-            <p className="text-3xl font-extrabold text-amber-400 mt-2">
+            <p className="text-3xl font-extrabold text-feedback-warning-text mt-2">
               {data.pending}
             </p>
           </div>
         </div>
 
         {/* Tableau des leads */}
-        <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl overflow-hidden shadow-lg">
-          <div className="px-6 py-4 border-b border-slate-700/60 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">
+        <div className="bg-surface-card border border-border-default rounded-xl overflow-hidden shadow-lg">
+          <div className="px-6 py-4 border-b border-border-default flex items-center justify-between">
+            <h2 className="text-base font-semibold text-text-primary">
               File d&apos;attente des événements récents
             </h2>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-text-tertiary">
               {data.leads.length} événement(s)
             </span>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-slate-850 text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700/60">
+            <table className="w-full text-left text-sm text-text-secondary">
+              <thead className="bg-surface-muted text-xs font-semibold text-text-tertiary uppercase tracking-wider border-b border-border-default">
                 <tr>
                   <th scope="col" className="px-6 py-3.5">
                     Utilisateur / E-mail
@@ -235,12 +244,12 @@ export default function LeadsSupervisionPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700/40">
+              <tbody className="divide-y divide-border-subtle">
                 {data.leads.length === 0 ? (
                   <tr>
                     <td
                       colSpan={6}
-                      className="px-6 py-12 text-center text-slate-500 text-sm"
+                      className="px-6 py-12 text-center text-text-tertiary text-sm"
                     >
                       Aucun lead dans la file d&apos;attente.
                     </td>
@@ -249,13 +258,13 @@ export default function LeadsSupervisionPage() {
                   data.leads.map((lead) => (
                     <tr
                       key={lead.id}
-                      className="hover:bg-slate-750/30 transition-colors"
+                      className="hover:bg-surface-hover transition-colors"
                     >
                       <td className="px-6 py-4">
-                        <div className="font-medium text-white">
+                        <div className="font-medium text-text-primary">
                           {lead.payload.email}
                         </div>
-                        <div className="text-xs text-slate-400 mt-0.5">
+                        <div className="text-xs text-text-tertiary mt-0.5">
                           ID: {lead.id.slice(0, 13)}... · Créé le{" "}
                           {new Date(lead.createdAt).toLocaleTimeString(
                             "fr-FR",
@@ -266,7 +275,7 @@ export default function LeadsSupervisionPage() {
                           )}
                         </div>
                         {lead.lastError && (
-                          <div className="text-xs text-rose-400 mt-1 font-mono bg-rose-950/30 p-1 rounded border border-rose-800/30">
+                          <div className="text-xs text-feedback-error-text mt-1 font-mono bg-feedback-error-bg p-1.5 rounded border border-feedback-error-border">
                             {lead.lastError}
                           </div>
                         )}
@@ -275,8 +284,8 @@ export default function LeadsSupervisionPage() {
                         <span
                           className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                             lead.payload.role === "advertiser"
-                              ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                              : "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                              ? "bg-feedback-info-bg text-feedback-info-text border border-feedback-info-border"
+                              : "bg-surface-muted text-text-secondary border border-border-default"
                           }`}
                         >
                           {lead.payload.role === "advertiser"
@@ -285,7 +294,7 @@ export default function LeadsSupervisionPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-xs">
-                        <span className="uppercase font-semibold text-slate-300">
+                        <span className="uppercase font-semibold text-text-primary">
                           {lead.payload.language || "fr"}
                         </span>{" "}
                         / {lead.payload.countryCode || "FR"}
@@ -293,7 +302,7 @@ export default function LeadsSupervisionPage() {
                       <td className="px-6 py-4">
                         {getStatusBadge(lead.status)}
                       </td>
-                      <td className="px-6 py-4 text-xs font-mono text-slate-400">
+                      <td className="px-6 py-4 text-xs font-mono text-text-tertiary">
                         {lead.attempts}
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -301,7 +310,7 @@ export default function LeadsSupervisionPage() {
                           <button
                             onClick={() => handleReplay(lead.id)}
                             disabled={replayingId === lead.id}
-                            className="px-3 py-1.5 text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white rounded-md transition-colors cursor-pointer disabled:opacity-50 shadow-sm"
+                            className="px-3 py-1.5 text-xs font-semibold bg-feedback-error-text hover:bg-feedback-error-text/90 text-surface-page rounded-md transition-colors cursor-pointer disabled:opacity-50 shadow-sm"
                           >
                             {replayingId === lead.id ? "Rejeu..." : "Relancer"}
                           </button>
@@ -309,7 +318,7 @@ export default function LeadsSupervisionPage() {
                           <button
                             onClick={() => handleReplay(lead.id)}
                             disabled={replayingId === lead.id}
-                            className="px-3 py-1.5 text-xs font-medium bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md transition-colors cursor-pointer disabled:opacity-50"
+                            className="px-3 py-1.5 text-xs font-medium bg-surface-muted hover:bg-surface-hover text-text-primary border border-border-default rounded-md transition-colors cursor-pointer disabled:opacity-50"
                           >
                             {replayingId === lead.id ? "Rejeu..." : "Rejouer"}
                           </button>

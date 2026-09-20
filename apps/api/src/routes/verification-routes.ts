@@ -190,6 +190,8 @@ export const verificationRoutes: FastifyPluginAsync<{
       status?: VerificationStatus;
       network?: string;
       requestedLevel?: VerificationLevel;
+      page?: number;
+      limit?: number;
     };
   }>("/api/backoffice/queues/verification", async (request, reply) => {
     const session = await requireAuth(request, reply);
@@ -202,8 +204,11 @@ export const verificationRoutes: FastifyPluginAsync<{
       });
     }
 
-    const queue = service.getVerificationQueue(session.account, request.query);
-    return reply.status(200).send({ queue });
+    const queueResponse = service.getVerificationQueue(
+      session.account,
+      request.query,
+    );
+    return reply.status(200).send(queueResponse);
   });
 
   /**

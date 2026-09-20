@@ -1,72 +1,112 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
-  type VerificationRequest,
+  type VerificationQueueItem,
   type VerificationStatus,
-  type VerificationLevel,
+  type VerificationQueueMetrics,
+  type VerificationQueueResponse,
 } from "@influx/contracts";
 import { VerificationDecisionDrawer } from "@/components/verification/VerificationDecisionDrawer";
+import { bo } from "@/locales/bo-labels";
 
 export default function VerificationQueuePage() {
-  const [requests, setRequests] = useState<VerificationRequest[]>([]);
+  const [items, setItems] = useState<VerificationQueueItem[]>([]);
+  const [metrics, setMetrics] = useState<VerificationQueueMetrics>({
+    totalPending: 0,
+    totalInReview: 0,
+    totalBreached: 0,
+    oldestPendingHours: 0,
+  });
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [limit] = useState(20); // Plafond RG34 / 17b §3.3
+
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Filtres côté serveur (B-E9)
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [levelFilter, setLevelFilter] = useState<string>("all");
   const [networkFilter, setNetworkFilter] = useState<string>("all");
+  const [populationTab, setPopulationTab] = useState<"creators" | "brands">(
+    "creators",
+  );
 
   const [selectedRequest, setSelectedRequest] =
-    useState<VerificationRequest | null>(null);
+    useState<VerificationQueueItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Agent actuel (simulé pour l'affichage de verrou)
+  // Agent actuel (simulé en développement)
   const currentAgentId = "88888888-8888-4888-8888-888888888888";
+  const currentAgentName = "Alexandre Martin";
 
-  const fetchQueue = async () => {
+  const fetchQueue = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/backoffice/queues/verification", {
-        credentials: "include",
+      setErrorMessage(null);
+
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
       });
-      if (res.ok) {
-        const json = await res.json();
-        setRequests(json.queue || []);
+
+      if (statusFilter !== "all") params.append("status", statusFilter);
+      if (levelFilter !== "all") params.append("requestedLevel", levelFilter);
+      if (networkFilter !== "all") params.append("network", networkFilter);
+
+      const res = await fetch(
+        `/api/backoffice/queues/verification?${params.toString()}`,
+        {
+          credentials: "include",
+        },
+      );
+
+      if (!res.ok) {
+        throw new Error(
+          `Erreur serveur (${res.status}) lors du chargement de la file.`,
+        );
       }
-    } catch (err) {
-      console.error("Erreur chargement file de vérification:", err);
+
+      const json: VerificationQueueResponse = await res.json();
+      setItems(json.items || json.queue || []);
+      setTotal(json.total || 0);
+      setTotalPages(json.totalPages || 1);
+      if (json.metrics) {
+        setMetrics(json.metrics);
+      }
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : bo.verificationQueue.empty.error;
+      setErrorMessage(msg);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, limit, statusFilter, levelFilter, networkFilter]);
 
   useEffect(() => {
     fetchQueue();
-  }, []);
+  }, [fetchQueue]);
 
-  // Filtrage local dynamique
-  const filteredRequests = useMemo(() => {
-    return requests.filter((r) => {
-      if (statusFilter !== "all" && r.status !== statusFilter) return false;
-      if (levelFilter !== "all" && r.requestedLevel !== levelFilter)
-        return false;
-      if (networkFilter !== "all" && r.network !== networkFilter) return false;
-      return true;
-    });
-  }, [requests, statusFilter, levelFilter, networkFilter]);
+  // Réinitialiser la pagination lors d'un changement de filtre
+  const handleStatusChange = (val: string) => {
+    setStatusFilter(val);
+    setPage(1);
+  };
 
-  // Métriques
-  const totalPending = requests.filter((r) => r.status === "pending").length;
-  const totalInReview = requests.filter((r) => r.status === "in_review").length;
-  const totalApproved = requests.filter((r) => r.status === "approved").length;
+  const handleLevelChange = (val: string) => {
+    setLevelFilter(val);
+    setPage(1);
+  };
 
-  const now = new Date().getTime();
-  const totalOverdue = requests.filter((r) => {
-    if (r.status !== "pending" && r.status !== "in_review") return false;
-    return new Date(r.slaDueAt).getTime() < now;
-  }).length;
+  const handleNetworkChange = (val: string) => {
+    setNetworkFilter(val);
+    setPage(1);
+  };
 
-  const handleOpenDrawer = (request: VerificationRequest) => {
-    setSelectedRequest(request);
+  const handleOpenDrawer = (item: VerificationQueueItem) => {
+    setSelectedRequest(item);
     setIsDrawerOpen(true);
   };
 
@@ -81,137 +121,172 @@ export default function VerificationQueuePage() {
 
   const getStatusBadge = (
     status: VerificationStatus,
-    claimedBy?: string | null,
+    claimedByName?: string | null,
   ) => {
     switch (status) {
       case "approved":
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-subtle-bg text-brand-primary border border-brand-subtle-border">
             ✓ Approuvée
           </span>
         );
       case "rejected":
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-feedback-error-bg text-feedback-error-text border border-feedback-error-border">
             ✕ Refusée
           </span>
         );
       case "in_review":
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
-            🔒 En cours {claimedBy ? `(${claimedBy.slice(0, 6)}...)` : ""}
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-feedback-info-bg text-feedback-info-text border border-feedback-info-border">
+            🔒 En cours {claimedByName ? `(${claimedByName})` : ""}
           </span>
         );
       case "pending":
       default:
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-feedback-warning-bg text-feedback-warning-text border border-feedback-warning-border">
             ○ En attente
           </span>
         );
     }
   };
 
+  const l = bo.verificationQueue;
+
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 p-6 lg:p-10 font-sans">
-      <div className="max-w-7xl mx-auto flex flex-col gap-8">
-        {/* Entête */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+    <div className="min-h-screen bg-surface-page text-text-primary p-6 lg:p-10 font-sans">
+      <div className="max-w-7xl mx-auto flex flex-col gap-6">
+        {/* Entête de page */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border-default pb-6">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">
-              File d&apos;attribution des badges & vérifications
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-brand-primary uppercase tracking-wider">
+                File 4 · Catalogage Plat
+              </span>
+              <span className="text-xs text-text-tertiary">▮ Journalisé</span>
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-text-primary mt-1">
+              {l.title}
             </h1>
-            <p className="text-sm text-slate-400 mt-1">
-              Validation des preuves de propriété de compte (Niveau 1) et
-              d&apos;audience (Niveau 2) · SLA 1 jour ouvré
-            </p>
+            <p className="text-sm text-text-secondary mt-1">{l.subtitle}</p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={fetchQueue}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium bg-surface-card hover:bg-surface-hover text-text-primary border border-border-default rounded-lg transition-colors cursor-pointer disabled:opacity-50"
             >
-              {loading ? "Actualisation..." : "Rafraîchir"}
+              {loading ? l.refreshing : l.refresh}
             </button>
           </div>
         </div>
 
-        {/* Cartes métriques */}
+        {/* Deux onglets : Créateurs · Marques (17b §2.7 file 4, 08 RG61) */}
+        <div className="flex border-b border-border-default">
+          <button
+            type="button"
+            onClick={() => setPopulationTab("creators")}
+            className={`px-5 py-2.5 text-sm font-semibold border-b-2 cursor-pointer transition-colors ${
+              populationTab === "creators"
+                ? "border-brand-primary text-brand-primary"
+                : "border-transparent text-text-tertiary hover:text-text-primary"
+            }`}
+          >
+            {l.tabCreators}
+          </button>
+          <button
+            type="button"
+            onClick={() => setPopulationTab("brands")}
+            className={`px-5 py-2.5 text-sm font-semibold border-b-2 cursor-pointer transition-colors ${
+              populationTab === "brands"
+                ? "border-brand-primary text-brand-primary"
+                : "border-transparent text-text-tertiary hover:text-text-primary"
+            }`}
+          >
+            {l.tabBrands}
+          </button>
+        </div>
+
+        {/* Cartes métriques globales issues du serveur */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
-            <p className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
-              En Attente (Sans Preneur)
+          <div className="bg-surface-card border border-border-default rounded-xl p-5">
+            <p className="text-xs font-semibold text-feedback-warning-text uppercase tracking-wider">
+              {l.metrics.pending}
             </p>
-            <p className="text-3xl font-extrabold text-amber-400 mt-2">
-              {totalPending}
-            </p>
-          </div>
-          <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
-            <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider">
-              En Cours (Verrou 30 min)
-            </p>
-            <p className="text-3xl font-extrabold text-blue-400 mt-2">
-              {totalInReview}
+            <p className="text-3xl font-extrabold text-feedback-warning-text mt-2">
+              {metrics.totalPending}
             </p>
           </div>
-          <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
-            <p className="text-xs font-semibold text-rose-400 uppercase tracking-wider">
-              Hors Délai SLA (&gt; 1j ouvré)
+          <div className="bg-surface-card border border-border-default rounded-xl p-5">
+            <p className="text-xs font-semibold text-feedback-info-text uppercase tracking-wider">
+              {l.metrics.inReview}
             </p>
-            <p className="text-3xl font-extrabold text-rose-400 mt-2">
-              {totalOverdue}
+            <p className="text-3xl font-extrabold text-feedback-info-text mt-2">
+              {metrics.totalInReview}
             </p>
           </div>
-          <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
-            <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
-              Badges Délivrés (Session)
+          <div className="bg-surface-card border border-border-default rounded-xl p-5">
+            <p className="text-xs font-semibold text-feedback-error-text uppercase tracking-wider">
+              {l.metrics.slaBreached}
             </p>
-            <p className="text-3xl font-extrabold text-emerald-400 mt-2">
-              {totalApproved}
+            <p className="text-3xl font-extrabold text-feedback-error-text mt-2">
+              {metrics.totalBreached}
+            </p>
+          </div>
+          <div className="bg-surface-card border border-border-default rounded-xl p-5">
+            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+              {l.metrics.oldestPending}
+            </p>
+            <p className="text-3xl font-extrabold text-text-primary mt-2">
+              {metrics.oldestPendingHours > 0
+                ? `${metrics.oldestPendingHours} h`
+                : metrics.totalPending > 0
+                  ? "< 1 h"
+                  : l.metrics.oldestNone}
             </p>
           </div>
         </div>
 
-        {/* Filtres de la file */}
-        <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-800/40 p-4 rounded-xl border border-slate-700/60">
+        {/* Filtres de la file (côté serveur, B-E9) */}
+        <div className="flex flex-wrap items-center justify-between gap-4 bg-surface-card p-4 rounded-xl border border-border-default">
           <div className="flex flex-wrap items-center gap-3">
-            <label className="text-xs text-slate-400 font-semibold flex items-center gap-2">
-              <span>Statut :</span>
+            <label className="text-xs text-text-secondary font-semibold flex items-center gap-2">
+              <span>{l.filters.status}</span>
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                onChange={(e) => handleStatusChange(e.target.value)}
+                className="px-3 py-1.5 bg-surface-page border border-border-default rounded-lg text-xs text-text-primary focus:outline-none focus:border-brand-primary"
               >
-                <option value="all">Tous les statuts</option>
-                <option value="pending">En attente</option>
-                <option value="in_review">En cours</option>
-                <option value="approved">Approuvées</option>
-                <option value="rejected">Refusées</option>
+                <option value="all">{l.filters.allStatuses}</option>
+                <option value="pending">{l.filters.pending}</option>
+                <option value="in_review">{l.filters.inReview}</option>
+                <option value="approved">{l.filters.approved}</option>
+                <option value="rejected">{l.filters.rejected}</option>
               </select>
             </label>
 
-            <label className="text-xs text-slate-400 font-semibold flex items-center gap-2">
-              <span>Niveau :</span>
+            <label className="text-xs text-text-secondary font-semibold flex items-center gap-2">
+              <span>{l.filters.level}</span>
               <select
                 value={levelFilter}
-                onChange={(e) => setLevelFilter(e.target.value)}
-                className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                onChange={(e) => handleLevelChange(e.target.value)}
+                className="px-3 py-1.5 bg-surface-page border border-border-default rounded-lg text-xs text-text-primary focus:outline-none focus:border-brand-primary"
               >
-                <option value="all">Tous les niveaux</option>
-                <option value="account_ownership">Niveau 1 (Propriété)</option>
-                <option value="audience">Niveau 2 (Audience)</option>
+                <option value="all">{l.filters.allLevels}</option>
+                <option value="account_ownership">{l.filters.ownership}</option>
+                <option value="audience">{l.filters.audience}</option>
               </select>
             </label>
 
-            <label className="text-xs text-slate-400 font-semibold flex items-center gap-2">
-              <span>Réseau :</span>
+            <label className="text-xs text-text-secondary font-semibold flex items-center gap-2">
+              <span>{l.filters.network}</span>
               <select
                 value={networkFilter}
-                onChange={(e) => setNetworkFilter(e.target.value)}
-                className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                onChange={(e) => handleNetworkChange(e.target.value)}
+                className="px-3 py-1.5 bg-surface-page border border-border-default rounded-lg text-xs text-text-primary focus:outline-none focus:border-brand-primary"
               >
-                <option value="all">Tous les réseaux</option>
+                <option value="all">{l.filters.allNetworks}</option>
                 <option value="youtube">YouTube</option>
                 <option value="instagram">Instagram</option>
                 <option value="tiktok">TikTok</option>
@@ -219,120 +294,179 @@ export default function VerificationQueuePage() {
             </label>
           </div>
 
-          <span className="text-xs text-slate-400">
-            {filteredRequests.length} demande(s) affichée(s)
+          <span className="text-xs text-text-tertiary">
+            {total} {l.filters.displayedCount}
           </span>
         </div>
 
+        {/* Message d'erreur serveur éventuel */}
+        {errorMessage && (
+          <div
+            role="alert"
+            className="p-4 bg-feedback-error-bg border border-feedback-error-border text-feedback-error-text rounded-xl text-sm flex items-center justify-between"
+          >
+            <span>{errorMessage}</span>
+            <button
+              onClick={fetchQueue}
+              className="px-3 py-1 bg-surface-card hover:bg-surface-hover text-text-primary border border-border-default rounded text-xs"
+            >
+              Réessayer
+            </button>
+          </div>
+        )}
+
         {/* Tableau des demandes */}
-        <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl overflow-hidden shadow-lg">
+        <div className="bg-surface-card border border-border-default rounded-xl overflow-hidden shadow-lg">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-slate-850 text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700/60">
+            <table className="w-full text-left text-sm text-text-secondary">
+              <thead className="bg-surface-muted text-xs font-semibold text-text-tertiary uppercase tracking-wider border-b border-border-default">
                 <tr>
                   <th scope="col" className="px-6 py-3.5">
-                    Soumission / Ancienneté
+                    {l.table.colSubmission}
                   </th>
                   <th scope="col" className="px-6 py-3.5">
-                    Réseau
+                    {l.table.colNetwork}
                   </th>
                   <th scope="col" className="px-6 py-3.5">
-                    Niveau Demandé
+                    {l.table.colLevel}
                   </th>
                   <th scope="col" className="px-6 py-3.5">
-                    Créateur (ID)
+                    {l.table.colCreator}
                   </th>
                   <th scope="col" className="px-6 py-3.5">
-                    Statut / Verrou
+                    {l.table.colStatus}
                   </th>
                   <th scope="col" className="px-6 py-3.5">
-                    Échéance SLA
+                    {l.table.colSla}
                   </th>
                   <th scope="col" className="px-6 py-3.5 text-right">
-                    Actions
+                    {l.table.colActions}
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700/40">
-                {filteredRequests.length === 0 ? (
+              <tbody className="divide-y divide-border-subtle">
+                {items.length === 0 ? (
                   <tr>
                     <td
                       colSpan={7}
-                      className="px-6 py-12 text-center text-slate-500"
+                      className="px-6 py-12 text-center text-text-tertiary"
                     >
                       {loading
-                        ? "Chargement de la file..."
-                        : "Aucune demande de vérification correspondant aux critères."}
+                        ? l.empty.loading
+                        : statusFilter !== "all" ||
+                            levelFilter !== "all" ||
+                            networkFilter !== "all"
+                          ? l.empty.emptyFiltered
+                          : l.empty.emptyQueue}
                     </td>
                   </tr>
                 ) : (
-                  filteredRequests.map((r) => {
-                    const isOverdue =
-                      (r.status === "pending" || r.status === "in_review") &&
-                      new Date(r.slaDueAt).getTime() < now;
-
+                  items.map((item) => {
                     return (
                       <tr
-                        key={r.id}
-                        className="hover:bg-slate-750/50 transition-colors"
+                        key={item.id}
+                        className={`hover:bg-surface-hover transition-colors ${
+                          item.slaBreached
+                            ? "border-l-4 border-feedback-error-text"
+                            : ""
+                        }`}
                       >
+                        {/* Soumission / Ancienneté */}
                         <td className="px-6 py-4 whitespace-nowrap text-xs">
-                          <span className="font-semibold text-white block">
-                            {new Date(r.createdAt).toLocaleDateString("fr-FR")}
+                          <span className="font-semibold text-text-primary block">
+                            {new Date(item.createdAt).toLocaleDateString(
+                              "fr-FR",
+                            )}
                           </span>
-                          <span className="text-slate-400">
-                            {new Date(r.createdAt).toLocaleTimeString("fr-FR", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                          <span className="text-text-tertiary">
+                            {new Date(item.createdAt).toLocaleTimeString(
+                              "fr-FR",
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )}
                           </span>
                         </td>
+
+                        {/* Réseau */}
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="capitalize font-medium text-slate-200">
-                            {r.network}
+                          <span className="capitalize font-medium text-text-primary">
+                            {item.network}
                           </span>
                         </td>
+
+                        {/* Niveau */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
                             className={`inline-block px-2.5 py-0.5 rounded text-xs font-semibold ${
-                              r.requestedLevel === "account_ownership"
-                                ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                                : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                              item.requestedLevel === "account_ownership"
+                                ? "bg-feedback-info-bg text-feedback-info-text border border-feedback-info-border"
+                                : "bg-brand-subtle-bg text-brand-primary border border-brand-subtle-border"
                             }`}
                           >
-                            {r.requestedLevel === "account_ownership"
+                            {item.requestedLevel === "account_ownership"
                               ? "Niveau 1 : Propriété"
                               : "Niveau 2 : Audience"}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-slate-400">
-                          {r.accountId.slice(0, 8)}...
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {getStatusBadge(r.status, r.claimedByAgentId)}
-                        </td>
+
+                        {/* Créateur (Alias + ID) */}
                         <td className="px-6 py-4 whitespace-nowrap text-xs">
-                          <span
-                            className={
-                              isOverdue
-                                ? "text-rose-400 font-semibold"
-                                : "text-slate-300"
-                            }
-                          >
-                            {new Date(r.slaDueAt).toLocaleString("fr-FR")}
+                          <span className="font-medium text-text-primary block">
+                            {item.creatorAlias || "Créateur"}
                           </span>
-                          {isOverdue && (
-                            <span className="ml-1 text-xs text-rose-500">
-                              ⚑
-                            </span>
+                          <span className="font-mono text-text-tertiary text-xs">
+                            {item.accountId.slice(0, 8)}...
+                          </span>
+                        </td>
+
+                        {/* Statut / Verrou */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getStatusBadge(item.status, item.claimedByAgentName)}
+                        </td>
+
+                        {/* Échéance SLA avec libellé explicite (B-E7) */}
+                        <td className="px-6 py-4 whitespace-nowrap text-xs">
+                          {item.slaBreached ? (
+                            <div className="flex flex-col">
+                              <span className="text-feedback-error-text font-bold flex items-center gap-1">
+                                <span>⚑</span>
+                                <span>
+                                  {l.sla.overdue.replace(
+                                    "{hours}",
+                                    String(item.slaOverdueHours),
+                                  )}
+                                </span>
+                              </span>
+                              <span className="text-text-tertiary text-xs">
+                                Échéance :{" "}
+                                {new Date(item.slaDueAt).toLocaleString(
+                                  "fr-FR",
+                                )}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col">
+                              <span className="text-text-primary font-medium">
+                                ○ {l.sla.onTime}
+                              </span>
+                              <span className="text-text-tertiary text-xs">
+                                {new Date(item.slaDueAt).toLocaleString(
+                                  "fr-FR",
+                                )}
+                              </span>
+                            </div>
                           )}
                         </td>
+
+                        {/* Actions */}
                         <td className="px-6 py-4 whitespace-nowrap text-right text-xs">
                           <button
-                            onClick={() => handleOpenDrawer(r)}
-                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg font-medium transition-colors cursor-pointer"
+                            onClick={() => handleOpenDrawer(item)}
+                            className="px-3.5 py-1.5 bg-surface-muted hover:bg-surface-hover text-text-primary hover:text-brand-primary border border-border-default rounded-lg font-medium transition-colors cursor-pointer"
                           >
-                            Examiner ▮
+                            {l.table.actionInspect}
                           </button>
                         </td>
                       </tr>
@@ -341,6 +475,35 @@ export default function VerificationQueuePage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Pagination côté serveur (B-E9) */}
+          <div className="p-4 border-t border-border-default flex items-center justify-between bg-surface-muted text-xs text-text-secondary">
+            <span>
+              {l.pagination.pageInfo
+                .replace("{page}", String(page))
+                .replace("{totalPages}", String(totalPages || 1))
+                .replace("{total}", String(total))}
+            </span>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={page <= 1 || loading}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="px-3 py-1.5 bg-surface-card hover:bg-surface-hover text-text-primary border border-border-default rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                {l.pagination.prev}
+              </button>
+              <button
+                type="button"
+                disabled={page >= totalPages || loading}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="px-3 py-1.5 bg-surface-card hover:bg-surface-hover text-text-primary border border-border-default rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                {l.pagination.next}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -351,6 +514,7 @@ export default function VerificationQueuePage() {
           onClose={handleCloseDrawer}
           onSuccess={handleActionSuccess}
           currentAgentId={currentAgentId}
+          currentAgentName={currentAgentName}
         />
       </div>
     </div>

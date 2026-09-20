@@ -979,6 +979,7 @@ export function CreatorProfileEditor({
                 updateField("acceptsNonMonetaryCounterpart", val)
               }
               labels={labels}
+              locale={locale}
             />
           </section>
 

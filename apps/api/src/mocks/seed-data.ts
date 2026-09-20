@@ -254,12 +254,18 @@ export const SEED_CAMPAIGNS = [
 export const SEED_VERIFICATION_REQUESTS = [
   {
     id: "req-verif-1",
+    accountId: SEED_IDS.CREATOR_2,
     creatorAccountId: SEED_IDS.CREATOR_2,
-    submittedAt: now,
     network: "instagram",
+    requestedLevel: "account_ownership",
     evidenceFileUrl:
       "https://placehold.co/800x600/png?text=Preuve+Statistiques+Instagram+Sophie",
-    status: "pending_review",
+    evidenceFileIds: [],
+    status: "pending",
+    slaDueAt: now,
+    createdAt: now,
+    submittedAt: now,
+    updatedAt: now,
   },
 ];
 

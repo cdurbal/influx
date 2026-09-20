@@ -1,9 +1,17 @@
 @import "tailwindcss";
+@import "../../../web/src/styles/tokens.css";
+@import "../styles/tokens-backoffice.css";
 
 @layer base {
-  body {
-    background-color: #0f172a;
-    color: #f8fafc;
+  html, body {
+    background-color: var(--color-surface-page);
+    color: var(--color-text-primary);
+    font-family: var(--font-base);
+  }
+
+  :focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-focus-ring);
+    outline-offset: var(--focus-ring-offset);
   }
 }
 
