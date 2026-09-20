@@ -25,7 +25,16 @@ function relative(file: string): string {
 }
 
 /** Scope of G1 to G3: Landing page mockup files (docs/landing-page/01-architecture.md §9.3) */
-const MVP_APP_DIRS = ["dev", "auth", "creator", "brand", "campaign", "search"];
+const MVP_APP_DIRS = [
+  "dev",
+  "auth",
+  "creator",
+  "brand",
+  "campaign",
+  "search",
+  "creator-campaigns",
+  "space",
+];
 const SCOPED_FILES = listFiles(SRC)
   .filter(
     (file) =>
