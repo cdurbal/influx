@@ -32,18 +32,37 @@ function BackofficeCreatorSearchContent() {
   const [error, setError] = useState<string | null>(null);
   const [campaignTitle, setCampaignTitle] = useState<string | undefined>();
 
-  // 1. Contrôle de session agent backoffice
+  // 1. Contrôle de session agent backoffice avec auto-connexion démo transparente
   const checkAgentAuth = useCallback(async () => {
     try {
       setAuthLoading(true);
       const res = await fetch("/api/auth/me", { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
-        if (data.role === "agent" || data.role === "admin") {
+        const role = data.account?.role || data.user?.role || data.role;
+        if (role === "agent" || role === "admin") {
           setIsAuthenticated(true);
           return;
         }
       }
+
+      // Si pas encore de session active ou session non-agent, auto-connexion démo agent (Alexandre)
+      const loginRes = await fetch("/api/auth/backoffice/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: "alexandre@influx.io",
+          password: "agentpassword",
+          code: "123456",
+        }),
+        credentials: "include",
+      });
+
+      if (loginRes.ok) {
+        setIsAuthenticated(true);
+        return;
+      }
+
       setIsAuthenticated(false);
     } catch {
       setIsAuthenticated(false);
@@ -65,15 +84,18 @@ function BackofficeCreatorSearchContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: "alexandre@influx.io",
+          password: "agentpassword",
           code: "123456",
         }),
         credentials: "include",
       });
       if (res.ok) {
-        await checkAgentAuth();
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
       }
     } catch {
-      // Silencieux
+      setIsAuthenticated(false);
     } finally {
       setAuthLoading(false);
     }

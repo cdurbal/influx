@@ -50,6 +50,8 @@ export interface BackofficeLabels {
       colNetwork: string;
       colLevel: string;
       colCreator: string;
+      colBrand?: string;
+      colProofType?: string;
       colStatus: string;
       colSla: string;
       colActions: string;
@@ -74,6 +76,7 @@ export interface BackofficeLabels {
   decisionDrawer: {
     ownershipTitle: string;
     audienceTitle: string;
+    brandTitle?: string;
     close: string;
     releaseLock: string;
     lockClaimedByMe: string;
@@ -83,6 +86,7 @@ export interface BackofficeLabels {
     lockHelpClaimedByOther: string;
     evidenceSectionTitle: string;
     creatorAccount: string;
+    brandAccount?: string;
     targetNetwork: string;
     submissionDate: string;
     slaDeadline: string;
@@ -112,6 +116,7 @@ export interface BackofficeLabels {
     agentCommentPlaceholder: string;
     btnApproveOwnership: string;
     btnApproveAudience: string;
+    btnApproveBrand?: string;
     btnReject: string;
     btnSaving: string;
     audienceDisclaimer1: string;
@@ -286,6 +291,8 @@ export const BO_LABELS_FR: BackofficeLabels = {
       colNetwork: "Réseau",
       colLevel: "Niveau Demandé",
       colCreator: "Créateur",
+      colBrand: "Marque / Entreprise",
+      colProofType: "Type de preuve",
       colStatus: "Statut / Verrou",
       colSla: "Échéance SLA",
       colActions: "Actions",
@@ -312,6 +319,7 @@ export const BO_LABELS_FR: BackofficeLabels = {
   decisionDrawer: {
     ownershipTitle: "Niveau 1 : Propriété Compte",
     audienceTitle: "Niveau 2 : Audience Vérifiée",
+    brandTitle: "Badge Marque Vérifiée",
     close: "Fermer",
     releaseLock: "Relâcher le verrou (retour en file) ‹l›",
     lockClaimedByMe: "✓ Verrou actif posé par vous (30 min)",
@@ -324,6 +332,7 @@ export const BO_LABELS_FR: BackofficeLabels = {
       "Les actions sont bloquées pour éviter tout double traitement.",
     evidenceSectionTitle: "1. Données de la demande & Preuves",
     creatorAccount: "Compte créateur :",
+    brandAccount: "Compte entreprise / marque :",
     targetNetwork: "Réseau cible :",
     submissionDate: "Date de soumission :",
     slaDeadline: "Échéance SLA (1j ouvré) :",
@@ -358,6 +367,7 @@ export const BO_LABELS_FR: BackofficeLabels = {
     agentCommentPlaceholder: "Précisions internes ou motifs...",
     btnApproveOwnership: "Valider Badge Niveau 1 (Propriété)",
     btnApproveAudience: "Valider Badge Niveau 2 (Audience 90 jours)",
+    btnApproveBrand: "Valider Badge Marque Vérifiée",
     btnReject: "Confirmer le Refus",
     btnSaving: "Enregistrement...",
     audienceDisclaimer1:

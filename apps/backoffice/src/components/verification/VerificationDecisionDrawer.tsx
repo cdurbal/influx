@@ -165,7 +165,9 @@ export function VerificationDecisionDrawer({
       const payload: DecisionPayload = { decision: activeTab };
 
       if (activeTab === "approve") {
-        if (request.requestedLevel === "account_ownership") {
+        if (request.requestedLevel === "brand") {
+          // Badge marque vérifiée : aucun champ spécifique requis
+        } else if (request.requestedLevel === "account_ownership") {
           if (!observedHandle.trim()) {
             throw new Error("L'identifiant @ constaté est obligatoire.");
           }
@@ -255,22 +257,27 @@ export function VerificationDecisionDrawer({
               </span>
               <span
                 className={`text-xs font-semibold px-2 py-0.5 rounded ${
-                  request.requestedLevel === "account_ownership"
-                    ? "bg-feedback-info-bg text-feedback-info-text border border-feedback-info-border"
-                    : "bg-brand-subtle-bg text-brand-primary border border-brand-subtle-border"
+                  request.requestedLevel === "brand"
+                    ? "bg-brand-subtle-bg text-brand-primary border border-brand-subtle-border"
+                    : request.requestedLevel === "account_ownership"
+                      ? "bg-feedback-info-bg text-feedback-info-text border border-feedback-info-border"
+                      : "bg-brand-subtle-bg text-brand-primary border border-brand-subtle-border"
                 }`}
               >
-                {request.requestedLevel === "account_ownership"
-                  ? labels.ownershipTitle
-                  : labels.audienceTitle}
+                {request.requestedLevel === "brand"
+                  ? labels.brandTitle || "Badge Marque Vérifiée"
+                  : request.requestedLevel === "account_ownership"
+                    ? labels.ownershipTitle
+                    : labels.audienceTitle}
               </span>
             </div>
             <h2
               id="decision-drawer-title"
               className="text-lg font-bold text-text-primary mt-1"
             >
-              Vérification {request.network.toUpperCase()} ·{" "}
-              {request.creatorAlias || request.accountId.slice(0, 8)}
+              {request.requestedLevel === "brand"
+                ? `Vérification Entreprise · ${request.brandName || request.creatorAlias || request.accountId.slice(0, 8)}`
+                : `Vérification ${request.network.toUpperCase()} · ${request.creatorAlias || request.accountId.slice(0, 8)}`}
             </h2>
           </div>
           <button
@@ -344,10 +351,13 @@ export function VerificationDecisionDrawer({
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
                 <span className="text-text-tertiary block">
-                  {labels.creatorAccount}
+                  {request.requestedLevel === "brand"
+                    ? labels.brandAccount || "Compte entreprise / marque :"
+                    : labels.creatorAccount}
                 </span>
                 <span className="font-medium text-text-primary">
-                  {request.creatorAlias ? `${request.creatorAlias} ` : ""}
+                  {request.brandName ||
+                    (request.creatorAlias ? `${request.creatorAlias} ` : "")}
                 </span>
                 <span className="font-mono text-text-tertiary text-xs block">
                   ({request.accountId})
@@ -355,10 +365,16 @@ export function VerificationDecisionDrawer({
               </div>
               <div>
                 <span className="text-text-tertiary block">
-                  {labels.targetNetwork}
+                  {request.requestedLevel === "brand"
+                    ? "Type de preuve :"
+                    : labels.targetNetwork}
                 </span>
                 <span className="capitalize text-text-primary font-medium">
-                  {request.network}
+                  {request.network === "kbis_rcs"
+                    ? "Extrait Kbis (RCS)"
+                    : request.network === "domain_dns"
+                      ? "Domaine officiel / DNS"
+                      : request.network}
                 </span>
               </div>
               <div>
@@ -379,7 +395,26 @@ export function VerificationDecisionDrawer({
               </div>
             </div>
 
-            {request.requestedLevel === "account_ownership" ? (
+            {request.requestedLevel === "brand" ? (
+              <div className="mt-2 p-3 bg-surface-muted rounded-lg border border-border-subtle text-xs space-y-1.5">
+                <p className="font-semibold text-text-primary">
+                  Procédure de vérification Entreprise / Marque :
+                </p>
+                <p className="text-text-secondary">
+                  1. Vérifier le justificatif d&apos;immatriculation (Extrait
+                  Kbis RCS ou délégation DNS).
+                </p>
+                <p className="text-text-secondary">
+                  2. S&apos;assurer de la concordance entre la société (
+                  {request.brandName || request.creatorAlias || "Annonceur"}) et
+                  les mentions officielles.
+                </p>
+                <p className="text-text-secondary">
+                  3. L&apos;approbation accorde le statut « Marque vérifiée »
+                  sur l&apos;ensemble de la plateforme INFLUX.
+                </p>
+              </div>
+            ) : request.requestedLevel === "account_ownership" ? (
               <div className="mt-2 p-3 bg-surface-muted rounded-lg border border-border-subtle text-xs">
                 <p className="font-semibold text-text-primary">
                   {labels.ownershipInstructionsTitle}
@@ -470,7 +505,23 @@ export function VerificationDecisionDrawer({
             {/* Contenu de l'onglet Approbation */}
             {activeTab === "approve" && (
               <div className="flex flex-col gap-4 bg-surface-card p-4 rounded-xl border border-border-default">
-                {request.requestedLevel === "account_ownership" ? (
+                {request.requestedLevel === "brand" ? (
+                  <div className="p-3 bg-brand-subtle-bg border border-brand-subtle-border rounded-lg text-xs space-y-2">
+                    <p className="font-semibold text-brand-primary">
+                      ✓ Validation du badge Marque Vérifiée
+                    </p>
+                    <p className="text-text-secondary">
+                      En approuvant cette demande, vous certifiez la conformité
+                      des pièces légales de l&apos;entreprise{" "}
+                      <strong className="text-text-primary">
+                        {request.brandName ||
+                          request.creatorAlias ||
+                          "Annonceur"}
+                      </strong>{" "}
+                      et activez le badge sur son compte et ses campagnes.
+                    </p>
+                  </div>
+                ) : request.requestedLevel === "account_ownership" ? (
                   <div className="flex flex-col gap-3">
                     <label className="flex flex-col gap-1 text-xs">
                       <span className="font-semibold text-text-primary">
@@ -642,9 +693,11 @@ export function VerificationDecisionDrawer({
             {submitting
               ? labels.btnSaving
               : activeTab === "approve"
-                ? request.requestedLevel === "account_ownership"
-                  ? labels.btnApproveOwnership
-                  : labels.btnApproveAudience
+                ? request.requestedLevel === "brand"
+                  ? labels.btnApproveBrand || "Valider Badge Marque Vérifiée"
+                  : request.requestedLevel === "account_ownership"
+                    ? labels.btnApproveOwnership
+                    : labels.btnApproveAudience
                 : labels.btnReject}
           </button>
         </div>

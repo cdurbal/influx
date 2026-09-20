@@ -374,6 +374,7 @@ export interface VerificationRequest {
 
 export interface VerificationQueueItem extends VerificationRequest {
   creatorAlias?: string;
+  brandName?: string;
   claimedByAgentName?: string | null;
   slaBreached: boolean;
   slaOverdueHours: number;

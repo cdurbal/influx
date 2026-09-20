@@ -719,4 +719,70 @@ describe("Mission 2.6 : Service d'attribution et péremption de badge", () => {
       expect(yt.figuresSource).toBe("declared");
     });
   });
+
+  // ==========================================================================
+  // 9. FILE DE VÉRIFICATION - ONGLET MARQUES & DÉCISION ENTREPRISE
+  // ==========================================================================
+  describe("File de vérification - Onglet Marques & Décision Entreprise", () => {
+    it("filtre les demandes par population (creators vs brands) et fournit le brandName", async () => {
+      // 1. Consultation avec population=brands
+      const resBrands = await app.inject({
+        method: "GET",
+        url: "/api/backoffice/queues/verification?population=brands",
+        headers: { authorization: `Bearer ${agentToken}` },
+      });
+      expect(resBrands.statusCode).toBe(200);
+      const dataBrands = resBrands.json();
+      expect(dataBrands.items.length).toBeGreaterThanOrEqual(1);
+      expect(
+        dataBrands.items.every((it: any) => it.requestedLevel === "brand"),
+      ).toBe(true);
+      expect(
+        dataBrands.items.some(
+          (it: any) =>
+            it.brandName === "TechGear France" ||
+            it.brandName === "Maison Solène",
+        ),
+      ).toBe(true);
+
+      // 2. Consultation avec population=creators
+      const resCreators = await app.inject({
+        method: "GET",
+        url: "/api/backoffice/queues/verification?population=creators",
+        headers: { authorization: `Bearer ${agentToken}` },
+      });
+      expect(resCreators.statusCode).toBe(200);
+      const dataCreators = resCreators.json();
+      expect(
+        dataCreators.items.every((it: any) => it.requestedLevel !== "brand"),
+      ).toBe(true);
+    });
+
+    it("permet à un agent de valider le badge d'une marque (brand_verified)", async () => {
+      // req-verif-brand-1 est en attente pour TechGear France (SEED_IDS.ADVERTISER_2)
+      const requestId = "req-verif-brand-1";
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/backoffice/verification/${requestId}/decide`,
+        headers: { authorization: `Bearer ${agentToken}` },
+        payload: {
+          decision: "approve",
+        },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.request.status).toBe("approved");
+      expect(body.badge.level).toBe("brand_verified");
+      expect(body.badge.accountId).toBe(SEED_IDS.ADVERTISER_2);
+
+      // Vérification que le profil marque a été mis à jour
+      const brandProfile = store.brandProfiles.get(
+        SEED_IDS.ADVERTISER_2,
+      ) as any;
+      expect(brandProfile.badgeStatus).toBe("verified");
+      expect(brandProfile.badgeVerifiedAt).toBeTruthy();
+    });
+  });
 });

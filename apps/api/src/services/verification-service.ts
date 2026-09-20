@@ -198,6 +198,7 @@ export class VerificationService {
       status?: VerificationStatus;
       network?: string;
       requestedLevel?: VerificationLevel;
+      population?: "creators" | "brands";
       page?: number;
       limit?: number;
     },
@@ -227,13 +228,22 @@ export class VerificationService {
       }
     }
 
-    // Calcul des métriques globales sur toute la file
+    // Filtrage des requêtes par population pour les métriques globales de l'onglet
+    const populationRequests = requests.filter((req) => {
+      if (filter?.population === "brands")
+        return req.requestedLevel === "brand";
+      if (filter?.population === "creators")
+        return req.requestedLevel !== "brand";
+      return true;
+    });
+
+    // Calcul des métriques globales sur la population sélectionnée
     let totalPending = 0;
     let totalInReview = 0;
     let totalBreached = 0;
     let oldestPendingTime: number | null = null;
 
-    for (const req of requests) {
+    for (const req of populationRequests) {
       if (req.status === "pending") totalPending++;
       if (req.status === "in_review") totalInReview++;
 
@@ -260,7 +270,7 @@ export class VerificationService {
         )
       : 0;
 
-    // Enrichissement des items (creatorAlias, claimedByAgentName, SLA status)
+    // Enrichissement des items (creatorAlias, brandName, claimedByAgentName, SLA status)
     const enrichedItems: VerificationQueueItem[] = requests.map((req) => {
       const accId = req.accountId || (req as any).creatorAccountId || "";
       const slaDueAtStr =
@@ -278,13 +288,29 @@ export class VerificationService {
           )
         : 0;
 
-      // Résolution de l'alias créateur
-      const creatorProfile = accId
-        ? (this.store.creatorProfiles.get(accId) as CreatorProfile | undefined)
-        : undefined;
-      const creatorAlias =
-        creatorProfile?.alias ||
-        (accId ? `Créateur #${accId.slice(0, 4)}` : "Créateur inconnu");
+      // Résolution de l'entité (créateur ou marque)
+      const isBrand = req.requestedLevel === "brand";
+      let creatorAlias: string | undefined;
+      let brandName: string | undefined;
+
+      if (isBrand) {
+        const brandProfile = accId
+          ? (this.store.brandProfiles.get(accId) as any)
+          : undefined;
+        brandName =
+          brandProfile?.companyName ||
+          brandProfile?.legalName ||
+          (accId ? `Marque #${accId.slice(0, 4)}` : "Marque");
+        creatorAlias = brandName;
+      } else {
+        const creatorProfile = accId
+          ? (this.store.creatorProfiles.get(accId) as
+              CreatorProfile | undefined)
+          : undefined;
+        creatorAlias =
+          creatorProfile?.alias ||
+          (accId ? `Créateur #${accId.slice(0, 4)}` : "Créateur inconnu");
+      }
 
       // Résolution du nom de l'agent tenant le verrou
       let claimedByAgentName: string | null = null;
@@ -303,6 +329,7 @@ export class VerificationService {
         accountId: accId,
         slaDueAt: slaDueAtStr,
         creatorAlias,
+        brandName,
         claimedByAgentName,
         slaBreached: isBreached,
         slaOverdueHours: overdueHours,
@@ -311,6 +338,12 @@ export class VerificationService {
 
     // Filtrage
     const filtered = enrichedItems.filter((req) => {
+      if (filter?.population === "brands" && req.requestedLevel !== "brand") {
+        return false;
+      }
+      if (filter?.population === "creators" && req.requestedLevel === "brand") {
+        return false;
+      }
       if (filter?.status && req.status !== filter.status) return false;
       if (filter?.network && req.network !== filter.network) return false;
       if (
@@ -531,174 +564,211 @@ export class VerificationService {
     req.decidedAt = decidedAt;
     req.updatedAt = decidedAt;
 
-    const profile = this.store.creatorProfiles.get(req.accountId) as
-      CreatorProfile | undefined;
-    if (!profile) {
-      throw new Error("Profil créateur introuvable pour validation");
-    }
-
     let createdBadge: Badge;
 
-    if (req.requestedLevel === "account_ownership") {
-      // RG45 : Constat de propriété du compte
-      if (!validated.observedHandle) {
-        throw new Error(
-          "L'identifiant du compte observé en ligne est obligatoire pour valider la propriété (RG45)",
-        );
-      }
+    if (req.requestedLevel === "brand") {
+      const brandProfile = (this.store.brandProfiles.get(req.accountId) ||
+        Array.from(this.store.brandProfiles.values()).find(
+          (bp: any) => bp.accountId === req.accountId,
+        )) as any;
 
-      // Clôture du code de propriété associé
-      if (req.ownershipCodeId) {
-        const codeRec = this.store.ownershipCodes.get(req.ownershipCodeId);
-        if (codeRec) {
-          this.store.ownershipCodes.set(req.ownershipCodeId, {
-            ...codeRec,
-            observedByAgentId: agentAccount.id,
-            observedAt: decidedAt,
-            observedHandle: validated.observedHandle,
-            observedPlatformAccountRef:
-              validated.observedPlatformAccountRef || null,
-          });
-        }
+      if (brandProfile) {
+        brandProfile.badgeStatus = "verified";
+        brandProfile.badgeVerifiedAt = decidedAt;
+        brandProfile.updatedAt = decidedAt;
+        this.store.brandProfiles.set(
+          brandProfile.accountId || req.accountId,
+          brandProfile,
+        );
       }
 
       createdBadge = {
         id: randomUUID(),
         accountId: req.accountId,
-        socialAccountId: req.network,
+        socialAccountId: null,
         network: req.network,
-        level: "account_verified",
+        level: "brand_verified",
         grantedByAgentId: agentAccount.id,
         grantedAt: decidedAt,
-        evidenceSource: "native_dashboard",
-        expiresAt: null, // RG30 : Pas de péremption calendrier
+        evidenceSource:
+          req.network === "domain_dns" ? "domain_control" : "registry",
+        expiresAt: null,
         state: "active",
-        observedHandleAtDecision: validated.observedHandle,
-        observedPlatformAccountRef:
-          validated.observedPlatformAccountRef || null,
         createdAt: decidedAt,
         updatedAt: decidedAt,
       };
-
-      // Mise à jour du profil créateur
-      const updatedNetworks = (profile.networks || []).map((net) => {
-        if (net.network === req.network) {
-          return {
-            ...net,
-            hasVerifiedAccountBadge: true,
-            accountBadgeVerifiedAt: decidedAt,
-            handle: validated.observedHandle || net.handle,
-          } as CreatorNetworkInternal;
-        }
-        return net;
-      });
-
-      profile.networks = updatedNetworks;
-      profile.updatedAt = decidedAt;
-      this.store.creatorProfiles.set(req.accountId, profile as any);
     } else {
-      // Audience vérifiée (RG31, RG38, RG47, RG69)
-      if (validated.observedFollowers === undefined) {
-        throw new Error(
-          "Le nombre d'abonnés constaté est obligatoire pour accorder le badge Audience (RG38)",
-        );
-      }
-      if (!validated.observedPeriodStart || !validated.observedPeriodEnd) {
-        throw new Error(
-          "La période couverte par la capture (début et fin) est obligatoire (RG37)",
-        );
+      const profile = this.store.creatorProfiles.get(req.accountId) as
+        CreatorProfile | undefined;
+      if (!profile) {
+        throw new Error("Profil créateur introuvable pour validation");
       }
 
-      // RG31 / RG36 : Vérification de la fraîcheur (période close il y a <= 30 jours)
-      const periodEndDate = new Date(validated.observedPeriodEnd);
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      if (periodEndDate < thirtyDaysAgo) {
-        throw new Error(
-          "La période de capture se termine il y a plus de 30 jours (RG31, RG36)",
-        );
-      }
-
-      // RG69 : Péremption stricte à 90 jours
-      const expiresAt = new Date(
-        now.getTime() + 90 * 24 * 60 * 60 * 1000,
-      ).toISOString();
-
-      const existingNetwork = (profile.networks || []).find(
-        (n) => n.network === req.network,
-      );
-      const declaredFollowers = existingNetwork?.followersCount;
-
-      // RG41, RG42 : Détection d'écart > 30% entre déclaré et constaté
-      if (declaredFollowers !== undefined && declaredFollowers > 0) {
-        const diff = Math.abs(declaredFollowers - validated.observedFollowers);
-        const gapRatio = diff / declaredFollowers;
-        if (gapRatio > 0.3) {
-          this.store.recordAuditEvent(
-            "verification.gap_alert",
-            {
-              requestId,
-              accountId: req.accountId,
-              declaredFollowers,
-              observedFollowers: validated.observedFollowers,
-              gapPercentage: Math.round(gapRatio * 100),
-            },
-            agentAccount.id,
+      if (req.requestedLevel === "account_ownership") {
+        // RG45 : Constat de propriété du compte
+        if (!validated.observedHandle) {
+          throw new Error(
+            "L'identifiant du compte observé en ligne est obligatoire pour valider la propriété (RG45)",
           );
         }
-      }
 
-      // RG20 : Calcul par le système de la tranche d'audience
-      const newAudienceBand = calculateAudienceBand(
-        validated.observedFollowers,
-      );
-
-      // Calcul de la tranche d'engagement si constatée (RG15)
-      const newEngagementBand =
-        validated.observedEngagement !== undefined
-          ? calculateEngagementBand(validated.observedEngagement)
-          : existingNetwork?.engagementRateBand;
-
-      createdBadge = {
-        id: randomUUID(),
-        accountId: req.accountId,
-        socialAccountId: req.network,
-        network: req.network,
-        level: "audience_verified",
-        grantedByAgentId: agentAccount.id,
-        grantedAt: decidedAt,
-        evidenceSource: "native_dashboard",
-        observedFollowers: validated.observedFollowers,
-        observedEngagement: validated.observedEngagement,
-        observedPeriodStart: validated.observedPeriodStart,
-        observedPeriodEnd: validated.observedPeriodEnd,
-        declaredFollowersAtDecision: declaredFollowers,
-        expiresAt,
-        state: "active",
-        observedHandleAtDecision: existingNetwork?.handle,
-        createdAt: decidedAt,
-        updatedAt: decidedAt,
-      };
-
-      // Mise à jour du profil créateur
-      const updatedNetworks = (profile.networks || []).map((net) => {
-        if (net.network === req.network) {
-          return {
-            ...net,
-            hasVerifiedAudienceBadge: true,
-            audienceBadgeVerifiedAt: decidedAt,
-            figuresSource: "agent_observed",
-            figuresUpdatedAt: decidedAt,
-            audienceBand: newAudienceBand,
-            followersCount: validated.observedFollowers!,
-            engagementRateBand: newEngagementBand,
-          } as CreatorNetworkInternal;
+        // Clôture du code de propriété associé
+        if (req.ownershipCodeId) {
+          const codeRec = this.store.ownershipCodes.get(req.ownershipCodeId);
+          if (codeRec) {
+            this.store.ownershipCodes.set(req.ownershipCodeId, {
+              ...codeRec,
+              observedByAgentId: agentAccount.id,
+              observedAt: decidedAt,
+              observedHandle: validated.observedHandle,
+              observedPlatformAccountRef:
+                validated.observedPlatformAccountRef || null,
+            });
+          }
         }
-        return net;
-      });
 
-      profile.networks = updatedNetworks;
-      profile.updatedAt = decidedAt;
-      this.store.creatorProfiles.set(req.accountId, profile as any);
+        createdBadge = {
+          id: randomUUID(),
+          accountId: req.accountId,
+          socialAccountId: req.network,
+          network: req.network,
+          level: "account_verified",
+          grantedByAgentId: agentAccount.id,
+          grantedAt: decidedAt,
+          evidenceSource: "native_dashboard",
+          expiresAt: null, // RG30 : Pas de péremption calendrier
+          state: "active",
+          observedHandleAtDecision: validated.observedHandle,
+          observedPlatformAccountRef:
+            validated.observedPlatformAccountRef || null,
+          createdAt: decidedAt,
+          updatedAt: decidedAt,
+        };
+
+        // Mise à jour du profil créateur
+        const updatedNetworks = (profile.networks || []).map((net) => {
+          if (net.network === req.network) {
+            return {
+              ...net,
+              hasVerifiedAccountBadge: true,
+              accountBadgeVerifiedAt: decidedAt,
+              handle: validated.observedHandle || net.handle,
+            } as CreatorNetworkInternal;
+          }
+          return net;
+        });
+
+        profile.networks = updatedNetworks;
+        profile.updatedAt = decidedAt;
+        this.store.creatorProfiles.set(req.accountId, profile as any);
+      } else {
+        // Audience vérifiée (RG31, RG38, RG47, RG69)
+        if (validated.observedFollowers === undefined) {
+          throw new Error(
+            "Le nombre d'abonnés constaté est obligatoire pour accorder le badge Audience (RG38)",
+          );
+        }
+        if (!validated.observedPeriodStart || !validated.observedPeriodEnd) {
+          throw new Error(
+            "La période couverte par la capture (début et fin) est obligatoire (RG37)",
+          );
+        }
+
+        // RG31 / RG36 : Vérification de la fraîcheur (période close il y a <= 30 jours)
+        const periodEndDate = new Date(validated.observedPeriodEnd);
+        const thirtyDaysAgo = new Date(
+          now.getTime() - 30 * 24 * 60 * 60 * 1000,
+        );
+        if (periodEndDate < thirtyDaysAgo) {
+          throw new Error(
+            "La période de capture se termine il y a plus de 30 jours (RG31, RG36)",
+          );
+        }
+
+        // RG69 : Péremption stricte à 90 jours
+        const expiresAt = new Date(
+          now.getTime() + 90 * 24 * 60 * 60 * 1000,
+        ).toISOString();
+
+        const existingNetwork = (profile.networks || []).find(
+          (n) => n.network === req.network,
+        );
+        const declaredFollowers = existingNetwork?.followersCount;
+
+        // RG41, RG42 : Détection d'écart > 30% entre déclaré et constaté
+        if (declaredFollowers !== undefined && declaredFollowers > 0) {
+          const diff = Math.abs(
+            declaredFollowers - validated.observedFollowers,
+          );
+          const gapRatio = diff / declaredFollowers;
+          if (gapRatio > 0.3) {
+            this.store.recordAuditEvent(
+              "verification.gap_alert",
+              {
+                requestId,
+                accountId: req.accountId,
+                declaredFollowers,
+                observedFollowers: validated.observedFollowers,
+                gapPercentage: Math.round(gapRatio * 100),
+              },
+              agentAccount.id,
+            );
+          }
+        }
+
+        // RG20 : Calcul par le système de la tranche d'audience
+        const newAudienceBand = calculateAudienceBand(
+          validated.observedFollowers,
+        );
+
+        // Calcul de la tranche d'engagement si constatée (RG15)
+        const newEngagementBand =
+          validated.observedEngagement !== undefined
+            ? calculateEngagementBand(validated.observedEngagement)
+            : existingNetwork?.engagementRateBand;
+
+        createdBadge = {
+          id: randomUUID(),
+          accountId: req.accountId,
+          socialAccountId: req.network,
+          network: req.network,
+          level: "audience_verified",
+          grantedByAgentId: agentAccount.id,
+          grantedAt: decidedAt,
+          evidenceSource: "native_dashboard",
+          observedFollowers: validated.observedFollowers,
+          observedEngagement: validated.observedEngagement,
+          observedPeriodStart: validated.observedPeriodStart,
+          observedPeriodEnd: validated.observedPeriodEnd,
+          declaredFollowersAtDecision: declaredFollowers,
+          expiresAt,
+          state: "active",
+          observedHandleAtDecision: existingNetwork?.handle,
+          createdAt: decidedAt,
+          updatedAt: decidedAt,
+        };
+
+        // Mise à jour du profil créateur
+        const updatedNetworks = (profile.networks || []).map((net) => {
+          if (net.network === req.network) {
+            return {
+              ...net,
+              hasVerifiedAudienceBadge: true,
+              audienceBadgeVerifiedAt: decidedAt,
+              figuresSource: "agent_observed",
+              figuresUpdatedAt: decidedAt,
+              audienceBand: newAudienceBand,
+              followersCount: validated.observedFollowers!,
+              engagementRateBand: newEngagementBand,
+            } as CreatorNetworkInternal;
+          }
+          return net;
+        });
+
+        profile.networks = updatedNetworks;
+        profile.updatedAt = decidedAt;
+        this.store.creatorProfiles.set(req.accountId, profile as any);
+      }
     }
 
     this.store.badges.set(createdBadge.id, createdBadge as any);
@@ -792,6 +862,22 @@ export class VerificationService {
       });
       profile.updatedAt = now;
       this.store.creatorProfiles.set(badge.accountId, profile as any);
+    }
+
+    if (badge.level === "brand_verified") {
+      const brandProfile = (this.store.brandProfiles.get(badge.accountId) ||
+        Array.from(this.store.brandProfiles.values()).find(
+          (bp: any) => bp.accountId === badge.accountId,
+        )) as any;
+      if (brandProfile) {
+        brandProfile.badgeStatus = "none";
+        brandProfile.badgeVerifiedAt = null;
+        brandProfile.updatedAt = now;
+        this.store.brandProfiles.set(
+          brandProfile.accountId || badge.accountId,
+          brandProfile,
+        );
+      }
     }
 
     // Journalisation d'audit

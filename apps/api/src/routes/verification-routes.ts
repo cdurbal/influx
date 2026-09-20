@@ -190,6 +190,7 @@ export const verificationRoutes: FastifyPluginAsync<{
       status?: VerificationStatus;
       network?: string;
       requestedLevel?: VerificationLevel;
+      population?: "creators" | "brands";
       page?: number;
       limit?: number;
     };

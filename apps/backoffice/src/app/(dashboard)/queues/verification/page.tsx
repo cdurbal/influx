@@ -50,6 +50,7 @@ export default function VerificationQueuePage() {
       const params = new URLSearchParams({
         page: String(page),
         limit: String(limit),
+        population: populationTab,
       });
 
       if (statusFilter !== "all") params.append("status", statusFilter);
@@ -83,11 +84,21 @@ export default function VerificationQueuePage() {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, statusFilter, levelFilter, networkFilter]);
+  }, [page, limit, statusFilter, levelFilter, networkFilter, populationTab]);
 
   useEffect(() => {
     fetchQueue();
   }, [fetchQueue]);
+
+  // Changement d'onglet Créateurs / Marques
+  const handleTabChange = (tab: "creators" | "brands") => {
+    if (tab === populationTab) return;
+    setPopulationTab(tab);
+    setPage(1);
+    setStatusFilter("all");
+    setLevelFilter("all");
+    setNetworkFilter("all");
+  };
 
   // Réinitialiser la pagination lors d'un changement de filtre
   const handleStatusChange = (val: string) => {
@@ -186,7 +197,7 @@ export default function VerificationQueuePage() {
         <div className="flex border-b border-border-default">
           <button
             type="button"
-            onClick={() => setPopulationTab("creators")}
+            onClick={() => handleTabChange("creators")}
             className={`px-5 py-2.5 text-sm font-semibold border-b-2 cursor-pointer transition-colors ${
               populationTab === "creators"
                 ? "border-brand-primary text-brand-primary"
@@ -197,7 +208,7 @@ export default function VerificationQueuePage() {
           </button>
           <button
             type="button"
-            onClick={() => setPopulationTab("brands")}
+            onClick={() => handleTabChange("brands")}
             className={`px-5 py-2.5 text-sm font-semibold border-b-2 cursor-pointer transition-colors ${
               populationTab === "brands"
                 ? "border-brand-primary text-brand-primary"
@@ -268,29 +279,58 @@ export default function VerificationQueuePage() {
 
             <label className="text-xs text-text-secondary font-semibold flex items-center gap-2">
               <span>{l.filters.level}</span>
-              <select
-                value={levelFilter}
-                onChange={(e) => handleLevelChange(e.target.value)}
-                className="px-3 py-1.5 bg-surface-page border border-border-default rounded-lg text-xs text-text-primary focus:outline-none focus:border-brand-primary"
-              >
-                <option value="all">{l.filters.allLevels}</option>
-                <option value="account_ownership">{l.filters.ownership}</option>
-                <option value="audience">{l.filters.audience}</option>
-              </select>
+              {populationTab === "brands" ? (
+                <select
+                  value={levelFilter}
+                  onChange={(e) => handleLevelChange(e.target.value)}
+                  className="px-3 py-1.5 bg-surface-page border border-border-default rounded-lg text-xs text-text-primary focus:outline-none focus:border-brand-primary"
+                >
+                  <option value="all">{l.filters.allLevels}</option>
+                  <option value="brand">Badge Marque vérifiée</option>
+                </select>
+              ) : (
+                <select
+                  value={levelFilter}
+                  onChange={(e) => handleLevelChange(e.target.value)}
+                  className="px-3 py-1.5 bg-surface-page border border-border-default rounded-lg text-xs text-text-primary focus:outline-none focus:border-brand-primary"
+                >
+                  <option value="all">{l.filters.allLevels}</option>
+                  <option value="account_ownership">
+                    {l.filters.ownership}
+                  </option>
+                  <option value="audience">{l.filters.audience}</option>
+                </select>
+              )}
             </label>
 
             <label className="text-xs text-text-secondary font-semibold flex items-center gap-2">
-              <span>{l.filters.network}</span>
-              <select
-                value={networkFilter}
-                onChange={(e) => handleNetworkChange(e.target.value)}
-                className="px-3 py-1.5 bg-surface-page border border-border-default rounded-lg text-xs text-text-primary focus:outline-none focus:border-brand-primary"
-              >
-                <option value="all">{l.filters.allNetworks}</option>
-                <option value="youtube">YouTube</option>
-                <option value="instagram">Instagram</option>
-                <option value="tiktok">TikTok</option>
-              </select>
+              <span>
+                {populationTab === "brands"
+                  ? l.table.colProofType || "Type de preuve :"
+                  : l.filters.network}
+              </span>
+              {populationTab === "brands" ? (
+                <select
+                  value={networkFilter}
+                  onChange={(e) => handleNetworkChange(e.target.value)}
+                  className="px-3 py-1.5 bg-surface-page border border-border-default rounded-lg text-xs text-text-primary focus:outline-none focus:border-brand-primary"
+                >
+                  <option value="all">Toutes les preuves</option>
+                  <option value="kbis_rcs">Extrait Kbis (RCS)</option>
+                  <option value="domain_dns">Domaine officiel / DNS</option>
+                </select>
+              ) : (
+                <select
+                  value={networkFilter}
+                  onChange={(e) => handleNetworkChange(e.target.value)}
+                  className="px-3 py-1.5 bg-surface-page border border-border-default rounded-lg text-xs text-text-primary focus:outline-none focus:border-brand-primary"
+                >
+                  <option value="all">{l.filters.allNetworks}</option>
+                  <option value="youtube">YouTube</option>
+                  <option value="instagram">Instagram</option>
+                  <option value="tiktok">TikTok</option>
+                </select>
+              )}
             </label>
           </div>
 
@@ -325,13 +365,17 @@ export default function VerificationQueuePage() {
                     {l.table.colSubmission}
                   </th>
                   <th scope="col" className="px-6 py-3.5">
-                    {l.table.colNetwork}
+                    {populationTab === "brands"
+                      ? l.table.colProofType || "Type de preuve"
+                      : l.table.colNetwork}
                   </th>
                   <th scope="col" className="px-6 py-3.5">
                     {l.table.colLevel}
                   </th>
                   <th scope="col" className="px-6 py-3.5">
-                    {l.table.colCreator}
+                    {populationTab === "brands"
+                      ? l.table.colBrand || "Marque / Entreprise"
+                      : l.table.colCreator}
                   </th>
                   <th scope="col" className="px-6 py-3.5">
                     {l.table.colStatus}
@@ -389,10 +433,14 @@ export default function VerificationQueuePage() {
                           </span>
                         </td>
 
-                        {/* Réseau */}
+                        {/* Réseau / Preuve */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="capitalize font-medium text-text-primary">
-                            {item.network}
+                            {item.network === "kbis_rcs"
+                              ? "Extrait Kbis (RCS)"
+                              : item.network === "domain_dns"
+                                ? "Domaine / DNS"
+                                : item.network}
                           </span>
                         </td>
 
@@ -400,21 +448,29 @@ export default function VerificationQueuePage() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
                             className={`inline-block px-2.5 py-0.5 rounded text-xs font-semibold ${
-                              item.requestedLevel === "account_ownership"
-                                ? "bg-feedback-info-bg text-feedback-info-text border border-feedback-info-border"
-                                : "bg-brand-subtle-bg text-brand-primary border border-brand-subtle-border"
+                              item.requestedLevel === "brand"
+                                ? "bg-brand-subtle-bg text-brand-primary border border-brand-subtle-border"
+                                : item.requestedLevel === "account_ownership"
+                                  ? "bg-feedback-info-bg text-feedback-info-text border border-feedback-info-border"
+                                  : "bg-brand-subtle-bg text-brand-primary border border-brand-subtle-border"
                             }`}
                           >
-                            {item.requestedLevel === "account_ownership"
-                              ? "Niveau 1 : Propriété"
-                              : "Niveau 2 : Audience"}
+                            {item.requestedLevel === "brand"
+                              ? "Marque vérifiée"
+                              : item.requestedLevel === "account_ownership"
+                                ? "Niveau 1 : Propriété"
+                                : "Niveau 2 : Audience"}
                           </span>
                         </td>
 
-                        {/* Créateur (Alias + ID) */}
+                        {/* Créateur ou Marque (Alias / Nom + ID) */}
                         <td className="px-6 py-4 whitespace-nowrap text-xs">
                           <span className="font-medium text-text-primary block">
-                            {item.creatorAlias || "Créateur"}
+                            {item.brandName ||
+                              item.creatorAlias ||
+                              (populationTab === "brands"
+                                ? "Marque"
+                                : "Créateur")}
                           </span>
                           <span className="font-mono text-text-tertiary text-xs">
                             {item.accountId.slice(0, 8)}...

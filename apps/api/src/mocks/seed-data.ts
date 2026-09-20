@@ -371,6 +371,36 @@ export const SEED_VERIFICATION_REQUESTS = [
     submittedAt: now,
     updatedAt: now,
   },
+  {
+    id: "req-verif-brand-1",
+    accountId: SEED_IDS.ADVERTISER_2,
+    creatorAccountId: SEED_IDS.ADVERTISER_2,
+    network: "kbis_rcs",
+    requestedLevel: "brand",
+    evidenceFileUrl:
+      "https://placehold.co/800x600/png?text=Extrait+Kbis+TechGear+France",
+    evidenceFileIds: [],
+    status: "pending",
+    slaDueAt: now,
+    createdAt: now,
+    submittedAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "req-verif-brand-2",
+    accountId: SEED_IDS.ADVERTISER_1,
+    creatorAccountId: SEED_IDS.ADVERTISER_1,
+    network: "domain_dns",
+    requestedLevel: "brand",
+    evidenceFileUrl:
+      "https://placehold.co/800x600/png?text=Preuve+Controle+DNS+Maison+Solene",
+    evidenceFileIds: [],
+    status: "approved",
+    slaDueAt: now,
+    createdAt: now,
+    submittedAt: now,
+    updatedAt: now,
+  },
 ];
 
 export function createInitialSnapshot(): MockStoreSnapshot {
