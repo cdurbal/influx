@@ -107,6 +107,16 @@ export function createApp(options: ServerOptions = {}): FastifyInstance {
     });
   });
 
+  // Root route for sanity check
+  app.get("/", async (_request, reply) => {
+    return reply.status(200).send({
+      status: "ok",
+      service: "influx-api",
+      message: "INFLUX API Mock Server is running",
+      timestamp: new Date().toISOString(),
+    });
+  });
+
   // Register routes
   app.register(devRoutes);
   app.register(authRoutes);
