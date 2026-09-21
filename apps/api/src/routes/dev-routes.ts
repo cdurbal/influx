@@ -1,5 +1,7 @@
 import { type FastifyInstance } from "fastify";
 import { MockStore } from "../mocks/mock-store";
+import { authService } from "../services/auth-service";
+import { setSessionCookie, clearSessionCookie } from "./auth-routes";
 
 export async function devRoutes(fastify: FastifyInstance): Promise<void> {
   const store = MockStore.getInstance();
@@ -9,6 +11,44 @@ export async function devRoutes(fastify: FastifyInstance): Promise<void> {
       ok: true,
       state: store.dump(),
     });
+  });
+
+  fastify.post("/api/dev/switch-persona", async (request, reply) => {
+    const body =
+      (request.body as
+        { email?: string | null; accountId?: string | null } | undefined) || {};
+    const identifier = body.email || body.accountId;
+
+    if (!identifier) {
+      // Déconnexion -> mode Visiteur anonyme
+      clearSessionCookie(reply);
+      return reply.status(200).send({
+        ok: true,
+        account: null,
+        user: null,
+        message: "Déconnecté : Mode Visiteur anonyme",
+      });
+    }
+
+    try {
+      const session = await authService.createDevSession(identifier);
+      const maxAge = session.isBackoffice ? 8 * 60 * 60 : 30 * 24 * 60 * 60;
+      setSessionCookie(reply, session.token, maxAge, session.isBackoffice);
+
+      return reply.status(200).send({
+        ok: true,
+        token: session.token,
+        user: session.user,
+        account: session.account,
+        message: `Connecté en tant que ${session.user.displayName} (${session.account.role})`,
+      });
+    } catch (err: any) {
+      return reply.status(404).send({
+        ok: false,
+        error: "PersonaNotFound",
+        message: err.message || "Compte persona introuvable",
+      });
+    }
   });
 
   fastify.post("/api/dev/reset", async (request, reply) => {
@@ -22,6 +62,7 @@ export async function devRoutes(fastify: FastifyInstance): Promise<void> {
     } else {
       store.reset();
     }
+    authService.reset();
 
     return reply.status(200).send({
       ok: true,

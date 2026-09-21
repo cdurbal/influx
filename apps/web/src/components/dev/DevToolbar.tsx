@@ -25,35 +25,35 @@ const PERSONAS: Persona[] = [
     name: "Maison Solène",
     role: "advertiser",
     email: "contact@maisonsolene.fr",
-    tag: "Marque • Cosmétique Bio",
+    tag: "Marque • ✓ BADGE VÉRIFIÉ",
   },
   {
     id: "22222222-2222-4222-8222-222222222222",
     name: "TechGear France",
     role: "advertiser",
     email: "partenariats@techgear.fr",
-    tag: "Marque • High-Tech",
+    tag: "Marque • Non vérifiée (Sans badge)",
   },
   {
     id: "33333333-3333-4333-8333-333333333333",
     name: "Lucas Tech",
     role: "creator",
     email: "lucas@lucastech.fr",
-    tag: "Créateur • Badge Niveau 1",
-  },
-  {
-    id: "44444444-4444-4444-8444-444444444444",
-    name: "Sophie Mode",
-    role: "creator",
-    email: "sophie@lifestyle-mode.com",
-    tag: "Créatrice • En attente de badge",
+    tag: "Créateur • ✓ AUDIENCE VÉRIFIÉE",
   },
   {
     id: "55555555-5555-4555-8555-555555555555",
     name: "Maxime Voyage",
     role: "creator",
     email: "maxime@outdoor-travel.com",
-    tag: "Créateur • Badge Niveau 2",
+    tag: "Créateur • ✓ CERTIFIÉ NIVEAU 2",
+  },
+  {
+    id: "44444444-4444-4444-8444-444444444444",
+    name: "Sophie Mode",
+    role: "creator",
+    email: "sophie@lifestyle-mode.com",
+    tag: "Créatrice • Non vérifiée (En attente)",
   },
   {
     id: "88888888-8888-4888-8888-888888888888",
@@ -75,48 +75,148 @@ export function DevToolbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [activePersona, setActivePersona] = useState<Persona | null>(null);
   const [isResetting, setIsResetting] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    // Read persisted persona from localStorage
-    const saved = localStorage.getItem("influx_mock_persona");
-    if (saved) {
+    async function syncSession() {
       try {
-        const parsed = JSON.parse(saved) as Persona;
-        setActivePersona(parsed);
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json();
+          const email = (
+            data.account?.email ||
+            data.user?.email ||
+            ""
+          ).toLowerCase();
+          const match = PERSONAS.find((p) => p.email.toLowerCase() === email);
+          if (match) {
+            setActivePersona(match);
+            localStorage.setItem("influx_mock_persona", JSON.stringify(match));
+            return;
+          }
+          if (data.account || data.user) {
+            const fallbackPersona: Persona = {
+              id: data.account?.id || data.user?.accountId || "user",
+              name:
+                data.user?.displayName ||
+                data.account?.email?.split("@")[0] ||
+                "Utilisateur",
+              role: data.account?.role || data.user?.role || "advertiser",
+              email: data.account?.email || data.user?.email || "",
+              tag: `Connecté • ${data.account?.role || data.user?.role}`,
+            };
+            setActivePersona(fallbackPersona);
+            return;
+          }
+        }
+        // Visiteur anonyme si 401
+        setActivePersona(null);
+        localStorage.removeItem("influx_mock_persona");
       } catch {
-        // Ignore JSON error
+        // Fallback localStorage si l'API n'est pas joignable immédiatement
+        const saved = localStorage.getItem("influx_mock_persona");
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved) as Persona;
+            setActivePersona(parsed);
+          } catch {
+            // Ignore JSON error
+          }
+        }
       }
     }
+
+    syncSession();
   }, []);
 
-  const handleSelectPersona = (persona: Persona | null) => {
-    if (persona) {
-      localStorage.setItem("influx_mock_persona", JSON.stringify(persona));
-      document.cookie = `influx_session_user=${encodeURIComponent(JSON.stringify(persona))}; path=/; max-age=86400`;
-      setActivePersona(persona);
-      showFeedback(`Connecté en tant que : ${persona.name} (${persona.role})`);
-    } else {
-      localStorage.removeItem("influx_mock_persona");
-      document.cookie =
-        "influx_session_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-      setActivePersona(null);
-      showFeedback("Session effacée : Mode Visiteur anonyme");
-    }
+  const handleSelectPersona = async (persona: Persona | null) => {
+    setIsSwitching(true);
     setIsOpen(false);
+    try {
+      if (persona) {
+        showFeedback(`Connexion en tant que ${persona.name}...`);
+        const res = await fetch("/api/dev/switch-persona", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ email: persona.email }),
+        });
+
+        if (res.ok) {
+          localStorage.setItem("influx_mock_persona", JSON.stringify(persona));
+          setActivePersona(persona);
+          showFeedback(
+            `✓ Connecté en tant que : ${persona.name} (${persona.role})`,
+          );
+
+          // Redirection intelligente si le rôle courant est incompatible avec l'URL
+          const pathname = window.location.pathname;
+          const currentLocale = pathname.startsWith("/en") ? "en" : "fr";
+
+          if (persona.role === "creator" && pathname.includes("/advertiser/")) {
+            window.location.href = `/${currentLocale}/creator/profile`;
+            return;
+          } else if (
+            persona.role === "advertiser" &&
+            pathname.includes("/creator/")
+          ) {
+            window.location.href = `/${currentLocale}/advertiser/profile`;
+            return;
+          }
+
+          window.location.reload();
+        } else {
+          showFeedback("Erreur lors de la bascule de profil");
+        }
+      } else {
+        showFeedback("Déconnexion en cours...");
+        await fetch("/api/dev/switch-persona", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ email: null }),
+        });
+        localStorage.removeItem("influx_mock_persona");
+        setActivePersona(null);
+        showFeedback("✓ Session effacée : Mode Visiteur anonyme");
+
+        const pathname = window.location.pathname;
+        const currentLocale = pathname.startsWith("/en") ? "en" : "fr";
+        if (
+          pathname.includes("/advertiser/") ||
+          pathname.includes("/creator/")
+        ) {
+          window.location.href = `/${currentLocale}/space`;
+          return;
+        }
+
+        window.location.reload();
+      }
+    } catch {
+      showFeedback("Erreur réseau lors de la bascule");
+    } finally {
+      setIsSwitching(false);
+    }
   };
 
   const handleResetData = async () => {
     setIsResetting(true);
     try {
-      const res = await fetch("http://localhost:4000/api/dev/reset", {
+      const res = await fetch("/api/dev/reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
       });
       if (res.ok) {
+        localStorage.removeItem("influx_mock_persona");
+        setActivePersona(null);
         showFeedback("✓ Données mockées réinitialisées au seed d’origine");
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
       } else {
-        showFeedback("Réinitialisé en mémoire locale");
+        showFeedback("Échec de la réinitialisation");
       }
     } catch {
       showFeedback("Réinitialisé (API non jointe)");

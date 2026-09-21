@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   calculateCreatorProfileCompleteness,
   calculateAudienceBand,
@@ -253,6 +253,80 @@ export function CreatorProfileEditor({
     "idle" | "saving" | "saved" | "submitting" | "submitted" | "error"
   >("idle");
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(!initialProfile);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialProfile) return;
+
+    let mounted = true;
+    async function loadProfile() {
+      try {
+        setIsLoadingProfile(true);
+        const res = await fetch("/api/profiles/creator/me", {
+          credentials: "include",
+        });
+
+        if (res.status === 401) {
+          if (mounted) {
+            setAuthError(
+              locale === "en"
+                ? "You must be signed in with a Creator account to view and edit this profile."
+                : "Vous devez être connecté avec un compte Créateur pour modifier ce profil.",
+            );
+          }
+          return;
+        }
+
+        if (res.status === 403) {
+          if (mounted) {
+            setAuthError(
+              locale === "en"
+                ? "This page is reserved for Creator accounts. Use the DEV MOCK toolbar below to switch to a Creator persona (e.g. Lucas Tech or Sophie Mode)."
+                : "Cette page est réservée aux comptes Créateurs. Utilisez la barre DEV MOCK en bas pour sélectionner un profil Créateur (ex: Lucas Tech ou Sophie Mode).",
+            );
+          }
+          return;
+        }
+
+        if (res.ok) {
+          const data = await res.json();
+          if (mounted && data.profile) {
+            setProfile((prev) => ({
+              ...prev,
+              ...data.profile,
+              // Fallback ensure arrays exist
+              secondaryTopics:
+                data.profile.secondaryTopics || prev.secondaryTopics || [],
+              editorialTone:
+                data.profile.editorialTone || prev.editorialTone || [],
+              networks: data.profile.networks?.length
+                ? data.profile.networks
+                : prev.networks,
+              offers: data.profile.offers?.length
+                ? data.profile.offers
+                : prev.offers,
+              languages: data.profile.languages?.length
+                ? data.profile.languages
+                : prev.languages,
+            }));
+            setAuthError(null);
+          }
+        }
+      } catch {
+        // Mode offline/mock local fallback
+      } finally {
+        if (mounted) {
+          setIsLoadingProfile(false);
+        }
+      }
+    }
+
+    loadProfile();
+    return () => {
+      mounted = false;
+    };
+  }, [initialProfile, locale]);
 
   // Identifier detection in Bio & Short Title (RG27)
   const hasIdentifierInBioOrTitle = useMemo(() => {
@@ -346,9 +420,25 @@ export function CreatorProfileEditor({
   async function handleSaveDraft() {
     setSaveStatus("saving");
     try {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setSaveStatus("saved");
-      setFeedbackMessage(labels.actions.savedSuccess);
+      const res = await fetch("/api/profiles/creator/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(profile),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.profile) {
+          setProfile((prev) => ({ ...prev, ...data.profile }));
+        }
+        setSaveStatus("saved");
+        setFeedbackMessage(labels.actions.savedSuccess);
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        setSaveStatus("error");
+        setFeedbackMessage(errJson.message || labels.actions.fixErrors);
+      }
     } catch {
       setSaveStatus("error");
       setFeedbackMessage(labels.actions.fixErrors);
@@ -363,10 +453,34 @@ export function CreatorProfileEditor({
     }
     setSaveStatus("submitting");
     try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      updateField("status", "en_attente");
-      setSaveStatus("submitted");
-      setFeedbackMessage(labels.actions.submittedSuccess);
+      // 1. Sauvegarder d'abord
+      await fetch("/api/profiles/creator/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(profile),
+      });
+
+      // 2. Soumettre pour validation
+      const res = await fetch("/api/profiles/creator/me/submit", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.profile) {
+          setProfile((prev) => ({ ...prev, ...data.profile }));
+        } else {
+          updateField("status", "en_attente");
+        }
+        setSaveStatus("submitted");
+        setFeedbackMessage(labels.actions.submittedSuccess);
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        setSaveStatus("error");
+        setFeedbackMessage(errJson.message || labels.actions.fixErrors);
+      }
     } catch {
       setSaveStatus("error");
       setFeedbackMessage(labels.actions.fixErrors);
@@ -403,6 +517,13 @@ export function CreatorProfileEditor({
       ?.label || "Créateur"
   } · ${profile.country || "FR"}`;
 
+  const hasAudienceBadge = profile.networks?.some(
+    (n) => n.hasVerifiedAudienceBadge,
+  );
+  const hasAccountBadge = profile.networks?.some(
+    (n) => n.hasVerifiedAccountBadge,
+  );
+
   const progressWidthClass =
     score >= 100
       ? "w-full"
@@ -418,6 +539,18 @@ export function CreatorProfileEditor({
 
   return (
     <div className="flex flex-col gap-8">
+      {authError ? (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-xs text-amber-900 shadow-sm dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-200">
+          <p className="font-semibold">{authError}</p>
+        </div>
+      ) : null}
+      {isLoadingProfile ? (
+        <div className="rounded-lg border border-border-default bg-surface-card p-6 text-center text-xs text-text-tertiary">
+          {locale === "en"
+            ? "Loading creator profile..."
+            : "Chargement du profil créateur..."}
+        </div>
+      ) : null}
       {/* 1. BANDEAU DE STATUT DU PROFIL (RG3, RG9, RG111) */}
       <section
         aria-label={labels.statusBanner.ariaLabel}
@@ -432,7 +565,18 @@ export function CreatorProfileEditor({
         }`}
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {hasAudienceBadge ? (
+              <span className="inline-flex items-center gap-1 rounded-pill bg-feedback-success-bg px-3 py-1 text-xs font-semibold text-feedback-success-text border border-feedback-success-border">
+                <BadgeCheckIcon className="size-3.5" aria-hidden="true" />
+                <span>Audience Vérifiée (&lt; 90j) ✓</span>
+              </span>
+            ) : hasAccountBadge ? (
+              <span className="inline-flex items-center gap-1 rounded-pill bg-surface-raised px-3 py-1 text-xs font-medium text-text-secondary border border-border-subtle">
+                <BadgeCheckIcon className="size-3.5" aria-hidden="true" />
+                <span>Compte Vérifié ✓</span>
+              </span>
+            ) : null}
             <span
               className={`rounded-pill px-3 py-1 text-xs font-semibold border-(length:--border-width-thin) ${
                 profile.status === "publie"

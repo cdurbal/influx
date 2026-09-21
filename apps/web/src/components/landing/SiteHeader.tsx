@@ -39,6 +39,11 @@ export async function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
+          <div className="hidden sm:block">
+            <LinkButton href="/space" variant="secondary" size="md">
+              {locale === "en" ? "Member Space" : "Mon Espace"}
+            </LinkButton>
+          </div>
           <div className="hidden lg:block">
             <LinkButton href="/signup" variant="primary" size="md">
               {t("common.cta.signup")}

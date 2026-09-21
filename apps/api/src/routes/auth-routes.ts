@@ -37,7 +37,7 @@ function extractSessionToken(request: FastifyRequest): string | undefined {
   return undefined;
 }
 
-function setSessionCookie(
+export function setSessionCookie(
   reply: FastifyReply,
   token: string,
   maxAgeSeconds: number = 30 * 24 * 60 * 60,
@@ -73,7 +73,7 @@ function setSessionCookie(
   }
 }
 
-function clearSessionCookie(reply: FastifyReply): void {
+export function clearSessionCookie(reply: FastifyReply): void {
   if (typeof (reply as any).clearCookie === "function") {
     (reply as any).clearCookie(SESSION_COOKIE_NAME, {
       path: "/",

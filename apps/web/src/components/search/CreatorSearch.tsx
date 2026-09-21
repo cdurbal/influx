@@ -78,7 +78,15 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
         return;
       }
 
+      const authData = await authRes.json().catch(() => null);
       setIsAuthenticated(true);
+
+      const userRole = authData?.account?.role || authData?.user?.role;
+      // Les agents et administrateurs ont un accès direct sans profil marque
+      if (userRole === "admin" || userRole === "agent") {
+        setIsBrandPublished(true);
+        return;
+      }
 
       // Vérifier le profil marque (RG1)
       const brandRes = await fetch("/api/profiles/brand/me", {
@@ -86,11 +94,14 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
       });
       if (brandRes.ok) {
         const brandData = await brandRes.json();
+        const profile = brandData?.profile || brandData;
         const published =
-          brandData.status === "publie" ||
-          brandData.isPublished === true ||
-          brandData.status === "published";
-        setIsBrandPublished(published);
+          profile?.status === "publie" ||
+          profile?.isPublished === true ||
+          profile?.status === "published" ||
+          brandData?.status === "publie" ||
+          brandData?.isPublished === true;
+        setIsBrandPublished(Boolean(published));
       } else {
         // En mock, si le profil marque n'est pas trouvé
         setIsBrandPublished(true);
@@ -108,7 +119,7 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
 
   // 2. Exécution de la recherche
   const executeSearch = useCallback(async () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || isBrandPublished === false) return;
     try {
       setLoading(true);
       setError(null);
@@ -156,13 +167,20 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, filters, sort, page, t.warnings.rateLimitExceeded]);
+  }, [
+    isAuthenticated,
+    isBrandPublished,
+    filters,
+    sort,
+    page,
+    t.warnings.rateLimitExceeded,
+  ]);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && isBrandPublished !== false) {
       executeSearch();
     }
-  }, [isAuthenticated, executeSearch]);
+  }, [isAuthenticated, isBrandPublished, executeSearch]);
 
   // Connexion rapide démo en 1 clic
   const handleDemoLogin = async () => {

@@ -316,6 +316,78 @@ export class AuthService {
   }
 
   /**
+   * Création directe d'une session dev pour bascule instantanée de persona
+   * Supporte l'e-mail ou l'ID de compte
+   */
+  async createDevSession(identifier: string): Promise<{
+    token: string;
+    user: UserSession;
+    account: Account;
+    isBackoffice: boolean;
+  }> {
+    const normalized = identifier.trim().toLowerCase();
+    let account: Account | undefined;
+
+    for (const acc of this.store.accounts.values()) {
+      if (
+        acc.id.toLowerCase() === normalized ||
+        acc.email.toLowerCase() === normalized
+      ) {
+        account = acc;
+        break;
+      }
+    }
+
+    if (!account) {
+      throw new Error(
+        `Compte introuvable pour l'identifiant dev : ${identifier}`,
+      );
+    }
+
+    const isBackoffice = account.role === "agent" || account.role === "admin";
+    const token = isBackoffice
+      ? `influx_bo_${randomUUID().replace(/-/g, "")}`
+      : `influx_sess_${randomUUID().replace(/-/g, "")}`;
+
+    const userSession: UserSession = {
+      accountId: account.id,
+      email: account.email,
+      role: account.role,
+      preferredLanguage: (account.preferredLanguage as "fr" | "en") || "fr",
+      displayName:
+        account.email.split("@")[0] ||
+        (account.role === "admin"
+          ? "Admin INFLUX"
+          : account.role === "agent"
+            ? "Agent INFLUX"
+            : "Membre"),
+    };
+
+    const maxAgeMs = isBackoffice
+      ? 8 * 60 * 60 * 1000
+      : 30 * 24 * 60 * 60 * 1000;
+
+    const sessionRecord: SessionRecord = {
+      token,
+      user: userSession,
+      accountId: account.id,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + maxAgeMs,
+      isBackoffice,
+      aal: isBackoffice ? "aal2" : "aal1",
+    };
+
+    this.sessions.set(token, sessionRecord);
+
+    return {
+      token,
+      user: userSession,
+      account,
+      isBackoffice,
+    };
+  }
+
+  /**
    * Révocation de session
    */
   async logout(token: string): Promise<boolean> {

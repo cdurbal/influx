@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   calculateBrandProfileCompleteness,
   normalizeWebsiteDomain,
@@ -8,10 +8,7 @@ import {
   type CompanySizeBand,
   type ContactRole,
 } from "@influx/contracts";
-import {
-  inputClassName,
-  RequiredMark,
-} from "@/components/ui/form-controls";
+import { inputClassName, RequiredMark } from "@/components/ui/form-controls";
 import {
   BadgeCheckIcon,
   BriefcaseIcon,
@@ -94,7 +91,10 @@ const BUDGET_OPTIONS = [
 
 const CONTACT_ROLE_OPTIONS: { value: ContactRole; label: string }[] = [
   { value: "marketing", label: "Responsable / Équipe Marketing" },
-  { value: "partenariats_influence", label: "Responsable Partenariats & Influence" },
+  {
+    value: "partenariats_influence",
+    label: "Responsable Partenariats & Influence",
+  },
   { value: "communication", label: "Direction / Équipe Communication" },
   { value: "dirigeant", label: "Fondateur / Dirigeant" },
   { value: "ecommerce", label: "Responsable E-commerce" },
@@ -104,7 +104,10 @@ const CONTACT_ROLE_OPTIONS: { value: ContactRole; label: string }[] = [
 
 const ASTERISK = "*";
 
-export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormProps) {
+export function BrandProfileForm({
+  initialProfile,
+  locale,
+}: BrandProfileFormProps) {
   const labels: BrandProfileLabels =
     locale === "en" ? EN_BRAND_PROFILE_LABELS : FR_BRAND_PROFILE_LABELS;
 
@@ -114,21 +117,33 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
     secondarySectors: initialProfile?.secondarySectors || [],
     companySize: initialProfile?.companySize || "11-50",
     country: initialProfile?.country || "FR",
-    targetMarkets: initialProfile?.targetMarkets?.length ? initialProfile.targetMarkets : ["FR"],
-    languages: initialProfile?.languages?.length ? initialProfile.languages : ["fr"],
+    targetMarkets: initialProfile?.targetMarkets?.length
+      ? initialProfile.targetMarkets
+      : ["FR"],
+    languages: initialProfile?.languages?.length
+      ? initialProfile.languages
+      : ["fr"],
     website: initialProfile?.website || "maisonsolene.fr",
     presentation:
       initialProfile?.presentation ||
       "Maison Solène conçoit des soins bio certifiés issus de la biodiversité provençale avec des packagings rechargeables et éco-conçus pour toute la famille.",
-    topics: initialProfile?.topics?.length ? initialProfile.topics : ["beaute", "lifestyle"],
-    targetNetworks: initialProfile?.targetNetworks?.length ? initialProfile.targetNetworks : ["instagram", "tiktok"],
-    expectedFormats: initialProfile?.expectedFormats?.length ? initialProfile.expectedFormats : ["reel", "story"],
+    topics: initialProfile?.topics?.length
+      ? initialProfile.topics
+      : ["beaute", "lifestyle"],
+    targetNetworks: initialProfile?.targetNetworks?.length
+      ? initialProfile.targetNetworks
+      : ["instagram", "tiktok"],
+    expectedFormats: initialProfile?.expectedFormats?.length
+      ? initialProfile.expectedFormats
+      : ["reel", "story"],
     indicativeBudgetBand: initialProfile?.indicativeBudgetBand || "1000-3000",
     currency: initialProfile?.currency || "EUR",
     usageRights: initialProfile?.usageRights || ["digital_30d"],
     exclusivity: initialProfile?.exclusivity || "none",
     nonMonetaryCounterpart: initialProfile?.nonMonetaryCounterpart ?? false,
-    targetAudienceCountries: initialProfile?.targetAudienceCountries?.length ? initialProfile.targetAudienceCountries : ["FR"],
+    targetAudienceCountries: initialProfile?.targetAudienceCountries?.length
+      ? initialProfile.targetAudienceCountries
+      : ["FR"],
     collaborationRhythm: initialProfile?.collaborationRhythm || "one_off",
     contactRole: initialProfile?.contactRole || "marketing",
     contactFirstName: initialProfile?.contactFirstName || "Solène",
@@ -142,9 +157,97 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
     status: initialProfile?.status || "brouillon",
   }));
 
-  const [activeTab, setActiveTab] = useState<"identity" | "expectations" | "contact" | "badge">("identity");
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "submitted" | "error">("idle");
+  const [activeTab, setActiveTab] = useState<
+    "identity" | "expectations" | "contact" | "badge"
+  >("identity");
+  const [saveStatus, setSaveStatus] = useState<
+    "idle" | "saving" | "saved" | "submitted" | "error"
+  >("idle");
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(!initialProfile);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialProfile) return;
+
+    let mounted = true;
+    async function loadProfile() {
+      try {
+        setIsLoadingProfile(true);
+        const res = await fetch("/api/profiles/brand/me", {
+          credentials: "include",
+        });
+
+        if (res.status === 401) {
+          if (mounted) {
+            setAuthError(
+              locale === "en"
+                ? "You must be logged in with a Brand / Advertiser account to view and edit this profile."
+                : "Vous devez être connecté avec un compte Marque / Annonceur pour modifier ce profil.",
+            );
+          }
+          return;
+        }
+
+        if (res.status === 403) {
+          if (mounted) {
+            setAuthError(
+              locale === "en"
+                ? "This page is reserved for Brand accounts. Use the DEV MOCK toolbar below to switch to a Brand persona (e.g. Maison Solène or TechGear France)."
+                : "Cette page est réservée aux comptes Marque / Annonceur. Utilisez la barre DEV MOCK en bas pour sélectionner un profil Marque (ex: Maison Solène ou TechGear France).",
+            );
+          }
+          return;
+        }
+
+        if (res.ok) {
+          const data = await res.json();
+          if (mounted && data.profile) {
+            setProfile((prev) => ({
+              ...prev,
+              ...data.profile,
+              secondarySectors:
+                data.profile.secondarySectors || prev.secondarySectors || [],
+              targetMarkets: data.profile.targetMarkets?.length
+                ? data.profile.targetMarkets
+                : prev.targetMarkets,
+              languages: data.profile.languages?.length
+                ? data.profile.languages
+                : prev.languages,
+              topics: data.profile.topics?.length
+                ? data.profile.topics
+                : prev.topics,
+              targetNetworks: data.profile.targetNetworks?.length
+                ? data.profile.targetNetworks
+                : prev.targetNetworks,
+              expectedFormats: data.profile.expectedFormats?.length
+                ? data.profile.expectedFormats
+                : prev.expectedFormats,
+              usageRights: data.profile.usageRights?.length
+                ? data.profile.usageRights
+                : prev.usageRights,
+              targetAudienceCountries: data.profile.targetAudienceCountries
+                ?.length
+                ? data.profile.targetAudienceCountries
+                : prev.targetAudienceCountries,
+            }));
+            setAuthError(null);
+          }
+        }
+      } catch {
+        // Mode offline/mock local fallback
+      } finally {
+        if (mounted) {
+          setIsLoadingProfile(false);
+        }
+      }
+    }
+
+    loadProfile();
+    return () => {
+      mounted = false;
+    };
+  }, [initialProfile, locale]);
 
   const completeness = useMemo(() => {
     return calculateBrandProfileCompleteness(profile);
@@ -152,7 +255,10 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
 
   const { score, breakdown, missingRequiredForPublish } = completeness;
 
-  function updateField<K extends keyof BrandProfile>(key: K, value: BrandProfile[K]) {
+  function updateField<K extends keyof BrandProfile>(
+    key: K,
+    value: BrandProfile[K],
+  ) {
     setProfile((prev) => ({
       ...prev,
       [key]: value,
@@ -161,11 +267,9 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
     setFeedbackMessage(null);
   }
 
-  function toggleArrayItem<K extends "topics" | "targetNetworks" | "expectedFormats" | "targetMarkets">(
-    key: K,
-    item: string,
-    maxAllowed?: number,
-  ) {
+  function toggleArrayItem<
+    K extends "topics" | "targetNetworks" | "expectedFormats" | "targetMarkets",
+  >(key: K, item: string, maxAllowed?: number) {
     setProfile((prev) => {
       const current = (prev[key] as string[]) || [];
       if (current.includes(item)) {
@@ -195,9 +299,25 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
   async function handleSaveDraft() {
     setSaveStatus("saving");
     try {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setSaveStatus("saved");
-      setFeedbackMessage(labels.actions.saveSuccess);
+      const res = await fetch("/api/profiles/brand/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(profile),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.profile) {
+          setProfile((prev) => ({ ...prev, ...data.profile }));
+        }
+        setSaveStatus("saved");
+        setFeedbackMessage(labels.actions.saveSuccess);
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        setSaveStatus("error");
+        setFeedbackMessage(errJson.message || labels.actions.missingAlert);
+      }
     } catch {
       setSaveStatus("error");
       setFeedbackMessage(labels.actions.missingAlert);
@@ -215,10 +335,29 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
 
     setSaveStatus("saving");
     try {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setProfile((prev) => ({ ...prev, status: "en_attente" }));
-      setSaveStatus("submitted");
-      setFeedbackMessage(labels.actions.submitSuccess);
+      // 1. Sauvegarder d'abord
+      await fetch("/api/profiles/brand/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(profile),
+      });
+
+      // 2. Soumettre pour validation
+      const res = await fetch("/api/profiles/brand/me/submit", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        setProfile((prev) => ({ ...prev, status: "en_attente" }));
+        setSaveStatus("submitted");
+        setFeedbackMessage(labels.actions.submitSuccess);
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        setSaveStatus("error");
+        setFeedbackMessage(errJson.message || labels.actions.missingAlert);
+      }
     } catch {
       setSaveStatus("error");
       setFeedbackMessage(labels.actions.missingAlert);
@@ -275,6 +414,18 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
 
   return (
     <div className="flex flex-col gap-8">
+      {authError ? (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-xs text-amber-900 shadow-sm dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-200">
+          <p className="font-semibold">{authError}</p>
+        </div>
+      ) : null}
+      {isLoadingProfile ? (
+        <div className="rounded-lg border border-border-default bg-surface-card p-6 text-center text-xs text-text-tertiary">
+          {locale === "en"
+            ? "Loading brand profile..."
+            : "Chargement du profil marque..."}
+        </div>
+      ) : null}
       {/* 1. JAUGE DE COMPLÉTUDE VISUELLE & STATUT DU PROFIL (RG57, RG58, RG61) */}
       <section
         aria-labelledby="completeness-heading"
@@ -282,27 +433,42 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
       >
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <h2 id="completeness-heading" className="text-heading-3 font-semibold text-text-primary">
+            <h2
+              id="completeness-heading"
+              className="text-heading-3 font-semibold text-text-primary"
+            >
               {labels.completenessHeading}
             </h2>
-            <span
-              className={`inline-flex items-center gap-1 rounded-pill px-3 py-1 text-xs font-medium border-(length:--border-width-thin) ${
-                profile.status === "publie"
-                  ? "bg-feedback-success-bg text-feedback-success-text border-feedback-success-border"
-                  : profile.status === "en_attente"
-                    ? "bg-feedback-warning-bg text-feedback-warning-text border-feedback-warning-border"
-                    : profile.status === "refuse"
-                      ? "bg-feedback-error-bg text-feedback-error-text border-feedback-error-border"
-                      : "bg-surface-raised text-text-secondary border-border-default"
-              }`}
-            >
-              {statusLabel}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              {profile.badgeStatus === "verified" ? (
+                <span className="inline-flex items-center gap-1 rounded-pill bg-feedback-success-bg px-3 py-1 text-xs font-semibold text-feedback-success-text border border-feedback-success-border">
+                  <BadgeCheckIcon className="size-3.5" aria-hidden="true" />
+                  <span>Marque Vérifiée ✓</span>
+                </span>
+              ) : null}
+              <span
+                className={`inline-flex items-center gap-1 rounded-pill px-3 py-1 text-xs font-medium border-(length:--border-width-thin) ${
+                  profile.status === "publie"
+                    ? "bg-feedback-success-bg text-feedback-success-text border-feedback-success-border"
+                    : profile.status === "en_attente"
+                      ? "bg-feedback-warning-bg text-feedback-warning-text border-feedback-warning-border"
+                      : profile.status === "refuse"
+                        ? "bg-feedback-error-bg text-feedback-error-text border-feedback-error-border"
+                        : "bg-surface-raised text-text-secondary border-border-default"
+                }`}
+              >
+                {statusLabel}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-baseline gap-2">
-            <span className="text-display font-bold text-text-brand">{scoreDisplay}</span>
-            <span className="text-sm text-text-secondary">{labels.completenessMax}</span>
+            <span className="text-display font-bold text-text-brand">
+              {scoreDisplay}
+            </span>
+            <span className="text-sm text-text-secondary">
+              {labels.completenessMax}
+            </span>
           </div>
         </div>
 
@@ -321,34 +487,59 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
         {/* Décomposition par bloc (RG58) */}
         <div className="grid grid-cols-2 gap-3 text-xs text-text-secondary sm:grid-cols-4">
           <div className="rounded-md bg-surface-page p-3 border-(length:--border-width-thin) border-border-subtle">
-            <span className="block text-text-tertiary">{labels.breakdown.publicIdentity}</span>
-            <span className="text-md font-semibold text-text-primary">{publicPtsDisplay}</span>
+            <span className="block text-text-tertiary">
+              {labels.breakdown.publicIdentity}
+            </span>
+            <span className="text-md font-semibold text-text-primary">
+              {publicPtsDisplay}
+            </span>
           </div>
           <div className="rounded-md bg-surface-page p-3 border-(length:--border-width-thin) border-border-subtle">
-            <span className="block text-text-tertiary">{labels.breakdown.collaborationExpectations}</span>
-            <span className="text-md font-semibold text-text-primary">{collabPtsDisplay}</span>
+            <span className="block text-text-tertiary">
+              {labels.breakdown.collaborationExpectations}
+            </span>
+            <span className="text-md font-semibold text-text-primary">
+              {collabPtsDisplay}
+            </span>
           </div>
           <div className="rounded-md bg-surface-page p-3 border-(length:--border-width-thin) border-border-subtle">
-            <span className="block text-text-tertiary">{labels.breakdown.trust}</span>
-            <span className="text-md font-semibold text-text-primary">{trustPtsDisplay}</span>
+            <span className="block text-text-tertiary">
+              {labels.breakdown.trust}
+            </span>
+            <span className="text-md font-semibold text-text-primary">
+              {trustPtsDisplay}
+            </span>
           </div>
           <div className="rounded-md bg-surface-page p-3 border-(length:--border-width-thin) border-border-subtle">
-            <span className="block text-text-tertiary">{labels.breakdown.contact}</span>
-            <span className="text-md font-semibold text-text-primary">{contactPtsDisplay}</span>
+            <span className="block text-text-tertiary">
+              {labels.breakdown.contact}
+            </span>
+            <span className="text-md font-semibold text-text-primary">
+              {contactPtsDisplay}
+            </span>
           </div>
         </div>
 
         {/* Message factuel des champs obligatoires manquants (RG61) */}
         {missingRequiredForPublish.length > 0 ? (
           <p className="flex items-start gap-2 rounded-md border-(length:--border-width-thin) border-feedback-warning-border bg-feedback-warning-bg p-3 text-sm text-feedback-warning-text">
-            <CircleAlertIcon aria-hidden="true" className="size-(--size-icon-sm) shrink-0 text-feedback-warning-icon mt-1" />
+            <CircleAlertIcon
+              aria-hidden="true"
+              className="size-(--size-icon-sm) shrink-0 text-feedback-warning-icon mt-1"
+            />
             <span>
-              {labels.missingMessage.prefix} <strong>{missingCountDisplay}</strong> {labels.missingMessage.midfix} {missingListDisplay}{labels.missingMessage.suffix}
+              {labels.missingMessage.prefix}{" "}
+              <strong>{missingCountDisplay}</strong>{" "}
+              {labels.missingMessage.midfix} {missingListDisplay}
+              {labels.missingMessage.suffix}
             </span>
           </p>
         ) : (
           <p className="flex items-center gap-2 rounded-md border-(length:--border-width-thin) border-feedback-success-border bg-feedback-success-bg p-3 text-sm text-feedback-success-text">
-            <CheckIcon aria-hidden="true" className="size-(--size-icon-sm) shrink-0 text-feedback-success-icon" />
+            <CheckIcon
+              aria-hidden="true"
+              className="size-(--size-icon-sm) shrink-0 text-feedback-success-icon"
+            />
             <span>{labels.missingMessage.allComplete}</span>
           </p>
         )}
@@ -365,16 +556,25 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
           }`}
         >
           {saveStatus === "error" ? (
-            <CircleAlertIcon className="size-(--size-icon-sm) shrink-0 text-feedback-error-icon mt-1" aria-hidden="true" />
+            <CircleAlertIcon
+              className="size-(--size-icon-sm) shrink-0 text-feedback-error-icon mt-1"
+              aria-hidden="true"
+            />
           ) : (
-            <CheckIcon className="size-(--size-icon-sm) shrink-0 text-feedback-success-icon mt-1" aria-hidden="true" />
+            <CheckIcon
+              className="size-(--size-icon-sm) shrink-0 text-feedback-success-icon mt-1"
+              aria-hidden="true"
+            />
           )}
           <span>{feedbackMessage}</span>
         </div>
       )}
 
       {/* NAVIGATION ONGLET DU FORMULAIRE */}
-      <nav aria-label={labels.completenessHeading} className="flex flex-wrap gap-2 border-b-(length:--border-width-thin) border-border-default pb-2">
+      <nav
+        aria-label={labels.completenessHeading}
+        className="flex flex-wrap gap-2 border-b-(length:--border-width-thin) border-border-default pb-2"
+      >
         <button
           type="button"
           onClick={() => setActiveTab("identity")}
@@ -410,7 +610,10 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
               : "border-transparent text-text-secondary hover:bg-surface-hover hover:text-text-primary"
           }`}
         >
-          <LockIcon className="size-(--size-icon-sm) text-feedback-warning-icon" aria-hidden="true" />
+          <LockIcon
+            className="size-(--size-icon-sm) text-feedback-warning-icon"
+            aria-hidden="true"
+          />
           <span>{labels.tabs.contact}</span>
         </button>
 
@@ -423,7 +626,10 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
               : "border-transparent text-text-secondary hover:bg-surface-hover hover:text-text-primary"
           }`}
         >
-          <BadgeCheckIcon className="size-(--size-icon-sm)" aria-hidden="true" />
+          <BadgeCheckIcon
+            className="size-(--size-icon-sm)"
+            aria-hidden="true"
+          />
           <span>{labels.tabs.badge}</span>
         </button>
       </nav>
@@ -442,15 +648,23 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
         {activeTab === "identity" && (
           <div className="flex flex-col gap-6 rounded-lg border-(length:--border-width-thin) border-border-default bg-surface-card p-6">
             <div className="border-b-(length:--border-width-thin) border-border-subtle pb-4">
-              <h3 className="text-heading-3 font-semibold text-text-primary">{labels.identity.title}</h3>
-              <p className="text-sm text-text-secondary">{labels.identity.subtitle}</p>
+              <h3 className="text-heading-3 font-semibold text-text-primary">
+                {labels.identity.title}
+              </h3>
+              <p className="text-sm text-text-secondary">
+                {labels.identity.subtitle}
+              </p>
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               {/* Nom commercial */}
               <div className="flex flex-col gap-2">
-                <label htmlFor="companyName" className="text-sm font-medium text-text-primary">
-                  {labels.identity.companyNameLabel} <RequiredMark mark={ASTERISK} />
+                <label
+                  htmlFor="companyName"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  {labels.identity.companyNameLabel}{" "}
+                  <RequiredMark mark={ASTERISK} />
                 </label>
                 <input
                   id="companyName"
@@ -462,12 +676,17 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
                   placeholder={labels.identity.placeholders.companyName}
                   required
                 />
-                <span className="text-xs text-text-tertiary">{labels.identity.companyNameHint}</span>
+                <span className="text-xs text-text-tertiary">
+                  {labels.identity.companyNameHint}
+                </span>
               </div>
 
               {/* Secteur principal */}
               <div className="flex flex-col gap-2">
-                <label htmlFor="sector" className="text-sm font-medium text-text-primary">
+                <label
+                  htmlFor="sector"
+                  className="text-sm font-medium text-text-primary"
+                >
                   {labels.identity.sectorLabel} <RequiredMark mark={ASTERISK} />
                 </label>
                 <select
@@ -488,13 +707,22 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
 
               {/* Taille de l'entreprise (Tranches fermées - RG22, CA5) */}
               <div className="flex flex-col gap-2">
-                <label htmlFor="companySize" className="text-sm font-medium text-text-primary">
-                  {labels.identity.companySizeLabel} <RequiredMark mark={ASTERISK} />
+                <label
+                  htmlFor="companySize"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  {labels.identity.companySizeLabel}{" "}
+                  <RequiredMark mark={ASTERISK} />
                 </label>
                 <select
                   id="companySize"
                   value={profile.companySize || "11-50"}
-                  onChange={(e) => updateField("companySize", e.target.value as CompanySizeBand)}
+                  onChange={(e) =>
+                    updateField(
+                      "companySize",
+                      e.target.value as CompanySizeBand,
+                    )
+                  }
                   className={inputClassName(false)}
                   required
                 >
@@ -504,12 +732,17 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
                     </option>
                   ))}
                 </select>
-                <span className="text-xs text-text-tertiary">{labels.identity.companySizeHint}</span>
+                <span className="text-xs text-text-tertiary">
+                  {labels.identity.companySizeHint}
+                </span>
               </div>
 
               {/* Site web (domaine seul RG17) */}
               <div className="flex flex-col gap-2">
-                <label htmlFor="website" className="text-sm font-medium text-text-primary">
+                <label
+                  htmlFor="website"
+                  className="text-sm font-medium text-text-primary"
+                >
                   {labels.identity.websiteLabel}
                 </label>
                 <input
@@ -522,15 +755,21 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
                   className={inputClassName(false)}
                   placeholder={labels.identity.placeholders.website}
                 />
-                <span className="text-xs text-text-tertiary">{labels.identity.websiteHint}</span>
+                <span className="text-xs text-text-tertiary">
+                  {labels.identity.websiteHint}
+                </span>
               </div>
             </div>
 
             {/* Présentation (RG15, RG19, RG58) */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <label htmlFor="presentation" className="text-sm font-medium text-text-primary">
-                  {labels.identity.presentationLabel} <RequiredMark mark={ASTERISK} />
+                <label
+                  htmlFor="presentation"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  {labels.identity.presentationLabel}{" "}
+                  <RequiredMark mark={ASTERISK} />
                 </label>
                 <span
                   className={`text-xs ${
@@ -552,7 +791,9 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
                 placeholder={labels.identity.placeholders.presentation}
                 required
               />
-              <span className="text-xs text-text-tertiary">{labels.identity.presentationNotice}</span>
+              <span className="text-xs text-text-tertiary">
+                {labels.identity.presentationNotice}
+              </span>
             </div>
           </div>
         )}
@@ -563,14 +804,19 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
         {activeTab === "expectations" && (
           <div className="flex flex-col gap-6 rounded-lg border-(length:--border-width-thin) border-border-default bg-surface-card p-6">
             <div className="border-b-(length:--border-width-thin) border-border-subtle pb-4">
-              <h3 className="text-heading-3 font-semibold text-text-primary">{labels.expectations.title}</h3>
-              <p className="text-sm text-text-secondary">{labels.expectations.subtitle}</p>
+              <h3 className="text-heading-3 font-semibold text-text-primary">
+                {labels.expectations.title}
+              </h3>
+              <p className="text-sm text-text-secondary">
+                {labels.expectations.subtitle}
+              </p>
             </div>
 
             {/* Thématiques (1 à 3 choix) */}
             <div className="flex flex-col gap-3">
               <span className="text-sm font-medium text-text-primary">
-                {labels.expectations.topicsLabel} <RequiredMark mark={ASTERISK} />
+                {labels.expectations.topicsLabel}{" "}
+                <RequiredMark mark={ASTERISK} />
               </span>
               <div className="flex flex-wrap gap-2">
                 {TOPIC_OPTIONS.map((topic) => {
@@ -596,16 +842,21 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
             {/* Réseaux visés */}
             <div className="flex flex-col gap-3">
               <span className="text-sm font-medium text-text-primary">
-                {labels.expectations.networksLabel} <RequiredMark mark={ASTERISK} />
+                {labels.expectations.networksLabel}{" "}
+                <RequiredMark mark={ASTERISK} />
               </span>
               <div className="flex flex-wrap gap-2">
                 {NETWORK_OPTIONS.map((net) => {
-                  const isSelected = profile.targetNetworks?.includes(net.value);
+                  const isSelected = profile.targetNetworks?.includes(
+                    net.value,
+                  );
                   return (
                     <button
                       key={net.value}
                       type="button"
-                      onClick={() => toggleArrayItem("targetNetworks", net.value)}
+                      onClick={() =>
+                        toggleArrayItem("targetNetworks", net.value)
+                      }
                       className={`rounded-pill px-3 py-1 text-xs font-medium border-(length:--border-width-thin) ${
                         isSelected
                           ? "bg-action-primary-bg text-text-on-action border-border-selected font-semibold"
@@ -622,16 +873,21 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
             {/* Formats attendus */}
             <div className="flex flex-col gap-3">
               <span className="text-sm font-medium text-text-primary">
-                {labels.expectations.formatsLabel} <RequiredMark mark={ASTERISK} />
+                {labels.expectations.formatsLabel}{" "}
+                <RequiredMark mark={ASTERISK} />
               </span>
               <div className="flex flex-wrap gap-2">
                 {FORMAT_OPTIONS.map((fmt) => {
-                  const isSelected = profile.expectedFormats?.includes(fmt.value);
+                  const isSelected = profile.expectedFormats?.includes(
+                    fmt.value,
+                  );
                   return (
                     <button
                       key={fmt.value}
                       type="button"
-                      onClick={() => toggleArrayItem("expectedFormats", fmt.value)}
+                      onClick={() =>
+                        toggleArrayItem("expectedFormats", fmt.value)
+                      }
                       className={`rounded-pill px-3 py-1 text-xs font-medium border-(length:--border-width-thin) ${
                         isSelected
                           ? "bg-action-primary-bg text-text-on-action border-border-selected font-semibold"
@@ -647,17 +903,25 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
 
             {/* Budget indicatif (RG12, RG31) */}
             <div className="flex flex-col gap-2">
-              <label htmlFor="budgetBand" className="text-sm font-medium text-text-primary">
-                {labels.expectations.budgetLabel} <RequiredMark mark={ASTERISK} />
+              <label
+                htmlFor="budgetBand"
+                className="text-sm font-medium text-text-primary"
+              >
+                {labels.expectations.budgetLabel}{" "}
+                <RequiredMark mark={ASTERISK} />
               </label>
               <select
                 id="budgetBand"
                 value={profile.indicativeBudgetBand || "1000-3000"}
-                onChange={(e) => updateField("indicativeBudgetBand", e.target.value)}
+                onChange={(e) =>
+                  updateField("indicativeBudgetBand", e.target.value)
+                }
                 className={inputClassName(!profile.indicativeBudgetBand)}
                 required
               >
-                <option value="">{labels.expectations.budgetEmptyOption}</option>
+                <option value="">
+                  {labels.expectations.budgetEmptyOption}
+                </option>
                 {BUDGET_OPTIONS.map((b) => (
                   <option key={b.value} value={b.value}>
                     {b.label}
@@ -666,7 +930,10 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
               </select>
               {/* Mention obligatoire RG31 */}
               <p className="flex items-center gap-2 text-xs text-text-tertiary">
-                <InfoIcon className="size-(--size-icon-sm) shrink-0 text-text-tertiary" aria-hidden="true" />
+                <InfoIcon
+                  className="size-(--size-icon-sm) shrink-0 text-text-tertiary"
+                  aria-hidden="true"
+                />
                 <span>{labels.expectations.budgetNotice}</span>
               </p>
             </div>
@@ -680,12 +947,17 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
           <div className="flex flex-col gap-6 rounded-lg border-(length:--border-width-thin) border-border-default bg-surface-card p-6">
             <div className="border-b-(length:--border-width-thin) border-border-subtle pb-4">
               <div className="flex items-center gap-2">
-                <LockIcon className="size-(--size-icon-md) text-feedback-warning-icon" aria-hidden="true" />
+                <LockIcon
+                  className="size-(--size-icon-md) text-feedback-warning-icon"
+                  aria-hidden="true"
+                />
                 <h3 className="text-heading-3 font-semibold text-text-primary">
                   {labels.contact.title}
                 </h3>
               </div>
-              <p className="mt-1 text-sm text-text-secondary">{labels.contact.subtitle}</p>
+              <p className="mt-1 text-sm text-text-secondary">
+                {labels.contact.subtitle}
+              </p>
             </div>
 
             {/* AVERTISSEMENT EXPLICITE NON NÉGOCIABLE D40 */}
@@ -693,7 +965,10 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
               role="status"
               className="flex items-start gap-3 rounded-md border-(length:--border-width-thin) border-brand-subtle-border bg-surface-brand-subtle p-4 text-sm text-text-primary"
             >
-              <LockIcon className="size-(--size-icon-md) shrink-0 text-text-brand mt-1" aria-hidden="true" />
+              <LockIcon
+                className="size-(--size-icon-md) shrink-0 text-text-brand mt-1"
+                aria-hidden="true"
+              />
               <div className="flex flex-col gap-1">
                 <strong className="text-text-brand font-semibold">
                   {labels.contact.d40NoticeTitle}
@@ -708,7 +983,10 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
               {/* Fonction de l'interlocuteur (Publique RG35, RG36) */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="contactRole" className="text-sm font-medium text-text-primary">
+                  <label
+                    htmlFor="contactRole"
+                    className="text-sm font-medium text-text-primary"
+                  >
                     {labels.contact.roleLabel} <RequiredMark mark={ASTERISK} />
                   </label>
                   <span className="rounded-pill bg-surface-page px-2 py-1 text-xs text-text-brand border-(length:--border-width-thin) border-brand-subtle-border">
@@ -718,7 +996,9 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
                 <select
                   id="contactRole"
                   value={profile.contactRole || "marketing"}
-                  onChange={(e) => updateField("contactRole", e.target.value as ContactRole)}
+                  onChange={(e) =>
+                    updateField("contactRole", e.target.value as ContactRole)
+                  }
                   className={inputClassName(!profile.contactRole)}
                   required
                 >
@@ -728,13 +1008,18 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
                     </option>
                   ))}
                 </select>
-                <span className="text-xs text-text-tertiary">{labels.contact.roleHint}</span>
+                <span className="text-xs text-text-tertiary">
+                  {labels.contact.roleHint}
+                </span>
               </div>
 
               {/* Prénom (Masqué) */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="contactFirstName" className="text-sm font-medium text-text-primary">
+                  <label
+                    htmlFor="contactFirstName"
+                    className="text-sm font-medium text-text-primary"
+                  >
                     {labels.contact.firstNameLabel}
                   </label>
                   <span className="rounded-pill bg-feedback-warning-bg px-2 py-1 text-xs text-feedback-warning-text border-(length:--border-width-thin) border-feedback-warning-border">
@@ -746,17 +1031,24 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
                   type="text"
                   maxLength={40}
                   value={profile.contactFirstName || ""}
-                  onChange={(e) => updateField("contactFirstName", e.target.value)}
+                  onChange={(e) =>
+                    updateField("contactFirstName", e.target.value)
+                  }
                   className={inputClassName(false)}
                   placeholder={labels.contact.placeholders.firstName}
                 />
-                <span className="text-xs text-text-tertiary">{labels.contact.firstNameHint}</span>
+                <span className="text-xs text-text-tertiary">
+                  {labels.contact.firstNameHint}
+                </span>
               </div>
 
               {/* Email professionnel (Masqué) */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="contactEmail" className="text-sm font-medium text-text-primary">
+                  <label
+                    htmlFor="contactEmail"
+                    className="text-sm font-medium text-text-primary"
+                  >
                     {labels.contact.emailLabel}
                   </label>
                   <span className="rounded-pill bg-feedback-warning-bg px-2 py-1 text-xs text-feedback-warning-text border-(length:--border-width-thin) border-feedback-warning-border">
@@ -771,13 +1063,18 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
                   className={inputClassName(false)}
                   placeholder={labels.contact.placeholders.email}
                 />
-                <span className="text-xs text-text-tertiary">{labels.contact.emailHint}</span>
+                <span className="text-xs text-text-tertiary">
+                  {labels.contact.emailHint}
+                </span>
               </div>
 
               {/* Téléphone (Masqué) */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="contactPhone" className="text-sm font-medium text-text-primary">
+                  <label
+                    htmlFor="contactPhone"
+                    className="text-sm font-medium text-text-primary"
+                  >
                     {labels.contact.phoneLabel}
                   </label>
                   <span className="rounded-pill bg-feedback-warning-bg px-2 py-1 text-xs text-feedback-warning-text border-(length:--border-width-thin) border-feedback-warning-border">
@@ -792,7 +1089,9 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
                   className={inputClassName(false)}
                   placeholder={labels.contact.placeholders.phone}
                 />
-                <span className="text-xs text-text-tertiary">{labels.contact.phoneHint}</span>
+                <span className="text-xs text-text-tertiary">
+                  {labels.contact.phoneHint}
+                </span>
               </div>
             </div>
           </div>
@@ -805,23 +1104,62 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
           <div className="flex flex-col gap-6 rounded-lg border-(length:--border-width-thin) border-border-default bg-surface-card p-6">
             <div className="border-b-(length:--border-width-thin) border-border-subtle pb-4">
               <div className="flex items-center gap-2">
-                <BadgeCheckIcon className="size-(--size-icon-md) text-text-brand" aria-hidden="true" />
+                <BadgeCheckIcon
+                  className="size-(--size-icon-md) text-text-brand"
+                  aria-hidden="true"
+                />
                 <h3 className="text-heading-3 font-semibold text-text-primary">
                   {labels.badge.title}
                 </h3>
               </div>
-              <p className="mt-1 text-sm text-text-secondary">{labels.badge.subtitle}</p>
+              <p className="mt-1 text-sm text-text-secondary">
+                {labels.badge.subtitle}
+              </p>
             </div>
 
-            {profile.badgeStatus === "pending" ? (
+            {profile.badgeStatus === "verified" ? (
+              <div className="flex flex-col gap-4 rounded-xl border border-feedback-success-border bg-feedback-success-bg p-5 text-sm text-feedback-success-text shadow-sm">
+                <div className="flex items-center gap-2.5">
+                  <BadgeCheckIcon
+                    className="size-6 text-feedback-success-icon"
+                    aria-hidden="true"
+                  />
+                  <strong className="text-md">
+                    {labels.badge.title} : Actif & Vérifié ✓
+                  </strong>
+                </div>
+                <p className="text-xs leading-relaxed text-text-primary">
+                  Le badge « Marque vérifiée » est actif pour{" "}
+                  <strong>{profile.companyName || "votre marque"}</strong>.
+                  Votre nom de domaine (
+                  <strong>{profile.website || "maisonsolene.fr"}</strong>) et
+                  vos informations d'immatriculation légale (
+                  <strong>{profile.legalName || "Maison Solène SAS"}</strong> —
+                  N°{" "}
+                  <strong>
+                    {profile.registrationNumber || "89201145600012"}
+                  </strong>
+                  ) ont été vérifiés par l’équipe INFLUX.
+                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-feedback-success-border/40 text-xs">
+                  <span className="rounded bg-surface-page px-2.5 py-1 font-mono font-bold text-feedback-success-text border border-feedback-success-border">
+                    ✓ Badge certifié visible de tous les créateurs
+                  </span>
+                  <span className="text-text-secondary">
+                    Contrôle DNS & Kbis vérifiés
+                  </span>
+                </div>
+              </div>
+            ) : profile.badgeStatus === "pending" ? (
               <div className="flex flex-col gap-4 rounded-md border-(length:--border-width-thin) border-feedback-warning-border bg-feedback-warning-bg p-4 text-sm text-feedback-warning-text">
                 <div className="flex items-center gap-2">
-                  <BadgeCheckIcon className="size-(--size-icon-md) text-feedback-warning-icon" aria-hidden="true" />
+                  <BadgeCheckIcon
+                    className="size-(--size-icon-md) text-feedback-warning-icon"
+                    aria-hidden="true"
+                  />
                   <strong>{labels.badge.pendingTitle}</strong>
                 </div>
-                <p>
-                  {labels.badge.pendingInstruction}
-                </p>
+                <p>{labels.badge.pendingInstruction}</p>
                 <div className="rounded-md bg-surface-page p-3 font-mono text-sm text-text-primary border-(length:--border-width-thin) border-border-default">
                   {profile.badgeDomainProofCode || "INFLUX-VERIF-MS892011"}
                 </div>
@@ -831,11 +1169,16 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
               </div>
             ) : (
               <div className="flex flex-col gap-4">
-                <p className="text-sm text-text-secondary">{labels.badge.unrequestedBody}</p>
+                <p className="text-sm text-text-secondary">
+                  {labels.badge.unrequestedBody}
+                </p>
 
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                   <div className="flex flex-col gap-2">
-                    <label htmlFor="legalName" className="text-sm font-medium text-text-primary">
+                    <label
+                      htmlFor="legalName"
+                      className="text-sm font-medium text-text-primary"
+                    >
                       {labels.badge.legalNameLabel}
                     </label>
                     <input
@@ -850,7 +1193,10 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <label htmlFor="registrationNumber" className="text-sm font-medium text-text-primary">
+                    <label
+                      htmlFor="registrationNumber"
+                      className="text-sm font-medium text-text-primary"
+                    >
                       {labels.badge.regNumberLabel}
                     </label>
                     <input
@@ -858,7 +1204,9 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
                       type="text"
                       maxLength={40}
                       value={profile.registrationNumber || ""}
-                      onChange={(e) => updateField("registrationNumber", e.target.value)}
+                      onChange={(e) =>
+                        updateField("registrationNumber", e.target.value)
+                      }
                       className={inputClassName(false)}
                       placeholder={labels.badge.placeholders.regNumber}
                     />
@@ -886,7 +1234,9 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
               disabled={saveStatus === "saving"}
               className="rounded-pill border-(length:--border-width-thick) border-action-secondary-border bg-action-secondary-bg px-6 py-2 text-sm font-medium text-text-primary hover:bg-action-secondary-bg-hover active:bg-action-secondary-bg-active"
             >
-              {saveStatus === "saving" ? labels.actions.saving : labels.actions.saveDraft}
+              {saveStatus === "saving"
+                ? labels.actions.saving
+                : labels.actions.saveDraft}
             </button>
           </div>
 
@@ -894,7 +1244,9 @@ export function BrandProfileForm({ initialProfile, locale }: BrandProfileFormPro
             <button
               type="button"
               onClick={handleSubmitForValidation}
-              disabled={saveStatus === "saving" || missingRequiredForPublish.length > 0}
+              disabled={
+                saveStatus === "saving" || missingRequiredForPublish.length > 0
+              }
               className="rounded-pill bg-action-primary-bg px-6 py-2 text-sm font-semibold text-text-on-action hover:bg-action-primary-bg-hover active:bg-action-primary-bg-active"
             >
               {labels.actions.submit}

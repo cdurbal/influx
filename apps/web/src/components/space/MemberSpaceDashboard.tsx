@@ -127,7 +127,26 @@ export function MemberSpaceDashboard({ locale }: MemberSpaceDashboardProps) {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href={
+                  user.role === "creator"
+                    ? `/${locale}/creator/profile`
+                    : `/${locale}/advertiser/profile`
+                }
+                className="rounded-lg bg-action-primary-bg px-4 py-2 text-xs font-semibold text-text-on-action hover:bg-action-primary-bg-hover transition-colors shadow-sm inline-flex items-center gap-1.5"
+              >
+                <span aria-hidden="true">👤</span>
+                <span>
+                  {user.role === "creator"
+                    ? isEn
+                      ? "My Creator Profile"
+                      : "Mon Profil Créateur"
+                    : isEn
+                      ? "My Brand Profile"
+                      : "Mon Profil Marque"}
+                </span>
+              </Link>
               <button
                 type="button"
                 onClick={handleLogout}

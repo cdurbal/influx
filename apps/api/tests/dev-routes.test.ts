@@ -112,4 +112,96 @@ describe("Fastify Server & Dev Routes", () => {
     );
     expect(res.headers["access-control-allow-credentials"]).toBe("true");
   });
+
+  it("switches persona to advertiser and issues influx_session cookie", async () => {
+    // Reset to seed data first
+    store.reset();
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/dev/switch-persona",
+      payload: { email: "contact@maisonsolene.fr" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.ok).toBe(true);
+    expect(body.account.email).toBe("contact@maisonsolene.fr");
+    expect(body.account.role).toBe("advertiser");
+
+    // Cookie influx_session should be set
+    const setCookie = res.headers["set-cookie"];
+    expect(setCookie).toBeDefined();
+    expect(String(setCookie)).toContain("influx_session=");
+
+    // Verify session works with GET /api/auth/me
+    const meRes = await app.inject({
+      method: "GET",
+      url: "/api/auth/me",
+      headers: {
+        cookie: String(setCookie),
+      },
+    });
+    expect(meRes.statusCode).toBe(200);
+    const meBody = JSON.parse(meRes.body);
+    expect(meBody.account.email).toBe("contact@maisonsolene.fr");
+  });
+
+  it("switches persona to creator and verifies GET /api/auth/me", async () => {
+    store.reset();
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/dev/switch-persona",
+      payload: { email: "lucas@lucastech.fr" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.ok).toBe(true);
+    expect(body.account.email).toBe("lucas@lucastech.fr");
+    expect(body.account.role).toBe("creator");
+
+    const setCookie = String(res.headers["set-cookie"]);
+    const meRes = await app.inject({
+      method: "GET",
+      url: "/api/auth/me",
+      headers: { cookie: setCookie },
+    });
+    expect(meRes.statusCode).toBe(200);
+    const meBody = JSON.parse(meRes.body);
+    expect(meBody.account.email).toBe("lucas@lucastech.fr");
+  });
+
+  it("switches to anonymous persona and clears session cookie", async () => {
+    store.reset();
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/dev/switch-persona",
+      payload: { email: null },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.ok).toBe(true);
+    expect(body.account).toBeNull();
+
+    const setCookie = String(res.headers["set-cookie"]);
+    expect(setCookie).toContain("Max-Age=0");
+  });
+
+  it("returns 404 when persona is unknown", async () => {
+    store.reset();
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/dev/switch-persona",
+      payload: { email: "unknown@example.com" },
+    });
+
+    expect(res.statusCode).toBe(404);
+    const body = JSON.parse(res.body);
+    expect(body.ok).toBe(false);
+  });
 });

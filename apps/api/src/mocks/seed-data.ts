@@ -141,8 +141,11 @@ export const SEED_BRAND_PROFILES = [
     contactPerson: "Solène Dupont",
     contactEmail: "contact@maisonsolene.fr",
     contactPhone: "+33140203040",
+    legalName: "Maison Solène SAS",
+    registrationNumber: "89201145600012",
     completenessPercent: 100,
     badgeStatus: "verified",
+    badgeVerifiedAt: now,
   },
   {
     accountId: SEED_IDS.ADVERTISER_2,
