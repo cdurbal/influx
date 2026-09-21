@@ -241,7 +241,7 @@
     },
     "audience": {
       "advertiser": "Côté annonceur (la marque) : vous payez le montant du contrat, qui inclut déjà toute la commission INFLUX.",
-      "creator": "Côté créateur : vous connaissez votre net créateur avant de signer, soit 65 % du montant du contrat avec les taux standard."
+      "creator": "Côté créateur : vous connaissez votre net créateur avant de signer."
     },
     "notes": {
       "currency": "Exemple en euros. Chaque contrat est établi dans une seule devise, choisie dans la liste proposée par INFLUX.",

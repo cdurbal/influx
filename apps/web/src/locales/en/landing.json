@@ -241,7 +241,7 @@
     },
     "audience": {
       "advertiser": "Advertiser (the brand): you pay the contract amount, which already includes the full INFLUX commission.",
-      "creator": "Creator: you see your net amount before signing, which is 65% of the contract amount at standard rates."
+      "creator": "Creator: you see your net amount before signing."
     },
     "notes": {
       "currency": "Example in euros. Each contract uses a single currency, chosen from the list offered by INFLUX.",
