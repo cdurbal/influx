@@ -1,6 +1,9 @@
 # INFLUX — Guide projet pour Claude Code
 
-> **Statut du projet : phase d'initialisation.** Aucun code applicatif n'existe encore.
+> **Statut du projet : En cours de développement — Maquette temporaire de démonstration (Lots 0 à 3 terminés, 68 % du MVP).**
+> **Avertissement :** Les développements actuels constituent une **maquette temporaire** (Proof of Concept) destinée à être présentée à des partenaires pour valoriser des compétences et faire comprendre à des profils non-techniciens l'intérêt de l'automatisation pour booster les ventes. Ces développements (store mémoire, mocks) seront repris et remplacés ultérieurement par le produit final connecté aux bases de données réelles (Supabase) avec la charte graphique définitive.
+> La feuille de route opérationnelle découpée en micro-phases est consignée dans [`implementation_plan.md`](file:///c:/Users/cdurb/Documents/Workspaces/influx/implementation_plan.md).
+> Tout agent IA ou contributeur travaillant sur le projet **doit impérativement maintenir ce plan à jour** à chaque tâche réalisée ou modifiée.
 > Ce document est la source de vérité pour toute session Claude Code travaillant sur INFLUX.
 > Il est lu par les agents IA **et** par le fondateur : il doit rester compréhensible sans
 > connaissance technique préalable dans ses parties produit/business.
