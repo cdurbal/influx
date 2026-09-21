@@ -30,12 +30,10 @@ export function MemberSpaceDashboard({ locale }: MemberSpaceDashboardProps) {
       const res = await fetch("/api/auth/me", { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
-        setUser(data.account || data.user || null);
-        if (
-          data.account?.role === "advertiser" ||
-          data.account?.role === "creator"
-        ) {
-          setActiveTab(data.account.role);
+        const account = data.account || data.user || null;
+        setUser(account);
+        if (account?.role === "advertiser" || account?.role === "creator") {
+          setActiveTab(account.role);
         }
       } else {
         setUser(null);
@@ -48,6 +46,25 @@ export function MemberSpaceDashboard({ locale }: MemberSpaceDashboardProps) {
   }, []);
 
   useEffect(() => {
+    // Initialisation immédiate depuis le persona DEV MOCK si disponible
+    try {
+      const saved = localStorage.getItem("influx_mock_persona");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.role === "advertiser" || parsed?.role === "creator") {
+          setUser({
+            id: parsed.id || "user",
+            email: parsed.email || "",
+            role: parsed.role,
+            status: "active",
+          });
+          setActiveTab(parsed.role);
+        }
+      }
+    } catch {
+      // Ignorer
+    }
+
     checkAuth();
   }, [checkAuth]);
 
@@ -93,6 +110,23 @@ export function MemberSpaceDashboard({ locale }: MemberSpaceDashboardProps) {
       // Silencieux
     }
   };
+
+  const isAdvertiser = user?.role === "advertiser";
+  const isCreator = user?.role === "creator";
+  const isBackoffice = user?.role === "admin" || user?.role === "agent";
+
+  // Règle d'affichage stricte :
+  // - Pour les marques : UNIQUEMENT l'espace annonceur
+  // - Pour les créateurs : UNIQUEMENT l'espace créateur
+  // - Pour les visiteurs non-connectés ou agents backoffice : onglets de sélection
+  const showAdvertiserSection =
+    isAdvertiser ||
+    (!isCreator && (activeTab === "all" || activeTab === "advertiser"));
+  const showCreatorSection =
+    isCreator ||
+    (!isAdvertiser && (activeTab === "all" || activeTab === "creator"));
+  const showFilterTabs = !user || isBackoffice;
+  const showBackofficeGateway = !user || isBackoffice;
 
   return (
     <div className="space-y-8">
@@ -211,45 +245,47 @@ export function MemberSpaceDashboard({ locale }: MemberSpaceDashboardProps) {
         )}
       </div>
 
-      {/* 2. Filtres / Onglets de Vue */}
-      <div className="flex items-center gap-2 border-b border-border-subtle pb-3">
-        <button
-          type="button"
-          onClick={() => setActiveTab("all")}
-          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-            activeTab === "all"
-              ? "bg-action-primary-bg text-text-on-action"
-              : "text-text-secondary hover:text-text-primary bg-surface-raised"
-          }`}
-        >
-          {isEn ? "All Features" : "Toutes les fonctionnalités"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("advertiser")}
-          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-            activeTab === "advertiser"
-              ? "bg-action-primary-bg text-text-on-action"
-              : "text-text-secondary hover:text-text-primary bg-surface-raised"
-          }`}
-        >
-          {isEn ? "💼 Advertiser Space" : "💼 Espace Annonceur"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("creator")}
-          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-            activeTab === "creator"
-              ? "bg-action-primary-bg text-text-on-action"
-              : "text-text-secondary hover:text-text-primary bg-surface-raised"
-          }`}
-        >
-          {isEn ? "🎨 Creator Space" : "🎨 Espace Créateur"}
-        </button>
-      </div>
+      {/* 2. Filtres / Onglets de Vue (uniquement si non connecté ou rôle backoffice) */}
+      {showFilterTabs && (
+        <div className="flex items-center gap-2 border-b border-border-subtle pb-3">
+          <button
+            type="button"
+            onClick={() => setActiveTab("all")}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+              activeTab === "all"
+                ? "bg-action-primary-bg text-text-on-action"
+                : "text-text-secondary hover:text-text-primary bg-surface-raised"
+            }`}
+          >
+            {isEn ? "All Features" : "Toutes les fonctionnalités"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("advertiser")}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+              activeTab === "advertiser"
+                ? "bg-action-primary-bg text-text-on-action"
+                : "text-text-secondary hover:text-text-primary bg-surface-raised"
+            }`}
+          >
+            {isEn ? "💼 Advertiser Space" : "💼 Espace Annonceur"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("creator")}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+              activeTab === "creator"
+                ? "bg-action-primary-bg text-text-on-action"
+                : "text-text-secondary hover:text-text-primary bg-surface-raised"
+            }`}
+          >
+            {isEn ? "🎨 Creator Space" : "🎨 Espace Créateur"}
+          </button>
+        </div>
+      )}
 
-      {/* 3. Section Annonceur / Marque */}
-      {(activeTab === "all" || activeTab === "advertiser") && (
+      {/* 3. Section Annonceur / Marque (affichée uniquement pour les marques ou onglet annonceur) */}
+      {showAdvertiserSection && (
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-md font-bold text-text-primary flex items-center gap-2">
@@ -366,8 +402,8 @@ export function MemberSpaceDashboard({ locale }: MemberSpaceDashboardProps) {
         </section>
       )}
 
-      {/* 4. Section Créateur */}
-      {(activeTab === "all" || activeTab === "creator") && (
+      {/* 4. Section Créateur (affichée uniquement pour les créateurs ou onglet créateur) */}
+      {showCreatorSection && (
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-md font-bold text-text-primary flex items-center gap-2">
@@ -484,39 +520,41 @@ export function MemberSpaceDashboard({ locale }: MemberSpaceDashboardProps) {
         </section>
       )}
 
-      {/* 5. Passerelle Backoffice Commercial */}
-      <div className="rounded-xl border border-brand-subtle-border bg-brand-subtle-bg p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm text-text-primary">
+      {/* 5. Passerelle Backoffice Commercial (affiché aux visiteurs démo ou agents/admins) */}
+      {showBackofficeGateway && (
+        <div className="rounded-xl border border-brand-subtle-border bg-brand-subtle-bg p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-sm text-text-primary">
+                {isEn
+                  ? "🛡️ Commercial Backoffice (Port 3002)"
+                  : "🛡️ Espace Backoffice Commercial (Port 3002)"}
+              </span>
+              <span className="rounded bg-surface-card border border-border-subtle px-2 py-0.5 text-xs text-text-tertiary">
+                File 7 & Recherche Identifiée
+              </span>
+            </div>
+            <p className="text-xs text-text-secondary">
               {isEn
-                ? "🛡️ Commercial Backoffice (Port 3002)"
-                : "🛡️ Espace Backoffice Commercial (Port 3002)"}
-            </span>
-            <span className="rounded bg-surface-card border border-border-subtle px-2 py-0.5 text-xs text-text-tertiary">
-              File 7 & Recherche Identifiée
-            </span>
+                ? "Access File 7 (Campaign Moderation) and Identified Creator Search reserved for INFLUX commercial agents."
+                : "Accédez à la File 7 de modération commerciale des campagnes et à la recherche identifiée des créateurs (agents INFLUX)."}
+            </p>
           </div>
-          <p className="text-xs text-text-secondary">
-            {isEn
-              ? "Access File 7 (Campaign Moderation) and Identified Creator Search reserved for INFLUX commercial agents."
-              : "Accédez à la File 7 de modération commerciale des campagnes et à la recherche identifiée des créateurs (agents INFLUX)."}
-          </p>
-        </div>
 
-        <a
-          href={
-            process.env.NEXT_PUBLIC_BACKOFFICE_URL
-              ? `${process.env.NEXT_PUBLIC_BACKOFFICE_URL}/queues/campaigns`
-              : "http://localhost:3002/queues/campaigns"
-          }
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 rounded-lg bg-surface-card border border-border-selected px-4 py-2 text-xs font-semibold text-text-brand hover:bg-surface-raised transition-colors"
-        >
-          {isEn ? "Open Backoffice ↗" : "Ouvrir le Backoffice ↗"}
-        </a>
-      </div>
+          <a
+            href={
+              process.env.NEXT_PUBLIC_BACKOFFICE_URL
+                ? `${process.env.NEXT_PUBLIC_BACKOFFICE_URL}/queues/campaigns`
+                : "http://localhost:3002/queues/campaigns"
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 rounded-lg bg-surface-card border border-border-selected px-4 py-2 text-xs font-semibold text-text-brand hover:bg-surface-raised transition-colors"
+          >
+            {isEn ? "Open Backoffice ↗" : "Ouvrir le Backoffice ↗"}
+          </a>
+        </div>
+      )}
     </div>
   );
 }
