@@ -62,6 +62,8 @@ export class MockStore {
   public conversations = new Map<string, Record<string, unknown>>();
   public messages = new Map<string, Record<string, unknown>[]>();
   public deals = new Map<string, Record<string, unknown>>();
+  public contactDetections = new Map<string, Record<string, unknown>>();
+  public conversationAccessLogs = new Map<string, Record<string, unknown>>();
   public verificationRequests = new Map<string, Record<string, unknown>>();
   public ownershipCodes = new Map<string, Record<string, unknown>>();
   public badges = new Map<string, Record<string, unknown>>();
@@ -108,6 +110,8 @@ export class MockStore {
     this.conversations.clear();
     this.messages.clear();
     this.deals.clear();
+    this.contactDetections.clear();
+    this.conversationAccessLogs.clear();
     this.verificationRequests.clear();
     this.ownershipCodes.clear();
     this.badges.clear();

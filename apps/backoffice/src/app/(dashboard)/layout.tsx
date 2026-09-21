@@ -26,6 +26,12 @@ export default function DashboardLayout({
       badge: "Modération",
       active: pathname.startsWith("/queues/campaigns"),
     },
+    {
+      label: "File 8 · Mises en relation",
+      href: "/queues/introductions",
+      badge: "Validation",
+      active: pathname.startsWith("/queues/introductions"),
+    },
     { label: bo.nav.accounts, href: "#", badge: null },
     {
       label: "Créateurs (Identifié)",

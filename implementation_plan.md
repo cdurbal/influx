@@ -25,14 +25,14 @@
 > 2. Toute modification, ajout ou réorganisation de phase décidée avec le fondateur.
 > 3. Tout arbitrage technique impactant les fichiers ou commandes de validation d'une mission.
 
-> **État d'avancement au 21/09/2026 :** Lots 0, 1, 2 et 3 intégralement réalisés (19 micro-phases sur 28 terminées, soit **68 % du MVP**).
-> Prochaine étape prioritaire : **Lot 4 (Intermédiation courtée & Messagerie à trois)**.
+> **État d'avancement au 21/09/2026 :** 24 micro-phases sur 28 terminées (Lots 0 à 3 terminés + Missions 4.1, 4.2, 4.3, 4.4 & 4.5, soit **86 % du MVP**).
+> Prochaine étape prioritaire : **Mission 4.6 (Écran Membre : messagerie à trois Marque/Créateur)**.
 
 ---
 
 ## Vue d'ensemble du séquençage (28 Micro-Phases)
 
-**Progression globale :** 19 / 28 micro-phases validées (68 %) — Lots 0 à 3 terminés ✅
+**Progression globale :** 24 / 28 micro-phases validées (86 %) — Lots 0 à 3 terminés, Missions 4.1, 4.2, 4.3, 4.4 & 4.5 terminées ✅
 
 | Lot                          | Phase | Intitulé                                              | Cible principale          | Statut     |
 | ---------------------------- | ----- | ----------------------------------------------------- | ------------------------- | ---------- |
@@ -60,11 +60,11 @@
 |                              | `3.5` | Écran Marque : recherche créateurs & cartes anonymes  | `apps/web`                | ✅ Terminé |
 |                              | `3.6` | Écran Backoffice : recherche créateurs identifiée     | `apps/backoffice`         | ✅ Terminé |
 |                              | `3.7` | Écran Créateur : consultation des campagnes           | `apps/web`                | ✅ Terminé |
-| **4. Intermédiation & Chat** | `4.1` | Service des 3 Déclencheurs de mise en relation        | `apps/api`                | ⏳ À faire |
-|                              | `4.2` | File de validation commerciale & verrou d'agent       | `apps/api` & `backoffice` | ⏳ À faire |
-|                              | `4.3` | Transaction atomique de révélation d'identité         | `apps/api`                | ⏳ À faire |
-|                              | `4.4` | Service messagerie à trois & détection de coordonnées | `apps/api`                | ⏳ À faire |
-|                              | `4.5` | Journalisation des lectures agents externes           | `apps/api`                | ⏳ À faire |
+| **4. Intermédiation & Chat** | `4.1` | Service des 3 Déclencheurs de mise en relation        | `apps/api`                | ✅ Terminé |
+|                              | `4.2` | File de validation commerciale & verrou d'agent       | `apps/api` & `backoffice` | ✅ Terminé |
+|                              | `4.3` | Transaction atomique de révélation d'identité         | `apps/api`                | ✅ Terminé |
+|                              | `4.4` | Service messagerie à trois & détection de coordonnées | `apps/api`                | ✅ Terminé |
+|                              | `4.5` | Journalisation des lectures agents externes           | `apps/api`                | ✅ Terminé |
 |                              | `4.6` | Écran Membre : messagerie à trois (Marque/Créateur)   | `apps/web`                | ⏳ À faire |
 |                              | `4.7` | Écran Backoffice : messagerie & proposition INFLUX    | `apps/backoffice`         | ⏳ À faire |
 | **5. Pipeline & Backoffice** | `5.1` | Service pipeline commercial & encaissements           | `apps/api`                | ⏳ À faire |
@@ -561,7 +561,7 @@
 
 ### LOT 4 : INTERMÉDIATION COURTÉE & MESSAGERIE À TROIS `[⏳ À FAIRE - EN COURS]`
 
-#### [ ] Mission 4.1 : Service des 3 Déclencheurs de mise en relation `[⏳ À FAIRE]`
+#### [x] Mission 4.1 : Service des 3 Déclencheurs de mise en relation `[✅ TERMINÉ]`
 
 - **Rôle IA :** `backend-dev`
 - **Contexte minimal à lire :** [docs/mvp/01-intermediation-courtee.md](file:///c:/Users/cdurb/Documents/Workspaces/influx/docs/mvp/01-intermediation-courtee.md) §4
@@ -581,7 +581,7 @@
 
 ---
 
-#### [ ] Mission 4.2 : File de validation commerciale & verrou d'agent `[⏳ À FAIRE]`
+#### [x] Mission 4.2 : File de validation commerciale & verrou d'agent `[✅ TERMINÉ]`
 
 - **Rôle IA :** `backend-dev` & `frontend-dev`
 - **Contexte minimal à lire :** [docs/mvp/13-file-de-validation-et-mise-en-relation.md](file:///c:/Users/cdurb/Documents/Workspaces/influx/docs/mvp/13-file-de-validation-et-mise-en-relation.md)
@@ -599,19 +599,23 @@
 
 ---
 
-#### [ ] Mission 4.3 : Transaction atomique de révélation d'identité `[⏳ À FAIRE]`
+#### [x] Mission 4.3 : Transaction atomique de révélation d'identité `[✅ TERMINÉ]`
 
 - **Rôle IA :** `backend-dev`
 - **Contexte minimal à lire :** [docs/mvp/01-intermediation-courtee.md](file:///c:/Users/cdurb/Documents/Workspaces/influx/docs/mvp/01-intermediation-courtee.md) §3 étape 5, [docs/mvp/02-architecture-3-espaces.md](file:///c:/Users/cdurb/Documents/Workspaces/influx/docs/mvp/02-architecture-3-espaces.md) §2.2
 - **Fichiers à modifier / créer :**
   - `[NEW]` `apps/api/src/services/reveal-service.ts`
+  - `[MODIFY]` `apps/api/src/services/introduction-service.ts`
+  - `[MODIFY]` `apps/api/src/routes/introduction-routes.ts`
   - `[NEW]` `apps/api/tests/reveal-identity.test.ts`
 - **Spécification :**
-  - Méthode atomique `revealIdentity(introductionId)` exécutée dès l'approbation :
-    1. Fige `identity_revealed_at = now()`.
-    2. Crée la conversation avec les 3 participants (Marque, Créateur, Commercial responsable).
-    3. Crée automatiquement le deal commercial associé à l'état initial `open`.
-    4. Enregistre l'événement d'audit chaîné.
+  - Méthode atomique `revealIdentity(introductionId)` exécutée dès l'approbation et le consentement bilatéral :
+    1. Fige `identity_revealed_at = now()` (contrainte write-once absolue).
+    2. Crée la conversation avec les 3 participants (Marque, Créateur, Commercial responsable) et le message d'ouverture.
+    3. Crée automatiquement le deal commercial associé à l'état initial `open` (montants à `null` pour saisie manuelle sans commission auto A1/A8).
+    4. Enregistre l'événement d'audit chaîné `identity_revealed`.
+    5. Émet les 2 e-mails transactionnels aux deux parties via l'outbox avec conservation du `messageId`.
+  - Endpoints `POST /api/introductions/:id/accept` et `POST /api/introductions/:id/decline`.
 - **Commande de validation (DoD) :**
   ```bash
   pnpm --filter @influx/api test tests/reveal-identity.test.ts
@@ -619,18 +623,26 @@
 
 ---
 
-#### [ ] Mission 4.4 : Service messagerie à trois & détection de coordonnées `[⏳ À FAIRE]`
+#### [x] Mission 4.4 : Service messagerie à trois & détection de coordonnées `[✅ TERMINÉ]`
 
 - **Rôle IA :** `backend-dev`
 - **Contexte minimal à lire :** [docs/mvp/12-messagerie-a-trois.md](file:///c:/Users/cdurb/Documents/Workspaces/influx/docs/mvp/12-messagerie-a-trois.md) §RG40 à RG50
 - **Fichiers à modifier / créer :**
   - `[NEW]` `packages/contracts/src/messaging.ts`
+  - `[MODIFY]` `packages/contracts/src/index.ts`
+  - `[MODIFY]` `apps/api/src/mocks/mock-store.ts`
   - `[NEW]` `apps/api/src/services/messaging-service.ts`
   - `[NEW]` `apps/api/src/routes/messaging-routes.ts`
+  - `[MODIFY]` `apps/api/src/server.ts`
   - `[NEW]` `apps/api/tests/messaging.test.ts`
 - **Spécification :**
-  - `POST /api/conversations/:id/messages` : Envoi de message texte uniquement (pas de pièces jointes libres).
-  - Analyse regex anti-contournement (téléphone, e-mail, URL externe). Si détecté, crée un enregistrement d'alerte `contact_detections` sans bloquer l'envoi.
+  - `POST /api/conversations/:id/messages` : Envoi de message texte uniquement (1 à 10 000 caractères, pas de pièces jointes libres RG35, RG36).
+  - Transition automatique `ouverte -> active` au premier message (RG16).
+  - Avancement du curseur de lecture (`lastReadMessageId`, `lastReadAt`) lors de l'envoi et de la consultation (RG51, RG52).
+  - Pré-contrôle non bloquant avant envoi (`POST /api/conversations/:id/messages/check`) sans stockage en base (RG42, RG43, RG44).
+  - Analyse regex anti-contournement (e-mail, téléphone, messageries tierces, réseaux sociaux, IBAN, URL). Si détecté, crée un enregistrement d'alerte `contact_detections` sans bloquer ni altérer l'envoi (RG45, RG46, RG48).
+  - Contrôle d'état : blocage de l'écriture en pause pour les membres avec maintien de l'écriture pour le commercial (RG18), blocage complet si clos ou archivé (RG20, RG39).
+  - Consultation des détections pour le commercial (`GET /api/backoffice/conversations/:id/detections`) (RG50).
 - **Commande de validation (DoD) :**
   ```bash
   pnpm --filter @influx/api test tests/messaging.test.ts
@@ -638,18 +650,24 @@
 
 ---
 
-#### [ ] Mission 4.5 : Journalisation des lectures agents externes `[⏳ À FAIRE]`
+#### [x] Mission 4.5 : Journalisation des lectures agents externes `[✅ TERMINÉ]`
 
 - **Rôle IA :** `backend-dev`
 - **Contexte minimal à lire :** [docs/mvp/12-messagerie-a-trois.md](file:///c:/Users/cdurb/Documents/Workspaces/influx/docs/mvp/12-messagerie-a-trois.md) §RG55 à RG60
 - **Fichiers à modifier / créer :**
+  - `[MODIFY]` `packages/contracts/src/messaging.ts`
+  - `[MODIFY]` `apps/api/src/mocks/mock-store.ts`
   - `[MODIFY]` `apps/api/src/services/messaging-service.ts`
   - `[MODIFY]` `apps/api/src/routes/messaging-routes.ts`
   - `[NEW]` `apps/api/tests/conversation-audit.test.ts`
 - **Spécification :**
-  - Si un agent consulte un fil de conversation dont il N'EST PAS l'interlocuteur assigné :
-    - L'API exige un paramètre `access_reason` (motif typé : supervision, remplacement, arbitrage).
-    - Une ligne est obligatoirement écrite dans `conversation_access_log`.
+  - Toute lecture d'une conversation par un rôle `agent` ou `admin` est obligatoirement journalisée dans `conversation_access_logs` (RG55).
+  - Pour l'agent participant assigné, le motif `suivi_de_l_affaire` est retenu automatiquement sans friction (RG56).
+  - Pour un agent externe (non assigné), la requête exige un motif typé préalable (`continuite_de_service`, `reprise_de_dossier`, `instruction_signalement`, `litige_ou_contestation`, `controle_qualite`, `demande_rgpd`, `autre`) avant de renvoyer le moindre message (rejet 400 `REASON_REQUIRED` sinon) (RG57).
+  - Si motif `autre`, commentaire explicatif obligatoire d'au moins 5 caractères (RG56).
+  - Le journal enregistre `who`, `when`, `conversationId`, `reason`, `sourceScreen`, `messagesCount` et **ne stocke JAMAIS le contenu des messages** (RG58).
+  - Endpoints de consultation du registre (`GET /api/backoffice/conversations/access-logs`) : un agent ne voit que ses propres lectures, l'administrateur voit tout, accès refusé aux membres (403) (RG59).
+  - Alerte d'accès anormal enregistrée dans l'audit si un agent dépasse 40 conversations distinctes en 24h (RG61).
 - **Commande de validation (DoD) :**
   ```bash
   pnpm --filter @influx/api test tests/conversation-audit.test.ts
