@@ -6,12 +6,22 @@
   html, body {
     background-color: var(--color-surface-page);
     color: var(--color-text-primary);
-    font-family: var(--font-base);
+    font-family: var(--font-base, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+    margin: 0;
+    padding: 0;
   }
 
   :focus-visible {
-    outline: var(--focus-ring-width) solid var(--color-focus-ring);
-    outline-offset: var(--focus-ring-offset);
+    outline: var(--focus-ring-width, 2px) solid var(--color-focus-ring, #22c55e);
+    outline-offset: var(--focus-ring-offset, 2px);
   }
+}
+
+/* Garde-fous de dimensionnement indispensables (Linear / Stripe layout) */
+.login-container {
+  width: 100%;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
