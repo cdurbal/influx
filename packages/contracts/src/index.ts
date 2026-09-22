@@ -9,4 +9,6 @@ export * from "./campaign";
 export * from "./search";
 export * from "./introduction";
 export * from "./messaging";
+export * from "./deal";
+export * from "./brevo-campaign";
 export { z } from "zod";

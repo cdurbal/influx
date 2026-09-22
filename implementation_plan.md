@@ -25,14 +25,14 @@
 > 2. Toute modification, ajout ou réorganisation de phase décidée avec le fondateur.
 > 3. Tout arbitrage technique impactant les fichiers ou commandes de validation d'une mission.
 
-> **État d'avancement au 22/09/2026 :** 26 micro-phases sur 28 terminées (Lots 0 à 4 terminés, soit **93 % du MVP**).
-> Prochaine étape prioritaire : **Mission 5.1 (Service pipeline commercial & encaissements)**.
+> **État d'avancement au 22/09/2026 :** 31 micro-phases validées (Lots 0 à 5 terminés ✅).
+> Prochaine étape prioritaire : **Mission 6.1 (Suite de tests d'intégration E2E automatisée)**.
 
 ---
 
-## Vue d'ensemble du séquençage (28 Micro-Phases)
+## Vue d'ensemble du séquençage (Micro-Phases)
 
-**Progression globale :** 26 / 28 micro-phases validées (93 %) — Lots 0 à 4 terminés ✅
+**Progression globale :** Lots 0 à 5 terminés ✅
 
 | Lot                          | Phase | Intitulé                                              | Cible principale          | Statut     |
 | ---------------------------- | ----- | ----------------------------------------------------- | ------------------------- | ---------- |
@@ -67,11 +67,11 @@
 |                              | `4.5` | Journalisation des lectures agents externes           | `apps/api`                | ✅ Terminé |
 |                              | `4.6` | Écran Membre : messagerie à trois (Marque/Créateur)   | `apps/web`                | ✅ Terminé |
 |                              | `4.7` | Écran Backoffice : messagerie & proposition INFLUX    | `apps/backoffice`         | ✅ Terminé |
-| **5. Pipeline & Backoffice** | `5.1` | Service pipeline commercial & encaissements           | `apps/api`                | ⏳ À faire |
-|                              | `5.2` | Écran Backoffice : pipeline Kanban des affaires       | `apps/backoffice`         | ⏳ À faire |
-|                              | `5.3` | Tableau de bord de pilotage & métriques SLA           | `apps/backoffice`         | ⏳ À faire |
-|                              | `5.4` | Gabarit unifié des 16 files d'attente                 | `apps/backoffice`         | ⏳ À faire |
-|                              | `5.5` | Outil d'envoi d'e-mails Brevo depuis backoffice       | `apps/api` & `backoffice` | ⏳ À faire |
+| **5. Pipeline & Backoffice** | `5.1` | Service pipeline commercial & encaissements           | `apps/api`                | ✅ Terminé |
+|                              | `5.2` | Écran Backoffice : pipeline Kanban des affaires       | `apps/backoffice`         | ✅ Terminé |
+|                              | `5.3` | Tableau de bord de pilotage & métriques SLA           | `apps/backoffice`         | ✅ Terminé |
+|                              | `5.4` | Gabarit unifié des 16 files d'attente                 | `apps/backoffice`         | ✅ Terminé |
+|                              | `5.5` | Outil d'envoi d'e-mails Brevo depuis backoffice       | `apps/api` & `backoffice` | ✅ Terminé |
 | **6. Recette & Démo**        | `6.1` | Suite de tests d'intégration E2E automatisée          | `apps/api/tests`          | ⏳ À faire |
 |                              | `6.2` | Scénarios de démonstration pré-configurés DevToolbar  | `apps/web`                | ⏳ À faire |
 |                              | `6.3` | Guide de transition vers Supabase / APIs réelles      | `docs`                    | ⏳ À faire |
@@ -720,9 +720,9 @@
 
 ---
 
-### LOT 5 : PIPELINE COMMERCIAL & GESTION BACKOFFICE `[⏳ À FAIRE]`
+### LOT 5 : PIPELINE COMMERCIAL & GESTION BACKOFFICE `[✅ TERMINÉ]`
 
-#### [ ] Mission 5.1 : Service pipeline commercial & encaissements `[⏳ À FAIRE]`
+#### [x] Mission 5.1 : Service pipeline commercial & encaissements `[✅ Terminé]`
 
 - **Rôle IA :** `backend-dev`
 - **Contexte minimal à lire :** [docs/mvp/14-pipeline-commercial.md](file:///c:/Users/cdurb/Documents/Workspaces/influx/docs/mvp/14-pipeline-commercial.md) §E1 à E11
@@ -744,7 +744,7 @@
 
 ---
 
-#### [ ] Mission 5.2 : Écran Backoffice : pipeline Kanban des affaires `[⏳ À FAIRE]`
+#### [x] Mission 5.2 : Écran Backoffice : pipeline Kanban des affaires `[✅ Terminé]`
 
 - **Rôle IA :** `frontend-dev`
 - **Contexte minimal à lire :** [docs/mvp/17b-parcours-et-ecrans-backoffice.md](file:///c:/Users/cdurb/Documents/Workspaces/influx/docs/mvp/17b-parcours-et-ecrans-backoffice.md) §1.2 (Rail 5)
@@ -762,7 +762,7 @@
 
 ---
 
-#### [ ] Mission 5.3 : Tableau de bord de pilotage & métriques SLA `[⏳ À FAIRE]`
+#### [x] Mission 5.3 : Tableau de bord de pilotage & métriques SLA `[✅ Terminé]`
 
 - **Rôle IA :** `frontend-dev`
 - **Contexte minimal à lire :** [docs/mvp/15-backoffice-files-et-supervision.md](file:///c:/Users/cdurb/Documents/Workspaces/influx/docs/mvp/15-backoffice-files-et-supervision.md) §Tableau de bord
@@ -783,7 +783,7 @@
 
 ---
 
-#### [ ] Mission 5.4 : Gabarit unifié des 16 files d'attente `[⏳ À FAIRE]`
+#### [x] Mission 5.4 : Gabarit unifié des 16 files d'attente `[✅ Terminé]`
 
 - **Rôle IA :** `frontend-dev`
 - **Contexte minimal à lire :** [docs/mvp/17b-parcours-et-ecrans-backoffice.md](file:///c:/Users/cdurb/Documents/Workspaces/influx/docs/mvp/17b-parcours-et-ecrans-backoffice.md) §1.3
@@ -800,7 +800,7 @@
 
 ---
 
-#### [ ] Mission 5.5 : Outil d'envoi d'e-mails Brevo depuis backoffice `[⏳ À FAIRE]`
+#### [x] Mission 5.5 : Outil d'envoi d'e-mails Brevo depuis backoffice `[✅ Terminé]`
 
 - **Rôle IA :** `backend-dev` & `frontend-dev`
 - **Contexte minimal à lire :** [docs/mvp/16-backoffice-emails-brevo.md](file:///c:/Users/cdurb/Documents/Workspaces/influx/docs/mvp/16-backoffice-emails-brevo.md)

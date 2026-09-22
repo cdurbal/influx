@@ -49,7 +49,18 @@ export default function DashboardLayout({
   };
 
   const navItems = [
-    { label: bo.nav.dashboard, href: "#", badge: null },
+    {
+      label: bo.nav.dashboard,
+      href: "/",
+      badge: null,
+      active: pathname === "/",
+    },
+    {
+      label: "Vue 16 Files",
+      href: "/queues",
+      badge: "5 Groupes",
+      active: pathname === "/queues",
+    },
     {
       label: "File 4 · Badges",
       href: "/queues/verification",
@@ -81,7 +92,18 @@ export default function DashboardLayout({
       badge: "Vue réelle",
       active: pathname.startsWith("/creators/search"),
     },
-    { label: bo.nav.deals, href: "#", badge: null },
+    {
+      label: bo.nav.deals,
+      href: "/deals",
+      badge: "Kanban",
+      active: pathname.startsWith("/deals"),
+    },
+    {
+      label: "E-mails Brevo",
+      href: "/emails",
+      badge: "Envois",
+      active: pathname.startsWith("/emails"),
+    },
     { label: bo.nav.alerts, href: "#", badge: null },
     { label: bo.nav.admin, href: "#", badge: null },
   ];

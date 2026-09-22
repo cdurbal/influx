@@ -36,6 +36,8 @@ export interface MockStoreSnapshot {
   conversations: Record<string, unknown>[];
   messages: Record<string, unknown>[];
   deals: Record<string, unknown>[];
+  commissionReceipts?: Record<string, unknown>[];
+  brevoCampaigns?: Record<string, unknown>[];
   verificationRequests: Record<string, unknown>[];
   ownershipCodes?: Record<string, unknown>[];
   badges?: Record<string, unknown>[];
@@ -62,6 +64,8 @@ export class MockStore {
   public conversations = new Map<string, Record<string, unknown>>();
   public messages = new Map<string, Record<string, unknown>[]>();
   public deals = new Map<string, Record<string, unknown>>();
+  public commissionReceipts = new Map<string, Record<string, unknown>>();
+  public brevoCampaigns = new Map<string, Record<string, unknown>>();
   public contactDetections = new Map<string, Record<string, unknown>>();
   public conversationAccessLogs = new Map<string, Record<string, unknown>>();
   public verificationRequests = new Map<string, Record<string, unknown>>();
@@ -110,6 +114,8 @@ export class MockStore {
     this.conversations.clear();
     this.messages.clear();
     this.deals.clear();
+    this.commissionReceipts.clear();
+    this.brevoCampaigns.clear();
     this.contactDetections.clear();
     this.conversationAccessLogs.clear();
     this.verificationRequests.clear();
@@ -166,6 +172,8 @@ export class MockStore {
       conversations: Array.from(this.conversations.values()),
       messages: Array.from(this.messages.values()).flat(),
       deals: Array.from(this.deals.values()),
+      commissionReceipts: Array.from(this.commissionReceipts.values()),
+      brevoCampaigns: Array.from(this.brevoCampaigns.values()),
       verificationRequests: Array.from(this.verificationRequests.values()),
       ownershipCodes: Array.from(this.ownershipCodes.values()),
       badges: Array.from(this.badges.values()),
@@ -240,6 +248,18 @@ export class MockStore {
       for (const item of snapshot.deals) {
         const id = item.id as string;
         if (id) this.deals.set(id, item);
+      }
+    }
+    if (snapshot.commissionReceipts) {
+      for (const item of snapshot.commissionReceipts) {
+        const id = item.id as string;
+        if (id) this.commissionReceipts.set(id, item);
+      }
+    }
+    if (snapshot.brevoCampaigns) {
+      for (const item of snapshot.brevoCampaigns) {
+        const id = item.id as string;
+        if (id) this.brevoCampaigns.set(id, item);
       }
     }
     if (snapshot.verificationRequests) {

@@ -12,6 +12,9 @@ import { campaignRoutes } from "./routes/campaign-routes";
 import { searchRoutes } from "./routes/search-routes";
 import { introductionRoutes } from "./routes/introduction-routes";
 import { messagingRoutes } from "./routes/messaging-routes";
+import { dealRoutes } from "./routes/deal-routes";
+import { dashboardRoutes } from "./routes/dashboard-routes";
+import { brevoCampaignRoutes } from "./routes/brevo-campaign-routes";
 
 import { existsSync } from "node:fs";
 import path from "node:path";
@@ -131,6 +134,9 @@ export function createApp(options: ServerOptions = {}): FastifyInstance {
   app.register(searchRoutes);
   app.register(introductionRoutes);
   app.register(messagingRoutes);
+  app.register(dealRoutes);
+  app.register(dashboardRoutes);
+  app.register(brevoCampaignRoutes);
 
   return app;
 }
