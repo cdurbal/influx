@@ -7,6 +7,7 @@ import {
   type IntroductionRejectionReason,
   INTRODUCTION_REJECTION_REASONS,
 } from "@influx/contracts";
+import { authFetch } from "@/lib/api-client";
 
 export interface IntroductionDecisionDrawerProps {
   introduction: Introduction | null;
@@ -55,11 +56,10 @@ export function IntroductionDecisionDrawer({
   const autoClaim = useCallback(
     async (introId: string) => {
       try {
-        const res = await fetch(
+        const res = await authFetch(
           `/api/backoffice/introductions/${introId}/claim`,
           {
             method: "POST",
-            credentials: "include",
           },
         );
         if (res.ok) {
@@ -89,11 +89,10 @@ export function IntroductionDecisionDrawer({
     try {
       setSubmitting(true);
       setErrorMessage(null);
-      const res = await fetch(
+      const res = await authFetch(
         `/api/backoffice/introductions/${introduction.id}/release`,
         {
           method: "POST",
-          credentials: "include",
         },
       );
       if (!res.ok) {
@@ -116,12 +115,11 @@ export function IntroductionDecisionDrawer({
       setSubmitting(true);
       setErrorMessage(null);
 
-      const res = await fetch(
+      const res = await authFetch(
         `/api/backoffice/introductions/${introduction.id}/decide`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({ action: "approve" }),
         },
       );
@@ -156,12 +154,11 @@ export function IntroductionDecisionDrawer({
       setSubmitting(true);
       setErrorMessage(null);
 
-      const res = await fetch(
+      const res = await authFetch(
         `/api/backoffice/introductions/${introduction.id}/decide`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({
             action: "reject",
             rejectionReasonCode: rejectionReason,

@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { type Introduction } from "@influx/contracts";
 import { IntroductionDecisionDrawer } from "@/components/introductions/IntroductionDecisionDrawer";
+import { authFetch } from "@/lib/api-client";
 
 export default function IntroductionsQueuePage() {
   const [items, setItems] = useState<Introduction[]>([]);
@@ -27,9 +28,7 @@ export default function IntroductionsQueuePage() {
       setLoading(true);
       setErrorMessage(null);
 
-      const res = await fetch("/api/backoffice/queues/introductions", {
-        credentials: "include",
-      });
+      const res = await authFetch("/api/backoffice/queues/introductions");
 
       if (!res.ok) {
         throw new Error(

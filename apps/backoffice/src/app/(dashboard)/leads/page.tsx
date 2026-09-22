@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { authFetch } from "@/lib/api-client";
 
 interface LeadEvent {
   id: string;
@@ -45,9 +46,7 @@ export default function LeadsSupervisionPage() {
   const fetchLeads = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/backoffice/leads", {
-        credentials: "include",
-      });
+      const res = await authFetch("/api/backoffice/leads");
       if (res.ok) {
         const json = await res.json();
         setData(json);
@@ -68,9 +67,8 @@ export default function LeadsSupervisionPage() {
       setReplayingId(id);
       setNotification(null);
 
-      const res = await fetch(`/api/backoffice/leads/${id}/replay`, {
+      const res = await authFetch(`/api/backoffice/leads/${id}/replay`, {
         method: "POST",
-        credentials: "include",
       });
 
       const result = await res.json();

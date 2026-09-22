@@ -1,9 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { bo } from "@/locales/bo-labels";
+import {
+  ensureAgentSession,
+  loginAgentDemo,
+  clearStoredAgentToken,
+} from "@/lib/api-client";
 
 export default function DashboardLayout({
   children,
@@ -11,6 +16,37 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  useEffect(() => {
+    ensureAgentSession().then((authenticated) => {
+      setIsAuthenticated(authenticated);
+    });
+  }, []);
+
+  const handleQuickLogin = async () => {
+    setIsLoggingIn(true);
+    const result = await loginAgentDemo();
+    setIsLoggingIn(false);
+    if (result.success) {
+      setIsAuthenticated(true);
+      window.location.reload();
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      // Ignorer
+    }
+    clearStoredAgentToken();
+    window.location.href = "/login";
+  };
 
   const navItems = [
     { label: bo.nav.dashboard, href: "#", badge: null },
@@ -61,6 +97,35 @@ export default function DashboardLayout({
         {bo.env.nonProdBanner}
       </div>
 
+      {/* Bandeau d'alerte si non authentifié */}
+      {isAuthenticated === false && (
+        <div className="w-full bg-feedback-error-bg text-feedback-error-text border-b border-feedback-error-border py-2 px-6 flex items-center justify-between text-xs font-medium">
+          <div className="flex items-center gap-2">
+            <span>⚠</span>
+            <span>
+              Session agent non détectée. Vous devez être authentifié pour
+              accéder aux données des files.
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleQuickLogin}
+              disabled={isLoggingIn}
+              className="px-3 py-1 rounded bg-action-primary-bg text-text-on-action font-bold hover:bg-action-primary-bg-hover transition-colors cursor-pointer"
+            >
+              {isLoggingIn ? "Connexion..." : "Connexion Démo (Alexandre)"}
+            </button>
+            <Link
+              href="/login"
+              className="text-text-primary underline hover:text-white"
+            >
+              Page de connexion
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Barre supérieure */}
       <header className="h-14 border-b border-border-default bg-surface-card px-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -90,6 +155,14 @@ export default function DashboardLayout({
           <div className="w-8 h-8 rounded-full bg-brand-subtle-bg text-brand-primary border border-brand-subtle-border flex items-center justify-center font-bold text-xs">
             AM
           </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Se déconnecter"
+            className="text-[11px] text-text-tertiary hover:text-feedback-error-text transition-colors cursor-pointer ml-1"
+          >
+            Quitter
+          </button>
         </div>
       </header>
 

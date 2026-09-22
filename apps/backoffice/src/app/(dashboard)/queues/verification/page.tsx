@@ -9,6 +9,7 @@ import {
 } from "@influx/contracts";
 import { VerificationDecisionDrawer } from "@/components/verification/VerificationDecisionDrawer";
 import { bo } from "@/locales/bo-labels";
+import { authFetch, loginAgentDemo } from "@/lib/api-client";
 
 export default function VerificationQueuePage() {
   const [items, setItems] = useState<VerificationQueueItem[]>([]);
@@ -57,11 +58,8 @@ export default function VerificationQueuePage() {
       if (levelFilter !== "all") params.append("requestedLevel", levelFilter);
       if (networkFilter !== "all") params.append("network", networkFilter);
 
-      const res = await fetch(
+      const res = await authFetch(
         `/api/backoffice/queues/verification?${params.toString()}`,
-        {
-          credentials: "include",
-        },
       );
 
       if (!res.ok) {
@@ -343,15 +341,29 @@ export default function VerificationQueuePage() {
         {errorMessage && (
           <div
             role="alert"
-            className="p-4 bg-feedback-error-bg border border-feedback-error-border text-feedback-error-text rounded-xl text-sm flex items-center justify-between"
+            className="p-4 bg-feedback-error-bg border border-feedback-error-border text-feedback-error-text rounded-xl text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3"
           >
             <span>{errorMessage}</span>
-            <button
-              onClick={fetchQueue}
-              className="px-3 py-1 bg-surface-card hover:bg-surface-hover text-text-primary border border-border-default rounded text-xs"
-            >
-              Réessayer
-            </button>
+            <div className="flex items-center gap-2">
+              {errorMessage.includes("401") && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await loginAgentDemo();
+                    fetchQueue();
+                  }}
+                  className="px-3 py-1 bg-action-primary-bg hover:bg-action-primary-bg-hover text-text-on-action font-bold rounded text-xs cursor-pointer shadow-sm"
+                >
+                  Se reconnecter (Alexandre Agent)
+                </button>
+              )}
+              <button
+                onClick={fetchQueue}
+                className="px-3 py-1 bg-surface-card hover:bg-surface-hover text-text-primary border border-border-default rounded text-xs cursor-pointer"
+              >
+                Réessayer
+              </button>
+            </div>
           </div>
         )}
 

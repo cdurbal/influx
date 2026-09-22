@@ -21,6 +21,7 @@ import {
   ChevronLeft,
   MessageSquare,
 } from "@/components/ui/icons";
+import { authFetch } from "@/lib/api-client";
 
 export interface BackofficeConversationClientProps {
   conversationId: string;
@@ -107,7 +108,7 @@ export function BackofficeConversationClient({
           url += `?${params.toString()}`;
         }
 
-        const res = await fetch(url, { credentials: "include" });
+        const res = await authFetch(url);
 
         if (res.status === 400) {
           const errData = await res.json().catch(() => ({}));
@@ -130,9 +131,8 @@ export function BackofficeConversationClient({
 
         // Charger également les détections de coordonnées pour le commercial (RG50)
         try {
-          const detRes = await fetch(
+          const detRes = await authFetch(
             `/api/backoffice/conversations/${conversationId}/detections`,
-            { credentials: "include" },
           );
           if (detRes.ok) {
             const detData = await detRes.json();
@@ -187,19 +187,19 @@ export function BackofficeConversationClient({
     if (!trimmed || sending) return;
 
     setSending(true);
-    setSendError(null);
-
     try {
-      const res = await fetch(`/api/conversations/${conversationId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          content: trimmed,
-          warnedBeforeSend: false,
-          sentAnyway: false,
-        }),
-      });
+      const res = await authFetch(
+        `/api/conversations/${conversationId}/messages`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: trimmed,
+            warnedBeforeSend: false,
+            sentAnyway: false,
+          }),
+        },
+      );
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -233,12 +233,11 @@ export function BackofficeConversationClient({
 
     setActionLoading(true);
     try {
-      const res = await fetch(
+      const res = await authFetch(
         `/api/backoffice/conversations/${conversationId}/pause`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({
             reason: "Ajustement commercial et cadrage du brief",
           }),
@@ -259,11 +258,10 @@ export function BackofficeConversationClient({
   const handleResume = async () => {
     setActionLoading(true);
     try {
-      const res = await fetch(
+      const res = await authFetch(
         `/api/backoffice/conversations/${conversationId}/resume`,
         {
           method: "POST",
-          credentials: "include",
         },
       );
 
@@ -283,12 +281,11 @@ export function BackofficeConversationClient({
     setClosing(true);
 
     try {
-      const res = await fetch(
+      const res = await authFetch(
         `/api/backoffice/conversations/${conversationId}/close`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({
             reason: closeReason,
             comment: closeComment.trim() || undefined,
@@ -314,12 +311,11 @@ export function BackofficeConversationClient({
   ) => {
     setClassifyingId(detectionId);
     try {
-      const res = await fetch(
+      const res = await authFetch(
         `/api/backoffice/detections/${detectionId}/classify`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({ classification }),
         },
       );

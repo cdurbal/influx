@@ -8,6 +8,7 @@ import {
   CAMPAIGN_REJECTION_MESSAGES,
 } from "@influx/contracts";
 import { bo } from "@/locales/bo-labels";
+import { authFetch } from "@/lib/api-client";
 
 export interface CampaignDecisionDrawerProps {
   campaign: CampaignBackofficeView | null;
@@ -48,11 +49,10 @@ export function CampaignDecisionDrawer({
   const autoClaim = useCallback(
     async (campaignId: string) => {
       try {
-        const res = await fetch(
+        const res = await authFetch(
           `/api/backoffice/campaigns/${campaignId}/claim`,
           {
             method: "POST",
-            credentials: "include",
           },
         );
         if (res.ok) {
@@ -95,11 +95,10 @@ export function CampaignDecisionDrawer({
   const handleReleaseLock = async () => {
     try {
       setSubmitting(true);
-      const res = await fetch(
+      const res = await authFetch(
         `/api/backoffice/campaigns/${campaign.id}/release-claim`,
         {
           method: "POST",
-          credentials: "include",
         },
       );
       if (res.ok) {
@@ -126,12 +125,11 @@ export function CampaignDecisionDrawer({
         body.secondAgentId = secondAgentId;
       }
 
-      const res = await fetch(
+      const res = await authFetch(
         `/api/backoffice/campaigns/${campaign.id}/publish`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify(body),
         },
       );
@@ -157,12 +155,11 @@ export function CampaignDecisionDrawer({
     setSubmitting(true);
     setErrorMessage(null);
     try {
-      const res = await fetch(
+      const res = await authFetch(
         `/api/backoffice/campaigns/${campaign.id}/reject`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({
             reason: rejectionReason,
             comment: rejectionComment.trim() || undefined,

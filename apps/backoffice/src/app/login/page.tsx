@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { bo } from "@/locales/bo-labels";
+import { setStoredAgentToken } from "@/lib/api-client";
 
 export default function BackofficeLoginPage() {
   const [email, setEmail] = useState("");
@@ -52,6 +53,10 @@ export default function BackofficeLoginPage() {
         throw new Error(
           data.message || "Échec de l'authentification backoffice.",
         );
+      }
+
+      if (data.token) {
+        setStoredAgentToken(data.token);
       }
 
       // Redirection vers la file de vérification (File 4)

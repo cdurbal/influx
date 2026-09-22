@@ -9,6 +9,7 @@ import {
   VERIFICATION_REJECTION_MESSAGES,
 } from "@influx/contracts";
 import { bo } from "@/locales/bo-labels";
+import { authFetch } from "@/lib/api-client";
 
 export interface VerificationDecisionDrawerProps {
   request: (VerificationRequest & Partial<VerificationQueueItem>) | null;
@@ -65,11 +66,10 @@ export function VerificationDecisionDrawer({
   const autoClaim = useCallback(
     async (requestId: string) => {
       try {
-        const res = await fetch(
+        const res = await authFetch(
           `/api/backoffice/verification/${requestId}/claim`,
           {
             method: "POST",
-            credentials: "include",
           },
         );
         if (res.ok) {
@@ -134,12 +134,11 @@ export function VerificationDecisionDrawer({
         decision: "reexamine",
         reexamineReason: "Verrou relâché par l'agent (retour en file)",
       };
-      const res = await fetch(
+      const res = await authFetch(
         `/api/backoffice/verification/${request.id}/decide`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify(payload),
         },
       );
@@ -211,12 +210,11 @@ export function VerificationDecisionDrawer({
         }
       }
 
-      const res = await fetch(
+      const res = await authFetch(
         `/api/backoffice/verification/${request.id}/decide`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify(payload),
         },
       );

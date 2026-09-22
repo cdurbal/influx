@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { type IdentifiedCreatorCard } from "@influx/contracts";
 import { bo } from "@/locales/bo-labels";
+import { authFetch } from "@/lib/api-client";
 
 export interface InfluxProposalModalProps {
   creators: IdentifiedCreatorCard[];
@@ -31,9 +32,7 @@ export function InfluxProposalModal({
   useEffect(() => {
     async function loadCampaigns() {
       try {
-        const res = await fetch("/api/backoffice/campaigns?limit=50", {
-          credentials: "include",
-        });
+        const res = await authFetch("/api/backoffice/campaigns?limit=50");
         if (res.ok) {
           const data = await res.json();
           if (data.campaigns && data.campaigns.length > 0) {

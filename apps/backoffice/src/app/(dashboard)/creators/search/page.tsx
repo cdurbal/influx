@@ -11,6 +11,11 @@ import {
 } from "@influx/contracts";
 import { bo } from "@/locales/bo-labels";
 import { IdentifiedCreatorTable } from "@/components/creators/IdentifiedCreatorTable";
+import {
+  authFetch,
+  ensureAgentSession,
+  loginAgentDemo,
+} from "@/lib/api-client";
 
 function BackofficeCreatorSearchContent() {
   const searchParams = useSearchParams();
@@ -36,34 +41,8 @@ function BackofficeCreatorSearchContent() {
   const checkAgentAuth = useCallback(async () => {
     try {
       setAuthLoading(true);
-      const res = await fetch("/api/auth/me", { credentials: "include" });
-      if (res.ok) {
-        const data = await res.json();
-        const role = data.account?.role || data.user?.role || data.role;
-        if (role === "agent" || role === "admin") {
-          setIsAuthenticated(true);
-          return;
-        }
-      }
-
-      // Si pas encore de session active ou session non-agent, auto-connexion démo agent (Alexandre)
-      const loginRes = await fetch("/api/auth/backoffice/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: "alexandre@influx.io",
-          password: "agentpassword",
-          code: "123456",
-        }),
-        credentials: "include",
-      });
-
-      if (loginRes.ok) {
-        setIsAuthenticated(true);
-        return;
-      }
-
-      setIsAuthenticated(false);
+      const ok = await ensureAgentSession();
+      setIsAuthenticated(ok);
     } catch {
       setIsAuthenticated(false);
     } finally {
@@ -79,21 +58,8 @@ function BackofficeCreatorSearchContent() {
   const handleAgentDemoLogin = async () => {
     try {
       setAuthLoading(true);
-      const res = await fetch("/api/auth/backoffice/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: "alexandre@influx.io",
-          password: "agentpassword",
-          code: "123456",
-        }),
-        credentials: "include",
-      });
-      if (res.ok) {
-        setIsAuthenticated(true);
-      } else {
-        setIsAuthenticated(false);
-      }
+      const res = await loginAgentDemo();
+      setIsAuthenticated(res.success);
     } catch {
       setIsAuthenticated(false);
     } finally {
@@ -108,7 +74,7 @@ function BackofficeCreatorSearchContent() {
       setLoading(true);
       setError(null);
 
-      const res = await fetch("/api/search/creators", {
+      const res = await authFetch("/api/search/creators", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -118,7 +84,6 @@ function BackofficeCreatorSearchContent() {
           limit: 12,
           viewMode: "agent_identified", // Mode privilégié agent
         }),
-        credentials: "include",
       });
 
       if (!res.ok) {
@@ -146,9 +111,7 @@ function BackofficeCreatorSearchContent() {
   // Récupérer le titre de la campagne si pont actif
   useEffect(() => {
     if (campaignIdParam) {
-      fetch(`/api/search/campaign-bridge/${campaignIdParam}`, {
-        credentials: "include",
-      })
+      authFetch(`/api/search/campaign-bridge/${campaignIdParam}`)
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
           if (data?.title) setCampaignTitle(data.title);

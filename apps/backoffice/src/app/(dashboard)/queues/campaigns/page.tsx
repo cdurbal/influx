@@ -9,6 +9,7 @@ import {
 } from "@influx/contracts";
 import { CampaignDecisionDrawer } from "@/components/campaign/CampaignDecisionDrawer";
 import { bo } from "@/locales/bo-labels";
+import { authFetch, loginAgentDemo } from "@/lib/api-client";
 
 export default function CampaignQueuePage() {
   const [items, setItems] = useState<CampaignBackofficeView[]>([]);
@@ -54,11 +55,8 @@ export default function CampaignQueuePage() {
       if (sensitiveOnly) params.append("sensitiveOnly", "true");
       if (searchQuery.trim()) params.append("search", searchQuery.trim());
 
-      const res = await fetch(
+      const res = await authFetch(
         `/api/backoffice/campaigns?${params.toString()}`,
-        {
-          credentials: "include",
-        },
       );
 
       if (!res.ok) {
@@ -336,8 +334,20 @@ export default function CampaignQueuePage() {
 
       {/* Message d'erreur serveur */}
       {errorMessage && (
-        <div className="p-4 rounded-xl bg-feedback-error-bg border border-feedback-error-border text-feedback-error-text text-xs">
-          ✕ {errorMessage}
+        <div className="p-4 rounded-xl bg-feedback-error-bg border border-feedback-error-border text-feedback-error-text text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <span>✕ {errorMessage}</span>
+          {errorMessage.includes("401") && (
+            <button
+              type="button"
+              onClick={async () => {
+                await loginAgentDemo();
+                fetchQueue();
+              }}
+              className="px-3 py-1.5 rounded-lg bg-action-primary-bg text-text-on-action font-bold text-xs hover:bg-action-primary-bg-hover transition-colors cursor-pointer self-start sm:self-auto shrink-0 shadow-sm"
+            >
+              Se reconnecter (Alexandre Agent)
+            </button>
+          )}
         </div>
       )}
 

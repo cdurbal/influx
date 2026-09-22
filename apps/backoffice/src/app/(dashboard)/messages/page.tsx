@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Search,
 } from "@/components/ui/icons";
+import { authFetch } from "@/lib/api-client";
 
 function WhatsAppCheckmarks({ read = true }: { read?: boolean }) {
   return (
@@ -90,9 +91,7 @@ export default function BackofficeMessagesPage() {
     setError(null);
 
     try {
-      const res = await fetch("/api/conversations/my", {
-        credentials: "include",
-      });
+      const res = await authFetch("/api/conversations/my");
 
       if (!res.ok) {
         throw new Error(`Erreur serveur (${res.status})`);
@@ -114,7 +113,7 @@ export default function BackofficeMessagesPage() {
   const handleSeed = async () => {
     setSeeding(true);
     try {
-      const res = await fetch("/api/dev/seed-conversations", {
+      const res = await authFetch("/api/dev/seed-conversations", {
         method: "POST",
       });
       if (res.ok) {
