@@ -265,13 +265,17 @@ export default function QueuesOverviewPage() {
             <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-[rgba(34,197,94,0.12)] text-[#4ade80] border border-[rgba(34,197,94,0.25)]">
               Supervision des Opérations
             </span>
-            <span className="text-xs text-[#8a8f98]">· 5 Groupes Métiers · Doc 17b §1.3</span>
+            <span className="text-xs text-[#8a8f98]">
+              · 5 Groupes Métiers · Doc 17b §1.3
+            </span>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">
             Les 16 Files d&apos;Attente du Backoffice
           </h1>
           <p className="text-xs text-[#8a8f98] mt-1 max-w-2xl">
-            Gabarit unifié de supervision opérationnelle réparti en 5 groupes métiers (Doc 17b §1.3). Traitement prioritaire du chiffre d&apos;affaires (File 8).
+            Gabarit unifié de supervision opérationnelle réparti en 5 groupes
+            métiers (Doc 17b §1.3). Traitement prioritaire du chiffre
+            d&apos;affaires (File 8).
           </p>
         </div>
 

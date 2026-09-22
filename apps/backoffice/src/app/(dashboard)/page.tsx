@@ -60,13 +60,16 @@ export default function DashboardPage() {
             <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-[rgba(34,197,94,0.12)] text-[#4ade80] border border-[rgba(34,197,94,0.25)]">
               Executive View
             </span>
-            <span className="text-xs text-[#8a8f98]">· D37 &amp; AAL2 Conforme</span>
+            <span className="text-xs text-[#8a8f98]">
+              · D37 &amp; AAL2 Conforme
+            </span>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">
             Tableau de Bord de Pilotage
           </h1>
           <p className="text-xs text-[#8a8f98] mt-1 max-w-2xl">
-            Supervision opérationnelle en temps réel, encaissements des commissions réelles et monitoring strict des engagements SLA.
+            Supervision opérationnelle en temps réel, encaissements des
+            commissions réelles et monitoring strict des engagements SLA.
           </p>
         </div>
 
@@ -122,7 +125,9 @@ export default function DashboardPage() {
       {loading ? (
         <div className="py-24 text-center text-[#8a8f98] text-xs flex flex-col items-center justify-center gap-3">
           <div className="w-6 h-6 border-2 border-[rgba(255,255,255,0.2)] border-t-[#22c55e] rounded-full animate-spin" />
-          <span>Calcul et rapprochement cryptographique des métriques de pilotage...</span>
+          <span>
+            Calcul et rapprochement cryptographique des métriques de pilotage...
+          </span>
         </div>
       ) : kpis ? (
         <div className="space-y-8">
@@ -153,8 +158,10 @@ export default function DashboardPage() {
               <div className="space-y-2.5">
                 {kpis.slaAlerts.map((alert: any) => {
                   let targetHref = "/queues/verification";
-                  if (alert.type === "campaign") targetHref = "/queues/campaigns";
-                  if (alert.type === "introduction") targetHref = "/queues/introductions";
+                  if (alert.type === "campaign")
+                    targetHref = "/queues/campaigns";
+                  if (alert.type === "introduction")
+                    targetHref = "/queues/introductions";
 
                   return (
                     <div
@@ -190,7 +197,8 @@ export default function DashboardPage() {
               <div className="p-4 rounded-lg bg-[rgba(34,197,94,0.05)] border border-[rgba(34,197,94,0.2)] text-xs text-[#4ade80] flex items-center gap-2">
                 <span className="text-base">✓</span>
                 <span>
-                  Tous les délais opérationnels sont scrupuleusement respectés. Aucune alerte active dans les 16 files.
+                  Tous les délais opérationnels sont scrupuleusement respectés.
+                  Aucune alerte active dans les 16 files.
                 </span>
               </div>
             )}

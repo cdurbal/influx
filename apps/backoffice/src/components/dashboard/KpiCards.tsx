@@ -72,7 +72,9 @@ export function KpiCards({
 
                 <div className="text-xs text-[#8a8f98] mt-2 flex items-center justify-between pt-2 border-t border-[rgba(255,255,255,0.06)]">
                   <span>{data.receiptsCount} encaissement(s)</span>
-                  <span className="text-[#4ade80] font-mono font-medium">100% rapproché</span>
+                  <span className="text-[#4ade80] font-mono font-medium">
+                    100% rapproché
+                  </span>
                 </div>
               </div>
             ))
@@ -180,12 +182,16 @@ export function KpiCards({
               {summaryMetrics.totalSlaBreachesCount > 0 ? (
                 <>
                   <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] animate-ping" />
-                  <span className="text-[#fbbf24] font-medium">Attention requise immédiate</span>
+                  <span className="text-[#fbbf24] font-medium">
+                    Attention requise immédiate
+                  </span>
                 </>
               ) : (
                 <>
                   <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />
-                  <span className="text-[#4ade80]">100% dans les délais impartis</span>
+                  <span className="text-[#4ade80]">
+                    100% dans les délais impartis
+                  </span>
                 </>
               )}
             </div>
@@ -226,14 +232,16 @@ export function KpiCards({
                 </div>
 
                 <span className="font-semibold text-xs text-[#22c55e] bg-[rgba(34,197,94,0.12)] border border-[rgba(34,197,94,0.25)] px-2.5 py-1 rounded-full">
-                  {agent.activeDealsCount} deal{agent.activeDealsCount > 1 ? "s" : ""}
+                  {agent.activeDealsCount} deal
+                  {agent.activeDealsCount > 1 ? "s" : ""}
                 </span>
               </div>
             ))}
           </div>
         ) : (
           <p className="text-xs text-[#8a8f98] italic text-center py-4">
-            Aucun commercial n&apos;a d&apos;affaire active assignée actuellement.
+            Aucun commercial n&apos;a d&apos;affaire active assignée
+            actuellement.
           </p>
         )}
       </div>

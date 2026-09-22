@@ -16,30 +16,33 @@ export default function DealsPage() {
   const [selectedCurrency, setSelectedCurrency] = useState<string>("ALL");
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
 
-  const fetchDeals = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-    setError(null);
+  const fetchDeals = useCallback(
+    async (isRefresh = false) => {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+      setError(null);
 
-    try {
-      const url =
-        selectedCurrency && selectedCurrency !== "ALL"
-          ? `/api/backoffice/deals?currency=${selectedCurrency}`
-          : "/api/backoffice/deals";
+      try {
+        const url =
+          selectedCurrency && selectedCurrency !== "ALL"
+            ? `/api/backoffice/deals?currency=${selectedCurrency}`
+            : "/api/backoffice/deals";
 
-      const res = await authFetch(url);
-      if (!res.ok) {
-        throw new Error("Impossible de charger les affaires");
+        const res = await authFetch(url);
+        if (!res.ok) {
+          throw new Error("Impossible de charger les affaires");
+        }
+        const data = await res.json();
+        setDeals(data.deals || []);
+      } catch (err: any) {
+        setError(err.message || "Erreur réseau");
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
-      const data = await res.json();
-      setDeals(data.deals || []);
-    } catch (err: any) {
-      setError(err.message || "Erreur réseau");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [selectedCurrency]);
+    },
+    [selectedCurrency],
+  );
 
   useEffect(() => {
     fetchDeals();
@@ -54,13 +57,17 @@ export default function DealsPage() {
             <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-[rgba(34,197,94,0.12)] text-[#4ade80] border border-[rgba(34,197,94,0.25)]">
               Pipeline Commercial
             </span>
-            <span className="text-xs text-[#8a8f98]">· 7 Colonnes · Doc 14</span>
+            <span className="text-xs text-[#8a8f98]">
+              · 7 Colonnes · Doc 14
+            </span>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">
             Pipeline des Affaires &amp; Encaissements
           </h1>
           <p className="text-xs text-[#8a8f98] mt-1 max-w-2xl">
-            Suivi visuel des transactions issues des révélations d&apos;identité. Saisie manuelle stricte des commissions (règle A1) et rapprochement des paiements reçus.
+            Suivi visuel des transactions issues des révélations
+            d&apos;identité. Saisie manuelle stricte des commissions (règle A1)
+            et rapprochement des paiements reçus.
           </p>
         </div>
 

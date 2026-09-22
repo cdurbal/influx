@@ -61,8 +61,11 @@ export class BrevoCampaignService {
       const consents = Array.from(this.store.consentEvents.values()).filter(
         (c) => c.accountId === acc.id,
       );
+      const lastConsent = consents[consents.length - 1];
       const isConsenting =
-        consents.length > 0 ? consents[consents.length - 1].hasConsented : true; // Consentement initial à l'inscription
+        lastConsent !== undefined
+          ? Boolean(lastConsent.marketingConsent)
+          : true; // Consentement initial à l'inscription
 
       if (isConsenting) {
         eligible += 1;

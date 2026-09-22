@@ -65,13 +65,17 @@ export default function EmailsPage() {
             <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-[rgba(34,197,94,0.12)] text-[#4ade80] border border-[rgba(34,197,94,0.25)]">
               Communication Brevo
             </span>
-            <span className="text-xs text-[#8a8f98]">· Fenêtre de grâce 15 min · Doc 16</span>
+            <span className="text-xs text-[#8a8f98]">
+              · Fenêtre de grâce 15 min · Doc 16
+            </span>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">
             Campagnes &amp; E-mails Brevo
           </h1>
           <p className="text-xs text-[#8a8f98] mt-1 max-w-2xl">
-            Envois encadrés depuis le backoffice avec filtrage RGPD des consentements et fenêtre d&apos;annulation immédiate de 15 minutes (Doc 16).
+            Envois encadrés depuis le backoffice avec filtrage RGPD des
+            consentements et fenêtre d&apos;annulation immédiate de 15 minutes
+            (Doc 16).
           </p>
         </div>
 

@@ -121,7 +121,9 @@ export function DealKanbanBoard({ deals, onSelectDeal }: DealKanbanBoardProps) {
                     </span>
                   ))
                 ) : (
-                  <span className="text-[#52525b] text-[10px]">0 montant engagé</span>
+                  <span className="text-[#52525b] text-[10px]">
+                    0 montant engagé
+                  </span>
                 )}
               </div>
             </div>
@@ -134,8 +136,12 @@ export function DealKanbanBoard({ deals, onSelectDeal }: DealKanbanBoardProps) {
                 </div>
               ) : (
                 columnDeals.map((deal) => {
-                  const hasNegotiated = deal.negotiatedAmountMinor !== null && deal.negotiatedAmountMinor !== undefined;
-                  const hasCommission = deal.agreedCommissionMinor !== null && deal.agreedCommissionMinor !== undefined;
+                  const hasNegotiated =
+                    deal.negotiatedAmountMinor !== null &&
+                    deal.negotiatedAmountMinor !== undefined;
+                  const hasCommission =
+                    deal.agreedCommissionMinor !== null &&
+                    deal.agreedCommissionMinor !== undefined;
 
                   return (
                     <div
@@ -158,7 +164,9 @@ export function DealKanbanBoard({ deals, onSelectDeal }: DealKanbanBoardProps) {
                       {/* Montants */}
                       <div className="space-y-1.5 my-2">
                         <div className="text-xs flex justify-between items-center">
-                          <span className="text-[#8a8f98]">Montant contrat :</span>
+                          <span className="text-[#8a8f98]">
+                            Montant contrat :
+                          </span>
                           <span className="font-semibold text-white font-mono">
                             {hasNegotiated
                               ? `${(deal.negotiatedAmountMinor! / 100).toLocaleString("fr-FR", { minimumFractionDigits: 0 })} ${deal.currency}`
@@ -179,26 +187,33 @@ export function DealKanbanBoard({ deals, onSelectDeal }: DealKanbanBoardProps) {
                         <div className="text-xs flex justify-between items-center pt-1.5 border-t border-[rgba(255,255,255,0.06)] text-[11px]">
                           <span className="text-[#8a8f98]">Encaissé :</span>
                           <span className="font-medium text-[#4ade80] font-mono">
-                            {(deal.totalReceivedMinor / 100).toLocaleString("fr-FR", {
-                              minimumFractionDigits: 0,
-                            })}{" "}
+                            {(deal.totalReceivedMinor / 100).toLocaleString(
+                              "fr-FR",
+                              {
+                                minimumFractionDigits: 0,
+                              },
+                            )}{" "}
                             {deal.currency} ({deal.receiptsCount})
                           </span>
                         </div>
                       </div>
 
                       {/* Reste dû éventuel */}
-                      {deal.remainingDueMinor !== null && deal.remainingDueMinor > 0 && (
-                        <div className="text-[10px] text-[#fbbf24] font-mono flex justify-between items-center bg-[rgba(245,158,11,0.08)] px-2 py-0.5 rounded border border-[rgba(245,158,11,0.2)] mt-1.5">
-                          <span>Reste dû :</span>
-                          <span>
-                            {(deal.remainingDueMinor / 100).toLocaleString("fr-FR", {
-                              minimumFractionDigits: 0,
-                            })}{" "}
-                            {deal.currency}
-                          </span>
-                        </div>
-                      )}
+                      {deal.remainingDueMinor !== null &&
+                        deal.remainingDueMinor > 0 && (
+                          <div className="text-[10px] text-[#fbbf24] font-mono flex justify-between items-center bg-[rgba(245,158,11,0.08)] px-2 py-0.5 rounded border border-[rgba(245,158,11,0.2)] mt-1.5">
+                            <span>Reste dû :</span>
+                            <span>
+                              {(deal.remainingDueMinor / 100).toLocaleString(
+                                "fr-FR",
+                                {
+                                  minimumFractionDigits: 0,
+                                },
+                              )}{" "}
+                              {deal.currency}
+                            </span>
+                          </div>
+                        )}
 
                       {/* Motifs éventuels */}
                       {deal.lostReason && (

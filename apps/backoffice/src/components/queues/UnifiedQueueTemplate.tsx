@@ -32,7 +32,10 @@ export function UnifiedQueueTemplate({ groups }: UnifiedQueueTemplateProps) {
   return (
     <div className="space-y-6">
       {groups.map((group) => {
-        const totalPending = group.queues.reduce((sum, q) => sum + q.pendingCount, 0);
+        const totalPending = group.queues.reduce(
+          (sum, q) => sum + q.pendingCount,
+          0,
+        );
 
         return (
           <div
@@ -56,13 +59,12 @@ export function UnifiedQueueTemplate({ groups }: UnifiedQueueTemplateProps) {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-[#8a8f98] mt-1">
-                  {group.subtitle}
-                </p>
+                <p className="text-xs text-[#8a8f98] mt-1">{group.subtitle}</p>
               </div>
 
               <div className="text-xs text-[#8a8f98] font-mono bg-[rgba(255,255,255,0.03)] px-3 py-1 rounded-lg border border-[rgba(255,255,255,0.06)] self-start sm:self-auto">
-                <span className="text-white font-bold">{totalPending}</span> demande(s) active(s)
+                <span className="text-white font-bold">{totalPending}</span>{" "}
+                demande(s) active(s)
               </div>
             </div>
 
@@ -72,7 +74,9 @@ export function UnifiedQueueTemplate({ groups }: UnifiedQueueTemplateProps) {
                 <thead>
                   <tr className="border-b border-[rgba(255,255,255,0.06)] text-[#717682] uppercase tracking-wider text-[10px]">
                     <th className="py-2.5 px-3 font-semibold w-12">#</th>
-                    <th className="py-2.5 px-3 font-semibold">File d&apos;attente</th>
+                    <th className="py-2.5 px-3 font-semibold">
+                      File d&apos;attente
+                    </th>
                     <th className="py-2.5 px-3 font-semibold text-center w-28">
                       En attente
                     </th>
