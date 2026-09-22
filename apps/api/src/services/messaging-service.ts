@@ -301,7 +301,11 @@ export class MessagingService {
 
     // Contrôle d'accès strict au canal (Cloisonnement bilatéral)
     const channel: ConversationChannel = input.channel || "three_way";
-    if (channel === "agent_advertiser" && senderRole !== "agent" && senderRole !== "advertiser") {
+    if (
+      channel === "agent_advertiser" &&
+      senderRole !== "agent" &&
+      senderRole !== "advertiser"
+    ) {
       const err: MessagingServiceError = {
         status: 403,
         code: "FORBIDDEN_CHANNEL",
@@ -311,7 +315,11 @@ export class MessagingService {
       throw err;
     }
 
-    if (channel === "agent_creator" && senderRole !== "agent" && senderRole !== "creator") {
+    if (
+      channel === "agent_creator" &&
+      senderRole !== "agent" &&
+      senderRole !== "creator"
+    ) {
       const err: MessagingServiceError = {
         status: 403,
         code: "FORBIDDEN_CHANNEL",
@@ -569,7 +577,9 @@ export class MessagingService {
         const msgChannel = msg.channel || "three_way";
         if (isAgentOrAdmin) return true;
         if (account.role === "advertiser") {
-          return msgChannel === "three_way" || msgChannel === "agent_advertiser";
+          return (
+            msgChannel === "three_way" || msgChannel === "agent_advertiser"
+          );
         }
         if (account.role === "creator") {
           return msgChannel === "three_way" || msgChannel === "agent_creator";

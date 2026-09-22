@@ -109,7 +109,9 @@ describe("Canaux de discussion privés au sein de la messagerie à trois (RG_CHA
     expect(res.statusCode).toBe(201);
     const body = res.json();
     expect(body.message.channel).toBe("three_way");
-    expect(body.message.content).toBe("Bonjour à tous, bienvenue dans ce projet !");
+    expect(body.message.content).toBe(
+      "Bonjour à tous, bienvenue dans ce projet !",
+    );
   });
 
   it("2. L'annonceur peut envoyer un message dans le canal privé 'agent_advertiser'", async () => {
@@ -120,7 +122,8 @@ describe("Canaux de discussion privés au sein de la messagerie à trois (RG_CHA
         cookie: `${SESSION_COOKIE_NAME}=${advertiserToken}`,
       },
       payload: {
-        content: "Alexandre, voici notre plafond de négociation confidentiel : 15 000 EUR.",
+        content:
+          "Alexandre, voici notre plafond de négociation confidentiel : 15 000 EUR.",
         channel: "agent_advertiser",
       },
     });
@@ -156,7 +159,8 @@ describe("Canaux de discussion privés au sein de la messagerie à trois (RG_CHA
         cookie: `${SESSION_COOKIE_NAME}=${creatorToken}`,
       },
       payload: {
-        content: "Alexandre, peux-tu me confirmer le net créateur que je vais toucher ?",
+        content:
+          "Alexandre, peux-tu me confirmer le net créateur que je vais toucher ?",
         channel: "agent_creator",
       },
     });
@@ -185,7 +189,11 @@ describe("Canaux de discussion privés au sein de la messagerie à trois (RG_CHA
   });
 
   it("6. Le commercial INFLUX peut envoyer dans les 3 canaux", async () => {
-    for (const ch of ["three_way", "agent_advertiser", "agent_creator"] as const) {
+    for (const ch of [
+      "three_way",
+      "agent_advertiser",
+      "agent_creator",
+    ] as const) {
       const res = await app.inject({
         method: "POST",
         url: `/api/conversations/${conversationId}/messages`,
@@ -216,7 +224,10 @@ describe("Canaux de discussion privés au sein de la messagerie à trois (RG_CHA
       method: "POST",
       url: `/api/conversations/${conversationId}/messages`,
       headers: { cookie: `${SESSION_COOKIE_NAME}=${advertiserToken}` },
-      payload: { content: "Budget secret marque 20 000 EUR", channel: "agent_advertiser" },
+      payload: {
+        content: "Budget secret marque 20 000 EUR",
+        channel: "agent_advertiser",
+      },
     });
 
     // 1 message secret créateur <-> agent
@@ -237,8 +248,14 @@ describe("Canaux de discussion privés au sein de la messagerie à trois (RG_CHA
     expect(creatorRead.statusCode).toBe(200);
     const creatorMsgs = creatorRead.json().messages;
     expect(creatorMsgs.length).toBe(2);
-    expect(creatorMsgs.some((m: any) => m.content === "Budget secret marque 20 000 EUR")).toBe(false);
-    expect(creatorMsgs.some((m: any) => m.channel === "agent_advertiser")).toBe(false);
+    expect(
+      creatorMsgs.some(
+        (m: any) => m.content === "Budget secret marque 20 000 EUR",
+      ),
+    ).toBe(false);
+    expect(creatorMsgs.some((m: any) => m.channel === "agent_advertiser")).toBe(
+      false,
+    );
   });
 
   it("8. ISOLATION STRICTE : La marque ne voit JAMAIS les messages du canal 'agent_creator'", async () => {
@@ -255,7 +272,10 @@ describe("Canaux de discussion privés au sein de la messagerie à trois (RG_CHA
       method: "POST",
       url: `/api/conversations/${conversationId}/messages`,
       headers: { cookie: `${SESSION_COOKIE_NAME}=${creatorToken}` },
-      payload: { content: "Rémunération créateur confidentielle", channel: "agent_creator" },
+      payload: {
+        content: "Rémunération créateur confidentielle",
+        channel: "agent_creator",
+      },
     });
 
     // La marque lit les messages
@@ -268,7 +288,11 @@ describe("Canaux de discussion privés au sein de la messagerie à trois (RG_CHA
     expect(advRead.statusCode).toBe(200);
     const advMsgs = advRead.json().messages;
     expect(advMsgs.length).toBe(1);
-    expect(advMsgs.some((m: any) => m.content === "Rémunération créateur confidentielle")).toBe(false);
+    expect(
+      advMsgs.some(
+        (m: any) => m.content === "Rémunération créateur confidentielle",
+      ),
+    ).toBe(false);
     expect(advMsgs.some((m: any) => m.channel === "agent_creator")).toBe(false);
   });
 

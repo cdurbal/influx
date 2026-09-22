@@ -694,7 +694,10 @@ export function BackofficeConversationClient({
                 }`}
               >
                 <Lock className="w-3.5 h-3.5 text-amber-400" />
-                <span>Privé Marque ({advertiser?.displayName?.slice(0, 14) || "Marque"})</span>
+                <span>
+                  Privé Marque (
+                  {advertiser?.displayName?.slice(0, 14) || "Marque"})
+                </span>
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                     activeChannel === "agent_advertiser"
@@ -717,7 +720,10 @@ export function BackofficeConversationClient({
                 }`}
               >
                 <Lock className="w-3.5 h-3.5 text-purple-400" />
-                <span>Privé Créateur ({creator?.displayName?.slice(0, 14) || "Créateur"})</span>
+                <span>
+                  Privé Créateur (
+                  {creator?.displayName?.slice(0, 14) || "Créateur"})
+                </span>
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                     activeChannel === "agent_creator"
@@ -744,17 +750,23 @@ export function BackofficeConversationClient({
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#00a884] shrink-0" />
               <span className="text-[11px]">
-                Fil tripartite officiel · Vos messages sont visibles simultanément par la Marque et le Créateur.
+                Fil tripartite officiel · Vos messages sont visibles
+                simultanément par la Marque et le Créateur.
               </span>
             </div>
-            <span className="text-[10px] font-mono text-[#8696a0]">Fil à 3</span>
+            <span className="text-[10px] font-mono text-[#8696a0]">
+              Fil à 3
+            </span>
           </div>
         ) : activeChannel === "agent_advertiser" ? (
           <div className="bg-amber-950/30 border-b border-amber-500/30 px-4 py-2 flex items-center justify-between text-xs text-amber-200/90 relative z-10">
             <div className="flex items-center gap-2">
               <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <span className="text-[11px]">
-                🔒 <strong>Canal Privé Marque :</strong> Échange bilatéral confidentiel entre vous et <strong>{advertiser?.displayName || "la marque"}</strong>. Le créateur n&apos;a STRICTEMENT AUCUN accès à ce canal.
+                🔒 <strong>Canal Privé Marque :</strong> Échange bilatéral
+                confidentiel entre vous et{" "}
+                <strong>{advertiser?.displayName || "la marque"}</strong>. Le
+                créateur n&apos;a STRICTEMENT AUCUN accès à ce canal.
               </span>
             </div>
             <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-amber-900/60 border border-amber-600/40 text-amber-300 font-bold">
@@ -766,7 +778,10 @@ export function BackofficeConversationClient({
             <div className="flex items-center gap-2">
               <Lock className="w-3.5 h-3.5 text-purple-400 shrink-0" />
               <span className="text-[11px]">
-                🔒 <strong>Canal Privé Créateur :</strong> Échange bilatéral confidentiel entre vous et <strong>{creator?.displayName || "le créateur"}</strong>. La marque n&apos;a STRICTEMENT AUCUN accès à ce canal.
+                🔒 <strong>Canal Privé Créateur :</strong> Échange bilatéral
+                confidentiel entre vous et{" "}
+                <strong>{creator?.displayName || "le créateur"}</strong>. La
+                marque n&apos;a STRICTEMENT AUCUN accès à ce canal.
               </span>
             </div>
             <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-purple-900/60 border border-purple-600/40 text-purple-300 font-bold">
@@ -851,20 +866,26 @@ export function BackofficeConversationClient({
                 <>
                   <Lock className="w-8 h-8 mx-auto opacity-70 text-amber-400" />
                   <p className="font-semibold text-amber-200">
-                    Canal privé bilatéral avec la marque ({advertiser?.displayName || "Annonceur"})
+                    Canal privé bilatéral avec la marque (
+                    {advertiser?.displayName || "Annonceur"})
                   </p>
                   <p className="text-[11px] max-w-sm mx-auto text-[#8696a0]">
-                    Utilisez ce canal pour cadrer la négociation budgétaire, les commissions et la stratégie en toute confidentialité (invisible pour le créateur).
+                    Utilisez ce canal pour cadrer la négociation budgétaire, les
+                    commissions et la stratégie en toute confidentialité
+                    (invisible pour le créateur).
                   </p>
                 </>
               ) : (
                 <>
                   <Lock className="w-8 h-8 mx-auto opacity-70 text-purple-400" />
                   <p className="font-semibold text-purple-200">
-                    Canal privé bilatéral avec le créateur ({creator?.displayName || "Influenceur"})
+                    Canal privé bilatéral avec le créateur (
+                    {creator?.displayName || "Influenceur"})
                   </p>
                   <p className="text-[11px] max-w-sm mx-auto text-[#8696a0]">
-                    Utilisez ce canal pour conseiller le créateur, cadrer sa rémunération et ses livrables en toute confidentialité (invisible pour la marque).
+                    Utilisez ce canal pour conseiller le créateur, cadrer sa
+                    rémunération et ses livrables en toute confidentialité
+                    (invisible pour la marque).
                   </p>
                 </>
               )}
@@ -1110,21 +1131,24 @@ export function BackofficeConversationClient({
                 <>
                   <span className="w-1.5 h-1.5 rounded-full bg-[#00a884] shrink-0" />
                   <span className="text-[#00a884]">
-                    Message officiel INFLUX — diffusé en direct à la marque et au créateur
+                    Message officiel INFLUX — diffusé en direct à la marque et
+                    au créateur
                   </span>
                 </>
               ) : activeChannel === "agent_advertiser" ? (
                 <>
                   <Lock className="w-3 h-3 text-amber-400 shrink-0" />
                   <span className="text-amber-300 font-semibold">
-                    🔒 Message privé Marque — confidentiel (invisible pour le créateur)
+                    🔒 Message privé Marque — confidentiel (invisible pour le
+                    créateur)
                   </span>
                 </>
               ) : (
                 <>
                   <Lock className="w-3 h-3 text-purple-400 shrink-0" />
                   <span className="text-purple-300 font-semibold">
-                    🔒 Message privé Créateur — confidentiel (invisible pour la marque)
+                    🔒 Message privé Créateur — confidentiel (invisible pour la
+                    marque)
                   </span>
                 </>
               )}

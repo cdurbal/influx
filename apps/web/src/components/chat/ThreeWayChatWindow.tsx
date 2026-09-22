@@ -84,7 +84,9 @@ export function ThreeWayChatWindow({
   const [activeTab, setActiveTab] = useState<"chat" | "documents">("chat");
 
   // Canal actif dans le chat : fil général à 3 ou sous-canal privé bilatéral avec le commercial INFLUX
-  const [chatChannel, setChatChannel] = useState<"three_way" | "private">("three_way");
+  const [chatChannel, setChatChannel] = useState<"three_way" | "private">(
+    "three_way",
+  );
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -968,9 +970,7 @@ export function ThreeWayChatWindow({
                                 {msg.channel === targetPrivateChannel && (
                                   <span className="text-[9px] font-semibold text-amber-300 bg-amber-950/70 border border-amber-500/30 px-1.5 py-0.2 rounded flex items-center gap-1">
                                     <Lock className="w-2 h-2" />
-                                    <span>
-                                      {isEn ? "Private" : "Privé"}
-                                    </span>
+                                    <span>{isEn ? "Private" : "Privé"}</span>
                                   </span>
                                 )}
                               </div>
