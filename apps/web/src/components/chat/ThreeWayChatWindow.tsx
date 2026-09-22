@@ -83,6 +83,9 @@ export function ThreeWayChatWindow({
   // Onglets fil vs documents (RG65, §4.8 M8)
   const [activeTab, setActiveTab] = useState<"chat" | "documents">("chat");
 
+  // Canal actif dans le chat : fil général à 3 ou sous-canal privé bilatéral avec le commercial INFLUX
+  const [chatChannel, setChatChannel] = useState<"three_way" | "private">("three_way");
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -180,6 +183,11 @@ export function ThreeWayChatWindow({
     setSending(true);
     setSendError(null);
 
+    const targetPrivateChannel =
+      currentRole === "advertiser" ? "agent_advertiser" : "agent_creator";
+    const channelToSend =
+      chatChannel === "private" ? targetPrivateChannel : "three_way";
+
     try {
       const res = await fetch(`/api/conversations/${conversationId}/messages`, {
         method: "POST",
@@ -187,6 +195,7 @@ export function ThreeWayChatWindow({
         credentials: "include",
         body: JSON.stringify({
           content: trimmed,
+          channel: channelToSend,
           warnedBeforeSend,
           sentAnyway,
         }),
@@ -266,6 +275,25 @@ export function ThreeWayChatWindow({
   );
   const creator = conversation?.participants.find((p) => p.role === "creator");
   const agent = conversation?.participants.find((p) => p.role === "agent");
+
+  // Définition du canal privé ciblé selon le rôle membre
+  const targetPrivateChannel =
+    currentRole === "advertiser" ? "agent_advertiser" : "agent_creator";
+
+  // Compteurs et filtrage par sous-canal (fil à 3 vs privé bilatéral)
+  const threeWayCount = messages.filter(
+    (m) => (m.channel || "three_way") === "three_way",
+  ).length;
+  const privateCount = messages.filter(
+    (m) => (m.channel || "three_way") === targetPrivateChannel,
+  ).length;
+
+  const displayedMessages = messages.filter((m) => {
+    const ch = m.channel || "three_way";
+    return chatChannel === "three_way"
+      ? ch === "three_way"
+      : ch === targetPrivateChannel;
+  });
 
   const isPaused = conversation?.status === "en_pause";
   const isClosed =
@@ -637,6 +665,111 @@ export function ThreeWayChatWindow({
             <rect width="100%" height="100%" fill="url(#wa-member-chat-bg)" />
           </svg>
 
+          {/* SÉLECTEUR DE CANAL : FIL TRIPARTITE (À 3) VS CANAL PRIVÉ COMMERCIAL (RG) */}
+          <div className="border-b border-[#2a3942] bg-[#202c33] px-3 py-2 flex flex-wrap items-center justify-between gap-2 relative z-10">
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setChatChannel("three_way")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  chatChannel === "three_way"
+                    ? "bg-[#00a884] text-black shadow-xs font-bold"
+                    : "bg-[#111b21] text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942] border border-[#2a3942]"
+                }`}
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>
+                  {isEn ? "General Thread (3-Way)" : "Fil Général (À 3)"}
+                </span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                    chatChannel === "three_way"
+                      ? "bg-black/20 text-black font-bold"
+                      : "bg-[#2a3942] text-[#8696a0]"
+                  }`}
+                >
+                  {threeWayCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setChatChannel("private")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  chatChannel === "private"
+                    ? "bg-amber-500/25 text-amber-300 border border-amber-500/50 shadow-xs font-bold"
+                    : "bg-[#111b21] text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942] border border-[#2a3942]"
+                }`}
+              >
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span>
+                  {isEn
+                    ? "🔒 Private with INFLUX"
+                    : "🔒 Échange Privé avec INFLUX"}
+                </span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                    chatChannel === "private"
+                      ? "bg-amber-500/30 text-amber-200 font-bold"
+                      : "bg-[#2a3942] text-[#8696a0]"
+                  }`}
+                >
+                  {privateCount}
+                </span>
+              </button>
+            </div>
+
+            <div className="text-[11px] text-[#8696a0] hidden sm:flex items-center gap-1.5">
+              {chatChannel === "three_way" ? (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00a884]" />
+                  <span>
+                    {isEn
+                      ? "Tripartite: Brand + Creator + INFLUX"
+                      : "Tripartite : Marque + Créateur + INFLUX"}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3 h-3 text-amber-400" />
+                  <span className="text-amber-300/90 font-medium">
+                    {isEn
+                      ? "Confidential · Isolated from other party"
+                      : "Confidentiel · Inaccessible à l'autre partie"}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* BANDEAU DE CONFIDENTIALITÉ RENFORCÉ EN CANAL PRIVÉ */}
+          {chatChannel === "private" && (
+            <div className="bg-amber-950/40 border-b border-amber-500/30 px-4 py-2.5 flex items-center justify-between gap-3 text-xs text-amber-200/90 relative z-10">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+                <div className="leading-tight">
+                  <span className="font-bold text-amber-300">
+                    {isEn
+                      ? "Confidential Sub-Channel: "
+                      : "Canal Privé Confidentiel : "}
+                  </span>
+                  <span>
+                    {currentRole === "advertiser"
+                      ? isEn
+                        ? "Only you and Alexandre (Commercial INFLUX) have access. The creator CANNOT see these messages."
+                        : "Seuls vous et Alexandre (Commercial INFLUX) accédez à ces messages. Le créateur n'y a STRICTEMENT AUCUN accès."
+                      : isEn
+                        ? "Only you and Alexandre (Commercial INFLUX) have access. The brand CANNOT see these messages."
+                        : "Seuls vous et Alexandre (Commercial INFLUX) accédez à ces messages. La marque n'y a STRICTEMENT AUCUN accès."}
+                  </span>
+                </div>
+              </div>
+              <span className="hidden md:inline-flex text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-amber-900/60 border border-amber-600/40 text-amber-300 font-bold shrink-0">
+                {isEn ? "100% Confidential" : "100% Confidentiel"}
+              </span>
+            </div>
+          )}
+
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 relative z-10">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-16 space-y-3 text-[#8696a0]">
@@ -661,23 +794,46 @@ export function ThreeWayChatWindow({
                   {isEn ? "Retry" : "Réessayer"}
                 </button>
               </div>
-            ) : messages.length === 0 ? (
+            ) : displayedMessages.length === 0 ? (
               <div className="text-center py-12 space-y-2 text-[#8696a0]">
-                <MessageSquare className="w-8 h-8 mx-auto opacity-50 text-[#00a884]" />
-                <p className="text-xs">
-                  {isEn
-                    ? "Conversation is open. Send the first message to start negotiation!"
-                    : "La conversation est ouverte. Présentez-vous pour initier la négociation !"}
-                </p>
+                {chatChannel === "private" ? (
+                  <>
+                    <Lock className="w-8 h-8 mx-auto opacity-70 text-amber-400" />
+                    <p className="text-xs font-semibold text-[#e9edef]">
+                      {isEn
+                        ? "Confidential private channel with Alexandre (Commercial INFLUX)"
+                        : "Canal privé confidentiel avec Alexandre (Commercial INFLUX)"}
+                    </p>
+                    <p className="text-[11px] max-w-sm mx-auto text-[#8696a0] leading-relaxed">
+                      {currentRole === "advertiser"
+                        ? isEn
+                          ? "Discuss budget, strategy, or sensitive questions in private. The creator cannot see this channel."
+                          : "Échangez en direct avec votre commercial INFLUX sur le budget, la stratégie ou vos questions confidentielles sans que le créateur n'y ait accès."
+                        : isEn
+                          ? "Discuss your expectations, rates, or creative constraints in private. The brand cannot see this channel."
+                          : "Échangez en direct avec votre commercial INFLUX sur votre rémunération, vos contraintes ou vos questions confidentielles sans que la marque n'y ait accès."}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <MessageSquare className="w-8 h-8 mx-auto opacity-50 text-[#00a884]" />
+                    <p className="text-xs">
+                      {isEn
+                        ? "Conversation is open. Send the first message to start negotiation!"
+                        : "La conversation est ouverte. Présentez-vous pour initier la négociation !"}
+                    </p>
+                  </>
+                )}
               </div>
             ) : (
-              messages.map((msg, index) => {
+              displayedMessages.map((msg, index) => {
                 const isMe = msg.senderAccountId === currentAccountId;
                 const isAgent = msg.senderRole === "agent";
                 const isSystem = msg.senderRole === "system";
 
                 // Séparateur de date si premier message ou jour différent
-                const prevMsg = index > 0 ? messages[index - 1] : undefined;
+                const prevMsg =
+                  index > 0 ? displayedMessages[index - 1] : undefined;
                 const showDateSeparator =
                   index === 0 ||
                   (prevMsg !== undefined &&
@@ -709,18 +865,35 @@ export function ThreeWayChatWindow({
                     ) : isAgent ? (
                       /* MESSAGE OFFICIEL DU COMMERCIAL INFLUX : BULLE CENTRÉE */
                       <div className="flex flex-col items-center my-3">
-                        <div className="max-w-[92%] sm:max-w-xl w-full bg-[#182229] border border-[#00a884]/40 rounded-2xl p-4 shadow-lg text-left relative">
+                        <div
+                          className={`max-w-[92%] sm:max-w-xl w-full bg-[#182229] rounded-2xl p-4 shadow-lg text-left relative ${
+                            msg.channel === targetPrivateChannel
+                              ? "border border-amber-500/50"
+                              : "border border-[#00a884]/40"
+                          }`}
+                        >
                           <div className="flex items-center justify-between text-xs border-b border-[#222e35] pb-2 mb-2">
                             <div className="flex items-center gap-1.5 font-bold text-[#00a884]">
                               <span className="w-1.5 h-1.5 rounded-full bg-[#00a884] shrink-0 inline-block" />
                               <span>INFLUX · {msg.senderDisplayName}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                                {isEn
-                                  ? "visible to both parties"
-                                  : "⬥ visible des deux parties"}
-                              </span>
+                              {msg.channel === targetPrivateChannel ? (
+                                <span className="text-[10px] font-semibold text-amber-300 bg-amber-950/80 border border-amber-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <Lock className="w-2.5 h-2.5" />
+                                  <span>
+                                    {isEn
+                                      ? "private channel (INFLUX ↔ you)"
+                                      : "canal privé (INFLUX ↔ vous)"}
+                                  </span>
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                                  {isEn
+                                    ? "visible to both parties"
+                                    : "⬥ visible des deux parties"}
+                                </span>
+                              )}
                               <span className="text-[10px] text-[#8696a0]">
                                 {formatMessageTime(msg.createdAt)}
                               </span>
@@ -749,38 +922,58 @@ export function ThreeWayChatWindow({
                               : "bg-[#202c33] border border-[#2a3942]/60 rounded-2xl rounded-tl-xs"
                           }`}
                         >
-                          {/* En-tête de bulle avec rôle */}
+                          {/* En-tête de bulle avec rôle et éventuel badge de canal privé */}
                           <div className="flex items-center justify-between gap-3 text-xs pb-0.5">
                             {isMe ? (
-                              <span className="font-bold text-xs text-[#53bdeb]">
-                                {isEn ? "You" : "Vous"}{" "}
-                                <span className="text-emerald-200/70 font-normal text-[10px]">
-                                  (
-                                  {currentRole === "advertiser"
-                                    ? isEn
-                                      ? "Brand"
-                                      : "Marque"
-                                    : isEn
-                                      ? "Creator"
-                                      : "Créateur"}
-                                  )
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-xs text-[#53bdeb]">
+                                  {isEn ? "You" : "Vous"}{" "}
+                                  <span className="text-emerald-200/70 font-normal text-[10px]">
+                                    (
+                                    {currentRole === "advertiser"
+                                      ? isEn
+                                        ? "Brand"
+                                        : "Marque"
+                                      : isEn
+                                        ? "Creator"
+                                        : "Créateur"}
+                                    )
+                                  </span>
                                 </span>
-                              </span>
+                                {msg.channel === targetPrivateChannel && (
+                                  <span className="text-[9px] font-semibold text-amber-300 bg-amber-950/70 border border-amber-500/30 px-1.5 py-0.2 rounded flex items-center gap-1">
+                                    <Lock className="w-2 h-2" />
+                                    <span>
+                                      {isEn ? "Private" : "Privé INFLUX"}
+                                    </span>
+                                  </span>
+                                )}
+                              </div>
                             ) : (
-                              <span className="font-bold text-xs text-[#f19e38]">
-                                {msg.senderDisplayName}{" "}
-                                <span className="text-[#8696a0] font-normal text-[10px]">
-                                  (
-                                  {msg.senderRole === "advertiser"
-                                    ? isEn
-                                      ? "Brand"
-                                      : "Marque"
-                                    : isEn
-                                      ? "Creator"
-                                      : "Créateur"}
-                                  )
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-xs text-[#f19e38]">
+                                  {msg.senderDisplayName}{" "}
+                                  <span className="text-[#8696a0] font-normal text-[10px]">
+                                    (
+                                    {msg.senderRole === "advertiser"
+                                      ? isEn
+                                        ? "Brand"
+                                        : "Marque"
+                                      : isEn
+                                        ? "Creator"
+                                        : "Créateur"}
+                                    )
+                                  </span>
                                 </span>
-                              </span>
+                                {msg.channel === targetPrivateChannel && (
+                                  <span className="text-[9px] font-semibold text-amber-300 bg-amber-950/70 border border-amber-500/30 px-1.5 py-0.2 rounded flex items-center gap-1">
+                                    <Lock className="w-2 h-2" />
+                                    <span>
+                                      {isEn ? "Private" : "Privé"}
+                                    </span>
+                                  </span>
+                                )}
+                              </div>
                             )}
                           </div>
 
@@ -858,13 +1051,17 @@ export function ThreeWayChatWindow({
                         }
                       }}
                       placeholder={
-                        currentRole === "advertiser"
+                        chatChannel === "private"
                           ? isEn
-                            ? "Write to the creator and your INFLUX advisor (Ctrl+Enter to send)..."
-                            : "Écrire un message au créateur et à votre commercial INFLUX (Ctrl+Entrée)..."
-                          : isEn
-                            ? "Write to the brand and your INFLUX advisor (Ctrl+Enter to send)..."
-                            : "Écrire un message à la marque et à votre commercial INFLUX (Ctrl+Entrée)..."
+                            ? "Write a private confidential message to Alexandre (INFLUX advisor, hidden from other party)... (Ctrl+Enter to send)"
+                            : "Écrire un message privé confidentiel à Alexandre (commercial INFLUX, invisible pour l'autre partie)... (Ctrl+Entrée)"
+                          : currentRole === "advertiser"
+                            ? isEn
+                              ? "Write to the creator and your INFLUX advisor (Ctrl+Enter to send)..."
+                              : "Écrire un message au créateur et à votre commercial INFLUX (Ctrl+Entrée)..."
+                            : isEn
+                              ? "Write to the brand and your INFLUX advisor (Ctrl+Enter to send)..."
+                              : "Écrire un message à la marque et à votre commercial INFLUX (Ctrl+Entrée)..."
                       }
                       rows={2}
                       maxLength={10000}
@@ -893,9 +1090,13 @@ export function ThreeWayChatWindow({
                     {content.length} / 10 000 {isEn ? "chars" : "caractères"}
                   </span>
                   <span className="hidden sm:inline">
-                    {isEn
-                      ? "• Text only · Moderated tripartite exchange"
-                      : "• Échange supervisé à 3 · Conforme RG36"}
+                    {chatChannel === "private"
+                      ? isEn
+                        ? "🔒 Private bilateral sub-channel with INFLUX commercial"
+                        : "🔒 Canal privé bilatéral avec le commercial INFLUX (confidentiel)"
+                      : isEn
+                        ? "• Text only · Moderated tripartite exchange"
+                        : "• Échange supervisé à 3 · Conforme RG36"}
                   </span>
                 </div>
               </form>

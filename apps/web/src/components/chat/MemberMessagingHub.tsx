@@ -527,6 +527,12 @@ export function MemberMessagingHub({
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center min-w-0 text-xs text-[#8696a0] truncate">
                           <WhatsAppCheckmarks read={true} />
+                          {conv.lastMessage?.channel &&
+                            conv.lastMessage.channel !== "three_way" && (
+                              <span className="text-[9px] font-semibold text-amber-300 bg-amber-950/70 border border-amber-500/30 px-1 py-0.2 rounded mr-1.5 shrink-0 flex items-center gap-0.5">
+                                🔒 {isEn ? "Private" : "Privé"}
+                              </span>
+                            )}
                           <span className="truncate">{lastMsgPreview}</span>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">

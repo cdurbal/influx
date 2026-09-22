@@ -139,6 +139,8 @@ export const messagingRoutes: FastifyPluginAsync<{
       const session = await requireAuth(request, reply);
       if (!session) return;
 
+      const query = request.query as Record<string, string> | undefined;
+      const channelParam = query?.channel as any;
       const accessQuery = AccessConversationQuerySchema.parse(
         request.query || {},
       );
@@ -149,6 +151,7 @@ export const messagingRoutes: FastifyPluginAsync<{
             request.params.id,
             session.account,
             accessQuery,
+            channelParam,
           );
         return reply.status(200).send({
           ok: true,

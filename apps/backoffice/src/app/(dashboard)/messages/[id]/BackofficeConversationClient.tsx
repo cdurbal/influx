@@ -61,6 +61,11 @@ export function BackofficeConversationClient({
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
+  // Canal actif sélectionné par l'agent commercial (fil à 3 ou sous-canaux bilatéraux confidentiels)
+  const [activeChannel, setActiveChannel] = useState<
+    "three_way" | "agent_advertiser" | "agent_creator"
+  >("three_way");
+
   // Porte d'entrée motif obligatoire pour agent non-participant (RG57, 17b §3.4.a)
   const [needsReason, setNeedsReason] = useState(false);
   const [selectedReason, setSelectedReason] = useState<AgentAccessReason | "">(
@@ -180,7 +185,7 @@ export function BackofficeConversationClient({
     setSubmittingReason(false);
   };
 
-  // Envoi d'un message commercial dans le fil (visible des deux parties, 17b §3.4.b)
+  // Envoi d'un message commercial dans le fil (tripartite ou sous-canal bilatéral sélectionné)
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = content.trim();
@@ -195,6 +200,7 @@ export function BackofficeConversationClient({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             content: trimmed,
+            channel: activeChannel,
             warnedBeforeSend: false,
             sentAnyway: false,
           }),
@@ -342,6 +348,22 @@ export function BackofficeConversationClient({
   );
   const creator = conversation?.participants.find((p) => p.role === "creator");
   const agent = conversation?.participants.find((p) => p.role === "agent");
+
+  // Compteurs par canal
+  const threeWayCount = messages.filter(
+    (m) => (m.channel || "three_way") === "three_way",
+  ).length;
+  const brandPrivateCount = messages.filter(
+    (m) => m.channel === "agent_advertiser",
+  ).length;
+  const creatorPrivateCount = messages.filter(
+    (m) => m.channel === "agent_creator",
+  ).length;
+
+  const displayedMessages = messages.filter((m) => {
+    const ch = m.channel || "three_way";
+    return ch === activeChannel;
+  });
 
   const isPaused = conversation?.status === "en_pause";
   const isClosed =
@@ -631,33 +653,127 @@ export function BackofficeConversationClient({
 
       {/* 3. FIL DE DISCUSSION EN STYLE WHATSAPP DARK (17b §3.4.b) */}
       <div className="rounded-2xl border border-[#2a3942] bg-[#0b141a] overflow-hidden flex flex-col min-h-[580px] shadow-2xl relative">
-        {/* En-tête WhatsApp Web */}
-        <div className="px-4 py-2.5 border-b border-[#2a3942] bg-[#202c33] flex items-center justify-between text-xs relative z-10">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-[#111b21] border border-[#00a884]/40 flex items-center justify-center text-[#00a884] shadow-xs shrink-0">
-              <MessageSquare className="w-4 h-4" size={14} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-xs sm:text-sm text-[#e9edef]">
-                  Conversation tripartite supervisée
+        {/* En-tête WhatsApp Web avec sélecteur des 3 canaux (À 3, Privé Marque, Privé Créateur) */}
+        <div className="px-4 py-2.5 border-b border-[#2a3942] bg-[#202c33] flex flex-wrap items-center justify-between gap-3 text-xs relative z-10">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-xs sm:text-sm text-[#e9edef] mr-1">
+              Canal actif :
+            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Tab 1: Fil Général (À 3) */}
+              <button
+                type="button"
+                onClick={() => setActiveChannel("three_way")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  activeChannel === "three_way"
+                    ? "bg-[#00a884] text-black shadow-xs font-bold"
+                    : "bg-[#111b21] text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942] border border-[#2a3942]"
+                }`}
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Fil Général (À 3)</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                    activeChannel === "three_way"
+                      ? "bg-black/20 text-black font-bold"
+                      : "bg-[#2a3942] text-[#8696a0]"
+                  }`}
+                >
+                  {threeWayCount}
                 </span>
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-500/30">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                  En direct
+              </button>
+
+              {/* Tab 2: Privé Marque */}
+              <button
+                type="button"
+                onClick={() => setActiveChannel("agent_advertiser")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  activeChannel === "agent_advertiser"
+                    ? "bg-amber-500/25 text-amber-300 border border-amber-500/50 shadow-xs font-bold"
+                    : "bg-[#111b21] text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942] border border-[#2a3942]"
+                }`}
+              >
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span>Privé Marque ({advertiser?.displayName?.slice(0, 14) || "Marque"})</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                    activeChannel === "agent_advertiser"
+                      ? "bg-amber-500/30 text-amber-200 font-bold"
+                      : "bg-[#2a3942] text-[#8696a0]"
+                  }`}
+                >
+                  {brandPrivateCount}
                 </span>
-              </div>
-              <p className="text-[10px] text-[#8696a0]">
-                Marque (gauche) · Créateur (droite) · Commercial INFLUX (centré)
-              </p>
+              </button>
+
+              {/* Tab 3: Privé Créateur */}
+              <button
+                type="button"
+                onClick={() => setActiveChannel("agent_creator")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  activeChannel === "agent_creator"
+                    ? "bg-purple-500/25 text-purple-300 border border-purple-500/50 shadow-xs font-bold"
+                    : "bg-[#111b21] text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942] border border-[#2a3942]"
+                }`}
+              >
+                <Lock className="w-3.5 h-3.5 text-purple-400" />
+                <span>Privé Créateur ({creator?.displayName?.slice(0, 14) || "Créateur"})</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                    activeChannel === "agent_creator"
+                      ? "bg-purple-500/30 text-purple-200 font-bold"
+                      : "bg-[#2a3942] text-[#8696a0]"
+                  }`}
+                >
+                  {creatorPrivateCount}
+                </span>
+              </button>
             </div>
           </div>
+
           <div className="flex items-center gap-2 text-[#8696a0] text-xs">
             <span className="px-2 py-0.5 rounded-md bg-[#111b21] border border-[#2a3942] font-mono text-[10px] text-[#8696a0]">
-              {messages.length} messages
+              {displayedMessages.length} / {messages.length} messages
             </span>
           </div>
         </div>
+
+        {/* Bandeau contextuel explicite sur le canal actif */}
+        {activeChannel === "three_way" ? (
+          <div className="bg-[#111b21] border-b border-[#222e35] px-4 py-2 flex items-center justify-between text-xs text-[#8696a0] relative z-10">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#00a884] shrink-0" />
+              <span className="text-[11px]">
+                Fil tripartite officiel · Vos messages sont visibles simultanément par la Marque et le Créateur.
+              </span>
+            </div>
+            <span className="text-[10px] font-mono text-[#8696a0]">Fil à 3</span>
+          </div>
+        ) : activeChannel === "agent_advertiser" ? (
+          <div className="bg-amber-950/30 border-b border-amber-500/30 px-4 py-2 flex items-center justify-between text-xs text-amber-200/90 relative z-10">
+            <div className="flex items-center gap-2">
+              <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="text-[11px]">
+                🔒 <strong>Canal Privé Marque :</strong> Échange bilatéral confidentiel entre vous et <strong>{advertiser?.displayName || "la marque"}</strong>. Le créateur n&apos;a STRICTEMENT AUCUN accès à ce canal.
+              </span>
+            </div>
+            <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-amber-900/60 border border-amber-600/40 text-amber-300 font-bold">
+              Confidentiel Marque
+            </span>
+          </div>
+        ) : (
+          <div className="bg-purple-950/30 border-b border-purple-500/30 px-4 py-2 flex items-center justify-between text-xs text-purple-200/90 relative z-10">
+            <div className="flex items-center gap-2">
+              <Lock className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+              <span className="text-[11px]">
+                🔒 <strong>Canal Privé Créateur :</strong> Échange bilatéral confidentiel entre vous et <strong>{creator?.displayName || "le créateur"}</strong>. La marque n&apos;a STRICTEMENT AUCUN accès à ce canal.
+              </span>
+            </div>
+            <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-purple-900/60 border border-purple-600/40 text-purple-300 font-bold">
+              Confidentiel Créateur
+            </span>
+          </div>
+        )}
 
         {/* Zone des messages avec texture WhatsApp */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 relative bg-[#0b141a]">
@@ -718,19 +834,43 @@ export function BackofficeConversationClient({
               <AlertTriangle className="w-6 h-6 mx-auto" />
               <p>{error}</p>
             </div>
-          ) : messages.length === 0 ? (
+          ) : displayedMessages.length === 0 ? (
             <div className="py-16 text-center text-xs text-[#8696a0] space-y-2 relative z-10">
-              <MessageSquare className="w-8 h-8 mx-auto opacity-40" />
-              <p>
-                La conversation est ouverte. Personne n&apos;a encore écrit.
-              </p>
-              <p className="text-[11px]">
-                Envoyez le premier message d&apos;accueil pour lancer les
-                échanges avec la marque et le créateur.
-              </p>
+              {activeChannel === "three_way" ? (
+                <>
+                  <MessageSquare className="w-8 h-8 mx-auto opacity-40 text-[#00a884]" />
+                  <p className="font-semibold text-[#e9edef]">
+                    Le fil général tripartite est ouvert.
+                  </p>
+                  <p className="text-[11px] max-w-sm mx-auto">
+                    Envoyez le premier message d&apos;accueil pour lancer les
+                    échanges avec la marque et le créateur.
+                  </p>
+                </>
+              ) : activeChannel === "agent_advertiser" ? (
+                <>
+                  <Lock className="w-8 h-8 mx-auto opacity-70 text-amber-400" />
+                  <p className="font-semibold text-amber-200">
+                    Canal privé bilatéral avec la marque ({advertiser?.displayName || "Annonceur"})
+                  </p>
+                  <p className="text-[11px] max-w-sm mx-auto text-[#8696a0]">
+                    Utilisez ce canal pour cadrer la négociation budgétaire, les commissions et la stratégie en toute confidentialité (invisible pour le créateur).
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-8 h-8 mx-auto opacity-70 text-purple-400" />
+                  <p className="font-semibold text-purple-200">
+                    Canal privé bilatéral avec le créateur ({creator?.displayName || "Influenceur"})
+                  </p>
+                  <p className="text-[11px] max-w-sm mx-auto text-[#8696a0]">
+                    Utilisez ce canal pour conseiller le créateur, cadrer sa rémunération et ses livrables en toute confidentialité (invisible pour la marque).
+                  </p>
+                </>
+              )}
             </div>
           ) : (
-            messages.map((msg) => {
+            displayedMessages.map((msg) => {
               const isAgent = msg.senderRole === "agent";
               const isSystem = msg.senderRole === "system";
               const isAdvertiser = msg.senderRole === "advertiser";
@@ -762,16 +902,36 @@ export function BackofficeConversationClient({
                   ) : isAgent ? (
                     /* MESSAGE COMMERCIAL INFLUX : BULLE CENTRÉE OFFICIELLE */
                     <div className="flex flex-col items-center my-3">
-                      <div className="max-w-[92%] sm:max-w-xl w-full bg-[#182229] border border-[#00a884]/40 rounded-2xl p-4 shadow-lg text-left relative">
+                      <div
+                        className={`max-w-[92%] sm:max-w-xl w-full bg-[#182229] rounded-2xl p-4 shadow-lg text-left relative ${
+                          msg.channel === "agent_advertiser"
+                            ? "border border-amber-500/50"
+                            : msg.channel === "agent_creator"
+                              ? "border border-purple-500/50"
+                              : "border border-[#00a884]/40"
+                        }`}
+                      >
                         <div className="flex items-center justify-between text-xs border-b border-[#222e35] pb-2 mb-2">
                           <div className="flex items-center gap-1.5 font-bold text-[#00a884]">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#00a884] shrink-0 inline-block" />
                             <span>INFLUX · {msg.senderDisplayName}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                              ⬥ visible des deux parties
-                            </span>
+                            {msg.channel === "agent_advertiser" ? (
+                              <span className="text-[10px] font-semibold text-amber-300 bg-amber-950/80 border border-amber-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <Lock className="w-2.5 h-2.5" />
+                                <span>🔒 Privé Marque</span>
+                              </span>
+                            ) : msg.channel === "agent_creator" ? (
+                              <span className="text-[10px] font-semibold text-purple-300 bg-purple-950/80 border border-purple-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <Lock className="w-2.5 h-2.5" />
+                                <span>🔒 Privé Créateur</span>
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                                ⬥ visible des deux parties
+                              </span>
+                            )}
                             <span className="text-[10px] text-[#8696a0]">
                               {formatTime(msg.createdAt)}
                             </span>
@@ -800,7 +960,7 @@ export function BackofficeConversationClient({
                             : "bg-[#005c4b] border border-[#02735e]/60 rounded-2xl rounded-tr-xs"
                         }`}
                       >
-                        {/* En-tête de bulle WhatsApp avec nom coloré */}
+                        {/* En-tête de bulle WhatsApp avec nom coloré et canal éventuel */}
                         <div className="flex items-center justify-between gap-3 text-xs pb-0.5">
                           <span
                             className={`font-bold text-xs flex items-center gap-1 ${
@@ -819,6 +979,19 @@ export function BackofficeConversationClient({
                               ({isAdvertiser ? "Marque" : "Créateur"})
                             </span>
                           </span>
+
+                          {msg.channel === "agent_advertiser" && (
+                            <span className="text-[9px] font-semibold text-amber-300 bg-amber-950/70 border border-amber-500/30 px-1.5 py-0.2 rounded flex items-center gap-1">
+                              <Lock className="w-2 h-2" />
+                              <span>🔒 Privé Marque</span>
+                            </span>
+                          )}
+                          {msg.channel === "agent_creator" && (
+                            <span className="text-[9px] font-semibold text-purple-300 bg-purple-950/70 border border-purple-500/30 px-1.5 py-0.2 rounded flex items-center gap-1">
+                              <Lock className="w-2 h-2" />
+                              <span>🔒 Privé Créateur</span>
+                            </span>
+                          )}
                         </div>
 
                         {/* Corps du message */}
@@ -932,12 +1105,29 @@ export function BackofficeConversationClient({
         {/* 4. COMPOSITEUR DE MESSAGE WHATSAPP (17b §3.4.b) */}
         <footer className="border-t border-[#2a3942] bg-[#202c33] p-3 sm:p-4 space-y-2 relative z-10">
           <div className="text-xs text-[#8696a0] flex items-center justify-between px-1">
-            <span className="flex items-center gap-1.5 font-medium text-[#00a884] text-[11px]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00a884] shrink-0" />
-              <span>
-                Message officiel INFLUX — diffusé en direct à la marque et au
-                créateur
-              </span>
+            <span className="flex items-center gap-1.5 font-medium text-[11px]">
+              {activeChannel === "three_way" ? (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00a884] shrink-0" />
+                  <span className="text-[#00a884]">
+                    Message officiel INFLUX — diffusé en direct à la marque et au créateur
+                  </span>
+                </>
+              ) : activeChannel === "agent_advertiser" ? (
+                <>
+                  <Lock className="w-3 h-3 text-amber-400 shrink-0" />
+                  <span className="text-amber-300 font-semibold">
+                    🔒 Message privé Marque — confidentiel (invisible pour le créateur)
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3 h-3 text-purple-400 shrink-0" />
+                  <span className="text-purple-300 font-semibold">
+                    🔒 Message privé Créateur — confidentiel (invisible pour la marque)
+                  </span>
+                </>
+              )}
             </span>
             <span className="text-[10px] font-mono text-[#8696a0]">
               {content.length} / 10 000 car.
@@ -956,7 +1146,13 @@ export function BackofficeConversationClient({
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 disabled={sending}
-                placeholder="Rédigez votre message officiel pour orienter, arbitrer ou cadrer la négociation..."
+                placeholder={
+                  activeChannel === "three_way"
+                    ? "Rédigez votre message officiel pour orienter, arbitrer ou cadrer la négociation..."
+                    : activeChannel === "agent_advertiser"
+                      ? "Rédigez votre message privé à la marque (cadrage budgétaire, négociation, stratégie)..."
+                      : "Rédigez votre message privé au créateur (conseils, attentes spécifiques, validation)..."
+                }
                 rows={2}
                 maxLength={10000}
                 className="w-full resize-none rounded-2xl border border-[#2a3942] bg-[#2a3942] p-3 text-xs sm:text-sm text-[#e9edef] placeholder:text-[#8696a0] focus:border-[#00a884] focus:outline-none focus:ring-1 focus:ring-[#00a884] transition-all"
@@ -966,9 +1162,21 @@ export function BackofficeConversationClient({
             <button
               type="submit"
               disabled={!content.trim() || sending}
-              title="Envoyer dans le fil WhatsApp"
-              aria-label="Envoyer dans le fil"
-              className="w-8 h-8 rounded-full bg-[#00a884] hover:bg-[#00c39a] text-white flex items-center justify-center shadow-sm transition-all hover:scale-105 disabled:opacity-30 disabled:hover:scale-100 disabled:cursor-not-allowed shrink-0 cursor-pointer mb-1"
+              title={
+                activeChannel === "three_way"
+                  ? "Envoyer dans le fil général (À 3)"
+                  : activeChannel === "agent_advertiser"
+                    ? "Envoyer en privé à la marque"
+                    : "Envoyer en privé au créateur"
+              }
+              aria-label="Envoyer le message"
+              className={`w-8 h-8 rounded-full flex items-center justify-center shadow-sm transition-all hover:scale-105 disabled:opacity-30 disabled:hover:scale-100 disabled:cursor-not-allowed shrink-0 cursor-pointer mb-1 ${
+                activeChannel === "three_way"
+                  ? "bg-[#00a884] hover:bg-[#00c39a] text-white"
+                  : activeChannel === "agent_advertiser"
+                    ? "bg-amber-500 hover:bg-amber-400 text-black"
+                    : "bg-purple-600 hover:bg-purple-500 text-white"
+              }`}
             >
               {sending ? (
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" size={14} />

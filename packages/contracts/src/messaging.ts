@@ -57,6 +57,18 @@ export type ConversationParticipant = z.infer<
 >;
 
 // ============================================================================
+// 2b. Canaux de discussion (Tripartite vs Bipartite Privé)
+// ============================================================================
+
+export const CONVERSATION_CHANNELS = [
+  "three_way", // Canal général visible par tous les 3 participants (Marque, Créateur, Influx)
+  "agent_advertiser", // Canal privé confidentiel entre Commercial Influx et Marque
+  "agent_creator", // Canal privé confidentiel entre Commercial Influx et Créateur
+] as const;
+export const ConversationChannelSchema = z.enum(CONVERSATION_CHANNELS);
+export type ConversationChannel = z.infer<typeof ConversationChannelSchema>;
+
+// ============================================================================
 // 3. Messages (RG35 à RG38)
 // ============================================================================
 
@@ -72,6 +84,7 @@ export type MessageSenderRole = z.infer<typeof MessageSenderRoleSchema>;
 export const ConversationMessageSchema = z.object({
   id: z.string().uuid(),
   conversationId: z.string().uuid(),
+  channel: ConversationChannelSchema.default("three_way"),
   senderAccountId: z.string().uuid(),
   senderRole: MessageSenderRoleSchema,
   senderDisplayName: z.string().min(1),
@@ -109,6 +122,7 @@ export const SendMessageRequestSchema = z.object({
     .trim()
     .min(1, "Le message ne peut pas être vide")
     .max(10000, "Le message ne peut pas dépasser 10 000 caractères"),
+  channel: ConversationChannelSchema.optional().default("three_way"),
   warnedBeforeSend: z.boolean().optional().default(false),
   sentAnyway: z.boolean().optional().default(false),
 });

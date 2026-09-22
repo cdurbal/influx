@@ -4,6 +4,7 @@ import {
   type Conversation,
   type ConversationCloseReason,
   type ConversationMessage,
+  type ConversationChannel,
   type ContactDetection,
   type ContactDetectionType,
   type DetectedSpan,
@@ -16,6 +17,7 @@ import {
   ConversationMessageSchema,
   ContactDetectionSchema,
   ConversationAccessLogSchema,
+  ConversationChannelSchema,
 } from "@influx/contracts";
 import { MockStore } from "../mocks/mock-store";
 
@@ -297,6 +299,28 @@ export class MessagingService {
     if (account.role === "agent" || account.role === "admin")
       senderRole = "agent";
 
+    // Contrôle d'accès strict au canal (Cloisonnement bilatéral)
+    const channel: ConversationChannel = input.channel || "three_way";
+    if (channel === "agent_advertiser" && senderRole !== "agent" && senderRole !== "advertiser") {
+      const err: MessagingServiceError = {
+        status: 403,
+        code: "FORBIDDEN_CHANNEL",
+        message:
+          "Seuls le commercial INFLUX et l'annonceur peuvent accéder et écrire dans le canal privé marque",
+      };
+      throw err;
+    }
+
+    if (channel === "agent_creator" && senderRole !== "agent" && senderRole !== "creator") {
+      const err: MessagingServiceError = {
+        status: 403,
+        code: "FORBIDDEN_CHANNEL",
+        message:
+          "Seuls le commercial INFLUX et le créateur peuvent accéder et écrire dans le canal privé créateur",
+      };
+      throw err;
+    }
+
     // Nom affiché (RG5 & RG6)
     let senderDisplayName = account.email.split("@")[0] || "Membre";
     if (senderRole === "advertiser") {
@@ -322,6 +346,7 @@ export class MessagingService {
     const message: ConversationMessage = {
       id: messageId,
       conversationId: conv.id,
+      channel,
       senderAccountId: account.id,
       senderRole,
       senderDisplayName,
@@ -537,11 +562,23 @@ export class MessagingService {
 
     for (const raw of this.store.conversations.values()) {
       const conv = { ...(raw as unknown as Conversation) };
-      const msgs = this.store.messages.get(conv.id) || [];
-      if (msgs.length > 0) {
-        conv.lastMessage = msgs[
-          msgs.length - 1
-        ] as unknown as ConversationMessage;
+      const allMsgs = (this.store.messages.get(conv.id) ||
+        []) as unknown as ConversationMessage[];
+
+      const allowedMsgs = allMsgs.filter((msg) => {
+        const msgChannel = msg.channel || "three_way";
+        if (isAgentOrAdmin) return true;
+        if (account.role === "advertiser") {
+          return msgChannel === "three_way" || msgChannel === "agent_advertiser";
+        }
+        if (account.role === "creator") {
+          return msgChannel === "three_way" || msgChannel === "agent_creator";
+        }
+        return false;
+      });
+
+      if (allowedMsgs.length > 0) {
+        conv.lastMessage = allowedMsgs[allowedMsgs.length - 1] ?? null;
       } else {
         conv.lastMessage = null;
       }
@@ -614,6 +651,7 @@ export class MessagingService {
     conversationId: string,
     account: Account,
     accessQuery?: AccessConversationQuery,
+    channelFilter?: ConversationChannel | "all",
   ): Promise<{
     conversation: Conversation;
     messages: ConversationMessage[];
@@ -626,7 +664,32 @@ export class MessagingService {
       true,
     );
     const rawList = this.store.messages.get(conversationId) || [];
-    const messages = rawList as unknown as ConversationMessage[];
+    const allMessages = rawList as unknown as ConversationMessage[];
+
+    const isAgentOrAdmin = account.role === "agent" || account.role === "admin";
+    const isAdvertiser = account.role === "advertiser";
+    const isCreator = account.role === "creator";
+
+    // 1. Filtrage hermétique de sécurité selon le rôle
+    const allowedMessages = allMessages.filter((msg) => {
+      const msgChannel = msg.channel || "three_way";
+      if (isAgentOrAdmin) return true;
+      if (isAdvertiser) {
+        return msgChannel === "three_way" || msgChannel === "agent_advertiser";
+      }
+      if (isCreator) {
+        return msgChannel === "three_way" || msgChannel === "agent_creator";
+      }
+      return false;
+    });
+
+    // 2. Filtrage secondaire par canal sélectionné
+    const messages =
+      channelFilter && channelFilter !== "all"
+        ? allowedMessages.filter(
+            (m) => (m.channel || "three_way") === channelFilter,
+          )
+        : allowedMessages;
 
     // Journalisation de la lecture avec le nombre effectif de messages (RG55, RG58)
     const accessLog = await this.recordAgentAccess(
@@ -637,8 +700,8 @@ export class MessagingService {
     );
 
     // Avancement du curseur de lecture pour les participants (RG51, RG52)
-    if (messages.length > 0) {
-      const lastMsg = messages[messages.length - 1];
+    if (allowedMessages.length > 0) {
+      const lastMsg = allowedMessages[allowedMessages.length - 1];
       if (lastMsg) {
         const now = new Date().toISOString();
 
@@ -790,6 +853,7 @@ export class MessagingService {
     const sysMsg: ConversationMessage = {
       id: randomUUID(),
       conversationId,
+      channel: "three_way",
       senderAccountId: account.id,
       senderRole: "system",
       senderDisplayName: "Système INFLUX",
@@ -841,6 +905,7 @@ export class MessagingService {
     const sysMsg: ConversationMessage = {
       id: randomUUID(),
       conversationId,
+      channel: "three_way",
       senderAccountId: account.id,
       senderRole: "system",
       senderDisplayName: "Système INFLUX",
@@ -900,6 +965,7 @@ export class MessagingService {
     const sysMsg: ConversationMessage = {
       id: randomUUID(),
       conversationId,
+      channel: "three_way",
       senderAccountId: account.id,
       senderRole: "system",
       senderDisplayName: "Système INFLUX",
