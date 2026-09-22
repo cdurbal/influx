@@ -972,12 +972,12 @@ export function BackofficeConversationClient({
               disabled={!content.trim() || sending}
               title="Envoyer dans le fil WhatsApp"
               aria-label="Envoyer dans le fil"
-              className="w-11 h-11 rounded-full bg-[#00a884] hover:bg-[#00c39a] text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed shrink-0 cursor-pointer mb-0.5"
+              className="w-8 h-8 rounded-full bg-[#00a884] hover:bg-[#00c39a] text-white flex items-center justify-center shadow-sm transition-all hover:scale-105 disabled:opacity-30 disabled:hover:scale-100 disabled:cursor-not-allowed shrink-0 cursor-pointer mb-1"
             >
               {sending ? (
-                <RefreshCw className="w-5 h-5 animate-spin" />
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" size={14} />
               ) : (
-                <Send className="w-5 h-5 ml-0.5" />
+                <Send className="w-3.5 h-3.5 ml-0.5" size={14} />
               )}
             </button>
           </form>
