@@ -57,27 +57,7 @@ export type ConversationParticipant = z.infer<
 >;
 
 // ============================================================================
-// 3. Conversation (Objet Pivot Messagerie)
-// ============================================================================
-
-export const ConversationSchema = z.object({
-  id: z.string().uuid(),
-  introductionId: z.string().uuid(),
-  campaignId: z.string().uuid().nullable().optional(),
-  reference: z.string().min(1), // Ex: MER-2026-000001
-  status: ConversationStatusSchema.default("ouverte"),
-  participants: z.array(ConversationParticipantSchema).min(3),
-  ownerAgentId: z.string().uuid(),
-  pauseReason: z.string().nullable().optional(),
-  closeReason: ConversationCloseReasonSchema.nullable().optional(),
-  closeComment: z.string().nullable().optional(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
-});
-export type Conversation = z.infer<typeof ConversationSchema>;
-
-// ============================================================================
-// 4. Messages (RG35 à RG38)
+// 3. Messages (RG35 à RG38)
 // ============================================================================
 
 export const MESSAGE_SENDER_ROLES = [
@@ -100,6 +80,27 @@ export const ConversationMessageSchema = z.object({
   createdAt: z.string().datetime(),
 });
 export type ConversationMessage = z.infer<typeof ConversationMessageSchema>;
+
+// ============================================================================
+// 4. Conversation (Objet Pivot Messagerie)
+// ============================================================================
+
+export const ConversationSchema = z.object({
+  id: z.string().uuid(),
+  introductionId: z.string().uuid(),
+  campaignId: z.string().uuid().nullable().optional(),
+  reference: z.string().min(1), // Ex: MER-2026-000001
+  status: ConversationStatusSchema.default("ouverte"),
+  participants: z.array(ConversationParticipantSchema).min(3),
+  ownerAgentId: z.string().uuid(),
+  pauseReason: z.string().nullable().optional(),
+  closeReason: ConversationCloseReasonSchema.nullable().optional(),
+  closeComment: z.string().nullable().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  lastMessage: ConversationMessageSchema.nullable().optional(),
+});
+export type Conversation = z.infer<typeof ConversationSchema>;
 
 // Requête d'envoi de message (RG35, RG43, RG45)
 export const SendMessageRequestSchema = z.object({

@@ -536,7 +536,14 @@ export class MessagingService {
     const isAgentOrAdmin = account.role === "agent" || account.role === "admin";
 
     for (const raw of this.store.conversations.values()) {
-      const conv = raw as unknown as Conversation;
+      const conv = { ...(raw as unknown as Conversation) };
+      const msgs = this.store.messages.get(conv.id) || [];
+      if (msgs.length > 0) {
+        conv.lastMessage = msgs[msgs.length - 1];
+      } else {
+        conv.lastMessage = null;
+      }
+
       if (isAgentOrAdmin) {
         list.push(conv);
       } else {

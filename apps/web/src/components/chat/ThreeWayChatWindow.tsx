@@ -32,6 +32,25 @@ export interface ThreeWayChatWindowProps {
   onStatusChanged?: (updated: Conversation) => void;
 }
 
+function WhatsAppCheckmarks({ read = true }: { read?: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center ml-1 ${
+        read ? "text-[#53bdeb]" : "text-[#8696a0]"
+      }`}
+      title={read ? "Lu" : "Délivré"}
+    >
+      <svg
+        viewBox="0 0 16 11"
+        className="w-3.5 h-2.5 fill-current"
+        aria-hidden="true"
+      >
+        <path d="M11.05.79l-.78-.79-4.97 4.97-1.95-1.95-.78.78 2.73 2.73 5.75-5.74zm4.17 0l-.78-.79-7.1 7.1-1.95-1.95-.78.78 2.73 2.73 7.88-7.87z" />
+      </svg>
+    </span>
+  );
+}
+
 export function ThreeWayChatWindow({
   conversationId,
   currentAccountId,
@@ -464,8 +483,8 @@ export function ThreeWayChatWindow({
 
           {/* Commercial INFLUX */}
           <div className="p-2 rounded-lg border bg-brand-subtle-bg border-brand-subtle-border flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-brand-subtle-bg border border-brand-subtle-border flex items-center justify-center font-bold text-text-brand shrink-0">
-              <ShieldCheck className="w-4 h-4 text-text-brand" />
+            <div className="w-6 h-6 rounded-full bg-brand-subtle-bg border border-brand-subtle-border flex items-center justify-center shrink-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
@@ -569,16 +588,63 @@ export function ThreeWayChatWindow({
           </div>
         </div>
       ) : (
-        // FIL DE MESSAGES À TROIS
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        // FIL DE MESSAGES À TROIS EN STYLE WHATSAPP DARK
+        <div className="flex-1 flex flex-col min-h-0 rounded-2xl border border-[#2a3942] bg-[#0b141a] overflow-hidden shadow-2xl relative">
+          {/* Motif subtil doodle WhatsApp */}
+          <svg
+            className="absolute inset-0 w-full h-full opacity-[0.035] pointer-events-none"
+            xmlns="http://www.w3.org/2000/svg"
+            width="100%"
+            height="100%"
+          >
+            <defs>
+              <pattern
+                id="wa-member-chat-bg"
+                width="80"
+                height="80"
+                patternUnits="userSpaceOnUse"
+              >
+                <path
+                  d="M15 10 L25 10 L20 20 Z M45 40 L55 40 L50 50 Z M40 15 A5 5 0 1 1 30 15 A5 5 0 1 1 40 15 Z"
+                  fill="currentColor"
+                  className="text-white"
+                />
+                <circle
+                  cx="10"
+                  cy="45"
+                  r="3"
+                  fill="currentColor"
+                  className="text-white"
+                />
+                <circle
+                  cx="65"
+                  cy="25"
+                  r="3"
+                  fill="currentColor"
+                  className="text-white"
+                />
+                <rect
+                  x="50"
+                  y="55"
+                  width="8"
+                  height="8"
+                  rx="2"
+                  fill="currentColor"
+                  className="text-white"
+                />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#wa-member-chat-bg)" />
+          </svg>
+
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 relative z-10">
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-16 space-y-3 text-text-tertiary">
-                <RefreshCw className="w-6 h-6 animate-spin text-text-brand" />
+              <div className="flex flex-col items-center justify-center py-16 space-y-3 text-[#8696a0]">
+                <RefreshCw className="w-6 h-6 animate-spin text-[#00a884]" />
                 <span className="text-xs">
                   {isEn
                     ? "Loading messages..."
-                    : "Chargement des échanges supervisés..."}
+                    : "Chargement des échanges WhatsApp..."}
                 </span>
               </div>
             ) : error ? (
@@ -590,14 +656,14 @@ export function ThreeWayChatWindow({
                 <button
                   type="button"
                   onClick={() => fetchConversationAndMessages()}
-                  className="px-3 py-1 bg-surface-card border border-border-default rounded text-xs font-semibold text-text-primary hover:bg-surface-hover transition-colors"
+                  className="px-3 py-1 bg-surface-card border border-border-default rounded text-xs font-semibold text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
                 >
                   {isEn ? "Retry" : "Réessayer"}
                 </button>
               </div>
             ) : messages.length === 0 ? (
-              <div className="text-center py-12 space-y-2 text-text-tertiary">
-                <MessageSquare className="w-8 h-8 mx-auto opacity-50" />
+              <div className="text-center py-12 space-y-2 text-[#8696a0]">
+                <MessageSquare className="w-8 h-8 mx-auto opacity-50 text-[#00a884]" />
                 <p className="text-xs">
                   {isEn
                     ? "Conversation is open. Send the first message to start negotiation!"
@@ -621,105 +687,118 @@ export function ThreeWayChatWindow({
                 return (
                   <React.Fragment key={msg.id}>
                     {showDateSeparator && (
-                      <div className="flex items-center justify-center my-4">
-                        <span className="bg-surface-raised border border-border-subtle rounded-full px-3 py-0.5 text-[11px] font-medium text-text-tertiary">
+                      <div className="flex items-center justify-center my-3">
+                        <span className="bg-[#182229]/95 border border-[#222e35] rounded-lg px-3 py-0.5 text-[10px] font-semibold text-[#8696a0] shadow-xs">
                           {formatMessageDate(msg.createdAt)}
                         </span>
                       </div>
                     )}
 
-                    {/* MESSAGE SYSTÈME (RG14) */}
+                    {/* MESSAGE SYSTÈME (RG14) : PILULE CENTRÉE DISCRÈTE STYLE WHATSAPP */}
                     {isSystem ? (
-                      <div className="flex justify-center my-2">
-                        <div className="bg-surface-raised border border-border-subtle rounded-xl px-4 py-2 text-center max-w-xl">
-                          <div className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-text-brand">
-                            <ShieldCheck className="w-3.5 h-3.5" />
-                            <span>
-                              {isEn
-                                ? "INFLUX System Event"
-                                : "Événement Système INFLUX"}
-                            </span>
-                          </div>
-                          <p className="text-xs text-text-secondary mt-0.5">
+                      <div className="flex justify-center my-2 px-4">
+                        <div className="bg-[#182229]/90 border border-[#222e35] rounded-lg px-3.5 py-1 text-center max-w-md shadow-xs">
+                          <p className="text-[11px] text-[#8696a0] leading-relaxed">
                             {msg.content}
                           </p>
-                          <span className="text-[10px] text-text-tertiary mt-1 block">
+                          <span className="text-[10px] text-[#8696a0]/60 block mt-0.5">
                             {formatMessageTime(msg.createdAt)}
                           </span>
                         </div>
                       </div>
+                    ) : isAgent ? (
+                      /* MESSAGE OFFICIEL DU COMMERCIAL INFLUX : BULLE CENTRÉE */
+                      <div className="flex flex-col items-center my-3">
+                        <div className="max-w-[92%] sm:max-w-xl w-full bg-[#182229] border border-[#00a884]/40 rounded-2xl p-4 shadow-lg text-left relative">
+                          <div className="flex items-center justify-between text-xs border-b border-[#222e35] pb-2 mb-2">
+                            <div className="flex items-center gap-1.5 font-bold text-[#00a884]">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#00a884] shrink-0 inline-block" />
+                              <span>INFLUX · {msg.senderDisplayName}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                                {isEn
+                                  ? "visible to both parties"
+                                  : "⬥ visible des deux parties"}
+                              </span>
+                              <span className="text-[10px] text-[#8696a0]">
+                                {formatMessageTime(msg.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-xs sm:text-sm text-[#e9edef] whitespace-pre-wrap leading-relaxed">
+                            {msg.content}
+                          </p>
+                          <div className="flex items-center justify-end gap-1 text-[10px] text-[#8696a0] mt-1.5">
+                            <span>{formatMessageTime(msg.createdAt)}</span>
+                            <WhatsAppCheckmarks read={true} />
+                          </div>
+                        </div>
+                      </div>
                     ) : (
-                      /* BULLE DE MESSAGE : COMMERCIAL / MOI / AUTRE PARTIE */
+                      /* BULLE DE MESSAGE : MOI (DROITE VERT WHATSAPP) OU AUTRE PARTIE (GAUCHE GRIS WHATSAPP) */
                       <div
                         className={`flex flex-col ${
                           isMe ? "items-end" : "items-start"
                         }`}
                       >
-                        {/* En-tête de bulle avec rôle et porteurs visuels (RG7) */}
-                        <div className="flex items-center gap-1.5 mb-1 px-1 text-xs">
-                          {isAgent ? (
-                            <span className="inline-flex items-center gap-1 rounded bg-brand-subtle-bg border border-brand-subtle-border px-2 py-0.5 text-[11px] font-bold text-text-brand">
-                              <ShieldCheck className="w-3 h-3 text-text-brand" />
-                              <span>{msg.senderDisplayName}</span>
-                              <span className="text-[10px] bg-brand-subtle-bg border border-brand-subtle-border px-1 rounded text-text-brand font-semibold">
-                                INFLUX
-                              </span>
-                            </span>
-                          ) : isMe ? (
-                            <span className="font-semibold text-text-primary text-[11px]">
-                              {isEn ? "You" : "Vous"}{" "}
-                              <span className="text-text-tertiary font-normal">
-                                (
-                                {currentRole === "advertiser"
-                                  ? isEn
-                                    ? "Brand"
-                                    : "Marque"
-                                  : isEn
-                                    ? "Creator"
-                                    : "Créateur"}
-                                )
-                              </span>
-                            </span>
-                          ) : (
-                            <span className="font-semibold text-text-secondary text-[11px]">
-                              {msg.senderDisplayName}{" "}
-                              <span className="text-text-tertiary font-normal">
-                                (
-                                {msg.senderRole === "advertiser"
-                                  ? isEn
-                                    ? "Brand"
-                                    : "Marque"
-                                  : isEn
-                                    ? "Creator"
-                                    : "Créateur"}
-                                )
-                              </span>
-                            </span>
-                          )}
-                          <span className="text-[10px] text-text-tertiary">
-                            · {formatMessageTime(msg.createdAt)}
-                          </span>
-                        </div>
-
-                        {/* Corps du message */}
                         <div
-                          className={`max-w-[85%] sm:max-w-xl rounded-2xl p-3.5 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words ${
-                            isAgent
-                              ? "bg-brand-subtle-bg border border-brand-subtle-border text-text-primary rounded-tl-sm shadow-xs"
-                              : isMe
-                                ? "bg-surface-raised border border-border-default text-text-primary rounded-tr-sm shadow-xs"
-                                : "bg-surface-card border border-border-subtle text-text-primary rounded-tl-sm shadow-xs"
+                          className={`max-w-[85%] sm:max-w-[70%] w-fit p-3 sm:p-3.5 shadow-md text-left relative space-y-1 ${
+                            isMe
+                              ? "bg-[#005c4b] border border-[#02735e]/60 rounded-2xl rounded-tr-xs"
+                              : "bg-[#202c33] border border-[#2a3942]/60 rounded-2xl rounded-tl-xs"
                           }`}
                         >
-                          {msg.content}
-                        </div>
-
-                        {/* Horodatage & Accusé de lecture (RG53) */}
-                        {isMe && (
-                          <div className="text-[10px] text-text-tertiary mt-1 px-1 flex items-center gap-1">
-                            <span>✓ {isEn ? "Sent" : "Envoyé"}</span>
+                          {/* En-tête de bulle avec rôle */}
+                          <div className="flex items-center justify-between gap-3 text-xs pb-0.5">
+                            {isMe ? (
+                              <span className="font-bold text-xs text-[#53bdeb]">
+                                {isEn ? "You" : "Vous"}{" "}
+                                <span className="text-emerald-200/70 font-normal text-[10px]">
+                                  (
+                                  {currentRole === "advertiser"
+                                    ? isEn
+                                      ? "Brand"
+                                      : "Marque"
+                                    : isEn
+                                      ? "Creator"
+                                      : "Créateur"}
+                                  )
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="font-bold text-xs text-[#f19e38]">
+                                {msg.senderDisplayName}{" "}
+                                <span className="text-[#8696a0] font-normal text-[10px]">
+                                  (
+                                  {msg.senderRole === "advertiser"
+                                    ? isEn
+                                      ? "Brand"
+                                      : "Marque"
+                                    : isEn
+                                      ? "Creator"
+                                      : "Créateur"}
+                                  )
+                                </span>
+                              </span>
+                            )}
                           </div>
-                        )}
+
+                          {/* Corps du message */}
+                          <p className="text-xs sm:text-sm text-[#e9edef] whitespace-pre-wrap leading-relaxed">
+                            {msg.content}
+                          </p>
+
+                          {/* Horodatage & Doubles coches WhatsApp */}
+                          <div
+                            className={`flex items-center justify-end gap-1 text-[10px] mt-1 pt-0.5 ${
+                              isMe ? "text-emerald-200/70" : "text-[#8696a0]"
+                            }`}
+                          >
+                            <span>{formatMessageTime(msg.createdAt)}</span>
+                            <WhatsAppCheckmarks read={true} />
+                          </div>
+                        </div>
                       </div>
                     )}
                   </React.Fragment>
@@ -729,8 +808,8 @@ export function ThreeWayChatWindow({
             <div ref={messagesEndRef} />
           </div>
 
-          {/* 4. COMPOSITEUR DE MESSAGE (RG35, RG36, RG39, RG42-RG48) */}
-          <footer className="border-t border-border-subtle bg-surface-raised p-3 sm:p-4">
+          {/* 4. COMPOSITEUR DE MESSAGE WHATSAPP (RG35, RG36, RG39, RG42-RG48) */}
+          <footer className="border-t border-[#2a3942] bg-[#202c33] p-3 sm:p-4 relative z-10">
             {isPaused ? (
               <div className="rounded-xl border border-feedback-warning-border bg-feedback-warning-bg p-4 flex items-center gap-3">
                 <Lock className="w-5 h-5 text-feedback-warning-text shrink-0" />
@@ -744,10 +823,10 @@ export function ThreeWayChatWindow({
                 </div>
               </div>
             ) : isClosed ? (
-              <div className="rounded-xl border border-border-default bg-surface-card p-4 flex items-center gap-3">
-                <Lock className="w-5 h-5 text-text-tertiary shrink-0" />
-                <div className="text-xs text-text-secondary leading-relaxed">
-                  <span className="font-bold text-text-primary">
+              <div className="rounded-xl border border-[#2a3942] bg-[#111b21] p-4 flex items-center gap-3">
+                <Lock className="w-5 h-5 text-[#8696a0] shrink-0" />
+                <div className="text-xs text-[#8696a0] leading-relaxed">
+                  <span className="font-bold text-[#e9edef]">
                     {isEn
                       ? "Conversation Closed: "
                       : "Conversation clôturée : "}
@@ -760,70 +839,64 @@ export function ThreeWayChatWindow({
             ) : (
               <form onSubmit={handleInitiateSend} className="space-y-2">
                 {sendError && (
-                  <div className="text-xs text-feedback-error-text bg-feedback-error-bg border border-feedback-error-border rounded-lg p-2 flex items-center gap-2">
+                  <div className="text-xs text-feedback-error-text bg-feedback-error-bg border border-feedback-error-border rounded-xl p-2.5 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0" />
                     <span>{sendError}</span>
                   </div>
                 )}
 
-                <div className="relative rounded-xl border border-border-default bg-surface-card focus-within:border-border-selected transition-colors">
-                  <textarea
-                    ref={textareaRef}
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                        e.preventDefault();
-                        handleInitiateSend(e);
+                <div className="flex items-end gap-2.5">
+                  <div className="flex-1 relative">
+                    <textarea
+                      ref={textareaRef}
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                          e.preventDefault();
+                          handleInitiateSend(e);
+                        }
+                      }}
+                      placeholder={
+                        currentRole === "advertiser"
+                          ? isEn
+                            ? "Write to the creator and your INFLUX advisor (Ctrl+Enter to send)..."
+                            : "Écrire un message au créateur et à votre commercial INFLUX (Ctrl+Entrée)..."
+                          : isEn
+                            ? "Write to the brand and your INFLUX advisor (Ctrl+Enter to send)..."
+                            : "Écrire un message à la marque et à votre commercial INFLUX (Ctrl+Entrée)..."
                       }
-                    }}
-                    placeholder={
-                      currentRole === "advertiser"
-                        ? isEn
-                          ? "Write to the creator and your INFLUX advisor (Ctrl+Enter to send)..."
-                          : "Écrire un message au créateur et à votre commercial INFLUX (Ctrl+Entrée)..."
-                        : isEn
-                          ? "Write to the brand and your INFLUX advisor (Ctrl+Enter to send)..."
-                          : "Écrire un message à la marque et à votre commercial INFLUX (Ctrl+Entrée)..."
-                    }
-                    rows={3}
-                    maxLength={10000}
-                    disabled={sending}
-                    className="w-full resize-none bg-transparent p-3 text-xs sm:text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none"
-                  />
-
-                  <div className="flex items-center justify-between border-t border-border-subtle px-3 py-2 bg-surface-card/60">
-                    <div className="flex items-center gap-3 text-[11px] text-text-tertiary">
-                      <span>
-                        {content.length} / 10 000{" "}
-                        {isEn ? "chars" : "caractères"}
-                      </span>
-                      <span className="hidden md:inline">
-                        •{" "}
-                        {isEn
-                          ? "Text only · No raw attachments (RG36)"
-                          : "Texte brut · Aucune pièce jointe libre (RG36)"}
-                      </span>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={!content.trim() || sending}
-                      className="rounded-lg bg-action-primary-bg px-4 py-1.5 text-xs font-bold text-text-on-action hover:bg-action-primary-bg-hover transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
-                    >
-                      {sending ? (
-                        <>
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          <span>{isEn ? "Sending..." : "Envoi..."}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-3.5 h-3.5" />
-                          <span>{isEn ? "Send" : "Envoyer"}</span>
-                        </>
-                      )}
-                    </button>
+                      rows={2}
+                      maxLength={10000}
+                      disabled={sending}
+                      className="w-full resize-none rounded-2xl border border-[#2a3942] bg-[#2a3942] p-3 text-xs sm:text-sm text-[#e9edef] placeholder:text-[#8696a0] focus:border-[#00a884] focus:outline-none focus:ring-1 focus:ring-[#00a884] transition-all"
+                    />
                   </div>
+
+                  <button
+                    type="submit"
+                    disabled={!content.trim() || sending}
+                    title={isEn ? "Send" : "Envoyer"}
+                    aria-label={isEn ? "Send" : "Envoyer"}
+                    className="w-11 h-11 rounded-full bg-[#00a884] hover:bg-[#00c39a] text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed shrink-0 cursor-pointer mb-0.5"
+                  >
+                    {sending ? (
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Send className="w-5 h-5 ml-0.5" />
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-[#8696a0] px-1">
+                  <span>
+                    {content.length} / 10 000 {isEn ? "chars" : "caractères"}
+                  </span>
+                  <span className="hidden sm:inline">
+                    {isEn
+                      ? "• Text only · Moderated tripartite exchange"
+                      : "• Échange supervisé à 3 · Conforme RG36"}
+                  </span>
                 </div>
               </form>
             )}

@@ -2,12 +2,22 @@ import React from "react";
 
 export interface IconProps {
   className?: string;
+  size?: number;
 }
 
-export function MessageSquare({ className = "w-4 h-4" }: IconProps) {
+export function MessageSquare({ className = "w-4 h-4", size = 16 }: IconProps) {
   return (
     <svg
       className={className}
+      width={size}
+      height={size}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -22,10 +32,19 @@ export function MessageSquare({ className = "w-4 h-4" }: IconProps) {
   );
 }
 
-export function ShieldCheck({ className = "w-4 h-4" }: IconProps) {
+export function ShieldCheck({ className = "w-4 h-4", size = 16 }: IconProps) {
   return (
     <svg
       className={className}
+      width={size}
+      height={size}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -40,10 +59,19 @@ export function ShieldCheck({ className = "w-4 h-4" }: IconProps) {
   );
 }
 
-export function RefreshCw({ className = "w-4 h-4" }: IconProps) {
+export function RefreshCw({ className = "w-4 h-4", size = 16 }: IconProps) {
   return (
     <svg
       className={className}
+      width={size}
+      height={size}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -58,10 +86,19 @@ export function RefreshCw({ className = "w-4 h-4" }: IconProps) {
   );
 }
 
-export function Sparkles({ className = "w-4 h-4" }: IconProps) {
+export function Sparkles({ className = "w-4 h-4", size = 16 }: IconProps) {
   return (
     <svg
       className={className}
+      width={size}
+      height={size}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -76,10 +113,19 @@ export function Sparkles({ className = "w-4 h-4" }: IconProps) {
   );
 }
 
-export function ChevronRight({ className = "w-4 h-4" }: IconProps) {
+export function ChevronRight({ className = "w-4 h-4", size = 16 }: IconProps) {
   return (
     <svg
       className={className}
+      width={size}
+      height={size}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -90,10 +136,19 @@ export function ChevronRight({ className = "w-4 h-4" }: IconProps) {
   );
 }
 
-export function Search({ className = "w-4 h-4" }: IconProps) {
+export function Search({ className = "w-4 h-4", size = 16 }: IconProps) {
   return (
     <svg
       className={className}
+      width={size}
+      height={size}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -108,10 +163,19 @@ export function Search({ className = "w-4 h-4" }: IconProps) {
   );
 }
 
-export function Check({ className = "w-4 h-4" }: IconProps) {
+export function Check({ className = "w-4 h-4", size = 16 }: IconProps) {
   return (
     <svg
       className={className}
+      width={size}
+      height={size}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -122,10 +186,19 @@ export function Check({ className = "w-4 h-4" }: IconProps) {
   );
 }
 
-export function X({ className = "w-4 h-4" }: IconProps) {
+export function X({ className = "w-4 h-4", size = 16 }: IconProps) {
   return (
     <svg
       className={className}
+      width={size}
+      height={size}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -140,10 +213,19 @@ export function X({ className = "w-4 h-4" }: IconProps) {
   );
 }
 
-export function Lock({ className = "w-4 h-4" }: IconProps) {
+export function Lock({ className = "w-4 h-4", size = 16 }: IconProps) {
   return (
     <svg
       className={className}
+      width={size}
+      height={size}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -158,10 +240,19 @@ export function Lock({ className = "w-4 h-4" }: IconProps) {
   );
 }
 
-export function AlertTriangle({ className = "w-4 h-4" }: IconProps) {
+export function AlertTriangle({ className = "w-4 h-4", size = 16 }: IconProps) {
   return (
     <svg
       className={className}
+      width={size}
+      height={size}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -176,10 +267,19 @@ export function AlertTriangle({ className = "w-4 h-4" }: IconProps) {
   );
 }
 
-export function Eye({ className = "w-4 h-4" }: IconProps) {
+export function Eye({ className = "w-4 h-4", size = 16 }: IconProps) {
   return (
     <svg
       className={className}
+      width={size}
+      height={size}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -199,10 +299,19 @@ export function Eye({ className = "w-4 h-4" }: IconProps) {
   );
 }
 
-export function Send({ className = "w-4 h-4" }: IconProps) {
+export function Send({ className = "w-4 h-4", size = 16 }: IconProps) {
   return (
     <svg
       className={className}
+      width={size}
+      height={size}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -217,10 +326,19 @@ export function Send({ className = "w-4 h-4" }: IconProps) {
   );
 }
 
-export function Play({ className = "w-4 h-4" }: IconProps) {
+export function Play({ className = "w-4 h-4", size = 16 }: IconProps) {
   return (
     <svg
       className={className}
+      width={size}
+      height={size}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -235,10 +353,19 @@ export function Play({ className = "w-4 h-4" }: IconProps) {
   );
 }
 
-export function Pause({ className = "w-4 h-4" }: IconProps) {
+export function Pause({ className = "w-4 h-4", size = 16 }: IconProps) {
   return (
     <svg
       className={className}
+      width={size}
+      height={size}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -249,10 +376,19 @@ export function Pause({ className = "w-4 h-4" }: IconProps) {
   );
 }
 
-export function ChevronLeft({ className = "w-4 h-4" }: IconProps) {
+export function ChevronLeft({ className = "w-4 h-4", size = 16 }: IconProps) {
   return (
     <svg
       className={className}
+      width={size}
+      height={size}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -263,10 +399,19 @@ export function ChevronLeft({ className = "w-4 h-4" }: IconProps) {
   );
 }
 
-export function FileText({ className = "w-4 h-4" }: IconProps) {
+export function FileText({ className = "w-4 h-4", size = 16 }: IconProps) {
   return (
     <svg
       className={className}
+      width={size}
+      height={size}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"

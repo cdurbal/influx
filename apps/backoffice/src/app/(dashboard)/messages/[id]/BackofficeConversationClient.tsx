@@ -11,7 +11,6 @@ import {
   CONVERSATION_CLOSE_REASONS,
 } from "@influx/contracts";
 import {
-  ShieldCheck,
   Eye,
   AlertTriangle,
   RefreshCw,
@@ -25,6 +24,25 @@ import {
 
 export interface BackofficeConversationClientProps {
   conversationId: string;
+}
+
+function WhatsAppCheckmarks({ read = true }: { read?: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center ml-1 ${
+        read ? "text-[#53bdeb]" : "text-[#8696a0]"
+      }`}
+      title={read ? "Lu par les membres" : "Délivré"}
+    >
+      <svg
+        viewBox="0 0 16 11"
+        className="w-3.5 h-2.5 fill-current"
+        aria-hidden="true"
+      >
+        <path d="M11.05.79l-.78-.79-4.97 4.97-1.95-1.95-.78.78 2.73 2.73 5.75-5.74zm4.17 0l-.78-.79-7.1 7.1-1.95-1.95-.78.78 2.73 2.73 7.88-7.87z" />
+      </svg>
+    </span>
+  );
 }
 
 export function BackofficeConversationClient({
@@ -537,8 +555,8 @@ export function BackofficeConversationClient({
                 <strong>Créateur :</strong> {creator?.displayName || "—"}
               </span>
               <span>•</span>
-              <span className="text-text-brand font-semibold flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" />
+              <span className="text-text-brand font-semibold flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
                 <span>
                   Commercial titulaire :{" "}
                   {agent?.displayName || "Alexandre Martin (vous)"}
@@ -615,36 +633,104 @@ export function BackofficeConversationClient({
         </div>
       </header>
 
-      {/* 3. FIL DE MESSAGES À TROIS AVEC POSITIONNEMENT STRICT (17b §3.4.b) */}
-      <div className="rounded-xl border border-border-default bg-surface-card overflow-hidden flex flex-col min-h-[500px]">
-        <div className="p-4 border-b border-border-subtle bg-surface-raised flex items-center justify-between text-xs text-text-tertiary">
-          <span>
-            Disposition 3 auteurs : Marque (gauche) · INFLUX (centré) · Créateur
-            (droite)
-          </span>
-          <span>{messages.length} messages échangés</span>
+      {/* 3. FIL DE DISCUSSION EN STYLE WHATSAPP DARK (17b §3.4.b) */}
+      <div className="rounded-2xl border border-[#2a3942] bg-[#0b141a] overflow-hidden flex flex-col min-h-[580px] shadow-2xl relative">
+        {/* En-tête WhatsApp Web */}
+        <div className="px-4 py-2.5 border-b border-[#2a3942] bg-[#202c33] flex items-center justify-between text-xs relative z-10">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-[#111b21] border border-[#00a884]/40 flex items-center justify-center text-[#00a884] shadow-xs shrink-0">
+              <MessageSquare className="w-4 h-4" size={14} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-xs sm:text-sm text-[#e9edef]">
+                  Conversation tripartite supervisée
+                </span>
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                  En direct
+                </span>
+              </div>
+              <p className="text-[10px] text-[#8696a0]">
+                Marque (gauche) · Créateur (droite) · Commercial INFLUX (centré)
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-[#8696a0] text-xs">
+            <span className="px-2 py-0.5 rounded-md bg-[#111b21] border border-[#2a3942] font-mono text-[10px] text-[#8696a0]">
+              {messages.length} messages
+            </span>
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        {/* Zone des messages avec texture WhatsApp */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 relative bg-[#0b141a]">
+          {/* Motif subtil doodle WhatsApp */}
+          <svg
+            className="absolute inset-0 w-full h-full opacity-[0.035] pointer-events-none"
+            xmlns="http://www.w3.org/2000/svg"
+            width="100%"
+            height="100%"
+          >
+            <defs>
+              <pattern
+                id="wa-chat-bg"
+                width="80"
+                height="80"
+                patternUnits="userSpaceOnUse"
+              >
+                <path
+                  d="M15 10 L25 10 L20 20 Z M45 40 L55 40 L50 50 Z M40 15 A5 5 0 1 1 30 15 A5 5 0 1 1 40 15 Z"
+                  fill="currentColor"
+                  className="text-white"
+                />
+                <circle
+                  cx="10"
+                  cy="45"
+                  r="3"
+                  fill="currentColor"
+                  className="text-white"
+                />
+                <circle
+                  cx="65"
+                  cy="25"
+                  r="3"
+                  fill="currentColor"
+                  className="text-white"
+                />
+                <rect
+                  x="50"
+                  y="55"
+                  width="8"
+                  height="8"
+                  rx="2"
+                  fill="currentColor"
+                  className="text-white"
+                />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#wa-chat-bg)" />
+          </svg>
+
           {loading ? (
-            <div className="py-20 text-center text-xs text-text-tertiary space-y-2">
-              <RefreshCw className="w-6 h-6 animate-spin mx-auto text-text-brand" />
-              <p>Chargement du fil supervisé...</p>
+            <div className="py-20 text-center text-xs text-[#8696a0] space-y-2 relative z-10">
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto text-[#00a884]" />
+              <p>Chargement des messages WhatsApp...</p>
             </div>
           ) : error ? (
-            <div className="p-6 text-center text-xs text-feedback-error-text space-y-2">
+            <div className="p-6 text-center text-xs text-feedback-error-text space-y-2 relative z-10">
               <AlertTriangle className="w-6 h-6 mx-auto" />
               <p>{error}</p>
             </div>
           ) : messages.length === 0 ? (
-            <div className="py-16 text-center text-xs text-text-tertiary space-y-2">
+            <div className="py-16 text-center text-xs text-[#8696a0] space-y-2 relative z-10">
               <MessageSquare className="w-8 h-8 mx-auto opacity-40" />
               <p>
                 La conversation est ouverte. Personne n&apos;a encore écrit.
               </p>
               <p className="text-[11px]">
-                Envoyez le message d&apos;accueil pour lancer les échanges avec
-                la marque et le créateur.
+                Envoyez le premier message d&apos;accueil pour lancer les
+                échanges avec la marque et le créateur.
               </p>
             </div>
           ) : (
@@ -652,7 +738,6 @@ export function BackofficeConversationClient({
               const isAgent = msg.senderRole === "agent";
               const isSystem = msg.senderRole === "system";
               const isAdvertiser = msg.senderRole === "advertiser";
-              const isCreator = msg.senderRole === "creator";
 
               // Vérifier si ce message a des détections de coordonnées associées (RG50)
               const msgDetections = detections.filter(
@@ -664,79 +749,103 @@ export function BackofficeConversationClient({
               );
 
               return (
-                <div key={msg.id} className="space-y-1.5">
-                  {/* MESSAGE SYSTÈME */}
+                <div key={msg.id} className="relative z-10 space-y-1.5">
+                  {/* MESSAGE SYSTÈME : PILULE CENTRÉE DISCRÈTE STYLE WHATSAPP */}
                   {isSystem ? (
-                    <div className="flex justify-center my-2">
-                      <div className="bg-surface-raised border border-border-subtle rounded-xl px-4 py-1.5 text-center text-xs max-w-lg">
-                        <span className="text-[11px] font-bold text-text-brand mr-2">
-                          ⚙ Système
-                        </span>
-                        <span className="text-text-secondary">
+                    <div className="flex justify-center my-2 px-4">
+                      <div className="bg-[#182229]/90 border border-[#222e35] rounded-lg px-3.5 py-1 text-center max-w-md shadow-xs">
+                        <p className="text-[11px] text-[#8696a0] leading-relaxed">
                           {msg.content}
-                        </span>
-                        <span className="text-[10px] text-text-tertiary block mt-0.5">
+                        </p>
+                        <span className="text-[10px] text-[#8696a0]/60 block mt-0.5">
                           {formatDate(msg.createdAt)} ·{" "}
                           {formatTime(msg.createdAt)}
                         </span>
                       </div>
                     </div>
                   ) : isAgent ? (
-                    /* MESSAGE COMMERCIAL INFLUX : CENTRÉ (17b §3.4.b) */
+                    /* MESSAGE COMMERCIAL INFLUX : BULLE CENTRÉE OFFICIELLE */
                     <div className="flex flex-col items-center my-3">
-                      <div className="w-full max-w-xl bg-brand-subtle-bg border border-brand-subtle-border rounded-xl p-4 space-y-1.5 shadow-xs">
-                        <div className="flex items-center justify-between text-xs border-b border-brand-subtle-border/60 pb-1.5">
-                          <div className="flex items-center gap-1.5 font-bold text-text-brand">
-                            <ShieldCheck className="w-4 h-4 text-text-brand" />
+                      <div className="max-w-[92%] sm:max-w-xl w-full bg-[#182229] border border-[#00a884]/40 rounded-2xl p-4 shadow-lg text-left relative">
+                        <div className="flex items-center justify-between text-xs border-b border-[#222e35] pb-2 mb-2">
+                          <div className="flex items-center gap-1.5 font-bold text-[#00a884]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#00a884] shrink-0 inline-block" />
                             <span>INFLUX · {msg.senderDisplayName}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-[11px] text-text-brand-strong font-medium">
-                            <span>⬥ visible des deux parties</span>
-                            <span className="text-text-tertiary">
-                              · {formatTime(msg.createdAt)}
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                              ⬥ visible des deux parties
+                            </span>
+                            <span className="text-[10px] text-[#8696a0]">
+                              {formatTime(msg.createdAt)}
                             </span>
                           </div>
                         </div>
-                        <p className="text-xs sm:text-sm text-text-primary whitespace-pre-wrap leading-relaxed">
+                        <p className="text-xs sm:text-sm text-[#e9edef] whitespace-pre-wrap leading-relaxed">
                           {msg.content}
                         </p>
+                        <div className="flex items-center justify-end gap-1 text-[10px] text-[#8696a0] mt-1.5">
+                          <span>{formatTime(msg.createdAt)}</span>
+                          <WhatsAppCheckmarks read={true} />
+                        </div>
                       </div>
                     </div>
                   ) : (
-                    /* MESSAGE DE MEMBRE : MARQUE (GAUCHE) OU CRÉATEUR (DROITE) */
+                    /* MESSAGE MEMBRE : MARQUE (GAUCHE - GRIS WHATSAPP) OU CRÉATEUR (DROITE - VERT WHATSAPP) */
                     <div
                       className={`flex flex-col ${
                         isAdvertiser ? "items-start" : "items-end"
                       }`}
                     >
                       <div
-                        className={`max-w-md sm:max-w-lg rounded-xl border p-3.5 text-xs sm:text-sm leading-relaxed space-y-1 ${
+                        className={`max-w-[85%] sm:max-w-[70%] w-fit p-3 sm:p-3.5 shadow-md text-left relative space-y-1 ${
                           isAdvertiser
-                            ? "bg-surface-card border-border-default rounded-tl-sm text-left"
-                            : "bg-surface-card border-border-default rounded-tr-sm text-left"
+                            ? "bg-[#202c33] border border-[#2a3942]/60 rounded-2xl rounded-tl-xs"
+                            : "bg-[#005c4b] border border-[#02735e]/60 rounded-2xl rounded-tr-xs"
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-4 border-b border-border-subtle pb-1 text-[11px]">
-                          <span className="font-bold text-text-primary">
-                            {isAdvertiser ? "🏢 " : "🎨 "}
-                            {msg.senderDisplayName}{" "}
-                            <span className="text-text-tertiary font-normal">
+                        {/* En-tête de bulle WhatsApp avec nom coloré */}
+                        <div className="flex items-center justify-between gap-3 text-xs pb-0.5">
+                          <span
+                            className={`font-bold text-xs flex items-center gap-1 ${
+                              isAdvertiser ? "text-[#f19e38]" : "text-[#53bdeb]"
+                            }`}
+                          >
+                            <span>{isAdvertiser ? "🏢 " : "🎨 "}</span>
+                            <span>{msg.senderDisplayName}</span>
+                            <span
+                              className={`text-[10px] font-normal ${
+                                isAdvertiser
+                                  ? "text-[#8696a0]"
+                                  : "text-emerald-200/70"
+                              }`}
+                            >
                               ({isAdvertiser ? "Marque" : "Créateur"})
                             </span>
                           </span>
-                          <span className="text-text-tertiary shrink-0">
-                            {formatDate(msg.createdAt)}{" "}
-                            {formatTime(msg.createdAt)}
-                          </span>
                         </div>
-                        <p className="text-text-primary whitespace-pre-wrap">
+
+                        {/* Corps du message */}
+                        <p className="text-xs sm:text-sm text-[#e9edef] whitespace-pre-wrap leading-relaxed">
                           {msg.content}
                         </p>
+
+                        {/* Horodatage & Doubles coches WhatsApp */}
+                        <div
+                          className={`flex items-center justify-end gap-1 text-[10px] mt-1 pt-0.5 ${
+                            isAdvertiser
+                              ? "text-[#8696a0]"
+                              : "text-emerald-200/70"
+                          }`}
+                        >
+                          <span>{formatTime(msg.createdAt)}</span>
+                          <WhatsAppCheckmarks read={true} />
+                        </div>
                       </div>
 
-                      {/* BANDEAU DE DÉTECTION DE COORDONNÉES (RG50, 17b §3.4.b) */}
+                      {/* BANDEAU DE MODÉRATION DES COORDONNÉES (RG50, 17b §3.4.b) */}
                       {msgDetections.length > 0 && (
-                        <div className="mt-1 max-w-md sm:max-w-lg w-full bg-feedback-warning-bg/90 border border-feedback-warning-border rounded-lg p-2.5 text-xs space-y-2 text-feedback-warning-text">
+                        <div className="mt-1.5 max-w-[85%] sm:max-w-[70%] w-full bg-feedback-warning-bg/90 border border-feedback-warning-border rounded-xl p-3 text-xs space-y-2 text-feedback-warning-text shadow-sm">
                           <div className="flex items-center gap-1.5 font-bold">
                             <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                             <span>
@@ -747,7 +856,7 @@ export function BackofficeConversationClient({
                           {msgDetections.map((det) => (
                             <div
                               key={det.id}
-                              className="bg-surface-card/60 rounded p-2 text-[11px] text-text-primary flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                              className="bg-surface-card/80 border border-border-subtle rounded-lg p-2.5 text-[11px] text-text-primary flex flex-col sm:flex-row sm:items-center justify-between gap-2"
                             >
                               <div className="space-y-0.5">
                                 <div>
@@ -778,7 +887,7 @@ export function BackofficeConversationClient({
                                         )
                                       }
                                       disabled={classifyingId === det.id}
-                                      className="px-2 py-1 rounded bg-surface-raised border border-border-default text-[10px] font-semibold text-feedback-success-text hover:bg-surface-hover"
+                                      className="px-2 py-1 rounded bg-surface-raised border border-border-default text-[10px] font-semibold text-feedback-success-text hover:bg-surface-hover cursor-pointer"
                                     >
                                       Légitime
                                     </button>
@@ -791,7 +900,7 @@ export function BackofficeConversationClient({
                                         )
                                       }
                                       disabled={classifyingId === det.id}
-                                      className="px-2 py-1 rounded bg-feedback-error-bg border border-feedback-error-border text-[10px] font-semibold text-feedback-error-text hover:opacity-90"
+                                      className="px-2 py-1 rounded bg-feedback-error-bg border border-feedback-error-border text-[10px] font-semibold text-feedback-error-text hover:opacity-90 cursor-pointer"
                                     >
                                       Contournement
                                     </button>
@@ -804,7 +913,7 @@ export function BackofficeConversationClient({
                                         )
                                       }
                                       disabled={classifyingId === det.id}
-                                      className="px-2 py-1 rounded bg-surface-raised border border-border-default text-[10px] font-semibold text-text-tertiary hover:bg-surface-hover"
+                                      className="px-2 py-1 rounded bg-surface-raised border border-border-default text-[10px] font-semibold text-text-tertiary hover:bg-surface-hover cursor-pointer"
                                     >
                                       Faux positif
                                     </button>
@@ -824,57 +933,53 @@ export function BackofficeConversationClient({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* 4. COMPOSITEUR DE MESSAGE COMMERCIAL (17b §3.4.b) */}
-        <footer className="border-t border-border-subtle bg-surface-raised p-4 space-y-2">
-          <div className="text-xs text-text-secondary flex items-center justify-between">
-            <span className="font-semibold text-text-primary">
-              Écrire — votre message est visible de la marque ET du créateur.
+        {/* 4. COMPOSITEUR DE MESSAGE WHATSAPP (17b §3.4.b) */}
+        <footer className="border-t border-[#2a3942] bg-[#202c33] p-3 sm:p-4 space-y-2 relative z-10">
+          <div className="text-xs text-[#8696a0] flex items-center justify-between px-1">
+            <span className="flex items-center gap-1.5 font-medium text-[#00a884] text-[11px]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00a884] shrink-0" />
+              <span>
+                Message officiel INFLUX — diffusé en direct à la marque et au
+                créateur
+              </span>
             </span>
-            <span className="text-text-tertiary text-[11px]">
-              {content.length} / 10 000 car. (Texte brut sans HTML)
+            <span className="text-[10px] font-mono text-[#8696a0]">
+              {content.length} / 10 000 car.
             </span>
           </div>
 
           {sendError && (
-            <div className="text-xs text-feedback-error-text bg-feedback-error-bg border border-feedback-error-border rounded-lg p-2">
+            <div className="text-xs text-feedback-error-text bg-feedback-error-bg border border-feedback-error-border rounded-xl p-2.5">
               {sendError}
             </div>
           )}
 
-          <form onSubmit={handleSendMessage} className="space-y-3">
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              disabled={sending}
-              placeholder="Rédigez une recommandation, un arbitrage ou une relance pour les deux parties..."
-              rows={3}
-              maxLength={10000}
-              className="w-full resize-none rounded-xl border border-border-default bg-surface-card p-3 text-xs sm:text-sm text-text-primary placeholder:text-text-tertiary focus:border-border-selected focus:outline-none"
-            />
-
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] text-text-tertiary">
-                Appuyez sur Envoyer pour diffuser immédiatement dans la salle de
-                négociation.
-              </span>
-              <button
-                type="submit"
-                disabled={!content.trim() || sending}
-                className="rounded-lg bg-action-primary-bg px-4 py-2 text-xs font-bold text-text-on-action hover:bg-action-primary-bg-hover transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
-              >
-                {sending ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Envoi...</span>
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Envoyer dans le fil</span>
-                  </>
-                )}
-              </button>
+          <form onSubmit={handleSendMessage} className="flex items-end gap-2.5">
+            <div className="flex-1 relative">
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                disabled={sending}
+                placeholder="Rédigez votre message officiel pour orienter, arbitrer ou cadrer la négociation..."
+                rows={2}
+                maxLength={10000}
+                className="w-full resize-none rounded-2xl border border-[#2a3942] bg-[#2a3942] p-3 text-xs sm:text-sm text-[#e9edef] placeholder:text-[#8696a0] focus:border-[#00a884] focus:outline-none focus:ring-1 focus:ring-[#00a884] transition-all"
+              />
             </div>
+
+            <button
+              type="submit"
+              disabled={!content.trim() || sending}
+              title="Envoyer dans le fil WhatsApp"
+              aria-label="Envoyer dans le fil"
+              className="w-11 h-11 rounded-full bg-[#00a884] hover:bg-[#00c39a] text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed shrink-0 cursor-pointer mb-0.5"
+            >
+              {sending ? (
+                <RefreshCw className="w-5 h-5 animate-spin" />
+              ) : (
+                <Send className="w-5 h-5 ml-0.5" />
+              )}
+            </button>
           </form>
         </footer>
       </div>
