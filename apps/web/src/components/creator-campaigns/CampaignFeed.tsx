@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import { ArrowUpDown } from "lucide-react";
 import { type CampaignFeedResponse } from "@influx/contracts";
 import {
   getCreatorCampaignLabels,
@@ -193,20 +194,21 @@ export function CampaignFeed({ locale }: CampaignFeedProps) {
 
         {/* Colonne principale avec barre de tri et résultats */}
         <div className="lg:col-span-3 space-y-6">
-          {/* Barre de contrôle supérieure : Décompte (RG35) et Tri (RG33) */}
-          <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-surface-card border border-border-default rounded-xl">
-            <div>
-              <span className="font-semibold text-sm text-text-primary">
+          {/* Barre de contrôle supérieure : Décompte (RG35) et Tri (RG33) façon Malt */}
+          <div className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5 bg-surface-card border border-border-default rounded-2xl shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <span className="font-bold text-sm text-text-primary">
                 {feedData ? t.totalCount(feedData.total) : "—"}
               </span>
             </div>
 
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-2.5 text-xs">
               <label
                 htmlFor="feed-sort"
-                className="font-medium text-text-tertiary"
+                className="font-semibold text-text-secondary flex items-center gap-1.5"
               >
-                {s.label} :
+                <ArrowUpDown className="w-3.5 h-3.5 text-text-tertiary" />
+                <span>{s.label}</span>
               </label>
               <select
                 id="feed-sort"
@@ -217,7 +219,7 @@ export function CampaignFeed({ locale }: CampaignFeedProps) {
                     sortBy: e.target.value as "recent" | "deadline",
                   })
                 }
-                className="rounded-lg border border-border-default bg-surface-raised px-3 py-1.5 text-xs font-medium text-text-primary focus:border-border-selected focus:outline-hidden cursor-pointer"
+                className="rounded-xl border border-border-default bg-surface-raised px-3.5 py-2 text-xs font-semibold text-text-primary focus:border-[#00a884] focus:outline-hidden cursor-pointer shadow-xs"
               >
                 <option value="recent">{s.recent}</option>
                 <option value="deadline">{s.deadline}</option>

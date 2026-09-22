@@ -1,5 +1,16 @@
+"use client";
+
 import React from "react";
+import {
+  SlidersHorizontal,
+  RotateCcw,
+  Sparkles,
+  Headphones,
+  CheckCircle,
+} from "lucide-react";
 import { type CreatorCampaignLabels } from "./creator-campaign-labels";
+import { TOPICS_META } from "./CampaignVisuals";
+import { NetworkIconBadge } from "../search/CreatorThemeVisuals";
 
 export interface FeedFilterState {
   topics: string[];
@@ -94,78 +105,113 @@ export function CampaignFeedFilters({
     filters.onlyEligible;
 
   return (
-    <aside className="bg-surface-card border border-border-default rounded-xl p-5 space-y-6">
+    <aside className="bg-surface-card border border-border-default rounded-2xl p-5 space-y-6 shadow-sm">
       {/* 1. Entête filtres & Reset */}
       <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
         <h3 className="font-bold text-text-primary text-sm flex items-center gap-2">
-          <span>⚡</span>
+          <SlidersHorizontal
+            size={16}
+            style={{ width: 16, height: 16 }}
+            className="text-[#00a884] dark:text-emerald-400 shrink-0"
+          />
           <span>{t.title}</span>
         </h3>
         {hasActiveFilters && (
           <button
             type="button"
             onClick={handleClearAll}
-            className="text-xs text-text-brand hover:underline cursor-pointer font-medium"
+            className="inline-flex items-center gap-1 text-xs text-text-brand hover:underline cursor-pointer font-medium"
           >
-            {t.clearAll}
+            <RotateCcw
+              size={12}
+              style={{ width: 12, height: 12 }}
+              className="shrink-0"
+            />
+            <span>{t.clearAll}</span>
           </button>
         )}
       </div>
 
-      {/* 2. Filtre C7 : Éligibilité directe (RG27) */}
-      <div className="rounded-lg border border-brand-subtle-border bg-brand-subtle-bg p-3">
-        <label className="flex items-start gap-2 cursor-pointer">
+      {/* 2. Filtre C7 : Éligibilité directe (RG27) mis en vedette */}
+      <div
+        className={`rounded-xl border p-3.5 transition-all cursor-pointer ${
+          filters.onlyEligible
+            ? "border-emerald-500/40 bg-emerald-950/20 shadow-sm"
+            : "border-border-default bg-surface-raised/40 hover:bg-surface-raised/70"
+        }`}
+        onClick={() =>
+          onChange({ ...filters, onlyEligible: !filters.onlyEligible })
+        }
+      >
+        <label className="flex items-start gap-3 cursor-pointer">
           <input
             type="checkbox"
             checked={filters.onlyEligible}
             onChange={(e) =>
               onChange({ ...filters, onlyEligible: e.target.checked })
             }
-            className="mt-0.5 h-4 w-4 rounded border-border-default text-brand-primary focus:ring-brand-primary"
+            onClick={(e) => e.stopPropagation()}
+            className="mt-0.5 h-4 w-4 rounded border-border-default text-emerald-500 focus:ring-emerald-500 cursor-pointer"
           />
           <div>
-            <span className="font-semibold text-xs text-text-primary block">
-              {t.onlyEligible}
+            <span className="font-bold text-xs text-text-primary block flex items-center gap-1.5">
+              <span>{t.onlyEligible}</span>
+              {filters.onlyEligible && (
+                <CheckCircle
+                  size={14}
+                  style={{ width: 14, height: 14 }}
+                  className="text-emerald-400 shrink-0"
+                />
+              )}
             </span>
-            <span className="text-xs text-text-tertiary block mt-0.5 leading-normal">
+            <span className="text-[11px] text-text-tertiary block mt-1 leading-relaxed">
               {t.onlyEligibleHelp}
             </span>
           </div>
         </label>
       </div>
 
-      {/* 3. Filtre C1 : Thématiques */}
-      <div className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary block">
+      {/* 3. Filtre C1 : Thématiques avec icônes graphiques */}
+      <div className="space-y-2.5">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary block">
           {t.topic}
         </span>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {AVAILABLE_TOPICS.map((topic) => {
             const active = filters.topics.includes(topic);
+            const meta = TOPICS_META[topic];
+            const Icon = meta?.icon || Sparkles;
+            const label = meta?.label || topic;
+
             return (
               <button
                 key={topic}
                 type="button"
                 onClick={() => toggleArrayItem("topics", topic)}
-                className={`rounded-md px-3 py-1 text-xs font-medium transition-colors cursor-pointer border ${
+                className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer border ${
                   active
-                    ? "bg-action-primary-bg text-text-on-action font-semibold border-transparent"
-                    : "bg-surface-raised text-text-secondary border-border-subtle hover:border-border-default"
+                    ? "bg-[#00a884] text-white border-transparent shadow-sm scale-102"
+                    : "bg-surface-raised/70 text-text-secondary border-border-subtle hover:border-border-default hover:text-text-primary"
                 }`}
               >
-                {topic}
+                <Icon
+                  size={14}
+                  style={{ width: 14, height: 14, minWidth: 14 }}
+                  className={`shrink-0 ${active ? "text-white" : "text-text-tertiary"}`}
+                />
+                <span>{label}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* 4. Filtre C2 : Réseaux */}
-      <div className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary block">
+      {/* 4. Filtre C2 : Réseaux sociaux avec icônes officielles */}
+      <div className="space-y-2.5">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary block">
           {t.network}
         </span>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {AVAILABLE_NETWORKS.map((net) => {
             const active = filters.networks.includes(net);
             return (
@@ -173,13 +219,17 @@ export function CampaignFeedFilters({
                 key={net}
                 type="button"
                 onClick={() => toggleArrayItem("networks", net)}
-                className={`rounded-md px-3 py-1 text-xs font-medium capitalize transition-colors cursor-pointer border ${
+                className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold capitalize transition-all cursor-pointer border ${
                   active
-                    ? "bg-action-primary-bg text-text-on-action font-semibold border-transparent"
-                    : "bg-surface-raised text-text-secondary border-border-subtle hover:border-border-default"
+                    ? "bg-[#00a884] text-white border-transparent shadow-sm"
+                    : "bg-surface-raised/70 text-text-secondary border-border-subtle hover:border-border-default hover:text-text-primary"
                 }`}
               >
-                {net}
+                <NetworkIconBadge
+                  network={net}
+                  className={`w-3.5 h-3.5 ${active ? "text-white" : "text-text-secondary"}`}
+                />
+                <span>{net}</span>
               </button>
             );
           })}
@@ -187,11 +237,11 @@ export function CampaignFeedFilters({
       </div>
 
       {/* 5. Filtre C3 : Formats */}
-      <div className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary block">
+      <div className="space-y-2.5">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary block">
           {t.format}
         </span>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {AVAILABLE_FORMATS.map((fmt) => {
             const active = filters.formats.includes(fmt);
             return (
@@ -199,13 +249,13 @@ export function CampaignFeedFilters({
                 key={fmt}
                 type="button"
                 onClick={() => toggleArrayItem("formats", fmt)}
-                className={`rounded-md px-3 py-1 text-xs font-medium transition-colors cursor-pointer border ${
+                className={`rounded-xl px-3 py-1.5 text-xs font-medium capitalize transition-all cursor-pointer border ${
                   active
-                    ? "bg-action-primary-bg text-text-on-action font-semibold border-transparent"
-                    : "bg-surface-raised text-text-secondary border-border-subtle hover:border-border-default"
+                    ? "bg-[#00a884] text-white border-transparent font-semibold shadow-sm"
+                    : "bg-surface-raised/70 text-text-secondary border-border-subtle hover:border-border-default hover:text-text-primary"
                 }`}
               >
-                {fmt}
+                {fmt.replace(/_/g, " ")}
               </button>
             );
           })}
@@ -213,11 +263,11 @@ export function CampaignFeedFilters({
       </div>
 
       {/* 6. Filtre C4 : Pays d'audience */}
-      <div className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary block">
+      <div className="space-y-2.5">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary block">
           {t.country}
         </span>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {AVAILABLE_COUNTRIES.map((cnt) => {
             const active = filters.targetCountries.includes(cnt.code);
             return (
@@ -225,10 +275,10 @@ export function CampaignFeedFilters({
                 key={cnt.code}
                 type="button"
                 onClick={() => toggleArrayItem("targetCountries", cnt.code)}
-                className={`rounded-md px-3 py-1 text-xs font-medium transition-colors cursor-pointer border ${
+                className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-all cursor-pointer border ${
                   active
-                    ? "bg-action-primary-bg text-text-on-action font-semibold border-transparent"
-                    : "bg-surface-raised text-text-secondary border-border-subtle hover:border-border-default"
+                    ? "bg-[#00a884] text-white border-transparent font-semibold shadow-sm"
+                    : "bg-surface-raised/70 text-text-secondary border-border-subtle hover:border-border-default hover:text-text-primary"
                 }`}
               >
                 {cnt.label}
@@ -239,8 +289,8 @@ export function CampaignFeedFilters({
       </div>
 
       {/* 7. Filtre C5 : Rémunération minimale & Devise (RG28) */}
-      <div className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary block">
+      <div className="space-y-2.5">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary block">
           {t.minCompensation}
         </span>
         <div className="flex items-center gap-2">
@@ -260,12 +310,12 @@ export function CampaignFeedFilters({
                 : undefined;
               onChange({ ...filters, minCompensationMinor: val });
             }}
-            className="w-full rounded-lg border border-border-default bg-surface-raised px-3 py-2 text-xs text-text-primary focus:border-border-selected focus:outline-hidden"
+            className="w-full rounded-xl border border-border-default bg-surface-raised px-3 py-2 text-xs text-text-primary focus:border-[#00a884] focus:outline-hidden"
           />
           <select
             value={filters.currency}
             onChange={(e) => onChange({ ...filters, currency: e.target.value })}
-            className="rounded-lg border border-border-default bg-surface-raised px-3 py-2 text-xs font-medium text-text-primary focus:border-border-selected focus:outline-hidden cursor-pointer"
+            className="rounded-xl border border-border-default bg-surface-raised px-3 py-2 text-xs font-semibold text-text-primary focus:border-[#00a884] focus:outline-hidden cursor-pointer shrink-0"
           >
             <option value="EUR">EUR (€)</option>
             <option value="USD">USD ($)</option>
@@ -276,8 +326,8 @@ export function CampaignFeedFilters({
       </div>
 
       {/* 8. Filtre C6 : Nature de rémunération */}
-      <div className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary block">
+      <div className="space-y-2.5">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary block">
           {t.compensationNature}
         </span>
         <div className="space-y-2">
@@ -286,13 +336,13 @@ export function CampaignFeedFilters({
             return (
               <label
                 key={key}
-                className="flex items-center gap-2 cursor-pointer text-xs text-text-secondary hover:text-text-primary"
+                className="flex items-center gap-2 cursor-pointer text-xs text-text-secondary hover:text-text-primary select-none"
               >
                 <input
                   type="checkbox"
                   checked={active}
                   onChange={() => toggleArrayItem("compensationNatures", key)}
-                  className="h-4 w-4 rounded border-border-default text-brand-primary focus:ring-brand-primary"
+                  className="h-4 w-4 rounded border-border-default text-emerald-500 focus:ring-emerald-500"
                 />
                 <span>{label}</span>
               </label>
@@ -303,10 +353,33 @@ export function CampaignFeedFilters({
 
       {/* 9. Message campagnes dans une autre devise (RG28) */}
       {otherCurrencyCount > 0 && (
-        <div className="rounded-lg border border-border-subtle bg-surface-raised p-3 text-xs text-text-tertiary">
+        <div className="rounded-xl border border-border-subtle bg-surface-raised p-3 text-xs text-text-tertiary">
           ℹ {t.otherCurrencyBanner(otherCurrencyCount)}
         </div>
       )}
+
+      {/* 10. Encart d'assistance Influx façon Conciergerie Malt */}
+      <div className="rounded-xl border border-border-default bg-surface-raised/50 p-4 space-y-2">
+        <div className="flex items-center gap-2 text-emerald-400">
+          <Headphones
+            size={16}
+            style={{ width: 16, height: 16 }}
+            className="shrink-0"
+          />
+          <span className="font-bold text-xs text-text-primary">
+            {t.assistanceTitle}
+          </span>
+        </div>
+        <p className="text-[11px] text-text-tertiary leading-relaxed">
+          {t.assistanceText}
+        </p>
+        <div className="pt-1 flex items-center justify-between text-[11px] text-emerald-400 font-semibold">
+          <span>✓ Support 7j/7</span>
+          <span className="text-text-tertiary font-normal">
+            Réponse &lt; 2h
+          </span>
+        </div>
+      </div>
     </aside>
   );
 }

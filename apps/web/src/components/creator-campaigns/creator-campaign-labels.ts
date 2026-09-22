@@ -33,8 +33,13 @@ export interface CreatorCampaignLabels {
     onlyEligible: string;
     onlyEligibleHelp: string;
     otherCurrencyBanner: (count: number) => string;
+    assistanceTitle: string;
+    assistanceText: string;
   };
   card: {
+    openApplications: string;
+    shortlistButton: string;
+    targetAudience: string;
     brandVerified: string;
     brandVerifiedDate: (date: string) => string;
     deliverablesTitle: string;
@@ -144,8 +149,14 @@ export const LABELS_FR: CreatorCampaignLabels = {
       count === 1
         ? "1 campagne existe dans une autre devise (non convertie)."
         : `${count} campagnes existent dans une autre devise (non converties).`,
+    assistanceTitle: "Besoin d'aide pour candidater ?",
+    assistanceText:
+      "Nos agents commerciaux vous accompagnent pour peaufiner votre pitch et calibrer vos prétentions tarifaires.",
   },
   card: {
+    openApplications: "Candidatures ouvertes",
+    shortlistButton: "Ajouter aux favoris",
+    targetAudience: "Audience :",
     brandVerified: "Marque vérifiée",
     brandVerifiedDate: (date) => `Vérifiée le ${date}`,
     deliverablesTitle: "Livrables attendus :",
@@ -162,8 +173,8 @@ export const LABELS_FR: CreatorCampaignLabels = {
     alreadyApplied: (date) => `Candidaté le ${date}`,
     campaignClosed: "Candidatures closes",
     closedSince: (days) => `Close depuis ${days}j`,
-    viewBriefButton: "Voir le brief complet",
-    applyButton: "Postuler",
+    viewBriefButton: "Consulter le brief",
+    applyButton: "Candidater",
     cannotApply: "Non éligible",
   },
   detail: {
@@ -258,8 +269,14 @@ export const LABELS_EN: CreatorCampaignLabels = {
       count === 1
         ? "1 campaign exists in another currency (not converted)."
         : `${count} campaigns exist in another currency (not converted).`,
+    assistanceTitle: "Need help applying?",
+    assistanceText:
+      "Our sales agents help you refine your pitch and align your rate expectations.",
   },
   card: {
+    openApplications: "Open applications",
+    shortlistButton: "Add to favorites",
+    targetAudience: "Audience:",
     brandVerified: "Verified Brand",
     brandVerifiedDate: (date) => `Verified on ${date}`,
     deliverablesTitle: "Requested deliverables:",
@@ -276,7 +293,7 @@ export const LABELS_EN: CreatorCampaignLabels = {
     alreadyApplied: (date) => `Applied on ${date}`,
     campaignClosed: "Applications closed",
     closedSince: (days) => `Closed for ${days}d`,
-    viewBriefButton: "View full brief",
+    viewBriefButton: "View brief",
     applyButton: "Apply",
     cannotApply: "Ineligible",
   },

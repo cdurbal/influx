@@ -47,6 +47,9 @@ export function TwitterVerifiedBadge({
       {/* Rosette bleue dentelée officielle style Twitter / X */}
       <svg
         viewBox="0 0 24 24"
+        width={18}
+        height={18}
+        style={{ width: 18, height: 18, minWidth: 18, minHeight: 18 }}
         aria-hidden="true"
         className={`${className} text-[#1d9bf0] fill-current shrink-0 cursor-pointer hover:scale-110 transition-transform`}
       >
