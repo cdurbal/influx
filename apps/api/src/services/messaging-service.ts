@@ -539,7 +539,9 @@ export class MessagingService {
       const conv = { ...(raw as unknown as Conversation) };
       const msgs = this.store.messages.get(conv.id) || [];
       if (msgs.length > 0) {
-        conv.lastMessage = msgs[msgs.length - 1];
+        conv.lastMessage = msgs[
+          msgs.length - 1
+        ] as unknown as ConversationMessage;
       } else {
         conv.lastMessage = null;
       }
@@ -779,6 +781,11 @@ export class MessagingService {
     conv.updatedAt = new Date().toISOString();
     this.store.conversations.set(conversationId, conv);
 
+    const actor = conv.participants.find((p) => p.accountId === account.id);
+    const actorName =
+      actor?.displayName ||
+      (account.role === "agent" ? "le commercial INFLUX" : account.email);
+
     // Émettre un message système (RG14)
     const sysMsg: ConversationMessage = {
       id: randomUUID(),
@@ -786,7 +793,7 @@ export class MessagingService {
       senderAccountId: account.id,
       senderRole: "system",
       senderDisplayName: "Système INFLUX",
-      content: `La négociation a été suspendue temporairement par ${account.displayName || "le commercial INFLUX"}.`,
+      content: `La négociation a été suspendue temporairement par ${actorName}.`,
       systemCode: "conversation.paused",
       createdAt: conv.updatedAt,
     };
@@ -884,6 +891,11 @@ export class MessagingService {
     conv.updatedAt = new Date().toISOString();
     this.store.conversations.set(conversationId, conv);
 
+    const actor = conv.participants.find((p) => p.accountId === account.id);
+    const actorName =
+      actor?.displayName ||
+      (account.role === "agent" ? "le commercial INFLUX" : account.email);
+
     // Émettre un message système (RG14)
     const sysMsg: ConversationMessage = {
       id: randomUUID(),
@@ -891,7 +903,7 @@ export class MessagingService {
       senderAccountId: account.id,
       senderRole: "system",
       senderDisplayName: "Système INFLUX",
-      content: `La conversation a été clôturée par ${account.displayName || "le commercial INFLUX"}.`,
+      content: `La conversation a été clôturée par ${actorName}.`,
       systemCode: "conversation.closed",
       createdAt: conv.updatedAt,
     };
