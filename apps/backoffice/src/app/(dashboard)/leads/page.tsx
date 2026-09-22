@@ -123,7 +123,7 @@ export default function LeadsSupervisionPage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface-page text-text-primary p-6 lg:p-10 font-sans">
+    <div className="min-h-screen bg-surface-page text-text-primary p-6 lg:p-8 font-sans">
       <div className="max-w-7xl mx-auto flex flex-col gap-8">
         {/* Entête */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border-default pb-6">
@@ -134,8 +134,8 @@ export default function LeadsSupervisionPage() {
               </span>
               <span className="text-xs text-text-tertiary">▮ Journalisé</span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-text-primary mt-1">
-              Supervision des Leads & Outbox
+            <h1 className="text-xl font-bold tracking-tight text-text-primary mt-1">
+              Supervision des Leads &amp; Outbox
             </h1>
             <p className="text-sm text-text-secondary mt-1">
               Synchronisation événementielle Brevo (segmentation) & Apollo

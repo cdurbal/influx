@@ -202,12 +202,12 @@ function BackofficeCreatorSearchContent() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
       {/* En-tête */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border-default">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-text-primary">
+            <h1 className="text-xl font-bold tracking-tight text-text-primary">
               {bo.identifiedSearch.title}
             </h1>
             <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-surface-muted text-brand-primary border border-border-default uppercase">

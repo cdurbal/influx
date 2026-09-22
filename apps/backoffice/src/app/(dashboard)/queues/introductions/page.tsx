@@ -83,22 +83,22 @@ export default function IntroductionsQueuePage() {
   };
 
   return (
-    <div className="p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
       {/* En-tête de page */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs uppercase font-extrabold tracking-wider px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary border border-brand-primary/20">
+            <span className="text-xs uppercase font-extrabold tracking-wider px-2 py-0.5 rounded bg-brand-subtle-bg text-text-brand border border-brand-subtle-border">
               File 8 · Intermédiation
             </span>
-            <span className="text-xs text-text-muted">
+            <span className="text-xs text-text-tertiary">
               SLA standard : 1 jour ouvré
             </span>
           </div>
-          <h1 className="text-2xl font-black text-text-primary tracking-tight">
+          <h1 className="text-xl font-bold text-text-primary tracking-tight">
             File de validation commerciale des mises en relation
           </h1>
-          <p className="text-xs text-text-muted mt-1 max-w-2xl">
+          <p className="text-xs text-text-tertiary mt-1 max-w-2xl">
             Examen des demandes de contact et candidatures. Chaque demande
             validée est attribuée à un commercial titulaire pour la conduite des
             négociations dans la conversation à trois.
@@ -118,42 +118,42 @@ export default function IntroductionsQueuePage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-xl border border-border-default bg-surface-card flex items-center justify-between">
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-text-muted">
+            <div className="text-xs font-bold uppercase tracking-wider text-text-tertiary">
               En attente (Pending)
             </div>
-            <div className="text-2xl font-black text-amber-600 mt-1">
+            <div className="text-2xl font-black text-feedback-warning-text mt-1">
               {totalPending}
             </div>
           </div>
-          <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg">
+          <div className="w-10 h-10 rounded-lg bg-feedback-warning-bg text-feedback-warning-text flex items-center justify-center font-bold text-lg">
             ⏳
           </div>
         </div>
 
         <div className="p-4 rounded-xl border border-border-default bg-surface-card flex items-center justify-between">
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-text-muted">
-              En cours d'examen (Verrouillés)
+            <div className="text-xs font-bold uppercase tracking-wider text-text-tertiary">
+              En cours d&apos;examen (Verrouillés)
             </div>
-            <div className="text-2xl font-black text-blue-600 mt-1">
+            <div className="text-2xl font-black text-feedback-info-text mt-1">
               {totalInReview}
             </div>
           </div>
-          <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
+          <div className="w-10 h-10 rounded-lg bg-feedback-info-bg text-feedback-info-text flex items-center justify-center font-bold text-lg">
             🔒
           </div>
         </div>
 
         <div className="p-4 rounded-xl border border-border-default bg-surface-card flex items-center justify-between">
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-text-muted">
+            <div className="text-xs font-bold uppercase tracking-wider text-text-tertiary">
               Alerte dépassement SLA
             </div>
-            <div className="text-2xl font-black text-rose-600 mt-1">
+            <div className="text-2xl font-black text-feedback-error-text mt-1">
               {totalBreachedSla}
             </div>
           </div>
-          <div className="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-lg">
+          <div className="w-10 h-10 rounded-lg bg-feedback-error-bg text-feedback-error-text flex items-center justify-center font-bold text-lg">
             ⚠️
           </div>
         </div>
@@ -193,7 +193,7 @@ export default function IntroductionsQueuePage() {
 
       {/* Message d'erreur */}
       {errorMessage && (
-        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-lg">
+        <div className="p-3 bg-feedback-error-bg border border-feedback-error-border text-feedback-error-text text-xs rounded-lg">
           {errorMessage}
         </div>
       )}
@@ -202,26 +202,32 @@ export default function IntroductionsQueuePage() {
       <div className="border border-border-default rounded-xl bg-surface-card overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-surface-muted border-b border-border-default text-text-muted font-bold uppercase tracking-wider">
+            <thead className="bg-surface-muted border-b border-border-default text-text-tertiary font-bold uppercase tracking-wider">
               <tr>
                 <th className="py-3 px-4">Référence</th>
                 <th className="py-3 px-4">Origine</th>
                 <th className="py-3 px-4">Parties prenantes</th>
                 <th className="py-3 px-4">Échéance SLA</th>
-                <th className="py-3 px-4">Verrou & Statut</th>
+                <th className="py-3 px-4">Verrou &amp; Statut</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border-default">
               {loading && items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-text-muted">
+                  <td
+                    colSpan={6}
+                    className="py-8 text-center text-text-tertiary"
+                  >
                     Chargement de la file de validation...
                   </td>
                 </tr>
               ) : filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-text-muted">
+                  <td
+                    colSpan={6}
+                    className="py-8 text-center text-text-tertiary"
+                  >
                     Aucune demande de mise en relation dans cette file.
                   </td>
                 </tr>
@@ -234,7 +240,7 @@ export default function IntroductionsQueuePage() {
                   return (
                     <tr
                       key={intro.id}
-                      className="hover:bg-surface-muted/50 transition-colors"
+                      className="hover:bg-surface-hover transition-colors"
                     >
                       <td className="py-3.5 px-4 font-mono font-bold text-text-primary">
                         {intro.reference}
@@ -242,12 +248,12 @@ export default function IntroductionsQueuePage() {
 
                       <td className="py-3.5 px-4">
                         <span
-                          className={`inline-block px-2 py-0.5 rounded font-semibold text-[11px] ${
+                          className={`inline-block px-2 py-0.5 rounded font-semibold text-[11px] border ${
                             intro.origin === "brand_contact_request"
-                              ? "bg-purple-100 text-purple-800"
+                              ? "bg-bo-identified-bg text-bo-identified-accent border-brand-subtle-border"
                               : intro.origin === "creator_application"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-emerald-100 text-emerald-800"
+                                ? "bg-feedback-info-bg text-feedback-info-text border-feedback-info-border"
+                                : "bg-brand-subtle-bg text-text-brand border-brand-subtle-border"
                           }`}
                         >
                           {intro.origin === "brand_contact_request" &&
@@ -262,7 +268,7 @@ export default function IntroductionsQueuePage() {
                       <td className="py-3.5 px-4">
                         <div className="space-y-0.5">
                           <div className="text-text-primary">
-                            <span className="text-text-muted">
+                            <span className="text-text-tertiary">
                               Marque ({intro.advertiserCountryAtIntro}) :
                             </span>{" "}
                             <span className="font-mono">
@@ -270,7 +276,7 @@ export default function IntroductionsQueuePage() {
                             </span>
                           </div>
                           <div className="text-text-primary">
-                            <span className="text-text-muted">
+                            <span className="text-text-tertiary">
                               Créateur ({intro.creatorCountryAtIntro}) :
                             </span>{" "}
                             <span className="font-mono">
@@ -284,8 +290,8 @@ export default function IntroductionsQueuePage() {
                         <div
                           className={
                             isSlaBreached
-                              ? "text-rose-600 font-bold"
-                              : "text-text-muted"
+                              ? "text-feedback-error-text font-bold"
+                              : "text-text-tertiary"
                           }
                         >
                           {new Date(intro.slaDueAt).toLocaleString("fr-FR", {
@@ -295,7 +301,7 @@ export default function IntroductionsQueuePage() {
                             minute: "2-digit",
                           })}
                           {isSlaBreached && (
-                            <span className="block text-[10px] text-rose-600 uppercase font-extrabold">
+                            <span className="block text-[10px] text-feedback-error-text uppercase font-extrabold">
                               Dépassement SLA
                             </span>
                           )}
@@ -305,24 +311,24 @@ export default function IntroductionsQueuePage() {
                       <td className="py-3.5 px-4">
                         {intro.claimedByAgentId ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-blue-500" />
-                            <span className="text-blue-700 font-medium">
+                            <span className="w-2 h-2 rounded-full bg-feedback-info-icon" />
+                            <span className="text-feedback-info-text font-medium">
                               {intro.claimedByAgentId === currentAgentId
                                 ? "Verrouillé par vous"
                                 : `Verrouillé (${intro.claimedByAgentId.slice(0, 8)})`}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-text-muted">Libre</span>
+                          <span className="text-text-tertiary">Libre</span>
                         )}
                       </td>
 
                       <td className="py-3.5 px-4 text-right">
                         <button
                           onClick={() => handleOpenDecision(intro)}
-                          className="px-3 py-1.5 rounded-lg bg-surface-muted hover:bg-brand-primary hover:text-white text-text-primary font-bold transition-colors border border-border-default"
+                          className="px-3 py-1.5 rounded-lg bg-surface-muted hover:bg-action-primary-bg hover:text-text-on-action text-text-primary font-bold transition-colors border border-border-default"
                         >
-                          Examiner & Décider
+                          Examiner &amp; Décider
                         </button>
                       </td>
                     </tr>

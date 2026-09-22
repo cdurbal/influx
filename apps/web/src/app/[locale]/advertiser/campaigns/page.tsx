@@ -23,7 +23,7 @@ export default async function AdvertiserCampaignsPage({
     <>
       <AuthHeader />
       <main id="main" className="bg-surface-page min-h-screen">
-        <div className="mx-auto flex max-w-(--container-narrow) flex-col gap-8 px-page-gutter py-section-block">
+        <div className="mx-auto flex max-w-(--container-max) flex-col gap-8 px-page-gutter py-section-block">
           <SectionHeader
             titleId="advertiser-campaigns-title"
             overline={

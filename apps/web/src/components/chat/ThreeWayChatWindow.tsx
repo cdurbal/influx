@@ -409,7 +409,7 @@ export function ThreeWayChatWindow({
           <div
             className={`p-2 rounded-lg border flex items-center gap-2 ${
               currentRole === "advertiser"
-                ? "bg-brand-subtle-bg/40 border-brand-subtle-border/60"
+                ? "bg-brand-subtle-bg border-brand-subtle-border"
                 : "bg-surface-card border-border-subtle"
             }`}
           >
@@ -438,7 +438,7 @@ export function ThreeWayChatWindow({
           <div
             className={`p-2 rounded-lg border flex items-center gap-2 ${
               currentRole === "creator"
-                ? "bg-brand-subtle-bg/40 border-brand-subtle-border/60"
+                ? "bg-brand-subtle-bg border-brand-subtle-border"
                 : "bg-surface-card border-border-subtle"
             }`}
           >
@@ -464,7 +464,7 @@ export function ThreeWayChatWindow({
 
           {/* Commercial INFLUX */}
           <div className="p-2 rounded-lg border bg-brand-subtle-bg border-brand-subtle-border flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-action-primary-bg/20 flex items-center justify-center font-bold text-text-brand shrink-0">
+            <div className="w-6 h-6 rounded-full bg-brand-subtle-bg border border-brand-subtle-border flex items-center justify-center font-bold text-text-brand shrink-0">
               <ShieldCheck className="w-4 h-4 text-text-brand" />
             </div>
             <div className="min-w-0 flex-1">
@@ -481,7 +481,7 @@ export function ThreeWayChatWindow({
         </div>
 
         {/* 2. BANDEAU DE SUPERVISION PERMANENT (RG31, RG102) */}
-        <div className="mt-3 bg-brand-subtle-bg/60 border border-brand-subtle-border/80 rounded-lg p-2.5 flex items-start gap-2.5">
+        <div className="mt-3 bg-brand-subtle-bg border border-brand-subtle-border rounded-lg p-2.5 flex items-start gap-2.5">
           <Eye className="w-4 h-4 text-text-brand shrink-0 mt-0.5" />
           <div className="text-xs text-text-secondary leading-relaxed flex-1">
             <span className="font-medium text-text-primary">
@@ -507,7 +507,7 @@ export function ThreeWayChatWindow({
             onClick={() => setActiveTab("chat")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               activeTab === "chat"
-                ? "bg-surface-card text-text-primary border border-border-default shadow-xs"
+                ? "bg-surface-card text-text-primary border border-border-default shadow-sm"
                 : "text-text-secondary hover:text-text-primary"
             }`}
           >
@@ -522,7 +522,7 @@ export function ThreeWayChatWindow({
             onClick={() => setActiveTab("documents")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               activeTab === "documents"
-                ? "bg-surface-card text-text-primary border border-border-default shadow-xs"
+                ? "bg-surface-card text-text-primary border border-border-default shadow-sm"
                 : "text-text-secondary hover:text-text-primary"
             }`}
           >
@@ -631,7 +631,7 @@ export function ThreeWayChatWindow({
                     {/* MESSAGE SYSTÈME (RG14) */}
                     {isSystem ? (
                       <div className="flex justify-center my-2">
-                        <div className="bg-surface-raised/80 border border-border-subtle rounded-xl px-4 py-2 text-center max-w-xl">
+                        <div className="bg-surface-raised border border-border-subtle rounded-xl px-4 py-2 text-center max-w-xl">
                           <div className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-text-brand">
                             <ShieldCheck className="w-3.5 h-3.5" />
                             <span>
@@ -661,7 +661,7 @@ export function ThreeWayChatWindow({
                             <span className="inline-flex items-center gap-1 rounded bg-brand-subtle-bg border border-brand-subtle-border px-2 py-0.5 text-[11px] font-bold text-text-brand">
                               <ShieldCheck className="w-3 h-3 text-text-brand" />
                               <span>{msg.senderDisplayName}</span>
-                              <span className="text-[10px] bg-action-primary-bg/20 px-1 rounded text-text-brand font-semibold">
+                              <span className="text-[10px] bg-brand-subtle-bg border border-brand-subtle-border px-1 rounded text-text-brand font-semibold">
                                 INFLUX
                               </span>
                             </span>
@@ -872,7 +872,7 @@ export function ThreeWayChatWindow({
             </div>
 
             {/* Avertissement bienveillant non menaçant (RG43) */}
-            <p className="text-xs text-text-secondary leading-relaxed bg-brand-subtle-bg/50 border border-brand-subtle-border rounded-lg p-3">
+            <p className="text-xs text-text-secondary leading-relaxed bg-brand-subtle-bg border border-brand-subtle-border rounded-lg p-3">
               {warningText ||
                 (isEn
                   ? "All negotiation exchanges take place here. Outside of INFLUX, we can no longer assist you, guarantee deliverable tracking or intervene in case of dispute."

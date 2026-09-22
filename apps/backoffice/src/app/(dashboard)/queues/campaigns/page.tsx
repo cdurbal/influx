@@ -207,7 +207,7 @@ export default function CampaignQueuePage() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       {/* En-tête de page */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -215,7 +215,7 @@ export default function CampaignQueuePage() {
             <span className="text-xs font-mono font-bold text-brand-primary px-2 py-0.5 rounded bg-brand-subtle-bg border border-brand-subtle-border">
               FILE 7
             </span>
-            <h1 className="text-2xl font-extrabold text-text-primary tracking-tight">
+            <h1 className="text-xl font-bold text-text-primary tracking-tight">
               {bo.campaignQueue.title}
             </h1>
           </div>
@@ -342,10 +342,10 @@ export default function CampaignQueuePage() {
       )}
 
       {/* Tableau des campagnes */}
-      <div className="rounded-xl border border-border-default bg-surface-card overflow-hidden shadow-xs">
+      <div className="rounded-xl border border-border-default bg-surface-card overflow-hidden shadow-sm">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="border-b border-border-default bg-surface-muted/40 text-text-tertiary font-semibold uppercase tracking-wider text-[11px]">
+            <tr className="border-b border-border-default bg-surface-muted text-text-tertiary font-semibold uppercase tracking-wider text-[11px]">
               <th className="p-3.5 pl-6">{bo.campaignQueue.table.colAge}</th>
               <th className="p-3.5">{bo.campaignQueue.table.colBrand}</th>
               <th className="p-3.5">{bo.campaignQueue.table.colTitle}</th>
@@ -374,7 +374,7 @@ export default function CampaignQueuePage() {
               items.map((camp) => (
                 <tr
                   key={camp.id}
-                  className="hover:bg-surface-hover/60 transition-colors"
+                  className="hover:bg-surface-hover transition-colors"
                 >
                   {/* Ancienneté & SLA */}
                   <td className="p-3.5 pl-6">
@@ -426,7 +426,7 @@ export default function CampaignQueuePage() {
                         {camp.productCategory}
                       </span>
                       {camp.isSensitive && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-feedback-warning-bg text-feedback-warning-text border border-feedback-warning-border">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-feedback-warning-bg text-feedback-warning-text border border-feedback-warning-border">
                           ⚠ Sensible
                         </span>
                       )}
@@ -451,7 +451,7 @@ export default function CampaignQueuePage() {
                     <button
                       type="button"
                       onClick={() => handleOpenDrawer(camp)}
-                      className="px-3 py-1.5 rounded-lg bg-brand-primary text-surface-page font-bold text-xs hover:bg-brand-hover transition-colors shadow-xs"
+                      className="px-3 py-1.5 rounded-lg bg-action-primary-bg text-text-on-action font-bold text-xs hover:bg-action-primary-bg-hover transition-colors shadow-sm"
                     >
                       {bo.campaignQueue.table.actionInspect}
                     </button>
@@ -463,7 +463,7 @@ export default function CampaignQueuePage() {
         </table>
 
         {/* Barre de pagination */}
-        <div className="p-4 border-t border-border-default bg-surface-page/40 flex items-center justify-between text-xs text-text-tertiary">
+        <div className="p-4 border-t border-border-default bg-surface-page flex items-center justify-between text-xs text-text-tertiary">
           <span>
             {bo.campaignQueue.filters.displayedCount.replace(
               "{count}",

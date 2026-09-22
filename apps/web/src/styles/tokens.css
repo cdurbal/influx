@@ -41,6 +41,8 @@
   --color-text-primary: #f5f5f7;
   --color-text-secondary: #a1a1aa;
   --color-text-tertiary: #86868f;
+  /* Alias kept for backward compat — prefer text-tertiary in new code. */
+  --color-text-muted: var(--color-text-tertiary);
   --color-text-brand: #29e075;
   --color-text-brand-strong: #6ff2a8;
   --color-text-on-action: #0a0a0a;
@@ -49,6 +51,7 @@
   --color-text-inverse-secondary: #52525b;
   --color-text-accent-on-inverse: #0b7d45;
   --color-text-disabled: #5c5c63;
+
 
   /* ---------- Colors: surfaces (03 §2.3) ---------- */
   --color-surface-page: #0a0a0a;
@@ -264,6 +267,7 @@
    * each level pairs it with a hairline, near-transparent white edge (glass-like rim) to read as
    * a raised surface (premium dark-UI pattern, cf. Linear/Vercel/Stripe dark mode).
    */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-sm:
     0 1px 2px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
   --shadow-md:

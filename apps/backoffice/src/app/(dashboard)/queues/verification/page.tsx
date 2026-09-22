@@ -166,7 +166,7 @@ export default function VerificationQueuePage() {
   const l = bo.verificationQueue;
 
   return (
-    <div className="min-h-screen bg-surface-page text-text-primary p-6 lg:p-10 font-sans">
+    <div className="min-h-screen bg-surface-page text-text-primary p-6 lg:p-8 font-sans">
       <div className="max-w-7xl mx-auto flex flex-col gap-6">
         {/* Entête de page */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border-default pb-6">
@@ -177,7 +177,7 @@ export default function VerificationQueuePage() {
               </span>
               <span className="text-xs text-text-tertiary">▮ Journalisé</span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-text-primary mt-1">
+            <h1 className="text-xl font-bold tracking-tight text-text-primary mt-1">
               {l.title}
             </h1>
             <p className="text-sm text-text-secondary mt-1">{l.subtitle}</p>

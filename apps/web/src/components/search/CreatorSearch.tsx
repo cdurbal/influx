@@ -4,6 +4,18 @@ import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
+  Shield,
+  Lock,
+  FileText,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
+  Users,
+  Search,
+  CheckCircle2,
+} from "lucide-react";
+import {
   type CreatorSearchFilters,
   type CreatorSearchResponse,
   type SearchSortCode,
@@ -162,8 +174,12 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
 
       const json: CreatorSearchResponse = await res.json();
       setSearchResponse(json);
-    } catch (err: any) {
-      setError(err.message || "Erreur de chargement des résultats.");
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Erreur de chargement des résultats.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -251,8 +267,9 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
 
   if (authLoading) {
     return (
-      <div className="py-24 text-center text-text-tertiary text-sm">
-        Chargement de la recherche...
+      <div className="py-24 text-center text-text-tertiary text-sm flex items-center justify-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-brand-primary animate-ping" />
+        <span>{"Chargement de la recherche..."}</span>
       </div>
     );
   }
@@ -261,28 +278,28 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
   if (isAuthenticated === false) {
     return (
       <div className="max-w-xl mx-auto py-12 px-4">
-        <div className="p-8 bg-surface-card border border-border-default rounded-xl shadow-lg text-center space-y-5">
-          <div className="w-12 h-12 rounded-full bg-brand-subtle-bg border border-brand-subtle-border flex items-center justify-center mx-auto text-xl text-text-brand">
-            🔒
+        <div className="p-8 bg-surface-card border border-border-default rounded-2xl shadow-lg text-center space-y-5">
+          <div className="w-14 h-14 rounded-2xl bg-brand-subtle-bg border border-brand-subtle-border flex items-center justify-center mx-auto text-text-brand shadow-xs">
+            <Lock className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-text-primary">
+            <h2 className="text-xl font-bold text-text-primary tracking-tight">
               {t.warnings.authRequiredTitle}
             </h2>
-            <p className="text-sm text-text-secondary mt-2">
+            <p className="text-sm text-text-secondary mt-2 leading-relaxed">
               {t.warnings.authRequiredMessage}
             </p>
           </div>
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
               onClick={handleDemoLogin}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-action-primary-bg hover:bg-action-primary-bg-hover text-text-on-action text-xs font-semibold shadow-sm transition-colors"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-action-primary-bg hover:bg-action-primary-bg-hover text-text-on-action text-xs font-bold shadow-sm transition-all cursor-pointer"
             >
               {t.warnings.demoLoginButton}
             </button>
             <Link
               href={`/${locale}/login`}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-lg border border-border-default text-text-primary hover:bg-surface-raised text-xs font-medium transition-colors"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-border-default text-text-primary hover:bg-surface-raised text-xs font-semibold transition-all cursor-pointer text-center"
             >
               {t.warnings.loginButton}
             </Link>
@@ -296,33 +313,33 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
   if (isBrandPublished === false) {
     return (
       <div className="max-w-2xl mx-auto py-12 px-4">
-        <div className="p-8 bg-surface-card border border-feedback-warning-border rounded-xl shadow-lg space-y-5 text-center">
-          <div className="w-12 h-12 rounded-full bg-feedback-warning-bg border border-feedback-warning-border flex items-center justify-center mx-auto text-xl text-feedback-warning-text">
-            📋
+        <div className="p-8 bg-surface-card border border-feedback-warning-border rounded-2xl shadow-lg space-y-5 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-feedback-warning-bg border border-feedback-warning-border flex items-center justify-center mx-auto text-feedback-warning-text shadow-xs">
+            <FileText className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-text-primary">
+            <h2 className="text-xl font-bold text-text-primary tracking-tight">
               {t.warnings.profileNotPublishedTitle}
             </h2>
-            <p className="text-sm text-text-secondary mt-2">
+            <p className="text-sm text-text-secondary mt-2 leading-relaxed">
               {t.warnings.profileNotPublishedMessage}
             </p>
           </div>
-          <div className="p-4 bg-surface-raised rounded-lg border border-border-subtle text-xs text-text-tertiary text-left">
-            💡 En attendant la publication de votre profil d'entreprise, vous
-            pouvez transmettre directement votre brief à notre équipe qui
-            réalisera la sélection pour vous sous 1 jour ouvré.
+          <div className="p-4 bg-surface-raised rounded-xl border border-border-subtle text-xs text-text-tertiary text-left leading-relaxed">
+            {
+              "💡 En attendant la publication de votre profil d'entreprise, vous pouvez transmettre directement votre brief à notre équipe qui réalisera la sélection pour vous sous 1 jour ouvré."
+            }
           </div>
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href={`/${locale}/advertiser/profile`}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-action-primary-bg hover:bg-action-primary-bg-hover text-text-on-action text-xs font-semibold shadow-sm transition-colors"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-action-primary-bg hover:bg-action-primary-bg-hover text-text-on-action text-xs font-bold shadow-sm transition-all text-center cursor-pointer"
             >
               {t.warnings.completeProfileButton}
             </Link>
             <button
               onClick={() => setShowTeamSelection(true)}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-lg border border-border-default text-text-primary hover:bg-surface-raised text-xs font-medium transition-colors"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-border-default text-text-primary hover:bg-surface-raised text-xs font-semibold transition-all cursor-pointer"
             >
               {t.warnings.contactTeamButton}
             </button>
@@ -344,23 +361,28 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
   return (
     <div className="space-y-6">
       {/* Barre d'action : Outil Dev discret */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-surface-raised p-3 rounded-lg border border-border-subtle">
-        <span className="text-xs text-text-secondary">
-          💡 Mode démonstration : Vous pouvez injecter 4 créateurs pour tester
-          la transition de k &lt; 5 à k ≥ 5.
-        </span>
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-surface-raised p-3.5 rounded-xl border border-border-subtle text-xs">
+        <div className="flex items-center gap-2 text-text-secondary">
+          <Sparkles className="w-4 h-4 text-text-brand shrink-0" />
+          <span>
+            {
+              "Mode démonstration : Vous pouvez injecter 4 créateurs pour tester la transition de k < 5 à k ≥ 5."
+            }
+          </span>
+        </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
             disabled={devSeeding}
             onClick={handleSeedDevCreators}
-            className="px-3 py-1.5 bg-surface-card hover:bg-surface-hover border border-border-default rounded text-xs text-text-brand font-medium transition-colors"
+            className="px-3 py-1.5 bg-surface-card hover:bg-surface-hover border border-border-default rounded-lg text-xs text-text-brand font-semibold transition-all cursor-pointer"
           >
             {devSeeding ? "Génération..." : t.devTools.seedExtraCreators}
           </button>
           {devMessage && (
-            <span className="text-xs text-feedback-success-text font-medium">
-              {devMessage}
+            <span className="text-xs text-feedback-success-text font-medium flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>{devMessage}</span>
             </span>
           )}
         </div>
@@ -368,12 +390,12 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
 
       {/* Erreur éventuelle */}
       {error && (
-        <div className="p-4 bg-feedback-error-bg text-feedback-error-text border border-feedback-error-border rounded-lg text-sm">
+        <div className="p-4 bg-feedback-error-bg text-feedback-error-text border border-feedback-error-border rounded-xl text-sm">
           {error}
         </div>
       )}
 
-      {/* Layout principal : Sidebar de facettes + Grille de résultats */}
+      {/* Layout principal : Sidebar de facettes + Grille de résultats style Malt */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
         {/* Colonne gauche : Facettes de filtrage (RG12, RG13, RG17) */}
         <div className="lg:col-span-1">
@@ -398,31 +420,42 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
 
         {/* Colonne droite : Résultats & K-Anonymat */}
         <div className="lg:col-span-3 space-y-6">
-          {/* Barre de contrôle supérieure : Décompte en tranche (RG59) & Tri déterministe (RG35, RG43) */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-surface-card border border-border-default rounded-xl">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">
-                Résultats :
-              </span>
-              {searchResponse && (
-                <span className="font-mono text-xs font-bold px-2.5 py-1 rounded bg-surface-raised border border-border-subtle text-text-primary">
-                  {t.kAnonymity.countBands[searchResponse.countBand] ||
-                    searchResponse.countBand}
+          {/* Barre de contrôle supérieure : Décompte façon Malt & Tri déterministe (RG35, RG43) */}
+          <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-surface-card border border-border-default rounded-xl shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-surface-raised border border-border-subtle flex items-center justify-center text-text-secondary">
+                <Users className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-xs text-text-tertiary block font-medium">
+                  {"Profils disponibles"}
                 </span>
-              )}
+                {searchResponse && (
+                  <span className="text-sm font-bold text-text-primary">
+                    {t.kAnonymity.countBands[searchResponse.countBand] ||
+                      searchResponse.countBand}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-2 text-xs">
-              <label className="text-text-tertiary font-medium">
-                {t.sortLabel} :
+              <label
+                htmlFor="search-sort-select"
+                className="text-text-tertiary font-medium flex items-center gap-1"
+              >
+                <ArrowUpDown className="w-3.5 h-3.5" />
+                <span>{t.sortLabel} :</span>
               </label>
               <select
+                id="search-sort-select"
+                aria-label={t.sortLabel}
                 value={sort}
                 onChange={(e) => {
                   setSort(e.target.value as SearchSortCode);
                   setPage(1);
                 }}
-                className="bg-surface-raised border border-border-default rounded-lg px-2.5 py-1.5 text-text-primary focus:border-border-selected focus:outline-hidden"
+                className="bg-surface-raised border border-border-default rounded-lg px-3 py-1.5 text-text-primary font-medium focus:border-border-selected focus:outline-hidden transition-colors cursor-pointer"
               >
                 <option value="default">{t.sortBy.default}</option>
                 <option value="audience_desc">{t.sortBy.audience_desc}</option>
@@ -437,12 +470,12 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
 
           {/* CAS 1 : k-anonymat sous le seuil k=5 (RG57, RG58, RG59, RG60) */}
           {searchResponse?.isBlockedByKAnonymity ? (
-            <div className="p-8 bg-surface-card border border-border-default rounded-xl shadow-sm text-center space-y-6">
-              <div className="w-14 h-14 rounded-full bg-brand-subtle-bg border border-brand-subtle-border flex items-center justify-center mx-auto text-2xl text-text-brand">
-                🛡️
+            <div className="p-8 lg:p-12 bg-surface-card border border-border-default rounded-2xl shadow-sm text-center space-y-6">
+              <div className="w-16 h-16 rounded-2xl bg-brand-subtle-bg border border-brand-subtle-border flex items-center justify-center mx-auto text-text-brand shadow-xs">
+                <Shield className="w-8 h-8" />
               </div>
               <div className="max-w-md mx-auto space-y-2">
-                <h3 className="text-lg font-bold text-text-primary">
+                <h3 className="text-lg font-bold text-text-primary tracking-tight">
                   {t.kAnonymity.underThresholdTitle}
                 </h3>
                 {/* Message strict RG58 identique pour 0 et pour 4 résultats */}
@@ -452,7 +485,7 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
               </div>
 
               {/* Suggestions statiques d'élargissement (RG60) */}
-              <div className="max-w-lg mx-auto p-4 bg-surface-raised rounded-lg border border-border-subtle text-left space-y-3">
+              <div className="max-w-lg mx-auto p-4 bg-surface-raised rounded-xl border border-border-subtle text-left space-y-3">
                 <span className="text-xs font-semibold text-text-tertiary uppercase tracking-wider block">
                   {t.kAnonymity.broadenSuggestionsTitle}
                 </span>
@@ -460,23 +493,26 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
                   <button
                     type="button"
                     onClick={() => handleApplyBroadening("price")}
-                    className="px-3 py-1.5 bg-surface-card hover:bg-surface-hover border border-border-default rounded-md text-xs text-text-primary transition-colors"
+                    className="px-3 py-1.5 bg-surface-card hover:bg-surface-hover border border-border-default rounded-lg text-xs text-text-primary transition-all cursor-pointer"
                   >
-                    ↳ {t.kAnonymity.suggestions.remove_price_filter}
+                    {"↳ "}
+                    {t.kAnonymity.suggestions.remove_price_filter}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleApplyBroadening("audience")}
-                    className="px-3 py-1.5 bg-surface-card hover:bg-surface-hover border border-border-default rounded-md text-xs text-text-primary transition-colors"
+                    className="px-3 py-1.5 bg-surface-card hover:bg-surface-hover border border-border-default rounded-lg text-xs text-text-primary transition-all cursor-pointer"
                   >
-                    ↳ {t.kAnonymity.suggestions.broaden_audience_band}
+                    {"↳ "}
+                    {t.kAnonymity.suggestions.broaden_audience_band}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleApplyBroadening("country")}
-                    className="px-3 py-1.5 bg-surface-card hover:bg-surface-hover border border-border-default rounded-md text-xs text-text-primary transition-colors"
+                    className="px-3 py-1.5 bg-surface-card hover:bg-surface-hover border border-border-default rounded-lg text-xs text-text-primary transition-all cursor-pointer"
                   >
-                    ↳ {t.kAnonymity.suggestions.add_neighbor_country}
+                    {"↳ "}
+                    {t.kAnonymity.suggestions.add_neighbor_country}
                   </button>
                 </div>
               </div>
@@ -486,9 +522,9 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
                 <button
                   type="button"
                   onClick={() => setShowTeamSelection(true)}
-                  className="px-6 py-3 bg-action-primary-bg hover:bg-action-primary-bg-hover text-text-on-action font-semibold text-xs rounded-lg shadow-md transition-colors inline-flex items-center gap-2"
+                  className="px-6 py-3 bg-action-primary-bg hover:bg-action-primary-bg-hover text-text-on-action font-bold text-xs rounded-xl shadow-md transition-all inline-flex items-center gap-2 cursor-pointer"
                 >
-                  <span>🤝</span>
+                  <Sparkles className="w-4 h-4" />
                   <span>{t.kAnonymity.requestTeamSelectionButton}</span>
                 </button>
               </div>
@@ -497,11 +533,12 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
             /* CAS 2 : Résultats affichés au-dessus du seuil (k >= 5) */
             <>
               {loading ? (
-                <div className="py-20 text-center text-sm text-text-tertiary">
-                  Actualisation des résultats...
+                <div className="py-20 text-center text-sm text-text-tertiary flex items-center justify-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-brand-primary animate-ping" />
+                  <span>{"Actualisation des résultats..."}</span>
                 </div>
               ) : searchResponse?.items && searchResponse.items.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {searchResponse.items.map((creator) => (
                     <AnonymizedCreatorCard
                       key={creator.creatorAccountId}
@@ -514,24 +551,35 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
                   ))}
                 </div>
               ) : (
-                <div className="p-12 bg-surface-card border border-border-default rounded-xl text-center space-y-3">
-                  <p className="text-sm text-text-secondary">
-                    Aucun profil correspondant à ces critères.
-                  </p>
+                <div className="p-12 bg-surface-card border border-border-default rounded-2xl text-center space-y-4 shadow-xs">
+                  <div className="w-12 h-12 rounded-xl bg-surface-raised border border-border-subtle flex items-center justify-center mx-auto text-text-tertiary">
+                    <Search className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-text-primary">
+                      {"Aucun créateur trouvé"}
+                    </h3>
+                    <p className="text-sm text-text-secondary mt-1 max-w-sm mx-auto">
+                      {
+                        "Aucun profil ne correspond exactement à vos critères de recherche actuels."
+                      }
+                    </p>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setShowTeamSelection(true)}
-                    className="text-xs text-text-brand hover:underline font-medium"
+                    className="inline-flex items-center gap-1.5 text-xs text-text-brand hover:underline font-semibold cursor-pointer"
                   >
-                    Confier votre recherche à notre équipe
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>{"Confier votre recherche à notre équipe"}</span>
                   </button>
                 </div>
               )}
 
               {/* Pagination plafonnée à 5 pages max (RG63) */}
               {searchResponse && searchResponse.totalPages > 1 && (
-                <div className="flex items-center justify-between p-4 bg-surface-card border border-border-default rounded-xl text-xs">
-                  <span className="text-text-tertiary">
+                <div className="flex items-center justify-between p-4 bg-surface-card border border-border-default rounded-xl text-xs shadow-xs">
+                  <span className="text-text-tertiary font-medium">
                     {t.pagination.page} {searchResponse.page} {t.pagination.of}{" "}
                     {searchResponse.totalPages}
                   </span>
@@ -541,9 +589,10 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
                       type="button"
                       disabled={page <= 1}
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      className="px-3 py-1.5 rounded-lg border border-border-default text-text-secondary hover:bg-surface-raised disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="px-3 py-1.5 rounded-lg border border-border-default text-text-secondary hover:bg-surface-raised disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-all cursor-pointer font-medium"
                     >
-                      {t.pagination.previous}
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span>{t.pagination.previous}</span>
                     </button>
                     <button
                       type="button"
@@ -553,9 +602,10 @@ export function CreatorSearch({ locale = "fr" }: CreatorSearchProps) {
                           Math.min(searchResponse.totalPages, p + 1),
                         )
                       }
-                      className="px-3 py-1.5 rounded-lg border border-border-default text-text-secondary hover:bg-surface-raised disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="px-3 py-1.5 rounded-lg border border-border-default text-text-secondary hover:bg-surface-raised disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-all cursor-pointer font-medium"
                     >
-                      {t.pagination.next}
+                      <span>{t.pagination.next}</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>

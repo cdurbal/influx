@@ -216,18 +216,18 @@ export function IntroductionDecisionDrawer({
           <div className="px-6 py-5 border-b border-border-default flex items-center justify-between bg-surface-muted">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary border border-brand-primary/20">
+                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-brand-subtle-bg text-text-brand border border-brand-subtle-border">
                   {introduction.reference}
                 </span>
                 <span
-                  className={`text-xs px-2 py-0.5 rounded font-semibold ${
+                  className={`text-xs px-2 py-0.5 rounded font-semibold border ${
                     introduction.status === "pending_review"
-                      ? "bg-amber-100 text-amber-800 border border-amber-300"
+                      ? "bg-feedback-warning-bg text-feedback-warning-text border-feedback-warning-border"
                       : introduction.status === "in_review"
-                        ? "bg-blue-100 text-blue-800 border border-blue-300"
+                        ? "bg-feedback-info-bg text-feedback-info-text border-feedback-info-border"
                         : introduction.status === "approved"
-                          ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                          : "bg-rose-100 text-rose-800 border border-rose-300"
+                          ? "bg-brand-subtle-bg text-text-brand border-brand-subtle-border"
+                          : "bg-feedback-error-bg text-feedback-error-text border-feedback-error-border"
                   }`}
                 >
                   {introduction.status === "pending_review" && "En attente"}
@@ -245,7 +245,7 @@ export function IntroductionDecisionDrawer({
             </div>
             <button
               onClick={onClose}
-              className="text-text-muted hover:text-text-primary p-1.5 rounded-lg hover:bg-surface-card text-sm"
+              className="text-text-tertiary hover:text-text-primary p-1.5 rounded-lg hover:bg-surface-card text-sm"
               aria-label="Fermer"
             >
               ✕
@@ -255,19 +255,19 @@ export function IntroductionDecisionDrawer({
           {/* Bandeau de verrou d'agent */}
           <div className="px-6 py-2.5 bg-surface-page border-b border-border-default flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
-              <span className="inline-block w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+              <span className="inline-block w-2 h-2 rounded-full bg-feedback-info-icon animate-pulse" />
               <span>
                 {introduction.claimedByAgentId === currentAgentId ? (
-                  <strong className="text-blue-600">
+                  <strong className="text-feedback-info-text">
                     Vous avez le verrou sur cette demande
                   </strong>
                 ) : introduction.claimedByAgentId ? (
-                  <span className="text-amber-600">
+                  <span className="text-feedback-warning-text">
                     Verrouillé par un autre agent (
                     {introduction.claimedByAgentId})
                   </span>
                 ) : (
-                  <span className="text-text-muted">
+                  <span className="text-text-tertiary">
                     Demande libre (non verrouillée)
                   </span>
                 )}
@@ -277,7 +277,7 @@ export function IntroductionDecisionDrawer({
               <button
                 onClick={handleRelease}
                 disabled={submitting}
-                className="text-xs text-text-muted hover:text-rose-600 underline"
+                className="text-xs text-text-tertiary hover:text-feedback-error-text underline"
               >
                 Libérer le verrou
               </button>
@@ -286,7 +286,7 @@ export function IntroductionDecisionDrawer({
 
           {/* Message d'erreur */}
           {errorMessage && (
-            <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-lg">
+            <div className="mx-6 mt-4 p-3 bg-feedback-error-bg border border-feedback-error-border text-feedback-error-text text-xs rounded-lg">
               {errorMessage}
             </div>
           )}
@@ -296,7 +296,7 @@ export function IntroductionDecisionDrawer({
             {/* Bloc Origine & SLA */}
             <div className="p-4 rounded-lg bg-surface-muted border border-border-default space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-text-muted">
+                <span className="text-text-tertiary">
                   Origine du déclencheur :
                 </span>
                 <span className="font-semibold text-text-primary uppercase tracking-wider">
@@ -309,13 +309,13 @@ export function IntroductionDecisionDrawer({
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-text-muted">Échéance SLA :</span>
+                <span className="text-text-tertiary">Échéance SLA :</span>
                 <span className="font-mono text-text-primary">
                   {new Date(introduction.slaDueAt).toLocaleString("fr-FR")}
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-text-muted">Créée le :</span>
+                <span className="text-text-tertiary">Créée le :</span>
                 <span className="font-mono text-text-primary">
                   {new Date(introduction.createdAt).toLocaleString("fr-FR")}
                 </span>
@@ -325,25 +325,27 @@ export function IntroductionDecisionDrawer({
             {/* Bloc Parties prenantes */}
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 rounded-lg bg-surface-card border border-border-default space-y-2">
-                <div className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                <div className="text-xs font-bold uppercase tracking-wider text-text-tertiary">
                   Annonceur (Marque)
                 </div>
                 <div className="text-xs space-y-1">
                   <div>
-                    <span className="text-text-muted">ID Compte :</span>{" "}
+                    <span className="text-text-tertiary">ID Compte :</span>{" "}
                     <span className="font-mono text-text-primary break-all">
                       {introduction.advertiserAccountId}
                     </span>
                   </div>
                   <div>
-                    <span className="text-text-muted">Pays d'origine :</span>{" "}
+                    <span className="text-text-tertiary">
+                      Pays d&apos;origine :
+                    </span>{" "}
                     <span className="font-semibold text-text-primary">
                       {introduction.advertiserCountryAtIntro}
                     </span>
                   </div>
                   <div>
-                    <span className="text-text-muted">Acceptation :</span>{" "}
-                    <span className="font-medium text-emerald-600">
+                    <span className="text-text-tertiary">Acceptation :</span>{" "}
+                    <span className="font-medium text-text-brand">
                       {introduction.advertiserAcceptedAt
                         ? "Acceptée à l'écran"
                         : "En attente d'acceptation"}
@@ -353,25 +355,27 @@ export function IntroductionDecisionDrawer({
               </div>
 
               <div className="p-4 rounded-lg bg-surface-card border border-border-default space-y-2">
-                <div className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                <div className="text-xs font-bold uppercase tracking-wider text-text-tertiary">
                   Créateur
                 </div>
                 <div className="text-xs space-y-1">
                   <div>
-                    <span className="text-text-muted">ID Compte :</span>{" "}
+                    <span className="text-text-tertiary">ID Compte :</span>{" "}
                     <span className="font-mono text-text-primary break-all">
                       {introduction.creatorAccountId}
                     </span>
                   </div>
                   <div>
-                    <span className="text-text-muted">Pays d'origine :</span>{" "}
+                    <span className="text-text-tertiary">
+                      Pays d&apos;origine :
+                    </span>{" "}
                     <span className="font-semibold text-text-primary">
                       {introduction.creatorCountryAtIntro}
                     </span>
                   </div>
                   <div>
-                    <span className="text-text-muted">Acceptation :</span>{" "}
-                    <span className="font-medium text-emerald-600">
+                    <span className="text-text-tertiary">Acceptation :</span>{" "}
+                    <span className="font-medium text-text-brand">
                       {introduction.creatorAcceptedAt
                         ? "Acceptée à l'écran"
                         : "En attente d'acceptation"}
@@ -384,7 +388,7 @@ export function IntroductionDecisionDrawer({
             {/* Bloc Campagne rattachée */}
             {introduction.campaignId && (
               <div className="p-4 rounded-lg bg-surface-card border border-border-default space-y-1">
-                <div className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                <div className="text-xs font-bold uppercase tracking-wider text-text-tertiary">
                   Campagne ciblée
                 </div>
                 <div className="text-xs font-mono text-text-primary break-all">
@@ -395,8 +399,8 @@ export function IntroductionDecisionDrawer({
 
             {/* Message de motivation / motif d'origine */}
             <div className="p-4 rounded-lg bg-surface-card border border-border-default space-y-2">
-              <div className="text-xs font-bold uppercase tracking-wider text-text-muted">
-                Motif d'origine / Message rédigé
+              <div className="text-xs font-bold uppercase tracking-wider text-text-tertiary">
+                Motif d&apos;origine / Message rédigé
               </div>
               <p className="text-xs text-text-primary whitespace-pre-wrap leading-relaxed bg-surface-muted p-3 rounded border border-border-default">
                 {introduction.originReason}
@@ -414,8 +418,8 @@ export function IntroductionDecisionDrawer({
                     disabled={Boolean(isLockedByOther)}
                     className={`flex-1 py-3 text-xs font-bold tracking-wider uppercase transition-colors ${
                       activeTab === "approve"
-                        ? "bg-surface-card text-emerald-700 border-b-2 border-emerald-600 shadow-sm"
-                        : "text-text-muted hover:text-text-primary"
+                        ? "bg-surface-card text-text-brand border-b-2 border-brand-primary shadow-sm"
+                        : "text-text-tertiary hover:text-text-primary"
                     }`}
                   >
                     ✓ Valider la mise en relation
@@ -426,8 +430,8 @@ export function IntroductionDecisionDrawer({
                     disabled={Boolean(isLockedByOther)}
                     className={`flex-1 py-3 text-xs font-bold tracking-wider uppercase transition-colors ${
                       activeTab === "reject"
-                        ? "bg-surface-card text-rose-700 border-b-2 border-rose-600 shadow-sm"
-                        : "text-text-muted hover:text-text-primary"
+                        ? "bg-surface-card text-feedback-error-text border-b-2 border-feedback-error-border shadow-sm"
+                        : "text-text-tertiary hover:text-text-primary"
                     }`}
                   >
                     ✕ Refuser avec motif
@@ -436,14 +440,14 @@ export function IntroductionDecisionDrawer({
 
                 <div className="p-5">
                   {isLockedByOther ? (
-                    <div className="text-center py-6 text-xs text-amber-700">
+                    <div className="text-center py-6 text-xs text-feedback-warning-text">
                       Cette demande est actuellement verrouillée par un autre
                       commercial. Vous ne pouvez pas valider ou refuser cette
                       demande.
                     </div>
                   ) : activeTab === "approve" ? (
                     <div className="space-y-4 text-xs">
-                      <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded leading-relaxed">
+                      <div className="p-3 bg-brand-subtle-bg border border-brand-subtle-border text-text-brand rounded leading-relaxed">
                         <p className="font-semibold mb-1">
                           Effets de la validation :
                         </p>
@@ -451,7 +455,7 @@ export function IntroductionDecisionDrawer({
                           <li>
                             Vous devenez le{" "}
                             <strong>
-                              commercial titulaire de l'affaire (
+                              commercial titulaire de l&apos;affaire (
                               {currentAgentName})
                             </strong>
                             .
@@ -460,9 +464,10 @@ export function IntroductionDecisionDrawer({
                             La demande passe en statut <code>approved</code>.
                           </li>
                           <li>
-                            L'invitation d'acceptation est envoyée aux deux
-                            parties. Dès validation conjointe, les identités
-                            seront révélées et la messagerie à trois s'ouvrira.
+                            L&apos;invitation d&apos;acceptation est envoyée aux
+                            deux parties. Dès validation conjointe, les
+                            identités seront révélées et la messagerie à trois
+                            s&apos;ouvrira.
                           </li>
                         </ul>
                       </div>
@@ -471,7 +476,7 @@ export function IntroductionDecisionDrawer({
                         type="button"
                         onClick={handleApprove}
                         disabled={submitting}
-                        className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50"
+                        className="w-full py-2.5 px-4 bg-action-primary-bg hover:bg-action-primary-bg-hover text-text-on-action font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50"
                       >
                         {submitting
                           ? "Validation en cours..."
@@ -491,7 +496,7 @@ export function IntroductionDecisionDrawer({
                               e.target.value as IntroductionRejectionReason,
                             )
                           }
-                          className="w-full p-2.5 rounded border border-border-default bg-surface-page text-text-primary text-xs focus:ring-1 focus:ring-rose-500"
+                          className="w-full p-2.5 rounded border border-border-default bg-surface-page text-text-primary text-xs focus:ring-1 focus:ring-brand-primary"
                         >
                           {INTRODUCTION_REJECTION_REASONS.map((reason) => (
                             <option key={reason} value={reason}>
@@ -505,7 +510,9 @@ export function IntroductionDecisionDrawer({
                         <label className="block font-bold text-text-primary mb-1.5">
                           Commentaire explicatif interne{" "}
                           {rejectionReason === "other" && (
-                            <span className="text-rose-600">* (Requis)</span>
+                            <span className="text-feedback-error-text">
+                              * (Requis)
+                            </span>
                           )}
                           :
                         </label>
@@ -514,14 +521,14 @@ export function IntroductionDecisionDrawer({
                           value={rejectionComment}
                           onChange={(e) => setRejectionComment(e.target.value)}
                           placeholder="Note explicative pour l'équipe commerciale et pour la traçabilité..."
-                          className="w-full p-2.5 rounded border border-border-default bg-surface-page text-text-primary text-xs focus:ring-1 focus:ring-rose-500"
+                          className="w-full p-2.5 rounded border border-border-default bg-surface-page text-text-primary text-xs focus:ring-1 focus:ring-feedback-error-border"
                         />
                       </div>
 
                       <button
                         type="submit"
                         disabled={submitting}
-                        className="w-full py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50"
+                        className="w-full py-2.5 px-4 bg-feedback-error-bg hover:bg-feedback-error-border text-feedback-error-text font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 border border-feedback-error-border"
                       >
                         {submitting
                           ? "Traitement..."
@@ -550,7 +557,7 @@ export function IntroductionDecisionDrawer({
                   </div>
                 )}
                 {introduction.rejectionReasonComment && (
-                  <div className="text-text-muted mt-1 italic">
+                  <div className="text-text-tertiary mt-1 italic">
                     « {introduction.rejectionReasonComment} »
                   </div>
                 )}
@@ -559,7 +566,7 @@ export function IntroductionDecisionDrawer({
                   <div className="pt-3 border-t border-border-default">
                     <Link
                       href={`/messages/${introduction.conversationId || "e1111111-e111-4111-8111-111111111111"}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary/10 border border-brand-primary/30 text-brand-primary font-bold hover:bg-brand-primary/20 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-subtle-bg border border-brand-subtle-border text-text-brand font-bold hover:bg-brand-subtle-border/30 transition-colors"
                     >
                       <span>💬 Ouvrir le fil de négociation à trois</span>
                       <span>→</span>

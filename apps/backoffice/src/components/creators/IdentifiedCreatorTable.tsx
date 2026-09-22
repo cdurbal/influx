@@ -356,7 +356,7 @@ export function IdentifiedCreatorTable({
                             {fullName}
                           </span>
                           <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="font-mono text-[10px] text-text-brand bg-brand-subtle-bg px-1.5 py-0.2 rounded border border-brand-subtle-border">
+                            <span className="font-mono text-[10px] text-text-brand bg-brand-subtle-bg px-1.5 py-0.5 rounded border border-brand-subtle-border">
                               {c.alias}
                             </span>
                             {primaryExact && (

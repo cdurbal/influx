@@ -341,7 +341,7 @@ export function CampaignDecisionDrawer({
                     · {campaign.brandSummary?.country || "FR"}
                   </span>
                   {campaign.brandSummary?.isVerified && (
-                    <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-brand-subtle-bg text-brand-primary border border-brand-subtle-border">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-brand-subtle-bg text-brand-primary border border-brand-subtle-border">
                       ✓ Profil publié
                     </span>
                   )}
@@ -551,7 +551,7 @@ export function CampaignDecisionDrawer({
                 onClick={() => setActionTab("publish")}
                 className={`flex-1 py-2 px-3 rounded-lg font-bold text-xs transition-colors ${
                   actionTab === "publish"
-                    ? "bg-brand-primary text-surface-page shadow-xs"
+                    ? "bg-brand-primary text-surface-page shadow-sm"
                     : "bg-surface-card text-text-secondary border border-border-default hover:text-text-primary"
                 }`}
               >
@@ -562,7 +562,7 @@ export function CampaignDecisionDrawer({
                 onClick={() => setActionTab("reject")}
                 className={`flex-1 py-2 px-3 rounded-lg font-bold text-xs transition-colors ${
                   actionTab === "reject"
-                    ? "bg-feedback-error-bg text-feedback-error-text border border-feedback-error-border shadow-xs"
+                    ? "bg-feedback-error-bg text-feedback-error-text border border-feedback-error-border shadow-sm"
                     : "bg-surface-card text-text-secondary border border-border-default hover:text-text-primary"
                 }`}
               >
@@ -619,7 +619,7 @@ export function CampaignDecisionDrawer({
                       type="button"
                       onClick={handlePublish}
                       disabled={submitting || isLockedByOther}
-                      className="w-full py-2.5 px-4 rounded-lg bg-brand-primary text-surface-page font-bold text-xs hover:bg-brand-hover transition-colors disabled:opacity-50"
+                      className="w-full py-2.5 px-4 rounded-lg bg-action-primary-bg text-text-on-action font-bold text-xs hover:bg-action-primary-bg-hover transition-colors disabled:opacity-50"
                     >
                       {submitting
                         ? bo.campaignDecisionDrawer.btnSaving
@@ -637,7 +637,7 @@ export function CampaignDecisionDrawer({
                       type="button"
                       onClick={handlePublish}
                       disabled={submitting || isLockedByOther}
-                      className="w-full py-2.5 px-4 rounded-lg bg-brand-primary text-surface-page font-bold text-xs hover:bg-brand-hover transition-colors disabled:opacity-50"
+                      className="w-full py-2.5 px-4 rounded-lg bg-action-primary-bg text-text-on-action font-bold text-xs hover:bg-action-primary-bg-hover transition-colors disabled:opacity-50"
                     >
                       {submitting
                         ? bo.campaignDecisionDrawer.btnSaving

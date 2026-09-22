@@ -68,11 +68,14 @@ export default function DashboardLayout({
             <span className="font-extrabold text-base tracking-tight text-text-primary">
               INFLUX
             </span>
-            <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-surface-muted text-brand-primary border border-border-default">
+            <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-brand-subtle-bg text-brand-primary border border-brand-subtle-border">
               Backoffice
             </span>
           </div>
-          <span className="text-xs text-text-tertiary">▮ Journalisé</span>
+          <span className="inline-flex items-center gap-1.5 text-xs text-text-tertiary">
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse" />
+            Journalisé
+          </span>
         </div>
 
         <div className="flex items-center gap-4 text-xs">
@@ -95,7 +98,7 @@ export default function DashboardLayout({
         {/* Rail de navigation */}
         <aside
           aria-label="Rail de navigation principal"
-          className="w-56 border-r border-border-default bg-surface-card/60 p-4 flex flex-col justify-between hidden md:flex"
+          className="w-60 shrink-0 border-r border-border-default bg-surface-card p-4 flex flex-col justify-between hidden md:flex"
         >
           <nav className="flex flex-col gap-1.5 text-xs">
             {navItems.map((item) => {
@@ -107,14 +110,14 @@ export default function DashboardLayout({
                   href={item.href}
                   className={`flex items-center justify-between px-3 py-2 rounded-lg font-medium transition-colors ${
                     isActive
-                      ? "bg-brand-subtle-bg text-brand-primary border border-brand-subtle-border"
+                      ? "bg-brand-subtle-bg text-brand-primary border border-brand-subtle-border shadow-xs"
                       : "text-text-secondary hover:text-text-primary hover:bg-surface-hover"
                   }`}
                 >
                   <span>{item.label}</span>
                   {item.badge && (
                     <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded font-semibold ${
+                      className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
                         isActive
                           ? "bg-brand-primary text-surface-page"
                           : "bg-surface-muted text-text-tertiary border border-border-default"

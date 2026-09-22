@@ -247,7 +247,7 @@ export function MemberMessagingHub({
                         <span className="font-mono text-[11px] font-bold text-text-brand">
                           {conv.reference}
                         </span>
-                        <span className="text-[10px] uppercase font-semibold px-1.5 py-0.2 rounded bg-surface-raised text-text-secondary border border-border-subtle">
+                        <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-surface-raised text-text-secondary border border-border-subtle">
                           {conv.status}
                         </span>
                       </div>

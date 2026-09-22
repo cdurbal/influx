@@ -687,7 +687,7 @@ export function VerificationDecisionDrawer({
             className={`px-6 py-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50 ${
               activeTab === "approve"
                 ? "bg-brand-primary hover:bg-brand-accent text-surface-page"
-                : "bg-feedback-error-text hover:bg-feedback-error-text/90 text-surface-page"
+                : "bg-feedback-error-text hover:opacity-90 text-surface-page"
             }`}
           >
             {submitting

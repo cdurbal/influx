@@ -3,91 +3,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { type Conversation } from "@influx/contracts";
-function MessageSquare({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-      />
-    </svg>
-  );
-}
-
-function ShieldCheck({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-      />
-    </svg>
-  );
-}
-
-function RefreshCw({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-      />
-    </svg>
-  );
-}
-
-function Sparkles({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.286L13 21l-2.286-6.857L5 12l5.714-2.286L13 3z"
-      />
-    </svg>
-  );
-}
-
-function ChevronRight({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-    </svg>
-  );
-}
+import {
+  MessageSquare,
+  ShieldCheck,
+  RefreshCw,
+  Sparkles,
+  ChevronRight,
+} from "@/components/ui/icons";
 
 export default function BackofficeMessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -138,13 +60,13 @@ export default function BackofficeMessagesPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+    <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
       <header className="rounded-xl border border-border-default bg-surface-card p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-text-brand" />
-            <h1 className="text-base font-bold text-text-primary">
-              Négociations supervisées & Fils à trois (17b §3.4)
+            <h1 className="text-xl font-bold text-text-primary tracking-tight">
+              Négociations supervisées &amp; Fils à trois (17b §3.4)
             </h1>
           </div>
           <p className="text-xs text-text-secondary leading-relaxed">
@@ -170,7 +92,7 @@ export default function BackofficeMessagesPage() {
             type="button"
             onClick={handleSeed}
             disabled={seeding}
-            className="px-3 py-1.5 rounded-lg bg-brand-subtle-bg border border-brand-subtle-border text-xs font-semibold text-text-brand hover:bg-brand-subtle-bg/80 transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="px-3 py-1.5 rounded-lg bg-brand-subtle-bg border border-brand-subtle-border text-xs font-semibold text-text-brand hover:bg-brand-subtle-border transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>
@@ -232,7 +154,7 @@ export default function BackofficeMessagesPage() {
                         {conv.reference}
                       </span>
                       <span
-                        className={`text-[10px] font-semibold px-2 py-0.2 rounded border ${
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${
                           conv.status === "active"
                             ? "bg-feedback-success-bg text-feedback-success-text border-feedback-success-border"
                             : conv.status === "en_pause"
