@@ -526,6 +526,37 @@ export class MessagingService {
   }
 
   /**
+   * Liste des conversations accessibles pour un compte (RG34)
+   * Un membre ne voit que les conversations dont il est participant.
+   * Un agent/admin peut voir toutes les conversations.
+   */
+  public async getMyConversations(account: Account): Promise<Conversation[]> {
+    const list: Conversation[] = [];
+    const isAgentOrAdmin = account.role === "agent" || account.role === "admin";
+
+    for (const raw of this.store.conversations.values()) {
+      const conv = raw as unknown as Conversation;
+      if (isAgentOrAdmin) {
+        list.push(conv);
+      } else {
+        const isParticipant = conv.participants.some(
+          (p) => p.accountId === account.id && !p.leftAt,
+        );
+        if (isParticipant) {
+          list.push(conv);
+        }
+      }
+    }
+
+    list.sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    );
+
+    return list;
+  }
+
+  /**
    * Récupération des informations d'une conversation
    */
   public async getConversation(

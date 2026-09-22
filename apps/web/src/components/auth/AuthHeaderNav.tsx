@@ -95,6 +95,17 @@ export function AuthHeaderNav({ locale, initialRole }: AuthHeaderNavProps) {
           >
             <span>{isEn ? "My Campaigns" : "Mes Campagnes"}</span>
           </Link>
+          <Link
+            href="/advertiser/messages"
+            className={`hidden lg:flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+              pathname.includes("/advertiser/messages")
+                ? "bg-brand-subtle-bg text-text-brand font-semibold border border-brand-subtle-border"
+                : "text-text-secondary hover:text-text-primary hover:bg-surface-hover"
+            }`}
+          >
+            <span>💬</span>
+            <span>{isEn ? "Messages" : "Messagerie à 3"}</span>
+          </Link>
         </>
       ) : (
         <>
@@ -107,6 +118,17 @@ export function AuthHeaderNav({ locale, initialRole }: AuthHeaderNavProps) {
             }`}
           >
             <span>{isEn ? "Opportunities" : "Opportunités"}</span>
+          </Link>
+          <Link
+            href="/creator/messages"
+            className={`hidden lg:flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+              pathname.includes("/creator/messages")
+                ? "bg-brand-subtle-bg text-text-brand font-semibold border border-brand-subtle-border"
+                : "text-text-secondary hover:text-text-primary hover:bg-surface-hover"
+            }`}
+          >
+            <span>💬</span>
+            <span>{isEn ? "Messages" : "Messagerie à 3"}</span>
           </Link>
           <Link
             href="/creator/profile"

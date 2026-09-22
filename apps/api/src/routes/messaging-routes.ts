@@ -68,6 +68,30 @@ export const messagingRoutes: FastifyPluginAsync<{
   }
 
   // ==========================================================================
+  // Consultation des conversations de l'utilisateur connecté (RG34)
+  // ==========================================================================
+  fastify.get("/api/conversations/my", async (request, reply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    try {
+      const conversations = await messagingService.getMyConversations(
+        session.account,
+      );
+      return reply.status(200).send({
+        ok: true,
+        count: conversations.length,
+        conversations,
+      });
+    } catch (err: unknown) {
+      return reply.status(500).send({
+        error: "InternalServerError",
+        message: (err as Error).message || "Erreur interne",
+      });
+    }
+  });
+
+  // ==========================================================================
   // Consultation des métadonnées d'une conversation (RG55 à RG58)
   // ==========================================================================
   fastify.get<{ Params: { id: string } }>(

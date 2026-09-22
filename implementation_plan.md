@@ -25,14 +25,14 @@
 > 2. Toute modification, ajout ou réorganisation de phase décidée avec le fondateur.
 > 3. Tout arbitrage technique impactant les fichiers ou commandes de validation d'une mission.
 
-> **État d'avancement au 21/09/2026 :** 24 micro-phases sur 28 terminées (Lots 0 à 3 terminés + Missions 4.1, 4.2, 4.3, 4.4 & 4.5, soit **86 % du MVP**).
-> Prochaine étape prioritaire : **Mission 4.6 (Écran Membre : messagerie à trois Marque/Créateur)**.
+> **État d'avancement au 22/09/2026 :** 25 micro-phases sur 28 terminées (Lots 0 à 3 terminés + Missions 4.1, 4.2, 4.3, 4.4, 4.5 & 4.6, soit **89 % du MVP**).
+> Prochaine étape prioritaire : **Mission 4.7 (Écran Backoffice : messagerie & proposition INFLUX)**.
 
 ---
 
 ## Vue d'ensemble du séquençage (28 Micro-Phases)
 
-**Progression globale :** 24 / 28 micro-phases validées (86 %) — Lots 0 à 3 terminés, Missions 4.1, 4.2, 4.3, 4.4 & 4.5 terminées ✅
+**Progression globale :** 25 / 28 micro-phases validées (89 %) — Lots 0 à 3 terminés, Missions 4.1, 4.2, 4.3, 4.4, 4.5 & 4.6 terminées ✅
 
 | Lot                          | Phase | Intitulé                                              | Cible principale          | Statut     |
 | ---------------------------- | ----- | ----------------------------------------------------- | ------------------------- | ---------- |
@@ -65,7 +65,7 @@
 |                              | `4.3` | Transaction atomique de révélation d'identité         | `apps/api`                | ✅ Terminé |
 |                              | `4.4` | Service messagerie à trois & détection de coordonnées | `apps/api`                | ✅ Terminé |
 |                              | `4.5` | Journalisation des lectures agents externes           | `apps/api`                | ✅ Terminé |
-|                              | `4.6` | Écran Membre : messagerie à trois (Marque/Créateur)   | `apps/web`                | ⏳ À faire |
+|                              | `4.6` | Écran Membre : messagerie à trois (Marque/Créateur)   | `apps/web`                | ✅ Terminé |
 |                              | `4.7` | Écran Backoffice : messagerie & proposition INFLUX    | `apps/backoffice`         | ⏳ À faire |
 | **5. Pipeline & Backoffice** | `5.1` | Service pipeline commercial & encaissements           | `apps/api`                | ⏳ À faire |
 |                              | `5.2` | Écran Backoffice : pipeline Kanban des affaires       | `apps/backoffice`         | ⏳ À faire |
@@ -675,7 +675,7 @@
 
 ---
 
-#### [ ] Mission 4.6 : Écran Membre : messagerie à trois (Marque/Créateur) `[⏳ À FAIRE]`
+#### [x] Mission 4.6 : Écran Membre : messagerie à trois (Marque/Créateur) `[✅ TERMINÉ]`
 
 - **Rôle IA :** `frontend-dev`
 - **Contexte minimal à lire :** [docs/mvp/17-parcours-et-ecrans-espaces-membres.md](file:///c:/Users/cdurb/Documents/Workspaces/influx/docs/mvp/17-parcours-et-ecrans-espaces-membres.md) §4

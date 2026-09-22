@@ -441,4 +441,39 @@ describe("Mission 4.4 : Service messagerie à trois & détection de coordonnées
       expect(noAuthRes.statusCode).toBe(401);
     });
   });
+
+  describe("GET /api/conversations/my", () => {
+    it("renvoie les conversations du membre connecté et masque celles des tiers (RG34)", async () => {
+      // Participant annonceur 1
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/conversations/my",
+        headers: { authorization: `Bearer ${advertiserToken}` },
+      });
+      expect(res.statusCode).toBe(200);
+      const data = JSON.parse(res.body);
+      expect(data.ok).toBe(true);
+      expect(data.conversations.length).toBeGreaterThanOrEqual(1);
+      expect(data.conversations[0].id).toBe(conversationId);
+
+      // Annonceur 2 non participant -> 0 conversation (RG34)
+      const resOther = await app.inject({
+        method: "GET",
+        url: "/api/conversations/my",
+        headers: { authorization: `Bearer ${advertiser2Token}` },
+      });
+      expect(resOther.statusCode).toBe(200);
+      const dataOther = JSON.parse(resOther.body);
+      expect(dataOther.ok).toBe(true);
+      expect(dataOther.conversations.length).toBe(0);
+    });
+
+    it("rejette les requêtes non authentifiées (401)", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/conversations/my",
+      });
+      expect(res.statusCode).toBe(401);
+    });
+  });
 });

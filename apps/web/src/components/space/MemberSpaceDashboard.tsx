@@ -398,6 +398,35 @@ export function MemberSpaceDashboard({ locale }: MemberSpaceDashboardProps) {
                 </Link>
               </div>
             </div>
+
+            {/* Carte 4 : Messagerie à trois */}
+            <div className="flex flex-col justify-between rounded-xl border border-border-default bg-surface-card p-5 shadow-sm hover:border-border-strong transition-all">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-heading-3">💬</span>
+                  <span className="rounded bg-brand-subtle-bg border border-brand-subtle-border px-2 py-0.5 text-xs font-medium text-text-brand">
+                    Mission 4.6
+                  </span>
+                </div>
+                <h3 className="font-semibold text-text-primary text-md">
+                  {isEn ? "Three-Party Messaging" : "Messagerie à Trois"}
+                </h3>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  {isEn
+                    ? "Direct supervised messaging with your creators. Benefit from dedicated commercial assistance and anti-circumvention protection."
+                    : "Échangez directement avec vos créateurs partenaires. Bénéficiez de l'accompagnement d'Alexandre et de la détection bienveillante de coordonnées."}
+                </p>
+              </div>
+
+              <div className="mt-5 pt-3 border-t border-border-subtle">
+                <Link
+                  href={`/${locale}/advertiser/messages`}
+                  className="block w-full rounded-lg bg-action-primary-bg px-3 py-2 text-center text-xs font-semibold text-text-on-action hover:bg-action-primary-bg-hover transition-colors shadow-sm"
+                >
+                  {isEn ? "Open Messages →" : "Accéder aux messages →"}
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
       )}
@@ -513,6 +542,35 @@ export function MemberSpaceDashboard({ locale }: MemberSpaceDashboardProps) {
                   className="rounded-lg border border-border-default bg-surface-raised px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-surface-hover transition-colors truncate"
                 >
                   ⚡ Chargeur GaN 120W (TechGear) →
+                </Link>
+              </div>
+            </div>
+
+            {/* Carte 4 : Messagerie à trois */}
+            <div className="flex flex-col justify-between rounded-xl border border-border-default bg-surface-card p-5 shadow-sm hover:border-border-strong transition-all">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-heading-3">💬</span>
+                  <span className="rounded bg-brand-subtle-bg border border-brand-subtle-border px-2 py-0.5 text-xs font-medium text-text-brand">
+                    Mission 4.6
+                  </span>
+                </div>
+                <h3 className="font-semibold text-text-primary text-md">
+                  {isEn ? "Three-Party Messaging" : "Messagerie à Trois"}
+                </h3>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  {isEn
+                    ? "Direct supervised messaging with verified brands alongside your dedicated INFLUX commercial advisor."
+                    : "Échangez directement avec les marques vérifiées. Cadrage sécurisé des livrables et accompagnement d'Alexandre."}
+                </p>
+              </div>
+
+              <div className="mt-5 pt-3 border-t border-border-subtle">
+                <Link
+                  href={`/${locale}/creator/messages`}
+                  className="block w-full rounded-lg bg-action-primary-bg px-3 py-2 text-center text-xs font-semibold text-text-on-action hover:bg-action-primary-bg-hover transition-colors shadow-sm"
+                >
+                  {isEn ? "Open Messages →" : "Accéder aux messages →"}
                 </Link>
               </div>
             </div>
