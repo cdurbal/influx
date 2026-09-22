@@ -1,27 +1,127 @@
 @import "tailwindcss";
-@import "../../../web/src/styles/tokens.css";
-@import "../styles/tokens-backoffice.css";
+
+@theme {
+  /* Palette de surfaces Dark Obsidian (Linear / Raycast) */
+  --color-surface-page: #08090b;
+  --color-surface-sidebar: #0d0e12;
+  --color-surface-card: #121318;
+  --color-surface-panel: #121318;
+  --color-surface-elevated: #181920;
+  --color-surface-raised: #181920;
+  --color-surface-hover: #1e2029;
+  --color-surface-muted: #14151b;
+  --color-surface-brand-subtle: #092115;
+  --color-surface-accent: #22c55e;
+  
+  /* Typographie & Niveaux de texte */
+  --color-text-primary: #f4f4f5;
+  --color-text-secondary: #8a8f98;
+  --color-text-tertiary: #5b616e;
+  --color-text-muted: #5b616e;
+  --color-text-brand: #22c55e;
+  --color-text-on-action: #08090b;
+
+  /* Bordures ultra-fines de précision */
+  --color-border-subtle: rgba(255, 255, 255, 0.07);
+  --color-border-default: rgba(255, 255, 255, 0.1);
+  --color-border-strong: rgba(255, 255, 255, 0.18);
+  --color-border-selected: #22c55e;
+  
+  /* Identité visuelle INFLUX & Accents */
+  --color-brand-primary: #22c55e;
+  --color-brand-accent: #4ade80;
+  --color-brand-subtle-bg: rgba(34, 197, 94, 0.08);
+  --color-brand-subtle-border: rgba(34, 197, 94, 0.25);
+  --color-action-primary-bg: #22c55e;
+  --color-action-primary-bg-hover: #16a34a;
+
+  /* Statuts de retour & Feedback */
+  --color-feedback-success-bg: rgba(34, 197, 94, 0.1);
+  --color-feedback-success-border: rgba(34, 197, 94, 0.3);
+  --color-feedback-success-text: #4ade80;
+
+  --color-feedback-warning-bg: rgba(245, 158, 11, 0.1);
+  --color-feedback-warning-border: rgba(245, 158, 11, 0.3);
+  --color-feedback-warning-text: #fbbf24;
+
+  --color-feedback-error-bg: rgba(239, 68, 68, 0.1);
+  --color-feedback-error-border: rgba(239, 68, 68, 0.3);
+  --color-feedback-error-text: #f87171;
+
+  --color-feedback-info-bg: rgba(94, 106, 210, 0.1);
+  --color-feedback-info-border: rgba(94, 106, 210, 0.3);
+  --color-feedback-info-text: #818cf8;
+
+  /* SLA & Vue identifiée (Spec 17b §6) */
+  --color-bo-identified-accent: #a855f7;
+  --color-bo-identified-bg: rgba(168, 85, 247, 0.08);
+  --color-bo-identified-border: rgba(168, 85, 247, 0.3);
+}
 
 @layer base {
   html, body {
     background-color: var(--color-surface-page);
     color: var(--color-text-primary);
-    font-family: var(--font-base, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     margin: 0;
     padding: 0;
+    min-height: 100vh;
   }
 
   :focus-visible {
-    outline: var(--focus-ring-width, 2px) solid var(--color-focus-ring, #22c55e);
-    outline-offset: var(--focus-ring-offset, 2px);
+    outline: 2px solid var(--color-brand-primary);
+    outline-offset: 2px;
   }
 }
 
-/* Garde-fous de dimensionnement indispensables (Linear / Stripe layout) */
-.login-container {
-  width: 100%;
-  max-width: 400px;
-  margin-left: auto;
-  margin-right: auto;
+/* Scrollbar ultra-fine style Linear / Raycast */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
 }
 
+/* Utilitaires spécifiques Linear */
+.linear-card {
+  background: rgba(18, 19, 24, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.linear-card-hover {
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.linear-card-hover:hover {
+  background: rgba(26, 28, 35, 0.9);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+/* Hairline supérieure lumineuse */
+.linear-hairline-top {
+  position: relative;
+}
+.linear-hairline-top::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  pointer-events: none;
+}

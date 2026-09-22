@@ -57,29 +57,35 @@ export default function EmailsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* En-tête */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-border-subtle gap-4">
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+      {/* En-tête Linear */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-[rgba(255,255,255,0.07)] gap-4">
         <div>
-          <h1 className="text-xl font-bold text-text-primary tracking-tight">
-            Campagnes & E-mails Brevo
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-[rgba(34,197,94,0.12)] text-[#4ade80] border border-[rgba(34,197,94,0.25)]">
+              Communication Brevo
+            </span>
+            <span className="text-xs text-[#8a8f98]">· Fenêtre de grâce 15 min · Doc 16</span>
+          </div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Campagnes &amp; E-mails Brevo
           </h1>
-          <p className="text-xs text-text-secondary mt-1">
-            Envois encadrés depuis le backoffice avec fenêtre d'annulation de 15
-            minutes (Doc 16).
+          <p className="text-xs text-[#8a8f98] mt-1 max-w-2xl">
+            Envois encadrés depuis le backoffice avec filtrage RGPD des consentements et fenêtre d&apos;annulation immédiate de 15 minutes (Doc 16).
           </p>
         </div>
 
         <button
           onClick={() => setIsComposerOpen(true)}
-          className="px-4 py-2 bg-brand-primary hover:bg-brand-primary-hover text-white text-xs font-semibold rounded-md transition-colors shadow-xs"
+          className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-[#eaeaea] text-[#08090b] text-xs font-semibold rounded-lg transition-all shadow-[0_1px_3px_rgba(0,0,0,0.3),0_0_15px_rgba(255,255,255,0.15)] cursor-pointer"
         >
-          + Nouvel envoi d'e-mails
+          <span>+</span>
+          <span>Nouvel envoi d&apos;e-mails</span>
         </button>
       </div>
 
       {error && (
-        <div className="p-4 bg-feedback-error-bg text-feedback-error-text border border-feedback-error-border rounded-lg text-sm">
+        <div className="p-4 bg-[rgba(239,68,68,0.1)] text-[#fca5a5] border border-[rgba(239,68,68,0.25)] rounded-xl text-xs">
           {error}
         </div>
       )}

@@ -257,36 +257,58 @@ export default function QueuesOverviewPage() {
   }, [loadQueuesData]);
 
   return (
-    <div className="p-6 space-y-6">
-      {/* En-tête */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-border-subtle gap-4">
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+      {/* En-tête Linear */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-[rgba(255,255,255,0.07)] gap-4">
         <div>
-          <h1 className="text-xl font-bold text-text-primary tracking-tight">
-            Les 16 Files d'Attente du Backoffice
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-[rgba(34,197,94,0.12)] text-[#4ade80] border border-[rgba(34,197,94,0.25)]">
+              Supervision des Opérations
+            </span>
+            <span className="text-xs text-[#8a8f98]">· 5 Groupes Métiers · Doc 17b §1.3</span>
+          </div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Les 16 Files d&apos;Attente du Backoffice
           </h1>
-          <p className="text-xs text-text-secondary mt-1">
-            Gabarit unifié de supervision opérationnelle réparti en 5 groupes
-            métiers (Doc 17b §1.3).
+          <p className="text-xs text-[#8a8f98] mt-1 max-w-2xl">
+            Gabarit unifié de supervision opérationnelle réparti en 5 groupes métiers (Doc 17b §1.3). Traitement prioritaire du chiffre d&apos;affaires (File 8).
           </p>
         </div>
 
         <button
           onClick={() => loadQueuesData()}
-          className="px-3 py-1 bg-surface-elevated hover:bg-surface-hover border border-border-subtle rounded-md text-xs font-medium text-text-primary transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] border border-[rgba(255,255,255,0.12)] rounded-lg text-xs font-medium text-white transition-all cursor-pointer shadow-xs"
         >
-          Actualiser les files
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={loading ? "animate-spin text-[#22c55e]" : ""}
+          >
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+            <path d="M16 21h5v-5" />
+          </svg>
+          <span>{loading ? "Chargement..." : "Actualiser les files"}</span>
         </button>
       </div>
 
       {error && (
-        <div className="p-4 bg-feedback-error-bg text-feedback-error-text border border-feedback-error-border rounded-lg text-sm">
+        <div className="p-4 bg-[rgba(239,68,68,0.1)] text-[#fca5a5] border border-[rgba(239,68,68,0.25)] rounded-xl text-xs">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="py-20 text-center text-text-secondary text-sm">
-          Chargement du catalogue des files d'attente...
+        <div className="py-24 text-center text-[#8a8f98] text-xs flex flex-col items-center justify-center gap-3">
+          <div className="w-6 h-6 border-2 border-[rgba(255,255,255,0.2)] border-t-[#22c55e] rounded-full animate-spin" />
+          <span>Chargement du catalogue des files d&apos;attente...</span>
         </div>
       ) : (
         <UnifiedQueueTemplate groups={queueGroups} />

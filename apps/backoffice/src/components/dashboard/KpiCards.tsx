@@ -35,139 +35,205 @@ export function KpiCards({
 
   return (
     <div className="space-y-6">
-      {/* 1. Commissions encaissées (strictement par devise - CA4) */}
+      {/* 1. Commissions encaissées (strictement par devise - Invariant A1 & CA4) */}
       <div>
-        <h2 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-3">
-          Commissions Encaissées (Par Devise)
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-semibold text-[#8a8f98] uppercase tracking-wider flex items-center gap-2">
+            <span>Commissions Encaissées Réelles</span>
+            <span className="text-[10px] lowercase text-[#52525b] font-normal">
+              (isolées par devise · règle A1)
+            </span>
+          </h2>
+          <span className="text-[11px] text-[#4ade80] font-medium bg-[rgba(34,197,94,0.1)] px-2 py-0.5 rounded-full border border-[rgba(34,197,94,0.25)]">
+            Encaissé &amp; Rapproché
+          </span>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {currencyList.length > 0 ? (
             currencyList.map(([curr, data]) => (
               <div
                 key={curr}
-                className="bg-surface-panel border border-border-subtle p-4 rounded-lg shadow-xs"
+                className="relative bg-[rgba(18,19,24,0.85)] border border-[rgba(255,255,255,0.08)] p-5 rounded-xl shadow-[0_10px_30px_-10px_rgba(0,0,0,0.8)] overflow-hidden group hover:border-[rgba(255,255,255,0.16)] transition-all"
               >
-                <div className="text-xs text-text-secondary uppercase font-semibold">
-                  Total {curr}
+                {/* Ligne lumineuse supérieure */}
+                <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-[rgba(34,197,94,0.4)] to-transparent" />
+
+                <div className="flex items-center justify-between text-xs text-[#8a8f98]">
+                  <span className="uppercase font-medium tracking-wide">
+                    Total {curr}
+                  </span>
+                  <span className="w-2 h-2 rounded-full bg-[#22c55e] shadow-[0_0_6px_#22c55e]" />
                 </div>
-                <div className="text-xl font-bold text-feedback-success-text mt-1">
+
+                <div className="text-2xl font-bold text-white tracking-tight mt-2 font-mono">
                   {data.formatted}
                 </div>
-                <div className="text-2xs text-text-secondary mt-1">
-                  {data.receiptsCount} encaissement(s) réel(s)
+
+                <div className="text-xs text-[#8a8f98] mt-2 flex items-center justify-between pt-2 border-t border-[rgba(255,255,255,0.06)]">
+                  <span>{data.receiptsCount} encaissement(s)</span>
+                  <span className="text-[#4ade80] font-mono font-medium">100% rapproché</span>
                 </div>
               </div>
             ))
           ) : (
-            <div className="col-span-full bg-surface-panel border border-border-subtle p-4 rounded-lg text-xs text-text-secondary italic">
-              Aucun encaissement enregistré.
+            <div className="col-span-full bg-[rgba(18,19,24,0.85)] border border-[rgba(255,255,255,0.08)] p-6 rounded-xl text-xs text-[#8a8f98] italic text-center">
+              Aucun encaissement de commission enregistré pour le moment.
             </div>
           )}
         </div>
       </div>
 
-      {/* 2. Vue Synthétique : Affaires & Files */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Affaires actives */}
-        <Link
-          href="/deals"
-          className="bg-surface-panel hover:bg-surface-hover border border-border-subtle hover:border-brand-primary p-4 rounded-lg transition-colors block"
-        >
-          <div className="text-xs text-text-secondary uppercase font-semibold">
-            Affaires en cours
-          </div>
-          <div className="text-2xl font-bold text-brand-primary mt-1">
-            {summaryMetrics.activeDealsCount}
-          </div>
-          <div className="text-2xs text-text-secondary mt-1">
-            Pipeline actif →
-          </div>
-        </Link>
+      {/* 2. Vue Synthétique : Raccourcis opérationnels & Files */}
+      <div>
+        <h2 className="text-xs font-semibold text-[#8a8f98] uppercase tracking-wider mb-3">
+          Opérations &amp; Volumes Actifs
+        </h2>
 
-        {/* Campagnes à valider */}
-        <Link
-          href="/queues/campaigns"
-          className="bg-surface-panel hover:bg-surface-hover border border-border-subtle hover:border-brand-primary p-4 rounded-lg transition-colors block"
-        >
-          <div className="text-xs text-text-secondary uppercase font-semibold">
-            Campagnes à modérer
-          </div>
-          <div className="text-2xl font-bold text-text-primary mt-1">
-            {summaryMetrics.pendingCampaignsCount}
-          </div>
-          <div className="text-2xs text-text-secondary mt-1">
-            File 7 · Campagnes →
-          </div>
-        </Link>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Affaires actives */}
+          <Link
+            href="/deals"
+            className="group relative bg-[rgba(18,19,24,0.85)] hover:bg-[rgba(26,28,35,0.95)] border border-[rgba(255,255,255,0.08)] hover:border-[rgba(34,197,94,0.4)] p-5 rounded-xl transition-all block shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
+          >
+            <div className="flex items-center justify-between text-xs text-[#8a8f98] group-hover:text-white transition-colors">
+              <span className="uppercase font-medium tracking-wider">
+                Affaires en cours
+              </span>
+              <span className="text-xs group-hover:translate-x-0.5 transition-transform text-[#22c55e]">
+                →
+              </span>
+            </div>
+            <div className="text-3xl font-bold text-white mt-2 group-hover:text-[#4ade80] transition-colors">
+              {summaryMetrics.activeDealsCount}
+            </div>
+            <div className="text-xs text-[#8a8f98] mt-2 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />
+              <span>Pipeline Kanban actif</span>
+            </div>
+          </Link>
 
-        {/* Mises en relation */}
-        <Link
-          href="/queues/introductions"
-          className="bg-surface-panel hover:bg-surface-hover border border-border-subtle hover:border-brand-primary p-4 rounded-lg transition-colors block"
-        >
-          <div className="text-xs text-text-secondary uppercase font-semibold">
-            Mises en relation
-          </div>
-          <div className="text-2xl font-bold text-text-primary mt-1">
-            {summaryMetrics.pendingIntroductionsCount}
-          </div>
-          <div className="text-2xs text-text-secondary mt-1">
-            File 8 · Révélations →
-          </div>
-        </Link>
+          {/* Campagnes à valider */}
+          <Link
+            href="/queues/campaigns"
+            className="group relative bg-[rgba(18,19,24,0.85)] hover:bg-[rgba(26,28,35,0.95)] border border-[rgba(255,255,255,0.08)] hover:border-[rgba(245,158,11,0.4)] p-5 rounded-xl transition-all block shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
+          >
+            <div className="flex items-center justify-between text-xs text-[#8a8f98] group-hover:text-white transition-colors">
+              <span className="uppercase font-medium tracking-wider">
+                Campagnes à modérer
+              </span>
+              <span className="text-xs group-hover:translate-x-0.5 transition-transform text-[#fbbf24]">
+                →
+              </span>
+            </div>
+            <div className="text-3xl font-bold text-white mt-2 group-hover:text-[#fbbf24] transition-colors">
+              {summaryMetrics.pendingCampaignsCount}
+            </div>
+            <div className="text-xs text-[#8a8f98] mt-2 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b]" />
+              <span>File 7 · Modération commerciale</span>
+            </div>
+          </Link>
 
-        {/* Alertes SLA */}
-        <div
-          className={`p-4 rounded-lg border ${
-            summaryMetrics.totalSlaBreachesCount > 0
-              ? "bg-feedback-warning-bg border-feedback-warning-border text-feedback-warning-text"
-              : "bg-surface-panel border-border-subtle text-text-primary"
-          }`}
-        >
-          <div className="text-xs uppercase font-semibold">
-            Dépassements SLA
-          </div>
-          <div className="text-2xl font-bold mt-1">
-            {summaryMetrics.totalSlaBreachesCount}
-          </div>
-          <div className="text-2xs mt-1">
-            {summaryMetrics.totalSlaBreachesCount > 0
-              ? "⚑ Attention requise immédiate"
-              : "Aucun retard constaté"}
+          {/* Mises en relation */}
+          <Link
+            href="/queues/introductions"
+            className="group relative bg-[rgba(18,19,24,0.85)] hover:bg-[rgba(26,28,35,0.95)] border border-[rgba(255,255,255,0.08)] hover:border-[rgba(34,197,94,0.4)] p-5 rounded-xl transition-all block shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
+          >
+            <div className="flex items-center justify-between text-xs text-[#8a8f98] group-hover:text-white transition-colors">
+              <span className="uppercase font-medium tracking-wider">
+                Mises en relation
+              </span>
+              <span className="text-xs group-hover:translate-x-0.5 transition-transform text-[#22c55e]">
+                →
+              </span>
+            </div>
+            <div className="text-3xl font-bold text-white mt-2 group-hover:text-[#4ade80] transition-colors">
+              {summaryMetrics.pendingIntroductionsCount}
+            </div>
+            <div className="text-xs text-[#8a8f98] mt-2 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />
+              <span>File 8 · Prioritaire CA</span>
+            </div>
+          </Link>
+
+          {/* Dépassements SLA */}
+          <div
+            className={`relative p-5 rounded-xl border transition-all shadow-[0_4px_20px_rgba(0,0,0,0.5)] ${
+              summaryMetrics.totalSlaBreachesCount > 0
+                ? "bg-[rgba(245,158,11,0.08)] border-[rgba(245,158,11,0.3)] text-[#fbbf24]"
+                : "bg-[rgba(18,19,24,0.85)] border-[rgba(255,255,255,0.08)] text-[#8a8f98]"
+            }`}
+          >
+            <div className="flex items-center justify-between text-xs uppercase font-medium tracking-wider">
+              <span>Dépassements SLA</span>
+              {summaryMetrics.totalSlaBreachesCount > 0 ? (
+                <span className="text-xs">⚑</span>
+              ) : (
+                <span className="text-[#4ade80]">✓</span>
+              )}
+            </div>
+            <div className="text-3xl font-bold mt-2 text-white">
+              {summaryMetrics.totalSlaBreachesCount}
+            </div>
+            <div className="text-xs mt-2 flex items-center gap-1.5">
+              {summaryMetrics.totalSlaBreachesCount > 0 ? (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] animate-ping" />
+                  <span className="text-[#fbbf24] font-medium">Attention requise immédiate</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />
+                  <span className="text-[#4ade80]">100% dans les délais impartis</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* 3. Répartition des affaires actives par commercial */}
-      <div className="bg-surface-panel border border-border-subtle rounded-lg p-5">
-        <h3 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-4">
-          Affaires Actives par Commercial
-        </h3>
+      <div className="bg-[rgba(18,19,24,0.85)] border border-[rgba(255,255,255,0.08)] rounded-xl p-5 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.8)]">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xs font-semibold text-[#8a8f98] uppercase tracking-wider">
+            Portefeuille Commercial Actif (Attribution)
+          </h3>
+          <span className="text-[11px] text-[#8a8f98]">
+            {activeDealsByAgent.length} collaborateur(s) actif(s)
+          </span>
+        </div>
 
         {activeDealsByAgent.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {activeDealsByAgent.map((agent) => (
               <div
                 key={agent.agentId}
-                className="bg-surface-elevated p-3 rounded-md border border-border-subtle flex justify-between items-center text-xs"
+                className="bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.06)] p-3.5 rounded-lg border border-[rgba(255,255,255,0.06)] flex justify-between items-center transition-colors"
               >
-                <div>
-                  <span className="font-semibold text-text-primary">
-                    {agent.agentName}
-                  </span>
-                  <div className="text-2xs text-text-secondary mt-0.5 font-mono">
-                    ID: {agent.agentId.slice(0, 8)}
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#059669] to-[#047857] text-white flex items-center justify-center font-bold text-xs shadow-xs border border-[rgba(255,255,255,0.1)]">
+                    {agent.agentName.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <span className="font-medium text-xs text-white block">
+                      {agent.agentName}
+                    </span>
+                    <span className="text-[10px] text-[#8a8f98] font-mono">
+                      ID: {agent.agentId.slice(0, 8)}
+                    </span>
                   </div>
                 </div>
-                <span className="font-bold text-brand-primary text-sm bg-brand-secondary/30 px-2 py-0.5 rounded-full">
-                  {agent.activeDealsCount} deal(s)
+
+                <span className="font-semibold text-xs text-[#22c55e] bg-[rgba(34,197,94,0.12)] border border-[rgba(34,197,94,0.25)] px-2.5 py-1 rounded-full">
+                  {agent.activeDealsCount} deal{agent.activeDealsCount > 1 ? "s" : ""}
                 </span>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-xs text-text-secondary italic">
-            Aucun commercial n'a d'affaire en cours pour le moment.
+          <p className="text-xs text-[#8a8f98] italic text-center py-4">
+            Aucun commercial n&apos;a d&apos;affaire active assignée actuellement.
           </p>
         )}
       </div>
