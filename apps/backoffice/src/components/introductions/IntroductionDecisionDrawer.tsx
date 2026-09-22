@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import {
   type Introduction,
   type IntroductionRejectionReason,
@@ -551,6 +552,18 @@ export function IntroductionDecisionDrawer({
                 {introduction.rejectionReasonComment && (
                   <div className="text-text-muted mt-1 italic">
                     « {introduction.rejectionReasonComment} »
+                  </div>
+                )}
+                {(introduction.status === "approved" ||
+                  introduction.conversationId) && (
+                  <div className="pt-3 border-t border-border-default">
+                    <Link
+                      href={`/messages/${introduction.conversationId || "e1111111-e111-4111-8111-111111111111"}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary/10 border border-brand-primary/30 text-brand-primary font-bold hover:bg-brand-primary/20 transition-colors"
+                    >
+                      <span>💬 Ouvrir le fil de négociation à trois</span>
+                      <span>→</span>
+                    </Link>
                   </div>
                 )}
               </div>

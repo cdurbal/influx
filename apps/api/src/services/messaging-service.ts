@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   type Account,
   type Conversation,
+  type ConversationCloseReason,
   type ConversationMessage,
   type ContactDetection,
   type ContactDetectionType,
@@ -735,5 +736,198 @@ export class MessagingService {
       (a, b) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
+  }
+
+  /**
+   * Mise en pause d'une conversation par un commercial (RG17, RG18)
+   */
+  public async pauseConversation(
+    conversationId: string,
+    account: Account,
+    reason: string,
+  ): Promise<Conversation> {
+    if (account.role !== "agent" && account.role !== "admin") {
+      const err: MessagingServiceError = {
+        status: 403,
+        code: "FORBIDDEN",
+        message:
+          "Seuls les commerciaux et administrateurs INFLUX peuvent suspendre une conversation",
+      };
+      throw err;
+    }
+
+    const raw = this.store.conversations.get(conversationId);
+    if (!raw) {
+      const err: MessagingServiceError = {
+        status: 404,
+        code: "CONVERSATION_NOT_FOUND",
+        message: "Conversation introuvable",
+      };
+      throw err;
+    }
+
+    const conv = raw as unknown as Conversation;
+    conv.status = "en_pause";
+    conv.pauseReason = reason;
+    conv.updatedAt = new Date().toISOString();
+    this.store.conversations.set(conversationId, conv);
+
+    // Émettre un message système (RG14)
+    const sysMsg: ConversationMessage = {
+      id: randomUUID(),
+      conversationId,
+      senderAccountId: account.id,
+      senderRole: "system",
+      senderDisplayName: "Système INFLUX",
+      content: `La négociation a été suspendue temporairement par ${account.displayName || "le commercial INFLUX"}.`,
+      systemCode: "conversation.paused",
+      createdAt: conv.updatedAt,
+    };
+    const list = this.store.messages.get(conversationId) || [];
+    list.push(sysMsg);
+    this.store.messages.set(conversationId, list);
+
+    return conv;
+  }
+
+  /**
+   * Reprise d'une conversation en pause (RG19)
+   */
+  public async resumeConversation(
+    conversationId: string,
+    account: Account,
+  ): Promise<Conversation> {
+    if (account.role !== "agent" && account.role !== "admin") {
+      const err: MessagingServiceError = {
+        status: 403,
+        code: "FORBIDDEN",
+        message:
+          "Seuls les commerciaux et administrateurs INFLUX peuvent reprendre une conversation",
+      };
+      throw err;
+    }
+
+    const raw = this.store.conversations.get(conversationId);
+    if (!raw) {
+      const err: MessagingServiceError = {
+        status: 404,
+        code: "CONVERSATION_NOT_FOUND",
+        message: "Conversation introuvable",
+      };
+      throw err;
+    }
+
+    const conv = raw as unknown as Conversation;
+    conv.status = "active";
+    conv.pauseReason = null;
+    conv.updatedAt = new Date().toISOString();
+    this.store.conversations.set(conversationId, conv);
+
+    // Émettre un message système (RG14)
+    const sysMsg: ConversationMessage = {
+      id: randomUUID(),
+      conversationId,
+      senderAccountId: account.id,
+      senderRole: "system",
+      senderDisplayName: "Système INFLUX",
+      content: `La négociation a repris.`,
+      systemCode: "conversation.resumed",
+      createdAt: conv.updatedAt,
+    };
+    const list = this.store.messages.get(conversationId) || [];
+    list.push(sysMsg);
+    this.store.messages.set(conversationId, list);
+
+    return conv;
+  }
+
+  /**
+   * Clôture d'une conversation avec motif typé obligatoire (RG20)
+   */
+  public async closeConversation(
+    conversationId: string,
+    account: Account,
+    reason: ConversationCloseReason,
+    comment?: string,
+  ): Promise<Conversation> {
+    if (account.role !== "agent" && account.role !== "admin") {
+      const err: MessagingServiceError = {
+        status: 403,
+        code: "FORBIDDEN",
+        message:
+          "Seuls les commerciaux et administrateurs INFLUX peuvent clore une conversation",
+      };
+      throw err;
+    }
+
+    const raw = this.store.conversations.get(conversationId);
+    if (!raw) {
+      const err: MessagingServiceError = {
+        status: 404,
+        code: "CONVERSATION_NOT_FOUND",
+        message: "Conversation introuvable",
+      };
+      throw err;
+    }
+
+    const conv = raw as unknown as Conversation;
+    conv.status = "close";
+    conv.closeReason = reason;
+    conv.closeComment = comment || null;
+    conv.updatedAt = new Date().toISOString();
+    this.store.conversations.set(conversationId, conv);
+
+    // Émettre un message système (RG14)
+    const sysMsg: ConversationMessage = {
+      id: randomUUID(),
+      conversationId,
+      senderAccountId: account.id,
+      senderRole: "system",
+      senderDisplayName: "Système INFLUX",
+      content: `La conversation a été clôturée par ${account.displayName || "le commercial INFLUX"}.`,
+      systemCode: "conversation.closed",
+      createdAt: conv.updatedAt,
+    };
+    const list = this.store.messages.get(conversationId) || [];
+    list.push(sysMsg);
+    this.store.messages.set(conversationId, list);
+
+    return conv;
+  }
+
+  /**
+   * Classement d'une détection de coordonnées par l'agent (RG50)
+   */
+  public async classifyDetection(
+    detectionId: string,
+    account: Account,
+    classification: "legitimate" | "circumvention_suspected" | "false_positive",
+  ): Promise<ContactDetection> {
+    if (account.role !== "agent" && account.role !== "admin") {
+      const err: MessagingServiceError = {
+        status: 403,
+        code: "FORBIDDEN",
+        message:
+          "Seuls les commerciaux et administrateurs INFLUX peuvent classifier les détections",
+      };
+      throw err;
+    }
+
+    const raw = this.store.contactDetections.get(detectionId);
+    if (!raw) {
+      const err: MessagingServiceError = {
+        status: 404,
+        code: "DETECTION_NOT_FOUND",
+        message: "Détection introuvable",
+      };
+      throw err;
+    }
+
+    const detection = raw as unknown as ContactDetection;
+    detection.status = "reviewed";
+    detection.classification = classification;
+    this.store.contactDetections.set(detectionId, detection);
+
+    return detection;
   }
 }

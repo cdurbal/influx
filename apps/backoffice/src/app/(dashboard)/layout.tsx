@@ -32,6 +32,12 @@ export default function DashboardLayout({
       badge: "Validation",
       active: pathname.startsWith("/queues/introductions"),
     },
+    {
+      label: "Négociations (Fil à 3)",
+      href: "/messages",
+      badge: "Supervisé",
+      active: pathname.startsWith("/messages"),
+    },
     { label: bo.nav.accounts, href: "#", badge: null },
     {
       label: "Créateurs (Identifié)",

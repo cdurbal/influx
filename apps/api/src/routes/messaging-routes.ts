@@ -346,4 +346,162 @@ export const messagingRoutes: FastifyPluginAsync<{
       }
     },
   );
+
+  // ==========================================================================
+  // Backoffice : Pause d'une conversation (RG17, RG18)
+  // ==========================================================================
+  fastify.post<{
+    Params: { id: string };
+    Body: { reason?: string };
+  }>("/api/backoffice/conversations/:id/pause", async (request, reply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    try {
+      const reason =
+        request.body?.reason || "Suspension temporaire par l'agent";
+      const conversation = await messagingService.pauseConversation(
+        request.params.id,
+        session.account,
+        reason,
+      );
+      return reply.status(200).send({
+        ok: true,
+        conversation,
+      });
+    } catch (err: unknown) {
+      const serviceErr = err as MessagingServiceError;
+      if (serviceErr.status) {
+        return reply.status(serviceErr.status).send({
+          error: serviceErr.code,
+          message: serviceErr.message,
+        });
+      }
+      return reply.status(500).send({
+        error: "InternalServerError",
+        message: (err as Error).message || "Erreur interne",
+      });
+    }
+  });
+
+  // ==========================================================================
+  // Backoffice : Reprise d'une conversation (RG19)
+  // ==========================================================================
+  fastify.post<{
+    Params: { id: string };
+  }>("/api/backoffice/conversations/:id/resume", async (request, reply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    try {
+      const conversation = await messagingService.resumeConversation(
+        request.params.id,
+        session.account,
+      );
+      return reply.status(200).send({
+        ok: true,
+        conversation,
+      });
+    } catch (err: unknown) {
+      const serviceErr = err as MessagingServiceError;
+      if (serviceErr.status) {
+        return reply.status(serviceErr.status).send({
+          error: serviceErr.code,
+          message: serviceErr.message,
+        });
+      }
+      return reply.status(500).send({
+        error: "InternalServerError",
+        message: (err as Error).message || "Erreur interne",
+      });
+    }
+  });
+
+  // ==========================================================================
+  // Backoffice : Clôture d'une conversation avec motif typé (RG20)
+  // ==========================================================================
+  fastify.post<{
+    Params: { id: string };
+    Body: { reason: any; comment?: string };
+  }>("/api/backoffice/conversations/:id/close", async (request, reply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    try {
+      const { reason, comment } = request.body || {};
+      if (!reason) {
+        return reply.status(400).send({
+          error: "BadRequest",
+          message: "Le motif de clôture est obligatoire (RG20)",
+        });
+      }
+      const conversation = await messagingService.closeConversation(
+        request.params.id,
+        session.account,
+        reason,
+        comment,
+      );
+      return reply.status(200).send({
+        ok: true,
+        conversation,
+      });
+    } catch (err: unknown) {
+      const serviceErr = err as MessagingServiceError;
+      if (serviceErr.status) {
+        return reply.status(serviceErr.status).send({
+          error: serviceErr.code,
+          message: serviceErr.message,
+        });
+      }
+      return reply.status(500).send({
+        error: "InternalServerError",
+        message: (err as Error).message || "Erreur interne",
+      });
+    }
+  });
+
+  // ==========================================================================
+  // Backoffice : Classification d'une détection (RG50)
+  // ==========================================================================
+  fastify.post<{
+    Params: { id: string };
+    Body: {
+      classification:
+        "legitimate" | "circumvention_suspected" | "false_positive";
+    };
+  }>("/api/backoffice/detections/:id/classify", async (request, reply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    try {
+      const { classification } = request.body || {};
+      if (!classification) {
+        return reply.status(400).send({
+          error: "BadRequest",
+          message: "La classification est obligatoire",
+        });
+      }
+      const detection = await messagingService.classifyDetection(
+        request.params.id,
+        session.account,
+        classification,
+      );
+      return reply.status(200).send({
+        ok: true,
+        detection,
+      });
+    } catch (err: unknown) {
+      const serviceErr = err as MessagingServiceError;
+      if (serviceErr.status) {
+        return reply.status(serviceErr.status).send({
+          error: serviceErr.code,
+          message: serviceErr.message,
+        });
+      }
+      return reply.status(500).send({
+        error: "InternalServerError",
+        message: (err as Error).message || "Erreur interne",
+      });
+    }
+  });
 };

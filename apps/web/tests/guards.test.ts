@@ -34,6 +34,7 @@ const MVP_APP_DIRS = [
   "search",
   "creator-campaigns",
   "space",
+  "chat",
 ];
 const SCOPED_FILES = listFiles(SRC)
   .filter(
