@@ -105,22 +105,25 @@ export function CampaignFeedFilters({
     filters.onlyEligible;
 
   return (
-    <aside className="bg-surface-card border border-border-default rounded-2xl p-5 space-y-6 shadow-sm">
-      {/* 1. Entête filtres & Reset */}
-      <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-        <h3 className="font-bold text-text-primary text-sm flex items-center gap-2">
+    <aside className="bg-[#14151c] rounded-3xl p-6 space-y-6 shadow-xl">
+      {/* 1. Entête filtres & Reset sans bordure */}
+      <div className="flex items-center justify-between pb-3">
+        <h3 className="font-bold text-white text-sm flex items-center gap-2">
           <SlidersHorizontal
             size={16}
             style={{ width: 16, height: 16 }}
-            className="text-[#00a884] dark:text-emerald-400 shrink-0"
+            className="text-[#00d68f] shrink-0"
           />
           <span>{t.title}</span>
+          {hasActiveFilters && (
+            <span className="w-2 h-2 rounded-full bg-[#00d68f] animate-pulse" />
+          )}
         </h3>
         {hasActiveFilters && (
           <button
             type="button"
             onClick={handleClearAll}
-            className="inline-flex items-center gap-1 text-xs text-text-brand hover:underline cursor-pointer font-medium"
+            className="inline-flex items-center gap-1.5 text-xs text-[#00d68f] hover:text-[#00c080] hover:underline cursor-pointer font-medium transition-colors"
           >
             <RotateCcw
               size={12}
@@ -132,12 +135,10 @@ export function CampaignFeedFilters({
         )}
       </div>
 
-      {/* 2. Filtre C7 : Éligibilité directe (RG27) mis en vedette */}
+      {/* 2. Filtre C7 : Éligibilité directe (RG27) mis en vedette façon Revolut */}
       <div
-        className={`rounded-xl border p-3.5 transition-all cursor-pointer ${
-          filters.onlyEligible
-            ? "border-emerald-500/40 bg-emerald-950/20 shadow-sm"
-            : "border-border-default bg-surface-raised/40 hover:bg-surface-raised/70"
+        className={`rounded-2xl p-4 transition-all cursor-pointer ${
+          filters.onlyEligible ? "bg-[#00d68f]/15 shadow-md" : "bg-[#1c1e28] hover:bg-[#222532]"
         }`}
         onClick={() =>
           onChange({ ...filters, onlyEligible: !filters.onlyEligible })
@@ -151,20 +152,20 @@ export function CampaignFeedFilters({
               onChange({ ...filters, onlyEligible: e.target.checked })
             }
             onClick={(e) => e.stopPropagation()}
-            className="mt-0.5 h-4 w-4 rounded border-border-default text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+            className="mt-0.5 h-4 w-4 rounded-md border-0 bg-white/[0.1] text-[#00d68f] focus:ring-[#00d68f] cursor-pointer"
           />
           <div>
-            <span className="font-bold text-xs text-text-primary block flex items-center gap-1.5">
+            <span className="font-bold text-xs text-white block flex items-center gap-1.5">
               <span>{t.onlyEligible}</span>
               {filters.onlyEligible && (
                 <CheckCircle
                   size={14}
                   style={{ width: 14, height: 14 }}
-                  className="text-emerald-400 shrink-0"
+                  className="text-[#00d68f] shrink-0"
                 />
               )}
             </span>
-            <span className="text-[11px] text-text-tertiary block mt-1 leading-relaxed">
+            <span className="text-[11px] text-neutral-400 block mt-1 leading-relaxed">
               {t.onlyEligibleHelp}
             </span>
           </div>
@@ -172,8 +173,8 @@ export function CampaignFeedFilters({
       </div>
 
       {/* 3. Filtre C1 : Thématiques avec icônes graphiques */}
-      <div className="space-y-2.5">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary block">
+      <div className="space-y-3">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 block">
           {t.topic}
         </span>
         <div className="flex flex-wrap gap-1.5">
@@ -188,16 +189,16 @@ export function CampaignFeedFilters({
                 key={topic}
                 type="button"
                 onClick={() => toggleArrayItem("topics", topic)}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer border ${
+                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all cursor-pointer ${
                   active
-                    ? "bg-[#00a884] text-white border-transparent shadow-sm scale-102"
-                    : "bg-surface-raised/70 text-text-secondary border-border-subtle hover:border-border-default hover:text-text-primary"
+                    ? "bg-[#00d68f] text-neutral-950 font-bold shadow-md scale-102"
+                    : "bg-[#1c1e28] hover:bg-[#242634] text-neutral-300 hover:text-white"
                 }`}
               >
                 <Icon
-                  size={14}
-                  style={{ width: 14, height: 14, minWidth: 14 }}
-                  className={`shrink-0 ${active ? "text-white" : "text-text-tertiary"}`}
+                  size={13}
+                  style={{ width: 13, height: 13, minWidth: 13 }}
+                  className={`shrink-0 ${active ? "text-neutral-950" : "text-neutral-400"}`}
                 />
                 <span>{label}</span>
               </button>
@@ -207,8 +208,8 @@ export function CampaignFeedFilters({
       </div>
 
       {/* 4. Filtre C2 : Réseaux sociaux avec icônes officielles */}
-      <div className="space-y-2.5">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary block">
+      <div className="space-y-3">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 block">
           {t.network}
         </span>
         <div className="flex flex-wrap gap-1.5">
@@ -219,15 +220,15 @@ export function CampaignFeedFilters({
                 key={net}
                 type="button"
                 onClick={() => toggleArrayItem("networks", net)}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold capitalize transition-all cursor-pointer border ${
+                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium capitalize transition-all cursor-pointer ${
                   active
-                    ? "bg-[#00a884] text-white border-transparent shadow-sm"
-                    : "bg-surface-raised/70 text-text-secondary border-border-subtle hover:border-border-default hover:text-text-primary"
+                    ? "bg-[#00d68f] text-neutral-950 font-bold shadow-md"
+                    : "bg-[#1c1e28] hover:bg-[#242634] text-neutral-300 hover:text-white"
                 }`}
               >
                 <NetworkIconBadge
                   network={net}
-                  className={`w-3.5 h-3.5 ${active ? "text-white" : "text-text-secondary"}`}
+                  className={`w-3.5 h-3.5 ${active ? "text-neutral-950" : "text-neutral-300"}`}
                 />
                 <span>{net}</span>
               </button>
@@ -237,8 +238,8 @@ export function CampaignFeedFilters({
       </div>
 
       {/* 5. Filtre C3 : Formats */}
-      <div className="space-y-2.5">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary block">
+      <div className="space-y-3">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 block">
           {t.format}
         </span>
         <div className="flex flex-wrap gap-1.5">
@@ -249,10 +250,10 @@ export function CampaignFeedFilters({
                 key={fmt}
                 type="button"
                 onClick={() => toggleArrayItem("formats", fmt)}
-                className={`rounded-xl px-3 py-1.5 text-xs font-medium capitalize transition-all cursor-pointer border ${
+                className={`rounded-full px-3.5 py-1.5 text-xs font-medium capitalize transition-all cursor-pointer ${
                   active
-                    ? "bg-[#00a884] text-white border-transparent font-semibold shadow-sm"
-                    : "bg-surface-raised/70 text-text-secondary border-border-subtle hover:border-border-default hover:text-text-primary"
+                    ? "bg-[#00d68f] text-neutral-950 font-bold shadow-md"
+                    : "bg-[#1c1e28] hover:bg-[#242634] text-neutral-300 hover:text-white"
                 }`}
               >
                 {fmt.replace(/_/g, " ")}
@@ -263,8 +264,8 @@ export function CampaignFeedFilters({
       </div>
 
       {/* 6. Filtre C4 : Pays d'audience */}
-      <div className="space-y-2.5">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary block">
+      <div className="space-y-3">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 block">
           {t.country}
         </span>
         <div className="flex flex-wrap gap-1.5">
@@ -275,10 +276,10 @@ export function CampaignFeedFilters({
                 key={cnt.code}
                 type="button"
                 onClick={() => toggleArrayItem("targetCountries", cnt.code)}
-                className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-all cursor-pointer border ${
+                className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all cursor-pointer ${
                   active
-                    ? "bg-[#00a884] text-white border-transparent font-semibold shadow-sm"
-                    : "bg-surface-raised/70 text-text-secondary border-border-subtle hover:border-border-default hover:text-text-primary"
+                    ? "bg-[#00d68f] text-neutral-950 font-bold shadow-md"
+                    : "bg-[#1c1e28] hover:bg-[#242634] text-neutral-300 hover:text-white"
                 }`}
               >
                 {cnt.label}
@@ -289,8 +290,8 @@ export function CampaignFeedFilters({
       </div>
 
       {/* 7. Filtre C5 : Rémunération minimale & Devise (RG28) */}
-      <div className="space-y-2.5">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary block">
+      <div className="space-y-3">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 block">
           {t.minCompensation}
         </span>
         <div className="flex items-center gap-2">
@@ -310,12 +311,12 @@ export function CampaignFeedFilters({
                 : undefined;
               onChange({ ...filters, minCompensationMinor: val });
             }}
-            className="w-full rounded-xl border border-border-default bg-surface-raised px-3 py-2 text-xs text-text-primary focus:border-[#00a884] focus:outline-hidden"
+            className="w-full rounded-2xl bg-[#1c1e28] px-4 py-2.5 text-xs text-white placeholder-neutral-500 focus:outline-hidden focus:ring-1 focus:ring-[#00d68f] transition-all border-0"
           />
           <select
             value={filters.currency}
             onChange={(e) => onChange({ ...filters, currency: e.target.value })}
-            className="rounded-xl border border-border-default bg-surface-raised px-3 py-2 text-xs font-semibold text-text-primary focus:border-[#00a884] focus:outline-hidden cursor-pointer shrink-0"
+            className="rounded-2xl bg-[#1c1e28] px-4 py-2.5 text-xs font-semibold text-white focus:outline-hidden focus:ring-1 focus:ring-[#00d68f] cursor-pointer shrink-0 border-0"
           >
             <option value="EUR">EUR (€)</option>
             <option value="USD">USD ($)</option>
@@ -326,8 +327,8 @@ export function CampaignFeedFilters({
       </div>
 
       {/* 8. Filtre C6 : Nature de rémunération */}
-      <div className="space-y-2.5">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary block">
+      <div className="space-y-3">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 block">
           {t.compensationNature}
         </span>
         <div className="space-y-2">
@@ -336,13 +337,13 @@ export function CampaignFeedFilters({
             return (
               <label
                 key={key}
-                className="flex items-center gap-2 cursor-pointer text-xs text-text-secondary hover:text-text-primary select-none"
+                className="flex items-center gap-2.5 cursor-pointer text-xs text-neutral-300 hover:text-white select-none py-1"
               >
                 <input
                   type="checkbox"
                   checked={active}
                   onChange={() => toggleArrayItem("compensationNatures", key)}
-                  className="h-4 w-4 rounded border-border-default text-emerald-500 focus:ring-emerald-500"
+                  className="h-4 w-4 rounded-md border-0 bg-white/[0.1] text-[#00d68f] focus:ring-[#00d68f]"
                 />
                 <span>{label}</span>
               </label>
@@ -353,29 +354,29 @@ export function CampaignFeedFilters({
 
       {/* 9. Message campagnes dans une autre devise (RG28) */}
       {otherCurrencyCount > 0 && (
-        <div className="rounded-xl border border-border-subtle bg-surface-raised p-3 text-xs text-text-tertiary">
+        <div className="rounded-2xl bg-[#1c1e28] p-3.5 text-xs text-neutral-400">
           ℹ {t.otherCurrencyBanner(otherCurrencyCount)}
         </div>
       )}
 
-      {/* 10. Encart d'assistance Influx façon Conciergerie Malt */}
-      <div className="rounded-xl border border-border-default bg-surface-raised/50 p-4 space-y-2">
-        <div className="flex items-center gap-2 text-emerald-400">
+      {/* 10. Encart d'assistance Influx façon Revolut Concierge */}
+      <div className="rounded-2xl bg-[#1c1e28] p-4 space-y-2">
+        <div className="flex items-center gap-2 text-[#00d68f]">
           <Headphones
             size={16}
             style={{ width: 16, height: 16 }}
             className="shrink-0"
           />
-          <span className="font-bold text-xs text-text-primary">
+          <span className="font-bold text-xs text-white">
             {t.assistanceTitle}
           </span>
         </div>
-        <p className="text-[11px] text-text-tertiary leading-relaxed">
+        <p className="text-[11px] text-neutral-400 leading-relaxed">
           {t.assistanceText}
         </p>
-        <div className="pt-1 flex items-center justify-between text-[11px] text-emerald-400 font-semibold">
+        <div className="pt-1 flex items-center justify-between text-[11px] text-[#00d68f] font-semibold">
           <span>✓ Support 7j/7</span>
-          <span className="text-text-tertiary font-normal">
+          <span className="text-neutral-400 font-normal">
             Réponse &lt; 2h
           </span>
         </div>

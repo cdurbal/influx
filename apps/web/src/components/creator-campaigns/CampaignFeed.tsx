@@ -161,18 +161,18 @@ export function CampaignFeed({ locale }: CampaignFeedProps) {
     <div className="space-y-6">
       {/* Bandeau d'authentification démo si nécessaire */}
       {authNeeded && (
-        <div className="rounded-xl border border-border-default bg-surface-card p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="rounded-3xl bg-[#14151c] p-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
-            <h3 className="font-semibold text-text-primary text-md">
+            <h3 className="font-semibold text-white text-md">
               Accès réservé aux créateurs (RG13)
             </h3>
-            <p className="text-sm text-text-secondary mt-1">{t.loginNotice}</p>
+            <p className="text-sm text-neutral-400 mt-1">{t.loginNotice}</p>
           </div>
           <button
             type="button"
             onClick={handleDemoLogin}
             disabled={demoLoggingIn}
-            className="shrink-0 rounded-lg bg-action-primary-bg px-4 py-2 text-xs font-semibold text-text-on-action transition-colors hover:bg-action-primary-bg-hover cursor-pointer"
+            className="shrink-0 rounded-full bg-[#00d68f] hover:bg-[#00c080] px-5 py-2.5 text-xs font-bold text-neutral-950 transition-colors cursor-pointer"
           >
             {demoLoggingIn ? "Connexion..." : t.demoLoginButton}
           </button>
@@ -194,10 +194,10 @@ export function CampaignFeed({ locale }: CampaignFeedProps) {
 
         {/* Colonne principale avec barre de tri et résultats */}
         <div className="lg:col-span-3 space-y-6">
-          {/* Barre de contrôle supérieure : Décompte (RG35) et Tri (RG33) façon Malt */}
-          <div className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5 bg-surface-card border border-border-default rounded-2xl shadow-sm">
+          {/* Barre de contrôle supérieure : Décompte et Tri façon Revolut sans contour */}
+          <div className="flex flex-wrap items-center justify-between gap-4 p-5 bg-[#14151c] rounded-3xl shadow-xl">
             <div className="flex items-center gap-2.5">
-              <span className="font-bold text-sm text-text-primary">
+              <span className="font-bold text-sm text-white">
                 {feedData ? t.totalCount(feedData.total) : "—"}
               </span>
             </div>
@@ -205,9 +205,9 @@ export function CampaignFeed({ locale }: CampaignFeedProps) {
             <div className="flex items-center gap-2.5 text-xs">
               <label
                 htmlFor="feed-sort"
-                className="font-semibold text-text-secondary flex items-center gap-1.5"
+                className="font-medium text-neutral-400 flex items-center gap-1.5"
               >
-                <ArrowUpDown className="w-3.5 h-3.5 text-text-tertiary" />
+                <ArrowUpDown className="w-3.5 h-3.5 text-neutral-400" />
                 <span>{s.label}</span>
               </label>
               <select
@@ -219,7 +219,7 @@ export function CampaignFeed({ locale }: CampaignFeedProps) {
                     sortBy: e.target.value as "recent" | "deadline",
                   })
                 }
-                className="rounded-xl border border-border-default bg-surface-raised px-3.5 py-2 text-xs font-semibold text-text-primary focus:border-[#00a884] focus:outline-hidden cursor-pointer shadow-xs"
+                className="rounded-2xl bg-[#1c1e28] px-4 py-2 text-xs font-semibold text-white focus:outline-hidden focus:ring-1 focus:ring-[#00d68f] cursor-pointer shadow-xs border-0"
               >
                 <option value="recent">{s.recent}</option>
                 <option value="deadline">{s.deadline}</option>
@@ -228,17 +228,17 @@ export function CampaignFeed({ locale }: CampaignFeedProps) {
           </div>
 
           {loading ? (
-            <div className="rounded-xl border border-border-subtle bg-surface-card p-12 text-center text-text-tertiary">
-              <span className="text-heading-2 block mb-2">⏳</span>
+            <div className="rounded-3xl bg-[#14151c] p-14 text-center text-neutral-400 shadow-xl">
+              <span className="text-2xl block mb-2">⏳</span>
               <p className="text-sm font-medium">{t.loadingText}</p>
             </div>
           ) : error ? (
-            <div className="rounded-xl border border-feedback-error-border bg-feedback-error-bg p-6 text-center text-feedback-error-text">
+            <div className="rounded-3xl bg-red-950/20 p-6 text-center text-red-300">
               <p className="text-sm font-medium">{error}</p>
               <button
                 type="button"
                 onClick={fetchFeed}
-                className="mt-3 rounded-lg border border-feedback-error-border px-3 py-1.5 text-xs font-semibold hover:bg-surface-raised cursor-pointer"
+                className="mt-3 rounded-full bg-[#1c1e28] hover:bg-[#252836] px-4 py-2 text-xs font-semibold text-white cursor-pointer transition-colors"
               >
                 Réessayer
               </button>
@@ -256,18 +256,18 @@ export function CampaignFeed({ locale }: CampaignFeedProps) {
                 ))}
               </div>
 
-              {/* Pagination explicite (RG21, RG36) */}
+              {/* Pagination explicite sans contour */}
               {feedData.totalPages > 1 && (
-                <div className="flex items-center justify-between border-t border-border-subtle pt-6">
+                <div className="flex items-center justify-between pt-6">
                   <button
                     type="button"
                     disabled={page <= 1}
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    className="rounded-lg border border-border-default bg-surface-card px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-raised disabled:opacity-40 cursor-pointer"
+                    className="rounded-full bg-[#14151c] hover:bg-[#1c1e28] px-5 py-2.5 text-xs font-semibold text-neutral-200 transition-colors disabled:opacity-40 cursor-pointer shadow-md"
                   >
                     ← Précédent
                   </button>
-                  <span className="text-xs text-text-tertiary">
+                  <span className="text-xs text-neutral-400 font-medium">
                     Page {feedData.page} sur {feedData.totalPages}
                   </span>
                   <button
@@ -276,7 +276,7 @@ export function CampaignFeed({ locale }: CampaignFeedProps) {
                     onClick={() =>
                       setPage((p) => Math.min(feedData.totalPages, p + 1))
                     }
-                    className="rounded-lg border border-border-default bg-surface-card px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-raised disabled:opacity-40 cursor-pointer"
+                    className="rounded-full bg-[#14151c] hover:bg-[#1c1e28] px-5 py-2.5 text-xs font-semibold text-neutral-200 transition-colors disabled:opacity-40 cursor-pointer shadow-md"
                   >
                     Suivant →
                   </button>
@@ -284,12 +284,12 @@ export function CampaignFeed({ locale }: CampaignFeedProps) {
               )}
             </div>
           ) : (
-            <div className="rounded-xl border border-border-subtle bg-surface-card p-12 text-center">
-              <span className="text-heading-2 block mb-2">🔍</span>
-              <h4 className="font-semibold text-text-primary text-md">
+            <div className="rounded-3xl bg-[#14151c] p-14 text-center shadow-xl">
+              <span className="text-3xl block mb-3">🔍</span>
+              <h4 className="font-bold text-white text-base">
                 {t.emptyTitle}
               </h4>
-              <p className="mt-1 text-xs text-text-tertiary max-w-md mx-auto">
+              <p className="mt-1.5 text-xs text-neutral-400 max-w-md mx-auto leading-relaxed">
                 {t.emptyMessage}
               </p>
               <button
@@ -307,7 +307,7 @@ export function CampaignFeed({ locale }: CampaignFeedProps) {
                     sortBy: "recent",
                   })
                 }
-                className="mt-4 rounded-lg bg-surface-raised border border-border-default px-4 py-2 text-xs font-semibold text-text-primary transition-colors hover:bg-surface-muted cursor-pointer"
+                className="mt-5 rounded-full bg-[#1c1e28] hover:bg-[#252836] px-5 py-2.5 text-xs font-bold text-white transition-all cursor-pointer shadow-md"
               >
                 {t.clearFilters}
               </button>

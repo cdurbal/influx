@@ -8,16 +8,20 @@ import {
   Star,
   Calendar,
   MapPin,
-  Coins,
   Lock,
   CheckCircle2,
   AlertCircle,
+  Sparkles,
 } from "lucide-react";
 import { type CampaignFeedCard as CampaignFeedCardType } from "@influx/contracts";
 import { type CreatorCampaignLabels } from "./creator-campaign-labels";
 import { TwitterVerifiedBadge } from "../search/TwitterVerifiedBadge";
 import { NetworkIconBadge } from "../search/CreatorThemeVisuals";
-import { getCampaignCoverImage } from "./CampaignVisuals";
+import {
+  getCampaignCoverImage,
+  BrandAuditBadge,
+  getSectorFallbackGradient,
+} from "./CampaignVisuals";
 
 interface CampaignFeedCardProps {
   campaign: CampaignFeedCardType;
@@ -32,6 +36,7 @@ export function CampaignFeedCard({
 }: CampaignFeedCardProps) {
   const { card: t } = labels;
   const [isFavorite, setIsFavorite] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const isClosed = campaign.isClosed;
   const detailUrl = `/${locale}/creator/campaigns/${campaign.id}`;
@@ -55,42 +60,54 @@ export function CampaignFeedCard({
 
   return (
     <article
-      className={`group flex flex-col justify-between rounded-2xl border bg-surface-card shadow-sm hover:shadow-xl transition-all duration-200 overflow-hidden relative ${
-        isClosed
-          ? "border-border-subtle bg-surface-muted/40 opacity-80 grayscale-[20%]"
-          : "border-border-default hover:border-border-strong"
+      className={`group flex flex-col justify-between rounded-3xl bg-[#14151c] hover:bg-[#181922] shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden relative ${
+        isClosed ? "opacity-80 grayscale-[25%]" : ""
       }`}
     >
-      {/* 1. Photo de couverture normalisée avec hauteur fixe stricte (190px) */}
+      {/* 1. Header visuel Revolut (170px) sans aucun contour blanc */}
       <div
-        style={{ height: 190, minHeight: 190, maxHeight: 190 }}
-        className="relative w-full overflow-hidden bg-neutral-900 select-none shrink-0"
+        style={{ height: 170, minHeight: 170, maxHeight: 170 }}
+        className="relative w-full overflow-hidden bg-[#101117] select-none shrink-0"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={coverUrl}
-          alt={campaign.title}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            objectPosition: "center",
-          }}
-          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
-        />
+        {!imageError ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={coverUrl}
+            alt={campaign.title}
+            onError={() => setImageError(true)}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              objectPosition: "center",
+            }}
+            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
+          />
+        ) : (
+          <div
+            className={`w-full h-full bg-gradient-to-br ${getSectorFallbackGradient(campaign.brandSector)} flex items-center justify-center relative overflow-hidden`}
+          >
+            <div className="flex flex-col items-center gap-1.5 z-0 text-white/30">
+              <Sparkles className="w-8 h-8 stroke-[1.5]" />
+              <span className="text-[11px] font-semibold tracking-wider uppercase text-white/40">
+                {campaign.brandSector || "Campagne"}
+              </span>
+            </div>
+          </div>
+        )}
 
-        {/* Gradient subtil pour la lisibilité des badges */}
-        <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/70 via-transparent to-neutral-950/40 pointer-events-none" />
+        {/* Dégradé doux progressif vers le fond de carte #14151c */}
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#14151c] via-[#14151c]/60 to-transparent pointer-events-none" />
 
-        {/* Overlay haut gauche : Badge statut façon Malt exact */}
-        <div className="absolute top-3 left-3 z-10">
+        {/* Overlay haut gauche : Statut d'ouverture avec verre dépoli sans contour blanc */}
+        <div className="absolute top-3.5 left-3.5 z-10">
           {isClosed ? (
             <div
-              style={{ backdropFilter: "blur(8px)" }}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-950/85 text-neutral-300 border border-neutral-700/80 shadow-md text-xs font-semibold"
+              style={{ backdropFilter: "blur(16px)" }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/60 text-neutral-300 shadow-md text-xs font-medium"
             >
               <Lock
-                style={{ width: 13, height: 13, minWidth: 13 }}
+                style={{ width: 13, height: 13 }}
                 className="text-neutral-400 shrink-0"
               />
               <span>
@@ -103,12 +120,12 @@ export function CampaignFeedCard({
             </div>
           ) : campaign.hasApplied ? (
             <div
-              style={{ backdropFilter: "blur(8px)" }}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 shadow-md text-xs font-semibold"
+              style={{ backdropFilter: "blur(16px)" }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#00d68f]/20 text-[#00d68f] shadow-md text-xs font-semibold"
             >
               <CheckCircle2
-                style={{ width: 13, height: 13, minWidth: 13 }}
-                className="text-emerald-400 shrink-0"
+                style={{ width: 13, height: 13 }}
+                className="shrink-0"
               />
               <span>
                 {campaign.appliedAt
@@ -120,24 +137,24 @@ export function CampaignFeedCard({
             </div>
           ) : (
             <div
-              style={{ backdropFilter: "blur(8px)" }}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-950/85 text-white border border-neutral-700/80 shadow-md text-xs font-semibold"
+              style={{ backdropFilter: "blur(16px)" }}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/60 text-white shadow-md text-xs font-semibold"
             >
               <span
-                style={{ width: 8, height: 8, minWidth: 8, minHeight: 8 }}
-                className="rounded-full bg-emerald-500 animate-pulse shrink-0"
+                style={{ width: 7, height: 7 }}
+                className="rounded-full bg-[#00d68f] animate-pulse shrink-0"
               />
               <span>{t.openApplications}</span>
             </div>
           )}
         </div>
 
-        {/* Overlay haut droit : Badge Audience vérifiée & Bouton favori */}
-        <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+        {/* Overlay haut droit : Badge Audience vérifiée & Wishlist sans contour */}
+        <div className="absolute top-3.5 right-3.5 z-10 flex items-center gap-2">
           {campaign.verifiedOnly && (
             <div
-              style={{ backdropFilter: "blur(8px)" }}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/25 text-amber-300 border border-amber-500/40 text-[11px] font-semibold"
+              style={{ backdropFilter: "blur(16px)" }}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-semibold shadow-md"
             >
               <span>★</span>
               <span>{t.verifiedOnlyBadge}</span>
@@ -153,29 +170,27 @@ export function CampaignFeedCard({
             title={t.shortlistButton}
             aria-label={t.shortlistButton}
             style={{
-              width: 32,
-              height: 32,
-              minWidth: 32,
-              minHeight: 32,
-              backdropFilter: "blur(8px)",
+              width: 34,
+              height: 34,
+              backdropFilter: "blur(16px)",
             }}
-            className="rounded-full bg-neutral-950/85 border border-neutral-700/80 flex items-center justify-center text-neutral-300 hover:text-amber-400 transition-colors shadow-sm cursor-pointer"
+            className="rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-neutral-300 hover:text-amber-400 transition-colors shadow-md cursor-pointer"
           >
             <Star
               style={{ width: 15, height: 15 }}
-              className={isFavorite ? "fill-current text-amber-400" : ""}
+              className={`transition-colors ${isFavorite ? "fill-amber-400 text-amber-400" : ""}`}
             />
           </button>
         </div>
       </div>
 
-      {/* 2. Corps de la carte : informations structurées sans superposition */}
-      <div className="p-5 flex flex-col flex-1 gap-3.5">
-        {/* En-tête marque : Logo (42px) + Nom marque + Badge Twitter + Rubans + Secteur */}
-        <div className="flex items-center gap-3">
+      {/* 2. Corps de la carte : Aération totale & Surfaces Revolut sans contour */}
+      <div className="p-6 flex flex-col flex-1 gap-4">
+        {/* En-tête Marque : Avatar Squircle (46px) + Nom blanc pur + Badges discrets + Secteur */}
+        <div className="flex items-center gap-3.5">
           <div
-            style={{ width: 42, height: 42, minWidth: 42, minHeight: 42 }}
-            className="rounded-xl border border-border-default bg-surface-raised shadow-xs flex items-center justify-center font-bold text-xs text-text-primary overflow-hidden shrink-0"
+            style={{ width: 46, height: 46, minWidth: 46, minHeight: 46 }}
+            className="rounded-2xl bg-[#1c1e28] shadow-sm flex items-center justify-center font-bold text-sm text-white overflow-hidden shrink-0"
           >
             {campaign.brandLogoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -185,15 +200,15 @@ export function CampaignFeedCard({
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
             ) : (
-              <span className="tracking-wider text-text-primary">
+              <span className="tracking-wider text-white">
                 {campaign.brandName.slice(0, 2).toUpperCase()}
               </span>
             )}
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-bold text-sm text-[#ff4d4d] tracking-tight truncate">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-base text-white tracking-tight leading-snug truncate hover:text-neutral-200 transition-colors">
                 {campaign.brandName}
               </span>
 
@@ -211,15 +226,10 @@ export function CampaignFeedCard({
                 />
               )}
 
-              <span
-                className="text-xs select-none shrink-0"
-                title="Marque auditée par INFLUX"
-              >
-                {"🎗️🎗️🎗️"}
-              </span>
+              <BrandAuditBadge />
             </div>
 
-            <p className="text-xs text-text-tertiary truncate mt-0.5">
+            <p className="text-xs text-neutral-400 font-medium truncate mt-0.5">
               {campaign.brandSector}
               {campaign.brandCompanySize
                 ? ` · ${campaign.brandCompanySize}`
@@ -228,45 +238,45 @@ export function CampaignFeedCard({
           </div>
         </div>
 
-        {/* Titre de la campagne percutant */}
+        {/* Titre percutant de la mission */}
         <Link
           href={detailUrl}
-          className="group/title block text-text-primary transition-colors hover:text-text-brand"
+          className="group/title block text-white hover:text-neutral-200 transition-colors"
         >
-          <h3 className="font-bold text-base leading-snug line-clamp-2">
+          <h3 className="font-bold text-lg leading-snug line-clamp-2">
             {campaign.title}
           </h3>
         </Link>
 
-        {/* Thématiques hashtags */}
+        {/* Thématiques en soft pills Revolut (sans aucun contour) */}
         <div className="flex flex-wrap gap-1.5">
           {campaign.targetTopics.map((topic) => (
             <span
               key={topic}
-              className="rounded-full bg-surface-raised border border-border-subtle px-2.5 py-0.5 text-[11px] font-medium text-text-secondary"
+              className="rounded-full bg-white/[0.05] hover:bg-white/[0.08] px-3 py-1 text-xs font-medium text-neutral-300 transition-colors"
             >
               #{topic}
             </span>
           ))}
         </div>
 
-        {/* Livrables attendus en pills élégants */}
-        <div className="rounded-xl bg-surface-raised/70 border border-border-subtle p-3">
-          <span className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider block mb-2">
+        {/* Livrables attendus : Cartouche Revolut teinté #1c1e28 sans contour */}
+        <div className="rounded-2xl bg-[#1c1e28] p-4 space-y-2.5">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 block">
             {t.deliverablesTitle}
           </span>
           <div className="flex flex-wrap gap-2">
             {campaign.deliverables.map((del, idx) => (
               <span
                 key={`${del.network}-${del.format}-${idx}`}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-surface-card border border-border-subtle px-2.5 py-1 text-xs text-text-secondary"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#252836] px-3 py-1.5 text-xs text-neutral-200 shadow-xs"
               >
                 <NetworkIconBadge
                   network={del.network}
-                  size={15}
+                  size={14}
                   className="shrink-0"
                 />
-                <span className="text-text-primary font-semibold capitalize whitespace-nowrap">
+                <span className="text-white font-medium capitalize whitespace-nowrap">
                   {del.quantity}x {del.format.replace(/_/g, " ")}
                 </span>
               </span>
@@ -274,108 +284,101 @@ export function CampaignFeedCard({
           </div>
         </div>
 
-        {/* Métriques financières & calendrier façon Malt */}
-        <div className="space-y-2 pt-1">
-          {/* Bloc Net créateur façon TJM Malt mis en avant */}
-          <div className="rounded-xl bg-emerald-950/20 border border-emerald-500/20 p-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div
-                style={{ width: 32, height: 32, minWidth: 32, minHeight: 32 }}
-                className="rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-400 shrink-0"
-              >
-                <Coins style={{ width: 16, height: 16 }} />
-              </div>
-              <div className="min-w-0">
-                <span className="text-[10px] uppercase font-bold text-emerald-400 block tracking-wider">
-                  {t.estimatedNetLabel}
-                </span>
-                <span className="font-extrabold text-sm text-[#00a884] dark:text-emerald-400 truncate block">
-                  {campaign.estimatedNet
-                    ? campaign.estimatedNet.formattedLabel
-                    : formatCompensation()}
-                </span>
-              </div>
-            </div>
-
-            {campaign.estimatedNet && (
-              <div className="text-right shrink-0">
-                <span className="text-[10px] text-text-tertiary block">
-                  Budget marque
-                </span>
-                <span className="text-xs font-semibold text-text-secondary block">
-                  {formatCompensation()}
-                </span>
-              </div>
-            )}
+        {/* LE BLOC FINANCIER HÉROÏQUE REVOLUT (Signature Money Display - Sans aucun contour) */}
+        <div className="rounded-2xl bg-[#1c1e28] p-5 flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] uppercase font-semibold text-neutral-400 tracking-wider">
+              {t.estimatedNetLabel}
+            </span>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#00d68f]/15 text-[#00d68f]">
+              NET CRÉATEUR
+            </span>
           </div>
 
-          {/* Ligne date limite & localisation */}
-          <div className="flex items-center justify-between text-xs text-text-tertiary px-1 pt-1">
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Calendar
-                style={{ width: 14, height: 14 }}
-                className="text-text-tertiary shrink-0"
-              />
-              <span>
-                {t.deadlineLabel}{" "}
-                <strong className="text-text-secondary">
-                  {new Date(campaign.applicationDeadline).toLocaleDateString(
-                    locale,
-                  )}
-                </strong>
-              </span>
-            </div>
+          <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight font-sans">
+            {campaign.estimatedNet
+              ? campaign.estimatedNet.formattedLabel
+              : formatCompensation()}
+          </div>
 
-            <div className="flex items-center gap-1.5 shrink-0">
-              <MapPin
-                style={{ width: 14, height: 14 }}
-                className="text-text-tertiary shrink-0"
-              />
-              <span className="font-medium text-text-secondary">
-                {campaign.targetCountries.join(", ") || "France"}
+          {campaign.estimatedNet && (
+            <div className="text-xs text-neutral-400 pt-0.5">
+              Budget marque :{" "}
+              <span className="text-neutral-300 font-medium">
+                {formatCompensation()}
               </span>
             </div>
+          )}
+        </div>
+
+        {/* Ligne date limite & localisation avec icônes fines et aération */}
+        <div className="flex items-center justify-between text-xs text-neutral-400 px-1 pt-1">
+          <div className="flex items-center gap-2 shrink-0">
+            <Calendar
+              style={{ width: 14, height: 14 }}
+              className="text-neutral-400 shrink-0"
+            />
+            <span>
+              {t.deadlineLabel}{" "}
+              <strong className="text-neutral-200 font-semibold">
+                {new Date(campaign.applicationDeadline).toLocaleDateString(
+                  locale,
+                )}
+              </strong>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <MapPin
+              style={{ width: 14, height: 14 }}
+              className="text-neutral-400 shrink-0"
+            />
+            <span className="font-medium text-neutral-200">
+              {campaign.targetCountries.join(", ") || "France"}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* 3. Pied de carte & Boutons d'Action (RG46) */}
-      <div className="p-5 pt-0 mt-auto space-y-3">
+      {/* 3. Pied de carte & Boutons Revolut sans aucun contour blanc */}
+      <div className="p-6 pt-0 mt-auto space-y-3.5">
+        {/* Bannière d'avertissement aérée (rectangulaire doux, fond teinté sans bordure blanche) */}
         {campaign.ineligibilityReasons.length > 0 && !campaign.hasApplied && (
-          <div className="flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/30 p-2.5 text-xs text-amber-300">
+          <div className="rounded-2xl bg-amber-950/30 p-4 flex items-center gap-3 text-xs text-amber-300">
             <AlertCircle
-              style={{ width: 15, height: 15, minWidth: 15 }}
+              style={{ width: 16, height: 16, minWidth: 16 }}
               className="shrink-0 text-amber-400"
             />
-            <span className="leading-snug">
+            <span className="leading-relaxed font-medium">
               {campaign.ineligibilityReasons[0]}
             </span>
           </div>
         )}
 
+        {/* Boutons d'Action pleins Revolut : Hauteur confortable (48px), padding généreux, zéro contour blanc */}
         <div className="flex items-center gap-3">
           <Link
             href={detailUrl}
-            style={{ minHeight: 38 }}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-border-default bg-surface-raised/40 hover:bg-surface-raised px-3 py-2 text-center text-xs font-semibold text-text-primary transition-all hover:border-border-strong shadow-xs"
+            style={{ minHeight: 48 }}
+            className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-[#252836] hover:bg-[#2e3244] px-6 py-3.5 text-center text-sm font-semibold text-white transition-all active:scale-[0.98] cursor-pointer"
           >
-            <Eye style={{ width: 14, height: 14 }} />
+            <Eye style={{ width: 16, height: 16 }} />
             <span>{t.viewBriefButton}</span>
           </Link>
 
           {campaign.canApply ? (
             <Link
               href={detailUrl}
-              style={{ minHeight: 38 }}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#00a884] hover:bg-[#008f6f] px-3 py-2 text-center text-xs font-bold text-white transition-all shadow-sm hover:shadow-md cursor-pointer"
+              style={{ minHeight: 48 }}
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-[#00d68f] hover:bg-[#00c080] active:bg-[#00ab72] px-6 py-3.5 text-center text-sm font-bold text-neutral-950 transition-all shadow-lg active:scale-[0.98] cursor-pointer"
             >
-              <Send style={{ width: 14, height: 14 }} />
+              <Send style={{ width: 16, height: 16 }} />
               <span>{t.applyButton}</span>
             </Link>
           ) : (
             <span
-              style={{ minHeight: 38 }}
-              className="flex-1 inline-flex items-center justify-center rounded-xl bg-surface-raised/40 border border-border-subtle px-3 py-2 text-center text-xs font-medium text-text-disabled cursor-not-allowed"
+              style={{ minHeight: 48 }}
+              className="flex-1 inline-flex items-center justify-center rounded-full bg-[#1c1e28] px-6 py-3.5 text-center text-sm font-medium text-neutral-500 cursor-not-allowed"
             >
               {t.cannotApply}
             </span>
