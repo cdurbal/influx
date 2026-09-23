@@ -98,6 +98,35 @@ export interface CreatorCampaignLabels {
     notFoundTitle: string;
     notFoundMessage: string;
   };
+  applicationModal: {
+    title: string;
+    subtitle: string;
+    brandLabel: string;
+    deliverablesSectionTitle: string;
+    deliverablesSectionHelp: string;
+    messageSectionTitle: string;
+    messageSectionHelp: string;
+    messagePlaceholder: string;
+    messageMinLength: string;
+    antiBypassNoticeTitle: string;
+    antiBypassNoticeText: string;
+    termsLabel: string;
+    cancelButton: string;
+    submitButton: string;
+    submittingButton: string;
+    successTitle: string;
+    successSubtitle: string;
+    referenceLabel: (ref: string) => string;
+    slaNotice: string;
+    closeButton: string;
+    alreadyAppliedTitle: string;
+    alreadyAppliedText: (date: string, ref: string) => string;
+    alreadyAppliedButton: string;
+    errorPrefix: string;
+    loginRequiredTitle: string;
+    loginRequiredText: string;
+    loginButton: string;
+  };
 }
 
 export const LABELS_FR: CreatorCampaignLabels = {
@@ -220,6 +249,45 @@ export const LABELS_FR: CreatorCampaignLabels = {
     notFoundMessage:
       "Cette campagne n'est plus ouverte ou n'est pas accessible avec votre profil.",
   },
+  applicationModal: {
+    title: "Candidater à cette campagne",
+    subtitle:
+      "Votre candidature sera examinée par un commercial INFLUX sous 1 jour ouvré avant d'être présentée à la marque.",
+    brandLabel: "Marque :",
+    deliverablesSectionTitle: "Formats proposés",
+    deliverablesSectionHelp:
+      "Sélectionnez le ou les livrables que vous proposez de réaliser pour cette campagne :",
+    messageSectionTitle: "Note de candidature & proposition éditoriale",
+    messageSectionHelp:
+      "Expliquez votre angle, votre idée de contenu et en quoi votre communauté correspond à ce brief.",
+    messagePlaceholder:
+      "Décrivez ici votre proposition de concept, votre angle éditorial et la résonance attendue avec votre audience (min. 10 caractères)...",
+    messageMinLength: "10 caractères minimum requis.",
+    antiBypassNoticeTitle: "Rappel d'intermédiation & anti-contournement (A9)",
+    antiBypassNoticeText:
+      "Pour protéger la mise en relation et votre rémunération, ne mentionnez aucune coordonnée directe (e-mail, téléphone, lien de contact direct). Tout échange contractuel passe par l'équipe INFLUX.",
+    termsLabel:
+      "J'accepte les conditions d'intermédiation INFLUX et m'engage à respecter le cadre de la plateforme.",
+    cancelButton: "Annuler",
+    submitButton: "Envoyer ma candidature",
+    submittingButton: "Envoi de la candidature...",
+    successTitle: "Candidature envoyée avec succès !",
+    successSubtitle:
+      "Votre candidature a été prise en compte et ajoutée à la file de traitement de l'équipe commerciale.",
+    referenceLabel: (ref) => `Référence : ${ref}`,
+    slaNotice:
+      "Délai d'étude : sous 1 jour ouvré. Vous serez notifié par e-mail et dans votre espace dès que le commercial aura statué.",
+    closeButton: "Fermer",
+    alreadyAppliedTitle: "Candidature déjà déposée",
+    alreadyAppliedText: (date, ref) =>
+      `Vous avez candidaté à cette campagne le ${date} (Réf: ${ref}).`,
+    alreadyAppliedButton: "Candidature déjà envoyée",
+    errorPrefix: "Erreur lors de l'envoi de la candidature :",
+    loginRequiredTitle: "Connexion créateur requise",
+    loginRequiredText:
+      "Vous devez être connecté avec un compte créateur pour postuler à cette campagne.",
+    loginButton: "Se connecter en tant que créateur",
+  },
 };
 
 export const LABELS_EN: CreatorCampaignLabels = {
@@ -339,6 +407,45 @@ export const LABELS_EN: CreatorCampaignLabels = {
     notFoundTitle: "Campaign not found",
     notFoundMessage:
       "This campaign is no longer open or is not accessible with your profile.",
+  },
+  applicationModal: {
+    title: "Apply to this campaign",
+    subtitle:
+      "Your application will be reviewed by an INFLUX sales agent within 1 business day before being submitted to the brand.",
+    brandLabel: "Brand:",
+    deliverablesSectionTitle: "Proposed formats",
+    deliverablesSectionHelp:
+      "Select the deliverable(s) you propose to produce for this campaign:",
+    messageSectionTitle: "Application note & editorial proposal",
+    messageSectionHelp:
+      "Explain your creative angle, content idea, and why your audience matches this brief.",
+    messagePlaceholder:
+      "Describe your concept proposal, editorial angle, and expected audience impact (min. 10 characters)...",
+    messageMinLength: "10 characters minimum required.",
+    antiBypassNoticeTitle: "Intermediation & Anti-circumvention Reminder (A9)",
+    antiBypassNoticeText:
+      "To protect the introduction and your compensation, do not share any direct contact details (email, phone, direct messaging). All contractual negotiations go through the INFLUX team.",
+    termsLabel:
+      "I accept the INFLUX intermediation terms and agree to abide by the platform rules.",
+    cancelButton: "Cancel",
+    submitButton: "Submit my application",
+    submittingButton: "Submitting application...",
+    successTitle: "Application submitted successfully!",
+    successSubtitle:
+      "Your application has been received and added to the sales queue for review.",
+    referenceLabel: (ref) => `Reference: ${ref}`,
+    slaNotice:
+      "Review SLA: within 1 business day. You will be notified by email and in your member space once the agent has reviewed it.",
+    closeButton: "Close",
+    alreadyAppliedTitle: "Application already submitted",
+    alreadyAppliedText: (date, ref) =>
+      `You applied to this campaign on ${date} (Ref: ${ref}).`,
+    alreadyAppliedButton: "Application already sent",
+    errorPrefix: "Error submitting application:",
+    loginRequiredTitle: "Creator login required",
+    loginRequiredText:
+      "You must be logged in as a creator to apply to this campaign.",
+    loginButton: "Log in as a creator",
   },
 };
 

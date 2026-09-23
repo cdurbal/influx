@@ -25,7 +25,7 @@
 > 2. Toute modification, ajout ou réorganisation de phase décidée avec le fondateur.
 > 3. Tout arbitrage technique impactant les fichiers ou commandes de validation d'une mission.
 
-> **État d'avancement au 22/09/2026 :** 31 micro-phases validées (Lots 0 à 5 terminés ✅).
+> **État d'avancement au 23/09/2026 :** 32 micro-phases validées (Lots 0 à 5 terminés ✅, Mission 3.8 terminée ✅).
 > Prochaine étape prioritaire : **Mission 6.1 (Suite de tests d'intégration E2E automatisée)**.
 
 ---
@@ -60,6 +60,7 @@
 |                              | `3.5` | Écran Marque : recherche créateurs & cartes anonymes  | `apps/web`                | ✅ Terminé |
 |                              | `3.6` | Écran Backoffice : recherche créateurs identifiée     | `apps/backoffice`         | ✅ Terminé |
 |                              | `3.7` | Écran Créateur : consultation des campagnes           | `apps/web`                | ✅ Terminé |
+|                              | `3.8` | Écran Créateur : formulaire & modale de candidature   | `apps/web`                | ✅ Terminé |
 | **4. Intermédiation & Chat** | `4.1` | Service des 3 Déclencheurs de mise en relation        | `apps/api`                | ✅ Terminé |
 |                              | `4.2` | File de validation commerciale & verrou d'agent       | `apps/api` & `backoffice` | ✅ Terminé |
 |                              | `4.3` | Transaction atomique de révélation d'identité         | `apps/api`                | ✅ Terminé |
@@ -547,11 +548,36 @@
 - **Contexte minimal à lire :** [docs/mvp/11-recherche-campagnes-et-candidature.md](file:///c:/Users/cdurb/Documents/Workspaces/influx/docs/mvp/11-recherche-campagnes-et-candidature.md)
 - **Fichiers à modifier / créer :**
   - `[NEW]` `apps/web/src/app/[locale]/creator/campaigns/page.tsx`
-  - `[NEW]` `apps/web/src/components/campaign/CampaignCard.tsx`
-  - `[NEW]` `apps/web/src/components/campaign/ApplicationModal.tsx`
+  - `[NEW]` `apps/web/src/app/[locale]/creator/campaigns/[id]/page.tsx`
+  - `[NEW]` `apps/web/src/components/creator-campaigns/CampaignFeed.tsx`
+  - `[NEW]` `apps/web/src/components/creator-campaigns/CampaignFeedCard.tsx`
+  - `[NEW]` `apps/web/src/components/creator-campaigns/CampaignDetailView.tsx`
 - **Spécification :**
-  - Liste des campagnes ouvertes compatibles avec les thématiques du créateur.
-  - Modale de candidature avec saisie de la note de motivation et sélection des formats proposés.
+  - Fil des campagnes ouvertes compatibles avec les thématiques et critères du créateur.
+  - Page détaillée de consultation du brief complet, avec livrables, calendrier et avertissements.
+- **Commande de validation (DoD) :**
+  ```bash
+  pnpm --filter @influx/web typecheck
+  ```
+
+---
+
+#### [x] Mission 3.8 : Écran Créateur : formulaire & modale de candidature `[✅ TERMINÉ]`
+
+- **Rôle IA :** `frontend-dev`
+- **Contexte minimal à lire :** [docs/mvp/11-recherche-campagnes-et-candidature.md](file:///c:/Users/cdurb/Documents/Workspaces/influx/docs/mvp/11-recherche-campagnes-et-candidature.md) §E, §RG45 à RG58, et [docs/mvp/01-intermediation-courtee.md](file:///c:/Users/cdurb/Documents/Workspaces/influx/docs/mvp/01-intermediation-courtee.md) §4 (Déclencheur 2)
+- **Fichiers à modifier / créer :**
+  - `[MODIFY]` `apps/web/src/components/creator-campaigns/creator-campaign-labels.ts`
+  - `[NEW]` `apps/web/src/components/creator-campaigns/ApplicationModal.tsx`
+  - `[MODIFY]` `apps/web/src/components/creator-campaigns/CampaignDetailView.tsx`
+- **Spécification :**
+  - Modale interactive de candidature créateur accessible depuis la vue détaillée d'une campagne.
+  - Sélection des formats proposés (cases à cocher issues de `campaign.deliverables`).
+  - Saisie de la note de motivation & proposition éditoriale (10 à 2 000 caractères, compteur en direct).
+  - Avertissement d'intermédiation & anti-contournement (Arbitrage A9).
+  - Case à cocher obligatoire d'acceptation des conditions d'intermédiation (`termsAccepted = true`).
+  - Soumission vers `POST /api/introductions/creator-apply` avec gestion du chargement, des erreurs et écran de confirmation avec référence `MER-2026-XXXXXX` et rappel SLA 1 jour ouvré.
+  - Détection automatique au montage de la campagne si le créateur a déjà postulé (`GET /api/introductions/my`) et bascule de l'interface en mode « Candidature déjà déposée ».
 - **Commande de validation (DoD) :**
   ```bash
   pnpm --filter @influx/web typecheck

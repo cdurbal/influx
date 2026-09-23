@@ -2,7 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { type CampaignPublicCreatorView } from "@influx/contracts";
+import {
+  type CampaignPublicCreatorView,
+  type Introduction,
+} from "@influx/contracts";
+import { ApplicationModal } from "./ApplicationModal";
 import {
   getCreatorCampaignLabels,
   type CreatorCampaignLabels,
@@ -25,6 +29,8 @@ export function CampaignDetailView({
   );
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isApplyModalOpen, setIsApplyModalOpen] = useState<boolean>(false);
+  const [appliedIntro, setAppliedIntro] = useState<Introduction | null>(null);
 
   useEffect(() => {
     async function loadCampaign() {
@@ -41,6 +47,27 @@ export function CampaignDetailView({
         }
         const data = await res.json();
         setCampaign(data.campaign);
+
+        // Vérifier si le créateur a déjà postulé à cette campagne
+        try {
+          const introRes = await fetch("/api/introductions/my", {
+            credentials: "include",
+          });
+          if (introRes.ok) {
+            const intros: Introduction[] = await introRes.json();
+            const existing = intros.find(
+              (i) =>
+                i.campaignId === campaignId &&
+                i.origin === "creator_application" &&
+                i.status !== "withdrawn",
+            );
+            if (existing) {
+              setAppliedIntro(existing);
+            }
+          }
+        } catch {
+          // Silencieux si non authentifié ou erreur réseau
+        }
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Erreur de chargement");
       } finally {
@@ -398,7 +425,36 @@ export function CampaignDetailView({
 
           {/* Bloc d'action / Candidature (C6, C7) */}
           <section className="rounded-xl border border-brand-subtle-border bg-brand-subtle-bg p-5 space-y-3 text-center">
-            {campaign.isApplicationsClosed ? (
+            {appliedIntro ? (
+              <div className="space-y-3 text-center">
+                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-feedback-success-bg border border-feedback-success-border text-feedback-success-text text-lg font-bold">
+                  ✓
+                </div>
+                <div className="space-y-1">
+                  <h4 className="font-bold text-text-primary text-sm">
+                    {labels.applicationModal.alreadyAppliedTitle}
+                  </h4>
+                  <p className="text-xs text-text-secondary leading-normal">
+                    {labels.applicationModal.alreadyAppliedText(
+                      new Date(appliedIntro.createdAt).toLocaleDateString(
+                        locale,
+                      ),
+                      appliedIntro.reference,
+                    )}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-surface-card border border-border-subtle p-2.5 text-[11px] text-text-tertiary">
+                  ⏱ {labels.applicationModal.slaNotice}
+                </div>
+                <button
+                  type="button"
+                  disabled
+                  className="w-full mt-1 rounded-lg bg-surface-raised border border-border-default px-4 py-2.5 text-xs font-semibold text-text-tertiary cursor-not-allowed"
+                >
+                  {labels.applicationModal.alreadyAppliedButton}
+                </button>
+              </div>
+            ) : campaign.isApplicationsClosed ? (
               <div className="text-text-tertiary text-xs">
                 <span className="text-heading-3 block mb-1">🔒</span>
                 <p className="font-semibold">{t.closedBanner}</p>
@@ -413,12 +469,8 @@ export function CampaignDetailView({
                 </p>
                 <button
                   type="button"
-                  onClick={() => {
-                    alert(
-                      "Le formulaire de candidature sera disponible dans la Mission 3.8 !",
-                    );
-                  }}
-                  className="w-full mt-2 rounded-lg bg-action-primary-bg px-4 py-2.5 text-xs font-semibold text-text-on-action hover:bg-action-primary-bg-hover shadow-sm cursor-pointer"
+                  onClick={() => setIsApplyModalOpen(true)}
+                  className="w-full mt-2 rounded-lg bg-action-primary-bg px-4 py-2.5 text-xs font-semibold text-text-on-action hover:bg-action-primary-bg-hover shadow-sm cursor-pointer transition-all"
                 >
                   {t.applyButton}
                 </button>
@@ -444,6 +496,19 @@ export function CampaignDetailView({
           )}
         </div>
       </div>
+
+      {/* Modale de candidature (Mission 3.8) */}
+      {campaign && (
+        <ApplicationModal
+          campaign={campaign}
+          locale={locale}
+          isOpen={isApplyModalOpen}
+          onClose={() => setIsApplyModalOpen(false)}
+          onSuccess={(intro) => {
+            setAppliedIntro(intro);
+          }}
+        />
+      )}
     </div>
   );
 }
