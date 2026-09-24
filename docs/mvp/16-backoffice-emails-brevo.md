@@ -520,6 +520,11 @@ créé — surtout pas un contact.
 
 ### E — Source 3 : la saisie libre, unitaire
 
+> **Ajout du 2026-09-24 (D54).** L'**e-mail d'invitation nominative** qu'un commercial envoie à une
+> personne de son réseau (`05` RG116 à RG119) est un envoi de cette source : mêmes plafonds, même
+> liste de pays validés, même lien de désinscription, même journalisation. Il utilise un **modèle
+> dédié** portant le code d'invitation, et part du sous-domaine de prospection (RG9).
+>
 > **C'est le point du document où le risque juridique est le plus élevé et le volume le plus
 > faible.** Tout y est calibré pour que la prospection reste un geste commercial individuel,
 > réfléchi et traçable — et ne puisse jamais devenir une campagne déguisée.

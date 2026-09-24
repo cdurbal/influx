@@ -1,5 +1,20 @@
 # Fiche d'écarts — implémentation en cours vs spécifications
 
+> **⚠️ Portée révisée le 2026-09-24 (D44, `CLAUDE.md` §16).** Le code audité ici est, **hors landing
+> page**, une **maquette jetable** qui n'ira jamais en production. Cette fiche n'est donc plus une
+> liste de corrections à apporter à un futur produit : le produit réel sera écrit à partir des
+> spécifications. Elle reste utile pour deux choses seulement : **(1)** la sécurité de la maquette
+> quand elle est montrée (A1, A4 : voir **D56**) ; **(2)** les écarts qui **faussent la vision**
+> présentée aux partenaires (M4 et le taux affiché : voir **D48** ; badge et écrans manquants : voir
+> `implementation_plan.md`, section « Écarts connus »).
+>
+> **État au 2026-09-24 :** A1b fait (variable renommée `SESSION_COOKIE_SECRET`) ; **A1 non fait**
+> (une valeur de repli en dur subsiste, `apps/api/src/server.ts`) ; A5 fait (`.env.example` présent) ;
+> M4 partiel (la constante a disparu, mais « 35 % » reste écrit en dur dans quatre fichiers de
+> libellés) ; B-E1 / B-E2 aggravés (le backoffice a reçu sa propre palette « Dark Obsidian », sans
+> les tokens). Pour la landing page, seule partie conservée, les règles de `CLAUDE.md` s'appliquent
+> pleinement.
+
 > **Date :** 2026-09-19 · **Établie par :** `chef-de-projet`, à partir de trois audits en **lecture seule**
 > (`integrateur` sur les variables d'environnement, `expert-ux` sur `apps/web` et sur `apps/backoffice`).
 > **À qui elle s'adresse :** l'outil ou la personne qui écrit le code (`apps/`, `packages/`).

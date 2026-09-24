@@ -87,14 +87,14 @@ export async function SiteFooter({ contactEmail }: SiteFooterProps) {
                 aria-hidden="true"
                 className="size-(--size-icon-sm) shrink-0"
               />
-              {t("footer.trust.contract")}
+              {t("footer.trust.validated")}
             </li>
             <li className="flex items-center gap-2">
               <LockIcon
                 aria-hidden="true"
                 className="size-(--size-icon-sm) shrink-0"
               />
-              {t("footer.trust.payment")}
+              {t("footer.trust.privacy")}
             </li>
           </ul>
         </div>

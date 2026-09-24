@@ -317,6 +317,13 @@ déclaration de la marque et fausserait tout rapprochement futur.
 > marque restent publics ; **l'e-mail et le téléphone de l'interlocuteur ne sont visibles qu'après
 > l'ouverture de la mise en relation**, exactement comme les réseaux d'un créateur. Ce document
 > applique cette décision, il ne la rediscute pas.
+>
+> **Précisée le 2026-09-24 par D46 (arbitrage du fondateur) : l'identité, jamais les coordonnées.**
+> À l'ouverture, le créateur voit le **prénom** et la **fonction** de l'interlocuteur ; **l'e-mail,
+> le téléphone et la page de contact ne sont jamais montrés à un membre**, ni avant ni après la
+> révélation. Ils restent réservés aux rôles internes (RG37), qui envoient eux-mêmes le contrat.
+> RG35, RG38, RG40 à RG42, CA10 et les cas limites ci-dessous sont corrigés en conséquence ; en cas
+> de doute, `12` RG29 fait foi.
 
 **RG35** — Le bloc « votre interlocuteur » comporte **exactement** ces champs :
 
@@ -324,9 +331,9 @@ déclaration de la marque et fausserait tout rapprochement futur.
 |---|---|---|---|---|
 | Fonction | **Oui** | **Publique** | Liste fermée : dirigeant · marketing · partenariats et influence · communication · e-commerce · achats · agence mandatée | Tout créateur, dans les deux contextes de RG73 |
 | Prénom | Non | **Masquée** | Texte, ≤ 40 caractères | INFLUX en permanence ; le créateur après révélation |
-| Adresse e-mail professionnelle | Non (par défaut : l'adresse de connexion) | **Masquée** | Adresse e-mail | Idem |
-| Téléphone | Non (fortement incité) | **Masquée** | Indicatif pays + numéro | Idem |
-| Page de contact | Non | **Masquée** | URL `https://` | Idem |
+| Adresse e-mail professionnelle | Non (par défaut : l'adresse de connexion) | **Interne** | Adresse e-mail | **INFLUX uniquement — jamais un membre** (D46) |
+| Téléphone | Non (fortement incité) | **Interne** | Indicatif pays + numéro | Idem |
+| Page de contact | Non | **Interne** | URL `https://` | Idem |
 
 **RG36** — La **fonction** est publique et le **prénom** ne l'est pas. Un prénom associé à un nom de
 marque se retrouve en une recherche sur un réseau professionnel : c'est le même mécanisme
@@ -337,11 +344,12 @@ seule question utile au créateur : *mon interlocuteur peut-il décider ?* (voir
 permanence**, dès le brouillon. Le commercial doit pouvoir appeler une marque pour qualifier son
 besoin : c'est le geste métier que la plateforme outille (**A3bis**), pas une entorse au masquage.
 
-**RG38** — Les champs masqués deviennent visibles d'un créateur **au moment exact de la révélation
-d'identité** de la mise en relation qui les concerne (`identity_revealed_at`, Lot 4), et **pour ce
-créateur seulement**. La révélation est **unique et simultanée dans les deux sens** : le même
-événement horodaté révèle les réseaux du créateur à la marque et les coordonnées de l'interlocuteur
-au créateur. Il n'existe pas deux révélations, ni deux dates.
+**RG38** — Le **prénom** de l'interlocuteur devient visible d'un créateur **au moment exact de la
+révélation d'identité** de la mise en relation qui le concerne (`identity_revealed_at`, Lot 4), et
+**pour ce créateur seulement**. L'e-mail, le téléphone et la page de contact **ne sont jamais
+révélés** (D46). La révélation est **unique et simultanée dans les deux sens** : le même événement
+horodaté révèle les réseaux du créateur à la marque et l'identité de l'interlocuteur au créateur. Il
+n'existe pas deux révélations, ni deux dates.
 
 **RG39** — La révélation est **une condition portée par la base**, pas un filtre d'affichage. Un
 champ masqué ne figure **jamais** dans une réponse servie au rôle créateur avant révélation, y
@@ -359,8 +367,8 @@ l'ouverture décidée par D40, et c'est ce qui permettra de mesurer si la révé
 conversations qui s'éteignent.
 
 **RG42** — Le bloc révélé est accompagné d'une mention fixe, dans la langue du créateur : **« Les
-échanges se poursuivent dans INFLUX, avec votre interlocuteur et le commercial INFLUX. Ces
-coordonnées vous permettent d'identifier votre interlocuteur. »** Aucune formulation n'invite à
+échanges se poursuivent dans INFLUX, avec votre interlocuteur et le commercial INFLUX. »**
+*(Seconde phrase d'origine supprimée le 2026-09-24 : depuis D46, aucune coordonnée n'est révélée.)* Aucune formulation n'invite à
 écrire hors plateforme.
 
 **RG43** — Une révélation est **irréversible**. Si la mise en relation est ensuite refermée, annulée
@@ -599,7 +607,7 @@ explicite.
 | `brandProfile.contact.revealNotice` | Les échanges se poursuivent dans INFLUX, avec votre interlocuteur et le commercial INFLUX. Ces coordonnées vous permettent d'identifier votre interlocuteur. | Conversations continue inside INFLUX, with your contact and the INFLUX account manager. These details let you identify who you are talking to. |
 | `brandProfile.badge.label` | Marque vérifiée le {date} — domaine et immatriculation contrôlés. | Brand verified on {date} — domain and company registration checked. |
 | `brandProfile.badge.toRefresh` | Marque vérifiée le {date} — vérification à rafraîchir. | Brand verified on {date} — verification needs refreshing. |
-| `brandProfile.errors.contactInPublicText` | Votre texte contient ce qui ressemble à une coordonnée directe. Retirez-la : elle sera visible après l'ouverture de la mise en relation. | Your text contains what looks like direct contact details. Please remove them: they will be shared once the introduction is opened. |
+| `brandProfile.errors.contactInPublicText` | Votre texte contient ce qui ressemble à une coordonnée directe. Retirez-la : les échanges avec les créateurs se font dans INFLUX. *(Libellé corrigé le 2026-09-24, D46.)* | Your text contains what looks like direct contact details. Please remove them: conversations with creators take place in INFLUX. |
 | `brandProfile.search.blockedUntilPublished` | Publiez votre profil pour rechercher des créateurs. | Publish your profile to search for creators. |
 
 **RG85** — Accessibilité : chaque champ porte une étiquette visible et son étiquette de couche ;
@@ -693,7 +701,7 @@ espacements passent par les tokens (`design-system-influx`).
 | Situation | Comportement attendu |
 |---|---|
 | L'annonceur veut dépublier son profil | Possible : retour en `brouillon`. Ses campagnes publiées sont dépubliées ; **les mises en relation ouvertes ne sont pas affectées** et les coordonnées déjà révélées le restent (RG43) |
-| L'annonceur retire son téléphone après une révélation | Le champ est vidé pour l'avenir ; **le créateur à qui il a été révélé conserve ce qu'il a déjà vu**, et le journal en garde la trace |
+| L'annonceur retire son téléphone après une révélation | Le champ est vidé ; aucun créateur ne l'a jamais vu (D46). Seuls les rôles internes perdent l'information |
 | Une marque conteste un refus | Elle corrige et resoumet ; en cas de désaccord persistant, le réexamen est fait par un agent différent du décideur dès que l'équipe compte deux personnes |
 | Un badge est retiré après avoir été affiché sur une campagne | La campagne cesse immédiatement d'afficher le badge ; aucun historique de badge n'est affiché aux créateurs |
 | Le compte est supprimé (Lot 1) | Le profil est anonymisé avec le compte ; les mises en relation et leurs horodatages de révélation sont conservés sous forme pseudonyme |
@@ -703,7 +711,7 @@ espacements passent par les tokens (`design-system-influx`).
 | # | Contrôle | Réponse pour ce document |
 |---|---|---|
 | 1 | **Montants** — montant du contrat, commission INFLUX, net créateur | **Aucun.** Le seul montant est la **tranche de budget indicatif par collaboration**, avec sa devise et sa mention « ne vaut pas engagement » (RG12, RG30, RG31). Aucun net créateur n'est affiché à une marque (RG32). A1 interdit tout calcul de commission dans ce périmètre |
-| 2 | **Traçabilité / contournement** | **C'est le sujet central du document.** D40 est appliquée : e-mail, téléphone, prénom et page de contact masqués jusqu'à la révélation (RG35 à RG43) ; site réduit au domaine (RG17) ; réseaux sociaux de la marque non collectés (RG44) ; aucun annuaire des marques (RG4) ; textes et logo modérés (RG16, RG18, RG19). **Risque résiduel assumé et signalé :** après révélation, chaque partie dispose d'un moyen de joindre l'autre hors plateforme. La parade principale reste le commercial présent dans la conversation (cadrage §2.2c) ; la parade mesurable est la journalisation de chaque consultation du bloc révélé (RG41) |
+| 2 | **Traçabilité / contournement** | **C'est le sujet central du document.** D40 est appliquée, précisée par D46 : prénom masqué jusqu'à la révélation, e-mail, téléphone et page de contact **jamais** montrés à un membre (RG35 à RG43) ; site réduit au domaine (RG17) ; réseaux sociaux de la marque non collectés (RG44) ; aucun annuaire des marques (RG4) ; textes et logo modérés (RG16, RG18, RG19). **Risque résiduel assumé et signalé :** après révélation, chaque partie dispose d'un moyen de joindre l'autre hors plateforme. La parade principale reste le commercial présent dans la conversation (cadrage §2.2c) ; la parade mesurable est la journalisation de chaque consultation du bloc révélé (RG41) |
 | 3 | **Leads** — ce qui part vers Brevo et Apollo, avec quel consentement | Détaillé en RG78 à RG81 : `profile.completed` à la première publication, attributs d'enrichissement listés, **bloc interne et coordonnées de l'interlocuteur exclus**, consentement du Lot 1 relu à la consommation |
 | 4 | **Backoffice** — contrepartie interne | Détaillée en RG63 à RG72 : file dédiée, verrou anti-double-traitement, motifs typés, corrections journalisées, alerte de doublon, tableau de bord, badge et sa péremption |
 | 5 | **Matching hybride** | **Aucun algorithme (D11).** Ce document ne fait que **collecter** les champs qui serviront de critères : secteur, thématiques, réseaux, formats, budget, pays d'audience visés — tous en listes fermées ou en tranches, avec les mêmes bornes que côté créateur (RG29). L'intervention humaine spécifiée ici est la validation, la correction et la vérification, toutes journalisées |
@@ -753,8 +761,9 @@ réponse servie au créateur, *alors* les champs masqués **ne s'y trouvent pas*
 nuls.
 
 **CA10** — *Étant donné* une mise en relation validée, *quand* la révélation d'identité est
-enregistrée, *alors* le créateur voit le bloc interlocuteur complet, la marque voit les réseaux du
-créateur, et **les deux révélations portent le même horodatage**.
+enregistrée, *alors* le créateur voit le prénom et la fonction de l'interlocuteur — **jamais son
+e-mail, son téléphone ni sa page de contact** (D46) —, la marque voit les réseaux du créateur, et
+**les deux révélations portent le même horodatage**.
 
 **CA11** — *Étant donné* un créateur qui consulte le bloc interlocuteur révélé, *quand* il l'ouvre,
 *alors* une entrée de journal est écrite (compte, mise en relation, date et heure) et la mention de

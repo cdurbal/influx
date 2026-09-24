@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "INFLUX : la marketplace qui réunit marques et créateurs",
-    "description": "Marques : des créateurs vérifiés, sélectionnés par notre équipe. Créateurs : des propositions de marques. Contrat et paiement sécurisés dans INFLUX."
+    "description": "Marques : des créateurs vérifiés. Créateurs : des campagnes qui vous ressemblent. Un commercial INFLUX valide chaque mise en relation et vous accompagne jusqu’à l’accord."
   },
   "common": {
     "brandName": "INFLUX",
@@ -19,7 +19,7 @@
       "audienceRange": "{min, number, ::compact-short} – {max, number, ::compact-short} abonnés",
       "countryLabel": "Pays :",
       "verifiedBadge": "Vérifié",
-      "verifiedLegend": "Vérifié : statistiques et propriété du compte contrôlées par l’équipe. Les pseudos restent masqués jusqu’à la signature du contrat."
+      "verifiedLegend": "Vérifié : statistiques et propriété du compte contrôlées par l’équipe. INFLUX ne se prononce pas sur l’authenticité des abonnés. Les pseudos restent masqués jusqu’à ce que la marque et le créateur acceptent la mise en relation."
     },
     "carousel": {
       "pause": "Mettre en pause le défilement",
@@ -50,19 +50,19 @@
   },
   "hero": {
     "overline": "Marketplace marques et créateurs",
-    "title": "Marques et créateurs : <muted>de la rencontre au contrat, au même endroit</muted>",
-    "lead": "L’équipe INFLUX propose aux marques des créateurs vérifiés et aux créateurs des campagnes qui leur ressemblent. Messagerie, contrat et paiement : tout se passe ici.",
-    "reassurance": "Inscription gratuite. Commission INFLUX uniquement sur les contrats signés.",
+    "title": "Marques et créateurs : <muted>de la rencontre à l’accord, avec un commercial à vos côtés</muted>",
+    "lead": "Les marques trouvent des créateurs vérifiés, les créateurs des campagnes qui leur ressemblent. Un commercial INFLUX valide chaque mise en relation, participe aux échanges et prépare le contrat.",
+    "reassurance": "Inscription gratuite. Commission INFLUX uniquement sur les collaborations conclues.",
     "visualChip": "Nouvelle proposition reçue"
   },
   "keyFigure": {
     "srTitle": "INFLUX en chiffres",
-    "statement": "{value, plural, one {<highlight>#</highlight> contrat signé} other {<highlight>#</highlight> contrats signés}} <muted>entre marques et créateurs dans INFLUX</muted>"
+    "statement": "{value, plural, one {<highlight>#</highlight> collaboration conclue} other {<highlight>#</highlight> collaborations conclues}} <muted>entre marques et créateurs grâce à INFLUX</muted>"
   },
   "creatorShowcase": {
     "overline": "Créateurs sélectionnés",
     "title": "Des profils vérifiés, <muted>choisis pour votre brief</muted>",
-    "lead": "Pour chaque campagne, notre équipe vous propose des créateurs dont la thématique, l’audience et les formats répondent à votre brief. Vous décidez avec qui avancer."
+    "lead": "Pour chaque campagne, notre équipe vous propose des créateurs dont la thématique, l’audience et les formats répondent à votre brief. Vous pouvez aussi parcourir vous-même les profils vérifiés, présentés de façon anonyme."
   },
   "featuredResult": {
     "overline": "Résultat de campagne",
@@ -76,7 +76,7 @@
   },
   "caseStudies": {
     "overline": "Études de cas",
-    "title": "Campagnes signées <muted>et livrées dans INFLUX</muted>",
+    "title": "Campagnes conclues <muted>et livrées avec INFLUX</muted>",
     "lead": "Chaque exemple précise le secteur, les formats, la durée et le nombre de créateurs, avec l’indicateur suivi par la marque.",
     "metricDisplay": "{value, number, ::percent sign-always}",
     "videoButton": "Voir la vidéo"
@@ -88,51 +88,52 @@
     "painPoints": {
       "search": "Des heures à repérer des profils, sans savoir si leurs statistiques sont fiables.",
       "followUp": "Des relances dispersées entre e-mails, réseaux et messageries.",
-      "contract": "Des accords informels, sans contrat écrit ni paiement sécurisé."
+      "contract": "Des accords passés en quelques lignes, sans contrat écrit ni personne pour faire le lien."
     },
     "conversation": {
       "frameTitle": "Messagerie INFLUX",
       "advertiserRole": "Marque",
       "creatorRole": "Créateur",
-      "systemEvent": "Proposition de contrat envoyée dans INFLUX",
-      "caption": "Échanges, contrat et paiement restent dans INFLUX : nul besoin de partager vos coordonnées."
+      "agentRole": "Commercial INFLUX",
+      "systemEvent": "Mise en relation suivie par votre commercial INFLUX",
+      "caption": "Marque, créateur et commercial INFLUX échangent au même endroit : vos coordonnées ne sont jamais communiquées."
     }
   },
   "method": {
     "overline": "Notre méthode",
-    "title": "Du brief au reversement, <muted>six étapes suivies par l’équipe</muted>",
-    "lead": "L’équipe INFLUX intervient à chaque étape clé. Tout se passe dans la plateforme et reste tracé, pour protéger la marque comme le créateur.",
+    "title": "Du brief à la publication, <muted>un commercial INFLUX à chaque étape</muted>",
+    "lead": "Chaque mise en relation est validée, puis suivie jusqu’à la publication par un commercial INFLUX nommé. Tout se passe dans la plateforme et reste tracé, pour protéger la marque comme le créateur.",
     "steps": {
       "brief": {
         "title": "Vous publiez votre brief",
-        "body": "Produit, objectifs, formats, budget (commission INFLUX incluse), période et public visé : vous décrivez votre campagne. L’équipe la relit et la valide avant sa mise en ligne."
+        "body": "Produit, objectifs, formats, budget, période et public visé : vous décrivez votre campagne, et l’équipe la relit avant sa mise en ligne. Vous pouvez aussi parcourir les profils vérifiés, présentés de façon anonyme."
       },
-      "teamSelection": {
-        "title": "Nous sélectionnons des créateurs",
-        "body": "Une personne de l’équipe INFLUX choisit des créateurs vérifiés selon votre brief et motive chaque proposition. Vous acceptez ou refusez, pseudos masqués jusqu’à la signature."
+      "introduction": {
+        "title": "INFLUX valide chaque mise en relation",
+        "body": "Votre demande de contact, la candidature d’un créateur ou une proposition de notre équipe : un commercial INFLUX examine chaque mise en relation sous un jour ouvré et motive chacun de ses choix."
       },
-      "messaging": {
-        "title": "Vous échangez dans INFLUX",
-        "body": "Livrables, dates, ton : vous précisez les détails avec le créateur dans une messagerie dédiée à chaque mise en relation, où vos échanges sont conservés."
+      "acceptance": {
+        "title": "Chacun accepte, puis les identités sont révélées",
+        "body": "La marque et le créateur acceptent la mise en relation. Pseudos et noms ne sont communiqués qu’une fois les deux accords donnés ; les e-mails et numéros de téléphone, jamais."
+      },
+      "conversation": {
+        "title": "Une conversation à trois",
+        "body": "La marque, le créateur et votre commercial INFLUX, nommé, échangent dans une messagerie dédiée : livrables, calendrier, droits d’utilisation, prix. Les messages sont conservés."
       },
       "contract": {
-        "title": "Le contrat se signe dans INFLUX",
-        "body": "Le contrat indique, dans une seule devise, son montant, la commission INFLUX incluse et ses deux parts, et le net créateur. Il n’est possible qu’entre parties situées dans des pays ouverts aux contrats."
+        "title": "Un contrat préparé par votre commercial",
+        "body": "Une fois l’accord trouvé, votre commercial prépare le contrat et vous l’envoie pour signature. Il précise le montant, la commission INFLUX incluse, les livrables et les modalités de paiement."
       },
-      "securePayment": {
-        "title": "La marque paie via INFLUX",
-        "body": "Le paiement passe par un prestataire de paiement agréé. Le montant payé est celui du contrat, commission INFLUX incluse ; le net créateur est reversé après la validation de la publication."
-      },
-      "publicationPayout": {
-        "title": "Validation, puis reversement",
-        "body": "Le créateur dépose la preuve de publication, la marque la valide, puis le net créateur lui est reversé. Au premier contrat, il renseigne son identité et ses coordonnées bancaires auprès du prestataire."
+      "delivery": {
+        "title": "Publication et suivi",
+        "body": "Le créateur publie, la marque valide : votre commercial suit la collaboration jusqu’au bout et reste votre interlocuteur en cas de difficulté."
       }
     }
   },
   "creatorNetwork": {
     "overline": "Réseau de créateurs",
     "title": "Votre profil présenté par l’équipe <muted>aux marques de votre univers</muted>",
-    "lead": "Complétez votre profil, faites vérifier vos statistiques et consultez les campagnes ouvertes. Votre pseudo reste masqué jusqu’à la signature du contrat.",
+    "lead": "Complétez votre profil, faites vérifier vos statistiques et consultez les campagnes ouvertes. Votre pseudo n’est communiqué à une marque que lorsque vous acceptez la mise en relation.",
     "countLabel": "{count, plural, one {<highlight>#</highlight> créateur vérifié} other {<highlight>#</highlight> créateurs vérifiés}}"
   },
   "useCases": {
@@ -184,142 +185,83 @@
       },
       "receiveProposals": {
         "title": "Recevez des propositions",
-        "advertiser": "L’équipe vous propose des créateurs vérifiés, avec le motif de chaque choix.",
+        "advertiser": "L’équipe vous propose des créateurs vérifiés, avec le motif de chaque choix ; vous pouvez aussi demander vous-même un contact.",
         "creator": "L’équipe vous propose des campagnes adaptées ; vous acceptez ou refusez."
       }
     },
     "completenessIllustration": "Profil complété à 80 %"
   },
   "pricing": {
-    "overline": "Tarifs transparents",
-    "title": "Gratuit à l’inscription, <muted>commission seulement sur contrat signé</muted>",
-    "lead": "La commission INFLUX est le prix d’un service : sélection des créateurs par l’équipe, messagerie dédiée, contrat et paiement sécurisés. Rien n’est dû à INFLUX sans contrat signé.",
-    "rate": {
-      "label": "Commission INFLUX",
-      "total": "35 %",
-      "included": "incluse dans le montant du contrat, jamais ajoutée",
-      "legend": {
-        "advertiserShare": {
-          "label": "Part annonceur INFLUX",
-          "value": "20 %"
-        },
-        "creatorShare": {
-          "label": "Part créateur INFLUX",
-          "value": "15 %"
-        },
-        "netCreator": {
-          "label": "Net créateur",
-          "value": "65 %"
-        }
-      }
-    },
-    "example": {
-      "caption": "Exemple : contrat de 2 000,00 € (en euros)",
-      "columnItem": "Élément",
-      "columnAmount": "Montant",
-      "contractAmount": {
-        "label": "Montant du contrat (coût total pour l’annonceur)",
-        "value": "2 000,00 €"
-      },
-      "commissionTotal": {
-        "label": "Commission INFLUX totale (35 %)",
-        "value": "700,00 €"
-      },
-      "advertiserShare": {
-        "label": "dont part annonceur (20 %)",
-        "value": "400,00 €"
-      },
-      "creatorShare": {
-        "label": "dont part créateur (15 %)",
-        "value": "300,00 €"
-      },
-      "netCreator": {
-        "label": "Net créateur reversé",
-        "value": "1 300,00 €"
-      },
-      "check": "Vérification : 400,00 € (part annonceur) + 300,00 € (part créateur) + 1 300,00 € (net créateur) = 2 000,00 € (montant du contrat)"
-    },
+    "overline": "Tarifs",
+    "title": "Gratuit à l’inscription, <muted>commission seulement sur collaboration conclue</muted>",
+    "lead": "La commission INFLUX rémunère un service : la sélection des créateurs, la validation de chaque mise en relation, l’accompagnement par un commercial et la préparation du contrat. Elle est incluse dans le montant de la collaboration, jamais ajoutée, et rien n’est dû à INFLUX sans collaboration conclue.",
     "audience": {
-      "advertiser": "Côté annonceur (la marque) : vous payez le montant du contrat, qui inclut déjà toute la commission INFLUX.",
-      "creator": "Côté créateur : vous connaissez votre net créateur avant de signer."
-    },
-    "notes": {
-      "currency": "Exemple en euros. Chaque contrat est établi dans une seule devise, choisie dans la liste proposée par INFLUX.",
-      "taxes": "L’exemple ne détaille pas les taxes. Celles qui s’appliquent au contrat dépendent des pays et du statut de chacun ; elles sont indiquées avant la signature."
-    },
-    "phone": {
-      "caption": "Illustration : avant de signer, le créateur voit le montant du contrat, la commission INFLUX incluse et le net créateur.",
-      "screenTitle": "Proposition de contrat",
-      "netLabel": "Votre net créateur reversé",
-      "netValue": "1 300,00 €",
-      "contractLine": "sur un contrat de 2 000,00 €, commission INFLUX incluse",
-      "commissionLine": "Commission INFLUX (35 %) : 700,00 €",
-      "sharesLine": "dont part annonceur 400,00 € et part créateur 300,00 €",
-      "fakeButton": "Accepter le contrat"
+      "advertiser": "Côté marque : le montant de la collaboration est votre coût total, commission INFLUX comprise.",
+      "creator": "Côté créateur : avant tout engagement, votre commercial INFLUX vous indique ce que vous percevez, et le contrat l’écrit."
     }
   },
   "whyInflux": {
     "overline": "Pourquoi INFLUX",
     "title": "Tout est fait <muted>pour que la collaboration aboutisse</muted>",
-    "lead": "Une équipe qui sélectionne, un cadre qui protège, un seul endroit pour tout suivre : voici ce que la commission INFLUX vous apporte.",
+    "lead": "Une équipe qui sélectionne, un commercial qui accompagne, un seul endroit pour tout suivre : voici ce que la commission INFLUX vous apporte.",
     "items": {
       "qualifiedMatching": {
         "title": "Une sélection faite par notre équipe",
         "body": "Chaque proposition est préparée par l’équipe, à partir de votre brief et de profils aux statistiques vérifiées. Vous savez pourquoi chaque créateur vous est proposé."
       },
-      "secureContract": {
-        "title": "Un contrat et un paiement sécurisés",
-        "body": "Le contrat affiche son montant, sa devise, la commission INFLUX incluse et le net créateur. Paiement via un prestataire agréé ; net reversé après validation de la publication."
+      "dedicatedAgent": {
+        "title": "Un commercial à vos côtés",
+        "body": "Un commercial INFLUX nommé participe à chaque conversation, aide la marque et le créateur à s’accorder sur les livrables et le prix, puis prépare le contrat."
       },
       "allInInflux": {
         "title": "Tout reste dans INFLUX",
-        "body": "Messages, contrat et paiement sont réunis au même endroit, sans besoin d’échanger vos coordonnées. En cas de désaccord, ce qui a été convenu est facile à retrouver."
+        "body": "Recherche, échanges et suivi de la collaboration sont réunis au même endroit, sans jamais partager vos coordonnées. En cas de désaccord, ce qui a été convenu est facile à retrouver."
       }
     }
   },
   "faq": {
     "overline": "Questions fréquentes",
     "title": "Tout savoir <muted>avant de vous inscrire</muted>",
-    "lead": "Argent, pays, profils, messagerie : l’essentiel à savoir, pour les marques comme pour les créateurs.",
+    "lead": "Argent, pays, profils, échanges : l’essentiel à savoir, pour les marques comme pour les créateurs.",
     "items": {
       "signupCost": {
         "question": "L’inscription sur INFLUX est-elle payante ?",
-        "answer": "Non. L’inscription est gratuite pour les marques comme pour les créateurs, sans abonnement. INFLUX se rémunère uniquement par une commission sur les contrats signés dans la plateforme : tant qu’aucun contrat n’est signé, vous ne payez rien à INFLUX."
+        "answer": "Non. L’inscription est gratuite pour les marques comme pour les créateurs, sans abonnement. INFLUX se rémunère uniquement par une commission sur les collaborations conclues grâce à la plateforme : tant qu’aucune collaboration n’est conclue, vous ne payez rien à INFLUX."
       },
       "commission": {
         "question": "Combien coûte INFLUX, et combien touche le créateur ?",
-        "answer": "La commission INFLUX est de 35 % du montant du contrat : 20 % de part annonceur et 15 % de part créateur, incluses dans ce montant, qui est le coût total pour la marque. Exemple en euros : sur un contrat de 2 000,00 €, la commission INFLUX est de 700,00 € (dont 400,00 € de part annonceur et 300,00 € de part créateur) et le net créateur est de 1 300,00 €. Détail dans la section Tarifs."
+        "answer": "La commission INFLUX est incluse dans le montant de chaque collaboration, qui est le coût total pour la marque : elle n’est jamais ajoutée. Avant tout engagement, votre commercial INFLUX vous précise son montant et ce que perçoit le créateur, puis le contrat l’écrit noir sur blanc."
       },
       "payment": {
-        "question": "Comment se passe le paiement, et quand le créateur est-il payé ?",
-        "answer": "La marque paie le montant du contrat dans INFLUX, via un prestataire de paiement agréé. Le net créateur, soit le montant du contrat moins la commission INFLUX, est reversé au créateur via ce prestataire après la validation de la publication par la marque. Au premier contrat, le créateur vérifie son identité et renseigne ses coordonnées bancaires auprès du prestataire."
+        "question": "Comment se passe le paiement ?",
+        "answer": "Les modalités de paiement sont fixées dans le contrat que votre commercial INFLUX prépare avec vous : montant, échéances et ce qui revient au créateur. INFLUX ne vous demande aucune coordonnée bancaire pour utiliser la plateforme."
       },
       "currency": {
-        "question": "Dans quelle devise et quelle langue les contrats sont-ils établis ?",
-        "answer": "Chaque contrat est établi dans une seule devise, choisie parmi la liste proposée par INFLUX : le montant du contrat, la commission INFLUX et le net créateur sont tous exprimés dans cette devise. La plateforme et les contrats sont disponibles en français et en anglais."
+        "question": "Dans quelle devise les collaborations sont-elles établies ?",
+        "answer": "Chaque collaboration est établie dans une seule devise, convenue avec votre commercial et indiquée dans le contrat : le montant et la commission INFLUX sont exprimés dans cette devise."
       },
       "openCountries": {
-        "question": "Puis-je signer un contrat depuis mon pays ?",
-        "answer": "L’inscription est ouverte partout dans le monde. Les contrats, eux, s’ouvrent pays par pays, après validation juridique, fiscale et de paiement ; un contrat n’est possible que si la marque et le créateur sont chacun situés dans un pays ouvert. Si le vôtre ne l’est pas encore, votre compte reste actif et nous vous prévenons dès son ouverture."
+        "question": "INFLUX est-il ouvert dans mon pays ?",
+        "answer": "Oui. L’inscription et les mises en relation sont ouvertes partout dans le monde, et la plateforme est disponible en français et en anglais."
       },
       "hiddenHandles": {
-        "question": "Pourquoi les pseudos des créateurs sont-ils masqués ?",
-        "answer": "Pour que le choix repose sur des éléments vérifiés et que la collaboration se conclue dans INFLUX, où contrat et paiement protègent les deux parties. Avant la signature, la marque voit les thématiques, l’audience, les statistiques vérifiées, le portfolio et le badge « vérifié ». Le pseudo et les liens vers les réseaux lui sont communiqués une fois le contrat signé."
+        "question": "Pourquoi les profils des créateurs sont-ils anonymes ?",
+        "answer": "Pour que le choix repose sur des éléments vérifiés et que la collaboration se construise dans INFLUX. Avant la mise en relation, la marque voit les thématiques, l’audience, les statistiques vérifiées, le portfolio et le badge « vérifié ». Le pseudo et les liens vers les réseaux lui sont communiqués quand la marque et le créateur ont tous deux accepté la mise en relation. Les e-mails et numéros de téléphone ne sont jamais communiqués, d’un côté comme de l’autre."
       },
       "messaging": {
-        "question": "Pourquoi les échanges passent-ils par la messagerie INFLUX ?",
-        "answer": "Parce que c’est ce qui vous protège. Les messages sont conservés et rattachés à la mise en relation : en cas de désaccord sur ce qui a été convenu, chacun peut s’y référer. Le contrat et le paiement sécurisé n’existent que dans INFLUX, et c’est aussi ce qui permet à l’équipe de vous accompagner jusqu’au reversement du net créateur."
+        "question": "Pourquoi un commercial INFLUX participe-t-il aux échanges ?",
+        "answer": "Parce que c’est ce qui fait aboutir la collaboration. Chaque mise en relation ouvre une conversation à trois : la marque, le créateur et un commercial INFLUX nommé, qui vous aide à vous accorder puis prépare le contrat. Il peut aussi échanger en privé avec chacun de vous. Les messages sont conservés et peuvent être consultés par l’équipe INFLUX pour vous accompagner ; chaque consultation est enregistrée."
       },
       "eligibility": {
         "question": "Qui peut s’inscrire comme créateur, et comment les profils sont-ils vérifiés ?",
-        "answer": "Tout créateur majeur selon la loi du lieu où il réside, particulier ou professionnel. Les mineurs ne sont pas acceptés. L’équipe contrôle les statistiques transmises et la propriété de chaque compte, par exemple avec un code à placer dans la bio. Un profil contrôlé reçoit le badge « vérifié ». Au premier contrat, le créateur vérifie aussi son identité auprès du prestataire de paiement."
+        "answer": "Tout créateur majeur selon la loi du lieu où il réside, particulier ou professionnel. Les mineurs ne sont pas acceptés. L’équipe contrôle les statistiques transmises et la propriété de chaque compte, par exemple avec un code à placer dans la bio. Un profil contrôlé reçoit le badge « vérifié ». INFLUX ne se prononce pas sur l’authenticité des abonnés."
       }
     },
     "contactPrompt": "Une autre question ? Écrivez-nous :"
   },
   "finalCta": {
     "title": "Votre prochaine collaboration <muted>commence ici</muted>",
-    "lead": "Marques, publiez votre brief. Créateurs, complétez votre profil. L’équipe INFLUX fait les présentations."
+    "lead": "Marques, publiez votre brief. Créateurs, complétez votre profil. L’équipe INFLUX fait les présentations et vous accompagne jusqu’à l’accord."
   },
   "startForm": {
     "overline": "Créer un compte",
@@ -380,7 +322,7 @@
       "labelAdvertiser": "Pays de l’entreprise",
       "labelCreator": "Pays de résidence",
       "emptyOption": "Sélectionnez un pays",
-      "openCountriesInfo": "L’inscription est ouverte dans tous les pays. Les contrats s’ouvrent pays par pays : si le vôtre n’est pas encore ouvert, nous vous prévenons à son ouverture.",
+      "openCountriesInfo": "L’inscription et les mises en relation sont ouvertes dans tous les pays.",
       "errors": {
         "required": "Sélectionnez votre pays."
       }
@@ -409,7 +351,7 @@
     "privacyNotice": "INFLUX utilise ces informations pour gérer votre compte et, avec votre accord, vous envoyer ses e-mails commerciaux. Vos données et vos droits sont décrits dans la politique de confidentialité."
   },
   "footer": {
-    "tagline": "Sélection, contrat et paiement : la marketplace des marques et des créateurs.",
+    "tagline": "Des créateurs vérifiés, des mises en relation validées, un commercial à vos côtés : la marketplace des marques et des créateurs.",
     "navTitle": "Navigation",
     "navLabel": "Navigation du pied de page",
     "legalTitle": "Informations légales",
@@ -423,8 +365,8 @@
     "contactTitle": "Contact",
     "copyright": "© 2026 INFLUX",
     "trust": {
-      "contract": "Contrats signés et conservés dans INFLUX",
-      "payment": "Paiement via un prestataire de paiement agréé"
+      "validated": "Chaque mise en relation validée par un commercial INFLUX",
+      "privacy": "Vos coordonnées ne sont jamais communiquées"
     }
   },
   "auth": {
@@ -492,9 +434,9 @@
     "space": {
       "overline": "Espace membre",
       "title": "Bienvenue dans votre espace INFLUX",
-      "leadAdvertiser": "Espace marque (maquette) : vous y publierez vos campagnes et suivrez vos mises en relation et vos contrats.",
-      "leadCreator": "Espace créateur (maquette) : vous y recevrez des propositions de campagnes et suivrez vos contrats.",
-      "leadGeneric": "Espace membre (maquette) : vous y suivrez vos campagnes, vos mises en relation et vos contrats.",
+      "leadAdvertiser": "Espace marque (maquette) : vous y publierez vos campagnes et suivrez vos mises en relation et vos échanges.",
+      "leadCreator": "Espace créateur (maquette) : vous y recevrez des propositions de campagnes et suivrez vos mises en relation.",
+      "leadGeneric": "Espace membre (maquette) : vous y suivrez vos campagnes, vos mises en relation et vos échanges.",
       "mockupNotice": "Maquette : la connexion est simulée et aucune donnée réelle n’est affichée ici.",
       "backHome": "Retour à l’accueil"
     }

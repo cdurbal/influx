@@ -1,9 +1,15 @@
 # INFLUX — Guide projet pour Claude Code
 
-> **Statut du projet : En cours de développement — Maquette temporaire de démonstration (Lots 0 à 4 terminés, 93 % du MVP).**
-> **Avertissement :** Les développements actuels constituent une **maquette temporaire** (Proof of Concept) destinée à être présentée à des partenaires pour valoriser des compétences et faire comprendre à des profils non-techniciens l'intérêt de l'automatisation pour booster les ventes. Ces développements (store mémoire, mocks) seront repris et remplacés ultérieurement par le produit final connecté aux bases de données réelles (Supabase) avec la charte graphique définitive.
-> La feuille de route opérationnelle découpée en micro-phases est consignée dans [`implementation_plan.md`](file:///c:/Users/cdurb/Documents/Workspaces/influx/implementation_plan.md).
-> Tout agent IA ou contributeur travaillant sur le projet **doit impérativement maintenir ce plan à jour** à chaque tâche réalisée ou modifiée.
+> **Statut du projet (2026-09-24) :** spécifications du MVP rédigées (`docs/mvp/`) ; **produit réel
+> non commencé** (Lot 0 à démarrer) ; **maquette de démonstration jetable** à 37 missions sur 40 ;
+> landing page réalisée, à aligner sur le MVP avant sa mise en ligne.
+> **⚠️ Code jetable (décision du fondateur, 2026-09-24, D44).** Tout le code du dépôt, **à l'exception
+> de la landing page**, est une **maquette de démonstration jetable**. Elle sert à présenter la vision
+> du MVP à des partenaires et à la faire valider. **Elle n'ira jamais en production et ne sera pas
+> reprise** : le produit réel sera écrit à partir des spécifications de `docs/mvp/`, pas à partir de
+> ce code. Périmètre exact et règles : **§16**.
+> La feuille de route de la maquette, découpée en micro-phases, est consignée dans [`implementation_plan.md`](file:///c:/Users/cdurb/Documents/Workspaces/influx/implementation_plan.md).
+> Tout agent IA ou contributeur travaillant sur la maquette **doit impérativement maintenir ce plan à jour** à chaque tâche réalisée ou modifiée.
 > Ce document est la source de vérité pour toute session Claude Code travaillant sur INFLUX.
 > Il est lu par les agents IA **et** par le fondateur : il doit rester compréhensible sans
 > connaissance technique préalable dans ses parties produit/business.
@@ -117,6 +123,13 @@ C'est l'invariant le plus structurant du projet. Il conditionne l'architecture d
 > montant de commission convenu ; l'application les enregistre et les additionne, elle ne les déduit
 > jamais d'un taux.
 >
+> **Aucun taux ni aucun net estimé affiché pendant le pilote (D48, arbitrage du fondateur du
+> 2026-09-24).** Le barème de 35 % reste le barème par défaut d'INFLUX, mais ni la landing page ni
+> les espaces membres n'affichent de pourcentage ou de net créateur dérivé d'un taux : la commission
+> est présentée comme « incluse, précisée par votre commercial ». Le montant, la commission et le net
+> créateur sont annoncés par le commercial dans la conversation et écrits dans le contrat hors
+> plateforme.
+>
 > L'encaissement et le reversement **dans** la plateforme reviennent en **V2**, avec D9 (prestataire
 > de paiement) et D25 (pays de la société).
 >
@@ -154,9 +167,11 @@ une **fonctionnalité de premier plan**, pas un « nice to have » de fin de bac
 > **Ces parcours sont la cible, pas le MVP.** Au MVP (2026-09-18), trois étapes diffèrent pour
 > l'annonceur comme pour le créateur :
 > - la **recherche** est ouverte, mais sur des **profils anonymisés** (A2) ;
-> - **aucune conversation ne s'ouvre sans validation d'un commercial**, qui y participe ensuite comme
->   intermédiaire visible et nommé (A3, A9) — et qui peut aussi **initier lui-même** la mise en
->   relation sur une campagne (A3bis) ;
+> - **aucune conversation ne s'ouvre sans validation d'un commercial puis acceptation des deux
+>   parties** : les identités sont révélées à la **seconde acceptation** (D45), le commercial
+>   participe ensuite comme intermédiaire visible et nommé (A3, A9) — et peut aussi **initier
+>   lui-même** la mise en relation sur une campagne (A3bis). Après l'ouverture, chaque partie voit
+>   l'**identité** de l'autre, **jamais son e-mail ni son téléphone** (D46) ;
 > - **le contrat et le paiement sortent de la plateforme** (A1, §3) : le commercial envoie le contrat
 >   et le paiement se fait à la confiance.
 >
@@ -206,6 +221,8 @@ Parcours cible :
 > réellement. Toute interface affichant un montant doit lever le doute entre *montant du
 > contrat*, *commission INFLUX* (et ses deux parts) et *net créateur*, toujours avec la devise.
 > C'est un point de contrôle obligatoire pour `expert-ux` et `expert-paiement-facturation`.
+> **Au MVP (D48)**, l'application n'affiche ni taux ni net estimé : c'est le commercial qui lève ce
+> doute dans la conversation, et le contrat hors plateforme qui l'écrit.
 
 ### 4.3 Agent interne INFLUX (backoffice)
 
@@ -221,20 +238,26 @@ Parcours cible :
    encaissée de la semaine.
 2. **File de validation** — valider, refuser avec un motif typé, ou **s'attribuer** une demande de
    contact (venue d'une marque) ou une candidature (venue d'un créateur). **Rien ne circule entre
-   deux membres sans son accord.**
+   deux membres sans son accord.** Une demande hors délai **reste en file** jusqu'à décision (D49).
+   Valider n'ouvre pas encore la conversation : il faut ensuite l'acceptation des deux parties (D45).
 3. **Proposition INFLUX** — **initier lui-même une mise en relation** entre une marque et un ou
    plusieurs créateurs, sur une campagne donnée, sans demande préalable d'aucune des deux parties.
    C'est le geste métier central : il doit être au moins aussi rapide dans l'outil qu'un coup de fil.
 4. **Conversation à trois** — participer à la négociation comme **intermédiaire visible et nommé**,
-   aux côtés de la marque et du créateur ; conduire la négociation jusqu'à l'accord. Toute lecture
-   d'une conversation par un agent non participant est horodatée et attribuée.
+   aux côtés de la marque et du créateur ; conduire la négociation jusqu'à l'accord. Il peut aussi
+   échanger **en aparté** avec une seule des parties ; l'existence de ces apartés est annoncée aux
+   deux (D47). Toute lecture d'une conversation par un agent est horodatée et attribuée.
 5. **Contrat hors plateforme** — envoyer le contrat par le moyen de son choix (e-mail, DocuSign,
    en main propre) et suivre sa signature (voir le régime transitoire du MVP, §3).
 6. **Pipeline commercial** — enregistrer l'affaire : montant négocié, devise, **commission due et
    commission encaissée**, dates, mode d'envoi du contrat, commercial responsable. L'application
-   enregistre ce qui est saisi, **elle ne calcule rien**.
-7. **Gestion des comptes** — valider les profils, attribuer et retirer le badge « vérifié »,
-   suspendre, annoter, valider les campagnes avant publication.
+   enregistre ce qui est saisi, **elle ne calcule rien**. Seuls le commercial responsable et
+   l'administrateur écrivent sur une affaire (D50). Après la signature, il suit la **livraison** :
+   date et lien de publication, validation par la marque (D52).
+7. **Gestion des comptes** — **inviter** nominativement une marque ou un créateur de son réseau, dont
+   il devient le commercial responsable (D54) ; valider les profils, attribuer le badge « vérifié » et en demander le
+   retrait (approuvé par un administrateur distinct, D51), suspendre, annoter, valider les campagnes
+   avant publication.
 8. **Suivi des leads** — état de synchronisation Brevo / Apollo.io, cause des échecs en clair,
    relance unitaire ou en lot.
 9. **Envoi d'e-mails** — sélection d'un segment et **déclenchement d'envois via l'API Brevo
@@ -276,7 +299,9 @@ arbitraires dans le code, toute couleur passe par les tokens du design system
    complète progressivement (profil complété = meilleur matching, à rendre visible).
 4. **Transparence financière permanente.** Le montant du contrat, la commission 35 % (part
    annonceur 20 %, part créateur 15 %) et le net créateur sont toujours explicites, avec leur
-   devise. Jamais de coût découvert en fin de parcours.
+   devise. Jamais de coût découvert en fin de parcours. **Régime du pilote (D48) :** aucun taux ni
+   net estimé n'est affiché par l'application ; la transparence est portée par le commercial dans la
+   conversation et par le contrat hors plateforme, qui écrit montant, commission et net.
 5. **Tout se passe dans INFLUX.** Les parcours ne doivent pas encourager la sortie de plateforme.
 6. **Mobile-first.** Les influenceurs consultent majoritairement sur mobile.
 7. **Accessibilité.** Contrastes conformes WCAG AA au minimum — le vert de marque ne doit jamais
@@ -459,7 +484,8 @@ Reste **ouvert** : la gestion d'état côté front (aucune librairie tant qu'auc
 | **GitHub** | Hébergement du code, Pull Requests, revue, CI | `main` protégée, secrets dans GitHub Secrets. |
 | **Railway** | Déploiement de l'API et des fronts, environnements | Séparation `staging` / `production`, variables d'environnement par environnement. Skill : `railway-deploy`. |
 
-**Aucun de ces comptes n'est encore créé ni configuré** — voir §14, Prérequis.
+**Seul le dépôt GitHub existe ; aucun compte des services du produit réel n'est créé ni
+configuré** — voir §14, Prérequis. (La maquette jetable de §16 n'utilise que des services simulés.)
 
 ### Règle de synchronisation des leads
 
@@ -467,10 +493,17 @@ Reste **ouvert** : la gestion d'état côté front (aucune librairie tant qu'auc
 consommé de façon asynchrone :
 
 - → **Brevo** : création/mise à jour du contact, affectation à la bonne liste, entrée dans le
-  scénario de nurturing correspondant au type de profil et à la langue.
-- → **Apollo.io** : prioritairement pour les **annonceurs** qualifiés (cible de prospection
-  commerciale), dans les pays où la base légale de la prospection est validée ; enrichissement et
-  séquence commerciale.
+  scénario de nurturing correspondant au type de profil et à la langue. La **source
+  d'acquisition** (UTM de la session d'inscription, code d'invitation, réponse à « Comment avez-vous
+  connu INFLUX ? ») est transmise comme attribut de segmentation (D55).
+- → **Apollo.io** : **tous les inscrits, particuliers compris** (orientation du fondateur, arbitrage
+  A7 du 2026-09-18), **uniquement dans les pays où la base légale de la prospection est validée** ;
+  enrichissement et séquence commerciale. Cette orientation a été prise contre la recommandation :
+  le veto d'`expert-conformite-rgpd` est maintenu et **un juriste doit la valider avant la mise en
+  ligne du Lot 1** (D33). Le périmètre est donc lu **en configuration**, avec une valeur d'attente
+  conservatrice (annonceurs et créateurs professionnels, `docs/mvp/05-spec-inscription-et-leads.md`
+  RG81) que le fondateur bascule sans redéploiement. La base légale (consentement ou intérêt
+  légitime) reste à trancher par `expert-conformite-rgpd` et un juriste (`05` Q1).
 
 Chaque tentative est journalisée avec son statut. Le backoffice expose les échecs et permet le
 rejeu. **Le consentement de l'utilisateur conditionne l'envoi marketing** (cf. RGPD, §9).
@@ -636,7 +669,7 @@ hors de ce cadre ; mettre ce tableau à jour à chaque arbitrage. Les lots cité
 | D13 | Périmètre du MVP et ordre de livraison des lots | `chef-de-projet` + Fondateur | **Re-tranchée (2026-09-18)** : MVP **place de marché courtée**, **7 lots (0 à 6)**, 18 à 25 semaines — voir `docs/mvp/00-cadrage-mvp-v2.md`. *Abroge l'arbitrage du 2026-09-16 (« MVP opéré par l'équipe », Lots 0 à 5, `docs/cadrage-mvp.md`, document périmé).* | — |
 | D14 | Modèle d'abonnement complémentaire à la commission (à moyen terme) | Fondateur | Ouverte | Après le pilote |
 | D15 | Influenceurs mineurs : exclusion ou régime spécifique | Fondateur + `expert-conformite-rgpd` | **Tranchée (2026-09-16)** : exclus au MVP | — |
-| D16 | Pseudos et liens réseaux visibles ou non avant la signature | Fondateur + `expert-ux` + `expert-conformite-rgpd` | **Tranchée (2026-09-16), étendue le 2026-09-18 (A2)** : masqués (statistiques vérifiées, portfolio, badge). Le MVP n'ayant pas de signature dans la plateforme, le point de révélation devient **l'ouverture de la mise en relation par un commercial**. Voir D40 pour la symétrie côté marque | — |
+| D16 | Pseudos et liens réseaux visibles ou non avant la signature | Fondateur + `expert-ux` + `expert-conformite-rgpd` | **Tranchée (2026-09-16), étendue le 2026-09-18 (A2), précisée le 2026-09-24 (D45)** : masqués (statistiques vérifiées, portfolio, badge). Le MVP n'ayant pas de signature dans la plateforme, le point de révélation devient **la seconde acceptation des parties, après validation par un commercial** (D45). Voir D40 et D46 pour la symétrie côté marque | — |
 | D17 | Qui peut signer un contrat | Fondateur + `expert-paiement-facturation` + `expert-conformite-rgpd` | **Tranchée (2026-09-16)** : tout créateur majeur, particuliers compris | — |
 | D18 | Mécanisme de file d'attente pour la synchronisation des leads | `architecte` | **Tranchée (2026-09-18)** : table `outbox_events` + worker `FOR UPDATE SKIP LOCKED`, verrou consultatif de transaction, priorité aux révocations ; elle transporte aussi les e-mails transactionnels de révélation d'identité | — |
 | D19 | Règle d'arrondi sur les deux parts et dans chaque devise, attribution du reliquat | `expert-paiement-facturation` | Ouverte | Lot 4 |
@@ -660,10 +693,30 @@ hors de ce cadre ; mettre ce tableau à jour à chaque arbitrage. Les lots cité
 | D37 | Méthode d'authentification | `architecte` + `expert-cybersecurite` + `expert-ux` | **Tranchée (2026-09-18)** : membres = **code à 6 chiffres par e-mail, sans mot de passe** ; backoffice = mot de passe + **TOTP obligatoire** ; pas de connexion Google / Instagram / TikTok au MVP. **Validée sous conditions par `expert-cybersecurite`**, avec **clause de caducité** : l'absence de second facteur côté membres n'est acceptable que parce qu'un compte ne contient aucune coordonnée bancaire au MVP — **dès que l'encaissement entre dans l'application (V2), un second facteur devient obligatoire** | — |
 | D38 | Masse critique de profils publiés avant d'ouvrir la recherche libre aux marques (une recherche vide est pire que pas de recherche) | `chef-de-projet` + Fondateur | Ouverte | Lot 3 |
 | D39 | SLA de la file de validation | **Fondateur** + `product-owner` | **Tranchée (2026-09-18)** : **1 jour ouvré** pour traiter une demande de contact ou une candidature. Délai affiché aux deux parties, alerte interne au bout de quelques heures, escalade au-delà. Le respect du délai est un indicateur suivi : un délai affiché puis non tenu abîme plus la confiance qu'un délai plus long tenu | — |
-| D40 | Masquage symétrique des coordonnées côté marque | Fondateur + `expert-ux` + `expert-conformite-rgpd` | **Tranchée (2026-09-18)** : **oui, masquage symétrique**. Nom, logo, site et secteur de la marque restent publics ; **e-mail et téléphone de l'interlocuteur ne sont visibles qu'après ouverture de la mise en relation**. Sans cela, un créateur contacte la marque en direct et le commercial est contourné dans l'autre sens | — |
+| D40 | Masquage symétrique des coordonnées côté marque | Fondateur + `expert-ux` + `expert-conformite-rgpd` | **Tranchée (2026-09-18), précisée le 2026-09-24 (D46)** : **oui, masquage symétrique**. Nom, logo, site et secteur de la marque restent publics ; le **prénom** de l'interlocuteur n'est révélé qu'à l'ouverture de la mise en relation ; son **e-mail, son téléphone et sa page de contact ne sont jamais montrés aux membres** (D46). Sans cela, un créateur contacte la marque en direct et le commercial est contourné dans l'autre sens | — |
 | D41 | Un compte peut-il être à la fois annonceur et créateur ? | Fondateur + `product-owner` | **Tranchée (2026-09-18)** : **un rôle par compte au MVP**, parcours nets et anonymisation garantie ; mais **le modèle de données prévoit dès le Lot 0 la liaison compte ↔ rôles**, pour que l'ouverture ultérieure ne coûte qu'un écran au lieu d'une migration sur des données en production | — |
-| D42 | **Renouvellement d'une collaboration** entre deux parties déjà mises en relation sur une même campagne. Aujourd'hui aucun chemin : une nouvelle mise en relation est bloquée tant que la précédente est active, et rien ne dit comment en ouvrir une nouvelle une fois la première close. C'est pourtant **le cas de contournement le plus probable** (les deux parties se connaissent déjà). Recommandation : renouvellement possible **uniquement par proposition INFLUX**, une fois la précédente en état terminal, avec lien vers la mise en relation d'origine ; la créance (D29) reste rattachée à la première révélation | Fondateur + `chef-de-projet` + `product-owner` (avis `expert-matching`) | Ouverte, **à trancher avant le Lot 4** | Avant le Lot 4 |
+| D42 | **Renouvellement d'une collaboration** entre deux parties déjà mises en relation sur une même campagne | Fondateur + `chef-de-projet` + `product-owner` (avis `expert-matching`) | **Tranchée (2026-09-24)** : renouvellement possible **uniquement par proposition INFLUX**, une fois l'affaire précédente terminée, avec un **lien vers la mise en relation d'origine** ; la créance (D29) reste rattachée à la première révélation. Définition exacte de « terminée » (perdue, annulée ou soldée) et champ de lien dans le modèle : `product-owner` + `expert-database` | — |
 | D43 | **Chemin d'envoi du code de connexion** (e-mail transactionnel critique, priorité P0) : appel synchrone, file dédiée ou file partagée | `architecte` (avis `expert-cybersecurite`, veto) | **Tranchée (2026-09-19)** : **envoi synchrone dans la requête, par `apps/api`** (pas par Supabase Auth, dont le Send Email Hook exigerait d'exposer publiquement l'API) ; délais bornés, **une seule tentative sans réessai**, **plancher de réponse constant de 1 s** et `200` uniforme pour ne pas révéler l'existence d'un compte ; `leads.transactional_sends` est **un journal, jamais une file** ; `P1` et `P2` restent dans `outbox_events`. Contrat d'implémentation : `docs/mvp/02-architecture-3-espaces.md` §18.10. **Limite assumée : pas d'expéditeur de secours, une panne durable de Brevo empêche toute connexion de membre** (`docs/mvp/16-backoffice-emails-brevo.md` Q8, décision de risque du fondateur) | — |
+| D44 | **Statut du code existant** | **Fondateur** | **Tranchée (2026-09-24)** : tout le code, **sauf la landing page**, est une **maquette de démonstration jetable**, destinée à faire valider la vision du MVP par des partenaires ; jamais mise en production, jamais reprise. Le produit réel repart du Lot 0 de `docs/mvp/00-cadrage-mvp-v2.md`. Voir §16 | — |
+| D45 | **Moment de la révélation d'identité** | **Fondateur** | **Tranchée (2026-09-24) : double acceptation.** Le commercial valide, puis chaque partie accepte à l'écran ; les identités sont révélées **à la seconde acceptation**, simultanément. Sans réponse sous 7 jours : clôture sans suite, rien n'est révélé. `13` et `01` font foi ; `00` §4.2 et D16 sont alignés | — |
+| D46 | **Coordonnées de contact après l'ouverture (portée de D40)** | **Fondateur** (+ `expert-conformite-rgpd`) | **Tranchée (2026-09-24) : l'identité, jamais les coordonnées.** À l'ouverture, la marque voit les pseudos et réseaux du créateur ; le créateur voit le nom de la marque, le prénom et la fonction de l'interlocuteur. **L'e-mail, le téléphone et la page de contact ne sont jamais montrés aux membres**, dans aucun sens : le commercial envoie lui-même le contrat. `12` RG29 fait foi ; `06` RG35 à RG42, `13` RG76, `11` et `04` sont alignés (restriction du droit de lecture à signaler à `expert-database`) | — |
+| D47 | **Apartés privés commercial ↔ une seule partie** dans une conversation | **Fondateur** + `expert-conformite-rgpd` (veto) + `product-owner` | **Tranchée (2026-09-24) : conservés, et annoncés.** Le commercial peut échanger en privé avec la marque seule ou avec le créateur seul ; les CGU, la politique de confidentialité et l'écran d'information avant le premier message le disent aux deux parties. Additif à écrire au document `12` (droits d'accès en base, détection, notifications, conservation, droit d'accès), **sous veto d'`expert-conformite-rgpd`** | — |
+| D48 | **Discours public pendant le MVP** | **Fondateur** (+ `expert-conformite-rgpd`) | **Tranchée (2026-09-24) : aligner, sans taux.** La landing page est réécrite pour le MVP courté (commercial intermédiaire, contrat et paiement hors plateforme, révélation à l'ouverture) avant sa mise en ligne. **Pendant le pilote, aucun pourcentage ni aucun net estimé n'est affiché**, ni sur la landing ni dans les espaces membres : « commission INFLUX incluse, précisée par votre commercial ». Le net créateur estimé de `07`, `11` et `13` est suspendu. Le barème de 35 % reste le barème par défaut (§3) | — |
+| D49 | **Dépassement du délai de la file de validation** | `chef-de-projet` + `product-owner`, **arbitré par le fondateur** | **Tranchée (2026-09-24) : l'entrée reste en file** jusqu'à décision, marquée hors délai ; l'initiateur est prévenu, un administrateur est alerté à J+1 (`13` RG26, RG99). Aucune expiration au seul écoulement du délai ; le skill `intermediation-tracking` est aligné | — |
+| D50 | **Qui écrit sur une affaire** | `expert-cybersecurite` + `chef-de-projet`, **arbitré par le fondateur** | **Tranchée (2026-09-24) : le commercial responsable et l'administrateur seulement** (`14` RG39). Un autre agent lit et demande la réattribution, journalisée. `03` §3.5 est à aligner par `expert-cybersecurite` | — |
+| D51 | **Qui retire un badge** | `architecte` + `product-owner`, **arbitré par le fondateur** | **Tranchée (2026-09-24) : un agent demande, un administrateur distinct approuve** (`03` §3.2, `08` RG75) ; tant qu'une seule personne cumule les deux rôles, confirmation différée journalisée. `06` est aligné | — |
+| D52 | **Suivi de l'exécution après signature** | `chef-de-projet` + `product-owner` + `expert-paiement-facturation`, **arbitré par le fondateur** | **Tranchée (2026-09-24) : suivi léger par le commercial.** Dans la fiche d'affaire, le commercial saisit la date de publication prévue et réelle, le lien de publication et la validation par la marque (déclarée par lui) ; un **qualificatif « livraison »** (attendue · publiée · validée · en retard), cumulable avec l'état comme `stalled` et `disputed`. Aucun écran membre. Lot 5. Cadre : additif de `14` | — |
+| D53 | **Affaires conclues hors plateforme, relations préexistantes et mesure de départ du pilote** | **Fondateur** + `expert-paiement-facturation` + `expert-conformite-rgpd` | **Tranchée (2026-09-24) : mesure de départ + registre, aucune affaire hors plateforme.** (1) Avant le pilote, mesure de l'activité au téléphone (affaires traitées par semaine) pour disposer d'un point de comparaison ; (2) **registre des relations préexistantes**, déclarées à l'arrivée d'un client, qui matérialise la clause de sauvegarde (`01` §8.1) ; (3) les clients du réseau du fondateur entrent par invitation (D54) puis **proposition INFLUX** ; `14` RG2bis maintenue | — |
+| D54 | **Invitation nominative par un commercial** | `chef-de-projet` + `product-owner` + `expert-marketing`, **arbitré par le fondateur** | **Tranchée (2026-09-24) : lien d'invitation nominatif.** Le commercial génère une invitation pour une personne ; l'inscription reste faite par elle (CGU, consentement, attestation) ; à l'inscription, le commercial devient son **commercial responsable** et la source « invitation » est enregistrée (D55). Aucun profil pré-rempli par un tiers. L'e-mail d'invitation suit les règles de la saisie libre (D35). Lot 1. Cadre : additif de `05` | — |
+| D55 | **Source d'acquisition à l'inscription** | `expert-marketing` + `expert-conformite-rgpd`, **arbitré par le fondateur** | **Tranchée (2026-09-24) : UTM + question.** Enregistrement des paramètres UTM, du site d'origine et du code d'invitation **de la session d'inscription**, sans traceur de suivi entre visites, plus une question facultative « Comment avez-vous connu INFLUX ? » (liste fermée). Transmis à Brevo comme attributs de segmentation. Lot 1. Cadre : additif de `05` ; absence de traceur à valider par `expert-conformite-rgpd` | — |
+| D56 | **Protection de la démonstration** | **Fondateur** + `expert-cybersecurite` | **Tranchée (2026-09-24) : URL protégée.** La maquette n'est montrée hors du poste local que sur une URL **protégée par un mot de passe** communiqué à chaque partenaire, avec un bandeau « Démonstration — données fictives », **non indexée**, et **jamais sur le nom de domaine de production**. Mission 6.4 de `implementation_plan.md` | — |
+| D57 | **Politique de sauvegarde du produit réel** | `architecte` + `expert-database` + `expert-conformite-rgpd`, **arbitré par le fondateur** | **Tranchée (2026-09-24) : perte maximale de quelques minutes.** Restauration à un instant donné (option payante de Supabase, coût à chiffrer par `architecte`) dès la mise en production, et **test de restauration régulier** (pas seulement au Lot 6). L'architecte fixe au Lot 0 la fréquence des tests et la reprise des purges RGPD après une restauration (`02` addendum du 2026-09-24) | — |
+
+> **Questions ouvertes des spécifications.** En plus des décisions ci-dessus, les documents `04` à
+> `16` portent **environ 156 questions ouvertes** (tableaux « Questions ouvertes » de chaque
+> document), et `17` / `17b` leurs propres points à valider. Elles ne sont pas recopiées ici pour
+> éviter deux sources de vérité ; leur décompte par document et les plus urgentes sont dans
+> `docs/mvp/19-revue-de-coherence-2026-09-24.md`.
 
 > **Décisions reportées en V2 par l'arbitrage A1 (2026-09-18).** Le contrat, la signature,
 > l'encaissement, le reversement et la facturation sortent du MVP : le contrat est envoyé et signé
@@ -707,7 +760,8 @@ segments Brevo, saisie libre plafonnée). Voir `docs/mvp/00-cadrage-mvp-v2.md`.
 
 - [x] Initialiser le dépôt Git local (`git init`, branche `main`) — **fait le 2026-09-16**
 - [x] Créer le `.gitignore` (node_modules, `.env*` sauf `.env.example`, artefacts de build, `.claude/settings.local.json`)
-- [ ] Créer le dépôt distant GitHub (privé)
+- [x] Créer le dépôt distant GitHub — **existe** (`github.com/cdurbal/influx`) ; visibilité privée à
+      confirmer
 - [ ] Protéger la branche `main` (PR obligatoire, revue requise)
 - [ ] Configurer les GitHub Secrets nécessaires au CI/CD
 
@@ -731,8 +785,11 @@ segments Brevo, saisie libre plafonnée). Voir `docs/mvp/00-cadrage-mvp-v2.md`.
 GitHub, Supabase et Railway peuvent être ouverts avant la création de la société, puis transférés.
 Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la société.
 
-- [ ] Créer le projet **Supabase** (région UE par défaut, à confirmer après D25) et récupérer les clés
-- [ ] Créer le compte **Railway**, les environnements `staging` et `production`
+- [ ] Créer le projet **Supabase** (région UE par défaut, à confirmer après D25) et récupérer les clés ;
+      prévoir l'option de **restauration à un instant donné** avant la mise en production (D57)
+- [ ] Créer le compte **Railway**, les environnements `staging` et `production` — *des commits du
+      2026-09-20 préparent le déploiement de la **maquette** sur Railway ; cela ne vaut pas création
+      des environnements du produit réel (§16)*
 - [ ] Créer le compte **Brevo**, générer la clé API, préparer les listes et attributs de contact
       (dont langue et pays)
 - [ ] Créer le compte **Apollo.io**, générer la clé API, définir les séquences commerciales
@@ -754,8 +811,18 @@ Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la sociét
 
 - [x] Valider avec le fondateur le périmètre du **MVP** (D13) — **re-tranché le 2026-09-18**, place
       de marché courtée, 7 lots, voir `docs/mvp/00-cadrage-mvp-v2.md`
-- [ ] Trancher D2, D5, D12, D18 et D37 (`architecte`) — voir `docs/mvp/02-architecture-3-espaces.md`
-- [ ] Trancher D29, D32 (rédaction), D33, D39 et D40 — les cinq décisions qui bloquent les Lots 1 à 4
+- [x] Trancher D2, D5, D12, D18 et D37 (`architecte`) — **fait le 2026-09-18**, voir
+      `docs/mvp/02-architecture-3-espaces.md`
+- [x] Trancher D39 et D40 — **fait le 2026-09-18** (portée de D40 après l'ouverture : D46)
+- [ ] Trancher D29, D32 (rédaction) et D33 — bloquent la mise en ligne du Lot 1
+- [x] Trancher les contradictions relevées par la revue de cohérence du 2026-09-24 (D42, D45 à
+      D51) — **fait le 2026-09-24**, voir `docs/mvp/19-revue-de-coherence-2026-09-24.md`
+- [x] Arbitrer les oublis signalés par cette revue (D52 à D57) — **fait le 2026-09-24**
+- [ ] **Mesurer l'activité de départ** avant le pilote : affaires traitées au téléphone par semaine (D53)
+- [x] Réécrire les textes de la landing page pour le MVP courté, sans taux (D48) — **fait le
+      2026-09-24** (`apps/web/src/locales/*/landing.json`, résumé dans `docs/landing-page/04-contenus.md`)
+- [ ] Faire relire ces textes par `expert-marketing` et `expert-conformite-rgpd` (veto), puis
+      détacher la landing de la maquette (§16.2 point 5) — **avant la mise en ligne du Lot 1**
 - [x] Figer la palette et les tokens (D6, `expert-ux` + fondateur) — **fait le 2026-09-17**, dark
       theme par défaut, voir `apps/web/src/styles/tokens.css`
 - [ ] Trancher le modèle financier restant : D7, D9, D19, D20, D22, D23, D27
@@ -775,7 +842,7 @@ Détail, agents, skills et dépendances dans **`docs/mvp/00-cadrage-mvp-v2.md`**
 
 | Lot | Contenu | Durée indicative |
 |---|---|---|
-| 0. Socle | D2, D5, D12, D18, D37 ; dépôt, CI, environnements, secrets ; `apps/api`, `apps/backoffice`, `packages/`, `supabase/` ; rôles et commercial responsable ; CGU versionnées ; journal d'audit append-only ; RLS testée ; sortie du mode maquette | 1–2 sem. |
+| 0. Socle | D2, D5, D12, D18, D37 ; dépôt, CI, environnements, secrets ; `apps/api`, `apps/backoffice`, `packages/`, `supabase/` ; rôles et commercial responsable ; CGU versionnées ; journal d'audit append-only ; RLS testée ; **départ de zéro** : seule la landing page est reprise, la maquette est jetée (D44, §16) | 1–2 sem. |
 | 1. Inscription et leads *(1re mise en ligne)* | Pages publiques bilingues, inscription réelle, synchronisation Brevo + Apollo, backoffice de suivi, documents légaux **dont la clause de non-contournement** | 3–4 sem. |
 | 2. Profils, réseaux, audience, badge | Profil marque, profil créateur en deux couches (anonyme / identifiée), preuves, file de vérification, **badge « Vérifié » attribué à la main** | 3–4 sem. |
 | 3. Campagnes et recherche anonymisée | Création et validation de campagnes, **recherche de créateurs anonymisée** côté marque et **identifiée côté commercial**, recherche de campagnes | 3–4 sem. |
@@ -811,3 +878,43 @@ par pays. Avec la mise en ligne progressive (A6), **la société doit exister ve
 | **Backoffice** | Application interne de pilotage utilisée par les agents INFLUX. |
 | **Agent INFLUX** | Collaborateur humain de la plateforme (à ne pas confondre avec un agent Claude Code). |
 | **RLS** | Row Level Security — contrôle d'accès aux lignes au niveau PostgreSQL/Supabase. |
+| **Maquette** | Code de démonstration jetable (§16), qui sert à faire valider la vision du MVP par des partenaires. Ne va jamais en production. |
+
+---
+
+## 16. Statut du code existant : maquette jetable (D44)
+
+> **Décision du fondateur, 2026-09-24.** Tout le code du dépôt, **à l'exception de la landing
+> page**, est une maquette de démonstration **jetable**. Elle sert à présenter la vision du MVP à des
+> partenaires et à la faire valider. Elle **n'ira jamais en production** et **ne sera pas reprise**.
+
+### 16.1 Ce qui est conservé, ce qui est jetable
+
+| Élément | Statut | Contenu |
+|---|---|---|
+| **Landing page** | **Conservée**, destinée à la première mise en ligne (Lot 1) | Pages publiques de `apps/web` : `app/[locale]/page.tsx`, `components/landing/`, `components/ui/`, `content/landing-content.ts`, `content/placeholders/`, `locales/*/landing.json`, `i18n/`, `styles/` (dont `tokens.css`, référence de la palette D6), et le socle front qu'elles portent (Next.js, next-intl, Tailwind). Documentation : `docs/landing-page/` |
+| **Maquette de démonstration** | **Jetable** | `apps/api`, `apps/backoffice`, `packages/contracts` ; dans `apps/web`, les espaces membres (`advertiser/`, `creator/`, `space/`), l'inscription et la connexion branchées sur la maquette (`signup/`, `login/`) et leurs composants (`account`, `auth`, `brand`, `campaign`, `chat`, `creator`, `creator-campaigns`, `dev`, `search`, `space`). Feuille de route : `implementation_plan.md` |
+
+### 16.2 Ce que cela change pour tout agent et tout contributeur
+
+1. **Les spécifications font foi, jamais la maquette.** En cas d'écart entre la maquette et
+   `docs/mvp/`, c'est la spécification qui décrit le produit. Un écart n'est corrigé dans la maquette
+   que s'il fausse la vision présentée aux partenaires. Une idée née dans la maquette (exemple : les
+   apartés privés, D47) n'entre dans le produit qu'après avoir été spécifiée et tranchée.
+2. **Le produit réel repart de zéro, au Lot 0** de `docs/mvp/00-cadrage-mvp-v2.md`. Aucun fichier de
+   la maquette n'est copié, adapté ou « branché » sur les vrais services (Supabase, Brevo,
+   Apollo.io). Seule la landing page, et le socle front qu'elle porte, est reprise.
+3. **L'avancement de la maquette ne mesure pas l'avancement du MVP.** « 37 missions sur 40 » décrit
+   la maquette ; le produit réel n'a pas commencé. Ne jamais présenter l'un pour l'autre, en
+   particulier devant des partenaires.
+4. **Règles applicables à la maquette.** Elle ne passe ni la définition du « prêt à livrer » ni les
+   vetos de livraison, qui portent sur ce qui va en production. Elle reste tenue à deux règles
+   absolues : **aucun secret réel** et **aucune donnée personnelle réelle** (uniquement des personas
+   fictifs). Montrée hors du poste local, elle l'est **uniquement sur une URL protégée par mot de
+   passe**, avec un bandeau « Démonstration — données fictives », non indexée, et jamais sur le nom
+   de domaine de production (**D56**).
+5. **Avant la mise en ligne de la landing page**, elle doit être détachée de la maquette : retirer
+   la barre de démonstration (`DevToolbar`, incluse dans `app/[locale]/layout.tsx`), faire pointer
+   les boutons d'inscription vers le vrai parcours du Lot 1, et faire relire ses textes, **réécrits
+   le 2026-09-24** pour le MVP courté et sans taux (**D48**), par `expert-marketing` et
+   `expert-conformite-rgpd`.

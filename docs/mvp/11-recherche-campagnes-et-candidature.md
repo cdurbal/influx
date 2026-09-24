@@ -1,5 +1,7 @@
 # Lot 3 — Le créateur cherche une campagne et y postule : fil, filtres, candidature, file de validation
 
+> **⚠️ Régime du pilote — D48 (arbitrage du fondateur du 2026-09-24).** Pendant le pilote, **aucun taux ni aucun net créateur estimé n'est affiché**, ni aux marques ni aux créateurs. Toutes les mentions du « net créateur estimé » et du pourcentage de commission dans ce document sont **suspendues** jusqu'à nouvel arbitrage ; la commission est présentée comme « incluse, précisée par votre commercial ». Voir `CLAUDE.md` §3 et §13 (D48).
+
 > **Date :** 2026-09-19 · **Auteur :** agent `product-owner` · **Statut :** spécification complète du
 > parcours créateur « trouver une campagne et candidater » (Lot 3, prolongée au Lot 4 pour la file),
 > soumise à la validation de `chef-de-projet`, avec **avis obligatoire (veto) de
@@ -356,7 +358,8 @@ défilement infini : un défilement infini rend le plafond de pages de RG21 inco
 | **Rémunération par créateur** (fourchette) | Visible | Visible | Visible |
 | **Budget total de la campagne** | **Jamais** | **Jamais** | **Jamais** |
 | Notes internes de la campagne, commercial responsable | **Jamais** | **Jamais** | **Jamais** |
-| **Coordonnées de l'interlocuteur** (e-mail, téléphone, prénom, page de contact) | **Masquées** | **Masquées** | Visibles (**D40**, `06` RG38) |
+| **Prénom de l'interlocuteur** | **Masqué** | **Masqué** | Visible (**D40**, `06` RG38) |
+| **Coordonnées de l'interlocuteur** (e-mail, téléphone, page de contact) | **Jamais** | **Jamais** | **Jamais** (**D46**, 2026-09-24) |
 | Nombre de candidatures reçues par la campagne | **Jamais** (voir **Q6**) | **Jamais** | **Jamais** |
 | Identité ou nombre des autres candidats | **Jamais** | **Jamais** | **Jamais** |
 | Le fait que la marque l'a mis dans une sélection (shortlist) | **Jamais** | **Jamais** | **Jamais** |
@@ -676,7 +679,7 @@ demandes de contact, et chaque motif porte **le message envoyé au créateur** e
 | Motif | Message au créateur | Corrigible |
 |---|---|---|
 | Candidature hors sujet | « Votre candidature ne répond pas au brief de cette campagne. » | Oui |
-| **Coordonnée directe dans la candidature** | « Votre candidature contient une adresse, un numéro ou un lien. Ces informations sont partagées une fois la mise en relation ouverte. » | Oui |
+| **Coordonnée directe dans la candidature** | « Votre candidature contient une adresse, un numéro ou un lien. Les échanges avec la marque se font dans INFLUX, une fois la mise en relation ouverte. » *(corrigé le 2026-09-24, D46)* | Oui |
 | Motivation trop courte ou générique | « Votre motivation ne permet pas à la marque de comprendre ce que vous proposez. » | Oui |
 | Formats proposés incohérents avec votre profil | « Les formats proposés ne correspondent pas à ceux de votre profil. » | Oui |
 | Tarif très éloigné de la rémunération annoncée | « Votre tarif s'écarte fortement de la rémunération annoncée par cette campagne. » | Oui |
@@ -800,7 +803,7 @@ refusé par le serveur pour cause de plafond ou de campagne fermée.
 | `application.status.forwarded` | Validée par INFLUX et transmise à la marque le {date}. | Approved by INFLUX and forwarded to the brand on {date}. |
 | `application.status.rejected` | INFLUX n'a pas transmis cette candidature : {reason} | INFLUX did not forward this application: {reason} |
 | `application.status.closed` | Cette candidature est clôturée : {reason} | This application is closed: {reason} |
-| `application.errors.contactInText` | Votre texte contient ce qui ressemble à une coordonnée. Retirez-la : elle sera partagée une fois la mise en relation ouverte. | Your text contains what looks like contact details. Please remove them: they will be shared once the introduction is opened. |
+| `application.errors.contactInText` | Votre texte contient ce qui ressemble à une coordonnée. Retirez-la : les échanges avec la marque se font dans INFLUX. | Your text contains what looks like contact details. Please remove them: conversations with the brand take place in INFLUX. |
 
 **RG114** — Accessibilité : chaque champ porte une étiquette visible ; un champ en erreur pointe vers
 son message ; le focus va au premier champ invalide ; les contrastes respectent WCAG AA ; **le vert de

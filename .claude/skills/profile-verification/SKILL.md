@@ -1,6 +1,6 @@
 ---
 name: profile-verification
-description: Vérifier un profil INFLUX et attribuer le badge « Vérifié », toujours attribué à la main par un administrateur — ce que le badge affirme et ce qu'il n'affirme pas, les trois niveaux, les pièces acceptées par réseau et leur fraîcheur, la procédure de l'agent qui saisit lui-même les chiffres constatés, la liste fermée des motifs de refus, la péremption à 90 jours, le retrait et la contestation. À invoquer dès qu'une story touche une preuve d'audience, la propriété d'un compte, l'immatriculation d'une marque, le badge ou son affichage.
+description: Vérifier un profil INFLUX et attribuer le badge « Vérifié », toujours attribué à la main par un agent INFLUX (commercial ou administrateur) — ce que le badge affirme et ce qu'il n'affirme pas, les trois niveaux, les pièces acceptées par réseau et leur fraîcheur, la procédure de l'agent qui saisit lui-même les chiffres constatés, la liste fermée des motifs de refus, la péremption à 90 jours, le retrait et la contestation. À invoquer dès qu'une story touche une preuve d'audience, la propriété d'un compte, l'immatriculation d'une marque, le badge ou son affichage.
 ---
 
 # Vérifier un profil et attribuer le badge
@@ -18,8 +18,10 @@ Agents concernés : `product-owner` (principal), `expert-conformite-rgpd` (**vet
 > qu'un **fait précis** a été **constaté sur pièce**, par une **personne nommée**, à une **date
 > donnée**.
 
-Le badge est **toujours attribué à la main par un administrateur**. Aucune attribution
-automatique, aucune attribution par un connecteur d'API, aucune attribution par lot au MVP.
+Le badge est **toujours attribué à la main par un agent INFLUX nommé** — rôle `agent` ou `admin`
+(`docs/mvp/03-matrice-des-droits-et-rls.md` §3.2, `docs/mvp/08-verification-et-badge.md` RG9). Aucune
+attribution automatique, aucune attribution par un connecteur d'API, aucune attribution par lot au
+MVP. Le **retrait**, lui, exige une double validation (voir D51).
 
 ---
 

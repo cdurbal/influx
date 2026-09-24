@@ -279,7 +279,7 @@ for (const route of inventaireDesRoutesDuRôleAnnonceur()) {   // dérivé du ro
 | **T1.3** | **Le contre-test** : après création d'une mise en relation avec `identity_revealed_at` non nul, le champ attendu **apparaît**. Sans lui, un test qui passe pourrait simplement signifier que la route est cassée |
 | **T1.4** | Les réponses **d'erreur** (403, 404, 409, 422, 500 provoquée) ne contiennent aucun marqueur. C'est le chemin qu'on oublie de regarder |
 | **T1.5** | Aucun marqueur dans une **URL signée** émise pour un annonceur (portfolio), ni dans le chemin d'objet du Storage |
-| **T1.6** | Symétrie D40 : avec la valeur d'attente conservatrice (C(9)), aucune coordonnée directe d'une marque n'apparaît pour un rôle `creator` sans mise en relation révélée. Si D40 est tranchée dans l'autre sens, ce cas est **ajusté, jamais supprimé** |
+| **T1.6** | Symétrie D40, précisée par D46 (2026-09-24) : **aucune coordonnée directe** d'une marque (e-mail, téléphone, page de contact) n'apparaît pour un rôle `creator`, **ni avant ni après** la révélation ; seul le prénom de l'interlocuteur est servi après révélation. Même contrôle dans l'autre sens : aucune coordonnée directe d'un créateur pour un rôle `advertiser` |
 
 ---
 
@@ -1064,7 +1064,7 @@ Un trou connu vaut mieux qu'un faux sentiment de sécurité. Voici les miens, sa
 | **9** | **La qualité des traductions** | La parité des clés est testée, le sens des phrases ne l'est pas | Relecture humaine, inscrite au « prêt à livrer » des Lots 1 et 2 |
 | **10** | **Le rappel de la détection de coordonnées** | Non garanti par construction (§6.5) | Seuils asymétriques : zéro faux positif, zéro régression |
 | **11** | **La valeur juridique de la preuve** | Le registre est une preuve **auto-produite** (`01` §M4). Un test prouve sa cohérence interne, pas sa recevabilité | Cohérence avec les e-mails détenus par des tiers ; validation par un juriste |
-| **12** | **La restauration des sauvegardes** | Non automatisable au MVP | **Une répétition manuelle documentée au Lot 6**, inscrite dans les procédures écrites. Une sauvegarde jamais restaurée n'est pas une sauvegarde |
+| **12** | **La restauration des sauvegardes** | Non automatisable au MVP | **Une répétition manuelle documentée au Lot 6**, inscrite dans les procédures écrites, **puis répétée régulièrement** (fréquence fixée par `architecte` au Lot 0, **D57**) ; la restauration **à un instant donné** est testée, pas seulement la sauvegarde quotidienne. Une sauvegarde jamais restaurée n'est pas une sauvegarde |
 | **13** | **Le test d'intrusion externe** | Hors de mes moyens et de mon périmètre | **F-9**, arbitrage du fondateur. Ce plan ne le remplace pas, et je ne le prétends nulle part |
 | **14** | **La sécurité du poste des commerciaux** | Hors périmètre applicatif | Session de 8 h, inactivité de 30 min, re-authentification (B-7) |
 
@@ -1191,7 +1191,7 @@ familles du Lot 0 en non-régression.
 - [ ] TM12.6 : l'alias public est aléatoire (I-2)
 - [ ] I-10 : écran « mes sessions actives » livré
 - [ ] **Non automatisable** : `expert-conformite-rgpd` a tranché **R-4** (vocabulaire : un profil « anonymisé » reste une donnée personnelle) et **R-5** (pièces de vérification contenant des données de tiers)
-- [ ] **Non automatisable** : le fondateur a tranché **D40** (masquage symétrique) ; à défaut, la valeur d'attente conservatrice est appliquée **et testée** (T1.6)
+- [x] **Non automatisable** : le fondateur a tranché **D40** (2026-09-18) et sa portée après l'ouverture, **D46** (2026-09-24) : aucune coordonnée directe servie à un membre, testée par T1.6
 - [ ] **Non automatisable** : revue visuelle de dix visuels de portfolio modérés — la modération est la fuite d'anonymisation la plus probable du produit
 
 ---

@@ -147,8 +147,8 @@ const TEXTS: Record<AppLocale, LocalizedTexts> = {
     conversation: {
       m1: "Bonjour ! Votre univers cuisine colle à notre lancement de café. Seriez-vous disponible pour deux vidéos courtes en mars ?",
       m2: "Avec plaisir. Je peux proposer une recette filmée et une story des coulisses. Le brief précise-t-il le ton attendu ?",
-      m3: "Oui : chaleureux et simple. Je vous envoie une proposition de contrat ici, avec le montant et les dates.",
-      m4: "Parfait, je la relirai ici. Pratique de voir mon net avant de signer.",
+      m3: "Oui : chaleureux et simple. Les deux idées nous plaisent.",
+      m4: "Merci à vous deux ! Fixons ici les dates et les droits d’utilisation ; je vous prépare ensuite le contrat.",
     },
     conversationSourceNote: "Conversation fictive, écrite pour la maquette",
     creatorNetworkSourceNote: "Nombre fictif, affiché pour la maquette",
@@ -242,8 +242,8 @@ const TEXTS: Record<AppLocale, LocalizedTexts> = {
     conversation: {
       m1: "Hi! Your cooking content fits our coffee launch really well. Would you be up for two short videos in March?",
       m2: "Happy to. I can offer a filmed recipe and a behind-the-scenes story. Does the brief specify the tone you want?",
-      m3: "Yes: warm and simple. I’ll send you a contract proposal right here, with the amount and dates.",
-      m4: "Perfect, I’ll review it here. Handy to see my net amount before signing.",
+      m3: "Yes: warm and simple. We like both ideas.",
+      m4: "Thank you both! Let’s settle the dates and usage rights here; I’ll then prepare the contract for you.",
     },
     conversationSourceNote: "Fictitious conversation, written for the mockup",
     creatorNetworkSourceNote: "Fictitious number, shown for the mockup",
@@ -493,7 +493,7 @@ export function getPlaceholderContent(locale: AppLocale): PlaceholderContent {
         { id: "m1", author: "advertiser", text: texts.conversation.m1 },
         { id: "m2", author: "creator", text: texts.conversation.m2 },
         { id: "m3", author: "advertiser", text: texts.conversation.m3 },
-        { id: "m4", author: "creator", text: texts.conversation.m4 },
+        { id: "m4", author: "agent", text: texts.conversation.m4 },
       ],
       sourceNote: texts.conversationSourceNote,
       image: decorative(imgProblem01, "center"),
@@ -530,7 +530,7 @@ export function getPlaceholderContent(locale: AppLocale): PlaceholderContent {
     whyInflux: {
       images: {
         qualifiedMatching: decorative(imgWhy01, "center"),
-        secureContract: decorative(imgWhy02, "center"),
+        dedicatedAgent: decorative(imgWhy02, "center"),
         allInInflux: decorative(imgWhy03, "65% center"),
       },
     },

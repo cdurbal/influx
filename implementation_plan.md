@@ -13,8 +13,10 @@
 > 2. **Démonstration de valeur pour des non-techniciens** : Illustrer concrètement comment la plateforme booste les ventes en automatisant un maximum d'actions (qualification automatique, outbox de leads, mise en relation courtée, alertes SLA, pipeline commercial).
 > 3. **Validation fonctionnelle préalable** : Valider les parcours utilisateurs et les flux métiers avant d'engager les développements d'infrastructure lourds.
 >
-> **Perspective & Remplacement à terme :**
-> Tous ces développements (actuellement architecturés autour de stores en mémoire et de services simulés) ont vocation à être repris et remplacés par le MVP de production définitif : raccordement aux bases de données réelles (Supabase / PostgreSQL), intégrations tierces complètes et application de la charte graphique finale.
+> **Code jetable (décision du fondateur du 2026-09-24, D44 — `CLAUDE.md` §16) :**
+> Tout ce code, **à l'exception de la landing page**, est **jetable**. Il ne sera **ni mis en production, ni repris, ni « branché »** sur Supabase, Brevo ou Apollo.io. Le produit réel sera écrit **à partir des spécifications de `docs/mvp/`**, en repartant du Lot 0 de `docs/mvp/00-cadrage-mvp-v2.md`. Les lots de ce plan sont ceux **de la maquette** : ils ne mesurent pas l'avancement du MVP.
+>
+> **Conséquence pour les agents :** en cas d'écart entre la maquette et une spécification, la spécification fait foi. Un écart ne se corrige dans la maquette que s'il fausse la vision présentée aux partenaires (voir la section « Écarts connus » en fin de document). La maquette ne contient **aucun secret réel** et **aucune donnée personnelle réelle**.
 
 > [!IMPORTANT]
 > **Règle absolue de mise à jour (Agents IA & Développeurs) :**
@@ -25,7 +27,8 @@
 > 2. Toute modification, ajout ou réorganisation de phase décidée avec le fondateur.
 > 3. Tout arbitrage technique impactant les fichiers ou commandes de validation d'une mission.
 
-> **État d'avancement au 23/09/2026 :** 32 micro-phases validées (Lots 0 à 5 terminés ✅, Mission 3.8 terminée ✅).
+> **État d'avancement de la maquette au 24/09/2026 :** **37 missions terminées sur 40** (Lots 0 à 5 terminés ✅) ; Lot 6 : 6.1, 6.2 et **6.4** à faire, **6.3 annulée** (code jetable, D44).
+> ⚠️ **Avant toute démonstration hors du poste local, la mission 6.4 est obligatoire (D56).**
 > Prochaine étape prioritaire : **Mission 6.1 (Suite de tests d'intégration E2E automatisée)**.
 
 ---
@@ -75,7 +78,8 @@
 |                              | `5.5` | Outil d'envoi d'e-mails Brevo depuis backoffice       | `apps/api` & `backoffice` | ✅ Terminé |
 | **6. Recette & Démo**        | `6.1` | Suite de tests d'intégration E2E automatisée          | `apps/api/tests`          | ⏳ À faire |
 |                              | `6.2` | Scénarios de démonstration pré-configurés DevToolbar  | `apps/web`                | ⏳ À faire |
-|                              | `6.3` | Guide de transition vers Supabase / APIs réelles      | `docs`                    | ⏳ À faire |
+|                              | `6.3` | ~~Guide de transition vers Supabase / APIs réelles~~  | `docs`                    | ❌ Annulée (D44) |
+|                              | `6.4` | Protection de l'URL de démonstration (D56)            | `apps/web` & `backoffice` | ⏳ À faire |
 
 ---
 
@@ -585,7 +589,7 @@
 
 ---
 
-### LOT 4 : INTERMÉDIATION COURTÉE & MESSAGERIE À TROIS `[⏳ À FAIRE - EN COURS]`
+### LOT 4 : INTERMÉDIATION COURTÉE & MESSAGERIE À TROIS `[✅ TERMINÉ]`
 
 #### [x] Mission 4.1 : Service des 3 Déclencheurs de mise en relation `[✅ TERMINÉ]`
 
@@ -889,7 +893,11 @@
 
 ---
 
-#### [ ] Mission 6.3 : Guide de transition vers Supabase / APIs réelles `[⏳ À FAIRE]`
+#### [ ] ~~Mission 6.3 : Guide de transition vers Supabase / APIs réelles~~ `[❌ ANNULÉE le 2026-09-24]`
+
+> **Annulée (D44).** Le code de la maquette est jetable : aucun service simulé ne sera remplacé par un
+> service réel, et le produit réel repart des spécifications de `docs/mvp/`. Un guide de transition
+> encouragerait exactement ce que D44 interdit. Fiche conservée pour mémoire.
 
 - **Rôle IA :** `tech-lead`
 - **Contexte minimal à lire :** [CLAUDE.md](file:///c:/Users/cdurb/Documents/Workspaces/influx/CLAUDE.md) §6
@@ -902,6 +910,52 @@
     - La procédure pour remplacer unitairement un mock service par le client Drizzle ou Brevo réel sans impacter le frontend.
 - **Commande de validation (DoD) :**
   - Vérification de la complétude du document et des liens fichiers.
+
+---
+
+#### [ ] Mission 6.4 : Protection de l'URL de démonstration `[⏳ À FAIRE]`
+
+- **Rôle IA :** `frontend-dev` + `devops`
+- **Décision :** D56, arbitrage du fondateur du 2026-09-24 (`CLAUDE.md` §13 et §16.2).
+- **Contexte minimal à lire :** `apps/web/src/proxy.ts`, `apps/web/src/app/[locale]/layout.tsx`, `apps/backoffice/src/app/(dashboard)/layout.tsx`
+- **Fichiers à modifier / créer :**
+  - `[MODIFY]` `apps/web/src/proxy.ts` (contrôle d'accès de démonstration)
+  - `[NEW]` équivalent dans `apps/backoffice` (proxy ou middleware Next.js)
+  - `[MODIFY]` les deux layouts (bandeau)
+  - `[MODIFY]` `.env.example` (variables `DEMO_MODE`, `DEMO_ACCESS_PASSWORD`, valeurs factices)
+- **Spécification :**
+  - Si `DEMO_MODE` est actif, **toute page** des deux fronts exige le mot de passe de démonstration (authentification HTTP de base ou écran de mot de passe), lu en variable d'environnement, **jamais écrit dans le code**.
+  - **Bandeau permanent** « Démonstration — données fictives » (FR/EN) sur toutes les pages.
+  - **Non indexé** : balise `robots` `noindex, nofollow` et en-tête `X-Robots-Tag` sur toutes les réponses.
+  - `apps/api`, y compris ses routes `/api/dev/*`, est soumise au **même contrôle d'accès** que les fronts, ou n'est joignable qu'à travers eux.
+  - Le déploiement de démonstration n'utilise **jamais** le nom de domaine de production.
+- **Commande de validation (DoD) :**
+  ```bash
+  pnpm --filter @influx/web typecheck && pnpm --filter @influx/backoffice typecheck
+  ```
+  Puis vérification manuelle : sans mot de passe, aucune page ni aucune route `/api/dev/*` n'est accessible.
+
+---
+
+## Écarts connus entre la maquette et les spécifications
+
+> Relevés le 2026-09-24 (`docs/mvp/19-revue-de-coherence-2026-09-24.md`). **La spécification fait
+> foi.** Ces écarts ne sont pas à corriger pour la production (le code est jetable), mais **à
+> connaître avant une démonstration** : ils ne doivent pas être présentés comme la vision du MVP.
+> Ceux marqués ⚠️ faussent le discours et méritent une correction dans la maquette.
+
+| # | Ce que montre la maquette | Ce que dit la spécification |
+|---|---|---|
+| ⚠️ E1 | La marque ou le créateur ne voient **aucun écran d'acceptation** de la mise en relation (l'API l'a) | **D45 (tranchée le 2026-09-24)** : révélation à la seconde acceptation ; `13` §F, « l'écran le plus sensible du produit » |
+| ⚠️ E2 | **Apartés privés** commercial ↔ marque et commercial ↔ créateur, sans aucune mention aux parties | **D47 (tranchée le 2026-09-24)** : conservés **et annoncés** aux deux parties ; cadre en additif de `12`. La maquette doit afficher cette information |
+| ⚠️ E3 | Badge global « Niveau 1 / Niveau 2 », 90 jours pour les deux, libellé « Vérifié 90j » | `08` : trois badges **par réseau** (« Compte vérifié » sans péremption, « Audience vérifiée » 90 jours, « Marque vérifiée » 12 mois), libellés soumis à D34 |
+| E4 | Affaire en 7 états avec `paid` ; payeur `advertiser` / `creator` ; mode d'envoi sans `autre` ; vue Kanban | `14` RG9 : 8 états (`commission_invoiced`, `commission_received`) ; payeur `les_deux` / `autre` avec parts saisies ; « le pipeline se lit d'abord comme une liste » (RG65) |
+| E5 | Annulation d'un envoi d'e-mails pendant **15 minutes** | **5 minutes** (`16` RG28, `15`, `17b`, `04`) |
+| E6 | Apollo reçoit **les annonceurs seulement** | A7 : tous les inscrits, périmètre lu en configuration (`05` RG81, D33) |
+| E7 | Palette « Dark Obsidian » propre au backoffice, couleurs WhatsApp dans la messagerie, environ 580 couleurs en dur | Tokens de `apps/web/src/styles/tokens.css` (D4, D6) ; toute nouvelle palette passe par le fondateur |
+| ⚠️ E8 | « 35 % » et un net créateur estimé affichés (libellés, éditeur de tarifs, recherche) | **D48 (tranchée le 2026-09-24)** : aucun taux ni net estimé affiché pendant le pilote — « commission INFLUX incluse, précisée par votre commercial » |
+| E9 | Seules 3 files sur 16 ont un écran de traitement (campagnes, mises en relation, vérification) ; ni signalement, ni blocage, ni espace « mes données » | `15` (16 files), `12` §G, `17` §6.3 |
+| ⚠️ E10 | Codes de connexion fixes (`123456`, `000000`), sélecteur de persona, routes `/api/dev/*`, secret de session avec valeur de repli | Acceptable en local ; **D56 (tranchée le 2026-09-24)** : hors du poste, uniquement sur une URL protégée par mot de passe — mission 6.4 |
 
 ---
 

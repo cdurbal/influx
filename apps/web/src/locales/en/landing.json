@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "INFLUX: the marketplace for brands and creators",
-    "description": "Brands: verified creators, hand-picked by our team. Creators: proposals from brands. Secure contracts and payments on INFLUX."
+    "description": "Brands: verified creators. Creators: campaigns that fit you. An INFLUX account manager approves every introduction and supports you all the way to an agreement."
   },
   "common": {
     "brandName": "INFLUX",
@@ -19,7 +19,7 @@
       "audienceRange": "{min, number, ::compact-short}–{max, number, ::compact-short} followers",
       "countryLabel": "Country:",
       "verifiedBadge": "Verified",
-      "verifiedLegend": "Verified: stats and account ownership checked by our team. Usernames stay hidden until the contract is signed."
+      "verifiedLegend": "Verified: stats and account ownership checked by our team. INFLUX makes no claim about follower authenticity. Usernames stay hidden until the brand and the creator both accept the introduction."
     },
     "carousel": {
       "pause": "Pause the scrolling",
@@ -50,19 +50,19 @@
   },
   "hero": {
     "overline": "Brand and creator marketplace",
-    "title": "Brands and creators: <muted>from introduction to contract, in one place</muted>",
-    "lead": "The INFLUX team introduces brands to verified creators, and creators to campaigns that fit them. Messaging, contract and payment all happen here.",
-    "reassurance": "Free to sign up. INFLUX commission only on signed contracts.",
+    "title": "Brands and creators: <muted>from introduction to agreement, with an account manager by your side</muted>",
+    "lead": "Brands find verified creators, and creators find campaigns that fit them. An INFLUX account manager approves every introduction, joins the conversation and prepares the contract.",
+    "reassurance": "Free to sign up. INFLUX commission only on concluded collaborations.",
     "visualChip": "New proposal received"
   },
   "keyFigure": {
     "srTitle": "INFLUX in numbers",
-    "statement": "{value, plural, one {<highlight>#</highlight> contract signed} other {<highlight>#</highlight> contracts signed}} <muted>between brands and creators on INFLUX</muted>"
+    "statement": "{value, plural, one {<highlight>#</highlight> collaboration concluded} other {<highlight>#</highlight> collaborations concluded}} <muted>between brands and creators through INFLUX</muted>"
   },
   "creatorShowcase": {
     "overline": "Hand-picked creators",
     "title": "Verified profiles, <muted>chosen for your brief</muted>",
-    "lead": "For each campaign, our team suggests creators whose topics, audience and formats fit your brief. You decide who to move forward with."
+    "lead": "For each campaign, our team suggests creators whose topics, audience and formats match your brief. You can also browse verified profiles yourself, shown anonymously."
   },
   "featuredResult": {
     "overline": "Campaign result",
@@ -76,7 +76,7 @@
   },
   "caseStudies": {
     "overline": "Case studies",
-    "title": "Campaigns signed <muted>and delivered on INFLUX</muted>",
+    "title": "Campaigns concluded <muted>and delivered with INFLUX</muted>",
     "lead": "Each example shows the sector, formats, duration and number of creators, along with the metric the brand tracked.",
     "metricDisplay": "{value, number, ::percent sign-always}",
     "videoButton": "Watch the video"
@@ -88,51 +88,52 @@
     "painPoints": {
       "search": "Hours spent spotting profiles, without knowing if their stats are reliable.",
       "followUp": "Follow-ups scattered across emails, social networks and chat apps.",
-      "contract": "Informal deals, with no written contract and no secure payment."
+      "contract": "Deals agreed in a few lines, with no written contract and no one to bridge the gap."
     },
     "conversation": {
       "frameTitle": "INFLUX messaging",
       "advertiserRole": "Brand",
       "creatorRole": "Creator",
-      "systemEvent": "Contract proposal sent in INFLUX",
-      "caption": "Messages, contract and payment stay in INFLUX: no need to share your contact details."
+      "agentRole": "INFLUX account manager",
+      "systemEvent": "Introduction followed by your INFLUX account manager",
+      "caption": "The brand, the creator and the INFLUX account manager talk in one place: your contact details are never shared."
     }
   },
   "method": {
     "overline": "Our method",
-    "title": "From brief to payout, <muted>six steps overseen by our team</muted>",
-    "lead": "The INFLUX team steps in at key stages. Everything happens on the platform and stays on record, protecting brands and creators alike.",
+    "title": "From brief to publication, <muted>an INFLUX account manager at every step</muted>",
+    "lead": "Every introduction is approved, then followed through to publication by a named INFLUX account manager. Everything happens on the platform and stays on record, protecting brands and creators alike.",
     "steps": {
       "brief": {
         "title": "You publish your brief",
-        "body": "Product, goals, formats, budget (INFLUX commission included), timing and target audience: you describe your campaign. Our team reviews and approves it before it goes live."
+        "body": "Product, goals, formats, budget, timing and target audience: you describe your campaign, and our team reviews it before it goes live. You can also browse verified profiles, shown anonymously."
       },
-      "teamSelection": {
-        "title": "We hand-pick creators",
-        "body": "Someone from the INFLUX team picks verified creators for your brief and explains each suggestion. You accept or decline, with usernames hidden until signing."
+      "introduction": {
+        "title": "INFLUX approves every introduction",
+        "body": "Your contact request, a creator’s application or a suggestion from our team: an INFLUX account manager reviews every introduction within one business day and explains each decision."
       },
-      "messaging": {
-        "title": "You talk it through in INFLUX",
-        "body": "Deliverables, dates, tone: you settle the details with the creator in a messaging space dedicated to each introduction, where your conversations are kept."
+      "acceptance": {
+        "title": "Both sides accept, then identities are revealed",
+        "body": "The brand and the creator each accept the introduction. Usernames and names are only shared once both have agreed; email addresses and phone numbers never are."
+      },
+      "conversation": {
+        "title": "A three-way conversation",
+        "body": "The brand, the creator and your named INFLUX account manager talk in a dedicated messaging space: deliverables, timing, usage rights, price. Messages are kept."
       },
       "contract": {
-        "title": "You sign the contract in INFLUX",
-        "body": "The contract states, in a single currency, its amount, the included INFLUX commission and its two shares, and the creator’s net amount. It’s only available when both parties are in countries open to contracts."
+        "title": "A contract prepared by your account manager",
+        "body": "Once you agree, your account manager prepares the contract and sends it to you for signature. It states the amount, the included INFLUX commission, the deliverables and the payment terms."
       },
-      "securePayment": {
-        "title": "The brand pays through INFLUX",
-        "body": "Payment goes through a licensed payment provider. The amount paid is the contract amount, INFLUX commission included; the creator’s net amount is paid out after the publication is approved."
-      },
-      "publicationPayout": {
-        "title": "Approval, then payout",
-        "body": "The creator uploads proof of publication, the brand approves it, then the creator’s net amount is paid out. On a first contract, the creator verifies their identity and bank details with the provider."
+      "delivery": {
+        "title": "Publication and follow-up",
+        "body": "The creator publishes and the brand approves: your account manager follows the collaboration through to the end and remains your contact if anything goes wrong."
       }
     }
   },
   "creatorNetwork": {
     "overline": "Creator network",
     "title": "Our team presents your profile <muted>to brands in your space</muted>",
-    "lead": "Complete your profile, get your stats verified and browse open campaigns. Your username stays hidden until the contract is signed.",
+    "lead": "Complete your profile, get your stats verified and browse open campaigns. Your username is only shared with a brand once you accept the introduction.",
     "countLabel": "{count, plural, one {<highlight>#</highlight> verified creator} other {<highlight>#</highlight> verified creators}}"
   },
   "useCases": {
@@ -184,142 +185,83 @@
       },
       "receiveProposals": {
         "title": "Receive proposals",
-        "advertiser": "Our team suggests verified creators and explains each choice.",
+        "advertiser": "Our team suggests verified creators and explains each choice; you can also request a contact yourself.",
         "creator": "Our team sends you relevant campaigns; you accept or decline."
       }
     },
     "completenessIllustration": "Profile 80% complete"
   },
   "pricing": {
-    "overline": "Transparent pricing",
-    "title": "Free to join, <muted>commission only on signed contracts</muted>",
-    "lead": "The INFLUX commission is the price of a service: team-selected creators, dedicated messaging, secure contract and payment. Nothing is owed to INFLUX without a signed contract.",
-    "rate": {
-      "label": "INFLUX commission",
-      "total": "35%",
-      "included": "included in the contract amount, never added on top",
-      "legend": {
-        "advertiserShare": {
-          "label": "INFLUX advertiser share",
-          "value": "20%"
-        },
-        "creatorShare": {
-          "label": "INFLUX creator share",
-          "value": "15%"
-        },
-        "netCreator": {
-          "label": "Creator’s net amount",
-          "value": "65%"
-        }
-      }
-    },
-    "example": {
-      "caption": "Example: a €2,000.00 contract (in euros)",
-      "columnItem": "Item",
-      "columnAmount": "Amount",
-      "contractAmount": {
-        "label": "Contract amount (total cost to the advertiser)",
-        "value": "€2,000.00"
-      },
-      "commissionTotal": {
-        "label": "Total INFLUX commission (35%)",
-        "value": "€700.00"
-      },
-      "advertiserShare": {
-        "label": "of which advertiser share (20%)",
-        "value": "€400.00"
-      },
-      "creatorShare": {
-        "label": "of which creator share (15%)",
-        "value": "€300.00"
-      },
-      "netCreator": {
-        "label": "Net paid to the creator",
-        "value": "€1,300.00"
-      },
-      "check": "Check: €400.00 (advertiser share) + €300.00 (creator share) + €1,300.00 (creator’s net amount) = €2,000.00 (contract amount)"
-    },
+    "overline": "Pricing",
+    "title": "Free to sign up, <muted>commission only on a concluded collaboration</muted>",
+    "lead": "The INFLUX commission pays for a service: hand-picking creators, approving every introduction, support from an account manager and preparing the contract. It is included in the collaboration amount, never added on top, and nothing is owed to INFLUX without a concluded collaboration.",
     "audience": {
-      "advertiser": "Advertiser (the brand): you pay the contract amount, which already includes the full INFLUX commission.",
-      "creator": "Creator: you see your net amount before signing."
-    },
-    "notes": {
-      "currency": "Example in euros. Each contract uses a single currency, chosen from the list offered by INFLUX.",
-      "taxes": "The example doesn’t break down taxes. Taxes that apply to the contract depend on the countries and each party’s status; they are shown before signing."
-    },
-    "phone": {
-      "caption": "Illustration: before signing, the creator sees the contract amount, the included INFLUX commission and their net amount.",
-      "screenTitle": "Contract proposal",
-      "netLabel": "Your net amount paid out",
-      "netValue": "€1,300.00",
-      "contractLine": "on a €2,000.00 contract, INFLUX commission included",
-      "commissionLine": "INFLUX commission (35%): €700.00",
-      "sharesLine": "of which advertiser share €400.00 and creator share €300.00",
-      "fakeButton": "Accept the contract"
+      "advertiser": "For brands: the collaboration amount is your total cost, INFLUX commission included.",
+      "creator": "For creators: before you commit, your INFLUX account manager tells you what you will receive, and the contract puts it in writing."
     }
   },
   "whyInflux": {
     "overline": "Why INFLUX",
     "title": "Built to see <muted>every collaboration through</muted>",
-    "lead": "A team that selects, a framework that protects, one place to follow everything: that’s what the INFLUX commission pays for.",
+    "lead": "A team that selects, an account manager who supports you, one place to follow everything: this is what the INFLUX commission gets you.",
     "items": {
       "qualifiedMatching": {
         "title": "A selection made by our team",
         "body": "Every suggestion is prepared by our team, based on your brief and on profiles with verified stats. You know why each creator is suggested to you."
       },
-      "secureContract": {
-        "title": "A secure contract and payment",
-        "body": "The contract shows its amount, currency, the included INFLUX commission and the creator’s net amount. Payment via a licensed provider; net paid out once the content is approved."
+      "dedicatedAgent": {
+        "title": "An account manager by your side",
+        "body": "A named INFLUX account manager joins every conversation, helps the brand and the creator agree on deliverables and price, then prepares the contract."
       },
       "allInInflux": {
         "title": "Everything stays in INFLUX",
-        "body": "Messages, contract and payment sit in one place, with no need to swap contact details. If there’s a disagreement, what was agreed is easy to find."
+        "body": "Search, conversations and follow-up of the collaboration all live in one place, without ever sharing your contact details. If there’s a disagreement, what was agreed is easy to find."
       }
     }
   },
   "faq": {
     "overline": "Frequently asked questions",
     "title": "What to know <muted>before you sign up</muted>",
-    "lead": "Money, countries, profiles, messaging: the essentials, for brands and creators alike.",
+    "lead": "Money, countries, profiles, conversations: the essentials, for brands and creators alike.",
     "items": {
       "signupCost": {
         "question": "Does it cost anything to sign up for INFLUX?",
-        "answer": "No. Signing up is free for brands and creators alike, with no subscription. INFLUX only earns money through a commission on contracts signed on the platform: as long as no contract is signed, you pay nothing to INFLUX."
+        "answer": "No. Signing up is free for brands and creators alike, with no subscription. INFLUX only earns money through a commission on collaborations concluded through the platform: as long as no collaboration is concluded, you pay nothing to INFLUX."
       },
       "commission": {
         "question": "How much does INFLUX cost, and what does the creator get?",
-        "answer": "The INFLUX commission is 35% of the contract amount: a 20% advertiser share and a 15% creator share, both included in that amount, which is the brand’s total cost. Example in euros: on a €2,000.00 contract, the INFLUX commission is €700.00 (of which €400.00 advertiser share and €300.00 creator share) and the net paid to the creator is €1,300.00. Details in the Pricing section."
+        "answer": "The INFLUX commission is included in the amount of each collaboration, which is the brand’s total cost: it is never added on top. Before you commit, your INFLUX account manager tells you its amount and what the creator receives, and the contract then puts it in writing."
       },
       "payment": {
-        "question": "How does payment work, and when is the creator paid?",
-        "answer": "The brand pays the contract amount on INFLUX, through a licensed payment provider. The creator’s net amount, meaning the contract amount minus the INFLUX commission, is paid out to the creator through that provider once the brand approves the publication. On their first contract, creators verify their identity and add their bank details with the provider."
+        "question": "How does payment work?",
+        "answer": "Payment terms are set in the contract your INFLUX account manager prepares with you: amount, schedule and what the creator receives. INFLUX never asks for your bank details to use the platform."
       },
       "currency": {
-        "question": "Which currency and language are contracts in?",
-        "answer": "Each contract uses a single currency, chosen from the list offered by INFLUX: the contract amount, the INFLUX commission and the creator’s net amount are all stated in that currency. The platform and contracts are available in French and English."
+        "question": "Which currency are collaborations in?",
+        "answer": "Each collaboration uses a single currency, agreed with your account manager and stated in the contract: the amount and the INFLUX commission are both expressed in that currency."
       },
       "openCountries": {
-        "question": "Can I sign a contract from my country?",
-        "answer": "Anyone can sign up, wherever they are. Contracts, however, open country by country, after legal, tax and payment checks: a contract is only possible if the brand and the creator are each located in an open country. If yours isn’t open yet, your account stays active and we’ll let you know as soon as it opens."
+        "question": "Is INFLUX open in my country?",
+        "answer": "Yes. Sign-up and introductions are open worldwide, and the platform is available in French and English."
       },
       "hiddenHandles": {
-        "question": "Why are creators’ usernames hidden?",
-        "answer": "So that choices rest on verified information and the collaboration is concluded in INFLUX, where the contract and payment protect both parties. Before signing, the brand sees topics, audience, verified stats, portfolio and the “verified” badge. Usernames and social links are shared with the brand once the contract is signed."
+        "question": "Why are creator profiles anonymous?",
+        "answer": "So that choices rest on verified information and the collaboration is built on INFLUX. Before the introduction, the brand sees topics, audience, verified stats, portfolio and the “verified” badge. Usernames and social links are shared once the brand and the creator have both accepted the introduction. Email addresses and phone numbers are never shared, on either side."
       },
       "messaging": {
-        "question": "Why do conversations go through INFLUX messaging?",
-        "answer": "Because it protects you. Messages are kept and linked to the introduction, so if there’s a disagreement about what was agreed, everyone can refer back to them. The contract and secure payment only exist in INFLUX, which is also how our team can support you all the way to the creator’s payout."
+        "question": "Why does an INFLUX account manager join the conversation?",
+        "answer": "Because that is what gets collaborations over the line. Every introduction opens a three-way conversation: the brand, the creator and a named INFLUX account manager, who helps you reach an agreement and then prepares the contract. They can also talk privately with each of you. Messages are kept and may be read by the INFLUX team to support you; every such reading is logged."
       },
       "eligibility": {
         "question": "Who can join as a creator, and how are profiles verified?",
-        "answer": "Any creator of legal age under the law where they live, whether an individual or a professional. Minors are not accepted. Our team checks the stats provided and the ownership of each account, for example with a code added to the bio. Checked profiles get the “verified” badge. On their first contract, creators also verify their identity with the payment provider."
+        "answer": "Any creator of legal age under the law where they live, whether an individual or a professional. Minors are not accepted. Our team checks the stats provided and the ownership of each account, for example with a code added to the bio. Checked profiles get the “verified” badge. INFLUX makes no claim about follower authenticity."
       }
     },
     "contactPrompt": "Another question? Write to us:"
   },
   "finalCta": {
     "title": "Your next collaboration <muted>starts here</muted>",
-    "lead": "Brands, publish your brief. Creators, complete your profile. The INFLUX team makes the introductions."
+    "lead": "Brands, publish your brief. Creators, complete your profile. The INFLUX team makes the introductions and supports you all the way to an agreement."
   },
   "startForm": {
     "overline": "Create an account",
@@ -380,7 +322,7 @@
       "labelAdvertiser": "Company country",
       "labelCreator": "Country of residence",
       "emptyOption": "Select a country",
-      "openCountriesInfo": "Sign-up is open in every country. Contracts open country by country: if yours isn’t open yet, we’ll let you know when it opens.",
+      "openCountriesInfo": "Sign-up and introductions are open in every country.",
       "errors": {
         "required": "Select your country."
       }
@@ -409,7 +351,7 @@
     "privacyNotice": "INFLUX uses this information to manage your account and, with your consent, to send you marketing emails. Your data and rights are described in the privacy policy."
   },
   "footer": {
-    "tagline": "Selection, contract and payment: the marketplace for brands and creators.",
+    "tagline": "Verified creators, approved introductions, an account manager by your side: the marketplace for brands and creators.",
     "navTitle": "Navigation",
     "navLabel": "Footer navigation",
     "legalTitle": "Legal",
@@ -423,8 +365,8 @@
     "contactTitle": "Contact",
     "copyright": "© 2026 INFLUX",
     "trust": {
-      "contract": "Contracts signed and stored in INFLUX",
-      "payment": "Payments through a licensed payment provider"
+      "validated": "Every introduction approved by an INFLUX account manager",
+      "privacy": "Your contact details are never shared"
     }
   },
   "auth": {
@@ -492,9 +434,9 @@
     "space": {
       "overline": "Member space",
       "title": "Welcome to your INFLUX space",
-      "leadAdvertiser": "Brand space (mockup): this is where you’ll publish campaigns and track your matches and contracts.",
-      "leadCreator": "Creator space (mockup): this is where you’ll receive campaign proposals and track your contracts.",
-      "leadGeneric": "Member space (mockup): this is where you’ll track your campaigns, matches and contracts.",
+      "leadAdvertiser": "Brand space (mockup): this is where you will publish your campaigns and follow your introductions and conversations.",
+      "leadCreator": "Creator space (mockup): this is where you will receive campaign proposals and follow your introductions.",
+      "leadGeneric": "Member space (mockup): this is where you will follow your campaigns, introductions and conversations.",
       "mockupNotice": "Mockup: this login is simulated and no real data is shown here.",
       "backHome": "Back to home"
     }

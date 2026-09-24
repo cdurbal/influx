@@ -1,5 +1,7 @@
 # Parcours et écrans des espaces membres — marque et créateur
 
+> **⚠️ Régime du pilote — D48 (arbitrage du fondateur du 2026-09-24).** Pendant le pilote, **aucun taux ni aucun net créateur estimé n'est affiché**, ni aux marques ni aux créateurs. Toutes les mentions du « net créateur estimé » et du pourcentage de commission dans ce document sont **suspendues** jusqu'à nouvel arbitrage ; la commission est présentée comme « incluse, précisée par votre commercial ». Voir `CLAUDE.md` §3 et §13 (D48).
+
 > **Date :** 2026-09-19 · **Auteur :** agent `expert-ux` · **Statut :** conception UX complète des
 > **deux espaces membres** du MVP (`apps/web`), soumise au fondateur (branding, §9),
 > à `expert-conformite-rgpd` (veto : information des personnes, libellés du badge, texte
@@ -1644,7 +1646,7 @@ détection avant envoi, même interdiction de pièce jointe. Deux différences d
 | | Côté marque | Côté créateur |
 |---|---|---|
 | Nom de l'autre partie | Le **pseudo principal révélé** (`12` RG5) | Le **nom commercial**, puis prénom et fonction de l'interlocuteur révélé |
-| Fiche de l'autre partie | Profil créateur, couches A + I | Profil marque + bloc interlocuteur révélé, précédé de `brandProfile.contact.revealNotice` (`06` RG42) |
+| Fiche de l'autre partie | Profil créateur, couches A + I | Profil marque + bloc interlocuteur révélé — **prénom et fonction seulement, jamais d'e-mail ni de téléphone** (D46) —, précédé de `brandProfile.contact.revealNotice` (`06` RG42) |
 
 Le bloc interlocuteur révélé est accompagné de sa mention fixe et **chaque consultation est
 journalisée** (`06` RG41) — le créateur n'en est pas informé écran par écran, mais la politique de

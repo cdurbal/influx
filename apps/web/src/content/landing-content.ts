@@ -81,7 +81,8 @@ export type CaseStudies = {
   sourceNote: string;
 };
 
-export type ConversationAuthor = "advertiser" | "creator";
+/** The INFLUX account manager is a first-class participant of every conversation (A3). */
+export type ConversationAuthor = "advertiser" | "creator" | "agent";
 
 /** CA18: plain text only, no email, phone, URL, handle or pseudonym. */
 export type ConversationMessage = {
@@ -108,7 +109,7 @@ export type HowItWorksStepId =
   "createAccount" | "completeProfile" | "receiveProposals";
 
 export type WhyInfluxItemId =
-  "qualifiedMatching" | "secureContract" | "allInInflux";
+  "qualifiedMatching" | "dedicatedAgent" | "allInInflux";
 
 export type MockupNotice = {
   title: string;

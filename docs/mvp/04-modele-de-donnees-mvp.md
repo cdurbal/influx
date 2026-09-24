@@ -4529,7 +4529,7 @@ alter table backoffice.sla_policies
       foreign key (queue_code) references backoffice.queues (code);
 
 comment on table backoffice.queues is
-  'Catalogue ferme des files du backoffice (15 RG26, RG29). Les 15 files du MVP y sont chargees
+  'Catalogue ferme des files du backoffice (15 RG26, RG29, RG125). Les 16 files du MVP y sont chargees
    par migration, lot par lot : une file arrive avec le lot qui la remplit.
    spec_document nomme le document qui fait autorite sur le CONTENU de la file ; ce modele, lui,
    ne fait autorite que sur la forme. Transposition de la regle de lecture n° 1 de 03 §2.
@@ -4818,7 +4818,7 @@ create trigger audit_events_no_truncate
 | `profiles.creator_public_*` | **L** | L + E (les siennes) | L | L | L |
 | `profiles.creator_social_accounts` | **L après révélation, colonnes limitées** | L + E | L | L | L |
 | `profiles.creator_identities` | **—** | L + E | L | L | L |
-| `profiles.advertiser_contact_details` | L + E (la sienne) | **L après révélation, colonnes limitées** (D40) | L | L | L |
+| `profiles.advertiser_contact_details` | L + E (la sienne) | **L après révélation, prénom seulement** (D40, précisée par D46 le 2026-09-24 : e-mail, téléphone et page de contact jamais servis à un membre) | L | L | L |
 | `verification.evidence_files` | **—** | L (les siennes) | L (journalisé) | L | — |
 | `campaigns.campaigns` | L + E (les siennes) | **—** *(le créateur lit l'instantané, jamais la ligne vivante)* | L | L | L |
 | `campaigns.campaign_published_snapshots` | L | **L** | L | L | L |
@@ -5601,7 +5601,7 @@ l'interface Supabase. Le rôle qui applique les migrations est **le propriétair
 | 1 | **Rien ne se supprime vraiment.** Un compte supprimé devient anonyme, mais la mise en relation, l'affaire, les messages et le journal **restent**, sous une forme qui ne porte plus de nom. C'est ce qui protège INFLUX en cas de contestation — et cela **doit être écrit dans la politique de confidentialité dès la première mise en ligne** | C'est une promesse faite à vos utilisateurs, pas un réglage technique |
 | 2 | **La table des taux de commission est créée et verrouillée.** Personne ne peut y écrire depuis l'application : la remplir, en V2, exigera une modification de la base relue et validée | C'est le garde-fou qui garantit qu'aucun « 35 % » ne se glissera quelque part dans le code d'ici là |
 | 3 | **Le registre de preuve protège contre le code, pas contre vous.** Celui qui détient le projet Supabase peut tout effacer. Parade gratuite proposée : **recevoir chaque mois par e-mail l'empreinte de tête du registre** (64 caractères). Un tiers en détient alors une copie datée | Cela transforme une preuve interne en preuve difficilement contestable, pour zéro euro. À accepter ou à refuser |
-| 4 | **D41, D39 et D40 sont intégrées** (2026-09-18). Ce qu'il faut en retenir : le double rôle reste **fermé** au MVP, mais la porte est posée et son ouverture est chiffrée à **8 à 12 jours** au lieu de 3 à 5 semaines (**§5.1.1**) ; le délai de la file est **1 jour ouvré**, réglable sans déploiement ; les coordonnées d'une marque sont désormais **masquées jusqu'à la mise en relation**, comme celles d'un créateur | Ce sont vos arbitrages : ce paragraphe est là pour que vous puissiez vérifier qu'ils ont été compris comme vous les avez posés |
+| 4 | **D41, D39 et D40 sont intégrées** (2026-09-18). Ce qu'il faut en retenir : le double rôle reste **fermé** au MVP, mais la porte est posée et son ouverture est chiffrée à **8 à 12 jours** au lieu de 3 à 5 semaines (**§5.1.1**) ; le délai de la file est **1 jour ouvré**, réglable sans déploiement ; les coordonnées d'une marque sont désormais **masquées jusqu'à la mise en relation**, comme celles d'un créateur — *et, depuis D46 (2026-09-24), l'e-mail, le téléphone et la page de contact ne sont jamais servis à un membre (§12.11)* | Ce sont vos arbitrages : ce paragraphe est là pour que vous puissiez vérifier qu'ils ont été compris comme vous les avez posés |
 
 ### 12.6 Points à valider, ouverts par la relecture des documents `06` à `11` (2026-09-19)
 
@@ -5682,6 +5682,24 @@ pour que le modèle ne comporte pas de manque, et chacun peut être rouvert par 
 | 4 | **Empreinte plutôt qu'adresse en clair** dans `auth_request_throttle` | **Empreinte avec poivre serveur.** Une table de compteurs en clair serait un annuaire des adresses sollicitées, **y compris celles qui n'auront jamais de compte**. Le poivre doit vivre en variable d'environnement, jamais en base — sans quoi l'empreinte ne protège de rien | **`expert-cybersecurite`** (skill `env-secrets`) |
 | 5 | **Plafond de la grappe de connexions élevée de `apps/api`** (garde-fou **G5**, valeur de départ 5) | **Hors du modèle de données**, mais il m'est adressé : je retiens **5 connexions** comme valeur de départ, à mesurer dès que le volume réel du pilote est connu. C'est ce plafond, et non une priorité, qui empêche une rafale de `P0` d'assécher le worker | `architecte` + `expert-database` |
 | 6 | **Risque résiduel de la cause (a)** — un refus du fournisseur portant sur l'adresse apprend qu'elle a déjà reçu un e-mail d'INFLUX | **Accepté et écrit**, conformément à `02` §18.5 : très en deçà d'une énumération de comptes, non exploitable à l'échelle (20 demandes/heure/IP), et le supprimer coûterait le message unique que `05` RG60 refuse. Côté base, la garantie est **l'absence de toute consultation préalable** de `email_status` ou des incidents — aucune requête du chemin d'envoi ne les lit | **`expert-cybersecurite` — veto** |
+
+### 12.11 Points ouverts par les arbitrages du fondateur du 2026-09-24
+
+Ajoutés par la revue de cohérence (`19-revue-de-coherence-2026-09-24.md`). Ce sont des décisions
+**prises** ; il reste à les traduire dans le schéma.
+
+| # | Arbitrage | Conséquence à modéliser | Arbitre de la forme |
+|---|---|---|---|
+| 1 | **D46** — jamais d'e-mail, de téléphone ni de page de contact servis à un membre | Le `GRANT` de révélation sur `profiles.advertiser_contact_details` (§6.2 d) se limite au **prénom** ; e-mail, téléphone et page de contact ne reçoivent **aucun** droit du rôle `influx_creator`, révélation ou non | `expert-database` + `expert-cybersecurite` (veto) |
+| 2 | **D45** — révélation à la seconde acceptation | Déjà conforme : `introductions_reveal_requires_both_acceptances` (§5.6). Rien à changer | — |
+| 3 | **D47** — apartés privés du commercial avec une seule partie | Un canal par conversation (commun · marque · créateur), porté **en base** avec une politique d'accès par canal ; la détection, les curseurs de lecture et le journal des lectures doivent connaître le canal. À modéliser après l'additif de `12` | `expert-database` + `expert-cybersecurite` (veto) |
+| 4 | **D42** — renouvellement par proposition INFLUX | Un lien vers la mise en relation d'origine (par exemple `renews_introduction_id`), et une exception à `introductions_active_pair_idx` pour ce seul cas, une fois l'affaire précédente terminée | `expert-database` + `product-owner` (définition de « terminée ») |
+| 5 | **D48** — aucun net estimé affiché pendant le pilote | Les bornes nettes de `reference.price_bands` (§12.6 point 1) **ne sont pas nécessaires au pilote** : colonnes laissées vides, aucune lecture par l'application | `expert-paiement-facturation` |
+| 6 | **D50** — écriture d'une affaire réservée au responsable et à l'administrateur | Condition `owner_agent_id = appelant` pour le rôle `influx_agent` sur les écritures de `billing.deals` (§12.8 point 1, désormais tranché) | `expert-database` + `expert-cybersecurite` |
+| 7 | **D52** — suivi de livraison par le commercial (`14` RG105 à RG108) | Sur `billing.deals` : date de publication prévue et réelle, lien de publication, date de validation par la marque, note ; qualificatif `delivery_status` (`attendue` · `publiee` · `validee` · `en_retard`), historisé comme les montants. Aucun droit pour les rôles membres | `expert-database` |
+| 8 | **D53** — registre des relations préexistantes (`14` RG110, RG111) | Table en ajout seul (par exemple `matching.pre_existing_relationships`) : les deux parties, date déclarée du début de la relation, déclarant (`advertiser` · `creator` · `agent`), auteur, horodatage ; alimentée aussi par le motif `pre_existing_relationship` (`13` RG87). Durée de conservation à fixer | `expert-database` + `expert-conformite-rgpd` (veto) |
+| 9 | **D54** — invitations nominatives (`05` RG116 à RG119) | Table des invitations : code unique, adresse, rôle proposé, langue, auteur (`agent` ou `admin`), expiration, date d'utilisation, compte créé ; attribution du commercial responsable à l'inscription (`backoffice.ownership_assignments`) | `expert-database` + `expert-cybersecurite` |
+| 10 | **D55** — source d'acquisition (`05` RG120 à RG122) | Colonnes figées à la création du compte : `utm_source`, `utm_medium`, `utm_campaign`, domaine d'origine, code d'invitation, réponse déclarative (liste fermée en référentiel) ; jamais modifiées | `expert-database` + `expert-conformite-rgpd` |
 
 ---
 

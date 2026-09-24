@@ -1,5 +1,9 @@
 # Lot 4 — La file de validation, la proposition INFLUX et l'ouverture d'une mise en relation
 
+> **⚠️ Régime du pilote — D48 (arbitrage du fondateur du 2026-09-24).** Pendant le pilote, **aucun taux ni aucun net créateur estimé n'est affiché**, ni aux marques ni aux créateurs. Toutes les mentions du « net créateur estimé » et du pourcentage de commission dans ce document sont **suspendues** jusqu'à nouvel arbitrage ; la commission est présentée comme « incluse, précisée par votre commercial ». Voir `CLAUDE.md` §3 et §13 (D48).
+>
+> **Mise à jour du 2026-09-24.** Ce document fait foi pour **D45** (révélation à la seconde acceptation) et **D49** (une entrée hors délai reste en file). Les coordonnées révélées sont limitées par **D46** (jamais d'e-mail ni de téléphone) ; le renouvellement suit **D42** (RG104bis).
+
 > **Date :** 2026-09-19 · **Auteur :** agent `product-owner`, avec l'avis de
 > `expert-paiement-facturation` sur les aspects de preuve d'intermédiation · **Statut :**
 > spécification complète, soumise à la validation de `chef-de-projet`, avec **avis obligatoire
@@ -209,7 +213,8 @@ souvienne de l'ajouter en V2.
 créateur** annoncée par la campagne (`11` RG9), le **tarif proposé** par le créateur (`11` RG60), le
 **net créateur estimé** en tranche lue au référentiel (`11` RG57), **jamais affiché à une marque**
 (`11` RG59). Le commercial voit en plus les **tarifs exacts** du profil créateur, en vue identifiée
-(`10` RG71).
+(`10` RG71). **Depuis D48 (arbitrage du 2026-09-24), le net créateur estimé n'est affiché à
+personne pendant le pilote** : les mentions qui suivent sont suspendues jusqu'à nouvel arbitrage.
 
 **RG13** — **Aucun vocabulaire de preuve.** Nulle part — écran, e-mail, CGU, export — n'apparaissent
 les mots « preuve légale », « horodatage certifié » ou « valeur probante ». Les termes justes sont
@@ -291,7 +296,8 @@ possible et est **marquée comme telle** (`sla_breached`). L'entrée reste dans 
 décision. *(Écart assumé avec la table de transitions de la skill `intermediation-tracking`, qui
 mentionne un passage automatique en `expired` au dépassement du SLA : le modèle de données `04` ne
 prévoit aucun sous-motif d'expiration pour cette cause, et une demande effacée par le seul écoulement
-du temps est une promesse rompue. Voir §Impacts et **Q1**.)*
+du temps est une promesse rompue. Voir §Impacts et **Q1**. **Écart levé le 2026-09-24 : D49 retient
+cette règle et la skill a été alignée.**)*
 
 ---
 
@@ -510,7 +516,7 @@ produit 7 mises en relation, et un compte rendu qui **nomme les 3 créateurs éc
 | Ce que voit… | La marque | Le créateur |
 |---|---|---|
 | L'autre partie | **Le créateur anonymisé** : alias, carte anonyme complète (`10` RG47), badges et leurs dates, tranches d'audience, fourchettes tarifaires. **Aucun élément identifiant** (`10` RG48) | **La marque identifiée** : nom commercial, secteur, taille, badge — mais **aucune coordonnée directe** (**D40**, `06` RG38) |
-| La campagne | La sienne | Titre, brief, livrables, période, **rémunération par créateur avec sa devise**, et le **net créateur estimé en tranche** avec la mention fixe de `11` RG58 |
+| La campagne | La sienne | Titre, brief, livrables, période, **rémunération par créateur avec sa devise** ; ~~net créateur estimé en tranche~~ *(suspendu pendant le pilote, D48)* |
 | Le motif | **Le motif écrit par le commercial**, tel quel | Le même |
 | INFLUX | Le **nom du commercial** qui suit l'affaire, visible et nommé | Le même |
 
@@ -561,10 +567,10 @@ tous les jours, et le délai de la file est d'un jour ouvré. *(Hypothèse conse
 |---|---|---|
 | 1 | La **référence** `MER-2026-000123` | Elle sera citée dans l'e-mail, la conversation et la future facture |
 | 2 | **Qui propose** : le nom du commercial INFLUX qui suit l'affaire | La protection principale du modèle, c'est un humain nommé |
-| 3 | **La campagne** : titre, livrables, période, rémunération par créateur avec sa devise ; côté créateur, le **net créateur estimé en tranche** | Personne n'accepte une rencontre sans savoir de quoi il s'agit |
+| 3 | **La campagne** : titre, livrables, période, rémunération par créateur avec sa devise ; ~~côté créateur, le net créateur estimé en tranche~~ *(suspendu pendant le pilote, D48 : le commercial précise la rémunération dans la conversation)* | Personne n'accepte une rencontre sans savoir de quoi il s'agit |
 | 4 | **L'autre partie, dans l'état de visibilité du RG61** | Anonyme côté marque, identifiée sans coordonnées côté créateur |
 | 5 | **Le motif écrit** par le demandeur ou par le commercial | C'est ce qui distingue un rapprochement d'un envoi de masse |
-| 6 | **Ce qui se passera si j'accepte**, en trois phrases : mon identité et mes coordonnées de profil seront montrées à l'autre partie **au même instant** que les siennes me seront montrées ; une conversation s'ouvrira avec **{nom du commercial}** ; un e-mail de confirmation nous sera envoyé à tous les deux | Aucun coût découvert en fin de parcours |
+| 6 | **Ce qui se passera si j'accepte**, en trois phrases : mon identité et les informations révélables de mon profil — **jamais mon e-mail ni mon téléphone** (D46) — seront montrées à l'autre partie **au même instant** que les siennes me seront montrées ; une conversation s'ouvrira avec **{nom du commercial}** ; un e-mail de confirmation nous sera envoyé à tous les deux | Aucun coût découvert en fin de parcours |
 | 7 | **Ce qui se passera si je refuse** : rien n'est révélé, l'autre partie n'apprend pas mon motif, je peux être sollicité sur une autre campagne | Un refus doit être sans coût |
 | 8 | **Ce qui se passera si je ne réponds pas** : relance, puis clôture au bout de **7 jours**, sans révélation | On ne laisse jamais quelqu'un dans le silence |
 | 9 | **La case d'acceptation, non pré-cochée** (RG70) | Une acceptation pré-cochée n'est pas une acceptation |
@@ -619,7 +625,7 @@ rien ; elle **clôt la conversation** avec un motif *(document `12`)*.
 | Partie | Ce qu'elle obtient en plus |
 |---|---|
 | **La marque** | La couche révélable du profil créateur : pseudos, identifiants, liens de réseaux, chiffres exacts **avec leur source et leur date de mesure** (`07` RG45). **Jamais** la couche identifiante réservée aux rôles internes (`10` RG79) |
-| **Le créateur** | Les **coordonnées directes** de l'interlocuteur de la marque (**D40**, `06` RG38) |
+| **Le créateur** | Le **prénom** de l'interlocuteur de la marque, sa fonction étant déjà publique (**D40**, `06` RG38). **Jamais son e-mail, son téléphone ni sa page de contact** (**D46**, arbitrage du 2026-09-24) |
 
 **RG77** — **La révélation est une politique d'accès en base**, qui teste l'existence d'une mise en
 relation révélée entre les deux comptes. **Ce n'est pas un booléen passé à un composant d'affichage**
@@ -691,7 +697,7 @@ envoyé à la marque** et son caractère **corrigible** :
 | `off_brief` | « Ce créateur ne correspond pas à ce que vous décrivez. » | Oui |
 | `budget_mismatch` | « L'écart entre votre budget et les tarifs de ce créateur est trop important. » | Oui |
 | `motive_insufficient` | « Votre motif ne nous permet pas de préparer la mise en relation. Dites-nous ce que vous attendez de ce créateur. » | Oui |
-| `contact_details_in_text` | « Votre message contient une adresse, un numéro ou un lien. Ces informations sont partagées une fois la mise en relation ouverte. » | Oui |
+| `contact_details_in_text` | « Votre message contient une adresse, un numéro ou un lien. Les échanges avec le créateur se font dans INFLUX, une fois la mise en relation ouverte. » *(corrigé le 2026-09-24, D46)* | Oui |
 | `campaign_closed` | « La campagne rattachée n'est plus ouverte. » | Oui |
 | `creator_unavailable` | « Ce créateur n'est pas disponible pour cette demande. » | Non |
 | `duplicate` | « Une mise en relation est déjà en cours avec ce créateur. » | Non |
@@ -842,7 +848,8 @@ auteur, sa date et son motif :
 | 5, 6, 7, 8 | — | — | États terminaux |
 
 **RG103** — *Écart assumé avec la skill `intermediation-tracking`, qui décrit `approved` comme un état
-terminal dès la validation.* Ce document distingue **`approved` non révélée** (états 3, encore
+terminal dès la validation — **levé le 2026-09-24** : D45 (double acceptation) retient cette
+distinction et la skill a été alignée.* Ce document distingue **`approved` non révélée** (états 3, encore
 réversible vers 6, 7, 8) et **`approved` révélée** (état 4, terminal). Sans cette distinction, un
 refus de partie après validation n'aurait nulle part où aller — et c'est le cas nominal de la
 proposition INFLUX. Voir §Impacts et **Q1**.
@@ -852,6 +859,15 @@ le même triplet marque + créateur + campagne **bloque la création d'une secon
 `introductions_active_pair_idx`). Le nouveau déclencheur est **rattaché à l'existante** sous forme
 d'une seconde expression d'intérêt (`04` `interest_submissions`), et c'est le signal le plus fort du
 produit (RG33, RG43).
+
+**RG104bis — Renouvellement d'une collaboration (D42, arbitrage du fondateur du 2026-09-24).** Une
+mise en relation révélée (état 4) reste terminale et continue de bloquer les demandes de contact et
+les candidatures sur le même triplet. **La seule voie de renouvellement est une proposition INFLUX**
+créée par un commercial, **une fois l'affaire précédente terminée**, portant un **lien vers la mise
+en relation d'origine**. Elle suit le parcours normal de §E et §F (double acceptation, D45). La
+créance éventuelle reste rattachée à la première révélation (D29). *À préciser par `product-owner`
+et `expert-database` : la définition de « terminée » (perdue, annulée ou soldée, `14` RG58) et le
+champ de lien, qui lève l'index d'unicité pour ce seul cas.*
 
 ---
 
@@ -870,7 +886,7 @@ portée par la seule couleur :
 | A3 | **Verrou orphelin** | 30 minutes sans décision | Le titulaire, puis les administrateurs | Reprendre ou libérer |
 | A4 | **Acceptation en attente** | J+3 puis J+6 après l'invitation | **Le commercial responsable** | Relancer, puis appeler |
 | A5 | **Fil silencieux après révélation** | **14 jours** sans message **et** sans état d'affaire mis à jour (`01` M6) | Le commercial responsable | Appeler — **jamais une accusation automatique** |
-| A6 | **Mise en relation révélée sans état d'affaire** | **30 jours** | Le commercial responsable + son administrateur | Signal de contournement **ou** de saisie négligée. On appelle le commercial (`01` §11) |
+| A6 | ~~Mise en relation révélée sans état d'affaire~~ **→ remplacée par l'alerte « montant non saisi » de `14` RG8bis** (14 jours vers le responsable, 30 jours vers l'administrateur). *Correction du 2026-09-24 : depuis l'arbitrage du 2026-09-19, l'affaire est toujours créée à la révélation ; ce qu'on surveille n'est plus l'absence d'affaire mais l'absence de contenu* | **14 j puis 30 j** | Le commercial responsable + son administrateur | Signal de contournement **ou** de saisie négligée. On appelle le commercial (`01` §11) |
 | A7 | **Coordonnée détectée** dans un texte | Dès la première détection | Le commercial responsable | Lire, décider, refuser si besoin. **Aucun masquage, aucun blocage** (`01` M5) |
 | A8 | **Échec définitif d'envoi** d'un e-mail de confirmation | Après épuisement des rejeux | Le commercial responsable + administrateur | Rattraper à la main : **une mise en relation sans e-mail confirmé est une mise en relation sans preuve externe** |
 | A9 | **Rupture ou trou dans la chaîne du registre** | Vérification périodique (`04` `chain_checks`) | Administrateur, immédiatement | Incident : une chaîne cassée ne se répare pas, elle s'explique |
@@ -1562,8 +1578,8 @@ sélection (20), plafond journalier de propositions (60), seuils des alertes A5 
 
 | # | Question | Hypothèse retenue en attendant | Arbitre | Échéance |
 |---|---|---|---|---|
-| **Q1** | **Le dépassement du délai de traitement doit-il expirer une entrée ?** La skill `intermediation-tracking` décrit un passage automatique en `expired` ; le modèle de données n'a aucun sous-motif pour cette cause, et `backoffice-ops` interdit toute sortie silencieuse | **Non** (RG26) : l'entrée reste dans la file, l'initiateur est informé, une escalade part à J+1, et une décision tardive est marquée comme telle. **La skill et `01` §Étape 3 sont à aligner** | `chef-de-projet` + `product-owner` | **Avant le Lot 4** |
-| **Q2** | **`approved` est-il terminal ?** La skill le dit ; ce document distingue `approved` non révélée (réversible) et révélée (terminale), sans quoi un refus de partie après validation n'a nulle part où aller | **Distinction retenue** (RG103). Le déclencheur de transitions de `04` doit l'implémenter | `expert-database` + `chef-de-projet` | **Avant le Lot 4** |
+| **Q1** | ✅ ***Tranchée le 2026-09-24 (D49) : non, l'entrée reste en file ; la skill est alignée.*** **Le dépassement du délai de traitement doit-il expirer une entrée ?** La skill `intermediation-tracking` décrit un passage automatique en `expired` ; le modèle de données n'a aucun sous-motif pour cette cause, et `backoffice-ops` interdit toute sortie silencieuse | **Non** (RG26) : l'entrée reste dans la file, l'initiateur est informé, une escalade part à J+1, et une décision tardive est marquée comme telle. **La skill et `01` §Étape 3 sont à aligner** | `chef-de-projet` + `product-owner` | **Avant le Lot 4** |
+| **Q2** | ✅ ***Tranchée le 2026-09-24 (D45, double acceptation) : distinction retenue ; la skill est alignée.*** **`approved` est-il terminal ?** La skill le dit ; ce document distingue `approved` non révélée (réversible) et révélée (terminale), sans quoi un refus de partie après validation n'a nulle part où aller | **Distinction retenue** (RG103). Le déclencheur de transitions de `04` doit l'implémenter | `expert-database` + `chef-de-projet` | **Avant le Lot 4** |
 | **Q3** | **Faut-il redemander l'acceptation de l'initiateur si la version de CGU a changé** entre sa demande et la validation ? | **Oui** (RG68) : règle simple, testable, au coût pratiquement nul puisque le délai de file est d'un jour ouvré | `expert-conformite-rgpd` (**veto**) + juriste | Lot 4 |
 | **Q4** | **Une partie peut-elle retirer son acceptation avant que l'autre n'ait répondu ?** | **Non au MVP** : elle demande la clôture au commercial, qui retire la mise en relation avec un motif. Hypothèse conservatrice, à vérifier au regard du droit de la consommation | `expert-conformite-rgpd` (**veto**) + juriste | Lot 4 |
 | **Q5** | **Qui appelle la fonction de révélation, et comment vérifier l'appelant ?** `03` C(21) exige un agent avec double facteur, alors que le déclencheur réel est l'acceptation d'un membre (écart 4) | La fonction accepte d'être appelée depuis la transaction d'acceptation d'un membre, et refuse tout appel direct. **Formulation technique à trancher** | `expert-database` + `expert-cybersecurite` (**veto**) + `architecte` | **Avant la migration `0402`** |

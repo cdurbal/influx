@@ -1220,3 +1220,58 @@ vivre **en table**, modifiables sans redéploiement, chaque modification étant 
 > reste du Lot 1 peut être construit sans elles, à condition que **chacune soit une valeur de
 > configuration ou un texte, jamais une règle écrite en dur**. C'est la raison pour laquelle les deux
 > comportements Apollo sont spécifiés dans ce document.
+
+---
+
+## Additif du 2026-09-24 — Invitation par un commercial (D54) et source d'acquisition (D55)
+
+> **Arbitrages du fondateur du 2026-09-24** (`CLAUDE.md` §13, revue `19-revue-de-coherence-2026-09-24.md`).
+> Cadre de règles ; écrans et critères d'acceptation à compléter par `product-owner` et `expert-ux`,
+> **avis obligatoire d'`expert-conformite-rgpd` (veto)** sur RG118 et RG121. Numérotation reprise
+> après RG115.
+
+### Invitation nominative (D54)
+
+**RG116** — Un `agent` ou un `admin` peut créer une **invitation nominative** pour une marque ou un
+créateur de son réseau : adresse e-mail, rôle proposé (annonceur ou créateur), langue. L'invitation
+porte un **code unique**, à usage unique, avec une durée de validité en configuration (valeur
+d'attente : 30 jours).
+
+**RG117** — **L'inscription reste faite par la personne invitée**, par le parcours normal : elle
+choisit elle-même son rôle final, accepte les CGU, coche ou non le consentement marketing, atteste sa
+majorité. **Aucun profil n'est pré-rempli par un tiers**, aucun consentement n'est hérité de
+l'invitation. L'adresse saisie à l'inscription peut différer de celle de l'invitation.
+
+**RG118** — L'**e-mail d'invitation** est un envoi à une personne non inscrite : il suit **les règles
+de la saisie libre** du backoffice (`16`, source 3, **D35**) — plafonds par rôle, pays où la
+prospection est validée, lien de désinscription, journalisation nominative. Un commercial peut aussi
+transmettre le lien lui-même (message, rendez-vous) : l'invitation vaut alors sans e-mail d'INFLUX.
+
+**RG119** — À l'inscription par un code valide, le commercial auteur de l'invitation devient le
+**commercial responsable du compte** (`backoffice.ownership_assignments`), et la source
+d'acquisition `invitation` est enregistrée avec le code (RG120). Une invitation expirée ou déjà
+utilisée n'empêche jamais l'inscription : elle est simplement sans effet d'attribution.
+
+### Source d'acquisition (D55)
+
+**RG120** — Chaque inscription enregistre sa **source d'acquisition**, une fois, à la création du
+compte : les paramètres **UTM** (`utm_source`, `utm_medium`, `utm_campaign`), le **site d'origine**
+(domaine seulement, jamais l'adresse complète), le **code d'invitation** éventuel, et la **réponse à
+la question facultative** « Comment avez-vous connu INFLUX ? » (liste fermée : recherche en ligne ·
+réseaux sociaux · bouche-à-oreille · un commercial INFLUX · un événement · autre). Ces valeurs ne
+sont jamais modifiées ensuite.
+
+**RG121** — **Aucun traceur de suivi entre visites.** Seuls les paramètres présents **dans la session
+d'inscription** sont retenus ; ils sont transmis d'écran en écran dans le parcours ou conservés côté
+serveur. Tout stockage dans le navigateur, et toute attribution sur plusieurs visites, relèvent du
+consentement aux traceurs (`docs/landing-page/11-consentement-cookies.md`) et ne sont pas prévus au
+MVP. À valider par `expert-conformite-rgpd` (**veto**).
+
+**RG122** — La source d'acquisition est transmise à **Brevo** comme attributs de segmentation
+(`lead.created`, charge utile réduite ; une valeur absente est envoyée vide, RG88) et affichée sur la
+fiche de compte du backoffice. Elle n'est **jamais** transmise à Apollo.io et n'est jamais visible
+d'un autre membre.
+
+**RG123** — **Indicateurs** : inscriptions par source et par rôle, taux de complétion du profil par
+source, part des inscriptions issues d'une invitation et taux d'utilisation des invitations par
+commercial.

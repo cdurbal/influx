@@ -10,7 +10,7 @@ type WhyInfluxSectionProps = {
 
 const ITEM_IDS: readonly WhyInfluxItemId[] = [
   "qualifiedMatching",
-  "secureContract",
+  "dedicatedAgent",
   "allInInflux",
 ];
 

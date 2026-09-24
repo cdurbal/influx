@@ -1766,3 +1766,27 @@ adresse ; disjoncteur ouvert rendant une réponse **toujours plancher-normalisé
 - [Supabase Auth — Send Email Hook (écarté : exige un point d'accès joignable depuis Supabase)](https://supabase.com/docs/guides/auth/auth-hooks/send-email-hook)
 - [Brevo — API d'envoi transactionnel](https://developers.brevo.com/reference/sendtransacemail)
 - `docs/mvp/16-backoffice-emails-brevo.md` §M2 (limites de débit, relevées le 2026-09-19)
+
+---
+
+## 19. Addendum du 2026-09-24 — D57 : sauvegarde et restauration
+
+> **Arbitrage du fondateur du 2026-09-24 : la perte de données acceptable est de quelques minutes.**
+> Cet addendum fixe le cadre ; `architecte` le détaille au Lot 0, avec `expert-database` et
+> `expert-conformite-rgpd`.
+
+1. **Restauration à un instant donné** (option de Supabase) activée **avant la première mise en
+   production** ; la sauvegarde quotidienne seule ne suffit pas. Son coût est à chiffrer et à
+   soumettre au fondateur au Lot 0.
+2. **Pourquoi c'est un besoin produit, pas un confort** : perdre une journée, c'est perdre des
+   acceptations de mise en relation, des messages et des saisies d'affaires — donc des preuves
+   d'intermédiation (`01` M2, M4) et des montants que rien ne permet de reconstituer.
+3. **Test de restauration régulier**, pas seulement au Lot 6 (`18`, limite n° 12) : fréquence fixée
+   au Lot 0, chaque test chronométré et consigné.
+4. **Restauration et purges RGPD.** Une restauration fait réapparaître des données purgées ou
+   anonymisées depuis l'instant restauré : la procédure doit **rejouer les purges et les
+   anonymisations** postérieures avant toute remise en service (`04` §9.3).
+5. **Registre chaîné.** Après restauration, la vérification de la chaîne (`04` `chain_checks`) est
+   exécutée avant réouverture ; l'empreinte de tête mensuelle transmise au fondateur (`04` §12.5
+   point 3) sert de point de contrôle.
+6. **Environnements.** `staging` n'est jamais alimenté par une restauration de production (`18` B9).

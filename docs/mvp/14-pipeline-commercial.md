@@ -163,7 +163,9 @@ jamais « créer une affaire ».
 **RG2bis** — **Aucune affaire orpheline, et aucune révélation sans affaire.** Toute affaire est
 rattachée à une mise en relation existante (`deals.introduction_id` obligatoire, `03` C(27)), et
 réciproquement toute mise en relation révélée porte exactement une affaire. Il n'existe aucun écran,
-aucune route d'API et aucun droit permettant de créer une affaire seule.
+aucune route d'API et aucun droit permettant de créer une affaire seule. *Confirmé par le fondateur
+le 2026-09-24 (D53) : les affaires faites au téléphone pendant le pilote n'entrent pas dans le
+pipeline (RG109 à RG112).*
 
 **RG3** — **Une affaire au plus par mise en relation.** L'unicité de `introduction_id` est
 **confirmée** (répond à la question Q2 de `04`). Motif : c'est elle qui rend le rattachement
@@ -1284,8 +1286,8 @@ en tire les conséquences en RG2, RG8bis et cas limite 1bis. **Ce n'est plus un 
 | **Q4** | **Devises actives au lancement.** **D27** est reportée, mais la liste affichée dans le sélecteur doit bien exister le jour du Lot 5 | **EUR et USD actives**, les autres devises des zones visées (GBP, CAD, CHF, BRL) chargées mais **inactives** ; l'activation est une mise à jour de ligne, pas un développement | **Fondateur** (rattaché à **D27**) | Avant le Lot 5 |
 | **Q5** | **Seuil d'abandon de créance au-delà duquel l'accord écrit du fondateur est requis** (RG64) | **500,00 EUR ou équivalent**, valeur d'attente à calibrer après trois mois | **Fondateur** | Lot 5 |
 | **Q6** | **Journalisation des lectures du pipeline** (RG70) : ouverture de fiche seulement, ou toute lecture y compris les listes ? Le second choix rend le journal illisible ; le premier laisse un angle mort sur la consultation de masse par liste | **Fiche et export journalisés, liste non journalisée**, avec un plafond de débit de consultation de fiches par agent et par jour | `expert-cybersecurite` (**veto**) + `expert-conformite-rgpd` | Lot 5 |
-| **Q7** | **Restriction de l'écriture au commercial responsable** (RG39) : `03` §3.5 l'accorde aujourd'hui à tout agent. Restreindre protège de la modification croisée des montants, mais ajoute une friction quand quelqu'un est absent | **Restriction retenue**, avec réattribution journalisée comme échappatoire et administrateur en secours | `expert-cybersecurite` + `expert-database` + `chef-de-projet` | Avant le Lot 5 |
-| **Q8** | **Renouvellement d'une collaboration sur la même campagne** : RG3 impose une affaire par mise en relation et RG4 exige une nouvelle mise en relation, mais `13` bloque un doublon d'introduction pour le même couple et la même campagne. Le cas « ils refont la même campagne six mois plus tard » n'a pas de chemin | **Ouvrir une nouvelle mise en relation** est le besoin financier ; le mécanisme (levée du doublon quand l'affaire précédente est terminale, lien vers la `MER-…` précédente) relève du document `13` | `chef-de-projet` + `expert-matching` + `product-owner` | Avant le Lot 4 |
+| **Q7** | ✅ ***Tranchée le 2026-09-24 (D50) : restriction retenue ; `03` §3.5 est à formaliser.*** **Restriction de l'écriture au commercial responsable** (RG39) : `03` §3.5 l'accorde aujourd'hui à tout agent. Restreindre protège de la modification croisée des montants, mais ajoute une friction quand quelqu'un est absent | **Restriction retenue**, avec réattribution journalisée comme échappatoire et administrateur en secours | `expert-cybersecurite` + `expert-database` + `chef-de-projet` | Avant le Lot 5 |
+| **Q8** | ✅ ***Tranchée le 2026-09-24 (D42) : nouvelle mise en relation, uniquement par proposition INFLUX, une fois l'affaire précédente terminée, avec lien vers l'origine (`13` RG104bis).*** **Renouvellement d'une collaboration sur la même campagne** : RG3 impose une affaire par mise en relation et RG4 exige une nouvelle mise en relation, mais `13` bloque un doublon d'introduction pour le même couple et la même campagne. Le cas « ils refont la même campagne six mois plus tard » n'a pas de chemin | **Ouvrir une nouvelle mise en relation** est le besoin financier ; le mécanisme (levée du doublon quand l'affaire précédente est terminale, lien vers la `MER-…` précédente) relève du document `13` | `chef-de-projet` + `expert-matching` + `product-owner` | Avant le Lot 4 |
 | **Q9** | **D20 — sort de chaque part en cas d'annulation, de litige ou de non-livraison.** Reportée, alors que le premier litige surviendra pendant le pilote | Traitement **au cas par cas**, enregistré avec motif (RG80) ; l'accumulation de ces cas constitue la matière de D20 | **Fondateur** + `expert-conformite-rgpd` | Après les dix premières affaires signées |
 | **Q10** | **Conservation.** 10 ans est retenu pour les affaires (`04`), mais la durée exacte dépend du pays de la société et du droit comptable applicable | **10 ans**, valeur conservatrice, aucune suppression physique | **Expert-comptable** + `expert-conformite-rgpd` (**veto**) | Après **D25** |
 | **Q11** | **Montant estimé d'un contournement** (RG95) : faut-il le conserver au-delà de la fenêtre de non-contournement (**D29**) ? C'est une donnée personnelle indirecte et une imputation non prouvée | Conservation le temps de la fenêtre **D29** puis agrégation anonyme | `expert-conformite-rgpd` (**veto**) + **Fondateur** | Lot 5 |
@@ -1315,3 +1317,60 @@ d'`expert-database`, celles de la matrice des droits d'`expert-cybersecurite`, l
 `CLAUDE.md` de `chef-de-projet`. Le taux de 35 % et sa répartition 20 % / 15 % relèvent du
 **fondateur seul** et ne sont pas discutés ici. **Aucune règle fiscale ni comptable de ce document
 n'est valide tant qu'un expert-comptable du pays de la société ne l'a pas confirmée.**
+
+---
+
+## Additif du 2026-09-24 — Suivi de livraison (D52) et relations préexistantes (D53)
+
+> **Arbitrages du fondateur du 2026-09-24** (`CLAUDE.md` §13, revue `19-revue-de-coherence-2026-09-24.md`).
+> Cet additif pose les règles ; les écrans (fiche d'affaire, `17b` §3.9) et les critères
+> d'acceptation sont à compléter par `product-owner` et `expert-ux`. La numérotation reprend après
+> RG104, sans toucher aux règles existantes.
+
+### L. Le suivi de la livraison (D52)
+
+**RG105** — Après `signed`, le **commercial responsable** renseigne le suivi de la livraison dans la
+fiche de l'affaire : **date de publication prévue**, **date de publication réelle**, **lien de
+publication** (URL `https://` du contenu publié), **date de validation par la marque** et une note.
+La validation est **déclarée par le commercial**, qui l'a obtenue dans la conversation ou hors
+plateforme. Toute saisie est historisée comme un montant (RG75).
+
+**RG106** — La livraison est portée par un **qualificatif**, pas par un état (même principe que
+RG10) : `attendue` · `publiee` · `validee` · `en_retard`. Il se cumule avec l'état de l'affaire et
+**ne bloque aucune transition** : l'application ne conditionne aucun encaissement à la livraison
+(paiement à la confiance, A1). `en_retard` est posé par la tâche quotidienne lorsque la date prévue
+est dépassée sans publication, et lève une alerte au commercial responsable (code à ajouter au
+catalogue de `15`).
+
+**RG107** — **Aucun écran ni aucune saisie côté membres** au MVP : ni la marque ni le créateur ne
+déclarent leur livraison dans l'application. Les informations de livraison restent internes, comme
+le reste du pipeline (`03` C(28)).
+
+**RG108** — Le suivi de livraison **ne note personne** : aucune évaluation de performance, aucun
+score. Il fournit la matière de **D20** (non-livraison, litige) et, plus tard, des données de
+matching (D11).
+
+### M. Relations préexistantes et mesure de départ du pilote (D53)
+
+**RG109** — **RG2bis est maintenue** : aucune affaire sans mise en relation. Les affaires conclues
+au téléphone pendant le pilote ne sont **pas** saisies dans le pipeline. Les clients du réseau du
+fondateur entrent dans INFLUX par **invitation** (D54, `05`) puis par **proposition INFLUX**
+(`13` §E) : c'est ce qui les fait entrer dans les indicateurs.
+
+**RG110** — Un **registre des relations préexistantes** consigne qu'une marque et un créateur
+travaillaient ensemble **avant** toute mise en relation INFLUX. Chaque entrée porte : les deux
+parties, la date déclarée du début de la relation, **qui la déclare** (la marque, le créateur, ou le
+commercial qui la constate), l'auteur de la saisie et sa date. Le registre est **en ajout seul** et
+journalisé. Le motif de refus `pre_existing_relationship` (`13` RG87) y crée une entrée.
+
+**RG111** — Une relation préexistante **ne bloque aucune mise en relation**. Elle est signalée sur
+l'écran de décision et dans le panneau de proposition INFLUX, et elle **matérialise la clause de
+sauvegarde** des CGU (`01` §8.1) : c'est ce qui rend la clause de non-contournement loyale.
+L'information des personnes et la durée de conservation relèvent d'`expert-conformite-rgpd`
+(**veto**).
+
+**RG112** — **Mesure de départ.** Avant le lancement du pilote, le fondateur relève, sur au moins
+quatre semaines, le **nombre d'affaires traitées au téléphone par semaine** et, si possible, le délai
+entre le premier contact et la signature. Le relevé est tenu **hors application** (un tableur
+suffit) : il sert de point de comparaison à l'indicateur n° 4 (`00` §5), sans lequel l'objectif du
+pilote n'est pas mesurable.

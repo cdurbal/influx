@@ -9,6 +9,16 @@
 > **Document pivot associé :** `docs/mvp/01-intermediation-courtee.md` décrit en détail le processus
 > de mise en relation courtée et le suivi de la commission. Il contraint toutes les spécifications
 > qui suivent.
+>
+> **Mise à jour du 2026-09-24 (revue de cohérence, `19-revue-de-coherence-2026-09-24.md`).** Les
+> décisions **D2, D5, D12, D18, D37** (le 2026-09-18), **D39**, **D40**, **D41** (le 2026-09-18) et
+> **D43** (le 2026-09-19) sont tranchées : ce document les présentait encore comme ouvertes, c'est
+> corrigé ci-dessous. Le fondateur a précisé le **statut du code existant (D44)** : hors landing page,
+> c'est une **maquette jetable** ; le Lot 0 repart de zéro. Les contradictions relevées entre ce
+> document et les spécifications suivantes sont tranchées le même jour (**D42, D45 à D51**,
+> `CLAUDE.md` §13) : révélation à la **seconde acceptation** des parties (D45) ; **jamais d'e-mail ni
+> de téléphone** montrés aux membres (D46) ; **apartés** privés du commercial conservés et annoncés
+> (D47) ; **aucun taux ni net estimé affiché** pendant le pilote (D48).
 
 ---
 
@@ -126,7 +136,9 @@ C'est le mécanisme central du MVP, celui dont tout le reste découle.
 ### 4.1 Les trois déclencheurs
 
 **Règle d'or : aucun des trois déclencheurs ne crée une conversation.** Ils créent une **entrée dans
-la file de validation**. La conversation n'existe qu'après la décision d'un commercial.
+la file de validation**. La conversation n'existe qu'après la décision d'un commercial **puis
+l'acceptation des deux parties** (D45) : la partie qui n'a rien demandé accepte à l'écran, et les
+identités ne sont révélées qu'à la seconde acceptation.
 
 | Déclencheur | Qui déclenche | Point de départ | Passe par la file ? | Particularité |
 |---|---|---|---|---|
@@ -152,9 +164,11 @@ même conversation à trois, la même traçabilité.
 2. **Le commercial est un participant de première classe du modèle de données**, pas un observateur
    greffé après coup. Une conversation a trois participants dès son origine. Ce point doit être vrai
    en base dès le Lot 0, sinon il faudra tout reprendre.
-3. **La révélation d'identité est un effet de la validation**, pas une action de l'utilisateur. Elle
-   est horodatée et journalisée : c'est la preuve que la mise en relation vient d'INFLUX, et c'est
-   elle qui fonde la commission.
+3. **La révélation d'identité est l'effet de la seconde acceptation**, après la validation du
+   commercial (**D45**, tranchée le 2026-09-24 ; mécanique complète : `13` §F). Personne n'est révélé
+   sans l'avoir accepté. Elle est horodatée et journalisée : c'est la preuve que la mise en relation
+   vient d'INFLUX, et c'est elle qui fonde la commission. Après l'ouverture, chaque partie voit
+   l'identité de l'autre, **jamais son e-mail ni son téléphone** (**D46**).
 4. **Le délai de traitement de la file est le premier risque produit.** Une demande de contact qui
    attend 48 heures tue la conversion : les deux parties se cherchent ailleurs. À arbitrer (**D39**)
    et à instrumenter.
@@ -194,11 +208,15 @@ vite, et sur un périmètre plus large qu'un commercial qui travaille au télép
 qu'un commercial au téléphone, et les deux parties acceptent qu'un intermédiaire nommé reste présent
 dans leur négociation.*
 
+**Mesure de départ (D53, 2026-09-24).** Pour que la comparaison ait un sens, le fondateur relève
+**avant le pilote**, sur au moins quatre semaines, le nombre d'affaires traitées au téléphone par
+semaine (`14` RG112). Sans ce relevé, l'indicateur n° 4 ne se compare à rien.
+
 | # | Indicateur | Comment il est obtenu | Cible (à recaler après 4 semaines) |
 |---|---|---|---|
 | 1 | **Commission encaissée** — montant, devise, pays | **Déclarée par le commercial** dans le pipeline commercial | Au moins 10 affaires encaissées sur 8 à 12 semaines de pilote |
 | 2 | **Taux de transformation** : mises en relation ouvertes → affaires signées | Rapprochement mise en relation → affaire | Au moins 20 % |
-| 3 | **Délai de traitement de la file de validation** (délai médian et délai du 9e cas sur 10) | Horodatages de la file | À fixer par **D39**. C'est l'indicateur de survie du produit : au-delà du seuil, la conversion s'effondre |
+| 3 | **Délai de traitement de la file de validation** (délai médian et délai du 9e cas sur 10) | Horodatages de la file | **1 jour ouvré** (**D39**). C'est l'indicateur de survie du produit : au-delà du seuil, la conversion s'effondre |
 | 4 | **Affaires traitées par commercial et par semaine** | Attribution commerciale | Suivi dès le Lot 4. **C'est l'indicateur du passage à l'échelle** : s'il ne monte pas, la plateforme n'apporte rien au métier |
 | 5 | **Inscrits consentants synchronisés** : Brevo sous 1 h, Apollo sous 24 h | Pipeline de leads, journal des échecs | Au moins 99 %, **aucun échec laissé sans traitement** |
 | 6 | **Inscriptions par pays** | Formulaire d'inscription | Suivi dès le Lot 1 ; sert à choisir dans quel ordre ouvrir les pays en V2 |
@@ -232,16 +250,14 @@ est partie ailleurs. Au MVP, une liste d'alertes suffit — le commercial conna�
 | Contact direct d'un créateur sans validation | **A9** : rien ne circule sans l'accord d'un commercial. C'est le cœur du modèle. |
 | Coordonnées directes visibles sur un profil créateur | **A2** : pseudos, `@` et liens masqués jusqu'à la mise en relation. |
 | Plusieurs utilisateurs par entreprise | Confort. Un compte par marque suffit au pilote. |
-| Statistiques automatiques des publications | Les agréments auprès des réseaux sociaux sont longs et incertains. Bilan déclaratif au MVP. |
+| Statistiques automatiques des publications | Les agréments auprès des réseaux sociaux sont longs et incertains. Au MVP, le commercial suit la livraison dans la fiche d'affaire : date et lien de publication, validation par la marque (**D52**, `14` RG105 à RG108). |
 | Avis et notations | Il faut d'abord un historique d'affaires. |
 | Export de l'annuaire | **Interdit** : ce serait offrir la base de créateurs à un concurrent ou à un contournement massif. |
 
-> **Proposition à arbitrer — masquage symétrique (D40).** Aujourd'hui, D16 protège **les créateurs
-> seulement** : leurs pseudos et liens sont masqués. Mais une adresse e-mail ou un numéro affichés
-> sur un profil de marque constituent **exactement le même vecteur de contournement**, dans l'autre
-> sens. Je propose donc de masquer aussi les coordonnées directes des marques tant que la mise en
-> relation n'est pas ouverte — l'identité de l'entreprise, elle, reste publique. **Ce n'est pas une
-> décision acquise : elle appartient au fondateur** (voir **D40**, §10).
+> **Masquage symétrique (D40) — tranché par le fondateur le 2026-09-18 : oui.** Les coordonnées
+> directes de l'interlocuteur d'une marque sont masquées tant que la mise en relation n'est pas
+> ouverte ; l'identité de l'entreprise (nom, logo, site, secteur) reste publique. Ce qui devient
+> visible **après** l'ouverture est précisé par **D46**.
 
 ### 6.2 Créateur (influenceur majeur)
 
@@ -294,6 +310,10 @@ est partie ailleurs. Au MVP, une liste d'alertes suffit — le commercial conna�
   plateforme, segments Brevo, saisie libre plafonnée (**A4**).
 - Traitement des demandes relatives aux données personnelles ; exports.
 - Tableau de bord : demandes en attente et leur ancienneté, affaires en cours, commission encaissée.
+- **Invitation nominative** d'une marque ou d'un créateur du réseau du commercial, qui en devient le
+  commercial responsable (**D54**, `05` RG116 à RG119).
+- **Suivi de la livraison** après signature et **registre des relations préexistantes** (**D52**,
+  **D53**, `14` additif du 2026-09-24).
 
 **Hors périmètre**
 
@@ -325,7 +345,7 @@ Chaque lot passe la définition du « prêt à livrer » (skill `test-strategy`)
 | Lot | Contenu | Valeur observable | Durée |
 |---|---|---|---|
 | **0 — Socle** | Décisions techniques, dépôt, environnements, premières tables, droits | Un compte de démonstration par rôle se connecte **réellement** dans les trois espaces ; le déploiement est automatique | 1-2 sem. |
-| **1 — Inscription et leads** ▸ *1re mise en ligne* | Inscription réelle, pipeline de leads, documents légaux | Toute inscription, partout dans le monde, devient un compte réel **et** un lead dans Brevo et Apollo sous 1 h | 3-4 sem. |
+| **1 — Inscription et leads** ▸ *1re mise en ligne* | Inscription réelle, pipeline de leads, documents légaux | Toute inscription, partout dans le monde, devient un compte réel **et** un lead dans Brevo sous 1 h et dans Apollo sous 24 h (indicateur n° 5) | 3-4 sem. |
 | **2 — Profils, réseaux, audience, badge** | Profils marque et créateur, preuves, badge | Une offre et une demande structurées ; le premier badge « Audience vérifiée » existe et il est daté | 3-4 sem. |
 | **3 — Campagnes et recherche anonymisée** | Campagnes, recherche côté marque et côté commercial | Une marque construit sa sélection ; le commercial trouve les bons créateurs d'une campagne en 30 secondes au lieu de fouiller sa mémoire | 3-4 sem. |
 | **4 — Mise en relation courtée et messagerie à trois** | Les trois déclencheurs, la file, la conversation | **Le cœur du produit.** Le métier informel du fondateur devient un processus outillé, tracé et reproductible | 4-5 sem. |
@@ -339,8 +359,9 @@ Chaque lot passe la définition du « prêt à livrer » (skill `test-strategy`)
   vérifications automatiques, environnements `staging` et `production` sur Railway, projet Supabase,
   gestion des secrets ; création de `apps/api`, `apps/backoffice`, `packages/` et `supabase/` ;
   premières tables (identité, rôles, **commercial responsable**, versions de CGU, journal d'audit
-  chaîné, table des taux de commission **créée et vide**) ; droits d'accès testés ; sortie du mode
-  maquette du prototype d'inscription actuel.
+  chaîné, table des taux de commission **créée et vide**) ; droits d'accès testés. **Départ de
+  zéro** : le code existant, hors landing page, est une maquette jetable qui n'est ni reprise ni
+  adaptée (**D44**, `CLAUDE.md` §16).
 - **Valeur :** un compte de démonstration par rôle se connecte réellement dans les trois espaces, et
   le déploiement est automatique.
 - **Dépendances :** documents `00` (celui-ci), `01`, `02`, `03` et `04` validés ; **accord explicite
@@ -359,7 +380,7 @@ Chaque lot passe la définition du « prêt à livrer » (skill `test-strategy`)
   **documents légaux en français et en anglais**, incluant la clause de non-contournement, la mention
   de la supervision des conversations (**A10**) et la conservation probatoire des journaux.
 - **Valeur :** toute inscription, partout dans le monde, devient un compte réel **et** un lead dans
-  les deux outils sous une heure.
+  Brevo sous une heure et dans Apollo sous 24 heures (indicateur n° 5, `05`).
 - **Dépendances :** Lot 0 ; **D25 — société créée (semaine 5)** ; **D33 / A7 validé par un juriste
   avant la mise en ligne** ; **D29** (durée de la fenêtre de non-contournement) ; **D21** au niveau de
   base ; comptes Brevo et Apollo au nom de la société ; domaine authentifié (SPF, DKIM, DMARC) ;
@@ -382,7 +403,7 @@ Chaque lot passe la définition du « prêt à livrer » (skill `test-strategy`)
   masquage symétrique est retenu ; **D24** (créateurs particuliers) instruite.
 - **Agents, dans l'ordre :** `product-owner` + `expert-matching` → `expert-conformite-rgpd` →
   `expert-ux` → `expert-database` → `dev-react-node` → `expert-cybersecurite` → `testeur`.
-- **Skills :** **`profile-verification`** (à créer), `feature-spec`, `matching-spec`,
+- **Skills :** **`profile-verification`** (créée), `feature-spec`, `matching-spec`,
   `supabase-schema`, `design-system-influx`, `test-strategy`.
 
 ### Lot 3 — Campagnes et recherche anonymisée (3 à 4 semaines)
@@ -417,8 +438,8 @@ Chaque lot passe la définition du « prêt à livrer » (skill `test-strategy`)
 - **Agents, dans l'ordre :** `product-owner` + `expert-paiement-facturation` →
   `expert-conformite-rgpd` → `expert-ux` → `expert-database` → `dev-react-node` →
   `expert-cybersecurite` → `testeur`.
-- **Skills :** **`intermediation-tracking`**, **`messaging-spec`**, **`backoffice-ops`** (les trois à
-  créer), `feature-spec`, `design-system-influx`, `test-strategy`.
+- **Skills :** **`intermediation-tracking`**, **`messaging-spec`**, **`backoffice-ops`** (les trois
+  créées), `feature-spec`, `design-system-influx`, `test-strategy`.
 
 ### Lot 5 — Backoffice complet, pipeline commercial et e-mails (3 à 4 semaines)
 
@@ -542,18 +563,18 @@ Le suivi officiel est dans `CLAUDE.md` §13. Ce tableau reprend les décisions n
 | **D34** | Libellé, niveaux et péremption du badge | `product-owner` + `expert-conformite-rgpd` | Ouverte | Lot 2 |
 | **D35** | Plafonds et conditions de la saisie libre d'e-mails | `expert-conformite-rgpd` (**veto**) + Fondateur | Ouverte | Lot 5 |
 | **D36** | Langue du backoffice | Fondateur | Ouverte | Lot 5 |
-| **D37** | Méthode d'authentification (mot de passe, lien magique, connexion via un tiers) | `architecte` + `expert-cybersecurite` + `expert-ux` | Ouverte | Lot 0 |
+| **D37** | Méthode d'authentification (mot de passe, lien magique, connexion via un tiers) | `architecte` + `expert-cybersecurite` + `expert-ux` | **Tranchée (2026-09-18)** : code à 6 chiffres par e-mail pour les membres, mot de passe + TOTP au backoffice (`CLAUDE.md` §13) | — |
 | **D38** | Masse critique de profils avant d'ouvrir la recherche (ordre de grandeur : 30 publiés, 5 par thématique) | `chef-de-projet` + Fondateur | Ouverte | Lot 3 |
-| **D39** | **Délai maximal de traitement de la file de validation** : combien de temps au maximum, ce qui se passe au-delà, horaires couverts | **Fondateur** + `product-owner` | Ouverte, **risque produit de premier rang** | Lot 4 |
-| **D40** | **Masquage symétrique des coordonnées.** D16 masque aujourd'hui les pseudos et liens des créateurs seulement. Faut-il masquer de la même façon les coordonnées directes des marques tant que la mise en relation n'est pas ouverte ? L'identité de l'entreprise resterait publique | **Fondateur** + `expert-ux` + `expert-conformite-rgpd` | Ouverte — **proposition du `chef-de-projet`, pas une décision acquise** | Lot 2 |
+| **D39** | **Délai maximal de traitement de la file de validation** : combien de temps au maximum, ce qui se passe au-delà, horaires couverts | **Fondateur** + `product-owner` | **Tranchée (2026-09-18)** : **1 jour ouvré** ; au-delà, voir D49 | — |
+| **D40** | **Masquage symétrique des coordonnées.** D16 masque aujourd'hui les pseudos et liens des créateurs seulement. Faut-il masquer de la même façon les coordonnées directes des marques tant que la mise en relation n'est pas ouverte ? L'identité de l'entreprise resterait publique | **Fondateur** + `expert-ux` + `expert-conformite-rgpd` | **Tranchée (2026-09-18) : oui.** Ce qui est visible après l'ouverture : **D46** | — |
 
 ### 11.2 Décisions à re-trancher ou à confirmer
 
 | # | Sujet | Arbitre | Échéance |
 |---|---|---|---|
-| **D12** | Place du backoffice : application séparée ou espace protégé — à re-trancher à la lumière de ce cadrage | `architecte` + Fondateur | Lot 0 |
+| **D12** | Place du backoffice : application séparée ou espace protégé — à re-trancher à la lumière de ce cadrage | `architecte` + Fondateur | **Faite (2026-09-18)** : application séparée `apps/backoffice` |
 | **D13** | Périmètre du MVP — **re-tranchée le 2026-09-18** : place de marché courtée, 7 lots, ce document | `chef-de-projet` + Fondateur | **Faite** |
-| **D2**, **D5**, **D18** | Framework backend, accès aux données, file des leads — à confirmer | `architecte` | Lot 0 |
+| **D2**, **D5**, **D18** | Framework backend, accès aux données, file des leads — à confirmer | `architecte` | **Faites (2026-09-18)** : Fastify 5, Drizzle + migrations SQL relues, `outbox_events` (`02`) |
 
 ### 11.3 Décisions reportées en V2 avec A1
 
@@ -579,7 +600,7 @@ du Lot 1 en semaine 5.
 | 4 | Créer la société | Mentions légales, CGU, contrats Brevo et Apollo | **Semaine 5** |
 | 5 | Mandater un juriste (numérique, consommation, influence commerciale) pour les documents en français et en anglais, **dont la clause de non-contournement (A5) et la mention de supervision des conversations (A10)** | Lot 1 | Élevée |
 | 6 | Ouvrir GitHub, Supabase et Railway (possible avant la société, transférables ensuite ; hébergement UE par défaut, à confirmer après D25) | Lot 0 | Immédiate |
-| 7 | Ouvrir Brevo et Apollo.io au nom de la société ; authentifier le domaine d'envoi (SPF, DKIM, DMARC) | Lot 1 | Semaine 4 |
+| 7 | Ouvrir Brevo et Apollo.io au nom de la société ; authentifier **les trois sous-domaines d'envoi** — transactionnel, newsletter, prospection (SPF, DKIM, DMARC, `16` RG9) | Lot 1 | Semaine 4 |
 | 8 | Signer les contrats de sous-traitance des données (Brevo, Apollo, Supabase, Railway) et tenir le registre des traitements | Avant la mise en ligne du Lot 1 | Élevée |
 | 9 | Désigner un représentant dans l'UE (et au Royaume-Uni si nécessaire) si la société est établie hors UE | Avant la mise en ligne du Lot 1 | Dépend de D25 |
 | 10 | Mandater un expert-comptable dans le pays de la société | D24 au Lot 2, puis toute la V2 | Moyenne |
@@ -601,7 +622,8 @@ du Lot 1 en semaine 5.
    - `testeur` → plan de test, première tranche (« prêt à livrer » des Lots 0 et 1).
 3. **Ensuite :** spécifications fonctionnelles lot par lot, dans l'ordre du §7.
 
-**Aucun code applicatif n'est écrit avant la validation des documents `00` à `04`.**
+**Aucun code applicatif n'est écrit avant la validation des documents `00` à `04`.** *(La maquette
+de démonstration n'est pas du code applicatif du produit : elle est jetable, D44.)*
 
 ### Les six sujets qui attendent l'arbitrage du fondateur
 
@@ -609,7 +631,7 @@ du Lot 1 en semaine 5.
 |---|---|---|
 | 1 | **D25 — pays de la société** | Pas de mise en ligne en semaine 5 : tout le calendrier glisse |
 | 2 | **A7 / D33 — Apollo pour tous** | Le Lot 1 ne peut pas être mis en ligne sans validation d'un juriste ; le veto RGPD reste actif |
-| 3 | **D39 — délai maximal de traitement de la file** | Le Lot 4 ne peut pas être spécifié ; risque produit de premier rang |
-| 4 | **D40 — masquage symétrique des coordonnées côté marque** | Le profil marque du Lot 2 devra être repris si la réponse arrive après |
+| 3 | ~~**D39 — délai maximal de traitement de la file**~~ | **Tranchée le 2026-09-18** : 1 jour ouvré |
+| 4 | ~~**D40 — masquage symétrique des coordonnées côté marque**~~ | **Tranchée le 2026-09-18** : oui ; portée après l'ouverture en D46 |
 | 5 | **D38 — masse critique de profils avant d'ouvrir la recherche** | La date d'ouverture de la recherche du Lot 3 reste indéterminée |
 | 6 | **D36 — langue du backoffice** | Le chiffrage du Lot 5 reste approximatif |

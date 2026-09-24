@@ -1315,7 +1315,7 @@ des codes et des identifiants **et aucune donnée personnelle**.
 |---|---|
 | **Tableau de bord `agent`** — cinq blocs de RG18 | Tout chiffre cliquable (RG15) ; lecture seule (RG16) |
 | **Tableau de bord `admin`** — trois blocs supplémentaires | Le bloc « Contrôles » en tête le lundi (RG22) |
-| **Gabarit commun de file** — liste dense, filtres communs, compteurs permanents, états vide / bloquée | **Un seul gabarit pour les 15 files.** C'est ce qui rend les raccourcis clavier apprenables |
+| **Gabarit commun de file** — liste dense, filtres communs, compteurs permanents, états vide / bloquée | **Un seul gabarit pour les 16 files** (15 au corps du document, plus `email_send_failures`, RG125). C'est ce qui rend les raccourcis clavier apprenables |
 | **Fiche marque** — 11 blocs de RG41 | Bloc « Interlocuteur » visible des seuls rôles internes |
 | **Fiche créateur** — RG42 | Pièces de vérification relayées par l'API, consultation journalisée |
 | **Panneau de suspension** — motif typé + message prévisualisé + confirmation différée | Le message envoyé au titulaire est **montré avant** l'exécution |
@@ -1469,14 +1469,15 @@ des codes et des identifiants **et aucune donnée personnelle**.
 > **Convention de numérotation :** le corps du document s'arrête à **RG124**. L'additif utilise
 > **RG125 à RG131**, sans aucun suffixe `bis` et **sans toucher à la numérotation existante**.
 > Les alertes reprennent la série `AL…` du §F, à partir d'**AL42**. La nouvelle file prend le
-> numéro **14** dans le catalogue de RG29.
+> numéro **16** dans le catalogue de RG29. *(Corrigé le 2026-09-24 : le numéro 14 d'origine était
+> déjà pris par `data_subject_requests` — `17b` I1. Le catalogue compte 16 files.)*
 >
 > **Ce que cet additif ne fait pas :** il ne réécrit aucune règle existante. Là où il complète une
 > règle (RG29, RG86, RG104, RG109), il le dit explicitement et cite la règle complétée. Le
 > **contenu** du périmètre e-mail — sources, bases légales, modèles, cadence, contrat Brevo —
 > reste spécifié par `16`, qui fait autorité sur ces sujets.
 
-### RG125 — Une quatorzième file au catalogue de RG29 : `email_send_failures`
+### RG125 — Une seizième file au catalogue de RG29 : `email_send_failures`
 
 **RG125** — Les échecs d'envoi d'e-mails forment une file, et cette file **figure au catalogue**.
 Sans elle, elle serait **orpheline** au sens de RG26 : personne n'en mesurerait le délai, personne
@@ -1484,7 +1485,7 @@ ne saurait qui doit la traiter, et elle s'allongerait sans que quiconque le voie
 
 | # | `queue_code` | File | Ce qui y entre | Spécifiée par | Délai de décision | Objectif interne de prise en charge | Verrou | Qui traite | Action de masse |
 |---|---|---|---|---|---|---|---|---|---|
-| **14** | **`email_send_failures`** | **Échecs d'envoi d'e-mails** | Ligne en échec définitif d'un envoi du backoffice **ou** d'un e-mail transactionnel (`16` §K) | **`16`** RG126 à RG130 | **2 j ouvrés** *(aligné sur Q4)* | — | **Aucun** (même régime que `lead_sync_failures`, RG30) | `agent`, `admin` | **Oui** — rejeu en lot, **plafond 200**, idempotent |
+| **16** | **`email_send_failures`** | **Échecs d'envoi d'e-mails** | Ligne en échec définitif d'un envoi du backoffice **ou** d'un e-mail transactionnel (`16` §K) | **`16`** RG126 à RG130 | **2 j ouvrés** *(aligné sur Q4)* | — | **Aucun** (même régime que `lead_sync_failures`, RG30) | `agent`, `admin` | **Oui** — rejeu en lot, **plafond 200**, idempotent |
 
 Trois précisions qui évitent les confusions les plus probables :
 

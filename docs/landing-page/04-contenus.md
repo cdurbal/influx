@@ -1,5 +1,24 @@
 # Landing page INFLUX : contenus FR / EN
 
+> **✅ Textes réécrits le 2026-09-24 pour le MVP courté, sans taux (arbitrage D48).** Les fichiers
+> `apps/web/src/locales/fr/landing.json` et `en/landing.json` **font désormais foi** pour la
+> formulation exacte ; le reste de ce document conserve la version du 2026-09-17 pour mémoire, et
+> ses mentions du contrat signé dans INFLUX, du paiement par un prestataire, du net reversé, des
+> pays ouverts et du barème de 35 % **ne s'appliquent plus**.
+>
+> | Section | Ce qui a changé |
+> |---|---|
+> | En-tête, héros, pied de page | Le commercial INFLUX qui valide, accompagne et prépare le contrat remplace « contrat et paiement sécurisés dans INFLUX » |
+> | Méthode (6 étapes) | Brief → validation de la mise en relation (1 jour ouvré) → **acceptation des deux parties, puis révélation** (D45) → conversation à trois → contrat préparé par le commercial → publication et suivi (D52) |
+> | Tarifs | **Aucun taux, aucun exemple chiffré, aucun net** (D48) : commission incluse, jamais ajoutée, précisée par le commercial avant tout engagement |
+> | Pourquoi INFLUX | « Un contrat et un paiement sécurisés » devient « Un commercial à vos côtés » |
+> | FAQ | Paiement fixé au contrat préparé par le commercial ; ouverture mondiale sans « pays ouverts » ; profils anonymes jusqu'à l'acceptation ; e-mails et téléphones jamais communiqués (D46) ; conversation à trois, apartés et consultation journalisée annoncés (D47, A10) ; mention « INFLUX ne se prononce pas sur l'authenticité des abonnés » (`08` RG10) |
+> | Conversation d'exemple | Devient une conversation **à trois** : le commercial INFLUX y intervient |
+>
+> **Avant la mise en ligne :** relecture par `expert-marketing` (ton, conversion) et par
+> `expert-conformite-rgpd` (**veto**, risque de promesse trompeuse, mention de la supervision), et
+> détachement de la maquette (`CLAUDE.md` §16.2 point 5).
+
 > **Révisé le 2026-09-17 après les revues 06 et 07** (`06-revue-paiement.md` §3 : points #1 à #17 ;
 > `07-revue-conformite.md` §2 : lignes 1 à 14, 18, 19 et 23). Textes des points bloquants #1 à #4
 > repris **à l'identique**.

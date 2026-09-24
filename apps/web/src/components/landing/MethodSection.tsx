@@ -9,13 +9,14 @@ type MethodSectionProps = {
   image: LandingImage;
 };
 
+// Brokered MVP path (D45, D46, A1): contract and payment happen outside the platform.
 const STEP_IDS = [
   "brief",
-  "teamSelection",
-  "messaging",
+  "introduction",
+  "acceptance",
+  "conversation",
   "contract",
-  "securePayment",
-  "publicationPayout",
+  "delivery",
 ] as const;
 
 /** Section 8 (02 §3.10): the real MVP path in six steps, first step open on load. */

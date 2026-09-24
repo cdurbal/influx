@@ -1,5 +1,12 @@
 # Popin de consentement cookies — spécification de design
 
+> **Ajout du 2026-09-24 (D55).** La source d'acquisition d'un inscrit (paramètres UTM, domaine
+> d'origine, code d'invitation) est enregistrée **sans traceur** : seuls les paramètres de la session
+> d'inscription sont retenus, transmis dans le parcours ou conservés côté serveur
+> (`docs/mvp/05-spec-inscription-et-leads.md` RG120 à RG122). Si un stockage dans le navigateur ou
+> une attribution sur plusieurs visites était un jour ajouté, il entrerait dans l'inventaire des
+> traceurs de ce document et dans le consentement.
+
 > **Statut :** spécification de design, rédigée par `expert-ux` le 2026-09-17
 > (skill `design-system-influx`). **Remplace `02-ux-wireframes.md` §3.20** pour le composant
 > `CookieBanner.tsx` : deux boutons au lieu de trois (« Personnaliser » supprimé, cf. §8).

@@ -1,5 +1,7 @@
 # Lot 2 — Profil créateur : réseaux, audience, offre, portfolio et couches de visibilité
 
+> **⚠️ Régime du pilote — D48 (arbitrage du fondateur du 2026-09-24).** Pendant le pilote, **aucun taux ni aucun net créateur estimé n'est affiché**, ni aux marques ni aux créateurs. Toutes les mentions du « net créateur estimé » et du pourcentage de commission dans ce document sont **suspendues** jusqu'à nouvel arbitrage ; la commission est présentée comme « incluse, précisée par votre commercial ». Voir `CLAUDE.md` §3 et §13 (D48).
+
 > **Date :** 2026-09-19 · **Auteur :** agent `product-owner` · **Statut :** spécification complète du
 > profil créateur (Lot 2), soumise à la validation de `chef-de-projet`, avec **avis obligatoire
 > (veto) de `expert-conformite-rgpd`** sur §B (couches), §D (résidence), §F (audience), §H
@@ -563,6 +565,20 @@ reste affichée : c'est l'information la plus utile de la carte, et son absence 
 de son intérêt. Ce traitement différencié est assumé et expliqué (**Q6**).
 
 ### G — Bloc 5 : offre, tarifs indicatifs et net créateur estimé
+
+> **⚠️ Régime du pilote (D48, arbitrage du fondateur du 2026-09-24) : aucun taux ni aucun net
+> estimé affiché.** Pendant le pilote, **RG68, RG69 (lignes « Commission INFLUX (35 %) » et « Net
+> créateur estimé »), RG71 et RG72 sont suspendues** : le profil n'affiche que le **tarif
+> indicatif**, avec le libellé « Ce que la marque paie au total, commission INFLUX incluse ». Ce que
+> le créateur perçoit est **précisé par le commercial** dans la conversation et écrit dans le
+> contrat hors plateforme. RG65 reste en vigueur : son aide à la saisie devient « Indiquez ce que la
+> marque paie au total, commission INFLUX incluse. Votre commercial vous précise ce que vous
+> percevez. »
+>
+> **Risque à traiter par `product-owner` et `expert-ux` :** sans net affiché sous le champ, un
+> créateur risque de saisir ce qu'il veut percevoir au lieu du coût total pour la marque (l'erreur
+> que RG65 décrit). La relecture du tarif par le commercial à la validation du profil (file 2 de
+> `15`) devient le garde-fou principal.
 
 **RG64** — L'offre est déclarée **par couple (réseau, format)** : un tarif « story Instagram » et un
 tarif « vidéo TikTok » sont deux lignes. Un tarif global n'est comparable à aucun budget de campagne.

@@ -1,5 +1,9 @@
 # Lot 4 — La messagerie à trois : le fil, sa vie, sa supervision et son statut
 
+> **Mise à jour du 2026-09-24.** Les **apartés privés** du commercial avec une seule partie sont
+> retenus et annoncés (**D47**) : voir l'additif en fin de document. **D46** confirme RG29 : aucune
+> coordonnée directe n'est jamais montrée à un membre.
+
 > **Date :** 2026-09-19 · **Auteur :** agent `product-owner`, avec l'avis de
 > `expert-conformite-rgpd` sur le statut juridique des échanges · **Statut :** spécification
 > complète de la conversation à trois (Lot 4), soumise à la validation de `chef-de-projet`, avec
@@ -305,7 +309,9 @@ note perdue dans l'historique : c'est un cadre permanent (`messaging-spec` règl
 **RG29** — **Les coordonnées directes des deux côtés restent masquées dans le produit après
 l'ouverture** — e-mail, téléphone, page de contact, formulaire. Le masquage est **symétrique**
 (**D40**, `06`) : ce qui est masqué côté créateur l'est côté marque. Rien dans le fil ne les
-réaffiche.
+réaffiche. **Règle confirmée par le fondateur le 2026-09-24 (D46)** : l'e-mail, le téléphone et la
+page de contact ne sont jamais montrés à un membre, ni avant ni après l'ouverture ; `06` et `13` ont
+été alignés.
 
 **RG30** — Depuis le fil, chaque partie accède à la fiche de l'autre **dans son état révélé** :
 couche publique plus couche révélée, jamais la couche interne (`06`, `07`). Le fil n'est pas une
@@ -1115,3 +1121,48 @@ Trois points de ce périmètre touchent directement la rémunération d'INFLUX, 
 
 **Ce document ne modifie aucun autre fichier.** Les sept manques du modèle de données (§Impacts) sont
 adressés à `expert-database` ; la mise à jour de `CLAUDE.md` §13 relève de `chef-de-projet`.
+
+---
+
+## Additif du 2026-09-24 — Les apartés privés (D47)
+
+> **Origine.** Fonctionnalité apparue dans la maquette jetable (commits `a432a45`, `b7dd0ad`), sans
+> spécification. **Arbitrage du fondateur du 2026-09-24 : conservée, et annoncée aux deux parties.**
+> Cet additif pose le cadre ; la spécification détaillée (règles numérotées, critères
+> d'acceptation) reste à écrire par `product-owner`, **sous veto d'`expert-conformite-rgpd`** et avec
+> l'avis d'`expert-cybersecurite` sur le cloisonnement.
+
+**Ce qui est décidé.** Dans une conversation ouverte, le commercial peut échanger **en aparté**
+avec la marque seule, ou avec le créateur seul, en plus du fil commun à trois. C'est le geste
+naturel d'un courtier, qui parle séparément à chaque partie. Il répond, pour les conversations
+ouvertes, au manque relevé par `17b` I11 / V5 (écrire à un seul membre) ; l'écriture à un membre
+**hors** de toute conversation reste ouverte.
+
+**Ce que l'additif modifie dans les règles existantes :**
+
+| Règle | Modification |
+|---|---|
+| RG2, RG38 | Le fil **commun** reste unique et vu dans le même ordre par les trois participants. Un aparté est un **canal distinct** rattaché à la même conversation : jamais une quatrième partie, jamais un fil de groupe (RG3 inchangée) |
+| RG102, RG103 | L'information sur la supervision gagne un **sixième point** : « le commercial INFLUX peut échanger en privé avec chacune des parties ; ces échanges ne sont pas visibles de l'autre partie ». Il figure aux cinq endroits de RG102, dont les CGU et la politique de confidentialité |
+| RG53 | Les accusés de lecture entre parties ne concernent que le fil commun |
+
+**Ce qui s'applique aux apartés sans changement :** texte brut, aucune pièce jointe (RG35, RG36) ;
+aucun message modifiable ni supprimable (RG37) ; détection de coordonnées (RG42 à RG50), y compris
+sur les messages du commercial ; lecture par un agent journalisée (RG55 à RG58) ; notifications sans
+le texte du message (RG90 à RG97) ; conservation (RG108) ; aucune écriture « au nom de » (RG13).
+
+**Principes de cadrage, à reprendre dans la spécification :**
+
+1. **L'autre partie ne voit ni le contenu ni l'existence d'un aparté donné** ; elle sait seulement,
+   par l'information générale, que des apartés peuvent exister.
+2. **Le cloisonnement est une règle d'accès en base**, pas un filtre dans le code applicatif (même
+   doctrine que l'anonymisation, `CLAUDE.md` §6). La maquette filtre dans le code : c'est un écart
+   de maquette, pas un modèle.
+3. **Aucun message ne passe d'un canal à l'autre.** Ce qui a été dit en aparté y reste.
+4. **Droit d'accès RGPD** : un membre obtient les apartés auxquels il a participé, jamais ceux de
+   l'autre partie (`15` Q7).
+
+**À trancher dans la spécification :** effet de la pause et de la clôture du fil sur les apartés
+(RG15 à RG22) ; passage `ouverte` → `active` (RG16) ; rédaction du point de loyauté dans les CGU (un
+intermédiaire qui parle séparément aux deux parties doit le faire savoir) ; modèle de données
+(`04` §5.7) et tests de cloisonnement (`18`).

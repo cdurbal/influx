@@ -91,8 +91,9 @@ ajoutée à ce parcours doit être justifiée par un risque réel.
 
 ## Étape 4 — Spécifier la visibilité, avant et après la révélation
 
-L'anonymat ne survit pas à l'ouverture de la conversation : la révélation d'identité est un
-**effet de la validation**, pas une action de l'utilisateur. Mais le fil doit **rappeler en
+L'anonymat ne survit pas à l'ouverture de la conversation : la révélation d'identité est l'**effet
+de la seconde acceptation des parties, après la validation du commercial** (D45), jamais une action
+libre de l'utilisateur. Elle révèle l'identité, **jamais l'e-mail ni le téléphone** (D46). Mais le fil doit **rappeler en
 permanence ce qui a été révélé, à qui, et quand**.
 
 | Donnée | Avant validation | Après ouverture de la conversation |

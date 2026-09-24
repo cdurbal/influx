@@ -11,7 +11,10 @@ import {
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
 import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import type { ProblemContent } from "@/content/landing-content";
+import type {
+  ConversationAuthor,
+  ProblemContent,
+} from "@/content/landing-content";
 
 type ProblemSectionProps = {
   content: ProblemContent;
@@ -23,10 +26,34 @@ const PAIN_POINTS = [
   { id: "contract", Icon: FileQuestionIcon },
 ] as const;
 
+// Three participants (A3): the written role carries the author, alignment and color only double it.
+const AUTHORS = {
+  advertiser: {
+    roleKey: "advertiserRole",
+    alignClassName: "items-start text-left",
+    bubbleClassName: "bg-surface-muted",
+  },
+  creator: {
+    roleKey: "creatorRole",
+    alignClassName: "items-end text-right",
+    bubbleClassName: "bg-brand-subtle-bg",
+  },
+  agent: {
+    roleKey: "agentRole",
+    alignClassName: "items-center text-center",
+    bubbleClassName:
+      "border-(length:--border-width-thin) border-brand-subtle-border bg-surface-raised",
+  },
+} as const satisfies Record<
+  ConversationAuthor,
+  { roleKey: string; alignClassName: string; bubbleClassName: string }
+>;
+
 /**
- * Section 7 (02 §3.9): the prospecting pain, then an HTML/CSS mock of INFLUX messaging. Roles
- * instead of names, no contact details (CA18). The author is carried by the written role and the
- * alignment; bubble colors only double it.
+ * Section 7 (02 §3.9): the prospecting pain, then an HTML/CSS mock of the three-way INFLUX
+ * conversation (brand, creator, INFLUX account manager). Roles instead of names, no contact
+ * details (CA18). The author is carried by the written role and the alignment; bubble colors only
+ * double it.
  */
 export async function ProblemSection({ content }: ProblemSectionProps) {
   const t = await getTranslations("landing");
@@ -74,26 +101,22 @@ export async function ProblemSection({ content }: ProblemSectionProps) {
               </p>
               <ol className="flex flex-col gap-4 px-inset-card py-5">
                 {content.messages.map((message) => {
-                  const isCreator = message.author === "creator";
+                  const author = AUTHORS[message.author];
                   return (
                     <li
                       key={message.id}
                       className={cn(
                         "flex flex-col gap-1",
-                        isCreator
-                          ? "items-end text-right"
-                          : "items-start text-left",
+                        author.alignClassName,
                       )}
                     >
                       <span className="text-sm text-text-tertiary">
-                        {isCreator
-                          ? t("problem.conversation.creatorRole")
-                          : t("problem.conversation.advertiserRole")}
+                        {t(`problem.conversation.${author.roleKey}`)}
                       </span>
                       <span
                         className={cn(
                           "w-10/12 rounded-md px-4 py-3 text-left text-md text-text-primary",
-                          isCreator ? "bg-brand-subtle-bg" : "bg-surface-muted",
+                          author.bubbleClassName,
                         )}
                       >
                         {message.text}

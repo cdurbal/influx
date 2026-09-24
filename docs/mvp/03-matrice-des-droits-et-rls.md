@@ -239,10 +239,12 @@ erreur.
   indistinguable d'une falsification.
 - **C(8)** — Le créateur ne voit l'identité de la marque que dans le cadre d'une campagne publiée ou
   d'une mise en relation ouverte. Pas d'annuaire des marques : le contournement est symétrique.
-- **C(9)** — **D40 (masquage symétrique) est ouverte.** Tant qu'elle n'est pas tranchée, **la valeur
-  d'attente est conservatrice** : les coordonnées directes d'une marque ne sont visibles d'aucun
-  membre. Si le fondateur ouvre D40 dans l'autre sens, le mécanisme sera **exactement** celui de
-  l'anonymisation créateur — deux objets, pas un filtre (§4, P5).
+- **C(9)** — **D40 (masquage symétrique) est tranchée (2026-09-18) et précisée par D46
+  (2026-09-24) : les coordonnées directes d'une marque — e-mail, téléphone, page de contact — ne
+  sont visibles d'aucun membre, ni avant ni après la révélation.** Seul le **prénom** de
+  l'interlocuteur est servi au créateur après révélation, par le même mécanisme que l'anonymisation
+  créateur — deux objets, pas un filtre (§4, P5). *(La valeur d'attente conservatrice d'origine est
+  donc devenue la règle, à l'exception du prénom.)*
 - **C(10)** — Lecture soumise aux garde-fous de **forme de requête** appliqués par `apps/api` :
   k-anonymat à 5, pagination plafonnée, tri explicable, export interdit, recherches journalisées.
   Aucune de ces règles n'est exprimable en RLS (§4, P9).
@@ -490,6 +492,15 @@ create policy creator_identity_read_after_reveal
   qu'on prétend protéger. C'est aussi un point de minimisation RGPD (§10).
 
 ### 3.5 Domaines `billing` (pipeline commercial), `leads` et `backoffice`
+
+> **Alignements à reporter dans les lignes ci-dessous (revue de cohérence du 2026-09-24),
+> à formaliser par `expert-cybersecurite` :**
+> - **Écrire sur une affaire** (saisir, modifier un montant, changer d'état) est réservé au
+>   **commercial responsable** (`owner_agent_id` = appelant) et à l'**administrateur** — arbitrage du
+>   fondateur **D50**, `14` RG39. Un autre agent lit et demande la réattribution.
+> - **Créer une affaire** n'est un droit d'aucun rôle humain : l'affaire est créée **par le système**,
+>   dans la transaction de révélation (`14` RG1 à RG2bis, arbitrage `chef-de-projet` du 2026-09-19).
+>   Les ✔ de la ligne « créer » ne valent que pour cette transaction.
 
 | Objet · Action | `advertiser` | `creator` | `agent` | `admin` | `service` |
 |---|---|---|---|---|---|

@@ -61,30 +61,33 @@ C'est l'objet pivot du produit. Tout le reste s'y rattache.
 
 ```
    [demande de contact]  ──┐
-   [candidature]        ──┤──►  pending_review ──► in_review ──►  approved
+   [candidature]        ──┤──►  pending_review ──► in_review ──►  approved (non révélée)
                           │           │               │              │
    [proposition INFLUX] ──┴───────────┴───────────────┴──────────────┤
         (entre directement en approved, file court-circuitée)        │
-                                      │                              │
-                              rejected (motif typé)          révélation d'identité,
-                              withdrawn (retrait de          conversation à trois,
-                                l'initiateur)                e-mails aux 2 parties
-                              expired (SLA dépassé,
-                                jamais silencieux)
+                                      │                    acceptation des deux parties
+                              rejected (motif typé)                  │
+                              withdrawn (retrait de          approved RÉVÉLÉE : révélation
+                                l'initiateur)                d'identité, conversation à trois,
+                              expired (cause objective,      e-mails aux 2 parties
+                                jamais le seul délai)
 ```
 
-Transitions autorisées, et rien d'autre :
+Transitions autorisées, et rien d'autre (alignées le 2026-09-24 sur
+`docs/mvp/13-file-de-validation-et-mise-en-relation.md` RG102, D45 et D49) :
 
 | Depuis | Vers | Qui | Condition |
 |---|---|---|---|
 | — | `pending_review` | Marque ou créateur | Déclencheur 1 ou 2 |
-| — | `approved` | Commercial | Déclencheur 3, `owner_agent_id` = auteur |
+| — | `approved` non révélée | Commercial | Déclencheur 3, `owner_agent_id` = auteur |
 | `pending_review` | `in_review` | Commercial | Prise en charge avec verrou |
 | `pending_review` / `in_review` | `withdrawn` | L'initiateur | Avant décision |
-| `pending_review` / `in_review` | `expired` | Système | SLA dépassé (D39) |
-| `in_review` | `approved` | Commercial titulaire | — |
+| `pending_review` / `in_review` | `expired` | Système | **Cause objective seulement** (campagne close, compte suspendu…). **Jamais le seul dépassement du délai** : une entrée hors délai reste en file (D49) |
+| `in_review` | `approved` non révélée | Commercial titulaire | — |
 | `in_review` | `rejected` | Commercial titulaire | Motif typé obligatoire |
-| `approved` | — | — | **État terminal.** Une mise en relation révélée ne se dé-révèle pas. |
+| `approved` non révélée | `approved` **révélée** | Système | **Les deux acceptations existent** (D45) — fonction unique, transaction unique |
+| `approved` non révélée | `rejected` (`declined_by_party`) · `withdrawn` · `expired` | Une partie · l'initiateur ou le commercial · le système | Refus à l'écran d'acceptation · retrait avant révélation · silence à J+7 |
+| `approved` **révélée** | — | — | **État terminal.** Une mise en relation révélée ne se dé-révèle pas. |
 
 ### Champs obligatoires
 
@@ -135,23 +138,26 @@ d'étranglement du produit **et** son mécanisme de protection.
    `account_suspended` · `suspected_circumvention` · `country_out_of_scope` · `other`
    (commentaire interne obligatoire si `other`). Un motif libre non typé rend toute statistique de
    refus inexploitable, et c'est cette statistique qui dira ce qui manque au produit.
-5. **SLA (D39).** Le délai de la file est le **premier risque produit** : une demande qui attend
-   48 h tue la conversion et renvoie les parties se chercher ailleurs.
-   Recommandation à faire trancher par le fondateur : **prise en charge sous 4 heures ouvrées,
-   décision sous 1 jour ouvré**, horaires et jours couverts à définir explicitement.
+5. **SLA (D39, tranchée le 2026-09-18).** Le délai de la file est le **premier risque produit** :
+   une demande qui attend 48 h tue la conversion et renvoie les parties se chercher ailleurs.
+   **Décision sous 1 jour ouvré** ; objectif interne de prise en charge sous 4 heures ouvrées
+   (`13` RG17).
 6. **Dépassement du SLA.** Trois effets, tous obligatoires :
    - l'initiateur est **informé honnêtement** (« votre demande est toujours en cours de traitement »),
      jamais laissé dans le silence ;
    - une alerte remonte au backoffice et à l'administrateur (escalade recommandée à J+1) ;
-   - **aucune expiration silencieuse.** Si la demande passe en `expired`, l'initiateur est prévenu
-     et peut la relancer. Une demande qui disparaît sans mot est une promesse rompue.
+   - **aucune expiration au seul écoulement du délai (D49, 2026-09-24).** L'entrée reste en file,
+     marquée hors délai, jusqu'à décision. Une demande qui disparaît sans mot est une promesse
+     rompue.
 
 ---
 
 ## Étape 4 — La révélation d'identité
 
-C'est **un effet de la validation, pas une action de l'utilisateur**. C'est aussi la preuve
-d'intermédiation : l'instant où INFLUX livre ce qui a de la valeur.
+C'est **l'effet de la seconde acceptation des parties, après la validation du commercial** (D45,
+2026-09-24) — jamais un bouton « révéler ». C'est aussi la preuve d'intermédiation : l'instant où
+INFLUX livre ce qui a de la valeur. Ce qui est révélé : l'**identité** de chaque partie, **jamais
+son e-mail ni son téléphone** (D46).
 
 ### Ce qui se produit au même instant, dans une seule transaction
 

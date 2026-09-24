@@ -1,5 +1,7 @@
 # Lot 3 — Campagne : contenu, blocs, validation commerciale et publication
 
+> **⚠️ Régime du pilote — D48 (arbitrage du fondateur du 2026-09-24).** Pendant le pilote, **aucun taux ni aucun net créateur estimé n'est affiché**, ni aux marques ni aux créateurs. Toutes les mentions du « net créateur estimé » et du pourcentage de commission dans ce document sont **suspendues** jusqu'à nouvel arbitrage ; la commission est présentée comme « incluse, précisée par votre commercial ». Voir `CLAUDE.md` §3 et §13 (D48).
+
 > **Date :** 2026-09-19 · **Auteur :** agent `product-owner` · **Statut :** spécification complète du
 > contenu d'une campagne (Lot 3), soumise à la validation de `chef-de-projet`, avec **avis
 > obligatoire (veto) de `expert-conformite-rgpd`** sur §E (ciblage d'audience et critères portant sur
