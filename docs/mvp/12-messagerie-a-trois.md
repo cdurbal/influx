@@ -1162,7 +1162,13 @@ le texte du message (RG90 à RG97) ; conservation (RG108) ; aucune écriture « 
 4. **Droit d'accès RGPD** : un membre obtient les apartés auxquels il a participé, jamais ceux de
    l'autre partie (`15` Q7).
 
+**Précision du fondateur du 2026-09-24 :** **un membre peut aussi ouvrir lui-même l'aparté.**
+L'onglet « Vous et INFLUX » est toujours présent pour les deux parties : il ne révèle donc
+l'existence d'aucun aparté donné (principe 1). Conception de l'interface (onglets, phrase
+d'audience, brouillon attaché à son canal, microcopies) : `20-direction-design.md` §7.
+
 **À trancher dans la spécification :** effet de la pause et de la clôture du fil sur les apartés
-(RG15 à RG22) ; passage `ouverte` → `active` (RG16) ; rédaction du point de loyauté dans les CGU (un
-intermédiaire qui parle séparément aux deux parties doit le faire savoir) ; modèle de données
-(`04` §5.7) et tests de cloisonnement (`18`).
+(RG15 à RG22) ; passage `ouverte` → `active` (RG16) ; lecture des apartés par **tous les agents
+participants** ou par le seul commercial responsable (`20` Q2, recommandation : tous, chaque lecture
+journalisée) ; rédaction du point de loyauté dans les CGU (un intermédiaire qui parle séparément aux
+deux parties doit le faire savoir) ; modèle de données (`04` §5.7) et tests de cloisonnement (`18`).

@@ -42,7 +42,7 @@
 | `⟨…⟩` | Donnée variable |
 | `▮` | Zone journalisée : son ouverture écrit une ligne de registre |
 | **AA** | Point où le contraste a été vérifié (§6.4) |
-| Largeurs | **Dense** = ≥ 1280 px (`breakpoint-xl`), poste de travail standard. **Étroite** = 1024–1280 px (`breakpoint-lg`), portable. En dessous de 1024 px : mise en page en une colonne, sans tableau — **le backoffice n'est pas mobile-first**, c'est le seul endroit du produit où cette règle ne s'applique pas (`CLAUDE.md` §5.2 point 6, qui vise les parcours influenceurs) |
+| Largeurs | **Dense** = ≥ 1280 px (`breakpoint-xl`), poste de travail standard. **Étroite** = 1024–1280 px (`breakpoint-lg`), portable. En dessous de 1024 px : mise en page en une colonne, sans tableau — **le backoffice n'est pas mobile-first**, c'est le seul endroit du produit où cette règle ne s'applique pas (`CLAUDE.md` §5.2 point 6, qui vise les parcours influenceurs). **Exception décidée le 2026-09-24 (D58)** : sur téléphone, une vue limitée à deux gestes — répondre dans une conversation dont l'agent est participant, traiter la file de validation. Écrans à spécifier en additif de ce document |
 
 **Trois rappels qui conditionnent tous les écrans de ce document :**
 
@@ -1889,7 +1889,7 @@ l'hypothèse indiquée et la rend visible.
 | **M1** | Aucun document ne fixe **l'ordre ni le regroupement** des 16 files dans la navigation | Proposé ici (§1.3), à valider par `chef-de-projet` |
 | **M2** | Aucun document ne définit **ce qui est visible en permanence** dans le backoffice | Proposé ici (§1.4) : environnement, recherche, alertes, rôle, bandeaux conditionnels |
 | **M3** | `15` RG104 prévoit un plafond « fiches distinctes ouvertes par 24 h **à régler au Lot 5** » | L'écran affiche le compteur du jour à l'agent lui-même (« 34 fiches consultées aujourd'hui ») : le rendre visible vaut mieux que le surveiller en silence. Valeur à fixer |
-| **M4** | Aucune spécification ne décrit **le comportement d'un écran sous 1024 px** au backoffice | Tranché ici : une colonne, pas de tableau, message « Cet écran est conçu pour un poste de travail ». Le backoffice n'est pas mobile-first |
+| **M4** | Aucune spécification ne décrit **le comportement d'un écran sous 1024 px** au backoffice | Tranché ici : une colonne, pas de tableau, message « Cet écran est conçu pour un poste de travail ». Le backoffice n'est pas mobile-first. *Complété le 2026-09-24 par **D58*** : les conversations et la file de validation ont une vue téléphone limitée à deux gestes ; tous les autres écrans gardent cette règle |
 | **M5** | La **langue du backoffice (D36)** reste ouverte, mais les 16 libellés de file, les ~90 motifs typés et les 48 intitulés d'alerte doivent exister en **deux langues dès le premier jour**, parce qu'ils sortent du backoffice (`15` RG124, Q12) | Toutes les clés de ce document sont fournies FR/EN |
 
 ### 7.3 Écarts constatés dans l'implémentation en cours

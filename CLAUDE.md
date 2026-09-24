@@ -245,8 +245,9 @@ Parcours cible :
    C'est le geste métier central : il doit être au moins aussi rapide dans l'outil qu'un coup de fil.
 4. **Conversation à trois** — participer à la négociation comme **intermédiaire visible et nommé**,
    aux côtés de la marque et du créateur ; conduire la négociation jusqu'à l'accord. Il peut aussi
-   échanger **en aparté** avec une seule des parties ; l'existence de ces apartés est annoncée aux
-   deux (D47). Toute lecture d'une conversation par un agent est horodatée et attribuée.
+   échanger **en aparté** avec une seule des parties, et chaque partie peut elle-même lui écrire en
+   aparté ; l'existence de ces apartés est annoncée aux deux (D47). Toute lecture d'une conversation
+   par un agent est horodatée et attribuée.
 5. **Contrat hors plateforme** — envoyer le contrat par le moyen de son choix (e-mail, DocuSign,
    en main propre) et suivre sa signature (voir le régime transitoire du MVP, §3).
 6. **Pipeline commercial** — enregistrer l'affaire : montant négocié, devise, **commission due et
@@ -265,7 +266,10 @@ Parcours cible :
    plateforme, segments Brevo, saisie libre plafonnée), suivi des performances.
 
 Le backoffice est un **produit à part entière**, pas un écran d'admin bricolé. Il est utilisé
-tous les jours par l'équipe et porte la rentabilité opérationnelle.
+tous les jours par l'équipe et porte la rentabilité opérationnelle. Il se conçoit pour un poste de
+travail ; **sur téléphone, une vue limitée** permet de répondre dans une conversation et de traiter
+la file de validation, pour que la négociation n'attende pas que le commercial retrouve son
+ordinateur (D58).
 
 ---
 
@@ -276,11 +280,13 @@ tous les jours par l'équipe et porte la rentabilité opérationnelle.
 | Élément | Règle |
 |---|---|
 | Nom | **INFLUX** (toujours en capitales dans l'UI et les documents) |
-| Couleur de marque | **Vert** — couleur d'accent, d'action et de succès, recalibrée pour rester lisible (WCAG AA) et premium sur fond sombre |
+| Couleur de marque | **Vert** — couleur de marque, d'accent et d'action, recalibrée pour rester lisible (WCAG AA) et premium sur fond sombre. **Le succès a sa propre teinte (sarcelle)**, distincte du vert de marque, pour qu'un état ne ressemble jamais à une action (fondateur, 2026-09-24) |
 | Typographie | **Texte clair sur fond sombre** — contraste fort, lisibilité maximale |
 | Base | **Dark theme par défaut** : fond noir profond nuancé (pas de noir pur), surfaces qui s'éclaircissent légèrement par élévation (carte, survol, panneau surélevé), respiration généreuse |
 | Fond de page | **Aucune exception.** L'arrière-plan reste sombre sur toute la plateforme, y compris le footer et le CTA final — décision du fondateur qui abroge l'ancien principe de sections « inverse » claires (2026-09-17). Les tokens `*-inverse` ne servent plus qu'à des accents ponctuels de petite taille (puce, cadre de mockup), jamais à une section pleine largeur. |
+| Effets de la landing | Direction **« carte métallisée premium »** conservée (D59), avec un **budget d'effets** : un seul effet spectaculaire par écran visible |
 | Référence | https://wekollab.fr/ — niveau de finition à égaler (sur wekollab, en clair ; l'exigence de finition et de clarté du parcours vaut aussi en dark) |
+| Direction design | Références de comportement par surface et principes propres à INFLUX : `docs/mvp/20-direction-design.md`. **On emprunte des comportements, jamais des styles** : le style vient uniquement des tokens |
 
 **Les valeurs hexadécimales sont figées (D6 tranchée par le fondateur, 2026-09-17)** : dark theme
 par défaut sur toute la plateforme (landing, app membres, backoffice), vert de marque recalibré
@@ -659,7 +665,7 @@ hors de ce cadre ; mettre ce tableau à jour à chaque arbitrage. Les lots cité
 | D3 | Structure du dépôt : monorepo (front + back + backoffice) vs multi-repo | `architecte` | **Tranchée (2026-09-16)** : monorepo pnpm 11 (`apps/*`, `packages/*`), sans orchestrateur ; ne tranche pas D12 | — |
 | D4 | Librairie UI : headless + utilitaire CSS, ou bibliothèque de composants — doit servir la charte noir/vert | `architecte` + `expert-ux` | **Tranchée (2026-09-16)** : Tailwind CSS v4 alimenté uniquement par un fichier de tokens unique, sans bibliothèque de composants ; nommage des tokens à confirmer par `expert-ux` | — |
 | D5 | Accès aux données : client Supabase direct, ORM (Prisma/Drizzle) ou couche d'accès maison | `expert-database` + `architecte` | **Tranchée (2026-09-18)** : Drizzle, migrations en SQL relu dans `supabase/migrations` (`drizzle-kit push` interdit), `@supabase/supabase-js` cantonné à `apps/api`, connexion sous **rôles Postgres dédiés sans `BYPASSRLS`**, **un schéma par domaine** et rien dans `public` | — |
-| D6 | Palette exacte : nuance de vert de marque, échelle de gris, tokens clair/sombre | `expert-ux` + Fondateur | **Tranchée (2026-09-17)** : dark theme par défaut sur toute la plateforme, noir profond nuancé, vert de marque recalibré pour le fond sombre (WCAG AA) — voir `apps/web/src/styles/tokens.css` et §5.1 | — |
+| D6 | Palette exacte : nuance de vert de marque, échelle de gris, tokens clair/sombre | `expert-ux` + Fondateur | **Tranchée (2026-09-17)** : dark theme par défaut sur toute la plateforme, noir profond nuancé, vert de marque recalibré pour le fond sombre (WCAG AA) — voir `apps/web/src/styles/tokens.css` et §5.1. **Précisée le 2026-09-24** : le succès a sa propre teinte (sarcelle), distincte du vert de marque (`20` Q5) | — |
 | D7 | Traitement fiscal de la commission : montants hors taxes ou taxes comprises ; TVA / GST / sales tax sur chaque part, selon le pays de la société et celui des parties | `expert-paiement-facturation` + expert-comptable + Fondateur | Ouverte (dépend de D25) | Avant le Lot 4 |
 | D8 | Flux financier : INFLUX encaisse et reverse, ou facture sa seule commission | `expert-paiement-facturation` + Fondateur | **Tranchée (2026-09-16)** : INFLUX encaisse le montant du contrat et reverse le net créateur via un prestataire de paiement agréé | — |
 | D9 | Prestataire de paiement (Stripe Connect ou équivalent) : compatible avec le pays de la société, les reversements internationaux et le multi-devises | `expert-paiement-facturation` + `architecte` | Ouverte, **bloquante** (dépend de D25) | Étude au Lot 2, tranchée avant le Lot 3 |
@@ -700,7 +706,7 @@ hors de ce cadre ; mettre ce tableau à jour à chaque arbitrage. Les lots cité
 | D44 | **Statut du code existant** | **Fondateur** | **Tranchée (2026-09-24)** : tout le code, **sauf la landing page**, est une **maquette de démonstration jetable**, destinée à faire valider la vision du MVP par des partenaires ; jamais mise en production, jamais reprise. Le produit réel repart du Lot 0 de `docs/mvp/00-cadrage-mvp-v2.md`. Voir §16 | — |
 | D45 | **Moment de la révélation d'identité** | **Fondateur** | **Tranchée (2026-09-24) : double acceptation.** Le commercial valide, puis chaque partie accepte à l'écran ; les identités sont révélées **à la seconde acceptation**, simultanément. Sans réponse sous 7 jours : clôture sans suite, rien n'est révélé. `13` et `01` font foi ; `00` §4.2 et D16 sont alignés | — |
 | D46 | **Coordonnées de contact après l'ouverture (portée de D40)** | **Fondateur** (+ `expert-conformite-rgpd`) | **Tranchée (2026-09-24) : l'identité, jamais les coordonnées.** À l'ouverture, la marque voit les pseudos et réseaux du créateur ; le créateur voit le nom de la marque, le prénom et la fonction de l'interlocuteur. **L'e-mail, le téléphone et la page de contact ne sont jamais montrés aux membres**, dans aucun sens : le commercial envoie lui-même le contrat. `12` RG29 fait foi ; `06` RG35 à RG42, `13` RG76, `11` et `04` sont alignés (restriction du droit de lecture à signaler à `expert-database`) | — |
-| D47 | **Apartés privés commercial ↔ une seule partie** dans une conversation | **Fondateur** + `expert-conformite-rgpd` (veto) + `product-owner` | **Tranchée (2026-09-24) : conservés, et annoncés.** Le commercial peut échanger en privé avec la marque seule ou avec le créateur seul ; les CGU, la politique de confidentialité et l'écran d'information avant le premier message le disent aux deux parties. Additif à écrire au document `12` (droits d'accès en base, détection, notifications, conservation, droit d'accès), **sous veto d'`expert-conformite-rgpd`** | — |
+| D47 | **Apartés privés commercial ↔ une seule partie** dans une conversation | **Fondateur** + `expert-conformite-rgpd` (veto) + `product-owner` | **Tranchée (2026-09-24) : conservés, et annoncés.** Le commercial peut échanger en privé avec la marque seule ou avec le créateur seul ; les CGU, la politique de confidentialité et l'écran d'information avant le premier message le disent aux deux parties. Additif à écrire au document `12` (droits d'accès en base, détection, notifications, conservation, droit d'accès), **sous veto d'`expert-conformite-rgpd`**. **Précisée le 2026-09-24 : un membre peut aussi ouvrir lui-même l'aparté** ; l'onglet « Vous et INFLUX » est toujours présent pour les deux parties, ce qui ne révèle l'existence d'aucun aparté donné. Interface : `20` §7 | — |
 | D48 | **Discours public pendant le MVP** | **Fondateur** (+ `expert-conformite-rgpd`) | **Tranchée (2026-09-24) : aligner, sans taux.** La landing page est réécrite pour le MVP courté (commercial intermédiaire, contrat et paiement hors plateforme, révélation à l'ouverture) avant sa mise en ligne. **Pendant le pilote, aucun pourcentage ni aucun net estimé n'est affiché**, ni sur la landing ni dans les espaces membres : « commission INFLUX incluse, précisée par votre commercial ». Le net créateur estimé de `07`, `11` et `13` est suspendu. Le barème de 35 % reste le barème par défaut (§3) | — |
 | D49 | **Dépassement du délai de la file de validation** | `chef-de-projet` + `product-owner`, **arbitré par le fondateur** | **Tranchée (2026-09-24) : l'entrée reste en file** jusqu'à décision, marquée hors délai ; l'initiateur est prévenu, un administrateur est alerté à J+1 (`13` RG26, RG99). Aucune expiration au seul écoulement du délai ; le skill `intermediation-tracking` est aligné | — |
 | D50 | **Qui écrit sur une affaire** | `expert-cybersecurite` + `chef-de-projet`, **arbitré par le fondateur** | **Tranchée (2026-09-24) : le commercial responsable et l'administrateur seulement** (`14` RG39). Un autre agent lit et demande la réattribution, journalisée. `03` §3.5 est à aligner par `expert-cybersecurite` | — |
@@ -711,6 +717,8 @@ hors de ce cadre ; mettre ce tableau à jour à chaque arbitrage. Les lots cité
 | D55 | **Source d'acquisition à l'inscription** | `expert-marketing` + `expert-conformite-rgpd`, **arbitré par le fondateur** | **Tranchée (2026-09-24) : UTM + question.** Enregistrement des paramètres UTM, du site d'origine et du code d'invitation **de la session d'inscription**, sans traceur de suivi entre visites, plus une question facultative « Comment avez-vous connu INFLUX ? » (liste fermée). Transmis à Brevo comme attributs de segmentation. Lot 1. Cadre : additif de `05` ; absence de traceur à valider par `expert-conformite-rgpd` | — |
 | D56 | **Protection de la démonstration** | **Fondateur** + `expert-cybersecurite` | **Tranchée (2026-09-24) : URL protégée.** La maquette n'est montrée hors du poste local que sur une URL **protégée par un mot de passe** communiqué à chaque partenaire, avec un bandeau « Démonstration — données fictives », **non indexée**, et **jamais sur le nom de domaine de production**. Mission 6.4 de `implementation_plan.md` | — |
 | D57 | **Politique de sauvegarde du produit réel** | `architecte` + `expert-database` + `expert-conformite-rgpd`, **arbitré par le fondateur** | **Tranchée (2026-09-24) : perte maximale de quelques minutes.** Restauration à un instant donné (option payante de Supabase, coût à chiffrer par `architecte`) dès la mise en production, et **test de restauration régulier** (pas seulement au Lot 6). L'architecte fixe au Lot 0 la fréquence des tests et la reprise des purges RGPD après une restauration (`02` addendum du 2026-09-24) | — |
+| D58 | **Vue mobile du backoffice** | **Fondateur** + `architecte` + `expert-cybersecurite` | **Tranchée (2026-09-24) : oui, limitée à deux gestes** — lire et répondre dans une conversation dont l'agent est participant ; prendre en charge, valider ou refuser une entrée de la file. Le reste du backoffice reste un poste de travail (`17b` M4). Mêmes garanties qu'au bureau (D12, D37 : hôte distinct, second facteur, session courte) ; conditions de session sur téléphone à fixer par `architecte` + `expert-cybersecurite`, écrans en additif de `17b` par `expert-ux` (`20` Q3) | Conditions avant le Lot 4 |
+| D59 | **Direction visuelle de la landing** | **Fondateur** (+ `expert-ux`) | **Tranchée (2026-09-24) : carte métallisée premium conservée**, avec un **budget d'effets** : un seul effet spectaculaire par écran visible. Revue visuelle de la page rendue par `expert-ux` pour appliquer ce budget (`20` Q4) | Revue avant la mise en ligne du Lot 1 |
 
 > **Questions ouvertes des spécifications.** En plus des décisions ci-dessus, les documents `04` à
 > `16` portent **environ 156 questions ouvertes** (tableaux « Questions ouvertes » de chaque
@@ -823,6 +831,8 @@ Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la sociét
       2026-09-24** (`apps/web/src/locales/*/landing.json`, résumé dans `docs/landing-page/04-contenus.md`)
 - [ ] Faire relire ces textes par `expert-marketing` et `expert-conformite-rgpd` (veto), puis
       détacher la landing de la maquette (§16.2 point 5) — **avant la mise en ligne du Lot 1**
+- [ ] Revue visuelle de la landing rendue par `expert-ux` : un seul effet spectaculaire par écran
+      visible (D59) — **avant la mise en ligne du Lot 1**
 - [x] Figer la palette et les tokens (D6, `expert-ux` + fondateur) — **fait le 2026-09-17**, dark
       theme par défaut, voir `apps/web/src/styles/tokens.css`
 - [ ] Trancher le modèle financier restant : D7, D9, D19, D20, D22, D23, D27
