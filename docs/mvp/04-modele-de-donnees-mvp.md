@@ -253,7 +253,7 @@ voie (`docs/mvp/02-architecture-3-espaces.md` §2).
 | **1 — Inscription et leads** | `leads.outbox_events` · `leads.contact_sync_states` · **`leads.sync_settings`** · **`identity.email_delivery_incidents`** · **`profiles.advertiser_profiles` *(forme minimale, avancée depuis le Lot 2)*** · **`backoffice.queues`** · `backoffice.sla_policies` · **`backoffice.alert_definitions`** · **`backoffice.dual_control_requests`** · **`leads.transactional_sends`** · **`identity.auth_request_throttle`** |
 | **2 — Profils, badge** | `reference.topics` · `reference.formats` · `reference.networks` · `reference.sectors` · `reference.usage_rights` · `reference.audience_bands` · `reference.price_bands` · *(`profiles.advertiser_profiles` : **extension** de la table créée au Lot 1)* · `profiles.advertiser_contact_details` · `profiles.creator_public_profiles` · `profiles.creator_public_networks` · `profiles.creator_public_audience` · `profiles.creator_public_rates` · `profiles.creator_social_accounts` · `profiles.creator_identities` · `profiles.creator_audience_breakdowns` · `profiles.creator_rate_cards` · `profiles.creator_topics` · `profiles.creator_formats` · `profiles.creator_refused_sectors` · `profiles.portfolio_items` · `verification.rejection_reasons` · `verification.verification_requests` · `verification.ownership_codes` · `verification.evidence_files` · `verification.badges` · `verification.disputes` · **`reference.engagement_bands`** · **`reference.age_bands`** · **`reference.audience_genders`** · **`reference.editorial_tones`** · **`reference.publication_frequencies`** · **`reference.regions`** · **`profiles.creator_tones`** · **`profiles.creator_usage_rights`** · **`profiles.moderated_fields`** · **`profiles.profile_field_revisions`** · **`verification.revocation_reasons`** |
 | **3 — Campagnes et recherche** | `campaigns.rejection_reasons` · `campaigns.campaigns` · `campaigns.campaign_deliverables` · `campaigns.campaign_audience_targets` · `campaigns.campaign_topics` · `search.search_queries` · `search.search_impressions` · `search.shortlists` · `search.shortlist_items` · **`reference.campaign_types`** · **`campaigns.campaign_key_messages`** · **`campaigns.campaign_usage_territories`** · **`campaigns.campaign_price_bands`** · **`campaigns.requested_items`** · **`campaigns.campaign_requested_items`** · **`campaigns.campaign_published_snapshots`** · **`search.search_settings`** · **`search.facet_settings`** · **`search.facet_config_versions`** · **`search.explanation_reasons`** · **`search.impression_reasons`** · **`search.supply_counters`** · **`backoffice.operational_settings`** · **`matching.block_reasons`** · **`matching.party_blocks`** *(les deux dernières arrivent au Lot 3 bien que le reste du schéma `matching` arrive au Lot 4 : le blocage est une exclusion de recherche, §5.6)* |
-| **4 — Mise en relation et messagerie** | `matching.rejection_reasons` · `matching.introductions` · **`matching.interest_submissions`** *(ex-`application_details`)* · **`matching.interest_submission_formats`** *(ex-`application_formats`)* · **`matching.application_drafts`** · **`matching.application_draft_formats`** · **`matching.application_quotas`** · `matching.reference_counters` · **`matching.decline_reasons`** · **`matching.introduction_transitions`** · **`matching.introduction_emails`** · `messaging.closure_reasons` · `messaging.report_reasons` · `messaging.conversations` · `messaging.conversation_participants` · `messaging.messages` · `messaging.conversation_reads` · `messaging.conversation_access_log` · `messaging.contact_detections` · `messaging.reports` · `messaging.documents` · **`messaging.access_reasons`** · **`messaging.pause_reasons`** · **`messaging.conversation_state_transitions`** · **`messaging.document_labels`** · **`messaging.document_rejection_reasons`** · **`messaging.document_downloads`** · **`billing.lost_reasons`** · **`billing.cancellation_reasons`** · **`billing.non_monetary_reasons`** · **`billing.deal_state_transitions`** · **`billing.deals`** · **`billing.deal_field_changes`** · **`backoffice.alert_closure_reasons`** · **`backoffice.alert_instances`** *(les six premières **avancées depuis le Lot 5** : l'affaire est créée par `matching.reveal_identity()`, §5.6)* |
+| **4 — Mise en relation et messagerie** | `matching.rejection_reasons` · `matching.introductions` · **`matching.interest_submissions`** *(ex-`application_details`)* · **`matching.interest_submission_formats`** *(ex-`application_formats`)* · **`matching.application_drafts`** · **`matching.application_draft_formats`** · **`matching.application_quotas`** · `matching.reference_counters` · **`matching.decline_reasons`** · **`matching.introduction_transitions`** · **`matching.introduction_emails`** · `messaging.closure_reasons` · `messaging.report_reasons` · `messaging.conversations` · `messaging.conversation_participants` · `messaging.messages` · `messaging.conversation_reads` · **`messaging.conversation_channel_activity`** *(apartés, §5.7.1)* · `messaging.conversation_access_log` · `messaging.contact_detections` · `messaging.reports` · `messaging.documents` · **`messaging.access_reasons`** · **`messaging.pause_reasons`** · **`messaging.conversation_state_transitions`** · **`messaging.document_labels`** · **`messaging.document_rejection_reasons`** · **`messaging.document_downloads`** · **`billing.lost_reasons`** · **`billing.cancellation_reasons`** · **`billing.non_monetary_reasons`** · **`billing.deal_state_transitions`** · **`billing.deals`** · **`billing.deal_field_changes`** · **`backoffice.alert_closure_reasons`** · **`backoffice.alert_instances`** *(les six premières **avancées depuis le Lot 5** : l'affaire est créée par `matching.reveal_identity()`, §5.6)* |
 | **5 — Backoffice et pipeline** | **`billing.commission_receipts`** *(la seule table `billing` du Lot 5 : elle arrive avec la première saisie de règlement, `14` E1)* · `backoffice.internal_notes` · **`backoffice.suspension_reasons`** · **`backoffice.suspension_lift_reasons`** · `backoffice.account_suspensions` · **`backoffice.exports`** · `backoffice.email_send_limits` · **`backoffice.email_templates`** · **`backoffice.brevo_allowed_segments`** · **`backoffice.email_send_transitions`** · `backoffice.email_sends` · `backoffice.email_send_recipients` · `backoffice.data_subject_requests` |
 | **6 — Recette** | Aucune table nouvelle. Vérification de la couverture RLS, des index réellement utilisés et des purges |
 
@@ -3006,8 +3006,10 @@ trouée invite les questions.
 
 `id`, **`introduction_id uuid not null unique references matching.introductions(id)`**, `state`
 (`open` · `active` · `paused` · `closed` · `archived`), `opened_at not null`,
-`last_message_at`, `archived_at`, `created_at`, `updated_at`, **plus les colonnes de pause, de
-clôture et de réouverture décrites deux paragraphes plus bas** (`12` manque 3).
+`archived_at`, `created_at`, `updated_at`, **plus les colonnes de pause, de clôture et de
+réouverture décrites deux paragraphes plus bas** (`12` manque 3). *La colonne `last_message_at` a été
+**supprimée le 2026-09-24** : une date d'activité unique trahissait l'existence d'un aparté. Elle est
+remplacée par `messaging.conversation_channel_activity` (§5.7.1, point 3).*
 
 > **Écart assumé avec `intermediation-tracking`.** La skill liste `conversation_id` parmi les champs
 > de `introductions`. Je ne le crée pas : la relation 1-1 est portée par
@@ -3016,8 +3018,10 @@ clôture et de réouverture décrites deux paragraphes plus bas** (`12` manque 3
 > « Une conversation orpheline est un défaut bloquant » devient ici **impossible**, pas seulement
 > interdit.
 
-`last_message_at` est l'une des **trois seules dénormalisations** du modèle (§10.7) : elle est
-justifiée par la requête de liste de conversations, triée par activité, sur les trois espaces.
+La dernière activité d'une conversation est une **dénormalisation** (§10.8), justifiée par la requête
+de liste de conversations, triée par activité, sur les trois espaces. Depuis les apartés, elle est
+tenue **par canal** dans `messaging.conversation_channel_activity`, sous les mêmes politiques que les
+messages (§5.7.1).
 
 ##### Pause, clôture et réouverture : un motif, un auteur, et aucune impasse (`12` manque 3)
 
@@ -3542,6 +3546,456 @@ comment on table messaging.document_downloads is
 `messaging.conversation_access_log` et ce journal-ci sont **deux objets différents**. Télécharger un
 document mis à disposition est un geste normal du produit ; exporter une conversation n'existe pas au
 MVP (`12` RG62). Les confondre ferait passer l'un pour l'autre dans la revue hebdomadaire.
+
+#### 5.7.1 Les apartés — canaux, accès par canal et données dérivées (D47, `12` §K)
+
+> **Date :** 2026-09-24 · **Auteur :** `expert-database` · **Source :** `12` §K (RG113 à RG146) et
+> les sept besoins de données de ses impacts ; arbitrages du fondateur du 2026-09-24 (D47, `20` Q1
+> et Q2). **Le cloisonnement (A1) et le cas de l'administrateur unique (A3) ont été tranchés par le
+> fondateur le 2026-09-24** ; `03` a été aligné (A4). **Reste soumis à l'avis (veto)
+> d'`expert-cybersecurite`** : les deux fonctions privilégiées ajoutées (question A2).
+
+**Ce que les apartés demandent au modèle, en une phrase :** un **canal** sur chaque message, et la
+garantie qu'aucune lecture — d'un message **ou de ce qui en dérive** — ne franchit la frontière entre
+les deux apartés.
+
+| # | Besoin (`12` §K, impacts) | Traduction | Règles |
+|---|---|---|---|
+| 1 | Un canal sur chaque message, obligatoire, sans valeur par défaut, immuable | Type `messaging.message_channel`, colonne `messages.channel not null` **sans `default`**, deux contraintes `check` | RG114, RG120, RG128 |
+| 2 | Accès par canal **en base** pour la marque et le créateur | Politiques de lecture et d'écriture **par rôle**, à **liste de canaux constante**, doublées de la contrainte `messages_party_channel` ; déclencheur d'écriture pour la matrice état × canal | RG115, RG123, RG126, RG127, RG145 |
+| 3 | Curseur de lecture par canal | `conversation_reads` : clé primaire étendue au canal | RG133 |
+| 4 | Canal dans le journal des lectures | `conversation_access_log.channel not null` ; `read_conversation()` exige un canal et ne sert que lui | RG130, RG132 |
+| 5 | Passage `ouverte` → `active` limité au fil commun | Condition `kind = 'member' and channel = 'common'` dans le déclencheur d'insertion | RG124 |
+| 6 | Canal dans l'événement de notification | `channel` dans la charge utile, **dans la clé d'idempotence** (qui tient seule le cycle par canal), deux codes d'e-mail | RG135, RG136 |
+| 7 | Signalement d'un message d'agent réservé aux administrateurs autres que l'auteur | `reports.agent_author_account_id`, posé par déclencheur, et deux politiques | RG140 |
+| + | **Données dérivées** (dernière activité, non-lus, tri) sous la même règle d'accès | `conversations.last_message_at` **remplacée** par `messaging.conversation_channel_activity`, soumise aux mêmes politiques par canal | RG118, RG146 |
+
+Le dernier point n'était pas dans la liste de `12`, et c'est le plus important : **`last_message_at`
+était une fuite.** Une seule date de dernière activité par conversation, lue par les deux parties
+pour trier leur liste, bouge quand la marque écrit dans son aparté ; le créateur voit alors la
+conversation remonter sans message nouveau, et apprend qu'un aparté existe. `12` RG146 le dit : « une
+fuite passe plus souvent par un compteur que par un message ».
+
+##### (1) Le canal
+
+```sql
+create type messaging.message_channel as enum ('common', 'advertiser_private', 'creator_private');
+```
+
+| Colonne ajoutée à `messaging.messages` | Type | Contrainte |
+|---|---|---|
+| **`channel`** | `messaging.message_channel` | `not null`, **aucune valeur par défaut** (`12` RG120). Immuable : la table est déjà sous `REVOKE UPDATE` |
+
+```sql
+alter table messaging.messages
+  -- une partie n'ecrit que dans le fil commun ou dans SON aparte (12 RG115) :
+  -- impossible, pas seulement interdit, meme si une politique etait mal ecrite
+  add constraint messages_party_channel
+      check (kind = 'system'
+             or sender_role = 'agent'
+             or (sender_role = 'advertiser' and channel in ('common', 'advertiser_private'))
+             or (sender_role = 'creator'    and channel in ('common', 'creator_private'))),
+  -- dans un aparte, seuls trois messages systeme existent (12 RG128)
+  add constraint messages_private_system_events
+      check (kind = 'member'
+             or channel = 'common'
+             or system_event_code in ('agent.joined', 'agent.left', 'agent.owner_changed'));
+
+comment on column messaging.messages.channel is
+  'Canal du message (12 RG114) : common, advertiser_private ou creator_private.
+   AUCUNE VALEUR PAR DEFAUT, et c''est la regle (12 RG120) : un envoi qui oublie son canal doit
+   ECHOUER, jamais atterrir dans le fil commun. Une valeur par defaut transformerait un bogue
+   d''ecran en fuite d''un aparte vers l''autre partie.
+   Immuable (REVOKE UPDATE sur la table) : aucun message ne change de canal (12 RG114).';
+```
+
+**Les messages système d'entrée et de sortie d'un agent sont écrits en trois lignes**, une par canal
+(`12` RG128), par la fonction d'ajout d'un agent (`03` C(25)), qui fixe elle-même le canal de chacune.
+
+**L'appartenance à un aparté n'a pas de table.** Un aparté réunit sa partie et **tous les agents
+participants** (arbitrage du fondateur, `20` Q2) : c'est exactement ce que dit déjà
+`conversation_participants`. Une table d'appartenance répéterait cette information et pourrait la
+contredire. La décision du fondateur est aussi la forme la plus simple du modèle.
+
+##### (2) L'accès par canal, en base
+
+**Lecture par les membres.** Une politique par rôle, dont la **liste de canaux est une constante** :
+elle ne dépend d'aucune donnée, elle se lit d'un coup d'œil et elle se teste.
+
+```sql
+create policy messages_select_advertiser
+  on messaging.messages for select to influx_advertiser
+  using (
+    channel in ('common', 'advertiser_private')        -- LA CONSTANTE EST LE CLOISONNEMENT
+    and exists (select 1
+                  from messaging.conversation_participants p
+                 where p.conversation_id  = messages.conversation_id
+                   and p.account_id       = (select influx.current_account_id())
+                   and p.participant_role = 'advertiser'));
+
+create policy messages_select_creator
+  on messaging.messages for select to influx_creator
+  using (
+    channel in ('common', 'creator_private')
+    and exists (select 1
+                  from messaging.conversation_participants p
+                 where p.conversation_id  = messages.conversation_id
+                   and p.account_id       = (select influx.current_account_id())
+                   and p.participant_role = 'creator'));
+```
+
+**Écriture.** Même forme, avec en plus l'auteur réel (`12` RG13) et la participation active :
+
+```sql
+create policy messages_insert_advertiser
+  on messaging.messages for insert to influx_advertiser
+  with check (
+    kind = 'member'
+    and sender_account_id = (select influx.current_account_id())
+    and sender_role       = 'advertiser'
+    and channel in ('common', 'advertiser_private')
+    and exists (select 1
+                  from messaging.conversation_participants p
+                 where p.conversation_id  = messages.conversation_id
+                   and p.account_id       = (select influx.current_account_id())
+                   and p.participant_role = 'advertiser'
+                   and p.left_at is null));
+
+-- miroir exact pour influx_creator avec ('common', 'creator_private')
+
+create policy messages_insert_agent
+  on messaging.messages for insert to influx_agent, influx_admin
+  with check (
+    kind = 'member'
+    and sender_account_id = (select influx.current_account_id())
+    and sender_role       = 'agent'
+    and (select influx.has_aal2())
+    and exists (select 1
+                  from messaging.conversation_participants p
+                 where p.conversation_id  = messages.conversation_id
+                   and p.account_id       = (select influx.current_account_id())
+                   and p.participant_role = 'agent'
+                   and p.left_at is null));
+```
+
+Les agents **n'ont toujours aucun `SELECT`** sur `messages` (`03` §5.2) : ils écrivent sans
+`RETURNING`, l'identifiant du message étant généré par `apps/api`, et ils lisent par
+`read_conversation()` (point 4).
+
+**Deux murs, et non un.** Une partie qui tente d'écrire dans l'aparté de l'autre est arrêtée par la
+politique **et** par la contrainte `messages_party_channel`. La politique protège contre un appel
+forgé ; la contrainte protège contre une politique mal écrite ou supprimée par une migration. C'est
+la même doctrine que l'anonymisation (`CLAUDE.md` §6) : une règle en base, doublée d'un filtre de
+sortie dans `apps/api`, et d'un test.
+
+**La matrice état × canal, en base.** `12` RG123, RG126 et RG127 disent qui écrit selon l'état du fil.
+Un déclencheur les tient, pour le fil commun comme pour les apartés :
+
+```sql
+create or replace function messaging.assert_message_writable()
+returns trigger language plpgsql
+security definer set search_path = ''
+as $$
+declare
+  v_state   messaging.conversation_state;
+  v_blocked boolean;
+begin
+  if new.kind = 'system' then
+    return new;                          -- ecrits par les seules fonctions privilegiees
+  end if;
+
+  select c.state into v_state
+    from messaging.conversations c
+   where c.id = new.conversation_id;
+
+  if v_state in ('closed', 'archived') then                      -- 12 RG20, RG123
+    raise exception 'conversation not writable' using errcode = '55006';
+  end if;
+
+  if new.sender_role = 'agent' then
+    return new;                          -- les agents ecrivent dans tous les canaux d'un fil non clos
+  end if;
+
+  if influx.is_suspended(new.sender_account_id) then             -- 12 RG127 : aucun canal
+    raise exception 'account suspended' using errcode = 'insufficient_privilege';
+  end if;
+
+  if new.channel = 'common' then
+    if v_state = 'paused' then                                   -- 12 RG18, RG123
+      raise exception 'conversation paused' using errcode = '55006';
+    end if;
+
+    select exists (select 1
+                     from messaging.conversations c
+                     join matching.introductions  i on i.id = c.introduction_id
+                     join matching.party_blocks   b
+                       on b.advertiser_account_id = i.advertiser_account_id
+                      and b.creator_account_id    = i.creator_account_id
+                      and b.lifted_at is null
+                    where c.id = new.conversation_id)
+      into v_blocked;
+
+    if v_blocked then                                            -- 12 RG87, RG126
+      raise exception 'pair blocked' using errcode = '55006';
+    end if;
+  end if;
+
+  -- l'aparte d'une partie reste ouvert en pause et malgre un blocage (12 RG123, RG126)
+  return new;
+end $$;
+
+create trigger messages_writable
+  before insert on messaging.messages
+  for each row execute function messaging.assert_message_writable();
+```
+
+**Pourquoi `security definer` :** les agents n'ont pas de `SELECT` sur `conversations` (`03` §5.2),
+et un membre ne lit pas nécessairement `party_blocks` dans le sens qui l'intéresse. La fonction **ne
+fait que lire et refuser** ; elle n'écrit rien. Elle rejoint pourtant la liste des fonctions
+privilégiées à revoir ligne à ligne (§12.1 point 7).
+
+##### (3) Les données dérivées : `messaging.conversation_channel_activity`
+
+*Remplace `conversations.last_message_at`, qui est **supprimée** (§10.8 mis à jour).*
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `conversation_id` | `uuid` | `not null references messaging.conversations(id)` — **PK avec la suivante** |
+| `channel` | `messaging.message_channel` | `not null` — **PK** |
+| `last_message_at` | `timestamptz` | `not null` — dernier message, système compris, **de ce canal** |
+
+Une ligne par canal **qui a reçu au moins un message** : la ligne d'un aparté n'existe qu'après son
+premier message, et elle n'est visible que de sa partie et des agents.
+
+```sql
+create or replace function messaging.on_message_inserted()
+returns trigger language plpgsql
+security definer set search_path = ''
+as $$
+begin
+  insert into messaging.conversation_channel_activity as a
+         (conversation_id, channel, last_message_at)
+  values (new.conversation_id, new.channel, new.created_at)
+  on conflict (conversation_id, channel)
+  do update set last_message_at = greatest(a.last_message_at, excluded.last_message_at);
+
+  -- 12 RG16 amendee par RG124 : SEUL un message de membre du FIL COMMUN rend le fil actif.
+  -- Un aparte qui changerait l'etat, affiche aux deux parties (12 RG32), revelerait son existence.
+  if new.kind = 'member' and new.channel = 'common' then
+    update messaging.conversations
+       set state = 'active'
+     where id = new.conversation_id
+       and state = 'open';
+  end if;
+
+  return new;
+end $$;
+
+create trigger messages_after_insert
+  after insert on messaging.messages
+  for each row execute function messaging.on_message_inserted();
+
+-- memes politiques par canal que les messages : la fuite est impossible par construction
+create policy channel_activity_advertiser
+  on messaging.conversation_channel_activity for select to influx_advertiser
+  using (
+    channel in ('common', 'advertiser_private')
+    and exists (select 1
+                  from messaging.conversation_participants p
+                 where p.conversation_id  = conversation_channel_activity.conversation_id
+                   and p.account_id       = (select influx.current_account_id())
+                   and p.participant_role = 'advertiser'));
+
+-- miroir pour influx_creator ; lecture directe pour influx_agent et influx_admin :
+-- une date d'activite n'est pas le contenu d'une conversation (pas de journal, 12 RG55 inchangee)
+grant select on messaging.conversation_channel_activity to influx_agent, influx_admin;
+revoke insert, update, delete on messaging.conversation_channel_activity
+  from influx_advertiser, influx_creator, influx_agent, influx_admin;   -- le declencheur seul ecrit
+```
+
+**La liste « Mes conversations » d'un membre**, triée par activité — la requête n'a **pas besoin de
+penser aux apartés**, c'est la politique qui retire la ligne invisible avant le `max()` :
+
+```sql
+select p.conversation_id, max(a.last_message_at) as last_activity_at
+  from messaging.conversation_participants p
+  join messaging.conversation_channel_activity a using (conversation_id)
+ where p.account_id = (select influx.current_account_id())
+ group by p.conversation_id
+ order by last_activity_at desc;
+```
+
+**Le silence de 14 jours** (`12` RG125) se mesure, lui, **sur tous les canaux**, par le travail
+nocturne qui lit la table sans filtre de canal : `having max(last_message_at) < now() - interval '14
+days'`.
+
+`on_message_inserted()` est `security definer` parce que seul le rôle propriétaire écrit dans
+`conversations` (`03` C(21)) ; elle écrit deux choses, et deux seulement. Elle rejoint la liste du
+§12.1 point 7.
+
+##### (4) Le curseur de lecture et le journal des lectures, par canal
+
+**`messaging.conversation_reads`** : clé primaire **`(conversation_id, account_id, channel)`**. Un
+membre a deux curseurs par conversation (commun, son aparté), un agent en a trois. La politique
+d'écriture d'un membre porte la même liste de canaux constante que ses messages. Le décompte des
+non-lus d'un canal compte les messages **de ce canal** postérieurs à son curseur ; aucun accusé de
+lecture n'est tiré d'un curseur d'aparté (`12` RG133).
+
+**`messaging.conversation_access_log`** :
+
+| Colonne ajoutée | Type | Contrainte |
+|---|---|---|
+| **`channel`** | `messaging.message_channel` | `not null`, **aucune valeur par défaut** — le canal lu (`12` RG130) |
+
+**`messaging.read_conversation()`** prend un canal **obligatoire**, ne sert **que ce canal**, et
+écrit une ligne de journal **par appel, donc par canal** :
+
+```sql
+create function messaging.read_conversation(
+        p_conversation_id uuid,
+        p_channel         messaging.message_channel,   -- OBLIGATOIRE, aucune valeur par defaut
+        p_context         text,
+        p_cursor          timestamptz default null,
+        p_limit           int         default 50)
+  returns setof messaging.messages
+  -- ... corps inchange (03 §5.2), a deux differences pres :
+  --     1. le journal (conversation_access_log ET audit.append) porte p_channel ;
+  --     2. la requete servie filtre : and m.channel = p_channel
+```
+
+Ouvrir le fil commun **ne charge donc pas** les apartés (`12` RG132) : il n'existe aucun appel qui
+renvoie deux canaux à la fois. Un agent non participant qui ouvre ensuite un aparté produit une
+seconde ligne, portant ce canal — c'est CA68, tenu par la signature de la fonction.
+
+```sql
+-- 12 RG134 : la revue hebdomadaire isole les lectures d'apartes par des non-participants,
+-- la lecture la plus sensible du produit
+create index access_log_private_non_participant_idx
+  on messaging.conversation_access_log (accessed_at desc)
+  where channel <> 'common' and not was_participant;
+```
+
+##### (5) Les notifications : le cycle par canal tenu par la clé d'idempotence
+
+L'événement de notification (`leads.outbox_events`, destination `brevo_transactional`) porte dans sa
+charge utile, **identifiants uniquement** : `conversation_id`, `message_id`,
+`recipient_account_id`, **`channel`**. Deux codes d'e-mail distincts dans
+`leads.transactional_sends.email_code` : `message.notification` (fil commun) et
+**`message.private_notification`** (aparté, « … vous a écrit en privé », lien vers l'onglet de
+l'aparté, `12` RG135).
+
+**Le cycle de `12` RG136 n'a pas besoin de table.** La clé d'idempotence est construite ainsi :
+
+```
+message.notification:<recipient_account_id>:<conversation_id>:<channel>:<cycle>:<immediate|reminder>
+```
+
+où `<cycle>` est le `last_read_at` du curseur de ce destinataire **sur ce canal** au moment de
+l'émission (`never` s'il n'a jamais lu). La contrainte existante `unique (destination,
+idempotency_key)` rend alors impossible un troisième e-mail sur un même canal et un même cycle
+(au plus un immédiat et un rappel), et l'ouverture de l'onglet, qui avance le curseur, ouvre un
+nouveau cycle (`12` RG94). **L'autre partie ne reçoit rien** (`12` RG138) : un événement n'est
+jamais émis vers un destinataire qui n'a pas le canal dans sa liste constante.
+
+##### (6) Le signalement d'un message d'agent
+
+| Colonne ajoutée à `messaging.reports` | Type | Contrainte |
+|---|---|---|
+| **`agent_author_account_id`** | `uuid` | FK `identity.accounts`, nullable, `check (agent_author_account_id is null or message_id is not null)` — **l'auteur du message signalé quand c'est un agent**, posé par déclencheur, jamais saisi |
+
+```sql
+create or replace function messaging.set_report_agent_author()
+returns trigger language plpgsql
+as $$
+begin
+  if new.message_id is not null then
+    -- execute sous le role du signalant : il ne lit que les canaux qui lui sont visibles,
+    -- il ne peut donc signaler qu'un message qu'il a pu lire
+    select case when m.sender_role = 'agent' then m.sender_account_id end
+      into new.agent_author_account_id
+      from messaging.messages m
+     where m.id = new.message_id
+       and m.conversation_id = new.conversation_id;
+    if not found then
+      raise exception 'message not found' using errcode = 'no_data_found';
+    end if;
+  end if;
+  return new;
+end $$;
+
+create trigger reports_agent_author
+  before insert on messaging.reports
+  for each row execute function messaging.set_report_agent_author();
+
+-- 12 RG140 : un agent ne voit JAMAIS un signalement visant un message d'agent
+create policy reports_agent_queue
+  on messaging.reports for all to influx_agent
+  using (agent_author_account_id is null)
+  with check (agent_author_account_id is null);
+
+-- un administrateur les instruit, sauf ceux qui visent ses propres messages
+create policy reports_admin_queue
+  on messaging.reports for all to influx_admin
+  using (agent_author_account_id is distinct from (select influx.current_account_id()))
+  with check (agent_author_account_id is distinct from (select influx.current_account_id()));
+```
+
+Le signalant lit ses propres signalements **sans cette colonne** (`GRANT SELECT` par colonnes) :
+elle désigne un membre de l'équipe, pas une information qui lui est due. L'alerte de nouveau
+signalement (`backoffice.alert_instances`) suit la même règle de destinataires.
+
+##### Ce qui ne change pas
+
+- **`conversation_participants`** : aucune colonne nouvelle (voir point 1).
+- **`contact_detections`** : **aucune colonne de canal.** Le canal se lit sur le message détecté ; le
+  recopier serait une dénormalisation sans mesure (R10).
+- **Conservation** (`12` RG144) : un aparté suit sa conversation, durées inchangées (§9.1).
+- **Registre** : aucun code d'événement nouveau ; la charge utile de `messaging.conversation_read`
+  porte le canal.
+- **Droit d'accès** (`12` RG143) : la fonction d'export applique la **même liste de canaux
+  constante** que les politiques de lecture, plus le filtre de `15` Q7 sur le fil commun.
+
+##### Tests à ajouter (`03` §8 et plan `18`)
+
+| # | Vérification | Critère |
+|---|---|---|
+| TA1 | `information_schema.columns.column_default` est **nul** pour `messages.channel` et `conversation_access_log.channel` | RG120, CA65 |
+| TA2 | Sous `influx_creator` participant, `select count(*)` sur les messages, l'activité et les curseurs de canal `advertiser_private` renvoie **0** alors que des lignes existent ; idem en miroir | CA63, RG146 |
+| TA3 | Une insertion du créateur dans `advertiser_private` échoue **par la politique** ; la même insertion, politiques désactivées dans la base de test, échoue **par la contrainte** | RG115, deux murs |
+| TA4 | Un message d'aparté laisse `state = 'open'` ; un message du fil commun le fait passer à `active` | CA62 |
+| TA5 | `read_conversation()` ne s'appelle pas sans canal ; un appel écrit exactement une ligne de journal portant ce canal | CA68 |
+| TA6 | En pause, un membre écrit dans son aparté et pas dans le fil commun ; même chose sous blocage ; rien après clôture | CA69 à CA71 |
+| TA7 | Sous `influx_agent`, un signalement visant un message d'agent est invisible ; sous `influx_admin`, l'auteur ne voit pas celui qui le vise | CA77 |
+| TA8 | Deux notifications de même canal, même cycle, même type : la seconde est refusée par l'unicité | CA74 |
+
+##### Migrations
+
+Les migrations `0403`, `0404` et `0405` (§11) ne sont pas encore écrites, et le produit réel n'a
+aucune donnée (D44) : les apartés **amendent leur contenu** plutôt que d'ajouter une migration de
+reprise. Réversibles, comme elles.
+
+| Migration | Ajout |
+|---|---|
+| `0403` `messaging_core` | Type `message_channel`, colonne `messages.channel` et ses deux contraintes, **`conversation_channel_activity` à la place de `conversations.last_message_at`**, déclencheurs `assert_message_writable` et `on_message_inserted`, clé de `conversation_reads`, politiques par canal, index de lecture par canal |
+| `0404` `messaging_supervision` | `conversation_access_log.channel`, signature de `read_conversation()` avec canal, index partiel de la revue X4 |
+| `0405` `messaging_safety` | `reports.agent_author_account_id`, son déclencheur et ses deux politiques |
+
+##### Questions ouvertes
+
+| # | Question | Hypothèse retenue | Arbitre | Échéance |
+|---|---|---|---|---|
+| **A1** | **Cloisonnement par politique à canal constant plus contrainte, ou trois tables de messages séparées** (un « mur » de droits plutôt qu'un filtre de lignes) ? | **Tranchée par le fondateur le 2026-09-24 : politique à canal constant, doublée d'une contrainte en base, plus tests** (`03` T19). La marque doit de toute façon lire une partie des lignes de la table où vit son aparté : trois tables ne suppriment pas le filtre, elles multiplient les clés étrangères (détections, signalements), les index et les requêtes d'union, pour une garantie équivalente | Fondateur, dans un domaine sous veto `expert-cybersecurite` (`CLAUDE.md` §10.3 point 2) | Fait |
+| **A2** | Deux fonctions `security definer` de plus : `assert_message_writable` (lecture seule) et `on_message_inserted` (deux écritures) | Acceptées, à revoir ligne à ligne avec les sept autres (§12.1 point 7) | **`expert-cybersecurite` (veto)** | Avant l'écriture de `0403` |
+| **A3** | Un signalement vise un message de **l'unique administrateur** : personne ne peut l'instruire (`12` RG140) | **Tranchée par le fondateur le 2026-09-24 :** le signalement reste en file, sans instructeur, et une alerte persistante l'annonce **sans aucun détail** ; il est instruit dès qu'un second administrateur existe — même bascule que PD7 (`03` §1.3). Mécanisme ci-dessous ; limite écrite en `03` C(27) | Fondateur | Fait |
+| **A4** | `03` §5.2 et la condition C(23) décrivent `read_conversation()` et la lecture des membres **sans canal** | **Fait le 2026-09-24**, à la demande du fondateur : `03` C(23) à C(25), nouvelle C(27), §5.2 et T19 | `expert-cybersecurite` (relecture) | Fait |
+
+**Mécanisme de A3.** Aucune colonne nouvelle : un signalement est **sans instructeur possible**
+quand `agent_author_account_id` n'est pas nul et qu'aucun compte `admin` actif autre que lui
+n'existe. Le travail qui calcule les alertes le détecte à chaque passage et tient une alerte du
+catalogue `backoffice.alert_definitions` (numéro à attribuer dans `15`), dont la charge utile est **un
+simple nombre** — ni identifiant de signalement, ni conversation, ni message. L'alerte se referme
+seule dès qu'un second administrateur actif existe : la politique `reports_admin_queue` lui rend
+alors le signalement visible sans rien changer au code.
 
 ---
 
@@ -4827,8 +5281,10 @@ create trigger audit_events_no_truncate
 | `reference.price_bands` (bornes nettes comprises) | L | L | L | L | L |
 | `matching.introductions` | L (les siennes) | L (les siennes) | L + E | L + E | F |
 | `matching.introductions.identity_revealed_at` | — | — | **F** | **F** | **F** |
-| `messaging.messages` | L (ses fils) + E | L (ses fils) + E | **F** | **F** | — |
+| `messaging.messages` | L + E (ses fils : **commun + aparté marque**, §5.7.1) | L + E (ses fils : **commun + aparté créateur**) | **F** + E | **F** + E | — |
+| **`messaging.conversation_channel_activity`** | L (**canaux visibles seulement**) | L (idem) | L | L | — *(déclencheur seul)* |
 | `messaging.conversation_access_log` | — | — | E (par la fonction) | L | L |
+| **`messaging.reports`** | L (les siens, **sans `agent_author_account_id`**) + E | idem | L + E **sauf messages d'agents** | L + E **sauf les siens** | — |
 | `billing.deals` | **—** | **—** | L + E | L + E | L |
 | `billing.commission_rates` | — | — | L | L | — |
 | `audit.audit_events` | — | — | L (filtré) | L | **insertion seule** |
@@ -5370,9 +5826,10 @@ mesure le demandera, pas avant (R9).
 
 | Index | Requête |
 |---|---|
-| `messages (conversation_id, created_at desc, id)` | Affichage d'un fil, paginé par curseur. **Le seul index dont la messagerie a besoin au MVP** |
+| `messages (conversation_id, channel, created_at desc, id)` | Affichage d'un fil, **un canal à la fois**, paginé par curseur, et décompte des non-lus d'un canal (§5.7.1). **Le seul index dont la messagerie a besoin au MVP** |
 | `conversation_participants (account_id) where left_at is null` | « Mes conversations », point de départ de la liste sur les trois espaces |
-| `conversations (last_message_at desc)` | Tri de cette liste par activité |
+| `conversation_channel_activity` (clé primaire) | Tri de cette liste par activité : au plus trois lignes par conversation, lues par la clé (§5.7.1). *Remplace l'index sur `conversations.last_message_at`, supprimée* |
+| **`conversation_access_log (accessed_at desc) where channel <> 'common' and not was_participant`** | Revue hebdomadaire des **lectures d'apartés par des agents non participants** (`12` RG134) |
 | `conversation_access_log (conversation_id, accessed_at desc)` | « Qui a lu ce fil ? » — à la demande d'un utilisateur ou d'une autorité |
 | `conversation_access_log (agent_account_id, accessed_at desc)` | « Qu'a lu cet agent ? » — revue de conformité |
 | `contact_detections (sent_despite_warning desc, created_at desc) where reviewed_at is null` | Liste d'alertes du backoffice (M6). **L'ordre des colonnes est le message** : les envois assumés après avertissement remontent en tête, ce sont les seuls qui méritent un appel (`12` RG45) |
@@ -5418,7 +5875,7 @@ mesure le demandera, pas avant (R9).
 
 | Colonne | Requête ou règle qui l'impose | Maintenue par |
 |---|---|---|
-| `conversations.last_message_at` | Liste des conversations triée par activité, sur trois espaces. Sans elle, un `max()` corrélé sur `messages` à chaque affichage | Déclencheur `AFTER INSERT` sur `messages` |
+| **`messaging.conversation_channel_activity`** *(remplace `conversations.last_message_at` depuis le 2026-09-24)* | Liste des conversations triée par activité, sur trois espaces. Sans elle, un `max()` corrélé sur `messages` à chaque affichage. **Par canal**, parce qu'une date unique révélait l'existence d'un aparté (`12` RG118, §5.7.1) | Déclencheur `AFTER INSERT` sur `messages` (`on_message_inserted`) |
 | `leads.contact_sync_states` | Écran « inscrits et état de synchronisation » : un `DISTINCT ON` sur toute la file à chaque affichage | Le worker, en fin de traitement |
 | `billing.deals.revealed_at` | Copie de `identity_revealed_at` qui rend la contrainte `signed_at >= revealed_at` **déclarative** au lieu d'exiger un déclencheur avec sous-requête | Posée à la création de l'affaire, jamais modifiée |
 | **`campaigns.campaigns.active_applications_count`** | **Ce n'est pas une optimisation, c'est une correction.** Le plafond P3 (`11`) doit **fermer atomiquement** la campagne : un `count(*)` lu avant l'insertion laisse passer deux candidatures simultanées. Le compteur est la ligne que la transaction verrouille, et la contrainte `check (… <= max_applications)` refuse l'insertion en trop | Déclencheur sur `matching.introductions` |
@@ -5497,10 +5954,10 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | **0402a** | **`billing_deals_at_reveal`** | **`lost_reasons`, `cancellation_reasons`, `non_monetary_reasons`, `deal_state_transitions`** (avec `cancelled`, **sans** `stalled` ni `disputed`), **`deals`** (bases fiscales, payeur et parts saisies, attributs de litige et d'enlisement, champs d'estimation de contournement), **`deal_field_changes`** avec `is_financial_field` et son motif obligatoire, et le déclencheur d'historisation — **avancées du Lot 5** (arbitrage du 2026-09-19). **Dépendance stricte : doit s'appliquer avant `0402`**, qui crée l'affaire à la révélation | Oui tant qu'aucune affaire réelle n'existe ; **non** ensuite (donnée comptable, §11.3) |
 | 0402 | `matching_reveal_function` | `reveal_identity()` `SECURITY DEFINER`, `REVOKE` de colonnes, **création de l'affaire à l'état `open`**. **Dépend de `0402a`** | Oui |
 | **0402c** | **`matching_introduction_emails`** | **`introduction_emails`**, ses contraintes de chronologie, ses trois index, l'unicité du `provider_message_id` | Oui |
-| 0403 | `messaging_core` | Conversations (**pause motivée, clôture réouvrable, `reopen_count`**), **`pause_reasons`**, **`conversation_state_transitions` et son déclencheur**, participants, messages, lectures, **les 10 codes `conversation.*` de `audit.event_types`** | Oui |
-| 0404 | `messaging_supervision` | **`access_reasons`**, `conversation_access_log` (**`reason_code` non nul, `read_session_id`**), `read_conversation()`, **`REVOKE SELECT` sur `messages` aux agents** | Oui |
+| 0403 | `messaging_core` | Conversations (**pause motivée, clôture réouvrable, `reopen_count`**), **`pause_reasons`**, **`conversation_state_transitions` et son déclencheur**, participants, messages, lectures, **les 10 codes `conversation.*` de `audit.event_types`** ; **apartés (§5.7.1)** : type `message_channel`, `messages.channel` sans valeur par défaut et ses deux contraintes, politiques par canal, **`conversation_channel_activity`** (sans `conversations.last_message_at`), déclencheurs `assert_message_writable` et `on_message_inserted`, curseurs par canal | Oui |
+| 0404 | `messaging_supervision` | **`access_reasons`**, `conversation_access_log` (**`reason_code` non nul, `read_session_id`, `channel` sans valeur par défaut**), `read_conversation()` **à canal obligatoire**, **`REVOKE SELECT` sur `messages` aux agents**, index partiel des lectures d'apartés | Oui |
 | **0406** | **`backoffice_alert_instances`** | **`alert_closure_reasons`**, **`alert_instances`** et ses deux index, **les codes `alert.*` et `queue.claim_forced_release`**. Au Lot 4 : les premières alertes d'événement sont les détections de coordonnées et les signalements | Oui |
-| 0405 | `messaging_safety` | `contact_detections` (**`warned_before_send`, `sent_despite_warning`**), `reports`, **`document_labels`**, **`document_rejection_reasons`**, `documents` (**`available_at`**), **`document_downloads`**, **les 7 codes `report.*`, `detection.*` et `document.*`** *(les quatre tables de documents restent conditionnelles au canal)* | Oui |
+| 0405 | `messaging_safety` | `contact_detections` (**`warned_before_send`, `sent_despite_warning`**), `reports` (**`agent_author_account_id`, son déclencheur et ses deux politiques**, §5.7.1), **`document_labels`**, **`document_rejection_reasons`**, `documents` (**`available_at`**), **`document_downloads`**, **les 7 codes `report.*`, `detection.*` et `document.*`** *(les quatre tables de documents restent conditionnelles au canal)* | Oui |
 | **Lot 5** | | | |
 | ~~0501~~ | ~~`billing_deals`~~ | **Supprimée le 2026-09-19 : son contenu est passé en `0402a`** (Lot 4). Le Lot 5 n'apporte **aucune table `billing` nouvelle** — seulement les écrans de saisie du pipeline | — |
 | 0501 | **`billing_commission_receipts`** | **`commission_receipts`** append-only, ses contraintes, son index, le déclencheur qui maintient `deals.commission_received_total_minor` (`14` E1) | Oui tant qu'aucun règlement réel n'existe ; **non** ensuite |
@@ -5557,7 +6014,7 @@ l'interface Supabase. Le rôle qui applique les migrations est **le propriétair
 | 4 | **`conversation_access_log` append-only mais non chaînée** (§5.7) | Arbitrage débit / force de preuve sur un acte à haute fréquence |
 | 5 | **Une seule chaîne globale** plutôt qu'une chaîne par mise en relation (§7.2) | Le choix a des conséquences sur la forme d'un extrait de preuve |
 | 6 | **Conservation de `ip_address` et `user_agent`** sur `terms_acceptances` | Renforce la preuve, augmente la surface de données personnelles. Décision partagée avec `expert-conformite-rgpd` |
-| 7 | **Liste des fonctions `SECURITY DEFINER`** : `current_account_id`, `append_event`, `reveal_identity`, `read_conversation`, `grant_role`, `set_declared_status`, **`correct_email`** | Ce sont les seules portes privilégiées du modèle. Chacune mérite une revue ligne à ligne |
+| 7 | **Liste des fonctions `SECURITY DEFINER`** : `current_account_id`, `append_event`, `reveal_identity`, `read_conversation`, `grant_role`, `set_declared_status`, **`correct_email`**, **`assert_message_writable`** et **`on_message_inserted`** (apartés, §5.7.1, question A2) | Ce sont les seules portes privilégiées du modèle. Chacune mérite une revue ligne à ligne |
 | 8 | Politiques du **Storage** sur les quatre compartiments (§5.11), alignées sur les RLS des tables | Exception E1 du document `02` |
 | 9 | **`identity.correct_email()`** (§5.1, RG62, question Q8 de la spécification `05`) | Depuis D37, l'adresse e-mail **est** le facteur d'authentification : cette fonction est une primitive de prise de contrôle de compte. Je fournis la trace (motif obligatoire, événement chaîné de gravité `critical`, notification aux deux adresses, remise à zéro de la vérification d'adresse) ; **la procédure de vérification d'identité préalable lui appartient** |
 | 10 | **`identity.account_roles` est la surface d'escalade de privilèges** : aucun droit d'écriture applicatif, `grant_role()` réservée à `influx_admin` et refusant d'agir sur son propre compte | À valider avec la matrice du document `03` |
@@ -5692,7 +6149,7 @@ Ajoutés par la revue de cohérence (`19-revue-de-coherence-2026-09-24.md`). Ce 
 |---|---|---|---|
 | 1 | **D46** — jamais d'e-mail, de téléphone ni de page de contact servis à un membre | Le `GRANT` de révélation sur `profiles.advertiser_contact_details` (§6.2 d) se limite au **prénom** ; e-mail, téléphone et page de contact ne reçoivent **aucun** droit du rôle `influx_creator`, révélation ou non | `expert-database` + `expert-cybersecurite` (veto) |
 | 2 | **D45** — révélation à la seconde acceptation | Déjà conforme : `introductions_reveal_requires_both_acceptances` (§5.6). Rien à changer | — |
-| 3 | **D47** — apartés privés du commercial avec une seule partie | Un canal par conversation (commun · marque · créateur), porté **en base** avec une politique d'accès par canal ; la détection, les curseurs de lecture et le journal des lectures doivent connaître le canal. **Additif de `12` écrit le 2026-09-24** : les sept besoins de données sont listés dans ses impacts (§K, RG113 à RG146) — canal obligatoire sans valeur par défaut, accès par canal en base, curseur et journal par canal, transition `ouverte` → `active` limitée au fil commun | `expert-database` + `expert-cybersecurite` (veto) |
+| 3 | **D47** — apartés privés du commercial avec une seule partie | Un canal par conversation (commun · marque · créateur), porté **en base** avec une politique d'accès par canal ; la détection, les curseurs de lecture et le journal des lectures doivent connaître le canal. **Traduit le 2026-09-24 : §5.7.1.** Les sept besoins de `12` §K sont modélisés, plus un huitième découvert en chemin : `conversations.last_message_at` trahissait l'existence d'un aparté et est remplacée par une activité par canal. A1, A3 et A4 tranchées ou faites le 2026-09-24 ; **reste A2** (les deux fonctions `security definer` ajoutées, avis de `expert-cybersecurite`) | `expert-database` + `expert-cybersecurite` (veto) |
 | 4 | **D42** — renouvellement par proposition INFLUX | Un lien vers la mise en relation d'origine (par exemple `renews_introduction_id`), et une exception à `introductions_active_pair_idx` pour ce seul cas, une fois l'affaire précédente terminée | `expert-database` + `product-owner` (définition de « terminée ») |
 | 5 | **D48** — aucun net estimé affiché pendant le pilote | Les bornes nettes de `reference.price_bands` (§12.6 point 1) **ne sont pas nécessaires au pilote** : colonnes laissées vides, aucune lecture par l'application | `expert-paiement-facturation` |
 | 6 | **D50** — écriture d'une affaire réservée au responsable et à l'administrateur | Condition `owner_agent_id = appelant` pour le rôle `influx_agent` sur les écritures de `billing.deals` (§12.8 point 1, désormais tranché) | `expert-database` + `expert-cybersecurite` |

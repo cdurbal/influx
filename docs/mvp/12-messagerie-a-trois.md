@@ -1348,7 +1348,11 @@ téléphone reste une négociation sans trace.
 fil commun (RG79). Un tel signalement est **instruit par un administrateur autre que l'auteur du
 message** ; l'agent visé n'en est pas informé (RG83) et ne le voit pas dans sa file. L'aparté est le
 seul endroit où un agent parle à une partie sans que l'autre partie en soit témoin : c'est là qu'un
-abus serait le moins visible.
+abus serait le moins visible. **Si l'auteur est le seul administrateur actif** (arbitrage du fondateur
+du 2026-09-24, `04` §5.7.1 A3) : le signalement reste en file sans instructeur, une alerte persistante
+l'annonce sans aucun détail, et il est instruit dès qu'un second administrateur existe ; le signalant
+est informé que son signalement est en attente. **Limite assumée** : l'administrateur unique apprend
+ainsi qu'un signalement le vise (`03` C(27)).
 
 #### K7. Information, vocabulaire et droits des personnes
 
@@ -1534,8 +1538,10 @@ brouillon reste dans l'onglet de l'aparté marque, non envoyé.
 | Backoffice | **Journal des lectures** : colonne « canal », filtre sur les lectures d'apartés par des non-participants | Ajustement |
 | Backoffice | **File des signalements** : un signalement visant un message d'agent n'est visible que des administrateurs autres que son auteur | Ajustement |
 
-**Données** — à modéliser par `expert-database`, sous veto `expert-cybersecurite` (`04` §12.11,
-point 3) :
+**Données** — **modélisées le 2026-09-24 dans `04` §5.7.1**, sous veto `expert-cybersecurite`
+(A1, A3 et A4 tranchées ou faites le 2026-09-24, reste A2). Le modèle ajoute un huitième besoin : la date de dernière
+activité d'une conversation est tenue **par canal**, une date unique trahissant l'existence d'un
+aparté (RG118, RG146) :
 
 | # | Besoin | Règle |
 |---|---|---|

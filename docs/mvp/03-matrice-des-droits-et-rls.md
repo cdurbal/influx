@@ -10,6 +10,15 @@
 > C(21c) acceptation d'un membre, C(21d) révélation interne — et le test **T18** les vérifie.
 > `docs/mvp/04-modele-de-donnees-mvp.md` §5.6 a été corrigé dans le même mouvement, pour que le
 > contrat de sécurité reste **un et un seul** dans les deux documents.
+> **Révision du 2026-09-24 — les apartés (D47).** Alignement sur `12` §K et `04` §5.7.1, rédigé à la
+> demande du fondateur (question A4 de `04` §5.7.1) : §3.4 (lecture de l'aparté de l'autre partie,
+> conditions C(23) à C(25), **nouvelle condition C(27)** sur les signalements visant un agent), §5.2
+> (`read_conversation()` à **canal obligatoire**, une ligne de journal par canal), §8 (T5 étendu,
+> **nouveau test T19**). **Le cloisonnement par règle d'accès à canal constant, doublée d'une
+> contrainte en base, est un arbitrage explicite du fondateur** (`04` §5.7.1 A1, 2026-09-24), rendu
+> dans un domaine sous veto de `expert-cybersecurite` (`CLAUDE.md` §10.3 point 2). **Restent soumises
+> à l'avis de `expert-cybersecurite`** : les deux fonctions `SECURITY DEFINER` ajoutées par les
+> apartés (`04` §5.7.1 A2) et la relecture de cette révision.
 > **Auteurs :** `expert-cybersecurite` (rédacteur, **veto bloquant**) + `architecte` (co-signataire
 > pour les points d'architecture)
 > **Statut :** **avis de sécurité rendu — favorable sous conditions.** Les conditions marquées
@@ -337,6 +346,7 @@ create policy creator_identity_read_after_reveal
 | Mise en relation — **modifier `identity_revealed_at`** | ⛔ | ⛔ | ⛔ | ⛔ | ⛔ |
 | Mise en relation — réattribuer le commercial | — | — | ✔ · J C(22) | ✔ · J | — |
 | **Conversation — lire** | C(23) | C(23) | **C(24) · J** | **C(24) · J** | — |
+| Conversation — lire **l'aparté de l'autre partie** (D47) | **⛔** | **⛔** | C(24) · J | C(24) · J | — |
 | Conversation — écrire un message | C(23) | C(23) | C(24) | C(24) | — |
 | Conversation — **ouvrir** | **⛔** | **⛔** | **⛔** C(21d) | **⛔** C(21d) | **⛔** C(21d) |
 | Conversation — **rejoindre** en cours de route | ⛔ | ⛔ | ✔ · J C(25) | ✔ · J C(25) | — |
@@ -348,7 +358,7 @@ create policy creator_identity_read_after_reveal
 | Détections — créer | — | — | — | — | ✔ C(26) |
 | Détections — traiter / classer sans suite | — | — | ✔ · J | ✔ · J | — |
 | Signalement — émettre | S | S | — | — | — |
-| Signalement — traiter avec motif typé | — | — | ✔ · J | ✔ · J | — |
+| Signalement — traiter avec motif typé | — | — | ✔ · J C(27) | ✔ · J C(27) | — |
 
 **Conditions**
 
@@ -481,15 +491,38 @@ create policy creator_identity_read_after_reveal
   (skill `backoffice-ops`, règle 18), et elle est un **préalable obligatoire** à la désactivation d'un
   compte agent (règle 19).
 - **C(23)** — Participant de la conversation, compte non suspendu. Une partie suspendue conserve la
-  lecture et perd l'écriture (skill `messaging-spec`, étape 10).
+  lecture et perd l'écriture (skill `messaging-spec`, étape 10). **Depuis D47, la condition porte
+  aussi sur le canal** : un membre lit et écrit **dans le fil commun et dans son propre aparté,
+  jamais dans celui de l'autre partie**. La liste de canaux est une **constante de la politique**
+  de chaque rôle membre, doublée de la contrainte `messages_party_channel` (`04` §5.7.1) : deux
+  murs, une politique et une contrainte, dont aucun ne dépend d'une donnée. Elle s'applique aussi
+  aux données dérivées (`conversation_channel_activity`, `conversation_reads`), sans quoi un
+  compteur trahirait l'existence d'un aparté (`12` RG118, RG146). En écriture, la pause et le
+  blocage ferment le fil commun aux parties et laissent leur aparté ouvert (`12` RG123, RG126) ;
+  ce sont des règles de base (déclencheur `assert_message_writable`), pas d'écran.
 - **C(24)** — **Toute lecture de conversation par un rôle `agent` ou `admin` passe par la fonction
-  journalisante**, qu'il soit participant ou non. Voir §5, qui traite ce cas en entier.
+  journalisante**, qu'il soit participant ou non. Voir §5, qui traite ce cas en entier. **Depuis
+  D47, la fonction lit un canal à la fois** : ouvrir le fil commun ne charge jamais un aparté, et
+  chaque canal lu produit sa propre ligne de journal (`12` RG130, RG132).
 - **C(25)** — L'ajout d'un agent en cours de route est un **événement visible** dans le fil, avec
   message système horodaté et nommé. Jamais un ajout silencieux (skill `messaging-spec`, règle 2).
+  **Depuis D47, le message système est écrit dans le fil commun et dans chacun des deux apartés**
+  (`12` RG128) : chaque partie sait à tout moment qui peut lire ce qu'elle écrit en privé.
 - **C(26)** — La détection stocke **le type de motif et sa position, jamais une copie du texte
   détecté** (`01-intermediation-courtee.md` §M5). Recopier le numéro de téléphone détecté dans une
   table de signalement reviendrait à créer, à côté de la messagerie, un annuaire des coordonnées
   qu'on prétend protéger. C'est aussi un point de minimisation RGPD (§10).
+- **C(27)** — **Un signalement visant un message écrit par un agent n'est jamais instruit par un
+  agent, ni par l'administrateur qui en est l'auteur** (`12` RG140). L'auteur est posé sur le
+  signalement par déclencheur (`reports.agent_author_account_id`, `04` §5.7.1) ; la politique du
+  rôle `agent` exclut toute ligne où il est renseigné, celle du rôle `admin` exclut les lignes qui
+  le désignent. **Cas de l'administrateur unique** (arbitrage du fondateur, `04` §5.7.1 A3,
+  2026-09-24) : si l'auteur est le seul administrateur actif, le signalement **reste en file, sans
+  instructeur**, et une alerte persistante l'annonce **sans aucun détail** (ni signalant, ni
+  conversation, ni message) ; il est instruit dès qu'un second administrateur existe, par la même
+  bascule sans code que PD7 (§1.3). **Limite à dire franchement** : l'administrateur unique apprend
+  ainsi qu'un signalement le vise, puisqu'il est le seul auteur possible. La seule protection
+  complète est une seconde personne titulaire du rôle `admin`.
 
 ### 3.5 Domaines `billing` (pipeline commercial), `leads` et `backoffice`
 
@@ -805,7 +838,10 @@ détournable vers un autre usage. Une transaction élevée est un chèque en bla
 Règles obligatoires pour toute fonction `SECURITY DEFINER`, sans exception :
 
 ```sql
-create function messaging.read_conversation(p_conversation_id uuid, p_context text)
+create function messaging.read_conversation(
+        p_conversation_id uuid,
+        p_channel         messaging.message_channel,   -- D47 : un canal par appel
+        p_context         text)
   returns setof messaging.messages
   language plpgsql
   security definer
@@ -813,8 +849,9 @@ create function messaging.read_conversation(p_conversation_id uuid, p_context te
   stable                       -- ou volatile si elle écrit, jamais dans une politique
 as $$ … $$;
 
-revoke execute on function messaging.read_conversation(uuid, text) from public;
-grant  execute on function messaging.read_conversation(uuid, text) to influx_agent, influx_admin;
+revoke execute on function messaging.read_conversation(uuid, messaging.message_channel, text) from public;
+grant  execute on function messaging.read_conversation(uuid, messaging.message_channel, text)
+  to influx_agent, influx_admin;
 ```
 
 1. `SET search_path = ''` et **tous les objets qualifiés par leur schéma**. Sans cela, un objet créé
@@ -951,6 +988,7 @@ revoke select on messaging.messages, messaging.conversations
 -- 2) Le seul chemin
 create function messaging.read_conversation(
         p_conversation_id uuid,
+        p_channel         messaging.message_channel,  -- D47 : OBLIGATOIRE, aucune valeur par défaut
         p_context         text,          -- écran d'origine, liste fermée
         p_cursor          timestamptz default null,
         p_limit           int         default 50)
@@ -981,6 +1019,7 @@ begin
     'messaging.conversation_read',
     jsonb_build_object(
       'conversation_id', p_conversation_id,
+      'channel',         p_channel,          -- D47 : une ligne de journal par canal lu
       'account_id',      v_account,
       'role',            v_role,
       'is_participant',  v_is_part,
@@ -992,13 +1031,16 @@ begin
   return query
     select m.* from messaging.messages m
      where m.conversation_id = p_conversation_id
+       and m.channel         = p_channel     -- D47 : jamais deux canaux dans un même appel
        and (p_cursor is null or m.created_at < p_cursor)
      order by m.created_at desc
      limit least(p_limit, 100);
 end $$;
 
-revoke execute on function messaging.read_conversation(uuid, text, timestamptz, int) from public;
-grant  execute on function messaging.read_conversation(uuid, text, timestamptz, int)
+revoke execute on function
+  messaging.read_conversation(uuid, messaging.message_channel, text, timestamptz, int) from public;
+grant  execute on function
+  messaging.read_conversation(uuid, messaging.message_channel, text, timestamptz, int)
   to influx_agent, influx_admin;
 ```
 
@@ -1013,6 +1055,13 @@ message**, jamais un extrait, jamais un aperçu. Journaliser l'accès, pas la do
 **Une ligne par appel**, sans regroupement ni temporisation. Au volume du pilote (quelques centaines
 de lectures par jour), l'économie de lignes ne vaut pas la perte de précision. Un `read_session_id`
 permet de regrouper à l'affichage.
+
+**Un canal par appel (D47, révision du 2026-09-24).** Le canal est un paramètre **obligatoire**, sans
+valeur par défaut, et la fonction ne sert que lui. Il n'existe donc **aucun appel qui renvoie deux
+canaux** : un agent non participant qui instruit un signalement sur le fil commun ne charge pas les
+apartés par effet de bord, et s'il ouvre ensuite un aparté, le journal le dit par une seconde ligne
+portant ce canal (`12` RG132, CA68). La lecture d'un aparté par un non-participant est la lecture la
+plus sensible du produit ; la revue X4 l'isole (`12` RG134, index partiel de `04` §5.7.1).
 
 **Anti-abus de la fonction elle-même :** une conversation par appel, pas de variante en lot, pas de
 recherche plein texte transverse au MVP, limitation de débit par compte agent, et **alerte au-delà
@@ -1453,7 +1502,7 @@ qui ne s'exécute pas à chaque fois n'existe pas.
 | **T2** | **RLS par rôle et par table.** Chaque rôle tente chaque opération sur chaque table ; le résultat attendu est déclaré dans un tableau dérivé du §3. Une lecture interdite doit **échouer ou renvoyer zéro ligne**, et le tableau déclare lequel des deux. **Une table de nos schémas sans ligne dans le tableau, sans `relrowsecurity`, ou sans politique, fait échouer la CI** | Le scénario réel : une table ajoutée au Lot 5 sans politique | 0, étendu à chaque lot |
 | **T3** | **Append-only.** Pour chaque rôle applicatif, `UPDATE`, `DELETE` et `TRUNCATE` sur chaque table d'audit lèvent une erreur. La désactivation du déclencheur échoue. Insertion de N événements, vérification de la continuité de la chaîne ; altération simulée d'une ligne (en tant que propriétaire, dans la base de test) : la vérification **doit** la détecter | Que l'inaltérabilité soit réelle et que la vérification fonctionne | 0 |
 | **T4** | **Connexion non privilégiée.** Le rôle de `DATABASE_URL` n'est ni propriétaire d'un objet de nos schémas, ni `BYPASSRLS`, ni `SUPERUSER`, ni membre de `service_role`. **Aucun rôle utilisé à l'exécution n'a `rolbypassrls`.** Une lecture hors transaction ne renvoie rien | Le défaut le plus grave possible : une RLS entièrement décorative, sans aucun symptôme visible | 0 |
-| **T5** | **Journalisation des lectures de conversation.** `has_table_privilege('influx_agent','messaging.messages','SELECT')` est faux, idem `influx_admin`, idem sur `conversations`. Un appel à la route de lecture crée **exactement une** ligne dans `conversation_access_log`. Contrôle statique X2 (§5.3) | Que A10 ne soit pas décoratif | 4 |
+| **T5** | **Journalisation des lectures de conversation.** `has_table_privilege('influx_agent','messaging.messages','SELECT')` est faux, idem `influx_admin`, idem sur `conversations`. Un appel à la route de lecture crée **exactement une** ligne dans `conversation_access_log`, **portant le canal lu** ; la fonction ne s'appelle pas sans canal (D47). Contrôle statique X2 (§5.3) | Que A10 ne soit pas décoratif | 4 |
 | **T6** | **Opérations élevées.** L'ensemble des appelants de `withElevatedTransaction` est **exactement égal** à la liste déclarée. Le motif appartient à l'union fermée, refus à l'exécution sinon. Aucun gestionnaire de route hors E-1 et E-2 n'appelle d'élévation | La dérive silencieuse : « juste cette fois, en service, pour débloquer » | 0 |
 | **T7** | **Passe-plat.** Traversée de chemin (`/api/v1/../admin`, `%2e%2e%2f`, `//`, URL absolue, `@hôte`), injection d'en-tête (`x-middleware-subrequest`, `x-forwarded-host`, `x-request-id` client), corps hors gabarit ⇒ 413, redirection de l'API non suivie, `Set-Cookie` multiple relayé verbatim, `Cache-Control: no-store` présent. **Et le test qui compte : deux utilisateurs différents appelant la même URL reçoivent des réponses différentes** (non-mise en cache d'une réponse authentifiée) | Le SSRF, le contournement de middleware, et la fuite par cache | 1 |
 | **T8** | **Authentification.** Un seul code valide à la fois ; expiration ; plafond de tentatives ; limitation de débit par adresse, par IP et globale ; réponse et **temps de réponse** identiques pour une adresse connue et inconnue ; code non réutilisable ; session révoquée **immédiatement** à la suspension ; route backoffice sans `aal2` ⇒ 403 ; changement d'adresse sans double confirmation ⇒ refus | Les conditions A-1 à A-12 et B-1 à B-8 | 1 |
@@ -1467,6 +1516,7 @@ qui ne s'exécute pas à chaque fois n'existe pas.
 | **T16** | **Aucun calcul de commission.** Analyse statique : aucune multiplication d'un montant par une constante numérique dans `apps/` et `packages/`. `commission_rates` est vide et aucun rôle applicatif n'a de droit d'écriture dessus | `CLAUDE.md` §3 et §6, `01-intermediation-courtee.md` §7. C'est une règle métier **et** une règle d'intégrité | 0 |
 | **T17** | **Garde-fou `staging`.** Les quatre verrous du §6.8, chacun testé séparément, plus le refus de démarrage en production avec `dry_run` | `02-architecture` §12.4 | 1 |
 | **T18** | **Le cycle de révélation, moment par moment** (C(21a) à C(21d)). **a)** `has_function_privilege` sur `matching.reveal_identity(uuid)` est **faux pour les six rôles** — `influx_app`, les quatre rôles applicatifs et `influx_worker` — et un appel direct depuis chacun d'eux **échoue**. **b)** Un agent `aal2` valide une entrée : `status = 'approved'`, `identity_revealed_at` **reste nul**, **aucune ligne** dans `conversations`. **c)** Un agent qui n'est pas titulaire du verrou ⇒ refus. **d)** Une partie accepte : son seul horodatage est posé, celui de l'autre reste nul, rien n'est révélé, la réponse ne contient **aucun élément identifiant de l'autre partie**. **e)** Un tiers, puis un agent, puis un administrateur tentent d'enregistrer l'acceptation d'une partie ⇒ refus, **même code de réponse** qu'une mise en relation inexistante. **f)** La **seconde** acceptation produit, en une transaction, `identity_revealed_at`, l'événement chaîné, la conversation, **trois** participants, l'affaire et **deux** e-mails en file ; une panne simulée sur l'un des six ⇒ **aucun des six** ne subsiste. **g)** Deux acceptations **concurrentes** (la première et la seconde jouées en parallèle) ⇒ **une seule** révélation, **un seul** événement, **une seule** conversation. **h)** Un `UPDATE` direct de `identity_revealed_at`, `advertiser_accepted_at`, `creator_accepted_at` ou `status` par chacun des quatre rôles applicatifs ⇒ échec | Que l'invariant A2 / D16 ne dépende ni de la discipline d'un développeur, ni de l'ordre des appels, ni de l'absence de concurrence. **C'est le test le plus important du Lot 4** | 4 |
+| **T19** | **Cloisonnement des apartés** (D47, `04` §5.7.1 tests TA1 à TA8). **a)** `messages.channel` et `conversation_access_log.channel` n'ont **aucune valeur par défaut**. **b)** Sous `influx_creator` participant, les lignes `advertiser_private` de `messages`, `conversation_channel_activity` et `conversation_reads` renvoient **zéro ligne** alors qu'elles existent ; miroir sous `influx_advertiser`. **c)** Une insertion du créateur dans `advertiser_private` échoue par la politique ; la même insertion, politiques désactivées dans la base de test, échoue par la contrainte `messages_party_channel`. **d)** La réponse brute de chaque route membre de la messagerie (liste, fil, compteurs) est identique, octet pour octet hors horodatage de réponse, avant et après l'écriture d'un message dans l'aparté de **l'autre** partie — **même méthode que T1 : on teste la charge utile, pas une liste de champs**. **e)** Un message d'aparté laisse l'état `open`. **f)** Sous `influx_agent`, un signalement visant un message d'agent est invisible ; sous `influx_admin`, l'auteur ne voit pas celui qui le vise (C(27)) | Qu'un aparté ne fuie ni par un message, ni par un compteur, ni par un tri, ni par un changement d'état. **Le point d) est celui qui compte** : c'est lui qui attrape la fuite qu'on n'a pas anticipée | 4 |
 
 > **Précision du 2026-09-19 — exemption nommée du test T16 (arbitrage `chef-de-projet`, sur signalement
 > de `expert-database`, `04` §5.9 et `14` E11).** Il existe **une seule** multiplication d'un montant qui
@@ -1586,7 +1636,7 @@ seul à pouvoir accepter.
 |---|---|---|
 | `docs/mvp/02-architecture-3-espaces.md` §2.5 et §10 | La correction B1 (quatre rôles Postgres) et B2 (`service_role` non utilisé). Les deux touchent des affirmations aujourd'hui inexactes | `architecte` |
 | `docs/mvp/04-modele-de-donnees-mvp.md` | Schémas par domaine (P6), forme des deux objets créateur (P5), append-only (P8), fonctions `SECURITY DEFINER` (P7), coût mesuré de `influx.current_account_role()` (P3) | `expert-database` |
-| `docs/mvp/18-plan-de-test-mvp.md` | Les tests T1 à T17 du §8, et les contrôles X1 à X4 du §5.3 | `testeur` |
+| `docs/mvp/18-plan-de-test-mvp.md` | Les tests T1 à T19 du §8 (**T18 et T19 à reprendre**, ajoutés après la rédaction de `18`), et les contrôles X1 à X4 du §5.3 | `testeur` |
 | `CLAUDE.md` §6 et §13 | D37 passée à « tranchée et **validée sous conditions** par `expert-cybersecurite` », avec renvoi au §6.1 du présent document et mention de la **clause de caducité** en V2 | `chef-de-projet` |
 | `docs/legal/` (Lot 1) | Supervision des conversations (A10), journalisation des lectures, conservation probatoire du registre, pièces de vérification | `expert-conformite-rgpd` |
 | `.claude/skills/env-secrets/SKILL.md` | La distinction entre la **clé HTTP** `SUPABASE_SERVICE_ROLE_KEY` et le **rôle Postgres** `service_role`, ce dernier n'étant plus utilisé ; l'ajout de `x-influx-internal` | `integrateur` + `expert-cybersecurite` |

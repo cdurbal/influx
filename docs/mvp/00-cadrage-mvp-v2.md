@@ -359,9 +359,10 @@ Chaque lot passe la définition du « prêt à livrer » (skill `test-strategy`)
   vérifications automatiques, environnements `staging` et `production` sur Railway, projet Supabase,
   gestion des secrets ; création de `apps/api`, `apps/backoffice`, `packages/` et `supabase/` ;
   premières tables (identité, rôles, **commercial responsable**, versions de CGU, journal d'audit
-  chaîné, table des taux de commission **créée et vide**) ; droits d'accès testés. **Départ de
-  zéro** : le code existant, hors landing page, est une maquette jetable qui n'est ni reprise ni
-  adaptée (**D44**, `CLAUDE.md` §16).
+  chaîné, table des taux de commission **créée et vide**) ; droits d'accès testés ; **surveillance
+  de production instrumentée, entièrement interne** — journaux, erreurs, temps de réponse (**D60**,
+  `02` §20). **Départ de zéro** : le code existant, hors landing page, est une maquette jetable qui
+  n'est ni reprise ni adaptée (**D44**, `CLAUDE.md` §16).
 - **Valeur :** un compte de démonstration par rôle se connecte réellement dans les trois espaces, et
   le déploiement est automatique.
 - **Dépendances :** documents `00` (celui-ci), `01`, `02`, `03` et `04` validés ; **accord explicite
@@ -378,7 +379,9 @@ Chaque lot passe la définition du « prêt à livrer » (skill `test-strategy`)
   **Brevo et Apollo**, avec nouvelles tentatives et rejeu ; désinscriptions synchronisées dans les
   deux sens ; premier backoffice (liste des inscrits, état de synchronisation, rejeu des échecs) ;
   **documents légaux en français et en anglais**, incluant la clause de non-contournement, la mention
-  de la supervision des conversations (**A10**) et la conservation probatoire des journaux.
+  de la supervision des conversations (**A10**) et la conservation probatoire des journaux ;
+  **surveillance interne active avant la mise en ligne** — alertes, sonde de disponibilité, écran
+  « Santé technique » au backoffice — puis **rodage de 30 jours** (**D60**, `02` §20.7).
 - **Valeur :** toute inscription, partout dans le monde, devient un compte réel **et** un lead dans
   Brevo sous une heure et dans Apollo sous 24 heures (indicateur n° 5, `05`).
 - **Dépendances :** Lot 0 ; **D25 — société créée (semaine 5)** ; **D33 / A7 validé par un juriste

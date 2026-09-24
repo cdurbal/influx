@@ -1790,3 +1790,325 @@ adresse ; disjoncteur ouvert rendant une réponse **toujours plancher-normalisé
    exécutée avant réouverture ; l'empreinte de tête mensuelle transmise au fondateur (`04` §12.5
    point 3) sert de point de contrôle.
 6. **Environnements.** `staging` n'est jamais alimenté par une restauration de production (`18` B9).
+
+---
+
+## 20. Addendum du 2026-09-24 — D60 : surveillance de production, entièrement interne
+
+> **Demande du fondateur (2026-09-24).** « Pour la production, il faut des journaux, surtout au
+> début, pour voir les bugs éventuels. Je veux aussi savoir s'il y a un ralentissement du site (pic
+> d'appels). »
+>
+> **Arbitrage du fondateur (2026-09-24) : tout en interne.** Aucun outil de surveillance externe,
+> ni service de suivi d'erreurs, ni sonde de disponibilité tierce. Les erreurs, les temps de réponse
+> et la disponibilité sont collectés par nos propres services, stockés dans notre base et consultés
+> au backoffice. Une première version de cet addendum recommandait un outil hébergé dans l'UE
+> (Sentry) et une sonde externe : elle est écartée (§20.3). **Le risque qui en résulte est accepté
+> en connaissance de cause** (§20.9).
+>
+> Restent soumis à `expert-cybersecurite` (rôle d'écriture, route de collecte, accès à l'écran) et à
+> `expert-conformite-rgpd` (**veto** : contenu et conservation, §20.8). Cet addendum ne concerne que
+> le **produit réel** : la maquette jetable (D44) n'est pas instrumentée.
+
+### 20.1 Le besoin, en deux questions
+
+La surveillance doit permettre de répondre, à tout moment et sans lire de code :
+
+1. **« Un utilisateur vient-il de rencontrer un bug ? »** — et le savoir **avant qu'il nous
+   l'écrive**. Pendant les premières semaines, la plupart des utilisateurs ne signalent rien : ils
+   abandonnent.
+2. **« Le site ralentit-il, et est-ce à cause d'un pic d'appels ? »** — distinguer un pic absorbé
+   (bonne nouvelle), un pic qui ralentit le site (il faut plus de ressources) et un ralentissement
+   sans pic (un défaut à corriger).
+
+### 20.2 Ce qui existe déjà, et ce qui manque
+
+| Déjà décidé | Où |
+|---|---|
+| Journaux `pino` structurés en JSON, un identifiant de requête propagé partout | §4, règle 3 |
+| Surveillance du worker : âge de la file, échecs, battement de cœur, chaîne du registre | §11.3 |
+| Délivrabilité du code de connexion (alerte AL48) | `15` RG126, `16` RG98 |
+| Temps des requêtes en base (`pg_stat_statements`, p95) | `04` §7.3 |
+| Journaux Railway conservés **7 jours** (offre Hobby) ou **30 jours** (offre Pro) ; métriques (processeur, mémoire, réseau) conservées 30 jours | Railway |
+
+| Ce qui manque | Conséquence |
+|---|---|
+| **Personne n'est prévenu d'une erreur.** Les journaux se consultent, ils n'alertent pas | Une erreur noyée dans des milliers de lignes n'est vue par personne |
+| **Les erreurs du navigateur sont invisibles.** Un écran qui plante chez l'utilisateur ne laisse aucune trace côté serveur | Les bugs d'interface, les plus fréquents au lancement, passent inaperçus |
+| **Aucun temps de réponse par route, aucun seuil** | Un ralentissement se découvre par une plainte |
+| **Aucune vérification que le site répond** | Une panne se découvre par une plainte |
+| **Aucun lien entre une erreur et la mise en production qui l'a introduite** | On ne sait pas quelle version annuler |
+| **Aucun volume de requêtes suivi** (le test de charge est exclu à juste titre, `18` limite n° 7) | Un pic d'appels passe inaperçu |
+
+### 20.3 Options
+
+| | **A — Railway seul** | **B — Tout en interne** | **C — Outil externe (Sentry UE) + sonde externe** | **D — OpenTelemetry vers une plateforme** |
+|---|---|---|---|---|
+| Prévient d'un bug | Non | **Oui**, par e-mail et au backoffice | Oui, le plus confortable | Oui, à construire |
+| Erreurs du navigateur | Non | **Oui**, piles peu lisibles au départ (code compressé) | Oui, lisibles | Partiellement |
+| Temps de réponse et pics | Non | **Oui** | Oui | Oui, le plus riche |
+| Site **entièrement** hors service | Non | **Non si Railway tombe en entier** (§20.9) | Oui | Selon la plateforme |
+| Nouveau prestataire | Aucun | **Aucun** | Un sous-traitant de plus | Un de plus |
+| Effort | Nul | **1 à 1,5 semaine** (§20.10) | Faible | Élevé |
+| Issue | Insuffisant | **Retenue par le fondateur** | Première recommandation, **écartée** | Surdimensionné |
+
+**Pourquoi B tient au volume du pilote** : quelques centaines d'événements par jour, une équipe de
+deux ou trois personnes. On y gagne : aucune donnée ne sort d'INFLUX, aucun contrat de sous-traitance,
+rien à ajouter à la politique de confidentialité, aucun abonnement. On y perd : du développement, un
+confort moindre, et l'angle mort du §20.9.
+
+### 20.4 Décision : six pièces, toutes internes
+
+| Pièce | Qui la produit | Question à laquelle elle répond |
+|---|---|---|
+| **1. Journaux** | `pino` → journaux Railway (déjà décidé, §4) | « Que s'est-il passé exactement pour la requête X ? » |
+| **2. Erreurs serveur** | `api` et `worker` enregistrent chaque erreur, regroupée par type | « Quel bug, combien de fois, depuis quelle version ? » |
+| **3. Erreurs du navigateur** | Espaces membres et backoffice renvoient leurs erreurs à l'API | « L'écran a-t-il planté chez quelqu'un ? » |
+| **4. Temps de réponse et volume d'appels** | L'API agrège chaque minute, route par route | « Le site ralentit-il, et est-ce un pic ? » |
+| **5. Sonde interne** | Le worker vérifie le site chaque minute ; l'API surveille le worker | « Le site répond-il ? » |
+| **6. Alertes et écran « Santé technique »** | Catalogue d'alertes du backoffice (`15` §F), e-mail, écran dédié | « Qui est prévenu, et où regarder ? » |
+
+Tout est stocké dans un **schéma `ops`** (un schéma par domaine, D5), modélisé par
+`expert-database`.
+
+### 20.5 Comment chaque pièce fonctionne
+
+#### Erreurs serveur
+
+- **Capture** : gestionnaire d'erreurs Fastify, erreurs non rattrapées des processus `api` et
+  `worker`, échecs de tâche du worker.
+- **Regroupement par empreinte** : type d'erreur + message normalisé (identifiants et nombres
+  retirés) + modèle de route + premières lignes de la pile **qui appartiennent à notre code**. Même
+  empreinte, même groupe.
+- **Un groupe** porte sa première et sa dernière apparition, son nombre d'occurrences, la version où
+  il est apparu et un état : `new`, `acknowledged`, `fixed`, `ignored`. Un groupe `fixed` qui
+  réapparaît devient une **régression** et déclenche une alerte.
+- **Une occurrence** porte la date, le service, la version, le modèle de route, l'identifiant de
+  requête (qui mène aux journaux Railway), l'identifiant de compte s'il y en a un, et la pile
+  nettoyée (§20.8).
+- **L'enregistrement ne doit jamais aggraver la panne.** Il se fait hors de la transaction en échec,
+  sur une connexion à part ; si la base est injoignable, l'erreur ne va que dans les journaux ; un
+  **plafond par empreinte** (10 occurrences conservées par minute, les suivantes seulement comptées)
+  empêche une avalanche d'erreurs de saturer la base.
+
+#### Erreurs du navigateur
+
+- **Où** : espaces membres et backoffice, **sessions connectées uniquement**. Sont capturées les
+  erreurs non rattrapées, les promesses rejetées et les erreurs d'affichage React. Elles partent vers
+  `POST /v1/ops/client-errors`, par le passe-plat.
+- **Cette route est une porte d'entrée, elle se traite comme telle** : session requise, schéma
+  strict issu de `packages/contracts`, taille plafonnée, limitation de débit par compte et par IP,
+  nettoyage côté serveur.
+- **Landing exclue** : aucun script de collecte sur les pages publiques. Elles sont pré-rendues, peu
+  sujettes aux bugs, et un script de plus relancerait la question du consentement
+  (`docs/landing-page/11-consentement-cookies.md`). La sonde les couvre.
+- **Lisibilité** : le code livré au navigateur est compressé, les piles sont donc peu lisibles. Au
+  départ, la page, la version, le navigateur et le message suffisent le plus souvent à reproduire.
+  La traduction des piles (cartes de source conservées en privé, jamais servies) n'est ajoutée **que
+  si le besoin se confirme pendant le rodage**, sur décision de `dev-react-node`.
+- **Rien ne quitte INFLUX**, aucun cookie ni stockage local n'est utilisé : l'exemption de
+  consentement est bien plus simple à établir qu'avec un tiers, mais reste **à confirmer par
+  `expert-conformite-rgpd`**.
+
+#### Temps de réponse et volume d'appels
+
+- **Mesure** : à la fin de chaque requête, l'API note le modèle de route, la classe de statut et la
+  durée dans un agrégateur en mémoire.
+- **Chaque minute**, une ligne par (minute, service, instance, route) : nombre d'appels, nombre de
+  réponses `5xx` et `429`, et un **histogramme des durées en tranches fixes** (≤ 25 ms, 50, 100,
+  250, 500 ms, 1 s, 2,5 s, 5 s, au-delà).
+- **Pourquoi un histogramme plutôt qu'un p95 par instance** : deux p95 ne s'additionnent pas, deux
+  histogrammes si. Le p95 se calcule à la lecture, toutes instances confondues, ce qui reste juste le
+  jour où l'on ajoute une instance pour absorber un pic.
+- **Santé de chaque processus**, chaque minute : **retard de la boucle d'événements** (le signal de
+  lenteur le plus direct d'un service Node), mémoire, processeur.
+- **Base** : nombre de connexions ouvertes, relevé chaque minute par le worker ;
+  `pg_stat_statements` inchangé (`04` §7.3).
+- **Conservation** : lignes à la minute **14 jours**, puis agrégées à l'heure et gardées **13 mois**,
+  pour comparer un pic au même créneau des semaines précédentes et d'une année sur l'autre.
+- **Pages de `web` et `backoffice`** : leur temps de réponse est mesuré par la sonde. Toute la
+  logique étant dans l'API (§2), c'est elle qui ralentit en premier, et elle est mesurée route par
+  route.
+
+#### Sonde interne et surveillance croisée
+
+- **Le worker, chaque minute**, appelle les pages d'accueil FR et EN **par leur adresse publique**
+  (le trajet passe par internet, le DNS, le certificat et l'entrée de Railway), la page de connexion
+  du backoffice et le `/health` de l'API sur le réseau privé. Il enregistre le résultat et la durée.
+- **L'API surveille le worker** : aucun battement de cœur depuis 60 s (§11.3) déclenche une alerte.
+  Une seule instance de l'API fait cette vérification, sous verrou consultatif.
+- **Aucun service ne se surveille lui-même** : le worker surveille le site et l'API, l'API surveille
+  le worker.
+
+#### Alertes
+
+- Les alertes techniques **entrent au catalogue unique des alertes du backoffice** (`15` §F), avec
+  des numéros attribués par `product-owner`. Pas de liste parallèle.
+- **Envoi par e-mail** aux destinataires (§20.11), par le flux transactionnel Brevo.
+- **Déduplication** : une même alerte part au plus une fois toutes les 30 minutes tant que la
+  condition dure, et un e-mail « rétabli » signale la fin de l'incident.
+- **Les alertes de disponibilité (site, base, worker) partent directement vers Brevo, jamais par la
+  file `outbox_events`**, qui vit dans la base et que le worker vide : une alerte « base
+  injoignable » ou « worker arrêté » ne peut pas dépendre de ce qui est en panne. L'alerte « worker
+  arrêté » est donc envoyée par l'API, qui appelle déjà Brevo pour le code de connexion (D43).
+- **Seuils et destinataires sont en base**, modifiables par un administrateur, pas dans le code. Seule
+  exception : les destinataires des alertes de disponibilité sont **aussi** dans une variable
+  d'environnement, car une base injoignable ne peut pas les fournir.
+- En `staging`, les alertes ne partent que vers la liste blanche (§12.4).
+
+#### Écran « Santé technique » (backoffice)
+
+- **Contenu** : disponibilité mesurée par la sonde ; groupes d'erreurs (nouveaux, ouverts,
+  régressions) et leurs occurrences ; courbes d'appels par minute, de p95 et de taux d'erreurs, par
+  route ; santé des services ; connexions à la base ; état du worker (§11.3).
+- **Accès** : administrateurs uniquement, à confirmer par `expert-cybersecurite` (§20.12).
+- Le lien « état des services » du backoffice (`15` §C, file bloquée) y mène.
+- **Poste de travail uniquement** : il n'entre pas dans la vue mobile limitée (D58). Sur téléphone,
+  l'e-mail d'alerte suffit.
+
+### 20.6 Signaux et seuils d'alerte
+
+Valeurs **de départ**, recalibrées après deux semaines de mesures réelles : une performance se
+mesure, elle ne se suppose pas.
+
+| Signal | Seuil de départ | Qui, quand *(proposition, §20.11)* |
+|---|---|---|
+| **Site injoignable** (sonde interne : pages d'accueil FR et EN, connexion du backoffice, `/health` de l'API) | 2 échecs consécutifs (≈ 2 min) | Fondateur + développeur, **immédiatement, 24 h/24** |
+| **Worker arrêté** | Aucun battement depuis 60 s | Développeur, immédiatement |
+| **Nouvelle erreur, jamais vue**, ou **régression** | Dès la 1re occurrence **pendant le rodage** (§20.7) ; ensuite, récapitulatif quotidien (les régressions restent immédiates) | Développeur |
+| **Taux d'erreurs serveur** (réponses `5xx`) | > 1 % des requêtes sur 5 min | Développeur + fondateur, immédiatement |
+| **Lenteur de l'API** | p95 > 1 s sur 10 min, **hors** `POST /v1/auth/request-code`, qui a un plancher de 1 s par construction (D43, §18.4) et reçoit son propre seuil au Lot 0 | Développeur |
+| **Lenteur des pages** (mesurée par la sonde) | > 2 s sur 3 relevés consécutifs | Développeur |
+| **Pic d'appels** | Appels par minute > 3 × le volume habituel du même créneau (seuil fixe tant qu'il n'y a pas d'historique) | **Alerte d'information**, pas d'incident : le fondateur la reçoit pour la rapprocher de son origine |
+| **Réponses `429`** (limitation de débit) en hausse | Seuil fixé au Lot 0 avec `expert-cybersecurite` | Signe d'abus plutôt que de succès (`03` A-3) |
+| **Service saturé** | Retard de la boucle d'événements > 200 ms sur 5 min, ou mémoire > 85 % de la limite du service | Développeur |
+| **Base saturée** | Connexions > 80 % de la grappe, ou p95 d'une requête fréquente qui double | Développeur (`04` §7.3) |
+| Chaîne du registre, code de connexion | **Inchangés** | §11.3, AL48 |
+
+**Comment lire un ralentissement** — la réponse à « est-ce un pic d'appels ? » :
+
+| Appels par minute | Temps de réponse | Lecture | Réaction |
+|---|---|---|---|
+| En hausse | Normal | **Pic absorbé** | Rien ; noter son origine |
+| En hausse | Dégradé | **Le pic ralentit le site** | Augmenter les ressources Railway du service en cause, vérifier la base |
+| Normal | Dégradé | **Défaut interne** : requête lente, base, fournisseur externe (Brevo) | L'écran « Santé technique » désigne la route, `pg_stat_statements` la requête |
+| Chute brutale | — | Site injoignable ou panne en amont | Sonde interne, état de Railway et de Supabase |
+
+**Le premier suspect d'un pic est INFLUX lui-même** : un envoi de masse Brevo depuis le backoffice
+(`16`) ou une campagne marketing ramène des milliers de visiteurs en quelques minutes. L'heure des
+envois, déjà journalisée (`16`), est à rapprocher de l'heure du pic. Les pages publiques étant
+pré-rendues (D1), un pic sur la landing charge peu l'API ; c'est l'inscription (envoi synchrone du
+code, D43) qui le ressent en premier.
+
+### 20.7 La période de rodage — « surtout au début »
+
+Pendant **30 jours après chaque mise en ligne** (Lot 1 d'abord, puis chaque lot), et après toute
+mise en production jugée risquée, la surveillance est renforcée :
+
+1. **Toute nouvelle erreur alerte immédiatement**, pas seulement les dépassements de seuil.
+2. **Le plafond d'occurrences conservées par empreinte est relevé**, pour garder davantage
+   d'exemples de chaque bug.
+3. **Revue quotidienne des erreurs** par le développeur (10 à 15 minutes), chaque groupe classé :
+   corrigé, planifié ou sans effet.
+4. **Bilan hebdomadaire au fondateur**, en une page : erreurs nouvelles et corrigées, temps de
+   réponse, pics constatés et leur origine, disponibilité mesurée par la sonde.
+5. **Chaque version est étiquetée** par son commit (`RAILWAY_GIT_COMMIT_SHA`) : une erreur apparue
+   avec une version se voit immédiatement, et la procédure de retour à la version précédente sur
+   Railway est écrite **avant** la mise en ligne.
+6. **Plus de contexte, pas plus de bavardage** : les journaux restent au niveau `info`. Le niveau
+   `debug` n'est **jamais** activé en production, car c'est lui qui laisse fuir des données
+   personnelles. On enrichit les champs structurés (route, domaine, identifiant de compte, durée,
+   version), pas le volume.
+
+La période est prolongée tant qu'une erreur bloquante reste ouverte.
+
+### 20.8 Ce qui n'entre jamais dans un journal ni dans le schéma `ops`
+
+Un journal technique est un traitement de données personnelles. Ces règles complètent §4 règle 3 et
+`03` R-2 :
+
+| Jamais | Pourquoi |
+|---|---|
+| Code de connexion, jetons, cookies, en-tête `Authorization` | Prise de compte |
+| **Corps des requêtes et des réponses** | Ils contiennent tout le reste |
+| Texte des messages, apartés, notes internes, motifs libres | Confidentialité des échanges (D47) |
+| Adresse e-mail, téléphone, nom, pseudos, liens de réseaux | L'identifiant de compte (UUID) suffit à enquêter ; les pseudos sont au cœur de l'anonymisation (A2) |
+| **Enregistrement de session / relecture d'écran** | Il filmerait des identités révélées et des conversations. **Interdit**, sur toutes les surfaces |
+| URL complète avec paramètres | On enregistre le **modèle de route** (`/v1/creators/:id`), pas l'URL réelle |
+| Adresse IP dans le schéma `ops` | Elle reste dans les journaux Railway, à rétention courte (`03` R-2) |
+
+Mécanismes :
+
+- **Une fonction de nettoyage unique**, dans le domaine `ops` de l'API, appliquée à toute erreur
+  avant enregistrement — y compris celles qui viennent du navigateur, nettoyées côté serveur. Les
+  journaux `pino` masquent les mêmes champs par configuration.
+- **Un test automatisé** injecte une fausse adresse, un faux code et un faux jeton dans une erreur,
+  et vérifie qu'aucun n'atteint le journal ni la table.
+- **Conservation** : occurrences **30 jours** ; métriques sans donnée personnelle, gardées plus
+  longtemps (§20.5). À valider par `expert-conformite-rgpd` au regard de `03` R-2.
+- `staging` est instrumenté de la même façon, alertes limitées à la liste blanche.
+
+### 20.9 Ce que la décision ne couvre pas — risque accepté par le fondateur
+
+| Situation | Ce qui se passe | Parade sans outil externe |
+|---|---|---|
+| **Panne complète de Railway** | Le site, la sonde et les alertes tombent ensemble : **INFLUX ne prévient personne**. On l'apprend par un utilisateur ou par Railway | S'abonner aux **notifications par e-mail des pages d'état** de Railway, Supabase et Brevo. Ce n'est pas un outil de surveillance : ce sont nos prestataires actuels qui annoncent leurs propres pannes |
+| **Base injoignable** | Les erreurs ne sont plus enregistrées (journaux Railway seulement) et l'écran est vide | Le worker le détecte (le `/health` de l'API vérifie la base) et alerte directement par Brevo, avec les destinataires lus dans la variable d'environnement (§20.5) |
+| **Brevo en panne** | Aucun e-mail d'alerte ne part | Les alertes restent visibles au backoffice. Et comme les membres ne reçoivent plus leur code de connexion (D43), la panne ne passe pas inaperçue |
+
+**Revenir sur la décision ne coûte presque rien** : la route de santé publique de `apps/web` (§20.10)
+reste en place. Ajouter plus tard une sonde externe revient à la faire appeler cette route, sans une
+ligne de code.
+
+### 20.10 Conséquences
+
+- **Code.** Un domaine **`ops`** dans `apps/api` (greffon, service, dépôt, comme les autres
+  domaines, §4 règle 2) : collecte, nettoyage, agrégation, sonde, alertes. Dans `apps/web` et
+  `apps/backoffice`, un petit module `src/observability/` : le collecteur d'erreurs du navigateur, et
+  rien d'autre.
+- **Données.** Schéma `ops` : groupes d'erreurs, occurrences, métriques à la minute et à l'heure,
+  relevés de la sonde, réglages (seuils, destinataires). L'API écrit ces tables **hors de la
+  transaction de l'utilisateur** : cela demande un rôle Postgres dédié, par exemple `influx_ops`,
+  **en écriture seule sur `ops`, sans lecture des données métier et sans `BYPASSRLS`**, donc une
+  opération de plus dans la liste fermée de `03` §P7.
+- **Routes de santé.** `apps/api` expose `/health` sur le réseau privé, vérification de la base
+  comprise. `apps/web` expose une route de santé publique qui ne répond que `200` ou `503`, **sans
+  aucun détail**.
+- **Variables d'environnement** (skill `env-secrets`, §12.3) : **aucun nouveau secret**. Une variable
+  non secrète pour les destinataires de secours des alertes de disponibilité (`api`, `worker`). La
+  version vient de `RAILWAY_GIT_COMMIT_SHA`, l'environnement de `INFLUX_ENV`.
+- **Charge.** Une écriture par minute et par route active, plus des erreurs plafonnées : négligeable
+  pour la base.
+- **Coûts.** Aucun abonnement. Environ **3 à 5 jours au Lot 0** (collecte, tables, sonde, alertes
+  par e-mail) et **2 à 3 jours au Lot 1** (écran « Santé technique »), puis l'entretien. L'offre
+  Railway Pro devient moins nécessaire, puisque les erreurs sont gardées 30 jours dans notre base ;
+  elle reste utile pour garder 30 jours de journaux bruts pendant le rodage (§20.11).
+- **Calendrier.** Collecte au **Lot 0**, avant la première ligne de code métier, là où elle coûte le
+  moins ; alertes, sonde et écran **actifs avant la mise en ligne du Lot 1**.
+
+### 20.11 Points à faire valider par le fondateur
+
+| # | Point | Statut |
+|---|---|---|
+| 1 | Outil de surveillance externe ou solution interne | **Tranché le 2026-09-24 : tout en interne**, risque du §20.9 accepté |
+| 2 | **Qui reçoit les alertes, et la nuit ou le week-end ?** Proposition : « site injoignable » prévient le fondateur et le développeur 24 h/24 ; le reste attend les heures ouvrées | Ouvert. C'est une astreinte : une question d'organisation, pas de technique |
+| 3 | **Offre Railway Pro en production** (30 jours de journaux bruts au lieu de 7) | Ouvert. Coût mensuel, moins nécessaire qu'avec un outil externe |
+| 4 | **Rodage de 30 jours après chaque mise en ligne**, avec un bilan hebdomadaire d'une page | Ouvert. Mobilise le développeur un quart d'heure par jour |
+
+### 20.12 Ce que cet addendum demande aux autres agents
+
+| Agent | Demande |
+|---|---|
+| `expert-database` | Modéliser le schéma `ops`, ses purges (14 jours, 13 mois, 30 jours) et le rôle d'écriture seule |
+| `expert-cybersecurite` | Valider le rôle `influx_ops` et son entrée dans la liste fermée de `03` §P7 ; la route de collecte du navigateur (abus, taille, débit) ; la route de santé publique ; l'accès à l'écran (administrateurs seulement, ou rôle technique en lecture seule sur `ops`) ; le seuil d'alerte des `429` |
+| `expert-conformite-rgpd` (**veto**) | Contenu du §20.8, durées de conservation, exemption de consentement du collecteur du navigateur, mention du traitement dans la politique de confidentialité |
+| `product-owner` | Ajouter les alertes techniques au catalogue de `15` §F et spécifier l'écran « Santé technique » en additif de `15` |
+| `expert-ux` | Concevoir l'écran « Santé technique » (additif de `17b`, skill `backoffice-ops`) |
+| `integrateur` | **Procédure écrite de retour à la version précédente**, abonnement aux pages d'état de Railway, Supabase et Brevo, choix de l'offre Railway |
+| `testeur` | Ajouter au plan `18` : nettoyage (§20.8) ; avalanche d'erreurs qui ne sature pas la base ; agrégation des histogrammes entre instances ; arrêt du worker ⇒ alerte envoyée par l'API ; alerte de disponibilité émise sans la base. Décider si une mesure de plafond légère sur `staging` précède le premier envoi de masse, sans revenir sur la limite n° 7 |
+| `dev-react-node` | Domaine `ops` et collecteur du navigateur ; modèle de route et version dans chaque ligne de journal ; aucune donnée du §20.8 |
+
+### Sources (vérifiées le 2026-09-24)
+
+- [Railway — Logs (conservation selon l'offre)](https://docs.railway.com/observability/logs)
+- [Railway — Observability Dashboard (métriques conservées 30 jours)](https://docs.railway.com/observability)
