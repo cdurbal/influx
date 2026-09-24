@@ -109,7 +109,9 @@ d'`expert-conformite-rgpd` (veto).
 
 > ✅ **Arbitrage du fondateur (2026-09-24) : conservés, et annoncés aux deux parties.** Cadre posé
 > en additif de `12` ; spécification détaillée à écrire par `product-owner` sous veto
-> d'`expert-conformite-rgpd`.
+> d'`expert-conformite-rgpd`. **Confidentialité vis-à-vis de l'autre partie tranchée le même jour
+> (`12` Q12) : confidentiel par défaut**, le commercial ne rapporte jamais ce qu'une partie lui a
+> confié sans son accord (`12` RG122).
 
 ### D48 — Le discours public pendant le MVP
 
@@ -240,9 +242,18 @@ des textes de la landing page réécrits le 2026-09-24 (D48) et la mesure de l'a
 2. ~~Réécrire les textes de la landing page (D48)~~ — fait le 2026-09-24 ; restent la relecture
    `expert-marketing` / `expert-conformite-rgpd` et le détachement de la maquette.
 3. ~~Écrire la spécification des apartés (additif de `12`, D47)~~ — fait le 2026-09-24 (`12` §K,
-   RG113 à RG146) ; restent le veto `expert-conformite-rgpd`, et la traduction dans le modèle de
-   données (`04` §12.11, sept besoins listés dans les impacts de `12` §K).
+   RG113 à RG146) ; restent le veto `expert-conformite-rgpd`, la traduction dans le modèle de
+   données (`04` §12.11, sept besoins listés dans les impacts de `12` §K), et les tests de
+   cloisonnement dans le plan `18` (point 6).
 4. ~~Arbitrer les oublis D52 à D57~~ — fait le 2026-09-24 ; compléter les additifs (critères
    d'acceptation, écrans, schéma) et faire relever l'activité de départ (D53).
 5. Corriger dans la maquette les seuls écarts qui faussent la vision (marqués ⚠️ dans
    `implementation_plan.md`).
+6. **`testeur` — ajouter les tests de cloisonnement des apartés au plan de test `18`** (`12` RG145,
+   RG146 et liste des tests dans les impacts de `12` §K) : cloisonnement par rôle en accès direct à
+   la base (CA63), données dérivées (CA61, CA62), refus de l'API (CA64, CA65), journal des lectures
+   par canal (CA67, CA68), notifications (CA73, CA74) et export au titre du droit d'accès (CA79).
+   Les rattacher à la zone Z1 et aux familles T2 (RLS par rôle) et T5 (journal des lectures),
+   les inscrire au « prêt à livrer » du Lot 4 et mettre à jour le total des cas (§3.2). Les tests
+   vérifient le résultat — aucune ligne de l'aparté de l'autre partie —, pas le mécanisme, laissé au
+   choix d'`expert-database` (politique d'accès aux lignes ou objets séparés).

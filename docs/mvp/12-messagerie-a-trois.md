@@ -5,7 +5,8 @@
 > agents participants lisent sous journalisation. **Spécification complète en fin de document, §K
 > (RG113 à RG146, CA59 à CA81, Q12 à Q15)** ; elle amende RG14, RG16, RG18, RG51, RG53, RG58, RG87,
 > RG93, RG99, RG102 et RG103. **D46** confirme RG29 : aucune coordonnée directe n'est jamais montrée
-> à un membre.
+> à un membre. **Q12 tranchée le même jour** : ce qu'une partie confie en aparté n'est jamais
+> rapporté à l'autre sans son accord (RG122).
 
 > **Date :** 2026-09-19 · **Auteur :** agent `product-owner`, avec l'avis de
 > `expert-conformite-rgpd` sur le statut juridique des échanges · **Statut :** spécification
@@ -1240,12 +1241,18 @@ affiché, la zone de saisie nomme ses lecteurs, le brouillon reste attaché à s
 d'envoi nomme l'exception. Ils sont la **principale protection contre l'erreur de destinataire**, qui
 ne se rattrape pas (RG37, Q13).
 
-**RG122** — *(hypothèse, question ouverte Q12)* **Ce qu'une partie dit en aparté n'est pas rapporté à
-l'autre partie sans l'accord de son auteur.** Le commercial reste libre de formuler ses propres
-propositions (« INFLUX propose 1 200 EUR »), jamais d'attribuer à une partie ce qu'elle lui a confié
-(« le créateur m'a dit que son plancher est 900 EUR »). C'est une **règle de conduite** que le système
-ne peut pas vérifier : elle est écrite dans la procédure des commerciaux, dans les CGU et dans
-l'information de RG141, et contrôlée par la revue de qualité (motif `controle_qualite`, RG56).
+**RG122** — *(tranchée par le fondateur le 2026-09-24, Q12)* **Ce qu'une partie confie en aparté est
+confidentiel par défaut vis-à-vis de l'autre partie : il ne lui est jamais rapporté sans l'accord de
+son auteur.** Le commercial reste libre de formuler ses propres propositions (« INFLUX propose
+1 200 EUR »), jamais d'attribuer à une partie ce qu'elle lui a confié (« le créateur m'a dit que son
+plancher est 900 EUR »). La règle vaut **dans les deux sens** (le budget maximum confié par la marque
+comme le plancher confié par le créateur) et **pour tous les agents participants**, puisque tous
+lisent les deux apartés (RG116). L'accord de l'auteur porte sur une information précise et se donne
+**par écrit dans son aparté**, pour qu'il en reste une trace. C'est une **règle de conduite** que le
+système ne peut pas vérifier : elle est écrite dans la procédure des commerciaux, dans les CGU et dans
+l'information de RG141, et contrôlée par la revue de qualité (motif `controle_qualite`, RG56). Le mot
+« confidentiel » décrit ici la règle ; il reste interdit dans les textes affichés aux membres
+(RG142), qui l'énoncent sans ce mot.
 
 #### K3. Le cycle de vie
 
@@ -1352,7 +1359,16 @@ endroits de RG102 et **dès la première version** du texte :
 > agents INFLUX qui la suivent, peuvent l'être par un autre agent INFLUX dans les cas prévus, chaque
 > lecture étant enregistrée, et sont conservés pour la même durée. »
 
-La règle de conduite de RG122, une fois tranchée (Q12), y est ajoutée.
+La règle de conduite de RG122 (Q12, tranchée le 2026-09-24) y est ajoutée, dans les mêmes endroits :
+> « Ce que vous écrivez en privé à INFLUX n'est pas répété à l'autre partie sans votre accord.
+> INFLUX peut lui faire ses propres propositions, mais ne lui rapporte jamais ce que vous lui avez
+> dit. »
+>
+> *EN :* "What you write privately to INFLUX is not passed on to the other party without your
+> consent. INFLUX may make its own proposals to them, but never repeats what you told it."
+
+Ces formulations sont des propositions de substance ; leur rédaction définitive dans les CGU est
+validée par un juriste (Q12).
 
 **RG142** — **Le mot « privé » veut dire « non visible de l'autre partie », et rien d'autre.** Aucun
 texte ne dit ni ne laisse entendre que **seul le commercial nommé** lit l'aparté : comme tout le fil,
@@ -1487,7 +1503,7 @@ Thomas ne le voit ni dans sa file ni ailleurs.
 
 **CA78** — *Étant donné* l'écran d'information avant le premier message, le bandeau de l'aparté, les
 CGU et la politique de confidentialité, *quand* on les relit en français **et** en anglais, *alors*
-le sixième point de RG141 y figure, et les formulations « seuls vous et », « confidentiel »,
+le sixième point de RG141 y figure, règle de conduite de RG122 comprise, et les formulations « seuls vous et », « confidentiel »,
 « secret » et « strictement privé » n'apparaissent nulle part.
 
 **CA79** — *Étant donné* une demande d'accès de la marque, *quand* l'export est préparé, *alors* il
@@ -1533,7 +1549,7 @@ point 3) :
 
 **Tests** — à ajouter au plan `18` : cloisonnement par rôle en accès direct (CA63), données dérivées
 (CA61, CA62), refus de l'API (CA64, CA65), journal par canal (CA67, CA68), notifications (CA73,
-CA74), export au titre du droit d'accès (CA79).
+CA74), export au titre du droit d'accès (CA79). Tâche confiée au `testeur` (`19` §5, point 6).
 
 **Indicateurs** :
 
@@ -1550,7 +1566,7 @@ CA74), export au titre du droit d'accès (CA79).
 
 | # | Question | Hypothèse retenue en attendant | Arbitre | Échéance |
 |---|---|---|---|---|
-| **Q12** | **Confidentialité de l'aparté vis-à-vis de l'autre partie** (RG122). INFLUX est rémunéré par les deux parties : que promet-il à chacune sur ce qu'elle lui confie en privé ? | Confidentialité par défaut : le commercial ne rapporte pas à l'autre partie ce qui lui a été confié sans l'accord de son auteur ; il formule ses propres propositions | **Fondateur** + **`expert-conformite-rgpd` (veto)** + juriste | **Lot 1** (CGU) |
+| **Q12** | **Confidentialité de l'aparté vis-à-vis de l'autre partie** (RG122). INFLUX est rémunéré par les deux parties : que promet-il à chacune sur ce qu'elle lui confie en privé ? | **Tranchée par le fondateur (2026-09-24) : confidentiel par défaut.** Le commercial fait ses propres propositions (« INFLUX propose 1 200 EUR ») mais ne rapporte jamais à l'autre partie ce qui lui a été confié sans l'accord de son auteur (RG122, texte d'information en RG141). **Reste** : la rédaction de l'engagement dans les CGU et ses éventuelles exceptions légales, à valider par un juriste, sous veto d'`expert-conformite-rgpd` | Juriste + **`expert-conformite-rgpd` (veto)** | **Lot 1** (CGU) |
 | **Q13** | **Délai d'annulation d'envoi pour les agents**, quelques secondes pendant lesquelles un message n'est pas encore remis, pour rattraper une erreur de canal qui ne se retire pas (RG37) | Non au MVP : garde-fous d'écran (RG121) et déclaration de l'incident ; décision au vu de l'indicateur « erreurs de canal » | `product-owner` + `expert-ux` | Après 3 mois d'exploitation |
 | **Q14** | **Écrire à un membre hors de toute conversation** (`17b` I11 / V5), par exemple pour relancer un créateur avant toute mise en relation | Hors périmètre de cet additif ; les apartés couvrent les conversations ouvertes | `chef-de-projet` + `product-owner` | Lot 5 |
 | **Q15** | **Périmètre de l'export au titre du droit d'accès** pour un aparté (RG143) | Aparté communiqué en entier, jamais celui de l'autre partie | **`expert-conformite-rgpd` (veto)**, avec `15` Q7 | Lot 5 |

@@ -158,7 +158,9 @@ elle-même ; l'autre partie n'en voit **ni le contenu ni l'existence**, même pa
 message ne passe d'un canal à l'autre** ; tous les agents participants lisent les deux apartés,
 chaque lecture étant journalisée ; en pause ou après un blocage, le fil commun se ferme aux parties
 mais les apartés restent ouverts ; le mot « privé » veut dire « non visible de l'autre partie », pas
-« lu par le seul commercial » (RG142).
+« lu par le seul commercial » (RG142) ; ce qu'une partie confie en aparté n'est jamais rapporté à
+l'autre sans son accord (RG122, Q12 tranchée le 2026-09-24), et le lien « Qui peut lire cet
+échange ? » le dit (RG141).
 
 Cette section conçoit **l'interface** qui rend ces règles impossibles à mal comprendre.
 
