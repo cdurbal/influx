@@ -15,9 +15,9 @@
 > leur périmètre. **Ce document cite les règles, il ne les réécrit pas.**
 >
 > **Statut :** proposition d'`expert-ux`, qui s'applique dès maintenant aux spécifications.
-> **Arbitrages du fondateur du 2026-09-24** sur Q1, Q3, Q4 et Q5 (§9) : les quatre recommandations
-> sont retenues. Elles sont reportées dans `CLAUDE.md` (§4.3, §5.1, D6, D47, **D58**, **D59**),
-> `12` (additif) et `17b` (§0, M4).
+> **Arbitrages du fondateur du 2026-09-24** sur Q1 à Q5 (§9) : les cinq recommandations sont
+> retenues. Elles sont reportées dans `CLAUDE.md` (§4.3, §5.1, D6, D47, **D58**, **D59**),
+> `12` (§K) et `17b` (§0, M4).
 >
 > **Source de vérité :** `CLAUDE.md`. En cas d'écart, `CLAUDE.md` prime.
 
@@ -152,16 +152,15 @@ est « incluse, précisée par votre commercial ».
 
 ### 7.1 Cadre
 
-L'additif de `12` (2026-09-24) décide que le commercial peut échanger en aparté avec la marque
-seule ou avec le créateur seul, et fixe quatre principes : l'autre partie ne voit **ni le contenu
-ni l'existence** d'un aparté donné ; le cloisonnement est une règle d'accès en base ; **aucun
-message ne passe d'un canal à l'autre** ; le droit d'accès ne rend que ses propres apartés. Les
-règles du fil commun s'appliquent sans changement : texte brut, aucune pièce jointe, détection de
-coordonnées, lecture journalisée, notifications sans le texte. Les accusés de lecture ne concernent
-que le fil commun.
+Les règles sont dans l'additif de `12`, **§K (RG113 à RG146)**, qui prime sur cette section. En
+résumé : chaque partie a un canal privé avec les agents de la conversation, qu'elle peut ouvrir
+elle-même ; l'autre partie n'en voit **ni le contenu ni l'existence**, même par un compteur ; **aucun
+message ne passe d'un canal à l'autre** ; tous les agents participants lisent les deux apartés,
+chaque lecture étant journalisée ; en pause ou après un blocage, le fil commun se ferme aux parties
+mais les apartés restent ouverts ; le mot « privé » veut dire « non visible de l'autre partie », pas
+« lu par le seul commercial » (RG142).
 
-Cette section conçoit **l'interface** qui rend ces règles impossibles à mal comprendre. Les règles
-numérotées et les critères d'acceptation restent à écrire dans `12` par `product-owner`.
+Cette section conçoit **l'interface** qui rend ces règles impossibles à mal comprendre.
 
 ### 7.2 Le principe : on écrit là où on lit
 
@@ -189,10 +188,10 @@ Mobile 375 — onglet privé ouvert
 │ À trois │ [i:lock] Vous et INFLUX · 2 │ Documents │  onglets : libellé écrit,
 │         └━━━━━━━━━━━━━━━━━━━━━━━━━━━━┘            │  non-lus en chiffres
 ├───────────────────────────────────────────┤
-│ [i:lock] Échange privé. Seuls vous et     │  bandeau fixe, ne défile pas
-│ Thomas — INFLUX lisez ces messages.       │
-│ Marque Alpha ne les voit pas.             │
-│                        [· En savoir plus] │
+│ [i:lock] Échange privé avec INFLUX.       │  bandeau fixe, ne défile pas
+│ Marque Alpha ne voit pas ces messages.    │  jamais « seuls vous et… »
+│ Suivi par : Thomas — INFLUX               │  (12 RG142)
+│            [· Qui peut lire cet échange ?] │
 ├───────────────────────────────────────────┤
 │ ┌─────────────────────────┐               │
 │ │ Thomas — INFLUX [INFLUX]│               │  bulle agent de 17 §4.7
@@ -206,8 +205,8 @@ Mobile 375 — onglet privé ouvert
 │               │ 10 h 20                 │ │  dans un aparté
 │               └─────────────────────────┘ │
 ├───────────────────────────────────────────┤
-│ [i:lock] Lu par Thomas — INFLUX           │  phrase d'audience, toujours
-│ seulement. Marque Alpha ne le verra pas.  │  visible, au-dessus du champ
+│ [i:lock] Lu par Thomas — INFLUX.          │  phrase d'audience, toujours
+│ Marque Alpha ne le verra pas.             │  visible, au-dessus du champ
 │ ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ │  cadre 2 px
 │ ┃ Écrire en privé à INFLUX…             ┃ │  color-chat-private-border
 │ ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛ │
@@ -217,8 +216,8 @@ Mobile 375 — onglet privé ouvert
 
 | Élément | Décision |
 |---|---|
-| Libellé de l'onglet | **« Vous et INFLUX »**, pas le prénom de l'agent : longueur stable, et juste même si plusieurs agents participent (§9 Q2). Les prénoms figurent dans le bandeau et la phrase d'audience |
-| Bandeau | Fixe en tête du canal, une icône cadenas **et** une phrase qui nomme l'autre partie. Lien vers le sixième point de l'information sur la supervision (`12` additif, RG102) |
+| Libellé de l'onglet | **« Vous et INFLUX »**, pas le prénom de l'agent : longueur stable, et juste quand plusieurs agents participent (`12` RG116). Les prénoms figurent dans le bandeau et la phrase d'audience |
+| Bandeau | Fixe en tête du canal : icône cadenas, phrase qui nomme l'autre partie, **agents participants actifs nommés** (`12` RG129). Lien « Qui peut lire cet échange ? » vers le sixième point de l'information sur la supervision (`12` RG141). **Jamais « seuls vous et … »** : un autre agent peut lire avec motif (`12` RG142) |
 | Onglet « À trois » | Aucune trace d'un aparté donné : ni message système, ni compteur, ni mention (principe 1 de l'additif) |
 | Notifications | « ⟨Prénom⟩ — INFLUX vous a écrit en privé », sans le texte (`12` RG90) |
 
@@ -242,7 +241,7 @@ Mobile 375 — onglet privé ouvert
 │              │ ⟨texte brut⟩                           │                         │
 │              └───────────────────────────────────────┘                         │
 ├────────────────────────────────────────────────────────────────────────────────┤
-│ [i:lock] Lu par ⟨raison sociale⟩ seulement. ⟨alias⟩ ne le verra pas.           │
+│ [i:lock] Envoyé à ⟨raison sociale⟩. ⟨alias⟩ ne le verra pas.                   │
 │ ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ │
 │ ┃                                                                            ┃ │
 │ ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛ │
@@ -262,7 +261,7 @@ Mobile 375 — onglet privé ouvert
 
 | Porteur | Fil commun | Aparté |
 |---|---|---|
-| **Texte** | « Lu par ⟨A⟩ et ⟨B⟩ » | Bandeau + « Lu par ⟨X⟩ seulement. ⟨Y⟩ ne le verra pas. » + bouton « Envoyer en privé » |
+| **Texte** | « Lu par ⟨A⟩ et ⟨B⟩ » | Bandeau + « Lu par ⟨X⟩. ⟨Y⟩ ne le verra pas. » + bouton « Envoyer en privé » |
 | **Forme** | Champ à filet fin | Icône cadenas dans l'onglet, le bandeau et la phrase ; **cadre de 2 px** autour du champ |
 | **Couleur** (renfort seulement) | Surface de page | `color-chat-private-surface` sous les messages, `color-chat-private-border` autour du champ |
 
@@ -275,7 +274,9 @@ renforcer (P7).
 |---|---|---|
 | Aparté vide | Onglet toujours présent, le membre peut écrire le premier (Q1, tranchée) : invite propre au rôle (§7.7) | Invite « Écrivez à ⟨partie⟩ seulement. ⟨autre partie⟩ ne le saura pas. » |
 | Chargement, erreur d'envoi, hors ligne | Ceux du fil commun (`17` §4.7) : le message non envoyé reste dans **son** canal, jamais perdu | Idem |
-| Fil en pause ou clos | **Le même encart dans tous les onglets**, jamais un canal ouvert quand l'autre est fermé. La règle de fond reste à trancher (additif de `12`) | Idem |
+| Fil en pause | Fil commun fermé, avec un encart qui **renvoie vers l'onglet privé** ; l'aparté reste ouvert (`12` RG123) | Les agents écrivent dans tous les canaux |
+| Blocage entre parties | Fil commun fermé aux deux parties ; l'aparté reste ouvert (`12` RG126) | Médiation par les apartés |
+| Fil clos ou archivé | Le même encart dans tous les onglets, aucune écriture (`12` RG123) | Idem |
 
 ### 7.7 Microcopies
 
@@ -286,9 +287,12 @@ avec les mêmes textes adaptés.
 |---|---|---|
 | `chat.channel.common.tab` | À trois | All three |
 | `chat.channel.private.tab` | Vous et INFLUX | You & INFLUX |
-| `chat.channel.private.banner` | Échange privé. Seuls vous et {agentNames} lisez ces messages. {otherParty} ne les voit pas. | Private conversation. Only you and {agentNames} read these messages. {otherParty} can't see them. |
+| `chat.channel.private.banner` | Échange privé avec INFLUX. {otherParty} ne voit pas ces messages. | Private conversation with INFLUX. {otherParty} can't see these messages. |
+| `chat.channel.private.followedBy` | Suivi par : {agentNames} | Followed by: {agentNames} |
+| `chat.channel.private.whoCanRead` | Qui peut lire cet échange ? | Who can read this conversation? |
 | `chat.composer.audience.common` | Lu par {otherParty} et {agentNames}. | Read by {otherParty} and {agentNames}. |
-| `chat.composer.audience.private` | Lu par {agentNames} seulement. {otherParty} ne le verra pas. | Read by {agentNames} only. {otherParty} won't see it. |
+| `chat.composer.audience.private` | Lu par {agentNames}. {otherParty} ne le verra pas. | Read by {agentNames}. {otherParty} won't see it. |
+| `chat.paused.privateHint` | La conversation est en pause. Vous pouvez toujours écrire en privé à INFLUX. | This conversation is paused. You can still write privately to INFLUX. |
 | `chat.composer.placeholder.private` | Écrire en privé à INFLUX… | Write privately to INFLUX… |
 | `chat.composer.send.private` | Envoyer en privé | Send privately |
 | `chat.channel.draftMarker` | brouillon | draft |
@@ -326,7 +330,7 @@ avec les mêmes textes adaptés.
 | # | Question | Recommandation | Arbitre | Échéance |
 |---|---|---|---|---|
 | **Q1** | Un membre peut-il **ouvrir lui-même** l'aparté ? | **Tranchée (fondateur, 2026-09-24) : oui.** L'onglet est toujours présent pour les deux parties. C'est là que se dit ce qu'on ne dit pas devant l'autre, qui est la valeur d'un courtier ; et un onglet toujours présent ne révèle l'existence d'aucun aparté donné. Reste à écrire en règles dans l'additif de `12` | `product-owner`, veto `expert-conformite-rgpd` | Avec l'additif de `12` |
-| **Q2** | Un aparté est-il lu par **tous les agents participants**, ou par le seul commercial responsable ? | **Tous les agents participants**, chaque lecture journalisée : un commercial qui reprend l'affaire doit lire l'historique | `product-owner` + `expert-cybersecurite` | Avec l'additif de `12` |
+| **Q2** | Un aparté est-il lu par **tous les agents participants**, ou par le seul commercial responsable ? | **Tranchée (fondateur, 2026-09-24) : tous les agents participants**, chaque lecture journalisée : un commercial qui reprend l'affaire doit lire l'historique. Écrite en `12` RG116 et RG130 | — | Fait |
 | **Q3** | Faut-il une **vue mobile minimale du backoffice** ? `17b` M4 l'écarte sous 1024 px. Or le commercial participe à chaque conversation, avec un délai d'un jour ouvré, et le métier se fait aujourd'hui en déplacement | **Tranchée (fondateur, 2026-09-24) : oui — D58.** Limitée à deux gestes : lire et répondre dans une conversation dont on est participant ; prendre en charge, valider ou refuser dans la file. Le reste du backoffice reste un poste de travail. Restent : les conditions de session sur téléphone, puis les écrans en additif de `17b` | `architecte` + `expert-cybersecurite` (session, second facteur), puis `expert-ux` | Conditions avant le Lot 4 |
 | **Q4** | Direction visuelle de la landing : **carte métallisée premium** (actuelle) ou **sobriété façon Vercel** ? | **Tranchée (fondateur, 2026-09-24) : oui — D59.** La direction actuelle est conservée, avec un **budget d'effets** : un seul effet spectaculaire par écran visible. Reste la revue visuelle de la page rendue, pour appliquer ce budget | `expert-ux` | Avant la mise en ligne du Lot 1 |
 | **Q5** | Aligner `CLAUDE.md` §5.1, qui présente le vert comme couleur « d'accent, d'action et de succès », alors que les tokens donnent au succès sa propre teinte | **Tranchée (fondateur, 2026-09-24) : oui.** `CLAUDE.md` §5.1 et D6 alignés : le vert est la couleur de marque et d'action, le succès a sa propre teinte (sarcelle) | — | Fait |

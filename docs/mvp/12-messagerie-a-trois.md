@@ -1,8 +1,11 @@
 # Lot 4 — La messagerie à trois : le fil, sa vie, sa supervision et son statut
 
-> **Mise à jour du 2026-09-24.** Les **apartés privés** du commercial avec une seule partie sont
-> retenus et annoncés (**D47**) : voir l'additif en fin de document. **D46** confirme RG29 : aucune
-> coordonnée directe n'est jamais montrée à un membre.
+> **Mise à jour du 2026-09-24.** Les **apartés** sont retenus et annoncés (**D47**) : chaque partie a
+> un canal privé avec les agents de la conversation, qu'elle peut ouvrir elle-même, et que tous les
+> agents participants lisent sous journalisation. **Spécification complète en fin de document, §K
+> (RG113 à RG146, CA59 à CA81, Q12 à Q15)** ; elle amende RG14, RG16, RG18, RG51, RG53, RG58, RG87,
+> RG93, RG99, RG102 et RG103. **D46** confirme RG29 : aucune coordonnée directe n'est jamais montrée
+> à un membre.
 
 > **Date :** 2026-09-19 · **Auteur :** agent `product-owner`, avec l'avis de
 > `expert-conformite-rgpd` sur le statut juridique des échanges · **Statut :** spécification
@@ -1124,51 +1127,430 @@ adressés à `expert-database` ; la mise à jour de `CLAUDE.md` §13 relève de 
 
 ---
 
-## Additif du 2026-09-24 — Les apartés privés (D47)
+## Additif du 2026-09-24 — Les apartés (D47)
 
 > **Origine.** Fonctionnalité apparue dans la maquette jetable (commits `a432a45`, `b7dd0ad`), sans
-> spécification. **Arbitrage du fondateur du 2026-09-24 : conservée, et annoncée aux deux parties.**
-> Cet additif pose le cadre ; la spécification détaillée (règles numérotées, critères
-> d'acceptation) reste à écrire par `product-owner`, **sous veto d'`expert-conformite-rgpd`** et avec
-> l'avis d'`expert-cybersecurite` sur le cloisonnement.
+> spécification. **Arbitrage du fondateur du 2026-09-24 : conservée, et annoncée aux deux parties
+> (D47).** Deux précisions du fondateur le même jour : **un membre peut ouvrir lui-même l'aparté**
+> (`20` Q1) et **un aparté est lu par tous les agents participants, chaque lecture étant
+> journalisée** (`20` Q2).
+>
+> **Date :** 2026-09-24 · **Auteur :** `product-owner` · **Statut :** spécification complète des
+> apartés, soumise à la validation de `chef-de-projet`, avec **avis obligatoire (veto)
+> d'`expert-conformite-rgpd`** sur K7 et RG122, et **avis obligatoire (veto)
+> d'`expert-cybersecurite`** sur K4 et K8.
+>
+> **Interface :** `20-direction-design.md` §7 (onglets, phrase d'audience, brouillon attaché à son
+> canal, microcopies). Ce document fixe les règles, `20` fixe l'écran ; en cas d'écart, les règles
+> ci-dessous priment et `20` est corrigé.
 
-**Ce qui est décidé.** Dans une conversation ouverte, le commercial peut échanger **en aparté**
-avec la marque seule, ou avec le créateur seul, en plus du fil commun à trois. C'est le geste
-naturel d'un courtier, qui parle séparément à chaque partie. Il répond, pour les conversations
-ouvertes, au manque relevé par `17b` I11 / V5 (écrire à un seul membre) ; l'écriture à un membre
-**hors** de toute conversation reste ouverte.
+**Ce qui est décidé.** Dans une conversation ouverte, chaque partie dispose d'un **canal privé avec
+INFLUX** : la marque avec les agents de la conversation, le créateur avec les agents de la
+conversation, en plus du fil commun à trois. C'est le geste naturel d'un courtier, qui parle
+séparément à chaque partie — et c'est aussi l'endroit où une partie dit à INFLUX ce qu'elle ne dira
+pas devant l'autre. Ce canal répond, pour les conversations ouvertes, au manque relevé par `17b` I11
+/ V5 (écrire à un seul membre) ; l'écriture à un membre **hors** de toute conversation reste ouverte
+(Q14).
+
+**Choix de spécification tranchés par cet additif**, à valider par `chef-de-projet` :
+
+| Sujet | Choix | Règle |
+|---|---|---|
+| Pause du fil | Le fil commun se ferme aux parties, **les apartés restent ouverts** : la pause est le moment où le commercial parle séparément à chacun | RG123 |
+| Blocage entre parties | Le fil commun se ferme, **les apartés restent ouverts** : un blocage coupe le lien entre les parties, pas le lien avec INFLUX | RG126 |
+| Passage `ouverte` → `active` | **Seul un message du fil commun** le déclenche, sinon l'état trahirait l'existence d'un aparté | RG124 |
+| Notifications | Un **cycle par canal** : un message privé d'INFLUX n'est jamais noyé dans le cycle du fil commun | RG136 |
+| Signalement d'un message d'agent | **Instruit par un administrateur**, jamais par l'agent visé | RG140 |
+| Mot « privé » | Veut dire « non visible de l'autre partie », **jamais** « lu par le seul commercial » | RG142 |
 
 **Ce que l'additif modifie dans les règles existantes :**
 
 | Règle | Modification |
 |---|---|
-| RG2, RG38 | Le fil **commun** reste unique et vu dans le même ordre par les trois participants. Un aparté est un **canal distinct** rattaché à la même conversation : jamais une quatrième partie, jamais un fil de groupe (RG3 inchangée) |
-| RG102, RG103 | L'information sur la supervision gagne un **sixième point** : « le commercial INFLUX peut échanger en privé avec chacune des parties ; ces échanges ne sont pas visibles de l'autre partie ». Il figure aux cinq endroits de RG102, dont les CGU et la politique de confidentialité |
-| RG53 | Les accusés de lecture entre parties ne concernent que le fil commun |
+| RG2, RG3, RG38 | Le fil **commun** reste unique et vu dans le même ordre par les trois participants. Un aparté est un **canal distinct** rattaché à la même conversation : jamais une quatrième partie, jamais un fil de groupe |
+| RG14 | `agent.joined`, `agent.left` et `agent.owner_changed` sont **aussi** écrits dans chaque aparté (RG128) |
+| RG16 | Le passage `ouverte` → `active` n'est déclenché que par un message du fil commun (RG124) |
+| RG18 | En pause, les parties écrivent encore dans leur aparté (RG123) |
+| RG51, RG53 | Le curseur de lecture est tenu **par canal** ; les accusés de lecture ne concernent que le fil commun (RG133) |
+| RG58 | Le journal d'une lecture porte **le canal lu** (RG130) |
+| RG87 | Un blocage laisse les apartés ouverts (RG126) |
+| RG93 | Le cycle de notification est tenu par canal (RG136) |
+| RG99 | Le tableau de bord distingue les messages privés non lus, par partie (RG137) |
+| RG102, RG103 | L'information sur la supervision gagne un **sixième point** (RG141) |
 
-**Ce qui s'applique aux apartés sans changement :** texte brut, aucune pièce jointe (RG35, RG36) ;
-aucun message modifiable ni supprimable (RG37) ; détection de coordonnées (RG42 à RG50), y compris
-sur les messages du commercial ; lecture par un agent journalisée (RG55 à RG58) ; notifications sans
-le texte du message (RG90 à RG97) ; conservation (RG108) ; aucune écriture « au nom de » (RG13).
+---
 
-**Principes de cadrage, à reprendre dans la spécification :**
+### K. Les apartés
 
-1. **L'autre partie ne voit ni le contenu ni l'existence d'un aparté donné** ; elle sait seulement,
-   par l'information générale, que des apartés peuvent exister.
-2. **Le cloisonnement est une règle d'accès en base**, pas un filtre dans le code applicatif (même
-   doctrine que l'anonymisation, `CLAUDE.md` §6). La maquette filtre dans le code : c'est un écart
-   de maquette, pas un modèle.
-3. **Aucun message ne passe d'un canal à l'autre.** Ce qui a été dit en aparté y reste.
-4. **Droit d'accès RGPD** : un membre obtient les apartés auxquels il a participé, jamais ceux de
-   l'autre partie (`15` Q7).
+#### K1. Ce qu'est un aparté
 
-**Précision du fondateur du 2026-09-24 :** **un membre peut aussi ouvrir lui-même l'aparté.**
-L'onglet « Vous et INFLUX » est toujours présent pour les deux parties : il ne révèle donc
-l'existence d'aucun aparté donné (principe 1). Conception de l'interface (onglets, phrase
-d'audience, brouillon attaché à son canal, microcopies) : `20-direction-design.md` §7.
+**RG113** — Une conversation comporte, en plus du fil commun, **exactement deux apartés** : l'**aparté
+marque** (le compte marque et les agents participants) et l'**aparté créateur** (le compte créateur et
+les agents participants). Ils existent dès l'ouverture de la conversation, vides. **Il n'existe aucun
+autre canal** : pas d'aparté entre agents (ils ont les notes internes), pas d'échange marque ↔
+créateur sans agent (RG2), pas d'aparté réunissant plusieurs membres (RG3).
 
-**À trancher dans la spécification :** effet de la pause et de la clôture du fil sur les apartés
-(RG15 à RG22) ; passage `ouverte` → `active` (RG16) ; lecture des apartés par **tous les agents
-participants** ou par le seul commercial responsable (`20` Q2, recommandation : tous, chaque lecture
-journalisée) ; rédaction du point de loyauté dans les CGU (un intermédiaire qui parle séparément aux
-deux parties doit le faire savoir) ; modèle de données (`04` §5.7) et tests de cloisonnement (`18`).
+**RG114** — Un message appartient à **un seul canal** — `commun`, `aparté marque` ou `aparté
+créateur` —, fixé à l'envoi et **immuable**. Aucune fonction ne déplace, ne copie, ne cite ni ne
+transfère un message d'un canal à l'autre, pour personne, administrateur compris. Un agent qui
+reformule dans un canal ce qu'il a appris dans un autre écrit un **nouveau message**, sous son propre
+nom : c'est son métier, encadré par RG122.
+
+**RG115** — Qui lit et qui écrit, canal par canal :
+
+| | Fil commun | Aparté marque | Aparté créateur |
+|---|---|---|---|
+| **Compte marque** | Lit, écrit | Lit, écrit | **Rien** — ni le contenu, ni l'existence |
+| **Compte créateur** | Lit, écrit | **Rien** | Lit, écrit |
+| **Agent participant actif** | Lit (journalisé), écrit | Lit (journalisé), écrit | Lit (journalisé), écrit |
+| **Agent participant sorti** (RG9) | Lit jusqu'à la clôture | Idem | Idem |
+| **Agent non participant, administrateur** | Lit avec motif (RG57) | Lit avec motif, canal par canal (RG132) | Idem |
+
+**RG116** — **Tous les agents participants lisent et écrivent dans les deux apartés** (arbitrage du
+fondateur, `20` Q2). Un agent qui rejoint la conversation en cours de route (RG8) accède à **tout
+l'historique** des deux apartés, y compris antérieur à son entrée : un commercial qui reprend une
+affaire doit savoir ce qui a été dit à chaque partie. Chaque lecture est journalisée (RG130).
+
+**RG117** — L'aparté d'une partie lui est **toujours présenté**, même vide, et **elle peut y écrire la
+première** (arbitrage du fondateur, `20` Q1). Vu de l'autre partie, un aparté vide et un aparté
+utilisé ont exactement la même apparence : aucune.
+
+**RG118** — **L'autre partie ne voit ni le contenu ni l'existence d'un aparté donné, ni directement
+ni indirectement.** Sont calculés **uniquement à partir des canaux visibles de leur destinataire** :
+le compteur de non-lus, la date de dernière activité, l'ordre de la liste des conversations, l'état
+du fil (RG124), les notifications (RG138). Toute donnée dérivée qui varie selon l'activité d'un
+aparté invisible au lecteur est une fuite, traitée comme un défaut bloquant.
+
+#### K2. Écrire en aparté
+
+**RG119** — Les règles d'écriture du fil commun s'appliquent **sans changement** : texte brut de 1 à
+10 000 caractères (RG35), **aucune pièce jointe** (RG36), ni modification ni suppression (RG37), ordre
+fixé par le serveur (RG38), refus explicite (RG39), liens non cliquables (RG41). Le plafond de RG40
+(20 par minute, 300 par jour) compte **tous les canaux confondus**.
+
+**RG120** — Le **canal est un paramètre explicite et obligatoire** de tout envoi. Le serveur n'a
+**aucune valeur par défaut** : un envoi sans canal est refusé, il n'atterrit jamais dans le fil
+commun. Le serveur vérifie que l'émetteur a le droit d'écrire dans ce canal (RG115) ; une partie qui
+tente d'écrire dans l'aparté de l'autre obtient la même réponse qu'un fil inexistant
+(« introuvable », cas limite 5), et la tentative est journalisée côté sécurité. La clé
+d'idempotence (cas limite 3) inclut le canal.
+
+**RG121** — **Les garde-fous d'interface de `20` §7.2 sont obligatoires** : on écrit dans le canal
+affiché, la zone de saisie nomme ses lecteurs, le brouillon reste attaché à son canal, le bouton
+d'envoi nomme l'exception. Ils sont la **principale protection contre l'erreur de destinataire**, qui
+ne se rattrape pas (RG37, Q13).
+
+**RG122** — *(hypothèse, question ouverte Q12)* **Ce qu'une partie dit en aparté n'est pas rapporté à
+l'autre partie sans l'accord de son auteur.** Le commercial reste libre de formuler ses propres
+propositions (« INFLUX propose 1 200 EUR »), jamais d'attribuer à une partie ce qu'elle lui a confié
+(« le créateur m'a dit que son plancher est 900 EUR »). C'est une **règle de conduite** que le système
+ne peut pas vérifier : elle est écrite dans la procédure des commerciaux, dans les CGU et dans
+l'information de RG141, et contrôlée par la revue de qualité (motif `controle_qualite`, RG56).
+
+#### K3. Le cycle de vie
+
+**RG123** — Un aparté **n'a pas d'état propre** : il suit l'état de la conversation (RG15), avec une
+différence voulue en pause.
+
+| État de la conversation | Fil commun — parties | Aparté — sa partie | Agents, tous canaux |
+|---|---|---|---|
+| `ouverte`, `active` | Écrivent | Écrit | Écrivent |
+| `en pause` | **N'écrivent pas** (RG18) | **Écrit** | Écrivent |
+| `close`, `archivée` | N'écrivent pas | N'écrit pas | N'écrivent pas |
+
+La pause sert au commercial à reprendre la main sur une négociation qui part de travers (RG18) :
+parler séparément à chaque partie est précisément ce qu'il fait alors. Dans le fil commun en pause,
+l'encart d'explication renvoie la partie vers son aparté.
+
+**RG124** — **Seul un message du fil commun fait passer la conversation de `ouverte` à `active`**
+(RG16 amendée). Un message en aparté, d'une partie ou d'un agent, laisse l'état inchangé : l'état est
+affiché aux deux parties (RG32), et un changement provoqué par un aparté apprendrait à l'autre partie
+qu'il existe.
+
+**RG125** — Le **silence de 14 jours** (RG21) se mesure sur **tous les canaux** : un échange en aparté
+est une activité commerciale. Cette mesure n'est visible que des agents.
+
+**RG126** — **Blocage entre parties** (RG87) : l'écriture du fil commun est fermée aux deux parties ;
+**chaque aparté reste ouvert en écriture à sa partie**. Un blocage coupe le lien entre les parties,
+pas le lien avec INFLUX ; c'est par les apartés que le commercial tente la médiation prévue par RG87.
+
+**RG127** — **Suspension d'une partie** (RG39, C(23)) : la partie suspendue n'écrit plus **dans aucun
+canal**, aparté compris ; elle conserve la lecture.
+
+**RG128** — Les messages système `agent.joined`, `agent.left` et `agent.owner_changed` sont écrits
+**dans le fil commun et dans chaque aparté**, pour que chaque partie sache à tout moment qui lit ce
+qu'elle écrit en privé. Les autres messages système (pause, clôture, blocage, suspension, document)
+restent dans le fil commun ; l'état de la conversation est rappelé dans l'en-tête, qui est commun aux
+onglets.
+
+**RG129** — Le **bandeau de l'aparté nomme les agents participants actifs**, à jour à chaque entrée ou
+sortie, et donne accès à l'explication de RG141 (`20` §7.3).
+
+#### K4. Lire un aparté
+
+**RG130** — Toute lecture d'un aparté par un rôle `agent` ou `admin` passe par la **fonction
+journalisante** (RG55, C(24)), que l'agent soit participant ou non. **Le journal porte le canal lu** :
+la lecture du fil commun et celle d'un aparté sont **deux lignes distinctes**. Le contenu de RG58 est
+complété du canal ; il ne contient toujours ni contenu, ni extrait, ni aperçu.
+
+**RG131** — Pour un agent **participant**, le motif `suivi_de_l_affaire` est retenu automatiquement
+**sur les trois canaux**, sans écran intermédiaire (RG56).
+
+**RG132** — Pour un agent **non participant**, le motif est demandé **avant le premier message**
+(RG57) et vaut pour la consultation en cours ; **chaque canal ouvert produit sa propre ligne**.
+Ouvrir le fil commun **ne charge pas** les apartés : ils ne sont chargés que sur action explicite
+(ouverture de l'onglet), qui affiche le rappel « échange privé avec ⟨partie⟩ ». Une lecture d'aparté
+par un non-participant est la lecture la plus sensible du produit ; elle ne doit jamais se produire
+par effet de bord.
+
+**RG133** — Le **curseur de lecture** (RG51) est tenu **par canal**. **Aucun accusé de lecture
+n'existe dans un aparté**, pour personne : ni la partie ne voit que l'agent a lu (RG54), ni l'agent
+ne voit que la partie a lu.
+
+**RG134** — La **revue hebdomadaire X4** (RG60) et le seuil de RG61 comptent des conversations, tous
+canaux confondus ; la revue **isole les lectures d'apartés par des agents non participants**, avec
+leur motif.
+
+#### K5. Notifications
+
+**RG135** — RG90 à RG98 s'appliquent. L'e-mail d'un message en aparté est adressé **à la seule partie
+de cet aparté**, dit qu'il s'agit d'un message privé (« Thomas — INFLUX vous a écrit en privé à propos
+de la campagne … »), **ne contient aucun caractère du texte**, et son lien ouvre **directement
+l'onglet de l'aparté**.
+
+**RG136** — Le cycle de RG93 est tenu **par canal** : l'aparté a son propre e-mail immédiat et son
+propre rappel à 24 heures. Un membre reçoit donc **au plus deux e-mails par canal** et par cycle de
+non-lecture. L'ouverture de l'onglet de l'aparté réarme son cycle (RG94), celle du fil commun
+seulement le sien.
+
+**RG137** — Agents : **aucun e-mail unitaire** (RG95). Le tableau de bord (RG99) et le récapitulatif
+quotidien distinguent les **messages privés non lus**, par partie (« 1 message privé — marque »).
+
+**RG138** — L'autre partie ne reçoit **aucune** notification, aucun rappel et aucun compteur liés à un
+aparté qui n'est pas le sien (RG118).
+
+#### K6. Détection et signalement
+
+**RG139** — La **détection de coordonnées** (RG42 à RG50) s'applique aux apartés sans changement, y
+compris aux messages des agents (RG49) : avertissement avant l'envoi, détection écrite avec le canal
+connu par le message, classement par le commercial. Une coordonnée donnée **à INFLUX** en aparté reste
+une détection : le commercial la classe, le plus souvent `légitime` ; une négociation poursuivie par
+téléphone reste une négociation sans trace.
+
+**RG140** — Une partie peut **signaler un message écrit par un agent**, dans son aparté comme dans le
+fil commun (RG79). Un tel signalement est **instruit par un administrateur autre que l'auteur du
+message** ; l'agent visé n'en est pas informé (RG83) et ne le voit pas dans sa file. L'aparté est le
+seul endroit où un agent parle à une partie sans que l'autre partie en soit témoin : c'est là qu'un
+abus serait le moins visible.
+
+#### K7. Information, vocabulaire et droits des personnes
+
+**RG141** — L'information sur la supervision (RG102, RG103) comporte **un sixième point**, aux cinq
+endroits de RG102 et **dès la première version** du texte :
+> « Chaque partie peut échanger en privé avec INFLUX, et INFLUX avec chacune d'elles. Ces échanges
+> ne sont pas visibles de l'autre partie. Comme le reste de la conversation, ils sont lus par les
+> agents INFLUX qui la suivent, peuvent l'être par un autre agent INFLUX dans les cas prévus, chaque
+> lecture étant enregistrée, et sont conservés pour la même durée. »
+
+La règle de conduite de RG122, une fois tranchée (Q12), y est ajoutée.
+
+**RG142** — **Le mot « privé » veut dire « non visible de l'autre partie », et rien d'autre.** Aucun
+texte ne dit ni ne laisse entendre que **seul le commercial nommé** lit l'aparté : comme tout le fil,
+il peut être lu par un autre agent, avec motif et journalisation (RG57). Sont **interdits** dans
+l'interface, les e-mails et les CGU : « seuls vous et … », « confidentiel », « secret »,
+« strictement privé ». Les échanges hébergés par INFLUX ne sont pas des correspondances privées
+(RG101) ; un aparté non plus.
+
+**RG143** — **Droit d'accès** : un membre obtient **l'intégralité de son aparté** — ses messages et
+ceux des agents qui lui sont adressés —, puisqu'un aparté n'a pas d'autre partie ; il n'obtient
+**jamais** l'aparté de l'autre partie, ni la moindre indication de son existence. Le régime du fil
+commun reste celui de `15` Q7. *(Sous réserve de `15` Q7, veto `expert-conformite-rgpd`.)*
+
+**RG144** — **Conservation et suppression** : RG108 à RG112 s'appliquent sans changement, l'aparté
+suit sa conversation. À la suppression d'un compte, l'aparté est pseudonymisé comme le reste
+(RG109) ; les agents y lisent « Compte supprimé ».
+
+#### K8. Cloisonnement technique
+
+**RG145** — **Le cloisonnement entre les deux apartés est une règle d'accès en base**, pas un filtre
+dans le code applicatif : un compte marque qui interrogerait directement la base sous son propre rôle
+n'obtiendrait **aucune ligne** de l'aparté créateur, et réciproquement. Cette règle est **doublée**
+d'un filtre de sortie dans `apps/api` et d'un **test automatisé** exécuté en intégration continue —
+la même doctrine que l'anonymisation des profils (`CLAUDE.md` §6). La maquette filtre dans le code :
+c'est un écart de maquette, pas un modèle.
+
+**RG146** — Les **données dérivées** de RG118 (compteurs, dernière activité, ordre, état,
+notifications, curseurs) sont calculées à partir des seuls canaux visibles de leur destinataire, et
+**les tests de RG145 les couvrent aussi** : une fuite passe plus souvent par un compteur que par un
+message.
+
+---
+
+### Cas limites des apartés
+
+| Situation | Comportement attendu |
+|---|---|
+| **Un agent écrit dans le mauvais canal** et révèle à une partie ce qui était destiné à l'autre | Le message ne se retire pas (RG37). L'agent le **déclare** à un administrateur par une note interne ; l'administrateur décide s'il faut en informer la partie lésée. Les garde-fous de RG121 sont la prévention ; Q13 étudie un délai d'annulation d'envoi |
+| **La marque écrit dans son aparté** alors que le fil commun est vide | La conversation reste `ouverte` (RG124) ; le créateur ne voit aucun changement (RG118) ; l'agent voit le message et son tableau de bord le signale (RG137) |
+| **Un agent rejoint** une conversation dont les apartés sont déjà nourris | Il lit tout l'historique des deux apartés, chaque ouverture étant journalisée (RG116, RG130) ; chaque partie voit dans son aparté le message système qui le nomme, et le bandeau est mis à jour (RG128, RG129) |
+| **Le commercial responsable est réattribué** | Le nouveau responsable entre dans les deux apartés avec le message système `agent.owner_changed` ; l'ancien, s'il sort, garde la lecture jusqu'à la clôture et perd l'écriture (RG9) |
+| **Un agent non participant** instruit un signalement sur le fil commun | Il ne charge que le fil commun ; les apartés ne sont ouverts que s'il les ouvre explicitement, avec une ligne de journal par canal (RG132) |
+| **Conversation en pause** | Le fil commun est fermé aux parties, avec un encart qui renvoie vers l'aparté ; chaque aparté reste ouvert (RG123) |
+| **Blocage entre parties** | Le fil commun est fermé aux deux parties ; chaque aparté reste ouvert, et le commercial y conduit la médiation (RG126) |
+| **Une partie est suspendue** | Elle n'écrit plus dans aucun canal, garde la lecture ; l'autre partie ne voit que `party.write_disabled` dans le fil commun, sans motif (RG127) |
+| **Conversation close** | Plus aucune écriture, dans aucun canal ; lecture conservée ; une réouverture (RG22) rouvre les trois canaux |
+| **Une partie supprime son compte** | Son aparté est pseudonymisé ; les agents y lisent « Compte supprimé » ; l'aparté de l'autre partie n'est pas affecté (RG144) |
+| **Un créateur donne son numéro à INFLUX** en aparté | Avertissement avant l'envoi, puis détection si le message part ; le commercial la classe (RG139). Aucune information n'atteint la marque |
+| **Une partie signale un message du commercial** écrit en aparté | Signalement affecté à un administrateur autre que l'auteur ; le commercial n'en voit rien (RG140) |
+| **Une partie demande le contenu de ses échanges** | Son aparté lui est communiqué en entier ; celui de l'autre partie jamais (RG143) |
+| **Une partie tente d'écrire dans l'aparté de l'autre** en forgeant la requête | « Introuvable », rien n'est écrit, tentative journalisée côté sécurité (RG120) |
+| **Deux agents écrivent au même instant** dans le même aparté | Ordre fixé par le serveur, aucun message perdu, même ordre pour tous (RG38) |
+
+---
+
+### Critères d'acceptation des apartés
+
+**CA59** — *Étant donné* une conversation qui vient d'être ouverte, *quand* la marque l'affiche,
+*alors* elle voit l'onglet du fil commun et l'onglet de son aparté, vide et ouvert à l'écriture ; le
+créateur voit la même chose de son côté.
+
+**CA60** — *Étant donné* une marque qui écrit la première dans son aparté, *quand* le commercial
+responsable ouvre la conversation, *alors* il voit le message dans l'aparté marque, et une ligne de
+journal portant ce canal et le motif `suivi_de_l_affaire` est écrite sans écran intermédiaire.
+
+**CA61** — *Étant donné* un message envoyé dans l'aparté marque, *quand* le créateur consulte la
+liste de ses conversations et le fil, *alors* rien n'a changé pour lui : ni compteur de non-lus, ni
+date de dernière activité, ni ordre de la liste, ni état du fil, et aucun e-mail ne lui a été envoyé.
+
+**CA62** — *Étant donné* une conversation `ouverte` où seule la marque a écrit, en aparté, *quand* on
+consulte son état, *alors* elle est toujours `ouverte` ; *quand* un premier message est écrit dans le
+fil commun, *alors* elle passe en `active`.
+
+**CA63** — *Étant donné* le rôle d'exécution du créateur, participant d'une conversation, *quand* on
+interroge directement la base sur les messages de cette conversation, *alors* aucune ligne de
+l'aparté marque n'est renvoyée — et réciproquement pour le rôle de la marque. Ce test s'exécute en
+intégration continue.
+
+**CA64** — *Étant donné* un compte créateur, *quand* il demande à l'API l'envoi d'un message dans le
+canal de l'aparté marque, *alors* il reçoit « introuvable », aucun message n'est écrit et la
+tentative est journalisée côté sécurité.
+
+**CA65** — *Étant donné* une demande d'envoi qui ne précise pas de canal, *quand* elle parvient au
+serveur, *alors* elle est refusée et aucun message n'est créé, ni dans le fil commun ni ailleurs.
+
+**CA66** — *Étant donné* un message d'aparté, *quand* n'importe quel rôle, administrateur compris,
+cherche à le déplacer, le copier, le citer ou le transférer vers un autre canal, *alors* aucune
+fonction du produit ne le permet.
+
+**CA67** — *Étant donné* un agent, Marie, qui rejoint la conversation le 20 mars, *quand* elle ouvre
+l'aparté créateur, *alors* elle lit tout son historique, y compris les messages antérieurs au 20 mars,
+une ligne de journal portant ce canal est écrite, et le créateur voit dans son aparté le message
+système nommant « Marie — INFLUX » ainsi qu'un bandeau qui la nomme.
+
+**CA68** — *Étant donné* un agent non participant qui choisit le motif `continuite_de_service`,
+*quand* il affiche la conversation, *alors* seul le fil commun est chargé et une seule ligne de
+journal est écrite ; *quand* il ouvre ensuite l'aparté marque, *alors* une seconde ligne, portant ce
+canal, est écrite.
+
+**CA69** — *Étant donné* une conversation `en pause`, *quand* la marque écrit dans le fil commun,
+*alors* l'envoi est refusé avec une explication qui l'oriente vers son aparté ; *quand* elle écrit
+dans son aparté, *alors* le message part.
+
+**CA70** — *Étant donné* une paire bloquée par le créateur, *quand* chaque partie écrit dans son
+aparté, *alors* les deux messages partent, et le fil commun reste fermé aux deux.
+
+**CA71** — *Étant donné* une conversation `close`, *quand* une partie ou un agent tente d'écrire dans
+un aparté, *alors* l'envoi est refusé et la lecture reste possible.
+
+**CA72** — *Étant donné* une partie suspendue, *quand* elle tente d'écrire dans son aparté, *alors*
+l'envoi est refusé.
+
+**CA73** — *Étant donné* un message d'agent dans l'aparté créateur, *quand* on inspecte l'e-mail reçu
+par le créateur, *alors* il indique un message privé, ne contient aucun caractère du texte, et son
+lien ouvre l'onglet de l'aparté ; la marque ne reçoit aucun e-mail.
+
+**CA74** — *Étant donné* un créateur qui n'ouvre ni le fil commun ni son aparté, *quand* trois
+messages arrivent dans chacun au cours de la journée, *alors* il reçoit au plus deux e-mails pour le
+fil commun et au plus deux pour l'aparté.
+
+**CA75** — *Étant donné* un aparté, *quand* la partie ou l'agent consulte ses messages, *alors* aucun
+accusé de lecture n'est affiché, d'un côté comme de l'autre.
+
+**CA76** — *Étant donné* un créateur qui écrit son numéro de téléphone dans son aparté, *quand* il
+clique sur « Envoyer », *alors* l'avertissement de RG43 s'affiche ; *quand* il envoie quand même,
+*alors* une détection est enregistrée et apparaît à classer chez le commercial, et la marque n'en
+voit rien.
+
+**CA77** — *Étant donné* un créateur qui signale un message écrit par l'agent Thomas dans son aparté,
+*quand* le signalement est créé, *alors* il est affecté à un administrateur autre que Thomas, et
+Thomas ne le voit ni dans sa file ni ailleurs.
+
+**CA78** — *Étant donné* l'écran d'information avant le premier message, le bandeau de l'aparté, les
+CGU et la politique de confidentialité, *quand* on les relit en français **et** en anglais, *alors*
+le sixième point de RG141 y figure, et les formulations « seuls vous et », « confidentiel »,
+« secret » et « strictement privé » n'apparaissent nulle part.
+
+**CA79** — *Étant donné* une demande d'accès de la marque, *quand* l'export est préparé, *alors* il
+contient l'intégralité de l'aparté marque, et **aucun** élément de l'aparté créateur, ni son
+existence.
+
+**CA80** — *Étant donné* le tableau de bord du commercial responsable, *quand* la marque lui écrit en
+aparté, *alors* la conversation y apparaît avec la mention « 1 message privé — marque », et aucun
+e-mail unitaire ne lui est envoyé.
+
+**CA81** — *Étant donné* un agent qui a commencé un message dans l'aparté marque, *quand* il passe à
+l'onglet du fil commun, y écrit et envoie, *alors* seul le texte saisi dans le fil commun part, et son
+brouillon reste dans l'onglet de l'aparté marque, non envoyé.
+
+---
+
+### Impacts des apartés
+
+**Écrans** (conception : `20` §7 ; wireframes détaillés à reporter dans `17` §4.7 et `17b` §3.4.b) :
+
+| Espace | Écran | Nature |
+|---|---|---|
+| App membres | **Fil de conversation** : onglets « À trois » et « Vous et INFLUX », bandeau de l'aparté, phrase d'audience, brouillon par onglet, encart de pause renvoyant vers l'aparté | Ajustement |
+| App membres | **Liste des conversations** : compteurs et dernière activité calculés sur les seuls canaux visibles | Ajustement |
+| App membres | **Écran d'information avant le premier message** : sixième point | Ajustement |
+| Backoffice | **Fil supervisé** : quatre onglets (commun, aparté marque, aparté créateur, documents), chargement des apartés sur action explicite pour un non-participant | Ajustement |
+| Backoffice | **Tableau de bord du commercial** et récapitulatif quotidien : messages privés non lus, par partie | Ajustement |
+| Backoffice | **Journal des lectures** : colonne « canal », filtre sur les lectures d'apartés par des non-participants | Ajustement |
+| Backoffice | **File des signalements** : un signalement visant un message d'agent n'est visible que des administrateurs autres que son auteur | Ajustement |
+
+**Données** — à modéliser par `expert-database`, sous veto `expert-cybersecurite` (`04` §12.11,
+point 3) :
+
+| # | Besoin | Règle |
+|---|---|---|
+| 1 | Un **canal** sur chaque message (`common` · `advertiser_private` · `creator_private`), obligatoire, **sans valeur par défaut**, immuable ; les messages système portent aussi leur canal | RG114, RG120, RG128 |
+| 2 | Une **règle d'accès en base par canal** pour les rôles marque et créateur — politique d'accès aux lignes ou objets séparés, au choix d'`expert-database` —, doublée d'un filtre de sortie et d'un test | RG145 |
+| 3 | Le **curseur de lecture** tenu par canal (`messaging.conversation_reads`) | RG133 |
+| 4 | Le **canal** dans le journal des lectures (`messaging.conversation_access_log`) | RG130 |
+| 5 | Le passage `ouverte` → `active` conditionné au canal commun | RG124 |
+| 6 | Le **canal** dans l'événement de notification (gabarit et lien) | RG135, RG136 |
+| 7 | L'affectation d'un signalement visant un message d'agent aux seuls administrateurs autres que son auteur | RG140 |
+
+**Tests** — à ajouter au plan `18` : cloisonnement par rôle en accès direct (CA63), données dérivées
+(CA61, CA62), refus de l'API (CA64, CA65), journal par canal (CA67, CA68), notifications (CA73,
+CA74), export au titre du droit d'accès (CA79).
+
+**Indicateurs** :
+
+| Indicateur | Pourquoi | Ce qu'il déclenche s'il dérive |
+|---|---|---|
+| **Part des conversations avec au moins un aparté utilisé**, et qui l'a ouvert (partie ou agent) | Mesure l'usage réel du geste de courtier | Revue de la procédure commerciale |
+| **Délai de réponse de l'agent en aparté** | Une partie qui écrit en privé à INFLUX attend une réponse humaine | Renfort, alerte au tableau de bord |
+| **Lectures d'apartés par des agents non participants**, par semaine et par motif | La lecture la plus sensible du produit | Revue X4, resserrement des droits |
+| **Déclarations d'erreur de canal** | Mesure l'efficacité des garde-fous de RG121 | Q13 : délai d'annulation d'envoi |
+
+---
+
+### Questions ouvertes des apartés
+
+| # | Question | Hypothèse retenue en attendant | Arbitre | Échéance |
+|---|---|---|---|---|
+| **Q12** | **Confidentialité de l'aparté vis-à-vis de l'autre partie** (RG122). INFLUX est rémunéré par les deux parties : que promet-il à chacune sur ce qu'elle lui confie en privé ? | Confidentialité par défaut : le commercial ne rapporte pas à l'autre partie ce qui lui a été confié sans l'accord de son auteur ; il formule ses propres propositions | **Fondateur** + **`expert-conformite-rgpd` (veto)** + juriste | **Lot 1** (CGU) |
+| **Q13** | **Délai d'annulation d'envoi pour les agents**, quelques secondes pendant lesquelles un message n'est pas encore remis, pour rattraper une erreur de canal qui ne se retire pas (RG37) | Non au MVP : garde-fous d'écran (RG121) et déclaration de l'incident ; décision au vu de l'indicateur « erreurs de canal » | `product-owner` + `expert-ux` | Après 3 mois d'exploitation |
+| **Q14** | **Écrire à un membre hors de toute conversation** (`17b` I11 / V5), par exemple pour relancer un créateur avant toute mise en relation | Hors périmètre de cet additif ; les apartés couvrent les conversations ouvertes | `chef-de-projet` + `product-owner` | Lot 5 |
+| **Q15** | **Périmètre de l'export au titre du droit d'accès** pour un aparté (RG143) | Aparté communiqué en entier, jamais celui de l'autre partie | **`expert-conformite-rgpd` (veto)**, avec `15` Q7 | Lot 5 |

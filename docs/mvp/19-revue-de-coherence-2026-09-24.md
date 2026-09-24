@@ -239,8 +239,9 @@ des textes de la landing page réécrits le 2026-09-24 (D48) et la mesure de l'a
    Fait le 2026-09-24.
 2. ~~Réécrire les textes de la landing page (D48)~~ — fait le 2026-09-24 ; restent la relecture
    `expert-marketing` / `expert-conformite-rgpd` et le détachement de la maquette.
-3. Écrire la spécification des apartés (additif de `12`, D47) et traduire les arbitrages dans
-   le modèle de données (`04` §12.11).
+3. ~~Écrire la spécification des apartés (additif de `12`, D47)~~ — fait le 2026-09-24 (`12` §K,
+   RG113 à RG146) ; restent le veto `expert-conformite-rgpd`, et la traduction dans le modèle de
+   données (`04` §12.11, sept besoins listés dans les impacts de `12` §K).
 4. ~~Arbitrer les oublis D52 à D57~~ — fait le 2026-09-24 ; compléter les additifs (critères
    d'acceptation, écrans, schéma) et faire relever l'activité de départ (D53).
 5. Corriger dans la maquette les seuls écarts qui faussent la vision (marqués ⚠️ dans
