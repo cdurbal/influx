@@ -475,7 +475,7 @@ Mobile 375 — VARIANTE MARQUE              Mobile 375 — VARIANTE CRÉATEUR
 │     générales d'utilisation * │        │     générales d'utilisation * │
 │     [◦ Lire les CGU]    RG23  │        │     [◦ Lire les CGU]          │
 │                               │        │                               │
-│ [ ] Facultatif — je souhaite  │        │ [ ] Facultatif — je souhaite  │
+│ [ ] J'accepte (requis, D63) — │        │ [ ] J'accepte (requis, D63) — │
 │     recevoir des e-mails      │        │     recevoir des e-mails      │
 │     commerciaux d'INFLUX et   │        │     commerciaux d'INFLUX et   │
 │     être contacté à des fins  │        │     être contacté à des fins  │
@@ -492,9 +492,9 @@ d'engagement se lit de haut en bas, une colonne de droite y crée un doute sur l
 
 | Règle d'écran | Détail |
 |---|---|
-| Deux cases, jamais une | CGU (obligatoire) et marketing (facultatif) sont **visuellement séparées par un filet**, jamais empilées sans séparation. Cocher l'une ne coche jamais l'autre (`05` RG23) |
+| Deux cases, jamais une | CGU (obligatoire) et consentement Brevo / Apollo (**obligatoire depuis D63**, `05` RG124) sont **visuellement séparées par un filet**, jamais empilées sans séparation. Cocher l'une ne coche jamais l'autre (`05` RG23) |
 | Aucune case pré-cochée | Y compris la langue, qui est **présélectionnée** (choix exclusif) mais reste une sélection, pas une case (`05` RG11, RG17) |
-| « Facultatif » est **dans le libellé** | Pas seulement dans une couleur ou une position. Le libellé commence par le mot | `05` RG30 |
+| ~~« Facultatif » dans le libellé~~ | **Abrogé par D63** : la case est obligatoire, le libellé le dit et rappelle que l'accord se retire à tout moment | `05` RG124, RG127 |
 | Marketing : une case, deux finalités | Les deux finalités sont citées **dans les deux portes**, quelle que soit la valeur du périmètre Apollo (`05` RG31, RG33). *Si `expert-conformite-rgpd` exige deux cases (Q10), seul ce bloc change : deux cases empilées, même filet, même ordre* |
 | Majorité | Renvoie à **l'âge de la majorité du pays déclaré**, jamais à un âge fixe (`05` RG19) |
 | Liste de pays | Tous les pays, triés selon la langue de la page, **aucun marqué « ouvert aux contrats »** (`05` RG14) |

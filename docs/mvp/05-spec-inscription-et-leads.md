@@ -178,7 +178,7 @@ navigateur. La validation dans le navigateur est un confort ; elle n'est jamais 
 | 3 | Pays de l'entreprise | Oui | Liste déroulante, première option vide | Une valeur de la liste ISO 3166-1 |
 | 3 | Langue de communication | Oui | Deux choix exclusifs (français, anglais) | Présélection = langue de la page, modifiable |
 | 3 | Acceptation des CGU | Oui | Case à cocher, **non pré-cochée** | Cochée |
-| 3 | Consentement marketing | **Non** | Case à cocher, **non pré-cochée** | Aucune |
+| 3 | Consentement à l'enregistrement dans Brevo et Apollo | **Oui (D63)** | Case à cocher, **non pré-cochée** | Cochée |
 
 **RG12** — L'adresse e-mail est normalisée avant enregistrement : espaces de début et de fin retirés,
 passage en minuscules. **Aucune autre normalisation** n'est appliquée : les sous-adresses (`nom+mot@…`)
@@ -218,7 +218,7 @@ ici coûte des inscriptions.
 | 3 | Statut déclaré | Oui | Deux choix exclusifs, **aucun pré-sélectionné** | `particulier` ou `professionnel` |
 | 3 | Attestation de majorité | Oui | Case à cocher, **non pré-cochée** | Cochée |
 | 3 | Acceptation des CGU | Oui | Case à cocher, **non pré-cochée** | Cochée |
-| 3 | Consentement marketing | **Non** | Case à cocher, **non pré-cochée** | Aucune |
+| 3 | Consentement à l'enregistrement dans Brevo et Apollo | **Oui (D63)** | Case à cocher, **non pré-cochée** | Cochée |
 
 **RG18** — Le **statut déclaré** (particulier / professionnel) est **obligatoire** et sans valeur
 pré-sélectionnée. Il conditionne le périmètre de synchronisation Apollo (RG81) : sans lui, la position
@@ -274,7 +274,12 @@ bloquant : c'est la preuve qui fonde la rémunération d'INFLUX.
 
 ### E — Consentement marketing
 
-**RG30** — Le consentement marketing est **facultatif**, matérialisé par une case **non pré-cochée**,
+> **Modifiée le 2026-09-25 par D63 (arbitrage du fondateur, contre la recommandation, veto
+> `expert-conformite-rgpd` maintenu).** Le consentement est **obligatoire** : sans lui, aucun compte
+> n'est créé. La rédaction ci-dessous est **abrogée** en ce qu'elle le déclare facultatif ; les
+> règles de retrait (RG34, RG94) restent valables. Voir l'additif D63 en fin de document.
+
+**RG30** — *(abrogée par D63)* Le consentement marketing est **facultatif**, matérialisé par une case **non pré-cochée**,
 séparée visuellement de l'acceptation des CGU, et explicitement marquée facultative. Refuser n'empêche
 jamais de créer un compte ni d'utiliser le service.
 
@@ -1275,3 +1280,46 @@ d'un autre membre.
 **RG123** — **Indicateurs** : inscriptions par source et par rôle, taux de complétion du profil par
 source, part des inscriptions issues d'une invitation et taux d'utilisation des invitations par
 commercial.
+
+---
+
+## Additif du 2026-09-25 — Consentement obligatoire à l'inscription (D63)
+
+> **Arbitrage du fondateur du 2026-09-25, pris contre la recommandation.** `expert-conformite-rgpd`
+> **conserve son veto** ; la **validation d'un juriste est obligatoire avant la mise en ligne du
+> Lot 1** (même régime que D33).
+
+**RG124** — La case de consentement à l'enregistrement du contact dans **Brevo et Apollo.io** est
+**obligatoire** dans les deux portes, **non pré-cochée**, distincte de l'acceptation des CGU (RG23
+inchangée). Sans elle, **aucun compte n'est créé** : message `signup.consent.errors.required`, focus
+sur la case. Elle remplace RG30 ; RG11 et RG17 sont modifiées en conséquence.
+
+**RG125** — Chaque inscription devient un **contact Brevo sous 1 heure** et, **quand la
+configuration l'autorise** (périmètre RG81, base légale RG83, pays RG84, qualification RG82), un
+**contact Apollo sous 24 heures**. La règle « ignoré — sans consentement » (RG36, RG80) ne
+s'applique plus à l'inscription ; elle reste valable après un **retrait** ultérieur.
+
+**RG126** — Le retrait reste possible **à tout moment**, en une action (RG34), prend effet
+immédiatement et **ne supprime pas le compte** (RG94). L'accès au service n'est donc conditionné
+qu'au moment de l'inscription — point précisément soumis au juriste.
+
+**RG127** — Le libellé cite Brevo, Apollo.io et les deux finalités (RG31) ; il perd le mot
+« Facultatif » et indique que la case est requise pour créer un compte, ainsi que la possibilité de
+retirer son accord ensuite. Rédaction : `expert-marketing` + `expert-conformite-rgpd` + juriste (Q12).
+
+| Clé | Français | English |
+|---|---|---|
+| `signup.consent.errors.required` | Pour créer votre compte, vous devez accepter que vos coordonnées soient enregistrées dans nos outils Brevo et Apollo.io. Vous pourrez retirer cet accord à tout moment depuis votre espace. | To create your account, you must agree to your contact details being recorded in our tools Brevo and Apollo.io. You can withdraw this consent at any time from your account. |
+
+**Critères d'acceptation modifiés.** **CA5** devient : *étant donné* un formulaire complet avec la
+case de consentement **non cochée**, *quand* le visiteur valide, *alors* le message
+`signup.consent.errors.required` s'affiche et **aucun compte n'est créé**. **CA39** ne vaut plus
+qu'après un retrait de consentement. **Q10** (une case ou deux) reste ouverte : si deux cases sont
+exigées, les deux sont obligatoires.
+
+**Risque, écrit pour être refusé explicitement s'il ne l'est pas.** Au sens du RGPD (art. 7 §4), un
+consentement dont dépend l'accès à un service risque de ne pas être libre, donc d'être nul ; les
+envois vers Brevo et Apollo perdraient alors leur base légale. Parades à instruire : exécution du
+contrat ou intérêt légitime pour une partie des traitements (Q1), ou retour à un consentement
+facultatif — une **valeur de configuration** (`signup_consent_required`, vrai par défaut) permet de
+revenir en arrière **sans redéploiement**.
