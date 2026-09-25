@@ -1,5 +1,15 @@
 # INFLUX — Guide projet pour Claude Code
 
+> ### 🧪 Branche `demo` : maquette de démonstration (2026-09-25)
+>
+> Cette branche conserve la **maquette de démonstration jetable** (espaces marque et créateur,
+> backoffice, API simulée) telle qu'elle était le 2026-09-24. Elle sert **uniquement** aux
+> démonstrations devant les partenaires (D44, D56).
+> - **Ne jamais fusionner cette branche dans `main`**, ni y reprendre de fichier : le produit réel
+>   repart de zéro sur `main`, à partir des spécifications de `docs/mvp/` (§16).
+> - Les spécifications, les décisions et la landing page évoluent sur `main` ; le texte ci-dessous
+>   est celui du 2026-09-24 et peut être en retard sur `main`.
+
 > **Statut du projet (2026-09-24) :** spécifications du MVP rédigées (`docs/mvp/`) ; **produit réel
 > non commencé** (Lot 0 à démarrer) ; **maquette de démonstration jetable** à 37 missions sur 40 ;
 > landing page réalisée, à aligner sur le MVP avant sa mise en ligne.

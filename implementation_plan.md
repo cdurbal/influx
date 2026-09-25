@@ -1,5 +1,11 @@
 # Plan d'implémentation découpé pour Agents IA : MVP INFLUX (Mode Mocké)
 
+> [!NOTE]
+> **Branche `demo` (2026-09-25).** Ce plan et la maquette qu'il décrit vivent désormais **uniquement
+> sur la branche `demo`**. La branche `main` ne contient plus que la landing page et les
+> spécifications : le produit réel y repart du Lot 0 de `docs/mvp/00-cadrage-mvp-v2.md`.
+> **Ne jamais fusionner `demo` dans `main`.**
+
 > **Principe de conception de ce plan :** Chaque phase ci-dessous est un **Ordre de Mission autonome pour agent IA**.
 > Elle est calibrée pour limiter le contexte au strict minimum : l'agent ne charge que les 1 à 3 fichiers nécessaires, produit un ensemble restreint de modifications (1 à 3 fichiers), et valide son travail par une commande de test unitaire ou de typage dédiée avant de passer la main.
 
