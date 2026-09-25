@@ -10,6 +10,7 @@ import {
   findClassListConflicts,
   findMatches,
   findNetworkOrStorageUse,
+  findPagesRouterDirectories,
   findPrimitiveBaseClassConflicts,
   findRelayContentViolations,
   findRelayFingerprintMismatches,
@@ -140,6 +141,20 @@ describe("relay guard detectors (21 J1-C)", () => {
     expect(findRouteFileViolations(root)).toEqual([]);
     expect(findRelayContentViolations(root)).toEqual([]);
     expect(findRelayImporterViolations(root)).toEqual([]);
+  });
+
+  it("detects a Pages Router directory, at the root or under src/", () => {
+    const clean = writeFront("no-pages");
+    expect(findPagesRouterDirectories(clean)).toEqual([]);
+    const both = writeFront("pages-router", {
+      "pages/api/hello.ts": "export default function handler() {}\n",
+      "src/pages/index.tsx":
+        "export default function Page() { return null; }\n",
+    });
+    expect(findPagesRouterDirectories(both)).toEqual([
+      "unexpected Pages Router directory: pages/",
+      "unexpected Pages Router directory: src/pages/",
+    ]);
   });
 
   it("detects an extra route file and a missing one", () => {

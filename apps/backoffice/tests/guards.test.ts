@@ -7,6 +7,7 @@ import {
   findClassListConflicts,
   findMatches,
   findNetworkOrStorageUse,
+  findPagesRouterDirectories,
   findPrimitiveBaseClassConflicts,
   findRelayContentViolations,
   findRelayFingerprintMismatches,
@@ -36,6 +37,33 @@ const SOURCE_FILES = listFiles(SRC).filter((file) =>
 
 function relative(file: string): string {
   return relativePath(BACKOFFICE_ROOT, file);
+}
+
+/** The only label module while D36 is open (18 §5 annex 1, EC-25). */
+const LABEL_MODULE = "src/messages/fr.ts";
+
+/** A language code, with or without a region, and with or without an extension: en, pt-BR.ts… */
+const LANGUAGE_NAME = /^(?:fr|en|pt|es|de|it)(?:[-_][a-z]{2,4})?(?:\.\w+)?$/i;
+
+/** Directories of translation files, forbidden anywhere under src/. */
+const TRANSLATION_DIRECTORIES = new Set(["locales", "i18n"]);
+
+/**
+ * Relative paths under src/ that hold a language-named file or directory, or a translation
+ * directory. The label module itself is the only exception.
+ */
+function languageNamedPaths(paths: readonly string[]): string[] {
+  return paths.filter(
+    (file) =>
+      file !== LABEL_MODULE &&
+      file
+        .split("/")
+        .slice(1)
+        .some(
+          (segment) =>
+            LANGUAGE_NAME.test(segment) || TRANSLATION_DIRECTORIES.has(segment),
+        ),
+  );
 }
 
 describe("G3: no hard-coded color or length outside the token file (CA22)", () => {
@@ -95,6 +123,10 @@ describe("the relay is the only server endpoint (21 J1-C, 03 PP-12)", () => {
     expect(findRouteFileViolations(BACKOFFICE_ROOT)).toEqual([]);
   });
 
+  it("has no Pages Router directory, pages/ nor src/pages/ (18 §5 G5 b)", () => {
+    expect(findPagesRouterDirectories(BACKOFFICE_ROOT)).toEqual([]);
+  });
+
   it("keeps data-layer imports, Server Actions and environment reads out of the relay", () => {
     expect(findRelayContentViolations(BACKOFFICE_ROOT)).toEqual([]);
   });
@@ -143,10 +175,37 @@ describe("French only while D36 is open (02 §8, 18 §5 annex 1)", () => {
 
   it("has a single label module, in French, and no translation file", () => {
     expect(listFiles(path.join(SRC, "messages")).map(relative)).toEqual([
-      "src/messages/fr.ts",
+      LABEL_MODULE,
     ]);
     expect(existsSync(path.join(SRC, "locales"))).toBe(false);
     expect(SOURCE_FILES.filter((file) => file.endsWith(".json"))).toEqual([]);
+  });
+
+  // 18 §5 annex 1 (a) and (b), EC-25 widened by 21 J1-J T-4.
+  it("names no other file or directory of src/ after a language, and has no locales/ nor i18n/", () => {
+    expect(languageNamedPaths(listFiles(SRC).map(relative))).toEqual([]);
+  });
+
+  it("detects a language-named path (self-check of the detector)", () => {
+    expect(
+      languageNamedPaths([
+        LABEL_MODULE,
+        "src/i18n/en.ts",
+        "src/labels/pt-BR.ts",
+        "src/labels/fr_FR.ts",
+        "src/en/labels.ts",
+        "src/app/locales/x.ts",
+        "src/app/page.tsx",
+        "src/server/relay.ts",
+        "src/labels/french.ts",
+      ]),
+    ).toEqual([
+      "src/i18n/en.ts",
+      "src/labels/pt-BR.ts",
+      "src/labels/fr_FR.ts",
+      "src/en/labels.ts",
+      "src/app/locales/x.ts",
+    ]);
   });
 });
 

@@ -251,6 +251,22 @@ export function findRouteFileViolations(frontRoot: string): string[] {
   ];
 }
 
+/** The two places where Next.js looks for its historical Pages Router. */
+export const PAGES_ROUTER_DIRECTORIES: readonly string[] = [
+  "pages",
+  "src/pages",
+];
+
+/**
+ * 18 §5, G5 (b), 21 J1-J T-4: no Pages Router directory. Next.js would serve its `pages/api/*`
+ * files as server endpoints, outside the allow-list of route files under src/app.
+ */
+export function findPagesRouterDirectories(frontRoot: string): string[] {
+  return PAGES_ROUTER_DIRECTORIES.filter((relative) =>
+    existsSync(path.join(frontRoot, relative)),
+  ).map((relative) => `unexpected Pages Router directory: ${relative}/`);
+}
+
 /** Data-layer imports, Server Actions, and environment reads outside the config file. */
 export function findRelayContentViolations(frontRoot: string): string[] {
   return Object.values(RELAY_FILES).flatMap((relative) => {

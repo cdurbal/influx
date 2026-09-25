@@ -8,6 +8,7 @@ import {
   findClassListConflicts,
   findMatches as findMatchesIn,
   findNetworkOrStorageUse,
+  findPagesRouterDirectories,
   findPrimitiveBaseClassConflicts,
   findRelayContentViolations,
   findRelayFingerprintMismatches,
@@ -135,6 +136,10 @@ describe("G4: every photo is credited, and every credit has a photo (CA26)", () 
 describe("G5 replaced: the relay is the only server endpoint (21 J1-C, 03 PP-12)", () => {
   it("has exactly one route file under src/app: the relay", () => {
     expect(findRouteFileViolations(WEB_ROOT)).toEqual([]);
+  });
+
+  it("has no Pages Router directory, pages/ nor src/pages/ (18 §5 G5 b)", () => {
+    expect(findPagesRouterDirectories(WEB_ROOT)).toEqual([]);
   });
 
   it("keeps data-layer imports, Server Actions and environment reads out of the relay", () => {
