@@ -6,6 +6,8 @@
 > `expert-conformite-rgpd` et `architecte`**, dont les points sont listés au §9.
 > **Skill appliquée :** `test-strategy`, complétée par `security-rgpd-audit` pour les lots touchant
 > des données personnelles.
+> **Révisé le 2026-09-25** (vérification de fin de J1 du Lot 0, `21` §4 J1-A à J1-I) : §5 (G5,
+> annexes 1 et 2), T7, T8, T13, T17, TM11, §10 (Lots 0 et 1), totaux (§0, §3.2, §10, §11).
 >
 > **Ce document reprend et exécute** les tests T1 à T17 exigés au §8 de
 > `docs/mvp/03-matrice-des-droits-et-rls.md` et les contrôles X1 à X4 de son §5.3, comme le demande
@@ -31,7 +33,7 @@
    jour où une affaire sera conclue dans son dos. Un registre réécrivable ne prouve rien, et
    personne ne s'en apercevrait sans un test fait exprès pour ça.
 3. **Rien de tout cela ne coûte plus cher que de le découvrir après.** Le plan représente environ
-   **185 cas de test** répartis en 29 familles, un corpus figé de 120 messages piégés, et **un seul**
+   **199 cas de test** répartis en 29 familles, un corpus figé de 120 messages piégés, et **un seul**
    parcours complet de bout en bout. C'est délibérément peu de tests, mais tous choisis.
 
 **Ce que ce plan ne prétend pas faire.** Il n'empêche pas deux personnes majeures de s'entendre en
@@ -448,8 +450,8 @@ select rolname, rolsuper, rolbypassrls
 
 | | |
 |---|---|
-| **Niveau** | Intégration (HTTP, front + API doublée) |
-| **Lot** | 1 |
+| **Niveau** | Unitaire contre un **faux serveur HTTP local** (`node:http`) dès le J1 ; intégration (HTTP, front + API doublée) au J9 |
+| **Lot** | **0** pour les conditions PP en unitaire (J1, `21` §4 J1-C et J1-H), T7.8 à T7.12 ; **1** pour T7 complet en intégration (J9) |
 | **Déclencheur** | À chaque exécution |
 | **Critère d'échec** | Une requête sortante dont la cible est influencée par l'entrée utilisateur, ou une réponse authentifiée servie à un autre utilisateur |
 
@@ -464,6 +466,9 @@ select rolname, rolsuper, rolbypassrls
 | **T7.7** | **Le test qui compte** : deux utilisateurs authentifiés différents appelant **la même URL** reçoivent des réponses **différentes**. C'est le scénario catastrophe — instantanément massif, indétectable sans ce test |
 | **T7.8** | **Empreinte du fichier du passe-plat** (PP-12, I-8) : toute modification fait échouer la CI tant que l'empreinte attendue n'est pas mise à jour dans le même commit. C'est la contrepartie de l'absence de Pull Request |
 | **T7.9** | `apps/api` refuse toute requête dépourvue de l'en-tête interne `x-influx-internal` (PP-8) |
+| **T7.10** | **`matcher` du `proxy.ts` de `apps/web`, vérifié sur le manifeste compilé.** Après `next build`, le motif lu dans le manifeste du proxy produit par Next.js — et non le texte source du `matcher` — ne correspond à **aucun** chemin du passe-plat (`/api/v1/status`, `/api/v1/bo/…`) : ils ne sont jamais redirigés vers `/fr/api/…` (J1-C, point 3). Contre-test : `/` et `/en` correspondent. La route de santé publique d'EC-22 s'y ajoute au J9. Exécuté avec `test:artifacts`, après la construction |
+| **T7.11** | **`x-request-id` non repris sans secret.** `apps/api` ne reprend l'identifiant relayé qu'**après** validation du secret interne. Sans secret, avec un secret inconnu, ou sur `/health`, la réponse et sa ligne de journal portent un identifiant **généré**, jamais celui reçu, **même au format UUID** : sinon quiconque atteint l'API sans secret choisit l'identifiant de sa ligne de journal. *Écart constaté à la vérification de fin de J1 (l'identifiant est choisi avant le contrôle du secret) : correction et test au plus tard au J3* |
+| **T7.12** | **Adresse du client (PP-6, EC-21).** `clientAddress()` ne retient jamais une valeur fournie par le client : un `x-forwarded-for` ou un `x-real-ip` forgé, seul ou mêlé à l'entrée ajoutée par l'entrée de Railway, ne change pas le résultat ; `apps/api` ne lit l'adresse relayée qu'après validation du secret interne. **Unitaire au J3** (table d'en-têtes forgés) ; **constat sur `staging` au J4** avec un en-tête forgé, consigné — non automatisable en CI, l'entrée de Railway ne se reproduit pas en local. La limitation par IP (T8.4, T15.4) repose sur ce cas |
 
 ---
 
@@ -472,7 +477,7 @@ select rolname, rolsuper, rolbypassrls
 | | |
 |---|---|
 | **Niveau** | Intégration, avec **horloge injectée** (aucun `sleep` dans un test) |
-| **Lot** | 1 |
+| **Lot** | 1 ; T8.7, T8.12 et T8.13 dès le Lot 0 (J3, sessions) |
 | **Déclencheur** | À chaque exécution |
 | **Critère d'échec** | Toute condition A-1 à A-12 ou B-1 à B-8 non tenue |
 
@@ -490,6 +495,7 @@ select rolname, rolsuper, rolbypassrls
 | **T8.10** | TOTP **anti-rejeu** : un code consommé est refusé dans sa fenêtre (B-3) |
 | **T8.11** | Un code de secours est à **usage unique**, sa consommation alerte tous les admins, sa valeur n'est jamais journalisée (MFA-3, MFA-4) |
 | **T8.12** | Le cookie de session porte un **identifiant opaque** : il ne se décode pas en JWT, il n'a pas trois segments base64, et sa révocation en base rend la requête suivante non authentifiée |
+| **T8.13** | **Contrôle d'origine (CSRF), J3.** Toute requête `POST`, `PATCH`, `PUT` ou `DELETE` dont `Sec-Fetch-Site` n'est pas `same-origin` **et** dont `Origin` n'est pas l'origine attendue de la surface ⇒ `403` en enveloppe, **avant tout effet**. Table de cas : `cross-site` ; **`same-site`** (le backoffice est un sous-domaine du même site : refusé) ; `none` ; les deux en-têtes absents ; `Origin: null` ; origine de l'autre surface. Contre-tests : `same-origin` accepté ; `GET` non concerné. Exécuté **au travers du passe-plat**, pas seulement par `inject()`, pour prouver que les deux en-têtes atteignent le contrôle (liste blanche PP-5) |
 
 ---
 
@@ -564,7 +570,7 @@ select rolname, rolsuper, rolbypassrls
 
 ---
 
-### T13 — Messages d'erreur
+### T13 — Messages d'erreur et journaux
 
 | Cas | Ce qu'il vérifie |
 |---|---|
@@ -573,8 +579,11 @@ select rolname, rolsuper, rolbypassrls
 | **T13.3** | Aucun nom d'hôte interne, aucune version de composant |
 | **T13.4** | La réponse porte exactement `code`, un message traduisible et `requestId` |
 | **T13.5** | Le `requestId` de la réponse se retrouve dans les journaux serveur — sinon il ne sert à rien lors d'un incident |
+| **T13.6** | **Masquage des journaux (`02` §20.8).** Une fausse adresse e-mail, un faux code à 6 chiffres et un faux jeton, placés (a) dans une erreur **et dans sa `cause`**, (b) dans un objet imbriqué **à trois niveaux** passé au journal, n'apparaissent **nulle part** dans le flux de journal capturé — ni en clair, ni dans la pile. Complète le test du J1 (aucune valeur de cookie, d'`authorization`, de `x-influx-internal`, ni d'URL brute : modèle de route seulement). Étendu au J4 à la table des occurrences du schéma `ops`, nettoyée par la même fonction |
+| **T13.7** | **Unicité des clés dans chaque ligne de journal.** Chaque ligne du flux capturé est un objet JSON **sans clé dupliquée**, vérifié sur le **texte brut** (un `JSON.parse` garde silencieusement la dernière valeur). Parcours : requête réussie, `4xx`, `500`, ligne du worker. Une clé en double laisse une valeur non masquée, ou un `requestId` choisi, l'emporter sur la valeur légitime selon l'outil qui lit |
 
-*Niveau : intégration. Lot 1. À chaque exécution.*
+*Niveau : intégration, sur le flux de journal capturé pour T13.5 à T13.7. Lot 0 (J1) pour
+l'enveloppe `404` / `500` et T13.5 à T13.7 ; Lot 1 pour le reste. À chaque exécution.*
 
 ---
 
@@ -629,15 +638,26 @@ select rolname, rolsuper, rolbypassrls
 
 ### T17 — Garde-fou `staging`
 
+**Deux moitiés.** Les **refus de démarrage** (T17.5 à T17.10) sont en place depuis le J1 (`21` §4,
+J1-D point 3 ; `apps/api/tests/config.test.ts`). Les **verrous d'exécution** (T17.1 à T17.4) arrivent
+avec la synchronisation, au Lot 1. La seconde condition de `16` RG116 (trois sous-domaines
+authentifiés) exige un appel à Brevo, doublé en test : elle entre au J9.
+
 | Cas | Ce qu'il vérifie |
 |---|---|
 | **T17.1** | **Verrou 1** — les clés de production ne sont pas présentes en `staging` ; pas de clé Apollo du tout ⇒ statut `skipped_no_credentials` |
 | **T17.2** | **Verrou 2** — `SYNC_MODE=dry_run` : aucun appel sortant, ligne marquée `succeeded` avec `dry_run: true`, contenu journalisé |
 | **T17.3** | **Verrou 3** — liste blanche de destinataires évaluée **au connecteur, après tout le mappage**, en condition **positive** ; toute adresse hors liste ⇒ `skipped_non_production` |
 | **T17.4** | **Verrou 4 (B9)** — aucune donnée de production dans `staging` : le jeu de données provient exclusivement de `supabase/seed`, et un contrôle échoue si une adresse ne se termine pas par un domaine de test réservé |
-| **T17.5** | Symétrie : le worker **refuse de démarrer** si `INFLUX_ENV=production` et `SYNC_MODE=dry_run` |
+| **T17.5** | Symétrie : le worker **refuse de démarrer** si `INFLUX_ENV=production` et `SYNC_MODE=dry_run`, **y compris quand `SYNC_MODE` est absent** (la valeur par défaut `dry_run` ne passe pas en production) |
+| **T17.6** | **Mode Brevo (`api` et `worker`, `16` RG116).** `BREVO_MODE=live` hors production ⇒ refus ; en production, toute autre valeur que `live` (`disabled`, `redirect`, variable absente) ⇒ refus ; `redirect` sans `BREVO_TEST_RECIPIENTS` ⇒ refus. Contre-tests : `live` accepté en production ; `disabled` par défaut hors production |
+| **T17.7** | **Synchronisation hors production (`worker`).** `SYNC_MODE=live` hors production avec `NON_PRODUCTION_RECIPIENT_ALLOWLIST` vide ⇒ refus. Contre-test : accepté avec une liste de domaines |
+| **T17.8** | **Secret interne par front (`api`, J1-G) et environnement.** Secret absent, de moins de **32 octets** (comptés en octets, pas en caractères), ou **identique pour `web` et `backoffice`** ⇒ refus. `INFLUX_ENV` absent ou hors `staging` / `production` ⇒ refus |
+| **T17.9** | Le refus **nomme la variable et la règle, jamais la valeur** : un secret trop court ou dupliqué n'apparaît ni dans le message d'erreur, ni sur la sortie du processus |
+| **T17.10** | **Au niveau du processus** : les vrais points d'entrée (`node src/main.ts`, `node src/worker.ts`) sortent avec un **code non nul avant d'écouter** sur un port ou d'entamer leur boucle — au moins un cas par processus. Un refus vérifié seulement sur la fonction de chargement ne prouve pas que le service ne démarre pas |
 
-*Niveau : intégration + configuration. Lot 1. À chaque exécution et avant déploiement.*
+*Niveau : unitaire (schémas de configuration) et processus pour T17.5 à T17.10, Lot 0 (J1) ;
+intégration + configuration pour T17.1 à T17.4, Lot 1. À chaque exécution et avant déploiement.*
 
 ---
 
@@ -669,7 +689,7 @@ le métier : la file, les leads, les montants, les transitions. Douze familles s
 | **TM8** | **Envoi d'e-mails depuis le backoffice** | Intégration | 5 | 6 | A4 / D35, veto RGPD |
 | **TM9** | **Demandes RGPD, suppression, propagation** | Intégration | 5 | 5 | Les droits des personnes |
 | **TM10** | **Inscription : validations pures** | Unitaire | 1 | 5 | La première conversion |
-| **TM11** | **Anonymisation au niveau des types** | Statique | 2 | 3 | Défense n° 2 d'A2 |
+| **TM11** | **Anonymisation au niveau des types et des schémas de réponse** | Statique + intégration | 0-2 | 4 | Défense n° 2 d'A2 |
 | **TM12** | **Recherche : k-anonymat, pagination, export** | Intégration | 3 | 6 | L'annuaire de créateurs |
 
 ### TM1 — Pipeline de leads et consentement (10 cas)
@@ -791,13 +811,14 @@ jamais pré-coché).
 | TM10.4 | La version de CGU acceptée est **enregistrée** et correspond à la version en vigueur à l'instant de l'inscription |
 | TM10.5 | Pays et langue sont des données explicites, sans valeur par défaut « France / français » |
 
-### TM11 — Anonymisation au niveau des types (3 cas)
+### TM11 — Anonymisation au niveau des types et des schémas de réponse (4 cas)
 
 | Cas | Ce qu'il vérifie |
 |---|---|
 | TM11.1 | **Aucun type exposé à une marque ne porte de champ identifiant** — la garde annexe actuelle sur `CreatorCard`, promue en règle permanente et étendue à tous les contrats de `packages/contracts` |
 | TM11.2 | Aucun schéma de réponse Fastify accessible au rôle `advertiser` ne déclare un champ de `creator_identities` |
 | TM11.3 | Aucun import de `@supabase/*`, `drizzle-orm`, `pg` ou `postgres` dans `apps/web` et `apps/backoffice` (règle ESLint, doublée d'un test au cas où la règle serait désactivée en ligne) |
+| TM11.4 | **Pas de réponse sans schéma** (`02` §4 règle 1, `21` J1-E ; **Lot 0, J1**). (a) Un champ non déclaré dans le schéma de réponse n'est jamais sérialisé. (b) Une route **sans** schéma de réponse, avec un schéma de réponse **vide** (`response: {}`), ou **sans aucun code `2xx`** ⇒ l'API refuse de démarrer. (c) Une route qui renvoie un **code non déclaré** dans son schéma, ou un corps qui viole son schéma ⇒ `500` en enveloppe, **sans aucun champ du corps d'origine** (T13). Sans (b) et (c), le filtre de sortie ne vaut que pour les routes qui ont pensé à le déclarer |
 
 ### TM12 — Recherche (6 cas)
 
@@ -814,9 +835,9 @@ jamais pré-coché).
 
 | Famille | Cas |
 |---|---|
-| T1 à T17 (exigés par `expert-cybersecurite`) | **111** |
-| TM1 à TM12 (métier) | **74** |
-| **Total** | **185 cas de test**, dans **29 familles** |
+| T1 à T17 (exigés par `expert-cybersecurite`) | **124** |
+| TM1 à TM12 (métier) | **75** |
+| **Total** | **199 cas de test**, dans **29 familles** |
 | En complément | 1 corpus figé de **120 cas** de détection (§6), 1 parcours de bout en bout en **12 étapes** + 1 parcours négatif (§7), 2 contrôles non automatisés (X3, X4) |
 
 ---
@@ -839,19 +860,22 @@ garantir qu'**aucune protection ne disparaît sans contrepartie**.
 | **G2** — aucune URL `http(s)://` | La fuite vers un tiers, l'appel réseau non prévu | **Levée au Lot 1** | **Trois remplaçants, pas un** : (a) garde resserrée — aucune URL littérale hors de `src/config/` et `src/locales/` ; (b) **CSP testée en production** (T10.6) ; (c) règle ESLint interdisant `fetch` hors du seul `src/server/api-client.ts`. La garde passe d'une vérification de lecture à une vérification d'exécution : c'est **plus fort**, à condition que (b) existe le jour où (a) est levée — **dans le même commit** | 1 |
 | **G3** — aucune couleur ni longueur en dur | L'invariant du design system (`CLAUDE.md` §10.3 règle 7) | **Conservée définitivement, étendue** | Étendue à `apps/backoffice` et `packages/ui` **via le harnais partagé**. Aucune contrepartie nécessaire : rien n'est levé | permanent |
 | **G4** — chaque photo est créditée | Le risque juridique des visuels d'illustration | **Conservée tant que `src/content/placeholders/` existe, supprimée avec lui au Lot 1** | **Remplacée par une garde d'absence** : aucun fichier image dans le dépôt en dehors d'un manifeste d'actifs de marque déclaré. Le risque change de nature au Lot 1 (les visuels deviennent des portfolios déposés par des créateurs) et il est alors porté par la **modération** et par T9. Sans la garde d'absence, une photo non créditée pourrait revenir sans bruit | 1 |
-| **G5** — aucun `route.ts` sous `src/app` | L'apparition d'un point d'accès serveur non prévu dans une maquette | **Levée et remplacée par une garde plus stricte** | **Liste blanche nominative** : le seul fichier de route autorisé est `src/app/api/[...path]/route.ts`, et son contenu ne contient aucun import de `@supabase/*`, `drizzle-orm`, `pg`, `postgres`, aucune lecture de variable d'environnement secrète, aucun `if` métier. **Plus l'empreinte du fichier (T7.8)** et **plus les neuf cas de T7**. Le remplacement est nettement plus fort que l'original, et il survit à la vraie application | 1 |
+| **G5** — aucun `route.ts` sous `src/app` | L'apparition d'un point d'accès serveur non prévu dans une maquette | **Levée au J1 dans le commit du passe-plat, remplacée par une garde plus stricte** (EC-13, `21` §4 J1-C) | **Garde de remplacement**, écrite une fois dans `packages/test-kit` et appliquée aux deux fronts : (a) les fichiers de route sous `src/app` sont **exactement** `{ src/app/api/[...path]/route.ts }` (EC-22 y ajoutera `src/app/health/route.ts`) ; (b) **aucun dossier `src/pages/` ni `pages/`** — le routeur historique de Next.js ouvrirait des routes `pages/api/*` hors de la liste blanche ; (c) `route.ts`, `src/server/relay.ts` et `src/server/api-client.ts` n'importent ni `@supabase/*`, ni `drizzle-orm`, ni `pg`, ni `postgres`, ne lisent pas `process.env` et ne contiennent pas `'use server'` ; (d) **garde des importeurs** (`relay.ts` importé par `route.ts` seul, `api-client.ts` par `relay.ts` seul, `src/config/server.ts` par `api-client.ts` seul) ; (e) **empreinte SHA-256** des quatre fichiers, identiques octet pour octet dans les deux fronts (T7.8). **Tests** : les conditions PP en **unitaire dès le J1** (PP-2, PP-3, PP-5, PP-7, PP-9, PP-10, PP-11 contre un faux serveur HTTP local ; T7.9 côté `apps/api`) et T7.10 ; **T7 complet, en intégration, au J9**. Le remplacement est nettement plus fort que l'original, et il survit à la vraie application | 0 (J1) |
 | **G6** — `IS_MOCKUP === true` | Qu'un site de démonstration soit pris pour le vrai, ou indexé | **Conservée jusqu'au retrait du module fictif au Lot 1, puis supprimée** | **Deux remplaçants** : (a) une **garde d'absence** — le module fictif, la constante `IS_MOCKUP` et le composant de bandeau **n'existent plus** dans le dépôt, de sorte qu'ils ne peuvent pas revenir silencieusement ; (b) la non-indexation devient une affaire d'environnement, **testée** (T10.4 pour le backoffice, en-tête `noindex` sur `staging` pour I-6). Point non automatisable, à vérifier à l'œil : le bandeau disparaît **dans le même commit** que la première donnée réelle, jamais avant | 1 |
 | **G7** — aucun conflit de classes Tailwind | Une régression visuelle silencieuse déjà survenue deux fois | **Conservée et étendue** | Étendue à `apps/backoffice` et `packages/ui` via le harnais partagé. L'auto-test du détecteur (dernier cas actuel) est **conservé** : c'est une bonne pratique, un détecteur qui ne sait plus détecter est un test qui ment | permanent |
-| *(annexe 1)* — parité des clés FR/EN | Un écran à moitié traduit en production | **Conservée, étendue** à tous les fichiers de traduction, pas seulement `landing.json` | Étendue aux locales de `apps/backoffice` **si D36 ouvre le backoffice à l'anglais** ; sinon la garde vérifie que `apps/backoffice` n'a **aucun** fichier de traduction, pour que la décision reste visible | permanent |
-| *(annexe 2)* — aucune API réseau ni stockage | Le vol de session par JavaScript, l'appel réseau sauvage | **Scindée** | **(a)** `fetch` : autorisé **dans le seul** `src/server/api-client.ts`, interdit ailleurs (ESLint + garde). **(b)** `localStorage`, `sessionStorage`, `indexedDB`, `document.cookie`, `cookieStore`, `sendBeacon` : **interdits définitivement**, sans exception et sans liste blanche — la session est un cookie `httpOnly` (A-9). Le second volet est plus important que le premier et ne doit jamais être assoupli « pour un besoin de confort » | 1 puis permanent |
+| *(annexe 1)* — parité des clés FR/EN | Un écran à moitié traduit en production | **Conservée, étendue** à tous les fichiers de traduction de `apps/web`, pas seulement `landing.json` | **`apps/web`** : parité des clés sur tous les fichiers de `src/locales/<langue>/`. **`apps/backoffice`, tant que D36 est ouverte** (français seul, sans `next-intl` ; EC-25, appliquée au J1) : la garde vérifie (a) **un seul module de libellés, `src/messages/fr.ts`** : `src/messages/` ne contient rien d'autre, et aucun autre fichier de `src/` ne porte pour nom un code de langue (`fr`, `en`, `pt`, `es`, `de`, `it`, avec ou sans région : `en.ts`, `pt-BR.ts`, `fr_FR.ts`…) — `src/i18n/en.ts` fait échouer la garde ; (b) **aucun dossier `locales/` ni `i18n/`** sous `src/` ; (c) **aucun fichier `.json` sous `src/`** ; (d) **`next-intl` absent** de `package.json` et de tout import. La décision D36 reste ainsi visible dans le code. **Si D36 ouvre le backoffice à l'anglais**, cette garde est remplacée, dans le commit qui ajoute la seconde langue, par la parité des clés de `apps/web` | permanent |
+| *(annexe 2)* — aucune API réseau ni stockage | Le vol de session par JavaScript, l'appel réseau sauvage | **Scindée au J1**, dans le commit qui lève G5 (`21` §4 J1-C, point 1) | **(a)** `fetch` : autorisé **dans le seul** `src/server/api-client.ts`, interdit ailleurs (ESLint + garde). **(b)** `localStorage`, `sessionStorage`, `indexedDB`, `document.cookie`, `cookieStore`, `sendBeacon` : **interdits définitivement**, sans exception et sans liste blanche — la session est un cookie `httpOnly` (A-9). Le second volet est plus important que le premier et ne doit jamais être assoupli « pour un besoin de confort » | 0 (J1) puis permanent |
 | *(annexe 3)* — valeurs fictives confinées | Qu'un nom inventé se retrouve en production | **Conservée jusqu'au Lot 1**, disparaît avec le module fictif | Remplacée par la garde d'absence de G6. Aucune protection perdue : sans module fictif, il n'y a plus de valeur fictive à confiner | 1 |
 | *(annexe 4)* — `CreatorCard` sans champ d'identité | **A2 / D16 au niveau du type** | **Conservée et promue en règle permanente** | Devient **TM11.1**, généralisée : *aucun type exposé à une marque ne porte de champ identifiant*, appliquée à tout `packages/contracts`. Doublée par T1 (charge utile brute) et par T2 (droits en base). C'est la garde qui monte le plus en importance dans tout ce tableau | permanent |
 
-**Bilan.** Quatre gardes sont levées (G2, G4, G5, G6) et trois annexes évoluent. Chacune reçoit une
-contrepartie **plus forte** que l'originale, à une condition de calendrier non négociable :
+**Bilan.** Quatre gardes sont levées (G2, G4, G5, G6) et trois annexes évoluent. **G5 et l'annexe 2
+l'ont été au J1** (EC-13) ; **G1, G2, G4, G6, la parité FR/EN de `apps/web` et le confinement du
+module fictif restent en place jusqu'au J9**. Chacune reçoit une contrepartie **plus forte** que
+l'originale, à une condition de calendrier non négociable :
 
 > **Une garde n'est levée que dans le commit qui introduit son remplaçant, jamais avant.** Un lot qui
-> lève G2 sans livrer la CSP testée, ou G5 sans livrer la liste blanche et T7, n'est pas livrable.
+> lève G2 sans livrer la CSP testée, ou G5 sans livrer la garde de liste blanche et les tests
+> unitaires du passe-plat (T7 complet au J9), n'est pas livrable.
 
 ---
 
@@ -1152,12 +1176,16 @@ par le fondateur** vaut cochée : c'est la différence entre un risque accepté 
 - [ ] **B9** — `staging` alimenté exclusivement par `supabase/seed`, interdiction écrite de toute restauration de production → **T17.4 + procédure**
 - [ ] **B10** — `react/no-danger` en **erreur** dans les deux fronts, aucun rendu Markdown → **règle ESLint + garde**
 
-**Tests exigibles au Lot 0 :** T2, T3, T4, T6, T11, T12, T16 — **7 familles, 41 cas.**
+**Tests exigibles au Lot 0 :** T2, T3, T4, T6, T11, T12, T16 — **7 familles, 43 cas.**
+
+**Cas avancés au Lot 0 (socle J1 à J4)**, comptés dans leur famille et complétés à son lot : T7 en
+unitaire contre un faux serveur local (conditions PP) avec T7.8 à T7.12 ; T8.7, T8.12, T8.13 (J3) ;
+l'enveloppe `404` / `500` et T13.5 à T13.7 ; T17.5 à T17.10 ; TM11.4.
 
 **Autres vérifications :**
 
-- [ ] Les gardes de `apps/web` sont **extraites dans un harnais partagé** et étendues aux nouveaux paquets (G3, G7) — sans quoi « étendu » reste un mot
-- [ ] Aucune garde de `apps/web` n'est levée à ce stade : le site reste une maquette
+- [ ] Les gardes de `apps/web` sont **extraites dans un harnais partagé** (`packages/test-kit`, J1) et étendues aux nouveaux paquets (G3, G7) — sans quoi « étendu » reste un mot
+- [ ] **G5 levée au J1, dans le commit du passe-plat, avec sa garde de remplacement** (§5, EC-13), et garde annexe réseau scindée dans le même commit. **G1, G2, G4, G6, la parité FR/EN de `apps/web` et le confinement du module fictif restent en place jusqu'au J9.** Au backoffice : G3, G7 et la garde des libellés d'EC-25 (§5, annexe 1)
 - [ ] Un compte de démonstration **par rôle** se connecte réellement dans les trois espaces
 - [ ] I-4 (marqueur `security-reviewed:` sur les migrations sensibles), I-5 (deux comptes ou élévation), I-7 (`x-influx-internal`), I-12 (T12 hebdomadaire) en place
 - [ ] **Non automatisable** : le fondateur a tranché F-b (dérogation Pull Request sur `supabase/migrations/**`)
@@ -1166,10 +1194,10 @@ par le fondateur** vaut cochée : c'est la différence entre un risque accepté 
 
 ### Lot 1 — Inscription et leads ▸ première mise en ligne
 
-**Tests exigibles :** T7, T8, T10, T13, T15, T17 + TM1, TM10 — **8 familles, 57 cas**, plus les
-familles du Lot 0 en non-régression.
+**Tests exigibles :** T7, T8, T10, T13, T15, T17 + TM1, TM10 — **8 familles, 68 cas** (dont une
+partie avancée au Lot 0), plus les familles du Lot 0 en non-régression.
 
-- [ ] **Aucune garde n'est levée sans son remplaçant dans le même commit** (G2 → CSP testée + garde resserrée ; G5 → liste blanche + T7 ; G4 et G6 → gardes d'absence) — §5
+- [ ] **Aucune garde n'est levée sans son remplaçant dans le même commit** (G2 → CSP testée + garde resserrée ; G4 et G6 → gardes d'absence) — §5. G5, levée au J1, est complétée par **T7 en entier, en intégration**
 - [ ] Le module fictif, `IS_MOCKUP` et le bandeau « Maquette » **n'existent plus** dans le dépôt
 - [ ] Une inscription réelle crée un compte **et** quatre lignes de file, et **aucun appel sortant n'est possible depuis `staging`** (T17)
 - [ ] La version de CGU acceptée est enregistrée par partie (TM10.4)
@@ -1183,7 +1211,7 @@ familles du Lot 0 en non-régression.
 
 ### Lot 2 — Profils, réseaux, audience, badge
 
-**Tests exigibles :** T1, T9, T14 + TM5 (partiel), TM11 — **5 familles, 30 cas.**
+**Tests exigibles :** T1, T9, T14 + TM5 (partiel), TM11 — **5 familles, 31 cas.**
 
 - [ ] **T1 passe intégralement** : c'est le lot où l'anonymisation devient réelle, et le lot où elle peut fuir pour la première fois
 - [ ] **T9.6 passe** : aucune pièce de vérification atteignable par un annonceur, y compris en devinant un identifiant
@@ -1245,7 +1273,7 @@ détection.
 
 **Tests exigibles :** **toutes** les familles, plus le parcours de bout en bout du §7.
 
-- [ ] Les 29 familles passent, soit 185 cas, en une seule exécution de CI
+- [ ] Les 29 familles passent, soit 199 cas, en une seule exécution de CI
 - [ ] Le parcours de bout en bout (12 étapes) et le parcours négatif (5 vérifications) passent
 - [ ] La vérification complète de la chaîne d'audit renvoie `ok` sur la totalité du registre
 - [ ] `billing.commission_rates` est **toujours vide** (T16.3) — c'est le dernier contrôle avant ouverture
@@ -1270,7 +1298,7 @@ Ce que je peux dire dès maintenant :
 |---|---|
 | Le plan couvre-t-il les exigences de `expert-cybersecurite` ? | **Oui** : T1 à T17 repris un par un, X1 et X2 devenus des tests de CI, X3 et X4 explicitement sortis de la CI avec justification (§9.1, C-1) |
 | Une protection disparaît-elle avec les gardes levées ? | **Non**, à une condition de calendrier : une garde n'est levée que dans le commit qui introduit son remplaçant (§5) |
-| Le plan est-il proportionné ? | **185 cas, 29 familles, un seul parcours de bout en bout.** Peu de tests, tous choisis. Le coût d'entretien a été un critère de sélection au même titre que la couverture |
+| Le plan est-il proportionné ? | **199 cas, 29 familles, un seul parcours de bout en bout.** Peu de tests, tous choisis. Le coût d'entretien a été un critère de sélection au même titre que la couverture |
 | Reste-t-il des zones non couvertes ? | **Quatorze**, listées au §8. Quatre d'entre elles (le tableau de bord Supabase, la malveillance d'un opérateur unique, le test d'intrusion, la sincérité de la saisie) ne relèvent d'aucun test et remontent au fondateur |
 
 **Le point sur lequel je ne transigerai pas :** tant que **T1**, **T2**, **T3** et **T4** ne passent
