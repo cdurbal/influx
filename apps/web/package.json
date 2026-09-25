@@ -9,7 +9,8 @@
     "start": "next start -H 0.0.0.0",
     "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:artifacts": "vitest run --config vitest.artifacts.config.ts"
   },
   "dependencies": {
     "lucide-react": "1.46.0",
@@ -19,6 +20,7 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@influx/test-kit": "workspace:*",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "22.20.3",
     "@types/react": "19.3.0",

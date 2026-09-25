@@ -1,8 +1,18 @@
 // Guard tests of the landing page mockup (docs/landing-page/01-architecture.md §9.3).
-// File reading only: deterministic, no browser, no network.
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+// File reading only: deterministic, no browser, no network. Shared detectors live in
+// @influx/test-kit (docs/mvp/18-plan-de-test-mvp.md §5, docs/mvp/21 §4 J1-E).
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  findClassListConflicts,
+  findMatches as findMatchesIn,
+  findPrimitiveBaseClassConflicts,
+  HARD_CODED_COLOR_PATTERN,
+  HARD_CODED_LENGTH_PATTERN,
+  listFiles,
+  relativePath,
+} from "@influx/test-kit/guards";
 import { describe, expect, it } from "vitest";
 
 const WEB_ROOT = path.resolve(
@@ -13,15 +23,8 @@ const SRC = path.join(WEB_ROOT, "src");
 const PLACEHOLDERS_DIR = path.join(SRC, "content", "placeholders");
 const IMAGES_DIR = path.join(PLACEHOLDERS_DIR, "images");
 
-function listFiles(directory: string): string[] {
-  return readdirSync(directory).flatMap((entry) => {
-    const fullPath = path.join(directory, entry);
-    return statSync(fullPath).isDirectory() ? listFiles(fullPath) : [fullPath];
-  });
-}
-
 function relative(file: string): string {
-  return path.relative(WEB_ROOT, file).split(path.sep).join("/");
+  return relativePath(WEB_ROOT, file);
 }
 
 /** Scope of G1 to G3: every source file of the landing page (docs/landing-page/01-architecture.md §9.3) */
@@ -30,15 +33,7 @@ const SCOPED_FILES = listFiles(SRC).filter((file) =>
 );
 
 function findMatches(pattern: RegExp, files: readonly string[]): string[] {
-  return files.flatMap((file) =>
-    readFileSync(file, "utf8")
-      .split("\n")
-      .flatMap((line, index) =>
-        pattern.test(line)
-          ? [`${relative(file)}:${index + 1}: ${line.trim()}`]
-          : [],
-      ),
-  );
+  return findMatchesIn(pattern, files, WEB_ROOT);
 }
 
 describe("G1: no mailto or tel shortcut (CA6, revised 00-cadrage.md §8)", () => {
@@ -64,14 +59,11 @@ describe("G3: no hard-coded color or length outside the token files (CA22)", () 
   const files = SCOPED_FILES.filter((file) => !TOKEN_FILES.has(relative(file)));
 
   it("finds no hexadecimal color or color function", () => {
-    const colorPattern =
-      /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b|\b(?:rgba?|hsla?|oklch|oklab|color-mix)\(/;
-    expect(findMatches(colorPattern, files)).toEqual([]);
+    expect(findMatches(HARD_CODED_COLOR_PATTERN, files)).toEqual([]);
   });
 
   it("finds no literal length (px, rem, em, vh, vw, ch)", () => {
-    const lengthPattern = /\b\d*\.?\d+(?:px|rem|em|d?vh|d?vw|ch)\b/;
-    expect(findMatches(lengthPattern, files)).toEqual([]);
+    expect(findMatches(HARD_CODED_LENGTH_PATTERN, files)).toEqual([]);
   });
 
   it("keeps a single tokens file, marked with its D6 status", () => {
@@ -260,106 +252,20 @@ describe("Additional guards", () => {
 });
 
 describe("G7: no Tailwind class conflict that cn() cannot resolve (10 #10)", () => {
-  // cn() only joins classes: when two utilities of the same group apply at the same variant, the
-  // order of the compiled CSS wins, not the order of the call (cause of 09 A1 and 10 #1 to #3).
-  // Checked groups are those that broke the page: width and white-space.
-  const CONFLICT_GROUPS: ReadonlyArray<{ name: string; pattern: RegExp }> = [
-    { name: "width", pattern: /^w-/ },
-    { name: "white-space", pattern: /^whitespace-/ },
-  ];
-  const COMPONENT_FILES = listFiles(SRC).filter((file) =>
-    file.endsWith(".tsx"),
-  );
-
-  /** Returns the argument text of every cn(...) call, with balanced parentheses. */
-  function cnCalls(source: string): string[] {
-    const calls: string[] = [];
-    for (const match of source.matchAll(/\bcn\(/g)) {
-      const start = match.index + match[0].length;
-      let depth = 1;
-      let end = start;
-      while (end < source.length && depth > 0) {
-        if (source[end] === "(") depth += 1;
-        if (source[end] === ")") depth -= 1;
-        end += 1;
-      }
-      calls.push(source.slice(start, end - 1));
-    }
-    return calls;
-  }
-
-  function classesOf(text: string): string[] {
-    return [...text.matchAll(/"([^"]*)"/g)].flatMap((literal) =>
-      (literal[1] ?? "").split(/\s+/).filter(Boolean),
-    );
-  }
-
-  /** Group keys ("sm:|width") that appear more than once in the class list. */
-  function conflicts(classes: readonly string[]): string[] {
-    const seen = new Map<string, number>();
-    for (const className of classes) {
-      const separator = className.lastIndexOf(":");
-      const variant = className.slice(0, separator + 1);
-      const utility = className.slice(separator + 1);
-      const group = CONFLICT_GROUPS.find(({ pattern }) =>
-        pattern.test(utility),
-      );
-      if (group) {
-        const key = `${variant}|${group.name}`;
-        seen.set(key, (seen.get(key) ?? 0) + 1);
-      }
-    }
-    return [...seen].filter(([, count]) => count > 1).map(([key]) => key);
-  }
-
+  // Detector and its self-check: @influx/test-kit (packages/test-kit/tests/guards.test.ts).
   it("never sets two widths or two white-space values at the same variant in one class list", () => {
-    const findings = COMPONENT_FILES.flatMap((file) => {
-      const source = readFileSync(file, "utf8");
-      const lists = [
-        ...[...source.matchAll(/className="([^"]*)"/g)].map(
-          (match) => `"${match[1] ?? ""}"`,
-        ),
-        ...cnCalls(source),
-      ];
-      return lists.flatMap((list) => {
-        // Alternatives of a ternary never apply together: check each side apart.
-        const sides = list.includes("?") ? list.split(/[?:]\s*(?=")/) : [list];
-        return sides.flatMap((side) =>
-          conflicts(classesOf(side)).map(
-            (key) => `${relative(file)}: ${key} in ${side.trim()}`,
-          ),
-        );
-      });
-    });
-    expect(findings).toEqual([]);
+    const componentFiles = listFiles(SRC).filter((file) =>
+      file.endsWith(".tsx"),
+    );
+    expect(findClassListConflicts(componentFiles, WEB_ROOT)).toEqual([]);
   });
 
   it("keeps width and white-space out of the base classes of primitives that accept className", () => {
-    const findings = listFiles(path.join(SRC, "components", "ui"))
-      .filter((file) => file.endsWith(".tsx"))
-      .flatMap((file) =>
-        cnCalls(readFileSync(file, "utf8"))
-          .filter((call) => /\bclassName\b/.test(call))
-          .flatMap((call) =>
-            // Opt-in classes such as `fullWidth && "w-full"` are chosen by the caller: allowed.
-            classesOf(
-              call
-                .slice(0, call.search(/\bclassName\b/))
-                .replace(/&&\s*"[^"]*"/g, ""),
-            )
-              .filter((className) =>
-                CONFLICT_GROUPS.some(({ pattern }) => pattern.test(className)),
-              )
-              .map((className) => `${relative(file)}: ${className}`),
-          ),
-      );
-    expect(findings).toEqual([]);
-  });
-
-  it("fails on a known conflicting example (self-check of the detector)", () => {
-    expect(
-      conflicts(classesOf(`"w-full" "aspect-4/5 w-1/3 sm:w-full"`)),
-    ).toEqual(["|width"]);
-    expect(conflicts(classesOf(`"w-1/3 sm:w-full"`))).toEqual([]);
+    const primitiveFiles = listFiles(path.join(SRC, "components", "ui")).filter(
+      (file) => file.endsWith(".tsx"),
+    );
+    expect(findPrimitiveBaseClassConflicts(primitiveFiles, WEB_ROOT)).toEqual(
+      [],
+    );
   });
 });
