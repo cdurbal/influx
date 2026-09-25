@@ -541,7 +541,7 @@ select rolname, rolsuper, rolbypassrls
 
 | Cas | Ce qu'il vérifie |
 |---|---|
-| **T11.1** | Analyse des artefacts de construction de `apps/web` et `apps/backoffice` : aucune occurrence de `SUPABASE_SERVICE_ROLE_KEY`, `BREVO_API_KEY`, `APOLLO_API_KEY`, `SESSION_COOKIE_SECRET` |
+| **T11.1** | Analyse des artefacts de construction de `apps/web` et `apps/backoffice` : aucune occurrence de `SUPABASE_SECRET_KEY`, `BREVO_API_KEY`, `APOLLO_API_KEY`, `SESSION_COOKIE_SECRET` |
 | **T11.2** | Aucune chaîne ressemblant à un JWT dans un artefact de front |
 | **T11.3** | Analyse de secrets sur le dépôt **et son historique** |
 | **T11.4** | `.env*` ignoré, `.env.example` présent et à jour (toute variable requise par la validation de démarrage y figure) |

@@ -30,7 +30,7 @@ Agents concernés : `integrateur` (principal), `expert-cybersecurite` (**veto**)
 1. **Aucun secret dans Git.** `.env*` est ignoré dès le premier commit, sauf `.env.example`, qui ne
    contient que des **valeurs factices**.
 2. **Aucune variable `SUPABASE_*` n'atteint jamais un navigateur.** Ni `SUPABASE_URL`, ni
-   `SUPABASE_ANON_KEY`, ni a fortiori `SUPABASE_SERVICE_ROLE_KEY`. **Aucune d'elles n'est jamais
+   `SUPABASE_PUBLISHABLE_KEY`, ni a fortiori `SUPABASE_SECRET_KEY`. **Aucune d'elles n'est jamais
    préfixée `NEXT_PUBLIC_`.** C'est la traduction en variables de la règle d'architecture n° 1
    (`CLAUDE.md` §6, `02` §2.1) : *le front ne parle jamais à Supabase pour de la donnée métier et ne
    porte aucune clé Supabase, pas même `anon`.*
@@ -85,8 +85,8 @@ Source de vérité : `02` §12.3 pour la plateforme, `16` §M8 pour Brevo.
 | Variable | Porteurs | Exposition | `staging` vs `production` |
 |---|---|---|---|
 | `SUPABASE_URL` | **api uniquement** | **Serveur uniquement** | **Deux projets Supabase distincts**, jamais deux schémas d'un même projet (`02` §12.2) |
-| `SUPABASE_ANON_KEY` | **api uniquement** | **Serveur uniquement.** Ce n'est pas un secret — c'est précisément pourquoi **aucune table métier ne vit dans `public`** (`02` §5, règle 4) — mais elle ne quitte pas `apps/api` | Une par projet |
-| `SUPABASE_SERVICE_ROLE_KEY` — **clé d'API HTTP**, à ne pas confondre avec le rôle Postgres `service_role`, **qui n'est utilisé nulle part** | api · worker | **Secrète, jamais dans un bundle.** Usage limité à **GoTrue (Auth)** et aux **URL signées du Storage**. **Jamais pour atteindre une table** | Une par projet |
+| `SUPABASE_PUBLISHABLE_KEY` (ex-`SUPABASE_ANON_KEY`, clé `sb_publishable_…`) | **api uniquement** | **Serveur uniquement.** Ce n'est pas un secret — c'est précisément pourquoi **aucune table métier ne vit dans `public`** (`02` §5, règle 4) — mais elle ne quitte pas `apps/api` | Une par projet |
+| `SUPABASE_SECRET_KEY` — **clé d'API HTTP** (ex-`SUPABASE_SERVICE_ROLE_KEY`, renommée le 2026-09-25 pour suivre les « secret keys » `sb_secret_…` de Supabase), à ne pas confondre avec le rôle Postgres `service_role`, **qui n'est utilisé nulle part** | api · worker | **Secrète, jamais dans un bundle.** Usage limité à **GoTrue (Auth)** et aux **URL signées du Storage**. **Jamais pour atteindre une table** | Une par projet |
 | `SUPABASE_JWKS_URL` | api | Publique par nature | Une par projet |
 
 ### Base de données
@@ -140,7 +140,7 @@ Toutes sont **serveur uniquement**, dans le paquet `apps/api` (services `api` et
 1. **Classer** : publique (client) ou secrète (serveur). En cas de doute → secrète.
    **Toute variable `SUPABASE_*`, `DATABASE_*`, `BREVO_*`, `APOLLO_*` est serveur, sans discussion.**
 2. **Nommer** en `SCREAMING_SNAKE_CASE`, explicite, préfixé par le service
-   (`BREVO_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`). **N'utiliser `NEXT_PUBLIC_` que pour une
+   (`BREVO_WEBHOOK_SECRET`, `SUPABASE_SECRET_KEY`). **N'utiliser `NEXT_PUBLIC_` que pour une
    valeur qu'on accepterait de publier sur la page d'accueil.**
 3. **Documenter** dans `.env.example` : nom, rôle, format attendu, service porteur, **valeur
    factice** — jamais la vraie valeur.
@@ -184,7 +184,7 @@ suspicion de fuite**.
 | `BREVO_API_KEY`, `BREVO_SENDER_*` | **Oui** — e-mail réel | **B** |
 | `APOLLO_API_KEY` | **Oui** — écriture CRM, séquence commerciale | **B** |
 | `BREVO_WEBHOOK_SECRET`, `BREVO_WEBHOOK_PATH_TOKEN` | Oui, en flux entrant : une valeur mal basculée **perd des désinscriptions** | **B** |
-| `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` | Non | **A** |
+| `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY` | Non | **A** |
 | `DATABASE_URL`, `ELEVATED_DATABASE_URL`, `DIRECT_DATABASE_URL` (mots de passe de rôles) | Non | **A** |
 | `SESSION_COOKIE_SECRET` | Non, mais **déconnecte tout le monde** | **A**, en fenêtre choisie |
 

@@ -801,7 +801,7 @@ Deux choses portent le même nom dans la documentation Supabase, et il faut les 
 
 | Objet | Ce que c'est | Décision |
 |---|---|---|
-| **`SUPABASE_SERVICE_ROLE_KEY`** | Une **clé d'API HTTP** pour GoTrue (Auth) et Storage | **Conservée**, cantonnée à `apps/api` et au worker, uniquement pour : créer un utilisateur, gérer le second facteur, émettre une URL signée |
+| **`SUPABASE_SECRET_KEY`** | Une **clé d'API HTTP** pour GoTrue (Auth) et Storage | **Conservée**, cantonnée à `apps/api` et au worker, uniquement pour : créer un utilisateur, gérer le second facteur, émettre une URL signée |
 | **Le rôle Postgres `service_role`** | Un rôle **`BYPASSRLS`** : une clé passe-partout sur la base | **Refusé.** Il n'est utilisé nulle part |
 
 > **CONSTAT BLOQUANT B2.** Le worker n'a pas besoin de **contourner** la RLS ; il a besoin de **droits
@@ -1376,7 +1376,7 @@ Reformulation validée :
    `packages/contracts`. `withElevatedTransaction(reason, fn)` refuse tout motif hors liste **à
    l'exécution**, pas seulement à la compilation.
 4. **`service_role` au sens Postgres n'est utilisé nulle part.** La clé
-   `SUPABASE_SERVICE_ROLE_KEY` reste nécessaire pour l'API HTTP d'Auth et de Storage, uniquement dans
+   `SUPABASE_SECRET_KEY` reste nécessaire pour l'API HTTP d'Auth et de Storage, uniquement dans
    `apps/api` et le worker (§6.9).
 5. **Une seconde grappe de connexions**, avec sa propre variable d'environnement, pour les rôles
    élevés. Le chemin utilisateur et le chemin élevé ne partagent jamais une connexion : un défaut sur
@@ -1508,7 +1508,7 @@ qui ne s'exécute pas à chaque fois n'existe pas.
 | **T8** | **Authentification.** Un seul code valide à la fois ; expiration ; plafond de tentatives ; limitation de débit par adresse, par IP et globale ; réponse et **temps de réponse** identiques pour une adresse connue et inconnue ; code non réutilisable ; session révoquée **immédiatement** à la suspension ; route backoffice sans `aal2` ⇒ 403 ; changement d'adresse sans double confirmation ⇒ refus | Les conditions A-1 à A-12 et B-1 à B-8 | 1 |
 | **T9** | **Storage.** Tous les compartiments privés ; URL signée expirée refusée ; clé d'objet avec traversée refusée ; fichier dont les octets d'en-tête contredisent le type déclaré rejeté ; EXIF absent après traitement ; **une pièce de vérification n'est atteignable par aucune route ni aucun schéma accessible au rôle annonceur, y compris en devinant un identifiant** ; émission d'URL signée journalisée | E1-1 à E1-11 et la condition C(13) | 2 |
 | **T10** | **En-têtes et CSP.** Jeu d'en-têtes exact par surface, en mode production. Aucun `'unsafe-inline'` dans `script-src`. `X-Robots-Tag` présent sur **toutes** les réponses du backoffice, y compris les erreurs et les redirections | L'en-tête oublié sur la page d'erreur, cas classique | 1 |
-| **T11** | **Secrets.** Analyse des artefacts de construction de `apps/web` et `apps/backoffice` : aucune occurrence de `SUPABASE_SERVICE_ROLE_KEY`, `BREVO_API_KEY`, `APOLLO_API_KEY`, `SESSION_COOKIE_SECRET`, aucune chaîne ressemblant à un JWT. Analyse de secrets sur le dépôt et l'historique. `.env*` ignoré | La fuite par empaquetage : la variable lue au mauvais endroit se retrouve dans le bundle | 0 |
+| **T11** | **Secrets.** Analyse des artefacts de construction de `apps/web` et `apps/backoffice` : aucune occurrence de `SUPABASE_SECRET_KEY`, `BREVO_API_KEY`, `APOLLO_API_KEY`, `SESSION_COOKIE_SECRET`, aucune chaîne ressemblant à un JWT. Analyse de secrets sur le dépôt et l'historique. `.env*` ignoré | La fuite par empaquetage : la variable lue au mauvais endroit se retrouve dans le bundle | 0 |
 | **T12** | **Dépendances.** Échec de la CI sur toute vulnérabilité **critique ou élevée**. **Exécution planifiée hebdomadaire**, pas seulement à chaque commit — une CVE publiée n'attend pas notre prochain commit. Dérogations dans un fichier dédié, chacune **avec une date d'expiration** ; une dérogation expirée fait échouer la CI | Une dérogation sans échéance est un mensonge différé | 0 |
 | **T13** | **Erreurs.** Aucune réponse 4xx ou 5xx ne contient de trace d'exécution, de fragment SQL, de nom d'hôte interne, de nom de table ni de version de composant. Seuls `code`, un message traduisible et `requestId` | `CLAUDE.md` §9 et la checklist de `security-rgpd-audit` | 1 |
 | **T14** | **IDOR.** Pour chaque type d'objet, un utilisateur de chaque rôle tente de lire et de modifier un objet d'autrui en changeant l'identifiant ⇒ refus, **avec le même code de réponse** que pour un objet inexistant | Ne pas divulguer l'existence d'une ressource par la différence entre 403 et 404 | 2→5 |
@@ -1639,7 +1639,7 @@ seul à pouvoir accepter.
 | `docs/mvp/18-plan-de-test-mvp.md` | Les tests T1 à T19 du §8 (**T18 et T19 à reprendre**, ajoutés après la rédaction de `18`), et les contrôles X1 à X4 du §5.3 | `testeur` |
 | `CLAUDE.md` §6 et §13 | D37 passée à « tranchée et **validée sous conditions** par `expert-cybersecurite` », avec renvoi au §6.1 du présent document et mention de la **clause de caducité** en V2 | `chef-de-projet` |
 | `docs/legal/` (Lot 1) | Supervision des conversations (A10), journalisation des lectures, conservation probatoire du registre, pièces de vérification | `expert-conformite-rgpd` |
-| `.claude/skills/env-secrets/SKILL.md` | La distinction entre la **clé HTTP** `SUPABASE_SERVICE_ROLE_KEY` et le **rôle Postgres** `service_role`, ce dernier n'étant plus utilisé ; l'ajout de `x-influx-internal` | `integrateur` + `expert-cybersecurite` |
+| `.claude/skills/env-secrets/SKILL.md` | La distinction entre la **clé HTTP** `SUPABASE_SECRET_KEY` et le **rôle Postgres** `service_role`, ce dernier n'étant plus utilisé ; l'ajout de `x-influx-internal` | `integrateur` + `expert-cybersecurite` |
 
 ---
 

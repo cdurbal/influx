@@ -32,7 +32,7 @@
 > | Constat | Ce qui était écrit | Ce qui est corrigé |
 > |---|---|---|
 > | **B1** | Le §2.5 fondait l'anonymisation sur « aucun `GRANT` au rôle annonceur », présenté comme un acquis plus fort qu'une politique | **Inexact en configuration Supabase standard** : `advertiser`, `creator`, `agent` et `admin` y sont **le même rôle Postgres `authenticated`**. Il n'existe alors aucun rôle annonceur à qui refuser un droit, et la protection ne tient que par **un seul** contrôle. Le §2.5 énonce désormais cela comme une **condition à créer** : quatre rôles Postgres distincts et un `SET LOCAL ROLE` par transaction. Corrigé aussi aux §0, §5, §9.3, §10.1 et §15 |
-> | **B2** | Le §10 autorisait des opérations en `service_role`, rôle `BYPASSRLS` | **Le rôle Postgres `service_role` n'est plus utilisé nulle part.** Remplacé par des rôles d'exécution dédiés **sans `BYPASSRLS`** et par la **liste fermée de cinq opérations élevées** (E-1 à E-5) du document `03` §P7. La **clé d'API HTTP** `SUPABASE_SERVICE_ROLE_KEY` reste, pour Auth et les URL signées : ce sont deux objets différents qui portent le même nom |
+> | **B2** | Le §10 autorisait des opérations en `service_role`, rôle `BYPASSRLS` | **Le rôle Postgres `service_role` n'est plus utilisé nulle part.** Remplacé par des rôles d'exécution dédiés **sans `BYPASSRLS`** et par la **liste fermée de cinq opérations élevées** (E-1 à E-5) du document `03` §P7. La **clé d'API HTTP** `SUPABASE_SECRET_KEY` reste, pour Auth et les URL signées : ce sont deux objets différents qui portent le même nom |
 > | **B3** | La question « schémas par domaine ou schéma unique » était laissée ouverte (§14.2, n° 5) | **Tranchée : schémas par domaine**, pour raison de sécurité. Aucune table métier dans `public`, `REVOKE ALL` sur `anon` et `authenticated` |
 >
 > Les passages révisés portent la mention **« Révisé le 2026-09-18 (revue `expert-cybersecurite`) »**.
@@ -515,7 +515,7 @@ que l'outil réclame la propriété du schéma ».
    **Règle absolue : aucun rôle utilisé à l'exécution n'a `rolbypassrls` ni `rolsuper`** — vérifié par
    un test de CI (document `03` §8, T4). Le rôle Postgres `service_role` n'est utilisé **nulle part**.
 
-   **Ne pas confondre deux objets homonymes :** la **clé d'API HTTP** `SUPABASE_SERVICE_ROLE_KEY`
+   **Ne pas confondre deux objets homonymes :** la **clé d'API HTTP** `SUPABASE_SECRET_KEY`
    reste employée par `apps/api` et le worker, mais **uniquement pour GoTrue (Auth) et les URL
    signées du Storage** — jamais pour atteindre une table. C'est une clé d'API, pas un rôle Postgres.
 
@@ -1165,8 +1165,8 @@ démarrage : une variable requise manquante fait **échouer le démarrage** avec
 | `DATABASE_URL` (multiplexeur, rôle `influx_app`) | — | — | ✔ | — | **Secrète** |
 | `ELEVATED_DATABASE_URL` (seconde grappe : `influx_auth`, `influx_worker`, `influx_privacy` — **aucun avec `BYPASSRLS`**) | — | — | ✔ | ✔ | **Secrète** |
 | `DIRECT_DATABASE_URL` (rôle de migration, **propriétaire des objets**) | — | — | — | — | **Secrète, CI uniquement** — jamais dans un service d'exécution |
-| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | — | — | ✔ | — | **Serveur uniquement** — la clé anonyme ne quitte pas `apps/api`, et **n'est de toute façon pas un secret** : c'est pourquoi aucune table métier ne vit dans `public` (§5, règle 4) |
-| `SUPABASE_SERVICE_ROLE_KEY` — **clé d'API HTTP**, à ne pas confondre avec le rôle Postgres `service_role`, qui n'est utilisé nulle part | — | — | ✔ | ✔ | **Secrète, jamais dans un bundle.** Usage limité à GoTrue (création de compte, second facteur) et aux URL signées du Storage. **Jamais pour atteindre une table** |
+| `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | — | — | ✔ | — | **Serveur uniquement** — la clé publishable (ex-clé `anon`) ne quitte pas `apps/api`, et **n'est de toute façon pas un secret** : c'est pourquoi aucune table métier ne vit dans `public` (§5, règle 4) |
+| `SUPABASE_SECRET_KEY` — **clé d'API HTTP**, à ne pas confondre avec le rôle Postgres `service_role`, qui n'est utilisé nulle part | — | — | ✔ | ✔ | **Secrète, jamais dans un bundle.** Usage limité à GoTrue (création de compte, second facteur) et aux URL signées du Storage. **Jamais pour atteindre une table** |
 | `SUPABASE_JWKS_URL` | — | — | ✔ | — | Publique par nature |
 | `BREVO_API_KEY`, `APOLLO_API_KEY` | — | — | — | ✔ | **Secrète** |
 | `SESSION_COOKIE_SECRET` | — | — | ✔ | — | **Secrète** |
