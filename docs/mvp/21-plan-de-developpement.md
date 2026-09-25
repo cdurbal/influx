@@ -259,7 +259,9 @@ la proposition est une hypothèse de travail, pas une décision.
 3. Créer `.github/workflows/ci.yml` : installation (`corepack enable`, `pnpm install
    --frozen-lockfile`), `pnpm check`. Workflow hebdomadaire vide, prêt pour T12.
 4. **Fondateur** : second facteur activé sur GitHub, Supabase et Railway ; nombre de personnes
-   ayant accès limité (`03` F-3). Trancher F-4 (dérogation sur `supabase/migrations/**`).
+   ayant accès limité (`03` F-3). F-4 **tranché par le fondateur le 2026-09-25 : dérogation maintenue**, les migrations
+   (`supabase/migrations/**`) se commitent directement sur `main`, avec le marqueur
+   `security-reviewed: <date>` exigé par la CI (`03` I-4).
 
 **Terminé quand** : la CI tourne sur `main` et reste verte sur l'état actuel.
 
