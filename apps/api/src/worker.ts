@@ -49,12 +49,9 @@ async function main(): Promise<void> {
     environment: config.environment,
     version: config.version,
   });
+  // The environment is already in every line (logger base): only the modes are added here.
   logger.info(
-    {
-      environment: config.environment,
-      syncMode: config.sync.mode,
-      brevoMode: config.brevo.mode,
-    },
+    { syncMode: config.sync.mode, brevoMode: config.brevo.mode },
     "worker started",
   );
 
