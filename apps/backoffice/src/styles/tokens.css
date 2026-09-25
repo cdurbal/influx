@@ -1,0 +1,465 @@
+/*
+ * INFLUX design tokens — dark theme (D6 tranchée, fondateur, 2026-09-17).
+ *
+ * Source: docs/landing-page/03-tokens-provisoires.md (expert-ux, 2026-09-17, révisé le
+ * 2026-09-17 pour la bascule dark), aliases from docs/landing-page/02-ux-wireframes.md §2.9.
+ * Base : noir profond nuancé (surfaces qui s'éclaircissent par élévation, pas de noir pur),
+ * vert de marque recalibré pour un rendu premium et un contraste WCAG AA sur fond sombre.
+ *
+ * This is the ONLY file allowed to contain literal colors, sizes, spacings, radii, shadows,
+ * durations and breakpoints (CA22). Role names of 03 are kept; only the prefix follows the
+ * Tailwind namespace (01 §4, 02 §2.9). Tokens without a Tailwind namespace live in :root and are
+ * used as `z-(--z-header)`, `min-h-(--size-touch-target)`, `max-w-(--container-max)`, etc.
+ *
+ * Convention "inverse" : la base du site est sombre, sans exception (fondateur, 2026-09-17,
+ * abroge l'ancien principe de sections claires plein écran). Les tokens *-inverse
+ * (surface-inverse, text-inverse, action-inverse-bg…) ne servent plus qu'à des accents ponctuels
+ * de petite taille sur fond sombre (puce d'un graphique, cadre d'un mockup téléphone) — jamais à
+ * une section pleine largeur.
+ */
+
+@theme static {
+  /* Remove every default Tailwind value: only the tokens below exist. */
+  --*: initial;
+
+  /* ---------- Colors: brand and actions (03 §2.1) ---------- */
+  --color-brand-primary: #22c55e;
+  --color-brand-accent: #29e075;
+  --color-brand-subtle-bg: #0f2118;
+  --color-brand-subtle-border: #1f3d2b;
+  --color-action-primary-bg: #29e075;
+  --color-action-primary-bg-hover: #22c766;
+  --color-action-primary-bg-active: #1bb857;
+  --color-action-disabled-bg: #2a2a2e;
+  --color-action-secondary-bg: transparent;
+  --color-action-secondary-bg-hover: #1a1a1d;
+  --color-action-secondary-bg-active: #242428;
+  --color-action-secondary-border: var(--color-border-strong);
+  --color-action-inverse-bg: #0a0a0a;
+
+  /* ---------- Colors: text (03 §2.2) ---------- */
+  --color-text-primary: #f5f5f7;
+  --color-text-secondary: #a1a1aa;
+  --color-text-tertiary: #86868f;
+  /* Alias kept for backward compat — prefer text-tertiary in new code. */
+  --color-text-muted: var(--color-text-tertiary);
+  --color-text-brand: #29e075;
+  --color-text-brand-strong: #6ff2a8;
+  --color-text-on-action: #0a0a0a;
+  --color-text-on-accent: #0a0a0a;
+  --color-text-inverse: #0a0a0a;
+  --color-text-inverse-secondary: #52525b;
+  --color-text-accent-on-inverse: #0b7d45;
+  --color-text-disabled: #5c5c63;
+
+  /* ---------- Colors: surfaces (03 §2.3) ---------- */
+  --color-surface-page: #0a0a0a;
+  --color-surface-muted: #111113;
+  --color-surface-card: #131315;
+  --color-surface-raised: #1a1a1d;
+  --color-surface-hover: #1f1f23;
+  --color-surface-brand-subtle: #0f2118;
+  --color-surface-accent: #29e075;
+  --color-surface-inverse: #f5f5f7;
+  --color-surface-inverse-raised: #e8e8ea;
+  --color-overlay-scrim: rgba(0, 0, 0, 0.7);
+  /* Fill of the blurred, rotated hero halo rectangle (03 §9 ter) — color-text-primary at 7%. */
+  --color-overlay-hero-halo: rgba(245, 245, 247, 0.07);
+
+  /* ---------- Colors: borders (03 §2.4) ---------- */
+  --color-border-subtle: #1c1c1f;
+  --color-border-default: #242428;
+  --color-border-strong: #74747c;
+  --color-border-selected: #29e075;
+  --color-border-error: #f87171;
+  --color-border-inverse: #d4d4d8;
+
+  /* ---------- Color: decorative video progress bar (hero short-video mockup) ---------- */
+  --color-decorative-progress: #f61c0d88;
+
+  /* ---------- Colors: feedback, distinct from brand green (03 §2.5) ---------- */
+  --color-feedback-success-text: #2dd4bf;
+  --color-feedback-success-bg: #0d2b28;
+  --color-feedback-success-border: #146b62;
+  --color-feedback-success-icon: #2dd4bf;
+  --color-feedback-warning-text: #fbbf24;
+  --color-feedback-warning-bg: #2b2008;
+  --color-feedback-warning-border: #92650a;
+  --color-feedback-warning-icon: #fbbf24;
+  --color-feedback-error-text: #f87171;
+  --color-feedback-error-bg: #2b1212;
+  --color-feedback-error-border: #8f2e2e;
+  --color-feedback-error-icon: #f87171;
+  --color-feedback-info-text: #60a5fa;
+  --color-feedback-info-bg: #0f1f33;
+  --color-feedback-info-border: #2f5a99;
+  --color-feedback-info-icon: #60a5fa;
+
+  /* ---------- Colors: focus and mockup (03 §2.6) ---------- */
+  --color-focus-ring: #f5f5f7;
+  --color-focus-ring-inverse: #0a0a0a;
+  --color-mockup-banner-bg: #ffd978;
+  --color-mockup-banner-border: #0a0a0a;
+
+  /* ---------- Colors: aliases, no new value (02 §2.9) ---------- */
+  --color-action-secondary-inverse-border: var(--color-text-inverse);
+  --color-data-advertiser-share: var(--color-surface-inverse);
+  --color-data-creator-share: var(--color-brand-primary);
+  --color-data-net-creator: var(--color-brand-subtle-bg);
+
+  /*
+   * ---------- Backgrounds: premium metal card (fondateur, 2026-09-17, effet carte métallisée
+   * inspiré de wekollab.fr ; intensité relevée le 2026-09-17 pour un rendu façon carte noire
+   * Visa Infinite) ----------
+   * A single spotlight treatment for isolated premium elements (key figure, messaging mockup,
+   * pricing breakdown) — never for repeated card grids. A diagonal sheen mimics light raking
+   * across brushed metal, paired with border-border-default and shadow-metal-card for the
+   * beveled raised edge.
+   */
+  --background-image-metal-card:
+    linear-gradient(
+      115deg,
+      transparent 32%,
+      rgba(255, 255, 255, 0.05) 46%,
+      rgba(255, 255, 255, 0.12) 50%,
+      rgba(255, 255, 255, 0.05) 54%,
+      transparent 68%
+    ),
+    radial-gradient(
+      120% 140% at 18% -12%,
+      rgba(255, 255, 255, 0.2),
+      transparent 55%
+    ),
+    radial-gradient(
+      90% 100% at 100% 115%,
+      rgba(255, 255, 255, 0.06),
+      transparent 60%
+    ),
+    linear-gradient(160deg, #2e2e33 0%, #19191c 45%, #08080a 100%);
+
+  /*
+   * ---------- Backgrounds: section ambient halo (expert-ux, 2026-09-17, benchmark wekollab.fr,
+   * angle and softness confirmed on a reference screenshot from the fondateur) ----------
+   * A soft diagonal beam of light across a whole section — the same raking-light technique as
+   * `background-image-metal-card`'s diagonal sheen, stretched from one isolated element to the
+   * full section, echoing the halo above wekollab.fr's proof section. Off-center toward the
+   * right so it reads as ambient light drifting across the section, not a reflection on one piece
+   * of content (that reading stays reserved for `background-image-metal-card`). Purely
+   * decorative: paired with `aria-hidden`, no pointer events, and a negative z-index (`z-behind`)
+   * so it never sits above the section's own content. Peak opacity (7%) keeps it far below
+   * anything that could affect the WCAG AA contrast of the text painted above it.
+   */
+  --background-image-halo-ambient: linear-gradient(
+    100deg,
+    transparent 18%,
+    rgba(255, 255, 255, 0.02) 38%,
+    rgba(255, 255, 255, 0.05) 52%,
+    rgba(255, 255, 255, 0.09) 63%,
+    rgba(255, 255, 255, 0.04) 76%,
+    transparent 96%
+  );
+
+  /*
+   * ---------- Background: phone-frame brushed metal (PhoneFrame, hero short-video visual) ------
+   * Unlike background-image-metal-card's single diagonal sheen, a phone's rounded aluminium/steel
+   * band catches light along BOTH its left and right edges at once when viewed frontally: two
+   * vertical rim-light bands near each side, on a near-black body, plus the same soft top-left
+   * spotlight and top-to-bottom falloff as the rest of the metal system for visual consistency.
+   */
+  --background-image-phone-metal:
+    linear-gradient(
+      90deg,
+      #050505 0%,
+      #0a0a0a 3%,
+      #4b4b54 6%,
+      #16161a 10%,
+      #050505 46%,
+      #050505 54%,
+      #16161a 90%,
+      #5a5a64 94%,
+      #0a0a0a 97%,
+      #050505 100%
+    ),
+    radial-gradient(
+      120% 90% at 15% -10%,
+      rgba(255, 255, 255, 0.18),
+      transparent 55%
+    ),
+    linear-gradient(180deg, #1c1c1f 0%, #0a0a0a 40%, #030303 100%);
+
+  /* ---------- Typography: families (03 §4.1) ---------- */
+  --font-base:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", "Liberation Sans", sans-serif;
+  --font-display: var(--font-base);
+  --font-mono:
+    ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono",
+    monospace;
+  --default-font-family: var(--font-base);
+  --default-mono-font-family: var(--font-mono);
+
+  /* ---------- Typography: weights, line heights, letter spacing (03 §4.3) ---------- */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --leading-tight: 1.05;
+  --leading-heading: 1.15;
+  --leading-snug: 1.3;
+  --leading-body: 1.55;
+  --leading-relaxed: 1.7;
+  --tracking-display: -0.02em;
+  --tracking-heading: -0.01em;
+  --tracking-normal: 0;
+  --tracking-overline: 0.08em;
+
+  /* ---------- Typography: sizes with their default line height (03 §4.2) ---------- */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: var(--leading-body);
+  --text-sm: 0.875rem;
+  --text-sm--line-height: var(--leading-body);
+  --text-md: 1rem;
+  --text-md--line-height: var(--leading-body);
+  --text-lead: clamp(1.125rem, 1.081rem + 0.1878vw, 1.25rem);
+  --text-lead--line-height: var(--leading-body);
+  --text-heading-3: clamp(1.25rem, 1.162rem + 0.3756vw, 1.5rem);
+  --text-heading-3--line-height: var(--leading-snug);
+  --text-heading-2: clamp(1.75rem, 1.3979rem + 1.5023vw, 2.75rem);
+  --text-heading-2--line-height: var(--leading-heading);
+  --text-display: clamp(2.25rem, 1.6338rem + 2.6291vw, 4rem);
+  --text-display--line-height: var(--leading-heading);
+  --text-amount-lg: clamp(1.75rem, 1.4859rem + 1.1268vw, 2.5rem);
+  --text-amount-lg--line-height: var(--leading-tight);
+  --text-figure-lg: clamp(2.5rem, 1.7958rem + 3.0047vw, 4.5rem);
+  --text-figure-lg--line-height: var(--leading-tight);
+  --text-figure-xl: clamp(3.5rem, 2.2676rem + 5.2582vw, 7rem);
+  --text-figure-xl--line-height: var(--leading-tight);
+
+  /* ---------- Spacing scale, base 4 px (03 §5) ---------- */
+  --spacing-0: 0;
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-5: 1.5rem;
+  --spacing-6: 2rem;
+  --spacing-7: 2.5rem;
+  --spacing-8: 3rem;
+  --spacing-9: 4rem;
+  --spacing-10: 5rem;
+  --spacing-11: 6rem;
+  --spacing-12: 8rem;
+
+  /* ---------- Spacing: semantic tokens (03 §5) ---------- */
+  --spacing-section-block: clamp(3.5rem, 2.2676rem + 5.2582vw, 7rem);
+  --spacing-section-header: clamp(1.5rem, 0.9718rem + 2.2535vw, 3rem);
+  --spacing-page-gutter: clamp(1rem, 0.2958rem + 3.0047vw, 3rem);
+  --spacing-stack-sm: var(--spacing-2);
+  --spacing-stack-md: var(--spacing-4);
+  --spacing-stack-lg: var(--spacing-6);
+  /* Responsive values: overridden in the media queries below. */
+  --spacing-grid-gap: var(--spacing-4);
+  --spacing-inset-card: var(--spacing-5);
+  /* space-inset-button of 03 split into its two axes. */
+  --spacing-inset-button-y: var(--spacing-3);
+  --spacing-inset-button-x: var(--spacing-5);
+
+  /* ---------- Radii and shadows (03 §7) ---------- */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 2rem;
+  --radius-pill: 999px;
+  --radius-round: 50%;
+  /*
+   * Elevation on a near-black page: a pure dark drop shadow disappears into the background, so
+   * each level pairs it with a hairline, near-transparent white edge (glass-like rim) to read as
+   * a raised surface (premium dark-UI pattern, cf. Linear/Vercel/Stripe dark mode).
+   */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm:
+    0 1px 2px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-md:
+    0 8px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --shadow-lg:
+    0 24px 56px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  /*
+   * Dedicated elevation for the premium metal-card spotlight (background-image-metal-card):
+   * same outer rim-light shadow as shadow-lg, plus two inset hairlines (light top / dark bottom)
+   * to read as a beveled metal edge, like the rigid edge of a Visa Infinite-style black card.
+   */
+  --shadow-metal-card:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+    0 24px 56px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  /*
+   * Visible device thickness for PhoneFrame: two solid, unblurred steps offset down and to the
+   * side (they follow its border-radius, unlike a blurred drop shadow) read as the dark bevelled
+   * edge of a physical phone body seen from an angle, matching the direction of
+   * rotate-y-hero-main-y. Inset hairlines bevel the rim where it meets the screen, on top of the
+   * same rim-light elevation as shadow-lg.
+   */
+  --shadow-phone-frame:
+    3px 5px 0 0 #030303, 6px 10px 0 0 #000000,
+    inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.6),
+    0 28px 60px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.07);
+
+  /*
+   * ---------- Hero metal-card visuals (fondateur, 2026-09-17) ----------
+   * The two hero photos are mounted on physical-format black metal cards, not just framed: the
+   * card itself keeps the real ID-1 ratio (ISO/IEC 7810, 85.6 × 53.98 mm — the format used by
+   * Visa/Mastercard), displayed portrait (long edge top-to-bottom, short edge left-to-right, per
+   * fondateur, 2026-09-17), even where the photo itself is narrower and doesn't reach the card's
+   * full width. A pronounced static perspective tilt (fondateur, 2026-09-17: "on ne voit pas
+   * assez bien la 3D") fans the two cards at opposing angles. `perspective-hero-card` goes on the
+   * containing element, `rotate-x-hero-*`/`rotate-y-hero-*` on the metal-card frame itself so
+   * the tilt is properly foreshortened. No animation — a fixed transform, so no reduced-motion
+   * handling needed.
+   */
+  --aspect-card-id1: 53.98 / 85.6;
+  /** Portrait smartphone screen ratio, used by PhoneFrame (short-video hero visual). */
+  --aspect-phone-frame: 9 / 19.5;
+  --perspective-hero-card: 900px;
+  --size-phone-notch-width: 5rem;
+  --size-phone-notch-height: 1.25rem;
+  --rotate-hero-main-x: 6deg;
+  --rotate-hero-main-y: -16deg;
+  --rotate-hero-secondary-x: -8deg;
+  --rotate-hero-secondary-y: 18deg;
+
+  /*
+   * ---------- Hero ambient halo (expert-ux, 2026-09-17, reproduit d'un élément de référence
+   * wekollab.fr fourni par le fondateur) ----------
+   * A single blurred, rotated rectangle of foreground color behind the hero photos: the blur
+   * itself creates the soft falloff, so unlike `background-image-halo-ambient` (section 6) no
+   * gradient stops are needed. Sized against the whole hero section (not just the photo column)
+   * via a dedicated `absolute inset-0 overflow-hidden` layer, so it isn't clipped to a sliver
+   * behind the cards. `lg` only, alongside the rest of the fanned-card treatment; geometry
+   * (position, size) lives in :root, consumed via `top-(--…)` etc. Static, so no
+   * `prefers-reduced-motion` handling needed.
+   */
+  --rotate-hero-halo: 14deg;
+  --blur-hero-halo: 40px;
+
+  /* ---------- Breakpoints, mobile-first (03 §6) ---------- */
+  --breakpoint-sm: 480px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1440px;
+
+  /* ---------- Motion (03 §9) ---------- */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --default-transition-duration: var(--duration-fast);
+  --default-transition-timing-function: var(--ease-standard);
+  --animate-marquee: marquee var(--duration-marquee-loop) linear infinite;
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+}
+
+/* Tokens without a Tailwind namespace (01 §4, 02 §2.9). */
+:root {
+  /* Stacking (03 §10) */
+  /* Decorative layer sitting behind a section's in-flow content (e.g. the ambient halo): the
+   * section needs `isolate` so this negative value stays scoped to it. */
+  --z-behind: -1;
+  --z-base: 0;
+  --z-raised: 10;
+  --z-header: 100;
+  --z-overlay: 200;
+  --z-cookie-banner: 300;
+
+  /* Durations (03 §9) */
+  --duration-instant: 0ms;
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --duration-marquee-loop: 40s;
+
+  /* Control and icon sizes (03 §8) */
+  --size-touch-target: 2.75rem;
+  --size-button-md: 2.75rem;
+  --size-button-lg: 3.25rem;
+  --size-input: 3rem;
+  --size-checkbox: 1.5rem;
+  --size-icon-sm: 1rem;
+  --size-icon-md: 1.25rem;
+  --size-icon-lg: 1.5rem;
+  --size-phone-mockup: 20rem;
+  /* Maximum width of the desktop cookie banner card (11 §5.1) */
+  --size-cookie-banner: 26rem;
+  /* Derived, no new visual value: mobile menu panel never taller than the viewport under the header */
+  --size-mobile-menu-max-height: calc(100dvh - var(--header-height));
+  /* Derived, no new visual value: carousel slide leaves space-7 of the next slide visible (02 §3.8) */
+  --size-carousel-slide: calc(100% - var(--spacing-7));
+  /*
+   * Hero ambient halo geometry (see --rotate-hero-halo/--blur-hero-halo): position and size of
+   * the blurred rectangle within the whole hero section (not just the photo column, so it isn't
+   * clipped to a sliver behind the cards), consumed as top/left/w/h arbitrary values. Reproduced
+   * from a wekollab.fr reference element (fondateur, 2026-09-17).
+   */
+  --inset-hero-halo-top: -10%;
+  --inset-hero-halo-left: 56%;
+  --size-hero-halo-width: 26%;
+  --size-hero-halo-height: 130%;
+
+  /* Borders and focus (03 §7) */
+  --border-width-thin: 1px;
+  --border-width-thick: 2px;
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 2px;
+
+  /* Layout (03 §4.3 and §6) */
+  --header-height: 4rem;
+  /* Derived: top offset of sticky columns under the header (02 §3.10, §3.16) */
+  --sticky-top-offset: calc(var(--header-height) + var(--spacing-6));
+  --measure-text: 40rem;
+  --measure-heading: 22ch;
+  --container-max: 75rem;
+  --container-narrow: 48rem;
+  --font-variant-numeric-amount: tabular-nums;
+
+  /* Image focal points (05 §4), used as object-(--image-focus-…) by ResponsiveImage */
+  --image-focus-center-35: center 35%;
+  --image-focus-center-40: center 40%;
+  --image-focus-center-60: center 60%;
+  --image-focus-center-70: center 70%;
+  --image-focus-35-center: 35% center;
+  --image-focus-45-center: 45% center;
+  --image-focus-55-center: 55% center;
+  --image-focus-60-center: 60% center;
+  --image-focus-65-center: 65% center;
+  --image-focus-70-center: 70% center;
+}
+
+/* Responsive semantic tokens (03 §5 and §6). Values mirror the breakpoints above. */
+@media (width >= 768px) {
+  :root {
+    --spacing-grid-gap: var(--spacing-5);
+  }
+}
+
+@media (width >= 1024px) {
+  :root {
+    --spacing-grid-gap: var(--spacing-6);
+    --spacing-inset-card: var(--spacing-6);
+    --header-height: 4.5rem;
+  }
+}
+
+/* Reduced motion: every duration becomes duration-instant (03 §9). */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: var(--duration-instant);
+    --duration-base: var(--duration-instant);
+    --duration-slow: var(--duration-instant);
+  }
+}

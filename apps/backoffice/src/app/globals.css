@@ -1,0 +1,18 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/* Base styles only, written with token variables. No literal value here (CA22, G3). */
+@layer base {
+  html {
+    background-color: var(--color-surface-page);
+    color: var(--color-text-primary);
+    font-family: var(--font-base);
+    font-size: var(--text-md);
+    line-height: var(--leading-body);
+  }
+
+  :focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+}
