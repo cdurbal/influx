@@ -42,11 +42,19 @@ const requiredText = z.string({
     issue.input === undefined ? "is required" : "must be a string",
 });
 
-const internalSecret = requiredText.refine(
-  (value) =>
-    new TextEncoder().encode(value).length >= MIN_INTERNAL_SECRET_BYTES,
-  { message: `must be at least ${MIN_INTERNAL_SECRET_BYTES} bytes` },
-);
+/** Placeholder of the `.env.example` files: a copied template must never start (`03` PP-8). */
+const PLACEHOLDER = "CHANGE_ME";
+
+const internalSecret = requiredText
+  .refine(
+    (value) =>
+      new TextEncoder().encode(value).length >= MIN_INTERNAL_SECRET_BYTES,
+    { message: `must be at least ${MIN_INTERNAL_SECRET_BYTES} bytes` },
+  )
+  // The length check alone accepts a padded placeholder (21 J1-J R4).
+  .refine((value) => !value.includes(PLACEHOLDER), {
+    message: `must not contain the ${PLACEHOLDER} placeholder`,
+  });
 
 const baseEnvShape = {
   INFLUX_ENV: z.enum(INFLUX_ENVIRONMENTS, {

@@ -97,6 +97,14 @@ describe("api configuration", () => {
       "INFLUX_API_INTERNAL_SECRET_WEB must be at least 32 bytes",
     ],
     [
+      "an internal secret that still holds the CHANGE_ME placeholder (21 J1-J R4)",
+      {
+        ...VALID_API_ENV,
+        INFLUX_API_INTERNAL_SECRET_BACKOFFICE: "CHANGE_ME".padEnd(40, "x"),
+      },
+      "INFLUX_API_INTERNAL_SECRET_BACKOFFICE must not contain the CHANGE_ME placeholder",
+    ],
+    [
       "the same internal secret for both fronts",
       { ...VALID_API_ENV, INFLUX_API_INTERNAL_SECRET_BACKOFFICE: WEB_SECRET },
       "INFLUX_API_INTERNAL_SECRET_BACKOFFICE must differ from INFLUX_API_INTERNAL_SECRET_WEB",
