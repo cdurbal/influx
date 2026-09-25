@@ -1,0 +1,83 @@
+// Entry point of the Railway service `worker` (docs/mvp/02-architecture-3-espaces.md §11).
+// J1: an empty loop that logs its mode; the outbox drain arrives at J6. It opens NO port.
+// Started by `node apps/api/src/worker.ts` directly, so that SIGTERM reaches it (21 §4, J1-B).
+import { setTimeout as sleep } from "node:timers/promises";
+import {
+  ConfigError,
+  loadWorkerConfig,
+  type WorkerConfig,
+} from "./config/index.ts";
+import { createLogger } from "./platform/logger.ts";
+
+/** One turn every 5 s at rest (02 §11.1). */
+const TURN_INTERVAL_MS = 5_000;
+
+function readConfig(): WorkerConfig | null {
+  try {
+    return loadWorkerConfig();
+  } catch (error) {
+    const logger = createLogger({
+      service: "worker",
+      environment: "unknown",
+      version: "unknown",
+    });
+    if (error instanceof ConfigError) {
+      logger.fatal(
+        { issues: error.issues },
+        "invalid configuration, refusing to start",
+      );
+    } else {
+      logger.fatal({ err: error }, "configuration could not be read");
+    }
+    return null;
+  }
+}
+
+function isAbort(error: unknown): boolean {
+  return error instanceof Error && error.name === "AbortError";
+}
+
+async function main(): Promise<void> {
+  const config = readConfig();
+  if (config === null) {
+    process.exitCode = 1;
+    return;
+  }
+
+  const logger = createLogger({
+    service: "worker",
+    environment: config.environment,
+    version: config.version,
+  });
+  logger.info(
+    {
+      environment: config.environment,
+      syncMode: config.sync.mode,
+      brevoMode: config.brevo.mode,
+    },
+    "worker started",
+  );
+
+  const stop = new AbortController();
+  const requestStop = (signal: NodeJS.Signals): void => {
+    logger.info({ signal }, "stop requested, finishing the current turn");
+    stop.abort();
+  };
+  process.once("SIGTERM", requestStop);
+  process.once("SIGINT", requestStop);
+
+  while (!stop.signal.aborted) {
+    // A turn runs to its end even when a stop is requested meanwhile (02 §11.2).
+    logger.debug("worker turn");
+    try {
+      await sleep(TURN_INTERVAL_MS, undefined, { signal: stop.signal });
+    } catch (error) {
+      if (!isAbort(error)) {
+        throw error;
+      }
+    }
+  }
+  logger.info("worker stopped");
+}
+
+await main();

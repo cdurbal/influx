@@ -3,11 +3,13 @@
   "private": true,
   "packageManager": "pnpm@11.27.0",
   "engines": {
-    "node": ">=22.13.0"
+    "node": ">=22.18.0"
   },
   "scripts": {
     "dev": "pnpm --filter @influx/web dev",
     "dev:web": "pnpm --filter @influx/web dev",
+    "dev:api": "pnpm --filter @influx/api dev",
+    "dev:worker": "pnpm --filter @influx/api dev:worker",
     "start": "pnpm --filter @influx/web start",
     "start:web": "pnpm --filter @influx/web start",
     "build": "pnpm -r run build",
