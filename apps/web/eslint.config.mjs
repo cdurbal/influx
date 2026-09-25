@@ -42,7 +42,10 @@ const RESTRICTED_SYNTAX = [
 
 const RESTRICTED_IMPORT_PATHS = [
   // Use next-intl's <Link> (src/i18n/navigation.ts) instead: it keeps the locale prefix.
-  { name: "next/link", message: "Use the localized <Link> from @/i18n/navigation." },
+  {
+    name: "next/link",
+    message: "Use the localized <Link> from @/i18n/navigation.",
+  },
   { name: "next/form", message: "The mockup form sends nothing (CA8)." },
   { name: "next/script", message: "No scripts (CA11)." },
   { name: "next/font/google", message: "No third-party fonts (CA11)." },

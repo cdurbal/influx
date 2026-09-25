@@ -78,9 +78,7 @@ export async function SiteFooter({ contactEmail }: SiteFooterProps) {
         </div>
 
         <div className="flex flex-col gap-4 border-t-(length:--border-width-thin) border-border-default pt-6 lg:flex-row lg:items-center lg:justify-between">
-          <p className="text-xs text-text-secondary">
-            {t("footer.copyright")}
-          </p>
+          <p className="text-xs text-text-secondary">{t("footer.copyright")}</p>
           <ul className="flex flex-col gap-2 text-sm text-text-secondary sm:flex-row sm:flex-wrap sm:gap-x-6">
             <li className="flex items-center gap-2">
               <FileCheckIcon

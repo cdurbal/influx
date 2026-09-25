@@ -52,7 +52,6 @@
   --color-text-accent-on-inverse: #0b7d45;
   --color-text-disabled: #5c5c63;
 
-
   /* ---------- Colors: surfaces (03 §2.3) ---------- */
   --color-surface-page: #0a0a0a;
   --color-surface-muted: #111113;
@@ -126,8 +125,16 @@
       rgba(255, 255, 255, 0.05) 54%,
       transparent 68%
     ),
-    radial-gradient(120% 140% at 18% -12%, rgba(255, 255, 255, 0.2), transparent 55%),
-    radial-gradient(90% 100% at 100% 115%, rgba(255, 255, 255, 0.06), transparent 60%),
+    radial-gradient(
+      120% 140% at 18% -12%,
+      rgba(255, 255, 255, 0.2),
+      transparent 55%
+    ),
+    radial-gradient(
+      90% 100% at 100% 115%,
+      rgba(255, 255, 255, 0.06),
+      transparent 60%
+    ),
     linear-gradient(160deg, #2e2e33 0%, #19191c 45%, #08080a 100%);
 
   /*
@@ -142,16 +149,15 @@
    * so it never sits above the section's own content. Peak opacity (7%) keeps it far below
    * anything that could affect the WCAG AA contrast of the text painted above it.
    */
-  --background-image-halo-ambient:
-    linear-gradient(
-      100deg,
-      transparent 18%,
-      rgba(255, 255, 255, 0.02) 38%,
-      rgba(255, 255, 255, 0.05) 52%,
-      rgba(255, 255, 255, 0.09) 63%,
-      rgba(255, 255, 255, 0.04) 76%,
-      transparent 96%
-    );
+  --background-image-halo-ambient: linear-gradient(
+    100deg,
+    transparent 18%,
+    rgba(255, 255, 255, 0.02) 38%,
+    rgba(255, 255, 255, 0.05) 52%,
+    rgba(255, 255, 255, 0.09) 63%,
+    rgba(255, 255, 255, 0.04) 76%,
+    transparent 96%
+  );
 
   /*
    * ---------- Background: phone-frame brushed metal (PhoneFrame, hero short-video visual) ------
@@ -174,7 +180,11 @@
       #0a0a0a 97%,
       #050505 100%
     ),
-    radial-gradient(120% 90% at 15% -10%, rgba(255, 255, 255, 0.18), transparent 55%),
+    radial-gradient(
+      120% 90% at 15% -10%,
+      rgba(255, 255, 255, 0.18),
+      transparent 55%
+    ),
     linear-gradient(180deg, #1c1c1f 0%, #0a0a0a 40%, #030303 100%);
 
   /* ---------- Typography: families (03 §4.1) ---------- */

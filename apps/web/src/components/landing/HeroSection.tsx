@@ -19,7 +19,10 @@ export async function HeroSection({ content }: HeroSectionProps) {
   const t = await getTranslations("landing.hero");
 
   return (
-    <section aria-labelledby="hero-title" className="relative isolate bg-surface-page">
+    <section
+      aria-labelledby="hero-title"
+      className="relative isolate bg-surface-page"
+    >
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block"
