@@ -1,6 +1,8 @@
 // Nothing sensitive reaches the log (docs/mvp/02-architecture-3-espaces.md §20.8,
 // docs/mvp/21-plan-de-developpement.md §4, J1-H): the log stream is captured and searched.
 import { afterEach, describe, expect, it } from "vitest";
+import * as z from "zod";
+import { ApiError } from "../src/platform/errors.ts";
 import { createLogger } from "../src/platform/logger.ts";
 import { buildServer, type ApiServer } from "../src/server.ts";
 import { captureLogs, testApiConfig, WEB_SECRET } from "./helpers.ts";
@@ -78,6 +80,156 @@ describe("api request logs", () => {
     const response = await app.inject({ method: "GET", url: "/v1/status" });
     const requestId: string = response.json().error.requestId;
     expect(logs.text()).toContain(requestId);
+  });
+});
+
+describe("masking of personal data and secrets (02 §20.8, 18 T13.6, 21 J1-J A1)", () => {
+  const EMAIL = "masking.marker@example.com";
+  const CODE = "481516";
+  const TOKEN = "tok_masking_marker_Zx9Qw";
+  const MARKERS = [EMAIL, CODE, TOKEN];
+
+  /** Shaped like a DrizzleQueryError: SQL parameters in the message and in `params`. */
+  class FakeQueryError extends Error {
+    readonly query = "select * from identity.accounts where email = $1";
+    readonly params = [EMAIL, CODE, TOKEN];
+
+    constructor() {
+      super(
+        `Failed query: select * from identity.accounts where email = $1\nparams: ${EMAIL},${CODE},${TOKEN}`,
+        {
+          cause: Object.assign(
+            new Error(`duplicate key value (email)=(${EMAIL}) token ${TOKEN}`),
+            { code: "23505", detail: `Key (email)=(${EMAIL})` },
+          ),
+        },
+      );
+      this.name = "DrizzleQueryError";
+    }
+  }
+
+  function workerLogger() {
+    const logs = captureLogs();
+    const logger = createLogger(
+      { service: "worker", environment: "staging", version: "local" },
+      logs.destination,
+    );
+    return { logs, logger };
+  }
+
+  function expectNoMarker(text: string): void {
+    for (const marker of MARKERS) {
+      expect(text).not.toContain(marker);
+    }
+  }
+
+  it("(a) keeps neither the message, the stack header, the parameters nor the cause of an error", () => {
+    const { logs, logger } = workerLogger();
+    logger.error({ err: new FakeQueryError() }, "query failed");
+    logger.error(new FakeQueryError());
+    const text = logs.text();
+    expectNoMarker(text);
+    const [line] = text
+      .trim()
+      .split("\n")
+      .map((entry) => JSON.parse(entry) as { err: Record<string, unknown> });
+    expect(Object.keys(line?.err ?? {}).sort()).toEqual([
+      "cause",
+      "stack",
+      "type",
+    ]);
+    expect(line?.err).toMatchObject({
+      type: "FakeQueryError",
+      cause: { name: "Error", code: "23505" },
+    });
+    expect(String(line?.err.stack)).toMatch(/^at /);
+    expect(text).not.toContain("select");
+  });
+
+  it("(a) does the same for an error thrown by a route, through the error handler", async () => {
+    const logs = captureLogs();
+    app = buildServer(testApiConfig(), { logDestination: logs.destination });
+    app.get(
+      "/v1/failing",
+      { schema: { response: { 200: z.object({ status: z.literal("ok") }) } } },
+      async () => {
+        throw new FakeQueryError();
+      },
+    );
+    const response = await app.inject({
+      method: "GET",
+      url: "/v1/failing",
+      headers: { "x-influx-internal": WEB_SECRET },
+    });
+    expect(response.statusCode).toBe(500);
+    expect(logs.text()).toContain("request failed");
+    expectNoMarker(logs.text());
+    expectNoMarker(response.body);
+  });
+
+  it("(b) censors sensitive keys three objects deep", () => {
+    const { logs, logger } = workerLogger();
+    logger.info(
+      {
+        context: {
+          account: {
+            contact: { email: EMAIL, otp: CODE, accessToken: TOKEN },
+          },
+        },
+        relay: {
+          request: {
+            "x-influx-internal": TOKEN,
+            "set-cookie": TOKEN,
+            clientAddress: "203.0.113.7",
+          },
+        },
+      },
+      "nested entry",
+    );
+    const text = logs.text();
+    expectNoMarker(text);
+    expect(text).not.toContain("203.0.113.7");
+    expect(text).toContain("[redacted]");
+  });
+
+  it("keeps the message of our own errors and of Fastify errors, never one that quotes a value", () => {
+    const { logs, logger } = workerLogger();
+    logger.error({ err: new ApiError("forbidden") }, "refused");
+    logger.error(
+      {
+        err: Object.assign(new Error("Request body is too large"), {
+          code: "FST_ERR_CTP_BODY_TOO_LARGE",
+          statusCode: 413,
+        }),
+      },
+      "fastify error",
+    );
+    logger.warn(
+      {
+        err: Object.assign(
+          new Error(
+            `Reply was already sent, did you forget to "return reply" in "/v1/x?email=${EMAIL}" (GET)?`,
+          ),
+          { code: "FST_ERR_REP_ALREADY_SENT" },
+        ),
+      },
+      "already sent",
+    );
+    const text = logs.text();
+    expect(text).toContain('"message":"Forbidden"');
+    expect(text).toContain('"message":"Request body is too large"');
+    expect(text).toContain('"code":"FST_ERR_REP_ALREADY_SENT"');
+    expectNoMarker(text);
+  });
+
+  it("logs only the type of a thrown value that is not an error", () => {
+    const { logs, logger } = workerLogger();
+    logger.error({ err: `thrown string ${EMAIL}` }, "odd throw");
+    logger.error({ err: { email: EMAIL, detail: CODE } }, "odd throw");
+    const text = logs.text();
+    expectNoMarker(text);
+    expect(text).toContain('"err":{"type":"string"}');
+    expect(text).toContain('"err":{"type":"object"}');
   });
 });
 

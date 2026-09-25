@@ -87,6 +87,28 @@ class ApiLogController extends LogController {
     // The default line quotes the raw URL; the method is enough (02 §20.8).
     request.log.info({ method: request.method }, "route not found");
   }
+
+  // The two lines below use the error's message as the line's message by default: a message may
+  // carry values (21 J1-J A1). The error itself goes through the allow-list serializer.
+  override defaultErrorLog(
+    error: Error,
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): void {
+    const level = reply.statusCode >= 500 ? "error" : "info";
+    reply.log[level](
+      { method: request.method, statusCode: reply.statusCode, err: error },
+      "request failed in the default error handler",
+    );
+  }
+
+  override writeHeadError(
+    error: Error,
+    _request: FastifyRequest,
+    reply: FastifyReply,
+  ): void {
+    reply.log.warn({ err: error }, "response headers could not be written");
+  }
 }
 
 export type BuildServerOptions = {
