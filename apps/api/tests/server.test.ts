@@ -124,6 +124,40 @@ describe("surfaces (21 J1-G)", () => {
   });
 });
 
+describe("surface bound to the prefix at startup (21 J1-G, J1-J A2)", () => {
+  function register(url: string, surface?: "web" | "backoffice" | "shared") {
+    const api = server();
+    return () =>
+      api.get(
+        url,
+        {
+          schema: { response: { 200: okSchema } },
+          ...(surface === undefined ? {} : { config: { surface } }),
+        },
+        async () => ({ status: "ok" as const }),
+      );
+  }
+
+  it.each<[string, string, "web" | "backoffice" | "shared" | undefined]>([
+    ["1. web declared under /v1/bo/", "/v1/bo/probe", "web"],
+    ["1. backoffice declared outside /v1/bo/", "/v1/probe", "backoffice"],
+    ["2. shared outside the closed list", "/v1/probe", "shared"],
+    ["2. shared under /v1/bo/", "/v1/bo/status", "shared"],
+    ["3. /v1/bo exactly", "/v1/bo", undefined],
+    ["3. a parameter as first segment", "/v1/:section/probe", undefined],
+    ["3. a wildcard as first segment", "/v1/*", undefined],
+  ])("refuses to start: %s", (_case, url, surface) => {
+    expect(register(url, surface)).toThrow(/^Route \/v1\//);
+  });
+
+  it("accepts a declared surface that matches the prefix, and the listed shared routes", () => {
+    expect(register("/v1/bo/probe", "backoffice")).not.toThrow();
+    expect(register("/v1/probe", "web")).not.toThrow();
+    expect(register("/v1/bo/:id", undefined)).not.toThrow();
+    expect(register("/v1/ops/client-errors", "shared")).not.toThrow();
+  });
+});
+
 describe("route rules checked at registration (02 §4 rule 1)", () => {
   it("refuses a route without a response schema", () => {
     const api = server();

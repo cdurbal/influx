@@ -16,6 +16,7 @@ import {
 } from "./platform/errors.ts";
 import {
   API_PREFIX,
+  checkRouteSurface,
   createSurfaceIdentifier,
   HEALTH_ROUTE,
   INTERNAL_SECRET_HEADER,
@@ -157,6 +158,10 @@ export function buildServer(
     }
     // No response without a schema, and the envelope as fallback (18 TM11.4 b and c).
     route.schema = withEnvelopeFallback(routeName, route.schema);
+    // Surface bound to the prefix (21 J1-G, J1-J A2). /health belongs to no surface.
+    if (url !== HEALTH_ROUTE) {
+      checkRouteSurface(url, route.config?.surface);
+    }
   });
 
   // 18 TM11.4 (c): a body reaches the client only through a response schema. A string, a buffer
