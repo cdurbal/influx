@@ -13,6 +13,99 @@ export function testApiConfig(): ApiConfig {
   });
 }
 
+/**
+ * Keys that appear twice in the same object of a JSON text, found on the RAW text: `JSON.parse`
+ * silently keeps the last value (18 T13.7). Each entry is the dotted path of the repeated key; an
+ * empty list means no duplicate. The text must be valid JSON (parse it first).
+ */
+export function duplicateJsonKeys(text: string): string[] {
+  const duplicates: string[] = [];
+  let index = 0;
+
+  const skipWhitespace = () => {
+    while (/\s/.test(text.charAt(index))) {
+      index += 1;
+    }
+  };
+
+  // Returns the decoded string whose opening quote is at `index`.
+  const readString = (): string => {
+    const start = index;
+    index += 1;
+    while (text.charAt(index) !== '"') {
+      index += text.charAt(index) === "\\" ? 2 : 1;
+    }
+    index += 1;
+    return JSON.parse(text.slice(start, index)) as string;
+  };
+
+  const readValue = (path: string): void => {
+    skipWhitespace();
+    const char = text.charAt(index);
+    if (char === "{") {
+      readObject(path);
+    } else if (char === "[") {
+      readArray(path);
+    } else if (char === '"') {
+      readString();
+    } else {
+      // Number, true, false or null.
+      while (index < text.length && !/[\s,\]}]/.test(text.charAt(index))) {
+        index += 1;
+      }
+    }
+  };
+
+  const readArray = (path: string): void => {
+    index += 1;
+    skipWhitespace();
+    if (text.charAt(index) === "]") {
+      index += 1;
+      return;
+    }
+    for (;;) {
+      readValue(`${path}[]`);
+      skipWhitespace();
+      const separator = text.charAt(index);
+      index += 1;
+      if (separator === "]") {
+        return;
+      }
+    }
+  };
+
+  const readObject = (path: string): void => {
+    index += 1;
+    const seen = new Set<string>();
+    skipWhitespace();
+    if (text.charAt(index) === "}") {
+      index += 1;
+      return;
+    }
+    for (;;) {
+      skipWhitespace();
+      const key = readString();
+      const keyPath = path === "" ? key : `${path}.${key}`;
+      if (seen.has(key)) {
+        duplicates.push(keyPath);
+      }
+      seen.add(key);
+      skipWhitespace();
+      index += 1; // The colon.
+      readValue(keyPath);
+      skipWhitespace();
+      const separator = text.charAt(index);
+      index += 1;
+      if (separator === "}") {
+        return;
+      }
+    }
+  };
+
+  readValue("");
+  return duplicates;
+}
+
 /** A log destination that keeps every line in memory. */
 export function captureLogs(): {
   destination: DestinationStream;
