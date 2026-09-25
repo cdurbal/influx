@@ -1,0 +1,57 @@
+# Continuous integration: format, types, lint, tests, build (`pnpm check`).
+# Plan: docs/mvp/21-plan-de-developpement.md §4, J0. Duration budget: 10 minutes (`18` A-4).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Least privilege: the workflow only reads the repository.
+permissions:
+  contents: read
+
+# A newer run on the same branch or pull request cancels the obsolete one.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+
+jobs:
+  check:
+    name: pnpm check
+    runs-on: ubuntu-latest
+    # Safety net above the 10-minute budget: a stuck run must not burn minutes.
+    timeout-minutes: 15
+    steps:
+      # Actions are pinned to a full commit SHA (the tag is only a mutable label).
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          # No dependency cache for now: simpler, and no cache-poisoning surface.
+          package-manager-cache: false
+
+      # pnpm version comes from the "packageManager" field of package.json.
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Show tool versions
+        run: |
+          node --version
+          pnpm --version
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format, typecheck, lint, test, build
+        run: pnpm check
