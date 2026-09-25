@@ -132,11 +132,14 @@ jalons (J5, J6).
 | **Apollo** | Doublure ; essai manuel en `SYNC_MODE=live` avec le compte de test et la liste blanche | Doublure | **Aucune clé** (`skipped_no_credentials`) | `live` après validation du juriste (D33) |
 | **Accès** | — | — | Protégé + `noindex` (I-6) | Public (web) ; backoffice sur sous-domaine dédié |
 
-> **Recommandation (à valider, architecte).** `.env.example` prévoit que `apps/api/.env.local` porte
-> les valeurs de `staging`. Pour le travail quotidien et les tests, pointer plutôt vers la **pile
-> locale** : remise à zéro en une commande, aucune donnée partagée, GoTrue réel (on vérifie son
-> comportement au lieu de le supposer). Les valeurs `staging` vont dans un second fichier ignoré
-> (`apps/api/.env.staging.local`) pour les vérifications ponctuelles.
+> **Recommandation — validée avec amendements par `architecte` le 2026-09-25 (§4, J1-D).**
+> `.env.example` prévoit que `apps/api/.env.local` porte les valeurs de `staging`. Pour le travail
+> quotidien et les tests, pointer plutôt vers la **pile locale** : remise à zéro en une commande,
+> aucune donnée partagée, GoTrue réel (on vérifie son comportement au lieu de le supposer). Les
+> valeurs `staging` vont dans un second fichier ignoré (`apps/api/.env.staging.local`) pour les
+> vérifications ponctuelles. Amendements : la bascule se fait au J2, pas au J1 (le J1 ne lit aucune
+> variable de base) ; le fichier `staging` ne porte ni clé Brevo, ni clé Apollo, ni
+> `DIRECT_DATABASE_URL`.
 
 **En local, le code de connexion arrive par e-mail réel** : `BREVO_MODE=redirect` avec le compte
 Brevo de test et `BREVO_TEST_RECIPIENTS` réglé sur l'adresse du développeur (`16` RG115 et RG117).
@@ -147,7 +150,7 @@ Aucune « porte de développement » n'affiche le code : il ne doit apparaître 
 
 Référence : `18` (plan de test) et `03` §8 (T1 à T19). Ce tableau dit **où** chaque famille vit.
 
-| Niveau | Outil *(à valider, architecte)* | Contenu | Quand |
+| Niveau | Outil *(validé par `architecte` le 2026-09-25 ; versions au §4, J1-A)* | Contenu | Quand |
 |---|---|---|---|
 | Unitaire | Vitest | Fonctions pures : normalisation de l'adresse, schémas zod, phrase de correspondance, calendrier de réessais, qualification Apollo, mapping Brevo et Apollo, classement des erreurs | Chaque commit |
 | Base de données | Vitest + harnais de rôles (`packages/test-kit`, `18` A-2) sur la pile locale | T2 (matrice déclarée), T3, T4, T6, T16, contraintes | Chaque commit |
@@ -185,22 +188,23 @@ dépendances), `expert-database` + skill `supabase-schema` (J2, chaque migration
 `design-system-influx` (J5, J8), `testeur` + skill `test-strategy` (fin de chaque jalon),
 `integrateur` + skills `railway-deploy`, `env-secrets` (J0, J4, J9).
 
-### 2.6 Dépendances à faire valider par `architecte` au J1
+### 2.6 Dépendances — tranchées par `architecte` le 2026-09-25
 
 Toutes en **version exacte** (`savePrefix: ""`), publiées depuis plus d'un jour
 (`minimumReleaseAge`), et **documentation de la version installée lue avant usage** (`02` §15,
-règle 15).
+règle 15). **Versions, espaces de travail et jalon d'entrée : §4, J1-A** (source unique ; ce
+tableau n'en garde que la décision).
 
-| Besoin | Proposition | Remarque |
+| Besoin | Décision | Remarque |
 |---|---|---|
 | Schémas partagés | `zod` | Source unique : validation d'entrée, filtre de sortie, types (`02` §9.1) |
-| Serveur | `fastify` 5 + `@fastify/cookie` + `fastify-type-provider-zod` | Le sérialiseur de réponse retire tout champ non déclaré (`02` §2.5, point 4) |
-| Accès aux données | `drizzle-orm` + pilote `postgres` (`prepare: false`) | D5 ; `drizzle-kit push` interdit |
-| Auth et Storage | `@supabase/supabase-js`, importé **uniquement** dans `apps/api/src/platform/supabase.ts` | D5, règle 2 |
-| Journaux | `pino` (intégré à Fastify) avec masquage des champs sensibles | `02` §20.8 |
-| Construction de `apps/api` | `tsup` (esbuild, déjà autorisé dans `allowBuilds`), deux entrées `main` et `worker`, paquets de l'espace de travail intégrés au bundle | Évite de construire `packages/contracts` à part ; les fronts le consomment par `transpilePackages` |
-| Bout en bout | `@playwright/test` | `18` A-5 |
-| CLI Supabase | Installation système (Scoop sous Windows) ou dépendance de développement `supabase` autorisée dans `allowBuilds` | La version doit être la même en local et en CI |
+| Serveur | `fastify` 5 + `@fastify/cookie` (J3). **`fastify-type-provider-zod` écarté** : compilateurs zod écrits dans `apps/api/src/platform/` | Le sérialiseur de réponse retire tout champ non déclaré (`02` §2.5, point 4) ; motifs du refus en J1-A |
+| Accès aux données | `drizzle-orm` + pilote `postgres` (`prepare: false`), au J2. `drizzle-kit` non installé | D5 ; `drizzle-kit push` interdit |
+| Auth et Storage | `@supabase/supabase-js`, importé **uniquement** dans `apps/api/src/platform/supabase.ts`, au J3 | D5, règle 2 |
+| Journaux | `pino` en dépendance directe (le worker journalise sans Fastify), masquage des champs sensibles. `pino-pretty` écarté | `02` §20.8 |
+| Construction de `apps/api` | **Aucune** : Node exécute le TypeScript par effacement des types. **`tsup` écarté** (plus maintenu) | Décision J1-B |
+| Bout en bout | `@playwright/test`, au J5 | `18` A-5 |
+| CLI Supabase | **Dépendance de développement `supabase` à la racine**, au J2 ; pas d'installation système | Une seule version, dans le verrou, en local et en CI ; aucun script d'installation (binaires par dépendances optionnelles) |
 
 ---
 
@@ -223,12 +227,18 @@ la proposition est une hypothèse de travail, pas une décision.
 | **EC-10** | **Événements émis à l'inscription** : `05` RG73 prévoit `consent.granted` « à l'inscription » en plus de `lead.created` ; `18` §10 attend « quatre lignes de file » | À l'inscription, `lead.created` seul : trois lignes (`brevo_contact`, `apollo_contact`, `brevo_transactional` pour la bienvenue) — le consommateur relit le consentement (RG37) ; `consent.granted` et `consent.revoked` pour les changements ultérieurs. Corriger `18` en conséquence | `product-owner` + `testeur` | J5 |
 | **EC-11** | **D54 et D55 non modélisées** : ni table des invitations, ni colonnes de source d'acquisition (`04` §12.11, points 9 et 10) ; le mapping Brevo `16` §M4 n'a pas les attributs UTM exigés par `05` RG122 | Colonnes figées sur `identity.accounts` (J5), table des invitations (J8), attributs `UTM_SOURCE`, `UTM_MEDIUM`, `UTM_CAMPAIGN`, `REFERRER_DOMAIN`, `HEARD_FROM` ajoutés à `16` §M4 | `expert-database` + `expert-conformite-rgpd` (veto) | J5, J8 |
 | **EC-12** | **Aucun chemin pour le webhook Brevo.** `apps/api` n'a pas d'hôte public (`02` §12) ; le passe-plat ne relaie qu'une liste blanche d'en-têtes (PP-5) qui exclut l'en-tête du jeton (`16` RG146) ; la table qui stocke l'événement brut avant traitement (RG147) n'existe pas | Chemin borné `/api/v1/webhooks/brevo/<jeton>` relayé par le passe-plat de `apps/web`, avec l'en-tête du jeton ajouté à la liste blanche **pour ce seul chemin** ; contrôle des plages d'adresses IP dans `apps/api` sur `x-forwarded-for` réécrit (PP-6) ; table d'événements entrants en ajout seul, consommée par le worker | `architecte` + `expert-cybersecurite` (veto) | J7 |
-| **EC-13** | Le Lot 0 promet « un compte de démonstration par rôle se connecte réellement dans les trois espaces » (`00` §7), mais `02` §13.3 et `18` §10 interdisent de lever une garde de `apps/web` au Lot 0 — or la connexion membre passe par le passe-plat, donc par la levée de G5 | Lever G5 au J1, **dans le commit qui introduit le passe-plat et sa garde de liste blanche** (la règle « une garde ne tombe qu'avec son remplaçant » est tenue). G1, G2, G4 et G6 attendent le J9 | `architecte` + `testeur` | J1 |
+| **EC-13** | Le Lot 0 promet « un compte de démonstration par rôle se connecte réellement dans les trois espaces » (`00` §7), mais `02` §13.3 et `18` §10 interdisent de lever une garde de `apps/web` au Lot 0 — or la connexion membre passe par le passe-plat, donc par la levée de G5 | Lever G5 au J1, **dans le commit qui introduit le passe-plat et sa garde de liste blanche** (la règle « une garde ne tombe qu'avec son remplaçant » est tenue). G1, G2, G4 et G6 attendent le J9 | `architecte` + `testeur` | J1 — **tranché par `architecte` le 2026-09-25, élargi** (§4, J1-C) : la garde annexe « aucune API réseau » est scindée dans le même commit. `02` §13.3 corrigé. Reste la confirmation de `testeur` sur la couverture |
 | **EC-14** | « Mes données » (export, suppression) figure dans l'espace du Lot 1 (`05` RG57, RG71), mais l'exécution des demandes RGPD est au Lot 5 (E-5, `backoffice.data_subject_requests`) | Au Lot 1 : dépôt de la demande depuis l'espace membre, accusé de réception, exécution manuelle par un administrateur selon une procédure écrite ; table avancée au Lot 1 si nécessaire | `chef-de-projet` + `expert-conformite-rgpd` (veto) | J7 |
 | **EC-15** | `02` §7 et `04` §13 renvoient à `AccountForm.tsx`, qui n'existe plus sur `main` ; le formulaire en trois étapes de la landing ne correspond pas au parcours réel ; les boutons pointent vers `/signup`, `/login`, `/signup/advertiser`, `/signup/creator` alors que `17` §2.6 fixe des chemins localisés | Écrans écrits d'après `17` §3. Chemins des portes à fixer (par exemple `/fr/inscription/marque` · `/en/signup/brand`) ; « Me connecter » ouvre l'écran 1 précédé du choix de porte ; la section formulaire de la landing devient un renvoi vers les deux portes (tests `TM10` adaptés) | `expert-ux` + `product-owner` | J5, J9 |
 | **EC-16** | Les points d'accès publics de Supabase Auth restent joignables avec la clé *publishable*, qui n'est pas un secret : inscription publique, envoi natif d'un code par GoTrue | Désactiver l'inscription publique (l'API d'administration reste utilisable), ne configurer aucun envoi d'e-mail natif de GoTrue, et **vérifier par un test** qu'aucun envoi ni aucune création d'utilisateur n'est déclenchable sans `apps/api` | `expert-cybersecurite` | J3 |
 | **EC-17** | **Codes de secours du second facteur** (MFA-3) : à vérifier si Supabase Auth les fournit | S'ils n'existent pas nativement : table dédiée, codes hachés, usage unique, génération journalisée, consommation alertée (MFA-4) | `expert-cybersecurite` + `expert-database` | J3 |
-| **EC-18** | **Variables absentes de `.env.example`** : secret interne du passe-plat (`x-influx-internal`, PP-8), poivre des empreintes de débit (`04` §12.10, point 4), destinataires de secours des alertes de disponibilité (D60) ; aucun `.env.example` pour `apps/web` et `apps/backoffice` (`INFLUX_API_INTERNAL_URL`) | Les ajouter, avec valeurs factices, dans le commit qui les utilise | `integrateur` + `expert-cybersecurite` | J1, J3 |
+| **EC-18** | **Variables absentes de `.env.example`** : secret interne du passe-plat (`x-influx-internal`, PP-8), poivre des empreintes de débit (`04` §12.10, point 4), destinataires de secours des alertes de disponibilité (D60) ; aucun `.env.example` pour `apps/web` et `apps/backoffice` (`INFLUX_API_INTERNAL_URL`) | Les ajouter, avec valeurs factices, dans le commit qui les utilise | `integrateur` + `expert-cybersecurite` | J1, J3 — **noms et fichiers arrêtés par `architecte` le 2026-09-25** (§4, J1-F) ; reste la confirmation `integrateur` + `expert-cybersecurite` |
+| **EC-19** | **Porteurs des variables Brevo.** `02` §12.3 réserve `BREVO_API_KEY` au worker, alors que `apps/api` envoie lui-même le code de connexion (D43, `02` §18.10) et les alertes de disponibilité (D60, `02` §20.5), et reçoit le webhook (EC-12) ; `apps/api/.env.example` n'indique aucun service pour les variables Brevo | `api` : `BREVO_API_KEY`, `BREVO_API_BASE_URL`, `BREVO_MODE`, `BREVO_TEST_RECIPIENTS`, `BREVO_SENDER_TRANSACTIONAL`, `BREVO_WEBHOOK_SECRET`, `BREVO_WEBHOOK_PATH_TOKEN`, `BREVO_IP_ALLOWLIST`. `worker` : les cinq premières, plus `BREVO_SENDER_MARKETING`, `BREVO_SENDER_PROSPECTING`, `BREVO_SUPPRESSION_LIST_ID`. Corriger `02` §12.3, la skill `env-secrets` et `.env.example` | `integrateur` + `expert-cybersecurite` (clé Brevo sur le service HTTP) | J3 |
+| **EC-20** | **Une variable pour deux rôles de connexion.** Si EC-1 retient un rôle de connexion élevé par service, `ELEVATED_DATABASE_URL` prend deux valeurs différentes (`api`, `worker`) : impossible dans le seul `apps/api/.env.local` où tournent les deux processus, et une valeur posée sur le mauvais service Railway ne se voit pas | Deux noms qui disent le rôle : `AUTH_DATABASE_URL` (`api`, rôle de connexion membre d'`influx_auth` seul) et `WORKER_DATABASE_URL` (`worker`) ; `ELEVATED_DATABASE_URL` disparaît | `expert-cybersecurite` + `expert-database` (avec EC-1), `integrateur` | J2 |
+| **EC-21** | **PP-6 : d'où vient l'adresse IP du client ?** Un gestionnaire de route Next.js n'a pas accès à la connexion (la propriété `ip` de la requête a disparu en Next.js 15) : l'adresse ne peut venir que d'un en-tête posé par l'entrée de Railway, dont on ignore s'il écrase une valeur fournie par le client. La limitation de débit par IP (T8, T15) en dépend | Une fonction unique `clientAddress()` dans `src/server/relay.ts`, qui lit l'en-tête documenté par Railway (l'entrée ajoutée par Railway, jamais celle du client) ; `apps/api` ne lit l'adresse relayée qu'après validation du secret interne ; **constat sur `staging` au J4** avec un en-tête forgé | `expert-cybersecurite` + `integrateur` | J3 (usage), J4 (constat) |
+| **EC-22** | **La route de santé publique de `apps/web`** (D60, `02` §20.10) n'entre pas dans la liste blanche de G5 (`02` §13.1 : « le seul fichier de route autorisé »), et le `proxy.ts` de next-intl la redirigerait vers `/fr/…` | Liste blanche à deux entrées : `src/app/health/route.ts`, réponse `200` ou `503` **à corps vide**, fondée sur `GET /v1/status` par le client d'API, mêmes contraintes de contenu que le passe-plat, exclue du `matcher` du proxy | `architecte` + `expert-cybersecurite` (`02` §20.12) | J9 (sonde) |
+| **EC-23** | **La skill `env-secrets` indique « Local : `.env` »** (§ Ajouter une variable, étape 4), alors que D62 impose `apps/api/.env.local` (le `.env` est chargé par la maquette) ; elle ne dit rien des fichiers des fronts ni du fichier `staging` | Étape 4 : `apps/api/.env.local` (pile locale et clés de test D62), `apps/api/.env.staging.local` (sans clé Brevo ni Apollo, sans `DIRECT_DATABASE_URL`), `apps/<front>/.env.local` (chargé nativement par Next.js) | `integrateur` | J1 (documentation) |
+| **EC-24** | **`SESSION_COOKIE_SECRET` est décrit comme « secret de signature du cookie de session »**, alors que la session est un identifiant opaque dont seule l'empreinte est en base (EC-2) : il n'y a rien à signer. Son usage réel serait la signature des jetons courts (cookie de parcours, jeton d'inscription d'EC-4) | Nommer la variable d'après son usage réel (`AUTH_TOKEN_SIGNING_SECRET`), ou corriger sa description ; ne pas signer l'identifiant de session | `expert-cybersecurite` | J3 |
 
 ---
 
@@ -236,8 +246,9 @@ la proposition est une hypothèse de travail, pas une décision.
 
 ### J0 — Poste, dépôt et intégration continue (1 jour)
 
-1. Installer **Docker Desktop** (moteur WSL 2), la **CLI Supabase**, **GitHub CLI** ; en option la
-   CLI Railway et `psql`.
+1. Installer **Docker Desktop** (moteur WSL 2) et **GitHub CLI** ; en option la CLI Railway et
+   `psql`. *(Révisé le 2026-09-25, J1-A : la **CLI Supabase** n'est plus installée sur le système ;
+   elle entre au J2 comme dépendance de développement épinglée à la racine.)*
 2. Supprimer les restes de la maquette : `apps/api/node_modules`, `apps/backoffice/` (entier),
    `packages/contracts/node_modules` ; laisser ou supprimer `.env` et `apps/api/.env` (ignorés,
    jamais lus par le produit réel).
@@ -250,10 +261,15 @@ la proposition est une hypothèse de travail, pas une décision.
 
 ### J1 — Squelette des applications et des contrats (3 jours)
 
+> **Les décisions de l'architecte du 2026-09-25 (sous-section suivante, J1-A à J1-I) précisent les
+> points 1 à 6 ci-dessous et, là où elles divergent, les remplacent**, ainsi que les tests et le
+> « terminé quand » de ce jalon.
+
 1. **`packages/contracts`** (`@influx/contracts`) : `errors.ts` (union fermée des codes et
-   enveloppe `{ error: { code, message, details, requestId } }`, `02` §9.2), `common.ts` (langue
-   `fr` · `en`, pays ISO 3166-1, pagination par curseur), `elevated-operations.ts` (union fermée
-   E-1 à E-5, `03` P7), dossier `identity/` vide prêt pour J3.
+   enveloppe `{ error: { code, message, details, requestId } }`, `02` §9.2) et `system.ts` (réponse
+   de `/health` et `/v1/status`). *Révisé le 2026-09-25 (J1-E) : `common.ts` entre au J3 (langue),
+   `elevated-operations.ts` au J2 (avec `withElevatedTransaction`), `identity/` au J3 — un module
+   naît à son premier usage, comme un paquet (`02` §8).*
 2. **`apps/api`** (`@influx/api`) :
    - `src/config/` : schéma zod des variables, **échec au démarrage** si une variable manque ;
      refus de démarrer si `BREVO_MODE=live` hors production ou `SYNC_MODE=dry_run` en production
@@ -285,6 +301,414 @@ la proposition est une hypothèse de travail, pas une décision.
 (première moitié de T17), T11 sur les artefacts de construction.
 **Terminé quand** : `api`, `worker`, `web` et `backoffice` démarrent en local ; `web` joint
 `api` par le passe-plat ; une règle ESLint violée volontairement fait échouer la CI.
+
+### J1 — décisions de l'architecte (2026-09-25)
+
+> **Statut : tranché par `architecte`** (D64, `CLAUDE.md` §13). Confirmations attendues :
+> `testeur` (couverture de J1-C et J1-H), `integrateur` et `expert-cybersecurite` (J1-F, J1-G et les
+> écarts EC-19 à EC-24). Aucun code n'est écrit par ce document ; `dev-react-node` l'applique.
+
+#### J1-A. Versions retenues
+
+Vérifiées sur le registre npm le 2026-09-25 : toutes publiées **depuis plus d'un jour**
+(`minimumReleaseAge: 1440`). **Chaque paquet entre dans le commit de son premier usage**, pas avant.
+
+| Paquet | Version exacte | Publiée le | Espace de travail | Entre au | Remarque |
+|---|---|---|---|---|---|
+| `next`, `eslint-config-next` | **16.3.6** | 2026-09-22 | `apps/web` (montée depuis 16.3.5) et `apps/backoffice` | J1, **premier commit** | Version corrective de **sécurité** (exécution de code à distance dans `next/og`, `GHSA-vcvr-r3jv-pc5j`). `apps/web` n'importe pas `next/og` (vérifié), mais on ne crée pas une application sur une version dont on connaît une faille. Commit à part : `fix(web): bump next to 16.3.6` |
+| `react`, `react-dom`, `@types/react`, `@types/react-dom` | 19.3.0 | 2026-09-09 | `apps/backoffice` | J1 | Alignées sur `apps/web` ; dernière version publiée |
+| `tailwindcss`, `@tailwindcss/postcss` | 4.3.3 | déjà au verrou | `apps/backoffice` (dev) | J1 | Alignées sur `apps/web` |
+| `eslint` 9.39.5, `eslint-plugin-jsx-a11y` 6.10.2, `eslint-plugin-better-tailwindcss` 4.7.0 | — | déjà au verrou | `apps/backoffice` (dev) | J1 | Alignées ; ESLint 10 reste exclu (`docs/landing-page/01-architecture.md` §8) |
+| `typescript` 6.0.3, `vitest` 4.1.11, `@types/node` 22.20.3 | — | déjà au verrou | tous les nouveaux paquets (dev) | J1 | Alignées. Vitest 5 et `@types/node` 24 : montée groupée de tout le dépôt, commit à part |
+| `typescript-eslint` 8.70.0, `@eslint/js` 9.39.5 | — | déjà au verrou (via `eslint-config-next`) | `apps/api`, `packages/contracts`, `packages/test-kit` (dev) | J1 | ESLint des paquets sans Next.js |
+| `zod` | 4.6.5 | 2026-09-13 | `packages/contracts`, `apps/api` | J1 | Les fronts n'en ont pas besoin au J1 |
+| `fastify` | 5.12.5 | 2026-09-16 | `apps/api` | J1 | La 6.0 n'existe qu'en alpha |
+| `pino` | 10.3.1 | 2026-02-09 | `apps/api` | J1 | Dépendance directe, parce que le worker journalise sans Fastify. Fastify 5.12.5 accepte `^9.14.0 \|\| ^10.1.0` : une seule copie |
+| `drizzle-orm` | 0.45.3 | 2026-09-21 | `apps/api` | J2 | La 1.0 est en *release candidate* : si la 1.0 stable paraît avant le J2, `architecte` réexamine (commencer en 1.0 évite une migration à court terme) |
+| `postgres` | 3.4.9 | 2026-04-05 | `apps/api` ; `packages/test-kit` (harnais de rôles) | J2 | `prepare: false` (`02` §5) |
+| `supabase` (CLI) | 2.117.0 | 2026-09-07 | racine (dev) | J2 | Remplace l'installation système : **une seule version, dans le verrou, en local et en CI** (`pnpm exec supabase …`). Binaires livrés par des dépendances optionnelles par plateforme, **sans script d'installation**. La 2.118.0 (2026-09-25) est trop récente aujourd'hui |
+| `@supabase/supabase-js` | 2.117.1 | 2026-09-23 | `apps/api` | J3 | **Pas la 2.117.2**, publiée le 2026-09-25. Le pair `@opentelemetry/api` est facultatif : non installé |
+| `@fastify/cookie` | 11.1.2 | 2026-07-15 | `apps/api` | J3 | Compatible Fastify 5 (≥ 10.x) |
+| `@playwright/test` | 1.63.0 | 2026-09-04 | `apps/web` (dev) ; `apps/backoffice` au J8 | J5 | Chromium seul, installé par commande explicite (`playwright install chromium`), mis en cache en CI |
+
+**Écartés**
+
+| Paquet | Motif | Ce qui le remplace |
+|---|---|---|
+| `tsup` | Son dépôt l'annonce : « This project is not actively maintained anymore » — éliminatoire sur une chaîne de production | Aucune construction (J1-B) |
+| `tsdown` 0.23 | Pré-1.0 ; ajoute un empaqueteur natif (rolldown) pour produire ce que Node sait exécuter | Idem |
+| `fastify-type-provider-zod` 7.0.0 | Déclare `@fastify/swagger` et `openapi-types` en dépendances pairs **obligatoires** : pnpm les installerait en production sans aucun usage. Trois versions majeures en douze mois (5.0 en juin 2025, 6.0 en septembre 2025, 7.0 en juin 2026), sur le chemin qui porte la **deuxième ligne de défense de l'anonymisation** | `apps/api/src/platform/schema-compilers.ts` : compilateur de validation (`safeParse`), compilateur de sérialisation (`parse` puis `JSON.stringify` — un `z.object` retire tout champ non déclaré), fournisseur de types Fastify. Une cinquantaine de lignes, **testées** (J1-H) |
+| `pino-pretty` | Confort de lecture local ; transport par fil d'exécution | Journaux JSON ; réexaminé si la lecture devient une vraie gêne |
+| `drizzle-kit` | Le SQL est écrit et relu à la main (`02` §5, règle 1) ; `push` est interdit de toute façon | — |
+| `dotenv`, `tsx`, `server-only` | Node charge le fichier d'environnement (`--env-file-if-exists`) et exécute le TypeScript ; l'isolement du client d'API est vérifié par la garde des importeurs (J1-C) | — |
+
+**`allowBuilds` : aucun ajout.** Aucun paquet retenu n'a besoin d'un script d'installation. Si pnpm
+en signale un : `false` par défaut ; `true` seulement si l'outil échoue sans lui, avec un
+commentaire (`docs/landing-page/01-architecture.md` §12).
+
+**Installation après le 2026-09-25** (J2, J3, J5) : si une version corrective de la **même ligne
+mineure** a paru entre-temps et a plus d'un jour, la prendre et corriger ce tableau dans le même
+commit. Tout changement de mineure ou de majeure (Drizzle 1.0, Fastify 6…) repasse par
+`architecte`. Exception : la CLI Supabase, qui publie une mineure par semaine — dernière stable de
+plus d'un jour.
+
+#### J1-B. `apps/api` s'exécute sans étape de construction
+
+**Contexte.** Le §2.6 proposait `tsup` pour produire `dist/main.js` et `dist/worker.js`. `tsup`
+n'est plus maintenu.
+
+| Option | Pour | Contre |
+|---|---|---|
+| A. `tsup` | Connu, fondé sur esbuild | **Plus maintenu** |
+| B. `tsdown` | Successeur désigné de `tsup` | Pré-1.0 ; un empaqueteur natif de plus |
+| C. Script `esbuild` d'une trentaine de lignes | esbuild est mûr et déjà autorisé | Un script à entretenir ; cartes de source à activer pour que les piles d'erreurs (D60) désignent le code |
+| **D. Aucune construction : Node efface les types** | **Zéro dépendance.** Même mode d'exécution en local, en `staging` et en production. **Numéros de ligne exacts dans les piles** (les types sont remplacés par des espaces), ce qui sert directement le regroupement d'erreurs de D60. Activé par défaut et sans avertissement depuis Node 22.18, **déclaré stable depuis Node 24.12** | Discipline d'écriture (ci-dessous) ; Node ≥ 24.12 exigé en production |
+
+**Décision : D.** Conditions, toutes vérifiées par `tsc` :
+
+1. `erasableSyntaxOnly: true` — ni `enum`, ni `namespace` porteur de code, ni propriété de
+   paramètre, ni décorateur. Les unions de littéraux remplacent les `enum` (c'est déjà la forme des
+   unions fermées de `packages/contracts`).
+2. `verbatimModuleSyntax: true` — tout import de type est écrit `import type`.
+3. `module` et `moduleResolution` en `nodenext` ; imports relatifs **avec l'extension `.ts`**
+   (`allowImportingTsExtensions`) ; **aucun alias de chemin** (`paths`), que Node ignore.
+4. Node ≥ 22.18 en local et en `staging` (le poste a 22.22) ; **Node ≥ 24.12 en production** :
+   `.node-version` passe à `24` au plus tard au J9 (montée déjà prévue par `CLAUDE.md` §6).
+5. `@influx/contracts` est exécuté en source TypeScript. Node refuse d'effacer les types sous un
+   chemin `node_modules`, mais pnpm relie les paquets de l'espace de travail par lien symbolique et
+   Node résout le chemin réel (`packages/contracts/src/…`). **À constater au J1** : c'est une
+   condition de « terminé » (J1-H).
+
+**Conséquences.**
+- **Code** : `apps/api` n'a pas de script `build` (`pnpm build` l'ignore) ; `typecheck` fait le
+  contrôle de types.
+- **Déploiement** (`integrateur`, J4) : services `api` et `worker` en installation seule
+  (`pnpm install --frozen-lockfile`), démarrés par **`node apps/api/src/main.ts`** et
+  **`node apps/api/src/worker.ts`** — **`node` directement, jamais au travers de `pnpm start`**, pour
+  que `SIGTERM` atteigne le processus et que l'arrêt propre fonctionne (`02` §4, règle 5), à vérifier
+  par un redéploiement au J4. `02` §11.2 et §12.1 sont corrigés en ce sens.
+- **Sécurité** : l'image contient des sources, qui ne contiennent aucun secret ; T11 porte sur les
+  fronts et n'est pas concerné.
+- **Coûts** : nuls.
+
+**Si l'on se trompe** : l'option C en une demi-journée, sans toucher au code applicatif (esbuild
+accepte les imports en `.ts`). **Réversibilité : élevée.**
+
+#### J1-C. EC-13 — levée de G5 au J1 : confirmée, et élargie
+
+**Ce qu'est G5.** Le bloc `describe("G5: no server endpoint (CA8)")` de
+`apps/web/tests/guards.test.ts` (lignes 135 à 142) : il liste tout fichier `route.ts` ou `route.tsx`
+sous `src/app` et exige une liste vide. Il traduit CA8 de la landing (« aucun point d'accès
+serveur », `docs/landing-page/01-architecture.md` §9.3).
+
+**Décision : G5 tombe au J1, dans le commit du passe-plat, avec son remplaçant.** La proposition
+d'EC-13 est confirmée, avec quatre compléments :
+
+1. **La garde annexe réseau tombe dans le même commit.** Le test « uses no network or storage API
+   in the source code » (lignes 170 à 175) interdit `fetch(` dans tout `src/` : le passe-plat ne
+   peut pas exister sans elle. Elle est **scindée** comme `02` §13.1 le prévoyait pour le Lot 1 :
+   `fetch` autorisé dans **le seul** `src/server/api-client.ts` ; stockage navigateur (`localStorage`,
+   `sessionStorage`, `indexedDB`, `document.cookie`, `cookieStore`, `sendBeacon`) toujours interdit
+   partout. Même exception d'un seul fichier dans les règles ESLint `no-restricted-globals` et
+   `no-restricted-properties`.
+2. **La garde de remplacement**, écrite une fois dans `packages/test-kit` et appliquée aux deux
+   fronts :
+   - l'ensemble des fichiers de route sous `src/app` est **exactement**
+     `{ src/app/api/[...path]/route.ts }` (liste qu'EC-22 pourra étendre d'une ligne) ;
+   - `route.ts`, `src/server/relay.ts` et `src/server/api-client.ts` n'importent ni `@supabase/*`,
+     ni `drizzle-orm`, ni `pg`, ni `postgres`, ne lisent pas `process.env` et ne contiennent pas
+     `'use server'` ;
+   - **garde des importeurs** : `relay.ts` n'est importé que par `route.ts`, `api-client.ts` que par
+     `relay.ts`, `src/config/server.ts` que par `api-client.ts` (étendue au J5, quand des composants
+     serveur appelleront l'API) — c'est ce qui garantit qu'aucun composant de la landing n'atteint le
+     réseau (CA8 reste vrai pour la maquette) ;
+   - **empreinte SHA-256** de ces quatre fichiers, épinglée une seule fois dans `packages/test-kit`
+     (PP-12) : les fichiers des deux fronts sont donc **identiques octet pour octet**, et toute
+     modification exige un geste conscient.
+3. **Le `matcher` de `apps/web/src/proxy.ts` exclut `api/`** ; sans cela, next-intl redirige
+   `/api/v1/…` vers `/fr/api/v1/…`.
+4. **Inchangées jusqu'au J9** : G1, G2, G4, G6, la parité FR/EN, le confinement du module fictif.
+   **Conservées et étendues au backoffice** : G3, G7. G2 s'applique donc au passe-plat : aucune URL
+   littérale, l'adresse de l'API vient de la configuration.
+
+`02` §13.3 est corrigé. `testeur` confirme la couverture : garde ci-dessus et tests unitaires des
+conditions PP au J1, T7 complet au J9.
+
+#### J1-D. Environnements locaux (§2.3) : confirmés, avec amendements
+
+1. **Le J1 ne dépend ni de Docker ni d'une base.** **Réponse à la question posée : non, le schéma de
+   configuration n'exige pas `DATABASE_URL` au J1.** Une variable exigée sans être lue pousse à y
+   mettre une valeur factice et ne vérifie rien. Chaque variable entre dans le schéma **dans le
+   commit qui la lit** : `DATABASE_URL` et `ELEVATED_DATABASE_URL` (ou leurs successeurs, EC-20) au
+   J2 avec `src/db/index.ts` ; `SUPABASE_*`, `SESSION_COOKIE_SECRET` (EC-24), `BREVO_API_KEY` et
+   l'expéditeur transactionnel au J3 ; `APOLLO_API_KEY` au J6. Les variables déjà présentes dans
+   `apps/api/.env.local` sont ignorées tant qu'aucun code ne les lit.
+2. **Deux schémas, un par processus** : `loadApiConfig()` et `loadWorkerConfig()` sur un socle
+   commun. Chaque service ne valide que ce qu'il porte (skill `env-secrets` : une variable sur le
+   seul service qui en a besoin).
+3. **Refus de démarrage dès le J1** (première moitié de T17) :
+   - `api` et `worker` : `BREVO_MODE=live` hors production (`16` RG116) ; en production, toute autre
+     valeur que `live` (colonne « Où » de RG116 : `disabled` et `redirect` n'existent pas en
+     production) ; `redirect` sans `BREVO_TEST_RECIPIENTS` ;
+   - `worker` : `SYNC_MODE=dry_run` en production (`02` §12.4) ; `SYNC_MODE=live` hors production
+     avec `NON_PRODUCTION_RECIPIENT_ALLOWLIST` vide ;
+   - `api` : secret interne absent, de moins de 32 octets, ou **identique pour les deux fronts**
+     (J1-G).
+   La seconde condition de RG116 (trois sous-domaines authentifiés) exige un appel à Brevo : elle
+   vient au J9.
+4. **Le code ne lit jamais de fichier d'environnement.** `src/config/` ne lit que `process.env`. Le
+   fichier est chargé par Node **dans les seuls scripts de développement**
+   (`node --watch --env-file-if-exists=.env.local src/main.ts`). En production, aucun indicateur,
+   donc aucun fichier, même égaré dans l'image. Les fronts gardent le chargement natif de Next.js
+   (`apps/<front>/.env.local`).
+5. **À partir du J2** (Docker et CLI installés) : `apps/api/.env.local` porte la **pile locale**
+   (valeurs de `supabase status`, mots de passe des rôles posés par le script local du J2) et, seul,
+   les clés des comptes Brevo et Apollo **de test** (D62). `apps/api/.env.staging.local` (déjà ignoré
+   par la règle `.env.*`) porte les valeurs de `staging`, lues par un script `dev:staging`
+   (`--env-file=.env.staging.local`) ; il reproduit le service Railway `staging` : `BREVO_MODE=disabled`,
+   `SYNC_MODE=dry_run`, **aucune clé Brevo ni Apollo**, **jamais `DIRECT_DATABASE_URL`** (CI seule,
+   CI-5). L'en-tête de `apps/api/.env.example`, qui dit aujourd'hui « valeurs de `staging` », est
+   réécrit au J2.
+6. **Démarrer l'API ne dépend pas de la base** (J2 et après) : le pilote se connecte à la première
+   requête ; `/health` répond `503` tant que la base est injoignable (D60).
+
+#### J1-E. Structure des paquets
+
+**Règle commune** : `"private": true`, `"type": "module"`, version `0.0.0`, dépendances des autres
+paquets par `workspace:*`. Un module de `packages/*` **naît à son premier usage**, comme un paquet.
+
+**`packages/contracts`** — `@influx/contracts`
+
+```
+packages/contracts/
+├── package.json        dependencies : zod ; exports par sous-chemin, aucun point d'entrée « . »
+├── tsconfig.json       comme apps/api, mais "types": [] (ni Node, ni DOM : ni process, ni fetch, ni console)
+├── eslint.config.mjs   imports autorisés : zod et fichiers relatifs ; rien d'autre
+├── src/
+│   ├── errors.ts       ERROR_CODES (union fermée, snake_case) : validation_failed, unauthenticated,
+│   │                   forbidden, not_found, conflict, payload_too_large, rate_limited,
+│   │                   internal_error, service_unavailable ; schéma et type de l'enveloppe
+│   └── system.ts       réponse de /health et de /v1/status : { status: "ok" }
+└── tests/              schéma de l'enveloppe
+```
+
+`"exports": { "./errors": "./src/errors.ts", "./system": "./src/system.ts" }` — une ligne par
+module : **ajouter un contrat se voit dans `package.json`**. `"sideEffects": false`. Aucun
+`"main"`. Pas de barillet. `common.ts` entre au J3 et ne valide que le **format** des codes pays
+(`^[A-Z]{2}$`) et devise (`^[A-Z]{3}$`) : l'appartenance est vérifiée par la clé étrangère vers
+`reference.*` (la base est l'arbitre ; une seconde liste de 249 pays en TypeScript serait une
+seconde source de vérité).
+
+**`apps/api`** — `@influx/api` (application : aucun champ `exports`)
+
+```
+apps/api/
+├── package.json · tsconfig.json · eslint.config.mjs · vitest.config.ts · .env.example
+├── src/
+│   ├── main.ts               loadApiConfig() → buildServer() → écoute sur "::" et PORT ;
+│   │                         SIGTERM et SIGINT → app.close(), puis sortie
+│   ├── worker.ts             loadWorkerConfig() → journalise environnement, SYNC_MODE, BREVO_MODE
+│   │                         → boucle vide (un tour toutes les 5 s) ; AUCUN port ouvert ;
+│   │                         SIGTERM → fin du tour, puis sortie
+│   ├── server.ts             buildServer(config, options) : Fastify, identifiant de requête,
+│   │                         compilateurs zod, hook onRoute, hook onRequest (secret et surface),
+│   │                         gestionnaires d'erreur et de 404 à enveloppe, /health, /v1/status
+│   ├── config/
+│   │   ├── schema.ts         schémas zod purs (socle, api, worker) et règles croisées de J1-D
+│   │   └── index.ts          loadApiConfig(), loadWorkerConfig() : SEULS lecteurs de process.env
+│   └── platform/
+│       ├── logger.ts         options pino communes : service, environnement, version
+│       │                     (RAILWAY_GIT_COMMIT_SHA, sinon "local") ; masquage ; sérialiseurs
+│       │                     sans URL brute ni en-tête (modèle de route seulement, 02 §20.8)
+│       ├── schema-compilers.ts   validation et sérialisation zod, fournisseur de types (J1-A)
+│       ├── errors.ts         code → statut HTTP → enveloppe ; 500 sans aucun détail (T13)
+│       └── internal-auth.ts  secret interne à temps constant, surface, liaison au préfixe (J1-G)
+└── tests/                    config, server, schema-compilers, logger (J1-H)
+```
+
+Arrivent ensuite : `src/db/` (J2), `src/platform/supabase.ts` et `src/domains/identity/` (J3). **Le
+worker n'ouvre aucun port au J1** : Railway n'exige pas de contrôle de santé pour un service sans
+domaine, et le battement de cœur en base (D60) sera le signal de vie ; `integrateur` réexamine au J4.
+**`buildServer` refuse de démarrer si une route n'a pas de schéma de réponse** (hook `onRoute`) : la
+règle 1 de `02` §4 devient structurelle au lieu d'être confiée à la revue.
+
+Scripts de `apps/api/package.json` :
+
+| Script | Commande |
+|---|---|
+| `dev` | `node --watch --env-file-if-exists=.env.local src/main.ts` |
+| `dev:worker` | `node --watch --env-file-if-exists=.env.local src/worker.ts` |
+| `dev:staging` | *(J2)* `node --watch --env-file=.env.staging.local src/main.ts` |
+| `start` · `start:worker` | `node src/main.ts` · `node src/worker.ts` (commodité locale ; Railway lance `node` directement, J1-B) |
+| `typecheck` | `tsc --noEmit` |
+| `lint` | `eslint . --max-warnings 0` |
+| `test` | `vitest run` |
+
+`apps/api/tsconfig.json` : `extends: "../../tsconfig.base.json"` ; `lib: ["ES2024"]` (pas de DOM) ;
+`module` et `moduleResolution` : `nodenext` ; `verbatimModuleSyntax` et `erasableSyntaxOnly` :
+`true` ; `types: ["node"]` ; `include: ["src", "tests", "*.config.ts"]`.
+
+ESLint de `apps/api` (en plus de `typescript-eslint` strict et `no-explicit-any`) : `@supabase/*`
+importable seulement dans `src/platform/supabase.ts` ; `drizzle-orm` seulement dans `src/db/**` et
+les `repository.ts` (`02` §5, règle 6) ; `postgres` seulement dans `src/db/**` ; import du
+`repository.ts` d'un autre domaine interdit (un bloc par domaine, généré à partir de la liste des
+domaines de `02` §8 et `ops`) ; `process.env` interdit hors `src/config/**` ; `no-console` (le
+journal passe par `pino`).
+
+**`apps/backoffice`** — `@influx/backoffice`
+
+```
+apps/backoffice/
+├── package.json · tsconfig.json · next.config.ts · postcss.config.mjs · eslint.config.mjs
+├── vitest.config.ts · .env.example
+├── tests/guards.test.ts     G3 et G7 (test-kit), garde du passe-plat, copie des tokens,
+│                            absence de next-intl
+└── src/
+    ├── app/layout.tsx       <html lang="fr">, metadata.robots : noindex, nofollow, noarchive
+    ├── app/page.tsx         page de connexion vide (contenu au J3, d'après 17b)
+    ├── app/globals.css      même mécanisme que apps/web (Tailwind alimenté par les tokens)
+    ├── app/api/[...path]/route.ts   identique à apps/web (J1-C)
+    ├── config/server.ts     identique à apps/web
+    ├── server/relay.ts · server/api-client.ts   identiques à apps/web
+    ├── messages/fr.ts       libellés (D36 : français seul, sans next-intl) ; aucun littéral en
+    │                        JSX, pour qu'un passage au bilingue ne coûte qu'un remplacement
+    └── styles/tokens.css    copie OCTET POUR OCTET de apps/web/src/styles/tokens.css, vérifiée
+                             par un test (la dérive fait échouer la CI) jusqu'à packages/ui
+```
+
+- `next.config.ts` : `agentRules: false`, `poweredByHeader: false`, `headers()` qui pose
+  `X-Robots-Tag: noindex, nofollow, noarchive` sur `/:path*` ; le passe-plat le pose aussi sur ses
+  réponses. La vérification sur les erreurs et les redirections relève de T10 (J9).
+- Scripts : ceux de `apps/web`, avec `dev` = `next dev -p 3001` (web 3000, API 3100 en local) et
+  `test:artifacts` (J1-H).
+- Dépendances : `next`, `react`, `react-dom`, `@influx/contracts` ; développement : les versions de
+  J1-A et `@influx/test-kit`. **Ni `next-intl`, ni `lucide-react`** (premier besoin réel).
+- **Règles ESLint communes aux deux fronts** (réseau et stockage, imports interdits, `'use server'`,
+  attribut `style`, `react/no-danger` en erreur — B10 —, `process.env` hors `src/config/`, classes
+  Tailwind restreintes) : écrites **une fois** dans `eslint.front-rules.mjs` à la racine et importées
+  par les deux `eslint.config.mjs`, pour qu'une règle de sécurité ne dérive pas entre les deux. Les
+  règles propres à la maquette (module fictif, `next/link`, `action`) restent dans `apps/web` ;
+  `next-intl` est interdit dans le backoffice.
+
+**`packages/test-kit`** — `@influx/test-kit` (développement seulement)
+
+```
+packages/test-kit/
+├── package.json     exports : "./guards", "./artifacts" ; "./db" au J2 (dépendance postgres)
+├── tsconfig.json    comme apps/api
+└── src/
+    ├── guards.ts    parcours de fichiers, recherche de motifs, motifs de G3, détecteur de G7
+    │                (son auto-contrôle devient un test du paquet), garde du passe-plat et
+    │                empreintes de J1-C
+    └── artifacts.ts T11 : analyse des artefacts de construction (J1-H)
+```
+
+Les gardes de `apps/web` sont **extraites sans changement de comportement** : mêmes portées, mêmes
+motifs, mêmes attendus.
+
+**Comment les fronts consomment `@influx/contracts`.** `"@influx/contracts": "workspace:*"` en
+`dependencies`, `transpilePackages: ["@influx/contracts"]` dans `next.config.ts`, import par
+sous-chemin (`@influx/contracts/errors`). **Au J1, import de types seulement** (`import type`) : le
+passe-plat type l'enveloppe de ses trois refus (J1-G) ; aucun schéma zod n'est embarqué côté
+navigateur avant le J3. Les fronts ne s'en servent jamais que pour des types et la validation de
+confort des formulaires (`02` §9.1).
+
+**`tsconfig.base.json`** : ajout de `"allowImportingTsExtensions": true` (autorisé puisque
+`noEmit` y est déjà) ; les sources de `contracts` et `test-kit`, lues aussi par le `tsc` des fronts,
+importent avec l'extension `.ts`.
+
+**`package.json` racine** : `engines.node` passe à `>=22.18.0` ; scripts `dev:api`, `dev:worker`,
+`dev:backoffice` ; `check` se termine par `&& pnpm -r run test:artifacts` (après `build`) ; la CLI
+Supabase y entre au J2.
+
+#### J1-F. Variables d'environnement (EC-18)
+
+| Variable | `.env.example` | Services Railway | Nature | Entre au | Remarque |
+|---|---|---|---|---|---|
+| `INFLUX_API_INTERNAL_URL` | `apps/web` et `apps/backoffice` (**fichiers créés au J1**) | `web`, `backoffice` | Interne, non secrète | J1 | Local : `http://localhost:3100` ; Railway : adresse privée du service `api`, **port fixé explicitement** (J4). Jamais préfixée `NEXT_PUBLIC_` |
+| `INFLUX_API_INTERNAL_SECRET` | `apps/web` et `apps/backoffice` | `web`, `backoffice` | **Secrète** — valeur propre à chaque front | J1 | Égale à `INFLUX_API_INTERNAL_SECRET_WEB` (web) ou `…_BACKOFFICE` (backoffice) |
+| `INFLUX_API_INTERNAL_SECRET_WEB` | `apps/api` | `api` | **Secrète** | J1 | ≥ 32 octets aléatoires (même génération que `SESSION_COOKIE_SECRET`) ; rotation : les deux côtés ensemble, brève fenêtre de refus acceptée au MVP |
+| `INFLUX_API_INTERNAL_SECRET_BACKOFFICE` | `apps/api` | `api` | **Secrète** | J1 | Différente de la précédente, sinon refus de démarrage |
+| `PORT` | `apps/api` (facultative) | fournie par Railway | Technique | J1 | Défaut local : 3100 |
+| `RAILWAY_GIT_COMMIT_SHA` | `apps/api` (commentaire seulement) | fournie par Railway | Technique | J1 | Version dans chaque ligne de journal ; `local` si absente |
+| `AUTH_THROTTLE_PEPPER` | `apps/api` | `api` | **Secrète** | J3 | Poivre de l'empreinte HMAC-SHA-256 des adresses (et des IP) dans `identity.auth_request_throttle` (`04` §12.10, point 4) ; sa rotation remet les compteurs à zéro |
+| `INFLUX_ENV` | `apps/web` et `apps/backoffice` | `web`, `backoffice` | Publique | J4 | Déjà prévue par `02` §12.3 : bandeau d'environnement du backoffice (`16` RG118), non-indexation de `staging` |
+| `INFLUX_PUBLIC_SITE_URL` | `apps/web` | `web` | Publique | J9 | `robots.txt`, plan du site, URL canonique (`docs/landing-page/01-architecture.md` §13) |
+| `OPS_ALERT_FALLBACK_RECIPIENTS` | `apps/api` | `api`, `worker` | Non secrète (adresses internes) | J9 | Destinataires des alertes de disponibilité quand la base est injoignable (`02` §20.5) |
+
+Porteurs des variables Brevo : EC-19. Nommage des connexions élevées : EC-20. Description de
+`SESSION_COOKIE_SECRET` : EC-24.
+
+#### J1-G. Passe-plat et surfaces
+
+**Trois fichiers serveur par front, plus la route**, identiques dans les deux fronts :
+
+| Fichier | Conditions de `03` §6.4 portées |
+|---|---|
+| `src/app/api/[...path]/route.ts` | Délègue à `relay()` ; `runtime = "nodejs"`, `dynamic = "force-dynamic"`, `revalidate = 0` (PP-11). Exporte `GET`, `POST`, `PATCH`, `PUT`, `DELETE` seulement (PP-3) |
+| `src/server/relay.ts` | PP-2 (chemin validé après décodage), PP-5 (liste blanche d'en-têtes, suppression de tout `x-*` non listé dont `x-middleware-subrequest`), PP-6 (`clientAddress()`, EC-21), PP-7 (`x-request-id` généré, celui du client déplacé en `client-request-id`), PP-9 (corps de 1 Mo au plus, compté en flux), PP-10 (`Set-Cookie` relayé verbatim par `getSetCookie()`, nom en `__Host-` sinon rejet), PP-11 (`Cache-Control: no-store`). En-têtes de réponse relayés : `content-type`, `set-cookie`, `retry-after`, `location` |
+| `src/server/api-client.ts` | **Seul `fetch` du front.** PP-1 (URL construite sur la base de configuration), PP-4 (`redirect: "manual"`), PP-8 (en-tête `x-influx-internal`), PP-9 (délai de 10 s) |
+| `src/config/server.ts` | Lit `INFLUX_API_INTERNAL_URL` et `INFLUX_API_INTERNAL_SECRET` **à la première requête, jamais au chargement du module** (sinon `next build` échoue en CI faute de variables) ; validation écrite à la main (deux valeurs : pas de `zod` dans les fronts au J1) |
+
+**Refus propres au passe-plat**, avec l'enveloppe de `@influx/contracts/errors`, sans détail :
+`404 not_found` (chemin ou méthode refusés), `413 payload_too_large`, `502 service_unavailable` (API
+injoignable ou délai dépassé).
+
+**Un secret interne par front, et une surface liée au préfixe** (renforce PP-8 et D12, soumis à
+`expert-cybersecurite` à sa revue de fin de J2 ; ce n'est pas une dérogation, c'est plus strict) :
+
+- `apps/api` compare `x-influx-internal` **à temps constant** aux deux secrets et en déduit la
+  surface appelante, `web` ou `backoffice` ; absent ou inconnu ⇒ `401 unauthenticated`.
+- **Préfixes validés** (§5.2) : `/v1/…` pour le public et les membres (surface `web`), `/v1/bo/…`
+  pour le backoffice (surface `backoffice`). Une route `/v1/bo/…` appelée par le passe-plat de `web`
+  ⇒ `404 not_found`, et inversement — sauf route déclarée commune (`/v1/status` au J1,
+  `/v1/ops/client-errors` au J4).
+- Conséquence : un front compromis, ou son secret volé, **n'atteint pas les routes de l'autre
+  surface**, même avec un cookie d'agent dérobé. À partir du J3, `apps/api` ne lit que
+  `__Host-influx-session` sur la surface `web` et que `__Host-influx-ops-session` sur la surface
+  `backoffice` (BO-2 appliqué côté serveur).
+- **`/health`** : hors `/v1`, donc injoignable par le passe-plat (PP-2) ; seule route dispensée du
+  secret, pour le contrôle de santé de Railway ; répond `{ "status": "ok" }` sans aucun détail.
+- **`GET /v1/status`** : route publique minimale, sans base, qui répond `{ "status": "ok" }` ; cible
+  des essais du passe-plat au J1 et, plus tard, de la route de santé publique de `web` (EC-22).
+- Identifiant de requête : `apps/api` reprend `x-request-id` **s'il a la forme d'un UUID**, sinon en
+  génère un ; il figure dans l'enveloppe et dans chaque ligne de journal.
+
+#### J1-H. Tests et « terminé quand » du J1 (remplacent ceux du J1 ci-dessus)
+
+**Tests** — tous sans réseau externe ni base :
+
+- `apps/api` : refus de démarrage de J1-D (première moitié de T17) ; `/health` répond sans secret ;
+  toute autre route sans secret ⇒ `401` (T7.9) ; secret de `web` sur `/v1/bo/…` ⇒ `404` ; **un champ
+  non déclaré dans le schéma de réponse n'est jamais sérialisé** ; une route sans schéma de réponse
+  empêche le démarrage ; `404` et `500` en enveloppe, sans trace ni détail (T13, partiel) ; aucune
+  valeur de cookie, d'`authorization` ni de `x-influx-internal` dans le journal (flux de journal
+  capturé).
+- Fronts : garde de J1-C (liste blanche, contenus, importeurs, empreintes, identité des deux
+  fronts) ; tests unitaires de PP-2, PP-3, PP-5, PP-7, PP-9, PP-10 et PP-11 contre un **faux serveur
+  HTTP local** (`node:http`), jamais contre l'API réelle ; copie des tokens ; G3 et G7 au backoffice.
+- **T11 après construction** : script `test:artifacts` de chaque front, exécuté après `build`. Dans
+  `.next/static` (code livré au navigateur) : aucune occurrence de `SUPABASE_`, `BREVO_`, `APOLLO_`,
+  `SERVICE_ROLE`, `SESSION_COOKIE_SECRET`, `DATABASE_URL`, `INFLUX_API_INTERNAL_`. Dans tout `.next` :
+  aucune chaîne ressemblant à un JWT ni à une chaîne de connexion Postgres.
+
+**Terminé quand** :
+- `api` (`node src/main.ts`), `worker`, `web` et `backoffice` démarrent en local, **`apps/api`
+  exécutant `@influx/contracts` en source TypeScript** (condition 5 de J1-B) ;
+- `GET /api/v1/status` répond `{ "status": "ok" }` **par le passe-plat de `web` et par celui du
+  backoffice** ;
+- `next build` réussit pour les deux fronts, sans aucune variable d'environnement posée ;
+- une règle ESLint violée volontairement fait échouer la CI ;
+- `pnpm check` est vert.
+
+#### J1-I. Ce que ces décisions demandent aux autres agents
+
+| Agent | Demande |
+|---|---|
+| `dev-react-node` | Appliquer J1-A à J1-H, dans cet ordre de commits : montée de `next` dans `apps/web` ; `packages/test-kit` et extraction des gardes ; `packages/contracts` ; `apps/api` ; passe-plat de `apps/web` avec levée de G5 (un seul commit, J1-C) ; `apps/backoffice`. Lire avant usage la documentation de la version installée : TypeScript dans Node (`nodejs.org/docs/latest-v22.x/api/typescript.html`), validation, sérialisation et fournisseurs de types de Fastify 5, gestionnaires de route de Next.js 16.3 (documentation embarquée dans `node_modules/next/dist/docs/`) |
+| `testeur` | Confirmer EC-13 (J1-C) et la liste de J1-H ; reporter dans `18` les tests de refus de démarrage de J1-D |
+| `integrateur` | Au J4 : démarrage des services `api` et `worker` par `node` directement (J1-B) ; port privé fixé pour `api` ; `.node-version` à `24` avant le J9 ; confirmer J1-F ; EC-19, EC-21, EC-23 |
+| `expert-cybersecurite` | À la revue de fin de J2 : le secret par front et la liaison surface ↔ préfixe (J1-G) ; EC-19 (clé Brevo sur le service HTTP), EC-20, EC-21, EC-24 |
 
 ### J2 — Base de données socle (4 à 5 jours)
 
@@ -416,8 +840,9 @@ T11 T12 T16 verts, I-4 I-5 I-7 I-12 en place, **aucune objection ouverte de
 
 ### 5.2 Le contrat d'API du Lot 1
 
-Préfixes proposés : `/v1/…` pour les membres et le public, `/v1/bo/…` pour le backoffice *(à
-valider, architecte)*. Chaque route déclare un schéma de requête **et** de réponse
+Préfixes : `/v1/…` pour les membres et le public, `/v1/bo/…` pour le backoffice *(validés par
+`architecte` le 2026-09-25 et liés à la surface appelante par le secret interne de chaque front —
+§4, J1-G)*. Chaque route déclare un schéma de requête **et** de réponse
 (`packages/contracts`).
 
 | Route | Accès | Chemin base | Règles |
@@ -695,6 +1120,7 @@ matrice des droits, tests de droits, puis écrans.
 | **La pile Supabase locale est lourde sous Windows** | Démarrage lent, mémoire saturée | Moteur WSL 2, 8 Go alloués ; en dernier recours, tests de base en CI seulement — jamais de tests de droits supprimés |
 | **Le comportement de GoTrue diffère de ce que suppose `02` §18.7** (code obtenu sans envoi, invalidation du code précédent, durée) | Test J3 rouge | Le constater au J3, pas au J9 ; repli documenté par D37 (« si l'on se trompe ») |
 | **Drizzle en version pré-1.0** | Rupture à une montée de version | Version exacte, couche `repository.ts` par domaine (`02` §5) |
+| **L'exécution sans construction de `apps/api` bute sur un cas** (paquet de l'espace de travail non résolu, syntaxe non effaçable) | Démarrage en erreur au J1 | Script `esbuild` d'une demi-journée (§4, J1-B, option C), sans toucher au code applicatif |
 | **La CI dépasse 10 minutes** | Durée mesurée | Matrice T2 en transactions groupées ; bout en bout avant déploiement seulement |
 | **Délivrabilité réelle inconnue avant la production** | AL48 dès l'ouverture | Rodage de 30 jours, seuils de D37 ; ajout du mot de passe en 2 à 3 jours si nécessaire |
 | **Un seul développeur** | Connaissance qui ne vit que dans une tête | Petits commits, spécifications corrigées au fil de l'eau (§2.5), procédures écrites |
@@ -708,7 +1134,7 @@ matrice des droits, tests de droits, puis écrans.
 | Avant | Lire |
 |---|---|
 | Tout | `CLAUDE.md` (§3, §6, §13, §16) ; `00` §4 et §7 ; ce document §2 et §3 |
-| J1 | `02` §2, §4, §8, §9, §12, §13, §15 ; `03` §6.4 (passe-plat) et §7 ; `docs/landing-page/01-architecture.md` §11 |
+| J1 | **Ce document §4, « J1 — décisions de l'architecte »** ; `02` §2, §4, §8, §9, §12, §13, §15 ; `03` §6.4 (passe-plat) et §7 ; `docs/landing-page/01-architecture.md` §11 |
 | J2 | `04` §1 à §4, §5.1, §11 ; `03` §1 à §4 et §8 (T2, T3, T4, T6, T16) ; skill `supabase-schema` |
 | J3 | `02` §7 et §18 (en entier) ; `03` §6.1, §6.2, §6.3, §6.9 ; `05` §F et §G ; `04` §5.8 (`transactional_sends`, `auth_request_throttle`) |
 | J4 | `02` §11, §12, §19, §20 ; skills `railway-deploy`, `env-secrets` |

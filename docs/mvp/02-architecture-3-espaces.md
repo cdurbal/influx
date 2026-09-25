@@ -1094,8 +1094,9 @@ toute table nouvelle absente de la matrice des droits) est dans `docs/mvp/03-mat
 
 ### 11.2 Déploiement
 
-- **Même paquet, même build, même image que `apps/api`** ; commande de démarrage différente
-  (`node dist/worker.js`).
+- **Même paquet, même image que `apps/api`** ; commande de démarrage différente
+  (`node apps/api/src/worker.ts`). *Révisé le 2026-09-25 (D64) : `apps/api` n'a pas d'étape de
+  construction, Node exécute le TypeScript par effacement des types (`21` §4, J1-B).*
 - **Service Railway distinct**, sans domaine public, **une seule instance** au MVP.
 - Redémarrages fréquents (redéploiements) : le traitement est donc **au-moins-une-fois**, d'où
   l'obligation de clés d'idempotence sur chaque destination.
@@ -1132,8 +1133,12 @@ Le backoffice lit ces valeurs **depuis la base**, pas depuis le worker : il cont
 |---|---|---|---|
 | `web` | `apps/web` (`next start`) | **Public**, domaine principal | racine, `pnpm --filter @influx/web` |
 | `backoffice` | `apps/backoffice` (`next start`) | **Public mais non référencé**, sous-domaine dédié | racine, `pnpm --filter @influx/backoffice` |
-| `api` | `apps/api` (`node dist/main.js`) | **Réseau privé uniquement — aucun domaine public** | racine, `pnpm --filter @influx/api` |
-| `worker` | `apps/api` (`node dist/worker.js`) | **Aucune** | même build que `api` |
+| `api` | `apps/api` (`node apps/api/src/main.ts`) | **Réseau privé uniquement — aucun domaine public** | racine, installation seule, sans construction (D64) |
+| `worker` | `apps/api` (`node apps/api/src/worker.ts`) | **Aucune** | même paquet que `api` |
+
+*Révisé le 2026-09-25 (D64) :* `api` et `worker` sont lancés par `node` **directement**, jamais au
+travers de `pnpm start`, pour que `SIGTERM` atteigne le processus (arrêt propre, §4 règle 5) ;
+Node ≥ 24.12 en production (`21` §4, J1-B).
 
 `web` et `backoffice` joignent `api` par le réseau privé Railway (`api.railway.internal`). Deux
 points d'attention pour `integrateur` : le réseau privé est **IPv6**, le serveur Fastify doit donc
@@ -1162,6 +1167,8 @@ démarrage : une variable requise manquante fait **échouer le démarrage** avec
 | `INFLUX_ENV` (`staging` \| `production`) | ✔ | ✔ | ✔ | ✔ | Publique |
 | `INFLUX_PUBLIC_SITE_URL` | ✔ | — | ✔ | ✔ | Publique |
 | `INFLUX_API_INTERNAL_URL` | ✔ | ✔ | — | — | Interne |
+| `INFLUX_API_INTERNAL_SECRET` (valeur propre à chaque front) — *ajoutée le 2026-09-25, D64* | ✔ | ✔ | — | — | **Secrète** — en-tête `x-influx-internal` (`03` PP-8) |
+| `INFLUX_API_INTERNAL_SECRET_WEB`, `INFLUX_API_INTERNAL_SECRET_BACKOFFICE` — *ajoutées le 2026-09-25, D64* | — | — | ✔ | — | **Secrètes** — `apps/api` en déduit la surface appelante et lie `/v1/bo/…` au backoffice (`21` §4, J1-G) |
 | `DATABASE_URL` (multiplexeur, rôle `influx_app`) | — | — | ✔ | — | **Secrète** |
 | `ELEVATED_DATABASE_URL` (seconde grappe : `influx_auth`, `influx_worker`, `influx_privacy` — **aucun avec `BYPASSRLS`**) | — | — | ✔ | ✔ | **Secrète** |
 | `DIRECT_DATABASE_URL` (rôle de migration, **propriétaire des objets**) | — | — | — | — | **Secrète, CI uniquement** — jamais dans un service d'exécution |
@@ -1244,10 +1251,14 @@ doivent être **levés chirurgicalement**, pas supprimés en bloc.
 
 1. **Lot 0** — créer `apps/api`, `apps/backoffice`, `packages/contracts`, `supabase/` ; étendre G3 et
    G7 aux nouveaux paquets ; ajouter les trois nouvelles règles ESLint ; brancher la CI. **Aucune
-   garde de `apps/web` n'est levée à ce stade** : le site reste une maquette.
+   garde de `apps/web` n'est levée à ce stade, à deux exceptions près** : *révisé le 2026-09-25
+   (`21` EC-13, J1-C)* — **G5 et la garde annexe réseau tombent au J1**, dans le commit du
+   passe-plat, remplacées dans ce même commit par la liste blanche des fichiers de route, la garde
+   des importeurs et l'empreinte (PP-12), et par l'ouverture de `fetch` dans le seul client d'API.
+   Sans elles, aucun compte de démonstration ne se connecte au Lot 0 (`00` §7). La landing reste une
+   maquette : aucun de ses composants n'atteint le réseau.
 2. **Lot 1** — dans le même changement : retirer le module fictif, retirer G4 et G6, lever G2 et
-   remplacer par la garde resserrée plus la CSP, lever G5 et le remplacer par la liste blanche,
-   resserrer G1, ouvrir `fetch` dans le seul client d'API, brancher l'inscription réelle sur
+   remplacer par la garde resserrée plus la CSP, resserrer G1, brancher l'inscription réelle sur
    `apps/api`. **Le bandeau « Maquette » disparaît dans le même commit que la première donnée
    réelle**, jamais avant.
 
