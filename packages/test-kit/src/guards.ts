@@ -196,11 +196,11 @@ export const RELAY_FILE_SHA256: Readonly<Record<string, string>> = {
   [RELAY_FILES.route]:
     "d289b6bdad293b1b51e462458f67fbb78ce0ba946abca1cc389b73a51530e267",
   [RELAY_FILES.relay]:
-    "cf7738d601e7bdfbd26e8c84deb60ad239713dd688d762420e288d32b85952a8",
+    "2657f7bdbada9064208c381dfe2f0f63179879789e56c3ecef9ca2547388a1b0",
   [RELAY_FILES.apiClient]:
-    "a2f3a72ca34fe61234feb685d19f4115d0ea1d6f01f1c9981340e4118fd0c9ca",
+    "e9e52a248631c4d4d4e8438e1b2dcff6fac7d7916e4cd3610139065b4a190503",
   [RELAY_FILES.config]:
-    "ce0a9e910f8fb7e822478bdcd93305818d7e2f41abe423f9f532cee249a53d83",
+    "12e6b15aa8496de30d7015e01d0c8431123ab9150b50c4d11e17e61c6710efdc",
 };
 
 const DATA_LAYER_IMPORT =

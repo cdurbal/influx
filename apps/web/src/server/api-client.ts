@@ -3,6 +3,10 @@
 // in apps/web and apps/backoffice, SHA-256 pinned (03 PP-12).
 import { readServerConfig } from "../config/server";
 
+// Re-exported so that the relay can name a configuration error without importing the config
+// module, which only this file may import (guard of importers, 21 J1-C).
+export { ServerConfigError } from "../config/server";
+
 export const INTERNAL_SECRET_HEADER = "x-influx-internal";
 
 /** 03 PP-9: the relay never waits for apps/api longer than this. */

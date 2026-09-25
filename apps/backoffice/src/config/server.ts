@@ -5,6 +5,9 @@
 
 const MIN_SECRET_BYTES = 32;
 
+/** Placeholder of the `.env.example` files: a copied template must never be used (03 PP-8). */
+const PLACEHOLDER = "CHANGE_ME";
+
 export type ServerConfig = {
   /** Private address of apps/api: origin only, no path, no credentials (03 PP-1). */
   apiBaseUrl: URL;
@@ -52,6 +55,12 @@ function parseInternalSecret(value: string | undefined): string {
   if (new TextEncoder().encode(value).length < MIN_SECRET_BYTES) {
     throw new ServerConfigError(
       `INFLUX_API_INTERNAL_SECRET must be at least ${MIN_SECRET_BYTES} bytes`,
+    );
+  }
+  // The length check alone accepts a padded placeholder of .env.example (21 J1-J R4).
+  if (value.includes(PLACEHOLDER)) {
+    throw new ServerConfigError(
+      `INFLUX_API_INTERNAL_SECRET must not contain the ${PLACEHOLDER} placeholder`,
     );
   }
   return value;

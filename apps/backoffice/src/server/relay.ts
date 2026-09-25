@@ -5,7 +5,7 @@
 // Imported by src/app/api/[...path]/route.ts only. Byte-for-byte identical in apps/web and
 // apps/backoffice, SHA-256 pinned in @influx/test-kit (PP-12): any change is a conscious gesture.
 import type { ErrorEnvelope } from "@influx/contracts/errors";
-import { callApi } from "./api-client";
+import { callApi, ServerConfigError } from "./api-client";
 
 /** Mount point of the route file: /api/v1/… reaches apps/api as /v1/…. */
 export const RELAY_PREFIX = "/api";
@@ -19,19 +19,34 @@ export const ALLOWED_METHODS: readonly string[] = [
   "DELETE",
 ];
 
-/** 03 PP-2, applied AFTER decoding. Excludes ".", "%", "\", ":" and "@" by construction. */
+/**
+ * Methods whose request content has no meaning here (RFC 9110 §9.3.1 and §9.3.5): their body is
+ * neither read nor forwarded, so that a GET sent with a body is not a relay failure (21 J1-J R2).
+ */
+export const BODYLESS_METHODS: readonly string[] = ["GET", "DELETE"];
+
+/**
+ * 03 PP-2, applied to the RAW path, never decoded (21 J1-J R1). Excludes ".", "%", "\", ":" and
+ * "@" by construction: the allowed characters never need percent-encoding.
+ */
 export const API_PATH_PATTERN = /^\/v1\/[A-Za-z0-9/_-]{0,200}$/;
 
 /** 03 PP-9. */
 export const MAX_BODY_BYTES = 1_048_576;
 
-/** 03 PP-5: the only request headers forwarded. Every other one is dropped, x-* included. */
+/**
+ * 03 PP-5: the only request headers forwarded. Every other one is dropped, x-* included.
+ * `origin` and `sec-fetch-site` cannot be forged by a page's script: apps/api checks the origin
+ * of writes with them (03 §6.4 A4).
+ */
 export const FORWARDED_REQUEST_HEADERS: readonly string[] = [
   "cookie",
   "content-type",
   "accept",
   "accept-language",
   "idempotency-key",
+  "origin",
+  "sec-fetch-site",
 ];
 
 /** The only response headers relayed, besides Set-Cookie (PP-10). */
@@ -40,6 +55,12 @@ export const RELAYED_RESPONSE_HEADERS: readonly string[] = [
   "retry-after",
   "location",
 ];
+
+/** 03 PP-6: the client address header, written by Railway's edge. */
+export const CLIENT_ADDRESS_HEADER = "x-real-ip";
+
+/** 03 PP-6: an IPv4 or IPv6 address, and nothing else (no list, no port, no space). */
+const CLIENT_ADDRESS_PATTERN = /^[0-9A-Fa-f:.]{2,45}$/;
 
 /** 03 PP-10: a relayed cookie must be a __Host- cookie, or the whole answer is refused. */
 const COOKIE_NAME_PREFIX = "__Host-";
@@ -79,9 +100,14 @@ function refuse(code: RefusalCode, requestId: string): Response {
   });
 }
 
-/** One JSON line on the server output: no URL, no header, no body (02 §20.8). */
+/**
+ * One JSON line on the server output: no URL, no header, no body (02 §20.8). The message of a
+ * configuration error is kept: it names variables and rules, never a value (21 J1-J R3).
+ */
 function logRelayError(requestId: string, error: unknown): void {
   const name = error instanceof Error ? error.name : "UnknownError";
+  const message =
+    error instanceof ServerConfigError ? error.message : undefined;
   const cause =
     error instanceof Error &&
     typeof error.cause === "object" &&
@@ -96,32 +122,41 @@ function logRelayError(requestId: string, error: unknown): void {
       msg: "relay: apps/api call failed",
       requestId,
       error: name,
+      message,
       cause,
     }),
   );
 }
 
-/** 03 PP-2: the API path, decoded then checked, or null when refused. */
+/**
+ * 03 PP-2: the API path, checked on its raw form, or null when refused. Any "%" is refused, and
+ * nothing is ever decoded: the relay and apps/api can never read one path in two ways (R1).
+ */
 export function apiPathOf(pathname: string): string | null {
   if (!pathname.startsWith(`${RELAY_PREFIX}/`)) {
     return null;
   }
-  let decoded: string;
-  try {
-    decoded = decodeURIComponent(pathname.slice(RELAY_PREFIX.length));
-  } catch {
-    return null; // Malformed percent-encoding.
-  }
+  const path = pathname.slice(RELAY_PREFIX.length);
   const hasForbiddenSequence =
-    decoded.includes("..") ||
-    decoded.includes("//") ||
-    decoded.includes("\\") ||
-    decoded.includes(":") ||
-    decoded.includes("@");
-  if (hasForbiddenSequence || !API_PATH_PATTERN.test(decoded)) {
+    path.includes("%") ||
+    path.includes("..") ||
+    path.includes("//") ||
+    path.includes("\\") ||
+    path.includes(":") ||
+    path.includes("@");
+  if (hasForbiddenSequence || !API_PATH_PATTERN.test(path)) {
     return null;
   }
-  return decoded;
+  return path;
+}
+
+/**
+ * 03 PP-6: the client address has a single source, x-real-ip as written by Railway's edge, kept
+ * only when it has the shape of an address. x-forwarded-for is never read.
+ */
+export function clientAddress(request: Request): string | null {
+  const value = request.headers.get(CLIENT_ADDRESS_HEADER);
+  return value !== null && CLIENT_ADDRESS_PATTERN.test(value) ? value : null;
 }
 
 type BodyResult =
@@ -163,7 +198,7 @@ async function readBody(request: Request): Promise<BodyResult> {
   return { kind: "ok", body };
 }
 
-/** 03 PP-5 and PP-7. */
+/** 03 PP-5, PP-6 and PP-7. */
 function forwardedHeaders(request: Request, requestId: string): Headers {
   const headers = new Headers();
   for (const name of FORWARDED_REQUEST_HEADERS) {
@@ -171,6 +206,12 @@ function forwardedHeaders(request: Request, requestId: string): Headers {
     if (value !== null) {
       headers.set(name, value);
     }
+  }
+  // PP-6: x-forwarded-for is never forwarded (not in the list above); the address goes under
+  // x-real-ip, and only when it has the shape of an address.
+  const address = clientAddress(request);
+  if (address !== null) {
+    headers.set(CLIENT_ADDRESS_HEADER, address);
   }
   // PP-7: our identifier is the audit one; the client's is only kept for reference.
   headers.set("x-request-id", requestId);
@@ -181,8 +222,6 @@ function forwardedHeaders(request: Request, requestId: string): Headers {
   ) {
     headers.set("client-request-id", clientRequestId);
   }
-  // PP-6: x-forwarded-for and x-real-ip are never taken from the client (not in the list
-  // above). The client address is not forwarded yet: its source on Railway is EC-21 (J3, J4).
   return headers;
 }
 
@@ -223,7 +262,9 @@ export async function relay(request: Request): Promise<Response> {
   if (path === null) {
     return refuse("not_found", requestId);
   }
-  const bodyResult = await readBody(request);
+  const bodyResult: BodyResult = BODYLESS_METHODS.includes(request.method)
+    ? { kind: "ok", body: null }
+    : await readBody(request);
   if (bodyResult.kind === "too_large") {
     return refuse("payload_too_large", requestId);
   }

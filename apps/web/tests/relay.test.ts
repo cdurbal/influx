@@ -123,7 +123,7 @@ describe("forwarding", () => {
   });
 });
 
-describe("PP-2: path validated after decoding", () => {
+describe("PP-2: raw path, any % refused, never decoded (21 J1-J R1)", () => {
   it.each([
     "/api/v1/../admin",
     "/api/v1/%2e%2e/admin",
@@ -139,9 +139,19 @@ describe("PP-2: path validated after decoding", () => {
     "/api/v2/status",
     "/api/health",
     `/api/v1/${"a".repeat(201)}`,
+    // Would decode to an allowed path: refused all the same, a "%" is never read (R1).
+    "/api/v1/%73tatus",
+    "/api/v1/bo%2Fx",
+    "/api/v1/status%20",
+    "/api/v1/a%2541",
   ])("refuses %s with 404, without calling apps/api", async (path) => {
     await expectRefusal(await call(path), 404, "not_found");
     expect(received).toEqual([]);
+  });
+
+  it("forwards an allowed raw path unchanged", async () => {
+    await call("/api/v1/bo/Some_path-1/x");
+    expect(received[0]?.url).toBe("/v1/bo/Some_path-1/x");
   });
 });
 
@@ -171,8 +181,8 @@ describe("PP-3: five methods only", () => {
   });
 });
 
-describe("PP-5 and PP-6: allow-list of request headers", () => {
-  it("forwards the five allowed headers and drops every other one", async () => {
+describe("PP-5: allow-list of request headers (21 J1-J A4)", () => {
+  it("forwards the seven allowed headers and drops every other one", async () => {
     await call("/api/v1/status", {
       method: "POST",
       headers: {
@@ -181,13 +191,14 @@ describe("PP-5 and PP-6: allow-list of request headers", () => {
         accept: "application/json",
         "accept-language": "fr-FR",
         "idempotency-key": "key-1",
+        origin: "https://influx.example",
+        "sec-fetch-site": "same-origin",
         "x-middleware-subrequest": "middleware",
         "x-forwarded-host": "evil.tld",
         "x-forwarded-for": "203.0.113.7",
-        "x-real-ip": "203.0.113.7",
         "x-influx-internal": "forged-by-the-client",
         authorization: "Bearer token",
-        origin: "https://evil.tld",
+        "sec-fetch-dest": "document",
         "x-custom": "value",
       },
       body: "{}",
@@ -199,19 +210,62 @@ describe("PP-5 and PP-6: allow-list of request headers", () => {
       accept: "application/json",
       "accept-language": "fr-FR",
       "idempotency-key": "key-1",
+      origin: "https://influx.example",
+      "sec-fetch-site": "same-origin",
       "x-influx-internal": SECRET,
     });
     for (const dropped of [
       "x-middleware-subrequest",
       "x-forwarded-host",
       "x-forwarded-for",
-      "x-real-ip",
       "authorization",
-      "origin",
+      "sec-fetch-dest",
       "x-custom",
     ]) {
       expect(headers[dropped], dropped).toBeUndefined();
     }
+  });
+});
+
+describe("PP-6: client address from x-real-ip only (03 §6.4 A5, EC-21)", () => {
+  it.each(["203.0.113.7", "2001:db8::1", "::ffff:203.0.113.7"])(
+    "forwards a well-formed x-real-ip %s under x-real-ip",
+    async (address) => {
+      await call("/api/v1/status", { headers: { "x-real-ip": address } });
+      expect(received[0]?.headers["x-real-ip"]).toBe(address);
+    },
+  );
+
+  it.each([
+    "203.0.113.7, 198.51.100.1",
+    "evil.tld",
+    "203.0.113.7<script>",
+    "1".repeat(46),
+    "1",
+  ])("drops an x-real-ip of invalid form: %s", async (address) => {
+    await call("/api/v1/status", { headers: { "x-real-ip": address } });
+    expect(received[0]?.headers["x-real-ip"]).toBeUndefined();
+  });
+
+  it("never reads nor forwards x-forwarded-for, even without x-real-ip", async () => {
+    await call("/api/v1/status", {
+      headers: { "x-forwarded-for": "203.0.113.7, 198.51.100.1" },
+    });
+    const headers = received[0]?.headers ?? {};
+    expect(headers["x-forwarded-for"]).toBeUndefined();
+    expect(headers["x-real-ip"]).toBeUndefined();
+  });
+
+  it("keeps x-real-ip as the only source when both headers are sent", async () => {
+    await call("/api/v1/status", {
+      headers: {
+        "x-real-ip": "198.51.100.1",
+        "x-forwarded-for": "203.0.113.7",
+      },
+    });
+    const headers = received[0]?.headers ?? {};
+    expect(headers["x-real-ip"]).toBe("198.51.100.1");
+    expect(headers["x-forwarded-for"]).toBeUndefined();
   });
 });
 
@@ -252,15 +306,24 @@ describe("PP-9: body size and delay", () => {
     expect(received).toEqual([]);
   });
 
-  it("answers 502 when apps/api does not answer within 10 s", async () => {
+  it("waits 10 s at most for apps/api, then answers 502 (T-1, no real wait)", async () => {
     const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    // The 10 s timer is replaced by a signal that the fake apps/api aborts once it holds the
+    // request: the test checks the delay asked for, and what happens when it expires.
+    const expiry = new AbortController();
+    const timeout = vi
+      .spyOn(AbortSignal, "timeout")
+      .mockReturnValue(expiry.signal);
     handler = () => {
+      expiry.abort(new DOMException("The delay expired", "TimeoutError"));
       // Never answers.
     };
     const response = await call("/api/v1/slow");
+    expect(timeout).toHaveBeenCalledExactlyOnceWith(10_000);
     await expectRefusal(response, 502, "service_unavailable");
+    expect(received).toHaveLength(1);
     expect(logged).toHaveBeenCalledOnce();
-  }, 20_000);
+  });
 
   it("answers 502 when apps/api is unreachable, and logs without the URL", async () => {
     const logged = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -273,8 +336,8 @@ describe("PP-9: body size and delay", () => {
     expect(line).not.toContain("127.0.0.1");
   });
 
-  it("answers 502 when its configuration is missing", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
+  it("answers 502 when its configuration is missing, and logs which variable (R3)", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
     delete process.env.INFLUX_API_INTERNAL_SECRET;
     await expectRefusal(
       await call("/api/v1/status"),
@@ -282,6 +345,60 @@ describe("PP-9: body size and delay", () => {
       "service_unavailable",
     );
     expect(received).toEqual([]);
+    const line = JSON.parse(String(logged.mock.calls[0]?.[0])) as Record<
+      string,
+      unknown
+    >;
+    expect(line).toMatchObject({
+      error: "ServerConfigError",
+      message: "INFLUX_API_INTERNAL_SECRET is required",
+    });
+  });
+
+  it("refuses a secret that still holds the CHANGE_ME placeholder, without quoting it (R4)", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const placeholder = "CHANGE_ME".padEnd(40, "z");
+    process.env.INFLUX_API_INTERNAL_SECRET = placeholder;
+    await expectRefusal(
+      await call("/api/v1/status"),
+      502,
+      "service_unavailable",
+    );
+    expect(received).toEqual([]);
+    const line = String(logged.mock.calls[0]?.[0]);
+    expect(line).toContain(
+      "INFLUX_API_INTERNAL_SECRET must not contain the CHANGE_ME placeholder",
+    );
+    expect(line).not.toContain(placeholder);
+  });
+});
+
+describe("R2: GET and DELETE bodies are ignored (21 J1-J)", () => {
+  it("forwards a GET that arrives with a body, without the body, and logs nothing", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    // A Request cannot be built as GET with a body: the method is overridden on a POST.
+    const request = new Request("http://localhost:3000/api/v1/status", {
+      method: "POST",
+      body: JSON.stringify({ ignored: true }),
+    });
+    Object.defineProperty(request, "method", { value: "GET" });
+    const response = await relay(request);
+    expect(response.status).toBe(200);
+    expect(received[0]?.method).toBe("GET");
+    expect(received[0]?.body.byteLength).toBe(0);
+    expect(logged).not.toHaveBeenCalled();
+  });
+
+  it("forwards a DELETE without its body", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const response = await call("/api/v1/items/42", {
+      method: "DELETE",
+      body: "x".repeat(2_000_000),
+    });
+    expect(response.status).toBe(200);
+    expect(received[0]?.method).toBe("DELETE");
+    expect(received[0]?.body.byteLength).toBe(0);
+    expect(logged).not.toHaveBeenCalled();
   });
 });
 
