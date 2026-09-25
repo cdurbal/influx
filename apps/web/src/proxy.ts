@@ -5,6 +5,7 @@ import { routing } from "./i18n/routing";
 export default createMiddleware(routing);
 
 export const config = {
-  // Skip Next.js internals and files with an extension (images, icons).
-  matcher: "/((?!_next|_vercel|.*\..*).*)",
+  // Skip the relay to apps/api (/api/…, 21 §4 J1-C), Next.js internals and files with an
+  // extension (images, icons).
+  matcher: "/((?!api/|_next|_vercel|.*\..*).*)",
 };

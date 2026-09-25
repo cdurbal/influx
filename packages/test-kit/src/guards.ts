@@ -2,7 +2,8 @@
 // docs/mvp/21-plan-de-developpement.md §4, J1-C and J1-E).
 // File reading only: deterministic, no browser, no network. Each helper returns its findings;
 // the assertion (an empty list) stays in the guard test of each application.
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 /** Every file under a directory, recursively. */
@@ -157,4 +158,191 @@ export function findPrimitiveBaseClassConflicts(
           .map((className) => `${relativePath(root, file)}: ${className}`),
       ),
   );
+}
+
+// ---------------------------------------------------------------------------------------------
+// Network and storage APIs, split at J1 (02 §13.2, 18 §5 annex 2, 21 J1-C)
+// ---------------------------------------------------------------------------------------------
+
+/** Network APIs: allowed in the API client only. */
+export const NETWORK_API_PATTERN =
+  /\bfetch\(|XMLHttpRequest|\bWebSocket\b|\bEventSource\b/;
+
+/** Browser storage APIs: forbidden everywhere, for good (the session is an httpOnly cookie). */
+export const STORAGE_API_PATTERN =
+  /sendBeacon|localStorage|sessionStorage|indexedDB|document\.cookie|cookieStore/;
+
+// ---------------------------------------------------------------------------------------------
+// Relay allow-list: the replacement of G5 (03 PP-12, 18 §5, 21 J1-C)
+// ---------------------------------------------------------------------------------------------
+
+/** The four relay files, identical byte for byte in apps/web and apps/backoffice. */
+export const RELAY_FILES = {
+  route: "src/app/api/[...path]/route.ts",
+  relay: "src/server/relay.ts",
+  apiClient: "src/server/api-client.ts",
+  config: "src/config/server.ts",
+} as const;
+
+/** Every route file allowed under src/app. EC-22 may add the public health route of web. */
+export const ALLOWED_ROUTE_FILES: readonly string[] = [RELAY_FILES.route];
+
+/**
+ * SHA-256 of the relay files (03 PP-12, T7.8). There is no Pull Request to review a change of
+ * these files: changing one requires updating its pin here, in the same commit, and copying the
+ * file to the other front. That is the conscious gesture.
+ */
+export const RELAY_FILE_SHA256: Readonly<Record<string, string>> = {
+  [RELAY_FILES.route]:
+    "d289b6bdad293b1b51e462458f67fbb78ce0ba946abca1cc389b73a51530e267",
+  [RELAY_FILES.relay]:
+    "cf7738d601e7bdfbd26e8c84deb60ad239713dd688d762420e288d32b85952a8",
+  [RELAY_FILES.apiClient]:
+    "a2f3a72ca34fe61234feb685d19f4115d0ea1d6f01f1c9981340e4118fd0c9ca",
+  [RELAY_FILES.config]:
+    "ce0a9e910f8fb7e822478bdcd93305818d7e2f41abe423f9f532cee249a53d83",
+};
+
+const DATA_LAYER_IMPORT =
+  /^(?:@supabase\/|drizzle-orm(?:\/|$)|pg(?:\/|$)|postgres(?:\/|$))/;
+const PROCESS_ENV_READ = /\bprocess\s*(?:\.\s*env\b|\[\s*["']env["']\s*\])/;
+const USE_SERVER_DIRECTIVE = /["']use server["']/;
+const SOURCE_FILE = /\.(?:ts|tsx|js|jsx|mjs)$/;
+
+/** Module specifiers of the static imports, re-exports and dynamic imports of a source. */
+export function importSpecifiers(source: string): string[] {
+  const pattern =
+    /\bimport\s*(?:[^'"()]*?\bfrom\s*)?["']([^"']+)["']|\bexport\s[^'"]*?\bfrom\s*["']([^"']+)["']|\bimport\s*\(\s*["']([^"']+)["']\s*\)/g;
+  return [...source.matchAll(pattern)].flatMap((match) => {
+    const specifier = match[1] ?? match[2] ?? match[3];
+    return specifier === undefined ? [] : [specifier];
+  });
+}
+
+/** Absolute path, without extension, of a relative or "@/" specifier; null for a package. */
+function resolveLocalSpecifier(
+  frontRoot: string,
+  importer: string,
+  specifier: string,
+): string | null {
+  let resolved: string;
+  if (specifier.startsWith("./") || specifier.startsWith("../")) {
+    resolved = path.resolve(path.dirname(importer), specifier);
+  } else if (specifier.startsWith("@/")) {
+    resolved = path.join(frontRoot, "src", specifier.slice(2));
+  } else {
+    return null;
+  }
+  return resolved.replace(SOURCE_FILE, "");
+}
+
+/** Route files under src/app outside the allow-list, and allowed ones that are missing. */
+export function findRouteFileViolations(frontRoot: string): string[] {
+  const routes = listFiles(path.join(frontRoot, "src", "app"))
+    .filter((file) => /[\\/]route\.(?:ts|tsx|js|jsx|mjs)$/.test(file))
+    .map((file) => relativePath(frontRoot, file));
+  return [
+    ...routes
+      .filter((route) => !ALLOWED_ROUTE_FILES.includes(route))
+      .map((route) => `unexpected route file: ${route}`),
+    ...ALLOWED_ROUTE_FILES.filter((route) => !routes.includes(route)).map(
+      (route) => `missing route file: ${route}`,
+    ),
+  ];
+}
+
+/** Data-layer imports, Server Actions, and environment reads outside the config file. */
+export function findRelayContentViolations(frontRoot: string): string[] {
+  return Object.values(RELAY_FILES).flatMap((relative) => {
+    const file = path.join(frontRoot, relative);
+    if (!existsSync(file)) {
+      return [`missing relay file: ${relative}`];
+    }
+    const source = readFileSync(file, "utf8");
+    const findings = importSpecifiers(source)
+      .filter((specifier) => DATA_LAYER_IMPORT.test(specifier))
+      .map((specifier) => `${relative}: imports ${specifier}`);
+    if (USE_SERVER_DIRECTIVE.test(source)) {
+      findings.push(`${relative}: contains a "use server" directive`);
+    }
+    if (relative !== RELAY_FILES.config && PROCESS_ENV_READ.test(source)) {
+      findings.push(`${relative}: reads process.env`);
+    }
+    return findings;
+  });
+}
+
+/**
+ * Guard of the importers: relay.ts is imported by route.ts only, api-client.ts by relay.ts only,
+ * config/server.ts by api-client.ts only. This keeps every component of the landing page away
+ * from the network (CA8).
+ */
+export function findRelayImporterViolations(frontRoot: string): string[] {
+  const chain: ReadonlyArray<readonly [target: string, onlyImporter: string]> =
+    [
+      [RELAY_FILES.relay, RELAY_FILES.route],
+      [RELAY_FILES.apiClient, RELAY_FILES.relay],
+      [RELAY_FILES.config, RELAY_FILES.apiClient],
+    ];
+  const withoutExtension = (relative: string) =>
+    path.join(frontRoot, relative).replace(SOURCE_FILE, "");
+  const importers = new Map<string, Set<string>>(
+    chain.map(([target]) => [withoutExtension(target), new Set<string>()]),
+  );
+  const sources = listFiles(path.join(frontRoot, "src")).filter((file) =>
+    SOURCE_FILE.test(file),
+  );
+  for (const file of sources) {
+    for (const specifier of importSpecifiers(readFileSync(file, "utf8"))) {
+      const resolved = resolveLocalSpecifier(frontRoot, file, specifier);
+      if (resolved !== null) {
+        importers.get(resolved)?.add(relativePath(frontRoot, file));
+      }
+    }
+  }
+  return chain.flatMap(([target, onlyImporter]) => {
+    const actual = [...(importers.get(withoutExtension(target)) ?? [])].sort();
+    return actual.length === 1 && actual[0] === onlyImporter
+      ? []
+      : [
+          `${target} is imported by [${actual.join(", ")}], expected ${onlyImporter} only`,
+        ];
+  });
+}
+
+export function sha256OfFile(file: string): string {
+  return createHash("sha256").update(readFileSync(file)).digest("hex");
+}
+
+/** Relay files whose SHA-256 differs from the pin. */
+export function findRelayFingerprintMismatches(frontRoot: string): string[] {
+  return Object.entries(RELAY_FILE_SHA256).flatMap(([relative, pinned]) => {
+    const file = path.join(frontRoot, relative);
+    if (!existsSync(file)) {
+      return [`missing relay file: ${relative}`];
+    }
+    const actual = sha256OfFile(file);
+    return actual === pinned
+      ? []
+      : [
+          `${relative}: SHA-256 ${actual} differs from the pin. A relay change is a conscious ` +
+            "gesture: update RELAY_FILE_SHA256 in packages/test-kit/src/guards.ts in the same " +
+            "commit, and copy the file to the other front (03 PP-12).",
+        ];
+  });
+}
+
+/** Storage APIs anywhere, network APIs anywhere but in the API client. */
+export function findNetworkOrStorageUse(
+  files: readonly string[],
+  frontRoot: string,
+): string[] {
+  const apiClient = path.resolve(frontRoot, RELAY_FILES.apiClient);
+  const outsideApiClient = files.filter(
+    (file) => path.resolve(file) !== apiClient,
+  );
+  return [
+    ...findMatches(STORAGE_API_PATTERN, files, frontRoot),
+    ...findMatches(NETWORK_API_PATTERN, outsideApiClient, frontRoot),
+  ];
 }

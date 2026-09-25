@@ -7,7 +7,12 @@ import { fileURLToPath } from "node:url";
 import {
   findClassListConflicts,
   findMatches as findMatchesIn,
+  findNetworkOrStorageUse,
   findPrimitiveBaseClassConflicts,
+  findRelayContentViolations,
+  findRelayFingerprintMismatches,
+  findRelayImporterViolations,
+  findRouteFileViolations,
   HARD_CODED_COLOR_PATTERN,
   HARD_CODED_LENGTH_PATTERN,
   listFiles,
@@ -124,12 +129,24 @@ describe("G4: every photo is credited, and every credit has a photo (CA26)", () 
   });
 });
 
-describe("G5: no server endpoint (CA8)", () => {
-  it("has no route.ts or route.tsx under src/app", () => {
-    const routes = listFiles(path.join(SRC, "app")).filter((file) =>
-      /[\\/]route\.tsx?$/.test(file),
-    );
-    expect(routes).toEqual([]);
+// G5 ("no route.ts under src/app", CA8) was lifted at J1 in the commit that introduced the relay,
+// and replaced by this stricter guard (02 §13.1, 18 §5, 21 §4 J1-C). The landing page still never
+// reaches the network: only the route file imports the relay, which alone imports the API client.
+describe("G5 replaced: the relay is the only server endpoint (21 J1-C, 03 PP-12)", () => {
+  it("has exactly one route file under src/app: the relay", () => {
+    expect(findRouteFileViolations(WEB_ROOT)).toEqual([]);
+  });
+
+  it("keeps data-layer imports, Server Actions and environment reads out of the relay", () => {
+    expect(findRelayContentViolations(WEB_ROOT)).toEqual([]);
+  });
+
+  it("reaches the API client along a single chain: route, relay, API client, config", () => {
+    expect(findRelayImporterViolations(WEB_ROOT)).toEqual([]);
+  });
+
+  it("matches the pinned SHA-256 of the four relay files (T7.8)", () => {
+    expect(findRelayFingerprintMismatches(WEB_ROOT)).toEqual([]);
   });
 });
 
@@ -159,11 +176,10 @@ describe("Additional guards", () => {
     expect(flatten(read("en")).sort()).toEqual(flatten(read("fr")).sort());
   });
 
-  it("uses no network or storage API in the source code (CA8, CA11)", () => {
+  // Split at J1 (02 §13.2, 18 §5 annex 2): network only in src/server/api-client.ts, storage never.
+  it("uses no storage API, and no network API outside the API client (CA8, CA11)", () => {
     const codeFiles = SCOPED_FILES.filter((file) => /\.tsx?$/.test(file));
-    const forbidden =
-      /\bfetch\(|XMLHttpRequest|\bWebSocket\b|\bEventSource\b|sendBeacon|localStorage|sessionStorage|indexedDB|document\.cookie|cookieStore/;
-    expect(findMatches(forbidden, codeFiles)).toEqual([]);
+    expect(findNetworkOrStorageUse(codeFiles, WEB_ROOT)).toEqual([]);
   });
 
   it("keeps fictitious values inside src/content/placeholders only (CA15)", () => {

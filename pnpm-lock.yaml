@@ -48,6 +48,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@influx/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       lucide-react:
         specifier: 1.46.0
         version: 1.46.0(react@19.3.0)

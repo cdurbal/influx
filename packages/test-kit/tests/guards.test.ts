@@ -9,10 +9,17 @@ import {
   classesOf,
   findClassListConflicts,
   findMatches,
+  findNetworkOrStorageUse,
   findPrimitiveBaseClassConflicts,
+  findRelayContentViolations,
+  findRelayFingerprintMismatches,
+  findRelayImporterViolations,
+  findRouteFileViolations,
   HARD_CODED_COLOR_PATTERN,
   HARD_CODED_LENGTH_PATTERN,
+  importSpecifiers,
   listFiles,
+  RELAY_FILES,
 } from "../src/guards.ts";
 
 const TEMP_ROOT = mkdtempSync(path.join(tmpdir(), "influx-test-kit-"));
@@ -85,6 +92,98 @@ describe("G7 detector", () => {
     expect(findPrimitiveBaseClassConflicts([file], TEMP_ROOT)).toEqual([
       "src/ui/Primitive.tsx: w-full",
       "src/ui/Primitive.tsx: whitespace-nowrap",
+    ]);
+  });
+});
+
+describe("relay guard detectors (21 J1-C)", () => {
+  /** A minimal front whose relay chain is correct, under its own directory. */
+  function writeFront(name: string, overrides: Record<string, string> = {}) {
+    const root = path.join(TEMP_ROOT, name);
+    const files: Record<string, string> = {
+      [RELAY_FILES.route]: `import { relay } from "../../../server/relay";\nexport const GET = relay;\n`,
+      [RELAY_FILES.relay]: `import type { X } from "@influx/contracts/errors";\nimport { callApi } from "./api-client";\n`,
+      [RELAY_FILES.apiClient]: `import { readServerConfig } from "../config/server";\nfetch("x");\n`,
+      [RELAY_FILES.config]: `export const url = process.env.INFLUX_API_INTERNAL_URL;\n`,
+      "src/app/[locale]/page.tsx": `export default function Page() { return null; }\n`,
+      ...overrides,
+    };
+    for (const [relative, content] of Object.entries(files)) {
+      const file = path.join(root, relative);
+      mkdirSync(path.dirname(file), { recursive: true });
+      writeFileSync(file, content);
+    }
+    return root;
+  }
+
+  it("parses static, type-only, re-export and dynamic import specifiers", () => {
+    const source = [
+      `import a from "a";`,
+      `import type { B } from "b";`,
+      `import {\n  c,\n  d,\n} from "@/c";`,
+      `import "./side-effect";`,
+      `export * from "../e";`,
+      `const f = await import("f");`,
+    ].join("\n");
+    expect(importSpecifiers(source)).toEqual([
+      "a",
+      "b",
+      "@/c",
+      "./side-effect",
+      "../e",
+      "f",
+    ]);
+  });
+
+  it("accepts a correct relay chain", () => {
+    const root = writeFront("correct");
+    expect(findRouteFileViolations(root)).toEqual([]);
+    expect(findRelayContentViolations(root)).toEqual([]);
+    expect(findRelayImporterViolations(root)).toEqual([]);
+  });
+
+  it("detects an extra route file and a missing one", () => {
+    const extra = writeFront("extra-route", {
+      "src/app/admin/route.ts": "export const GET = () => null;\n",
+    });
+    expect(findRouteFileViolations(extra)).toEqual([
+      "unexpected route file: src/app/admin/route.ts",
+    ]);
+  });
+
+  it("detects a data-layer import, a Server Action and an environment read in the relay", () => {
+    const root = writeFront("bad-content", {
+      [RELAY_FILES.relay]: `"use server";\nimport { createClient } from "@supabase/supabase-js";\nimport { callApi } from "./api-client";\nconst s = process.env.SECRET;\n`,
+    });
+    expect(findRelayContentViolations(root)).toEqual([
+      "src/server/relay.ts: imports @supabase/supabase-js",
+      'src/server/relay.ts: contains a "use server" directive',
+      "src/server/relay.ts: reads process.env",
+    ]);
+  });
+
+  it("detects a component that reaches the API client, even through the @/ alias", () => {
+    const root = writeFront("bad-importer", {
+      "src/components/Widget.tsx": `import { callApi } from "@/server/api-client";\n`,
+    });
+    expect(findRelayImporterViolations(root)).toEqual([
+      "src/server/api-client.ts is imported by [src/components/Widget.tsx, src/server/relay.ts], expected src/server/relay.ts only",
+    ]);
+  });
+
+  it("detects a relay file whose fingerprint differs from the pin", () => {
+    const root = writeFront("unpinned");
+    expect(findRelayFingerprintMismatches(root)).toHaveLength(4);
+  });
+
+  it("allows fetch in the API client only, and storage nowhere", () => {
+    const root = writeFront("network", {
+      "src/components/Widget.tsx": `fetch("/x");\nlocalStorage.getItem("k");\n`,
+    });
+    const files = listFiles(path.join(root, "src"));
+    expect(findNetworkOrStorageUse(files, root)).toEqual([
+      `src/components/Widget.tsx:2: localStorage.getItem("k");`,
+      `src/components/Widget.tsx:1: fetch("/x");`,
     ]);
   });
 });
