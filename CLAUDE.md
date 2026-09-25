@@ -1,15 +1,15 @@
 # INFLUX — Guide projet pour Claude Code
 
-> **Statut du projet (2026-09-24) :** spécifications du MVP rédigées (`docs/mvp/`) ; **produit réel
-> non commencé** (Lot 0 à démarrer) ; **maquette de démonstration jetable** à 37 missions sur 40 ;
-> landing page réalisée, à aligner sur le MVP avant sa mise en ligne.
-> **⚠️ Code jetable (décision du fondateur, 2026-09-24, D44).** Tout le code du dépôt, **à l'exception
-> de la landing page**, est une **maquette de démonstration jetable**. Elle sert à présenter la vision
-> du MVP à des partenaires et à la faire valider. **Elle n'ira jamais en production et ne sera pas
-> reprise** : le produit réel sera écrit à partir des spécifications de `docs/mvp/`, pas à partir de
-> ce code. Périmètre exact et règles : **§16**.
-> La feuille de route de la maquette, découpée en micro-phases, est consignée dans [`implementation_plan.md`](file:///c:/Users/cdurb/Documents/Workspaces/influx/implementation_plan.md).
-> Tout agent IA ou contributeur travaillant sur la maquette **doit impérativement maintenir ce plan à jour** à chaque tâche réalisée ou modifiée.
+> **Statut du projet (2026-09-25) :** spécifications du MVP rédigées (`docs/mvp/`) ; **produit réel
+> non commencé** (Lot 0 à démarrer, sur `main`) ; landing page réalisée, à aligner sur le MVP avant
+> sa mise en ligne.
+> **🧪 Maquette de démonstration : branche `demo` (2026-09-25).** La maquette jetable (espaces marque
+> et créateur, backoffice, API simulée) a été **retirée de `main`** et vit **uniquement sur la
+> branche `demo`**, avec sa feuille de route `implementation_plan.md` (D44). Elle sert à présenter la
+> vision du MVP à des partenaires ; elle n'ira jamais en production. **`main` ne contient plus que
+> la landing page, les spécifications et l'outillage** : le produit réel y est écrit à partir de
+> `docs/mvp/`, jamais à partir de la maquette. **Ne jamais fusionner `demo` dans `main`.** Règles :
+> **§16**.
 > Ce document est la source de vérité pour toute session Claude Code travaillant sur INFLUX.
 > Il est lu par les agents IA **et** par le fondateur : il doit rester compréhensible sans
 > connaissance technique préalable dans ses parties produit/business.
@@ -723,7 +723,7 @@ hors de ce cadre ; mettre ce tableau à jour à chaque arbitrage. Les lots cité
 | D53 | **Affaires conclues hors plateforme, relations préexistantes et mesure de départ du pilote** | **Fondateur** + `expert-paiement-facturation` + `expert-conformite-rgpd` | **Tranchée (2026-09-24) : mesure de départ + registre, aucune affaire hors plateforme.** (1) Avant le pilote, mesure de l'activité au téléphone (affaires traitées par semaine) pour disposer d'un point de comparaison ; (2) **registre des relations préexistantes**, déclarées à l'arrivée d'un client, qui matérialise la clause de sauvegarde (`01` §8.1) ; (3) les clients du réseau du fondateur entrent par invitation (D54) puis **proposition INFLUX** ; `14` RG2bis maintenue | — |
 | D54 | **Invitation nominative par un commercial** | `chef-de-projet` + `product-owner` + `expert-marketing`, **arbitré par le fondateur** | **Tranchée (2026-09-24) : lien d'invitation nominatif.** Le commercial génère une invitation pour une personne ; l'inscription reste faite par elle (CGU, consentement, attestation) ; à l'inscription, le commercial devient son **commercial responsable** et la source « invitation » est enregistrée (D55). Aucun profil pré-rempli par un tiers. L'e-mail d'invitation suit les règles de la saisie libre (D35). Lot 1. Cadre : additif de `05` | — |
 | D55 | **Source d'acquisition à l'inscription** | `expert-marketing` + `expert-conformite-rgpd`, **arbitré par le fondateur** | **Tranchée (2026-09-24) : UTM + question.** Enregistrement des paramètres UTM, du site d'origine et du code d'invitation **de la session d'inscription**, sans traceur de suivi entre visites, plus une question facultative « Comment avez-vous connu INFLUX ? » (liste fermée). Transmis à Brevo comme attributs de segmentation. Lot 1. Cadre : additif de `05` ; absence de traceur à valider par `expert-conformite-rgpd` | — |
-| D56 | **Protection de la démonstration** | **Fondateur** + `expert-cybersecurite` | **Tranchée (2026-09-24) : URL protégée.** La maquette n'est montrée hors du poste local que sur une URL **protégée par un mot de passe** communiqué à chaque partenaire, avec un bandeau « Démonstration — données fictives », **non indexée**, et **jamais sur le nom de domaine de production**. Mission 6.4 de `implementation_plan.md` | — |
+| D56 | **Protection de la démonstration** | **Fondateur** + `expert-cybersecurite` | **Tranchée (2026-09-24) : URL protégée.** La maquette n'est montrée hors du poste local que sur une URL **protégée par un mot de passe** communiqué à chaque partenaire, avec un bandeau « Démonstration — données fictives », **non indexée**, et **jamais sur le nom de domaine de production**. Mission 6.4 de `implementation_plan.md` (branche `demo`) | — |
 | D57 | **Politique de sauvegarde du produit réel** | `architecte` + `expert-database` + `expert-conformite-rgpd`, **arbitré par le fondateur** | **Tranchée (2026-09-24) : perte maximale de quelques minutes.** Restauration à un instant donné (option payante de Supabase, coût à chiffrer par `architecte`) dès la mise en production, et **test de restauration régulier** (pas seulement au Lot 6). L'architecte fixe au Lot 0 la fréquence des tests et la reprise des purges RGPD après une restauration (`02` addendum du 2026-09-24) | — |
 | D58 | **Vue mobile du backoffice** | **Fondateur** + `architecte` + `expert-cybersecurite` | **Tranchée (2026-09-24) : oui, limitée à deux gestes** — lire et répondre dans une conversation dont l'agent est participant ; prendre en charge, valider ou refuser une entrée de la file. Le reste du backoffice reste un poste de travail (`17b` M4). Mêmes garanties qu'au bureau (D12, D37 : hôte distinct, second facteur, session courte) ; conditions de session sur téléphone à fixer par `architecte` + `expert-cybersecurite`, écrans en additif de `17b` par `expert-ux` (`20` Q3) | Conditions avant le Lot 4 |
 | D59 | **Direction visuelle de la landing** | **Fondateur** (+ `expert-ux`) | **Tranchée (2026-09-24) : carte métallisée premium conservée**, avec un **budget d'effets** : un seul effet spectaculaire par écran visible. Revue visuelle de la page rendue par `expert-ux` pour appliquer ce budget (`20` Q4) | Revue avant la mise en ligne du Lot 1 |
@@ -806,7 +806,8 @@ Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la sociét
       prévoir l'option de **restauration à un instant donné** avant la mise en production (D57)
 - [ ] Créer le compte **Railway**, les environnements `staging` et `production` — *des commits du
       2026-09-20 préparent le déploiement de la **maquette** sur Railway ; cela ne vaut pas création
-      des environnements du produit réel (§16)*
+      des environnements du produit réel (§16). Depuis le 2026-09-25, un déploiement de la maquette
+      se fait **depuis la branche `demo`**, jamais depuis `main`*
 - [ ] Créer le compte **Brevo**, générer la clé API, préparer les listes et attributs de contact
       (dont langue et pays)
 - [ ] Créer le compte **Apollo.io**, générer la clé API, définir les séquences commerciales
@@ -843,7 +844,9 @@ Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la sociét
 - [x] Réécrire les textes de la landing page pour le MVP courté, sans taux (D48) — **fait le
       2026-09-24** (`apps/web/src/locales/*/landing.json`, résumé dans `docs/landing-page/04-contenus.md`)
 - [ ] Faire relire ces textes par `expert-marketing` et `expert-conformite-rgpd` (veto), puis
-      détacher la landing de la maquette (§16.2 point 5) — **avant la mise en ligne du Lot 1**
+      brancher les boutons d'inscription et de connexion sur le vrai parcours du Lot 1 (§16.2
+      point 5) — **avant la mise en ligne du Lot 1**. *Le retrait de la maquette de `main` est fait
+      (2026-09-25).*
 - [ ] Revue visuelle de la landing rendue par `expert-ux` : un seul effet spectaculaire par écran
       visible (D59) — **avant la mise en ligne du Lot 1**
 - [x] Figer la palette et les tokens (D6, `expert-ux` + fondateur) — **fait le 2026-09-17**, dark
@@ -907,16 +910,24 @@ par pays. Avec la mise en ligne progressive (A6), **la société doit exister ve
 
 ## 16. Statut du code existant : maquette jetable (D44)
 
-> **Décision du fondateur, 2026-09-24.** Tout le code du dépôt, **à l'exception de la landing
-> page**, est une maquette de démonstration **jetable**. Elle sert à présenter la vision du MVP à des
-> partenaires et à la faire valider. Elle **n'ira jamais en production** et **ne sera pas reprise**.
+> **Décision du fondateur, 2026-09-24.** Tout le code écrit avant le 2026-09-24, **à l'exception de
+> la landing page**, est une maquette de démonstration **jetable**. Elle sert à présenter la vision
+> du MVP à des partenaires et à la faire valider. Elle **n'ira jamais en production** et **ne sera
+> pas reprise**.
+>
+> **Mise en œuvre, 2026-09-25 (demande du fondateur) :** la maquette a été **retirée de `main`** et
+> vit désormais **uniquement sur la branche `demo`**. `main` repart de zéro pour le produit réel.
 
-### 16.1 Ce qui est conservé, ce qui est jetable
+### 16.1 Ce qui est sur `main`, ce qui est sur `demo`
 
-| Élément | Statut | Contenu |
+| Élément | Branche | Contenu |
 |---|---|---|
-| **Landing page** | **Conservée**, destinée à la première mise en ligne (Lot 1) | Pages publiques de `apps/web` : `app/[locale]/page.tsx`, `components/landing/`, `components/ui/`, `content/landing-content.ts`, `content/placeholders/`, `locales/*/landing.json`, `i18n/`, `styles/` (dont `tokens.css`, référence de la palette D6), et le socle front qu'elles portent (Next.js, next-intl, Tailwind). Documentation : `docs/landing-page/` |
-| **Maquette de démonstration** | **Jetable** | `apps/api`, `apps/backoffice`, `packages/contracts` ; dans `apps/web`, les espaces membres (`advertiser/`, `creator/`, `space/`), l'inscription et la connexion branchées sur la maquette (`signup/`, `login/`) et leurs composants (`account`, `auth`, `brand`, `campaign`, `chat`, `creator`, `creator-campaigns`, `dev`, `search`, `space`). Feuille de route : `implementation_plan.md` |
+| **Landing page** | **`main`** — conservée, destinée à la première mise en ligne (Lot 1) | Pages publiques de `apps/web` : `app/[locale]/page.tsx`, `components/landing/`, `components/ui/`, `content/` (dont `placeholders/`), `locales/*/landing.json`, `i18n/`, `styles/` (dont `tokens.css`, référence de la palette D6), et le socle front qu'elles portent (Next.js, next-intl, Tailwind). Documentation : `docs/landing-page/` |
+| **Spécifications et outillage** | **`main`** | `docs/mvp/`, `docs/landing-page/`, `CLAUDE.md`, `.claude/` (agents et skills) |
+| **Maquette de démonstration** | **`demo` uniquement** — jetable, **jamais fusionnée dans `main`** | `apps/api`, `apps/backoffice`, `packages/contracts` ; dans `apps/web`, les espaces membres (`advertiser/`, `creator/`, `space/`), l'inscription et la connexion de la maquette (`signup/`, `login/`) et leurs composants (`account`, `auth`, `brand`, `campaign`, `chat`, `creator`, `creator-campaigns`, `dev`, `search`, `space`). Feuille de route : `implementation_plan.md` ; fiche d'écarts : `docs/mvp/audit-implementation-2026-09-19.md` |
+
+Pour montrer la maquette : `git switch demo`, puis les commandes de lancement de la branche
+(`pnpm dev:api`, `pnpm dev:web`, `pnpm dev:backoffice`). Pour revenir au produit : `git switch main`.
 
 ### 16.2 Ce que cela change pour tout agent et tout contributeur
 
@@ -936,8 +947,14 @@ par pays. Avec la mise en ligne progressive (A6), **la société doit exister ve
    fictifs). Montrée hors du poste local, elle l'est **uniquement sur une URL protégée par mot de
    passe**, avec un bandeau « Démonstration — données fictives », non indexée, et jamais sur le nom
    de domaine de production (**D56**).
-5. **Avant la mise en ligne de la landing page**, elle doit être détachée de la maquette : retirer
-   la barre de démonstration (`DevToolbar`, incluse dans `app/[locale]/layout.tsx`), faire pointer
-   les boutons d'inscription vers le vrai parcours du Lot 1, et faire relire ses textes, **réécrits
-   le 2026-09-24** pour le MVP courté et sans taux (**D48**), par `expert-marketing` et
-   `expert-conformite-rgpd`.
+5. **Avant la mise en ligne de la landing page**, il reste à faire pointer les boutons
+   d'inscription et de connexion vers le vrai parcours du Lot 1 et à faire relire ses textes,
+   **réécrits le 2026-09-24** pour le MVP courté et sans taux (**D48**), par `expert-marketing` et
+   `expert-conformite-rgpd`. *Le détachement de la maquette est fait sur `main` (2026-09-25) :
+   barre de démonstration et lien « Mon espace » retirés, textes `auth` supprimés. Les boutons
+   « Créer mon compte », « Me connecter » et les deux portes d'entrée pointent encore vers `/signup`,
+   `/login`, `/signup/advertiser` et `/signup/creator`, qui n'existent pas sur `main` tant que le
+   Lot 1 n'est pas livré.*
+6. **Ne jamais fusionner `demo` dans `main`**, ni y copier un fichier de la maquette. Une correction
+   de la landing page se fait sur `main` ; la reporter dans `demo` n'est utile que si elle doit
+   apparaître pendant une démonstration.

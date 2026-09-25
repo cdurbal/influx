@@ -135,9 +135,6 @@ export function SiteHeaderMobileMenu({
           </ul>
         </nav>
         <div className="mt-4 flex flex-col gap-stack-sm border-t-(length:--border-width-thin) border-border-subtle pt-4">
-          <LinkButton href="/space" variant="secondary" size="lg" fullWidth>
-            Mon Espace (Hub)
-          </LinkButton>
           <LinkButton href="/signup" variant="primary" size="lg" fullWidth>
             {signupCta}
           </LinkButton>

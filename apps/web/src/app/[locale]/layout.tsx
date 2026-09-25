@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { DevToolbar } from "@/components/dev/DevToolbar";
 import { CookieBanner } from "@/components/landing/CookieBanner";
 import { MockupBanner } from "@/components/landing/MockupBanner";
 import { getPlaceholderContent, IS_MOCKUP } from "@/content/placeholders";
@@ -68,7 +67,6 @@ export default async function LocaleLayout({
         <NextIntlClientProvider messages={null}>
           {children}
         </NextIntlClientProvider>
-        <DevToolbar />
       </body>
     </html>
   );

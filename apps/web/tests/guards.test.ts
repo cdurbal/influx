@@ -24,26 +24,10 @@ function relative(file: string): string {
   return path.relative(WEB_ROOT, file).split(path.sep).join("/");
 }
 
-/** Scope of G1 to G3: Landing page mockup files (docs/landing-page/01-architecture.md §9.3) */
-const MVP_APP_DIRS = [
-  "dev",
-  "auth",
-  "creator",
-  "brand",
-  "campaign",
-  "search",
-  "creator-campaigns",
-  "space",
-  "chat",
-];
-const SCOPED_FILES = listFiles(SRC)
-  .filter(
-    (file) =>
-      !MVP_APP_DIRS.some((dir) =>
-        file.includes(path.join("src", "components", dir)),
-      ),
-  )
-  .filter((file) => /\.(ts|tsx|json|css)$/.test(file));
+/** Scope of G1 to G3: every source file of the landing page (docs/landing-page/01-architecture.md §9.3) */
+const SCOPED_FILES = listFiles(SRC).filter((file) =>
+  /\.(ts|tsx|json|css)$/.test(file),
+);
 
 function findMatches(pattern: RegExp, files: readonly string[]): string[] {
   return files.flatMap((file) =>
