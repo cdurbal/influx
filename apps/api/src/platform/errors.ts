@@ -57,6 +57,17 @@ export class RequestValidationError extends Error {
   }
 }
 
+/**
+ * A response body that went through no response schema: a string, a buffer or a stream sent by a
+ * handler (02 §4 rule 1, 18 TM11.4 c). Answered as a 500 envelope, like an undeclared status.
+ */
+export class UnserializedResponseError extends Error {
+  constructor() {
+    super("A response body bypassed the response schemas");
+    this.name = "UnserializedResponseError";
+  }
+}
+
 export type ClassifiedError = {
   code: ErrorCode;
   details?: readonly ValidationIssue[];

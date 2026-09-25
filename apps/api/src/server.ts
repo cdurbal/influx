@@ -12,6 +12,7 @@ import {
   classifyError,
   errorEnvelope,
   HTTP_STATUS_BY_CODE,
+  UnserializedResponseError,
 } from "./platform/errors.ts";
 import {
   API_PREFIX,
@@ -24,6 +25,7 @@ import {
 } from "./platform/internal-auth.ts";
 import { createLogger } from "./platform/logger.ts";
 import {
+  withEnvelopeFallback,
   zodSerializerCompiler,
   zodValidatorCompiler,
   type ZodTypeProvider,
@@ -122,18 +124,36 @@ export function buildServer(
   // the server before it listens (02 §4 rule 1, 21 J1-E).
   app.addHook("onRoute", (route) => {
     const { url } = route;
+    const routeName = `${String(route.method)} ${url}`;
     if (url !== HEALTH_ROUTE && !url.startsWith(API_PREFIX)) {
       throw new Error(`Route ${url} is outside /v1/ (02 §9.2)`);
     }
-    const schema: unknown = route.schema;
-    if (
-      typeof schema !== "object" ||
-      schema === null ||
-      !("response" in schema) ||
-      schema.response === undefined
-    ) {
-      throw new Error(`Route ${route.method} ${url} has no response schema`);
+    if (route.serializerCompiler !== undefined) {
+      throw new Error(
+        `Route ${routeName} sets its own serializer compiler: responses go through zod only`,
+      );
     }
+    // No response without a schema, and the envelope as fallback (18 TM11.4 b and c).
+    route.schema = withEnvelopeFallback(routeName, route.schema);
+  });
+
+  // 18 TM11.4 (c): a body reaches the client only through a response schema. A string, a buffer
+  // or a stream skips serialization entirely: preSerialization never runs for it. Such a reply
+  // is refused like an undeclared status code, and answered as a 500 envelope.
+  const serializedReplies = new WeakSet<FastifyReply>();
+  app.addHook("preSerialization", async (_request, reply, payload) => {
+    serializedReplies.add(reply);
+    return payload;
+  });
+  app.addHook("onSend", async (_request, reply, payload) => {
+    if (
+      payload !== undefined &&
+      payload !== null &&
+      !serializedReplies.has(reply)
+    ) {
+      throw new UnserializedResponseError();
+    }
+    return payload;
   });
 
   // Internal secret and surface, before any body parsing (`03` PP-8, T7.9, 21 J1-G).
