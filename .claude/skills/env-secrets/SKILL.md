@@ -50,6 +50,11 @@ Agents concernés : `integrateur` (principal), `expert-cybersecurite` (**veto**)
 6. **Clés distinctes par environnement, sans exception.** La clé de production **n'existe nulle part
    ailleurs qu'en production** : ni en `staging`, ni dans un fichier local, ni dans une variable de
    compilation, ni dans un journal, ni dans un ticket (`16` RG115).
+   **Poste de développement (D62, 2026-09-25)** : il peut porter les clés de **comptes Brevo et
+   Apollo de test**, ouverts spécialement à cet effet et distincts des comptes de production, dans
+   `apps/api/.env.local` (ignoré par Git), jamais en CI ni dans un service Railway. Conditions :
+   `16` RG115 pour Brevo, ligne `APOLLO_API_KEY` ci-dessous pour Apollo. Local = `.env.local` et non
+   `.env`, que la maquette de la branche `demo` charge automatiquement.
 7. **Aucune donnée de production dans `staging`** (verrou 4, `03` §6.8, B9). `staging` est alimenté
    **exclusivement** par `supabase/seed`.
 8. **Aucun secret dans les journaux**, les messages d'erreur, les tickets ou les captures d'écran.
@@ -103,7 +108,7 @@ Toutes sont **serveur uniquement**, dans le paquet `apps/api` (services `api` et
 
 | Variable | Rôle | Portée | `staging` vs `production` |
 |---|---|---|---|
-| `BREVO_API_KEY` | Clé d'accès | **Production uniquement** pour la clé de production | Rotation planifiée, **deux clés acceptées pendant la bascule**. Hors production : au plus la clé d'un **compte Brevo de test distinct**, et rien du tout si `BREVO_MODE=disabled` |
+| `BREVO_API_KEY` | Clé d'accès | **Production uniquement** pour la clé de production | Rotation planifiée, **deux clés acceptées pendant la bascule**. Hors production : au plus la clé d'un **compte Brevo de test distinct**, et rien du tout si `BREVO_MODE=disabled`. **Poste de développement : clé du compte de test admise** (D62), aux conditions de `16` RG115 — sans donnée réelle, jamais en `live`, sans aucun des sous-domaines de production |
 | `BREVO_API_BASE_URL` | Adresse de base | Tous | Permet de pointer la **doublure de test** hors production (`16` RG148) |
 | `BREVO_MODE` (`disabled` \| `redirect` \| `live`) | Mode d'envoi | Tous | **`live` refusé hors production** — refus de démarrage, pas un avertissement (RG116). `disabled` est la valeur par défaut partout ailleurs |
 | `BREVO_TEST_RECIPIENTS` | Liste **fermée** d'adresses internes | Hors production | **Obligatoire si `redirect`** ; substitution au dernier moment, journalisée (RG117) |
@@ -124,7 +129,7 @@ Toutes sont **serveur uniquement**, dans le paquet `apps/api` (services `api` et
 
 | Variable | Porteurs | Exposition | `staging` vs `production` |
 |---|---|---|---|
-| `APOLLO_API_KEY` | worker | **Secrète** | **Aucune clé Apollo en `staging`** — recommandation d'`expert-cybersecurite` (`03` §6.8) : le connecteur passe alors en `skipped_no_credentials`. Une clé absente ne peut pas être confondue avec une autre |
+| `APOLLO_API_KEY` | worker | **Secrète** | **Aucune clé Apollo en `staging`** — recommandation d'`expert-cybersecurite` (`03` §6.8) : le connecteur passe alors en `skipped_no_credentials`. Une clé absente ne peut pas être confondue avec une autre. **Poste de développement : clé d'un compte Apollo de test distinct admise** (D62), à conditions cumulatives : aucune donnée de personne réelle, ni importée ni obtenue par enrichissement ; aucune boîte d'envoi connectée ni séquence active sur le compte de test ; `SYNC_MODE=dry_run` par défaut, `live` seulement avec `NON_PRODUCTION_RECIPIENT_ALLOWLIST` (verrou 3) ; jamais en CI ni dans un service Railway |
 | `SYNC_MODE` (`live` \| `dry_run`) | worker | Garde-fou | `dry_run` en `staging`, `live` en production. Lu au démarrage, **immuable à l'exécution**, journalisé |
 | `NON_PRODUCTION_RECIPIENT_ALLOWLIST` | worker | Garde-fou | Condition **positive** évaluée au connecteur, après tout le mappage |
 
@@ -229,7 +234,8 @@ cumulatifs**, parce qu'un seul finit toujours par sauter. Chacun fait l'objet d'
 
 1. **Verrou 1 — Clés distinctes.** `staging` utilise un compte Brevo de test ; **aucune clé Apollo
    en `staging`**. Les clés de production ne sont jamais saisies dans `staging`, elles ne se
-   ressemblent pas et ne sont pas interchangeables.
+   ressemblent pas et ne sont pas interchangeables. Un poste de développement peut porter les clés
+   des comptes Brevo et Apollo **de test** (D62), jamais celles de production.
 2. **Verrou 2 — Mode explicite.** `SYNC_MODE=dry_run` et `BREVO_MODE=disabled` hors production : le
    connecteur n'appelle rien, marque la ligne traitée et journalise ce qu'il aurait envoyé. Le
    pipeline est testé de bout en bout, sans aucun appel sortant. **Le service refuse de démarrer**
@@ -330,7 +336,7 @@ Traiter comme un incident, dans cet ordre :
 | # | Sujet | Qui tranche |
 |---|---|---|
 | 1 | **Noms des trois sous-domaines d'envoi** (`tx.`, `news.`, `pro.`) — propositions de `16` RG9, à confirmer avec le nom de domaine retenu (`16` Q13) | `integrateur` + **Fondateur** |
-| 2 | **`BREVO_API_KEY` hors production** : `16` §M8 la donne « production uniquement », `02` §12.4 prévoit un **compte Brevo de test** en `staging`. Lecture retenue ici : la *clé de production* n'existe qu'en production, et `staging` peut porter la clé d'un **compte de test distinct** — à confirmer | `expert-integrations-api` + `expert-cybersecurite` |
+| 2 | **`BREVO_API_KEY` hors production** : `16` §M8 la donne « production uniquement », `02` §12.4 prévoit un **compte Brevo de test** en `staging`. Lecture retenue ici : la *clé de production* n'existe qu'en production, et `staging` peut porter la clé d'un **compte de test distinct** — à confirmer. **Tranchée pour le poste de développement** (D62, 2026-09-25 : comptes Brevo et Apollo de test admis) ; reste ouverte pour `staging` | `expert-integrations-api` + `expert-cybersecurite` |
 | 3 | **Absence de signature des webhooks Brevo** (`16` RG146, Q3) : les compensations par jeton, chemin et plages d'IP suffisent-elles ? | **`expert-cybersecurite` (veto)** |
 | 4 | **Politique DMARC** de chaque sous-domaine (`none` puis durcissement, ou `quarantine` d'emblée) | `integrateur` + `expert-marketing` |
 | 5 | **Périmètre et hébergement du stockage des secrets** au-delà de GitHub Secrets et Railway (coffre dédié) le jour où plusieurs personnes y accèdent | `expert-cybersecurite` + **Fondateur** |

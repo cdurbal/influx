@@ -996,10 +996,26 @@ Ouvrir un e-mail de prospection ne vaut ni accord, ni intérêt légitime, ni au
 > le backoffice peut désormais déclencher des envois de masse. Ce qui suit n'est pas une
 > précaution, c'est une barrière.
 
-**RG115 — Clés distinctes par environnement.** La clé de production **n'existe nulle part ailleurs
-qu'en production** : ni dans un fichier local, ni dans `staging`, ni dans une variable de
-compilation, ni dans un journal, ni dans un ticket (skill `env-secrets`). Rotation planifiée, deux
-clés acceptées pendant la fenêtre de rotation.
+**RG115 — Clés distinctes par environnement** *(modifiée le 2026-09-25, D62)*. La clé de
+production **n'existe nulle part ailleurs qu'en production** : ni dans un fichier local, ni dans
+`staging`, ni dans une variable de compilation, ni dans un journal, ni dans un ticket (skill
+`env-secrets`). Rotation planifiée, deux clés acceptées pendant la fenêtre de rotation.
+
+**Exception pour le poste de développement (arbitrage du fondateur, D62).** Un poste local peut
+porter la clé d'un **compte Brevo de test, ouvert spécialement à cet effet et distinct du compte
+de production**, dans `apps/api/.env.local` (ignoré par Git), aux conditions cumulatives suivantes :
+
+1. **aucune donnée réelle dans le compte de test** : aucun contact importé du compte de production,
+   uniquement des personas fictifs et des adresses internes ;
+2. **jamais le mode `live`** : RG116 est inchangée ; un envoi réel depuis un poste local se fait en
+   `redirect`, vers la seule liste fermée des adresses internes (RG117) ;
+3. **aucun des trois sous-domaines de production** (RG9) n'est authentifié sur le compte de test :
+   un rebond ou une plainte de test ne doit jamais entamer la réputation du flux qui porte le code
+   de connexion ;
+4. **la clé de test n'entre ni en CI ni dans un service Railway** : la suite de tests reste sur la
+   doublure (RG148).
+
+`staging` n'est pas concerné par cette exception : sa configuration reste celle de `02` §12.4.
 
 **RG116 — Un réglage d'envoi à trois valeurs, contrôlé au démarrage** :
 
@@ -1297,7 +1313,9 @@ fournisseur, ce qui multiplie les doublons — que RG146-5 absorbe, mais qu'on �
 
 #### M7 — La doublure de test
 
-**RG148 — Aucun test ne touche Brevo, jamais**, y compris un test « rapide » exécuté à la main. La
+**RG148 — Aucun test automatisé ne touche Brevo, jamais**, ni en CI ni lancé sur un poste local
+*(précisée le 2026-09-25, D62)*. Seul un **essai manuel** sur un poste de développement, avec le
+compte de test de RG115, peut appeler Brevo ; il ne remplace aucun des scénarios ci-dessous. La
 doublure est un faux service local, dont le contrat est figé par des **échanges enregistrés** —
 requête et réponse réelles, capturées une fois, expurgées de tout secret. Les scénarios obligatoires
 du plan de test (document `18`) :
@@ -1327,7 +1345,7 @@ jamais présente dans un bundle front, un dépôt ou un journal (skill `env-secr
 
 | Variable | Rôle | Portée | Remarque |
 |---|---|---|---|
-| `BREVO_API_KEY` | Clé d'accès | **Production uniquement** | Rotation planifiée, deux clés acceptées pendant la bascule |
+| `BREVO_API_KEY` | Clé d'accès | **Production uniquement** ; sur un poste de développement, clé d'un compte de test distinct (RG115, D62) | Rotation planifiée, deux clés acceptées pendant la bascule |
 | `BREVO_API_BASE_URL` | Adresse de base | Tous | Permet de pointer la doublure en test |
 | `BREVO_MODE` | `disabled` · `redirect` · `live` | Tous | `live` **refusé hors production** (RG116) |
 | `BREVO_TEST_RECIPIENTS` | Liste fermée d'adresses internes | Hors production | Obligatoire si `redirect` |

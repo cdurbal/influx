@@ -44,7 +44,8 @@ Agents concernés : `expert-integrations-api` (principal), `expert-marketing`,
    Apollo. Le contact est retiré des séquences en cours.
 6. **Clé API côté serveur uniquement**, distincte par environnement. En `staging`, bac à sable ou
    intégration désactivée — une séquence commerciale déclenchée depuis un environnement de test
-   vers de vrais prospects est un incident.
+   vers de vrais prospects est un incident. Sur un poste de développement, la clé d'un **compte
+   Apollo de test** distinct est admise (D62), aux conditions de la skill `env-secrets`.
 7. **Toute tentative journalisée**, avec rejeu possible depuis le backoffice.
 8. **Respect des quotas et limites de débit** : file d'attente, temporisation exponentielle.
 

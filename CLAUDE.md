@@ -500,8 +500,9 @@ Reste **ouvert** : la gestion d'état côté front (aucune librairie tant qu'auc
 | **GitHub** | Hébergement du code, Pull Requests, revue, CI | `main` protégée, secrets dans GitHub Secrets. |
 | **Railway** | Déploiement de l'API et des fronts, environnements | Séparation `staging` / `production`, variables d'environnement par environnement. Skill : `railway-deploy`. |
 
-**Seul le dépôt GitHub existe ; aucun compte des services du produit réel n'est créé ni
-configuré** — voir §14, Prérequis. (La maquette jetable de §16 n'utilise que des services simulés.)
+**Le dépôt GitHub existe ; les comptes Supabase, Brevo et Apollo.io sont créés (2026-09-25) mais
+aucun n'est encore configuré ni branché** : aucun code du produit réel ne les appelle avant le Lot 0
+— voir §14, Prérequis. (La maquette jetable de §16 n'utilise que des services simulés.)
 
 ### Règle de synchronisation des leads
 
@@ -731,6 +732,7 @@ hors de ce cadre ; mettre ce tableau à jour à chaque arbitrage. Les lots cité
 | D59 | **Direction visuelle de la landing** | **Fondateur** (+ `expert-ux`) | **Tranchée (2026-09-24) : carte métallisée premium conservée**, avec un **budget d'effets** : un seul effet spectaculaire par écran visible. Revue visuelle de la page rendue par `expert-ux` pour appliquer ce budget (`20` Q4) | Revue avant la mise en ligne du Lot 1 |
 | D60 | **Surveillance de production : journaux, erreurs, lenteurs et pics d'appels** | **Fondateur** ; conception `architecte` + `integrateur`, avis `expert-cybersecurite` et `expert-conformite-rgpd` (**veto**) | **Tranchée (2026-09-24) : tout en interne**, aucun outil de surveillance externe (Sentry et sonde externe écartés). Journaux `pino` dans Railway ; erreurs serveur et navigateur (espaces membres et backoffice, **jamais la landing**) regroupées dans un schéma `ops` de notre base ; temps de réponse et volume d'appels agrégés chaque minute par route ; **sonde interne** (le worker vérifie le site chaque minute, l'API surveille le worker) ; alertes par e-mail et écran « Santé technique » au backoffice. **Risque accepté** : une panne complète de Railway n'est signalée par personne chez INFLUX (parade : notifications des pages d'état des prestataires). **Rodage de 30 jours** après chaque mise en ligne. Interdits : corps de requêtes, messages, e-mails, codes, jetons, **enregistrement de session**. Restent ouverts : destinataires des alertes la nuit et le week-end, offre Railway Pro, rodage. Détail : `02` §20 | Collecte au Lot 0 ; alertes, sonde et écran actifs avant la mise en ligne du Lot 1 |
 | D61 | **Métriques prioritaires des créateurs** | **Fondateur** ; définitions et bornes : `expert-matching` + `product-owner` | **Tranchée (2026-09-25)** : pour chaque réseau d'un créateur, INFLUX suit **en priorité** trois chiffres : la **taille de la communauté** (nombre d'abonnés), le **rythme de publication** (publications des 30 derniers jours) et le **nombre moyen de commentaires par publication** (12 dernières publications, hors jeux-concours). Ils sont **obligatoires** sur chaque ligne de réseau, **affichés en tête de ligne** (en tranches avant l'ouverture de la mise en relation, en valeur exacte après), **constatés par l'agent** lors de la vérification d'audience et **historisés** pour suivre leur évolution. Le taux d'engagement et la portée deviennent des indicateurs **secondaires**. Règles : `07` §E bis (RG113 à RG119), `08` RG38bis, `10` F24 et F25 ; modèle de données : `04` §12.12. **Restent ouverts** : obligation sur chaque réseau ou sur le seul compte principal (`07` Q15), définitions et bornes des tranches (`07` Q16), constat sur le profil public et charge de l'agent (`07` Q17, `17b` geste 5a), conservation de l'historique (`07` Q18, veto `expert-conformite-rgpd`), entrée des deux nouveaux filtres dans le socle de la recherche (`10` Q13) | Q15 et Q16 avant le Lot 2 |
+| D62 | **Clés Brevo et Apollo sur le poste de développement** | **Fondateur** ; conditions relues par `expert-cybersecurite` | **Tranchée (2026-09-25) : comptes de test dédiés.** Un poste local peut porter les clés de **comptes Brevo et Apollo.io de test**, ouverts spécialement et distincts des comptes de production, dans `apps/api/.env.local` (ignoré par Git ; pas `.env`, que la maquette charge). Les clés de production restent en production seule. Conditions cumulatives : aucune donnée réelle dans les comptes de test ; Brevo jamais en `live` (`redirect` vers les adresses internes au plus) et sans aucun des trois sous-domaines d'envoi de production ; Apollo sans boîte d'envoi ni séquence active, `live` seulement avec la liste blanche ; ces clés n'entrent ni en CI ni dans Railway, les tests automatisés restent sur la doublure. `staging` n'est pas concerné. Règles : `16` RG115 et RG148, skill `env-secrets` règle 6 | Conditions à relire par `expert-cybersecurite` avant le Lot 0 |
 
 > **Questions ouvertes des spécifications.** En plus des décisions ci-dessus, les documents `04` à
 > `16` portent **environ 156 questions ouvertes** (tableaux « Questions ouvertes » de chaque
@@ -805,15 +807,23 @@ segments Brevo, saisie libre plafonnée). Voir `docs/mvp/00-cadrage-mvp-v2.md`.
 GitHub, Supabase et Railway peuvent être ouverts avant la création de la société, puis transférés.
 Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la société.
 
-- [ ] Créer le projet **Supabase** (région UE par défaut, à confirmer après D25) et récupérer les clés ;
-      prévoir l'option de **restauration à un instant donné** avant la mise en production (D57)
+- [ ] Créer les **deux** projets **Supabase** (`staging` et `production`, région UE par défaut, à
+      confirmer après D25 — la région ne se change plus après création) et récupérer les clés ;
+      prévoir l'option de **restauration à un instant donné** avant la mise en production (D57) —
+      *compte créé le 2026-09-25*
 - [ ] Créer le compte **Railway**, les environnements `staging` et `production` — *des commits du
       2026-09-20 préparent le déploiement de la **maquette** sur Railway ; cela ne vaut pas création
       des environnements du produit réel (§16). Depuis le 2026-09-25, un déploiement de la maquette
       se fait **depuis la branche `demo`**, jamais depuis `main`*
 - [ ] Créer le compte **Brevo**, générer la clé API, préparer les listes et attributs de contact
-      (dont langue et pays)
-- [ ] Créer le compte **Apollo.io**, générer la clé API, définir les séquences commerciales
+      (dont langue et pays) — *compte créé le 2026-09-25, avant la société : à transférer à son nom.
+      La clé API de production n'est générée qu'au moment de la poser dans le service Railway de
+      production (`16` RG115 : jamais dans un fichier local)*
+- [ ] Créer le compte **Apollo.io**, générer la clé API, définir les séquences commerciales —
+      *compte créé le 2026-09-25, avant la société : à transférer à son nom. Même règle pour la
+      clé ; aucune synchronisation réelle avant la validation de D33 par un juriste*
+- [ ] Créer les **comptes Brevo et Apollo.io de test**, réservés au poste de développement (D62),
+      et poser leurs clés dans `apps/api/.env.local`
 - [ ] ~~Ouvrir le compte chez le **prestataire de paiement** retenu (D9), pendant le Lot 2~~ —
       **reporté en V2** (A1 : le paiement sort du MVP)
 - [ ] Réserver les noms de domaine et configurer les DNS, dont **un sous-domaine dédié au
