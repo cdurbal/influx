@@ -231,6 +231,8 @@ ou fermer une facette **est un changement de version** au sens de la mesure (RG8
 | **F20** | Pays de résidence **et mobilité** | Pays (liste fermée) + déplacements : non · dans mon pays · international | Pays de résidence et déplacements possibles, couche A | Tournages, événements, UGC en magasin. **Jamais la ville** |
 | **F22** | Ton éditorial | Multi-choix, ≤ 2 | Ton éditorial, couche A (RG34 du `07`) | Une marque écarte un créateur pertinent sur le seul critère du ton ; aujourd'hui deviné depuis la bio, donc mal |
 | **F23** | Délai de livraison habituel | Tranche : < 7 j · 7-14 j · 15-30 j · > 30 j | Délai de livraison habituel, couche A | Un lancement daté ne se négocie pas avec un délai de six semaines |
+| **F24** | Rythme de publication **par réseau** *(D61, 2026-09-25)* | Liste fermée `reference.publication_frequencies` : quotidien · plusieurs fois par semaine · hebdomadaire · deux fois par mois · mensuel ou moins | Rythme dérivé des publications des 30 derniers jours (`07` RG114) | **Métrique prioritaire n° 2** : un compte qui ne publie plus ne portera pas une campagne. **Promotion au socle à trancher** (Q13) |
+| **F25** | Tranche de commentaires moyens par publication **par réseau** *(D61, 2026-09-25)* | Tranche `reference.comment_bands` : 0-9 · 10-49 · 50-199 · 200-999 · 1 000+ | `comment_band`, **servie même non vérifiée** (`07` RG117) | **Métrique prioritaire n° 3** : mesure une audience qui réagit, pas seulement qui existe. **Promotion au socle à trancher** (Q13) |
 
 **RG14 — TROISIÈME VAGUE, donnée inexistante au Lot 3.**
 
@@ -484,7 +486,7 @@ démarre pas.
 | Titre court | Texte **modéré** |
 | Thématique principale et secondaires | Libellés de liste fermée |
 | Ton éditorial | Libellés de liste fermée |
-| Réseaux couverts et **tranche d'audience par réseau** | Une ligne par réseau, compte principal signalé |
+| Réseaux couverts et, **en tête de chaque ligne, les trois métriques prioritaires** (`07` RG113, D61) : tranche d'audience · rythme de publication · tranche de commentaires moyens | Une ligne par réseau, compte principal signalé ; toujours dans cet ordre, avec la source (déclaré / constaté) et la date |
 | Pays principal d'audience **et sa part en tranche** | « Plus de 70 % d'audience en France » |
 | Autres pays d'audience ≥ 10 % | Pays + tranche |
 | Répartition d'âge et de genre **de l'audience** | Tranches uniquement |
@@ -509,7 +511,8 @@ fermée, reprise de `matching-spec` A3 et du document `07` RG18 :
 
 pseudo · `@` ou identifiant de compte · **URL de profil ou de publication** · nom et prénom réels ·
 raison sociale · e-mail · téléphone · adresse, ville, code postal · **nombre d'abonnés exact** ·
-**taux d'engagement exact** · **portée exacte** · **pourcentages d'audience exacts** · **tarif
+**taux d'engagement exact** · **portée exacte** · **nombre exact de publications** · **nombre
+exact de commentaires moyens** · **historique des métriques** · **pourcentages d'audience exacts** · **tarif
 exact** · **net créateur estimé** · captures d'écran brutes de statistiques · **photo de profil ou
 avatar** · bio non modérée · visuel de portfolio non approuvé · pièces justificatives de vérification
 · date de naissance · **secteurs refusés** · complétude · notes internes · état exact du profil ·
@@ -1183,6 +1186,19 @@ visible**.
 **CA64** — *Étant donné* une recherche, *quand* on inspecte les événements émis, *alors* **aucun
 événement de lead ne part vers Brevo ni Apollo**.
 
+### Métriques prioritaires (D61, additif du 2026-09-25)
+
+**CA65** — *Étant donné* une carte anonyme, *quand* on lit chaque ligne de réseau, *alors* elle
+commence par la tranche d'audience, le rythme de publication et la tranche de commentaires moyens,
+**dans cet ordre**, chacun avec sa source et sa date ; *quand* on inspecte la réponse de l'API,
+*alors* ni le nombre exact de publications, ni le nombre exact de commentaires n'y figurent,
+**pas même nuls** (RG47, RG48).
+
+**CA66** — *Étant donné* un créateur dont les commentaires moyens sont déclarés mais non constatés,
+*quand* la facette F25 est active, *alors* il **apparaît** dans les résultats avec la source
+« déclaré par le créateur » — contrairement à F5, qui n'affiche que des valeurs vérifiées (`07`
+RG117).
+
 ---
 
 ## Impacts
@@ -1282,3 +1298,4 @@ k-anonymat**, **profils jamais affichés en 30 jours**.
 | **Q10** | **Durée de conservation du journal des recherches** : 12 mois retenus au document `04` §9. Suffisant pour régler D11 ? Trop long au regard de la finalité de sécurité ? | **12 mois**, à confirmer | `expert-conformite-rgpd` (**veto**) + `expert-matching` | Lot 3 |
 | **Q11** | **Blocage entre parties (RG28)** : qui peut bloquer, avec quel motif, avec quelle information de la partie bloquée (aucune, selon l'hypothèse), et quel recours ? | Blocage silencieux, motif typé, aucune information de la partie bloquée | `product-owner` + `expert-conformite-rgpd` | Lot 3 |
 | **Q12** | **Valeurs de paramétrage** : plafonds de pagination (12 × 5), de débit (30/h, 200/j, 60 profils/j), quota froid (2 sur 12), seuils d'alerte. Trop bas, ils gênent une marque légitime ; trop hauts, ils laissent copier l'annuaire | Valeurs de départ ci-contre, **en table**, calibrées après un mois de mesure | `expert-cybersecurite` + `expert-matching` | Lot 3 |
+| **Q13** | **D61 — faut-il faire entrer le rythme de publication (F24) et les commentaires moyens (F25) dans le socle dès l'ouverture de la recherche ?** Ce sont deux des trois métriques prioritaires du fondateur, mais chaque facette ouverte au démarrage rapproche les recherches du seuil de k-anonymat (RG10) | **Seconde vague** : les deux chiffres sont **affichés** sur chaque carte dès le premier jour (RG47), le **filtre** s'ouvre au volume (RG11), comme les autres facettes non socle | `expert-matching` + **Fondateur** | Lot 3 |

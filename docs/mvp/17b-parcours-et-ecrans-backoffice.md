@@ -1026,12 +1026,14 @@ Même gabarit, **contenu et vocabulaire propres** (`15` RG42). Les différences 
 │ Commercial responsable : ⟨Prénom Nom⟩                                      │
 ├────────────────────────────────────────────────────────────────────────────┤
 │ ② RÉSEAUX ET AUDIENCE                                                      │
-│    ┌───────────┬──────────┬────────────┬───────────────┬─────────────────┐ │
-│    │ Réseau    │ Abonnés  │ Engagement │ Date de mesure│ Source          │ │
-│    ├───────────┼──────────┼────────────┼───────────────┼─────────────────┤ │
-│    │ Instagram │  84 210  │ 4,2 %      │ 21/08/2026    │ capture vérifiée│ │
-│    │ TikTok    │  31 540  │ 6,1 %      │ 21/08/2026    │ capture vérifiée│ │
-│    └───────────┴──────────┴────────────┴───────────────┴─────────────────┘ │
+│    ┌───────────┬────────┬─────────┬─────────┬──────┬──────────┬──────────┐ │
+│    │ Réseau    │ Abonnés│ Publ/30j│ Comm/pub│ Eng. │ Mesure   │ Source   │ │
+│    ├───────────┼────────┼─────────┼─────────┼──────┼──────────┼──────────┤ │
+│    │ Instagram │ 84 210 │      14 │     137 │4,2 % │ 21/08/26 │ constaté │ │
+│    │ TikTok    │ 31 540 │      22 │     412 │6,1 % │ 21/08/26 │ constaté │ │
+│    └───────────┴────────┴─────────┴─────────┴──────┴──────────┴──────────┘ │
+│    Les trois premières colonnes sont les métriques prioritaires (D61).     │
+│    [· Historique des métriques] : évolution datée, sourcée (07 RG119).     │
 │    ⓘ Chaque chiffre porte sa date de mesure et sa source. Un chiffre sans  │
 │      date n'est pas une donnée, c'est une affirmation.                     │
 │ ③ TARIFS   (réseau, format) → montant exact + devise                       │
@@ -1088,11 +1090,17 @@ accorder ou refuser. **Deux onglets — Créateurs · Marques — jamais un écr
 │    └───────────────────────────────────────────────────────────────────┘   │
 ├────────────────────────────────────────────────────────────────────────────┤
 │ ③ CE QUE JE CONSTATE  (saisi par l'agent, jamais pré-rempli)               │
-│    Abonnés constatés *        [        ]   ⓘ chiffre lu sur la pièce       │
-│    Période affichée *         du [      ] au [      ]                      │
-│    Engagement constaté (fac.) [        ] %                                 │
-│    Déclaré par le créateur : 86 000 abonnés   → écart : à calculer après   │
-│                                                  saisie                    │
+│    LES 3 CHIFFRES PRIORITAIRES (D61), dans cet ordre                       │
+│    1. Abonnés constatés *          [        ]  ⓘ lus sur la pièce          │
+│       Période affichée *           du [      ] au [      ]                 │
+│    2. Publications 30 derniers j.* [        ]  ⓘ profil public, ni         │
+│                                                  stories ni directs        │
+│    3. Commentaires moyens *        [        ]  ⓘ 12 dernières publ.,       │
+│                                                  hors jeux-concours        │
+│    [· Ouvrir le profil public ⧉]   Date du constat : aujourd'hui (auto)    │
+│    Engagement constaté (fac.)      [        ] %                            │
+│    Déclaré par le créateur : 86 000 abonnés · 14 publ. · 137 comm.         │
+│    → écarts : affichés après la saisie, jamais avant                       │
 ├────────────────────────────────────────────────────────────────────────────┤
 │ ④ DÉCISION                                                                 │
 │    [■ Accorder le badge Audience ‹v›]     [⚠ Refuser avec motif ‹r›]       │
@@ -1740,7 +1748,7 @@ de départ sous les yeux.
 | **3b** | *idem* **depuis `ouverte`**, tout à saisir : + montant · devise · mode d'envoi · date d'envoi | **14** | 10 | 3 | ≤ 15 | ⚠️ À la limite. **Aucun champ ne peut être retiré** : tous sont exigés par `14` §C, et **aucun ne peut être pré-rempli** (`14` RG46). Le levier n'est pas l'écran, c'est de saisir au fil de l'eau plutôt qu'en une fois |
 | **4a** | **Lire une conversation — participant** : ouvrir depuis le tableau de bord ou l'affaire | **1** | 0 | 0 | **1** | ✅ Motif `suivi_de_l_affaire` retenu automatiquement (`12` RG56) : **friction nulle sur le geste quotidien** |
 | **4b** | **Lire une conversation — non participant** : `[· Lire ce fil (lecture journalisée)]` → choisir le motif → `[■ Ouvrir le fil]` | **3** | 0 | 1 | ≤ 3 | ✅ La friction est **le produit**, pas un défaut (`12` RG57) |
-| **5a** | **Vérifier un badge** — niveau 2, une pièce, octroi : `‹Entrée›` → ouvrir la pièce → abonnés constatés · période début · période fin → `‹v›` | **6** | 3 | 1 | ≤ 8 | ✅ |
+| **5a** | **Vérifier un badge** — niveau 2, une pièce, octroi : `‹Entrée›` → ouvrir la pièce → abonnés constatés · période début · période fin → **ouvrir le profil public → publications des 30 derniers jours · commentaires moyens** *(D61, 2026-09-25)* → `‹v›` | **9** | 5 | 1 | ≤ 8 | ⚠️ **Dépasse la cible d'une interaction depuis D61** (était 6). Les deux champs sont exigés par `08` RG38bis et ne peuvent pas être pré-remplis (règle 11 de `profile-verification`). Le vrai coût n'est pas le clic mais le **décompte hors outil** (12 publications à parcourir) : il est mesuré (`07`, indicateurs) et soumis à `07` **Q17**. Reste à décider : relever la cible à ≤ 9, ou revoir le geste |
 | **5b** | *idem* **refus** : `‹Entrée›` → ouvrir la pièce → `‹r›` → motif → `[■ Refuser]` | **5** | 0 | 2 | ≤ 6 | ✅ |
 
 ### Ce que ce décompte a changé dans la conception

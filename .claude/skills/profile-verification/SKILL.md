@@ -94,6 +94,13 @@ d'audience.**
 | **YouTube** | Code INFLUX dans la description de la chaîne | Capture de l'espace créateur : abonnés, vues, période, pays |
 | **Autres réseaux** | Même principe : code dans un champ modifiable et public du profil | Capture de l'outil natif équivalent, mêmes exigences |
 
+**Métriques prioritaires (D61, fondateur, 2026-09-25).** En plus des abonnés lus sur la capture,
+l'agent constate **sur le profil public du compte** les deux autres métriques prioritaires : le
+**nombre de publications permanentes des 30 derniers jours** (ni stories, ni directs) et le **nombre
+moyen de commentaires sur les 12 dernières publications, hors jeux-concours**. Ce sont des décomptes
+publics, pas une preuve d'audience au sens de la règle n° 10, qui reste entière. Les deux valeurs
+sont **obligatoires** pour accorder « Audience vérifiée ». Détail : `docs/mvp/08` RG38bis.
+
 **Pièces refusées d'office**, à inscrire dans la liste des motifs de refus :
 
 - Capture issue d'un **outil tiers** (mesure d'audience, agence, tableur).
@@ -119,7 +126,10 @@ Déroulé :
 3. **Ouvrir les pièces** dans le compartiment privé. Vérifier : identifiant du compte visible,
    période lisible, date de moins de 30 jours, cohérence entre les pièces.
 4. **Saisir les valeurs constatées** dans les champs dédiés — jamais un copier-coller de la
-   déclaration du créateur, jamais une validation « telle que déclarée ».
+   déclaration du créateur, jamais une validation « telle que déclarée ». Les **trois métriques
+   prioritaires** (D61) sont toujours saisies : abonnés (sur la pièce), publications des 30 derniers
+   jours et commentaires moyens (sur le profil public). **Seuls des nombres** sont enregistrés :
+   jamais un texte de commentaire ni un nom de commentateur.
 5. **Comparer au déclaré.** La valeur déclarée reste visible **à part**, étiquetée « déclaré ».
    **L'écart déclaré / constaté est conservé** : c'est un signal de sérieux précieux pour le
    commercial, et il ne coûte rien à garder.

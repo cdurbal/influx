@@ -1316,15 +1316,27 @@ Mobile 375
 │ │ @lea.beauty      [Visible après une   │ │  couche I
 │ │ instagram.com/…   mise en relation]   │ │
 │ │ ─────────────────────────────────────  │ │
-│ │ Abonnés            [   48 200 ]       │ │  valeur exacte saisie,
-│ │ Les marques voient : 25 k – 100 k     │ │  tranche dérivée affichée
+│ │ Les 3 chiffres prioritaires (D61)     │ │  07 RG113 : toujours en
+│ │ 1. Abonnés        [   48 200 ]        │ │  tête, dans cet ordre
+│ │    Les marques voient : 25 k – 100 k  │ │  tranche dérivée affichée
 │ │                              RG22,45  │ │  sous le champ
+│ │ 2. Publications des 30 derniers j.    │ │  RG114 : ni stories,
+│ │                   [       14 ]        │ │  ni directs
+│ │    Les marques voient : plusieurs     │ │  rythme dérivé, jamais
+│ │    fois par semaine                   │ │  le nombre
+│ │ 3. Commentaires moyens / publication  │ │  RG115 : 12 dernières
+│ │    (12 dernières) [      137 ]        │ │  publications, hors
+│ │    Les marques voient : 50 à 199      │ │  jeux-concours ; affiché
+│ │                                RG117  │ │  même non constaté
+│ │ ───────────────────────────────────── │ │
+│ │ Indicateurs secondaires (facult.)     │ │
 │ │ Taux d'engagement  [   3,4   ] %      │ │
 │ │ [i:eye-off] Non affiché aux marques   │ │  RG48 — absent, pas
 │ │ tant qu'INFLUX ne l'a pas constaté.   │ │  « non vérifié »
 │ │ Portée moyenne / publication [      ] │ │
-│ │ Fréquence de publication      [v]     │ │
-│ │ Mis à jour le 12 mars      (auto)     │ │  RG50 — non saisissable
+│ │ Mis à jour le 12 mars      (auto)     │ │  RG50 — non saisissable ;
+│ │                                       │ │  RG116 : renouvelée si les
+│ │                                       │ │  3 chiffres sont confirmés
 │ │ ─────────────────────────────────────  │ │
 │ │ ✓ Compte vérifié — Instagram,         │ │  libellé 08 RG10,
 │ │   le 3 mars 2026                      │ │  DATE OBLIGATOIRE
@@ -1893,7 +1905,7 @@ Desktop — carte dans la grille (3 colonnes)      Mobile — carte pleine large
 └──────────────────────────────────┘
 ```
 
-**Les huit règles de conception de cette carte**
+**Les neuf règles de conception de cette carte** *(la neuvième ajoutée le 2026-09-25, D61)*
 
 | # | Règle | Source |
 |---|---|---|
@@ -1905,6 +1917,7 @@ Desktop — carte dans la grille (3 colonnes)      Mobile — carte pleine large
 | 6 | **La fiche n'est pas plus riche que la carte** : mêmes champs, en plus grand, 3 visuels au lieu de 1 | `10` RG50 |
 | 7 | **Deux actions, et deux seulement.** Pas de « voir plus tard », pas de « ne plus proposer », pas de partage | `10` RG51, RG56 |
 | 8 | **Le point de vigilance est affiché quand il est vrai**, même s'il dessert le profil. Une liste sans réserve est lue comme une liste vendue | `10` RG42 |
+| 9 | **Les trois métriques prioritaires ouvrent chaque ligne de réseau**, toujours dans cet ordre : taille de la communauté, rythme de publication, commentaires moyens — par exemple « Instagram · 25 k – 100 k · plusieurs fois par semaine · 50 à 199 commentaires par publication ». L'engagement et la portée viennent après. *La maquette ci-dessus est antérieure à D61 : ses lignes de réseau sont à redessiner par `expert-ux`* | `07` RG113, `10` RG47, D61 |
 
 **Hiérarchie visuelle.** Le visuel occupe le haut (desktop) ou le tiers gauche (mobile) ; l'alias
 est en `text-heading-3` ; le titre court en `text-md` ; les tranches et libellés en `text-sm`

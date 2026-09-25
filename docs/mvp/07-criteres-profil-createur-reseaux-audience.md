@@ -2,6 +2,8 @@
 
 > **⚠️ Régime du pilote — D48 (arbitrage du fondateur du 2026-09-24).** Pendant le pilote, **aucun taux ni aucun net créateur estimé n'est affiché**, ni aux marques ni aux créateurs. Toutes les mentions du « net créateur estimé » et du pourcentage de commission dans ce document sont **suspendues** jusqu'à nouvel arbitrage ; la commission est présentée comme « incluse, précisée par votre commercial ». Voir `CLAUDE.md` §3 et §13 (D48).
 
+> **✳️ Additif du 2026-09-25 — D61 (arbitrage du fondateur) : trois métriques prioritaires par réseau.** Pour chaque réseau déclaré, INFLUX suit **en priorité** trois chiffres : **(1) la taille de la communauté** (nombre d'abonnés), **(2) le rythme de publication**, **(3) le nombre moyen de commentaires par publication**. Les trois sont **obligatoires** sur chaque ligne de réseau, **affichés en tête de ligne**, **constatés** lors de la vérification et **historisés**. Le taux d'engagement et la portée moyenne deviennent des indicateurs **secondaires**, facultatifs. Règles : **§E bis (RG113 à RG119)** ; cas limites et critères d'acceptation dédiés ; questions ouvertes **Q15 à Q18**. Voir `CLAUDE.md` §13 (D61).
+
 > **Date :** 2026-09-19 · **Auteur :** agent `product-owner` · **Statut :** spécification complète du
 > profil créateur (Lot 2), soumise à la validation de `chef-de-projet`, avec **avis obligatoire
 > (veto) de `expert-conformite-rgpd`** sur §B (couches), §D (résidence), §F (audience), §H
@@ -285,10 +287,11 @@ d'apposer un badge ou de publier ; *Oblig.* = obligatoire pour pouvoir publier l
 | Compte principal | **A** | Booléen, **exactement une ligne à vrai** | — | **Oui** |
 | Handle / identifiant `@` | **I** | Texte **modéré**, ≤ 100 caractères | — | **Oui** |
 | URL du profil | **I** | URL `https://`, domaine du réseau déclaré | — | **Oui** |
-| Abonnés | **A** tranche · **I** valeur exacte | Tranche `reference.audience_bands` (nano, micro, mid, macro, méga) / entier ≥ 0 | Capture du tableau de bord natif < 30 j pour le badge « Audience vérifiée » | **Oui** |
-| Taux d'engagement | **A** tranche **seulement si vérifié** · **I** valeur exacte | Tranche / pourcentage à 2 décimales | Idem — **sans preuve, rien n'est affiché en couche A** (RG48) | Non |
-| Portée moyenne par publication | **A** tranche · **I** valeur exacte | Tranche / entier ≥ 0 | Idem | Non |
-| Fréquence de publication | **A** | Liste fermée : quotidienne · plusieurs fois par semaine · hebdomadaire · bimensuelle · mensuelle ou moins | — | Non |
+| **Abonnés** — *métrique prioritaire n° 1 : taille de la communauté* (RG113) | **A** tranche · **I** valeur exacte | Tranche `reference.audience_bands` (nano, micro, mid, macro, méga) / entier ≥ 0 | Capture du tableau de bord natif < 30 j pour le badge « Audience vérifiée » | **Oui** |
+| **Publications des 30 derniers jours** — *métrique prioritaire n° 2 : rythme de publication* (RG114) | **A** rythme · **I** valeur exacte | Entier ≥ 0 ; le système en dérive le **rythme**, liste fermée `reference.publication_frequencies` : quotidien · plusieurs fois par semaine · hebdomadaire · deux fois par mois · mensuel ou moins | Constat de l'agent sur le profil public pour le badge « Audience vérifiée » (`08` RG38bis) | **Oui** |
+| **Commentaires moyens par publication** — *métrique prioritaire n° 3* (RG115) | **A** tranche · **I** valeur exacte | Tranche `reference.comment_bands` / entier ≥ 0 | Idem | **Oui** |
+| Taux d'engagement — *indicateur secondaire* (D61) | **A** tranche **seulement si vérifié** · **I** valeur exacte | Tranche / pourcentage à 2 décimales | Capture du tableau de bord natif — **sans preuve, rien n'est affiché en couche A** (RG48) | Non |
+| Portée moyenne par publication — *indicateur secondaire* (D61) | **A** tranche · **I** valeur exacte | Tranche / entier ≥ 0 | Capture du tableau de bord natif | Non |
 | Source des chiffres | **A** | Liste fermée : déclaré par le créateur · constaté par INFLUX | — | Automatique |
 | **Date de dernière mise à jour des chiffres** | **A** | Date, **affichée partout où un chiffre l'est** | — | **Oui** (RG50) |
 | Badge « Compte vérifié » + date | **A** | Booléen + date | Code INFLUX constaté en ligne par l'agent | Non |
@@ -522,6 +525,87 @@ n'y accède, dans aucun cas** (`03` C(13)). Elles contiennent des données perso
 (noms d'abonnés, commentaires, messages) : le créateur reçoit des instructions de cadrage au dépôt,
 et une pièce trop large est refusée avec un motif dédié.
 
+### E bis — Les trois métriques prioritaires (D61, additif du 2026-09-25)
+
+> **Arbitrage du fondateur du 2026-09-25.** Pour les créateurs, les chiffres à suivre en priorité
+> sont : la **taille de la communauté**, le **rythme des publications** et le **nombre moyen de
+> commentaires par publication**. Ce bloc en tire les conséquences sur le profil. Les définitions
+> exactes et les bornes de tranches ci-dessous sont des **valeurs de départ**, soumises à **Q16**.
+
+**RG113** — **Les trois métriques prioritaires.** Pour chaque ligne de réseau, INFLUX suit en
+priorité, et toujours dans cet ordre :
+
+| # | Métrique | Ce que le créateur saisit | Ce qu'une marque voit avant l'ouverture |
+|---|---|---|---|
+| 1 | **Taille de la communauté** | Nombre d'abonnés (RG45) | Tranche d'audience |
+| 2 | **Rythme de publication** | Nombre de publications des 30 derniers jours (RG114) | Rythme (liste fermée) |
+| 3 | **Commentaires moyens par publication** | Moyenne sur les 12 dernières publications (RG115) | Tranche de commentaires |
+
+Ces trois chiffres sont **obligatoires sur chaque ligne de réseau** pour publier le profil (RG4,
+**Q15**). Ils sont **affichés en tête de chaque ligne de réseau, dans cet ordre**, partout où la
+ligne apparaît : carte anonyme, fiche, fiche après révélation, prévisualisation du créateur (RG104),
+fiche interne et file de vérification du backoffice. Le **taux d'engagement** et la **portée
+moyenne** restent collectés, facultatifs, comme **indicateurs secondaires** : ils s'affichent
+après les trois métriques prioritaires, jamais avant.
+
+**RG114** — **Rythme de publication : une seule définition.** Le créateur saisit le **nombre de
+publications permanentes des 30 derniers jours** (entier ≥ 0) : publications du fil, Reels, vidéos,
+Shorts. **Les stories et les directs sont exclus** : ils ne laissent pas de trace qu'un agent puisse
+compter. Le système en dérive le **rythme**, seule forme servie en couche A, à partir des bornes du
+référentiel `reference.publication_frequencies` (valeurs de départ) :
+
+| Rythme affiché | Publications sur 30 jours |
+|---|---|
+| Quotidien | 25 et plus |
+| Plusieurs fois par semaine | 8 à 24 |
+| Hebdomadaire | 4 à 7 |
+| Deux fois par mois | 2 ou 3 |
+| Mensuel ou moins | 0 ou 1 |
+
+Le rythme **n'est plus choisi dans une liste par le créateur** : un rythme déclaré sans nombre ne se
+vérifie pas et ne se suit pas dans le temps. Le libellé « deux fois par mois » remplace
+« bimensuelle », que la moitié des lecteurs comprend comme « tous les deux mois ».
+
+**RG115** — **Commentaires moyens par publication : une seule définition.** Le créateur saisit la
+**moyenne du nombre de commentaires sur ses 12 dernières publications permanentes, hors
+jeux-concours**, arrondie à l'entier. Les publications sont celles de RG114 (ni stories, ni directs).
+Les **jeux-concours** (« commentez pour gagner ») sont **exclus** : ils mesurent l'attrait du lot,
+pas l'intérêt de l'audience, et gonflent le chiffre d'un facteur dix. Le libellé « par publication,
+sur les 12 dernières » est **identique partout** (même exigence que RG47). Le système en dérive la
+tranche `reference.comment_bands` (valeurs de départ) : **0 à 9 · 10 à 49 · 50 à 199 · 200 à 999 ·
+1 000 et plus**.
+
+**RG116** — **Mêmes garanties que les abonnés.** RG22 (tranche calculée et stockée par le système),
+RG45 (tranches seules en couche A, valeurs exactes en couche I avec source et date), RG46 (entiers
+≥ 0 ; plafond de vraisemblance **signalé** à la modération, jamais refusé automatiquement), RG49
+(source et date partout) et RG50 (date posée automatiquement, « chiffres à rafraîchir » au-delà de
+90 jours) s'appliquent **à l'identique** aux deux nouvelles métriques. Une ligne de réseau n'a
+**qu'une** date de mise à jour : elle n'est renouvelée que lorsque **les trois métriques
+prioritaires** ont été saisies ou confirmées dans la même opération. Mettre à jour ses abonnés sans
+confirmer les deux autres chiffres ne rajeunit pas une ligne dont les commentaires datent de six mois.
+
+**RG117** — **Les commentaires s'affichent même déclarés.** Contrairement au taux d'engagement
+(RG48), la tranche de commentaires moyens **est servie en couche A même lorsqu'elle n'a pas été
+constatée**, avec la source « déclaré par le créateur » (RG49). Motif : c'est un **décompte**, pas un
+ratio calculé par le créateur ; il se contrôle publication par publication sur le compte public, et
+l'écart éventuel est conservé à la vérification (`08` RG41). Masquer une métrique prioritaire
+viderait la carte de ce que le fondateur a désigné comme décisif (même logique que RG63). Ce
+traitement est ajouté à **Q6**.
+
+**RG118** — **Constat par l'agent.** Les trois métriques sont constatées lors de la vérification
+d'audience (`08` RG38bis) : les abonnés sur la capture du tableau de bord natif, **le nombre de
+publications et les commentaires moyens sur le profil public du compte**, selon les définitions de
+RG114 et RG115. L'agent **n'enregistre que des nombres** : aucun texte de commentaire, aucun nom de
+commentateur, aucune capture de commentaires n'est conservé (RG62). Mode de constat soumis à
+**Q17**.
+
+**RG119** — **Suivi dans le temps.** Chaque saisie et chaque constat des trois métriques
+prioritaires est **historisé** (valeur, source déclarée ou constatée, date, auteur), jamais écrasé.
+C'est ce qui permet de **suivre** un créateur — une communauté qui grandit, un rythme qui ralentit,
+des commentaires qui s'effondrent — et d'alimenter plus tard le matching (D11). L'historique est en
+couche **N** : une marque ne voit que la **dernière** valeur, le commercial et l'administrateur
+voient l'évolution. Durée de conservation : **Q18**.
+
 ### F — Bloc 4 : audience
 
 **RG55** — Toutes les données de ce bloc portent **sur la composition de l'audience**, jamais sur le
@@ -710,7 +794,7 @@ facette exposée).
 |---|---|---|
 | Présentation | Titre court 5 · bio ≥ 150 caractères 10 | **15** |
 | Ligne éditoriale | Thématique principale 5 · thématiques secondaires 2 · ton 2 · langues 3 · pays 1 · déplacements 1 | **14** |
-| Réseaux | 1re ligne complète (réseau, handle, URL, abonnés, date) 12 · 2e ligne 5 · fréquence de publication 2 · portée moyenne 3 | **22** |
+| Réseaux | 1re ligne complète (réseau, handle, URL, **les trois métriques prioritaires** — abonnés, publications des 30 derniers jours, commentaires moyens —, date) 16 · 2e ligne complète 5 · portée moyenne 1 *(pondération révisée le 2026-09-25, D61 : le rythme et les commentaires, désormais obligatoires, entrent dans la « ligne complète »)* | **22** |
 | Audience | Pays principal et sa part 10 · autres pays 3 · tranches d'âge 4 · genre 3 | **20** |
 | Offre | 1re ligne de tarif 8 · 2e ligne 3 · formats 3 · droits d'usage 2 · exclusivité 1 · disponibilité 2 | **19** |
 | Portfolio | 3 éléments déposés 6 · 5 éléments ou plus 2 | **8** |
@@ -813,9 +897,11 @@ droits `03` §3.2 et il ne la contredit sur aucun point :
 | Pays de résidence, déplacements possibles | Visible | Visible |
 | Région de résidence | Visible **si ≥ 5 profils** (RG37) | Visible |
 | **Ville de résidence** | **Masquée** | Visible |
-| Réseaux couverts, compte principal, fréquence | Visible | Visible |
+| Réseaux couverts, compte principal | Visible | Visible |
 | **Handle, URL de profil** | **Masqués** | **Visibles** |
-| Abonnés, portée moyenne | **Tranche seulement** | **Valeur exacte, avec source et date** |
+| **Les trois métriques prioritaires** (RG113) : abonnés, rythme de publication, commentaires moyens — en tête de chaque ligne de réseau | **Tranche, ou rythme, seulement** (commentaires affichés même déclarés, RG117) | **Valeur exacte, avec source et date** |
+| Portée moyenne (indicateur secondaire) | **Tranche seulement** | **Valeur exacte, avec source et date** |
+| Historique des métriques prioritaires (RG119) | **Jamais** | **Jamais** |
 | Taux d'engagement | **Tranche, et seulement si vérifié** | **Valeur exacte, avec source et date** |
 | Répartition d'audience (pays, âge, genre) | **Tranches** | **Pourcentages exacts** |
 | Date de dernière mise à jour des chiffres | Visible | Visible |
@@ -853,8 +939,8 @@ résidence, langue, statut déclaré, état du profil, complétude, badges et le
 tranches, des codes de liste fermée ou des dates.**
 
 **RG108** — **Ne partent jamais vers Brevo ni Apollo** : handle, `@`, URL de profil, pseudonyme, nom
-légal, date de naissance, téléphone, adresse, chiffres exacts d'abonnés, d'engagement, de portée ou
-d'audience, tarifs exacts, secteurs refusés, notes internes, pièces et captures. Une base marketing
+légal, date de naissance, téléphone, adresse, chiffres exacts d'abonnés, de publications, de
+commentaires, d'engagement, de portée ou d'audience, historique des métriques (RG119), tarifs exacts, secteurs refusés, notes internes, pièces et captures. Une base marketing
 qui contient les pseudos est une copie de l'annuaire identifiant, hors de toute finalité déclarée.
 
 **RG109** — La synchronisation **Apollo** d'un créateur dépend du périmètre paramétrable D33 (A7) et
@@ -887,6 +973,10 @@ et espacements passent par les tokens (`design-system-influx`).
 | `creatorProfile.rate.notice` | Estimation indicative, aux taux par défaut de la plateforme. Elle ne vaut pas engagement : les taux applicables sont figés à la signature du contrat. | Indicative estimate, using the platform's default rates. It is not a commitment: applicable rates are locked when the contract is signed. |
 | `creatorProfile.figures.stale` | Vos chiffres datent du {date}. Au-delà de 90 jours, votre profil est affiché plus bas dans les résultats. | Your figures date from {date}. After 90 days, your profile is shown lower in results. |
 | `creatorProfile.engagement.unverified` | Votre taux d'engagement n'est pas affiché aux marques tant qu'il n'a pas été constaté par INFLUX. | Your engagement rate is not shown to brands until INFLUX has verified it. |
+| `creatorProfile.priorityMetrics.explain` | Ces trois chiffres sont les premiers que lisent les marques : la taille de votre communauté, votre rythme de publication et vos commentaires moyens. | These three figures are the first ones brands read: your community size, how often you post and your average comments. |
+| `creatorProfile.posts30d.hint` | Comptez vos publications des 30 derniers jours : publications, Reels, vidéos, Shorts. Ne comptez ni les stories ni les directs. | Count your posts from the last 30 days: posts, Reels, videos, Shorts. Do not count stories or live streams. |
+| `creatorProfile.comments.hint` | Faites la moyenne des commentaires sur vos 12 dernières publications, sans compter les jeux-concours. | Average the comments on your last 12 posts, leaving out giveaways. |
+| `creatorProfile.figures.confirmAll` | Pour mettre à jour la date de vos chiffres, confirmez aussi votre rythme de publication et vos commentaires moyens. | To update the date of your figures, please also confirm how often you post and your average comments. |
 | `creatorProfile.portfolio.notice` | Vos visuels approuvés sont visibles de toutes les marques inscrites, avant toute mise en relation. | Your approved visuals are visible to every registered brand, before any introduction. |
 | `creatorProfile.portfolio.pending` | Ce visuel est en cours de modération. Il n'est pas encore visible des marques. | This visual is being reviewed. It is not visible to brands yet. |
 | `creatorProfile.portfolio.brandConsent` | Je confirme être autorisé à citer cette marque et à publier ce visuel. | I confirm I am allowed to name this brand and publish this visual. |
@@ -1003,6 +1093,20 @@ et espacements passent par les tokens (`design-system-influx`).
 | Le compte est supprimé (Lot 1) | Le profil est anonymisé avec le compte ; les mises en relation et leurs horodatages de révélation sont conservés sous forme pseudonyme |
 | Une décision de refus est contestée | Réexamen par un agent différent du décideur dès que l'équipe compte deux personnes ; sinon, réexamen différé et journalisé nominativement |
 
+### Cas limites des métriques prioritaires (D61, additif du 2026-09-25)
+
+| Situation | Comportement attendu |
+|---|---|
+| Le compte compte moins de 12 publications permanentes | La moyenne porte sur les publications existantes ; le libellé reste « par publication » (RG115) |
+| Aucune publication permanente (compte neuf, ou compte qui ne publie qu'en stories) | **Accepté** : 0 publication, rythme « mensuel ou moins », 0 commentaire moyen. L'activité en stories se décrit dans la bio. Ce cas est signalé dans **Q16** |
+| Commentaires désactivés sur le compte | La valeur saisie est **0** et la tranche la plus basse s'affiche : c'est exactement ce que la marque constatera. Aucune mention « désactivés » n'est inventée ; l'agent le note à la vérification |
+| Commentaires moyens supérieurs au nombre d'abonnés (publication devenue virale) | **Accepté**, **signalé à la modération** (RG46, RG116), jamais refusé automatiquement |
+| Une des 12 dernières publications est un jeu-concours | Elle est **exclue** et remplacée par la publication précédente (RG115) |
+| Publications sur 30 jours = −3, commentaires = 12,5 | Refus avec message dédié, côté navigateur **et** côté serveur : entiers ≥ 0 (RG116) |
+| Le créateur met à jour ses abonnés sans confirmer ses deux autres chiffres | Les abonnés sont enregistrés, **la date de la ligne n'est pas renouvelée**, le message `creatorProfile.figures.confirmAll` s'affiche (RG116) |
+| Le créateur modifie son rythme après une révélation | La marque à qui la ligne a été révélée voit la **nouvelle** valeur exacte, avec sa date ; l'ancienne reste dans l'historique interne (RG119), jamais montrée à la marque |
+| Compte privé : l'agent ne peut pas compter publications et commentaires | Le badge « Audience vérifiée » n'est pas accordé, motif `account_not_public` (`08` RG38bis) |
+
 ### La checklist INFLUX de la skill `feature-spec`
 
 | # | Contrôle | Réponse pour ce document |
@@ -1011,7 +1115,7 @@ et espacements passent par les tokens (`design-system-influx`).
 | 2 | **Traçabilité / contournement** | **C'est le sujet central du document.** Handle, URL, pseudo, ville : couche I, révélés une seule fois, simultanément dans les deux sens (RG19). Chiffres et tarifs exacts : jamais en couche A (RG22, RG45), **tarif exact jamais révélé** (RG103). Aucun avatar (RG29). Textes modérés (RG25 à RG27). **Portfolio modéré visuel par visuel avec grille fermée et EXIF supprimés** (RG78 à RG81). **Risque résiduel assumé et signalé :** après révélation, la marque dispose du `@` et peut écrire hors plateforme. La parade principale reste la conversation à trois avec le commercial (A3) ; la parade mesurable est le journal des consultations et la détection de coordonnées dans la messagerie (Lot 3) |
 | 3 | **Leads** — ce qui part vers Brevo et Apollo, avec quel consentement | Détaillé en RG106 à RG110 : `profile.completed` à la première publication, attributs **exclusivement en tranches et codes**, **liste explicite de ce qui ne part jamais** (RG108), périmètre Apollo inchangé et paramétrable (D33), consentement du Lot 1 relu à la consommation |
 | 4 | **Backoffice** — contrepartie interne | Détaillée en RG92 à RG101 : trois files distinctes, verrou anti-double-traitement, motifs typés, modération visuel par visuel, saisie des chiffres constatés par l'agent, corrections journalisées, tableau de bord, relance des chiffres périmés |
-| 5 | **Matching hybride** | **Aucun algorithme (D11).** Ce document **collecte** les données des facettes F1 à F20 de `matching-spec` A11, toutes en tranches ou listes fermées, avec les mêmes bornes que côté marque (RG22). La voie humaine est spécifiée : validation, correction, modération, constat des chiffres, relance des brouillons, exclusion silencieuse des secteurs refusés (RG75) — **toutes journalisées nominativement** |
+| 5 | **Matching hybride** | **Aucun algorithme (D11).** Ce document **collecte** les données des facettes F1 à F20 de `matching-spec` A11 (et, depuis D61, de F24 et F25 : rythme de publication et commentaires moyens), toutes en tranches ou listes fermées, avec les mêmes bornes que côté marque (RG22). La voie humaine est spécifiée : validation, correction, modération, constat des chiffres, relance des brouillons, exclusion silencieuse des secteurs refusés (RG75) — **toutes journalisées nominativement** |
 | 6 | **Deux populations** | Ce document ne traite **que** le créateur. La marque n'y apparaît qu'en lectrice (RG102). Files, motifs de refus, badges, libellés et écrans sont distincts de ceux du document `06`. **D41** : un rôle par compte |
 | 7 | **Données personnelles** — avis de `expert-conformite-rgpd` | **Obligatoire, avec veto.** Points soumis : révélation de la ville (**Q2**), conservation de la date de naissance (**Q3**), affichage de la région sous seuil (**Q4**), données de tiers dans les captures et durée de conservation (**Q5**), visages dans le portfolio (**Q8**), conservation des visuels retirés (**Q9**), information des personnes sur l'annuaire anonymisé et le journal des recherches (**Q10**) |
 
@@ -1268,6 +1372,40 @@ l'anglais, *alors* la version anglaise s'affiche, sans aucun texte français ré
 **CA67** — *Étant donné* les cinq états d'un profil, *quand* ils s'affichent, *alors* chacun porte un
 **libellé écrit**, et la couleur n'est jamais le seul porteur de l'information.
 
+### Métriques prioritaires (D61, additif du 2026-09-25)
+
+**CA68** — *Étant donné* une ligne de réseau sans nombre de publications des 30 derniers jours ou sans
+commentaires moyens, *quand* le créateur demande la publication, *alors* elle est refusée et la liste
+nominative de ce qui manque nomme le réseau et le chiffre manquant (RG4, RG113).
+
+**CA69** — *Étant donné* un créateur qui saisit 14 publications sur 30 jours, *quand* une marque
+consulte la carte anonyme, *alors* elle lit **« plusieurs fois par semaine »**, et la valeur 14
+**n'apparaît nulle part** dans la réponse (RG114).
+
+**CA70** — *Étant donné* un créateur qui saisit 137 commentaires moyens, *quand* une marque consulte la
+carte anonyme, *alors* elle voit la tranche **« 50 à 199 commentaires par publication »** avec la
+source « déclaré par le créateur » et sa date, même sans badge (RG115, RG117) ; *quand* la mise en
+relation est ouverte, *alors* elle voit **137**, avec sa source et sa date.
+
+**CA71** — *Étant donné* une ligne de réseau affichée sur la carte, la fiche, la fiche révélée, la
+prévisualisation du créateur ou la fiche interne du backoffice, *quand* on la lit, *alors* les trois
+métriques prioritaires apparaissent **en tête de ligne, dans l'ordre** communauté · rythme ·
+commentaires, et le taux d'engagement et la portée **après** elles (RG113).
+
+**CA72** — *Étant donné* une ligne dont les chiffres datent de 100 jours, *quand* le créateur modifie
+seulement ses abonnés, *alors* la date de la ligne **n'est pas renouvelée** et la mention « chiffres à
+rafraîchir » reste affichée ; *quand* il confirme aussi son rythme et ses commentaires, *alors* la date
+est renouvelée (RG116).
+
+**CA73** — *Étant donné* un créateur qui a mis à jour trois fois ses métriques prioritaires, *quand* un
+commercial ouvre sa fiche interne, *alors* il voit les **trois valeurs successives** avec leur source
+et leur date ; *quand* une marque consulte le profil, avant ou après révélation, *alors* elle ne voit
+**que la dernière** (RG119).
+
+**CA74** — *Étant donné* un profil publié, *quand* on inspecte ce qui part vers Brevo et Apollo,
+*alors* aucun nombre exact de publications ni de commentaires, ni aucun historique, n'y figure
+(RG108).
+
 ---
 
 ## Impacts
@@ -1279,7 +1417,7 @@ l'anglais, *alors* la version anglaise s'affiche, sans aucun texte français ré
 | Membre créateur | Profil — vue d'ensemble avec complétude par bloc | **Étiquette de couche sur chaque champ** (RG21) |
 | Membre créateur | Bloc présentation (alias, titre, bio) | Expliquer l'alias avant tout : c'est la première surprise du parcours |
 | Membre créateur | Bloc ligne éditoriale et résidence | Seuil de région expliqué sans compteur |
-| Membre créateur | Bloc réseaux — **liste de lignes, ajout, édition** | Une ligne = un réseau ; date de mise à jour visible sur chaque ligne |
+| Membre créateur | Bloc réseaux — **liste de lignes, ajout, édition** | Une ligne = un réseau ; date de mise à jour visible sur chaque ligne ; **les trois métriques prioritaires en tête de ligne**, avec leur aide de saisie (RG113 à RG116) |
 | Membre créateur | Bloc audience — saisie en pourcentages par réseau | Somme contrôlée, « autres » affiché |
 | Membre créateur | Bloc offre — matrice (réseau × format) + tarif | **Net créateur estimé sous chaque tarif** (RG68, RG69) |
 | Membre créateur | Bloc portfolio — dépôt, ordre, état de modération par élément | Message de visibilité avant le premier dépôt (RG85) |
@@ -1327,6 +1465,12 @@ Tables prévues et utilisées telles quelles : `profiles.creator_public_profiles
    nécessaires, RG3). Et la re-validation partielle de RG9 suppose de **conserver la dernière version
    validée** des éléments modérés pendant qu'une nouvelle version est en examen.
 
+**Septième écart, ouvert par D61 (2026-09-25) :** deux colonnes exactes sur l'objet révélable
+(`posts_last_30_days`, `avg_comments_per_post`), une tranche de commentaires et le rythme **dérivé**
+sur la vitrine, un référentiel `reference.comment_bands`, des bornes numériques sur
+`reference.publication_frequencies`, et une table d'**historique** des métriques prioritaires en
+couche N (RG119). Détail : `04` §12.12.
+
 À prévoir également : les paramètres (délai cible de validation, expiration d'une prise en charge,
 durée du code de propriété, péremption des chiffres et des badges, seuil de région, plafonds de
 vraisemblance par réseau, tailles de fichiers) vivent **en table**, modifiables sans redéploiement,
@@ -1357,6 +1501,10 @@ chaque modification étant journalisée.
 | Créateurs s'étant retirés de la recherche | Signal d'inconfort sur les couches : à croiser avec les motifs |
 | Profils publiés par thématique | Alimente **D38** (masse critique avant d'ouvrir la recherche) |
 | Écart médian entre chiffres déclarés et constatés | Signal de sérieux du catalogue, usage interne |
+| **Répartition des profils publiés par tranche, pour chacune des trois métriques prioritaires**, par réseau et par thématique | **Suivi mensuel** (D61) : c'est la photographie du catalogue que le commercial vend |
+| **Évolution des trois métriques prioritaires** d'un créateur entre deux mises à jour (RG119) | Mesurée ; un rythme qui s'effondre ou des commentaires qui chutent sont une cible de relance commerciale |
+| Écart déclaré / constaté **sur les commentaires moyens** | Usage interne ; au-delà de 30 %, alerte `08` RG42. Mesure la fiabilité de RG117 (commentaires affichés même déclarés) |
+| Durée médiane d'une vérification d'audience, avant et après D61 | Mesurée ; le décompte des publications et des commentaires ajoute du travail à l'agent (**Q17**) |
 
 ---
 
@@ -1391,7 +1539,7 @@ chaque modification étant journalisée.
 | **Q3** | **Faut-il conserver la date de naissance**, ou seulement l'attestation de majorité et sa date ? | Attestation seule au MVP ; date de naissance demandée uniquement si un doute est levé lors d'une vérification | `expert-conformite-rgpd` (**veto**) | Lot 2 |
 | **Q4** | **Le seuil d'affichage de la région (5 profils) est-il suffisant** au démarrage, où le catalogue est petit ? | Seuil 5, aligné sur le k-anonymat de la recherche, **en paramètre** (RG37) | `expert-matching` + `expert-conformite-rgpd` | Lot 3 |
 | **Q5** | **Données de tiers dans les captures de statistiques** : base légale, instructions de cadrage, durée de conservation des pièces | Compartiment privé, accès journalisés, purge à échéance écrite | `expert-conformite-rgpd` (**veto**) | Lot 2 |
-| **Q6** | **Traitement différencié engagement / audience** : l'engagement non vérifié est masqué (RG48), la répartition d'audience non vérifiée reste affichée (RG63). Est-ce le bon arbitrage ? | **Oui**, l'engagement est l'indicateur le plus manipulé ; l'audience est l'information la plus utile | `expert-matching` + `product-owner` | Lot 3 |
+| **Q6** | **Traitement différencié engagement / audience** : l'engagement non vérifié est masqué (RG48), la répartition d'audience non vérifiée reste affichée (RG63), **et les commentaires moyens non vérifiés aussi (RG117, D61)**. Est-ce le bon arbitrage ? | **Oui**, l'engagement est l'indicateur le plus manipulé ; l'audience est l'information la plus utile ; les commentaires sont un décompte contrôlable publication par publication et une métrique prioritaire | `expert-matching` + `product-owner` | Lot 3 |
 | **Q7** | **Bornes nettes stockées dans le référentiel des tranches** plutôt que calculées : est-ce acceptable techniquement et comptablement ? Que se passe-t-il si un taux dérogatoire existe un jour ? | **Oui**, bornes en référentiel versionné (RG72) ; un taux dérogatoire produira une version de référentiel, jamais un calcul en ligne | `expert-paiement-facturation` + `architecte` | Lot 2 |
 | **Q8** | **Un visage est-il acceptable dans un visuel de portfolio ?** L'interdire ampute gravement les thématiques mode, beauté et lifestyle ; l'autoriser ouvre la recherche d'image inversée | **Autorisé par défaut**, avec information explicite du créateur sur le risque au moment du dépôt ; refus si le visuel comporte **en plus** un élément de la grille RG79 | Fondateur + `expert-conformite-rgpd` + `expert-ux` | **Avant le Lot 3** |
 | **Q9** | **Durée de conservation d'un visuel retiré ou refusé**, et des fichiers d'origine | Purge à échéance écrite, alignée sur les pièces de vérification | `expert-conformite-rgpd` (**veto**) | Lot 2 |
@@ -1400,3 +1548,7 @@ chaque modification étant journalisée.
 | **Q12** | **Libellés juridiques exacts des badges « Compte vérifié » et « Audience vérifiée »**, en français et en anglais, relus avant tout affichage (rattaché à **D34**) | Substance fixée par RG51 à RG53 ; rédaction à produire | `expert-conformite-rgpd` + juriste | Lot 2 |
 | **Q13** | **Une troisième action « ne plus me proposer ce profil »** côté annonceur serait un excellent signal négatif pour D11, mais expose une préférence et complique la carte (`matching-spec` A6) | **Non retenue au MVP** | `product-owner` + `expert-matching` | Lot 3 |
 | **Q14** | **Le minimum de 3 éléments de portfolio est-il bloquant pour publier ?** Il élève la qualité du catalogue mais peut arrêter des créateurs légitimes (photographes de produits, voix off, comptes anonymes) | **Oui, bloquant** (RG4, RG77) ; à réexaminer si le taux de publication décroche | `chef-de-projet` + `expert-ux` | Lot 2 |
+| **Q15** | **Les trois métriques prioritaires sont-elles bloquantes sur chaque ligne de réseau, ou seulement sur le compte principal ?** Les exiger partout garantit une carte homogène ; les limiter au compte principal allège la saisie d'un créateur présent sur quatre réseaux | **Chaque ligne** (RG113) ; à réexaminer si le taux de publication décroche | **Fondateur** + `chef-de-projet` | Avant le Lot 2 |
+| **Q16** | **Définitions et bornes des métriques prioritaires** : fenêtre de 30 jours pour le rythme, 12 dernières publications pour les commentaires, exclusion des stories, des directs et des jeux-concours (RG114, RG115) ; bornes des rythmes et de `reference.comment_bands` ; calibration **par réseau** (un commentaire YouTube ne vaut pas un commentaire TikTok) ; sort des créateurs qui publient surtout en stories | Valeurs de départ de RG114 et RG115, **référentiel global**, en table ; calibration par réseau possible sans changement de schéma | `expert-matching` + `product-owner` | **Avant le Lot 2** |
+| **Q17** | **Constat du rythme et des commentaires sur le profil public** (RG118, `08` RG38bis) : c'est une observation publique, pas une capture du tableau de bord natif (`08` RG31). Est-ce une preuve suffisante pour un chiffre marqué « constaté » ? Et le temps ajouté à chaque vérification (compter 12 publications) est-il tenable pour l'équipe ? | **Oui**, constat sur le profil public, **obligatoire** pour accorder « Audience vérifiée » ; durée mesurée (indicateur ci-dessus) | `product-owner` + `chef-de-projet` | Lot 2 |
+| **Q18** | **Durée de conservation de l'historique des métriques prioritaires** (RG119), et son sort à la suppression du compte | Conservé tant que le compte existe, supprimé avec lui ; aucune donnée de tiers | `expert-conformite-rgpd` (**veto**) | Lot 2 |

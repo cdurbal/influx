@@ -233,7 +233,7 @@ le {date} ».
 | Niveau obtenu | Effet produit | Lot |
 |---|---|---|
 | **Compte vérifié** (≥ 1 réseau) | Le profil créateur devient publiable ; il devient éligible à une proposition INFLUX ; la mention « propriété du compte constatée » s'affiche | 2 |
-| **Audience vérifiée** (par réseau) | La **tranche d'engagement** du réseau devient affichable (elle reste **nulle** sans vérification, `04` §5.2) ; la tranche d'audience est marquée « constatée » et non « déclarée » | 2 |
+| **Audience vérifiée** (par réseau) | La **tranche d'engagement** du réseau devient affichable (elle reste **nulle** sans vérification, `04` §5.2) ; les **trois métriques prioritaires** (`07` RG113 : tranche d'audience, rythme de publication, tranche de commentaires) sont marquées « constatées » et non « déclarées » (RG38bis) | 2 |
 | **Audience vérifiée** (par réseau) | **Facette de recherche « profils vérifiés »** côté marque et côté commercial | 3 |
 | **Audience vérifiée** (par réseau) | **Campagnes réservables aux profils vérifiés** — option de la campagne, **désactivée au lancement** (voir RG18) | 3 |
 | **Marque vérifiée** | Affichage du badge sur les campagnes de la marque (`06` RG53) | 2 |
@@ -347,6 +347,19 @@ d'abonnés** et **période**. Les valeurs facultatives sont : **taux d'engagemen
 d'audience** et sa **part**, **répartition par âge et par genre**. Une valeur facultative non lisible
 sur la pièce **n'est pas saisie** — elle n'est jamais estimée, jamais déduite, jamais reprise du
 déclaratif.
+
+**RG38bis** — **Métriques prioritaires (D61, additif du 2026-09-25).** À chaque vérification
+d'audience, l'agent constate **aussi** les deux autres métriques prioritaires de `07` RG113, **sur le
+profil public du compte** et selon les définitions de `07` RG114 et RG115 : le **nombre de
+publications permanentes des 30 derniers jours** (ni stories, ni directs) et le **nombre moyen de
+commentaires sur les 12 dernières publications permanentes, hors jeux-concours**. Ce constat **n'est
+pas une preuve d'audience** au sens de RG31 : il porte sur des décomptes publics, pas sur des
+statistiques privées, et ne déroge donc pas à RG31. Les deux valeurs sont **obligatoires pour
+accorder « Audience vérifiée »**, avec la **date du constat** ; un compte dont les publications ne
+sont pas consultables publiquement est refusé avec `account_not_public`. L'agent **n'enregistre que
+des nombres** : ni texte de commentaire, ni nom de commentateur, ni capture de commentaires (RG87).
+RG39 à RG42 s'appliquent : valeur déclarée conservée à part, écart conservé et affiché à l'agent,
+alerte au-delà de 30 %. Ce mode de constat est soumis à `07` **Q17**.
 
 **RG39** — **Un champ non constaté reste vide et s'affiche comme déclaré.** Il n'existe aucun état
 intermédiaire entre « constaté » et « déclaré ».
@@ -755,6 +768,8 @@ un administrateur, journalisée nominativement, avec l'ancienne et la nouvelle v
 | Le créateur n'a déclaré aucun réseau | La demande de vérification n'est pas proposée ; le message renvoie vers l'ajout d'un réseau |
 | Le taux d'engagement n'apparaît pas sur la capture | Le champ **reste vide** ; la tranche d'engagement n'est pas publiée ; le badge d'audience peut être accordé sur les seuls abonnés (RG38) |
 | Le pays principal d'audience n'est pas lisible | Idem : non saisi, reste déclaré |
+| Les publications du compte ne sont pas consultables publiquement (compte privé) | Refus `account_not_public` : le rythme et les commentaires ne peuvent pas être constatés (RG38bis) |
+| Les commentaires sont désactivés sur le compte | L'agent constate **0**, comme il le voit ; ce n'est pas un motif de refus (RG38bis, `07` cas limites D61) |
 | Le créateur n'a pas d'attestation de majorité (compte antérieur, cas de reprise) | Demande close « compte indisponible », escalade administrateur, traitement selon **D15** |
 | L'agent ne sait pas lire la langue de l'interface du réseau sur la capture | **La langue n'est jamais un motif de refus** si les chiffres et la période sont lisibles ; sinon `evidence_unreadable` |
 

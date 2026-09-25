@@ -6158,6 +6158,23 @@ Ajoutés par la revue de cohérence (`19-revue-de-coherence-2026-09-24.md`). Ce 
 | 9 | **D54** — invitations nominatives (`05` RG116 à RG119) | Table des invitations : code unique, adresse, rôle proposé, langue, auteur (`agent` ou `admin`), expiration, date d'utilisation, compte créé ; attribution du commercial responsable à l'inscription (`backoffice.ownership_assignments`) | `expert-database` + `expert-cybersecurite` |
 | 10 | **D55** — source d'acquisition (`05` RG120 à RG122) | Colonnes figées à la création du compte : `utm_source`, `utm_medium`, `utm_campaign`, domaine d'origine, code d'invitation, réponse déclarative (liste fermée en référentiel) ; jamais modifiées | `expert-database` + `expert-conformite-rgpd` |
 
+### 12.12 Points ouverts par l'arbitrage du fondateur du 2026-09-25 — D61, métriques prioritaires des créateurs
+
+Décision **prise** : pour chaque réseau, INFLUX suit en priorité la **taille de la communauté**, le
+**rythme de publication** et le **nombre moyen de commentaires par publication** (`07` §E bis, RG113
+à RG119 ; `08` RG38bis). Il reste à la traduire dans le schéma, sans rien changer aux règles de revue
+du §5.2 (**vitrine : tranches et codes seulement**).
+
+| # | Conséquence à modéliser | Forme proposée | Arbitre de la forme |
+|---|---|---|---|
+| 1 | **Deux valeurs exactes** sur l'objet révélable `profiles.creator_social_accounts` | `posts_last_30_days integer check (>= 0)` et `avg_comments_per_post bigint check (>= 0)`, toutes deux `not null` pour une ligne publiable ; **ajoutées au `GRANT` de révélation**, avec `figures_source` et `figures_measured_at` (mêmes trois conditions que §5.2) | `expert-database` + `expert-cybersecurite` (veto, §12.1 point 3) |
+| 2 | **Deux codes** sur la vitrine `profiles.creator_public_networks` | `publication_frequency_code` (existe déjà) devient **`not null` et dérivé** de `posts_last_30_days`, plus jamais saisi ; nouvelle colonne `comment_band` (FK `reference.comment_bands`), `not null`, **servie même non vérifiée** (`07` RG117, contrairement à `engagement_band`) | `expert-database` |
+| 3 | **Bornes numériques** sur `reference.publication_frequencies` | `min_posts_30d smallint not null`, `max_posts_30d smallint` nullable ; valeurs de départ de `07` RG114 ; libellé `biweekly` affiché « deux fois par mois » | `expert-database` + `expert-matching` (`07` Q16) |
+| 4 | **Nouveau référentiel** `reference.comment_bands` | `code`, `min_comments bigint not null`, `max_comments bigint` nullable, `label_key`, `introduced_at`, `retired_at` ; valeurs de départ 0-9 · 10-49 · 50-199 · 200-999 · 1 000+ ; migration `0201` | `expert-database` + `expert-matching` (`07` Q16) |
+| 5 | **Constat de l'agent** sur `verification.badges` | `observed_posts_last_30_days`, `observed_avg_comments`, `declared_posts_at_decision`, `declared_comments_at_decision` ; **obligatoires** pour `level = 'audience_verified'` (contrainte `check`) ; aucune colonne de texte de commentaire | `expert-database` |
+| 6 | **Historique** des trois métriques prioritaires (`07` RG119) | Table en ajout seul, couche N (par exemple `profiles.creator_network_metrics_history`) : ligne de réseau, abonnés, publications sur 30 jours, commentaires moyens, source (`declared` · `agent_observed`), date de mesure, auteur. **Aucun droit pour le rôle annonceur**, lecture par `agent` et `admin` | `expert-database` + `expert-conformite-rgpd` (veto, durée : `07` Q18) |
+| 7 | **Date de ligne renouvelée seulement si les trois métriques sont confirmées** (`07` RG116) | Contrôle dans la fonction d'écriture de `packages/domain`, pas dans un déclencheur : la confirmation est une intention de l'utilisateur, pas un état de la ligne | `architecte` |
+
 ---
 
 ## 13. Impacts sur le code existant

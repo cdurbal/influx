@@ -155,8 +155,10 @@ ne se rapprochent plus. Contraintes :
 
 Forme proposée : `Profil 7K3M`, accompagné d'une étiquette de contexte `Beauté · France`.
 
-**Ce que la carte montre :** alias · thématique principale et secondaires · réseaux couverts et
-tranche d'audience par réseau · pays principal d'audience et sa part en tranche · langues de
+**Ce que la carte montre :** alias · thématique principale et secondaires · réseaux couverts et,
+**en tête de chaque ligne de réseau, les trois métriques prioritaires** (D61) : tranche d'audience
+(taille de la communauté), rythme de publication, tranche de commentaires moyens par publication —
+toujours dans cet ordre · pays principal d'audience et sa part en tranche · langues de
 publication · formats proposés · fourchette tarifaire indicative par format, avec sa devise ·
 disponibilité déclarée · badge et sa date · tranche d'engagement **seulement si elle est
 vérifiée** · 1 à 3 visuels de portfolio **modérés** (A9) · **date de dernière mise à jour des
@@ -362,6 +364,14 @@ majorité des recherches passe sous le seuil de k-anonymat et n'affiche rien. Le
 | F18 | Expérience de collaborations | Tranche (0 / 1-5 / 6-20 / 20+) | Signal de sérieux ; augmente la confiance de la marque, donc le taux de demande |
 | F19 | Délai de réponse habituel | Tranche, dont « pas encore d'historique » | Futur signal comportemental ; **valeur neutre en cas froid**, jamais pénalisante |
 | F20 | Pays de résidence + mobilité | Pays **uniquement** + déplacement possible oui/non | Tournages, événements, UGC en magasin. **Jamais la ville** (A2) |
+| F24 | Rythme de publication par réseau *(D61)* | Liste fermée (quotidien → mensuel ou moins), **dérivée** du nombre de publications des 30 derniers jours | **Métrique prioritaire du fondateur** ; un compte qui ne publie plus ne portera pas une campagne. Candidate au socle (`10` Q13) |
+| F25 | Commentaires moyens par publication, par réseau *(D61)* | Tranche (0-9 / 10-49 / 50-199 / 200-999 / 1 000+), **affichée même déclarée** | **Métrique prioritaire du fondateur** ; mesure une audience qui réagit. Candidate au socle (`10` Q13) |
+
+> **Métriques prioritaires des créateurs (D61, fondateur, 2026-09-25).** La taille de la communauté,
+> le rythme de publication et le nombre moyen de commentaires par publication sont les trois chiffres
+> suivis **en priorité**, par réseau. Toute proposition de tri, d'explication ou de future
+> pondération (Partie B) les traite comme les critères d'audience de premier rang ; le taux
+> d'engagement et la portée sont **secondaires**. Définitions et bornes : `docs/mvp/07` §E bis.
 
 **Facettes écartées — et pourquoi.** Cette liste vaut la précédente : elle documente ce qu'il ne
 faut pas rouvrir dans six mois.
@@ -582,6 +592,9 @@ recherche fonctionne mais D11 ne pourra jamais être réglée autrement qu'à l'
 - **Motifs typés de refus** en file de validation (signal négatif).
 - **Issue de l'affaire** et motif de perte, saisis par le commercial.
 - **Date de dernière mise à jour, par champ d'audience** (pas une date globale de profil).
+- **Historique des trois métriques prioritaires** (D61 : abonnés, publications des 30 derniers
+  jours, commentaires moyens), valeur par valeur, avec source et date : c'est la seule façon de
+  savoir plus tard si une communauté qui grandit convertit mieux qu'une communauté stable.
 - **Tarif structuré par format et par réseau**, avec sa devise : un tarif global ne se compare à
   aucun budget de campagne.
 - **Règle de conversion entre devises** pour comparer un budget à un tarif dans une autre devise.
