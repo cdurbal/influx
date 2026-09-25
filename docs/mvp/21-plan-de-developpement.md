@@ -226,8 +226,8 @@ la proposition est une hypothèse de travail, pas une décision.
 | **EC-9** | **Calendrier de réessais** : 6 tentatives dans `02` §6, 10 dans `05` RG79 (et `attempts <= 10` dans `04`) | Valeur de départ de `retry_schedule` = `05` RG79 | `architecte` | J6 |
 | **EC-10** | **Événements émis à l'inscription** : `05` RG73 prévoit `consent.granted` « à l'inscription » en plus de `lead.created` ; `18` §10 attend « quatre lignes de file » | À l'inscription, `lead.created` seul : trois lignes (`brevo_contact`, `apollo_contact`, `brevo_transactional` pour la bienvenue) — le consommateur relit le consentement (RG37) ; `consent.granted` et `consent.revoked` pour les changements ultérieurs. Corriger `18` en conséquence | `product-owner` + `testeur` | J5 |
 | **EC-11** | **D54 et D55 non modélisées** : ni table des invitations, ni colonnes de source d'acquisition (`04` §12.11, points 9 et 10) ; le mapping Brevo `16` §M4 n'a pas les attributs UTM exigés par `05` RG122 | Colonnes figées sur `identity.accounts` (J5), table des invitations (J8), attributs `UTM_SOURCE`, `UTM_MEDIUM`, `UTM_CAMPAIGN`, `REFERRER_DOMAIN`, `HEARD_FROM` ajoutés à `16` §M4 | `expert-database` + `expert-conformite-rgpd` (veto) | J5, J8 |
-| **EC-12** | **Aucun chemin pour le webhook Brevo.** `apps/api` n'a pas d'hôte public (`02` §12) ; le passe-plat ne relaie qu'une liste blanche d'en-têtes (PP-5) qui exclut l'en-tête du jeton (`16` RG146) ; la table qui stocke l'événement brut avant traitement (RG147) n'existe pas | Chemin borné `/api/v1/webhooks/brevo/<jeton>` relayé par le passe-plat de `apps/web`, avec l'en-tête du jeton ajouté à la liste blanche **pour ce seul chemin** ; contrôle des plages d'adresses IP dans `apps/api` sur `x-forwarded-for` réécrit (PP-6) ; table d'événements entrants en ajout seul, consommée par le worker | `architecte` + `expert-cybersecurite` (veto) | J7 |
-| **EC-13** | Le Lot 0 promet « un compte de démonstration par rôle se connecte réellement dans les trois espaces » (`00` §7), mais `02` §13.3 et `18` §10 interdisent de lever une garde de `apps/web` au Lot 0 — or la connexion membre passe par le passe-plat, donc par la levée de G5 | Lever G5 au J1, **dans le commit qui introduit le passe-plat et sa garde de liste blanche** (la règle « une garde ne tombe qu'avec son remplaçant » est tenue). G1, G2, G4 et G6 attendent le J9 | `architecte` + `testeur` | J1 — **tranché par `architecte` le 2026-09-25, élargi** (§4, J1-C) : la garde annexe « aucune API réseau » est scindée dans le même commit. `02` §13.3 corrigé. Reste la confirmation de `testeur` sur la couverture |
+| **EC-12** | **Aucun chemin pour le webhook Brevo.** `apps/api` n'a pas d'hôte public (`02` §12) ; le passe-plat ne relaie qu'une liste blanche d'en-têtes (PP-5) qui exclut l'en-tête du jeton (`16` RG146) ; la table qui stocke l'événement brut avant traitement (RG147) n'existe pas | Chemin borné `/api/v1/webhooks/brevo/<jeton>` relayé par le passe-plat de `apps/web`, avec l'en-tête du jeton ajouté à la liste blanche **pour ce seul chemin** ; contrôle des plages d'adresses IP dans `apps/api` sur l'adresse relayée `x-real-ip` (PP-6, A5 ; *corrigé le 2026-09-25 : jamais `x-forwarded-for`*) ; table d'événements entrants en ajout seul, consommée par le worker | `architecte` + `expert-cybersecurite` (veto) | J7 — *conflit signalé le 2026-09-25 (revue de fin de J1)* : le contrôle d'origine A4 (`03` §6.4) **refuserait ce `POST` de serveur à serveur**, sans `origin` ni `sec-fetch-site` ; une exception nommée et fermée est à trancher par `expert-cybersecurite` avant le J7. Le jeton de chemin s'écrit dans `[A-Za-z0-9_-]` (PP-2, R1) |
+| **EC-13** | Le Lot 0 promet « un compte de démonstration par rôle se connecte réellement dans les trois espaces » (`00` §7), mais `02` §13.3 et `18` §10 interdisent de lever une garde de `apps/web` au Lot 0 — or la connexion membre passe par le passe-plat, donc par la levée de G5 | Lever G5 au J1, **dans le commit qui introduit le passe-plat et sa garde de liste blanche** (la règle « une garde ne tombe qu'avec son remplaçant » est tenue). G1, G2, G4 et G6 attendent le J9 | `architecte` + `testeur` | J1 — **tranché par `architecte` le 2026-09-25, élargi** (§4, J1-C) : la garde annexe « aucune API réseau » est scindée dans le même commit. `02` §13.3 corrigé. **Couverture confirmée par `testeur` le 2026-09-25** (commit 9ef4b0a ; G1, G2, G4, G6 toujours actives, aucune perte à l'extraction) |
 | **EC-14** | « Mes données » (export, suppression) figure dans l'espace du Lot 1 (`05` RG57, RG71), mais l'exécution des demandes RGPD est au Lot 5 (E-5, `backoffice.data_subject_requests`) | Au Lot 1 : dépôt de la demande depuis l'espace membre, accusé de réception, exécution manuelle par un administrateur selon une procédure écrite ; table avancée au Lot 1 si nécessaire | `chef-de-projet` + `expert-conformite-rgpd` (veto) | J7 |
 | **EC-15** | `02` §7 et `04` §13 renvoient à `AccountForm.tsx`, qui n'existe plus sur `main` ; le formulaire en trois étapes de la landing ne correspond pas au parcours réel ; les boutons pointent vers `/signup`, `/login`, `/signup/advertiser`, `/signup/creator` alors que `17` §2.6 fixe des chemins localisés | Écrans écrits d'après `17` §3. Chemins des portes à fixer (par exemple `/fr/inscription/marque` · `/en/signup/brand`) ; « Me connecter » ouvre l'écran 1 précédé du choix de porte ; la section formulaire de la landing devient un renvoi vers les deux portes (tests `TM10` adaptés) | `expert-ux` + `product-owner` | J5, J9 |
 | **EC-16** | Les points d'accès publics de Supabase Auth restent joignables avec la clé *publishable*, qui n'est pas un secret : inscription publique, envoi natif d'un code par GoTrue | Désactiver l'inscription publique (l'API d'administration reste utilisable), ne configurer aucun envoi d'e-mail natif de GoTrue, et **vérifier par un test** qu'aucun envoi ni aucune création d'utilisateur n'est déclenchable sans `apps/api` | `expert-cybersecurite` | J3 |
@@ -235,7 +235,7 @@ la proposition est une hypothèse de travail, pas une décision.
 | **EC-18** | **Variables absentes de `.env.example`** : secret interne du passe-plat (`x-influx-internal`, PP-8), poivre des empreintes de débit (`04` §12.10, point 4), destinataires de secours des alertes de disponibilité (D60) ; aucun `.env.example` pour `apps/web` et `apps/backoffice` (`INFLUX_API_INTERNAL_URL`) | Les ajouter, avec valeurs factices, dans le commit qui les utilise | `integrateur` + `expert-cybersecurite` | J1, J3 — **noms et fichiers arrêtés par `architecte` le 2026-09-25** (§4, J1-F) ; reste la confirmation `integrateur` + `expert-cybersecurite` |
 | **EC-19** | **Porteurs des variables Brevo.** `02` §12.3 réserve `BREVO_API_KEY` au worker, alors que `apps/api` envoie lui-même le code de connexion (D43, `02` §18.10) et les alertes de disponibilité (D60, `02` §20.5), et reçoit le webhook (EC-12) ; `apps/api/.env.example` n'indique aucun service pour les variables Brevo | `api` : `BREVO_API_KEY`, `BREVO_API_BASE_URL`, `BREVO_MODE`, `BREVO_TEST_RECIPIENTS`, `BREVO_SENDER_TRANSACTIONAL`, `BREVO_WEBHOOK_SECRET`, `BREVO_WEBHOOK_PATH_TOKEN`, `BREVO_IP_ALLOWLIST`. `worker` : les cinq premières, plus `BREVO_SENDER_MARKETING`, `BREVO_SENDER_PROSPECTING`, `BREVO_SUPPRESSION_LIST_ID`. Corriger `02` §12.3, la skill `env-secrets` et `.env.example` | `integrateur` + `expert-cybersecurite` (clé Brevo sur le service HTTP) | J3 |
 | **EC-20** | **Une variable pour deux rôles de connexion.** Si EC-1 retient un rôle de connexion élevé par service, `ELEVATED_DATABASE_URL` prend deux valeurs différentes (`api`, `worker`) : impossible dans le seul `apps/api/.env.local` où tournent les deux processus, et une valeur posée sur le mauvais service Railway ne se voit pas | Deux noms qui disent le rôle : `AUTH_DATABASE_URL` (`api`, rôle de connexion membre d'`influx_auth` seul) et `WORKER_DATABASE_URL` (`worker`) ; `ELEVATED_DATABASE_URL` disparaît | `expert-cybersecurite` + `expert-database` (avec EC-1), `integrateur` | J2 |
-| **EC-21** | **PP-6 : d'où vient l'adresse IP du client ?** Un gestionnaire de route Next.js n'a pas accès à la connexion (la propriété `ip` de la requête a disparu en Next.js 15) : l'adresse ne peut venir que d'un en-tête posé par l'entrée de Railway, dont on ignore s'il écrase une valeur fournie par le client. La limitation de débit par IP (T8, T15) en dépend | Une fonction unique `clientAddress()` dans `src/server/relay.ts`, qui lit l'en-tête documenté par Railway (l'entrée ajoutée par Railway, jamais celle du client) ; `apps/api` ne lit l'adresse relayée qu'après validation du secret interne ; **constat sur `staging` au J4** avec un en-tête forgé | `expert-cybersecurite` + `integrateur` | J3 (usage), J4 (constat) |
+| **EC-21** | **PP-6 : d'où vient l'adresse IP du client ?** Un gestionnaire de route Next.js n'a pas accès à la connexion (la propriété `ip` de la requête a disparu en Next.js 15) : l'adresse ne peut venir que d'un en-tête posé par l'entrée de Railway, dont on ignore s'il écrase une valeur fournie par le client. La limitation de débit par IP (T8, T15) en dépend | Une fonction unique `clientAddress()` dans `src/server/relay.ts`, qui lit l'en-tête documenté par Railway (l'entrée ajoutée par Railway, jamais celle du client) ; `apps/api` ne lit l'adresse relayée qu'après validation du secret interne ; **constat sur `staging` au J4** avec un en-tête forgé | `expert-cybersecurite` + `integrateur` | J3 (usage), J4 (constat) — **tranché par `expert-cybersecurite` le 2026-09-25** (revue de fin de J1, A5 ; `03` PP-6 et §6.4) : source unique **`x-real-ip`** écrit par l'entrée Railway, **jamais `x-forwarded-for`** ; `clientAddress()` ne garde que la forme `^[0-9A-Fa-f:.]{2,45}$` et retransmet sous `x-real-ip` ; `apps/api` en `trustProxy: false`, `request.ip` jamais lu, `x-real-ip` lu après `identifySurface`, validé par zod, `::ffff:` ramené en IPv4, clé /32 ou /64 en empreinte HMAC-SHA-256 (`AUTH_THROTTLE_PEPPER`), jamais en clair dans `ops` ni `pino` ; adresse absente ou invalide : compteur par e-mail + compteur global à plafond strict + `warn`, alerte en production ; constat J4 refait à chaque changement d'entrée (un CDN change la source) |
 | **EC-22** | **La route de santé publique de `apps/web`** (D60, `02` §20.10) n'entre pas dans la liste blanche de G5 (`02` §13.1 : « le seul fichier de route autorisé »), et le `proxy.ts` de next-intl la redirigerait vers `/fr/…` | Liste blanche à deux entrées : `src/app/health/route.ts`, réponse `200` ou `503` **à corps vide**, fondée sur `GET /v1/status` par le client d'API, mêmes contraintes de contenu que le passe-plat, exclue du `matcher` du proxy | `architecte` + `expert-cybersecurite` (`02` §20.12) | J9 (sonde) |
 | **EC-23** | **La skill `env-secrets` indique « Local : `.env` »** (§ Ajouter une variable, étape 4), alors que D62 impose `apps/api/.env.local` (le `.env` est chargé par la maquette) ; elle ne dit rien des fichiers des fronts ni du fichier `staging` | Étape 4 : `apps/api/.env.local` (pile locale et clés de test D62), `apps/api/.env.staging.local` (sans clé Brevo ni Apollo, sans `DIRECT_DATABASE_URL`), `apps/<front>/.env.local` (chargé nativement par Next.js) | `integrateur` | J1 (documentation) |
 | **EC-24** | **`SESSION_COOKIE_SECRET` est décrit comme « secret de signature du cookie de session »**, alors que la session est un identifiant opaque dont seule l'empreinte est en base (EC-2) : il n'y a rien à signer. Son usage réel serait la signature des jetons courts (cookie de parcours, jeton d'inscription d'EC-4) | Nommer la variable d'après son usage réel (`AUTH_TOKEN_SIGNING_SECRET`), ou corriger sa description ; ne pas signer l'identifiant de session | `expert-cybersecurite` | J3 |
@@ -634,7 +634,8 @@ Supabase y entre au J2.
 | `RAILWAY_GIT_COMMIT_SHA` | `apps/api` (commentaire seulement) | fournie par Railway | Technique | J1 | Version dans chaque ligne de journal ; `local` si absente |
 | `AUTH_THROTTLE_PEPPER` | `apps/api` | `api` | **Secrète** | J3 | Poivre de l'empreinte HMAC-SHA-256 des adresses (et des IP) dans `identity.auth_request_throttle` (`04` §12.10, point 4) ; sa rotation remet les compteurs à zéro |
 | `INFLUX_ENV` | `apps/web` et `apps/backoffice` | `web`, `backoffice` | Publique | J4 | Déjà prévue par `02` §12.3 : bandeau d'environnement du backoffice (`16` RG118), non-indexation de `staging` |
-| `INFLUX_PUBLIC_SITE_URL` | `apps/web` | `web` | Publique | J9 | `robots.txt`, plan du site, URL canonique (`docs/landing-page/01-architecture.md` §13) |
+| `INFLUX_PUBLIC_SITE_URL` | `apps/web`, `apps/api` | `web`, `api` | Publique | **J3** (`api`), J9 (`web`) | `web` : `robots.txt`, plan du site, URL canonique (`docs/landing-page/01-architecture.md` §13). `api` (déjà prévue par `02` §12.3) : origine publique de la surface `web` pour le contrôle d'origine A4 (`03` §6.4) — *avancée au J3 le 2026-09-25* |
+| `INFLUX_PUBLIC_BACKOFFICE_URL` | `apps/api` | `api` | Publique | J3 | Origine publique de la surface `backoffice` pour le contrôle d'origine A4. *Ajoutée le 2026-09-25 ; nom proposé par `architecte`, à confirmer par `integrateur` (skill `env-secrets`) ; absente de `02` §12.3, à y ajouter.* Refus de démarrage si elle égale `INFLUX_PUBLIC_SITE_URL` |
 | `OPS_ALERT_FALLBACK_RECIPIENTS` | `apps/api` | `api`, `worker` | Non secrète (adresses internes) | J9 | Destinataires des alertes de disponibilité quand la base est injoignable (`02` §20.5) |
 
 Porteurs des variables Brevo : EC-19. Nommage des connexions élevées : EC-20. Description de
@@ -647,7 +648,7 @@ Porteurs des variables Brevo : EC-19. Nommage des connexions élevées : EC-20. 
 | Fichier | Conditions de `03` §6.4 portées |
 |---|---|
 | `src/app/api/[...path]/route.ts` | Délègue à `relay()` ; `runtime = "nodejs"`, `dynamic = "force-dynamic"`, `revalidate = 0` (PP-11). Exporte `GET`, `POST`, `PATCH`, `PUT`, `DELETE` seulement (PP-3) |
-| `src/server/relay.ts` | PP-2 (chemin validé après décodage), PP-5 (liste blanche d'en-têtes, suppression de tout `x-*` non listé dont `x-middleware-subrequest`), PP-6 (`clientAddress()`, EC-21), PP-7 (`x-request-id` généré, celui du client déplacé en `client-request-id`), PP-9 (corps de 1 Mo au plus, compté en flux), PP-10 (`Set-Cookie` relayé verbatim par `getSetCookie()`, nom en `__Host-` sinon rejet), PP-11 (`Cache-Control: no-store`). En-têtes de réponse relayés : `content-type`, `set-cookie`, `retry-after`, `location` |
+| `src/server/relay.ts` | PP-2 (chemin brut, **tout `%` refusé**, aucun décodage — R1, J1-J), PP-5 (liste blanche d'en-têtes **dont `origin` et `sec-fetch-site`** — A4, J1-J —, suppression de tout `x-*` non listé dont `x-middleware-subrequest`), PP-6 (`clientAddress()` : `x-real-ip` seul, forme validée, retransmis sous `x-real-ip` ; `x-forwarded-for` jamais relayé — EC-21 tranché, A5), PP-7 (`x-request-id` généré, celui du client déplacé en `client-request-id`), PP-9 (corps de 1 Mo au plus, compté en flux), PP-10 (`Set-Cookie` relayé verbatim par `getSetCookie()`, nom en `__Host-` sinon rejet), PP-11 (`Cache-Control: no-store`). En-têtes de réponse relayés : `content-type`, `set-cookie`, `retry-after`, `location` |
 | `src/server/api-client.ts` | **Seul `fetch` du front.** PP-1 (URL construite sur la base de configuration), PP-4 (`redirect: "manual"`), PP-8 (en-tête `x-influx-internal`), PP-9 (délai de 10 s) |
 | `src/config/server.ts` | Lit `INFLUX_API_INTERNAL_URL` et `INFLUX_API_INTERNAL_SECRET` **à la première requête, jamais au chargement du module** (sinon `next build` échoue en CI faute de variables) ; validation écrite à la main (deux valeurs : pas de `zod` dans les fronts au J1) |
 
@@ -664,6 +665,18 @@ injoignable ou délai dépassé).
   pour le backoffice (surface `backoffice`). Une route `/v1/bo/…` appelée par le passe-plat de `web`
   ⇒ `404 not_found`, et inversement — sauf route déclarée commune (`/v1/status` au J1,
   `/v1/ops/client-errors` au J4).
+- **Garde au démarrage de la liaison surface ↔ préfixe** *(ajoutée le 2026-09-25, revue de sécurité
+  de fin de J1, A2 ; à livrer avant le J3, J1-J)*. Le hook `onRoute` de `apps/api` **refuse de
+  démarrer** si :
+  1. la surface déclarée par une route diffère de celle que déduit son préfixe (`/v1/bo/…` ⇒
+     `backoffice`, tout autre `/v1/…` ⇒ `web`) ;
+  2. une route est déclarée `shared` hors d'une **liste constante et fermée** — `/v1/status`,
+     `/v1/ops/client-errors` —, ou sous `/v1/bo/` ;
+  3. la route est exactement `/v1/bo`, ou son **premier segment après `/v1/` est un paramètre ou un
+     joker** (`/v1/:x`, `/v1/*`), qui capterait `bo`.
+
+  Toute nouvelle route commune passe donc par une modification de cette liste constante, geste
+  visible en revue.
 - Conséquence : un front compromis, ou son secret volé, **n'atteint pas les routes de l'autre
   surface**, même avec un cookie d'agent dérobé. À partir du J3, `apps/api` ne lit que
   `__Host-influx-session` sur la surface `web` et que `__Host-influx-ops-session` sur la surface
@@ -708,8 +721,45 @@ injoignable ou délai dépassé).
 |---|---|
 | `dev-react-node` | Appliquer J1-A à J1-H, dans cet ordre de commits : montée de `next` dans `apps/web` ; `packages/test-kit` et extraction des gardes ; `packages/contracts` ; `apps/api` ; passe-plat de `apps/web` avec levée de G5 (un seul commit, J1-C) ; `apps/backoffice`. Lire avant usage la documentation de la version installée : TypeScript dans Node (`nodejs.org/docs/latest-v22.x/api/typescript.html`), validation, sérialisation et fournisseurs de types de Fastify 5, gestionnaires de route de Next.js 16.3 (documentation embarquée dans `node_modules/next/dist/docs/`) |
 | `testeur` | Confirmer EC-13 (J1-C) et la liste de J1-H ; reporter dans `18` les tests de refus de démarrage de J1-D |
-| `integrateur` | Au J4 : démarrage des services `api` et `worker` par `node` directement (J1-B) ; port privé fixé pour `api` ; `.node-version` à `24` avant le J9 ; confirmer J1-F ; EC-19, EC-21, EC-23 |
-| `expert-cybersecurite` | À la revue de fin de J2 : le secret par front et la liaison surface ↔ préfixe (J1-G) ; EC-19 (clé Brevo sur le service HTTP), EC-20, EC-21, EC-24 |
+| `integrateur` | Au J4 : démarrage des services `api` et `worker` par `node` directement (J1-B) ; port privé fixé pour `api` ; `.node-version` à `24` avant le J9 ; confirmer J1-F (dont `INFLUX_PUBLIC_BACKOFFICE_URL`, A4) ; EC-19, EC-23 ; **constat A5 et en-têtes R7 au J4** (EC-21 tranché) |
+| `expert-cybersecurite` | À la revue de fin de J2 : le secret par front et la liaison surface ↔ préfixe (J1-G) ; EC-19 (clé Brevo sur le service HTTP), EC-20, EC-24 ; **compléter les libellés de J1-J** ; exception éventuelle du webhook Brevo au contrôle d'origine A4 (EC-12, avant le J7) |
+
+#### J1-J. Corrections de fin de J1, à faire avant le J3
+
+> **Revue de sécurité de fin de J1 par `expert-cybersecurite` (2026-09-25) : pas de veto, conditions
+> à lever avant le début du J3.** L'exigence est fixée par `expert-cybersecurite` ; ce tableau en
+> assure le suivi. Les libellés d'A1, A3 et R2 à R4 sont repris de la revue d'`expert-cybersecurite`
+> par `chef-de-projet` (2026-09-25).
+
+| # | Correction | Où | Référence |
+|---|---|---|---|
+| **A1** | **Journaux** : sérialiseur `err` sur liste blanche (`type`, `code` si chaîne, `statusCode`, pile **sans sa ligne de message** ; message conservé seulement pour `ApiError`, `RequestValidationError`, `ConfigError`, `FST_*` ; `cause` réduit à `{ name, code }` ; aucune propriété énumérable recopiée). Chemins masqués ajoutés : `x-influx-internal`, `set-cookie`, `apiKey`, `api_key`, `accessToken`, `access_token`, `refreshToken`, `refresh_token`, `otp`, `phone`, `ip`, `clientAddress`, `params`. Test de `02` §20.8 : faux e-mail, faux code et faux jeton dans une erreur avec `cause` et dans un objet à trois niveaux, aucun n'apparaît. Motif : `DrizzleQueryError` porte les paramètres SQL dans `message`, `stack` et `params` | `apps/api/src/platform/logger.ts` | `02` §20.8 |
+| **A2** | Garde au démarrage de la liaison surface ↔ préfixe : hook `onRoute`, liste constante et fermée des routes `shared`, `/v1/bo` et premier segment paramétré refusés | `apps/api` | J1-G |
+| **A3** | `genReqId` ne reprend `x-request-id` que si `identifySurface(x-influx-internal) !== null`, sinon `randomUUID()`. Test : un 401 reçu avec un UUID renvoie un `requestId` différent | `apps/api/src/server.ts` | `03` PP-7 |
+| **A4** | **Côté passe-plat** : `origin` et `sec-fetch-site` ajoutés à la liste blanche de PP-5. Le contrôle d'origine lui-même est livré au J3 (point 10) | `relay.ts` des deux fronts | `03` PP-5, §6.4 |
+| **R1** | PP-2 : **tout `%` refusé** dans le chemin brut ; plus aucun décodage avant validation | `relay.ts` des deux fronts | `03` PP-2 |
+| **R2** | Un GET (ou DELETE) avec corps ne doit plus produire de 502 ni de ligne d'erreur : corps ignoré, ou 404 | `relay.ts` des deux fronts | D60 (bruit d'alertes) |
+| **R3** | Journaliser le message de `ServerConfigError` (il nomme des variables, jamais de valeur) ; en option, vérifier la configuration au démarrage par `instrumentation.ts` | `relay.ts`, `config/server.ts` des deux fronts | — |
+| **R4** | Refuser explicitement toute valeur de secret interne contenant `CHANGE_ME` (le seuil de 32 octets ne contrôle que la longueur) | `apps/api/src/config/schema.ts`, `config/server.ts` des deux fronts | PP-8 |
+
+**Vérification de `testeur` (2026-09-25), à corriger dans la même passe :**
+
+| # | Correction | Où |
+|---|---|---|
+| **B1** *(bloquant)* | La règle « pas de réponse sans schéma » se contourne (`response: {}`, `response` sans code 2xx, code envoyé non déclaré) et un champ non déclaré est alors sérialisé. `onRoute` refuse `response` vide ou sans 2xx ; un code sans schéma donne un 500 en enveloppe sans le contenu (sérialiseur de secours). Trois tests | `apps/api/src/server.ts`, `platform/schema-compilers.ts` |
+| **T-1** | Test du délai de 10 s sans attente réelle : `vi.spyOn(AbortSignal, "timeout")`, vérifier l'appel avec `10_000`, annuler depuis le faux serveur, attendre le 502 | `apps/web/tests/relay.test.ts` (et backoffice) |
+| **T-2** | Test de non-régression de `279d0aa` : chaque ligne de journal de l'API et du worker contient une seule fois chaque clé | `apps/api/tests/` |
+| **T-3** | `matcher` de `proxy.ts` : `".*\..*"` devient `.*..*` une fois compilé, next-intl ne s'exécute que sur `/`. Écrire `\\.` et tester le manifeste compilé dans `test:artifacts` (`/api/v1/status` et `/_next/x` exclus, `/xyz` inclus) | `apps/web/src/proxy.ts` |
+| **T-4** | Garde des routes : refuser tout dossier `src/pages` | `packages/test-kit/src/guards.ts` |
+
+Issus de la même revue mais hors de cette liste : **A5** (adresse du client : J3, constat au J4) et
+**R7** (en-têtes de sécurité exigés avant l'exposition de `staging` : J4 ; CSP à nonce : J9).
+
+**Mise en œuvre.** A4 et R1 modifient `relay.ts`, dont l'empreinte est épinglée (PP-12) : un seul
+changement, **identique dans les deux fronts**, empreinte mise à jour dans le même commit, tests de
+PP-2 et PP-5 étendus (T7 de `03` §8). *Recommandation de l'architecte* : y inclure la partie
+passe-plat d'A5 (`clientAddress()`, `03` PP-6), pour ne ré-épingler le fichier qu'une fois. A2 se
+teste par un cas refusé de chaque sorte, qui doit empêcher le démarrage.
 
 ### J2 — Base de données socle (4 à 5 jours)
 
@@ -782,12 +832,28 @@ cinq familles sont vertes. **Revue `expert-cybersecurite` des migrations avant d
 9. **Écrans minimaux** : connexion du backoffice, et accueil vide de chaque espace. Le parcours
    membre complet (écrans 1 à 3) est construit au J5 ; au J3, un écran minimal, construit avec les
    tokens existants, suffit.
+10. **Contrôle d'origine des écritures (A4, `03` §6.4)**, avant tout gestionnaire et après
+    l'identification de la surface : `POST`, `PATCH`, `PUT`, `DELETE` ⇒ `403` sauf
+    `sec-fetch-site: same-origin`, ou en-tête absent et `origin` égal à l'origine publique de la
+    surface identifiée (`INFLUX_PUBLIC_SITE_URL` pour `web`, `INFLUX_PUBLIC_BACKOFFICE_URL` pour
+    `backoffice`, J1-F). **Aucun analyseur `formbody`** dans Fastify.
+11. **Adresse du client (A5, EC-21 tranché, `03` PP-6 et §6.4)** : `trustProxy: false`,
+    `request.ip` jamais lu ; `x-real-ip` lu après `identifySurface`, validé par zod (IPv4 ou IPv6),
+    `::ffff:` ramené en IPv4 ; clé de limitation /32 en IPv4, /64 en IPv6, en empreinte
+    HMAC-SHA-256 avec `AUTH_THROTTLE_PEPPER` ; **jamais d'adresse en clair** dans `ops` ni `pino` ;
+    adresse absente ou invalide : compteur par adresse e-mail, compteur global « adresse inconnue »
+    à plafond strict, ligne `warn` (l'alerte de production vient avec les alertes du J9). Partie
+    passe-plat (`clientAddress()`) : J1-J.
 
 **Tests** : T8 (un seul code valide, expiration, cinq tentatives, plafonds par adresse et par IP,
 blocage de l'attaquant et non de la victime, chemin d'exécution identique pour une adresse connue
 et inconnue — assertion déterministe, `18` C-2 —, session révoquée à la suspension, route
 backoffice sans `aal2` ⇒ `403`) ; lead-pipeline T1 (le code n'écrit rien dans `outbox_events`) et
-T10 (aucun réessai automatique) ; code absent de tout journal, trace, réponse et cookie.
+T10 (aucun réessai automatique) ; code absent de tout journal, trace, réponse et cookie ; **A4** :
+écriture avec `sec-fetch-site: cross-site` ou `same-site`, ou sans l'en-tête avec un `origin`
+étranger à la surface ⇒ `403`, et un corps `application/x-www-form-urlencoded` n'est jamais analysé ;
+**A5** : `x-real-ip` absent, invalide ou `::ffff:` traité comme prévu, clés /32 et /64, aucune
+adresse en clair dans le flux de journal capturé, `x-real-ip` ignoré sans secret interne valide.
 **Terminé quand** : chacun des quatre comptes de démonstration se connecte réellement dans son
 espace, en local.
 
@@ -805,9 +871,26 @@ espace, en local.
    de durée par route, route `POST /v1/ops/client-errors` pour les espaces connectés. Les alertes,
    la sonde et l'écran « Santé technique » viennent au J9.
 4. **Procédure écrite de retour à la version précédente** (`02` §20.7, point 5).
+5. **En-têtes de sécurité exigés avant l'exposition de `staging` (R7, revue de sécurité de fin de
+   J1)**, sur `web` et `backoffice` : `X-Content-Type-Options: nosniff` ; `X-Frame-Options: DENY`
+   et `frame-ancestors 'none'` ; `Referrer-Policy` (`strict-origin-when-cross-origin` pour `web`,
+   `no-referrer` pour le backoffice) ; `Strict-Transport-Security` — valeurs de `03` §6.5, `preload`
+   seulement après confirmation d'`integrateur` une fois les domaines arrêtés. La **CSP à nonce**
+   reste au J9 (point 2).
+6. **Constat de l'adresse du client (A5, EC-21)** : depuis l'extérieur, requêtes vers `staging`
+   avec `X-Real-IP` et `X-Forwarded-For` forgés ; l'adresse retenue par `apps/api` doit être celle
+   de la connexion réelle, jamais la valeur forgée. Aucune adresse n'étant journalisée en clair, le
+   constat se fait par le comportement — *proposition de l'architecte, méthode à fixer par
+   `integrateur` et `expert-cybersecurite`* : une série de demandes portant chacune une valeur forgée
+   différente doit déclencher le plafond par IP comme si elles venaient d'une seule adresse.
+   **Constat à refaire à chaque changement de l'entrée** ; un CDN placé devant Railway change la
+   source de l'adresse (§6, « Domaines et DNS »). Dans le même passage : une écriture réelle depuis
+   un navigateur sur `staging` est acceptée (les en-têtes `sec-fetch-site` et `origin` traversent
+   l'entrée Railway et le passe-plat, A4).
 
 **Terminé quand** : un commit sur `main` passe la CI, migre `staging` puis y est déployé ; les
-quatre comptes de démonstration se connectent sur `staging`.
+quatre comptes de démonstration se connectent sur `staging` ; les en-têtes de R7 sont présents et
+le constat A5 est consigné **avant** toute ouverture de `staging` au-delà de l'équipe.
 
 ### Lot 0 livré
 
@@ -1028,7 +1111,8 @@ RG148.
    module fictif, d'`IS_MOCKUP` et du bandeau ; G2 remplacée par la garde resserrée et la CSP
    testée ; G4 et G6 retirées ; G1 resserrée ; boutons et portes de la landing branchés sur les vrais
    chemins (EC-15). Le bandeau disparaît dans le commit de la première donnée réelle, jamais avant.
-2. **En-têtes et CSP** par surface (`03` §6.5, T10) ; passe-plat complet (T7) ; erreurs sans détail
+2. **En-têtes et CSP** par surface (`03` §6.5, T10) — les en-têtes de base sont posés dès le J4
+   (R7), le J9 ajoute la CSP à nonce et le jeu complet ; passe-plat complet (T7) ; erreurs sans détail
    (T13) ; limitation de débit (T15) ; analyse des artefacts (T11).
 3. **Surveillance active** (`02` §20.5 à §20.7) : alertes par e-mail (les alertes de disponibilité
    partent directement vers Brevo, jamais par la file), sonde du worker chaque minute, surveillance
@@ -1096,6 +1180,9 @@ Aucune n'est technique ; toutes bloquent l'ouverture au public (`00` §7 Lot 1, 
 - [ ] **F** Nom de domaine, sous-domaine du backoffice, enregistrement `CAA`, trois sous-domaines
       d'envoi (`tx.`, `news.`, `pro.`, `16` RG9 et Q13) ; abonnement aux pages d'état de Railway,
       Supabase et Brevo (D60).
+- [ ] **Placer ou non un CDN devant Railway** : la décision est à inscrire avec celle des DNS. Un
+      CDN change la source de l'adresse du client (`03` PP-6, A5) : il impose de revoir
+      `clientAddress()` et de refaire le constat du J4 avant sa mise en service.
 
 ---
 
