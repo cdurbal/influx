@@ -289,4 +289,33 @@ describe("request identifier (03 PP-7)", () => {
     expect(replaced.json().error.requestId).not.toBe("attacker-chosen-id");
     expect(replaced.json().error.requestId).toMatch(/^[0-9a-f-]{36}$/);
   });
+
+  it.each<[string, string, Record<string, string>]>([
+    ["without the secret", "/v1/status", {}],
+    [
+      "with an unknown secret",
+      "/v1/status",
+      { "x-influx-internal": `${WEB_SECRET}x` },
+    ],
+    ["on /health", "/health", {}],
+  ])(
+    "never reuses a relayed UUID %s (18 T7.11, 21 J1-J A3)",
+    async (_case, url, headers) => {
+      const logs = captureLogs();
+      app = buildServer(testApiConfig(), { logDestination: logs.destination });
+      const chosen = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
+      const response = await app.inject({
+        method: "GET",
+        url,
+        headers: { ...headers, "x-request-id": chosen },
+      });
+      if (response.statusCode === 401) {
+        const requestId: string = response.json().error.requestId;
+        expect(requestId).toMatch(/^[0-9a-f-]{36}$/);
+        expect(requestId).not.toBe(chosen);
+      }
+      expect(logs.text()).toContain('"requestId":"');
+      expect(logs.text()).not.toContain(chosen);
+    },
+  );
 });

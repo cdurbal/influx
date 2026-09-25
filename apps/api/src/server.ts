@@ -23,6 +23,7 @@ import {
   isReachableFrom,
   routeSurface,
   type RouteSurface,
+  type SurfaceIdentifier,
 } from "./platform/internal-auth.ts";
 import { createLogger } from "./platform/logger.ts";
 import {
@@ -46,12 +47,21 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /**
- * Request identifier: the one set by the relay when it has the shape of a UUID (`03` PP-7),
- * otherwise a new one. It appears in the error envelope and in every log line.
+ * Request identifier: the one set by the relay, only when the internal secret is valid and the
+ * value has the shape of a UUID (`03` PP-7, 18 T7.11); otherwise a new one. Without the secret
+ * condition, anyone reaching the API would choose the identifier of its own log line. It appears
+ * in the error envelope and in every log line.
  */
-function requestIdOf(request: IncomingMessage): string {
+function requestIdOf(
+  request: IncomingMessage,
+  identifySurface: SurfaceIdentifier,
+): string {
   const relayed = request.headers["x-request-id"];
-  return typeof relayed === "string" && UUID_PATTERN.test(relayed)
+  const isFromRelay =
+    identifySurface(request.headers[INTERNAL_SECRET_HEADER]) !== null;
+  return isFromRelay &&
+    typeof relayed === "string" &&
+    UUID_PATTERN.test(relayed)
     ? relayed.toLowerCase()
     : randomUUID();
 }
@@ -134,7 +144,7 @@ export function buildServer(
   const app = Fastify({
     loggerInstance: logger,
     logController: new ApiLogController(),
-    genReqId: requestIdOf,
+    genReqId: (request) => requestIdOf(request, identifySurface),
     bodyLimit: MAX_BODY_BYTES,
     // The relay only forwards GET, POST, PATCH, PUT and DELETE (`03` PP-3).
     exposeHeadRoutes: false,

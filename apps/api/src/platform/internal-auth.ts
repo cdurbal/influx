@@ -21,6 +21,10 @@ function sha256(value: string): Buffer {
   return createHash("sha256").update(value, "utf8").digest();
 }
 
+export type SurfaceIdentifier = (
+  headerValue: string | string[] | undefined,
+) => Surface | null;
+
 /**
  * Returns the function that identifies the calling surface from the header value, or null.
  * Comparison in constant time: both secrets are always compared, on fixed-length digests, so
@@ -28,7 +32,7 @@ function sha256(value: string): Buffer {
  */
 export function createSurfaceIdentifier(
   secrets: InternalSecrets,
-): (headerValue: string | string[] | undefined) => Surface | null {
+): SurfaceIdentifier {
   const webDigest = sha256(secrets.web);
   const backofficeDigest = sha256(secrets.backoffice);
   return (headerValue) => {
