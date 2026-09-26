@@ -246,8 +246,7 @@ describe("masking of personal data and secrets (02 §20.8, 18 T13.6, 21 J1-J A1)
     logger.error({ error: wrapper() }, "wrapper under error");
     logger.error({ err: wrapper() }, "wrapper under err");
     logger.error(wrapper());
-    // Deeper than the first level, the error is not serialized: redaction still censors its
-    // `detail`, `hint` and `where`, and its message is not enumerable.
+    // Deeper than the first level, the error is serialized too (J2 security review M3).
     logger.error({ context: { error: postgresError() } }, "nested");
 
     const text = logs.text();
@@ -269,9 +268,85 @@ describe("masking of personal data and secrets (02 §20.8, 18 T13.6, 21 J1-J A1)
     expect(lines[4]?.err).toMatchObject({
       cause: { name: "Error", code: "23505" },
     });
-    expect(lines[5]?.context).toMatchObject({
-      error: { code: "23505", detail: "[redacted]" },
+    expect(lines[5]?.context).toEqual({
+      error: expect.objectContaining({
+        type: "Error",
+        code: "23505",
+      }) as unknown,
     });
+  });
+
+  it("serializes a postgres driver error at any depth, keeping its SQLSTATE (J2 review M3)", () => {
+    /** Shaped like a PostgresError of `postgres` 3.4: `query`, `parameters` and `args` quote values. */
+    class PostgresError extends Error {
+      readonly severity = "ERROR";
+      readonly code = "23505";
+      readonly detail = `Key (email)=(${EMAIL}) already exists.`;
+      readonly query = `insert into identity.accounts (email) values ('${EMAIL}')`;
+      readonly parameters = [EMAIL, CODE, TOKEN];
+      readonly args = [EMAIL, TOKEN];
+      readonly types = [25, 25];
+
+      constructor() {
+        super(`duplicate key value violates unique constraint (${EMAIL})`);
+        this.name = "PostgresError";
+      }
+    }
+    const { logs, logger } = workerLogger();
+    logger.error(
+      { context: { attempt: { failure: new PostgresError() } } },
+      "deep",
+    );
+    logger.error({ failures: [new PostgresError()] }, "in an array");
+    logger.error({ err: new PostgresError() }, "as err");
+    // Logged by hand, not as an error: the keys themselves are censored.
+    logger.error(
+      {
+        outcome: {
+          query: `select '${EMAIL}'`,
+          parameters: [CODE],
+          args: [TOKEN],
+        },
+      },
+      "by hand",
+    );
+
+    const text = logs.text();
+    expectNoMarker(text);
+    const lines = text
+      .trim()
+      .split("\n")
+      .map((entry) => JSON.parse(entry) as Record<string, unknown>);
+    expect(lines).toHaveLength(4);
+    expect(lines[0]?.context).toEqual({
+      attempt: {
+        failure: expect.objectContaining({
+          type: "PostgresError",
+          code: "23505",
+        }) as unknown,
+      },
+    });
+    expect(lines[1]?.failures).toEqual([
+      expect.objectContaining({ type: "PostgresError", code: "23505" }),
+    ]);
+    expect(lines[2]?.err).toMatchObject({
+      type: "PostgresError",
+      code: "23505",
+    });
+    expect(lines[3]?.outcome).toEqual({
+      query: "[redacted]",
+      parameters: "[redacted]",
+      args: "[redacted]",
+    });
+  });
+
+  it("survives a cycle in a logged object that holds an error", () => {
+    const { logs, logger } = workerLogger();
+    const context: Record<string, unknown> = { error: new Error(EMAIL) };
+    context.self = context;
+    logger.error({ context }, "cycle");
+    expectNoMarker(logs.text());
+    expect(logs.text()).toContain('"self":"[truncated]"');
   });
 
   it("does not modify the object that is logged", () => {

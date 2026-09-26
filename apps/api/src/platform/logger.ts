@@ -43,6 +43,10 @@ const REDACTED_KEYS: readonly string[] = [
   "clientAddress",
   // Query parameters of a database error (DrizzleQueryError.params), 21 J1-J A1.
   "params",
+  // Query and parameters of a PostgresError of the `postgres` driver (21 J2, security review M3).
+  "parameters",
+  "query",
+  "args",
   // Fields of a PostgreSQL error that quote values (`Key (email)=(…) already exists`), 21 N1.
   "detail",
   "hint",
@@ -218,24 +222,80 @@ export function serializeError(value: unknown): SafeErrorLog {
   return log;
 }
 
+/** Beyond this depth, a nested value is replaced by a marker (a logged object stays small). */
+const ERROR_SEARCH_DEPTH = 6;
+
 /**
- * `{ error }`, `{ cause }` or any other top-level key holding an error would be written by pino
- * with every enumerable property of the error (`detail`, `params`, `query`…): each one goes through
- * `serializeError` instead (21 N1). `err` is left to its serializer. The logged object is copied,
- * never modified, and only when it holds an error.
+ * Copy of a logged value where every error, at ANY depth (`{ error }`, `{ context: { cause } }`,
+ * an array of errors…), goes through `serializeError`: pino would otherwise write every enumerable
+ * property of the error (`detail`, `query`, `parameters`…), 21 N1 and J2 security review M3.
+ * `err` at the top level is left to its serializer. Plain objects and arrays are copied, never
+ * modified; cycles and excessive depth are cut.
  */
-function withSerializedErrors(value: object): object {
-  const entries = Object.entries(value);
-  if (
-    !entries.some(([key, entry]) => key !== "err" && entry instanceof Error)
-  ) {
+function serializeNestedErrors(
+  value: unknown,
+  depth: number,
+  seen: WeakSet<object>,
+): unknown {
+  if (value instanceof Error) {
+    return serializeError(value);
+  }
+  if (typeof value !== "object" || value === null) {
+    return value;
+  }
+  if (seen.has(value) || depth >= ERROR_SEARCH_DEPTH) {
+    return "[truncated]";
+  }
+  seen.add(value);
+  if (Array.isArray(value)) {
+    return value.map((item) => serializeNestedErrors(item, depth + 1, seen));
+  }
+  const prototype: unknown = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) {
+    // Class instances other than errors (dates, buffers…) are left to pino.
     return value;
   }
   return Object.fromEntries(
-    entries.map(([key, entry]) =>
-      key !== "err" && entry instanceof Error
-        ? [key, serializeError(entry)]
-        : [key, entry],
+    Object.entries(value).map(([key, entry]) => [
+      key,
+      serializeNestedErrors(entry, depth + 1, seen),
+    ]),
+  );
+}
+
+/** Does the value hold an error anywhere (same depth and cycle rules)? */
+function holdsError(
+  value: unknown,
+  depth: number,
+  seen: WeakSet<object>,
+): boolean {
+  if (value instanceof Error) {
+    return true;
+  }
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  if (seen.has(value) || depth >= ERROR_SEARCH_DEPTH) {
+    return false;
+  }
+  seen.add(value);
+  return Object.values(value).some((entry) =>
+    holdsError(entry, depth + 1, seen),
+  );
+}
+
+/** The logged object, copied only when it holds an error outside the top-level `err` key. */
+function withSerializedErrors(value: object): object {
+  const entries = Object.entries(value).filter(([key]) => key !== "err");
+  if (!entries.some(([, entry]) => holdsError(entry, 0, new WeakSet()))) {
+    return value;
+  }
+  const seen = new WeakSet<object>([value]);
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) =>
+      key === "err"
+        ? [key, entry]
+        : [key, serializeNestedErrors(entry, 1, seen)],
     ),
   );
 }
