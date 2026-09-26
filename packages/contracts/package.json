@@ -6,7 +6,8 @@
   "sideEffects": false,
   "exports": {
     "./errors": "./src/errors.ts",
-    "./system": "./src/system.ts"
+    "./system": "./src/system.ts",
+    "./elevated-operations": "./src/elevated-operations.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tests.json",

@@ -2,6 +2,12 @@
 // Started by `node apps/api/src/main.ts` directly, never through `pnpm start`, so that SIGTERM
 // reaches this process (21 §4, J1-B).
 import { ConfigError, loadApiConfig, type ApiConfig } from "./config/index.ts";
+import {
+  closeDatabase,
+  createApiDatabase,
+  DatabaseRoleRefusedError,
+  verifyPools,
+} from "./db/index.ts";
 import { createLogger } from "./platform/logger.ts";
 import { buildServer } from "./server.ts";
 
@@ -38,24 +44,45 @@ async function main(): Promise<void> {
   }
 
   const app = buildServer(config);
+  // Pools of the api only: influx_app and influx_auth_login (EC-20). No route uses them yet.
+  const database = createApiDatabase(config.database, app.log);
 
   const shutDown = (signal: NodeJS.Signals): void => {
     app.log.info({ signal }, "shutting down");
     // close() stops accepting connections and waits for the requests in flight (02 §4 rule 5).
-    app.close().then(
-      () => {
-        app.log.info("stopped");
-      },
-      (error: unknown) => {
-        app.log.error({ err: error }, "shutdown failed");
-        process.exitCode = 1;
-      },
-    );
+    app
+      .close()
+      .then(() => closeDatabase(database))
+      .then(
+        () => {
+          app.log.info("stopped");
+        },
+        (error: unknown) => {
+          app.log.error({ err: error }, "shutdown failed");
+          process.exitCode = 1;
+        },
+      );
   };
   process.once("SIGTERM", shutDown);
   process.once("SIGINT", shutDown);
 
   await app.listen({ host: LISTEN_HOST, port: config.port });
+
+  // 03 P7 rule 6: a pool connected as a forbidden role stops the process. An unreachable
+  // database does not: starting never depends on it (21 J1-D point 6), the pool is verified
+  // again on first use.
+  verifyPools(database).catch((error: unknown) => {
+    if (error instanceof DatabaseRoleRefusedError) {
+      app.log.fatal(
+        { role: error.role, reason: error.reason },
+        "database role refused, stopping",
+      );
+      process.exitCode = 1;
+      shutDown("SIGTERM");
+      return;
+    }
+    app.log.warn({ err: error }, "database unreachable at startup");
+  });
 }
 
 await main();

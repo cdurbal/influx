@@ -7,6 +7,12 @@ import {
   loadWorkerConfig,
   type WorkerConfig,
 } from "./config/index.ts";
+import {
+  closeDatabase,
+  createWorkerDatabase,
+  DatabaseRoleRefusedError,
+  verifyPools,
+} from "./db/index.ts";
 import { createLogger } from "./platform/logger.ts";
 
 /** One turn every 5 s at rest (02 §11.1). */
@@ -55,6 +61,25 @@ async function main(): Promise<void> {
     "worker started",
   );
 
+  // The worker's ONLY pool: influx_worker_login (EC-20). No operation uses it yet (E-3 at J6).
+  const database = createWorkerDatabase(config.database, logger);
+  try {
+    await verifyPools(database);
+  } catch (error) {
+    if (error instanceof DatabaseRoleRefusedError) {
+      // 03 P7 rule 6: refuse to go on with a forbidden role.
+      logger.fatal(
+        { role: error.role, reason: error.reason },
+        "database role refused, stopping",
+      );
+      await closeDatabase(database);
+      process.exitCode = 1;
+      return;
+    }
+    // Unreachable: verified again on first use (21 J1-D point 6).
+    logger.warn({ err: error }, "database unreachable at startup");
+  }
+
   const stop = new AbortController();
   const requestStop = (signal: NodeJS.Signals): void => {
     logger.info({ signal }, "stop requested, finishing the current turn");
@@ -74,6 +99,7 @@ async function main(): Promise<void> {
       }
     }
   }
+  await closeDatabase(database);
   logger.info("worker stopped");
 }
 
