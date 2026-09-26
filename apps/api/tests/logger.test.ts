@@ -222,6 +222,66 @@ describe("masking of personal data and secrets (02 §20.8, 18 T13.6, 21 J1-J A1)
     expectNoMarker(text);
   });
 
+  it("serializes an error under any top-level key, such as `error` or `cause` (21 N1)", () => {
+    /** Shaped like a PostgresError of the `postgres` driver: values in message, detail, hint, where. */
+    function postgresError(): Error {
+      return Object.assign(
+        new Error(`duplicate key value violates unique constraint (${EMAIL})`),
+        {
+          code: "23505",
+          detail: `Key (email)=(${EMAIL}) already exists.`,
+          hint: `Check the value ${TOKEN}.`,
+          where: `SQL statement "insert into identity.accounts values ('${CODE}')"`,
+          schema: "identity",
+          table: "accounts",
+          constraint: "accounts_email_key",
+        },
+      );
+    }
+    const { logs, logger } = workerLogger();
+    logger.error({ error: postgresError() }, "under error");
+    logger.error({ cause: postgresError() }, "under cause");
+    const wrapper = () =>
+      new Error(`insert failed for ${EMAIL}`, { cause: postgresError() });
+    logger.error({ error: wrapper() }, "wrapper under error");
+    logger.error({ err: wrapper() }, "wrapper under err");
+    logger.error(wrapper());
+    // Deeper than the first level, the error is not serialized: redaction still censors its
+    // `detail`, `hint` and `where`, and its message is not enumerable.
+    logger.error({ context: { error: postgresError() } }, "nested");
+
+    const text = logs.text();
+    expectNoMarker(text);
+    const lines = text
+      .trim()
+      .split("\n")
+      .map((entry) => JSON.parse(entry) as Record<string, unknown>);
+    expect(lines).toHaveLength(6);
+    expect(lines[0]?.error).toMatchObject({ type: "Error", code: "23505" });
+    expect(lines[1]?.cause).toMatchObject({ type: "Error", code: "23505" });
+    expect(lines[2]?.error).toMatchObject({
+      type: "Error",
+      cause: { name: "Error", code: "23505" },
+    });
+    expect(lines[3]?.err).toMatchObject({
+      cause: { name: "Error", code: "23505" },
+    });
+    expect(lines[4]?.err).toMatchObject({
+      cause: { name: "Error", code: "23505" },
+    });
+    expect(lines[5]?.context).toMatchObject({
+      error: { code: "23505", detail: "[redacted]" },
+    });
+  });
+
+  it("does not modify the object that is logged", () => {
+    const { logger } = workerLogger();
+    const error = new Error("kept by the caller");
+    const entry = { error, attempt: 1 };
+    logger.error(entry, "not modified");
+    expect(entry.error).toBe(error);
+  });
+
   it("logs only the type of a thrown value that is not an error", () => {
     const { logs, logger } = workerLogger();
     logger.error({ err: `thrown string ${EMAIL}` }, "odd throw");

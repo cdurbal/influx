@@ -43,6 +43,10 @@ const REDACTED_KEYS: readonly string[] = [
   "clientAddress",
   // Query parameters of a database error (DrizzleQueryError.params), 21 J1-J A1.
   "params",
+  // Fields of a PostgreSQL error that quote values (`Key (email)=(…) already exists`), 21 N1.
+  "detail",
+  "hint",
+  "where",
 ];
 
 /** A key three objects deep (`{ a: { b: { c: { email } } } }`) is still censored (18 T13.6). */
@@ -214,6 +218,28 @@ export function serializeError(value: unknown): SafeErrorLog {
   return log;
 }
 
+/**
+ * `{ error }`, `{ cause }` or any other top-level key holding an error would be written by pino
+ * with every enumerable property of the error (`detail`, `params`, `query`…): each one goes through
+ * `serializeError` instead (21 N1). `err` is left to its serializer. The logged object is copied,
+ * never modified, and only when it holds an error.
+ */
+function withSerializedErrors(value: object): object {
+  const entries = Object.entries(value);
+  if (
+    !entries.some(([key, entry]) => key !== "err" && entry instanceof Error)
+  ) {
+    return value;
+  }
+  return Object.fromEntries(
+    entries.map(([key, entry]) =>
+      key !== "err" && entry instanceof Error
+        ? [key, serializeError(entry)]
+        : [key, entry],
+    ),
+  );
+}
+
 export function loggerOptions(settings: LoggerSettings): LoggerOptions {
   return {
     level: "info",
@@ -241,6 +267,17 @@ export function loggerOptions(settings: LoggerSettings): LoggerOptions {
           method.apply(this, [{ err: first }, ...message] as Parameters<
             typeof method
           >);
+          return;
+        }
+        if (
+          typeof first === "object" &&
+          first !== null &&
+          !Array.isArray(first)
+        ) {
+          method.apply(this, [
+            withSerializedErrors(first),
+            ...rest,
+          ] as Parameters<typeof method>);
           return;
         }
         method.apply(this, args);
