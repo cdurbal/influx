@@ -5469,16 +5469,23 @@ row_hash     = sha256( prev_hash || payload_hash )
 **Forme canonique** — concaténation d'un ordre fixe, jamais une sérialisation implicite :
 
 ```
-chain_key | seq | occurred_at (ISO 8601 UTC, microsecondes) | event_type | actor_type |
-actor_account_id (ou '-') | subject_type:subject_id | payload::text
+chain_key | seq | occurred_at | recorded_at (ISO 8601 UTC, microsecondes) | event_type |
+actor_type | actor_account_id (ou '-') | subject_type:subject_id | request_id (ou '-') | payload::text
 ```
 
 *Complété le 2026-09-26 (migration `0006`, `hash_version = 1`) :* **`actor_type` entre dans la forme
 canonique** — sans lui, requalifier après coup une action d'« agent » en « admin » ne cassait aucune
-empreinte. La forme est calculée par **une seule fonction**, `audit.payload_hash()`, partagée par
-`audit.append()` et par le vérificateur : deux définitions divergeraient. `audit.append(p_event_type,
-p_subject_type, p_subject_id, p_payload, p_occurred_at)` **déduit l'acteur du contexte de
-transaction** (`influx.account`, `influx.role`), jamais d'un paramètre ; un code d'événement inconnu,
+empreinte. **Revue de sécurité du 2026-09-26 (R1) :** `recorded_at` et `request_id` y entrent aussi,
+avant toute ligne réelle — sans cela, l'instant d'écriture et la corrélation aux journaux se
+réécrivaient sans casser la chaîne (constaté : les deux altérations donnent `broken_row`). La forme
+est calculée par **une seule fonction**, `audit.payload_hash()`, partagée par `audit.append()` et
+par le vérificateur : deux définitions divergeraient. `audit.append(p_event_type, p_subject_type,
+p_subject_id, p_payload)` **ne reçoit aucune date** (revue de sécurité, M1) : `occurred_at` est
+l'heure de la transaction, `recorded_at` celle de l'écriture ; aucun appelant ne peut antidater ni
+postdater un fait. S'il fallait un jour dater un fait externe (un webhook), la date reviendrait
+**bornée** (`now() - 5 min` ≤ valeur ≤ `now()`) avec sa migration. La fonction **déduit l'acteur du
+contexte de transaction** (`influx.account`, `influx.role`), jamais d'un paramètre ; un code
+d'événement inconnu,
 ou employé avec un autre type de sujet que le sien, est refusé par une **clé étrangère composite**
 `(event_type, subject_type)` vers `audit.event_types`. La ligne de genèse (`seq = 1`,
 `chain.genesis`, prédécesseur de 32 octets nuls) est écrite par la migration ; deux contraintes lui
