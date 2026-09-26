@@ -124,6 +124,14 @@
 > « demandes sans connexion aboutie » serait faux, **une demande plafonnée n'écrivant aucune ligne de
 > journal**. Six points au **§12.10**, dont cinq pour `expert-cybersecurite`.
 >
+> **Mise à jour du 2026-09-26 (J2) — EC-1 et EC-20 tranchés par `expert-cybersecurite`.** Les rôles
+> suivent la **liste fermée de `03` P7** (§3.2) ; **`influx_service` est supprimé** et ses droits sont
+> passés au rôle précis ou ont disparu ; `current_account_id()` devient `SECURITY INVOKER` et ne lit
+> que le réglage `influx.account` (§4.1) ; **`identity.sessions` et `identity.resolve_session()`**
+> entrent au Lot 0 (§5.1, EC-2) ; la liste des fonctions `SECURITY DEFINER` et de leurs propriétaires
+> est au §12.1, point 7. `billing.commission_rates` n'est plus lisible que par l'administrateur (`03`
+> §3.5 fait foi).
+>
 > **Corrections demandées par `product-owner` après `05-spec-inscription-et-leads.md` :** trois
 > champs collectés à l'inscription n'avaient pas de place avant le Lot 2. Corrigé — **statut déclaré**
 > (`accounts.declared_status`, Lot 1, historisé dans le registre, §5.1), **nom d'entreprise**
@@ -249,7 +257,7 @@ voie (`docs/mvp/02-architecture-3-espaces.md` §2).
 
 | Lot | Tables créées |
 |---|---|
-| **0 — Socle** | `reference.countries` · `reference.currencies` · `reference.languages` · `identity.accounts` · **`identity.account_roles`** *(D41)* · `identity.agent_profiles` · `identity.terms_versions` · `identity.terms_acceptances` · `identity.consent_events` · `audit.event_types` · `audit.audit_events` · `audit.chain_checks` · `billing.commission_rates` *(vide)* · `backoffice.ownership_assignments` |
+| **0 — Socle** | `reference.countries` · `reference.currencies` · `reference.languages` · `identity.accounts` · **`identity.account_roles`** *(D41)* · `identity.agent_profiles` · **`identity.sessions`** *(EC-2, 2026-09-26)* · `identity.terms_versions` · `identity.terms_acceptances` · `identity.consent_events` · `audit.event_types` · `audit.audit_events` · `audit.chain_checks` · `billing.commission_rates` *(vide)* · `backoffice.ownership_assignments` |
 | **1 — Inscription et leads** | `leads.outbox_events` · `leads.contact_sync_states` · **`leads.sync_settings`** · **`identity.email_delivery_incidents`** · **`profiles.advertiser_profiles` *(forme minimale, avancée depuis le Lot 2)*** · **`backoffice.queues`** · `backoffice.sla_policies` · **`backoffice.alert_definitions`** · **`backoffice.dual_control_requests`** · **`leads.transactional_sends`** · **`identity.auth_request_throttle`** |
 | **2 — Profils, badge** | `reference.topics` · `reference.formats` · `reference.networks` · `reference.sectors` · `reference.usage_rights` · `reference.audience_bands` · `reference.price_bands` · *(`profiles.advertiser_profiles` : **extension** de la table créée au Lot 1)* · `profiles.advertiser_contact_details` · `profiles.creator_public_profiles` · `profiles.creator_public_networks` · `profiles.creator_public_audience` · `profiles.creator_public_rates` · `profiles.creator_social_accounts` · `profiles.creator_identities` · `profiles.creator_audience_breakdowns` · `profiles.creator_rate_cards` · `profiles.creator_topics` · `profiles.creator_formats` · `profiles.creator_refused_sectors` · `profiles.portfolio_items` · `verification.rejection_reasons` · `verification.verification_requests` · `verification.ownership_codes` · `verification.evidence_files` · `verification.badges` · `verification.disputes` · **`reference.engagement_bands`** · **`reference.age_bands`** · **`reference.audience_genders`** · **`reference.editorial_tones`** · **`reference.publication_frequencies`** · **`reference.regions`** · **`profiles.creator_tones`** · **`profiles.creator_usage_rights`** · **`profiles.moderated_fields`** · **`profiles.profile_field_revisions`** · **`verification.revocation_reasons`** |
 | **3 — Campagnes et recherche** | `campaigns.rejection_reasons` · `campaigns.campaigns` · `campaigns.campaign_deliverables` · `campaigns.campaign_audience_targets` · `campaigns.campaign_topics` · `search.search_queries` · `search.search_impressions` · `search.shortlists` · `search.shortlist_items` · **`reference.campaign_types`** · **`campaigns.campaign_key_messages`** · **`campaigns.campaign_usage_territories`** · **`campaigns.campaign_price_bands`** · **`campaigns.requested_items`** · **`campaigns.campaign_requested_items`** · **`campaigns.campaign_published_snapshots`** · **`search.search_settings`** · **`search.facet_settings`** · **`search.facet_config_versions`** · **`search.explanation_reasons`** · **`search.impression_reasons`** · **`search.supply_counters`** · **`backoffice.operational_settings`** · **`matching.block_reasons`** · **`matching.party_blocks`** *(les deux dernières arrivent au Lot 3 bien que le reste du schéma `matching` arrive au Lot 4 : le blocage est une exclusion de recherche, §5.6)* |
@@ -257,7 +265,7 @@ voie (`docs/mvp/02-architecture-3-espaces.md` §2).
 | **5 — Backoffice et pipeline** | **`billing.commission_receipts`** *(la seule table `billing` du Lot 5 : elle arrive avec la première saisie de règlement, `14` E1)* · `backoffice.internal_notes` · **`backoffice.suspension_reasons`** · **`backoffice.suspension_lift_reasons`** · `backoffice.account_suspensions` · **`backoffice.exports`** · `backoffice.email_send_limits` · **`backoffice.email_templates`** · **`backoffice.brevo_allowed_segments`** · **`backoffice.email_send_transitions`** · `backoffice.email_sends` · `backoffice.email_send_recipients` · `backoffice.data_subject_requests` |
 | **6 — Recette** | Aucune table nouvelle. Vérification de la couverture RLS, des index réellement utilisés et des purges |
 
-**Total : 135 tables et 1 vue**, dont **44 tables de référence** (des listes fermées de quelques
+**Total : 136 tables et 1 vue** *(`identity.sessions` ajoutée le 2026-09-26)*, dont **44 tables de référence** (des listes fermées de quelques
 lignes chacune) et une quinzaine de tables de jointure. Le modèle « réel » tient donc en une
 quarantaine d'entités. Chaque table de ce document est citée par un document de cadrage ou par une
 skill : aucune n'a été créée « au cas où ».
@@ -313,30 +321,46 @@ demande de contact ».
 
 ### 3.2 Les rôles PostgreSQL
 
-`docs/mvp/02-architecture-3-espaces.md` §5 pose que `apps/api` se connecte avec un rôle
-`influx_app` **ni propriétaire, ni `BYPASSRLS`**, et exécute `SET LOCAL ROLE authenticated`. Il pose
-aussi (§2.5) qu'il n'existe **aucun `GRANT` au rôle annonceur** sur l'objet identifiant. **Ces deux
-phrases ne peuvent pas être vraies en même temps avec un seul rôle `authenticated`** : s'il n'existe
-qu'un rôle applicatif, tout membre partage les mêmes droits de table et la séparation ne repose plus
-que sur la RLS.
+> **Réécrit le 2026-09-26 (EC-1 et EC-20 de `21` §3, tranchés par `expert-cybersecurite`).** La
+> liste des rôles qui fait foi est celle de **`03` §4 P7, « Les rôles Postgres — liste fermée »**.
+> Ce paragraphe la reprend sans l'étendre ; en cas d'écart, `03` prime. **`influx_service` n'existe
+> pas** : il a été supprimé avant d'être créé, et chaque droit qui lui était destiné dans ce document
+> est passé au rôle précis (`influx_auth`, `influx_worker`) ou a disparu.
 
-**Proposition (arbitrage : `expert-cybersecurite`, document `03`) : quatre rôles applicatifs.**
+`apps/api` se connecte avec un rôle `influx_app` **ni propriétaire, ni `BYPASSRLS`**, et prend à
+chaque transaction **le rôle Postgres du rôle métier** (`SET LOCAL ROLE influx_advertiser`,
+`influx_creator`, `influx_agent` ou `influx_admin`), lu en base et jamais dans le jeton (`03` P3).
+Le rôle générique `authenticated` de Supabase n'est **jamais** pris : avec lui, tout membre
+partagerait les mêmes droits de table, et « aucun `GRANT` au rôle annonceur » sur l'objet
+identifiant (`02` §2.5) ne voudrait plus rien dire.
 
-```sql
-create role influx_advertiser nologin;
-create role influx_creator    nologin;
-create role influx_agent      nologin;
-create role influx_admin      nologin;
-create role influx_service    nologin;
+**La liste fermée, créée par `0001` (Lot 0).** Tous les rôles portent `NOSUPERUSER NOBYPASSRLS
+NOCREATEDB NOCREATEROLE NOREPLICATION`.
 
--- rôle de connexion : membre des autres, mais SANS héritage
-create role influx_app login noinherit;
-grant influx_advertiser, influx_creator, influx_agent, influx_admin, influx_service to influx_app;
-```
+| Rôle | Connexion | Membre de | Usage |
+|---|---|---|---|
+| `influx_app` | `LOGIN NOINHERIT` | les **quatre rôles métier seuls**, `WITH INHERIT FALSE, SET TRUE` | `apps/api`, `withUserTransaction` (`DATABASE_URL`). **Unique droit propre** : `USAGE` sur `identity` et `EXECUTE` sur `identity.resolve_session()` |
+| `influx_advertiser` · `influx_creator` · `influx_agent` · `influx_admin` | `NOLOGIN` | aucun | Pris par `SET LOCAL ROLE`, après lecture du rôle métier en base |
+| `influx_auth_login` | `LOGIN NOINHERIT` | `influx_auth` **seul**, `WITH INHERIT FALSE, SET TRUE` | `apps/api`, `withElevatedTransaction`, E-1 et E-2 (`AUTH_DATABASE_URL`) |
+| `influx_auth` | `NOLOGIN` | aucun | E-1, E-2 ; droits de table au J3 (`0108`) |
+| `influx_worker_login` | `LOGIN NOINHERIT` | `influx_worker` **seul**, `WITH INHERIT FALSE, SET TRUE` | worker, `withElevatedTransaction`, E-3 et E-4 (`WORKER_DATABASE_URL`) |
+| `influx_worker` | `NOLOGIN` | aucun | E-3, E-4 |
+| `influx_audit_writer` | `NOLOGIN` | aucun, **aucun membre** | Propriétaire de `audit.append()` ; `SELECT` et `INSERT` sur `audit.audit_events` (`03` P8) |
+| `influx_session_resolver` | `NOLOGIN` | aucun, aucun membre | Propriétaire de `identity.resolve_session()` ; `SELECT` des seules colonnes nécessaires, **aucune écriture** |
+| `influx_identity_definer` | `NOLOGIN` | aucun, aucun membre | Propriétaire de `identity.grant_role()` et des futures fonctions `SECURITY DEFINER` du domaine `identity` |
 
-`NOINHERIT` est le point clé : `influx_app` **ne possède aucun droit par lui-même** ; il doit
-explicitement `SET LOCAL ROLE <rôle>` au début de chaque transaction, après avoir résolu le rôle
-métier du porteur de session en base. Conséquences :
+**Créés plus tard, déjà nommés** (`03` P7) : `influx_ops` + `influx_ops_login` (J4, schéma `ops`),
+`influx_intro_owner` (Lot 4, fonctions de révélation), `influx_privacy` + `influx_privacy_login`
+(Lot 5, E-5 — **jamais** ajouté au rôle de connexion du worker).
+
+**Propriétaire des schémas, tables, types et séquences : le rôle de migration** (`postgres` du
+projet), joint uniquement par `DIRECT_DATABASE_URL`, en CI. **Aucune fonction `SECURITY DEFINER`
+ne lui appartient** : sur Supabase, `postgres` porte `BYPASSRLS`, et une fonction qui lui
+appartiendrait contournerait toute la RLS.
+
+`NOINHERIT` est le point clé : `influx_app` **ne possède aucun droit par lui-même** (hors l'exception
+nommée de `resolve_session()`) ; il doit explicitement `SET LOCAL ROLE <rôle>` au début de chaque
+transaction, après avoir résolu le rôle métier du porteur de session en base. Conséquences :
 
 1. « Aucun droit de l'annonceur sur l'objet identifiant » devient **littéralement vrai** : le
    `GRANT` n'existe pas, il n'y a rien à contourner, même avec une politique RLS mal écrite.
@@ -347,9 +371,11 @@ métier du porteur de session en base. Conséquences :
 
 **Limite à dire franchement :** `SET LOCAL ROLE` est annulable par `RESET ROLE` dans la même session.
 Une injection SQL permettrait donc de remonter à `influx_app` — qui, lui, n'a aucun droit propre, et
-devrait alors refaire un `SET ROLE` vers un rôle plus puissant, ce qu'il peut faire. Le rempart reste
-donc l'absence d'injection (requêtes paramétrées par Drizzle, jamais de SQL concaténé). C'est un
-point pour `expert-cybersecurite` (§12).
+devrait alors refaire un `SET ROLE` vers un autre rôle métier, jusqu'à `influx_admin`, ce qu'il peut
+faire. Il ne peut en revanche **jamais** atteindre un rôle élevé (`influx_auth`, `influx_worker`) ni
+`service_role` : il n'en est pas membre, et ces rôles vivent sur d'autres rôles de connexion. Le
+rempart reste donc l'absence d'injection (requêtes paramétrées par Drizzle, jamais de SQL concaténé)
+et l'interdiction de tout état de session (`03` P7, règles de `withUserTransaction`).
 
 ---
 
@@ -386,25 +412,32 @@ Aucune table. **Six** fonctions, toutes `STABLE` et `SECURITY INVOKER` sauf ment
 
 | Fonction | Rôle |
 |---|---|
-| `influx.current_account_id() → uuid` | Renvoie `identity.accounts.id` du porteur de session, à partir de `auth.uid()` (lu dans `request.jwt.claims`, posé par `apps/api` dans la transaction) |
-| `influx.current_account_role() → identity.account_role` | Rôle métier **lu en base**, jamais dans le jeton (D37, précision 2). Voir le coût au §7.3 |
-| `influx.current_aal() → text` | **Le niveau d'authentification brut** (`aal1` · `aal2` · `null`), lu dans `request.jwt.claims`. Renvoie `null` si le contexte est absent — donc toute comparaison refuse |
+| `influx.current_account_id() → uuid` | Renvoie `identity.accounts.id` du porteur de session, **lu dans le réglage de transaction `influx.account`**, posé par `apps/api` après `identity.resolve_session()` (`03` P2, P3) |
+| `influx.current_account_role() → identity.account_role` | Rôle métier **lu en base une fois par transaction** par `resolve_session()`, jamais dans le jeton (D37, précision 2), puis posé dans `influx.role` ; la fonction lit ce réglage. Voir le coût au §7.3 |
+| `influx.current_aal() → text` | **Le niveau d'authentification brut** (`aal1` · `aal2` · `null`), lu dans `influx.aal` — calculé par `apps/api` depuis la ligne de session (`03` §6.2), jamais depuis un jeton. Renvoie `null` si le contexte est absent — donc toute comparaison refuse |
 | `influx.has_aal2() → boolean` | **Enveloppe booléenne** de la précédente : `coalesce(influx.current_aal() = 'aal2', false)`. Utilisée par les politiques des objets du backoffice |
 | `influx.touch_updated_at()` | Déclencheur générique `BEFORE UPDATE` |
-| `influx.assert_append_only()` | Déclencheur générique `BEFORE UPDATE OR DELETE`, lève une exception |
+| `influx.assert_append_only()` | Déclencheur générique `BEFORE UPDATE OR DELETE` (et `TRUNCATE`), lève une exception |
+
+> **Corrigé le 2026-09-26 (EC-1, `03` P3 et P7).** La première rédaction déclarait
+> `current_account_id()` `SECURITY DEFINER` et la faisait lire `identity.accounts` à partir de
+> `auth.uid()`. Deux défauts : elle aurait appartenu au rôle de migration (`BYPASSRLS` sur
+> Supabase), et elle aurait fait dépendre chaque politique du schéma `auth`, qui appartient à
+> Supabase. Les quatre fonctions de contexte sont désormais **`SECURITY INVOKER`**, ne lisent **que**
+> des réglages de transaction, et n'accèdent **ni** à une table **ni** au schéma `auth`. La lecture en
+> base (compte, rôle, suspension, session) est faite **une fois**, par `identity.resolve_session()`
+> (§5.1), avant le `SET LOCAL ROLE`.
 
 ```sql
 create or replace function influx.current_account_id()
 returns uuid
 language sql
 stable
-security definer                 -- lit identity.accounts, sur laquelle les membres n'ont pas de droit direct
-set search_path = identity, pg_catalog
+security invoker                 -- ne lit qu'un reglage de transaction, aucune table
+set search_path = ''
 as $$
-  select a.id
-    from identity.accounts a
-   where a.auth_user_id = auth.uid()
-     and a.status <> 'deleted'
+  -- '' apres une transaction precedente sur la meme connexion : ramene a null, donc refus (P4)
+  select nullif(pg_catalog.current_setting('influx.account', true), '')::uuid
 $$;
 ```
 
@@ -497,7 +530,7 @@ comment on column reference.price_bands.net_basis_label is
 
 -- meme regime que billing.commission_rates : personne n'ecrit ce referentiel depuis l'application
 revoke insert, update, delete on reference.price_bands
-  from influx_advertiser, influx_creator, influx_agent, influx_admin, influx_service;
+  from influx_advertiser, influx_creator, influx_agent, influx_admin, influx_auth, influx_worker;
 ```
 
 Trois conséquences à assumer :
@@ -758,7 +791,7 @@ bout de trois mois).
 ```sql
 -- personne ne peut ecrire cette colonne directement
 revoke update (declared_status) on identity.accounts
-  from influx_advertiser, influx_creator, influx_agent, influx_admin, influx_service;
+  from influx_advertiser, influx_creator, influx_agent, influx_admin, influx_auth, influx_worker;
 ```
 
 La seule porte est une fonction `SECURITY DEFINER` `identity.set_declared_status(account_id, status,
@@ -894,7 +927,7 @@ pendant qu'on y voit clair.
 |---|---|
 | `identity.account_roles` | Le schéma est déjà le bon. **Aucune donnée à migrer, aucune colonne à déplacer** |
 | `introductions check (advertiser_account_id <> creator_account_id)` | Une personne ne pourra **jamais** se mettre en relation avec elle-même, y compris avec deux rôles. La base le refuse déjà |
-| Les cinq rôles PostgreSQL (§3.2) | Ils sont déjà indépendants du compte : un même compte pourra ouvrir une transaction sous `influx_advertiser` puis une autre sous `influx_creator` |
+| Les quatre rôles métier PostgreSQL (§3.2) | Ils sont déjà indépendants du compte : un même compte pourra ouvrir une transaction sous `influx_advertiser` puis une autre sous `influx_creator` |
 | `profiles.*` en tables 1-1 par rôle | Un même compte peut porter un `advertiser_profiles` **et** un `creator_public_profiles` sans aucun conflit de clé |
 | Les politiques RLS | Elles testent `account_id`, jamais « le rôle du compte ». Elles restent vraies |
 
@@ -967,6 +1000,26 @@ comment on column identity.agent_profiles.absence_from is
 `requires_reassignment` matérialise la règle 19 de `backoffice-ops` : **la réattribution est un
 préalable à la désactivation** (`15` RG60, RG105). Le déclencheur qui pose `deactivated_at` refuse si
 le compte est encore responsable d'une mise en relation active ou d'une affaire ouverte.
+
+#### `identity.sessions` et `identity.resolve_session()` — la session opaque révocable (EC-2, Lot 0)
+
+*Ajouté le 2026-09-26 (J2). Condition bloquante A-9 / B4 de `03` ; colonnes d'EC-2 (`21` §3).*
+Le cookie porte un identifiant aléatoire ; **la base n'en garde que l'empreinte SHA-256**
+(`token_hash bytea`, unique, 32 octets). Colonnes : `account_id`, `surface` (`member` ·
+`backoffice`), `aal` (`aal1` · `aal2`), `created_at`, `last_activity_at`, `idle_expires_at`
+(expiration glissante), `absolute_expires_at` (plafond : 180 jours membres, 8 heures backoffice),
+`revoked_at` et `revocation_reason` (liste fermée, liés par une contrainte), `user_agent_summary`
+(borné), `country_code` approximatif. Des contraintes bornent en base les durées de `03` §6.1 : un
+écrivain distrait ne peut pas créer une session backoffice de trois jours.
+
+`identity.resolve_session(p_token_hash bytea)` est **la seule lecture autorisée avant la prise de
+rôle** (`03` P7) : `SECURITY DEFINER`, propriétaire `influx_session_resolver`, `STABLE`, **aucune
+écriture**, `EXECUTE` accordé à `influx_app` seul. Elle renvoie **au plus une ligne** — compte,
+rôle métier, `aal`, surface, échéances — et **aucune** si la session est inconnue, révoquée ou
+expirée, si le compte est suspendu ou supprimé, ou si un compte interne est désactivé. Le code
+applique ensuite `SET LOCAL ROLE` d'après sa table constante (`03` P7, règle 4). Qui écrit une
+session (création à la vérification du code, renouvellement glissant, révocation) relève du J3 :
+les droits d'écriture ne sont pas accordés au Lot 0 (voir `21` §3, EC-29).
 
 #### `identity.terms_versions`
 
@@ -4381,14 +4434,17 @@ comment on table billing.commission_rates is
    les taux en base plutot qu''a ecrire 0.35 en dur (CLAUDE.md §6, un seul endroit).
    AUCUN ROLE APPLICATIF N''A DE DROIT D''INSERTION : la remplir exigera une migration relue.';
 
-revoke insert, update, delete on billing.commission_rates
-  from influx_advertiser, influx_creator, influx_agent, influx_admin, influx_service;
-grant select on billing.commission_rates to influx_agent, influx_admin;
+revoke insert, update, delete, truncate on billing.commission_rates
+  from influx_advertiser, influx_creator, influx_agent, influx_admin,
+       influx_auth, influx_worker, influx_app;
+-- 03 §3.5 fait foi : lecture par l'administrateur seul (corrige le 2026-09-26 ; l'agent n'a aucun droit)
+grant select on billing.commission_rates to influx_admin;
 ```
 
-Le retrait du droit d'insertion à **tous** les rôles, y compris `influx_service`, est ce qui
-transforme l'intention en garantie : au MVP, il est **impossible** de remplir cette table depuis
-l'application. La remplir sera un acte délibéré, écrit, relu et versionné.
+Le retrait du droit d'insertion à **tous** les rôles d'exécution — rôles métier, rôles élevés
+(`influx_auth`, `influx_worker`) et rôle de connexion — est ce qui transforme l'intention en
+garantie : au MVP, il est **impossible** de remplir cette table depuis l'application. La remplir sera
+un acte délibéré, écrit, relu et versionné, exécuté par le seul rôle de migration.
 
 #### `billing.deals` — le pipeline commercial (**table créée au Lot 4**, écrans au Lot 5)
 
@@ -5248,7 +5304,10 @@ alter table audit.audit_events force row level security;
 
 revoke update, delete, truncate on audit.audit_events from public;
 revoke update, delete, truncate on audit.audit_events
-  from influx_advertiser, influx_creator, influx_agent, influx_admin, influx_service, influx_app;
+  from influx_advertiser, influx_creator, influx_agent, influx_admin,
+       influx_auth, influx_worker, influx_app, influx_audit_writer;
+-- l'INSERT n'est accorde qu'au proprietaire de audit.append() (03 P8)
+grant select, insert on audit.audit_events to influx_audit_writer;
 
 create trigger audit_events_no_update_delete
   before update or delete on audit.audit_events
@@ -5263,6 +5322,13 @@ create trigger audit_events_no_truncate
 
 `L` = lecture · `E` = écriture · `F` = à travers une fonction `SECURITY DEFINER` seulement ·
 `—` = **aucun droit**.
+
+> **Colonne « service » (précisé le 2026-09-26, EC-1).** Il n'existe **aucun rôle Postgres
+> « service »** : `influx_service` a été supprimé. Cette colonne désigne les **rôles élevés de la
+> liste fermée** de `03` P7 — `influx_auth` pour E-1 et E-2, `influx_worker` pour E-3 et E-4,
+> `influx_privacy` pour E-5 au Lot 5 —, et chaque droit indiqué est accordé **au rôle précis**, table
+> par table, dans la migration qui crée la table ou dans celle de l'opération qui l'utilise. Une case
+> « service » qui ne correspond à aucune de ces opérations n'ouvre aucun droit.
 
 | Table | annonceur | créateur | agent | admin | service |
 |---|---|---|---|---|---|
@@ -5286,7 +5352,7 @@ create trigger audit_events_no_truncate
 | `messaging.conversation_access_log` | — | — | E (par la fonction) | L | L |
 | **`messaging.reports`** | L (les siens, **sans `agent_author_account_id`**) + E | idem | L + E **sauf messages d'agents** | L + E **sauf les siens** | — |
 | `billing.deals` | **—** | **—** | L + E | L + E | L |
-| `billing.commission_rates` | — | — | L | L | — |
+| `billing.commission_rates` | — | — | — | L | — |
 | `audit.audit_events` | — | — | L (filtré) | L | **insertion seule** |
 | `leads.outbox_events` | — | — | L + rejeu | L + rejeu | L + E |
 | **`leads.transactional_sends`** | **—** | **—** | **L** | **L** | **E** *(voir ci-dessous : deux rôles distincts)* |
@@ -5332,8 +5398,8 @@ Trois points qui font la valeur de ces quatre lignes :
    moins : ce serait l'oracle que tout `02` §18.5 s'emploie à supprimer. La réponse « je n'ai pas
    reçu mon code » passe par le support, donc par un agent.
 
-> **`influx_auth` est un rôle applicatif de plus, et il doit être déclaré comme tel** (§3.2). Ce
-> n'est pas `influx_service` : il porte **uniquement** le chemin d'authentification, ne lit aucune
+> **`influx_auth` est un rôle élevé de la liste fermée** (§3.2, `03` P7), joint par son propre rôle
+> de connexion `influx_auth_login`. Il porte **uniquement** le chemin d'authentification, ne lit aucune
 > donnée métier, et son `GRANT` se relit en quatre lignes. `03` P7 le prévoit déjà en opération
 > élevée **E-1** ; ce document ajoute seulement les droits de table correspondants. **Nom et
 > périmètre exact à confirmer par `expert-cybersecurite`** (§12.10).
@@ -5460,9 +5526,11 @@ une preuve interne en preuve **ancrée**, pour zéro euro.
 **Trois constats, dont le troisième compte plus que les deux autres.**
 
 1. **Résoudre le rôle coûte un second accès index, et rien de plus.** `apps/api` doit de toute façon
-   obtenir `account_id` à partir de `auth.uid()` au début de chaque transaction. Depuis D41, le rôle
-   n'est plus sur cette ligne : il se lit dans `identity.account_roles`, par la clé primaire. Les deux
-   lectures se font **en une seule requête jointe**, de l'ordre de **0,1 à 0,2 ms**, à comparer aux
+   résoudre la session au début de chaque transaction : `identity.resolve_session()` lit la ligne de
+   `identity.sessions` par l'empreinte de son identifiant (index unique), puis le compte par sa clé
+   primaire. Depuis D41, le rôle n'est plus sur la ligne du compte : il se lit dans
+   `identity.account_roles`, par la clé primaire. Ces lectures se font **en une seule requête
+   jointe**, de l'ordre de **0,1 à 0,2 ms**, à comparer aux
    2 à 5 ms d'une requête HTTP complète. Le compromis « révocation immédiate contre performance » de
    D37 se paie donc **moins de 5 %** d'une requête — c'est le prix, mesuré, de la préparation au
    double rôle, et il est négligeable.
@@ -5740,7 +5808,9 @@ le sont, parce qu'elles sont réellement interrogées ou qu'une suppression en c
 
 | Index | Requête qui le justifie |
 |---|---|
-| `accounts (auth_user_id)` **unique** | `influx.current_account_id()`, exécutée **à chaque requête HTTP**. C'est l'index le plus utilisé du système |
+| `sessions (token_hash)` **unique** | `identity.resolve_session()`, exécutée **à chaque requête HTTP** avant le `SET LOCAL ROLE`. C'est l'index le plus utilisé du système. L'unicité **est** la garantie qu'un identifiant désigne une seule session |
+| `sessions (account_id) where revoked_at is null` | Révocation immédiate de toutes les sessions d'un compte à la suspension ou au changement de rôle (A-9), et écran « mes sessions » (A-12) |
+| `accounts (auth_user_id)` **unique** | Rattachement de l'utilisateur GoTrue au compte à la vérification du code (E-2), et purge des utilisateurs GoTrue orphelins (§9.3). *Depuis le 2026-09-26, `current_account_id()` ne lit plus de table* |
 | `account_roles` PK `(account_id, role)` + unique `(account_id)` | Résolution du rôle à chaque transaction, jointe à la précédente. L'unicité **est** la contrainte D41, l'index n'est qu'un effet |
 | `accounts (email)` **unique** | Connexion, contrôle d'unicité à l'inscription, recherche backoffice par e-mail |
 | `accounts (created_at desc)` | Tableau de bord : « inscriptions du jour », trié par date décroissante |
@@ -5916,12 +5986,12 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | # | Fichier | Contenu | Réversible ? |
 |---|---|---|---|
 | **Lot 0** | | | |
-| 0001 | `init_schemas_and_roles` | Schémas, cinq rôles + `influx_app` `NOINHERIT`, `ALTER DEFAULT PRIVILEGES` par schéma, `public` vidé | **Oui** (`drop schema … cascade` sur une base vide) |
-| 0002 | `influx_helpers` | `current_account_id`, `current_account_role`, `has_aal2`, `touch_updated_at`, `assert_append_only` | Oui |
+| 0001 | `init_schemas_and_roles` | Schémas par domaine ; **la liste fermée des rôles de `03` P7** — `influx_app` (`LOGIN NOINHERIT`, membre des quatre rôles métier seuls, `WITH INHERIT FALSE, SET TRUE`), les quatre rôles métier `NOLOGIN`, `influx_auth` et `influx_auth_login`, `influx_worker` et `influx_worker_login`, et les trois propriétaires de fonctions `SECURITY DEFINER` sans membre (`influx_audit_writer`, `influx_session_resolver`, `influx_identity_definer`) — création idempotente, attributs réimposés, **aucun mot de passe** ; `REVOKE ALL` à `PUBLIC`, `anon`, `authenticated` et `service_role` ; `ALTER DEFAULT PRIVILEGES` par schéma **et** retrait global d'`EXECUTE` à `PUBLIC` ; `public` vidé | **Oui** (`drop schema … cascade` sur une base vide ; les rôles, objets de grappe, se retirent à part) |
+| 0002 | `influx_helpers` | `current_account_id`, `current_account_role`, `current_aal`, `has_aal2` (**`SECURITY INVOKER`, lecture des seuls réglages `influx.*`**), `touch_updated_at`, `assert_append_only` | Oui |
 | 0003 | `reference_core` | `countries`, `currencies`, `languages` + leurs données | Oui |
-| 0004 | `identity_core` | `accounts`, **`account_roles` avec la contrainte D41**, `owner_agent_id` et sa clé étrangère composite, `agent_profiles` (**`is_active`, `is_break_glass`, absence déclarée, `deactivated_by`**), `grant_role()`, RLS, **les cinq codes `agent.*` dont `agent.break_glass_login`** | Oui tant qu'aucun compte réel n'existe |
+| 0004 | `identity_core` | `accounts`, **`account_roles` avec la contrainte D41**, `owner_agent_id` et sa clé étrangère composite, `agent_profiles` (**`is_active`, `is_break_glass`, absence déclarée, `deactivated_by`**), **`sessions` (EC-2)**, **`resolve_session()`** (propriétaire `influx_session_resolver`, seul droit propre d'`influx_app`), `grant_role()` (propriétaire `influx_identity_definer`), RLS | Oui tant qu'aucun compte réel n'existe |
 | 0005 | `identity_terms_and_consent` | `terms_versions`, `terms_acceptances`, `consent_events`, append-only | Oui (idem) |
-| 0006 | `audit_chain` | `event_types`, `audit_events`, `chain_checks`, `append_event()`, `REVOKE`, déclencheurs, ligne de genèse | **Non** dès la première ligne réelle : annuler, c'est détruire la preuve |
+| 0006 | `audit_chain` | `event_types` **et les codes du Lot 0, dont les cinq `agent.*`, `agent.break_glass_login` compris** (déplacés de `0004` : la table n'existe qu'ici), `audit_events`, `chain_checks`, `audit.append()` (propriétaire `influx_audit_writer`), `REVOKE`, déclencheurs, ligne de genèse | **Non** dès la première ligne réelle : annuler, c'est détruire la preuve |
 | 0007 | `billing_commission_rates_empty` | Table **vide**, commentaire SQL, `REVOKE INSERT` à tous | Oui |
 | 0008 | `backoffice_ownership` | `ownership_assignments` | Oui |
 | **Lot 1** | | | |
@@ -6008,13 +6078,13 @@ l'interface Supabase. Le rôle qui applique les migrations est **le propriétair
 
 | # | Sujet | Pourquoi je le lui renvoie |
 |---|---|---|
-| 1 | **Quatre rôles PostgreSQL applicatifs** (§3.2) plutôt qu'un rôle `authenticated` unique | C'est la condition pour que « aucun `GRANT` au rôle annonceur » soit littéralement vrai. C'est aussi une décision d'autorisation, donc la sienne |
+| 1 | **Quatre rôles PostgreSQL applicatifs** (§3.2) plutôt qu'un rôle `authenticated` unique | C'est la condition pour que « aucun `GRANT` au rôle annonceur » soit littéralement vrai. C'est aussi une décision d'autorisation, donc la sienne. **Tranché le 2026-09-26 (EC-1) : liste fermée de `03` P7, reprise au §3.2** |
 | 2 | **Risque résiduel de `RESET ROLE`** après `SET LOCAL ROLE` en cas d'injection SQL | Je décris la parade (requêtes paramétrées, aucun SQL concaténé) ; l'acceptation du risque lui revient |
 | 3 | **Trois objets créateur au lieu de deux** (§5.2), et la liste exacte des colonnes de `creator_social_accounts` ouvertes après révélation | C'est la surface d'anonymisation : elle doit être arbitrée, pas héritée |
 | 4 | **`conversation_access_log` append-only mais non chaînée** (§5.7) | Arbitrage débit / force de preuve sur un acte à haute fréquence |
 | 5 | **Une seule chaîne globale** plutôt qu'une chaîne par mise en relation (§7.2) | Le choix a des conséquences sur la forme d'un extrait de preuve |
 | 6 | **Conservation de `ip_address` et `user_agent`** sur `terms_acceptances` | Renforce la preuve, augmente la surface de données personnelles. Décision partagée avec `expert-conformite-rgpd` |
-| 7 | **Liste des fonctions `SECURITY DEFINER`** : `current_account_id`, `append_event`, `reveal_identity`, `read_conversation`, `grant_role`, `set_declared_status`, **`correct_email`**, **`assert_message_writable`** et **`on_message_inserted`** (apartés, §5.7.1, question A2) | Ce sont les seules portes privilégiées du modèle. Chacune mérite une revue ligne à ligne |
+| 7 | **Liste des fonctions `SECURITY DEFINER` et de leurs propriétaires** *(réécrite le 2026-09-26, EC-1)*. Règle commune (`03` P7, règle 5) : **aucune n'appartient au rôle de migration** ; chaque propriétaire est un rôle `NOLOGIN` sans membre, aux droits limités à ce que ses fonctions lisent et écrivent ; `SET search_path = ''`, `REVOKE EXECUTE … FROM PUBLIC` puis `GRANT` nominatif. **Lot 0** : `audit.append()` → `influx_audit_writer` (appelée par `influx_identity_definer`, `influx_auth`, `influx_worker`) ; `identity.resolve_session()` → `influx_session_resolver` (appelée par `influx_app` seul, **lecture seule**) ; `identity.grant_role()` → `influx_identity_definer` (appelée par `influx_admin`). **Lot 1** : `identity.set_declared_status()` et `identity.correct_email()` → `influx_identity_definer` ; fonction d'écriture de `leads.sync_settings` → *propriétaire à nommer avec `0103`*. **Lot 3** : écriture des réglages de recherche et de `backoffice.operational_settings` → *propriétaire à nommer avec `0304` et `0306`*. **Lot 4** : `matching.open_introduction()`, `approve_introduction()`, `record_introduction_acceptance()`, `record_introduction_decline()`, `reveal_identity()` → `influx_intro_owner` ; `messaging.read_conversation()`, `assert_message_writable()`, `on_message_inserted()` (apartés, §5.7.1, question A2) et la fonction d'émission d'URL de document → *propriétaire à nommer avec `0403` et `0404`*. **Lot 5** : interrupteur d'urgence des e-mails → *idem, avec `0503`*. **Ne sont plus `SECURITY DEFINER`** : `influx.current_account_id()` (lit `influx.account`, §4.1) et le déclencheur d'ajout seul (`influx.assert_append_only()`, qui ne fait que lever une erreur ; remplace le `audit.deny_mutation()` `security definer` de `03` P8). Tout ajout à cette liste est signé par `expert-cybersecurite` avec la migration qui l'introduit | Ce sont les seules portes privilégiées du modèle. Chacune mérite une revue ligne à ligne |
 | 8 | Politiques du **Storage** sur les quatre compartiments (§5.11), alignées sur les RLS des tables | Exception E1 du document `02` |
 | 9 | **`identity.correct_email()`** (§5.1, RG62, question Q8 de la spécification `05`) | Depuis D37, l'adresse e-mail **est** le facteur d'authentification : cette fonction est une primitive de prise de contrôle de compte. Je fournis la trace (motif obligatoire, événement chaîné de gravité `critical`, notification aux deux adresses, remise à zéro de la vérification d'adresse) ; **la procédure de vérification d'identité préalable lui appartient** |
 | 10 | **`identity.account_roles` est la surface d'escalade de privilèges** : aucun droit d'écriture applicatif, `grant_role()` réservée à `influx_admin` et refusant d'agir sur son propre compte | À valider avec la matrice du document `03` |
@@ -6133,7 +6203,7 @@ pour que le modèle ne comporte pas de manque, et chacun peut être rouvert par 
 
 | # | Point | Choix conservateur retenu | Arbitre |
 |---|---|---|---|
-| 1 | **Le rôle `influx_auth`** — un sixième rôle applicatif, porteur du seul chemin d'authentification | Créé et **cantonné** : `INSERT` sur `leads.transactional_sends`, `UPDATE` sur ses **cinq colonnes d'issue**, écriture des compteurs de débit, **et rien d'autre**. Ce n'est **pas** `influx_service`, dont le périmètre est bien plus large. `03` P7 le prévoit déjà en opération élevée **E-1** ; seuls les droits de table sont ajoutés ici. **Nom et périmètre exacts à confirmer** | **`expert-cybersecurite` — veto** |
+| 1 | **Le rôle `influx_auth`** — un sixième rôle applicatif, porteur du seul chemin d'authentification | Créé et **cantonné** : `INSERT` sur `leads.transactional_sends`, `UPDATE` sur ses **cinq colonnes d'issue**, écriture des compteurs de débit, **et rien d'autre**. *(2026-09-26 : nom et rôle de connexion confirmés par `03` P7, liste fermée ; `influx_service` n'existe plus.)* `03` P7 le prévoit déjà en opération élevée **E-1** ; seuls les droits de table sont ajoutés ici. **Nom et périmètre exacts à confirmer** | **`expert-cybersecurite` — veto** |
 | 2 | **Purge des utilisateurs GoTrue orphelins à 24 h** (`02` §18.5, **E-4**) | **24 heures**, par l'API d'administration, **jamais par un `DELETE` sur le schéma `auth`**, rapprochement sur `auth_user_id` et **jamais sur l'adresse**. Le délai est un compromis entre la fenêtre de reprise d'une inscription interrompue et la surface d'énumération | **`expert-cybersecurite`** + `expert-conformite-rgpd` |
 | 3 | **Un échec de cause (b) ne doit pas consommer le quota par adresse** (`02` §18.5, corollaire) | Écrit en commentaire sur `denied_count`, **non implémenté en contrainte** : c'est une règle du code appelant, la base ne sait pas d'où vient l'incrément. Sinon une panne de trois minutes chez Brevo verrouille un quart d'heure ceux qui ont réessayé — **la panne survivrait à la panne** | **`expert-cybersecurite`** |
 | 4 | **Empreinte plutôt qu'adresse en clair** dans `auth_request_throttle` | **Empreinte avec poivre serveur.** Une table de compteurs en clair serait un annuaire des adresses sollicitées, **y compris celles qui n'auront jamais de compte**. Le poivre doit vivre en variable d'environnement, jamais en base — sans quoi l'empreinte ne protège de rien | **`expert-cybersecurite`** (skill `env-secrets`) |
