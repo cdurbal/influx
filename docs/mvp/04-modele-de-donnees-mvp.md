@@ -709,14 +709,18 @@ données directement identifiantes.
 | `id` | `bigint identity` | — |
 | `chain_key` | `text not null` | — |
 | `checked_at` | `timestamptz not null default now()` | — |
+| `is_full` | `boolean not null` | Vérification complète (depuis la genèse) ou incrémentale (depuis la dernière vérification `ok`) — *ajouté le 2026-09-26* |
 | `from_seq`, `to_seq` | `bigint not null` | Portée de la vérification |
 | `status` | `text not null check (status in ('ok','broken','gap'))` | — |
+| `anomaly` | `text check (anomaly in ('broken_row','broken_link','gap'))` | **Nature** de la première anomalie ; `broken_row` et `broken_link` donnent `status = 'broken'`, `gap` donne `status = 'gap'`, contrainte comprise (`18` D-3) — *ajouté le 2026-09-26* |
 | `broken_at_seq` | `bigint` | Première anomalie |
 | `duration_ms` | `integer not null` | Sert à décider quand passer d'une vérification complète à incrémentale |
 | `head_row_hash` | `bytea not null` | **Empreinte de tête**, à publier à l'extérieur (§7.2) |
 
 > « Une chaîne qu'on ne vérifie jamais n'est pas une chaîne »
 > (`01-intermediation-courtee.md` §M4, point 4). Cette table est la trace que la vérification a lieu.
+> Elle est en **ajout seul** (même déclencheur que le registre), et sa dernière ligne `ok` sert
+> d'**ancre** à la vérification suivante (§7.2).
 
 #### `matching.introduction_events` — une vue, pas une seconde table
 
@@ -5445,9 +5449,20 @@ row_hash     = sha256( prev_hash || payload_hash )
 **Forme canonique** — concaténation d'un ordre fixe, jamais une sérialisation implicite :
 
 ```
-chain_key | seq | occurred_at (ISO 8601 UTC, microsecondes) | event_type |
+chain_key | seq | occurred_at (ISO 8601 UTC, microsecondes) | event_type | actor_type |
 actor_account_id (ou '-') | subject_type:subject_id | payload::text
 ```
+
+*Complété le 2026-09-26 (migration `0006`, `hash_version = 1`) :* **`actor_type` entre dans la forme
+canonique** — sans lui, requalifier après coup une action d'« agent » en « admin » ne cassait aucune
+empreinte. La forme est calculée par **une seule fonction**, `audit.payload_hash()`, partagée par
+`audit.append()` et par le vérificateur : deux définitions divergeraient. `audit.append(p_event_type,
+p_subject_type, p_subject_id, p_payload, p_occurred_at)` **déduit l'acteur du contexte de
+transaction** (`influx.account`, `influx.role`), jamais d'un paramètre ; un code d'événement inconnu,
+ou employé avec un autre type de sujet que le sien, est refusé par une **clé étrangère composite**
+`(event_type, subject_type)` vers `audit.event_types`. La ligne de genèse (`seq = 1`,
+`chain.genesis`, prédécesseur de 32 octets nuls) est écrite par la migration ; deux contraintes lui
+réservent ce rang.
 
 `payload::text` sur un `jsonb` est déterministe pour une version majeure de PostgreSQL donnée (les
 clés y sont normalisées). Comme ce n'est pas garanti **entre** versions majeures, les colonnes
@@ -5491,7 +5506,27 @@ indétectable, aucune autre chaîne ne la référençant. Une chaîne unique n'a
 en un seul parcours, et l'extrait par mise en relation reste possible (filtrage par `subject_id`, les
 `seq` conservés montrant sa position dans l'ensemble). **À confirmer par `expert-cybersecurite`.**
 
-**Vérification, une requête qui tient en dix lignes :**
+**Vérification.** *Corrigée le 2026-09-26 (`18` §9.5, D-1 à D-3) : la requête ci-dessous, première
+rédaction, ne suffit pas.* Elle compare `row_hash` à l'empreinte **stockée** : un `payload` modifié
+sans toucher aux empreintes passait (T3.5), et la suppression des **dernières** lignes ne laissait
+aucun trou à voir (T3.11). Le vérificateur réel est la fonction `audit.verify_chain(chain_key,
+full, record)` de `0006`, qui :
+
+1. **recalcule `payload_hash` depuis la forme canonique** de chaque ligne, puis `row_hash`, et les
+   compare aux valeurs stockées ;
+2. **s'ancre sur la dernière vérification `ok`** de `audit.chain_checks` : si la ligne `to_seq` a
+   disparu, anomalie `gap` ; si son `row_hash` diffère de `head_row_hash`, anomalie `broken_row` ;
+3. inscrit la **nature** de la première anomalie (`broken_row`, `broken_link`, `gap`) dans la colonne
+   `anomaly`, à côté du `status` (`broken` pour les deux premières, `gap` pour la troisième) ;
+4. est `SECURITY INVOKER` et s'appelle sur une transaction fournie (tests T3 sous le rôle de
+   migration ; en production, le worker au titre d'E-4, droit accordé avec son premier appelant).
+
+**Limite dite franchement** : une réécriture **complète** de la chaîne à partir d'une ligne altérée,
+empreintes recalculées et dernière vérification réécrite, reste indétectable en base. Seule la
+publication externe de l'empreinte de tête (`03` I-3) la révèle. `audit.chain_checks` est elle aussi
+en **ajout seul**.
+
+Première rédaction, conservée pour mémoire :
 
 ```sql
 select e.seq,
@@ -5986,7 +6021,7 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | # | Fichier | Contenu | Réversible ? |
 |---|---|---|---|
 | **Lot 0** | | | |
-| 0001 | `init_schemas_and_roles` | Schémas par domaine ; **la liste fermée des rôles de `03` P7** — `influx_app` (`LOGIN NOINHERIT`, membre des quatre rôles métier seuls, `WITH INHERIT FALSE, SET TRUE`), les quatre rôles métier `NOLOGIN`, `influx_auth` et `influx_auth_login`, `influx_worker` et `influx_worker_login`, et les trois propriétaires de fonctions `SECURITY DEFINER` sans membre (`influx_audit_writer`, `influx_session_resolver`, `influx_identity_definer`) — création idempotente, attributs réimposés, **aucun mot de passe** ; `REVOKE ALL` à `PUBLIC`, `anon`, `authenticated` et `service_role` ; `ALTER DEFAULT PRIVILEGES` par schéma **et** retrait global d'`EXECUTE` à `PUBLIC` ; `public` vidé | **Oui** (`drop schema … cascade` sur une base vide ; les rôles, objets de grappe, se retirent à part) |
+| 0001 | `init_schemas_and_roles` | **Les treize schémas de domaine du MVP**, vides pour ceux des Lots 1 à 5, afin que leurs privilèges par défaut existent avant leur première table ; **la liste fermée des rôles de `03` P7** — `influx_app` (`LOGIN NOINHERIT`, membre des quatre rôles métier seuls, `WITH INHERIT FALSE, SET TRUE`), les quatre rôles métier `NOLOGIN`, `influx_auth` et `influx_auth_login`, `influx_worker` et `influx_worker_login`, et les trois propriétaires de fonctions `SECURITY DEFINER` sans membre (`influx_audit_writer`, `influx_session_resolver`, `influx_identity_definer`) — création idempotente, attributs réimposés, **aucun mot de passe** ; `REVOKE ALL` à `PUBLIC`, `anon`, `authenticated` et `service_role` ; `ALTER DEFAULT PRIVILEGES` par schéma **et** retrait global d'`EXECUTE` à `PUBLIC` ; `public` vidé | **Oui** (`drop schema … cascade` sur une base vide ; les rôles, objets de grappe, se retirent à part) |
 | 0002 | `influx_helpers` | `current_account_id`, `current_account_role`, `current_aal`, `has_aal2` (**`SECURITY INVOKER`, lecture des seuls réglages `influx.*`**), `touch_updated_at`, `assert_append_only` | Oui |
 | 0003 | `reference_core` | `countries`, `currencies`, `languages` + leurs données | Oui |
 | 0004 | `identity_core` | `accounts`, **`account_roles` avec la contrainte D41**, `owner_agent_id` et sa clé étrangère composite, `agent_profiles` (**`is_active`, `is_break_glass`, absence déclarée, `deactivated_by`**), **`sessions` (EC-2)**, **`resolve_session()`** (propriétaire `influx_session_resolver`, seul droit propre d'`influx_app`), `grant_role()` (propriétaire `influx_identity_definer`), RLS | Oui tant qu'aucun compte réel n'existe |
@@ -6002,7 +6037,7 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0103 | `leads_sync_settings` | Table de configuration + **`apollo_scope = 'annonceurs_et_createurs_pro'`** (valeur d'attente de D33) | Oui |
 | 0104 | `identity_signup_fields` | `accounts.declared_status` (**`not null`**), `email_status`, `email_undeliverable_at`, `set_declared_status()`, `correct_email()` | Oui tant qu'aucun compte réel n'existe ; **`declared_status` devient non annulable ensuite** |
 | 0105 | `identity_email_health` | `email_delivery_incidents`, append-only, index d'idempotence | Oui |
-| 0106 | `profiles_advertiser_minimal` | Schéma `profiles`, privilèges par défaut, `advertiser_profiles` **en forme minimale** (nom d'entreprise) | Oui |
+| 0106 | `profiles_advertiser_minimal` | *(schéma `profiles` et ses privilèges par défaut : créés par `0001`)* `advertiser_profiles` **en forme minimale** (nom d'entreprise) | Oui |
 | **Lot 2** | | | |
 | 0201 | `reference_taxonomies` | `topics`, `networks`, `formats`, `sectors`, `usage_rights`, `audience_bands`, **`engagement_bands`**, **`age_bands`** (`check (min_age >= 18)`), **`audience_genders`**, **`editorial_tones`**, **`publication_frequencies`**, **`regions`**, `price_bands` **avec ses bornes nettes et son `REVOKE`** | Oui |
 | 0202 | `profiles_advertiser_full` | **Extension** de `advertiser_profiles` (colonnes du Lot 2, toutes nullables, aucune donnée à migrer) + `advertiser_contact_details` | Oui |
