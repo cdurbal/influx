@@ -843,6 +843,26 @@ table des taux vide et non inscriptible).
 **Terminé quand** : la base se reconstruit depuis zéro en une commande, en local et en CI, et les
 cinq familles sont vertes. **Revue `expert-cybersecurite` des migrations avant de poursuivre.**
 
+> **Exécution du 2026-09-26 (`expert-database`, pile locale, Docker 29.8, PostgreSQL 17.6).**
+> `supabase start` puis **trois** `supabase db reset` depuis zéro : `0001` à `0008` passent sans
+> correction (les rôles, objets de grappe, survivent à la remise à zéro : le chemin « rôle déjà
+> présent » de `0001` a donc aussi été exercé). Pas de `seed.sql` : la CLI n'émet qu'un
+> avertissement. Constats par requêtes : les douze rôles de la liste fermée sans `rolsuper`,
+> `rolbypassrls`, `rolcreaterole`, `rolcreatedb`, `rolreplication`, `NOINHERIT`, bornes posées
+> (EC-33) ; appartenances conformes à `03` P7 (`INHERIT FALSE, SET TRUE`), plus la seule
+> attribution `ADMIN` implicite de `postgres` (T4.3, C-9) ; trois fonctions `SECURITY DEFINER`, aux
+> propriétaires déclarés, `search_path` vide ; aucune fonction avec `EXECUTE` pour `PUBLIC` ; aucun
+> `TRUNCATE`, `REFERENCES`, `TRIGGER`, `MAINTAIN` accordé ; aucun droit pour `anon`,
+> `authenticated`, `service_role` ; RLS activée **et** forcée, avec politique, sur les dix-huit
+> tables ; `public` vide ; PostgREST refuse nos schémas (`PGRST106`, seuls `public` et
+> `graphql_public` exposés) ; `billing.commission_rates` vide. Essais sous les vrais rôles de
+> connexion (mots de passe de test posés à la main puis retirés) : sans rôle pris, refus `42501`
+> (T4.5) ; `resolve_session()` seule autorisée ; `SET ROLE` vers `influx_auth`, un propriétaire ou
+> `service_role` refusé ; contexte absent ou `aal1` ⇒ zéro ligne ; `grant_role()` écrit la ligne
+> chaînée (acteur `admin`, `request_id`) et refuse l'auto-attribution ; le vérificateur détecte
+> `broken_row`, `broken_link` et la suppression de la dernière ligne (`gap` par l'ancre) ; le
+> déclencheur bloque aussi le propriétaire. Mécanique des rôles constatée : `04` §3.2.
+
 ### J3 — Authentification et sessions (4 à 5 jours)
 
 1. **Réglages GoTrue** (local puis `staging`) : longueur du code 6, validité 600 s, inscription

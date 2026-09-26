@@ -358,6 +358,26 @@ projet), joint uniquement par `DIRECT_DATABASE_URL`, en CI. **Aucune fonction `S
 ne lui appartient** : sur Supabase, `postgres` porte `BYPASSRLS`, et une fonction qui lui
 appartiendrait contournerait toute la RLS.
 
+> **Constaté à l'exécution le 2026-09-26 (pile locale, PostgreSQL 17.6, image Supabase
+> 17.6.1.167).** `postgres` n'est **pas** superutilisateur ; il porte `BYPASSRLS`, `CREATEROLE`,
+> `CREATEDB` et `REPLICATION`. En conséquence, dans `0001` à `0006` :
+> 1. un non-superutilisateur ne peut pas écrire `NOSUPERUSER` dans un `ALTER ROLE` (PostgreSQL ≥ 16) :
+>    `0001` **affirme** l'absence de `SUPERUSER` et ne corrige `BYPASSRLS`, `REPLICATION`, `CREATEDB`,
+>    `CREATEROLE` que s'ils sont présents, puis vérifie l'état final ;
+> 2. chaque rôle créé reçoit d'office un membre, `postgres`, attribué par `supabase_admin`, **`ADMIN`
+>    seul, sans `INHERIT` ni `SET`** (`createrole_self_grant` vide par défaut, et forcé à vide par
+>    `0001`). C'est l'attribution tolérée par `18` T4.3 (C-9) ;
+> 3. `ALTER FUNCTION … OWNER TO` exigeant de pouvoir prendre le rôle cible, chaque transfert accorde
+>    `SET` au rôle de migration **le temps du transfert** (attribution distincte, accordée par
+>    `postgres`), puis la retire ; constaté : il ne reste que l'attribution `ADMIN` seule ;
+> 4. le droit `EXECUTE` du propriétaire part avec la propriété : le rôle de migration garde
+>    `EXECUTE` sur `audit.payload_hash()` par un octroi du nouveau propriétaire, fait sous
+>    `SET ROLE` pendant la même fenêtre ;
+> 5. la ligne de genèse et les écritures de test du rôle de migration passent grâce à son
+>    `BYPASSRLS` (les tables sont en `FORCE ROW LEVEL SECURITY`) ;
+> 6. la colonne générée `is_internal` de `account_roles` est acceptée : le littéral est résolu en
+>    constante d'énumération dès l'analyse.
+
 `NOINHERIT` est le point clé : `influx_app` **ne possède aucun droit par lui-même** (hors l'exception
 nommée de `resolve_session()`) ; il doit explicitement `SET LOCAL ROLE <rôle>` au début de chaque
 transaction, après avoir résolu le rôle métier du porteur de session en base. Conséquences :
