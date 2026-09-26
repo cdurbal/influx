@@ -11,6 +11,7 @@
     "dev:api": "pnpm --filter @influx/api dev",
     "dev:worker": "pnpm --filter @influx/api dev:worker",
     "dev:backoffice": "pnpm --filter @influx/backoffice dev",
+    "db:role-passwords": "pnpm --filter @influx/test-kit db:role-passwords",
     "start": "pnpm --filter @influx/web start",
     "start:web": "pnpm --filter @influx/web start",
     "build": "pnpm -r run build",
