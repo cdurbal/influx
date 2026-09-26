@@ -10,7 +10,9 @@
     "start:worker": "node src/worker.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "test": "vitest run"
+    "test": "vitest run --project unit && vitest run --project db",
+    "test:unit": "vitest run --project unit",
+    "test:db": "vitest run --project db"
   },
   "dependencies": {
     "@influx/contracts": "workspace:*",
@@ -22,6 +24,7 @@
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
+    "@influx/test-kit": "workspace:*",
     "@types/node": "22.20.3",
     "eslint": "9.39.5",
     "typescript": "6.0.3",

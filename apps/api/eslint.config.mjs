@@ -90,6 +90,12 @@ export default defineConfig([
     files: ["src/db/**/*.ts"],
     rules: restrictImports(SUPABASE),
   },
+  {
+    // Database tests talk to the local stack through the harness of @influx/test-kit, which is
+    // built on the postgres driver (18 §9.3 A-2).
+    files: ["db-tests/**/*.ts"],
+    rules: restrictImports(SUPABASE, DRIZZLE),
+  },
   ...DOMAINS.flatMap((domain) => [
     {
       files: [`src/domains/${domain}/**/*.ts`],
