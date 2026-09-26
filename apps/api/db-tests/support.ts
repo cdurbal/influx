@@ -18,9 +18,19 @@ export function migrationRole(): postgres.Sql {
   return sql;
 }
 
-export function loginRole(role: LoginRole, max = 4): postgres.Sql {
-  const sql = connectAsLoginRole(role, { max });
-  opened.push(sql);
+const byRole = new Map<LoginRole, postgres.Sql>();
+
+/**
+ * One shared connection per connection role and per file (its connection limit is bounded, EC-33).
+ * A transaction holds its connection: tests of one file run one after the other.
+ */
+export function loginRole(role: LoginRole): postgres.Sql {
+  let sql = byRole.get(role);
+  if (sql === undefined) {
+    sql = connectAsLoginRole(role, { max: 1 });
+    byRole.set(role, sql);
+    opened.push(sql);
+  }
   return sql;
 }
 
@@ -34,4 +44,5 @@ export function testDataSet(): Promise<DataSet> {
 afterAll(async () => {
   await Promise.all(opened.map((sql) => sql.end({ timeout: 1 })));
   opened.length = 0;
+  byRole.clear();
 });

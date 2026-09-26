@@ -141,7 +141,7 @@ function describeProbe(result: ProbeResult): string {
 /** Probes one role on every table and operation; returns the deviations, empty when conform. */
 async function deviationsOf(role: ProbedRole, mode: Mode): Promise<string[]> {
   const deviations: string[] = [];
-  const sql = loginRole(TAKEN_ROLES[role], 1);
+  const sql = loginRole(TAKEN_ROLES[role]);
   const context = contextOf(role, mode);
   const self = context?.accountId ?? otherAccountOf(role);
   const other = otherAccountOf(role);
