@@ -863,6 +863,65 @@ cinq familles sont vertes. **Revue `expert-cybersecurite` des migrations avant d
 > `broken_row`, `broken_link` et la suppression de la dernière ligne (`gap` par l'ancre) ; le
 > déclencheur bloque aussi le propriétaire. Mécanique des rôles constatée : `04` §3.2.
 
+#### Revue de sécurité des migrations — 2026-09-26
+
+> **`expert-cybersecurite` : pas de veto. Commit autorisé sous conditions** : M1 corrigée dans
+> `0006`, puis commit portant `security-reviewed: 2026-09-26` (`03` I-4). Relu : les huit fichiers,
+> et en base locale (lecture seule) les ACL de tables, colonnes, schémas, fonctions et types, les
+> privilèges par défaut, les appartenances, les publications et les déclencheurs d'événement. Conforme
+> à `03` P7 : aucun droit pour `PUBLIC` / `anon` / `authenticated` / `service_role` ; `token_hash`
+> lisible par le seul résolveur ; aucune écriture sur `account_roles` hors `grant_role()` ;
+> `commission_rates` vide et non inscriptible ; `supabase_realtime` n'est pas `FOR ALL TABLES`.
+> Non vérifié par moi (lecture de `pg_authid` réservée) : l'absence de vérificateur de mot de passe
+> sur les rôles après les essais manuels — voir R4.
+
+**Exigée avant le commit des migrations :**
+
+| # | Correction | Fichier | Motif |
+|---|---|---|---|
+| **M1** | Retirer le paramètre `p_occurred_at` d'`audit.append()` : `occurred_at := now()`. Si un appelant en a besoin un jour, le réintroduire borné (`now() - 5 min` ≤ valeur ≤ `now()`) avec sa migration | `0006` | Tout détenteur d'`EXECUTE` (demain `influx_auth`, `influx_worker`) peut antidater ou postdater un fait dans le registre de preuve, et la date fausse est **chaînée pour toujours**. Coût : 10 min maintenant, une nouvelle signature de fonction plus tard |
+
+**Exigées avant le J3** (avant tout `EXECUTE` d'`audit.append()` à `influx_auth` ou `influx_worker`) :
+
+| # | Correction | Où | Motif |
+|---|---|---|---|
+| **M2** | `actor_type` lié à `session_user`, pas seulement aux réglages : `influx_app` ⇒ déduit d'`influx.role` (un des quatre, sinon refus) ; `influx_auth_login` / `influx_worker_login` ⇒ `service` (ou `system` sans compte), quel que soit `influx.role` ; tout autre ⇒ `system` | `audit.append()` (migration du J3) | Sinon une opération élevée qui pose `influx.role = 'admin'` s'inscrit au registre comme un acte d'administrateur. L'ajout d'`actor_type` à la forme canonique est **approuvé** ; il ne vaut que si la valeur est fiable |
+| **M3** | **Résidu N1** : toute `Error` jusqu'à `REDACTED_DEPTH` passe par `serializeError` (pas seulement au premier niveau) ; `parameters`, `query`, `args` ajoutés aux clés masquées ; test avec une erreur du pilote `postgres` portant un e-mail dans `parameters`, sous `error.cause` | `apps/api/src/platform/logger.ts` | **Avant le premier commit de `src/db/` qui exécute une requête.** `PostgresError` porte les valeurs liées ; la première erreur de contrainte sur `accounts.email` les journaliserait |
+
+**Points ouverts tranchés :**
+
+- **`grant_role()` sans 2V ni R en base : accepté au Lot 0, à surveiller**, à trois conditions :
+  (a) aucune route d'`apps/api` n'appelle `identity.grant_role` avant `0107` (garde statique, même
+  famille que T6) ; (b) `0107` réécrit la fonction pour exiger une `dual_control_requests` approuvée
+  par un **autre** compte, non consommée, liée à la cible et au rôle, consommée dans la transaction ;
+  (c) la fraîcheur (R) y est lue sur la **ligne de session** (horodatage de la dernière vérification
+  TOTP), jamais sur un réglage. Motif : `influx.*` est posé par l'application ; une injection SQL dans
+  `influx_app` peut `SET ROLE influx_admin` (l'appartenance s'évalue sur `session_user`) et poser
+  `influx.aal = aal2`. Les contrôles en base doivent donc s'ancrer sur des lignes, pas sur des
+  réglages. Risque résiduel inhérent à `03` P2, accepté ; parade : requêtes paramétrées seules.
+- **`audit.append()` sans contrôle d'`is_active` : accepté, à surveiller.** Aucun code n'est retiré
+  au Lot 0 ; la migration qui retirera le premier code accordera `SELECT (code, subject_type,
+  is_active)` à `influx_audit_writer` et ajoutera le contrôle.
+- **C-3 (T16.2) : confirmée, amendée** : comparer les littérales par **valeur** (`.35`, `0.350`,
+  `35e-2` inclus) et ajouter `35/100`, `20/100`, `15/100`, `65/100` aux motifs.
+- **C-7 : une ligne par transaction élevée qui écrit** (ou par lot non vide) ; un tour de file vide
+  n'écrit rien au registre, il alimente les métriques `ops`.
+- **C-8 : exigée** avec le contrôle I-4 (J2 point 7) : le marqueur couvre aussi le fichier
+  d'attendus de T2.
+- **C-9 : tolérance confirmée** (rôle de migration seul, `ADMIN` vrai, `INHERIT` et `SET` faux,
+  constaté en base). Ce `ADMIN` permet au propriétaire du projet de reprendre un rôle : c'est S-7,
+  déjà accepté. T4.3 le vérifie aussi en `staging` et en production.
+
+**Recommandations non bloquantes :**
+
+| # | Recommandation | Échéance |
+|---|---|---|
+| **R1** | Inclure `recorded_at` (et `request_id`) dans la forme canonique tant qu'aucune ligne réelle n'existe ; après, il faudra un `hash_version` 2 | Avant la première ligne réelle (Lot 1) |
+| **R2** | `audit.chain_checks` inscriptible uniquement par `verify_chain()` devenue `SECURITY DEFINER` (propriétaire dédié), jamais par un `INSERT` direct du worker : sinon le worker peut forger une ancre « ok » | E-4 (J6) |
+| **R3** | `terms_acceptances_member_insert_own` : n'accepter que la version **en vigueur** (`effective_to is null`, `effective_from <= now()`) | J5 |
+| **R4** | T4 : sous le rôle de CI qui lit `pg_authid`, aucun vérificateur de mot de passe sur les neuf rôles `NOLOGIN` ; en local, retrait des mots de passe d'essai après chaque session manuelle | J2 (CI) |
+| **R5** | `grant_role()` : refuser aussi une cible `suspended` | Avec `0107` |
+
 ### J3 — Authentification et sessions (4 à 5 jours)
 
 1. **Réglages GoTrue** (local puis `staging`) : longueur du code 6, validité 600 s, inscription
