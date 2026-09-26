@@ -10,7 +10,11 @@ import {
   loadWorkerConfig,
 } from "../src/config/index.ts";
 import type { Environment } from "../src/config/schema.ts";
-import { BACKOFFICE_SECRET, WEB_SECRET } from "./helpers.ts";
+import {
+  BACKOFFICE_SECRET,
+  TEST_DATABASE_URLS,
+  WEB_SECRET,
+} from "./helpers.ts";
 
 const API_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -21,9 +25,22 @@ const VALID_API_ENV = {
   INFLUX_ENV: "staging",
   INFLUX_API_INTERNAL_SECRET_WEB: WEB_SECRET,
   INFLUX_API_INTERNAL_SECRET_BACKOFFICE: BACKOFFICE_SECRET,
+  DATABASE_URL: TEST_DATABASE_URLS.DATABASE_URL,
+  AUTH_DATABASE_URL: TEST_DATABASE_URLS.AUTH_DATABASE_URL,
 } as const;
 
-const VALID_WORKER_ENV = { INFLUX_ENV: "staging" } as const;
+const VALID_WORKER_ENV = {
+  INFLUX_ENV: "staging",
+  WORKER_DATABASE_URL: TEST_DATABASE_URLS.WORKER_DATABASE_URL,
+} as const;
+
+const APP_URL = TEST_DATABASE_URLS.DATABASE_URL;
+const AUTH_URL = TEST_DATABASE_URLS.AUTH_DATABASE_URL;
+const WORKER_URL = TEST_DATABASE_URLS.WORKER_DATABASE_URL;
+const POOLER_APP_URL =
+  "postgresql://influx_app.abcdefghijklmnop:pass@aws-0-eu-west-3.pooler.supabase.com:6543/postgres";
+const POOLER_AUTH_URL =
+  "postgresql://influx_auth_login.abcdefghijklmnop:pass@aws-0-eu-west-3.pooler.supabase.com:6543/postgres";
 
 /** Issues of the refusal, or a failed expectation when the configuration is accepted. */
 function refusal(load: () => unknown): readonly string[] {
@@ -46,8 +63,26 @@ describe("api configuration", () => {
       version: "local",
       brevo: { mode: "disabled", testRecipients: [] },
       port: 3100,
+      database: {
+        app: { url: APP_URL, role: "influx_app", tls: false },
+        auth: { url: AUTH_URL, role: "influx_auth_login", tls: false },
+      },
       internalSecrets: { web: WEB_SECRET, backoffice: BACKOFFICE_SECRET },
     });
+  });
+
+  it("accepts pooler users suffixed by the project reference, with TLS (18 T4.6 b, f)", () => {
+    const config = loadApiConfig({
+      ...VALID_API_ENV,
+      DATABASE_URL: POOLER_APP_URL,
+      AUTH_DATABASE_URL: POOLER_AUTH_URL,
+    });
+    expect(config.database.app).toEqual({
+      url: POOLER_APP_URL,
+      role: "influx_app",
+      tls: true,
+    });
+    expect(config.database.auth.tls).toBe(true);
   });
 
   it("reads the deployed commit as the version, and an explicit port", () => {
@@ -114,8 +149,119 @@ describe("api configuration", () => {
       { ...VALID_API_ENV, INFLUX_ENV: "development" },
       "INFLUX_ENV must be staging or production",
     ],
+    // EC-20 and 18 T4.6: database variables of the api service.
+    [
+      "a missing DATABASE_URL",
+      { ...VALID_API_ENV, DATABASE_URL: undefined },
+      "DATABASE_URL is required",
+    ],
+    [
+      "a missing AUTH_DATABASE_URL",
+      { ...VALID_API_ENV, AUTH_DATABASE_URL: "" },
+      "AUTH_DATABASE_URL is required",
+    ],
+    [
+      "DATABASE_URL as the migration role postgres",
+      {
+        ...VALID_API_ENV,
+        DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+      },
+      "DATABASE_URL must connect as role influx_app",
+    ],
+    [
+      "DATABASE_URL with the role of another variable",
+      { ...VALID_API_ENV, DATABASE_URL: AUTH_URL },
+      "DATABASE_URL must connect as role influx_app",
+    ],
+    [
+      "AUTH_DATABASE_URL with the worker role",
+      { ...VALID_API_ENV, AUTH_DATABASE_URL: WORKER_URL },
+      "AUTH_DATABASE_URL must connect as role influx_auth_login",
+    ],
+    [
+      "a role that only starts like the expected one",
+      {
+        ...VALID_API_ENV,
+        DATABASE_URL: "postgresql://influx_app_x:p@127.0.0.1:54322/postgres",
+      },
+      "DATABASE_URL must connect as role influx_app",
+    ],
+    [
+      "an empty user",
+      {
+        ...VALID_API_ENV,
+        DATABASE_URL: "postgresql://127.0.0.1:54322/postgres",
+      },
+      "DATABASE_URL must connect as role influx_app",
+    ],
+    [
+      "a user in another case",
+      {
+        ...VALID_API_ENV,
+        DATABASE_URL: "postgresql://INFLUX_APP:p@127.0.0.1:54322/postgres",
+      },
+      "DATABASE_URL must connect as role influx_app",
+    ],
+    [
+      "the role suffixed by an empty project reference",
+      {
+        ...VALID_API_ENV,
+        DATABASE_URL: "postgresql://influx_app.:p@127.0.0.1:6543/postgres",
+      },
+      "DATABASE_URL has an empty project reference",
+    ],
+    [
+      "the placeholder of .env.example",
+      {
+        ...VALID_API_ENV,
+        DATABASE_URL:
+          "postgresql://influx_app.your-project-ref:CHANGE_ME@HOST:6543/postgres",
+      },
+      "DATABASE_URL must not contain the CHANGE_ME placeholder",
+    ],
+    [
+      "a URL that is not PostgreSQL",
+      { ...VALID_API_ENV, DATABASE_URL: "https://influx_app@example.com/" },
+      "DATABASE_URL must be a postgresql:// URL",
+    ],
+    [
+      "on Railway, the worker variable set on the api service",
+      {
+        ...VALID_API_ENV,
+        RAILWAY_ENVIRONMENT_NAME: "staging",
+        WORKER_DATABASE_URL: WORKER_URL,
+      },
+      "WORKER_DATABASE_URL is reserved to another service and must not be set here",
+    ],
   ])("refuses %s", (_case, env, issue) => {
     expect(refusal(() => loadApiConfig(env))).toContain(issue);
+  });
+
+  it("refuses two URLs of the api with the same user (EC-20)", () => {
+    // Same user in both: whichever role it names, one of the two checks refuses it. The
+    // same-user rule itself is exercised by the exported checker below.
+    expect(
+      refusal(() =>
+        loadApiConfig({ ...VALID_API_ENV, AUTH_DATABASE_URL: APP_URL }),
+      ),
+    ).toContain("AUTH_DATABASE_URL must connect as role influx_auth_login");
+  });
+
+  it("tolerates the worker variable off Railway, and never reads it (18 T4.6 d)", () => {
+    const config = loadApiConfig({
+      ...VALID_API_ENV,
+      WORKER_DATABASE_URL: WORKER_URL,
+    });
+    expect(JSON.stringify(config)).not.toContain("influx_worker_login");
+  });
+
+  it("never quotes a database URL in the refusal", () => {
+    const secretUrl =
+      "postgresql://postgres:very-secret-password@127.0.0.1:54322/postgres";
+    const issues = refusal(() =>
+      loadApiConfig({ ...VALID_API_ENV, DATABASE_URL: secretUrl }),
+    );
+    expect(issues.join(" ")).not.toContain("very-secret-password");
   });
 
   it("accepts live Brevo in production", () => {
@@ -153,8 +299,22 @@ describe("worker configuration", () => {
       environment: "staging",
       version: "local",
       brevo: { mode: "disabled", testRecipients: [] },
+      database: {
+        worker: { url: WORKER_URL, role: "influx_worker_login", tls: false },
+      },
       sync: { mode: "dry_run", nonProductionRecipientAllowlist: [] },
     });
+  });
+
+  it("has no key for the api database variables, even when they are set (18 T4.6 a)", () => {
+    const config = loadWorkerConfig({
+      ...VALID_WORKER_ENV,
+      DATABASE_URL: APP_URL,
+      AUTH_DATABASE_URL: AUTH_URL,
+    });
+    expect(Object.keys(config.database)).toEqual(["worker"]);
+    expect(JSON.stringify(config)).not.toContain("influx_app");
+    expect(JSON.stringify(config)).not.toContain("influx_auth_login");
   });
 
   it.each<[string, Environment, string]>([
@@ -187,6 +347,34 @@ describe("worker configuration", () => {
       { INFLUX_ENV: "staging", BREVO_MODE: "redirect" },
       "BREVO_TEST_RECIPIENTS is required when BREVO_MODE is redirect",
     ],
+    [
+      "a missing WORKER_DATABASE_URL",
+      { INFLUX_ENV: "staging" },
+      "WORKER_DATABASE_URL is required",
+    ],
+    [
+      "WORKER_DATABASE_URL as influx_app",
+      { ...VALID_WORKER_ENV, WORKER_DATABASE_URL: APP_URL },
+      "WORKER_DATABASE_URL must connect as role influx_worker_login",
+    ],
+    [
+      "on Railway, DATABASE_URL set on the worker service",
+      {
+        ...VALID_WORKER_ENV,
+        RAILWAY_ENVIRONMENT_NAME: "production",
+        DATABASE_URL: APP_URL,
+      },
+      "DATABASE_URL is reserved to another service and must not be set here",
+    ],
+    [
+      "on Railway, AUTH_DATABASE_URL set on the worker service",
+      {
+        ...VALID_WORKER_ENV,
+        RAILWAY_ENVIRONMENT_NAME: "staging",
+        AUTH_DATABASE_URL: AUTH_URL,
+      },
+      "AUTH_DATABASE_URL is reserved to another service and must not be set here",
+    ],
   ])("refuses %s", (_case, env, issue) => {
     expect(refusal(() => loadWorkerConfig(env))).toContain(issue);
   });
@@ -194,13 +382,14 @@ describe("worker configuration", () => {
   it("accepts live sync outside production with an allowlist, and production in live", () => {
     expect(
       loadWorkerConfig({
-        INFLUX_ENV: "staging",
+        ...VALID_WORKER_ENV,
         SYNC_MODE: "live",
         NON_PRODUCTION_RECIPIENT_ALLOWLIST: "example.com, example.org",
       }).sync.nonProductionRecipientAllowlist,
     ).toEqual(["example.com", "example.org"]);
     expect(
       loadWorkerConfig({
+        ...VALID_WORKER_ENV,
         INFLUX_ENV: "production",
         BREVO_MODE: "live",
         SYNC_MODE: "live",

@@ -10,6 +10,7 @@ import { buildServer, type ApiServer } from "../src/server.ts";
 import {
   captureLogs,
   duplicateJsonKeys,
+  TEST_DATABASE_URLS,
   testApiConfig,
   WEB_SECRET,
 } from "./helpers.ts";
@@ -107,7 +108,10 @@ describe("api log lines", () => {
 describe("worker log lines", () => {
   it("never repeat a key, on the real entry point", async () => {
     const systemRoot = process.env.SYSTEMROOT;
-    const env: Record<string, string> = { INFLUX_ENV: "staging" };
+    const env: Record<string, string> = {
+      INFLUX_ENV: "staging",
+      WORKER_DATABASE_URL: TEST_DATABASE_URLS.WORKER_DATABASE_URL,
+    };
     if (systemRoot !== undefined) {
       env.SYSTEMROOT = systemRoot;
     }

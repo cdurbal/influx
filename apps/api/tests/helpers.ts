@@ -5,11 +5,22 @@ import { parseApiEnvironment, type ApiConfig } from "../src/config/schema.ts";
 export const WEB_SECRET = "web-internal-secret-for-tests-0123456789";
 export const BACKOFFICE_SECRET = "backoffice-internal-secret-for-tests-01234";
 
+/** Local-stack shaped database URLs (fake passwords, never reached by these tests). */
+export const TEST_DATABASE_URLS = {
+  DATABASE_URL: "postgresql://influx_app:app-pass@127.0.0.1:54322/postgres",
+  AUTH_DATABASE_URL:
+    "postgresql://influx_auth_login:auth-pass@127.0.0.1:54322/postgres",
+  WORKER_DATABASE_URL:
+    "postgresql://influx_worker_login:worker-pass@127.0.0.1:54322/postgres",
+} as const;
+
 export function testApiConfig(): ApiConfig {
   return parseApiEnvironment({
     INFLUX_ENV: "staging",
     INFLUX_API_INTERNAL_SECRET_WEB: WEB_SECRET,
     INFLUX_API_INTERNAL_SECRET_BACKOFFICE: BACKOFFICE_SECRET,
+    DATABASE_URL: TEST_DATABASE_URLS.DATABASE_URL,
+    AUTH_DATABASE_URL: TEST_DATABASE_URLS.AUTH_DATABASE_URL,
   });
 }
 
