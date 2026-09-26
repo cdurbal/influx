@@ -191,8 +191,10 @@ commit;
 - une politique mal écrite sur une table ajoutée dans la précipitation au Lot 5 est **rattrapée par
   l'absence de `GRANT`** — c'est-à-dire la défense en profondeur que ce document promettait ;
 - `influx_app` ne doit **pas** être membre d'un rôle élevé, faute de quoi un `RESET ROLE` ou un
-  `SET ROLE` dans la même session rendrait la séparation inopérante. Les accès élevés passent par une
-  **seconde grappe de connexions**, avec un autre rôle et une autre variable d'environnement (§5).
+  `SET ROLE` dans la même session rendrait la séparation inopérante. Les accès élevés passent par
+  d'**autres grappes de connexions**, avec un autre rôle et une autre variable d'environnement (§5).
+  *Précisé le 2026-09-26 (`21` EC-1, EC-20) :* une grappe, un rôle de connexion et une variable
+  **par rôle élevé** — liste fermée : `03` §4 P7, « Les rôles Postgres — liste fermée ».
 
 **Effort : une demi-journée à une journée au Lot 0.** Coût de ne pas le faire : l'invariant produit
 A2 ne tient que par un fil.
@@ -502,7 +504,7 @@ que l'outil réclame la propriété du schéma ».
 | Fonction | Rôle Postgres pris | Usage | RLS |
 |---|---|---|---|
 | `withUserTransaction(request, fn)` | `influx_advertiser` · `influx_creator` · `influx_agent` · `influx_admin`, via `SET LOCAL ROLE` | **Toute requête déclenchée par un utilisateur**, membre ou agent | **Appliquée**, avec les réclamations de l'utilisateur |
-| `withElevatedTransaction(operation, fn)` | `influx_auth` · `influx_worker` · `influx_privacy`, **aucun avec `BYPASSRLS`** | **Uniquement** les cinq opérations de la liste fermée E-1 à E-5 du document `03` §P7 | **Appliquée aussi** : ces rôles ont des `GRANT` et des politiques **nommés table par table** |
+| `withElevatedTransaction(operation, fn)` | `influx_auth` · `influx_worker` · `influx_privacy`, **aucun avec `BYPASSRLS`**, via `SET LOCAL ROLE` depuis **le rôle de connexion propre à chacun** (`influx_auth_login`, `influx_worker_login`, `influx_privacy_login` au Lot 5) | **Uniquement** les cinq opérations de la liste fermée E-1 à E-5 du document `03` §P7 | **Appliquée aussi** : ces rôles ont des `GRANT` et des politiques **nommés table par table** |
 
    **Ce qui a changé et pourquoi.** La version initiale prévoyait un `withServiceTransaction` opérant
    sous le rôle Postgres `service_role`, qui porte `BYPASSRLS`. C'est refusé, et l'argument est
@@ -531,8 +533,26 @@ que l'outil réclame la propriété du schéma ».
    Le compte de connexion de `apps/api` est un rôle dédié (`influx_app`) qui n'est **ni propriétaire
    d'aucun objet, ni `BYPASSRLS`, ni `SUPERUSER`, ni membre d'un rôle élevé** — cette dernière
    condition est indispensable : sans elle, un `RESET ROLE` ou un `SET ROLE` dans la même session
-   annulerait la séparation. Les accès élevés passent donc par une **seconde grappe de connexions**,
+   annulerait la séparation. Les accès élevés passent donc par d'**autres grappes de connexions**,
    avec un rôle différent et une variable d'environnement différente.
+
+   *Révisé le 2026-09-26 (`21` EC-1 et EC-20, tranchés par `expert-cybersecurite` ; `03` §4 P7,
+   « Les rôles Postgres — liste fermée », fait foi).* **Un rôle de connexion par rôle élevé, une
+   variable par rôle de connexion, un service Railway par variable** — le processus HTTP ne détient
+   jamais la connexion du worker :
+
+   | Variable | Rôle de connexion (`LOGIN NOINHERIT`) | Membre de | Opérations | Service |
+   |---|---|---|---|---|
+   | `DATABASE_URL` | `influx_app` | les quatre rôles métier **seuls** | `withUserTransaction` ; unique droit propre : `identity.resolve_session()` | `api` |
+   | `AUTH_DATABASE_URL` | `influx_auth_login` | `influx_auth` **seul** | E-1, E-2 | `api` |
+   | `WORKER_DATABASE_URL` | `influx_worker_login` | `influx_worker` **seul** | E-3, E-4 | `worker` (**sa seule variable de base**) |
+   | `OPS_DATABASE_URL` *(J4)* | `influx_ops_login` | `influx_ops` | écriture du schéma `ops` (E-6, à signer) | `api` |
+   | `PRIVACY_DATABASE_URL` *(Lot 5)* | `influx_privacy_login` | `influx_privacy` | E-5 | `worker` |
+
+   Les appartenances sont posées `WITH INHERIT FALSE, SET TRUE` : hors d'une transaction qui a pris
+   son rôle par `SET LOCAL ROLE`, un rôle de connexion n'a aucun droit. `influx_privacy` n'est
+   **jamais** ajouté à `influx_worker_login`. `influx_service` n'existe pas. `ELEVATED_DATABASE_URL`
+   disparaît. Refus de démarrage associés : §12.3.
 
    `set_config(..., true)` est **local à la transaction** : hors transaction, le contexte n'existe
    pas et les politiques voient un utilisateur anonyme. C'est pourquoi **toute lecture passe par une
@@ -569,8 +589,10 @@ que l'outil réclame la propriété du schéma ».
 - **Code :** `apps/api/src/db/schema/*.ts` (déclaration du schéma, alignée à la main sur le SQL),
   `apps/api/src/db/index.ts` (grappe de connexions, les deux fonctions de transaction),
   `<domaine>/repository.ts` (requêtes).
-- **Déploiement :** une variable `DATABASE_URL` pointant sur le multiplexeur, une `DIRECT_URL` pour
-  l'application des migrations en CI.
+- **Déploiement :** une variable par rôle de connexion, pointant sur le multiplexeur —
+  `DATABASE_URL` et `AUTH_DATABASE_URL` sur `api`, `WORKER_DATABASE_URL` sur `worker` (règle 3,
+  *révisé le 2026-09-26, EC-20*) — et `DIRECT_DATABASE_URL` pour l'application des migrations, en CI
+  seulement.
 - **Coûts :** aucun.
 - **Sécurité :** c'est le point central. La RLS s'applique réellement parce que l'application se
   connecte avec un rôle non privilégié, prend le rôle de l'utilisateur et pose les réclamations dans
@@ -838,8 +860,9 @@ influx/
 │           ├── worker.ts        entrée worker  → service Railway « worker »
 │           ├── server.ts        construction Fastify : greffons, hooks, erreurs
 │           ├── config/          lecture + validation zod des variables d'env, ÉCHEC AU DÉMARRAGE
-│           ├── db/              deux grappes de connexions (rôle utilisateur / rôles élevés SANS
-│           │                    BYPASSRLS), withUserTransaction, withElevatedTransaction,
+│           ├── db/              une grappe par rôle de connexion (api : influx_app, influx_auth_login ;
+│           │                    worker : influx_worker_login), aucun avec BYPASSRLS (§5 règle 3),
+│           │                    withUserTransaction, withElevatedTransaction,
 │           │                    schéma Drizzle (aligné à la main sur le SQL)
 │           ├── platform/        journalisation, enveloppe d'erreur, idempotence, limitation de
 │           │                    débit, cache JWKS, supabase.ts (SEUL import de @supabase/*,
@@ -1103,12 +1126,17 @@ toute table nouvelle absente de la matrice des droits) est dans `docs/mvp/03-mat
 - **Arrêt propre sur `SIGTERM`** : le lot en cours se termine, les verrous se libèrent avec la
   transaction, aucun événement n'est perdu (il reste `pending`).
 - Variables d'environnement : les mêmes que `apps/api`, **plus** les clés Brevo et Apollo, **moins**
-  ce qui concerne le serveur HTTP.
+  ce qui concerne le serveur HTTP — **et, pour la base, une seule variable** : `WORKER_DATABASE_URL`.
+  Le worker ne porte **ni `DATABASE_URL` ni `AUTH_DATABASE_URL`** ; il recevra `PRIVACY_DATABASE_URL`
+  au Lot 5 (*révisé le 2026-09-26, `21` EC-20* ; liste exacte : §12.3).
 - **Rôle de base : `influx_worker`, sans `BYPASSRLS`**, avec des `GRANT` et des politiques nommés
   table par table (§5, règle 3). Le worker n'est autorisé qu'aux opérations **E-3**
   (`leads.drain_outbox`) et **E-4** (`maintenance.run_periodic`) de la liste fermée du document `03`
   §P7, dont **aucune n'est appelable depuis une route HTTP**.
-  *Ajouté le 2026-09-18 (revue `expert-cybersecurite`, B2).*
+  *Ajouté le 2026-09-18 (revue `expert-cybersecurite`, B2).* *Précisé le 2026-09-26 (`21` EC-1) :*
+  il s'y connecte par le rôle de connexion **`influx_worker_login`** (`LOGIN NOINHERIT`, membre
+  d'`influx_worker` **seul**) et prend `influx_worker` par `SET LOCAL ROLE` dans chaque transaction.
+  Au Lot 5, E-5 passera par `influx_privacy_login`, **jamais** ajouté au rôle de connexion du worker.
 
 ### 11.3 Surveillance
 
@@ -1169,8 +1197,11 @@ démarrage : une variable requise manquante fait **échouer le démarrage** avec
 | `INFLUX_API_INTERNAL_URL` | ✔ | ✔ | — | — | Interne |
 | `INFLUX_API_INTERNAL_SECRET` (valeur propre à chaque front) — *ajoutée le 2026-09-25, D64* | ✔ | ✔ | — | — | **Secrète** — en-tête `x-influx-internal` (`03` PP-8) |
 | `INFLUX_API_INTERNAL_SECRET_WEB`, `INFLUX_API_INTERNAL_SECRET_BACKOFFICE` — *ajoutées le 2026-09-25, D64* | — | — | ✔ | — | **Secrètes** — `apps/api` en déduit la surface appelante et lie `/v1/bo/…` au backoffice (`21` §4, J1-G) |
-| `DATABASE_URL` (multiplexeur, rôle `influx_app`) | — | — | ✔ | — | **Secrète** |
-| `ELEVATED_DATABASE_URL` (seconde grappe : `influx_auth`, `influx_worker`, `influx_privacy` — **aucun avec `BYPASSRLS`**) | — | — | ✔ | ✔ | **Secrète** |
+| `DATABASE_URL` (multiplexeur, rôle de connexion `influx_app`, membre des quatre rôles métier seuls) | — | — | ✔ | — | **Secrète** |
+| `AUTH_DATABASE_URL` (multiplexeur, rôle de connexion `influx_auth_login`, membre d'`influx_auth` seul : E-1, E-2) — *2026-09-26, EC-20* | — | — | ✔ | — | **Secrète** |
+| `WORKER_DATABASE_URL` (multiplexeur, rôle de connexion `influx_worker_login`, membre d'`influx_worker` seul : E-3, E-4) — *2026-09-26, EC-20* | — | — | — | ✔ | **Secrète** — **seule variable de base du worker** |
+| `OPS_DATABASE_URL` (rôle de connexion `influx_ops_login`, écriture du schéma `ops`) — **au J4** | — | — | ✔ | — | **Secrète** |
+| `PRIVACY_DATABASE_URL` (rôle de connexion `influx_privacy_login`, E-5) — **au Lot 5** | — | — | — | ✔ | **Secrète** |
 | `DIRECT_DATABASE_URL` (rôle de migration, **propriétaire des objets**) | — | — | — | — | **Secrète, CI uniquement** — jamais dans un service d'exécution |
 | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | — | — | ✔ | — | **Serveur uniquement** — la clé publishable (ex-clé `anon`) ne quitte pas `apps/api`, et **n'est de toute façon pas un secret** : c'est pourquoi aucune table métier ne vit dans `public` (§5, règle 4) |
 | `SUPABASE_SECRET_KEY` — **clé d'API HTTP**, à ne pas confondre avec le rôle Postgres `service_role`, qui n'est utilisé nulle part | — | — | ✔ | ✔ | **Secrète, jamais dans un bundle.** Usage limité à GoTrue (création de compte, second facteur) et aux URL signées du Storage. **Jamais pour atteindre une table** |
@@ -1179,6 +1210,19 @@ démarrage : une variable requise manquante fait **échouer le démarrage** avec
 | `SESSION_COOKIE_SECRET` | — | — | ✔ | — | **Secrète** |
 | `SYNC_MODE` (`live` \| `dry_run`) | — | — | — | ✔ | Garde-fou, §12.4 |
 | `NON_PRODUCTION_RECIPIENT_ALLOWLIST` | — | — | — | ✔ | Garde-fou, §12.4 |
+
+**Variables de base : refus de démarrage** (*ajouté le 2026-09-26, `21` EC-20, tranché par
+`expert-cybersecurite`* ; `ELEVATED_DATABASE_URL` disparaît, `03` §4 P7 fait foi) :
+
+1. l'utilisateur de chaque URL (avant le `.` du multiplexeur, format `<rôle>.<référence du
+   projet>`) doit être **exactement** le rôle de connexion attendu pour cette variable ;
+2. deux URL d'un même processus ne partagent jamais le même utilisateur ;
+3. à l'ouverture de chaque grappe, `current_user` et l'absence de `rolsuper` / `rolbypassrls` sont
+   vérifiés **en base** ;
+4. sur Railway (`RAILWAY_ENVIRONMENT_NAME` présent), la présence d'une variable de base réservée à
+   un autre service fait échouer le démarrage (par exemple `DATABASE_URL` ou `AUTH_DATABASE_URL`
+   sur `worker`). En local, `apps/api/.env.local` porte les trois variables, puisque les deux
+   processus y lisent le même fichier.
 
 **Les deux fronts ne détiennent aucun secret.** C'est vérifiable : une règle ESLint interdit
 `process.env` en dehors de `src/config/` dans `apps/web` et `apps/backoffice`, et la configuration
@@ -1667,7 +1711,8 @@ retourne un jour contre une obligation légale (test **T8** : une révocation pr
    de demandes de code ouvre des transactions élevées dans `apps/api` (opération **E-1**) ; le
    worker, lui, est un **processus séparé avec sa propre grappe** (D2), mais tous deux tirent sur le
    même budget de connexions du projet Supabase. D'où le garde-fou **G5** : la grappe élevée de
-   `apps/api` est **plafonnée explicitement** (valeur de départ : **5 connexions**, à confirmer par
+   `apps/api` (`AUTH_DATABASE_URL`, rôle `influx_auth_login` depuis EC-20) est **plafonnée
+   explicitement** (valeur de départ : **5 connexions**, à confirmer par
    `expert-database`), de sorte qu'aucune rafale de `P0` ne puisse assécher le worker. C'est ce
    plafond, et non la priorité, qui empêche la famine.
 
@@ -2081,12 +2126,17 @@ ligne de code.
   relevés de la sonde, réglages (seuils, destinataires). L'API écrit ces tables **hors de la
   transaction de l'utilisateur** : cela demande un rôle Postgres dédié, par exemple `influx_ops`,
   **en écriture seule sur `ops`, sans lecture des données métier et sans `BYPASSRLS`**, donc une
-  opération de plus dans la liste fermée de `03` §P7.
+  opération de plus dans la liste fermée de `03` §P7. *Précisé le 2026-09-26 (`21` EC-1, EC-20) :*
+  `influx_ops`, joint par le rôle de connexion `influx_ops_login` et la variable
+  `OPS_DATABASE_URL` (service `api`, J4) ; entrée E-6 à signer par `expert-cybersecurite` avec sa
+  migration.
 - **Routes de santé.** `apps/api` expose `/health` sur le réseau privé, vérification de la base
   comprise. `apps/web` expose une route de santé publique qui ne répond que `200` ou `503`, **sans
   aucun détail**.
-- **Variables d'environnement** (skill `env-secrets`, §12.3) : **aucun nouveau secret**. Une variable
-  non secrète pour les destinataires de secours des alertes de disponibilité (`api`, `worker`). La
+- **Variables d'environnement** (skill `env-secrets`, §12.3) : **aucun nouveau secret** —
+  *sauf, depuis le 2026-09-26 (EC-20), `OPS_DATABASE_URL`, chaîne de connexion du rôle
+  `influx_ops_login` (`api`, J4)*. Une variable non secrète pour les destinataires de secours des
+  alertes de disponibilité (`api`, `worker`). La
   version vient de `RAILWAY_GIT_COMMIT_SHA`, l'environnement de `INFLUX_ENV`.
 - **Charge.** Une écriture par minute et par route active, plus des erreurs plafonnées : négligeable
   pour la base.

@@ -22,6 +22,13 @@ Agents concernés : `integrateur` (principal), `expert-cybersecurite` (**veto**)
 > | **1** | L'URL du projet Supabase et la **clé anonyme** étaient classées « Client (publique) » | **Faux depuis D5/D12.** Le front ne parle jamais à Supabase et **ne porte aucune clé Supabase, pas même `anon`**. Les deux sont **serveur uniquement**, détenues par `apps/api` |
 > | **2** | Une seule « clé API Brevo » | **Onze variables** Brevo (`16` §M8), dont le mode d'envoi, la liste de redirection, les trois expéditeurs et les secrets du webhook |
 > | **3** | La rotation se vérifiait « en `staging` » | **Impossible pour Brevo et Apollo** : cela reviendrait à poser une clé de production en `staging`, ce que la règle 6 interdit et que `16` RG115/RG120 traitent comme un **incident**. Deux procédures de rotation distinctes, §« Faire tourner une clé » |
+>
+> **Révision du 2026-09-26** (`docs/mvp/21-plan-de-developpement.md` §3, EC-1, EC-20 et EC-23 ;
+> `03` §4 P7, « Les rôles Postgres — liste fermée », fait foi). **`ELEVATED_DATABASE_URL`
+> disparaît** : une variable par rôle de connexion, un service par variable (`DATABASE_URL` et
+> `AUTH_DATABASE_URL` sur `api`, `WORKER_DATABASE_URL` seule sur `worker`), avec leurs refus de
+> démarrage. `influx_service` n'existe pas. Fichiers locaux précisés (étape 4 de « Ajouter une
+> variable »).
 
 ---
 
@@ -93,9 +100,36 @@ Source de vérité : `02` §12.3 pour la plateforme, `16` §M8 pour Brevo.
 
 | Variable | Porteurs | Exposition | Remarque |
 |---|---|---|---|
-| `DATABASE_URL` | api | **Secrète** | Multiplexeur, rôle **`influx_app`** : ni propriétaire, ni `BYPASSRLS`, ni `SUPERUSER`, **ni membre d'un rôle élevé** |
-| `ELEVATED_DATABASE_URL` | api · worker | **Secrète** | **Seconde grappe de connexions** : `influx_auth`, `influx_worker`, `influx_privacy`. **Aucun de ces rôles ne porte `BYPASSRLS`** ; ils ont des `GRANT` et des politiques nommés table par table |
-| `DIRECT_DATABASE_URL` | **aucun service d'exécution** | **Secrète — CI uniquement** | Rôle de migration, **propriétaire des objets**. Vit dans les GitHub Secrets de l'environnement concerné et **jamais** dans une variable Railway |
+**Un rôle de connexion par rôle élevé, une variable par rôle de connexion, un service par
+variable** (EC-1, EC-20, 2026-09-26). Chaque rôle de connexion est `LOGIN NOINHERIT`, membre de son
+seul rôle cible `WITH INHERIT FALSE, SET TRUE` : hors d'une transaction qui a pris ce rôle par
+`SET LOCAL ROLE`, il n'a aucun droit. Aucun ne porte `BYPASSRLS` ni `SUPERUSER`. Les rôles cibles ont
+des `GRANT` et des politiques nommés table par table.
+
+| Variable | Porteurs | Exposition | Remarque |
+|---|---|---|---|
+| `DATABASE_URL` | **api uniquement** | **Secrète** | Multiplexeur, rôle de connexion **`influx_app`**, membre des **quatre rôles métier seuls** ; ni propriétaire, ni `BYPASSRLS`, ni `SUPERUSER`, **ni membre d'un rôle élevé**. Unique droit propre : `identity.resolve_session()` |
+| `AUTH_DATABASE_URL` | **api uniquement** | **Secrète** | Multiplexeur, rôle de connexion **`influx_auth_login`**, membre d'`influx_auth` **seul** : opérations E-1 et E-2 (code de connexion) |
+| `WORKER_DATABASE_URL` | **worker uniquement** | **Secrète** | Multiplexeur, rôle de connexion **`influx_worker_login`**, membre d'`influx_worker` **seul** : opérations E-3 et E-4. **Seule variable de base du worker** : ni `DATABASE_URL` ni `AUTH_DATABASE_URL` |
+| `OPS_DATABASE_URL` — *au J4* | **api uniquement** | **Secrète** | Rôle de connexion **`influx_ops_login`** → `influx_ops`, écriture seule du schéma `ops` (D60 ; entrée E-6 à signer avec sa migration) |
+| `PRIVACY_DATABASE_URL` — *au Lot 5* | **worker uniquement** | **Secrète** | Rôle de connexion **`influx_privacy_login`** → `influx_privacy` : opération E-5. **Jamais** ajouté au rôle de connexion du worker |
+| `DIRECT_DATABASE_URL` | **aucun service d'exécution** | **Secrète — CI uniquement** | Rôle de migration, **propriétaire des objets**. Vit dans les GitHub Secrets de l'environnement concerné et **jamais** dans une variable Railway (CI-5) |
+
+Format commun des URL d'exécution : utilisateur `<rôle>.<référence du projet>`, port **6543**
+(multiplexeur en mode transaction), **TLS obligatoire** avec vérification du certificat. En pile
+locale, la connexion est directe, sans suffixe.
+
+**Refus de démarrage** (ligne EC-20 de `21` §3, tranchée par `expert-cybersecurite`) :
+
+1. l'utilisateur de chaque URL (avant le `.` du multiplexeur) doit être **exactement** le rôle de
+   connexion attendu pour cette variable ;
+2. deux URL d'un même processus ne partagent jamais le même utilisateur ;
+3. à l'ouverture de chaque grappe, `current_user` et l'absence de `rolsuper` / `rolbypassrls` sont
+   vérifiés **en base** ;
+4. sur Railway (`RAILWAY_ENVIRONMENT_NAME` présent), la présence d'une variable de base réservée à
+   un autre service fait échouer le démarrage — par exemple `DATABASE_URL` ou `AUTH_DATABASE_URL`
+   sur `worker`, `WORKER_DATABASE_URL` sur `api`. En local, `apps/api/.env.local` porte les trois
+   variables, puisque les deux processus lisent le même fichier.
 
 > **Règle non négociable.** Un rôle propriétaire ou `BYPASSRLS` placé dans `DATABASE_URL`
 > **annulerait toute la RLS en silence**, sans le moindre symptôme. Vérifié par le test T4 de
@@ -138,14 +172,25 @@ Toutes sont **serveur uniquement**, dans le paquet `apps/api` (services `api` et
 ## Ajouter une variable
 
 1. **Classer** : publique (client) ou secrète (serveur). En cas de doute → secrète.
-   **Toute variable `SUPABASE_*`, `DATABASE_*`, `BREVO_*`, `APOLLO_*` est serveur, sans discussion.**
+   **Toute variable `SUPABASE_*`, `*DATABASE_URL`, `BREVO_*`, `APOLLO_*` est serveur, sans
+   discussion.**
 2. **Nommer** en `SCREAMING_SNAKE_CASE`, explicite, préfixé par le service
    (`BREVO_WEBHOOK_SECRET`, `SUPABASE_SECRET_KEY`). **N'utiliser `NEXT_PUBLIC_` que pour une
    valeur qu'on accepterait de publier sur la page d'accueil.**
 3. **Documenter** dans `.env.example` : nom, rôle, format attendu, service porteur, **valeur
    factice** — jamais la vraie valeur.
 4. **Renseigner** aux trois endroits utiles, **par environnement** :
-   - Local : `.env` (ignoré par Git) ;
+   - Local (*révisé le 2026-09-26, EC-23* ; fichiers ignorés par Git, **jamais `.env`**, que la
+     maquette de la branche `demo` charge automatiquement) :
+     - `apps/api/.env.local` — **pile locale** (valeurs de `supabase status`, mots de passe des
+       rôles posés par le script local) et, seul, les clés des comptes Brevo et Apollo **de test**
+       (D62) ; lu par `pnpm dev` et `pnpm dev:worker` ;
+     - `apps/api/.env.staging.local` — valeurs de `staging`, pour les vérifications ponctuelles
+       (script `dev:staging`) ; il reproduit le service Railway `staging` : **aucune clé Brevo ni
+       Apollo**, **jamais `DIRECT_DATABASE_URL`** (CI seule, CI-5) ;
+     - `apps/<front>/.env.local` — chargé nativement par Next.js ; **aucun secret** (règle 4) ;
+     - le code ne lit jamais de fichier : `src/config/` ne lit que `process.env`, le fichier est
+       chargé par Node dans les seuls scripts de développement ;
    - CI : GitHub Secrets — **c'est le seul endroit de `DIRECT_DATABASE_URL`** ;
    - Exécution : variables Railway, **du seul service qui en a besoin**. Une variable posée « au cas
      où » sur les quatre services est une fuite en attente.
@@ -185,7 +230,7 @@ suspicion de fuite**.
 | `APOLLO_API_KEY` | **Oui** — écriture CRM, séquence commerciale | **B** |
 | `BREVO_WEBHOOK_SECRET`, `BREVO_WEBHOOK_PATH_TOKEN` | Oui, en flux entrant : une valeur mal basculée **perd des désinscriptions** | **B** |
 | `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY` | Non | **A** |
-| `DATABASE_URL`, `ELEVATED_DATABASE_URL`, `DIRECT_DATABASE_URL` (mots de passe de rôles) | Non | **A** |
+| `DATABASE_URL`, `AUTH_DATABASE_URL`, `WORKER_DATABASE_URL` (puis `OPS_DATABASE_URL`, `PRIVACY_DATABASE_URL`), `DIRECT_DATABASE_URL` (mots de passe de rôles, distincts par rôle et par environnement) | Non | **A** |
 | `SESSION_COOKIE_SECRET` | Non, mais **déconnecte tout le monde** | **A**, en fenêtre choisie |
 
 ### Procédure A — clé sans effet de bord observable
@@ -267,10 +312,13 @@ information des personnes si nécessaire, consignation écrite.
 À dérouler une fois par environnement, **avant le premier envoi réel**.
 
 - [ ] Projet Supabase **dédié** créé (un par environnement, jamais deux schémas d'un même projet)
-- [ ] Rôles Postgres créés : `influx_app`, les quatre rôles métier, les trois rôles élevés —
-      **aucun avec `BYPASSRLS` ni `SUPERUSER`** ; le rôle Postgres `service_role` n'est utilisé nulle part
-- [ ] `DATABASE_URL` et `ELEVATED_DATABASE_URL` posées sur les seuls services concernés ;
-      `DIRECT_DATABASE_URL` **uniquement dans les GitHub Secrets**
+- [ ] Rôles Postgres créés selon la liste fermée de `03` §4 P7 : `influx_app`, les quatre rôles
+      métier, `influx_auth` + `influx_auth_login`, `influx_worker` + `influx_worker_login`, les
+      propriétaires de fonctions sans membre (`influx_audit_writer`, `influx_session_resolver`,
+      `influx_identity_definer`) — **aucun avec `BYPASSRLS` ni `SUPERUSER`** ; le rôle Postgres
+      `service_role` n'est utilisé nulle part, `influx_service` n'existe pas
+- [ ] `DATABASE_URL` et `AUTH_DATABASE_URL` sur `api` seul, `WORKER_DATABASE_URL` sur `worker`
+      seul (refus de démarrage sinon) ; `DIRECT_DATABASE_URL` **uniquement dans les GitHub Secrets**
 - [ ] Les quatre services Railway créés (`web`, `backoffice`, `api`, `worker`) ; **`api` sans hôte
       public**, joint par le réseau privé
 - [ ] **Domaines d'envoi — bloquant.** Les **trois sous-domaines** de `16` RG9 sont créés et
