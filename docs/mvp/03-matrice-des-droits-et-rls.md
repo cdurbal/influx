@@ -699,7 +699,9 @@ une transaction en « zéro ligne » plutôt qu'en « toutes les lignes ».
 Corollaire à ne pas oublier : `influx_app` ne doit **pas** être membre de `service_role` ni d'un rôle
 élevé. Sinon un défaut d'échappement permettrait un `RESET ROLE` ou un `SET ROLE service_role` dans
 la même session. Les accès élevés passent par **une seconde grappe de connexions, avec un rôle
-différent et une variable d'environnement différente** (§P7).
+différent et une variable d'environnement différente** (§P7). *Précisé le 2026-09-26 (EC-1) :*
+**une grappe, un rôle de connexion et une variable par rôle élevé** — le processus HTTP ne détient
+jamais la connexion du worker. Liste fermée : §P7, « Les rôles Postgres — liste fermée ».
 
 ### P3 — Le rôle métier est lu en base, jamais dans le jeton
 
@@ -830,6 +832,91 @@ Toute autre opération privilégiée passe par une fonction `SECURITY DEFINER` (
 **Cinq entrées, pas une de plus.** Tout ajout à cette liste est une modification de ce document,
 signée par `expert-cybersecurite`.
 
+#### Les rôles Postgres — liste fermée *(tranché le 2026-09-26, EC-1 et EC-20 de `21` §3)*
+
+**Principe : un rôle de connexion par rôle élevé, une variable d'environnement par rôle de
+connexion, un service Railway par variable.** Un rôle de connexion ne possède rien et porte
+`NOINHERIT` : hors d'une transaction qui a pris un rôle par `SET LOCAL ROLE`, il n'a **aucun droit**
+(seule exception, nommée : `influx_app` et `identity.resolve_session`). Ainsi, une injection dans le
+processus HTTP ne peut jamais emprunter les droits du worker, et une réponse Brevo ou Apollo mal
+traitée par le worker ne peut jamais atteindre l'anonymisation transverse.
+
+**Lot 0, créés par `0001` (J2)** — tous `NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION` :
+
+| Rôle | Connexion | Membre de | Qui l'emprunte, pour quoi | Variable, service |
+|---|---|---|---|---|
+| `influx_app` | `LOGIN NOINHERIT` | `influx_advertiser`, `influx_creator`, `influx_agent`, `influx_admin` — **et rien d'autre** — `WITH INHERIT FALSE, SET TRUE` | `apps/api`, `withUserTransaction`. **Unique droit propre** : `USAGE` sur `identity` et `EXECUTE` sur `identity.resolve_session()`, lecture minimale qui résout la session **avant** le `SET LOCAL ROLE` (NOINHERIT oblige) | `DATABASE_URL`, `api` |
+| `influx_advertiser` · `influx_creator` · `influx_agent` · `influx_admin` | `NOLOGIN` | aucun | `SET LOCAL ROLE` par `withUserTransaction`, après lecture du rôle métier en base (P3) | — |
+| `influx_auth_login` | `LOGIN NOINHERIT` | `influx_auth` **seul**, `WITH INHERIT FALSE, SET TRUE` | `apps/api`, `withElevatedTransaction` : E-1, E-2 | `AUTH_DATABASE_URL`, `api` |
+| `influx_auth` | `NOLOGIN` | aucun | E-1, E-2 ; droits de table au J3 (`0108`, `04` §12.10) | — |
+| `influx_worker_login` | `LOGIN NOINHERIT` | `influx_worker` **seul**, `WITH INHERIT FALSE, SET TRUE` | worker, `withElevatedTransaction` : E-3, E-4 | `WORKER_DATABASE_URL`, `worker` |
+| `influx_worker` | `NOLOGIN` | aucun | E-3, E-4 | — |
+| `influx_audit_writer` | `NOLOGIN` | **aucun, et aucun membre** | Propriétaire de `audit.append()` ; `SELECT` et `INSERT` sur `audit.audit_events`, rien d'autre (P8) | — |
+| `influx_session_resolver` | `NOLOGIN` | aucun, aucun membre | Propriétaire de `identity.resolve_session()` ; `SELECT` des seules colonnes nécessaires de `sessions`, `accounts`, `account_roles`, `agent_profiles`. **Aucune écriture** : c'est la seule fonction appelable avant la prise de rôle | — |
+| `influx_identity_definer` | `NOLOGIN` | aucun, aucun membre | Propriétaire de `identity.grant_role()` (et, plus tard, des autres fonctions `SECURITY DEFINER` du domaine `identity`) ; droits limités à ce qu'elles écrivent | — |
+
+**Propriétaire des schémas, tables, types et séquences : le rôle de migration** (`postgres` du
+projet Supabase), joint uniquement par `DIRECT_DATABASE_URL`, en CI (CI-5). Pas de rôle
+propriétaire dédié pour les tables : il n'ajouterait rien, `postgres` n'étant jamais un rôle
+d'exécution. **`influx_service` n'existe pas** : supprimé, jamais créé.
+
+**Créés plus tard, déjà nommés :**
+
+| Rôle | Quand | Ce qu'il sera |
+|---|---|---|
+| `influx_ops` + `influx_ops_login` | J4, avec le schéma `ops` | Écriture seule sur `ops`, aucune lecture métier ; `OPS_DATABASE_URL`, `api` ; le worker écrit `ops` par des droits nommés d'`influx_worker`. **Entrée E-6 à signer par `expert-cybersecurite` avec sa migration** |
+| `influx_intro_owner` | Lot 4 | Propriétaire des fonctions de révélation (§3.4) |
+| `influx_privacy` + `influx_privacy_login` | Lot 5 | E-5 ; `PRIVACY_DATABASE_URL`, `worker`. **Jamais ajouté à `influx_worker_login`** |
+
+**Règles d'écriture de `0001`, exigées :**
+
+1. **Création idempotente, attributs imposés.** Les rôles sont des objets **de la grappe**, pas de
+   la base : `create role` dans un bloc qui tolère l'existence, **suivi d'un `alter role` qui
+   réimpose tous les attributs** (`NOLOGIN` ou `LOGIN`, `NOINHERIT`, `NOBYPASSRLS`, `NOSUPERUSER`…).
+   Un rôle préexistant qui porterait `BYPASSRLS` est ainsi corrigé, pas hérité.
+2. **Appartenances exactes.** L'ensemble **transitif** des appartenances de chaque rôle de
+   connexion est **égal** à sa ligne ci-dessus : aucun n'est membre de `postgres`, `service_role`,
+   `authenticated`, `anon`, `pg_read_all_data`, `pg_write_all_data` ni d'un rôle `supabase_*`. Syntaxe
+   `WITH INHERIT FALSE, SET TRUE` (PostgreSQL ≥ 16) : `0001` **échoue** si `server_version_num < 160000`.
+3. **`REVOKE ALL` sur chacun de nos schémas** — et sur tout ce qu'il contient, avec les
+   `ALTER DEFAULT PRIVILEGES` cohérents — **à `PUBLIC`, `anon`, `authenticated` et `service_role`.**
+   `service_role` porte `BYPASSRLS` et répond à `SUPABASE_SECRET_KEY` : sans ce `REVOKE`, une
+   exposition accidentelle d'un schéma à l'API de données rendrait la clé d'`apps/api` suffisante
+   pour tout lire. Aucun rôle d'exécution n'a `CREATE` sur un schéma.
+4. **`EXECUTE` des fonctions.** Postgres l'accorde à `PUBLIC` à la création, et un
+   `ALTER DEFAULT PRIVILEGES … IN SCHEMA` **ne peut pas retirer** un droit par défaut global : il faut
+   un `ALTER DEFAULT PRIVILEGES FOR ROLE postgres REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC` **global**,
+   en plus du `REVOKE` explicite après chaque `create function` (règle 2 ci-dessous).
+5. **Aucun mot de passe dans une migration.** Posé par environnement, par script, à partir d'un
+   secret, **sous forme de vérificateur SCRAM-SHA-256 calculé côté client** — jamais en clair dans
+   une instruction SQL, qui peut finir dans le journal de Postgres. Au moins 32 octets aléatoires,
+   distincts par rôle et par environnement ; mots de passe fixes réservés à la pile locale et à la CI.
+6. **Bornes sur les rôles de connexion** : `CONNECTION LIMIT`, `statement_timeout`,
+   `idle_in_transaction_session_timeout` (valeurs : `architecte`).
+
+**Règles de `withUserTransaction` et `withElevatedTransaction` (`apps/api/src/db/index.ts`), exigées :**
+
+1. **Le multiplexeur (Supavisor) en mode transaction (port 6543) est le seul chemin d'exécution**,
+   utilisateur `<rôle>.<référence du projet>`, `prepare: false`, **TLS avec vérification du
+   certificat** (autorité de Supabase) — jamais `rejectUnauthorized: false`.
+2. **Aucun état de session.** Seuls `SET LOCAL` et `set_config(…, true)`. `SET ROLE` sans `LOCAL`,
+   `RESET ROLE`, `set_config(…, false)`, `LISTEN`, verrous consultatifs de session : **interdits**,
+   par une garde statique sur `src/db/`. Motif : en mode transaction, un `SET ROLE` de session
+   **survit sur la connexion serveur et s'applique à la transaction d'un autre utilisateur** — une
+   fuite entre comptes, sans symptôme.
+3. **Garde d'entrée de transaction** : la première instruction vérifie
+   `current_user = session_user = <rôle de connexion attendu>` ; sinon annulation, connexion
+   détruite, ligne `error` sans donnée, alerte.
+4. **Le nom de rôle du `SET LOCAL ROLE` vient d'une table constante du code** (rôle métier →
+   identifiant), jamais d'une interpolation de valeur lue en base ou reçue.
+5. **Chaque opération élevée est liée à sa grappe** (E-1, E-2 → `AUTH_DATABASE_URL` ; E-3, E-4 →
+   `WORKER_DATABASE_URL`) ; un processus ne configure que les grappes de ses opérations.
+6. **À l'ouverture de chaque grappe**, contrôle en base de `current_user` et de l'absence de
+   `rolsuper` / `rolbypassrls` : **refus de démarrer** sinon (T4 en production, pas seulement en CI).
+7. **La CI passe par le multiplexeur local en mode transaction** (`[db.pooler]` de
+   `supabase/config.toml`), pour que les tests suivent le chemin de production — à confirmer par
+   `integrateur`.
+
 **Pourquoi `SECURITY DEFINER` est préférable à l'élévation pour tout le reste.** Une fonction
 `SECURITY DEFINER` est **étroite** (une opération, des paramètres fixes), elle peut **vérifier
 elle-même** l'identité et les droits de son appelant, elle **journalise**, et elle n'est pas
@@ -862,6 +949,14 @@ grant  execute on function messaging.read_conversation(uuid, messaging.message_c
 3. La fonction **vérifie elle-même** le rôle, l'`aal` et l'état de suspension de l'appelant.
 4. Elle n'est **jamais propriétaire de la table d'audit** qu'elle alimente — elle appelle
    `audit.append(...)`.
+5. *Ajoutée le 2026-09-26 (EC-1).* **Elle n'appartient jamais au rôle de migration.** Sur Supabase,
+   `postgres` porte `BYPASSRLS` : une fonction `SECURITY DEFINER` qui lui appartient contourne toute
+   la RLS et presque tous les `GRANT`. Son propriétaire est un rôle `NOLOGIN` dédié, **sans aucun
+   membre**, aux droits limités à ce que la fonction lit et écrit (liste fermée ci-dessus). Le
+   changement de propriétaire exige que le nouveau rôle ait `CREATE` sur le schéma : la migration
+   l'accorde, fait `ALTER FUNCTION … OWNER TO`, puis le **retire** dans la même migration. Une fonction
+   qui ne fait que lire le contexte de transaction (`influx.current_account_id()`, `current_aal()`…)
+   est `SECURITY INVOKER`.
 
 ### P8 — L'append-only est réel, pas conventionnel
 
@@ -871,8 +966,10 @@ Quatre couches, parce que chacune protège d'un scénario différent :
 -- 1) Le droit n'existe pas
 revoke update, delete, truncate on audit.audit_events from public;
 revoke update, delete, truncate on audit.audit_events
-  from influx_app, influx_advertiser, influx_creator, influx_agent, influx_admin, influx_worker;
-grant  insert                    on audit.audit_events to influx_audit_writer;
+  from influx_app, influx_advertiser, influx_creator, influx_agent, influx_admin,
+       influx_auth, influx_worker;
+-- influx_audit_writer : NOLOGIN, aucun membre, propriétaire de audit.append() (P7, liste fermée)
+grant  select, insert            on audit.audit_events to influx_audit_writer;
 
 -- 2) Le déclencheur protège d'une migration distraite qui redonnerait le droit
 create function audit.deny_mutation() returns trigger
