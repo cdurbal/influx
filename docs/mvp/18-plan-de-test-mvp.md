@@ -12,6 +12,9 @@
 > T3, T4, T6 et T16 précisés pour être codés sans supposer ; `influx_service` et
 > `ELEVATED_DATABASE_URL` retirés ; §3 (tests en base et poste sans Docker), §9.1 (C-3, C-7 à C-9),
 > §9.3 (A-1), §9.5 (nouveau), §10 (Lot 0), totaux.
+> **Révisé le 2026-09-27** (vérification de fin de J2, `21` §3 EC-35 tranché) : §3 (plancher,
+> chemin de connexion), T2 (forme `vide`, code de refus d'un déclencheur, exclusions de T2.2, essai
+> `delete` des formes `propre`), T3.7, T3.8, T4.7, T6.3 (exemptions), T16.5.
 >
 > **Ce document reprend et exécute** les tests T1 à T17 exigés au §8 de
 > `docs/mvp/03-matrice-des-droits-et-rls.md` et les contrôles X1 à X4 de son §5.3, comme le demande
@@ -244,7 +247,7 @@ réel et ne crée aucun fichier applicatif.
 T4.6 et T4.8), T6.4, T6.5, T16.3, T16.4 et T16.5 exigent une vraie base : la **pile Supabase locale**
 (`supabase start`, puis `supabase db reset`), qui tourne dans des conteneurs, ou la CI qui la lance
 (`21` J2, point 7). **Au 2026-09-26, Docker n'est pas installé sur le poste de développement** : ces
-tests ne peuvent donc tourner qu'en CI. L'exigence ne change pas pour autant :
+tests ne peuvent donc tourner qu'en CI. *(Installé depuis : pile locale en service au J2, `21` J2.)* L'exigence ne change pas pour autant :
 
 1. **« Vert » veut dire vert en local et en CI** (`21` §2.5). Tant que le poste n'a pas de moteur de
    conteneurs (Docker, ou un moteur compatible accepté par la CLI Supabase — choix d'`integrateur`),
@@ -255,13 +258,24 @@ tests ne peuvent donc tourner qu'en CI. L'exigence ne change pas pour autant :
    `pnpm check`. Base injoignable ⇒ **échec**, avec un message qui dit quoi faire (« pile Supabase
    locale absente : lancer `supabase start` »), jamais « ignoré ». En CI, un `.skip` ou un `.todo`
    dans cet ensemble, ou un nombre de cas exécutés inférieur au plancher déclaré par famille, fait
-   échouer l'exécution.
+   échouer l'exécution. *Tranché le 2026-09-27 (EC-35, point 5) :* au J2, seule la garde statique
+   (`.skip`, `.todo`, `.skipIf`, `.runIf`, `.only` refusés dans `db-tests/`) est en place ; elle ne
+   voit ni un saut dynamique (`context.skip()`) ni un cas supprimé. **Le plancher est exigé au J3,
+   avant le premier commit qui ajoute un test en base** : la CI lit le rapport JSON de Vitest du
+   projet `db`, exige zéro cas sauté ou `todo`, et, par fichier, un nombre de cas exécutés au moins
+   égal au plancher d'un fichier versionné (valeurs de départ : les effectifs constatés au J2,
+   87 cas). Baisser un plancher se fait dans un commit qui le dit.
 3. **Ce qui tourne sans base**, pour itérer en attendant : T6.1 à T6.3, T6.6, T16.1, T16.2, T16.6,
    T16.7, les parties unitaires de T4.6 et T4.8, et l'épreuve des analyseurs sur fichiers témoins
    (T6). Ce sous-ensemble peut être lancé seul, mais **il ne vaut jamais « vert »** au sens du §10.
 4. **Chemin de connexion.** `03` P7 (règle 7) demande que la CI passe par le multiplexeur local en
    mode transaction ; en pile locale, la connexion est directe (EC-20). Les cas de T4 sont écrits
    pour tenir sur les deux chemins ; le choix pour la CI reste à confirmer par `integrateur`.
+   *Tranché le 2026-09-27 (EC-35, point 7) :* **la CI se connecte en direct** (port 54322,
+   multiplexeur non démarré, budget de temps), ce qui est accepté aux J2 et J3. Le mode transaction
+   est précisément celui où un état de session fuit d'une requête à l'autre : **au J4, avant de
+   déclarer `staging` prêt, T4.5, T4.6 e et T4.7 sont rejoués une fois par le multiplexeur** (pile
+   locale avec Supavisor, ou `staging`), résultat consigné dans `21` J4.
 
 ---
 
@@ -332,6 +346,20 @@ qu'une protection a glissé d'une couche à l'autre. *Précisé le 2026-09-26 (E
 | `filtré` | Le droit existe ; `select`, `update`, `delete` voient ou touchent **zéro ligne alors que le rôle de migration en voit au moins une** ; `insert` lève `42501` par la politique (`WITH CHECK`) |
 | `propre` | Le droit existe ; seules les lignes rattachées au compte du contexte (A) sont vues ou touchées, **jamais** celles de B |
 | `autorisé` | Le droit existe ; l'opération aboutit sur le gabarit de ligne de la table (puis la transaction est annulée) |
+| `vide` | *Ajoutée le 2026-09-27 (EC-35, point 1).* Le droit de lecture existe ; `select` voit **zéro ligne** et le rôle de migration aussi (table vide par construction). Réservée à `billing.commission_rates` lue par `influx_admin` (`03` C(32), `0007`) ; toute autre table déclarée `vide` exige l'accord de `testeur` |
+
+**Code de refus d'un déclencheur** *(EC-35, point 2)*. Quand un déclencheur `BEFORE` refuse avant la
+politique, la table déclare le code attendu (`filteredInsertCode`, ex. `23503` pour
+`identity.terms_acceptances`, dont le déclencheur lit la version avec les droits de l'appelant). Ce
+code n'est admis **que sans contexte** ; avec contexte, l'insertion au nom du compte B doit toujours
+lever `42501` par la politique, ce qui prouve que la couche RLS tient seule.
+
+**Essais `update` et `delete` des formes `propre`** *(EC-35, relevé de fin de J2)*. L'essai porte
+`where <colonne du compte> = $1` : d'abord le compte A (au moins une ligne touchée), puis le compte B
+(zéro ligne). Au J2, l'essai `delete` n'a pas ce filtre ; c'est sans effet tant qu'aucune table n'a de
+`delete` `propre`, mais le contrôle du compte B serait alors vide de sens (les lignes de B, si elles
+fuyaient, auraient déjà été supprimées et comptées avec celles de A). **À corriger avant la première
+ligne d'attendus `delete` `propre`.**
 
 Règles d'écriture du fichier, pour qu'il se code sans supposer :
 
@@ -344,7 +372,7 @@ Règles d'écriture du fichier, pour qu'il se code sans supposer :
    est le défaut, jamais l'exception.
 3. **Chaque table déclare un gabarit de ligne valide** pour les essais d'`insert`, et le jeu de
    données de T2 (voir ci-dessous) y place **au moins une ligne**, sauf `billing.commission_rates` qui
-   reste vide (T16.3) et dont toutes les lignes sont `refus_droit`. Sans ligne présente, `filtré` ne se
+   reste vide (T16.3) : sa lecture par `influx_admin` est `vide`, tout le reste `refus_droit`. Sans ligne présente, `filtré` ne se
    distingue pas d'une table vide et le test ne prouve rien.
 4. **Les tables en ajout seul portent un marqueur** (`append_only`) : T3.1 et T3.2 s'y appliquent
    d'office dès qu'elles existent.
@@ -377,7 +405,7 @@ select n.nspname || '.' || c.relname as table_manquante
 | Cas | Ce qu'il vérifie |
 |---|---|
 | **T2.1** | Chaque rôle Postgres pris à l'exécution (**J2 :** `influx_advertiser`, `influx_creator`, `influx_agent`, `influx_admin`, `influx_auth`, `influx_worker` ; `influx_ops` au J4, `influx_privacy` au Lot 5) tente `select`, `insert`, `update` et `delete` sur chaque table ; résultat et **forme** comparés au fichier d'attendus. Rôles métier exécutés avec le contexte complet du compte A (`aal2` pour `influx_agent` et `influx_admin`). Exécution par transactions annulées regroupées (A-4) |
-| **T2.2** | **Échec de la CI sur toute table nouvelle** : `relrowsecurity` et `relforcerowsecurity` vrais, au moins une politique, et une ligne dans la table d'attendus. Trois conditions, trois raisons d'échouer, message distinct pour chacune. **Et** : aucun schéma appartenant au rôle de migration hors de la liste déclarée (exclusion nommée : `supabase_migrations`) ; aucune table, vue ni fonction de nos objets dans `public` (P6) ; toute vue de nos schémas porte `security_invoker = true` (P5) |
+| **T2.2** | **Échec de la CI sur toute table nouvelle** : `relrowsecurity` et `relforcerowsecurity` vrais, au moins une politique, et une ligne dans la table d'attendus. Trois conditions, trois raisons d'échouer, message distinct pour chacune. **Et** : aucun schéma appartenant au rôle de migration hors de la liste déclarée (exclusions nommées, liste fermée du fichier d'attendus : `supabase_migrations`, `_realtime` et `extensions`, créés par Supabase sous `postgres` — EC-35, point 3 ; toute nouvelle exclusion exige l'accord de `testeur` ; **au J3**, condition d'`expert-cybersecurite` : aucun rôle `influx_%` ne détient de droit sur ces schémas exclus ni sur leurs objets) ; aucune table, vue ni fonction de nos objets dans `public` (P6) ; toute vue de nos schémas porte `security_invoker = true` (P5) |
 | **T2.3** | **Échec de la CI sur toute ligne d'attendus orpheline** (une table supprimée dont les attendus restent) : sinon la table d'attendus devient un cimetière et perd sa valeur de recensement |
 | **T2.4** | `PUBLIC`, `anon`, `authenticated` et `service_role` n'ont **aucun droit** sur nos schémas (`has_schema_privilege` `USAGE` et `CREATE` faux), ni sur aucune table, séquence ou fonction qu'ils contiennent (`03` P7, règle 3 de `0001`). Aucun de nos schémas ne figure dans `[api].schemas` de `supabase/config.toml` (B3) ; sur un projet hébergé, l'exposition se vérifie à la main (§10, Lot 0) — l'absence de `USAGE` la rend de toute façon inoffensive |
 | **T2.5** | Cloisonnement horizontal explicite : annonceur A ne lit rien d'annonceur B ; créateur A ne lit ni le profil identifié, ni les candidatures, ni les conversations de créateur B. **Rôle pris mais contexte absent** (aucun `set_config`) ⇒ `filtré` ou `refus_droit`, jamais une ligne (P4). Variante `aal1` pour `influx_agent` et `influx_admin` : rien de ce qui est `autorisé` en `aal2` ne l'est. *Hors rôle pris, la forme attendue est un refus : T4.5* |
@@ -435,8 +463,8 @@ sous `influx_worker` (E-4).
 | **T3.4** | Après N insertions **par `audit.append()`**, la chaîne est continue : `seq` sans trou, `prev_hash` égal au `row_hash` précédent, `payload_hash` **recalculé depuis la forme canonique** et `row_hash` recalculé égaux aux valeurs stockées |
 | **T3.5** | **Altération d'un contenu** (`payload` modifié, empreintes stockées inchangées) ⇒ anomalie `broken_row`, statut `broken`, `broken_at_seq` exact. **Ce cas n'est détectable que si le vérificateur recalcule `payload_hash` depuis la forme canonique** : la requête illustrative de `04` §7.2 compare `row_hash` à l'empreinte **stockée** et ne le voit pas (remonté à `expert-database`, §9.5) |
 | **T3.6** | **Altération d'un maillon** (`prev_hash` réécrit) ⇒ anomalie `broken_link` sur cette ligne, statut `broken` |
-| **T3.7** | **Suppression d'une ligne intermédiaire** en tant que rôle de migration ⇒ anomalie `gap` sur la ligne suivante, statut `gap` |
-| **T3.8** | **Concurrence** : 50 écritures simultanées (50 connexions distinctes) produisent 50 `seq` consécutifs, aucune bifurcation ; la contrainte `unique (chain_key, prev_hash)` n'est jamais violée en fonctionnement normal |
+| **T3.7** | **Suppression d'une ligne intermédiaire** en tant que rôle de migration ⇒ anomalie `gap`, statut `gap`, `broken_at_seq` égal au `seq` **manquant** |
+| **T3.8** | **Concurrence** : 50 écritures simultanées (50 connexions distinctes) produisent 50 `seq` consécutifs, aucune bifurcation ; la contrainte `unique (chain_key, prev_hash)` n'est jamais violée en fonctionnement normal. *EC-35, point 8 :* 50 connexions `influx_app` (plus la connexion partagée du fichier) sous la limite d'attente de 60 (EC-33) ; un dépassement échoue bruyamment (`too many connections`), jamais en silence. Si `architecte` fixe la limite en dessous de 55, le nombre d'écrivains descend à limite − 5, **jamais sous 20** |
 | **T3.9** | Une transaction **annulée** ne laisse **pas** de trou de séquence (c'est l'argument qui justifie le verrou consultatif plutôt qu'une séquence PostgreSQL) |
 | **T3.10** | Chaque vérification écrit une ligne dans `audit.chain_checks` avec un `head_row_hash` non nul. Les mêmes interdits de mutation (T3.1, T3.2) s'appliquent, **dès que la table existe**, à `terms_acceptances` et `consent_events` (J2), puis `conversation_access_log`, `messages` (Lot 4), `deal_field_changes` (Lot 5) ; `chain_checks` est proposée en ajout seul (§9.5) |
 | **T3.11** | *Ajouté le 2026-09-26.* **Suppression de la ou des dernières lignes** : aucun trou n'apparaît, la requête de `04` §7.2 ne voit rien. La vérification part donc de la dernière ligne de `chain_checks` : si la ligne `to_seq` n'existe plus, ou si son `row_hash` diffère de `head_row_hash`, statut `gap` ou `broken`. *Une réécriture complète de la chaîne après la ligne altérée, empreintes recalculées, reste indétectable en base : seule la publication externe de l'empreinte de tête (I-3, Lot 4) la révèle ; ce test ne le prétend pas* |
@@ -489,7 +517,7 @@ select rolname, rolsuper, rolbypassrls
 | **T4.4** | **Propriété.** Aucun rôle d'exécution (les trois rôles de connexion, les quatre rôles métier, `influx_auth`, `influx_worker`) ne possède d'objet (`pg_class`, `pg_proc`, `pg_type`, `pg_namespace`). Schémas, tables, types et séquences de nos schémas appartiennent au rôle de migration. **Toute fonction `SECURITY DEFINER` de nos schémas** figure dans la liste déclarée avec son propriétaire (J2 : `audit.append` → `influx_audit_writer`, `identity.resolve_session` → `influx_session_resolver`, `identity.grant_role` → `influx_identity_definer`) ; ce propriétaire n'a ni `rolsuper` ni `rolbypassrls` ; son `proconfig` fixe un `search_path` vide ; **aucune** n'appartient au rôle de migration (`03` P7, règle 5). _Conséquence : le déclencheur d'ajout seul est `SECURITY INVOKER` — `04` (§4.1 et §12.1, point 7) remplace déjà l'`audit.deny_mutation()` `security definer` illustrée en `03` P8 par `influx.assert_append_only()` ; T4.4 le garde_ |
 | **T4.5** | **Sans rôle pris, un rôle de connexion n'a aucun droit : l'échec attendu est un refus, pas « zéro ligne »** (demande d'`expert-cybersecurite`, 2026-09-26). Pour chacun des trois rôles de connexion, sans `SET LOCAL ROLE` — instruction isolée hors transaction, puis transaction ouverte sans prise de rôle — `select`, `insert`, `update` et `delete` sur **chaque** table de nos schémas lèvent `42501`. **Un résultat « zéro ligne » est un échec** : il prouverait qu'un droit est hérité (`NOINHERIT` ou `INHERIT FALSE` manquant) et que seule une politique filtre. Seule exception, nommée : `influx_app` exécute `identity.resolve_session()` ; `influx_auth_login` et `influx_worker_login` ne l'exécutent pas. **Et le rôle ne survit pas à la transaction** : sur une grappe de taille 1, après le `COMMIT` puis après le `ROLLBACK` d'une transaction qui a pris un rôle, l'instruction suivante voit `current_user` égal au rôle de connexion et est refusée |
 | **T4.6** | **Variables de base et refus de démarrage (EC-20).** a) `api` exige `DATABASE_URL` et `AUTH_DATABASE_URL` ; `worker` exige `WORKER_DATABASE_URL` **seule** : sa configuration n'a aucune clé pour `DATABASE_URL` ni `AUTH_DATABASE_URL` et il n'ouvre qu'une grappe. b) L'utilisateur de chaque URL (avant le `.` du multiplexeur ; sans suffixe en pile locale) est **exactement** `influx_app`, `influx_auth_login`, `influx_worker_login` respectivement ; sinon refus — cas essayés : `postgres`, le rôle d'une autre variable, `influx_app_x`, utilisateur vide, casse différente. c) Deux URL d'un même processus avec le même utilisateur ⇒ refus. d) `RAILWAY_ENVIRONMENT_NAME` présent : `api` portant `WORKER_DATABASE_URL`, ou `worker` portant `DATABASE_URL` ou `AUTH_DATABASE_URL` ⇒ refus ; sans cette variable (poste local, `.env.local` partagé), la présence est tolérée mais la variable n'est pas lue. e) À l'ouverture de chaque grappe, `current_user` et l'absence de `rolsuper` / `rolbypassrls` sont lus en base ; tout écart ⇒ refus — fonction de décision testée en unitaire sur toutes ses branches, chemin nominal en intégration. f) Hors hôte de bouclage, TLS avec vérification du certificat et `prepare: false` (`03` P7, règle 1). g) `apps/api/.env.example` porte les trois lignes d'EC-20, dont l'utilisateur satisfait b). h) La chaîne `ELEVATED_DATABASE_URL` n'apparaît nulle part dans `apps/`, `packages/`, `supabase/` ni `.github/` |
-| **T4.7** | **Garde d'entrée de transaction** (`03` P7, règle 3). Sur une grappe de taille 1, un `SET ROLE` **de session** est laissé sur la connexion (fuite simulée) ; le `withUserTransaction` suivant constate `current_user <> session_user`, **n'exécute pas** la fonction reçue, annule, détruit la connexion et écrit une ligne `error` sans donnée ; l'appel suivant obtient une connexion neuve. Même cas pour la grappe élevée |
+| **T4.7** | **Garde d'entrée de transaction** (`03` P7, règle 3). Sur une grappe de taille 1, un `SET ROLE` **de session** est laissé sur la connexion (fuite simulée) ; le `withUserTransaction` suivant constate `current_user <> session_user`, **n'exécute pas** la fonction reçue, annule, détruit la connexion et écrit une ligne `error` sans donnée ; l'appel suivant obtient une connexion neuve. Même cas pour la grappe élevée : *EC-35, point 6 :* non testable tant que l'union U est vide, **exigé dans le commit du J3 qui fait entrer E-1** |
 | **T4.8** | **Le nom du rôle pris vient d'une table constante** (`03` P7, règle 4). Unitaire : la table rôle métier → rôle Postgres couvre exactement les quatre rôles métier ; toute autre valeur lue en base (`service`, chaîne vide, valeur piégée contenant `;` ou `"`) ⇒ refus **sans aucune instruction SQL émise** ; `SET LOCAL ROLE` n'apparaît qu'à un seul endroit de `src/db/` (garde T6.6) |
 
 ---
@@ -548,7 +576,7 @@ s'exécutent donc aussi sur un dossier de fichiers témoins en infraction (hors 
 |---|---|
 | **T6.1** | **U ⊆ P** et **A = U** : ni plus (dérive), ni moins (une opération déclarée mais jamais appelée est une porte ouverte inutilement). Un appel dont l'opération n'est pas un littéral, ou une référence à `withElevatedTransaction` qui n'est pas un appel direct (alias, réexportation, passage en argument), fait échouer le contrôle : sinon l'ensemble A n'est plus vérifiable |
 | **T6.2** | Une opération hors de U, passée par transtypage, est refusée **à l'exécution** : exception levée **avant** toute prise de connexion (aucune instruction SQL émise), ligne `error` sans donnée, aucune ligne d'audit. Testable dès le J2 |
-| **T6.3** | **Séparation par processus**, sur le graphe d'imports. Depuis `apps/api/src/main.ts` : aucune référence à E-3, E-4, E-5, ni à `WORKER_DATABASE_URL` ou `PRIVACY_DATABASE_URL`. Depuis `apps/api/src/worker.ts` : aucune référence à E-1, E-2, ni à `DATABASE_URL` ou `AUTH_DATABASE_URL`. E-1 et E-2 ne sont appelées que depuis le module d'authentification. Et chaque opération est liée à sa grappe par une table constante (E-1, E-2 → `AUTH_DATABASE_URL` ; E-3, E-4 → `WORKER_DATABASE_URL` ; E-5 → `PRIVACY_DATABASE_URL`) |
+| **T6.3** | **Séparation par processus**, sur le graphe d'imports. Depuis `apps/api/src/main.ts` : aucune référence à E-3, E-4, E-5, ni à `WORKER_DATABASE_URL` ou `PRIVACY_DATABASE_URL`. Depuis `apps/api/src/worker.ts` : aucune référence à E-1, E-2, ni à `DATABASE_URL` ou `AUTH_DATABASE_URL`. E-1 et E-2 ne sont appelées que depuis le module d'authentification. Et chaque opération est liée à sa grappe par une table constante (E-1, E-2 → `AUTH_DATABASE_URL` ; E-3, E-4 → `WORKER_DATABASE_URL` ; E-5 → `PRIVACY_DATABASE_URL`). *Exemptions nommées (EC-35, point 4), par chemin exact :* `apps/api/src/config/schema.ts` (nomme toutes les variables pour refuser celle posée sur le mauvais service, EC-20 ; son refus est prouvé par T4.6 a et d) et `packages/contracts/src/elevated-operations.ts` (déclare P). Ces deux fichiers restent soumis à T6.1 ; toute autre exemption exige l'accord de `testeur` |
 | **T6.4** | *À partir du J3 (première élévation).* Chaque transaction élevée **validée** écrit exactement une ligne d'audit portant l'opération (code d'événement lu dans `audit.event_types`, jamais recopié) et le `request_id` ; une transaction élevée annulée n'en laisse aucune. *Volume à trancher avant le J6* : une ligne par tour de file du worker saturerait la chaîne (§9.1, C-7) |
 | **T6.5** | *À partir du J3.* Le chemin élevé n'emprunte jamais une connexion du chemin utilisateur : dans E-1, `session_user = influx_auth_login` et `current_user = influx_auth` ; dans `withUserTransaction`, `session_user = influx_app` ; dans E-3, `session_user = influx_worker_login` |
 | **T6.6** | *Ajouté le 2026-09-26.* **Aucun état de session** (`03` P7, règles 1, 2 et 4), garde statique sur `apps/api/src/` et `packages/*/src/`, textes SQL compris : interdits `SET ROLE` sans `LOCAL`, `RESET ROLE`, `RESET ALL`, tout `SET` de session (seuls `SET LOCAL` et `SET CONSTRAINTS` sont admis), `set_config(…, false)`, `LISTEN` / `UNLISTEN`, `pg_advisory_lock` / `pg_try_advisory_lock` / `pg_advisory_unlock` (seules les variantes `_xact_` sont admises), `rejectUnauthorized: false`. `SET LOCAL ROLE` n'apparaît qu'à un seul endroit de `src/db/` ; `packages/test-kit` est soumis à la même garde |
@@ -755,7 +783,7 @@ sans supposer ; soumises à `expert-cybersecurite`, §9.1 C-3) :
 | **T16.2** | Aucune littérale décimale `0.35`, `0.2`, `0.20`, `0.15`, `0.65`, ni chaîne portant `35 %`, `20 %`, `15 %`, `65 %` (avec ou sans espace), **dans la même fonction** (en SQL : la même instruction) qu'un identifiant monétaire ou de taux. Les entiers nus (`15`, `20`, `35`) ne relèvent que de T16.1 : les interdire à la seule proximité d'un montant signalerait chaque `limit: 20` d'une liste d'affaires |
 | **T16.3** | `billing.commission_rates` est **vide** après `supabase db reset` (migrations **et** seed) ; aucun fichier de `supabase/seed/` ni du jeu de données de T2 ne la cite |
 | **T16.4** | Aucun droit d'écriture sur `billing.commission_rates` : `has_table_privilege` faux pour `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE` pour **chaque** rôle de la liste fermée de `03` P7 (J2 : les douze de T4) **et** pour `PUBLIC`, `anon`, `authenticated`, `service_role` ; une insertion tentée par chaque rôle joignable (les trois rôles de connexion sans rôle pris, les quatre rôles métier, `influx_auth`, `influx_worker`) lève `42501`. *(L'ancienne mention d'un rôle « `service` » ne désignait aucun rôle Postgres : elle est remplacée par cette liste.)* |
-| **T16.5** | Aucun montant stocké en **flottant** : aucune colonne de nos schémas n'est de type `real`, `double precision` ou `money` ; toute colonne dont un mot est `amount` ou `montant` est `bigint` (plus petite unité) et sa table porte une colonne de devise. *Le transport (schémas de `packages/contracts`) est vérifié à partir du Lot 5, quand le premier montant y entre ; sa forme est à fixer par `architecte`* |
+| **T16.5** | Aucun montant stocké en **flottant** : aucune colonne de nos schémas n'est de type `real`, `double precision` ou `money` ; toute colonne dont un mot est `amount` ou `montant` est `bigint` (plus petite unité) et sa table porte une colonne de devise *(au J2, la seconde condition n'est pas codée : sans effet tant qu'aucune colonne de montant n'existe, exigée avant la première)*. *Le transport (schémas de `packages/contracts`) est vérifié à partir du Lot 5, quand le premier montant y entre ; sa forme est à fixer par `architecte`* |
 | **T16.6** | **Exemption nommée (2026-09-19).** La seule multiplication de montant autorisée est la fonction unique de conversion d'unité monétaire de `packages/domain` (`2 000,00 EUR` ↔ `200000`), dont le facteur est lu dans `reference.currencies.minor_unit`. L'analyse statique de T16.1 **exempte cette fonction et elle seule**, par annotation nominative ; toute autre multiplication échoue. **Au J2, cette fonction n'existe pas** : aucune annotation n'est admise, et le texte de l'annotation est fixé par `expert-cybersecurite` avant l'entrée de la fonction (`03` §8) |
 | **T16.7** | **L'exemption ne s'étend pas.** Une seconde fonction annotée comme exemptée, ou une annotation posée ailleurs que sur la fonction de conversion, fait échouer la CI ; le facteur ne peut jamais être un littéral (test sur le corps de la fonction) |
 

@@ -249,7 +249,7 @@ la proposition est une hypothèse de travail, pas une décision.
 | **EC-32** | **Noms de migrations incompatibles avec la CLI Supabase.** La CLI n'applique que les fichiers `<chiffres>_<nom>.sql` ; `04` §11.2 prévoit `0402a`, `0402b`, `0402c` (Lot 4), qui seraient **ignorés sans erreur**, et un ordre d'application (`0402a` avant `0402`) que le tri ne donnerait pas | Renuméroter au Lot 4 en entiers dans l'ordre d'application (par exemple `0402` → `0405`, décalage des suivants), et ajouter à la CI un contrôle qui échoue sur tout fichier de `supabase/migrations/` ne respectant pas `^[0-9]{4}_[a-z0-9_]+\.sql$` | `expert-database` + `integrateur` | Lot 4 (contrôle CI : J4) |
 | **EC-33** | **Bornes des rôles de connexion** (`03` P7, règle 6 : « valeurs : `architecte` »). `0001` les pose avec des **valeurs d'attente** pour que T4.2 trouve `rolconnlimit` et `rolconfig` renseignés : `influx_app` 60 connexions, `statement_timeout` et `idle_in_transaction_session_timeout` 15 s ; `influx_auth_login` 20, 5 s ; `influx_worker_login` 10, 60 s | Valeurs à fixer par `architecte` d'après la taille de la grappe Supavisor (`[db.pooler]`), le plancher de 1 s de la demande de code (`02` §18.10) et la durée des purges du worker ; toute correction passe par une nouvelle migration | `architecte` | J4 (avant `staging`) |
 | **EC-34** | **Autorité de certification du multiplexeur Supabase** *(relevé par `dev-react-node` au J2, 2026-09-27).* `03` P7 règle 1 exige TLS avec vérification du certificat (« autorité de Supabase »). `apps/api/src/db/pool.ts` active `ssl: { rejectUnauthorized: true }` hors hôte de bouclage, mais avec les autorités de Node : si le certificat de Supavisor est signé par l'autorité propre de Supabase, la connexion à `staging` échouera | Variable `DATABASE_CA_CERT` (certificat racine téléchargé depuis le tableau de bord, public), lue par `src/config/`, passée en `ssl.ca` ; constat sur `staging` au J4 | `integrateur` + `expert-cybersecurite` | J4 |
-| **EC-35** | **Écarts d'écriture des tests du J2** *(`dev-react-node`, 2026-09-27)*, hypothèses appliquées au plus prudent : (1) forme `vide` ajoutée à T2 pour `billing.commission_rates` lu par `admin` (`0007` accorde `SELECT`, alors que `18` T2 règle 3 dit « toutes ses lignes `refus_droit` ») ; (2) un membre sans contexte qui insère dans `terms_acceptances` est refusé par le déclencheur `prepare_terms_acceptance()` (`23503`, même message qu'une version inconnue) avant la politique (`42501`) : déclaré `filteredInsertCode` dans le fichier d'attendus ; (3) T2.2 exclut, en plus de `supabase_migrations`, `_realtime` et `extensions`, créés par Supabase sous le rôle `postgres` ; (4) T6.3 exempte `src/config/schema.ts` (nomme toutes les variables pour refuser une variable mal placée, EC-20) et `packages/contracts/src/elevated-operations.ts` (déclare P) ; (5) le plancher de cas exécutés par famille (`18` §3 règle 2) n'est pas codé : seuls `.skip`, `.todo`, `.only` sont refusés ; (6) T4.7 « même cas pour la grappe élevée » n'est pas testable tant que l'union est vide : à écrire au J3 avec E-1 ; (7) la CI se connecte en direct (port 54322), pas par le multiplexeur local (`03` P7 règle 7, `18` §3 point 4) ; (8) T3.8 ouvre 50 connexions `influx_app` sur une limite provisoire de 60 (EC-33) | Confirmer ou corriger `18` T2, T2.2, T6.3 et §3 en conséquence | `testeur` + `expert-cybersecurite` | J3 |
+| **EC-35** | **Écarts d'écriture des tests du J2** *(`dev-react-node`, 2026-09-27)*, hypothèses appliquées au plus prudent : (1) forme `vide` ajoutée à T2 pour `billing.commission_rates` lu par `admin` (`0007` accorde `SELECT`, alors que `18` T2 règle 3 dit « toutes ses lignes `refus_droit` ») ; (2) un membre sans contexte qui insère dans `terms_acceptances` est refusé par le déclencheur `prepare_terms_acceptance()` (`23503`, même message qu'une version inconnue) avant la politique (`42501`) : déclaré `filteredInsertCode` dans le fichier d'attendus ; (3) T2.2 exclut, en plus de `supabase_migrations`, `_realtime` et `extensions`, créés par Supabase sous le rôle `postgres` ; (4) T6.3 exempte `src/config/schema.ts` (nomme toutes les variables pour refuser une variable mal placée, EC-20) et `packages/contracts/src/elevated-operations.ts` (déclare P) ; (5) le plancher de cas exécutés par famille (`18` §3 règle 2) n'est pas codé : seuls `.skip`, `.todo`, `.only` sont refusés ; (6) T4.7 « même cas pour la grappe élevée » n'est pas testable tant que l'union est vide : à écrire au J3 avec E-1 ; (7) la CI se connecte en direct (port 54322), pas par le multiplexeur local (`03` P7 règle 7, `18` §3 point 4) ; (8) T3.8 ouvre 50 connexions `influx_app` sur une limite provisoire de 60 (EC-33) | Confirmer ou corriger `18` T2, T2.2, T6.3 et §3 en conséquence | `testeur` + `expert-cybersecurite` | J3 — **Tranché le 2026-09-27** : les huit points acceptés, (5) plancher exigé au J3, (6) avec E-1, (7) multiplexeur éprouvé au J4 ; `18` corrigé. Voir J2, « Vérification de fin de J2 par `testeur` » |
 | **EC-36** | **Ligne d'audit de `withElevatedTransaction`** *(J2, 2026-09-27).* `03` §6.7 point 7 exige une ligne par élévation ; son code d'événement, son sujet et son volume (C-7 : seulement si la transaction écrit) ne sont pas fixés. Implémentation d'attente : `audit.append('elevated.<opération>', 'elevated_operation', gen_random_uuid(), {operation})` après la fonction, à chaque transaction élevée. Aucun code `elevated.*` n'existe dans `audit.event_types` et `influx_auth` / `influx_worker` n'ont pas `EXECUTE` sur `audit.append()` : sans migration du J3, la première élévation échouera (voulu) | Codes et sujet dans la migration du J3 (`0108`), avec M2 ; appliquer C-7 | `expert-database` + `expert-cybersecurite` | J3 |
 
 ---
@@ -992,6 +992,56 @@ d'`influx_audit_writer`, qui n'accepte qu'un code `elevated.*` du catalogue et a
 
 **Verdict : livraison du J2 autorisée, sans point bloquant. Conditions avant J3 : S1, S2. Avant E-1 :
 EC-36 et EC-35 (6).**
+
+#### Vérification de fin de J2 par `testeur` — 2026-09-27
+
+> **Verdict : J2 terminé sous deux conditions, toutes deux hors code de test** — (C1) marqueur
+> `security-reviewed: 2026-09-27` porté par `128692e` ; (C2) première exécution de la CI verte sur
+> GitHub, durée relevée. Skill `test-strategy`. Relu : `128692e` à `805644f`, `.github/workflows/ci.yml`,
+> `packages/test-kit/scripts/check-security-review.ts`.
+
+**1. Conformité à `18` (révision `03d18bb`).** T2.1 à T2.8, T3.1 à T3.11, T4.1 à T4.8 (T4.6 a-d, g, h
+et T4.8 en unitaire ; R4 lu dans `pg_authid`), T6.1, T6.2, T6.3, T6.6 et T16.1 à T16.7 sont
+implémentés ; T4.1 tourne en premier (préparation globale) et arrête la suite. Analyseurs statiques
+éprouvés sur `test-witnesses/`, T2.8 par création témoin. Aucun test ne passe à vide : T2 exige une
+ligne par table vue du rôle de migration, T6.1 compare A à U (vide, conforme), T6.3 exige un graphe
+d'imports non trivial.
+
+**2. Contre-épreuves en base, faites par moi sur la pile locale puis annulées :** droit `SELECT`
+ajouté à `influx_advertiser` sur `agent_profiles` ⇒ T2.1, T2.5, T2.7 rouges ; table sans RLS dans
+`backoffice` ⇒ T2.2 rouge ; colonne `fee_amount double precision` ⇒ T16.5 rouge ; politique
+`using (true)` sur `identity.accounts` ⇒ T2.1 et T2.5 rouges (« rows of another account are
+visible ») ; `INSERT` accordé à `influx_admin` sur `commission_rates` ⇒ T2, T2.7, T16.4 rouges ;
+`BYPASSRLS` sur `influx_worker` ⇒ arrêt de toute la suite par T4.1. Tout est détecté.
+
+**3. Exécutions.** `pnpm test:db` : 87 cas verts, trois fois (avant, pendant et après les
+contre-épreuves) ; `pnpm check` vert une fois (api 139 + 87, test-kit 30, web 93, backoffice 22,
+contracts 8), aucune instabilité.
+
+**4. EC-35, points de test, tranchés** (`18` corrigé : §3, T2, T3.7, T3.8, T4.7, T6.3, T16.5) :
+(1) `vide` acceptée, réservée à `commission_rates` ; (2) `23503` accepté sans contexte seulement, la
+politique restant prouvée par l'essai sur le compte B ; (3) exclusions acceptées, liste fermée, avec
+la condition J3 d'`expert-cybersecurite` ; (4) exemptions acceptées par chemin exact ; (5) plancher
+**exigé au J3**, avant le premier nouveau test en base (rapport JSON de Vitest, zéro saut, plancher par
+fichier) ; (6) T4.7 élevé dans le commit d'E-1 ; (7) connexion directe acceptée jusqu'au J4, où T4.5,
+T4.6 e et T4.7 sont rejoués par le multiplexeur ; (8) accepté, 50 écrivains, jamais moins de 20 si
+EC-33 abaisse la limite.
+
+**5. CI.** Aucun appel externe réel (aucune clé, Brevo et Apollo absents des tests en base) ; budget
+de 10 min plausible (image PostgreSQL tirée sans cache, construction des deux fronts), **à mesurer à
+la première exécution**, cache d'images si dépassé. Le contrôle des marqueurs fonctionne : sur
+`a2e06a7..HEAD`, il signale `128692e`, **ce qui rendrait la CI rouge** (C1).
+
+**Corrections demandées à `dev-react-node` :**
+
+| # | Correction | Échéance |
+|---|---|---|
+| **C1** | Reformuler le message de `128692e` (non poussé) avec `security-reviewed: 2026-09-27`, approuvé ci-dessus par `expert-cybersecurite` | Avant le push |
+| **Q1** | Essai `delete` des formes `propre` filtré par la colonne du compte (A puis B) : aujourd'hui `delete from <table>` rend le contrôle du compte B vide de sens (sans effet au J2, aucune ligne `delete` `propre`) | Avant la première ligne `delete` `propre` |
+| **Q2** | Plancher de cas exécutés par fichier (`18` §3, règle 2) | J3, avant le premier nouveau test en base |
+| **Q3** | T16.5 : exiger une colonne de devise dans la table de toute colonne de montant | Avant la première colonne de montant |
+| **Q4** | Contrôle des marqueurs : un premier envoi de branche ne lit que le dernier commit ; ajouter une épreuve sur commits témoins | Non bloquant |
+| **Q5** | La pile locale accumule les lignes validées par T3 (≈ 57 comptes par exécution, 293 constatés) : `supabase db reset` avant la triple exécution d'un jalon | Non bloquant |
 
 ### J3 — Authentification et sessions (4 à 5 jours)
 
