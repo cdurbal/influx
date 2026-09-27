@@ -1009,6 +1009,12 @@ un cookie inter-sites `SameSite=None`, fragile face aux restrictions de cookies 
 navigateurs. Le passe-plat rend l'appel **de même origine** : cookie de première partie, portée à
 l'hôte, aucun CORS, aucune préflight, et `apps/api` **n'a besoin d'aucun hôte public**.
 
+> *Révisé le 2026-09-27 (`21` J3-C règle 3, EC-46).* Le schéma ci-dessus est antérieur au J3 :
+> **`apps/api` ne vérifie aucun JWT** et ne consulte aucun JWKS. Le cookie porte un identifiant de
+> session opaque, résolu en base par `identity.resolve_session()` (`03` A-9, P7) ; l'identité GoTrue
+> n'est lue qu'une fois, dans la réponse de GoTrue à la vérification d'un facteur, puis la session
+> GoTrue est fermée.
+
 **Ce que le passe-plat a le droit de faire — et rien d'autre :**
 
 | Autorisé | Interdit |
@@ -1203,11 +1209,17 @@ démarrage : une variable requise manquante fait **échouer le démarrage** avec
 | `OPS_DATABASE_URL` (rôle de connexion `influx_ops_login`, écriture du schéma `ops`) — **au J4** | — | — | ✔ | — | **Secrète** |
 | `PRIVACY_DATABASE_URL` (rôle de connexion `influx_privacy_login`, E-5) — **au Lot 5** | — | — | — | ✔ | **Secrète** |
 | `DIRECT_DATABASE_URL` (rôle de migration, **propriétaire des objets**) | — | — | — | — | **Secrète, CI uniquement** — jamais dans un service d'exécution |
-| `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | — | — | ✔ | — | **Serveur uniquement** — la clé publishable (ex-clé `anon`) ne quitte pas `apps/api`, et **n'est de toute façon pas un secret** : c'est pourquoi aucune table métier ne vit dans `public` (§5, règle 4) |
-| `SUPABASE_SECRET_KEY` — **clé d'API HTTP**, à ne pas confondre avec le rôle Postgres `service_role`, qui n'est utilisé nulle part | — | — | ✔ | ✔ | **Secrète, jamais dans un bundle.** Usage limité à GoTrue (création de compte, second facteur) et aux URL signées du Storage. **Jamais pour atteindre une table** |
-| `SUPABASE_JWKS_URL` | — | — | ✔ | — | Publique par nature |
-| `BREVO_API_KEY`, `APOLLO_API_KEY` | — | — | — | ✔ | **Secrète** |
-| `SESSION_COOKIE_SECRET` | — | — | ✔ | — | **Secrète** |
+| `INFLUX_PUBLIC_BACKOFFICE_URL` — *ajoutée le 2026-09-27 (`21` J1-F)* | — | — | ✔ | — | Publique — origine de la surface `backoffice` pour le contrôle d'origine A4 (`03` §6.4) |
+| `SUPABASE_URL` | — | — | ✔ | — | **Serveur uniquement**, non secrète |
+| `SUPABASE_SECRET_KEY` — **clé d'API HTTP**, à ne pas confondre avec le rôle Postgres `service_role`, qui n'est utilisé nulle part | — | — | ✔ (J3) | ✔ (J6) | **Secrète, jamais dans un bundle. Une clé par service** (`api`, `worker`), révocable séparément (*2026-09-27, `21` EC-46*). Usage limité à GoTrue (création d'utilisateur, code, second facteur ; côté `worker`, la seule purge E-4 des utilisateurs orphelins) et aux URL signées du Storage. **Jamais pour atteindre une table** |
+| ~~`SUPABASE_PUBLISHABLE_KEY`~~, ~~`SUPABASE_JWKS_URL`~~ | — | — | — | — | **Retirées le 2026-09-27** (`21` EC-46) : tout appel à GoTrue porte la clé secrète, et INFLUX ne vérifie aucun JWT (`21` J3-C règle 3). Sur les projets hébergés, la clé *publishable* est désactivée si la plateforme le permet (`21` G-1) |
+| `BREVO_API_KEY` | — | — | ✔ | ✔ | **Secrète. Deux clés distinctes par environnement**, une pour `api` (code de connexion `P0`, D43 ; alertes D60), une pour `worker` (*2026-09-27, `21` EC-19*) |
+| `BREVO_API_BASE_URL`, `BREVO_MODE`, `BREVO_TEST_RECIPIENTS`, `BREVO_SENDER_TRANSACTIONAL` | — | — | ✔ | ✔ | Garde-fous du §12.4 appliqués **aussi** à `api`, dès le premier envoi du code (`16` §M8) |
+| `BREVO_SENDER_MARKETING`, `BREVO_SENDER_PROSPECTING`, `BREVO_SUPPRESSION_LIST_ID` | — | — | — | ✔ | `16` §M8 |
+| `BREVO_WEBHOOK_SECRET`, `BREVO_WEBHOOK_PATH_TOKEN`, `BREVO_IP_ALLOWLIST` — au J7 | — | — | ✔ | — | **Secrètes** — `api` seul reçoit le webhook (`21` EC-12) ; jamais sur `worker` |
+| `APOLLO_API_KEY` | — | — | — | ✔ | **Secrète** |
+| `AUTH_TOKEN_SIGNING_SECRET` — *remplace `SESSION_COOKIE_SECRET` le 2026-09-27 (`21` EC-24)* | — | — | ✔ | — | **Secrète**, ≥ 32 octets. Signe les seuls jetons courts (cookie de parcours, jeton d'inscription) ; **l'identifiant de session, opaque, n'est jamais signé** (seule son empreinte est en base). Distincte de tout autre secret du processus |
+| `AUTH_THROTTLE_PEPPER` | — | — | ✔ | — | **Secrète**, ≥ 32 octets. Clé HMAC des empreintes de limitation de débit (`04` §12.10), de l'adresse pseudonyme transmise à GoTrue (`21` EC-38) et de l'anti-rejeu TOTP (`21` EC-39), chacune avec son étiquette de séparation |
 | `SYNC_MODE` (`live` \| `dry_run`) | — | — | — | ✔ | Garde-fou, §12.4 |
 | `NON_PRODUCTION_RECIPIENT_ALLOWLIST` | — | — | — | ✔ | Garde-fou, §12.4 |
 

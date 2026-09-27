@@ -201,9 +201,11 @@ erreur.
 
 **Conditions**
 
-- **C(1)** — Création du compte à la première vérification de code réussie : le compte n'existe pas
-  encore, aucun rôle utilisateur ne peut donc l'écrire. Opération élevée nommée `identity.provision`
-  (§4, P7).
+- **C(1)** — Création du compte à la validation de l'écran 3, après une vérification de code
+  réussie (`05` RG5) : le compte n'existe pas encore, aucun rôle utilisateur ne peut donc l'écrire.
+  Opération élevée E-2, motif `identity.complete_signup`, par la fonction
+  `identity.provision_account` (§4, P7 ; *révisé le 2026-09-27, EC-5 : remplace
+  « `identity.provision` à la première vérification »*).
 - **C(2)** — Le changement d'adresse exige **une confirmation depuis l'ancienne adresse et depuis la
   nouvelle**. Sans cela, une boîte compromise pendant dix minutes permet de s'approprier le compte
   définitivement. Point critique en l'absence de mot de passe (§6.1).
@@ -217,6 +219,15 @@ erreur.
   rien (`01-intermediation-courtee.md` §9).
 - **C(6)** — Aucun rôle utilisateur n'a le moindre droit sur la table des codes. Émission et
   vérification passent par des opérations élevées nommées, exécutées avant toute authentification.
+
+> **Précision du 2026-09-27 (`21` EC-17, EC-29, EC-39, EC-40).** Les sessions sont **créées** par
+> `influx_auth` (E-2), jamais par un rôle métier. Le titulaire les **renouvelle** et les **révoque**
+> par deux fonctions `SECURITY DEFINER` (`identity.touch_session`, `identity.revoke_own_session`,
+> motifs `logout` et `revoked_by_holder` seulement) qui calculent les dates en base ; aucun rôle
+> métier n'a de droit `UPDATE` ni `DELETE` sur la table, et une ligne révoquée n'est plus modifiable
+> (déclencheur). La fraîcheur du second facteur (`mfa_verified_at`), les codes de secours et
+> l'empreinte anti-rejeu du TOTP ne sont écrits que par `influx_auth` : **aucun droit, ni en lecture
+> ni en écriture, pour les quatre rôles métier**.
 
 ### 3.2 Domaine `profiles` — profils marque, profils créateur, pièces de vérification, badge
 
@@ -823,14 +834,30 @@ Toute autre opération privilégiée passe par une fonction `SECURITY DEFINER` (
 
 | # | Opération | Rôle utilisé | Motif | Appelable depuis une route HTTP ? |
 |---|---|---|---|---|
-| **E-1** | `identity.request_code` — émission d'un code à usage unique | `influx_auth` | Le demandeur n'est pas encore authentifié | **Oui**, seule route concernée avec E-2 |
-| **E-2** | `identity.verify_code` — vérification du code, création du compte au premier passage | `influx_auth` | Le compte n'existe pas encore : aucun rôle utilisateur ne peut l'écrire | **Oui** |
+| **E-1** | **Pré-authentification d'un demandeur non identifié.** Motifs : `identity.request_code` — émission d'un code à usage unique ; `support.report_delivery_issue` — canal de secours sans connexion (`05` RG65, J5), par une fonction `SECURITY DEFINER` étroite seulement | `influx_auth` | Le demandeur n'est pas encore authentifié | **Oui**, seules routes concernées avec E-2 |
+| **E-2** | **Vérification d'un facteur et écriture de ses effets.** Motifs : `identity.verify_code` — vérification du code d'un membre, compteurs, jeton d'inscription, session d'un compte existant ; `identity.complete_signup` — création du compte à la validation de l'écran 3 (`05` RG5, J5 ; `identity.provision_account`) et sa session ; `identity.backoffice_sign_in` — mot de passe et TOTP ou code de secours, session née en `aal2` ; `identity.backoffice_enroll_totp` — inscription du second facteur, codes de secours ; `identity.backoffice_reauthenticate` — ré-authentification R, fraîcheur écrite sur la ligne de session | `influx_auth` | Le compte n'existe pas encore, ou la session à créer ou à rafraîchir ne peut pas l'être par le rôle de l'utilisateur sans lui donner le moyen de se forger une preuve | **Oui** |
 | **E-3** | `leads.drain_outbox` — consommation de la file, appels Brevo et Apollo, mise à jour des statuts | `influx_worker` | Aucun utilisateur ne déclenche l'opération | **Non** |
 | **E-4** | `maintenance.run_periodic` — péremption des badges, relances, purges, vérification de la chaîne, expiration des verrous et des codes | `influx_worker` | Tâches de fond | **Non** |
 | **E-5** | `privacy.execute_request` — export ou anonymisation au titre d'une demande RGPD validée | `influx_privacy` | Écritures transverses sur des lignes qui n'appartiennent pas à l'appelant | **Non** : déclenché par une tâche, après validation `2V` + `R` par un `admin` |
 
 **Cinq entrées, pas une de plus.** Tout ajout à cette liste est une modification de ce document,
 signée par `expert-cybersecurite`.
+
+> **Révision signée par `expert-cybersecurite` le 2026-09-27 (EC-5 de `21` §3).** E-1 et E-2
+> nommaient une seule opération chacune ; or le compte naît à l'écran 3 (`05` RG5), et le canal de
+> secours, la connexion du backoffice, l'inscription du TOTP et la ré-authentification écrivent aussi
+> hors de toute session utilisateur. Plutôt qu'une sixième entrée, chaque entrée se décline en
+> **motifs nommés**, un par point d'usage, listés dans la colonne « Opération » ci-dessus. Règles :
+> (1) chaque motif est une valeur distincte de l'union fermée de `packages/contracts`, refusée à
+> l'exécution si elle est inconnue ; (2) chaque motif a son code d'audit `elevated.<motif>` (EC-36)
+> et **son propre ensemble d'appelants**, vérifié par T6 ; (3) un motif ne crée ni rôle, ni grappe,
+> ni variable : il reste lié au rôle et à la grappe de son entrée ; (4) tout nouveau motif est une
+> modification de ce tableau, signée comme une nouvelle entrée ; (5) le motif
+> `support.report_delivery_issue` n'accorde à `influx_auth` **aucun droit de table** sur la file du
+> support : il écrit par une fonction `SECURITY DEFINER` étroite, sans lecture. Contrepartie
+> assumée : `influx_auth` devient le rôle d'exécution le plus sensible ; ses droits sont nommés
+> colonne par colonne et sa grappe n'exécute que des requêtes paramétrées. Détail :
+> `21` §4, J3, « Arbitrages de sécurité du J3 ».
 
 #### Les rôles Postgres — liste fermée *(tranché le 2026-09-26, EC-1 et EC-20 de `21` §3)*
 
@@ -1635,7 +1662,7 @@ qui ne s'exécute pas à chaque fois n'existe pas.
 | **T8** | **Authentification.** Un seul code valide à la fois ; expiration ; plafond de tentatives ; limitation de débit par adresse, par IP et globale ; réponse et **temps de réponse** identiques pour une adresse connue et inconnue ; code non réutilisable ; session révoquée **immédiatement** à la suspension ; route backoffice sans `aal2` ⇒ 403 ; changement d'adresse sans double confirmation ⇒ refus | Les conditions A-1 à A-12 et B-1 à B-8 | 1 |
 | **T9** | **Storage.** Tous les compartiments privés ; URL signée expirée refusée ; clé d'objet avec traversée refusée ; fichier dont les octets d'en-tête contredisent le type déclaré rejeté ; EXIF absent après traitement ; **une pièce de vérification n'est atteignable par aucune route ni aucun schéma accessible au rôle annonceur, y compris en devinant un identifiant** ; émission d'URL signée journalisée | E1-1 à E1-11 et la condition C(13) | 2 |
 | **T10** | **En-têtes et CSP.** Jeu d'en-têtes exact par surface, en mode production. Aucun `'unsafe-inline'` dans `script-src`. `X-Robots-Tag` présent sur **toutes** les réponses du backoffice, y compris les erreurs et les redirections | L'en-tête oublié sur la page d'erreur, cas classique | 1 |
-| **T11** | **Secrets.** Analyse des artefacts de construction de `apps/web` et `apps/backoffice` : aucune occurrence de `SUPABASE_SECRET_KEY`, `BREVO_API_KEY`, `APOLLO_API_KEY`, `SESSION_COOKIE_SECRET`, aucune chaîne ressemblant à un JWT. Analyse de secrets sur le dépôt et l'historique. `.env*` ignoré | La fuite par empaquetage : la variable lue au mauvais endroit se retrouve dans le bundle | 0 |
+| **T11** | **Secrets.** Analyse des artefacts de construction de `apps/web` et `apps/backoffice` : aucune occurrence de `SUPABASE_SECRET_KEY`, `BREVO_API_KEY`, `APOLLO_API_KEY`, `AUTH_TOKEN_SIGNING_SECRET`, `AUTH_THROTTLE_PEPPER` (*remplacent `SESSION_COOKIE_SECRET` le 2026-09-27, EC-24*), aucune chaîne ressemblant à un JWT. Analyse de secrets sur le dépôt et l'historique. `.env*` ignoré | La fuite par empaquetage : la variable lue au mauvais endroit se retrouve dans le bundle | 0 |
 | **T12** | **Dépendances.** Échec de la CI sur toute vulnérabilité **critique ou élevée**. **Exécution planifiée hebdomadaire**, pas seulement à chaque commit — une CVE publiée n'attend pas notre prochain commit. Dérogations dans un fichier dédié, chacune **avec une date d'expiration** ; une dérogation expirée fait échouer la CI | Une dérogation sans échéance est un mensonge différé | 0 |
 | **T13** | **Erreurs.** Aucune réponse 4xx ou 5xx ne contient de trace d'exécution, de fragment SQL, de nom d'hôte interne, de nom de table ni de version de composant. Seuls `code`, un message traduisible et `requestId` | `CLAUDE.md` §9 et la checklist de `security-rgpd-audit` | 1 |
 | **T14** | **IDOR.** Pour chaque type d'objet, un utilisateur de chaque rôle tente de lire et de modifier un objet d'autrui en changeant l'identifiant ⇒ refus, **avec le même code de réponse** que pour un objet inexistant | Ne pas divulguer l'existence d'une ressource par la différence entre 403 et 404 | 2→5 |
@@ -1713,6 +1740,8 @@ qui ne s'exécute pas à chaque fois n'existe pas.
 | **S-8** | **Contrôle par les pairs impossible tant qu'une personne opère seule** | Procédure dégradée du §1.3, revue hebdomadaire | L'arrivée d'un second agent ⇒ bascule automatique (PD7) |
 | **S-9** | **Drizzle en version pré-1.0** | Version épinglée, couche `repository` isolante | Une faille dans la génération de requêtes ⇒ traiter comme T12 |
 | **S-10** | **Un seul worker, traitement au-moins-une-fois** | Clés d'idempotence sur chaque destination | Un doublon constaté côté Brevo ou Apollo |
+| **S-11** | **GoTrue joignable sans `apps/api`** avec la clé *publishable* (`21` G-1, 2026-09-27) : un tiers peut consommer ou épuiser le code d'un membre, ou ouvrir une session GoTrue que rien dans INFLUX n'accepte | Aucune session INFLUX n'en sort (J3-C règle 3) ; épinglage du facteur et jeton d'enrôlement pour les comptes internes ; puits d'envoi ; clé *publishable* désactivée si le projet le permet | Un constat divergent au commit 7 (enrôlement ou changement de mot de passe accepté en `aal1`), ou une session GoTrue non corrélée à une connexion INFLUX dans `auth.audit_log_entries` |
+| **S-12** | **Aucun pays pour les connexions** (`21` EC-43) : A-8, RG49, RG55 et B-7 sans pays | B-7 est un contrôle de détection derrière le TOTP ; signal « navigateur inconnu » à la place (J8) | L'activation d'une source de pays (nouvel avis `expert-conformite-rgpd`), ou une connexion interne illégitime non signalée |
 
 ---
 

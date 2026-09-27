@@ -200,7 +200,7 @@ tableau n'en garde que la décision).
 | Schémas partagés | `zod` | Source unique : validation d'entrée, filtre de sortie, types (`02` §9.1) |
 | Serveur | `fastify` 5 + `@fastify/cookie` (J3). **`fastify-type-provider-zod` écarté** : compilateurs zod écrits dans `apps/api/src/platform/` | Le sérialiseur de réponse retire tout champ non déclaré (`02` §2.5, point 4) ; motifs du refus en J1-A |
 | Accès aux données | `drizzle-orm` + pilote `postgres` (`prepare: false`), au J2. `drizzle-kit` non installé | D5 ; `drizzle-kit push` interdit |
-| Auth et Storage | `@supabase/supabase-js`, importé **uniquement** dans `apps/api/src/platform/supabase.ts`, au J3 | D5, règle 2 |
+| Auth et Storage | `@supabase/auth-js` au J3, `@supabase/storage-js` au Lot 2 — *révisé le 2026-09-27 (J3-B) : plus `@supabase/supabase-js`* —, importés **uniquement** dans `apps/api/src/platform/supabase.ts` | D5, règle 2 |
 | Journaux | `pino` en dépendance directe (le worker journalise sans Fastify), masquage des champs sensibles. `pino-pretty` écarté | `02` §20.8 |
 | Construction de `apps/api` | **Aucune** : Node exécute le TypeScript par effacement des types. **`tsup` écarté** (plus maintenu) | Décision J1-B |
 | Bout en bout | `@playwright/test`, au J5 | `18` A-5 |
@@ -217,9 +217,9 @@ la proposition est une hypothèse de travail, pas une décision.
 |---|---|---|---|---|
 | **EC-1** | **Rôles Postgres incohérents.** `04` §3.2 crée `influx_service` et rend `influx_app` membre de tous les rôles ; `02` §5 et `03` P7 imposent `influx_app` membre des seuls quatre rôles métier, et une **seconde grappe** avec `influx_auth`, `influx_worker`, `influx_privacy` ; `03` P8 ajoute `influx_audit_writer`, D60 ajoute `influx_ops` | Suivre `03`, qui fait foi. **Un rôle de connexion élevé par service** : celui de `api` n'est membre que d'`influx_auth`, celui du `worker` d'`influx_worker` (puis `influx_privacy` au Lot 5) — le processus HTTP ne peut alors jamais emprunter les droits du worker. Corriger `04` §3.2 et le commentaire d'`ELEVATED_DATABASE_URL` dans `.env.example` | `expert-cybersecurite` (veto) + `expert-database` | J2 — **Tranché par `expert-cybersecurite` le 2026-09-26** : proposition retenue et **durcie** — **un rôle de connexion par rôle élevé**, une variable par rôle de connexion. Liste fermée, attributs, appartenances, propriétaires et règles d'écriture de `0001` : **`03` §4 P7, « Les rôles Postgres — liste fermée »**, qui fait foi. En bref : `influx_app` (`LOGIN NOINHERIT`, membre des **quatre rôles métier seuls**, `WITH INHERIT FALSE, SET TRUE` ; son **unique droit propre** est `EXECUTE` sur `identity.resolve_session()`) ; `influx_auth_login` → `influx_auth` seul (E-1, E-2) ; `influx_worker_login` → `influx_worker` seul (E-3, E-4) ; propriétaires de fonctions `SECURITY DEFINER` `NOLOGIN` **sans aucun membre** : `influx_audit_writer` (`audit.append`), `influx_session_resolver` (`identity.resolve_session`), `influx_identity_definer` (`identity.grant_role`). **`influx_service` est supprimé** (jamais créé ; chaque droit qui lui était destiné va au rôle précis ou disparaît). **Tables et schémas** : propriété du rôle de migration (`postgres` du projet, `DIRECT_DATABASE_URL`, CI seule) ; **aucune fonction `SECURITY DEFINER` ne lui appartient**, car `postgres` porte `BYPASSRLS` sur Supabase. Plus tard : `influx_ops` + `influx_ops_login` (J4, E-6 à signer avec sa migration), `influx_intro_owner` (Lot 4), `influx_privacy` + `influx_privacy_login` (Lot 5, **pas** ajouté au rôle du worker : un défaut de traitement d'une réponse Brevo ou Apollo ne doit jamais atteindre l'anonymisation transverse). Aucun `BYPASSRLS`, aucun `SUPERUSER`, aucun mot de passe dans une migration |
 | **EC-2** | **Aucune table de sessions** dans `04`, alors que la session opaque révocable est bloquante (A-9, B4) | `identity.sessions` : empreinte SHA-256 de l'identifiant (le cookie porte la valeur brute), compte, surface (`member` · `backoffice`), `aal`, création, dernière activité, expiration glissante (30 j membres, 8 h / 30 min backoffice), plafond absolu de 180 j, `revoked_at` et motif, navigateur résumé, pays approximatif | `expert-database` + `expert-cybersecurite` | J3 |
-| **EC-3** | **Cinq tentatives par code** (`05` RG42, A-2) sans support : `identity.auth_request_throttle` ne connaît que les portées `email` et `ip` | Portée supplémentaire `login_request`, dont la clé est l'identifiant de la ligne `leads.transactional_sends` porté par le cookie de parcours. Au cinquième échec, régénérer un code **sans l'envoyer** pour invalider le précédent — comportement GoTrue à vérifier | `expert-cybersecurite` | J3 |
-| **EC-4** | **L'état « code vérifié, compte non créé »** (`05` RG5) n'a pas d'objet | Jeton d'inscription signé (cookie `__Host-`, `httpOnly`, 30 min) portant `auth_user_id`, adresse et porte. Le compte n'existe qu'à la validation de l'écran 3. Le brouillon de l'écran 3 reste en mémoire : le stockage navigateur est interdit par ESLint (`02` §13.2) | `expert-cybersecurite` | J3 |
-| **EC-5** | **Opérations de pré-authentification non nommées.** `03` P7 définit E-2 comme « vérification du code, création du compte au premier passage », or le compte naît à l'écran 3 ; le canal de secours (`05` RG65) et la connexion du backoffice écrivent aussi sans session | Rattacher explicitement la finalisation de l'inscription et la connexion du backoffice à **E-2**, le canal de secours à **E-1** (même rôle `influx_auth`), par une révision signée de `03` P7 plutôt que par une nouvelle opération | `expert-cybersecurite` (liste fermée signée) | J3, J5 |
+| **EC-3** | **Cinq tentatives par code** (`05` RG42, A-2) sans support : `identity.auth_request_throttle` ne connaît que les portées `email` et `ip` | Portée supplémentaire `login_request`, dont la clé est l'identifiant de la ligne `leads.transactional_sends` porté par le cookie de parcours. Au cinquième échec, régénérer un code **sans l'envoyer** pour invalider le précédent — comportement GoTrue à vérifier. *Fait établi par `architecte` le 2026-09-27 (J3-A b4 à b6) : GoTrue ne compte aucun échec ; un nouveau `generateLink` remplace le code en cours ; la régénération est donc réalisable (à constater en pile locale)* | `expert-cybersecurite` | J3 — **Tranché par `expert-cybersecurite` le 2026-09-27** : retenu, durci — tentative **réservée atomiquement avant** l'appel à GoTrue, clé aléatoire (jamais séquentielle), **régénération sans envoi au cinquième échec retenue** (G-1), seuils par IP et globaux. Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
+| **EC-4** | **L'état « code vérifié, compte non créé »** (`05` RG5) n'a pas d'objet | Jeton d'inscription signé (cookie `__Host-`, `httpOnly`, 30 min) portant `auth_user_id`, adresse et porte. Le compte n'existe qu'à la validation de l'écran 3. Le brouillon de l'écran 3 reste en mémoire : le stockage navigateur est interdit par ESLint (`02` §13.2) | `expert-cybersecurite` | J3 — **Tranché par `expert-cybersecurite` le 2026-09-27** : retenu, durci — `SameSite=Strict`, porte = simple valeur par défaut, relecture de l'utilisateur GoTrue à la consommation, rejeu sans effet. Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
+| **EC-5** | **Opérations de pré-authentification non nommées.** `03` P7 définit E-2 comme « vérification du code, création du compte au premier passage », or le compte naît à l'écran 3 ; le canal de secours (`05` RG65) et la connexion du backoffice écrivent aussi sans session | Rattacher explicitement la finalisation de l'inscription et la connexion du backoffice à **E-2**, le canal de secours à **E-1** (même rôle `influx_auth`), par une révision signée de `03` P7 plutôt que par une nouvelle opération | `expert-cybersecurite` (liste fermée signée) | J3, J5 — **Tranché par `expert-cybersecurite` le 2026-09-27** : retenu — **révision signée de `03` P7 faite** : cinq entrées inchangées, un motif nommé par point d'usage (E-1 : `identity.request_code`, `support.report_delivery_issue` ; E-2 : `identity.verify_code`, `identity.complete_signup`, `identity.backoffice_sign_in`, `identity.backoffice_enroll_totp`, `identity.backoffice_reauthenticate`). Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
 | **EC-6** | `leads.transactional_sends.template_ref` référence `backoffice.email_templates`, table du **Lot 5**, alors que le journal naît au Lot 1 (migration `0108`) | Colonne texte sans clé étrangère jusqu'à `0503` ; codes de modèles en union fermée dans `packages/contracts` (`16` RG85) | `expert-database` | J3 |
 | **EC-7** | `transactional_sends.outbox_event_id` est un `uuid` qui référence `outbox_events(id)`, un `bigint` | Type `bigint` | `expert-database` | J3 |
 | **EC-8** | **Clés de `leads.sync_settings`** (`04` §5.8) incomplètes et contradictoires avec `05` : pas de liste de pays bloqués à l'inscription (RG8) ; `apollo_blocked_countries` est une liste de **blocage** alors que RG84 exige une liste d'**autorisation**, vide par défaut | Clés : `apollo_scope`, `apollo_legal_basis` (valeur par défaut `consentement_requis`, surcharge par pays), `apollo_prospecting_countries` (autorisation, **vide**), `signup_blocked_countries` (vide), `retry_schedule`, `rate_limits`, et les identifiants de listes et de modèles Brevo | `expert-database` + `expert-integrations-api` | J5, J6 |
@@ -230,20 +230,20 @@ la proposition est une hypothèse de travail, pas une décision.
 | **EC-13** | Le Lot 0 promet « un compte de démonstration par rôle se connecte réellement dans les trois espaces » (`00` §7), mais `02` §13.3 et `18` §10 interdisent de lever une garde de `apps/web` au Lot 0 — or la connexion membre passe par le passe-plat, donc par la levée de G5 | Lever G5 au J1, **dans le commit qui introduit le passe-plat et sa garde de liste blanche** (la règle « une garde ne tombe qu'avec son remplaçant » est tenue). G1, G2, G4 et G6 attendent le J9 | `architecte` + `testeur` | J1 — **tranché par `architecte` le 2026-09-25, élargi** (§4, J1-C) : la garde annexe « aucune API réseau » est scindée dans le même commit. `02` §13.3 corrigé. **Couverture confirmée par `testeur` le 2026-09-25** (commit 9ef4b0a ; G1, G2, G4, G6 toujours actives, aucune perte à l'extraction) |
 | **EC-14** | « Mes données » (export, suppression) figure dans l'espace du Lot 1 (`05` RG57, RG71), mais l'exécution des demandes RGPD est au Lot 5 (E-5, `backoffice.data_subject_requests`) | Au Lot 1 : dépôt de la demande depuis l'espace membre, accusé de réception, exécution manuelle par un administrateur selon une procédure écrite ; table avancée au Lot 1 si nécessaire | `chef-de-projet` + `expert-conformite-rgpd` (veto) | J7 |
 | **EC-15** | `02` §7 et `04` §13 renvoient à `AccountForm.tsx`, qui n'existe plus sur `main` ; le formulaire en trois étapes de la landing ne correspond pas au parcours réel ; les boutons pointent vers `/signup`, `/login`, `/signup/advertiser`, `/signup/creator` alors que `17` §2.6 fixe des chemins localisés | Écrans écrits d'après `17` §3. Chemins des portes à fixer (par exemple `/fr/inscription/marque` · `/en/signup/brand`) ; « Me connecter » ouvre l'écran 1 précédé du choix de porte ; la section formulaire de la landing devient un renvoi vers les deux portes (tests `TM10` adaptés) | `expert-ux` + `product-owner` | J5, J9 |
-| **EC-16** | Les points d'accès publics de Supabase Auth restent joignables avec la clé *publishable*, qui n'est pas un secret : inscription publique, envoi natif d'un code par GoTrue | Désactiver l'inscription publique (l'API d'administration reste utilisable), ne configurer aucun envoi d'e-mail natif de GoTrue, et **vérifier par un test** qu'aucun envoi ni aucune création d'utilisateur n'est déclenchable sans `apps/api` | `expert-cybersecurite` | J3 |
-| **EC-17** | **Codes de secours du second facteur** (MFA-3) : à vérifier si Supabase Auth les fournit | S'ils n'existent pas nativement : table dédiée, codes hachés, usage unique, génération journalisée, consommation alertée (MFA-4) | `expert-cybersecurite` + `expert-database` | J3 |
+| **EC-16** | Les points d'accès publics de Supabase Auth restent joignables avec la clé *publishable*, qui n'est pas un secret : inscription publique, envoi natif d'un code par GoTrue | Désactiver l'inscription publique (l'API d'administration reste utilisable), ne configurer aucun envoi d'e-mail natif de GoTrue, et **vérifier par un test** qu'aucun envoi ni aucune création d'utilisateur n'est déclenchable sans `apps/api`. *Précisé le 2026-09-27 (J3-A a3, a4) : l'API d'administration reste utilisable inscription fermée (code source) ; ne configurer aucun envoi ne suffit pas, voir EC-41* | `expert-cybersecurite` | J3 — **Tranché par `expert-cybersecurite` le 2026-09-27** : retenu avec EC-41 — inscription fermée, crochet « puits », `max_frequency` 60 s, `secure_password_change`, constats ; clé *publishable* désactivée au J4 si le projet le permet (G-1). Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
+| **EC-17** | **Codes de secours du second facteur** (MFA-3) : à vérifier si Supabase Auth les fournit | S'ils n'existent pas nativement : table dédiée, codes hachés, usage unique, génération journalisée, consommation alertée (MFA-4). *Fait établi le 2026-09-27 (J3-A c3) : **ils n'existent pas** ; forme proposée en J3-C règle 9* | `expert-cybersecurite` + `expert-database` | J3 — **Tranché par `expert-cybersecurite` le 2026-09-27** : retenu, durci — table dédiée sans droit des rôles métier, consommation atomique, **un code de secours ne satisfait jamais R**. Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
 | **EC-18** | **Variables absentes de `.env.example`** : secret interne du passe-plat (`x-influx-internal`, PP-8), poivre des empreintes de débit (`04` §12.10, point 4), destinataires de secours des alertes de disponibilité (D60) ; aucun `.env.example` pour `apps/web` et `apps/backoffice` (`INFLUX_API_INTERNAL_URL`) | Les ajouter, avec valeurs factices, dans le commit qui les utilise | `integrateur` + `expert-cybersecurite` | J1, J3 — **noms et fichiers arrêtés par `architecte` le 2026-09-25** (§4, J1-F) ; reste la confirmation `integrateur` + `expert-cybersecurite` |
-| **EC-19** | **Porteurs des variables Brevo.** `02` §12.3 réserve `BREVO_API_KEY` au worker, alors que `apps/api` envoie lui-même le code de connexion (D43, `02` §18.10) et les alertes de disponibilité (D60, `02` §20.5), et reçoit le webhook (EC-12) ; `apps/api/.env.example` n'indique aucun service pour les variables Brevo | `api` : `BREVO_API_KEY`, `BREVO_API_BASE_URL`, `BREVO_MODE`, `BREVO_TEST_RECIPIENTS`, `BREVO_SENDER_TRANSACTIONAL`, `BREVO_WEBHOOK_SECRET`, `BREVO_WEBHOOK_PATH_TOKEN`, `BREVO_IP_ALLOWLIST`. `worker` : les cinq premières, plus `BREVO_SENDER_MARKETING`, `BREVO_SENDER_PROSPECTING`, `BREVO_SUPPRESSION_LIST_ID`. Corriger `02` §12.3, la skill `env-secrets` et `.env.example` | `integrateur` + `expert-cybersecurite` (clé Brevo sur le service HTTP) | J3 |
+| **EC-19** | **Porteurs des variables Brevo.** `02` §12.3 réserve `BREVO_API_KEY` au worker, alors que `apps/api` envoie lui-même le code de connexion (D43, `02` §18.10) et les alertes de disponibilité (D60, `02` §20.5), et reçoit le webhook (EC-12) ; `apps/api/.env.example` n'indique aucun service pour les variables Brevo | `api` : `BREVO_API_KEY`, `BREVO_API_BASE_URL`, `BREVO_MODE`, `BREVO_TEST_RECIPIENTS`, `BREVO_SENDER_TRANSACTIONAL`, `BREVO_WEBHOOK_SECRET`, `BREVO_WEBHOOK_PATH_TOKEN`, `BREVO_IP_ALLOWLIST`. `worker` : les cinq premières, plus `BREVO_SENDER_MARKETING`, `BREVO_SENDER_PROSPECTING`, `BREVO_SUPPRESSION_LIST_ID`. Corriger `02` §12.3, la skill `env-secrets` et `.env.example` | `integrateur` + `expert-cybersecurite` (clé Brevo sur le service HTTP) | J3 — **Tranché par `expert-cybersecurite` le 2026-09-27** : retenu, durci — clé Brevo sur `api` **acceptée** ; **deux clés distinctes** (`api`, `worker`) ; `BREVO_MODE` et `BREVO_TEST_RECIPIENTS` sur `api` dès le commit 8 ; secrets du webhook sur `api` seul (J7) ; garde statique des chemins Brevo ; restriction IP chez Brevo à surveiller. `02` §12.3, skill `env-secrets` et `.env.example` corrigés. Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
 | **EC-20** | **Une variable pour deux rôles de connexion.** Si EC-1 retient un rôle de connexion élevé par service, `ELEVATED_DATABASE_URL` prend deux valeurs différentes (`api`, `worker`) : impossible dans le seul `apps/api/.env.local` où tournent les deux processus, et une valeur posée sur le mauvais service Railway ne se voit pas | Deux noms qui disent le rôle : `AUTH_DATABASE_URL` (`api`, rôle de connexion membre d'`influx_auth` seul) et `WORKER_DATABASE_URL` (`worker`) ; `ELEVATED_DATABASE_URL` disparaît | `expert-cybersecurite` + `expert-database` (avec EC-1), `integrateur` | J2 — **Tranché par `expert-cybersecurite` le 2026-09-26** : proposition retenue. **`api`** : `DATABASE_URL` (`influx_app`) et `AUTH_DATABASE_URL` (`influx_auth_login`), plus `OPS_DATABASE_URL` au J4. **`worker`** : `WORKER_DATABASE_URL` (`influx_worker_login`) **seule** — ni `DATABASE_URL` ni `AUTH_DATABASE_URL` —, plus `PRIVACY_DATABASE_URL` au Lot 5. `DIRECT_DATABASE_URL` : CI seule (CI-5), inchangée. **`ELEVATED_DATABASE_URL` disparaît** partout (`02` §12.3, J1-D, J2 point 4, T4.6, skill `env-secrets`). Refus de démarrage : l'utilisateur de chaque URL (avant le `.` du multiplexeur) doit être **exactement** le rôle attendu ; deux URL d'un même processus ne partagent jamais le même utilisateur ; à l'ouverture de chaque grappe, `current_user` et l'absence de `rolsuper` / `rolbypassrls` sont vérifiés en base ; sur Railway (`RAILWAY_ENVIRONMENT_NAME` présent), la présence d'une variable de base réservée à un autre service fait échouer le démarrage. **`apps/api/.env.example`**, dans le commit du J2 qui les lit : trois lignes `DATABASE_URL=postgresql://influx_app.your-project-ref:CHANGE_ME@HOST:6543/postgres`, `AUTH_DATABASE_URL=postgresql://influx_auth_login.your-project-ref:CHANGE_ME@HOST:6543/postgres`, `WORKER_DATABASE_URL=postgresql://influx_worker_login.your-project-ref:CHANGE_ME@HOST:6543/postgres`, chacune commentée avec son rôle, ses appartenances, ses opérations et son **seul** service ; un commentaire rappelle le format `<rôle>.<référence du projet>`, le port 6543 (mode transaction), TLS obligatoire, et qu'en pile locale la connexion est directe, sans suffixe |
 | **EC-21** | **PP-6 : d'où vient l'adresse IP du client ?** Un gestionnaire de route Next.js n'a pas accès à la connexion (la propriété `ip` de la requête a disparu en Next.js 15) : l'adresse ne peut venir que d'un en-tête posé par l'entrée de Railway, dont on ignore s'il écrase une valeur fournie par le client. La limitation de débit par IP (T8, T15) en dépend | Une fonction unique `clientAddress()` dans `src/server/relay.ts`, qui lit l'en-tête documenté par Railway (l'entrée ajoutée par Railway, jamais celle du client) ; `apps/api` ne lit l'adresse relayée qu'après validation du secret interne ; **constat sur `staging` au J4** avec un en-tête forgé | `expert-cybersecurite` + `integrateur` | J3 (usage), J4 (constat) — **tranché par `expert-cybersecurite` le 2026-09-25** (revue de fin de J1, A5 ; `03` PP-6 et §6.4) : source unique **`x-real-ip`** écrit par l'entrée Railway, **jamais `x-forwarded-for`** ; `clientAddress()` ne garde que la forme `^[0-9A-Fa-f:.]{2,45}$` et retransmet sous `x-real-ip` ; `apps/api` en `trustProxy: false`, `request.ip` jamais lu, `x-real-ip` lu après `identifySurface`, validé par zod, `::ffff:` ramené en IPv4, clé /32 ou /64 en empreinte HMAC-SHA-256 (`AUTH_THROTTLE_PEPPER`), jamais en clair dans `ops` ni `pino` ; adresse absente ou invalide : compteur par e-mail + compteur global à plafond strict + `warn`, alerte en production ; constat J4 refait à chaque changement d'entrée (un CDN change la source) |
 | **EC-22** | **La route de santé publique de `apps/web`** (D60, `02` §20.10) n'entre pas dans la liste blanche de G5 (`02` §13.1 : « le seul fichier de route autorisé »), et le `proxy.ts` de next-intl la redirigerait vers `/fr/…` | Liste blanche à deux entrées : `src/app/health/route.ts`, réponse `200` ou `503` **à corps vide**, fondée sur `GET /v1/status` par le client d'API, mêmes contraintes de contenu que le passe-plat, exclue du `matcher` du proxy | `architecte` + `expert-cybersecurite` (`02` §20.12) | J9 (sonde) |
 | **EC-23** | **La skill `env-secrets` indique « Local : `.env` »** (§ Ajouter une variable, étape 4), alors que D62 impose `apps/api/.env.local` (le `.env` est chargé par la maquette) ; elle ne dit rien des fichiers des fronts ni du fichier `staging` | Étape 4 : `apps/api/.env.local` (pile locale et clés de test D62), `apps/api/.env.staging.local` (sans clé Brevo ni Apollo, sans `DIRECT_DATABASE_URL`), `apps/<front>/.env.local` (chargé nativement par Next.js) | `integrateur` | J1 (documentation) — **Fait le 2026-09-26** par `integrateur` : étape 4 de la skill `env-secrets` réécrite selon la proposition (avec l'alignement d'EC-20) |
-| **EC-24** | **`SESSION_COOKIE_SECRET` est décrit comme « secret de signature du cookie de session »**, alors que la session est un identifiant opaque dont seule l'empreinte est en base (EC-2) : il n'y a rien à signer. Son usage réel serait la signature des jetons courts (cookie de parcours, jeton d'inscription d'EC-4) | Nommer la variable d'après son usage réel (`AUTH_TOKEN_SIGNING_SECRET`), ou corriger sa description ; ne pas signer l'identifiant de session | `expert-cybersecurite` | J3 |
+| **EC-24** | **`SESSION_COOKIE_SECRET` est décrit comme « secret de signature du cookie de session »**, alors que la session est un identifiant opaque dont seule l'empreinte est en base (EC-2) : il n'y a rien à signer. Son usage réel serait la signature des jetons courts (cookie de parcours, jeton d'inscription d'EC-4) | Nommer la variable d'après son usage réel (`AUTH_TOKEN_SIGNING_SECRET`), ou corriger sa description ; ne pas signer l'identifiant de session | `expert-cybersecurite` | J3 — **Tranché par `expert-cybersecurite` le 2026-09-27** : retenu — `AUTH_TOKEN_SIGNING_SECRET`, l'identifiant de session n'est jamais signé, valeur distincte des autres secrets ; `02` §12.3, skill `env-secrets`, `03` T11 et `.env.example` corrigés. Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
 | **EC-25** | **Libellés du backoffice : « aucun fichier de traduction » ou un module de libellés ?** `18` §5, annexe 1, dit que tant que D36 est ouverte, la garde vérifie que `apps/backoffice` n'a **aucun** fichier de traduction ; J1-E (§4) crée `src/messages/fr.ts`, module unique de libellés français, pour qu'aucun littéral ne soit écrit en JSX | *Appliquée au J1, sans risque (relevé par `dev-react-node` le 2026-09-25)* : la garde du backoffice vérifie un **seul** module de libellés, `src/messages/fr.ts`, l'absence de tout dossier `locales/` et de tout fichier JSON sous `src/`, et l'absence de `next-intl` (dépendance et imports). La décision D36 reste ainsi visible. Reformuler `18` §5, annexe 1, en ce sens | `testeur` + `architecte` | — (J1 livré avec la proposition) |
 | **EC-26** | **Messages `FST_*` conservés dans le journal (A1) : deux d'entre eux citent des valeurs.** A1 conserve le message des erreurs `FST_*`. Or le gabarit de `FST_ERR_REP_ALREADY_SENT` cite **l'URL brute de la requête, chaîne de requête comprise** (`02` §20.8 l'interdit), et celui de `FST_ERR_FAILED_ERROR_SERIALIZATION` cite **le message d'une autre erreur** (qui peut porter des paramètres SQL). D'autres gabarits de Fastify 5.12.5 interpolent une valeur (`FST_ERR_BAD_URL`, `FST_ERR_MAX_PARAM_LENGTH`), mais ne passent pas par le journal dans notre configuration | *Appliqué au plus prudent par `dev-react-node` le 2026-09-25 (457663e)* : le message de ces **deux** codes est écarté comme celui de toute autre erreur (le code suffit au diagnostic), liste fermée dans `apps/api/src/platform/logger.ts`. À confirmer, ou à remplacer par « aucun message `FST_*` » (plus simple, plus sûr, un peu moins lisible). **Tranché par `expert-cybersecurite` (2026-09-25) : aucun message `FST_*`.** Le message n'est conservé que pour `ApiError`, `RequestValidationError` et `ConfigError` ; la liste `FASTIFY_CODES_QUOTING_VALUES` disparaît, le code et le statut suffisent. Motifs : une liste d'exclusions est une liste noire, contraire au principe de liste blanche d'A1 ; les greffons `@fastify/*` attendus au J3 utilisent aussi le préfixe `FST_` ; et le correctif d'EC-27 fait passer par notre code `FST_ERR_BAD_URL` et `FST_ERR_MAX_PARAM_LENGTH`, dont le message recopie l'URL. Test : une erreur `FST_*` portant un marqueur dans son message ne le laisse dans aucune ligne. **Même commit qu'EC-27** | `expert-cybersecurite` | J3 (avec EC-27) |
 | **EC-27** | **La réponse de Fastify à une URL mal encodée contourne l'enveloppe, le secret interne et le filtre de sortie.** `GET /v1/%zz?email=…` reçoit un `400` au format propre de Fastify — `{"error":"Bad Request","code":"FST_ERR_BAD_URL","message":"'/v1/%zz?email=…' is not a valid url component","statusCode":400}` —, **avant** le contrôle du secret (le routeur répond seul, sans crochet ni journal) : un appelant sans secret obtient une réponse hors enveloppe (T7.9, T13.4) qui **recopie l'URL**. Constaté le 2026-09-25 par `dev-react-node`. Injoignable par le passe-plat depuis R1 (tout `%` refusé), donc seulement si le réseau privé devient joignable (le cas que PP-8 couvre) | Option `frameworkErrors` de Fastify : répondre `401` en enveloppe si le secret est absent ou inconnu, sinon `404 not_found` en enveloppe, sans rien recopier ; un test par code `FST_ERR_BAD_URL` et `FST_ERR_ASYNC_CONSTRAINT`. Non appliqué dans la passe J1-J (hors de la liste). **Tranché par `expert-cybersecurite` (2026-09-25) : correctif `frameworkErrors` au J3, en premier commit du J3, et au plus tard avant toute route `/v1/` à paramètre.** Périmètre élargi à **`FST_ERR_MAX_PARAM_LENGTH`, joignable par le passe-plat** dès qu'une route à paramètre existe : le passe-plat admet 200 caractères, Fastify limite un paramètre à 100 ; constaté le 2026-09-25 (route d'essai `/v1/creators/:id`) : `GET /v1/creators/<150 caractères>` reçoit un `414` hors enveloppe, avant le secret, qui recopie le chemin. Réponse : `401` en enveloppe si le secret est absent ou inconnu, sinon `404 not_found` en enveloppe, pour les **trois** codes ; rien de la requête n'est recopié ; ligne de journal sans message (EC-26) ; identifiant de requête selon A3. Tests : les trois codes, avec et sans secret, marqueur dans le chemin et dans la chaîne de requête absent de la réponse et du journal | `expert-cybersecurite` + `architecte` | J3 (premier commit, avant toute route à paramètre) |
 | **EC-28** | **`18` T7.1 et T7.2 contredisent `03` PP-2 et PP-6 révisés.** T7.1 attend des refus « **après décodage** » (R1 : plus aucun décodage, tout `%` refusé) ; T7.2 attend que `x-forwarded-for` et `x-real-ip` soient « **réécrits** » (A5 : `x-forwarded-for` ni lu ni relayé, `x-real-ip` retransmis seulement s'il a la forme d'une adresse) | Reformuler T7.1 et T7.2 d'après PP-2 et PP-6 ; les tests unitaires du passe-plat suivent déjà `03` (4058bf2) | `testeur` | **Fait le 2026-09-25** (T7.1 et T7.2 reformulés dans `18`) |
-| **EC-29** | **Qui écrit une session ?** *(relevé par `expert-database` au J2, 2026-09-26.)* `0004` crée `identity.sessions` (EC-2) et `identity.resolve_session()`, **en lecture seule** (`03` P7). Restent sans chemin d'écriture : la **création** à la vérification du code (membre) ou à la connexion du backoffice, le **renouvellement glissant** (`last_activity_at`, `idle_expires_at`) à chaque requête, et la **révocation** (déconnexion, suspension, changement de rôle, réinitialisation du second facteur, A-9) | Création : `influx_auth` (E-2, rattachement d'EC-5), `INSERT` de colonnes nommées dans `0108`. Renouvellement : `UPDATE (last_activity_at, idle_expires_at)` accordé aux quatre rôles métier **sur leur seule session**, borné en base par les contraintes de durée déjà posées (30 j / 180 j membres, 30 min / 8 h backoffice). Révocation par le titulaire : `UPDATE (revoked_at, revocation_reason)` sur sa ligne, motifs `logout` et `revoked_by_holder` seulement ; révocation d'un tiers, suspension : fonction `SECURITY DEFINER` journalisée (propriétaire `influx_identity_definer`) | `expert-cybersecurite` (veto) + `expert-database` | J3 |
+| **EC-29** | **Qui écrit une session ?** *(relevé par `expert-database` au J2, 2026-09-26.)* `0004` crée `identity.sessions` (EC-2) et `identity.resolve_session()`, **en lecture seule** (`03` P7). Restent sans chemin d'écriture : la **création** à la vérification du code (membre) ou à la connexion du backoffice, le **renouvellement glissant** (`last_activity_at`, `idle_expires_at`) à chaque requête, et la **révocation** (déconnexion, suspension, changement de rôle, réinitialisation du second facteur, A-9) | Création : `influx_auth` (E-2, rattachement d'EC-5), `INSERT` de colonnes nommées dans `0108`. Renouvellement : `UPDATE (last_activity_at, idle_expires_at)` accordé aux quatre rôles métier **sur leur seule session**, borné en base par les contraintes de durée déjà posées (30 j / 180 j membres, 30 min / 8 h backoffice). Révocation par le titulaire : `UPDATE (revoked_at, revocation_reason)` sur sa ligne, motifs `logout` et `revoked_by_holder` seulement ; révocation d'un tiers, suspension : fonction `SECURITY DEFINER` journalisée (propriétaire `influx_identity_definer`) | `expert-cybersecurite` (veto) + `expert-database` | J3 — **Tranché par `expert-cybersecurite` le 2026-09-27** : création retenue (`influx_auth`, E-2) ; **renouvellement et révocation par le titulaire remplacés** par deux fonctions `SECURITY DEFINER` (`identity.touch_session`, `identity.revoke_own_session`) qui calculent les dates en base, plus un déclencheur d'irréversibilité — le droit `UPDATE (revoked_at, …)` proposé permettait de ressusciter une session révoquée. Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
 | **EC-30** | **Création du compte à l'inscription** *(J2, 2026-09-26).* `04` §5.1 interdit toute écriture directe de `identity.account_roles` par un rôle d'exécution, et `identity.grant_role()` est réservée à `influx_admin` ; or l'inscription (E-2, sans session) doit créer **dans une transaction** le compte, **son rôle**, l'acceptation des CGU (`channel = 'signup'`), le consentement (D63) et, en cas d'invitation, le commercial responsable (D54) | Une fonction `SECURITY DEFINER` nommée `identity.provision_account(...)`, propriétaire `influx_identity_definer`, `EXECUTE` à `influx_auth` seul : rôle **limité à `advertiser` ou `creator`**, identité GoTrue et adresse issues de la vérification du code, écriture du registre. Pas de `GRANT INSERT` direct sur `account_roles` à `influx_auth` | `expert-cybersecurite` (liste fermée signée) + `expert-database` | J5 (J3 pour les comptes de démonstration, créés par script sous le rôle de migration) |
 | **EC-31** | **Lecture du registre par un agent : « limitée à son périmètre d'exploitation » (`03` C(38))** — le périmètre n'est pas défini, donc pas exprimable en politique | `0006` n'accorde **aucune** lecture de `audit.audit_events` à `influx_agent` (l'administrateur lit, en `aal2`). Proposition : au J8, lecture par l'agent de l'**historique d'un objet** qu'il consulte (fiche de compte), par une fonction qui filtre sur `subject_type` et `subject_id` et journalise la consultation, plutôt qu'un `GRANT SELECT` sur la table | `expert-cybersecurite` | J8 |
 | **EC-32** | **Noms de migrations incompatibles avec la CLI Supabase.** La CLI n'applique que les fichiers `<chiffres>_<nom>.sql` ; `04` §11.2 prévoit `0402a`, `0402b`, `0402c` (Lot 4), qui seraient **ignorés sans erreur**, et un ordre d'application (`0402a` avant `0402`) que le tri ne donnerait pas | Renuméroter au Lot 4 en entiers dans l'ordre d'application (par exemple `0402` → `0405`, décalage des suivants), et ajouter à la CI un contrôle qui échoue sur tout fichier de `supabase/migrations/` ne respectant pas `^[0-9]{4}_[a-z0-9_]+\.sql$` | `expert-database` + `integrateur` | Lot 4 (contrôle CI : J4) |
@@ -251,6 +251,18 @@ la proposition est une hypothèse de travail, pas une décision.
 | **EC-34** | **Autorité de certification du multiplexeur Supabase** *(relevé par `dev-react-node` au J2, 2026-09-27).* `03` P7 règle 1 exige TLS avec vérification du certificat (« autorité de Supabase »). `apps/api/src/db/pool.ts` active `ssl: { rejectUnauthorized: true }` hors hôte de bouclage, mais avec les autorités de Node : si le certificat de Supavisor est signé par l'autorité propre de Supabase, la connexion à `staging` échouera | Variable `DATABASE_CA_CERT` (certificat racine téléchargé depuis le tableau de bord, public), lue par `src/config/`, passée en `ssl.ca` ; constat sur `staging` au J4 | `integrateur` + `expert-cybersecurite` | J4 |
 | **EC-35** | **Écarts d'écriture des tests du J2** *(`dev-react-node`, 2026-09-27)*, hypothèses appliquées au plus prudent : (1) forme `vide` ajoutée à T2 pour `billing.commission_rates` lu par `admin` (`0007` accorde `SELECT`, alors que `18` T2 règle 3 dit « toutes ses lignes `refus_droit` ») ; (2) un membre sans contexte qui insère dans `terms_acceptances` est refusé par le déclencheur `prepare_terms_acceptance()` (`23503`, même message qu'une version inconnue) avant la politique (`42501`) : déclaré `filteredInsertCode` dans le fichier d'attendus ; (3) T2.2 exclut, en plus de `supabase_migrations`, `_realtime` et `extensions`, créés par Supabase sous le rôle `postgres` ; (4) T6.3 exempte `src/config/schema.ts` (nomme toutes les variables pour refuser une variable mal placée, EC-20) et `packages/contracts/src/elevated-operations.ts` (déclare P) ; (5) le plancher de cas exécutés par famille (`18` §3 règle 2) n'est pas codé : seuls `.skip`, `.todo`, `.only` sont refusés ; (6) T4.7 « même cas pour la grappe élevée » n'est pas testable tant que l'union est vide : à écrire au J3 avec E-1 ; (7) la CI se connecte en direct (port 54322), pas par le multiplexeur local (`03` P7 règle 7, `18` §3 point 4) ; (8) T3.8 ouvre 50 connexions `influx_app` sur une limite provisoire de 60 (EC-33) | Confirmer ou corriger `18` T2, T2.2, T6.3 et §3 en conséquence | `testeur` + `expert-cybersecurite` | J3 — **Tranché le 2026-09-27** : les huit points acceptés, (5) plancher exigé au J3, (6) avec E-1, (7) multiplexeur éprouvé au J4 ; `18` corrigé. Voir J2, « Vérification de fin de J2 par `testeur` » |
 | **EC-36** | **Ligne d'audit de `withElevatedTransaction`** *(J2, 2026-09-27).* `03` §6.7 point 7 exige une ligne par élévation ; son code d'événement, son sujet et son volume (C-7 : seulement si la transaction écrit) ne sont pas fixés. Implémentation d'attente : `audit.append('elevated.<opération>', 'elevated_operation', gen_random_uuid(), {operation})` après la fonction, à chaque transaction élevée. Aucun code `elevated.*` n'existe dans `audit.event_types` et `influx_auth` / `influx_worker` n'ont pas `EXECUTE` sur `audit.append()` : sans migration du J3, la première élévation échouera (voulu) | Codes et sujet dans la migration du J3 (`0108`), avec M2 ; appliquer C-7 | `expert-database` + `expert-cybersecurite` | J3 |
+| **EC-37** | **Numérotation des migrations du J3** *(`architecte`, 2026-09-27, J3-A)*. `0108` appliquée au J3 puis au J4 sur `staging` précéderait `0101` à `0106`, écrites aux J5 et J6 : `supabase db push` **refuse** d'appliquer une migration plus ancienne que la dernière appliquée, sauf option `--include-all` (constat documenté). Et `transactional_sends.outbox_event_id` référence `outbox_events`, créée par `0101` | Numéroter **dans l'ordre d'application** : les migrations du J3 prennent `0010`, `0011`… (suite du Lot 0) ; `04` §11.2 renumérote la série `01xx` (même règle qu'EC-32) ; `outbox_event_id` en `bigint` **sans clé étrangère** jusqu'à `0101`, qui l'ajoute (une ligne `P0` l'a toujours nulle, D43) ; contrôle de CI : un nouveau fichier ne précède jamais le dernier fichier existant | `expert-database` + `integrateur` | J3 (première migration du jalon) |
+| **EC-38** | **Limites de débit de GoTrue par adresse IP, alors que tout vient de `apps/api`** *(J3-A b9)*. GoTrue limite `/verify` à 30 requêtes par 5 min et par IP, `/token` à 150, le défi et la vérification TOTP à 15 par minute (non réglable). Vues de GoTrue, toutes les demandes viennent de l'adresse d'`apps/api` : ces seuils deviennent **un plafond global de la plateforme**, qu'un attaquant peut épuiser pour empêcher toute connexion | En-tête **`Sb-Forwarded-For`** sur chaque appel d'`apps/api` (clé secrète exigée, option `security_sb_forwarded_for_enabled` du projet), valeur = adresse normalisée d'A5 si elle est valide, rien sinon ; limites de la pile locale relevées dans `config.toml` pour les tests. **À valider** : l'adresse IP de l'utilisateur est alors transmise à Supabase (sous-traitant déjà désigné) et peut être conservée par le journal d'audit de GoTrue (`auth.audit_log_entries`) — durée, et désactivation possible de ce journal, à instruire. **Avis `expert-conformite-rgpd` du 2026-09-27 : autorisé sous conditions** (gravité **importante**, non bloquante pour le code du J3). L'adresse IP est une donnée personnelle (CJUE, *Breyer*, C-582/14) ; la transmettre à Supabase, déjà sous-traitant, pour limiter les tentatives **par client** relève de l'**intérêt légitime de sécurité** (art. 6.1 f et considérant 49 RGPD ; art. 32 : la disponibilité fait partie de la sécurité), sans consentement. « Ne rien transmettre » n'est **pas** retenu : la minimisation se mesure à une finalité qu'on doit pouvoir atteindre, et un plafond global rendrait la connexion de tous bloquable. Conditions : **(1) valeur préférée, une adresse de substitution pseudonyme** plutôt que l'adresse réelle (art. 25, protection dès la conception) : adresse IPv6 privée (`fd00::/8`) tirée de l'empreinte HMAC d'A5 (clé /32 ou /64, `AUTH_THROTTLE_PEPPER`), stable par client — GoTrue limite aussi bien, et Supabase ne reçoit ni l'adresse ni de quoi géolocaliser la personne. Acceptation par GoTrue à constater en pile locale (commit 7), faisabilité et innocuité à confirmer par `expert-cybersecurite` ; **repli** si le constat échoue ou si la sécurité s'y oppose : adresse réelle normalisée, **IPv6 tronquée à son préfixe /64** ; **(2)** adresse absente ou invalide : rien n'est transmis (déjà prévu) ; **(3) conservation côté Supabase bornée et écrite** dans `04` §9.1 : réglage « écrire les journaux d'audit dans la base » **désactivé** (INFLUX a son propre registre), ou, si `expert-cybersecurite` le veut, purge de `auth.audit_log_entries` à **90 jours** au plus ; journaux de la plateforme Supabase : durée fixée par l'offre (7 jours en Pro), **aucun renvoi de journaux (« log drain ») vers un tiers** sans nouvel avis ; test de constat : quelles tables du schéma `auth` gardent une adresse après chaque parcours (`sessions`, vidée par J3-C règle 2 ; `mfa_challenges` ; `audit_log_entries` ; `flow_state`), résultat reporté au §9.1 ; **(4)** politique de confidentialité : adresse IP traitée pour la sécurité de la connexion, intérêt légitime, destinataires (Railway, Supabase), durées ; **(5)** registre des traitements (ligne « sécurité de l'authentification ») et, avant la mise en ligne du Lot 1, contrat de sous-traitance Supabase signé et **lieu de stockage des journaux de la plateforme** vérifié dans la liste de ses sous-traitants ultérieurs (transfert hors UE possible). Détail : « Avis de conformité du J3 » (après J3-H) | `expert-cybersecurite` + `expert-conformite-rgpd` (veto, transmission de l'IP) ; `integrateur` (réglage J4) | J3 (code), J4 (réglage) — **Tranché par `expert-cybersecurite` le 2026-09-27** (partie sécurité) : en-tête **exigé** ; valeur **retenue avec l'avis de conformité** : **adresse IPv6 pseudonyme** de `fd00::/8` dérivée par HMAC (aucune adresse réelle chez Supabase), faisabilité et innocuité confirmées, acceptation par GoTrue à constater (commit 7 ou J4) ; repli : adresse réelle, IPv6 tronquée à /64 ; `auth.audit_log_entries` conservé et purgé à 90 jours (trace de G-1) ; limites locales jamais poussées vers un projet hébergé. Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
+| **EC-39** | **Anti-rejeu du TOTP (B-3) non garanti par GoTrue** *(J3-A c4)*. Un défi est à usage unique et lié à l'adresse IP, mais **le même code** peut être présenté avec un nouveau défi dans sa fenêtre (période 30 s, un pas de décalage toléré : ≈ 90 s) | Conserver par compte l'empreinte HMAC du dernier code accepté et sa date ; refuser le même code pendant 90 s. Écarté : le crochet « MFA verification attempt » de GoTrue (logique hors de notre code et de nos tests) | `expert-cybersecurite` + `expert-database` | J3 (commit 6) — **Tranché par `expert-cybersecurite` le 2026-09-27** : retenu, durci — même code refusé **120 s**, écriture conditionnelle dans la transaction qui crée la session. Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
+| **EC-40** | **Backoffice : pas de session `aal1`, et fraîcheur (R) sur la ligne de session** *(J3-C règle 4)*. Les appels TOTP de GoTrue exigent la session GoTrue de l'utilisateur, qu'on ne conserve pas d'une requête à l'autre (J3-C règle 2). Et `identity.sessions` n'a aucune colonne pour la dernière vérification TOTP, exigée pour R (revue du 2026-09-26, point (c)) | Session backoffice **née en `aal2`** (plus strict que `03` §6.2 : aucune session `aal1` n'existe) ; connexion en une requête ; inscription du TOTP en deux requêtes, **mot de passe ressaisi à la seconde** ; R = mot de passe + code ; colonnes `mfa_verified_at` et `mfa_method` (`totp` · `recovery_code`) sur `identity.sessions`, écrites par E-2, et contrainte « session backoffice ⇒ `aal2` » | `expert-cybersecurite` (veto) + `expert-database` ; `expert-ux` (ressaisie) | J3 (commits 6, 10) — **Tranché par `expert-cybersecurite` le 2026-09-27** : retenu, durci — contrainte surface ⇔ `aal`, fraîcheur écrite par `influx_auth` seul, R ≤ 5 min et jamais par un code de secours, plancher de durée, épinglage du facteur (G-1). Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
+| **EC-41** | **Envois natifs par les points d'accès publics de GoTrue** *(précise EC-16, J3-A a4)*. `/otp`, `/recover`, `/resend`, `/magiclink` envoient un e-mail à un utilisateur **existant**, inscription fermée ou non ; la clé *publishable* n'est pas un secret ; ne configurer aucun SMTP ne suffit pas (l'expéditeur intégré de Supabase prend le relais sur un projet hébergé) | **Crochet d'envoi « puits »** : fonction Postgres `auth_hooks.refuse_native_email(event jsonb)` qui refuse tout envoi et **n'écrit rien** (la charge porte un code), schéma dédié sans table, `EXECUTE` à `supabase_auth_admin` seul, `search_path` vide, déclarée par `[auth.hook.send_email]` (`pg-functions://…`). `generateLink` n'envoie rien, donc ne l'appelle pas (code source). Notifications natives de sécurité laissées désactivées. Ce n'est pas le crochet HTTP écarté par `02` §18.7. À constater : la réponse de GoTrue au refus, et **qu'un `/otp` refusé n'écrase pas le code en cours** d'un membre | `expert-cybersecurite` + `expert-database` | J3 (commit 5) — **Tranché par `expert-cybersecurite` le 2026-09-27** : retenu, durci, avec EC-16. Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
+| **EC-42** | **Asymétrie de durée chez GoTrue à l'étape 5 de `02` §18.10** *(J3-A b7)*. `admin.createUser` **insère** un utilisateur pour une adresse jamais demandée et répond `422 email_exists` sans écrire pour une adresse connue — donc pour tout compte INFLUX. R1 supprime la branche chez nous, pas cet écart chez GoTrue ; le plancher de 1 000 ms ne le masque que si la requête entière tient dessous | Mesurer au J3, en pile locale, la distribution des durées de l'étape 5 dans les deux cas et la part des requêtes qui dépassent le plancher ; si l'écart dépasse le bruit de l'appel à Brevo, porter le plancher au p99 mesuré. Le contrat de §18.10 ne change pas | `expert-cybersecurite` | J3 (commit 8) — **Tranché par `expert-cybersecurite` le 2026-09-27** : mesure locale au J3, **mesure décisive sur `staging` au J4** ; seuil : plus de 0,5 % des demandes d'une classe au-dessus du plancher ⇒ plancher = p99,9 de la classe la plus lente + 20 %. Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
+| **EC-43** | **« Pays approximatif » sans source.** A-8 (e-mail du code), B-7 et BO-6 (connexion depuis un pays inhabituel), `sessions.country_code` : ni l'entrée Railway ni le passe-plat ne fournissent de pays, et aucune base de géolocalisation n'est retenue (J3-B) | Au MVP : `country_code` nul ; l'e-mail cite l'heure et le navigateur ; le signal « pays inhabituel » devient « navigateur inconnu » tant qu'une source n'existe pas. Sources possibles : en-tête d'un CDN (décision « domaines et DNS »), base GeoLite2 (licence, mise à jour mensuelle). **Avis `expert-conformite-rgpd` du 2026-09-27 : proposition du MVP approuvée** (colonne nulle, e-mail sans pays, signal « navigateur inconnu ») : c'est la solution la plus minimale, et aucune obligation n'impose de connaître le pays. **Une source future est acceptable sous conditions, sur nouvel avis avant son activation.** Par ordre de préférence : (a) **base de pays locale** (GeoLite2 Country ou équivalent) — aucune donnée ne sort ; licence à vérifier (celle de GeoLite2 impose notamment de supprimer les versions périmées) ; (b) **en-tête pays d'un CDN** — acceptable seulement si le CDN est retenu pour d'autres raisons, car c'est lui qui devient destinataire de tout le trafic (contrat de sous-traitance, transfert) : la décision de conformité porte sur le CDN, pas sur l'en-tête. Conditions communes : **niveau pays seul** (ISO 3166-1 alpha-2 ; jamais ville, région, coordonnées ni opérateur) ; déduit à la volée, **l'adresse n'est pas conservée** ; **finalité de sécurité seule** (e-mail du code, alerte, écran « mes sessions ») — jamais segmentation, Brevo, Apollo, recherche, statistiques commerciales, ni substitut au pays déclaré ; conservation = celle de la ligne de session ; **aucune suspension automatique** sur ce seul signal (le titulaire ou un humain confirme) ; mention dans la politique de confidentialité. **Point juriste** : la Loi 25 (Québec, art. 8.1 de la loi sur le secteur privé) impose d'informer au préalable et de laisser **désactivées par défaut** les fonctions permettant de localiser une personne — à qualifier avant d'activer une source pour des utilisateurs québécois | `expert-cybersecurite` + `product-owner` | J5 (e-mail), J8 (alerte) — **Tranché par `expert-cybersecurite` le 2026-09-27** (partie sécurité) : accepté, à surveiller (`03` S-12) — `country_code` nul, signal « navigateur inconnu » au J8, nouveauté du réseau proposée à `expert-conformite-rgpd`. Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
+| **EC-44** | **Alertes du compte de secours (MFA-10) et de la consommation d'un code de secours (MFA-4) au J3.** Aucun canal d'alerte n'existe avant la file (`0101`, J6) et les alertes (J9) | J3 : ligne d'audit (`agent.break_glass_login`, consommation d'un code de secours) et ligne `pino` de niveau `error` sans donnée ; e-mail d'alerte par la file au J6 ; **bloquant avant toute mise en ligne** | `expert-cybersecurite` + `chef-de-projet` | J3, J6, J9 — **Tranché par `expert-cybersecurite` le 2026-09-27** : **accord**, sous conditions — codes d'audit au commit 6, test, e-mail à tous les administrateurs et au fondateur au J6 ; bloquant avant tout compte interne réel et toute mise en ligne. Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
+| **EC-45** | **Invitation des comptes internes (MFA-1, B-8) et amorçage de la production.** Aucune table d'invitation n'existe ; le J3 prévoit « invitation ou script » | J3 : **script seulement** (comptes de démonstration, compte de secours). Invitation (lien à usage unique de 72 h lié à l'adresse, choix du mot de passe avec B-1) : J8. Premier administrateur de production : script lancé par une tâche de CI manuelle de l'environnement GitHub `production`, avec le rôle de migration et la clé secrète, jamais depuis un poste | `chef-de-projet` + `expert-cybersecurite` ; `integrateur` | J3, J8, J9 — **Tranché par `expert-cybersecurite` le 2026-09-27** : **accord**, sous conditions — script refusé hors hôte de bouclage, tâche de production approuvée par le fondateur, sans secret affiché, par invitation (jeton d'enrôlement de G-1). Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
+| **EC-46** | **Variables Supabase de `02` §12.3.** `SUPABASE_PUBLISHABLE_KEY` et `SUPABASE_JWKS_URL` n'ont aucun usage : tout appel à GoTrue porte la clé secrète (exigée par `Sb-Forwarded-For`, EC-38) et INFLUX ne vérifie aucun JWT (J3-C règle 3). Le worker n'a besoin de `SUPABASE_SECRET_KEY` qu'avec la purge E-4 des utilisateurs GoTrue (J6) | Retirer les deux variables ; `SUPABASE_URL` et `SUPABASE_SECRET_KEY` sur `api` au J3, `SUPABASE_SECRET_KEY` sur `worker` au J6 ; corriger `02` §12.3 et la skill `env-secrets` | `integrateur` + `expert-cybersecurite` | J3 — **Tranché par `expert-cybersecurite` le 2026-09-27** : retenu, durci — une clé secrète Supabase **par service**, en-têtes sortants masqués, forme des en-têtes à constater au J4. Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
+| **EC-47** | **Limitation de débit de la connexion du backoffice (BO-6, B-7).** `identity.auth_request_throttle` ne prévoit que les demandes de code des membres | Portées supplémentaires par adresse et par IP pour les échecs de connexion du backoffice (mot de passe ou code), seuils à fixer ; freiner l'essai, jamais verrouiller le compte (A-4) ; réponse identique quelle que soit l'étape en échec | `expert-cybersecurite` + `expert-database` | J3 (commit 6) — **Tranché par `expert-cybersecurite` le 2026-09-27** : seuils fixés — couple (adresse, IP) 5 / 15 min, IP 20 / h, IP inconnue 10 / h, adresse 10 échecs / h = alerte **sans blocage**, compte de secours 1 échec = alerte, plateforme 30 / h ; réservation avant GoTrue. Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
+| **EC-48** | **Le contrôle I-4 ne couvre pas `supabase/config.toml`**, dont la section `[auth]` porte des réglages de sécurité (inscription, crochet d'envoi, TOTP, durée du code) | Étendre `packages/test-kit/scripts/check-security-review.ts` aux lignes modifiées des sections `[auth…]` de `supabase/config.toml` | `expert-cybersecurite` + `testeur` | J3 (commit 5) — **Tranché par `expert-cybersecurite` le 2026-09-27** : retenu, élargi à `[api]`, `[storage*]` et au motif `auth_hooks`. Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
 
 ---
 
@@ -341,7 +353,7 @@ Vérifiées sur le registre npm le 2026-09-25 : toutes publiées **depuis plus d
 | `drizzle-orm` | 0.45.3 | 2026-09-21 | `apps/api` | J2 | La 1.0 est en *release candidate* : si la 1.0 stable paraît avant le J2, `architecte` réexamine (commencer en 1.0 évite une migration à court terme) |
 | `postgres` | 3.4.9 | 2026-04-05 | `apps/api` ; `packages/test-kit` (harnais de rôles) | J2 | `prepare: false` (`02` §5) |
 | `supabase` (CLI) | 2.117.0 | 2026-09-07 | racine (dev) | J2 | Remplace l'installation système : **une seule version, dans le verrou, en local et en CI** (`pnpm exec supabase …`). Binaires livrés par des dépendances optionnelles par plateforme, **sans script d'installation**. La 2.118.0 (2026-09-25) est trop récente aujourd'hui |
-| `@supabase/supabase-js` | 2.117.1 | 2026-09-23 | `apps/api` | J3 | **Pas la 2.117.2**, publiée le 2026-09-25. Le pair `@opentelemetry/api` est facultatif : non installé |
+| ~~`@supabase/supabase-js`~~ **`@supabase/auth-js`** | ~~2.117.1~~ **2.117.2** | 2026-09-25 | `apps/api` | J3 | *Révisé le 2026-09-27 (J3-B)* : `auth-js` seul, sans `postgrest-js`, `realtime-js`, `functions-js` ni `storage-js` ; unique dépendance `tslib` 2.8.1, déjà au verrou. `@supabase/storage-js` entrera seul au Lot 2 |
 | `@fastify/cookie` | 11.1.2 | 2026-07-15 | `apps/api` | J3 | Compatible Fastify 5 (≥ 10.x) |
 | `@playwright/test` | 1.63.0 | 2026-09-04 | `apps/web` (dev) ; `apps/backoffice` au J8 | J5 | Chromium seul, installé par commande explicite (`playwright install chromium`), mis en cache en CI |
 
@@ -801,7 +813,7 @@ Restent, avec leur échéance :
 | **N3** | `CHANGE_ME` refusé sans tenir compte de la casse, et aussi pour `SESSION_COOKIE_SECRET` | J3 | `expert-cybersecurite` |
 | **C-1** | Chaque test d'authentification du J3 capture le flux de journal et vérifie **par valeur** qu'aucun e-mail, code, code TOTP ni cookie marqueur n'y apparaît | J3 | `expert-cybersecurite` |
 | **C-2** | Test du passe-plat contre le faux serveur exécuté en CI sous **Node 24** : `fetch` pose `sec-fetch-mode: cors` et laisse `origin` / `sec-fetch-site` intacts ; le contrôle d'origine ne lit que ces deux en-têtes | J3 (contrôle d'origine), au plus tard J4 | `expert-cybersecurite` |
-| **C-3** | Règle « un `DELETE` ne porte ni corps ni `content-type` » | J3 | `architecte` |
+| **C-3** | Règle « un `DELETE` ne porte ni corps ni `content-type` » — **tranchée le 2026-09-27 (J3-D)** : appliquée dans `apps/api` seul, passe-plat inchangé | J3 | `architecte` |
 | **C-4** | `18` T7.12 : un `x-real-ip` forgé ne change le résultat que derrière l'entrée Railway, pas en unitaire | J3 | `testeur` |
 
 ### J2 — Base de données socle (4 à 5 jours)
@@ -1127,6 +1139,734 @@ avec `security-reviewed: 2026-09-27` avant le push. *Fait le 2026-09-27 : `3e7af
 `0108` (avant tout `EXECUTE` sur le registre pour `influx_auth` / `influx_worker`) ; V3 au J4 ; V4 au J3.
 
 ### J3 — Authentification et sessions (4 à 5 jours)
+
+> **Les décisions de l'architecte du 2026-09-27 (sous-section suivante, J3-A à J3-H) précisent les
+> points 1 à 11 du plan initial et, là où elles divergent, les remplacent**, ainsi que l'ordre des
+> commits. Écarts nouveaux : **EC-37 à EC-48** (§3).
+
+#### J3 — décisions de l'architecte (2026-09-27)
+
+> **Statut : tranché par `architecte`** pour son périmètre : dépendances, intégration de GoTrue,
+> C-3, ordre des commits. Les écarts EC-37 à EC-48 restent à trancher par leurs arbitres **avant le
+> commit qui en dépend** (J3-F). Confirmations attendues : `expert-cybersecurite` (J3-C, J3-D, J3-F,
+> veto), `expert-database` (J3-F, EC-37, EC-39, EC-40), `integrateur` (J3-E), `testeur` (colonne
+> « Test » de J3-A). Aucun code n'est écrit par ce document ; aucune variable réelle n'a été lue et
+> aucun service externe réel appelé pour l'établir.
+
+##### J3-A. Faits Supabase Auth (GoTrue) établis
+
+**Méthode.** Lus le 2026-09-27 : la documentation Supabase, le code de `@supabase/auth-js`
+**2.117.2** (étiquette `v2.117.2` du dépôt `supabase-js`) et le code du serveur GoTrue
+(`supabase/auth`, branche `master`). **La version de GoTrue embarquée par la CLI 2.117.0, et celle
+des projets hébergés, ne sont pas épinglées par nous** : tout fait « vérifié (code source) » est donc
+**aussi constaté par un test en pile locale au J3** (colonne « Test »), puis sur `staging` au J4. Un
+constat qui diverge l'emporte sur ce tableau et le corrige.
+
+**a. Réglages** — tous dans `supabase/config.toml`, reportés sur les projets hébergés par
+`supabase config push` (J4, `integrateur`).
+
+| # | Exigence | `supabase/config.toml` | Projet hébergé | Statut | Test |
+|---|---|---|---|---|---|
+| a1 | Code à 6 chiffres | `[auth.email] otp_length = 6` (bornes 6 à 10) | Authentication › Email, « Email OTP Length » | **Vérifié** (doc CLI) ; code produit par `crypto.GenerateOtp(OtpLength)` (code source `mail.go`) | Le code reçu par la doublure Brevo compte 6 chiffres |
+| a2 | Validité 600 s | `[auth.email] otp_expiry = 600` — **3600 aujourd'hui** | « Email OTP Expiration » | **Vérifié** (doc) ; la validité court **depuis la génération** (date d'envoi du jeton + `OtpExp`, `verify.go`) | Test statique du fichier ; **un constat manuel unique** (code refusé après 10 min) en local, refait sur `staging`. Un test automatique qui attend 10 min est écarté |
+| a3 | Inscription publique fermée, API d'administration utilisable | `[auth] enable_signup = false` **et** `[auth.email] enable_signup = false` — **`true` aujourd'hui** | « Allow new users to sign up » désactivé | **Vérifié** (code source) : ni la création d'utilisateur par l'administration (`admin.go`) ni `generateLink` (`mail.go`) ne lisent ce réglage | `POST /auth/v1/signup` refusé ; `admin.createUser` réussit |
+| a4 | Aucun envoi d'e-mail natif | Ne pas configurer de SMTP **ne suffit pas** (sur un projet hébergé, l'expéditeur intégré de Supabase prend le relais) | idem | **Vérifié** : `generateLink` et `createUser` n'envoient rien (code source ; JSDoc de `createUser`). **Mais `/otp`, `/recover`, `/resend` et `/magiclink` restent joignables** avec une clé d'API et envoient un e-mail à un utilisateur **existant**, inscription fermée ou non (doc des limites de débit) | **EC-41** |
+| a5 | TOTP | `[auth.mfa.totp] enroll_enabled = true`, `verify_enabled = true` — **`false` aujourd'hui** | Activé par défaut, **gratuit sur toutes les offres** | **Vérifié** (doc TOTP) ; le commentaire « Pro plan » du fichier est périmé | Inscription puis vérification d'un facteur |
+| a6 | Clés de signature asymétriques | `signing_keys_path` + `supabase gen signing-key --algorithm ES256` | JWT Signing Keys en ES256, **clés d'API héritées (`anon`, `service_role`) désactivées**, clé `sb_secret_…` | **Vérifié** (doc) | J4 |
+| a7 | Réglages hors fichier | — | Protection des mots de passe compromis (offre Pro), option `Sb-Forwarded-For` (EC-38) : tableau de bord ou API de gestion | **Vérifié** (doc) | `integrateur`, J4 |
+
+**Décision a6.** Obligatoires sur les projets hébergés (J4) : ce qui compte est la **désactivation
+des clés héritées**, dont la clé `service_role` est un JWT non révocable. **Sans objet en pile
+locale au J3** : aucun composant d'INFLUX ne vérifie un JWT (J3-C, règle 3). Si un jour `apps/api`
+en vérifie un, ce sera par JWKS, avec une clé ES256 générée par le script de démarrage local, fichier
+ignoré par Git. Hygiène complémentaire : `[auth] jwt_expiry = 300` (le jeton ne vit que le temps d'une
+requête ; borne basse acceptée par GoTrue à constater).
+
+**b. Obtenir le code sans envoi, le vérifier, l'invalider**
+
+| # | Question | Réponse | Statut |
+|---|---|---|---|
+| b1 | Obtenir le code sans que GoTrue l'envoie | `auth.admin.generateLink({ type: "magiclink", email })` → `data.properties.email_otp` (avec `hashed_token`, `action_link`, `verification_type`). **Aucun e-mail ne part**, aucune limite de débit par IP, **aucune fenêtre de 60 s** (réservée à `/otp`) | **Vérifié** (code source `mail.go`, `GoTrueAdminApi.ts`) ; à constater (test) |
+| b2 | Pourquoi l'étape 5 de `02` §18.10 reste nécessaire | Pour un utilisateur **inexistant**, `generateLink` bascule en inscription et **crée l'utilisateur lui-même**, sans lire `enable_signup`, sur une autre branche de code (jeton de confirmation). Créer l'utilisateur d'abord garantit que l'étape 6 suit **toujours la même branche** dans GoTrue (jeton de récupération) : R1 tient jusque chez GoTrue | **Vérifié** (code source) |
+| b3 | Vérifier | `auth.verifyOtp({ email, token, type: "email" })` : GoTrue compare au jeton de confirmation puis au jeton de récupération, et contrôle l'expiration. Les types `magiclink` et `signup` ne sont pas employés | **Vérifié** (code source `verify.go`) ; à constater |
+| b4 | Un nouveau code invalide-t-il le précédent (A-1, RG41) ? | **Oui** : un utilisateur porte **un seul** jeton de récupération, que chaque `generateLink` remplace | **Vérifié** (code source) ; **test T8 obligatoire** |
+| b5 | Une vérification réussie invalide-t-elle le code (RG43) ? | **Oui** : le jeton est effacé et tous les jetons à usage unique de l'utilisateur supprimés ; un utilisateur non confirmé est confirmé au passage | **Vérifié** (code source `models/user.go`) ; à constater |
+| b6 | GoTrue compte-t-il les échecs (A-2, RG42) ? | **Non.** Aucun compteur, aucune invalidation après N échecs : la borne de cinq tentatives est **entièrement à notre charge** (EC-3). La proposition d'EC-3 est **réalisable** : un second `generateLink` dont le code est jeté invalide le précédent (b4). Elle rend RG42 vraie chez GoTrue ; au travers de notre API, le blocage du parcours (cookie) suffit déjà, car chaque parcours correspond à un seul code | **Vérifié** (code source) ; arbitrage : `expert-cybersecurite` |
+| b7 | Création d'une adresse déjà connue | `422`, code `email_exists` : l'erreur à avaler à l'étape 5 | **Vérifié** (code source `admin.go`) — asymétrie de durée : **EC-42** |
+| b8 | Sessions GoTrue | `verifyOtp` et `signInWithPassword` **créent une session GoTrue** (jeton d'accès et jeton de rafraîchissement) et la rangent **dans l'instance du client** | **Vérifié** (code source `GoTrueClient.ts`) → J3-C, règles 1 et 2 |
+| b9 | Limites de débit | Par IP : `/verify` 30 requêtes / 5 min, `/token` 150 / 5 min, défi et vérification TOTP 15 / min (non réglable). Transmission de l'IP réelle par l'en-tête `Sb-Forwarded-For`, **avec une clé secrète seulement** et une option du projet | **Vérifié** (doc) → **EC-38** |
+
+**c. TOTP**
+
+| # | Question | Réponse | Statut |
+|---|---|---|---|
+| c1 | API | `auth.mfa.enroll({ factorType: "totp" })` → `id`, `totp.qr_code` (SVG), `totp.secret`, `totp.uri` ; `auth.mfa.challenge({ factorId })` ; `auth.mfa.verify({ factorId, challengeId, code })` ; `challengeAndVerify` ; `listFactors` ; `getAuthenticatorAssuranceLevel` ; `unenroll`. Administration : `auth.admin.mfa.listFactors({ userId })`, `auth.admin.mfa.deleteFactor({ id, userId })`. **Tous les appels non administratifs exigent la session GoTrue de l'utilisateur** : aucune voie d'administration pour inscrire ou vérifier | **Vérifié** (doc TOTP, code source `mfa.go`) |
+| c2 | `aal2` | Après vérification, le JWT de GoTrue porte `aal: "aal2"` et `amr`. **INFLUX ne s'en sert pas** : l'`aal` d'une session est celui de `identity.sessions` (`03` §6.2), écrit par `apps/api` | **Vérifié** (doc MFA) |
+| c3 | Codes de secours natifs (EC-17) | **Aucun.** L'API n'a pas de notion de code de secours ; Supabase recommande d'inscrire un second facteur TOTP | **Vérifié** (doc, API) → EC-17 : table dédiée (J3-C, règle 9) |
+| c4 | Anti-rejeu (B-3) | **Non garanti.** Un défi est à usage unique et **lié à l'adresse IP** qui l'a demandé ; période 30 s, décalage toléré d'un pas. Rien n'empêche de présenter **le même code** avec un nouveau défi dans sa fenêtre | **Vérifié** (code source `mfa.go`) ; à constater → **EC-39** |
+| c5 | Défi et vérification | Même adresse IP exigée entre défi et vérification : **les deux dans la même requête d'`apps/api`** | **Vérifié** (code source) |
+| c6 | Facteurs non vérifiés | Une nouvelle inscription supprime les facteurs non vérifiés du même type | **Vérifié** (code source) |
+
+**d. Mots de passe compromis (B-1)**
+
+| Option | Pour | Contre |
+|---|---|---|
+| A. Protection native de GoTrue (« leaked password protection », HaveIBeenPwned) | Rien à écrire ; s'applique aussi à la création et à la modification par l'administration (code source `password.go`) | **Offre Pro et au-delà** (doc) ; **absente de la configuration de la CLI**, donc ni en pile locale ni en CI : le comportement exigé n'est jamais testé ; échec ouvert ou fermé selon un réglage que nous ne voyons pas |
+| B. Vérification par `apps/api`, k-anonymat HIBP (`GET https://api.pwnedpasswords.com/range/<5 caractères>`) | `node:crypto` (SHA-1) et `fetch` suffisent ; testable avec une doublure ; seuls 5 caractères hexadécimaux d'une empreinte quittent le serveur — **aucune donnée personnelle** | Un service externe de plus. **Supportable** : l'appel n'a lieu **que quand un mot de passe est choisi** (amorçage, invitation au J8, changement) — quelques fois par an, jamais à la connexion |
+| C. Liste hors ligne | Aucun appel externe | Liste complète de plusieurs dizaines de Go ; une liste tronquée est faible et vieillit |
+
+**Recommandation : B, doublée de A là où elle existe.** `apps/api` porte la règle (12 caractères
+minimum ; **72 octets UTF-8 au plus**, limite de hachage de GoTrue à constater ; aucune règle de
+composition, aucune expiration) et la consultation HIBP : en-tête `Add-Padding: true`, délai de
+2 000 ms, **échec fermé** (« réessayez plus tard ») — acceptable parce que l'opération est rare et
+réservée aux comptes internes. En plus : `[auth] minimum_password_length = 12` comme plancher de
+GoTrue, et la protection native activée sur les projets en offre Pro (la production le sera pour la
+restauration à un instant donné, D57). Avis d'`expert-cybersecurite` requis (B-1 laissait le choix).
+
+**Sources (lues le 2026-09-27)** :
+[configuration de la CLI](https://supabase.com/docs/guides/local-development/cli/config) ·
+[`generateLink`](https://supabase.com/docs/reference/javascript/auth-admin-generatelink) ·
+[`verifyOtp`](https://supabase.com/docs/reference/javascript/auth-verifyotp) ·
+[GoTrue `mail.go`](https://github.com/supabase/auth/blob/master/internal/api/mail.go) ·
+[`verify.go`](https://github.com/supabase/auth/blob/master/internal/api/verify.go) ·
+[`models/user.go`](https://github.com/supabase/auth/blob/master/internal/models/user.go) ·
+[`admin.go`](https://github.com/supabase/auth/blob/master/internal/api/admin.go) ·
+[`password.go`](https://github.com/supabase/auth/blob/master/internal/api/password.go) ·
+[`mfa.go`](https://github.com/supabase/auth/blob/master/internal/api/mfa.go) ·
+[`GoTrueAdminApi.ts` 2.117.2](https://github.com/supabase/supabase-js/blob/v2.117.2/packages/core/auth-js/src/GoTrueAdminApi.ts) ·
+[`GoTrueClient.ts` 2.117.2](https://github.com/supabase/supabase-js/blob/v2.117.2/packages/core/auth-js/src/GoTrueClient.ts) ·
+[`SupabaseClient.ts` 2.117.2](https://github.com/supabase/supabase-js/blob/v2.117.2/packages/core/supabase-js/src/SupabaseClient.ts) ·
+[limites de débit](https://supabase.com/docs/guides/auth/rate-limits) ·
+[TOTP](https://supabase.com/docs/guides/auth/auth-mfa/totp) ·
+[MFA](https://supabase.com/docs/guides/auth/auth-mfa) ·
+[codes de secours demandés, non fournis](https://github.com/orgs/supabase/discussions/16068) ·
+[sécurité des mots de passe](https://supabase.com/docs/guides/auth/password-security) ·
+[clés de signature](https://supabase.com/docs/guides/auth/signing-keys) ·
+[`supabase gen signing-key`](https://supabase.com/docs/reference/cli/supabase-gen-keys) ·
+[crochet d'envoi d'e-mail](https://supabase.com/docs/guides/auth/auth-hooks/send-email-hook) ·
+[configuration en code, `config push`](https://supabase.com/blog/cli-v2-config-as-code) ·
+[migrations et `db push`](https://supabase.com/docs/guides/deployment/database-migrations) ·
+registre npm : [`@supabase/auth-js` 2.117.2](https://registry.npmjs.org/@supabase/auth-js/2.117.2),
+[`@fastify/cookie` 11.1.2](https://registry.npmjs.org/@fastify/cookie/11.1.2),
+[publications de `supabase-js`](https://github.com/supabase/supabase-js/releases).
+
+##### J3-B. Dépendances du J3
+
+Règles de §2.6 et J1-A : version exacte, publiée depuis plus d'un jour, documentation de la version
+installée lue. **Deux paquets entrent au J3, pas un de plus.**
+
+| Paquet | Version exacte | Publiée le | Espace | Dépendances transitives | Usage |
+|---|---|---|---|---|---|
+| **`@supabase/auth-js`** | **2.117.2** | 2026-09-25 | `apps/api` | `tslib` 2.8.1 (**déjà au verrou**) ; aucun script d'installation ; `engines: node >= 22` | Client d'administration et client utilisateur de GoTrue, importés **uniquement** dans `apps/api/src/platform/supabase.ts` |
+| **`@fastify/cookie`** | 11.1.2 | 2026-07-15 | `apps/api` | `cookie` ^2, `fastify-plugin` ^6 (organisation Fastify) ; aucun script d'installation | Lecture et écriture des cookies, signature des jetons courts (J3-C, règle 8) |
+
+**`@supabase/auth-js` remplace `@supabase/supabase-js`** (J1-A et §2.6 amendés). Motifs :
+`supabase-js` n'est qu'une enveloppe qui installe aussi `postgrest-js`, `realtime-js`,
+`functions-js` et `storage-js`. Aucun ne sert au J3 ; et **`postgrest-js` dans `apps/api` est une
+tentation permanente** d'écrire `supabase.from(…)`, c'est-à-dire de contourner D5 et les rôles
+Postgres. Le coût du choix est connu : poser nous-mêmes les en-têtes que `supabase-js` pose (`apikey`
+et `Authorization: Bearer <clé>`, recopiés de `SupabaseClient.ts` 2.117.2) et les options du client
+(règle 1). Au Lot 2, `@supabase/storage-js` entrera seul, dans la même ligne de version. Garde
+statique à ajouter : `@supabase/supabase-js` et `@supabase/postgrest-js` interdits dans tout
+`package.json` du dépôt. **Réversibilité : élevée** (un seul fichier importe le paquet).
+
+La 2.117.2 est prise plutôt que la 2.117.1 fixée au J1-A (règle « correctif de la même mineure,
+publié depuis plus d'un jour ») ; son seul changement porte sur `postgrest-js`.
+
+**Écartés**
+
+| Paquet | Motif | Ce qui le remplace |
+|---|---|---|
+| `@supabase/supabase-js` | Voir ci-dessus | `@supabase/auth-js` |
+| `jose` et toute bibliothèque JWT | INFLUX ne vérifie aucun JWT : l'identité vient du corps de la réponse de GoTrue, reçue directement par `apps/api` sur TLS (J3-C, règle 3) | — |
+| `otplib`, `speakeasy` | Le TOTP est vérifié par GoTrue | Pour les tests seulement : un générateur RFC 6238 d'une vingtaine de lignes sur `node:crypto` dans `packages/test-kit`, **jamais importable depuis `apps/api/src`** (garde des importeurs) |
+| `argon2`, `bcrypt` | Scripts d'installation natifs ; inutiles pour des secrets tirés au hasard | SHA-256 (`node:crypto`) des codes de secours à 80 bits d'entropie, comme l'empreinte de session |
+| `qrcode` | GoTrue fournit le QR code en SVG | Règle 5 |
+| `@fastify/rate-limit` | La limitation est en base (`identity.auth_request_throttle`, EC-3), commune aux instances | — |
+| `@fastify/csrf-protection` | Le contrôle d'origine A4 suffit, sans jeton ni état | A4 |
+| `@fastify/helmet` | `apps/api` n'a aucun hôte public et ne sert que du JSON ; les en-têtes navigateur sont posés par les fronts (R7) | — |
+| `nodemailer`, `mailpit` | Aucun SMTP : Brevo par HTTP, et une doublure locale (règle 10) | — |
+| `ua-parser-js` | Résumé du navigateur par une fonction à liste fermée de familles et de systèmes | `user_agent_summary` |
+| `geoip-lite`, `maxmind` | Licence, fichier volumineux, mise à jour mensuelle | EC-43 |
+| Bibliothèque HIBP | Un `fetch` et un SHA-1 | Option B de J3-A d |
+
+**Aléa et empreintes : `node:crypto` seul** — `randomBytes(32)` pour l'identifiant de session,
+`randomInt` pour la phrase de correspondance (liste d'au moins 256 mots par langue, contenu fourni
+par `product-owner` et `expert-ux`) et les codes de secours, `createHash("sha256")`,
+`createHmac("sha256")`, `timingSafeEqual`.
+
+##### J3-C. Intégration de GoTrue : règles
+
+1. **Un seul module, `apps/api/src/platform/supabase.ts`.** Il expose un client d'administration
+   (sans état, instance unique) et une fabrique `createUserAuthClient(contexte)` **appelée à chaque
+   requête** : `persistSession: false`, `autoRefreshToken: false` (sinon un minuteur par instance),
+   `detectSessionInUrl: false`, `lock` non fourni (coordination sans verrou, code source 2.117.2),
+   `fetch` enveloppé d'un `AbortSignal.timeout` propre à chaque appel, en-têtes `apikey` et
+   `Authorization: Bearer` portant la **clé secrète**, plus `Sb-Forwarded-For` quand l'adresse
+   d'A5 est valide (EC-38). **Une instance du client utilisateur n'est jamais partagée** entre deux
+   requêtes : elle range la session GoTrue en mémoire (J3-A b8), et une instance commune
+   mélangerait les sessions de deux utilisateurs. Test : deux connexions concurrentes ne se
+   croisent pas.
+2. **Aucun jeton GoTrue ne survit à la requête qui l'a obtenu.** Après `verifyOtp`,
+   `signInWithPassword` ou la vérification TOTP, `apps/api` lit ce dont il a besoin puis appelle
+   `auth.admin.signOut(jeton, "local")`, au mieux (un échec donne une ligne `warn`, jamais une
+   erreur montrée). Le jeton n'est ni écrit, ni journalisé, ni renvoyé, ni mis en cookie. Test en
+   pile locale : aucune ligne de `auth.sessions` pour l'utilisateur après chaque parcours.
+3. **INFLUX n'accepte jamais un jeton GoTrue venu d'un client et ne vérifie aucun JWT.** L'identité
+   est l'`id` d'utilisateur **renvoyé par GoTrue dans la réponse** ; le compte est cherché par
+   `accounts.auth_user_id`, jamais par l'adresse seule, et l'adresse de la réponse doit être égale à
+   celle du compte (sinon refus et ligne `error` sans donnée).
+4. **Backoffice : pas de session `aal1`** (proposition, **EC-40**). La connexion tient en **une
+   requête** (adresse, mot de passe, code TOTP ou code de secours) : connexion GoTrue, défi et
+   vérification dans la même requête (J3-A c5), puis session INFLUX créée **directement en `aal2`**.
+   L'inscription du TOTP (MFA-2, B-2) tient en deux requêtes, chacune ré-authentifiée par le mot de
+   passe : la première inscrit le facteur et renvoie le QR code et le secret, **sans créer de
+   session** ; la seconde vérifie le premier code, crée la session `aal2` et renvoie les dix codes de
+   secours **une seule fois** (MFA-3). La ré-authentification R (B-5) = mot de passe + code ; elle
+   met à jour la date de dernière vérification sur la ligne de session. Réponse d'échec **unique**,
+   quelle que soit l'étape en défaut (adresse, mot de passe, code).
+5. **QR code** : `apps/api` renvoie le SVG de GoTrue comme texte ; le backoffice l'affiche par une
+   URL `blob:`, **sans modifier la CSP** (`img-src 'self' blob:`, `03` §6.5). Le secret et l'URI
+   `otpauth://` sont aussi affichés, pour une saisie manuelle.
+6. **Délais** (défauts, en configuration comme G1) : demande de code, ceux de `02` §18.4 ;
+   vérification du code, GoTrue 2 000 ms, régénération d'EC-3 2 000 ms, `signOut` 1 000 ms ; connexion
+   backoffice, 5 000 ms au total ; HIBP 2 000 ms. Aucun appel externe sous transaction ouverte (G4).
+   Au J3 ce sont des constantes d'un module de réglages du domaine `identity` ; elles passent en
+   base avec les réglages d'EC-8 (J5, J6) si le besoin « sans redéploiement » de `02` §18.4 se
+   confirme.
+7. **Journaux** (compléments d'A1, avec C-1) : clés masquées `password`, `code`, `otp`, `token`,
+   `email_otp`, `hashed_token`, `action_link`, `secret`, `qr_code`, `uri`, `totp`,
+   `recoveryCodes`, `matchingPhrase` ; aucune réponse de GoTrue n'est journalisée telle quelle
+   (seuls le code d'erreur de GoTrue et le statut HTTP).
+8. **Cookies et jetons.**
+
+   | Cookie | Surface | Contenu | Attributs |
+   |---|---|---|---|
+   | `__Host-influx-session` | `web` | Identifiant de session : 32 octets aléatoires en base64url ; **seule son empreinte SHA-256 est en base** ; jamais signé (EC-24) | `SameSite=Lax`, `Max-Age` = échéance glissante, reposé à chaque renouvellement |
+   | `__Host-influx-ops-session` | `backoffice` | idem | `SameSite=Strict`, `Max-Age` = temps restant jusqu'au plafond de 8 h, posé une fois |
+   | `__Host-influx-login` | `web` | Jeton de parcours signé : type, version, échéance (15 min), identifiant de la ligne `transactional_sends`, adresse normalisée, phrase (RG47, RG48) ; **jamais le code** | `SameSite=Lax`, `Max-Age=900` |
+   | `__Host-influx-signup` | `web` | Jeton d'inscription signé (EC-4) : type, version, échéance (30 min), `auth_user_id`, adresse, porte | `SameSite=Lax`, `Max-Age=1800` |
+
+   Tous : `Secure`, `HttpOnly`, `Path=/`, sans `Domain`. Signature par le signataire de
+   `@fastify/cookie` (HMAC-SHA-256), clé `AUTH_TOKEN_SIGNING_SECRET` (EC-24) ; **l'échéance est
+   dans la valeur signée**, jamais dans le seul attribut `Max-Age`, que le client contrôle ; le type
+   est vérifié (un jeton de parcours n'est jamais accepté comme jeton d'inscription). `apps/api` ne
+   lit que les cookies de la surface identifiée (BO-2) et ignore tout autre nom.
+9. **Codes de secours (EC-17)** : dix codes de 16 caractères en base32 de Crockford (80 bits),
+   affichés par groupes de quatre, tirés par `node:crypto`, conservés en **SHA-256** ; une nouvelle
+   génération invalide la précédente ; consommation dans la transaction de connexion ; génération et
+   consommation au registre d'audit, jamais la valeur (MFA-3, MFA-4, EC-44).
+10. **Code de connexion en pile locale : doublure Brevo sur la boucle locale.** La doublure HTTP
+    des tests (`node:http`, `packages/test-kit`) sert aussi de serveur de développement : elle reçoit
+    les envois de `apps/api` et les montre sur une page locale. Même chemin de code qu'en production,
+    seule `BREVO_API_BASE_URL` change ; **aucun appel externe** au J3. Garde de démarrage :
+    `BREVO_API_BASE_URL` différente de l'adresse officielle de Brevo n'est acceptée que sur un hôte
+    de bouclage, et jamais en production. Les comptes de test de D62 restent utilisables par qui le
+    souhaite, en mode `redirect`.
+11. **Comptes de démonstration** (point 8) : un script TypeScript, lancé après `supabase db reset`
+    (local et CI), crée les utilisateurs GoTrue par l'API d'administration puis les lignes
+    `identity` sous le rôle de migration ; il **refuse de s'exécuter en production** ; adresses en
+    `example.test` ; mots de passe fixes réservés au local et à la CI ; le TOTP des deux comptes
+    internes est inscrit à la première connexion (B-2), par le test de bout en bout avec le
+    générateur de `test-kit`.
+12. **Renouvellement glissant paresseux** (EC-29) : au plus une écriture par heure pour une session
+    membre, par minute pour une session backoffice ; échéances bornées en base par les contraintes
+    de `0004`. **Révocation à la suspension** : `identity.resolve_session()` refuse déjà un compte
+    non actif, donc l'effet est immédiat dès le J3 (test T8) ; la fonction de révocation par un
+    tiers arrive avec l'action de suspension (J8).
+
+##### J3-D. C-3 — un `DELETE` ne porte ni corps ni `content-type`
+
+**Règle.** Les paramètres d'un `DELETE` sont dans le chemin. Une suppression qui a besoin d'un corps
+(motif, confirmation) est un **`POST` sur une action nommée** — ainsi `POST /v1/auth/logout`.
+
+**Où elle s'applique : dans `apps/api` seulement.**
+
+1. `onRoute` **refuse de démarrer** si une route `DELETE` (ou `GET`) déclare `schema.body`.
+2. Un crochet `onRequest`, **après** l'identification de la surface et avant toute analyse :
+   un `DELETE` portant `content-type`, `transfer-encoding`, ou un `content-length` non nul reçoit
+   `400 validation_failed` en enveloppe, sans analyse du corps ni ligne `error`. Le résultat ne
+   dépend plus du comportement de Fastify sur un corps vide (constat de `4058bf2`).
+
+**Le passe-plat ne change pas** : il ignore déjà le corps d'un `DELETE` (R2) et relaie
+`content-type`, en-tête de la liste blanche PP-5 ; la réponse `400` vient d'`apps/api`. Ni
+`relay.ts` ni `api-client.ts` ne sont ré-épinglés (PP-12). Tests : `DELETE` avec `content-type` et
+corps vide, avec un corps `text/plain`, sans rien (atteint la route) — sur une route d'essai, aucun
+`DELETE` n'existant au J3 — et refus de démarrage d'un `DELETE` à corps déclaré.
+
+##### J3-E. Variables du J3
+
+Dans le `.env.example` de `apps/api`, **dans le commit qui les lit** (J1-F). Refus de toute valeur
+contenant `CHANGE_ME`, quelle que soit la casse (N3).
+
+| Variable | Service | Nature | Commit | Remarque |
+|---|---|---|---|---|
+| `INFLUX_PUBLIC_SITE_URL`, `INFLUX_PUBLIC_BACKOFFICE_URL` | `api` | Publiques | 4 | Déjà décidées (J1-F) ; contrôle d'origine A4 |
+| `AUTH_THROTTLE_PEPPER` | `api` | **Secrète**, ≥ 32 octets | 4 | Déjà décidée (J1-F) |
+| `SUPABASE_URL` | `api` | Non secrète, non publiée | 7 | Local : `http://127.0.0.1:54321` |
+| `SUPABASE_SECRET_KEY` | `api` ; `worker` au J6 seulement (purge E-4) | **Secrète** | 7 | Clé `sb_secret_…`, **une par service** (EC-46) ; en pile locale, celle de `supabase status` (**à constater** : la CLI 2.117 affiche une clé `sb_secret_`) |
+| `AUTH_TOKEN_SIGNING_SECRET` | `api` | **Secrète**, ≥ 32 octets | 7 | Remplace `SESSION_COOKIE_SECRET` (**EC-24 retenue**) ; distincte de tout autre secret du processus ; rotation : les parcours en cours (15 à 30 min) sont perdus, acceptable |
+| `BREVO_API_KEY`, `BREVO_API_BASE_URL`, `BREVO_MODE`, `BREVO_TEST_RECIPIENTS`, `BREVO_SENDER_TRANSACTIONAL` | `api` | Clé secrète (**clé propre à `api`**, distincte de celle du `worker`) | 8 | EC-19 tranchée : verrous 2 et 3 de `02` §12.4 dès le premier envoi ; garde de J3-C, règle 10 |
+| ~~`SUPABASE_PUBLISHABLE_KEY`~~, ~~`SUPABASE_JWKS_URL`~~ | — | — | — | **Retirées** (EC-46) |
+
+##### J3-F. Ordre des commits
+
+Chaque commit laisse `pnpm check` vert. Le marqueur `security-reviewed: <date>` est exigé par I-4
+pour tout commit qui touche une migration contenant un motif de `03` P8 (droit, politique, fonction
+`SECURITY DEFINER`, `audit.*`) ou le fichier d'attendus de T2 ; il suppose **une relecture préalable
+par `expert-cybersecurite`**. Les autres commits sont relus à la **revue de fin de J3** ; je
+recommande que 7 à 10, qui forment le chemin d'authentification, soient relus ensemble **avant le
+push**.
+
+| # | Commit | Contenu | Qui | Marqueur I-4 | Préalables levés · écarts à trancher avant |
+|---|---|---|---|---|---|
+| 1 | `test: floor of executed cases and interrupted-run check` | **Q2** (rapport JSON de Vitest, zéro saut, plancher par fichier), **V4**, **EC-35 (3)** (aucun droit d'un rôle `influx_*` dans `_realtime` ni `extensions`) | `dev-react-node` | Non | Q2, V4, EC-35 (3) : **avant tout nouveau test en base** |
+| 2 | `feat(api): make the response filter non-bypassable` | **N2 / F-1** : règles ESLint, refus `onRoute` des crochets de route `onSend` et `preSerialization`, parcours des schémas 2xx, un test par vecteur (sept) | `dev-react-node` | Non | **N2 : avant la première route qui renvoie une donnée personnelle** (commit 9) |
+| 3 | `feat(api): redact auth values and assert logs by value` | Clés de J3-C règle 7 ; troncature forcée du journal (revue de fin de J2, point (b) « à surveiller ») ; outil de test **C-1** (capture du flux, recherche par valeur) | `dev-react-node` | Non | C-1 (outil ; chaque test d'authentification l'emploie ensuite) |
+| 4 | `feat(api): origin check on writes, client address, bodiless DELETE` | **A4** (point 10), **A5** (point 11), **C-3** (J3-D), **N3** ; variables de J3-E ; tâche de CI sous **Node 24** exécutant le test du passe-plat (**C-2**, `integrateur`) ; `18` T7.12 reformulé (**C-4**, `testeur`, sans code) | `dev-react-node`, `integrateur`, `testeur` | Non | A4, A5, C-2, C-3, C-4, N3 : **avant toute route d'écriture** |
+| 5 | `feat(db): refuse native Supabase Auth e-mails` + `chore(supabase): auth settings` | Migration du crochet « puits » (**EC-41**) ; réglages a1 à a5, `minimum_password_length = 12`, `jwt_expiry = 300`, limites locales (EC-38) ; tests a3, a4 ; contrôle I-4 étendu à `config.toml` (**EC-48**) | `expert-database`, `dev-react-node` | **Oui** (fonction, `GRANT`, `REVOKE`) | EC-16 · **EC-37, EC-41, EC-48** |
+| 6 | `feat(db): auth journal, throttle, session writes, recovery codes, elevated audit` | Migration(s) ex-`0108`, numérotées selon **EC-37** : `leads.transactional_sends` (EC-6, EC-7), `identity.auth_request_throttle` (EC-3, EC-47), écritures de session (EC-29) et colonnes d'EC-40, codes de secours (EC-17), anti-rejeu (EC-39), `audit.append_elevated()` et codes `elevated.*` (**EC-36**, avec **V1, V5, V6**), droits d'`influx_auth` ; tests **V2** ; fichier d'attendus de T2 | `expert-database` | **Oui** | EC-36, V1, V2, V5, V6 : **avant E-1** · EC-3, EC-17, EC-29, EC-37, EC-39, EC-40, EC-47 |
+| 7 | `feat(api): Supabase Auth adapter and auth cookies` | `@supabase/auth-js` 2.117.2, `@fastify/cookie` 11.1.2 ; `platform/supabase.ts` (J3-C règles 1 à 3) ; jetons signés (règle 8) ; garde des paquets interdits (J3-B) ; **tests de constat** de J3-A en pile locale | `dev-react-node` | Non | EC-24, EC-38, EC-46 |
+| 8 | `feat(api): request a login code` | `POST /v1/auth/request-code`, **application littérale de `02` §18.10** ; connecteur Brevo unitaire, disjoncteur, plancher ; **E-1 entre dans l'union avec T4.7 élevé** ; doublure Brevo locale et garde (règle 10) ; lead-pipeline T1 et T10 | `dev-react-node` | Non, sauf s'il touche le fichier d'attendus | T4.7 élevé (EC-35 (6)) · EC-19, EC-42 |
+| 9 | `feat(api): verify a login code and open a member session` | `POST /v1/auth/verify-code` (EC-3, EC-4, RG66 à RG69), **E-2**, session et cookie, renouvellement (règle 12), `POST /v1/auth/logout`, `GET /v1/me` minimal ; T8 | `dev-react-node` | Non | N2 déjà en place · EC-4, EC-5 |
+| 10 | `feat(api): backoffice sign-in with mandatory TOTP` | `/v1/bo/auth/login`, `/v1/bo/auth/enroll`, `/v1/bo/auth/logout`, `GET /v1/bo/me` ; garde `aal2` (route backoffice sans `aal2` ⇒ `403`) ; codes de secours ; anti-rejeu ; compte de secours (ligne d'audit) ; règle B-1 (J3-A d) | `dev-react-node` | Non | B-2, B-3, MFA-2, MFA-3 · EC-39, EC-40, EC-44 |
+| 11 | `chore: demo accounts seed` | Script de J3-C règle 11, version de CGU fictive marquée comme telle | `dev-react-node`, `expert-database` | Non, **sauf** s'il ajoute un droit ou touche le fichier d'attendus | EC-45 |
+| 12 | `feat(web,backoffice): minimal sign-in screens and empty homes` | Point 9 : écran minimal de connexion membre (adresse, code), connexion et inscription du TOTP au backoffice (codes de secours affichés une fois), accueils vides | `dev-react-node` (+ `expert-ux`) | Non | — |
+
+**Terminé quand** (inchangé, précisé) : les quatre comptes de démonstration se connectent en local
+dans leur espace — les membres avec le code reçu par la doublure Brevo, les comptes internes avec
+mot de passe et TOTP inscrit à la première connexion — et les tests de constat de J3-A sont verts.
+
+##### J3-G. Ce qui ne change pas
+
+`02` §18.10 (dix étapes, `200` uniforme, plancher), D37, les durées de `03` §6.1, le passe-plat et
+son empreinte, la liste fermée des opérations élevées (E-1 et E-2 seulement au J3), et le modèle
+économique : **aucune ligne du J3 ne touche un montant ni un taux.**
+
+##### J3-H. Ce que ces décisions demandent aux autres agents
+
+| Agent | Demande |
+|---|---|
+| `expert-cybersecurite` | Trancher, avant les commits indiqués en J3-F : EC-3 (régénération ou non, J3-A b6), EC-4, EC-5, EC-16 et EC-41, EC-17, EC-19, EC-24, EC-29, EC-38 à EC-40, EC-42 à EC-45, EC-47, EC-48 ; avis sur l'option B de B-1 (J3-A d) et sur J3-C règles 2, 4, 8 et 10 ; relecture préalable des commits 5 et 6 (marqueur) — **rendu le 2026-09-27** : « Arbitrages de sécurité du J3 » ci-dessous |
+| `expert-database` | EC-37 (numérotation, clé étrangère différée), colonnes et droits des commits 5 et 6, EC-39, EC-40, EC-47 ; corriger `04` §11.2 selon EC-37 |
+| `expert-conformite-rgpd` | EC-38 (transmission de l'adresse IP à Supabase, journal d'audit de GoTrue) ; information : la consultation HIBP n'envoie aucune donnée personnelle — **rendu le 2026-09-27** : « Avis de conformité du J3 » ci-dessous |
+| `integrateur` | EC-46 (`02` §12.3, skill `env-secrets`) ; C-2 (tâche Node 24) ; au J4 : `supabase config push`, clés asymétriques et clés héritées désactivées, option `Sb-Forwarded-For`, protection native des mots de passe compromis si offre Pro |
+| `testeur` | C-4 ; tests de constat de J3-A (colonne « Test ») ; plancher Q2 ; mesure d'EC-42 |
+| `product-owner`, `expert-ux` | Listes de mots de la phrase de correspondance (fr, en) ; ressaisie du mot de passe à l'inscription du TOTP (EC-40) ; EC-43 |
+| `chef-de-projet` | EC-44, EC-45 ; commiter ce document |
+
+#### Arbitrages de sécurité du J3 — `expert-cybersecurite` (2026-09-27)
+
+> **Pas de veto sur le lancement du J3 ; les commits 1 à 4 peuvent commencer.** Tous les écarts qui
+> me reviennent sont tranchés ci-dessous. Aucun n'est refusé sur le fond ; EC-29 est retenu sous
+> une autre forme pour le renouvellement et la révocation ; un constat nouveau, **G-1**, ajoute trois
+> contrôles. Relu : §3, J3-A à J3-H, l'avis de conformité qui suit, `02` §9.3, §12.3, §18.5,
+> §18.10, `03` §6.1, §6.2, §6.4, §6.9, P7, `04` §12.10, `05` RG40 à RG69, `supabase/config.toml`,
+> `0004`. Aucun environnement distant touché, aucun fichier `.env` lu. Sources externes, **à
+> constater en pile locale au commit 7** comme J3-A :
+> [enrôlement réservé à `aal2` dès qu'un facteur vérifié existe](https://github.com/supabase/auth/pull/1439),
+> [changement d'adresse ou de mot de passe refusé en `aal1` quand le MFA est actif](https://github.com/supabase/auth/issues/2091),
+> [clés `sb_` : pas des JWT](https://supabase.com/docs/guides/getting-started/api-keys).
+
+**G-1 — Constat nouveau (Important) : GoTrue reste joignable sans passer par `apps/api`.**
+
+- *Surface* : points d'accès publics de GoTrue (`/verify`, `/token`, `/user`, `/factors`), joignables
+  avec la clé *publishable*, qui n'est pas un secret.
+- *Scénario* : l'attaquant fait envoyer par INFLUX un code à une adresse (chemin normal, y compris
+  pour un compte interne, RG68), puis essaie les codes **directement** sur `/auth/v1/verify` depuis
+  de nombreuses adresses IP : le compteur d'EC-3 ne voit rien. À 30 essais par 5 min et par IP
+  (défaut de GoTrue) et 10 000 IP de mandataires résidentiels, ≈ 45 % de réussite par code. Il
+  obtient une **session GoTrue**, jamais une session INFLUX (J3-C règle 3). Mais avec elle : (a) pour
+  un compte interne **dont le TOTP n'est pas encore inscrit**, `PUT /user` change le mot de passe,
+  puis notre route d'inscription du TOTP, protégée par le seul mot de passe, lui livre le second
+  facteur ; (b) pour un compte interne à TOTP vérifié, GoTrue refuse en `aal1` le changement de mot
+  de passe et l'enrôlement (sources ci-dessus) ; (c) pour un membre : code consommé ou adresse
+  modifiée côté GoTrue, soit un déni de service, pas une prise de contrôle.
+- *Impact* : (a) donne un compte du backoffice — toutes les identités et toutes les conversations ;
+  fenêtre = entre la création d'un compte interne et son premier enrôlement.
+- *Correctifs, tous exigés* :
+  1. **Épinglage du facteur** (commits 6 et 10, 30 min) : INFLUX enregistre l'identifiant du facteur
+     TOTP vérifié à l'enrôlement ; la connexion ne défie **que** ce facteur ; tout autre facteur
+     vérifié listé par GoTrue ⇒ refus uniforme, audit `agent.unexpected_mfa_factor`, `pino` `error`.
+  2. **Jeton d'enrôlement** (B-8, MFA-1 ; 2 h) : toute inscription du TOTP — la première, ou après
+     une réinitialisation MFA-6 — exige, en plus du mot de passe, un jeton à usage unique (≥ 128 bits
+     aléatoires, SHA-256 en base, 72 h, lié au compte) remis par l'invitation (J8) ou, au J3, par le
+     script (valeur fixe du jeu de démonstration, local et CI). Au J3 si l'effort tient dans les
+     2 h, sinon au J8 ; **bloquant avant la création de tout compte interne réel**.
+  3. **Constats en pile locale** (commit 7), avec une session GoTrue obtenue directement par la clé
+     *publishable* locale, dans le code de test seulement : aucune route d'INFLUX ne l'accepte
+     (`Authorization: Bearer`, cookies `sb-*` ⇒ `401`) ; pour un utilisateur à TOTP vérifié,
+     `PUT /user` (mot de passe, adresse) et `mfa.enroll` refusés en `aal1` ; pour un membre,
+     `PUT /user` sur l'adresse la laisse inchangée (crochet « puits »). **Un constat divergent bloque
+     le commit 10** et me revient.
+  4. **Au J4** (`integrateur`) : si le projet hébergé permet de n'avoir **aucune clé publishable
+     active** — INFLUX n'en utilise aucune (EC-46) —, la désactiver : cela ferme d'un coup G-1 et
+     EC-41. Sinon, le déni de service résiduel est accepté (`03` §9.3, S-11).
+
+**EC-3 — retenu, durci.**
+
+1. Portée `login_request` d'`identity.auth_request_throttle`, clé = empreinte HMAC d'une **référence
+   aléatoire** (uuid v4) de la ligne `transactional_sends`, portée par le cookie de parcours —
+   jamais un identifiant séquentiel, qui révélerait le volume de connexions.
+2. **Réservation atomique avant tout appel à GoTrue** : si moins de cinq tentatives, incrément dans
+   une transaction E-2 validée avant l'appel (G4) ; sinon refus sans appel. On compte des
+   *tentatives*, pas des échecs constatés après coup : vingt requêtes parallèles ne doivent pas
+   donner vingt essais.
+3. Sans cookie de parcours valide (signature, `typ = login`, échéance), refus sans appel à GoTrue
+   (RG47). L'adresse vient du cookie, **jamais du corps**.
+4. **Au cinquième échec, la régénération est retenue** : `generateLink` pour l'adresse du cookie,
+   résultat ignoré sans être lu ni journalisé, cookie de parcours effacé. Motif : G-1 — RG42 doit
+   être vraie chez GoTrue, pas seulement sur notre chemin. Échec de la régénération : `warn`,
+   réponse inchangée.
+5. Par IP : 20 échecs de vérification par heure (RG44), contrôlés avant l'appel. Aucun compteur
+   bloquant par adresse (A-4).
+6. Surveillance globale (A-3) : au moins 100 échecs en 15 min sur la plateforme, ou plus de 50 %
+   d'échecs sur au moins 30 vérifications en 15 min ⇒ `pino` `error` `security.verify_failure_spike`
+   au J3, alerte D60 au J9.
+
+*Tests (T8, commit 9)* : sixième essai refusé sans appel ; après le cinquième échec, **l'ancien code
+est refusé par GoTrue interrogé directement** ; vingt requêtes parallèles sur un même cookie ⇒ au
+plus cinq vérifications chez GoTrue ; cookie absent, altéré, expiré ou de type `signup` ⇒ refus sans
+appel ; code absent de toute sortie (C-1).
+
+**EC-4 — retenu, durci.**
+
+1. Émis seulement après une vérification réussie, si aucun compte ne porte cet `auth_user_id` ni
+   cette adresse. Contenu signé : `typ = signup`, version, `exp` (≤ 30 min), `verified_at`,
+   `auth_user_id`, adresse normalisée, porte proposée. Aucun jeton GoTrue.
+2. `SameSite=Strict` (aucun lien entrant n'y mène), autres attributs de J3-C règle 8.
+3. La porte n'est qu'une valeur par défaut (RG3) : le rôle vient de l'écran 3, validé
+   `advertiser` | `creator` par zod **et** par `identity.provision_account` (EC-30).
+4. Consommation (J5, E-2 `identity.complete_signup`) : signature, type et échéance vérifiés **avant**
+   toute lecture du contenu ; relecture de l'utilisateur GoTrue (`admin.getUserById`) — il existe et
+   son adresse est celle du jeton, sinon refus et `error` sans donnée (G-1 c) ; une seule transaction
+   (RG7) ; unicité d'`auth_user_id` et d'`email` ⇒ un rejeu ne crée rien ; cookie effacé ;
+   `email_verified_at` = `verified_at` (RG53).
+5. Aucune autre route ne l'accepte. Aucun état de révocation : son seul effet est idempotent.
+
+*Tests* : rejeu ⇒ un compte, une acceptation, un consentement ; jeton expiré, altéré d'un octet ou
+de type `login` ⇒ refus ; rôle `agent` dans le corps ⇒ `400` sans écriture ; adresse GoTrue
+modifiée ⇒ refus. Émission au commit 9, consommation au J5.
+
+**EC-5 — retenu : révision signée de `03` P7, faite ce jour.** Les cinq entrées restent cinq (mêmes
+rôles, mêmes grappes) ; chacune se décline en **motifs nommés, un par point d'usage**, chacun dans
+l'union fermée de `packages/contracts`, avec son code `elevated.<motif>` (EC-36) et son jeu
+d'appelants vérifié par T6. E-1 : `identity.request_code` ; `support.report_delivery_issue` (J5,
+canal de secours RG65 : écriture **uniquement** par une fonction `SECURITY DEFINER` étroite, sans
+droit de table d'`influx_auth` sur la file, mêmes limitations de débit, aucune lecture, aucune
+session). E-2 : `identity.verify_code` ; `identity.complete_signup` (J5) ;
+`identity.backoffice_sign_in` ; `identity.backoffice_enroll_totp` ; `identity.backoffice_reauthenticate`
+(R). Motif : un rôle par usage coûterait une grappe et une variable pour une séparation illusoire
+(même processus) ; des motifs distincts donnent la traçabilité et une liste fermée vérifiable.
+Contrepartie : `influx_auth` devient le rôle d'exécution le plus sensible — droits **colonne par
+colonne** (commit 6), requêtes paramétrées seules sur sa grappe. Dans
+`packages/contracts/src/elevated-operations.ts`, l'ensemble signé P reçoit les cinq nouveaux motifs
+au commit 8, chacun lié à la grappe `AUTH_DATABASE_URL` ; l'ensemble U ne reçoit un motif qu'avec son
+premier appelant (T6.1).
+
+**EC-16 et EC-41 — retenus, durcis (commit 5).**
+
+1. `enable_signup = false` (`[auth]` et `[auth.email]`) ; connexions anonymes, liaison manuelle,
+   fournisseurs externes et SMS désactivés.
+2. Crochet « puits » `auth_hooks.refuse_native_email(event jsonb)` : `SECURITY INVOKER`,
+   `search_path = ''`, n'écrit rien, **ne lit ni ne recopie la charge utile** (elle porte un code et
+   un jeton : ni `RAISE`, ni message dérivé), réponse d'erreur constante ; `EXECUTE` et `USAGE` du
+   schéma à `supabase_auth_admin` seul, révoqués à `PUBLIC`, `anon`, `authenticated`,
+   `service_role` ; schéma sans table.
+3. Hygiène : `[auth.email] max_frequency = "60s"` (sans effet sur `generateLink`, J3-A b1) ;
+   `secure_password_change = true`.
+4. Constats : `POST /auth/v1/signup` refusé ; `/otp`, `/recover`, `/resend`, `/magiclink` pour un
+   utilisateur existant ⇒ aucun envoi (la doublure Brevo ne reçoit rien) ; **après un `/otp` refusé,
+   le code en cours du membre reste accepté**. Si ce dernier constat échoue : déni de service borné
+   par `max_frequency`, accepté (S-11), signalé pour mémoire.
+5. G-1, point 4, au J4.
+
+**EC-17 — retenu, durci (J3-C règle 9 confirmée).**
+
+1. Dix codes de 80 bits en base32 de Crockford ; saisie normalisée (casse, espaces, tirets, `O`→`0`,
+   `I` et `L`→`1`) ; SHA-256 suffit à cette entropie.
+2. Table dédiée : aucun droit des quatre rôles métier ; `influx_auth` insère et marque la
+   consommation, colonnes nommées. Une nouvelle génération marque la précédente révoquée, sans
+   suppression.
+3. Consommation par un `UPDATE … WHERE consumed_at IS NULL AND revoked_at IS NULL … RETURNING`
+   dans la transaction qui crée la session : usage unique sous concurrence.
+4. Accepté seulement avec le mot de passe vérifié par GoTrue dans la même requête. La session porte
+   `mfa_method = recovery_code` et **ne satisfait jamais R** (B-5) : les actions irréversibles
+   attendent la réinitialisation par un autre administrateur (MFA-6) ou passent par le compte de
+   secours.
+5. Génération à l'enrôlement et après réinitialisation (J8) ; aucune régénération libre au J3.
+   Affichage unique : `Cache-Control: no-store`, clé `recoveryCodes` masquée, rien dans le stockage
+   du navigateur.
+
+**EC-19 — retenu, durci : la clé Brevo sur `api` est acceptée.** Elle découle de D43, déjà validée ;
+et le processus `api` détient déjà `influx_app`, membre d'`influx_admin` : sa compromission est déjà
+le pire cas, la clé y ajoute la capacité d'écrire au nom d'INFLUX.
+
+1. **Deux clés Brevo distinctes par environnement**, une pour `api`, une pour `worker` (même nom de
+   variable, valeurs et noms de clé différents chez Brevo) : révocation séparée, usage attribuable.
+2. `api`, commit 8 : `BREVO_API_KEY`, `BREVO_API_BASE_URL`, `BREVO_MODE`, `BREVO_TEST_RECIPIENTS`,
+   `BREVO_SENDER_TRANSACTIONAL` — **les verrous 2 et 3 de `02` §12.4 s'appliquent dès le premier
+   envoi du code** (refus de démarrage en `live` hors production, destinataires de la liste en
+   `redirect`) ; au J7, `BREVO_WEBHOOK_SECRET`, `BREVO_WEBHOOK_PATH_TOKEN`, `BREVO_IP_ALLOWLIST`,
+   **sur `api` seul**. `worker`, J6 : les cinq premières, plus `BREVO_SENDER_MARKETING`,
+   `BREVO_SENDER_PROSPECTING`, `BREVO_SUPPRESSION_LIST_ID` ; jamais les secrets du webhook.
+3. Garde statique (commit 8) : le code chargé par le processus HTTP n'appelle que l'envoi
+   transactionnel unitaire (`/smtp/email`), avec un modèle d'une liste fermée ; tout autre chemin
+   Brevo (contacts, listes, campagnes) n'est importable que depuis le code du worker.
+4. À surveiller : la restriction des adresses IP autorisées chez Brevo, à activer dès que la
+   production a des adresses de sortie fixes (Railway Pro, point ouvert de D60) ; `integrateur`
+   constate au J4 que l'option existe sur l'offre Brevo retenue.
+
+**EC-24 — retenu.** `SESSION_COOKIE_SECRET` disparaît. `AUTH_TOKEN_SIGNING_SECRET` (≥ 32 octets
+aléatoires, un par environnement) signe les seuls jetons courts (`login`, `signup`) ; l'identifiant
+de session n'est jamais signé. Refus de démarrage si la valeur égale `AUTH_THROTTLE_PEPPER` ou l'un
+des deux secrets internes. Signature vérifiée à temps constant (celle de `@fastify/cookie` 11.1.2 à
+vérifier dans son code, sinon `timingSafeEqual`), **avant** tout décodage, puis zod. Rotation :
+procédure A, parcours en cours perdus, sans seconde clé. Corrigés : `02` §12.3, skill `env-secrets`,
+`03` T11, `apps/api/.env.example` ; `packages/test-kit/src/artifacts.ts` (T11.1) à aligner au
+commit 7.
+
+**EC-29 — création retenue ; renouvellement et révocation par le titulaire remplacés.** Le droit
+`UPDATE (revoked_at, revocation_reason)` proposé aux quatre rôles permettrait de remettre
+`revoked_at` à nul : une session révoquée par un administrateur (cookie volé) serait ressuscitée
+depuis n'importe quelle autre session du même compte. Et `UPDATE (last_activity_at,
+idle_expires_at)` laisserait l'application écrire les dates.
+
+1. **Création** : `INSERT` de colonnes nommées par `influx_auth` (E-2), politique `WITH CHECK` sur un
+   compte `active` ; `created_at` et `last_activity_at` par défaut (`now()`), jamais fournis.
+2. **Renouvellement** : `identity.touch_session(p_session_id uuid)`, `SECURITY DEFINER`, propriétaire
+   `influx_identity_definer`, `EXECUTE` aux quatre rôles métier. Ligne du compte courant, non
+   révoquée, non expirée, surface cohérente avec le rôle (backoffice ⇒ `aal2` courant). **Dates
+   calculées en base** : `last_activity_at = now()`, `idle_expires_at = least(now() + 720 h ou
+   30 min, absolute_expires_at)` ; sans effet si la dernière écriture date de moins d'une heure
+   (membre) ou d'une minute (backoffice) — J3-C règle 12 portée par la base.
+3. **Révocation par le titulaire** : `identity.revoke_own_session(p_session_id uuid, p_reason)`, même
+   propriétaire, motifs `logout` et `revoked_by_holder` seulement, ligne du compte courant.
+4. **Irréversibilité** : déclencheur `BEFORE UPDATE` — une ligne révoquée n'est plus modifiable ;
+   `token_hash`, `account_id`, `surface`, `aal`, `created_at`, `absolute_expires_at` immuables. Aucun
+   droit `UPDATE` ni `DELETE` de table pour les rôles métier.
+5. Révocation par un tiers et suspension : fonction journalisée au J8 ; d'ici là,
+   `resolve_session()` refuse un compte non actif (J3-C règle 12).
+
+*Tests (commit 6)* : T2, aucun droit d'écriture des rôles métier sur `sessions` ; `touch_session`
+sur la session d'un autre compte sans effet ; dates impossibles à fournir ;
+`revoke_own_session(…, 'revoked_by_admin')` refusé ; ligne révoquée non modifiable.
+
+**EC-38 (partie sécurité) — en-tête exigé ; valeur pseudonyme retenue, en accord avec l'avis de
+conformité (condition (1)).**
+
+1. Sans lui, les limites de GoTrue par IP deviennent un **plafond global** : trente tentatives de
+   connexion au backoffice en 5 min, depuis n'importe où, suffisent à le fermer (J3-A b9). L'en-tête
+   est donc **exigé** sur chaque appel d'`apps/api` à GoTrue, seulement si l'adresse d'A5 est
+   valide, jamais tiré d'un autre en-tête.
+2. **Valeur** : adresse IPv6 pseudonyme du bloc `fd00::/8`, dérivée par HMAC-SHA-256 (clé
+   `AUTH_THROTTLE_PEPPER`, étiquette de séparation `gotrue-ip:`) de la clé de limitation d'A5 (/32,
+   /64). **Faisabilité et innocuité confirmées** : mêmes regroupements et même stabilité par client
+   que l'adresse réelle, défi et vérification TOTP cohérents (même valeur dans une requête), aucune
+   perte de sécurité. Constat d'acceptation par GoTrue : en pile locale au commit 7 si l'option y est
+   activable, sinon sur `staging` au J4. **Repli** si GoTrue la refuse : adresse réelle normalisée,
+   IPv6 tronquée à /64 — sécurité équivalente.
+3. `auth.audit_log_entries` : **conservé, purgé à 90 jours** (plafond de l'avis de conformité) — c'est
+   la seule trace d'une session ouverte directement chez GoTrue (G-1), consultée au seul tableau de
+   bord en cas d'incident (S-7). Purge par une tâche créée par le rôle de migration : **aucun droit
+   sur le schéma `auth` pour nos rôles d'exécution** ; forme : `expert-database` + `integrateur`.
+4. Les limites relevées pour les tests en pile locale passent par `env()` ou une section propre au
+   local de `config.toml`, **jamais par une valeur que `supabase config push` porterait vers un projet
+   hébergé** ; au J4, `integrateur` relit les limites effectives de `staging` et de `production`.
+
+**EC-39 — retenu, durci (commit 6).** Empreinte HMAC-SHA-256 (clé `AUTH_THROTTLE_PEPPER`, étiquette
+`totp-replay:`) du couple (facteur, code) et date d'acceptation, une ligne par compte ; **même code
+refusé pendant 120 s** (90 s de validité chez GoTrue, plus une marge de dérive d'horloge). Écriture
+par `INSERT … ON CONFLICT … DO UPDATE … WHERE` conditionnel **dans la transaction qui crée la
+session** : deux connexions concurrentes avec le même code ⇒ une seule session. S'applique à la
+connexion, au premier code de l'enrôlement et à R.
+
+**EC-40 — retenu, durci.**
+
+1. Contrainte : `surface = 'backoffice'` ⇒ `aal = 'aal2'`, `mfa_verified_at` et `mfa_method` non
+   nuls ; `surface = 'member'` ⇒ `aal = 'aal1'` et `mfa_*` nuls (jusqu'à la clause de caducité de
+   D37).
+2. `mfa_verified_at` n'est écrit que par `influx_auth` (E-2 : connexion, enrôlement, R), **jamais
+   par un rôle métier** : une injection dans `influx_app` ne peut pas se forger une fraîcheur. R
+   n'est satisfaite que par un code TOTP et si `now() - mfa_verified_at ≤ 5 min` au moment de
+   l'action, lu sur la ligne, jamais sur un réglage (revue du 2026-09-26, point (c)).
+3. Connexion, enrôlement et R : réponse d'échec unique **et plancher de durée constant sur toutes
+   les issues** (1 500 ms au départ, mesuré comme EC-42) — sans plancher, la durée révèle que le mot
+   de passe est juste quand seul le code est faux.
+4. Ressaisie du mot de passe à la seconde requête de l'enrôlement : retenue. Épinglage du facteur et
+   jeton d'enrôlement : G-1.
+5. Cinq échecs de R en 15 min sur une même session ⇒ session révoquée (nouveau motif
+   `reauthentication_failed`), audit, `pino` `error`.
+
+*Tests (commit 10)* : une session backoffice `aal1` ne peut pas être insérée ; mot de passe juste et
+code faux indiscernable d'une adresse inconnue (contenu, statut, durée) ; R refusée au-delà de
+5 min, après un code de secours, ou sans ligne ; cinq échecs de R ⇒ session révoquée.
+
+**EC-42 — méthode et seuil.**
+
+1. Au J3 (commit 8), en pile locale : 500 demandes par classe (adresse jamais vue, compte existant),
+   **entrelacées au hasard**, doublure Brevo sans latence ; relever pour chaque classe la durée de
+   l'étape 5 et celle du gestionnaire (médiane, p99, p99,9) et la part des demandes au-dessus du
+   plancher. Consigné, non décisif (pas de réseau réel).
+2. **Mesure décisive au J4 sur `staging`**, même protocole, Brevo en `redirect`.
+3. **Seuil d'action** : si plus de **0,5 %** des demandes d'une classe dépassent le plancher, le
+   plancher passe au **p99,9 de la classe la plus lente + 20 %**, arrondi aux 100 ms supérieures. En
+   deçà, rien : l'attaquant ne voit que `max(durée, plancher)`, et RG44 limite son échantillonnage à
+   dix demandes par heure et par adresse.
+4. En production (D60) : part des demandes de code au-dessus du plancher, par minute, **sans
+   ventilation par classe** ; alerte au-delà de 1 % sur une heure.
+
+**EC-43 (partie sécurité) — accepté, à surveiller (`03` §9.3, S-12).** `country_code` reste nul au
+MVP ; l'e-mail du code (A-8) et la notification de nouvel appareil citent l'heure et le navigateur.
+Pour B-7, au J8 : **connexion au backoffice depuis un `user_agent_summary` jamais vu pour ce compte
+sur 30 jours ⇒ alerte**, jamais de suspension automatique (condition de l'avis de conformité).
+Complément soumis à `expert-conformite-rgpd`, qui ne l'a pas encore instruit : la nouveauté du
+**réseau** (empreinte HMAC du /24 ou du /48, conservée avec la ligne de session), qui approche
+« l'opérateur inhabituel » sans géolocalisation. Motif d'acceptation : B-7 est un contrôle de
+détection derrière le TOTP. À rouvrir si une source de pays est activée.
+
+**EC-46 — retenu, durci.** `SUPABASE_PUBLISHABLE_KEY` et `SUPABASE_JWKS_URL` retirées ;
+`SUPABASE_URL` et `SUPABASE_SECRET_KEY` sur `api` au J3, `SUPABASE_SECRET_KEY` sur `worker` au J6
+seulement. **Une clé secrète Supabase par service** (`influx-api`, `influx-worker`), révocable
+séparément ; clés héritées désactivées (J3-A a6). En-têtes sortants (`apikey`, `authorization`,
+`sb-forwarded-for`) masqués dans les journaux ; aucune erreur de `fetch` journalisée avec ses
+en-têtes. **À constater au J4** : la forme des en-têtes acceptée par un projet hébergé avec une clé
+`sb_secret_` (la documentation indique que ces clés ne sont pas des JWT et ne se placent pas dans
+`Authorization`) — recopier `SupabaseClient.ts` 2.117.2, puis constater.
+
+**EC-47 — seuils.** Portées nouvelles d'`identity.auth_request_throttle`, **réservées avant tout
+appel à GoTrue** (comme EC-3), comptant les tentatives de connexion, d'enrôlement et de code de
+secours :
+
+| Portée | Seuil | Effet |
+|---|---|---|
+| Couple (adresse, IP) | 5 tentatives / 15 min | Refus uniforme pour ce couple jusqu'à la fin de la fenêtre |
+| IP (/32, /64) | 20 tentatives / h | Refus uniforme pour cette IP |
+| IP absente ou invalide | 10 tentatives / h, toutes adresses confondues | Refus uniforme |
+| Adresse | 10 échecs / h | **Aucun blocage** (A-4) ; audit `security.backoffice_login_failures`, `pino` `error` ; e-mail au J6 |
+| Compte de secours | 1 échec | Même alerte (MFA-10) |
+| Plateforme | 30 échecs / h | `pino` `error` ; alerte au J9 |
+
+Une connexion réussie ne remet aucun compteur à zéro ; réponse et durée (plancher d'EC-40)
+identiques quel que soit le motif, seuil compris. L'accès direct à GoTrue (G-1) échappe à ces
+seuils : la parade est B-1 et le TOTP.
+
+**EC-48 — retenu, élargi (commit 5).** Le contrôle I-4 couvre toute ligne modifiée des sections
+`[auth]` et `[auth.*]` (crochets et limites compris), `[api]` (schémas exposés à PostgREST) et
+`[storage*]` de `supabase/config.toml`, ainsi que le motif `auth_hooks` dans les migrations. Témoin :
+un commit sans marqueur qui modifie `enable_signup` ou `[api] schemas` ⇒ CI rouge. L'extension entre
+dans le commit 5 lui-même, qui s'y trouve ainsi soumis.
+
+**B-1 — option B acceptée, avec quatre corrections.**
+
+1. Refus dès que le suffixe figure avec un compteur **strictement positif** : avec `Add-Padding: true`,
+   HIBP renvoie des lignes de remplissage à compteur `0`, qui ne valent pas une présence.
+2. Refus aussi d'un mot de passe contenant la partie locale de l'adresse ou `influx` (liste de
+   contexte, NIST SP 800-63B) ; au-delà de 72 octets UTF-8, **refus explicite**, jamais de troncature.
+3. Ordre : règles locales, puis HIBP, puis seulement GoTrue ; aucun appel sous transaction ; échec
+   fermé à 2 000 ms, sur `5xx` et sur réponse mal formée.
+4. URL de HIBP constante en production ; doublure admise seulement sur un hôte de bouclage hors
+   production (garde de J3-C règle 10) ; `User-Agent` propre ; aucun cookie ni identifiant de compte
+   dans la requête, préfixe et résultat jamais journalisés (conditions de RG-J3-3).
+
+*Test sans appel externe* : `platform/hibp.ts` reçoit sa fonction `fetch` en paramètre ; tests
+unitaires avec un `fetch` factice ou la doublure `node:http` de `test-kit` : (a) la requête ne porte
+que les cinq premiers caractères hexadécimaux, en majuscules, du SHA-1 — ni le mot de passe ni
+l'empreinte entière dans l'URL, les en-têtes ou un journal (C-1) ; (b) suffixe présent à compteur
+positif ⇒ refus ; (c) suffixe présent à compteur `0` ⇒ accepté ; (d) suffixe absent ⇒ accepté ;
+(e) délai dépassé, `503`, corps invalide ⇒ refus « réessayez plus tard » ; (f) garde statique :
+aucun autre module n'appelle l'hôte de HIBP. En plus : protection native de GoTrue sur l'offre Pro,
+`minimum_password_length = 12`.
+
+**EC-44 — accord, sous conditions.** (1) Codes `agent.break_glass_login` et
+`agent.recovery_code_consumed` dans `audit.event_types` (commit 6), sujet = le compte, charge utile
+sans code (au plus le nombre de codes restants) ; (2) ligne `pino` `error` à clé de message fixe,
+sans adresse ni IP ; (3) test : une ligne d'audit et une ligne `error` par événement, aucun code dans
+le flux capturé ; (4) J6 : e-mail `internal.critical_alert` par la file à **tous les administrateurs
+actifs et au fondateur** (MFA-4, MFA-10), sous 5 min, testé ; (5) **bloquant avant la création de
+tout compte interne réel et avant toute mise en ligne**.
+
+**EC-45 — accord, sous conditions.** (1) Script du J3 : refus de toute `SUPABASE_URL` et de toute
+base hors hôte de bouclage ; adresses `example.test` ; mots de passe fixes réservés au local et à la
+CI. (2) Variante `staging` (J4) : refus si `INFLUX_ENV = production` ou si la référence du projet est
+celle de la production. (3) Premier administrateur de production (J9) : tâche manuelle de
+l'environnement GitHub `production`, **approbation du fondateur requise** ; elle crée le compte
+**sans mot de passe utilisable** et déclenche l'invitation (jeton d'enrôlement de G-1, 72 h, usage
+unique) ; **aucun secret dans son journal** ; refus s'il existe un compte `@example.test` ; ligne
+d'audit. Le compte de secours suit le même chemin : TOTP inscrit par le fondateur sur l'appareil
+hors ligne, codes imprimés et scellés (MFA-10).
+
+**Avis sur J3-C.** Règle 2 : approuvée. Règle 4 : approuvée, avec EC-40 et G-1. Règle 8 : approuvée,
+avec `SameSite=Strict` pour `__Host-influx-login` et `__Host-influx-signup` (parcours entièrement
+interne au site) ; à la déconnexion, cookie effacé même si la session est inconnue. Règle 10 :
+approuvée, à une condition — la doublure n'écoute que sur `127.0.0.1`, jamais `0.0.0.0` (sa page
+montre des codes valides à tout le réseau local), et ne démarre que depuis les scripts de
+développement et de test.
+
+**Avis de conformité, points de sécurité.** RG-J3-4 : durées acceptées (90 jours couvrent la fenêtre
+de 30 jours du signal « navigateur inconnu » ; 12 mois pour le backoffice suffisent aux enquêtes).
+RG-J3-5 et RG-J3-6 : sans objection, aucun contrôle de sécurité ne lit l'adresse en clair du journal
+(les compteurs portent des empreintes).
+
+**`04` §12.10, points ouverts par D43.** (1) Périmètre d'`influx_auth` : confirmé, étendu par EC-5,
+colonne par colonne, rien d'autre. (2) Purge à 24 h des utilisateurs GoTrue orphelins : confirmée
+côté sécurité, par l'API d'administration et rapprochement sur `auth_user_id`. (3) Une panne de
+cause (b) ne consomme pas le quota par adresse : accepté, testé en T8. (4) Empreinte HMAC-SHA-256
+avec poivre en variable d'environnement : confirmée. (6) Risque résiduel de la cause (a) : confirmé,
+accepté.
+
+**Ordre des commits (J3-F) : confirmé, avec ces ajouts.**
+
+| # | Ajout |
+|---|---|
+| 3 | Clés masquées : `apikey`, `authorization`, `cookie`, `set-cookie`, `sb-forwarded-for`, `enrollmentToken`, `recoveryCode` |
+| 5 | EC-16 et EC-41 (points 1 à 4), EC-48 élargi, limites locales par `env()` (EC-38 point 4) |
+| 6 | EC-29 (fonctions, déclencheur), EC-40 (contrainte, colonnes, motif `reauthentication_failed`), G-1 (facteur épinglé ; jeton d'enrôlement s'il entre au J3), portées d'EC-3 et d'EC-47, codes d'audit d'EC-44 et de G-1 |
+| 7 | Constats de G-1 point 3 et d'EC-38 point 2 ; une clé secrète Supabase par service ; T11.1 aligné (EC-24) |
+| 8 | Verrous `BREVO_MODE` et `BREVO_TEST_RECIPIENTS` sur `api` ; garde statique d'EC-19 point 3 ; mesure locale d'EC-42 |
+| 10 | Plancher, épinglage, R et révocation après cinq échecs (EC-40) ; seuils d'EC-47 ; B-1 |
+
+**Relectures préalables.** Avant le commit, marqueur I-4 : **5 et 6**, et **11** s'il ajoute un droit
+ou touche le fichier d'attendus. Avant le push, ensemble : **7 à 10** (chemin d'authentification).
+**Aucun push du J3 avant ma revue de fin de J3**, qui couvre aussi 1 à 4 et 12.
+
+**Remontées au fondateur.** (1) EC-19, pour information : la restriction par IP de la clé Brevo
+suppose des adresses de sortie fixes (Railway Pro, déjà ouvert par D60) ; le risque est accepté en
+attendant. (2) EC-45 : être l'approbateur de l'environnement GitHub `production`. Aucun autre point
+ne demande son arbitrage.
+
+**Verdict : J3 autorisé.** Bloquant avant le **commit 10** : G-1 points 1 et 3 (constats conformes).
+Bloquant avant la **création de tout compte interne réel** : G-1 point 2 et EC-44 (e-mail d'alerte).
+Bloquant avant la **mise en ligne** : EC-44, B-1, EC-38 réglé sur les projets hébergés.
+
+#### Avis de conformité du J3 — `expert-conformite-rgpd` (2026-09-27)
+
+> **Verdict : conforme sous conditions.** Aucun point **bloquant** pour le code du J3, qui tourne en
+> pile locale sur des comptes fictifs. Les conditions ci-dessous sont à lever **avant la mise en
+> ligne du Lot 1** (premières données réelles), sauf échéance plus proche indiquée. Ce n'est pas un
+> avis d'avocat : les points marqués « juriste » sont à faire valider par un professionnel du droit.
+> La partie sécurité des mêmes points reste tranchée par `expert-cybersecurite`.
+
+| # | Gravité | Traitement | Constat (texte applicable) | Correctif | Qui · échéance |
+|---|---|---|---|---|---|
+| RG-J3-1 | Important | Sécurité de l'authentification | **EC-38** : transmission de l'adresse IP à Supabase | Autorisée sous conditions : voir la ligne EC-38 (§3) — adresse de substitution pseudonyme de préférence, journal d'audit de GoTrue désactivé ou purgé à 90 jours, information, registre | `dev-react-node` (commit 7), `expert-cybersecurite`, `integrateur` (J4) |
+| RG-J3-2 | À surveiller | Sécurité de l'authentification | **EC-43** : pays approximatif | Colonne nulle au MVP approuvée ; source future sous conditions et nouvel avis : voir la ligne EC-43 (§3) | `product-owner`, `expert-cybersecurite` |
+| RG-J3-3 | Sans enjeu (confirmé) | Accès au backoffice | **B-1**, option B (HIBP par k-anonymat) : seuls 5 caractères hexadécimaux d'une empreinte SHA-1 sortent, partagés par des centaines d'empreintes connues ; la requête part de l'adresse d'`apps/api`, pas de celle de la personne. **Aucune donnée personnelle n'est communiquée** : HIBP n'est ni sous-traitant ni destinataire, aucun contrat, aucun transfert. Même analyse pour l'option A (GoTrue appelle HIBP) | Deux conditions : la requête ne porte **rien d'autre** que le préfixe (ni cookie, ni identifiant de compte, ni en-tête propre à la personne) ; le préfixe et le résultat ne sont **jamais journalisés** avec l'identifiant du compte. Mention au registre comme mesure de sécurité du traitement « accès au backoffice » | `dev-react-node` (commit 10) |
+| RG-J3-4 | **Important** | Sessions (`identity.sessions`) | **Aucune durée de conservation** n'est fixée : la table est absente de `04` §9.1 (art. 5.1 e RGPD, limitation de la conservation) | Proposition : **session membre** supprimée **90 jours** après sa fin (révocation ou échéance) — assez pour reconnaître un navigateur déjà vu ; **session backoffice** : **12 mois** après sa fin (traçabilité des accès privilégiés ; la CNIL recommande 6 mois à 1 an pour les journaux d'accès) ; à l'anonymisation d'un compte (`04` §9.2), ses lignes de session sont supprimées. Purge par le worker avec les autres purges. `expert-cybersecurite` peut demander plus, en le justifiant | `expert-database` (ajout à `04` §9.1) · avant le Lot 1 |
+| RG-J3-5 | Conforme | Sessions : navigateur résumé | `user_agent_summary` : liste fermée famille + système, jamais la chaîne brute ; lisible par le seul titulaire (politiques de `0004`) | Condition : **ni numéro de version, ni modèle d'appareil** dans la liste fermée (cela rapprocherait le résumé d'une empreinte d'appareil). Mention dans la politique de confidentialité (écran « mes sessions », alerte de nouvel appareil) | `dev-react-node` (commit 9) |
+| RG-J3-6 | **Important** | Journal `leads.transactional_sends` | Pour une adresse **sans compte** (premier code d'une inscription), `recipient_email` est gardée **en clair 13 mois**, alors que l'utilisateur GoTrue orphelin de la même adresse est purgé en **24 heures** (`04` §9.1). Une adresse saisie par erreur, ou par un tiers, survivrait un an sans aucune relation (art. 5.1 c et e) | Lignes **sans compte** : adresse en clair **30 jours au plus**, puis ligne purgée ou adresse remplacée par son empreinte HMAC (forme : `expert-database`) ; lignes **avec compte** : 13 mois confirmés (valeur d'attente de `04` §9.1 acceptée). **Base légale de l'envoi du code** : mesures précontractuelles ou exécution du contrat (art. 6.1 b), **indépendante du consentement marketing (D63)** — l'envoi du code n'est jamais conditionné au consentement, et une demande de code ne crée **aucun** contact marketing dans Brevo | `expert-database` (commit 6 : la règle de purge peut attendre le Lot 1, pas la colonne) |
+| RG-J3-7 | À surveiller | Cookies | Les quatre cookies de J3-C règle 8 sont **strictement nécessaires** (authentification, sécurité) : **exemptés de consentement** (art. 5.3 directive ePrivacy ; en France, art. 82 de la loi Informatique et Libertés). Le cookie de parcours porte l'adresse e-mail, signée mais non chiffrée : acceptable (navigateur de la personne elle-même, `HttpOnly`, 15 min) | Les lister dans la **politique cookies** (nom, finalité, durée), en français et en anglais | `expert-ux` + moi · Lot 1 |
+| RG-J3-8 | **Important** | Accès au backoffice (personnels d'INFLUX) | Adresse professionnelle, mot de passe (haché chez GoTrue), facteur TOTP, codes de secours hachés, sessions, adresse IP, lignes d'audit (dont connexion de secours) : **traitement distinct**, qui vise des salariés ou prestataires | **Information préalable des personnels** (art. 13 RGPD ; droit du travail selon le pays de la société — en France, art. L1222-4 du Code du travail) par une note interne ; ligne au registre | `chef-de-projet` + moi · avant le premier compte interne réel (J9) |
+| RG-J3-9 | À surveiller | Comptes de démonstration (`example.test`) | Domaine réservé (RFC 2606 et 6761), aucune donnée réelle, script refusé en production : conforme | Deux conditions pour la suite : aucune synchronisation Brevo ou Apollo de ces comptes (J5, J6) ; la version de CGU fictive et les consentements de ces comptes ne comptent **jamais** comme preuves (exclus des exports et des statistiques de consentement) | `dev-react-node`, `testeur` |
+| RG-J3-10 | **Important** | Registre des traitements | Le J3 crée ou précise quatre traitements qui n'y figurent pas | Ajouter : (1) **authentification des membres** (e-mail, code non conservé, empreinte de session, navigateur résumé ; art. 6.1 b ; Supabase, Brevo, Railway) ; (2) **sécurité de l'authentification** (adresse IP transitoire, empreintes HMAC 30 jours, valeur transmise à Supabase, journaux Supabase ; art. 6.1 f) ; (3) **accès au backoffice** (RG-J3-8 ; art. 6.1 f et art. 32) ; (4) **journal des e-mails transactionnels** (diagnostic de délivrabilité et assistance ; art. 6.1 f ; RG-J3-6) | Moi · avant le Lot 1 |
+
+**Points à soumettre à un juriste** : (1) Loi 25 (Québec, art. 8.1) et localisation par pays avant
+toute source (EC-43) ; (2) confirmation que l'intérêt légitime de sécurité fonde aussi la
+transmission d'EC-38 hors UE (LGPD art. 7 IX et art. 46 ; CCPA, usage « sécurité et intégrité » par
+un prestataire de service) ; (3) note d'information des personnels (RG-J3-8), selon le pays de la
+société (D25).
+
+#### Plan initial du J3 (2026-09-25)
 
 1. **Réglages GoTrue** (local puis `staging`) : longueur du code 6, validité 600 s, inscription
    publique désactivée et aucun envoi natif (EC-16), second facteur TOTP activé, clés de

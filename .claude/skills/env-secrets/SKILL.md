@@ -29,6 +29,12 @@ Agents concernés : `integrateur` (principal), `expert-cybersecurite` (**veto**)
 > `AUTH_DATABASE_URL` sur `api`, `WORKER_DATABASE_URL` seule sur `worker`), avec leurs refus de
 > démarrage. `influx_service` n'existe pas. Fichiers locaux précisés (étape 4 de « Ajouter une
 > variable »).
+>
+> **Révision du 2026-09-27** (`21` §3, EC-19, EC-24 et EC-46, tranchés par `expert-cybersecurite`).
+> `SESSION_COOKIE_SECRET` devient **`AUTH_TOKEN_SIGNING_SECRET`** (l'identifiant de session, opaque,
+> n'est jamais signé) ; `SUPABASE_PUBLISHABLE_KEY` et `SUPABASE_JWKS_URL` **disparaissent** ;
+> **une clé secrète Supabase et une clé Brevo distinctes par service** (`api`, `worker`) ; porteurs
+> des variables Brevo précisés (le service `api` envoie le code de connexion et reçoit le webhook).
 
 ---
 
@@ -85,16 +91,16 @@ Source de vérité : `02` §12.3 pour la plateforme, `16` §M8 pour Brevo.
 | `INFLUX_ENV` (`staging` \| `production`) | web · backoffice · api · worker | Publique | La valeur **est** la distinction. Lue au démarrage, immuable, journalisée |
 | `INFLUX_PUBLIC_SITE_URL` | web · api · worker | Publique | Hôtes distincts |
 | `INFLUX_API_INTERNAL_URL` | web · backoffice | **Interne** — réseau privé Railway | `apps/api` **n'a aucun hôte public** : il n'existe pas d'« URL publique de l'API » |
-| `SESSION_COOKIE_SECRET` | api | **Secrète** | Valeurs distinctes. Rotation = déconnexion de tous |
+| `AUTH_TOKEN_SIGNING_SECRET` (*remplace `SESSION_COOKIE_SECRET`, EC-24*) | api | **Secrète**, ≥ 32 octets | Valeurs distinctes. Signe les seuls jetons courts (cookie de parcours, jeton d'inscription) ; **jamais l'identifiant de session**. Refus de démarrage si elle égale un autre secret du processus. Rotation = parcours de connexion en cours perdus (15 à 30 min), sessions intactes |
+| `AUTH_THROTTLE_PEPPER` | api | **Secrète**, ≥ 32 octets | Valeurs distinctes. Clé HMAC des empreintes de limitation de débit, de l'adresse pseudonyme transmise à GoTrue et de l'anti-rejeu TOTP (étiquettes de séparation distinctes). Rotation = compteurs remis à zéro |
 
 ### Supabase — **aucune de ces variables n'atteint le navigateur**
 
 | Variable | Porteurs | Exposition | `staging` vs `production` |
 |---|---|---|---|
 | `SUPABASE_URL` | **api uniquement** | **Serveur uniquement** | **Deux projets Supabase distincts**, jamais deux schémas d'un même projet (`02` §12.2) |
-| `SUPABASE_PUBLISHABLE_KEY` (ex-`SUPABASE_ANON_KEY`, clé `sb_publishable_…`) | **api uniquement** | **Serveur uniquement.** Ce n'est pas un secret — c'est précisément pourquoi **aucune table métier ne vit dans `public`** (`02` §5, règle 4) — mais elle ne quitte pas `apps/api` | Une par projet |
-| `SUPABASE_SECRET_KEY` — **clé d'API HTTP** (ex-`SUPABASE_SERVICE_ROLE_KEY`, renommée le 2026-09-25 pour suivre les « secret keys » `sb_secret_…` de Supabase), à ne pas confondre avec le rôle Postgres `service_role`, **qui n'est utilisé nulle part** | api · worker | **Secrète, jamais dans un bundle.** Usage limité à **GoTrue (Auth)** et aux **URL signées du Storage**. **Jamais pour atteindre une table** | Une par projet |
-| `SUPABASE_JWKS_URL` | api | Publique par nature | Une par projet |
+| ~~`SUPABASE_PUBLISHABLE_KEY`~~, ~~`SUPABASE_JWKS_URL`~~ | — | **Retirées le 2026-09-27** (EC-46) : tout appel à GoTrue porte la clé secrète, INFLUX ne vérifie aucun JWT | Sur les projets hébergés, la clé *publishable* est **désactivée** si la plateforme le permet (`21` G-1) : aucun composant d'INFLUX ne l'utilise |
+| `SUPABASE_SECRET_KEY` — **clé d'API HTTP** (ex-`SUPABASE_SERVICE_ROLE_KEY`, renommée le 2026-09-25 pour suivre les « secret keys » `sb_secret_…` de Supabase), à ne pas confondre avec le rôle Postgres `service_role`, **qui n'est utilisé nulle part** | api (J3) · worker (J6, purge E-4 seulement) | **Secrète, jamais dans un bundle.** Usage limité à **GoTrue (Auth)** et aux **URL signées du Storage**. **Jamais pour atteindre une table** | **Une clé par projet et par service** (`influx-api`, `influx-worker`), révocable séparément (EC-46) ; clés héritées `anon` / `service_role` désactivées |
 
 ### Base de données
 
@@ -139,6 +145,18 @@ locale, la connexion est directe, sans suffixe.
 
 Toutes sont **serveur uniquement**, dans le paquet `apps/api` (services `api` et `worker`).
 **Aucune clé Brevo ne quitte le serveur** (`16` RG8).
+
+**Porteurs** (*EC-19, tranché le 2026-09-27*) — le service `api` envoie lui-même le code de connexion
+(D43) et reçoit le webhook (EC-12) :
+
+| Service | Variables |
+|---|---|
+| `api` | `BREVO_API_KEY` (**clé propre à `api`**), `BREVO_API_BASE_URL`, `BREVO_MODE`, `BREVO_TEST_RECIPIENTS`, `BREVO_SENDER_TRANSACTIONAL` (J3) ; `BREVO_WEBHOOK_SECRET`, `BREVO_WEBHOOK_PATH_TOKEN`, `BREVO_IP_ALLOWLIST` (J7, **`api` seul**) |
+| `worker` | `BREVO_API_KEY` (**clé propre au `worker`**), `BREVO_API_BASE_URL`, `BREVO_MODE`, `BREVO_TEST_RECIPIENTS`, `BREVO_SENDER_TRANSACTIONAL`, `BREVO_SENDER_MARKETING`, `BREVO_SENDER_PROSPECTING`, `BREVO_SUPPRESSION_LIST_ID` (J6) ; **jamais** les secrets du webhook |
+
+Deux clés Brevo distinctes par environnement : révocation séparée, usage attribuable dans les
+journaux de Brevo. Les verrous du garde-fou s'appliquent **aux deux services**. Le code servi par le
+processus HTTP n'appelle que l'envoi transactionnel unitaire (garde statique).
 
 | Variable | Rôle | Portée | `staging` vs `production` |
 |---|---|---|---|
@@ -204,7 +222,7 @@ Toutes sont **serveur uniquement**, dans le paquet `apps/api` (services `api` et
 | # | Contrôle | Ce qu'il empêche |
 |---|---|---|
 | **CI-1** | **Aucune variable `SUPABASE_*` exposée au client.** Échec du build si une variable dont le nom commence par `SUPABASE_` est préfixée `NEXT_PUBLIC_`, référencée hors de `apps/api`, ou lue hors de `src/config/` dans un front | La reclassification silencieuse de la clé `anon` en « valeur publique inoffensive » |
-| **CI-2** | **Analyse des artefacts de construction** de `apps/web` et `apps/backoffice` : aucune occurrence de `SUPABASE_` (URL de projet comprise), `BREVO_`, `APOLLO_`, `SERVICE_ROLE`, `SESSION_COOKIE_SECRET`, `DATABASE_URL`, ni d'aucune chaîne ressemblant à un JWT ou à une chaîne de connexion Postgres | La fuite par empaquetage : la variable lue au mauvais endroit se retrouve dans le bundle (`03` §8, T11, **étendu ici à tout préfixe `SUPABASE_`**) |
+| **CI-2** | **Analyse des artefacts de construction** de `apps/web` et `apps/backoffice` : aucune occurrence de `SUPABASE_` (URL de projet comprise), `BREVO_`, `APOLLO_`, `SERVICE_ROLE`, `AUTH_TOKEN_SIGNING_SECRET`, `AUTH_THROTTLE_PEPPER`, `DATABASE_URL`, ni d'aucune chaîne ressemblant à un JWT ou à une chaîne de connexion Postgres | La fuite par empaquetage : la variable lue au mauvais endroit se retrouve dans le bundle (`03` §8, T11, **étendu ici à tout préfixe `SUPABASE_`**) |
 | **CI-3** | **Analyse de secrets** sur le dépôt **et son historique**, `.env*` ignoré vérifié | Le secret commité puis « retiré » au commit suivant |
 | **CI-4** | **Aucun rôle d'exécution avec `rolbypassrls` ni `rolsuper`** (`03` §8, T4) | La RLS annulée en silence par une chaîne de connexion trop puissante |
 | **CI-5** | **`DIRECT_DATABASE_URL` absente de toute configuration de service Railway** | Le rôle propriétaire du schéma joignable depuis un processus qui sert des requêtes |
@@ -229,9 +247,10 @@ suspicion de fuite**.
 | `BREVO_API_KEY`, `BREVO_SENDER_*` | **Oui** — e-mail réel | **B** |
 | `APOLLO_API_KEY` | **Oui** — écriture CRM, séquence commerciale | **B** |
 | `BREVO_WEBHOOK_SECRET`, `BREVO_WEBHOOK_PATH_TOKEN` | Oui, en flux entrant : une valeur mal basculée **perd des désinscriptions** | **B** |
-| `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY` | Non | **A** |
+| `SUPABASE_SECRET_KEY` (une par service) | Non | **A** |
 | `DATABASE_URL`, `AUTH_DATABASE_URL`, `WORKER_DATABASE_URL` (puis `OPS_DATABASE_URL`, `PRIVACY_DATABASE_URL`), `DIRECT_DATABASE_URL` (mots de passe de rôles, distincts par rôle et par environnement) | Non | **A** |
-| `SESSION_COOKIE_SECRET` | Non, mais **déconnecte tout le monde** | **A**, en fenêtre choisie |
+| `AUTH_TOKEN_SIGNING_SECRET` | Non, mais **perd les parcours de connexion en cours** (15 à 30 min) | **A**, en fenêtre creuse |
+| `AUTH_THROTTLE_PEPPER` | Non, mais **remet les compteurs de débit à zéro** | **A** |
 
 ### Procédure A — clé sans effet de bord observable
 
