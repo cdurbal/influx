@@ -4,8 +4,9 @@
 // - TLS with certificate verification outside a loopback host, never disabled (P7 rule 1);
 // - NO session state: the pool never sends SET, SET ROLE or a session advisory lock (P7 rule 2);
 // - when the pool opens, `current_user`, `session_user` and the absence of rolsuper and
-//   rolbypassrls are read in the database: any deviation refuses the pool for good (P7 rule 6,
-//   18 T4.6 e);
+//   rolbypassrls are read in the database, on the connection role AND on every role it reaches by
+//   membership: any deviation refuses the pool for good (P7 rule 6, 18 T4.6 e, end-of-J2 security
+//   review S2);
 // - a pool whose connection has been found in a wrong state is destroyed, and the next call gets
 //   a fresh one (P7 rule 3, 18 T4.7).
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
@@ -32,6 +33,10 @@ export type ConnectionIdentity = {
   sessionUser: string;
   isSuperuser: boolean;
   bypassesRls: boolean;
+  /** A role reached by membership, at any depth, is superuser. */
+  reachesSuperuser: boolean;
+  /** A role reached by membership, at any depth, bypasses RLS. */
+  reachesBypassRls: boolean;
 };
 
 export type IdentityVerdict =
@@ -42,11 +47,15 @@ export type IdentityRefusalReason =
   | "unexpected_current_user"
   | "unexpected_session_user"
   | "superuser"
-  | "bypassrls";
+  | "bypassrls"
+  | "superuser_reachable"
+  | "bypassrls_reachable";
 
 /**
  * Decision of 18 T4.6 e, pure so that every branch is tested without a database: the pool must
- * be connected as exactly its role, which is neither SUPERUSER nor BYPASSRLS.
+ * be connected as exactly its role, which is neither SUPERUSER nor BYPASSRLS, and reaches no role
+ * that is. A BYPASSRLS set one day on influx_admin, taken by SET LOCAL ROLE, would make RLS
+ * optional without the connection role changing (S2).
  */
 export function checkConnectionIdentity(
   identity: ConnectionIdentity | undefined,
@@ -67,6 +76,12 @@ export function checkConnectionIdentity(
   if (identity.bypassesRls) {
     return { ok: false, reason: "bypassrls" };
   }
+  if (identity.reachesSuperuser) {
+    return { ok: false, reason: "superuser_reachable" };
+  }
+  if (identity.reachesBypassRls) {
+    return { ok: false, reason: "bypassrls_reachable" };
+  }
   return { ok: true };
 }
 
@@ -83,10 +98,29 @@ export class DatabaseRoleRefusedError extends Error {
   }
 }
 
-const IDENTITY_QUERY = `select current_user::text as current_user,
+/**
+ * Every role reached by membership counts, whatever its INHERIT and SET options: the graph of
+ * pg_auth_members is followed from the connection role, at any depth.
+ */
+const IDENTITY_QUERY = `with recursive reached(oid) as (
+  select m.roleid
+    from pg_catalog.pg_auth_members m
+   where m.member = (select oid from pg_catalog.pg_roles where rolname = current_user)
+  union
+  select m.roleid
+    from pg_catalog.pg_auth_members m
+    join reached on m.member = reached.oid
+)
+select current_user::text as current_user,
        session_user::text as session_user,
        r.rolsuper,
-       r.rolbypassrls
+       r.rolbypassrls,
+       coalesce((select bool_or(g.rolsuper)
+                   from reached join pg_catalog.pg_roles g on g.oid = reached.oid), false)
+         as reaches_superuser,
+       coalesce((select bool_or(g.rolbypassrls)
+                   from reached join pg_catalog.pg_roles g on g.oid = reached.oid), false)
+         as reaches_bypassrls
   from pg_catalog.pg_roles r
  where r.rolname = current_user`;
 
@@ -95,6 +129,8 @@ type IdentityRow = {
   session_user: string;
   rolsuper: boolean;
   rolbypassrls: boolean;
+  reaches_superuser: boolean;
+  reaches_bypassrls: boolean;
 };
 
 /** Seconds: a connection that cannot be opened fails fast (the api answers 503, D60). */
@@ -213,6 +249,8 @@ export class ConnectionPool {
             sessionUser: row.session_user,
             isSuperuser: row.rolsuper,
             bypassesRls: row.rolbypassrls,
+            reachesSuperuser: row.reaches_superuser,
+            reachesBypassRls: row.reaches_bypassrls,
           },
       this.role,
     );

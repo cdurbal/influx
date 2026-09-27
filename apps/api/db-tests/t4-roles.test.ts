@@ -454,6 +454,26 @@ describe("T4.6 e: the pools of apps/api verify their role when they open", () =>
     });
     await pool.close();
   });
+
+  // End-of-J2 security review S2: influx_app itself is untouched, but it reaches influx_admin by
+  // membership. The attribute is committed (the pool reads it on its own connection), then
+  // removed whatever happens; if the process dies in between, T4.1 stops the next run.
+  it("refuses a pool whose role reaches a BYPASSRLS role by membership (S2)", async () => {
+    const pool = new ConnectionPool(
+      localConnection("influx_app"),
+      { max: 1, applicationName: "t4" },
+      recordingLogger(),
+    );
+    await migration`alter role influx_admin bypassrls`;
+    try {
+      await expect(pool.verify()).rejects.toMatchObject({
+        reason: "bypassrls_reachable",
+      });
+    } finally {
+      await migration`alter role influx_admin nobypassrls`;
+      await pool.close();
+    }
+  });
 });
 
 describe("T4.7: guard at the start of a transaction", () => {

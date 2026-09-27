@@ -83,9 +83,11 @@ describe("T4.6 e: identity of a pool when it opens", () => {
     sessionUser: "influx_app",
     isSuperuser: false,
     bypassesRls: false,
+    reachesSuperuser: false,
+    reachesBypassRls: false,
   };
 
-  it("accepts the expected role, neither superuser nor bypassrls", () => {
+  it("accepts the expected role, neither superuser nor bypassrls, directly or by membership", () => {
     expect(checkConnectionIdentity(good, "influx_app")).toEqual({ ok: true });
   });
 
@@ -96,6 +98,8 @@ describe("T4.6 e: identity of a pool when it opens", () => {
     [{ ...good, sessionUser: "postgres" }, "unexpected_session_user"],
     [{ ...good, isSuperuser: true }, "superuser"],
     [{ ...good, bypassesRls: true }, "bypassrls"],
+    [{ ...good, reachesSuperuser: true }, "superuser_reachable"],
+    [{ ...good, reachesBypassRls: true }, "bypassrls_reachable"],
   ] as const)("refuses %j (%s)", (identity, reason) => {
     expect(checkConnectionIdentity(identity, "influx_app")).toEqual({
       ok: false,
