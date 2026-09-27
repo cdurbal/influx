@@ -98,14 +98,59 @@ describe("T16.4: nobody can write it", () => {
   );
 });
 
-describe("T16.5: no amount stored as a float", () => {
-  it("has no real, double precision or money column, and every amount column is a bigint", async () => {
-    const rows = await migration<{ problem: string }[]>`
-      select table_schema || '.' || table_name || '.' || column_name || ' ' || data_type as problem
+/**
+ * T16.5 findings: float or money columns, amount columns that are not a bigint, and tables with an
+ * amount column but no currency column (`currency`, or `<prefix>_currency` such as
+ * `product_value_currency`, 04 §2 conventions; testeur Q3, end of J2).
+ */
+async function amountFindings(
+  sql: postgres.Sql | postgres.TransactionSql,
+): Promise<string[]> {
+  const rows = await sql<{ problem: string }[]>`
+    with amounts as (
+      select table_schema, table_name, column_name, data_type
         from information_schema.columns
        where table_schema = any (${OUR_SCHEMAS as unknown as string[]})
-         and (data_type in ('real', 'double precision', 'money')
-              or ((column_name ~ '(^|_)(amount|montant)(_|$)') and data_type <> 'bigint'))`;
-    expect(rows).toEqual([]);
+         and column_name ~ '(^|_)(amount|montant)(_|$)'
+    )
+    select table_schema || '.' || table_name || '.' || column_name || ' ' || data_type as problem
+      from information_schema.columns
+     where table_schema = any (${OUR_SCHEMAS as unknown as string[]})
+       and data_type in ('real', 'double precision', 'money')
+    union
+    select table_schema || '.' || table_name || '.' || column_name || ' ' || data_type
+      from amounts
+     where data_type <> 'bigint'
+    union
+    select a.table_schema || '.' || a.table_name || ' has an amount column but no currency column'
+      from amounts a
+     where not exists (
+             select 1 from information_schema.columns c
+              where c.table_schema = a.table_schema
+                and c.table_name = a.table_name
+                and c.column_name ~ '(^|_)currency$')
+     order by 1`;
+  return rows.map((row) => row.problem);
+}
+
+describe("T16.5: no amount stored as a float, and none without its currency", () => {
+  it("has no float or money column; every amount column is a bigint beside a currency column", async () => {
+    expect(await amountFindings(migration)).toEqual([]);
+  });
+
+  it("detects each infraction on witness tables, created then rolled back", async () => {
+    const findings = await inRolledBackTransaction(migration, async (tx) => {
+      await tx`create table billing.t16_witness_float (fee double precision)`;
+      await tx`create table billing.t16_witness_no_currency (fee_amount_minor bigint)`;
+      await tx`create table billing.t16_witness_numeric (amount numeric, currency char(3))`;
+      await tx`create table billing.t16_witness_ok
+                 (fee_amount_minor bigint, product_value_currency char(3))`;
+      return amountFindings(tx);
+    });
+    expect(findings).toEqual([
+      "billing.t16_witness_float.fee double precision",
+      "billing.t16_witness_no_currency has an amount column but no currency column",
+      "billing.t16_witness_numeric.amount numeric",
+    ]);
   });
 });
