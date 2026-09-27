@@ -1043,6 +1043,30 @@ la première exécution**, cache d'images si dépassé. Le contrôle des marqueu
 | **Q4** | Contrôle des marqueurs : un premier envoi de branche ne lit que le dernier commit ; ajouter une épreuve sur commits témoins | Non bloquant |
 | **Q5** | La pile locale accumule les lignes validées par T3 (≈ 57 comptes par exécution, 293 constatés) : `supabase db reset` avant la triple exécution d'un jalon | Non bloquant |
 
+#### Dette préalable au J3 — appliquée le 2026-09-27
+
+Ordre fixé par le fondateur : EC-27 et EC-26 en premier commit, puis S1, S2, M2, Q1, Q3. Commits sur
+`main`, **non poussés**. `pnpm test` vert après le dernier commit, base reconstruite par
+`supabase db reset` (`0001` à `0009`) : api 145 unitaires et 94 en base, test-kit 30, web 93,
+backoffice 22, contracts 8.
+
+| Commit | Points | Choix d'implémentation à relire |
+|---|---|---|
+| `e83efa6` | **EC-27, EC-26** | Option `frameworkErrors` : `401 unauthenticated` en enveloppe sans secret connu, sinon `404 not_found`, pour `FST_ERR_BAD_URL`, `FST_ERR_MAX_PARAM_LENGTH` et `FST_ERR_ASYNC_CONSTRAINT` ; identifiant de requête selon A3 ; une ligne de journal au code seul. Le logger ne garde plus le message que d'`ApiError`, `RequestValidationError` et `ConfigError`. Tests : trois codes × quatre en-têtes (aucun, inconnu, web, backoffice), marqueurs du chemin et de la chaîne de requête absents de la réponse et du journal. *Constat :* ces réponses n'écrivent pas la ligne « request completed » (Fastify n'appelle pas `requestCompleted` sur ce chemin) ; à reprendre avec les métriques par route de D60 si elles doivent les compter |
+| `290ed41` | **S1** | « `SET LOCAL ROLE` en un seul endroit » couvre tout `apps/api/src` et `packages/*/src`, liste exacte attendue : `apps/api/src/db/roles.ts` et l'exemption nommée `packages/test-kit/src/db/harness.ts`. `set_config` refusé dès que son troisième argument n'est pas le littéral `true` (analyse des arguments équilibrée sur parenthèses, crochets et `${…}`). Deux fichiers témoins ajoutés (`t6-role/`, `t6-session/set-config-bound-local`) |
+| `8e34eee` | **S2** | Requête d'identité récursive sur `pg_auth_members` depuis le rôle de connexion, **quelles que soient les options `INHERIT` et `SET`** ; deux motifs de refus : `superuser_reachable`, `bypassrls_reachable`. Épreuve en base : `BYPASSRLS` posé (validé) sur `influx_admin`, grappe `influx_app` refusée, attribut retiré dans un `finally` (T4.1 arrêterait l'exécution suivante sinon) |
+| `3e7af41` | **M2** | Migration **`0009_audit_append_actor_from_session_user`** : seul le corps d'`audit.append()` change (signature, propriétaire, droits et forme canonique inchangés), remplacé par le propriétaire dans la même fenêtre que `0006` §9, avec contrôles de fin. `influx_app` ⇒ acteur tiré d'`influx.role` parmi les quatre rôles métier **avec un compte**, sinon refus `42501` ; `influx_auth_login` / `influx_worker_login` ⇒ `service`, ou `system` sans compte ; tout autre `session_user` ⇒ `system` **et aucun compte attribué** (sinon la contrainte `system ⇔ sans compte` refuserait la ligne). Tests T3 par branche, avec `EXECUTE` (et `USAGE` sur `audit` pour `influx_auth` / `influx_worker`) accordés le temps du fichier puis retirés ; contre-épreuve : les quatre cas échouent sur le corps de `0006`. **Le message du commit ne porte pas encore `security-reviewed:`** : la CI (I-4) sera rouge tant qu'`expert-cybersecurite` n'a pas relu `0009` et que le message n'est pas reformulé, **avant le push** (même procédure que C1) |
+| `e7f400d` | **Q1** | Essai `delete` filtré par la colonne du compte (A puis B), comme `update`. Sans effet au J2 (aucune ligne `delete` `propre`) |
+| `fec7380` | **Q3** | T16.5 : toute table portant une colonne de montant porte une colonne `currency` ou `<préfixe>_currency` (`04` §2). Éprouvé sur quatre tables témoins créées puis annulées (flottant, montant sans devise, montant `numeric`, table conforme) |
+
+**Restent avant le premier code de domaine du J3** : la relecture de `0009` par
+`expert-cybersecurite` (marqueur), puis **Q2** (plancher de cas exécutés par fichier, avant le premier
+nouveau test en base du J3) et le test demandé à EC-35 (3) (aucun droit d'un rôle `influx_*` dans
+`_realtime` et `extensions`). *Hors de la liste traitée, repéré en écrivant Q3 :* des colonnes prévues
+par `04` comme `total_budget_minor` ou `commission_received_total_minor` ne contiennent pas le mot
+`amount` et échapperaient à T16.5 ; motif à élargir à `_minor` par `testeur` avant la première d'entre
+elles.
+
 ### J3 — Authentification et sessions (4 à 5 jours)
 
 1. **Réglages GoTrue** (local puis `staging`) : longueur du code 6, validité 600 s, inscription
