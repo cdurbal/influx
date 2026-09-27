@@ -330,6 +330,99 @@ describe("T2.2 and T2.3: every table of our schemas is declared, protected and a
     expect(inPublic).toEqual([]);
   });
 
+  // EC-35 (3), accepted by expert-cybersecurite on condition of this test: _realtime and extensions
+  // are excluded from T2.2 because Supabase creates them, so no influx_% role may hold anything
+  // there — no schema right (PUBLIC included, through has_schema_privilege), no ACL entry on the
+  // schema or on any object in it, no default privilege, no ownership.
+  it("gives no influx_% role any right in the excluded schemas _realtime and extensions (EC-35 (3))", async () => {
+    const excluded = FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE.filter(
+      (schema) => schema !== "supabase_migrations",
+    ) as string[];
+    const present = await migration<{ nspname: string }[]>`
+      select nspname from pg_catalog.pg_namespace
+       where nspname = any (${excluded}) order by 1`;
+    // Never a vacuous pass: both schemas exist, and the closed list of roles is there.
+    expect(present.map((row) => row.nspname)).toEqual([
+      "_realtime",
+      "extensions",
+    ]);
+    const [roles] = await migration<{ count: number }[]>`
+      select count(*)::int as count from pg_catalog.pg_roles where rolname like 'influx\\_%'`;
+    expect(roles?.count ?? 0).toBeGreaterThanOrEqual(12);
+
+    const rights = await migration<{ line: string }[]>`
+      with excluded as (
+        select oid, nspname from pg_catalog.pg_namespace where nspname = any (${excluded})
+      ), ours as (
+        select oid, rolname from pg_catalog.pg_roles where rolname like 'influx\\_%'
+      )
+      select r.rolname || ': ' || p.privilege || ' on schema ' || e.nspname as line
+        from ours r cross join excluded e
+        cross join (values ('USAGE'), ('CREATE')) as p (privilege)
+       where pg_catalog.has_schema_privilege(r.oid, e.oid, p.privilege)
+      union all
+      select r.rolname || ': ' || a.privilege_type || ' on schema ' || e.nspname
+        from excluded e
+        join pg_catalog.pg_namespace n on n.oid = e.oid
+        cross join lateral pg_catalog.aclexplode(n.nspacl) a
+        join ours r on r.oid = a.grantee
+      union all
+      select r.rolname || ': ' || a.privilege_type || ' on ' || e.nspname || '.' || c.relname
+        from pg_catalog.pg_class c
+        join excluded e on e.oid = c.relnamespace
+        cross join lateral pg_catalog.aclexplode(c.relacl) a
+        join ours r on r.oid = a.grantee
+      union all
+      select r.rolname || ': ' || a.privilege_type || ' on column ' || e.nspname || '.'
+             || c.relname || '.' || att.attname
+        from pg_catalog.pg_attribute att
+        join pg_catalog.pg_class c on c.oid = att.attrelid
+        join excluded e on e.oid = c.relnamespace
+        cross join lateral pg_catalog.aclexplode(att.attacl) a
+        join ours r on r.oid = a.grantee
+      union all
+      select r.rolname || ': ' || a.privilege_type || ' on function ' || e.nspname || '.'
+             || f.proname
+        from pg_catalog.pg_proc f
+        join excluded e on e.oid = f.pronamespace
+        cross join lateral pg_catalog.aclexplode(f.proacl) a
+        join ours r on r.oid = a.grantee
+      union all
+      select r.rolname || ': ' || a.privilege_type || ' on type ' || e.nspname || '.' || t.typname
+        from pg_catalog.pg_type t
+        join excluded e on e.oid = t.typnamespace
+        cross join lateral pg_catalog.aclexplode(t.typacl) a
+        join ours r on r.oid = a.grantee
+      union all
+      select r.rolname || ': default ' || a.privilege_type || ' in ' || e.nspname
+        from pg_catalog.pg_default_acl d
+        join excluded e on e.oid = d.defaclnamespace
+        cross join lateral pg_catalog.aclexplode(d.defaclacl) a
+        join ours r on r.oid = a.grantee
+      union all
+      select r.rolname || ': owns ' || e.nspname || '.' || c.relname
+        from pg_catalog.pg_class c
+        join excluded e on e.oid = c.relnamespace
+        join ours r on r.oid = c.relowner
+      union all
+      select r.rolname || ': owns ' || e.nspname || '.' || f.proname
+        from pg_catalog.pg_proc f
+        join excluded e on e.oid = f.pronamespace
+        join ours r on r.oid = f.proowner
+      union all
+      select r.rolname || ': owns ' || e.nspname || '.' || t.typname
+        from pg_catalog.pg_type t
+        join excluded e on e.oid = t.typnamespace
+        join ours r on r.oid = t.typowner
+      union all
+      select r.rolname || ': owns schema ' || e.nspname
+        from excluded e
+        join pg_catalog.pg_namespace n on n.oid = e.oid
+        join ours r on r.oid = n.nspowner
+      order by 1`;
+    expect(rights.map((row) => row.line)).toEqual([]);
+  });
+
   it("declares every view of our schemas security_invoker (P5)", async () => {
     const views = await migration<{ name: string }[]>`
       select n.nspname || '.' || c.relname as name

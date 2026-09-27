@@ -17,6 +17,13 @@ import { randomBytes, randomUUID } from "node:crypto";
 import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { loginRole, migrationRole, testDataSet } from "./support.ts";
+import {
+  APPEND_FUNCTION,
+  APPEND_TEMPORARY_GRANTEES,
+  assertNoTemporaryRights,
+  AUDIT_USAGE_TEMPORARY_GRANTEES,
+  INTERRUPTED_RUN_MESSAGE,
+} from "./temporary-rights.ts";
 
 const INSUFFICIENT_PRIVILEGE = "42501";
 const APPEND_ONLY = TABLE_RIGHTS.filter((rights) => rights.appendOnly);
@@ -442,35 +449,57 @@ describe("T3.10 and T3.11: the verification record, and trailing lines", () => {
   });
 });
 
+// What EC-36 will give influx_auth and influx_worker through a narrow function, and a direct
+// right for influx_admin, so that each connection role can reach append() in the M2 tests only.
+const APPEND_CALLERS = APPEND_TEMPORARY_GRANTEES.join(", ");
+const AUDIT_USAGE_CALLERS = AUDIT_USAGE_TEMPORARY_GRANTEES.join(", ");
+
+/** Grants (or revokes) the temporary rights as the owner, through the window of 0006 §9. */
+async function setTemporaryRights(grant: boolean): Promise<void> {
+  await migration.begin(async (tx) => {
+    await tx.unsafe(
+      "grant influx_audit_writer to current_user with inherit false, set true",
+    );
+    await tx.unsafe("set local role influx_audit_writer");
+    await tx.unsafe(
+      grant
+        ? `grant execute on function ${APPEND_FUNCTION} to ${APPEND_CALLERS}`
+        : `revoke execute on function ${APPEND_FUNCTION} from ${APPEND_CALLERS}`,
+    );
+    await tx.unsafe("reset role");
+    await tx.unsafe("revoke influx_audit_writer from current_user");
+    await tx.unsafe(
+      grant
+        ? `grant usage on schema audit to ${AUDIT_USAGE_CALLERS}`
+        : `revoke usage on schema audit from ${AUDIT_USAGE_CALLERS}`,
+    );
+  });
+}
+
+describe("V4: the temporary rights of an interrupted run are refused, never ignored", () => {
+  it("fails with the reset instruction while they are granted, and passes once revoked", async () => {
+    await assertNoTemporaryRights(migration);
+    await setTemporaryRights(true);
+    try {
+      const refusal = assertNoTemporaryRights(migration);
+      await expect(refusal).rejects.toThrow(INTERRUPTED_RUN_MESSAGE);
+      await expect(refusal).rejects.toThrow(
+        `influx_admin: EXECUTE on ${APPEND_FUNCTION}`,
+      );
+      await expect(refusal).rejects.toThrow(
+        "influx_worker: USAGE on schema audit",
+      );
+    } finally {
+      await setTemporaryRights(false);
+    }
+    await expect(assertNoTemporaryRights(migration)).resolves.toBeUndefined();
+  });
+});
+
 describe("M2: the actor type of a line is bound to session_user (0009)", () => {
-  const APPEND = "audit.append(text, text, uuid, jsonb)";
-  // What EC-36 will give influx_auth and influx_worker through a narrow function, and a direct
-  // right for influx_admin, so that each connection role can reach append() in this test only.
-  const CALLERS = "influx_admin, influx_auth, influx_worker";
-
-  /** Grants (or revokes) the temporary rights as the owner, through the window of 0006 §9. */
-  async function setTemporaryRights(grant: boolean): Promise<void> {
-    await migration.begin(async (tx) => {
-      await tx.unsafe(
-        "grant influx_audit_writer to current_user with inherit false, set true",
-      );
-      await tx.unsafe("set local role influx_audit_writer");
-      await tx.unsafe(
-        grant
-          ? `grant execute on function ${APPEND} to ${CALLERS}`
-          : `revoke execute on function ${APPEND} from ${CALLERS}`,
-      );
-      await tx.unsafe("reset role");
-      await tx.unsafe("revoke influx_audit_writer from current_user");
-      await tx.unsafe(
-        grant
-          ? "grant usage on schema audit to influx_auth, influx_worker"
-          : "revoke usage on schema audit from influx_auth, influx_worker",
-      );
-    });
-  }
-
   beforeAll(async () => {
+    // V4: granting over rights left by an interrupted run would hide them until afterAll.
+    await assertNoTemporaryRights(migration);
     await setTemporaryRights(true);
   });
 
