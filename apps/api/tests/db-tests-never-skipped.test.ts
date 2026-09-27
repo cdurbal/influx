@@ -1,0 +1,24 @@
+// 18 §3 rule 2: the database tests are never skipped. A `.skip`, `.todo`, `.skipIf` or `.only`
+// in db-tests/ fails the run (the floor of cases per family is an open point, 21 §3 EC-35).
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+
+const DB_TESTS = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../db-tests",
+);
+
+describe("database tests are never skipped", () => {
+  it("contain no skip, todo, skipIf, runIf or only", () => {
+    const offenders = readdirSync(DB_TESTS)
+      .filter((name) => name.endsWith(".ts"))
+      .filter((name) =>
+        /\b(?:it|test|describe)\s*\.\s*(?:skip|todo|skipIf|runIf|only)\b/.test(
+          readFileSync(path.join(DB_TESTS, name), "utf8"),
+        ),
+      );
+    expect(offenders).toEqual([]);
+  });
+});
