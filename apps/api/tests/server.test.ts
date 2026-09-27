@@ -319,3 +319,109 @@ describe("request identifier (03 PP-7)", () => {
     },
   );
 });
+
+describe("errors answered by the router, before any hook (21 §3 EC-27, EC-26)", () => {
+  const PATH_MARKER = "path-marker-Qz7";
+  const QUERY_VALUE_MARKER = "query-marker-Wx4";
+
+  /**
+   * A server with a parameter route and, when asked, an async constraint that always fails: once
+   * registered, the constraint is derived for every request, whatever the route.
+   */
+  function routerServer(
+    logs: ReturnType<typeof captureLogs>,
+    withFailingConstraint: boolean,
+  ): ApiServer {
+    const api = buildServer(testApiConfig(), {
+      logDestination: logs.destination,
+    });
+    app = api;
+    api.get(
+      "/v1/creators/:id",
+      { schema: { response: { 200: okSchema } } },
+      async () => ({ status: "ok" as const }),
+    );
+    if (!withFailingConstraint) {
+      return api;
+    }
+    api.addConstraintStrategy({
+      name: "failingConstraint",
+      storage<Handler>() {
+        const handlers = new Map<unknown, Handler>();
+        return {
+          get: (value: unknown) => handlers.get(value) ?? null,
+          set: (value: unknown, handler: Handler) => {
+            handlers.set(value, handler);
+          },
+        };
+      },
+      deriveConstraint(
+        _request: unknown,
+        _context: unknown,
+        done?: (error: Error | null, value?: string) => void,
+      ) {
+        done?.(new Error(`constraint failed (${PATH_MARKER})`));
+      },
+      mustMatchWhenDerived: true,
+    });
+    api.get(
+      "/v1/constrained",
+      {
+        schema: { response: { 200: okSchema } },
+        constraints: { failingConstraint: "any" },
+      },
+      async () => ({ status: "ok" as const }),
+    );
+    return api;
+  }
+
+  const CASES: [string, string][] = [
+    ["FST_ERR_BAD_URL", `/v1/%zz${PATH_MARKER}?email=${QUERY_VALUE_MARKER}`],
+    [
+      "FST_ERR_MAX_PARAM_LENGTH",
+      `/v1/creators/${PATH_MARKER.repeat(15)}?email=${QUERY_VALUE_MARKER}`,
+    ],
+    ["FST_ERR_ASYNC_CONSTRAINT", `/v1/constrained?email=${QUERY_VALUE_MARKER}`],
+  ];
+
+  it.each(CASES)(
+    "%s: 401 envelope without the secret, 404 envelope with it, nothing of the request copied",
+    async (fastifyCode, url) => {
+      for (const [headers, status, code] of [
+        [{}, 401, "unauthenticated"],
+        [{ "x-influx-internal": `${WEB_SECRET}x` }, 401, "unauthenticated"],
+        [{ "x-influx-internal": WEB_SECRET }, 404, "not_found"],
+        [{ "x-influx-internal": BACKOFFICE_SECRET }, 404, "not_found"],
+      ] as const) {
+        const logs = captureLogs();
+        const api = routerServer(
+          logs,
+          fastifyCode === "FST_ERR_ASYNC_CONSTRAINT",
+        );
+        const response = await api.inject({ method: "GET", url, headers });
+        expect(response.statusCode).toBe(status);
+        expect(response.headers["content-type"]).toMatch(/^application\/json/);
+        const body = response.json();
+        expect(Object.keys(body)).toEqual(["error"]);
+        expect(Object.keys(body.error).sort()).toEqual(
+          [...ENVELOPE_KEYS].sort(),
+        );
+        expect(body.error.code).toBe(code);
+        expect(body.error.requestId).toMatch(/^[0-9a-f-]{36}$/);
+        const text = logs.text();
+        // The line carries the code of the router error, never its message.
+        expect(text).toContain(`"code":"${fastifyCode}"`);
+        expect(text).toContain(body.error.requestId);
+        for (const marker of [PATH_MARKER, QUERY_VALUE_MARKER]) {
+          expect(response.body).not.toContain(marker);
+          expect(text).not.toContain(marker);
+        }
+        expect(response.body).not.toContain("FST_");
+        expect(text).not.toContain("is not a valid url component");
+        expect(text).not.toContain("exceeding the max param length");
+        await api.close();
+        app = undefined;
+      }
+    },
+  );
+});

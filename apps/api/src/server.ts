@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import type { IncomingMessage } from "node:http";
 import { systemStatusSchema } from "@influx/contracts/system";
 import Fastify, { LogController } from "fastify";
-import type { FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 import type { DestinationStream } from "pino";
 import type { ApiConfig } from "./config/schema.ts";
 import {
@@ -148,6 +148,26 @@ export function buildServer(
     bodyLimit: MAX_BODY_BYTES,
     // The relay only forwards GET, POST, PATCH, PUT and DELETE (`03` PP-3).
     exposeHeadRoutes: false,
+    // The router answers a malformed URL (FST_ERR_BAD_URL), a parameter over 100 characters
+    // (FST_ERR_MAX_PARAM_LENGTH) or a failed async constraint (FST_ERR_ASYNC_CONSTRAINT) before
+    // any hook: by default in Fastify's own format, quoting the URL, and before the secret check.
+    // Answered here in the envelope instead: 401 without a known secret, otherwise 404; nothing
+    // of the request is copied back, and the line carries the code only (21 §3 EC-27, EC-26).
+    frameworkErrors: (
+      error: FastifyError,
+      request: FastifyRequest,
+      reply: FastifyReply,
+    ) => {
+      const caller = identifySurface(request.headers[INTERNAL_SECRET_HEADER]);
+      const code = caller === null ? "unauthenticated" : "not_found";
+      request.log.info(
+        { errorCode: code, err: error },
+        "request refused by the router",
+      );
+      void reply
+        .code(HTTP_STATUS_BY_CODE[code])
+        .send(errorEnvelope({ code }, request.id));
+    },
   }).withTypeProvider<ZodTypeProvider>();
 
   app.setValidatorCompiler(zodValidatorCompiler);

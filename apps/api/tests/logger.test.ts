@@ -192,12 +192,12 @@ describe("masking of personal data and secrets (02 §20.8, 18 T13.6, 21 J1-J A1)
     expect(text).toContain("[redacted]");
   });
 
-  it("keeps the message of our own errors and of Fastify errors, never one that quotes a value", () => {
+  it("keeps the message of our own errors only, never the message of an FST_* error (21 EC-26)", () => {
     const { logs, logger } = workerLogger();
     logger.error({ err: new ApiError("forbidden") }, "refused");
     logger.error(
       {
-        err: Object.assign(new Error("Request body is too large"), {
+        err: Object.assign(new Error(`Request body is too large (${TOKEN})`), {
           code: "FST_ERR_CTP_BODY_TOO_LARGE",
           statusCode: 413,
         }),
@@ -215,10 +215,22 @@ describe("masking of personal data and secrets (02 §20.8, 18 T13.6, 21 J1-J A1)
       },
       "already sent",
     );
+    logger.info(
+      {
+        err: Object.assign(
+          new Error(`'/v1/%zz?code=${CODE}' is not a valid url component`),
+          { code: "FST_ERR_BAD_URL", statusCode: 400 },
+        ),
+      },
+      "bad url",
+    );
     const text = logs.text();
     expect(text).toContain('"message":"Forbidden"');
-    expect(text).toContain('"message":"Request body is too large"');
+    expect(text).toContain('"code":"FST_ERR_CTP_BODY_TOO_LARGE"');
+    expect(text).toContain('"statusCode":413');
     expect(text).toContain('"code":"FST_ERR_REP_ALREADY_SENT"');
+    expect(text).toContain('"code":"FST_ERR_BAD_URL"');
+    expect(text).not.toContain("Request body is too large");
     expectNoMarker(text);
   });
 

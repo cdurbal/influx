@@ -114,36 +114,23 @@ function serializeResponse(value: unknown): { statusCode?: number } {
   return {};
 }
 
-/**
- * Fastify errors whose message quotes a value: the request URL (FST_ERR_REP_ALREADY_SENT) or the
- * message of another error (FST_ERR_FAILED_ERROR_SERIALIZATION). Their message is dropped like any
- * other; the code is enough to diagnose them (21 §3 EC-26).
- */
-const FASTIFY_CODES_QUOTING_VALUES: readonly string[] = [
-  "FST_ERR_REP_ALREADY_SENT",
-  "FST_ERR_FAILED_ERROR_SERIALIZATION",
-];
-
 function stringCodeOf(value: object): string | undefined {
   return "code" in value && typeof value.code === "string"
     ? value.code
     : undefined;
 }
 
-/** Errors whose message is written by us or by Fastify, and never carries a value (A1). */
+/**
+ * Errors whose message is written by us and never carries a value (A1): an allow-list of our own
+ * classes. No Fastify message is kept, `FST_*` included: several quote the request URL or another
+ * error's message, and the `@fastify/*` plugins share the prefix (21 §3 EC-26). The code and the
+ * status are enough to diagnose them.
+ */
 function hasSafeMessage(error: Error): boolean {
-  if (
+  return (
     error instanceof ApiError ||
     error instanceof RequestValidationError ||
     error instanceof ConfigError
-  ) {
-    return true;
-  }
-  const code = stringCodeOf(error);
-  return (
-    code !== undefined &&
-    code.startsWith("FST_") &&
-    !FASTIFY_CODES_QUOTING_VALUES.includes(code)
   );
 }
 
