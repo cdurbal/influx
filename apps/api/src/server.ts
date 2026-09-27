@@ -66,6 +66,14 @@ function requestIdOf(
     : randomUUID();
 }
 
+/** Route-level hooks that could change a response after, or around, its schema (21 N2). */
+const ROUTE_HOOKS_REFUSED = ["onSend", "preSerialization"] as const;
+
+/** A route option holding one hook or a list of hooks; an empty list declares none. */
+function hasHook(value: unknown): boolean {
+  return Array.isArray(value) ? value.length > 0 : value !== undefined;
+}
+
 /** One log line per request, written on completion: method, route model, status, duration. */
 class ApiLogController extends LogController {
   constructor() {
@@ -185,6 +193,16 @@ export function buildServer(
       throw new Error(
         `Route ${routeName} sets its own serializer compiler: responses go through zod only`,
       );
+    }
+    // A route hook may rewrite the payload after the response schema (onSend) or hand it a value
+    // the schema never sees as intended (preSerialization): only the server-wide hooks below
+    // exist (21 J1-J N2, F-1).
+    for (const hook of ROUTE_HOOKS_REFUSED) {
+      if (hasHook(route[hook])) {
+        throw new Error(
+          `Route ${routeName} declares its own ${hook} hook: the response filter allows none`,
+        );
+      }
     }
     // No response without a schema, and the envelope as fallback (18 TM11.4 b and c).
     route.schema = withEnvelopeFallback(routeName, route.schema);

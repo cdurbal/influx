@@ -49,6 +49,41 @@ function restrictImports(...patterns) {
   return { "no-restricted-imports": ["error", { patterns }] };
 }
 
+// Only src/config/ reads the environment (02 §12.3, 21 J1-D).
+const PROCESS_ENV = {
+  object: "process",
+  property: "env",
+  message: "Read configuration through src/config/ only (21 J1-D).",
+};
+
+// The response filter cannot be bypassed (21 J1-J N2, F-1): a response reaches the client only
+// through its zod schema. Each of these writes a body, or chooses how it is written, outside the
+// schema; only src/platform/ and src/server.ts, which build the filter, may use them. Matched on
+// any object (no type information here): `reply.raw`, `request.raw` and `String.raw` alike.
+const RESPONSE_FILTER_BYPASS_MESSAGE =
+  "bypasses the response schemas: only src/platform/ and src/server.ts may use it (21 N2).";
+const RESPONSE_FILTER_PROPERTIES = [
+  "serializer",
+  "setReplySerializer",
+  "setSerializerCompiler",
+  "hijack",
+  "raw",
+  "setNotFoundHandler",
+].map((property) => ({
+  property,
+  message: `${property} ${RESPONSE_FILTER_BYPASS_MESSAGE}`,
+}));
+// A plugin-level onSend or preSerialization hook is invisible to the onRoute check of server.ts.
+const RESPONSE_FILTER_HOOKS = {
+  selector:
+    "CallExpression[callee.property.name='addHook'][arguments.0.value=/^(?:onSend|preSerialization)$/]",
+  message: `An onSend or preSerialization hook ${RESPONSE_FILTER_BYPASS_MESSAGE}`,
+};
+
+function restrictProperties(...restrictions) {
+  return { "no-restricted-properties": ["error", ...restrictions] };
+}
+
 export default defineConfig([
   globalIgnores(["node_modules/**"]),
   {
@@ -67,19 +102,24 @@ export default defineConfig([
       ...restrictImports(SUPABASE, DRIZZLE, POSTGRES),
     },
   },
+  // Property restrictions of src/: for a given file the last matching block wins, so each block
+  // lists every restriction that applies to its files.
   {
-    // Only src/config/ reads the environment (02 §12.3, 21 J1-D).
     files: ["src/**/*.ts"],
-    ignores: ["src/config/**"],
     rules: {
-      "no-restricted-properties": [
-        "error",
-        {
-          object: "process",
-          property: "env",
-          message: "Read configuration through src/config/ only (21 J1-D).",
-        },
-      ],
+      ...restrictProperties(PROCESS_ENV, ...RESPONSE_FILTER_PROPERTIES),
+      "no-restricted-syntax": ["error", RESPONSE_FILTER_HOOKS],
+    },
+  },
+  {
+    files: ["src/config/**/*.ts"],
+    rules: restrictProperties(...RESPONSE_FILTER_PROPERTIES),
+  },
+  {
+    files: ["src/platform/**/*.ts", "src/server.ts"],
+    rules: {
+      ...restrictProperties(PROCESS_ENV),
+      "no-restricted-syntax": "off",
     },
   },
   {
