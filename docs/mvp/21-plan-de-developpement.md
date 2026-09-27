@@ -1055,9 +1055,9 @@ backoffice 22, contracts 8.
 | `e83efa6` | **EC-27, EC-26** | Option `frameworkErrors` : `401 unauthenticated` en enveloppe sans secret connu, sinon `404 not_found`, pour `FST_ERR_BAD_URL`, `FST_ERR_MAX_PARAM_LENGTH` et `FST_ERR_ASYNC_CONSTRAINT` ; identifiant de requête selon A3 ; une ligne de journal au code seul. Le logger ne garde plus le message que d'`ApiError`, `RequestValidationError` et `ConfigError`. Tests : trois codes × quatre en-têtes (aucun, inconnu, web, backoffice), marqueurs du chemin et de la chaîne de requête absents de la réponse et du journal. *Constat :* ces réponses n'écrivent pas la ligne « request completed » (Fastify n'appelle pas `requestCompleted` sur ce chemin) ; à reprendre avec les métriques par route de D60 si elles doivent les compter |
 | `290ed41` | **S1** | « `SET LOCAL ROLE` en un seul endroit » couvre tout `apps/api/src` et `packages/*/src`, liste exacte attendue : `apps/api/src/db/roles.ts` et l'exemption nommée `packages/test-kit/src/db/harness.ts`. `set_config` refusé dès que son troisième argument n'est pas le littéral `true` (analyse des arguments équilibrée sur parenthèses, crochets et `${…}`). Deux fichiers témoins ajoutés (`t6-role/`, `t6-session/set-config-bound-local`) |
 | `8e34eee` | **S2** | Requête d'identité récursive sur `pg_auth_members` depuis le rôle de connexion, **quelles que soient les options `INHERIT` et `SET`** ; deux motifs de refus : `superuser_reachable`, `bypassrls_reachable`. Épreuve en base : `BYPASSRLS` posé (validé) sur `influx_admin`, grappe `influx_app` refusée, attribut retiré dans un `finally` (T4.1 arrêterait l'exécution suivante sinon) |
-| `3e7af41` | **M2** | Migration **`0009_audit_append_actor_from_session_user`** : seul le corps d'`audit.append()` change (signature, propriétaire, droits et forme canonique inchangés), remplacé par le propriétaire dans la même fenêtre que `0006` §9, avec contrôles de fin. `influx_app` ⇒ acteur tiré d'`influx.role` parmi les quatre rôles métier **avec un compte**, sinon refus `42501` ; `influx_auth_login` / `influx_worker_login` ⇒ `service`, ou `system` sans compte ; tout autre `session_user` ⇒ `system` **et aucun compte attribué** (sinon la contrainte `system ⇔ sans compte` refuserait la ligne). Tests T3 par branche, avec `EXECUTE` (et `USAGE` sur `audit` pour `influx_auth` / `influx_worker`) accordés le temps du fichier puis retirés ; contre-épreuve : les quatre cas échouent sur le corps de `0006`. **Le message du commit ne porte pas encore `security-reviewed:`** : la CI (I-4) sera rouge tant qu'`expert-cybersecurite` n'a pas relu `0009` et que le message n'est pas reformulé, **avant le push** (même procédure que C1) |
-| `e7f400d` | **Q1** | Essai `delete` filtré par la colonne du compte (A puis B), comme `update`. Sans effet au J2 (aucune ligne `delete` `propre`) |
-| `fec7380` | **Q3** | T16.5 : toute table portant une colonne de montant porte une colonne `currency` ou `<préfixe>_currency` (`04` §2). Éprouvé sur quatre tables témoins créées puis annulées (flottant, montant sans devise, montant `numeric`, table conforme) |
+| `8ee9fca` | **M2** | Migration **`0009_audit_append_actor_from_session_user`** : seul le corps d'`audit.append()` change (signature, propriétaire, droits et forme canonique inchangés), remplacé par le propriétaire dans la même fenêtre que `0006` §9, avec contrôles de fin. `influx_app` ⇒ acteur tiré d'`influx.role` parmi les quatre rôles métier **avec un compte**, sinon refus `42501` ; `influx_auth_login` / `influx_worker_login` ⇒ `service`, ou `system` sans compte ; tout autre `session_user` ⇒ `system` **et aucun compte attribué** (sinon la contrainte `system ⇔ sans compte` refuserait la ligne). Tests T3 par branche, avec `EXECUTE` (et `USAGE` sur `audit` pour `influx_auth` / `influx_worker`) accordés le temps du fichier puis retirés ; contre-épreuve : les quatre cas échouent sur le corps de `0006`. **Le message du commit ne porte pas encore `security-reviewed:`** : la CI (I-4) sera rouge tant qu'`expert-cybersecurite` n'a pas relu `0009` et que le message n'est pas reformulé, **avant le push** (même procédure que C1) |
+| `622e960` | **Q1** | Essai `delete` filtré par la colonne du compte (A puis B), comme `update`. Sans effet au J2 (aucune ligne `delete` `propre`) |
+| `b7d07ee` | **Q3** | T16.5 : toute table portant une colonne de montant porte une colonne `currency` ou `<préfixe>_currency` (`04` §2). Éprouvé sur quatre tables témoins créées puis annulées (flottant, montant sans devise, montant `numeric`, table conforme) |
 
 **Restent avant le premier code de domaine du J3** : la relecture de `0009` par
 `expert-cybersecurite` (marqueur), puis **Q2** (plancher de cas exécutés par fichier, avant le premier
@@ -1069,7 +1069,7 @@ elles.
 
 #### Revue de sécurité de `0009` — 2026-09-27
 
-> **`expert-cybersecurite` : pas de veto. `3e7af41` peut recevoir `security-reviewed: 2026-09-27`
+> **`expert-cybersecurite` : pas de veto. `3e7af41` (devenu `8ee9fca` une fois le marqueur ajouté) peut recevoir `security-reviewed: 2026-09-27`
 > en l'état**, avant le push. Aucune condition avant le push ; trois conditions avant E-1 (dans
 > `0108`) et une au J4. Relu : `0009` contre `0006` §6 et §9, le bloc `M2` de
 > `apps/api/db-tests/t3-audit-chain.test.ts`, les gardes d'identité d'`apps/api/src/db/`
@@ -1123,7 +1123,7 @@ contrôle sur lignes reste à la charge de la fonction appelante, comme `grant_r
 2026-09-26, points ouverts).
 
 **Verdict : livraison de `3e7af41` autorisée, sans point bloquant.** Le message peut être reformulé
-avec `security-reviewed: 2026-09-27` avant le push. Conditions : V1, V2, V5, V6 dans le commit de
+avec `security-reviewed: 2026-09-27` avant le push. *Fait le 2026-09-27 : `3e7af41` est devenu `8ee9fca` ; Q1 et Q3, réécrits par la même opération, sont devenus `622e960` et `b7d07ee`.* Conditions : V1, V2, V5, V6 dans le commit de
 `0108` (avant tout `EXECUTE` sur le registre pour `influx_auth` / `influx_worker`) ; V3 au J4 ; V4 au J3.
 
 ### J3 — Authentification et sessions (4 à 5 jours)
