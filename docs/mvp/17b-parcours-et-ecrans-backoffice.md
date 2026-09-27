@@ -1530,6 +1530,169 @@ Deux écrans, selon qu'il existe ou non un second `admin` actif. **La bascule es
 | **Expiration à 24 h** | `15` RG31, CA20 : rien n'est exécuté, le demandeur est informé, l'expiration est journalisée. `bo.dualControl.expired` |
 | **Seconde confirmation sans effet** | `15` cas limite 4 : « déjà confirmée à ⟨heure⟩ par ⟨nom⟩ » |
 
+### 3.14 Connexion, activation du second facteur et codes de secours *(J3, 2026-09-27)*
+
+> **Rédigé par `product-owner`** à la demande de `21` J3-H, avant le commit 12 ; mise en forme :
+> `expert-ux`. Règles appliquées : `03` B-1 à B-8 et MFA-1 à MFA-10, `21` J3-C règle 4 et les
+> arbitrages de sécurité du J3 (EC-17, EC-39, EC-40, EC-47, G-1). **Libellés en français seulement**
+> (D36, valeur d'attente) ; ils sont externalisés dans `bo.json`, comme tous les autres, pour qu'une
+> version anglaise ne coûte qu'une traduction si le fondateur tranche D36 autrement.
+
+**Cinq règles d'écran, qui découlent des arbitrages de sécurité :**
+
+1. **Connexion en une seule fois** : adresse, mot de passe et code (ou code de secours) sont saisis
+   **sur le même écran** et envoyés ensemble ; aucune session n'existe avant la vérification
+   complète (EC-40).
+2. **Un seul message d'échec**, quelle que soit l'étape en défaut — adresse inconnue, mot de passe
+   faux, code faux, code déjà utilisé, plafond atteint, compte non activé, désactivé, ou compte
+   **membre** qui se trompe d'espace (EC-40, EC-47). Il ne cite jamais l'espace membre.
+3. **Le mot de passe n'est conservé nulle part entre deux étapes** : ni dans la page, ni dans le
+   stockage du navigateur. C'est pourquoi l'activation le redemande (EC-40, point 4).
+4. **Pas de « se souvenir de cet appareil »** (B-4), pas de connexion Google ou autre.
+5. **Une panne n'a son propre message que si aucun identifiant n'a été vérifié** (l'espace interne
+   est injoignable) ; toute autre défaillance reçoit l'échec unique — sinon un message « panne »
+   survenant après le mot de passe révélerait qu'il était juste.
+
+#### 3.14.a Connexion
+
+```
+┌ INFLUX — Espace interne ─────────────────────────────────────────┐
+│ Connexion à l'espace interne INFLUX                           h1 │
+│ Réservé à l'équipe INFLUX.                                       │
+│                                                                  │
+│ Adresse e-mail professionnelle *   [                          ]  │
+│ Mot de passe *                     [                          ]  │
+│ Code de l'application (6 chiffres) * [      ]                    │
+│ [· Utiliser un code de secours]                                  │
+│                                                                  │
+│                                           [■ Se connecter]       │
+│ [· Première connexion ? Activez votre second facteur]            │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+| Clé | Libellé |
+|---|---|
+| `bo.auth.login.title` | Connexion à l'espace interne INFLUX |
+| `bo.auth.login.lead` | Réservé à l'équipe INFLUX. Munissez-vous de votre application d'authentification. |
+| `bo.auth.login.emailLabel` | Adresse e-mail professionnelle |
+| `bo.auth.login.passwordLabel` | Mot de passe |
+| `bo.auth.login.totpLabel` | Code de l'application d'authentification (6 chiffres) |
+| `bo.auth.login.useRecoveryCode` | Utiliser un code de secours |
+| `bo.auth.login.recoveryLabel` | Code de secours (16 caractères) |
+| `bo.auth.login.recoveryHelp` | Majuscules, espaces et tirets sont indifférents. |
+| `bo.auth.login.useTotp` | Utiliser mon application d'authentification |
+| `bo.auth.login.submit` | Se connecter |
+| `bo.auth.login.submitBusy` | Connexion… |
+| `bo.auth.login.firstTime` | Première connexion ? Activez votre second facteur |
+| `bo.auth.login.errors.generic` | Connexion impossible. Vérifiez votre adresse, votre mot de passe et votre code, puis réessayez. Si le problème persiste, contactez un administrateur INFLUX. |
+| `bo.auth.errors.unavailable` | L'espace interne est momentanément indisponible. Réessayez dans quelques minutes. |
+| `bo.form.errors.required` | Ce champ est obligatoire. |
+| `bo.auth.errors.totpFormat` | Le code comporte 6 chiffres. |
+| `bo.auth.errors.recoveryFormat` | Un code de secours comporte 16 lettres et chiffres. |
+| `bo.auth.recovery.banner` | Vous êtes connecté avec un code de secours. Il vous en reste {remaining, plural, =0 {aucun} one {#} other {#}}. Les actions qui demandent une confirmation d'identité sont indisponibles dans cette session : demandez à un administrateur de réinitialiser votre second facteur. |
+| `bo.auth.session.ended` | Votre session a pris fin. Reconnectez-vous. |
+| `bo.auth.logout` | Me déconnecter |
+| `bo.auth.logout.done` | Vous êtes déconnecté. |
+
+Les erreurs de forme (`bo.form.errors.required`, `bo.auth.errors.totpFormat`,
+`bo.auth.errors.recoveryFormat`) sont affichées **dans le navigateur, sans appel au serveur**. Le
+bandeau `bo.auth.recovery.banner` reste affiché pendant toute une session ouverte par un code de
+secours (EC-17 point 4) ; chaque utilisation alerte les administrateurs (MFA-4, EC-44).
+
+#### 3.14.b Activation du second facteur — trois étapes
+
+Atteinte depuis le lien d'invitation (J8) ou, au J3, depuis `bo.auth.login.firstTime`. **La personne
+ne saisit jamais le jeton d'activation** (G-1 point 2) ; son mode de transmission appartient à
+`expert-cybersecurite` et `dev-react-node`.
+
+```
+Étape 1 sur 3 — Confirmez votre identité     adresse · mot de passe      [■ Continuer]
+Étape 2 sur 3 — Associez votre application   code QR + clé manuelle
+                                             code à 6 chiffres · MOT DE PASSE RESSAISI
+                                                                 [■ Activer et me connecter]
+Étape 3 sur 3 — Vos 10 codes de secours      affichés une seule fois
+                                             [□ Copier] [□ Imprimer]
+                                             [ ] J'ai conservé mes codes en lieu sûr
+                                                                 [■ Accéder à l'espace interne]
+```
+
+| Clé | Libellé |
+|---|---|
+| `bo.auth.enroll.title` | Activer votre second facteur |
+| `bo.auth.enroll.lead` | L'accès à l'espace interne exige un code à 6 chiffres produit par une application d'authentification installée sur votre téléphone. Cette étape est obligatoire avant tout accès. |
+| `bo.auth.enroll.step` | Étape {current} sur 3 |
+| `bo.auth.enroll.step1.title` | Confirmez votre identité |
+| `bo.auth.enroll.step1.submit` | Continuer |
+| `bo.auth.enroll.errors.generic` | Activation impossible. Vérifiez votre adresse et votre mot de passe, puis réessayez. Si le problème persiste, contactez un administrateur INFLUX. |
+| `bo.auth.enroll.errors.invitationInvalid` | Ce lien d'activation n'est plus valable : il a déjà servi ou date de plus de 72 heures. Demandez une nouvelle invitation à un administrateur INFLUX. |
+| `bo.auth.enroll.step2.title` | Associez votre application |
+| `bo.auth.enroll.step2.scan` | Scannez ce code QR avec votre application d'authentification. |
+| `bo.auth.enroll.step2.qrAlt` | Code QR d'activation du second facteur INFLUX |
+| `bo.auth.enroll.step2.manual` | Impossible de scanner ? Saisissez cette clé dans l'application : {secret} |
+| `bo.auth.enroll.step2.codeLabel` | Code à 6 chiffres affiché par l'application |
+| `bo.auth.enroll.step2.passwordLabel` | Mot de passe |
+| `bo.auth.enroll.step2.passwordWhy` | Ressaisissez votre mot de passe : tant que le second facteur n'est pas activé, aucune session n'est ouverte, et votre mot de passe n'est pas conservé d'une étape à l'autre. |
+| `bo.auth.enroll.step2.submit` | Activer et me connecter |
+| `bo.auth.enroll.step2.errors.generic` | Activation impossible. Vérifiez le code affiché par l'application — il change toutes les 30 secondes — et votre mot de passe, puis réessayez. |
+| `bo.auth.enroll.step2.restarted` | Un nouveau code QR a été créé. Supprimez de votre application l'entrée INFLUX ajoutée auparavant, puis scannez celui-ci. |
+
+| Point | Règle |
+|---|---|
+| Échec à l'étape 2 | Le code QR reste affiché ; seuls les deux champs sont vidés. Refaire l'étape 1 crée un **nouveau** code QR (l'ancien facteur non vérifié est supprimé, `21` J3-A c6) : `bo.auth.enroll.step2.restarted` le dit |
+| Clé manuelle | Affichée par groupes de quatre caractères, sélectionnable ; jamais dans le titre de la page ni dans son adresse |
+| Échec unique | `bo.auth.enroll.errors.generic` à l'étape 1, quelle que soit la cause (adresse, mot de passe, compte déjà activé, plafond) ; seul un jeton d'activation invalide a son message propre, qui ne dit rien des identifiants |
+
+#### 3.14.c Les codes de secours — affichés une seule fois
+
+| Clé | Libellé |
+|---|---|
+| `bo.auth.recoveryCodes.title` | Vos 10 codes de secours |
+| `bo.auth.recoveryCodes.lead` | Chaque code permet une seule connexion si vous perdez l'accès à votre application d'authentification. **Ils ne seront plus jamais affichés.** |
+| `bo.auth.recoveryCodes.storage` | Conservez-les hors ligne : imprimés et rangés, ou dans un gestionnaire de mots de passe. Jamais dans un e-mail, une messagerie ou une capture d'écran. |
+| `bo.auth.recoveryCodes.alert` | Chaque utilisation d'un code de secours est signalée à tous les administrateurs. |
+| `bo.auth.recoveryCodes.copy` | Copier les codes |
+| `bo.auth.recoveryCodes.copied` | Codes copiés. |
+| `bo.auth.recoveryCodes.print` | Imprimer |
+| `bo.auth.recoveryCodes.confirm` | J'ai conservé mes codes de secours en lieu sûr |
+| `bo.auth.recoveryCodes.continue` | Accéder à l'espace interne |
+| `bo.auth.recoveryCodes.leaveWarning` | Si vous quittez cette page, vos codes de secours ne pourront plus être affichés. Quitter quand même ? |
+
+| Point | Règle |
+|---|---|
+| Présentation | Dix codes numérotés de 1 à 10, en police à chasse fixe, par groupes de quatre séparés par des tirets (`XXXX-XXXX-XXXX-XXXX`) |
+| Sortie de l'étape | « Accéder à l'espace interne » reste inactif tant que la case n'est pas cochée ; quitter la page avant affiche `bo.auth.recoveryCodes.leaveWarning`. La session existe déjà (EC-40) : la case ne protège que contre l'oubli |
+| Ce qui n'existe pas | Aucun téléchargement de fichier, aucun envoi par e-mail, aucun réaffichage, aucune régénération libre au J3 (EC-17 point 5) ; rien dans le stockage du navigateur, page non mise en cache |
+| Codes perdus | Seule issue : la réinitialisation par un **autre** administrateur (MFA-6, J8) |
+
+#### 3.14.d Confirmation d'identité (R) et mot de passe
+
+| Clé | Libellé |
+|---|---|
+| `bo.auth.reauth.title` | Confirmez votre identité |
+| `bo.auth.reauth.lead` | Cette action demande votre mot de passe et un code de votre application d'authentification. |
+| `bo.auth.reauth.errors.generic` | Confirmation impossible. Vérifiez votre mot de passe et votre code, puis réessayez. |
+| `bo.auth.reauth.errors.recoverySession` | Cette action n'est pas disponible dans une session ouverte avec un code de secours. Demandez à un administrateur de réinitialiser votre second facteur. |
+| `bo.auth.reauth.revoked` | Votre session a été fermée après plusieurs échecs de confirmation d'identité. Reconnectez-vous. |
+| `bo.auth.password.rules` | 12 caractères au moins, sans autre contrainte : une phrase de plusieurs mots convient très bien. |
+| `bo.auth.password.errors.tooShort` | Choisissez un mot de passe d'au moins 12 caractères. |
+| `bo.auth.password.errors.tooLong` | Ce mot de passe est trop long : 72 octets au plus (un caractère accentué ou un emoji en compte plusieurs). |
+| `bo.auth.password.errors.compromised` | Ce mot de passe figure dans des fuites de données connues. Choisissez-en un autre. |
+| `bo.auth.password.errors.context` | Le mot de passe ne doit contenir ni la première partie de votre adresse e-mail, ni le mot « influx ». |
+| `bo.auth.password.errors.checkUnavailable` | Nous ne pouvons pas vérifier ce mot de passe pour le moment. Réessayez dans quelques minutes. |
+
+La confirmation R et le choix du mot de passe servent à partir du J8 (invitation, actions
+sensibles) ; leurs libellés sont fixés dès maintenant parce que le commit 10 porte R et B-1.
+
+#### 3.14.e Alerte « nouveau navigateur » — remplace « pays ou opérateur inhabituel » (B-7, J8)
+
+Définition : `05` RG141 et RG145 ; vocabulaire : `05` RG144. Code d'alerte à inscrire au catalogue de
+`15` (RG68) par `chef-de-projet`.
+
+| Clé | Libellé |
+|---|---|
+| `bo.alert.newBrowser.title` | Connexion au backoffice depuis un nouveau navigateur |
+| `bo.alert.newBrowser.body` | {agentName} s'est connecté le {signedInAt, date, long} à {signedInAt, time, short} depuis {browser}, un navigateur jamais utilisé sur ce compte au cours des 30 derniers jours. Aucune mesure automatique n'a été prise. Vérifiez auprès de la personne ; si ce n'est pas elle, révoquez ses sessions et réinitialisez son second facteur. |
+
 ---
 
 ## 4. Composants transverses

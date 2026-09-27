@@ -255,6 +255,11 @@ Le routage suit **le rôle réel du compte**, jamais la porte empruntée (`05` R
 **Aucun de ces messages n'apparaît avant la vérification du code** (`05` RG113, RG46) : le parcours
 est strictement identique, en contenu et en durée, tant que le code n'a pas été vérifié.
 
+*(J3, 2026-09-27)* **Au J3**, l'écran 3 n'existe pas encore : l'adresse inconnue affiche
+`auth.signup.notYetAvailable` (`05` RG139, poste local et `staging` fermé seulement). Le compte
+interne affiche `auth.internalAccount.title`, `.notice` et `.help`, **sans lien ni adresse de
+l'espace interne** (`05` RG140). Messages avant et après vérification : `05` RG138.
+
 ### 2.6 Adresses et libellés d'URL
 
 | Espace | Chemin | Note |
@@ -396,7 +401,7 @@ Desktop : identique, colonne container-narrow centrée, les 6 cases plus larges.
 | Six cases ou un champ ? | **Six cases visuelles, un seul champ logique** : `aria-label` unique « Code à 6 chiffres », collage d'un code complet réparti automatiquement, effacement arrière qui recule d'une case. Six `<input>` indépendants cassent le remplissage automatique iOS et les lecteurs d'écran |
 | Validation | **Automatique à la sixième saisie**, bouton conservé pour le clavier et pour les lecteurs d'écran. Le bouton n'est jamais l'unique chemin |
 | Tentatives restantes | Affichées à chaque échec : `auth.code.errors.invalid` avec le nombre restant (`05` RG42). **Le compte n'est jamais bloqué**, seul le code l'est (RG45) |
-| Phrase de correspondance | En évidence **au-dessus** du champ, pas en bas de page : elle sert à détecter un site contrefait **avant** de taper (`05` RG48) |
+| Phrase de correspondance | En évidence **au-dessus** du champ, pas en bas de page : elle sert à détecter un site contrefait **avant** de taper (`05` RG48). *(J3, 2026-09-27)* **Deux noms communs en minuscules** (« ancre lune » ; le « ANCRE TRANQUILLE » du schéma est antérieur), capitales par le style seulement, attribut de langue propre, **inchangée si la page change de langue** (`05` RG128 à RG132) |
 | Compte à rebours | Texte, jamais un cercle animé seul. Zone `aria-live="polite"`, mise à jour toutes les 10 secondes et à la dernière seconde — pas à chaque seconde (un lecteur d'écran deviendrait inutilisable) |
 | Changer d'adresse | `[◦ Modifier]` retourne à l'écran 1 en conservant la porte. Le code déjà envoyé reste valide pour **son** adresse (`05` RG51) |
 | Onglet fermé | Le cookie de parcours dure 15 minutes (`05` RG47). L'écran **le dit avant** : « Restez dans cet onglet : le code ne fonctionne qu'ici. » |
@@ -536,6 +541,25 @@ active), `color-text-on-action`, `color-feedback-error-*`, `color-feedback-info-
 `size-input`, `size-checkbox`, `size-button-lg`, `size-touch-target`, `radius-md`, `radius-pill`,
 `spacing-stack-md/-lg`, `spacing-inset-card`, `container-narrow`, `text-heading-2`, `text-md`,
 `text-sm`, `font-variant-numeric-amount` (cases de code), `duration-fast`, `ease-standard`.
+
+### 3.7 L'écran minimal du J3 *(J3, 2026-09-27)*
+
+**Contexte.** `21` J3, point 9 et commit 12 : au J3, un écran minimal de connexion membre, construit
+avec les tokens existants ; le parcours complet (écrans 1 à 3, portes, mention d'information de
+`05` RG6) arrive au J5. L'écran du J3 ne tourne **qu'en local et sur `staging` fermé**. Ce qui suit
+fixe **ce qu'il contient**, pas sa mise en forme finale (`expert-ux`).
+
+| Étape | Contenu | Clés |
+|---|---|---|
+| Adresse | Titre, phrase d'introduction, champ e-mail, bouton | `auth.step1.title`, `.lead`, `.emailLabel`, `.submit`, `.submitBusy` (§3.1) ; erreurs `signup.email.errors.*` (`05` RG112) |
+| Issue de la demande | `sent` → étape « code » avec `auth.code.sent` ; `undeliverable` → `auth.email.errors.undeliverable` ; `provider_unavailable` → `auth.errors.serviceUnavailable`, saisie conservée ; `rate_limited` → `auth.email.errors.rateLimited` | `05` RG112, RG138 |
+| Code | Titre, adresse rappelée avec « Modifier », **phrase de correspondance au-dessus du champ**, champ unique à six cases, bouton, rappel « restez dans cet onglet », compte à rebours de renvoi, « Recevoir un nouveau code », « Je ne reçois pas le code » (au J3 : la seule liste de vérifications, sans canal de secours) | `auth.step2.*` (`05`, additif du 2026-09-27), `auth.code.resend.countdown` |
+| Erreurs du code | Échecs 1 à 4 : `auth.code.errors.invalid` ; 5ᵉ : `auth.code.errors.tooManyAttempts` puis `auth.step2.newCode` seul ; après 10 min : `auth.code.errors.expired` quel que soit le code ; après 15 min ou dans un autre navigateur : `auth.code.errors.sessionLost` ; plafond réseau : `auth.code.errors.tooManyRequests` ; panne : `auth.code.errors.verifyUnavailable` ; renvoi plafonné : `auth.code.resend.limit` | `05` RG136, RG137 |
+| Après vérification | Espace du rôle (§2.5) ; ou compte interne, compte suspendu, adresse inconnue au J3 : écran d'issue avec `auth.restart` | `05` RG139, RG140 |
+| Accueils vides | Bouton `auth.logout` ; après déconnexion, `auth.logout.done` | — |
+
+Les règles d'accessibilité du §3.6 s'appliquent telles quelles, y compris le focus porté sur le
+titre à chaque étape et le compte à rebours annoncé toutes les dix secondes.
 
 ---
 
@@ -1795,7 +1819,8 @@ Mobile 375
 ### 6.4 T4 — Mes sessions
 
 Liste des sessions actives : date de création, dernière activité, **pays approximatif**, navigateur
-(`05` RG56). Un bouton `[× Fermer toutes les sessions]`, qui déconnecte aussi l'appareil courant et
+(`05` RG56). *(J3, 2026-09-27 : **pas de colonne pays au MVP**, EC-43 ; texte d'aide
+`account.sessions.help` — `05` RG143.)* Un bouton `[× Fermer toutes les sessions]`, qui déconnecte aussi l'appareil courant et
 le dit avant. La session courante est marquée « cet appareil ».
 
 L'e-mail de connexion depuis un appareil inconnu (`05` RG55) renvoie vers cet écran : c'est le seul

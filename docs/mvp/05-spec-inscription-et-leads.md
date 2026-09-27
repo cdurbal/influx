@@ -353,12 +353,15 @@ oblige à redemander un code.
 
 **RG48** — L'écran de saisie du code affiche une **phrase de correspondance de deux ou trois mots**,
 reprise à l'identique dans l'e-mail, tirée d'une liste fermée bilingue de mots neutres. Elle permet de
-détecter un site contrefait qui aurait déclenché un vrai envoi.
+détecter un site contrefait qui aurait déclenché un vrai envoi. *(J3, 2026-09-27 : composition,
+langue, emplacements et listes de mots fixés par RG128 à RG134, additif en fin de document.)*
 
 **RG49** — L'e-mail contenant le code : ne porte **jamais le code dans son objet** ; ne contient
 **aucun lien de connexion** ; indique l'heure de la demande et le contexte (navigateur, pays
 approximatif) ; porte la mention **« INFLUX ne vous demandera jamais ce code »** ; existe en français
 et en anglais et part dans la langue de la page où la demande a été faite (ou du compte, s'il existe).
+*(J3, 2026-09-27 : **sans pays** tant qu'EC-43 est ouvert — le contexte se limite à l'heure et au
+navigateur ; texte exact : `16` RG156 ; règles : RG135.)*
 
 **RG50** — Un nouveau code peut être demandé après **60 secondes**, avec un compte à rebours visible et
 annoncé aux lecteurs d'écran. Au-delà du plafond de RG44, l'écran affiche « vous avez demandé plusieurs
@@ -384,10 +387,12 @@ compte ou de déconnexion globale.
 
 **RG55** — Une connexion réussie depuis un navigateur inconnu déclenche un **e-mail transactionnel de
 notification** (date, heure, pays approximatif, navigateur), avec la marche à suivre en cas de doute.
+*(J3, 2026-09-27 : au MVP, **ni pays ni appareil** — le signal « navigateur inconnu » est défini par
+RG141 et RG142 ; texte de l'e-mail : `16` RG157.)*
 
 **RG56** — L'espace membre expose une page **« mes sessions »** listant les sessions actives (date de
 création, dernière activité, pays approximatif, navigateur) et un bouton **« fermer toutes les
-sessions »**.
+sessions »**. *(J3, 2026-09-27 : colonne « pays approximatif » retirée au MVP, EC-43 — RG143.)*
 
 **RG57** — Trois actions exigent une **re-authentification par un nouveau code** : changer d'adresse
 e-mail, exporter ses données, supprimer son compte.
@@ -1323,3 +1328,333 @@ envois vers Brevo et Apollo perdraient alors leur base légale. Parades à instr
 contrat ou intérêt légitime pour une partie des traitements (Q1), ou retour à un consentement
 facultatif — une **valeur de configuration** (`signup_consent_required`, vrai par défaut) permet de
 revenir en arrière **sans redéploiement**.
+
+---
+
+## Additif du 2026-09-27 — Précisions du J3 : phrase de correspondance, e-mail du code, messages, signal « navigateur inconnu » *(J3, 2026-09-27)*
+
+> **Demandé par** `21` §4, J3-H (ligne `product-owner`, `expert-ux`), **avant** le commit 8 (envoi
+> du code) et le commit 12 (écrans minimaux). **Ce qui suit précise** RG48, RG49, RG55, RG56 et
+> RG112 ; rien n'y est retranché, **sauf le pays approximatif**, retiré au MVP par EC-43 (avis
+> d'`expert-conformite-rgpd` et arbitrage d'`expert-cybersecurite` du 2026-09-27, `03` S-12).
+> Textes des e-mails : `16` RG156 à RG159. Écrans : `17` §3.7 (membre), `17b` §3.14 (backoffice).
+> Numérotation reprise après RG127 et CA70. **Aucun montant, aucun taux** (RG9).
+
+### Phrase de correspondance — précise RG48
+
+**RG128 — Composition.** La phrase compte **exactement deux mots, distincts**, tirés d'une **liste
+fermée de 256 mots propre à la langue** (listes ci-dessous). Premier mot : tirage uniforme parmi les
+256 ; second : tirage uniforme parmi les 255 autres. Source : générateur aléatoire cryptographique
+(`randomInt` de `node:crypto`, `21` J3-B). L'ordre compte : 65 280 phrases possibles par langue. La
+phrase n'est **jamais** dérivée de l'adresse, du compte, de l'heure, du code ni d'un compteur.
+
+**RG129 — Langue de la phrase : celle de la page où la demande a été faite, jamais celle du
+compte.** La phrase figure dans la réponse à la demande de code (`02` §18.10) : si sa langue suivait
+celle du compte, elle révélerait qu'un compte existe, et sa langue (RG46, RG113). Conséquence
+assumée : quand l'e-mail part dans la langue du compte (RG49) et que celle-ci diffère de la page, la
+phrase y figure **telle qu'à l'écran**, dans la langue de la page, sous le libellé de la langue de
+l'e-mail.
+
+**RG130 — Une phrase par code envoyé.** Chaque demande dont l'issue est `sent` reçoit une phrase
+nouvelle, qui accompagne ce code et lui seul. Une demande qui n'aboutit pas (plafond, adresse non
+délivrable, service indisponible) **ne produit aucune phrase et ne change pas celle qui est
+affichée** : l'écran 2 continue d'afficher la phrase du code en cours. **Changer la langue de la page
+ne change pas la phrase** : l'e-mail est déjà parti avec elle. L'élément qui l'affiche déclare sa
+propre langue, pour qu'un lecteur d'écran la prononce correctement.
+
+**RG131 — Où elle figure, et nulle part ailleurs.**
+
+| Emplacement | Détail |
+|---|---|
+| Écran 2 | **Au-dessus** du champ de code, dans un encadré (`17` §3.2) ; réaffichée à l'identique après un rechargement de la page, tant que le parcours est valide |
+| E-mail `auth.login_code` | Dans le corps, **sous le code** (`16` RG156) |
+| En transit seulement | Réponse à la demande de code (`matchingPhrase`, **uniquement si `sent`**) et cookie de parcours signé (`21` J3-C, règle 8), qui sert au réaffichage |
+
+Elle n'apparaît **jamais** : dans l'objet ni dans le texte d'aperçu de l'e-mail ; dans l'adresse
+d'une page ; dans une table ; dans un journal applicatif ou d'audit (clé masquée `matchingPhrase`,
+`21` J3-C règle 7) ; au backoffice.
+
+**RG132 — Présentation.** Les mots sont écrits en **minuscules**, séparés par une espace
+(« ancre lune » ; « lantern owl »). Des capitales ne sont permises **que par le style**, jamais en
+modifiant le texte : un lecteur d'écran épelle un mot écrit en capitales. Graphie identique, accents
+compris, à l'écran et dans l'e-mail.
+
+**RG133 — Critères des listes.** Les critères 1 à 4 sont vérifiés par un test automatisé ; les
+critères 5 à 9, par la relecture de RG134.
+
+1. **256 mots exactement** par langue, sans doublon.
+2. **De 3 à 7 lettres**, uniquement des lettres minuscules de la langue — accents français permis ;
+   ni espace, ni trait d'union, ni apostrophe, ni chiffre, ni ligature (`œ`, `æ`).
+3. **Deux mots d'une même liste diffèrent d'au moins deux lettres** : distance d'édition (insertion,
+   suppression, substitution) **≥ 2**, calculée **après retrait des accents**. « lune » et « dune »,
+   « foret » et « furet », « tower » et « towel » ne peuvent pas coexister.
+4. **Aucun homophone** d'un autre mot de la liste.
+5. **Noms communs concrets, au singulier**, compris d'un lecteur non spécialiste : nature, animaux,
+   objets, aliments, loisirs. Aucun nom propre. En anglais, **orthographe identique en anglais
+   américain et britannique** (ni *colour*, ni *theatre* / *theater*, ni *yogurt*).
+6. **Rien d'offensant ni de connoté, en français, en anglais ni en portugais** (langue suivante,
+   `CLAUDE.md` §2) : aucune insulte ni sens argotique courant (écartés, par exemple : « pelote »,
+   « bonbon », « melon », « raton », « phoque » ; *pine*, qui est vulgaire en français ; *slope*,
+   *cracker*, *grape*) ; rien sur le corps, la violence, les armes, la mort, la maladie, la religion,
+   la politique, une nationalité ou une couleur de peau ; aucune couleur.
+7. **Rien qui évoque un montant ou l'argent** : nombres, monnaies, métaux précieux, banque, prix,
+   cadeau, et les sens argotiques de l'argent (écartés : « radis », « galette », « tapis »,
+   « amande » (homophone d'« amende ») ; *cabbage*, *bread*, *dough*, *mint*, *peanut*, *cashew*).
+8. **Aucun mot dont le sens premier est une marque**, un produit ou un service (écartés : « kayak »,
+   « citron », « domino », *apple*, *orange*, *jaguar*, *lotus*, *meerkat*, *octopus*, *juniper*).
+9. **Aucun mot du vocabulaire d'INFLUX ni de la connexion** (code, clé, compte, lien, marque,
+   campagne, contrat, porte, fil, bouton, cookie, session…) : une phrase ne doit jamais se lire comme
+   une instruction.
+
+**RG134 — Tenue des listes.** Les deux listes ci-dessous sont **la référence** : le fichier de
+données du code les reprend à l'identique (emplacement choisi par `dev-react-node`), et les tests de
+RG133 portent sur ce fichier. Une liste ne change que par **remplacement d'un mot** par un autre qui
+satisfait RG133, en revue de code, le total restant 256. **Avant la mise en ligne du Lot 1**, chaque
+liste est relue par une personne de langue maternelle française, anglaise et portugaise (Q16). Un mot
+jugé malheureux après la mise en ligne est remplacé sans délai : aucune phrase n'est conservée, rien
+ne dépend d'un mot donné.
+
+**Liste française — 256 mots** (8 de 3 lettres, 24 de 4, 69 de 5, 92 de 6, 63 de 7) :
+
+- **3 lettres** — île, jus, lac, mer, nid, riz, ski, thé
+- **4 lettres** — baie, café, cerf, chou, ciel, élan, gant, gare, houx, iris, judo, lait, lion,
+  loup, lune, moto, ours, pont, quai, seau, surf, thym, tour, vélo
+- **5 lettres** — aigle, ancre, arbre, astre, banjo, bison, botte, brume, bulle, canoë, cèdre,
+  chêne, crabe, crêpe, cygne, danse, datte, étang, figue, fleur, flûte, forêt, fusée, galet, genêt,
+  givre, glace, globe, hamac, harpe, héron, hibou, igloo, koala, lampe, lilas, merle, morse, neige,
+  nuage, oasis, olive, opéra, orque, panda, pêche, phare, piano, plage, pluie, poney, puits, récif,
+  robot, rosée, ruban, salsa, sapin, saule, sirop, soupe, stade, stylo, tango, tasse, tente, tigre,
+  train, zèbre
+- **6 lettres** — acacia, aimant, alpaga, ananas, aurore, aviron, ballon, bambou, barque, bateau,
+  bélier, bleuet, bonnet, bougie, cabane, cactus, cahier, canard, canyon, carnet, cerise, chaise,
+  chalet, cheval, chèvre, cirque, comète, corail, crayon, dahlia, désert, éclair, érable, étoile,
+  faucon, flèche, fraise, gaufre, girafe, graine, grange, grotte, homard, jardin, jasmin, lagune,
+  lézard, lierre, loutre, mangue, marais, méduse, menthe, mimosa, miroir, mousse, mouton, muguet,
+  navire, oignon, otarie, oursin, persil, pétale, pinson, plaine, racine, radeau, raisin, renard,
+  roseau, ruelle, salade, saumon, soleil, sommet, sorbet, source, tennis, tomate, tortue, toucan,
+  trèfle, tricot, truite, tulipe, valise, vallée, verger, violon, volcan, yaourt
+- **7 lettres** — abeille, abricot, armoire, atelier, basilic, biscuit, bosquet, bouleau, brioche,
+  caillou, camélia, caramel, cascade, chapeau, colibri, colline, criquet, dauphin, échelle,
+  écharpe, étagère, falaise, fenêtre, ficelle, flamant, fougère, fromage, gazelle, glacier, grillon,
+  guépard, guitare, horloge, lavande, luciole, marelle, moineau, mouette, olivier, palmier, parasol,
+  pélican, pieuvre, pinceau, piscine, pivoine, planète, poireau, poisson, poivron, potager, prairie,
+  praline, rivière, sandale, sardine, sifflet, tambour, taureau, théâtre, vanille, village, voilier
+
+**Liste anglaise — 256 mots** (15 de 3 lettres, 50 de 4, 70 de 5, 75 de 6, 46 de 7) :
+
+- **3 lettres** — bay, bee, dew, egg, elk, fog, hat, ivy, jar, map, oak, owl, sky, sun, tea
+- **4 lettres** — barn, bear, bell, boat, cape, cove, dawn, deer, drum, duck, dune, fern, fork,
+  gate, harp, hawk, hill, hive, iris, jazz, kite, lake, lamp, leaf, lily, milk, mist, moon, moss,
+  park, peak, pier, pond, raft, rain, reef, rice, rock, sage, salt, sled, soup, star, surf, swan,
+  tent, tree, tuba, wave, wolf
+- **5 lettres** — acorn, banjo, basil, birch, bison, bloom, brook, brush, cabin, canoe, cedar,
+  cello, chair, chess, cliff, clock, cloud, comet, coral, crane, daisy, eagle, field, finch, flute,
+  frost, globe, grove, hazel, heron, holly, igloo, jelly, koala, lilac, maple, moose, ocean, olive,
+  onion, otter, paint, panda, paper, pasta, peony, petal, piano, pizza, radio, raven, river, robin,
+  robot, salad, salsa, scarf, shelf, shrub, skate, syrup, table, tango, tiger, toast, tower, tulip,
+  wagon, waltz, zebra
+- **6 lettres** — almond, alpaca, anchor, aurora, ballet, bamboo, breeze, bridge, butter, cactus,
+  canary, candle, canyon, carpet, castle, chalet, cheese, circus, clover, coffee, crayon, dahlia,
+  desert, falcon, forest, garden, garlic, guitar, hiking, hockey, island, karate, kettle, kitten,
+  ladder, lagoon, lizard, magnet, marble, meadow, meteor, mirror, museum, noodle, orchid, oyster,
+  papaya, parrot, pencil, planet, potato, puffin, rabbit, ribbon, rocket, salmon, sandal, sleigh,
+  sorbet, spider, sprout, squash, summit, teapot, tennis, tomato, toucan, turtle, valley, violet,
+  violin, waffle, walnut, walrus, willow
+- **7 lettres** — apricot, avocado, balloon, bicycle, blanket, bowling, caramel, compass, cottage,
+  cricket, curtain, cushion, custard, dolphin, feather, firefly, gazelle, giraffe, glacier, harvest,
+  horizon, jasmine, lantern, leopard, lettuce, library, lobster, orchard, pancake, parsley, pelican,
+  popcorn, prairie, pretzel, pudding, pumpkin, rainbow, scooter, seagull, seaside, sparrow, stadium,
+  sunrise, thunder, vanilla, volcano
+
+> Les deux listes ont été construites contre les critères 3 et 4 paire par paire, à la main. **Le
+> test automatisé de RG133 fait foi** : s'il trouve une paire trop proche, un des deux mots est
+> remplacé selon RG134, sans autre arbitrage.
+
+### E-mail du code — précise RG49
+
+**RG135 — Contenu de l'e-mail `auth.login_code`.** Exactement les éléments de `16` RG156, dans cet
+ordre, et rien d'autre : le code, la phrase de correspondance, la durée et les conditions de validité,
+**l'heure de la demande et le navigateur**, la conduite à tenir si l'on n'a rien demandé, la mention
+« INFLUX ne vous demandera jamais ce code », la phrase qui explique pourquoi on reçoit l'e-mail
+(`16` RG102). **Aucun pays**, aucune adresse IP, aucun nom, aucun rôle, **aucun lien** (`16` RG158),
+et **aucune indication qu'un compte existe ou non** : le même e-mail part pour une inscription et
+pour une connexion.
+
+- **Heure** : dans le fuseau du compte s'il existe (`identity.accounts.timezone`), sinon en **UTC** ;
+  le nom du fuseau est toujours écrit à côté de l'heure. Jamais un fuseau déduit de l'adresse IP.
+- **Navigateur** : le résumé « famille + système » de `21` RG-J3-5 (ni version, ni modèle
+  d'appareil). **Si aucun résumé n'est disponible, la phrase de contexte est écrite sans le
+  navigateur** (variante de `16` RG156) — jamais « navigateur inconnu » par défaut, qui ferait croire
+  à une anomalie (voir Q14).
+
+### Messages de l'écran minimal du J3 — précise RG112 et RG113
+
+**RG136 — Code expiré.** Dix minutes après la demande (horloge du serveur), **toute saisie** reçoit
+`auth.code.errors.expired`, **quel que soit le code saisi**, et **ne décompte aucune tentative**. Au-delà
+de quinze minutes, le parcours lui-même a expiré (RG47) : `auth.code.errors.sessionLost`. Le message
+d'expiration ne dit jamais si le code saisi était le bon.
+
+**RG137 — Tentatives.** Échecs 1 à 4 : `auth.code.errors.invalid`, avec le nombre d'essais restants
+(4, 3, 2, 1). Cinquième échec : `auth.code.errors.tooManyAttempts` ; le champ de code est retiré, il
+ne reste que « Demander un nouveau code », qui ramène à l'écran 1 **avec l'adresse pré-remplie**
+(RG111). Plafond par réseau atteint (RG44, `21` EC-3 point 5) :
+`auth.code.errors.tooManyRequests`, qui ne parle ni du code ni du compte.
+
+**RG138 — Ce qui est identique pour tous, et ce qui ne l'est pas.**
+
+| Moment | Messages possibles | Règle |
+|---|---|---|
+| **Avant la vérification du code** (écrans 1 et 2) | `auth.code.sent`, `auth.email.errors.undeliverable`, `auth.errors.serviceUnavailable`, `auth.email.errors.rateLimited`, `auth.code.resend.limit`, `auth.code.errors.*`, `auth.code.errors.verifyUnavailable` | **Strictement identiques** pour une adresse inscrite, inconnue, interne ou suspendue — contenu, statut et durée (RG46, RG113). Seul écart accepté : la cause (a) de `02` §18.5, arbitrée par `expert-cybersecurite` |
+| **Après une vérification réussie** | `auth.roleMismatch.notice`, `auth.internalAccount.*`, `auth.suspended.*`, et au J3 seulement `auth.signup.notYetAvailable` | Autorisés à différer : la personne a prouvé qu'elle détient la boîte (RG67 à RG69) |
+
+**RG139 — Adresse sans compte, au J3 seulement.** L'écran 3 n'existe qu'au J5. D'ici là, une
+vérification réussie pour une adresse sans compte affiche `auth.signup.notYetAvailable` ; le jeton
+d'inscription est émis comme prévu (`21` EC-4). **Ce message ne quitte jamais le poste local et
+`staging` fermé** : il disparaît avec l'écran 3, avant toute mise en ligne.
+
+**RG140 — Compte interne sur l'espace membre (RG68).** Après vérification : aucun cookie de session
+membre, parcours effacé, message `auth.internalAccount.notice` et `auth.internalAccount.help`,
+**sans lien vers l'espace interne et sans en citer l'adresse** (hypothèse conservatrice : la page
+publique ne désigne pas l'hôte du backoffice). Compte suspendu (RG69) : `auth.suspended.*`, message
+neutre ; tant que le canal de secours (RG65) n'existe pas (J5), le message ne propose pas d'autre
+voie de contact.
+
+**Nouvelles clés du J3** (s'ajoutent à RG112, à `17` §3.1 et à `17` §3.2, dont les clés sont reprises
+telles quelles) :
+
+| Clé | Français | English |
+|---|---|---|
+| `auth.step2.title` | Entrez le code | Enter the code |
+| `auth.step2.sentTo` | Nous avons écrit à {email}. | We have sent it to {email}. |
+| `auth.step2.changeEmail` | Modifier | Change |
+| `auth.step2.phrase.label` | Votre phrase de correspondance | Your matching phrase |
+| `auth.step2.phrase.help` | Vérifiez qu'elle est identique dans l'e-mail reçu. Si elle est différente, ne saisissez pas le code. | Check that it is identical in the email you received. If it is different, do not enter the code. |
+| `auth.step2.codeLabel` | Code à 6 chiffres | 6-digit code |
+| `auth.step2.submit` | Valider | Verify |
+| `auth.step2.submitBusy` | Vérification… | Checking… |
+| `auth.step2.stayInTab` | Restez dans cet onglet : le code ne fonctionne qu'ici. | Stay in this tab: the code only works here. |
+| `auth.step2.resend` | Recevoir un nouveau code | Send me a new code |
+| `auth.step2.newCode` | Demander un nouveau code | Request a new code |
+| `auth.step2.notReceived` | Je ne reçois pas le code | I haven't received the code |
+| `auth.step2.notReceived.checklist` | Vérifiez vos courriers indésirables et vos onglets « Promotions » ou « Notifications », puis l'orthographe de votre adresse. | Check your spam folder and your "Promotions" or "Updates" tabs, then the spelling of your address. |
+| `auth.email.errors.rateLimited` | Trop de codes ont été demandés en peu de temps. Réessayez dans quelques minutes. | Too many codes have been requested in a short time. Please try again in a few minutes. |
+| `auth.code.errors.tooManyRequests` | Trop de tentatives de connexion depuis ce réseau. Réessayez plus tard, au plus tard dans une heure. | Too many sign-in attempts from this network. Please try again later, within an hour at most. |
+| `auth.code.errors.verifyUnavailable` | Nous ne parvenons pas à vérifier votre code pour le moment. Réessayez dans quelques instants. | We cannot check your code right now. Please try again in a moment. |
+| `auth.internalAccount.title` | Espace interne | Internal workspace |
+| `auth.internalAccount.help` | Aucune session n'a été ouverte ici. Connectez-vous depuis l'adresse de l'espace interne qui vous a été communiquée. | No session has been opened here. Sign in from the internal workspace address you were given. |
+| `auth.suspended.title` | Compte inaccessible | Account unavailable |
+| `auth.signup.notYetAvailable` | Aucun compte n'est associé à cette adresse, et la création de compte n'est pas encore ouverte. | No account is linked to this address, and account creation is not open yet. |
+| `auth.restart` | Recommencer avec une autre adresse | Start again with another address |
+| `auth.logout` | Me déconnecter | Sign out |
+| `auth.logout.done` | Vous êtes déconnecté. | You are signed out. |
+| `auth.browser.summary` | {family} sur {os} | {family} on {os} |
+| `auth.browser.familyOnly` | {family} | {family} |
+| `auth.browser.unidentified` | un navigateur non identifié | an unidentified browser |
+
+Les noms de navigateurs et de systèmes (Chrome, Firefox, Safari, Edge, Windows, macOS, iOS, Android,
+Linux…) ne se traduisent pas. **Écran 1 : `auth.email.errors.rateLimited`** (il n'y a pas de code en
+cours dans cet onglet) ; **écran 2, bouton de renvoi : `auth.code.resend.limit`** de RG112 (le code
+en cours reste valable, RG45).
+
+### Signal « navigateur inconnu » — remplace « pays inhabituel » au MVP (EC-43)
+
+**RG141 — Définition.** Le **navigateur** d'une session est son résumé « famille + système »
+(`21` RG-J3-5 : ni version, ni modèle d'appareil) ; un résumé « non identifié » est une valeur comme
+une autre. Une session membre s'ouvre depuis un **navigateur inconnu** quand **aucune autre session
+du même compte portant le même résumé n'a eu d'activité au cours des 30 derniers jours**. La
+**première session d'un compte** (celle qui suit sa création) ne déclenche jamais le signal.
+
+**RG142 — Effet côté membre (précise RG55).** L'e-mail `auth.new_device` (`16` RG157) : date, heure
+avec son fuseau, navigateur, conduite à tenir. **Au plus un par compte, par résumé et par jour**
+(clé d'idempotence de `16` RG85). Aucun blocage, aucune étape supplémentaire, aucune suspension.
+
+**RG143 — « Mes sessions » (précise RG56).** Colonnes : date de création, dernière activité,
+navigateur ; la session courante est marquée « cet appareil ». **Aucune colonne de pays.** Texte
+d'aide, lu aussi par `expert-conformite-rgpd` pour la politique de confidentialité :
+
+| Clé | Français | English |
+|---|---|---|
+| `account.sessions.help` | Nous reconnaissons un navigateur à son type et à son système (par exemple « Firefox sur Windows »), jamais à votre position. Deux appareils du même type se ressemblent donc : vérifiez aussi les dates. | We recognise a browser by its type and operating system (for example "Firefox on Windows"), never by your location. Two devices of the same type therefore look alike: check the dates as well. |
+
+**RG144 — Vocabulaire.** Face à un membre ou à un agent, le signal se dit **« nouveau navigateur »**
+(*new browser*). Sont interdits, parce que nous ne savons pas les affirmer : « appareil inconnu »,
+« lieu », « pays », « position », « connexion suspecte ». Le nom interne du signal reste « navigateur
+inconnu ».
+
+**RG145 — Côté backoffice (B-7, J8).** Même définition, sur les sessions backoffice du compte
+interne ; effet : **une alerte** aux administrateurs, jamais une suspension automatique (condition de
+l'avis de conformité). Libellés : `17b` §3.14.
+
+**RG146 — Limite, écrite pour ne pas être oubliée.** Le signal est faible : une connexion depuis un
+navigateur du même type et du même système qu'un navigateur déjà vu **ne le déclenche pas**. Il
+détecte, il ne protège pas. Il est rouvert dès qu'une source de pays est activée (nouvel avis
+`expert-conformite-rgpd`, `21` EC-43) ; la nouveauté du **réseau**, proposée par
+`expert-cybersecurite`, n'en fait pas partie tant que cet avis n'est pas rendu.
+
+### Cas limites du J3
+
+| Situation | Comportement attendu |
+|---|---|
+| La personne change la langue de la page à l'écran 2 | Textes traduits, **phrase inchangée**, saisie conservée (RG130, RG111) |
+| Compte en anglais, demande faite depuis la page française | E-mail en anglais (RG49), phrase **en français, comme à l'écran** (RG129) |
+| Deux demandes successives dans le même onglet (renvoi) | Nouvelle phrase à l'écran ; l'ancien e-mail porte l'ancienne phrase, et son code est invalide (RG41) — la phrase aide à reconnaître le dernier e-mail reçu |
+| Renvoi refusé par le plafond | Aucune phrase nouvelle ; la phrase et le code en cours restent valables (RG45, RG130) |
+| Deux onglets demandent un code pour la même adresse | Le dernier parcours fait foi (un seul cookie par navigateur) ; le premier onglet peut afficher une phrase périmée. **Limite acceptée**, couverte par `auth.step2.stayInTab` |
+| Code juste saisi à la 11ᵉ minute | `auth.code.errors.expired`, aucune tentative décomptée, le code n'est pas révélé comme juste (RG136) |
+| Cinquième échec, puis nouvelle saisie | Le champ n'existe plus ; seul « Demander un nouveau code » reste (RG137) |
+| Aucun résumé de navigateur disponible | E-mail du code sans la mention du navigateur (RG135) ; pour le signal, le résumé « non identifié » compte comme une valeur (RG141) |
+| Un compte interne se connecte sur l'espace membre | Aucune session membre, aucun lien vers le backoffice (RG140) |
+| Première session après la création du compte | Aucun e-mail « nouveau navigateur » (RG141) |
+| Même navigateur, trente et un jours sans activité | E-mail « nouveau navigateur » : c'est voulu, la fenêtre est de 30 jours |
+
+### Critères d'acceptation du J3
+
+**CA71** — *Étant donné* une demande de code aboutie depuis la page française, *quand* on lit la
+réponse, l'écran 2 et l'e-mail reçu par la doublure Brevo, *alors* la même phrase de deux mots
+distincts, tirés de la liste française, figure dans les trois, en minuscules.
+
+**CA72** — *Étant donné* un compte dont la langue est l'anglais, *quand* il demande un code depuis la
+page française, *alors* la phrase de la réponse est tirée de la liste **française**, et rien dans la
+réponse ne diffère d'une demande pour une adresse inconnue.
+
+**CA73** — *Étant donné* le fichier de données des listes, *quand* le test de RG133 s'exécute,
+*alors* chaque liste compte 256 mots uniques de 3 à 7 lettres autorisées, et aucune paire n'est à
+une distance d'édition inférieure à 2 après retrait des accents.
+
+**CA74** — *Étant donné* un parcours avec un code en cours, *quand* la page est rechargée ou sa langue
+changée, *alors* la phrase affichée est identique à celle de l'e-mail.
+
+**CA75** — *Étant donné* le flux de journal capturé et la base après une demande de code, *quand* on
+y recherche les deux mots de la phrase, *alors* on ne les trouve nulle part (C-1 de `21`).
+
+**CA76** — *Étant donné* un e-mail de code reçu, *quand* on l'examine, *alors* il ne contient ni
+pays, ni adresse IP, ni lien ; l'heure porte le nom de son fuseau (UTC pour une adresse sans compte) ;
+son objet et son texte d'aperçu ne contiennent ni le code ni la phrase.
+
+**CA77** — *Étant donné* un code demandé il y a 11 minutes, *quand* le **bon** code est saisi,
+*alors* le message d'expiration s'affiche et le nombre d'essais restants ne diminue pas.
+
+**CA78** — *Étant donné* quatre échecs, *quand* un cinquième code faux est saisi, *alors*
+`auth.code.errors.tooManyAttempts` s'affiche, le champ disparaît, et « Demander un nouveau code »
+ramène à l'écran 1 avec l'adresse pré-remplie.
+
+**CA79** — *Étant donné* un compte interne, *quand* son code est vérifié sur l'espace membre,
+*alors* aucune session membre n'est créée et l'écran n'affiche ni lien ni adresse de l'espace
+interne.
+
+**CA80** — *Étant donné* un membre dont la seule session des 30 derniers jours porte « Firefox sur
+Windows », *quand* il se connecte depuis « Safari sur iOS », *alors* un e-mail `auth.new_device`
+part, sans pays ; *quand* il se reconnecte le même jour depuis ce Safari, *alors* aucun second e-mail
+ne part.
+
+**CA81** — *Étant donné* un compte qui vient d'être créé, *quand* sa première session s'ouvre,
+*alors* aucun e-mail « nouveau navigateur » ne part.
+
+### Questions ouvertes du J3
+
+| # | Question | Hypothèse retenue en attendant | Arbitre | Échéance |
+|---|---|---|---|---|
+| **Q14** | **Le navigateur n'arrive pas jusqu'à `apps/api`.** L'en-tête `user-agent` ne figure pas dans la liste blanche du passe-plat (`03` PP-5). Sans lui, ni l'e-mail du code (A-8, RG49), ni `user_agent_summary` (EC-2, RG-J3-5), ni le signal « navigateur inconnu » ne peuvent citer le navigateur | E-mail écrit **sans le navigateur** (variante de `16` RG156) ; résumé « non identifié ». Options : ajouter `user-agent` à PP-5 (la chaîne brute n'est ni conservée ni journalisée, seul le résumé l'est) — avec ré-épinglage de `relay.ts` (PP-12) | `architecte` + **`expert-cybersecurite` (veto)** | **Avant le commit 8** (e-mail) et le commit 9 (sessions) |
+| **Q15** | **Valeur réelle de la phrase contre un site d'hameçonnage qui relaie.** La phrase est renvoyée à celui qui fait la demande : un site contrefait qui relaie la demande à INFLUX reçoit la phrase et peut l'afficher. Elle protège contre les sites qui ne relaient pas, et aide à reconnaître le dernier e-mail reçu ; elle ne protège pas contre un relais en temps réel | RG48 maintenue telle quelle (coût nul). Complément possible : citer dans l'e-mail, en texte, le **nom de domaine officiel** où saisir le code, une fois les domaines réservés (`CLAUDE.md` §14.3) — à peser contre la transformation automatique d'un nom de domaine en lien par les messageries | **`expert-cybersecurite`** | Avant la mise en ligne du Lot 1 |
+| **Q16** | **Relecture des listes de mots** par des locuteurs natifs (français, anglais ; portugais pour le critère 6 de RG133) | Listes de RG133 utilisables en local et sur `staging` | `expert-marketing` | Avant la mise en ligne du Lot 1 |
+| **Q17** | **Aucun lien dans les e-mails `auth.login_code` et `auth.new_device`**, y compris vers les préférences (dérogation à `16` RG102, `16` RG158) | Appliquée : zéro lien dans les deux e-mails de sécurité | `expert-cybersecurite` + `expert-conformite-rgpd` | Avant la mise en ligne du Lot 1 |

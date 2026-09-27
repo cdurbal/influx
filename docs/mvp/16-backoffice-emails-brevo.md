@@ -932,6 +932,77 @@ journalisation. Une alerte critique qui n'arrive pas est une alerte qui n'existe
 statut, `messageId`, cause d'échec. Conservation : **3 ans** pour les e-mails rattachés à une mise
 en relation (`04` §9.1), à confirmer pour les autres (§Questions ouvertes).
 
+### H bis — Textes des deux e-mails de sécurité *(J3, 2026-09-27)*
+
+> Demandé par `21` J3-H avant le commit 8. Règles d'origine : `05` RG49, RG55, et l'additif du
+> 2026-09-27 de `05` (RG128 à RG146). Ces textes vivent **dans les fichiers de traduction d'INFLUX**
+> (RG67) ; Brevo ne fait que le transport. **Aucun pays** tant qu'EC-43 est ouvert (`21` §3).
+
+**RG156 — `auth.login_code`, texte exact.** Expéditeur : « INFLUX », adresse du sous-domaine
+transactionnel (`BREVO_SENDER_TRANSACTIONAL`, RG9), sans adresse de réponse fonctionnelle (RG97).
+Ordre du corps imposé : titre, code, phrase, validité, contexte, « pas vous ? », mention « jamais »,
+raison de l'envoi. Le code s'écrit en **six chiffres accolés, sans espace**, sur sa propre ligne, en
+grand, précédé du mot « code » (les messageries et les téléphones reconnaissent alors le code à
+usage unique). Aucun logo cliquable, aucune image obligatoire à la lecture, une version texte seule
+identique.
+
+| Clé (`email.auth.loginCode.*`) | Français | English |
+|---|---|---|
+| `subject` | Votre code de connexion INFLUX | Your INFLUX sign-in code |
+| `preheader` | Valable 10 minutes, dans l'onglet où vous l'avez demandé. | Valid for 10 minutes, in the tab where you requested it. |
+| `title` | Votre code de connexion | Your sign-in code |
+| `codeIntro` | Saisissez ce code sur l'écran INFLUX où vous l'avez demandé : | Enter this code on the INFLUX screen where you requested it: |
+| `phrase` | Phrase de correspondance : {phrase} | Matching phrase: {phrase} |
+| `phraseHelp` | Elle doit être identique à celle affichée sur cet écran. Si elle est différente, ne saisissez pas ce code. | It must be identical to the one shown on that screen. If it is different, do not enter this code. |
+| `validity` | Ce code est valable 10 minutes et une seule fois, uniquement dans l'onglet où vous l'avez demandé. | This code is valid for 10 minutes and can be used once, only in the tab where you requested it. |
+| `context` | Demande reçue le {requestedAt, date, long} à {requestedAt, time, short} ({timeZone}), depuis {browser}. | Request received on {requestedAt, date, long} at {requestedAt, time, short} ({timeZone}) from {browser}. |
+| `contextNoBrowser` | Demande reçue le {requestedAt, date, long} à {requestedAt, time, short} ({timeZone}). | Request received on {requestedAt, date, long} at {requestedAt, time, short} ({timeZone}). |
+| `notYou` | Vous n'avez rien demandé ? Ignorez cet e-mail : sans ce code, personne ne peut se connecter à INFLUX avec votre adresse. | Didn't request anything? Ignore this email: without this code, no one can sign in to INFLUX with your address. |
+| `never` | INFLUX ne vous demandera jamais ce code, ni par téléphone, ni par e-mail, ni par message. Ne le communiquez à personne. | INFLUX will never ask you for this code, by phone, email or message. Do not share it with anyone. |
+| `reason` (valeur de `{reason}` dans `email.transactional.why`, RG155) | un code de connexion a été demandé pour cette adresse sur INFLUX | a sign-in code was requested for this address on INFLUX |
+
+Variables : `{code}`, `{phrase}` (`05` RG128 à RG132, dans la langue **de la page**, même quand le
+texte est dans la langue du compte), `{requestedAt}` (heure de la demande, dans le fuseau du compte,
+sinon UTC), `{timeZone}` (nom du fuseau tel que le formate la langue du texte), `{browser}` (clé
+`auth.browser.summary` ou `auth.browser.familyOnly` de `05`). **Interdits dans ce modèle** : pays,
+adresse IP, nom, rôle, mention d'un compte existant ou non, lien, pièce jointe, contenu promotionnel.
+
+**RG157 — `auth.new_device`, texte exact** (signal « navigateur inconnu », `05` RG141 et RG142).
+Même expéditeur ; idempotence : compte + résumé de navigateur + jour (la colonne « Clé
+d'idempotence » du catalogue de RG85 nomme ce résumé « empreinte d'appareil »).
+
+| Clé (`email.auth.newDevice.*`) | Français | English |
+|---|---|---|
+| `subject` | Nouvelle connexion à votre compte INFLUX | New sign-in to your INFLUX account |
+| `preheader` | Depuis {browser}. Si c'était vous, vous n'avez rien à faire. | From {browser}. If this was you, there is nothing to do. |
+| `title` | Nouvelle connexion depuis un nouveau navigateur | New sign-in from a new browser |
+| `body` | Une connexion à votre compte INFLUX a eu lieu le {signedInAt, date, long} à {signedInAt, time, short} ({timeZone}) depuis {browser}. Ce navigateur n'avait pas été utilisé sur votre compte au cours des 30 derniers jours. | Someone signed in to your INFLUX account on {signedInAt, date, long} at {signedInAt, time, short} ({timeZone}) from {browser}. This browser had not been used on your account in the last 30 days. |
+| `ifYou` | Si c'était vous, vous n'avez rien à faire. | If this was you, there is nothing to do. |
+| `ifNotYou` | Si ce n'était pas vous : | If this wasn't you: |
+| `step1` | Sécurisez d'abord votre boîte e-mail (changez son mot de passe) : c'est elle qui reçoit vos codes de connexion. | First secure your email inbox (change its password): it is where your sign-in codes arrive. |
+| `step2` | Connectez-vous à INFLUX, ouvrez « Mes sessions » et choisissez « Fermer toutes les sessions ». | Sign in to INFLUX, open "My sessions" and choose "Close all sessions". |
+| `step3` | Si vous ne parvenez pas à vous connecter, contactez INFLUX depuis l'aide de l'écran de connexion. | If you cannot sign in, contact INFLUX from the help on the sign-in screen. |
+| `never` | INFLUX ne vous demandera jamais votre code de connexion. | INFLUX will never ask you for your sign-in code. |
+| `reason` | une connexion à votre compte INFLUX a eu lieu depuis un nouveau navigateur | someone signed in to your INFLUX account from a new browser |
+
+Variables : `{signedInAt}` (fuseau du compte), `{timeZone}`, `{browser}`. Si le résumé est « non
+identifié », `{browser}` vaut « un navigateur non identifié » / « an unidentified browser »
+(`auth.browser.unidentified`). **Interdits** : pays, lieu, adresse IP, « appareil inconnu »,
+« connexion suspecte » (`05` RG144), lien, pièce jointe.
+
+**RG158 — Aucun lien dans les deux e-mails de sécurité** — dérogation à RG102 *(hypothèse
+conservatrice, `05` Q17)*. `auth.login_code` et `auth.new_device` ne portent **aucun lien, pas même
+vers les préférences de communication** : ils portent la phrase de raison (RG102), sans le lien. Motif :
+apprendre aux membres qu'**un vrai e-mail de sécurité d'INFLUX ne contient jamais de lien** est la
+meilleure protection contre les imitations ; et on ne règle pas de préférence sur un e-mail qui ne
+dépend d'aucune (RG88). Le contrôle automatisé de RG72 point 2 s'étend à ces deux modèles : **tout**
+lien y est refusé.
+
+**RG159 — Variables ajoutées à la liste fermée de RG71**, réservées aux modèles `auth.*` : `code`
+(`auth.login_code` seul, jamais journalisé), `phrase` (`auth.login_code` seul, jamais journalisée),
+`requestedAt` / `signedInAt` et `timeZone` (la règle « jamais sans fuseau » de RG71 s'y applique),
+`browser` (clés `auth.browser.*` de `05`, additif du 2026-09-27).
+
 ---
 
 ### I — Ce qui remonte de Brevo, et sous quelle forme
@@ -2001,6 +2072,7 @@ couleurs, *alors* un **libellé écrit** le porte.
 | **Q11** | **Langue du backoffice** (**D36**) : le français est la valeur d'attente, mais les **messages aux membres** sont bilingues dès le premier jour | RG151 | **Fondateur** |
 | **Q12** | **Liste fermée des facettes de segmentation** de la source 1 : laquelle exactement, et qui l'étend ? | Proposition de RG17, à compléter | `expert-marketing` + `product-owner` |
 | **Q13** | **Sous-domaines d'envoi** : les trois noms proposés (`tx.`, `news.`, `pro.`) et leur authentification, à confirmer avec le nom de domaine retenu | RG9 | `integrateur` + **Fondateur** |
+| **Q14** *(J3, 2026-09-27)* | **Zéro lien dans `auth.login_code` et `auth.new_device`** (RG158), et **navigateur absent tant que `user-agent` n'est pas relayé** par le passe-plat | Voir `05` Q17 et Q14 | `expert-cybersecurite` + `expert-conformite-rgpd` ; `architecte` pour le relais |
 
 ---
 
