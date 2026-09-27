@@ -1,4 +1,5 @@
 // Shared fixtures of the apps/api tests. Fake values only.
+import { captureLogStream, type LogCapture } from "@influx/test-kit/logs";
 import type { DestinationStream } from "pino";
 import { parseApiEnvironment, type ApiConfig } from "../src/config/schema.ts";
 
@@ -117,18 +118,10 @@ export function duplicateJsonKeys(text: string): string[] {
   return duplicates;
 }
 
-/** A log destination that keeps every line in memory. */
-export function captureLogs(): {
-  destination: DestinationStream;
-  text: () => string;
-} {
-  const lines: string[] = [];
-  return {
-    destination: {
-      write(line: string) {
-        lines.push(line);
-      },
-    },
-    text: () => lines.join(""),
-  };
+/**
+ * A log destination that keeps every line in memory: the capture of C-1 (21 J1-J), whose
+ * `valuesFoundIn` searches the text by value (@influx/test-kit/logs).
+ */
+export function captureLogs(): LogCapture & { destination: DestinationStream } {
+  return captureLogStream();
 }

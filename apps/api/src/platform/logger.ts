@@ -51,10 +51,33 @@ const REDACTED_KEYS: readonly string[] = [
   "detail",
   "hint",
   "where",
+  // Authentication values (21 J3-C rule 7, and the additions of expert-cybersecurite for J3
+  // commit 3): login and TOTP codes, GoTrue link properties, TOTP enrolment, recovery codes, the
+  // matching phrase, and the outbound headers of the Supabase calls (EC-38, EC-46). `code` is
+  // why an error's own code is logged as `errorCode` (21 §3 EC-49).
+  "code",
+  "email_otp",
+  "hashed_token",
+  "action_link",
+  "qr_code",
+  "uri",
+  "totp",
+  "recoveryCodes",
+  "recoveryCode",
+  "enrollmentToken",
+  "matchingPhrase",
+  "apikey",
+  "sb-forwarded-for",
 ];
 
 /** A key three objects deep (`{ a: { b: { c: { email } } } }`) is still censored (18 T13.6). */
 const REDACTED_DEPTH = 3;
+
+/**
+ * Deepest level of a logged key that the redaction paths reach: `email` is level 1, `*.*.*.email`
+ * level 4. A container at this level would have keys that no path censors: it is truncated.
+ */
+const DEEPEST_REDACTED_LEVEL = REDACTED_DEPTH + 1;
 
 /** `email` → `email`, `*.email`, `*.*.email`…; `set-cookie` → `["set-cookie"]`, `*["set-cookie"]`… */
 function redactedPathsOf(key: string): string[] {
@@ -161,13 +184,17 @@ function framesOf(error: Error): string | undefined {
   return frames.length === 0 ? undefined : frames.join("\n");
 }
 
+/**
+ * The code of an error is written as `errorCode`, never `code`: `code` is a censored key, since it
+ * names the login and TOTP codes (21 J3-C rule 7, §3 EC-49).
+ */
 export type SafeErrorLog = {
   type: string;
   message?: string;
-  code?: string;
+  errorCode?: string;
   statusCode?: number;
   stack?: string;
-  cause?: { name: string; code?: string };
+  cause?: { name: string; errorCode?: string };
 };
 
 /**
@@ -187,7 +214,7 @@ export function serializeError(value: unknown): SafeErrorLog {
   }
   const code = stringCodeOf(value);
   if (code !== undefined) {
-    log.code = code;
+    log.errorCode = code;
   }
   if ("statusCode" in value && typeof value.statusCode === "number") {
     log.statusCode = value.statusCode;
@@ -202,87 +229,71 @@ export function serializeError(value: unknown): SafeErrorLog {
     log.cause =
       causeCode === undefined
         ? { name: typeOf(cause) }
-        : { name: typeOf(cause), code: causeCode };
+        : { name: typeOf(cause), errorCode: causeCode };
   } else if (cause !== undefined) {
     log.cause = { name: typeof cause };
   }
   return log;
 }
 
-/** Beyond this depth, a nested value is replaced by a marker (a logged object stays small). */
-const ERROR_SEARCH_DEPTH = 6;
+/** Keys of pino's own serializers, left to them at the top level (`err`, `req`, `res`). */
+const SERIALIZED_KEYS: ReadonlySet<string> = new Set(["err", "req", "res"]);
+
+const TRUNCATED = "[truncated]";
+
+function isPlainObject(value: object): boolean {
+  const prototype: unknown = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
 
 /**
- * Copy of a logged value where every error, at ANY depth (`{ error }`, `{ context: { cause } }`,
- * an array of errors…), goes through `serializeError`: pino would otherwise write every enumerable
- * property of the error (`detail`, `query`, `parameters`…), 21 N1 and J2 security review M3.
- * `err` at the top level is left to its serializer. Plain objects and arrays are copied, never
- * modified; cycles and excessive depth are cut.
+ * Copy of a logged value, made for EVERY logged object (end-of-J2 security review, point (b)):
+ * - an error, at any level, goes through `serializeError` (21 N1, J2 review M3): pino would
+ *   otherwise write every enumerable property (`detail`, `query`, `parameters`…);
+ * - plain objects and arrays are copied down to DEEPEST_REDACTED_LEVEL; a container at that
+ *   level, whose keys no redaction path would reach, becomes `[truncated]`, as does a cycle;
+ * - any other object (Map, Set, Buffer, class instance) becomes `[<class>]`: its content is not
+ *   inspected by the redaction, so it is never written; a date is kept (an ISO string).
+ * The logged object itself is never modified.
  */
-function serializeNestedErrors(
+function sanitizeLogValue(
   value: unknown,
-  depth: number,
+  level: number,
   seen: WeakSet<object>,
 ): unknown {
   if (value instanceof Error) {
     return serializeError(value);
   }
-  if (typeof value !== "object" || value === null) {
+  if (typeof value !== "object" || value === null || value instanceof Date) {
     return value;
   }
-  if (seen.has(value) || depth >= ERROR_SEARCH_DEPTH) {
-    return "[truncated]";
+  if (!Array.isArray(value) && !isPlainObject(value)) {
+    const name = value.constructor?.name ?? "";
+    return `[${name === "" ? "object" : name}]`;
+  }
+  if (seen.has(value) || level >= DEEPEST_REDACTED_LEVEL) {
+    return TRUNCATED;
   }
   seen.add(value);
   if (Array.isArray(value)) {
-    return value.map((item) => serializeNestedErrors(item, depth + 1, seen));
-  }
-  const prototype: unknown = Object.getPrototypeOf(value);
-  if (prototype !== Object.prototype && prototype !== null) {
-    // Class instances other than errors (dates, buffers…) are left to pino.
-    return value;
+    return value.map((item) => sanitizeLogValue(item, level + 1, seen));
   }
   return Object.fromEntries(
     Object.entries(value).map(([key, entry]) => [
       key,
-      serializeNestedErrors(entry, depth + 1, seen),
+      sanitizeLogValue(entry, level + 1, seen),
     ]),
   );
 }
 
-/** Does the value hold an error anywhere (same depth and cycle rules)? */
-function holdsError(
-  value: unknown,
-  depth: number,
-  seen: WeakSet<object>,
-): boolean {
-  if (value instanceof Error) {
-    return true;
-  }
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-  if (seen.has(value) || depth >= ERROR_SEARCH_DEPTH) {
-    return false;
-  }
-  seen.add(value);
-  return Object.values(value).some((entry) =>
-    holdsError(entry, depth + 1, seen),
-  );
-}
-
-/** The logged object, copied only when it holds an error outside the top-level `err` key. */
-function withSerializedErrors(value: object): object {
-  const entries = Object.entries(value).filter(([key]) => key !== "err");
-  if (!entries.some(([, entry]) => holdsError(entry, 0, new WeakSet()))) {
-    return value;
-  }
+/** The logged object, always copied; `err`, `req` and `res` are left to their serializers. */
+function sanitizeLogObject(value: object): object {
   const seen = new WeakSet<object>([value]);
   return Object.fromEntries(
     Object.entries(value).map(([key, entry]) =>
-      key === "err"
+      SERIALIZED_KEYS.has(key)
         ? [key, entry]
-        : [key, serializeNestedErrors(entry, 1, seen)],
+        : [key, sanitizeLogValue(entry, 1, seen)],
     ),
   );
 }
@@ -321,10 +332,9 @@ export function loggerOptions(settings: LoggerSettings): LoggerOptions {
           first !== null &&
           !Array.isArray(first)
         ) {
-          method.apply(this, [
-            withSerializedErrors(first),
-            ...rest,
-          ] as Parameters<typeof method>);
+          method.apply(this, [sanitizeLogObject(first), ...rest] as Parameters<
+            typeof method
+          >);
           return;
         }
         method.apply(this, args);

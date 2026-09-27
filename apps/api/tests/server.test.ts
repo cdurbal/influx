@@ -410,7 +410,7 @@ describe("errors answered by the router, before any hook (21 §3 EC-27, EC-26)",
         expect(body.error.requestId).toMatch(/^[0-9a-f-]{36}$/);
         const text = logs.text();
         // The line carries the code of the router error, never its message.
-        expect(text).toContain(`"code":"${fastifyCode}"`);
+        expect(text).toContain(`"errorCode":"${fastifyCode}"`);
         expect(text).toContain(body.error.requestId);
         for (const marker of [PATH_MARKER, QUERY_VALUE_MARKER]) {
           expect(response.body).not.toContain(marker);

@@ -1,5 +1,6 @@
 // Nothing sensitive reaches the log (docs/mvp/02-architecture-3-espaces.md §20.8,
 // docs/mvp/21-plan-de-developpement.md §4, J1-H): the log stream is captured and searched.
+import { valuesFoundIn } from "@influx/test-kit/logs";
 import { afterEach, describe, expect, it } from "vitest";
 import * as z from "zod";
 import { ApiError } from "../src/platform/errors.ts";
@@ -140,7 +141,7 @@ describe("masking of personal data and secrets (02 §20.8, 18 T13.6, 21 J1-J A1)
     ]);
     expect(line?.err).toMatchObject({
       type: "FakeQueryError",
-      cause: { name: "Error", code: "23505" },
+      cause: { name: "Error", errorCode: "23505" },
     });
     expect(String(line?.err.stack)).toMatch(/^at /);
     expect(text).not.toContain("select");
@@ -226,10 +227,10 @@ describe("masking of personal data and secrets (02 §20.8, 18 T13.6, 21 J1-J A1)
     );
     const text = logs.text();
     expect(text).toContain('"message":"Forbidden"');
-    expect(text).toContain('"code":"FST_ERR_CTP_BODY_TOO_LARGE"');
+    expect(text).toContain('"errorCode":"FST_ERR_CTP_BODY_TOO_LARGE"');
     expect(text).toContain('"statusCode":413');
-    expect(text).toContain('"code":"FST_ERR_REP_ALREADY_SENT"');
-    expect(text).toContain('"code":"FST_ERR_BAD_URL"');
+    expect(text).toContain('"errorCode":"FST_ERR_REP_ALREADY_SENT"');
+    expect(text).toContain('"errorCode":"FST_ERR_BAD_URL"');
     expect(text).not.toContain("Request body is too large");
     expectNoMarker(text);
   });
@@ -268,22 +269,28 @@ describe("masking of personal data and secrets (02 §20.8, 18 T13.6, 21 J1-J A1)
       .split("\n")
       .map((entry) => JSON.parse(entry) as Record<string, unknown>);
     expect(lines).toHaveLength(6);
-    expect(lines[0]?.error).toMatchObject({ type: "Error", code: "23505" });
-    expect(lines[1]?.cause).toMatchObject({ type: "Error", code: "23505" });
+    expect(lines[0]?.error).toMatchObject({
+      type: "Error",
+      errorCode: "23505",
+    });
+    expect(lines[1]?.cause).toMatchObject({
+      type: "Error",
+      errorCode: "23505",
+    });
     expect(lines[2]?.error).toMatchObject({
       type: "Error",
-      cause: { name: "Error", code: "23505" },
+      cause: { name: "Error", errorCode: "23505" },
     });
     expect(lines[3]?.err).toMatchObject({
-      cause: { name: "Error", code: "23505" },
+      cause: { name: "Error", errorCode: "23505" },
     });
     expect(lines[4]?.err).toMatchObject({
-      cause: { name: "Error", code: "23505" },
+      cause: { name: "Error", errorCode: "23505" },
     });
     expect(lines[5]?.context).toEqual({
       error: expect.objectContaining({
         type: "Error",
-        code: "23505",
+        errorCode: "23505",
       }) as unknown,
     });
   });
@@ -334,16 +341,16 @@ describe("masking of personal data and secrets (02 §20.8, 18 T13.6, 21 J1-J A1)
       attempt: {
         failure: expect.objectContaining({
           type: "PostgresError",
-          code: "23505",
+          errorCode: "23505",
         }) as unknown,
       },
     });
     expect(lines[1]?.failures).toEqual([
-      expect.objectContaining({ type: "PostgresError", code: "23505" }),
+      expect.objectContaining({ type: "PostgresError", errorCode: "23505" }),
     ]);
     expect(lines[2]?.err).toMatchObject({
       type: "PostgresError",
-      code: "23505",
+      errorCode: "23505",
     });
     expect(lines[3]?.outcome).toEqual({
       query: "[redacted]",
@@ -377,6 +384,163 @@ describe("masking of personal data and secrets (02 §20.8, 18 T13.6, 21 J1-J A1)
     expectNoMarker(text);
     expect(text).toContain('"err":{"type":"string"}');
     expect(text).toContain('"err":{"type":"object"}');
+  });
+});
+
+describe("authentication values, searched by value (21 J3-C rule 7, C-1)", () => {
+  function workerLogger() {
+    const logs = captureLogs();
+    const logger = createLogger(
+      { service: "worker", environment: "staging", version: "local" },
+      logs.destination,
+    );
+    return { logs, logger };
+  }
+
+  // J3-C rule 7, the additions of expert-cybersecurite for commit 3, and the keys of A1 they
+  // repeat (password, otp, token, secret, authorization, cookie, set-cookie).
+  const AUTH_KEYS = [
+    "password",
+    "code",
+    "otp",
+    "token",
+    "email_otp",
+    "hashed_token",
+    "action_link",
+    "secret",
+    "qr_code",
+    "uri",
+    "totp",
+    "recoveryCodes",
+    "recoveryCode",
+    "enrollmentToken",
+    "matchingPhrase",
+    "apikey",
+    "authorization",
+    "cookie",
+    "set-cookie",
+    "sb-forwarded-for",
+  ];
+
+  it.each(AUTH_KEYS)(
+    "censors %s from the first to the fourth level, and in an array",
+    (key) => {
+      const { logs, logger } = workerLogger();
+      const value = `value-of-${key}-Zq81x`;
+      logger.info({ [key]: value }, "level 1");
+      logger.info({ a: { [key]: value } }, "level 2");
+      logger.info({ a: { b: { [key]: value } } }, "level 3");
+      logger.info({ a: { b: { c: { [key]: value } } } }, "level 4");
+      logger.info({ list: [{ [key]: value }] }, "in an array");
+      expect(valuesFoundIn(logs.text(), [value])).toEqual([]);
+      expect(logs.lines()).toHaveLength(5);
+      for (const line of logs.lines()) {
+        expect(line).toContain("[redacted]");
+      }
+    },
+  );
+
+  it("logs the code of an error as errorCode, and censors any code key (21 §3 EC-49)", () => {
+    const { logs, logger } = workerLogger();
+    const loginCode = "734219";
+    logger.warn(
+      {
+        code: loginCode,
+        attempt: { code: loginCode },
+        err: Object.assign(new Error(`code ${loginCode} refused`), {
+          code: "otp_expired",
+          cause: Object.assign(new Error("inner"), { code: "23505" }),
+        }),
+      },
+      "verification refused",
+    );
+    const text = logs.text();
+    expect(valuesFoundIn(text, [loginCode])).toEqual([]);
+    const [line] = logs
+      .lines()
+      .map((entry) => JSON.parse(entry) as Record<string, unknown>);
+    expect(line).toMatchObject({
+      code: "[redacted]",
+      attempt: { code: "[redacted]" },
+      err: {
+        type: "Error",
+        errorCode: "otp_expired",
+        cause: { name: "Error", errorCode: "23505" },
+      },
+    });
+  });
+});
+
+describe("forced truncation of every logged object (end-of-J2 review, point (b))", () => {
+  const MARKER = "deep-marker-Kp27w";
+
+  function workerLogger() {
+    const logs = captureLogs();
+    const logger = createLogger(
+      { service: "worker", environment: "staging", version: "local" },
+      logs.destination,
+    );
+    return { logs, logger };
+  }
+
+  it("truncates a container deeper than the redaction paths reach, without any error in it", () => {
+    const { logs, logger } = workerLogger();
+    logger.info({ a: { b: { c: { d: { note: MARKER } } } } }, "five levels");
+    logger.info({ a: [[[[MARKER]]]] }, "nested arrays");
+    logger.info(
+      { a: { b: { c: { d: { e: { f: { g: new Error(MARKER) } } } } } } },
+      "deep error",
+    );
+    expect(valuesFoundIn(logs.text(), [MARKER])).toEqual([]);
+    const lines = logs
+      .lines()
+      .map((entry) => JSON.parse(entry) as Record<string, unknown>);
+    expect(lines[0]?.a).toEqual({ b: { c: { d: "[truncated]" } } });
+    expect(lines[1]?.a).toEqual([[["[truncated]"]]]);
+  });
+
+  it("never writes the content of a Map, a Set, a buffer or a class instance", () => {
+    class Holder {
+      readonly note = MARKER;
+      readonly email = "holder.marker@example.test";
+    }
+    const { logs, logger } = workerLogger();
+    const at = new Date("2026-09-27T10:00:00.000Z");
+    logger.info(
+      {
+        map: new Map([["email", MARKER]]),
+        set: new Set([MARKER]),
+        buffer: Buffer.from(MARKER),
+        holder: new Holder(),
+        nested: { holder: new Holder() },
+        at,
+      },
+      "instances",
+    );
+    const text = logs.text();
+    expect(valuesFoundIn(text, [MARKER, "holder.marker@example.test"])).toEqual(
+      [],
+    );
+    const [line] = logs
+      .lines()
+      .map((entry) => JSON.parse(entry) as Record<string, unknown>);
+    expect(line).toMatchObject({
+      map: "[Map]",
+      set: "[Set]",
+      buffer: "[Buffer]",
+      holder: "[Holder]",
+      nested: { holder: "[Holder]" },
+      at: "2026-09-27T10:00:00.000Z",
+    });
+  });
+
+  it("leaves err, req and res to their serializers, and copies everything else", () => {
+    const { logs, logger } = workerLogger();
+    const entry = { attempt: { count: 1 }, err: new Error(MARKER) };
+    logger.error(entry, "copied");
+    expect(entry.attempt).toEqual({ count: 1 });
+    expect(valuesFoundIn(logs.text(), [MARKER])).toEqual([]);
+    expect(logs.text()).toContain('"err":{"type":"Error"');
   });
 });
 
