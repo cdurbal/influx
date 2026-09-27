@@ -127,8 +127,16 @@ function attemptOf(rights: TableRights, operation: Operation, account: string) {
             statement: `update ${rights.table} set ${rights.updateSet ?? `${column} = ${column}`} where ${rights.ownerColumn} = $1`,
             parameters: [account],
           };
+    // Filtered by the owner column like `update` (testeur Q1, end of J2): an unfiltered delete of
+    // account A's rows would also take B's if the policy let them through, and the later check
+    // on B would then find nothing to delete and pass.
     case "delete":
-      return { statement: `delete from ${rights.table}`, parameters: [] };
+      return rights.ownerColumn === undefined
+        ? { statement: `delete from ${rights.table}`, parameters: [] }
+        : {
+            statement: `delete from ${rights.table} where ${rights.ownerColumn} = $1`,
+            parameters: [account],
+          };
   }
 }
 
