@@ -147,26 +147,38 @@ describe("T6.6: no session state", () => {
     }
   });
 
-  it("finds none in apps/api/src and packages/*/src", () => {
-    const files = [
+  /** apps/api/src and the src folder of each package: the scope of T6.6. */
+  function scannedFiles(): string[] {
+    return [
       ...listSourceFiles(path.join(API_ROOT, "src"), SCRIPT_EXTENSIONS),
       ...readdirSync(PACKAGES).flatMap((name) =>
         listSourceFiles(path.join(PACKAGES, name, "src"), SCRIPT_EXTENSIONS),
       ),
     ];
-    expect(scanSessionState(files)).toEqual([]);
+  }
+
+  it("finds none in apps/api/src and packages/*/src", () => {
+    expect(scanSessionState(scannedFiles())).toEqual([]);
   });
 
-  it("takes a role in exactly one place of src/db/", () => {
-    const files = listSourceFiles(
-      path.join(API_ROOT, "src/db"),
-      SCRIPT_EXTENSIONS,
-    );
+  it("proves the role rule on its witness file", () => {
+    const files = witnesses("t6-role");
+    expect(files.length).toBeGreaterThan(0);
+    expect(filesTakingARole(files)).toEqual(files);
+  });
+
+  // End-of-J2 security review S1: a domain function taking `influx_admin` inside an advertiser
+  // transaction would pass every other guard, since influx_app may SET any of the four roles.
+  it("takes a role in exactly one place of apps/api/src and packages/*/src, plus the harness", () => {
     expect(
-      filesTakingARole(files).map((file) =>
-        path.relative(API_ROOT, file).replace(/\\/g, "/"),
-      ),
-    ).toEqual(["src/db/roles.ts"]);
+      filesTakingARole(scannedFiles())
+        .map((file) => path.relative(ROOT, file).replace(/\\/g, "/"))
+        .sort(),
+    ).toEqual([
+      "apps/api/src/db/roles.ts",
+      // The one named exemption: the role harness of the database tests.
+      "packages/test-kit/src/db/harness.ts",
+    ]);
   });
 });
 

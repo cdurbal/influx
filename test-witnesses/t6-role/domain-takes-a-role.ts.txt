@@ -1,0 +1,4 @@
+export async function readAllIdentities(tx: TransactionSql) {
+  await tx.unsafe("set local role influx_admin");
+  return tx`select email from identity.accounts`;
+}
