@@ -93,7 +93,8 @@ describe("api log lines", () => {
         await app.inject({
           method: "POST",
           url: "/v1/echo",
-          headers: secret,
+          // A write from the same origin (03 §6.4 A4).
+          headers: { ...secret, "sec-fetch-site": "same-origin" },
           payload: { email: "not-an-address" },
         })
       ).statusCode,

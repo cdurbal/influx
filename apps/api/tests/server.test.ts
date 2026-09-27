@@ -235,7 +235,10 @@ describe("error envelope (02 §9.2, T13 partial)", () => {
     const response = await api.inject({
       method: "POST",
       url: "/v1/echo",
-      headers: { "x-influx-internal": WEB_SECRET },
+      headers: {
+        "x-influx-internal": WEB_SECRET,
+        "sec-fetch-site": "same-origin",
+      },
       payload: { email: "not-an-address-marker" },
     });
     expect(response.statusCode).toBe(400);
@@ -259,6 +262,7 @@ describe("error envelope (02 §9.2, T13 partial)", () => {
       url: "/v1/upload",
       headers: {
         "x-influx-internal": WEB_SECRET,
+        "sec-fetch-site": "same-origin",
         "content-type": "application/json",
       },
       payload: JSON.stringify({ data: "x".repeat(1_048_576) }),

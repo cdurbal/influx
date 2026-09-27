@@ -1,7 +1,7 @@
 // Fastify server of apps/api (docs/mvp/02-architecture-3-espaces.md §4 and §9,
 // docs/mvp/21-plan-de-developpement.md §4, J1-E and J1-G).
 import { randomUUID } from "node:crypto";
-import type { IncomingMessage } from "node:http";
+import type { IncomingHttpHeaders, IncomingMessage } from "node:http";
 import { systemStatusSchema } from "@influx/contracts/system";
 import Fastify, { LogController } from "fastify";
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
@@ -25,6 +25,10 @@ import {
   type RouteSurface,
   type SurfaceIdentifier,
 } from "./platform/internal-auth.ts";
+import {
+  CLIENT_ADDRESS_HEADER,
+  readClientAddress,
+} from "./platform/client-address.ts";
 import { createLogger } from "./platform/logger.ts";
 import {
   withEnvelopeFallback,
@@ -32,6 +36,10 @@ import {
   zodValidatorCompiler,
   type ZodTypeProvider,
 } from "./platform/schema-compilers.ts";
+import {
+  isWriteMethod,
+  isWriteOriginAllowed,
+} from "./platform/write-origin.ts";
 
 declare module "fastify" {
   interface FastifyContextConfig {
@@ -64,6 +72,22 @@ function requestIdOf(
     UUID_PATTERN.test(relayed)
     ? relayed.toLowerCase()
     : randomUUID();
+}
+
+/** Methods whose parameters are in the path: a route of theirs declares no body (21 J3-D). */
+const BODYLESS_ROUTE_METHODS: ReadonlySet<string> = new Set(["GET", "DELETE"]);
+
+/**
+ * 21 J3-D (C-3): a DELETE carries neither a body nor a content-type. Refused before any parsing,
+ * so that the answer never depends on how Fastify treats an empty body.
+ */
+function deleteCarriesBody(headers: IncomingHttpHeaders): boolean {
+  return (
+    headers["content-type"] !== undefined ||
+    headers["transfer-encoding"] !== undefined ||
+    (headers["content-length"] !== undefined &&
+      headers["content-length"] !== "0")
+  );
 }
 
 /** Route-level hooks that could change a response after, or around, its schema (21 N2). */
@@ -154,6 +178,9 @@ export function buildServer(
     logController: new ApiLogController(),
     genReqId: (request) => requestIdOf(request, identifySurface),
     bodyLimit: MAX_BODY_BYTES,
+    // The client address comes from the relayed x-real-ip only, read after the internal secret;
+    // request.ip is never used (03 §6.4 A5, point 1).
+    trustProxy: false,
     // The relay only forwards GET, POST, PATCH, PUT and DELETE (`03` PP-3).
     exposeHeadRoutes: false,
     // The router answers a malformed URL (FST_ERR_BAD_URL), a parameter over 100 characters
@@ -180,6 +207,7 @@ export function buildServer(
 
   app.setValidatorCompiler(zodValidatorCompiler);
   app.setSerializerCompiler(zodSerializerCompiler);
+  app.decorateRequest("clientAddress", null);
 
   // Structural rules on every route, checked when the route is registered: a violation stops
   // the server before it listens (02 §4 rule 1, 21 J1-E).
@@ -188,6 +216,16 @@ export function buildServer(
     const routeName = `${String(route.method)} ${url}`;
     if (url !== HEALTH_ROUTE && !url.startsWith(API_PREFIX)) {
       throw new Error(`Route ${url} is outside /v1/ (02 §9.2)`);
+    }
+    const methods = Array.isArray(route.method) ? route.method : [route.method];
+    const bodyless = methods.filter((method) =>
+      BODYLESS_ROUTE_METHODS.has(String(method)),
+    );
+    if (bodyless.length > 0 && route.schema?.body !== undefined) {
+      throw new Error(
+        `Route ${routeName} declares a body for ${bodyless.join(", ")}: its parameters are in the ` +
+          "path; a deletion that needs a body is a POST on a named action (21 J3-D)",
+      );
     }
     if (route.serializerCompiler !== undefined) {
       throw new Error(
@@ -231,7 +269,9 @@ export function buildServer(
     return payload;
   });
 
-  // Internal secret and surface, before any body parsing (`03` PP-8, T7.9, 21 J1-G).
+  // Internal secret and surface, before any body parsing (`03` PP-8, T7.9, 21 J1-G); then, for
+  // an identified surface only: the client address (A5), the origin of writes (A4) and the
+  // bodiless DELETE (C-3). Nothing of the request is read before the secret is validated.
   app.addHook("onRequest", async (request) => {
     const routeUrl = request.routeOptions.url;
     if (request.method === "GET" && routeUrl === HEALTH_ROUTE) {
@@ -240,6 +280,19 @@ export function buildServer(
     const caller = identifySurface(request.headers[INTERNAL_SECRET_HEADER]);
     if (caller === null) {
       throw new ApiError("unauthenticated");
+    }
+    request.clientAddress = readClientAddress(
+      request.headers[CLIENT_ADDRESS_HEADER],
+      config.authThrottlePepper,
+    );
+    if (
+      isWriteMethod(request.method) &&
+      !isWriteOriginAllowed(request.headers, config.publicOrigins[caller])
+    ) {
+      throw new ApiError("forbidden");
+    }
+    if (request.method === "DELETE" && deleteCarriesBody(request.headers)) {
+      throw new ApiError("validation_failed");
     }
     if (routeUrl === undefined) {
       return; // Unknown route: the not-found handler answers 404.

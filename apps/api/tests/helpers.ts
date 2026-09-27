@@ -5,6 +5,10 @@ import { parseApiEnvironment, type ApiConfig } from "../src/config/schema.ts";
 
 export const WEB_SECRET = "web-internal-secret-for-tests-0123456789";
 export const BACKOFFICE_SECRET = "backoffice-internal-secret-for-tests-01234";
+export const THROTTLE_PEPPER = "throttle-pepper-for-tests-0123456789abcdef";
+/** Public origins of the two surfaces (03 §6.4 A4). */
+export const WEB_ORIGIN = "https://influx.example";
+export const BACKOFFICE_ORIGIN = "https://bo.influx.example";
 
 /** Local-stack shaped database URLs (fake passwords, never reached by these tests). */
 export const TEST_DATABASE_URLS = {
@@ -20,6 +24,9 @@ export function testApiConfig(): ApiConfig {
     INFLUX_ENV: "staging",
     INFLUX_API_INTERNAL_SECRET_WEB: WEB_SECRET,
     INFLUX_API_INTERNAL_SECRET_BACKOFFICE: BACKOFFICE_SECRET,
+    INFLUX_PUBLIC_SITE_URL: WEB_ORIGIN,
+    INFLUX_PUBLIC_BACKOFFICE_URL: BACKOFFICE_ORIGIN,
+    AUTH_THROTTLE_PEPPER: THROTTLE_PEPPER,
     DATABASE_URL: TEST_DATABASE_URLS.DATABASE_URL,
     AUTH_DATABASE_URL: TEST_DATABASE_URLS.AUTH_DATABASE_URL,
   });

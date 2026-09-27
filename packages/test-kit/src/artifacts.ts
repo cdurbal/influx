@@ -12,6 +12,9 @@ export const BROWSER_FORBIDDEN_NAMES: readonly string[] = [
   "APOLLO_",
   "SERVICE_ROLE",
   "SESSION_COOKIE_SECRET",
+  // Enters at J3 commit 4 (skill env-secrets, CI-2); SESSION_COOKIE_SECRET becomes
+  // AUTH_TOKEN_SIGNING_SECRET at commit 7 (EC-24).
+  "AUTH_THROTTLE_PEPPER",
   "DATABASE_URL",
   "INFLUX_API_INTERNAL_",
 ];

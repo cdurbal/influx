@@ -1,7 +1,8 @@
 # Continuous integration: security review markers, local Supabase stack, then format, types,
-# lint, tests (database tests included, never skipped) and build (`pnpm check`).
-# Plan: docs/mvp/21-plan-de-developpement.md §4, J0 and J2 point 7. Duration budget: 10 minutes
-# (`18` A-4).
+# lint, tests (database tests included, never skipped) and build (`pnpm check`); in parallel,
+# the relay and the origin check on Node 24, the production runtime (C-2).
+# Plan: docs/mvp/21-plan-de-developpement.md §4, J0, J2 point 7 and J3-F commit 4. Duration
+# budget: 10 minutes (`18` A-4).
 name: CI
 
 on:
@@ -82,3 +83,46 @@ jobs:
 
       - name: Format, typecheck, lint, test (database included), build
         run: pnpm check
+
+  # C-2 (end-of-J1 security review, 21 J1-J): the relay runs on Node 24 in production (J1-B,
+  # Node >= 24.12), while the job above runs the version of .node-version. What Node's fetch does
+  # to the forwarded request (sec-fetch-mode set to cors, origin and sec-fetch-site untouched) is
+  # therefore checked on Node 24, against the fake server of the relay tests, together with the
+  # origin check of apps/api that reads those two headers only (03 §6.4 A4). No database, no
+  # secret, no network beyond the loopback.
+  relay-node-24:
+    name: Relay on Node 24 (C-2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Enable corepack
+        run: corepack enable
+
+      # The production floor of J1-B: a runner image that falls behind fails here, visibly.
+      - name: Require Node 24.12 or later
+        run: |
+          node --version
+          node -e "const [major, minor] = process.versions.node.split('.').map(Number); if (major !== 24 || minor < 12) { console.error('Node 24.12 or later is required (21 J1-B)'); process.exit(1); }"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Relay of apps/web against the fake server
+        run: pnpm --filter @influx/web exec vitest run tests/relay.test.ts
+
+      - name: Relay of apps/backoffice against the fake server
+        run: pnpm --filter @influx/backoffice exec vitest run tests/relay.test.ts
+
+      - name: Origin check of apps/api
+        run: pnpm --filter @influx/api exec vitest run --project unit tests/request-guards.test.ts

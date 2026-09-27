@@ -80,6 +80,14 @@ const RESPONSE_FILTER_HOOKS = {
   message: `An onSend or preSerialization hook ${RESPONSE_FILTER_BYPASS_MESSAGE}`,
 };
 
+// The client address comes from the relayed x-real-ip only, read by src/platform/client-address.ts
+// after the internal secret (03 §6.4 A5): Fastify's request.ip and request.ips are never read,
+// anywhere in src/.
+const CLIENT_IP_PROPERTIES = ["ip", "ips"].map((property) => ({
+  property,
+  message: `${property} is never read: use clientAddressOf() of src/platform/client-address.ts (03 §6.4 A5).`,
+}));
+
 function restrictProperties(...restrictions) {
   return { "no-restricted-properties": ["error", ...restrictions] };
 }
@@ -107,18 +115,25 @@ export default defineConfig([
   {
     files: ["src/**/*.ts"],
     rules: {
-      ...restrictProperties(PROCESS_ENV, ...RESPONSE_FILTER_PROPERTIES),
+      ...restrictProperties(
+        PROCESS_ENV,
+        ...CLIENT_IP_PROPERTIES,
+        ...RESPONSE_FILTER_PROPERTIES,
+      ),
       "no-restricted-syntax": ["error", RESPONSE_FILTER_HOOKS],
     },
   },
   {
     files: ["src/config/**/*.ts"],
-    rules: restrictProperties(...RESPONSE_FILTER_PROPERTIES),
+    rules: restrictProperties(
+      ...CLIENT_IP_PROPERTIES,
+      ...RESPONSE_FILTER_PROPERTIES,
+    ),
   },
   {
     files: ["src/platform/**/*.ts", "src/server.ts"],
     rules: {
-      ...restrictProperties(PROCESS_ENV),
+      ...restrictProperties(PROCESS_ENV, ...CLIENT_IP_PROPERTIES),
       "no-restricted-syntax": "off",
     },
   },

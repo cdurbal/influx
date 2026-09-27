@@ -227,6 +227,47 @@ describe("PP-5: allow-list of request headers (21 J1-J A4)", () => {
   });
 });
 
+// C-2 (end-of-J1 security review, 21 J1-J): the origin check of apps/api reads `origin` and
+// `sec-fetch-site` only (03 §6.4 A4). What Node's fetch does to the forwarded request is checked
+// here, and run by CI under Node 24, the production runtime (job `relay-node-24`).
+describe("C-2: what Node's fetch changes on the way to apps/api", () => {
+  it("sets sec-fetch-mode: cors, and leaves origin and sec-fetch-site untouched", async () => {
+    await call("/api/v1/status", {
+      method: "POST",
+      headers: {
+        origin: "https://influx.example",
+        "sec-fetch-site": "same-origin",
+        "sec-fetch-mode": "navigate",
+      },
+      body: "{}",
+    });
+    const headers = received[0]?.headers ?? {};
+    expect(headers.origin).toBe("https://influx.example");
+    expect(headers["sec-fetch-site"]).toBe("same-origin");
+    expect(headers["sec-fetch-mode"]).toBe("cors");
+  });
+
+  it("adds neither origin nor sec-fetch-site when the browser sent none", async () => {
+    await call("/api/v1/status", { method: "POST", body: "{}" });
+    const headers = received[0]?.headers ?? {};
+    expect(headers.origin).toBeUndefined();
+    expect(headers["sec-fetch-site"]).toBeUndefined();
+  });
+
+  it("forwards a cross-site write as such, for apps/api to refuse", async () => {
+    await call("/api/v1/status", {
+      method: "DELETE",
+      headers: {
+        origin: "https://evil.example",
+        "sec-fetch-site": "cross-site",
+      },
+    });
+    const headers = received[0]?.headers ?? {};
+    expect(headers.origin).toBe("https://evil.example");
+    expect(headers["sec-fetch-site"]).toBe("cross-site");
+  });
+});
+
 describe("PP-6: client address from x-real-ip only (03 §6.4 A5, EC-21)", () => {
   it.each(["203.0.113.7", "2001:db8::1", "::ffff:203.0.113.7"])(
     "forwards a well-formed x-real-ip %s under x-real-ip",

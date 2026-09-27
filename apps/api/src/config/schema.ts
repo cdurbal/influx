@@ -45,16 +45,54 @@ const requiredText = z.string({
 /** Placeholder of the `.env.example` files: a copied template must never start (`03` PP-8). */
 const PLACEHOLDER = "CHANGE_ME";
 
-const internalSecret = requiredText
+/** The placeholder, whatever its letter case: `change_me` is refused too (21 J1-J N3). */
+function holdsPlaceholder(value: string): boolean {
+  return value.toUpperCase().includes(PLACEHOLDER);
+}
+
+/** A secret of at least 32 bytes that is not the template's placeholder. */
+const secretOf32Bytes = requiredText
   .refine(
     (value) =>
       new TextEncoder().encode(value).length >= MIN_INTERNAL_SECRET_BYTES,
     { message: `must be at least ${MIN_INTERNAL_SECRET_BYTES} bytes` },
   )
   // The length check alone accepts a padded placeholder (21 J1-J R4).
-  .refine((value) => !value.includes(PLACEHOLDER), {
+  .refine((value) => !holdsPlaceholder(value), {
     message: `must not contain the ${PLACEHOLDER} placeholder`,
   });
+
+const internalSecret = secretOf32Bytes;
+
+/**
+ * Public origin of a surface (`https://influx.example`, `http://localhost:3000`): scheme, host
+ * and port only, compared as is to the `origin` header of a write (03 §6.4 A4). Normalised by
+ * URL (lower-case host, default port removed), as a browser serialises it.
+ */
+const publicOrigin = requiredText.transform((value, context) => {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    context.addIssue({ code: "custom", message: "must be an http(s) origin" });
+    return z.NEVER;
+  }
+  const isOriginOnly =
+    (url.protocol === "http:" || url.protocol === "https:") &&
+    url.username === "" &&
+    url.password === "" &&
+    url.pathname === "/" &&
+    url.search === "" &&
+    url.hash === "";
+  if (!isOriginOnly) {
+    context.addIssue({
+      code: "custom",
+      message: "must be an http(s) origin, without path, query or credentials",
+    });
+    return z.NEVER;
+  }
+  return url.origin;
+});
 
 // ---------------------------------------------------------------------------------------------
 // Database URLs (21 §3 EC-1 and EC-20, 03 §4 P7): one connection role per variable, one variable
@@ -116,7 +154,7 @@ export function checkDatabaseUrl(
   if (url.protocol !== "postgresql:" && url.protocol !== "postgres:") {
     return { ok: false, message: "must be a postgresql:// URL" };
   }
-  if (value.includes(PLACEHOLDER)) {
+  if (holdsPlaceholder(value)) {
     return {
       ok: false,
       message: `must not contain the ${PLACEHOLDER} placeholder`,
@@ -295,8 +333,21 @@ export type InternalSecrets = {
   backoffice: string;
 };
 
+/** Public origins of the two surfaces (INFLUX_PUBLIC_SITE_URL, INFLUX_PUBLIC_BACKOFFICE_URL). */
+export type PublicOrigins = {
+  web: string;
+  backoffice: string;
+};
+
 export type ApiConfig = BaseConfig & {
   port: number;
+  /** Origin of each surface, expected on its writes (03 §6.4 A4, 21 J1-F). */
+  publicOrigins: PublicOrigins;
+  /**
+   * Pepper of the rate-limiting digests: client addresses (03 §6.4 A5) and, from J3 commit 6,
+   * e-mail addresses (04 §12.10 point 4). Its rotation resets the counters.
+   */
+  authThrottlePepper: string;
   /** DATABASE_URL (influx_app) and AUTH_DATABASE_URL (influx_auth_login), EC-20. */
   database: {
     app: DatabaseConnection;
@@ -331,6 +382,9 @@ export const apiEnvSchema = z
     ),
     INFLUX_API_INTERNAL_SECRET_WEB: internalSecret,
     INFLUX_API_INTERNAL_SECRET_BACKOFFICE: internalSecret,
+    INFLUX_PUBLIC_SITE_URL: publicOrigin,
+    INFLUX_PUBLIC_BACKOFFICE_URL: publicOrigin,
+    AUTH_THROTTLE_PEPPER: secretOf32Bytes,
     ...databaseEnvShape,
   })
   .superRefine((env, context) => {
@@ -346,6 +400,39 @@ export const apiEnvSchema = z
         message: "must differ from INFLUX_API_INTERNAL_SECRET_WEB",
       });
     }
+    // One secret, one use: a pepper equal to a relay secret would be known to the fronts.
+    if (
+      env.AUTH_THROTTLE_PEPPER === env.INFLUX_API_INTERNAL_SECRET_WEB ||
+      env.AUTH_THROTTLE_PEPPER === env.INFLUX_API_INTERNAL_SECRET_BACKOFFICE
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["AUTH_THROTTLE_PEPPER"],
+        message: "must differ from the internal secrets",
+      });
+    }
+    // Each surface is told apart by its origin: the backoffice is a host of its own (D12).
+    if (env.INFLUX_PUBLIC_SITE_URL === env.INFLUX_PUBLIC_BACKOFFICE_URL) {
+      context.addIssue({
+        code: "custom",
+        path: ["INFLUX_PUBLIC_BACKOFFICE_URL"],
+        message: "must differ from INFLUX_PUBLIC_SITE_URL",
+      });
+    }
+    if (env.INFLUX_ENV === "production") {
+      for (const variable of [
+        "INFLUX_PUBLIC_SITE_URL",
+        "INFLUX_PUBLIC_BACKOFFICE_URL",
+      ] as const) {
+        if (!env[variable].startsWith("https://")) {
+          context.addIssue({
+            code: "custom",
+            path: [variable],
+            message: "must be an https origin in production",
+          });
+        }
+      }
+    }
   })
   .transform((env): ApiConfig => ({
     environment: env.INFLUX_ENV,
@@ -355,6 +442,11 @@ export const apiEnvSchema = z
       testRecipients: env.BREVO_TEST_RECIPIENTS,
     },
     port: env.PORT,
+    publicOrigins: {
+      web: env.INFLUX_PUBLIC_SITE_URL,
+      backoffice: env.INFLUX_PUBLIC_BACKOFFICE_URL,
+    },
+    authThrottlePepper: env.AUTH_THROTTLE_PEPPER,
     database: {
       app: databaseConnection(env, "DATABASE_URL"),
       auth: databaseConnection(env, "AUTH_DATABASE_URL"),

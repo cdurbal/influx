@@ -5,7 +5,12 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { checkDatabaseUrl, DATABASE_URL_ROLES } from "../src/config/schema.ts";
+import {
+  apiEnvSchema,
+  checkDatabaseUrl,
+  DATABASE_URL_ROLES,
+  workerEnvSchema,
+} from "../src/config/schema.ts";
 
 const API_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -61,5 +66,24 @@ describe("T4.6 h: the single elevated variable has disappeared", () => {
       }
     });
     expect(offenders).toEqual([]);
+  });
+});
+
+describe("T11.4: every variable read at startup is documented in .env.example", () => {
+  const template = readFileSync(path.join(API_ROOT, ".env.example"), "utf8");
+  /** Set by Railway on every service, never by hand (02 §12.3). */
+  const PROVIDED_BY_RAILWAY = new Set(["RAILWAY_ENVIRONMENT_NAME"]);
+
+  it.each([
+    ["api", Object.keys(apiEnvSchema.in.shape)],
+    ["worker", Object.keys(workerEnvSchema.in.shape)],
+  ])("%s", (_service, variables) => {
+    expect(variables.length).toBeGreaterThan(5);
+    const missing = variables
+      .filter((variable) => !PROVIDED_BY_RAILWAY.has(variable))
+      .filter(
+        (variable) => !new RegExp(`^(?:# )?${variable}=`, "m").test(template),
+      );
+    expect(missing).toEqual([]);
   });
 });

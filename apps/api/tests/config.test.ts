@@ -11,8 +11,11 @@ import {
 } from "../src/config/index.ts";
 import type { Environment } from "../src/config/schema.ts";
 import {
+  BACKOFFICE_ORIGIN,
   BACKOFFICE_SECRET,
   TEST_DATABASE_URLS,
+  THROTTLE_PEPPER,
+  WEB_ORIGIN,
   WEB_SECRET,
 } from "./helpers.ts";
 
@@ -25,6 +28,9 @@ const VALID_API_ENV = {
   INFLUX_ENV: "staging",
   INFLUX_API_INTERNAL_SECRET_WEB: WEB_SECRET,
   INFLUX_API_INTERNAL_SECRET_BACKOFFICE: BACKOFFICE_SECRET,
+  INFLUX_PUBLIC_SITE_URL: WEB_ORIGIN,
+  INFLUX_PUBLIC_BACKOFFICE_URL: BACKOFFICE_ORIGIN,
+  AUTH_THROTTLE_PEPPER: THROTTLE_PEPPER,
   DATABASE_URL: TEST_DATABASE_URLS.DATABASE_URL,
   AUTH_DATABASE_URL: TEST_DATABASE_URLS.AUTH_DATABASE_URL,
 } as const;
@@ -63,6 +69,8 @@ describe("api configuration", () => {
       version: "local",
       brevo: { mode: "disabled", testRecipients: [] },
       port: 3100,
+      publicOrigins: { web: WEB_ORIGIN, backoffice: BACKOFFICE_ORIGIN },
+      authThrottlePepper: THROTTLE_PEPPER,
       database: {
         app: { url: APP_URL, role: "influx_app", tls: false },
         auth: { url: AUTH_URL, role: "influx_auth_login", tls: false },
@@ -83,6 +91,18 @@ describe("api configuration", () => {
       tls: true,
     });
     expect(config.database.auth.tls).toBe(true);
+  });
+
+  it("normalises a public origin as a browser serialises it (03 §6.4 A4)", () => {
+    const config = loadApiConfig({
+      ...VALID_API_ENV,
+      INFLUX_PUBLIC_SITE_URL: "HTTPS://Influx.Example:443/",
+      INFLUX_PUBLIC_BACKOFFICE_URL: "http://localhost:3001",
+    });
+    expect(config.publicOrigins).toEqual({
+      web: "https://influx.example",
+      backoffice: "http://localhost:3001",
+    });
   });
 
   it("reads the deployed commit as the version, and an explicit port", () => {
@@ -138,6 +158,77 @@ describe("api configuration", () => {
         INFLUX_API_INTERNAL_SECRET_BACKOFFICE: "CHANGE_ME".padEnd(40, "x"),
       },
       "INFLUX_API_INTERNAL_SECRET_BACKOFFICE must not contain the CHANGE_ME placeholder",
+    ],
+    [
+      "an internal secret with the placeholder in lower case (21 J1-J N3)",
+      {
+        ...VALID_API_ENV,
+        INFLUX_API_INTERNAL_SECRET_WEB: "change_me".padEnd(40, "x"),
+      },
+      "INFLUX_API_INTERNAL_SECRET_WEB must not contain the CHANGE_ME placeholder",
+    ],
+    [
+      "a database URL with the placeholder in mixed case (N3)",
+      {
+        ...VALID_API_ENV,
+        DATABASE_URL:
+          "postgresql://influx_app:Change_Me@127.0.0.1:54322/postgres",
+      },
+      "DATABASE_URL must not contain the CHANGE_ME placeholder",
+    ],
+    // 03 §6.4 A4 and A5, 21 J3-E: variables that enter at J3 commit 4.
+    [
+      "a missing AUTH_THROTTLE_PEPPER",
+      { ...VALID_API_ENV, AUTH_THROTTLE_PEPPER: undefined },
+      "AUTH_THROTTLE_PEPPER is required",
+    ],
+    [
+      "a pepper shorter than 32 bytes",
+      { ...VALID_API_ENV, AUTH_THROTTLE_PEPPER: "short-pepper" },
+      "AUTH_THROTTLE_PEPPER must be at least 32 bytes",
+    ],
+    [
+      "the pepper of the template, in lower case (N3)",
+      {
+        ...VALID_API_ENV,
+        AUTH_THROTTLE_PEPPER: "change_me-change_me-change_me-change_me",
+      },
+      "AUTH_THROTTLE_PEPPER must not contain the CHANGE_ME placeholder",
+    ],
+    [
+      "a pepper equal to an internal secret",
+      { ...VALID_API_ENV, AUTH_THROTTLE_PEPPER: BACKOFFICE_SECRET },
+      "AUTH_THROTTLE_PEPPER must differ from the internal secrets",
+    ],
+    [
+      "a missing public origin of the backoffice",
+      { ...VALID_API_ENV, INFLUX_PUBLIC_BACKOFFICE_URL: undefined },
+      "INFLUX_PUBLIC_BACKOFFICE_URL is required",
+    ],
+    [
+      "a public origin with a path",
+      { ...VALID_API_ENV, INFLUX_PUBLIC_SITE_URL: "https://influx.example/fr" },
+      "INFLUX_PUBLIC_SITE_URL must be an http(s) origin, without path, query or credentials",
+    ],
+    [
+      "a public origin that is not a URL",
+      { ...VALID_API_ENV, INFLUX_PUBLIC_SITE_URL: "influx.example" },
+      "INFLUX_PUBLIC_SITE_URL must be an http(s) origin",
+    ],
+    [
+      "the same public origin for both surfaces",
+      { ...VALID_API_ENV, INFLUX_PUBLIC_BACKOFFICE_URL: `${WEB_ORIGIN}/` },
+      "INFLUX_PUBLIC_BACKOFFICE_URL must differ from INFLUX_PUBLIC_SITE_URL",
+    ],
+    [
+      "an http public origin in production",
+      {
+        ...VALID_API_ENV,
+        INFLUX_ENV: "production",
+        BREVO_MODE: "live",
+        INFLUX_PUBLIC_SITE_URL: "http://influx.example",
+      },
+      "INFLUX_PUBLIC_SITE_URL must be an https origin in production",
     ],
     [
       "the same internal secret for both fronts",
@@ -416,6 +507,9 @@ describe("process start", () => {
       INFLUX_ENV: "staging",
       INFLUX_API_INTERNAL_SECRET_WEB: WEB_SECRET,
       INFLUX_API_INTERNAL_SECRET_BACKOFFICE: WEB_SECRET,
+      INFLUX_PUBLIC_SITE_URL: WEB_ORIGIN,
+      INFLUX_PUBLIC_BACKOFFICE_URL: BACKOFFICE_ORIGIN,
+      AUTH_THROTTLE_PEPPER: THROTTLE_PEPPER,
     });
     expect(result.status).toBe(1);
     expect(result.stdout).toContain("refusing to start");
