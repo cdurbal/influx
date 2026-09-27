@@ -925,6 +925,74 @@ cinq familles sont vertes. **Revue `expert-cybersecurite` des migrations avant d
 | **R4** | T4 : sous le rôle de CI qui lit `pg_authid`, aucun vérificateur de mot de passe sur les neuf rôles `NOLOGIN` ; en local, retrait des mots de passe d'essai après chaque session manuelle | J2 (CI) |
 | **R5** | `grant_role()` : refuser aussi une cible `suspended` | Avec `0107` |
 
+#### Revue de sécurité de fin de J2 — 2026-09-27
+
+> **`expert-cybersecurite` : pas de veto. Fin de J2 acceptée ; J3 autorisé sous conditions** (S1 et
+> S2 avant le premier code de domaine du J3, EC-36 dans `0108`). Relu : `c19bd3a`, `0c187dd`,
+> `24991e5` (`apps/api/src/db/`), `128692e` (dont `packages/test-kit/src/rights/expected-rights.ts`),
+> le test T2 (`375167b`), les gardes statiques de `48ee6b4`, EC-34 à EC-36. Aucun test intrusif,
+> aucun environnement distant touché.
+
+**1. Fichier d'attendus de T2 (`128692e`) : approuvé sans correction.** Contrôlé contre `03` §3 et
+P7 : chaque cellule cite sa source ; l'absence vaut `refus_droit`, vérifiée **deux fois** (aucun droit
+au catalogue *et* `42501` à l'essai) ; `propre` est éprouvé contre **toutes** les lignes d'autres
+comptes en lecture (`is distinct from current_account_id()`), et contre le compte B en écriture ; le
+jeu de données place des lignes A et B partout où `propre` s'applique ; T2.5 rejoue sans contexte et
+en `aal1` pour agent et admin ; l'instantané exact T2.7 ferme les droits de colonnes (e-mail,
+`token_hash`, colonnes non modifiables) qu'une sonde par table ne verrait pas. Aucun attendu n'est
+plus large que `03` §3 (lectures internes `autorisé` conformes à « L·J » ; sessions `propre` y compris
+pour agent et admin, plus étroit que nécessaire, c'est le bon sens). **`128692e` peut recevoir
+`security-reviewed: 2026-09-27`.** À surveiller (non bloquant) : l'écriture `propre` n'est éprouvée
+que contre le compte B *du même rôle* (ajouter une cible d'un autre rôle au J3) ; le harnais pose le
+contexte par son propre code, parallèle à `withUserTransaction` (un test du J3 doit prouver que les
+deux posent les mêmes réglages).
+
+**2. `apps/api/src/db/` et `c19bd3a` : conformes à `03` P7**, règles 2 à 6 : garde
+`current_user = session_user = <rôle de connexion>` en première instruction de chaque transaction,
+grappe détruite si elle échoue ; rôle tiré d'une table constante (`roles.ts`, recherche en propriété
+propre) ; réglages en `set_config(…, true)` ; aucun `SET ROLE` de session ; `rolsuper` /
+`rolbypassrls` lus à l'ouverture, refus définitif ; `request_id` accepté du relais seulement avec le
+secret interne et au format UUID ; refus de démarrage EC-20 (rôle exact par URL, pas deux URL au même
+utilisateur, variable d'un autre service refusée sur Railway, gabarit `CHANGE_ME` refusé) ; union
+élevée vérifiée à l'exécution. Logger après M3 : conforme.
+
+**Exigées avant le premier code de domaine du J3 :**
+
+| # | Gravité | Correction | Motif | Effort |
+|---|---|---|---|---|
+| **S1** | Important | Étendre « `set local role` en un seul endroit » (T6.6) de `src/db/` à **tout `apps/api/src` et `packages/*/src`** (exemption nommée : le harnais de `test-kit`) ; y ajouter l'interdiction de `set_config` dont le 3ᵉ argument n'est pas le littéral `true` | Aujourd'hui, une fonction de domaine qui exécute `set local role influx_admin` dans une transaction annonceur passe toutes les gardes : `influx_app` a `SET` sur les quatre rôles et l'appartenance s'évalue sur `session_user`. Un annonceur lirait alors toutes les identités, sans symptôme | 30 min |
+| **S2** | Important | `ConnectionPool.verify()` : refuser aussi si un rôle **atteignable par appartenance** (`pg_auth_members`, récursif) porte `rolsuper` ou `rolbypassrls` | La règle 6 ne lit que le rôle de connexion ; un `BYPASSRLS` posé un jour sur `influx_admin` (rôle pris par `SET LOCAL ROLE`) rendrait la RLS facultative en production sans que l'ouverture ne le voie (T4 ne tourne qu'en CI) | 1 h |
+
+**À surveiller :** (a) en `production`, refuser une URL de base sur hôte de bouclage (TLS désactivé),
+10 min, J4 ; (b) logger : une erreur imbriquée au-delà de 6 niveaux, ou dans une instance non simple
+(`Map`, classe), échappe au sérialiseur et la censure s'arrête à 3 niveaux — forcer la troncature
+même quand aucune erreur n'est trouvée, 15 min, J3.
+
+**3. EC-35 (points de sécurité) :** (1) forme `vide` : **acceptée**, T16.3 prouve la table vide et
+non inscriptible ; `18` T2 règle 3 à corriger. (2) `23503` sans contexte : **accepté**, même message
+qu'une version inconnue, donc aucun oracle ; la ligne reste refusée. (3) exclusions `_realtime` et
+`extensions` : **acceptées**, à condition qu'un test vérifie qu'aucun rôle `influx_*` n'y détient de
+droit (J3). (4) exemptions T6.3 : **acceptées**, limitées aux deux fichiers nommés. (5) plancher de
+cas exécutés : **Important, J3** — un `it.each` sur une liste vide rendrait une famille muette.
+(6) T4.7 élevé : **dans le commit qui introduit E-1**, pas après. (7) CI en connexion directe :
+**accepté jusqu'au J4**, où le passage par le multiplexeur est constaté avec EC-34. (8) : hors
+sécurité.
+
+**4. EC-36, tranchée (migration `0108`, bloquant pour le commit qui introduit E-1) :**
+code = **`elevated.<opération>`**, un par opération, inséré dans `audit.event_types` dans la même
+migration que l'opération entre dans l'union ; **sujet = l'objet métier touché** (compte pour E-1 et
+E-2, événement de file pour E-3, ancre pour E-4), type de sujet fixé par opération dans une table
+constante, identifiant fourni par l'appelant ou rendu par `fn` — **jamais `gen_random_uuid()`**, qui
+ne relie la ligne à rien ; charge utile `{operation}` seule, aucune donnée personnelle. **Volume
+(C-7 confirmée)** : ligne écrite seulement si la transaction a écrit, testé par
+`pg_current_xact_id_if_assigned() is not null` avant l'appel ; sinon une ligne de journal `pino`
+sans donnée. **Pas d'`EXECUTE` d'`audit.append()` à `influx_auth` / `influx_worker`** : une fonction
+`SECURITY DEFINER` étroite `audit.append_elevated(operation, subject_id)`, propriété
+d'`influx_audit_writer`, qui n'accepte qu'un code `elevated.*` du catalogue et applique M2.
+
+**Verdict : livraison du J2 autorisée, sans point bloquant. Conditions avant J3 : S1, S2. Avant E-1 :
+EC-36 et EC-35 (6).**
+
 ### J3 — Authentification et sessions (4 à 5 jours)
 
 1. **Réglages GoTrue** (local puis `staging`) : longueur du code 6, validité 600 s, inscription
