@@ -1,5 +1,7 @@
-# Continuous integration: format, types, lint, tests, build (`pnpm check`).
-# Plan: docs/mvp/21-plan-de-developpement.md §4, J0. Duration budget: 10 minutes (`18` A-4).
+# Continuous integration: security review markers, local Supabase stack, then format, types,
+# lint, tests (database tests included, never skipped) and build (`pnpm check`).
+# Plan: docs/mvp/21-plan-de-developpement.md §4, J0 and J2 point 7. Duration budget: 10 minutes
+# (`18` A-4).
 name: CI
 
 on:
@@ -33,6 +35,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # Full history: the marker check reads every commit of the pushed range.
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -53,5 +57,28 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Format, typecheck, lint, test, build
+      # 03 I-4 and 18 C-8: a commit that changes rights (migrations, expected rights of T2)
+      # carries `security-reviewed: <date>`. On a pull request, the range is base..head.
+      - name: Security review markers
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: node packages/test-kit/scripts/check-security-review.ts "$BASE_SHA" "$HEAD_SHA"
+
+      # Local Supabase stack (CLI pinned at the root, 21 J1-A): the database alone is needed by
+      # the tests, the other containers are not started (time budget).
+      - name: Start the local Supabase database
+        run: >-
+          pnpm exec supabase start
+          -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      # The base is rebuilt from zero in one command (21 J2, "Terminé quand").
+      - name: Rebuild the database from the migrations
+        run: pnpm exec supabase db reset
+
+      # Fixed test passwords of the three connection roles, local stack only, SCRAM verifiers.
+      - name: Set the test passwords of the connection roles
+        run: pnpm db:role-passwords
+
+      - name: Format, typecheck, lint, test (database included), build
         run: pnpm check
