@@ -15,7 +15,7 @@ import {
 import { TABLE_RIGHTS } from "@influx/test-kit/rights";
 import { randomBytes, randomUUID } from "node:crypto";
 import type postgres from "postgres";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { loginRole, migrationRole, testDataSet } from "./support.ts";
 
 const INSUFFICIENT_PRIVILEGE = "42501";
@@ -439,5 +439,141 @@ describe("T3.10 and T3.11: the verification record, and trailing lines", () => {
       return verify(tx, false);
     });
     expect(result.status).toBe("broken");
+  });
+});
+
+describe("M2: the actor type of a line is bound to session_user (0009)", () => {
+  const APPEND = "audit.append(text, text, uuid, jsonb)";
+  // What EC-36 will give influx_auth and influx_worker through a narrow function, and a direct
+  // right for influx_admin, so that each connection role can reach append() in this test only.
+  const CALLERS = "influx_admin, influx_auth, influx_worker";
+
+  /** Grants (or revokes) the temporary rights as the owner, through the window of 0006 §9. */
+  async function setTemporaryRights(grant: boolean): Promise<void> {
+    await migration.begin(async (tx) => {
+      await tx.unsafe(
+        "grant influx_audit_writer to current_user with inherit false, set true",
+      );
+      await tx.unsafe("set local role influx_audit_writer");
+      await tx.unsafe(
+        grant
+          ? `grant execute on function ${APPEND} to ${CALLERS}`
+          : `revoke execute on function ${APPEND} from ${CALLERS}`,
+      );
+      await tx.unsafe("reset role");
+      await tx.unsafe("revoke influx_audit_writer from current_user");
+      await tx.unsafe(
+        grant
+          ? "grant usage on schema audit to influx_auth, influx_worker"
+          : "revoke usage on schema audit from influx_auth, influx_worker",
+      );
+    });
+  }
+
+  beforeAll(async () => {
+    await setTemporaryRights(true);
+  });
+
+  afterAll(async () => {
+    await setTemporaryRights(false);
+  });
+
+  type Written = { actor_type: string; actor_account_id: string | null };
+
+  /**
+   * Appends one line under `role` with the given settings, commits, and reads the line back as
+   * the migration role. `influx.role` is set by hand: the case of an application that lies.
+   */
+  async function appendAs(
+    login: LoginRole,
+    role: TakenRole,
+    settings: { account?: string; role?: string },
+  ): Promise<Written> {
+    const seq = await loginRole(login).begin(async (tx) => {
+      await takeRole(tx, role);
+      await tx`select
+        pg_catalog.set_config('influx.account', ${settings.account ?? ""}, true),
+        pg_catalog.set_config('influx.role', ${settings.role ?? ""}, true)`;
+      const [row] = await tx<{ seq: string }[]>`
+        select audit.append('account.role_granted', 'account', ${randomUUID()})::text as seq`;
+      return row?.seq;
+    });
+    const [line] = await migration<Written[]>`
+      select actor_type::text, actor_account_id::text
+        from audit.audit_events where chain_key = 'global' and seq = ${seq ?? "0"}`;
+    if (line === undefined) {
+      throw new Error("the appended line was not found");
+    }
+    return line;
+  }
+
+  it("records a service act for influx_auth_login, even when influx.role says admin", async () => {
+    const account = dataSet.accounts.admin.a.id;
+    expect(
+      await appendAs("influx_auth_login", "influx_auth", {
+        account,
+        role: "admin",
+      }),
+    ).toEqual({ actor_type: "service", actor_account_id: account });
+    expect(
+      await appendAs("influx_auth_login", "influx_auth", { role: "admin" }),
+    ).toEqual({ actor_type: "system", actor_account_id: null });
+  });
+
+  it("records a service act for influx_worker_login, even when influx.role says agent", async () => {
+    const account = dataSet.accounts.agent.a.id;
+    expect(
+      await appendAs("influx_worker_login", "influx_worker", {
+        account,
+        role: "agent",
+      }),
+    ).toEqual({ actor_type: "service", actor_account_id: account });
+  });
+
+  it("derives the actor from influx.role for influx_app, and refuses anything else", async () => {
+    const account = dataSet.accounts.admin.a.id;
+    expect(
+      await appendAs("influx_app", "influx_admin", { account, role: "admin" }),
+    ).toEqual({ actor_type: "admin", actor_account_id: account });
+    for (const settings of [
+      { account, role: "service" },
+      { account, role: "system" },
+      { account },
+      { role: "admin" },
+    ]) {
+      await expect(
+        appendAs("influx_app", "influx_admin", settings),
+        JSON.stringify(settings),
+      ).rejects.toMatchObject({ code: INSUFFICIENT_PRIVILEGE });
+    }
+  });
+
+  it("records a system act without account for any other session_user (migration role)", async () => {
+    const account = dataSet.accounts.admin.a.id;
+    const line = await inRolledBackTransaction(migration, async (tx) => {
+      await tx.unsafe(
+        "grant influx_audit_writer to current_user with inherit false, set true",
+      );
+      await tx.unsafe("set local role influx_audit_writer");
+      await tx`select
+        pg_catalog.set_config('influx.account', ${account}, true),
+        pg_catalog.set_config('influx.role', 'admin', true)`;
+      // Two statements: a statement does not see the row its own function call inserts.
+      const [written] = await tx<{ seq: string }[]>`
+        select audit.append('account.role_granted', 'account', ${randomUUID()})::text as seq`;
+      const [row] = await tx<Written[]>`
+        select actor_type::text, actor_account_id::text
+          from audit.audit_events
+         where chain_key = 'global' and seq = ${written?.seq ?? "0"}`;
+      return row;
+    });
+    expect(line).toEqual({ actor_type: "system", actor_account_id: null });
+  });
+
+  it("keeps the chain continuous and verifiable after these lines", async () => {
+    const result = await inRolledBackTransaction(migration, (tx) =>
+      verify(tx, true),
+    );
+    expect(result.status).toBe("ok");
   });
 });
