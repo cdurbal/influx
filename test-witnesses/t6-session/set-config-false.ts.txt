@@ -1,0 +1,1 @@
+await sql`select set_config('influx.role', ${role}, false)`;

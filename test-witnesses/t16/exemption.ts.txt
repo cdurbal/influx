@@ -1,0 +1,2 @@
+// T16-EXEMPT: an annotation is not admitted at J2
+export const toMinorUnit = (value: number) => value;

@@ -1,0 +1,3 @@
+import { withElevatedTransaction } from "../src/db/index.ts";
+const operation = pickOperation();
+await withElevatedTransaction(database, operation, requestId, work);

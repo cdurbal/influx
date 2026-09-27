@@ -298,7 +298,7 @@ export async function withUserTransaction<T>(
  * Pool of each operation of the closed union (P7 rule 5: E-1, E-2 → auth; E-3, E-4 → worker).
  * Empty at J2, like the union: an operation enters both in the commit of its first caller.
  */
-const ELEVATED_OPERATION_POOLS: Readonly<
+export const ELEVATED_OPERATION_POOLS: Readonly<
   Record<ElevatedOperation, ElevatedPoolKind>
 > = {};
 

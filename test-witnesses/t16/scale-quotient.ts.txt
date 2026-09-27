@@ -1,0 +1,4 @@
+export function feeLabel(fee: number): string {
+  const part = 20 / 100;
+  return String(fee + part);
+}

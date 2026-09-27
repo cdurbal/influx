@@ -1,0 +1,2 @@
+import { withElevatedTransaction as elevate } from "../src/db/index.ts";
+await elevate(database, "identity.request_code", requestId, work);

@@ -1,0 +1,2 @@
+const BASIS_POINTS = 10_000;
+export const netOf = (grossAmount: number) => Math.round(grossAmount) / BASIS_POINTS;

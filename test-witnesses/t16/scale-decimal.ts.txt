@@ -1,0 +1,4 @@
+export function describe(amount: number): string {
+  const share = 0.350;
+  return `${amount} ${share}`;
+}

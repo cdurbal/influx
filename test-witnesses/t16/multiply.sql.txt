@@ -1,0 +1,1 @@
+select amount_minor * 35 / 100 from billing.deals;

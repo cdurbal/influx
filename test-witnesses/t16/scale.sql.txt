@@ -1,0 +1,1 @@
+insert into billing.commission_rates (advertiser_rate_bp) values (0.20);

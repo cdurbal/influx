@@ -1,0 +1,3 @@
+export function commissionOf(amount: bigint, advertiserRate: bigint): bigint {
+  return (amount * advertiserRate) / 10_000n;
+}

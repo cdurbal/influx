@@ -1,0 +1,185 @@
+// 18 T6 — the closed list of elevated operations is really closed (static part: T6.1, T6.3,
+// T6.6). T6.2 is in tests/db-unit.test.ts; T6.4 and T6.5 start at J3 with the first elevation.
+// Every analyser is first proven on the witness files of test-witnesses/.
+import {
+  ELEVATED_OPERATIONS,
+  SIGNED_ELEVATED_OPERATIONS,
+} from "@influx/contracts/elevated-operations";
+import {
+  filesTakingARole,
+  listSourceFiles,
+  namesIn,
+  reachableModules,
+  scanElevatedCalls,
+  scanSessionState,
+  SCRIPT_EXTENSIONS,
+} from "@influx/test-kit/static";
+import { readdirSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+import { ELEVATED_OPERATION_POOLS } from "../src/db/index.ts";
+
+const API_ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
+const ROOT = path.resolve(API_ROOT, "../..");
+const PACKAGES = path.join(ROOT, "packages");
+const DECLARATION = path.join(API_ROOT, "src/db/index.ts");
+
+function witnesses(directory: string): string[] {
+  const folder = path.join(ROOT, "test-witnesses", directory);
+  return readdirSync(folder).map((name) => path.join(folder, name));
+}
+
+/** Application code of apps/ and packages/, test files excluded (18 T6, set A). */
+function applicationFiles(): string[] {
+  return ["apps", "packages"]
+    .flatMap((directory) =>
+      listSourceFiles(path.join(ROOT, directory), SCRIPT_EXTENSIONS),
+    )
+    .filter(
+      (file) =>
+        !/[\\/](tests|db-tests)[\\/]/.test(file) && !/\.test\.tsx?$/.test(file),
+    );
+}
+
+describe("T6.1: A = U and U ⊆ P", () => {
+  it("proves the analyser on the witness files", () => {
+    for (const file of witnesses("t6")) {
+      const report = scanElevatedCalls([file], DECLARATION);
+      const undeclared = report.operations.filter(
+        (operation) =>
+          !(ELEVATED_OPERATIONS as readonly string[]).includes(operation),
+      );
+      expect(
+        report.findings.length + undeclared.length,
+        path.basename(file),
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it("finds exactly the declared operations, as literals, in direct calls", () => {
+    const report = scanElevatedCalls(applicationFiles(), DECLARATION);
+    expect(report.findings).toEqual([]);
+    expect([...new Set(report.operations)].sort()).toEqual(
+      [...ELEVATED_OPERATIONS].sort(),
+    );
+    for (const operation of ELEVATED_OPERATIONS) {
+      expect(SIGNED_ELEVATED_OPERATIONS).toContain(operation);
+    }
+  });
+
+  it("binds each declared operation to the pool of 03 P7 (rule 5)", () => {
+    const expected: Readonly<Record<string, string>> = {
+      "identity.request_code": "auth",
+      "identity.verify_code": "auth",
+      "leads.drain_outbox": "worker",
+      "maintenance.run_periodic": "worker",
+    };
+    expect(Object.keys(ELEVATED_OPERATION_POOLS).sort()).toEqual(
+      [...ELEVATED_OPERATIONS].sort(),
+    );
+    for (const [operation, kind] of Object.entries(ELEVATED_OPERATION_POOLS)) {
+      expect(kind, operation).toBe(expected[operation]);
+    }
+  });
+});
+
+describe("T6.3: separation by process, on the import graph", () => {
+  // Named exceptions: the configuration module names every database variable in order to refuse
+  // one set on the wrong service (EC-20), and the contract module declares the signed list P.
+  const EXEMPT = new Set([
+    path.join(API_ROOT, "src/config/schema.ts"),
+    path.join(PACKAGES, "contracts/src/elevated-operations.ts"),
+  ]);
+
+  function namesReachableFrom(entry: string): Map<string, string[]> {
+    return new Map(
+      reachableModules(path.join(API_ROOT, entry), PACKAGES)
+        .filter((file) => !EXEMPT.has(file))
+        .map((file) => [file, namesIn(file)]),
+    );
+  }
+
+  function offenders(
+    modules: Map<string, string[]>,
+    forbidden: (name: string) => boolean,
+  ): string[] {
+    return [...modules].flatMap(([file, names]) =>
+      names
+        .filter(forbidden)
+        .map((name) => `${path.relative(ROOT, file)}: ${name}`),
+    );
+  }
+
+  it("keeps the worker's operations and variables out of the api process", () => {
+    const modules = namesReachableFrom("src/main.ts");
+    expect(modules.size).toBeGreaterThan(5);
+    const forbidden = new Set([
+      "WORKER_DATABASE_URL",
+      "PRIVACY_DATABASE_URL",
+      "leads.drain_outbox",
+      "maintenance.run_periodic",
+      "privacy.execute_request",
+    ]);
+    expect(offenders(modules, (name) => forbidden.has(name))).toEqual([]);
+  });
+
+  it("keeps the api's operations and variables out of the worker process", () => {
+    const modules = namesReachableFrom("src/worker.ts");
+    expect(modules.size).toBeGreaterThan(3);
+    const forbidden = new Set([
+      "DATABASE_URL",
+      "AUTH_DATABASE_URL",
+      "identity.request_code",
+      "identity.verify_code",
+    ]);
+    expect(offenders(modules, (name) => forbidden.has(name))).toEqual([]);
+  });
+});
+
+describe("T6.6: no session state", () => {
+  it("proves every rule on its witness file", () => {
+    for (const file of witnesses("t6-session")) {
+      expect(scanSessionState([file]), path.basename(file)).toHaveLength(1);
+    }
+  });
+
+  it("finds none in apps/api/src and packages/*/src", () => {
+    const files = [
+      ...listSourceFiles(path.join(API_ROOT, "src"), SCRIPT_EXTENSIONS),
+      ...readdirSync(PACKAGES).flatMap((name) =>
+        listSourceFiles(path.join(PACKAGES, name, "src"), SCRIPT_EXTENSIONS),
+      ),
+    ];
+    expect(scanSessionState(files)).toEqual([]);
+  });
+
+  it("takes a role in exactly one place of src/db/", () => {
+    const files = listSourceFiles(
+      path.join(API_ROOT, "src/db"),
+      SCRIPT_EXTENSIONS,
+    );
+    expect(
+      filesTakingARole(files).map((file) =>
+        path.relative(API_ROOT, file).replace(/\\/g, "/"),
+      ),
+    ).toEqual(["src/db/roles.ts"]);
+  });
+});
+
+describe("identity.grant_role has no caller in apps/api before 0107", () => {
+  // J2 security review, accepted point (a): 2V and R are not enforced in the database yet.
+  it("is named nowhere in apps/api/src", () => {
+    const files = listSourceFiles(
+      path.join(API_ROOT, "src"),
+      SCRIPT_EXTENSIONS,
+    );
+    const callers = files.filter((file) =>
+      namesIn(file).some((name) => name.includes("grant_role")),
+    );
+    expect(callers).toEqual([]);
+  });
+});
