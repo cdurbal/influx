@@ -1067,6 +1067,65 @@ par `04` comme `total_budget_minor` ou `commission_received_total_minor` ne cont
 `amount` et échapperaient à T16.5 ; motif à élargir à `_minor` par `testeur` avant la première d'entre
 elles.
 
+#### Revue de sécurité de `0009` — 2026-09-27
+
+> **`expert-cybersecurite` : pas de veto. `3e7af41` peut recevoir `security-reviewed: 2026-09-27`
+> en l'état**, avant le push. Aucune condition avant le push ; trois conditions avant E-1 (dans
+> `0108`) et une au J4. Relu : `0009` contre `0006` §6 et §9, le bloc `M2` de
+> `apps/api/db-tests/t3-audit-chain.test.ts`, les gardes d'identité d'`apps/api/src/db/`
+> (`pool.ts`, `index.ts`), `packages/test-kit/src/db/local-stack.ts`. En base locale (lecture
+> seule) : propriétaire, `prosecdef`, `proconfig` et ACL d'`audit.append()`, ACL du schéma `audit`,
+> appartenances à `influx_audit_writer`. `pnpm --filter @influx/api exec vitest run --project db` :
+> 94 cas verts ; après l'exécution, aucun droit temporaire résiduel. Aucun environnement distant.
+
+**1. Fidélité à M2 : conforme.** Les trois branches sont celles exigées ; `influx.role` n'est plus lu
+hors d'`influx_app` ; le refus `42501` intervient **avant** la prise du verrou de chaîne (un refus ne
+retient rien et ne laisse aucun trou). « Tout autre ⇒ `system`, compte forcé à null » est le seul
+choix compatible avec la contrainte `system ⇔ sans compte` ; ses limites sont en V1.
+
+**2. Seul le corps change : vérifié en base.** Même signature ; propriétaire `influx_audit_writer` ;
+`SECURITY DEFINER` ; `search_path=""` ; ACL identique à `0006` (`influx_audit_writer`,
+`influx_identity_definer`, rien d'autre : `CREATE OR REPLACE` conserve l'ACL) ; forme canonique et
+`hash_version` 1 inchangés — les valeurs d'`actor_type` restent celles de l'énumération, aucune
+ligne existante n'est à recalculer.
+
+**3. Fenêtre de propriété : refermée et contrôlée.** `SET` sans `INHERIT` le temps du
+`CREATE OR REPLACE` (qui exige `CREATE` sur le schéma, d'où l'octroi temporaire), `reset role`, retrait
+de `CREATE` puis de l'appartenance ; il ne reste que l'appartenance `ADMIN` du rôle de migration,
+`SET` et `INHERIT` faux (tolérance C-9), constatée. Le `SET ROLE` de session est annulé par le
+retour arrière si le fichier échoue.
+
+**4. `session_user` : fiable.** Ni `SECURITY DEFINER` ni `SET ROLE` ne le changent ; seul
+`SET SESSION AUTHORIZATION` le ferait, réservé à une session ouverte par un superutilisateur, que S2
+refuse. **À travers Supavisor** : le suffixe `.<ref>` sert au multiplexeur à trouver le projet ; il
+ouvre la connexion amont sous l'utilisateur sans suffixe, donc `session_user = influx_app`. Je ne l'ai
+pas constaté (pas d'environnement distant) : d'où V3. **Même si c'était faux, rien ne s'écrirait mal**
+: `apps/api` refuse toute grappe et toute transaction où `session_user` ≠ `influx_app` (`pool.ts`,
+garde de transaction de `index.ts`). Défaut visible et fermé, pas une mauvaise attribution.
+
+**5. Tests : l'octroi temporaire est acceptable.** Connexions codées en dur sur le bouclage
+(`local-stack.ts`), fichiers en série, retrait dans `afterAll` constaté ; un arrêt brutal laisse les
+droits dans la pile locale seulement, et **T2.7 (instantané exact, exécuté avant T3) passe au rouge à
+l'exécution suivante**. Couverture de M2 incomplète : V2.
+
+| # | Gravité | Constat | Scénario | Impact | Correctif | Effort | Échéance |
+|---|---|---|---|---|---|---|---|
+| **V1** | Important | La branche « tout autre `session_user` » est **ouverte par défaut** | (a) Un futur rôle de connexion `influx_*` (outil interne, second worker) atteint `append()` par une fonction définisseuse : ses actes s'inscrivent `system`, sans erreur. (b) Une session de maintenance nominative écrit une ligne `system` : le registre ne dit pas qui | Perte d'attribution dans le registre de preuve, sans symptôme | Dans la branche `else` : refuser (`42501`) tout `session_user` qui commence par `influx_` (couvre aussi une forme suffixée `influx_app.<ref>`) ; y ajouter `session_user` à la charge utile (`p_payload \|\| {"db_session_user": …}`) — la charge utile est déjà dans la forme canonique, **pas de `hash_version` 2** | 30 min + 2 cas | Dans `0108`, avant E-1 et avant toute ligne réelle |
+| **V2** | Important | Tests M2 : seule la correspondance `admin` est éprouvée pour `influx_app` | Une inversion `agent` ↔ `admin`, ou `creator` → `agent`, dans le `case` passe tous les tests — précisément la confusion que R1 a rendue détectable dans la chaîne | Acte d'un agent inscrit comme acte d'administrateur, sans alerte | Paramétrer les quatre rôles (`advertiser`, `creator` ⇒ `member` ; `agent` ; `admin`), `influx_worker_login` sans compte ⇒ `system`, et une valeur hors liste de casse différente (`Admin`) ⇒ `42501` | 20 min | Avant E-1 (avec `0108`) |
+| **V3** | À surveiller | `session_user` à travers Supavisor non constaté | Voir point 4 | Aucun tant que la garde d'`apps/api` tient | Au J4, avec EC-34 et EC-35 (7) : par le multiplexeur, `select session_user` = `influx_app`, puis une ligne par `grant_role()` inscrite `admin` | 15 min | J4 |
+| **V4** | À surveiller | Droits temporaires des tests : le rouge de T2.7 après un arrêt brutal disparaît à l'exécution suivante (l'`afterAll` nettoie) | Pris pour une instabilité et ignoré | Aucun hors pile locale | Au `beforeAll`, vérifier que les droits sont absents avant de les accorder, sinon échec « exécution précédente interrompue : `supabase db reset` » | 10 min | J3 |
+| **V5** | À surveiller | Les contrôles de fin de `0009` ne vérifient ni `search_path` ni `PUBLIC` / `anon` / `authenticated` / `service_role` | Une future réécriture qui recréerait la fonction (au lieu de la remplacer) perdrait l'ACL sans que la migration échoue | Couvert aujourd'hui par T2.4 et T2.8 | Ajouter ces deux contrôles au gabarit des migrations `audit` | 10 min | `0108` |
+| **V6** | À surveiller | EC-36 : `audit.append_elevated()` doit **appeler** `append()`, pas recopier la déduction de l'acteur | Deux déductions divergent à la première évolution | Acteur incohérent selon le chemin | Une seule déduction, dans `append()` ; `append_elevated()` ne fait que filtrer le code `elevated.*` et le sujet | — | `0108` |
+
+Rappel, sans nouvelle action : dans `influx_app`, `append()` fait toujours confiance à
+`influx.role` / `influx.account` (le rédacteur n'a aucun droit sur `identity`, c'est voulu) ; le
+contrôle sur lignes reste à la charge de la fonction appelante, comme `grant_role()` le fait (revue du
+2026-09-26, points ouverts).
+
+**Verdict : livraison de `3e7af41` autorisée, sans point bloquant.** Le message peut être reformulé
+avec `security-reviewed: 2026-09-27` avant le push. Conditions : V1, V2, V5, V6 dans le commit de
+`0108` (avant tout `EXECUTE` sur le registre pour `influx_auth` / `influx_worker`) ; V3 au J4 ; V4 au J3.
+
 ### J3 — Authentification et sessions (4 à 5 jours)
 
 1. **Réglages GoTrue** (local puis `staging`) : longueur du code 6, validité 600 s, inscription
