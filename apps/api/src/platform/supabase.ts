@@ -16,7 +16,6 @@
 import {
   GoTrueAdminApi,
   GoTrueClient,
-  isAuthApiError,
   isAuthError,
   type AuthError,
   type User,
@@ -143,13 +142,18 @@ export function gotrueHeaders(
   return headers;
 }
 
-/** An AuthError reduced to what may be logged and compared: code and status (rule 7). */
+/**
+ * An AuthError reduced to what may be logged and compared: code and status (rule 7). A refusal is
+ * any AuthError of status 400 to 499, whatever its class: `AuthWeakPasswordError` (422
+ * weak_password) is not an `AuthApiError`, and read as a failure of GoTrue it would pass a refused
+ * password for an outage (21 §4, "Arbitrages après le commit 7", C7-1). Anything else, including
+ * a network failure (status 0), is `unavailable`.
+ */
 export function failureOf(error: AuthError): GoTrueFailure {
   const status =
     typeof error.status === "number" && error.status > 0 ? error.status : null;
   const errorCode = typeof error.code === "string" ? error.code : null;
-  const isRefusal =
-    isAuthApiError(error) && status !== null && status >= 400 && status < 500;
+  const isRefusal = status !== null && status >= 400 && status < 500;
   return {
     ok: false,
     reason: isRefusal ? "rejected" : "unavailable",

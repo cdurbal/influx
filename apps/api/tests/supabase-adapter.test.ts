@@ -305,6 +305,37 @@ describe("GoTrue's answers reduced to a code and a status (rule 7)", () => {
     });
   });
 
+  // C7-1: a refusal is any AuthError of status 400 to 499, whatever its class.
+  it("returns a weak_password refusal (AuthWeakPasswordError) as rejected", async () => {
+    gotrue.handler = () => ({
+      status: 422,
+      body: {
+        code: 422,
+        error_code: "weak_password",
+        msg: "Password should be at least 12 characters.",
+        weak_password: { reasons: ["length"] },
+      },
+    });
+    expect(
+      await auth.verifyPassword(CONTEXT, USER_A.email, "a-password-of-12"),
+    ).toEqual({
+      ok: false,
+      reason: "rejected",
+      errorCode: "weak_password",
+      status: 422,
+    });
+  });
+
+  it("reports a 500 as unavailable", async () => {
+    gotrue.handler = () => ({
+      status: 500,
+      body: { code: 500, error_code: "unexpected_failure", msg: "hash" },
+    });
+    expect(
+      await auth.verifyPassword(CONTEXT, USER_A.email, "a-password-of-12"),
+    ).toMatchObject({ ok: false, reason: "unavailable", status: 500 });
+  });
+
   it("reports a 5xx as unavailable", async () => {
     gotrue.handler = () => ({ status: 503, body: { msg: "down" } });
     expect(await auth.generateEmailCode(USER_A.email)).toMatchObject({
