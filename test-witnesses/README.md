@@ -4,3 +4,9 @@ Each file here commits exactly the infraction its name describes. The static che
 and MUST report each one: an analyser that finds nothing on an empty code base always passes,
 even when broken. These files live outside `apps/` and `packages/` on purpose, and use the
 `.txt` extension so that no compiler, linter or formatter picks them up.
+
+| Folder                           | Check                                                                                                             | Proven by                                    |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `t16/`                           | T16, no commission computed in code                                                                               | `packages/test-kit/tests/t16-static.test.ts` |
+| `t6/`, `t6-role/`, `t6-session/` | T6, closed list of elevated operations, no role or session state outside `src/db/`                                | `apps/api/tests/t6-static.test.ts`           |
+| `s1/`                            | S-1 (21 §4, review of J3 commits 5 and 6): postgres.js `unsafe` only in `apps/api/src/db/pool.ts`, an ESLint rule | `apps/api/tests/postgres-unsafe.test.ts`     |

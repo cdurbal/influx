@@ -1,0 +1,15 @@
+// An identity repository that builds its SQL as text: what S-1 forbids outside src/db/pool.ts.
+import type postgres from "postgres";
+
+export async function accountByEmail(tx: postgres.TransactionSql, email: string) {
+  return tx.unsafe(`select id from identity.accounts where email = '${email}'`);
+}
+
+export async function accountById(sql: postgres.Sql, id: string) {
+  const { unsafe } = sql;
+  return unsafe("select id from identity.accounts where id = $1", [id]);
+}
+
+export async function accountCount(sql: postgres.Sql) {
+  return sql["unsafe"]("select count(*) from identity.accounts");
+}

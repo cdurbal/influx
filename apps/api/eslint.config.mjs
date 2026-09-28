@@ -107,6 +107,16 @@ const CLIENT_ADDRESS_HEADER_LITERALS = [
   },
 ];
 
+// postgres.js `unsafe` runs a text as SQL, with no parameter binding (21 §4, review of J3 commits 5
+// and 6, S-1): on the influx_auth and influx_app pools, an injection would read every account.
+// Only src/db/pool.ts may use it, for its constant identity query. Matched on any object
+// (`sql.unsafe`, `tx.unsafe`, destructuring).
+const POSTGRES_UNSAFE = {
+  property: "unsafe",
+  message:
+    "unsafe runs unparameterised SQL: only the constant query of src/db/pool.ts may use it (21 S-1).",
+};
+
 function restrictProperties(...restrictions) {
   return { "no-restricted-properties": ["error", ...restrictions] };
 }
@@ -136,6 +146,7 @@ export default defineConfig([
     rules: {
       ...restrictProperties(
         PROCESS_ENV,
+        POSTGRES_UNSAFE,
         ...CLIENT_IP_PROPERTIES,
         ...RESPONSE_FILTER_PROPERTIES,
       ),
@@ -149,6 +160,7 @@ export default defineConfig([
   {
     files: ["src/config/**/*.ts"],
     rules: restrictProperties(
+      POSTGRES_UNSAFE,
       ...CLIENT_IP_PROPERTIES,
       ...RESPONSE_FILTER_PROPERTIES,
     ),
@@ -156,13 +168,26 @@ export default defineConfig([
   {
     files: ["src/platform/**/*.ts", "src/server.ts"],
     rules: {
-      ...restrictProperties(PROCESS_ENV, ...CLIENT_IP_PROPERTIES),
+      ...restrictProperties(
+        PROCESS_ENV,
+        POSTGRES_UNSAFE,
+        ...CLIENT_IP_PROPERTIES,
+      ),
       "no-restricted-syntax": ["error", ...CLIENT_ADDRESS_HEADER_LITERALS],
     },
   },
   {
     files: ["src/platform/client-address.ts"],
     rules: { "no-restricted-syntax": "off" },
+  },
+  {
+    // The one exemption of S-1: the constant identity query read when a pool opens.
+    files: ["src/db/pool.ts"],
+    rules: restrictProperties(
+      PROCESS_ENV,
+      ...CLIENT_IP_PROPERTIES,
+      ...RESPONSE_FILTER_PROPERTIES,
+    ),
   },
   {
     files: ["src/platform/supabase.ts"],
