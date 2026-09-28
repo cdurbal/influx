@@ -310,6 +310,54 @@ describe("PP-6: client address from x-real-ip only (03 §6.4 A5, EC-21)", () => 
   });
 });
 
+// 05 Q14 (decision of 2026-09-27, point 1 and point 7): the browser's agent reaches apps/api
+// under client-user-agent, only in the admitted shape, never under its own name.
+describe("PP-5: user-agent relayed as client-user-agent (05 Q14)", () => {
+  const AGENT =
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+
+  it("forwards a well-formed agent under client-user-agent, unchanged", async () => {
+    await call("/api/v1/status", { headers: { "user-agent": AGENT } });
+    expect(received[0]?.headers["client-user-agent"]).toBe(AGENT);
+  });
+
+  it("forwards an agent of exactly 512 characters, never truncated", async () => {
+    const agent = AGENT.padEnd(512, "x");
+    await call("/api/v1/status", { headers: { "user-agent": agent } });
+    expect(received[0]?.headers["client-user-agent"]).toBe(agent);
+  });
+
+  it.each([
+    ["513 characters", AGENT.padEnd(513, "x")],
+    ["a tab", `${AGENT}\tAfterTab`],
+    ["a DEL", `${AGENT}\x7F`],
+    ["a non-ASCII byte", `${AGENT} é`],
+    ["an empty value", ""],
+  ])("forwards nothing for an agent with %s", async (_case, agent) => {
+    await call("/api/v1/status", { headers: { "user-agent": agent } });
+    expect(received[0]?.headers["client-user-agent"]).toBeUndefined();
+  });
+
+  it("replaces a client-user-agent sent by the browser with the checked agent", async () => {
+    await call("/api/v1/status", {
+      headers: { "user-agent": AGENT, "client-user-agent": "forged-agent" },
+    });
+    expect(received[0]?.headers["client-user-agent"]).toBe(AGENT);
+  });
+
+  it("never forwards a client-user-agent sent by the browser alone", async () => {
+    await call("/api/v1/status", {
+      headers: { "client-user-agent": "forged-agent" },
+    });
+    expect(received[0]?.headers["client-user-agent"]).toBeUndefined();
+  });
+
+  it("never forwards user-agent under its own name: apps/api gets the relay's own", async () => {
+    await call("/api/v1/status", { headers: { "user-agent": AGENT } });
+    expect(received[0]?.headers["user-agent"]).not.toBe(AGENT);
+  });
+});
+
 describe("PP-7: request identifier", () => {
   it("generates the audit identifier and keeps the client's apart", async () => {
     await call("/api/v1/status", {

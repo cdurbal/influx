@@ -30,6 +30,7 @@ import {
   readClientAddress,
 } from "./platform/client-address.ts";
 import { createLogger } from "./platform/logger.ts";
+import { readClientUserAgent } from "./platform/user-agent.ts";
 import {
   withEnvelopeFallback,
   zodSerializerCompiler,
@@ -270,8 +271,9 @@ export function buildServer(
   });
 
   // Internal secret and surface, before any body parsing (`03` PP-8, T7.9, 21 J1-G); then, for
-  // an identified surface only: the client address (A5), the origin of writes (A4) and the
-  // bodiless DELETE (C-3). Nothing of the request is read before the secret is validated.
+  // an identified surface only: the client address (A5), the browser agent (05 Q14), the origin
+  // of writes (A4) and the bodiless DELETE (C-3). Nothing of the request is read before the
+  // secret is validated.
   app.addHook("onRequest", async (request) => {
     const routeUrl = request.routeOptions.url;
     if (request.method === "GET" && routeUrl === HEALTH_ROUTE) {
@@ -285,6 +287,7 @@ export function buildServer(
       request.headers[CLIENT_ADDRESS_HEADER],
       config.authThrottlePepper,
     );
+    readClientUserAgent(request);
     if (
       isWriteMethod(request.method) &&
       !isWriteOriginAllowed(request.headers, config.publicOrigins[caller])

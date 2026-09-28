@@ -107,6 +107,20 @@ describe("backoffice relay", () => {
     expect(headers["x-forwarded-for"]).toBeUndefined();
   });
 
+  it("forwards a well-formed user-agent under client-user-agent only (PP-5, 05 Q14)", async () => {
+    const agent =
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15";
+    await call("/api/v1/bo/status", {
+      headers: { "user-agent": agent, "client-user-agent": "forged-agent" },
+    });
+    await call("/api/v1/bo/status", {
+      headers: { "user-agent": `${agent}\x7F`, "client-user-agent": "forged" },
+    });
+    expect(received[0]?.headers["client-user-agent"]).toBe(agent);
+    expect(received[0]?.headers["user-agent"]).not.toBe(agent);
+    expect(received[1]?.headers["client-user-agent"]).toBeUndefined();
+  });
+
   it("waits 10 s at most for apps/api, then answers 502 (T-1, no real wait)", async () => {
     const logged = vi.spyOn(console, "error").mockImplementation(() => {});
     const expiry = new AbortController();

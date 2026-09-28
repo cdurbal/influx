@@ -68,6 +68,15 @@ const COOKIE_NAME_PREFIX = "__Host-";
 /** A client request identifier is kept apart, and only when it is short and plain (PP-7). */
 const CLIENT_REQUEST_ID_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
 
+/**
+ * 03 PP-5 (05 Q14): the browser's user-agent is forwarded under this name, never under its own:
+ * the user-agent received by apps/api is that of this server's fetch.
+ */
+export const CLIENT_USER_AGENT_HEADER = "client-user-agent";
+
+/** 03 PP-5: visible ASCII and space, 512 characters at most; shape only, never truncated. */
+const CLIENT_USER_AGENT_PATTERN = /^[\x20-\x7E]{1,512}$/;
+
 const BODYLESS_STATUSES = new Set([204, 205, 304]);
 
 type RefusalCode = "not_found" | "payload_too_large" | "service_unavailable";
@@ -212,6 +221,12 @@ function forwardedHeaders(request: Request, requestId: string): Headers {
   const address = clientAddress(request);
   if (address !== null) {
     headers.set(CLIENT_ADDRESS_HEADER, address);
+  }
+  // PP-5 (05 Q14): the browser's agent, under client-user-agent, only when it has the admitted
+  // shape; a client-user-agent sent by the browser is never forwarded (not in the list above).
+  const userAgent = request.headers.get("user-agent");
+  if (userAgent !== null && CLIENT_USER_AGENT_PATTERN.test(userAgent)) {
+    headers.set(CLIENT_USER_AGENT_HEADER, userAgent);
   }
   // PP-7: our identifier is the audit one; the client's is only kept for reference.
   headers.set("x-request-id", requestId);

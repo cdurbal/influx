@@ -68,6 +68,15 @@ const REDACTED_KEYS: readonly string[] = [
   "matchingPhrase",
   "apikey",
   "sb-forwarded-for",
+  // The browser agent, raw or summarised, is never logged (05 Q14, decision of 2026-09-27); the
+  // two summary keys are added to the five of the decision, since the summary is not logged either.
+  "user-agent",
+  "userAgent",
+  "user_agent",
+  "client-user-agent",
+  "clientUserAgent",
+  "userAgentSummary",
+  "user_agent_summary",
 ];
 
 /** A key three objects deep (`{ a: { b: { c: { email } } } }`) is still censored (18 T13.6). */
