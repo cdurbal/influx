@@ -13,6 +13,7 @@ import { ESLint } from "eslint";
 import type { FastifyInstance } from "fastify";
 import { afterEach, describe, expect, it } from "vitest";
 import * as z from "zod";
+import { zodSerializerCompiler } from "../src/platform/schema-compilers.ts";
 import { buildServer, type ApiServer } from "../src/server.ts";
 import { captureLogs, testApiConfig, WEB_SECRET } from "./helpers.ts";
 
@@ -338,10 +339,36 @@ describe("vector 7: a 2xx schema that lets undeclared data through stops the ser
       z.map(z.string(), z.string()),
       '200: the zod type "map" is not allowed',
     ],
+    [
+      "a catch that returns the raw input (R-2)",
+      z
+        .strictObject({ id: z.string() })
+        .catch(({ input }) => input as { id: string }),
+      "200: a catch answers its own value, or the raw input",
+    ],
+    [
+      "a catch with a fixed value (R-2)",
+      z.object({ id: z.string().catch("c_0") }),
+      "200.id: a catch answers its own value, or the raw input",
+    ],
   ])("refuses %s", (_case, schema, message) => {
     expect(register(schema)).toThrow(
       `Route GET /v1/probe has a permissive response schema at ${message}`,
     );
+  });
+
+  it("counter-test (R-2): a catch returning its input leaks undeclared fields past the serializer", () => {
+    const schema = z
+      .strictObject({ id: z.string() })
+      .catch(({ input }) => input as { id: string });
+    const serialize = zodSerializerCompiler({
+      schema,
+      method: "GET",
+      url: "/v1/probe",
+      httpStatus: "200",
+    });
+    // A strict object would throw on the undeclared field: the catch answers the raw input.
+    expect(serialize({ id: "c_1", handle: MARKER })).toContain(MARKER);
   });
 
   it("walks every 2xx status, the 2xx class included", () => {

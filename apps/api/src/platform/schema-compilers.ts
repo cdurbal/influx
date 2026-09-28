@@ -76,7 +76,9 @@ const SUCCESS_STATUS_KEY = /^2(?:\d\d|xx)$/;
  * declares its exact shape, or wraps a schema that is walked in turn. Refused, among others:
  * `any` and `unknown` (let anything through), `record` (keys chosen by the data), `transform`
  * (output computed by code, after validation), `custom` (`z.custom`, `z.instanceof`), `map`,
- * `set`. An object is refused when it has a catchall (`looseObject`, `passthrough`, `catchall`):
+ * `set`, and `catch` (J3 security review R-2): a failed validation, precisely when an undeclared
+ * field appears, would return the catch value — the raw input itself for `.catch(({ input }) =>
+ * input)` — instead of throwing into a 500. An object is refused when it has a catchall (`looseObject`, `passthrough`, `catchall`):
  * only the catchall of `strictObject`, `never`, is accepted, since it lets nothing through.
  */
 const LEAF_TYPES: ReadonlySet<string> = new Set([
@@ -98,7 +100,6 @@ const WRAPPER_TYPES: ReadonlySet<string> = new Set([
   "prefault",
   "nonoptional",
   "readonly",
-  "catch",
 ]);
 
 /** The definition of a zod schema: its `type`, and the children the walk needs. */
@@ -201,6 +202,8 @@ export function findPermissiveSchema(
       return `${path}: a record lets keys chosen by the data through`;
     case "transform":
       return `${path}: a transform computes the output by code, after validation`;
+    case "catch":
+      return `${path}: a catch answers its own value, or the raw input, when validation fails`;
     default:
       return `${path}: the zod type "${type}" is not allowed in a response schema`;
   }
