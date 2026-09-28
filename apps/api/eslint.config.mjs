@@ -82,11 +82,30 @@ const RESPONSE_FILTER_HOOKS = {
 
 // The client address comes from the relayed x-real-ip only, read by src/platform/client-address.ts
 // after the internal secret (03 §6.4 A5): Fastify's request.ip and request.ips are never read,
-// anywhere in src/.
-const CLIENT_IP_PROPERTIES = ["ip", "ips"].map((property) => ({
-  property,
-  message: `${property} is never read: use clientAddressOf() of src/platform/client-address.ts (03 §6.4 A5).`,
-}));
+// anywhere in src/. Nor is the socket (21 §4, J3 security review R-3): `request.socket.remoteAddress`
+// is the address of Railway's proxy, shared by every client. `remoteAddress` itself is refused
+// too, whatever object holds it (`request.raw.connection.remoteAddress`…).
+const CLIENT_IP_PROPERTIES = ["ip", "ips", "socket", "remoteAddress"].map(
+  (property) => ({
+    property,
+    message: `${property} is never read: use clientAddressOf() of src/platform/client-address.ts (03 §6.4 A5).`,
+  }),
+);
+// The client address headers are named by src/platform/client-address.ts only (R-3): a string
+// holding x-real-ip or x-forwarded-for, in any letter case, is refused anywhere else in src/.
+const CLIENT_ADDRESS_HEADER_PATTERN = "/x-(?:real-ip|forwarded-for)/i";
+const CLIENT_ADDRESS_HEADER_MESSAGE =
+  "x-real-ip and x-forwarded-for are read by src/platform/client-address.ts only: use clientAddressOf() (03 §6.4 A5, 21 R-3).";
+const CLIENT_ADDRESS_HEADER_LITERALS = [
+  {
+    selector: `Literal[value=${CLIENT_ADDRESS_HEADER_PATTERN}]`,
+    message: CLIENT_ADDRESS_HEADER_MESSAGE,
+  },
+  {
+    selector: `TemplateElement[value.raw=${CLIENT_ADDRESS_HEADER_PATTERN}]`,
+    message: CLIENT_ADDRESS_HEADER_MESSAGE,
+  },
+];
 
 function restrictProperties(...restrictions) {
   return { "no-restricted-properties": ["error", ...restrictions] };
@@ -120,7 +139,11 @@ export default defineConfig([
         ...CLIENT_IP_PROPERTIES,
         ...RESPONSE_FILTER_PROPERTIES,
       ),
-      "no-restricted-syntax": ["error", RESPONSE_FILTER_HOOKS],
+      "no-restricted-syntax": [
+        "error",
+        RESPONSE_FILTER_HOOKS,
+        ...CLIENT_ADDRESS_HEADER_LITERALS,
+      ],
     },
   },
   {
@@ -134,8 +157,12 @@ export default defineConfig([
     files: ["src/platform/**/*.ts", "src/server.ts"],
     rules: {
       ...restrictProperties(PROCESS_ENV, ...CLIENT_IP_PROPERTIES),
-      "no-restricted-syntax": "off",
+      "no-restricted-syntax": ["error", ...CLIENT_ADDRESS_HEADER_LITERALS],
     },
+  },
+  {
+    files: ["src/platform/client-address.ts"],
+    rules: { "no-restricted-syntax": "off" },
   },
   {
     files: ["src/platform/supabase.ts"],

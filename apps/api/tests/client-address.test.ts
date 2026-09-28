@@ -103,13 +103,28 @@ describe("readClientAddress (03 §6.4 A5)", () => {
   });
 });
 
-describe("request.ip is never read (03 §6.4 A5, point 1)", () => {
-  const apiRoot = path.resolve(
-    path.dirname(fileURLToPath(import.meta.url)),
-    "..",
-  );
-  const eslint = new ESLint({ cwd: apiRoot });
+// ESLint guards of src/ (03 §6.4 A5; 21 §4, J3 security review R-3).
+const API_ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
+const eslint = new ESLint({ cwd: API_ROOT });
 
+/** Messages of `ruleId` for `source`, linted as if it were `file` of apps/api. */
+async function messagesOf(
+  source: string,
+  file: string,
+  ruleId: string,
+): Promise<string[]> {
+  const [result] = await eslint.lintText(source, {
+    filePath: path.join(API_ROOT, file),
+  });
+  return (result?.messages ?? [])
+    .filter((message) => message.ruleId === ruleId)
+    .map((message) => message.message);
+}
+
+describe("request.ip is never read (03 §6.4 A5, point 1)", () => {
   it.each([
     ["src/domains/identity/routes.ts"],
     ["src/platform/client-address.ts"],
@@ -120,15 +135,81 @@ describe("request.ip is never read (03 §6.4 A5, point 1)", () => {
 export const a = request.ip;
 export const { ips } = request;
 `;
-    const [result] = await eslint.lintText(source, {
-      filePath: path.join(apiRoot, file),
-    });
-    const refused = (result?.messages ?? []).filter(
-      (message) => message.ruleId === "no-restricted-properties",
-    );
-    expect(refused.map((message) => message.message)).toEqual([
+    expect(await messagesOf(source, file, "no-restricted-properties")).toEqual([
       expect.stringMatching(/ ip is never read/),
       expect.stringMatching(/ ips is never read/),
     ]);
+  });
+});
+
+describe("neither the socket nor the address headers are read outside client-address.ts (21 R-3)", () => {
+  it.each([
+    ["src/domains/identity/routes.ts"],
+    ["src/platform/client-address.ts"],
+    ["src/platform/other.ts"],
+    ["src/server.ts"],
+    ["src/config/index.ts"],
+  ])("refuses request.socket and remoteAddress in %s", async (file) => {
+    const source = `declare const request: { socket: { remoteAddress?: string } };
+declare const connection: { remoteAddress?: string };
+export const a = request.socket;
+export const { socket } = request;
+export const b = request["socket"];
+export const c = connection.remoteAddress;
+`;
+    expect(await messagesOf(source, file, "no-restricted-properties")).toEqual([
+      expect.stringMatching(/ socket is never read/),
+      expect.stringMatching(/ socket is never read/),
+      expect.stringMatching(/ socket is never read/),
+      expect.stringMatching(/ remoteAddress is never read/),
+    ]);
+  });
+
+  it.each([
+    ["src/domains/identity/routes.ts"],
+    ["src/platform/other.ts"],
+    ["src/server.ts"],
+    ["src/config/index.ts"],
+  ])(
+    "refuses the x-real-ip and x-forwarded-for strings in %s, in any letter case",
+    async (file) => {
+      const source = `declare const headers: Record<string, string | undefined>;
+export const a = headers["x-real-ip"];
+export const b = headers["X-Forwarded-For"];
+export const c = headers[\`x-forwarded-for\`];
+`;
+      const refused = await messagesOf(source, file, "no-restricted-syntax");
+      expect(refused).toHaveLength(3);
+      for (const message of refused) {
+        expect(message).toMatch(
+          /^x-real-ip and x-forwarded-for are read by src\/platform\/client-address\.ts only/,
+        );
+      }
+    },
+  );
+
+  it("accepts the x-real-ip string in src/platform/client-address.ts", async () => {
+    const source = `export const CLIENT_ADDRESS_HEADER = "x-real-ip";
+`;
+    expect(
+      await messagesOf(
+        source,
+        "src/platform/client-address.ts",
+        "no-restricted-syntax",
+      ),
+    ).toEqual([]);
+  });
+
+  it("still refuses a plugin-level onSend hook in src/ (21 N2)", async () => {
+    const source = `declare const app: { addHook(name: string, hook: () => void): void };
+app.addHook("onSend", () => {});
+`;
+    expect(
+      await messagesOf(
+        source,
+        "src/domains/identity/routes.ts",
+        "no-restricted-syntax",
+      ),
+    ).toEqual([expect.stringMatching(/^An onSend or preSerialization hook/)]);
   });
 });
