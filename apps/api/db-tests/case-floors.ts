@@ -8,4 +8,5 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/t2-rls-matrix.test.ts": 25,
   "db-tests/t3-audit-chain.test.ts": 31,
   "db-tests/t4-roles.test.ts": 26,
+  "db-tests/t8-auth-settings.test.ts": 26,
 };

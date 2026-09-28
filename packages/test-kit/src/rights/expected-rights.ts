@@ -333,8 +333,13 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
   },
 ];
 
-/** Schemas of ours (0001): T2.2 enumerates their tables. */
+/**
+ * Schemas of ours (0001, and auth_hooks from 0010): T2.2 enumerates their tables. auth_hooks holds
+ * one function and no table; the right of supabase_auth_admin on it is checked by the EC-41 cases
+ * of db-tests/t8-auth-settings.test.ts (it is not an influx_% role, so T2.7 does not see it).
+ */
 export const OUR_SCHEMAS = [
+  "auth_hooks",
   "influx",
   "reference",
   "identity",

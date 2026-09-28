@@ -162,6 +162,14 @@ max_indexes = 5
 # [storage.vector.buckets.documents-openai]
 
 [auth]
+# INFLUX (docs/mvp/21 §4, J3-A and "Arbitrages de sécurité du J3", EC-16, EC-41): Supabase Auth
+# (GoTrue) is reached by apps/api only, with the secret key. Members sign in with a 6-digit code
+# obtained WITHOUT sending (admin generateLink) and sent by apps/api through Brevo (D43); internal
+# accounts with a password and a mandatory TOTP. Public sign-up is closed, every native e-mail is
+# refused by the sink hook below, and anonymous sign-ins, manual linking, SMS and external
+# providers stay disabled. Every line of the [auth*] sections is a security setting: a commit that
+# changes one carries `security-reviewed: <date>` (03 I-4, EC-48). The same values are pushed to
+# the hosted projects by `supabase config push` (J4, integrateur), except the local rate limits.
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
@@ -171,7 +179,9 @@ site_url = "http://127.0.0.1:3000"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 additional_redirect_urls = ["https://127.0.0.1:3000"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
-jwt_expiry = 3600
+# INFLUX (J3-A a6): no INFLUX component ever verifies a GoTrue JWT, and a GoTrue token never
+# outlives the request that obtained it (J3-C rules 2 and 3): 5 minutes is plenty.
+jwt_expiry = 300
 # JWT issuer URL. If not set, defaults to auth.external_url.
 # jwt_issuer = ""
 # Path to JWT signing key. DO NOT commit your signing keys file to git.
@@ -182,13 +192,16 @@ enable_refresh_token_rotation = true
 # Requires enable_refresh_token_rotation = true.
 refresh_token_reuse_interval = 10
 # Allow/disallow new user signups to your project.
-enable_signup = true
+# INFLUX (J3-A a3, EC-16): closed. The admin API (createUser, generateLink) ignores this setting.
+enable_signup = false
 # Allow/disallow anonymous sign-ins to your project.
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
 # Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
-minimum_password_length = 6
+# INFLUX (J3-A d, B-1): floor of GoTrue; apps/api applies the full rule (12 characters, at most
+# 72 UTF-8 bytes, compromised-password check) before GoTrue is ever called.
+minimum_password_length = 12
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
 password_requirements = ""
@@ -213,9 +226,13 @@ anonymous_users = 30
 # Number of sessions that can be refreshed in a 5 minute interval per IP address.
 token_refresh = 150
 # Number of sign up and sign-in requests that can be made in a 5 minute interval per IP address (excludes anonymous users).
-sign_in_sign_ups = 30
+# INFLUX (EC-38 point 4): the two limits the local tests raise are read from the environment of
+# the LOCAL stack only, never written here as a value that `supabase config push` would carry to a
+# hosted project. Unset, the CLI refuses to start: set INFLUX_LOCAL_AUTH_SIGN_IN_LIMIT and
+# INFLUX_LOCAL_AUTH_VERIFY_LIMIT (the CI sets them; 30 is the GoTrue default of a hosted project).
+sign_in_sign_ups = "env(INFLUX_LOCAL_AUTH_SIGN_IN_LIMIT)"
 # Number of OTP / Magic link verifications that can be made in a 5 minute interval per IP address.
-token_verifications = 30
+token_verifications = "env(INFLUX_LOCAL_AUTH_VERIFY_LIMIT)"
 # Number of Web3 logins that can be made in a 5 minute interval per IP address.
 web3 = 30
 
@@ -227,20 +244,26 @@ web3 = 30
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
-enable_signup = true
+# INFLUX (J3-A a3, EC-16): closed, like [auth] enable_signup.
+enable_signup = false
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
 enable_confirmations = false
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
-secure_password_change = false
+# INFLUX (EC-16/EC-41 point 3): hygiene.
+secure_password_change = true
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
-max_frequency = "1s"
+# INFLUX (EC-16/EC-41 point 3): bounds the denial of service through the public /otp endpoint;
+# no effect on admin generateLink (J3-A b1).
+max_frequency = "60s"
 # Number of characters used in the email OTP.
+# INFLUX (J3-A a1, D37): a 6-digit code.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+# INFLUX (J3-A a2, 05 RG40): 10 minutes, counted from the generation of the code.
+otp_expiry = 600
 
 # Use a production-ready SMTP server
 # [auth.email.smtp]
@@ -284,6 +307,13 @@ max_frequency = "5s"
 # Force log out if the user has been inactive longer than the specified duration.
 # inactivity_timeout = "8h"
 
+# INFLUX (EC-41, migration 0010): the "sink" send-e-mail hook. GoTrue hands every native e-mail
+# (/otp, /recover, /resend, /magiclink...) to this Postgres function, which refuses it and writes
+# nothing. Admin generateLink and createUser send nothing and never call it.
+[auth.hook.send_email]
+enabled = true
+uri = "pg-functions://postgres/auth_hooks/refuse_native_email"
+
 # This hook runs before a new user is created and allows developers to reject the request based on the incoming user object.
 # [auth.hook.before_user_created]
 # enabled = true
@@ -302,15 +332,16 @@ message_service_sid = ""
 # DO NOT commit your Twilio auth token to git. Use environment variable substitution instead:
 auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
 
-# Multi-factor-authentication is available to Supabase Pro plan.
+# INFLUX (J3-A a5): TOTP is free on every plan (the "Pro plan" remark of the CLI template is
+# outdated). Mandatory for internal accounts (D37, B-2); members have no second factor at the MVP.
 [auth.mfa]
 # Control how many MFA factors can be enrolled at once per user.
 max_enrolled_factors = 10
 
 # Control MFA via App Authenticator (TOTP)
 [auth.mfa.totp]
-enroll_enabled = false
-verify_enabled = false
+enroll_enabled = true
+verify_enabled = true
 
 # Configure MFA via Phone Messaging
 [auth.mfa.phone]

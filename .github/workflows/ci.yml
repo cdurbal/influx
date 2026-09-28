@@ -30,6 +30,13 @@ jobs:
     runs-on: ubuntu-latest
     # Safety net above the 10-minute budget: a stuck run must not burn minutes.
     timeout-minutes: 15
+    # Raised rate limits of the LOCAL Supabase Auth, read by `env()` in supabase/config.toml (EC-38
+    # point 4): never a value that `supabase config push` would carry to a hosted project. Every
+    # Supabase CLI command refuses to read the config when they are unset (EC-51). Set on THIS job
+    # only (C5-2): a job that would run the CLI against a hosted project must not inherit them.
+    env:
+      INFLUX_LOCAL_AUTH_SIGN_IN_LIMIT: "1000"
+      INFLUX_LOCAL_AUTH_VERIFY_LIMIT: "1000"
     steps:
       # Actions are pinned to a full commit SHA (the tag is only a mutable label).
       - name: Checkout
