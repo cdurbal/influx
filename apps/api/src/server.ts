@@ -2,6 +2,7 @@
 // docs/mvp/21-plan-de-developpement.md §4, J1-E and J1-G).
 import { randomUUID } from "node:crypto";
 import type { IncomingHttpHeaders, IncomingMessage } from "node:http";
+import fastifyCookie from "@fastify/cookie";
 import { systemStatusSchema } from "@influx/contracts/system";
 import Fastify, { LogController } from "fastify";
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
@@ -209,6 +210,11 @@ export function buildServer(
   app.setValidatorCompiler(zodValidatorCompiler);
   app.setSerializerCompiler(zodSerializerCompiler);
   app.decorateRequest("clientAddress", null);
+  app.decorateRequest("surface", null);
+  // Cookies (21 J3-C rule 8): parsing and serialisation only. No automatic parsing (`hook:
+  // false`): src/platform/auth-cookies.ts parses the header on demand, after the internal secret.
+  // No secret here: the short tokens are signed by src/platform/auth-tokens.ts alone.
+  void app.register(fastifyCookie, { hook: false });
 
   // Structural rules on every route, checked when the route is registered: a violation stops
   // the server before it listens (02 §4 rule 1, 21 J1-E).
@@ -271,9 +277,9 @@ export function buildServer(
   });
 
   // Internal secret and surface, before any body parsing (`03` PP-8, T7.9, 21 J1-G); then, for
-  // an identified surface only: the client address (A5), the browser agent (05 Q14), the origin
-  // of writes (A4) and the bodiless DELETE (C-3). Nothing of the request is read before the
-  // secret is validated.
+  // an identified surface only: the surface whose cookies may be read (J3-C rule 8), the client
+  // address (A5), the browser agent (05 Q14), the origin of writes (A4) and the bodiless DELETE
+  // (C-3). Nothing of the request is read before the secret is validated.
   app.addHook("onRequest", async (request) => {
     const routeUrl = request.routeOptions.url;
     if (request.method === "GET" && routeUrl === HEALTH_ROUTE) {
@@ -283,6 +289,7 @@ export function buildServer(
     if (caller === null) {
       throw new ApiError("unauthenticated");
     }
+    request.surface = caller;
     request.clientAddress = readClientAddress(
       request.headers[CLIENT_ADDRESS_HEADER],
       config.authThrottlePepper,

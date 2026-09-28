@@ -6,6 +6,10 @@ import { parseApiEnvironment, type ApiConfig } from "../src/config/schema.ts";
 export const WEB_SECRET = "web-internal-secret-for-tests-0123456789";
 export const BACKOFFICE_SECRET = "backoffice-internal-secret-for-tests-01234";
 export const THROTTLE_PEPPER = "throttle-pepper-for-tests-0123456789abcdef";
+export const TOKEN_SIGNING_SECRET = "token-signing-secret-for-tests-0123456789";
+/** Shaped like the local stack's values; never reached by the unit tests. */
+export const TEST_SUPABASE_URL = "http://127.0.0.1:54321";
+export const TEST_SUPABASE_SECRET_KEY = "sb_secret_fake-key-for-unit-tests";
 /** Public origins of the two surfaces (03 §6.4 A4). */
 export const WEB_ORIGIN = "https://influx.example";
 export const BACKOFFICE_ORIGIN = "https://bo.influx.example";
@@ -27,6 +31,9 @@ export function testApiConfig(): ApiConfig {
     INFLUX_PUBLIC_SITE_URL: WEB_ORIGIN,
     INFLUX_PUBLIC_BACKOFFICE_URL: BACKOFFICE_ORIGIN,
     AUTH_THROTTLE_PEPPER: THROTTLE_PEPPER,
+    AUTH_TOKEN_SIGNING_SECRET: TOKEN_SIGNING_SECRET,
+    SUPABASE_URL: TEST_SUPABASE_URL,
+    SUPABASE_SECRET_KEY: TEST_SUPABASE_SECRET_KEY,
     DATABASE_URL: TEST_DATABASE_URLS.DATABASE_URL,
     AUTH_DATABASE_URL: TEST_DATABASE_URLS.AUTH_DATABASE_URL,
   });

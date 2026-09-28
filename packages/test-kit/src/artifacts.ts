@@ -11,10 +11,15 @@ export const BROWSER_FORBIDDEN_NAMES: readonly string[] = [
   "BREVO_",
   "APOLLO_",
   "SERVICE_ROLE",
+  // Former name, kept so that a revived one is still caught (EC-24).
   "SESSION_COOKIE_SECRET",
-  // Enters at J3 commit 4 (skill env-secrets, CI-2); SESSION_COOKIE_SECRET becomes
-  // AUTH_TOKEN_SIGNING_SECRET at commit 7 (EC-24).
+  // J3 commit 4 (skill env-secrets, CI-2), then commit 7, which replaces SESSION_COOKIE_SECRET
+  // (03 T11, EC-24).
   "AUTH_THROTTLE_PEPPER",
+  "AUTH_TOKEN_SIGNING_SECRET",
+  // The prefix of a Supabase secret key VALUE (EC-46): a key read on the wrong side is caught
+  // even under another variable name.
+  "sb_secret_",
   "DATABASE_URL",
   "INFLUX_API_INTERNAL_",
 ];

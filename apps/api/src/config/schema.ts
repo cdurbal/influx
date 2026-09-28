@@ -64,6 +64,53 @@ const secretOf32Bytes = requiredText
 
 const internalSecret = secretOf32Bytes;
 
+/** Hosts of the local stack and CI: plain http and TLS-less database connections allowed. */
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/**
+ * URL of the Supabase project (SUPABASE_URL, 21 J3-E): its origin only, https except on a
+ * loopback host (local stack, CI). The api reaches GoTrue there, never a table (EC-46).
+ */
+const supabaseUrl = requiredText.transform((value, context) => {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    context.addIssue({ code: "custom", message: "must be an http(s) URL" });
+    return z.NEVER;
+  }
+  const isLoopback = LOOPBACK_HOSTS.has(url.hostname);
+  const hasAllowedScheme =
+    url.protocol === "https:" || (url.protocol === "http:" && isLoopback);
+  const isOriginOnly =
+    url.username === "" &&
+    url.password === "" &&
+    url.pathname === "/" &&
+    url.search === "" &&
+    url.hash === "";
+  if (!hasAllowedScheme || !isOriginOnly) {
+    context.addIssue({
+      code: "custom",
+      message:
+        "must be an https origin (http only on a loopback host), without path, query or credentials",
+    });
+    return z.NEVER;
+  }
+  return url.origin;
+});
+
+/** Prefix of a Supabase secret API key; the legacy service_role JWT is refused (21 EC-46). */
+export const SUPABASE_SECRET_KEY_PREFIX = "sb_secret_";
+
+/** SUPABASE_SECRET_KEY: a `sb_secret_…` key, never the template's placeholder. */
+const supabaseSecretKey = requiredText
+  .refine((value) => !holdsPlaceholder(value), {
+    message: `must not contain the ${PLACEHOLDER} placeholder`,
+  })
+  .refine((value) => value.startsWith(SUPABASE_SECRET_KEY_PREFIX), {
+    message: `must be a secret key (${SUPABASE_SECRET_KEY_PREFIX}…), never a legacy JWT key`,
+  });
+
 /**
  * Public origin of a surface (`https://influx.example`, `http://localhost:3000`): scheme, host
  * and port only, compared as is to the `origin` header of a write (03 §6.4 A4). Normalised by
@@ -117,8 +164,6 @@ export const API_DATABASE_VARIABLES = [
 export const WORKER_DATABASE_VARIABLES = [
   "WORKER_DATABASE_URL",
 ] as const satisfies readonly DatabaseUrlVariable[];
-
-const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 export type DatabaseConnection = {
   /** Full URL, password included: never logged. */
@@ -348,6 +393,16 @@ export type ApiConfig = BaseConfig & {
    * e-mail addresses (04 §12.10 point 4). Its rotation resets the counters.
    */
   authThrottlePepper: string;
+  /**
+   * Signing key of the short tokens only, login journey and sign-up (21 EC-24, J3-C rule 8). The
+   * session identifier is never signed.
+   */
+  authTokenSigningSecret: string;
+  /** GoTrue of the Supabase project, reached with the secret key only (21 J3-C, EC-46). */
+  supabase: {
+    url: string;
+    secretKey: string;
+  };
   /** DATABASE_URL (influx_app) and AUTH_DATABASE_URL (influx_auth_login), EC-20. */
   database: {
     app: DatabaseConnection;
@@ -385,6 +440,9 @@ export const apiEnvSchema = z
     INFLUX_PUBLIC_SITE_URL: publicOrigin,
     INFLUX_PUBLIC_BACKOFFICE_URL: publicOrigin,
     AUTH_THROTTLE_PEPPER: secretOf32Bytes,
+    AUTH_TOKEN_SIGNING_SECRET: secretOf32Bytes,
+    SUPABASE_URL: supabaseUrl,
+    SUPABASE_SECRET_KEY: supabaseSecretKey,
     ...databaseEnvShape,
   })
   .superRefine((env, context) => {
@@ -411,12 +469,37 @@ export const apiEnvSchema = z
         message: "must differ from the internal secrets",
       });
     }
+    // EC-24: the signing key of the short tokens is used for nothing else. Equal to the pepper, a
+    // leaked throttle digest would help forge a token; equal to a relay secret, a front would sign.
+    if (
+      env.AUTH_TOKEN_SIGNING_SECRET === env.AUTH_THROTTLE_PEPPER ||
+      env.AUTH_TOKEN_SIGNING_SECRET === env.INFLUX_API_INTERNAL_SECRET_WEB ||
+      env.AUTH_TOKEN_SIGNING_SECRET ===
+        env.INFLUX_API_INTERNAL_SECRET_BACKOFFICE
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["AUTH_TOKEN_SIGNING_SECRET"],
+        message:
+          "must differ from AUTH_THROTTLE_PEPPER and from the internal secrets",
+      });
+    }
     // Each surface is told apart by its origin: the backoffice is a host of its own (D12).
     if (env.INFLUX_PUBLIC_SITE_URL === env.INFLUX_PUBLIC_BACKOFFICE_URL) {
       context.addIssue({
         code: "custom",
         path: ["INFLUX_PUBLIC_BACKOFFICE_URL"],
         message: "must differ from INFLUX_PUBLIC_SITE_URL",
+      });
+    }
+    if (
+      env.INFLUX_ENV === "production" &&
+      !env.SUPABASE_URL.startsWith("https://")
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["SUPABASE_URL"],
+        message: "must be an https origin in production",
       });
     }
     if (env.INFLUX_ENV === "production") {
@@ -447,6 +530,11 @@ export const apiEnvSchema = z
       backoffice: env.INFLUX_PUBLIC_BACKOFFICE_URL,
     },
     authThrottlePepper: env.AUTH_THROTTLE_PEPPER,
+    authTokenSigningSecret: env.AUTH_TOKEN_SIGNING_SECRET,
+    supabase: {
+      url: env.SUPABASE_URL,
+      secretKey: env.SUPABASE_SECRET_KEY,
+    },
     database: {
       app: databaseConnection(env, "DATABASE_URL"),
       auth: databaseConnection(env, "AUTH_DATABASE_URL"),

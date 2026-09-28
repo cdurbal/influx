@@ -15,7 +15,9 @@
     "test:db": "vitest run --project db --reporter=default --reporter=json --outputFile.json=test-results/db-report.json && node scripts/check-db-case-floors.ts"
   },
   "dependencies": {
+    "@fastify/cookie": "11.1.2",
     "@influx/contracts": "workspace:*",
+    "@supabase/auth-js": "2.117.2",
     "drizzle-orm": "0.45.3",
     "fastify": "5.12.5",
     "pino": "10.3.1",

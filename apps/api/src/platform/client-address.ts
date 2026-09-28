@@ -5,7 +5,8 @@
 // - Validated by zod (IPv4 or IPv6); an IPv4-mapped IPv6 address (`::ffff:a.b.c.d`) is an IPv4.
 // - Only its rate-limiting key leaves this module: the /32 of an IPv4, the /64 of an IPv6, as an
 //   HMAC-SHA-256 with AUTH_THROTTLE_PEPPER. The address itself is never kept, never logged, and
-//   never written to the `ops` schema.
+//   never written to the `ops` schema. GoTrue receives a pseudonymous address derived from that
+//   key, never the address (EC-38).
 import { createHmac } from "node:crypto";
 import type { FastifyRequest } from "fastify";
 import * as z from "zod";
@@ -122,6 +123,36 @@ export function readClientAddress(
     family: "ipv6",
     throttleKey: throttleKeyOf(pepper, `ipv6:${prefix}::/64`),
   };
+}
+
+/** Domain separation of the address sent to GoTrue (21 §4, J3 security arbitration EC-38). */
+const GOTRUE_ADDRESS_LABEL = "gotrue-ip:";
+
+/**
+ * Value of the `Sb-Forwarded-For` header of the calls to GoTrue (21 §3 EC-38, point 2): not the
+ * client's address, but an IPv6 address of `fd00::/8` derived by HMAC-SHA-256 from its
+ * rate-limiting key. GoTrue limits by client as well as with the real address (same /32 or /64
+ * grouping, stable per client, the same value for a TOTP challenge and its verification), and
+ * Supabase never receives the address. Null for an unknown address: nothing is sent (EC-38 (2)).
+ */
+export function gotrueForwardedAddressOf(
+  address: ClientAddress,
+  pepper: string,
+): string | null {
+  if (address.status !== "known") {
+    return null;
+  }
+  const digest = createHmac("sha256", pepper)
+    .update(`${GOTRUE_ADDRESS_LABEL}${address.throttleKey}`, "utf8")
+    .digest();
+  // First byte 0xfd (unique local addresses), then 120 bits of the digest.
+  const bytes = [0xfd, ...digest.subarray(0, 15)];
+  const groups: string[] = [];
+  for (let index = 0; index < 16; index += 2) {
+    const group = ((bytes[index] ?? 0) << 8) | (bytes[index + 1] ?? 0);
+    groups.push(group.toString(16));
+  }
+  return groups.join(":");
 }
 
 const warnedRequests = new WeakSet<FastifyRequest>();

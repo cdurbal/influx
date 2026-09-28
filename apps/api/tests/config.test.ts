@@ -14,7 +14,10 @@ import {
   BACKOFFICE_ORIGIN,
   BACKOFFICE_SECRET,
   TEST_DATABASE_URLS,
+  TEST_SUPABASE_SECRET_KEY,
+  TEST_SUPABASE_URL,
   THROTTLE_PEPPER,
+  TOKEN_SIGNING_SECRET,
   WEB_ORIGIN,
   WEB_SECRET,
 } from "./helpers.ts";
@@ -31,6 +34,9 @@ const VALID_API_ENV = {
   INFLUX_PUBLIC_SITE_URL: WEB_ORIGIN,
   INFLUX_PUBLIC_BACKOFFICE_URL: BACKOFFICE_ORIGIN,
   AUTH_THROTTLE_PEPPER: THROTTLE_PEPPER,
+  AUTH_TOKEN_SIGNING_SECRET: TOKEN_SIGNING_SECRET,
+  SUPABASE_URL: TEST_SUPABASE_URL,
+  SUPABASE_SECRET_KEY: TEST_SUPABASE_SECRET_KEY,
   DATABASE_URL: TEST_DATABASE_URLS.DATABASE_URL,
   AUTH_DATABASE_URL: TEST_DATABASE_URLS.AUTH_DATABASE_URL,
 } as const;
@@ -40,6 +46,7 @@ const VALID_WORKER_ENV = {
   WORKER_DATABASE_URL: TEST_DATABASE_URLS.WORKER_DATABASE_URL,
 } as const;
 
+const HOSTED_SUPABASE_URL = "https://abcdefghijklmnop.supabase.co";
 const APP_URL = TEST_DATABASE_URLS.DATABASE_URL;
 const AUTH_URL = TEST_DATABASE_URLS.AUTH_DATABASE_URL;
 const WORKER_URL = TEST_DATABASE_URLS.WORKER_DATABASE_URL;
@@ -71,6 +78,8 @@ describe("api configuration", () => {
       port: 3100,
       publicOrigins: { web: WEB_ORIGIN, backoffice: BACKOFFICE_ORIGIN },
       authThrottlePepper: THROTTLE_PEPPER,
+      authTokenSigningSecret: TOKEN_SIGNING_SECRET,
+      supabase: { url: TEST_SUPABASE_URL, secretKey: TEST_SUPABASE_SECRET_KEY },
       database: {
         app: { url: APP_URL, role: "influx_app", tls: false },
         auth: { url: AUTH_URL, role: "influx_auth_login", tls: false },
@@ -324,6 +333,82 @@ describe("api configuration", () => {
       },
       "WORKER_DATABASE_URL is reserved to another service and must not be set here",
     ],
+    [
+      "no token signing secret (21 J3-E, EC-24)",
+      { ...VALID_API_ENV, AUTH_TOKEN_SIGNING_SECRET: undefined },
+      "AUTH_TOKEN_SIGNING_SECRET is required",
+    ],
+    [
+      "a token signing secret under 32 bytes",
+      { ...VALID_API_ENV, AUTH_TOKEN_SIGNING_SECRET: "short-signing-secret" },
+      "AUTH_TOKEN_SIGNING_SECRET must be at least 32 bytes",
+    ],
+    [
+      "the placeholder as token signing secret, in any letter case",
+      {
+        ...VALID_API_ENV,
+        AUTH_TOKEN_SIGNING_SECRET: "change_me-change_me-change_me-change_me",
+      },
+      "AUTH_TOKEN_SIGNING_SECRET must not contain the CHANGE_ME placeholder",
+    ],
+    [
+      "a token signing secret equal to the throttle pepper (EC-24)",
+      { ...VALID_API_ENV, AUTH_TOKEN_SIGNING_SECRET: THROTTLE_PEPPER },
+      "AUTH_TOKEN_SIGNING_SECRET must differ from AUTH_THROTTLE_PEPPER and from the internal secrets",
+    ],
+    [
+      "a token signing secret equal to the web internal secret (EC-24)",
+      { ...VALID_API_ENV, AUTH_TOKEN_SIGNING_SECRET: WEB_SECRET },
+      "AUTH_TOKEN_SIGNING_SECRET must differ from AUTH_THROTTLE_PEPPER and from the internal secrets",
+    ],
+    [
+      "a token signing secret equal to the backoffice internal secret (EC-24)",
+      { ...VALID_API_ENV, AUTH_TOKEN_SIGNING_SECRET: BACKOFFICE_SECRET },
+      "AUTH_TOKEN_SIGNING_SECRET must differ from AUTH_THROTTLE_PEPPER and from the internal secrets",
+    ],
+    [
+      "no Supabase URL",
+      { ...VALID_API_ENV, SUPABASE_URL: undefined },
+      "SUPABASE_URL is required",
+    ],
+    [
+      "a plain http Supabase URL outside a loopback host",
+      { ...VALID_API_ENV, SUPABASE_URL: "http://abcdefghijklmnop.supabase.co" },
+      "SUPABASE_URL must be an https origin (http only on a loopback host), without path, query or credentials",
+    ],
+    [
+      "a Supabase URL with a path",
+      { ...VALID_API_ENV, SUPABASE_URL: `${HOSTED_SUPABASE_URL}/auth/v1` },
+      "SUPABASE_URL must be an https origin (http only on a loopback host), without path, query or credentials",
+    ],
+    [
+      "the local stack's Supabase URL in production",
+      {
+        ...VALID_API_ENV,
+        INFLUX_ENV: "production",
+        BREVO_MODE: "live",
+      },
+      "SUPABASE_URL must be an https origin in production",
+    ],
+    [
+      "no Supabase secret key",
+      { ...VALID_API_ENV, SUPABASE_SECRET_KEY: undefined },
+      "SUPABASE_SECRET_KEY is required",
+    ],
+    [
+      "a legacy service_role JWT as Supabase key (EC-46)",
+      {
+        ...VALID_API_ENV,
+        SUPABASE_SECRET_KEY:
+          "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.c2lnbmF0dXJl",
+      },
+      "SUPABASE_SECRET_KEY must be a secret key (sb_secret_…), never a legacy JWT key",
+    ],
+    [
+      "the placeholder of .env.example as Supabase key",
+      { ...VALID_API_ENV, SUPABASE_SECRET_KEY: "CHANGE_ME" },
+      "SUPABASE_SECRET_KEY must not contain the CHANGE_ME placeholder",
+    ],
   ])("refuses %s", (_case, env, issue) => {
     expect(refusal(() => loadApiConfig(env))).toContain(issue);
   });
@@ -355,12 +440,22 @@ describe("api configuration", () => {
     expect(issues.join(" ")).not.toContain("very-secret-password");
   });
 
+  it("accepts the https origin of a hosted Supabase project, normalised", () => {
+    expect(
+      loadApiConfig({
+        ...VALID_API_ENV,
+        SUPABASE_URL: "HTTPS://ABCDEFGHIJKLMNOP.supabase.co/",
+      }).supabase.url,
+    ).toBe(HOSTED_SUPABASE_URL);
+  });
+
   it("accepts live Brevo in production", () => {
     expect(
       loadApiConfig({
         ...VALID_API_ENV,
         INFLUX_ENV: "production",
         BREVO_MODE: "live",
+        SUPABASE_URL: HOSTED_SUPABASE_URL,
       }).brevo.mode,
     ).toBe("live");
   });
@@ -510,6 +605,9 @@ describe("process start", () => {
       INFLUX_PUBLIC_SITE_URL: WEB_ORIGIN,
       INFLUX_PUBLIC_BACKOFFICE_URL: BACKOFFICE_ORIGIN,
       AUTH_THROTTLE_PEPPER: THROTTLE_PEPPER,
+      AUTH_TOKEN_SIGNING_SECRET: TOKEN_SIGNING_SECRET,
+      SUPABASE_URL: TEST_SUPABASE_URL,
+      SUPABASE_SECRET_KEY: TEST_SUPABASE_SECRET_KEY,
     });
     expect(result.status).toBe(1);
     expect(result.stdout).toContain("refusing to start");

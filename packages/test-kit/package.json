@@ -9,6 +9,7 @@
     "./artifacts": "./src/artifacts.ts",
     "./case-floors": "./src/case-floors.ts",
     "./logs": "./src/logs.ts",
+    "./totp": "./src/totp.ts",
     "./db": "./src/db/index.ts",
     "./static": "./src/static/index.ts",
     "./rights": "./src/rights/expected-rights.ts"

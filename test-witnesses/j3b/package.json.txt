@@ -1,0 +1,10 @@
+{
+  "name": "@influx/witness",
+  "dependencies": {
+    "@supabase/auth-js": "2.117.2",
+    "@supabase/supabase-js": "2.117.2"
+  },
+  "devDependencies": {
+    "@supabase/postgrest-js": "2.117.2"
+  }
+}

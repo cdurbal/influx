@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { ESLint } from "eslint";
 import { describe, expect, it } from "vitest";
 import {
+  gotrueForwardedAddressOf,
   readClientAddress,
   type ClientAddress,
 } from "../src/platform/client-address.ts";
@@ -100,6 +101,53 @@ describe("readClientAddress (03 §6.4 A5)", () => {
     ["a space", " 203.0.113.77", { status: "unknown", reason: "invalid" }],
   ])("refuses %s", (_case, header, expected) => {
     expect(readClientAddress(header, PEPPER)).toEqual(expected);
+  });
+});
+
+describe("gotrueForwardedAddressOf: the pseudonymous address sent to GoTrue (21 EC-38)", () => {
+  const forwarded = (header: string, pepper = PEPPER) =>
+    gotrueForwardedAddressOf(readClientAddress(header, pepper), pepper);
+
+  it("is an IPv6 address of fd00::/8 that quotes nothing of the client's address", () => {
+    const address = forwarded("203.0.113.77");
+    expect(address).toMatch(/^fd[0-9a-f]{2}(?::[0-9a-f]{1,4}){7}$/);
+    expect(readClientAddress(address ?? "", PEPPER)).toMatchObject({
+      status: "known",
+      family: "ipv6",
+    });
+    expect(address).not.toContain("203");
+    expect(address).not.toContain("cb00");
+  });
+
+  it("groups like the rate-limiting key: one value per /32 and per /64", () => {
+    expect(forwarded("203.0.113.77")).toBe(forwarded("::ffff:203.0.113.77"));
+    expect(forwarded("203.0.113.78")).not.toBe(forwarded("203.0.113.77"));
+    expect(forwarded("2001:db8:1:2::1")).toBe(
+      forwarded("2001:db8:1:2:ffff:ffff:ffff:ffff"),
+    );
+    expect(forwarded("2001:db8:1:3::1")).not.toBe(forwarded("2001:db8:1:2::1"));
+  });
+
+  it("changes with the pepper, and differs from the rate-limiting key (domain separation)", () => {
+    const other = "another-pepper-for-tests-0123456789abcdef";
+    expect(forwarded("203.0.113.77", other)).not.toBe(
+      forwarded("203.0.113.77"),
+    );
+    const key = keyOf(readClientAddress("203.0.113.77", PEPPER));
+    const compact = (forwarded("203.0.113.77") ?? "").replace(/:/g, "");
+    expect(key).not.toContain(compact.slice(2, 10));
+  });
+
+  it("is null for an unknown address: nothing is sent (EC-38 (2))", () => {
+    expect(
+      gotrueForwardedAddressOf({ status: "unknown", reason: "absent" }, PEPPER),
+    ).toBeNull();
+    expect(
+      gotrueForwardedAddressOf(
+        { status: "unknown", reason: "invalid" },
+        PEPPER,
+      ),
+    ).toBeNull();
   });
 });
 

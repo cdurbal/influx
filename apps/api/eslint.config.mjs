@@ -117,6 +117,32 @@ const POSTGRES_UNSAFE = {
     "unsafe runs unparameterised SQL: only the constant query of src/db/pool.ts may use it (21 S-1).",
 };
 
+// INFLUX never accepts a GoTrue token from a client (21 J3-C rule 3, G-1 point 3): no code of
+// src/ reads an `authorization` header. The outgoing one of src/platform/supabase.ts is an object
+// key, which this rule does not concern.
+const INBOUND_AUTHORIZATION = {
+  property: "authorization",
+  message:
+    "apps/api never reads an authorization header: GoTrue tokens are never accepted (21 J3-C rule 3).",
+};
+
+// Cookies are read and written by src/platform/auth-cookies.ts only (21 J3-C rule 8): the cookies
+// of the identified surface, and our four names, never another one (`sb-*` of GoTrue included).
+const COOKIE_MESSAGE =
+  "cookies are read and written through src/platform/auth-cookies.ts only (21 J3-C rule 8).";
+const COOKIE_PROPERTIES = [
+  "cookie",
+  "cookies",
+  "setCookie",
+  "clearCookie",
+  "parseCookie",
+  "signCookie",
+  "unsignCookie",
+].map((property) => ({
+  property,
+  message: `${property}: ${COOKIE_MESSAGE}`,
+}));
+
 function restrictProperties(...restrictions) {
   return { "no-restricted-properties": ["error", ...restrictions] };
 }
@@ -147,6 +173,8 @@ export default defineConfig([
       ...restrictProperties(
         PROCESS_ENV,
         POSTGRES_UNSAFE,
+        INBOUND_AUTHORIZATION,
+        ...COOKIE_PROPERTIES,
         ...CLIENT_IP_PROPERTIES,
         ...RESPONSE_FILTER_PROPERTIES,
       ),
@@ -161,6 +189,8 @@ export default defineConfig([
     files: ["src/config/**/*.ts"],
     rules: restrictProperties(
       POSTGRES_UNSAFE,
+      INBOUND_AUTHORIZATION,
+      ...COOKIE_PROPERTIES,
       ...CLIENT_IP_PROPERTIES,
       ...RESPONSE_FILTER_PROPERTIES,
     ),
@@ -171,10 +201,22 @@ export default defineConfig([
       ...restrictProperties(
         PROCESS_ENV,
         POSTGRES_UNSAFE,
+        INBOUND_AUTHORIZATION,
+        ...COOKIE_PROPERTIES,
         ...CLIENT_IP_PROPERTIES,
       ),
       "no-restricted-syntax": ["error", ...CLIENT_ADDRESS_HEADER_LITERALS],
     },
+  },
+  {
+    // The one reader and writer of cookies (J3-C rule 8).
+    files: ["src/platform/auth-cookies.ts"],
+    rules: restrictProperties(
+      PROCESS_ENV,
+      POSTGRES_UNSAFE,
+      INBOUND_AUTHORIZATION,
+      ...CLIENT_IP_PROPERTIES,
+    ),
   },
   {
     files: ["src/platform/client-address.ts"],
@@ -185,6 +227,8 @@ export default defineConfig([
     files: ["src/db/pool.ts"],
     rules: restrictProperties(
       PROCESS_ENV,
+      INBOUND_AUTHORIZATION,
+      ...COOKIE_PROPERTIES,
       ...CLIENT_IP_PROPERTIES,
       ...RESPONSE_FILTER_PROPERTIES,
     ),
