@@ -1,6 +1,6 @@
 // Findings on the local Supabase Auth (GoTrue v2.196 of CLI 2.117), J3 commit 7 (docs/mvp/21 §4):
 // the column « Test » of J3-A, J3-C rules 1 and 2, EC-41 point 4, the /recover oracle, G-1
-// point 3, EC-38 point 2 and EC-50. A finding that differs from the decisions is written in 21
+// point 3, EC-38 point 2, EC-50 and, since the e-mail provider is on, EC-55 (a) to (g). A finding that differs from the decisions is written in 21
 // §3 and ASSERTED AS FOUND here, with its gap number: when the setting or the decision changes,
 // this file changes with it, visibly.
 // - apps/api's calls go through its adapter (src/platform/supabase.ts), with the secret key.
@@ -250,13 +250,76 @@ describe("J3-A a: settings, as GoTrue applies them", () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// J3-A a4, EC-41 point 4, the /recover oracle and EC-50
+// J3-A a4, EC-41 point 4, the /recover oracle, EC-50 and EC-55 (cases (a) to (g) of the
+// "Arbitrages après le commit 7"): the e-mail provider is ON, sign-up stays closed by [auth]
+// enable_signup = false.
 // ---------------------------------------------------------------------------------------------
 
-describe("EC-41 point 4 and EC-50: no native e-mail, with the e-mail provider off", () => {
-  it("refuses /otp, /magiclink, /recover and /resend for an existing user, sends nothing, and keeps the code in progress", async () => {
-    const user = await newUser("ec41");
+/** A user created by the administration API WITHOUT confirming its address (never by apps/api). */
+async function unconfirmedUser(
+  label: string,
+): Promise<{ id: string; email: string }> {
+  const email = newAddress(label);
+  const created = await gotrue("POST", "/admin/users", {
+    key: "secret",
+    body: { email, email_confirm: false },
+  });
+  if (created.status !== 200) {
+    throw new Error(`unconfirmed user not created: ${created.status}`);
+  }
+  createdUsers.push(String(created.body.id));
+  return { id: String(created.body.id), email };
+}
+
+async function usersWithEmail(email: string): Promise<number> {
+  const [row] = await migrationRole()<{ count: number }[]>`
+    select count(*)::int as count from auth.users where email = ${email}`;
+  return row?.count ?? -1;
+}
+
+/**
+ * max_frequency (60 s) also applies after a generateLink: without waiting a minute, /otp would be
+ * refused by the frequency check (429) before reaching the sink hook. The clock of THIS user is
+ * moved back instead, by the migration role of the local stack (test only).
+ */
+async function moveRecoveryClockBack(userId: string): Promise<void> {
+  await migrationRole()`
+    update auth.users set recovery_sent_at = recovery_sent_at - interval '2 minutes'
+     where id = ${userId}`;
+}
+
+const SINK_REFUSAL = { status: 403, msg: "Native e-mails are disabled." };
+
+function refusalOf(answer: GoTrueAnswer): { status: number; msg: unknown } {
+  return { status: answer.status, msg: answer.body.msg };
+}
+
+describe("EC-50, EC-55: the e-mail provider is on, sign-up stays closed", () => {
+  it("(a) POST /signup answers signup_disabled and creates nobody", async () => {
+    const email = newAddress("ec55-a");
+    const signup = await gotrue("POST", "/signup", {
+      key: "publishable",
+      body: { email, password: "a-long-enough-password-1" },
+    });
+    expect(outcomeOf(signup)).toEqual({ status: 422, code: "signup_disabled" });
+    expect(await usersWithEmail(email)).toBe(0);
+  });
+
+  it("(b) /otp with create_user for an unknown address is refused and creates nobody", async () => {
+    const email = newAddress("ec55-b");
+    const otp = await gotrue("POST", "/otp", {
+      key: "publishable",
+      body: { email, create_user: true },
+    });
+    expect(outcomeOf(otp)).toEqual({ status: 422, code: "signup_disabled" });
+    expect(await usersWithEmail(email)).toBe(0);
+    expect(await mailpitMessagesTo(local, email)).toBe(0);
+  });
+
+  it("(c) /otp, /magiclink, /recover and /resend reach the sink hook, send nothing, and the code in progress stays valid", async () => {
+    const user = await newUser("ec55-c");
     const code = await newCode(user.email);
+    await moveRecoveryClockBack(user.id);
     const calls = {
       otp: await gotrue("POST", "/otp", {
         key: "publishable",
@@ -270,30 +333,47 @@ describe("EC-41 point 4 and EC-50: no native e-mail, with the e-mail provider of
         key: "publishable",
         body: { email: user.email },
       }),
-      resend: await gotrue("POST", "/resend", {
-        key: "publishable",
-        body: { type: "signup", email: user.email },
-      }),
     };
-    // EC-55: refused before the sink hook, by the e-mail provider that
-    // [auth.email] enable_signup = false switches off (EC-50).
+    // /resend only sends for an address awaiting confirmation, as in the experiment of EC-55:
+    // apps/api never creates one (createUser confirms the address), so the probe makes one.
+    const unconfirmed = await unconfirmedUser("ec55-c-unconfirmed");
+    const resend = await gotrue("POST", "/resend", {
+      key: "publishable",
+      body: { type: "signup", email: unconfirmed.email },
+    });
     expect({
-      otp: outcomeOf(calls.otp),
-      magiclink: outcomeOf(calls.magiclink),
-      recover: outcomeOf(calls.recover),
-      resend: outcomeOf(calls.resend),
+      otp: refusalOf(calls.otp),
+      magiclink: refusalOf(calls.magiclink),
+      recover: refusalOf(calls.recover),
+      resend: refusalOf(resend),
     }).toEqual({
-      otp: { status: 422, code: "email_provider_disabled" },
-      magiclink: { status: 422, code: "email_provider_disabled" },
-      recover: { status: 400, code: "email_provider_disabled" },
-      resend: { status: 400, code: "email_provider_disabled" },
+      otp: SINK_REFUSAL,
+      magiclink: SINK_REFUSAL,
+      recover: SINK_REFUSAL,
+      resend: SINK_REFUSAL,
     });
     expect(await mailpitMessagesTo(local, user.email)).toBe(0);
-    const verified = await adapter.verifyEmailCode(CONTEXT, user.email, code);
-    expect(verified).toEqual({
+    expect(await mailpitMessagesTo(local, unconfirmed.email)).toBe(0);
+    expect(await adapter.verifyEmailCode(CONTEXT, user.email, code)).toEqual({
       ok: true,
       value: { userId: user.id, email: user.email },
     });
+  });
+
+  it("(c) as found: /resend of a CONFIRMED user sends nothing and answers like an unknown address", async () => {
+    const user = await newUser("ec55-c-confirmed");
+    const unknown = newAddress("ec55-c-unknown");
+    const resend = async (email: string) =>
+      outcomeOf(
+        await gotrue("POST", "/resend", {
+          key: "publishable",
+          body: { type: "signup", email },
+        }),
+      );
+    expect(await resend(user.email)).toEqual({ status: 200, code: undefined });
+    expect(await resend(unknown)).toEqual({ status: 200, code: undefined });
+    expect(await mailpitMessagesTo(local, user.email)).toBe(0);
+    expect(await mailpitMessagesTo(local, unknown)).toBe(0);
   });
 
   it("reaches the sink hook on an address change: constant refusal, address unchanged (G-1 point 3 c)", async () => {
@@ -305,8 +385,7 @@ describe("EC-41 point 4 and EC-50: no native e-mail, with the e-mail provider of
       jwt: token,
       body: { email: newEmail },
     });
-    expect(change.status).toBe(403);
-    expect(change.body.msg).toBe("Native e-mails are disabled.");
+    expect(refusalOf(change)).toEqual(SINK_REFUSAL);
     const after = await adapter.getUser(user.id);
     expect(after).toEqual({
       ok: true,
@@ -320,8 +399,10 @@ describe("EC-41 point 4 and EC-50: no native e-mail, with the e-mail provider of
     expect(await mailpitMessagesTo(local, newEmail)).toBe(0);
   });
 
-  it("the /recover oracle: none with the provider off, but /otp tells an existing user from an unknown address", async () => {
+  it("(d) as found (S-11): /recover and /otp tell an existing GoTrue user from an unknown address", async () => {
     const user = await newUser("oracle");
+    await newCode(user.email);
+    await moveRecoveryClockBack(user.id);
     const unknown = newAddress("oracle-unknown");
     const recover = async (email: string) =>
       outcomeOf(
@@ -337,16 +418,15 @@ describe("EC-41 point 4 and EC-50: no native e-mail, with the e-mail provider of
           body: { email, create_user: false },
         }),
       );
-    expect(await recover(user.email)).toEqual(await recover(unknown));
-    expect(await otp(user.email)).toEqual({
-      status: 422,
-      code: "email_provider_disabled",
-    });
+    expect(await recover(user.email)).toEqual({ status: 403, code: "unknown" });
+    expect(await recover(unknown)).toEqual({ status: 200, code: undefined });
+    expect(await otp(user.email)).toEqual({ status: 403, code: "unknown" });
     expect(await otp(unknown)).toEqual({ status: 422, code: "otp_disabled" });
+    expect(await mailpitMessagesTo(local, unknown)).toBe(0);
   });
 
-  it("EC-50 (EC-55): the code is verified, the password sign-in is refused, /otp creates nobody", async () => {
-    const user = await newUser("ec50");
+  it("(e) the code and the password are both verified through the adapter, and no GoTrue session remains", async () => {
+    const user = await newUser("ec55-e");
     const code = await newCode(user.email);
     expect((await adapter.verifyEmailCode(CONTEXT, user.email, code)).ok).toBe(
       true,
@@ -358,22 +438,31 @@ describe("EC-41 point 4 and EC-50: no native e-mail, with the e-mail provider of
     });
     expect(set.status).toBe(200);
     expect(await adapter.verifyPassword(CONTEXT, user.email, password)).toEqual(
-      {
-        ok: false,
-        reason: "rejected",
-        errorCode: "email_provider_disabled",
-        status: 422,
-      },
+      { ok: true, value: { userId: user.id, email: user.email } },
     );
-    const stranger = newAddress("ec50-create");
-    const otp = await gotrue("POST", "/otp", {
-      key: "publishable",
-      body: { email: stranger, create_user: true },
+    expect(await sessionsOf(user.id)).toBe(0);
+  });
+
+  it("(g) EC-57 (c) as found: /token with 73 bytes answers alike for a password holder, a member and an unknown address", async () => {
+    const holder = await newUser("ec57-holder");
+    const set = await gotrue("PUT", `/admin/users/${holder.id}`, {
+      key: "secret",
+      body: { password: "a-password-of-the-local-stack-1" },
     });
-    expect(otp.status).toBe(422);
-    const [row] = await migrationRole()<{ count: number }[]>`
-      select count(*)::int as count from auth.users where email = ${stranger}`;
-    expect(row?.count).toBe(0);
+    expect(set.status).toBe(200);
+    const withoutPassword = await newUser("ec57-member");
+    const seventyThreeBytes = `${"é".repeat(36)}a`;
+    const token = async (email: string) =>
+      outcomeOf(
+        await gotrue("POST", "/token?grant_type=password", {
+          key: "publishable",
+          body: { email, password: seventyThreeBytes },
+        }),
+      );
+    const expected = { status: 400, code: "invalid_credentials" };
+    expect(await token(holder.email)).toEqual(expected);
+    expect(await token(withoutPassword.email)).toEqual(expected);
+    expect(await token(newAddress("ec57-unknown"))).toEqual(expected);
   });
 });
 
@@ -570,7 +659,7 @@ describe("G-1 point 3: a GoTrue session obtained directly", () => {
     });
   });
 
-  it("lets a member without TOTP set a GoTrue password, which opens nothing while the e-mail provider is off (G-1 c, EC-55)", async () => {
+  it("(f) as found (G-1 c, EC-55, S-11): a member without TOTP sets a GoTrue password, which then opens GoTrue sessions, never an INFLUX one", async () => {
     const user = await newUser("g1-member");
     const token = await directSession(user.email);
     const password = "a-password-chosen-by-the-attacker";
@@ -584,10 +673,8 @@ describe("G-1 point 3: a GoTrue session obtained directly", () => {
       key: "publishable",
       body: { email: user.email, password },
     });
-    expect(outcomeOf(signIn)).toEqual({
-      status: 422,
-      code: "email_provider_disabled",
-    });
+    expect(signIn.status).toBe(200);
+    expect(typeof signIn.body.access_token).toBe("string");
   });
 
   it("is refused by apps/api, in Authorization or in an sb-* cookie (401)", async () => {

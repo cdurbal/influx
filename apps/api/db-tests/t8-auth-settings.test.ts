@@ -69,7 +69,9 @@ describe("J3-A: the Supabase Auth settings of supabase/config.toml", () => {
     ["auth.email", "otp_expiry", "600"],
     // a3 and EC-16: public sign-up closed (the admin API ignores it)
     ["auth", "enable_signup", "false"],
-    ["auth.email", "enable_signup", "false"],
+    // EC-50, EC-55: the Email provider stays on (password sign-in of the backoffice); sign-up is
+    // closed by [auth] enable_signup above, proven by the findings of t8-gotrue-findings
+    ["auth.email", "enable_signup", "true"],
     ["auth", "enable_anonymous_sign_ins", "false"],
     ["auth", "enable_manual_linking", "false"],
     ["auth.sms", "enable_signup", "false"],

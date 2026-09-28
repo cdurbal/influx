@@ -244,8 +244,9 @@ web3 = 30
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
-# INFLUX (J3-A a3, EC-16): closed, like [auth] enable_signup.
-enable_signup = false
+# INFLUX (EC-50, EC-55): the Email provider must be ON, or GoTrue refuses the password sign-in of
+# the backoffice (GOTRUE_EXTERNAL_EMAIL_ENABLED). Sign-up stays closed by [auth] enable_signup.
+enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
