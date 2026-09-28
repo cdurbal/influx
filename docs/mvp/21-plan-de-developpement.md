@@ -263,7 +263,7 @@ la proposition est une hypothèse de travail, pas une décision.
 | **EC-46** | **Variables Supabase de `02` §12.3.** `SUPABASE_PUBLISHABLE_KEY` et `SUPABASE_JWKS_URL` n'ont aucun usage : tout appel à GoTrue porte la clé secrète (exigée par `Sb-Forwarded-For`, EC-38) et INFLUX ne vérifie aucun JWT (J3-C règle 3). Le worker n'a besoin de `SUPABASE_SECRET_KEY` qu'avec la purge E-4 des utilisateurs GoTrue (J6) | Retirer les deux variables ; `SUPABASE_URL` et `SUPABASE_SECRET_KEY` sur `api` au J3, `SUPABASE_SECRET_KEY` sur `worker` au J6 ; corriger `02` §12.3 et la skill `env-secrets` | `integrateur` + `expert-cybersecurite` | J3 — **Tranché par `expert-cybersecurite` le 2026-09-27** : retenu, durci — une clé secrète Supabase **par service**, en-têtes sortants masqués, forme des en-têtes à constater au J4. Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
 | **EC-47** | **Limitation de débit de la connexion du backoffice (BO-6, B-7).** `identity.auth_request_throttle` ne prévoit que les demandes de code des membres | Portées supplémentaires par adresse et par IP pour les échecs de connexion du backoffice (mot de passe ou code), seuils à fixer ; freiner l'essai, jamais verrouiller le compte (A-4) ; réponse identique quelle que soit l'étape en échec | `expert-cybersecurite` + `expert-database` | J3 (commit 6) — **Tranché par `expert-cybersecurite` le 2026-09-27** : seuils fixés — couple (adresse, IP) 5 / 15 min, IP 20 / h, IP inconnue 10 / h, adresse 10 échecs / h = alerte **sans blocage**, compte de secours 1 échec = alerte, plateforme 30 / h ; réservation avant GoTrue. Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
 | **EC-48** | **Le contrôle I-4 ne couvre pas `supabase/config.toml`**, dont la section `[auth]` porte des réglages de sécurité (inscription, crochet d'envoi, TOTP, durée du code) | Étendre `packages/test-kit/scripts/check-security-review.ts` aux lignes modifiées des sections `[auth…]` de `supabase/config.toml` | `expert-cybersecurite` + `testeur` | J3 (commit 5) — **Tranché par `expert-cybersecurite` le 2026-09-27** : retenu, élargi à `[api]`, `[storage*]` et au motif `auth_hooks`. Règles et tests : §4, J3, « Arbitrages de sécurité du J3 » |
-| **EC-49** | **La clé masquée `code` (J3-C règle 7) efface le code des erreurs gardé par A1** *(`dev-react-node`, 2026-09-27, commit 3 du J3)*. A1 (J1-J) conserve le `code` d'une erreur (`FST_*`, SQLSTATE, plus tard code d'erreur de GoTrue) : c'est l'élément de diagnostic retenu par EC-26 (« le code et le statut suffisent »). J3-C règle 7 ajoute `code` aux clés masquées, pour le code de connexion. Or pino applique le masquage **après** les sérialiseurs (constaté : `err.code` devient `[redacted]`), et un chemin `*.code` ne sait pas exclure `err` | *Appliqué au plus prudent, réversible (`0422906`)* : `code` masqué à tous les niveaux, comme l'exige la règle 7 ; le sérialiseur d'erreurs écrit le code sous **`errorCode`** (`err.errorCode`, `cause.errorCode`), comme les lignes de refus (`errorCode` au premier niveau) ; tests de J1-J et d'EC-27 alignés. À confirmer, ou à remplacer par une clé propre au code de connexion (`loginCode`, déjà masquée) en retirant `code` de la liste | `expert-cybersecurite` | J3 (commit 3) |
+| **EC-49** | **La clé masquée `code` (J3-C règle 7) efface le code des erreurs gardé par A1** *(`dev-react-node`, 2026-09-27, commit 3 du J3)*. A1 (J1-J) conserve le `code` d'une erreur (`FST_*`, SQLSTATE, plus tard code d'erreur de GoTrue) : c'est l'élément de diagnostic retenu par EC-26 (« le code et le statut suffisent »). J3-C règle 7 ajoute `code` aux clés masquées, pour le code de connexion. Or pino applique le masquage **après** les sérialiseurs (constaté : `err.code` devient `[redacted]`), et un chemin `*.code` ne sait pas exclure `err` | *Appliqué au plus prudent, réversible (`0422906`)* : `code` masqué à tous les niveaux, comme l'exige la règle 7 ; le sérialiseur d'erreurs écrit le code sous **`errorCode`** (`err.errorCode`, `cause.errorCode`), comme les lignes de refus (`errorCode` au premier niveau) ; tests de J1-J et d'EC-27 alignés. À confirmer, ou à remplacer par une clé propre au code de connexion (`loginCode`, déjà masquée) en retirant `code` de la liste | `expert-cybersecurite` | J3 (commit 3) — **Tranché par `expert-cybersecurite` le 2026-09-27 : `errorCode` retenu**, `code` reste masqué à tous les niveaux (retirer `code` ferait dépendre le filet de la discipline de nommage, alors que `code` est le nom naturel du code de connexion dans un corps ou une réponse de GoTrue). **Correction exigée (Important, commit correctif avant le commit 7)** : `errorCode` n'est écrit que si la valeur a la forme d'un code de diagnostic, `^(?:[A-Za-z][A-Za-z0-9_]{1,63}\|[0-9A-Z]{5})$` (`FST_*`, `ERR_*`, `E*`, `UND_ERR_*`, codes GoTrue, SQLSTATE), sinon `"[unrecognized]"` — constaté en local : une erreur portant `code: "654321"` est aujourd'hui écrite `errorCode: "654321"`. Détail et tests : « Revue de sécurité des commits 1 à 4 du J3 » (§4) |
 
 ---
 
@@ -1887,6 +1887,88 @@ d'écriture ; ligne `warn` d'A5 à la lecture ; N3 limité à `apps/api` ; vecte
 de N2 (`setNotFoundHandler` retenu, `setErrorHandler` écarté). `testeur` : les sept vecteurs retenus,
 les planchers de départ, la couverture de T8.13 par composition, C-4. `integrateur` : la tâche Node 24
 et sa durée.
+
+#### Revue de sécurité des commits 1 à 4 du J3 — `expert-cybersecurite` (2026-09-27)
+
+> **Verdict : conformes sous conditions, pas de veto.** Les commits 5 et suivants peuvent continuer ;
+> trois corrections **importantes** sont exigées, chacune avant le commit qui la rend exploitable
+> (tableau R). Relu : `git show` de `de85a49`, `414fa1f`, `0422906`, `b2a8851` (sources, ESLint, CI,
+> tests du passe-plat), `relay.ts`, `logger.ts`, `server.ts`, `client-address.ts`,
+> `write-origin.ts`. Un seul constat exécuté, en local et sans réseau : le sérialiseur d'erreurs
+> (R-1). Aucun environnement distant, aucun fichier `.env*` lu.
+
+**Points signalés par `dev-react-node`.**
+
+| Point | Avis | Motif |
+|---|---|---|
+| **EC-49** (`errorCode`) | **Retenu**, avec R-1 | Voir §3, EC-49 |
+| **A4 étendu à toute méthode sauf `GET` et `HEAD`** | **Retenu** (plus strict ; `03` §6.4 aligné ce jour) | Une méthode inattendue ne doit jamais être la porte non gardée. Le passe-plat n'en relaie pas d'autre (PP-3) ; `apps/api` n'a pas d'hôte public. Refus sur route inconnue avant le `404` : sans effet de divulgation |
+| **Ligne `warn` d'A5 à la lecture par un consommateur** | **Retenu** | Une ligne par requête du serveur d'un front noierait le signal. Condition : l'alerte du J9 sur l'adresse inconnue compte les **refus et replis des compteurs** (commit 6), pas les lignes ; le constat de `staging` au J4 reste la preuve que l'entrée Railway pose `x-real-ip` |
+| **N3 limité à `apps/api`** | **Retenu, à surveiller** | Un front dont le secret contient `change_me` ne peut pas s'accorder avec une API qui démarre (elle refuse la valeur) : tout est refusé en `401`, l'échec est fermé. Ne pas ré-épingler `config/server.ts` pour cela seul ; à reprendre s'il est modifié pour une autre raison |
+| **N2 : `setNotFoundHandler` restreint** | **Retenu** | Il écrit une réponse hors du schéma d'une route |
+| **N2 : `setErrorHandler` non restreint** | **Retenu, à surveiller** | Constaté : sa réponse repasse par le schéma de la route (2xx) ou par l'enveloppe (`default`), sinon `500`. Le risque résiduel est d'autorisation (un gestionnaire de greffon qui transforme un refus en `200`), pas de filtre : il relève de la revue du code du greffon |
+| **N2 : `raw` refusé sur tout objet** (`request.raw`, `String.raw`) | **Retenu, voulu** | `request.raw` donne `socket.remoteAddress` et les en-têtes bruts : c'est aussi une garde d'A5. Les faux positifs (`String.raw`) sont acceptés |
+| Liste des sept vecteurs | **Retenue**, avec R-2 | Les chaînes, tampons et flux sont déjà refusés par le crochet `onSend` global (TM11.4 c) |
+| Commit 1 (planchers, V4, EC-35 (3)) | **Conforme** | — |
+
+**Corrections exigées (R).** Chacune dans un commit correctif `fix(api): …`, relu à la revue de fin
+de J3 avec le reste.
+
+| # | Gravité | Surface, scénario, impact | Correctif | Échéance | Effort |
+|---|---|---|---|---|---|
+| **R-1** | Important | *Journaux, EC-49.* `serializeError` recopie toute chaîne `err.code` sous `errorCode`, clé non masquée. **Constaté** : `Object.assign(new Error(), { code: "654321" })` donne `"errorCode":"654321"`. Toute erreur (bibliothèque, code futur) qui porterait un code de connexion ou un jeton dans `code` le ferait sortir en clair vers Railway, lisible par quiconque accède aux journaux, pendant la validité du code (10 min) | `errorCode` (et `cause.errorCode`) écrit seulement si la valeur correspond à `^(?:[A-Za-z][A-Za-z0-9_]{1,63}\|[0-9A-Z]{5})$`, sinon `"[unrecognized]"`. Tests : `123456`, `12345678`, une valeur à espace, une à tiret ⇒ absentes **par valeur** (C-1) ; `FST_ERR_CTP_INVALID_MEDIA_TYPE`, `23505`, `P0001`, `otp_expired`, `ECONNRESET` conservés. Résiduel **à surveiller** : un code de secours sans séparateur commençant par une lettre aurait la forme d'un code ; il n'est jamais placé dans une erreur, et les tests C-1 par valeur des commits 6 et 10 le couvrent | Avant le commit 7 (premières erreurs de GoTrue) | 30 min |
+| **R-2** | Important | *Filtre de sortie, N2.* `catch` figure parmi les enveloppes admises. `z.strictObject({ id }).catch(({ input }) => input)` renvoie **l'objet brut**, champs non déclarés compris, dès que la validation échoue — précisément quand un champ en trop apparaît. Même sans fonction, `.catch(valeur)` masque l'échec qui devait donner un `500` et une erreur visible | Retirer `catch` de `WRAPPER_TYPES` (refus au démarrage, avec le chemin). Test : le contre-exemple ci-dessus fuit sans la règle et bloque le démarrage avec elle | Avant le commit 9 (`GET /v1/me`, première réponse à donnée personnelle) | 15 min |
+| **R-3** | Important | *Adresse du client, A5.* ESLint interdit `ip` et `ips`, mais **`request.socket.remoteAddress`** reste lisible (propriété de la requête Fastify) : l'adresse du proxy de Railway, commune à tous, deviendrait une clé de limitation — soit un plafond global que n'importe qui épuise, soit une adresse d'infrastructure prise pour celle d'un utilisateur | Ajouter `socket` aux propriétés interdites dans `src/` (y compris `src/platform/` et `server.ts`), et un `no-restricted-syntax` sur les littéraux `x-forwarded-for` et `x-real-ip` hors de `src/platform/client-address.ts`. Test ESLint comme pour `ip` | Avant le commit 6 (premier consommateur de la limitation) | 20 min |
+
+**`05` Q14 — `user-agent` : relayé, sous conditions (décision du 2026-09-27).** Écrite aussi dans `05`
+Q14 et `03` PP-5.
+
+1. *Passe-plat* (les deux `relay.ts`, octet pour octet) : l'en-tête `user-agent` du navigateur est
+   retransmis **sous le nom `client-user-agent`**, comme `client-request-id` (PP-7), seulement s'il
+   correspond à `^[\x20-\x7E]{1,512}$` (ASCII visible et espace, 512 caractères au plus) ; sinon
+   rien n'est transmis. **Aucune troncature, aucune analyse** dans le passe-plat (PP-12 : contrôle de
+   forme seulement, comme PP-6). `user-agent` n'est pas relayé sous son propre nom : l'agent de
+   `fetch` du serveur du front ne doit jamais être confondu avec celui d'un navigateur.
+2. *`apps/api`* : `client-user-agent` lu **après** le secret interne, une seule valeur (tableau ⇒
+   ignorée), re-validé par zod avec le même motif, puis **résumé par un module unique**
+   (`src/platform/user-agent.ts`) en une **valeur d'une liste fermée** « famille + système », dont
+   une valeur « non identifié » (RG-J3-5 : ni version, ni modèle d'appareil). Aucune bibliothèque
+   (`ua-parser-js` écarté), **aucune expression à retour arrière** : correspondances par
+   `includes` ou motifs ancrés sans quantificateur imbriqué ; test : une chaîne pathologique de
+   512 caractères résumée en moins de 5 ms. Le résumé est calculé à la demande du consommateur
+   (e-mail du code, création de session), comme `clientAddressOf()`.
+3. *Stocké* : le résumé seul, dans `identity.sessions.user_agent_summary`. **Contrainte en base
+   demandée à `expert-database`** : format de clé de la liste (`^[a-z][a-z0-9_]{0,31}\.[a-z][a-z0-9_]{0,31}$`),
+   pour qu'une chaîne brute ne puisse pas y entrer par erreur — dans la migration de l'écrivain des
+   sessions (commit 6), sinon avant le commit 9. Rien dans `leads.transactional_sends`, rien dans
+   `ops`, rien dans l'audit.
+4. *Journalisé* : **ni la chaîne brute, ni le résumé.** `user-agent`, `userAgent`, `user_agent`,
+   `client-user-agent` et `clientUserAgent` rejoignent les clés masquées de `logger.ts`.
+5. *Transmis* : jamais à GoTrue (les appels d'`apps/api` portent un `User-Agent` fixe à elle ;
+   l'avis de conformité ne couvre que l'adresse IP, EC-38) ; à Brevo, **seulement le libellé
+   traduit** de la liste fermée dans `{browser}` ; « non identifié » ⇒ `contextNoBrowser` (`05`
+   RG135). Une chaîne brute dans un e-mail serait du texte choisi par l'attaquant dans un message
+   signé INFLUX : **bloquant** si un test le trouve.
+6. *Usage* : jamais une décision d'autorisation. Le signal « nouveau navigateur » reste une
+   détection, contournable en imitant un navigateur courant (**à surveiller**, `05` RG146).
+7. *Tests* — passe-plat (les deux fronts) : valeur valide ⇒ `client-user-agent` égal ; 513
+   caractères, tabulation, `DEL`, octet non ASCII, valeur vide ⇒ rien ; `client-user-agent` envoyé
+   par le navigateur ⇒ remplacé par la valeur contrôlée ou absent ; `user-agent` reçu par l'API ≠
+   celui du navigateur. `apps/api` : ignoré sans secret interne valide ; table de résumés (au moins
+   Chrome, Edge, Firefox, Safari, Samsung Internet, navigateurs intégrés d'Instagram, Facebook et
+   TikTok × Windows, macOS, iOS, Android, Linux, ChromeOS, et inconnu) ; aucun chiffre de version dans
+   une valeur de la liste ; **C-1 par valeur** : un marqueur unique placé dans l'agent est absent des
+   journaux, des lignes `identity.sessions` et `leads.transactional_sends`, et de la charge reçue par
+   la doublure Brevo.
+8. *Commit* : un commit dédié **avant le commit 8**, `feat: relay a checked browser user agent
+   (05 Q14)` — les deux `relay.ts`, l'empreinte `RELAY_FILE_SHA256` de `@influx/test-kit` **mise à
+   jour dans le même commit**, `03` PP-5 et T7, le module de résumé et ses tests. Les usages suivent
+   aux commits 8 (e-mail) et 9 (session). Relu à la revue de fin de J3 avant tout push.
+
+**Point de structure pour `architecte`** (je ne le tranche pas) : l'emplacement de la liste fermée des
+résumés, écrite par `apps/api` et affichée par les deux fronts (« Mes sessions », `17b` §3.14) —
+`packages/contracts` proposé. Le contenu de la liste revient à `product-owner`, sous la condition de
+RG-J3-5.
 
 #### Plan initial du J3 (2026-09-25)
 
