@@ -137,10 +137,28 @@ function serializeResponse(value: unknown): { statusCode?: number } {
   return {};
 }
 
+/**
+ * Shape of a diagnostic code (21 §3 EC-49, J3 security review R-1): an identifier starting with a
+ * letter (`FST_ERR_*`, `ERR_*`, `ECONNRESET`, `UND_ERR_*`, GoTrue's `otp_expired`), or a SQLSTATE
+ * (`23505`, `P0001`). A login code, a token or any value with a space or a hyphen never has it.
+ * Linear: two anchored alternatives, no nested quantifier.
+ */
+const DIAGNOSTIC_CODE_PATTERN = /^(?:[A-Za-z][A-Za-z0-9_]{1,63}|[0-9A-Z]{5})$/;
+
+/** Written instead of a code that does not have the shape of a diagnostic code (R-1). */
+export const UNRECOGNIZED_ERROR_CODE = "[unrecognized]";
+
+/**
+ * The string `code` of an error, only when it has the shape of a diagnostic code; any other string
+ * becomes UNRECOGNIZED_ERROR_CODE, since it might be a login code or a token (R-1).
+ */
 function stringCodeOf(value: object): string | undefined {
-  return "code" in value && typeof value.code === "string"
+  if (!("code" in value) || typeof value.code !== "string") {
+    return undefined;
+  }
+  return DIAGNOSTIC_CODE_PATTERN.test(value.code)
     ? value.code
-    : undefined;
+    : UNRECOGNIZED_ERROR_CODE;
 }
 
 /**
@@ -186,7 +204,8 @@ function framesOf(error: Error): string | undefined {
 
 /**
  * The code of an error is written as `errorCode`, never `code`: `code` is a censored key, since it
- * names the login and TOTP codes (21 J3-C rule 7, §3 EC-49).
+ * names the login and TOTP codes (21 J3-C rule 7, §3 EC-49). `errorCode` is not censored: it holds
+ * only a value with the shape of a diagnostic code, or `[unrecognized]` (R-1).
  */
 export type SafeErrorLog = {
   type: string;

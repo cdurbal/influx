@@ -471,6 +471,76 @@ describe("authentication values, searched by value (21 J3-C rule 7, C-1)", () =>
   });
 });
 
+describe("errorCode holds a diagnostic code only (21 §3 EC-49, J3 security review R-1)", () => {
+  function workerLogger() {
+    const logs = captureLogs();
+    const logger = createLogger(
+      { service: "worker", environment: "staging", version: "local" },
+      logs.destination,
+    );
+    return { logs, logger };
+  }
+
+  function errorWithCode(code: string, causeCode: string): Error {
+    return Object.assign(new Error("refused"), {
+      code,
+      cause: Object.assign(new Error("inner"), { code: causeCode }),
+    });
+  }
+
+  it.each([
+    ["six digits (a login code)", "123456"],
+    ["eight digits", "12345678"],
+    ["a value with a space", "code 482913"],
+    ["a value with a hyphen", "tok-948213"],
+  ])("writes [unrecognized] for %s, found nowhere by value", (_case, value) => {
+    const { logs, logger } = workerLogger();
+    logger.error({ err: errorWithCode(value, value) }, "call failed");
+    logger.warn({ nested: { failure: errorWithCode(value, value) } }, "nested");
+    const text = logs.text();
+    expect(valuesFoundIn(text, [value])).toEqual([]);
+    const [first, second] = logs
+      .lines()
+      .map((line) => JSON.parse(line) as Record<string, unknown>);
+    const expected = {
+      errorCode: "[unrecognized]",
+      cause: { name: "Error", errorCode: "[unrecognized]" },
+    };
+    expect(first).toMatchObject({ err: expected });
+    expect(second).toMatchObject({ nested: { failure: expected } });
+  });
+
+  it.each([
+    ["a Fastify code", "FST_ERR_CTP_INVALID_MEDIA_TYPE"],
+    ["a SQLSTATE", "23505"],
+    ["a PL/pgSQL SQLSTATE", "P0001"],
+    ["a GoTrue code", "otp_expired"],
+    ["a Node code", "ECONNRESET"],
+  ])("keeps %s", (_case, code) => {
+    const { logs, logger } = workerLogger();
+    logger.error({ err: errorWithCode(code, code) }, "call failed");
+    const [line] = logs
+      .lines()
+      .map((entry) => JSON.parse(entry) as Record<string, unknown>);
+    expect(line).toMatchObject({
+      err: { errorCode: code, cause: { name: "Error", errorCode: code } },
+    });
+  });
+
+  it("writes no errorCode when the code is not a string", () => {
+    const { logs, logger } = workerLogger();
+    logger.error(
+      { err: Object.assign(new Error("refused"), { code: 123456 }) },
+      "call failed",
+    );
+    const [line] = logs
+      .lines()
+      .map((entry) => JSON.parse(entry) as { err: Record<string, unknown> });
+    expect(line?.err).not.toHaveProperty("errorCode");
+    expect(valuesFoundIn(logs.text(), ["123456"])).toEqual([]);
+  });
+});
+
 describe("forced truncation of every logged object (end-of-J2 review, point (b))", () => {
   const MARKER = "deep-marker-Kp27w";
 
