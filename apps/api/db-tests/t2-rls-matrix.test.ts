@@ -151,7 +151,14 @@ async function deviationsOf(role: ProbedRole, mode: Mode): Promise<string[]> {
   const deviations: string[] = [];
   const sql = loginRole(TAKEN_ROLES[role]);
   const context = contextOf(role, mode);
-  const self = context?.accountId ?? otherAccountOf(role);
+  // An elevated role has no business context: its probes act on account A of the agent role
+  // (a backoffice session, a P0 journal line of the data set). A business role without
+  // context acts on account B, whose rows it must never reach.
+  const self =
+    context?.accountId ??
+    (BUSINESS_ROLE_OF[role] === undefined
+      ? dataSet.accounts.agent.a.id
+      : otherAccountOf(role));
   const other = otherAccountOf(role);
   await inRolledBackTransaction(sql, async (tx) => {
     await takeRole(tx, role, context);

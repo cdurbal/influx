@@ -36,6 +36,12 @@ export const TERMS_VERSION_ID = "00000000-0000-4000-8000-00000000ff01";
 /** A second version, never accepted by the data set: target of the insertion probes of T2. */
 export const PROBE_TERMS_VERSION_ID = "00000000-0000-4000-8000-00000000ff03";
 export const OWNERSHIP_ASSIGNMENT_ID = "00000000-0000-4000-8000-00000000ff02";
+export const RECOVERY_CODE_ID = "00000000-0000-4000-8000-00000000ff04";
+export const ENROLLMENT_TOKEN_ID = "00000000-0000-4000-8000-00000000ff05";
+/** Journal line of agent A (0015, RG68: an internal address may request a code): target of the
+ * probes of influx_auth. */
+export const TRANSACTIONAL_SEND_REFERENCE =
+  "00000000-0000-4000-8000-00000000ff06";
 
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
@@ -74,9 +80,13 @@ async function insertAccount(
     values (${id}, ${role}::identity.account_role)
     on conflict do nothing`;
   if (isInternalRole(role)) {
+    // A pinned TOTP factor (0012, G-1 point 1): without it, influx_auth may open no
+    // backoffice session for the account (C6-2).
     await tx`
-      insert into identity.agent_profiles (account_id, first_name, activated_at, mfa_enrolled_at)
-      values (${id}, ${`T2${role}${side}`}, now(), now())
+      insert into identity.agent_profiles
+        (account_id, first_name, activated_at, mfa_enrolled_at, mfa_factor_id)
+      values (${id}, ${`T2${role}${side}`}, now(), now(),
+              ${`00000000-0000-4000-a000-000000000${ROLE_DIGIT[role]}${SIDE_DIGIT[side]}0`})
       on conflict do nothing`;
   } else {
     await tx`
@@ -102,14 +112,15 @@ async function insertSession(
   const sessionToken = randomBytes(32);
   const sessionTokenHash = createHash("sha256").update(sessionToken).digest();
   const internal = isInternalRole(role);
+  // Dates, aal and the first second-factor proof are computed by identity.prepare_session()
+  // (0012, EC-29): only the columns influx_auth may write are given.
   await tx`
     insert into identity.sessions
-      (token_hash, account_id, surface, aal, idle_expires_at, absolute_expires_at)
+      (token_hash, account_id, surface, mfa_method, user_agent_summary)
     values (${sessionTokenHash}, ${accountIdOf(role, side)},
             ${internal ? "backoffice" : "member"}::identity.session_surface,
-            ${internal ? "aal2" : "aal1"}::identity.session_aal,
-            now() + ${internal ? "25 minutes" : "10 days"}::interval,
-            now() + ${internal ? "7 hours" : "100 days"}::interval)`;
+            ${internal ? "totp" : null}::identity.mfa_method,
+            ${internal ? "firefox.linux" : "safari.ios"})`;
   return {
     id: accountIdOf(role, side),
     role,
@@ -156,6 +167,32 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
       insert into backoffice.ownership_assignments (id, account_id, agent_account_id, reason_code)
       values (${OWNERSHIP_ASSIGNMENT_ID}, ${accountIdOf("advertiser", "a")},
               ${accountIdOf("agent", "a")}, 'test_data_set')
+      on conflict do nothing`;
+
+    // One row in each table of the second factor, the throttle and the journal (0013 to 0015),
+    // so that T2 sees a refusal and not an empty table (18 T2 rule 3).
+    await tx`
+      insert into identity.mfa_recovery_codes (id, account_id, batch_id, code_hash)
+      values (${RECOVERY_CODE_ID}, ${accountIdOf("agent", "a")}, ${RECOVERY_CODE_ID},
+              sha256('t2-recovery-code'::bytea))
+      on conflict do nothing`;
+    await tx`
+      insert into identity.mfa_enrollment_tokens (id, account_id, token_hash, expires_at)
+      values (${ENROLLMENT_TOKEN_ID}, ${accountIdOf("agent", "b")},
+              sha256('t2-enrollment-token'::bytea), now() + interval '72 hours')
+      on conflict do nothing`;
+    await tx`
+      insert into identity.totp_replay_guards (account_id, code_hmac)
+      values (${accountIdOf("admin", "a")}, sha256('t2-totp'::bytea))
+      on conflict do nothing`;
+    await tx`
+      insert into identity.auth_request_throttle (scope, scope_key_hash, window_code)
+      values ('code_request_email', sha256('t2-throttle'::bytea), '1h')
+      on conflict do nothing`;
+    await tx`
+      insert into leads.transactional_sends (reference, email_code, priority, account_id, locale)
+      values (${TRANSACTIONAL_SEND_REFERENCE}, 'auth.login_code', 'p0',
+              ${accountIdOf("agent", "a")}, 'fr')
       on conflict do nothing`;
 
     // At least one verification record, so that its read rights are observable.

@@ -4,7 +4,9 @@
 //
 // Rules (18 T2):
 // 1. one column per POSTGRES role; the `service` column of 03 §3 is split between influx_auth and
-//    influx_worker, which have NO table right at J2 (their rights arrive with 0108, J3);
+//    influx_worker. influx_auth receives its table rights at J3 (0012 to 0015, column by column,
+//    03 P7 E-1 / E-2); influx_worker still has none (J6). An elevated role has no business
+//    context: its probes act on account A of the advertiser role (t2-rls-matrix.test.ts);
 // 2. every expectation cites its source; an absent cell means `refus_droit`: refusal is the
 //    default, never the exception;
 // 3. every table lists the templates its probes need, and the data set of test-kit places at
@@ -99,6 +101,12 @@ function merge(
   return result;
 }
 
+/** influx_auth reads for the sign-in, column by column (0012 §6, 03 P7 E-2, EC-5). */
+const AUTH_SIGN_IN_READ: Expectation = {
+  form: "autorisé",
+  source: "0012 §6: sign-in reads of influx_auth (E-2), named columns",
+};
+
 const REFERENCE_READ: Expectation = {
   form: "autorisé",
   source:
@@ -151,6 +159,7 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
           source: "03 §3.1 « Compte — modifier ses propres données » S",
         },
       }),
+      { influx_auth: { select: AUTH_SIGN_IN_READ } },
     ),
   },
   {
@@ -171,30 +180,94 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
           source: "03 §3.1 « Compte — lister et consulter (tous) » L·J",
         },
       }),
+      { influx_auth: { select: AUTH_SIGN_IN_READ } },
     ),
   },
   {
     table: "identity.agent_profiles",
-    source: "0004 §6.3",
+    source: "0004 §6.3, 0012 §6",
     probeColumn: "account_id",
-    expected: forRoles(INTERNAL, {
-      select: {
-        form: "autorisé",
-        source: "0004 §6.3 (internal information, never for a member)",
+    expected: merge(
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source: "0004 §6.3 (internal information, never for a member)",
+        },
+      }),
+      {
+        influx_auth: {
+          select: {
+            form: "autorisé",
+            source:
+              "0012 §6: active, break-glass and pinned factor, for the backoffice sign-in (G-1)",
+          },
+        },
       },
-    }),
+    ),
   },
   {
     table: "identity.sessions",
-    source: "0004 §6.4",
+    source: "0004 §6.4, 0012",
     probeColumn: "id",
     ownerColumn: "account_id",
-    expected: forRoles(BUSINESS, {
-      select: {
-        form: "propre",
-        source: "03 §3.1 « Sessions — lister les siennes » S",
+    // Writable by influx_auth only (EC-29); a no-op on a column it may update.
+    updateSet: "mfa_method = mfa_method",
+    // A backoffice session of the elevated subject (agent A); dates and aal are computed (0012).
+    insertTemplate:
+      "insert into identity.sessions (token_hash, account_id, surface, mfa_method) " +
+      "values (sha256(gen_random_uuid()::text::bytea), $1, 'backoffice', 'totp')",
+    expected: merge(
+      forRoles(BUSINESS, {
+        select: {
+          form: "propre",
+          source: "03 §3.1 « Sessions — lister les siennes » S",
+        },
+      }),
+      {
+        influx_auth: {
+          select: {
+            form: "autorisé",
+            source: "0012 §6: E-2 reads the session it creates or refreshes",
+          },
+          insert: {
+            form: "autorisé",
+            source:
+              "EC-29 point 1: creation by influx_auth (E-2), named columns",
+          },
+          update: {
+            form: "autorisé",
+            source:
+              "EC-40: freshness of R and revocation after failed R, backoffice sessions only",
+          },
+        },
       },
-    }),
+    ),
+  },
+  {
+    table: "identity.mfa_recovery_codes",
+    source:
+      "0013 §1 (EC-17): no right for any execution role; definer functions only",
+    probeColumn: "id",
+    expected: {},
+  },
+  {
+    table: "identity.mfa_enrollment_tokens",
+    source: "0013 §2 (G-1 point 2): no right for any execution role",
+    probeColumn: "id",
+    expected: {},
+  },
+  {
+    table: "identity.totp_replay_guards",
+    source: "0013 §3 (EC-39): no right for any execution role",
+    probeColumn: "account_id",
+    expected: {},
+  },
+  {
+    table: "identity.auth_request_throttle",
+    source:
+      "0014 (EC-3, EC-47): no right for any execution role; definer functions only",
+    probeColumn: "scope",
+    expected: {},
   },
   {
     table: "identity.terms_versions",
@@ -331,6 +404,33 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
       },
     }),
   },
+  {
+    table: "leads.transactional_sends",
+    source: "0015 (D43, EC-6, EC-7)",
+    // influx_auth reads id, reference and status only (not account_id): the probes address the
+    // table by status, a no-op on the outcome of the queued P0 lines (policy: p0 and queued).
+    probeColumn: "status",
+    insertTemplate:
+      "insert into leads.transactional_sends (email_code, priority, account_id, locale) " +
+      "values ('auth.login_code', 'p0', $1, 'fr')",
+    expected: {
+      influx_auth: {
+        select: {
+          form: "autorisé",
+          source: "0015: E-1 reads back its P0 line (id, reference, status)",
+        },
+        insert: {
+          form: "autorisé",
+          source: "0015, D43: E-1 journals the P0 sign-in code",
+        },
+        update: {
+          form: "autorisé",
+          source:
+            "0015, D43: the outcome of the single attempt (sent or failed)",
+        },
+      },
+    },
+  },
 ];
 
 /**
@@ -370,7 +470,9 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * T2.7: the EXACT snapshot of the privileges held by the roles of the closed list of 03 P7 on our
  * schemas — tables, columns, functions (owner's implicit EXECUTE included) and schemas. Format:
  * `role|kind|object|privileges`. Anything more, or less, fails. Taken from the local database
- * after 0001-0008 and reviewed line by line against 03 §3 and P7 on 2026-09-26.
+ * after 0001-0008 and reviewed line by line against 03 §3 and P7 on 2026-09-26; extended on
+ * 2026-09-28 with the grants of 0011 to 0015 (J3 commit 6: influx_auth column by column, the
+ * narrow audit functions, the identity definers), each line checked against its migration.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -381,8 +483,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.sessions.account_id|SELECT",
   "influx_admin|column|identity.sessions.country_code|SELECT",
   "influx_admin|column|identity.sessions.created_at|SELECT",
-  "influx_admin|column|identity.sessions.id|SELECT",
   "influx_admin|column|identity.sessions.idle_expires_at|SELECT",
+  "influx_admin|column|identity.sessions.id|SELECT",
   "influx_admin|column|identity.sessions.last_activity_at|SELECT",
   "influx_admin|column|identity.sessions.revocation_reason|SELECT",
   "influx_admin|column|identity.sessions.revoked_at|SELECT",
@@ -390,6 +492,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.sessions.updated_at|SELECT",
   "influx_admin|column|identity.sessions.user_agent_summary|SELECT",
   "influx_admin|function|identity.grant_role(uuid,identity.account_role,text)|EXECUTE",
+  "influx_admin|function|identity.revoke_own_session(uuid,identity.session_revocation_reason)|EXECUTE",
+  "influx_admin|function|identity.touch_session(uuid)|EXECUTE",
   "influx_admin|function|influx.current_aal()|EXECUTE",
   "influx_admin|function|influx.current_account_id()|EXECUTE",
   "influx_admin|function|influx.current_account_role()|EXECUTE",
@@ -422,8 +526,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_advertiser|column|identity.accounts.country_code|SELECT",
   "influx_advertiser|column|identity.accounts.created_at|SELECT",
   "influx_advertiser|column|identity.accounts.display_name|SELECT,UPDATE",
-  "influx_advertiser|column|identity.accounts.email|SELECT",
   "influx_advertiser|column|identity.accounts.email_verified_at|SELECT",
+  "influx_advertiser|column|identity.accounts.email|SELECT",
   "influx_advertiser|column|identity.accounts.id|SELECT",
   "influx_advertiser|column|identity.accounts.is_adult_attested|SELECT",
   "influx_advertiser|column|identity.accounts.last_seen_at|SELECT",
@@ -441,8 +545,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_advertiser|column|identity.sessions.account_id|SELECT",
   "influx_advertiser|column|identity.sessions.country_code|SELECT",
   "influx_advertiser|column|identity.sessions.created_at|SELECT",
-  "influx_advertiser|column|identity.sessions.id|SELECT",
   "influx_advertiser|column|identity.sessions.idle_expires_at|SELECT",
+  "influx_advertiser|column|identity.sessions.id|SELECT",
   "influx_advertiser|column|identity.sessions.last_activity_at|SELECT",
   "influx_advertiser|column|identity.sessions.revocation_reason|SELECT",
   "influx_advertiser|column|identity.sessions.revoked_at|SELECT",
@@ -456,6 +560,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_advertiser|column|identity.terms_acceptances.nature|INSERT",
   "influx_advertiser|column|identity.terms_acceptances.terms_version_id|INSERT",
   "influx_advertiser|column|identity.terms_acceptances.user_agent|INSERT",
+  "influx_advertiser|function|identity.revoke_own_session(uuid,identity.session_revocation_reason)|EXECUTE",
+  "influx_advertiser|function|identity.touch_session(uuid)|EXECUTE",
   "influx_advertiser|function|influx.current_aal()|EXECUTE",
   "influx_advertiser|function|influx.current_account_id()|EXECUTE",
   "influx_advertiser|function|influx.current_account_role()|EXECUTE",
@@ -477,14 +583,16 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_agent|column|identity.sessions.account_id|SELECT",
   "influx_agent|column|identity.sessions.country_code|SELECT",
   "influx_agent|column|identity.sessions.created_at|SELECT",
-  "influx_agent|column|identity.sessions.id|SELECT",
   "influx_agent|column|identity.sessions.idle_expires_at|SELECT",
+  "influx_agent|column|identity.sessions.id|SELECT",
   "influx_agent|column|identity.sessions.last_activity_at|SELECT",
   "influx_agent|column|identity.sessions.revocation_reason|SELECT",
   "influx_agent|column|identity.sessions.revoked_at|SELECT",
   "influx_agent|column|identity.sessions.surface|SELECT",
   "influx_agent|column|identity.sessions.updated_at|SELECT",
   "influx_agent|column|identity.sessions.user_agent_summary|SELECT",
+  "influx_agent|function|identity.revoke_own_session(uuid,identity.session_revocation_reason)|EXECUTE",
+  "influx_agent|function|identity.touch_session(uuid)|EXECUTE",
   "influx_agent|function|influx.current_aal()|EXECUTE",
   "influx_agent|function|influx.current_account_id()|EXECUTE",
   "influx_agent|function|influx.current_account_role()|EXECUTE",
@@ -507,10 +615,61 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_agent|table|reference.languages|SELECT",
   "influx_app|function|identity.resolve_session(bytea)|EXECUTE",
   "influx_app|schema|identity|USAGE",
+  "influx_audit_writer|column|audit.event_types.code|SELECT",
+  "influx_audit_writer|column|audit.event_types.is_active|SELECT",
+  "influx_audit_writer|column|audit.event_types.subject_type|SELECT",
   "influx_audit_writer|function|audit.append(text,text,uuid,jsonb)|EXECUTE",
+  "influx_audit_writer|function|audit.append_auth_event(text,uuid)|EXECUTE",
+  "influx_audit_writer|function|audit.append_elevated(text,uuid)|EXECUTE",
   "influx_audit_writer|function|audit.payload_hash(text,bigint,timestamp with time zone,timestamp with time zone,text,audit.actor_type,uuid,text,uuid,jsonb,text)|EXECUTE",
   "influx_audit_writer|schema|audit|USAGE",
   "influx_audit_writer|table|audit.audit_events|INSERT,SELECT",
+  "influx_auth|column|identity.account_roles.account_id|SELECT",
+  "influx_auth|column|identity.account_roles.role|SELECT",
+  "influx_auth|column|identity.accounts.auth_user_id|SELECT",
+  "influx_auth|column|identity.accounts.email|SELECT",
+  "influx_auth|column|identity.accounts.id|SELECT",
+  "influx_auth|column|identity.accounts.status|SELECT",
+  "influx_auth|column|identity.agent_profiles.account_id|SELECT",
+  "influx_auth|column|identity.agent_profiles.is_active|SELECT",
+  "influx_auth|column|identity.agent_profiles.is_break_glass|SELECT",
+  "influx_auth|column|identity.agent_profiles.mfa_factor_id|SELECT",
+  "influx_auth|column|identity.sessions.aal|SELECT",
+  "influx_auth|column|identity.sessions.absolute_expires_at|SELECT",
+  "influx_auth|column|identity.sessions.account_id|INSERT,SELECT",
+  "influx_auth|column|identity.sessions.idle_expires_at|SELECT",
+  "influx_auth|column|identity.sessions.id|SELECT",
+  "influx_auth|column|identity.sessions.mfa_method|INSERT,SELECT,UPDATE",
+  "influx_auth|column|identity.sessions.mfa_verified_at|SELECT,UPDATE",
+  "influx_auth|column|identity.sessions.revocation_reason|UPDATE",
+  "influx_auth|column|identity.sessions.revoked_at|SELECT,UPDATE",
+  "influx_auth|column|identity.sessions.surface|INSERT,SELECT",
+  "influx_auth|column|identity.sessions.token_hash|INSERT",
+  "influx_auth|column|identity.sessions.user_agent_summary|INSERT",
+  "influx_auth|column|leads.transactional_sends.account_id|INSERT",
+  "influx_auth|column|leads.transactional_sends.email_code|INSERT",
+  "influx_auth|column|leads.transactional_sends.failure_code|UPDATE",
+  "influx_auth|column|leads.transactional_sends.id|SELECT",
+  "influx_auth|column|leads.transactional_sends.locale|INSERT",
+  "influx_auth|column|leads.transactional_sends.priority|INSERT",
+  "influx_auth|column|leads.transactional_sends.provider_message_id|UPDATE",
+  "influx_auth|column|leads.transactional_sends.recipient_email|INSERT",
+  "influx_auth|column|leads.transactional_sends.reference|SELECT",
+  "influx_auth|column|leads.transactional_sends.status|SELECT,UPDATE",
+  "influx_auth|column|leads.transactional_sends.template_ref|INSERT",
+  "influx_auth|column|leads.transactional_sends.template_version|INSERT",
+  "influx_auth|function|audit.append_auth_event(text,uuid)|EXECUTE",
+  "influx_auth|function|audit.append_elevated(text,uuid)|EXECUTE",
+  "influx_auth|function|identity.accept_totp_code(uuid,bytea)|EXECUTE",
+  "influx_auth|function|identity.auth_failure_count(identity.throttle_scope,bytea,identity.throttle_window)|EXECUTE",
+  "influx_auth|function|identity.consume_recovery_code(uuid,bytea)|EXECUTE",
+  "influx_auth|function|identity.enrollment_token_is_valid(uuid,bytea)|EXECUTE",
+  "influx_auth|function|identity.pin_mfa_factor(uuid,uuid,bytea,bytea[])|EXECUTE",
+  "influx_auth|function|identity.record_auth_failure(identity.throttle_scope,bytea,identity.throttle_window)|EXECUTE",
+  "influx_auth|function|identity.reserve_auth_attempt(identity.throttle_scope,bytea,identity.throttle_window,integer)|EXECUTE",
+  "influx_auth|schema|audit|USAGE",
+  "influx_auth|schema|identity|USAGE",
+  "influx_auth|schema|leads|USAGE",
   "influx_creator|column|identity.account_roles.account_id|SELECT",
   "influx_creator|column|identity.account_roles.created_at|SELECT",
   "influx_creator|column|identity.account_roles.granted_at|SELECT",
@@ -519,8 +678,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator|column|identity.accounts.country_code|SELECT",
   "influx_creator|column|identity.accounts.created_at|SELECT",
   "influx_creator|column|identity.accounts.display_name|SELECT,UPDATE",
-  "influx_creator|column|identity.accounts.email|SELECT",
   "influx_creator|column|identity.accounts.email_verified_at|SELECT",
+  "influx_creator|column|identity.accounts.email|SELECT",
   "influx_creator|column|identity.accounts.id|SELECT",
   "influx_creator|column|identity.accounts.is_adult_attested|SELECT",
   "influx_creator|column|identity.accounts.last_seen_at|SELECT",
@@ -538,8 +697,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator|column|identity.sessions.account_id|SELECT",
   "influx_creator|column|identity.sessions.country_code|SELECT",
   "influx_creator|column|identity.sessions.created_at|SELECT",
-  "influx_creator|column|identity.sessions.id|SELECT",
   "influx_creator|column|identity.sessions.idle_expires_at|SELECT",
+  "influx_creator|column|identity.sessions.id|SELECT",
   "influx_creator|column|identity.sessions.last_activity_at|SELECT",
   "influx_creator|column|identity.sessions.revocation_reason|SELECT",
   "influx_creator|column|identity.sessions.revoked_at|SELECT",
@@ -553,6 +712,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator|column|identity.terms_acceptances.nature|INSERT",
   "influx_creator|column|identity.terms_acceptances.terms_version_id|INSERT",
   "influx_creator|column|identity.terms_acceptances.user_agent|INSERT",
+  "influx_creator|function|identity.revoke_own_session(uuid,identity.session_revocation_reason)|EXECUTE",
+  "influx_creator|function|identity.touch_session(uuid)|EXECUTE",
   "influx_creator|function|influx.current_aal()|EXECUTE",
   "influx_creator|function|influx.current_account_id()|EXECUTE",
   "influx_creator|function|influx.current_account_role()|EXECUTE",
@@ -573,8 +734,50 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|column|identity.accounts.status|SELECT",
   "influx_identity_definer|column|identity.agent_profiles.account_id|SELECT",
   "influx_identity_definer|column|identity.agent_profiles.is_active|SELECT",
+  "influx_identity_definer|column|identity.agent_profiles.mfa_enrolled_at|UPDATE",
+  "influx_identity_definer|column|identity.agent_profiles.mfa_factor_id|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.auth_request_throttle.denied_count|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.auth_request_throttle.expires_at|UPDATE",
+  "influx_identity_definer|column|identity.auth_request_throttle.failure_count|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.auth_request_throttle.last_request_at|UPDATE",
+  "influx_identity_definer|column|identity.auth_request_throttle.request_count|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.auth_request_throttle.scope_key_hash|INSERT,SELECT",
+  "influx_identity_definer|column|identity.auth_request_throttle.scope|INSERT,SELECT",
+  "influx_identity_definer|column|identity.auth_request_throttle.window_code|INSERT,SELECT",
+  "influx_identity_definer|column|identity.auth_request_throttle.window_started_at|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.mfa_enrollment_tokens.account_id|SELECT",
+  "influx_identity_definer|column|identity.mfa_enrollment_tokens.consumed_at|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.mfa_enrollment_tokens.expires_at|SELECT",
+  "influx_identity_definer|column|identity.mfa_enrollment_tokens.id|SELECT",
+  "influx_identity_definer|column|identity.mfa_enrollment_tokens.token_hash|SELECT",
+  "influx_identity_definer|column|identity.mfa_recovery_codes.account_id|INSERT,SELECT",
+  "influx_identity_definer|column|identity.mfa_recovery_codes.batch_id|INSERT",
+  "influx_identity_definer|column|identity.mfa_recovery_codes.code_hash|INSERT,SELECT",
+  "influx_identity_definer|column|identity.mfa_recovery_codes.consumed_at|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.mfa_recovery_codes.id|SELECT",
+  "influx_identity_definer|column|identity.mfa_recovery_codes.revoked_at|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.sessions.absolute_expires_at|SELECT",
+  "influx_identity_definer|column|identity.sessions.account_id|SELECT",
+  "influx_identity_definer|column|identity.sessions.idle_expires_at|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.sessions.id|SELECT",
+  "influx_identity_definer|column|identity.sessions.last_activity_at|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.sessions.revocation_reason|UPDATE",
+  "influx_identity_definer|column|identity.sessions.revoked_at|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.sessions.surface|SELECT",
+  "influx_identity_definer|column|identity.totp_replay_guards.account_id|INSERT,SELECT",
+  "influx_identity_definer|column|identity.totp_replay_guards.code_hmac|INSERT,SELECT",
+  "influx_identity_definer|column|identity.totp_replay_guards.created_at|SELECT",
   "influx_identity_definer|function|audit.append(text,text,uuid,jsonb)|EXECUTE",
+  "influx_identity_definer|function|identity.accept_totp_code(uuid,bytea)|EXECUTE",
+  "influx_identity_definer|function|identity.auth_failure_count(identity.throttle_scope,bytea,identity.throttle_window)|EXECUTE",
+  "influx_identity_definer|function|identity.consume_recovery_code(uuid,bytea)|EXECUTE",
+  "influx_identity_definer|function|identity.enrollment_token_is_valid(uuid,bytea)|EXECUTE",
   "influx_identity_definer|function|identity.grant_role(uuid,identity.account_role,text)|EXECUTE",
+  "influx_identity_definer|function|identity.pin_mfa_factor(uuid,uuid,bytea,bytea[])|EXECUTE",
+  "influx_identity_definer|function|identity.record_auth_failure(identity.throttle_scope,bytea,identity.throttle_window)|EXECUTE",
+  "influx_identity_definer|function|identity.reserve_auth_attempt(identity.throttle_scope,bytea,identity.throttle_window,integer)|EXECUTE",
+  "influx_identity_definer|function|identity.revoke_own_session(uuid,identity.session_revocation_reason)|EXECUTE",
+  "influx_identity_definer|function|identity.touch_session(uuid)|EXECUTE",
   "influx_identity_definer|function|influx.current_aal()|EXECUTE",
   "influx_identity_definer|function|influx.current_account_id()|EXECUTE",
   "influx_identity_definer|function|influx.current_account_role()|EXECUTE",
@@ -582,6 +785,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|schema|audit|USAGE",
   "influx_identity_definer|schema|identity|USAGE",
   "influx_identity_definer|schema|influx|USAGE",
+  "influx_identity_definer|table|identity.totp_replay_guards|DELETE",
   "influx_session_resolver|column|identity.account_roles.account_id|SELECT",
   "influx_session_resolver|column|identity.account_roles.role|SELECT",
   "influx_session_resolver|column|identity.accounts.id|SELECT",
@@ -591,8 +795,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_session_resolver|column|identity.sessions.aal|SELECT",
   "influx_session_resolver|column|identity.sessions.absolute_expires_at|SELECT",
   "influx_session_resolver|column|identity.sessions.account_id|SELECT",
-  "influx_session_resolver|column|identity.sessions.id|SELECT",
   "influx_session_resolver|column|identity.sessions.idle_expires_at|SELECT",
+  "influx_session_resolver|column|identity.sessions.id|SELECT",
   "influx_session_resolver|column|identity.sessions.revoked_at|SELECT",
   "influx_session_resolver|column|identity.sessions.surface|SELECT",
   "influx_session_resolver|column|identity.sessions.token_hash|SELECT",
@@ -651,5 +855,24 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "audit.append(text,text,uuid,jsonb)": "influx_audit_writer",
   "identity.resolve_session(bytea)": "influx_session_resolver",
   "identity.grant_role(uuid,identity.account_role,text)":
+    "influx_identity_definer",
+  // 0011 (EC-36, EC-44)
+  "audit.append_elevated(text,uuid)": "influx_audit_writer",
+  "audit.append_auth_event(text,uuid)": "influx_audit_writer",
+  // 0012 (EC-29)
+  "identity.touch_session(uuid)": "influx_identity_definer",
+  "identity.revoke_own_session(uuid,identity.session_revocation_reason)":
+    "influx_identity_definer",
+  // 0013 (EC-17, EC-39, G-1)
+  "identity.enrollment_token_is_valid(uuid,bytea)": "influx_identity_definer",
+  "identity.pin_mfa_factor(uuid,uuid,bytea,bytea[])": "influx_identity_definer",
+  "identity.consume_recovery_code(uuid,bytea)": "influx_identity_definer",
+  "identity.accept_totp_code(uuid,bytea)": "influx_identity_definer",
+  // 0014 (EC-3, EC-47)
+  "identity.reserve_auth_attempt(identity.throttle_scope,bytea,identity.throttle_window,integer)":
+    "influx_identity_definer",
+  "identity.record_auth_failure(identity.throttle_scope,bytea,identity.throttle_window)":
+    "influx_identity_definer",
+  "identity.auth_failure_count(identity.throttle_scope,bytea,identity.throttle_window)":
     "influx_identity_definer",
 };

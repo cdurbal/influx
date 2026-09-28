@@ -3,6 +3,7 @@
 // a transaction that disables the trigger, alters, re-enables, verifies ON THAT SAME transaction,
 // then rolls back: no alteration is ever committed (18 T3, "Mode opératoire").
 import {
+  connectAsLocalSuperuser,
   connectAsLoginRole,
   inRolledBackTransaction,
   probe,
@@ -559,14 +560,31 @@ describe("M2: the actor type of a line is bound to session_user (0009)", () => {
     ).toEqual({ actor_type: "service", actor_account_id: account });
   });
 
-  it("derives the actor from influx.role for influx_app, and refuses anything else", async () => {
+  // V2 (security review of 0009): every mapping of influx.role is proven, not only admin, so
+  // that an inversion agent <-> admin or creator -> agent in the case expression turns red.
+  it.each([
+    ["advertiser", "member"],
+    ["creator", "member"],
+    ["agent", "agent"],
+    ["admin", "admin"],
+  ] as const)(
+    "V2: derives %s -> %s from influx.role for influx_app",
+    async (role, actor) => {
+      const account = dataSet.accounts[role].a.id;
+      expect(
+        await appendAs("influx_app", "influx_admin", { account, role }),
+      ).toEqual({ actor_type: actor, actor_account_id: account });
+    },
+  );
+
+  it("V2: refuses for influx_app any other influx.role, casing included, or no account", async () => {
     const account = dataSet.accounts.admin.a.id;
-    expect(
-      await appendAs("influx_app", "influx_admin", { account, role: "admin" }),
-    ).toEqual({ actor_type: "admin", actor_account_id: account });
     for (const settings of [
       { account, role: "service" },
       { account, role: "system" },
+      { account, role: "Admin" },
+      { account, role: "ADMIN" },
+      { account, role: " admin" },
       { account },
       { role: "admin" },
     ]) {
@@ -574,6 +592,37 @@ describe("M2: the actor type of a line is bound to session_user (0009)", () => {
         appendAs("influx_app", "influx_admin", settings),
         JSON.stringify(settings),
       ).rejects.toMatchObject({ code: INSUFFICIENT_PRIVILEGE });
+    }
+  });
+
+  it("V2: records a system act for influx_worker_login without an account", async () => {
+    expect(
+      await appendAs("influx_worker_login", "influx_worker", { role: "agent" }),
+    ).toEqual({ actor_type: "system", actor_account_id: null });
+  });
+
+  it("V1: refuses any other influx_% session_user (0011)", async () => {
+    // SET SESSION AUTHORIZATION needs a superuser: the local one only (loopback), in a
+    // rolled-back transaction. influx_worker holds EXECUTE and USAGE for this block only.
+    const superuser = connectAsLocalSuperuser({ max: 1 });
+    try {
+      const result = await inRolledBackTransaction(superuser, async (tx) => {
+        await tx.unsafe("set local session authorization influx_worker");
+        const [row] = await tx<
+          { session: string }[]
+        >`select session_user::text as session`;
+        expect(row?.session).toBe("influx_worker");
+        return probe(
+          tx,
+          "select audit.append('account.role_granted', 'account', gen_random_uuid())",
+        );
+      });
+      expect(result).toEqual({
+        outcome: "error",
+        code: INSUFFICIENT_PRIVILEGE,
+      });
+    } finally {
+      await superuser.end({ timeout: 1 });
     }
   });
 
@@ -590,13 +639,19 @@ describe("M2: the actor type of a line is bound to session_user (0009)", () => {
       // Two statements: a statement does not see the row its own function call inserts.
       const [written] = await tx<{ seq: string }[]>`
         select audit.append('account.role_granted', 'account', ${randomUUID()})::text as seq`;
-      const [row] = await tx<Written[]>`
-        select actor_type::text, actor_account_id::text
+      const [row] = await tx<(Written & { session: string | null })[]>`
+        select actor_type::text, actor_account_id::text,
+               payload->>'db_session_user' as session
           from audit.audit_events
          where chain_key = 'global' and seq = ${written?.seq ?? "0"}`;
       return row;
     });
-    expect(line).toEqual({ actor_type: "system", actor_account_id: null });
+    // V1 (b): the session_user of a system line is kept in the (hashed) payload.
+    expect(line).toEqual({
+      actor_type: "system",
+      actor_account_id: null,
+      session: "postgres",
+    });
   });
 
   it("keeps the chain continuous and verifiable after these lines", async () => {

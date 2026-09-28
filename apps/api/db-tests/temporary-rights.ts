@@ -14,11 +14,12 @@ export const APPEND_TEMPORARY_GRANTEES = [
   "influx_auth",
   "influx_worker",
 ] as const;
-/** USAGE on the schema audit granted by the M2 block (0006 gives it to none of them). */
-export const AUDIT_USAGE_TEMPORARY_GRANTEES = [
-  "influx_auth",
-  "influx_worker",
-] as const;
+/**
+ * USAGE on the schema audit granted by the M2 block. influx_auth holds it for good since 0011 (it
+ * reaches audit.append_elevated() and audit.append_auth_event() through the schema): only
+ * influx_worker receives it temporarily, until its first elevated operation (J6).
+ */
+export const AUDIT_USAGE_TEMPORARY_GRANTEES = ["influx_worker"] as const;
 
 export const INTERRUPTED_RUN_MESSAGE =
   "exécution précédente interrompue : des droits temporaires d'un test sont restés dans la " +
