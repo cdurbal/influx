@@ -4187,6 +4187,8 @@ comment on column leads.contact_sync_states.last_marketing_sent_at is
 > connexion**, qui est depuis **D37** le moyen d'authentification des membres. Quand quelqu'un dit
 > « je n'ai pas reçu mon code », il n'existait **aucune ligne à interroger**.
 
+> **Réalisé au J3, `0015` (2026-09-28) — la migration fait foi sur ce qui suit.** Avancée au Lot 0 (EC-37) ; `reference uuid` aléatoire ajoutée (EC-3) ; `template_ref` texte sans clé étrangère (EC-6) ; `outbox_event_id` en `bigint` sans clé étrangère jusqu'à `0101` (EC-7) ; statut de type `leads.email_send_status`, que `matching.introduction_emails` reprendra ; contraintes de dates par statut et déclencheur d'ajout seul sur la description ; `updated_at` ajouté ; conservation de RG-J3-6 (§9.1).
+
 *Table du **Lot 1** — elle arrive avec le premier e-mail transactionnel, donc avec l'inscription.
 **Append-only** sur tout ce qui décrit l'envoi ; seules les colonnes d'accusé sont écrites après.*
 
@@ -4344,6 +4346,8 @@ l'**unicité de `provider_message_id`** (qui protège l'accusé de réception), 
 > connexion aboutie** » faux si on le calcule sur le seul journal. Les demandes refusées au plafond
 > en sont **absentes par construction**, et ce sont précisément celles qu'un abus produit en masse.
 > Les plafonds de `05` RG44 n'avaient par ailleurs **aucun support en base**.
+
+> **Réalisé au J3, `0014` (2026-09-28) — la migration fait foi.** Portées étendues à douze (EC-3 : `login_request`, `code_verify_ip`, `code_verify_platform` ; EC-21 : `code_request_unknown_ip` ; EC-47 : cinq portées `backoffice_login_*` ; EC-40 : `backoffice_reauth_session`), fenêtre en type `identity.throttle_window`, compteurs en `integer`, `failed_verification_count` devenu `failure_count`, et **aucun droit de table pour `influx_auth`** : trois fonctions `SECURITY DEFINER` réservent atomiquement une tentative, comptent un échec et le lisent (EC-53).
 
 *Table du **Lot 1**, à **durée de vie courte** : c'est un compteur d'exploitation, pas un historique.*
 
@@ -5775,8 +5779,12 @@ les préparer serait inventer.
 | **Encaissements** | **`billing.commission_receipts`** | **10 ans** | `received_on` | Même régime que les affaires : pièce comptable. **Aucune suppression physique** (R6) |
 | **Envois d'e-mails** | **`backoffice.email_sends`, `backoffice.email_send_recipients`** | **3 ans** | `created_at` | `16` RG112, écart 11. Même justification que `introduction_emails` : prouver **à qui** INFLUX a écrit, **sur quelle base légale** et **avec quel modèle**, aussi longtemps qu'une réclamation est possible. **Valeur d'attente** (`16` Q5), veto `expert-conformite-rgpd` |
 | **Compteurs de débit d'authentification** | **`identity.auth_request_throttle`** | **30 jours** | `expires_at` | Compteur d'exploitation, pas historique. Au-delà, une fenêtre glissante n'a plus d'usage — et l'on garderait l'empreinte d'adresses que nous ne connaissons pas |
+| **Sessions** | **`identity.sessions`** | Session **membre** : **90 jours** après sa fin ; session **backoffice** : **12 mois** après sa fin ; toutes supprimées à l'anonymisation du compte (§9.2) | fin = `revoked_at`, sinon la première des deux échéances | Avis de conformité du J3, RG-J3-4 : 90 jours couvrent le signal « nouveau navigateur » (30 jours) ; 12 mois tracent les accès privilégiés. Purge par le worker (E-4) |
+| **Codes de secours** | **`identity.mfa_recovery_codes`** | **12 mois** après consommation ou révocation ; un code utilisable est gardé tant qu'il l'est | `consumed_at`, `revoked_at` | *Proposition du 2026-09-28, veto `expert-conformite-rgpd`.* Empreintes seules ; même durée que les sessions du backoffice qu'elles ont ouvertes |
+| **Jetons d'enrôlement** | **`identity.mfa_enrollment_tokens`** | **30 jours** après expiration ou consommation | `expires_at`, `consumed_at` | *Proposition du 2026-09-28.* Empreinte seule ; au-delà, sans usage |
+| **Anti-rejeu du TOTP** | **`identity.totp_replay_guards`** | **120 secondes** | `created_at` | Effacé par `identity.accept_totp_code()` elle-même (EC-39, EC-53) |
 | **Utilisateurs Supabase Auth orphelins** | *(schéma `auth`, hors de nos tables)* | **24 heures** | Création | Conséquence de la création inconditionnelle d'utilisateur (`02` §18.5) — procédure au §9.3 |
-| **Journal transactionnel** | **`leads.transactional_sends`** | **13 mois** | `created_at` | Diagnostic d'exploitation, pas preuve : assez pour couvrir une saisonnalité complète de délivrabilité, et bien moins que les envois marketing. Ne contient **ni corps, ni code** |
+| **Journal transactionnel** | **`leads.transactional_sends`** | **13 mois** pour une ligne **avec compte** ; **ligne entière supprimée après 30 jours** si elle n'a **pas de compte** (adresse en clair, RG-J3-6) | `created_at` | Diagnostic d'exploitation, pas preuve : assez pour couvrir une saisonnalité complète de délivrabilité, et bien moins que les envois marketing. Ne contient **ni corps, ni code** |
 | **Suspensions** | `backoffice.account_suspensions` | **5 ans** après la levée | `ended_at` | Une suspension est une décision opposable : le titulaire peut la contester, et INFLUX doit pouvoir l'expliquer |
 | Incidents de délivrance | `identity.email_delivery_incidents` | **24 mois** | `occurred_at` | Diagnostic d'un compte fermé et suivi de la réputation d'envoi ; au-delà, sans usage |
 | Journal des recherches | `search.search_queries`, `search_impressions` | **12 mois** | `created_at` | Double finalité (anti-aspiration, amélioration produit) ; au-delà, l'intérêt décroît vite |
@@ -6056,15 +6064,21 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0006 | `audit_chain` | `event_types` **et les codes du Lot 0, dont les cinq `agent.*`, `agent.break_glass_login` compris** (déplacés de `0004` : la table n'existe qu'ici), `audit_events`, `chain_checks`, `audit.append()` (propriétaire `influx_audit_writer`), `REVOKE`, déclencheurs, ligne de genèse | **Non** dès la première ligne réelle : annuler, c'est détruire la preuve |
 | 0007 | `billing_commission_rates_empty` | Table **vide**, commentaire SQL, `REVOKE INSERT` à tous | Oui |
 | 0008 | `backoffice_ownership` | `ownership_assignments` | Oui |
+| 0009 | `audit_append_actor_from_session_user` | M2 : l'acteur d'une ligne du registre lié à `session_user` (J2, revue de sécurité) | Oui (corps de `0006`) |
+| **0010** | **`auth_hooks_refuse_native_email`** | *J3, commit 5 (EC-41).* Schéma `auth_hooks` sans table ; crochet « puits » `refuse_native_email(jsonb)`, `SECURITY INVOKER`, `EXECUTE` à `supabase_auth_admin` seul ; déclaré par `[auth.hook.send_email]` de `supabase/config.toml` | Oui (retirer d'abord le crochet de `config.toml`) |
+| **0011** | **`audit_elevated_and_auth_events`** | *J3, commit 6 (EC-36, V1, V5, V6, EC-44, G-1).* `audit.append()` refuse tout autre `session_user` `influx_%` et garde le `session_user` d'une ligne `system` dans la charge utile ; `audit.append_elevated()` et `audit.append_auth_event()` (propriétaire `influx_audit_writer`, `EXECUTE` à `influx_auth`) ; codes `elevated.*` des cinq motifs E-1 / E-2 du J3 et codes `agent.*` / `security.*` de l'authentification | Oui avant toute ligne réelle ; ensuite les codes restent |
+| **0012** | **`identity_session_writes`** | *J3, commit 6 (EC-29, EC-40, G-1, `05` Q14).* Colonnes `mfa_verified_at`, `mfa_method` et contraintes surface ⇔ `aal` ⇔ fraîcheur ; format de `user_agent_summary` ; `agent_profiles.mfa_factor_id` ; déclencheurs de création (dates calculées) et d'irréversibilité ; `touch_session()`, `revoke_own_session()` ; droits d'`influx_auth` colonne par colonne | Oui avant toute session réelle (la valeur d'énumération ajoutée reste) |
+| **0013** | **`identity_backoffice_mfa`** | *J3, commit 6 (EC-17, EC-39, G-1).* `mfa_recovery_codes`, `mfa_enrollment_tokens`, `totp_replay_guards`, sans droit pour aucun rôle d'exécution ; quatre fonctions `SECURITY DEFINER` (`enrollment_token_is_valid`, `pin_mfa_factor`, `consume_recovery_code`, `accept_totp_code`) | Oui avant tout compte interne réel |
+| **0014** | **`identity_auth_request_throttle`** | *J3, commit 6 (EC-3, EC-47, EC-40).* Compteurs de débit (ex-`0108`), douze portées, fenêtres `15m` / `1h`, trois fonctions `SECURITY DEFINER` (`reserve_auth_attempt`, `record_auth_failure`, `auth_failure_count`) | Oui |
+| **0015** | **`leads_transactional_sends`** | *J3, commit 6 (ex-`0108`, EC-3, EC-6, EC-7).* Journal des transactionnels, `reference` aléatoire, `outbox_event_id` `bigint` **sans clé étrangère**, `template_ref` texte sans clé étrangère, liste fermée des trois `failure_code` d'un `P0`, deux index de lecture **et aucun sur `status`**, droits d'`influx_auth` (lignes `P0` seules) | Oui avant toute ligne réelle |
 | **Lot 1** | | | |
-| 0101 | `leads_outbox` | `outbox_events`, `contact_sync_states`, index partiels, contrainte RG35 | Oui |
+| 0101 | `leads_outbox` | `outbox_events`, `contact_sync_states`, index partiels, contrainte RG35, **clé étrangère de `transactional_sends.outbox_event_id`** (EC-37) | Oui |
 | 0102 | `backoffice_queues_and_sla` | **`queues`** (catalogue des files, `15` RG26) puis `sla_policies` **avec sa clé étrangère vers `queues`** + **valeur de départ de D39 : décision sous 1 jour ouvré** + **`is_provisional`** sur les quatre délais proposés et non validés (`15` Q2 à Q4) | Oui |
-| **0107** | **`backoffice_alerts_and_dual_control`** | **`alert_definitions`** (catalogue AL1 à **AL48**, chargé lot par lot), **`dual_control_requests`** et ses contraintes, **les codes `dual_control.*`, `settings.changed` et `ownership.reassigned`** | Oui |
-| **0108** | **`leads_transactional_sends`** | **`transactional_sends`** append-only, `priority` **sans valeur par défaut**, **la liste fermée des trois `failure_code` d'un `P0`** (D43, `05` RG60), ses deux index de **lecture** — **et aucun sur `status`** —, les `GRANT` de `influx_auth` et `influx_worker`, **`identity.auth_request_throttle`** (`05` RG44), **les compteurs de cadence** sur `contact_sync_states` (`16` RG80). **Cette migration est la plus précoce de toutes les corrections de cette série : le code de connexion existe dès la première mise en ligne** | Oui |
 | 0103 | `leads_sync_settings` | Table de configuration + **`apollo_scope = 'annonceurs_et_createurs_pro'`** (valeur d'attente de D33) | Oui |
 | 0104 | `identity_signup_fields` | `accounts.declared_status` (**`not null`**), `email_status`, `email_undeliverable_at`, `set_declared_status()`, `correct_email()` | Oui tant qu'aucun compte réel n'existe ; **`declared_status` devient non annulable ensuite** |
 | 0105 | `identity_email_health` | `email_delivery_incidents`, append-only, index d'idempotence | Oui |
 | 0106 | `profiles_advertiser_minimal` | *(schéma `profiles` et ses privilèges par défaut : créés par `0001`)* `advertiser_profiles` **en forme minimale** (nom d'entreprise) | Oui |
+| **0107** | **`backoffice_alerts_and_dual_control`** | **`alert_definitions`** (catalogue AL1 à **AL48**, chargé lot par lot), **`dual_control_requests`** et ses contraintes, **les codes `dual_control.*`, `settings.changed` et `ownership.reassigned`** | Oui |
 | **Lot 2** | | | |
 | 0201 | `reference_taxonomies` | `topics`, `networks`, `formats`, `sectors`, `usage_rights`, `audience_bands`, **`engagement_bands`**, **`age_bands`** (`check (min_age >= 18)`), **`audience_genders`**, **`editorial_tones`**, **`publication_frequencies`**, **`regions`**, `price_bands` **avec ses bornes nettes et son `REVOKE`** | Oui |
 | 0202 | `profiles_advertiser_full` | **Extension** de `advertiser_profiles` (colonnes du Lot 2, toutes nullables, aucune donnée à migrer) + `advertiser_contact_details` | Oui |
@@ -6097,6 +6111,8 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0502 | `backoffice_operations` | Notes **avec `subject_type`, auteur et ajout seul**, **`suspension_reasons`** et **`suspension_lift_reasons`**, suspensions, **`exports`**, plafonds et envois d'e-mails, demandes RGPD **complétées** (`15`, écart 4), **les 14 codes `account.*`, `ownership.bulk_transferred`, `export.produced` et `privacy.*`** | Oui |
 | **Lot 6** | | | |
 | 0601 | `retention_jobs` | Fonctions de purge, index de purge manquants | Oui |
+
+> **Numérotation (EC-37, tranché le 2026-09-28).** Un numéro est un **ordre d'application** : la CLI Supabase n'applique pas une migration plus ancienne que la dernière appliquée. Les migrations du J3 prennent donc `0010` à `0015` (suite du Lot 0) ; **`0108` n'existe plus** (son contenu est dans `0014` et `0015`) et la série du Lot 1 s'applique dans l'ordre de ses numéros. **`0101` ajoute la clé étrangère** `leads.transactional_sends.outbox_event_id → leads.outbox_events(id)`. Même règle au Lot 4 pour `0402a`, `0402b`, `0402c` (EC-32).
 
 ### 11.3 Ce qui n'est pas réversible, et pourquoi
 
