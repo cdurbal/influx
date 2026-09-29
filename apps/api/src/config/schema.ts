@@ -111,6 +111,47 @@ const supabaseSecretKey = requiredText
     message: `must be a secret key (${SUPABASE_SECRET_KEY_PREFIX}…), never a legacy JWT key`,
   });
 
+/** Official base URL of the Brevo API (16 §M8). Any other value is the local double only. */
+export const BREVO_OFFICIAL_BASE_URL = "https://api.brevo.com/v3";
+
+/**
+ * BREVO_API_BASE_URL (21 J3-C rule 10, EC-19): the official URL, or the Brevo double of
+ * @influx/test-kit on a loopback host. The loopback is refused in production (superRefine).
+ */
+const brevoApiBaseUrl = z.preprocess(
+  emptyAsAbsent,
+  z
+    .string()
+    .default(BREVO_OFFICIAL_BASE_URL)
+    .transform((value, context) => {
+      if (value === BREVO_OFFICIAL_BASE_URL) {
+        return value;
+      }
+      let url: URL;
+      try {
+        url = new URL(value);
+      } catch {
+        context.addIssue({ code: "custom", message: "must be an http(s) URL" });
+        return z.NEVER;
+      }
+      const isLoopbackDouble =
+        (url.protocol === "http:" || url.protocol === "https:") &&
+        LOOPBACK_HOSTS.has(url.hostname) &&
+        url.username === "" &&
+        url.password === "" &&
+        url.search === "" &&
+        url.hash === "";
+      if (!isLoopbackDouble) {
+        context.addIssue({
+          code: "custom",
+          message: `must be ${BREVO_OFFICIAL_BASE_URL}, or the local double on a loopback host`,
+        });
+        return z.NEVER;
+      }
+      return value.replace(/\/+$/, "");
+    }),
+);
+
 /**
  * Public origin of a surface (`https://influx.example`, `http://localhost:3000`): scheme, host
  * and port only, compared as is to the `origin` header of a write (03 §6.4 A4). Normalised by
@@ -384,8 +425,20 @@ export type PublicOrigins = {
   backoffice: string;
 };
 
+/**
+ * The transactional sender of the api (21 EC-19): the login code only (D43). Absent key and
+ * sender are allowed with BREVO_MODE=disabled only, where nothing is ever sent.
+ */
+export type BrevoTransportConfig = {
+  apiKey: string | null;
+  baseUrl: string;
+  senderTransactional: string | null;
+};
+
 export type ApiConfig = BaseConfig & {
   port: number;
+  /** Transport of the Brevo transactional sender (key, base URL, sender), EC-19. */
+  brevoTransport: BrevoTransportConfig;
   /** Origin of each surface, expected on its writes (03 §6.4 A4, 21 J1-F). */
   publicOrigins: PublicOrigins;
   /**
@@ -443,11 +496,55 @@ export const apiEnvSchema = z
     AUTH_TOKEN_SIGNING_SECRET: secretOf32Bytes,
     SUPABASE_URL: supabaseUrl,
     SUPABASE_SECRET_KEY: supabaseSecretKey,
+    BREVO_API_KEY: optionalText,
+    BREVO_API_BASE_URL: brevoApiBaseUrl,
+    BREVO_SENDER_TRANSACTIONAL: z.preprocess(
+      emptyAsAbsent,
+      z.email({ error: "must be an e-mail address" }).optional(),
+    ),
     ...databaseEnvShape,
   })
   .superRefine((env, context) => {
     checkBrevoMode(env, context);
     checkDatabaseVariables(env, API_DATABASE_VARIABLES, context);
+    // EC-19 and J3-C rule 10: a sending mode needs its key and its sender; the key is never the
+    // template's placeholder; the local double is never reached from production.
+    if (env.BREVO_MODE !== "disabled") {
+      if (env.BREVO_API_KEY === undefined) {
+        context.addIssue({
+          code: "custom",
+          path: ["BREVO_API_KEY"],
+          message: "is required unless BREVO_MODE is disabled",
+        });
+      }
+      if (env.BREVO_SENDER_TRANSACTIONAL === undefined) {
+        context.addIssue({
+          code: "custom",
+          path: ["BREVO_SENDER_TRANSACTIONAL"],
+          message: "is required unless BREVO_MODE is disabled",
+        });
+      }
+    }
+    if (
+      env.BREVO_API_KEY !== undefined &&
+      holdsPlaceholder(env.BREVO_API_KEY)
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["BREVO_API_KEY"],
+        message: `must not contain the ${PLACEHOLDER} placeholder`,
+      });
+    }
+    if (
+      env.INFLUX_ENV === "production" &&
+      env.BREVO_API_BASE_URL !== BREVO_OFFICIAL_BASE_URL
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["BREVO_API_BASE_URL"],
+        message: "must be the official Brevo URL in production",
+      });
+    }
     if (
       env.INFLUX_API_INTERNAL_SECRET_WEB ===
       env.INFLUX_API_INTERNAL_SECRET_BACKOFFICE
@@ -525,6 +622,11 @@ export const apiEnvSchema = z
       testRecipients: env.BREVO_TEST_RECIPIENTS,
     },
     port: env.PORT,
+    brevoTransport: {
+      apiKey: env.BREVO_API_KEY ?? null,
+      baseUrl: env.BREVO_API_BASE_URL,
+      senderTransactional: env.BREVO_SENDER_TRANSACTIONAL ?? null,
+    },
     publicOrigins: {
       web: env.INFLUX_PUBLIC_SITE_URL,
       backoffice: env.INFLUX_PUBLIC_BACKOFFICE_URL,

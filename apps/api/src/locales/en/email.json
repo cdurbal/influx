@@ -1,0 +1,30 @@
+{
+  "email": {
+    "auth": {
+      "loginCode": {
+        "subject": "Your INFLUX sign-in code",
+        "preheader": "Valid for 10 minutes, in the tab where you requested it.",
+        "title": "Your sign-in code",
+        "codeIntro": "Enter this code on the INFLUX screen where you requested it:",
+        "phrase": "Matching phrase: {phrase}",
+        "phraseHelp": "It must be identical to the one shown on that screen. If it is different, do not enter this code.",
+        "validity": "This code is valid for 10 minutes and can be used once, only in the tab where you requested it.",
+        "context": "Request received on {requestedAt, date, long} at {requestedAt, time, short} ({timeZone}) from {browser}.",
+        "contextNoBrowser": "Request received on {requestedAt, date, long} at {requestedAt, time, short} ({timeZone}).",
+        "notYou": "Didn't request anything? Ignore this email: without this code, no one can sign in to INFLUX with your address.",
+        "never": "INFLUX will never ask you for this code, by phone, email or message. Do not share it with anyone.",
+        "reason": "a sign-in code was requested for this address on INFLUX"
+      }
+    },
+    "transactional": {
+      "why": "You are receiving this email because {reason}. This is not a marketing email."
+    }
+  },
+  "auth": {
+    "browser": {
+      "summary": "{family} on {os}",
+      "familyOnly": "{family}",
+      "unidentified": "an unidentified browser"
+    }
+  }
+}

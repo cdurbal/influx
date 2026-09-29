@@ -7,6 +7,9 @@
     // Node runs these sources by type stripping: erasable syntax only (21 §4, J1-B).
     "verbatimModuleSyntax": true,
     "erasableSyntaxOnly": true,
+    // Translation files of the e-mails (src/locales/<language>/*.json), imported with
+    // `with { type: "json" }` (CLAUDE.md §6: labels externalised from the first screen).
+    "resolveJsonModule": true,
     "types": ["node"]
   },
   "include": ["src", "tests", "db-tests", "scripts", "*.config.ts"]

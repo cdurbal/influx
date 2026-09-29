@@ -1,0 +1,30 @@
+{
+  "email": {
+    "auth": {
+      "loginCode": {
+        "subject": "Votre code de connexion INFLUX",
+        "preheader": "Valable 10 minutes, dans l'onglet où vous l'avez demandé.",
+        "title": "Votre code de connexion",
+        "codeIntro": "Saisissez ce code sur l'écran INFLUX où vous l'avez demandé :",
+        "phrase": "Phrase de correspondance : {phrase}",
+        "phraseHelp": "Elle doit être identique à celle affichée sur cet écran. Si elle est différente, ne saisissez pas ce code.",
+        "validity": "Ce code est valable 10 minutes et une seule fois, uniquement dans l'onglet où vous l'avez demandé.",
+        "context": "Demande reçue le {requestedAt, date, long} à {requestedAt, time, short} ({timeZone}), depuis {browser}.",
+        "contextNoBrowser": "Demande reçue le {requestedAt, date, long} à {requestedAt, time, short} ({timeZone}).",
+        "notYou": "Vous n'avez rien demandé ? Ignorez cet e-mail : sans ce code, personne ne peut se connecter à INFLUX avec votre adresse.",
+        "never": "INFLUX ne vous demandera jamais ce code, ni par téléphone, ni par e-mail, ni par message. Ne le communiquez à personne.",
+        "reason": "un code de connexion a été demandé pour cette adresse sur INFLUX"
+      }
+    },
+    "transactional": {
+      "why": "Vous recevez cet e-mail parce que {reason}. Il ne s'agit pas d'un e-mail commercial."
+    }
+  },
+  "auth": {
+    "browser": {
+      "summary": "{family} sur {os}",
+      "familyOnly": "{family}",
+      "unidentified": "un navigateur non identifié"
+    }
+  }
+}

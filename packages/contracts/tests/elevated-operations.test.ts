@@ -12,19 +12,33 @@ describe("elevated operations (03 P7, 18 T6.1)", () => {
     }
   });
 
-  it("signs exactly the five operations of 03 P7", () => {
-    expect(SIGNED_ELEVATED_OPERATIONS).toHaveLength(5);
-    expect(new Set(SIGNED_ELEVATED_OPERATIONS).size).toBe(5);
+  it("signs exactly the motifs of the five entries of 03 P7 (EC-5)", () => {
+    expect([...SIGNED_ELEVATED_OPERATIONS].sort()).toEqual(
+      [
+        "identity.backoffice_enroll_totp",
+        "identity.backoffice_reauthenticate",
+        "identity.backoffice_sign_in",
+        "identity.complete_signup",
+        "identity.request_code",
+        "identity.verify_code",
+        "leads.drain_outbox",
+        "maintenance.run_periodic",
+        "privacy.execute_request",
+        "support.report_delivery_issue",
+      ].sort(),
+    );
+    expect(new Set(SIGNED_ELEVATED_OPERATIONS).size).toBe(10);
   });
 
-  it("recognises no operation at J2, whatever the value", () => {
-    for (const value of [
-      ...SIGNED_ELEVATED_OPERATIONS,
-      "",
-      "service",
-      undefined,
-      null,
-    ]) {
+  it("recognises the operations with a caller, and nothing else", () => {
+    for (const operation of ELEVATED_OPERATIONS) {
+      expect(isElevatedOperation(operation)).toBe(true);
+    }
+    const withoutCaller = SIGNED_ELEVATED_OPERATIONS.filter(
+      (operation) =>
+        !(ELEVATED_OPERATIONS as readonly string[]).includes(operation),
+    );
+    for (const value of [...withoutCaller, "", "service", undefined, null]) {
       expect(isElevatedOperation(value)).toBe(false);
     }
   });

@@ -30,6 +30,7 @@ import {
   DatabaseRoleRefusedError,
   TransactionGuardError,
   verifyPools,
+  withElevatedTransaction,
   withUserTransaction,
   type ApiDatabase,
   type DbLogger,
@@ -539,6 +540,67 @@ describe("T4.7: guard at the start of a transaction", () => {
     } finally {
       await pool.close();
       await closeDatabase(database);
+    }
+  });
+});
+
+// EC-35 (6): the same case on the elevated pool, now that E-1 is in the union (J3 commit 8).
+describe("T4.7: guard at the start of an elevated transaction (E-1)", () => {
+  it("refuses a leaked session role on the auth pool, runs nothing, writes no audit line, then recovers", async () => {
+    const logger = recordingLogger();
+    const pool = new ConnectionPool(
+      localConnection("influx_auth_login"),
+      { max: 1, applicationName: "t4.7-elevated" },
+      logger,
+    );
+    const elevated = { elevated: { auth: pool }, logger };
+    const requestId = `t4-7-elevated-${Date.now()}`;
+    try {
+      const db = await pool.acquire();
+      // The leak: a SESSION-level role left on the only connection (forbidden in src/).
+      await db.execute("set role influx_auth");
+
+      let ran = false;
+      await expect(
+        withElevatedTransaction(
+          elevated,
+          "identity.request_code",
+          requestId,
+          () => {
+            ran = true;
+            return Promise.resolve({ value: undefined, auditSubject: null });
+          },
+        ),
+      ).rejects.toBeInstanceOf(TransactionGuardError);
+      expect(ran).toBe(false);
+      expect(logger.lines).toContain(
+        'transaction guard failed, pool destroyed {"role":"influx_auth_login"}',
+      );
+
+      const seen = await withElevatedTransaction(
+        elevated,
+        "identity.request_code",
+        requestId,
+        async (tx) => {
+          const rows = await tx.execute<{
+            current_user: string;
+            session_user: string;
+          }>(
+            "select current_user::text as current_user, session_user::text as session_user",
+          );
+          return { value: rows[0], auditSubject: null };
+        },
+      );
+      expect(seen).toEqual({
+        current_user: "influx_auth",
+        session_user: "influx_auth_login",
+      });
+      const [lines] = await migration<{ count: number }[]>`
+        select count(*)::int as count from audit.audit_events
+         where request_id = ${requestId}`;
+      expect(lines?.count).toBe(0);
+    } finally {
+      await pool.close();
     }
   });
 });

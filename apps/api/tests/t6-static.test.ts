@@ -18,7 +18,7 @@ import { readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { ELEVATED_OPERATION_POOLS } from "../src/db/index.ts";
+import { elevatedPoolKindOf } from "../src/db/index.ts";
 
 const API_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -74,15 +74,23 @@ describe("T6.1: A = U and U ⊆ P", () => {
   it("binds each declared operation to the pool of 03 P7 (rule 5)", () => {
     const expected: Readonly<Record<string, string>> = {
       "identity.request_code": "auth",
+      "support.report_delivery_issue": "auth",
       "identity.verify_code": "auth",
+      "identity.complete_signup": "auth",
+      "identity.backoffice_sign_in": "auth",
+      "identity.backoffice_enroll_totp": "auth",
+      "identity.backoffice_reauthenticate": "auth",
       "leads.drain_outbox": "worker",
       "maintenance.run_periodic": "worker",
     };
-    expect(Object.keys(ELEVATED_OPERATION_POOLS).sort()).toEqual(
-      [...ELEVATED_OPERATIONS].sort(),
-    );
-    for (const [operation, kind] of Object.entries(ELEVATED_OPERATION_POOLS)) {
-      expect(kind, operation).toBe(expected[operation]);
+    for (const operation of SIGNED_ELEVATED_OPERATIONS) {
+      // privacy.execute_request (E-5) has no pool in apps/api before the Lot 5.
+      expect(elevatedPoolKindOf(operation), operation).toBe(
+        expected[operation] ?? null,
+      );
+    }
+    for (const operation of ELEVATED_OPERATIONS) {
+      expect(expected[operation], operation).toBeDefined();
     }
   });
 });
@@ -135,6 +143,11 @@ describe("T6.3: separation by process, on the import graph", () => {
       "AUTH_DATABASE_URL",
       "identity.request_code",
       "identity.verify_code",
+      "identity.complete_signup",
+      "identity.backoffice_sign_in",
+      "identity.backoffice_enroll_totp",
+      "identity.backoffice_reauthenticate",
+      "support.report_delivery_issue",
     ]);
     expect(offenders(modules, (name) => forbidden.has(name))).toEqual([]);
   });

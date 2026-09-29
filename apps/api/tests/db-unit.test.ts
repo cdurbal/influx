@@ -117,7 +117,8 @@ describe("T4.6 e: identity of a pool when it opens", () => {
 
 describe("T6.2: an operation outside the closed union is refused at runtime", () => {
   it.each([
-    "identity.request_code",
+    // Signed (set P) but without a caller yet (not in U): refused like any other value.
+    "identity.complete_signup",
     "leads.drain_outbox",
     "privacy.execute_request",
     "anything",
@@ -138,7 +139,7 @@ describe("T6.2: an operation outside the closed union is refused at runtime", ()
           "request-id",
           () => {
             ran = true;
-            return Promise.resolve();
+            return Promise.resolve({ value: undefined, auditSubject: null });
           },
         ),
       ).rejects.toBeInstanceOf(ElevatedOperationRefusedError);

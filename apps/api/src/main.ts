@@ -43,9 +43,15 @@ async function main(): Promise<void> {
     return;
   }
 
-  const app = buildServer(config);
-  // Pools of the api only: influx_app and influx_auth_login (EC-20). No route uses them yet.
-  const database = createApiDatabase(config.database, app.log);
+  // Pools of the api only: influx_app and influx_auth_login (EC-20). The bootstrap logger of the
+  // pools is the server's once it exists; the pools connect on first use only.
+  const logger = createLogger({
+    service: "api",
+    environment: config.environment,
+    version: config.version,
+  });
+  const database = createApiDatabase(config.database, logger);
+  const app = buildServer(config, { database });
 
   const shutDown = (signal: NodeJS.Signals): void => {
     app.log.info({ signal }, "shutting down");

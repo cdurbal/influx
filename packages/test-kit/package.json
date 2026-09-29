@@ -10,6 +10,7 @@
     "./case-floors": "./src/case-floors.ts",
     "./logs": "./src/logs.ts",
     "./totp": "./src/totp.ts",
+    "./brevo-double": "./src/brevo-double.ts",
     "./db": "./src/db/index.ts",
     "./static": "./src/static/index.ts",
     "./rights": "./src/rights/expected-rights.ts"
@@ -18,7 +19,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
-    "db:role-passwords": "node scripts/set-role-passwords.ts"
+    "db:role-passwords": "node scripts/set-role-passwords.ts",
+    "dev:brevo-double": "node scripts/brevo-double.ts"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

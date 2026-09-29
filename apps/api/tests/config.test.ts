@@ -76,6 +76,11 @@ describe("api configuration", () => {
       version: "local",
       brevo: { mode: "disabled", testRecipients: [] },
       port: 3100,
+      brevoTransport: {
+        apiKey: null,
+        baseUrl: "https://api.brevo.com/v3",
+        senderTransactional: null,
+      },
       publicOrigins: { web: WEB_ORIGIN, backoffice: BACKOFFICE_ORIGIN },
       authThrottlePepper: THROTTLE_PEPPER,
       authTokenSigningSecret: TOKEN_SIGNING_SECRET,
@@ -455,9 +460,73 @@ describe("api configuration", () => {
         ...VALID_API_ENV,
         INFLUX_ENV: "production",
         BREVO_MODE: "live",
+        BREVO_API_KEY: "xkeysib-production-like-value",
+        BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
         SUPABASE_URL: HOSTED_SUPABASE_URL,
       }).brevo.mode,
     ).toBe("live");
+  });
+
+  // 21 EC-19, J3-C rule 10: the transactional sender of the api.
+  describe("Brevo transport of the api (EC-19)", () => {
+    const REDIRECT = {
+      ...VALID_API_ENV,
+      BREVO_MODE: "redirect",
+      BREVO_TEST_RECIPIENTS: "team@influx.example",
+      BREVO_API_KEY: "xkeysib-test-account-value",
+      BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
+    };
+
+    it("accepts the local double on a loopback host outside production", () => {
+      const config = loadApiConfig({
+        ...REDIRECT,
+        BREVO_API_BASE_URL: "http://127.0.0.1:4010/v3/",
+      });
+      expect(config.brevoTransport).toEqual({
+        apiKey: "xkeysib-test-account-value",
+        baseUrl: "http://127.0.0.1:4010/v3",
+        senderTransactional: "no-reply@tx.influx.example",
+      });
+    });
+
+    it.each([
+      ["BREVO_API_KEY", { BREVO_API_KEY: "" }],
+      ["BREVO_SENDER_TRANSACTIONAL", { BREVO_SENDER_TRANSACTIONAL: "" }],
+      ["BREVO_API_KEY", { BREVO_API_KEY: "change_me-key" }],
+      [
+        "BREVO_API_BASE_URL",
+        { BREVO_API_BASE_URL: "https://double.example/v3" },
+      ],
+      [
+        "BREVO_API_BASE_URL",
+        { BREVO_API_BASE_URL: "http://user:pass@127.0.0.1:4010/v3" },
+      ],
+    ])("refuses %s when %j", (variable, overrides) => {
+      expect(() => loadApiConfig({ ...REDIRECT, ...overrides })).toThrow(
+        variable,
+      );
+    });
+
+    it("refuses the local double in production", () => {
+      expect(() =>
+        loadApiConfig({
+          ...VALID_API_ENV,
+          INFLUX_ENV: "production",
+          BREVO_MODE: "live",
+          BREVO_API_KEY: "xkeysib-production-like-value",
+          BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
+          BREVO_API_BASE_URL: "http://127.0.0.1:4010/v3",
+          SUPABASE_URL: HOSTED_SUPABASE_URL,
+        }),
+      ).toThrow("BREVO_API_BASE_URL");
+    });
+
+    it("needs neither key nor sender when disabled", () => {
+      expect(
+        loadApiConfig({ ...VALID_API_ENV, BREVO_MODE: "disabled" })
+          .brevoTransport.apiKey,
+      ).toBeNull();
+    });
   });
 
   it("never quotes a secret value in the refusal", () => {

@@ -8,7 +8,8 @@
     "./errors": "./src/errors.ts",
     "./system": "./src/system.ts",
     "./elevated-operations": "./src/elevated-operations.ts",
-    "./user-agent": "./src/user-agent.ts"
+    "./user-agent": "./src/user-agent.ts",
+    "./auth": "./src/auth.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tests.json",

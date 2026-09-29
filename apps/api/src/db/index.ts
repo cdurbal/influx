@@ -295,17 +295,37 @@ export async function withUserTransaction<T>(
 // ---------------------------------------------------------------------------------------------
 
 /**
- * Pool of each operation of the closed union (P7 rule 5: E-1, E-2 → auth; E-3, E-4 → worker).
- * Empty at J2, like the union: an operation enters both in the commit of its first caller.
+ * Pool of each family of operations of the closed union (P7 rule 5: E-1, E-2 → auth; E-3, E-4 →
+ * worker). By family, not by operation: the table names no operation, so the worker process,
+ * which imports this module, never names an operation of the api, nor the reverse (18 T6.3).
+ * An operation still needs to be in the union (set U) to run.
  */
-export const ELEVATED_OPERATION_POOLS: Readonly<
-  Record<ElevatedOperation, ElevatedPoolKind>
-> = {};
+const ELEVATED_FAMILY_POOLS: Readonly<Record<string, ElevatedPoolKind>> = {
+  identity: "auth",
+  support: "auth",
+  leads: "worker",
+  maintenance: "worker",
+};
 
-/** Code of the audit line written by each elevated transaction (`elevated.<operation>`). */
-function auditEventTypeOf(operation: ElevatedOperation): string {
-  return `elevated.${operation}`;
+/** The pool kind of an operation name, or null (its family has no pool in apps/api). */
+export function elevatedPoolKindOf(operation: string): ElevatedPoolKind | null {
+  const family = operation.slice(0, operation.indexOf("."));
+  return Object.prototype.hasOwnProperty.call(ELEVATED_FAMILY_POOLS, family)
+    ? (ELEVATED_FAMILY_POOLS[family] ?? null)
+    : null;
 }
+
+/**
+ * What the function of an elevated transaction returns: its value, and the subject of the audit
+ * line (21 §3 EC-52, C-7 made precise). A subject is the business object an effect was written on
+ * (a journal line, a session, a pinned factor, a consumed recovery code); null when the
+ * transaction only reserved an attempt, counted a failure or wrote the outcome of an existing
+ * line: then no audit line is written, only a `pino` line without data.
+ */
+export type ElevatedResult<T> = {
+  value: T;
+  auditSubject: string | null;
+};
 
 /**
  * Pool of a requested operation, or null when the operation is outside the closed union, or when
@@ -319,12 +339,8 @@ function elevatedPoolOf(
   if (!isElevatedOperation(requested)) {
     return null;
   }
-  const pools: Readonly<Record<string, ElevatedPoolKind | undefined>> =
-    ELEVATED_OPERATION_POOLS;
-  const kind = Object.prototype.hasOwnProperty.call(pools, requested)
-    ? pools[requested]
-    : undefined;
-  if (kind === undefined) {
+  const kind = elevatedPoolKindOf(requested);
+  if (kind === null) {
     return null;
   }
   const pool = database.elevated[kind];
@@ -338,7 +354,7 @@ export async function withElevatedTransaction<T>(
   database: ElevatedDatabase,
   operation: ElevatedOperation,
   requestId: string,
-  fn: (tx: Transaction) => Promise<T>,
+  fn: (tx: Transaction) => Promise<ElevatedResult<T>>,
 ): Promise<T> {
   // Checked at runtime, before any connection is taken: a cast passes the compiler (T6.2).
   // The log line carries no data, not even the refused value.
@@ -354,13 +370,20 @@ export async function withElevatedTransaction<T>(
       sql`select pg_catalog.set_config('influx.request_id', ${requestId}, true)`,
     );
     const result = await fn(tx);
-    // 03 §6.7 point 7: one audit line per elevated transaction, in the same transaction, as
-    // late as possible (the chain lock is held until COMMIT).
+    if (result.auditSubject === null) {
+      // EC-52 (3): a reservation, a counted failure or an outcome alone writes no audit line.
+      database.logger.info(
+        { operation },
+        "elevated transaction without effect to audit",
+      );
+      return result.value;
+    }
+    // 03 §6.7 point 7, EC-36: one audit line, elevated.<operation>, on the subject the effect was
+    // written on, in the same transaction and as late as possible (the chain lock is held until
+    // COMMIT). The actor is derived from session_user by audit.append() (V6).
     await tx.execute(
-      sql`select audit.append(${auditEventTypeOf(operation)}, 'elevated_operation',
-                              gen_random_uuid(),
-                              jsonb_build_object('operation', ${operation}::text))`,
+      sql`select audit.append_elevated(${operation}::text, ${result.auditSubject}::uuid)`,
     );
-    return result;
+    return result.value;
   });
 }

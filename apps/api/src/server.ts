@@ -9,6 +9,18 @@ import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 import type { DestinationStream } from "pino";
 import type { ApiConfig } from "./config/schema.ts";
 import {
+  closeDatabase,
+  createApiDatabase,
+  type ApiDatabase,
+} from "./db/index.ts";
+import {
+  registerIdentityRoutes,
+  type IdentityDependencies,
+} from "./domains/identity/routes.ts";
+import { createAuthTokenCodec } from "./platform/auth-tokens.ts";
+import { createTransactionalSender } from "./platform/brevo-transactional.ts";
+import { createSupabaseAuth } from "./platform/supabase.ts";
+import {
   ApiError,
   classifyError,
   errorEnvelope,
@@ -159,6 +171,13 @@ class ApiLogController extends LogController {
 export type BuildServerOptions = {
   /** Where log lines are written; standard output when absent. Tests capture it. */
   logDestination?: DestinationStream;
+  /**
+   * The database pools of the process (main.ts creates them once). Absent: created here from the
+   * configuration, and closed with the server. They connect on first use only.
+   */
+  database?: ApiDatabase;
+  /** Replacements of the authentication dependencies, for the tests only. */
+  identity?: Partial<Omit<IdentityDependencies, "database">>;
 };
 
 export function buildServer(
@@ -337,6 +356,42 @@ export function buildServer(
     { schema: { response: { 200: systemStatusSchema } } },
     async () => ({ status: "ok" as const }),
   );
+
+  // Authentication of the members (21 §4, J3 commits 8 and 9).
+  const ownsDatabase = options.database === undefined;
+  const database =
+    options.database ?? createApiDatabase(config.database, app.log);
+  if (ownsDatabase) {
+    app.addHook("onClose", async () => {
+      await closeDatabase(database);
+    });
+  }
+  registerIdentityRoutes(app, {
+    database,
+    supabaseAuth:
+      options.identity?.supabaseAuth ??
+      createSupabaseAuth(config.supabase, app.log),
+    sender:
+      options.identity?.sender ??
+      createTransactionalSender(
+        {
+          mode: config.brevo.mode,
+          testRecipients: config.brevo.testRecipients,
+          apiKey: config.brevoTransport.apiKey,
+          baseUrl: config.brevoTransport.baseUrl,
+          senderEmail: config.brevoTransport.senderTransactional,
+        },
+        { logger: app.log },
+      ),
+    tokens:
+      options.identity?.tokens ??
+      createAuthTokenCodec(config.authTokenSigningSecret),
+    pepper: config.authThrottlePepper,
+    now: options.identity?.now ?? (() => new Date()),
+    ...(options.identity?.codeRequestFloorMs === undefined
+      ? {}
+      : { codeRequestFloorMs: options.identity.codeRequestFloorMs }),
+  });
 
   // Minimal public route, reachable from both fronts: target of the relay checks (21 J1-G).
   app.get(

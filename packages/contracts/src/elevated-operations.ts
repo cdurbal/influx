@@ -9,10 +9,18 @@
 //   J6, E-4 with the first periodic task, E-5 at Lot 5). At J2, U is EMPTY: the mechanism exists
 //   and is tested, but no operation can be run.
 
-/** Set P: 03 P7, E-1 to E-5. E-6 enters only once signed with its migration (J4). */
+/**
+ * Set P: 03 P7, E-1 to E-5, one motif per point of use (EC-5, signed revision of 2026-09-27).
+ * E-6 enters only once signed with its migration (J4).
+ */
 export const SIGNED_ELEVATED_OPERATIONS = [
   "identity.request_code", // E-1, influx_auth
+  "support.report_delivery_issue", // E-1, influx_auth (J5, 05 RG65)
   "identity.verify_code", // E-2, influx_auth
+  "identity.complete_signup", // E-2, influx_auth (J5)
+  "identity.backoffice_sign_in", // E-2, influx_auth
+  "identity.backoffice_enroll_totp", // E-2, influx_auth
+  "identity.backoffice_reauthenticate", // E-2, influx_auth
   "leads.drain_outbox", // E-3, influx_worker
   "maintenance.run_periodic", // E-4, influx_worker
   "privacy.execute_request", // E-5, influx_privacy
@@ -21,9 +29,10 @@ export const SIGNED_ELEVATED_OPERATIONS = [
 export type SignedElevatedOperation =
   (typeof SIGNED_ELEVATED_OPERATIONS)[number];
 
-/** Set U: operations with a caller. Empty at J2 (18 T6.1: A = U). */
-export const ELEVATED_OPERATIONS =
-  [] as const satisfies readonly SignedElevatedOperation[];
+/** Set U: operations with a caller (18 T6.1: A = U). E-1 enters with the login code (J3). */
+export const ELEVATED_OPERATIONS = [
+  "identity.request_code",
+] as const satisfies readonly SignedElevatedOperation[];
 
 export type ElevatedOperation = (typeof ELEVATED_OPERATIONS)[number];
 
