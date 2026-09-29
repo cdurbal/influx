@@ -494,16 +494,23 @@ Chaque lot passe la définition du « prêt à livrer » (skill `test-strategy`)
 
 ---
 
-## 9. Si le délai dérape
+## 9. Mode serré (objectif fin octobre) et reprise du mode normal
 
-**À retirer, dans cet ordre :**
+> **Directive du fondateur (2026-09-29) :** pour livrer le MVP fin octobre, ces quatre allègements
+> sont appliqués en premier (« mode serré »). **Ils ne sont pas abandonnés :** l'intégralité des
+> écarts de fonctionnalités entre le mode normal et le mode serré doit être **reprise et développée
+> immédiatement après la réalisation du mode serré** (Lot 6bis).
 
-1. **Recherche de campagnes côté créateur** → remplacée par un simple fil chronologique des campagnes
-   ouvertes.
-2. **Alertes automatiques de coordonnées** → remplacées par le contrôle visuel du commercial, qui est
-   déjà dans le fil et voit tout passer.
-3. **Actions de masse dans le backoffice** → traitement unitaire, acceptable au volume du pilote.
-4. **Tableau de bord** → remplacé par des exports.
+**Différés en mode serré, puis repris aussitôt après (dans cet ordre) :**
+
+1. **Recherche de campagnes côté créateur** → en mode serré : simple fil chronologique des campagnes
+   ouvertes ; **repris après le mode serré** : recherche complète avec filtres et facettes.
+2. **Alertes automatiques de coordonnées** → en mode serré : contrôle visuel du commercial, qui est
+   déjà dans le fil et voit tout passer ; **repris après le mode serré** : détection et signalement automatiques.
+3. **Actions de masse dans le backoffice** → en mode serré : traitement unitaire, acceptable au volume du pilote ;
+   **repris après le mode serré** : actions en lot encadrées.
+4. **Tableau de bord** → en mode serré : remplacé par des exports ; **repris après le mode serré** :
+   tableau de bord complet avec compteurs et indicateurs.
 
 **À ne jamais retirer, sous aucun prétexte :**
 

@@ -67,8 +67,12 @@ fériés :
    réessais, plafonds de débit (`05` Q1 à Q4).
 4. **Aucun test automatisé n'appelle un service externe réel** (`18` §1.3, `16` RG148). Les vrais
    appels ne se font qu'à la main, depuis le poste de développement, vers les comptes de test (D62).
-5. **Un écart de spécification découvert en codant arrête le code** : on le consigne, on le fait
-   trancher, on corrige la spécification, puis on code (§3).
+5. **Seul un écart structurant arrête le code (révisé le 2026-09-29 — directive de vélocité du fondateur)** :
+   un micro-écart technique ou de librairie (`EC-*`) qui ne touche aucun invariant métier est tranché
+   sur-le-champ de la manière la plus sûre/conservatrice par l'agent qui code, **sans arrêter le
+   développement et sans créer de commit `docs(mvp):` intermédiaire**. Les ajustements documentaires
+   et la **revue de sécurité (`expert-cybersecurite`) sont groupés en une seule passe à la fin de
+   chaque jalon**.
 
 ---
 
@@ -92,7 +96,7 @@ fériés :
 ### 2.1 Principes
 
 1. **Les spécifications font foi, la maquette jamais.** Chaque tâche cite la règle qu'elle
-   implémente (`05` RG44, `03` A-9…). Une règle introuvable est un écart (§3), pas une liberté.
+   implémente (`05` RG44, `03` A-9…). Face à un micro-écart technique, appliquer la solution la plus conservatrice sans bloquer le jalon (§0, règle 5).
 2. **Socle sécurisé d'abord, puis tranche verticale fine, puis élargissement.** Le premier usage est
    rendu démontrable le plus tôt possible (J6), puis durci (J7 à J9). On ne soigne pas les écrans
    avant que le flux complet passe.
@@ -173,17 +177,18 @@ Un jalon est terminé quand **toutes** ces conditions sont réunies :
 
 - [ ] `pnpm check` vert en local et en CI (format, types, lint, tests, build) ;
 - [ ] les tests exigés par le jalon passent trois fois de suite (aucun test instable, `18` §1.3) ;
-- [ ] chaque écart rencontré est consigné au §3, tranché par son arbitre, et **la spécification
-      concernée est corrigée** (décision structurante : `CLAUDE.md` §13 aussi) ;
+- [ ] **directive de vélocité (2026-09-29)** : aucun commit `docs(mvp):` intermédiaire n'est créé entre
+      deux sous-commits d'un jalon pour documenter des micro-écarts (`EC-*`). Les ajustements de
+      spécification et la **revue de sécurité (`expert-cybersecurite`) sont effectués en une seule
+      passe groupée à la fin du jalon** ;
 - [ ] toute migration touchant `audit.*`, une politique, un `GRANT`, un `REVOKE`, une fonction
       `SECURITY DEFINER` ou un attribut de rôle porte le marqueur `security-reviewed: <date>` dans son
-      message de commit, vérifié par la CI (`03` I-4) — tant que le fondateur n'a pas levé la
-      dérogation sur `supabase/migrations/**` (F-4) ;
+      message de commit, vérifié par la CI (`03` I-4) et validé lors de la revue groupée du jalon ;
 - [ ] toute variable nouvelle est documentée dans le `.env.example` concerné (skill `env-secrets`).
 
-**Agents et skills à solliciter**, dans l'esprit de `00` §7 : `architecte` (J1, choix de
-dépendances), `expert-database` + skill `supabase-schema` (J2, chaque migration),
-`expert-cybersecurite` (fin de J2, J3 et J9 — veto), `expert-integrations-api` + skills
+**Agents et skills à solliciter** (en revue groupée par jalon, `CLAUDE.md` §10.3 règle 8) : `architecte` (J1, choix de
+dépendances), `expert-database` + skill `supabase-schema` (migrations d'un jalon en un lot),
+`expert-cybersecurite` (**une seule revue groupée en fin de jalon**, jamais entre chaque sous-commit — veto), `expert-integrations-api` + skills
 `lead-pipeline`, `brevo-campaign`, `apollo-lead-sync` (J6, J7), `expert-ux` + skill
 `design-system-influx` (J5, J8), `testeur` + skill `test-strategy` (fin de chaque jalon),
 `integrateur` + skills `railway-deploy`, `env-secrets` (J0, J4, J9).
@@ -2839,8 +2844,9 @@ matrice des droits, tests de droits, puis écrans.
 | **2 — Profils, réseaux, badge** | D34, D61 (`07` Q15 et Q16), D24 instruite, `03` R-4 et R-5 | Migrations `0201` à `0207` : trois objets créateur, compartiments Storage privés ; création de `packages/domain` et `packages/ui` | **T1** (anonymisation sur la charge brute), T9, T14, TM5, TM11 |
 | **3 — Campagnes, recherche anonymisée** | D38, facettes de `10` | Migrations `0301` à `0306` ; domaine `search` avec k-anonymat, pagination plafonnée, journal | T1 rejoué, T15, TM12 ; mesure manuelle des 30 secondes |
 | **4 — Mise en relation, messagerie à trois** | D30, apartés (`04` §5.7.1 A2), conditions mobiles de D58 | Migrations `0401` à `0406` ; `reveal_identity()` et affaire créée à la révélation | **T18**, T5, T19, TM2, TM3, corpus de détection |
-| **5 — Backoffice, pipeline, e-mails** | D35, D36, `03` R-7 | Migrations `0501` à `0503` ; interrupteur d'urgence | TM4, TM6, TM8, TM9 |
-| **6 — Recette, audit, ouverture** | Levée des deux vetos ; test d'intrusion (F-9) | Parcours de bout en bout en douze étapes (`18` §7) | Toutes les familles ; restauration répétée |
+| **5 — Backoffice, pipeline, e-mails** *(mode serré)* | D35, D36, `03` R-7 | Migrations `0501` à `0503` ; interrupteur d'urgence ; traitement unitaire et exports (`00` §9) | TM4, TM6, TM8, TM9 |
+| **6 — Recette, audit, ouverture** *(livraison mode serré fin oct.)* | Levée des deux vetos ; test d'intrusion (F-9) | Parcours de bout en bout en douze étapes (`18` §7) | Toutes les familles ; restauration répétée |
+| **6bis — Rattrapage du mode normal** *(obligatoire sitôt le mode serré livré)* | Aucune (déjà spécifié dans `10`, `12`, `15`) | Reprise intégrale des 4 écarts entre mode normal et mode serré (`00` §9) : (1) recherche à facettes de campagnes côté créateur, (2) alertes automatiques de coordonnées dans la messagerie, (3) actions de masse au backoffice, (4) tableau de bord complet | Tests des facettes créateur, corpus de détection automatique, actions en lot (2V), indicateurs du tableau de bord |
 
 ---
 

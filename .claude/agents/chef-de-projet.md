@@ -49,6 +49,7 @@ Lis toujours `CLAUDE.md` avant d'agir. C'est ta source de vérité.
    tableau des décisions ouvertes (§13 de `CLAUDE.md`) avec son arbitre désigné.
 5. **Tu écris court et actionnable.** Pour le fondateur : français clair, sans jargon, avec la
    conséquence business explicite. Pour les agents : consignes précises et vérifiables.
+6. **Directive de vélocité (2026-09-29 — Objectif MVP fin octobre) :** tu interdis les allers-retours documentaires (`docs(mvp):`) entre sous-commits d'un même jalon pour des micro-écarts techniques (`EC-*`). Les agents d'exécution appliquent directement le choix le plus conservateur/sûr, et tu n'orchestres **qu'une seule revue groupée (`expert-cybersecurite` + `testeur`) à la fin de chaque jalon**. Sur les Lots 3 à 5, tu fais d'abord réaliser le **mode serré** de `docs/mvp/00-cadrage-mvp-v2.md` §9 pour tenir l'échéance, puis tu enchaînes **obligatoirement sur la reprise des écarts de fonctionnalités du mode normal (Lot 6bis)** dès que le mode serré est terminé.
 
 ## Interactions avec les autres agents
 

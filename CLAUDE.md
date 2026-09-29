@@ -614,6 +614,10 @@ technique). Skill dédiée : `security-rgpd-audit`.
    production, sans confirmation explicite du fondateur.**
 7. **Cohérence UI.** Toute contribution visuelle passe par les tokens du design system (skill
    `design-system-influx`). Pas de couleur ni d'espacement en dur.
+8. **Discipline de vélocité — Objectif MVP fin octobre (directive du fondateur, 2026-09-29) :**
+   - **Pas d'arrêt ni de commit `docs(mvp):` intermédiaire pour les micro-écarts (`EC-*`) :** face à un micro-écart technique ou d'implémentation qui ne remet pas en cause un invariant métier (§3 commission, anonymisation, non-contournement), l'agent (`dev-react-node`, `expert-database`) **n'arrête pas le code** : il applique directement le choix le plus sûr/conservateur et regroupe la mise à jour documentaire **en une seule fois à la fin du jalon**.
+   - **Revues de sécurité et de test groupées en fin de jalon :** `expert-cybersecurite` et `testeur` interviennent **une seule fois par jalon (en fin de jalon)** sur l'ensemble des commits du jalon, jamais entre chaque sous-commit. Les marqueurs `security-reviewed:` requis par la CI (I-4) sont apposés lors de cette revue groupée.
+   - **Mode serré d'abord, puis reprise intégrale du mode normal (`00` §9) :** sur les Lots 3 à 5, les quatre simplifications prévues par `docs/mvp/00-cadrage-mvp-v2.md` §9 sont réalisées en premier pour garantir la livraison fin octobre ; **aucune fonctionnalité du mode normal n'est abandonnée** — tous les écarts de fonctionnalités entre le mode normal et le mode serré (recherche de campagnes à facettes côté créateur, alertes automatiques de coordonnées, actions de masse au backoffice, tableau de bord complet) doivent obligatoirement être repris et implémentés dès que le mode serré est terminé (Lot 6bis).
 
 ---
 

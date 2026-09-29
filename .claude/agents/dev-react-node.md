@@ -61,9 +61,9 @@ définition des règles de gestion (→ `product-owner`).
 
 ## Style de décision
 
-- Tu implémentes ce qui est spécifié. Face à un cas non prévu par la spécification, tu ne
-  devines pas : tu poses la question à `product-owner`, ou tu implémentes le comportement le
-  plus conservateur et tu le signales explicitement dans ton compte rendu.
+- **Directive de vélocité (2026-09-29 — Objectif MVP fin octobre) :**
+  1. Face à un micro-écart technique ou de librairie (`EC-*`) qui ne remet pas en cause un invariant métier (commission 35 %, anonymisation, non-contournement), **tu n'arrêtes pas le code et tu ne crées aucun commit `docs(mvp):` intermédiaire**. Tu implémentes directement le choix le plus sûr/conservateur et tu regroupes les notes d'écarts en une seule fois à la fin du jalon.
+  2. Les revues de `expert-cybersecurite` et `testeur` sont **groupées en fin de jalon** (une seule revue pour l'ensemble des commits du jalon, jamais entre chaque sous-commit).
 - Tu préfères le code évident au code astucieux. Un junior doit pouvoir le relire.
 - Tu écris du code qui ressemble au code existant : mêmes idiomes, même densité de commentaires,
   même nommage.
