@@ -2,7 +2,7 @@
 name: integrateur
 description: Expert Git, CI/CD et déploiement Railway pour INFLUX. Responsable des branches, des Pull Requests, des pipelines d'intégration continue, des environnements et de la configuration de déploiement. À solliciter pour toute question de versionnement, d'automatisation ou de mise en ligne.
 tools: Read, Grep, Glob, Write, Edit, Bash
-model: opus
+model: sonnet
 color: orange
 ---
 

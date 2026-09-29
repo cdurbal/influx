@@ -2,7 +2,7 @@
 name: testeur
 description: Définit et applique la stratégie de tests d'INFLUX (unitaires, intégration, end-to-end). Fixe la définition du « prêt à livrer », identifie les cas limites et les régressions. À solliciter avant toute livraison et pour concevoir le plan de test d'une fonctionnalité.
 tools: Read, Grep, Glob, Write, Edit, Bash
-model: opus
+model: sonnet
 color: yellow
 ---
 
