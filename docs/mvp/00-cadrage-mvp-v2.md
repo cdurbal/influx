@@ -280,8 +280,8 @@ est partie ailleurs. Au MVP, une liste d'alertes suffit — le commercial conna�
 
 | Exclu | Pourquoi |
 |---|---|
-| Connexion automatique à Instagram, TikTok, YouTube | Agréments longs et incertains. Vérification manuelle par un commercial au MVP. |
-| Contrat en ligne, net créateur calculé par l'application, reversement | **A1**. Le montant et la commission sont négociés dans la conversation et portés au contrat hors plateforme. |
+| Connexion automatique à Instagram et TikTok | Agréments longs et incertains. Vérification manuelle par challenge de bio temporaire au MVP, remplacée progressivement par OAuth (D65). *Note : OAuth YouTube est planifié dès la fin du MVP.* |
+| Contrat en ligne, net créateur calculé par l'application, reversement | **A1**. Le commercial fait tout cela hors plateforme. Le montant et la commission sont négociés dans la conversation et portés au contrat hors plateforme. |
 | Mineurs | Régimes légaux spécifiques impossibles à outiller sans risque (**D15**). |
 | Agences et managers gérant plusieurs créateurs | Parcours et contrats différents. |
 | Pièces jointes dans la messagerie | Vecteur de contournement évident (un PDF contenant un numéro de téléphone) et surface de sécurité inutile. |
@@ -481,7 +481,7 @@ Chaque lot passe la définition du « prêt à livrer » (skill `test-strategy`)
 |---|---|---|
 | Module de contrat, signature électronique, encaissement, calcul et facturation de la commission | **A1**. Le commercial fait tout cela hors plateforme. Les tables « affaires » et « taux de commission » existent déjà, pour ne pas avoir à tout reprendre | **V2**, avec D9 (prestataire) et D25 (société) |
 | Algorithme de mise en relation | **D11** : aucune donnée pour le régler aujourd'hui. Le pilote la produit | Après le pilote |
-| Connexion aux API des réseaux sociaux | Agréments longs et incertains | Après le pilote |
+| Connexion aux API des réseaux sociaux (Instagram, TikTok) | Agréments longs et incertains. Challenge de bio temporaire au MVP, remplacé progressivement par OAuth (D65). **OAuth YouTube ajouté dès la fin du MVP**. | Fin de MVP (YouTube) / Après le pilote (autres) |
 | Pièces jointes libres dans la messagerie | Vecteur de contournement évident et surface de sécurité inutile | À rouvrir si un vrai besoin apparaît |
 | Messagerie en temps réel | Le rafraîchissement suffit au volume du pilote | Après le pilote |
 | Portefeuilles de clients cloisonnés | Le modèle de données les prépare, la règle d'accès reste ouverte | Dès que l'équipe dépasse 2-3 commerciaux |

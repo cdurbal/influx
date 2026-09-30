@@ -1,5 +1,7 @@
 # Lot 2 — Vérification des profils et badge : ce qu'INFLUX affirme, sur quelles pièces, et pour combien de temps
 
+> **✳️ Additif du 2026-09-30 — D65 (arbitrage du fondateur) : connexion OAuth YouTube en fin de MVP et trajectoire de remplacement des challenges de bio.** En fin de MVP (Lot 6 / transition V2), INFLUX intègre la **connexion OAuth pour YouTube** afin de valider la propriété d'une chaîne et de remonter ses métriques directement. Pour les autres réseaux (Instagram, TikTok, etc.), le **challenge de bio temporaire** (code public constaté par un agent, §C RG21 à RG30) demeure le procédé nominal de départ au MVP, avec pour vocation d'être **progressivement remplacé par du OAuth** au fur et à mesure des accords et agréments API. Voir `CLAUDE.md` §13 (D65).
+
 > **Date :** 2026-09-19 · **Auteur :** agent `product-owner` · **Statut :** spécification complète de
 > la vérification et du badge (Lot 2), soumise à la validation de `chef-de-projet`, avec **avis
 > obligatoire (veto) de `expert-conformite-rgpd`** sur les §I (données de tiers, conservation des
@@ -278,6 +280,8 @@ immédiatement le précédent.
 **RG24** — Le créateur **colle le code dans un champ public et modifiable** de son profil de réseau :
 biographie (Instagram, TikTok), description de chaîne (YouTube), champ équivalent pour un autre
 réseau. Il peut le retirer **dès que le constat est enregistré**, et l'interface le lui dit.
+
+**RG24bis** — **Trajectoire OAuth (D65)** : Dès la fin du MVP, la vérification de la propriété d'une chaîne YouTube s'effectue prioritairement par flux **OAuth direct** (Google / YouTube Data API). Pour les autres réseaux (Instagram, TikTok), le **challenge de code temporaire en bio** (ou description publique) reste la méthode opérationnelle en vigueur au lancement, et sera progressivement remplacé par une connexion OAuth au fil de l'obtention des agréments API respectifs.
 
 **RG25** — **L'agent constate lui-même le code en ligne**, depuis le profil public du réseau, et
 enregistre son constat : horodatage + identité de l'agent + identifiant du compte observé. **Une
@@ -1225,7 +1229,8 @@ redéploiement, chaque modification étant journalisée.
 
 | Exclu | Pourquoi | Quand cela revient |
 |---|---|---|
-| **Vérification automatique par connexion à l'API d'un réseau** (OAuth Instagram, TikTok, YouTube) | Agréments, quotas, dépendance forte, et surtout : le badge manuel est défendable dès le premier jour | Après le pilote |
+| **Vérification automatique par connexion à l'API d'un réseau** (OAuth Instagram, TikTok) | Agréments longs, quotas, dépendance. Le challenge de bio temporaire (RG24) est le mode de départ, progressivement remplacé par OAuth au fil des agréments (D65) | Après le pilote / au fil des agréments |
+| **Connexion OAuth YouTube** | Cadrage **D65** : planifiée en **fin de MVP** pour prouver la chaîne et remonter ses métriques directement | **Fin de MVP** (Lot 6 / transition V2) |
 | **Détection de faux abonnés** | Aucun outil au MVP ; le badge **ne dit rien** sur ce sujet (RG80) | **Q3**, arbitrage du fondateur |
 | Badge global « créateur vérifié » | RG13 : le badge est par réseau. Un badge global ment sur les réseaux non vérifiés | Jamais sous cette forme |
 | Badge dégradé, partiel, ou « en cours de vérification » affiché publiquement | Ne rien affirmer vaut mieux qu'affirmer à moitié (`06` RG52) | Non planifié |

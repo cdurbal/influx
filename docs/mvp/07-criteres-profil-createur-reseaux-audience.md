@@ -1512,7 +1512,7 @@ chaque modification étant journalisée.
 
 | Exclu | Pourquoi | Quand cela revient |
 |---|---|---|
-| Connexion directe aux API des réseaux sociaux pour récupérer les chiffres | Coût, agréments, instabilité ; la vérification manuelle suffit au pilote | Après le pilote |
+| Connexion directe aux API des réseaux sociaux (Instagram, TikTok) | Coût, agréments, instabilité ; challenge de bio temporaire pour le MVP, progressivement remplacé par OAuth (D65). **OAuth YouTube prévu en fin de MVP**. | Fin de MVP (YouTube) / Après le pilote (autres) |
 | Détection automatique de faux abonnés | Aucun outil au MVP ; le badge **ne dit rien** sur ce sujet (`profile-verification`) | Décision du fondateur |
 | Import automatique d'un portfolio depuis un réseau | Ramènerait pseudo, avatar et interface dans les visuels : contraire à RG79 | Non planifié |
 | Vidéos dans le portfolio | Coût de modération, de stockage et de lecture sans effet mesuré | Après le pilote |
