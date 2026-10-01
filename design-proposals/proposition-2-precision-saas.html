@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INFLUX — Proposition 2 : Precision SaaS & Zéro Distraction</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    :root {
+      --color-brand-primary: #22c55e;
+      --color-brand-accent: #29e075;
+      --color-surface-page: #09090b;
+      --color-surface-card: #121214;
+      --color-surface-raised: #18181b;
+      --color-surface-hover: #222226;
+      --color-text-primary: #f4f4f5;
+      --color-text-secondary: #a1a1aa;
+      --color-text-tertiary: #71717a;
+      --color-border-subtle: #1c1c1f;
+      --color-border-default: #27272a;
+      --color-border-strong: #3f3f46;
+      --color-bo-identified: #a78bfa;
+      --color-bo-identified-bg: #17121f;
+    }
+
+    body {
+      background-color: var(--color-surface-page);
+      color: var(--color-text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      letter-spacing: -0.01em;
+    }
+
+    /* Précision Linear / Raycast : bordures 1px nettes et zéro dégradé parasite */
+    .precision-card {
+      background: var(--color-surface-card);
+      border: 1px solid var(--color-border-default);
+      transition: border-color 0.12s ease;
+    }
+    .precision-card:hover {
+      border-color: var(--color-border-strong);
+    }
+
+    .kbd-shortcut {
+      background: #1c1c1f;
+      border: 1px solid #2e2e33;
+      color: #a1a1aa;
+      font-size: 10px;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      padding: 1px 5px;
+      border-radius: 4px;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.5);
+    }
+
+    .btn-action-primary {
+      background: #29e075;
+      color: #09090b;
+      font-weight: 600;
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: background-color 0.1s ease;
+    }
+    .btn-action-primary:hover {
+      background: #22c766;
+    }
+
+    .btn-action-secondary {
+      background: #18181b;
+      border: 1px solid var(--color-border-default);
+      color: #f4f4f5;
+      transition: all 0.1s ease;
+    }
+    .btn-action-secondary:hover {
+      background: #222226;
+      border-color: var(--color-border-strong);
+    }
+  </style>
+</head>
+<body class="p-6 md:p-10 max-w-6xl mx-auto space-y-12">
+
+  <!-- Header Proposition -->
+  <header class="border-b border-[#27272a] pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div>
+      <div class="flex items-center gap-3">
+        <span class="px-2.5 py-0.5 text-xs font-semibold rounded-md bg-[#18181b] text-[#29e075] border border-[#27272a]">PROPOSITION 2</span>
+        <h1 class="text-2xl font-bold tracking-tight text-[#f4f4f5]">Precision SaaS & Zéro Distraction</h1>
+      </div>
+      <p class="text-sm text-[#a1a1aa] mt-1">Inspiré de <strong>Linear & Raycast</strong> — Lignes 1px chirurgicales, données tabulaires, zéro bruit graphique, fluidité clavier.</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="index.html" class="btn-action-secondary text-xs px-3 py-1.5 rounded-md text-[#f4f4f5]">← Retour au comparateur</a>
+    </div>
+  </header>
+
+  <!-- 1. En-tête & Deux Portes (Hero) -->
+  <section class="space-y-3">
+    <div class="flex justify-between items-center text-xs uppercase tracking-wider text-[#71717a] font-semibold">
+      <span>1. Hero & Navigation « Deux Portes »</span>
+      <span class="kbd-shortcut">⌘K pour chercher</span>
+    </div>
+    <div class="precision-card rounded-xl p-6 flex flex-col md:flex-row justify-between items-center gap-6">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-[#29e075]"></span>
+          <span class="text-xs font-mono font-bold text-[#29e075] uppercase">INFLUX PROTOCOL</span>
+        </div>
+        <h2 class="text-xl md:text-2xl font-semibold text-[#f4f4f5] mt-1.5">Marketplace courtée d'influence commerciale</h2>
+        <p class="text-sm text-[#a1a1aa] mt-1">Mises en relation vérifiées, sans contournement, arbitrées par un commercial dédié.</p>
+      </div>
+      <div class="flex gap-3 w-full md:w-auto">
+        <button class="btn-action-primary text-xs px-4 py-2 rounded-md flex items-center gap-2">
+          <span>Créer une campagne</span>
+          <span class="text-[10px] bg-[rgba(0,0,0,0.15)] px-1.5 py-0.5 rounded">C</span>
+        </button>
+        <button class="btn-action-secondary text-xs px-4 py-2 rounded-md flex items-center gap-2">
+          <span>Espace créateur</span>
+          <span class="kbd-shortcut">↵</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Carte Profil Créateur Anonymisée (D61 / 10 §F) -->
+  <section class="space-y-3">
+    <div class="text-xs uppercase tracking-wider text-[#71717a] font-semibold">2. Profil Créateur Anonymisé — Données tabulaires précises</div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <!-- Fiche Créateur Pure Linear -->
+      <div class="precision-card rounded-xl p-5 md:col-span-2 space-y-4">
+        <div class="flex justify-between items-center border-b border-[#1c1c1f] pb-3">
+          <div class="flex items-center gap-2.5">
+            <span class="font-mono text-xs text-[#a1a1aa] bg-[#18181b] px-2 py-0.5 rounded border border-[#27272a]">ID #CRT-84920</span>
+            <span class="text-xs text-[#2dd4bf] font-medium flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#2dd4bf]"></span>
+              Vérifié YouTube
+            </span>
+          </div>
+          <span class="text-xs text-[#71717a]">Signalement : Tech / Dev / SaaS</span>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-semibold text-[#f4f4f5]">Ingénieur logiciel & Setup Minimaliste</h3>
+          <p class="text-xs text-[#a1a1aa] mt-0.5">Contenu didactique axé sur l'écosystème web, le matériel bureautique et les outils pour créateurs.</p>
+        </div>
+
+        <!-- 3 Chiffres Prioritaires D61 en Tableau Monospace -->
+        <div class="grid grid-cols-3 gap-2 bg-[#09090b] p-3 rounded-lg border border-[#1c1c1f] font-mono text-xs">
+          <div>
+            <span class="text-[11px] text-[#71717a] block">COMMUNAUTÉ</span>
+            <span class="text-sm font-semibold text-[#f4f4f5]">100K–250K</span>
+          </div>
+          <div>
+            <span class="text-[11px] text-[#71717a] block">RYTHME (30 J)</span>
+            <span class="text-sm font-semibold text-[#29e075]">14 posts</span>
+          </div>
+          <div>
+            <span class="text-[11px] text-[#71717a] block">MOY. COMM.</span>
+            <span class="text-sm font-semibold text-[#f4f4f5]">420 / post</span>
+          </div>
+        </div>
+
+        <div class="flex justify-between items-center pt-2">
+          <span class="text-xs text-[#71717a]">Match critère : <em>Budget campagne compatible</em></span>
+          <button class="btn-action-primary text-xs px-3.5 py-1.5 rounded-md flex items-center gap-2">
+            <span>Demander mise en relation</span>
+            <span class="text-[10px] bg-[rgba(0,0,0,0.15)] px-1 py-0.5 rounded">R</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Linear Insight Box -->
+      <div class="precision-card rounded-xl p-5 flex flex-col justify-between text-xs space-y-3">
+        <div>
+          <div class="font-semibold text-sm text-[#f4f4f5] flex items-center gap-2">
+            <span class="w-2 h-2 bg-[#29e075] rounded-full"></span>
+            Esprit Precision
+          </div>
+          <p class="text-[#a1a1aa] mt-2">Aucun dégradé ni texture. L'information est hiérarchisée par les contrastes de gris (`#f4f4f5` pour la valeur, `#a1a1aa` pour le contexte, `#71717a` pour la métadonnée).</p>
+        </div>
+        <div class="bg-[#09090b] p-3 rounded border border-[#1c1c1f]">
+          <span class="text-xs text-[#29e075] font-mono">Performance :</span>
+          <p class="text-[#71717a] text-[11px] mt-1">Zéro repaint coûteux, rendu instantané même sur listes de 200 profils.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 3. Backoffice & Aparté Clavier (17b & D47) -->
+  <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+    <!-- Backoffice SLA & Lignes 36px (17b §6) -->
+    <div class="precision-card rounded-xl p-5 space-y-3">
+      <div class="flex justify-between items-center">
+        <span class="text-xs font-mono font-semibold text-[#71717a] uppercase tracking-wider">File de validation (Backoffice · 17b)</span>
+        <span class="text-xs px-2 py-0.5 rounded bg-[#17121f] text-[#a78bfa] border border-[rgba(167,139,250,0.3)]">
+          ⬥ VUE IDENTIFIÉE
+        </span>
+      </div>
+
+      <!-- Lignes de 36px -->
+      <div class="border border-[#1c1c1f] rounded-lg overflow-hidden text-xs">
+        <div class="h-9 px-3 bg-[#18181b] flex items-center justify-between border-b border-[#1c1c1f] hover:bg-[#222226] border-l-2 border-l-[#29e075]">
+          <span class="font-mono text-[#f4f4f5]">DEM-0041 · Acme Corp → @devpro</span>
+          <span class="text-[#a1a1aa]">○ dans 6 h 40</span>
+        </div>
+        <div class="h-9 px-3 bg-[#121214] flex items-center justify-between border-b border-[#1c1c1f] hover:bg-[#222226]">
+          <span class="font-mono text-[#f4f4f5]">DEM-0039 · Studio Nova → @sarah_c</span>
+          <span class="text-[#fbbf24] font-medium">⚑ dans 45 min</span>
+        </div>
+        <div class="h-9 px-3 bg-[#121214] flex items-center justify-between hover:bg-[#222226]">
+          <span class="font-mono text-[#f4f4f5]">DEM-0028 · Pulse Brand → @marc_fit</span>
+          <span class="text-[#f87171] font-semibold">⚑ HORS DÉLAI</span>
+        </div>
+      </div>
+      <div class="flex justify-between text-[11px] text-[#71717a] pt-1">
+        <span>Navigation : <kbd class="kbd-shortcut">j</kbd> <kbd class="kbd-shortcut">k</kbd></span>
+        <span>Prendre en charge : <kbd class="kbd-shortcut">espace</kbd></span>
+      </div>
+    </div>
+
+    <!-- Zone Aparté Épurée (D47) -->
+    <div class="precision-card rounded-xl p-5 space-y-3">
+      <div class="flex justify-between items-center">
+        <div class="flex gap-1 text-xs">
+          <button class="px-2.5 py-1 text-[#71717a] hover:text-[#f4f4f5]">À trois</button>
+          <button class="px-2.5 py-1 text-[#29e075] bg-[#18181b] border-b-2 border-[#29e075] font-semibold flex items-center gap-1">
+            🔒 Vous et INFLUX
+          </button>
+        </div>
+        <span class="text-[11px] text-[#71717a]">Marque exclue</span>
+      </div>
+
+      <!-- Cadre 2px sobre -->
+      <div class="border-2 border-[#3f3f46] rounded-lg p-3 bg-[#09090b] space-y-2">
+        <div class="text-[11px] text-[#29e075] flex items-center gap-1 font-mono">
+          <span>●</span>
+          <span>Canal privé avec Thomas — INFLUX.</span>
+        </div>
+        <textarea rows="2" class="w-full bg-transparent text-xs text-[#f4f4f5] placeholder-[#71717a] focus:outline-none resize-none font-sans" placeholder="Confiez votre tarif plancher ou vos contraintes..."></textarea>
+        <div class="flex justify-between items-center pt-2 border-t border-[#1c1c1f]">
+          <span class="text-[10px] text-[#71717a]">Auto-sauvegarde active</span>
+          <button class="btn-action-primary text-xs px-3 py-1 rounded">
+            Envoyer en privé ↵
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+</body>
+</html>

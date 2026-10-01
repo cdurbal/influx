@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INFLUX — Comparateur des Propositions de Design System</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    body {
+      background-color: #0a0a0a;
+      color: #f5f5f7;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .preview-frame {
+      border: 1px solid #242428;
+      border-radius: 12px;
+      background: #111113;
+      width: 100%;
+      height: 620px;
+    }
+  </style>
+</head>
+<body class="p-6 md:p-10 max-w-7xl mx-auto space-y-10">
+
+  <!-- Header Comparateur -->
+  <header class="border-b border-[#242428] pb-6">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-[#29e075]"></span>
+          <span class="text-xs font-mono font-bold tracking-widest text-[#29e075] uppercase">INFLUX DESIGN LAB</span>
+        </div>
+        <h1 class="text-3xl font-extrabold tracking-tight mt-1 text-[#f5f5f7]">Comparateur des 3 Propositions de Design System</h1>
+        <p class="text-sm text-[#a1a1aa] mt-1">Conçu en stricte conformité avec <code>CLAUDE.md</code>, <code>tokens.css</code>, et les décisions D6, D4, D59, D41, D48, P1-P7.</p>
+      </div>
+
+      <!-- Quick Links -->
+      <div class="flex flex-wrap gap-2">
+        <a href="proposition-1-neo-luxe.html" target="_blank" class="px-3 py-1.5 rounded-lg bg-[#131315] border border-[#242428] text-xs font-medium hover:border-[#29e075] transition-colors">
+          ↗ Ouvrir Prop 1 seul
+        </a>
+        <a href="proposition-2-precision-saas.html" target="_blank" class="px-3 py-1.5 rounded-lg bg-[#131315] border border-[#242428] text-xs font-medium hover:border-[#29e075] transition-colors">
+          ↗ Ouvrir Prop 2 seul
+        </a>
+        <a href="proposition-3-tri-face.html" target="_blank" class="px-3 py-1.5 rounded-lg bg-[#131315] border border-[#242428] text-xs font-medium hover:border-[#29e075] transition-colors text-[#29e075]">
+          ↗ Ouvrir Prop 3 seul (Recommandé)
+        </a>
+      </div>
+    </div>
+
+    <!-- Rappel des Invariants Communs -->
+    <div class="mt-6 p-4 rounded-xl bg-[#131315] border border-[#242428] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+      <div>
+        <span class="text-[#86868f] block">Thème Fondateur (D6)</span>
+        <strong class="text-[#f5f5f7]">Dark Theme Obligatoire</strong>
+        <p class="text-[#86868f] text-[11px] mt-0.5">Noir profond nuancé, pas de noir pur.</p>
+      </div>
+      <div>
+        <span class="text-[#86868f] block">Couleur Marque & Action</span>
+        <strong class="text-[#29e075]">Vert #29E075 / #22C55E</strong>
+        <p class="text-[#86868f] text-[11px] mt-0.5">Succès en Sarcelle #2DD4BF distinct.</p>
+      </div>
+      <div>
+        <span class="text-[#86868f] block">Règle d'or (P1)</span>
+        <strong class="text-[#f5f5f7]">Comportements, pas de styles</strong>
+        <p class="text-[#86868f] text-[11px] mt-0.5">Identité 100% INFLUX.</p>
+      </div>
+      <div>
+        <span class="text-[#86868f] block">Trois Registres (D41)</span>
+        <strong class="text-[#f5f5f7]">Aucun écran partagé</strong>
+        <p class="text-[#86868f] text-[11px] mt-0.5">Créateur mobile vs Marque desktop vs BO.</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Switch Tabs pour le comparateur -->
+  <div class="flex gap-2 border-b border-[#242428] pb-3 text-sm">
+    <button onclick="setTab('side-by-side')" id="tab-btn-side" class="px-4 py-2 rounded-lg bg-[#29e075] text-[#0a0a0a] font-bold text-xs">
+      Comparaison Côte à Côte
+    </button>
+    <button onclick="setTab('prop1')" id="tab-btn-p1" class="px-4 py-2 rounded-lg bg-[#1a1a1d] text-[#a1a1aa] font-medium text-xs hover:text-[#f5f5f7]">
+      1. Néo-Luxe & Métal (Visa Infinite)
+    </button>
+    <button onclick="setTab('prop2')" id="tab-btn-p2" class="px-4 py-2 rounded-lg bg-[#1a1a1d] text-[#a1a1aa] font-medium text-xs hover:text-[#f5f5f7]">
+      2. Precision SaaS (Linear / Raycast)
+    </button>
+    <button onclick="setTab('prop3')" id="tab-btn-p3" class="px-4 py-2 rounded-lg bg-[#1a1a1d] text-[#a1a1aa] font-medium text-xs hover:text-[#f5f5f7]">
+      3. Tri-Face Contextuel (Recommandé)
+    </button>
+  </div>
+
+  <!-- VUE 1 : CÔTE À CÔTE -->
+  <div id="view-side-by-side" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    
+    <!-- Colonne Prop 1 -->
+    <div class="space-y-3">
+      <div class="flex justify-between items-center">
+        <div>
+          <h3 class="font-bold text-sm text-[#f5f5f7]">1. Néo-Luxe & Métal</h3>
+          <span class="text-xs text-[#86868f]">Inspiré D59 / wekollab.fr</span>
+        </div>
+        <a href="proposition-1-neo-luxe.html" target="_blank" class="text-xs text-[#29e075]">Plein écran ↗</a>
+      </div>
+      <iframe src="proposition-1-neo-luxe.html" class="preview-frame"></iframe>
+    </div>
+
+    <!-- Colonne Prop 2 -->
+    <div class="space-y-3">
+      <div class="flex justify-between items-center">
+        <div>
+          <h3 class="font-bold text-sm text-[#f5f5f7]">2. Precision SaaS</h3>
+          <span class="text-xs text-[#86868f]">Inspiré Linear / Raycast</span>
+        </div>
+        <a href="proposition-2-precision-saas.html" target="_blank" class="text-xs text-[#29e075]">Plein écran ↗</a>
+      </div>
+      <iframe src="proposition-2-precision-saas.html" class="preview-frame"></iframe>
+    </div>
+
+    <!-- Colonne Prop 3 -->
+    <div class="space-y-3">
+      <div class="flex justify-between items-center">
+        <div>
+          <h3 class="font-bold text-sm text-[#29e075]">3. Tri-Face Contextuel</h3>
+          <span class="text-xs text-[#86868f]">Inspiré D41 (Adaptatif)</span>
+        </div>
+        <a href="proposition-3-tri-face.html" target="_blank" class="text-xs text-[#29e075]">Plein écran ↗</a>
+      </div>
+      <iframe src="proposition-3-tri-face.html" class="preview-frame"></iframe>
+    </div>
+
+  </div>
+
+  <!-- VUE PLEIN ÉCRAN UNIQUE (Prop 1) -->
+  <div id="view-prop1" class="hidden space-y-3">
+    <div class="flex justify-between items-center">
+      <h3 class="font-bold text-lg text-[#f5f5f7]">Proposition 1 : Néo-Luxe & Métal Biseauté</h3>
+      <a href="proposition-1-neo-luxe.html" target="_blank" class="text-xs text-[#29e075]">Ouvrir dans un nouvel onglet ↗</a>
+    </div>
+    <iframe src="proposition-1-neo-luxe.html" class="preview-frame h-[850px]"></iframe>
+  </div>
+
+  <!-- VUE PLEIN ÉCRAN UNIQUE (Prop 2) -->
+  <div id="view-prop2" class="hidden space-y-3">
+    <div class="flex justify-between items-center">
+      <h3 class="font-bold text-lg text-[#f5f5f7]">Proposition 2 : Precision SaaS & Zéro Distraction</h3>
+      <a href="proposition-2-precision-saas.html" target="_blank" class="text-xs text-[#29e075]">Ouvrir dans un nouvel onglet ↗</a>
+    </div>
+    <iframe src="proposition-2-precision-saas.html" class="preview-frame h-[850px]"></iframe>
+  </div>
+
+  <!-- VUE PLEIN ÉCRAN UNIQUE (Prop 3) -->
+  <div id="view-prop3" class="hidden space-y-3">
+    <div class="flex justify-between items-center">
+      <h3 class="font-bold text-lg text-[#29e075]">Proposition 3 : Design System Tri-Face Contextuel</h3>
+      <a href="proposition-3-tri-face.html" target="_blank" class="text-xs text-[#29e075]">Ouvrir dans un nouvel onglet ↗</a>
+    </div>
+    <iframe src="proposition-3-tri-face.html" class="preview-frame h-[850px]"></iframe>
+  </div>
+
+  <!-- Résumé Décisionnel -->
+  <footer class="p-6 bg-[#131315] border border-[#242428] rounded-2xl space-y-4 text-xs">
+    <h4 class="font-bold text-sm text-[#f5f5f7]">Comment arbitrer votre choix ?</h4>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-[#a1a1aa]">
+      <div class="space-y-1">
+        <strong class="text-[#f5f5f7] block">Choisissez la Proposition 1 si :</strong>
+        <p>Vous souhaitez que la marque INFLUX inspire immédiatement l'exclusivité d'un club d'affaires et la valorisation financière d'une carte Visa Infinite noire.</p>
+      </div>
+      <div class="space-y-1">
+        <strong class="text-[#f5f5f7] block">Choisissez la Proposition 2 si :</strong>
+        <p>Vous privilégiez la vitesse d'exécution, la sobriété d'un outil de travail type Linear et le confort d'utilisation au clavier sans aucune fioriture visuelle.</p>
+      </div>
+      <div class="space-y-1">
+        <strong class="text-[#29e075] block">Choisissez la Proposition 3 si (Recommandé) :</strong>
+        <p>Vous voulez respecter à 100% la réalité du terrain : un créateur qui valide des contrats sur smartphone debout en extérieur, une marque qui analyse des briefs sur grand écran, et un commercial qui traite ses files au backoffice.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function setTab(tab) {
+      const views = ['side-by-side', 'prop1', 'prop2', 'prop3'];
+      const btns = ['side', 'p1', 'p2', 'p3'];
+
+      views.forEach(v => {
+        document.getElementById('view-' + v).classList.add('hidden');
+      });
+      btns.forEach(b => {
+        document.getElementById('tab-btn-' + b).className = 'px-4 py-2 rounded-lg bg-[#1a1a1d] text-[#a1a1aa] font-medium text-xs hover:text-[#f5f5f7]';
+      });
+
+      document.getElementById('view-' + tab).classList.remove('hidden');
+      const activeBtnMap = {
+        'side-by-side': 'tab-btn-side',
+        'prop1': 'tab-btn-p1',
+        'prop2': 'tab-btn-p2',
+        'prop3': 'tab-btn-p3'
+      };
+      document.getElementById(activeBtnMap[tab]).className = 'px-4 py-2 rounded-lg bg-[#29e075] text-[#0a0a0a] font-bold text-xs';
+    }
+  </script>
+
+</body>
+</html>
