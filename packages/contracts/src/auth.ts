@@ -57,3 +57,60 @@ export const requestCodeResponseSchema = z.strictObject({
   matchingPhrase: z.string().min(1).max(64).optional(),
 });
 export type RequestCodeResponse = z.infer<typeof requestCodeResponseSchema>;
+
+/** Six digits, nothing else (05 RG39). */
+export const LOGIN_CODE_PATTERN = /^\d{6}$/;
+
+export const verifyCodeBodySchema = z.strictObject({
+  code: z.string().regex(LOGIN_CODE_PATTERN),
+  door: signupDoorSchema,
+});
+export type VerifyCodeBody = z.infer<typeof verifyCodeBodySchema>;
+
+/**
+ * Outcomes of a verification (05 RG136 to RG140). Before a successful verification, the outcome
+ * depends on the code, the journey and the network, never on the account (RG138).
+ */
+export const verifyCodeResponseSchema = z.discriminatedUnion("outcome", [
+  // A member session is open (RG66, RG67): the front routes to the space of the real role.
+  z.strictObject({
+    outcome: z.literal("signed_in"),
+    role: signupDoorSchema,
+    /** The account's role differs from the door (RG67): a message explains it. */
+    roleMismatch: z.boolean(),
+  }),
+  // No account for this address: the sign-up token is set (EC-4); at J3, RG139.
+  z.strictObject({ outcome: z.literal("signup_required") }),
+  // An internal account: no member session (RG68, RG140).
+  z.strictObject({ outcome: z.literal("internal_account") }),
+  // A suspended (or closed) account: no session (RG69).
+  z.strictObject({ outcome: z.literal("account_unavailable") }),
+  // Wrong code: failures 1 to 4 (RG137).
+  z.strictObject({
+    outcome: z.literal("invalid"),
+    attemptsLeft: z.number().int().min(1).max(4),
+  }),
+  // Fifth failure: the code is invalidated (RG42, RG137).
+  z.strictObject({ outcome: z.literal("too_many_attempts") }),
+  // Ten minutes after the request, whatever the code (RG136).
+  z.strictObject({ outcome: z.literal("expired") }),
+  // No journey in this browser, or a journey older than fifteen minutes (RG47, RG136).
+  z.strictObject({ outcome: z.literal("session_lost") }),
+  // Ceiling of the network (RG44, EC-3 point 5).
+  z.strictObject({ outcome: z.literal("too_many_requests") }),
+  // GoTrue did not answer (auth.code.errors.verifyUnavailable).
+  z.strictObject({ outcome: z.literal("verify_unavailable") }),
+]);
+export type VerifyCodeResponse = z.infer<typeof verifyCodeResponseSchema>;
+
+export const logoutResponseSchema = z.strictObject({
+  outcome: z.literal("signed_out"),
+});
+
+/** GET /v1/me, minimal at J3: who is signed in, in which language. */
+export const meResponseSchema = z.strictObject({
+  email: z.email(),
+  role: signupDoorSchema,
+  preferredLanguage: z.string().length(2),
+});
+export type MeResponse = z.infer<typeof meResponseSchema>;

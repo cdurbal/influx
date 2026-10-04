@@ -113,3 +113,141 @@ export async function closeLoginCodeSend(
         );
   return rows.length === 1;
 }
+
+/** Failures of the current window of a counter (0014), read before calling GoTrue. */
+export async function failureCount(
+  tx: Transaction,
+  scope: ThrottleScope,
+  key: Buffer,
+  window: ThrottleWindow,
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select identity.auth_failure_count(${scope}::identity.throttle_scope, ${key},
+                                           ${window}::identity.throttle_window)::int
+               as count`,
+  );
+  return rows[0]?.count ?? 0;
+}
+
+/** Counts one failure (0014); returns the failures of the current window. */
+export async function recordAuthFailure(
+  tx: Transaction,
+  scope: ThrottleScope,
+  key: Buffer,
+  window: ThrottleWindow,
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select identity.record_auth_failure(${scope}::identity.throttle_scope, ${key},
+                                            ${window}::identity.throttle_window)::int
+               as count`,
+  );
+  return rows[0]?.count ?? 0;
+}
+
+export type AuthenticatedAccount = {
+  id: string;
+  email: string;
+  status: string;
+  role: string;
+};
+
+/**
+ * The account of a GoTrue user, looked up by `auth_user_id`, never by the address alone (21 J3-C
+ * rule 3). One role per account at the MVP (D41).
+ */
+export async function accountOfAuthUser(
+  tx: Transaction,
+  authUserId: string,
+): Promise<AuthenticatedAccount | null> {
+  const rows = await tx.execute<AuthenticatedAccount>(
+    sql`select a.id::text as id, a.email, a.status::text as status, r.role::text as role
+          from identity.accounts a
+          join identity.account_roles r on r.account_id = a.id
+         where a.auth_user_id = ${authUserId}::uuid`,
+  );
+  return rows[0] ?? null;
+}
+
+/** Whether any account holds this address, whatever its state (EC-4 point 1). */
+export async function emailIsTaken(
+  tx: Transaction,
+  email: string,
+): Promise<boolean> {
+  const rows = await tx.execute<{ id: string }>(
+    sql`select id::text as id from identity.accounts where email = ${email}`,
+  );
+  return rows.length > 0;
+}
+
+/**
+ * A member session (EC-29 point 1): the named columns of influx_auth only; dates, aal and
+ * expiries are computed by identity.prepare_session() (0012).
+ */
+export async function insertMemberSession(
+  tx: Transaction,
+  session: { tokenHash: Buffer; accountId: string; userAgentSummary: string },
+): Promise<string> {
+  const rows = await tx.execute<{ id: string }>(
+    sql`insert into identity.sessions
+          (token_hash, account_id, surface, mfa_method, user_agent_summary)
+        values (${session.tokenHash}, ${session.accountId}::uuid, 'member', null,
+                ${session.userAgentSummary})
+        returning id::text as id`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    throw new Error("session not inserted");
+  }
+  return row.id;
+}
+
+// --- Under the member's own role (withUserTransaction) -----------------------------------------
+
+/** Sliding renewal (EC-29 point 2): true when the database wrote a new expiry. */
+export async function touchSession(
+  tx: Transaction,
+  sessionId: string,
+): Promise<boolean> {
+  const rows = await tx.execute<{ touched: boolean }>(
+    sql`select identity.touch_session(${sessionId}::uuid) as touched`,
+  );
+  return rows[0]?.touched === true;
+}
+
+/** The sliding expiry of the member's own session. */
+export async function idleExpiryOf(
+  tx: Transaction,
+  sessionId: string,
+): Promise<Date | null> {
+  const rows = await tx.execute<{ expires: string }>(
+    sql`select idle_expires_at::text as expires from identity.sessions
+         where id = ${sessionId}::uuid`,
+  );
+  const expires = rows[0]?.expires;
+  return expires === undefined ? null : new Date(expires);
+}
+
+/** Revocation by the holder (EC-29 point 3). */
+export async function revokeOwnSession(
+  tx: Transaction,
+  sessionId: string,
+): Promise<boolean> {
+  const rows = await tx.execute<{ revoked: boolean }>(
+    sql`select identity.revoke_own_session(${sessionId}::uuid, 'logout') as revoked`,
+  );
+  return rows[0]?.revoked === true;
+}
+
+/** GET /v1/me, minimal: the member's own row (RLS: own account only). */
+export async function ownProfile(
+  tx: Transaction,
+): Promise<{ email: string; preferredLanguage: string } | null> {
+  const rows = await tx.execute<{ email: string; preferred_language: string }>(
+    sql`select email, preferred_language::text as preferred_language
+          from identity.accounts where id = (select influx.current_account_id())`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : { email: row.email, preferredLanguage: row.preferred_language };
+}

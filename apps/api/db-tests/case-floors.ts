@@ -14,4 +14,5 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/t8-mfa-throttle-journal.test.ts": 30,
   "db-tests/t8-request-code.test.ts": 11,
   "db-tests/t8-session-writes.test.ts": 43,
+  "db-tests/t8-verify-code.test.ts": 18,
 };

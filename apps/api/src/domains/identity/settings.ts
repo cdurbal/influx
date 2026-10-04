@@ -19,3 +19,21 @@ export const CODE_REQUESTS_PER_IP_HOUR = 20;
  * member code; the most conservative one is taken (21 §3, EC-58).
  */
 export const CODE_REQUESTS_UNKNOWN_IP_HOUR = 10;
+
+/** 05 RG42, EC-3: attempts per code, reserved before GoTrue is called. */
+export const CODE_ATTEMPTS = 5;
+
+/** 05 RG40, RG136: a code is valid ten minutes from its request. */
+export const CODE_VALIDITY_SECONDS = 600;
+
+/** 05 RG44, EC-3 point 5: failed verifications per IP and per hour, checked before the call. */
+export const CODE_VERIFY_FAILURES_PER_IP_HOUR = 20;
+
+/** J3-C rule 6: bound of the verification by GoTrue. */
+export const CODE_VERIFY_TIMEOUT_MS = 2_000;
+
+/** EC-3 point 6 (A-3): platform failures in 15 min that raise security.verify_failure_spike. */
+export const VERIFY_FAILURE_SPIKE = 100;
+
+/** 03 §6.1, 05 RG54: the sliding expiry of a member session, 30 days (Max-Age of its cookie). */
+export const MEMBER_SESSION_IDLE_SECONDS = 30 * 24 * 60 * 60;
