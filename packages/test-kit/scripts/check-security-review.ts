@@ -7,6 +7,10 @@
 //   03 P8 (audit.*, a policy, a GRANT, a REVOKE, a SECURITY DEFINER function, a role attribute),
 //   or the schema of the Supabase Auth hooks (`auth_hooks`, EC-48);
 // - the expected rights of T2 (packages/test-kit/src/rights/**), whatever the change (18 C-8);
+// - the signed list of elevated operations (packages/contracts/src/elevated-operations.ts), the
+//   relay files of both fronts and their browser relay client, whatever the change (J3S-9 of the
+//   end-of-J3 security review): their SHA-256 pins force a conscious gesture, the marker records
+//   expert-cybersecurite's reading;
 // - a line of supabase/config.toml, added or removed, that belongs to a section `[auth]` or
 //   `[auth.*]` (sign-up, hooks, TOTP, code length and lifetime, rate limits), `[api]` or `[api.*]`
 //   (schemas exposed to the Data API), `[storage*]`, `[db.network_restrictions]`,
@@ -23,6 +27,19 @@ import { execFileSync } from "node:child_process";
 
 const MARKER = /^security-reviewed: \d{4}-\d{2}-\d{2}\b/m;
 const RIGHTS_PATH = "packages/test-kit/src/rights/";
+/** Files whose every change is a security change (J3S-9), in both fronts for the relay. */
+const SECURITY_FILES: readonly string[] = [
+  "packages/contracts/src/elevated-operations.ts",
+  ...["apps/web", "apps/backoffice"].flatMap((front) =>
+    [
+      "src/app/api/[...path]/route.ts",
+      "src/server/relay.ts",
+      "src/server/api-client.ts",
+      "src/config/server.ts",
+      "src/browser/relay-client.ts",
+    ].map((file) => `${front}/${file}`),
+  ),
+];
 const MIGRATIONS_PATH = "supabase/migrations/";
 const SUPABASE_CONFIG = "supabase/config.toml";
 const SENSITIVE =
@@ -116,7 +133,11 @@ function changesRights(commit: string): boolean {
   const files = git("show", "--name-only", "--format=", commit)
     .split("\n")
     .filter((line) => line.length > 0);
-  if (files.some((file) => file.startsWith(RIGHTS_PATH))) {
+  if (
+    files.some(
+      (file) => file.startsWith(RIGHTS_PATH) || SECURITY_FILES.includes(file),
+    )
+  ) {
     return true;
   }
   if (files.includes(SUPABASE_CONFIG) && changesSensitiveConfig(commit)) {
@@ -141,7 +162,7 @@ const missing = commitsOf(base, head).filter(
 
 if (missing.length > 0) {
   process.stderr.write(
-    `Commits changing rights without "security-reviewed: <date>" (03 I-4, 18 C-8, EC-48):\n${missing
+    `Commits changing rights without "security-reviewed: <date>" (03 I-4, 18 C-8, EC-48, J3S-9):\n${missing
       .map(
         (commit) =>
           `  ${git("show", "--no-patch", "--format=%h %s", commit).trim()}`,

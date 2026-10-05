@@ -73,6 +73,14 @@ jobs:
           HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: node packages/test-kit/scripts/check-security-review.ts "$BASE_SHA" "$HEAD_SHA"
 
+      # 21 EC-32 and EC-37: staging is migrated by `supabase db push`, which applies new files in
+      # name order and never re-reads an applied one. Names, order and immutability are checked.
+      - name: Migration file names, order and immutability
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: node packages/test-kit/scripts/check-migrations.ts "$BASE_SHA" "$HEAD_SHA"
+
       # Local Supabase stack (CLI pinned at the root, 21 J1-A): the database, plus Supabase Auth
       # behind its gateway and Mailpit for the findings of J3 commit 7 (21 §4, J3-A: GoTrue is
       # never assumed, it is observed; Mailpit is where a native e-mail would land). The other

@@ -293,6 +293,32 @@ describe("I-4 marker check on migrations and expected rights", () => {
     expect(result.status, result.output).toBe(1);
   });
 
+  // J3S-9 (end-of-J3 security review): the signed list P and the relay files of both fronts.
+  it.each([
+    "packages/contracts/src/elevated-operations.ts",
+    "apps/web/src/server/relay.ts",
+    "apps/web/src/app/api/[...path]/route.ts",
+    "apps/backoffice/src/server/api-client.ts",
+    "apps/backoffice/src/config/server.ts",
+    "apps/web/src/browser/relay-client.ts",
+  ])("fails without the marker on any change of %s (J3S-9)", (file) => {
+    const result = checkOne(() =>
+      commit("refactor: harmless-looking change", {
+        [file]: `// ${file}\n`,
+      }),
+    );
+    expect(result.status, result.output).toBe(1);
+  });
+
+  it("passes without the marker on a front file outside the relay (J3S-9)", () => {
+    const result = checkOne(() =>
+      commit("feat(web): a page", {
+        "apps/web/src/app/page.tsx": "export {};\n",
+      }),
+    );
+    expect(result.status, result.output).toBe(0);
+  });
+
   it("passes without the marker on a migration without any sensitive pattern", () => {
     const result = checkOne(() =>
       commit("feat(db): plain table", {
