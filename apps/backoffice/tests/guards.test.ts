@@ -4,6 +4,8 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  BROWSER_RELAY_CLIENT_FILE,
+  findBrowserRelayClientMismatches,
   findClassListConflicts,
   findMatches,
   findNetworkOrStorageUse,
@@ -147,7 +149,14 @@ describe("the relay is the only server endpoint (21 J1-C, 03 PP-12)", () => {
     }
   });
 
-  it("uses no storage API, and no network API outside the API client", () => {
+  it("pins the browser relay client and keeps it identical to that of apps/web (J3 commit 12)", () => {
+    expect(findBrowserRelayClientMismatches(BACKOFFICE_ROOT)).toEqual([]);
+    expect(
+      readFileSync(path.join(BACKOFFICE_ROOT, BROWSER_RELAY_CLIENT_FILE)),
+    ).toEqual(readFileSync(path.join(WEB_ROOT, BROWSER_RELAY_CLIENT_FILE)));
+  });
+
+  it("uses no storage API, and no network API outside the API client and the relay client", () => {
     const codeFiles = SOURCE_FILES.filter((file) => /\.tsx?$/.test(file));
     expect(findNetworkOrStorageUse(codeFiles, BACKOFFICE_ROOT)).toEqual([]);
   });

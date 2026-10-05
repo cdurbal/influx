@@ -8,6 +8,12 @@
 /** The only module of a front allowed to call the network (02 §15, rule 3). */
 export const API_CLIENT_FILE = "src/server/api-client.ts";
 
+/**
+ * The only BROWSER module of a front allowed to call the network: the same-origin relay, /api/v1/…
+ * (21 §4, J3 commit 12). Byte-for-byte identical in both fronts, SHA-256 pinned.
+ */
+export const BROWSER_RELAY_CLIENT_FILE = "src/browser/relay-client.ts";
+
 /** The only directory of a front allowed to read the environment (02 §12.3). */
 export const CONFIG_FILES = "src/config/**";
 
@@ -54,7 +60,7 @@ const DATA_LAYER_IMPORT_PATTERNS = [
 ];
 
 const NETWORK_MESSAGE =
-  "Only src/server/api-client.ts calls the network (02 §13.2, 21 J1-C).";
+  "Only src/server/api-client.ts (server) and src/browser/relay-client.ts (browser, same-origin relay) call the network (02 §13.2, 21 J1-C).";
 const STORAGE_MESSAGE =
   "No browser storage: the session is an httpOnly cookie (02 §13.2, D37).";
 
@@ -176,8 +182,9 @@ export function frontRuleBlocks({
       },
     },
     {
-      // The single exception to the network ban: the global fetch, in the API client only.
-      files: [API_CLIENT_FILE],
+      // The two exceptions to the network ban: the global fetch, in the API client (server) and
+      // in the relay client (browser, same origin) only.
+      files: [API_CLIENT_FILE, BROWSER_RELAY_CLIENT_FILE],
       rules: {
         "no-restricted-globals": [
           "error",

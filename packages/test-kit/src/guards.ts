@@ -184,6 +184,14 @@ export const RELAY_FILES = {
   config: "src/config/server.ts",
 } as const;
 
+/**
+ * The only browser module that calls the network: the same-origin relay (21 §4, J3 commit 12).
+ * Identical in both fronts and pinned, like the relay files: changing it is a conscious gesture.
+ */
+export const BROWSER_RELAY_CLIENT_FILE = "src/browser/relay-client.ts";
+export const BROWSER_RELAY_CLIENT_SHA256 =
+  "00d6cd68e0c4beeb00a245d9c1ba3a122da3b36dc767c3a2b5564c63b9842b5f";
+
 /** Every route file allowed under src/app. EC-22 may add the public health route of web. */
 export const ALLOWED_ROUTE_FILES: readonly string[] = [RELAY_FILES.route];
 
@@ -348,14 +356,31 @@ export function findRelayFingerprintMismatches(frontRoot: string): string[] {
   });
 }
 
-/** Storage APIs anywhere, network APIs anywhere but in the API client. */
+/** The browser relay client, when its SHA-256 differs from the pin (or when it is missing). */
+export function findBrowserRelayClientMismatches(frontRoot: string): string[] {
+  const file = path.join(frontRoot, BROWSER_RELAY_CLIENT_FILE);
+  if (!existsSync(file)) {
+    return [`missing browser relay client: ${BROWSER_RELAY_CLIENT_FILE}`];
+  }
+  const actual = sha256OfFile(file);
+  return actual === BROWSER_RELAY_CLIENT_SHA256
+    ? []
+    : [
+        `${BROWSER_RELAY_CLIENT_FILE}: SHA-256 ${actual} differs from the pin. Update ` +
+          "BROWSER_RELAY_CLIENT_SHA256 in the same commit and copy the file to the other front.",
+      ];
+}
+
+/** Storage APIs anywhere, network APIs anywhere but in the API client and the relay client. */
 export function findNetworkOrStorageUse(
   files: readonly string[],
   frontRoot: string,
 ): string[] {
-  const apiClient = path.resolve(frontRoot, RELAY_FILES.apiClient);
+  const allowed = [RELAY_FILES.apiClient, BROWSER_RELAY_CLIENT_FILE].map(
+    (file) => path.resolve(frontRoot, file),
+  );
   const outsideApiClient = files.filter(
-    (file) => path.resolve(file) !== apiClient,
+    (file) => !allowed.includes(path.resolve(file)),
   );
   return [
     ...findMatches(STORAGE_API_PATTERN, files, frontRoot),

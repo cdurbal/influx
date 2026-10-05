@@ -1,0 +1,76 @@
+// The ONLY browser module of this front allowed to call the network (docs/mvp/02 §9.3, §13.2;
+// 21 §4, J3 commit 12). It reaches the relay of the same origin, `/api/v1/…`, and nothing else:
+// - the path is a constant of the caller, checked against the pattern of the relay (03 PP-2);
+// - same origin only: relative URL, `credentials: "same-origin"`, no redirect followed, no cache;
+// - the answer is read through a schema of packages/contracts: an unexpected shape is a failure.
+// The session is an httpOnly cookie: this module never sees it (D37). Byte-for-byte identical in
+// apps/web and apps/backoffice, SHA-256 pinned in @influx/test-kit, like the relay files.
+
+/** Mount point of the relay route, /api/v1/… (src/server/relay.ts). */
+const RELAY_PREFIX = "/api";
+
+/** 03 PP-2, as the relay applies it. */
+const API_PATH_PATTERN = /^\/v1\/[A-Za-z0-9/_-]{0,200}$/;
+
+/** A schema of packages/contracts, reduced to what is used here. */
+export type ResponseSchema<Value> = {
+  safeParse(
+    value: unknown,
+  ): { success: true; data: Value } | { success: false };
+};
+
+/**
+ * `ok`: a 200 answer of the expected shape. `unauthenticated`: no valid session (401).
+ * `failed`: anything else — network, time-out, error envelope, unexpected shape. The screen
+ * shows its service message; nothing is retried here.
+ */
+export type RelayResult<Value> =
+  | { kind: "ok"; data: Value }
+  | { kind: "unauthenticated" }
+  | { kind: "failed" };
+
+/** Bound of one call, as the relay bounds its own (03 PP-9). */
+const CALL_TIMEOUT_MS = 15_000;
+
+export async function callRelay<Value>(
+  method: "GET" | "POST",
+  path: string,
+  schema: ResponseSchema<Value>,
+  body?: Record<string, unknown>,
+): Promise<RelayResult<Value>> {
+  if (!API_PATH_PATTERN.test(path)) {
+    throw new Error("relay path outside /v1/");
+  }
+  let response: Response;
+  try {
+    response = await fetch(`${RELAY_PREFIX}${path}`, {
+      method,
+      headers:
+        body === undefined ? undefined : { "content-type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      credentials: "same-origin",
+      cache: "no-store",
+      redirect: "error",
+      signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
+    });
+  } catch {
+    // Network failure or time-out: the screen says the service is unavailable.
+    return { kind: "failed" };
+  }
+  if (response.status === 401) {
+    return { kind: "unauthenticated" };
+  }
+  if (response.status !== 200) {
+    return { kind: "failed" };
+  }
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    return { kind: "failed" };
+  }
+  const parsed = schema.safeParse(payload);
+  return parsed.success
+    ? { kind: "ok", data: parsed.data }
+    : { kind: "failed" };
+}

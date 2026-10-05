@@ -1,18 +1,24 @@
+import enAuth from "@/locales/en/auth.json";
 import enLanding from "@/locales/en/landing.json";
+import frAuth from "@/locales/fr/auth.json";
 import frLanding from "@/locales/fr/landing.json";
 import type { AppLocale } from "./routing";
 
 type FrLanding = typeof frLanding;
 type EnLanding = typeof enLanding;
+type FrAuth = typeof frAuth;
+type EnAuth = typeof enAuth;
 
 // Compile-time parity check (CA23): each file must be assignable to the type of the other one.
 // A key missing or added on either side makes `pnpm typecheck` fail.
 const enMatchesFr: FrLanding = enLanding;
 const frMatchesEn: EnLanding = frLanding;
+const enAuthMatchesFr: FrAuth = enAuth;
+const frAuthMatchesEn: EnAuth = frAuth;
 
-export type Messages = { landing: FrLanding };
+export type Messages = { landing: FrLanding; auth: FrAuth };
 
 export const MESSAGES: Record<AppLocale, Messages> = {
-  fr: { landing: frMatchesEn },
-  en: { landing: enMatchesFr },
+  fr: { landing: frMatchesEn, auth: frAuthMatchesEn },
+  en: { landing: enMatchesFr, auth: enAuthMatchesFr },
 };

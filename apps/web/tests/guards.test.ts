@@ -5,6 +5,8 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  BROWSER_RELAY_CLIENT_FILE,
+  findBrowserRelayClientMismatches,
   findClassListConflicts,
   findMatches as findMatchesIn,
   findNetworkOrStorageUse,
@@ -174,11 +176,30 @@ describe("Additional guards", () => {
           ? [`${prefix}${key}`]
           : flatten(value, `${prefix}${key}.`),
       );
-    const read = (locale: string) =>
-      JSON.parse(
-        readFileSync(path.join(SRC, "locales", locale, "landing.json"), "utf8"),
-      ) as Messages;
-    expect(flatten(read("en")).sort()).toEqual(flatten(read("fr")).sort());
+    // Every translation file, not only landing.json (02 §13.1, garde annexe).
+    const files = readdirSync(path.join(SRC, "locales", "fr")).sort();
+    expect(readdirSync(path.join(SRC, "locales", "en")).sort()).toEqual(files);
+    expect(files).toEqual(["auth.json", "landing.json"]);
+    for (const file of files) {
+      const read = (locale: string) =>
+        JSON.parse(
+          readFileSync(path.join(SRC, "locales", locale, file), "utf8"),
+        ) as Messages;
+      expect(flatten(read("en")).sort()).toEqual(flatten(read("fr")).sort());
+    }
+  });
+
+  it("pins the browser relay client, the only browser module that calls the network (J3 commit 12)", () => {
+    expect(findBrowserRelayClientMismatches(WEB_ROOT)).toEqual([]);
+    const source = readFileSync(
+      path.join(WEB_ROOT, BROWSER_RELAY_CLIENT_FILE),
+      "utf8",
+    );
+    // Same origin only: one fetch, on the relay prefix, never an absolute URL.
+    expect(source.match(/\bfetch\(/g)).toHaveLength(1);
+    expect(source).toMatch(/fetch\(`\$\{RELAY_PREFIX\}\$\{path\}`/);
+    expect(source).toMatch(/credentials: "same-origin"/);
+    expect(source).toMatch(/redirect: "error"/);
   });
 
   // Split at J1 (02 §13.2, 18 §5 annex 2): network only in src/server/api-client.ts, storage never.
