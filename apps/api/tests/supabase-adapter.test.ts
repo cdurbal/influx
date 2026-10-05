@@ -8,6 +8,7 @@ import {
   boundedFetch,
   createSupabaseAuth,
   GOTRUE_USER_AGENT,
+  isPasswordWithinBounds,
   type GoTrueRequestContext,
   type SupabaseAuth,
 } from "../src/platform/supabase.ts";
@@ -430,5 +431,230 @@ describe("boundedFetch", () => {
     });
     controller.abort();
     expect(received?.aborted).toBe(true);
+  });
+});
+
+describe("boundedFetch with the deadline of a request (J3-C rule 6)", () => {
+  it("aborts every call once the deadline of the request is reached", async () => {
+    const deadline = new AbortController();
+    let received: AbortSignal | undefined;
+    const fake: typeof fetch = async (_input, init) => {
+      received = init?.signal ?? undefined;
+      return new Response("{}");
+    };
+    await boundedFetch(1_000, fake, deadline.signal)("http://127.0.0.1/");
+    expect(received?.aborted).toBe(false);
+    deadline.abort();
+    expect(received?.aborted).toBe(true);
+  });
+});
+
+describe("EC-57: a password outside 12 characters and 72 UTF-8 bytes never reaches GoTrue", () => {
+  const OUT_OF_BOUNDS = [
+    "elevenchars",
+    "é".repeat(36) + "a", // 37 characters, 73 bytes
+  ];
+
+  it.each(OUT_OF_BOUNDS)(
+    "refuses %j in verifyPassword and withPasswordSession without any call",
+    async (password) => {
+      const refusal = {
+        ok: false,
+        reason: "rejected",
+        errorCode: "password_out_of_bounds",
+        status: null,
+      };
+      expect(
+        await auth.verifyPassword(CONTEXT, USER_A.email, password),
+      ).toEqual(refusal);
+      let used = false;
+      expect(
+        await auth.withPasswordSession(
+          CONTEXT,
+          USER_A.email,
+          password,
+          async () => {
+            used = true;
+          },
+        ),
+      ).toEqual(refusal);
+      expect(used).toBe(false);
+      expect(gotrue.received).toEqual([]);
+    },
+  );
+
+  it("accepts exactly 12 characters and exactly 72 bytes", () => {
+    expect(isPasswordWithinBounds("twelve chars")).toBe(true);
+    expect(isPasswordWithinBounds("é".repeat(36))).toBe(true);
+    expect(isPasswordWithinBounds("é".repeat(36) + "a")).toBe(false);
+  });
+});
+
+describe("withPasswordSession (J3-C rules 2 and 4, J3-A c1, c5)", () => {
+  const FACTOR = "5f0c4a1e-2b3d-4c5e-8f7a-9b0c1d2e3f4a";
+
+  function answerPasswordAndFactors(): void {
+    gotrue.handler = (request) => {
+      if (request.path === "/auth/v1/token?grant_type=password") {
+        return { status: 200, body: sessionOf(USER_A, ACCESS_TOKEN_A) };
+      }
+      if (request.path === "/auth/v1/factors") {
+        return {
+          status: 200,
+          body: {
+            id: FACTOR,
+            type: "totp",
+            friendly_name: "INFLUX",
+            totp: {
+              qr_code: "<svg>qr</svg>",
+              secret: "JBSWY3DPEHPK3PXP",
+              uri: "otpauth://totp/INFLUX:a@example.test?secret=JBSWY3DPEHPK3PXP",
+            },
+          },
+        };
+      }
+      if (request.path === "/auth/v1/logout?scope=local") {
+        return { status: 204, body: {} };
+      }
+      return { status: 404, body: {} };
+    };
+  }
+
+  it("hands the identity to `use`, then signs the GoTrue session out", async () => {
+    answerPasswordAndFactors();
+    const outcome = await auth.withPasswordSession(
+      CONTEXT,
+      USER_A.email,
+      "a long enough password",
+      async (session) => session.identity,
+    );
+    expect(outcome).toEqual({
+      ok: true,
+      value: { userId: USER_A.id, email: USER_A.email },
+    });
+    expect(gotrue.received.map((request) => request.path)).toEqual([
+      "/auth/v1/token?grant_type=password",
+      "/auth/v1/logout?scope=local",
+    ]);
+    expect(gotrue.received[1]?.headers.authorization).toBe(
+      `Bearer ${ACCESS_TOKEN_A}`,
+    );
+  });
+
+  it("signs the session out even when `use` throws, and lets the error through", async () => {
+    answerPasswordAndFactors();
+    await expect(
+      auth.withPasswordSession(
+        CONTEXT,
+        USER_A.email,
+        "a long enough password",
+        async () => {
+          throw new Error("boom");
+        },
+      ),
+    ).rejects.toThrow("boom");
+    expect(gotrue.received.at(-1)?.path).toBe("/auth/v1/logout?scope=local");
+  });
+
+  it("enrolls a TOTP under the given name and returns the raw SVG, without the data: prefix (rule 5)", async () => {
+    answerPasswordAndFactors();
+    const outcome = await auth.withPasswordSession(
+      CONTEXT,
+      USER_A.email,
+      "a long enough password",
+      async (session) => session.enrollTotp("INFLUX", "INFLUX"),
+    );
+    expect(outcome).toEqual({
+      ok: true,
+      value: {
+        ok: true,
+        value: {
+          factorId: FACTOR,
+          qrCodeSvg: "<svg>qr</svg>",
+          secret: "JBSWY3DPEHPK3PXP",
+          uri: "otpauth://totp/INFLUX:a@example.test?secret=JBSWY3DPEHPK3PXP",
+        },
+      },
+    });
+    const enrollment = gotrue.received.find(
+      (request) => request.path === "/auth/v1/factors",
+    );
+    expect(enrollment?.body).toEqual({
+      friendly_name: "INFLUX",
+      factor_type: "totp",
+      issuer: "INFLUX",
+    });
+    expect(enrollment?.headers.authorization).toBe(`Bearer ${ACCESS_TOKEN_A}`);
+  });
+
+  it("returns a wrong password as rejected, and an outage as unavailable, with no session to close", async () => {
+    gotrue.handler = () => ({
+      status: 400,
+      body: { code: "invalid_credentials", msg: "Invalid login credentials" },
+    });
+    const refused = await auth.withPasswordSession(
+      CONTEXT,
+      USER_A.email,
+      "a long enough password",
+      async () => null,
+    );
+    expect(refused).toMatchObject({ ok: false, reason: "rejected" });
+    gotrue.handler = () => ({ status: 503, body: {} });
+    const down = await auth.withPasswordSession(
+      CONTEXT,
+      USER_A.email,
+      "a long enough password",
+      async () => null,
+    );
+    expect(down).toMatchObject({ ok: false, reason: "unavailable" });
+    expect(
+      gotrue.received.filter((request) => request.path.includes("logout")),
+    ).toEqual([]);
+  });
+});
+
+describe("factors through the administration API (G-1, EC-56)", () => {
+  it("lists every factor with its type and status", async () => {
+    gotrue.handler = (request) =>
+      request.path === `/auth/v1/admin/users/${USER_A.id}/factors`
+        ? {
+            status: 200,
+            body: [
+              { id: "f1", factor_type: "totp", status: "verified" },
+              { id: "f2", factor_type: "phone", status: "unverified" },
+            ],
+          }
+        : { status: 404, body: {} };
+    expect(await auth.listFactors(USER_A.id)).toEqual({
+      ok: true,
+      value: [
+        { id: "f1", factorType: "totp", status: "verified" },
+        { id: "f2", factorType: "phone", status: "unverified" },
+      ],
+    });
+  });
+
+  it("reads an unknown status as a malformed answer", async () => {
+    gotrue.handler = () => ({
+      status: 200,
+      body: [{ id: "f1", factor_type: "totp", status: "pending" }],
+    });
+    expect(await auth.listFactors(USER_A.id)).toMatchObject({
+      ok: false,
+      reason: "unavailable",
+    });
+  });
+
+  it("deletes one factor of a user", async () => {
+    const factor = "5f0c4a1e-2b3d-4c5e-8f7a-9b0c1d2e3f4a";
+    gotrue.handler = () => ({ status: 200, body: { id: factor } });
+    expect(await auth.deleteFactor(USER_A.id, factor)).toEqual({
+      ok: true,
+      value: null,
+    });
+    expect(gotrue.received[0]).toMatchObject({
+      method: "DELETE",
+      path: `/auth/v1/admin/users/${USER_A.id}/factors/${factor}`,
+    });
   });
 });

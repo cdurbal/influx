@@ -12,7 +12,13 @@ export type ThrottleScope =
   | "code_request_unknown_ip"
   | "login_request"
   | "code_verify_ip"
-  | "code_verify_platform";
+  | "code_verify_platform"
+  | "backoffice_login_email_ip"
+  | "backoffice_login_ip"
+  | "backoffice_login_unknown_ip"
+  | "backoffice_login_email"
+  | "backoffice_login_platform"
+  | "backoffice_reauth_session";
 
 export type ThrottleWindow = "15m" | "1h";
 
@@ -250,4 +256,294 @@ export async function ownProfile(
   return row === undefined
     ? null
     : { email: row.email, preferredLanguage: row.preferred_language };
+}
+
+// --- Backoffice sign-in, under influx_auth (E-2; 21 §4, J3 commit 10) ---------------------------
+// influx_auth has no right on the secret tables of 0013: recovery codes, enrollment tokens and the
+// TOTP anti-replay are reached through the SECURITY DEFINER functions of 0013, which write their
+// own audit lines. No code, token or TOTP code ever reaches the database: only their digests.
+
+/** The account of a GoTrue user, with what the sign-in checks (J3-C rule 3, G-1, EC-55). */
+export type SignInAccount = {
+  id: string;
+  email: string;
+  status: string;
+  role: string;
+  /** Null for a member account, which has no internal profile. */
+  profileIsActive: boolean | null;
+  isBreakGlass: boolean;
+  /** G-1 point 1: the only factor INFLUX challenges; null until the enrollment. */
+  mfaFactorId: string | null;
+};
+
+export async function signInAccountOf(
+  tx: Transaction,
+  authUserId: string,
+): Promise<SignInAccount | null> {
+  const rows = await tx.execute<{
+    id: string;
+    email: string;
+    status: string;
+    role: string;
+    profile_is_active: boolean | null;
+    is_break_glass: boolean | null;
+    mfa_factor_id: string | null;
+  }>(
+    sql`select a.id::text as id, a.email, a.status::text as status, r.role::text as role,
+               p.is_active as profile_is_active, p.is_break_glass,
+               p.mfa_factor_id::text as mfa_factor_id
+          from identity.accounts a
+          join identity.account_roles r on r.account_id = a.id
+          left join identity.agent_profiles p on p.account_id = a.id
+         where a.auth_user_id = ${authUserId}::uuid`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        id: row.id,
+        email: row.email,
+        status: row.status,
+        role: row.role,
+        profileIsActive: row.profile_is_active,
+        isBreakGlass: row.is_break_glass === true,
+        mfaFactorId: row.mfa_factor_id,
+      };
+}
+
+/**
+ * The internal account an address belongs to, for the alerts of EC-47 (failures on a KNOWN
+ * address, break-glass account at the first failure). Members are not looked for.
+ */
+export async function internalAccountOfEmail(
+  tx: Transaction,
+  email: string,
+): Promise<{ id: string; isBreakGlass: boolean } | null> {
+  const rows = await tx.execute<{ id: string; is_break_glass: boolean }>(
+    sql`select a.id::text as id, p.is_break_glass
+          from identity.accounts a
+          join identity.account_roles r on r.account_id = a.id
+          join identity.agent_profiles p on p.account_id = a.id
+         where a.email = ${email} and a.status <> 'deleted'
+           and r.role in ('agent', 'admin')`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : { id: row.id, isBreakGlass: row.is_break_glass };
+}
+
+/** G-1 point 2, first enrollment request (0013): reads only. */
+export async function enrollmentTokenIsValid(
+  tx: Transaction,
+  accountId: string,
+  tokenHash: Buffer,
+): Promise<boolean> {
+  const rows = await tx.execute<{ valid: boolean }>(
+    sql`select identity.enrollment_token_is_valid(${accountId}::uuid, ${tokenHash}) as valid`,
+  );
+  return rows[0]?.valid === true;
+}
+
+/** EC-39 (0013): false when the same code was accepted less than 120 s ago for this account. */
+export async function acceptTotpCode(
+  tx: Transaction,
+  accountId: string,
+  codeDigest: Buffer,
+): Promise<boolean> {
+  const rows = await tx.execute<{ accepted: boolean }>(
+    sql`select identity.accept_totp_code(${accountId}::uuid, ${codeDigest}) as accepted`,
+  );
+  return rows[0]?.accepted === true;
+}
+
+/** EC-17 point 3 (0013): the codes left, or null when the code is not usable. */
+export async function consumeRecoveryCode(
+  tx: Transaction,
+  accountId: string,
+  codeHash: Buffer,
+): Promise<number | null> {
+  const rows = await tx.execute<{ remaining: number | null }>(
+    sql`select identity.consume_recovery_code(${accountId}::uuid, ${codeHash}) as remaining`,
+  );
+  return rows[0]?.remaining ?? null;
+}
+
+/**
+ * G-1 points 1 and 2, EC-17 (0013): consumes the token, pins the factor, stores the ten digests.
+ * Raises 42501 when the token, the account or the profile refuses (one uniform refusal).
+ */
+export async function pinMfaFactor(
+  tx: Transaction,
+  pin: {
+    accountId: string;
+    factorId: string;
+    enrollmentTokenHash: Buffer;
+    recoveryCodeHashes: readonly Buffer[];
+  },
+): Promise<void> {
+  const hashes = sql.join(
+    pin.recoveryCodeHashes.map((hash) => sql`${hash}`),
+    sql`, `,
+  );
+  await tx.execute(
+    sql`select identity.pin_mfa_factor(${pin.accountId}::uuid, ${pin.factorId}::uuid,
+                                       ${pin.enrollmentTokenHash},
+                                       array[${hashes}]::bytea[])`,
+  );
+}
+
+/**
+ * A backoffice session (EC-29 point 1, EC-40): named columns only; the aal2, the dates and the
+ * first freshness are computed by identity.prepare_session() (0012). The policy refuses it unless
+ * the account is active, internal, with an active profile and a pinned factor (C6-2).
+ */
+export async function insertBackofficeSession(
+  tx: Transaction,
+  session: {
+    tokenHash: Buffer;
+    accountId: string;
+    mfaMethod: "totp" | "recovery_code";
+    userAgentSummary: string;
+  },
+): Promise<string> {
+  const rows = await tx.execute<{ id: string }>(
+    sql`insert into identity.sessions
+          (token_hash, account_id, surface, mfa_method, user_agent_summary)
+        values (${session.tokenHash}, ${session.accountId}::uuid, 'backoffice',
+                ${session.mfaMethod}::identity.mfa_method, ${session.userAgentSummary})
+        returning id::text as id`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    throw new Error("session not inserted");
+  }
+  return row.id;
+}
+
+/** The four security events of 0011, payload always empty (EC-44 (1), G-1). */
+export type AuthSecurityEvent =
+  | "agent.break_glass_login"
+  | "agent.unexpected_mfa_factor"
+  | "agent.reauthentication_failed"
+  | "security.backoffice_login_failures";
+
+export async function appendAuthEvent(
+  tx: Transaction,
+  event: AuthSecurityEvent,
+  accountId: string,
+): Promise<void> {
+  await tx.execute(
+    sql`select audit.append_auth_event(${event}::text, ${accountId}::uuid)`,
+  );
+}
+
+/** What R needs of an open backoffice session (EC-40). */
+export type ReauthenticationSession = {
+  accountId: string;
+  authUserId: string;
+  email: string;
+  mfaMethod: "totp" | "recovery_code";
+  mfaFactorId: string;
+};
+
+export async function reauthenticationSessionOf(
+  tx: Transaction,
+  sessionId: string,
+): Promise<ReauthenticationSession | null> {
+  const rows = await tx.execute<{
+    account_id: string;
+    auth_user_id: string;
+    email: string;
+    mfa_method: string;
+    mfa_factor_id: string;
+  }>(
+    sql`select s.account_id::text as account_id, a.auth_user_id::text as auth_user_id, a.email,
+               s.mfa_method::text as mfa_method, p.mfa_factor_id::text as mfa_factor_id
+          from identity.sessions s
+          join identity.accounts a on a.id = s.account_id and a.status = 'active'
+          join identity.agent_profiles p on p.account_id = s.account_id and p.is_active
+         where s.id = ${sessionId}::uuid
+           and s.surface = 'backoffice'
+           and s.revoked_at is null
+           and s.idle_expires_at > now()
+           and s.absolute_expires_at > now()
+           and a.auth_user_id is not null
+           and p.mfa_factor_id is not null`,
+  );
+  const row = rows[0];
+  if (
+    row === undefined ||
+    (row.mfa_method !== "totp" && row.mfa_method !== "recovery_code")
+  ) {
+    return null;
+  }
+  return {
+    accountId: row.account_id,
+    authUserId: row.auth_user_id,
+    email: row.email,
+    mfaMethod: row.mfa_method,
+    mfaFactorId: row.mfa_factor_id,
+  };
+}
+
+/** R (EC-40 point 2): the new proof, "now, by TOTP" — the trigger of 0012 refuses anything else. */
+export async function renewSecondFactorProof(
+  tx: Transaction,
+  sessionId: string,
+): Promise<boolean> {
+  const rows = await tx.execute<{ id: string }>(
+    sql`update identity.sessions
+           set mfa_verified_at = now(), mfa_method = 'totp'
+         where id = ${sessionId}::uuid and surface = 'backoffice' and revoked_at is null
+     returning id::text as id`,
+  );
+  return rows.length === 1;
+}
+
+/** EC-40 point 5: the only revocation influx_auth may write (trigger of 0012). */
+export async function revokeAfterFailedReauthentication(
+  tx: Transaction,
+  sessionId: string,
+): Promise<boolean> {
+  const rows = await tx.execute<{ id: string }>(
+    sql`update identity.sessions
+           set revoked_at = now(), revocation_reason = 'reauthentication_failed'
+         where id = ${sessionId}::uuid and surface = 'backoffice' and revoked_at is null
+     returning id::text as id`,
+  );
+  return rows.length === 1;
+}
+
+/**
+ * EC-40 point 2: R holds only when the last proof of THIS session is a TOTP code at most
+ * `freshnessSeconds` old, read on the row by the database clock — never a recovery code.
+ */
+export async function hasFreshSecondFactorProof(
+  tx: Transaction,
+  sessionId: string,
+  freshnessSeconds: number,
+): Promise<boolean> {
+  const rows = await tx.execute<{ fresh: boolean }>(
+    sql`select exists (
+          select 1 from identity.sessions
+           where id = ${sessionId}::uuid and surface = 'backoffice' and revoked_at is null
+             and mfa_method = 'totp'
+             and mfa_verified_at >= now() - make_interval(secs => ${freshnessSeconds}::double precision)
+        ) as fresh`,
+  );
+  return rows[0]?.fresh === true;
+}
+
+/** The SQLSTATE of a database error, through the wrapping of drizzle (`cause`). */
+export function sqlStateOf(error: unknown): string | null {
+  let current: unknown = error;
+  for (let depth = 0; depth < 4 && current instanceof Error; depth += 1) {
+    const code: unknown = (current as Error & { code?: unknown }).code;
+    if (typeof code === "string" && /^[0-9A-Z]{5}$/.test(code)) {
+      return code;
+    }
+    current = current.cause;
+  }
+  return null;
 }

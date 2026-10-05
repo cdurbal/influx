@@ -120,7 +120,10 @@ describe("surfaces (21 J1-G)", () => {
       url: "/v1/probe",
       headers: { "x-influx-internal": WEB_SECRET },
     });
-    expect([backoffice.statusCode, web.statusCode]).toEqual([200, 200]);
+    // The backoffice route is served to the backoffice; without a session, the aal2 guard of
+    // server.ts answers before its handler (03 §6.2, J3 commit 10).
+    expect([backoffice.statusCode, web.statusCode]).toEqual([401, 200]);
+    expect(backoffice.json().error.code).toBe("unauthenticated");
   });
 });
 

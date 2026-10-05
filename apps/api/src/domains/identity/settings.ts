@@ -37,3 +37,45 @@ export const VERIFY_FAILURE_SPIKE = 100;
 
 /** 03 §6.1, 05 RG54: the sliding expiry of a member session, 30 days (Max-Age of its cookie). */
 export const MEMBER_SESSION_IDLE_SECONDS = 30 * 24 * 60 * 60;
+
+// --- Backoffice sign-in (03 §6.1 B-1 to B-8, §6.9; 21 J3-C rules 4 and 6, EC-40, EC-47) -------
+
+/** EC-40 point 3: no answer of the sign-in, the enrollment or R before this, whatever the outcome. */
+export const BACKOFFICE_AUTH_FLOOR_MS = 1_500;
+
+/** J3-C rule 6: all the GoTrue calls of one backoffice request, in total. */
+export const BACKOFFICE_GOTRUE_BUDGET_MS = 5_000;
+
+/** J3-C rule 6: bound of each GoTrue call of a backoffice request, within the total budget. */
+export const BACKOFFICE_GOTRUE_CALL_TIMEOUT_MS = 2_000;
+
+/** EC-47: attempts per couple (address, IP) in 15 minutes, reserved before GoTrue. */
+export const BACKOFFICE_ATTEMPTS_PER_EMAIL_IP_15_MIN = 5;
+
+/** EC-47: attempts per IP (/32, /64) and per hour. */
+export const BACKOFFICE_ATTEMPTS_PER_IP_HOUR = 20;
+
+/** EC-47: attempts per hour of all requests without a valid client address, every address. */
+export const BACKOFFICE_ATTEMPTS_UNKNOWN_IP_HOUR = 10;
+
+/** EC-47, A-4: failures per address and per hour that raise an alert, never a block. */
+export const BACKOFFICE_FAILURES_PER_EMAIL_ALERT = 10;
+
+/** EC-47: failures of the platform per hour that raise an error line (alert at J9). */
+export const BACKOFFICE_FAILURES_PLATFORM_ALERT = 30;
+
+/** EC-40 point 5: failed re-authentications of one session in 15 minutes that revoke it. */
+export const REAUTHENTICATION_FAILURES_PER_SESSION = 5;
+
+/** EC-40 point 2: R holds while the last TOTP proof of the session is at most this old. */
+export const REAUTHENTICATION_FRESHNESS_SECONDS = 300;
+
+/** 03 §6.1, J3-C rule 8: the absolute bound of a backoffice session, the Max-Age of its cookie. */
+export const BACKOFFICE_SESSION_ABSOLUTE_SECONDS = 8 * 60 * 60;
+
+/** EC-56: the constant name under which a TOTP factor is enrolled, and its issuer. */
+export const TOTP_FACTOR_NAME = "INFLUX";
+export const TOTP_ISSUER = "INFLUX";
+
+/** J3-A d, B-1 point 3: bound of the k-anonymity lookup of a new password. */
+export const PWNED_PASSWORDS_TIMEOUT_MS = 2_000;

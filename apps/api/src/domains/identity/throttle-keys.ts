@@ -34,3 +34,37 @@ export function addressThrottleKey(
 ): Buffer {
   return Buffer.from(address.throttleKey, "hex");
 }
+
+/**
+ * EC-47: the couple (address, IP) of a backoffice attempt. The IP part is the key of A5 (already
+ * an HMAC), or a fixed marker when the address is unknown.
+ */
+export function emailAddressThrottleKey(
+  pepper: string,
+  email: string,
+  address: ClientAddress,
+): Buffer {
+  const network =
+    address.status === "known" ? address.throttleKey : "unknown-address";
+  return hmacOf(pepper, "throttle-bo-email-ip:", `${email}|${network}`);
+}
+
+/** EC-40 point 5: the failed re-authentications of one session, keyed by its id. */
+export function reauthenticationThrottleKey(
+  pepper: string,
+  sessionId: string,
+): Buffer {
+  return hmacOf(pepper, "throttle-bo-reauth-session:", sessionId);
+}
+
+/**
+ * EC-39: the digest of an accepted TOTP code, bound to its factor (label `totp-replay:`, 0013).
+ * Never the code itself in the database.
+ */
+export function totpReplayDigest(
+  pepper: string,
+  factorId: string,
+  code: string,
+): Buffer {
+  return hmacOf(pepper, "totp-replay:", `${factorId}:${code}`);
+}

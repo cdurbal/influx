@@ -43,6 +43,11 @@ export type GoTrueRequestContext = {
   forwardedFor: string | null;
   /** Bound of each GoTrue call of this request, in milliseconds (J3-C rule 6). */
   timeoutMs: number;
+  /**
+   * Bound of ALL the user-client calls of a request (backoffice sign-in: 5 000 ms in total, J3-C
+   * rule 6), on top of the bound of each call. The sign-out is never under it.
+   */
+  deadline?: AbortSignal;
 };
 
 /** The identity GoTrue returns: its user id and the address it holds (J3-C rule 3). */
@@ -72,6 +77,39 @@ export type GoTrueEmailCode = GoTrueIdentity & {
   code: string;
 };
 
+/** A second factor of a user, as the administration API lists it (any type: G-1, EC-56). */
+export type GoTrueFactor = {
+  id: string;
+  /** `totp`, `phone`, `webauthn`… as GoTrue names it. */
+  factorType: string;
+  status: "verified" | "unverified";
+};
+
+/** A new, unverified TOTP factor (J3-A c1). Secret, URI and QR code are never logged. */
+export type GoTrueTotpEnrollment = {
+  factorId: string;
+  /** The raw SVG text of the QR code (J3-C rule 5), without the data: prefix of auth-js. */
+  qrCodeSvg: string;
+  secret: string;
+  uri: string;
+};
+
+/**
+ * The GoTrue session opened by a password, for the calls that need it in the same request (J3-C
+ * rule 4): the TOTP challenge and its verification, the enrollment of a factor. It only exists
+ * inside withPasswordSession(), which signs it out whatever happens (rule 2).
+ */
+export type GoTruePasswordSession = {
+  identity: GoTrueIdentity;
+  /** Challenges this factor and verifies the code, in one step (J3-A c5: same address). */
+  verifyTotp(factorId: string, code: string): Promise<GoTrueOutcome<null>>;
+  /** Enrolls a new TOTP factor under a constant name (EC-56). */
+  enrollTotp(
+    friendlyName: string,
+    issuer: string,
+  ): Promise<GoTrueOutcome<GoTrueTotpEnrollment>>;
+};
+
 export type SupabaseAuth = {
   /** Creates a GoTrue user without password, address confirmed (02 §18.10, step 5; J3-A b7). */
   createUser(email: string): Promise<GoTrueOutcome<GoTrueIdentity>>;
@@ -88,13 +126,55 @@ export type SupabaseAuth = {
     email: string,
     code: string,
   ): Promise<GoTrueOutcome<GoTrueIdentity>>;
-  /** Verifies a password; the GoTrue session it opens is signed out at once (rule 2). */
+  /**
+   * Verifies a password; the GoTrue session it opens is signed out at once (rule 2). A password
+   * outside the bounds of EC-57 is refused without any call.
+   */
   verifyPassword(
     context: GoTrueRequestContext,
     email: string,
     password: string,
   ): Promise<GoTrueOutcome<GoTrueIdentity>>;
+  /**
+   * Signs in with a password, runs `use` with the GoTrue session, then signs it out, even when
+   * `use` throws (rules 2 and 4). A password outside the bounds of EC-57 is refused without any
+   * call. `use` may run database transactions, never with a GoTrue call pending inside them (G4).
+   */
+  withPasswordSession<Value>(
+    context: GoTrueRequestContext,
+    email: string,
+    password: string,
+    use: (session: GoTruePasswordSession) => Promise<Value>,
+  ): Promise<GoTrueOutcome<Value>>;
+  /** Every factor of a user, whatever its type (administration API, G-1, EC-56). */
+  listFactors(userId: string): Promise<GoTrueOutcome<GoTrueFactor[]>>;
+  /** Deletes one factor of a user (administration API, EC-56). */
+  deleteFactor(userId: string, factorId: string): Promise<GoTrueOutcome<null>>;
 };
+
+/** EC-57, B-1: 12 characters at least (code points). */
+export const PASSWORD_MIN_CHARACTERS = 12;
+/** EC-57: bcrypt reads 72 bytes; beyond, an explicit refusal, never a truncation. */
+export const PASSWORD_MAX_UTF8_BYTES = 72;
+
+/** EC-57: whether a password may be sent to GoTrue at all (local guard, before any call). */
+export function isPasswordWithinBounds(password: string): boolean {
+  return (
+    [...password].length >= PASSWORD_MIN_CHARACTERS &&
+    Buffer.byteLength(password, "utf8") <= PASSWORD_MAX_UTF8_BYTES
+  );
+}
+
+/** The local refusal of EC-57: `rejected`, a code of ours, no status (no call was made). */
+const PASSWORD_OUT_OF_BOUNDS: GoTrueFailure = {
+  ok: false,
+  reason: "rejected",
+  errorCode: "password_out_of_bounds",
+  status: null,
+};
+
+/** auth-js prefixes the SVG of the QR code with this data: URL header (2.117.2). */
+const QR_CODE_DATA_PREFIX = "data:image/svg+xml;utf-8,";
 
 /** Fixed User-Agent of apps/api towards GoTrue: the browser's never goes there (05 Q14 (5)). */
 export const GOTRUE_USER_AGENT = "influx-api";
@@ -111,17 +191,24 @@ export const ADMIN_CALL_TIMEOUT_MS = 2_000;
 /** Bound of the sign-out that closes a GoTrue session (J3-C rule 6). */
 export const SIGN_OUT_TIMEOUT_MS = 1_000;
 
-/** `fetch` whose every call gets its own time-out, on top of any signal the library passes. */
+/**
+ * `fetch` whose every call gets its own time-out, on top of any signal the library passes and of
+ * the deadline of the whole request, when there is one.
+ */
 export function boundedFetch(
   timeoutMs: number,
   baseFetch: typeof fetch = fetch,
+  deadline?: AbortSignal,
 ): typeof fetch {
   return (input, init) => {
-    const timeout = AbortSignal.timeout(timeoutMs);
-    const signal =
-      init?.signal === undefined || init.signal === null
-        ? timeout
-        : AbortSignal.any([init.signal, timeout]);
+    const signals = [AbortSignal.timeout(timeoutMs)];
+    if (init?.signal !== undefined && init.signal !== null) {
+      signals.push(init.signal);
+    }
+    if (deadline !== undefined) {
+      signals.push(deadline);
+    }
+    const signal = signals.length === 1 ? signals[0] : AbortSignal.any(signals);
     return baseFetch(input, { ...init, signal });
   };
 }
@@ -226,7 +313,7 @@ export function createSupabaseAuth(
     return new GoTrueClient({
       url: authUrl,
       headers: gotrueHeaders(settings.secretKey, context.forwardedFor),
-      fetch: boundedFetch(context.timeoutMs),
+      fetch: boundedFetch(context.timeoutMs, fetch, context.deadline),
       persistSession: false,
       autoRefreshToken: false,
       detectSessionInUrl: false,
@@ -319,10 +406,120 @@ export function createSupabaseAuth(
       );
     },
 
-    verifyPassword(context, email, password) {
+    async verifyPassword(context, email, password) {
+      if (!isPasswordWithinBounds(password)) {
+        return PASSWORD_OUT_OF_BOUNDS;
+      }
       return signInOnce(context, (client) =>
         client.signInWithPassword({ email, password }),
       );
+    },
+
+    async withPasswordSession(context, email, password, use) {
+      // EC-57: below 12 characters or beyond 72 bytes, nothing is sent (GoTrue answers a 500 to
+      // 73 bytes, which would read as an outage).
+      if (!isPasswordWithinBounds(password)) {
+        return PASSWORD_OUT_OF_BOUNDS;
+      }
+      const client = createUserAuthClient(context);
+      const signedIn = await settled(() =>
+        client.signInWithPassword({ email, password }),
+      );
+      if ("ok" in signedIn) {
+        return signedIn;
+      }
+      const { session, user } = signedIn.data;
+      const identity = identityOf(user);
+      if (session === null || identity === null) {
+        if (session !== null) {
+          await closeSession(session.access_token);
+        }
+        return MALFORMED_ANSWER;
+      }
+      const passwordSession: GoTruePasswordSession = {
+        identity,
+        async verifyTotp(factorId, code) {
+          // Challenge and verification in the same request, from the same address (J3-A c5).
+          const verified = await settled(() =>
+            client.mfa.challengeAndVerify({ factorId, code }),
+          );
+          return "ok" in verified ? verified : { ok: true, value: null };
+        },
+        async enrollTotp(friendlyName, issuer) {
+          const enrolled = await settled(() =>
+            client.mfa.enroll({ factorType: "totp", friendlyName, issuer }),
+          );
+          if ("ok" in enrolled) {
+            return enrolled;
+          }
+          const data = enrolled.data;
+          if (data === null || !("totp" in data) || data.totp === undefined) {
+            return MALFORMED_ANSWER;
+          }
+          const { qr_code: qrCode, secret, uri } = data.totp;
+          if (
+            typeof data.id !== "string" ||
+            typeof qrCode !== "string" ||
+            typeof secret !== "string" ||
+            typeof uri !== "string"
+          ) {
+            return MALFORMED_ANSWER;
+          }
+          return {
+            ok: true,
+            value: {
+              factorId: data.id,
+              // Rule 5: the raw SVG text; auth-js turned it into a data: URL.
+              qrCodeSvg: qrCode.startsWith(QR_CODE_DATA_PREFIX)
+                ? qrCode.slice(QR_CODE_DATA_PREFIX.length)
+                : qrCode,
+              secret,
+              uri,
+            },
+          };
+        },
+      };
+      try {
+        return { ok: true, value: await use(passwordSession) };
+      } finally {
+        // Rule 2: whatever `use` did or threw, the GoTrue session ends with the request. The
+        // verification of a factor keeps the session id: its first token closes it.
+        await closeSession(session.access_token);
+      }
+    },
+
+    async listFactors(userId) {
+      const outcome = await settled(() => admin.mfa.listFactors({ userId }));
+      if ("ok" in outcome) {
+        return outcome;
+      }
+      const factors = outcome.data?.factors;
+      if (!Array.isArray(factors)) {
+        return MALFORMED_ANSWER;
+      }
+      const listed: GoTrueFactor[] = [];
+      for (const factor of factors) {
+        if (
+          typeof factor.id !== "string" ||
+          typeof factor.factor_type !== "string" ||
+          (factor.status !== "verified" && factor.status !== "unverified")
+        ) {
+          return MALFORMED_ANSWER;
+        }
+        listed.push({
+          id: factor.id,
+          factorType: factor.factor_type,
+          status: factor.status,
+        });
+      }
+      return { ok: true, value: listed };
+    },
+
+    async deleteFactor(userId, factorId) {
+      const outcome = await settled(() =>
+        admin.mfa.deleteFactor({ userId, id: factorId }),
+      );
+      return "ok" in outcome ? outcome : { ok: true, value: null };
     },
   };
 }

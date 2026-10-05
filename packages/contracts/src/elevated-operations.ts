@@ -31,11 +31,14 @@ export type SignedElevatedOperation =
 
 /**
  * Set U: operations with a caller (18 T6.1: A = U). E-1 enters with the login code, E-2 with its
- * verification (J3 commits 8 and 9).
+ * verification and the backoffice sign-in (J3 commits 8 to 10).
  */
 export const ELEVATED_OPERATIONS = [
   "identity.request_code",
   "identity.verify_code",
+  "identity.backoffice_sign_in",
+  "identity.backoffice_enroll_totp",
+  "identity.backoffice_reauthenticate",
 ] as const satisfies readonly SignedElevatedOperation[];
 
 export type ElevatedOperation = (typeof ELEVATED_OPERATIONS)[number];

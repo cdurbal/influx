@@ -14,6 +14,11 @@ import {
   type ApiDatabase,
 } from "./db/index.ts";
 import {
+  BACKOFFICE_SESSIONLESS_ROUTES,
+  registerBackofficeAuthRoutes,
+} from "./domains/identity/backoffice-routes.ts";
+import { requireBackofficeSession } from "./domains/identity/backoffice-session.ts";
+import {
   registerIdentityRoutes,
   type IdentityDependencies,
 } from "./domains/identity/routes.ts";
@@ -29,6 +34,7 @@ import {
 } from "./platform/errors.ts";
 import {
   API_PREFIX,
+  BACKOFFICE_PREFIX,
   checkRouteSurface,
   createSurfaceIdentifier,
   HEALTH_ROUTE,
@@ -357,7 +363,7 @@ export function buildServer(
     async () => ({ status: "ok" as const }),
   );
 
-  // Authentication of the members (21 §4, J3 commits 8 and 9).
+  // Authentication of the members and of the backoffice (21 §4, J3 commits 8 to 10).
   const ownsDatabase = options.database === undefined;
   const database =
     options.database ?? createApiDatabase(config.database, app.log);
@@ -366,11 +372,24 @@ export function buildServer(
       await closeDatabase(database);
     });
   }
+  // 03 §6.2, 18 T8.8: no `/v1/bo/…` handler runs for a session that is not internal and in aal2,
+  // whatever the handler does itself; only the closed list of sessionless routes escapes.
+  app.addHook("preHandler", async (request, reply) => {
+    const routeUrl = request.routeOptions.url;
+    if (
+      routeUrl !== undefined &&
+      routeUrl.startsWith(BACKOFFICE_PREFIX) &&
+      !BACKOFFICE_SESSIONLESS_ROUTES.includes(routeUrl)
+    ) {
+      await requireBackofficeSession(database, request, reply);
+    }
+  });
+  const supabaseAuth =
+    options.identity?.supabaseAuth ??
+    createSupabaseAuth(config.supabase, app.log);
   registerIdentityRoutes(app, {
     database,
-    supabaseAuth:
-      options.identity?.supabaseAuth ??
-      createSupabaseAuth(config.supabase, app.log),
+    supabaseAuth,
     sender:
       options.identity?.sender ??
       createTransactionalSender(
@@ -391,6 +410,15 @@ export function buildServer(
     ...(options.identity?.codeRequestFloorMs === undefined
       ? {}
       : { codeRequestFloorMs: options.identity.codeRequestFloorMs }),
+  });
+  // Authentication of the backoffice (21 §4, J3 commit 10).
+  registerBackofficeAuthRoutes(app, {
+    database,
+    supabaseAuth,
+    pepper: config.authThrottlePepper,
+    ...(options.identity?.backofficeAuthFloorMs === undefined
+      ? {}
+      : { floorMs: options.identity.backofficeAuthFloorMs }),
   });
 
   // Minimal public route, reachable from both fronts: target of the relay checks (21 J1-G).

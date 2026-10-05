@@ -73,6 +73,8 @@ export type IdentityDependencies = {
   now: () => Date;
   /** G3 (02 §18.4); injectable for the tests and the EC-42 measurement only. */
   codeRequestFloorMs?: number;
+  /** EC-40 point 3 (backoffice sign-in, enrollment, R); injectable for the tests only. */
+  backofficeAuthFloorMs?: number;
 };
 
 /** Waits until `target` (a performance.now() instant), if it is still to come. */

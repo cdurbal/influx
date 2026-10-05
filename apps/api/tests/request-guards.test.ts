@@ -155,7 +155,9 @@ describe("A4: a write is refused unless it comes from the surface's own origin (
       url: "/v1/bo/probe",
       headers: { ...backoffice, origin: BACKOFFICE_ORIGIN },
     });
-    expect(withOwnOrigin.statusCode).toBe(200);
+    // Past A4, the aal2 guard of server.ts answers: no session (J3 commit 10).
+    expect(withOwnOrigin.statusCode).toBe(401);
+    expect(withOwnOrigin.json().error.code).toBe("unauthenticated");
   });
 
   it("answers 401 to a write without the secret, before the origin check", async () => {

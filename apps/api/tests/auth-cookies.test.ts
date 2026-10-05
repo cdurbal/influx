@@ -4,6 +4,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ESLint } from "eslint";
+import type { FastifyRequest } from "fastify";
 import { afterEach, describe, expect, it } from "vitest";
 import * as z from "zod";
 import {
@@ -36,7 +37,9 @@ afterEach(async () => {
 
 /**
  * Probe routes on both surfaces: GET reads every cookie of ours and answers the names found;
- * POST sets the cookie named in the query, DELETE clears it.
+ * POST sets the cookie named in the query, DELETE clears it. The probes answer from their own
+ * `onRequest` hook, right after the internal secret: a `/v1/bo/…` probe would otherwise meet the
+ * aal2 guard of server.ts first (J3 commit 10), which is not what these tests are about.
  */
 function server(): ApiServer {
   // Logs captured: the refusal cases below write an `error` line each.
@@ -44,42 +47,47 @@ function server(): ApiServer {
     logDestination: captureLogs().destination,
   });
   app = api;
+  const cookieOf = (request: FastifyRequest): AuthCookie =>
+    z.enum(ALL_COOKIES).parse((request.query as { cookie?: unknown }).cookie);
+  const unreachable = async (): Promise<never> => {
+    throw new Error("a probe answers from its onRequest hook");
+  };
   for (const url of ["/v1/cookie-probe", "/v1/bo/cookie-probe"]) {
     api.get(
       url,
-      { schema: { response: { 200: foundSchema } } },
-      async (request) => ({
-        found: ALL_COOKIES.flatMap((cookie) => {
-          const value = readAuthCookie(request, cookie);
-          return value === null ? [] : [`${cookie}=${value}`];
-        }),
-      }),
+      {
+        schema: { response: { 200: foundSchema } },
+        onRequest: async (request, reply) =>
+          reply.send({
+            found: ALL_COOKIES.flatMap((cookie) => {
+              const value = readAuthCookie(request, cookie);
+              return value === null ? [] : [`${cookie}=${value}`];
+            }),
+          }),
+      },
+      unreachable,
     );
     api.post(
       url,
       {
-        schema: {
-          querystring: z.strictObject({ cookie: z.enum(ALL_COOKIES) }),
-          response: { 200: okSchema },
+        schema: { response: { 200: okSchema } },
+        onRequest: async (request, reply) => {
+          setAuthCookie(reply, cookieOf(request), "value-1", 600);
+          return reply.send({ status: "ok" as const });
         },
       },
-      async (request, reply) => {
-        setAuthCookie(reply, request.query.cookie, "value-1", 600);
-        return { status: "ok" as const };
-      },
+      unreachable,
     );
     api.delete(
       url,
       {
-        schema: {
-          querystring: z.strictObject({ cookie: z.enum(ALL_COOKIES) }),
-          response: { 200: okSchema },
+        schema: { response: { 200: okSchema } },
+        onRequest: async (request, reply) => {
+          clearAuthCookie(reply, cookieOf(request));
+          return reply.send({ status: "ok" as const });
         },
       },
-      async (request, reply) => {
-        clearAuthCookie(reply, request.query.cookie);
-        return { status: "ok" as const };
-      },
+      unreachable,
     );
   }
   return api;
