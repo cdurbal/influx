@@ -1,352 +1,542 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr" class="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>INFLUX — Proposition 4 : KEO Emerald (Inspiré Spotify)</title>
-  <!-- Google Fonts : Manrope (Headings) & Source Sans 3 (Body) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
-  
-  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
-  <link rel="stylesheet" href="keo-emerald.css">
-  <style>
-    body {
-      background-color: var(--neutral-bg);
-      color: var(--text-primary);
-      font-family: var(--font-body);
-      -webkit-font-smoothing: antialiased;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>INFLUX — Proposition 4 : KEO Emerald (Inspiré Spotify)</title>
+    <!-- Google Fonts : Manrope (Headings) & Source Sans 3 (Body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
 
-    h1, h2, h3, h4, .font-heading {
-      font-family: var(--font-heading);
-    }
+    <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+    <link rel="stylesheet" href="keo-emerald.css" />
+    <style>
+      body {
+        background-color: var(--neutral-bg);
+        color: var(--text-primary);
+        font-family: var(--font-body);
+        -webkit-font-smoothing: antialiased;
+      }
 
-    /* Style Bouton Spotify Pill */
-    .btn-spotify-primary {
-      background-color: var(--brand-primary);
-      color: var(--brand-on-primary);
-      font-family: var(--font-heading);
-      font-weight: 700;
-      border-radius: var(--radius-pill);
-      transition: all 0.15s cubic-bezier(0.3, 0, 0, 1);
-      box-shadow: 0 4px 14px rgba(29, 214, 138, 0.25);
-    }
-    .btn-spotify-primary:hover {
-      background-color: var(--brand-primary-hover);
-      transform: scale(1.03);
-      box-shadow: 0 6px 20px rgba(29, 214, 138, 0.4);
-    }
-    .btn-spotify-primary:active {
-      background-color: var(--brand-primary-pressed);
-      transform: scale(0.98);
-    }
+      h1,
+      h2,
+      h3,
+      h4,
+      .font-heading {
+        font-family: var(--font-heading);
+      }
 
-    .btn-spotify-secondary {
-      background-color: var(--neutral-surface-2);
-      border: 1px solid var(--neutral-border-strong);
-      color: var(--text-primary);
-      font-family: var(--font-heading);
-      font-weight: 600;
-      border-radius: var(--radius-pill);
-      transition: all 0.15s ease;
-    }
-    .btn-spotify-secondary:hover {
-      background-color: var(--neutral-surface-3);
-      border-color: var(--text-secondary);
-      transform: scale(1.02);
-    }
-    .btn-spotify-secondary:active {
-      transform: scale(0.98);
-    }
+      /* Style Bouton Spotify Pill */
+      .btn-spotify-primary {
+        background-color: var(--brand-primary);
+        color: var(--brand-on-primary);
+        font-family: var(--font-heading);
+        font-weight: 700;
+        border-radius: var(--radius-pill);
+        transition: all 0.15s cubic-bezier(0.3, 0, 0, 1);
+        box-shadow: 0 4px 14px rgba(29, 214, 138, 0.25);
+      }
+      .btn-spotify-primary:hover {
+        background-color: var(--brand-primary-hover);
+        transform: scale(1.03);
+        box-shadow: 0 6px 20px rgba(29, 214, 138, 0.4);
+      }
+      .btn-spotify-primary:active {
+        background-color: var(--brand-primary-pressed);
+        transform: scale(0.98);
+      }
 
-    /* Carte Spotify avec élévation progressive */
-    .spotify-card {
-      background-color: var(--neutral-surface-1);
-      border: 1px solid var(--neutral-border);
-      border-radius: var(--radius-card);
-      transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-    }
-    .spotify-card:hover {
-      background-color: var(--neutral-surface-2);
-      border-color: var(--neutral-border-strong);
-      transform: translateY(-2px);
-    }
+      .btn-spotify-secondary {
+        background-color: var(--neutral-surface-2);
+        border: 1px solid var(--neutral-border-strong);
+        color: var(--text-primary);
+        font-family: var(--font-heading);
+        font-weight: 600;
+        border-radius: var(--radius-pill);
+        transition: all 0.15s ease;
+      }
+      .btn-spotify-secondary:hover {
+        background-color: var(--neutral-surface-3);
+        border-color: var(--text-secondary);
+        transform: scale(1.02);
+      }
+      .btn-spotify-secondary:active {
+        transform: scale(0.98);
+      }
 
-    /* Halo subtil Spotify (comme sur l'application desktop ou web player) */
-    .spotify-ambient-glow {
-      background: radial-gradient(circle at 50% -20%, rgba(29, 214, 138, 0.15), transparent 70%);
-    }
-  </style>
-</head>
-<body class="p-6 md:p-10 max-w-6xl mx-auto space-y-12">
+      /* Carte Spotify avec élévation progressive */
+      .spotify-card {
+        background-color: var(--neutral-surface-1);
+        border: 1px solid var(--neutral-border);
+        border-radius: var(--radius-card);
+        transition:
+          background-color 0.2s ease,
+          border-color 0.2s ease,
+          transform 0.2s ease;
+      }
+      .spotify-card:hover {
+        background-color: var(--neutral-surface-2);
+        border-color: var(--neutral-border-strong);
+        transform: translateY(-2px);
+      }
 
-  <!-- Header Proposition -->
-  <header class="border-b border-[#2A2F2C] pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-    <div>
-      <div class="flex items-center gap-3">
-        <span class="px-3 py-1 text-xs font-bold rounded-full bg-[rgba(29,214,138,0.14)] text-[#1DD68A] border border-[rgba(29,214,138,0.3)]">
-          PROPOSITION 4 · NOUVEAU
-        </span>
-        <h1 class="text-2xl font-extrabold tracking-tight text-[#F4F6F5]">KEO Emerald (Inspiré de Spotify)</h1>
-      </div>
-      <p class="text-sm text-[#B4BBB7] mt-1.5">
-        Basé sur votre fichier <code>keo-emerald.css</code> : typographie <strong>Manrope / Source Sans 3</strong>, vert émeraude vif <code>#1DD68A</code>, surfaces graduées (1 à 5), badges spécifiques Marque (<code>#E6D3A3</code>) & Créateur (<code>#FF8FB1</code>).
-      </p>
-    </div>
-    <div class="flex gap-2">
-      <a href="index.html" class="btn-spotify-secondary text-xs px-4 py-2 text-[#F4F6F5]">← Retour au comparateur</a>
-    </div>
-  </header>
-
-  <!-- 1. Hero & Navigation « Deux Portes » (Style Spotify) -->
-  <section class="space-y-4">
-    <div class="text-xs uppercase tracking-wider text-[#8A938E] font-semibold flex items-center gap-2">
-      <span class="w-2 h-2 rounded-full bg-[#1DD68A]"></span>
-      1. Identité & CTA « Deux Portes » (Hero Vitrine)
-    </div>
-    
-    <div class="spotify-card p-6 md:p-8 relative overflow-hidden spotify-ambient-glow">
-      <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div class="max-w-xl">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="w-3 h-3 rounded-full bg-[#1DD68A] flex items-center justify-center">
-              <span class="w-1.5 h-1.5 rounded-full bg-[#04150D]"></span>
-            </span>
-            <span class="text-xs font-heading font-extrabold tracking-wider text-[#1DD68A] uppercase">INFLUX MARKETPLACE</span>
-          </div>
-          <h2 class="text-2xl md:text-3xl font-extrabold text-[#F4F6F5] leading-tight">
-            La rencontre directe entre créateurs d'impact et marques visionnaires
-          </h2>
-          <p class="text-sm text-[#B4BBB7] mt-2 leading-relaxed">
-            Chaque mise en relation est orchestrée par un commercial INFLUX dédié. Zéro commission cachée, contractualisation traçable.
-          </p>
-        </div>
-
-        <!-- Deux Portes différenciées par les couleurs KEO -->
-        <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-          <div class="text-center sm:text-right">
-            <span class="text-[11px] font-semibold text-[#E6D3A3] block mb-1">Espace Annonceur</span>
-            <button class="btn-spotify-primary text-sm px-6 py-3 w-full sm:w-auto">
-              Lancer une campagne
-            </button>
-          </div>
-          <div class="text-center sm:text-right">
-            <span class="text-[11px] font-semibold text-[#FF8FB1] block mb-1">Espace Influenceur</span>
-            <button class="btn-spotify-secondary text-sm px-6 py-3 w-full sm:w-auto">
-              Proposer mon audience
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 2. Carte Profil Créateur Anonymisée (D61 / 10 §F) -->
-  <section class="space-y-4">
-    <div class="text-xs uppercase tracking-wider text-[#8A938E] font-semibold flex items-center gap-2">
-      <span class="w-2 h-2 rounded-full bg-[#4DA3FF]"></span>
-      2. Carte Créateur Anonymisée (Style Spotify Artist / Podcaster)
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      
-      <!-- Fiche Créateur Principale -->
-      <div class="spotify-card p-6 md:col-span-2 flex flex-col justify-between space-y-6">
-        <div>
-          <!-- Header de carte -->
-          <div class="flex justify-between items-start">
-            <div class="flex items-center gap-2">
-              <span class="px-3 py-1 rounded-full bg-[rgba(77,163,255,0.14)] text-[#4DA3FF] border border-[rgba(77,163,255,0.3)] text-xs font-heading font-bold flex items-center gap-1.5">
-                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                Vérifié INFLUX
-              </span>
-              <span class="px-2.5 py-0.5 rounded-full bg-[#1A1D1B] text-[#B4BBB7] text-xs">YouTube & TikTok</span>
-            </div>
-            <span class="font-mono text-xs text-[#8A938E] bg-[#121413] px-2 py-0.5 rounded border border-[#2A2F2C]">#CRT-84920</span>
-          </div>
-
-          <div class="mt-4">
-            <h3 class="text-xl font-extrabold text-[#F4F6F5]">Créateur Tech & Productivité Développeur</h3>
-            <p class="text-xs text-[#B4BBB7] mt-1">Vidéos immersives de setup, revues de matériel et tutoriels d'ingénierie logicielle.</p>
-          </div>
-
-          <!-- 3 Métriques Prioritaires D61 (Style Dashboard Spotify for Creators) -->
-          <div class="grid grid-cols-3 gap-3 my-5 p-4 rounded-xl bg-[#1A1D1B] border border-[#2A2F2C]">
-            <div>
-              <span class="text-[11px] font-heading text-[#8A938E] block uppercase tracking-wider">Communauté</span>
-              <span class="text-lg font-extrabold font-heading text-[#F4F6F5] mt-0.5 block">100k - 250k</span>
-            </div>
-            <div>
-              <span class="text-[11px] font-heading text-[#8A938E] block uppercase tracking-wider">Rythme (30 j)</span>
-              <span class="text-lg font-extrabold font-heading text-[#1DD68A] mt-0.5 block">14 vidéos</span>
-            </div>
-            <div>
-              <span class="text-[11px] font-heading text-[#8A938E] block uppercase tracking-wider">Moy. comm.</span>
-              <span class="text-lg font-extrabold font-heading text-[#F4F6F5] mt-0.5 block">420 / post</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="pt-4 border-t border-[#2A2F2C] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <div class="flex items-center gap-2 text-xs text-[#B4BBB7]">
-            <span class="w-2 h-2 rounded-full bg-[#4DA3FF]"></span>
-            <span>Match brief : <em>Audience B2B SaaS compatible</em></span>
-          </div>
-          <button class="btn-spotify-primary text-xs px-5 py-2.5 w-full sm:w-auto">
-            Demander une mise en relation
-          </button>
-        </div>
-      </div>
-
-      <!-- Spécificités du Style KEO Emerald -->
-      <div class="bg-[#121413] border border-[#2A2F2C] rounded-2xl p-6 flex flex-col justify-between text-xs space-y-4">
-        <div>
-          <div class="flex items-center gap-2 font-heading font-bold text-sm text-[#F4F6F5]">
-            <span class="w-2.5 h-2.5 rounded-full bg-[#1DD68A]"></span>
-            L'ADN KEO Emerald
-          </div>
-          <p class="text-[#B4BBB7] mt-2 leading-relaxed">
-            Inspiré de l'interface sombre et vibrante de <strong>Spotify</strong> : contraste dynamique entre le fond noir d'encre <code>#0A0B0A</code> et le vert émeraude <code>#1DD68A</code>.
-          </p>
-        </div>
-
-        <div class="space-y-2 p-3 bg-[#1A1D1B] rounded-xl border border-[#2A2F2C]">
-          <span class="font-heading font-bold text-[11px] text-[#8A938E] uppercase tracking-wider block">Palette dédiée aux rôles :</span>
-          <div class="flex justify-between items-center text-[11px]">
-            <span class="text-[#E6D3A3]">● Marque / Annonceur</span>
-            <code class="text-[#8A938E]">#E6D3A3</code>
-          </div>
-          <div class="flex justify-between items-center text-[11px]">
-            <span class="text-[#FF8FB1]">● Créateur / Influenceur</span>
-            <code class="text-[#8A938E]">#FF8FB1</code>
-          </div>
-          <div class="flex justify-between items-center text-[11px]">
-            <span class="text-[#3CCFCF]">● Séquestre / Courtage</span>
-            <code class="text-[#8A938E]">#3CCFCF</code>
-          </div>
-        </div>
-
-        <div class="text-[11px] text-[#8A938E]">
-          Typographie : <strong>Manrope</strong> pour les titres & chiffres clés, <strong>Source Sans 3</strong> pour le corps.
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- 3. Provenance Financière (P3) & Zone d'Aparté (D47) -->
-  <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-    <!-- Provenance des Montants avec Séquestre Courtage (P3, D48) -->
-    <div class="spotify-card p-6 space-y-4">
-      <div class="flex justify-between items-center">
-        <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-[#3CCFCF]"></span>
-          <span class="text-xs font-heading font-bold text-[#8A938E] uppercase tracking-wider">Provenance des montants (P3)</span>
-        </div>
-        <span class="px-2.5 py-0.5 text-xs font-medium rounded-full bg-[rgba(60,207,207,0.14)] text-[#3CCFCF] border border-[rgba(60,207,207,0.3)]">
-          Séquestre INFLUX
-        </span>
-      </div>
-
-      <div class="space-y-3 bg-[#1A1D1B] p-4 rounded-xl border border-[#2A2F2C]">
-        <div class="flex justify-between items-center text-xs">
-          <div>
-            <span class="text-[#8A938E] font-heading font-semibold block">MONTANT NÉGOCIÉ</span>
-            <span class="text-[11px] text-[#8A938E]">saisi par Thomas D. · 12/09 14h20</span>
-          </div>
-          <span class="font-heading font-extrabold text-base text-[#F4F6F5]">2 400,00 EUR</span>
-        </div>
-
-        <div class="border-t border-[#2A2F2C] pt-2 flex justify-between items-center text-xs">
-          <div>
-            <span class="text-[#8A938E] font-heading font-semibold block">COMMISSION CONVENUE</span>
-            <span class="text-[11px] text-[#8A938E]">modifié par Marie L. · 15/09 · 2 vers.</span>
-          </div>
-          <span class="font-heading font-extrabold text-base text-[#1DD68A]">650,00 EUR</span>
-        </div>
-
-        <div class="border-t border-[#2A2F2C] pt-2 flex justify-between items-center text-xs">
-          <span class="text-[#8A938E] font-heading font-semibold">COMMISSION ENCAISSÉE</span>
-          <span class="font-heading text-xs text-[#8A938E] italic">non renseigné</span>
-        </div>
-      </div>
-
-      <p class="text-[11px] text-[#8A938E]">★ Au MVP : aucun calcul automatique ni pourcentage de commission dans l'UI (D48).</p>
-    </div>
-
-    <!-- Zone de Saisie Aparté (D47, P2) -->
-    <div class="spotify-card p-6 space-y-4">
-      <div class="flex justify-between items-center">
-        <span class="text-xs font-heading font-bold text-[#8A938E] uppercase tracking-wider">Zone d'Aparté Sécurisée (D47)</span>
-        
-        <!-- Onglets Style Spotify -->
-        <div class="flex gap-1 bg-[#1A1D1B] p-1 rounded-full border border-[#2A2F2C] text-xs">
-          <button class="px-3 py-1 rounded-full text-[#8A938E] hover:text-[#F4F6F5] transition-colors">À trois</button>
-          <button class="px-3 py-1 rounded-full bg-[#1DD68A] text-[#04150D] font-bold flex items-center gap-1 shadow">
-            <span>🔒</span> Vous et INFLUX
-          </button>
-        </div>
-      </div>
-
-      <!-- Cadre Aparté de 2px (D47) -->
-      <div class="border-2 border-[#454C48] bg-[#1A1D1B] rounded-xl p-4 space-y-3">
-        <div class="flex items-center gap-2 text-xs text-[#5CF2A8] font-heading font-semibold">
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <span>Lu par Thomas — INFLUX. La marque ne verra pas cet échange.</span>
-        </div>
-
-        <textarea rows="2" class="w-full bg-[#121413] border border-[#2A2F2C] rounded-lg p-2.5 text-xs text-[#F4F6F5] placeholder-[#8A938E] focus:outline-none focus:border-[#1DD68A] resize-none" placeholder="Confiez votre tarif plancher ou vos contraintes confidentielles..."></textarea>
-
-        <div class="flex justify-between items-center pt-1">
-          <span class="text-[11px] text-[#8A938E]">Brouillon sauvegardé automatiquement</span>
-          <button class="btn-spotify-primary text-xs px-4 py-2">
-            Envoyer en privé
-          </button>
-        </div>
-      </div>
-
-      <p class="text-[11px] text-[#8A938E]">★ Le bouton et la phrase nomment explicitement l'audience (P2).</p>
-    </div>
-
-  </section>
-
-  <!-- 4. Aperçu Backoffice SLA & Lignes 36px (17b §6) -->
-  <section class="spotify-card p-6 space-y-4">
-    <div class="flex justify-between items-center">
+      /* Halo subtil Spotify (comme sur l'application desktop ou web player) */
+      .spotify-ambient-glow {
+        background: radial-gradient(
+          circle at 50% -20%,
+          rgba(29, 214, 138, 0.15),
+          transparent 70%
+        );
+      }
+    </style>
+  </head>
+  <body class="p-6 md:p-10 max-w-6xl mx-auto space-y-12">
+    <!-- Header Proposition -->
+    <header
+      class="border-b border-[#2A2F2C] pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+    >
       <div>
-        <h4 class="text-sm font-heading font-extrabold text-[#F4F6F5]">Aperçu Backoffice avec le thème KEO</h4>
-        <span class="text-xs text-[#8A938E]">Lignes denses de 36 px, vue identifiée et alertes SLA</span>
+        <div class="flex items-center gap-3">
+          <span
+            class="px-3 py-1 text-xs font-bold rounded-full bg-[rgba(29,214,138,0.14)] text-[#1DD68A] border border-[rgba(29,214,138,0.3)]"
+          >
+            PROPOSITION 4 · NOUVEAU
+          </span>
+          <h1 class="text-2xl font-extrabold tracking-tight text-[#F4F6F5]">
+            KEO Emerald (Inspiré de Spotify)
+          </h1>
+        </div>
+        <p class="text-sm text-[#B4BBB7] mt-1.5">
+          Basé sur votre fichier <code>keo-emerald.css</code> : typographie
+          <strong>Manrope / Source Sans 3</strong>, vert émeraude vif
+          <code>#1DD68A</code>, surfaces graduées (1 à 5), badges spécifiques
+          Marque (<code>#E6D3A3</code>) & Créateur (<code>#FF8FB1</code>).
+        </p>
       </div>
-      <span class="px-2.5 py-1 rounded bg-[#232725] text-[#A78BFA] border border-[#454C48] text-xs font-bold">
-        ⬥ VUE IDENTIFIÉE
-      </span>
-    </div>
+      <div class="flex gap-2">
+        <a
+          href="index.html"
+          class="btn-spotify-secondary text-xs px-4 py-2 text-[#F4F6F5]"
+          >← Retour au comparateur</a
+        >
+      </div>
+    </header>
 
-    <!-- Table 36px -->
-    <div class="border border-[#2A2F2C] rounded-xl overflow-hidden text-xs">
-      <div class="h-9 px-4 bg-[#232725] flex items-center justify-between font-heading font-bold text-[#8A938E] border-b border-[#2A2F2C]">
-        <span class="w-1/4">Affaire</span>
-        <span class="w-1/4">Marque</span>
-        <span class="w-1/4">Créateur</span>
-        <span class="w-1/4 text-right">Délai SLA</span>
+    <!-- 1. Hero & Navigation « Deux Portes » (Style Spotify) -->
+    <section class="space-y-4">
+      <div
+        class="text-xs uppercase tracking-wider text-[#8A938E] font-semibold flex items-center gap-2"
+      >
+        <span class="w-2 h-2 rounded-full bg-[#1DD68A]"></span>
+        1. Identité & CTA « Deux Portes » (Hero Vitrine)
       </div>
-      <div class="h-9 px-4 bg-[#121413] flex items-center justify-between border-b border-[#2A2F2C] hover:bg-[#1A1D1B] border-l-4 border-l-[#1DD68A] transition-colors">
-        <span class="w-1/4 font-mono text-[#F4F6F5]">MER-00123</span>
-        <span class="w-1/4 text-[#E6D3A3] font-semibold">Logitech France</span>
-        <span class="w-1/4 text-[#FF8FB1] font-semibold">@alex_tech (Alexandre B.)</span>
-        <span class="w-1/4 text-right text-[#B4BBB7]">○ dans 4 h 15</span>
-      </div>
-      <div class="h-9 px-4 bg-[#121413] flex items-center justify-between hover:bg-[#1A1D1B] transition-colors">
-        <span class="w-1/4 font-mono text-[#F4F6F5]">MER-00124</span>
-        <span class="w-1/4 text-[#E6D3A3] font-semibold">NordVPN B2B</span>
-        <span class="w-1/4 text-[#FF8FB1] font-semibold">@codeur_nomade (Théo M.)</span>
-        <span class="w-1/4 text-right text-[#FFB020] font-bold">⚑ dans 25 min</span>
-      </div>
-    </div>
-  </section>
 
-</body>
+      <div
+        class="spotify-card p-6 md:p-8 relative overflow-hidden spotify-ambient-glow"
+      >
+        <div
+          class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6"
+        >
+          <div class="max-w-xl">
+            <div class="flex items-center gap-2 mb-2">
+              <span
+                class="w-3 h-3 rounded-full bg-[#1DD68A] flex items-center justify-center"
+              >
+                <span class="w-1.5 h-1.5 rounded-full bg-[#04150D]"></span>
+              </span>
+              <span
+                class="text-xs font-heading font-extrabold tracking-wider text-[#1DD68A] uppercase"
+                >INFLUX MARKETPLACE</span
+              >
+            </div>
+            <h2
+              class="text-2xl md:text-3xl font-extrabold text-[#F4F6F5] leading-tight"
+            >
+              La rencontre directe entre créateurs d'impact et marques
+              visionnaires
+            </h2>
+            <p class="text-sm text-[#B4BBB7] mt-2 leading-relaxed">
+              Chaque mise en relation est orchestrée par un commercial INFLUX
+              dédié. Zéro commission cachée, contractualisation traçable.
+            </p>
+          </div>
+
+          <!-- Deux Portes différenciées par les couleurs KEO -->
+          <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <div class="text-center sm:text-right">
+              <span class="text-[11px] font-semibold text-[#E6D3A3] block mb-1"
+                >Espace Annonceur</span
+              >
+              <button
+                class="btn-spotify-primary text-sm px-6 py-3 w-full sm:w-auto"
+              >
+                Lancer une campagne
+              </button>
+            </div>
+            <div class="text-center sm:text-right">
+              <span class="text-[11px] font-semibold text-[#FF8FB1] block mb-1"
+                >Espace Influenceur</span
+              >
+              <button
+                class="btn-spotify-secondary text-sm px-6 py-3 w-full sm:w-auto"
+              >
+                Proposer mon audience
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Carte Profil Créateur Anonymisée (D61 / 10 §F) -->
+    <section class="space-y-4">
+      <div
+        class="text-xs uppercase tracking-wider text-[#8A938E] font-semibold flex items-center gap-2"
+      >
+        <span class="w-2 h-2 rounded-full bg-[#4DA3FF]"></span>
+        2. Carte Créateur Anonymisée (Style Spotify Artist / Podcaster)
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Fiche Créateur Principale -->
+        <div
+          class="spotify-card p-6 md:col-span-2 flex flex-col justify-between space-y-6"
+        >
+          <div>
+            <!-- Header de carte -->
+            <div class="flex justify-between items-start">
+              <div class="flex items-center gap-2">
+                <span
+                  class="px-3 py-1 rounded-full bg-[rgba(77,163,255,0.14)] text-[#4DA3FF] border border-[rgba(77,163,255,0.3)] text-xs font-heading font-bold flex items-center gap-1.5"
+                >
+                  <svg
+                    class="w-3.5 h-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Vérifié INFLUX
+                </span>
+                <span
+                  class="px-2.5 py-0.5 rounded-full bg-[#1A1D1B] text-[#B4BBB7] text-xs"
+                  >YouTube & TikTok</span
+                >
+              </div>
+              <span
+                class="font-mono text-xs text-[#8A938E] bg-[#121413] px-2 py-0.5 rounded border border-[#2A2F2C]"
+                >#CRT-84920</span
+              >
+            </div>
+
+            <div class="mt-4">
+              <h3 class="text-xl font-extrabold text-[#F4F6F5]">
+                Créateur Tech & Productivité Développeur
+              </h3>
+              <p class="text-xs text-[#B4BBB7] mt-1">
+                Vidéos immersives de setup, revues de matériel et tutoriels
+                d'ingénierie logicielle.
+              </p>
+            </div>
+
+            <!-- 3 Métriques Prioritaires D61 (Style Dashboard Spotify for Creators) -->
+            <div
+              class="grid grid-cols-3 gap-3 my-5 p-4 rounded-xl bg-[#1A1D1B] border border-[#2A2F2C]"
+            >
+              <div>
+                <span
+                  class="text-[11px] font-heading text-[#8A938E] block uppercase tracking-wider"
+                  >Communauté</span
+                >
+                <span
+                  class="text-lg font-extrabold font-heading text-[#F4F6F5] mt-0.5 block"
+                  >100k - 250k</span
+                >
+              </div>
+              <div>
+                <span
+                  class="text-[11px] font-heading text-[#8A938E] block uppercase tracking-wider"
+                  >Rythme (30 j)</span
+                >
+                <span
+                  class="text-lg font-extrabold font-heading text-[#1DD68A] mt-0.5 block"
+                  >14 vidéos</span
+                >
+              </div>
+              <div>
+                <span
+                  class="text-[11px] font-heading text-[#8A938E] block uppercase tracking-wider"
+                  >Moy. comm.</span
+                >
+                <span
+                  class="text-lg font-extrabold font-heading text-[#F4F6F5] mt-0.5 block"
+                  >420 / post</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="pt-4 border-t border-[#2A2F2C] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3"
+          >
+            <div class="flex items-center gap-2 text-xs text-[#B4BBB7]">
+              <span class="w-2 h-2 rounded-full bg-[#4DA3FF]"></span>
+              <span>Match brief : <em>Audience B2B SaaS compatible</em></span>
+            </div>
+            <button
+              class="btn-spotify-primary text-xs px-5 py-2.5 w-full sm:w-auto"
+            >
+              Demander une mise en relation
+            </button>
+          </div>
+        </div>
+
+        <!-- Spécificités du Style KEO Emerald -->
+        <div
+          class="bg-[#121413] border border-[#2A2F2C] rounded-2xl p-6 flex flex-col justify-between text-xs space-y-4"
+        >
+          <div>
+            <div
+              class="flex items-center gap-2 font-heading font-bold text-sm text-[#F4F6F5]"
+            >
+              <span class="w-2.5 h-2.5 rounded-full bg-[#1DD68A]"></span>
+              L'ADN KEO Emerald
+            </div>
+            <p class="text-[#B4BBB7] mt-2 leading-relaxed">
+              Inspiré de l'interface sombre et vibrante de
+              <strong>Spotify</strong> : contraste dynamique entre le fond noir
+              d'encre <code>#0A0B0A</code> et le vert émeraude
+              <code>#1DD68A</code>.
+            </p>
+          </div>
+
+          <div
+            class="space-y-2 p-3 bg-[#1A1D1B] rounded-xl border border-[#2A2F2C]"
+          >
+            <span
+              class="font-heading font-bold text-[11px] text-[#8A938E] uppercase tracking-wider block"
+              >Palette dédiée aux rôles :</span
+            >
+            <div class="flex justify-between items-center text-[11px]">
+              <span class="text-[#E6D3A3]">● Marque / Annonceur</span>
+              <code class="text-[#8A938E]">#E6D3A3</code>
+            </div>
+            <div class="flex justify-between items-center text-[11px]">
+              <span class="text-[#FF8FB1]">● Créateur / Influenceur</span>
+              <code class="text-[#8A938E]">#FF8FB1</code>
+            </div>
+            <div class="flex justify-between items-center text-[11px]">
+              <span class="text-[#3CCFCF]">● Séquestre / Courtage</span>
+              <code class="text-[#8A938E]">#3CCFCF</code>
+            </div>
+          </div>
+
+          <div class="text-[11px] text-[#8A938E]">
+            Typographie : <strong>Manrope</strong> pour les titres & chiffres
+            clés, <strong>Source Sans 3</strong> pour le corps.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Provenance Financière (P3) & Zone d'Aparté (D47) -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Provenance des Montants avec Séquestre Courtage (P3, D48) -->
+      <div class="spotify-card p-6 space-y-4">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-[#3CCFCF]"></span>
+            <span
+              class="text-xs font-heading font-bold text-[#8A938E] uppercase tracking-wider"
+              >Provenance des montants (P3)</span
+            >
+          </div>
+          <span
+            class="px-2.5 py-0.5 text-xs font-medium rounded-full bg-[rgba(60,207,207,0.14)] text-[#3CCFCF] border border-[rgba(60,207,207,0.3)]"
+          >
+            Séquestre INFLUX
+          </span>
+        </div>
+
+        <div
+          class="space-y-3 bg-[#1A1D1B] p-4 rounded-xl border border-[#2A2F2C]"
+        >
+          <div class="flex justify-between items-center text-xs">
+            <div>
+              <span class="text-[#8A938E] font-heading font-semibold block"
+                >MONTANT NÉGOCIÉ</span
+              >
+              <span class="text-[11px] text-[#8A938E]"
+                >saisi par Thomas D. · 12/09 14h20</span
+              >
+            </div>
+            <span class="font-heading font-extrabold text-base text-[#F4F6F5]"
+              >2 400,00 EUR</span
+            >
+          </div>
+
+          <div
+            class="border-t border-[#2A2F2C] pt-2 flex justify-between items-center text-xs"
+          >
+            <div>
+              <span class="text-[#8A938E] font-heading font-semibold block"
+                >COMMISSION CONVENUE</span
+              >
+              <span class="text-[11px] text-[#8A938E]"
+                >modifié par Marie L. · 15/09 · 2 vers.</span
+              >
+            </div>
+            <span class="font-heading font-extrabold text-base text-[#1DD68A]"
+              >650,00 EUR</span
+            >
+          </div>
+
+          <div
+            class="border-t border-[#2A2F2C] pt-2 flex justify-between items-center text-xs"
+          >
+            <span class="text-[#8A938E] font-heading font-semibold"
+              >COMMISSION ENCAISSÉE</span
+            >
+            <span class="font-heading text-xs text-[#8A938E] italic"
+              >non renseigné</span
+            >
+          </div>
+        </div>
+
+        <p class="text-[11px] text-[#8A938E]">
+          ★ Au MVP : aucun calcul automatique ni pourcentage de commission dans
+          l'UI (D48).
+        </p>
+      </div>
+
+      <!-- Zone de Saisie Aparté (D47, P2) -->
+      <div class="spotify-card p-6 space-y-4">
+        <div class="flex justify-between items-center">
+          <span
+            class="text-xs font-heading font-bold text-[#8A938E] uppercase tracking-wider"
+            >Zone d'Aparté Sécurisée (D47)</span
+          >
+
+          <!-- Onglets Style Spotify -->
+          <div
+            class="flex gap-1 bg-[#1A1D1B] p-1 rounded-full border border-[#2A2F2C] text-xs"
+          >
+            <button
+              class="px-3 py-1 rounded-full text-[#8A938E] hover:text-[#F4F6F5] transition-colors"
+            >
+              À trois
+            </button>
+            <button
+              class="px-3 py-1 rounded-full bg-[#1DD68A] text-[#04150D] font-bold flex items-center gap-1 shadow"
+            >
+              <span>🔒</span> Vous et INFLUX
+            </button>
+          </div>
+        </div>
+
+        <!-- Cadre Aparté de 2px (D47) -->
+        <div
+          class="border-2 border-[#454C48] bg-[#1A1D1B] rounded-xl p-4 space-y-3"
+        >
+          <div
+            class="flex items-center gap-2 text-xs text-[#5CF2A8] font-heading font-semibold"
+          >
+            <svg
+              class="w-3.5 h-3.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <span
+              >Lu par Thomas — INFLUX. La marque ne verra pas cet échange.</span
+            >
+          </div>
+
+          <textarea
+            rows="2"
+            class="w-full bg-[#121413] border border-[#2A2F2C] rounded-lg p-2.5 text-xs text-[#F4F6F5] placeholder-[#8A938E] focus:outline-none focus:border-[#1DD68A] resize-none"
+            placeholder="Confiez votre tarif plancher ou vos contraintes confidentielles..."
+          ></textarea>
+
+          <div class="flex justify-between items-center pt-1">
+            <span class="text-[11px] text-[#8A938E]"
+              >Brouillon sauvegardé automatiquement</span
+            >
+            <button class="btn-spotify-primary text-xs px-4 py-2">
+              Envoyer en privé
+            </button>
+          </div>
+        </div>
+
+        <p class="text-[11px] text-[#8A938E]">
+          ★ Le bouton et la phrase nomment explicitement l'audience (P2).
+        </p>
+      </div>
+    </section>
+
+    <!-- 4. Aperçu Backoffice SLA & Lignes 36px (17b §6) -->
+    <section class="spotify-card p-6 space-y-4">
+      <div class="flex justify-between items-center">
+        <div>
+          <h4 class="text-sm font-heading font-extrabold text-[#F4F6F5]">
+            Aperçu Backoffice avec le thème KEO
+          </h4>
+          <span class="text-xs text-[#8A938E]"
+            >Lignes denses de 36 px, vue identifiée et alertes SLA</span
+          >
+        </div>
+        <span
+          class="px-2.5 py-1 rounded bg-[#232725] text-[#A78BFA] border border-[#454C48] text-xs font-bold"
+        >
+          ⬥ VUE IDENTIFIÉE
+        </span>
+      </div>
+
+      <!-- Table 36px -->
+      <div class="border border-[#2A2F2C] rounded-xl overflow-hidden text-xs">
+        <div
+          class="h-9 px-4 bg-[#232725] flex items-center justify-between font-heading font-bold text-[#8A938E] border-b border-[#2A2F2C]"
+        >
+          <span class="w-1/4">Affaire</span>
+          <span class="w-1/4">Marque</span>
+          <span class="w-1/4">Créateur</span>
+          <span class="w-1/4 text-right">Délai SLA</span>
+        </div>
+        <div
+          class="h-9 px-4 bg-[#121413] flex items-center justify-between border-b border-[#2A2F2C] hover:bg-[#1A1D1B] border-l-4 border-l-[#1DD68A] transition-colors"
+        >
+          <span class="w-1/4 font-mono text-[#F4F6F5]">MER-00123</span>
+          <span class="w-1/4 text-[#E6D3A3] font-semibold"
+            >Logitech France</span
+          >
+          <span class="w-1/4 text-[#FF8FB1] font-semibold"
+            >@alex_tech (Alexandre B.)</span
+          >
+          <span class="w-1/4 text-right text-[#B4BBB7]">○ dans 4 h 15</span>
+        </div>
+        <div
+          class="h-9 px-4 bg-[#121413] flex items-center justify-between hover:bg-[#1A1D1B] transition-colors"
+        >
+          <span class="w-1/4 font-mono text-[#F4F6F5]">MER-00124</span>
+          <span class="w-1/4 text-[#E6D3A3] font-semibold">NordVPN B2B</span>
+          <span class="w-1/4 text-[#FF8FB1] font-semibold"
+            >@codeur_nomade (Théo M.)</span
+          >
+          <span class="w-1/4 text-right text-[#FFB020] font-bold"
+            >⚑ dans 25 min</span
+          >
+        </div>
+      </div>
+    </section>
+  </body>
 </html>

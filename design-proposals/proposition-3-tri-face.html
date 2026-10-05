@@ -1,283 +1,446 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr" class="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>INFLUX — Proposition 3 : Design System Tri-Face Contextuel</title>
-  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
-  <style>
-    :root {
-      --color-brand-primary: #22c55e;
-      --color-brand-accent: #29e075;
-      --color-surface-page: #0a0a0a;
-      --color-surface-card: #131315;
-      --color-surface-raised: #1a1a1d;
-      --color-text-primary: #f5f5f7;
-      --color-text-secondary: #a1a1aa;
-      --color-text-tertiary: #86868f;
-      --color-border-default: #242428;
-      --color-bo-identified: #a78bfa;
-      --color-bo-identified-bg: #17121f;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>INFLUX — Proposition 3 : Design System Tri-Face Contextuel</title>
+    <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+    <style>
+      :root {
+        --color-brand-primary: #22c55e;
+        --color-brand-accent: #29e075;
+        --color-surface-page: #0a0a0a;
+        --color-surface-card: #131315;
+        --color-surface-raised: #1a1a1d;
+        --color-text-primary: #f5f5f7;
+        --color-text-secondary: #a1a1aa;
+        --color-text-tertiary: #86868f;
+        --color-border-default: #242428;
+        --color-bo-identified: #a78bfa;
+        --color-bo-identified-bg: #17121f;
+      }
 
-    body {
-      background-color: var(--color-surface-page);
-      color: var(--color-text-primary);
-      font-family: system-ui, -apple-system, sans-serif;
-    }
+      body {
+        background-color: var(--color-surface-page);
+        color: var(--color-text-primary);
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
 
-    .tab-active {
-      background-color: #29e075;
-      color: #0a0a0a;
-      font-weight: 700;
-    }
-    .tab-inactive {
-      background-color: #1a1a1d;
-      color: #a1a1aa;
-      border: 1px solid #242428;
-    }
-    .tab-inactive:hover {
-      color: #f5f5f7;
-      background-color: #242428;
-    }
+      .tab-active {
+        background-color: #29e075;
+        color: #0a0a0a;
+        font-weight: 700;
+      }
+      .tab-inactive {
+        background-color: #1a1a1d;
+        color: #a1a1aa;
+        border: 1px solid #242428;
+      }
+      .tab-inactive:hover {
+        color: #f5f5f7;
+        background-color: #242428;
+      }
 
-    /* Simulation écran mobile 375px */
-    .mobile-frame {
-      width: 375px;
-      min-height: 640px;
-      border: 8px solid #242428;
-      border-radius: 36px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-      background-color: #0a0a0a;
-      position: relative;
-      overflow: hidden;
-      margin: 0 auto;
-    }
-  </style>
-</head>
-<body class="p-6 md:p-10 max-w-6xl mx-auto space-y-8">
-
-  <!-- Header Proposition -->
-  <header class="border-b border-[#242428] pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-    <div>
-      <div class="flex items-center gap-3">
-        <span class="px-2.5 py-0.5 text-xs font-semibold rounded-md bg-[#0f2118] text-[#29e075] border border-[#1f3d2b]">PROPOSITION 3 (RECOMMANDÉE)</span>
-        <h1 class="text-2xl font-bold tracking-tight text-[#f5f5f7]">Design System Tri-Face Contextuel</h1>
-      </div>
-      <p class="text-sm text-[#a1a1aa] mt-1">Conforme à la décision <strong>D41</strong> : <em>aucun écran partagé</em>. Le design system s'adapte au rôle, au matériel et aux conditions d'usage.</p>
-    </div>
-    <div class="flex gap-2">
-      <a href="index.html" class="px-3 py-1.5 rounded-lg bg-[#1a1a1d] border border-[#242428] text-xs text-[#f5f5f7] hover:bg-[#242428]">← Retour au comparateur</a>
-    </div>
-  </header>
-
-  <!-- Sélecteur Interactif de Face -->
-  <div class="flex flex-wrap gap-2 justify-center p-1.5 bg-[#131315] border border-[#242428] rounded-xl max-w-xl mx-auto">
-    <button onclick="showFace('creator')" id="btn-creator" class="tab-active text-xs px-4 py-2 rounded-lg transition-all">
-      📱 1. Espace Créateur (Mobile-first 375px)
-    </button>
-    <button onclick="showFace('brand')" id="btn-brand" class="tab-inactive text-xs px-4 py-2 rounded-lg transition-all">
-      💻 2. Espace Marque (Desktop 1440px)
-    </button>
-    <button onclick="showFace('backoffice')" id="btn-backoffice" class="tab-inactive text-xs px-4 py-2 rounded-lg transition-all">
-      ⚡ 3. Backoffice Commercial (Dense)
-    </button>
-  </div>
-
-  <!-- ==================== FACE 1 : CRÉATEUR (MOBILE) ==================== -->
-  <div id="face-creator" class="space-y-6">
-    <div class="text-center max-w-lg mx-auto">
-      <h3 class="text-sm font-bold text-[#29e075] uppercase tracking-wider">Contexte : Créateur sur mobile, debout en 4G</h3>
-      <p class="text-xs text-[#a1a1aa] mt-1">Boutons larges sous le pouce (cibles 48 px), contrastes très forts pour la lecture en extérieur au soleil, une seule décision principale par écran.</p>
-    </div>
-
-    <!-- Frame Mobile 375px -->
-    <div class="mobile-frame flex flex-col justify-between p-4">
-      
-      <!-- Top Notch & Header -->
+      /* Simulation écran mobile 375px */
+      .mobile-frame {
+        width: 375px;
+        min-height: 640px;
+        border: 8px solid #242428;
+        border-radius: 36px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+        background-color: #0a0a0a;
+        position: relative;
+        overflow: hidden;
+        margin: 0 auto;
+      }
+    </style>
+  </head>
+  <body class="p-6 md:p-10 max-w-6xl mx-auto space-y-8">
+    <!-- Header Proposition -->
+    <header
+      class="border-b border-[#242428] pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+    >
       <div>
-        <div class="flex justify-between items-center text-[10px] text-[#86868f] pb-3 border-b border-[#1c1c1f]">
-          <span class="font-bold text-[#f5f5f7]">INFLUX</span>
-          <span>● 4G Plein Soleil</span>
+        <div class="flex items-center gap-3">
+          <span
+            class="px-2.5 py-0.5 text-xs font-semibold rounded-md bg-[#0f2118] text-[#29e075] border border-[#1f3d2b]"
+            >PROPOSITION 3 (RECOMMANDÉE)</span
+          >
+          <h1 class="text-2xl font-bold tracking-tight text-[#f5f5f7]">
+            Design System Tri-Face Contextuel
+          </h1>
         </div>
-
-        <div class="mt-4">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-[#29e075]">Opportunité reçue</span>
-            <span class="text-[10px] bg-[#1a1a1d] text-[#86868f] px-2 py-0.5 rounded">Reste 18 h</span>
-          </div>
-          <h4 class="text-lg font-bold text-[#f5f5f7] mt-1">Campagne Rentrée Tech 2026</h4>
-          <p class="text-xs text-[#a1a1aa]">Marque internationale de périphériques ergonomiques</p>
-        </div>
-
-        <!-- 3 Chiffres Demandés -->
-        <div class="bg-[#131315] border border-[#242428] rounded-xl p-3 mt-4 space-y-2">
-          <span class="text-[11px] font-semibold text-[#86868f] block uppercase tracking-wider">Formats attendus</span>
-          <div class="flex justify-between items-center text-xs">
-            <span class="text-[#f5f5f7]">1x Vidéo YouTube Dédiée</span>
-            <span class="text-[#29e075] font-bold font-mono">Inclus</span>
-          </div>
-          <div class="flex justify-between items-center text-xs">
-            <span class="text-[#f5f5f7]">2x Shorts / Reels</span>
-            <span class="text-[#29e075] font-bold font-mono">Inclus</span>
-          </div>
-        </div>
-
-        <!-- Message Commercial Nommé (P5) -->
-        <div class="mt-4 bg-[#0f2118] border border-[#1f3d2b] p-3 rounded-xl">
-          <div class="flex items-center gap-2">
-            <div class="w-6 h-6 rounded-full bg-[#22c55e] text-[#0a0a0a] text-xs font-bold flex items-center justify-center">TD</div>
-            <div>
-              <span class="text-xs font-bold text-[#6ff2a8]">Thomas — INFLUX</span>
-              <span class="text-[10px] text-[#86868f] block">Commercial responsable</span>
-            </div>
-          </div>
-          <p class="text-xs text-[#f5f5f7] mt-2">« Le brief correspond exactement à votre audience d'ingénieurs. Les conditions financières sont précisées dans l'aparté. »</p>
-        </div>
+        <p class="text-sm text-[#a1a1aa] mt-1">
+          Conforme à la décision <strong>D41</strong> :
+          <em>aucun écran partagé</em>. Le design system s'adapte au rôle, au
+          matériel et aux conditions d'usage.
+        </p>
       </div>
-
-      <!-- Action Sticky Pouce en Bas -->
-      <div class="pt-4 border-t border-[#1c1c1f] space-y-2">
-        <button class="w-full h-12 bg-[#29e075] text-[#0a0a0a] font-bold text-sm rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform">
-          <span>Accepter la mise en relation</span>
-        </button>
-        <button class="w-full h-11 bg-transparent text-[#a1a1aa] font-medium text-xs rounded-xl hover:text-[#f5f5f7]">
-          Refuser avec motif typé
-        </button>
+      <div class="flex gap-2">
+        <a
+          href="index.html"
+          class="px-3 py-1.5 rounded-lg bg-[#1a1a1d] border border-[#242428] text-xs text-[#f5f5f7] hover:bg-[#242428]"
+          >← Retour au comparateur</a
+        >
       </div>
+    </header>
 
-    </div>
-  </div>
-
-  <!-- ==================== FACE 2 : MARQUE (DESKTOP) ==================== -->
-  <div id="face-brand" class="hidden space-y-6">
-    <div class="text-center max-w-lg mx-auto">
-      <h3 class="text-sm font-bold text-[#29e075] uppercase tracking-wider">Contexte : Marque sur desktop au bureau</h3>
-      <p class="text-xs text-[#a1a1aa] mt-1">Écran large, filtres avancés à facettes, fiches de profils anonymisées à 2 couches (A2) et comparaison efficace.</p>
+    <!-- Sélecteur Interactif de Face -->
+    <div
+      class="flex flex-wrap gap-2 justify-center p-1.5 bg-[#131315] border border-[#242428] rounded-xl max-w-xl mx-auto"
+    >
+      <button
+        onclick="showFace('creator')"
+        id="btn-creator"
+        class="tab-active text-xs px-4 py-2 rounded-lg transition-all"
+      >
+        📱 1. Espace Créateur (Mobile-first 375px)
+      </button>
+      <button
+        onclick="showFace('brand')"
+        id="btn-brand"
+        class="tab-inactive text-xs px-4 py-2 rounded-lg transition-all"
+      >
+        💻 2. Espace Marque (Desktop 1440px)
+      </button>
+      <button
+        onclick="showFace('backoffice')"
+        id="btn-backoffice"
+        class="tab-inactive text-xs px-4 py-2 rounded-lg transition-all"
+      >
+        ⚡ 3. Backoffice Commercial (Dense)
+      </button>
     </div>
 
-    <div class="bg-[#131315] border border-[#242428] rounded-2xl p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
-      
-      <!-- Colonne Filtres -->
-      <div class="md:col-span-1 border-r border-[#1c1c1f] pr-4 space-y-4 text-xs">
-        <div class="font-bold text-sm text-[#f5f5f7]">Filtres créateurs</div>
-        <div>
-          <label class="text-[#86868f] block mb-1">Réseau principal</label>
-          <select class="w-full bg-[#1a1a1d] border border-[#242428] rounded-lg p-2 text-[#f5f5f7]">
-            <option>YouTube</option>
-            <option>Instagram</option>
-            <option>TikTok</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-[#86868f] block mb-1">Taille communauté (D61)</label>
-          <div class="space-y-1 text-[#a1a1aa]">
-            <label class="flex items-center gap-2"><input type="checkbox" checked class="accent-[#29e075]"> 50k - 100k</label>
-            <label class="flex items-center gap-2"><input type="checkbox" checked class="accent-[#29e075]"> 100k - 250k</label>
-            <label class="flex items-center gap-2"><input type="checkbox" class="accent-[#29e075]"> 250k - 500k</label>
-          </div>
-        </div>
-        <div>
-          <label class="text-[#86868f] block mb-1">Localisation audience</label>
-          <span class="text-[#29e075]">France (≥ 65%)</span>
-        </div>
+    <!-- ==================== FACE 1 : CRÉATEUR (MOBILE) ==================== -->
+    <div id="face-creator" class="space-y-6">
+      <div class="text-center max-w-lg mx-auto">
+        <h3 class="text-sm font-bold text-[#29e075] uppercase tracking-wider">
+          Contexte : Créateur sur mobile, debout en 4G
+        </h3>
+        <p class="text-xs text-[#a1a1aa] mt-1">
+          Boutons larges sous le pouce (cibles 48 px), contrastes très forts
+          pour la lecture en extérieur au soleil, une seule décision principale
+          par écran.
+        </p>
       </div>
 
-      <!-- Colonne Résultats -->
-      <div class="md:col-span-3 space-y-4">
-        <div class="flex justify-between items-center text-xs">
-          <span class="text-[#a1a1aa]"><strong>3 créateurs anonymisés</strong> correspondent à votre brief</span>
-          <span class="text-[#86868f]">Identités révélées à l'acceptation mutuelle (D45)</span>
-        </div>
+      <!-- Frame Mobile 375px -->
+      <div class="mobile-frame flex flex-col justify-between p-4">
+        <!-- Top Notch & Header -->
+        <div>
+          <div
+            class="flex justify-between items-center text-[10px] text-[#86868f] pb-3 border-b border-[#1c1c1f]"
+          >
+            <span class="font-bold text-[#f5f5f7]">INFLUX</span>
+            <span>● 4G Plein Soleil</span>
+          </div>
 
-        <div class="bg-[#0a0a0a] border border-[#242428] rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-[#74747c] transition-colors">
-          <div>
+          <div class="mt-4">
             <div class="flex items-center gap-2">
-              <span class="font-mono text-xs text-[#29e075] bg-[#0f2118] px-2 py-0.5 rounded border border-[#1f3d2b]">#CRT-84920</span>
-              <span class="text-xs text-[#a1a1aa]">Spécialiste Informatique & Productivité</span>
+              <span class="text-xs font-semibold text-[#29e075]"
+                >Opportunité reçue</span
+              >
+              <span
+                class="text-[10px] bg-[#1a1a1d] text-[#86868f] px-2 py-0.5 rounded"
+                >Reste 18 h</span
+              >
             </div>
-            <h4 class="font-bold text-[#f5f5f7] mt-1 text-sm">Vidéos de banc d'essai & Comparatifs matériels</h4>
-            <div class="flex gap-4 text-xs font-mono text-[#86868f] mt-2">
-              <span>Abonnés : <strong class="text-[#f5f5f7]">125k</strong></span>
-              <span>Rythme : <strong class="text-[#f5f5f7]">14 vidéos/mois</strong></span>
-              <span>Commentaires : <strong class="text-[#f5f5f7]">420 moy.</strong></span>
+            <h4 class="text-lg font-bold text-[#f5f5f7] mt-1">
+              Campagne Rentrée Tech 2026
+            </h4>
+            <p class="text-xs text-[#a1a1aa]">
+              Marque internationale de périphériques ergonomiques
+            </p>
+          </div>
+
+          <!-- 3 Chiffres Demandés -->
+          <div
+            class="bg-[#131315] border border-[#242428] rounded-xl p-3 mt-4 space-y-2"
+          >
+            <span
+              class="text-[11px] font-semibold text-[#86868f] block uppercase tracking-wider"
+              >Formats attendus</span
+            >
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-[#f5f5f7]">1x Vidéo YouTube Dédiée</span>
+              <span class="text-[#29e075] font-bold font-mono">Inclus</span>
+            </div>
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-[#f5f5f7]">2x Shorts / Reels</span>
+              <span class="text-[#29e075] font-bold font-mono">Inclus</span>
             </div>
           </div>
-          <button class="bg-[#29e075] hover:bg-[#22c766] text-[#0a0a0a] text-xs font-bold px-4 py-2.5 rounded-lg whitespace-nowrap">
-            Demander la mise en relation
+
+          <!-- Message Commercial Nommé (P5) -->
+          <div class="mt-4 bg-[#0f2118] border border-[#1f3d2b] p-3 rounded-xl">
+            <div class="flex items-center gap-2">
+              <div
+                class="w-6 h-6 rounded-full bg-[#22c55e] text-[#0a0a0a] text-xs font-bold flex items-center justify-center"
+              >
+                TD
+              </div>
+              <div>
+                <span class="text-xs font-bold text-[#6ff2a8]"
+                  >Thomas — INFLUX</span
+                >
+                <span class="text-[10px] text-[#86868f] block"
+                  >Commercial responsable</span
+                >
+              </div>
+            </div>
+            <p class="text-xs text-[#f5f5f7] mt-2">
+              « Le brief correspond exactement à votre audience d'ingénieurs.
+              Les conditions financières sont précisées dans l'aparté. »
+            </p>
+          </div>
+        </div>
+
+        <!-- Action Sticky Pouce en Bas -->
+        <div class="pt-4 border-t border-[#1c1c1f] space-y-2">
+          <button
+            class="w-full h-12 bg-[#29e075] text-[#0a0a0a] font-bold text-sm rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
+          >
+            <span>Accepter la mise en relation</span>
+          </button>
+          <button
+            class="w-full h-11 bg-transparent text-[#a1a1aa] font-medium text-xs rounded-xl hover:text-[#f5f5f7]"
+          >
+            Refuser avec motif typé
           </button>
         </div>
-
       </div>
-
-    </div>
-  </div>
-
-  <!-- ==================== FACE 3 : BACKOFFICE (COMMERCIAL) ==================== -->
-  <div id="face-backoffice" class="hidden space-y-6">
-    <div class="text-center max-w-lg mx-auto">
-      <h3 class="text-sm font-bold text-[#29e075] uppercase tracking-wider">Contexte : Commercial INFLUX, 8h/jour sur poste</h3>
-      <p class="text-xs text-[#a1a1aa] mt-1">Haute densité, rangées de 36 px, vue identifiée signalée par du violet (seule couleur réservée au BO), raccourcis clavier partout.</p>
     </div>
 
-    <div class="bg-[#131315] border border-[#242428] rounded-xl p-6 space-y-4">
-      
-      <!-- Bandeau Vue Identifiée (17b §6.1) -->
-      <div class="bg-[#17121f] border-l-4 border-l-[#a78bfa] p-3 rounded flex justify-between items-center text-xs">
-        <div class="flex items-center gap-2">
-          <span class="text-[#a78bfa] font-bold">⬥ VUE IDENTIFIÉE</span>
-          <span class="text-[#f5f5f7]">Vous voyez les identités réelles, coordonnées bancaires et historiques complets.</span>
-        </div>
-        <span class="text-[11px] text-[#a78bfa] font-mono">Agent connecté : Thomas D.</span>
+    <!-- ==================== FACE 2 : MARQUE (DESKTOP) ==================== -->
+    <div id="face-brand" class="hidden space-y-6">
+      <div class="text-center max-w-lg mx-auto">
+        <h3 class="text-sm font-bold text-[#29e075] uppercase tracking-wider">
+          Contexte : Marque sur desktop au bureau
+        </h3>
+        <p class="text-xs text-[#a1a1aa] mt-1">
+          Écran large, filtres avancés à facettes, fiches de profils anonymisées
+          à 2 couches (A2) et comparaison efficace.
+        </p>
       </div>
 
-      <!-- File de validation 36px -->
-      <div class="border border-[#242428] rounded-lg overflow-hidden text-xs">
-        <div class="h-9 px-3 bg-[#1a1a1d] flex items-center justify-between border-b border-[#242428] font-semibold text-[#86868f]">
-          <span class="w-1/4">Affaire</span>
-          <span class="w-1/4">Marque</span>
-          <span class="w-1/4">Créateur</span>
-          <span class="w-1/4 text-right">Délai SLA</span>
+      <div
+        class="bg-[#131315] border border-[#242428] rounded-2xl p-6 grid grid-cols-1 md:grid-cols-4 gap-6"
+      >
+        <!-- Colonne Filtres -->
+        <div
+          class="md:col-span-1 border-r border-[#1c1c1f] pr-4 space-y-4 text-xs"
+        >
+          <div class="font-bold text-sm text-[#f5f5f7]">Filtres créateurs</div>
+          <div>
+            <label class="text-[#86868f] block mb-1">Réseau principal</label>
+            <select
+              class="w-full bg-[#1a1a1d] border border-[#242428] rounded-lg p-2 text-[#f5f5f7]"
+            >
+              <option>YouTube</option>
+              <option>Instagram</option>
+              <option>TikTok</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[#86868f] block mb-1"
+              >Taille communauté (D61)</label
+            >
+            <div class="space-y-1 text-[#a1a1aa]">
+              <label class="flex items-center gap-2"
+                ><input type="checkbox" checked class="accent-[#29e075]" /> 50k
+                - 100k</label
+              >
+              <label class="flex items-center gap-2"
+                ><input type="checkbox" checked class="accent-[#29e075]" /> 100k
+                - 250k</label
+              >
+              <label class="flex items-center gap-2"
+                ><input type="checkbox" class="accent-[#29e075]" /> 250k -
+                500k</label
+              >
+            </div>
+          </div>
+          <div>
+            <label class="text-[#86868f] block mb-1"
+              >Localisation audience</label
+            >
+            <span class="text-[#29e075]">France (≥ 65%)</span>
+          </div>
         </div>
-        <div class="h-9 px-3 bg-[#0a0a0a] flex items-center justify-between border-b border-[#1c1c1f] hover:bg-[#1a1a1d] border-l-2 border-l-[#29e075]">
-          <span class="w-1/4 font-mono text-[#f5f5f7]">MER-00123</span>
-          <span class="w-1/4 text-[#f5f5f7]">Logitech France</span>
-          <span class="w-1/4 text-[#29e075]">@alex_tech (Alexandre B.)</span>
-          <span class="w-1/4 text-right text-[#a1a1aa]">○ dans 4 h 15</span>
-        </div>
-        <div class="h-9 px-3 bg-[#0a0a0a] flex items-center justify-between hover:bg-[#1a1a1d]">
-          <span class="w-1/4 font-mono text-[#f5f5f7]">MER-00124</span>
-          <span class="w-1/4 text-[#f5f5f7]">NordVPN B2B</span>
-          <span class="w-1/4 text-[#29e075]">@codeur_nomade (Théo M.)</span>
-          <span class="w-1/4 text-right text-[#fbbf24] font-medium">⚑ dans 25 min</span>
+
+        <!-- Colonne Résultats -->
+        <div class="md:col-span-3 space-y-4">
+          <div class="flex justify-between items-center text-xs">
+            <span class="text-[#a1a1aa]"
+              ><strong>3 créateurs anonymisés</strong> correspondent à votre
+              brief</span
+            >
+            <span class="text-[#86868f]"
+              >Identités révélées à l'acceptation mutuelle (D45)</span
+            >
+          </div>
+
+          <div
+            class="bg-[#0a0a0a] border border-[#242428] rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-[#74747c] transition-colors"
+          >
+            <div>
+              <div class="flex items-center gap-2">
+                <span
+                  class="font-mono text-xs text-[#29e075] bg-[#0f2118] px-2 py-0.5 rounded border border-[#1f3d2b]"
+                  >#CRT-84920</span
+                >
+                <span class="text-xs text-[#a1a1aa]"
+                  >Spécialiste Informatique & Productivité</span
+                >
+              </div>
+              <h4 class="font-bold text-[#f5f5f7] mt-1 text-sm">
+                Vidéos de banc d'essai & Comparatifs matériels
+              </h4>
+              <div class="flex gap-4 text-xs font-mono text-[#86868f] mt-2">
+                <span
+                  >Abonnés : <strong class="text-[#f5f5f7]">125k</strong></span
+                >
+                <span
+                  >Rythme :
+                  <strong class="text-[#f5f5f7]">14 vidéos/mois</strong></span
+                >
+                <span
+                  >Commentaires :
+                  <strong class="text-[#f5f5f7]">420 moy.</strong></span
+                >
+              </div>
+            </div>
+            <button
+              class="bg-[#29e075] hover:bg-[#22c766] text-[#0a0a0a] text-xs font-bold px-4 py-2.5 rounded-lg whitespace-nowrap"
+            >
+              Demander la mise en relation
+            </button>
+          </div>
         </div>
       </div>
-
-      <!-- Raccourcis BO -->
-      <div class="flex gap-4 text-[11px] text-[#86868f] pt-1">
-        <span><kbd class="px-1.5 py-0.5 bg-[#1a1a1d] rounded border border-[#242428] text-[#f5f5f7]">j</kbd> / <kbd class="px-1.5 py-0.5 bg-[#1a1a1d] rounded border border-[#242428] text-[#f5f5f7]">k</kbd> Défiler</span>
-        <span><kbd class="px-1.5 py-0.5 bg-[#1a1a1d] rounded border border-[#242428] text-[#f5f5f7]">v</kbd> Valider</span>
-        <span><kbd class="px-1.5 py-0.5 bg-[#1a1a1d] rounded border border-[#242428] text-[#f5f5f7]">r</kbd> Refuser</span>
-        <span><kbd class="px-1.5 py-0.5 bg-[#1a1a1d] rounded border border-[#242428] text-[#f5f5f7]">n</kbd> Note interne</span>
-      </div>
-
     </div>
-  </div>
 
-  <script>
-    function showFace(face) {
-      document.getElementById('face-creator').classList.add('hidden');
-      document.getElementById('face-brand').classList.add('hidden');
-      document.getElementById('face-backoffice').classList.add('hidden');
+    <!-- ==================== FACE 3 : BACKOFFICE (COMMERCIAL) ==================== -->
+    <div id="face-backoffice" class="hidden space-y-6">
+      <div class="text-center max-w-lg mx-auto">
+        <h3 class="text-sm font-bold text-[#29e075] uppercase tracking-wider">
+          Contexte : Commercial INFLUX, 8h/jour sur poste
+        </h3>
+        <p class="text-xs text-[#a1a1aa] mt-1">
+          Haute densité, rangées de 36 px, vue identifiée signalée par du violet
+          (seule couleur réservée au BO), raccourcis clavier partout.
+        </p>
+      </div>
 
-      document.getElementById('btn-creator').className = 'tab-inactive text-xs px-4 py-2 rounded-lg transition-all';
-      document.getElementById('btn-brand').className = 'tab-inactive text-xs px-4 py-2 rounded-lg transition-all';
-      document.getElementById('btn-backoffice').className = 'tab-inactive text-xs px-4 py-2 rounded-lg transition-all';
+      <div
+        class="bg-[#131315] border border-[#242428] rounded-xl p-6 space-y-4"
+      >
+        <!-- Bandeau Vue Identifiée (17b §6.1) -->
+        <div
+          class="bg-[#17121f] border-l-4 border-l-[#a78bfa] p-3 rounded flex justify-between items-center text-xs"
+        >
+          <div class="flex items-center gap-2">
+            <span class="text-[#a78bfa] font-bold">⬥ VUE IDENTIFIÉE</span>
+            <span class="text-[#f5f5f7]"
+              >Vous voyez les identités réelles, coordonnées bancaires et
+              historiques complets.</span
+            >
+          </div>
+          <span class="text-[11px] text-[#a78bfa] font-mono"
+            >Agent connecté : Thomas D.</span
+          >
+        </div>
 
-      document.getElementById('face-' + face).classList.remove('hidden');
-      document.getElementById('btn-' + face).className = 'tab-active text-xs px-4 py-2 rounded-lg transition-all';
-    }
-  </script>
+        <!-- File de validation 36px -->
+        <div class="border border-[#242428] rounded-lg overflow-hidden text-xs">
+          <div
+            class="h-9 px-3 bg-[#1a1a1d] flex items-center justify-between border-b border-[#242428] font-semibold text-[#86868f]"
+          >
+            <span class="w-1/4">Affaire</span>
+            <span class="w-1/4">Marque</span>
+            <span class="w-1/4">Créateur</span>
+            <span class="w-1/4 text-right">Délai SLA</span>
+          </div>
+          <div
+            class="h-9 px-3 bg-[#0a0a0a] flex items-center justify-between border-b border-[#1c1c1f] hover:bg-[#1a1a1d] border-l-2 border-l-[#29e075]"
+          >
+            <span class="w-1/4 font-mono text-[#f5f5f7]">MER-00123</span>
+            <span class="w-1/4 text-[#f5f5f7]">Logitech France</span>
+            <span class="w-1/4 text-[#29e075]">@alex_tech (Alexandre B.)</span>
+            <span class="w-1/4 text-right text-[#a1a1aa]">○ dans 4 h 15</span>
+          </div>
+          <div
+            class="h-9 px-3 bg-[#0a0a0a] flex items-center justify-between hover:bg-[#1a1a1d]"
+          >
+            <span class="w-1/4 font-mono text-[#f5f5f7]">MER-00124</span>
+            <span class="w-1/4 text-[#f5f5f7]">NordVPN B2B</span>
+            <span class="w-1/4 text-[#29e075]">@codeur_nomade (Théo M.)</span>
+            <span class="w-1/4 text-right text-[#fbbf24] font-medium"
+              >⚑ dans 25 min</span
+            >
+          </div>
+        </div>
 
-</body>
+        <!-- Raccourcis BO -->
+        <div class="flex gap-4 text-[11px] text-[#86868f] pt-1">
+          <span
+            ><kbd
+              class="px-1.5 py-0.5 bg-[#1a1a1d] rounded border border-[#242428] text-[#f5f5f7]"
+              >j</kbd
+            >
+            /
+            <kbd
+              class="px-1.5 py-0.5 bg-[#1a1a1d] rounded border border-[#242428] text-[#f5f5f7]"
+              >k</kbd
+            >
+            Défiler</span
+          >
+          <span
+            ><kbd
+              class="px-1.5 py-0.5 bg-[#1a1a1d] rounded border border-[#242428] text-[#f5f5f7]"
+              >v</kbd
+            >
+            Valider</span
+          >
+          <span
+            ><kbd
+              class="px-1.5 py-0.5 bg-[#1a1a1d] rounded border border-[#242428] text-[#f5f5f7]"
+              >r</kbd
+            >
+            Refuser</span
+          >
+          <span
+            ><kbd
+              class="px-1.5 py-0.5 bg-[#1a1a1d] rounded border border-[#242428] text-[#f5f5f7]"
+              >n</kbd
+            >
+            Note interne</span
+          >
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function showFace(face) {
+        document.getElementById("face-creator").classList.add("hidden");
+        document.getElementById("face-brand").classList.add("hidden");
+        document.getElementById("face-backoffice").classList.add("hidden");
+
+        document.getElementById("btn-creator").className =
+          "tab-inactive text-xs px-4 py-2 rounded-lg transition-all";
+        document.getElementById("btn-brand").className =
+          "tab-inactive text-xs px-4 py-2 rounded-lg transition-all";
+        document.getElementById("btn-backoffice").className =
+          "tab-inactive text-xs px-4 py-2 rounded-lg transition-all";
+
+        document.getElementById("face-" + face).classList.remove("hidden");
+        document.getElementById("btn-" + face).className =
+          "tab-active text-xs px-4 py-2 rounded-lg transition-all";
+      }
+    </script>
+  </body>
 </html>

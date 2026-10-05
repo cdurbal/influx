@@ -1,236 +1,409 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr" class="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>INFLUX — Comparateur des Propositions de Design System</title>
-  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
-  <style>
-    body {
-      background-color: #0a0a0a;
-      color: #f5f5f7;
-      font-family: system-ui, -apple-system, sans-serif;
-    }
-    .preview-frame {
-      border: 1px solid #242428;
-      border-radius: 12px;
-      background: #111113;
-      width: 100%;
-      height: 620px;
-    }
-  </style>
-</head>
-<body class="p-6 md:p-10 max-w-7xl mx-auto space-y-10">
-
-  <!-- Header Comparateur -->
-  <header class="border-b border-[#242428] pb-6">
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-      <div>
-        <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-[#1DD68A]"></span>
-          <span class="text-xs font-mono font-bold tracking-widest text-[#1DD68A] uppercase">INFLUX DESIGN LAB</span>
-        </div>
-        <h1 class="text-3xl font-extrabold tracking-tight mt-1 text-[#f5f5f7]">Comparateur des 4 Propositions de Design System</h1>
-        <p class="text-sm text-[#a1a1aa] mt-1">Conçu en stricte conformité avec les spécifications INFLUX et vos propositions de tokens.</p>
-      </div>
-
-      <!-- Quick Links -->
-      <div class="flex flex-wrap gap-2">
-        <a href="proposition-1-neo-luxe.html" target="_blank" class="px-2.5 py-1.5 rounded-lg bg-[#131315] border border-[#242428] text-xs font-medium hover:border-[#29e075] transition-colors">
-          1. Néo-Luxe ↗
-        </a>
-        <a href="proposition-2-precision-saas.html" target="_blank" class="px-2.5 py-1.5 rounded-lg bg-[#131315] border border-[#242428] text-xs font-medium hover:border-[#29e075] transition-colors">
-          2. Precision ↗
-        </a>
-        <a href="proposition-3-tri-face.html" target="_blank" class="px-2.5 py-1.5 rounded-lg bg-[#131315] border border-[#242428] text-xs font-medium hover:border-[#29e075] transition-colors">
-          3. Tri-Face ↗
-        </a>
-        <a href="proposition-4-keo-emerald.html" target="_blank" class="px-2.5 py-1.5 rounded-lg bg-[#121413] border border-[#1DD68A] text-xs font-bold text-[#1DD68A] hover:bg-[rgba(29,214,138,0.1)] transition-colors">
-          4. KEO Emerald (Spotify) ↗
-        </a>
-      </div>
-    </div>
-
-    <!-- Rappel des Invariants Communs -->
-    <div class="mt-6 p-4 rounded-xl bg-[#131315] border border-[#242428] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-      <div>
-        <span class="text-[#86868f] block">Thème Fondateur (D6)</span>
-        <strong class="text-[#f5f5f7]">Dark Theme Obligatoire</strong>
-        <p class="text-[#86868f] text-[11px] mt-0.5">Noir profond nuancé, pas de noir pur.</p>
-      </div>
-      <div>
-        <span class="text-[#86868f] block">Couleur Marque & Action</span>
-        <strong class="text-[#1DD68A]">Vert Émeraude / Vert Éclat</strong>
-        <p class="text-[#86868f] text-[11px] mt-0.5">Succès et alertes distincts.</p>
-      </div>
-      <div>
-        <span class="text-[#86868f] block">Règle d'or (P1)</span>
-        <strong class="text-[#f5f5f7]">Comportements, pas de styles</strong>
-        <p class="text-[#86868f] text-[11px] mt-0.5">Identité 100% INFLUX.</p>
-      </div>
-      <div>
-        <span class="text-[#86868f] block">Trois Registres (D41)</span>
-        <strong class="text-[#f5f5f7]">Aucun écran partagé</strong>
-        <p class="text-[#86868f] text-[11px] mt-0.5">Créateur mobile vs Marque desktop vs BO.</p>
-      </div>
-    </div>
-  </header>
-
-  <!-- Switch Tabs pour le comparateur -->
-  <div class="flex flex-wrap gap-2 border-b border-[#242428] pb-3 text-sm">
-    <button onclick="setTab('side-by-side')" id="tab-btn-side" class="px-3.5 py-2 rounded-lg bg-[#1DD68A] text-[#04150D] font-bold text-xs">
-      Comparaison Grille
-    </button>
-    <button onclick="setTab('prop4')" id="tab-btn-p4" class="px-3.5 py-2 rounded-lg bg-[#1a1a1d] text-[#1DD68A] font-bold text-xs border border-[rgba(29,214,138,0.3)] hover:text-[#f5f5f7]">
-      ★ 4. KEO Emerald (Spotify)
-    </button>
-    <button onclick="setTab('prop1')" id="tab-btn-p1" class="px-3.5 py-2 rounded-lg bg-[#1a1a1d] text-[#a1a1aa] font-medium text-xs hover:text-[#f5f5f7]">
-      1. Néo-Luxe (Visa Infinite)
-    </button>
-    <button onclick="setTab('prop2')" id="tab-btn-p2" class="px-3.5 py-2 rounded-lg bg-[#1a1a1d] text-[#a1a1aa] font-medium text-xs hover:text-[#f5f5f7]">
-      2. Precision SaaS (Linear)
-    </button>
-    <button onclick="setTab('prop3')" id="tab-btn-p3" class="px-3.5 py-2 rounded-lg bg-[#1a1a1d] text-[#a1a1aa] font-medium text-xs hover:text-[#f5f5f7]">
-      3. Tri-Face Contextuel
-    </button>
-  </div>
-
-  <!-- VUE 1 : GRILLE COMPARATIVE -->
-  <div id="view-side-by-side" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    
-    <!-- Colonne Prop 4 (KEO Emerald) -->
-    <div class="space-y-3 p-4 bg-[#121413] border-2 border-[#1DD68A] rounded-2xl">
-      <div class="flex justify-between items-center">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>INFLUX — Comparateur des Propositions de Design System</title>
+    <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+    <style>
+      body {
+        background-color: #0a0a0a;
+        color: #f5f5f7;
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+      .preview-frame {
+        border: 1px solid #242428;
+        border-radius: 12px;
+        background: #111113;
+        width: 100%;
+        height: 620px;
+      }
+    </style>
+  </head>
+  <body class="p-6 md:p-10 max-w-7xl mx-auto space-y-10">
+    <!-- Header Comparateur -->
+    <header class="border-b border-[#242428] pb-6">
+      <div
+        class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+      >
         <div>
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-[rgba(29,214,138,0.2)] text-[#1DD68A]">NOUVEAU</span>
-          <h3 class="font-extrabold text-sm text-[#F4F6F5] mt-1">4. KEO Emerald (Inspiré Spotify)</h3>
-          <span class="text-xs text-[#8A938E]">Tokens keo-emerald.css · Manrope · #1DD68A</span>
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#1DD68A]"></span>
+            <span
+              class="text-xs font-mono font-bold tracking-widest text-[#1DD68A] uppercase"
+              >INFLUX DESIGN LAB</span
+            >
+          </div>
+          <h1
+            class="text-3xl font-extrabold tracking-tight mt-1 text-[#f5f5f7]"
+          >
+            Comparateur des 4 Propositions de Design System
+          </h1>
+          <p class="text-sm text-[#a1a1aa] mt-1">
+            Conçu en stricte conformité avec les spécifications INFLUX et vos
+            propositions de tokens.
+          </p>
         </div>
-        <a href="proposition-4-keo-emerald.html" target="_blank" class="text-xs font-bold text-[#1DD68A]">Plein écran ↗</a>
-      </div>
-      <iframe src="proposition-4-keo-emerald.html" class="preview-frame h-[520px]"></iframe>
-    </div>
 
-    <!-- Colonne Prop 3 (Tri-Face) -->
-    <div class="space-y-3 p-4 bg-[#131315] border border-[#242428] rounded-2xl">
-      <div class="flex justify-between items-center">
+        <!-- Quick Links -->
+        <div class="flex flex-wrap gap-2">
+          <a
+            href="proposition-1-neo-luxe.html"
+            target="_blank"
+            class="px-2.5 py-1.5 rounded-lg bg-[#131315] border border-[#242428] text-xs font-medium hover:border-[#29e075] transition-colors"
+          >
+            1. Néo-Luxe ↗
+          </a>
+          <a
+            href="proposition-2-precision-saas.html"
+            target="_blank"
+            class="px-2.5 py-1.5 rounded-lg bg-[#131315] border border-[#242428] text-xs font-medium hover:border-[#29e075] transition-colors"
+          >
+            2. Precision ↗
+          </a>
+          <a
+            href="proposition-3-tri-face.html"
+            target="_blank"
+            class="px-2.5 py-1.5 rounded-lg bg-[#131315] border border-[#242428] text-xs font-medium hover:border-[#29e075] transition-colors"
+          >
+            3. Tri-Face ↗
+          </a>
+          <a
+            href="proposition-4-keo-emerald.html"
+            target="_blank"
+            class="px-2.5 py-1.5 rounded-lg bg-[#121413] border border-[#1DD68A] text-xs font-bold text-[#1DD68A] hover:bg-[rgba(29,214,138,0.1)] transition-colors"
+          >
+            4. KEO Emerald (Spotify) ↗
+          </a>
+        </div>
+      </div>
+
+      <!-- Rappel des Invariants Communs -->
+      <div
+        class="mt-6 p-4 rounded-xl bg-[#131315] border border-[#242428] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs"
+      >
         <div>
-          <h3 class="font-bold text-sm text-[#f5f5f7]">3. Tri-Face Contextuel</h3>
-          <span class="text-xs text-[#86868f]">Inspiré D41 (Adaptatif Mobile/Desktop)</span>
+          <span class="text-[#86868f] block">Thème Fondateur (D6)</span>
+          <strong class="text-[#f5f5f7]">Dark Theme Obligatoire</strong>
+          <p class="text-[#86868f] text-[11px] mt-0.5">
+            Noir profond nuancé, pas de noir pur.
+          </p>
         </div>
-        <a href="proposition-3-tri-face.html" target="_blank" class="text-xs text-[#29e075]">Plein écran ↗</a>
-      </div>
-      <iframe src="proposition-3-tri-face.html" class="preview-frame h-[520px]"></iframe>
-    </div>
-
-    <!-- Colonne Prop 1 (Néo-Luxe) -->
-    <div class="space-y-3 p-4 bg-[#131315] border border-[#242428] rounded-2xl">
-      <div class="flex justify-between items-center">
         <div>
-          <h3 class="font-bold text-sm text-[#f5f5f7]">1. Néo-Luxe & Métal</h3>
-          <span class="text-xs text-[#86868f]">Inspiré D59 / wekollab.fr</span>
+          <span class="text-[#86868f] block">Couleur Marque & Action</span>
+          <strong class="text-[#1DD68A]">Vert Émeraude / Vert Éclat</strong>
+          <p class="text-[#86868f] text-[11px] mt-0.5">
+            Succès et alertes distincts.
+          </p>
         </div>
-        <a href="proposition-1-neo-luxe.html" target="_blank" class="text-xs text-[#29e075]">Plein écran ↗</a>
-      </div>
-      <iframe src="proposition-1-neo-luxe.html" class="preview-frame h-[520px]"></iframe>
-    </div>
-
-    <!-- Colonne Prop 2 (Precision) -->
-    <div class="space-y-3 p-4 bg-[#131315] border border-[#242428] rounded-2xl">
-      <div class="flex justify-between items-center">
         <div>
-          <h3 class="font-bold text-sm text-[#f5f5f7]">2. Precision SaaS</h3>
-          <span class="text-xs text-[#86868f]">Inspiré Linear / Raycast</span>
+          <span class="text-[#86868f] block">Règle d'or (P1)</span>
+          <strong class="text-[#f5f5f7]">Comportements, pas de styles</strong>
+          <p class="text-[#86868f] text-[11px] mt-0.5">Identité 100% INFLUX.</p>
         </div>
-        <a href="proposition-2-precision-saas.html" target="_blank" class="text-xs text-[#29e075]">Plein écran ↗</a>
+        <div>
+          <span class="text-[#86868f] block">Trois Registres (D41)</span>
+          <strong class="text-[#f5f5f7]">Aucun écran partagé</strong>
+          <p class="text-[#86868f] text-[11px] mt-0.5">
+            Créateur mobile vs Marque desktop vs BO.
+          </p>
+        </div>
       </div>
-      <iframe src="proposition-2-precision-saas.html" class="preview-frame h-[520px]"></iframe>
+    </header>
+
+    <!-- Switch Tabs pour le comparateur -->
+    <div class="flex flex-wrap gap-2 border-b border-[#242428] pb-3 text-sm">
+      <button
+        onclick="setTab('side-by-side')"
+        id="tab-btn-side"
+        class="px-3.5 py-2 rounded-lg bg-[#1DD68A] text-[#04150D] font-bold text-xs"
+      >
+        Comparaison Grille
+      </button>
+      <button
+        onclick="setTab('prop4')"
+        id="tab-btn-p4"
+        class="px-3.5 py-2 rounded-lg bg-[#1a1a1d] text-[#1DD68A] font-bold text-xs border border-[rgba(29,214,138,0.3)] hover:text-[#f5f5f7]"
+      >
+        ★ 4. KEO Emerald (Spotify)
+      </button>
+      <button
+        onclick="setTab('prop1')"
+        id="tab-btn-p1"
+        class="px-3.5 py-2 rounded-lg bg-[#1a1a1d] text-[#a1a1aa] font-medium text-xs hover:text-[#f5f5f7]"
+      >
+        1. Néo-Luxe (Visa Infinite)
+      </button>
+      <button
+        onclick="setTab('prop2')"
+        id="tab-btn-p2"
+        class="px-3.5 py-2 rounded-lg bg-[#1a1a1d] text-[#a1a1aa] font-medium text-xs hover:text-[#f5f5f7]"
+      >
+        2. Precision SaaS (Linear)
+      </button>
+      <button
+        onclick="setTab('prop3')"
+        id="tab-btn-p3"
+        class="px-3.5 py-2 rounded-lg bg-[#1a1a1d] text-[#a1a1aa] font-medium text-xs hover:text-[#f5f5f7]"
+      >
+        3. Tri-Face Contextuel
+      </button>
     </div>
 
-  </div>
-
-  <!-- VUE PLEIN ÉCRAN UNIQUE (Prop 4 KEO) -->
-  <div id="view-prop4" class="hidden space-y-3">
-    <div class="flex justify-between items-center">
-      <h3 class="font-bold text-lg text-[#1DD68A]">Proposition 4 : KEO Emerald (Inspiré de Spotify)</h3>
-      <a href="proposition-4-keo-emerald.html" target="_blank" class="text-xs text-[#1DD68A]">Ouvrir dans un nouvel onglet ↗</a>
-    </div>
-    <iframe src="proposition-4-keo-emerald.html" class="preview-frame h-[850px]"></iframe>
-  </div>
-
-  <!-- VUE PLEIN ÉCRAN UNIQUE (Prop 1) -->
-  <div id="view-prop1" class="hidden space-y-3">
-    <div class="flex justify-between items-center">
-      <h3 class="font-bold text-lg text-[#f5f5f7]">Proposition 1 : Néo-Luxe & Métal Biseauté</h3>
-      <a href="proposition-1-neo-luxe.html" target="_blank" class="text-xs text-[#29e075]">Ouvrir dans un nouvel onglet ↗</a>
-    </div>
-    <iframe src="proposition-1-neo-luxe.html" class="preview-frame h-[850px]"></iframe>
-  </div>
-
-  <!-- VUE PLEIN ÉCRAN UNIQUE (Prop 2) -->
-  <div id="view-prop2" class="hidden space-y-3">
-    <div class="flex justify-between items-center">
-      <h3 class="font-bold text-lg text-[#f5f5f7]">Proposition 2 : Precision SaaS & Zéro Distraction</h3>
-      <a href="proposition-2-precision-saas.html" target="_blank" class="text-xs text-[#29e075]">Ouvrir dans un nouvel onglet ↗</a>
-    </div>
-    <iframe src="proposition-2-precision-saas.html" class="preview-frame h-[850px]"></iframe>
-  </div>
-
-  <!-- VUE PLEIN ÉCRAN UNIQUE (Prop 3) -->
-  <div id="view-prop3" class="hidden space-y-3">
-    <div class="flex justify-between items-center">
-      <h3 class="font-bold text-lg text-[#29e075]">Proposition 3 : Design System Tri-Face Contextuel</h3>
-      <a href="proposition-3-tri-face.html" target="_blank" class="text-xs text-[#29e075]">Ouvrir dans un nouvel onglet ↗</a>
-    </div>
-    <iframe src="proposition-3-tri-face.html" class="preview-frame h-[850px]"></iframe>
-  </div>
-
-  <!-- Résumé Décisionnel -->
-  <footer class="p-6 bg-[#131315] border border-[#242428] rounded-2xl space-y-4 text-xs">
-    <h4 class="font-bold text-sm text-[#f5f5f7]">Comparatif des 4 Options :</h4>
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-[#a1a1aa]">
-      <div class="space-y-1">
-        <strong class="text-[#1DD68A] block">4. KEO Emerald (Spotify) :</strong>
-        <p>Ambiance fluide, moderne et chaleureuse. Boutons pill, Manrope, distinction chromatique Annonceur (or) / Créateur (rose) / Séquestre (cyan).</p>
+    <!-- VUE 1 : GRILLE COMPARATIVE -->
+    <div id="view-side-by-side" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Colonne Prop 4 (KEO Emerald) -->
+      <div
+        class="space-y-3 p-4 bg-[#121413] border-2 border-[#1DD68A] rounded-2xl"
+      >
+        <div class="flex justify-between items-center">
+          <div>
+            <span
+              class="text-[10px] font-bold px-2 py-0.5 rounded bg-[rgba(29,214,138,0.2)] text-[#1DD68A]"
+              >NOUVEAU</span
+            >
+            <h3 class="font-extrabold text-sm text-[#F4F6F5] mt-1">
+              4. KEO Emerald (Inspiré Spotify)
+            </h3>
+            <span class="text-xs text-[#8A938E]"
+              >Tokens keo-emerald.css · Manrope · #1DD68A</span
+            >
+          </div>
+          <a
+            href="proposition-4-keo-emerald.html"
+            target="_blank"
+            class="text-xs font-bold text-[#1DD68A]"
+            >Plein écran ↗</a
+          >
+        </div>
+        <iframe
+          src="proposition-4-keo-emerald.html"
+          class="preview-frame h-[520px]"
+        ></iframe>
       </div>
-      <div class="space-y-1">
-        <strong class="text-[#f5f5f7] block">1. Néo-Luxe Métal :</strong>
-        <p>Exclusivité club d'affaires et valorisation financière façon carte Visa Infinite noire.</p>
+
+      <!-- Colonne Prop 3 (Tri-Face) -->
+      <div
+        class="space-y-3 p-4 bg-[#131315] border border-[#242428] rounded-2xl"
+      >
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="font-bold text-sm text-[#f5f5f7]">
+              3. Tri-Face Contextuel
+            </h3>
+            <span class="text-xs text-[#86868f]"
+              >Inspiré D41 (Adaptatif Mobile/Desktop)</span
+            >
+          </div>
+          <a
+            href="proposition-3-tri-face.html"
+            target="_blank"
+            class="text-xs text-[#29e075]"
+            >Plein écran ↗</a
+          >
+        </div>
+        <iframe
+          src="proposition-3-tri-face.html"
+          class="preview-frame h-[520px]"
+        ></iframe>
       </div>
-      <div class="space-y-1">
-        <strong class="text-[#f5f5f7] block">2. Precision SaaS :</strong>
-        <p>Outil de travail puriste façon Linear : bordures 1px, chiffres monospace, aucun dégradé.</p>
+
+      <!-- Colonne Prop 1 (Néo-Luxe) -->
+      <div
+        class="space-y-3 p-4 bg-[#131315] border border-[#242428] rounded-2xl"
+      >
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="font-bold text-sm text-[#f5f5f7]">
+              1. Néo-Luxe & Métal
+            </h3>
+            <span class="text-xs text-[#86868f]"
+              >Inspiré D59 / wekollab.fr</span
+            >
+          </div>
+          <a
+            href="proposition-1-neo-luxe.html"
+            target="_blank"
+            class="text-xs text-[#29e075]"
+            >Plein écran ↗</a
+          >
+        </div>
+        <iframe
+          src="proposition-1-neo-luxe.html"
+          class="preview-frame h-[520px]"
+        ></iframe>
       </div>
-      <div class="space-y-1">
-        <strong class="text-[#29e075] block">3. Tri-Face :</strong>
-        <p>Spécialisation ergonomique extrême selon le matériel (mobile créateur vs desktop marque).</p>
+
+      <!-- Colonne Prop 2 (Precision) -->
+      <div
+        class="space-y-3 p-4 bg-[#131315] border border-[#242428] rounded-2xl"
+      >
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="font-bold text-sm text-[#f5f5f7]">2. Precision SaaS</h3>
+            <span class="text-xs text-[#86868f]">Inspiré Linear / Raycast</span>
+          </div>
+          <a
+            href="proposition-2-precision-saas.html"
+            target="_blank"
+            class="text-xs text-[#29e075]"
+            >Plein écran ↗</a
+          >
+        </div>
+        <iframe
+          src="proposition-2-precision-saas.html"
+          class="preview-frame h-[520px]"
+        ></iframe>
       </div>
     </div>
-  </footer>
 
-  <script>
-    function setTab(tab) {
-      const views = ['side-by-side', 'prop1', 'prop2', 'prop3', 'prop4'];
-      const btns = ['side', 'p1', 'p2', 'p3', 'p4'];
+    <!-- VUE PLEIN ÉCRAN UNIQUE (Prop 4 KEO) -->
+    <div id="view-prop4" class="hidden space-y-3">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-lg text-[#1DD68A]">
+          Proposition 4 : KEO Emerald (Inspiré de Spotify)
+        </h3>
+        <a
+          href="proposition-4-keo-emerald.html"
+          target="_blank"
+          class="text-xs text-[#1DD68A]"
+          >Ouvrir dans un nouvel onglet ↗</a
+        >
+      </div>
+      <iframe
+        src="proposition-4-keo-emerald.html"
+        class="preview-frame h-[850px]"
+      ></iframe>
+    </div>
 
-      views.forEach(v => {
-        document.getElementById('view-' + v).classList.add('hidden');
-      });
-      btns.forEach(b => {
-        document.getElementById('tab-btn-' + b).className = 'px-3.5 py-2 rounded-lg bg-[#1a1a1d] text-[#a1a1aa] font-medium text-xs hover:text-[#f5f5f7]';
-      });
+    <!-- VUE PLEIN ÉCRAN UNIQUE (Prop 1) -->
+    <div id="view-prop1" class="hidden space-y-3">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-lg text-[#f5f5f7]">
+          Proposition 1 : Néo-Luxe & Métal Biseauté
+        </h3>
+        <a
+          href="proposition-1-neo-luxe.html"
+          target="_blank"
+          class="text-xs text-[#29e075]"
+          >Ouvrir dans un nouvel onglet ↗</a
+        >
+      </div>
+      <iframe
+        src="proposition-1-neo-luxe.html"
+        class="preview-frame h-[850px]"
+      ></iframe>
+    </div>
 
-      document.getElementById('view-' + tab).classList.remove('hidden');
-      const activeBtnMap = {
-        'side-by-side': 'tab-btn-side',
-        'prop1': 'tab-btn-p1',
-        'prop2': 'tab-btn-p2',
-        'prop3': 'tab-btn-p3',
-        'prop4': 'tab-btn-p4'
-      };
-      document.getElementById(activeBtnMap[tab]).className = 'px-3.5 py-2 rounded-lg bg-[#1DD68A] text-[#04150D] font-bold text-xs';
-    }
-  </script>
+    <!-- VUE PLEIN ÉCRAN UNIQUE (Prop 2) -->
+    <div id="view-prop2" class="hidden space-y-3">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-lg text-[#f5f5f7]">
+          Proposition 2 : Precision SaaS & Zéro Distraction
+        </h3>
+        <a
+          href="proposition-2-precision-saas.html"
+          target="_blank"
+          class="text-xs text-[#29e075]"
+          >Ouvrir dans un nouvel onglet ↗</a
+        >
+      </div>
+      <iframe
+        src="proposition-2-precision-saas.html"
+        class="preview-frame h-[850px]"
+      ></iframe>
+    </div>
 
-</body>
+    <!-- VUE PLEIN ÉCRAN UNIQUE (Prop 3) -->
+    <div id="view-prop3" class="hidden space-y-3">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-lg text-[#29e075]">
+          Proposition 3 : Design System Tri-Face Contextuel
+        </h3>
+        <a
+          href="proposition-3-tri-face.html"
+          target="_blank"
+          class="text-xs text-[#29e075]"
+          >Ouvrir dans un nouvel onglet ↗</a
+        >
+      </div>
+      <iframe
+        src="proposition-3-tri-face.html"
+        class="preview-frame h-[850px]"
+      ></iframe>
+    </div>
+
+    <!-- Résumé Décisionnel -->
+    <footer
+      class="p-6 bg-[#131315] border border-[#242428] rounded-2xl space-y-4 text-xs"
+    >
+      <h4 class="font-bold text-sm text-[#f5f5f7]">
+        Comparatif des 4 Options :
+      </h4>
+      <div
+        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-[#a1a1aa]"
+      >
+        <div class="space-y-1">
+          <strong class="text-[#1DD68A] block"
+            >4. KEO Emerald (Spotify) :</strong
+          >
+          <p>
+            Ambiance fluide, moderne et chaleureuse. Boutons pill, Manrope,
+            distinction chromatique Annonceur (or) / Créateur (rose) / Séquestre
+            (cyan).
+          </p>
+        </div>
+        <div class="space-y-1">
+          <strong class="text-[#f5f5f7] block">1. Néo-Luxe Métal :</strong>
+          <p>
+            Exclusivité club d'affaires et valorisation financière façon carte
+            Visa Infinite noire.
+          </p>
+        </div>
+        <div class="space-y-1">
+          <strong class="text-[#f5f5f7] block">2. Precision SaaS :</strong>
+          <p>
+            Outil de travail puriste façon Linear : bordures 1px, chiffres
+            monospace, aucun dégradé.
+          </p>
+        </div>
+        <div class="space-y-1">
+          <strong class="text-[#29e075] block">3. Tri-Face :</strong>
+          <p>
+            Spécialisation ergonomique extrême selon le matériel (mobile
+            créateur vs desktop marque).
+          </p>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      function setTab(tab) {
+        const views = ["side-by-side", "prop1", "prop2", "prop3", "prop4"];
+        const btns = ["side", "p1", "p2", "p3", "p4"];
+
+        views.forEach((v) => {
+          document.getElementById("view-" + v).classList.add("hidden");
+        });
+        btns.forEach((b) => {
+          document.getElementById("tab-btn-" + b).className =
+            "px-3.5 py-2 rounded-lg bg-[#1a1a1d] text-[#a1a1aa] font-medium text-xs hover:text-[#f5f5f7]";
+        });
+
+        document.getElementById("view-" + tab).classList.remove("hidden");
+        const activeBtnMap = {
+          "side-by-side": "tab-btn-side",
+          prop1: "tab-btn-p1",
+          prop2: "tab-btn-p2",
+          prop3: "tab-btn-p3",
+          prop4: "tab-btn-p4",
+        };
+        document.getElementById(activeBtnMap[tab]).className =
+          "px-3.5 py-2 rounded-lg bg-[#1DD68A] text-[#04150D] font-bold text-xs";
+      }
+    </script>
+  </body>
 </html>

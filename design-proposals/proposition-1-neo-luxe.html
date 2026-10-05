@@ -1,250 +1,430 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr" class="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>INFLUX — Proposition 1 : Néo-Luxe & Métal Biseauté</title>
-  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
-  <style>
-    :root {
-      --color-brand-primary: #22c55e;
-      --color-brand-accent: #29e075;
-      --color-brand-subtle-bg: #0f2118;
-      --color-brand-subtle-border: #1f3d2b;
-      --color-surface-page: #0a0a0a;
-      --color-surface-muted: #111113;
-      --color-surface-card: #131315;
-      --color-surface-raised: #1a1a1d;
-      --color-surface-hover: #1f1f23;
-      --color-text-primary: #f5f5f7;
-      --color-text-secondary: #a1a1aa;
-      --color-text-tertiary: #86868f;
-      --color-text-brand-strong: #6ff2a8;
-      --color-border-subtle: #1c1c1f;
-      --color-border-default: #242428;
-      --color-border-strong: #74747c;
-      --color-feedback-success: #2dd4bf;
-      --color-feedback-success-bg: #0d2b28;
-      --color-bo-identified: #a78bfa;
-      --color-bo-identified-bg: #17121f;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>INFLUX — Proposition 1 : Néo-Luxe & Métal Biseauté</title>
+    <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+    <style>
+      :root {
+        --color-brand-primary: #22c55e;
+        --color-brand-accent: #29e075;
+        --color-brand-subtle-bg: #0f2118;
+        --color-brand-subtle-border: #1f3d2b;
+        --color-surface-page: #0a0a0a;
+        --color-surface-muted: #111113;
+        --color-surface-card: #131315;
+        --color-surface-raised: #1a1a1d;
+        --color-surface-hover: #1f1f23;
+        --color-text-primary: #f5f5f7;
+        --color-text-secondary: #a1a1aa;
+        --color-text-tertiary: #86868f;
+        --color-text-brand-strong: #6ff2a8;
+        --color-border-subtle: #1c1c1f;
+        --color-border-default: #242428;
+        --color-border-strong: #74747c;
+        --color-feedback-success: #2dd4bf;
+        --color-feedback-success-bg: #0d2b28;
+        --color-bo-identified: #a78bfa;
+        --color-bo-identified-bg: #17121f;
+      }
 
-    body {
-      background-color: var(--color-surface-page);
-      color: var(--color-text-primary);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
+      body {
+        background-color: var(--color-surface-page);
+        color: var(--color-text-primary);
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+      }
 
-    /* Effet carte métallisée (fondateur D59 / wekollab.fr) */
-    .bg-metal-card {
-      background:
-        linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, 0.05) 46%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.05) 54%, transparent 68%),
-        radial-gradient(120% 140% at 18% -12%, rgba(255, 255, 255, 0.2), transparent 55%),
-        radial-gradient(90% 100% at 100% 115%, rgba(255, 255, 255, 0.06), transparent 60%),
-        linear-gradient(160deg, #2e2e33 0%, #19191c 45%, #08080a 100%);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.1),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.6),
-        0 24px 56px rgba(0, 0, 0, 0.65),
-        0 0 0 1px rgba(255, 255, 255, 0.06);
-    }
+      /* Effet carte métallisée (fondateur D59 / wekollab.fr) */
+      .bg-metal-card {
+        background:
+          linear-gradient(
+            115deg,
+            transparent 32%,
+            rgba(255, 255, 255, 0.05) 46%,
+            rgba(255, 255, 255, 0.12) 50%,
+            rgba(255, 255, 255, 0.05) 54%,
+            transparent 68%
+          ),
+          radial-gradient(
+            120% 140% at 18% -12%,
+            rgba(255, 255, 255, 0.2),
+            transparent 55%
+          ),
+          radial-gradient(
+            90% 100% at 100% 115%,
+            rgba(255, 255, 255, 0.06),
+            transparent 60%
+          ),
+          linear-gradient(160deg, #2e2e33 0%, #19191c 45%, #08080a 100%);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.1),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.6),
+          0 24px 56px rgba(0, 0, 0, 0.65),
+          0 0 0 1px rgba(255, 255, 255, 0.06);
+      }
 
-    .metal-button-primary {
-      background: linear-gradient(135deg, #2fe87d 0%, #22c55e 100%);
-      box-shadow: 0 4px 20px rgba(41, 224, 117, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-      transition: all 0.15s ease;
-    }
-    .metal-button-primary:hover {
-      box-shadow: 0 6px 24px rgba(41, 224, 117, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-      transform: translateY(-1px);
-    }
+      .metal-button-primary {
+        background: linear-gradient(135deg, #2fe87d 0%, #22c55e 100%);
+        box-shadow:
+          0 4px 20px rgba(41, 224, 117, 0.28),
+          inset 0 1px 0 rgba(255, 255, 255, 0.35);
+        transition: all 0.15s ease;
+      }
+      .metal-button-primary:hover {
+        box-shadow:
+          0 6px 24px rgba(41, 224, 117, 0.42),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+        transform: translateY(-1px);
+      }
 
-    .metal-button-secondary {
-      background: rgba(26, 26, 29, 0.7);
-      border: 1px solid var(--color-border-strong);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 8px rgba(0,0,0,0.5);
-      backdrop-filter: blur(8px);
-    }
-    .metal-button-secondary:hover {
-      background: rgba(36, 36, 40, 0.9);
-      border-color: #a1a1aa;
-    }
+      .metal-button-secondary {
+        background: rgba(26, 26, 29, 0.7);
+        border: 1px solid var(--color-border-strong);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.08),
+          0 2px 8px rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(8px);
+      }
+      .metal-button-secondary:hover {
+        background: rgba(36, 36, 40, 0.9);
+        border-color: #a1a1aa;
+      }
 
-    .halo-ambient {
-      background: linear-gradient(100deg, transparent 18%, rgba(255, 255, 255, 0.03) 38%, rgba(255, 255, 255, 0.08) 52%, rgba(255, 255, 255, 0.12) 63%, rgba(255, 255, 255, 0.04) 76%, transparent 96%);
-    }
-  </style>
-</head>
-<body class="p-6 md:p-10 max-w-6xl mx-auto space-y-12">
-
-  <!-- Header Proposition -->
-  <header class="border-b border-[#242428] pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-    <div>
-      <div class="flex items-center gap-3">
-        <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-[#0f2118] text-[#6ff2a8] border border-[#1f3d2b]">PROPOSITION 1</span>
-        <h1 class="text-2xl font-bold tracking-tight text-[#f5f5f7]">Néo-Luxe & Métal Biseauté</h1>
-      </div>
-      <p class="text-sm text-[#a1a1aa] mt-1">Inspiré de l'arbitrage <strong>D59</strong> (carte métallisée Visa Infinite / wekollab.fr) — Prestige, reflets fins & statut club d'affaires.</p>
-    </div>
-    <div class="flex gap-2">
-      <a href="index.html" class="metal-button-secondary text-xs px-3 py-1.5 rounded-lg text-[#f5f5f7]">← Retour au comparateur</a>
-    </div>
-  </header>
-
-  <!-- 1. En-tête & Deux Portes (Hero) -->
-  <section class="space-y-4">
-    <div class="text-xs uppercase tracking-wider text-[#86868f] font-semibold">1. Identité & CTA « Deux Portes » (Hero Vitrine)</div>
-    <div class="bg-[#131315] border border-[#242428] rounded-2xl p-6 relative overflow-hidden">
-      <div class="absolute inset-0 halo-ambient pointer-events-none"></div>
-      <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div>
-          <span class="text-xs font-bold tracking-widest text-[#29e075] uppercase">INFLUX MARKETPLACE</span>
-          <h2 class="text-xl md:text-2xl font-bold text-[#f5f5f7] mt-1">La première place de marché courtée pour créateurs & annonceurs</h2>
-          <p class="text-sm text-[#a1a1aa] mt-1">Chaque mise en relation est orchestrée et sécurisée par un commercial dédié.</p>
+      .halo-ambient {
+        background: linear-gradient(
+          100deg,
+          transparent 18%,
+          rgba(255, 255, 255, 0.03) 38%,
+          rgba(255, 255, 255, 0.08) 52%,
+          rgba(255, 255, 255, 0.12) 63%,
+          rgba(255, 255, 255, 0.04) 76%,
+          transparent 96%
+        );
+      }
+    </style>
+  </head>
+  <body class="p-6 md:p-10 max-w-6xl mx-auto space-y-12">
+    <!-- Header Proposition -->
+    <header
+      class="border-b border-[#242428] pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+    >
+      <div>
+        <div class="flex items-center gap-3">
+          <span
+            class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-[#0f2118] text-[#6ff2a8] border border-[#1f3d2b]"
+            >PROPOSITION 1</span
+          >
+          <h1 class="text-2xl font-bold tracking-tight text-[#f5f5f7]">
+            Néo-Luxe & Métal Biseauté
+          </h1>
         </div>
-        <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-          <div class="text-center sm:text-right">
-            <span class="text-[11px] text-[#86868f] block mb-1">Pour les marques</span>
-            <button class="metal-button-primary text-[#0a0a0a] font-semibold text-sm px-5 py-2.5 rounded-full w-full sm:w-auto">
-              Lancer une campagne
+        <p class="text-sm text-[#a1a1aa] mt-1">
+          Inspiré de l'arbitrage <strong>D59</strong> (carte métallisée Visa
+          Infinite / wekollab.fr) — Prestige, reflets fins & statut club
+          d'affaires.
+        </p>
+      </div>
+      <div class="flex gap-2">
+        <a
+          href="index.html"
+          class="metal-button-secondary text-xs px-3 py-1.5 rounded-lg text-[#f5f5f7]"
+          >← Retour au comparateur</a
+        >
+      </div>
+    </header>
+
+    <!-- 1. En-tête & Deux Portes (Hero) -->
+    <section class="space-y-4">
+      <div
+        class="text-xs uppercase tracking-wider text-[#86868f] font-semibold"
+      >
+        1. Identité & CTA « Deux Portes » (Hero Vitrine)
+      </div>
+      <div
+        class="bg-[#131315] border border-[#242428] rounded-2xl p-6 relative overflow-hidden"
+      >
+        <div class="absolute inset-0 halo-ambient pointer-events-none"></div>
+        <div
+          class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6"
+        >
+          <div>
+            <span
+              class="text-xs font-bold tracking-widest text-[#29e075] uppercase"
+              >INFLUX MARKETPLACE</span
+            >
+            <h2 class="text-xl md:text-2xl font-bold text-[#f5f5f7] mt-1">
+              La première place de marché courtée pour créateurs & annonceurs
+            </h2>
+            <p class="text-sm text-[#a1a1aa] mt-1">
+              Chaque mise en relation est orchestrée et sécurisée par un
+              commercial dédié.
+            </p>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <div class="text-center sm:text-right">
+              <span class="text-[11px] text-[#86868f] block mb-1"
+                >Pour les marques</span
+              >
+              <button
+                class="metal-button-primary text-[#0a0a0a] font-semibold text-sm px-5 py-2.5 rounded-full w-full sm:w-auto"
+              >
+                Lancer une campagne
+              </button>
+            </div>
+            <div class="text-center sm:text-right">
+              <span class="text-[11px] text-[#86868f] block mb-1"
+                >Pour les influenceurs</span
+              >
+              <button
+                class="metal-button-secondary text-[#f5f5f7] font-semibold text-sm px-5 py-2.5 rounded-full w-full sm:w-auto"
+              >
+                Proposer mon audience
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Carte Profil Créateur Anonymisée (D61 / 10 §F) -->
+    <section class="space-y-4">
+      <div
+        class="text-xs uppercase tracking-wider text-[#86868f] font-semibold"
+      >
+        2. Carte Créateur VIP Anonymisée (Effet Carte Noire ID-1)
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Carte Métallisée Principale -->
+        <div
+          class="bg-metal-card rounded-2xl p-6 relative flex flex-col justify-between md:col-span-2"
+        >
+          <div>
+            <div class="flex justify-between items-start">
+              <div class="flex items-center gap-2">
+                <span
+                  class="px-3 py-1 rounded-full bg-[#0f2118] border border-[#1f3d2b] text-[#6ff2a8] text-xs font-semibold flex items-center gap-1.5"
+                >
+                  <svg
+                    class="w-3.5 h-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Vérifié INFLUX
+                </span>
+                <span class="text-xs text-[#86868f]">YouTube & TikTok</span>
+              </div>
+              <span class="text-xs font-mono text-[#86868f]">#CRT-84920</span>
+            </div>
+
+            <h3 class="text-xl font-bold text-[#f5f5f7] mt-4">
+              Créateur Tech & Productivité Développeur
+            </h3>
+            <p class="text-xs text-[#a1a1aa] mt-1">
+              Vidéos immersives, tests de configurations haut de gamme et
+              tutoriels d'ingénierie.
+            </p>
+
+            <!-- 3 Métriques Prioritaires (D61) -->
+            <div
+              class="grid grid-cols-3 gap-3 my-5 p-3 rounded-xl bg-[rgba(10,10,10,0.5)] border border-[rgba(255,255,255,0.06)]"
+            >
+              <div>
+                <span class="text-[11px] text-[#86868f] block">Communauté</span>
+                <span class="text-base font-bold text-[#f5f5f7] font-mono"
+                  >100k - 250k</span
+                >
+              </div>
+              <div>
+                <span class="text-[11px] text-[#86868f] block"
+                  >Rythme (30 j)</span
+                >
+                <span class="text-base font-bold text-[#29e075] font-mono"
+                  >14 vidéos</span
+                >
+              </div>
+              <div>
+                <span class="text-[11px] text-[#86868f] block"
+                  >Moy. commentaires</span
+                >
+                <span class="text-base font-bold text-[#f5f5f7] font-mono"
+                  >420 / post</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="pt-3 border-t border-[rgba(255,255,255,0.08)] flex justify-between items-center"
+          >
+            <span class="text-xs text-[#a1a1aa]"
+              >Recommandé car : <em>Audience qualifiée SaaS B2B</em></span
+            >
+            <button
+              class="metal-button-primary text-[#0a0a0a] font-semibold text-xs px-4 py-2 rounded-lg"
+            >
+              Demander une mise en relation
             </button>
           </div>
-          <div class="text-center sm:text-right">
-            <span class="text-[11px] text-[#86868f] block mb-1">Pour les influenceurs</span>
-            <button class="metal-button-secondary text-[#f5f5f7] font-semibold text-sm px-5 py-2.5 rounded-full w-full sm:w-auto">
-              Proposer mon audience
+        </div>
+
+        <!-- Explication Visuelle -->
+        <div
+          class="bg-[#131315] border border-[#242428] rounded-2xl p-6 flex flex-col justify-center text-xs space-y-3"
+        >
+          <h4 class="font-bold text-sm text-[#f5f5f7]">Finition Néo-Luxe</h4>
+          <p class="text-[#a1a1aa]">
+            Le dégradé métallique à 115° et le biseau à double liseré (clair en
+            haut, sombre en bas) donnent au profil une
+            <strong>dimension statutaire</strong>.
+          </p>
+          <div class="p-3 bg-[#0a0a0a] rounded-lg border border-[#1c1c1f]">
+            <span class="text-[#29e075] font-semibold">Effet perçu :</span>
+            <p class="text-[#86868f] mt-0.5">
+              La marque comprend qu'elle négocie avec un talent premium
+              sélectionné, justifiant les tarifs du courtage.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Règle de Provenance des Montants & Apartés (P3 & D47) -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Provenance des Montants (P3, D48) -->
+      <div
+        class="bg-[#131315] border border-[#242428] rounded-2xl p-6 space-y-4"
+      >
+        <div class="flex justify-between items-center">
+          <span
+            class="text-xs font-semibold text-[#86868f] uppercase tracking-wider"
+            >Provenance des montants (P3)</span
+          >
+          <span
+            class="px-2 py-0.5 text-[11px] bg-[#0d2b28] text-[#2dd4bf] rounded border border-[#146b62]"
+            >Affaire MER-2026-000123</span
+          >
+        </div>
+
+        <div
+          class="space-y-3 bg-[#0a0a0a] p-4 rounded-xl border border-[#1c1c1f]"
+        >
+          <div class="flex justify-between items-center text-xs">
+            <span class="text-[#86868f]">MONTANT NÉGOCIÉ</span>
+            <div class="text-right">
+              <span class="font-mono font-bold text-sm text-[#f5f5f7]"
+                >2 400,00 EUR</span
+              >
+              <span class="block text-[11px] text-[#86868f]"
+                >saisi par Thomas D. · 12/09 14h20</span
+              >
+            </div>
+          </div>
+          <div
+            class="border-t border-[#1c1c1f] pt-2 flex justify-between items-center text-xs"
+          >
+            <span class="text-[#86868f]">COMMISSION CONVENUE</span>
+            <div class="text-right">
+              <span class="font-mono font-bold text-sm text-[#29e075]"
+                >650,00 EUR</span
+              >
+              <span class="block text-[11px] text-[#86868f]"
+                >modifié par Marie L. · 15/09 · 2 vers.</span
+              >
+            </div>
+          </div>
+          <div
+            class="border-t border-[#1c1c1f] pt-2 flex justify-between items-center text-xs"
+          >
+            <span class="text-[#86868f]">COMMISSION ENCAISSÉE</span>
+            <div class="text-right">
+              <span class="font-mono text-xs text-[#86868f] italic"
+                >non renseigné</span
+              >
+            </div>
+          </div>
+        </div>
+        <p class="text-[11px] text-[#86868f]">
+          ★ Aucun calcul automatique ni taux affiché au MVP (D48). Chiffres
+          tabulaires stricts.
+        </p>
+      </div>
+
+      <!-- Zone de Saisie des Apartés (D47, P2) -->
+      <div
+        class="bg-[#131315] border border-[#242428] rounded-2xl p-6 space-y-4"
+      >
+        <div class="flex justify-between items-center">
+          <span
+            class="text-xs font-semibold text-[#86868f] uppercase tracking-wider"
+            >Zone d'Aparté (D47)</span
+          >
+          <div class="flex gap-1 text-xs">
+            <button
+              class="px-2.5 py-1 rounded-md text-[#86868f] hover:text-[#f5f5f7]"
+            >
+              À trois
+            </button>
+            <button
+              class="px-2.5 py-1 rounded-md bg-[#1a1a1d] text-[#6ff2a8] border border-[#1f3d2b] font-medium flex items-center gap-1"
+            >
+              🔒 Vous et INFLUX
             </button>
           </div>
         </div>
-      </div>
-    </div>
-  </section>
 
-  <!-- 2. Carte Profil Créateur Anonymisée (D61 / 10 §F) -->
-  <section class="space-y-4">
-    <div class="text-xs uppercase tracking-wider text-[#86868f] font-semibold">2. Carte Créateur VIP Anonymisée (Effet Carte Noire ID-1)</div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      
-      <!-- Carte Métallisée Principale -->
-      <div class="bg-metal-card rounded-2xl p-6 relative flex flex-col justify-between md:col-span-2">
-        <div>
-          <div class="flex justify-between items-start">
-            <div class="flex items-center gap-2">
-              <span class="px-3 py-1 rounded-full bg-[#0f2118] border border-[#1f3d2b] text-[#6ff2a8] text-xs font-semibold flex items-center gap-1.5">
-                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                Vérifié INFLUX
-              </span>
-              <span class="text-xs text-[#86868f]">YouTube & TikTok</span>
-            </div>
-            <span class="text-xs font-mono text-[#86868f]">#CRT-84920</span>
+        <!-- Cadre Aparté de 2px -->
+        <div
+          class="border-2 border-[#74747c] bg-[#111113] rounded-xl p-3.5 space-y-3"
+        >
+          <div class="flex items-center gap-1.5 text-xs text-[#6ff2a8]">
+            <svg
+              class="w-3.5 h-3.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <span class="font-medium"
+              >Lu par Thomas — INFLUX. La marque ne le verra pas.</span
+            >
           </div>
-
-          <h3 class="text-xl font-bold text-[#f5f5f7] mt-4">Créateur Tech & Productivité Développeur</h3>
-          <p class="text-xs text-[#a1a1aa] mt-1">Vidéos immersives, tests de configurations haut de gamme et tutoriels d'ingénierie.</p>
-
-          <!-- 3 Métriques Prioritaires (D61) -->
-          <div class="grid grid-cols-3 gap-3 my-5 p-3 rounded-xl bg-[rgba(10,10,10,0.5)] border border-[rgba(255,255,255,0.06)]">
-            <div>
-              <span class="text-[11px] text-[#86868f] block">Communauté</span>
-              <span class="text-base font-bold text-[#f5f5f7] font-mono">100k - 250k</span>
-            </div>
-            <div>
-              <span class="text-[11px] text-[#86868f] block">Rythme (30 j)</span>
-              <span class="text-base font-bold text-[#29e075] font-mono">14 vidéos</span>
-            </div>
-            <div>
-              <span class="text-[11px] text-[#86868f] block">Moy. commentaires</span>
-              <span class="text-base font-bold text-[#f5f5f7] font-mono">420 / post</span>
-            </div>
+          <textarea
+            rows="2"
+            class="w-full bg-transparent text-xs text-[#f5f5f7] placeholder-[#86868f] focus:outline-none resize-none"
+            placeholder="Écrire en privé à INFLUX (votre tarif plancher, une hésitation)..."
+          ></textarea>
+          <div
+            class="flex justify-between items-center pt-2 border-t border-[#1c1c1f]"
+          >
+            <span class="text-[11px] text-[#86868f]"
+              >Brouillon sauvegardé automatiquement</span
+            >
+            <button
+              class="metal-button-primary text-[#0a0a0a] text-xs font-semibold px-3 py-1.5 rounded-lg"
+            >
+              Envoyer en privé
+            </button>
           </div>
         </div>
-
-        <div class="pt-3 border-t border-[rgba(255,255,255,0.08)] flex justify-between items-center">
-          <span class="text-xs text-[#a1a1aa]">Recommandé car : <em>Audience qualifiée SaaS B2B</em></span>
-          <button class="metal-button-primary text-[#0a0a0a] font-semibold text-xs px-4 py-2 rounded-lg">
-            Demander une mise en relation
-          </button>
-        </div>
+        <p class="text-[11px] text-[#86868f]">
+          ★ Le bouton et la phrase nomment explicitement l'audience pour
+          empêcher l'incident de canal.
+        </p>
       </div>
-
-      <!-- Explication Visuelle -->
-      <div class="bg-[#131315] border border-[#242428] rounded-2xl p-6 flex flex-col justify-center text-xs space-y-3">
-        <h4 class="font-bold text-sm text-[#f5f5f7]">Finition Néo-Luxe</h4>
-        <p class="text-[#a1a1aa]">Le dégradé métallique à 115° et le biseau à double liseré (clair en haut, sombre en bas) donnent au profil une <strong>dimension statutaire</strong>.</p>
-        <div class="p-3 bg-[#0a0a0a] rounded-lg border border-[#1c1c1f]">
-          <span class="text-[#29e075] font-semibold">Effet perçu :</span>
-          <p class="text-[#86868f] mt-0.5">La marque comprend qu'elle négocie avec un talent premium sélectionné, justifiant les tarifs du courtage.</p>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- 3. Règle de Provenance des Montants & Apartés (P3 & D47) -->
-  <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-    <!-- Provenance des Montants (P3, D48) -->
-    <div class="bg-[#131315] border border-[#242428] rounded-2xl p-6 space-y-4">
-      <div class="flex justify-between items-center">
-        <span class="text-xs font-semibold text-[#86868f] uppercase tracking-wider">Provenance des montants (P3)</span>
-        <span class="px-2 py-0.5 text-[11px] bg-[#0d2b28] text-[#2dd4bf] rounded border border-[#146b62]">Affaire MER-2026-000123</span>
-      </div>
-
-      <div class="space-y-3 bg-[#0a0a0a] p-4 rounded-xl border border-[#1c1c1f]">
-        <div class="flex justify-between items-center text-xs">
-          <span class="text-[#86868f]">MONTANT NÉGOCIÉ</span>
-          <div class="text-right">
-            <span class="font-mono font-bold text-sm text-[#f5f5f7]">2 400,00 EUR</span>
-            <span class="block text-[11px] text-[#86868f]">saisi par Thomas D. · 12/09 14h20</span>
-          </div>
-        </div>
-        <div class="border-t border-[#1c1c1f] pt-2 flex justify-between items-center text-xs">
-          <span class="text-[#86868f]">COMMISSION CONVENUE</span>
-          <div class="text-right">
-            <span class="font-mono font-bold text-sm text-[#29e075]">650,00 EUR</span>
-            <span class="block text-[11px] text-[#86868f]">modifié par Marie L. · 15/09 · 2 vers.</span>
-          </div>
-        </div>
-        <div class="border-t border-[#1c1c1f] pt-2 flex justify-between items-center text-xs">
-          <span class="text-[#86868f]">COMMISSION ENCAISSÉE</span>
-          <div class="text-right">
-            <span class="font-mono text-xs text-[#86868f] italic">non renseigné</span>
-          </div>
-        </div>
-      </div>
-      <p class="text-[11px] text-[#86868f]">★ Aucun calcul automatique ni taux affiché au MVP (D48). Chiffres tabulaires stricts.</p>
-    </div>
-
-    <!-- Zone de Saisie des Apartés (D47, P2) -->
-    <div class="bg-[#131315] border border-[#242428] rounded-2xl p-6 space-y-4">
-      <div class="flex justify-between items-center">
-        <span class="text-xs font-semibold text-[#86868f] uppercase tracking-wider">Zone d'Aparté (D47)</span>
-        <div class="flex gap-1 text-xs">
-          <button class="px-2.5 py-1 rounded-md text-[#86868f] hover:text-[#f5f5f7]">À trois</button>
-          <button class="px-2.5 py-1 rounded-md bg-[#1a1a1d] text-[#6ff2a8] border border-[#1f3d2b] font-medium flex items-center gap-1">
-            🔒 Vous et INFLUX
-          </button>
-        </div>
-      </div>
-
-      <!-- Cadre Aparté de 2px -->
-      <div class="border-2 border-[#74747c] bg-[#111113] rounded-xl p-3.5 space-y-3">
-        <div class="flex items-center gap-1.5 text-xs text-[#6ff2a8]">
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <span class="font-medium">Lu par Thomas — INFLUX. La marque ne le verra pas.</span>
-        </div>
-        <textarea rows="2" class="w-full bg-transparent text-xs text-[#f5f5f7] placeholder-[#86868f] focus:outline-none resize-none" placeholder="Écrire en privé à INFLUX (votre tarif plancher, une hésitation)..."></textarea>
-        <div class="flex justify-between items-center pt-2 border-t border-[#1c1c1f]">
-          <span class="text-[11px] text-[#86868f]">Brouillon sauvegardé automatiquement</span>
-          <button class="metal-button-primary text-[#0a0a0a] text-xs font-semibold px-3 py-1.5 rounded-lg">
-            Envoyer en privé
-          </button>
-        </div>
-      </div>
-      <p class="text-[11px] text-[#86868f]">★ Le bouton et la phrase nomment explicitement l'audience pour empêcher l'incident de canal.</p>
-    </div>
-
-  </section>
-
-</body>
+    </section>
+  </body>
 </html>
