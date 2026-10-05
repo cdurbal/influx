@@ -81,6 +81,13 @@ jobs:
           HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: node packages/test-kit/scripts/check-migrations.ts "$BASE_SHA" "$HEAD_SHA"
 
+      # docs/mvp/INDEX.md gives agents the start line of each spec section: a stale index sends
+      # them to the wrong slice. Regenerate it and fail if it differs from the committed one.
+      - name: Spec index is up to date
+        run: |
+          pnpm docs:index
+          git diff --exit-code docs/mvp/INDEX.md || { echo "::error::docs/mvp/INDEX.md is stale: run 'pnpm docs:index' and commit it"; exit 1; }
+
       # Local Supabase stack (CLI pinned at the root, 21 J1-A): the database, plus Supabase Auth
       # behind its gateway and Mailpit for the findings of J3 commit 7 (21 §4, J3-A: GoTrue is
       # never assumed, it is observed; Mailpit is where a native e-mail would land). The other
