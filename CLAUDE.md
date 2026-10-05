@@ -12,6 +12,11 @@ d'abord, puis dans le code.
 
 ## Documents de référence (à lire à la demande, par section)
 
+> **Ne jamais lire une spécification en entier** (3 Mo au total, `04` seul ≈ 140k tokens).
+> Consulter `docs/mvp/INDEX.md` (sections, lignes de départ, RG citées), puis lire la seule
+> tranche utile avec `Read` (`offset`/`limit`) ou chercher la règle avec `Grep` (`RG113`).
+> Après toute modification d'une spécification : `pnpm docs:index`.
+
 | Sujet | Document |
 |---|---|
 | Registre des décisions D1 à D65 (statut, détail) | `docs/mvp/decisions.md` |
