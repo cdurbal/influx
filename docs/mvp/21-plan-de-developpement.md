@@ -25,7 +25,7 @@
 | **J0** | 0 | Poste, dépôt, intégration continue | ✅ **Terminé** (`e3eadf4`) | 1 j |
 | **J1** | 0 | Squelette `apps/api`, `apps/backoffice`, `packages/contracts`, passe-plat | ✅ **Terminé & revu** (`655b857`) | 3 j |
 | **J2** | 0 | Base socle : schémas, rôles, RLS, registre, tests T2 T3 T4 T6 T16 | ✅ **Terminé & revu** (`8e6bbfb`) | 4-5 j |
-| **J3** | 0 | Authentification : code membre (D43), sessions opaques, backoffice mot de passe + TOTP | 🟡 **Commits 1–12 faits, en attente de la revue groupée** | 4-5 j |
+| **J3** | 0 | Authentification : code membre (D43), sessions opaques, backoffice mot de passe + TOTP | ✅ **Terminé** (revue groupée 2026-10-05 : push autorisé ; T-1 corrigé ; push en attente du formatage de `design-proposals/`) | 4-5 j |
 | **J4** | 0 | `staging` sur Railway + Supabase, migrations par la CI, collecte d'erreurs (D60) | ⏳ À faire | 3-4 j |
 | **J5** | 1 | Inscription marque et créateur, transaction unique, file alimentée | ⏳ À faire | 4-5 j |
 | **J6** | 1 | Worker, connecteurs Brevo et Apollo, qualification, garde-fous | ⏳ À faire (**1er usage démontrable**) | 4-5 j |
@@ -126,7 +126,7 @@
 
 ---
 
-### J3 — Authentification et sessions (🟡 Commits 1 à 12 faits, en attente de la revue groupée `expert-cybersecurite` + `testeur`)
+### J3 — Authentification et sessions (✅ Terminé le 2026-10-05 : revue groupée faite, T-1 corrigé ; à reporter : J3S-1 avant J8, J3S-2 au J4)
 
 #### État des commits du J3 (feuille de route J3-F)
 
@@ -143,6 +143,46 @@
 | **12** | `feat(web,backoffice): minimal sign-in screens and empty homes` | `apps/web` : écran minimal de connexion membre (adresse, code à 6 chiffres, phrase de correspondance) et accueil vide. `apps/backoffice` : connexion en une fois, activation du TOTP en 3 étapes (QR code SVG par URL `blob:`, secret, URI, 10 codes de secours affichés une fois avec `Cache-Control: no-store`) et accueil vide (`17b` §3.14) | ✅ **Terminé** (`533f683`) — seul module navigateur à appeler le réseau : `src/browser/relay-client.ts` (même origine `/api/v1/`, identique dans les deux fronts, SHA-256 épinglé) ; pages du backoffice `no-store` ; 4 comptes de démo constatés à travers les deux passe-plats |
 
 **Terminé quand** : les quatre comptes de démonstration se connectent en local dans leur espace (les membres avec le code reçu par la doublure Brevo, les comptes internes avec mot de passe et TOTP inscrit à la première connexion), `pnpm check` et la triple exécution de `pnpm test:db` sont verts, et la revue groupée de fin de J3 (`expert-cybersecurite` + `testeur`) est validée.
+
+#### Revue de sécurité groupée de fin de J3 — 2026-10-05
+
+> `expert-cybersecurite`. Relu : `64efcae`, `6223b10`, `111a048`, `60486ed`, `533f683`, `9722ddd`, et le chemin 7 à 10 de bout en bout. Contrôle I-4 (`check-security-review.ts`) sur `b151f1a..HEAD` et `origin/main..HEAD` : **vert** — aucun de ces commits ne touche migration, droits attendus ou `config.toml` ; les trois commits qui l'exigent (`fb5bbe5`, `21e9fb1`, `623083b`) portent le marqueur. **Aucun message à reformuler.** Base en lecture seule, aucun `.env` local lu, aucun environnement distant.
+>
+> **Conformes** : EC-3 (réservation avant GoTrue, régénération au 5e échec, 20 requêtes parallèles ⇒ ≤ 5 essais), EC-4 (émission), EC-39, EC-40 (plancher 1 500 ms, issue unique, R jamais par code de secours), EC-47 (connexion et enrôlement), EC-55, EC-56, EC-57, G-1 points 1 et 2, C7-1, EC-44 (audit + `error`). Garde `aal2` en `preHandler` global avec liste fermée de 4 routes sans session (test). Exception `relay-client.ts` : **acceptée** (même origine, chemin sans point, `redirect: "error"`, réponse lue par schéma, empreinte épinglée). Jeton d'activation dans le fragment puis retiré : conforme. QR en `blob:` dans un `<img>` : aucun script exécuté ; borne de 512 Kio acceptée.
+
+| # | Gravité | Constat (scénario) | Correctif | Échéance · effort |
+|---|---|---|---|---|
+| J3S-1 | Important | **R sans réservation préalable** : les échecs ne sont comptés qu'après GoTrue ; avec un cookie de session volé, N requêtes R parallèles dépassent les 5 essais avant la révocation (EC-40 point 5). Sans effet aujourd'hui : aucune action ne lit encore R | Réserver la tentative (`backoffice_reauth_session`, 5 / 15 min, plus la portée IP d'EC-47) dans la transaction qui lit la session, **avant** GoTrue ; test « 20 R parallèles ⇒ ≤ 5 appels GoTrue » | Avant la 1re action B-5 (J8) · 30 min |
+| J3S-2 | Important | **Comptes de démo sur `staging` (J4 « Terminé quand »)** : mots de passe et jetons d'enrôlement fixes, dans le dépôt ; sur un hôte joignable, quiconque lit le dépôt inscrit **son** TOTP sur l'admin de démo avant l'équipe | Variante `staging` d'EC-45 (2) : mot de passe et jeton **tirés au hasard à chaque exécution**, affichés une fois, jamais les valeurs fixes ; refus si `INFLUX_ENV = production` ; script actuel inchangé (bouclage seul) | J4 · 1 h |
+| J3S-3 | À surveiller | Facteur vérifié chez GoTrue mais non épinglé si la base tombe entre `challengeAndVerify` et `pin_mfa_factor` : échec **fermé** (enrôlement refusé, `agent.unexpected_mfa_factor`), compte bloqué | Jusqu'à MFA-6 (J8) : suppression du facteur par un administrateur, procédure écrite au J4 ; l'alerte peut être un faux positif | J4 (procédure) |
+| J3S-4 | À surveiller | `hasFreshReauthentication` sans appelant, et dans une transaction distincte de l'action | Au J8 : fraîcheur vérifiée **dans la transaction de l'action** (fonction ou politique lisant `mfa_verified_at`) ; test « action B-5 sans R ⇒ refus » | J8 |
+| J3S-5 | À surveiller | HIBP écrit, non branché : aucun mot de passe n'est choisi par une route avant J8 | L'invitation et le changement de mot de passe appellent `newPasswordVerdict` avant GoTrue ; test | J8 (bloquant avant mise en ligne, inchangé) |
+| J3S-6 | À surveiller | Bandeau `?secours=N` : simple indication, falsifiable par un lien (faux avertissement) ; la règle reste serveur (R refusée) | Dériver le bandeau de `GET /v1/bo/me` (`mfaMethod`, codes restants) | J8 · 20 min |
+| J3S-7 | À surveiller | Aucune CSP encore ; le `blob:` SVG ouvert dans un onglet hérite de l'origine du backoffice | CSP du J9 : `img-src 'self' blob:` sur le backoffice seulement, rien d'autre en `blob:` | J9 |
+| J3S-8 | À surveiller | Code membre ciblé : 10 codes/h × 5 essais ⇒ ≈ 3,6 % en 30 jours, au prix de ≈ 7 200 e-mails reçus par la victime (RG44) | Alerte D60 : ≥ 25 échecs / 24 h sur une même adresse ⇒ `security.member_code_targeted`, jamais de blocage (A-4) | J9 |
+| J3S-9 | À surveiller | I-4 ne couvre ni l'ensemble signé P (`elevated-operations.ts`) ni `relay-client.ts` et les fichiers du passe-plat : l'empreinte force un geste conscient, pas ma relecture | Ajouter ces chemins au contrôle I-4 | J4 · 15 min |
+
+**Verdict : push autorisé.** Aucun point bloquant, aucune correction exigée avant le push. J3S-1 et J3S-2 : tickets ouverts, à fermer avant leur échéance (J8 et J4). Rappels inchangés : G-1 point 4 au J4 ; EC-44 (e-mail d'alerte, J6) et G-1 point 2 par l'invitation (J8) avant tout compte interne réel ; B-1 branché et EC-38 réglé sur les projets hébergés avant la mise en ligne.
+
+#### Vérification de fin de J3 par `testeur` — 2026-10-05
+
+> Relu : `64efcae`, `6223b10`, `111a048`, `60486ed`, `533f683`. Conformité à `18` (T8 complet,
+> T4.7, lead-pipeline T1/T10, C-1) vérifiée par lecture ; exécutions reproduites sur la pile locale.
+
+| # | Gravité | Constat | Correction demandée |
+|---|---|---|---|
+| **T-1** | **Bloquant** | **L'ordre de la CI casse `pnpm check` de façon déterministe (pas une instabilité).** `.github/workflows/ci.yml` (ajouté par `60486ed`) exécute `pnpm db:demo-accounts` **avant** `pnpm check`. `db:demo-accounts` crée la version `terms_of_service`/`fr` (et `en`) « courante » en premier. `loadDataSet()` (`packages/test-kit/src/db/dataset.ts:134-141`), utilisée par 7 des 13 fichiers `db-tests` (t2-rls-matrix, t3-audit-chain, t3-elevated-audit, t4-roles, t16-commission, t8-mfa-throttle-journal, t8-session-writes), insère sa propre version `fr` à **id fixe** `TERMS_VERSION_ID` avec un `on conflict do nothing` **sans cible** : il tombe silencieusement sur l'index partiel `terms_versions_current_idx` déjà occupé par la version du seed démo, donc **la ligne à id fixe n'est jamais créée**. L'insertion suivante dans `terms_acceptances` référence cet id inexistant ⇒ `unknown terms version, or not in force` (`0005_identity_terms_and_consent.sql:254`), et les 7 fichiers échouent en bloc dès leur `beforeAll`. Reproduit 3/3 à l'identique (run complet, puis `t4-roles.test.ts` isolé) avec exactement la séquence de la CI ; **jamais vérifié par une vraie exécution GitHub Actions, rien n'étant poussé**. Les commits 8 à 12 eux-mêmes sont sains : à l'ordre inverse (`test:db` avant `db:demo-accounts`), tout passe, 3 fois de suite, 296/296, et `db:demo-accounts` réussit ensuite sans conflit (il détecte la version courante et la réutilise, lui) | Déplacer l'étape « Create the demonstration accounts » **après** l'étape « Format, typecheck, lint, test…, build » dans `.github/workflows/ci.yml` (une ligne) ; non appliqué ici (lecture seule) |
+| **T-2** | Signalé, non bloquant pour J3 | `pnpm check` échoue dès `format:check` (fichiers non formatés de `design-proposals/`, travail du fondateur) : si poussé en l'état, le job CI `check` est rouge **avant même d'atteindre typecheck/lint/test/build**, indépendamment de T-1. Non touché (hors mandat) | À régler par le fondateur/`chef-de-projet` avant tout push sur `main`, séparément du J3 |
+
+**Exécutions.** `supabase db reset` : ok. `pnpm db:role-passwords` puis `pnpm --filter @influx/api test:db -- --reporter=dot` **3 fois de suite, sans reset entre les runs** : **296/296 vert les 3 fois**, déterministe (durées 90–96 s). `pnpm typecheck` : vert (5 paquets). `pnpm lint` : vert, 0 avertissement. `pnpm test -- --reporter=dot` (unitaire + base) : vert, 296/296 + unitaires. `pnpm build` : vert (`apps/web`, `apps/backoffice`). `pnpm format:check` : rouge, uniquement `design-proposals/*` (T-2). Aucun appel externe réel observé (doublure Brevo locale, GoTrue local uniquement).
+
+**Contre-épreuves (2, toutes deux révertées par `git checkout --` et diff vérifié vide après coup) :**
+1. Garde `aal2` globale de `server.ts` forcée à ne jamais s'appliquer (`&& false`) → le test T8.8 (« 401 sur `/v1/bo/forgotten-guard` ») devient rouge comme attendu.
+2. `isWriteOriginAllowed` forcée à toujours `true` → 14 cas de `request-guards.test.ts` (T8.13) deviennent rouges comme attendu.
+
+**Couverture `18` revue par lecture** : T8.1 à T8.8, T8.10 à T8.13 couverts (T8.9 hors périmètre J3, prévu J7 — correct) ; T4.7 couvert sur le pool normal **et** sur le pool élevé (EC-35 point 6, commit 8) ; lead-pipeline T1 et T10 couverts nommément dans `t8-request-code.test.ts`, renforcés par la contrainte base `check (priority <> 'p0' or outbox_event_id is null)` (`0015`) ; C-1 (lecture des journaux par valeur, `valuesFoundIn`/`watch`) présent dans les trois fichiers d'authentification ; planchers de `case-floors.ts` vérifiés mécaniquement à chaque run (« floor of executed database cases met »).
+
+**Verdict « prêt à livrer » : NON, un point bloquant.** T-1 doit être corrigé (une ligne dans `ci.yml`) et revérifié avant tout push sur `main` : en l'état, la CI GitHub serait rouge au premier push de ce jalon, ce qui contredirait le « `pnpm check` vert en CI » exigé par la définition de « terminé » (§2.3). Le code des commits 8 à 12 lui-même est conforme à `18` et à la définition de « terminé » une fois la bonne séquence suivie (296/296, 3 fois de suite, déterministe). T-2 reste un point séparé, non lié à J3, à régler avant tout push.
 
 ---
 

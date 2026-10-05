@@ -90,12 +90,14 @@ jobs:
       - name: Set the test passwords of the connection roles
         run: pnpm db:role-passwords
 
-      # The four demonstration accounts of example.test (21 J3 commit 11), as on a workstation.
-      - name: Create the demonstration accounts
-        run: pnpm db:demo-accounts
-
       - name: Format, typecheck, lint, test (database included), build
         run: pnpm check
+
+      # The four demonstration accounts of example.test (21 J3 commit 11), as on a workstation.
+      # After the tests: the seed creates the current terms version, which the fixed-id version of
+      # the test data set (packages/test-kit/src/db/dataset.ts) would then never be inserted beside.
+      - name: Create the demonstration accounts
+        run: pnpm db:demo-accounts
 
   # C-2 (end-of-J1 security review, 21 J1-J): the relay runs on Node 24 in production (J1-B,
   # Node >= 24.12), while the job above runs the version of .node-version. What Node's fetch does
