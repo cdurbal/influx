@@ -12,6 +12,7 @@
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run --project unit && pnpm run test:db",
     "test:unit": "vitest run --project unit",
+    "db:demo-accounts": "node scripts/seed-demo-accounts.ts",
     "test:db": "vitest run --project db --reporter=default --reporter=json --outputFile.json=test-results/db-report.json && node scripts/check-db-case-floors.ts"
   },
   "dependencies": {

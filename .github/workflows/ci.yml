@@ -90,6 +90,10 @@ jobs:
       - name: Set the test passwords of the connection roles
         run: pnpm db:role-passwords
 
+      # The four demonstration accounts of example.test (21 J3 commit 11), as on a workstation.
+      - name: Create the demonstration accounts
+        run: pnpm db:demo-accounts
+
       - name: Format, typecheck, lint, test (database included), build
         run: pnpm check
 
