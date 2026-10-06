@@ -5,7 +5,8 @@
 //   read (identity.resolve_session), takes the Postgres role of the business role read in the
 //   database (never in a token, P3), poses the transaction context, runs the domain function
 //   under RLS.
-// - withElevatedTransaction: pool of the operation (AUTH_DATABASE_URL or WORKER_DATABASE_URL).
+// - withElevatedTransaction: pool of the operation (AUTH_DATABASE_URL, WORKER_DATABASE_URL or,
+//   for the monitoring of D60, OPS_DATABASE_URL).
 //   Refuses AT RUNTIME any operation outside the closed union of packages/contracts, takes the
 //   elevated role, runs, and writes the audit line of the operation.
 //
@@ -37,17 +38,19 @@ export type Transaction = Parameters<
 >[0];
 
 // ---------------------------------------------------------------------------------------------
-// Pools per process (EC-20: api = app + auth, worker = worker only)
+// Pools per process (EC-20: api = app + auth + ops, worker = worker only)
 // ---------------------------------------------------------------------------------------------
 
 /** Pool sizes per process. Provisional, with the role bounds of EC-33 (architecte, J4). */
 const APP_POOL_MAX = 10;
 const AUTH_POOL_MAX = 5;
 const WORKER_POOL_MAX = 4;
+/** Monitoring writes (E-6): a few per minute; never more than this, never waited for. */
+const OPS_POOL_MAX = 2;
 
 export type ApiDatabase = {
   app: ConnectionPool;
-  elevated: { auth: ConnectionPool };
+  elevated: { auth: ConnectionPool; ops: ConnectionPool };
   logger: DbLogger;
 };
 
@@ -62,7 +65,11 @@ export type ElevatedDatabase = {
 };
 
 export function createApiDatabase(
-  connections: { app: DatabaseConnection; auth: DatabaseConnection },
+  connections: {
+    app: DatabaseConnection;
+    auth: DatabaseConnection;
+    ops: DatabaseConnection;
+  },
   logger: DbLogger,
 ): ApiDatabase {
   return {
@@ -75,6 +82,11 @@ export function createApiDatabase(
       auth: new ConnectionPool(
         connections.auth,
         { max: AUTH_POOL_MAX, applicationName: "influx-api-auth" },
+        logger,
+      ),
+      ops: new ConnectionPool(
+        connections.ops,
+        { max: OPS_POOL_MAX, applicationName: "influx-api-ops" },
         logger,
       ),
     },
@@ -103,7 +115,7 @@ export function poolsOf(
   database: ApiDatabase | WorkerDatabase,
 ): ConnectionPool[] {
   return "app" in database
-    ? [database.app, database.elevated.auth]
+    ? [database.app, database.elevated.auth, database.elevated.ops]
     : [database.elevated.worker];
 }
 
@@ -296,7 +308,7 @@ export async function withUserTransaction<T>(
 
 /**
  * Pool of each family of operations of the closed union (P7 rule 5: E-1, E-2 → auth; E-3, E-4 →
- * worker). By family, not by operation: the table names no operation, so the worker process,
+ * worker; E-6 → ops). By family, not by operation: the table names no operation, so the worker process,
  * which imports this module, never names an operation of the api, nor the reverse (18 T6.3).
  * An operation still needs to be in the union (set U) to run.
  */
@@ -305,6 +317,7 @@ const ELEVATED_FAMILY_POOLS: Readonly<Record<string, ElevatedPoolKind>> = {
   support: "auth",
   leads: "worker",
   maintenance: "worker",
+  ops: "ops",
 };
 
 /** The pool kind of an operation name, or null (its family has no pool in apps/api). */

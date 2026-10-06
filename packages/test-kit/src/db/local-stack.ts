@@ -16,6 +16,7 @@ export const LOCAL_ROLE_PASSWORDS = {
   influx_app: "local-only-influx-app-password",
   influx_auth_login: "local-only-influx-auth-login-password",
   influx_worker_login: "local-only-influx-worker-login-password",
+  influx_ops_login: "local-only-influx-ops-login-password",
 } as const;
 
 export type LoginRole = keyof typeof LOCAL_ROLE_PASSWORDS;

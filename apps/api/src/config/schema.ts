@@ -193,6 +193,7 @@ export const DATABASE_URL_ROLES = {
   DATABASE_URL: "influx_app",
   AUTH_DATABASE_URL: "influx_auth_login",
   WORKER_DATABASE_URL: "influx_worker_login",
+  OPS_DATABASE_URL: "influx_ops_login",
 } as const;
 export type DatabaseUrlVariable = keyof typeof DATABASE_URL_ROLES;
 export type ConnectionRole = (typeof DATABASE_URL_ROLES)[DatabaseUrlVariable];
@@ -201,6 +202,7 @@ export type ConnectionRole = (typeof DATABASE_URL_ROLES)[DatabaseUrlVariable];
 export const API_DATABASE_VARIABLES = [
   "DATABASE_URL",
   "AUTH_DATABASE_URL",
+  "OPS_DATABASE_URL",
 ] as const satisfies readonly DatabaseUrlVariable[];
 export const WORKER_DATABASE_VARIABLES = [
   "WORKER_DATABASE_URL",
@@ -353,6 +355,7 @@ const databaseEnvShape = {
   DATABASE_URL: optionalText,
   AUTH_DATABASE_URL: optionalText,
   WORKER_DATABASE_URL: optionalText,
+  OPS_DATABASE_URL: optionalText,
   RAILWAY_ENVIRONMENT_NAME: optionalText,
 };
 
@@ -456,10 +459,14 @@ export type ApiConfig = BaseConfig & {
     url: string;
     secretKey: string;
   };
-  /** DATABASE_URL (influx_app) and AUTH_DATABASE_URL (influx_auth_login), EC-20. */
+  /**
+   * DATABASE_URL (influx_app), AUTH_DATABASE_URL (influx_auth_login), EC-20, and, from J4,
+   * OPS_DATABASE_URL (influx_ops_login, E-6: the monitoring of D60).
+   */
   database: {
     app: DatabaseConnection;
     auth: DatabaseConnection;
+    ops: DatabaseConnection;
   };
   /** One secret per front: apps/api derives the calling surface from it (J1-G). */
   internalSecrets: InternalSecrets;
@@ -640,6 +647,7 @@ export const apiEnvSchema = z
     database: {
       app: databaseConnection(env, "DATABASE_URL"),
       auth: databaseConnection(env, "AUTH_DATABASE_URL"),
+      ops: databaseConnection(env, "OPS_DATABASE_URL"),
     },
     internalSecrets: {
       web: env.INFLUX_API_INTERNAL_SECRET_WEB,

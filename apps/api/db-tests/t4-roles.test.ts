@@ -69,7 +69,7 @@ describe("T4.1: no influx role is superuser or bypasses RLS", () => {
 });
 
 describe("T4.2: closed list and exact attributes", () => {
-  it("has exactly the twelve roles of J2, and no influx_service", async () => {
+  it("has exactly the roles of the closed list (fourteen from J4), and no influx_service", async () => {
     const rows = await migration<{ rolname: string }[]>`
       select rolname from pg_catalog.pg_roles where rolname like 'influx\\_%' order by 1`;
     expect(rows.map((row) => row.rolname)).toEqual(
@@ -181,9 +181,10 @@ describe("T4.3: exact memberships", () => {
   });
 
   const FORBIDDEN_TARGETS: Readonly<Record<LoginRole, readonly string[]>> = {
-    influx_app: ["influx_auth", "influx_worker"],
+    influx_app: ["influx_auth", "influx_worker", "influx_ops"],
     influx_auth_login: [
       "influx_worker",
+      "influx_ops",
       "influx_advertiser",
       "influx_creator",
       "influx_agent",
@@ -191,6 +192,16 @@ describe("T4.3: exact memberships", () => {
     ],
     influx_worker_login: [
       "influx_auth",
+      "influx_ops",
+      "influx_advertiser",
+      "influx_creator",
+      "influx_agent",
+      "influx_admin",
+    ],
+    // J4 (0016): the ops login role takes influx_ops and nothing else.
+    influx_ops_login: [
+      "influx_auth",
+      "influx_worker",
       "influx_advertiser",
       "influx_creator",
       "influx_agent",
@@ -411,6 +422,7 @@ describe("T4.6 e: the pools of apps/api verify their role when they open", () =>
       {
         app: localConnection("influx_app"),
         auth: localConnection("influx_auth_login"),
+        ops: localConnection("influx_ops_login"),
       },
       logger,
     );
@@ -484,6 +496,7 @@ describe("T4.7: guard at the start of a transaction", () => {
       {
         app: localConnection("influx_app"),
         auth: localConnection("influx_auth_login"),
+        ops: localConnection("influx_ops_login"),
       },
       logger,
     );
@@ -611,6 +624,7 @@ describe("withUserTransaction on the local stack", () => {
       {
         app: localConnection("influx_app"),
         auth: localConnection("influx_auth_login"),
+        ops: localConnection("influx_ops_login"),
       },
       recordingLogger(),
     );
@@ -650,6 +664,7 @@ describe("withUserTransaction on the local stack", () => {
       {
         app: localConnection("influx_app"),
         auth: localConnection("influx_auth_login"),
+        ops: localConnection("influx_ops_login"),
       },
       recordingLogger(),
     );

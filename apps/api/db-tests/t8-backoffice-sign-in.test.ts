@@ -278,6 +278,7 @@ beforeAll(async () => {
     {
       app: localConnection("influx_app"),
       auth: localConnection("influx_auth_login"),
+      ops: localConnection("influx_ops_login"),
     },
     { info: () => undefined, warn: () => undefined, error: () => undefined },
   );

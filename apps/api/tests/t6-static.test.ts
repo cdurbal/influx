@@ -141,6 +141,7 @@ describe("T6.3: separation by process, on the import graph", () => {
     const forbidden = new Set([
       "DATABASE_URL",
       "AUTH_DATABASE_URL",
+      "OPS_DATABASE_URL",
       "identity.request_code",
       "identity.verify_code",
       "identity.complete_signup",

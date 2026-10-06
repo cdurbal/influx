@@ -195,6 +195,32 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
               ${accountIdOf("agent", "a")}, 'fr')
       on conflict do nothing`;
 
+    // One row in each table of the ops schema (0016, J4), at a fixed past minute: the metric
+    // policies of influx_ops only bound ITS inserts, the migration role writes the data set.
+    await tx`
+      insert into ops.error_groups
+        (fingerprint, source, service, error_type, message, route, first_version, last_version)
+      values (sha256('t2-ops-group'::bytea), 'server', 'api', 'TypeError', 't2 data set',
+              '/v1/status', 'local', 'local')
+      on conflict do nothing`;
+    await tx`
+      insert into ops.error_occurrences (group_fingerprint, service, version, route, message)
+      select sha256('t2-ops-group'::bytea), 'api', 'local', '/v1/status', 't2 data set'
+       where not exists (select 1 from ops.error_occurrences)`;
+    await tx`
+      insert into ops.request_metrics
+        (minute, service, instance, method, route, request_count, server_error_count,
+         throttled_count, duration_buckets)
+      values ('2026-01-01T00:00:00Z', 'api', 't2', 'GET', '/v1/status', 1, 0, 0,
+              '{1,0,0,0,0,0,0,0,0}')
+      on conflict do nothing`;
+    await tx`
+      insert into ops.process_metrics
+        (minute, service, instance, event_loop_delay_p99_ms, event_loop_delay_max_ms, rss_bytes,
+         heap_used_bytes, cpu_percent)
+      values ('2026-01-01T00:00:00Z', 'api', 't2', 1, 2, 1, 1, 0)
+      on conflict do nothing`;
+
     // At least one verification record, so that its read rights are observable.
     const [checks] = await tx<
       { count: string }[]

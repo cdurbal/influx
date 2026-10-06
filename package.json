@@ -20,6 +20,7 @@
     "typecheck": "pnpm -r run typecheck",
     "lint": "pnpm -r run lint",
     "test": "pnpm -r run test",
+    "docs:index": "node docs/mvp/build-index.mjs && prettier --write docs/mvp/INDEX.md",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "pnpm format:check && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm -r run test:artifacts"

@@ -73,6 +73,7 @@ describe("T16.4: nobody can write it", () => {
     "influx_app",
     "influx_auth_login",
     "influx_worker_login",
+    "influx_ops_login",
   ] as LoginRole[])(
     "refuses an insertion by %s without a role taken",
     async (role) => {

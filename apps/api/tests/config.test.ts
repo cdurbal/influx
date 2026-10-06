@@ -39,6 +39,7 @@ const VALID_API_ENV = {
   SUPABASE_SECRET_KEY: TEST_SUPABASE_SECRET_KEY,
   DATABASE_URL: TEST_DATABASE_URLS.DATABASE_URL,
   AUTH_DATABASE_URL: TEST_DATABASE_URLS.AUTH_DATABASE_URL,
+  OPS_DATABASE_URL: TEST_DATABASE_URLS.OPS_DATABASE_URL,
 } as const;
 
 const VALID_WORKER_ENV = {
@@ -50,6 +51,7 @@ const HOSTED_SUPABASE_URL = "https://abcdefghijklmnop.supabase.co";
 const APP_URL = TEST_DATABASE_URLS.DATABASE_URL;
 const AUTH_URL = TEST_DATABASE_URLS.AUTH_DATABASE_URL;
 const WORKER_URL = TEST_DATABASE_URLS.WORKER_DATABASE_URL;
+const OPS_URL = TEST_DATABASE_URLS.OPS_DATABASE_URL;
 const POOLER_APP_URL =
   "postgresql://influx_app.abcdefghijklmnop:pass@aws-0-eu-west-3.pooler.supabase.com:6543/postgres";
 const POOLER_AUTH_URL =
@@ -88,6 +90,7 @@ describe("api configuration", () => {
       database: {
         app: { url: APP_URL, role: "influx_app", tls: false },
         auth: { url: AUTH_URL, role: "influx_auth_login", tls: false },
+        ops: { url: OPS_URL, role: "influx_ops_login", tls: false },
       },
       internalSecrets: { web: WEB_SECRET, backoffice: BACKOFFICE_SECRET },
     });

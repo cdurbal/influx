@@ -63,7 +63,11 @@ const gotrue = createSupabaseAuth(
 );
 const migration = connectAsMigrationRole({ max: 2 });
 const database = createApiDatabase(
-  { app: connection("influx_app"), auth: connection("influx_auth_login") },
+  {
+    app: connection("influx_app"),
+    auth: connection("influx_auth_login"),
+    ops: connection("influx_ops_login"),
+  },
   silent,
 );
 const double = await startBrevoDouble();

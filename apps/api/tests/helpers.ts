@@ -21,6 +21,8 @@ export const TEST_DATABASE_URLS = {
     "postgresql://influx_auth_login:auth-pass@127.0.0.1:54322/postgres",
   WORKER_DATABASE_URL:
     "postgresql://influx_worker_login:worker-pass@127.0.0.1:54322/postgres",
+  OPS_DATABASE_URL:
+    "postgresql://influx_ops_login:ops-pass@127.0.0.1:54322/postgres",
 } as const;
 
 export function testApiConfig(): ApiConfig {
@@ -36,6 +38,7 @@ export function testApiConfig(): ApiConfig {
     SUPABASE_SECRET_KEY: TEST_SUPABASE_SECRET_KEY,
     DATABASE_URL: TEST_DATABASE_URLS.DATABASE_URL,
     AUTH_DATABASE_URL: TEST_DATABASE_URLS.AUTH_DATABASE_URL,
+    OPS_DATABASE_URL: TEST_DATABASE_URLS.OPS_DATABASE_URL,
   });
 }
 

@@ -18,7 +18,7 @@
 // ANY CHANGE TO THIS FILE IS A CHANGE OF RIGHTS: the commit carries `security-reviewed: <date>`
 // (03 I-4, 18 C-8), checked by the CI like a migration.
 
-/** Postgres roles taken at execution time at J2 (18 T2.1). */
+/** Postgres roles taken at execution time (18 T2.1): J2, plus influx_ops at J4 (0016). */
 export const PROBED_ROLES = [
   "influx_advertiser",
   "influx_creator",
@@ -26,6 +26,7 @@ export const PROBED_ROLES = [
   "influx_admin",
   "influx_auth",
   "influx_worker",
+  "influx_ops",
 ] as const;
 export type ProbedRole = (typeof PROBED_ROLES)[number];
 
@@ -431,6 +432,86 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
       },
     },
   },
+  {
+    table: "ops.error_groups",
+    source: "0016 (D60, 02 §20.5; E-6)",
+    // The two columns influx_ops reads for the upsert of a fingerprint; the update probe is a
+    // no-op on the count, which the trigger lets through (it only refuses a decrease).
+    probeColumn: "occurrence_count",
+    insertTemplate:
+      "insert into ops.error_groups (fingerprint, source, service, error_type, message, route, " +
+      "first_version, last_version) values (sha256(convert_to($1::text, 'UTF8')), 'server', 'api', " +
+      "'TypeError', 't2 probe', '/v1/status', 'local', 'local')",
+    expected: {
+      influx_ops: {
+        select: {
+          form: "autorisé",
+          source:
+            "0016: upsert of a group reads fingerprint and occurrence_count",
+        },
+        insert: {
+          form: "autorisé",
+          source: "0016, E-6: a new error group (description only)",
+        },
+        update: {
+          form: "autorisé",
+          source: "0016, E-6: occurrence count and last version",
+        },
+      },
+    },
+  },
+  {
+    table: "ops.error_occurrences",
+    source: "0016 (D60, 02 §20.5, §20.8; E-6)",
+    probeColumn: "message",
+    insertTemplate:
+      "insert into ops.error_occurrences (group_fingerprint, service, version, route, account_id, " +
+      "message) values (sha256('t2-ops-group'::bytea), 'api', 'local', '/v1/status', $1, 't2 probe')",
+    expected: {
+      influx_ops: {
+        insert: {
+          form: "autorisé",
+          source: "0016, E-6: a kept occurrence, never read back",
+        },
+      },
+    },
+  },
+  {
+    table: "ops.request_metrics",
+    source: "0016 (D60, 02 §20.5; E-6)",
+    probeColumn: "request_count",
+    insertTemplate:
+      "insert into ops.request_metrics (minute, service, instance, method, route, request_count, " +
+      "server_error_count, throttled_count, duration_buckets) values (date_trunc('minute', now()) " +
+      "- interval '1 minute', 'api', left(replace($1::text, '-', ''), 32), 'GET', '/v1/status', 1, " +
+      "0, 0, '{1,0,0,0,0,0,0,0,0}')",
+    expected: {
+      influx_ops: {
+        insert: {
+          form: "autorisé",
+          source: "0016, E-6: one line per ended minute, never read back",
+        },
+      },
+    },
+  },
+  {
+    table: "ops.process_metrics",
+    source: "0016 (D60, 02 §20.5; E-6)",
+    probeColumn: "cpu_percent",
+    insertTemplate:
+      "insert into ops.process_metrics (minute, service, instance, event_loop_delay_p99_ms, " +
+      "event_loop_delay_max_ms, rss_bytes, heap_used_bytes, cpu_percent) values " +
+      "(date_trunc('minute', now()) - interval '1 minute', 'api', left(replace($1::text, '-', ''), " +
+      "32), 1, 2, 1, 1, 0)",
+    expected: {
+      influx_ops: {
+        insert: {
+          form: "autorisé",
+          source: "0016, E-6: process health per ended minute, never read back",
+        },
+      },
+    },
+  },
 ];
 
 /**
@@ -453,6 +534,7 @@ export const OUR_SCHEMAS = [
   "search",
   "matching",
   "messaging",
+  "ops",
 ] as const;
 
 /**
@@ -472,7 +554,8 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * `role|kind|object|privileges`. Anything more, or less, fails. Taken from the local database
  * after 0001-0008 and reviewed line by line against 03 §3 and P7 on 2026-09-26; extended on
  * 2026-09-28 with the grants of 0011 to 0015 (J3 commit 6: influx_auth column by column, the
- * narrow audit functions, the identity definers), each line checked against its migration.
+ * narrow audit functions, the identity definers), each line checked against its migration; and on
+ * 2026-10-05 with those of 0016 (J4: influx_ops on the ops schema).
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -786,6 +869,28 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|schema|identity|USAGE",
   "influx_identity_definer|schema|influx|USAGE",
   "influx_identity_definer|table|identity.totp_replay_guards|DELETE",
+  // 0016 (J4, D60, E-6): influx_ops writes the ops schema, reads two columns of error_groups.
+  "influx_ops|column|ops.error_groups.error_type|INSERT",
+  "influx_ops|column|ops.error_groups.fingerprint|INSERT,SELECT",
+  "influx_ops|column|ops.error_groups.first_version|INSERT",
+  "influx_ops|column|ops.error_groups.last_version|INSERT,UPDATE",
+  "influx_ops|column|ops.error_groups.message|INSERT",
+  "influx_ops|column|ops.error_groups.occurrence_count|SELECT,UPDATE",
+  "influx_ops|column|ops.error_groups.route|INSERT",
+  "influx_ops|column|ops.error_groups.service|INSERT",
+  "influx_ops|column|ops.error_groups.source|INSERT",
+  "influx_ops|column|ops.error_occurrences.account_id|INSERT",
+  "influx_ops|column|ops.error_occurrences.group_fingerprint|INSERT",
+  "influx_ops|column|ops.error_occurrences.message|INSERT",
+  "influx_ops|column|ops.error_occurrences.request_id|INSERT",
+  "influx_ops|column|ops.error_occurrences.route|INSERT",
+  "influx_ops|column|ops.error_occurrences.service|INSERT",
+  "influx_ops|column|ops.error_occurrences.stack|INSERT",
+  "influx_ops|column|ops.error_occurrences.user_agent_summary|INSERT",
+  "influx_ops|column|ops.error_occurrences.version|INSERT",
+  "influx_ops|schema|ops|USAGE",
+  "influx_ops|table|ops.process_metrics|INSERT",
+  "influx_ops|table|ops.request_metrics|INSERT",
   "influx_session_resolver|column|identity.account_roles.account_id|SELECT",
   "influx_session_resolver|column|identity.account_roles.role|SELECT",
   "influx_session_resolver|column|identity.accounts.id|SELECT",
@@ -804,7 +909,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_session_resolver|schema|identity|USAGE",
 ];
 
-/** T4.2, T4.3: the closed list of 03 P7 at J2 (twelve roles), memberships of each. */
+/** T4.2, T4.3: the closed list of 03 P7 (twelve roles at J2, fourteen from J4), memberships. */
 export const EXPECTED_ROLES: Readonly<
   Record<string, { login: boolean; memberOf: readonly string[] }>
 > = {
@@ -819,12 +924,14 @@ export const EXPECTED_ROLES: Readonly<
   },
   influx_auth_login: { login: true, memberOf: ["influx_auth"] },
   influx_worker_login: { login: true, memberOf: ["influx_worker"] },
+  influx_ops_login: { login: true, memberOf: ["influx_ops"] },
   influx_advertiser: { login: false, memberOf: [] },
   influx_creator: { login: false, memberOf: [] },
   influx_agent: { login: false, memberOf: [] },
   influx_admin: { login: false, memberOf: [] },
   influx_auth: { login: false, memberOf: [] },
   influx_worker: { login: false, memberOf: [] },
+  influx_ops: { login: false, memberOf: [] },
   influx_audit_writer: { login: false, memberOf: [] },
   influx_session_resolver: { login: false, memberOf: [] },
   influx_identity_definer: { login: false, memberOf: [] },
@@ -842,12 +949,14 @@ export const EXECUTION_ROLES = [
   "influx_app",
   "influx_auth_login",
   "influx_worker_login",
+  "influx_ops_login",
   "influx_advertiser",
   "influx_creator",
   "influx_agent",
   "influx_admin",
   "influx_auth",
   "influx_worker",
+  "influx_ops",
 ] as const;
 
 /** T4.4: every SECURITY DEFINER function of our schemas, with its owner. */

@@ -28,12 +28,13 @@ function recordingLogger(): DbLogger & { lines: string[] } {
 
 /** A pool that fails the test if anything tries to connect through it. */
 function untouchablePool(
-  role: "influx_app" | "influx_auth_login",
+  role: "influx_app" | "influx_auth_login" | "influx_ops_login",
 ): ConnectionPool {
-  const url =
-    role === "influx_app"
-      ? TEST_DATABASE_URLS.DATABASE_URL
-      : TEST_DATABASE_URLS.AUTH_DATABASE_URL;
+  const url = {
+    influx_app: TEST_DATABASE_URLS.DATABASE_URL,
+    influx_auth_login: TEST_DATABASE_URLS.AUTH_DATABASE_URL,
+    influx_ops_login: TEST_DATABASE_URLS.OPS_DATABASE_URL,
+  }[role];
   const pool = new ConnectionPool(
     { url, role, tls: false },
     { max: 1, applicationName: "test" },
@@ -128,7 +129,10 @@ describe("T6.2: an operation outside the closed union is refused at runtime", ()
     async (value) => {
       const logger = recordingLogger();
       const database = {
-        elevated: { auth: untouchablePool("influx_auth_login") },
+        elevated: {
+          auth: untouchablePool("influx_auth_login"),
+          ops: untouchablePool("influx_ops_login"),
+        },
         logger,
       };
       let ran = false;
@@ -153,7 +157,10 @@ describe("withUserTransaction without a well-formed token hash", () => {
   it("refuses before any connection", async () => {
     const database: ApiDatabase = {
       app: untouchablePool("influx_app"),
-      elevated: { auth: untouchablePool("influx_auth_login") },
+      elevated: {
+        auth: untouchablePool("influx_auth_login"),
+        ops: untouchablePool("influx_ops_login"),
+      },
       logger: recordingLogger(),
     };
     await expect(

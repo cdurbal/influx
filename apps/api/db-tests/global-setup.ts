@@ -4,9 +4,13 @@
 // 2. the fixed local passwords of the three connection roles are set (SCRAM verifiers);
 // 3. T4.1 runs first: if any influx_% role carries rolsuper or rolbypassrls, every RLS test would
 //    pass for nothing, so the run stops here (18 T4, "exécuté en premier");
-// 4. no temporary right of an interrupted run is left in the stack (J2 review of 0009, V4).
+// 4. no temporary right of an interrupted run is left in the stack (J2 review of 0009, V4);
+// 5. the data set of T2 is loaded once, BEFORE any file: a file that creates the current terms
+//    version first (the demo accounts of t8-demo-accounts) would otherwise keep the fixed-id
+//    version of the data set out, whatever the file order (the cause of T-1, end of J3).
 import {
   connectAsMigrationRole,
+  loadDataSet,
   requireLocalStack,
   setLocalRolePasswords,
 } from "@influx/test-kit/db";
@@ -35,6 +39,7 @@ export default async function setup(): Promise<void> {
       );
     }
     await assertNoTemporaryRights(migration);
+    await loadDataSet(migration);
   } finally {
     await migration.end({ timeout: 1 });
   }

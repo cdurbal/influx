@@ -44,6 +44,7 @@ const LOGIN_ROLES: readonly LoginRole[] = [
   "influx_app",
   "influx_auth_login",
   "influx_worker_login",
+  "influx_ops_login",
 ];
 const TAKEN: readonly TakenRole[] = Object.keys(TAKEN_ROLES) as TakenRole[];
 
