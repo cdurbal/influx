@@ -10,7 +10,8 @@
     "./elevated-operations": "./src/elevated-operations.ts",
     "./user-agent": "./src/user-agent.ts",
     "./auth": "./src/auth.ts",
-    "./backoffice-auth": "./src/backoffice-auth.ts"
+    "./backoffice-auth": "./src/backoffice-auth.ts",
+    "./ops": "./src/ops.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tests.json",

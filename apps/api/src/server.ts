@@ -22,6 +22,8 @@ import {
   registerIdentityRoutes,
   type IdentityDependencies,
 } from "./domains/identity/routes.ts";
+import { OpsRecorder } from "./domains/ops/recorder.ts";
+import { registerOpsRoutes } from "./domains/ops/routes.ts";
 import { createAuthTokenCodec } from "./platform/auth-tokens.ts";
 import { createTransactionalSender } from "./platform/brevo-transactional.ts";
 import { createSupabaseAuth } from "./platform/supabase.ts";
@@ -184,6 +186,11 @@ export type BuildServerOptions = {
   database?: ApiDatabase;
   /** Replacements of the authentication dependencies, for the tests only. */
   identity?: Partial<Omit<IdentityDependencies, "database">>;
+  /**
+   * The collector of D60 (main.ts creates it and starts its flush). Absent: one is created here,
+   * in memory only, never flushed (tests).
+   */
+  ops?: OpsRecorder;
 };
 
 export function buildServer(
@@ -199,6 +206,9 @@ export function buildServer(
     options.logDestination,
   );
   const identifySurface = createSurfaceIdentifier(config.internalSecrets);
+  const ops =
+    options.ops ??
+    new OpsRecorder({ version: config.version, instance: config.instance });
 
   const app = Fastify({
     loggerInstance: logger,
@@ -339,6 +349,16 @@ export function buildServer(
     }
   });
 
+  // D60 (02 §20.5): every completed request, by route model, in memory; written each minute.
+  app.addHook("onResponse", async (request, reply) => {
+    ops.recordRequest(
+      request.method,
+      request.routeOptions.url,
+      reply.statusCode,
+      reply.elapsedTime,
+    );
+  });
+
   app.setNotFoundHandler(async (request, reply) => {
     return reply
       .code(HTTP_STATUS_BY_CODE.not_found)
@@ -350,6 +370,10 @@ export function buildServer(
     const statusCode = HTTP_STATUS_BY_CODE[classified.code];
     if (statusCode >= 500) {
       request.log.error({ err: error }, "request failed");
+      ops.recordServerError(error, {
+        route: request.routeOptions.url,
+        requestId: request.id,
+      });
     } else {
       request.log.info({ errorCode: classified.code }, "request refused");
     }
@@ -419,6 +443,13 @@ export function buildServer(
     ...(options.identity?.backofficeAuthFloorMs === undefined
       ? {}
       : { floorMs: options.identity.backofficeAuthFloorMs }),
+  });
+
+  // Browser errors of the connected spaces (D60, 02 §20.5).
+  registerOpsRoutes(app, {
+    database,
+    recorder: ops,
+    now: options.identity?.now ?? (() => new Date()),
   });
 
   // Minimal public route, reachable from both fronts: target of the relay checks (21 J1-G).

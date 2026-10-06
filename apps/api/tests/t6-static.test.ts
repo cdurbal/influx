@@ -82,6 +82,7 @@ describe("T6.1: A = U and U ⊆ P", () => {
       "identity.backoffice_reauthenticate": "auth",
       "leads.drain_outbox": "worker",
       "maintenance.run_periodic": "worker",
+      "ops.record_telemetry": "ops",
     };
     for (const operation of SIGNED_ELEVATED_OPERATIONS) {
       // privacy.execute_request (E-5) has no pool in apps/api before the Lot 5.
@@ -149,6 +150,7 @@ describe("T6.3: separation by process, on the import graph", () => {
       "identity.backoffice_enroll_totp",
       "identity.backoffice_reauthenticate",
       "support.report_delivery_issue",
+      "ops.record_telemetry",
     ]);
     expect(offenders(modules, (name) => forbidden.has(name))).toEqual([]);
   });

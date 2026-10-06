@@ -11,7 +11,8 @@
 
 /**
  * Set P: 03 P7, E-1 to E-5, one motif per point of use (EC-5, signed revision of 2026-09-27).
- * E-6 enters only once signed with its migration (J4).
+ * E-6 enters with its migration (0016, J4): PROPOSED, signed by expert-cybersecurite at the
+ * end-of-J4 grouped review.
  */
 export const SIGNED_ELEVATED_OPERATIONS = [
   "identity.request_code", // E-1, influx_auth
@@ -24,6 +25,7 @@ export const SIGNED_ELEVATED_OPERATIONS = [
   "leads.drain_outbox", // E-3, influx_worker
   "maintenance.run_periodic", // E-4, influx_worker
   "privacy.execute_request", // E-5, influx_privacy
+  "ops.record_telemetry", // E-6, influx_ops (J4, D60: errors and metrics, never business data)
 ] as const;
 
 export type SignedElevatedOperation =
@@ -39,6 +41,7 @@ export const ELEVATED_OPERATIONS = [
   "identity.backoffice_sign_in",
   "identity.backoffice_enroll_totp",
   "identity.backoffice_reauthenticate",
+  "ops.record_telemetry",
 ] as const satisfies readonly SignedElevatedOperation[];
 
 export type ElevatedOperation = (typeof ELEVATED_OPERATIONS)[number];

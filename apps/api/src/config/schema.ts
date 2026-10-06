@@ -373,6 +373,8 @@ const baseEnvShape = {
     z.email({ error: "must list e-mail addresses" }),
   ),
   RAILWAY_GIT_COMMIT_SHA: z.preprocess(emptyAsAbsent, z.string().optional()),
+  // Replica of the service, provided by Railway (D60: one metric line per instance).
+  RAILWAY_REPLICA_ID: z.preprocess(emptyAsAbsent, z.string().optional()),
 };
 
 type BaseEnv = {
@@ -411,6 +413,8 @@ export type BaseConfig = {
   environment: InfluxEnvironment;
   /** Deployed commit, written in every log line (D60). */
   version: string;
+  /** Replica of the service (RAILWAY_REPLICA_ID, `local` otherwise): ops metric lines (D60). */
+  instance: string;
   brevo: {
     mode: BrevoMode;
     testRecipients: readonly string[];
@@ -624,6 +628,7 @@ export const apiEnvSchema = z
   .transform((env): ApiConfig => ({
     environment: env.INFLUX_ENV,
     version: env.RAILWAY_GIT_COMMIT_SHA ?? LOCAL_VERSION,
+    instance: env.RAILWAY_REPLICA_ID ?? LOCAL_VERSION,
     brevo: {
       mode: env.BREVO_MODE,
       testRecipients: env.BREVO_TEST_RECIPIENTS,
@@ -697,6 +702,7 @@ export const workerEnvSchema = z
   .transform((env): WorkerConfig => ({
     environment: env.INFLUX_ENV,
     version: env.RAILWAY_GIT_COMMIT_SHA ?? LOCAL_VERSION,
+    instance: env.RAILWAY_REPLICA_ID ?? LOCAL_VERSION,
     brevo: {
       mode: env.BREVO_MODE,
       testRecipients: env.BREVO_TEST_RECIPIENTS,

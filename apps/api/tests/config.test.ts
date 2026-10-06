@@ -76,6 +76,7 @@ describe("api configuration", () => {
     expect(config).toEqual({
       environment: "staging",
       version: "local",
+      instance: "local",
       brevo: { mode: "disabled", testRecipients: [] },
       port: 3100,
       brevoTransport: {
@@ -556,6 +557,7 @@ describe("worker configuration", () => {
     expect(loadWorkerConfig(VALID_WORKER_ENV)).toEqual({
       environment: "staging",
       version: "local",
+      instance: "local",
       brevo: { mode: "disabled", testRecipients: [] },
       database: {
         worker: { url: WORKER_URL, role: "influx_worker_login", tls: false },

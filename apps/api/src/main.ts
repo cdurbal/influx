@@ -8,6 +8,7 @@ import {
   DatabaseRoleRefusedError,
   verifyPools,
 } from "./db/index.ts";
+import { OpsRecorder } from "./domains/ops/recorder.ts";
 import { createLogger } from "./platform/logger.ts";
 import { buildServer } from "./server.ts";
 
@@ -51,13 +52,25 @@ async function main(): Promise<void> {
     version: config.version,
   });
   const database = createApiDatabase(config.database, logger);
-  const app = buildServer(config, { database });
+  // D60: errors and metrics, flushed every 10 s on the ops pool (E-6), outside any request.
+  const ops = new OpsRecorder({
+    version: config.version,
+    instance: config.instance,
+  });
+  const app = buildServer(config, { database, ops });
+  ops.start(database, app.log);
+  // An error that escapes everything is recorded before Node stops the process (it may not be
+  // written in time: the log line remains).
+  process.on("uncaughtExceptionMonitor", (error) => {
+    ops.recordServerError(error);
+  });
 
   const shutDown = (signal: NodeJS.Signals): void => {
     app.log.info({ signal }, "shutting down");
     // close() stops accepting connections and waits for the requests in flight (02 §4 rule 5).
     app
       .close()
+      .then(() => ops.stop(database, app.log))
       .then(() => closeDatabase(database))
       .then(
         () => {
