@@ -11,8 +11,8 @@
 
 /**
  * Set P: 03 P7, E-1 to E-5, one motif per point of use (EC-5, signed revision of 2026-09-27).
- * E-6 enters with its migration (0016, J4): PROPOSED, signed by expert-cybersecurite at the
- * end-of-J4 grouped review.
+ * E-6 enters with its migration (0016, J4), signed by expert-cybersecurite on 2026-10-06
+ * (end-of-J4 grouped review).
  */
 export const SIGNED_ELEVATED_OPERATIONS = [
   "identity.request_code", // E-1, influx_auth

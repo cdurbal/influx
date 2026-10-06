@@ -29,6 +29,8 @@ export function scrubText(value: string, maxLength: number): string {
     .replace(IPV6, (match) => (match.split(":").length > 2 ? "<ip>" : match))
     .replace(TOKEN, "<token>")
     .replace(DIGITS, "<n>")
+    // J4S-2: a quoted value may be a name or a handle (an engine message quotes the data).
+    .replace(QUOTED, "$1<value>$1")
     .replace(/\s+/g, " ")
     .trim();
   return cleaned.length <= maxLength
@@ -41,9 +43,7 @@ export function scrubText(value: string, maxLength: number): string {
  * so that two occurrences of one bug share their group.
  */
 export function normalizeMessage(value: string, maxLength: number): string {
-  const normalized = scrubText(value, 2 * maxLength)
-    .replace(QUOTED, "$1<value>$1")
-    .replace(/\d/g, "<n>");
+  const normalized = scrubText(value, 2 * maxLength).replace(/\d/g, "<n>");
   return normalized.length <= maxLength
     ? normalized
     : `${normalized.slice(0, maxLength - 1)}…`;

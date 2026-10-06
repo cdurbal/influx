@@ -175,8 +175,6 @@ jobs:
     concurrency:
       group: migrate-staging
       cancel-in-progress: false
-    env:
-      DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -195,7 +193,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # J4S-1: the migration role's URL is given to this step only, never to the install.
       - name: Migrate staging (supabase db push)
+        env:
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
         run: |
           if [ -z "$DIRECT_DATABASE_URL" ]; then
             echo "::notice::DIRECT_DATABASE_URL is not set in the staging environment: staging is not migrated (runbook, step 4)."

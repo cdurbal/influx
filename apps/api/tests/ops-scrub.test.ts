@@ -2,6 +2,7 @@
 // §20.8; 18 T13.6). The database side is in db-tests/t13-ops-recording.test.ts.
 import { describe, expect, it } from "vitest";
 import { bucketOf } from "../src/domains/ops/recorder.ts";
+import { CLIENT_ERROR_RATE, MinuteCounter } from "../src/domains/ops/routes.ts";
 import {
   fingerprintOf,
   normalizeMessage,
@@ -21,6 +22,11 @@ describe("scrubText (02 §20.8)", () => {
     ["a secret key", "key sb_secret_Zq81mWp0Lk7Hx2Yv9Ab3 refused", "Zq81mWp0"],
     ["a uuid", "row 3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e5f", "3f1c2d4e"],
     ["an IPv4 address", "from 203.0.113.7", "203.0.113.7"],
+    [
+      "a quoted name (J4S-2)",
+      "Cannot read properties of undefined (reading 'Anne Martin')",
+      "Anne Martin",
+    ],
     ["an IPv6 address", "from 2001:db8:85a3::8a2e:370:7334", "2001:db8"],
     ["a query string", "GET /fr/connexion?email=a@b.example&code=1", "code=1"],
   ])("removes %s", (_label, input, secret) => {
@@ -89,5 +95,21 @@ describe("route models and duration buckets", () => {
     [5001, 8],
   ])("puts %d ms in bucket %d", (duration, bucket) => {
     expect(bucketOf(duration)).toBe(bucket);
+  });
+});
+
+describe("rate bounds of POST /v1/ops/client-errors (02 §20.5)", () => {
+  it("bounds each key per minute, and starts again the next minute", () => {
+    let now = new Date("2026-10-06T10:00:05Z");
+    const counter = new MinuteCounter(() => now);
+    const taken = (key: string, limit: number, times: number) =>
+      Array.from({ length: times }, () => counter.take(key, limit)).filter(
+        Boolean,
+      ).length;
+    expect(taken("address:a", CLIENT_ERROR_RATE.address, 40)).toBe(30);
+    expect(taken("instance", CLIENT_ERROR_RATE.instance, 350)).toBe(300);
+    expect(taken("address:b", CLIENT_ERROR_RATE.address, 5)).toBe(5);
+    now = new Date("2026-10-06T10:01:00Z");
+    expect(counter.take("address:a", CLIENT_ERROR_RATE.address)).toBe(true);
   });
 });

@@ -28,6 +28,18 @@ import { execFileSync } from "node:child_process";
 const MARKER = /^security-reviewed: \d{4}-\d{2}-\d{2}\b/m;
 const RIGHTS_PATH = "packages/test-kit/src/rights/";
 /** Files whose every change is a security change (J3S-9), in both fronts for the relay. */
+/**
+ * J4S-4 (end-of-J4 review): what could weaken the controls themselves, or the exposure of a
+ * service — the workflows, the control scripts, the configuration of both fronts (headers) and
+ * the Railway services.
+ */
+const SECURITY_PREFIXES: readonly string[] = [
+  ".github/workflows/",
+  "packages/test-kit/scripts/check-",
+  "apps/web/next.config.ts",
+  "apps/backoffice/next.config.ts",
+  "deploy/railway/",
+];
 const SECURITY_FILES: readonly string[] = [
   "packages/contracts/src/elevated-operations.ts",
   ...["apps/web", "apps/backoffice"].flatMap((front) =>
@@ -135,7 +147,10 @@ function changesRights(commit: string): boolean {
     .filter((line) => line.length > 0);
   if (
     files.some(
-      (file) => file.startsWith(RIGHTS_PATH) || SECURITY_FILES.includes(file),
+      (file) =>
+        file.startsWith(RIGHTS_PATH) ||
+        SECURITY_FILES.includes(file) ||
+        SECURITY_PREFIXES.some((prefix) => file.startsWith(prefix)),
     )
   ) {
     return true;

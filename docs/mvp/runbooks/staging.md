@@ -60,6 +60,10 @@ pnpm --filter @influx/test-kit staging:role-passwords -- --ref=<ref-staging> --h
 la chaîne de connexion **directe** (port 5432) du rôle `postgres` de staging (*Connect › Direct
 connection*). Elle ne va **nulle part ailleurs** : ni Railway, ni fichier local (CI-5).
 
+Dans le même écran, **Deployment branches and tags** : limiter l'environnement à la seule branche
+**`main`** (et, si l'offre le permet, exiger un relecteur) : une branche ou une Pull Request ne
+peut alors jamais lire ce secret (J4S-1).
+
 Au prochain push sur `main`, le job **« Migrate staging »** applique les migrations après les
 contrôles. Tant que le secret est absent, le job affiche un avis et ne fait rien.
 
@@ -74,16 +78,17 @@ version dans le journal de construction).
 |---|---|---|---|
 | `api` | `deploy/railway/api.json` | **aucun** | `INFLUX_ENV=staging`, `PORT=3100`, `INFLUX_PUBLIC_SITE_URL`, `INFLUX_PUBLIC_BACKOFFICE_URL`, `INFLUX_API_INTERNAL_SECRET_WEB`, `INFLUX_API_INTERNAL_SECRET_BACKOFFICE`, `AUTH_TOKEN_SIGNING_SECRET`, `AUTH_THROTTLE_PEPPER`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (clé `influx-api-staging`), `DATABASE_URL`, `AUTH_DATABASE_URL`, `OPS_DATABASE_URL`, `BREVO_MODE=redirect`, `BREVO_API_KEY` (compte Brevo **de test**), `BREVO_SENDER_TRANSACTIONAL`, `BREVO_TEST_RECIPIENTS` (vos adresses internes) |
 | `worker` | `deploy/railway/worker.json` | **aucun** | `INFLUX_ENV=staging`, `WORKER_DATABASE_URL`, `SYNC_MODE=dry_run`, `BREVO_MODE=disabled` |
-| `web` | `deploy/railway/web.json` | oui (`*.up.railway.app` en attendant les domaines) | `INFLUX_API_INTERNAL_URL=http://api.railway.internal:3100`, `INFLUX_API_INTERNAL_SECRET` (= la valeur web) |
-| `backoffice` | `deploy/railway/backoffice.json` | oui, distinct de `web` | `INFLUX_API_INTERNAL_URL` (idem), `INFLUX_API_INTERNAL_SECRET` (= la valeur backoffice) |
+| `web` | `deploy/railway/web.json` | oui (`*.up.railway.app` en attendant les domaines) | `INFLUX_ENV=staging` (lu à la construction : `noindex` hors production, J4S-3), `INFLUX_API_INTERNAL_URL=http://api.railway.internal:3100`, `INFLUX_API_INTERNAL_SECRET` (= la valeur web) |
+| `backoffice` | `deploy/railway/backoffice.json` | oui, distinct de `web` | `INFLUX_ENV=staging`, `INFLUX_API_INTERNAL_URL` (idem), `INFLUX_API_INTERNAL_SECRET` (= la valeur backoffice) |
 
 - Les secrets de 32 octets se génèrent avec
   `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"` : **une
   valeur différente pour chacun**, sinon l'API refuse de démarrer.
 - `DATABASE_CA_CERT` (EC-34) : seulement si l'API journalise une erreur de certificat au démarrage ;
   y coller le certificat racine de *Database › SSL configuration*.
-- `staging` ne doit pas être indexé : le backoffice envoie `noindex` partout ; pour `web`, ne pas
-  publier son adresse (le domaine de production n'est jamais utilisé, D56).
+- `staging` n'est jamais indexé : `noindex` sur toutes les réponses du backoffice, et sur celles de
+  `web` hors production ; ne pas publier les adresses (le domaine de production n'est jamais
+  utilisé, D56).
 - Aucune clé Apollo en staging (`skipped_no_credentials`), aucune clé Brevo de production (D62).
 
 ## Étape 6 — Vérifications du développeur (« Terminé quand » du J4)

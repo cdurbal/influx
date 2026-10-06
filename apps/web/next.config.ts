@@ -8,7 +8,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
  * §6.5, R7). The CSP holds only the directives that need no nonce; the CSP with nonce arrives at
  * J9 (T10). HSTS without `preload` until the domains are settled (03 §6.5, integrateur).
  */
-export const SECURITY_HEADERS: readonly { key: string; value: string }[] = [
+const BASE_SECURITY_HEADERS: readonly { key: string; value: string }[] = [
   {
     key: "Content-Security-Policy",
     value:
@@ -28,6 +28,20 @@ export const SECURITY_HEADERS: readonly { key: string; value: string }[] = [
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
 ];
+
+/** J4S-3: outside production (staging, a workstation), nothing of `web` is ever indexed. */
+export const NOINDEX = "noindex, nofollow, noarchive";
+
+/** The headers for an environment, read at build time from INFLUX_ENV (02 §12.3). */
+export function securityHeadersFor(
+  environment: string | undefined,
+): readonly { key: string; value: string }[] {
+  return environment === "production"
+    ? BASE_SECURITY_HEADERS
+    : [{ key: "X-Robots-Tag", value: NOINDEX }, ...BASE_SECURITY_HEADERS];
+}
+
+export const SECURITY_HEADERS = securityHeadersFor(process.env.INFLUX_ENV);
 
 const nextConfig: NextConfig = {
   // The root CLAUDE.md stays the single source of agent instructions (01 §12).

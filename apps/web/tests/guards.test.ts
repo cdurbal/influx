@@ -335,6 +335,17 @@ describe("R7 headers and the browser error collector (21 §4 J4 points 3 and 5)"
     );
   });
 
+  it("is never indexed outside production (J4S-3)", async () => {
+    const { securityHeadersFor, NOINDEX } = await import("../next.config");
+    const robots = (environment: string | undefined) =>
+      securityHeadersFor(environment).find(
+        (header) => header.key === "X-Robots-Tag",
+      )?.value;
+    expect(robots(undefined)).toBe(NOINDEX);
+    expect(robots("staging")).toBe(NOINDEX);
+    expect(robots("production")).toBeUndefined();
+  });
+
   it("keeps the collector identical to that of apps/backoffice", () => {
     expect(readFileSync(path.join(WEB, COLLECTOR))).toEqual(
       readFileSync(path.join(WEB, "..", "backoffice", COLLECTOR)),

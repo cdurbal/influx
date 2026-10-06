@@ -75,6 +75,18 @@ if (
     "SUPABASE_URL must be the https origin of the staging project",
   );
 }
+// J4S-5: the GoTrue key and the database belong to ONE project. A production key pasted by mistake
+// next to the staging database would otherwise create the accounts in production.
+const projectRef = supabaseUrl.hostname.slice(0, -".supabase.co".length);
+const migrationUrl = new URL(required("INFLUX_STAGING_MIGRATION_URL"));
+if (
+  migrationUrl.hostname !== `db.${projectRef}.supabase.co` &&
+  decodeURIComponent(migrationUrl.username) !== `postgres.${projectRef}`
+) {
+  throw new Error(
+    "SUPABASE_URL and INFLUX_STAGING_MIGRATION_URL name two different projects: refused",
+  );
+}
 const backoffice = new URL(required("STAGING_PUBLIC_BACKOFFICE_URL")).origin;
 const caFile = process.env.INFLUX_STAGING_DB_CA_FILE;
 
@@ -93,7 +105,7 @@ const accounts: DemoAccount[] = demoAccounts().map((account) => {
       };
 });
 
-const migration = postgres(required("INFLUX_STAGING_MIGRATION_URL"), {
+const migration = postgres(migrationUrl.href, {
   max: 1,
   prepare: false,
   ssl:
