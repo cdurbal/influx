@@ -35,10 +35,16 @@
 
 ## Étape 2 — Marqueur d'environnement
 
-Dans l'éditeur SQL de **staging uniquement** :
+Dans l'éditeur SQL de **staging uniquement** (Supabase refuse les paramètres personnalisés
+`alter database|role … set`, d'où une table créée à la main, hors de toute migration) :
 
 ```sql
-alter database postgres set influx.environment = 'staging';
+create schema influx_staging;
+revoke all on schema influx_staging from public;
+create table influx_staging.environment_marker (
+  environment text primary key check (environment = 'staging')
+);
+insert into influx_staging.environment_marker values ('staging');
 ```
 
 Ce marqueur autorise le script des comptes de démonstration (étape 7). Il n'est **jamais** posé sur

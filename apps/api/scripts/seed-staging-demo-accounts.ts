@@ -17,7 +17,7 @@
 // (BREVO_MODE=redirect).
 //
 // Refused: when INFLUX_ENV or NODE_ENV says production; when the database does not carry the
-// marker `influx.environment = staging` (set once by the runbook, never on production); when the
+// marker table `influx_staging.environment_marker` (created by hand by the runbook, never on production); when the
 // Supabase URL is not an https *.supabase.co origin.
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -115,11 +115,19 @@ const migration = postgres(migrationUrl.href, {
   onnotice: () => undefined,
 });
 try {
-  const [marker] = await migration<{ environment: string | null }[]>`
-    select current_setting('influx.environment', true) as environment`;
-  if (marker?.environment !== "staging") {
+  // Hosted Supabase refuses custom parameters (ALTER DATABASE / ROLE SET), so the marker is a
+  // table created by hand on staging only, outside every migration (runbook, step 2).
+  // Two queries: a reference to a missing table fails at parse time, even in a branch not taken.
+  const [table] = await migration<{ present: boolean }[]>`
+    select to_regclass('influx_staging.environment_marker') is not null as present`;
+  const markers =
+    table?.present === true
+      ? await migration<{ environment: string }[]>`
+          select environment from influx_staging.environment_marker`
+      : [];
+  if (markers.length !== 1 || markers[0]?.environment !== "staging") {
     throw new Error(
-      "this database does not carry influx.environment = staging: refused (runbook, step 2)",
+      "this database does not carry the influx_staging.environment_marker = staging: refused (runbook, step 2)",
     );
   }
   const outcome = await seedDemoAccounts(
