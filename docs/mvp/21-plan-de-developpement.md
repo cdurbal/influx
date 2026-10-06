@@ -26,7 +26,7 @@
 | **J1** | 0 | Squelette `apps/api`, `apps/backoffice`, `packages/contracts`, passe-plat | ✅ **Terminé & revu** (`655b857`) | 3 j |
 | **J2** | 0 | Base socle : schémas, rôles, RLS, registre, tests T2 T3 T4 T6 T16 | ✅ **Terminé & revu** (`8e6bbfb`) | 4-5 j |
 | **J3** | 0 | Authentification : code membre (D43), sessions opaques, backoffice mot de passe + TOTP | ✅ **Terminé** (revue groupée 2026-10-05 : push autorisé ; T-1 corrigé ; push en attente du formatage de `design-proposals/`) | 4-5 j |
-| **J4** | 0 | `staging` sur Railway + Supabase, migrations par la CI, collecte d'erreurs (D60) | ⏳ À faire | 3-4 j |
+| **J4** | 0 | `staging` sur Railway + Supabase, migrations par la CI, collecte d'erreurs (D60) | 🔶 **Code terminé** (commits 1 à 5) ; revue groupée en cours ; mise en ligne de `staging` en attente des comptes (runbook) | 3-4 j |
 | **J5** | 1 | Inscription marque et créateur, transaction unique, file alimentée | ⏳ À faire | 4-5 j |
 | **J6** | 1 | Worker, connecteurs Brevo et Apollo, qualification, garde-fous | ⏳ À faire (**1er usage démontrable**) | 4-5 j |
 | **J7** | 1 | Retours Brevo (désinscriptions, rebonds), espace membre minimal | ⏳ À faire | 3-4 j |
@@ -156,6 +156,17 @@ Rappels : G-1 point 4 au J4 ; EC-44 (e-mail d'alerte) au J6 ; G-1 point 2 par l'
 6. **Constat de l'adresse du client (A5, EC-21) et du multiplexeur (EC-34, V3)** : requêtes vers `staging` avec `X-Real-IP` et `X-Forwarded-For` forgés (doivent déclencher le plafond par IP comme une seule adresse) ; écriture réelle depuis navigateur acceptée (A4) ; vérification `session_user = influx_app` à travers Supavisor.
 
 **Terminé quand** : un commit sur `main` passe la CI, migre `staging` puis y est déployé ; les quatre comptes de démonstration se connectent sur `staging` ; les en-têtes de R7 sont présents et le constat A5 est consigné.
+
+#### État des commits du J4
+
+- [x] Commit 1 (`6bc4aff`) — CI : noms, ordre **et immuabilité** des migrations (EC-32/37 : une migration appliquée n'est jamais modifiée ni supprimée) ; I-4 étendu à `elevated-operations.ts`, au passe-plat et à `relay-client.ts` (J3S-9).
+- [x] Commit 2 (`84a09b4`) — Migration `0016` : schéma `ops`, rôles `influx_ops` / `influx_ops_login` (E-6 **proposée**, à signer), `OPS_DATABASE_URL` ; le jeu de données T2 est chargé par la mise en place globale (cause racine de T-1).
+- [x] Commit 3 (`443bb14`) — Domaine `ops` : nettoyage unique (§20.8), empreintes, 10 occurrences / empreinte / minute, histogrammes, santé du processus, vidage toutes les 10 s hors requête ; `POST /v1/ops/client-errors`.
+- [x] Commit 4 (`16b4f21`) — En-têtes R7 sur `web` et `backoffice` ; collecteur navigateur des seuls espaces connectés.
+- [x] Commit 5 (`6aa651a`) — Job CI « Migrate staging » (environnement GitHub `staging`), `deploy/railway/*.json`, `DATABASE_CA_CERT` (EC-34), comptes de démo de staging à secrets aléatoires (J3S-2), mots de passe des rôles (SCRAM) ; runbook `docs/mvp/runbooks/staging.md` (procédure de retour arrière, procédure J3S-3).
+- [ ] Mise en ligne de `staging` par le fondateur (runbook, étapes 1 à 5), puis constats A5, R7, `session_user` et EC-33 (étape 6) et comptes de démo (étape 7).
+
+Écarts du J4 (choix conservateurs, à valider par la revue) : **EC-58** limitation de débit de `client-errors` en mémoire, par instance (une seule instance au MVP) ; **EC-59** le worker n'écrit pas encore dans `ops` (droits nommés d'`influx_worker` avec sa première opération, J6) ; **EC-60** l'adresse `/health` reste sans vérification de la base (la sonde du J9 la porte) ; **EC-61** `influx_ops` lit deux colonnes d'`ops.error_groups` (`fingerprint`, `occurrence_count`), nécessaires à l'agrégation d'un groupe.
 
 ---
 

@@ -112,33 +112,33 @@
 | 338 | 200 | ↳ 3.4 Domaine `matching` et `messaging` | RG5–RG146 |
 | 538 | 76 | ↳ 3.5 Domaines `billing` (pipeline commercial), `leads` et `backoffice` | RG1–RG39 |
 | 614 | 30 | ↳ 3.6 Domaine `audit` — le registre |  |
-| 644 | 433 | 4. Les principes de Row Level Security | RG5–RG65 |
+| 644 | 434 | 4. Les principes de Row Level Security | RG5–RG65 |
 | 649 | 15 | ↳ P1 — Refus par défaut, sur toutes les tables, sans exception |  |
 | 664 | 53 | ↳ P2 — L'API se connecte avec le rôle de l'utilisateur, jamais avec un rôle qui contourne la RLS |  |
 | 717 | 22 | ↳ P3 — Le rôle métier est lu en base, jamais dans le jeton |  |
 | 739 | 16 | ↳ P4 — Toute condition d'accès est **positive** et échoue en refus |  |
 | 755 | 34 | ↳ P5 — L'anonymisation est une séparation d'objets, doublée d'une absence de droit |  |
 | 789 | 22 | ↳ P6 — Aucune table métier dans le schéma `public` |  |
-| 811 | 177 | ↳ P7 — La liste **nommée et fermée** des opérations autorisées à s'élever | RG5–RG65 |
-| 988 | 52 | ↳ P8 — L'append-only est réel, pas conventionnel |  |
-| 1040 | 11 | ↳ P9 — Ce que la RLS ne sait pas faire, et qui le fait à sa place |  |
-| 1051 | 26 | ↳ P10 — Les politiques du Storage |  |
-| 1077 | 140 | 5. La lecture d'une conversation par un agent non participant | RG132–RG134 |
-| 1217 | 400 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` |  |
-| 1219 | 83 | ↳ 6.1 — Point 1 : D37 dans son ensemble |  |
-| 1302 | 35 | ↳ 6.2 — Point 2 : `aal2` vérifié dans les politiques RLS |  |
-| 1337 | 20 | ↳ 6.3 — Point 3 : le rôle métier lu en base plutôt que dans le jeton |  |
-| 1357 | 65 | ↳ 6.4 — Point 4 : le passe-plat |  |
-| 1422 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
-| 1496 | 21 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
-| 1517 | 27 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
-| 1544 | 30 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
-| 1574 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
-| 1617 | 32 | 7. L'isolement du backoffice |  |
-| 1649 | 39 | 8. Les tests de sécurité exigés |  |
-| 1688 | 62 | 9. Verdict d'étape | RG49–RG55 |
-| 1750 | 41 | 10. Ce qui sort de mon périmètre |  |
-| 1791 | 17 | 11. Mises à jour attendues dans les autres documents |  |
+| 811 | 178 | ↳ P7 — La liste **nommée et fermée** des opérations autorisées à s'élever | RG5–RG65 |
+| 989 | 52 | ↳ P8 — L'append-only est réel, pas conventionnel |  |
+| 1041 | 11 | ↳ P9 — Ce que la RLS ne sait pas faire, et qui le fait à sa place |  |
+| 1052 | 26 | ↳ P10 — Les politiques du Storage |  |
+| 1078 | 140 | 5. La lecture d'une conversation par un agent non participant | RG132–RG134 |
+| 1218 | 400 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` |  |
+| 1220 | 83 | ↳ 6.1 — Point 1 : D37 dans son ensemble |  |
+| 1303 | 35 | ↳ 6.2 — Point 2 : `aal2` vérifié dans les politiques RLS |  |
+| 1338 | 20 | ↳ 6.3 — Point 3 : le rôle métier lu en base plutôt que dans le jeton |  |
+| 1358 | 65 | ↳ 6.4 — Point 4 : le passe-plat |  |
+| 1423 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
+| 1497 | 21 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
+| 1518 | 27 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
+| 1545 | 30 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
+| 1575 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
+| 1618 | 32 | 7. L'isolement du backoffice |  |
+| 1650 | 39 | 8. Les tests de sécurité exigés |  |
+| 1689 | 62 | 9. Verdict d'étape | RG49–RG55 |
+| 1751 | 41 | 10. Ce qui sort de mon périmètre |  |
+| 1792 | 17 | 11. Mises à jour attendues dans les autres documents |  |
 
 ## 04-modele-de-donnees-mvp.md (~140k tokens)
 
@@ -644,7 +644,7 @@
 | 330 | 13 | 9. Questions ouvertes | RG116–RG130 |
 | 343 | 11 | 10. Tokens proposés |  |
 
-## 21-plan-de-developpement.md (~10k tokens)
+## 21-plan-de-developpement.md (~11k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -652,8 +652,8 @@
 | 46 | 7 | 1. Point de départ & conventions d'environnement |  |
 | 53 | 39 | 2. Stratégie de développement | RG44–RG148 |
 | 92 | 27 | 3. Écarts actifs pour les jalons restants (J3 fin à J9) | RG79–RG146 |
-| 119 | 43 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 162 | 108 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG148 |
-| 270 | 9 | 6. Configuration des services externes |  |
-| 279 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 296 | 12 | 8. Guide de lecture par jalon | RG54–RG58 |
+| 119 | 54 | 4. Lot 0 — le socle (J0 à J4) |  |
+| 173 | 108 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG148 |
+| 281 | 9 | 6. Configuration des services externes |  |
+| 290 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 307 | 12 | 8. Guide de lecture par jalon | RG54–RG58 |

@@ -839,6 +839,7 @@ Toute autre opération privilégiée passe par une fonction `SECURITY DEFINER` (
 | **E-3** | `leads.drain_outbox` — consommation de la file, appels Brevo et Apollo, mise à jour des statuts | `influx_worker` | Aucun utilisateur ne déclenche l'opération | **Non** |
 | **E-4** | `maintenance.run_periodic` — péremption des badges, relances, purges, vérification de la chaîne, expiration des verrous et des codes | `influx_worker` | Tâches de fond | **Non** |
 | **E-5** | `privacy.execute_request` — export ou anonymisation au titre d'une demande RGPD validée | `influx_privacy` | Écritures transverses sur des lignes qui n'appartiennent pas à l'appelant | **Non** : déclenché par une tâche, après validation `2V` + `R` par un `admin` |
+| **E-6** *(proposée au J4, à signer par `expert-cybersecurite` à la revue groupée de fin de J4)* | `ops.record_telemetry` — surveillance interne D60 : groupes et occurrences d'erreurs, métriques par minute (`0016`), écrits **hors** de la transaction de l'utilisateur ; aucune lecture métier, aucune ligne d'audit (rien d'un sujet métier n'est écrit) | `influx_ops` | Une erreur doit pouvoir être enregistrée alors que la transaction de l'utilisateur a échoué, sans donner aux rôles métier le moindre droit sur `ops` | **Non** : vidage périodique en mémoire par `apps/api`, jamais dans une requête |
 
 **Cinq entrées, pas une de plus.** Tout ajout à cette liste est une modification de ce document,
 signée par `expert-cybersecurite`.
