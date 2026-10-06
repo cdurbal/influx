@@ -839,7 +839,7 @@ Toute autre opération privilégiée passe par une fonction `SECURITY DEFINER` (
 | **E-3** | `leads.drain_outbox` — consommation de la file, appels Brevo et Apollo, mise à jour des statuts | `influx_worker` | Aucun utilisateur ne déclenche l'opération | **Non** |
 | **E-4** | `maintenance.run_periodic` — péremption des badges, relances, purges, vérification de la chaîne, expiration des verrous et des codes | `influx_worker` | Tâches de fond | **Non** |
 | **E-5** | `privacy.execute_request` — export ou anonymisation au titre d'une demande RGPD validée | `influx_privacy` | Écritures transverses sur des lignes qui n'appartiennent pas à l'appelant | **Non** : déclenché par une tâche, après validation `2V` + `R` par un `admin` |
-| **E-6** *(proposée au J4, à signer par `expert-cybersecurite` à la revue groupée de fin de J4)* | `ops.record_telemetry` — surveillance interne D60 : groupes et occurrences d'erreurs, métriques par minute (`0016`), écrits **hors** de la transaction de l'utilisateur ; aucune lecture métier, aucune ligne d'audit (rien d'un sujet métier n'est écrit) | `influx_ops` | Une erreur doit pouvoir être enregistrée alors que la transaction de l'utilisateur a échoué, sans donner aux rôles métier le moindre droit sur `ops` | **Non** : vidage périodique en mémoire par `apps/api`, jamais dans une requête |
+| **E-6** *(signée par `expert-cybersecurite` le 2026-10-06, revue groupée de fin de J4, avec `0016`)* | `ops.record_telemetry` — surveillance interne D60 : groupes et occurrences d'erreurs, métriques par minute (`0016`), écrits **hors** de la transaction de l'utilisateur ; aucune lecture métier, aucune ligne d'audit (rien d'un sujet métier n'est écrit) | `influx_ops` | Une erreur doit pouvoir être enregistrée alors que la transaction de l'utilisateur a échoué, sans donner aux rôles métier le moindre droit sur `ops` | **Non** : vidage périodique en mémoire par `apps/api`, jamais dans une requête |
 
 **Cinq entrées, pas une de plus.** Tout ajout à cette liste est une modification de ce document,
 signée par `expert-cybersecurite`.
@@ -892,7 +892,7 @@ d'exécution. **`influx_service` n'existe pas** : supprimé, jamais créé.
 
 | Rôle | Quand | Ce qu'il sera |
 |---|---|---|
-| `influx_ops` + `influx_ops_login` | J4, avec le schéma `ops` | Écriture seule sur `ops`, aucune lecture métier ; `OPS_DATABASE_URL`, `api` ; le worker écrit `ops` par des droits nommés d'`influx_worker`. **Entrée E-6 à signer par `expert-cybersecurite` avec sa migration** |
+| `influx_ops` + `influx_ops_login` | J4, avec le schéma `ops` | Écriture seule sur `ops`, aucune lecture métier ; `OPS_DATABASE_URL`, `api` ; le worker écrit `ops` par des droits nommés d'`influx_worker`. **Entrée E-6 signée le 2026-10-06 avec `0016`** |
 | `influx_intro_owner` | Lot 4 | Propriétaire des fonctions de révélation (§3.4) |
 | `influx_privacy` + `influx_privacy_login` | Lot 5 | E-5 ; `PRIVACY_DATABASE_URL`, `worker`. **Jamais ajouté à `influx_worker_login`** |
 
