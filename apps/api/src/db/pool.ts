@@ -218,7 +218,11 @@ export class ConnectionPool {
     const client = postgres(this.connection.url, {
       max: this.options.max,
       prepare: false,
-      ssl: this.connection.tls ? { rejectUnauthorized: true } : false,
+      ssl: this.connection.tls
+        ? this.connection.ca === undefined
+          ? { rejectUnauthorized: true }
+          : { rejectUnauthorized: true, ca: this.connection.ca }
+        : false,
       connect_timeout: CONNECT_TIMEOUT_S,
       idle_timeout: IDLE_TIMEOUT_S,
       max_lifetime: MAX_LIFETIME_S,

@@ -703,3 +703,30 @@ describe("process start", () => {
     );
   });
 });
+
+describe("DATABASE_CA_CERT (21 EC-34)", () => {
+  const POOLER = (role: string) =>
+    `postgresql://${role}.abcdefghijklmnop:pass@aws-0-eu-west-3.pooler.supabase.com:6543/postgres`;
+  const PEM = "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n";
+
+  it("verifies the pooler against the given root, never on a loopback connection", () => {
+    const config = loadApiConfig({
+      ...VALID_API_ENV,
+      DATABASE_URL: POOLER("influx_app"),
+      DATABASE_CA_CERT: PEM,
+    });
+    expect(config.database.app).toMatchObject({ tls: true, ca: PEM });
+    expect(config.database.auth.ca).toBeUndefined();
+  });
+
+  it("refuses anything but a PEM certificate", () => {
+    expect(
+      refusal(() =>
+        loadApiConfig({
+          ...VALID_API_ENV,
+          DATABASE_CA_CERT: `${PEM}-----BEGIN PRIVATE KEY-----`,
+        }),
+      ),
+    ).toContain("DATABASE_CA_CERT must be a PEM certificate");
+  });
+});

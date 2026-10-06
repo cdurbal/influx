@@ -156,3 +156,53 @@ jobs:
 
       - name: Origin check of apps/api
         run: pnpm --filter @influx/api exec vitest run --project unit tests/request-guards.test.ts
+
+  # 21 §4 J4 point 1 (CI-5): after both checks, a push to main migrates staging. The migration
+  # role's URL (DIRECT_DATABASE_URL) is a secret of the GitHub environment `staging` only, never a
+  # Railway variable. Railway waits for this workflow ("Wait for CI") before deploying, so the
+  # schema always precedes the code that reads it. Our supabase/config.toml is NOT read here: the
+  # CLI runs in a work directory holding the migrations only, so that no local setting can ever
+  # reach the hosted project (C5-2); its settings go by `supabase config push`, by hand
+  # (docs/mvp/runbooks/staging.md).
+  migrate-staging:
+    name: Migrate staging
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [check, relay-node-24]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+    # One migration run at a time, never cancelled half-way.
+    concurrency:
+      group: migrate-staging
+      cancel-in-progress: false
+    env:
+      DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Migrate staging (supabase db push)
+        run: |
+          if [ -z "$DIRECT_DATABASE_URL" ]; then
+            echo "::notice::DIRECT_DATABASE_URL is not set in the staging environment: staging is not migrated (runbook, step 4)."
+            exit 0
+          fi
+          workdir="$(mktemp -d)"
+          mkdir -p "$workdir/supabase"
+          cp -R supabase/migrations "$workdir/supabase/migrations"
+          printf 'project_id = "influx-staging-migrations"\n' > "$workdir/supabase/config.toml"
+          pnpm exec supabase db push --db-url "$DIRECT_DATABASE_URL" --workdir "$workdir" --yes

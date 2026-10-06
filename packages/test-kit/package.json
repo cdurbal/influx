@@ -20,7 +20,8 @@
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
     "db:role-passwords": "node scripts/set-role-passwords.ts",
-    "dev:brevo-double": "node scripts/brevo-double.ts"
+    "dev:brevo-double": "node scripts/brevo-double.ts",
+    "staging:role-passwords": "node scripts/staging-role-passwords.ts"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

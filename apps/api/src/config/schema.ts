@@ -218,6 +218,11 @@ export type DatabaseConnection = {
    * `03` P7 rule 1: certificate verification is never disabled.
    */
   tls: boolean;
+  /**
+   * Root certificate (PEM) that the TLS of the pooler is verified against, when the system store
+   * does not know it (DATABASE_CA_CERT, 21 EC-34). Absent: the system store.
+   */
+  ca?: string;
 };
 
 export type DatabaseUrlCheck =
@@ -275,6 +280,7 @@ export function checkDatabaseUrl(
 
 type DatabaseEnv = Partial<Record<DatabaseUrlVariable, string>> & {
   RAILWAY_ENVIRONMENT_NAME?: string | undefined;
+  DATABASE_CA_CERT?: string | undefined;
 };
 
 /**
@@ -346,12 +352,29 @@ function databaseConnection(
     // Unreachable: superRefine refused the configuration before the transform runs.
     throw new Error(`${variable} was not validated`);
   }
-  return check.connection;
+  return check.connection.tls && env.DATABASE_CA_CERT !== undefined
+    ? { ...check.connection, ca: env.DATABASE_CA_CERT }
+    : check.connection;
 }
 
 const optionalText = z.preprocess(emptyAsAbsent, z.string().optional());
 
+/** DATABASE_CA_CERT (EC-34): one or more PEM certificates, never a private key. */
+const databaseCaCert = z.preprocess(
+  emptyAsAbsent,
+  z
+    .string()
+    .refine(
+      (value) =>
+        value.trim().startsWith("-----BEGIN CERTIFICATE-----") &&
+        !value.includes("PRIVATE KEY"),
+      { message: "must be a PEM certificate" },
+    )
+    .optional(),
+);
+
 const databaseEnvShape = {
+  DATABASE_CA_CERT: databaseCaCert,
   DATABASE_URL: optionalText,
   AUTH_DATABASE_URL: optionalText,
   WORKER_DATABASE_URL: optionalText,
