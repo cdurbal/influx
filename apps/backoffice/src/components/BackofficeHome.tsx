@@ -22,6 +22,7 @@ import {
   TITLE_CLASSES,
   WARNING_CLASSES,
 } from "./auth-classes";
+import { installErrorCollector } from "@/observability/error-collector";
 import { readMe, signOut } from "./backoffice-auth";
 
 type State =
@@ -46,6 +47,8 @@ export function BackofficeHome() {
   const [busy, setBusy] = useState(false);
   const remaining = recoveryCodesLeft(search.get("secours"));
 
+  // Browser errors of the connected space (D60, 02 §20.5); never on the landing.
+  useEffect(() => installErrorCollector(), []);
   useEffect(() => {
     let active = true;
     void readMe().then((result) => {

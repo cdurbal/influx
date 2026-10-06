@@ -23,7 +23,7 @@ import {
   relativePath,
 } from "@influx/test-kit/guards";
 import { describe, expect, it } from "vitest";
-import nextConfig, { NOINDEX } from "../next.config";
+import nextConfig, { NOINDEX, SECURITY_HEADERS } from "../next.config";
 
 const BACKOFFICE_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -219,13 +219,23 @@ describe("French only while D36 is open (02 §8, 18 §5 annex 1)", () => {
 });
 
 describe("never indexed (03 §7.1, D12)", () => {
-  it("sends X-Robots-Tag on every path", async () => {
+  it("sends X-Robots-Tag and the security headers of R7 on every path", async () => {
     expect(NOINDEX).toBe("noindex, nofollow, noarchive");
     expect(await nextConfig.headers?.()).toEqual([
-      {
-        source: "/:path*",
-        headers: [{ key: "X-Robots-Tag", value: NOINDEX }],
-      },
+      { source: "/:path*", headers: [...SECURITY_HEADERS] },
     ]);
+    const byName = Object.fromEntries(
+      SECURITY_HEADERS.map((header) => [header.key, header.value]),
+    );
+    expect(byName).toMatchObject({
+      "X-Robots-Tag": NOINDEX,
+      "X-Frame-Options": "DENY",
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "no-referrer",
+    });
+    expect(byName["Content-Security-Policy"]).toContain(
+      "frame-ancestors 'none'",
+    );
+    expect(byName["Strict-Transport-Security"]).toMatch(/^max-age=\d{8,}/);
   });
 });

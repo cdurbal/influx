@@ -311,3 +311,49 @@ describe("G7: no Tailwind class conflict that cn() cannot resolve (10 #10)", () 
     );
   });
 });
+
+describe("R7 headers and the browser error collector (21 §4 J4 points 3 and 5)", () => {
+  const WEB = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+  const COLLECTOR = "src/observability/error-collector.ts";
+
+  it("sends the security headers of R7 on every path", async () => {
+    const { default: config, SECURITY_HEADERS } =
+      await import("../next.config");
+    expect(await config.headers?.()).toEqual([
+      { source: "/:path*", headers: [...SECURITY_HEADERS] },
+    ]);
+    const byName = Object.fromEntries(
+      SECURITY_HEADERS.map((header) => [header.key, header.value]),
+    );
+    expect(byName).toMatchObject({
+      "X-Frame-Options": "DENY",
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+    });
+    expect(byName["Content-Security-Policy"]).toContain(
+      "frame-ancestors 'none'",
+    );
+  });
+
+  it("keeps the collector identical to that of apps/backoffice", () => {
+    expect(readFileSync(path.join(WEB, COLLECTOR))).toEqual(
+      readFileSync(path.join(WEB, "..", "backoffice", COLLECTOR)),
+    );
+  });
+
+  it("never mounts the collector on the landing (02 §20.5)", () => {
+    const landing = [
+      path.join(WEB, "src/app/[locale]/page.tsx"),
+      ...readdirSync(path.join(WEB, "src/components/landing"), {
+        recursive: true,
+      })
+        .map(String)
+        .filter((file) => /\.tsx?$/.test(file))
+        .map((file) => path.join(WEB, "src/components/landing", file)),
+    ];
+    const importers = landing.filter((file) =>
+      readFileSync(file, "utf8").includes("observability"),
+    );
+    expect(importers).toEqual([]);
+  });
+});

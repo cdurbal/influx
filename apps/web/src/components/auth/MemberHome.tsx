@@ -20,6 +20,7 @@ import {
   TEXT_BUTTON_CLASSES,
   TITLE_CLASSES,
 } from "./auth-classes";
+import { installErrorCollector } from "@/observability/error-collector";
 import { readMe, signOut } from "./member-auth";
 
 type State =
@@ -41,6 +42,8 @@ export function MemberHome({ space }: { space: SignupDoor }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [busy, setBusy] = useState(false);
 
+  // Browser errors of the connected space (D60, 02 §20.5); never on the landing.
+  useEffect(() => installErrorCollector(), []);
   useEffect(() => {
     let active = true;
     void readMe().then((result) => {
