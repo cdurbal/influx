@@ -26,7 +26,8 @@ const out = [
 ];
 
 for (const file of files) {
-  const text = readFileSync(join(DIR, file), "utf8");
+  // LF only: a Windows checkout (core.autocrlf) must produce the same index as the CI.
+  const text = readFileSync(join(DIR, file), "utf8").replace(/\r\n/g, "\n");
   const lines = text.split("\n");
   const sections = [];
   lines.forEach((line, i) => {

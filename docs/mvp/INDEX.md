@@ -416,7 +416,7 @@
 | 1558 | 19 | Hors périmètre | RG11–RG61 |
 | 1577 | 23 | Questions ouvertes | RG26–RG103 |
 
-## 14-pipeline-commercial.md (~29k tokens)
+## 14-pipeline-commercial.md (~28k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -521,7 +521,7 @@
 | 2039 | 19 | Hors périmètre | RG44–RG107 |
 | 2058 | 26 | Questions ouvertes | RG9–RG158 |
 
-## 17-parcours-et-ecrans-espaces-membres.md (~57k tokens)
+## 17-parcours-et-ecrans-espaces-membres.md (~56k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -555,7 +555,7 @@
 | 2277 | 46 | 10. Ce qui reste à valider | RG6–RG109 |
 | 2323 | 51 | 11. Récapitulatif des écrans spécifiés |  |
 
-## 17b-parcours-et-ecrans-backoffice.md (~57k tokens)
+## 17b-parcours-et-ecrans-backoffice.md (~56k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
