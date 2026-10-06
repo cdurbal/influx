@@ -5,13 +5,16 @@
 > valeurs vont directement dans Supabase, GitHub ou Railway, ou sont exportées dans le terminal le
 > temps d'une commande. Références : `docs/mvp/21-plan-de-developpement.md` §4 J4, `02` §12 et §20,
 > skills `railway-deploy` et `env-secrets`.
+> **Nommage :** staging et production portent **les mêmes noms** (projet `influx`, clés `influx_api`
+> et `influx_worker`, services, variables). Ils se distinguent par le **compte** (Supabase, Brevo,
+> Apollo dédiés à staging) et les **valeurs** des clés ; seule `INFLUX_ENV` change de valeur.
 
-## Étape 1 — Projet Supabase `staging`
+## Étape 1 — Projet Supabase (compte de staging)
 
-1. Créer le projet **`influx-staging`**, **région UE** (Paris ou Francfort). *La région ne se change
+1. Dans le **compte Supabase de staging**, créer le projet **`influx`**, **région UE** (Paris ou Francfort). *La région ne se change
    plus après création.*
 2. *Project Settings › API Keys* : créer **deux clés secrètes** `sb_secret_…`, nommées
-   `influx-api-staging` et `influx-worker-staging` (EC-46). Désactiver les clés héritées `anon` et
+   `influx_api` et `influx_worker` (EC-46). Désactiver les clés héritées `anon` et
    `service_role`, et la clé *publishable* si l'écran le permet (G-1 point 4).
 3. *Authentication › Sign In / Providers* : fournisseur **Email** actif, **inscription publique
    fermée** (« Allow new users to sign up » désactivé). *JWT Keys* : passer aux clés asymétriques
@@ -76,7 +79,7 @@ version dans le journal de construction).
 
 | Service | Fichier | Domaine public | Variables (et rien d'autre) |
 |---|---|---|---|
-| `api` | `deploy/railway/api.json` | **aucun** | `INFLUX_ENV=staging`, `PORT=3100`, `INFLUX_PUBLIC_SITE_URL`, `INFLUX_PUBLIC_BACKOFFICE_URL`, `INFLUX_API_INTERNAL_SECRET_WEB`, `INFLUX_API_INTERNAL_SECRET_BACKOFFICE`, `AUTH_TOKEN_SIGNING_SECRET`, `AUTH_THROTTLE_PEPPER`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (clé `influx-api-staging`), `DATABASE_URL`, `AUTH_DATABASE_URL`, `OPS_DATABASE_URL`, `BREVO_MODE=redirect`, `BREVO_API_KEY` (compte Brevo **de test**), `BREVO_SENDER_TRANSACTIONAL`, `BREVO_TEST_RECIPIENTS` (vos adresses internes) |
+| `api` | `deploy/railway/api.json` | **aucun** | `INFLUX_ENV=staging`, `PORT=3100`, `INFLUX_PUBLIC_SITE_URL`, `INFLUX_PUBLIC_BACKOFFICE_URL`, `INFLUX_API_INTERNAL_SECRET_WEB`, `INFLUX_API_INTERNAL_SECRET_BACKOFFICE`, `AUTH_TOKEN_SIGNING_SECRET`, `AUTH_THROTTLE_PEPPER`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (clé `influx_api` du projet de staging), `DATABASE_URL`, `AUTH_DATABASE_URL`, `OPS_DATABASE_URL`, `BREVO_MODE=redirect`, `BREVO_API_KEY` (compte Brevo **de staging**), `BREVO_SENDER_TRANSACTIONAL`, `BREVO_TEST_RECIPIENTS` (vos adresses internes) |
 | `worker` | `deploy/railway/worker.json` | **aucun** | `INFLUX_ENV=staging`, `WORKER_DATABASE_URL`, `SYNC_MODE=dry_run`, `BREVO_MODE=disabled` |
 | `web` | `deploy/railway/web.json` | oui (`*.up.railway.app` en attendant les domaines) | `INFLUX_ENV=staging` (lu à la construction : `noindex` hors production, J4S-3), `INFLUX_API_INTERNAL_URL=http://api.railway.internal:3100`, `INFLUX_API_INTERNAL_SECRET` (= la valeur web) |
 | `backoffice` | `deploy/railway/backoffice.json` | oui, distinct de `web` | `INFLUX_ENV=staging`, `INFLUX_API_INTERNAL_URL` (idem), `INFLUX_API_INTERNAL_SECRET` (= la valeur backoffice) |
