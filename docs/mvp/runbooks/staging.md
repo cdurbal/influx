@@ -52,6 +52,9 @@ la base de production.
 
 ## Étape 3 — Mots de passe des quatre rôles de connexion
 
+> **Après l'étape 4** : les quatre rôles sont créés par les migrations (`0001`, `0016`) ; la
+> partie 1 échoue tant que « Migrate staging » n'a pas tourné une fois.
+
 Sur le poste (rien n'est écrit sur le disque) :
 
 ```sh
@@ -66,8 +69,9 @@ pnpm --filter @influx/test-kit staging:role-passwords -- --ref=<ref-staging> --h
 ## Étape 4 — GitHub : environnement `staging`
 
 *Settings › Environments › New environment* `staging`, puis le secret **`DIRECT_DATABASE_URL`** :
-la chaîne de connexion **directe** (port 5432) du rôle `postgres` de staging (*Connect › Direct
-connection*). Elle ne va **nulle part ailleurs** : ni Railway, ni fichier local (CI-5).
+la chaîne du rôle `postgres` de staging en **Session pooler** (*Connect › Session pooler*,
+hôte `…pooler.supabase.com`, port 5432) : la *Direct connection* n'est joignable qu'en IPv6, que
+les exécuteurs GitHub n'ont pas. Elle ne va **nulle part ailleurs** : ni Railway, ni fichier local (CI-5).
 
 Dans le même écran, **Deployment branches and tags** : limiter l'environnement à la seule branche
 **`main`** (et, si l'offre le permet, exiger un relecteur) : une branche ou une Pull Request ne
