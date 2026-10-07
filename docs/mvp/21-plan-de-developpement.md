@@ -146,14 +146,10 @@ Rappels : G-1 point 4 au J4 ; EC-44 (e-mail d'alerte) au J6 ; G-1 point 2 par l'
 
 | # | Correctif attendu | Échéance |
 |---|---|---|
-| J4S-2 | `scrub.ts` / `recorder.ts` : appliquer le retrait `QUOTED` au message **d'occurrence** ; test T13 avec une valeur nominative | J5 |
-| J4S-4 | `check-security-review.ts` : ajouter à `SECURITY_FILES` `.github/workflows/**`, `packages/test-kit/scripts/check-*.ts`, `apps/*/next.config.ts`, `deploy/railway/**` | J5 |
-| J4S-5 | `seed-staging-demo-accounts.ts` : exiger que la référence de projet de `SUPABASE_URL` soit celle de `INFLUX_STAGING_MIGRATION_URL` | J5 |
-| J4T-1 | Tests des plafonds par adresse (30/min) et par instance (300/min) de `client-errors` (`routes.ts`) | J5 |
 | J4S-6 | `client-errors` : affichage texte strict, plafond de nouveaux groupes navigateur par compte et par heure, alerte « nouveau groupe » non déclenchée par le navigateur seul | J9 |
 | J4S-7 | Aucun nom ni pseudo dans un chemin des espaces connectés (sinon modèle de route Next dans le collecteur) | Lot 2 |
 | J4S-8 | Tous les sous-domaines en HTTPS avant HSTS `includeSubDomains` sur l'apex | Domaines |
-| J4R-1 | `.node-version` = 22 alors que D64 impose 24 ; secrets commercial/admin de staging exposés (à changer) | J5 / J8 |
+| J4R-1 | Secrets commercial/admin de staging exposés (à changer) | J8 |
 
 
 ---
@@ -210,6 +206,8 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 
 **Tests** : CA1 à CA10, CA22, CA65 à CA69 ; TM10 ; T2 étendu aux tables du Lot 1 ; Playwright : une inscription nominale par porte, avec la doublure Brevo.
 **Terminé quand** : sur `staging`, une marque et un créateur s'inscrivent de bout en bout, et les lignes de file attendues existent.
+
+- [x] Commit 1 (`SHA`) — dette J4 : J4S-2, J4S-4, J4S-5, J4T-1 déjà soldés par `0d5872d` (vérifiés) ; `.node-version` → 24 (J4R-1, D64).
 
 ### J6 — Déversement vers Brevo et Apollo (4 à 5 jours)
 
