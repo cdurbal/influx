@@ -83,13 +83,17 @@ contrôles. Tant que le secret est absent, le job affiche un avis et ne fait rie
 ## Étape 5 — Railway : projet et quatre services
 
 Créer le projet relié au dépôt GitHub, environnement **`staging`**, branche `main`, puis quatre
-services. Pour chacun : *Settings › Config-as-code* = le fichier indiqué, **« Wait for CI »
-activé**, variable `RAILPACK_NODE_VERSION=24` (Node ≥ 24.12 en production, D64 ; vérifier la
+services (noms exacts : `web` et `backoffice` joignent `api.railway.internal`). Pour chacun :
+*Root Directory* vide, **« Wait for CI » activé**, les réglages de build et de déploiement du fichier
+indiqué **saisis à la main** (*Custom Build Command*, *Watch Paths*, *Custom Start Command*,
+*Healthcheck Path* et *Timeout*, *Restart Policy*, *Draining*) : Railway refuse le config-as-code aux
+services créés depuis le 2026-08-28 (abandonné le 2026-12-01 ; passage à son *Infrastructure as Code*
+à arbitrer, `integrateur`), variable `RAILPACK_NODE_VERSION=24` (Node ≥ 24.12 en production, D64 ; vérifier la
 version dans le journal de construction).
 
 | Service | Fichier | Domaine public | Variables (et rien d'autre) |
 |---|---|---|---|
-| `api` | `deploy/railway/api.json` | **aucun** | `INFLUX_ENV=staging`, `PORT=3100`, `INFLUX_PUBLIC_SITE_URL`, `INFLUX_PUBLIC_BACKOFFICE_URL`, `INFLUX_API_INTERNAL_SECRET_WEB`, `INFLUX_API_INTERNAL_SECRET_BACKOFFICE`, `AUTH_TOKEN_SIGNING_SECRET`, `AUTH_THROTTLE_PEPPER`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (clé `influx_api` du projet de staging), `DATABASE_URL`, `AUTH_DATABASE_URL`, `OPS_DATABASE_URL`, `BREVO_MODE=redirect`, `BREVO_API_KEY` (compte Brevo **de staging**), `BREVO_SENDER_TRANSACTIONAL`, `BREVO_TEST_RECIPIENTS` (vos adresses internes) |
+| `api` | `deploy/railway/api.json` | **aucun** | `INFLUX_ENV=staging`, `PORT=3100`, `INFLUX_PUBLIC_SITE_URL`, `INFLUX_PUBLIC_BACKOFFICE_URL`, `INFLUX_API_INTERNAL_SECRET_WEB`, `INFLUX_API_INTERNAL_SECRET_BACKOFFICE`, `AUTH_TOKEN_SIGNING_SECRET`, `AUTH_THROTTLE_PEPPER`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (clé `influx_api` du projet de staging), `DATABASE_URL`, `AUTH_DATABASE_URL`, `OPS_DATABASE_URL`, `BREVO_MODE=redirect`, `BREVO_API_KEY` (compte Brevo **de staging**), `BREVO_API_BASE_URL=https://api.brevo.com/v3`, `BREVO_SENDER_TRANSACTIONAL`, `BREVO_TEST_RECIPIENTS` (vos adresses internes) |
 | `worker` | `deploy/railway/worker.json` | **aucun** | `INFLUX_ENV=staging`, `WORKER_DATABASE_URL`, `SYNC_MODE=dry_run`, `BREVO_MODE=disabled` |
 | `web` | `deploy/railway/web.json` | oui (`*.up.railway.app` en attendant les domaines) | `INFLUX_ENV=staging` (lu à la construction : `noindex` hors production, J4S-3), `INFLUX_API_INTERNAL_URL=http://api.railway.internal:3100`, `INFLUX_API_INTERNAL_SECRET` (= la valeur web) |
 | `backoffice` | `deploy/railway/backoffice.json` | oui, distinct de `web` | `INFLUX_ENV=staging`, `INFLUX_API_INTERNAL_URL` (idem), `INFLUX_API_INTERNAL_SECRET` (= la valeur backoffice) |
@@ -97,11 +101,13 @@ version dans le journal de construction).
 - Les secrets de 32 octets se génèrent avec
   `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"` : **une
   valeur différente pour chacun**, sinon l'API refuse de démarrer.
-- `DATABASE_CA_CERT` (EC-34) : seulement si l'API journalise une erreur de certificat au démarrage ;
-  y coller le certificat racine de *Database › SSL configuration*.
+- `DATABASE_CA_CERT` (EC-34) : **nécessaire** sur `api` et `worker` (sinon `SELF_SIGNED_CERT_IN_CHAIN`) ;
+  y coller le contenu PEM du certificat racine de *Database › SSL configuration*, qui est public.
 - `staging` n'est jamais indexé : `noindex` sur toutes les réponses du backoffice, et sur celles de
   `web` hors production ; ne pas publier les adresses (le domaine de production n'est jamais
   utilisé, D56).
+- Aucune variable `PORT` hors `api` : Railway fournit la sienne à `web` et `backoffice`.
+- Ne jamais faire de capture du *Raw Editor* : il affiche les secrets en clair.
 - Aucune clé Apollo en staging (`skipped_no_credentials`), aucune clé Brevo de production (D62).
 
 ## Étape 6 — Vérifications du développeur (« Terminé quand » du J4)
@@ -120,6 +126,7 @@ version dans le journal de construction).
      https://<web-staging>/api/v1/auth/request-code; done
    ```
 
+   Chaque réponse est un `200` uniforme : lire le champ `outcome` (`rate_limited` attendu).
    Les requêtes doivent être limitées **comme une seule adresse** (celle du poste) : les en-têtes
    forgés sont ignorés. Consigner le résultat dans `21` (ligne du J4).
 4. En-têtes R7 : `curl -sI https://<web-staging>/fr` et `curl -sI https://<backoffice-staging>/`
@@ -132,7 +139,8 @@ version dans le journal de construction).
 Variables **exportées dans le terminal**, jamais écrites dans un fichier :
 
 ```sh
-export INFLUX_STAGING_MIGRATION_URL='<connexion directe postgres de staging>'
+export INFLUX_STAGING_MIGRATION_URL='<chaîne Session pooler de l’étape 4>'
+export INFLUX_STAGING_DB_CA_FILE="$HOME/Downloads/prod-ca-2021.crt"  # certificat racine (EC-34)
 export SUPABASE_URL='https://<ref-staging>.supabase.co'
 export SUPABASE_SECRET_KEY='<une clé sb_secret_ de staging>'
 export STAGING_PUBLIC_BACKOFFICE_URL='https://<backoffice-staging>'
@@ -147,6 +155,7 @@ unset INFLUX_STAGING_MIGRATION_URL SUPABASE_SECRET_KEY
 - Mots de passe et liens d'activation (72 h) sont **tirés au hasard et affichés une seule fois** :
   les ranger aussitôt dans le gestionnaire de mots de passe. Le script refuse la production et toute
   base sans le marqueur de l'étape 2.
+- Ne transmettre à personne que la première ligne de la sortie : la suite contient des secrets.
 
 ## Procédure — Retour à la version précédente (02 §20.7 point 5)
 

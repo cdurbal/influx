@@ -644,7 +644,7 @@
 | 330 | 13 | 9. Questions ouvertes | RG116–RG130 |
 | 343 | 11 | 10. Tokens proposés |  |
 
-## 21-plan-de-developpement.md (~12k tokens)
+## 21-plan-de-developpement.md (~13k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
