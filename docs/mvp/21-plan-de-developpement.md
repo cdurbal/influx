@@ -2,7 +2,7 @@
 
 > **Date :** 2026-09-25 (allégé le 2026-09-29) · **Rédigé par :** Claude Code, à la demande du fondateur
 > **Public :** le développeur (ou l'agent `dev-react-node`) qui construit le produit réel sur `main`.
-> **Statut :** feuille de route active. **Les journaux d'exécution, revues de sécurité et écarts clos des jalons J0, J1, J2 et J3 (commits 1 à 8) sont archivés dans `docs/mvp/archives/21-journal-j0-j3-archive.md` — les agents IA ne doivent PAS lire ce fichier d'archive par défaut.**
+> **Statut :** feuille de route active. **Les journaux d'exécution, revues de sécurité et écarts clos des jalons J0 à J3 sont archivés dans `docs/mvp/archives/21-journal-j0-j3-archive.md`, ceux du J4 dans `docs/mvp/archives/21-journal-j4-archive.md` — les agents IA ne doivent PAS lire ces archives par défaut.**
 > **Ce document ne remplace aucune spécification.** En cas d'écart, `CLAUDE.md` puis `docs/mvp/00` à `20` font foi.
 
 ---
@@ -26,8 +26,8 @@
 | **J1** | 0 | Squelette `apps/api`, `apps/backoffice`, `packages/contracts`, passe-plat | ✅ **Terminé & revu** (`655b857`) | 3 j |
 | **J2** | 0 | Base socle : schémas, rôles, RLS, registre, tests T2 T3 T4 T6 T16 | ✅ **Terminé & revu** (`8e6bbfb`) | 4-5 j |
 | **J3** | 0 | Authentification : code membre (D43), sessions opaques, backoffice mot de passe + TOTP | ✅ **Terminé** (revue groupée 2026-10-05 : push autorisé ; T-1 corrigé ; push en attente du formatage de `design-proposals/`) | 4-5 j |
-| **J4** | 0 | `staging` sur Railway + Supabase, migrations par la CI, collecte d'erreurs (D60) | 🔶 **Code terminé** (commits 1 à 5) ; revue groupée en cours ; mise en ligne de `staging` en attente des comptes (runbook) | 3-4 j |
-| **J5** | 1 | Inscription marque et créateur, transaction unique, file alimentée | ⏳ À faire | 4-5 j |
+| **J4** | 0 | `staging` sur Railway + Supabase, migrations par la CI, collecte d'erreurs (D60) | ✅ Terminé (2026-10-07) | 3-4 j |
+| **J5** | 1 | Inscription marque et créateur, transaction unique, file alimentée | ▶️ En cours — fiche `jalons/j5-fiche.md` | 4-5 j |
 | **J6** | 1 | Worker, connecteurs Brevo et Apollo, qualification, garde-fous | ⏳ À faire (**1er usage démontrable**) | 4-5 j |
 | **J7** | 1 | Retours Brevo (désinscriptions, rebonds), espace membre minimal | ⏳ À faire | 3-4 j |
 | **J8** | 1 | Backoffice v0 : inscrits, états de synchronisation, rejeu, réglages Apollo | ⏳ À faire | 4-5 j |
@@ -89,9 +89,9 @@
 
 ---
 
-## 3. Écarts actifs pour les jalons restants (J3 fin à J9)
+## 3. Écarts actifs pour les jalons restants (J5 à J9)
 
-> Les écarts déjà tranchés et implémentés (EC-1 à EC-7, EC-13, EC-16 à EC-29, EC-35 à EC-42, EC-46 à EC-55) figurent dans l'archive `docs/mvp/archives/21-journal-j0-j3-archive.md`. Le tableau ci-dessous ne conserve que ceux qui s'appliquent aux commits restants du J3 (9 à 12) et aux jalons J4 à J9.
+> Les écarts déjà tranchés et implémentés figurent dans les archives `archives/21-journal-j0-j3-archive.md` (EC-1 à EC-7, EC-13, EC-16 à EC-29, EC-35 à EC-42, EC-46 à EC-57) et `archives/21-journal-j4-archive.md` (EC-32 à EC-34, EC-58 à EC-61). Le tableau ci-dessous ne conserve que ceux qui restent à appliquer.
 
 | # | Écart / Décision applicable | Règle retenue pour l'implémentation | Jalon |
 |---|---|---|---|
@@ -105,14 +105,9 @@
 | **EC-22** | Route de santé publique de `apps/web` (D60) | `src/app/health/route.ts`, réponse `200` ou `503` à corps vide fondée sur `GET /v1/status`, exclue du `matcher` du proxy | J9 |
 | **EC-30** | Création du compte à l'inscription | Fonction `SECURITY DEFINER` `identity.provision_account(...)` (propriétaire `influx_identity_definer`, `EXECUTE` à `influx_auth` seul, rôle limité à `advertiser` ou `creator`). Au J3 (commit 11), les comptes de démo sont créés par script sous le rôle de migration | J3 (11), J5 |
 | **EC-31** | Lecture du registre par un agent (`03` C(38)) | Au J8, lecture par l'agent de l'historique d'un objet consulté par une fonction filtrant sur `subject_type` et `subject_id` et journalisant la consultation | J8 |
-| **EC-32 / 37** | Contrôle CI des noms et de l'ordre des migrations | Format `^[0-9]{4}_[a-z0-9_]+\.sql$` et aucun nouveau fichier dont le numéro précède le plus grand numéro existant | J4 |
-| **EC-33** | Bornes des rôles de connexion (`rolconnlimit`, `rolconfig`) | Valeurs d'attente posées dans `0001` ; à ajuster au J4 d'après la taille de la grappe Supavisor (`staging`) | J4 |
-| **EC-34** | Certificat TLS de Supavisor | Variable `DATABASE_CA_CERT` (certificat racine Supabase) passée en `ssl.ca` si requis ; constat sur `staging` au J4 | J4 |
 | **EC-43** | Signal « nouveau navigateur » (remplace le pays au MVP) | `country_code` nul au MVP ; signal « navigateur inconnu » (30 jours) sur `user_agent_summary` (`05` RG141 à RG146), e-mail `auth.new_device` (J7) et alerte B-7 (J8) | J7, J8 |
 | **EC-44** | Alertes compte de secours (MFA-10) et code de secours (MFA-4) | Au J3 (commit 10) : ligne d'audit (`agent.break_glass_login` / `agent.recovery_code_consumed`) et `pino` `error` sans donnée ; e-mail d'alerte par la file au J6 | J3 (10), J6 |
 | **EC-45** | Amorçage des comptes internes et jeton d'enrôlement (G-1) | Au J3 (commit 11) : script local uniquement (`example.test`), refusé hors hôte de bouclage, pose un jeton d'enrôlement fixe de démo (`mfa_enrollment_tokens`). Table d'invitations au J8 | J3 (10-11), J8 |
-| **EC-56** | Facteurs TOTP non vérifiés chez GoTrue | Au commit 10, 1re requête d'enrôlement (après débit, mot de passe et jeton d'enrôlement) : tout facteur vérifié ⇒ refus uniforme + `agent.unexpected_mfa_factor` ; suppression par `admin.mfa` de **tous** les facteurs TOTP non vérifiés avant d'inscrire sous un nom constant ; à la 2e requête, `factorId` lu depuis `admin.mfa.listFactors` (jamais du corps) | J3 (10) |
-| **EC-57** | Plancher (12 car.) et plafond (72 octets UTF-8) du mot de passe | Garde locale avant tout appel GoTrue (et dans `platform/supabase.ts` `verifyPassword`) : < 12 caractères ou > 72 octets UTF-8 ⇒ `rejected` sans appel à GoTrue ; script du commit 11 entre 12 car. et 72 octets | J3 (10-11) |
 
 ---
 
@@ -135,63 +130,31 @@
 | # | Correctif attendu | Échéance |
 |---|---|---|
 | J3S-1 | R : réserver la tentative avant GoTrue (5 / 15 min + portée IP EC-47) ; test « 20 R parallèles ⇒ ≤ 5 appels » | Avant la 1re action B-5 (J8) |
-| J3S-2 | Comptes de démo sur `staging` : mot de passe et jeton tirés au hasard à chaque exécution, refus en production | J4 |
-| J3S-3 | Procédure écrite de suppression d'un facteur TOTP non épinglé | J4 |
 | J3S-4 | Fraîcheur R vérifiée dans la transaction de l'action ; test « B-5 sans R ⇒ refus » | J8 |
 | J3S-5 | Brancher HIBP (`newPasswordVerdict`) sur invitation et changement de mot de passe (bloquant avant mise en ligne) | J8 |
 | J3S-6 | Bandeau `?secours=N` dérivé de `GET /v1/bo/me` | J8 |
 | J3S-7 | CSP backoffice `img-src 'self' blob:` | J9 |
 | J3S-8 | Alerte `security.member_code_targeted` (≥ 25 échecs / 24 h), sans blocage | J9 |
-| J3S-9 | Étendre I-4 à `elevated-operations.ts`, `relay-client.ts` et au passe-plat | J4 |
 
 Rappels : G-1 point 4 au J4 ; EC-44 (e-mail d'alerte) au J6 ; G-1 point 2 par l'invitation au J8 ; B-1 branché et EC-38 réglé sur les projets hébergés avant la mise en ligne.
 
-### J4 — `staging`, déploiement et collecte de surveillance (3 à 4 jours)
+### J4 — `staging`, déploiement et collecte de surveillance (✅ Terminé le 2026-10-07)
 
-1. **Supabase `staging`** : réglages GoTrue du J3 (`supabase config push`, fournisseur Email actif et inscription publique fermée, clés de signature asymétriques ES256, clés héritées `anon`/`service_role` désactivées, clé `sb_secret_…`, désactivation de la clé *publishable* si possible G-1 point 4, option `security_sb_forwarded_for_enabled` EC-38), migrations appliquées par la CI avec `DIRECT_DATABASE_URL` (secret GitHub `staging`, **jamais** sur Railway, CI-5), mots de passe des rôles posés, seed.
-2. **Railway `staging`** : quatre services (`web`, `backoffice`, `api`, `worker`) ; `api` **sans domaine public** ; chemins surveillés incluant `packages/**` et `pnpm-lock.yaml` ; option « attendre la CI » activée ; contrôles de santé ; variables posées **sur le seul service qui en a besoin** (skill `env-secrets`) ; `staging` protégé et non indexé (I-6).
-3. **Collecte D60** (`02` §20.5) : schéma `ops` (groupes d'erreurs, occurrences, métriques à la minute), rôle d'écriture seule `influx_ops` + `influx_ops_login` (EC-1, variable `OPS_DATABASE_URL`), capture des erreurs serveur, histogrammes de durée par route, route `POST /v1/ops/client-errors` pour les espaces connectés. Les alertes, la sonde et l'écran « Santé technique » viennent au J9.
-4. **Procédure écrite de retour à la version précédente** (`02` §20.7, point 5).
-5. **En-têtes de sécurité exigés avant l'exposition de `staging` (R7)**, sur `web` et `backoffice` : `X-Content-Type-Options: nosniff` ; `X-Frame-Options: DENY` et `frame-ancestors 'none'` ; `Referrer-Policy` (`strict-origin-when-cross-origin` pour `web`, `no-referrer` pour le backoffice) ; `Strict-Transport-Security` (`03` §6.5). La **CSP à nonce** reste au J9.
-6. **Constat de l'adresse du client (A5, EC-21) et du multiplexeur (EC-34, V3)** : requêtes vers `staging` avec `X-Real-IP` et `X-Forwarded-For` forgés (doivent déclencher le plafond par IP comme une seule adresse) ; écriture réelle depuis navigateur acceptée (A4) ; vérification `session_user = influx_app` à travers Supavisor.
+- **J4 (`6bc4aff` → `6aa651a`)** : contrôle CI des migrations (immuabilité, EC-32/37), schéma `ops` et collecte D60 (`0016`, E-6 signée), en-têtes R7, job « Migrate staging », `deploy/railway/*.json`, runbook `runbooks/staging.md`. `staging` en ligne le 2026-10-07, constats A5, R7, `session_user` et EC-33 conformes. EC-58 à EC-61 acceptés. Détail des commits, de la revue et de la vérification `testeur` : `archives/21-journal-j4-archive.md`.
 
-**Terminé quand** : un commit sur `main` passe la CI, migre `staging` puis y est déployé ; les quatre comptes de démonstration se connectent sur `staging` ; les en-têtes de R7 sont présents et le constat A5 est consigné.
+**Tickets reportés de la revue J4** :
 
-#### État des commits du J4
+| # | Correctif attendu | Échéance |
+|---|---|---|
+| J4S-2 | `scrub.ts` / `recorder.ts` : appliquer le retrait `QUOTED` au message **d'occurrence** ; test T13 avec une valeur nominative | J5 |
+| J4S-4 | `check-security-review.ts` : ajouter à `SECURITY_FILES` `.github/workflows/**`, `packages/test-kit/scripts/check-*.ts`, `apps/*/next.config.ts`, `deploy/railway/**` | J5 |
+| J4S-5 | `seed-staging-demo-accounts.ts` : exiger que la référence de projet de `SUPABASE_URL` soit celle de `INFLUX_STAGING_MIGRATION_URL` | J5 |
+| J4T-1 | Tests des plafonds par adresse (30/min) et par instance (300/min) de `client-errors` (`routes.ts`) | J5 |
+| J4S-6 | `client-errors` : affichage texte strict, plafond de nouveaux groupes navigateur par compte et par heure, alerte « nouveau groupe » non déclenchée par le navigateur seul | J9 |
+| J4S-7 | Aucun nom ni pseudo dans un chemin des espaces connectés (sinon modèle de route Next dans le collecteur) | Lot 2 |
+| J4S-8 | Tous les sous-domaines en HTTPS avant HSTS `includeSubDomains` sur l'apex | Domaines |
+| J4R-1 | `.node-version` = 22 alors que D64 impose 24 ; secrets commercial/admin de staging exposés (à changer) | J5 / J8 |
 
-- [x] Commit 1 (`6bc4aff`) — CI : noms, ordre **et immuabilité** des migrations (EC-32/37 : une migration appliquée n'est jamais modifiée ni supprimée) ; I-4 étendu à `elevated-operations.ts`, au passe-plat et à `relay-client.ts` (J3S-9).
-- [x] Commit 2 (`84a09b4`) — Migration `0016` : schéma `ops`, rôles `influx_ops` / `influx_ops_login` (E-6 **proposée**, à signer), `OPS_DATABASE_URL` ; le jeu de données T2 est chargé par la mise en place globale (cause racine de T-1).
-- [x] Commit 3 (`443bb14`) — Domaine `ops` : nettoyage unique (§20.8), empreintes, 10 occurrences / empreinte / minute, histogrammes, santé du processus, vidage toutes les 10 s hors requête ; `POST /v1/ops/client-errors`.
-- [x] Commit 4 (`16b4f21`) — En-têtes R7 sur `web` et `backoffice` ; collecteur navigateur des seuls espaces connectés.
-- [x] Commit 5 (`6aa651a`) — Job CI « Migrate staging » (environnement GitHub `staging`), `deploy/railway/*.json`, `DATABASE_CA_CERT` (EC-34), comptes de démo de staging à secrets aléatoires (J3S-2), mots de passe des rôles (SCRAM) ; runbook `docs/mvp/runbooks/staging.md` (procédure de retour arrière, procédure J3S-3).
-- [x] Mise en ligne de `staging` par le fondateur (runbook, étapes 1 à 5), puis constats A5, R7, `session_user` et EC-33 (étape 6) et comptes de démo (étape 7). 2026-10-07 : en ligne, comptes de démo créés, commercial connecté ; R7 conforme ; A5 conforme (26 adresses forgées plafonnées comme une seule). Admin et membre connectés ; domaine public d’`api` supprimé ; `session_user` vérifié (3 pools) ; EC-33 constaté sans migration (Supavisor 15 par rôle, pools clients 10/5/4/2, plafonds de rôle jamais atteints ; à recalibrer avec la taille de calcul de production). Écarts : config-as-code Railway refusé aux nouveaux services (saisie manuelle), `.node-version` = 22 (D64 : 24), secrets commercial/admin exposés (à changer au J8).
-
-Écarts du J4 (choix conservateurs, à valider par la revue) : **EC-58** limitation de débit de `client-errors` en mémoire, par instance (une seule instance au MVP) ; **EC-59** le worker n'écrit pas encore dans `ops` (droits nommés d'`influx_worker` avec sa première opération, J6) ; **EC-60** l'adresse `/health` reste sans vérification de la base (la sonde du J9 la porte) ; **EC-61** `influx_ops` lit deux colonnes d'`ops.error_groups` (`fingerprint`, `occurrence_count`), nécessaires à l'agrégation d'un groupe.
-
-#### Revue de sécurité groupée de fin de J4 — 2026-10-06
-
-Périmètre : `6bc4aff`, `84a09b4`, `443bb14`, `16b4f21`, `6aa651a`, `3f85f5b`. **E-6 `ops.record_telemetry` signée le 2026-10-06** avec `0016` (rôles sans attribut, appartenance `INHERIT FALSE`/`SET TRUE`, droits colonne par colonne, RLS forcée, aucune lecture d'occurrence ni de métrique, aucune portée métier, garde de mise à jour) ; **EC-61 accepté** (`fingerprint`, `occurrence_count` : requis par `ON CONFLICT`, aucune donnée personnelle) ; EC-58, EC-59, EC-60 acceptés.
-
-| # | Gravité | Constat | Correction attendue | Échéance |
-|---|---|---|---|---|
-| J4S-1 | **Bloquant pour l'étape 4 du runbook** (pas pour le push : le secret n'existe pas encore) | `ci.yml:179` : `DIRECT_DATABASE_URL` (rôle `postgres` de staging) au niveau du job, donc visible de `pnpm install` (l. 195) ; l'environnement `staging` n'est pas restreint à `main` : une PR interne qui retire le `if` lit le secret | Déplacer `env:` sur la seule étape « Migrate staging » ; runbook étape 4 : *Deployment branches* = `main` seulement (et relecteur requis si possible) | Avant la création du secret |
-| J4S-2 | Important | `scrub.ts:23` / `recorder.ts:282` : le message **d'occurrence** garde les valeurs entre guillemets (V8 : `Cannot create property … on string '<valeur>'`, `JSON.parse` côté navigateur) ; seul le message de groupe les retire. Un nom ou un pseudo peut entrer dans `ops.error_occurrences` | Appliquer le retrait `QUOTED` au message d'occurrence (ou stocker le message normalisé) ; test T13 avec une valeur nominative | J5 |
-| J4S-3 | Important | `apps/web/next.config.ts:11` : aucun `X-Robots-Tag: noindex` hors production ; staging `web` exposé sur `*.up.railway.app`, protégé par la seule non-publication de l'adresse (J4 point 2, I-6) | `noindex` sur `web` quand `INFLUX_ENV ≠ production` (lu à la construction) ; restriction d'accès I-6 au Lot 1 comme prévu | Avant l'étape 5 |
-| J4S-4 | Important | `check-security-review.ts:31` : I-4 ne couvre ni `.github/workflows/**`, ni `packages/test-kit/scripts/check-*.ts`, ni les en-têtes (`apps/*/next.config.ts`), ni `deploy/railway/**` : le contrôle peut être affaibli sans marqueur | Ajouter ces chemins à `SECURITY_FILES` | J5 |
-| J4S-5 | Important | `seed-staging-demo-accounts.ts:69` : le marqueur est vérifié sur la base, pas sur `SUPABASE_URL` ; une clé de production collée par erreur créerait des comptes Auth en production | Exiger que la référence de projet de `SUPABASE_URL` soit celle de `INFLUX_STAGING_MIGRATION_URL` | J5 |
-| J4S-6 | À surveiller | `client-errors` : un membre écrit un texte libre (500 car.) dans `ops`, jusqu'à 10 nouveaux groupes / min / compte, 300 / min / instance | J9 : affichage texte strict à l'écran « Santé technique », plafond de **nouveaux** groupes navigateur par compte et par heure, alerte « nouveau groupe » non déclenchée par le navigateur seul | J9 |
-| J4S-7 | À surveiller | `error-collector.ts:40` : `pathname` réduit par `routeModelOf`, qui conserve un segment non numérique ≤ 40 car. (un pseudo dans une URL future y entrerait) | Règle : aucun nom ni pseudo dans un chemin des espaces connectés ; sinon envoyer le modèle de route Next | Lot 2 |
-| J4S-8 | À surveiller | HSTS `includeSubDomains` sur 2 ans : sans effet sur `*.up.railway.app`, engageant sur le domaine de production | `integrateur` : tous les sous-domaines en HTTPS avant HSTS sur l'apex | Domaines |
-
-Vérifiés sans constat : schéma strict et plafond 16 Kio de `client-errors`, session exigée par surface (aal2 au backoffice), liste fermée `SHARED_ROUTES` ; retenue des messages hors `ApiError`/erreurs moteur ; aucune lecture en retour (`RETURNING`) ; en-têtes R7 (CSP sans nonce reportée au J9) ; immuabilité et ordre des migrations, échec fermé si la base est absente ; dossier de migration sans `config.toml` du dépôt ; vérificateurs SCRAM, aléa de 256 bits ; secrets de démo aléatoires affichés une fois, refus en production ; `DATABASE_CA_CERT` (certificat seul, `rejectUnauthorized`) ; `api` sans domaine public.
-
-**Verdict : push autorisé sous conditions.** Aucun point bloquant pour le push ; J4S-1 bloque l'étape 4 du runbook (création de `DIRECT_DATABASE_URL`) jusqu'à sa correction ; J4S-3 avant l'étape 5. `84a09b4` et `443bb14` portent `security-reviewed: 2026-10-06` (exigé par I-4) ; recommandé aussi sur `6bc4aff` (script I-4) et `16b4f21` (en-têtes), non exigé par le contrôle.
-
-#### Vérification de fin de J4 par `testeur` — 2026-10-06
-
-`db reset` + `0016` appliquée, `check` vert (format/typecheck/lint/test/build/artifacts), **324/324** tests `db` **trois fois d'affilée** (déterminisme 18 §1.3), 110 tests `web` et 24 `backoffice` verts (dont les gardes R7). `check-migrations.ts` : ok. `docs:index` : divergent avant cette section (corrigé ici). `check-security-review.ts a2dfaf1 HEAD` échoue encore sur `84a09b4` et `443bb14` : la revue groupée ci-dessus affirme qu'ils « portent `security-reviewed: 2026-10-06` », mais **aucun des deux messages de commit ne porte le marqueur** — à amender avant de considérer I-4 satisfaite (les commits ne sont pas poussés). Job « Migrate staging » : `needs` référence deux jobs existants, `supabase db push --db-url/--workdir/--yes` valide (CLI 2.117, testé en local contre une URL factice) ; confirme J4S-1 (`DIRECT_DATABASE_URL` au niveau du job, lu par `pnpm install`). Couverture `ops` : T13.6/ops-schema/ops-scrub couvrent la rédaction des adresses, codes, jetons, piles et le plafond par empreinte et par compte ; **confirme J4S-2** (`scrub.ts` : `QUOTED` n'est appliqué qu'à `normalizeMessage`, pas à `scrubText` — un message d'occurrence peut garder une valeur citée) et relève un **manque non signalé par la revue** : les plafonds par adresse (30/min) et par instance (300/min) de `routes.ts` n'ont aucun test, seul le plafond par compte (10/min) est vérifié. Agrégation des histogrammes entre instances et purge : pas de test, à raison — consommateur (écran santé) en J9, rétention sous veto RGPD (Lot 6).
-
-**Prêt à livrer : non**, un seul point bloquant — poser `security-reviewed: 2026-10-06` sur `84a09b4` et `443bb14` (commits locaux, non poussés) avant de clore J4 ; le reste (J4S-1, J4S-2, le manque de test sur les plafonds d'adresse/instance) est accepté pour J5 comme déjà planifié par la revue groupée.
 
 ---
 
@@ -333,9 +296,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 
 | Avant | Lire uniquement |
 |---|---|
-| **Fin J3** (commits 9–12) | Ce document §4 (J3) ; `02` §18 ; `05` §F et §G ; `17b` §3.14 |
-| **J4** | Ce document §4 (J4) ; `02` §11, §12, §19, §20 ; skills `railway-deploy`, `env-secrets` |
-| **J5** | `05` §A à §E, §H, §L ; `17` §2.5, §2.6, §3 ; skill `design-system-influx` |
+| **J5** | **`jalons/j5-fiche.md` d'abord** (sections et lignes exactes) ; `05` §A à §E, §H, §L ; `17` §2.5, §2.6, §3 ; skill `design-system-influx` |
 | **J6** | `02` §6 et §11 ; `05` §I ; `16` §H, §J, §M ; skills `lead-pipeline`, `brevo-campaign`, `apollo-lead-sync` |
 | **J7** | `05` §F (RG54 à RG58), §J ; `16` §I et §M6 ; `17` §6 |
 | **J8** | `05` §K ; `15` §C, §F ; `17b` §3.11 et §3.13 ; skill `backoffice-ops` |
