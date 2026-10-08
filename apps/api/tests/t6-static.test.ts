@@ -75,6 +75,7 @@ describe("T6.1: A = U and U ⊆ P", () => {
     const expected: Readonly<Record<string, string>> = {
       "identity.request_code": "auth",
       "support.report_delivery_issue": "auth",
+      "identity.read_published_terms": "auth",
       "identity.verify_code": "auth",
       "identity.complete_signup": "auth",
       "identity.backoffice_sign_in": "auth",
@@ -144,6 +145,7 @@ describe("T6.3: separation by process, on the import graph", () => {
       "AUTH_DATABASE_URL",
       "OPS_DATABASE_URL",
       "identity.request_code",
+      "identity.read_published_terms",
       "identity.verify_code",
       "identity.complete_signup",
       "identity.backoffice_sign_in",

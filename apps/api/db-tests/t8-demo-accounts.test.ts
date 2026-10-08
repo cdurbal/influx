@@ -29,6 +29,7 @@ import {
   seedDemoAccounts,
   type DemoAccount,
 } from "../scripts/demo-accounts.ts";
+import { ensureInForce } from "../scripts/terms-publication.ts";
 import {
   closeDatabase,
   createApiDatabase,
@@ -89,6 +90,15 @@ beforeAll(async () => {
     { info: () => undefined, warn: () => undefined, error: () => undefined },
   );
   double = await startBrevoDouble();
+  // The members accept the terms of service in force (21 EC-62): the data set of T2 has a French
+  // version; the English draft is published when no English version is in force yet.
+  for (const locale of ["fr", "en"] as const) {
+    await ensureInForce(migrationRole(), {
+      document: "terms_of_service",
+      locale,
+      label: "draft-1",
+    });
+  }
 });
 
 afterAll(async () => {
@@ -128,7 +138,7 @@ describe("J3 commit 11: the demonstration accounts", () => {
     ).toBe(true);
   });
 
-  it("creates four accounts, roles, the fictitious terms, enrollment tokens, and nothing twice", async () => {
+  it("creates four accounts, roles, acceptances of the terms in force, enrollment tokens, and nothing twice", async () => {
     const accounts = demoAccounts(newTag());
     expect(await seedDemoAccounts(migrationRole(), gotrueOf(), accounts)).toBe(
       "created",

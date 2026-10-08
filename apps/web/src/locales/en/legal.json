@@ -1,0 +1,15 @@
+{
+  "metaTitle": "{title} — INFLUX",
+  "brand": "INFLUX",
+  "documents": {
+    "terms_of_service": "Terms of Service",
+    "privacy_policy": "Privacy Policy",
+    "cookie_policy": "Cookie Policy"
+  },
+  "loading": "Loading the document…",
+  "version": "Version: {label}",
+  "effectiveFrom": "In force since {date}",
+  "fallback": "This document is not yet available in your language: the English version is shown.",
+  "unavailable": "This document cannot be displayed right now. Please try again in a few moments.",
+  "retry": "Try again"
+}

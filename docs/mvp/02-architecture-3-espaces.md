@@ -506,6 +506,12 @@ que l'outil réclame la propriété du schéma ».
 | `withUserTransaction(request, fn)` | `influx_advertiser` · `influx_creator` · `influx_agent` · `influx_admin`, via `SET LOCAL ROLE` | **Toute requête déclenchée par un utilisateur**, membre ou agent | **Appliquée**, avec les réclamations de l'utilisateur |
 | `withElevatedTransaction(operation, fn)` | `influx_auth` · `influx_worker` · `influx_privacy`, **aucun avec `BYPASSRLS`**, via `SET LOCAL ROLE` depuis **le rôle de connexion propre à chacun** (`influx_auth_login`, `influx_worker_login`, `influx_privacy_login` au Lot 5) | **Uniquement** les cinq opérations de la liste fermée E-1 à E-5 du document `03` §P7 | **Appliquée aussi** : ces rôles ont des `GRANT` et des politiques **nommés table par table** |
 
+   *Note du 2026-10-08 (`21` EC-62) : la lecture sans compte des documents publiés
+   (`GET /v1/terms/current`) n'ouvre **pas** de troisième chemin. C'est le motif
+   `identity.read_published_terms` de E-1 (`influx_auth`), qui n'atteint la base que par la fonction
+   `SECURITY DEFINER` `identity.terms_in_force()` (`0108`) ; `influx_auth` n'a aucun droit direct sur
+   `identity.terms_versions`.*
+
    **Ce qui a changé et pourquoi.** La version initiale prévoyait un `withServiceTransaction` opérant
    sous le rôle Postgres `service_role`, qui porte `BYPASSRLS`. C'est refusé, et l'argument est
    imparable : **un rôle `BYPASSRLS` employé à l'exécution rend tous les tests de RLS facultatifs sans

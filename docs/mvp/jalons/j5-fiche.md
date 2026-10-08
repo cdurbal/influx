@@ -70,6 +70,19 @@ consentement enregistré (RG32, RG33) ; aucun taux ni montant.
 - `supabase/migrations/` : dernière migration `0016` ; numérotation Lot 1 en `01xx` (EC-37).
 - `packages/contracts` : schémas zod de requête **et** de réponse.
 
+## À traiter en fin de jalon (issu du commit 3)
+
+- `architecte` : texte des pages légales chargé côté navigateur, pas en SSR (le passe-plat épinglé
+  interdit à une page serveur d'appeler l'API, `02` §15.3) ; `noindex` des `draft-*` posé côté client.
+  Garde git de `db:publish-terms` stricte sur `staging` seulement (avertissement en local).
+- `expert-cybersecurite` : motif E-1 `identity.read_published_terms`, `relay-client.ts` (web et
+  backoffice) acceptant un paramètre `query` borné, journal de l'échec fermé.
+- `testeur` : jeu T2 et sonde d'insertion rebasés sur les versions en vigueur ; `tm10-terms-in-force`
+  façonne la table sous le rôle de migration dans une transaction annulée (dérogation `18` T2 règle 5).
+- Passe-plat : `ETag`/304 non relayés, « non publié » et « API indisponible » fondus côté web.
+- **Staging** : publier les six brouillons (`db:publish-terms --target=staging`) ; d'ici là la route
+  échoue fermé (500) sur `demo-fictive-1`. Textes `draft-1` : fondateur puis juriste.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche.

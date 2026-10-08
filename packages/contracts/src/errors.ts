@@ -9,6 +9,8 @@ export const ERROR_CODES = [
   "unauthenticated",
   "forbidden",
   "not_found",
+  // No version of the public document is in force, in the language asked nor in English (21 EC-62).
+  "terms_not_published",
   "conflict",
   "payload_too_large",
   "rate_limited",

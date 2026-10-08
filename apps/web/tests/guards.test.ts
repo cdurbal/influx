@@ -179,7 +179,7 @@ describe("Additional guards", () => {
     // Every translation file, not only landing.json (02 §13.1, garde annexe).
     const files = readdirSync(path.join(SRC, "locales", "fr")).sort();
     expect(readdirSync(path.join(SRC, "locales", "en")).sort()).toEqual(files);
-    expect(files).toEqual(["auth.json", "landing.json"]);
+    expect(files).toEqual(["auth.json", "landing.json", "legal.json"]);
     for (const file of files) {
       const read = (locale: string) =>
         JSON.parse(
@@ -195,9 +195,13 @@ describe("Additional guards", () => {
       path.join(WEB_ROOT, BROWSER_RELAY_CLIENT_FILE),
       "utf8",
     );
-    // Same origin only: one fetch, on the relay prefix, never an absolute URL.
+    // Same origin only: one fetch, on the relay prefix, never an absolute URL. The query (J5,
+    // EC-62) is made of plain characters only: nothing is percent-encoded.
     expect(source.match(/\bfetch\(/g)).toHaveLength(1);
-    expect(source).toMatch(/fetch\(`\$\{RELAY_PREFIX\}\$\{path\}`/);
+    expect(source).toMatch(/fetch\(`\$\{RELAY_PREFIX\}\$\{path\}\$\{search\}`/);
+    expect(source).toContain(
+      "const QUERY_PART_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;",
+    );
     expect(source).toMatch(/credentials: "same-origin"/);
     expect(source).toMatch(/redirect: "error"/);
   });

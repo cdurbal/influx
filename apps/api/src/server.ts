@@ -434,6 +434,12 @@ export function buildServer(
     ...(options.identity?.codeRequestFloorMs === undefined
       ? {}
       : { codeRequestFloorMs: options.identity.codeRequestFloorMs }),
+    ...(options.identity?.termsLookup === undefined
+      ? {}
+      : { termsLookup: options.identity.termsLookup }),
+    ...(options.identity?.legalContentRoot === undefined
+      ? {}
+      : { legalContentRoot: options.identity.legalContentRoot }),
   });
   // Authentication of the backoffice (21 §4, J3 commit 10).
   registerBackofficeAuthRoutes(app, {

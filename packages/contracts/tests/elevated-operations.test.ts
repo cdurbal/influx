@@ -12,13 +12,14 @@ describe("elevated operations (03 P7, 18 T6.1)", () => {
     }
   });
 
-  it("signs exactly the motifs of the entries of 03 P7 (EC-5; E-6 at J4)", () => {
+  it("signs exactly the motifs of the entries of 03 P7 (EC-5; E-6 at J4; EC-62 at J5)", () => {
     expect([...SIGNED_ELEVATED_OPERATIONS].sort()).toEqual(
       [
         "identity.backoffice_enroll_totp",
         "identity.backoffice_reauthenticate",
         "identity.backoffice_sign_in",
         "identity.complete_signup",
+        "identity.read_published_terms",
         "identity.request_code",
         "identity.verify_code",
         "leads.drain_outbox",
@@ -28,7 +29,7 @@ describe("elevated operations (03 P7, 18 T6.1)", () => {
         "support.report_delivery_issue",
       ].sort(),
     );
-    expect(new Set(SIGNED_ELEVATED_OPERATIONS).size).toBe(11);
+    expect(new Set(SIGNED_ELEVATED_OPERATIONS).size).toBe(12);
   });
 
   it("recognises the operations with a caller, and nothing else", () => {

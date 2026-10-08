@@ -14,7 +14,8 @@
     "test:unit": "vitest run --project unit",
     "db:demo-accounts": "node scripts/seed-demo-accounts.ts",
     "test:db": "vitest run --project db --reporter=default --reporter=json --outputFile.json=test-results/db-report.json && node scripts/check-db-case-floors.ts",
-    "db:staging-demo-accounts": "node scripts/seed-staging-demo-accounts.ts"
+    "db:staging-demo-accounts": "node scripts/seed-staging-demo-accounts.ts",
+    "db:publish-terms": "node scripts/publish-terms.ts"
   },
   "dependencies": {
     "@fastify/cookie": "11.1.2",

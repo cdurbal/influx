@@ -342,7 +342,7 @@ NOCREATEDB NOCREATEROLE NOREPLICATION`.
 | `influx_app` | `LOGIN NOINHERIT` | les **quatre rôles métier seuls**, `WITH INHERIT FALSE, SET TRUE` | `apps/api`, `withUserTransaction` (`DATABASE_URL`). **Unique droit propre** : `USAGE` sur `identity` et `EXECUTE` sur `identity.resolve_session()` |
 | `influx_advertiser` · `influx_creator` · `influx_agent` · `influx_admin` | `NOLOGIN` | aucun | Pris par `SET LOCAL ROLE`, après lecture du rôle métier en base |
 | `influx_auth_login` | `LOGIN NOINHERIT` | `influx_auth` **seul**, `WITH INHERIT FALSE, SET TRUE` | `apps/api`, `withElevatedTransaction`, E-1 et E-2 (`AUTH_DATABASE_URL`) |
-| `influx_auth` | `NOLOGIN` | aucun | E-1, E-2 ; droits de table au J3 (`0108`) |
+| `influx_auth` | `NOLOGIN` | aucun | E-1, E-2 ; droits de table au J3 (`0012` à `0015`) |
 | `influx_worker_login` | `LOGIN NOINHERIT` | `influx_worker` **seul**, `WITH INHERIT FALSE, SET TRUE` | worker, `withElevatedTransaction`, E-3 et E-4 (`WORKER_DATABASE_URL`) |
 | `influx_worker` | `NOLOGIN` | aucun | E-3, E-4 |
 | `influx_audit_writer` | `NOLOGIN` | aucun, **aucun membre** | Propriétaire de `audit.append()` ; `SELECT` et `INSERT` sur `audit.audit_events` (`03` P8) |
@@ -6079,6 +6079,7 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0105 | `identity_email_health` | `email_delivery_incidents`, append-only, index d'idempotence | Oui |
 | 0106 | `profiles_advertiser_minimal` | *(schéma `profiles` et ses privilèges par défaut : créés par `0001`)* `advertiser_profiles` **en forme minimale** (nom d'entreprise) | Oui |
 | **0107** | **`backoffice_alerts_and_dual_control`** | **`alert_definitions`** (catalogue AL1 à **AL48**, chargé lot par lot), **`dual_control_requests`** et ses contraintes, **les codes `dual_control.*`, `settings.changed` et `ownership.reassigned`** | Oui |
+| **0108** | **`identity_terms_public_read`** | *J5, commit 3 (`21` EC-62).* `identity.terms_in_force(document_kind, text)` `SECURITY DEFINER` (propriétaire `influx_identity_definer`, `EXECUTE` à `influx_auth` seul, repli `en`), `SELECT (version_label, content_uri, requires_acceptance)` au définisseur | Oui |
 | **Lot 2** | | | |
 | 0201 | `reference_taxonomies` | `topics`, `networks`, `formats`, `sectors`, `usage_rights`, `audience_bands`, **`engagement_bands`**, **`age_bands`** (`check (min_age >= 18)`), **`audience_genders`**, **`editorial_tones`**, **`publication_frequencies`**, **`regions`**, `price_bands` **avec ses bornes nettes et son `REVOKE`** | Oui |
 | 0202 | `profiles_advertiser_full` | **Extension** de `advertiser_profiles` (colonnes du Lot 2, toutes nullables, aucune donnée à migrer) + `advertiser_contact_details` | Oui |
@@ -6112,7 +6113,7 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | **Lot 6** | | | |
 | 0601 | `retention_jobs` | Fonctions de purge, index de purge manquants | Oui |
 
-> **Numérotation (EC-37, tranché le 2026-09-28).** Un numéro est un **ordre d'application** : la CLI Supabase n'applique pas une migration plus ancienne que la dernière appliquée. Les migrations du J3 prennent donc `0010` à `0015` (suite du Lot 0) ; **`0108` n'existe plus** (son contenu est dans `0014` et `0015`) et la série du Lot 1 s'applique dans l'ordre de ses numéros. **`0101` ajoute la clé étrangère** `leads.transactional_sends.outbox_event_id → leads.outbox_events(id)`. Même règle au Lot 4 pour `0402a`, `0402b`, `0402c` (EC-32).
+> **Numérotation (EC-37, tranché le 2026-09-28).** Un numéro est un **ordre d'application** : la CLI Supabase n'applique pas une migration plus ancienne que la dernière appliquée. Les migrations du J3 prennent donc `0010` à `0015` (suite du Lot 0) ; **l'ancien `0108` du J3 n'existe plus** (son contenu est dans `0014` et `0015`) ; le numéro sert à `0108_identity_terms_public_read` (J5, EC-62) et la série du Lot 1 s'applique dans l'ordre de ses numéros. **`0101` ajoute la clé étrangère** `leads.transactional_sends.outbox_event_id → leads.outbox_events(id)`. Même règle au Lot 4 pour `0402a`, `0402b`, `0402c` (EC-32).
 
 ### 11.3 Ce qui n'est pas réversible, et pourquoi
 

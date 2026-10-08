@@ -1,5 +1,6 @@
 // Routes of the member authentication (docs/mvp/21 §5.2; 02 §18.10; 05 RG42 to RG69). Web surface
-// only (prefix): request-code, verify-code, logout, and the minimal GET /v1/me of the J3.
+// only (prefix): request-code, verify-code, logout, the minimal GET /v1/me of the J3, and the
+// public documents read without an account (GET /v1/terms/current, 21 EC-62).
 import {
   logoutResponseSchema,
   meResponseSchema,
@@ -13,8 +14,15 @@ import {
   type VerifyCodeBody,
   type VerifyCodeResponse,
 } from "@influx/contracts/auth";
+import {
+  currentTermsQuerySchema,
+  currentTermsResponseSchema,
+  type CurrentTermsQuery,
+  type CurrentTermsResponse,
+} from "@influx/contracts/terms";
 import type {
   FastifyInstance,
+  FastifyReply,
   RawReplyDefaultExpression,
   RawRequestDefaultExpression,
   RawServerDefault,
@@ -42,6 +50,7 @@ import { ApiError, RequestValidationError } from "../../platform/errors.ts";
 import type { ZodTypeProvider } from "../../platform/schema-compilers.ts";
 import type { SupabaseAuth } from "../../platform/supabase.ts";
 import { userAgentSummaryOf } from "../../platform/user-agent.ts";
+import { MinuteCounter } from "../ops/routes.ts";
 import { requestLoginCode } from "./login-code.ts";
 import {
   sessionTokenHashOf,
@@ -53,6 +62,12 @@ import {
   CODE_REQUEST_FLOOR_MS,
   MEMBER_SESSION_IDLE_SECONDS,
 } from "./settings.ts";
+import {
+  createTermsReader,
+  databaseTermsLookup,
+  LEGAL_CONTENT_ROOT,
+  type TermsLookup,
+} from "./terms.ts";
 import { verifyLoginCode } from "./verify-code.ts";
 
 export type IdentityApp = FastifyInstance<
@@ -75,7 +90,32 @@ export type IdentityDependencies = {
   codeRequestFloorMs?: number;
   /** EC-40 point 3 (backoffice sign-in, enrollment, R); injectable for the tests only. */
   backofficeAuthFloorMs?: number;
+  /** Version in force of a public document (EC-62); the database unless a test replaces it. */
+  termsLookup?: TermsLookup;
+  /** Base of the content_uri of the public documents: apps/api unless a test replaces it. */
+  legalContentRoot?: string;
 };
+
+/**
+ * Bounds per minute of GET /v1/terms/current (21 EC-62), in memory like the client errors (one
+ * instance at the MVP): per client address (an unknown address shares one key), and for the
+ * whole instance. A page reads one document; the sign-up panel, one or two.
+ */
+export const TERMS_READ_RATE = { address: 30, instance: 1200 } as const;
+
+/** True when an If-None-Match header names the entity tag (RFC 9110 §13.1.2, weak comparison). */
+export function matchesEntityTag(
+  ifNoneMatch: string | undefined,
+  entityTag: string,
+): boolean {
+  if (ifNoneMatch === undefined) {
+    return false;
+  }
+  return ifNoneMatch
+    .split(",")
+    .map((candidate) => candidate.trim().replace(/^W\//, ""))
+    .some((candidate) => candidate === "*" || candidate === entityTag);
+}
 
 /** Waits until `target` (a performance.now() instant), if it is still to come. */
 async function waitUntil(target: number): Promise<void> {
@@ -147,6 +187,55 @@ export function registerIdentityRoutes(
         // Step 10: every outcome, failures included, waits for the floor.
         await waitUntil(receivedAt + floorMs);
       }
+    },
+  );
+
+  // GET /v1/terms/current (21 EC-62; 05 RG25, RG27): the version in force of a public document,
+  // without an account. 400 outside the closed lists, 404 terms_not_published, 500 when the text
+  // fails its check (fail closed, terms.ts). Revalidated at each use (no-cache); the ETag is the
+  // version id, so that a version replaced in between is never served from a cache.
+  const terms = createTermsReader({
+    lookup:
+      dependencies.termsLookup ?? databaseTermsLookup(dependencies.database),
+    contentRoot: dependencies.legalContentRoot ?? LEGAL_CONTENT_ROOT,
+  });
+  const termsCounter = new MinuteCounter(dependencies.now);
+  app.get(
+    "/v1/terms/current",
+    {
+      schema: {
+        querystring: currentTermsQuerySchema,
+        response: { 200: currentTermsResponseSchema },
+      },
+    },
+    async (request, reply): Promise<CurrentTermsResponse | undefined> => {
+      const address = clientAddressOf(request);
+      const addressKey =
+        address.status === "known" ? address.throttleKey : "unknown";
+      if (
+        !termsCounter.take(`address:${addressKey}`, TERMS_READ_RATE.address) ||
+        !termsCounter.take("instance", TERMS_READ_RATE.instance)
+      ) {
+        throw new ApiError("rate_limited");
+      }
+      const version = await terms.current(
+        request.query as CurrentTermsQuery,
+        request.id,
+        request.log,
+      );
+      if (version === null) {
+        throw new ApiError("terms_not_published");
+      }
+      const entityTag = `"${version.id}"`;
+      reply.header("cache-control", "no-cache");
+      reply.header("etag", entityTag);
+      if (matchesEntityTag(request.headers["if-none-match"], entityTag)) {
+        // A 304 carries no body, so it has no response schema: the typed reply only knows 200.
+        // Nothing of the version is sent; the onSend check sees no payload.
+        await (reply as unknown as FastifyReply).code(304).send();
+        return;
+      }
+      return version;
     },
   );
 

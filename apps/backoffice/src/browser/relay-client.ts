@@ -1,6 +1,8 @@
 // The ONLY browser module of this front allowed to call the network (docs/mvp/02 §9.3, §13.2;
 // 21 §4, J3 commit 12). It reaches the relay of the same origin, `/api/v1/…`, and nothing else:
 // - the path is a constant of the caller, checked against the pattern of the relay (03 PP-2);
+// - query parameters (J5, 21 EC-62) are names and values of plain characters only: nothing is
+//   ever percent-encoded, so the relay and apps/api read them in one way only;
 // - same origin only: relative URL, `credentials: "same-origin"`, no redirect followed, no cache;
 // - the answer is read through a schema of packages/contracts: an unexpected shape is a failure.
 // The session is an httpOnly cookie: this module never sees it (D37). Byte-for-byte identical in
@@ -11,6 +13,23 @@ const RELAY_PREFIX = "/api";
 
 /** 03 PP-2, as the relay applies it. */
 const API_PATH_PATTERN = /^\/v1\/[A-Za-z0-9/_-]{0,200}$/;
+
+/** One name or one value of a query parameter: never needs percent-encoding. */
+const QUERY_PART_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+
+/** "" or "?name=value&…", every part checked against QUERY_PART_PATTERN. */
+function searchOf(query: Readonly<Record<string, string>> | undefined): string {
+  if (query === undefined) {
+    return "";
+  }
+  const parts = Object.entries(query).map(([name, value]) => {
+    if (!QUERY_PART_PATTERN.test(name) || !QUERY_PART_PATTERN.test(value)) {
+      throw new Error("relay query outside the plain characters");
+    }
+    return `${name}=${value}`;
+  });
+  return parts.length === 0 ? "" : `?${parts.join("&")}`;
+}
 
 /** A schema of packages/contracts, reduced to what is used here. */
 export type ResponseSchema<Value> = {
@@ -37,13 +56,15 @@ export async function callRelay<Value>(
   path: string,
   schema: ResponseSchema<Value>,
   body?: Record<string, unknown>,
+  query?: Readonly<Record<string, string>>,
 ): Promise<RelayResult<Value>> {
   if (!API_PATH_PATTERN.test(path)) {
     throw new Error("relay path outside /v1/");
   }
+  const search = searchOf(query);
   let response: Response;
   try {
-    response = await fetch(`${RELAY_PREFIX}${path}`, {
+    response = await fetch(`${RELAY_PREFIX}${path}${search}`, {
       method,
       headers:
         body === undefined ? undefined : { "content-type": "application/json" },

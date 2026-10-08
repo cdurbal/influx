@@ -6,6 +6,10 @@
 //   @influx/test-kit (03 P7, rule 5 of 0001).
 // - EC-30 at J3: the GoTrue users are created by the administration API of the LOCAL GoTrue, the
 //   `identity` rows by the migration role. identity.provision_account() arrives at J5.
+// - The members accept the terms of service IN FORCE, published beforehand by the publication of
+//   EC-62 (seed-demo-accounts.ts publishes the drafts on the local stack; on staging,
+//   db:publish-terms): in their language, otherwise in English, and the acceptance records the
+//   language actually served (05 RG25). No terms in force: nothing is created.
 // - Members have no password (D37): they sign in with the code the Brevo double receives.
 //   Internal accounts get a password (EC-57: 12 characters to 72 UTF-8 bytes) and a fixed
 //   enrollment token (72 hours), whose SHA-256 alone is stored (enrollmentTokenHashOf).
@@ -27,12 +31,6 @@ export type DemoAccount = {
   preferredLanguage: "fr" | "en";
   displayName: string;
 };
-
-/** The fictitious terms version, marked as such in its label and its address. */
-export const DEMO_TERMS_LABEL = "demo-fictive-1";
-const DEMO_TERMS_URI = "demo://terms/fictive-not-a-legal-document";
-const DEMO_TERMS_TEXT =
-  "INFLUX demonstration terms: fictitious, not a legal document, local stack and CI only.";
 
 /** Fixed local passwords of the internal demo accounts: no word of their address, no "influx". */
 const DEMO_PASSWORDS: Readonly<Record<"agent" | "admin", string>> = {
@@ -115,6 +113,27 @@ type MigrationSql = ReturnType<typeof connectAsMigrationRole>;
 
 export type SeedOutcome = "created" | "already_present";
 
+/** The terms of service a member accepts: in force, in its language or in English (RG25). */
+type TermsInForce = { id: string; hash: Buffer; locale: string };
+
+async function termsOfServiceInForce(
+  sql: MigrationSql,
+  locale: string,
+): Promise<TermsInForce | null> {
+  const rows = await sql<
+    { id: string; content_hash: Buffer; locale: string }[]
+  >`
+    select id::text, content_hash, locale::text from identity.terms_versions
+     where document_kind = 'terms_of_service' and locale in (${locale}, 'en')
+       and effective_to is null and effective_from <= now()
+     order by (locale = ${locale}) desc
+     limit 1`;
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : { id: row.id, hash: row.content_hash, locale: row.locale };
+}
+
 async function createGoTrueUser(
   gotrue: LocalGoTrue,
   account: DemoAccount,
@@ -165,39 +184,30 @@ export async function seedDemoAccounts(
       "demo accounts partly present: run `supabase db reset`, then this script again",
     );
   }
+  // Read before GoTrue is called: a missing version must not leave users without accounts.
+  const termsOf = new Map<DemoRole, TermsInForce>();
+  for (const account of accounts) {
+    if (account.enrollmentToken !== null) {
+      continue;
+    }
+    const terms = await termsOfServiceInForce(
+      migration,
+      account.preferredLanguage,
+    );
+    if (terms === null) {
+      throw new Error(
+        "no terms of service in force for the demo members: publish them first " +
+          "(pnpm --filter @influx/api db:publish-terms, 21 EC-62)",
+      );
+    }
+    termsOf.set(account.role, terms);
+  }
   const authUserIds = new Map<DemoRole, string>();
   for (const account of accounts) {
     authUserIds.set(account.role, await createGoTrueUser(gotrue, account));
   }
 
   await migration.begin(async (tx) => {
-    // The fictitious terms version, per language, unless a current one exists.
-    const termsHash = createHash("sha256")
-      .update(DEMO_TERMS_TEXT, "utf8")
-      .digest();
-    const termsOf = new Map<string, { id: string; hash: Buffer }>();
-    for (const locale of ["fr", "en"]) {
-      const [current] = await tx<{ id: string; content_hash: Buffer }[]>`
-        select id::text, content_hash from identity.terms_versions
-         where document_kind = 'terms_of_service' and locale = ${locale}
-           and effective_to is null`;
-      if (current !== undefined) {
-        termsOf.set(locale, { id: current.id, hash: current.content_hash });
-        continue;
-      }
-      const [inserted] = await tx<{ id: string }[]>`
-        insert into identity.terms_versions
-          (document_kind, locale, version_label, content_uri, content_hash, requires_acceptance,
-           published_at, effective_from)
-        values ('terms_of_service', ${locale}, ${DEMO_TERMS_LABEL}, ${DEMO_TERMS_URI},
-                ${termsHash}, true, now(), now())
-        returning id::text`;
-      if (inserted === undefined) {
-        throw new Error("demo terms version not inserted");
-      }
-      termsOf.set(locale, { id: inserted.id, hash: termsHash });
-    }
-
     for (const account of accounts) {
       const [row] = await tx<{ id: string }[]>`
         insert into identity.accounts
@@ -214,14 +224,14 @@ export async function seedDemoAccounts(
       await tx`insert into identity.account_roles (account_id, role)
                values (${accountId}, ${account.role}::identity.account_role)`;
       if (account.enrollmentToken === null) {
-        const terms = termsOf.get(account.preferredLanguage);
+        const terms = termsOf.get(account.role);
         if (terms === undefined) {
-          throw new Error("no terms version for the demo member");
+          throw new Error("no terms of service in force for the demo member");
         }
         await tx`insert into identity.terms_acceptances
                    (account_id, terms_version_id, content_hash, channel, locale)
                  values (${accountId}, ${terms.id}, ${terms.hash}, 'signup',
-                         ${account.preferredLanguage})`;
+                         ${terms.locale})`;
         continue;
       }
       const tokenHash = enrollmentTokenHashOf(account.enrollmentToken);

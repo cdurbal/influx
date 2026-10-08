@@ -32,8 +32,15 @@ function authUserIdOf(role: BusinessRoleName, side: Side): string {
   return `00000000-0000-4000-9000-000000000${ROLE_DIGIT[role]}${SIDE_DIGIT[side]}0`;
 }
 
+/**
+ * The French terms of service of the data set, in force on a fresh stack. The publication of the
+ * drafts (21 EC-62) closes it on a workstation: the data set then accepts the version in force.
+ */
 export const TERMS_VERSION_ID = "00000000-0000-4000-8000-00000000ff01";
-/** A second version, never accepted by the data set: target of the insertion probes of T2. */
+/**
+ * A second version (privacy policy, French), never accepted by the data set: on a fresh stack,
+ * the version in force that the insertion probes of T2 accept (expected-rights.ts).
+ */
 export const PROBE_TERMS_VERSION_ID = "00000000-0000-4000-8000-00000000ff03";
 export const OWNERSHIP_ASSIGNMENT_ID = "00000000-0000-4000-8000-00000000ff02";
 export const RECOVERY_CODE_ID = "00000000-0000-4000-8000-00000000ff04";
@@ -97,12 +104,19 @@ async function insertAccount(
               ${`00000000-0000-4000-a000-000000000${ROLE_DIGIT[role]}${SIDE_DIGIT[side]}0`})
       on conflict do nothing`;
   } else {
+    // The French terms of service IN FORCE: TERMS_VERSION_ID on a fresh stack, or the draft
+    // published since on a workstation (21 EC-62), which closes it. Inserted once only: the
+    // trigger of 0005 refuses a version no longer in force even when the row already exists.
+    const acceptanceId = `00000000-0000-4000-8000-00000000${ROLE_DIGIT[role]}${SIDE_DIGIT[side]}01`;
     await tx`
       insert into identity.terms_acceptances
         (id, account_id, terms_version_id, content_hash, channel, locale)
-      values (${`00000000-0000-4000-8000-00000000${ROLE_DIGIT[role]}${SIDE_DIGIT[side]}01`},
-              ${id}, ${TERMS_VERSION_ID}, '\\x00'::bytea, 'signup', 'fr')
-      on conflict do nothing`;
+      select ${acceptanceId}, ${id}, v.id, '\\x00'::bytea, 'signup', 'fr'
+        from identity.terms_versions v
+       where v.document_kind = 'terms_of_service' and v.locale = 'fr'
+         and v.effective_to is null and v.effective_from <= now()
+         and not exists (select 1 from identity.terms_acceptances a
+                          where a.id = ${acceptanceId})`;
     await tx`
       insert into identity.consent_events (id, account_id, purpose, granted, source)
       values (${`00000000-0000-4000-8000-00000000${ROLE_DIGIT[role]}${SIDE_DIGIT[side]}02`},

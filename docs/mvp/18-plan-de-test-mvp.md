@@ -366,7 +366,7 @@ Règles d'écriture du fichier, pour qu'il se code sans supposer :
 1. **Une colonne par rôle Postgres, pas par rôle métier.** La colonne `service` du §3 de `03` ne
    désigne aucun rôle : elle se répartit entre `influx_auth` et `influx_worker` selon la liste fermée
    de `03` P7 et les `GRANT` écrits de `04`. **Au J2, `influx_auth` n'a aucun droit de table**
-   (`03` P7 : ses droits arrivent au J3 avec `0108`) : toutes ses lignes sont `refus_droit`.
+   (`03` P7 : ses droits arrivent au J3 avec `0012` à `0015`) : toutes ses lignes sont `refus_droit`.
 2. **Chaque ligne cite sa source** (ligne et condition du §3 de `03`, ou `GRANT` de `04`). Une ligne
    sans source fait échouer la lecture du fichier ; une cellule absente vaut `refus_droit`. Le refus
    est le défaut, jamais l'exception.

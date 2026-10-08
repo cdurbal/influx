@@ -1,0 +1,15 @@
+{
+  "metaTitle": "{title} — INFLUX",
+  "brand": "INFLUX",
+  "documents": {
+    "terms_of_service": "Conditions générales d'utilisation",
+    "privacy_policy": "Politique de confidentialité",
+    "cookie_policy": "Politique cookies"
+  },
+  "loading": "Chargement du document…",
+  "version": "Version : {label}",
+  "effectiveFrom": "En vigueur depuis le {date}",
+  "fallback": "Ce document n'est pas encore disponible en français : la version anglaise est affichée.",
+  "unavailable": "Ce document ne peut pas être affiché pour le moment. Réessayez dans quelques instants.",
+  "retry": "Réessayer"
+}

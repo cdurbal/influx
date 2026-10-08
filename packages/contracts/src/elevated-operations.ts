@@ -12,11 +12,13 @@
 /**
  * Set P: 03 P7, E-1 to E-5, one motif per point of use (EC-5, signed revision of 2026-09-27).
  * E-6 enters with its migration (0016, J4), signed by expert-cybersecurite on 2026-10-06
- * (end-of-J4 grouped review).
+ * (end-of-J4 grouped review). identity.read_published_terms enters E-1 at J5 (21 EC-62), to be
+ * signed at the end-of-J5 grouped review.
  */
 export const SIGNED_ELEVATED_OPERATIONS = [
   "identity.request_code", // E-1, influx_auth
   "support.report_delivery_issue", // E-1, influx_auth (J5, 05 RG65)
+  "identity.read_published_terms", // E-1, influx_auth (J5, 21 EC-62, identity.terms_in_force() only)
   "identity.verify_code", // E-2, influx_auth
   "identity.complete_signup", // E-2, influx_auth (J5)
   "identity.backoffice_sign_in", // E-2, influx_auth
@@ -33,10 +35,11 @@ export type SignedElevatedOperation =
 
 /**
  * Set U: operations with a caller (18 T6.1: A = U). E-1 enters with the login code, E-2 with its
- * verification and the backoffice sign-in (J3 commits 8 to 10).
+ * verification and the backoffice sign-in (J3 commits 8 to 10); the public documents at J5 (EC-62).
  */
 export const ELEVATED_OPERATIONS = [
   "identity.request_code",
+  "identity.read_published_terms",
   "identity.verify_code",
   "identity.backoffice_sign_in",
   "identity.backoffice_enroll_totp",

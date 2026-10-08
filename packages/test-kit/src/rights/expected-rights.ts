@@ -272,7 +272,8 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
   },
   {
     table: "identity.terms_versions",
-    source: "0005 §5.1",
+    source:
+      "0005 §5.1; influx_auth: no right, reads through identity.terms_in_force() (0108, EC-62)",
     probeColumn: "id",
     expected: forRoles(BUSINESS, {
       select: {
@@ -289,7 +290,11 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     ownerColumn: "account_id",
     insertTemplate:
       "insert into identity.terms_acceptances (account_id, terms_version_id, channel, locale) " +
-      "values ($1, '00000000-0000-4000-8000-00000000ff03', 're_acceptance', 'fr')",
+      "values ($1, (select v.id from identity.terms_versions v where v.document_kind = 'privacy_policy' " +
+      "and v.locale = 'fr' and v.effective_to is null), 're_acceptance', 'fr')",
+    // The French privacy policy in force: PROBE_TERMS_VERSION_ID on a fresh stack, the published
+    // draft on a workstation (21 EC-62). Read under the caller's rights, like the trigger: without
+    // context nothing is read, and the trigger refuses the null version with the same code.
     // identity.prepare_terms_acceptance() (0005) reads the version with the caller's rights:
     // without context the version is invisible and the trigger refuses first, 23503, with the
     // same message as an unknown version (21 §3 EC-35).
@@ -1048,6 +1053,13 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|function|identity.set_declared_status(uuid,identity.declared_status,text,text)|EXECUTE",
   "influx_identity_definer|schema|leads|USAGE",
   "influx_identity_definer|schema|profiles|USAGE",
+  // 0108 (J5, EC-62): the public documents, read by influx_auth through identity.terms_in_force()
+  // only (no right on the table); the owner receives the three columns 0106 did not give it.
+  "influx_auth|function|identity.terms_in_force(identity.document_kind,text)|EXECUTE",
+  "influx_identity_definer|column|identity.terms_versions.content_uri|SELECT",
+  "influx_identity_definer|column|identity.terms_versions.requires_acceptance|SELECT",
+  "influx_identity_definer|column|identity.terms_versions.version_label|SELECT",
+  "influx_identity_definer|function|identity.terms_in_force(identity.document_kind,text)|EXECUTE",
 ];
 
 /** T4.2, T4.3: the closed list of 03 P7 (twelve roles at J2, fourteen from J4), memberships. */
@@ -1130,5 +1142,8 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
     "influx_identity_definer",
   "identity.correct_email(uuid,text,text,text)": "influx_identity_definer",
   "identity.provision_account(uuid,text,identity.account_role,text,text,identity.declared_status,boolean,text,uuid,boolean,text,text,text,text,text,text,text,identity.heard_from)":
+    "influx_identity_definer",
+  // 0108 (J5, EC-62)
+  "identity.terms_in_force(identity.document_kind,text)":
     "influx_identity_definer",
 };

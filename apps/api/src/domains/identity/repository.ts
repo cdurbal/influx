@@ -535,6 +535,65 @@ export async function hasFreshSecondFactorProof(
   return rows[0]?.fresh === true;
 }
 
+// --- Public documents (E-1 identity.read_published_terms, 21 EC-62) ---------------------------
+
+/** The version in force of a public document, as identity.terms_in_force() returns it (0108). */
+export type TermsVersionRow = {
+  id: string;
+  documentKind: string;
+  /** The language actually served: the one asked, or English (05 RG25). */
+  locale: string;
+  versionLabel: string;
+  contentUri: string;
+  /** SHA-256 of the published bytes, lower-case hexadecimal. */
+  contentSha256: string;
+  requiresAcceptance: boolean;
+  /** ISO 8601, UTC. */
+  effectiveFrom: string;
+};
+
+/**
+ * Through the SECURITY DEFINER function only: influx_auth holds no right on
+ * identity.terms_versions (0108). Zero or one row.
+ */
+export async function termsInForce(
+  tx: Transaction,
+  document: string,
+  locale: string,
+): Promise<TermsVersionRow | null> {
+  const rows = await tx.execute<{
+    id: string;
+    document_kind: string;
+    locale: string;
+    version_label: string;
+    content_uri: string;
+    content_sha256: string;
+    requires_acceptance: boolean;
+    effective_from: string;
+  }>(
+    sql`select id::text as id, document_kind::text as document_kind, locale::text as locale,
+               version_label, content_uri, encode(content_hash, 'hex') as content_sha256,
+               requires_acceptance,
+               to_char(effective_from at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+                 as effective_from
+          from identity.terms_in_force(${document}::identity.document_kind, ${locale})`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    return null;
+  }
+  return {
+    id: row.id,
+    documentKind: row.document_kind,
+    locale: row.locale,
+    versionLabel: row.version_label,
+    contentUri: row.content_uri,
+    contentSha256: row.content_sha256,
+    requiresAcceptance: row.requires_acceptance,
+    effectiveFrom: row.effective_from,
+  };
+}
+
 /** The SQLSTATE of a database error, through the wrapping of drizzle (`cause`). */
 export function sqlStateOf(error: unknown): string | null {
   let current: unknown = error;

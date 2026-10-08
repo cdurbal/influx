@@ -4,3 +4,5 @@ CLAUDE.md
 pnpm-lock.yaml
 **/.next/
 **/next-env.d.ts
+# Published legal texts and their manifest: exact bytes, fingerprinted at publication (21 EC-62).
+apps/api/legal/

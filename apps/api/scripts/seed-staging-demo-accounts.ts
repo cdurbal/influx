@@ -20,12 +20,7 @@
 // marker table `influx_staging.environment_marker` (created by hand by the runbook, never on production); when the
 // Supabase URL is not an https *.supabase.co origin.
 import { randomBytes } from "node:crypto";
-import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-// An operator script, outside the api process: the migration role of staging, which no pool of
-// src/db/ may ever reach (CI-5, J3S-2).
-// eslint-disable-next-line no-restricted-imports -- see the line above
-import postgres from "postgres";
 import { localPasswordVerdict } from "../src/domains/identity/password-policy.ts";
 import { isPasswordWithinBounds } from "../src/platform/supabase.ts";
 import {
@@ -33,14 +28,12 @@ import {
   seedDemoAccounts,
   type DemoAccount,
 } from "./demo-accounts.ts";
-
-function required(name: string): string {
-  const value = process.env[name];
-  if (value === undefined || value === "") {
-    throw new Error(`${name} must be exported in the shell (never in a file)`);
-  }
-  return value;
-}
+import {
+  assertStagingMarker,
+  connectToStagingAsMigrationRole,
+  refuseProduction,
+  requiredShellVariable as required,
+} from "./script-guards.ts";
 
 /** A random password that passes the local rules of B-1 and EC-57 for `email`. */
 function randomPassword(email: string): string {
@@ -55,9 +48,7 @@ function randomPassword(email: string): string {
   }
 }
 
-if ([process.env.INFLUX_ENV, process.env.NODE_ENV].includes("production")) {
-  throw new Error("demo accounts are refused in production (EC-45, J3S-2)");
-}
+refuseProduction("demo accounts (J3S-2)");
 const { values } = parseArgs({
   options: {
     advertiser: { type: "string" },
@@ -88,7 +79,6 @@ if (
   );
 }
 const backoffice = new URL(required("STAGING_PUBLIC_BACKOFFICE_URL")).origin;
-const caFile = process.env.INFLUX_STAGING_DB_CA_FILE;
 
 const accounts: DemoAccount[] = demoAccounts().map((account) => {
   const email = values[account.role];
@@ -105,31 +95,9 @@ const accounts: DemoAccount[] = demoAccounts().map((account) => {
       };
 });
 
-const migration = postgres(migrationUrl.href, {
-  max: 1,
-  prepare: false,
-  ssl:
-    caFile === undefined
-      ? { rejectUnauthorized: true }
-      : { rejectUnauthorized: true, ca: readFileSync(caFile, "utf8") },
-  onnotice: () => undefined,
-});
+const migration = connectToStagingAsMigrationRole();
 try {
-  // Hosted Supabase refuses custom parameters (ALTER DATABASE / ROLE SET), so the marker is a
-  // table created by hand on staging only, outside every migration (runbook, step 2).
-  // Two queries: a reference to a missing table fails at parse time, even in a branch not taken.
-  const [table] = await migration<{ present: boolean }[]>`
-    select to_regclass('influx_staging.environment_marker') is not null as present`;
-  const markers =
-    table?.present === true
-      ? await migration<{ environment: string }[]>`
-          select environment from influx_staging.environment_marker`
-      : [];
-  if (markers.length !== 1 || markers[0]?.environment !== "staging") {
-    throw new Error(
-      "this database does not carry the influx_staging.environment_marker = staging: refused (runbook, step 2)",
-    );
-  }
+  await assertStagingMarker(migration);
   const outcome = await seedDemoAccounts(
     migration,
     {

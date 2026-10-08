@@ -8,3 +8,7 @@
 *.webp binary
 *.woff2 binary
 *.ico binary
+
+# Published legal texts (21 EC-62): their SHA-256 is recorded at publication, so Git must never
+# rewrite a single byte of them (no end-of-line conversion on any platform).
+apps/api/legal/** -text
