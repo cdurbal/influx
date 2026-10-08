@@ -114,6 +114,18 @@ jobs:
       - name: Create the demonstration accounts
         run: pnpm db:demo-accounts
 
+      # The browser journeys of the J5 (21 §J5, commit 6): screen 3 shows the terms in force, so
+      # the last published texts go in first, then Chromium, then the journeys against the build
+      # of `pnpm check` (apps/web/playwright.config.ts: next start only under CI).
+      - name: Publish the public documents on the local stack
+        run: pnpm --filter @influx/api db:publish-terms -- --latest
+
+      - name: Install the Chromium of Playwright
+        run: pnpm --filter @influx/web exec playwright install --with-deps chromium
+
+      - name: Browser journeys (Playwright)
+        run: pnpm test:e2e
+
   # C-2 (end-of-J1 security review, 21 J1-J): the relay runs on Node 24 in production (J1-B,
   # Node >= 24.12), while the job above runs the version of .node-version. What Node's fetch does
   # to the forwarded request (sec-fetch-mode set to cors, origin and sec-fetch-site untouched) is

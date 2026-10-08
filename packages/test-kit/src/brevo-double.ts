@@ -5,6 +5,8 @@
 // - Development: `pnpm dev:brevo-double` starts it and shows the messages received on a local
 //   page. Only on 127.0.0.1, never 0.0.0.0: the page shows valid codes (security arbitration of
 //   the J3, rule 10). Started only by the development and test scripts.
+// - `GET /messages` gives the same messages as JSON, for a test that runs in another process
+//   than the double (the Playwright journeys of the J5, commit 6).
 import { randomUUID } from "node:crypto";
 import { createServer, type IncomingHttpHeaders, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -84,6 +86,11 @@ export async function startBrevoDouble(port = 0): Promise<BrevoDouble> {
       if (request.method === "GET" && request.url === "/") {
         response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
         response.end(page(messages));
+        return;
+      }
+      if (request.method === "GET" && request.url === "/messages") {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(JSON.stringify(messages.map(({ body }) => body)));
         return;
       }
       if (request.method !== "POST" || request.url !== "/v3/smtp/email") {

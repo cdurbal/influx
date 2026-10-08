@@ -20,6 +20,7 @@
     "typecheck": "pnpm -r run typecheck",
     "lint": "pnpm -r run lint",
     "test": "pnpm -r run test",
+    "test:e2e": "pnpm --filter @influx/web test:e2e",
     "docs:index": "node docs/mvp/build-index.mjs && prettier --write docs/mvp/INDEX.md",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

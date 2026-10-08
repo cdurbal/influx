@@ -10,7 +10,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
-    "test:artifacts": "vitest run --config vitest.artifacts.config.ts"
+    "test:artifacts": "vitest run --config vitest.artifacts.config.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@influx/contracts": "workspace:*",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@influx/test-kit": "workspace:*",
+    "@playwright/test": "1.64.0",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "22.20.3",
     "@types/react": "19.3.0",
