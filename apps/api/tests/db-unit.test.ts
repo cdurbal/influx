@@ -119,7 +119,7 @@ describe("T4.6 e: identity of a pool when it opens", () => {
 describe("T6.2: an operation outside the closed union is refused at runtime", () => {
   it.each([
     // Signed (set P) but without a caller yet (not in U): refused like any other value.
-    "identity.complete_signup",
+    "support.report_delivery_issue",
     "leads.drain_outbox",
     "privacy.execute_request",
     "anything",

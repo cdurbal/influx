@@ -611,3 +611,107 @@ export function sqlStateOf(error: unknown): string | null {
   }
   return null;
 }
+
+/**
+ * The constraint named by a database error (postgres.js `constraint_name`), through the wrapping
+ * of drizzle; null when the error names none (an exception raised by a function).
+ */
+export function constraintNameOf(error: unknown): string | null {
+  let current: unknown = error;
+  for (let depth = 0; depth < 4 && current instanceof Error; depth += 1) {
+    const name: unknown = (current as Error & { constraint_name?: unknown })
+      .constraint_name;
+    if (typeof name === "string" && name !== "") {
+      return name;
+    }
+    current = current.cause;
+  }
+  return null;
+}
+
+// --- Sign-up (E-2 identity.complete_signup; 21 EC-5, EC-30) ------------------------------------
+
+/** What identity.provision_account() receives (0106, recreated by 0109). */
+export type ProvisionRequest = {
+  /** From the signed sign-up token, never from the body. */
+  authUserId: string;
+  email: string;
+  role: "advertiser" | "creator";
+  countryCode: string;
+  preferredLanguage: string;
+  /** null for an advertiser: the function imposes `business` (05 RG22). */
+  declaredStatus: "individual" | "business" | null;
+  adultAttested: boolean;
+  /** The company name of an advertiser; null for a creator. */
+  legalName: string | null;
+  termsVersionId: string;
+  marketingConsent: boolean;
+  consentWordingKey: string;
+  consentWording: string;
+  displayLocale: string;
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+  referrerDomain: string | null;
+  heardFrom: string | null;
+};
+
+export type ProvisionOutcome =
+  | { outcome: "created" | "existing"; accountId: string }
+  | { outcome: "country_blocked" };
+
+/**
+ * The one transaction of the sign-up (05 RG7, EC-30): account, role, advertiser profile, terms
+ * acceptance, two consent events, three queue lines (EC-10) — or nothing. Raises 22023 on a value
+ * the function refuses, 23503 on a terms version unknown or not in force.
+ */
+export async function provisionAccount(
+  tx: Transaction,
+  request: ProvisionRequest,
+): Promise<ProvisionOutcome> {
+  const rows = await tx.execute<{
+    provisioned_account_id: string | null;
+    outcome: string;
+  }>(
+    sql`select provisioned_account_id::text as provisioned_account_id, outcome
+          from identity.provision_account(
+                 ${request.authUserId}::uuid, ${request.email},
+                 ${request.role}::identity.account_role, ${request.countryCode},
+                 ${request.preferredLanguage},
+                 ${request.declaredStatus}::identity.declared_status,
+                 ${request.adultAttested}, ${request.legalName},
+                 ${request.termsVersionId}::uuid, ${request.marketingConsent},
+                 ${request.consentWordingKey}, ${request.consentWording},
+                 ${request.displayLocale}, ${request.utmSource}, ${request.utmMedium},
+                 ${request.utmCampaign}, ${request.referrerDomain},
+                 ${request.heardFrom}::identity.heard_from)`,
+  );
+  const row = rows[0];
+  if (row?.outcome === "country_blocked") {
+    return { outcome: "country_blocked" };
+  }
+  if (
+    (row?.outcome === "created" || row?.outcome === "existing") &&
+    row.provisioned_account_id !== null
+  ) {
+    return { outcome: row.outcome, accountId: row.provisioned_account_id };
+  }
+  throw new Error("unexpected answer of identity.provision_account()");
+}
+
+/**
+ * Whether terms of service are in force with their text, in this language or in English (05
+ * RG25), through the function of 0108/0109 only. The text is computed but never transferred.
+ */
+export async function termsOfServiceArePublished(
+  tx: Transaction,
+  locale: string,
+): Promise<boolean> {
+  const rows = await tx.execute<{ published: boolean }>(
+    sql`select exists (
+          select 1 from identity.terms_in_force('terms_of_service'::identity.document_kind,
+                                                ${locale})
+        ) as published`,
+  );
+  return rows[0]?.published === true;
+}

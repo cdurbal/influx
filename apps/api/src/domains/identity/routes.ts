@@ -1,6 +1,7 @@
 // Routes of the member authentication (docs/mvp/21 §5.2; 02 §18.10; 05 RG42 to RG69). Web surface
-// only (prefix): request-code, verify-code, logout, the minimal GET /v1/me of the J3, and the
-// public documents read without an account (GET /v1/terms/current, 21 EC-62).
+// only (prefix): request-code, verify-code, the sign-up (POST /v1/signup, J5), logout, the minimal
+// GET /v1/me of the J3, and the public documents read without an account (GET /v1/terms/current,
+// 21 EC-62).
 import {
   logoutResponseSchema,
   meResponseSchema,
@@ -14,6 +15,12 @@ import {
   type VerifyCodeBody,
   type VerifyCodeResponse,
 } from "@influx/contracts/auth";
+import {
+  signupBodySchema,
+  signupResponseSchema,
+  type SignupBody,
+  type SignupResponse,
+} from "@influx/contracts/signup";
 import {
   currentTermsQuerySchema,
   currentTermsResponseSchema,
@@ -55,6 +62,7 @@ import type { ZodTypeProvider } from "../../platform/schema-compilers.ts";
 import type { SupabaseAuth } from "../../platform/supabase.ts";
 import { userAgentSummaryOf } from "../../platform/user-agent.ts";
 import { MinuteCounter } from "../ops/routes.ts";
+import { completeSignup } from "./complete-signup.ts";
 import { requestLoginCode } from "./login-code.ts";
 import {
   sessionTokenHashOf,
@@ -301,6 +309,54 @@ export function registerIdentityRoutes(
           "signup",
           effects.signupToken,
           SIGNUP_TOKEN_TTL_SECONDS,
+        );
+      }
+      return result.response;
+    },
+  );
+
+  // POST /v1/signup (J5 commit 4): screen 3. The body is validated by the route schema, both
+  // variants at once: every invalid field is listed in the 400 (05 RG10, CA69). The sign-up token
+  // is the only proof of the address (EC-4); without it, 401 and the journey starts again.
+  app.post(
+    "/v1/signup",
+    {
+      schema: {
+        body: signupBodySchema,
+        response: { 200: signupResponseSchema },
+      },
+    },
+    async (request, reply): Promise<SignupResponse> => {
+      const signupCookie = readAuthCookie(request, "signup");
+      const result = await completeSignup(dependencies, {
+        requestId: request.id,
+        signupCookie,
+        body: request.body as SignupBody,
+        browser: userAgentSummaryOf(request),
+        logger: request.log,
+      });
+      if (result.kind === "unauthenticated") {
+        if (result.clearSignup) {
+          clearAuthCookie(reply, "signup");
+        }
+        throw new ApiError("unauthenticated");
+      }
+      if (result.kind === "invalid") {
+        // D63 (RG124, CA5): the front shows signup.consent.errors.required on the checkbox.
+        throw new RequestValidationError(
+          result.consentRequired
+            ? [{ path: "marketingConsent", issue: "consent_required" }]
+            : [],
+        );
+      }
+      if (result.clearSignup) {
+        clearAuthCookie(reply, "signup");
+      }
+      if (result.session !== null) {
+        setMemberSessionCookie(
+          reply,
+          result.session.token,
+          MEMBER_SESSION_IDLE_SECONDS,
         );
       }
       return result.response;

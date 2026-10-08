@@ -35,12 +35,14 @@ export type SignedElevatedOperation =
 
 /**
  * Set U: operations with a caller (18 T6.1: A = U). E-1 enters with the login code, E-2 with its
- * verification and the backoffice sign-in (J3 commits 8 to 10); the public documents at J5 (EC-62).
+ * verification and the backoffice sign-in (J3 commits 8 to 10); the public documents at J5 (EC-62),
+ * then the sign-up (J5 commit 4, POST /v1/signup).
  */
 export const ELEVATED_OPERATIONS = [
   "identity.request_code",
   "identity.read_published_terms",
   "identity.verify_code",
+  "identity.complete_signup",
   "identity.backoffice_sign_in",
   "identity.backoffice_enroll_totp",
   "identity.backoffice_reauthenticate",

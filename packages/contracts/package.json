@@ -12,7 +12,9 @@
     "./auth": "./src/auth.ts",
     "./backoffice-auth": "./src/backoffice-auth.ts",
     "./ops": "./src/ops.ts",
-    "./terms": "./src/terms.ts"
+    "./terms": "./src/terms.ts",
+    "./countries": "./src/countries.ts",
+    "./signup": "./src/signup.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tests.json",

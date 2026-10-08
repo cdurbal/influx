@@ -212,7 +212,8 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] Commit 2 (`4eb8ff1`) — migrations `0101`, `0103` à `0106` (`provision_account` dans `0106`, car elle écrit le profil marque) ; T2/T3/T4 étendus, `tm10-signup-provisioning` (40 cas) ; EC-57 remesuré sur GoTrue v2.197.0 (version de `staging`).
 - [x] Commit 3 (`83ba6d1`) — CGU (EC-62) : `0108` `identity.terms_in_force` (E-1 `identity.read_published_terms`), textes `apps/api/legal/` + manifeste d'empreintes, `db:publish-terms`, `GET /v1/terms/current` (échec fermé sur empreinte), pages `/fr/cgu` · `/en/terms`, confidentialité, cookies ; brouillons `draft-1` à faire relire.
 - [x] Commit 3bis (`89cf836`) — D25 tranchée (Angleterre) : textes `draft-2` sous droit anglais (UK GDPR, PECR, CRA/UCTA, restraint of trade), marqueurs `[…]` d'identité, seed local sur `draft-2`.
-- [x] Commit 3ter (`SHA`) — EC-62 amendé : texte en base (`0109`, `provision_account` exige un texte), route sans 500 (404 / 503 `terms_unavailable`), publication `--latest` par la CI de `staging`.
+- [x] Commit 3ter (`662ec3d`) — EC-62 amendé : texte en base (`0109`, `provision_account` exige un texte), route sans 500 (404 / 503 `terms_unavailable`), publication `--latest` par la CI de `staging`.
+- [x] Commit 4 (`SHA`) — `POST /v1/signup` : contrat `packages/contracts/src/signup.ts` (variantes par rôle, clés de libellé par porte, liste de pays partagée), E-2 `identity.complete_signup` autour de `provision_account` (savepoint, motifs en 200 : `country_blocked`, `terms_outdated`, `terms_not_published`, `account_unavailable`), session ouverte, `tm10-signup-route` (16 cas).
 
 ### J6 — Déversement vers Brevo et Apollo (4 à 5 jours)
 

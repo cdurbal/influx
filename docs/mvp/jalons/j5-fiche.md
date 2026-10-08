@@ -88,6 +88,15 @@ consentement enregistré (RG32, RG33) ; aucun taux ni montant.
 - Veto `expert-conformite-rgpd` maintenu sur D63 (consentement exigé, art. 7(4) UK GDPR) et sur la
   synchronisation Apollo tant que le « contributor network » n'est pas désactivé.
 
+## À traiter en fin de jalon (issu du commit 4)
+
+- `expert-cybersecurite` : `identity.complete_signup` désormais appelé ; un rejeu avec jeton encore valide ouvre une
+  nouvelle session (réponse perdue) ; `terms_in_force` lu sous ce motif pour distinguer CGU périmées / non publiées.
+- `testeur` : plancher `tm10-signup-route` = 16 ; `terms_not_published` non couvert de bout en bout (base partagée).
+- `expert-ux` (commit 5) : clés `signup.consent.advertiser.label` / `signup.consent.creator.label` imposées par le
+  serveur ; refus métier en 200 `outcome` (le passe-plat ne relaie que 200/401), message neutre pour `country_blocked`.
+- `architecte` : liste des 249 pays déplacée dans `packages/contracts/src/countries.ts` (re-exportée par `apps/web`).
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche.
