@@ -84,9 +84,9 @@ for (let index = 0; index < PER_CLASS; index += 1) {
   await migration`
     insert into identity.accounts
       (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
-       display_name, is_adult_attested, adult_attested_at)
+       display_name, is_adult_attested, adult_attested_at, declared_status)
     values (${accountId}, ${created.value.userId}, ${email}, now(), 'FR', 'fr', 'EC-42',
-            true, now())`;
+            true, now(), 'individual')`;
   await migration`
     insert into identity.account_roles (account_id, role) values (${accountId}, 'creator')`;
   existing.push(email);

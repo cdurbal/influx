@@ -42,9 +42,16 @@ export const ENROLLMENT_TOKEN_ID = "00000000-0000-4000-8000-00000000ff05";
  * probes of influx_auth. */
 export const TRANSACTIONAL_SEND_REFERENCE =
   "00000000-0000-4000-8000-00000000ff06";
+/** Fact of the queue line of the data set (0101): lead.created of advertiser A. */
+export const OUTBOX_EVENT_ID = "00000000-0000-4000-8000-00000000ff07";
 
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
+}
+
+/** 0104: declared_status is NOT NULL; an advertiser is business by construction (05 RG22). */
+function declaredStatusOf(role: BusinessRoleName): "individual" | "business" {
+  return role === "creator" ? "individual" : "business";
 }
 
 export type DataSetAccount = {
@@ -71,9 +78,10 @@ async function insertAccount(
   await tx`
     insert into identity.accounts
       (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
-       display_name, is_adult_attested, adult_attested_at)
+       display_name, is_adult_attested, adult_attested_at, declared_status)
     values (${id}, ${authUserIdOf(role, side)}, ${`t2-${role}-${side}@example.test`}, now(),
-            'FR', 'fr', ${`T2 ${role} ${side}`}, true, now())
+            'FR', 'fr', ${`T2 ${role} ${side}`}, true, now(),
+            ${declaredStatusOf(role)}::identity.declared_status)
     on conflict do nothing`;
   await tx`
     insert into identity.account_roles (account_id, role)
@@ -193,6 +201,35 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
       insert into leads.transactional_sends (reference, email_code, priority, account_id, locale)
       values (${TRANSACTIONAL_SEND_REFERENCE}, 'auth.login_code', 'p0',
               ${accountIdOf("agent", "a")}, 'fr')
+      on conflict do nothing`;
+
+    // One row in each table of the Lot 1 migrations (0101, 0105, 0106; 0103 loads its own keys).
+    // Both advertisers hold a profile, so that `propre` is observable against account B.
+    for (const side of ["a", "b"] as const) {
+      await tx`
+        insert into profiles.advertiser_profiles (account_id, legal_name)
+        values (${accountIdOf("advertiser", side)}, ${`T2 brand ${side}`})
+        on conflict do nothing`;
+    }
+    await tx`
+      insert into leads.outbox_events
+        (event_id, event_type, destination, subject_key, payload, idempotency_key)
+      values (${OUTBOX_EVENT_ID}, 'lead.created', 'brevo_contact',
+              ${`account:${accountIdOf("advertiser", "a")}`},
+              jsonb_build_object('event_id', ${OUTBOX_EVENT_ID}::uuid,
+                                 'account_id', ${accountIdOf("advertiser", "a")}::uuid),
+              ${`lead.created:${OUTBOX_EVENT_ID}`})
+      on conflict do nothing`;
+    await tx`
+      insert into leads.contact_sync_states (account_id, destination)
+      values (${accountIdOf("advertiser", "a")}, 'brevo_contact')
+      on conflict do nothing`;
+    await tx`
+      insert into identity.email_delivery_incidents
+        (account_id, email_address, channel, incident_type, provider, provider_event_id,
+         occurred_at)
+      values (${accountIdOf("creator", "a")}, 't2-creator-a@example.test', 'marketing',
+              'soft_bounce', 'brevo', 't2-incident', now())
       on conflict do nothing`;
 
     // One row in each table of the ops schema (0016, J4), at a fixed past minute: the metric

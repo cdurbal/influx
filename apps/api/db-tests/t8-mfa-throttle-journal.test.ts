@@ -60,10 +60,11 @@ async function internalAccount(
     const suspended = options.status === "suspended";
     await tx`
       insert into identity.accounts
-        (id, auth_user_id, email, country_code, preferred_language, status, suspended_at)
+        (id, auth_user_id, email, country_code, preferred_language, status, suspended_at,
+         declared_status)
       values (${account}, ${randomUUID()}, ${`t8-mfa-${account}@example.test`}, 'FR', 'fr',
               ${suspended ? "suspended" : "active"}::identity.account_status,
-              ${suspended ? new Date() : null})`;
+              ${suspended ? new Date() : null}, 'business')`;
     await tx`insert into identity.account_roles (account_id, role) values (${account}, 'agent')`;
     await tx`insert into identity.agent_profiles (account_id, first_name) values (${account}, 'T8')`;
     const age = options.tokenAge ?? "0 seconds";

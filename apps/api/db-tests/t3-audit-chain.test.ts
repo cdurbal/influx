@@ -82,8 +82,9 @@ async function createTargets(count: number): Promise<string[]> {
   await migration.begin(async (tx) => {
     for (const id of ids) {
       await tx`
-        insert into identity.accounts (id, auth_user_id, email, country_code, preferred_language)
-        values (${id}, ${randomUUID()}, ${`t3-${id}@example.test`}, 'FR', 'fr')`;
+        insert into identity.accounts
+          (id, auth_user_id, email, country_code, preferred_language, declared_status)
+        values (${id}, ${randomUUID()}, ${`t3-${id}@example.test`}, 'FR', 'fr', 'individual')`;
     }
   });
   return ids;
@@ -118,13 +119,15 @@ async function lastSeq(): Promise<number> {
 // ---------------------------------------------------------------------------------------------
 
 describe("T3.1: no execution role mutates an append-only table", () => {
-  it("lists the append-only tables of the Lot 0", () => {
+  it("lists the append-only tables of the Lot 0 and of the Lot 1", () => {
     expect([...APPEND_ONLY_TABLES].sort()).toEqual(
       [
         "audit.audit_events",
         "audit.chain_checks",
         "identity.consent_events",
         "identity.terms_acceptances",
+        // 0105 (J5, 04 §5.1)
+        "identity.email_delivery_incidents",
       ].sort(),
     );
   });

@@ -433,6 +433,75 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     },
   },
   {
+    table: "leads.outbox_events",
+    source: "0101 (04 §5.8, §6; D18)",
+    // Not `id`: an identity column GENERATED ALWAYS refuses `set id = id` before any privilege.
+    probeColumn: "status",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "0101, 04 §6 « L »: the queue read by the backoffice (05 RG97 to RG101); replay at J8",
+      },
+    }),
+  },
+  {
+    table: "leads.contact_sync_states",
+    source: "0101 (04 §5.8, §10.7)",
+    probeColumn: "destination",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "0101, 04 §10.7: synchronisation state per contact, backoffice read; worker writes at J6",
+      },
+    }),
+  },
+  {
+    table: "leads.sync_settings",
+    source:
+      "0103 (EC-8): no right for any execution role; read by identity.provision_account() (0106), " +
+      "by the worker at J6, written by the admin function at J8",
+    probeColumn: "key",
+    expected: {},
+  },
+  {
+    table: "identity.email_delivery_incidents",
+    source: "0105 (04 §5.1, D37)",
+    appendOnly: true,
+    // Not `id`: an identity column GENERATED ALWAYS refuses `set id = id` before any privilege.
+    probeColumn: "channel",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "03 §3.1 « Compte — lister et consulter (tous) » L·J; writer: the worker at J7",
+      },
+    }),
+  },
+  {
+    table: "profiles.advertiser_profiles",
+    source: "0106 (04 §5.2, minimal form)",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    expected: merge(
+      {
+        influx_advertiser: {
+          select: {
+            form: "propre",
+            source: "04 §6 « S »: the advertiser reads their own profile",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source: "04 §6 « L »: agent and admin read every advertiser profile",
+        },
+      }),
+    ),
+  },
+  {
     table: "ops.error_groups",
     source: "0016 (D60, 02 §20.5; E-6)",
     // The two columns influx_ops reads for the upsert of a fingerprint; the update probe is a
@@ -554,8 +623,9 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * `role|kind|object|privileges`. Anything more, or less, fails. Taken from the local database
  * after 0001-0008 and reviewed line by line against 03 §3 and P7 on 2026-09-26; extended on
  * 2026-09-28 with the grants of 0011 to 0015 (J3 commit 6: influx_auth column by column, the
- * narrow audit functions, the identity definers), each line checked against its migration; and on
- * 2026-10-05 with those of 0016 (J4: influx_ops on the ops schema).
+ * narrow audit functions, the identity definers), each line checked against its migration; on
+ * 2026-10-05 with those of 0016 (J4: influx_ops on the ops schema); and on 2026-10-08 with those
+ * of 0101 to 0106 (J5, Lot 1), each line checked against its migration.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -907,6 +977,77 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_session_resolver|column|identity.sessions.token_hash|SELECT",
   "influx_session_resolver|function|identity.resolve_session(bytea)|EXECUTE",
   "influx_session_resolver|schema|identity|USAGE",
+  // 0101 to 0106 (J5, Lot 1): the queue and the states read by agent and admin, the advertiser
+  // profile, set_declared_status() / correct_email() / provision_account() (EC-30, EXECUTE to
+  // influx_auth only) and, column by column, what influx_identity_definer reads and writes.
+  "influx_admin|function|identity.correct_email(uuid,text,text,text)|EXECUTE",
+  "influx_admin|function|identity.set_declared_status(uuid,identity.declared_status,text,text)|EXECUTE",
+  "influx_admin|schema|leads|USAGE",
+  "influx_admin|schema|profiles|USAGE",
+  "influx_admin|table|identity.email_delivery_incidents|SELECT",
+  "influx_admin|table|leads.contact_sync_states|SELECT",
+  "influx_admin|table|leads.outbox_events|SELECT",
+  "influx_admin|table|profiles.advertiser_profiles|SELECT",
+  "influx_advertiser|column|identity.accounts.declared_status|SELECT",
+  "influx_advertiser|schema|profiles|USAGE",
+  "influx_advertiser|table|profiles.advertiser_profiles|SELECT",
+  "influx_agent|function|identity.set_declared_status(uuid,identity.declared_status,text,text)|EXECUTE",
+  "influx_agent|schema|leads|USAGE",
+  "influx_agent|schema|profiles|USAGE",
+  "influx_agent|table|identity.email_delivery_incidents|SELECT",
+  "influx_agent|table|leads.contact_sync_states|SELECT",
+  "influx_agent|table|leads.outbox_events|SELECT",
+  "influx_agent|table|profiles.advertiser_profiles|SELECT",
+  "influx_auth|function|identity.provision_account(uuid,text,identity.account_role,text,text,identity.declared_status,boolean,text,uuid,boolean,text,text,text,text,text,text,text,identity.heard_from)|EXECUTE",
+  "influx_creator|column|identity.accounts.declared_status|SELECT",
+  "influx_creator|function|identity.set_declared_status(uuid,identity.declared_status,text,text)|EXECUTE",
+  "influx_identity_definer|column|identity.accounts.adult_attested_at|INSERT",
+  "influx_identity_definer|column|identity.accounts.auth_user_id|INSERT,SELECT",
+  "influx_identity_definer|column|identity.accounts.country_code|INSERT",
+  "influx_identity_definer|column|identity.accounts.declared_status|INSERT,SELECT,UPDATE",
+  "influx_identity_definer|column|identity.accounts.email_status|UPDATE",
+  "influx_identity_definer|column|identity.accounts.email_undeliverable_at|UPDATE",
+  "influx_identity_definer|column|identity.accounts.email_verified_at|INSERT,UPDATE",
+  "influx_identity_definer|column|identity.accounts.email|INSERT,SELECT,UPDATE",
+  "influx_identity_definer|column|identity.accounts.is_adult_attested|INSERT",
+  "influx_identity_definer|column|identity.accounts.preferred_language|INSERT",
+  "influx_identity_definer|column|identity.accounts.signup_heard_from|INSERT",
+  "influx_identity_definer|column|identity.accounts.signup_referrer_domain|INSERT",
+  "influx_identity_definer|column|identity.accounts.signup_utm_campaign|INSERT",
+  "influx_identity_definer|column|identity.accounts.signup_utm_medium|INSERT",
+  "influx_identity_definer|column|identity.accounts.signup_utm_source|INSERT",
+  "influx_identity_definer|column|identity.consent_events.account_id|INSERT",
+  "influx_identity_definer|column|identity.consent_events.evidence|INSERT",
+  "influx_identity_definer|column|identity.consent_events.granted|INSERT",
+  "influx_identity_definer|column|identity.consent_events.purpose|INSERT",
+  "influx_identity_definer|column|identity.consent_events.source|INSERT",
+  "influx_identity_definer|column|identity.terms_acceptances.account_id|INSERT",
+  "influx_identity_definer|column|identity.terms_acceptances.channel|INSERT",
+  "influx_identity_definer|column|identity.terms_acceptances.locale|INSERT",
+  "influx_identity_definer|column|identity.terms_acceptances.nature|INSERT",
+  "influx_identity_definer|column|identity.terms_acceptances.terms_version_id|INSERT",
+  "influx_identity_definer|column|identity.terms_versions.content_hash|SELECT",
+  "influx_identity_definer|column|identity.terms_versions.document_kind|SELECT",
+  "influx_identity_definer|column|identity.terms_versions.effective_from|SELECT",
+  "influx_identity_definer|column|identity.terms_versions.effective_to|SELECT",
+  "influx_identity_definer|column|identity.terms_versions.id|SELECT",
+  "influx_identity_definer|column|identity.terms_versions.locale|SELECT",
+  "influx_identity_definer|column|leads.outbox_events.destination|INSERT",
+  "influx_identity_definer|column|leads.outbox_events.event_id|INSERT",
+  "influx_identity_definer|column|leads.outbox_events.event_type|INSERT",
+  "influx_identity_definer|column|leads.outbox_events.idempotency_key|INSERT",
+  "influx_identity_definer|column|leads.outbox_events.payload|INSERT",
+  "influx_identity_definer|column|leads.outbox_events.priority|INSERT",
+  "influx_identity_definer|column|leads.outbox_events.subject_key|INSERT",
+  "influx_identity_definer|column|leads.sync_settings.key|SELECT",
+  "influx_identity_definer|column|leads.sync_settings.value|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_profiles.account_id|INSERT",
+  "influx_identity_definer|column|profiles.advertiser_profiles.legal_name|INSERT",
+  "influx_identity_definer|function|identity.correct_email(uuid,text,text,text)|EXECUTE",
+  "influx_identity_definer|function|identity.provision_account(uuid,text,identity.account_role,text,text,identity.declared_status,boolean,text,uuid,boolean,text,text,text,text,text,text,text,identity.heard_from)|EXECUTE",
+  "influx_identity_definer|function|identity.set_declared_status(uuid,identity.declared_status,text,text)|EXECUTE",
+  "influx_identity_definer|schema|leads|USAGE",
+  "influx_identity_definer|schema|profiles|USAGE",
 ];
 
 /** T4.2, T4.3: the closed list of 03 P7 (twelve roles at J2, fourteen from J4), memberships. */
@@ -983,5 +1124,11 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "identity.record_auth_failure(identity.throttle_scope,bytea,identity.throttle_window)":
     "influx_identity_definer",
   "identity.auth_failure_count(identity.throttle_scope,bytea,identity.throttle_window)":
+    "influx_identity_definer",
+  // 0104, 0106 (J5: 04 §5.1, EC-30)
+  "identity.set_declared_status(uuid,identity.declared_status,text,text)":
+    "influx_identity_definer",
+  "identity.correct_email(uuid,text,text,text)": "influx_identity_definer",
+  "identity.provision_account(uuid,text,identity.account_role,text,text,identity.declared_status,boolean,text,uuid,boolean,text,text,text,text,text,text,text,identity.heard_from)":
     "influx_identity_definer",
 };

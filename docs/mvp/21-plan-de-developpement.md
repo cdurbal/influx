@@ -207,7 +207,8 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 **Tests** : CA1 à CA10, CA22, CA65 à CA69 ; TM10 ; T2 étendu aux tables du Lot 1 ; Playwright : une inscription nominale par porte, avec la doublure Brevo.
 **Terminé quand** : sur `staging`, une marque et un créateur s'inscrivent de bout en bout, et les lignes de file attendues existent.
 
-- [x] Commit 1 (`SHA`) — dette J4 : J4S-2, J4S-4, J4S-5, J4T-1 déjà soldés par `0d5872d` (vérifiés) ; `.node-version` → 24 (J4R-1, D64).
+- [x] Commit 1 (`0404465`) — dette J4 : J4S-2, J4S-4, J4S-5, J4T-1 déjà soldés par `0d5872d` (vérifiés) ; `.node-version` → 24 (J4R-1, D64).
+- [x] Commit 2 (`SHA`) — migrations `0101`, `0103` à `0106` (`provision_account` dans `0106`, car elle écrit le profil marque) ; T2/T3/T4 étendus, `tm10-signup-provisioning` (40 cas) ; EC-57 remesuré sur GoTrue v2.197.0 (version de `staging`).
 
 ### J6 — Déversement vers Brevo et Apollo (4 à 5 jours)
 

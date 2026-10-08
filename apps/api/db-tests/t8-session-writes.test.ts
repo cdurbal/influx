@@ -261,8 +261,10 @@ describe("EC-29 point 1: creation by influx_auth, every date computed in base", 
     const unpinned = randomUUID();
     await migration.begin(async (tx) => {
       await tx`
-        insert into identity.accounts (id, auth_user_id, email, country_code, preferred_language)
-        values (${unpinned}, ${randomUUID()}, ${`t8-unpinned-${unpinned}@example.test`}, 'FR', 'fr')`;
+        insert into identity.accounts
+          (id, auth_user_id, email, country_code, preferred_language, declared_status)
+        values (${unpinned}, ${randomUUID()}, ${`t8-unpinned-${unpinned}@example.test`}, 'FR', 'fr',
+                'business')`;
       await tx`insert into identity.account_roles (account_id, role) values (${unpinned}, 'agent')`;
       await tx`
         insert into identity.agent_profiles (account_id, first_name, mfa_enrolled_at)

@@ -239,9 +239,9 @@ async function newMemberAccount(label: string, language: "fr" | "en") {
   await migrationRole()`
     insert into identity.accounts
       (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
-       display_name, is_adult_attested, adult_attested_at)
+       display_name, is_adult_attested, adult_attested_at, declared_status)
     values (${accountId}, ${created.value.userId}, ${email}, now(), 'FR', ${language},
-            'J3 request-code', true, now())`;
+            'J3 request-code', true, now(), 'business')`;
   await migrationRole()`
     insert into identity.account_roles (account_id, role) values (${accountId}, 'advertiser')`;
   return { email, accountId };
@@ -401,10 +401,13 @@ describe("02 §18.10: a code that leaves", () => {
     watch(logs.text, [email, code, body.matchingPhrase, value, AGENT_MARKER]);
   });
 
-  it("writes nothing in outbox_events (lead-pipeline T1): the table does not exist at J3", async () => {
-    const [row] = await migrationRole()<{ table: string | null }[]>`
-      select to_regclass('leads.outbox_events')::text as table`;
-    expect(row?.table).toBeNull();
+  // The queue exists since 0101 (J5): the sign-in code still never goes through it (D43), and
+  // the journal line above keeps outbox_event_id NULL.
+  it("writes nothing in outbox_events (lead-pipeline T1, D43): no queue line carries a sign-in code", async () => {
+    const [row] = await migrationRole()<{ count: number }[]>`
+      select count(*)::int as count from leads.outbox_events
+       where idempotency_key like 'auth.%' or payload ->> 'email_code' like 'auth.%'`;
+    expect(row?.count).toBe(0);
   });
 });
 

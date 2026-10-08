@@ -213,10 +213,12 @@ async function newAccount(
   await migrationRole()`
     insert into identity.accounts
       (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
-       display_name, is_adult_attested, adult_attested_at, status, suspended_at)
+       display_name, is_adult_attested, adult_attested_at, status, suspended_at,
+       declared_status)
     values (${accountId}, ${created.value.userId}, ${email}, now(), 'FR', 'en', 'J3 verify',
             true, now(), ${status}::identity.account_status,
-            ${status === "suspended" ? new Date() : null})`;
+            ${status === "suspended" ? new Date() : null},
+            ${role === "creator" ? "individual" : "business"}::identity.declared_status)`;
   await migrationRole()`
     insert into identity.account_roles (account_id, role)
     values (${accountId}, ${role}::identity.account_role)`;

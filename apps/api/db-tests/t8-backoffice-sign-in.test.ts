@@ -162,10 +162,11 @@ async function newInternal(
     await tx`
       insert into identity.accounts
         (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
-         display_name, is_adult_attested, adult_attested_at, status, suspended_at)
+         display_name, is_adult_attested, adult_attested_at, status, suspended_at,
+         declared_status)
       values (${accountId}, ${authUserId}, ${email}, now(), 'FR', 'fr', 'J3 backoffice', true,
               now(), ${status}::identity.account_status,
-              ${status === "suspended" ? new Date() : null})`;
+              ${status === "suspended" ? new Date() : null}, 'business')`;
     await tx`insert into identity.account_roles (account_id, role)
              values (${accountId}, ${role}::identity.account_role)`;
     if (role !== "advertiser") {

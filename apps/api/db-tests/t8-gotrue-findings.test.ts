@@ -227,24 +227,28 @@ describe("J3-A a: settings, as GoTrue applies them", () => {
     ).toBe("ES256");
   });
 
-  it("EC-57: the administration API accepts 11 characters and 72 bytes, and fails on 73 bytes", async () => {
+  // Re-measured on 2026-10-08 (J5): since the J4 link to staging, the local stack runs the GoTrue
+  // version of staging (supabase/.temp/gotrue-version, v2.197.0). Unlike the version measured at
+  // J3, it applies minimum_password_length to the administration API and refuses 73 bytes with a
+  // 400 instead of failing the hash with a 500. apps/api's own rules (B-1) stay the first guard.
+  it("EC-57: the administration API refuses 11 characters, accepts 12 and 72 bytes, refuses 73 bytes", async () => {
     const create = (label: string, password: string) =>
       gotrue("POST", "/admin/users", {
         key: "secret",
         body: { email: newAddress(label), password, email_confirm: true },
       });
     const eleven = await create("pw11", "a".repeat(11));
+    const twelve = await create("pw12", "a".repeat(12));
     const seventyTwo = await create("pw72", "é".repeat(36));
     const seventyThree = await create("pw73", `${"é".repeat(36)}a`);
-    for (const created of [eleven, seventyTwo]) {
+    for (const created of [twelve, seventyTwo]) {
       expect(created.status).toBe(200);
       createdUsers.push(String(created.body.id));
     }
-    // minimum_password_length does not bind the administration API; beyond 72 bytes, the hash
-    // fails as a 500 instead of a refusal: apps/api's own rules (B-1) are the only guard.
+    expect(outcomeOf(eleven)).toEqual({ status: 422, code: "weak_password" });
     expect(outcomeOf(seventyThree)).toEqual({
-      status: 500,
-      code: "unexpected_failure",
+      status: 400,
+      code: "validation_failed",
     });
   });
 });

@@ -202,9 +202,10 @@ export async function seedDemoAccounts(
       const [row] = await tx<{ id: string }[]>`
         insert into identity.accounts
           (auth_user_id, email, email_verified_at, country_code, preferred_language,
-           display_name, is_adult_attested, adult_attested_at)
+           display_name, is_adult_attested, adult_attested_at, declared_status)
         values (${authUserIds.get(account.role) ?? null}, ${account.email}, now(), 'FR',
-                ${account.preferredLanguage}, ${account.displayName}, true, now())
+                ${account.preferredLanguage}, ${account.displayName}, true, now(),
+                ${account.role === "creator" ? "individual" : "business"}::identity.declared_status)
         returning id::text`;
       const accountId = row?.id;
       if (accountId === undefined) {
