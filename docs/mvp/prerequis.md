@@ -99,7 +99,11 @@ Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la sociét
       `expert-paiement-facturation`)
 - [ ] Faire rédiger/valider les documents légaux par un juriste (CGU, CGV, contrat
       d'intermédiation, politique de confidentialité), en français et en anglais — les agents
-      préparent, un professionnel valide
+      préparent, un professionnel valide. *2026-10-08 : CGU, confidentialité et cookies `draft-2`
+      (droit anglais, empreintes dans `apps/api/legal/published.json`) **validés par le juriste**.
+      Restent : valeurs des marqueurs `[…]` (société en cours de création), CGV, contrat
+      d'intermédiation. La version définitive = `draft-2` + marqueurs remplis + en-tête « projet »
+      retiré, rien d'autre (différence vérifiable).*
 
 ### 14.5 Ordre de travail : lots du MVP
 
