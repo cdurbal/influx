@@ -221,6 +221,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
  - [x] Commit 5quater (`e4e136b`) — D15 précisée : « 18 ans ou plus » partout (écrans, landing, RG19, `17`) ; CGU `draft-2` à réaligner.
  - [x] Commit 5quinquies (`c56e4b8`) — CGU `draft-3` (fr, en) = `draft-2` + clause d'âge seule, publiée et ajoutée au manifeste ; `draft-2` immuable ; relecture juriste de la clause.
  - [x] Commit 5sexies (`b136505`) — I-4 : attestation ultérieure `security-reviewed: <date> covers <sha>…` (fondateur, 2026-10-08), sans réécriture de `main` ; les quatre commits J5 restent rouges jusqu'à la revue de fin de J5.
+- [x] Commit 6 (`cff1adf`) — Playwright (`apps/web/e2e`, `pnpm test:e2e`, en CI après `pnpm check`) : deux inscriptions nominales avec la doublure Brevo et relecture en base (CGU, libellé RG32, 3 lignes EC-10), plus les 7 cas D66 du commit 5 (9 parcours).
 
 ### J6 — Déversement vers Brevo et Apollo (4 à 5 jours)
 
