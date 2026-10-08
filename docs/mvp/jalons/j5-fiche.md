@@ -99,6 +99,23 @@ nouvelle session ; clés `signup.consent.advertiser.label` / `signup.consent.cre
   (dont `terms_in_force` sous ce motif).
 - `testeur` : plancher `tm10-signup-route` = 16 ; `terms_not_published` non couvert de bout en bout (base partagée).
 
+## Issu du commit 5 (`43eb292`)
+
+Écarts pris au plus sûr : aucun stockage navigateur (garde CA8) ⇒ le sélecteur de langue n'est proposé qu'au choix de
+porte et à l'écran 1 (requête UTM reportée), un rechargement ou un changement de langue aux écrans 2-3 repart de
+l'adresse (RG111 partiel) ; consentement exigé côté web quelle que soit `signup_consent_required` ; changer de porte vide
+aussi le pays ; succès et `roleMismatch` = écran d'étape avec lien vers l'espace (pas de bandeau sur l'accueil) ;
+pages d'inscription `noindex` ; `/en/connexion`, `/en/marque`, `/en/createur` redirigent ; libellés de consentement
+**provisoires** (RG127, Q12).
+
+- `expert-cybersecurite` : `POST /v1/signup` appelé du navigateur (corps du contrat revalidé avant envoi), lien
+  confidentialité `target="_blank" rel="noopener noreferrer"`, aucun `installErrorCollector` sur le parcours.
+- `expert-conformite-rgpd` (Lot 6) / juriste : libellés `signup.consent.*.label` et `auth.privacy.notice` à faire valider ;
+  la politique de confidentialité dit « moins de 18 ans », l'écran dit « majeur dans votre pays » (RG19).
+- `testeur` : règles d'écran en unitaire seulement (`auth-steps`, `signup-form`) ; parcours réel au commit 6
+  (Playwright). Le contrat accepte un référent IPv4 (`127.0.0.1`) malgré son commentaire « IP literal dropped ».
+- `architecte` : `history`/URL non resynchronisée au changement de porte en cours de parcours ; `Commit 4 (SHA)` corrigé dans `21`.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche.
