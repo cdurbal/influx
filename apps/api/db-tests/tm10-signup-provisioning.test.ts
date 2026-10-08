@@ -789,4 +789,16 @@ describe("EC-11, 05 RG120: the acquisition source is written once", () => {
       ),
     ).toEqual({ outcome: "error", code: CHECK_VIOLATION });
   });
+
+  it("refuses an IP literal as the referring domain (0110)", async () => {
+    expect(
+      await asAuth(async (tx) =>
+        probe(
+          tx,
+          PROVISION.replace("null, null, null,", "null, null, '127.0.0.1',"),
+          parametersOf(creatorSignup()),
+        ),
+      ),
+    ).toEqual({ outcome: "error", code: CHECK_VIOLATION });
+  });
 });

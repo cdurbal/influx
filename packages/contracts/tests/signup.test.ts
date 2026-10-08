@@ -220,6 +220,15 @@ describe("POST /v1/signup, body: source of acquisition (RG120, EC-11)", () => {
     }
   });
 
+  it("drops an IP literal, never a name that only starts with digits (0110)", () => {
+    for (const raw of ["127.0.0.1", "192.168.1.1.", "127.1", "[::1]", "::1"]) {
+      expect(normalizeReferrerDomain(raw)).toBeNull();
+    }
+    for (const raw of ["1password.com", "123.example.com", "example.co.uk"]) {
+      expect(normalizeReferrerDomain(raw)).toBe(raw);
+    }
+  });
+
   it("parses the acquisition block, every field optional, and the closed list of RG120", () => {
     const parsed = signupBodySchema.parse({
       ...CREATOR,

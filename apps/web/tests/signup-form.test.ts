@@ -291,6 +291,9 @@ describe("acquisitionFromVisit (05 RG120, RG121, 21 EC-11)", () => {
     expect(
       acquisitionFromVisit("", "http://[::1]:8080/", "influx.test"),
     ).toBeUndefined();
+    expect(
+      acquisitionFromVisit("", "http://127.0.0.1:3000/x", "influx.test"),
+    ).toBeUndefined();
   });
 
   it("is undefined for a visit without any source", () => {

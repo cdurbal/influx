@@ -76,14 +76,20 @@ export function normalizeUtmValue(raw: string): string | null {
   return UTM_VALUE_PATTERN.test(value) ? value : null;
 }
 
+/** A last label entirely numeric: an IPv4 literal (127.0.0.1, 127.1), never a site. */
+const NUMERIC_LAST_LABEL_PATTERN = /\.[0-9]+$/;
+
 /**
  * 05 RG120: the domain of the site of origin, never the full address. Lower-cased, trailing dot
- * removed; anything that is not a bare host name (a URL, a path, an IP literal) is dropped.
+ * removed; anything that is not a bare host name is dropped: a URL, a path, an IPv6 literal
+ * (outside the pattern) or an IPv4 literal (its last label is entirely numeric, which no
+ * top-level domain is). The database holds the twin rule (migration 0110).
  */
 export function normalizeReferrerDomain(raw: string): string | null {
   const value = raw.trim().toLowerCase().replace(/\.$/, "");
   return value.length <= REFERRER_DOMAIN_MAX_LENGTH &&
-    REFERRER_DOMAIN_PATTERN.test(value)
+    REFERRER_DOMAIN_PATTERN.test(value) &&
+    !NUMERIC_LAST_LABEL_PATTERN.test(value)
     ? value
     : null;
 }
