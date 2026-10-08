@@ -219,6 +219,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
  - [x] Commit 5bis (`0a8a87e`) — référent : littéral IP écarté (dernier libellé numérique) dans `normalizeReferrerDomain` et par la contrainte jumelle `0110`.
  - [x] Commit 5ter (`0d7f720`) — D66 : `GET /v1/auth/journey` (cookies signés seuls, `no-store`) et `/reset` ; langue par navigation client + variable de module `journey-memory.ts`.
  - [x] Commit 5quater (`e4e136b`) — D15 précisée : « 18 ans ou plus » partout (écrans, landing, RG19, `17`) ; CGU `draft-2` à réaligner.
+ - [x] Commit 5quinquies (`c56e4b8`) — CGU `draft-3` (fr, en) = `draft-2` + clause d'âge seule, publiée et ajoutée au manifeste ; `draft-2` immuable ; relecture juriste de la clause.
 
 ### J6 — Déversement vers Brevo et Apollo (4 à 5 jours)
 
