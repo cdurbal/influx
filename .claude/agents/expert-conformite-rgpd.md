@@ -81,8 +81,8 @@ contenu minimal des documents contractuels et informatifs.
 8. **Traitement automatisé.** Le matching produit des effets sur les personnes : elles doivent en
    être informées, et une intervention humaine doit rester possible (le dispositif hybride
    d'INFLUX y répond — il faut le documenter).
-9. **Influenceurs mineurs : exclus au MVP (D15).** Attestation de majorité selon le pays de
-   résidence, contrôle avant signature, exclusion énoncée dans les CGU. Les régimes spécifiques
+9. **Influenceurs mineurs : exclus au MVP (D15).** Attestation « 18 ans ou plus », âge fixe
+   dans tous les pays (D15 précisée le 2026-10-08), contrôle avant signature, exclusion énoncée dans les CGU. Les régimes spécifiques
    (ex. législation française sur les enfants influenceurs : autorisation, rémunération,
    protection) sont à traiter avant toute ouverture aux mineurs.
 10. **Sous-traitants et transferts.** Brevo, Apollo.io, Supabase, Railway et le prestataire de

@@ -239,7 +239,7 @@ Les exclusions de l'étape 2 (Partie B) s'appliquent, **complétées** par :
 - [ ] Profil **non publié** (brouillon, jamais soumis)
 - [ ] Compte **suspendu** ou en cours de modération
 - [ ] Créateur ayant **bloqué cet annonceur**, et réciproquement
-- [ ] Créateur **mineur ou sans attestation de majorité** (D15)
+- [ ] Créateur **de moins de 18 ans ou sans attestation « 18 ans ou plus »** (D15)
 - [ ] **Secteur refusé par le créateur** correspondant à la catégorie de la campagne
 
 Deux règles de comportement :
@@ -468,7 +468,7 @@ dans le pipeline du backoffice.
 - [ ] **Profil non publié** (brouillon jamais soumis)
 - [ ] **Compte suspendu ou en cours de modération**
 - [ ] **Créateur ayant bloqué cet annonceur**, et réciproquement
-- [ ] **Créateur mineur ou sans attestation de majorité** (D15)
+- [ ] **Créateur de moins de 18 ans ou sans attestation « 18 ans ou plus »** (D15)
 - [ ] **Secteur refusé par le créateur** correspondant à la catégorie de la campagne
 
 Deux règles de comportement héritées d'A8, valables aussi pour les suggestions :

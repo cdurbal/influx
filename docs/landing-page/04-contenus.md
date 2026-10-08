@@ -405,7 +405,7 @@ IMG-USE-01, `awareness` IMG-USE-02)
 | `landing.howItWorks.audience.creator` (16) | Créateurs : | Creators: |
 | `landing.howItWorks.steps.createAccount.title` (36) | Créez votre compte gratuit | Create your free account |
 | `landing.howItWorks.steps.createAccount.advertiser` (100) | Quelques informations suffisent pour ouvrir votre compte entreprise. | A few details are enough to open your company account. |
-| `landing.howItWorks.steps.createAccount.creator` (100) | Quelques informations suffisent, avec l’attestation de votre majorité. | A few details are enough, plus confirming you’re of legal age. |
+| `landing.howItWorks.steps.createAccount.creator` (100) | Quelques informations suffisent, avec l’attestation que vous avez 18 ans ou plus. | A few details are enough, plus confirming you’re 18 or older. |
 | `landing.howItWorks.steps.completeProfile.title` (36) | Complétez votre profil | Complete your profile |
 | `landing.howItWorks.steps.completeProfile.advertiser` (100) | Secteur, produits, objectifs, budget indicatif : l’équipe cible mieux ses propositions. | Sector, products, goals, indicative budget: these help our team target its suggestions. |
 | `landing.howItWorks.steps.completeProfile.creator` (100) | Réseaux, thématiques, audience, formats et tarifs, puis vérification de vos statistiques. | Social accounts, topics, audience, formats and rates, then a check of your stats. |
@@ -517,7 +517,7 @@ est étiqueté et accompagné de sa devise ; aucun prestataire, pays ouvert ni d
 | `landing.faq.items.messaging.question` (90) | Pourquoi les échanges passent-ils par la messagerie INFLUX ? | Why do conversations go through INFLUX messaging? |
 | `landing.faq.items.messaging.answer` (400) | Parce que c’est ce qui vous protège. Les messages sont conservés et rattachés à la mise en relation : en cas de désaccord sur ce qui a été convenu, chacun peut s’y référer. Le contrat et le paiement sécurisé n’existent que dans INFLUX, et c’est aussi ce qui permet à l’équipe de vous accompagner jusqu’au reversement du net créateur. | Because it protects you. Messages are kept and linked to the introduction, so if there’s a disagreement about what was agreed, everyone can refer back to them. The contract and secure payment only exist in INFLUX, which is also how our team can support you all the way to the creator’s payout. |
 | `landing.faq.items.eligibility.question` (90) | Qui peut s’inscrire comme créateur, et comment les profils sont-ils vérifiés ? | Who can join as a creator, and how are profiles verified? |
-| `landing.faq.items.eligibility.answer` (400) | Tout créateur majeur selon la loi du lieu où il réside, particulier ou professionnel. Les mineurs ne sont pas acceptés. L’équipe contrôle les statistiques transmises et la propriété de chaque compte, par exemple avec un code à placer dans la bio. Un profil contrôlé reçoit le badge « vérifié ». Au premier contrat, le créateur vérifie aussi son identité auprès du prestataire de paiement. | Any creator of legal age under the law where they live, whether an individual or a professional. Minors are not accepted. Our team checks the stats provided and the ownership of each account, for example with a code added to the bio. Checked profiles get the “verified” badge. On their first contract, creators also verify their identity with the payment provider. |
+| `landing.faq.items.eligibility.answer` (400) | Tout créateur de 18 ans ou plus, particulier ou professionnel, quel que soit son pays. Les personnes de moins de 18 ans ne sont pas acceptées. L’équipe contrôle les statistiques transmises et la propriété de chaque compte, par exemple avec un code à placer dans la bio. Un profil contrôlé reçoit le badge « vérifié ». Au premier contrat, le créateur vérifie aussi son identité auprès du prestataire de paiement. | Any creator aged 18 or older, whether an individual or a professional, wherever they live. People under 18 are not accepted. Our team checks the stats provided and the ownership of each account, for example with a code added to the bio. Checked profiles get the “verified” badge. On their first contract, creators also verify their identity with the payment provider. |
 | `landing.faq.contactPrompt` (60) | Une autre question ? Écrivez-nous : | Another question? Write to us: |
 | `ph.contact.email` (32) | *(voir 2.2)* | *(see 2.2)* |
 
@@ -527,7 +527,7 @@ Longueurs les plus proches de la limite : `eligibility.answer` (FR 388 / 400) et
 **Révision :** `payment.answer` remplacée par le texte de 06 #2 (bloquant, repris tel quel ; il
 prime sur 07 ligne 24) ; « commission INFLUX » dans `currency.answer` (06 #15) ; « net créateur » à
 la fin de `messaging.answer` (06 #17) ; `eligibility.answer` alignée sur le nouveau libellé de
-majorité (« selon la loi du lieu où il réside », 07 ligne 19).
+d'âge (« 18 ans ou plus », D15 précisée le 2026-10-08, qui remplace 07 ligne 19).
 
 ### 2.17 Section 15 : Appel final (`FinalCtaSection`)
 
@@ -553,7 +553,7 @@ est facultatif, non coché et distinct des CGU (CA9). **Révision (07, ligne 18)
 `labelAdvertiser` nomme les e-mails commerciaux (Brevo) et le contact par l'équipe commerciale
 (Apollo.io) ; `labelCreator` précise que les propositions de campagnes ne dépendent pas de la case
 (report dans `02` §3.18 par `expert-ux`). Autres révisions : réassurance « gratuit » (07, ligne 13),
-libellé et erreur de majorité (07, ligne 19).
+libellé et erreur d'âge (« 18 ans ou plus », D15 précisée le 2026-10-08, remplace 07 ligne 19).
 
 | Clé | FR | EN |
 |---|---|---|
@@ -588,9 +588,9 @@ libellé et erreur de majorité (07, ligne 19).
 | `country.openCountriesInfo` (160) | L’inscription est ouverte dans tous les pays. Les contrats s’ouvrent pays par pays : si le vôtre n’est pas encore ouvert, nous vous prévenons à son ouverture. | Sign-up is open in every country. Contracts open country by country: if yours isn’t open yet, we’ll let you know when it opens. |
 | `country.errors.required` (80) | Sélectionnez votre pays. | Select your country. |
 | `language.legend` (40) | Langue de communication | Communication language |
-| `adult.label` (120) | J’atteste avoir l’âge de la majorité selon la loi du lieu où je réside. | I confirm I am of legal age under the law where I live. |
+| `adult.label` (120) | J’atteste avoir 18 ans ou plus. | I confirm I am 18 or older. |
 | `adult.hint` (100) | Les mineurs ne peuvent pas s’inscrire comme créateurs sur INFLUX. | Minors cannot sign up as creators on INFLUX. |
-| `adult.errors.required` (100) | Confirmez avoir l’âge de la majorité pour continuer. | Confirm you are of legal age to continue. |
+| `adult.errors.required` (100) | Confirmez avoir 18 ans ou plus pour continuer. | Confirm you are 18 or older to continue. |
 | `terms.label` (120) | J’accepte les conditions générales d’utilisation d’INFLUX. | I accept the INFLUX terms of use. |
 | `terms.errors.required` (80) | Acceptez les conditions générales d’utilisation pour créer votre compte. | Accept the terms of use to create your account. |
 | `marketingConsent.labelAdvertiser` (160) | J’accepte de recevoir les e-mails commerciaux d’INFLUX (conseils, nouveautés, offres) et que son équipe commerciale me contacte (facultatif). | I agree to receive marketing emails from INFLUX (tips, news, offers) and to be contacted by its sales team (optional). |
@@ -779,7 +779,7 @@ de la revue) sur les points suivants :
 | R11 | Ligne 12 : texte proposé pour la signature du pied de page **non retenu** (ambiguïté « compris » sur le prix, voir 2.19) ; texte de remplacement à relire |
 | R12 | Ligne 1 : `awareness.body` réécrit en plus des trois textes demandés, pour ne pas répéter le nouveau titre (2.12) |
 | R13 | Ligne 10 : indicateur du résultat mis en avant remplacé (taux de clic des stories au lieu du taux d'engagement) en plus du titre (2.6) |
-| R14 | Ligne 19 : réponse FAQ `eligibility` alignée sur le nouveau libellé (« selon la loi du lieu où il réside ») |
+| R14 | Ligne 19 : réponse FAQ `eligibility` alignée sur le libellé d'âge (« 18 ans ou plus », D15 précisée le 2026-10-08) |
 | R15 | Ligne 20 non reprise : « depuis votre compte » maintenu dans `marketingConsent.hint`, car `cadrage-mvp.md` §3 prévoit le retrait du consentement en libre-service dès le MVP ; à retirer si ce retrait n'est pas livré au Lot 1 |
 | R16 | Lignes 21, 22, 25 et 26 : sans modification de texte pour la maquette (information complète, e-mail d'ouverture d'un pays, mention « INFLUX ouvre par étapes », recherche d'antériorité sur le nom) ; à traiter au Lot 1 |
 

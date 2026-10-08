@@ -131,7 +131,7 @@ effort. Pas de remarque générique.
 
 ### Cas particulier : influenceurs mineurs
 
-- [ ] Mineurs **exclus au MVP** (D15) : attestation de majorité selon le pays de résidence,
+- [ ] Mineurs **exclus au MVP** (D15) : attestation « 18 ans ou plus » (âge fixe, tous pays, D15 précisée),
       contrôle avant signature, exclusion énoncée dans les CGU
 - [ ] Toute ouverture aux mineurs est précédée du traitement des régimes spécifiques (ex.
       législation française sur les enfants influenceurs)
