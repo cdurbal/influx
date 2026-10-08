@@ -114,7 +114,7 @@ changement de langue) ; référent IP (5bis, `0110`) ; « 18 ans ou plus » part
   vie du jeton** (15 min connexion, 30 min inscription) ; contrainte `0110` et filtre IP du contrat.
 - `expert-conformite-rgpd` (Lot 6) / juriste : libellés `signup.consent.*.label` et `auth.privacy.notice` ; CGU `draft-3`
   (= `draft-2`, seule la clause d'âge change : « au moins 18 ans, quel que soit votre pays de résidence », D15 précisée,
-  diff minimal voulu par le fondateur) : **le juriste doit relire cette clause** ; `draft-2` reste au manifeste, immuable.
+  diff minimal voulu par le fondateur) : **validée par le juriste (2026-10-08)** ; `draft-2` reste au manifeste, immuable.
 - `testeur` : règles d'écran en unitaire (`auth-steps`, `signup-form`, `journey-memory`) ; plancher
   `tm10-signup-provisioning` = 42. **Playwright au commit 6**, en plus des deux inscriptions nominales : rechargement à
   l'écran 2 (même adresse et phrase, décompte poursuivi) ; rechargement à l'écran 3 sur une porte (adresse, champs vides)

@@ -105,7 +105,7 @@ Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la sociét
       d'intermédiation. La version définitive = `draft-2` + marqueurs remplis + en-tête « projet »
       retiré, rien d'autre (différence vérifiable). 2026-10-08 (D15 précisée) : CGU `draft-3` = `draft-2`
       avec la seule clause d'âge changée (« au moins 18 ans, quel que soit votre pays de résidence ») :
-      **le juriste doit relire cette clause** ; la base des CGU devient `draft-3`.*
+      **validée par le juriste le 2026-10-08** ; la base des CGU devient `draft-3`.*
 
 ### 14.5 Ordre de travail : lots du MVP
 
