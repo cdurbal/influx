@@ -13,6 +13,11 @@ const files = readdirSync(DIR)
   .filter((f) => /^\d{2}b?-.*\.md$/.test(f))
   .sort();
 
+// Milestone sheets (jalons/jN-fiche.md), in milestone order: the entry point of a milestone session.
+const sheets = readdirSync(join(DIR, "jalons"))
+  .filter((f) => /^j\d+-fiche\.md$/.test(f))
+  .sort((a, b) => Number.parseInt(a.slice(1), 10) - Number.parseInt(b.slice(1), 10));
+
 const out = [
   "# Index des spécifications du MVP",
   "",
@@ -22,6 +27,13 @@ const out = [
   "> **Ne jamais lire une spécification en entier.** Repérer ici la section utile, puis la lire avec",
   "> `Read` (`offset` = ligne de départ, `limit` = nombre de lignes), ou chercher une règle précise",
   "> avec `Grep` (exemple : `RG113` dans le fichier concerné).",
+  ...(sheets.length === 0
+    ? []
+    : [
+        ">",
+        "> **Session de jalon : lire d'abord sa fiche**, qui cite déjà les tranches utiles :",
+        `> ${sheets.map((f) => `\`jalons/${f}\``).join(", ")}.`,
+      ]),
   "",
 ];
 

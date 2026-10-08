@@ -28,7 +28,7 @@
 | **J3** | 0 | Authentification : code membre (D43), sessions opaques, backoffice mot de passe + TOTP | ✅ **Terminé** (revue groupée 2026-10-05 : push autorisé ; T-1 corrigé ; push en attente du formatage de `design-proposals/`) | 4-5 j |
 | **J4** | 0 | `staging` sur Railway + Supabase, migrations par la CI, collecte d'erreurs (D60) | ✅ Terminé (2026-10-07) | 3-4 j |
 | **J5** | 1 | Inscription marque et créateur, transaction unique, file alimentée | ▶️ En cours — fiche `jalons/j5-fiche.md` | 4-5 j |
-| **J6** | 1 | Worker, connecteurs Brevo et Apollo, qualification, garde-fous | ⏳ À faire (**1er usage démontrable**) | 4-5 j |
+| **J6** | 1 | Worker, connecteurs Brevo et Apollo, qualification, garde-fous | ⏳ À faire (**1er usage démontrable**) — fiche `jalons/j6-fiche.md` | 4-5 j |
 | **J7** | 1 | Retours Brevo (désinscriptions, rebonds), espace membre minimal | ⏳ À faire | 3-4 j |
 | **J8** | 1 | Backoffice v0 : inscrits, états de synchronisation, rejeu, réglages Apollo | ⏳ À faire | 4-5 j |
 | **J9** | 1 | Sortie du mode maquette de la landing, en-têtes, surveillance active, production | ⏳ À faire | 4-5 j |
@@ -308,7 +308,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 | Avant | Lire uniquement |
 |---|---|
 | **J5** | **`jalons/j5-fiche.md` d'abord** (sections et lignes exactes) ; `05` §A à §E, §H, §L ; `17` §2.5, §2.6, §3 ; skill `design-system-influx` |
-| **J6** | `02` §6 et §11 ; `05` §I ; `16` §H, §J, §M ; skills `lead-pipeline`, `brevo-campaign`, `apollo-lead-sync` |
+| **J6** | **`jalons/j6-fiche.md` d'abord** (sections et lignes exactes) ; `02` §6 et §11 ; `05` §I ; `16` §H, §J, §M ; skills `lead-pipeline`, `brevo-campaign`, `apollo-lead-sync` |
 | **J7** | `05` §F (RG54 à RG58), §J ; `16` §I et §M6 ; `17` §6 |
 | **J8** | `05` §K ; `15` §C, §F ; `17b` §3.11 et §3.13 ; skill `backoffice-ops` |
 | **J9** | `02` §13 et §20 ; `03` §6.5 ; `18` §5 et §10 « Lot 1 » |
