@@ -166,7 +166,7 @@ export const LOCAL_SEED_DRAFTS: readonly PublicationRequest[] = (
   (["fr", "en"] as const).map((locale) => ({
     document,
     locale,
-    label: "draft-1",
+    label: "draft-2",
   })),
 );
 

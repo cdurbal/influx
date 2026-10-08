@@ -199,8 +199,8 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
 
 ## 9. Décisions ouvertes (détail dans `docs/mvp/decisions.md`)
 
-- **D25** pays de la société — **la plus urgente**, conditionne la mise en ligne du Lot 1 et tout
-  encaissement de commission.
+- **D25 tranchée (2026-10-08)** : société en **Angleterre**, CGU sous droit d'Angleterre et du
+  pays de Galles (UK GDPR + RGPD UE). Identité de la société encore en marqueurs dans `apps/api/legal/`.
 - **D29** fenêtre de non-contournement · **D33** périmètre Apollo (veto RGPD, juriste avant Lot 1) ·
   **D63** consentement obligatoire (juriste avant Lot 1) · **D21** influence commerciale par pays.
 - **D24** créateurs particuliers et fiscalité · **D34** libellé du badge · **D38** masse critique

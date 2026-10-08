@@ -96,7 +96,7 @@ beforeAll(async () => {
     await ensureInForce(migrationRole(), {
       document: "terms_of_service",
       locale,
-      label: "draft-1",
+      label: "draft-2",
     });
   }
 });

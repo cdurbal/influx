@@ -80,8 +80,10 @@ consentement enregistré (RG32, RG33) ; aucun taux ni montant.
 - `testeur` : jeu T2 et sonde d'insertion rebasés sur les versions en vigueur ; `tm10-terms-in-force`
   façonne la table sous le rôle de migration dans une transaction annulée (dérogation `18` T2 règle 5).
 - Passe-plat : `ETag`/304 non relayés, « non publié » et « API indisponible » fondus côté web.
-- **Staging** : publier les six brouillons (`db:publish-terms --target=staging`) ; d'ici là la route
-  échoue fermé (500) sur `demo-fictive-1`. Textes `draft-1` : fondateur puis juriste.
+- **Staging** : publier les six `draft-2` (droit anglais, D25) avec `db:publish-terms --target=staging` ;
+  d'ici là la route échoue fermé (500) sur `demo-fictive-1`. Marqueurs `[…]` : fondateur ; textes : solicitor.
+- Veto `expert-conformite-rgpd` maintenu sur D63 (consentement exigé, art. 7(4) UK GDPR) et sur la
+  synchronisation Apollo tant que le « contributor network » n'est pas désactivé.
 
 ## Discipline de session (économie de tokens)
 

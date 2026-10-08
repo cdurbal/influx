@@ -210,7 +210,8 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 
 - [x] Commit 1 (`0404465`) — dette J4 : J4S-2, J4S-4, J4S-5, J4T-1 déjà soldés par `0d5872d` (vérifiés) ; `.node-version` → 24 (J4R-1, D64).
 - [x] Commit 2 (`4eb8ff1`) — migrations `0101`, `0103` à `0106` (`provision_account` dans `0106`, car elle écrit le profil marque) ; T2/T3/T4 étendus, `tm10-signup-provisioning` (40 cas) ; EC-57 remesuré sur GoTrue v2.197.0 (version de `staging`).
-- [x] Commit 3 (`SHA`) — CGU (EC-62) : `0108` `identity.terms_in_force` (E-1 `identity.read_published_terms`), textes `apps/api/legal/` + manifeste d'empreintes, `db:publish-terms`, `GET /v1/terms/current` (échec fermé sur empreinte), pages `/fr/cgu` · `/en/terms`, confidentialité, cookies ; brouillons `draft-1` à faire relire.
+- [x] Commit 3 (`83ba6d1`) — CGU (EC-62) : `0108` `identity.terms_in_force` (E-1 `identity.read_published_terms`), textes `apps/api/legal/` + manifeste d'empreintes, `db:publish-terms`, `GET /v1/terms/current` (échec fermé sur empreinte), pages `/fr/cgu` · `/en/terms`, confidentialité, cookies ; brouillons `draft-1` à faire relire.
+- [x] Commit 3bis (`SHA`) — D25 tranchée (Angleterre) : textes `draft-2` sous droit anglais (UK GDPR, PECR, CRA/UCTA, restraint of trade), marqueurs `[…]` d'identité, seed local sur `draft-2`.
 
 ### J6 — Déversement vers Brevo et Apollo (4 à 5 jours)
 

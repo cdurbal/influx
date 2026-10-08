@@ -1,8 +1,14 @@
 {
   "legal/cookie_policy/en/draft-1.md": "fd681f786f29ac6619a509f44f5bf00a014072f78b6878c487575d051ff5a67a",
+  "legal/cookie_policy/en/draft-2.md": "373e13895fd7a3d1d27aa4c2b9ed33f1526e831d38aa13e10ad5352bc3ea7bb4",
   "legal/cookie_policy/fr/draft-1.md": "5fbf1ea4fdd6649bdc4285fa70bc37ad4c48386c13768b39f63da223652faba0",
+  "legal/cookie_policy/fr/draft-2.md": "371fd31c11ee09b0c54e82b8bec461826f44152cf46469998e5fa42a0c767cd3",
   "legal/privacy_policy/en/draft-1.md": "5c952b4d36a8f3297c19bbf485e8c7b98c4421b5bd8a8b6106e38146cd913ffc",
+  "legal/privacy_policy/en/draft-2.md": "bb48fe83c0dd223052d4a683fccd90a670789f8371d37e2ff665e2e09105582e",
   "legal/privacy_policy/fr/draft-1.md": "69e302c8d90c99c702a05bc0d2b72d2e97a9749d7f605eef9cdd0277bdee1a20",
+  "legal/privacy_policy/fr/draft-2.md": "c56c6168f2dcaee7416591ca497f3efbc281fb2d86b49cf7079a9bd46bd8d43b",
   "legal/terms_of_service/en/draft-1.md": "91c095b23abbbddb31c4316ab381a63b54c2adc5118b8b4bcbf5910299a80bc8",
-  "legal/terms_of_service/fr/draft-1.md": "bf9e9f73796278ec0bad39e59fef1dee4f84683ddfc8eab9d274a99838ade1d6"
+  "legal/terms_of_service/en/draft-2.md": "99e25f44e90226956b661c794e34a9e29108600f5c3b348e2052550fedd5749b",
+  "legal/terms_of_service/fr/draft-1.md": "bf9e9f73796278ec0bad39e59fef1dee4f84683ddfc8eab9d274a99838ade1d6",
+  "legal/terms_of_service/fr/draft-2.md": "62a7d5eb64d56f96e737a85b9770a273f05e6b53d4ec016ce6a03f6ee60b784f"
 }
