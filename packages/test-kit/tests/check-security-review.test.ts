@@ -347,3 +347,125 @@ describe("I-4 marker check on migrations and expected rights", () => {
     expect(result.output).not.toContain("docs: unrelated");
   });
 });
+
+// Founder decision of 2026-10-08: a commit already pushed without the marker is covered by a later
+// attestation commit `security-reviewed: <date> covers <sha>...`, never by rewriting main.
+describe("I-4 attestation of earlier commits", () => {
+  const ATTESTED = "\n\nsecurity-reviewed: 2026-10-08";
+
+  function unreviewedGrant(name: string): string {
+    return commit(`feat(db): unreviewed ${name}`, {
+      [`supabase/migrations/${name}.sql`]:
+        "grant select on reference.witness to influx_agent;\n",
+    });
+  }
+
+  it("covers an earlier commit, in the attestation's range and in a later push", () => {
+    const before = git("rev-parse", "HEAD");
+    const unreviewed = unreviewedGrant("9101_witness");
+    const attestation = commit(
+      `docs: attest${ATTESTED}\nsecurity-reviewed: 2026-10-08 covers ${unreviewed.slice(0, 7)}`,
+      {},
+    );
+    expect(check(before, attestation).status).toBe(0);
+    // the push that carried the unreviewed commit alone is red; a later push is green
+    expect(check(before, unreviewed).status).toBe(1);
+    const later = commit("docs: later", { "README.md": "later\n" });
+    expect(check(before, later).status).toBe(0);
+  });
+
+  it("covers several commits on one or more lines, full or abbreviated", () => {
+    const before = git("rev-parse", "HEAD");
+    const first = unreviewedGrant("9102_witness");
+    const second = unreviewedGrant("9103_witness");
+    const third = unreviewedGrant("9104_witness");
+    const attestation = commit(
+      `docs: attest${ATTESTED}\nsecurity-reviewed: 2026-10-08 covers ${first} ${second.slice(0, 9)}\nsecurity-reviewed: 2026-10-08 covers ${third.slice(0, 7)}`,
+      {},
+    );
+    const result = check(before, attestation);
+    expect(result.status, result.output).toBe(0);
+  });
+
+  it("does not cover a commit the attestation does not name", () => {
+    const before = git("rev-parse", "HEAD");
+    const named = unreviewedGrant("9105_witness");
+    unreviewedGrant("9106_witness");
+    const attestation = commit(
+      `docs: attest${ATTESTED}\nsecurity-reviewed: 2026-10-08 covers ${named}`,
+      {},
+    );
+    const result = check(before, attestation);
+    expect(result.status, result.output).toBe(1);
+    expect(result.output).toContain("unreviewed 9106_witness");
+    expect(result.output).not.toContain("unreviewed 9105_witness");
+  });
+
+  it("fails loudly on an attestation without the plain marker, and covers nothing", () => {
+    const before = git("rev-parse", "HEAD");
+    const unreviewed = unreviewedGrant("9107_witness");
+    const attestation = commit(
+      `docs: attest\n\nsecurity-reviewed: 2026-10-08 covers ${unreviewed}`,
+      {},
+    );
+    const result = check(before, attestation);
+    expect(result.status, result.output).toBe(1);
+    expect(result.output).toContain("plain");
+    expect(result.output).toContain("unreviewed 9107_witness");
+  });
+
+  it("does not let an attestation line count as the plain marker of its own commit", () => {
+    const before = git("rev-parse", "HEAD");
+    const base = commit("docs: base", { "README.md": "base\n" });
+    const result = checkOne(() =>
+      commit(`feat(db): self\n\nsecurity-reviewed: 2026-10-08 covers ${base}`, {
+        "supabase/migrations/9108_witness.sql":
+          "revoke all on reference.witness from anon;\n",
+      }),
+    );
+    expect(before).not.toBe(base);
+    expect(result.status, result.output).toBe(1);
+    expect(result.output).toContain("feat(db): self");
+  });
+
+  it.each([
+    ["an unknown sha", () => "deadbeefdeadbeef", "is not a commit before"],
+    ["a malformed sha", () => "xyz1234", "is not a sha"],
+    ["a sha too short", () => "abc12", "is not a sha"],
+    ["an empty list", () => "", "names no commit"],
+  ])("fails loudly on %s", (_label, token, reason) => {
+    const before = git("rev-parse", "HEAD");
+    const attestation = commit(
+      `docs: attest${ATTESTED}\nsecurity-reviewed: 2026-10-08 covers ${token()}`,
+      {},
+    );
+    const result = check(before, attestation);
+    expect(result.status, result.output).toBe(1);
+    expect(result.output).toContain(reason);
+  });
+
+  it("refuses a commit that is not an ancestor of the attestation", () => {
+    const before = git("rev-parse", "HEAD");
+    git("checkout", "--quiet", "-b", "side");
+    const side = unreviewedGrant("9109_witness");
+    git("checkout", "--quiet", "main");
+    const attestation = commit(
+      `docs: attest${ATTESTED}
+security-reviewed: 2026-10-08 covers ${side}`,
+      {},
+    );
+    const result = check(before, attestation);
+    expect(result.status, result.output).toBe(1);
+    expect(result.output).toContain("is not a commit before");
+  });
+
+  it("ignores a malformed attestation outside the checked range", () => {
+    const bad = commit(
+      `docs: bad attest${ATTESTED}\nsecurity-reviewed: 2026-10-08 covers deadbeef00`,
+      {},
+    );
+    const after = commit("docs: next", { "README.md": "next\n" });
+    const result = check(bad, after);
+    expect(result.status, result.output).toBe(0);
+  });
+});

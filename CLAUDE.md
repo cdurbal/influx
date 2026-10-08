@@ -172,7 +172,8 @@ suppression propagée à Brevo et Apollo. Référents : `expert-conformite-rgpd`
    - Micro-écarts (`EC-*`) sans enjeu d'invariant : appliquer le choix le plus sûr, sans arrêt,
      documentation regroupée en fin de jalon.
    - `expert-cybersecurite` et `testeur` : **une revue groupée en fin de jalon** (marqueurs
-     `security-reviewed:` I-4 apposés à ce moment).
+     `security-reviewed:` I-4 apposés à ce moment ; pour des commits déjà poussés, par un commit
+     d'attestation `security-reviewed: <date> covers <sha>…`, jamais en réécrivant `main`).
    - `expert-conformite-rgpd` : **seulement au Lot 6** ; au Lot 1, `dev-react-node` respecte les
      cases non pré-cochées et l'attestation 18+ de `04`.
    - Tests : pendant le codage, le seul fichier en cours

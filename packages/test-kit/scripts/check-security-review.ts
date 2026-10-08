@@ -21,11 +21,27 @@
 //   removed: `["storage"]` is `[storage]`). A section header that is added, removed or renamed
 //   counts as a line of that section.
 //
+// Attestation (founder decision of 2026-10-08, no history rewrite on main): a commit already pushed
+// without the marker is covered by a LATER commit whose message holds a line
+// `security-reviewed: YYYY-MM-DD covers <sha> [<sha>...]` (full or abbreviated, >= 7 hex). The
+// attestation commit must also carry the plain marker (attesting is a security act), each sha must
+// name exactly one strict ancestor of the attestation (resolved among its ancestors only, so that a
+// short sha cannot become ambiguous as the repository grows), and attestations are searched in the
+// whole history of <head>, so later pushes stay green. A malformed attestation (no plain marker,
+// unknown, ambiguous or non-ancestor sha) fails the check when it is in the checked range; outside
+// the range it covers nothing (it already failed when pushed). Trust model: an attestation is a
+// commit message, exactly like the plain marker; it adds no new way to forge a review, only a
+// later place to write the same claim.
+//
 // Usage: node scripts/check-security-review.ts <base> <head>. An all-zero or missing base (first
 // push of a branch) checks the head commit only. Runs in the current directory's repository.
 import { execFileSync } from "node:child_process";
 
-const MARKER = /^security-reviewed: \d{4}-\d{2}-\d{2}\b/m;
+/** The plain marker: a marker line that is not an attestation line. */
+const MARKER = /^security-reviewed: \d{4}-\d{2}-\d{2}\b(?![ \t]+covers\b)/m;
+const ATTESTATION =
+  /^security-reviewed: \d{4}-\d{2}-\d{2}[ \t]+covers\b(.*)$/gm;
+const SHA = /^[0-9a-f]{7,40}$/i;
 const RIGHTS_PATH = "packages/test-kit/src/rights/";
 /** Files whose every change is a security change (J3S-9), in both fronts for the relay. */
 /**
@@ -168,13 +184,99 @@ function changesRights(commit: string): boolean {
     );
 }
 
+interface Attestations {
+  /** Full shas of the commits covered by a valid attestation. */
+  covered: Set<string>;
+  /** Errors of the malformed attestations of the checked range. */
+  errors: string[];
+}
+
+/** Every attestation of the history of `head`, checked as described in the header. */
+function attestationsOf(
+  head: string,
+  range: ReadonlySet<string>,
+): Attestations {
+  const covered = new Set<string>();
+  const errors: string[] = [];
+  const log = git("log", "--format=%H%x00%B%x1e", head).split("\x1e");
+  for (const entry of log) {
+    const [rawSha, message = ""] = entry.split("\0");
+    const attestation = (rawSha ?? "").trim();
+    const lines = [...message.matchAll(ATTESTATION)];
+    if (attestation.length === 0 || lines.length === 0) {
+      continue;
+    }
+    const local: string[] = [];
+    const fail = (reason: string): void => {
+      local.push(`  ${attestation.slice(0, 12)}: ${reason}`);
+    };
+    if (!MARKER.test(message)) {
+      fail(
+        "an attestation must also carry the plain `security-reviewed: <date>` marker",
+      );
+    }
+    const ancestors = git("rev-list", `${attestation}^@`)
+      .split("\n")
+      .filter((line) => line.length > 0);
+    const resolved: string[] = [];
+    for (const line of lines) {
+      const tokens = (line[1] ?? "")
+        .trim()
+        .split(/\s+/)
+        .filter((t) => t.length > 0);
+      if (tokens.length === 0) {
+        fail("`covers` names no commit");
+      }
+      for (const token of tokens) {
+        if (!SHA.test(token)) {
+          fail(`"${token}" is not a sha of 7 to 40 hex digits`);
+          continue;
+        }
+        const matches = ancestors.filter((sha) =>
+          sha.startsWith(token.toLowerCase()),
+        );
+        if (matches.length !== 1) {
+          fail(
+            matches.length === 0
+              ? `${token} is not a commit before the attestation`
+              : `${token} is ambiguous among the commits before the attestation`,
+          );
+          continue;
+        }
+        resolved.push(matches[0] as string);
+      }
+    }
+    if (local.length > 0) {
+      if (range.has(attestation)) {
+        errors.push(...local);
+      }
+      continue;
+    }
+    for (const sha of resolved) {
+      covered.add(sha);
+    }
+  }
+  return { covered, errors };
+}
+
 const [base, head = "HEAD"] = process.argv.slice(2);
-const missing = commitsOf(base, head).filter(
+const commits = commitsOf(base, head).map((commit) =>
+  git("rev-parse", "--verify", `${commit}^{commit}`).trim(),
+);
+const { covered, errors } = attestationsOf(head, new Set(commits));
+const missing = commits.filter(
   (commit) =>
     changesRights(commit) &&
+    !covered.has(commit) &&
     !MARKER.test(git("show", "--no-patch", "--format=%B", commit)),
 );
 
+if (errors.length > 0) {
+  process.stderr.write(
+    `Malformed "security-reviewed: <date> covers <sha>" attestations (03 I-4):\n${errors.join("\n")}\n`,
+  );
+  process.exitCode = 1;
+}
 if (missing.length > 0) {
   process.stderr.write(
     `Commits changing rights without "security-reviewed: <date>" (03 I-4, 18 C-8, EC-48, J3S-9):\n${missing
@@ -185,6 +287,7 @@ if (missing.length > 0) {
       .join("\n")}\n`,
   );
   process.exitCode = 1;
-} else {
+}
+if (errors.length === 0 && missing.length === 0) {
   process.stdout.write("security review markers: ok\n");
 }
