@@ -73,6 +73,16 @@ export function draftAfterDoorChange(
   };
 }
 
+/**
+ * D66 (05 RG111, RG130): the answers of screen 3 carried to the other language, except the two
+ * boxes ticked under a wording: the consent (RG32, the exact wording shown is recorded) and the
+ * acceptance of the terms (read in the page's language). The person ticks them again, under the
+ * wording now on screen. The preferred language stays: it is a choice (RG11).
+ */
+export function draftAfterLanguageChange(draft: SignupDraft): SignupDraft {
+  return { ...draft, termsAccepted: false, marketingConsent: false };
+}
+
 export type SignupField =
   | "companyName"
   | "countryCode"

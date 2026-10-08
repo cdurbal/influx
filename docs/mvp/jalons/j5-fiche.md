@@ -115,6 +115,12 @@ pages d'inscription `noindex` ; `/en/connexion`, `/en/marque`, `/en/createur` re
 - `testeur` : règles d'écran en unitaire seulement (`auth-steps`, `signup-form`) ; parcours réel au commit 6
   (Playwright). Le contrat accepte un référent IPv4 (`127.0.0.1`) malgré son commentaire « IP literal dropped ».
 - `architecte` : `history`/URL non resynchronisée au changement de porte en cours de parcours ; `Commit 4 (SHA)` corrigé dans `21`.
+- **Arbitré (architecte, 2026-10-08)** — RG111 ⇒ **D66** : `GET /v1/auth/journey` (lit les cookies `login`/`signup`,
+  sans base) au rechargement, `POST /v1/auth/journey/reset` à « changer d'adresse » ; état en mémoire de module au
+  changement de langue ; URL resynchronisée par `history.replaceState` (règle aussi le point ci-dessus). Saisie de
+  l'écran 3 perdue au rechargement seulement, assumé. Référent IP ⇒ **EC** : tout littéral IP est écarté (dernier
+  libellé entièrement numérique) dans `normalizeReferrerDomain` **et** par une contrainte SQL jumelle sur
+  `identity.accounts.signup_referrer_domain` (nouvelle migration). À revoir par `expert-cybersecurite` en fin de J5.
 
 ## Discipline de session (économie de tokens)
 

@@ -2,10 +2,14 @@
 // through the same-origin relay (src/browser/relay-client.ts) and reads the answer with the
 // schema of packages/contracts. No rule lives here: apps/api decides, the screen displays.
 import {
+  journeyResetResponseSchema,
+  journeyResponseSchema,
   logoutResponseSchema,
   meResponseSchema,
   requestCodeResponseSchema,
   verifyCodeResponseSchema,
+  type JourneyResetResponse,
+  type JourneyResponse,
   type MeResponse,
   type RequestCodeResponse,
   type SignupDoor,
@@ -37,6 +41,20 @@ export function verifyCode(
     code,
     door,
   });
+}
+
+/** D66 (05 RG111): the step a reloaded journey resumes at, read from the journey cookies. */
+export function readJourney(): Promise<RelayResult<JourneyResponse>> {
+  return callRelay("GET", "/v1/auth/journey", journeyResponseSchema);
+}
+
+/** D66: "change address" ends the journey of this browser (both journey cookies cleared). */
+export function resetJourney(): Promise<RelayResult<JourneyResetResponse>> {
+  return callRelay(
+    "POST",
+    "/v1/auth/journey/reset",
+    journeyResetResponseSchema,
+  );
 }
 
 /** Screen 3 (J5 commit 4): the sign-up token is the httpOnly cookie set by verify-code. */

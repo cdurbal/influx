@@ -114,3 +114,30 @@ export const meResponseSchema = z.strictObject({
   preferredLanguage: z.string().length(2),
 });
 export type MeResponse = z.infer<typeof meResponseSchema>;
+
+/**
+ * GET /v1/auth/journey (D66; 05 RG111): where a reloaded journey resumes, read from the signed
+ * httpOnly journey cookies only. `code`: a code was sent (login token); `details`: the address is
+ * verified and has no account (sign-up token). The door is never returned: it comes from the URL.
+ */
+export const journeyResponseSchema = z.discriminatedUnion("step", [
+  z.strictObject({ step: z.literal("none") }),
+  z.strictObject({
+    step: z.literal("code"),
+    email: z.email().max(MAX_EMAIL_LENGTH),
+    matchingPhrase: z.string().min(1).max(64),
+    /** Seconds left before a new code may be asked for (05 RG50); 0 when it may be now. */
+    retryAfterSeconds: z.number().int().min(0).max(RESEND_DELAY_SECONDS),
+  }),
+  z.strictObject({
+    step: z.literal("details"),
+    email: z.email().max(MAX_EMAIL_LENGTH),
+  }),
+]);
+export type JourneyResponse = z.infer<typeof journeyResponseSchema>;
+
+/** POST /v1/auth/journey/reset (D66): both journey cookies cleared ("change address"). */
+export const journeyResetResponseSchema = z.strictObject({
+  outcome: z.literal("reset"),
+});
+export type JourneyResetResponse = z.infer<typeof journeyResetResponseSchema>;

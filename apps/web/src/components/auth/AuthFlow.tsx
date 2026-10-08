@@ -6,6 +6,10 @@
 // - The answers live here, in memory, for the whole journey: going back from the code to the
 //   address, or changing door on screen 3, loses nothing (05 RG111). Nothing is ever stored in the
 //   browser (02 §13.2); the source of acquisition is read on arrival and kept in memory (RG121).
+// - D66 (RG111, RG130): a change of language is a client navigation; the journey is handed over
+//   through journey-memory.ts (a module variable). A reload asks apps/api where the journey stands
+//   (GET /v1/auth/journey, from the httpOnly journey cookies); the answers of screen 3 are not
+//   kept across a reload. The URL follows the door chosen (history.replaceState).
 // - After the code, the space follows the REAL role, never the door (17 §2.5, RG66 to RG69).
 // Accessibility: one h1 per step, focused at each step (StepTitle); errors in role="alert" AND
 // linked to their field.
@@ -16,23 +20,41 @@ import { Link, useRouter } from "@/i18n/navigation";
 import {
   homePageOf,
   memberPageHref,
+  memberPagePath,
   signupPageOf,
-  type MemberPage,
 } from "@/lib/member-paths";
 import {
+  HELP_CLASSES,
   INFO_CLASSES,
   LEAD_CLASSES,
   PRIMARY_SUBMIT_CLASSES,
   TEXT_BUTTON_CLASSES,
 } from "./auth-classes";
-import type { EmailMessage, VerifyStep } from "./auth-steps";
+import {
+  codeStepOf,
+  firstStepOf,
+  languagePageOf,
+  resumedStepOf,
+  type JourneyEntry,
+  type JourneyNotice,
+  type JourneyStep,
+  type VerifyStep,
+} from "./auth-steps";
 import { AuthScreen, StepTitle } from "./AuthScreen";
 import { CodeStep } from "./CodeStep";
 import { DoorStep } from "./DoorStep";
 import { EmailStep } from "./EmailStep";
 import {
+  forget,
+  remember,
+  snapshotFits,
+  takeForLocale,
+} from "./journey-memory";
+import { readJourney, resetJourney } from "./member-auth";
+import {
   acquisitionFromVisit,
   draftAfterDoorChange,
+  draftAfterLanguageChange,
   emptySignupDraft,
   type AcquisitionInput,
   type SignupDraft,
@@ -40,44 +62,51 @@ import {
 import { SignupDetailsStep, type SignupExit } from "./SignupDetailsStep";
 import { useOnline } from "./use-online";
 
-/** A screen that ends the journey here, with a message (17 §2.5, §3.5). */
-type Notice =
-  | { kind: "roleMismatch"; role: SignupDoor }
-  | { kind: "internal" }
-  | { kind: "suspended" }
-  | { kind: "signedUp"; role: SignupDoor };
+/** D66: past this delay, the journey starts from screen 1 rather than keep the person waiting. */
+const RESUME_TIMEOUT_MS = 3_000;
 
-type Step =
-  // `detailsEmail`: the verified address when the door is chosen after the code; null before it.
-  | { kind: "door"; detailsEmail: string | null }
-  | { kind: "email"; message: EmailMessage }
-  | { kind: "code"; email: string; matchingPhrase: string }
-  | { kind: "details"; email: string }
-  | { kind: "notice"; notice: Notice };
+/** Until the journey is resumed (or known to be new), the screen says it is loading (RG109). */
+type FlowStep = JourneyStep | { kind: "loading" };
 
 export function AuthFlow({
-  entry,
+  entry: initialEntry,
   initialDoor,
 }: {
   /** The sign-in page has no door; a sign-up page has one, or offers the choice first. */
-  entry: "signIn" | "signup";
+  entry: JourneyEntry;
   initialDoor: SignupDoor | null;
 }) {
   const locale = useLocale();
   const router = useRouter();
   const online = useOnline();
-  const [door, setDoor] = useState<SignupDoor | null>(initialDoor);
-  const [step, setStep] = useState<Step>(
-    entry === "signup" && initialDoor === null
-      ? { kind: "door", detailsEmail: null }
-      : { kind: "email", message: null },
+  // D66: the journey handed over by the other language, taken once at mount. Always null while
+  // rendering on the server and at a full page load: only a client navigation finds one.
+  const [handedOver] = useState(() => {
+    const taken = takeForLocale(locale);
+    const page =
+      initialEntry === "signIn" ? "signIn" : signupPageOf(initialDoor);
+    return taken !== null && snapshotFits(taken, page) ? taken : null;
+  });
+  // A door chosen on the sign-in page (no account for the address) makes the journey a sign-up.
+  const [entry, setEntry] = useState<JourneyEntry>(
+    handedOver?.entry ?? initialEntry,
   );
-  const [email, setEmail] = useState("");
+  const [door, setDoor] = useState<SignupDoor | null>(
+    handedOver === null ? initialDoor : handedOver.door,
+  );
+  const [step, setStep] = useState<FlowStep>(
+    handedOver?.step ?? { kind: "loading" },
+  );
+  const [email, setEmail] = useState(handedOver?.email ?? "");
   const [draft, setDraft] = useState<SignupDraft>(() =>
-    emptySignupDraft(locale),
+    handedOver === null
+      ? emptySignupDraft(locale)
+      : draftAfterLanguageChange(handedOver.draft),
   );
   // Read once, on arrival (05 RG120, RG121): a ref, since no screen displays it.
   const acquisitionRef = useRef<AcquisitionInput | undefined>(undefined);
+  // The resume runs once per mount, React's development double effect included.
+  const resumeStartedRef = useRef(false);
 
   useEffect(() => {
     acquisitionRef.current = acquisitionFromVisit(
@@ -87,10 +116,61 @@ export function AuthFlow({
     );
   }, []);
 
+  // D66: without a journey handed over, apps/api's journey cookies say where it stands; screen 1
+  // on failure (offline included: the relay client answers `failed`) or after RESUME_TIMEOUT_MS.
+  useEffect(() => {
+    if (handedOver !== null || resumeStartedRef.current) {
+      return;
+    }
+    resumeStartedRef.current = true;
+    const first = firstStepOf(initialEntry, initialDoor);
+    let settled = false;
+    const timer = setTimeout(() => {
+      settled = true;
+      setStep(first);
+    }, RESUME_TIMEOUT_MS);
+    void readJourney().then((result) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      if (result.kind !== "ok") {
+        setStep(first);
+        return;
+      }
+      if (result.data.step !== "none") {
+        setEmail(result.data.email);
+      }
+      setStep(
+        resumedStepOf(result.data, initialEntry, initialDoor, Date.now()),
+      );
+    });
+  }, [handedOver, initialEntry, initialDoor]);
+
+  // D66: the journey on screen is what a change of language hands over; an ended one, nothing.
+  useEffect(() => {
+    if (step.kind === "loading") {
+      return;
+    }
+    if (step.kind === "notice") {
+      forget();
+      return;
+    }
+    remember({ locale, entry, door, step, email, draft });
+  }, [locale, entry, door, step, email, draft]);
+
   function chooseDoor(chosen: SignupDoor, detailsEmail: string | null) {
     // 05 RG4: another door unticks the consent and clears the fields of the door left.
     setDraft(draftAfterDoorChange(draft, door, chosen));
     setDoor(chosen);
+    setEntry("signup");
+    // D66: a reload (or a copied link) lands on the door chosen; no navigation, no history entry.
+    window.history.replaceState(
+      null,
+      "",
+      `${memberPagePath(signupPageOf(chosen), locale)}${window.location.search}`,
+    );
     setStep(
       detailsEmail === null
         ? { kind: "email", message: null }
@@ -112,6 +192,7 @@ export function AuthFlow({
           });
           return;
         }
+        forget();
         router.replace(memberPageHref(homePageOf(verified.role), locale));
         return;
       case "signupRequired":
@@ -148,24 +229,27 @@ export function AuthFlow({
     }
   }
 
+  /** "Change address" or "start again": this browser's journey ends, here and at apps/api. */
   function restart() {
+    forget();
+    // Not awaited: a new code request replaces the login cookie anyway, and a failed reset
+    // leaves nothing to show (the relay client never throws; it answers `failed`).
+    void resetJourney();
     setStep({ kind: "email", message: null });
   }
 
-  /** The page offered in the other language: only before anything is typed beyond the address. */
-  function languagePage(): MemberPage | null {
-    if (step.kind === "door") {
-      return step.detailsEmail === null ? "signupDoors" : null;
-    }
-    if (step.kind !== "email") {
-      return null;
-    }
-    return entry === "signIn" ? "signIn" : signupPageOf(door);
-  }
-
   return (
-    <AuthScreen languagePage={languagePage()} online={online}>
-      {step.kind === "door" ? (
+    <AuthScreen
+      languagePage={languagePageOf(
+        entry,
+        door,
+        step.kind === "loading" ? null : step,
+      )}
+      online={online}
+    >
+      {step.kind === "loading" ? (
+        <LoadingStep />
+      ) : step.kind === "door" ? (
         <DoorStep
           onChoose={(chosen) => chooseDoor(chosen, step.detailsEmail)}
         />
@@ -177,7 +261,7 @@ export function AuthFlow({
           initialMessage={step.message}
           online={online}
           onSent={(address, matchingPhrase) =>
-            setStep({ kind: "code", email: address, matchingPhrase })
+            setStep(codeStepOf(address, matchingPhrase, Date.now()))
           }
           onChangeDoor={() => setStep({ kind: "door", detailsEmail: null })}
         />
@@ -185,10 +269,13 @@ export function AuthFlow({
         <CodeStep
           email={step.email}
           matchingPhrase={step.matchingPhrase}
+          resendAvailableAt={step.resendAvailableAt}
           door={door}
           online={online}
           onVerified={(verified) => showVerified(step.email, verified)}
-          onResent={(matchingPhrase) => setStep({ ...step, matchingPhrase })}
+          onResent={(matchingPhrase) =>
+            setStep(codeStepOf(step.email, matchingPhrase, Date.now()))
+          }
           onChangeEmail={restart}
         />
       ) : step.kind === "details" && door !== null ? (
@@ -211,11 +298,21 @@ export function AuthFlow({
   );
 }
 
+/** RG109: the loading state of the resume, announced, never a silent blank screen. */
+function LoadingStep() {
+  const t = useTranslations("auth");
+  return (
+    <p role="status" aria-busy="true" className={HELP_CLASSES}>
+      {t("journey.loading")}
+    </p>
+  );
+}
+
 function NoticeStep({
   notice,
   onRestart,
 }: {
-  notice: Notice;
+  notice: JourneyNotice;
   onRestart: () => void;
 }) {
   const t = useTranslations("auth");

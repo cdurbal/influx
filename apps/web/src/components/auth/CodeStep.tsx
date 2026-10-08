@@ -25,6 +25,7 @@ import {
   announcedSeconds,
   codeDigitsOf,
   codeFormMessage,
+  resendSecondsLeft,
   verifyStepOf,
   type CodeMessage,
   type VerifyStep,
@@ -37,6 +38,7 @@ const CODE_LENGTH = 6;
 export function CodeStep({
   email,
   matchingPhrase,
+  resendAvailableAt,
   door,
   online,
   onVerified,
@@ -45,6 +47,8 @@ export function CodeStep({
 }: {
   email: string;
   matchingPhrase: string;
+  /** When a new code may be asked for (epoch milliseconds, RG50): the countdown starts from it. */
+  resendAvailableAt: number;
   /** Null on the sign-in page: the contract asks for a door, the real role decides (RG66). */
   door: SignupDoor | null;
   online: boolean;
@@ -66,7 +70,10 @@ export function CodeStep({
   const [closed, setClosed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [focused, setFocused] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(RESEND_DELAY_SECONDS);
+  // Read once, at mount: a resumed journey (D66) goes on with the delay left, not a full one.
+  const [secondsLeft, setSecondsLeft] = useState(() =>
+    resendSecondsLeft(resendAvailableAt, Date.now()),
+  );
   const [showChecklist, setShowChecklist] = useState(false);
 
   // 05 RG50: the resend countdown.

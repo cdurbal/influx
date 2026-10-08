@@ -1,8 +1,10 @@
 // Routes of the member authentication (docs/mvp/21 §5.2; 02 §18.10; 05 RG42 to RG69). Web surface
-// only (prefix): request-code, verify-code, the sign-up (POST /v1/signup, J5), logout, the minimal
-// GET /v1/me of the J3, and the public documents read without an account (GET /v1/terms/current,
-// 21 EC-62).
+// only (prefix): request-code, verify-code, the journey resume (GET /v1/auth/journey and its reset,
+// D66), the sign-up (POST /v1/signup, J5), logout, the minimal GET /v1/me of the J3, and the public
+// documents read without an account (GET /v1/terms/current, 21 EC-62).
 import {
+  journeyResetResponseSchema,
+  journeyResponseSchema,
   logoutResponseSchema,
   meResponseSchema,
   requestCodeBodySchema,
@@ -10,6 +12,8 @@ import {
   RESEND_DELAY_SECONDS,
   verifyCodeBodySchema,
   verifyCodeResponseSchema,
+  type JourneyResetResponse,
+  type JourneyResponse,
   type MeResponse,
   type RequestCodeResponse,
   type VerifyCodeBody,
@@ -63,6 +67,7 @@ import type { SupabaseAuth } from "../../platform/supabase.ts";
 import { userAgentSummaryOf } from "../../platform/user-agent.ts";
 import { MinuteCounter } from "../ops/routes.ts";
 import { completeSignup } from "./complete-signup.ts";
+import { readJourney } from "./journey.ts";
 import { requestLoginCode } from "./login-code.ts";
 import {
   sessionTokenHashOf,
@@ -312,6 +317,45 @@ export function registerIdentityRoutes(
         );
       }
       return result.response;
+    },
+  );
+
+  // GET /v1/auth/journey (D66; 05 RG111): the step a reloaded journey resumes at, from the two
+  // signed journey cookies only (journey.ts). No database, no GoTrue, nothing logged: the answer
+  // carries the address, so it is never stored by any cache (no-store), relay included.
+  app.get(
+    "/v1/auth/journey",
+    { schema: { response: { 200: journeyResponseSchema } } },
+    async (request, reply): Promise<JourneyResponse> => {
+      const result = readJourney(
+        dependencies.tokens,
+        {
+          loginCookie: readAuthCookie(request, "login"),
+          signupCookie: readAuthCookie(request, "signup"),
+        },
+        dependencies.now(),
+      );
+      if (result.clearLogin) {
+        clearAuthCookie(reply, "login");
+      }
+      if (result.clearSignup) {
+        clearAuthCookie(reply, "signup");
+      }
+      reply.header("cache-control", "no-store");
+      return result.response;
+    },
+  );
+
+  // POST /v1/auth/journey/reset (D66): "change address" or "start again" ends the journey of this
+  // browser. A named action without a body; both journey cookies are cleared, whatever they hold.
+  app.post(
+    "/v1/auth/journey/reset",
+    { schema: { response: { 200: journeyResetResponseSchema } } },
+    async (_request, reply): Promise<JourneyResetResponse> => {
+      clearAuthCookie(reply, "login");
+      clearAuthCookie(reply, "signup");
+      reply.header("cache-control", "no-store");
+      return { outcome: "reset" };
     },
   );
 

@@ -185,6 +185,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 |---|---|---|---|
 | `POST /v1/auth/request-code` | Public | E-1 | `02` §18.10 ; `05` RG39 à RG52 |
 | `POST /v1/auth/verify-code` | Cookie de parcours | E-2 | RG42 à RG47, RG53, RG66 à RG69 |
+| `GET /v1/auth/journey` · `POST /v1/auth/journey/reset` | Cookies de parcours | Aucun (jetons signés, `no-store`) | RG111, RG130 (D66) |
 | `GET /v1/terms/current` | Public | E-1 (EC-62) | RG25, RG27 |
 | `POST /v1/signup` | Jeton d'inscription | E-2 (EC-5) | RG5, RG7, RG8, RG11 à RG38, RG73, RG120 |
 | `POST /v1/auth/logout` | Membre | Utilisateur | — |

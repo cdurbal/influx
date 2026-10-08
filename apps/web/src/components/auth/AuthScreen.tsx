@@ -6,8 +6,9 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { cn } from "@/components/ui/class-names";
+import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
-import { memberPagePath, type MemberPage } from "@/lib/member-paths";
+import { memberPageHref, type MemberPage } from "@/lib/member-paths";
 import {
   BRAND_CLASSES,
   HEADER_CLASSES,
@@ -35,8 +36,9 @@ function useSearch(): string {
 }
 
 /**
- * `languagePage`: the page to offer in the other language, or none. Only offered where nothing
- * typed would be lost to the reload (17 §3.5, RG111): the choice of door and the address screen.
+ * `languagePage`: the page to offer in the other language, or none (the notices). The link is a
+ * client navigation (next-intl Link): the page of the other language takes the journey over from
+ * journey-memory.ts, so that nothing typed is lost (D66; 17 §3.5, RG111, RG130).
  */
 export function AuthScreen({
   languagePage,
@@ -59,15 +61,16 @@ export function AuthScreen({
         {languagePage === null ? null : (
           <nav aria-label={t("language.label")}>
             {otherLocales.map((other) => (
-              <a
+              <Link
                 key={other}
-                href={`${memberPagePath(languagePage, other)}${search}`}
+                href={`${memberPageHref(languagePage, other)}${search}`}
+                locale={other}
                 lang={other}
                 hrefLang={other}
                 className={LANGUAGE_LINK_CLASSES}
               >
                 {t(`language.${other}`)}
-              </a>
+              </Link>
             ))}
           </nav>
         )}
