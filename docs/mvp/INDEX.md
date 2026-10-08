@@ -181,34 +181,34 @@
 | 29 | 19 | Besoin |  |
 | 48 | 19 | Acteurs |  |
 | 67 | 58 | User stories |  |
-| 125 | 619 | Règles de gestion | RG1–RG157 |
+| 125 | 620 | Règles de gestion | RG1–RG157 |
 | 127 | 43 | ↳ A — Parcours général et portes d'entrée | RG1–RG10 |
 | 170 | 39 | ↳ B — Champs de l'inscription annonceur | RG11–RG16 |
-| 209 | 36 | ↳ C — Champs de l'inscription créateur | RG11–RG81 |
-| 245 | 30 | ↳ D — Conditions générales et versions | RG23–RG29 |
-| 275 | 46 | ↳ E — Consentement marketing | RG30–RG94 |
-| 321 | 84 | ↳ F — Connexion par code à 6 chiffres | RG39–RG157 |
-| 405 | 39 | ↳ G — L'e-mail qui n'arrive pas | RG59–RG65 |
-| 444 | 29 | ↳ H — Routage et rôles après vérification | RG66–RG71 |
-| 473 | 106 | ↳ I — Pipeline de leads | RG37–RG88 |
-| 579 | 33 | ↳ J — Désinscriptions dans les deux sens | RG78–RG96 |
-| 612 | 72 | ↳ K — Backoffice v0 | RG63–RG108 |
-| 684 | 60 | ↳ L — États d'écran, messages et accessibilité | RG109–RG115 |
-| 744 | 101 | Cas limites | RG1–RG113 |
-| 845 | 276 | Critères d'acceptation | RG79–RG112 |
-| 1121 | 70 | Impacts | RG6–RG108 |
-| 1191 | 20 | Hors périmètre | RG12–RG85 |
-| 1211 | 25 | Questions ouvertes | RG6–RG108 |
-| 1236 | 55 | Additif du 2026-09-24 — Invitation par un commercial (D54) et source d'acquisition (D55) | RG88–RG123 |
-| 1291 | 43 | Additif du 2026-09-25 — Consentement obligatoire à l'inscription (D63) | RG11–RG127 |
-| 1334 | 328 | Additif du 2026-09-27 — Précisions du J3 : phrase de correspondance, e-mail du code, messages, signal « navigateur inconnu » *(J3, 2026-09-27)* | RG9–RG159 |
-| 1343 | 130 | ↳ Phrase de correspondance — précise RG48 | RG46–RG156 |
-| 1473 | 17 | ↳ E-mail du code — précise RG49 | RG102–RG158 |
-| 1490 | 69 | ↳ Messages de l'écran minimal du J3 — précise RG112 et RG113 | RG44–RG140 |
-| 1559 | 35 | ↳ Signal « navigateur inconnu » — remplace « pays inhabituel » au MVP (EC-43) | RG55–RG157 |
-| 1594 | 16 | ↳ Cas limites du J3 | RG41–RG141 |
-| 1610 | 43 | ↳ Critères d'acceptation du J3 | RG133 |
-| 1653 | 9 | ↳ Questions ouvertes du J3 | RG48–RG158 |
+| 209 | 37 | ↳ C — Champs de l'inscription créateur | RG11–RG81 |
+| 246 | 30 | ↳ D — Conditions générales et versions | RG23–RG29 |
+| 276 | 46 | ↳ E — Consentement marketing | RG30–RG94 |
+| 322 | 84 | ↳ F — Connexion par code à 6 chiffres | RG39–RG157 |
+| 406 | 39 | ↳ G — L'e-mail qui n'arrive pas | RG59–RG65 |
+| 445 | 29 | ↳ H — Routage et rôles après vérification | RG66–RG71 |
+| 474 | 106 | ↳ I — Pipeline de leads | RG37–RG88 |
+| 580 | 33 | ↳ J — Désinscriptions dans les deux sens | RG78–RG96 |
+| 613 | 72 | ↳ K — Backoffice v0 | RG63–RG108 |
+| 685 | 60 | ↳ L — États d'écran, messages et accessibilité | RG109–RG115 |
+| 745 | 101 | Cas limites | RG1–RG113 |
+| 846 | 276 | Critères d'acceptation | RG79–RG112 |
+| 1122 | 70 | Impacts | RG6–RG108 |
+| 1192 | 20 | Hors périmètre | RG12–RG85 |
+| 1212 | 25 | Questions ouvertes | RG6–RG108 |
+| 1237 | 55 | Additif du 2026-09-24 — Invitation par un commercial (D54) et source d'acquisition (D55) | RG88–RG123 |
+| 1292 | 43 | Additif du 2026-09-25 — Consentement obligatoire à l'inscription (D63) | RG11–RG127 |
+| 1335 | 328 | Additif du 2026-09-27 — Précisions du J3 : phrase de correspondance, e-mail du code, messages, signal « navigateur inconnu » *(J3, 2026-09-27)* | RG9–RG159 |
+| 1344 | 130 | ↳ Phrase de correspondance — précise RG48 | RG46–RG156 |
+| 1474 | 17 | ↳ E-mail du code — précise RG49 | RG102–RG158 |
+| 1491 | 69 | ↳ Messages de l'écran minimal du J3 — précise RG112 et RG113 | RG44–RG140 |
+| 1560 | 35 | ↳ Signal « navigateur inconnu » — remplace « pays inhabituel » au MVP (EC-43) | RG55–RG157 |
+| 1595 | 16 | ↳ Cas limites du J3 | RG41–RG141 |
+| 1611 | 43 | ↳ Critères d'acceptation du J3 | RG133 |
+| 1654 | 9 | ↳ Questions ouvertes du J3 | RG48–RG158 |
 
 ## 06-criteres-profil-marque.md (~22k tokens)
 
@@ -653,7 +653,7 @@
 | 53 | 39 | 2. Stratégie de développement | RG44–RG148 |
 | 92 | 23 | 3. Écarts actifs pour les jalons restants (J5 à J9) | RG23–RG146 |
 | 115 | 43 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 158 | 116 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG148 |
-| 274 | 9 | 6. Configuration des services externes |  |
-| 283 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 300 | 10 | 8. Guide de lecture par jalon | RG54–RG58 |
+| 158 | 117 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG148 |
+| 275 | 9 | 6. Configuration des services externes |  |
+| 284 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 301 | 10 | 8. Guide de lecture par jalon | RG54–RG58 |

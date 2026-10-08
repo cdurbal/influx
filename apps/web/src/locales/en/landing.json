@@ -176,7 +176,7 @@
       "createAccount": {
         "title": "Create your free account",
         "advertiser": "A few details are enough to open your company account.",
-        "creator": "A few details are enough, plus confirming you’re of legal age."
+        "creator": "A few details are enough, plus confirming you’re 18 or older."
       },
       "completeProfile": {
         "title": "Complete your profile",
@@ -254,7 +254,7 @@
       },
       "eligibility": {
         "question": "Who can join as a creator, and how are profiles verified?",
-        "answer": "Any creator of legal age under the law where they live, whether an individual or a professional. Minors are not accepted. Our team checks the stats provided and the ownership of each account, for example with a code added to the bio. Checked profiles get the “verified” badge. INFLUX makes no claim about follower authenticity."
+        "answer": "Any creator aged 18 or older, whether an individual or a professional, wherever they live. People under 18 are not accepted. Our team checks the stats provided and the ownership of each account, for example with a code added to the bio. Checked profiles get the “verified” badge. INFLUX makes no claim about follower authenticity."
       }
     },
     "contactPrompt": "Another question? Write to us:"
@@ -331,10 +331,10 @@
       "legend": "Communication language"
     },
     "adult": {
-      "label": "I confirm I am of legal age under the law where I live.",
-      "hint": "Minors cannot sign up as creators on INFLUX.",
+      "label": "I confirm I am 18 or older.",
+      "hint": "People under 18 cannot sign up as creators on INFLUX.",
       "errors": {
-        "required": "Confirm you are of legal age to continue."
+        "required": "Confirm you are 18 or older to continue."
       }
     },
     "terms": {

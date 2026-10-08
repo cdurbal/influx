@@ -470,11 +470,11 @@ Mobile 375 — VARIANTE MARQUE              Mobile 375 — VARIANTE CRÉATEUR
 │                               │        │     entreprise individuelle,  │
 │                               │        │     agence)             RG18  │
 │                               │        │                               │
-│                               │        │ [ ] Je certifie être majeur   │
-│                               │        │     dans mon pays de          │
-│                               │        │     résidence. *        RG19  │
-│                               │        │     Les mineurs ne peuvent    │
-│                               │        │     pas utiliser INFLUX.      │
+│                               │        │ [ ] Je certifie avoir 18 ans  │
+│                               │        │     ou plus. *          RG19  │
+│                               │        │     Les personnes de moins de │
+│                               │        │     18 ans ne peuvent pas     │
+│                               │        │     utiliser INFLUX.          │
 │ ───────────────────────────── │        │ ───────────────────────────── │
 │ [ ] J'accepte les conditions  │        │ [ ] J'accepte les conditions  │
 │     générales d'utilisation * │        │     générales d'utilisation * │
@@ -501,7 +501,7 @@ d'engagement se lit de haut en bas, une colonne de droite y crée un doute sur l
 | Aucune case pré-cochée | Y compris la langue, qui est **présélectionnée** (choix exclusif) mais reste une sélection, pas une case (`05` RG11, RG17) |
 | ~~« Facultatif » dans le libellé~~ | **Abrogé par D63** : la case est obligatoire, le libellé le dit et rappelle que l'accord se retire à tout moment | `05` RG124, RG127 |
 | Marketing : une case, deux finalités | Les deux finalités sont citées **dans les deux portes**, quelle que soit la valeur du périmètre Apollo (`05` RG31, RG33). *Si `expert-conformite-rgpd` exige deux cases (Q10), seul ce bloc change : deux cases empilées, même filet, même ordre* |
-| Majorité | Renvoie à **l'âge de la majorité du pays déclaré**, jamais à un âge fixe (`05` RG19) |
+| Majorité | **Âge fixe : 18 ans ou plus**, identique dans tous les pays, jamais la majorité du pays déclaré (`05` RG19, D15 précisée le 2026-10-08) |
 | Liste de pays | Tous les pays, triés selon la langue de la page, **aucun marqué « ouvert aux contrats »** (`05` RG14) |
 | Lire les CGU | Ouvre un **panneau latéral dans le parcours** (desktop) ou une page avec retour (mobile), **sans perdre la saisie** (`05` RG111). Consultables sans être connecté (RG27) |
 | Ordre du focus à l'erreur | Focus sur le **premier champ invalide**, message relié par `aria-describedby`, `aria-invalid="true"` (`05` RG115) |
@@ -2295,7 +2295,7 @@ spécifications `06`, `07` et `08` font foi** ; ces écarts sont signalés à `d
 | C3 | **Le texte de l'écran d'acceptation** : les blocs ⑦ ⑧ ⑨ ⑩ ⑪, et en particulier le **résumé en langage courant de la clause de non-contournement**, qui n'existe pas encore | `13` RG69 #10, RG70 ; §7.2 |
 | C4 | **L'annonce de la supervision sur l'écran d'acceptation**, en plus des cinq endroits de `12` RG102 — c'est un sixième endroit, proposé ici parce qu'accepter une mise en relation, c'est accepter d'entrer dans une conversation supervisée | `12` RG102, RG107 ; §7.2 |
 | C5 | **Les deux listes de l'écran de suppression** (« ce qui disparaît » / « ce qui est conservé »), leur formulation et les durées à afficher | `05` RG70, `12` RG109 ; §6.3 |
-| C6 | **Le libellé de l'attestation de majorité**, qui renvoie au droit du pays déclaré et non à un âge | `05` RG19 ; §3.4 |
+| C6 | **Le libellé de l'attestation de majorité** : « 18 ans ou plus », âge fixe dans tous les pays (D15 précisée le 2026-10-08) | `05` RG19 ; §3.4 |
 | C7 | **La mention « INFLUX ne se prononce pas sur l'authenticité des abonnés »** affichée au même endroit que le badge, sur mobile comme sur desktop — elle ne doit jamais glisser dans une page d'aide | `08` RG10, Q3 ; §5.3 |
 | C8 | **L'écran d'information avant le premier message** : le fait qu'il n'ait **pas** de case à cocher (ce n'est pas un consentement, `12` RG104) et que sa prise de connaissance soit horodatée | `12` RG103 ; §4.7 |
 

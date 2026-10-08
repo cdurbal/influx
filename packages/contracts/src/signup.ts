@@ -178,7 +178,7 @@ export const creatorSignupBodySchema = z.strictObject({
   role: z.literal("creator"),
   ...commonFields,
   declaredStatus: declaredStatusSchema,
-  /** Of legal age in the declared country of residence (05 RG19, D15): checked, never implied. */
+  /** 18 or older, the only age rule, in every country (05 RG19, D15): checked, never implied. */
   adultAttested: z.literal(true),
   consentWordingKey: z.literal(CONSENT_WORDING_KEYS.creator),
 });

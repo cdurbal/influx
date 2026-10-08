@@ -226,9 +226,10 @@ d'attente conservatrice de D33 devient inapplicable et la décision se referme d
 du choix « professionnel » cite des exemples concrets (société, entreprise individuelle, agence) ; le
 choix ne demande **ni numéro d'immatriculation, ni justificatif** au Lot 1.
 
-**RG19** — L'attestation de majorité est une case obligatoire, non pré-cochée, dont le libellé
-**renvoie à l'âge de la majorité dans le pays de résidence déclaré** et non à un âge fixe. Son aide
-indique que les mineurs sont exclus de la plateforme (D15).
+**RG19** — L'attestation de majorité est une case obligatoire, non pré-cochée, dont le libellé porte
+sur un **âge fixe : 18 ans ou plus**, seule règle d'âge, identique pour tous et dans tous les pays
+(D15, précisée le 2026-10-08) ; il ne renvoie jamais à la majorité du pays de résidence. Son aide
+indique que les personnes de moins de 18 ans sont exclues de la plateforme.
 
 **RG20** — L'attestation est enregistrée avec **sa date et son heure**. Une attestation sans date n'a
 aucune valeur : les deux informations vont ensemble ou aucune des deux.
@@ -706,7 +707,7 @@ langue. Aucun message n'est écrit en dur dans le code.
 | `signup.company.errors.tooLong` | Le nom de l'entreprise ne peut pas dépasser 120 caractères. | The company name cannot exceed 120 characters. |
 | `signup.country.errors.required` | Sélectionnez votre pays. | Select your country. |
 | `signup.status.errors.required` | Indiquez si vous vous inscrivez en tant que particulier ou en tant que professionnel. | Tell us whether you are signing up as an individual or as a business. |
-| `signup.adult.errors.required` | Vous devez attester être majeur dans votre pays de résidence pour créer un compte créateur. | You must confirm that you are of legal age in your country of residence to create a creator account. |
+| `signup.adult.errors.required` | Vous devez certifier avoir 18 ans ou plus pour créer un compte créateur. | You must confirm that you are 18 or older to create a creator account. |
 | `signup.terms.errors.required` | Vous devez accepter les conditions générales d'utilisation pour créer votre compte. | You must accept the terms of use to create your account. |
 | `signup.errors.countryBlocked` | L'inscription n'est pas ouverte depuis ce pays pour le moment. | Sign-up is not open from this country at the moment. |
 | `signup.errors.unavailable` | Nous ne parvenons pas à créer votre compte pour le moment. Vos réponses sont conservées : réessayez dans quelques minutes. | We cannot create your account right now. Your answers are saved: please try again in a few minutes. |

@@ -176,7 +176,7 @@
       "createAccount": {
         "title": "Créez votre compte gratuit",
         "advertiser": "Quelques informations suffisent pour ouvrir votre compte entreprise.",
-        "creator": "Quelques informations suffisent, avec l’attestation de votre majorité."
+        "creator": "Quelques informations suffisent, avec l’attestation que vous avez 18 ans ou plus."
       },
       "completeProfile": {
         "title": "Complétez votre profil",
@@ -254,7 +254,7 @@
       },
       "eligibility": {
         "question": "Qui peut s’inscrire comme créateur, et comment les profils sont-ils vérifiés ?",
-        "answer": "Tout créateur majeur selon la loi du lieu où il réside, particulier ou professionnel. Les mineurs ne sont pas acceptés. L’équipe contrôle les statistiques transmises et la propriété de chaque compte, par exemple avec un code à placer dans la bio. Un profil contrôlé reçoit le badge « vérifié ». INFLUX ne se prononce pas sur l’authenticité des abonnés."
+        "answer": "Tout créateur de 18 ans ou plus, particulier ou professionnel, quel que soit son pays. Les personnes de moins de 18 ans ne sont pas acceptées. L’équipe contrôle les statistiques transmises et la propriété de chaque compte, par exemple avec un code à placer dans la bio. Un profil contrôlé reçoit le badge « vérifié ». INFLUX ne se prononce pas sur l’authenticité des abonnés."
       }
     },
     "contactPrompt": "Une autre question ? Écrivez-nous :"
@@ -331,10 +331,10 @@
       "legend": "Langue de communication"
     },
     "adult": {
-      "label": "J’atteste avoir l’âge de la majorité selon la loi du lieu où je réside.",
-      "hint": "Les mineurs ne peuvent pas s’inscrire comme créateurs sur INFLUX.",
+      "label": "J’atteste avoir 18 ans ou plus.",
+      "hint": "Les personnes de moins de 18 ans ne peuvent pas s’inscrire comme créateurs sur INFLUX.",
       "errors": {
-        "required": "Confirmez avoir l’âge de la majorité pour continuer."
+        "required": "Confirmez avoir 18 ans ou plus pour continuer."
       }
     },
     "terms": {
