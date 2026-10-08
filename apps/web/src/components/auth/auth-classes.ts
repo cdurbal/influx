@@ -73,3 +73,70 @@ export const INFO_CLASSES = cn(
 );
 
 export const HELP_CLASSES = "text-sm text-text-secondary";
+
+/** The header of the journey: the brand, then the language of the page (17 §3.1). */
+export const HEADER_CLASSES = "flex items-center justify-between gap-4";
+
+export const LANGUAGE_LINK_CLASSES = cn(
+  "inline-flex min-h-(--size-touch-target) items-center rounded-pill px-3",
+  "border-(length:--border-width-thin) border-border-strong text-sm font-medium text-text-primary",
+  "hover:bg-action-secondary-bg-hover",
+);
+
+/** "Step 2 of 3", announced with the title (17 §3.6). */
+export const PROGRESS_CLASSES = "text-sm font-medium text-text-secondary";
+
+/** The offline banner: text, never a color alone (17 §3.5). */
+export const WARNING_CLASSES = cn(
+  "rounded-md border-(length:--border-width-thin) border-feedback-warning-border",
+  "bg-feedback-warning-bg px-4 py-3 text-sm text-feedback-warning-text",
+);
+
+/** One field and its texts: label, control, help, error. */
+export const FIELD_CLASSES = "flex flex-col gap-2";
+
+export const FIELDSET_CLASSES = "flex flex-col gap-2";
+
+/** A checkbox or a radio whose whole label is the click zone (17 §3.6). */
+export const CHOICE_ROW_CLASSES =
+  "flex min-h-(--size-touch-target) cursor-pointer items-start gap-3 py-2 text-md text-text-primary";
+
+export const CHOICE_INPUT_CLASSES =
+  "mt-1 size-(--size-checkbox) shrink-0 cursor-pointer accent-action-primary-bg";
+
+/** The rule between the terms and the consent: two boxes, never stacked unseparated (17 §3.4). */
+export const DIVIDER_CLASSES =
+  "border-t-(length:--border-width-thin) border-border-default";
+
+/** A door of the choice step (05 RG1): a card-sized button, its audience under the action. */
+export const DOOR_BUTTON_CLASSES = cn(
+  "flex w-full flex-col items-start gap-1 rounded-lg p-inset-card text-left",
+  "border-(length:--border-width-thin) border-border-strong bg-surface-card",
+  "hover:bg-surface-hover",
+);
+
+/** The six boxes of the code: drawn only, the one real field lies over them (17 §3.2). */
+export const CODE_BOXES_CLASSES = "grid grid-cols-6 gap-2";
+
+export function codeBoxClasses(isCurrent: boolean, hasError: boolean): string {
+  return cn(
+    "flex h-(--size-input) items-center justify-center rounded-md bg-surface-page",
+    "text-heading-3 font-bold tabular-nums text-text-primary",
+    hasError
+      ? "border-(length:--border-width-thick) border-border-error"
+      : isCurrent
+        ? "border-(length:--border-width-thick) border-border-selected"
+        : "border-(length:--border-width-thin) border-border-strong",
+  );
+}
+
+/** The real code field: transparent, over the boxes, so that autofill and paste work as one. */
+export const CODE_OVERLAY_INPUT_CLASSES =
+  "absolute inset-0 size-full cursor-text bg-transparent text-transparent caret-transparent";
+
+/** The terms panel: a modal dialog, full height on mobile, centred column on desktop. */
+export const DIALOG_CLASSES = cn(
+  "m-auto max-h-full w-full max-w-(--container-narrow) overflow-y-auto rounded-lg",
+  "border-(length:--border-width-thin) border-border-default bg-surface-raised p-inset-card text-text-primary",
+  "backdrop:bg-overlay-scrim",
+);

@@ -1,32 +1,27 @@
 import type { Metadata } from "next";
-import { hasLocale } from "next-intl";
-import { setRequestLocale } from "next-intl/server";
-import { notFound } from "next/navigation";
-import { AuthMessages, authMetadata } from "@/components/auth/AuthPage";
-import { SignInFlow } from "@/components/auth/SignInFlow";
-import { routing } from "@/i18n/routing";
+import {
+  AuthMessages,
+  memberPageLocale,
+  memberPageMetadata,
+} from "@/components/auth/AuthPage";
+import { AuthFlow } from "@/components/auth/AuthFlow";
 
-// Member sign-in, minimal screen of the J3 (docs/mvp/17 §3.7). Local stack and closed staging only.
+// Sign-in, French path; /en/connexion is sent to /en/sign-in (docs/mvp/17 §2.6, §3).
 export async function generateMetadata({
   params,
 }: PageProps<"/[locale]/connexion">): Promise<Metadata> {
   const { locale } = await params;
-  return hasLocale(routing.locales, locale)
-    ? authMetadata(locale, "signInTitle")
-    : {};
+  return memberPageMetadata(locale, "signIn");
 }
 
 export default async function SignInPage({
   params,
 }: PageProps<"/[locale]/connexion">) {
   const { locale } = await params;
-  if (!hasLocale(routing.locales, locale)) {
-    notFound();
-  }
-  setRequestLocale(locale);
+  const pageLocale = memberPageLocale(locale, "signIn", "connexion");
   return (
-    <AuthMessages locale={locale}>
-      <SignInFlow />
+    <AuthMessages locale={pageLocale}>
+      <AuthFlow entry="signIn" initialDoor={null} />
     </AuthMessages>
   );
 }

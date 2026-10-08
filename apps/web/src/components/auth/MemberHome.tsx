@@ -1,12 +1,13 @@
 "use client";
 
-// Empty home of a member space at J3 (docs/mvp/17 §3.7, §2.5). The page is behind the session:
-// GET /v1/me decides. No session ⇒ back to sign-in; a session of the other role ⇒ its own space
-// (the space follows the real role, never the address typed). Sign-out revokes the session, then
-// shows `auth.logout.done`.
+// Minimal home of a member space (docs/mvp/05 RG71; 17 §2.4, §2.5, §3.7). The page is behind the
+// session: GET /v1/me decides. No session ⇒ back to sign-in; a session of the other role ⇒ its own
+// space (the space follows the real role, never the address typed). The home announces what comes
+// next (the profile, Lot 2) and how INFLUX works, without any figure (05 RG9). Sign-out revokes the
+// session, then shows `auth.logout.done`.
 import type { SignupDoor } from "@influx/contracts/auth";
-import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link, useRouter } from "@/i18n/navigation";
 import {
   BRAND_CLASSES,
@@ -14,12 +15,14 @@ import {
   ERROR_CLASSES,
   HELP_CLASSES,
   INFO_CLASSES,
+  LABEL_CLASSES,
   LEAD_CLASSES,
   SCREEN_CLASSES,
   SECONDARY_BUTTON_CLASSES,
   TEXT_BUTTON_CLASSES,
   TITLE_CLASSES,
 } from "./auth-classes";
+import { homePageOf, memberPageHref } from "@/lib/member-paths";
 import { installErrorCollector } from "@/observability/error-collector";
 import { readMe, signOut } from "./member-auth";
 
@@ -29,16 +32,16 @@ type State =
   | { kind: "unavailable" }
   | { kind: "signedOut" };
 
-const SPACE_OF: Record<SignupDoor, "/marque" | "/createur"> = {
-  advertiser: "/marque",
-  creator: "/createur",
-};
+/** 17 §2.4: three short steps, profile → campaign → a salesperson makes the introduction. */
+const HOME_STEPS = ["one", "two", "three"] as const;
 
 /** `space`: the role whose space this page is. */
 export function MemberHome({ space }: { space: SignupDoor }) {
   const t = useTranslations("auth");
+  const locale = useLocale();
   const router = useRouter();
   const titleRef = useRef<HTMLHeadingElement>(null);
+  const stepsTitleId = useId();
   const [state, setState] = useState<State>({ kind: "loading" });
   const [busy, setBusy] = useState(false);
 
@@ -51,7 +54,7 @@ export function MemberHome({ space }: { space: SignupDoor }) {
         return;
       }
       if (result.kind === "unauthenticated") {
-        router.replace("/connexion");
+        router.replace(memberPageHref("signIn", locale));
         return;
       }
       if (result.kind === "failed") {
@@ -59,7 +62,7 @@ export function MemberHome({ space }: { space: SignupDoor }) {
         return;
       }
       if (result.data.role !== space) {
-        router.replace(SPACE_OF[result.data.role]);
+        router.replace(memberPageHref(homePageOf(result.data.role), locale));
         return;
       }
       setState({ kind: "ready", email: result.data.email });
@@ -67,7 +70,7 @@ export function MemberHome({ space }: { space: SignupDoor }) {
     return () => {
       active = false;
     };
-  }, [space, router]);
+  }, [space, router, locale]);
 
   useEffect(() => {
     if (state.kind === "ready" || state.kind === "signedOut") {
@@ -124,7 +127,10 @@ export function MemberHome({ space }: { space: SignupDoor }) {
         <h1 ref={titleRef} tabIndex={-1} className={TITLE_CLASSES}>
           {t("logout.done")}
         </h1>
-        <Link href="/connexion" className={TEXT_BUTTON_CLASSES}>
+        <Link
+          href={memberPageHref("signIn", locale)}
+          className={TEXT_BUTTON_CLASSES}
+        >
           {t("logout.signInAgain")}
         </Link>
       </main>
@@ -138,6 +144,16 @@ export function MemberHome({ space }: { space: SignupDoor }) {
         {t(`home.${space}.title`)}
       </h1>
       <p className={LEAD_CLASSES}>{t(`home.${space}.lead`)}</p>
+      <section aria-labelledby={stepsTitleId} className={CARD_CLASSES}>
+        <h2 id={stepsTitleId} className={LABEL_CLASSES}>
+          {t("home.howItWorks")}
+        </h2>
+        <ol className="flex list-decimal flex-col gap-2 pl-5 text-md text-text-secondary">
+          {HOME_STEPS.map((step) => (
+            <li key={step}>{t(`home.${space}.steps.${step}`)}</li>
+          ))}
+        </ol>
+      </section>
       <div className={CARD_CLASSES}>
         <p className={INFO_CLASSES}>
           {t("home.signedInAs", { email: state.email })}

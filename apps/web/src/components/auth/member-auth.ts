@@ -1,4 +1,4 @@
-// Calls of the member sign-in screens (docs/mvp/17 §3.7; 21 §4, J3 commit 12). Each one goes
+// Calls of the member sign-in and sign-up screens (docs/mvp/17 §3; 21 §4, §5.2). Each one goes
 // through the same-origin relay (src/browser/relay-client.ts) and reads the answer with the
 // schema of packages/contracts. No rule lives here: apps/api decides, the screen displays.
 import {
@@ -12,6 +12,11 @@ import {
   type UiLocale,
   type VerifyCodeResponse,
 } from "@influx/contracts/auth";
+import {
+  signupResponseSchema,
+  type SignupBodyInput,
+  type SignupResponse,
+} from "@influx/contracts/signup";
 import { callRelay, type RelayResult } from "@/browser/relay-client";
 
 export function requestCode(
@@ -32,6 +37,13 @@ export function verifyCode(
     code,
     door,
   });
+}
+
+/** Screen 3 (J5 commit 4): the sign-up token is the httpOnly cookie set by verify-code. */
+export function signUp(
+  body: SignupBodyInput,
+): Promise<RelayResult<SignupResponse>> {
+  return callRelay("POST", "/v1/signup", signupResponseSchema, body);
 }
 
 export function readMe(): Promise<RelayResult<MeResponse>> {

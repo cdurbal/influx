@@ -1,0 +1,117 @@
+"use client";
+
+// The frame of every screen of the journey (docs/mvp/17 §3.1 to §3.6): one centred column, the
+// brand and the language of the page, the offline banner, and the h1 that takes the focus when
+// the step changes, with the step announced in it ("Step 2 of 3").
+import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { cn } from "@/components/ui/class-names";
+import { routing } from "@/i18n/routing";
+import { memberPagePath, type MemberPage } from "@/lib/member-paths";
+import {
+  BRAND_CLASSES,
+  HEADER_CLASSES,
+  LANGUAGE_LINK_CLASSES,
+  PROGRESS_CLASSES,
+  SCREEN_CLASSES,
+  TITLE_CLASSES,
+  WARNING_CLASSES,
+} from "./auth-classes";
+
+/** The journey has three screens (05 RG2): address, code, information. */
+const STEP_COUNT = 3;
+
+function subscribeToNothing(): () => void {
+  return () => undefined;
+}
+
+/** The query of the page (UTM parameters, 05 RG120), carried over to the other language. */
+function useSearch(): string {
+  return useSyncExternalStore(
+    subscribeToNothing,
+    () => window.location.search,
+    () => "",
+  );
+}
+
+/**
+ * `languagePage`: the page to offer in the other language, or none. Only offered where nothing
+ * typed would be lost to the reload (17 §3.5, RG111): the choice of door and the address screen.
+ */
+export function AuthScreen({
+  languagePage,
+  online,
+  children,
+}: {
+  languagePage: MemberPage | null;
+  online: boolean;
+  children: ReactNode;
+}) {
+  const t = useTranslations("auth");
+  const locale = useLocale();
+  const search = useSearch();
+  const otherLocales = routing.locales.filter((other) => other !== locale);
+
+  return (
+    <main id="main" className={SCREEN_CLASSES}>
+      <div className={HEADER_CLASSES}>
+        <p className={BRAND_CLASSES}>{t("brand")}</p>
+        {languagePage === null ? null : (
+          <nav aria-label={t("language.label")}>
+            {otherLocales.map((other) => (
+              <a
+                key={other}
+                href={`${memberPagePath(languagePage, other)}${search}`}
+                lang={other}
+                hrefLang={other}
+                className={LANGUAGE_LINK_CLASSES}
+              >
+                {t(`language.${other}`)}
+              </a>
+            ))}
+          </nav>
+        )}
+      </div>
+      {online ? null : (
+        <p role="status" className={WARNING_CLASSES}>
+          {t("offline")}
+        </p>
+      )}
+      {children}
+    </main>
+  );
+}
+
+/** The h1 of a step: focused when it appears (17 §3.6), the step number read with it. */
+export function StepTitle({
+  step,
+  children,
+}: {
+  step: number | null;
+  children: ReactNode;
+}) {
+  const t = useTranslations("auth");
+  const titleRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    titleRef.current?.focus();
+  }, []);
+
+  return (
+    <h1 ref={titleRef} tabIndex={-1} className={TITLE_CLASSES}>
+      {step === null ? null : (
+        <span className={cn("block", PROGRESS_CLASSES)}>
+          {t("progress", { current: step, total: STEP_COUNT })}
+        </span>
+      )}
+      {children}
+    </h1>
+  );
+}
+
+/** The mark of a required field, explained by `signup.requiredLegend`; hidden from screen readers,
+ * which hear `required` on the control itself. */
+export function RequiredMark() {
+  const t = useTranslations("auth");
+  return <span aria-hidden="true">{t("requiredMark")}</span>;
+}
