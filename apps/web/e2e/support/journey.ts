@@ -112,6 +112,23 @@ export async function open(page: Page, path: string): Promise<void> {
   await answerCookieBanner(page);
 }
 
+/** A full load that leaves the cookie banner open, unanswered. */
+export async function openWithBanner(page: Page, path: string): Promise<void> {
+  await page.goto(path);
+}
+
+/** The cookie banner region of the page. */
+export function cookieBanner(page: Page) {
+  return page.getByRole("region", {
+    name: COOKIE_BANNER_LABELS[localeOf(page)].regionLabel,
+  });
+}
+
+/** Refuses all cookies in the banner. */
+export async function rejectCookies(page: Page): Promise<void> {
+  await answerCookieBanner(page);
+}
+
 /** A reload of the page on screen (D66: the journey resumes from apps/api's cookies). */
 export async function reload(page: Page): Promise<void> {
   await page.reload();

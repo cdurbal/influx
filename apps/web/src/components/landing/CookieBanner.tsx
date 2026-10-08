@@ -61,18 +61,22 @@ export function CookieBanner({
       return;
     }
     const root = document.documentElement;
-    // scroll-padding-bottom follows the real banner height, so a focused element never hides
-    // under it (WCAG 2.4.11). Runtime measurement, not a design value.
-    const observer = new ResizeObserver(() => {
-      root.style.setProperty(
-        "--cookie-banner-height",
-        `${banner.offsetHeight}px`,
-      );
-    });
+    // The covered height, measured from the bottom of the viewport (banner height plus its
+    // floating offset on desktop), feeds scroll-padding-bottom and the body padding, so the end
+    // of the page can always scroll above the banner (WCAG 2.4.11). Runtime measurement only.
+    const measure = () => {
+      const offset = Number.parseFloat(getComputedStyle(banner).bottom);
+      const covered = banner.offsetHeight + (Number.isNaN(offset) ? 0 : offset);
+      root.style.setProperty("--cookie-banner-height", `${covered}px`);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
     observer.observe(banner);
+    window.addEventListener("resize", measure);
     root.dataset.cookieBanner = "open";
     return () => {
       observer.disconnect();
+      window.removeEventListener("resize", measure);
       delete root.dataset.cookieBanner;
       root.style.removeProperty("--cookie-banner-height");
     };

@@ -14,6 +14,8 @@ export const MAILBOXES = [
   "language",
   "change-address",
   "resume-gives-up",
+  "banner-open-mobile",
+  "banner-open-desktop",
 ] as const;
 
 export type Mailbox = (typeof MAILBOXES)[number];
