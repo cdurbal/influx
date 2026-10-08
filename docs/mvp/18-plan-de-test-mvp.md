@@ -1189,8 +1189,8 @@ sont couvertes en intégration, où elles sont rapides et stables.
 
 **Conditions d'exécution :** base jetable alimentée par `supabase/seed`, **horloge contrôlée**
 (aucun `sleep`), **doublures** pour Brevo, Apollo et l'envoi d'e-mails, `SYNC_MODE=dry_run`, comptes
-de démonstration nommés `*.test.invalid`. Outil recommandé : Playwright — **choix à valider par
-`architecte`** (§9.3).
+de démonstration nommés `*.test.invalid`. Outil : **tranché (architecte, 2026-10-08) : Playwright**
+(§9.3 A-5).
 
 ### 7.1 Le parcours nominal, en douze étapes vérifiables
 
@@ -1281,7 +1281,7 @@ Un trou connu vaut mieux qu'un faux sentiment de sécurité. Voici les miens, sa
 | **A-2** | **Harnais de rôles et de transactions** | Un utilitaire partagé (`packages/test-kit` ?) qui ouvre une transaction, prend un rôle, pose le contexte, exécute, annule. Sans lui, chaque test recopie dix lignes et la suite devient illisible |
 | **A-3** | **Inventaire des routes lisible par une machine** (T1.2) | Les schémas Fastify doivent être énumérables à l'exécution. C'est une contrainte d'architecture, pas un détail de test |
 | **A-4** | **Durée d'exécution.** La matrice complète représente de l'ordre de 78 tables × 8 rôles × 4 opérations | Une exécution par transaction annulée, en lot, plutôt qu'un test par assertion. À dimensionner au Lot 0 : au-delà de **10 minutes**, la CI sera contournée |
-| **A-5** | **Outil de bout en bout** | **Playwright** recommandé pour le §7. Un seul parcours nominal et un parcours négatif : le coût reste modeste |
+| **A-5** | **Outil de bout en bout** | **Tranché (architecte, 2026-10-08) : Playwright** pour le §7. `@playwright/test` en version exacte (devDependency de `apps/web`), **Chromium seul**, `retries: 0`, serveurs démarrés par la configuration (doublure Brevo, `apps/api` depuis ses sources, `apps/web`), jamais réutilisés ; lancé en CI **après `pnpm check`**. Autre navigateur seulement sur besoin constaté |
 | **A-6** | **Il n'existe aujourd'hui aucun workflow d'intégration continue** (`.github/` absent) ; la racine expose `pnpm check` | À créer au Lot 0 avec `integrateur`, avec les déclencheurs du §3 (à chaque exécution / hebdomadaire / avant déploiement) |
 
 ### 9.4 Au fondateur — quatre points
