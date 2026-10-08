@@ -550,11 +550,13 @@ export type TermsVersionRow = {
   requiresAcceptance: boolean;
   /** ISO 8601, UTC. */
   effectiveFrom: string;
+  /** The exact text (0109): never NULL, the function ignores a row without text. */
+  content: string;
 };
 
 /**
  * Through the SECURITY DEFINER function only: influx_auth holds no right on
- * identity.terms_versions (0108). Zero or one row.
+ * identity.terms_versions (0108). Zero or one row, with its text (0109).
  */
 export async function termsInForce(
   tx: Transaction,
@@ -570,12 +572,14 @@ export async function termsInForce(
     content_sha256: string;
     requires_acceptance: boolean;
     effective_from: string;
+    content: string;
   }>(
     sql`select id::text as id, document_kind::text as document_kind, locale::text as locale,
                version_label, content_uri, encode(content_hash, 'hex') as content_sha256,
                requires_acceptance,
                to_char(effective_from at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
-                 as effective_from
+                 as effective_from,
+               content
           from identity.terms_in_force(${document}::identity.document_kind, ${locale})`,
   );
   const row = rows[0];
@@ -591,6 +595,7 @@ export async function termsInForce(
     contentSha256: row.content_sha256,
     requiresAcceptance: row.requires_acceptance,
     effectiveFrom: row.effective_from,
+    content: row.content,
   };
 }
 

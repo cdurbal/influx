@@ -1,16 +1,15 @@
 // The published texts never change (docs/mvp/21 EC-62; 05 RG24, RG29): every file listed in
 // apps/api/legal/published.json exists and keeps the SHA-256 recorded at its publication. A text
 // accepted by a member is the proof that founds INFLUX's remuneration: changing one byte of it, or
-// deleting it, would make the API fail closed and void the proof. A new text is a new label.
+// deleting it, would void the proof. A new text is a new label, appended to the manifest.
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { sha256Hex } from "../src/domains/identity/terms.ts";
 import {
+  decodeLegalText,
   legalContentPath,
   LEGAL_CONTENT_ROOT,
-  sha256Hex,
-} from "../src/domains/identity/terms.ts";
-import {
   LEGAL_MANIFEST_FILE,
   LOCAL_SEED_DRAFTS,
   readManifest,
@@ -40,28 +39,29 @@ describe("legal/published.json (21 EC-62)", () => {
     }
   });
 
-  it("finds every listed file, with the bytes recorded at its publication", () => {
+  it("finds every listed file, with the bytes recorded at its publication, in strict UTF-8", () => {
     for (const [uri, sha256] of Object.entries(manifest)) {
       const file = legalContentPath(LEGAL_CONTENT_ROOT, uri);
       expect(file, uri).not.toBeNull();
-      expect(sha256Hex(readFileSync(file ?? "")), uri).toBe(sha256);
+      const bytes = readFileSync(file ?? "");
+      expect(sha256Hex(bytes), uri).toBe(sha256);
+      expect(() => decodeLegalText(bytes, uri), uri).not.toThrow();
     }
   });
 
-  it("lists the six drafts the local seed publishes", () => {
+  it("names one version per document and language to publish: the last entry of each", () => {
+    expect(LOCAL_SEED_DRAFTS).toHaveLength(6);
+    const uris = Object.keys(manifest);
     for (const draft of LOCAL_SEED_DRAFTS) {
-      expect(Object.keys(manifest)).toContain(
-        `legal/${draft.document}/${draft.locale}/${draft.label}.md`,
-      );
+      const prefix = `legal/${draft.document}/${draft.locale}/`;
+      const ofPair = uris.filter((uri) => uri.startsWith(prefix));
+      expect(ofPair.at(-1)).toBe(`${prefix}${draft.label}.md`);
     }
   });
 
-  it("is written with sorted keys and a final line break (stable diffs)", () => {
+  it("is written as JSON of two spaces with a final line break (entries are appended)", () => {
     const text = readFileSync(LEGAL_MANIFEST_FILE, "utf8");
-    const sorted = Object.fromEntries(
-      Object.entries(manifest).sort(([a], [b]) => (a < b ? -1 : 1)),
-    );
-    expect(text).toBe(`${JSON.stringify(sorted, null, 2)}\n`);
+    expect(text).toBe(`${JSON.stringify(manifest, null, 2)}\n`);
   });
 });
 

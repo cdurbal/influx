@@ -18,6 +18,7 @@ export const HTTP_STATUS_BY_CODE: Readonly<Record<ErrorCode, number>> = {
   rate_limited: 429,
   internal_error: 500,
   service_unavailable: 503,
+  terms_unavailable: 503,
 };
 
 /** Technical English, never displayed as is: the front translates the code (02 §9.2). */
@@ -32,6 +33,7 @@ const DEFAULT_MESSAGES: Readonly<Record<ErrorCode, string>> = {
   rate_limited: "Too many requests",
   internal_error: "Internal error",
   service_unavailable: "Service unavailable",
+  terms_unavailable: "This document cannot be served right now",
 };
 
 /** An error that the API answers on purpose, with a code of the closed union. */
@@ -44,6 +46,17 @@ export class ApiError extends Error {
     this.name = "ApiError";
     this.code = code;
     this.details = details;
+  }
+}
+
+/** An ApiError answered with a Retry-After header: a 503 the client may try again (21 EC-62 (D)). */
+export class RetryLaterError extends ApiError {
+  readonly retryAfterSeconds: number;
+
+  constructor(code: ErrorCode, retryAfterSeconds: number) {
+    super(code);
+    this.name = "RetryLaterError";
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 

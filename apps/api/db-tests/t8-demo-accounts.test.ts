@@ -29,7 +29,10 @@ import {
   seedDemoAccounts,
   type DemoAccount,
 } from "../scripts/demo-accounts.ts";
-import { ensureInForce } from "../scripts/terms-publication.ts";
+import {
+  ensureInForce,
+  LOCAL_SEED_DRAFTS,
+} from "../scripts/terms-publication.ts";
 import {
   closeDatabase,
   createApiDatabase,
@@ -90,14 +93,12 @@ beforeAll(async () => {
     { info: () => undefined, warn: () => undefined, error: () => undefined },
   );
   double = await startBrevoDouble();
-  // The members accept the terms of service in force (21 EC-62): the data set of T2 has a French
-  // version; the English draft is published when no English version is in force yet.
-  for (const locale of ["fr", "en"] as const) {
-    await ensureInForce(migrationRole(), {
-      document: "terms_of_service",
-      locale,
-      label: "draft-2",
-    });
+  // The members accept the terms of service in force WITH its text (21 EC-62, 0109): the latest
+  // draft of each language is published, or its text filled, when none is in force yet.
+  for (const draft of LOCAL_SEED_DRAFTS) {
+    if (draft.document === "terms_of_service") {
+      await ensureInForce(migrationRole(), draft);
+    }
   }
 });
 

@@ -1,19 +1,23 @@
 // `pnpm --filter @influx/api db:publish-terms -- --document=<kind> --locale=<fr|en> --label=<label>
-// [--target=local|staging]`: publishes one version of a public document (docs/mvp/21 EC-62; 05
-// RG23 to RG29). The transaction and the manifest are in terms-publication.ts.
+// [--target=local|staging]`: publishes one version of a public document (docs/mvp/21 EC-62 and its
+// amendment; 05 RG23 to RG29), its exact text included. On a label published WITHOUT its text
+// (before 0109), fills the text instead. The transaction and the manifest: terms-publication.ts.
+//
+// `… db:publish-terms -- --latest [--target=local|staging]`: the idempotent form, for the CI step
+// of staging after `supabase db push` (EC-62 (C)): for each (document, locale), the last entry of
+// legal/published.json is published, or its text filled, or left as it is.
 //
 // Targets:
 //   local    (default) the local Supabase stack, with the guards of seed-demo-accounts.ts;
 //   staging  INFLUX_STAGING_MIGRATION_URL (and INFLUX_STAGING_DB_CA_FILE) EXPORTED IN THE SHELL,
 //            with the guards of seed-staging-demo-accounts.ts (marker table of the runbook).
-// Production is refused: publishing there is the founder's action (J9).
+// Production is refused, `draft-*` labels included: publishing there is the founder's action (J9).
 //
 // Refused, before any write: a document or a language outside the closed lists; a malformed
-// label; a missing file; a file whose bytes differ from those legal/published.json recorded; a
-// label already published for this document and language; on staging, a file that is not
-// committed as it is (the api of staging serves the committed file, and would fail closed). On
-// the local stack an uncommitted file is published with a warning: commit it with the manifest.
-// `draft-*` labels are for the local stack and staging only, which is all this script reaches.
+// label; a missing file; a file that is not strict UTF-8 (byte order mark, invalid bytes); a file
+// whose bytes differ from those legal/published.json recorded; with --document, a label already
+// published with its text; on staging, a file that is not committed as it is. On the local stack
+// an uncommitted file is published with a warning: commit it with the manifest.
 import { uiLocaleSchema } from "@influx/contracts/auth";
 import {
   publicDocumentSchema,
@@ -23,7 +27,6 @@ import { connectAsMigrationRole, requireLocalStack } from "@influx/test-kit/db";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { LEGAL_CONTENT_ROOT } from "../src/domains/identity/terms.ts";
 import {
   assertStagingMarker,
   connectToStagingAsMigrationRole,
@@ -32,14 +35,21 @@ import {
 } from "./script-guards.ts";
 import {
   assertMatchesManifest,
+  LEGAL_CONTENT_ROOT,
+  LOCAL_SEED_DRAFTS,
   publishedFileOf,
   publishTermsVersion,
   readManifest,
   recordInManifest,
   type PublicationRequest,
+  type PublishedFile,
 } from "./terms-publication.ts";
 
 const REPOSITORY_ROOT = path.resolve(LEGAL_CONTENT_ROOT, "..", "..");
+
+const USAGE =
+  "usage: --document=terms_of_service|privacy_policy|cookie_policy --locale=fr|en " +
+  "--label=<[0-9A-Za-z._-]{1,40}> [--target=local|staging], or --latest [--target=local|staging]";
 
 /** True when `file` is in HEAD with exactly these bytes (blob ids compared). */
 function isCommittedAsIs(file: string): boolean {
@@ -71,22 +81,10 @@ const { values } = parseArgs({
     document: { type: "string" },
     locale: { type: "string" },
     label: { type: "string" },
+    latest: { type: "boolean", default: false },
     target: { type: "string", default: "local" },
   },
 });
-const document = publicDocumentSchema.safeParse(values.document);
-const locale = uiLocaleSchema.safeParse(values.locale);
-const label = values.label ?? "";
-if (
-  !document.success ||
-  !locale.success ||
-  !TERMS_VERSION_LABEL_PATTERN.test(label)
-) {
-  throw new Error(
-    "usage: --document=terms_of_service|privacy_policy|cookie_policy --locale=fr|en " +
-      "--label=<[0-9A-Za-z._-]{1,40}> [--target=local|staging]",
-  );
-}
 const target = values.target;
 if (target !== "local" && target !== "staging") {
   throw new Error(
@@ -96,24 +94,46 @@ if (target !== "local" && target !== "staging") {
 if (target === "local") {
   refuseOutsideTheLocalStack("terms publication");
 }
-const request: PublicationRequest = {
-  document: document.data,
-  locale: locale.data,
-  label,
-};
 
-const published = publishedFileOf(request);
-assertMatchesManifest(published, readManifest());
-if (!isCommittedAsIs(published.file)) {
-  if (target === "staging") {
-    throw new Error(
-      `${published.uri} is not committed as it is: commit it before publishing on staging`,
-    );
+/** The requests of the command line: one version, or the latest of the manifest. */
+function requestsOf(): readonly PublicationRequest[] {
+  if (values.latest) {
+    if (values.document !== undefined || values.locale !== undefined) {
+      throw new Error(USAGE);
+    }
+    return LOCAL_SEED_DRAFTS;
   }
-  process.stdout.write(
-    `warning: ${published.uri} is not committed yet; commit it with legal/published.json\n`,
-  );
+  const document = publicDocumentSchema.safeParse(values.document);
+  const locale = uiLocaleSchema.safeParse(values.locale);
+  const label = values.label ?? "";
+  if (
+    !document.success ||
+    !locale.success ||
+    !TERMS_VERSION_LABEL_PATTERN.test(label)
+  ) {
+    throw new Error(USAGE);
+  }
+  return [{ document: document.data, locale: locale.data, label }];
 }
+
+// Every file is read and checked before the database is reached.
+const manifest = readManifest();
+const files: { request: PublicationRequest; published: PublishedFile }[] =
+  requestsOf().map((request) => {
+    const published = publishedFileOf(request);
+    assertMatchesManifest(published, manifest);
+    if (!isCommittedAsIs(published.file)) {
+      if (target === "staging") {
+        throw new Error(
+          `${published.uri} is not committed as it is: commit it before publishing on staging`,
+        );
+      }
+      process.stdout.write(
+        `warning: ${published.uri} is not committed yet; commit it with legal/published.json\n`,
+      );
+    }
+    return { request, published };
+  });
 
 if (target === "local") {
   await requireLocalStack();
@@ -126,20 +146,28 @@ try {
   if (target === "staging") {
     await assertStagingMarker(migration);
   }
-  const outcome = await publishTermsVersion(migration, request, published);
-  if (outcome.kind === "already_published") {
-    throw new Error(
-      `${request.document}/${request.locale} "${request.label}" is already published: ` +
-        "a published label is never published again",
+  for (const { request, published } of files) {
+    const outcome = await publishTermsVersion(migration, request, published);
+    if (outcome.kind === "already_published") {
+      if (!values.latest) {
+        throw new Error(
+          `${request.document}/${request.locale} "${request.label}" is already published: ` +
+            "a published label is never published again",
+        );
+      }
+      process.stdout.write(`unchanged on ${target}: ${published.uri}\n`);
+      continue;
+    }
+    recordInManifest(published);
+    process.stdout.write(
+      outcome.kind === "content_filled"
+        ? `text filled on ${target}: ${published.uri}  sha256 ${published.sha256}  id ${outcome.id}\n`
+        : `published on ${target}: ${published.uri}  sha256 ${published.sha256}  id ${outcome.id}` +
+            (outcome.closedVersionLabel === null
+              ? "\n"
+              : `  (closes "${outcome.closedVersionLabel}")\n`),
     );
   }
-  recordInManifest(published);
-  process.stdout.write(
-    `published on ${target}: ${published.uri}  sha256 ${published.sha256}  id ${outcome.id}` +
-      (outcome.closedVersionLabel === null
-        ? "\n"
-        : `  (closes "${outcome.closedVersionLabel}")\n`),
-  );
 } finally {
   await migration.end({ timeout: 1 });
 }

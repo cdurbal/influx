@@ -16,6 +16,8 @@ export const ERROR_CODES = [
   "rate_limited",
   "internal_error",
   "service_unavailable",
+  // A public document could not be served safely (21 EC-62 (D)): retry later, never a 500.
+  "terms_unavailable",
 ] as const;
 
 export const errorCodeSchema = z.enum(ERROR_CODES);

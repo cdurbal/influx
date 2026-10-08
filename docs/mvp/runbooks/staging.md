@@ -80,6 +80,10 @@ peut alors jamais lire ce secret (J4S-1).
 Au prochain push sur `main`, le job **« Migrate staging »** applique les migrations après les
 contrôles. Tant que le secret est absent, le job affiche un avis et ne fait rien.
 
+Puis il publie les documents publics (`21` EC-62 (C)) : pour chaque document et langue, la dernière
+entrée de `apps/api/legal/published.json` (texte rempli si elle a été publiée sans). Déclarer dans
+l'environnement la **variable** (pas un secret) `STAGING_DATABASE_CA_CERT`, le PEM public de l'étape 5.
+
 ## Étape 5 — Railway : projet et quatre services
 
 Créer le projet relié au dépôt GitHub, environnement **`staging`**, branche `main`, puis quatre

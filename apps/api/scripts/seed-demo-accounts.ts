@@ -1,7 +1,8 @@
 // `corepack pnpm db:demo-accounts` (from the repository root), after `supabase db reset` and
 // `corepack pnpm db:role-passwords`, with the variables of EC-51 exported (docs/mvp/21 §4, J3
 // commit 11; EC-45 (1)). Publishes the drafts of the public documents (21 EC-62, J5 commit 3:
-// LOCAL_SEED_DRAFTS of terms-publication.ts, each label once), then creates the four
+// LOCAL_SEED_DRAFTS of terms-publication.ts, the last entry of legal/published.json per
+// document and language, each label once, its text filled when missing), then creates the four
 // demonstration accounts of scripts/demo-accounts.ts on the LOCAL stack; runs in CI the same way.
 //
 // Refused: when INFLUX_ENV or NODE_ENV says production, when SUPABASE_URL is set to anything but
@@ -38,10 +39,10 @@ const migration = connectAsMigrationRole({ max: 1 });
 try {
   for (const draft of LOCAL_SEED_DRAFTS) {
     const published = await publishUnlessPublished(migration, draft);
-    if (published.kind === "published") {
+    if (published.kind !== "already_published") {
       process.stdout.write(
-        `published ${draft.document}/${draft.locale} "${draft.label}" (local stack)
-`,
+        `${published.kind === "published" ? "published" : "text filled"} ` +
+          `${draft.document}/${draft.locale} "${draft.label}" (local stack)\n`,
       );
     }
   }

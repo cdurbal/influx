@@ -1,8 +1,11 @@
-// TM10 (J5, commit 3) — the database half of the public documents, migration 0108 (21 EC-62):
-// identity.terms_in_force() serves the version in force of a document in the requested language,
-// otherwise in English (05 RG25), never a version published for later nor a closed one, refuses
-// the supervision notice and a malformed language, and is reachable by influx_auth only, which
-// reads nothing of identity.terms_versions directly.
+// TM10 (J5, commit 3) — the database half of the public documents, migrations 0108 and 0109 (21
+// EC-62 and its amendment): identity.terms_in_force() serves the version in force of a document,
+// with its exact text, in the requested language, otherwise in English (05 RG25), never a version
+// published for later, a closed one or an inherited one without text; it refuses the supervision
+// notice and a malformed language, and is reachable by influx_auth only, which reads nothing of
+// identity.terms_versions directly. identity.terms_versions.content (0109): the text matches the
+// hash, a new version in force carries it, an inherited row without text can be closed or filled
+// once.
 //
 // The behaviour cases need versions the stack does not have AND the absence of versions it may
 // have (the demo accounts publish an English terms of service, the publication script of J5 the
@@ -21,17 +24,20 @@ import {
   type DataSet,
   type UserContext,
 } from "@influx/test-kit/db";
+import { createHash } from "node:crypto";
 import type postgres from "postgres";
 import { beforeAll, describe, expect, it } from "vitest";
 import { loginRole, migrationRole, testDataSet } from "./support.ts";
 
 const INSUFFICIENT_PRIVILEGE = "42501";
 const INVALID_PARAMETER = "22023";
+const CHECK_VIOLATION = "23514";
 
 const FUNCTION = "identity.terms_in_force(identity.document_kind, text)";
 const IN_FORCE =
   "select id::text, document_kind::text, locale::text, version_label, content_uri, content_hash, " +
-  "requires_acceptance, effective_from from identity.terms_in_force($1::identity.document_kind, $2)";
+  "requires_acceptance, effective_from, content " +
+  "from identity.terms_in_force($1::identity.document_kind, $2)";
 
 type Kind = "terms_of_service" | "privacy_policy" | "cookie_policy";
 type Version = {
@@ -43,6 +49,7 @@ type Version = {
   content_hash: Buffer;
   requires_acceptance: boolean;
   effective_from: Date;
+  content: string | null;
 };
 
 /**
@@ -74,30 +81,96 @@ async function withdrawAll(
   );
 }
 
-/** Publishes one version of `kind` in `locale` for `period`, in the scenario; returns it. */
+/** The text of a test version: not ASCII, so that the hash is over the UTF-8 bytes indeed. */
+function textOf(label: string): string {
+  return `# ${label}\n\nProjet non contractuel — clause d’essai, à lire.\n`;
+}
+
+const INSERT_VERSION =
+  "insert into identity.terms_versions " +
+  "(document_kind, locale, version_label, content_uri, content_hash, requires_acceptance, " +
+  " published_at, effective_from, effective_to, content) " +
+  "values ($1::identity.document_kind, $2, $3, $4, sha256(convert_to($7, 'UTF8')), " +
+  "        $1::identity.document_kind = 'terms_of_service', " +
+  "        least(now(), now() + $5::interval), now() + $5::interval, now() + $6::interval, $8) " +
+  "returning id::text, document_kind::text, locale::text, version_label, content_uri, " +
+  "          content_hash, requires_acceptance, effective_from, content";
+
+/**
+ * Parameters of INSERT_VERSION. The hash is always the one of textOf(label); `content` is the
+ * stored text: the same by default, another one or none for the refusals and the inherited rows.
+ */
+function versionParameters(
+  kind: Kind | "supervision_notice",
+  locale: string,
+  period: Period,
+  content?: string | null,
+): postgres.ParameterOrJSON<never>[] {
+  const label = `tm10-ec62-${locale}-${period}`;
+  const { from, to } = PERIODS[period];
+  return [
+    kind,
+    locale,
+    label,
+    `legal/${kind}/${locale}/${label}.md`,
+    from,
+    to,
+    textOf(label),
+    content === undefined ? textOf(label) : content,
+  ] as postgres.ParameterOrJSON<never>[];
+}
+
+/** Publishes one version of `kind` in `locale` for `period`, with its text; returns it. */
 async function publish(
   tx: postgres.TransactionSql,
   kind: Kind | "supervision_notice",
   locale: string,
   period: Period,
 ): Promise<Version> {
-  const label = `tm10-ec62-${locale}-${period}`;
-  const { from, to } = PERIODS[period];
   const [row] = await tx.unsafe<Version[]>(
-    "insert into identity.terms_versions " +
-      "(document_kind, locale, version_label, content_uri, content_hash, requires_acceptance, " +
-      " published_at, effective_from, effective_to) " +
-      "values ($1::identity.document_kind, $2, $3, $4, sha256(convert_to($3, 'UTF8')), " +
-      "        $1::identity.document_kind = 'terms_of_service', " +
-      "        least(now(), now() + $5::interval), now() + $5::interval, now() + $6::interval) " +
-      "returning id::text, document_kind::text, locale::text, version_label, content_uri, " +
-      "          content_hash, requires_acceptance, effective_from",
-    [kind, locale, label, `legal/${kind}/${locale}/${label}.md`, from, to],
+    INSERT_VERSION,
+    versionParameters(kind, locale, period),
   );
   if (row === undefined) {
     throw new Error("terms version not inserted");
   }
   return row;
+}
+
+/**
+ * An INHERITED version in force, published without text before 0109 (draft-2 on the workstations,
+ * demo-fictive-1 on staging). Such a row can no longer be inserted: the NOT VALID constraint is
+ * dropped for the insert and put back at once, NOT VALID as 0109 leaves it, inside the rolled-back
+ * transaction of the scenario (ACCESS EXCLUSIVE lock until the rollback; files run one by one).
+ */
+async function publishInherited(
+  tx: postgres.TransactionSql,
+  kind: Kind,
+  locale: string,
+): Promise<Version> {
+  await tx.unsafe(
+    "alter table identity.terms_versions drop constraint terms_versions_content_required",
+  );
+  const [row] = await tx.unsafe<Version[]>(
+    INSERT_VERSION,
+    versionParameters(kind, locale, "current", null),
+  );
+  await tx.unsafe(
+    "alter table identity.terms_versions add constraint terms_versions_content_required " +
+      "check (content is not null or effective_to is not null) not valid",
+  );
+  if (row === undefined) {
+    throw new Error("inherited terms version not inserted");
+  }
+  return row;
+}
+
+/** Takes influx_auth in a migration-role transaction (see the head of the file). */
+async function becomeAuth(tx: postgres.TransactionSql): Promise<void> {
+  await tx.unsafe(
+    "grant influx_auth to current_user with inherit false, set true",
+  );
+  await tx.unsafe("set local role influx_auth");
 }
 
 /**
@@ -110,10 +183,7 @@ function scenario<T>(
 ): Promise<T> {
   return inRolledBackTransaction(migration, async (tx) => {
     await shape(tx);
-    await tx.unsafe(
-      "grant influx_auth to current_user with inherit false, set true",
-    );
-    await tx.unsafe("set local role influx_auth");
+    await becomeAuth(tx);
     return act(tx);
   });
 }
@@ -166,7 +236,7 @@ beforeAll(async () => {
 });
 
 describe("EC-62: identity.terms_in_force() serves the version in force", () => {
-  it("serves the version in force in the requested language, every column", async () => {
+  it("serves the version in force in the requested language, every column, its text", async () => {
     let fr: Version | undefined;
     const rows = await scenario(
       async (tx) => {
@@ -177,7 +247,16 @@ describe("EC-62: identity.terms_in_force() serves the version in force", () => {
       (tx) => inForce(tx, "terms_of_service", "fr"),
     );
     expect(rows).toEqual([fr]);
-    expect(rows[0]?.locale).toBe("fr");
+    const [served] = rows;
+    expect(served?.locale).toBe("fr");
+    // 0109: the published text, whose SHA-256 over UTF-8 is content_hash (what apps/api checks)
+    expect(served?.content).toBe(textOf("tm10-ec62-fr-current"));
+    expect(
+      createHash("sha256")
+        .update(served?.content ?? "", "utf8")
+        .digest()
+        .equals(served?.content_hash ?? Buffer.alloc(0)),
+    ).toBe(true);
   });
 
   it("serves a version whose effective_from is the current instant", async () => {
@@ -295,6 +374,35 @@ describe("EC-62: identity.terms_in_force() serves the version in force", () => {
     expect(rows).toEqual([]);
   });
 
+  it("ignores an inherited version without text and falls back to English (EC-62 (B))", async () => {
+    let en: Version | undefined;
+    const rows = await scenario(
+      async (tx) => {
+        await withdrawAll(tx, "terms_of_service");
+        await publishInherited(tx, "terms_of_service", "fr");
+        en = await publish(tx, "terms_of_service", "en", "current");
+      },
+      (tx) => inForce(tx, "terms_of_service", "fr"),
+    );
+    expect(rows).toEqual([en]);
+    expect(rows[0]?.locale).toBe("en");
+  });
+
+  it("returns no row when the versions in force have no text, in the language nor in English", async () => {
+    const rows = await scenario(
+      async (tx) => {
+        await withdrawAll(tx, "privacy_policy");
+        await publishInherited(tx, "privacy_policy", "fr");
+        await publishInherited(tx, "privacy_policy", "en");
+      },
+      async (tx) => [
+        ...(await inForce(tx, "privacy_policy", "fr")),
+        ...(await inForce(tx, "privacy_policy", "en")),
+      ],
+    );
+    expect(rows).toEqual([]);
+  });
+
   it("serves only the requested document", async () => {
     const rows = await scenario(
       async (tx) => {
@@ -306,6 +414,124 @@ describe("EC-62: identity.terms_in_force() serves the version in force", () => {
       (tx) => inForce(tx, "terms_of_service", "fr"),
     );
     expect(rows).toEqual([]);
+  });
+});
+
+describe("0109: identity.terms_versions.content, the exact text of a version", () => {
+  /** As the migration role (the publication script), cookie policy withdrawn, rolled back. */
+  function asPublisher<T>(
+    fn: (tx: postgres.TransactionSql) => Promise<T>,
+  ): Promise<T> {
+    return inRolledBackTransaction(migration, async (tx) => {
+      await withdrawAll(tx, "cookie_policy");
+      return fn(tx);
+    });
+  }
+
+  function insertVersion(content: string | null, period: Period = "current") {
+    return asPublisher((tx) =>
+      probe(
+        tx,
+        INSERT_VERSION,
+        versionParameters("cookie_policy", "fr", period, content),
+      ),
+    );
+  }
+
+  it("refuses a text that does not match the hash", async () => {
+    expect(await insertVersion("another text")).toEqual({
+      outcome: "error",
+      code: CHECK_VIOLATION,
+    });
+  });
+
+  it("refuses an empty text", async () => {
+    expect(await insertVersion("")).toEqual({
+      outcome: "error",
+      code: CHECK_VIOLATION,
+    });
+  });
+
+  it.each([["current"], ["now"], ["future"]] as const)(
+    "refuses a new version without text (%s)",
+    async (period) => {
+      expect(await insertVersion(null, period)).toEqual({
+        outcome: "error",
+        code: CHECK_VIOLATION,
+      });
+    },
+  );
+
+  it("accepts a closed version without text (history, never served)", async () => {
+    expect(await insertVersion(null, "closed")).toEqual({
+      outcome: "rows",
+      count: 1,
+    });
+  });
+
+  it("lets an inherited version without text be closed", async () => {
+    expect(
+      await asPublisher(async (tx) => {
+        const inherited = await publishInherited(tx, "cookie_policy", "fr");
+        return probe(
+          tx,
+          "update identity.terms_versions set effective_to = now() where id = $1",
+          [inherited.id],
+        );
+      }),
+    ).toEqual({ outcome: "rows", count: 1 });
+  });
+
+  it("fills the text of an inherited version once, then refuses any change", async () => {
+    const label = "tm10-ec62-fr-current";
+    const outcome = await asPublisher(async (tx) => {
+      const inherited = await publishInherited(tx, "cookie_policy", "fr");
+      const fill = (content: string | null) =>
+        probe(
+          tx,
+          "update identity.terms_versions set content = $2 where id = $1",
+          [inherited.id, content],
+        );
+      const result = {
+        id: inherited.id,
+        wrongText: await fill("another text"),
+        first: await fill(textOf(label)),
+        again: await fill(`${textOf(label)} `),
+        emptied: await fill(null),
+      };
+      await becomeAuth(tx);
+      return { ...result, served: await inForce(tx, "cookie_policy", "fr") };
+    });
+    expect(outcome.wrongText).toEqual({
+      outcome: "error",
+      code: CHECK_VIOLATION,
+    });
+    expect(outcome.first).toEqual({ outcome: "rows", count: 1 });
+    expect(outcome.again).toEqual({
+      outcome: "error",
+      code: INSUFFICIENT_PRIVILEGE,
+    });
+    expect(outcome.emptied).toEqual({
+      outcome: "error",
+      code: INSUFFICIENT_PRIVILEGE,
+    });
+    // once filled, the inherited version is served, with its text
+    expect(outcome.served.map((row) => [row.id, row.content])).toEqual([
+      [outcome.id, textOf(label)],
+    ]);
+  });
+
+  it("refuses to change the text of a version published with it", async () => {
+    expect(
+      await asPublisher(async (tx) => {
+        const version = await publish(tx, "cookie_policy", "fr", "current");
+        return probe(
+          tx,
+          "update identity.terms_versions set content = $2 where id = $1",
+          [version.id, `${textOf(version.version_label)} `],
+        );
+      }),
+    ).toEqual({ outcome: "error", code: INSUFFICIENT_PRIVILEGE });
   });
 });
 
@@ -341,17 +567,15 @@ describe("EC-62: identity.terms_in_force() refuses what is not a public document
 
 describe("EC-62: identity.terms_in_force() is reached by influx_auth only", () => {
   it("is executed by influx_auth, taken from influx_auth_login", async () => {
-    const [expected] = await migration<{ id: string }[]>`
+    // whatever the workstation published: the version in force with a text, French first
+    const expected = await migration<{ id: string }[]>`
       select id::text from identity.terms_versions
-       where document_kind = 'terms_of_service' and locale = 'fr'
-         and effective_to is null and effective_from <= now()`;
-    if (expected === undefined) {
-      throw new Error(
-        "no terms of service in force in French (data set of T2)",
-      );
-    }
+       where document_kind = 'terms_of_service' and locale in ('fr', 'en')
+         and effective_to is null and effective_from <= now() and content is not null
+       order by locale = 'fr' desc
+       limit 1`;
     const rows = await asAuth((tx) => inForce(tx, "terms_of_service", "fr"));
-    expect(rows.map((row) => row.id)).toEqual([expected.id]);
+    expect(rows.map((row) => row.id)).toEqual(expected.map((row) => row.id));
   });
 
   it("leaves influx_auth without any direct read of identity.terms_versions", async () => {

@@ -1,16 +1,16 @@
-// GET /v1/terms/current (docs/mvp/21 EC-62; 05 RG25, RG27): the route and the content check,
-// with the database replaced by a fake lookup and the legal folder by a temporary one. The
-// database half (identity.terms_in_force(), 0108) is db-tests/tm10-terms-in-force.test.ts; the
-// whole path on the local stack, db-tests/tm10-terms-route.test.ts.
+// GET /v1/terms/current (docs/mvp/21 EC-62 and its amendment; 05 RG25, RG27): the route and the
+// check of the text read from the database, with the database replaced by a fake lookup (or by a
+// pool that reaches nothing). No file is read. The database half (identity.terms_in_force(),
+// 0108, 0109) is db-tests/tm10-terms-in-force.test.ts; the whole path on the local stack,
+// db-tests/tm10-terms-route.test.ts. EC-62 (D): never a 500 on this route.
 import { createHash, randomUUID } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { createApiDatabase } from "../src/db/index.ts";
 import type { TermsVersionRow } from "../src/domains/identity/repository.ts";
 import {
   matchesEntityTag,
   TERMS_READ_RATE,
+  TERMS_RETRY_AFTER_SECONDS,
 } from "../src/domains/identity/routes.ts";
 import type { TermsLookup } from "../src/domains/identity/terms.ts";
 import { buildServer, type ApiServer } from "../src/server.ts";
@@ -22,21 +22,14 @@ import {
 } from "./helpers.ts";
 
 const FR_TEXT =
-  "**Projet non contractuel / Draft, not contractual**\n\n# CGU\n";
+  "**Projet non contractuel / Draft, not contractual**\n\n# CGU\n\nÉtat « brouillon ».\n";
 const EN_TEXT =
   "**Projet non contractuel / Draft, not contractual**\n\n# Terms\n";
 
-let root: string;
 let app: ApiServer | undefined;
 
 function sha256(text: string): string {
   return createHash("sha256").update(text, "utf8").digest("hex");
-}
-
-function writeLegal(uri: string, text: string): void {
-  const file = path.join(root, ...uri.split("/"));
-  mkdirSync(path.dirname(file), { recursive: true });
-  writeFileSync(file, text, "utf8");
 }
 
 function row(overrides: Partial<TermsVersionRow> = {}): TermsVersionRow {
@@ -44,11 +37,12 @@ function row(overrides: Partial<TermsVersionRow> = {}): TermsVersionRow {
     id: randomUUID(),
     documentKind: "terms_of_service",
     locale: "fr",
-    versionLabel: "draft-1",
-    contentUri: "legal/terms_of_service/fr/draft-1.md",
+    versionLabel: "draft-2",
+    contentUri: "legal/terms_of_service/fr/draft-2.md",
     contentSha256: sha256(FR_TEXT),
     requiresAcceptance: true,
     effectiveFrom: "2026-10-08T09:00:00.000Z",
+    content: FR_TEXT,
     ...overrides,
   };
 }
@@ -67,7 +61,7 @@ function server(lookup: TermsLookup) {
   const logs = captureLogs();
   app = buildServer(testApiConfig(), {
     logDestination: logs.destination,
-    identity: { termsLookup: lookup, legalContentRoot: root },
+    identity: { termsLookup: lookup },
   });
   return { api: app, logs };
 }
@@ -88,19 +82,9 @@ function get(
   });
 }
 
-beforeAll(() => {
-  root = mkdtempSync(path.join(tmpdir(), "influx-legal-"));
-  writeLegal("legal/terms_of_service/fr/draft-1.md", FR_TEXT);
-  writeLegal("legal/terms_of_service/en/draft-1.md", EN_TEXT);
-});
-
 afterEach(async () => {
   await app?.close();
   app = undefined;
-});
-
-afterAll(() => {
-  rmSync(root, { recursive: true, force: true });
 });
 
 describe("GET /v1/terms/current: nominal (RG27)", () => {
@@ -114,7 +98,7 @@ describe("GET /v1/terms/current: nominal (RG27)", () => {
       document: "terms_of_service",
       locale: "fr",
       isFallback: false,
-      versionLabel: "draft-1",
+      versionLabel: "draft-2",
       effectiveFrom: "2026-10-08T09:00:00.000Z",
       requiresAcceptance: true,
       contentSha256: sha256(FR_TEXT),
@@ -127,8 +111,9 @@ describe("GET /v1/terms/current: nominal (RG27)", () => {
   it("serves the English version for French when none is in force in French (RG25)", async () => {
     const version = row({
       locale: "en",
-      contentUri: "legal/terms_of_service/en/draft-1.md",
+      contentUri: "legal/terms_of_service/en/draft-2.md",
       contentSha256: sha256(EN_TEXT),
+      content: EN_TEXT,
     });
     const { api } = server(lookupOf(version).lookup);
     const response = await get(api, "?document=terms_of_service&locale=fr");
@@ -188,7 +173,7 @@ describe("GET /v1/terms/current: refusals", () => {
     expect(calls).toEqual([]);
   });
 
-  it("answers 404 terms_not_published when no version is in force", async () => {
+  it("answers 404 terms_not_published when nothing is in force with its text (0109: a row without text is not returned)", async () => {
     const { api } = server(lookupOf(null).lookup);
     const response = await get(api, "?document=cookie_policy&locale=en");
     expect(response.statusCode).toBe(404);
@@ -220,56 +205,118 @@ describe("GET /v1/terms/current: refusals", () => {
   });
 });
 
-describe("GET /v1/terms/current: fails closed (EC-62)", () => {
-  async function failsClosed(version: TermsVersionRow, reason: string) {
-    const { api, logs } = server(lookupOf(version).lookup);
+describe("GET /v1/terms/current: 503 terms_unavailable, never 500 (EC-62 (D))", () => {
+  /** The answer is a 503 with Retry-After, no text, and one error line naming the reason. */
+  async function unavailable(lookup: TermsLookup, reason: string) {
+    const { api, logs } = server(lookup);
     const response = await get(api, "?document=terms_of_service&locale=fr");
-    expect(response.statusCode).toBe(500);
-    expect(response.json().error.code).toBe("internal_error");
-    expect(response.body).not.toContain("Projet");
+    expect(response.statusCode).toBe(503);
+    expect(response.json().error.code).toBe("terms_unavailable");
+    expect(response.headers["retry-after"]).toBe(
+      String(TERMS_RETRY_AFTER_SECONDS),
+    );
     expect(response.headers.etag).toBeUndefined();
-    const line = logs
+    expect(response.body).not.toContain("Projet");
+    const lines = logs
       .lines()
-      .map((text) => JSON.parse(text) as Record<string, unknown>)
-      .find((entry) => String(entry.msg).includes("content check"));
+      .map((text) => JSON.parse(text) as Record<string, unknown>);
+    const line = lines.find((entry) =>
+      String(entry.msg).includes("terms_unavailable"),
+    );
     expect(line).toMatchObject({ level: "error", reason });
+    expect(logs.lines().join("\n")).not.toContain("Projet non contractuel");
+    await app?.close();
+    app = undefined;
   }
 
   it("refuses a text whose SHA-256 differs from the published one", async () => {
-    await failsClosed(
-      row({ contentSha256: sha256(`${FR_TEXT} `) }),
+    await unavailable(
+      lookupOf(row({ content: `${FR_TEXT} ` })).lookup,
       "content_hash_mismatch",
     );
   });
 
-  it("refuses a content_uri other than the path rebuilt from the version (no traversal)", async () => {
-    for (const contentUri of [
-      "legal/terms_of_service/fr/../../../package.json",
-      "legal/terms_of_service/en/draft-1.md",
-      "/etc/passwd",
+  it("refuses a row of another document, of a third language, or with a malformed label", async () => {
+    for (const overrides of [
+      { documentKind: "privacy_policy" },
+      { locale: "de" },
+      { versionLabel: "../draft-2" },
     ]) {
-      await failsClosed(row({ contentUri }), "content_uri_mismatch");
-      await app?.close();
+      await unavailable(lookupOf(row(overrides)).lookup, "unexpected_row");
     }
   });
 
-  it("refuses a version whose file is missing", async () => {
-    await failsClosed(
-      row({
-        versionLabel: "draft-9",
-        contentUri: "legal/terms_of_service/fr/draft-9.md",
-      }),
-      "content_missing",
-    );
+  it("refuses a row the response schema refuses, instead of failing at serialisation", async () => {
+    for (const overrides of [
+      { effectiveFrom: "yesterday" },
+      { id: "not-a-uuid" },
+      { content: "", contentSha256: sha256("") },
+    ]) {
+      await unavailable(lookupOf(row(overrides)).lookup, "response_invalid");
+    }
   });
 
-  it("refuses a row of another document or of a third language", async () => {
-    await failsClosed(
-      row({ documentKind: "privacy_policy" }),
-      "unexpected_row",
+  it("answers 503 when the lookup throws, whatever it throws", async () => {
+    for (const thrown of [
+      new Error("connect ECONNREFUSED"),
+      Object.assign(new Error("terminating connection"), { code: "57P01" }),
+      "a string",
+      undefined,
+    ]) {
+      await unavailable(async () => {
+        throw thrown;
+      }, "lookup_failed");
+    }
+  });
+
+  it("answers 503 when the database cannot be reached", async () => {
+    const unreachable = (
+      role: "influx_app" | "influx_auth_login" | "influx_ops_login",
+    ) => ({
+      url: `postgresql://${role}:x@127.0.0.1:1/postgres`,
+      role,
+      tls: false,
+    });
+    const database = createApiDatabase(
+      {
+        app: unreachable("influx_app"),
+        auth: unreachable("influx_auth_login"),
+        ops: unreachable("influx_ops_login"),
+      },
+      { info: () => undefined, warn: () => undefined, error: () => undefined },
     );
-    await app?.close();
-    await failsClosed(row({ locale: "de" }), "unexpected_row");
+    const logs = captureLogs();
+    app = buildServer(testApiConfig(), {
+      logDestination: logs.destination,
+      database,
+    });
+    const response = await get(app, "?document=terms_of_service&locale=fr");
+    expect(response.statusCode).toBe(503);
+    expect(response.json().error.code).toBe("terms_unavailable");
+    expect(response.headers["retry-after"]).toBeDefined();
+  });
+
+  it("never answers 500, whatever the lookup returns or throws", async () => {
+    const answers: (() => Promise<TermsVersionRow | null>)[] = [
+      async () => row(),
+      async () => null,
+      async () => row({ content: "x" }),
+      async () => row({ contentSha256: "zz" }),
+      async () => row({ requiresAcceptance: "yes" as unknown as boolean }),
+      async () => ({}) as TermsVersionRow,
+      async () => {
+        throw new TypeError("boom");
+      },
+      () => Promise.reject(new RangeError("late")),
+    ];
+    for (const answer of answers) {
+      const { api } = server(answer);
+      const response = await get(api, "?document=terms_of_service&locale=fr");
+      expect(response.statusCode).not.toBe(500);
+      expect([200, 404, 503]).toContain(response.statusCode);
+      await app?.close();
+      app = undefined;
+    }
   });
 });
 

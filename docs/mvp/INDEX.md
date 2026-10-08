@@ -169,10 +169,10 @@
 | 5721 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
 | 5759 | 111 | 9. Conservation, suppression, anonymisation | RG44–RG112 |
 | 5870 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
-| 6035 | 119 | 11. Plan de migrations | RG15–RG100 |
-| 6154 | 175 | 12. Ce qui reste ouvert | RG22–RG123 |
-| 6329 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
-| 6365 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
+| 6035 | 120 | 11. Plan de migrations | RG15–RG100 |
+| 6155 | 175 | 12. Ce qui reste ouvert | RG22–RG123 |
+| 6330 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
+| 6366 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
 
 ## 05-spec-inscription-et-leads.md (~36k tokens)
 
@@ -644,7 +644,7 @@
 | 330 | 13 | 9. Questions ouvertes | RG116–RG130 |
 | 343 | 11 | 10. Tokens proposés |  |
 
-## 21-plan-de-developpement.md (~10k tokens)
+## 21-plan-de-developpement.md (~11k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -653,7 +653,7 @@
 | 53 | 39 | 2. Stratégie de développement | RG44–RG148 |
 | 92 | 23 | 3. Écarts actifs pour les jalons restants (J5 à J9) | RG23–RG146 |
 | 115 | 43 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 158 | 113 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG148 |
-| 271 | 9 | 6. Configuration des services externes |  |
-| 280 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 297 | 10 | 8. Guide de lecture par jalon | RG54–RG58 |
+| 158 | 114 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG148 |
+| 272 | 9 | 6. Configuration des services externes |  |
+| 281 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 298 | 10 | 8. Guide de lecture par jalon | RG54–RG58 |

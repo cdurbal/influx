@@ -80,8 +80,9 @@ consentement enregistré (RG32, RG33) ; aucun taux ni montant.
 - `testeur` : jeu T2 et sonde d'insertion rebasés sur les versions en vigueur ; `tm10-terms-in-force`
   façonne la table sous le rôle de migration dans une transaction annulée (dérogation `18` T2 règle 5).
 - Passe-plat : `ETag`/304 non relayés, « non publié » et « API indisponible » fondus côté web.
-- **Staging** : publier les six `draft-2` (droit anglais, D25) avec `db:publish-terms --target=staging` ;
-  d'ici là la route échoue fermé (500) sur `demo-fictive-1`. Textes `draft-2` validés par le juriste
+- **Staging** : textes publiés par la CI à chaque push (`db:publish-terms --latest`, EC-62 amendé) si la
+  variable `STAGING_DATABASE_CA_CERT` existe dans l'environnement GitHub `staging` ; route jamais en 500
+  (404 sans texte, 503 `terms_unavailable` sur défaillance). Textes `draft-2` validés par le juriste
   (2026-10-08) ; marqueurs `[…]` : fondateur, à la création de la société (version définitive = `draft-2`
   + marqueurs + en-tête « projet » retiré, rien d'autre).
 - Veto `expert-conformite-rgpd` maintenu sur D63 (consentement exigé, art. 7(4) UK GDPR) et sur la

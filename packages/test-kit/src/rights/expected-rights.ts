@@ -1056,6 +1056,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   // 0108 (J5, EC-62): the public documents, read by influx_auth through identity.terms_in_force()
   // only (no right on the table); the owner receives the three columns 0106 did not give it.
   "influx_auth|function|identity.terms_in_force(identity.document_kind,text)|EXECUTE",
+  // 0109 (EC-62 amendment): the text it now returns
+  "influx_identity_definer|column|identity.terms_versions.content|SELECT",
   "influx_identity_definer|column|identity.terms_versions.content_uri|SELECT",
   "influx_identity_definer|column|identity.terms_versions.requires_acceptance|SELECT",
   "influx_identity_definer|column|identity.terms_versions.version_label|SELECT",

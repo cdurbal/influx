@@ -125,7 +125,7 @@ async function termsOfServiceInForce(
   >`
     select id::text, content_hash, locale::text from identity.terms_versions
      where document_kind = 'terms_of_service' and locale in (${locale}, 'en')
-       and effective_to is null and effective_from <= now()
+       and effective_to is null and effective_from <= now() and content is not null
      order by (locale = ${locale}) desc
      limit 1`;
   const row = rows[0];

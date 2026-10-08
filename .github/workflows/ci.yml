@@ -207,3 +207,27 @@ jobs:
           cp -R supabase/migrations "$workdir/supabase/migrations"
           printf 'project_id = "influx-staging-migrations"\n' > "$workdir/supabase/config.toml"
           pnpm exec supabase db push --db-url "$DIRECT_DATABASE_URL" --workdir "$workdir" --yes
+
+      # 21 EC-62 (C): the public documents of staging, after its migrations. For each document and
+      # language, the last entry of apps/api/legal/published.json is published, or its text filled
+      # when it was published without (0109), or left as it is: idempotent. The script refuses a
+      # database without the staging marker (runbook, step 2) and production. J4S-1: the URL of the
+      # migration role is given to this step only. The root certificate of the pooler (EC-34) is
+      # public: an environment variable, not a secret.
+      - name: Publish the public documents on staging
+        env:
+          INFLUX_STAGING_MIGRATION_URL: ${{ secrets.DIRECT_DATABASE_URL }}
+          STAGING_DATABASE_CA_CERT: ${{ vars.STAGING_DATABASE_CA_CERT }}
+        run: |
+          if [ -z "$INFLUX_STAGING_MIGRATION_URL" ]; then
+            echo "::notice::DIRECT_DATABASE_URL is not set in the staging environment: nothing is published (runbook, step 4)."
+            exit 0
+          fi
+          # Without the pooler's root certificate the TLS check fails (EC-34): warn, never break main.
+          if [ -z "$STAGING_DATABASE_CA_CERT" ]; then
+            echo "::warning::STAGING_DATABASE_CA_CERT is not set in the staging environment: the public documents are not published (runbook, step 4)."
+            exit 0
+          fi
+          export INFLUX_STAGING_DB_CA_FILE="$(mktemp)"
+          printf '%s\n' "$STAGING_DATABASE_CA_CERT" > "$INFLUX_STAGING_DB_CA_FILE"
+          pnpm --filter @influx/api db:publish-terms -- --latest --target=staging

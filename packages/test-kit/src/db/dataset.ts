@@ -157,16 +157,17 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
     await tx`
       insert into identity.terms_versions
         (id, document_kind, locale, version_label, content_uri, content_hash,
-         requires_acceptance, published_at, effective_from)
+         requires_acceptance, published_at, effective_from, content)
       values (${TERMS_VERSION_ID}, 'terms_of_service', 'fr', 't2-test',
-              'https://example.test/terms/t2', sha256('t2'::bytea), true, now(), now())
+              'https://example.test/terms/t2', sha256('t2'::bytea), true, now(), now(), 't2')
       on conflict do nothing`;
     await tx`
       insert into identity.terms_versions
         (id, document_kind, locale, version_label, content_uri, content_hash,
-         requires_acceptance, published_at, effective_from)
+         requires_acceptance, published_at, effective_from, content)
       values (${PROBE_TERMS_VERSION_ID}, 'privacy_policy', 'fr', 't2-probe',
-              'https://example.test/privacy/t2', sha256('t2-probe'::bytea), false, now(), now())
+              'https://example.test/privacy/t2', sha256('t2-probe'::bytea), false, now(), now(),
+              't2-probe')
       on conflict do nothing`;
 
     const accounts = {} as Record<

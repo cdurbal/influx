@@ -173,6 +173,8 @@ export const termsVersions = identity.table("terms_versions", {
   publishedAt: timestamptz("published_at").notNull(),
   effectiveFrom: timestamptz("effective_from").notNull(),
   effectiveTo: timestamptz("effective_to"),
+  /** Exact text, served by identity.terms_in_force() (0109, 21 EC-62); NULL on inherited rows. */
+  content: text("content"),
   createdAt: timestamptz("created_at").notNull().defaultNow(),
   updatedAt: timestamptz("updated_at").notNull().defaultNow(),
 });

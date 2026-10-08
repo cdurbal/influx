@@ -165,12 +165,16 @@ async function readAsAdmin(tx: postgres.TransactionSql): Promise<void> {
 beforeAll(async () => {
   migration = migrationRole();
   dataSet = await testDataSet();
+  // 0109: only a version whose text is stored can be accepted
   const [terms] = await migration<{ id: string }[]>`
     select id from identity.terms_versions
      where document_kind = 'terms_of_service' and locale = 'fr'
-       and effective_to is null and effective_from <= now()`;
+       and effective_to is null and effective_from <= now() and content is not null`;
   if (terms === undefined) {
-    throw new Error("no terms of service in force in French (data set of T2)");
+    throw new Error(
+      "no terms of service in force in French WITH its text (data set of T2; on a workstation, " +
+        "a version published before 0109 must be filled by db:publish-terms, 21 EC-62 (B))",
+    );
   }
   termsInForce = terms.id;
 });
@@ -375,6 +379,45 @@ describe("EC-30: identity.provision_account() creates a member account, all or n
     expect(
       await asAuth((tx) => probe(tx, PROVISION, parametersOf(signup))),
     ).toEqual({ outcome: "error", code });
+  });
+
+  it("refuses a terms version in force without its text (0109, 21 EC-62)", async () => {
+    // An inherited version, published without text before 0109, can no longer be inserted: the
+    // migration role drops the NOT VALID constraint for the insert and puts it back, then takes
+    // influx_auth through a membership granted inside the same ROLLED-BACK transaction (as in
+    // tm10-terms-in-force.test.ts): nothing survives, not even after an interrupted run.
+    const outcome = await inRolledBackTransaction(migration, async (tx) => {
+      await tx`
+        update identity.terms_versions
+           set effective_to = greatest(effective_from + interval '1 second', now())
+         where document_kind = 'terms_of_service' and locale = 'fr' and effective_to is null`;
+      await tx`alter table identity.terms_versions
+                 drop constraint terms_versions_content_required`;
+      const [inherited] = await tx<{ id: string }[]>`
+        insert into identity.terms_versions
+          (document_kind, locale, version_label, content_uri, content_hash, requires_acceptance,
+           published_at, effective_from)
+        values ('terms_of_service', 'fr', 'tm10-no-text', 'legal/terms_of_service/fr/tm10.md',
+                sha256('tm10-no-text'::bytea), true, now(), now())
+        returning id::text`;
+      if (inherited === undefined) {
+        throw new Error("inherited terms version not inserted");
+      }
+      await tx`alter table identity.terms_versions
+                 add constraint terms_versions_content_required
+                 check (content is not null or effective_to is not null) not valid`;
+      await tx`grant influx_auth to current_user with inherit false, set true`;
+      await tx`set local role influx_auth`;
+      return probe(
+        tx,
+        PROVISION,
+        parametersOf(creatorSignup({ termsVersionId: inherited.id })),
+      );
+    });
+    expect(outcome).toEqual({
+      outcome: "error",
+      code: FOREIGN_KEY_VIOLATION,
+    });
   });
 
   it.each(["advertiser", "creator", "agent", "admin"] as const)(

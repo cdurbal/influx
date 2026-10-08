@@ -1,62 +1,37 @@
-// Public documents: terms of service, privacy policy, cookie policy (docs/mvp/21 EC-62; 05 RG23
-// to RG29). GET /v1/terms/current serves the version in force, readable without an account (RG27).
+// Public documents: terms of service, privacy policy, cookie policy (docs/mvp/21 EC-62 and its
+// amendment of 2026-10-08; 05 RG23 to RG29). GET /v1/terms/current serves the version in force,
+// readable without an account (RG27).
 //
-// - The database says WHICH version is in force, through identity.terms_in_force() under the E-1
-//   motif identity.read_published_terms (0108); influx_auth reads nothing else.
-// - The text is the file apps/api/legal/<document>/<locale>/<label>.md, exact bytes. Its path is
-//   REBUILT from (document, locale, label) and must equal content_uri: a stored path is never
-//   followed (no traversal). Its SHA-256 is recomputed and must equal content_hash.
-// - Any mismatch FAILS CLOSED: no text is served (500) and an error line names the version and
-//   the reason, nothing else. A text that differs from the one fingerprinted at publication
-//   would void the proof of acceptance (RG24, RG29).
-// - A verified text is kept in memory by version id: a published version never changes (0005).
+// - The database says WHICH version is in force AND holds its exact text (0109), through
+//   identity.terms_in_force() under the E-1 motif identity.read_published_terms; influx_auth
+//   reads nothing else. No file is read here: apps/api/legal is the source of the publication
+//   (scripts/terms-publication.ts), not of the answer.
+// - The SHA-256 of the text is recomputed at each answer and must equal content_hash: a text that
+//   differs from the one fingerprinted at publication would void the proof of acceptance (RG24).
+// - Any failure (database unreachable, unexpected row, fingerprint mismatch) is a
+//   TermsUnavailableError: the route answers 503 terms_unavailable, never 500 (EC-62 (D)), and an
+//   error line names the document and the reason, never the text.
 import { uiLocaleSchema, type UiLocale } from "@influx/contracts/auth";
 import {
-  MAX_TERMS_CONTENT_LENGTH,
+  currentTermsResponseSchema,
   TERMS_VERSION_LABEL_PATTERN,
   type CurrentTermsQuery,
   type CurrentTermsResponse,
   type PublicDocument,
 } from "@influx/contracts/terms";
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { withElevatedTransaction, type ApiDatabase } from "../../db/index.ts";
-import { termsInForce, type TermsVersionRow } from "./repository.ts";
+import {
+  sqlStateOf,
+  termsInForce,
+  type TermsVersionRow,
+} from "./repository.ts";
 
-/** apps/api: the base of every content_uri (`legal/…`). */
-export const LEGAL_CONTENT_ROOT = fileURLToPath(
-  new URL("../../../", import.meta.url),
-);
-
-/** Folder of the published texts, under the content root. */
-const LEGAL_FOLDER = "legal";
-
-/** The one place where the path of a text is built (publication script included). */
-export function legalContentUri(
-  document: PublicDocument,
-  locale: UiLocale,
-  versionLabel: string,
-): string {
-  if (!TERMS_VERSION_LABEL_PATTERN.test(versionLabel)) {
-    throw new Error("malformed version label");
-  }
-  return `${LEGAL_FOLDER}/${document}/${locale}/${versionLabel}.md`;
-}
-
-/** Absolute path of a content_uri under `root`, or null when it would leave the legal folder. */
-export function legalContentPath(
-  root: string,
-  contentUri: string,
-): string | null {
-  const folder = path.resolve(root, LEGAL_FOLDER);
-  const file = path.resolve(root, ...contentUri.split("/"));
-  return file.startsWith(folder + path.sep) ? file : null;
-}
-
-export function sha256Hex(bytes: Uint8Array): string {
-  return createHash("sha256").update(bytes).digest("hex");
+/** SHA-256, lower-case hexadecimal; a string is hashed as its UTF-8 bytes (0109 constraint). */
+export function sha256Hex(value: Uint8Array | string): string {
+  return createHash("sha256")
+    .update(typeof value === "string" ? Buffer.from(value, "utf8") : value)
+    .digest("hex");
 }
 
 /** Reads the version in force: the database in production, a fake in the route tests. */
@@ -81,21 +56,19 @@ export function databaseTermsLookup(database: ApiDatabase): TermsLookup {
 }
 
 /** Why a version in force could not be served. Never a value of the text. */
-export type TermsContentFailure =
+export type TermsFailure =
+  | "lookup_failed"
   | "unexpected_row"
-  | "content_uri_mismatch"
-  | "content_missing"
-  | "content_unreadable"
   | "content_hash_mismatch"
-  | "content_malformed";
+  | "response_invalid";
 
-/** The text of a version in force failed its check: answered as a 500, nothing is served. */
-export class TermsContentError extends Error {
-  readonly failure: TermsContentFailure;
+/** The version in force cannot be served safely: answered 503 terms_unavailable. */
+export class TermsUnavailableError extends Error {
+  readonly failure: TermsFailure;
 
-  constructor(failure: TermsContentFailure) {
-    super("published document failed its content check");
-    this.name = "TermsContentError";
+  constructor(failure: TermsFailure) {
+    super("public document unavailable");
+    this.name = "TermsUnavailableError";
     this.failure = failure;
   }
 }
@@ -105,7 +78,10 @@ export type TermsLogger = {
 };
 
 export type TermsReader = {
-  /** The version in force, or null when none is published (in the language nor in English). */
+  /**
+   * The version in force, or null when none is published with its text (in the language nor in
+   * English). Throws TermsUnavailableError only, after one error line.
+   */
   current(
     query: CurrentTermsQuery,
     requestId: string,
@@ -113,19 +89,11 @@ export type TermsReader = {
   ): Promise<CurrentTermsResponse | null>;
 };
 
-/** Bound of the memory cache: a handful of versions exist; never more than this kept. */
-const MAX_CACHED_VERSIONS = 64;
-
-const UTF8 = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
-
-/** A text that passed its check, and the language it is in. */
-type VerifiedContent = { content: string; locale: UiLocale };
-
-async function readVerifiedContent(
-  root: string,
+/** The answer for a row, or the reason it cannot be served. */
+function answerOf(
   query: CurrentTermsQuery,
   row: TermsVersionRow,
-): Promise<VerifiedContent> {
+): CurrentTermsResponse | TermsFailure {
   const served = uiLocaleSchema.safeParse(row.locale);
   if (
     !served.success ||
@@ -133,89 +101,61 @@ async function readVerifiedContent(
     (served.data !== query.locale && served.data !== "en") ||
     !TERMS_VERSION_LABEL_PATTERN.test(row.versionLabel)
   ) {
-    throw new TermsContentError("unexpected_row");
+    return "unexpected_row";
   }
-  const expectedUri = legalContentUri(
-    query.document,
-    served.data,
-    row.versionLabel,
-  );
-  const file = legalContentPath(root, expectedUri);
-  if (row.contentUri !== expectedUri || file === null) {
-    throw new TermsContentError("content_uri_mismatch");
+  if (sha256Hex(row.content) !== row.contentSha256) {
+    return "content_hash_mismatch";
   }
-  let bytes: Buffer;
-  try {
-    bytes = await readFile(file);
-  } catch (error) {
-    const code =
-      error instanceof Error && "code" in error ? error.code : undefined;
-    throw new TermsContentError(
-      code === "ENOENT" ? "content_missing" : "content_unreadable",
-    );
-  }
-  if (sha256Hex(bytes) !== row.contentSha256) {
-    throw new TermsContentError("content_hash_mismatch");
-  }
-  let content: string;
-  try {
-    content = UTF8.decode(bytes);
-  } catch {
-    throw new TermsContentError("content_malformed");
-  }
-  if (content.length === 0 || content.length > MAX_TERMS_CONTENT_LENGTH) {
-    throw new TermsContentError("content_malformed");
-  }
-  return { content, locale: served.data };
+  // The response schema is checked HERE: a value it refuses would otherwise fail at
+  // serialisation, as a 500 (EC-62 (D)).
+  const answer = currentTermsResponseSchema.safeParse({
+    id: row.id,
+    document: query.document,
+    locale: served.data,
+    isFallback: served.data !== query.locale,
+    versionLabel: row.versionLabel,
+    effectiveFrom: row.effectiveFrom,
+    requiresAcceptance: row.requiresAcceptance,
+    contentSha256: row.contentSha256,
+    content: row.content,
+  });
+  return answer.success ? answer.data : "response_invalid";
 }
 
 export function createTermsReader(options: {
   lookup: TermsLookup;
-  /** apps/api in production; a temporary folder in the route tests. */
-  contentRoot: string;
 }): TermsReader {
-  const verified = new Map<string, VerifiedContent>();
   return {
     async current(query, requestId, logger) {
-      const row = await options.lookup(query.document, query.locale, requestId);
+      // 02 §20.8: the document, the reason and a technical code; no text, no personal data.
+      const fail = (failure: TermsFailure, extra: object = {}): never => {
+        logger.error(
+          {
+            document: query.document,
+            locale: query.locale,
+            reason: failure,
+            ...extra,
+          },
+          "public document not served: terms_unavailable",
+        );
+        throw new TermsUnavailableError(failure);
+      };
+      let row: TermsVersionRow | null;
+      try {
+        row = await options.lookup(query.document, query.locale, requestId);
+      } catch (error) {
+        return fail("lookup_failed", {
+          errorName: error instanceof Error ? error.name : typeof error,
+          sqlState: sqlStateOf(error),
+        });
+      }
       if (row === null) {
         return null;
       }
-      let text = verified.get(row.id);
-      if (text === undefined) {
-        try {
-          text = await readVerifiedContent(options.contentRoot, query, row);
-        } catch (error) {
-          if (error instanceof TermsContentError) {
-            // 02 §20.8: the version and the reason; no text, no path, no personal data.
-            logger.error(
-              {
-                document: query.document,
-                locale: query.locale,
-                versionLabel: row.versionLabel,
-                reason: error.failure,
-              },
-              "published document failed its content check: not served",
-            );
-          }
-          throw error;
-        }
-        if (verified.size >= MAX_CACHED_VERSIONS) {
-          verified.clear();
-        }
-        verified.set(row.id, text);
-      }
-      return {
-        id: row.id,
-        document: query.document,
-        locale: text.locale,
-        isFallback: text.locale !== query.locale,
-        versionLabel: row.versionLabel,
-        effectiveFrom: row.effectiveFrom,
-        requiresAcceptance: row.requiresAcceptance,
-        contentSha256: row.contentSha256,
-        content: text.content,
-      };
+      const answer = answerOf(query, row);
+      return typeof answer === "string"
+        ? fail(answer, { versionLabel: row.versionLabel })
+        : answer;
     },
   };
 }

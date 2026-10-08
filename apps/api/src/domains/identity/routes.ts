@@ -46,7 +46,11 @@ import {
 } from "../../platform/auth-tokens.ts";
 import type { TransactionalSender } from "../../platform/brevo-transactional.ts";
 import { clientAddressOf } from "../../platform/client-address.ts";
-import { ApiError, RequestValidationError } from "../../platform/errors.ts";
+import {
+  ApiError,
+  RequestValidationError,
+  RetryLaterError,
+} from "../../platform/errors.ts";
 import type { ZodTypeProvider } from "../../platform/schema-compilers.ts";
 import type { SupabaseAuth } from "../../platform/supabase.ts";
 import { userAgentSummaryOf } from "../../platform/user-agent.ts";
@@ -65,7 +69,7 @@ import {
 import {
   createTermsReader,
   databaseTermsLookup,
-  LEGAL_CONTENT_ROOT,
+  TermsUnavailableError,
   type TermsLookup,
 } from "./terms.ts";
 import { verifyLoginCode } from "./verify-code.ts";
@@ -92,8 +96,6 @@ export type IdentityDependencies = {
   backofficeAuthFloorMs?: number;
   /** Version in force of a public document (EC-62); the database unless a test replaces it. */
   termsLookup?: TermsLookup;
-  /** Base of the content_uri of the public documents: apps/api unless a test replaces it. */
-  legalContentRoot?: string;
 };
 
 /**
@@ -102,6 +104,9 @@ export type IdentityDependencies = {
  * whole instance. A page reads one document; the sign-up panel, one or two.
  */
 export const TERMS_READ_RATE = { address: 30, instance: 1200 } as const;
+
+/** Retry-After of a 503 terms_unavailable (21 EC-62 (D)), in seconds. */
+export const TERMS_RETRY_AFTER_SECONDS = 30;
 
 /** True when an If-None-Match header names the entity tag (RFC 9110 §13.1.2, weak comparison). */
 export function matchesEntityTag(
@@ -191,13 +196,14 @@ export function registerIdentityRoutes(
   );
 
   // GET /v1/terms/current (21 EC-62; 05 RG25, RG27): the version in force of a public document,
-  // without an account. 400 outside the closed lists, 404 terms_not_published, 500 when the text
-  // fails its check (fail closed, terms.ts). Revalidated at each use (no-cache); the ETag is the
-  // version id, so that a version replaced in between is never served from a cache.
+  // without an account. 400 outside the closed lists, 404 terms_not_published, 429 over the rate;
+  // ANY other failure is 503 terms_unavailable with Retry-After, never 500 (EC-62 (D)): the text
+  // read from the database fails its check, the database does not answer, or anything else
+  // throws. Revalidated at each use (no-cache); the ETag is the version id, so that a version
+  // replaced in between is never served from a cache.
   const terms = createTermsReader({
     lookup:
       dependencies.termsLookup ?? databaseTermsLookup(dependencies.database),
-    contentRoot: dependencies.legalContentRoot ?? LEGAL_CONTENT_ROOT,
   });
   const termsCounter = new MinuteCounter(dependencies.now);
   app.get(
@@ -218,11 +224,29 @@ export function registerIdentityRoutes(
       ) {
         throw new ApiError("rate_limited");
       }
-      const version = await terms.current(
-        request.query as CurrentTermsQuery,
-        request.id,
-        request.log,
-      );
+      let version: CurrentTermsResponse | null;
+      try {
+        version = await terms.current(
+          request.query as CurrentTermsQuery,
+          request.id,
+          request.log,
+        );
+      } catch (error) {
+        if (!(error instanceof TermsUnavailableError)) {
+          // terms.ts logs its own failures; anything else is logged here, without its message.
+          request.log.error(
+            {
+              reason: "unexpected_error",
+              errorName: error instanceof Error ? error.name : typeof error,
+            },
+            "public document not served: terms_unavailable",
+          );
+        }
+        throw new RetryLaterError(
+          "terms_unavailable",
+          TERMS_RETRY_AFTER_SECONDS,
+        );
+      }
       if (version === null) {
         throw new ApiError("terms_not_published");
       }

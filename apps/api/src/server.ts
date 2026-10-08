@@ -32,6 +32,7 @@ import {
   classifyError,
   errorEnvelope,
   HTTP_STATUS_BY_CODE,
+  RetryLaterError,
   UnserializedResponseError,
 } from "./platform/errors.ts";
 import {
@@ -377,6 +378,9 @@ export function buildServer(
     } else {
       request.log.info({ errorCode: classified.code }, "request refused");
     }
+    if (error instanceof RetryLaterError) {
+      void reply.header("retry-after", String(error.retryAfterSeconds));
+    }
     return reply.code(statusCode).send(errorEnvelope(classified, request.id));
   });
 
@@ -437,9 +441,6 @@ export function buildServer(
     ...(options.identity?.termsLookup === undefined
       ? {}
       : { termsLookup: options.identity.termsLookup }),
-    ...(options.identity?.legalContentRoot === undefined
-      ? {}
-      : { legalContentRoot: options.identity.legalContentRoot }),
   });
   // Authentication of the backoffice (21 §4, J3 commit 10).
   registerBackofficeAuthRoutes(app, {
