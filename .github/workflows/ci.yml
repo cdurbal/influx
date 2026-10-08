@@ -1,8 +1,10 @@
 # Continuous integration: security review markers, local Supabase stack, then format, types,
-# lint, tests (database tests included, never skipped) and build (`pnpm check`); in parallel,
-# the relay and the origin check on Node 24, the production runtime (C-2).
-# Plan: docs/mvp/21-plan-de-developpement.md §4, J0, J2 point 7 and J3-F commit 4. Duration
-# budget: 10 minutes (`18` A-4).
+# lint, tests (database tests included, never skipped) and build (`pnpm check`), then the J5
+# browser journeys (Playwright, Chromium headless shell only, 5-minute cap on the step); in
+# parallel, the relay and the origin check on Node 24, the production runtime (C-2).
+# Plan: docs/mvp/21-plan-de-developpement.md §4, J0, J2 point 7, J3-F commit 4 and J5 commit 6.
+# Duration budget: 10 minutes for the whole job, journeys included (`18` A-4); no cache, on
+# purpose (no cache-poisoning surface): the browser is downloaded at each run.
 name: CI
 
 on:
@@ -121,9 +123,13 @@ jobs:
         run: pnpm --filter @influx/api db:publish-terms -- --latest
 
       - name: Install the Chromium of Playwright
-        run: pnpm --filter @influx/web exec playwright install --with-deps chromium
+        # Headless shell only: the config runs devices["Desktop Chrome"] in headless mode, which
+        # never launches the full Chromium; it saves its download (about 100 MB).
+        run: pnpm --filter @influx/web exec playwright install --with-deps --only-shell chromium
 
       - name: Browser journeys (Playwright)
+        # About 45 s locally: a stuck journey must not consume the job.
+        timeout-minutes: 5
         run: pnpm test:e2e
 
   # C-2 (end-of-J1 security review, 21 J1-J): the relay runs on Node 24 in production (J1-B,
