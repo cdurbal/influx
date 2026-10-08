@@ -99,28 +99,29 @@ nouvelle session ; clés `signup.consent.advertiser.label` / `signup.consent.cre
   (dont `terms_in_force` sous ce motif).
 - `testeur` : plancher `tm10-signup-route` = 16 ; `terms_not_published` non couvert de bout en bout (base partagée).
 
-## Issu du commit 5 (`43eb292`)
+## Issu du commit 5 (`43eb292`) et de ses suites (`0a8a87e`, `0d7f720`, `e4e136b`)
 
-Écarts pris au plus sûr : aucun stockage navigateur (garde CA8) ⇒ le sélecteur de langue n'est proposé qu'au choix de
-porte et à l'écran 1 (requête UTM reportée), un rechargement ou un changement de langue aux écrans 2-3 repart de
-l'adresse (RG111 partiel) ; consentement exigé côté web quelle que soit `signup_consent_required` ; changer de porte vide
-aussi le pays ; succès et `roleMismatch` = écran d'étape avec lien vers l'espace (pas de bandeau sur l'accueil) ;
-pages d'inscription `noindex` ; `/en/connexion`, `/en/marque`, `/en/createur` redirigent ; libellés de consentement
-**provisoires** (RG127, Q12).
+Écarts pris au plus sûr : consentement exigé côté web quelle que soit `signup_consent_required` ; changer de porte vide
+aussi le pays ; succès et `roleMismatch` = écran d'étape avec lien vers l'espace ; pages d'inscription `noindex` ;
+`/en/connexion`, `/en/marque`, `/en/createur` redirigent ; libellés de consentement **provisoires** (RG127, Q12).
+Soldés : RG111 par **D66** (5ter : rechargement via `GET /v1/auth/journey`, langue via `journey-memory.ts`, URL
+resynchronisée sur la porte, sélecteur de langue à toute étape sauf les avis ; cases CGU et consentement décochées au
+changement de langue) ; référent IP (5bis, `0110`) ; « 18 ans ou plus » partout (5quater, D15 précisée).
 
-- `expert-cybersecurite` : `POST /v1/signup` appelé du navigateur (corps du contrat revalidé avant envoi), lien
-  confidentialité `target="_blank" rel="noopener noreferrer"`, aucun `installErrorCollector` sur le parcours.
-- `expert-conformite-rgpd` (Lot 6) / juriste : libellés `signup.consent.*.label` et `auth.privacy.notice` à faire valider ;
-  la politique de confidentialité dit « moins de 18 ans », l'écran dit « majeur dans votre pays » (RG19).
-- `testeur` : règles d'écran en unitaire seulement (`auth-steps`, `signup-form`) ; parcours réel au commit 6
-  (Playwright). Le contrat accepte un référent IPv4 (`127.0.0.1`) malgré son commentaire « IP literal dropped ».
-- `architecte` : `history`/URL non resynchronisée au changement de porte en cours de parcours ; `Commit 4 (SHA)` corrigé dans `21`.
-- **Arbitré (architecte, 2026-10-08)** — RG111 ⇒ **D66** : `GET /v1/auth/journey` (lit les cookies `login`/`signup`,
-  sans base) au rechargement, `POST /v1/auth/journey/reset` à « changer d'adresse » ; état en mémoire de module au
-  changement de langue ; URL resynchronisée par `history.replaceState` (règle aussi le point ci-dessus). Saisie de
-  l'écran 3 perdue au rechargement seulement, assumé. Référent IP ⇒ **EC** : tout littéral IP est écarté (dernier
-  libellé entièrement numérique) dans `normalizeReferrerDomain` **et** par une contrainte SQL jumelle sur
-  `identity.accounts.signup_referrer_domain` (nouvelle migration). À revoir par `expert-cybersecurite` en fin de J5.
+- `expert-cybersecurite` (fin de jalon) : `POST /v1/signup` appelé du navigateur (corps revalidé avant envoi), lien
+  confidentialité `target="_blank" rel="noopener noreferrer"`, aucun `installErrorCollector` sur le parcours ; **les deux
+  routes D66** (`GET /v1/auth/journey`, `POST /v1/auth/journey/reset`) et **l'adresse renvoyée au navigateur pendant la
+  vie du jeton** (15 min connexion, 30 min inscription) ; contrainte `0110` et filtre IP du contrat.
+- `expert-conformite-rgpd` (Lot 6) / juriste : libellés `signup.consent.*.label` et `auth.privacy.notice` ; CGU `draft-2`
+  (« au moins 18 ans et majeur selon la loi de votre pays ») à aligner sur D15 précisée dans une nouvelle version.
+- `testeur` : règles d'écran en unitaire (`auth-steps`, `signup-form`, `journey-memory`) ; plancher
+  `tm10-signup-provisioning` = 42. **Playwright au commit 6**, en plus des deux inscriptions nominales : rechargement à
+  l'écran 2 (même adresse et phrase, décompte poursuivi) ; rechargement à l'écran 3 sur une porte (adresse, champs vides)
+  et sur `/connexion` ou `/inscription` (choix de porte puis écran 3) ; changement de langue aux écrans 2 et 3 (phrase et
+  saisie conservées, CGU et consentement décochés) ; « changer d'adresse » puis rechargement ⇒ écran 1 ; choix de porte ⇒
+  URL de la porte, rechargement sur elle ; API muette plus de 3 s ou hors ligne ⇒ écran 1.
+- `architecte` : `Commit 4 (SHA)` corrigé dans `21` ; changement de langue désormais navigation client (next-intl `Link`,
+  même mise en page racine `[locale]`, pas de rechargement complet d'après le routeur Next 16.3.6).
 
 ## Discipline de session (économie de tokens)
 
