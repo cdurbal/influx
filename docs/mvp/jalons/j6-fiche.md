@@ -198,6 +198,34 @@ lignes non commencées sont rendues par `complete(pending, 'worker_stopping', 0)
   `t13-ops-recording` « over ten a minute » (fenêtre fixe à la minute : douze envois à cheval sur deux minutes
   passent tous). `0111`, comme `0106`, ne se rejoue pas une fois les fonctions transférées.
 
+## Issu du commit 3 (`c00f9f2`)
+
+Choix au plus sûr (EC, à confirmer en fin de jalon) : une **voie par destination**, en parallèle, attendues
+par le tour ; un appel lent retarde donc la prise suivante de la durée de son délai : **les connecteurs
+des commits 4 et 5 bornent chaque appel** (G1, Brevo 3 s). Ordre des verrous après la préparation :
+contrôle de sortie (`failed`, `output_check_rejected`) ⇒ `dry_run` ⇒ sans clé ⇒ liste blanche ; `dry_run`
+passe **avant** l'absence de clé (le pipeline reste testé de bout en bout sans clé), T17.1 s'observe donc
+en `live` (en `staging`, Apollo finit `skipped` par les pays). Budget local épuisé (attente > 2 s) ou
+catégorie en pause : ligne rendue **sans** consommer de tentative (`rate_limited`) ; un `429` du
+fournisseur consomme la sienne (TM1.8). Sans `rate_limits` pour la catégorie : aucun appel, `pending`
+`settings.rate_limit_missing` ; `retry_schedule` illisible : valeurs RG79 en repli, `pino` `error`.
+Destination sans connecteur : rendue 1 h sans tentative (`worker.connector_unavailable`). Reprise des
+orphelins au démarrage puis au plus une fois par minute.
+
+- `expert-cybersecurite` (fin de jalon) : lignes `pino` `leads.line.completed | released | taken_back`,
+  `leads.dry_run.would_send`, `leads.settings.invalid`, `leads.connector.*_failed` (erreur par le
+  sérialiseur à liste blanche, message d'une erreur étrangère écarté) ; identifiant de worker
+  (`RAILWAY_REPLICA_ID` + aléa) journalisé au démarrage. Volume de la ligne « elevated transaction
+  without effect to audit » toujours à trancher (D60) : une par prise, par début et par issue.
+- `testeur` (fin de jalon) : `leads-drain` (22 cas unitaires : T9, T5, TM1.7, TM1.8, TM1.10, T17.1 à
+  T17.3, D60 par valeur) ; `tm1-worker-loop` (plancher 4 : CA47, CA48, CA50, T9 sur la vraie grappe,
+  connexions du worker `idle` et sans verrou pendant l'appel). CA47 : `consent.revoked` absent
+  d'`audit.event_types` (clé étrangère) ⇒ ligne `lead.updated` de priorité 0 ; le code entre avec son
+  émetteur (J7).
+- Commits 4 et 5 : brancher `CONNECTORS` dans `worker.ts` ; la qualification (consentement RG80, RG82)
+  est dans `prepare`, la boucle ne relit rien ; `prepare` rend le domaine du destinataire, les noms
+  d'attributs et le verdict, jamais une valeur ; clés du worker encore absentes de `workerEnvSchema`.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne relire que la tranche

@@ -239,6 +239,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 **Terminé quand — premier usage démontrable** : sur `staging` en `dry_run`, chaque inscription produit ses lignes et le worker les traite avec le bon statut ; l'essai manuel passe ; une panne simulée de Brevo/Apollo n'empêche aucune inscription (CA37).
 
 - [x] Commit 2 (`d066228`) — `0111` E-3 : `influx_leads_definer`, quatre fonctions `SECURITY DEFINER` à `influx_worker` seul (prise RG77 sauf priorité 0, début avec relecture RG37, issue avec `dry_run`, reprise TM1.10), code `elevated.leads.drain_outbox` (EC-52 (3)) ; U + `domains/leads/queue.ts` ; `tm1-outbox-claim` (69 cas), T2/T3/T4/T6 étendus.
+- [x] Commit 3 (`c00f9f2`) — boucle du worker (`domains/leads/drain.ts`) : une voie par destination, verrous `02` §12.4, calendrier RG79, budget par catégorie, interface `Connector` (aucun branché), `SIGTERM` ; `leads-drain` (22 cas unitaires), `tm1-worker-loop` (4 cas : CA47, CA48, CA50, T9).
 
 ### J7 — Retours de Brevo et espace membre minimal (3 à 4 jours)
 
