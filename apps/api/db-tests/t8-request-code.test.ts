@@ -503,11 +503,21 @@ describe("05 RG44, RG45: rate limits aim at the attacker, never at the victim", 
     const emails = Array.from({ length: 25 }, (_, index) =>
       newAddress(`burst-${index}`),
     );
-    const results = await Promise.all(
-      emails.map((email) =>
-        requestCode(server, { email, locale: "fr" }, { clientAddress }),
-      ),
-    );
+    // Waves of 5 parallel requests: 25 at once pushed some GoTrue calls of the CI runner past
+    // their 2 000 ms budget (G1), answered unavailable instead of sent. The race on one counter
+    // stays covered by EC-52 below.
+    const results: Awaited<ReturnType<typeof requestCode>>[] = [];
+    for (let start = 0; start < emails.length; start += 5) {
+      results.push(
+        ...(await Promise.all(
+          emails
+            .slice(start, start + 5)
+            .map((email) =>
+              requestCode(server, { email, locale: "fr" }, { clientAddress }),
+            ),
+        )),
+      );
+    }
     const outcomes = results.map(
       (result) => result.response.json<{ outcome: string }>().outcome,
     );
