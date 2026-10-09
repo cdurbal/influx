@@ -86,6 +86,21 @@ export type RecordedOutcome = {
 
 export type RecoveredLine = { id: string; writtenStatus: "pending" | "failed" };
 
+/** SQLSTATE of a line no longer in processing for this worker (begin and complete, 0111). */
+const NOT_IN_PROCESSING = "55000";
+
+/** The database refused a line taken back meanwhile, or by another instance (55000). */
+export function isLineNotInProcessing(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; depth < 4 && current instanceof Error; depth += 1) {
+    if ((current as Error & { code?: unknown }).code === NOT_IN_PROCESSING) {
+      return true;
+    }
+    current = current.cause;
+  }
+  return false;
+}
+
 /** Up to 20 lines (the default of the function) set to processing for this worker (0111). */
 export async function claimLines(
   tx: Transaction,

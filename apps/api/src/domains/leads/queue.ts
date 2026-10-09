@@ -21,6 +21,7 @@ import {
   beginAttempt,
   claimLines,
   completeAttempt,
+  isLineNotInProcessing,
   recoverStaleLines,
   type AttemptOutcome,
   type AttemptState,
@@ -28,6 +29,14 @@ import {
   type RecoveredLine,
   type WrittenStatus,
 } from "./repository.ts";
+
+/** The line is not in processing for this worker any more (55000): the loop abandons it. */
+export class LineTakenBackError extends Error {
+  constructor() {
+    super("the queue line is not in processing for this worker");
+    this.name = "LineTakenBackError";
+  }
+}
 
 export type CompletedAttempt = {
   /** A pending outcome at the tenth attempt is written failed (05 RG79). */
@@ -100,4 +109,48 @@ export async function recoverStaleOutboxLines(
     requestId,
     async (tx) => ({ value: await recoverStaleLines(tx), auditSubject: null }),
   );
+}
+
+/**
+ * The four steps as the worker loop sees them (drain.ts), each its own short transaction, closed
+ * when the promise settles. Injected, so that the loop is tested on an in-memory queue.
+ */
+export type OutboxQueue = {
+  recover(requestId: string): Promise<RecoveredLine[]>;
+  claim(requestId: string, worker: string): Promise<ClaimedLine[]>;
+  /** Rejects with LineTakenBackError on a line no longer this worker's. */
+  begin(
+    requestId: string,
+    lineId: string,
+    worker: string,
+  ): Promise<AttemptState>;
+  /** Rejects with LineTakenBackError on a line no longer this worker's. */
+  complete(
+    requestId: string,
+    lineId: string,
+    worker: string,
+    outcome: AttemptOutcome,
+  ): Promise<CompletedAttempt>;
+};
+
+async function translated<T>(step: Promise<T>): Promise<T> {
+  try {
+    return await step;
+  } catch (error) {
+    throw isLineNotInProcessing(error) ? new LineTakenBackError() : error;
+  }
+}
+
+/** The queue of the worker process, on its only pool (EC-20). */
+export function createWorkerQueue(database: WorkerDatabase): OutboxQueue {
+  return {
+    recover: (requestId) => recoverStaleOutboxLines(database, requestId),
+    claim: (requestId, worker) => claimOutboxBatch(database, requestId, worker),
+    begin: (requestId, lineId, worker) =>
+      translated(beginOutboxAttempt(database, requestId, lineId, worker)),
+    complete: (requestId, lineId, worker, outcome) =>
+      translated(
+        completeOutboxAttempt(database, requestId, lineId, worker, outcome),
+      ),
+  };
 }
