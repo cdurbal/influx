@@ -30,10 +30,10 @@ import {
 import { drawMatchingPhrase } from "./matching-phrase.ts";
 import {
   accountIdOfEmail,
-  closeLoginCodeSend,
+  closeP0Send,
   insertLoginCodeSend,
   reserveAuthAttempt,
-  type LoginCodeFailure,
+  type P0SendFailure,
 } from "./repository.ts";
 import {
   CODE_REQUESTS_PER_EMAIL_15_MIN,
@@ -198,7 +198,7 @@ async function obtainCode(
 }
 
 const FAILURE_OF: Readonly<
-  Record<"undeliverable" | "unavailable", LoginCodeFailure>
+  Record<"undeliverable" | "unavailable", P0SendFailure>
 > = {
   undeliverable: "undeliverable_address",
   unavailable: "provider_unavailable",
@@ -270,7 +270,7 @@ export async function requestLoginCode(
     "identity.request_code",
     request.requestId,
     async (tx) => {
-      const closed = await closeLoginCodeSend(
+      const closed = await closeP0Send(
         tx,
         opened.line.reference,
         sent.status === "sent"

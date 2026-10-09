@@ -415,21 +415,23 @@ export function buildServer(
   const supabaseAuth =
     options.identity?.supabaseAuth ??
     createSupabaseAuth(config.supabase, app.log);
+  // One P0 sender, one circuit (02 §18.6): the sign-in code and the alerts of EC-44.
+  const sender =
+    options.identity?.sender ??
+    createTransactionalSender(
+      {
+        mode: config.brevo.mode,
+        testRecipients: config.brevo.testRecipients,
+        apiKey: config.brevoTransport.apiKey,
+        baseUrl: config.brevoTransport.baseUrl,
+        senderEmail: config.brevoTransport.senderTransactional,
+      },
+      { logger: app.log },
+    );
   registerIdentityRoutes(app, {
     database,
     supabaseAuth,
-    sender:
-      options.identity?.sender ??
-      createTransactionalSender(
-        {
-          mode: config.brevo.mode,
-          testRecipients: config.brevo.testRecipients,
-          apiKey: config.brevoTransport.apiKey,
-          baseUrl: config.brevoTransport.baseUrl,
-          senderEmail: config.brevoTransport.senderTransactional,
-        },
-        { logger: app.log },
-      ),
+    sender,
     tokens:
       options.identity?.tokens ??
       createAuthTokenCodec(config.authTokenSigningSecret),
@@ -446,6 +448,7 @@ export function buildServer(
   registerBackofficeAuthRoutes(app, {
     database,
     supabaseAuth,
+    sender,
     pepper: config.authThrottlePepper,
     ...(options.identity?.backofficeAuthFloorMs === undefined
       ? {}

@@ -16,6 +16,17 @@
         "reason": "a sign-in code was requested for this address on INFLUX"
       }
     },
+    "internal": {
+      "criticalAlert": {
+        "subject": "INFLUX — Alerte critique / Critical alert",
+        "title": "INFLUX critical alert",
+        "breakGlassLogin": "Sign-in to the backoffice break-glass account.",
+        "recoveryCodeConsumed": "Backoffice sign-in with a recovery code. Codes left on this account: {remaining}.",
+        "occurredAt": "On {occurredAt, date, long} at {occurredAt, time, medium} (UTC).",
+        "auditReference": "Audit reference: {reference}",
+        "action": "Check the backoffice audit register. If this sign-in was not planned, treat it as a security incident."
+      }
+    },
     "transactional": {
       "why": "You are receiving this email because {reason}. This is not a marketing email."
     }

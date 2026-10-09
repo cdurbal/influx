@@ -1,6 +1,8 @@
 // Backoffice sign-in, TOTP enrollment and re-authentication R (docs/mvp/03 §6.1 B-1 to B-8, §6.9
 // MFA-1 to MFA-10; 17b §3.14; 21 §4, J3-C rules 2 to 4, 6, 9; EC-17, EC-39, EC-40, EC-44, EC-47,
 // EC-55, EC-56, EC-57, G-1). The routes (backoffice-routes.ts) own validation, cookies and floor.
+// A sign-in of the break-glass account or by a recovery code sends internal.critical_alert after
+// its commit (EC-44, critical-alert.ts); the answer never depends on it.
 //
 // Every operation follows the same order:
 //   1  Transaction A (E-2): the attempt is reserved on the counters of EC-47 BEFORE GoTrue (G4).
@@ -31,6 +33,7 @@ import {
   type ElevatedResult,
   type Transaction,
 } from "../../db/index.ts";
+import type { TransactionalSender } from "../../platform/brevo-transactional.ts";
 import {
   gotrueForwardedAddressOf,
   type ClientAddress,
@@ -41,6 +44,7 @@ import type {
   GoTrueRequestContext,
   SupabaseAuth,
 } from "../../platform/supabase.ts";
+import { sendCriticalAlerts, type CriticalAlert } from "./critical-alert.ts";
 import {
   acceptTotpCode,
   appendAuthEvent,
@@ -101,6 +105,8 @@ export type BackofficeAuthDependencies = {
   >;
   /** AUTH_THROTTLE_PEPPER. */
   pepper: string;
+  /** The P0 sender of the api: internal.critical_alert (EC-44). */
+  sender: TransactionalSender;
 };
 
 export type BackofficeAuthRequest = {
@@ -335,10 +341,13 @@ export type BackofficeSignInResult = {
 };
 
 type SignedIn = {
+  accountId: string;
   role: InternalRole;
   token: string;
   recoveryCodesLeft: number | null;
   isBreakGlass: boolean;
+  /** EC-44: one per audit line of the break-glass sign-in or of the recovery code. */
+  alerts: CriticalAlert[];
 };
 
 export async function signInToBackoffice(
@@ -396,6 +405,7 @@ export async function signInToBackoffice(
       const { token, hash } = newSessionToken();
       const opened = await elevated(async (tx) => {
         let recoveryCodesLeft: number | null = null;
+        const alerts: CriticalAlert[] = [];
         if ("totpCode" in body) {
           // EC-39: the same code within 120 s is a replay; nothing is written.
           const accepted = await acceptTotpCode(
@@ -408,14 +418,20 @@ export async function signInToBackoffice(
           }
         } else if (recoveryHash !== null) {
           // EC-17 point 3: single use, in the transaction that creates the session.
-          recoveryCodesLeft = await consumeRecoveryCode(
+          const consumed = await consumeRecoveryCode(
             tx,
             account.id,
             recoveryHash,
           );
-          if (recoveryCodesLeft === null) {
+          if (consumed === null) {
             return { value: null, auditSubject: null };
           }
+          recoveryCodesLeft = consumed.remaining;
+          alerts.push({
+            eventType: "agent.recovery_code_consumed",
+            auditSeq: consumed.auditSeq,
+            recoveryCodesLeft,
+          });
         }
         await insertBackofficeSession(tx, {
           tokenHash: hash,
@@ -425,9 +441,17 @@ export async function signInToBackoffice(
         });
         if (account.isBreakGlass) {
           // MFA-10, EC-44 (1): every sign-in of the break-glass account.
-          await appendAuthEvent(tx, "agent.break_glass_login", account.id);
+          alerts.unshift({
+            eventType: "agent.break_glass_login",
+            auditSeq: await appendAuthEvent(
+              tx,
+              "agent.break_glass_login",
+              account.id,
+            ),
+            recoveryCodesLeft: null,
+          });
         }
-        return { value: { recoveryCodesLeft }, auditSubject: account.id };
+        return { value: { recoveryCodesLeft, alerts }, auditSubject: account.id };
       });
       if (opened === null) {
         return FAILED;
@@ -435,10 +459,12 @@ export async function signInToBackoffice(
       return {
         ok: true,
         value: {
+          accountId: account.id,
           role: account.role,
           token,
           recoveryCodesLeft: opened.recoveryCodesLeft,
           isBreakGlass: account.isBreakGlass,
+          alerts: opened.alerts,
         },
       };
     },
@@ -465,6 +491,15 @@ export async function signInToBackoffice(
       { remaining: signedIn.recoveryCodesLeft },
       "security.recovery_code_consumed",
     );
+  }
+  // EC-44 (J6): after the commit, one attempt per admin; never a change to the answer.
+  await sendCriticalAlerts(
+    dependencies,
+    request,
+    signedIn.accountId,
+    signedIn.alerts,
+  );
+  if (signedIn.recoveryCodesLeft !== null) {
     return {
       response: {
         outcome: "signed_in",

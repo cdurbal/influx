@@ -1,8 +1,8 @@
 // Backoffice sign-in with mandatory TOTP on the local stack (docs/mvp/03 §6.1 B-1 to B-8, §6.2,
 // §6.9 MFA-1 to MFA-10; 17b §3.14; 18 T8.8, T8.10, T8.11; 21 §3 EC-39, EC-40, EC-44, EC-47, EC-55,
 // EC-56, EC-57, G-1; J3-C rules 2 to 4, 8, 9). Real database, real local GoTrue; the TOTP codes
-// come from the generator of @influx/test-kit. No external call. Every captured stream is read BY
-// VALUE (C-1).
+// come from the generator of @influx/test-kit; the alerts of EC-44 (J6) go to the Brevo double.
+// No external call. Every captured stream is read BY VALUE (C-1).
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import {
   localRoleUrl,
@@ -10,6 +10,10 @@ import {
   type LocalAuthStack,
   type LoginRole,
 } from "@influx/test-kit/db";
+import {
+  startBrevoDouble,
+  type BrevoDouble,
+} from "@influx/test-kit/brevo-double";
 import { valuesFoundIn } from "@influx/test-kit/logs";
 import { millisecondsLeftInPeriod, totpCode } from "@influx/test-kit/totp";
 import type { LightMyRequestResponse } from "fastify";
@@ -21,6 +25,10 @@ import {
   type ApiDatabase,
 } from "../src/db/index.ts";
 import { hasFreshReauthentication } from "../src/domains/identity/backoffice-sign-in.ts";
+import {
+  createTransactionalSender,
+  type TransactionalSender,
+} from "../src/platform/brevo-transactional.ts";
 import {
   createSupabaseAuth,
   type SupabaseAuth,
@@ -40,6 +48,7 @@ const AGENT =
 const OPS_COOKIE = "__Host-influx-ops-session";
 
 let local: LocalAuthStack;
+let double: BrevoDouble;
 let database: ApiDatabase;
 let gotrue: SupabaseAuth;
 const watched: { text: () => string; values: string[] }[] = [];
@@ -53,14 +62,29 @@ function newClientAddress(): string {
   return `2001:db8:${group()}:${group()}::9`;
 }
 
+/** The api sender on the Brevo double, or on a closed port (Brevo down: transport failure). */
+function brevoSender(options: { down?: boolean } = {}): TransactionalSender {
+  return createTransactionalSender(
+    {
+      mode: "live",
+      testRecipients: [],
+      apiKey: "local-double-key",
+      baseUrl: options.down === true ? "http://127.0.0.1:9/v3" : double.baseUrl,
+      senderEmail: "no-reply@tx.influx.example",
+    },
+    { logger: { info: () => undefined, warn: () => undefined, error: () => undefined } },
+  );
+}
+
 /** An app whose GoTrue calls are counted; the floor is off unless a test asks for it. */
-function app(options: { floorMs?: number } = {}) {
+function app(options: { floorMs?: number; sender?: TransactionalSender } = {}) {
   const calls = { passwordSessions: 0, factorLists: 0 };
   const logs = captureLogs();
   const server = buildServer(testApiConfig(), {
     logDestination: logs.destination,
     database,
     identity: {
+      sender: options.sender ?? brevoSender(),
       supabaseAuth: {
         ...gotrue,
         withPasswordSession(context, email, password, use) {
@@ -223,6 +247,40 @@ async function enroll(server: Server, account: Internal): Promise<Enrolled> {
   };
 }
 
+/** EC-44: the seq of the account's latest audit line of this type (the alert identifier). */
+async function auditSeqOf(accountId: string, eventType: string): Promise<string> {
+  const [row] = await migrationRole()<{ seq: string }[]>`
+    select seq::text from audit.audit_events
+     where subject_id = ${accountId}::uuid and event_type = ${eventType}
+     order by seq desc limit 1`;
+  return row?.seq ?? "";
+}
+
+/** EC-44: the journal lines of the alerts sent to this account. */
+async function alertSendsOf(accountId: string) {
+  return migrationRole()<
+    {
+      priority: string;
+      status: string;
+      outbox_event_id: string | null;
+      failure_code: string | null;
+    }[]
+  >`
+    select priority::text, status::text, outbox_event_id::text, failure_code
+      from leads.transactional_sends
+     where account_id = ${accountId}::uuid and email_code = 'internal.critical_alert'
+     order by id`;
+}
+
+/** EC-44: the alerts the double received for this address. */
+function alertsTo(email: string) {
+  return double.messages.filter(
+    (message) =>
+      message.body.to?.[0]?.email === email &&
+      message.body.tags?.includes("internal.critical_alert") === true,
+  );
+}
+
 async function auditOf(accountId: string): Promise<string[]> {
   const rows = await migrationRole()<{ event_type: string }[]>`
     select event_type from audit.audit_events
@@ -271,6 +329,7 @@ async function me(server: Server, session: string) {
 
 beforeAll(async () => {
   local = await requireLocalAuth();
+  double = await startBrevoDouble();
   gotrue = createSupabaseAuth(
     { url: local.apiUrl, secretKey: local.secretKey },
     { warn: () => undefined },
@@ -286,6 +345,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  await double.close();
   await closeDatabase(database);
   await migrationRole()`
     update identity.agent_profiles set is_break_glass = false
@@ -550,6 +610,7 @@ describe("J3-C rule 4, EC-39: sign-in in one request, directly in aal2", () => {
 
   it("MFA-3, MFA-4, EC-44, T8.11: a recovery code opens one session, alerts, and never serves twice", async () => {
     const { server, logs } = app();
+    const recipient = await newInternal("recovery-recipient", { role: "admin" });
     const account = await newInternal("recovery");
     const enrolled = await enroll(server, account);
     const typed = (enrolled.recoveryCodes[3] ?? "")
@@ -573,6 +634,16 @@ describe("J3-C rule 4, EC-39: sign-in in one request, directly in aal2", () => {
       "agent.recovery_code_consumed",
     );
     expect(logs.text()).toContain("security.recovery_code_consumed");
+    // EC-44 (J6): one alert per active admin, keyed by the audit line and the recipient.
+    const seq = await auditSeqOf(account.accountId, "agent.recovery_code_consumed");
+    const alerts = alertsTo(recipient.email);
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]?.headers["idempotency-key"]).toBe(
+      `internal.critical_alert:${seq}:${recipient.accountId}`,
+    );
+    expect(alerts[0]?.body.textContent).toContain(
+      "Codes left on this account: 9.",
+    );
 
     const again = await post(server, "/v1/bo/auth/login", {
       email: account.email,
@@ -607,6 +678,12 @@ describe("J3-C rule 4, EC-39: sign-in in one request, directly in aal2", () => {
 
   it("MFA-10, EC-44: the break-glass account is audited and logged at each sign-in and at its first failure", async () => {
     const { server, logs } = app();
+    const recipient = await newInternal("alert-admin", { role: "admin" });
+    const suspended = await newInternal("alert-suspended", {
+      role: "admin",
+      status: "suspended",
+    });
+    const agent = await newInternal("alert-agent");
     const account = await newInternal("break-glass", {
       role: "admin",
       breakGlass: true,
@@ -629,9 +706,79 @@ describe("J3-C rule 4, EC-39: sign-in in one request, directly in aal2", () => {
     expect(events).toContain("agent.break_glass_login");
     expect(logs.text()).toContain("security.backoffice_login_failures");
     expect(logs.text()).toContain("security.break_glass_login");
+
+    // EC-44 (J6), 16 RG86: internal.critical_alert, P0, once per active admin, keyed by the
+    // audit line and the recipient; never the break-glass account itself, a suspended admin, an
+    // agent, nor the queue. The content holds no address.
+    const seq = await auditSeqOf(account.accountId, "agent.break_glass_login");
+    const alerts = alertsTo(recipient.email);
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]?.headers["idempotency-key"]).toBe(
+      `internal.critical_alert:${seq}:${recipient.accountId}`,
+    );
+    const keys = double.messages
+      .filter((message) => message.body.tags?.includes("internal.critical_alert"))
+      .map((message) => message.headers["idempotency-key"]);
+    expect(new Set(keys).size).toBe(keys.length);
+    for (const excluded of [account, suspended, agent]) {
+      expect(alertsTo(excluded.email)).toEqual([]);
+      expect(await alertSendsOf(excluded.accountId)).toEqual([]);
+    }
+    const { subject, textContent, htmlContent } = alerts[0]?.body ?? {};
+    expect(`${subject}${textContent}${htmlContent}`).not.toContain("@");
+    expect(textContent).toContain(`Audit reference: ${seq}`);
+    expect(await alertSendsOf(recipient.accountId)).toEqual([
+      { priority: "p0", status: "sent", outbox_event_id: null, failure_code: null },
+    ]);
+    const [queued] = await migrationRole()<{ count: number }[]>`
+      select count(*)::int as count from leads.outbox_events
+       where idempotency_key like 'internal.%'
+          or payload ->> 'email_code' = 'internal.critical_alert'`;
+    expect(queued?.count).toBe(0);
+    expect(logs.text()).not.toContain("security.critical_alert_failed");
     watched.push({
       text: logs.text,
-      values: [account.password, account.email],
+      values: [account.password, account.email, recipient.email],
+    });
+  });
+
+  it("EC-44: Brevo down changes nothing in the answer; the line is failed, the P0 cause and an error line say it", async () => {
+    const { server, logs } = app({ sender: brevoSender({ down: true }) });
+    const recipient = await newInternal("down-recipient", { role: "admin" });
+    const account = await newInternal("down-recovery");
+    const enrolled = await enroll(server, account);
+    const response = await post(server, "/v1/bo/auth/login", {
+      email: account.email,
+      password: account.password,
+      recoveryCode: enrolled.recoveryCodes[0] ?? "",
+    });
+    expect(response.json()).toEqual({
+      outcome: "signed_in",
+      role: "agent",
+      mfaMethod: "recovery_code",
+      recoveryCodesLeft: 9,
+    });
+    expect(sessionOf(response)).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(await alertSendsOf(recipient.accountId)).toEqual([
+      {
+        priority: "p0",
+        status: "failed",
+        outbox_event_id: null,
+        failure_code: "provider_unavailable",
+      },
+    ]);
+    const failures = logs
+      .text()
+      .split("\n")
+      .filter((line) => line.includes("security.critical_alert_failed"));
+    expect(failures.length).toBeGreaterThanOrEqual(1);
+    for (const line of failures) {
+      expect(line).toContain('"failureCode":"provider_unavailable"');
+      expect(line).not.toContain("@");
+    }
+    watched.push({
+      text: logs.text,
+      values: [account.password, recipient.email, ...enrolled.recoveryCodes],
     });
   });
 });

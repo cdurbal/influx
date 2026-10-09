@@ -16,6 +16,17 @@
         "reason": "un code de connexion a été demandé pour cette adresse sur INFLUX"
       }
     },
+    "internal": {
+      "criticalAlert": {
+        "subject": "INFLUX — Alerte critique / Critical alert",
+        "title": "Alerte critique INFLUX",
+        "breakGlassLogin": "Connexion au compte de secours du backoffice.",
+        "recoveryCodeConsumed": "Connexion au backoffice avec un code de secours. Codes restants sur ce compte : {remaining}.",
+        "occurredAt": "Le {occurredAt, date, long} à {occurredAt, time, medium} (UTC).",
+        "auditReference": "Référence d'audit : {reference}",
+        "action": "Consultez le registre d'audit du backoffice. Si cette connexion n'était pas prévue, traitez-la comme un incident de sécurité."
+      }
+    },
     "transactional": {
       "why": "Vous recevez cet e-mail parce que {reason}. Il ne s'agit pas d'un e-mail commercial."
     }

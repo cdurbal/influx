@@ -89,19 +89,20 @@ export async function insertLoginCodeSend(
 }
 
 /** The three failure codes of a P0 line (0015, 05 RG60). */
-export type LoginCodeFailure =
+export type P0SendFailure =
   "undeliverable_address" | "provider_unavailable" | "rate_limited";
 
 /**
- * Step 8 of 02 §18.10: the outcome of the single attempt, on a line still `queued`. The instant
- * is written by the database (0015). Returns false when no line was updated.
+ * Step 8 of 02 §18.10: the outcome of the single attempt, on a P0 line still `queued` (the
+ * sign-in code, an alert of EC-44). The instant is written by the database (0015). Returns false
+ * when no line was updated.
  */
-export async function closeLoginCodeSend(
+export async function closeP0Send(
   tx: Transaction,
   reference: string,
   outcome:
     | { status: "sent"; messageId: string }
-    | { status: "failed"; failureCode: LoginCodeFailure },
+    | { status: "failed"; failureCode: P0SendFailure },
 ): Promise<boolean> {
   const rows =
     outcome.status === "sent"
@@ -118,6 +119,47 @@ export async function closeLoginCodeSend(
            returning id::text as id`,
         );
   return rows.length === 1;
+}
+
+/** A recipient of internal.critical_alert (EC-44): an active admin, never the break-glass account. */
+export type CriticalAlertRecipient = { accountId: string; email: string };
+
+export async function criticalAlertRecipients(
+  tx: Transaction,
+): Promise<CriticalAlertRecipient[]> {
+  const rows = await tx.execute<{ id: string; email: string }>(
+    sql`select a.id::text as id, a.email
+          from identity.accounts a
+          join identity.account_roles r on r.account_id = a.id and r.role = 'admin'
+          join identity.agent_profiles p on p.account_id = a.id
+         where a.status = 'active' and p.is_active and not p.is_break_glass
+         order by a.id`,
+  );
+  return rows.map((row) => ({ accountId: row.id, email: row.email }));
+}
+
+/**
+ * EC-44 (0114): the P0 line of one alert to one admin, status `queued`, with its account (never
+ * an address in clear), no queue event. The body is bilingual; the line names French, its first
+ * language (D36 open). Returns the reference that closes it.
+ */
+export async function insertCriticalAlertSend(
+  tx: Transaction,
+  accountId: string,
+  templateVersion: number,
+): Promise<string> {
+  const rows = await tx.execute<{ reference: string }>(
+    sql`insert into leads.transactional_sends
+          (email_code, priority, account_id, locale, template_ref, template_version)
+        values ('internal.critical_alert', 'p0', ${accountId}::uuid, 'fr',
+                'internal.critical_alert', ${templateVersion})
+        returning reference::text as reference`,
+  );
+  const reference = rows[0]?.reference;
+  if (reference === undefined) {
+    throw new Error("journal line not inserted");
+  }
+  return reference;
 }
 
 /** Failures of the current window of a counter (0014), read before calling GoTrue. */
@@ -362,11 +404,19 @@ export async function consumeRecoveryCode(
   tx: Transaction,
   accountId: string,
   codeHash: Buffer,
-): Promise<number | null> {
-  const rows = await tx.execute<{ remaining: number | null }>(
-    sql`select identity.consume_recovery_code(${accountId}::uuid, ${codeHash}) as remaining`,
+): Promise<{ remaining: number; auditSeq: string } | null> {
+  const rows = await tx.execute<{
+    remaining: number | null;
+    audit_seq: string | null;
+  }>(
+    sql`select remaining, audit_seq::text as audit_seq
+          from identity.consume_recovery_code(${accountId}::uuid, ${codeHash})`,
   );
-  return rows[0]?.remaining ?? null;
+  const row = rows[0];
+  if (row === undefined || row.remaining === null || row.audit_seq === null) {
+    return null;
+  }
+  return { remaining: row.remaining, auditSeq: row.audit_seq };
 }
 
 /**
@@ -428,14 +478,20 @@ export type AuthSecurityEvent =
   | "agent.reauthentication_failed"
   | "security.backoffice_login_failures";
 
+/** Returns the seq of the audit line (0011): the identifier of an alert of EC-44. */
 export async function appendAuthEvent(
   tx: Transaction,
   event: AuthSecurityEvent,
   accountId: string,
-): Promise<void> {
-  await tx.execute(
-    sql`select audit.append_auth_event(${event}::text, ${accountId}::uuid)`,
+): Promise<string> {
+  const rows = await tx.execute<{ seq: string }>(
+    sql`select audit.append_auth_event(${event}::text, ${accountId}::uuid)::text as seq`,
   );
+  const seq = rows[0]?.seq;
+  if (seq === undefined) {
+    throw new Error("audit line not written");
+  }
+  return seq;
 }
 
 /** What R needs of an open backoffice session (EC-40). */

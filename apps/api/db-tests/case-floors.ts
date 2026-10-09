@@ -12,7 +12,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/t3-elevated-audit.test.ts": 21,
   "db-tests/t4-roles.test.ts": 31,
   "db-tests/t8-auth-settings.test.ts": 26,
-  "db-tests/t8-backoffice-sign-in.test.ts": 14,
+  "db-tests/t8-backoffice-sign-in.test.ts": 15,
   "db-tests/t8-demo-accounts.test.ts": 4,
   "db-tests/t8-gotrue-findings.test.ts": 26,
   "db-tests/t8-mfa-throttle-journal.test.ts": 30,

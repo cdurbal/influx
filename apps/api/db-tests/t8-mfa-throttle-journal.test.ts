@@ -106,7 +106,7 @@ async function consume(
   code: Buffer,
 ): Promise<number | null | undefined> {
   const [row] = await tx<{ left: number | null }[]>`
-    select identity.consume_recovery_code(${account}, ${code}) as left`;
+    select remaining as left from identity.consume_recovery_code(${account}, ${code})`;
   return row?.left;
 }
 
