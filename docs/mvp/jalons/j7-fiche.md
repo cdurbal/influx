@@ -7,10 +7,9 @@
 
 ## Préalable
 
-J6 clos : commit 7 (essai manuel D62, fixtures expurgées, variables du `worker` de `staging`) poussé ;
-revue groupée `expert-cybersecurite` + `testeur` rendue ; attestation `security-reviewed: <date> covers
-d066228 c00f9f2 8798ec2 2136515 f4f9ebc …` posée (I-4 vert) ; `21` §J6 condensé ; fiche J6 supprimée
-ou condensée. Les points rouges de cette revue deviennent le commit 1 ci-dessous.
+J6 clos : commit 7 poussé ; revue groupée rendue, attestation `security-reviewed: <date> covers d066228
+c00f9f2 8798ec2 2136515 f4f9ebc …` posée (I-4 vert) ; `21` §J6 condensé ; fiche J6 supprimée ou
+condensée. Les points rouges de cette revue deviennent le commit 1.
 
 ## Objectif et critère de fin
 
@@ -28,65 +27,125 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
    `audit.append_elevated()` (si retenue) ; cas instables `t8-verify-code` RG47 (l.537, J7 touche
    `verify-code`) et `t13-ops-recording` (fenêtre à la minute).
 2. **Migrations du J7** (`expert-database`, numérotation à partir de `0115`, `0102`/`0107` restent au
-   J8) : table brute des événements Brevo entrants en ajout seul (EC-12) et fonctions E-3 de leur
-   traitement ; codes `consent.granted`, `consent.revoked`, `email.changed` dans `audit.event_types`
-   (EC-10, CA47) ; objets de l'espace membre selon les décisions 4 à 6 ; fonctions E-4 (purge,
-   rapprochement). T2, T4, T6 étendus.
-3. **Webhook Brevo, réception** : `POST /v1/webhooks/brevo/:token` (contrat zod requête **et**
-   réponse), exception A4 nommée et fermée, passe-plat (PP-5, empreinte PP-12), jeton comparé en temps
-   constant avec rotation à deux valeurs, plages IP sur `x-real-ip` (A5), fenêtre 15 min, idempotence
-   (`message-id`, `event`, horodatage), écriture brute puis réponse immédiate (RG147). Scénarios 8, 9.
-4. **Webhook Brevo, traitement par le worker** : trois familles RG106 (seule « retire un droit » a un
-   effet au J7), Brevo fait foi (RG90), plainte ⇒ liste de suppression définitive (RG93), rebond dur
-   transactionnel ⇒ `email_delivery_incidents` + `email_status = 'undeliverable'`, événement inconnu
-   journalisé et ignoré (RG105). TM1.5, CA52, CA54, CA55, scénario 7.
-5. **Tâches périodiques E-4** : rapprochement quotidien des 48 h (RG91, RG113, CA53) et purge des
-   utilisateurs GoTrue orphelins après 24 h (`04` §9), ordonnancées dans le worker.
+   J8) : `leads.brevo_inbound_events` + `brevo_inbound_outcomes`, `record_brevo_event()` (E-1) et E-3
+   de traitement (décision 2) ; `ops.periodic_runs` et fonctions E-4 (décision 3) ; marqueur de
+   re-authentification (4) ; `identity.email_change_requests` (5) ; `data_subject_requests` minimale et
+   `code_delivery_reports` (6) ; codes `consent.granted`, `consent.revoked`, `email.changed`,
+   `retention.purged` et les `elevated.*` des décisions (EC-10, CA47). T2, T4, T6 étendus.
+3. **Webhook Brevo, réception** (décision 1) : exception A4 unique, deux jetons en temps constant,
+   plages IP en constante, refus en `404`, fenêtre ±15 min, idempotence, écriture brute puis `200`
+   (RG147), journal sans URL. Scénarios 8, 9, quatre refus en `404`, exception unique.
+4. **Webhook Brevo, traitement par le worker** (décisions 1, 2, 5) : trois familles RG106 (seule
+   « retire un droit » a un effet), Brevo fait foi (RG90), plainte ⇒ suppression définitive (RG93),
+   rebond dur transactionnel ⇒ incident + `undeliverable`, inconnu journalisé et ignoré (RG105) ;
+   variante `email.changed` du connecteur (`PUT` par `contact_id`). TM1.5, CA52, CA54, CA55, scénario 7.
+5. **Tâches périodiques E-4** (décision 3) : rapprochement quotidien des 48 h (RG91, RG113, CA53),
+   purge GoTrue horaire (orphelins > 24 h, `04` §9), table brute à 30 j ; opérations 9, 10 en `16` §M1.
 6. **API « mon compte » (1)** : `PATCH /v1/me` (RG15, `lead.updated` RG73), `GET`·`PUT /v1/me/consent`
    (RG34, RG92, RG95 ; `consent.revoked` priorité 0, RG78), `GET`·`DELETE /v1/me/sessions[/:id]`
    (RG56, RG143), `POST /v1/me/terms/accept` et blocage (RG28). CA33, CA35, CA36, CA70, CA47 avec le
    vrai code, lead-pipeline T7, T8, T14.
-7. **API « mon compte » (2), sécurité** : re-authentification par code frais (RG57) ; changement
-   d'adresse à double confirmation (RG58, A-11, `email.changed` ⇒ contact Brevo **mis à jour, jamais
-   dupliqué**) ; signal « navigateur inconnu » à la vérification (RG141, RG142, `auth.new_device` P1) ;
-   modèles P1 du J7 ajoutés au connecteur Brevo ; « mes données » (EC-14) ; canal de secours
-   `POST /v1/support/code-not-received` (RG65, T15). CA26, CA32, CA34, CA80, CA81.
-8. **Écrans « Mon compte »** (`17` §6.1 à §6.4, écran bloquant CGU de §6.7) sous `/compte/*`,
-   `locales/<langue>/account.json`, états et accessibilité ; Playwright : préférences, sessions, CGU
-   bloquante, changement d'adresse jusqu'à l'état d'attente.
-9. **Essai et `staging`** : webhook du compte Brevo **de test** vers `staging` (configuration Brevo =
-   action du fondateur, `CLAUDE.md` §7 règle 4) ou rejeu d'un événement enregistré ; variables des
-   services (`integrateur`) ; vérification du critère de fin.
+7. **API « mon compte » (2a)** (décisions 4, 5) : re-authentification par code frais (RG57) ; adresse
+   à double code (RG58, A-11, contact Brevo **mis à jour, jamais dupliqué**). CA32, CA34.
+8. **API « mon compte » (2b)** (décision 6) : « navigateur inconnu » (RG141, RG142, `auth.new_device`
+   P1) ; modèles P1 du J7 ; « mes données » (EC-14) et `docs/runbooks/demandes-rgpd.md` ; secours
+   `POST /v1/support/code-not-received` (RG65, T15). CA26, CA80, CA81.
+9. **Écrans « Mon compte »** (`17` §6.1 à §6.4, CGU bloquante §6.7) sous `/compte/*`, `account.json`,
+   étape « code frais », états, accessibilité ; Playwright : préférences, sessions, CGU, adresse en attente.
+10. **Essai et `staging`** : webhook du compte Brevo **de test** vers `staging` (geste du fondateur,
+   `CLAUDE.md` §7 règle 4) ou rejeu enregistré ; variables (`integrateur`) ; critère de fin.
 
-## Décisions de démarrage (à obtenir, un appel groupé par agent)
+## Décisions de démarrage (`expert-cybersecurite` 1, `architecte` 2 à 6, 2026-10-09)
 
-`expert-cybersecurite` **avant le commit 3** (`03` l.1404 l'exige « avant le J7 ») :
+1. **L'exception A4 couvre la seule route `POST /v1/webhooks/brevo/:pathToken` de la surface `web` :
+   deux secrets, une IP Brevo et un JSON valide, aucun autre chemin ni méthode** (`03` A4, A5, PP-2,
+   PP-5, PP-12 ; `16` RG146, RG147 ; EC-12 ; D60). Constante d'une seule entrée dans `write-origin.ts`
+   (test : une seule) ; ni cookie ni session ; `application/json`, 64 Ko, lots Brevo désactivés. Jeton
+   de chemin 43 car. base64url = routage seul (Railway journalise les chemins) ; authentification par
+   l'en-tête **`brevo-webhook-token`** (liste blanche PP-5) ; temps constant, deux valeurs chacun
+   (`…_CURRENT`/`…_PREVIOUS`). Ordre : PP-8, `x-real-ip` (absent ⇒ refus), IP dans `1.179.112.0/20` ou
+   `172.246.240.0/20` (constante datée, URL source en commentaire), jetons, zod, ±15 min sur `ts_event`,
+   idempotence. IP ou jeton refusé ⇒ **`404` identique à une route inconnue** ; authentifié mais
+   invalide, hors fenêtre ou doublon ⇒ `200` compté ; écriture échouée ⇒ `503` ; sinon `200`
+   `{received:true}`. `pino` `warn` `webhook.brevo.rejected` (motif fermé, sans IP, chemin ni jeton) ;
+   jeton valide hors plage ⇒ `error` `webhook.brevo.ip_drift` + compteur `ops`. `elevated.*` : une
+   ligne **par changement d'état effectif**, aucune sans effet ; compteur agrégé par lot.
+   - Commit 3 : tout ce qui précède, PP-12 renouvelée consciemment, aucun appel Brevo (RG148).
+     Commit 4 : effet sur « retire un droit » seul, lignes `elevated.*`. Autres : rien.
+2. **La route écrit une ligne brute minimale et sans état ; le worker traite par E-3, rattachement par
+   `message-id` puis par l'adresse exacte du compte** (RG105 à RG108, RG147, EC-12, M6-6, D60).
+   `leads.brevo_inbound_events` en ajout seul : `id`, `received_at`, `origin` (`webhook` ·
+   `reconciliation`), `dedup_key bytea unique` (SHA-256 message-id, event, ts, adresse), `event`
+   borné, `occurred_at`, `provider_message_id`, `email` minuscule, `campaign_id`, `template_id`,
+   `reason` (200 car.) ; ni corps, en-têtes, IP, sujet ni lien. Issue dans `leads.brevo_inbound_outcomes`
+   (`event_id` PK, `account_id`, `outcome` fermé, `processed_at`). **Arbitrage au plus sûr (veto
+   décision 1)** : `email` mis à nul à l'écriture de l'issue (seule mise à jour admise) ; purge E-4 à
+   30 j après l'issue (provisoire), jamais une ligne non traitée. Écriture : motif E-1
+   `leads.receive_brevo_event`, `influx_auth` exécute seul `leads.record_brevo_event()` (`SECURITY
+   DEFINER`, propriétaire `influx_leads_definer`), code `elevated.leads.receive_brevo_event`. Canal
+   transactionnel si `provider_message_id` ∈ `transactional_sends`, sinon marketing. « Retire un
+   droit » ⇒ `consent_events` (`marketing_email`, `brevo_webhook`) si consentement, `consent.revoked`
+   P0, `contact_sync_states` ; `spam` ⇒ `suppressed_reason` ; `hard_bounce` transactionnel ⇒ incident
+   + `undeliverable` seulement sur l'adresse courante. `pino` : code d'issue seul, URL remplacée par le
+   motif de route.
+   - Commit 2 : tables, fonctions, motif, code, T2/T4/T6. Commit 3 : liste blanche, `dedup_key`.
+     Commit 4 : règles, abonnement aux seuls événements « retire un droit ». Commit 5 : purge 30 j.
+3. **E-4 dans la boucle du worker, gardé par une ligne unique par période ; le rapprochement réinjecte
+   ses trouvailles dans la table brute** (RG91, RG113, RG150, `04` §9). `ops.periodic_runs`
+   (`task_code`, `period_key` uniques ensemble, `started_at`, `finished_at`, `outcome`, `counts jsonb`)
+   via `claim_periodic_run`/`finish_periodic_run` ; reprise d'une exécution non finie après 1 h.
+   Rapprochement une fois par jour UTC après 03:00 : `GET /v3/contacts?modifiedSince=<−48 h>&limit=1000`
+   (paginé, `emailBlacklisted=true`, rattachement par `INFLUX_ACCOUNT_ID`) et
+   `GET /v3/smtp/statistics/events?event=spam&startDate=J−2&endDate=J` (vérifiés le 2026-10-09) ⇒
+   lignes `origin='reconciliation'`, même voie que le webhook ; écart dans `counts`. Purge GoTrue
+   horaire : `admin.listUsers` paginé ; orphelin = absent de `identity.accounts.auth_user_id` et
+   `created_at`, `updated_at`, `last_sign_in_at` tous > 24 h ; compte revérifié avant chaque
+   `admin.deleteUser` ; clé `SUPABASE_SECRET_KEY` du worker ; `retention.purged` (`auth_orphan_users`,
+   nombre).
+   - Commit 2 : table, fonctions, codes `retention.purged`, `elevated.maintenance.run_periodic`.
+     Commit 5 : ordonnanceur, opérations 9 et 10 de `16` §M1, purge, doublures. Commit 10 : variable.
+4. **Re-authentification = moteur du code de connexion par deux routes membres ; adresse lue dans la
+   session ; preuve = marqueur lié à une finalité, à usage unique, valable 5 min** (RG57, RG41, `03`
+   A-10). `POST /v1/me/reauthenticate/request-code` et `…/verify-code`, corps `{purpose:
+   email_change | data_export | account_deletion}` : `generateLink`, P0 `auth.login_code`, plafonds
+   RG44/RG47. Motif E-2 `identity.member_reauthenticate`. `identity.sessions.reauthenticated_at` +
+   `reauth_purpose` (membre seulement, `now()` en base, `influx_auth` seul) ; l'action sensible les
+   vérifie puis les remet à `NULL` dans sa transaction. Durée : `REAUTHENTICATION_FRESHNESS_SECONDS`
+   (300, valeur R du backoffice dans `identity/settings.ts`), provisoire.
+   - Commit 2 : colonnes, contrainte, E-2, code d'audit. Commit 7 : routes, garde partagée.
+     Commit 9 : étape « code frais ». Autres : rien.
+5. **Demande de changement d'adresse en table `identity` de 24 h, confirmée par deux codes à 6 chiffres
+   saisis dans l'espace (envoi synchrone `apps/api`), jamais un lien ; contact Brevo modifié par son
+   identifiant, jamais recréé** (RG58, A-11, RG74). `identity.email_change_requests` : `id`,
+   `account_id`, `old_email`, `new_email`, `expires_at` (+24 h), `old_code_hash`/`new_code_hash` (HMAC
+   poivré), 5 essais par côté, `old_confirmed_at`, `new_confirmed_at`, `completed_at`, `cancelled_at` +
+   motif ; une demande ouverte par compte. `auth.email_change_confirm_old/new` synchrones (clé :
+   demande + côté) ; modèle non configuré ⇒ `503` `email_change_unavailable`, jamais `skipped`. Fin :
+   `admin.updateUserById` (`email_confirm`) puis une transaction (`accounts.email`, `email_verified_at`,
+   révocation des autres sessions, `email.changed` Brevo + Apollo, `auth.email_changed_notice` ×2,
+   charge utile = id de la demande) ; échec GoTrue ⇒ ancienne adresse, nouvel essai possible ; adresse
+   prise ⇒ réponse neutre identique. Brevo : `PUT /v3/contacts/{external_contact_id}
+   ?identifierType=contact_id` (sinon ancienne adresse, `email_id`), `{attributes:{EMAIL}}` ; puis
+   opérations 2 et 7 réappliquées si sans consentement ou supprimé (Brevo lève la liste noire).
+   - Commit 2 : table, fonctions, code. Commit 4 : variante du connecteur (`client.ts`). Commit 7 :
+     routes et envois. Commit 9 : écrans. Autres : rien.
+6. **`backoffice.data_subject_requests` minimale dès maintenant (`0502` la complète) ; accusé = nouveau
+   modèle P1 en file ; le canal de secours écrit dans `backoffice.code_delivery_reports` par sa fonction
+   E-1 étroite, sans e-mail** (EC-14, RG65, RG57). Demandes : `id`, `request_type` (six valeurs, seuls
+   `access`/`erasure` exposés), `requester_account_id`, `channel='self_service'`, `received_at`,
+   `due_at` généré (+30 j), `status`, `completed_at`, `outcome_code` (liste de `15` RG77) ; dépôt par
+   une fonction `SECURITY DEFINER` des rôles membres exigeant le marqueur de la décision 4. Accusé
+   `privacy.request_received` P1 (charge utile = id, clé EC-8, `NULL` ⇒ `skipped`). Procédure
+   `docs/runbooks/demandes-rgpd.md`, exécutée par un `admin` ; suppression = demande. Secours : `id`,
+   `received_at`, `login_email`, `contact_email`, `message` (500 car.), `locale`, `status`,
+   `handled_at` ; réponse identique, plancher 1 000 ms, débit limité, motif
+   `support.report_delivery_issue`, code `elevated.support.report_delivery_issue`.
+   - Commit 2 : tables, fonctions, codes. Commit 8 : routes, modèle, procédure. Commit 9 : écrans.
 
-1. **Exception A4 du webhook** : forme nommée et fermée (chemin exact, méthode, surface) ; jeton dans
-   le chemin (EC-12) **et/ou** en en-tête personnalisé (`16` M6-1) ; source et rafraîchissement des
-   plages IP Brevo ; codes de réponse sur jeton ou IP refusés (sans provoquer de réessais en boucle) ;
-   volume des lignes `elevated.*` du traitement (D60, déjà ouvert au J6).
-
-`architecte` (puis `expert-database` pour la forme fine, au commit 2) :
-
-2. **Table brute et traitement** : nom et schéma, colonnes conservées (l'événement porte l'adresse :
-   durée de conservation, aucune ligne `pino` du contenu), rôle qui écrit depuis la route (nouveau motif
-   E-1 ? T6), rattachement au compte (`provider_message_id` de `transactional_sends`, sinon adresse).
-3. **E-4** : ordonnancement dans le worker (verrou ou ligne de dernière exécution), opération Brevo du
-   rapprochement **absente de `16` §M1** (relire la documentation officielle, RG150), purge par l'API
-   d'administration GoTrue (clé `SUPABASE_SECRET_KEY` du worker, `02` l.1220), trace `retention.purged`.
-4. **Re-authentification (RG57)** : réemploi de `request-code`/`verify-code` avec une finalité,
-   marqueur sur la session et durée de validité (aucune valeur dans les specs : ne pas l'inventer).
-5. **Changement d'adresse (RG58)** : stockage de la demande (24 h), mode de confirmation (code saisi
-   dans l'espace ou lien ; aucun secret dans une charge utile de file, RG74), mise à jour GoTrue,
-   identifiant du contact Brevo (opération 1 de §M1 sur `email.changed`).
-6. **« Mes données » (EC-14) et canal de secours (RG65)** : `backoffice.data_subject_requests` est
-   prévue en `0502` (Lot 5) : table minimale anticipée ou table propre au Lot 1 ; e-mail d'accusé de
-   réception **absent du catalogue `16` §H** ; procédure écrite d'exécution manuelle (runbook) ; table
-   du canal de secours sous la fonction étroite du motif `support.report_delivery_issue` (déjà déclaré).
-
-**Restent ouverts (non tranchés) :** critère de fin ci-dessus ; propagation du retrait à Apollo (veto
-RGPD, Lot 6) ; D36 (corps FR+EN) ; textes `account.*` à faire relire (D48).
+**Restent ouverts :** critère de fin ; retrait propagé à Apollo et conservations 30 j, abonnement
+minimal (`expert-conformite-rgpd`, Lot 6) ; D36 ; textes `account.*` (D48) ; `privacy.request_received`
+à ajouter à `16` §H (`product-owner`) ; 5 min, usage unique, remise de l'export (`expert-cybersecurite`,
+fin de jalon) ; webhook du compte Brevo de production (fondateur, `prerequis.md`).
 
 ## Règles d'écart applicables
 
@@ -134,9 +193,8 @@ aucun taux ni montant.
 | Tests TM1 (TM1.5) ; T7, T8, T14, T15 | `18-plan-de-test-mvp.md` · 848 · 14 ; · 586 · 26 ; · 612 · 27 ; · 727 · 28 |
 | Skill `lead-pipeline` T7, T8 ; skill `brevo-campaign` webhooks | `lead-pipeline` · 198 · 12 ; `brevo-campaign` · 309 · 34 |
 
-**Homonymes :** T7 et T8 du plan `21` §J7 sont ceux du **skill `lead-pipeline`** (ordre P0 ⇒
-révocation ⇒ P1 ⇒ P2 ; révocation sous 5 min), **pas** ceux de `18` (T7 = passe-plat, T8 =
-authentification), qui s'appliquent aussi (commits 3 et 7).
+**Homonymes :** T7, T8 de `21` §J7 = **skill `lead-pipeline`** (P0 ⇒ révocation ⇒ P1 ⇒ P2, sous
+5 min), **pas** `18` (T7 passe-plat, T8 authentification), qui s'appliquent aussi (commits 3, 7, 8).
 
 ## Code existant à réutiliser
 
@@ -160,12 +218,11 @@ authentification), qui s'appliquent aussi (commits 3 et 7).
 
 ## Reports du J6
 
-TM1.5 attend le webhook (commit 4) ; CA47 : le code `consent.revoked` entre avec son émetteur
-(commits 2 et 6, remplacer la ligne `lead.updated` de priorité 0 du test) ; `email.changed` créerait un
-second contact Brevo par adresse (commit 7) ; `account.email_corrected` reste `template_not_supported`
-jusqu'au J8 ; suspension marketing sur `401` (scénario 5, RG123) avec l'interrupteur (J8 / Lot 5).
-Nouvelles variables (webhook, clé GoTrue du worker) : skill `env-secrets` ; `apps/api/.env.example`
-est illisible pour l'agent, le fondateur les y documente.
+TM1.5 attend le webhook (commit 4) ; CA47 : `consent.revoked` entre avec son émetteur (commits 2 et 6,
+remplacer la ligne `lead.updated` P0 du test) ; `email.changed` sans doublon Brevo : décision 5 ;
+`account.email_corrected` reste `template_not_supported` jusqu'au J8 ; suspension marketing sur `401`
+(scénario 5, RG123) avec l'interrupteur (J8 / Lot 5). Nouvelles variables (jetons du webhook, clé
+GoTrue du worker) : skill `env-secrets` ; le fondateur les documente dans `apps/api/.env.example`.
 
 ## Clôture d'un commit (« clôture standard »)
 
@@ -186,11 +243,7 @@ est illisible pour l'agent, le fondateur les y documente.
 - Pendant le codage, un seul fichier de test : depuis `apps/api`, `pnpm exec vitest run --project db
   db-tests/<fichier> --reporter=dot` (`pnpm --filter @influx/api test:db -- <fichier>` lance toute la
   suite). Suite complète avant chaque commit (CLAUDE.md §7).
-- Sous-agents : `expert-cybersecurite` une fois au démarrage (décision 1) ; `architecte` une fois
-  (décisions 2 à 6, groupées) ; `expert-database` au commit 2 ; `integrateur` au commit 9 ; revue
-  groupée `expert-cybersecurite` + `testeur` en fin de jalon. Pas de `chef-de-projet`, pas
-  d'`Explore` sur un chemin cité ici.
-- Points de revue au fil des commits en section « Issu du commit N », **10 lignes au plus chacune** ;
-  à chaque commit, condenser les points soldés : la fiche reste sous 250 lignes (la fiche J6 a atteint
-  340 lignes, relues à chaque session).
+- Sous-agents restants : `expert-database` au commit 2 ; `integrateur` au commit 10 ; revue groupée
+  `expert-cybersecurite` + `testeur` en fin de jalon. Ni `chef-de-projet`, ni `Explore` sur un chemin cité.
+- « Issu du commit N » : **10 lignes au plus** ; condenser les points soldés : fiche sous 250 lignes.
 - À la clôture : 1 ligne par commit dans `21` §J7, puis supprimer cette fiche ou la condenser.
