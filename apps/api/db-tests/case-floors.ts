@@ -19,6 +19,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/t8-request-code.test.ts": 11,
   "db-tests/t8-session-writes.test.ts": 43,
   "db-tests/t8-verify-code.test.ts": 18,
+  "db-tests/tm1-apollo-connector.test.ts": 14,
   "db-tests/tm1-brevo-connector.test.ts": 9,
   "db-tests/tm1-outbox-claim.test.ts": 69,
   "db-tests/tm1-worker-loop.test.ts": 4,

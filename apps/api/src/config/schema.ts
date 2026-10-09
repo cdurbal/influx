@@ -115,6 +115,12 @@ const supabaseSecretKey = requiredText
 export const BREVO_OFFICIAL_BASE_URL = "https://api.brevo.com/v3";
 
 /**
+ * Official base URL of the Apollo API (skill apollo-lead-sync), the only one the worker reaches: no
+ * variable, so no double can be configured in any environment; the tests inject theirs.
+ */
+export const APOLLO_OFFICIAL_BASE_URL = "https://api.apollo.io/api/v1";
+
+/**
  * BREVO_API_BASE_URL (21 J3-C rule 10, EC-19): the official URL, or the Brevo double of
  * @influx/test-kit on a loopback host. The loopback is refused in production (superRefine).
  */
@@ -564,6 +570,11 @@ export type WorkerConfig = BaseConfig & {
     /** BREVO_SUPPRESSION_LIST_ID: the marketing exclusion list (16 RG45), null when unset. */
     suppressionListId: number | null;
   };
+  /** APOLLO_API_KEY, the worker's only (skill env-secrets): null when absent, as in staging. */
+  apollo: {
+    apiKey: string | null;
+    baseUrl: string;
+  };
   /** WORKER_DATABASE_URL (influx_worker_login) ONLY, EC-20. */
   database: {
     worker: DatabaseConnection;
@@ -728,11 +739,22 @@ export const workerEnvSchema = z
         .positive({ error: "must be a Brevo list id" })
         .optional(),
     ),
+    APOLLO_API_KEY: optionalText,
     ...databaseEnvShape,
   })
   .superRefine((env, context) => {
     checkBrevoMode(env, context);
     checkBrevoTransport(env, context);
+    if (
+      env.APOLLO_API_KEY !== undefined &&
+      holdsPlaceholder(env.APOLLO_API_KEY)
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["APOLLO_API_KEY"],
+        message: `must not contain the ${PLACEHOLDER} placeholder`,
+      });
+    }
     checkDatabaseVariables(env, WORKER_DATABASE_VARIABLES, context);
     const isProduction = env.INFLUX_ENV === "production";
     if (env.SYNC_MODE === "dry_run" && isProduction) {
@@ -767,6 +789,10 @@ export const workerEnvSchema = z
       baseUrl: env.BREVO_API_BASE_URL,
       senderTransactional: env.BREVO_SENDER_TRANSACTIONAL ?? null,
       suppressionListId: env.BREVO_SUPPRESSION_LIST_ID ?? null,
+    },
+    apollo: {
+      apiKey: env.APOLLO_API_KEY ?? null,
+      baseUrl: APOLLO_OFFICIAL_BASE_URL,
     },
     database: {
       worker: databaseConnection(env, "WORKER_DATABASE_URL"),

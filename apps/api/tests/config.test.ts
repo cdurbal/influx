@@ -565,6 +565,7 @@ describe("worker configuration", () => {
         senderTransactional: null,
         suppressionListId: null,
       },
+      apollo: { apiKey: null, baseUrl: "https://api.apollo.io/api/v1" },
       database: {
         worker: { url: WORKER_URL, role: "influx_worker_login", tls: false },
       },
@@ -723,6 +724,51 @@ describe("worker configuration", () => {
           BREVO_API_BASE_URL: "http://127.0.0.1:4010/v3",
         }),
       ).toThrow("BREVO_API_BASE_URL");
+    });
+  });
+
+  describe("Apollo of the worker: APOLLO_API_KEY, the worker's only (skill env-secrets, J6 commit 5)", () => {
+    it("reads the key; no key is no credentials, never a refusal (none in staging)", () => {
+      expect(
+        loadWorkerConfig({
+          ...VALID_WORKER_ENV,
+          APOLLO_API_KEY: "apollo-test-account-value",
+        }).apollo,
+      ).toEqual({
+        apiKey: "apollo-test-account-value",
+        baseUrl: "https://api.apollo.io/api/v1",
+      });
+      expect(
+        loadWorkerConfig({ ...VALID_WORKER_ENV, APOLLO_API_KEY: "" }).apollo
+          .apiKey,
+      ).toBeNull();
+    });
+
+    it("refuses the template's placeholder as a key", () => {
+      expect(() =>
+        loadWorkerConfig({
+          ...VALID_WORKER_ENV,
+          APOLLO_API_KEY: "change_me-key",
+        }),
+      ).toThrow("APOLLO_API_KEY");
+    });
+
+    it("reaches the official Apollo URL only: no variable can point it elsewhere", () => {
+      expect(
+        loadWorkerConfig({
+          ...VALID_WORKER_ENV,
+          APOLLO_API_KEY: "apollo-test-account-value",
+          APOLLO_API_BASE_URL: "http://127.0.0.1:4020/api/v1",
+        }).apollo.baseUrl,
+      ).toBe("https://api.apollo.io/api/v1");
+    });
+
+    it("the api never reads an Apollo variable", () => {
+      const config = loadApiConfig({
+        ...VALID_API_ENV,
+        APOLLO_API_KEY: "apollo-test-account-value",
+      });
+      expect(JSON.stringify(config)).not.toContain("apollo");
     });
   });
 });

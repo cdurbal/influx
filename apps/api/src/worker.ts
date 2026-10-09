@@ -17,6 +17,7 @@ import {
   type WorkerDatabase,
 } from "./db/index.ts";
 import type { Connector } from "./domains/leads/connector.ts";
+import { createApolloConnector } from "./domains/leads/connectors/apollo/index.ts";
 import {
   createBrevoConnectors,
   type BrevoConnectorDependencies,
@@ -24,14 +25,15 @@ import {
 import { createOutboxDrain, workerIdentifier } from "./domains/leads/drain.ts";
 import {
   createWorkerQueue,
+  readApolloSubjectOf,
   readBrevoSubjectOf,
 } from "./domains/leads/queue.ts";
 import type { OutboxDestination } from "./domains/leads/repository.ts";
 import { createLogger } from "./platform/logger.ts";
 
 /**
- * The connectors of this process: Brevo (J6 commit 4), with the worker's own key (EC-19). Apollo
- * arrives with commit 5: until then its lines wait an hour without using an attempt (drain.ts).
+ * The connectors of this process: Brevo (J6 commit 4), with the worker's own key (EC-19), and
+ * Apollo (commit 5), with APOLLO_API_KEY, the worker's only; without it, skipped_no_credentials.
  */
 function connectorsOf(
   config: WorkerConfig,
@@ -51,9 +53,15 @@ function connectorsOf(
       logger,
     },
   );
+  const apollo = createApolloConnector(config.apollo, {
+    readSubject: (line) =>
+      readApolloSubjectOf(database, randomUUID(), line, worker),
+    logger,
+  });
   return {
     brevo_contact: brevo.contact,
     brevo_transactional: brevo.transactional,
+    apollo_contact: apollo,
   };
 }
 
@@ -107,7 +115,11 @@ async function main(): Promise<void> {
   });
   // The environment is already in every line (logger base): only the modes are added here.
   logger.info(
-    { syncMode: config.sync.mode, brevoMode: config.brevo.mode },
+    {
+      syncMode: config.sync.mode,
+      brevoMode: config.brevo.mode,
+      apolloCredentials: config.apollo.apiKey !== null,
+    },
     "worker started",
   );
 

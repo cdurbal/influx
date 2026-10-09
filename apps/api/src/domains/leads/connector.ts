@@ -13,6 +13,7 @@ import type {
   AttemptState,
   ClaimedLine,
   OutboxDestination,
+  SubjectAccount,
 } from "./repository.ts";
 
 /** What the call would carry, by names only (the dry-run line of decision 3). */
@@ -68,4 +69,20 @@ export interface Connector {
   /** false: no key in this environment, the line is skipped_no_credentials (02 §12.4 lock 1). */
   readonly hasCredentials: boolean;
   prepare(line: ClaimedLine, state: AttemptState): Promise<Preparation>;
+}
+
+/** The first step of every connector: an account gone, not active or not a member is skipped. */
+export function accountSkip(
+  account: SubjectAccount | null,
+): Preparation | null {
+  if (account === null) {
+    return { kind: "skip", reason: "account_absent" };
+  }
+  if (account.status !== "active") {
+    return { kind: "skip", reason: "account_not_active" };
+  }
+  if (account.role !== "advertiser" && account.role !== "creator") {
+    return { kind: "skip", reason: "role_out_of_scope" };
+  }
+  return null;
 }

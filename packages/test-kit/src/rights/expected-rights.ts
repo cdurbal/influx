@@ -1139,8 +1139,12 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|column|profiles.advertiser_profiles.account_id|SELECT",
   "influx_leads_definer|column|profiles.advertiser_profiles.legal_name|SELECT",
   "influx_leads_definer|function|leads.read_brevo_subject(bigint,text)|EXECUTE",
+  // 0113 (J6 commit 5, E-3): the Apollo connector's own read, leads.read_apollo_subject(), on
+  // columns already granted by 0111 and 0112.
+  "influx_leads_definer|function|leads.read_apollo_subject(bigint,text)|EXECUTE",
   "influx_leads_definer|schema|profiles|USAGE",
   "influx_worker|function|leads.read_brevo_subject(bigint,text)|EXECUTE",
+  "influx_worker|function|leads.read_apollo_subject(bigint,text)|EXECUTE",
   "influx_worker|function|audit.append_elevated(text,uuid)|EXECUTE",
   "influx_worker|function|leads.begin_outbox_attempt(bigint,text)|EXECUTE",
   "influx_worker|function|leads.claim_outbox_batch(text,integer)|EXECUTE",
@@ -1244,6 +1248,7 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "leads.begin_outbox_attempt(bigint,text)": "influx_leads_definer",
   "leads.complete_outbox_attempt(bigint,text,leads.outbox_status,boolean,text,text,text,integer,text,text,text,integer)":
     "influx_leads_definer",
+  "leads.read_apollo_subject(bigint,text)": "influx_leads_definer",
   "leads.read_brevo_subject(bigint,text)": "influx_leads_definer",
   "leads.recover_stale_outbox_lines(integer)": "influx_leads_definer",
 };

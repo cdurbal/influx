@@ -14,12 +14,8 @@
 //      (16 RG117, a positive condition, after the whole mapping).
 // What leaves for the drain is names and verdicts; the values stay in the closure of `send`.
 import type { BrevoMode } from "../../../../config/schema.ts";
-import type { Connector, Preparation } from "../../connector.ts";
-import type {
-  AttemptState,
-  ClaimedLine,
-  SubjectAccount,
-} from "../../repository.ts";
+import { accountSkip, type Connector } from "../../connector.ts";
+import type { AttemptState, ClaimedLine } from "../../repository.ts";
 import {
   createBrevoClient,
   type BrevoClient,
@@ -95,20 +91,6 @@ function idIn(
 
 function domainOf(email: string): string {
   return email.slice(email.lastIndexOf("@") + 1).toLowerCase();
-}
-
-/** Step 1, common to both destinations. */
-function accountSkip(account: SubjectAccount | null): Preparation | null {
-  if (account === null) {
-    return { kind: "skip", reason: "account_absent" };
-  }
-  if (account.status !== "active") {
-    return { kind: "skip", reason: "account_not_active" };
-  }
-  if (account.role !== "advertiser" && account.role !== "creator") {
-    return { kind: "skip", reason: "role_out_of_scope" };
-  }
-  return null;
 }
 
 export function createBrevoConnectors(

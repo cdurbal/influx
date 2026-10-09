@@ -12,6 +12,8 @@
     "./totp": "./src/totp.ts",
     "./brevo-double": "./src/brevo-double.ts",
     "./brevo-exchanges": "./src/brevo-exchanges.ts",
+    "./apollo-double": "./src/apollo-double.ts",
+    "./apollo-exchanges": "./src/apollo-exchanges.ts",
     "./db": "./src/db/index.ts",
     "./static": "./src/static/index.ts",
     "./rights": "./src/rights/expected-rights.ts"

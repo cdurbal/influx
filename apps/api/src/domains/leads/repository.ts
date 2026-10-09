@@ -105,6 +105,17 @@ export type BrevoSubject = {
   welcomeSent: boolean;
 };
 
+/** What the Apollo connector reads of a subject, besides the account state of the attempt (0113). */
+export type ApolloSubject = {
+  email: string;
+  /** The company name of an advertiser profile (05 RG82); never sent for a creator. */
+  company: string | null;
+  /** A refusal of prospection recorded after the sign-up: excludes for good (05 RG83). */
+  prospectionOpposed: boolean;
+  /** The Apollo contact id already known (contact_sync_states): an update, never a duplicate. */
+  externalContactId: string | null;
+};
+
 /** SQLSTATE of a line no longer in processing for this worker (begin and complete, 0111). */
 const NOT_IN_PROCESSING = "55000";
 
@@ -309,5 +320,36 @@ export async function readBrevoSubject(
     consentAt: row.consent_at,
     consentSource: row.consent_source,
     welcomeSent: row.welcome_sent,
+  };
+}
+
+/**
+ * The subject of an Apollo line in processing for this worker (0113): its address, the company name
+ * of an advertiser, the opposition to prospection and the known Apollo contact id. null: the subject
+ * is not an existing account.
+ */
+export async function readApolloSubject(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<ApolloSubject | null> {
+  const rows = await tx.execute<{
+    email: string;
+    company: string | null;
+    prospection_opposed: boolean;
+    external_contact_id: string | null;
+  }>(
+    sql`select email, company, prospection_opposed, external_contact_id
+          from leads.read_apollo_subject(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    return null;
+  }
+  return {
+    email: row.email,
+    company: row.company,
+    prospectionOpposed: row.prospection_opposed,
+    externalContactId: row.external_contact_id,
   };
 }

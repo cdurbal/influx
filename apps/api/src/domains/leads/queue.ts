@@ -22,9 +22,11 @@ import {
   claimLines,
   completeAttempt,
   isLineNotInProcessing,
+  readApolloSubject,
   readBrevoSubject,
   recoverStaleLines,
   type AttemptOutcome,
+  type ApolloSubject,
   type AttemptState,
   type BrevoSubject,
   type ClaimedLine,
@@ -131,6 +133,33 @@ export async function readBrevoSubjectOf(
       requestId,
       async (tx) => {
         const subject = await readBrevoSubject(tx, line.id, worker);
+        return {
+          value: subject,
+          auditSubject:
+            subject === null ? null : line.subjectKey.slice("account:".length),
+        };
+      },
+    ),
+  );
+}
+
+/**
+ * The Apollo connector's own read (0113), as readBrevoSubjectOf: a privileged read of an address,
+ * its register line on the account, its own short transaction, closed before the call (G4).
+ */
+export async function readApolloSubjectOf(
+  database: WorkerDatabase,
+  requestId: string,
+  line: ClaimedLine,
+  worker: string,
+): Promise<ApolloSubject | null> {
+  return translated(
+    withElevatedTransaction(
+      database,
+      "leads.drain_outbox",
+      requestId,
+      async (tx) => {
+        const subject = await readApolloSubject(tx, line.id, worker);
         return {
           value: subject,
           auditSubject:
