@@ -232,6 +232,39 @@ orphelins au démarrage puis au plus une fois par minute.
   compare `main` à la dernière attestation, pas au seul push. Le worker de `staging`, s'il est redéployé,
   n'a aucun connecteur : chaque ligne prise est rendue 1 h sans tentative.
 
+## Issu du commit 4 (`8798ec2`)
+
+Choix au plus sûr (EC, à confirmer en fin de jalon) : sans consentement, `lead.created` ⇒ `skipped`
+`no_consent` (CA39) ; tout autre événement ⇒ désinscription (`PUT` `emailBlacklisted`, puis liste
+d'exclusion `BREVO_SUPPRESSION_LIST_ID` si posée ; `404` = rien d'abonné, `succeeded`). Identifiant de
+liste ou de modèle `NULL` ⇒ `skipped` `list_not_configured` / `template_not_configured` (commentaire de
+`0103`) : en `staging`, toute ligne Brevo finit donc `skipped` tant que le J8 ne pose pas les identifiants.
+Compte absent / non actif / rôle hors membre ⇒ `skipped`. Nouvelle issue de préparation `fail` (drain) :
+code transactionnel hors bienvenue (`account.email_corrected`, P0 émis par `0104`) ⇒ `failed`
+`template_not_supported`, visible et rejouable. `401`/`403` ⇒ ligne `pending` (tentative consommée),
+destination en pause 1 h via le budget, `pino` `error` `leads.brevo.unauthorized`. Langue de la bienvenue
+par `params.LANGUAGE` (un modèle par rôle). Champs vides envoyés `""` (dates comprises), `SIGNUP_SOURCE`
+`direct` et `FUNNEL_STAGE` `registered` (défauts §M4, aucune colonne). `Idempotency-Key` en en-tête HTTP
+(comme l'API), pas dans `headers` du corps (§M1) : à vérifier à l'essai du commit 7.
+
+- `expert-cybersecurite` (fin de jalon) : `0112` (fonction `leads.read_brevo_subject`, droits de colonne
+  d'`influx_leads_definer` sur l'adresse, l'UTM, la raison sociale, `transactional_sends` en lecture `p1`) ;
+  la lecture d'adresse écrit une ligne `elevated.leads.drain_outbox` **par lecture** (contact et bienvenue :
+  deux par inscription) — volume à trancher avec D60 ; variables Brevo du worker (`schema.ts`,
+  `checkBrevoTransport` partagé avec l'API). `8798ec2` sans marqueur : I-4 rouge jusqu'à l'attestation.
+- `testeur` (fin de jalon) : `brevo-connector` (28 cas : RG148 1 à 6 et 13, CA38 à CA41, RG142, RG137,
+  verrou 1) ; `tm1-brevo-connector` (plancher 9 : CA38 à CA41 sur la vraie file, RG90 en base, gardes de la
+  lecture) ; `config` (transport du worker, scénario 14) ; un cas `fail` dans `leads-drain`.
+- Commit 7 : les échanges de `packages/test-kit/src/brevo-exchanges.ts` sont **rédigés d'après la référence
+  Brevo** (§M1, 2026-09-19), pas enregistrés : les remplacer par les enregistrements expurgés de l'essai.
+  Vérifier aussi : `""` accepté sur un attribut date, `ext_id`/changement d'adresse (aujourd'hui
+  `email.changed` créerait un second contact par adresse : à traiter avec le J7), réponse `400` d'un ajout
+  déjà présent en liste. Variables du service `worker` : `BREVO_API_KEY` **propre au worker**,
+  `BREVO_SENDER_TRANSACTIONAL`, `BREVO_SUPPRESSION_LIST_ID` ; `apps/api/.env.example` **non mis à jour**
+  (lecture refusée à l'agent) : y documenter `BREVO_SUPPRESSION_LIST_ID` et la clé du worker.
+- Écarts de documentation à regrouper : `03` P7 et `04` (cinquième fonction E-3, index
+  `transactional_sends_once_per_account_idx`) ; `16` §M8 (`BREVO_SUPPRESSION_LIST_ID` porté par le worker).
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne relire que la tranche
