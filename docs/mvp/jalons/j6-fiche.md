@@ -225,6 +225,12 @@ orphelins au démarrage puis au plus une fois par minute.
 - Commits 4 et 5 : brancher `CONNECTORS` dans `worker.ts` ; la qualification (consentement RG80, RG82)
   est dans `prepare`, la boucle ne relit rien ; `prepare` rend le domaine du destinataire, les noms
   d'attributs et le verdict, jamais une valeur ; clés du worker encore absentes de `workerEnvSchema`.
+- Hors périmètre, noté (**`expert-cybersecurite`, à traiter**) : l'étape I-4 de la CI ne lit que la plage
+  du push (`before..sha`). Le push de `afdff8e` ne contenait aucune migration : `d066228` est sorti de la
+  plage, la CI de `1700855` est verte et **`0111` est appliquée sur `staging` depuis le 2026-10-09 sans
+  l'attestation** (le constat « ni `0111` sur `staging` » du commit 2 ne tient plus). Proposition : I-4
+  compare `main` à la dernière attestation, pas au seul push. Le worker de `staging`, s'il est redéployé,
+  n'a aucun connecteur : chaque ligne prise est rendue 1 h sans tentative.
 
 ## Discipline de session (économie de tokens)
 
