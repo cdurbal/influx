@@ -300,6 +300,34 @@ l'agent, la variable n'aurait pas été documentée, T11.4) ; les tests injecten
 - Écarts de documentation à regrouper : `03` P7 et `04` (sixième fonction E-3) ; skill `apollo-lead-sync`
   (mapping par étiquettes) ; `0101` (commentaire des motifs de `skip_reason`).
 
+## Issu du commit 6 (`f4f9ebc`)
+
+Choix au plus sûr (EC, à confirmer en fin de jalon) : alerte préparée **après** le commit de la session, dans
+une transaction à part (une panne de préparation ne bloque jamais la connexion de secours ; trace = audit et
+`pino`), envoi attendu avant la réponse (sous le plancher, Brevo 3 s), un seul expéditeur P0 partagé par le code
+et l'alerte (un disjoncteur). Clé `internal.critical_alert:<seq d'audit>:<account_id du destinataire>` ; heure
+= instant de l'envoi (UTC), pas `occurred_at` (illisible par `influx_auth`). Connexion de secours **par code de
+secours** ⇒ deux alertes (deux lignes d'audit). Ligne `transactional_sends` en `locale` `fr` (corps bilingue,
+D36). Destinataires : `admin`, compte `active`, profil `is_active`, `not is_break_glass` ; un `admin` qui
+consomme son propre code se reçoit l'alerte. `security.critical_alert_failed` porte `failureCode`
+(`provider_unavailable`, `undeliverable_address`, ou `journal_unavailable` si la base refuse la préparation ou
+l'issue). `closeLoginCodeSend` renommé `closeP0Send`.
+
+- `expert-cybersecurite` (fin de jalon) : `0114` (`consume_recovery_code` recréée par `drop` + `create` avec
+  paramètres `out`, mêmes droits et propriétaire ; politique `transactional_sends_auth_insert` étendue à
+  `internal.critical_alert` avec compte obligatoire) ; ligne d'audit `elevated.identity.backoffice_sign_in`
+  supplémentaire (sujet = compte connecté) à chaque préparation d'alerte ; `internal.critical_alert` dans
+  `API_TRANSACTIONAL_TEMPLATES` ; en `redirect` (`staging`), une alerte à un `admin` hors
+  `BREVO_TEST_RECIPIENTS` finit `failed` `undeliverable_address`. `f4f9ebc` sans marqueur : I-4 rouge
+  jusqu'à l'attestation.
+- `testeur` (fin de jalon) : `critical-alert-email` (3 cas unitaires) ; `t8-backoffice-sign-in` (plancher 15 :
+  une alerte par destinataire et clé, P0 `sent`, aucune ligne `outbox_events`, compte de secours / `admin`
+  suspendu / agent exclus, contenu sans `@`, Brevo en panne ⇒ réponse inchangée, ligne `failed`
+  `provider_unavailable`). **Non couvert** : `security.critical_alert_no_recipient` (la base de test partagée a
+  toujours des `admin` actifs) et `journal_unavailable`.
+- Écarts de documentation à regrouper : `16` §H (clé = seq d'audit + compte), `04` §5.8 (`internal.critical_alert`
+  autorisé à `influx_auth`), `03` (E-2 écrit le journal P0 de l'alerte).
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne relire que la tranche
