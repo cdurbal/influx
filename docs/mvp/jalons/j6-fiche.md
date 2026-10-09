@@ -161,6 +161,43 @@ du périmètre) passent par écriture directe des réglages en test, les écrans
 viendra avec l'interrupteur ; **scénarios 13, 14** déjà couverts pour l'API (`tests/config.test.ts`),
 à étendre au worker. Hors J6 : battement de cœur et `/health` du worker (J9).
 
+## Issu du commit 2 (`d066228`)
+
+Contrat pour la boucle du commit 3 (`apps/api/src/domains/leads/queue.ts`, requêtes dans `repository.ts`) :
+`recover` au démarrage et entre deux lots (seuil 600 s, plancher en SQL) ; `claim` en première instruction de sa
+transaction (20 lignes, une par `(subject_key, destination)`, RG77 sauf priorité 0) ; pour chaque ligne, `begin`
+**d'abord** (compte la tentative, rafraîchit `locked_at`, relit compte, consentements `marketing_email` et
+`commercial_prospection`, 7 réglages EC-8, jamais d'adresse), appel hors transaction, puis `complete` (lire
+`writtenStatus` : un `pending` à la 10e tentative est écrit `failed`) ; `55000` = ligne reprise ou d'une autre
+instance, à abandonner ; délai = `retry_schedule[attempt]` ou `Retry-After` borné à 172 800 s ; à `SIGTERM`, les
+lignes non commencées sont rendues par `complete(pending, 'worker_stopping', 0)` sans consommer de tentative.
+
+- `expert-cybersecurite` (fin de jalon) : signer `influx_leads_definer` (`03` P7) et ses quatre fonctions (`04`
+  règle 7) ; `EXECUTE` sur `audit.append_elevated()` à `influx_worker` et code `elevated.leads.drain_outbox`
+  (EC-52 (3) : seule la ligne de journal de la bienvenue a un sujet, le compte). Constat : `append_elevated()`
+  accepte tout code `elevated.*` quel que soit le `session_user` (le worker peut écrire `elevated.identity.*`,
+  `influx_auth` `elevated.leads.*`) ; proposition : lier la famille du motif au rôle de connexion par une migration
+  ultérieure. `d066228` sans marqueur : CI rouge à l'étape I-4 (donc ni tests en CI ni `0111` sur `staging`)
+  jusqu'à l'attestation `covers d066228`.
+- Écarts de documentation à regrouper : `04` §7.4 annonce trois index, il y en a quatre
+  (`outbox_events_subject_live_idx`) ; `02` l.674-680 (verrou consultatif par sujet) remplacé par le prédicat RG77
+  de la prise ; tentative comptée au début (`begin`), pas à la prise ; contrainte
+  `outbox_events_pending_has_attempt_left` (le rejeu du J8 devra remettre `attempts` sous 10).
+- Commit 3 : `withElevatedTransaction` écrit une ligne `pino` `info` « elevated transaction without effect to
+  audit » par transaction sans sujet, soit une par prise (toutes les 2 à 5 s), par début et par issue : volume à
+  trancher (D60). Une libération `worker_stopping` pose `last_attempt_at` d'un contact sans appel (accepté).
+- Commits 4 et 5 : `begin` ne rend ni adresse ni attribut de contact, le mapping aura sa propre lecture (nouvelle
+  migration) ; `email_verified` et `commercial_prospection_consent` sont déjà rendus (RG82, RG83).
+- `testeur` (fin de jalon) : `tm1-outbox-claim` (69 cas) isole ses lignes par une transaction qui verrouille les
+  autres lignes `pending` ; T4.7 sur le pool du worker (T6.5) ; témoin T6 `undeclared-operation` passé à
+  `privacy.execute_request` ; planchers 69 et 31.
+- Hors périmètre, notés : `pnpm --filter @influx/api test:db -- <fichier>` transmet le filtre au script des
+  planchers, pas à vitest (toute la suite tourne) ; pour un fichier, `pnpm exec vitest run --project db
+  db-tests/<fichier> --reporter=dot` depuis `apps/api`. Deux cas instables : `t8-verify-code` RG47 (le cookie
+  « altéré » l.537 reste identique quand son avant-dernier caractère est déjà `A`, environ 1 fois sur 64) et
+  `t13-ops-recording` « over ten a minute » (fenêtre fixe à la minute : douze envois à cheval sur deux minutes
+  passent tous). `0111`, comme `0106`, ne se rejoue pas une fois les fonctions transférées.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne relire que la tranche

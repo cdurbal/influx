@@ -238,6 +238,8 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 **Tests** : TM1.1 à TM1.10 ; CA37 à CA50 ; lead-pipeline T5, T6, T9 ; T17 ; scénarios 1 à 6 et 13 à 14 de `16` RG148.
 **Terminé quand — premier usage démontrable** : sur `staging` en `dry_run`, chaque inscription produit ses lignes et le worker les traite avec le bon statut ; l'essai manuel passe ; une panne simulée de Brevo/Apollo n'empêche aucune inscription (CA37).
 
+- [x] Commit 2 (`d066228`) — `0111` E-3 : `influx_leads_definer`, quatre fonctions `SECURITY DEFINER` à `influx_worker` seul (prise RG77 sauf priorité 0, début avec relecture RG37, issue avec `dry_run`, reprise TM1.10), code `elevated.leads.drain_outbox` (EC-52 (3)) ; U + `domains/leads/queue.ts` ; `tm1-outbox-claim` (69 cas), T2/T3/T4/T6 étendus.
+
 ### J7 — Retours de Brevo et espace membre minimal (3 à 4 jours)
 
 1. **Webhook Brevo** selon EC-12 (`16` RG146, RG147) : jeton en temps constant, chemin à jeton, plages IP, fenêtre 15 min, idempotence, traitement par le worker.
