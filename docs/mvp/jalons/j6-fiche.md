@@ -20,7 +20,9 @@ simulée de Brevo ou d'Apollo n'empêche aucune inscription (CA37).
 
 ## Commits prévus
 
-1. **Dette J5** : points rouges de la revue de fin de J5 (à recopier ici à la clôture du J5).
+1. **Dette J5** : revue de fin de J5 (2026-10-09, `56b8046..ddcaea7`) : **aucun point rouge**
+   (`expert-cybersecurite` : E-1 `read_published_terms`, rejeu de `7b33351` et commit 5 et suites signés ;
+   `testeur` : planchers 16 / 42 / 41 atteints). Commit 1 sans objet.
 2. **Migration `0111` — E-3 `leads.drain_outbox`** (`expert-database`) : fonctions `SECURITY DEFINER`
    du worker sous ce seul motif (entrée dans l'union de `packages/contracts/src/elevated-operations.ts`,
    T6) : **prise** d'un lot (`FOR UPDATE SKIP LOCKED`, 20, `priority, available_at, id`, priorité 0
@@ -45,21 +47,47 @@ simulée de Brevo ou d'Apollo n'empêche aucune inscription (CA37).
    RG84), qualification complète (RG82), **aucun réimport** (RG85), séquence désactivée. `APOLLO_API_KEY`
    au worker seul ; **doublure Apollo à créer** dans `packages/test-kit` (elle n'existe pas).
 6. **EC-44** : alerte `internal.critical_alert` sur `agent.break_glass_login` et
-   `agent.recovery_code_consumed`, selon l'arbitrage du point 1 ci-dessous.
+   `agent.recovery_code_consumed`, selon la décision 1 ci-dessous.
 7. **Essai manuel et `staging`** : essai D62 / `16` RG115 depuis `apps/api/.env.local`, fixtures
    expurgées enregistrées (RG148) ; variables du service `worker` de `staging` (`integrateur`) ;
    vérification du critère de fin.
 
-## Points à trancher au démarrage (un seul appel `architecte`, groupé)
+## Décisions de démarrage (`architecte`, 2026-10-09)
 
-1. **EC-44 contre P0** : EC-44 dit « e-mail d'alerte par la file » ; `16` RG86 et lead-pipeline (l. 109)
-   disent qu'une alerte critique interne est **P0, chemin dédié, jamais dans la file partagée**.
-   Piste la plus sûre : chemin synchrone de `apps/api` (`internal.critical_alert` ajouté à
-   `API_TRANSACTIONAL_TEMPLATES`, journal `transactional_sends` en P0), EC-44 amendé dans `21`.
-2. **Marqueur `dry_run`** : `02` §12.4 veut `succeeded` + `dry_run: true` ; aucune colonne dans `0101`
-   ⇒ forme décidée par `expert-database` au commit 2.
-3. **« Journalise ce qu'il aurait envoyé »** (`02` §12.4) contre D60 : au plus sûr (micro-écart, sans
-   arrêt), noms d'attributs et verdict du contrôle de sortie, **jamais les valeurs**.
+1. **EC-44 = P0, chemin synchrone de `apps/api`, jamais `outbox_events`** (`16` RG86, D43).
+   `internal.critical_alert` ajouté à `API_TRANSACTIONAL_TEMPLATES` ; une ligne
+   `leads.transactional_sends` par destinataire (`p0`, `account_id`, `outbox_event_id` nul, cause P0
+   en échec). Destinataires lus en base : comptes `admin` actifs, **compte de secours exclu** ; aucun
+   ⇒ `pino` `error` `security.critical_alert_no_recipient`. Contenu fixe FR+EN (D36 ouverte) : type,
+   heure UTC, référence d'audit (+ codes restants pour MFA-4), **aucune** adresse, IP, agent, nom ni
+   code. Idempotence = id de la ligne d'audit + destinataire. Envoi après le commit (G4),
+   `Promise.allSettled`, une tentative, Brevo 3 s ; un échec ne change jamais la réponse de connexion
+   (trace : audit, `pino` existant, `transactional_sends` `failed`, `pino` `security.critical_alert_failed`
+   avec le seul `failureCode`).
+   - Commits 2 et 3 : rien. Commit 6 : branchement dans `backoffice-sign-in.ts` après le commit,
+     lecture des `admin`, modèle bilingue, tests doublure (connexion réussie Brevo en panne, aucune
+     ligne `outbox_events`, contenu sans `@`, compte de secours exclu) ; `GRANT` éventuel sur
+     `transactional_sends` pour le rôle de la connexion backoffice **dans le commit 6**, pas dans `0111`.
+2. **`dry_run` = colonne `leads.outbox_events.dry_run boolean not null default false`**, avec
+   `check (not dry_run or status = 'succeeded')` et `check (not dry_run or (provider_message_id is null
+   and provider_contact_id is null))`. En `dry_run` : ni `transactional_sends` ni `contact_sync_states`
+   (pas de fausse réussite) ; qualification, mapping et contrôle de sortie s'exécutent comme en `live`
+   (rejet ⇒ même `failed`). Forme fine (index) : `expert-database`.
+   - Commit 2 : colonne et deux contraintes dans `0111`, `dry_run` paramètre explicite de la fonction
+     d'issue, T2/T4 couvrent les contraintes. Commit 3 : `SYNC_MODE=dry_run` ⇒ `succeeded` + `dry_run`,
+     doublure à zéro appel, `contact_sync_states` inchangé ; **refus de démarrage** si
+     `INFLUX_ENV=production` et `SYNC_MODE=dry_run`. Commit 6 : rien.
+3. **« Ce qu'il aurait envoyé » = `pino` seulement, jamais une colonne** : ligne `info`
+   `leads.dry_run.would_send` (`outboxEventId`, `eventType`, `destination`, `operation`, `templateCode`,
+   `attributeNames` triés, `outputCheck` `pass | reject`, `rejectedAttributeNames`) ; **jamais** de
+   valeur, d'adresse, d'`account_id` ni de paramètre de modèle (D60).
+   - Commit 2 : rien. Commit 3 : la ligne, et un test qu'elle ne contient ni `@` ni aucune valeur de la
+     fixture. Commits 4 et 5 : les connecteurs exposent noms d'attributs et verdict, sans valeurs.
+     Commit 6 : rien.
+
+**Restent ouverts (non tranchés) :** le fondateur reçoit l'alerte via son compte `admin` (hypothèse ;
+sinon arbitrage `chef-de-projet` + fondateur, aucune variable d'adresse sans lui) ; D36 (corps FR+EN
+en attente) ; `16` Q8, expéditeur de secours P0 (Brevo durablement en panne ⇒ audit et `pino` seuls).
 
 ## Règles d'écart applicables
 
@@ -70,7 +98,7 @@ simulée de Brevo ou d'Apollo n'empêche aucune inscription (CA37).
 | EC-11 | Attributs `UTM_SOURCE`, `UTM_MEDIUM`, `UTM_CAMPAIGN`, `REFERRER_DOMAIN`, `HEARD_FROM` ajoutés au mapping `16` §M4 |
 | EC-19 *(archivé)* | Deux clés Brevo distinctes, `api` et `worker` |
 | EC-20 *(archivé)* | Le worker ne porte que `WORKER_DATABASE_URL` (`influx_worker_login`) |
-| EC-44 | E-mail d'alerte compte de secours / code de secours au J6 (voir point 1) |
+| EC-44 | E-mail d'alerte compte de secours / code de secours au J6, P0 synchrone par `apps/api` (décision 1) |
 
 Rappels invariants : charge utile **sans donnée personnelle** (RG74, contrainte `@` de `0101`) ;
 consentement relu **à la consommation**, sans consentement ⇒ `skipped`, jamais `failed` (RG37, RG80) ;
