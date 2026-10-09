@@ -46,3 +46,6 @@ desktop.ini
 
 # --- Claude Code: keep shared agents/skills, ignore personal settings ---
 .claude/settings.local.json
+
+# --- Manual trial recordings (D62, J6 commit 7): raw provider exchanges, never committed ---
+.provider-recordings/
