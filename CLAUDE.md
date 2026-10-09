@@ -168,6 +168,10 @@ suppression propagée à Brevo et Apollo. Référents : `expert-conformite-rgpd`
 3. Toute décision structurante est écrite (ici ou dans `docs/mvp/decisions.md`).
 4. **Aucune création/suppression de dépôt distant ni déploiement en production** sans
    confirmation explicite du fondateur ; idem pour les actions de `docs/mvp/prerequis.md`.
+   **GitHub CLI `gh` authentifiée** (compte `cdurbal`) : après chaque push, l'agent suit
+   lui-même la CI (`gh run list`, `gh run watch <id> --exit-status`,
+   `gh run view <id> --log-failed`) et corrige un échec sans attendre le fondateur ;
+   `gh run rerun --failed` est permis. Toute autre écriture distante via `gh` suit la règle 4.
 5. **Discipline de vélocité (objectif MVP fin octobre) :**
    - Micro-écarts (`EC-*`) sans enjeu d'invariant : appliquer le choix le plus sûr, sans arrêt,
      documentation regroupée en fin de jalon.

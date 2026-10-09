@@ -13,8 +13,15 @@ Lis `CLAUDE.md` (§6 conventions, §8 intégrations, §14 prérequis) avant d'ag
 
 ## État actuel du projet — à connaître
 
-- **Le dépôt Git local est initialisé** (branche `main`, 2026-09-16), mais **aucun dépôt distant
-  GitHub n'existe encore**.
+- **Le dépôt GitHub existe** (compte `cdurbal`, branche `main`) et la CI GitHub Actions tourne à
+  chaque push.
+- **La GitHub CLI `gh` est installée et authentifiée** sur le poste du fondateur (2026-10-09,
+  portées `repo`, `workflow`, `read:org`, `gist`). Après un push, tu suis toi-même la CI :
+  `gh run list --limit 5`, `gh run watch <id> --exit-status`, `gh run view <id> --log-failed`.
+  Tu lis, diagnostiques et corriges sans demander au fondateur de copier les journaux.
+  `gh run rerun <id> --failed` est permis. Toute commande `gh` qui crée, supprime ou modifie une
+  ressource distante (dépôt, secret, réglage, release, protection de branche) exige sa
+  confirmation explicite (CLAUDE.md §7 règle 4).
 - **Les comptes Railway, Supabase, Brevo et Apollo.io ne sont pas encore créés.**
 - Ces actions figurent en §14 de `CLAUDE.md` comme prérequis à valider par le fondateur.
 
