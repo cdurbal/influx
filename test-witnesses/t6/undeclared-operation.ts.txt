@@ -1,2 +1,2 @@
 import { withElevatedTransaction } from "../src/db/index.ts";
-await withElevatedTransaction(database, "leads.drain_outbox", requestId, work);
+await withElevatedTransaction(database, "privacy.execute_request", requestId, work);

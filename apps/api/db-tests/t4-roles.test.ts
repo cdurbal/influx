@@ -69,7 +69,7 @@ describe("T4.1: no influx role is superuser or bypasses RLS", () => {
 });
 
 describe("T4.2: closed list and exact attributes", () => {
-  it("has exactly the roles of the closed list (fourteen from J4), and no influx_service", async () => {
+  it("has exactly the roles of the closed list (fifteen from J6), and no influx_service", async () => {
     const rows = await migration<{ rolname: string }[]>`
       select rolname from pg_catalog.pg_roles where rolname like 'influx\\_%' order by 1`;
     expect(rows.map((row) => row.rolname)).toEqual(
@@ -167,7 +167,7 @@ describe("T4.3: exact memberships", () => {
     expect(rows.filter((row) => row.bad_options > 0)).toEqual([]);
   });
 
-  it("gives the three function owners no member but the ADMIN-only migration role (C-9)", async () => {
+  it("gives the four function owners no member but the ADMIN-only migration role (C-9)", async () => {
     const rows = await migration<{ line: string }[]>`
       select grp.rolname || ' <- ' || mem.rolname || ' inherit=' || m.inherit_option ||
              ' set=' || m.set_option || ' admin=' || m.admin_option as line
@@ -607,6 +607,68 @@ describe("T4.7: guard at the start of an elevated transaction (E-1)", () => {
       expect(seen).toEqual({
         current_user: "influx_auth",
         session_user: "influx_auth_login",
+      });
+      const [lines] = await migration<{ count: number }[]>`
+        select count(*)::int as count from audit.audit_events
+         where request_id = ${requestId}`;
+      expect(lines?.count).toBe(0);
+    } finally {
+      await pool.close();
+    }
+  });
+});
+
+// The same case on the worker pool, now that E-3 is in the union (J6 commit 2); 18 T6.5: in E-3,
+// session_user = influx_worker_login.
+describe("T4.7: guard at the start of an elevated transaction (E-3)", () => {
+  it("refuses a leaked session role on the worker pool, runs nothing, writes no audit line, then recovers", async () => {
+    const logger = recordingLogger();
+    const pool = new ConnectionPool(
+      localConnection("influx_worker_login"),
+      { max: 1, applicationName: "t4.7-worker" },
+      logger,
+    );
+    const elevated = { elevated: { worker: pool }, logger };
+    const requestId = `t4-7-worker-${Date.now()}`;
+    try {
+      const db = await pool.acquire();
+      // The leak: a SESSION-level role left on the only connection (forbidden in src/).
+      await db.execute("set role influx_worker");
+
+      let ran = false;
+      await expect(
+        withElevatedTransaction(
+          elevated,
+          "leads.drain_outbox",
+          requestId,
+          () => {
+            ran = true;
+            return Promise.resolve({ value: undefined, auditSubject: null });
+          },
+        ),
+      ).rejects.toBeInstanceOf(TransactionGuardError);
+      expect(ran).toBe(false);
+      expect(logger.lines).toContain(
+        'transaction guard failed, pool destroyed {"role":"influx_worker_login"}',
+      );
+
+      const seen = await withElevatedTransaction(
+        elevated,
+        "leads.drain_outbox",
+        requestId,
+        async (tx) => {
+          const rows = await tx.execute<{
+            current_user: string;
+            session_user: string;
+          }>(
+            "select current_user::text as current_user, session_user::text as session_user",
+          );
+          return { value: rows[0], auditSubject: null };
+        },
+      );
+      expect(seen).toEqual({
+        current_user: "influx_worker",
+        session_user: "influx_worker_login",
       });
       const [lines] = await migration<{ count: number }[]>`
         select count(*)::int as count from audit.audit_events

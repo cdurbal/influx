@@ -5,7 +5,8 @@
 // Rules (18 T2):
 // 1. one column per POSTGRES role; the `service` column of 03 §3 is split between influx_auth and
 //    influx_worker. influx_auth receives its table rights at J3 (0012 to 0015, column by column,
-//    03 P7 E-1 / E-2); influx_worker still has none (J6). An elevated role has no business
+//    03 P7 E-1 / E-2); influx_worker has none, and keeps none from J6: E-3 goes through the four
+//    functions of influx_leads_definer (0111). An elevated role has no business
 //    context: its probes act on account A of the advertiser role (t2-rls-matrix.test.ts);
 // 2. every expectation cites its source; an absent cell means `refus_droit`: refusal is the
 //    default, never the exception;
@@ -458,7 +459,8 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
       select: {
         form: "autorisé",
         source:
-          "0101, 04 §10.7: synchronisation state per contact, backoffice read; worker writes at J6",
+          "0101, 04 §10.7: synchronisation state per contact, backoffice read; written by " +
+          "leads.complete_outbox_attempt() (0111), never by a table right of influx_worker",
       },
     }),
   },
@@ -466,7 +468,7 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     table: "leads.sync_settings",
     source:
       "0103 (EC-8): no right for any execution role; read by identity.provision_account() (0106), " +
-      "by the worker at J6, written by the admin function at J8",
+      "by leads.begin_outbox_attempt() (0111), written by the admin function at J8",
     probeColumn: "key",
     expected: {},
   },
@@ -629,8 +631,9 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * after 0001-0008 and reviewed line by line against 03 §3 and P7 on 2026-09-26; extended on
  * 2026-09-28 with the grants of 0011 to 0015 (J3 commit 6: influx_auth column by column, the
  * narrow audit functions, the identity definers), each line checked against its migration; on
- * 2026-10-05 with those of 0016 (J4: influx_ops on the ops schema); and on 2026-10-08 with those
- * of 0101 to 0106 (J5, Lot 1), each line checked against its migration.
+ * 2026-10-05 with those of 0016 (J4: influx_ops on the ops schema); on 2026-10-08 with those
+ * of 0101 to 0106 (J5, Lot 1), each line checked against its migration; and on 2026-10-09 with
+ * those of 0111 (J6, E-3: influx_leads_definer column by column, influx_worker on its functions).
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -1062,9 +1065,79 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|column|identity.terms_versions.requires_acceptance|SELECT",
   "influx_identity_definer|column|identity.terms_versions.version_label|SELECT",
   "influx_identity_definer|function|identity.terms_in_force(identity.document_kind,text)|EXECUTE",
+  // 0111 (J6, E-3 leads.drain_outbox): influx_worker reaches the queue through four SECURITY
+  // DEFINER functions only, and the register through audit.append_elevated() (EC-52 (3)); their
+  // owner reads and writes, column by column, what the four functions read and write.
+  "influx_leads_definer|column|identity.account_roles.account_id|SELECT",
+  "influx_leads_definer|column|identity.account_roles.role|SELECT",
+  "influx_leads_definer|column|identity.accounts.country_code|SELECT",
+  "influx_leads_definer|column|identity.accounts.declared_status|SELECT",
+  "influx_leads_definer|column|identity.accounts.email_verified_at|SELECT",
+  "influx_leads_definer|column|identity.accounts.id|SELECT",
+  "influx_leads_definer|column|identity.accounts.preferred_language|SELECT",
+  "influx_leads_definer|column|identity.accounts.status|SELECT",
+  "influx_leads_definer|column|identity.consent_events.account_id|SELECT",
+  "influx_leads_definer|column|identity.consent_events.granted|SELECT",
+  "influx_leads_definer|column|identity.consent_events.occurred_at|SELECT",
+  "influx_leads_definer|column|identity.consent_events.purpose|SELECT",
+  "influx_leads_definer|column|leads.contact_sync_states.account_id|INSERT,SELECT",
+  "influx_leads_definer|column|leads.contact_sync_states.destination|INSERT,SELECT",
+  "influx_leads_definer|column|leads.contact_sync_states.external_contact_id|INSERT,SELECT,UPDATE",
+  "influx_leads_definer|column|leads.contact_sync_states.last_attempt_at|INSERT,UPDATE",
+  "influx_leads_definer|column|leads.contact_sync_states.last_error_code|INSERT,UPDATE",
+  "influx_leads_definer|column|leads.contact_sync_states.last_status|INSERT,UPDATE",
+  "influx_leads_definer|column|leads.contact_sync_states.last_success_at|INSERT,SELECT,UPDATE",
+  "influx_leads_definer|column|leads.outbox_events.attempts|SELECT,UPDATE",
+  "influx_leads_definer|column|leads.outbox_events.available_at|SELECT,UPDATE",
+  "influx_leads_definer|column|leads.outbox_events.completed_at|UPDATE",
+  "influx_leads_definer|column|leads.outbox_events.destination|SELECT",
+  "influx_leads_definer|column|leads.outbox_events.dry_run|UPDATE",
+  "influx_leads_definer|column|leads.outbox_events.event_id|SELECT",
+  "influx_leads_definer|column|leads.outbox_events.event_type|SELECT",
+  "influx_leads_definer|column|leads.outbox_events.id|SELECT",
+  "influx_leads_definer|column|leads.outbox_events.idempotency_key|SELECT",
+  "influx_leads_definer|column|leads.outbox_events.last_error_code|UPDATE",
+  "influx_leads_definer|column|leads.outbox_events.last_error_message|UPDATE",
+  "influx_leads_definer|column|leads.outbox_events.locked_at|SELECT,UPDATE",
+  "influx_leads_definer|column|leads.outbox_events.locked_by|SELECT,UPDATE",
+  "influx_leads_definer|column|leads.outbox_events.payload|SELECT",
+  "influx_leads_definer|column|leads.outbox_events.priority|SELECT",
+  "influx_leads_definer|column|leads.outbox_events.provider_contact_id|UPDATE",
+  "influx_leads_definer|column|leads.outbox_events.provider_message_id|UPDATE",
+  "influx_leads_definer|column|leads.outbox_events.skip_reason|UPDATE",
+  "influx_leads_definer|column|leads.outbox_events.status|SELECT,UPDATE",
+  "influx_leads_definer|column|leads.outbox_events.subject_key|SELECT",
+  "influx_leads_definer|column|leads.sync_settings.key|SELECT",
+  "influx_leads_definer|column|leads.sync_settings.value|SELECT",
+  "influx_leads_definer|column|leads.transactional_sends.account_id|INSERT",
+  "influx_leads_definer|column|leads.transactional_sends.email_code|INSERT",
+  "influx_leads_definer|column|leads.transactional_sends.locale|INSERT",
+  "influx_leads_definer|column|leads.transactional_sends.outbox_event_id|INSERT",
+  "influx_leads_definer|column|leads.transactional_sends.priority|INSERT",
+  "influx_leads_definer|column|leads.transactional_sends.provider_message_id|INSERT",
+  "influx_leads_definer|column|leads.transactional_sends.sent_at|INSERT",
+  "influx_leads_definer|column|leads.transactional_sends.status|INSERT",
+  "influx_leads_definer|column|leads.transactional_sends.template_ref|INSERT",
+  "influx_leads_definer|column|leads.transactional_sends.template_version|INSERT",
+  "influx_leads_definer|function|leads.begin_outbox_attempt(bigint,text)|EXECUTE",
+  "influx_leads_definer|function|leads.claim_outbox_batch(text,integer)|EXECUTE",
+  "influx_leads_definer|function|leads.complete_outbox_attempt(bigint,text,leads.outbox_status,boolean,text,text,text,integer,text,text,text,integer)|EXECUTE",
+  "influx_leads_definer|function|leads.recover_stale_outbox_lines(integer)|EXECUTE",
+  "influx_leads_definer|schema|identity|USAGE",
+  "influx_leads_definer|schema|leads|USAGE",
+  "influx_worker|function|audit.append_elevated(text,uuid)|EXECUTE",
+  "influx_worker|function|leads.begin_outbox_attempt(bigint,text)|EXECUTE",
+  "influx_worker|function|leads.claim_outbox_batch(text,integer)|EXECUTE",
+  "influx_worker|function|leads.complete_outbox_attempt(bigint,text,leads.outbox_status,boolean,text,text,text,integer,text,text,text,integer)|EXECUTE",
+  "influx_worker|function|leads.recover_stale_outbox_lines(integer)|EXECUTE",
+  "influx_worker|schema|audit|USAGE",
+  "influx_worker|schema|leads|USAGE",
 ];
 
-/** T4.2, T4.3: the closed list of 03 P7 (twelve roles at J2, fourteen from J4), memberships. */
+/**
+ * T4.2, T4.3: the closed list of 03 P7 (twelve roles at J2, fourteen from J4, fifteen from J6 with
+ * influx_leads_definer, 0111), memberships.
+ */
 export const EXPECTED_ROLES: Readonly<
   Record<string, { login: boolean; memberOf: readonly string[] }>
 > = {
@@ -1090,6 +1163,7 @@ export const EXPECTED_ROLES: Readonly<
   influx_audit_writer: { login: false, memberOf: [] },
   influx_session_resolver: { login: false, memberOf: [] },
   influx_identity_definer: { login: false, memberOf: [] },
+  influx_leads_definer: { login: false, memberOf: [] },
 };
 
 /** Owners of SECURITY DEFINER functions: no login, NO member (only C-9 tolerance). */
@@ -1097,6 +1171,7 @@ export const FUNCTION_OWNER_ROLES = [
   "influx_audit_writer",
   "influx_session_resolver",
   "influx_identity_definer",
+  "influx_leads_definer",
 ] as const;
 
 /** Execution roles (T4.4: own nothing). */
@@ -1148,4 +1223,10 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   // 0108 (J5, EC-62)
   "identity.terms_in_force(identity.document_kind,text)":
     "influx_identity_definer",
+  // 0111 (J6, E-3 leads.drain_outbox)
+  "leads.claim_outbox_batch(text,integer)": "influx_leads_definer",
+  "leads.begin_outbox_attempt(bigint,text)": "influx_leads_definer",
+  "leads.complete_outbox_attempt(bigint,text,leads.outbox_status,boolean,text,text,text,integer,text,text,text,integer)":
+    "influx_leads_definer",
+  "leads.recover_stale_outbox_lines(integer)": "influx_leads_definer",
 };

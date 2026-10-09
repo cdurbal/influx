@@ -893,6 +893,7 @@ d'exécution. **`influx_service` n'existe pas** : supprimé, jamais créé.
 | Rôle | Quand | Ce qu'il sera |
 |---|---|---|
 | `influx_ops` + `influx_ops_login` | J4, avec le schéma `ops` | Écriture seule sur `ops`, aucune lecture métier ; `OPS_DATABASE_URL`, `api` ; le worker écrit `ops` par des droits nommés d'`influx_worker`. **Entrée E-6 signée le 2026-10-06 avec `0016`** |
+| `influx_leads_definer` | J6, avec `0111` | `NOLOGIN NOINHERIT`, aucun membre : propriétaire des quatre fonctions `SECURITY DEFINER` d'E-3 (`leads.claim_outbox_batch`, `begin_outbox_attempt`, `complete_outbox_attempt`, `recover_stale_outbox_lines`), `EXECUTE` à `influx_worker` **seul**, qui ne garde **aucun droit de table** ; droits colonne par colonne sur la file, les états de contact, le journal (insertion P1), les réglages du worker, le compte et le consentement (lecture). Distinct d'`influx_identity_definer` : aucun des deux ne prête ses droits à l'autre. **À signer par `expert-cybersecurite` à la revue de fin de J6** |
 | `influx_intro_owner` | Lot 4 | Propriétaire des fonctions de révélation (§3.4) |
 | `influx_privacy` + `influx_privacy_login` | Lot 5 | E-5 ; `PRIVACY_DATABASE_URL`, `worker`. **Jamais ajouté à `influx_worker_login`** |
 

@@ -22,7 +22,6 @@ import {
   APPEND_FUNCTION,
   APPEND_TEMPORARY_GRANTEES,
   assertNoTemporaryRights,
-  AUDIT_USAGE_TEMPORARY_GRANTEES,
   INTERRUPTED_RUN_MESSAGE,
 } from "./temporary-rights.ts";
 
@@ -454,10 +453,10 @@ describe("T3.10 and T3.11: the verification record, and trailing lines", () => {
   });
 });
 
-// What EC-36 will give influx_auth and influx_worker through a narrow function, and a direct
-// right for influx_admin, so that each connection role can reach append() in the M2 tests only.
+// What EC-36 gives influx_auth and influx_worker through a narrow function, and a direct right
+// for influx_admin, so that each connection role can reach append() in the M2 tests only. The
+// three already hold USAGE on audit (0006, 0011, 0111): only EXECUTE is temporary.
 const APPEND_CALLERS = APPEND_TEMPORARY_GRANTEES.join(", ");
-const AUDIT_USAGE_CALLERS = AUDIT_USAGE_TEMPORARY_GRANTEES.join(", ");
 
 /** Grants (or revokes) the temporary rights as the owner, through the window of 0006 §9. */
 async function setTemporaryRights(grant: boolean): Promise<void> {
@@ -473,11 +472,6 @@ async function setTemporaryRights(grant: boolean): Promise<void> {
     );
     await tx.unsafe("reset role");
     await tx.unsafe("revoke influx_audit_writer from current_user");
-    await tx.unsafe(
-      grant
-        ? `grant usage on schema audit to ${AUDIT_USAGE_CALLERS}`
-        : `revoke usage on schema audit from ${AUDIT_USAGE_CALLERS}`,
-    );
   });
 }
 
@@ -492,12 +486,18 @@ describe("V4: the temporary rights of an interrupted run are refused, never igno
         `influx_admin: EXECUTE on ${APPEND_FUNCTION}`,
       );
       await expect(refusal).rejects.toThrow(
-        "influx_worker: USAGE on schema audit",
+        `influx_worker: EXECUTE on ${APPEND_FUNCTION}`,
       );
     } finally {
       await setTemporaryRights(false);
     }
     await expect(assertNoTemporaryRights(migration)).resolves.toBeUndefined();
+    // the revocation took EXECUTE back and left the USAGE that 0111 gives influx_worker for good
+    const [worker] = await migration<{ usage: boolean; append: boolean }[]>`
+      select pg_catalog.has_schema_privilege('influx_worker', 'audit', 'USAGE') as usage,
+             pg_catalog.has_function_privilege('influx_worker', ${APPEND_FUNCTION}, 'EXECUTE')
+               as append`;
+    expect(worker).toEqual({ usage: true, append: false });
   });
 });
 
@@ -607,7 +607,8 @@ describe("M2: the actor type of a line is bound to session_user (0009)", () => {
 
   it("V1: refuses any other influx_% session_user (0011)", async () => {
     // SET SESSION AUTHORIZATION needs a superuser: the local one only (loopback), in a
-    // rolled-back transaction. influx_worker holds EXECUTE and USAGE for this block only.
+    // rolled-back transaction. influx_worker holds EXECUTE on append() for this block only (and
+    // USAGE on audit for good since 0111).
     const superuser = connectAsLocalSuperuser({ max: 1 });
     try {
       const result = await inRolledBackTransaction(superuser, async (tx) => {

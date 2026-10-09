@@ -116,12 +116,13 @@ describe("T4.6 e: identity of a pool when it opens", () => {
   });
 });
 
-describe("T6.2: an operation outside the closed union is refused at runtime", () => {
+describe("T6.2: an operation outside the closed union, or without its pool here, is refused at runtime", () => {
   it.each([
     // Signed (set P) but without a caller yet (not in U): refused like any other value.
     "support.report_delivery_issue",
-    "leads.drain_outbox",
     "privacy.execute_request",
+    // In U since J6 (E-3), but this database is the api's: no worker pool (03 P7 rule 5).
+    "leads.drain_outbox",
     "anything",
     "",
   ])(

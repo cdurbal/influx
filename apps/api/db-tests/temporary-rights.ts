@@ -14,12 +14,9 @@ export const APPEND_TEMPORARY_GRANTEES = [
   "influx_auth",
   "influx_worker",
 ] as const;
-/**
- * USAGE on the schema audit granted by the M2 block. influx_auth holds it for good since 0011 (it
- * reaches audit.append_elevated() and audit.append_auth_event() through the schema): only
- * influx_worker receives it temporarily, until its first elevated operation (J6).
- */
-export const AUDIT_USAGE_TEMPORARY_GRANTEES = ["influx_worker"] as const;
+// No temporary USAGE on the schema audit any more: influx_admin holds it since 0006, influx_auth
+// since 0011, and influx_worker since 0111 (J6, E-3: audit.append_elevated(), EC-52 (3)). The M2
+// block grants EXECUTE on audit.append() only, and must never revoke a USAGE it did not grant.
 
 export const INTERRUPTED_RUN_MESSAGE =
   "exécution précédente interrompue : des droits temporaires d'un test sont restés dans la " +
@@ -35,12 +32,6 @@ export async function leftoverTemporaryRights(
       from pg_catalog.pg_proc p, pg_catalog.aclexplode(p.proacl) a
      where p.oid = ${APPEND_FUNCTION}::regprocedure
        and a.grantee::regrole::text = any (${[...APPEND_TEMPORARY_GRANTEES]})
-    union all
-    select a.grantee::regrole::text || ': USAGE on schema audit'
-      from pg_catalog.pg_namespace n, pg_catalog.aclexplode(n.nspacl) a
-     where n.nspname = 'audit'
-       and a.privilege_type = 'USAGE'
-       and a.grantee::regrole::text = any (${[...AUDIT_USAGE_TEMPORARY_GRANTEES]})
      order by 1`;
   return rows.map((row) => row.line);
 }
