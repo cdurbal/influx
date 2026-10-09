@@ -451,7 +451,10 @@ export async function signInToBackoffice(
             recoveryCodesLeft: null,
           });
         }
-        return { value: { recoveryCodesLeft, alerts }, auditSubject: account.id };
+        return {
+          value: { recoveryCodesLeft, alerts },
+          auditSubject: account.id,
+        };
       });
       if (opened === null) {
         return FAILED;

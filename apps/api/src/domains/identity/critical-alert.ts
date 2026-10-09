@@ -131,9 +131,8 @@ export async function sendCriticalAlerts(
       }),
     ),
   );
-  const outcomes = settled.map(
-    (result): SendOutcome =>
-      result.status === "fulfilled" ? result.value : { status: "unavailable" },
+  const outcomes = settled.map((result): SendOutcome =>
+    result.status === "fulfilled" ? result.value : { status: "unavailable" },
   );
   for (const outcome of outcomes) {
     if (outcome.status !== "sent") {

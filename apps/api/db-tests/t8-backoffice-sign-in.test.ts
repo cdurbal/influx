@@ -72,7 +72,13 @@ function brevoSender(options: { down?: boolean } = {}): TransactionalSender {
       baseUrl: options.down === true ? "http://127.0.0.1:9/v3" : double.baseUrl,
       senderEmail: "no-reply@tx.influx.example",
     },
-    { logger: { info: () => undefined, warn: () => undefined, error: () => undefined } },
+    {
+      logger: {
+        info: () => undefined,
+        warn: () => undefined,
+        error: () => undefined,
+      },
+    },
   );
 }
 
@@ -248,7 +254,10 @@ async function enroll(server: Server, account: Internal): Promise<Enrolled> {
 }
 
 /** EC-44: the seq of the account's latest audit line of this type (the alert identifier). */
-async function auditSeqOf(accountId: string, eventType: string): Promise<string> {
+async function auditSeqOf(
+  accountId: string,
+  eventType: string,
+): Promise<string> {
   const [row] = await migrationRole()<{ seq: string }[]>`
     select seq::text from audit.audit_events
      where subject_id = ${accountId}::uuid and event_type = ${eventType}
@@ -610,7 +619,9 @@ describe("J3-C rule 4, EC-39: sign-in in one request, directly in aal2", () => {
 
   it("MFA-3, MFA-4, EC-44, T8.11: a recovery code opens one session, alerts, and never serves twice", async () => {
     const { server, logs } = app();
-    const recipient = await newInternal("recovery-recipient", { role: "admin" });
+    const recipient = await newInternal("recovery-recipient", {
+      role: "admin",
+    });
     const account = await newInternal("recovery");
     const enrolled = await enroll(server, account);
     const typed = (enrolled.recoveryCodes[3] ?? "")
@@ -635,7 +646,10 @@ describe("J3-C rule 4, EC-39: sign-in in one request, directly in aal2", () => {
     );
     expect(logs.text()).toContain("security.recovery_code_consumed");
     // EC-44 (J6): one alert per active admin, keyed by the audit line and the recipient.
-    const seq = await auditSeqOf(account.accountId, "agent.recovery_code_consumed");
+    const seq = await auditSeqOf(
+      account.accountId,
+      "agent.recovery_code_consumed",
+    );
     const alerts = alertsTo(recipient.email);
     expect(alerts).toHaveLength(1);
     expect(alerts[0]?.headers["idempotency-key"]).toBe(
@@ -717,7 +731,9 @@ describe("J3-C rule 4, EC-39: sign-in in one request, directly in aal2", () => {
       `internal.critical_alert:${seq}:${recipient.accountId}`,
     );
     const keys = double.messages
-      .filter((message) => message.body.tags?.includes("internal.critical_alert"))
+      .filter((message) =>
+        message.body.tags?.includes("internal.critical_alert"),
+      )
       .map((message) => message.headers["idempotency-key"]);
     expect(new Set(keys).size).toBe(keys.length);
     for (const excluded of [account, suspended, agent]) {
@@ -728,7 +744,12 @@ describe("J3-C rule 4, EC-39: sign-in in one request, directly in aal2", () => {
     expect(`${subject}${textContent}${htmlContent}`).not.toContain("@");
     expect(textContent).toContain(`Audit reference: ${seq}`);
     expect(await alertSendsOf(recipient.accountId)).toEqual([
-      { priority: "p0", status: "sent", outbox_event_id: null, failure_code: null },
+      {
+        priority: "p0",
+        status: "sent",
+        outbox_event_id: null,
+        failure_code: null,
+      },
     ]);
     const [queued] = await migrationRole()<{ count: number }[]>`
       select count(*)::int as count from leads.outbox_events
