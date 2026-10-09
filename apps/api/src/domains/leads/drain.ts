@@ -175,6 +175,9 @@ export function createOutboxDrain(
     if (preparation.kind === "skip") {
       return { status: "skipped", dryRun, reason: preparation.reason };
     }
+    if (preparation.kind === "fail") {
+      return { status: "failed", dryRun, errorCode: preparation.errorCode };
+    }
 
     const { description } = preparation;
     const rejected = [...description.rejectedAttributeNames].sort();

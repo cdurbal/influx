@@ -1109,8 +1109,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|column|leads.outbox_events.subject_key|SELECT",
   "influx_leads_definer|column|leads.sync_settings.key|SELECT",
   "influx_leads_definer|column|leads.sync_settings.value|SELECT",
-  "influx_leads_definer|column|leads.transactional_sends.account_id|INSERT",
-  "influx_leads_definer|column|leads.transactional_sends.email_code|INSERT",
+  "influx_leads_definer|column|leads.transactional_sends.account_id|INSERT,SELECT",
+  "influx_leads_definer|column|leads.transactional_sends.email_code|INSERT,SELECT",
   "influx_leads_definer|column|leads.transactional_sends.locale|INSERT",
   "influx_leads_definer|column|leads.transactional_sends.outbox_event_id|INSERT",
   "influx_leads_definer|column|leads.transactional_sends.priority|INSERT",
@@ -1125,6 +1125,22 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|function|leads.recover_stale_outbox_lines(integer)|EXECUTE",
   "influx_leads_definer|schema|identity|USAGE",
   "influx_leads_definer|schema|leads|USAGE",
+  // 0112 (J6 commit 4, E-3): the Brevo connectors' own read, leads.read_brevo_subject(): the
+  // address and the mapped fields (16 §M4, EC-11), the company name of an advertiser, the source of
+  // the consent in force, and whether a welcome e-mail already left (16 RG90).
+  "influx_leads_definer|column|identity.accounts.created_at|SELECT",
+  "influx_leads_definer|column|identity.accounts.email|SELECT",
+  "influx_leads_definer|column|identity.accounts.signup_heard_from|SELECT",
+  "influx_leads_definer|column|identity.accounts.signup_referrer_domain|SELECT",
+  "influx_leads_definer|column|identity.accounts.signup_utm_campaign|SELECT",
+  "influx_leads_definer|column|identity.accounts.signup_utm_medium|SELECT",
+  "influx_leads_definer|column|identity.accounts.signup_utm_source|SELECT",
+  "influx_leads_definer|column|identity.consent_events.source|SELECT",
+  "influx_leads_definer|column|profiles.advertiser_profiles.account_id|SELECT",
+  "influx_leads_definer|column|profiles.advertiser_profiles.legal_name|SELECT",
+  "influx_leads_definer|function|leads.read_brevo_subject(bigint,text)|EXECUTE",
+  "influx_leads_definer|schema|profiles|USAGE",
+  "influx_worker|function|leads.read_brevo_subject(bigint,text)|EXECUTE",
   "influx_worker|function|audit.append_elevated(text,uuid)|EXECUTE",
   "influx_worker|function|leads.begin_outbox_attempt(bigint,text)|EXECUTE",
   "influx_worker|function|leads.claim_outbox_batch(text,integer)|EXECUTE",
@@ -1228,5 +1244,6 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "leads.begin_outbox_attempt(bigint,text)": "influx_leads_definer",
   "leads.complete_outbox_attempt(bigint,text,leads.outbox_status,boolean,text,text,text,integer,text,text,text,integer)":
     "influx_leads_definer",
+  "leads.read_brevo_subject(bigint,text)": "influx_leads_definer",
   "leads.recover_stale_outbox_lines(integer)": "influx_leads_definer",
 };

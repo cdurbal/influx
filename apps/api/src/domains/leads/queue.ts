@@ -22,9 +22,11 @@ import {
   claimLines,
   completeAttempt,
   isLineNotInProcessing,
+  readBrevoSubject,
   recoverStaleLines,
   type AttemptOutcome,
   type AttemptState,
+  type BrevoSubject,
   type ClaimedLine,
   type RecoveredLine,
   type WrittenStatus,
@@ -108,6 +110,34 @@ export async function recoverStaleOutboxLines(
     "leads.drain_outbox",
     requestId,
     async (tx) => ({ value: await recoverStaleLines(tx), auditSubject: null }),
+  );
+}
+
+/**
+ * The Brevo connectors' own read (0112): the subject's address and mapped fields, for a line in
+ * processing for this worker. A privileged read of an address: its register line is on the
+ * account (CLAUDE.md §5 rule 5). Its own short transaction, closed before the call (G4).
+ */
+export async function readBrevoSubjectOf(
+  database: WorkerDatabase,
+  requestId: string,
+  line: ClaimedLine,
+  worker: string,
+): Promise<BrevoSubject | null> {
+  return translated(
+    withElevatedTransaction(
+      database,
+      "leads.drain_outbox",
+      requestId,
+      async (tx) => {
+        const subject = await readBrevoSubject(tx, line.id, worker);
+        return {
+          value: subject,
+          auditSubject:
+            subject === null ? null : line.subjectKey.slice("account:".length),
+        };
+      },
+    ),
   );
 }
 

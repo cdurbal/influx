@@ -86,6 +86,25 @@ export type RecordedOutcome = {
 
 export type RecoveredLine = { id: string; writtenStatus: "pending" | "failed" };
 
+/** What the Brevo connectors read of a subject, besides the account state of the attempt (0112). */
+export type BrevoSubject = {
+  email: string;
+  /** ISO 8601, the creation of the account. */
+  signedUpAt: string;
+  /** The company name of an advertiser profile; never sent for a creator (16 RG142). */
+  company: string | null;
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+  referrerDomain: string | null;
+  heardFrom: string | null;
+  /** The marketing_email consent in force: its instant (ISO 8601) and source; null if refused. */
+  consentAt: string | null;
+  consentSource: string | null;
+  /** The welcome e-mail of the line's code already journaled for the account (16 RG90). */
+  welcomeSent: boolean;
+};
+
 /** SQLSTATE of a line no longer in processing for this worker (begin and complete, 0111). */
 const NOT_IN_PROCESSING = "55000";
 
@@ -241,4 +260,54 @@ export async function recoverStaleLines(
     id: row.id,
     writtenStatus: row.written_status,
   }));
+}
+
+/**
+ * The subject of a Brevo line in processing for this worker (0112): its address and the fields of
+ * the mapping (16 §M4, EC-11). null: the subject is not an existing account.
+ */
+export async function readBrevoSubject(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<BrevoSubject | null> {
+  const rows = await tx.execute<{
+    email: string;
+    signed_up_at: string;
+    company: string | null;
+    utm_source: string | null;
+    utm_medium: string | null;
+    utm_campaign: string | null;
+    referrer_domain: string | null;
+    heard_from: string | null;
+    consent_at: string | null;
+    consent_source: string | null;
+    welcome_sent: boolean;
+  }>(
+    sql`select email,
+               to_char(signed_up_at at time zone 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as signed_up_at,
+               company, utm_source, utm_medium, utm_campaign, referrer_domain, heard_from,
+               to_char(consent_at at time zone 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as consent_at,
+               consent_source, welcome_sent
+          from leads.read_brevo_subject(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    return null;
+  }
+  return {
+    email: row.email,
+    signedUpAt: row.signed_up_at,
+    company: row.company,
+    utmSource: row.utm_source,
+    utmMedium: row.utm_medium,
+    utmCampaign: row.utm_campaign,
+    referrerDomain: row.referrer_domain,
+    heardFrom: row.heard_from,
+    consentAt: row.consent_at,
+    consentSource: row.consent_source,
+    welcomeSent: row.welcome_sent,
+  };
 }

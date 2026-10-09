@@ -1,0 +1,729 @@
+// The Brevo connectors of the worker (J6, commit 4; src/domains/leads/connectors/brevo/) against
+// the Brevo double of @influx/test-kit on the loopback (16 RG148: no test ever reaches Brevo):
+// operations 1, 2, 6 and 7 of 16 §M1, the mapping of §M4 with the attributes of EC-11, the output
+// check (RG137), RG142, the welcome e-mail once per account (05 RG76, RG86; 16 RG90), the error
+// classes of §M5 and the scenarios 1 to 6 and 13 of RG148; 05 CA38 to CA41. The loop around the
+// connectors (locks, schedule, outcome) is tested in leads-drain.
+import {
+  startBrevoDouble,
+  type BrevoDouble,
+} from "@influx/test-kit/brevo-double";
+import { TOO_MANY_REQUESTS } from "@influx/test-kit/brevo-exchanges";
+import { valuesFoundIn } from "@influx/test-kit/logs";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import type {
+  CallDescription,
+  CallResult,
+  Connector,
+} from "../src/domains/leads/connector.ts";
+import {
+  BREVO_CONTACT_ATTRIBUTES,
+  checkContactOutput,
+  createBrevoConnectors,
+  mapContact,
+  type BrevoConnectorSettings,
+  type BrevoSubject,
+} from "../src/domains/leads/connectors/brevo/index.ts";
+import type {
+  AttemptState,
+  ClaimedLine,
+  OutboxDestination,
+  SubjectAccount,
+} from "../src/domains/leads/repository.ts";
+
+const ACCOUNT = "4f6c2a51-93d7-4b8e-a1c0-7e2d9b3f5a68";
+const EMAIL = "lena-k7q2@example.test";
+const LEGAL_NAME = "Maison Verbeke-Lambrecht";
+const CREATORS_LIST = 3;
+const ADVERTISERS_LIST = 2;
+const SUPPRESSION_LIST = 7;
+const WELCOME_CREATOR_TEMPLATE = 12;
+const WELCOME_ADVERTISER_TEMPLATE = 11;
+
+const SETTINGS: Record<string, unknown> = {
+  brevo_list_ids: { advertisers: ADVERTISERS_LIST, creators: CREATORS_LIST },
+  brevo_template_ids: {
+    "account.welcome_advertiser": WELCOME_ADVERTISER_TEMPLATE,
+    "account.welcome_creator": WELCOME_CREATOR_TEMPLATE,
+  },
+};
+
+let double: BrevoDouble;
+let logLines: string[];
+let reads: string[];
+
+function logger() {
+  const write = (level: string) => (object: object, message: string) => {
+    logLines.push(`${level} ${message} ${JSON.stringify(object)}`);
+  };
+  return { info: write("info"), warn: write("warn"), error: write("error") };
+}
+
+function account(overrides: Partial<SubjectAccount> = {}): SubjectAccount {
+  return {
+    id: ACCOUNT,
+    status: "active",
+    role: "creator",
+    declaredStatus: "individual",
+    countryCode: "BE",
+    preferredLanguage: "fr",
+    emailVerified: true,
+    marketingEmailConsent: true,
+    commercialProspectionConsent: true,
+    ...overrides,
+  };
+}
+
+function state(
+  overrides: Partial<SubjectAccount> = {},
+  settings: Record<string, unknown> = SETTINGS,
+): AttemptState {
+  return { attempt: 1, account: account(overrides), settings };
+}
+
+function subject(overrides: Partial<BrevoSubject> = {}): BrevoSubject {
+  return {
+    email: EMAIL,
+    signedUpAt: "2026-10-09T08:15:00.000Z",
+    company: null,
+    utmSource: "newsletter",
+    utmMedium: null,
+    utmCampaign: null,
+    referrerDomain: null,
+    heardFrom: "social_media",
+    consentAt: "2026-10-09T08:15:00.000Z",
+    consentSource: "signup_form",
+    welcomeSent: false,
+    ...overrides,
+  };
+}
+
+let nextLine = 1;
+
+function line(
+  destination: OutboxDestination,
+  overrides: Partial<ClaimedLine> = {},
+): ClaimedLine {
+  const id = String(nextLine++);
+  const event = `0a1b2c3d-0000-4000-8000-${id.padStart(12, "0")}`;
+  return {
+    id,
+    eventId: event,
+    eventType: "lead.created",
+    destination,
+    subjectKey: `account:${ACCOUNT}`,
+    priority: 100,
+    payload:
+      destination === "brevo_transactional"
+        ? {
+            event_id: event,
+            account_id: ACCOUNT,
+            email_code: "account.welcome_creator",
+          }
+        : { event_id: event, account_id: ACCOUNT },
+    idempotencyKey:
+      destination === "brevo_transactional"
+        ? `account.welcome:${ACCOUNT}`
+        : `lead.created:${event}`,
+    ...overrides,
+  };
+}
+
+type Setup = {
+  settings?: Partial<BrevoConnectorSettings>;
+  subject?: BrevoSubject | null;
+  mapContact?: typeof mapContact;
+  timeoutMs?: number;
+};
+
+function connectors(setup: Setup = {}): {
+  contact: Connector;
+  transactional: Connector;
+} {
+  return createBrevoConnectors(
+    {
+      mode: "redirect",
+      testRecipients: [EMAIL],
+      apiKey: "local-double-key",
+      baseUrl: double.baseUrl,
+      senderTransactional: "no-reply@tx.influx.example",
+      suppressionListId: SUPPRESSION_LIST,
+      ...setup.settings,
+    },
+    {
+      logger: logger(),
+      readSubject: (claimed) => {
+        reads.push(claimed.id);
+        return Promise.resolve(
+          setup.subject === undefined ? subject() : setup.subject,
+        );
+      },
+      ...(setup.mapContact === undefined
+        ? {}
+        : { mapContact: setup.mapContact }),
+      ...(setup.timeoutMs === undefined ? {} : { timeoutMs: setup.timeoutMs }),
+    },
+  );
+}
+
+type Prepared =
+  | { kind: "skip"; reason: string }
+  | { kind: "fail"; errorCode: string }
+  | {
+      kind: "mapped";
+      description: CallDescription;
+      recipientDomain: string;
+      result: () => Promise<CallResult>;
+    };
+
+/** The connector's preparation, then, for a mapped line, the call (as the drain makes it). */
+async function prepare(
+  connector: Connector,
+  claimed: ClaimedLine,
+  attempt: AttemptState,
+): Promise<Prepared> {
+  const preparation = await connector.prepare(claimed, attempt);
+  if (preparation.kind !== "mapped") {
+    return preparation;
+  }
+  return {
+    kind: "mapped",
+    description: preparation.description,
+    recipientDomain: preparation.recipientDomain,
+    result: preparation.send,
+  };
+}
+
+async function run(
+  connector: Connector,
+  claimed: ClaimedLine,
+  attempt: AttemptState = state(),
+): Promise<CallResult> {
+  const prepared = await prepare(connector, claimed, attempt);
+  if (prepared.kind !== "mapped") {
+    throw new Error(`expected a mapped line, got ${prepared.kind}`);
+  }
+  return prepared.result();
+}
+
+beforeAll(async () => {
+  double = await startBrevoDouble();
+});
+
+afterAll(async () => {
+  await double.close();
+});
+
+beforeEach(() => {
+  double.reset();
+  logLines = [];
+  reads = [];
+});
+
+describe("operation 1: create or update a contact (16 §M1, §M4; 05 CA38)", () => {
+  it("CA38: a consenting creator becomes a contact of the creators list, with every attribute of the mapping", async () => {
+    const { contact } = connectors();
+    const result = await run(contact, line("brevo_contact"));
+    expect(result).toEqual({ kind: "succeeded", providerContactId: "1" });
+    const [request] = double.requests;
+    expect(request?.method).toBe("POST");
+    expect(request?.path).toBe("/v3/contacts");
+    expect(request?.headers["api-key"]).toBe("local-double-key");
+    const stored = double.contacts.get(EMAIL);
+    expect(stored?.listIds).toEqual([CREATORS_LIST]);
+    expect(stored?.emailBlacklisted).toBe(false);
+    expect(stored?.attributes).toEqual({
+      INFLUX_ACCOUNT_ID: ACCOUNT,
+      PROFILE_TYPE: "creator",
+      DECLARED_STATUS: "individual",
+      LANGUAGE: "fr",
+      COUNTRY: "BE",
+      COMPANY: "",
+      SIGNED_UP_AT: "2026-10-09T08:15:00.000Z",
+      SIGNUP_SOURCE: "direct",
+      FUNNEL_STAGE: "registered",
+      PROFILE_COMPLETENESS: 0,
+      MAIN_TOPIC: "",
+      VERIFIED_LEVEL: "none",
+      MARKETING_CONSENT: true,
+      CONSENT_AT: "2026-10-09T08:15:00.000Z",
+      CONSENT_SOURCE: "signup_form",
+      LAST_MARKETING_SENT_AT: "",
+      MARKETING_SENDS_30D: 0,
+      UTM_SOURCE: "newsletter",
+      UTM_MEDIUM: "",
+      UTM_CAMPAIGN: "",
+      REFERRER_DOMAIN: "",
+      HEARD_FROM: "social_media",
+    });
+    expect(Object.keys(stored?.attributes ?? {}).sort()).toEqual(
+      [...BREVO_CONTACT_ATTRIBUTES].sort(),
+    );
+  });
+
+  it("an advertiser carries its company name, in the advertisers list", async () => {
+    const { contact } = connectors({
+      subject: subject({ company: LEGAL_NAME }),
+    });
+    await run(
+      contact,
+      line("brevo_contact"),
+      state({ role: "advertiser", declaredStatus: "business" }),
+    );
+    const stored = double.contacts.get(EMAIL);
+    expect(stored?.attributes.COMPANY).toBe(LEGAL_NAME);
+    expect(stored?.attributes.PROFILE_TYPE).toBe("advertiser");
+    expect(stored?.listIds).toEqual([ADVERTISERS_LIST]);
+  });
+
+  it("RG142: COMPANY is empty for a creator, whatever was read; an absent field is sent empty, never invented", async () => {
+    const { contact } = connectors({
+      subject: subject({
+        company: LEGAL_NAME,
+        utmSource: null,
+        heardFrom: null,
+        consentAt: null,
+        consentSource: null,
+      }),
+    });
+    await run(contact, line("brevo_contact"));
+    const attributes = double.contacts.get(EMAIL)?.attributes;
+    expect(attributes?.COMPANY).toBe("");
+    expect(attributes?.UTM_SOURCE).toBe("");
+    expect(attributes?.HEARD_FROM).toBe("");
+    expect(attributes?.CONSENT_AT).toBe("");
+    expect(attributes?.CONSENT_SOURCE).toBe("");
+    expect(double.requests[0]?.raw).not.toContain(LEGAL_NAME);
+  });
+
+  it("LANGUAGE falls back to en for a language outside fr and en (16 §M4)", async () => {
+    const { contact } = connectors();
+    await run(
+      contact,
+      line("brevo_contact"),
+      state({ preferredLanguage: "de" }),
+    );
+    expect(double.contacts.get(EMAIL)?.attributes.LANGUAGE).toBe("en");
+  });
+
+  it("describes the call by attribute names only, never a value (decision 3, D60)", async () => {
+    const { contact } = connectors({
+      subject: subject({ company: LEGAL_NAME }),
+    });
+    const prepared = await prepare(
+      contact,
+      line("brevo_contact"),
+      state({ role: "advertiser", declaredStatus: "business" }),
+    );
+    expect(prepared.kind).toBe("mapped");
+    if (prepared.kind !== "mapped") {
+      return;
+    }
+    expect(prepared.description).toEqual({
+      operation: "upsert_contact",
+      templateCode: null,
+      attributeNames: [...BREVO_CONTACT_ATTRIBUTES].sort(),
+      rejectedAttributeNames: [],
+    });
+    expect(prepared.recipientDomain).toBe("example.test");
+    expect(
+      valuesFoundIn(JSON.stringify(prepared.description), [
+        EMAIL,
+        LEGAL_NAME,
+        ACCOUNT,
+      ]),
+    ).toEqual([]);
+  });
+
+  it("no list configured for the role: skipped with a clear cause, never guessed (0103)", async () => {
+    const { contact } = connectors();
+    const prepared = await prepare(
+      contact,
+      line("brevo_contact"),
+      state({}, { ...SETTINGS, brevo_list_ids: { creators: null } }),
+    );
+    expect(prepared).toEqual({ kind: "skip", reason: "list_not_configured" });
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("an account gone or not active is skipped, nothing read, nothing called", async () => {
+    const { contact } = connectors();
+    expect(
+      await prepare(contact, line("brevo_contact"), {
+        attempt: 1,
+        account: null,
+        settings: SETTINGS,
+      }),
+    ).toEqual({ kind: "skip", reason: "account_absent" });
+    expect(
+      await prepare(
+        contact,
+        line("brevo_contact"),
+        state({ status: "suspended" }),
+      ),
+    ).toEqual({ kind: "skip", reason: "account_not_active" });
+    expect(reads).toHaveLength(0);
+    expect(double.requests).toHaveLength(0);
+  });
+});
+
+describe("RG137: the output check refuses, it never cleans", () => {
+  it("a field outside the mapping is refused by name, and the call never leaves", async () => {
+    const { contact } = connectors({
+      mapContact: (...args) => {
+        const body = mapContact(...args);
+        return {
+          ...body,
+          attributes: { ...body.attributes, FIRSTNAME: "Lena" },
+        };
+      },
+    });
+    const prepared = await prepare(contact, line("brevo_contact"), state());
+    expect(prepared.kind).toBe("mapped");
+    if (prepared.kind !== "mapped") {
+      return;
+    }
+    expect(prepared.description.rejectedAttributeNames).toEqual(["FIRSTNAME"]);
+    // Defence in depth: the call itself refuses a refused body.
+    expect(await prepared.result()).toEqual({
+      kind: "failed",
+      errorCode: "output_check_rejected",
+    });
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("checks the attribute names and the fields of the body, against closed lists", () => {
+    expect(
+      checkContactOutput({
+        email: EMAIL,
+        attributes: { LANGUAGE: "fr", SMS: "+32470000000", NOTE: "x" },
+        listIds: [2],
+        updateEnabled: true,
+      }),
+    ).toEqual(["NOTE", "SMS"]);
+    expect(
+      checkContactOutput({
+        email: EMAIL,
+        attributes: { LANGUAGE: "fr" },
+        updateEnabled: true,
+        ext_id: "x",
+      }),
+    ).toEqual(["ext_id"]);
+    expect(
+      checkContactOutput({
+        email: EMAIL,
+        attributes: { LANGUAGE: "fr" },
+        updateEnabled: true,
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("RG148 scenarios 1 and 2: consent read at consumption (05 RG37, RG80; CA39)", () => {
+  it("scenario 1, CA39: no consent at sign-up, the line is skipped no_consent, no contact, no call", async () => {
+    const { contact } = connectors();
+    const prepared = await prepare(
+      contact,
+      line("brevo_contact"),
+      state({ marketingEmailConsent: false }),
+    );
+    expect(prepared).toEqual({ kind: "skip", reason: "no_consent" });
+    expect(double.requests).toHaveLength(0);
+    expect(double.contacts.size).toBe(0);
+  });
+
+  it("scenario 2: consent withdrawn after the emission, the contact is unsubscribed and excluded, never re-subscribed", async () => {
+    const { contact } = connectors();
+    await run(contact, line("brevo_contact"));
+    const result = await run(
+      contact,
+      line("brevo_contact", { eventType: "lead.updated", priority: 0 }),
+      state({ marketingEmailConsent: false }),
+    );
+    expect(result).toEqual({ kind: "succeeded" });
+    expect(
+      double.requests.map((request) => `${request.method} ${request.path}`),
+    ).toEqual([
+      "POST /v3/contacts",
+      `PUT /v3/contacts/${encodeURIComponent(EMAIL)}`,
+      `POST /v3/contacts/lists/${SUPPRESSION_LIST}/contacts/add`,
+    ]);
+    expect(double.requests[1]?.body).toEqual({ emailBlacklisted: true });
+    expect(double.contacts.get(EMAIL)?.emailBlacklisted).toBe(true);
+    expect(double.lists.get(SUPPRESSION_LIST)?.has(EMAIL)).toBe(true);
+  });
+
+  it("an unsubscription replayed has no further effect (16 §M3)", async () => {
+    const { contact } = connectors();
+    await run(contact, line("brevo_contact"));
+    const revoked = line("brevo_contact", { eventType: "lead.updated" });
+    const withdrawn = state({ marketingEmailConsent: false });
+    await run(contact, revoked, withdrawn);
+    expect(await run(contact, revoked, withdrawn)).toEqual({
+      kind: "succeeded",
+    });
+    expect(double.contacts.get(EMAIL)?.emailBlacklisted).toBe(true);
+    expect(double.lists.get(SUPPRESSION_LIST)?.size).toBe(1);
+  });
+
+  it("no contact at Brevo: nothing to unsubscribe, nothing created", async () => {
+    const { contact } = connectors();
+    const result = await run(
+      contact,
+      line("brevo_contact", { eventType: "lead.updated" }),
+      state({ marketingEmailConsent: false }),
+    );
+    expect(result).toEqual({ kind: "succeeded" });
+    expect(double.contacts.size).toBe(0);
+    expect(double.requests).toHaveLength(1);
+  });
+});
+
+describe("RG148 scenarios 3 to 5: the error classes of 16 §M5", () => {
+  it("scenario 3: 5xx, a transport failure or a time-out is transient: the schedule of RG79 applies", async () => {
+    const { contact } = connectors({ timeoutMs: 200 });
+    double.queue({ status: 503 });
+    expect(await run(contact, line("brevo_contact"))).toEqual({
+      kind: "retry",
+      errorCode: "brevo.unavailable",
+      errorMessage: "Brevo answered 503",
+    });
+    double.queue({ status: 0, destroy: true });
+    expect(await run(contact, line("brevo_contact"))).toMatchObject({
+      kind: "retry",
+      errorCode: "brevo.unreachable",
+    });
+    double.queue({ status: 201, delayMs: 1_000 });
+    expect(await run(contact, line("brevo_contact"))).toMatchObject({
+      kind: "retry",
+      errorCode: "brevo.unreachable",
+    });
+    expect(double.contacts.size).toBe(0);
+  });
+
+  it("scenario 4: a 429 pauses the category for the delay Brevo gives (16 RG139)", async () => {
+    const { contact } = connectors();
+    double.queue({
+      status: TOO_MANY_REQUESTS.response.status,
+      headers: TOO_MANY_REQUESTS.response.headers ?? {},
+      body: TOO_MANY_REQUESTS.response.body,
+    });
+    expect(await run(contact, line("brevo_contact"))).toEqual({
+      kind: "retry",
+      errorCode: "brevo.rate_limited",
+      errorMessage: "Brevo answered 429",
+      retryAfterSeconds: 17,
+      rateLimited: true,
+    });
+  });
+
+  it("scenario 5: a refused key stops the destination for an hour, with an error line naming no key", async () => {
+    const { contact } = connectors();
+    double.queue({
+      status: 401,
+      body: { code: "unauthorized", message: "Key not found" },
+    });
+    expect(await run(contact, line("brevo_contact"))).toEqual({
+      kind: "retry",
+      errorCode: "brevo.unauthorized",
+      errorMessage: "Brevo answered 401",
+      retryAfterSeconds: 3_600,
+      rateLimited: true,
+    });
+    expect(
+      logLines.some((entry) =>
+        entry.startsWith("error leads.brevo.unauthorized"),
+      ),
+    ).toBe(true);
+    expect(
+      valuesFoundIn(logLines.join("\n"), ["local-double-key", EMAIL]),
+    ).toEqual([]);
+  });
+
+  it("a 400 is permanent: failed at once, Brevo's code in clear but never its message", async () => {
+    const { contact } = connectors();
+    double.queue({
+      status: 400,
+      body: { code: "invalid_parameter", message: `${EMAIL} is not valid` },
+    });
+    expect(await run(contact, line("brevo_contact"))).toEqual({
+      kind: "failed",
+      errorCode: "brevo.rejected",
+      errorMessage: "Brevo answered 400 invalid_parameter",
+    });
+  });
+});
+
+describe("operation 6: the welcome e-mail (05 RG76, RG86; 16 RG89, RG90; CA40, CA41)", () => {
+  it("CA40: leaves whatever the consent, in the account's language, with the template of its role", async () => {
+    const { transactional } = connectors();
+    const claimed = line("brevo_transactional");
+    const result = await run(
+      transactional,
+      claimed,
+      state({ marketingEmailConsent: false, preferredLanguage: "fr" }),
+    );
+    expect(result).toMatchObject({ kind: "succeeded", locale: "fr" });
+    expect(result.kind === "succeeded" && result.providerMessageId).toMatch(
+      /@double\.brevo\.test>$/,
+    );
+    expect(double.delivered).toHaveLength(1);
+    const [message] = double.delivered;
+    expect(message?.headers["idempotency-key"]).toBe(
+      `account.welcome:${ACCOUNT}`,
+    );
+    expect(message?.body).toEqual({
+      sender: { name: "INFLUX", email: "no-reply@tx.influx.example" },
+      to: [{ email: EMAIL }],
+      templateId: WELCOME_CREATOR_TEMPLATE,
+      params: { LANGUAGE: "fr" },
+      tags: ["account.welcome_creator"],
+    });
+  });
+
+  it("the advertiser's welcome uses the advertiser's template", async () => {
+    const { transactional } = connectors();
+    await run(
+      transactional,
+      line("brevo_transactional", {
+        payload: {
+          account_id: ACCOUNT,
+          email_code: "account.welcome_advertiser",
+        },
+      }),
+      state({ role: "advertiser", preferredLanguage: "en" }),
+    );
+    expect(double.delivered[0]?.body.templateId).toBe(
+      WELCOME_ADVERTISER_TEMPLATE,
+    );
+    expect(double.delivered[0]?.body.params).toEqual({ LANGUAGE: "en" });
+  });
+
+  it("describes the send by its template and parameter names only", async () => {
+    const { transactional } = connectors();
+    const prepared = await prepare(
+      transactional,
+      line("brevo_transactional"),
+      state(),
+    );
+    expect(prepared.kind === "mapped" && prepared.description).toEqual({
+      operation: "send_transactional",
+      templateCode: "account.welcome_creator",
+      attributeNames: ["LANGUAGE"],
+      rejectedAttributeNames: [],
+    });
+  });
+
+  it("CA41, scenario 6: a welcome already journaled is skipped already_sent, nothing called", async () => {
+    const { transactional } = connectors({
+      subject: subject({ welcomeSent: true }),
+    });
+    expect(
+      await prepare(transactional, line("brevo_transactional"), state()),
+    ).toEqual({ kind: "skip", reason: "already_sent" });
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("scenario 6, second belt: a replay the journal missed carries the same Idempotency-Key, Brevo delivers once", async () => {
+    const { transactional } = connectors();
+    const claimed = line("brevo_transactional");
+    const first = await run(transactional, claimed);
+    const replay = await run(transactional, { ...claimed, id: "replayed" });
+    expect(double.messages).toHaveLength(2);
+    expect(double.delivered).toHaveLength(1);
+    expect(replay).toEqual(first);
+  });
+
+  it("no template configured: skipped with a clear cause (0103); a code outside the welcomes fails", async () => {
+    const { transactional } = connectors();
+    expect(
+      await prepare(
+        transactional,
+        line("brevo_transactional"),
+        state({}, { ...SETTINGS, brevo_template_ids: {} }),
+      ),
+    ).toEqual({ kind: "skip", reason: "template_not_configured" });
+    expect(
+      await prepare(
+        transactional,
+        line("brevo_transactional", {
+          payload: {
+            account_id: ACCOUNT,
+            email_code: "account.email_corrected",
+          },
+        }),
+        state(),
+      ),
+    ).toEqual({ kind: "fail", errorCode: "template_not_supported" });
+    expect(double.requests).toHaveLength(0);
+  });
+});
+
+describe("CA41, scenario 6: a contact replayed is updated, never duplicated", () => {
+  it("the same event twice: one contact, the second call an update", async () => {
+    const { contact } = connectors();
+    const claimed = line("brevo_contact");
+    expect(await run(contact, claimed)).toEqual({
+      kind: "succeeded",
+      providerContactId: "1",
+    });
+    expect(await run(contact, claimed)).toEqual({ kind: "succeeded" });
+    expect(double.contacts.size).toBe(1);
+    expect(
+      double.requests.every((request) => request.answeredStatus < 300),
+    ).toBe(true);
+  });
+});
+
+describe("RG148 scenario 13, 16 RG117: BREVO_MODE=redirect reaches no real recipient", () => {
+  it("an address outside BREVO_TEST_RECIPIENTS is skipped_non_production on both destinations, nothing called", async () => {
+    const { contact, transactional } = connectors({
+      settings: { testRecipients: ["someone-else@example.test"] },
+    });
+    expect(await prepare(contact, line("brevo_contact"), state())).toEqual({
+      kind: "skip",
+      reason: "skipped_non_production",
+    });
+    expect(
+      await prepare(transactional, line("brevo_transactional"), state()),
+    ).toEqual({ kind: "skip", reason: "skipped_non_production" });
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("the comparison ignores case; a listed address is reached", async () => {
+    const { transactional } = connectors({
+      settings: { testRecipients: [EMAIL.toUpperCase()] },
+    });
+    await run(transactional, line("brevo_transactional"));
+    expect(double.delivered).toHaveLength(1);
+  });
+
+  it("the output check still fails a refused body before the redirect lock", async () => {
+    const { contact } = connectors({
+      settings: { testRecipients: [] },
+      mapContact: (...args) => {
+        const body = mapContact(...args);
+        return { ...body, attributes: { ...body.attributes, PHONE: "x" } };
+      },
+    });
+    const prepared = await prepare(contact, line("brevo_contact"), state());
+    expect(
+      prepared.kind === "mapped" && prepared.description.rejectedAttributeNames,
+    ).toEqual(["PHONE"]);
+  });
+});
+
+describe("02 §12.4 lock 1: the key of the worker", () => {
+  it("BREVO_MODE=disabled, or no key: no credentials, the drain skips without a call", () => {
+    expect(
+      connectors({ settings: { mode: "disabled" } }).contact.hasCredentials,
+    ).toBe(false);
+    expect(
+      connectors({ settings: { apiKey: null } }).transactional.hasCredentials,
+    ).toBe(false);
+    const { contact, transactional } = connectors();
+    expect(contact.hasCredentials && transactional.hasCredentials).toBe(true);
+    expect(contact.destination).toBe("brevo_contact");
+    expect(transactional.destination).toBe("brevo_transactional");
+  });
+});

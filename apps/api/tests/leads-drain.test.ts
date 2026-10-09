@@ -203,6 +203,7 @@ type ConnectorSpec = {
   hasCredentials?: boolean;
   recipientDomain?: string;
   skip?: string;
+  fail?: string;
   rejected?: string[];
   result?: (line: ClaimedLine) => CallResult | Promise<CallResult>;
 };
@@ -222,6 +223,9 @@ function connector(
     prepare(line: ClaimedLine): Promise<Preparation> {
       if (spec.skip !== undefined) {
         return Promise.resolve({ kind: "skip", reason: spec.skip });
+      }
+      if (spec.fail !== undefined) {
+        return Promise.resolve({ kind: "fail", errorCode: spec.fail });
       }
       // The values stay in the closure: only the names and the verdict leave (decision 3).
       const attributes: Record<string, string> = {
@@ -853,6 +857,25 @@ describe("02 §12.4: the three locks of a non-production environment", () => {
       dryRun: true,
       reason: "no_consent",
     });
+  });
+
+  it("a line the connector cannot send fails at once with its cause, in dry_run as in live, nothing called", async () => {
+    for (const mode of ["live", "dry_run"] as const) {
+      const queue = new FakeQueue();
+      const id = queue.add("brevo_transactional");
+      const brevo = connector("brevo_transactional", queue, {
+        fail: "template_not_supported",
+      });
+      await drain(queue, { brevo_transactional: brevo }, { mode }).turn(
+        new AbortController().signal,
+      );
+      expect(queue.outcomeOf(id)?.outcome).toEqual({
+        status: "failed",
+        dryRun: mode === "dry_run",
+        errorCode: "template_not_supported",
+      });
+      expect(brevo.sent).toHaveLength(0);
+    }
   });
 });
 

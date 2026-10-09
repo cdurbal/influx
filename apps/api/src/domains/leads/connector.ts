@@ -52,6 +52,8 @@ export type CallResult =
 export type Preparation =
   /** Not to be sent, a normal case with its reason (05 RG80, RG82): never a failure. */
   | { kind: "skip"; reason: string }
+  /** A line this connector can never send as it stands (no retry, visible, replayable at J8). */
+  | { kind: "fail"; errorCode: string }
   | {
       kind: "mapped";
       description: CallDescription;

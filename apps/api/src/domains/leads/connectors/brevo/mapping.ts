@@ -1,0 +1,146 @@
+// The mapping of an INFLUX account to a Brevo contact (docs/mvp/16 §M4, RG141 to RG143, with the
+// acquisition attributes of EC-11) and the output check of every body sent to Brevo (16 RG137):
+// a name outside the closed lists below REFUSES the call; nothing is ever cleaned silently.
+// RG142: a field absent from INFLUX is sent empty (""), never filled with an invented value; the
+// defaults are those of the §M4 table itself.
+import type { BrevoSubject, SubjectAccount } from "../../repository.ts";
+
+export type { BrevoSubject } from "../../repository.ts";
+
+/** 16 §M4 + EC-11: the closed list of contact attributes. Documented there, and nowhere else. */
+export const BREVO_CONTACT_ATTRIBUTES = [
+  "INFLUX_ACCOUNT_ID",
+  "PROFILE_TYPE",
+  "DECLARED_STATUS",
+  "LANGUAGE",
+  "COUNTRY",
+  "COMPANY",
+  "SIGNED_UP_AT",
+  "SIGNUP_SOURCE",
+  "FUNNEL_STAGE",
+  "PROFILE_COMPLETENESS",
+  "MAIN_TOPIC",
+  "VERIFIED_LEVEL",
+  "MARKETING_CONSENT",
+  "CONSENT_AT",
+  "CONSENT_SOURCE",
+  "LAST_MARKETING_SENT_AT",
+  "MARKETING_SENDS_30D",
+  "UTM_SOURCE",
+  "UTM_MEDIUM",
+  "UTM_CAMPAIGN",
+  "REFERRER_DOMAIN",
+  "HEARD_FROM",
+] as const;
+
+export type BrevoContactAttribute = (typeof BREVO_CONTACT_ATTRIBUTES)[number];
+
+/** The fields of the body of operation 1 (`POST /contacts`). */
+const CONTACT_BODY_FIELDS = new Set([
+  "email",
+  "attributes",
+  "listIds",
+  "updateEnabled",
+]);
+/** The fields of the body of operation 2 (`PUT /contacts/{email}`): the unsubscription only. */
+export const UNSUBSCRIBE_BODY_FIELDS = new Set(["emailBlacklisted"]);
+/** The fields of the body of operation 6 (`POST /smtp/email`), and its parameters. */
+const TRANSACTIONAL_BODY_FIELDS = new Set([
+  "sender",
+  "to",
+  "templateId",
+  "params",
+  "tags",
+]);
+export const TRANSACTIONAL_PARAMS = ["LANGUAGE"] as const;
+
+export type BrevoContactBody = {
+  email: string;
+  attributes: Record<string, string | number | boolean>;
+  listIds: number[];
+  updateEnabled: true;
+};
+
+/** 16 §M4: fr or en, en by default. */
+export function languageOf(account: SubjectAccount): "fr" | "en" {
+  return account.preferredLanguage === "fr" ? "fr" : "en";
+}
+
+/** Operation 1: the body of the contact, by the closed mapping of 16 §M4 and EC-11. */
+export function mapContact(
+  account: SubjectAccount,
+  subject: BrevoSubject,
+  listId: number,
+): BrevoContactBody {
+  const attributes: Record<BrevoContactAttribute, string | number | boolean> = {
+    INFLUX_ACCOUNT_ID: account.id,
+    PROFILE_TYPE: account.role ?? "",
+    DECLARED_STATUS: account.declaredStatus,
+    LANGUAGE: languageOf(account),
+    COUNTRY: account.countryCode,
+    // 16 RG142, 05 RG88: never a creator's name in "company"
+    COMPANY: account.role === "advertiser" ? (subject.company ?? "") : "",
+    SIGNED_UP_AT: subject.signedUpAt,
+    SIGNUP_SOURCE: "direct",
+    FUNNEL_STAGE: "registered",
+    PROFILE_COMPLETENESS: 0,
+    MAIN_TOPIC: "",
+    VERIFIED_LEVEL: "none",
+    MARKETING_CONSENT: account.marketingEmailConsent,
+    CONSENT_AT: subject.consentAt ?? "",
+    CONSENT_SOURCE: subject.consentSource ?? "",
+    LAST_MARKETING_SENT_AT: "",
+    MARKETING_SENDS_30D: 0,
+    UTM_SOURCE: subject.utmSource ?? "",
+    UTM_MEDIUM: subject.utmMedium ?? "",
+    UTM_CAMPAIGN: subject.utmCampaign ?? "",
+    REFERRER_DOMAIN: subject.referrerDomain ?? "",
+    HEARD_FROM: subject.heardFrom ?? "",
+  };
+  return {
+    email: subject.email,
+    attributes,
+    listIds: [listId],
+    updateEnabled: true,
+  };
+}
+
+function outside(
+  names: Iterable<string>,
+  allowed: ReadonlySet<string>,
+): string[] {
+  return [...names].filter((name) => !allowed.has(name));
+}
+
+const CONTACT_ATTRIBUTE_SET: ReadonlySet<string> = new Set(
+  BREVO_CONTACT_ATTRIBUTES,
+);
+const TRANSACTIONAL_PARAM_SET: ReadonlySet<string> = new Set(
+  TRANSACTIONAL_PARAMS,
+);
+
+/** 16 RG137 on operation 1: the names refused, sorted; empty when the body may leave. */
+export function checkContactOutput(body: Record<string, unknown>): string[] {
+  const attributes =
+    typeof body.attributes === "object" && body.attributes !== null
+      ? Object.keys(body.attributes)
+      : [];
+  return [
+    ...outside(Object.keys(body), CONTACT_BODY_FIELDS),
+    ...outside(attributes, CONTACT_ATTRIBUTE_SET),
+  ].sort();
+}
+
+/** 16 RG137 on operation 6: the names refused, sorted. */
+export function checkTransactionalOutput(
+  body: Record<string, unknown>,
+): string[] {
+  const params =
+    typeof body.params === "object" && body.params !== null
+      ? Object.keys(body.params)
+      : [];
+  return [
+    ...outside(Object.keys(body), TRANSACTIONAL_BODY_FIELDS),
+    ...outside(params, TRANSACTIONAL_PARAM_SET),
+  ].sort();
+}

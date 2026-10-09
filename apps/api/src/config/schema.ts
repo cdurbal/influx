@@ -432,6 +432,65 @@ function checkBrevoMode(env: BaseEnv, context: z.RefinementCtx): void {
   }
 }
 
+/** The Brevo variables of a sending service: api and worker, each its own key (21 EC-19). */
+const brevoTransportShape = {
+  BREVO_API_KEY: optionalText,
+  BREVO_API_BASE_URL: brevoApiBaseUrl,
+  BREVO_SENDER_TRANSACTIONAL: z.preprocess(
+    emptyAsAbsent,
+    z.email({ error: "must be an e-mail address" }).optional(),
+  ),
+};
+
+type BrevoTransportEnv = BaseEnv & {
+  BREVO_API_KEY?: string | undefined;
+  BREVO_API_BASE_URL: string;
+  BREVO_SENDER_TRANSACTIONAL?: string | undefined;
+};
+
+/**
+ * EC-19 and J3-C rule 10, for api and worker: a sending mode needs its key and its sender; the key
+ * is never the template's placeholder; the local double is never reached from production.
+ */
+function checkBrevoTransport(
+  env: BrevoTransportEnv,
+  context: z.RefinementCtx,
+): void {
+  if (env.BREVO_MODE !== "disabled") {
+    if (env.BREVO_API_KEY === undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["BREVO_API_KEY"],
+        message: "is required unless BREVO_MODE is disabled",
+      });
+    }
+    if (env.BREVO_SENDER_TRANSACTIONAL === undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["BREVO_SENDER_TRANSACTIONAL"],
+        message: "is required unless BREVO_MODE is disabled",
+      });
+    }
+  }
+  if (env.BREVO_API_KEY !== undefined && holdsPlaceholder(env.BREVO_API_KEY)) {
+    context.addIssue({
+      code: "custom",
+      path: ["BREVO_API_KEY"],
+      message: `must not contain the ${PLACEHOLDER} placeholder`,
+    });
+  }
+  if (
+    env.INFLUX_ENV === "production" &&
+    env.BREVO_API_BASE_URL !== BREVO_OFFICIAL_BASE_URL
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["BREVO_API_BASE_URL"],
+      message: "must be the official Brevo URL in production",
+    });
+  }
+}
+
 export type BaseConfig = {
   environment: InfluxEnvironment;
   /** Deployed commit, written in every log line (D60). */
@@ -500,6 +559,11 @@ export type ApiConfig = BaseConfig & {
 };
 
 export type WorkerConfig = BaseConfig & {
+  /** The worker's OWN Brevo key (EC-19), the double outside production, the exclusion list. */
+  brevoTransport: BrevoTransportConfig & {
+    /** BREVO_SUPPRESSION_LIST_ID: the marketing exclusion list (16 RG45), null when unset. */
+    suppressionListId: number | null;
+  };
   /** WORKER_DATABASE_URL (influx_worker_login) ONLY, EC-20. */
   database: {
     worker: DatabaseConnection;
@@ -530,55 +594,13 @@ export const apiEnvSchema = z
     AUTH_TOKEN_SIGNING_SECRET: secretOf32Bytes,
     SUPABASE_URL: supabaseUrl,
     SUPABASE_SECRET_KEY: supabaseSecretKey,
-    BREVO_API_KEY: optionalText,
-    BREVO_API_BASE_URL: brevoApiBaseUrl,
-    BREVO_SENDER_TRANSACTIONAL: z.preprocess(
-      emptyAsAbsent,
-      z.email({ error: "must be an e-mail address" }).optional(),
-    ),
+    ...brevoTransportShape,
     ...databaseEnvShape,
   })
   .superRefine((env, context) => {
     checkBrevoMode(env, context);
     checkDatabaseVariables(env, API_DATABASE_VARIABLES, context);
-    // EC-19 and J3-C rule 10: a sending mode needs its key and its sender; the key is never the
-    // template's placeholder; the local double is never reached from production.
-    if (env.BREVO_MODE !== "disabled") {
-      if (env.BREVO_API_KEY === undefined) {
-        context.addIssue({
-          code: "custom",
-          path: ["BREVO_API_KEY"],
-          message: "is required unless BREVO_MODE is disabled",
-        });
-      }
-      if (env.BREVO_SENDER_TRANSACTIONAL === undefined) {
-        context.addIssue({
-          code: "custom",
-          path: ["BREVO_SENDER_TRANSACTIONAL"],
-          message: "is required unless BREVO_MODE is disabled",
-        });
-      }
-    }
-    if (
-      env.BREVO_API_KEY !== undefined &&
-      holdsPlaceholder(env.BREVO_API_KEY)
-    ) {
-      context.addIssue({
-        code: "custom",
-        path: ["BREVO_API_KEY"],
-        message: `must not contain the ${PLACEHOLDER} placeholder`,
-      });
-    }
-    if (
-      env.INFLUX_ENV === "production" &&
-      env.BREVO_API_BASE_URL !== BREVO_OFFICIAL_BASE_URL
-    ) {
-      context.addIssue({
-        code: "custom",
-        path: ["BREVO_API_BASE_URL"],
-        message: "must be the official Brevo URL in production",
-      });
-    }
+    checkBrevoTransport(env, context);
     if (
       env.INFLUX_API_INTERNAL_SECRET_WEB ===
       env.INFLUX_API_INTERNAL_SECRET_BACKOFFICE
@@ -697,10 +719,20 @@ export const workerEnvSchema = z
         message: "must list e-mail domains",
       }),
     ),
+    ...brevoTransportShape,
+    BREVO_SUPPRESSION_LIST_ID: z.preprocess(
+      emptyAsAbsent,
+      z.coerce
+        .number({ error: "must be a Brevo list id" })
+        .int({ error: "must be a Brevo list id" })
+        .positive({ error: "must be a Brevo list id" })
+        .optional(),
+    ),
     ...databaseEnvShape,
   })
   .superRefine((env, context) => {
     checkBrevoMode(env, context);
+    checkBrevoTransport(env, context);
     checkDatabaseVariables(env, WORKER_DATABASE_VARIABLES, context);
     const isProduction = env.INFLUX_ENV === "production";
     if (env.SYNC_MODE === "dry_run" && isProduction) {
@@ -729,6 +761,12 @@ export const workerEnvSchema = z
     brevo: {
       mode: env.BREVO_MODE,
       testRecipients: env.BREVO_TEST_RECIPIENTS,
+    },
+    brevoTransport: {
+      apiKey: env.BREVO_API_KEY ?? null,
+      baseUrl: env.BREVO_API_BASE_URL,
+      senderTransactional: env.BREVO_SENDER_TRANSACTIONAL ?? null,
+      suppressionListId: env.BREVO_SUPPRESSION_LIST_ID ?? null,
     },
     database: {
       worker: databaseConnection(env, "WORKER_DATABASE_URL"),

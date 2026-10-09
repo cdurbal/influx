@@ -1570,7 +1570,7 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
     expect(create).toEqual({ leads: false, identity: false });
   });
 
-  it("influx_worker holds no table right: USAGE on leads and audit, EXECUTE on five functions", async () => {
+  it("influx_worker holds no table right: USAGE on leads and audit, EXECUTE on six functions (0112: the Brevo read)", async () => {
     const schemas = OUR_SCHEMAS as unknown as string[];
     const relations = await migration<{ name: string }[]>`
       select c.oid::regclass::text as name
@@ -1602,6 +1602,7 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       "leads.begin_outbox_attempt(bigint,text)",
       "leads.claim_outbox_batch(text,integer)",
       "leads.complete_outbox_attempt(bigint,text,leads.outbox_status,boolean,text,text,text,integer,text,text,text,integer)",
+      "leads.read_brevo_subject(bigint,text)",
       "leads.recover_stale_outbox_lines(integer)",
     ]);
   });

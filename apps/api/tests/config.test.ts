@@ -559,6 +559,12 @@ describe("worker configuration", () => {
       version: "local",
       instance: "local",
       brevo: { mode: "disabled", testRecipients: [] },
+      brevoTransport: {
+        apiKey: null,
+        baseUrl: "https://api.brevo.com/v3",
+        senderTransactional: null,
+        suppressionListId: null,
+      },
       database: {
         worker: { url: WORKER_URL, role: "influx_worker_login", tls: false },
       },
@@ -652,9 +658,72 @@ describe("worker configuration", () => {
         ...VALID_WORKER_ENV,
         INFLUX_ENV: "production",
         BREVO_MODE: "live",
+        BREVO_API_KEY: "xkeysib-production-like-value",
+        BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
         SYNC_MODE: "live",
       }).sync.mode,
     ).toBe("live");
+  });
+
+  describe("Brevo transport of the worker: its own key (EC-19, J6 commit 4)", () => {
+    const REDIRECT = {
+      ...VALID_WORKER_ENV,
+      BREVO_MODE: "redirect",
+      BREVO_TEST_RECIPIENTS: "team@influx.example",
+      BREVO_API_KEY: "xkeysib-worker-test-account-value",
+      BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
+    };
+
+    it("reads the key, the double, the sender and the suppression list of the worker", () => {
+      expect(
+        loadWorkerConfig({
+          ...REDIRECT,
+          BREVO_API_BASE_URL: "http://127.0.0.1:4010/v3",
+          BREVO_SUPPRESSION_LIST_ID: "7",
+        }).brevoTransport,
+      ).toEqual({
+        apiKey: "xkeysib-worker-test-account-value",
+        baseUrl: "http://127.0.0.1:4010/v3",
+        senderTransactional: "no-reply@tx.influx.example",
+        suppressionListId: 7,
+      });
+    });
+
+    it.each([
+      ["BREVO_API_KEY", { BREVO_API_KEY: "" }],
+      ["BREVO_SENDER_TRANSACTIONAL", { BREVO_SENDER_TRANSACTIONAL: "" }],
+      ["BREVO_API_KEY", { BREVO_API_KEY: "change_me-key" }],
+      [
+        "BREVO_API_BASE_URL",
+        { BREVO_API_BASE_URL: "https://double.example/v3" },
+      ],
+      ["BREVO_SUPPRESSION_LIST_ID", { BREVO_SUPPRESSION_LIST_ID: "0" }],
+      ["BREVO_SUPPRESSION_LIST_ID", { BREVO_SUPPRESSION_LIST_ID: "list" }],
+    ])("refuses %s when %j", (variable, overrides) => {
+      expect(() => loadWorkerConfig({ ...REDIRECT, ...overrides })).toThrow(
+        variable,
+      );
+    });
+
+    it("scenario 14 for the worker: live outside production refuses to start, key or not", () => {
+      expect(
+        refusal(() => loadWorkerConfig({ ...REDIRECT, BREVO_MODE: "live" })),
+      ).toContain("BREVO_MODE live is refused outside production");
+    });
+
+    it("refuses the local double in production", () => {
+      expect(() =>
+        loadWorkerConfig({
+          ...VALID_WORKER_ENV,
+          INFLUX_ENV: "production",
+          BREVO_MODE: "live",
+          SYNC_MODE: "live",
+          BREVO_API_KEY: "xkeysib-production-like-value",
+          BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
+          BREVO_API_BASE_URL: "http://127.0.0.1:4010/v3",
+        }),
+      ).toThrow("BREVO_API_BASE_URL");
+    });
   });
 });
 
