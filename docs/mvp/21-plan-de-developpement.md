@@ -27,9 +27,9 @@
 | **J2** | 0 | Base socle : schémas, rôles, RLS, registre, tests T2 T3 T4 T6 T16 | ✅ **Terminé & revu** (`8e6bbfb`) | 4-5 j |
 | **J3** | 0 | Authentification : code membre (D43), sessions opaques, backoffice mot de passe + TOTP | ✅ **Terminé** (revue groupée 2026-10-05 : push autorisé ; T-1 corrigé ; push en attente du formatage de `design-proposals/`) | 4-5 j |
 | **J4** | 0 | `staging` sur Railway + Supabase, migrations par la CI, collecte d'erreurs (D60) | ✅ Terminé (2026-10-07) | 3-4 j |
-| **J5** | 1 | Inscription marque et créateur, transaction unique, file alimentée | ▶️ En cours — fiche `jalons/j5-fiche.md` | 4-5 j |
-| **J6** | 1 | Worker, connecteurs Brevo et Apollo, qualification, garde-fous | ⏳ À faire (**1er usage démontrable**) — fiche `jalons/j6-fiche.md` | 4-5 j |
-| **J7** | 1 | Retours Brevo (désinscriptions, rebonds), espace membre minimal | ⏳ À faire | 3-4 j |
+| **J5** | 1 | Inscription marque et créateur, transaction unique, file alimentée | ✅ Terminé (2026-10-09, revue groupée sans point rouge) | 4-5 j |
+| **J6** | 1 | Worker, connecteurs Brevo et Apollo, qualification, garde-fous | ▶️ En cours : commits 1 à 6 faits, reste le 7 (**1er usage démontrable**) — fiche `jalons/j6-fiche.md` | 4-5 j |
+| **J7** | 1 | Retours Brevo (désinscriptions, rebonds), espace membre minimal | ⏳ À faire — fiche `jalons/j7-fiche.md` | 3-4 j |
 | **J8** | 1 | Backoffice v0 : inscrits, états de synchronisation, rejeu, réglages Apollo | ⏳ À faire | 4-5 j |
 | **J9** | 1 | Sortie du mode maquette de la landing, en-têtes, surveillance active, production | ⏳ À faire | 4-5 j |
 
@@ -198,7 +198,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 | `POST /v1/webhooks/brevo/:token` | Brevo | Écriture brute (EC-12) | `16` RG146, RG147 |
 | `/v1/bo/accounts`, `/v1/bo/sync/*`, `/v1/bo/settings/apollo`, `/v1/bo/invitations`… | `agent` · `admin` en `aal2` | Utilisateur | `05` RG97 à RG108, RG116 à RG119 |
 
-### J5 — Inscription marque et créateur (4 à 5 jours)
+### J5 — Inscription marque et créateur (✅ Terminé le 2026-10-09)
 
 1. **Migrations du Lot 1** (`04` §11.2, renumérotées EC-37) : `0101` (file `outbox_events` et `contact_sync_states`, contrainte RG35, clé étrangère `transactional_sends.outbox_event_id`), `0103` (réglages `leads.sync_settings`, clés d'EC-8), `0104` (statut déclaré non nul, santé de l'adresse, `set_declared_status()`, `correct_email()`), `0105` (incidents de délivrance), `0106` (`profiles.advertiser_profiles` minimal), colonnes de source d'acquisition (EC-11), `identity.provision_account` (EC-30). `0102` et `0107` attendent le J8.
 2. **Versions de CGU** : pages publiques de lecture en FR et EN sans connexion (RG27). Empreinte calculée à la publication, immuable ensuite.
@@ -238,11 +238,13 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 **Tests** : TM1.1 à TM1.10 ; CA37 à CA50 ; lead-pipeline T5, T6, T9 ; T17 ; scénarios 1 à 6 et 13 à 14 de `16` RG148.
 **Terminé quand — premier usage démontrable** : sur `staging` en `dry_run`, chaque inscription produit ses lignes et le worker les traite avec le bon statut ; l'essai manuel passe ; une panne simulée de Brevo/Apollo n'empêche aucune inscription (CA37).
 
+- [x] Commit 1 — sans objet : revue de fin de J5 (2026-10-09, `56b8046..ddcaea7`) sans point rouge ; arbitrages `architecte` du démarrage (`28d8510`, EC-44 amendé).
 - [x] Commit 2 (`d066228`) — `0111` E-3 : `influx_leads_definer`, quatre fonctions `SECURITY DEFINER` à `influx_worker` seul (prise RG77 sauf priorité 0, début avec relecture RG37, issue avec `dry_run`, reprise TM1.10), code `elevated.leads.drain_outbox` (EC-52 (3)) ; U + `domains/leads/queue.ts` ; `tm1-outbox-claim` (69 cas), T2/T3/T4/T6 étendus.
 - [x] Commit 3 (`c00f9f2`) — boucle du worker (`domains/leads/drain.ts`) : une voie par destination, verrous `02` §12.4, calendrier RG79, budget par catégorie, interface `Connector` (aucun branché), `SIGTERM` ; `leads-drain` (22 cas unitaires), `tm1-worker-loop` (4 cas : CA47, CA48, CA50, T9).
 - [x] Commit 4 (`8798ec2`) — connecteurs Brevo (`connectors/brevo/`, opérations 1, 2, 6, 7, mapping §M4 + EC-11, RG137, RG142, bienvenue une fois par compte) ; `0112` `read_brevo_subject` + index unique RG90 ; clé Brevo du worker (EC-19) ; doublure étendue aux contacts ; `brevo-connector` (28 cas), `tm1-brevo-connector` (9 cas).
 - [x] Commit 5 (`2136515`) — connecteur Apollo (`connectors/apollo/`, création `run_dedupe` ou mise à jour par l'id connu, qualification RG81 à RG84 relue à chaque consommation, aucun réimport RG85, aucune séquence) ; `0113` `read_apollo_subject` ; `APOLLO_API_KEY` au worker seul ; doublure Apollo ; `apollo-connector` (26 cas), `apollo-guard`, `tm1-apollo-connector` (14 cas).
 - [x] Commit 6 (`f4f9ebc`) — EC-44 : `internal.critical_alert` P0 synchrone après le commit de la connexion (jamais `outbox_events`), une ligne et une tentative par `admin` actif (compte de secours exclu), clé = seq d'audit + compte destinataire, contenu FR+EN fixe sans `@` ; `0114` (`consume_recovery_code` rend le seq, politique d'insertion de `influx_auth`) ; `critical-alert-email` (3 cas), `t8-backoffice-sign-in` (15 cas).
+- [ ] Commit 7 — en cours : scripts d'enregistrement des échanges fournisseurs (`d4625ec`) ; restent l'essai manuel D62, les fixtures expurgées, les variables du `worker` de `staging` et la vérification du critère de fin.
 
 ### J7 — Retours de Brevo et espace membre minimal (3 à 4 jours)
 
@@ -316,6 +318,6 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 |---|---|
 | **J5** | **`jalons/j5-fiche.md` d'abord** (sections et lignes exactes) ; `05` §A à §E, §H, §L ; `17` §2.5, §2.6, §3 ; skill `design-system-influx` |
 | **J6** | **`jalons/j6-fiche.md` d'abord** (sections et lignes exactes) ; `02` §6 et §11 ; `05` §I ; `16` §H, §J, §M ; skills `lead-pipeline`, `brevo-campaign`, `apollo-lead-sync` |
-| **J7** | `05` §F (RG54 à RG58), §J ; `16` §I et §M6 ; `17` §6 |
+| **J7** | **`jalons/j7-fiche.md` d'abord** (sections et lignes exactes) ; `05` §F (RG54 à RG58), §J ; `16` §I et §M6 ; `17` §6 ; skills `lead-pipeline`, `brevo-campaign` |
 | **J8** | `05` §K ; `15` §C, §F ; `17b` §3.11 et §3.13 ; skill `backoffice-ops` |
 | **J9** | `02` §13 et §20 ; `03` §6.5 ; `18` §5 et §10 « Lot 1 » |
