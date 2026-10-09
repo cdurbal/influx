@@ -296,6 +296,9 @@ export async function publishUnlessPublished(
  * For the database tests: publishes `request` (or fills its text) only when NO version of its
  * document is in force WITH its text in its language, so that a version published on the
  * workstation is never replaced. The manifest is not touched (the file must be listed there).
+ * Only a version of a file under legal/ counts: the fixed-id versions of the test data set
+ * (packages/test-kit/src/db/dataset.ts, example.test) are closed by the publication, whatever the
+ * order in which the test files ran.
  */
 export async function ensureInForce(
   migration: MigrationSql,
@@ -305,7 +308,7 @@ export async function ensureInForce(
     select id::text from identity.terms_versions
      where document_kind = ${request.document}::identity.document_kind
        and locale = ${request.locale} and effective_to is null and effective_from <= now()
-       and content is not null`;
+       and content is not null and content_uri like ${`${LEGAL_FOLDER}/%`}`;
   if (current !== undefined) {
     return;
   }

@@ -94,6 +94,15 @@ jobs:
       # behind its gateway and Mailpit for the findings of J3 commit 7 (21 §4, J3-A: GoTrue is
       # never assumed, it is observed; Mailpit is where a native e-mail would land). The other
       # containers are not started (time budget).
+      # The workstation runs the GoTrue version of staging, which the CLI reads from
+      # supabase/.temp/gotrue-version since the J4 link (ignored by Git). The runner is not linked:
+      # the same version is pinned here, or the CLI default GoTrue answers differently (EC-57).
+      # Keep it equal to the staging version (docs/mvp/runbooks/staging.md).
+      - name: Pin the GoTrue version of staging
+        run: |
+          mkdir -p supabase/.temp
+          printf 'v2.197.0' > supabase/.temp/gotrue-version
+
       - name: Start the local Supabase stack (database, Auth, gateway, Mailpit)
         run: >-
           pnpm exec supabase start
