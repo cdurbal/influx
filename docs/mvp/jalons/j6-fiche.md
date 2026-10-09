@@ -265,6 +265,41 @@ par `params.LANGUAGE` (un modèle par rôle). Champs vides envoyés `""` (dates 
 - Écarts de documentation à regrouper : `03` P7 et `04` (cinquième fonction E-3, index
   `transactional_sends_once_per_account_idx`) ; `16` §M8 (`BREVO_SUPPRESSION_LIST_ID` porté par le worker).
 
+## Issu du commit 5 (`2136515`)
+
+Choix au plus sûr (EC, à confirmer en fin de jalon) : ordre de qualification compte ⇒ réglages ⇒ périmètre
+⇒ pays ⇒ adresse vérifiée ⇒ base légale (`consentement_requis`) ⇒ lecture ⇒ opposition (`interet_legitime`)
+⇒ entreprise d'un annonceur ; motifs `out_of_apollo_scope`, `out_of_apollo_scope_individual`,
+`country_not_validated`, `email_not_verified`, `no_consent`, `prospection_opposed`, `company_not_identified`,
+`apollo_settings_invalid` (réglage illisible = abstention, `pino` `error` `leads.settings.invalid`).
+**Opposition** (RG83) = un refus `commercial_prospection` d'une autre source que `signup_form`, définitive même
+si un consentement est redonné ; la case non cochée à l'inscription n'en est pas une (CA45). Contexte INFLUX
+porté par des **étiquettes** (`label_names`, vocabulaire fermé : profil, statut, pays, langue, périmètre, base
+légale) faute d'identifiants de champs personnalisés Apollo dans EC-8 ; date d'inscription, complétude, budget,
+source d'acquisition non envoyés. Champ absent **non envoyé** (pas de `""` qui écraserait Apollo). Délai 3 s
+(G1, valeur de Brevo : `02` §18.4 ne fixe rien pour Apollo). En `dry_run`, une ligne `skipped` porte
+`dry_run = false` (contrainte de `0111`) : en `staging`, Apollo finit `skipped` `country_not_validated`.
+**Pas de variable `APOLLO_API_BASE_URL`** : URL officielle seule (lecture de `apps/api/.env.example` refusée à
+l'agent, la variable n'aurait pas été documentée, T11.4) ; les tests injectent la doublure.
+
+- `expert-cybersecurite` (fin de jalon) : `0113` (`read_apollo_subject`, aucun droit ajouté) ; lecture
+  d'adresse journalisée `elevated.leads.drain_outbox` (une de plus par inscription qualifiée, volume D60) ;
+  `APOLLO_API_KEY` (worker seul, `apollo-guard`, refus du marqueur `change_me`) ; `pino`
+  `leads.apollo.unauthorized`. `2136515` sans marqueur : I-4 rouge jusqu'à l'attestation.
+- `expert-conformite-rgpd` (Lot 6) : **un retrait de consentement ou une opposition n'est pas propagé à
+  Apollo** (ligne `skipped`, le contact déjà créé reste chez Apollo ; aucune sortie de séquence) ; à traiter
+  avant le premier pays ouvert à la prospection. Vérifier aussi la définition de l'opposition ci-dessus.
+- `testeur` (fin de jalon) : `apollo-connector` (26 cas), `apollo-guard` (2), `config` (4 cas Apollo),
+  `tm1-apollo-connector` (plancher 14 : CA42 à CA45, TM1.2, TM1.6, T6, RG85, `dry_run`, gardes de `0113`) ;
+  CA43 réévalue par rejeu manuel (J8).
+- Commit 7 : les échanges de `packages/test-kit/src/apollo-exchanges.ts` sont **rédigés** (référence Apollo
+  inaccessible à l'agent, 403) : vérifier à l'essai `POST /api/v1/contacts` + `run_dedupe`, la méthode de mise à
+  jour (`PUT` supposé, peut-être `PATCH`), l'en-tête `x-api-key`, la forme `{ contact: { id } }`, le code d'un
+  quota épuisé (429 supposé) ; puis remplacer par les enregistrements expurgés. `APOLLO_API_KEY` à documenter
+  dans `apps/api/.env.example` si absente.
+- Écarts de documentation à regrouper : `03` P7 et `04` (sixième fonction E-3) ; skill `apollo-lead-sync`
+  (mapping par étiquettes) ; `0101` (commentaire des motifs de `skip_reason`).
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne relire que la tranche
