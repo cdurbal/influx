@@ -1,8 +1,10 @@
 // The exchanges the Brevo double answers from (docs/mvp/16 RG148): one request and its answer per
 // operation of 16 §M1 used by INFLUX, by Brevo API v3. Their shape is that of Brevo's reference as
-// read on 2026-09-19 (16 §M1, RG150); the redacted recordings of the manual trial (D62, J6 commit 7)
-// replace the bodies below, field for field, without changing the double. Nothing here is a real
-// identifier, a real address or a key.
+// read on 2026-09-19 (16 §M1, RG150), checked against the redacted recordings of the manual trial
+// (D62, J6 commit 7, 2026-10-12): contact created 201 `{ id }` (an empty date attribute accepted),
+// updated 204, blacklisted 204 (twice), unknown contact 404, refused key 401, e-mail sent 201. NOT
+// recorded: the list operations (no suppression list in the test account), 429 and 503, still drafted.
+// Nothing here is a real identifier, a real address or a key.
 //
 // A recording is the contract of the double: a test that passes against the double passes against
 // these answers, and only against them. A new answer of Brevo is a new exchange here, never a

@@ -1,9 +1,10 @@
 // The exchanges the Apollo double answers from (docs/mvp/16 RG148 applied to Apollo, skill
 // apollo-lead-sync "Tests"): one request and its answer per Apollo operation INFLUX uses, by the
-// Apollo REST API v1. Their shape is DRAFTED from Apollo's public reference (contacts: create with
-// `run_dedupe`, update by id), not recorded: the redacted recordings of the manual trial (D62, J6
-// commit 7) replace the bodies below, field for field, without changing the double. Nothing here
-// is a real identifier, a real address or a key.
+// Apollo REST API v1. Checked against the redacted recordings of the manual trial (D62, J6 commit
+// 7, 2026-10-12): create answers 200 with `{ contact: { id } }`, update is `PUT` by id (200), an
+// unknown id is 422 (not 404), a refused key is 401 `API_KEY_INVALID`. NOT recorded (no trial can
+// provoke them safely): 429 and the 422 of a refused field, still drafted. Nothing here is a real
+// identifier, a real address or a key.
 //
 // The answers carry what Apollo adds of its own (enrichment: title, phone, organisation…): INFLUX
 // reads back the contact id and NOTHING else (05 RG85), and the tests prove it on these values.
@@ -77,16 +78,16 @@ export const CONTACT_UPDATED: RecordedExchange = {
   },
 };
 
-/** Update of an id Apollo no longer knows (deleted on its side). */
+/** Update of an id Apollo no longer knows (deleted on its side): 422, recorded. */
 export const CONTACT_NOT_FOUND: RecordedExchange = {
   request: {
     method: "PUT",
     path: "/api/v1/contacts/65f0c0ffee0000000000dead",
   },
-  response: { status: 404, body: { error: "Contact not found" } },
+  response: { status: 422, body: { error: "Contact does not exist." } },
 };
 
-/** The rate limit or the quota of the plan. */
+/** The rate limit or the quota of the plan (drafted: not recorded). */
 export const TOO_MANY_REQUESTS: RecordedExchange = {
   request: { method: "POST", path: "/api/v1/contacts" },
   response: {
@@ -96,16 +97,23 @@ export const TOO_MANY_REQUESTS: RecordedExchange = {
   },
 };
 
-/** A refused key. */
+/** A refused key (recorded). */
 export const UNAUTHORIZED: RecordedExchange = {
   request: { method: "POST", path: "/api/v1/contacts" },
   response: {
     status: 401,
-    body: { error: "Invalid access credentials." },
+    body: {
+      error:
+        "Invalid API key. See https://docs.apollo.io/reference/authentication for how to authenticate.",
+      error_details: {
+        code: "AUTH.AUTHENTICATION.API_KEY_INVALID",
+        message: "This API key is not valid.",
+      },
+    },
   },
 };
 
-/** A body Apollo refuses (an invalid field). */
+/** A body Apollo refuses (an invalid field; drafted: not recorded). */
 export const UNPROCESSABLE: RecordedExchange = {
   request: { method: "POST", path: "/api/v1/contacts" },
   response: { status: 422, body: { error: "Email is invalid" } },

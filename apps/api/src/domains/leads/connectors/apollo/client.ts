@@ -181,6 +181,26 @@ export function createApolloClient(
       : { kind: "succeeded", providerContactId: id };
   }
 
+  /**
+   * An update of an id Apollo no longer knows. Recorded at the J6 trial (2026-10-12): Apollo answers
+   * 422 `{"error":"Contact does not exist."}`, not 404; 404 is kept in case it changes. Any other 422
+   * (a refused field) is not a deletion and fails the line.
+   */
+  function contactGone(answer: Answer): boolean {
+    if (answer.kind !== "answer") {
+      return false;
+    }
+    if (answer.status === 404) {
+      return true;
+    }
+    const body = answer.body as { error?: unknown } | null;
+    return (
+      answer.status === 422 &&
+      typeof body?.error === "string" &&
+      /does not exist/i.test(body.error)
+    );
+  }
+
   async function create(body: ApolloContactBody): Promise<CallResult> {
     const answer = await call("POST", CONTACTS_PATH, {
       ...body,
@@ -199,7 +219,7 @@ export function createApolloClient(
         `${CONTACTS_PATH}/${encodeURIComponent(knownContactId)}`,
         { ...body },
       );
-      if (answer.kind === "answer" && answer.status === 404) {
+      if (contactGone(answer)) {
         // Deleted on Apollo's side: created again, deduplicated by address.
         return create(body);
       }

@@ -244,6 +244,21 @@ describe("create or update a contact, never a duplicate", () => {
     ]);
   });
 
+  it("a 422 on an update that is not a deletion fails, without a create", async () => {
+    double.queue(UNPROCESSABLE.response);
+    const result = await run(
+      connector({
+        subject: subject({ externalContactId: "65f0c0ffee0000000000a001" }),
+      }),
+    );
+    expect(result).toEqual({
+      kind: "failed",
+      errorCode: "apollo.rejected",
+      errorMessage: "Apollo answered 422",
+    });
+    expect(double.requests.map((request) => request.method)).toEqual(["PUT"]);
+  });
+
   it("calls no other path: no sequence, no enrichment", async () => {
     await run(connector());
     expect(

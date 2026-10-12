@@ -6,7 +6,8 @@
 //   carries Apollo's own enriched fields (ENRICHED_FIELDS), which INFLUX must never read back (05
 //   RG85). It keeps the contacts it was given and records every request.
 // - Nothing else exists here: no sequence, no mailbox, no enrichment call. A request on any other
-//   path is answered 404 and recorded, so that a test sees it.
+//   path is answered 404 and recorded, so that a test sees it. An unknown contact id is 422, as
+//   Apollo answers it (recorded at the J6 trial).
 // - A test may queue other answers (status, headers, body, delay, transport failure): they are
 //   used in order by the next requests, whatever their path, and change nothing in the store.
 // Only on 127.0.0.1, never 0.0.0.0.
