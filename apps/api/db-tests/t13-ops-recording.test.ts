@@ -175,12 +175,16 @@ describe("cap and metrics (02 §20.5)", () => {
 
 describe("POST /v1/ops/client-errors (02 §20.5)", () => {
   const ops = recorder();
+  // J6T-8: the rate windows are fixed minutes; on the real clock, twelve reports straddling a minute
+  // boundary were all accepted. A frozen clock keeps every report of this block in one minute.
+  const frozen = new Date();
   let instance: ReturnType<typeof buildServer> | undefined;
   const server = () =>
     (instance ??= buildServer(testApiConfig(), {
       logDestination: captureLogs().destination,
       database,
       ops,
+      identity: { now: () => frozen },
     }));
 
   function report(page: string, message: string) {

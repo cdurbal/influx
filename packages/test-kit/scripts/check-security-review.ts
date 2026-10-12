@@ -33,8 +33,15 @@
 // commit message, exactly like the plain marker; it adds no new way to forge a review, only a
 // later place to write the same claim.
 //
-// Usage: node scripts/check-security-review.ts <base> <head>. An all-zero or missing base (first
-// push of a branch) checks the head commit only. Runs in the current directory's repository.
+// Fixed anchor (J6S-1, end-of-J6 review): checking the pushed range alone let a red push be
+// followed by a green one, and its commits reached staging unattested (0111 to 0114). With an
+// anchor, every commit of <anchor>..<head> is checked at each push, so a commit stays red until it
+// carries the marker or a later attestation covers it. The anchor must be an ancestor of <head>,
+// or the check fails closed. Moving it is a change to the workflow, itself under I-4.
+//
+// Usage: node scripts/check-security-review.ts <base> <head> [<anchor>]. An all-zero or missing
+// base (first push of a branch) checks the head commit only, plus <anchor>..<head> when an anchor
+// is given. Runs in the current directory's repository.
 import { execFileSync } from "node:child_process";
 
 /** The plain marker: a marker line that is not an attestation line. */
@@ -259,10 +266,31 @@ function attestationsOf(
   return { covered, errors };
 }
 
-const [base, head = "HEAD"] = process.argv.slice(2);
-const commits = commitsOf(base, head).map((commit) =>
-  git("rev-parse", "--verify", `${commit}^{commit}`).trim(),
-);
+/** The commits of <anchor>..<head>; throws when the anchor is not an ancestor of <head>. */
+function commitsSince(anchor: string, head: string): string[] {
+  try {
+    git("merge-base", "--is-ancestor", anchor, head);
+  } catch {
+    throw new Error(
+      `the anchor ${anchor} is not an ancestor of ${head} (03 I-4, J6S-1)`,
+    );
+  }
+  return commitsOf(anchor, head);
+}
+
+const [base, head = "HEAD", anchor] = process.argv.slice(2);
+const commits = [
+  ...new Set(
+    [
+      ...commitsOf(base, head),
+      ...(anchor === undefined || anchor.length === 0
+        ? []
+        : commitsSince(anchor, head)),
+    ].map((commit) =>
+      git("rev-parse", "--verify", `${commit}^{commit}`).trim(),
+    ),
+  ),
+];
 const { covered, errors } = attestationsOf(head, new Set(commits));
 const missing = commits.filter(
   (commit) =>

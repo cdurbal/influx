@@ -83,8 +83,13 @@ function commit(message: string, files: Record<string, string>): string {
   return git("rev-parse", "HEAD");
 }
 
-function check(base: string, head: string): { status: number; output: string } {
-  const result = spawnSync(process.execPath, [SCRIPT, base, head], {
+function check(
+  base: string,
+  head: string,
+  anchor?: string,
+): { status: number; output: string } {
+  const args = anchor === undefined ? [base, head] : [base, head, anchor];
+  const result = spawnSync(process.execPath, [SCRIPT, ...args], {
     cwd: repository,
     encoding: "utf8",
   });
@@ -467,5 +472,55 @@ security-reviewed: 2026-10-08 covers ${side}`,
     const after = commit("docs: next", { "README.md": "next\n" });
     const result = check(bad, after);
     expect(result.status, result.output).toBe(0);
+  });
+});
+
+// J6S-1 (end-of-J6 review): the pushed range alone let an unattested commit turn green at the next
+// push; with a fixed anchor, it stays red until it is covered.
+describe("I-4 fixed anchor", () => {
+  const ATTESTED = "\n\nsecurity-reviewed: 2026-10-12";
+
+  it("keeps an unattested commit of an earlier push red at every later push", () => {
+    const anchor = git("rev-parse", "HEAD");
+    const unreviewed = commit("feat(db): unreviewed anchored", {
+      "supabase/migrations/9201_witness.sql":
+        "grant select on reference.witness to influx_agent;\n",
+    });
+    const later = commit("docs: later anchored", { "README.md": "a1\n" });
+    // without the anchor, the later push alone is green: the gap J6S-1 closes
+    expect(check(unreviewed, later).status).toBe(0);
+    const result = check(unreviewed, later, anchor);
+    expect(result.status, result.output).toBe(1);
+    expect(result.output).toContain("feat(db): unreviewed anchored");
+    // the first push of a branch (all-zero base) reads the anchored range as well
+    expect(check("0".repeat(40), later, anchor).status).toBe(1);
+    const attestation = commit(
+      `docs: attest anchored${ATTESTED}\nsecurity-reviewed: 2026-10-12 covers ${unreviewed.slice(0, 7)}`,
+      {},
+    );
+    expect(check(later, attestation, anchor).status).toBe(0);
+  });
+
+  it("fails on a malformed attestation anywhere after the anchor", () => {
+    const anchor = git("rev-parse", "HEAD");
+    const bad = commit(
+      `docs: bad anchored${ATTESTED}\nsecurity-reviewed: 2026-10-12 covers deadbeef00`,
+      {},
+    );
+    const after = commit("docs: next anchored", { "README.md": "a2\n" });
+    expect(check(bad, after).status).toBe(0);
+    const result = check(bad, after, anchor);
+    expect(result.status, result.output).toBe(1);
+    expect(result.output).toContain("deadbeef00");
+  });
+
+  it("fails closed on an anchor that is not an ancestor of the head", () => {
+    const head = git("rev-parse", "HEAD");
+    git("checkout", "--quiet", "-b", "anchor-side");
+    const side = commit("docs: side", { "README.md": "side\n" });
+    git("checkout", "--quiet", "main");
+    const result = check(head, head, side);
+    expect(result.status, result.output).not.toBe(0);
+    expect(result.output).toContain("is not an ancestor");
   });
 });

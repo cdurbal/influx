@@ -534,7 +534,11 @@ describe("EC-3, RG42, RG136: five attempts per code, counted before GoTrue", () 
   it("refuses without calling GoTrue a missing, altered, expired or sign-up-typed journey (RG47)", async () => {
     const { server, verifications } = app();
     const journey = await startJourney(server, newAddress("journey"));
-    const altered = `${journey.loginCookie.slice(0, -2)}${journey.loginCookie.endsWith("A") ? "B" : "A"}${journey.loginCookie.slice(-1)}`;
+    // The replaced character is the second to last (the last one may hold padding bits only): the
+    // substitute is chosen from that character, or an "A" left as "A" would leave it unaltered.
+    const cookie = journey.loginCookie;
+    const altered = `${cookie.slice(0, -2)}${cookie.at(-2) === "A" ? "B" : "A"}${cookie.slice(-1)}`;
+    expect(altered).not.toBe(cookie);
     const signupTyped = tokens.issueSignup(
       {
         verifiedAt: Math.floor(Date.now() / 1000),
