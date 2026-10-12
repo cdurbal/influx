@@ -5,12 +5,6 @@
 > ni `INDEX.md`, ni `decisions.md`, ni les archives, ni la fiche J6, ni un skill en entier.
 > Les numéros de ligne datent du 2026-10-09 : s'ils ont glissé, `Grep` sur le titre de section.
 
-## Préalable
-
-J6 clos : commit 7 poussé ; revue groupée rendue, attestation `security-reviewed: <date> covers d066228
-c00f9f2 8798ec2 2136515 f4f9ebc …` posée (I-4 vert) ; `21` §J6 condensé ; fiche J6 supprimée ou
-condensée. Les points rouges de cette revue deviennent le commit 1.
-
 ## Objectif et critère de fin
 
 **Les désinscriptions circulent dans les deux sens et le membre gère son compte.** `21` §J7 ne fixe
@@ -22,10 +16,7 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
 
 ## Commits prévus
 
-1. **Dette J6** : points rouges de la revue de fin de J6 ; I-4 comparé à la dernière attestation et non
-   au seul push (si non soldé au J6) ; liaison famille de motif ⇒ rôle de connexion dans
-   `audit.append_elevated()` (si retenue) ; cas instables `t8-verify-code` RG47 (l.537, J7 touche
-   `verify-code`) et `t13-ops-recording` (fenêtre à la minute).
+1. **Dette J6** : fait (`4aef89a`), voir « Issu du commit 1 ».
 2. **Migrations du J7** (`expert-database`, numérotation à partir de `0115`, `0102`/`0107` restent au
    J8) : `leads.brevo_inbound_events` + `brevo_inbound_outcomes`, `record_brevo_event()` (E-1) et E-3
    de traitement (décision 2) ; `ops.periodic_runs` et fonctions E-4 (décision 3) ; marqueur de
@@ -223,6 +214,15 @@ remplacer la ligne `lead.updated` P0 du test) ; `email.changed` sans doublon Bre
 `account.email_corrected` reste `template_not_supported` jusqu'au J8 ; suspension marketing sur `401`
 (scénario 5, RG123) avec l'interrupteur (J8 / Lot 5). Nouvelles variables (jetons du webhook, clé
 GoTrue du worker) : skill `env-secrets` ; le fondateur les documente dans `apps/api/.env.example`.
+
+## Issu du commit 1 (`4aef89a`)
+
+- **I-4 (J6S-1)** : ancre fixe `I4_ANCHOR` = `56b8046` dans `ci.yml` (base de la revue de fin de J5) ; une attestation malformée après l'ancre rougit chaque push. **Constat** : `4eb8ff1 83ba6d1 662ec3d 7b33351` (J5, revue sans point rouge) ne sont couverts par aucune attestation. Au plus sûr, l'agent ne les atteste pas : **l'attestation de fin de J7 doit les nommer**.
+- **Conséquence** : I-4 rouge pendant tout le J7, donc ni « Migrate staging » ni déploiement ; le commit 10 (`staging`) exige d'abord la revue `expert-cybersecurite` et son attestation.
+- **J6S-2** n'est pas retenue au commit 1 (fonction `audit` = migration) : à proposer à `expert-database` au commit 2 (`0115`+), sinon Lot 6.
+- **Cas instables** : RG47 (l.537), le cookie « altéré » restait intact quand l'avant-dernier caractère valait déjà `A` (≈ 1/64) ; J6T-8, la fenêtre fixe à la minute laissait passer 12 rapports à cheval sur deux minutes ⇒ horloge figée.
+- `testeur` (fin de jalon) : 3 témoins I-4 (ancre, attestation malformée, ancre hors historique), `check-security-review` à 46 cas.
+- Tickets J6 du J7 restants : J6T-1, J6T-2 (commit 4), J6T-3 (commit 6), J6S-5 (fondateur).
 
 ## Clôture d'un commit (« clôture standard »)
 
