@@ -49,3 +49,6 @@ desktop.ini
 
 # --- Manual trial recordings (D62, J6 commit 7): raw provider exchanges, never committed ---
 .provider-recordings/
+
+# Supabase Studio local SQL snippets (never committed, J6 review I-2)
+supabase/snippets/
