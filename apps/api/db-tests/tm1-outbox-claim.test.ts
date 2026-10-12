@@ -475,6 +475,38 @@ describe("0111: the dry_run marker and the attempt bound of leads.outbox_events"
     );
   }
 
+  it("holds one line per (destination, idempotency key): a second one is refused (23505), another destination passes (TM1.3)", async () => {
+    const first = await insertLine();
+    const [row] = await migration<
+      { event_id: string; idempotency_key: string }[]
+    >`
+      select event_id::text as event_id, idempotency_key
+        from leads.outbox_events where id = ${first}`;
+    if (row === undefined) {
+      throw new Error("the queue line was not found");
+    }
+    const copy = (destination: string) =>
+      migration.unsafe<{ id: string }[]>(
+        `insert into leads.outbox_events
+           (event_id, event_type, destination, subject_key, priority, payload, idempotency_key)
+         select event_id, event_type, $2::leads.outbox_destination, subject_key, priority, payload,
+                idempotency_key
+           from leads.outbox_events where id = $1
+         returning id::text as id`,
+        [first, destination],
+      );
+    await expect(copy("brevo_contact")).rejects.toMatchObject({
+      code: "23505",
+      constraint_name: "outbox_events_idempotency_idx",
+    });
+    const [other] = await copy("apollo_contact");
+    expect(other?.id).toBeDefined();
+    if (other !== undefined) {
+      lines.push(other.id);
+    }
+    expect(row.idempotency_key).toBe(`tm1:${row.event_id}`);
+  });
+
   it("refuses a dry run on a line that is not succeeded (23514)", async () => {
     const results = await inRolledBackTransaction(migration, async (tx) => [
       await writeLine(tx, "status, dry_run", "'pending', true"),
@@ -1100,6 +1132,56 @@ describe("leads.complete_outbox_attempt(): the four outcomes", () => {
     // the line without delay is taken again at once, the other one is not
     expect(await withOthersLocked(() => asWorker((tx) => claim(tx)))).toEqual([
       now,
+    ]);
+  });
+
+  it("gives back a line taken but never started (SIGTERM, spent budget): no attempt counted, lock freed, delay kept (TM1.10)", async () => {
+    const stopping = await insertLine();
+    const throttled = await insertLine();
+    const results = await withOthersLocked(() =>
+      committedAsWorker(async (tx) => {
+        await claim(tx);
+        // drain.ts release(): no begin, the dry_run flag of the worker as it is (live, then dry_run)
+        return [
+          await complete(tx, stopping, {
+            status: "pending",
+            errorCode: "worker_stopping",
+            retryInSeconds: 0,
+          }),
+          await complete(tx, throttled, {
+            status: "pending",
+            dryRun: true,
+            errorCode: "rate_limited",
+            retryInSeconds: 30,
+          }),
+        ];
+      }),
+    );
+    expect(results.map((row) => row.written_status)).toEqual([
+      "pending",
+      "pending",
+    ]);
+    expect(await lineRow(stopping)).toMatchObject({
+      status: "pending",
+      attempts: 0,
+      locked: false,
+      completed: false,
+      dry_run: false,
+      last_error_code: "worker_stopping",
+    });
+    const waiting = await lineRow(throttled);
+    expect(waiting).toMatchObject({
+      status: "pending",
+      attempts: 0,
+      locked: false,
+      dry_run: false,
+      last_error_code: "rate_limited",
+    });
+    expect(waiting.waits_seconds).toBeGreaterThanOrEqual(25);
+    expect(waiting.waits_seconds).toBeLessThanOrEqual(30);
+    // the line given back without delay is taken again at the next turn, the other one is not
+    expect(await withOthersLocked(() => asWorker((tx) => claim(tx)))).toEqual([
+      stopping,
     ]);
   });
 
