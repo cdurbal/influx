@@ -328,6 +328,59 @@ l'issue). `closeLoginCodeSend` renommé `closeP0Send`.
 - Écarts de documentation à regrouper : `16` §H (clé = seq d'audit + compte), `04` §5.8 (`internal.critical_alert`
   autorisé à `influx_auth`), `03` (E-2 écrit le journal P0 de l'alerte).
 
+## Issu du commit 7 (essai manuel, 2026-10-09 et 2026-10-12)
+
+**Essai D62 réussi** (poste de développement, base locale, `BREVO_MODE=redirect`, `SYNC_MODE=live`,
+comptes Brevo et Apollo distincts de la production) : une inscription d'annonceur `GB` consentant par
+`identity.provision_account` ⇒ `brevo_contact`, `brevo_transactional` (bienvenue envoyée) et `apollo_contact`
+`succeeded` (Apollo à la 2ᵉ tentative après une clé refusée : reprise RG79 constatée) ; 55 lignes
+`@example.test` `skipped_non_production` sans appel (verrou 3). Sondes (`trial:record probes`, adresse dédiée) :
+Brevo conforme aux fixtures (date `""` acceptée, 201 `{ id }`, 204, 404 `document_not_found`, 401) ; Apollo :
+création 200 `{ contact: { id } }`, mise à jour **`PUT`** 200, **identifiant inconnu = 422 `Contact does not
+exist.`** (et non 404) ⇒ client corrigé (`contactGone`, recréation ; tout autre 422 échoue) ; fixtures alignées.
+**Non enregistrés** (restent rédigés) : 429 Brevo et Apollo, 503 Brevo, opérations de liste de suppression
+(aucune liste dans le compte de test), 422 Apollo d'un champ refusé.
+
+Choix au plus sûr : `NON_PRODUCTION_RECIPIENT_ALLOWLIST` attend des **domaines** (l'essai l'a surchargé par
+`.env.trial.local`, ignoré) ; en `dry_run` local avec `BREVO_MODE=redirect`, le filtre `BREVO_TEST_RECIPIENTS`
+passe avant `dry_run` (Brevo `skipped_non_production`) : sans effet sur `staging` (`BREVO_MODE=disabled` ⇒
+Brevo `succeeded` + `dry_run`), plus prudent, conservé.
+
+- Fondateur : `apps/api/.env.example` (lecture refusée à l'agent) : documenter `BREVO_SUPPRESSION_LIST_ID`, la
+  clé Brevo du worker, `APOLLO_API_KEY` ; `NON_PRODUCTION_RECIPIENT_ALLOWLIST` en domaines dans `.env.local`.
+- **Critère de fin sur `staging`** : bloqué tant que I-4 est rouge (commits 4 à 6 sans marqueur ⇒ ni « Migrate
+  staging » ni déploiement Railway) ; levé par l'attestation de la revue de fin de J6.
+- `testeur` (fin de jalon) : `apollo-connector` 27 cas (+1 : 422 hors suppression).
+
+## Revue groupée de fin de J6 (2026-10-12, `28d8510^..9eb1662`)
+
+`expert-cybersecurite` : **aucun point rouge**, attestation `security-reviewed: 2026-10-12 covers d066228
+c00f9f2 8798ec2 2136515 f4f9ebc d4625ec eee382e 9eb1662`. `testeur` : R1 (TM1.3, index d'idempotence) et R2
+(TM1.10, renvoi d'une ligne jamais commencée, `dry_run` compris) **corrigés** par `3fa1d69` (plancher
+`tm1-outbox-claim` 71) ; écarts de la fiche tous confirmés. I-2 (snippet Studio ouvrant `GB`) **soldé** par
+`86120e8`.
+
+Tickets reportés :
+
+| # | Correctif attendu | Échéance |
+|---|---|---|
+| J6S-1 (I-1) | I-4 lit tout l'historique de HEAD depuis une ancre fixe, pas la seule plage poussée (`0111` à `0114` ont atteint `staging` sans attestation) | **Avant le prochain push d'une migration** (1er commit J7) |
+| J6S-2 (I-3) | `audit.append_elevated()` : famille du motif liée au rôle appelant (`leads.*` ⇒ `influx_worker`, `identity.*` ⇒ `influx_auth`) | Lot 6 |
+| J6S-3 (S-1) | Ligne `pino` « elevated transaction without effect to audit » en `debug` pour E-3 (≈ 20 à 50 k lignes/jour) | J8 |
+| J6S-4 (S-3) | Expurgation de `trial:record` par liste blanche de clés ; supprimer `raw.jsonl` après usage | J8 |
+| J6S-5 (S-4) | `apps/api/.env.example` : clé Brevo du worker, `BREVO_SUPPRESSION_LIST_ID`, `APOLLO_API_KEY` (fondateur) | J7 |
+| J6T-1 (N1) | TM1.1 en propre : Brevo seul en 500 sur la vraie file (plancher `tm1-brevo-connector` 10) | J7 |
+| J6T-2 (N5) | EC-44 : cas `security.critical_alert_no_recipient` et `journal_unavailable` (base factice) | J7 |
+| J6T-3 (N7) | Consentement redonné après retrait : ré-inscription Brevo avec `consent.granted` | J7 |
+| J6T-4 (N3) | CA43 journalisé + réévaluation des lignes ignorées ; CA41 rejeu double depuis l'écran | J8 |
+| J6T-5 (N4) | 401 ⇒ suspension marketing (RG123, scénario 5), code de connexion toujours délivré (scénario 12) | J8 / Lot 5 |
+| J6T-6 (N2, N6, N10) | T17.4 domaines de test ; assertion temporelle de T6 rendue relative ; garde vitest refusant tout hôte non loopback | J9 |
+| J6T-7 (N9) | 429/503 Brevo, liste de suppression, 422 Apollo d'un champ refusé : enregistrés au prochain essai D62 | J9 |
+| J6T-8 | `t13-ops-recording` « over ten a minute » instable en suite complète (12 au lieu de 10), vert seul | J7 |
+
+Risque accepté (S-2) : une ligne d'audit `elevated.leads.drain_outbox` par lecture d'adresse (≈ 3 à 4 par
+inscription), réexamen au Lot 6 si la latence des connexions s'en ressent.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne relire que la tranche

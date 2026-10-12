@@ -28,7 +28,7 @@
 | **J3** | 0 | Authentification : code membre (D43), sessions opaques, backoffice mot de passe + TOTP | ✅ **Terminé** (revue groupée 2026-10-05 : push autorisé ; T-1 corrigé ; push en attente du formatage de `design-proposals/`) | 4-5 j |
 | **J4** | 0 | `staging` sur Railway + Supabase, migrations par la CI, collecte d'erreurs (D60) | ✅ Terminé (2026-10-07) | 3-4 j |
 | **J5** | 1 | Inscription marque et créateur, transaction unique, file alimentée | ✅ Terminé (2026-10-09, revue groupée sans point rouge) | 4-5 j |
-| **J6** | 1 | Worker, connecteurs Brevo et Apollo, qualification, garde-fous | ▶️ En cours : commits 1 à 6 faits, reste le 7 (**1er usage démontrable**) — fiche `jalons/j6-fiche.md` | 4-5 j |
+| **J6** | 1 | Worker, connecteurs Brevo et Apollo, qualification, garde-fous | ▶️ Commits faits, revue groupée 2026-10-12 sans point rouge ; reste le constat `staging` (**1er usage démontrable**) — fiche `jalons/j6-fiche.md` | 4-5 j |
 | **J7** | 1 | Retours Brevo (désinscriptions, rebonds), espace membre minimal | ⏳ À faire — fiche `jalons/j7-fiche.md` | 3-4 j |
 | **J8** | 1 | Backoffice v0 : inscrits, états de synchronisation, rejeu, réglages Apollo | ⏳ À faire | 4-5 j |
 | **J9** | 1 | Sortie du mode maquette de la landing, en-têtes, surveillance active, production | ⏳ À faire | 4-5 j |
@@ -244,7 +244,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] Commit 4 (`8798ec2`) — connecteurs Brevo (`connectors/brevo/`, opérations 1, 2, 6, 7, mapping §M4 + EC-11, RG137, RG142, bienvenue une fois par compte) ; `0112` `read_brevo_subject` + index unique RG90 ; clé Brevo du worker (EC-19) ; doublure étendue aux contacts ; `brevo-connector` (28 cas), `tm1-brevo-connector` (9 cas).
 - [x] Commit 5 (`2136515`) — connecteur Apollo (`connectors/apollo/`, création `run_dedupe` ou mise à jour par l'id connu, qualification RG81 à RG84 relue à chaque consommation, aucun réimport RG85, aucune séquence) ; `0113` `read_apollo_subject` ; `APOLLO_API_KEY` au worker seul ; doublure Apollo ; `apollo-connector` (26 cas), `apollo-guard`, `tm1-apollo-connector` (14 cas).
 - [x] Commit 6 (`f4f9ebc`) — EC-44 : `internal.critical_alert` P0 synchrone après le commit de la connexion (jamais `outbox_events`), une ligne et une tentative par `admin` actif (compte de secours exclu), clé = seq d'audit + compte destinataire, contenu FR+EN fixe sans `@` ; `0114` (`consume_recovery_code` rend le seq, politique d'insertion de `influx_auth`) ; `critical-alert-email` (3 cas), `t8-backoffice-sign-in` (15 cas).
-- [ ] Commit 7 — en cours : scripts d'enregistrement des échanges fournisseurs (`d4625ec`) ; restent l'essai manuel D62, les fixtures expurgées, les variables du `worker` de `staging` et la vérification du critère de fin.
+- [x] Commit 7 (`d4625ec`, `9eb1662`, `3fa1d69`, `86120e8`) — essai D62 réussi (Brevo contact + bienvenue, Apollo contact) ; sondes : Apollo `PUT`, id inconnu = 422 ⇒ client corrigé ; fixtures alignées ; revue de fin de J6 sans point rouge (R1, R2, I-2 soldés ; tickets J6S/J6T dans la fiche) ; reste la vérification du critère sur `staging` (fondateur).
 
 ### J7 — Retours de Brevo et espace membre minimal (3 à 4 jours)
 
