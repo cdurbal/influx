@@ -17,11 +17,8 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
 ## Commits prévus
 
 1. **Dette J6** : fait (`4aef89a`), voir « Issu du commit 1 ».
-2. **Migrations du J7 (1)** : fait (`679263a`), `0115` à `0117` (codes, J6S-2, décisions 2 et 3).
-   **2bis. Migrations du J7 (2)** : `0118` (re-auth, changement d'adresse), `0119`
-   (`set_marketing_consent`, émetteur membre de `consent.*`, CA47), `0120` (`data_subject_requests`,
-   `code_delivery_reports`), écrites par `expert-database`, **non suivies** dans `supabase/migrations/` ;
-   à relire, puis T2, T4, T6 et un test db par fonction, comme au commit 2.
+2. **Migrations du J7** : fait, `679263a` (`0115`–`0117`, décisions 2, 3, J6S-2) et 2bis `2f3fdf4`
+   (`0118`–`0120`, décisions 4 à 6, `set_marketing_consent`), voir « Issu des commits 2 et 2bis ».
 3. **Webhook Brevo, réception** (décision 1) : exception A4 unique, deux jetons en temps constant,
    plages IP en constante, refus en `404`, fenêtre ±15 min, idempotence, écriture brute puis `200`
    (RG147), journal sans URL. Scénarios 8, 9, quatre refus en `404`, exception unique.
@@ -200,7 +197,7 @@ aucun taux ni montant.
   `lead.created` ⇒ désinscription, déjà en place). `apps/api/src/worker.ts` : aucune tâche E-4.
 - `packages/test-kit/src/brevo-double.ts`, `brevo-exchanges.ts` (à étendre aux événements entrants et
   au rapprochement) ; `apps/api/scripts/record-provider-exchanges.ts` (enregistrement expurgé, `d4625ec`).
-- `supabase/migrations/` : dernière suivie `0117` (0118 à 0120 non suivies, 2bis) ; `0005` (`consent_source` porte déjà `account_settings`,
+- `supabase/migrations/` : dernière `0120` ; `0005` (`consent_source` porte déjà `account_settings`,
   `brevo_webhook`) ; `0012` (`identity.revoke_own_session()`, motifs `logout`, `revoked_by_holder`) ;
   `0104` (`email_status`, `correct_email()`) ; `0105` (`email_delivery_incidents`, unicité de
   `provider_event_id`) ; `0011` (motif `support.report_delivery_issue` déclaré, aucune fonction) ;
@@ -208,7 +205,7 @@ aucun taux ni montant.
 
 ## Reports du J6
 
-TM1.5 attend le webhook (commit 4) ; CA47 : émetteur membre de `consent.revoked` en 2bis (`0119`), test au commit 6 (remplacer la ligne `lead.updated` P0) ; `email.changed` : décision 5 ; `account.email_corrected` reste `template_not_supported` jusqu'au J8 ; suspension marketing sur `401` (RG123) au J8 / Lot 5.
+TM1.5 attend le webhook (commit 4) ; CA47 : émetteur membre de `consent.revoked` en place (`0119`), test au commit 6 (remplacer la ligne `lead.updated` P0) ; `email.changed` : décision 5 ; `account.email_corrected` reste `template_not_supported` jusqu'au J8 ; suspension marketing sur `401` (RG123) au J8 / Lot 5.
 Nouvelles variables (jetons du webhook, clé GoTrue du worker) : skill `env-secrets` ; le fondateur les documente dans `apps/api/.env.example`.
 
 ## Issu du commit 1 (`4aef89a`)
@@ -216,13 +213,15 @@ Nouvelles variables (jetons du webhook, clé GoTrue du worker) : skill `env-secr
 - **I-4** : ancre fixe `56b8046` ; `4eb8ff1 83ba6d1 662ec3d 7b33351` (J5) non attestés : **l'attestation de fin de J7 doit les nommer**. I-4 rouge tout le J7 ⇒ ni staging ni déploiement avant la revue ; le commit 10 l'exige d'abord.
 - RG47 et J6T-8 stabilisés. `testeur` (fin de jalon) : 3 témoins I-4, `check-security-review` à 46 cas. Tickets restants : J6T-1, J6T-2 (commit 4), J6T-3 (commit 6), J6S-5 (fondateur).
 
-## Issu du commit 2 (`679263a`)
+## Issu des commits 2 (`679263a`) et 2bis (`2f3fdf4`)
 
 - **Au plus sûr (`expert-database`)** : tout effet exige l'adresse courante (`address_mismatch`) ; seul `hard_bounce` transactionnel ferme l'adresse ; `unsubscribe` = `unsubscribed` ; `dedup_key` calculée en base ; base ±20 min (route ±15) ; colonnes ajoutées `account_ref` (rapprochement) et `attempt` (jeton de clôture E-4) ; 03:00 UTC laissé à l'ordonnanceur.
 - **J6S-2 soldée** (`0115`, famille du motif liée à `session_user`). `leads.receive_brevo_event` (E-1 de la famille `leads`) ⇒ pool `auth` par `ELEVATED_POOL_EXCEPTIONS` dans `contracts` (T6.3 intact) ; P passe à 14 motifs, U inchangé (premier appelant au commit 3).
-- **Défaut trouvé par les tests, corrigé** : `claim_periodic_run` renvoyait une ligne de `NULL` sur une période finie (`FOR UPDATE` lit à travers la politique UPDATE). **Même piège à vérifier en 2bis.**
-- Tests : fixtures puis `actAs()` (superutilisateur local, `support.ts`) dans une transaction annulée, la table brute étant en ajout seul ; T2.6 : homonyme nommé `brevo_inbound_events.origin`.
-- `expert-cybersecurite` (fin de jalon) : signer les 2 motifs de P, le rôle `influx_maintenance_definer`, la lecture élargie de `transactional_sends` par `influx_leads_definer`. **I-4 rouge masque les étapes suivantes de la CI** (migrations, format, build, Playwright) : vérifiées en local. `testeur` : `actAs()`, exemption T2.6.
+- **Défaut trouvé par les tests, corrigé** : `claim_periodic_run` renvoyait une ligne de `NULL` sur une période finie (`FOR UPDATE` lit à travers la politique UPDATE) ; piège absent de `0118`–`0120` (testé).
+- **2bis, au plus sûr** : INSERT direct des membres sur `consent_events` retiré (`0119`, RG73 ; aucun code ne s'en servait) ; les membres lisent la colonne propriétaire de leurs demandes (`account_id`, `requester_account_id`), requise par les sondes T2.
+- Tests : fixtures puis `actAs()` / `actAsMember()` (superutilisateur local, `support.ts`) dans une transaction annulée ; T2.6 : homonyme nommé `brevo_inbound_events.origin` ; paramètres `jsonb` passés en `$n::text::jsonb` (postgres.js encode sinon une chaîne JSON).
+- **Commit 7** : `complete_email_change` après GoTrue ; sur `address_unavailable`/`superseded`, remettre GoTrue à l'ancienne adresse ; journal de `auth.email_change_confirm_new` par `recipient_email` ; motif des envois de codes à fixer ; lecture de `old_email` par le worker (avis `previous`).
+- `expert-cybersecurite` (fin de jalon) : signer les 2 motifs de P, le rôle `influx_maintenance_definer`, la lecture élargie de `transactional_sends` par `influx_leads_definer` ; le marqueur est vérifié sur un `p_session_id` fourni par l'appelant (un membre peut citer une autre de ses sessions marquée). **I-4 rouge masque les étapes suivantes de la CI** (migrations, format, build, Playwright) : vérifiées en local. `testeur` : `actAs()`, exemption T2.6. Rétention des 3 tables du 2bis : Lot 6.
 
 ## Clôture d'un commit (« clôture standard »)
 
