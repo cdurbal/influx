@@ -5,8 +5,10 @@ import {
   connectAsLoginRole,
   connectAsMigrationRole,
   loadDataSet,
+  takeRole,
   type DataSet,
   type LoginRole,
+  type UserContext,
 } from "@influx/test-kit/db";
 import type postgres from "postgres";
 import { afterAll } from "vitest";
@@ -88,6 +90,30 @@ export async function actAs<T>(
   const result = await fn();
   await tx.unsafe("reset role");
   await tx.unsafe("reset session authorization");
+  return result;
+}
+
+/**
+ * Inside a transaction of localSuperuser(): runs `fn` as a member, the way apps/api takes the role
+ * (influx_app, then takeRole with the business context), then clears the context and gives the
+ * transaction back to the superuser.
+ */
+export async function actAsMember<T>(
+  tx: postgres.TransactionSql,
+  role: "influx_advertiser" | "influx_creator",
+  context: UserContext,
+  fn: () => Promise<T>,
+): Promise<T> {
+  await tx.unsafe("set local session authorization influx_app");
+  await takeRole(tx, role, context);
+  const result = await fn();
+  await tx.unsafe("reset role");
+  await tx.unsafe("reset session authorization");
+  await tx`select
+    pg_catalog.set_config('request.jwt.claims', '', true),
+    pg_catalog.set_config('influx.account', '', true),
+    pg_catalog.set_config('influx.role', '', true),
+    pg_catalog.set_config('influx.aal', '', true)`;
   return result;
 }
 

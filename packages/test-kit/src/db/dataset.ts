@@ -293,6 +293,35 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
               '2026-01-01T00:01:00Z', 'succeeded')
       on conflict do nothing`;
 
+    // J7 commit 2bis (0118, 0120): one open address change request and one open ACCESS request
+    // per member account (A and B, so that `propre` is observable), and one rescue report. The
+    // TM cases deposit ERASURE requests, and supersede the open address change in their own
+    // rolled-back transactions.
+    for (const role of ["advertiser", "creator"] as const) {
+      for (const side of ["a", "b"] as const) {
+        const account = accountIdOf(role, side);
+        await tx`
+          insert into identity.email_change_requests
+            (account_id, old_email, new_email, old_code_hash, new_code_hash)
+          select a.id, a.email, ${`t2-new-${role}-${side}@example.test`},
+                 sha256(convert_to(${`t2-old-${role}-${side}`}, 'UTF8')),
+                 sha256(convert_to(${`t2-new-${role}-${side}`}, 'UTF8'))
+            from identity.accounts a
+           where a.id = ${account}
+             and not exists (select 1 from identity.email_change_requests r
+                              where r.account_id = ${account})`;
+        await tx`
+          insert into backoffice.data_subject_requests (request_type, requester_account_id)
+          select 'access', ${account}::uuid
+           where not exists (select 1 from backoffice.data_subject_requests r
+                              where r.requester_account_id = ${account})`;
+      }
+    }
+    await tx`
+      insert into backoffice.code_delivery_reports (login_email, contact_email, message, locale)
+      select 't2-login@example.test', 't2-contact@example.test', 't2 data set', 'fr'
+       where not exists (select 1 from backoffice.code_delivery_reports)`;
+
     // At least one verification record, so that its read rights are observable.
     const [checks] = await tx<
       { count: string }[]

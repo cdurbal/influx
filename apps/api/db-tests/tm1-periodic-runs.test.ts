@@ -254,11 +254,23 @@ describe("ops.finish_periodic_run()", () => {
       const run = await claimed(tx, "brevo_reconciliation");
       return asWorker(
         tx,
-        "select ops.finish_periodic_run($1::uuid, 1::smallint, 'succeeded', $2::jsonb)",
+        "select ops.finish_periodic_run($1::uuid, 1::smallint, 'succeeded', $2::text::jsonb)",
         [run.run_id, JSON.stringify(counts)],
       );
     });
     expect(result).toEqual({ outcome: "error", code: INVALID_PARAMETER });
+  });
+
+  it("accepts well-formed counts through the same path (witness of the refusals above)", async () => {
+    const result = await scenario(async (tx) => {
+      const run = await claimed(tx, "brevo_reconciliation");
+      return asWorker(
+        tx,
+        "select ops.finish_periodic_run($1::uuid, 1::smallint, 'succeeded', $2::text::jsonb)",
+        [run.run_id, JSON.stringify({ gap: 0, found: 12 })],
+      );
+    });
+    expect(result).toEqual({ outcome: "rows", count: 1 });
   });
 });
 

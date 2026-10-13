@@ -321,7 +321,9 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
   },
   {
     table: "identity.consent_events",
-    source: "0005 §5.3",
+    source:
+      "0005 §5.3; 0119 (J7, RG73): a member changes his consent through " +
+      "identity.set_marketing_consent() only, never by a direct INSERT (probed refused)",
     appendOnly: true,
     probeColumn: "id",
     ownerColumn: "account_id",
@@ -333,10 +335,6 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
         select: {
           form: "propre",
           source: "03 §3.5 consent, own history; 0005 §5.3",
-        },
-        insert: {
-          form: "propre",
-          source: "03 §3.5 C(36): a member changes his own consent",
         },
       }),
       forRoles(INTERNAL, {
@@ -614,6 +612,66 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     probeColumn: "task_code",
     expected: {},
   },
+  {
+    table: "identity.email_change_requests",
+    source:
+      "0118 (J7 decision 5, 05 RG58, 03 A-11): written by the identity functions only; never a " +
+      "digest outside its owner",
+    probeColumn: "id",
+    ownerColumn: "account_id",
+    expected: merge(
+      forRoles(MEMBERS, {
+        select: {
+          form: "propre",
+          source:
+            '0118 §7.2: the member\'s own requests (the "address pending" screen)',
+        },
+      }),
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source:
+            "0118 §7.3, 03 §3.1 L: every request in aal2, never the digests",
+        },
+      }),
+    ),
+  },
+  {
+    table: "backoffice.data_subject_requests",
+    source:
+      "0120 (J7 decision 6, EC-14): deposited by backoffice.submit_data_subject_request() only; " +
+      "the admin write path comes with 0502 (Lot 5)",
+    probeColumn: "id",
+    ownerColumn: "requester_account_id",
+    expected: merge(
+      forRoles(MEMBERS, {
+        select: {
+          form: "propre",
+          source:
+            '0120 §5.2: the member\'s own requests (the "my data" screen)',
+        },
+      }),
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source: "0120 §5.3: both queues read in aal2, writes at Lot 5",
+        },
+      }),
+    ),
+  },
+  {
+    table: "backoffice.code_delivery_reports",
+    source:
+      "0120 (J7 decision 6, 05 RG65): written by backoffice.record_code_delivery_report() " +
+      "(E-1, influx_auth) only, never read by it",
+    probeColumn: "id",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source: "0120 §5.3: the rescue queue read in aal2, handled at Lot 5",
+      },
+    }),
+  },
 ];
 
 /**
@@ -660,8 +718,8 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * 2026-10-05 with those of 0016 (J4: influx_ops on the ops schema); on 2026-10-08 with those
  * of 0101 to 0106 (J5, Lot 1), each line checked against its migration; and on 2026-10-09 with
  * those of 0111 (J6, E-3: influx_leads_definer column by column, influx_worker on its functions);
- * and on 2026-10-13 with those of 0116 and 0117 (J7 commit 2), each line checked against its
- * migration.
+ * and on 2026-10-13 with those of 0116 and 0117 (J7 commit 2), then of 0118 to 0120 (J7 commit
+ * 2bis), each line checked against its migration.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -724,11 +782,6 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_advertiser|column|identity.accounts.status|SELECT",
   "influx_advertiser|column|identity.accounts.timezone|SELECT,UPDATE",
   "influx_advertiser|column|identity.accounts.updated_at|SELECT",
-  "influx_advertiser|column|identity.consent_events.account_id|INSERT",
-  "influx_advertiser|column|identity.consent_events.evidence|INSERT",
-  "influx_advertiser|column|identity.consent_events.granted|INSERT",
-  "influx_advertiser|column|identity.consent_events.purpose|INSERT",
-  "influx_advertiser|column|identity.consent_events.source|INSERT",
   "influx_advertiser|column|identity.sessions.aal|SELECT",
   "influx_advertiser|column|identity.sessions.absolute_expires_at|SELECT",
   "influx_advertiser|column|identity.sessions.account_id|SELECT",
@@ -876,11 +929,6 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator|column|identity.accounts.status|SELECT",
   "influx_creator|column|identity.accounts.timezone|SELECT,UPDATE",
   "influx_creator|column|identity.accounts.updated_at|SELECT",
-  "influx_creator|column|identity.consent_events.account_id|INSERT",
-  "influx_creator|column|identity.consent_events.evidence|INSERT",
-  "influx_creator|column|identity.consent_events.granted|INSERT",
-  "influx_creator|column|identity.consent_events.purpose|INSERT",
-  "influx_creator|column|identity.consent_events.source|INSERT",
   "influx_creator|column|identity.sessions.aal|SELECT",
   "influx_creator|column|identity.sessions.absolute_expires_at|SELECT",
   "influx_creator|column|identity.sessions.account_id|SELECT",
@@ -1052,10 +1100,10 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|column|identity.accounts.signup_utm_campaign|INSERT",
   "influx_identity_definer|column|identity.accounts.signup_utm_medium|INSERT",
   "influx_identity_definer|column|identity.accounts.signup_utm_source|INSERT",
-  "influx_identity_definer|column|identity.consent_events.account_id|INSERT",
+  "influx_identity_definer|column|identity.consent_events.account_id|INSERT,SELECT",
   "influx_identity_definer|column|identity.consent_events.evidence|INSERT",
-  "influx_identity_definer|column|identity.consent_events.granted|INSERT",
-  "influx_identity_definer|column|identity.consent_events.purpose|INSERT",
+  "influx_identity_definer|column|identity.consent_events.granted|INSERT,SELECT",
+  "influx_identity_definer|column|identity.consent_events.purpose|INSERT,SELECT",
   "influx_identity_definer|column|identity.consent_events.source|INSERT",
   "influx_identity_definer|column|identity.terms_acceptances.account_id|INSERT",
   "influx_identity_definer|column|identity.terms_acceptances.channel|INSERT",
@@ -1250,6 +1298,141 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_worker|function|ops.purge_brevo_inbound_events(uuid,smallint,integer)|EXECUTE",
   "influx_worker|function|ops.record_retention_purge(uuid,smallint,text,integer)|EXECUTE",
   "influx_worker|schema|ops|USAGE",
+  // 0118 (J7 decisions 4 and 5): the re-authentication marker (influx_auth, E-2), the address
+  // change requests (members through the identity functions; own rows without the digests;
+  // agent and admin in aal2, never the digests).
+  "influx_auth|function|identity.mark_member_reauthenticated(uuid,identity.reauth_purpose)|EXECUTE",
+  "influx_identity_definer|function|identity.mark_member_reauthenticated(uuid,identity.reauth_purpose)|EXECUTE",
+  "influx_identity_definer|function|identity.consume_member_reauthentication(uuid,identity.reauth_purpose)|EXECUTE",
+  "influx_identity_definer|column|identity.sessions.created_at|SELECT",
+  "influx_identity_definer|column|identity.sessions.reauth_purpose|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.sessions.reauthenticated_at|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.email_change_requests.account_id|INSERT,SELECT",
+  "influx_identity_definer|column|identity.email_change_requests.cancel_reason|UPDATE",
+  "influx_identity_definer|column|identity.email_change_requests.cancelled_at|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.email_change_requests.completed_at|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.email_change_requests.expires_at|SELECT",
+  "influx_identity_definer|column|identity.email_change_requests.id|INSERT,SELECT",
+  "influx_identity_definer|column|identity.email_change_requests.new_attempts|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.email_change_requests.new_code_hash|INSERT,SELECT,UPDATE",
+  "influx_identity_definer|column|identity.email_change_requests.new_confirmed_at|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.email_change_requests.new_email|INSERT,SELECT",
+  "influx_identity_definer|column|identity.email_change_requests.old_attempts|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.email_change_requests.old_code_hash|INSERT,SELECT,UPDATE",
+  "influx_identity_definer|column|identity.email_change_requests.old_confirmed_at|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.email_change_requests.old_email|INSERT,SELECT",
+  "influx_identity_definer|function|identity.request_email_change(uuid,uuid,text,bytea,bytea)|EXECUTE",
+  "influx_identity_definer|function|identity.confirm_email_change(uuid,identity.email_change_side,bytea)|EXECUTE",
+  "influx_identity_definer|function|identity.complete_email_change(uuid,uuid)|EXECUTE",
+  "influx_identity_definer|function|identity.cancel_email_change(uuid)|EXECUTE",
+  "influx_advertiser|function|identity.request_email_change(uuid,uuid,text,bytea,bytea)|EXECUTE",
+  "influx_advertiser|function|identity.confirm_email_change(uuid,identity.email_change_side,bytea)|EXECUTE",
+  "influx_advertiser|function|identity.complete_email_change(uuid,uuid)|EXECUTE",
+  "influx_advertiser|function|identity.cancel_email_change(uuid)|EXECUTE",
+  "influx_creator|function|identity.request_email_change(uuid,uuid,text,bytea,bytea)|EXECUTE",
+  "influx_creator|function|identity.confirm_email_change(uuid,identity.email_change_side,bytea)|EXECUTE",
+  "influx_creator|function|identity.complete_email_change(uuid,uuid)|EXECUTE",
+  "influx_creator|function|identity.cancel_email_change(uuid)|EXECUTE",
+  "influx_advertiser|column|identity.email_change_requests.account_id|SELECT",
+  "influx_advertiser|column|identity.email_change_requests.cancel_reason|SELECT",
+  "influx_advertiser|column|identity.email_change_requests.cancelled_at|SELECT",
+  "influx_advertiser|column|identity.email_change_requests.completed_at|SELECT",
+  "influx_advertiser|column|identity.email_change_requests.created_at|SELECT",
+  "influx_advertiser|column|identity.email_change_requests.expires_at|SELECT",
+  "influx_advertiser|column|identity.email_change_requests.id|SELECT",
+  "influx_advertiser|column|identity.email_change_requests.new_attempts|SELECT",
+  "influx_advertiser|column|identity.email_change_requests.new_confirmed_at|SELECT",
+  "influx_advertiser|column|identity.email_change_requests.new_email|SELECT",
+  "influx_advertiser|column|identity.email_change_requests.old_attempts|SELECT",
+  "influx_advertiser|column|identity.email_change_requests.old_confirmed_at|SELECT",
+  "influx_creator|column|identity.email_change_requests.account_id|SELECT",
+  "influx_creator|column|identity.email_change_requests.cancel_reason|SELECT",
+  "influx_creator|column|identity.email_change_requests.cancelled_at|SELECT",
+  "influx_creator|column|identity.email_change_requests.completed_at|SELECT",
+  "influx_creator|column|identity.email_change_requests.created_at|SELECT",
+  "influx_creator|column|identity.email_change_requests.expires_at|SELECT",
+  "influx_creator|column|identity.email_change_requests.id|SELECT",
+  "influx_creator|column|identity.email_change_requests.new_attempts|SELECT",
+  "influx_creator|column|identity.email_change_requests.new_confirmed_at|SELECT",
+  "influx_creator|column|identity.email_change_requests.new_email|SELECT",
+  "influx_creator|column|identity.email_change_requests.old_attempts|SELECT",
+  "influx_creator|column|identity.email_change_requests.old_confirmed_at|SELECT",
+  "influx_agent|column|identity.email_change_requests.account_id|SELECT",
+  "influx_agent|column|identity.email_change_requests.cancel_reason|SELECT",
+  "influx_agent|column|identity.email_change_requests.cancelled_at|SELECT",
+  "influx_agent|column|identity.email_change_requests.completed_at|SELECT",
+  "influx_agent|column|identity.email_change_requests.created_at|SELECT",
+  "influx_agent|column|identity.email_change_requests.expires_at|SELECT",
+  "influx_agent|column|identity.email_change_requests.id|SELECT",
+  "influx_agent|column|identity.email_change_requests.new_attempts|SELECT",
+  "influx_agent|column|identity.email_change_requests.new_confirmed_at|SELECT",
+  "influx_agent|column|identity.email_change_requests.new_email|SELECT",
+  "influx_agent|column|identity.email_change_requests.old_attempts|SELECT",
+  "influx_agent|column|identity.email_change_requests.old_confirmed_at|SELECT",
+  "influx_agent|column|identity.email_change_requests.old_email|SELECT",
+  "influx_agent|column|identity.email_change_requests.updated_at|SELECT",
+  "influx_admin|column|identity.email_change_requests.account_id|SELECT",
+  "influx_admin|column|identity.email_change_requests.cancel_reason|SELECT",
+  "influx_admin|column|identity.email_change_requests.cancelled_at|SELECT",
+  "influx_admin|column|identity.email_change_requests.completed_at|SELECT",
+  "influx_admin|column|identity.email_change_requests.created_at|SELECT",
+  "influx_admin|column|identity.email_change_requests.expires_at|SELECT",
+  "influx_admin|column|identity.email_change_requests.id|SELECT",
+  "influx_admin|column|identity.email_change_requests.new_attempts|SELECT",
+  "influx_admin|column|identity.email_change_requests.new_confirmed_at|SELECT",
+  "influx_admin|column|identity.email_change_requests.new_email|SELECT",
+  "influx_admin|column|identity.email_change_requests.old_attempts|SELECT",
+  "influx_admin|column|identity.email_change_requests.old_confirmed_at|SELECT",
+  "influx_admin|column|identity.email_change_requests.old_email|SELECT",
+  "influx_admin|column|identity.email_change_requests.updated_at|SELECT",
+  // 0119 (J7, EC-10, RG73): the members' consent through identity.set_marketing_consent() only
+  // (their direct INSERT on identity.consent_events is revoked); the owner reads the consent in force.
+  "influx_advertiser|function|identity.set_marketing_consent(identity.consent_purpose,boolean,jsonb)|EXECUTE",
+  "influx_creator|function|identity.set_marketing_consent(identity.consent_purpose,boolean,jsonb)|EXECUTE",
+  "influx_identity_definer|function|identity.set_marketing_consent(identity.consent_purpose,boolean,jsonb)|EXECUTE",
+  "influx_identity_definer|column|identity.consent_events.occurred_at|SELECT",
+  // 0120 (J7 decision 6, EC-14, RG65): data subject requests deposited by the members (own rows),
+  // rescue reports written by influx_auth (E-1); both read by agent and admin in aal2.
+  "influx_advertiser|schema|backoffice|USAGE",
+  "influx_creator|schema|backoffice|USAGE",
+  "influx_auth|schema|backoffice|USAGE",
+  "influx_identity_definer|schema|backoffice|USAGE",
+  "influx_advertiser|function|backoffice.submit_data_subject_request(uuid,backoffice.data_request_type)|EXECUTE",
+  "influx_creator|function|backoffice.submit_data_subject_request(uuid,backoffice.data_request_type)|EXECUTE",
+  "influx_identity_definer|function|backoffice.submit_data_subject_request(uuid,backoffice.data_request_type)|EXECUTE",
+  "influx_auth|function|backoffice.record_code_delivery_report(text,text,text,text)|EXECUTE",
+  "influx_identity_definer|function|backoffice.record_code_delivery_report(text,text,text,text)|EXECUTE",
+  "influx_identity_definer|column|backoffice.data_subject_requests.id|SELECT",
+  "influx_identity_definer|column|backoffice.data_subject_requests.request_type|INSERT,SELECT",
+  "influx_identity_definer|column|backoffice.data_subject_requests.requester_account_id|INSERT,SELECT",
+  "influx_identity_definer|column|backoffice.data_subject_requests.status|SELECT",
+  "influx_identity_definer|column|backoffice.code_delivery_reports.contact_email|INSERT",
+  "influx_identity_definer|column|backoffice.code_delivery_reports.id|SELECT",
+  "influx_identity_definer|column|backoffice.code_delivery_reports.locale|INSERT",
+  "influx_identity_definer|column|backoffice.code_delivery_reports.login_email|INSERT",
+  "influx_identity_definer|column|backoffice.code_delivery_reports.message|INSERT",
+  "influx_advertiser|column|backoffice.data_subject_requests.channel|SELECT",
+  "influx_advertiser|column|backoffice.data_subject_requests.completed_at|SELECT",
+  "influx_advertiser|column|backoffice.data_subject_requests.due_at|SELECT",
+  "influx_advertiser|column|backoffice.data_subject_requests.id|SELECT",
+  "influx_advertiser|column|backoffice.data_subject_requests.outcome_code|SELECT",
+  "influx_advertiser|column|backoffice.data_subject_requests.received_at|SELECT",
+  "influx_advertiser|column|backoffice.data_subject_requests.requester_account_id|SELECT",
+  "influx_advertiser|column|backoffice.data_subject_requests.request_type|SELECT",
+  "influx_advertiser|column|backoffice.data_subject_requests.status|SELECT",
+  "influx_creator|column|backoffice.data_subject_requests.channel|SELECT",
+  "influx_creator|column|backoffice.data_subject_requests.completed_at|SELECT",
+  "influx_creator|column|backoffice.data_subject_requests.due_at|SELECT",
+  "influx_creator|column|backoffice.data_subject_requests.id|SELECT",
+  "influx_creator|column|backoffice.data_subject_requests.outcome_code|SELECT",
+  "influx_creator|column|backoffice.data_subject_requests.received_at|SELECT",
+  "influx_creator|column|backoffice.data_subject_requests.requester_account_id|SELECT",
+  "influx_creator|column|backoffice.data_subject_requests.request_type|SELECT",
+  "influx_creator|column|backoffice.data_subject_requests.status|SELECT",
+  "influx_agent|table|backoffice.code_delivery_reports|SELECT",
+  "influx_agent|table|backoffice.data_subject_requests|SELECT",
+  "influx_admin|table|backoffice.code_delivery_reports|SELECT",
+  "influx_admin|table|backoffice.data_subject_requests|SELECT",
 ];
 
 /**
@@ -1370,4 +1553,22 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
     "influx_maintenance_definer",
   "ops.purge_brevo_inbound_events(uuid,smallint,integer)":
     "influx_maintenance_definer",
+  // 0118 (J7 decisions 4 and 5). identity.consume_member_reauthentication() is SECURITY INVOKER
+  // (called by the identity functions only).
+  "identity.mark_member_reauthenticated(uuid,identity.reauth_purpose)":
+    "influx_identity_definer",
+  "identity.request_email_change(uuid,uuid,text,bytea,bytea)":
+    "influx_identity_definer",
+  "identity.confirm_email_change(uuid,identity.email_change_side,bytea)":
+    "influx_identity_definer",
+  "identity.complete_email_change(uuid,uuid)": "influx_identity_definer",
+  "identity.cancel_email_change(uuid)": "influx_identity_definer",
+  // 0119 (J7, EC-10)
+  "identity.set_marketing_consent(identity.consent_purpose,boolean,jsonb)":
+    "influx_identity_definer",
+  // 0120 (J7 decision 6)
+  "backoffice.submit_data_subject_request(uuid,backoffice.data_request_type)":
+    "influx_identity_definer",
+  "backoffice.record_code_delivery_report(text,text,text,text)":
+    "influx_identity_definer",
 };
