@@ -655,18 +655,8 @@ export async function termsInForce(
   };
 }
 
-/** The SQLSTATE of a database error, through the wrapping of drizzle (`cause`). */
-export function sqlStateOf(error: unknown): string | null {
-  let current: unknown = error;
-  for (let depth = 0; depth < 4 && current instanceof Error; depth += 1) {
-    const code: unknown = (current as Error & { code?: unknown }).code;
-    if (typeof code === "string" && /^[0-9A-Z]{5}$/.test(code)) {
-      return code;
-    }
-    current = current.cause;
-  }
-  return null;
-}
+/** The SQLSTATE of a database error (src/db/sql-state.ts), kept here for the identity domain. */
+export { sqlStateOf } from "../../db/sql-state.ts";
 
 /**
  * The constraint named by a database error (postgres.js `constraint_name`), through the wrapping

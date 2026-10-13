@@ -182,7 +182,7 @@ describe("PP-3: five methods only", () => {
 });
 
 describe("PP-5: allow-list of request headers (21 J1-J A4)", () => {
-  it("forwards the seven allowed headers and drops every other one", async () => {
+  it("forwards the eight allowed headers and drops every other one", async () => {
     await call("/api/v1/status", {
       method: "POST",
       headers: {
@@ -193,6 +193,7 @@ describe("PP-5: allow-list of request headers (21 J1-J A4)", () => {
         "idempotency-key": "key-1",
         origin: "https://influx.example",
         "sec-fetch-site": "same-origin",
+        "brevo-webhook-token": "header-token",
         "x-middleware-subrequest": "middleware",
         "x-forwarded-host": "evil.tld",
         "x-forwarded-for": "203.0.113.7",
@@ -212,6 +213,7 @@ describe("PP-5: allow-list of request headers (21 J1-J A4)", () => {
       "idempotency-key": "key-1",
       origin: "https://influx.example",
       "sec-fetch-site": "same-origin",
+      "brevo-webhook-token": "header-token",
       "x-influx-internal": SECRET,
     });
     for (const dropped of [
@@ -223,6 +225,107 @@ describe("PP-5: allow-list of request headers (21 J1-J A4)", () => {
       "x-custom",
     ]) {
       expect(headers[dropped], dropped).toBeUndefined();
+    }
+  });
+});
+
+// EC-12 (J7 decision 1, commit 3): the Brevo webhook reaches apps/api through this relay, with no
+// logic of its own: the path token passes PP-2 as any segment, the header token is one more name
+// of the PP-5 list, the address goes through PP-6. apps/api decides (route, ranges, tokens).
+describe("EC-12: the Brevo webhook through the relay (18 T7, J7 commit 3)", () => {
+  // 43 base64url characters, "-" and "_" included: the shape of BREVO_WEBHOOK_PATH_TOKEN_*.
+  const PATH_TOKEN = "Ab3-_x9QzR7kLmN2pV8wYt4uHc6eJf1oGs5iDn0aB_c";
+  const EVENT = JSON.stringify({
+    event: "unsubscribed",
+    ts_event: 1_760_000_000,
+    email: "relay-webhook@example.test",
+  });
+
+  it("forwards a server-to-server POST unchanged: path token, header token, address, body", async () => {
+    expect(PATH_TOKEN).toHaveLength(43);
+    const response = await call(`/api/v1/webhooks/brevo/${PATH_TOKEN}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "brevo-webhook-token": "brevo-header-token-value",
+        "x-real-ip": "1.179.112.10",
+        "user-agent": "Brevo/1.0",
+      },
+      body: EVENT,
+    });
+    expect(response.status).toBe(200);
+    const request = received[0];
+    expect(request?.method).toBe("POST");
+    expect(request?.url).toBe(`/v1/webhooks/brevo/${PATH_TOKEN}`);
+    expect(request?.body.toString("utf8")).toBe(EVENT);
+    expect(request?.headers).toMatchObject({
+      "brevo-webhook-token": "brevo-header-token-value",
+      "x-real-ip": "1.179.112.10",
+      "x-influx-internal": SECRET,
+      "content-type": "application/json",
+    });
+    // Nothing is added for the A4 check: apps/api applies its closed exception, the relay none.
+    expect(request?.headers.origin).toBeUndefined();
+    expect(request?.headers["sec-fetch-site"]).toBeUndefined();
+  });
+
+  it("relays the 404 of apps/api as is, for a refused token as for an unknown route", async () => {
+    handler = (_request, response) => {
+      response.writeHead(404, { "content-type": "application/json" });
+      response.end(
+        JSON.stringify({
+          error: { code: "not_found", message: "Not found", requestId: "r" },
+        }),
+      );
+    };
+    const response = await call(`/api/v1/webhooks/brevo/${PATH_TOKEN}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: EVENT,
+    });
+    expect(response.status).toBe(404);
+    expect(response.headers.get("x-robots-tag")).toBe(
+      "noindex, nofollow, noarchive",
+    );
+  });
+
+  it.each([
+    [
+      "an encoded token",
+      `/api/v1/webhooks/brevo/${PATH_TOKEN.slice(0, 40)}%41`,
+    ],
+    ["a dotted token", `/api/v1/webhooks/brevo/${PATH_TOKEN.slice(0, 40)}.aa`],
+    ["a token with a colon", `/api/v1/webhooks/brevo/a:${PATH_TOKEN}`],
+  ])(
+    "refuses %s with 404, without calling apps/api (PP-2)",
+    async (_case, path) => {
+      const response = await call(path, { method: "POST", body: EVENT });
+      await expectRefusal(response, 404, "not_found");
+      expect(received).toHaveLength(0);
+    },
+  );
+
+  it("never writes the path token nor the header token in its log line", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    process.env.INFLUX_API_INTERNAL_URL = "http://127.0.0.1:1";
+    const response = await call(`/api/v1/webhooks/brevo/${PATH_TOKEN}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "brevo-webhook-token": "brevo-header-token-value",
+      },
+      body: EVENT,
+    });
+    await expectRefusal(response, 502, "service_unavailable");
+    const lines = logged.mock.calls.map((call) => String(call[0])).join(" ");
+    expect(lines).toContain("requestId");
+    for (const value of [
+      PATH_TOKEN,
+      "brevo-header-token-value",
+      "relay-webhook@example.test",
+      "webhooks",
+    ]) {
+      expect(lines, value).not.toContain(value);
     }
   });
 });

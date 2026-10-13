@@ -22,6 +22,7 @@ import {
   registerIdentityRoutes,
   type IdentityDependencies,
 } from "./domains/identity/routes.ts";
+import { registerBrevoWebhookRoute } from "./domains/leads/brevo-webhook.ts";
 import { OpsRecorder } from "./domains/ops/recorder.ts";
 import { registerOpsRoutes } from "./domains/ops/routes.ts";
 import { createAuthTokenCodec } from "./platform/auth-tokens.ts";
@@ -62,6 +63,7 @@ import {
 import {
   isWriteMethod,
   isWriteOriginAllowed,
+  isWriteOriginException,
 } from "./platform/write-origin.ts";
 
 declare module "fastify" {
@@ -314,8 +316,9 @@ export function buildServer(
 
   // Internal secret and surface, before any body parsing (`03` PP-8, T7.9, 21 J1-G); then, for
   // an identified surface only: the surface whose cookies may be read (J3-C rule 8), the client
-  // address (A5), the browser agent (05 Q14), the origin of writes (A4) and the bodiless DELETE
-  // (C-3). Nothing of the request is read before the secret is validated.
+  // address (A5), the browser agent (05 Q14), the origin of writes (A4, but for its single closed
+  // exception, the Brevo webhook, which authenticates itself) and the bodiless DELETE (C-3).
+  // Nothing of the request is read before the secret is validated.
   app.addHook("onRequest", async (request) => {
     const routeUrl = request.routeOptions.url;
     if (request.method === "GET" && routeUrl === HEALTH_ROUTE) {
@@ -333,6 +336,7 @@ export function buildServer(
     readClientUserAgent(request);
     if (
       isWriteMethod(request.method) &&
+      !isWriteOriginException(request.method, routeUrl, caller) &&
       !isWriteOriginAllowed(request.headers, config.publicOrigins[caller])
     ) {
       throw new ApiError("forbidden");
@@ -459,6 +463,14 @@ export function buildServer(
   registerOpsRoutes(app, {
     database,
     recorder: ops,
+    now: options.identity?.now ?? (() => new Date()),
+  });
+
+  // What Brevo reports back, received through the relay of web (21 EC-12, J7 decision 1).
+  registerBrevoWebhookRoute(app, {
+    database,
+    recorder: ops,
+    secrets: config.brevoWebhook,
     now: options.identity?.now ?? (() => new Date()),
   });
 

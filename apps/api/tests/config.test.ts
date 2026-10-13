@@ -94,6 +94,7 @@ describe("api configuration", () => {
         ops: { url: OPS_URL, role: "influx_ops_login", tls: false },
       },
       internalSecrets: { web: WEB_SECRET, backoffice: BACKOFFICE_SECRET },
+      brevoWebhook: { pathTokens: [], headerTokens: [] },
     });
   });
 
@@ -467,6 +468,9 @@ describe("api configuration", () => {
         BREVO_API_KEY: "xkeysib-production-like-value",
         BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
         SUPABASE_URL: HOSTED_SUPABASE_URL,
+        // Required in production from J7 (decision 1).
+        BREVO_WEBHOOK_PATH_TOKEN_CURRENT: "p".repeat(43),
+        BREVO_WEBHOOK_SECRET_CURRENT: "s".repeat(43),
       }).brevo.mode,
     ).toBe("live");
   });
@@ -530,6 +534,132 @@ describe("api configuration", () => {
         loadApiConfig({ ...VALID_API_ENV, BREVO_MODE: "disabled" })
           .brevoTransport.apiKey,
       ).toBeNull();
+    });
+  });
+
+  // J7 decision 1 (16 RG146-1, RG146-2; skill env-secrets, rotation B): two secrets, two values each.
+  describe("Brevo webhook secrets of the api (J7 decision 1)", () => {
+    const PATH_CURRENT = "P".repeat(21) + "-_" + "q".repeat(20);
+    const PATH_PREVIOUS = "R".repeat(43);
+    const HEADER_CURRENT = "h".repeat(40) + "_-H".repeat(3);
+    const HEADER_PREVIOUS = "s".repeat(64);
+    const OPEN = {
+      ...VALID_API_ENV,
+      BREVO_WEBHOOK_PATH_TOKEN_CURRENT: PATH_CURRENT,
+      BREVO_WEBHOOK_SECRET_CURRENT: HEADER_CURRENT,
+    };
+    const PRODUCTION = {
+      ...VALID_API_ENV,
+      INFLUX_ENV: "production",
+      BREVO_MODE: "live",
+      BREVO_API_KEY: "xkeysib-production-like-value",
+      BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
+      SUPABASE_URL: HOSTED_SUPABASE_URL,
+      INFLUX_PUBLIC_SITE_URL: WEB_ORIGIN,
+      INFLUX_PUBLIC_BACKOFFICE_URL: BACKOFFICE_ORIGIN,
+    };
+
+    it("closes the webhook when no secret is set, outside production", () => {
+      expect(loadApiConfig(VALID_API_ENV).brevoWebhook).toEqual({
+        pathTokens: [],
+        headerTokens: [],
+      });
+    });
+
+    it("lists the current value first, then the previous one during a rotation", () => {
+      expect(
+        loadApiConfig({
+          ...OPEN,
+          BREVO_WEBHOOK_PATH_TOKEN_PREVIOUS: PATH_PREVIOUS,
+          BREVO_WEBHOOK_SECRET_PREVIOUS: HEADER_PREVIOUS,
+        }).brevoWebhook,
+      ).toEqual({
+        pathTokens: [PATH_CURRENT, PATH_PREVIOUS],
+        headerTokens: [HEADER_CURRENT, HEADER_PREVIOUS],
+      });
+    });
+
+    it("accepts production with both secrets", () => {
+      expect(
+        loadApiConfig({
+          ...PRODUCTION,
+          BREVO_WEBHOOK_PATH_TOKEN_CURRENT: PATH_CURRENT,
+          BREVO_WEBHOOK_SECRET_CURRENT: HEADER_CURRENT,
+        }).brevoWebhook.pathTokens,
+      ).toEqual([PATH_CURRENT]);
+    });
+
+    it.each<[string, Environment, string]>([
+      [
+        "no webhook secret in production (unsubscriptions lost, RG89)",
+        PRODUCTION,
+        "BREVO_WEBHOOK_SECRET_CURRENT the Brevo webhook secrets are required in production (unsubscriptions, 16 RG89)",
+      ],
+      [
+        "a path token without a header secret",
+        { ...VALID_API_ENV, BREVO_WEBHOOK_PATH_TOKEN_CURRENT: PATH_CURRENT },
+        "BREVO_WEBHOOK_SECRET_CURRENT BREVO_WEBHOOK_PATH_TOKEN_CURRENT and BREVO_WEBHOOK_SECRET_CURRENT go together",
+      ],
+      [
+        "a header secret without a path token",
+        { ...VALID_API_ENV, BREVO_WEBHOOK_SECRET_CURRENT: HEADER_CURRENT },
+        "BREVO_WEBHOOK_PATH_TOKEN_CURRENT BREVO_WEBHOOK_PATH_TOKEN_CURRENT and BREVO_WEBHOOK_SECRET_CURRENT go together",
+      ],
+      [
+        "a previous path token without a current one",
+        {
+          ...VALID_API_ENV,
+          BREVO_WEBHOOK_SECRET_CURRENT: HEADER_CURRENT,
+          BREVO_WEBHOOK_PATH_TOKEN_PREVIOUS: PATH_PREVIOUS,
+        },
+        "BREVO_WEBHOOK_PATH_TOKEN_PREVIOUS needs BREVO_WEBHOOK_PATH_TOKEN_CURRENT",
+      ],
+      [
+        "a previous header secret equal to the current one",
+        { ...OPEN, BREVO_WEBHOOK_SECRET_PREVIOUS: HEADER_CURRENT },
+        "BREVO_WEBHOOK_SECRET_PREVIOUS must differ from BREVO_WEBHOOK_SECRET_CURRENT",
+      ],
+      [
+        "a path token of 42 characters",
+        { ...OPEN, BREVO_WEBHOOK_PATH_TOKEN_CURRENT: PATH_CURRENT.slice(1) },
+        "BREVO_WEBHOOK_PATH_TOKEN_CURRENT must be 43 base64url characters (32 random bytes)",
+      ],
+      [
+        "a path token outside base64url",
+        {
+          ...OPEN,
+          BREVO_WEBHOOK_PATH_TOKEN_CURRENT: `${PATH_CURRENT.slice(1)}.`,
+        },
+        "BREVO_WEBHOOK_PATH_TOKEN_CURRENT must be 43 base64url characters (32 random bytes)",
+      ],
+      [
+        "a header secret of 42 characters",
+        { ...OPEN, BREVO_WEBHOOK_SECRET_CURRENT: "h".repeat(42) },
+        "BREVO_WEBHOOK_SECRET_CURRENT must be 43 to 128 base64url characters (at least 32 random bytes)",
+      ],
+      [
+        "the placeholder in a header secret",
+        { ...OPEN, BREVO_WEBHOOK_SECRET_CURRENT: "change_me".padEnd(43, "x") },
+        "BREVO_WEBHOOK_SECRET_CURRENT must not contain the CHANGE_ME placeholder",
+      ],
+      [
+        "the path token reused as the header secret",
+        { ...OPEN, BREVO_WEBHOOK_SECRET_CURRENT: PATH_CURRENT },
+        "BREVO_WEBHOOK_SECRET_CURRENT must differ from every other secret of the process",
+      ],
+    ])("refuses %s", (_case, env, issue) => {
+      expect(refusal(() => loadApiConfig(env))).toContain(issue);
+    });
+
+    it("never quotes a webhook secret in the refusal", () => {
+      const issues = refusal(() =>
+        loadApiConfig({
+          ...OPEN,
+          BREVO_WEBHOOK_SECRET_PREVIOUS: HEADER_CURRENT,
+        }),
+      ).join(" ");
+      expect(issues).not.toContain(HEADER_CURRENT);
+      expect(issues).not.toContain(PATH_CURRENT);
     });
   });
 
@@ -725,6 +855,25 @@ describe("worker configuration", () => {
         }),
       ).toThrow("BREVO_API_BASE_URL");
     });
+  });
+
+  it("refuses the Brevo webhook secrets on Railway: the api service's only (skill env-secrets)", () => {
+    expect(
+      refusal(() =>
+        loadWorkerConfig({
+          ...VALID_WORKER_ENV,
+          RAILWAY_ENVIRONMENT_NAME: "staging",
+          BREVO_WEBHOOK_SECRET_CURRENT: "w".repeat(43),
+        }),
+      ),
+    ).toContain("BREVO_WEBHOOK_SECRET_CURRENT belongs to the api service only");
+    // Locally, the api and the worker read the same apps/api/.env.local.
+    expect(() =>
+      loadWorkerConfig({
+        ...VALID_WORKER_ENV,
+        BREVO_WEBHOOK_SECRET_CURRENT: "w".repeat(43),
+      }),
+    ).not.toThrow();
   });
 
   describe("Apollo of the worker: APOLLO_API_KEY, the worker's only (skill env-secrets, J6 commit 5)", () => {

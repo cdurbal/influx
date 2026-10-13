@@ -4,12 +4,45 @@
 // `sec-fetch-mode`, which Node's fetch rewrites to `cors` on the way (21 J1-J C-2).
 // It adds to SameSite (03 §6.5), it does not replace it.
 import type { IncomingHttpHeaders } from "node:http";
+import type { Surface } from "./internal-auth.ts";
 
 /** Methods that never write: every other one is checked (03 §6.4 lists POST, PATCH, PUT, DELETE). */
 const READ_METHODS: ReadonlySet<string> = new Set(["GET", "HEAD"]);
 
 export function isWriteMethod(method: string): boolean {
   return !READ_METHODS.has(method);
+}
+
+export type WriteOriginException = {
+  method: string;
+  /** The route model, exactly as registered: no prefix, no pattern. */
+  route: string;
+  surface: Surface;
+};
+
+/**
+ * The writes exempt from this check: a closed list of ONE entry (decision 1 of the J7 start,
+ * expert-cybersecurite, 2026-10-09; 03 A4 open point; 21 EC-12). The Brevo webhook is a call
+ * from server to server, without `origin` nor `sec-fetch-site`. In exchange, the route itself
+ * authenticates it (address in Brevo's ranges, two tokens in constant time) before any parsing,
+ * and reads no cookie and no session. A second entry is a decision of expert-cybersecurite.
+ */
+export const WRITE_ORIGIN_EXCEPTIONS: readonly WriteOriginException[] = [
+  { method: "POST", route: "/v1/webhooks/brevo/:pathToken", surface: "web" },
+];
+
+/** Whether this method, on this route model, from this surface, is the closed exception. */
+export function isWriteOriginException(
+  method: string,
+  routeUrl: string | undefined,
+  surface: Surface,
+): boolean {
+  return WRITE_ORIGIN_EXCEPTIONS.some(
+    (exception) =>
+      exception.method === method &&
+      exception.route === routeUrl &&
+      exception.surface === surface,
+  );
 }
 
 /**

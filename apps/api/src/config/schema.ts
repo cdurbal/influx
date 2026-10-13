@@ -497,6 +497,135 @@ function checkBrevoTransport(
   }
 }
 
+/**
+ * The Brevo webhook (16 RG146, decision 1 of the J7 start; skill env-secrets, rotation B): two
+ * secrets, two values each (`_CURRENT`, and `_PREVIOUS` during a rotation), on the api service only.
+ * - BREVO_WEBHOOK_PATH_TOKEN_*: the path segment, 43 base64url characters (32 random bytes). It
+ *   routes only: Railway's edge logs paths (RG146-2).
+ * - BREVO_WEBHOOK_SECRET_*: the custom header `brevo-webhook-token`, 43 to 128 base64url
+ *   characters: the authentication (RG146-1).
+ * Both absent: the webhook is closed (every call is refused as an unknown route), allowed outside
+ * production only, where a closed webhook would lose unsubscriptions (RG89).
+ */
+export const BREVO_WEBHOOK_VARIABLES = [
+  "BREVO_WEBHOOK_PATH_TOKEN_CURRENT",
+  "BREVO_WEBHOOK_PATH_TOKEN_PREVIOUS",
+  "BREVO_WEBHOOK_SECRET_CURRENT",
+  "BREVO_WEBHOOK_SECRET_PREVIOUS",
+] as const;
+
+type BrevoWebhookVariable = (typeof BREVO_WEBHOOK_VARIABLES)[number];
+
+const brevoWebhookPathToken = z.preprocess(
+  emptyAsAbsent,
+  z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{43}$/, {
+      message: "must be 43 base64url characters (32 random bytes)",
+    })
+    .optional(),
+);
+
+const brevoWebhookSecret = z.preprocess(
+  emptyAsAbsent,
+  z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{43,128}$/, {
+      message:
+        "must be 43 to 128 base64url characters (at least 32 random bytes)",
+    })
+    .optional(),
+);
+
+const brevoWebhookShape = {
+  BREVO_WEBHOOK_PATH_TOKEN_CURRENT: brevoWebhookPathToken,
+  BREVO_WEBHOOK_PATH_TOKEN_PREVIOUS: brevoWebhookPathToken,
+  BREVO_WEBHOOK_SECRET_CURRENT: brevoWebhookSecret,
+  BREVO_WEBHOOK_SECRET_PREVIOUS: brevoWebhookSecret,
+};
+
+type BrevoWebhookEnv = BaseEnv &
+  Partial<Record<BrevoWebhookVariable, string | undefined>>;
+
+/**
+ * Refusals of the webhook secrets: a placeholder; a previous value without a current one, or equal
+ * to it; a path token without a header secret or the reverse; in production, none at all; and one
+ * value reused for another secret of the process (`others`): one secret, one use.
+ */
+function checkBrevoWebhook(
+  env: BrevoWebhookEnv,
+  others: readonly (string | undefined)[],
+  context: z.RefinementCtx,
+): void {
+  for (const variable of BREVO_WEBHOOK_VARIABLES) {
+    const value = env[variable];
+    if (value !== undefined && holdsPlaceholder(value)) {
+      context.addIssue({
+        code: "custom",
+        path: [variable],
+        message: `must not contain the ${PLACEHOLDER} placeholder`,
+      });
+    }
+  }
+  for (const secret of ["PATH_TOKEN", "SECRET"] as const) {
+    const current = env[`BREVO_WEBHOOK_${secret}_CURRENT`];
+    const previous = env[`BREVO_WEBHOOK_${secret}_PREVIOUS`];
+    if (previous !== undefined && current === undefined) {
+      context.addIssue({
+        code: "custom",
+        path: [`BREVO_WEBHOOK_${secret}_PREVIOUS`],
+        message: `needs BREVO_WEBHOOK_${secret}_CURRENT`,
+      });
+    }
+    if (previous !== undefined && previous === current) {
+      context.addIssue({
+        code: "custom",
+        path: [`BREVO_WEBHOOK_${secret}_PREVIOUS`],
+        message: `must differ from BREVO_WEBHOOK_${secret}_CURRENT`,
+      });
+    }
+  }
+  const hasPath = env.BREVO_WEBHOOK_PATH_TOKEN_CURRENT !== undefined;
+  const hasSecret = env.BREVO_WEBHOOK_SECRET_CURRENT !== undefined;
+  if (hasPath !== hasSecret) {
+    context.addIssue({
+      code: "custom",
+      path: [
+        hasPath
+          ? "BREVO_WEBHOOK_SECRET_CURRENT"
+          : "BREVO_WEBHOOK_PATH_TOKEN_CURRENT",
+      ],
+      message:
+        "BREVO_WEBHOOK_PATH_TOKEN_CURRENT and BREVO_WEBHOOK_SECRET_CURRENT go together",
+    });
+  }
+  if (env.INFLUX_ENV === "production" && !(hasPath && hasSecret)) {
+    context.addIssue({
+      code: "custom",
+      path: ["BREVO_WEBHOOK_SECRET_CURRENT"],
+      message:
+        "the Brevo webhook secrets are required in production (unsubscriptions, 16 RG89)",
+    });
+  }
+  const values = BREVO_WEBHOOK_VARIABLES.map((variable) => env[variable]);
+  for (const variable of BREVO_WEBHOOK_VARIABLES) {
+    const value = env[variable];
+    if (value === undefined) {
+      continue;
+    }
+    const reused =
+      others.includes(value) ||
+      values.filter((other) => other === value).length > 1;
+    if (reused) {
+      context.addIssue({
+        code: "custom",
+        path: [variable],
+        message: "must differ from every other secret of the process",
+      });
+    }
+  }
+}
+
 export type BaseConfig = {
   environment: InfluxEnvironment;
   /** Deployed commit, written in every log line (D60). */
@@ -562,6 +691,16 @@ export type ApiConfig = BaseConfig & {
   };
   /** One secret per front: apps/api derives the calling surface from it (J1-G). */
   internalSecrets: InternalSecrets;
+  /**
+   * The accepted values of the two webhook secrets, current first (J7 decision 1); both lists
+   * empty when the webhook is closed.
+   */
+  brevoWebhook: BrevoWebhookSecrets;
+};
+
+export type BrevoWebhookSecrets = {
+  pathTokens: readonly string[];
+  headerTokens: readonly string[];
 };
 
 export type WorkerConfig = BaseConfig & {
@@ -606,12 +745,25 @@ export const apiEnvSchema = z
     SUPABASE_URL: supabaseUrl,
     SUPABASE_SECRET_KEY: supabaseSecretKey,
     ...brevoTransportShape,
+    ...brevoWebhookShape,
     ...databaseEnvShape,
   })
   .superRefine((env, context) => {
     checkBrevoMode(env, context);
     checkDatabaseVariables(env, API_DATABASE_VARIABLES, context);
     checkBrevoTransport(env, context);
+    checkBrevoWebhook(
+      env,
+      [
+        env.INFLUX_API_INTERNAL_SECRET_WEB,
+        env.INFLUX_API_INTERNAL_SECRET_BACKOFFICE,
+        env.AUTH_THROTTLE_PEPPER,
+        env.AUTH_TOKEN_SIGNING_SECRET,
+        env.SUPABASE_SECRET_KEY,
+        env.BREVO_API_KEY,
+      ],
+      context,
+    );
     if (
       env.INFLUX_API_INTERNAL_SECRET_WEB ===
       env.INFLUX_API_INTERNAL_SECRET_BACKOFFICE
@@ -714,7 +866,21 @@ export const apiEnvSchema = z
       web: env.INFLUX_API_INTERNAL_SECRET_WEB,
       backoffice: env.INFLUX_API_INTERNAL_SECRET_BACKOFFICE,
     },
+    brevoWebhook: {
+      pathTokens: presentValues(
+        env.BREVO_WEBHOOK_PATH_TOKEN_CURRENT,
+        env.BREVO_WEBHOOK_PATH_TOKEN_PREVIOUS,
+      ),
+      headerTokens: presentValues(
+        env.BREVO_WEBHOOK_SECRET_CURRENT,
+        env.BREVO_WEBHOOK_SECRET_PREVIOUS,
+      ),
+    },
   }));
+
+function presentValues(...values: (string | undefined)[]): string[] {
+  return values.filter((value): value is string => value !== undefined);
+}
 
 export const workerEnvSchema = z
   .object({
@@ -740,11 +906,26 @@ export const workerEnvSchema = z
         .optional(),
     ),
     APOLLO_API_KEY: optionalText,
+    // Read only to be refused on Railway: the webhook secrets are the api service's alone.
+    ...brevoWebhookShape,
     ...databaseEnvShape,
   })
   .superRefine((env, context) => {
     checkBrevoMode(env, context);
     checkBrevoTransport(env, context);
+    // Skill env-secrets (porteurs): never on the worker service. Locally, both processes read the
+    // same apps/api/.env.local, as for the database variables (EC-20 point 4).
+    if (env.RAILWAY_ENVIRONMENT_NAME !== undefined) {
+      for (const variable of BREVO_WEBHOOK_VARIABLES) {
+        if (env[variable] !== undefined) {
+          context.addIssue({
+            code: "custom",
+            path: [variable],
+            message: "belongs to the api service only",
+          });
+        }
+      }
+    }
     if (
       env.APOLLO_API_KEY !== undefined &&
       holdsPlaceholder(env.APOLLO_API_KEY)

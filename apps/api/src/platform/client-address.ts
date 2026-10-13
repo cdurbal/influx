@@ -125,6 +125,57 @@ export function readClientAddress(
   };
 }
 
+/** An IPv4 network in CIDR notation, split: `1.179.112.0/20` is `{ network: "1.179.112.0", prefixLength: 20 }`. */
+export type Ipv4Range = { network: string; prefixLength: number };
+
+/** Where the relayed address stands against a list of ranges. The address itself never leaves. */
+export type AddressRangeCheck = "absent" | "invalid" | "outside" | "within";
+
+function ipv4ToNumber(address: string): number {
+  return address
+    .split(".")
+    .reduce((value, byte) => value * 256 + Number(byte), 0);
+}
+
+function isInIpv4Range(address: string, range: Ipv4Range): boolean {
+  const size = 2 ** (32 - range.prefixLength);
+  const start = Math.floor(ipv4ToNumber(range.network) / size) * size;
+  const value = ipv4ToNumber(address);
+  return value >= start && value < start + size;
+}
+
+/**
+ * Whether the relayed `x-real-ip` lies in one of `ranges` (IPv4 only; an IPv4-mapped IPv6 address
+ * is its IPv4, any other IPv6 address is outside). Same source and same validation as
+ * readClientAddress(), read only after the internal secret: the Brevo webhook (J7 decision 1).
+ */
+export function checkAddressInRanges(
+  header: string | string[] | undefined,
+  ranges: readonly Ipv4Range[],
+): AddressRangeCheck {
+  if (header === undefined || header === "") {
+    return "absent";
+  }
+  if (typeof header !== "string") {
+    return "invalid";
+  }
+  let ipv4: string | null = null;
+  if (ipv4Schema.safeParse(header).success) {
+    ipv4 = header;
+  } else if (ipv6Schema.safeParse(header).success) {
+    const groups = groupsOf(header);
+    if (groups === null) {
+      return "invalid";
+    }
+    ipv4 = mappedIpv4Of(groups);
+  } else {
+    return "invalid";
+  }
+  return ipv4 !== null && ranges.some((range) => isInIpv4Range(ipv4, range))
+    ? "within"
+    : "outside";
+}
+
 /** Domain separation of the address sent to GoTrue (21 §4, J3 security arbitration EC-38). */
 const GOTRUE_ADDRESS_LABEL = "gotrue-ip:";
 

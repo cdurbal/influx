@@ -127,21 +127,21 @@
 | 1042 | 11 | ↳ P9 — Ce que la RLS ne sait pas faire, et qui le fait à sa place |  |
 | 1053 | 26 | ↳ P10 — Les politiques du Storage |  |
 | 1079 | 140 | 5. La lecture d'une conversation par un agent non participant | RG132–RG134 |
-| 1219 | 400 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` |  |
+| 1219 | 403 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` |  |
 | 1221 | 83 | ↳ 6.1 — Point 1 : D37 dans son ensemble |  |
 | 1304 | 35 | ↳ 6.2 — Point 2 : `aal2` vérifié dans les politiques RLS |  |
 | 1339 | 20 | ↳ 6.3 — Point 3 : le rôle métier lu en base plutôt que dans le jeton |  |
-| 1359 | 65 | ↳ 6.4 — Point 4 : le passe-plat |  |
-| 1424 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
-| 1498 | 21 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
-| 1519 | 27 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
-| 1546 | 30 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
-| 1576 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
-| 1619 | 32 | 7. L'isolement du backoffice |  |
-| 1651 | 39 | 8. Les tests de sécurité exigés |  |
-| 1690 | 62 | 9. Verdict d'étape | RG49–RG55 |
-| 1752 | 41 | 10. Ce qui sort de mon périmètre |  |
-| 1793 | 17 | 11. Mises à jour attendues dans les autres documents |  |
+| 1359 | 68 | ↳ 6.4 — Point 4 : le passe-plat |  |
+| 1427 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
+| 1501 | 21 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
+| 1522 | 27 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
+| 1549 | 30 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
+| 1579 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
+| 1622 | 32 | 7. L'isolement du backoffice |  |
+| 1654 | 39 | 8. Les tests de sécurité exigés |  |
+| 1693 | 62 | 9. Verdict d'étape | RG49–RG55 |
+| 1755 | 41 | 10. Ce qui sort de mon périmètre |  |
+| 1796 | 17 | 11. Mises à jour attendues dans les autres documents |  |
 
 ## 04-modele-de-donnees-mvp.md (~140k tokens)
 

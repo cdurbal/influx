@@ -37,7 +37,9 @@ export const MAX_BODY_BYTES = 1_048_576;
 /**
  * 03 PP-5: the only request headers forwarded. Every other one is dropped, x-* included.
  * `origin` and `sec-fetch-site` cannot be forged by a page's script: apps/api checks the origin
- * of writes with them (03 §6.4 A4).
+ * of writes with them (03 §6.4 A4). `brevo-webhook-token` is the token of the Brevo webhook
+ * (21 EC-12, J7 decision 1): forwarded as is, never read here; apps/api checks it, on its single
+ * route, against the web surface only.
  */
 export const FORWARDED_REQUEST_HEADERS: readonly string[] = [
   "cookie",
@@ -47,6 +49,7 @@ export const FORWARDED_REQUEST_HEADERS: readonly string[] = [
   "idempotency-key",
   "origin",
   "sec-fetch-site",
+  "brevo-webhook-token",
 ];
 
 /** The only response headers relayed, besides Set-Cookie (PP-10). */
