@@ -256,6 +256,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 **Tests** : CA32 à CA36, CA52 à CA55, CA70 ; lead-pipeline T7 et T8 ; scénarios 7 à 9 de `16` RG148.
 
 - [x] Commit 1 (`4aef89a`) — dette J6 : I-4 depuis l'ancre fixe `56b8046` (J6S-1, 4 commits J5 non attestés révélés) ; RG47 de `t8-verify-code` et J6T-8 stabilisés ; J6S-2 reportée au commit 2.
+- [x] Commit 2 (`679263a`) — migrations `0115` à `0117` : codes du J7, J6S-2, table brute Brevo et E-3 (décision 2), `ops.periodic_runs` et E-4 (décision 3) ; T2, T3, T4, T6 étendus, 66 cas db ; `0118` à `0120` scindées en 2bis.
 
 ### J8 — Backoffice v0 (4 à 5 jours)
 

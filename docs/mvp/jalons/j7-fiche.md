@@ -17,12 +17,11 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
 ## Commits prévus
 
 1. **Dette J6** : fait (`4aef89a`), voir « Issu du commit 1 ».
-2. **Migrations du J7** (`expert-database`, numérotation à partir de `0115`, `0102`/`0107` restent au
-   J8) : `leads.brevo_inbound_events` + `brevo_inbound_outcomes`, `record_brevo_event()` (E-1) et E-3
-   de traitement (décision 2) ; `ops.periodic_runs` et fonctions E-4 (décision 3) ; marqueur de
-   re-authentification (4) ; `identity.email_change_requests` (5) ; `data_subject_requests` minimale et
-   `code_delivery_reports` (6) ; codes `consent.granted`, `consent.revoked`, `email.changed`,
-   `retention.purged` et les `elevated.*` des décisions (EC-10, CA47). T2, T4, T6 étendus.
+2. **Migrations du J7 (1)** : fait (`679263a`), `0115` à `0117` (codes, J6S-2, décisions 2 et 3).
+   **2bis. Migrations du J7 (2)** : `0118` (re-auth, changement d'adresse), `0119`
+   (`set_marketing_consent`, émetteur membre de `consent.*`, CA47), `0120` (`data_subject_requests`,
+   `code_delivery_reports`), écrites par `expert-database`, **non suivies** dans `supabase/migrations/` ;
+   à relire, puis T2, T4, T6 et un test db par fonction, comme au commit 2.
 3. **Webhook Brevo, réception** (décision 1) : exception A4 unique, deux jetons en temps constant,
    plages IP en constante, refus en `404`, fenêtre ±15 min, idempotence, écriture brute puis `200`
    (RG147), journal sans URL. Scénarios 8, 9, quatre refus en `404`, exception unique.
@@ -201,7 +200,7 @@ aucun taux ni montant.
   `lead.created` ⇒ désinscription, déjà en place). `apps/api/src/worker.ts` : aucune tâche E-4.
 - `packages/test-kit/src/brevo-double.ts`, `brevo-exchanges.ts` (à étendre aux événements entrants et
   au rapprochement) ; `apps/api/scripts/record-provider-exchanges.ts` (enregistrement expurgé, `d4625ec`).
-- `supabase/migrations/` : dernière `0114` ; `0005` (`consent_source` porte déjà `account_settings`,
+- `supabase/migrations/` : dernière suivie `0117` (0118 à 0120 non suivies, 2bis) ; `0005` (`consent_source` porte déjà `account_settings`,
   `brevo_webhook`) ; `0012` (`identity.revoke_own_session()`, motifs `logout`, `revoked_by_holder`) ;
   `0104` (`email_status`, `correct_email()`) ; `0105` (`email_delivery_incidents`, unicité de
   `provider_event_id`) ; `0011` (motif `support.report_delivery_issue` déclaré, aucune fonction) ;
@@ -209,20 +208,21 @@ aucun taux ni montant.
 
 ## Reports du J6
 
-TM1.5 attend le webhook (commit 4) ; CA47 : `consent.revoked` entre avec son émetteur (commits 2 et 6,
-remplacer la ligne `lead.updated` P0 du test) ; `email.changed` sans doublon Brevo : décision 5 ;
-`account.email_corrected` reste `template_not_supported` jusqu'au J8 ; suspension marketing sur `401`
-(scénario 5, RG123) avec l'interrupteur (J8 / Lot 5). Nouvelles variables (jetons du webhook, clé
-GoTrue du worker) : skill `env-secrets` ; le fondateur les documente dans `apps/api/.env.example`.
+TM1.5 attend le webhook (commit 4) ; CA47 : émetteur membre de `consent.revoked` en 2bis (`0119`), test au commit 6 (remplacer la ligne `lead.updated` P0) ; `email.changed` : décision 5 ; `account.email_corrected` reste `template_not_supported` jusqu'au J8 ; suspension marketing sur `401` (RG123) au J8 / Lot 5.
+Nouvelles variables (jetons du webhook, clé GoTrue du worker) : skill `env-secrets` ; le fondateur les documente dans `apps/api/.env.example`.
 
 ## Issu du commit 1 (`4aef89a`)
 
-- **I-4 (J6S-1)** : ancre fixe `I4_ANCHOR` = `56b8046` dans `ci.yml` (base de la revue de fin de J5) ; une attestation malformée après l'ancre rougit chaque push. **Constat** : `4eb8ff1 83ba6d1 662ec3d 7b33351` (J5, revue sans point rouge) ne sont couverts par aucune attestation. Au plus sûr, l'agent ne les atteste pas : **l'attestation de fin de J7 doit les nommer**.
-- **Conséquence** : I-4 rouge pendant tout le J7, donc ni « Migrate staging » ni déploiement ; le commit 10 (`staging`) exige d'abord la revue `expert-cybersecurite` et son attestation.
-- **J6S-2** n'est pas retenue au commit 1 (fonction `audit` = migration) : à proposer à `expert-database` au commit 2 (`0115`+), sinon Lot 6.
-- **Cas instables** : RG47 (l.537), le cookie « altéré » restait intact quand l'avant-dernier caractère valait déjà `A` (≈ 1/64) ; J6T-8, la fenêtre fixe à la minute laissait passer 12 rapports à cheval sur deux minutes ⇒ horloge figée.
-- `testeur` (fin de jalon) : 3 témoins I-4 (ancre, attestation malformée, ancre hors historique), `check-security-review` à 46 cas.
-- Tickets J6 du J7 restants : J6T-1, J6T-2 (commit 4), J6T-3 (commit 6), J6S-5 (fondateur).
+- **I-4** : ancre fixe `56b8046` ; `4eb8ff1 83ba6d1 662ec3d 7b33351` (J5) non attestés : **l'attestation de fin de J7 doit les nommer**. I-4 rouge tout le J7 ⇒ ni staging ni déploiement avant la revue ; le commit 10 l'exige d'abord.
+- RG47 et J6T-8 stabilisés. `testeur` (fin de jalon) : 3 témoins I-4, `check-security-review` à 46 cas. Tickets restants : J6T-1, J6T-2 (commit 4), J6T-3 (commit 6), J6S-5 (fondateur).
+
+## Issu du commit 2 (`679263a`)
+
+- **Au plus sûr (`expert-database`)** : tout effet exige l'adresse courante (`address_mismatch`) ; seul `hard_bounce` transactionnel ferme l'adresse ; `unsubscribe` = `unsubscribed` ; `dedup_key` calculée en base ; base ±20 min (route ±15) ; colonnes ajoutées `account_ref` (rapprochement) et `attempt` (jeton de clôture E-4) ; 03:00 UTC laissé à l'ordonnanceur.
+- **J6S-2 soldée** (`0115`, famille du motif liée à `session_user`). `leads.receive_brevo_event` (E-1 de la famille `leads`) ⇒ pool `auth` par `ELEVATED_POOL_EXCEPTIONS` dans `contracts` (T6.3 intact) ; P passe à 14 motifs, U inchangé (premier appelant au commit 3).
+- **Défaut trouvé par les tests, corrigé** : `claim_periodic_run` renvoyait une ligne de `NULL` sur une période finie (`FOR UPDATE` lit à travers la politique UPDATE). **Même piège à vérifier en 2bis.**
+- Tests : fixtures puis `actAs()` (superutilisateur local, `support.ts`) dans une transaction annulée, la table brute étant en ajout seul ; T2.6 : homonyme nommé `brevo_inbound_events.origin`.
+- `expert-cybersecurite` (fin de jalon) : signer les 2 motifs de P, le rôle `influx_maintenance_definer`, la lecture élargie de `transactional_sends` par `influx_leads_definer`. **I-4 rouge masque les étapes suivantes de la CI** (migrations, format, build, Playwright) : vérifiées en local. `testeur` : `actAs()`, exemption T2.6.
 
 ## Clôture d'un commit (« clôture standard »)
 
