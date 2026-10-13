@@ -11,7 +11,8 @@
       "Bash(pnpm exec supabase db reset --local*)",
       "Bash(git status*)", "Bash(git diff*)", "Bash(git log*)", "Bash(git show*)",
       "Bash(git add *)", "Bash(git commit *)",
-      "Edit(./apps/**)", "Edit(./packages/**)", "Edit(./supabase/migrations/**)", "Edit(./docs/mvp/**)"
+      "Edit(./apps/**)", "Edit(./packages/**)", "Edit(./supabase/migrations/**)","Edit(./docs/mvp/**)",
+      "Edit(./**/.env.example)"
     ],
     "deny": [
       "Read(./**/.env)", "Read(./**/.env.*)",
