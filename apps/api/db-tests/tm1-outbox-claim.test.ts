@@ -1652,7 +1652,7 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
     expect(create).toEqual({ leads: false, identity: false });
   });
 
-  it("influx_worker holds no table right: USAGE on leads and audit, EXECUTE on six functions (0112: the Brevo read)", async () => {
+  it("influx_worker holds no table right: USAGE on leads, audit and ops (0117), EXECUTE on its E-3 and E-4 functions only", async () => {
     const schemas = OUR_SCHEMAS as unknown as string[];
     const relations = await migration<{ name: string }[]>`
       select c.oid::regclass::text as name
@@ -1672,7 +1672,7 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
        where nspname = any (${schemas})
          and pg_catalog.has_schema_privilege('influx_worker', oid, 'USAGE')
        order by 1`;
-    expect(usage.map((row) => row.name)).toEqual(["audit", "leads"]);
+    expect(usage.map((row) => row.name)).toEqual(["audit", "leads", "ops"]);
     const functions = await migration<{ name: string }[]>`
       select p.oid::regprocedure::text as name
         from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace
@@ -1684,9 +1684,18 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       "leads.begin_outbox_attempt(bigint,text)",
       "leads.claim_outbox_batch(text,integer)",
       "leads.complete_outbox_attempt(bigint,text,leads.outbox_status,boolean,text,text,text,integer,text,text,text,integer)",
+      // 0116 (J7 decision 2): E-3 processing of a raw Brevo line, E-4 reconciliation finding
+      "leads.process_brevo_inbound_event()",
       "leads.read_apollo_subject(bigint,text)",
       "leads.read_brevo_subject(bigint,text)",
+      "leads.record_brevo_reconciliation_event(text,timestamp with time zone,text,text,uuid,bigint,bigint,text)",
       "leads.recover_stale_outbox_lines(integer)",
+      // 0117 (J7 decision 3): E-4 maintenance.run_periodic
+      "ops.claim_periodic_run(ops.periodic_task,text)",
+      "ops.filter_auth_orphans(uuid,smallint,uuid[])",
+      "ops.finish_periodic_run(uuid,smallint,ops.periodic_run_outcome,jsonb)",
+      "ops.purge_brevo_inbound_events(uuid,smallint,integer)",
+      "ops.record_retention_purge(uuid,smallint,text,integer)",
     ]);
   });
 

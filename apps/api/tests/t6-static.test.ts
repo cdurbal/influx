@@ -76,11 +76,14 @@ describe("T6.1: A = U and U ⊆ P", () => {
       "identity.request_code": "auth",
       "support.report_delivery_issue": "auth",
       "identity.read_published_terms": "auth",
+      // J7 decision 2: leads family, received by the api (ELEVATED_POOL_EXCEPTIONS)
+      "leads.receive_brevo_event": "auth",
       "identity.verify_code": "auth",
       "identity.complete_signup": "auth",
       "identity.backoffice_sign_in": "auth",
       "identity.backoffice_enroll_totp": "auth",
       "identity.backoffice_reauthenticate": "auth",
+      "identity.member_reauthenticate": "auth",
       "leads.drain_outbox": "worker",
       "maintenance.run_periodic": "worker",
       "ops.record_telemetry": "ops",
@@ -151,6 +154,8 @@ describe("T6.3: separation by process, on the import graph", () => {
       "identity.backoffice_sign_in",
       "identity.backoffice_enroll_totp",
       "identity.backoffice_reauthenticate",
+      "identity.member_reauthenticate",
+      "leads.receive_brevo_event",
       "support.report_delivery_issue",
       "ops.record_telemetry",
     ]);

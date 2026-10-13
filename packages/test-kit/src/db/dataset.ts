@@ -273,6 +273,26 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
       values ('2026-01-01T00:00:00Z', 'api', 't2', 1, 2, 1, 1, 0)
       on conflict do nothing`;
 
+    // One processed raw Brevo line and its outcome (0116), address already cleared: a line
+    // WITHOUT an outcome would be taken by leads.process_brevo_inbound_event() in the TM1 cases.
+    // One finished E-4 run at a fixed past period (0117): never the current one, claimable.
+    await tx`
+      insert into leads.brevo_inbound_events (origin, dedup_key, event, occurred_at)
+      select 'webhook', sha256('t2-brevo-inbound'::bytea), 'delivered', now()
+       where not exists (select 1 from leads.brevo_inbound_events
+                          where dedup_key = sha256('t2-brevo-inbound'::bytea))`;
+    await tx`
+      insert into leads.brevo_inbound_outcomes (event_id, outcome)
+      select id, 'informative' from leads.brevo_inbound_events
+       where dedup_key = sha256('t2-brevo-inbound'::bytea)
+      on conflict do nothing`;
+    await tx`
+      insert into ops.periodic_runs
+        (task_code, period_key, started_at, finished_at, outcome)
+      values ('brevo_inbound_purge', '2026-01-01', '2026-01-01T00:00:00Z',
+              '2026-01-01T00:01:00Z', 'succeeded')
+      on conflict do nothing`;
+
     // At least one verification record, so that its read rights are observable.
     const [checks] = await tx<
       { count: string }[]

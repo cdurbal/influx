@@ -71,6 +71,19 @@ function asAuth(
   });
 }
 
+function asWorker(
+  statement: string,
+  parameters: string[] = [],
+): Promise<ProbeResult> {
+  return inRolledBackTransaction(
+    loginRole("influx_worker_login"),
+    async (tx) => {
+      await takeRole(tx, "influx_worker");
+      return probe(tx, statement, parameters);
+    },
+  );
+}
+
 describe("EC-36: audit.append_elevated()", () => {
   it("writes elevated.<operation> with the subject type of the catalogue and {operation} only", async () => {
     const reference = randomUUID();
@@ -127,7 +140,7 @@ describe("EC-36: audit.append_elevated()", () => {
     ).toEqual({ outcome: "error", code: INVALID_PARAMETER });
   });
 
-  it("knows the six motifs of E-1 and E-2 (five at J3, the sign-up at J5), E-3 (J6), and no other", async () => {
+  it("knows the motifs of E-1 and E-2 (five at J3, the sign-up at J5), E-3 (J6), the four of J7, and no other", async () => {
     const codes = await migration<{ code: string; subject_type: string }[]>`
       select code, subject_type from audit.event_types
        where code like 'elevated.%' order by code`;
@@ -146,12 +159,88 @@ describe("EC-36: audit.append_elevated()", () => {
         code: "elevated.identity.complete_signup",
         subject_type: "account",
       },
+      // 0115 (J7 decision 4): the member's fresh code, on the account
+      {
+        code: "elevated.identity.member_reauthenticate",
+        subject_type: "account",
+      },
       { code: "elevated.identity.request_code", subject_type: "login_request" },
       // C6-1 (EC-52 settled): the verification is traced on the account
       { code: "elevated.identity.verify_code", subject_type: "account" },
       // 0111 (J6, EC-52 (3)): the queue line journaled for an account (the welcome e-mail)
       { code: "elevated.leads.drain_outbox", subject_type: "account" },
+      // 0115 (J7 decision 2): the raw line written by the Brevo webhook
+      {
+        code: "elevated.leads.receive_brevo_event",
+        subject_type: "brevo_inbound_event",
+      },
+      // 0115 (J7 decision 3): the E-4 run claimed
+      {
+        code: "elevated.maintenance.run_periodic",
+        subject_type: "periodic_run",
+      },
+      // 0115 (J7 decision 6): the report of the rescue channel
+      {
+        code: "elevated.support.report_delivery_issue",
+        subject_type: "code_delivery_report",
+      },
     ]);
+  });
+});
+
+describe("J6S-2 (0115): the family of a motif is bound to its connection role", () => {
+  it.each([
+    ["identity.request_code"],
+    ["support.report_delivery_issue"],
+    ["leads.receive_brevo_event"],
+  ])("lets influx_auth write %s", async (operation) => {
+    expect(
+      await asAuth("select audit.append_elevated($1, gen_random_uuid())", [
+        operation,
+      ]),
+    ).toEqual({ outcome: "rows", count: 1 });
+  });
+
+  it.each([["leads.drain_outbox"], ["maintenance.run_periodic"]])(
+    "lets influx_worker write %s",
+    async (operation) => {
+      expect(
+        await asWorker("select audit.append_elevated($1, gen_random_uuid())", [
+          operation,
+        ]),
+      ).toEqual({ outcome: "rows", count: 1 });
+    },
+  );
+
+  it.each([["leads.drain_outbox"], ["maintenance.run_periodic"]])(
+    "refuses %s to influx_auth (42501)",
+    async (operation) => {
+      expect(
+        await asAuth("select audit.append_elevated($1, gen_random_uuid())", [
+          operation,
+        ]),
+      ).toEqual({ outcome: "error", code: INSUFFICIENT_PRIVILEGE });
+    },
+  );
+
+  it.each([
+    ["identity.verify_code"],
+    ["support.report_delivery_issue"],
+    ["leads.receive_brevo_event"],
+  ])("refuses %s to influx_worker (42501)", async (operation) => {
+    expect(
+      await asWorker("select audit.append_elevated($1, gen_random_uuid())", [
+        operation,
+      ]),
+    ).toEqual({ outcome: "error", code: INSUFFICIENT_PRIVILEGE });
+  });
+
+  it("still answers 22023 before the family check for an unknown motif", async () => {
+    expect(
+      await asWorker("select audit.append_elevated($1, gen_random_uuid())", [
+        "maintenance.unknown_task",
+      ]),
+    ).toEqual({ outcome: "error", code: INVALID_PARAMETER });
   });
 });
 

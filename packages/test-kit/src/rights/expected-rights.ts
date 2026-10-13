@@ -588,6 +588,32 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
       },
     },
   },
+  {
+    table: "leads.brevo_inbound_events",
+    source:
+      "0116 (J7 decision 2, 16 RG147): no right for any execution role; written by " +
+      "leads.record_brevo_event() (E-1, influx_auth) and leads.record_brevo_reconciliation_event() " +
+      "(E-4, influx_worker), processed by leads.process_brevo_inbound_event() (E-3), purged by " +
+      "ops.purge_brevo_inbound_events() (E-4). Guard tested in tm1-brevo-inbound.test.ts",
+    probeColumn: "event",
+    expected: {},
+  },
+  {
+    table: "leads.brevo_inbound_outcomes",
+    source:
+      "0116 (J7 decision 2): no right for any execution role; written by " +
+      "leads.process_brevo_inbound_event() only",
+    probeColumn: "outcome",
+    expected: {},
+  },
+  {
+    table: "ops.periodic_runs",
+    source:
+      "0117 (J7 decision 3): no right for any execution role; written by ops.claim_periodic_run() " +
+      "and ops.finish_periodic_run() (E-4, influx_worker) only",
+    probeColumn: "task_code",
+    expected: {},
+  },
 ];
 
 /**
@@ -633,7 +659,9 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * narrow audit functions, the identity definers), each line checked against its migration; on
  * 2026-10-05 with those of 0016 (J4: influx_ops on the ops schema); on 2026-10-08 with those
  * of 0101 to 0106 (J5, Lot 1), each line checked against its migration; and on 2026-10-09 with
- * those of 0111 (J6, E-3: influx_leads_definer column by column, influx_worker on its functions).
+ * those of 0111 (J6, E-3: influx_leads_definer column by column, influx_worker on its functions);
+ * and on 2026-10-13 with those of 0116 and 0117 (J7 commit 2), each line checked against its
+ * migration.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -1013,7 +1041,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|column|identity.accounts.auth_user_id|INSERT,SELECT",
   "influx_identity_definer|column|identity.accounts.country_code|INSERT",
   "influx_identity_definer|column|identity.accounts.declared_status|INSERT,SELECT,UPDATE",
-  "influx_identity_definer|column|identity.accounts.email_status|UPDATE",
+  "influx_identity_definer|column|identity.accounts.email_status|SELECT,UPDATE",
   "influx_identity_definer|column|identity.accounts.email_undeliverable_at|UPDATE",
   "influx_identity_definer|column|identity.accounts.email_verified_at|INSERT,UPDATE",
   "influx_identity_definer|column|identity.accounts.email|INSERT,SELECT,UPDATE",
@@ -1076,10 +1104,10 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|column|identity.accounts.id|SELECT",
   "influx_leads_definer|column|identity.accounts.preferred_language|SELECT",
   "influx_leads_definer|column|identity.accounts.status|SELECT",
-  "influx_leads_definer|column|identity.consent_events.account_id|SELECT",
-  "influx_leads_definer|column|identity.consent_events.granted|SELECT",
+  "influx_leads_definer|column|identity.consent_events.account_id|INSERT,SELECT",
+  "influx_leads_definer|column|identity.consent_events.granted|INSERT,SELECT",
   "influx_leads_definer|column|identity.consent_events.occurred_at|SELECT",
-  "influx_leads_definer|column|identity.consent_events.purpose|SELECT",
+  "influx_leads_definer|column|identity.consent_events.purpose|INSERT,SELECT",
   "influx_leads_definer|column|leads.contact_sync_states.account_id|INSERT,SELECT",
   "influx_leads_definer|column|leads.contact_sync_states.destination|INSERT,SELECT",
   "influx_leads_definer|column|leads.contact_sync_states.external_contact_id|INSERT,SELECT,UPDATE",
@@ -1090,23 +1118,23 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|column|leads.outbox_events.attempts|SELECT,UPDATE",
   "influx_leads_definer|column|leads.outbox_events.available_at|SELECT,UPDATE",
   "influx_leads_definer|column|leads.outbox_events.completed_at|UPDATE",
-  "influx_leads_definer|column|leads.outbox_events.destination|SELECT",
+  "influx_leads_definer|column|leads.outbox_events.destination|INSERT,SELECT",
   "influx_leads_definer|column|leads.outbox_events.dry_run|UPDATE",
-  "influx_leads_definer|column|leads.outbox_events.event_id|SELECT",
-  "influx_leads_definer|column|leads.outbox_events.event_type|SELECT",
+  "influx_leads_definer|column|leads.outbox_events.event_id|INSERT,SELECT",
+  "influx_leads_definer|column|leads.outbox_events.event_type|INSERT,SELECT",
   "influx_leads_definer|column|leads.outbox_events.id|SELECT",
-  "influx_leads_definer|column|leads.outbox_events.idempotency_key|SELECT",
+  "influx_leads_definer|column|leads.outbox_events.idempotency_key|INSERT,SELECT",
   "influx_leads_definer|column|leads.outbox_events.last_error_code|UPDATE",
   "influx_leads_definer|column|leads.outbox_events.last_error_message|UPDATE",
   "influx_leads_definer|column|leads.outbox_events.locked_at|SELECT,UPDATE",
   "influx_leads_definer|column|leads.outbox_events.locked_by|SELECT,UPDATE",
-  "influx_leads_definer|column|leads.outbox_events.payload|SELECT",
-  "influx_leads_definer|column|leads.outbox_events.priority|SELECT",
+  "influx_leads_definer|column|leads.outbox_events.payload|INSERT,SELECT",
+  "influx_leads_definer|column|leads.outbox_events.priority|INSERT,SELECT",
   "influx_leads_definer|column|leads.outbox_events.provider_contact_id|UPDATE",
   "influx_leads_definer|column|leads.outbox_events.provider_message_id|UPDATE",
   "influx_leads_definer|column|leads.outbox_events.skip_reason|UPDATE",
   "influx_leads_definer|column|leads.outbox_events.status|SELECT,UPDATE",
-  "influx_leads_definer|column|leads.outbox_events.subject_key|SELECT",
+  "influx_leads_definer|column|leads.outbox_events.subject_key|INSERT,SELECT",
   "influx_leads_definer|column|leads.sync_settings.key|SELECT",
   "influx_leads_definer|column|leads.sync_settings.value|SELECT",
   "influx_leads_definer|column|leads.transactional_sends.account_id|INSERT,SELECT",
@@ -1114,7 +1142,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|column|leads.transactional_sends.locale|INSERT",
   "influx_leads_definer|column|leads.transactional_sends.outbox_event_id|INSERT",
   "influx_leads_definer|column|leads.transactional_sends.priority|INSERT",
-  "influx_leads_definer|column|leads.transactional_sends.provider_message_id|INSERT",
+  "influx_leads_definer|column|leads.transactional_sends.provider_message_id|INSERT,SELECT",
   "influx_leads_definer|column|leads.transactional_sends.sent_at|INSERT",
   "influx_leads_definer|column|leads.transactional_sends.status|INSERT",
   "influx_leads_definer|column|leads.transactional_sends.template_ref|INSERT",
@@ -1135,7 +1163,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|column|identity.accounts.signup_utm_campaign|SELECT",
   "influx_leads_definer|column|identity.accounts.signup_utm_medium|SELECT",
   "influx_leads_definer|column|identity.accounts.signup_utm_source|SELECT",
-  "influx_leads_definer|column|identity.consent_events.source|SELECT",
+  "influx_leads_definer|column|identity.consent_events.source|INSERT,SELECT",
   "influx_leads_definer|column|profiles.advertiser_profiles.account_id|SELECT",
   "influx_leads_definer|column|profiles.advertiser_profiles.legal_name|SELECT",
   "influx_leads_definer|function|leads.read_brevo_subject(bigint,text)|EXECUTE",
@@ -1152,11 +1180,81 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_worker|function|leads.recover_stale_outbox_lines(integer)|EXECUTE",
   "influx_worker|schema|audit|USAGE",
   "influx_worker|schema|leads|USAGE",
+  // 0116 (J7 decision 2): E-1 receive (influx_auth), E-3 processing (influx_worker), the raw table
+  // and its outcome written by influx_leads_definer only; the "withdraws a right" writes (consent
+  // event brevo_webhook, consent.revoked P0, contact state) and the transactional hard bounce
+  // (identity definer, reached from the leads definer only).
+  "influx_auth|function|leads.record_brevo_event(text,timestamp with time zone,text,text,bigint,bigint,text)|EXECUTE",
+  "influx_worker|function|leads.process_brevo_inbound_event()|EXECUTE",
+  "influx_worker|function|leads.record_brevo_reconciliation_event(text,timestamp with time zone,text,text,uuid,bigint,bigint,text)|EXECUTE",
+  "influx_identity_definer|column|identity.email_delivery_incidents.account_id|INSERT",
+  "influx_identity_definer|column|identity.email_delivery_incidents.channel|INSERT",
+  "influx_identity_definer|column|identity.email_delivery_incidents.email_address|INSERT",
+  "influx_identity_definer|column|identity.email_delivery_incidents.incident_type|INSERT",
+  "influx_identity_definer|column|identity.email_delivery_incidents.occurred_at|INSERT",
+  "influx_identity_definer|column|identity.email_delivery_incidents.payload|INSERT",
+  "influx_identity_definer|column|identity.email_delivery_incidents.provider_event_id|INSERT,SELECT",
+  "influx_identity_definer|column|identity.email_delivery_incidents.provider|INSERT",
+  "influx_identity_definer|function|identity.record_transactional_hard_bounce(uuid,text,text,timestamp with time zone,text)|EXECUTE",
+  "influx_leads_definer|function|identity.record_transactional_hard_bounce(uuid,text,text,timestamp with time zone,text)|EXECUTE",
+  "influx_leads_definer|column|identity.consent_events.evidence|INSERT",
+  "influx_leads_definer|column|leads.brevo_inbound_events.account_ref|INSERT,SELECT",
+  "influx_leads_definer|column|leads.brevo_inbound_events.campaign_id|INSERT,SELECT",
+  "influx_leads_definer|column|leads.brevo_inbound_events.dedup_key|INSERT,SELECT",
+  "influx_leads_definer|column|leads.brevo_inbound_events.email|INSERT,SELECT,UPDATE",
+  "influx_leads_definer|column|leads.brevo_inbound_events.event|INSERT,SELECT",
+  "influx_leads_definer|column|leads.brevo_inbound_events.id|SELECT",
+  "influx_leads_definer|column|leads.brevo_inbound_events.occurred_at|INSERT,SELECT",
+  "influx_leads_definer|column|leads.brevo_inbound_events.origin|INSERT,SELECT",
+  "influx_leads_definer|column|leads.brevo_inbound_events.provider_message_id|INSERT,SELECT",
+  "influx_leads_definer|column|leads.brevo_inbound_events.reason|INSERT,SELECT",
+  "influx_leads_definer|column|leads.brevo_inbound_events.received_at|SELECT",
+  "influx_leads_definer|column|leads.brevo_inbound_events.template_id|INSERT,SELECT",
+  "influx_leads_definer|column|leads.brevo_inbound_outcomes.account_id|INSERT",
+  "influx_leads_definer|column|leads.brevo_inbound_outcomes.event_id|INSERT,SELECT",
+  "influx_leads_definer|column|leads.brevo_inbound_outcomes.outcome|INSERT",
+  "influx_leads_definer|column|leads.contact_sync_states.suppressed_reason|INSERT,SELECT,UPDATE",
+  "influx_leads_definer|column|leads.contact_sync_states.unsubscribed_at|INSERT,SELECT,UPDATE",
+  "influx_leads_definer|function|leads.insert_brevo_inbound_event(leads.brevo_inbound_origin,text,timestamp with time zone,text,text,bigint,bigint,text,uuid)|EXECUTE",
+  "influx_leads_definer|function|leads.process_brevo_inbound_event()|EXECUTE",
+  "influx_leads_definer|function|leads.record_brevo_event(text,timestamp with time zone,text,text,bigint,bigint,text)|EXECUTE",
+  "influx_leads_definer|function|leads.record_brevo_reconciliation_event(text,timestamp with time zone,text,text,uuid,bigint,bigint,text)|EXECUTE",
+  // 0117 (J7 decision 3): E-4 through influx_maintenance_definer only; influx_worker executes the
+  // five ops functions and has USAGE on ops, never a table right.
+  "influx_maintenance_definer|column|identity.accounts.auth_user_id|SELECT",
+  "influx_maintenance_definer|column|leads.brevo_inbound_events.id|SELECT",
+  "influx_maintenance_definer|column|leads.brevo_inbound_outcomes.event_id|SELECT",
+  "influx_maintenance_definer|column|leads.brevo_inbound_outcomes.processed_at|SELECT",
+  "influx_maintenance_definer|column|ops.periodic_runs.attempt|SELECT,UPDATE",
+  "influx_maintenance_definer|column|ops.periodic_runs.counts|UPDATE",
+  "influx_maintenance_definer|column|ops.periodic_runs.finished_at|SELECT,UPDATE",
+  "influx_maintenance_definer|column|ops.periodic_runs.id|SELECT",
+  "influx_maintenance_definer|column|ops.periodic_runs.outcome|UPDATE",
+  "influx_maintenance_definer|column|ops.periodic_runs.period_key|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.periodic_runs.started_at|SELECT",
+  "influx_maintenance_definer|column|ops.periodic_runs.task_code|INSERT,SELECT",
+  "influx_maintenance_definer|function|audit.append(text,text,uuid,jsonb)|EXECUTE",
+  "influx_maintenance_definer|function|ops.claim_periodic_run(ops.periodic_task,text)|EXECUTE",
+  "influx_maintenance_definer|function|ops.filter_auth_orphans(uuid,smallint,uuid[])|EXECUTE",
+  "influx_maintenance_definer|function|ops.finish_periodic_run(uuid,smallint,ops.periodic_run_outcome,jsonb)|EXECUTE",
+  "influx_maintenance_definer|function|ops.purge_brevo_inbound_events(uuid,smallint,integer)|EXECUTE",
+  "influx_maintenance_definer|function|ops.record_retention_purge(uuid,smallint,text,integer)|EXECUTE",
+  "influx_maintenance_definer|schema|audit|USAGE",
+  "influx_maintenance_definer|schema|identity|USAGE",
+  "influx_maintenance_definer|schema|leads|USAGE",
+  "influx_maintenance_definer|schema|ops|USAGE",
+  "influx_maintenance_definer|table|leads.brevo_inbound_events|DELETE",
+  "influx_worker|function|ops.claim_periodic_run(ops.periodic_task,text)|EXECUTE",
+  "influx_worker|function|ops.filter_auth_orphans(uuid,smallint,uuid[])|EXECUTE",
+  "influx_worker|function|ops.finish_periodic_run(uuid,smallint,ops.periodic_run_outcome,jsonb)|EXECUTE",
+  "influx_worker|function|ops.purge_brevo_inbound_events(uuid,smallint,integer)|EXECUTE",
+  "influx_worker|function|ops.record_retention_purge(uuid,smallint,text,integer)|EXECUTE",
+  "influx_worker|schema|ops|USAGE",
 ];
 
 /**
  * T4.2, T4.3: the closed list of 03 P7 (twelve roles at J2, fourteen from J4, fifteen from J6 with
- * influx_leads_definer, 0111), memberships.
+ * influx_leads_definer, 0111, sixteen from J7 with influx_maintenance_definer, 0117), memberships.
  */
 export const EXPECTED_ROLES: Readonly<
   Record<string, { login: boolean; memberOf: readonly string[] }>
@@ -1184,6 +1282,7 @@ export const EXPECTED_ROLES: Readonly<
   influx_session_resolver: { login: false, memberOf: [] },
   influx_identity_definer: { login: false, memberOf: [] },
   influx_leads_definer: { login: false, memberOf: [] },
+  influx_maintenance_definer: { login: false, memberOf: [] },
 };
 
 /** Owners of SECURITY DEFINER functions: no login, NO member (only C-9 tolerance). */
@@ -1192,6 +1291,7 @@ export const FUNCTION_OWNER_ROLES = [
   "influx_session_resolver",
   "influx_identity_definer",
   "influx_leads_definer",
+  "influx_maintenance_definer",
 ] as const;
 
 /** Execution roles (T4.4: own nothing). */
@@ -1251,4 +1351,23 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "leads.read_apollo_subject(bigint,text)": "influx_leads_definer",
   "leads.read_brevo_subject(bigint,text)": "influx_leads_definer",
   "leads.recover_stale_outbox_lines(integer)": "influx_leads_definer",
+  // 0116 (J7 decision 2: E-1 receive, E-3 processing, transactional hard bounce).
+  // leads.insert_brevo_inbound_event() is SECURITY INVOKER (helper of the two record functions).
+  "leads.record_brevo_event(text,timestamp with time zone,text,text,bigint,bigint,text)":
+    "influx_leads_definer",
+  "leads.record_brevo_reconciliation_event(text,timestamp with time zone,text,text,uuid,bigint,bigint,text)":
+    "influx_leads_definer",
+  "leads.process_brevo_inbound_event()": "influx_leads_definer",
+  "identity.record_transactional_hard_bounce(uuid,text,text,timestamp with time zone,text)":
+    "influx_identity_definer",
+  // 0117 (J7 decision 3: E-4 maintenance.run_periodic)
+  "ops.claim_periodic_run(ops.periodic_task,text)":
+    "influx_maintenance_definer",
+  "ops.finish_periodic_run(uuid,smallint,ops.periodic_run_outcome,jsonb)":
+    "influx_maintenance_definer",
+  "ops.filter_auth_orphans(uuid,smallint,uuid[])": "influx_maintenance_definer",
+  "ops.record_retention_purge(uuid,smallint,text,integer)":
+    "influx_maintenance_definer",
+  "ops.purge_brevo_inbound_events(uuid,smallint,integer)":
+    "influx_maintenance_definer",
 };

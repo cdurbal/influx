@@ -539,7 +539,13 @@ describe("T2.6: write-forbidden columns are refused at column level", () => {
                             'advertiser_country_code', 'creator_country_code')
          and a.privilege_type in ('INSERT', 'UPDATE')
          and r.rolname like 'influx\\_%'`;
-    expect(granted).toEqual([]);
+    // Homonym, not a protected column: the reception channel of a raw Brevo line (webhook or
+    // reconciliation, 0116, J7 decision 2), written once at insertion by its function owner and
+    // never updated (guard of 0116). Only that INSERT, by that owner, is let through.
+    const HOMONYMS = [
+      "influx_leads_definer INSERT leads.brevo_inbound_events.origin",
+    ];
+    expect(granted.filter((row) => !HOMONYMS.includes(row.grant))).toEqual([]);
   });
 });
 
@@ -591,9 +597,11 @@ describe("T2.7: exact snapshot of the privileges of the closed list", () => {
     const appenders = EXPECTED_PRIVILEGES.filter((line) =>
       line.includes("|audit.append("),
     ).map((line) => line.split("|")[0]);
+    // influx_maintenance_definer (0117): retention.purged, from E-4 functions only
     expect(appenders.sort()).toEqual([
       "influx_audit_writer",
       "influx_identity_definer",
+      "influx_maintenance_definer",
     ]);
   });
 });

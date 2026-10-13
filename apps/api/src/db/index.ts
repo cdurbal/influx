@@ -13,6 +13,7 @@
 // Every transaction starts with the guard `current_user = session_user = <connection role>`:
 // a role left on a pooled connection would otherwise apply to another user's transaction.
 import {
+  ELEVATED_POOL_EXCEPTIONS,
   isElevatedOperation,
   type ElevatedOperation,
 } from "@influx/contracts/elevated-operations";
@@ -322,6 +323,18 @@ const ELEVATED_FAMILY_POOLS: Readonly<Record<string, ElevatedPoolKind>> = {
 
 /** The pool kind of an operation name, or null (its family has no pool in apps/api). */
 export function elevatedPoolKindOf(operation: string): ElevatedPoolKind | null {
+  // An operation of P bound outside its family (contracts, next to P): checked first.
+  const exception = Object.prototype.hasOwnProperty.call(
+    ELEVATED_POOL_EXCEPTIONS,
+    operation,
+  )
+    ? ELEVATED_POOL_EXCEPTIONS[
+        operation as keyof typeof ELEVATED_POOL_EXCEPTIONS
+      ]
+    : undefined;
+  if (exception !== undefined) {
+    return exception;
+  }
   const family = operation.slice(0, operation.indexOf("."));
   return Object.prototype.hasOwnProperty.call(ELEVATED_FAMILY_POOLS, family)
     ? (ELEVATED_FAMILY_POOLS[family] ?? null)

@@ -1,6 +1,7 @@
 // Shared fixtures of the database tests: connections of the local stack and the data set of T2,
 // loaded once per file (idempotent) by the migration role.
 import {
+  connectAsLocalSuperuser,
   connectAsLoginRole,
   connectAsMigrationRole,
   loadDataSet,
@@ -41,8 +42,58 @@ export function testDataSet(): Promise<DataSet> {
   return dataSet;
 }
 
+let superuser: postgres.Sql | undefined;
+
+/**
+ * The local superuser (loopback only), shared per file: the only role that may SET SESSION
+ * AUTHORIZATION, used to write fixtures and then act as apps/api in ONE rolled-back transaction
+ * (see actAs), where a committed fixture could not be removed (append-only tables, J7).
+ */
+export function localSuperuser(): postgres.Sql {
+  if (superuser === undefined) {
+    superuser = connectAsLocalSuperuser({ max: 1 });
+    opened.push(superuser);
+  }
+  return superuser;
+}
+
+export type Actor = "auth" | "worker";
+
+/** Constant statements: a role name is never interpolated (03 P7 rule 4). */
+const BECOME: Readonly<Record<Actor, readonly string[]>> = {
+  auth: [
+    "set local session authorization influx_auth_login",
+    "set local role influx_auth",
+  ],
+  worker: [
+    "set local session authorization influx_worker_login",
+    "set local role influx_worker",
+  ],
+};
+
+/**
+ * Inside a transaction of localSuperuser(): runs `fn` with the session_user / current_user pair
+ * of apps/api (influx_auth_login / influx_auth, influx_worker_login / influx_worker), then gives
+ * the transaction back to the superuser. `fn` must not leave the transaction aborted: errors go
+ * through probe() (a savepoint).
+ */
+export async function actAs<T>(
+  tx: postgres.TransactionSql,
+  actor: Actor,
+  fn: () => Promise<T>,
+): Promise<T> {
+  for (const statement of BECOME[actor]) {
+    await tx.unsafe(statement);
+  }
+  const result = await fn();
+  await tx.unsafe("reset role");
+  await tx.unsafe("reset session authorization");
+  return result;
+}
+
 afterAll(async () => {
   await Promise.all(opened.map((sql) => sql.end({ timeout: 1 })));
   opened.length = 0;
   byRole.clear();
+  superuser = undefined;
 });
