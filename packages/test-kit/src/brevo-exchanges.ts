@@ -4,6 +4,9 @@
 // (D62, J6 commit 7, 2026-10-12): contact created 201 `{ id }` (an empty date attribute accepted),
 // updated 204, blacklisted 204 (twice), unknown contact 404, refused key 401, e-mail sent 201. NOT
 // recorded: the list operations (no suppression list in the test account), 429 and 503, still drafted.
+// Drafted too, from the reference read on 2026-10-09 and 2026-10-13 (J7 decision 5; developers.brevo
+// .com transactional-webhooks and marketing-webhooks), until the trial of J7 commit 10: the address
+// change by contact id, and the bodies Brevo posts to the webhook (INBOUND_EXEMPLARS).
 // Nothing here is a real identifier, a real address or a key.
 //
 // A recording is the contract of the double: a test that passes against the double passes against
@@ -150,4 +153,90 @@ export const INVALID_PARAMETER: RecordedExchange = {
     status: 400,
     body: { code: "invalid_parameter", message: "email is not valid" },
   },
+};
+
+/** J7 decision 5: the address of a known contact changed by its Brevo id: no body. */
+export const CONTACT_EMAIL_CHANGED: RecordedExchange = {
+  request: {
+    method: "PUT",
+    path: "/v3/contacts/21?identifierType=contact_id",
+    body: { attributes: { EMAIL: "recorded-new@example.test" } },
+  },
+  response: { status: 204 },
+};
+
+/** J7 decision 5: the new address already held by another contact of the account. */
+export const CONTACT_EMAIL_TAKEN: RecordedExchange = {
+  request: CONTACT_EMAIL_CHANGED.request,
+  response: {
+    status: 400,
+    body: {
+      code: "duplicate_parameter",
+      message:
+        "Unable to update contact, email is already associated with another contact",
+    },
+  },
+};
+
+/**
+ * What Brevo posts to the webhook (16 §I RG105, RG106), one event per request (batches disabled,
+ * decision 1 of J7). The address, the instant and the identifiers are set by the double
+ * (`webhookEvent`); every other field is Brevo's, kept so that the route proves it drops them.
+ */
+export type InboundEventKind =
+  | "unsubscribed"
+  | "spam"
+  | "hard_bounce"
+  | "transactional_spam"
+  | "opened"
+  | "unknown";
+
+const MARKETING_EVENT = {
+  id: 4417,
+  camp_id: 54,
+  email: "recorded-contact@example.test",
+  "campaign name": "Recorded newsletter",
+  date_sent: "2026-10-13 10:00:00",
+  date_event: "2026-10-13 10:05:00",
+  tag: "",
+  ts_sent: 1792231200,
+  ts_event: 1792231500,
+  ts: 1792231500,
+  list_id: [3],
+  sending_ip: "185.41.28.109",
+};
+
+const TRANSACTIONAL_EVENT = {
+  id: 4418,
+  email: "recorded-contact@example.test",
+  date: "2026-10-13 10:05:00",
+  ts: 1792231500,
+  "message-id": "<202609191200.00000000001@smtp-relay.mailin.fr>",
+  ts_event: 1792231500,
+  subject: "Recorded subject",
+  tag: "",
+  sending_ip: "185.41.28.109",
+  ts_epoch: 1792231500000,
+  template_id: 3,
+};
+
+export const INBOUND_EXEMPLARS: Readonly<
+  Record<InboundEventKind, Readonly<Record<string, unknown>>>
+> = {
+  /** A marketing e-mail's unsubscribe link (05 RG90: Brevo is right). */
+  unsubscribed: { ...MARKETING_EVENT, event: "unsubscribed" },
+  /** A marketing e-mail marked as spam (05 RG93). */
+  spam: { ...MARKETING_EVENT, event: "spam" },
+  /** A transactional e-mail refused for good by the receiving server (04 §5.1, D37). */
+  hard_bounce: {
+    ...TRANSACTIONAL_EVENT,
+    event: "hard_bounce",
+    reason: "550 5.1.1 user unknown",
+  },
+  /** A transactional e-mail marked as spam. */
+  transactional_spam: { ...TRANSACTIONAL_EVENT, event: "spam" },
+  /** An event that informs (RG106): never nominative (RG107). */
+  opened: { ...MARKETING_EVENT, event: "opened" },
+  /** A name Brevo may add one day: recorded, journaled and ignored (RG105). */
+  unknown: { ...TRANSACTIONAL_EVENT, event: "contact_merged" },
 };

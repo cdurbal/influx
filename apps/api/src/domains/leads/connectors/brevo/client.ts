@@ -1,5 +1,5 @@
 // The Brevo calls of the worker (docs/mvp/16 §M1, operations 1, 2, 6 and 7; read on 2026-09-19,
-// RG150), each bounded in time (02 §18.4 G1: 3 s), and the classification of the answers into the
+// RG150; the address change of decision 5 of J7, read on 2026-10-09), each bounded in time (02 §18.4 G1: 3 s), and the classification of the answers into the
 // three classes of 16 §M5. Never imported by the HTTP process (static guard, brevo-guard.test.ts).
 // Nothing of a request or of Brevo's message reaches a log line or a cause: the HTTP status and
 // Brevo's error code at most (D60, 05 RG99).
@@ -17,6 +17,12 @@ export type BrevoClientLogger = {
   error(object: object, message: string): void;
 };
 
+/** How Brevo finds the contact of an address change (decision 5 of J7): its id, else its address. */
+export type BrevoContactIdentifier = {
+  type: "contact_id" | "email_id";
+  value: string;
+};
+
 export type BrevoClient = {
   /** Operation 1: create, or update with updateEnabled (16 §M3: never a duplicate). */
   upsertContact(body: Record<string, unknown>): Promise<CallResult>;
@@ -25,6 +31,14 @@ export type BrevoClient = {
     email: string,
     body: Record<string, unknown>,
     suppressionListId: number | null,
+  ): Promise<CallResult>;
+  /**
+   * 05 RG58, decision 5 of J7: the address of a known contact changed in place, by
+   * `PUT /contacts/{identifier}?identifierType=…`; never a second contact.
+   */
+  updateContactEmail(
+    identifier: BrevoContactIdentifier,
+    body: Record<string, unknown>,
   ): Promise<CallResult>;
   /** Operation 6: one recipient, the line's key as Idempotency-Key (16 RG89, RG90). */
   sendTransactional(
@@ -220,6 +234,23 @@ export function createBrevoClient(
         return { kind: "succeeded" };
       }
       return failureOf(listed);
+    },
+
+    async updateContactEmail(identifier, body) {
+      const answer = await call(
+        "PUT",
+        `${CONTACTS_PATH}/${encodeURIComponent(identifier.value)}?identifierType=${identifier.type}`,
+        body,
+      );
+      if (answer.kind === "answer" && answer.status === 204) {
+        return { kind: "succeeded" };
+      }
+      if (answer.kind === "answer" && answer.status === 404) {
+        // No contact at Brevo: nothing to move. A replay of lead.created reads the current address.
+        return { kind: "succeeded" };
+      }
+      // An address already held by another contact is a 400: failed, visible, replayable (J8).
+      return failureOf(answer);
     },
 
     async sendTransactional(body, idempotencyKey, locale) {

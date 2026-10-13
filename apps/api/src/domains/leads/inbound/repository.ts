@@ -1,7 +1,7 @@
-// Database access of what Brevo reports back, for the api, under influx_auth (E-1
-// `leads.receive_brevo_event`; decision 2 of the J7 start; migration 0116). One SECURITY DEFINER
-// function of influx_leads_definer, every value a bound parameter (S-1). The worker's processing
-// of the same lines is not here (E-3, commit 4): this module is reachable from the api only.
+// Database access of what Brevo reports back (decision 2 of the J7 start; migration 0116): the
+// write of the api under influx_auth (E-1 `leads.receive_brevo_event`), and the processing of the
+// worker under influx_worker (E-3 `leads.drain_outbox`, commit 4, through processing.ts). One
+// SECURITY DEFINER function of influx_leads_definer each, every value a bound parameter (S-1).
 import { sql } from "drizzle-orm";
 import type { Transaction } from "../../../db/index.ts";
 import { sqlStateOf } from "../../../db/sql-state.ts";
@@ -39,4 +39,46 @@ const INVALID_PARAMETER_VALUE = "22023";
 /** A value the database refused (22023): the event is invalid, never retried. */
 export function isRefusedValue(error: unknown): boolean {
   return sqlStateOf(error) === INVALID_PARAMETER_VALUE;
+}
+
+/** The closed list of leads.brevo_inbound_outcome (0116). */
+export const BREVO_INBOUND_OUTCOMES = [
+  "rights_withdrawn",
+  "no_change",
+  "address_mismatch",
+  "unmatched",
+  "informative",
+  "unknown_event",
+] as const;
+export type BrevoInboundOutcome = (typeof BREVO_INBOUND_OUTCOMES)[number];
+
+export type ProcessedInboundLine = {
+  inboundEventId: string;
+  outcome: BrevoInboundOutcome;
+  /** The account an effect was written on (the register subject), else null. */
+  auditSubject: string | null;
+};
+
+/** The oldest raw line without an outcome, processed; null when none waits. */
+export async function processInboundLine(
+  tx: Transaction,
+): Promise<ProcessedInboundLine | null> {
+  const rows = await tx.execute<{
+    inbound_event_id: string;
+    outcome: BrevoInboundOutcome;
+    audit_subject: string | null;
+  }>(
+    sql`select inbound_event_id::text as inbound_event_id, outcome::text as outcome,
+               audit_subject::text as audit_subject
+          from leads.process_brevo_inbound_event()`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    return null;
+  }
+  return {
+    inboundEventId: row.inbound_event_id,
+    outcome: row.outcome,
+    auditSubject: row.audit_subject,
+  };
 }

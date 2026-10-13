@@ -3,7 +3,12 @@
 // - It answers, like Brevo and from the recorded exchanges of brevo-exchanges.ts, the operations
 //   INFLUX uses (16 §M1): 1 `POST /v3/contacts` (`updateEnabled`), 2 `PUT /v3/contacts/{email}`,
 //   6 the unitary transactional send `POST /v3/smtp/email`, 7 `POST /v3/contacts/lists/{id}/
-//   contacts/add`. It keeps the contacts and the lists it was given, and records every request.
+//   contacts/add`, and the address change of J7 decision 5, `PUT /v3/contacts/{identifier}
+//   ?identifierType=contact_id|email_id` with the attribute EMAIL (Brevo then lifts the
+//   blacklist). It keeps the contacts and the lists it was given, and records every request.
+// - What Brevo reports back (J7, commit 4): `webhookEvent()` gives the body Brevo would post to
+//   the webhook for one of its contacts, from the exemplars of brevo-exchanges.ts; an unsubscription
+//   or a complaint is first applied to the contact, as at Brevo (05 RG90: Brevo is right).
 // - A transactional send carrying an `Idempotency-Key` already accepted is answered with the same
 //   message id and is NOT delivered again (16 RG90, §M3): `messages` holds every send received,
 //   `delivered` the e-mails that would have left.
@@ -20,10 +25,14 @@ import type { AddressInfo } from "node:net";
 import {
   CONTACT_BLACKLISTED,
   CONTACT_CREATED,
+  CONTACT_EMAIL_CHANGED,
+  CONTACT_EMAIL_TAKEN,
   CONTACT_NOT_FOUND,
   CONTACT_UPDATED,
+  INBOUND_EXEMPLARS,
   LIST_CONTACT_ADDED,
   LIST_CONTACT_ALREADY_IN,
+  type InboundEventKind,
   type RecordedExchange,
 } from "./brevo-exchanges.ts";
 
@@ -69,6 +78,16 @@ export type BrevoDoubleContact = {
   emailBlacklisted: boolean;
 };
 
+/** What a webhook event names, besides the contact's address. */
+export type BrevoDoubleEventDetails = {
+  /** The message-id of a transactional e-mail (16 RG94). */
+  messageId?: string;
+  campaignId?: number;
+  templateId?: number;
+  /** Seconds since the epoch; now by default. */
+  tsEvent?: number;
+};
+
 export type BrevoDoubleAnswer = {
   status: number;
   headers?: Record<string, string>;
@@ -95,12 +114,22 @@ export type BrevoDouble = {
   queue(...answers: BrevoDoubleAnswer[]): void;
   /** Delay of every default answer, in milliseconds. */
   setDefaultDelay(delayMs: number): void;
+  /**
+   * The body Brevo would post to the webhook for this event of `email` (any address, known or
+   * not). `unsubscribed` and `spam` first blacklist a known contact, as Brevo does.
+   */
+  webhookEvent(
+    kind: InboundEventKind,
+    email: string,
+    details?: BrevoDoubleEventDetails,
+  ): Record<string, unknown>;
   reset(): void;
   close(): Promise<void>;
 };
 
 const CONTACTS_PATH = "/v3/contacts";
-const CONTACT_PATH = /^\/v3\/contacts\/([^/?]+)$/;
+const CONTACT_PATH =
+  /^\/v3\/contacts\/([^/?]+)(?:\?identifierType=(contact_id|email_id))?$/;
 const LIST_ADD_PATH = /^\/v3\/contacts\/lists\/([0-9]+)\/contacts\/add$/;
 const SMTP_PATH = "/v3/smtp/email";
 
@@ -199,20 +228,95 @@ export async function startBrevoDouble(port = 0): Promise<BrevoDouble> {
     return recorded(CONTACT_CREATED, { id });
   }
 
-  /** Operation 2: a known contact updated (204), an unknown one refused (404). */
+  function contactOf(
+    identifier: string,
+    type: string | undefined,
+  ): BrevoDoubleContact | undefined {
+    const value = decodeURIComponent(identifier);
+    if (type === "contact_id") {
+      return [...contacts.values()].find(
+        (contact) => String(contact.id) === value,
+      );
+    }
+    return contacts.get(value.toLowerCase());
+  }
+
+  /** The attribute EMAIL moves the contact, its lists with it; Brevo lifts the blacklist. */
+  function moveContact(
+    contact: BrevoDoubleContact,
+    newEmail: string,
+  ): BrevoDoubleAnswer {
+    const target = newEmail.toLowerCase();
+    if (target !== contact.email && contacts.has(target)) {
+      return recorded(CONTACT_EMAIL_TAKEN);
+    }
+    contacts.delete(contact.email);
+    for (const members of lists.values()) {
+      if (members.delete(contact.email)) {
+        members.add(target);
+      }
+    }
+    contact.email = target;
+    contact.emailBlacklisted = false;
+    contacts.set(target, contact);
+    return recorded(CONTACT_EMAIL_CHANGED);
+  }
+
+  /** Operation 2, or the address change: a known contact updated (204), an unknown one 404. */
   function updateContact(
     identifier: string,
+    type: string | undefined,
     body: Record<string, unknown>,
   ): BrevoDoubleAnswer {
-    const contact = contacts.get(decodeURIComponent(identifier).toLowerCase());
+    const contact = contactOf(identifier, type);
     if (contact === undefined) {
       return recorded(CONTACT_NOT_FOUND);
     }
-    Object.assign(contact.attributes, objectOf(body.attributes));
+    const { EMAIL: newEmail, ...attributes } = objectOf(body.attributes);
+    if (typeof newEmail === "string") {
+      const moved = moveContact(contact, newEmail);
+      if (moved.status !== 204) {
+        return moved;
+      }
+    }
+    Object.assign(contact.attributes, attributes);
     if (typeof body.emailBlacklisted === "boolean") {
       contact.emailBlacklisted = body.emailBlacklisted;
     }
     return recorded(CONTACT_BLACKLISTED);
+  }
+
+  function webhookEvent(
+    kind: InboundEventKind,
+    email: string,
+    details: BrevoDoubleEventDetails = {},
+  ): Record<string, unknown> {
+    const known = contacts.get(email.toLowerCase());
+    if (known !== undefined && (kind === "unsubscribed" || kind === "spam")) {
+      known.emailBlacklisted = true;
+    }
+    const tsEvent = details.tsEvent ?? Math.floor(Date.now() / 1000);
+    const body: Record<string, unknown> = {
+      ...INBOUND_EXEMPLARS[kind],
+      email,
+      ts_event: tsEvent,
+    };
+    if ("ts" in body) {
+      body.ts = tsEvent;
+    }
+    if ("ts_epoch" in body) {
+      body.ts_epoch = tsEvent * 1000;
+    }
+    if (details.messageId !== undefined) {
+      body["message-id"] = details.messageId;
+    }
+    if (details.campaignId !== undefined) {
+      body.camp_id = details.campaignId;
+    }
+    if (details.templateId !== undefined) {
+      body.template_id = details.templateId;
+    }
+    return body;
   }
 
   /** Operation 7: the known contacts not yet in the list are added; none added is a 400. */
@@ -258,7 +362,7 @@ export async function startBrevoDouble(port = 0): Promise<BrevoDouble> {
     }
     const contact = CONTACT_PATH.exec(path);
     if (method === "PUT" && contact?.[1] !== undefined) {
-      return updateContact(contact[1], body);
+      return updateContact(contact[1], contact[2], body);
     }
     const list = LIST_ADD_PATH.exec(path);
     if (method === "POST" && list?.[1] !== undefined) {
@@ -382,6 +486,7 @@ export async function startBrevoDouble(port = 0): Promise<BrevoDouble> {
     setDefaultDelay(delayMs) {
       defaultDelayMs = delayMs;
     },
+    webhookEvent,
     reset() {
       messages.length = 0;
       delivered.length = 0;

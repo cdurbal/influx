@@ -44,6 +44,9 @@ const CONTACT_BODY_FIELDS = new Set([
 ]);
 /** The fields of the body of operation 2 (`PUT /contacts/{email}`): the unsubscription only. */
 export const UNSUBSCRIBE_BODY_FIELDS = new Set(["emailBlacklisted"]);
+/** The fields of the body of the address change (decision 5 of J7), and its only attribute. */
+const EMAIL_CHANGE_BODY_FIELDS = new Set(["attributes"]);
+const EMAIL_CHANGE_ATTRIBUTES: ReadonlySet<string> = new Set(["EMAIL"]);
 /** The fields of the body of operation 6 (`POST /smtp/email`), and its parameters. */
 const TRANSACTIONAL_BODY_FIELDS = new Set([
   "sender",
@@ -128,6 +131,20 @@ export function checkContactOutput(body: Record<string, unknown>): string[] {
   return [
     ...outside(Object.keys(body), CONTACT_BODY_FIELDS),
     ...outside(attributes, CONTACT_ATTRIBUTE_SET),
+  ].sort();
+}
+
+/** 16 RG137 on the address change: the names refused, sorted; only the new address may leave. */
+export function checkEmailChangeOutput(
+  body: Record<string, unknown>,
+): string[] {
+  const attributes =
+    typeof body.attributes === "object" && body.attributes !== null
+      ? Object.keys(body.attributes)
+      : [];
+  return [
+    ...outside(Object.keys(body), EMAIL_CHANGE_BODY_FIELDS),
+    ...outside(attributes, EMAIL_CHANGE_ATTRIBUTES),
   ].sort();
 }
 

@@ -4,7 +4,9 @@
 // (a slow connector holds no lock and delays no other destination) and T5 (one rate budget per
 // category), 18 TM1.7, TM1.8 and TM1.10 (SIGTERM during a batch), the three locks of 02 §12.4,
 // the retry schedule of 05 RG79 (EC-9) and the dry-run line of the architect's decision 3, with
-// no personal value in any log line (D60). The database half is in db-tests/tm1-worker-loop.
+// no personal value in any log line (D60); J7 commit 4: the raw Brevo lines processed first in each
+// turn (inbound/processing.ts). The database half is in db-tests/tm1-worker-loop and
+// tm1-brevo-inbound-worker.
 import { captureLogStream, valuesFoundIn } from "@influx/test-kit/logs";
 import { beforeEach, describe, expect, it } from "vitest";
 import type {
@@ -19,6 +21,11 @@ import {
   type DrainDependencies,
   type SyncSettings,
 } from "../src/domains/leads/drain.ts";
+import {
+  createInboundProcessor,
+  type BrevoInboundOutcome,
+  type ProcessedInboundLine,
+} from "../src/domains/leads/inbound/processing.ts";
 import { CategoryRateLimiter } from "../src/domains/leads/rate-limiter.ts";
 import {
   LineTakenBackError,
@@ -925,5 +932,160 @@ describe("D60: the log lines of the drain", () => {
       );
     }
     expect(workerIdentifier("local")).not.toBe(workerIdentifier("local"));
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// J7 commit 4: what Brevo reported back, processed at the start of each turn
+// ---------------------------------------------------------------------------------------------
+
+/** An in-memory store of raw lines; `effect` runs when one is processed (e.g. a P0 line). */
+function rawLines(
+  outcomes: BrevoInboundOutcome[],
+  effect: (outcome: BrevoInboundOutcome) => void = () => undefined,
+) {
+  const waiting = [...outcomes];
+  const calls: string[] = [];
+  let next = 1;
+  return {
+    calls,
+    waiting,
+    process(requestId: string): Promise<ProcessedInboundLine | null> {
+      calls.push(requestId);
+      const outcome = waiting.shift();
+      if (outcome === undefined) {
+        return Promise.resolve(null);
+      }
+      effect(outcome);
+      return Promise.resolve({
+        inboundEventId: `0a1b2c3d-0000-4000-8000-${String(next++).padStart(12, "0")}`,
+        outcome,
+        auditSubject: outcome === "rights_withdrawn" ? ACCOUNT : null,
+      });
+    },
+  };
+}
+
+function inboundLogger() {
+  return createLogger(
+    { service: "worker", environment: "staging", version: "test" },
+    capture.destination,
+  );
+}
+
+describe("J7 commit 4, 05 RG92: the raw Brevo lines are processed first in each turn", () => {
+  it("a withdrawal's consent.revoked line (priority 0) is claimed and sent by the same turn", async () => {
+    const queue = new FakeQueue();
+    const ordinary = queue.add("brevo_contact", { subject: "account:other" });
+    let revoked = "";
+    const raw = rawLines(["rights_withdrawn"], () => {
+      revoked = queue.add("brevo_contact", { priority: 0 });
+    });
+    const contact = connector("brevo_contact", queue);
+    const turn = drain(
+      queue,
+      { brevo_contact: contact },
+      {},
+      {
+        inbound: createInboundProcessor({
+          process: raw.process,
+          logger: inboundLogger(),
+        }),
+      },
+    ).turn;
+
+    expect(await turn(new AbortController().signal)).toBe(3);
+    expect(contact.sent).toEqual([revoked, ordinary]);
+    expect(raw.calls).toHaveLength(2);
+  });
+
+  it("one aggregated count per batch, the unknown event journaled by its line id alone (RG105, D60)", async () => {
+    const raw = rawLines([
+      "rights_withdrawn",
+      "no_change",
+      "unknown_event",
+      "rights_withdrawn",
+    ]);
+    const processor = createInboundProcessor({
+      process: raw.process,
+      logger: inboundLogger(),
+    });
+    expect(await processor.turn(new AbortController().signal)).toBe(4);
+    const lines = logLines();
+    const batch = lines.filter(
+      (line) => line.msg === "leads.brevo_inbound.batch",
+    );
+    expect(batch).toHaveLength(1);
+    expect(batch[0]).toMatchObject({
+      processed: 4,
+      outcomes: { rights_withdrawn: 2, no_change: 1, unknown_event: 1 },
+    });
+    const unknown = lines.filter(
+      (line) => line.msg === "leads.brevo_inbound.unknown_event",
+    );
+    expect(unknown).toHaveLength(1);
+    expect(unknown[0]).toMatchObject({
+      level: "warn",
+      outcome: "unknown_event",
+    });
+    expect(Object.keys(unknown[0] ?? {})).not.toContain("auditSubject");
+    expect(valuesFoundIn(capture.lines().join("\n"), [ACCOUNT])).toEqual([]);
+  });
+
+  it("nothing waiting: no log line, the turn goes on to the queue", async () => {
+    const raw = rawLines([]);
+    const processor = createInboundProcessor({
+      process: raw.process,
+      logger: inboundLogger(),
+    });
+    expect(await processor.turn(new AbortController().signal)).toBe(0);
+    expect(logLines()).toEqual([]);
+  });
+
+  it("at most the batch size per turn; a stop requested ends the batch after the line in progress", async () => {
+    const raw = rawLines(Array.from({ length: 5 }, () => "no_change" as const));
+    const processor = createInboundProcessor({
+      process: raw.process,
+      logger: inboundLogger(),
+      batchSize: 3,
+    });
+    expect(await processor.turn(new AbortController().signal)).toBe(3);
+    expect(raw.waiting).toHaveLength(2);
+
+    const stop = new AbortController();
+    const stopping = createInboundProcessor({
+      process: (requestId) => {
+        stop.abort();
+        return raw.process(requestId);
+      },
+      logger: inboundLogger(),
+    });
+    expect(await stopping.turn(stop.signal)).toBe(1);
+    expect(raw.waiting).toHaveLength(1);
+  });
+
+  it("a failure of the processing never stops the queue: logged, the lines claimed all the same", async () => {
+    const queue = new FakeQueue();
+    const id = queue.add("brevo_contact");
+    const contact = connector("brevo_contact", queue);
+    const turn = drain(
+      queue,
+      { brevo_contact: contact },
+      {},
+      {
+        inbound: {
+          turn: () => Promise.reject(new Error("connection lost")),
+        },
+      },
+    ).turn;
+    expect(await turn(new AbortController().signal)).toBe(1);
+    expect(contact.sent).toEqual([id]);
+    expect(
+      logLines().some(
+        (line) =>
+          line.msg === "leads.brevo_inbound.turn_failed" &&
+          line.level === "error",
+      ),
+    ).toBe(true);
   });
 });

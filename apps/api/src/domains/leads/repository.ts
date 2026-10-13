@@ -103,6 +103,12 @@ export type BrevoSubject = {
   consentSource: string | null;
   /** The welcome e-mail of the line's code already journaled for the account (16 RG90). */
   welcomeSent: boolean;
+  /** An email.changed line: the old address of its completed request (05 RG58, 0121); else null. */
+  previousEmail: string | null;
+  /** The Brevo contact id already known (contact_sync_states), or null. */
+  externalContactId: string | null;
+  /** A suppression is recorded on the Brevo contact (05 RG93, a complaint): never resynchronised. */
+  suppressed: boolean;
 };
 
 /** What the Apollo connector reads of a subject, besides the account state of the attempt (0113). */
@@ -294,6 +300,9 @@ export async function readBrevoSubject(
     consent_at: string | null;
     consent_source: string | null;
     welcome_sent: boolean;
+    previous_email: string | null;
+    external_contact_id: string | null;
+    suppressed: boolean;
   }>(
     sql`select email,
                to_char(signed_up_at at time zone 'UTC',
@@ -301,7 +310,7 @@ export async function readBrevoSubject(
                company, utm_source, utm_medium, utm_campaign, referrer_domain, heard_from,
                to_char(consent_at at time zone 'UTC',
                        'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as consent_at,
-               consent_source, welcome_sent
+               consent_source, welcome_sent, previous_email, external_contact_id, suppressed
           from leads.read_brevo_subject(${lineId}::bigint, ${worker}::text)`,
   );
   const row = rows[0];
@@ -320,6 +329,9 @@ export async function readBrevoSubject(
     consentAt: row.consent_at,
     consentSource: row.consent_source,
     welcomeSent: row.welcome_sent,
+    previousEmail: row.previous_email,
+    externalContactId: row.external_contact_id,
+    suppressed: row.suppressed,
   };
 }
 

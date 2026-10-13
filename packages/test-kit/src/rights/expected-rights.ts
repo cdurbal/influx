@@ -1433,6 +1433,12 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_agent|table|backoffice.data_subject_requests|SELECT",
   "influx_admin|table|backoffice.code_delivery_reports|SELECT",
   "influx_admin|table|backoffice.data_subject_requests|SELECT",
+  // 0121 (J7 commit 4): the Brevo connector's read of the old address of a COMPLETED request
+  // (email.changed, RG58); never the digests nor the new address.
+  "influx_leads_definer|column|identity.email_change_requests.account_id|SELECT",
+  "influx_leads_definer|column|identity.email_change_requests.completed_at|SELECT",
+  "influx_leads_definer|column|identity.email_change_requests.id|SELECT",
+  "influx_leads_definer|column|identity.email_change_requests.old_email|SELECT",
 ];
 
 /**

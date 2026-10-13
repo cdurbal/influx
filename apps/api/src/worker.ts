@@ -1,5 +1,6 @@
 // Entry point of the Railway service `worker` (docs/mvp/02-architecture-3-espaces.md §11).
-// J6: drains the outbox (E-3 `leads.drain_outbox`, src/domains/leads/drain.ts). It opens NO port.
+// J6: drains the outbox (E-3 `leads.drain_outbox`, src/domains/leads/drain.ts); J7: first processes
+// what Brevo reported back (src/domains/leads/inbound/processing.ts). It opens NO port.
 // Started by `node apps/api/src/worker.ts` directly, so that SIGTERM reaches it (21 §4, J1-B):
 // the turn in progress finishes, the lines not begun go back to pending (02 §11.2, TM1.10).
 import { randomUUID } from "node:crypto";
@@ -23,6 +24,10 @@ import {
   type BrevoConnectorDependencies,
 } from "./domains/leads/connectors/brevo/index.ts";
 import { createOutboxDrain, workerIdentifier } from "./domains/leads/drain.ts";
+import {
+  createInboundProcessor,
+  processInboundEvent,
+} from "./domains/leads/inbound/processing.ts";
 import {
   createWorkerQueue,
   readApolloSubjectOf,
@@ -155,6 +160,10 @@ async function main(): Promise<void> {
   const drain = createOutboxDrain({
     queue: createWorkerQueue(database),
     connectors: connectorsOf(config, database, worker, logger),
+    inbound: createInboundProcessor({
+      process: (requestId) => processInboundEvent(database, requestId),
+      logger,
+    }),
     worker,
     sync: {
       mode: config.sync.mode,

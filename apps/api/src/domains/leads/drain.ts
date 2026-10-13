@@ -7,6 +7,8 @@
 //            transaction), the connector's preparation, the locks of 02 §12.4, the call
 //   OUTCOME  complete (one transaction)
 //
+// Each turn first processes what Brevo reported back (inbound/processing.ts, J7 commit 4), so that a
+// withdrawal's consent.revoked lines (priority 0) are claimed by the same turn (05 RG92: < 5 min).
 // Each destination is a lane of its own, run side by side (05 RG75): a slow or failing provider
 // delays no other destination, and each lane has its own rate budget (lead-pipeline T5). Within a
 // lane the lines go one at a time, in the order of the claim (priority first, RG77, RG78).
@@ -21,6 +23,7 @@
 // a value or a provider's message.
 import { randomUUID } from "node:crypto";
 import type { CallResult, Connector, Preparation } from "./connector.ts";
+import type { InboundProcessor } from "./inbound/processing.ts";
 import { LineTakenBackError, type OutboxQueue } from "./queue.ts";
 import { CategoryRateLimiter } from "./rate-limiter.ts";
 import type {
@@ -67,6 +70,8 @@ export type DrainDependencies = {
   queue: OutboxQueue;
   /** One per destination; a missing one leaves its lines waiting. */
   connectors: Partial<Record<OutboxDestination, Connector>>;
+  /** What Brevo reported back, processed at the start of each turn; none in the loop's tests. */
+  inbound?: InboundProcessor;
   /** The worker identifier of the claim (workerIdentifier). */
   worker: string;
   sync: SyncSettings;
@@ -77,7 +82,10 @@ export type DrainDependencies = {
 };
 
 export type OutboxDrain = {
-  /** One turn: claim, then every lane to its end. Returns the number of lines claimed. */
+  /**
+   * One turn: the raw Brevo lines, then claim and every lane to its end. Returns the number of raw
+   * lines processed plus the number of queue lines claimed.
+   */
   turn(signal: AbortSignal): Promise<number>;
   /** The loop, until `signal` aborts; the turn in progress always finishes. */
   run(signal: AbortSignal): Promise<void>;
@@ -94,7 +102,8 @@ export function workerIdentifier(instance: string): string {
 export function createOutboxDrain(
   dependencies: DrainDependencies,
 ): OutboxDrain {
-  const { queue, connectors, worker, sync, logger, now, sleep } = dependencies;
+  const { queue, connectors, inbound, worker, sync, logger, now, sleep } =
+    dependencies;
   const limiter = new CategoryRateLimiter(now);
   const dryRun = sync.mode === "dry_run";
   const allowlist = new Set(
@@ -394,9 +403,26 @@ export function createOutboxDrain(
     }
   }
 
+  /** A failure here never stops the queue: the raw lines wait for the next turn. */
+  async function inboundTurn(signal: AbortSignal): Promise<number> {
+    if (inbound === undefined) {
+      return 0;
+    }
+    try {
+      return await inbound.turn(signal);
+    } catch (error) {
+      logger.error({ err: error }, "leads.brevo_inbound.turn_failed");
+      return 0;
+    }
+  }
+
   async function turn(signal: AbortSignal): Promise<number> {
     if (signal.aborted) {
       return 0;
+    }
+    const processed = await inboundTurn(signal);
+    if (signal.aborted) {
+      return processed;
     }
     const lines = await queue.claim(randomUUID(), worker);
     const lanes = new Map<OutboxDestination, ClaimedLine[]>();
@@ -408,7 +434,7 @@ export function createOutboxDrain(
     await Promise.all(
       [...lanes.values()].map((laneLines) => lane(laneLines, signal)),
     );
-    return lines.length;
+    return processed + lines.length;
   }
 
   async function recover(): Promise<void> {

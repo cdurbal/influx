@@ -46,3 +46,24 @@ export const brevoWebhookReceiptSchema = z.strictObject({
 });
 
 export type BrevoWebhookReceipt = z.infer<typeof brevoWebhookReceiptSchema>;
+
+/**
+ * J7 decision 2, 16 RG106: the webhook subscribes to the events that withdraw a right ONLY, by the
+ * names of Brevo's `POST /v3/webhooks` (`events`, read on 2026-10-13); batches disabled. Applied at
+ * Brevo by the configuration gesture of J7 commit 10, never by the code. The names they arrive
+ * under in the body are WITHDRAWING_EVENTS; anything else that still arrives is processed as
+ * informative or unknown (RG105).
+ */
+export const BREVO_WEBHOOK_SUBSCRIPTION = {
+  transactional: ["hardBounce", "invalid", "blocked", "spam", "unsubscribed"],
+  marketing: ["hardBounce", "spam", "unsubscribed"],
+} as const;
+
+/** 16 RG106, first family: the event names of the body that withdraw a right (0116). */
+export const WITHDRAWING_EVENTS = [
+  "unsubscribed",
+  "spam",
+  "hard_bounce",
+  "invalid_email",
+  "blocked",
+] as const;

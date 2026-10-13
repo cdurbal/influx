@@ -2,7 +2,8 @@
 // the Brevo double of @influx/test-kit on the loopback (16 RG148: no test ever reaches Brevo):
 // operations 1, 2, 6 and 7 of 16 §M1, the mapping of §M4 with the attributes of EC-11, the output
 // check (RG137), RG142, the welcome e-mail once per account (05 RG76, RG86; 16 RG90), the error
-// classes of §M5 and the scenarios 1 to 6 and 13 of RG148; 05 CA38 to CA41. The loop around the
+// classes of §M5 and the scenarios 1 to 6 and 13 of RG148; 05 CA38 to CA41; J7 commit 4: the
+// suppression of 05 RG93 (CA55) and the address change of RG58 (decision 5). The loop around the
 // connectors (locks, schedule, outcome) is tested in leads-drain.
 import {
   startBrevoDouble,
@@ -19,6 +20,7 @@ import type {
 import {
   BREVO_CONTACT_ATTRIBUTES,
   checkContactOutput,
+  checkEmailChangeOutput,
   createBrevoConnectors,
   mapContact,
   type BrevoConnectorSettings,
@@ -94,6 +96,9 @@ function subject(overrides: Partial<BrevoSubject> = {}): BrevoSubject {
     consentAt: "2026-10-09T08:15:00.000Z",
     consentSource: "signup_form",
     welcomeSent: false,
+    previousEmail: null,
+    externalContactId: null,
+    suppressed: false,
     ...overrides,
   };
 }
@@ -725,5 +730,202 @@ describe("02 §12.4 lock 1: the key of the worker", () => {
     expect(contact.hasCredentials && transactional.hasCredentials).toBe(true);
     expect(contact.destination).toBe("brevo_contact");
     expect(transactional.destination).toBe("brevo_transactional");
+  });
+});
+
+describe("05 RG93, CA55: a contact under suppression is never resynchronised by an ordinary replay", () => {
+  it("a complaint recorded, the consent given again: the replay unsubscribes, never upserts", async () => {
+    const { contact } = connectors({ subject: subject({ suppressed: true }) });
+    const result = await run(
+      contact,
+      line("brevo_contact", { eventType: "lead.updated" }),
+      state({ marketingEmailConsent: true }),
+    );
+    expect(result).toEqual({ kind: "succeeded" });
+    expect(
+      double.requests.map((request) => `${request.method} ${request.path}`),
+    ).toEqual([`PUT /v3/contacts/${encodeURIComponent(EMAIL)}`]);
+    expect(double.contacts.size).toBe(0);
+  });
+
+  it("a contact known at Brevo stays blacklisted and in the suppression list", async () => {
+    await run(connectors().contact, line("brevo_contact"));
+    const { contact } = connectors({ subject: subject({ suppressed: true }) });
+    const prepared = await prepare(
+      contact,
+      line("brevo_contact", { eventType: "lead.updated" }),
+      state(),
+    );
+    expect(prepared.kind === "mapped" && prepared.description.operation).toBe(
+      "unsubscribe_contact",
+    );
+    if (prepared.kind === "mapped") {
+      expect(await prepared.result()).toEqual({ kind: "succeeded" });
+    }
+    expect(double.contacts.get(EMAIL)?.emailBlacklisted).toBe(true);
+    expect(double.lists.get(SUPPRESSION_LIST)?.has(EMAIL)).toBe(true);
+  });
+});
+
+describe("05 RG58, J7 decision 5: email.changed updates the contact in place, never duplicates it", () => {
+  const NEW_EMAIL = "lena-new-p3x8@example.test";
+
+  function changed(): ClaimedLine {
+    return line("brevo_contact", {
+      eventType: "email.changed",
+      payload: {
+        event_id: "0a1b2c3d-0000-4000-8000-00000000e0e0",
+        account_id: ACCOUNT,
+        request_id: "5d0c7e1a-2b3f-4c6d-8e9f-0a1b2c3d4e5f",
+      },
+    });
+  }
+
+  function movedSubject(overrides: Partial<BrevoSubject> = {}): BrevoSubject {
+    return subject({
+      email: NEW_EMAIL,
+      previousEmail: EMAIL,
+      externalContactId: "1",
+      ...overrides,
+    });
+  }
+
+  function moving(overrides: Partial<BrevoSubject> = {}): Connector {
+    return connectors({
+      settings: { testRecipients: [EMAIL, NEW_EMAIL] },
+      subject: movedSubject(overrides),
+    }).contact;
+  }
+
+  it("by its Brevo id: one contact, at the new address, its attributes and lists kept", async () => {
+    await run(connectors().contact, line("brevo_contact"));
+    const prepared = await prepare(moving(), changed(), state());
+    expect(prepared.kind === "mapped" && prepared.description).toEqual({
+      operation: "change_contact_email",
+      templateCode: null,
+      attributeNames: ["EMAIL"],
+      rejectedAttributeNames: [],
+    });
+    if (prepared.kind === "mapped") {
+      expect(await prepared.result()).toEqual({ kind: "succeeded" });
+    }
+    const request = double.requests.at(-1);
+    expect(`${request?.method} ${request?.path}`).toBe(
+      "PUT /v3/contacts/1?identifierType=contact_id",
+    );
+    expect(request?.body).toEqual({ attributes: { EMAIL: NEW_EMAIL } });
+    expect([...double.contacts.keys()]).toEqual([NEW_EMAIL]);
+    expect(double.contacts.get(NEW_EMAIL)).toMatchObject({
+      id: 1,
+      listIds: [CREATORS_LIST],
+      emailBlacklisted: false,
+    });
+    expect(double.contacts.get(NEW_EMAIL)?.attributes.INFLUX_ACCOUNT_ID).toBe(
+      ACCOUNT,
+    );
+  });
+
+  it("without a known id: by its old address (email_id)", async () => {
+    await run(connectors().contact, line("brevo_contact"));
+    const result = await run(
+      moving({ externalContactId: null }),
+      changed(),
+      state(),
+    );
+    expect(result).toEqual({ kind: "succeeded" });
+    expect(double.requests.at(-1)?.path).toBe(
+      `/v3/contacts/${encodeURIComponent(EMAIL)}?identifierType=email_id`,
+    );
+    expect([...double.contacts.keys()]).toEqual([NEW_EMAIL]);
+  });
+
+  it("consent withdrawn: Brevo lifts the blacklist with the address, operations 2 and 7 follow", async () => {
+    await run(connectors().contact, line("brevo_contact"));
+    const result = await run(
+      moving(),
+      changed(),
+      state({ marketingEmailConsent: false }),
+    );
+    expect(result).toEqual({ kind: "succeeded" });
+    expect(
+      double.requests
+        .slice(1)
+        .map((request) => `${request.method} ${request.path}`),
+    ).toEqual([
+      "PUT /v3/contacts/1?identifierType=contact_id",
+      `PUT /v3/contacts/${encodeURIComponent(NEW_EMAIL)}`,
+      `POST /v3/contacts/lists/${SUPPRESSION_LIST}/contacts/add`,
+    ]);
+    expect(double.contacts.get(NEW_EMAIL)?.emailBlacklisted).toBe(true);
+    expect(double.lists.get(SUPPRESSION_LIST)?.has(NEW_EMAIL)).toBe(true);
+  });
+
+  it("a suppressed contact (RG93) is excluded again under its new address, whatever the consent", async () => {
+    await run(connectors().contact, line("brevo_contact"));
+    await run(moving({ suppressed: true }), changed(), state());
+    expect(double.contacts.get(NEW_EMAIL)?.emailBlacklisted).toBe(true);
+    expect(double.lists.get(SUPPRESSION_LIST)?.has(NEW_EMAIL)).toBe(true);
+  });
+
+  it("no contact at Brevo: nothing moved, nothing created", async () => {
+    expect(await run(moving(), changed(), state())).toEqual({
+      kind: "succeeded",
+    });
+    expect(double.contacts.size).toBe(0);
+    expect(double.requests).toHaveLength(1);
+  });
+
+  it("the new address already held by another contact: failed, visible, nothing duplicated", async () => {
+    await run(connectors().contact, line("brevo_contact"));
+    await run(
+      connectors({
+        settings: { testRecipients: [EMAIL, NEW_EMAIL] },
+        subject: subject({ email: NEW_EMAIL }),
+      }).contact,
+      line("brevo_contact"),
+    );
+    const result = await run(moving(), changed(), state());
+    expect(result).toEqual({
+      kind: "failed",
+      errorCode: "brevo.rejected",
+      errorMessage: "Brevo answered 400 duplicate_parameter",
+    });
+    expect(double.contacts.size).toBe(2);
+  });
+
+  it("no completed request behind the line: failed email_change_not_found, no call", async () => {
+    const prepared = await prepare(
+      moving({ previousEmail: null }),
+      changed(),
+      state(),
+    );
+    expect(prepared).toEqual({
+      kind: "fail",
+      errorCode: "email_change_not_found",
+    });
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("redirect: the old address outside BREVO_TEST_RECIPIENTS is skipped_non_production", async () => {
+    const { contact } = connectors({
+      settings: { testRecipients: [NEW_EMAIL] },
+      subject: movedSubject(),
+    });
+    expect(await prepare(contact, changed(), state())).toEqual({
+      kind: "skip",
+      reason: "skipped_non_production",
+    });
+  });
+
+  it("RG137: only the new address may leave", () => {
+    expect(
+      checkEmailChangeOutput({ attributes: { EMAIL: NEW_EMAIL } }),
+    ).toEqual([]);
+    expect(
+      checkEmailChangeOutput({
+        attributes: { EMAIL: NEW_EMAIL, FIRSTNAME: "x" },
+        emailBlacklisted: false,
+      }),
+    ).toEqual(["FIRSTNAME", "emailBlacklisted"]);
   });
 });

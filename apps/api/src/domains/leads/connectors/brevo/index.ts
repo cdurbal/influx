@@ -1,5 +1,6 @@
 // The two Brevo connectors of the worker (J6, commit 4): `brevo_contact` (16 §M1 operations 1, 2
-// and 7) and `brevo_transactional` (operation 6, the welcome e-mails of 05 RG86, P1 of 16 §H).
+// and 7, and the address change of J7 decision 5) and `brevo_transactional` (operation 6, the
+// welcome e-mails of 05 RG86, P1 of 16 §H).
 // Their preparation, at consumption (05 RG37), in this order:
 //   1. the account state of the attempt: an account gone or not active is skipped;
 //   2. the qualification: contact without marketing consent (RG80) is skipped no_consent at sign-up,
@@ -12,17 +13,28 @@
 //      fails the line, in dry_run as in live;
 //   6. BREVO_MODE=redirect: an address outside BREVO_TEST_RECIPIENTS is skipped_non_production
 //      (16 RG117, a positive condition, after the whole mapping).
+// A contact under suppression (05 RG93, a complaint) is only ever unsubscribed again, whatever the
+// consent: an ordinary replay never resynchronises it (CA55); only an admin lifts it (J8).
+// email.changed (05 RG58, decision 5 of J7): the contact is updated by its Brevo id, else by its old
+// address, never recreated; Brevo lifts the blacklist on an address change, so operations 2 and 7
+// follow when the consent is withdrawn or the contact suppressed.
 // What leaves for the drain is names and verdicts; the values stay in the closure of `send`.
 import type { BrevoMode } from "../../../../config/schema.ts";
-import { accountSkip, type Connector } from "../../connector.ts";
+import {
+  accountSkip,
+  type Connector,
+  type Preparation,
+} from "../../connector.ts";
 import type { AttemptState, ClaimedLine } from "../../repository.ts";
 import {
   createBrevoClient,
   type BrevoClient,
   type BrevoClientLogger,
+  type BrevoContactIdentifier,
 } from "./client.ts";
 import {
   checkContactOutput,
+  checkEmailChangeOutput,
   checkTransactionalOutput,
   languageOf,
   mapContact,
@@ -33,6 +45,7 @@ import {
 export {
   BREVO_CONTACT_ATTRIBUTES,
   checkContactOutput,
+  checkEmailChangeOutput,
   checkTransactionalOutput,
   mapContact,
   type BrevoSubject,
@@ -152,6 +165,88 @@ export function createBrevoConnectors(
     };
   }
 
+  /** Operations 2 then 7 on the address, the call of a withdrawn or suppressed contact. */
+  function unsubscribing(email: string): Preparation {
+    const body = { emailBlacklisted: true };
+    const rejected = Object.keys(body)
+      .filter((name) => !UNSUBSCRIBE_BODY_FIELDS.has(name))
+      .sort();
+    if (rejected.length === 0 && redirected(email)) {
+      return { kind: "skip", reason: "skipped_non_production" };
+    }
+    return {
+      kind: "mapped",
+      description: {
+        operation: "unsubscribe_contact",
+        templateCode: null,
+        attributeNames: [],
+        rejectedAttributeNames: rejected,
+      },
+      recipientDomain: domainOf(email),
+      send: guarded(
+        rejected,
+        (brevo) =>
+          brevo.unsubscribeContact(email, body, settings.suppressionListId),
+        contactClient,
+      ),
+    };
+  }
+
+  /** email.changed (05 RG58, decision 5 of J7): the known contact moved to the new address. */
+  async function changingEmail(
+    line: ClaimedLine,
+    account: NonNullable<AttemptState["account"]>,
+  ): Promise<Preparation> {
+    const subject = await dependencies.readSubject(line);
+    if (subject === null) {
+      return { kind: "skip", reason: "account_absent" };
+    }
+    const previousEmail = subject.previousEmail;
+    if (previousEmail === null) {
+      // No completed request behind the line: nothing to move from, visible, never guessed.
+      return { kind: "fail", errorCode: "email_change_not_found" };
+    }
+    const body = { attributes: { EMAIL: subject.email } };
+    const rejected = checkEmailChangeOutput(body);
+    if (
+      rejected.length === 0 &&
+      (redirected(subject.email) || redirected(previousEmail))
+    ) {
+      return { kind: "skip", reason: "skipped_non_production" };
+    }
+    const identifier: BrevoContactIdentifier =
+      subject.externalContactId === null
+        ? { type: "email_id", value: previousEmail }
+        : { type: "contact_id", value: subject.externalContactId };
+    const withdrawn = !account.marketingEmailConsent || subject.suppressed;
+    return {
+      kind: "mapped",
+      description: {
+        operation: "change_contact_email",
+        templateCode: null,
+        attributeNames: Object.keys(body.attributes),
+        rejectedAttributeNames: rejected,
+      },
+      recipientDomain: domainOf(subject.email),
+      send: guarded(
+        rejected,
+        async (brevo) => {
+          const changed = await brevo.updateContactEmail(identifier, body);
+          if (changed.kind !== "succeeded" || !withdrawn) {
+            return changed;
+          }
+          // Brevo lifts the blacklist with the address: operations 2 and 7 again (decision 5).
+          return brevo.unsubscribeContact(
+            subject.email,
+            { emailBlacklisted: true },
+            settings.suppressionListId,
+          );
+        },
+        contactClient,
+      ),
+    };
+  }
+
   const contact: Connector = {
     destination: "brevo_contact",
     hasCredentials,
@@ -161,6 +256,9 @@ export function createBrevoConnectors(
         return skipped ?? { kind: "skip", reason: "account_absent" };
       }
       const account = state.account;
+      if (line.eventType === "email.changed") {
+        return changingEmail(line, account);
+      }
       const unsubscribe = !account.marketingEmailConsent;
       if (unsubscribe && line.eventType === "lead.created") {
         // 05 RG80, CA39: no consent, no marketing contact; a skip, never a failure.
@@ -181,35 +279,10 @@ export function createBrevoConnectors(
         return { kind: "skip", reason: "account_absent" };
       }
 
-      if (unsubscribe || listId === null) {
-        // Operation 2 (then 7): the consent withdrawn since the emission (05 RG37, RG78).
-        const body = { emailBlacklisted: true };
-        const rejected = Object.keys(body)
-          .filter((name) => !UNSUBSCRIBE_BODY_FIELDS.has(name))
-          .sort();
-        if (rejected.length === 0 && redirected(subject.email)) {
-          return { kind: "skip", reason: "skipped_non_production" };
-        }
-        return {
-          kind: "mapped",
-          description: {
-            operation: "unsubscribe_contact",
-            templateCode: null,
-            attributeNames: [],
-            rejectedAttributeNames: rejected,
-          },
-          recipientDomain: domainOf(subject.email),
-          send: guarded(
-            rejected,
-            (brevo) =>
-              brevo.unsubscribeContact(
-                subject.email,
-                body,
-                settings.suppressionListId,
-              ),
-            contactClient,
-          ),
-        };
+      if (unsubscribe || listId === null || subject.suppressed) {
+        // Operation 2 (then 7): the consent withdrawn since the emission (05 RG37, RG78), or a
+        // contact under suppression, whatever the consent (RG93, CA55).
+        return unsubscribing(subject.email);
       }
 
       // Operation 1: the contact, by the closed mapping (16 §M4) and the output check (RG137).
