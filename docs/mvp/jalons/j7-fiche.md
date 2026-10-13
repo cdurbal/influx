@@ -17,13 +17,9 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
 ## Commits prévus
 
 1. **Dette J6** : fait (`4aef89a`), voir « Issu du commit 1 ».
-2. **Migrations du J7** : fait, `679263a` (`0115`–`0117`, décisions 2, 3, J6S-2) et 2bis `2f3fdf4`
-   (`0118`–`0120`, décisions 4 à 6, `set_marketing_consent`), voir « Issu des commits 2 et 2bis ».
+2. **Migrations du J7** : fait, `679263a` et 2bis `2f3fdf4`, voir « Issu des commits 2 et 2bis ».
 3. **Webhook Brevo, réception** : fait, `93d1eba`, voir « Issu du commit 3 ».
-4. **Webhook Brevo, traitement par le worker** (décisions 1, 2, 5) : trois familles RG106 (seule
-   « retire un droit » a un effet), Brevo fait foi (RG90), plainte ⇒ suppression définitive (RG93),
-   rebond dur transactionnel ⇒ incident + `undeliverable`, inconnu journalisé et ignoré (RG105) ;
-   variante `email.changed` du connecteur (`PUT` par `contact_id`). TM1.5, CA52, CA54, CA55, scénario 7.
+4. **Webhook Brevo, traitement** : fait, `40023cf`, voir « Issu du commit 4 ».
 5. **Tâches périodiques E-4** (décision 3) : rapprochement quotidien des 48 h (RG91, RG113, CA53),
    purge GoTrue horaire (orphelins > 24 h, `04` §9), table brute à 30 j ; opérations 9, 10 en `16` §M1.
 6. **API « mon compte » (1)** : `PATCH /v1/me` (RG15, `lead.updated` RG73), `GET`·`PUT /v1/me/consent`
@@ -55,8 +51,7 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
    `{received:true}`. `pino` `warn` `webhook.brevo.rejected` (motif fermé, sans IP, chemin ni jeton) ;
    jeton valide hors plage ⇒ `error` `webhook.brevo.ip_drift` + compteur `ops`. `elevated.*` : une
    ligne **par changement d'état effectif**, aucune sans effet ; compteur agrégé par lot.
-   - Commit 3 : tout ce qui précède, PP-12 renouvelée consciemment, aucun appel Brevo (RG148).
-     Commit 4 : effet sur « retire un droit » seul, lignes `elevated.*`. Autres : rien.
+   - Commits 3 et 4 : faits. Autres : rien.
 2. **La route écrit une ligne brute minimale et sans état ; le worker traite par E-3, rattachement par
    `message-id` puis par l'adresse exacte du compte** (RG105 à RG108, RG147, EC-12, M6-6, D60).
    `leads.brevo_inbound_events` en ajout seul : `id`, `received_at`, `origin` (`webhook` ·
@@ -73,8 +68,7 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
    P0, `contact_sync_states` ; `spam` ⇒ `suppressed_reason` ; `hard_bounce` transactionnel ⇒ incident
    + `undeliverable` seulement sur l'adresse courante. `pino` : code d'issue seul, URL remplacée par le
    motif de route.
-   - Commit 2 : tables, fonctions, motif, code, T2/T4/T6. Commit 3 : liste blanche, `dedup_key`.
-     Commit 4 : règles, abonnement aux seuls événements « retire un droit ». Commit 5 : purge 30 j.
+   - Commits 2 à 4 : faits (abonnement Brevo appliqué au commit 10). Commit 5 : purge 30 j.
 3. **E-4 dans la boucle du worker, gardé par une ligne unique par période ; le rapprochement réinjecte
    ses trouvailles dans la table brute** (RG91, RG113, RG150, `04` §9). `ops.periodic_runs`
    (`task_code`, `period_key` uniques ensemble, `started_at`, `finished_at`, `outcome`, `counts jsonb`)
@@ -97,8 +91,7 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
    `reauth_purpose` (membre seulement, `now()` en base, `influx_auth` seul) ; l'action sensible les
    vérifie puis les remet à `NULL` dans sa transaction. Durée : `REAUTHENTICATION_FRESHNESS_SECONDS`
    (300, valeur R du backoffice dans `identity/settings.ts`), provisoire.
-   - Commit 2 : colonnes, contrainte, E-2, code d'audit. Commit 7 : routes, garde partagée.
-     Commit 9 : étape « code frais ». Autres : rien.
+   - Commit 2 : fait. Commit 7 : routes, garde partagée. Commit 9 : étape « code frais ».
 5. **Demande de changement d'adresse en table `identity` de 24 h, confirmée par deux codes à 6 chiffres
    saisis dans l'espace (envoi synchrone `apps/api`), jamais un lien ; contact Brevo modifié par son
    identifiant, jamais recréé** (RG58, A-11, RG74). `identity.email_change_requests` : `id`,
@@ -112,8 +105,7 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
    prise ⇒ réponse neutre identique. Brevo : `PUT /v3/contacts/{external_contact_id}
    ?identifierType=contact_id` (sinon ancienne adresse, `email_id`), `{attributes:{EMAIL}}` ; puis
    opérations 2 et 7 réappliquées si sans consentement ou supprimé (Brevo lève la liste noire).
-   - Commit 2 : table, fonctions, code. Commit 4 : variante du connecteur (`client.ts`). Commit 7 :
-     routes et envois. Commit 9 : écrans. Autres : rien.
+   - Commits 2 et 4 : faits. Commit 7 : routes et envois. Commit 9 : écrans. Autres : rien.
 6. **`backoffice.data_subject_requests` minimale dès maintenant (`0502` la complète) ; accusé = nouveau
    modèle P1 en file ; le canal de secours écrit dans `backoffice.code_delivery_reports` par sa fonction
    E-1 étroite, sans e-mail** (EC-14, RG65, RG57). Demandes : `id`, `request_type` (six valeurs, seuls
@@ -223,6 +215,14 @@ Clé GoTrue du worker (commit 5) : skill `env-secrets` ; le fondateur la documen
 - **Au plus sûr** : `ts_event` exigé (les événements « contact » n'en ont pas, hors abonnement du commit 4) ; `camp_id`/`template_id` à 0 ⇒ nul ; corps illisible ou autre type ⇒ `200` `invalid_payload` ; 22023 de la base ⇒ idem ; > 64 Ko ⇒ `413` ; secrets requis en production, refusés sur le `worker` Railway ; `BREVO_IP_ALLOWLIST` de la skill remplacée par la constante (skill `env-secrets` à aligner). Suites : commit 4, abonnement Brevo aux seuls événements « retire un droit » (lots désactivés) ; `staging`, variables au commit 10.
 - `expert-cybersecurite` : le `404` n'est identique à une route inconnue qu'avec `same-origin` (sans origine, une route inconnue répond `403` A4 : l'existence de la route se voit, pas les secrets) ; « compté » = `ops.request_metrics` + `pino` `webhook.brevo.ignored` (pas de compteur dédié) ; dérive IP = groupe d'erreurs `BrevoWebhookAddressDriftError`.
 - `testeur` : `sqlStateOf` déplacé dans `src/db/sql-state.ts` ; `tm1-brevo-webhook-route` engage ses lignes puis les vide par E-3 (avant et après) ; « process start » de `config.test` et T11 des artefacts (`.next` périmé) instables en local, verts au second passage.
+
+## Issu du commit 4 (`40023cf`)
+
+- **Au plus sûr** : lignes brutes en tête de chaque tour (50 au plus, un échec n'arrête pas la file) ; contact supprimé ⇒ toujours désinscrit, même consentement redonné (CA55) ; `email.changed` : `404` ⇒ succès sans rien créer (le rejeu de `lead.created` lit l'adresse courante), adresse prise ⇒ `brevo.rejected`, sans demande terminée ⇒ `email_change_not_found`, `redirect` exige les deux adresses. `0121` recrée `read_brevo_subject` (+ `previous_email`, `external_contact_id`, `suppressed`).
+- Abonnement Brevo : constante `BREVO_WEBHOOK_SUBSCRIPTION` (`contracts`), appliquée au commit 10 ; corps entrants de la doublure **rédigés**, à enregistrer au commit 10.
+- `expert-cybersecurite` (fin de jalon) : `influx_leads_definer` lit `id`, `account_id`, `old_email`, `completed_at` des demandes **terminées** (politique) ; `unknown_event` journalisé par id de ligne seul (le nom reste 30 j sur la ligne brute).
+- `testeur` : `tm1-brevo-inbound-worker` (15 cas, lignes engagées, vidées avant et après) ; `format:check` local signale 4 fichiers non touchés (fins de ligne du poste), CI masquée par I-4 : build vérifié en local.
+- Suites : commit 5 (rapprochement par `record_brevo_reconciliation_event`, doublure à étendre aux `GET`) ; commit 7 émet `email.changed` (connecteur prêt) ; J8 : levée de suppression par un `admin` (RG93).
 
 ## Clôture d'un commit (« clôture standard »)
 
