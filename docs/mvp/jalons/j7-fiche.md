@@ -19,9 +19,7 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
 1. **Dette J6** : fait (`4aef89a`), voir « Issu du commit 1 ».
 2. **Migrations du J7** : fait, `679263a` (`0115`–`0117`, décisions 2, 3, J6S-2) et 2bis `2f3fdf4`
    (`0118`–`0120`, décisions 4 à 6, `set_marketing_consent`), voir « Issu des commits 2 et 2bis ».
-3. **Webhook Brevo, réception** (décision 1) : exception A4 unique, deux jetons en temps constant,
-   plages IP en constante, refus en `404`, fenêtre ±15 min, idempotence, écriture brute puis `200`
-   (RG147), journal sans URL. Scénarios 8, 9, quatre refus en `404`, exception unique.
+3. **Webhook Brevo, réception** : fait, `93d1eba`, voir « Issu du commit 3 ».
 4. **Webhook Brevo, traitement par le worker** (décisions 1, 2, 5) : trois familles RG106 (seule
    « retire un droit » a un effet), Brevo fait foi (RG90), plainte ⇒ suppression définitive (RG93),
    rebond dur transactionnel ⇒ incident + `undeliverable`, inconnu journalisé et ignoré (RG105) ;
@@ -206,7 +204,7 @@ aucun taux ni montant.
 ## Reports du J6
 
 TM1.5 attend le webhook (commit 4) ; CA47 : émetteur membre de `consent.revoked` en place (`0119`), test au commit 6 (remplacer la ligne `lead.updated` P0) ; `email.changed` : décision 5 ; `account.email_corrected` reste `template_not_supported` jusqu'au J8 ; suspension marketing sur `401` (RG123) au J8 / Lot 5.
-Nouvelles variables (jetons du webhook, clé GoTrue du worker) : skill `env-secrets` ; le fondateur les documente dans `apps/api/.env.example`.
+Clé GoTrue du worker (commit 5) : skill `env-secrets` ; le fondateur la documente dans `apps/api/.env.example`.
 
 ## Issu du commit 1 (`4aef89a`)
 
@@ -215,13 +213,16 @@ Nouvelles variables (jetons du webhook, clé GoTrue du worker) : skill `env-secr
 
 ## Issu des commits 2 (`679263a`) et 2bis (`2f3fdf4`)
 
-- **Au plus sûr (`expert-database`)** : tout effet exige l'adresse courante (`address_mismatch`) ; seul `hard_bounce` transactionnel ferme l'adresse ; `unsubscribe` = `unsubscribed` ; `dedup_key` calculée en base ; base ±20 min (route ±15) ; colonnes ajoutées `account_ref` (rapprochement) et `attempt` (jeton de clôture E-4) ; 03:00 UTC laissé à l'ordonnanceur.
-- **J6S-2 soldée** (`0115`, famille du motif liée à `session_user`). `leads.receive_brevo_event` (E-1 de la famille `leads`) ⇒ pool `auth` par `ELEVATED_POOL_EXCEPTIONS` dans `contracts` (T6.3 intact) ; P passe à 14 motifs, U inchangé (premier appelant au commit 3).
-- **Défaut trouvé par les tests, corrigé** : `claim_periodic_run` renvoyait une ligne de `NULL` sur une période finie (`FOR UPDATE` lit à travers la politique UPDATE) ; piège absent de `0118`–`0120` (testé).
-- **2bis, au plus sûr** : INSERT direct des membres sur `consent_events` retiré (`0119`, RG73 ; aucun code ne s'en servait) ; les membres lisent la colonne propriétaire de leurs demandes (`account_id`, `requester_account_id`), requise par les sondes T2.
+- **Au plus sûr (`expert-database`)** : tout effet exige l'adresse courante (`address_mismatch`) ; seul `hard_bounce` transactionnel ferme l'adresse ; `unsubscribe` = `unsubscribed` ; `dedup_key` calculée en base ; base ±20 min (route ±15) ; colonnes ajoutées `account_ref` (rapprochement) et `attempt` (jeton de clôture E-4) ; 03:00 UTC laissé à l'ordonnanceur. 2bis : INSERT direct des membres sur `consent_events` retiré (`0119`, RG73 ; aucun code ne s'en servait) ; les membres lisent la colonne propriétaire de leurs demandes (`account_id`, `requester_account_id`), requise par les sondes T2.
 - Tests : fixtures puis `actAs()` / `actAsMember()` (superutilisateur local, `support.ts`) dans une transaction annulée ; T2.6 : homonyme nommé `brevo_inbound_events.origin` ; paramètres `jsonb` passés en `$n::text::jsonb` (postgres.js encode sinon une chaîne JSON).
 - **Commit 7** : `complete_email_change` après GoTrue ; sur `address_unavailable`/`superseded`, remettre GoTrue à l'ancienne adresse ; journal de `auth.email_change_confirm_new` par `recipient_email` ; motif des envois de codes à fixer ; lecture de `old_email` par le worker (avis `previous`).
 - `expert-cybersecurite` (fin de jalon) : signer les 2 motifs de P, le rôle `influx_maintenance_definer`, la lecture élargie de `transactional_sends` par `influx_leads_definer` ; le marqueur est vérifié sur un `p_session_id` fourni par l'appelant (un membre peut citer une autre de ses sessions marquée). **I-4 rouge masque les étapes suivantes de la CI** (migrations, format, build, Playwright) : vérifiées en local. `testeur` : `actAs()`, exemption T2.6. Rétention des 3 tables du 2bis : Lot 6.
+
+## Issu du commit 3 (`93d1eba`)
+
+- **Au plus sûr** : `ts_event` exigé (les événements « contact » n'en ont pas, hors abonnement du commit 4) ; `camp_id`/`template_id` à 0 ⇒ nul ; corps illisible ou autre type ⇒ `200` `invalid_payload` ; 22023 de la base ⇒ idem ; > 64 Ko ⇒ `413` ; secrets requis en production, refusés sur le `worker` Railway ; `BREVO_IP_ALLOWLIST` de la skill remplacée par la constante (skill `env-secrets` à aligner). Suites : commit 4, abonnement Brevo aux seuls événements « retire un droit » (lots désactivés) ; `staging`, variables au commit 10.
+- `expert-cybersecurite` : le `404` n'est identique à une route inconnue qu'avec `same-origin` (sans origine, une route inconnue répond `403` A4 : l'existence de la route se voit, pas les secrets) ; « compté » = `ops.request_metrics` + `pino` `webhook.brevo.ignored` (pas de compteur dédié) ; dérive IP = groupe d'erreurs `BrevoWebhookAddressDriftError`.
+- `testeur` : `sqlStateOf` déplacé dans `src/db/sql-state.ts` ; `tm1-brevo-webhook-route` engage ses lignes puis les vide par E-3 (avant et après) ; « process start » de `config.test` et T11 des artefacts (`.next` périmé) instables en local, verts au second passage.
 
 ## Clôture d'un commit (« clôture standard »)
 

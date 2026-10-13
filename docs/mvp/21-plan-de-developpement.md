@@ -258,6 +258,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] Commit 1 (`4aef89a`) — dette J6 : I-4 depuis l'ancre fixe `56b8046` (J6S-1, 4 commits J5 non attestés révélés) ; RG47 de `t8-verify-code` et J6T-8 stabilisés ; J6S-2 reportée au commit 2.
 - [x] Commit 2 (`679263a`) — migrations `0115` à `0117` : codes du J7, J6S-2, table brute Brevo et E-3 (décision 2), `ops.periodic_runs` et E-4 (décision 3) ; T2, T3, T4, T6 étendus, 66 cas db ; `0118` à `0120` scindées en 2bis.
 - [x] Commit 2bis (`2f3fdf4`) — migrations `0118` à `0120` : re-authentification membre, changement d'adresse, `set_marketing_consent` (INSERT direct des membres retiré), demandes RGPD minimales et canal de secours ; T2, T4 étendus, 47 cas db.
+- [x] Commit 3 (`93d1eba`) — webhook Brevo, réception (décision 1) : `POST /v1/webhooks/brevo/:pathToken`, exception A4 unique, plages IP Brevo en constante, deux jetons × deux valeurs en temps constant, refus en `404`, ±15 min, ligne brute E-1 puis `200` ; PP-5 + empreinte PP-12 renouvelée ; 4 variables `BREVO_WEBHOOK_*` ; scénarios 8 et 9, T7 étendu, 4 cas db.
 
 ### J8 — Backoffice v0 (4 à 5 jours)
 
