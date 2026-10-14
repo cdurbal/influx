@@ -89,10 +89,19 @@ function instantOf(value: unknown): number | null {
 
 export function createBrevoReads(
   settings: BrevoReadsSettings,
-  dependencies: { fetch?: typeof fetch; timeoutMs?: number } = {},
+  dependencies: {
+    fetch?: typeof fetch;
+    timeoutMs?: number;
+    /** The manual trial only (J7 commit 10): a page of 10, one page per operation. */
+    pageSize?: number;
+    maxPages?: number;
+  } = {},
 ): BrevoReads {
   const doFetch = dependencies.fetch ?? fetch;
   const timeoutMs = dependencies.timeoutMs ?? BREVO_CALL_TIMEOUT_MS;
+  const contactsPageSize = dependencies.pageSize ?? CONTACTS_PAGE_SIZE;
+  const smtpEventsPageSize = dependencies.pageSize ?? SMTP_EVENTS_PAGE_SIZE;
+  const maxPages = dependencies.maxPages ?? MAX_PAGES;
 
   async function get(
     path: string,
@@ -140,10 +149,10 @@ export function createBrevoReads(
   return {
     async contactsModifiedSince(since) {
       const listed: BrevoListedContact[] = [];
-      for (let page = 0; page < MAX_PAGES; page += 1) {
+      for (let page = 0; page < maxPages; page += 1) {
         const body = await get("/contacts", {
-          limit: String(CONTACTS_PAGE_SIZE),
-          offset: String(page * CONTACTS_PAGE_SIZE),
+          limit: String(contactsPageSize),
+          offset: String(page * contactsPageSize),
           modifiedSince: since.toISOString(),
           sort: "asc",
         });
@@ -172,7 +181,7 @@ export function createBrevoReads(
             influxAccountId: objectOf(contact.attributes)?.INFLUX_ACCOUNT_ID,
           });
         }
-        if (contacts.length < CONTACTS_PAGE_SIZE) {
+        if (contacts.length < contactsPageSize) {
           return listed;
         }
       }
@@ -181,13 +190,13 @@ export function createBrevoReads(
 
     async smtpSpamEvents(startDay, endDay) {
       const listed: BrevoListedSmtpEvent[] = [];
-      for (let page = 0; page < MAX_PAGES; page += 1) {
+      for (let page = 0; page < maxPages; page += 1) {
         const body = await get("/smtp/statistics/events", {
           event: "spam",
           startDate: startDay,
           endDate: endDay,
-          limit: String(SMTP_EVENTS_PAGE_SIZE),
-          offset: String(page * SMTP_EVENTS_PAGE_SIZE),
+          limit: String(smtpEventsPageSize),
+          offset: String(page * smtpEventsPageSize),
           sort: "asc",
         });
         // `events` is optional in the reference: absent when there is none.
@@ -213,7 +222,7 @@ export function createBrevoReads(
             messageId: event.messageId,
           });
         }
-        if (events.length < SMTP_EVENTS_PAGE_SIZE) {
+        if (events.length < smtpEventsPageSize) {
           return listed;
         }
       }

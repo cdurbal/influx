@@ -3,26 +3,27 @@
 //
 //   pnpm trial:record worker   the real worker drains the local queue; its exchanges are recorded
 //   pnpm trial:record probes   the answers the worker alone does not meet (update, 404, 400, 401)
+//   pnpm trial:record reconciliation   the two reads of the daily reconciliation, once each (J7 c10)
+//   pnpm trial:record inbound [--port=N] [--minutes=30] [--max-bodies=20]
+//                              the bodies Brevo posts to a webhook, through a quick tunnel (J7 c10)
 //   pnpm trial:record redact   the raw recordings, redacted, for the fixtures of packages/test-kit
 //
 // The raw recordings (addresses and ids of the test accounts) stay in .provider-recordings/,
-// ignored by Git; only redacted.json is read to write the fixtures.
+// ignored by Git; only redacted.json is read to write the fixtures, then raw.jsonl is deleted by
+// hand (the instruction is printed by `redact`).
 import { randomUUID } from "node:crypto";
-import {
-  appendFileSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { appendFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { loadWorkerConfig } from "../src/config/index.ts";
 import { createApolloClient } from "../src/domains/leads/connectors/apollo/client.ts";
 import { createBrevoClient } from "../src/domains/leads/connectors/brevo/client.ts";
 import {
-  recordingFetch,
-  redactRecords,
-  type ProviderRecord,
-} from "./provider-recording.ts";
+  INBOUND_HOST,
+  parseInboundArguments,
+  startInboundRecorder,
+} from "./inbound-recording.ts";
+import { recordingFetch, redactFile } from "./provider-recording.ts";
+import { readReconciliationOnce } from "./reconciliation-reads.ts";
 import { refuseProduction, requiredShellVariable } from "./script-guards.ts";
 
 const WHAT = "provider exchange recording";
@@ -144,33 +145,89 @@ async function probes(): Promise<void> {
   ).upsertContact(body, null); // 401
 }
 
-function redact(): void {
-  const records = readFileSync(RAW, "utf8")
-    .split("\n")
-    .filter((line) => line.length > 0)
-    .map((line) => JSON.parse(line) as ProviderRecord);
-  writeFileSync(
-    REDACTED,
-    `${JSON.stringify(redactRecords(records), null, 2)}\n`,
-  );
+/** Operations 9 and 10 once each, through the client of E-4; no database is opened. */
+async function reconciliation(): Promise<void> {
+  const config = loadWorkerConfig();
+  const apiKey = config.brevoTransport.apiKey;
+  if (apiKey === null) {
+    throw new Error("BREVO_API_KEY of the test account is required");
+  }
+  const outcome = await readReconciliationOnce({
+    apiKey,
+    baseUrl: config.brevoTransport.baseUrl,
+    fetch: globalThis.fetch,
+    now: new Date(),
+  });
   process.stdout.write(
-    `${records.length} exchanges redacted into ${REDACTED}\n`,
+    `contacts: ${outcome.contacts}, spam events: ${outcome.smtpSpamEvents}\n`,
+  );
+}
+
+/** The receiver of the webhook trial; its two tokens are printed here once, and nowhere else. */
+async function inbound(): Promise<void> {
+  const settings = parseInboundArguments(process.argv.slice(3));
+  mkdirSync(DIRECTORY, { recursive: true });
+  const recorder = await startInboundRecorder({
+    host: INBOUND_HOST,
+    port: settings.port,
+    durationMs: settings.minutes * 60_000,
+    maxBodies: settings.maxBodies,
+    sink: (record) => {
+      appendFileSync(RAW, `${JSON.stringify(record)}\n`);
+      // The operator sees that a body came, never the body.
+      process.stdout.write("body recorded\n");
+    },
+  });
+  process.stdout.write(
+    [
+      `listening on http://${INBOUND_HOST}:${recorder.port}, ${settings.minutes} min or ${settings.maxBodies} bodies at most (Ctrl+C stops)`,
+      `  tunnel:  cloudflared tunnel --url http://${INBOUND_HOST}:${recorder.port}`,
+      `  webhook: <tunnel URL>/${recorder.pathToken}`,
+      `  header:  brevo-webhook-token: ${recorder.headerToken}`,
+      "",
+    ].join("\n"),
+  );
+  process.stdout.write(`stopped (${await recorder.stopped})\n`);
+}
+
+function redact(): void {
+  const count = redactFile(RAW, REDACTED);
+  process.stdout.write(
+    [
+      `${count} records redacted into ${REDACTED}`,
+      `once the fixtures are written from it, delete ${RAW}`,
+      "",
+    ].join("\n"),
   );
 }
 
 const mode = process.argv[2];
 if (mode === "redact") {
   redact();
-} else if (mode === "worker" || mode === "probes") {
+} else if (
+  mode === "worker" ||
+  mode === "probes" ||
+  mode === "reconciliation" ||
+  mode === "inbound"
+) {
   refuseOutsideTheWorkstation();
-  installRecorder();
-  if (mode === "probes") {
-    await probes();
+  if (mode === "inbound") {
+    // Nothing is fetched: the receiver only listens.
+    await inbound();
   } else {
-    // The real worker, unchanged: it runs until Ctrl+C (SIGINT ends the turn, 02 §11.2).
-    await import("../src/worker.ts");
+    installRecorder();
+    if (mode === "probes") {
+      await probes();
+    } else if (mode === "reconciliation") {
+      await reconciliation();
+    } else {
+      // The real worker, unchanged: it runs until Ctrl+C (SIGINT ends the turn, 02 §11.2).
+      await import("../src/worker.ts");
+    }
   }
 } else {
-  process.stderr.write("usage: pnpm trial:record worker | probes | redact\n");
+  process.stderr.write(
+    "usage: pnpm trial:record worker | probes | reconciliation | inbound | redact\n",
+  );
   process.exitCode = 1;
 }

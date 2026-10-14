@@ -151,7 +151,7 @@ Toutes sont **serveur uniquement**, dans le paquet `apps/api` (services `api` et
 
 | Service | Variables |
 |---|---|
-| `api` | `BREVO_API_KEY` (**clé propre à `api`**), `BREVO_API_BASE_URL`, `BREVO_MODE`, `BREVO_TEST_RECIPIENTS`, `BREVO_SENDER_TRANSACTIONAL` (J3) ; `BREVO_WEBHOOK_SECRET`, `BREVO_WEBHOOK_PATH_TOKEN`, `BREVO_IP_ALLOWLIST` (J7, **`api` seul**) |
+| `api` | `BREVO_API_KEY` (**clé propre à `api`**), `BREVO_API_BASE_URL`, `BREVO_MODE`, `BREVO_TEST_RECIPIENTS`, `BREVO_SENDER_TRANSACTIONAL` (J3) ; `BREVO_WEBHOOK_SECRET_CURRENT`/`_PREVIOUS`, `BREVO_WEBHOOK_PATH_TOKEN_CURRENT`/`_PREVIOUS` (J7, **`api` seul**, refusées au démarrage du `worker` sur Railway) |
 | `worker` | `BREVO_API_KEY` (**clé propre au `worker`**), `BREVO_API_BASE_URL`, `BREVO_MODE`, `BREVO_TEST_RECIPIENTS`, `BREVO_SENDER_TRANSACTIONAL`, `BREVO_SENDER_MARKETING`, `BREVO_SENDER_PROSPECTING`, `BREVO_SUPPRESSION_LIST_ID` (J6) ; **jamais** les secrets du webhook |
 
 Deux clés Brevo distinctes par environnement : révocation séparée, usage attribuable dans les
@@ -164,9 +164,9 @@ processus HTTP n'appelle que l'envoi transactionnel unitaire (garde statique).
 | `BREVO_API_BASE_URL` | Adresse de base | Tous | Permet de pointer la **doublure de test** hors production (`16` RG148) |
 | `BREVO_MODE` (`disabled` \| `redirect` \| `live`) | Mode d'envoi | Tous | **`live` refusé hors production** — refus de démarrage, pas un avertissement (RG116). `disabled` est la valeur par défaut partout ailleurs |
 | `BREVO_TEST_RECIPIENTS` | Liste **fermée** d'adresses internes | Hors production | **Obligatoire si `redirect`** ; substitution au dernier moment, journalisée (RG117) |
-| `BREVO_WEBHOOK_SECRET` | Jeton de l'en-tête personnalisé | Tous | **Deux valeurs acceptées pendant la rotation** (RG146-1). Comparaison en temps constant |
-| `BREVO_WEBHOOK_PATH_TOKEN` | Segment non devinable du chemin | Tous | Roté **avec** le jeton. Jamais publié, chemin `noindex` |
-| `BREVO_IP_ALLOWLIST` | Plages d'adresses autorisées | Tous | **Surveillée** : une évolution des plages Brevo non répercutée coupe les retours (désinscriptions perdues) |
+| `BREVO_WEBHOOK_SECRET_CURRENT` / `_PREVIOUS` | Jeton de l'en-tête `brevo-webhook-token` (43 à 128 car. base64url) | `api` seul ; **requis en production**, optionnels en staging (webhook fermé si absents) | **`_PREVIOUS` seulement pendant la rotation** (RG146-1). Comparaison en temps constant ; `_CURRENT` et le jeton de chemin vont ensemble ; valeurs toutes distinctes entre elles et des autres secrets |
+| `BREVO_WEBHOOK_PATH_TOKEN_CURRENT` / `_PREVIOUS` | Segment non devinable du chemin (exactement 43 car. base64url) | `api` seul, idem | Roté **avec** le jeton d'en-tête. Routage seulement (Railway journalise les chemins). Jamais publié |
+| ~~`BREVO_IP_ALLOWLIST`~~ | — | **Supprimée (J7 commit 3)** : plages `1.179.112.0/20` et `172.246.240.0/20` en constante datée de `apps/api/src/domains/leads/brevo-webhook.ts` | Une évolution des plages Brevo non répercutée coupe les retours : surveillée par `webhook.brevo.ip_drift` (jeton valide, IP hors plage) |
 | `BREVO_SENDER_TRANSACTIONAL` | Expéditeur du flux transactionnel | Tous | Sous-domaine dédié `tx.` (RG9) |
 | `BREVO_SENDER_MARKETING` | Expéditeur du flux marketing | Tous | Sous-domaine dédié `news.` |
 | `BREVO_SENDER_PROSPECTING` | Expéditeur du flux prospection | **Production uniquement** | Sous-domaine dédié `pro.` |
@@ -246,7 +246,7 @@ suspicion de fuite**.
 |---|---|---|
 | `BREVO_API_KEY`, `BREVO_SENDER_*` | **Oui** — e-mail réel | **B** |
 | `APOLLO_API_KEY` | **Oui** — écriture CRM, séquence commerciale | **B** |
-| `BREVO_WEBHOOK_SECRET`, `BREVO_WEBHOOK_PATH_TOKEN` | Oui, en flux entrant : une valeur mal basculée **perd des désinscriptions** | **B** |
+| `BREVO_WEBHOOK_SECRET_*`, `BREVO_WEBHOOK_PATH_TOKEN_*` | Oui, en flux entrant : une valeur mal basculée **perd des désinscriptions** | **B** |
 | `SUPABASE_SECRET_KEY` (une par service) | Non | **A** |
 | `DATABASE_URL`, `AUTH_DATABASE_URL`, `WORKER_DATABASE_URL` (puis `OPS_DATABASE_URL`, `PRIVACY_DATABASE_URL`), `DIRECT_DATABASE_URL` (mots de passe de rôles, distincts par rôle et par environnement) | Non | **A** |
 | `AUTH_TOKEN_SIGNING_SECRET` | Non, mais **perd les parcours de connexion en cours** (15 à 30 min) | **A**, en fenêtre creuse |

@@ -186,3 +186,103 @@ Symptôme : un agent ne peut plus s'enrôler, le journal porte `agent.unexpected
    démonstration en staging seulement). L'agent recommence l'activation.
 4. Journaliser l'intervention (date, administrateur, agent) dans le registre d'incidents. Cette
    procédure disparaît avec MFA-6 (J8).
+
+## J7 — Configuration de `staging` du commit 10 (webhook Brevo, purge GoTrue, avis de changement d'adresse)
+
+> **Aucune action de cette section n'est faite par un agent** : chacune est distante et attend la
+> confirmation du fondateur. Aucune valeur de secret n'est écrite ici ni dans un fichier : elle va
+> directement dans Railway (pas de capture du *Raw Editor*) ou dans Brevo.
+
+### Variables introduites ou rendues obligatoires par le J7
+
+| Variable | Service | Secrète | Production | Génération / source | Absente |
+|---|---|---|---|---|---|
+| `BREVO_WEBHOOK_PATH_TOKEN_CURRENT` | `api` seul (refusée au démarrage du `worker` sur Railway) | oui (routage) | **requise** | 43 car. base64url exactement : `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"` | Webhook fermé (toute requête = route inconnue) ; refus de démarrage en production |
+| `BREVO_WEBHOOK_SECRET_CURRENT` | `api` seul | oui (authentification de l'en-tête) | **requise** | 43 à 128 car. base64url, même commande, **valeur différente** | idem ; un seul des deux `_CURRENT` présent = refus de démarrage |
+| `…_PATH_TOKEN_PREVIOUS`, `…_SECRET_PREVIOUS` | `api` seul | oui | non | **Rotation seulement** (procédure B de la skill `env-secrets`) ; exige le `_CURRENT`, diffère de lui | rien (cas normal) |
+| `SUPABASE_URL` | `worker` (déjà sur `api`) | non | **requise** (https) | Origine du projet Supabase de staging, celle de `api` | Avec la clé seule : refus de démarrage. Les deux absentes en staging : la purge des utilisateurs GoTrue orphelins ne tourne jamais, sans bruit |
+| `SUPABASE_SECRET_KEY` | `worker` (déjà sur `api`) | **oui** | **requise** | Clé `sb_secret_…` **`influx_worker`** (étape 1), jamais celle de `api` | idem ; une clé héritée (JWT) est refusée |
+
+Constats : le relais `web` ne demande **aucune variable nouvelle** (l'en-tête `brevo-webhook-token` est
+dans la liste blanche, `x-real-ip` est écrit par Railway) ; `REAUTHENTICATION_FRESHNESS_SECONDS` n'est
+**pas** une variable d'environnement (constante de 300 s) ; `BREVO_IP_ALLOWLIST` n'existe plus (plages en
+constante datée). Les quatre valeurs du webhook diffèrent entre elles et de tous les autres secrets de `api`.
+Après le J7 : `api` reçoit les deux `_CURRENT` ; `worker` reçoit `SUPABASE_URL` + `SUPABASE_SECRET_KEY` ;
+`web` et `backoffice` ne changent pas.
+
+Pour que l'avis de changement d'adresse **parte réellement** en staging, le `worker` doit sortir du mode
+actuel (`SYNC_MODE=dry_run` n'appelle jamais Brevo) : `SYNC_MODE=live` avec
+`NON_PRODUCTION_RECIPIENT_ALLOWLIST` (domaines), `BREVO_MODE=redirect`, `BREVO_TEST_RECIPIENTS`, une
+`BREVO_API_KEY` **propre au worker** (compte Brevo de test) et `BREVO_SENDER_TRANSACTIONAL`. Décision du
+fondateur : sans elle, on constate seulement `leads.dry_run.would_send`.
+
+### Actions du fondateur, dans l'ordre (toutes distantes, confirmation du fondateur)
+
+1. **Précondition : mettre `staging` à jour.** I-4 est rouge sur `main` (commits J7 non attestés, plus
+   ceux du J5 nommés dans la fiche) : « Migrate staging » ne tourne pas et Railway (« Wait for CI »)
+   n'a pas déployé le J7. `staging` exécute le code d'avant le J7, sans les migrations `0115` à `0128`.
+   Ordre : revue groupée de fin de jalon (`expert-cybersecurite` + `testeur`) → commit d'attestation →
+   CI verte (`gh run list --limit 5`) → « Migrate staging » vert → les quatre services redéployés
+   (Railway › Deployments, même `RAILWAY_GIT_COMMIT_SHA`). **Aucune variable ci-dessous avant.**
+2. **Variables Railway de `staging`** : `api` (les deux `_CURRENT`, valeurs distinctes, rangées dans le
+   gestionnaire de mots de passe) ; `worker` (`SUPABASE_URL`, `SUPABASE_SECRET_KEY` de la clé
+   `influx_worker`, puis, si décidé, les variables d'envoi ci-dessus). Après redémarrage, aucun
+   `Invalid api configuration` / `Invalid worker configuration` dans le journal (il nomme la variable,
+   jamais la valeur).
+3. **Vérifier l'hôte `web` de staging et `x-real-ip`** avant de brancher Brevo :
+   `curl -s -o /dev/null -w "%{http_code}\n" -X POST -H "content-type: application/json" -H "origin: https://<web-staging>" --data '{}' https://<web-staging>/api/v1/webhooks/brevo/<jeton de chemin>`
+   doit répondre `404` (adresse hors plage Brevo) et le journal de `api` porte `webhook.brevo.rejected`
+   (motif fermé) : la route est atteinte. La preuve finale est l'étape 4 : un événement de Brevo accepté
+   (`200`) montre que l'adresse vue par `api` est bien celle de Brevo (`1.179.112.0/20` ou
+   `172.246.240.0/20`). Si le journal montre `webhook.brevo.ip_drift` (jeton valide, IP hors plage) :
+   plages changées ou en-tête réécrit par un intermédiaire ; ne pas élargir la constante sans `architecte`.
+4. **Webhook dans le compte Brevo de TEST (D62, jamais celui de production)** : un webhook
+   *transactionnel* et un webhook *marketing* (Brevo les sépare). URL
+   `https://<web-staging>/api/v1/webhooks/brevo/<jeton de chemin>` ; en-tête personnalisé
+   `brevo-webhook-token: <valeur _SECRET_CURRENT>` saisi directement dans Brevo ; **traitement par lots
+   désactivé**. Événements = `BREVO_WEBHOOK_SUBSCRIPTION` (`packages/contracts/src/brevo-webhook.ts`) :
+   transactionnel `hardBounce`, `invalid`, `blocked`, `spam`, `unsubscribed` ; marketing `hardBounce`,
+   `spam`, `unsubscribed` ; rien d'autre. Les libellés exacts des écrans Brevo ne sont pas vérifiables
+   depuis le dépôt : noter tout écart. Envoyer l'événement de test de Brevo, puis lire
+   `leads.brevo_inbound_events` (lecture seule, éditeur SQL de staging).
+5. **Modèle Brevo de l'avis (EC-8, commit 10)** : créer dans le compte de test le modèle transactionnel
+   de `auth.email_changed_notice` (paramètre `LANGUAGE` seul, FR/EN, sans lien ni contenu promotionnel,
+   RG86), noter son identifiant numérique, puis, dans l'éditeur SQL de **staging** (rôle `postgres`) :
+   `update leads.sync_settings set value = jsonb_set(value, '{auth.email_changed_notice}', '<id>') where key = 'brevo_template_ids';`
+   Tant que l'id est nul, la ligne est `skipped` (`template_not_configured`), sans erreur. Faire de même
+   pour les deux modèles de bienvenue s'ils ne le sont pas (J6). La forme est contrôlée en base (`0103`).
+6. **Enregistrer les échanges réels** (`pnpm --filter @influx/api trial:record <mode>`), **sur le
+   poste**, jamais sur Railway ni en CI (refus) : comptes de TEST dans le fichier local d'environnement,
+   `BREVO_MODE=redirect`, base locale (refus sinon). Les modes `probes` et `worker` (Ctrl+C pour finir)
+   restent ceux du J6. Puis, dans l'ordre :
+   - [ ] `… reconciliation` : les deux lectures du rapprochement (E-4), une fois chacune, 10 lignes au
+         plus, 24 dernières heures ; aucune connexion à la base.
+   - [ ] `… inbound [--port=N] [--minutes=30] [--max-bodies=20]` (écoute `127.0.0.1` seul ; affiche une
+         seule fois le jeton de chemin et le jeton d'en-tête, ne les recopier nulle part), puis dans un
+         second terminal `cloudflared tunnel --url http://127.0.0.1:<port>` (*quick tunnel* seulement :
+         ni ngrok, ni tunnel lié à un compte).
+   - [ ] Compte Brevo de **TEST** : créer un **second webhook temporaire** (un par famille si l'on
+         déclenche transactionnel et marketing), URL `<tunnel>/<jeton de chemin>`, en-tête
+         `brevo-webhook-token: <jeton d'en-tête>`, lots désactivés.
+   - [ ] Déclencher sur des contacts de test : désinscription, *hard bounce*, plainte (spam) si possible.
+   - [ ] **Supprimer ce webhook temporaire**, arrêter le tunnel (Ctrl+C) ; le récepteur s'arrête seul
+         (durée, nombre de corps) ou par Ctrl+C.
+   - [ ] `… redact` : refuse d'écrire `redacted.json` s'il reste une adresse hors `example.test`, une URL,
+         une IP ou une chaîne brute de 6 caractères ou plus (hors valeurs d'énumération connues).
+   - [ ] Remettre `redacted.json` à Claude pour les fixtures (`INBOUND_EXEMPLARS`, `CONTACTS_LISTED`,
+         `SMTP_EVENTS_LISTED` de `packages/test-kit/src/brevo-exchanges.ts`).
+   - [ ] Fixtures écrites : **supprimer `apps/api/.provider-recordings/raw.jsonl`** (rappelé par `redact`).
+
+   Le `worker` de staging reste en `dry_run` sans clé Brevo (D62) : l'avis de changement d'adresse est
+   constaté dans l'essai du poste (`trial:record worker`), pas en staging.
+   Preuve du webhook en staging : une vraie désinscription Brevo d'un contact de TEST, webhook de staging
+   en place, donne exactement une ligne dans `leads.brevo_inbound_events`, le consentement révoqué avec
+   la source `brevo_webhook`, et aucun `webhook.brevo.ip_drift`. Le doublon et la fenêtre de ±15 min sont
+   prouvés par `test:db` : aucun rejeu manuel (veto `expert-cybersecurite`).
+
+### Retour arrière
+
+Retirer les variables ajoutées (staging revient à « webhook fermé », purge GoTrue inactive) et supprimer
+les webhooks du compte Brevo de test. Le code n'est pas à revenir : les migrations sont additives
+(procédure « Retour à la version précédente »). Rotation d'un jeton : procédure B de la skill
+`env-secrets` (`_PREVIOUS` = ancienne valeur, nouvelle valeur saisie dans Brevo, puis retrait).
