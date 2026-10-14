@@ -6,7 +6,7 @@ import js from "@eslint/js";
 import { defineConfig, globalIgnores } from "eslint/config";
 import tseslint from "typescript-eslint";
 
-/** Domains of 02 §8, plus ops (D60). */
+/** Domains of 02 §8, plus ops (D60) and maintenance (E-4, J7 decision 3). */
 const DOMAINS = [
   "identity",
   "profiles",
@@ -19,6 +19,7 @@ const DOMAINS = [
   "leads",
   "backoffice",
   "ops",
+  "maintenance",
 ];
 
 const SUPABASE = {

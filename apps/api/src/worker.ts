@@ -1,6 +1,7 @@
 // Entry point of the Railway service `worker` (docs/mvp/02-architecture-3-espaces.md §11).
 // J6: drains the outbox (E-3 `leads.drain_outbox`, src/domains/leads/drain.ts); J7: first processes
-// what Brevo reported back (src/domains/leads/inbound/processing.ts). It opens NO port.
+// what Brevo reported back (src/domains/leads/inbound/processing.ts), and, between two turns, the
+// periodic tasks of E-4 (src/domains/maintenance/periodic.ts, J7 decision 3). It opens NO port.
 // Started by `node apps/api/src/worker.ts` directly, so that SIGTERM reaches it (21 §4, J1-B):
 // the turn in progress finishes, the lines not begun go back to pending (02 §11.2, TM1.10).
 import { randomUUID } from "node:crypto";
@@ -34,7 +35,20 @@ import {
   readBrevoSubjectOf,
 } from "./domains/leads/queue.ts";
 import type { OutboxDestination } from "./domains/leads/repository.ts";
+import { createAuthOrphanPurge } from "./domains/maintenance/auth-orphan-purge.ts";
+import { createBrevoReads } from "./domains/maintenance/brevo-reads.ts";
+import { createBrevoReconciliation } from "./domains/maintenance/brevo-reconciliation.ts";
+import {
+  createBrevoInboundPurge,
+  createPeriodicScheduler,
+  createPeriodicStore,
+  type PeriodicLogger,
+  type PeriodicScheduler,
+  type PeriodicTask,
+  type PeriodicTaskRunner,
+} from "./domains/maintenance/periodic.ts";
 import { createLogger } from "./platform/logger.ts";
+import { createGoTrueUserDirectory } from "./platform/supabase.ts";
 
 /**
  * The connectors of this process: Brevo (J6 commit 4), with the worker's own key (EC-19), and
@@ -68,6 +82,44 @@ function connectorsOf(
     brevo_transactional: brevo.transactional,
     apollo_contact: apollo,
   };
+}
+
+/**
+ * E-4 (decision 3 of J7): the reconciliation with the worker's Brevo key, the purge of GoTrue with
+ * its own secret key; a task without its key is never claimed. The 30-day purge needs neither.
+ */
+function periodicSchedulerOf(
+  config: WorkerConfig,
+  database: WorkerDatabase,
+  logger: PeriodicLogger,
+): PeriodicScheduler {
+  const store = createPeriodicStore(database);
+  const now = () => Date.now();
+  const runners: Partial<Record<PeriodicTask, PeriodicTaskRunner>> = {
+    brevo_inbound_purge: createBrevoInboundPurge(store),
+  };
+  if (config.brevoTransport.apiKey !== null) {
+    runners.brevo_reconciliation = createBrevoReconciliation({
+      reads: createBrevoReads({
+        apiKey: config.brevoTransport.apiKey,
+        baseUrl: config.brevoTransport.baseUrl,
+      }),
+      store,
+      now,
+    });
+  }
+  if (config.supabase !== null) {
+    runners.auth_orphan_purge = createAuthOrphanPurge({
+      directory: createGoTrueUserDirectory(config.supabase),
+      store,
+      now,
+    });
+  }
+  logger.info(
+    { periodicTasks: Object.keys(runners).sort() },
+    "periodic tasks configured",
+  );
+  return createPeriodicScheduler({ store, runners, logger, now });
 }
 
 function readConfig(): WorkerConfig | null {
@@ -164,6 +216,7 @@ async function main(): Promise<void> {
       process: (requestId) => processInboundEvent(database, requestId),
       logger,
     }),
+    periodic: periodicSchedulerOf(config, database, logger),
     worker,
     sync: {
       mode: config.sync.mode,

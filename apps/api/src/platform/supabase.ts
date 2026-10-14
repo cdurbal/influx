@@ -523,3 +523,112 @@ export function createSupabaseAuth(
     },
   };
 }
+
+// ---------------------------------------------------------------------------------------------
+// The directory of GoTrue users, for the purge of the users without an account (04 §9, D43;
+// J7 decision 3). The worker's only use of GoTrue: list, read one, delete one, through the
+// administration API, never a DELETE on the auth schema (02 §5.1). Nothing personal is kept of a
+// user: its id and three instants, never its address (D60).
+// ---------------------------------------------------------------------------------------------
+
+/** What the purge needs of a GoTrue user: its id and its activity instants (epoch ms). */
+export type GoTrueUserActivity = {
+  userId: string;
+  createdAt: number;
+  /** null when GoTrue gives none. */
+  updatedAt: number | null;
+  /** null for a user who never signed in. */
+  lastSignInAt: number | null;
+};
+
+export type GoTrueUserPage = {
+  users: GoTrueUserActivity[];
+  /** The next page number, or null after the last one. */
+  nextPage: number | null;
+};
+
+export type GoTrueUserDirectory = {
+  /** One page of the users (administration API, `GET /admin/users?page&per_page`). */
+  listUsers(
+    page: number,
+    perPage: number,
+  ): Promise<GoTrueOutcome<GoTrueUserPage>>;
+  /** One user's activity read again; `rejected` with status 404 when it is gone. */
+  readUser(userId: string): Promise<GoTrueOutcome<GoTrueUserActivity>>;
+  /** Deletes a user for good (`DELETE /admin/users/{id}`, never a soft delete). */
+  deleteUser(userId: string): Promise<GoTrueOutcome<null>>;
+};
+
+function instantOf(value: unknown): number | null {
+  if (typeof value !== "string" || value === "") {
+    return null;
+  }
+  const instant = Date.parse(value);
+  return Number.isNaN(instant) ? null : instant;
+}
+
+/** The activity of a user, or null when its id or creation instant is missing (malformed). */
+function activityOf(user: User | null | undefined): GoTrueUserActivity | null {
+  if (user === null || user === undefined || typeof user.id !== "string") {
+    return null;
+  }
+  const createdAt = instantOf(user.created_at);
+  if (createdAt === null) {
+    return null;
+  }
+  return {
+    userId: user.id,
+    createdAt,
+    updatedAt: instantOf(user.updated_at),
+    lastSignInAt: instantOf(user.last_sign_in_at),
+  };
+}
+
+export function createGoTrueUserDirectory(
+  settings: SupabaseAuthSettings,
+): GoTrueUserDirectory {
+  const admin = new GoTrueAdminApi({
+    url: `${settings.url}/auth/v1`,
+    headers: gotrueHeaders(settings.secretKey, null),
+    fetch: boundedFetch(ADMIN_CALL_TIMEOUT_MS),
+  });
+
+  return {
+    async listUsers(page, perPage) {
+      const outcome = await settled(() => admin.listUsers({ page, perPage }));
+      if ("ok" in outcome) {
+        return outcome;
+      }
+      const users: GoTrueUserActivity[] = [];
+      for (const user of outcome.data.users) {
+        const activity = activityOf(user);
+        if (activity === null) {
+          return MALFORMED_ANSWER;
+        }
+        users.push(activity);
+      }
+      // auth-js 2.117.2 reads the page of the Link header from its FIRST digit only (page 10 is
+      // read as 1): its nextPage is not trusted. A full page means there may be another one.
+      return {
+        ok: true,
+        value: { users, nextPage: users.length < perPage ? null : page + 1 },
+      };
+    },
+
+    async readUser(userId) {
+      const outcome = await settled(() => admin.getUserById(userId));
+      if ("ok" in outcome) {
+        return outcome;
+      }
+      const activity = activityOf(outcome.data.user);
+      return activity === null
+        ? MALFORMED_ANSWER
+        : { ok: true, value: activity };
+    },
+
+    async deleteUser(userId) {
+      const outcome = await settled(() => admin.deleteUser(userId, false));
+      return "ok" in outcome ? outcome : { ok: true, value: null };
+    },
+  };
+}

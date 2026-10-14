@@ -1258,11 +1258,11 @@ nettoyage silencieux laisse croire que le mapping est respecté alors qu'il ne l
 > cause de panne d'intégration.
 
 **RG138 — Un contrat étroit, pas un client générique.** INFLUX n'expose pas « l'API Brevo » : il
-expose **huit opérations nommées**, et rien d'autre. Changer de fournisseur d'emailing doit revenir
+expose **dix opérations nommées**, et rien d'autre. Changer de fournisseur d'emailing doit revenir
 à réécrire un module, pas à irriguer tout le code. Aucun appel à Brevo n'existe hors de ce module,
 et un contrôle automatisé le vérifie.
 
-#### M1 — Les huit opérations
+#### M1 — Les dix opérations
 
 | # | Opération INFLUX | Point d'accès Brevo *(vérifié le 2026-09-19)* | Quand | Nature |
 |---|---|---|---|---|
@@ -1274,6 +1274,8 @@ et un contrôle automatisé le vérifie.
 | 6 | **Envoyer un e-mail unitaire** | `POST /v3/smtp/email` — `templateId` ou contenu, `to`, `params`, `tags`, **`headers: {"Idempotency-Key": …}`**. Réponse : **`messageId`** | Tous les transactionnels, et la source 3 | Transactionnel |
 | 7 | **Ajouter à la liste de suppression** | Liste de blocage transactionnelle sous `/v3/smtp`, **et** liste d'exclusion marketing | Désinscription, plainte, fin d'un envoi de source 3 | Contacts |
 | 8 | **Recevoir les événements** | Webhook entrant (M6) | En continu | — |
+| 9 | **Lire les contacts modifiés** *(vérifié le 2026-10-13)* | `GET /v3/contacts` — `modifiedSince` (UTC), `limit` ≤ 1000, `offset`, `sort=asc` ; aucun filtre sur la liste noire : les contacts `emailBlacklisted` sont retenus par INFLUX | Rapprochement quotidien des 48 h (`05` RG91, RG113), après 03:00 UTC | Contacts |
+| 10 | **Lire les plaintes transactionnelles** *(vérifié le 2026-10-13)* | `GET /v3/smtp/statistics/events` — `event=spam`, `startDate`/`endDate` (J−2 à J), `limit`, `offset` ; réponse `events` (absent si aucun), chacun avec `messageId` | Même rapprochement | Transactionnel |
 
 #### M2 — Limites de débit et conséquences de conception
 
@@ -2011,7 +2013,7 @@ couleurs, *alors* un **libellé écrit** le porte.
 
 ### Intégrations
 
-- **Brevo** — huit opérations (M1), trois catégories de limites (M2), un webhook non signé et
+- **Brevo** — dix opérations (M1), trois catégories de limites (M2), un webhook non signé et
   compensé (M6), un mapping fermé de 17 attributs (M4). Clé côté serveur uniquement.
 - **Apollo.io** — **hors de ce document**, entièrement. Aucun contenu, aucun résultat, aucune
   donnée enrichie ne circule entre les deux (`05` RG85).

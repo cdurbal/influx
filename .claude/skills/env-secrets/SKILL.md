@@ -98,7 +98,7 @@ Source de vérité : `02` §12.3 pour la plateforme, `16` §M8 pour Brevo.
 
 | Variable | Porteurs | Exposition | `staging` vs `production` |
 |---|---|---|---|
-| `SUPABASE_URL` | **api uniquement** | **Serveur uniquement** | **Deux projets Supabase distincts**, jamais deux schémas d'un même projet (`02` §12.2) |
+| `SUPABASE_URL` | api · worker (J7, purge E-4 seulement ; requise en production avec `SUPABASE_SECRET_KEY`) | **Serveur uniquement** | **Deux projets Supabase distincts**, jamais deux schémas d'un même projet (`02` §12.2) |
 | ~~`SUPABASE_PUBLISHABLE_KEY`~~, ~~`SUPABASE_JWKS_URL`~~ | — | **Retirées le 2026-09-27** (EC-46) : tout appel à GoTrue porte la clé secrète, INFLUX ne vérifie aucun JWT | Sur les projets hébergés, la clé *publishable* est **désactivée** si la plateforme le permet (`21` G-1) : aucun composant d'INFLUX ne l'utilise |
 | `SUPABASE_SECRET_KEY` — **clé d'API HTTP** (ex-`SUPABASE_SERVICE_ROLE_KEY`, renommée le 2026-09-25 pour suivre les « secret keys » `sb_secret_…` de Supabase), à ne pas confondre avec le rôle Postgres `service_role`, **qui n'est utilisé nulle part** | api (J3) · worker (J6, purge E-4 seulement) | **Secrète, jamais dans un bundle.** Usage limité à **GoTrue (Auth)** et aux **URL signées du Storage**. **Jamais pour atteindre une table** | **Une clé par projet et par service** (`influx-api`, `influx-worker`), révocable séparément (EC-46) ; clés héritées `anon` / `service_role` désactivées |
 

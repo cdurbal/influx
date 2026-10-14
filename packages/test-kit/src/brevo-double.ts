@@ -9,6 +9,11 @@
 // - What Brevo reports back (J7, commit 4): `webhookEvent()` gives the body Brevo would post to
 //   the webhook for one of its contacts, from the exemplars of brevo-exchanges.ts; an unsubscription
 //   or a complaint is first applied to the contact, as at Brevo (05 RG90: Brevo is right).
+// - The reads of the daily reconciliation (J7 commit 5, 16 §M1 operations 9 and 10): `GET
+//   /v3/contacts` (modifiedSince, limit, offset, by creation) and `GET /v3/smtp/statistics/events`
+//   (event, startDate, endDate, limit, offset). Each contact has its `modifiedAt`, moved by every
+//   change; `smtpEvents` holds what Brevo's statistics would list: a transactional complaint given
+//   to `webhookEvent()` is recorded there even when its webhook body is never posted (CA53).
 // - A transactional send carrying an `Idempotency-Key` already accepted is answered with the same
 //   message id and is NOT delivered again (16 RG90, §M3): `messages` holds every send received,
 //   `delivered` the e-mails that would have left.
@@ -29,9 +34,12 @@ import {
   CONTACT_EMAIL_TAKEN,
   CONTACT_NOT_FOUND,
   CONTACT_UPDATED,
+  CONTACTS_LISTED,
   INBOUND_EXEMPLARS,
+  INVALID_PARAMETER,
   LIST_CONTACT_ADDED,
   LIST_CONTACT_ALREADY_IN,
+  SMTP_EVENTS_LISTED,
   type InboundEventKind,
   type RecordedExchange,
 } from "./brevo-exchanges.ts";
@@ -76,6 +84,18 @@ export type BrevoDoubleContact = {
   attributes: Record<string, unknown>;
   listIds: number[];
   emailBlacklisted: boolean;
+  /** ISO 8601, UTC; moved by every change, settable by a test. */
+  createdAt: string;
+  modifiedAt: string;
+};
+
+/** A transactional event as Brevo's statistics list it (operation 10). */
+export type BrevoDoubleSmtpEvent = {
+  email: string;
+  /** ISO 8601, UTC. */
+  date: string;
+  messageId: string;
+  event: "spam";
 };
 
 /** What a webhook event names, besides the contact's address. */
@@ -110,6 +130,8 @@ export type BrevoDouble = {
   contacts: Map<string, BrevoDoubleContact>;
   /** The members of each list, by list id. */
   lists: Map<number, Set<string>>;
+  /** What the statistics of the transactional e-mails list (operation 10). */
+  smtpEvents: BrevoDoubleSmtpEvent[];
   /** Answers used in order by the next requests, whatever their path; then the recorded ones. */
   queue(...answers: BrevoDoubleAnswer[]): void;
   /** Delay of every default answer, in milliseconds. */
@@ -132,6 +154,7 @@ const CONTACT_PATH =
   /^\/v3\/contacts\/([^/?]+)(?:\?identifierType=(contact_id|email_id))?$/;
 const LIST_ADD_PATH = /^\/v3\/contacts\/lists\/([0-9]+)\/contacts\/add$/;
 const SMTP_PATH = "/v3/smtp/email";
+const SMTP_EVENTS_PATH = "/v3/smtp/statistics/events";
 
 function escapeHtml(value: string): string {
   return value
@@ -188,6 +211,7 @@ export async function startBrevoDouble(port = 0): Promise<BrevoDouble> {
   const requests: BrevoDoubleRequest[] = [];
   const contacts = new Map<string, BrevoDoubleContact>();
   const lists = new Map<number, Set<string>>();
+  const smtpEvents: BrevoDoubleSmtpEvent[] = [];
   const sentByKey = new Map<string, string>();
   const pending: BrevoDoubleAnswer[] = [];
   let defaultDelayMs = 0;
@@ -215,15 +239,19 @@ export async function startBrevoDouble(port = 0): Promise<BrevoDouble> {
       if (typeof body.emailBlacklisted === "boolean") {
         existing.emailBlacklisted = body.emailBlacklisted;
       }
+      existing.modifiedAt = new Date().toISOString();
       return recorded(CONTACT_UPDATED);
     }
     const id = nextContactId++;
+    const createdAt = new Date().toISOString();
     contacts.set(email, {
       id,
       email,
       attributes: { ...attributes },
       listIds,
       emailBlacklisted: body.emailBlacklisted === true,
+      createdAt,
+      modifiedAt: createdAt,
     });
     return recorded(CONTACT_CREATED, { id });
   }
@@ -283,6 +311,7 @@ export async function startBrevoDouble(port = 0): Promise<BrevoDouble> {
     if (typeof body.emailBlacklisted === "boolean") {
       contact.emailBlacklisted = body.emailBlacklisted;
     }
+    contact.modifiedAt = new Date().toISOString();
     return recorded(CONTACT_BLACKLISTED);
   }
 
@@ -292,10 +321,20 @@ export async function startBrevoDouble(port = 0): Promise<BrevoDouble> {
     details: BrevoDoubleEventDetails = {},
   ): Record<string, unknown> {
     const known = contacts.get(email.toLowerCase());
+    const tsEvent = details.tsEvent ?? Math.floor(Date.now() / 1000);
+    const occurred = new Date(tsEvent * 1000).toISOString();
     if (known !== undefined && (kind === "unsubscribed" || kind === "spam")) {
       known.emailBlacklisted = true;
+      known.modifiedAt = occurred;
     }
-    const tsEvent = details.tsEvent ?? Math.floor(Date.now() / 1000);
+    if (kind === "transactional_spam" && details.messageId !== undefined) {
+      smtpEvents.push({
+        email,
+        date: occurred,
+        messageId: details.messageId,
+        event: "spam",
+      });
+    }
     const body: Record<string, unknown> = {
       ...INBOUND_EXEMPLARS[kind],
       email,
@@ -343,12 +382,75 @@ export async function startBrevoDouble(port = 0): Promise<BrevoDouble> {
     return recorded(LIST_CONTACT_ADDED, { contacts: { success, failure } });
   }
 
+  /** Operation 9: the contacts modified since the instant, by creation, one page. */
+  function listContacts(query: URLSearchParams): BrevoDoubleAnswer {
+    const since = Date.parse(query.get("modifiedSince") ?? "");
+    const limit = Number(query.get("limit") ?? "50");
+    const offset = Number(query.get("offset") ?? "0");
+    if (!Number.isInteger(limit) || limit < 1 || limit > 1000) {
+      return recorded(INVALID_PARAMETER);
+    }
+    const matching = [...contacts.values()]
+      .filter(
+        (contact) =>
+          Number.isNaN(since) || Date.parse(contact.modifiedAt) >= since,
+      )
+      .sort((a, b) => a.id - b.id);
+    const page = matching.slice(offset, offset + limit).map((contact) => ({
+      email: contact.email,
+      id: contact.id,
+      emailBlacklisted: contact.emailBlacklisted,
+      smsBlacklisted: false,
+      whatsappBlacklisted: false,
+      createdAt: contact.createdAt,
+      modifiedAt: contact.modifiedAt,
+      attributes: { ...contact.attributes },
+      listIds: [...contact.listIds],
+    }));
+    return recorded(CONTACTS_LISTED, {
+      contacts: page,
+      count: matching.length,
+    });
+  }
+
+  /** Operation 10: the events of a kind within the days given (both included), one page. */
+  function listSmtpEvents(query: URLSearchParams): BrevoDoubleAnswer {
+    const start = query.get("startDate");
+    const end = query.get("endDate");
+    if ((start === null) !== (end === null)) {
+      return recorded(INVALID_PARAMETER);
+    }
+    const event = query.get("event");
+    const limit = Number(query.get("limit") ?? "2500");
+    const offset = Number(query.get("offset") ?? "0");
+    const events = smtpEvents
+      .filter(
+        (item) =>
+          (event === null || item.event === event) &&
+          (start === null || item.date.slice(0, 10) >= start) &&
+          (end === null || item.date.slice(0, 10) <= end),
+      )
+      .slice(offset, offset + limit);
+    // As at Brevo, `events` is absent when there is none.
+    return recorded(SMTP_EVENTS_LISTED, events.length > 0 ? { events } : {});
+  }
+
   function answerOf(
     method: string,
     path: string,
     body: Record<string, unknown>,
     headers: IncomingHttpHeaders,
   ): BrevoDoubleAnswer | null {
+    if (method === "GET") {
+      const url = new URL(path, "http://double.invalid");
+      if (url.pathname === CONTACTS_PATH) {
+        return listContacts(url.searchParams);
+      }
+      if (url.pathname === SMTP_EVENTS_PATH) {
+        return listSmtpEvents(url.searchParams);
+      }
+      return null;
+    }
     if (method === "POST" && path === SMTP_PATH) {
       const key = headers["idempotency-key"];
       const known = typeof key === "string" ? sentByKey.get(key) : undefined;
@@ -480,6 +582,7 @@ export async function startBrevoDouble(port = 0): Promise<BrevoDouble> {
     requests,
     contacts,
     lists,
+    smtpEvents,
     queue(...answers) {
       pending.push(...answers);
     },
@@ -493,6 +596,7 @@ export async function startBrevoDouble(port = 0): Promise<BrevoDouble> {
       requests.length = 0;
       contacts.clear();
       lists.clear();
+      smtpEvents.length = 0;
       sentByKey.clear();
       pending.length = 0;
       defaultDelayMs = 0;

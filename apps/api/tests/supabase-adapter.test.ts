@@ -6,6 +6,7 @@ import type { AddressInfo } from "node:net";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   boundedFetch,
+  createGoTrueUserDirectory,
   createSupabaseAuth,
   GOTRUE_USER_AGENT,
   isPasswordWithinBounds,
@@ -101,12 +102,14 @@ const CONTEXT: GoTrueRequestContext = {
 };
 
 let gotrue: FakeGoTrue;
+let gotrueUrl: string;
 let auth: SupabaseAuth;
 let warnings: { object: object; message: string }[];
 
 beforeEach(async () => {
   gotrue = new FakeGoTrue();
   const url = await gotrue.start();
+  gotrueUrl = url;
   warnings = [];
   auth = createSupabaseAuth(
     { url, secretKey: TEST_SUPABASE_SECRET_KEY },
@@ -655,6 +658,123 @@ describe("factors through the administration API (G-1, EC-56)", () => {
     expect(gotrue.received[0]).toMatchObject({
       method: "DELETE",
       path: `/auth/v1/admin/users/${USER_A.id}/factors/${factor}`,
+    });
+  });
+});
+
+describe("the directory of the purge (04 §9, J7 decision 3): ids and instants, never an address", () => {
+  function directory() {
+    return createGoTrueUserDirectory({
+      url: gotrueUrl,
+      secretKey: TEST_SUPABASE_SECRET_KEY,
+    });
+  }
+
+  it("lists a page with the secret key, keeps the id and the three instants only", async () => {
+    gotrue.handler = () => ({
+      status: 200,
+      body: {
+        users: [
+          {
+            ...USER_A,
+            created_at: "2026-10-12T08:00:00.000000Z",
+            updated_at: "2026-10-12T09:00:00.000000Z",
+            last_sign_in_at: null,
+          },
+        ],
+        aud: "authenticated",
+      },
+    });
+    const listed = await directory().listUsers(1, 1000);
+    expect(listed).toEqual({
+      ok: true,
+      value: {
+        users: [
+          {
+            userId: USER_A.id,
+            createdAt: Date.parse("2026-10-12T08:00:00.000Z"),
+            updatedAt: Date.parse("2026-10-12T09:00:00.000Z"),
+            lastSignInAt: null,
+          },
+        ],
+        nextPage: null,
+      },
+    });
+    expect(JSON.stringify(listed)).not.toContain(USER_A.email);
+    expect(gotrue.received[0]).toMatchObject({
+      method: "GET",
+      path: "/auth/v1/admin/users?page=1&per_page=1000",
+    });
+    expect(gotrue.received[0]?.headers.authorization).toBe(
+      `Bearer ${TEST_SUPABASE_SECRET_KEY}`,
+    );
+  });
+
+  it("goes on after a full page, page 10 included (the Link header of auth-js is not trusted)", async () => {
+    gotrue.handler = () => ({
+      status: 200,
+      body: {
+        users: [
+          { id: USER_A.id, created_at: "2026-10-12T08:00:00Z" },
+          { id: USER_B.id, created_at: "2026-10-12T08:00:00Z" },
+        ],
+      },
+    });
+    const listed = await directory().listUsers(10, 2);
+    expect(listed.ok && listed.value.nextPage).toBe(11);
+  });
+
+  it("reads a user missing its creation instant as a malformed answer", async () => {
+    gotrue.handler = () => ({
+      status: 200,
+      body: { users: [{ id: USER_A.id }] },
+    });
+    expect(await directory().listUsers(1, 1000)).toMatchObject({
+      ok: false,
+      reason: "unavailable",
+    });
+  });
+
+  it("reads one user again, and a gone one as rejected 404", async () => {
+    gotrue.handler = (request) =>
+      request.path === `/auth/v1/admin/users/${USER_A.id}`
+        ? {
+            status: 200,
+            body: { ...USER_A, created_at: "2026-10-12T08:00:00Z" },
+          }
+        : {
+            status: 404,
+            body: {
+              code: 404,
+              error_code: "user_not_found",
+              msg: "User not found",
+            },
+          };
+    expect(await directory().readUser(USER_A.id)).toMatchObject({
+      ok: true,
+      value: { userId: USER_A.id, updatedAt: null, lastSignInAt: null },
+    });
+    expect(await directory().readUser(USER_B.id)).toEqual({
+      ok: false,
+      reason: "rejected",
+      errorCode: "user_not_found",
+      status: 404,
+    });
+  });
+
+  it("deletes a user for good through the administration API", async () => {
+    gotrue.handler = () => ({
+      status: 200,
+      body: { ...USER_A, created_at: "2026-10-12T08:00:00Z" },
+    });
+    expect(await directory().deleteUser(USER_A.id)).toEqual({
+      ok: true,
+      value: null,
+    });
+    expect(gotrue.received[0]).toMatchObject({
+      method: "DELETE",
+      path: `/auth/v1/admin/users/${USER_A.id}`,
+      body: { should_soft_delete: false },
     });
   });
 });

@@ -12,6 +12,8 @@
 // Each destination is a lane of its own, run side by side (05 RG75): a slow or failing provider
 // delays no other destination, and each lane has its own rate budget (lead-pipeline T5). Within a
 // lane the lines go one at a time, in the order of the claim (priority first, RG77, RG78).
+// Between two turns, at most once a minute, the periodic tasks of E-4 (J7 commit 5, decision 3;
+// domains/maintenance/periodic.ts): in the same loop, never side by side with a turn.
 // A turn every 2 s while there is work, every 5 s at rest (02 §11.1). On SIGTERM the attempts in
 // progress finish and the lines not begun go back to pending without using an attempt (TM1.10).
 // The locks, in this order, after the connector's qualification, mapping and output check:
@@ -49,6 +51,8 @@ export const IDLE_INTERVAL_MS = 5_000;
 export const LANE_WAIT_BUDGET_MS = 2_000;
 /** The take-back of orphans (TM1.10) at start, then at most once a minute between two turns. */
 export const RECOVER_INTERVAL_MS = 60_000;
+/** E-4: the due periodic tasks, at start, then at most once a minute between two turns. */
+export const PERIODIC_INTERVAL_MS = 60_000;
 /** A destination without a connector in this process waits an hour, without using an attempt. */
 export const CONNECTOR_UNAVAILABLE_DELAY_SECONDS = 3_600;
 
@@ -72,6 +76,8 @@ export type DrainDependencies = {
   connectors: Partial<Record<OutboxDestination, Connector>>;
   /** What Brevo reported back, processed at the start of each turn; none in the loop's tests. */
   inbound?: InboundProcessor;
+  /** E-4 (maintenance/periodic.ts): never throws; none in the loop's tests. */
+  periodic?: { tick(signal: AbortSignal): Promise<void> };
   /** The worker identifier of the claim (workerIdentifier). */
   worker: string;
   sync: SyncSettings;
@@ -102,8 +108,17 @@ export function workerIdentifier(instance: string): string {
 export function createOutboxDrain(
   dependencies: DrainDependencies,
 ): OutboxDrain {
-  const { queue, connectors, inbound, worker, sync, logger, now, sleep } =
-    dependencies;
+  const {
+    queue,
+    connectors,
+    inbound,
+    periodic,
+    worker,
+    sync,
+    logger,
+    now,
+    sleep,
+  } = dependencies;
   const limiter = new CategoryRateLimiter(now);
   const dryRun = sync.mode === "dry_run";
   const allowlist = new Set(
@@ -455,9 +470,22 @@ export function createOutboxDrain(
     }
   }
 
+  async function periodicTick(signal: AbortSignal): Promise<void> {
+    if (periodic === undefined || signal.aborted) {
+      return;
+    }
+    try {
+      await periodic.tick(signal);
+    } catch (error) {
+      logger.error({ err: error }, "maintenance.periodic.tick_failed");
+    }
+  }
+
   async function run(signal: AbortSignal): Promise<void> {
     await recover();
     let lastRecovery = now();
+    await periodicTick(signal);
+    let lastPeriodic = now();
     while (!signal.aborted) {
       let claimed = 0;
       try {
@@ -472,6 +500,10 @@ export function createOutboxDrain(
       if (!signal.aborted && now() - lastRecovery >= RECOVER_INTERVAL_MS) {
         await recover();
         lastRecovery = now();
+      }
+      if (!signal.aborted && now() - lastPeriodic >= PERIODIC_INTERVAL_MS) {
+        await periodicTick(signal);
+        lastPeriodic = now();
       }
     }
   }

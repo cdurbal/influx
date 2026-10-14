@@ -718,6 +718,15 @@ export type WorkerConfig = BaseConfig & {
   database: {
     worker: DatabaseConnection;
   };
+  /**
+   * GoTrue of the Supabase project, with the worker's OWN secret key (skill env-secrets: one key per
+   * service), for the purge of the users without an account only (04 §9, J7 decision 3). Required
+   * in production; null elsewhere when unset, and then the purge never runs.
+   */
+  supabase: {
+    url: string;
+    secretKey: string;
+  } | null;
   sync: {
     mode: SyncMode;
     nonProductionRecipientAllowlist: readonly string[];
@@ -906,6 +915,11 @@ export const workerEnvSchema = z
         .optional(),
     ),
     APOLLO_API_KEY: optionalText,
+    SUPABASE_URL: z.preprocess(emptyAsAbsent, supabaseUrl.optional()),
+    SUPABASE_SECRET_KEY: z.preprocess(
+      emptyAsAbsent,
+      supabaseSecretKey.optional(),
+    ),
     // Read only to be refused on Railway: the webhook secrets are the api service's alone.
     ...brevoWebhookShape,
     ...databaseEnvShape,
@@ -938,6 +952,35 @@ export const workerEnvSchema = z
     }
     checkDatabaseVariables(env, WORKER_DATABASE_VARIABLES, context);
     const isProduction = env.INFLUX_ENV === "production";
+    // 04 §9: the purge of GoTrue needs both; in production it must run (D43, 02 §18.5).
+    for (const [variable, other] of [
+      ["SUPABASE_URL", "SUPABASE_SECRET_KEY"],
+      ["SUPABASE_SECRET_KEY", "SUPABASE_URL"],
+    ] as const) {
+      if (
+        env[variable] === undefined &&
+        (isProduction || env[other] !== undefined)
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: [variable],
+          message: isProduction
+            ? "is required in production (purge of the GoTrue users without an account)"
+            : `is required with ${other}`,
+        });
+      }
+    }
+    if (
+      isProduction &&
+      env.SUPABASE_URL !== undefined &&
+      !env.SUPABASE_URL.startsWith("https://")
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["SUPABASE_URL"],
+        message: "must be an https origin in production",
+      });
+    }
     if (env.SYNC_MODE === "dry_run" && isProduction) {
       context.addIssue({
         code: "custom",
@@ -978,6 +1021,10 @@ export const workerEnvSchema = z
     database: {
       worker: databaseConnection(env, "WORKER_DATABASE_URL"),
     },
+    supabase:
+      env.SUPABASE_URL !== undefined && env.SUPABASE_SECRET_KEY !== undefined
+        ? { url: env.SUPABASE_URL, secretKey: env.SUPABASE_SECRET_KEY }
+        : null,
     sync: {
       mode: env.SYNC_MODE,
       nonProductionRecipientAllowlist: env.NON_PRODUCTION_RECIPIENT_ALLOWLIST,

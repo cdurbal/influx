@@ -6,7 +6,9 @@
 // recorded: the list operations (no suppression list in the test account), 429 and 503, still drafted.
 // Drafted too, from the reference read on 2026-10-09 and 2026-10-13 (J7 decision 5; developers.brevo
 // .com transactional-webhooks and marketing-webhooks), until the trial of J7 commit 10: the address
-// change by contact id, and the bodies Brevo posts to the webhook (INBOUND_EXEMPLARS).
+// change by contact id, and the bodies Brevo posts to the webhook (INBOUND_EXEMPLARS). Drafted from
+// the reference read on 2026-10-13 (16 §M1 operations 9 and 10, J7 commit 5): the two reads of the
+// daily reconciliation, CONTACTS_LISTED and SMTP_EVENTS_LISTED, to be recorded at commit 10.
 // Nothing here is a real identifier, a real address or a key.
 //
 // A recording is the contract of the double: a test that passes against the double passes against
@@ -239,4 +241,65 @@ export const INBOUND_EXEMPLARS: Readonly<
   opened: { ...MARKETING_EVENT, event: "opened" },
   /** A name Brevo may add one day: recorded, journaled and ignored (RG105). */
   unknown: { ...TRANSACTIONAL_EVENT, event: "contact_merged" },
+};
+
+/**
+ * Operation 9 (J7 decision 3): the contacts modified since an instant, one page. developers.brevo
+ * .com/reference/get-contacts, read on 2026-10-13: `{contacts, count}`; the double computes both.
+ */
+export const CONTACTS_LISTED: RecordedExchange = {
+  request: {
+    method: "GET",
+    path: "/v3/contacts?limit=1000&offset=0&modifiedSince=2026-10-11T03%3A00%3A00.000Z&sort=asc",
+  },
+  response: {
+    status: 200,
+    body: {
+      contacts: [
+        {
+          email: "recorded-contact@example.test",
+          id: 21,
+          emailBlacklisted: true,
+          smsBlacklisted: false,
+          whatsappBlacklisted: false,
+          createdAt: "2026-10-01T09:00:00.000+02:00",
+          modifiedAt: "2026-10-12T10:05:00.000+02:00",
+          attributes: {
+            INFLUX_ACCOUNT_ID: "00000000-0000-4000-8000-000000000001",
+          },
+          listIds: [2],
+        },
+      ],
+      count: 1,
+    },
+  },
+};
+
+/**
+ * Operation 10 (J7 decision 3): the transactional complaints of a range of days, one page.
+ * developers.brevo.com/reference/get-email-event-report, read on 2026-10-13: `{events}`, `events`
+ * absent when there is none; the double computes it.
+ */
+export const SMTP_EVENTS_LISTED: RecordedExchange = {
+  request: {
+    method: "GET",
+    path: "/v3/smtp/statistics/events?event=spam&startDate=2026-10-11&endDate=2026-10-13&limit=1000&offset=0&sort=asc",
+  },
+  response: {
+    status: 200,
+    body: {
+      events: [
+        {
+          email: "recorded-contact@example.test",
+          date: "2026-10-12T10:05:00.000+02:00",
+          messageId: "<202609191200.00000000001@smtp-relay.mailin.fr>",
+          event: "spam",
+          subject: "Recorded subject",
+          tag: "",
+          from: "no-reply@tx.influx.example",
+          templateId: 3,
+        },
+      ],
+    },
+  },
 };

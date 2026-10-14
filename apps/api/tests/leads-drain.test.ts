@@ -17,6 +17,7 @@ import type {
 import {
   createOutboxDrain,
   LANE_WAIT_BUDGET_MS,
+  PERIODIC_INTERVAL_MS,
   workerIdentifier,
   type DrainDependencies,
   type SyncSettings,
@@ -676,6 +677,45 @@ describe("TM1.10: SIGTERM during a batch loses no line", () => {
     stop.abort();
     await running;
     expect(queue.recoveries).toBe(1);
+  });
+
+  it("ticks the periodic tasks of E-4 at start, then at most once a minute, between two turns (J7 decision 3)", async () => {
+    const queue = new FakeQueue();
+    const stop = new AbortController();
+    const ticks: number[] = [];
+    let turnsDuringTick = 0;
+    let ticking = false;
+    const worker = drain(
+      queue,
+      {},
+      {},
+      {
+        periodic: {
+          async tick() {
+            ticking = true;
+            ticks.push(clock);
+            if (ticks.length === 3) {
+              stop.abort();
+            }
+            ticking = false;
+          },
+        },
+        sleep: (ms: number) => {
+          if (ticking) {
+            turnsDuringTick += 1;
+          }
+          clock += ms;
+          return Promise.resolve();
+        },
+      },
+    );
+    await worker.run(stop.signal);
+    expect(ticks).toHaveLength(3);
+    const [first = 0, second = 0, third = 0] = ticks;
+    expect(second - first).toBeGreaterThanOrEqual(PERIODIC_INTERVAL_MS);
+    expect(third - second).toBeGreaterThanOrEqual(PERIODIC_INTERVAL_MS);
+    expect(third - second).toBeLessThan(PERIODIC_INTERVAL_MS + 5_000 + 1);
+    expect(turnsDuringTick).toBe(0);
   });
 
   it("abandons a line taken back meanwhile, without closing it twice", async () => {

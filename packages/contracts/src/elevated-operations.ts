@@ -54,7 +54,8 @@ export const ELEVATED_POOL_EXCEPTIONS: Readonly<
  * verification and the backoffice sign-in (J3 commits 8 to 10); the public documents at J5 (EC-62),
  * then the sign-up (J5 commit 4, POST /v1/signup); E-3 with the worker's access to the queue (J6
  * commit 2, apps/api/src/domains/leads/queue.ts, migration 0111); the Brevo webhook (J7 commit 3,
- * apps/api/src/domains/leads/brevo-webhook.ts, migration 0116).
+ * apps/api/src/domains/leads/brevo-webhook.ts, migration 0116); E-4 with the periodic tasks (J7
+ * commit 5, apps/api/src/domains/maintenance/periodic.ts, migration 0117).
  */
 export const ELEVATED_OPERATIONS = [
   "identity.request_code",
@@ -66,6 +67,7 @@ export const ELEVATED_OPERATIONS = [
   "identity.backoffice_reauthenticate",
   "leads.receive_brevo_event",
   "leads.drain_outbox",
+  "maintenance.run_periodic",
   "ops.record_telemetry",
 ] as const satisfies readonly SignedElevatedOperation[];
 

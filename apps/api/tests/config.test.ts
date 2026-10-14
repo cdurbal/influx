@@ -699,6 +699,7 @@ describe("worker configuration", () => {
       database: {
         worker: { url: WORKER_URL, role: "influx_worker_login", tls: false },
       },
+      supabase: null,
       sync: { mode: "dry_run", nonProductionRecipientAllowlist: [] },
     });
   });
@@ -792,6 +793,8 @@ describe("worker configuration", () => {
         BREVO_API_KEY: "xkeysib-production-like-value",
         BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
         SYNC_MODE: "live",
+        SUPABASE_URL: HOSTED_SUPABASE_URL,
+        SUPABASE_SECRET_KEY: TEST_SUPABASE_SECRET_KEY,
       }).sync.mode,
     ).toBe("live");
   });
@@ -874,6 +877,64 @@ describe("worker configuration", () => {
         BREVO_WEBHOOK_SECRET_CURRENT: "w".repeat(43),
       }),
     ).not.toThrow();
+  });
+
+  describe("GoTrue of the worker: its own secret key, for the purge of 04 §9 only (J7 commit 5)", () => {
+    it("reads the origin and the key together; neither is no purge outside production", () => {
+      expect(
+        loadWorkerConfig({
+          ...VALID_WORKER_ENV,
+          SUPABASE_URL: HOSTED_SUPABASE_URL,
+          SUPABASE_SECRET_KEY: TEST_SUPABASE_SECRET_KEY,
+        }).supabase,
+      ).toEqual({
+        url: HOSTED_SUPABASE_URL,
+        secretKey: TEST_SUPABASE_SECRET_KEY,
+      });
+      expect(
+        loadWorkerConfig({
+          ...VALID_WORKER_ENV,
+          SUPABASE_URL: "",
+          SUPABASE_SECRET_KEY: "",
+        }).supabase,
+      ).toBeNull();
+    });
+
+    it.each<[string, Environment, string]>([
+      [
+        "an origin without its key",
+        { ...VALID_WORKER_ENV, SUPABASE_URL: HOSTED_SUPABASE_URL },
+        "SUPABASE_SECRET_KEY is required with SUPABASE_URL",
+      ],
+      [
+        "a key without its origin",
+        { ...VALID_WORKER_ENV, SUPABASE_SECRET_KEY: TEST_SUPABASE_SECRET_KEY },
+        "SUPABASE_URL is required with SUPABASE_SECRET_KEY",
+      ],
+      [
+        "production without them (D43: the purge must run)",
+        {
+          ...VALID_WORKER_ENV,
+          INFLUX_ENV: "production",
+          BREVO_MODE: "live",
+          BREVO_API_KEY: "xkeysib-production-like-value",
+          BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
+          SYNC_MODE: "live",
+        },
+        "SUPABASE_URL is required in production (purge of the GoTrue users without an account)",
+      ],
+      [
+        "a legacy JWT key",
+        {
+          ...VALID_WORKER_ENV,
+          SUPABASE_URL: HOSTED_SUPABASE_URL,
+          SUPABASE_SECRET_KEY: "eyJhbGciOiJIUzI1NiJ9.legacy.key",
+        },
+        "SUPABASE_SECRET_KEY must be a secret key (sb_secret_…), never a legacy JWT key",
+      ],
+    ])("refuses %s", (_case, env, issue) => {
+      expect(refusal(() => loadWorkerConfig(env))).toContain(issue);
+    });
   });
 
   describe("Apollo of the worker: APOLLO_API_KEY, the worker's only (skill env-secrets, J6 commit 5)", () => {
