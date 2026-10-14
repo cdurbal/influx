@@ -648,7 +648,7 @@
 | 330 | 13 | 9. Questions ouvertes | RG116–RG130 |
 | 343 | 11 | 10. Tokens proposés |  |
 
-## 21-plan-de-developpement.md (~14k tokens)
+## 21-plan-de-developpement.md (~15k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -657,7 +657,7 @@
 | 53 | 39 | 2. Stratégie de développement | RG44–RG148 |
 | 92 | 23 | 3. Écarts actifs pour les jalons restants (J5 à J9) | RG23–RG146 |
 | 115 | 43 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 158 | 147 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG160 |
-| 305 | 9 | 6. Configuration des services externes |  |
-| 314 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 331 | 10 | 8. Guide de lecture par jalon | RG54–RG58 |
+| 158 | 148 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG160 |
+| 306 | 9 | 6. Configuration des services externes |  |
+| 315 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 332 | 10 | 8. Guide de lecture par jalon | RG54–RG58 |

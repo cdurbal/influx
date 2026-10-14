@@ -224,6 +224,13 @@ aucun taux ni montant.
 - `expert-cybersecurite` (fin de jalon) : nouvelle empreinte du client relais (lecture de `error.code` et `details[].issue`, mots `snake_case` seuls) ; cookie de session posé en e2e par une réponse `Set-Cookie` interceptée (CDP refuse `__Host-` sur la boucle locale). `testeur` : `account-view` (17 cas), `e2e/account.spec.ts` (5 parcours à 375 px, membres écrits en base sauf le changement d'adresse, inscrit par les écrans) ; `t8-gotrue-findings` b7 en dépassement de délai sous charge, vert seul.
 - Suites : canal de secours sur l'écran de connexion (`POST /v1/support/code-not-received`, RG65) **non fait**, à placer au commit 10 ou au J8 ; textes `account.*` à relire (D48, D36) ; formulation des deux listes : `expert-conformite-rgpd` (Lot 6).
 
+## Issu du commit 10 (`33acb6c`, partiel)
+
+- **Tranché le 2026-10-14** : `staging` garde le worker en `dry_run`, sans clé Brevo (D62) ; avis de changement d'adresse observé à l'essai local (`trial:record worker`). **Veto `expert-cybersecurite`** sur le rejeu manuel contre `staging` (refus par plage IP, fausse alerte `ip_drift`) : doublon et fenêtre ±15 min prouvés par `test:db` ; preuve `staging` = une vraie désinscription Brevo sur un contact **de test**, une ligne brute, consentement retiré (`brevo_webhook`), aucun `ip_drift`.
+- Outil d'essai : `reconciliation` (lectures E-4, page de 10, 24 h, sans base ; `brevo-reads` gagne `pageSize`/`maxPages`), `inbound` (127.0.0.1, deux jetons aléatoires, `404`/`413` nus, 64 Ko en flux, arrêt automatique, second webhook Brevo temporaire + tunnel `cloudflared` éphémère), expurgation fermée par liste d'autorisation, refus d'écrire en cas de fuite ; `raw.jsonl` supprimé après les fixtures. Runbook `staging` §J7 : variables et liste d'actions du fondateur.
+- **Bloquant** : I-4 rouge ⇒ `staging` sans le code J7 ni `0115`–`0128`. Ordre : revue groupée de fin de J7 (attester aussi `33acb6c`, 13 conditions de l'outil) ⇒ déploiement ⇒ variables ⇒ webhook de test ⇒ `trial:record` ⇒ fixtures remplacées ⇒ critère de fin. `apps/api/.env.example` (commentaire `SUPABASE_URL` aussi lu par le worker) : à corriger, fichier protégé.
+- `testeur` (fin de jalon) : `inbound-recording` (31), `provider-recording` (+12), `reconciliation-reads` (2), `trial-record-guards` (4) ; 7 dépassements de 5 s hors périmètre au premier passage, verts au second.
+
 ## Clôture d'un commit (« clôture standard »)
 
 1. Suite complète : `pnpm typecheck`, `pnpm lint`, `pnpm test -- --reporter=dot`,
