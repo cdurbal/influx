@@ -16,9 +16,7 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
 
 ## Commits prévus
 
-1. à 8bis. **Faits** (dette J6, migrations, webhook, E-4, « mon compte » 1, 2a et 2b, arbitrages) : voir « Issu du commit N ».
-9. **Écrans « Mon compte »** (`17` §6.1 à §6.4, CGU bloquante §6.7) sous `/compte/*`, `account.json`,
-   étape « code frais », états, accessibilité ; Playwright : préférences, sessions, CGU, adresse en attente.
+1. à 9. **Faits** (dette J6, migrations, webhook, E-4, « mon compte » 1, 2a, 2b et écrans, arbitrages) : voir « Issu du commit N ».
 10. **Essai et `staging`** : webhook du compte Brevo **de test** vers `staging` (geste du fondateur,
    `CLAUDE.md` §7 règle 4) ou rejeu enregistré ; variables (`integrateur`) ; critère de fin.
 
@@ -75,7 +73,7 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
    `reauth_purpose` (membre seulement, `now()` en base, `influx_auth` seul) ; l'action sensible les
    vérifie puis les remet à `NULL` dans sa transaction. Durée : `REAUTHENTICATION_FRESHNESS_SECONDS`
    (300, valeur R du backoffice dans `identity/settings.ts`), provisoire.
-   - Commits 2 et 7 : faits. Commit 9 : étape « code frais ».
+   - Commits 2, 7 et 9 : faits.
 5. **Demande de changement d'adresse en table `identity` de 24 h, confirmée par deux codes à 6 chiffres
    saisis dans l'espace (envoi synchrone `apps/api`), jamais un lien ; contact Brevo modifié par son
    identifiant, jamais recréé** (RG58, A-11, RG74). `identity.email_change_requests` : `id`,
@@ -92,7 +90,7 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
    (révision du 2026-10-14, `architecte` et `expert-cybersecurite`). Brevo : `PUT /v3/contacts/{external_contact_id}
    ?identifierType=contact_id` (sinon ancienne adresse, `email_id`), `{attributes:{EMAIL}}` ; puis
    opérations 2 et 7 réappliquées si sans consentement ou supprimé (Brevo lève la liste noire).
-   - Commits 2, 4 et 7 : faits. Commit 9 : écrans. Autres : rien.
+   - Commits 2, 4, 7 et 9 : faits.
 6. **`backoffice.data_subject_requests` minimale dès maintenant (`0502` la complète) ; accusé = nouveau
    modèle P1 en file ; le canal de secours écrit dans `backoffice.code_delivery_reports` par sa fonction
    E-1 étroite, sans e-mail** (EC-14, RG65, RG57). Demandes : `id`, `request_type` (six valeurs, seuls
@@ -104,7 +102,7 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
    `received_at`, `login_email`, `contact_email`, `message` (500 car.), `locale`, `status`,
    `handled_at` ; réponse identique, plancher 1 000 ms, débit limité, motif
    `support.report_delivery_issue`, code `elevated.support.report_delivery_issue`.
-   - Commits 2, 8 et 8bis : faits. Commit 9 : écrans.
+   - Commits 2, 8, 8bis et 9 : faits.
 
 **Restent ouverts :** critère de fin ; retrait propagé à Apollo et conservations 30 j, abonnement
 minimal (`expert-conformite-rgpd`, Lot 6) ; D36 ; textes `account.*` (D48) ; 5 min, usage unique
@@ -174,8 +172,7 @@ aucun taux ni montant.
 
 ## Issu du commit 1 (`4aef89a`) et reports du J6
 
-- Reports du J6 : `account.email_corrected` reste `template_not_supported` jusqu'au J8 ; suspension marketing sur `401` (RG123) au J8 / Lot 5. **I-4** : ancre fixe `56b8046` ; `4eb8ff1 83ba6d1 662ec3d 7b33351` (J5) non attestés : **l'attestation de fin de J7 doit les nommer**. I-4 rouge tout le J7 ⇒ ni staging ni déploiement avant la revue ; le commit 10 l'exige d'abord.
-- RG47 et J6T-8 stabilisés. `testeur` (fin de jalon) : 3 témoins I-4, `check-security-review` à 46 cas. Tickets restants : J6T-1, J6T-2 (commit 4), J6S-5 (fondateur) ; J6T-3 soldé au commit 6.
+- Reports du J6 : `account.email_corrected` reste `template_not_supported` jusqu'au J8 ; suspension marketing sur `401` (RG123) au J8 / Lot 5. **I-4** : ancre fixe `56b8046` ; `4eb8ff1 83ba6d1 662ec3d 7b33351` (J5) non attestés : **l'attestation de fin de J7 doit les nommer**. I-4 rouge tout le J7 ⇒ ni staging ni déploiement avant la revue ; le commit 10 l'exige d'abord. RG47 et J6T-8 stabilisés. `testeur` (fin de jalon) : 3 témoins I-4, `check-security-review` à 46 cas. Tickets restants : J6T-1, J6T-2 (commit 4), J6S-5 (fondateur) ; J6T-3 soldé au commit 6.
 
 ## Issu des commits 2 (`679263a`) et 2bis (`2f3fdf4`)
 
@@ -184,22 +181,18 @@ aucun taux ni montant.
 
 ## Issu du commit 3 (`93d1eba`)
 
-- **Au plus sûr** : `ts_event` exigé (les événements « contact » n'en ont pas, hors abonnement du commit 4) ; `camp_id`/`template_id` à 0 ⇒ nul ; corps illisible ou autre type ⇒ `200` `invalid_payload` ; 22023 de la base ⇒ idem ; > 64 Ko ⇒ `413` ; secrets requis en production, refusés sur le `worker` Railway ; `BREVO_IP_ALLOWLIST` de la skill remplacée par la constante (skill `env-secrets` à aligner). Suites : commit 4, abonnement Brevo aux seuls événements « retire un droit » (lots désactivés) ; `staging`, variables au commit 10.
-- `expert-cybersecurite` : le `404` n'est identique à une route inconnue qu'avec `same-origin` (sans origine, une route inconnue répond `403` A4 : l'existence de la route se voit, pas les secrets) ; « compté » = `ops.request_metrics` + `pino` `webhook.brevo.ignored` (pas de compteur dédié) ; dérive IP = groupe d'erreurs `BrevoWebhookAddressDriftError`. `testeur` : `sqlStateOf` déplacé dans `src/db/sql-state.ts` ; `tm1-brevo-webhook-route` engage ses lignes puis les vide par E-3 (avant et après) ; « process start » de `config.test` et T11 des artefacts (`.next` périmé) instables en local, verts au second passage.
+- **Au plus sûr** : `ts_event` exigé (les événements « contact » n'en ont pas, hors abonnement du commit 4) ; `camp_id`/`template_id` à 0 ⇒ nul ; corps illisible ou autre type ⇒ `200` `invalid_payload` ; 22023 de la base ⇒ idem ; > 64 Ko ⇒ `413` ; secrets requis en production, refusés sur le `worker` Railway ; `BREVO_IP_ALLOWLIST` de la skill remplacée par la constante (skill `env-secrets` à aligner). Suites : commit 4, abonnement Brevo aux seuls événements « retire un droit » (lots désactivés) ; `staging`, variables au commit 10. `expert-cybersecurite` : le `404` n'est identique à une route inconnue qu'avec `same-origin` (sans origine, une route inconnue répond `403` A4 : l'existence de la route se voit, pas les secrets) ; « compté » = `ops.request_metrics` + `pino` `webhook.brevo.ignored` (pas de compteur dédié) ; dérive IP = groupe d'erreurs `BrevoWebhookAddressDriftError`. `testeur` : `sqlStateOf` déplacé dans `src/db/sql-state.ts` ; `tm1-brevo-webhook-route` engage ses lignes puis les vide par E-3 (avant et après) ; « process start » de `config.test` et T11 des artefacts (`.next` périmé) instables en local, verts au second passage.
 
 ## Issu du commit 4 (`40023cf`)
 
 - **Au plus sûr** : lignes brutes en tête de chaque tour (50 au plus, un échec n'arrête pas la file) ; contact supprimé ⇒ toujours désinscrit, même consentement redonné (CA55) ; `email.changed` : `404` ⇒ succès sans rien créer (le rejeu de `lead.created` lit l'adresse courante), adresse prise ⇒ `brevo.rejected`, sans demande terminée ⇒ `email_change_not_found`, `redirect` exige les deux adresses. `0121` recrée `read_brevo_subject` (+ `previous_email`, `external_contact_id`, `suppressed`).
-- Abonnement Brevo : constante `BREVO_WEBHOOK_SUBSCRIPTION` (`contracts`), appliquée au commit 10 ; corps entrants de la doublure **rédigés**, à enregistrer au commit 10.
-- `expert-cybersecurite` (fin de jalon) : `influx_leads_definer` lit `id`, `account_id`, `old_email`, `completed_at` des demandes **terminées** (politique) ; `unknown_event` journalisé par id de ligne seul (le nom reste 30 j sur la ligne brute).
-- `testeur` : `tm1-brevo-inbound-worker` (15 cas, lignes engagées, vidées avant et après) ; `format:check` local signale 4 fichiers non touchés (fins de ligne du poste), CI masquée par I-4 : build vérifié en local.
-- Suites : commit 5 (rapprochement par `record_brevo_reconciliation_event`, doublure à étendre aux `GET`) ; J8 : levée de suppression par un `admin` (RG93).
+- Abonnement Brevo : constante `BREVO_WEBHOOK_SUBSCRIPTION` (`contracts`), appliquée au commit 10 ; corps entrants de la doublure **rédigés**, à enregistrer au commit 10. `expert-cybersecurite` (fin de jalon) : `influx_leads_definer` lit `id`, `account_id`, `old_email`, `completed_at` des demandes **terminées** (politique) ; `unknown_event` journalisé par id de ligne seul (le nom reste 30 j sur la ligne brute).
+- `testeur` : `tm1-brevo-inbound-worker` (15 cas, lignes engagées, vidées avant et après) ; `format:check` local signale 4 fichiers non touchés (fins de ligne du poste), CI masquée par I-4 : build vérifié en local. Suites : commit 5 (rapprochement par `record_brevo_reconciliation_event`, doublure à étendre aux `GET`) ; J8 : levée de suppression par un `admin` (RG93).
 
 ## Issu du commit 5 (`af88ad5`)
 
 - **Au plus sûr** : E-4 entre deux tours du drain, une fois par minute au plus (jamais en parallèle d'un tour) ; échec ⇒ exécution close `failed`, la fenêtre de 48 h couvre un jour manqué ; arrêt demandé ⇒ exécution laissée ouverte (reprise à 1 h). `GET /v3/contacts` n'a **pas** de filtre `emailBlacklisted` (doc relue le 2026-10-13) : filtrage local ; instant coupé à la seconde pour retrouver la clé du webhook ; `gap` = lignes nouvelles (majorant). Plainte marketing relue comme désinscription (la suppression RG93 attend le webhook ou un `admin`). Purge : relecture de l'utilisateur puis du compte juste avant `deleteUser`, 500 suppressions et 100 pages par heure au plus ; `nextPage` d'`auth-js` 2.117.2 ignoré (premier chiffre seulement).
-- `SUPABASE_URL` + `SUPABASE_SECRET_KEY` du worker : les deux ou aucune, **requises en production** ; skill `env-secrets` aligné ; `.env.example` à documenter par le fondateur, valeurs `staging` au commit 10. Domaine `maintenance` ajouté à ESLint ; `maintenance.run_periodic` entre dans U.
-- `expert-cybersecurite` (fin de jalon) : nettoyage des exécutions courantes en test par le superutilisateur local (`session_replication_role`) ; `filter_auth_orphans` sans ligne de registre (lecture) ; `elevated.maintenance.run_periodic` par transaction à effet (réservation, lignes brutes, purges).
+- `SUPABASE_URL` + `SUPABASE_SECRET_KEY` du worker : les deux ou aucune, **requises en production** ; skill `env-secrets` aligné ; `.env.example` à documenter par le fondateur, valeurs `staging` au commit 10. Domaine `maintenance` ajouté à ESLint ; `maintenance.run_periodic` entre dans U. `expert-cybersecurite` (fin de jalon) : nettoyage des exécutions courantes en test par le superutilisateur local (`session_replication_role`) ; `filter_auth_orphans` sans ligne de registre (lecture) ; `elevated.maintenance.run_periodic` par transaction à effet (réservation, lignes brutes, purges).
 - `testeur` : `tm1-periodic-tasks` (9 cas, plancher déclaré), `periodic-scheduler` (23), adaptateur GoTrue (+5) ; doublures `gotrue-double`, lectures de `brevo-double` (corps rédigés d'après la doc, à enregistrer au commit 10). Suite : écart visible au backoffice (AL27) depuis `ops.periodic_runs.counts`, J8/Lot 5.
 
 ## Issu du commit 6 (`cc00b72`, `9c6bbe0`)
@@ -207,7 +200,7 @@ aucun taux ni montant.
 - **Au plus sûr** : une « version » de CGU = son `version_label` (acceptée dans une langue, acceptée dans toutes) ; garde CGU active par défaut sur toute route membre, exemptions nommées (`GET /v1/me`, consentement RG34, sessions RG56, acceptation, erreurs navigateur) ; une case, deux finalités (RG33) : `PUT` change les deux, l'affichage est « accordé » si les deux le sont, sinon date et origine du dernier retrait ; `UPDATE` direct de la langue retiré aux membres (`0122`) ; pays bloqué (RG8) refusé aussi après l'inscription ; « fermer toutes » = `revoked_by_holder`, session courante comprise ; autre version ou double clic concurrent ⇒ `409`. **T7** : au Lot 1, P1 (bienvenue) et P2 partagent la priorité 100 (aucun P2 avant le Lot 4), ordre d'émission entre eux ; échelon P1 < P2 à fixer par `architecte` avant le premier émetteur P2. `outbox_events.priority` = ordre dans la voie (0 urgent : `consent.revoked` RG78, `auth.email_changed_notice` ; 100 ordinaire), distinct de la classe du catalogue `16` §H ; une ligne de file n'est jamais P0 (`architecte`, 2026-10-14).
 - **J6T-3** (`9c6bbe0`) : `consent.granted` encore en vigueur à la consommation ⇒ opération 1 avec `emailBlacklisted: false` (Brevo garde sinon la liste noire) ; jamais sur un autre événement ni un contact supprimé ; une opération 1 qui mettrait en liste noire est refusée (RG137).
 - `expert-cybersecurite` (fin de jalon) : `update_own_account` appelle `set_declared_status` depuis le définisseur (motif `member_settings`) ; politiques du définisseur sur `advertiser_profiles` (son compte seul) ; instantané des droits modifié (I-4) ; `terms_acceptance_required` révèle seulement qu'une acceptation manque.
-- `testeur` : `tm1-member-account-route` (16), CA36 dans `t8-request-code`, CA47/T7/T8 dans `tm1-worker-loop` (6), contrat `account` (6), `consentView` (4) ; tests ESLint témoins en dépassement de délai sous `pnpm -r` en local, verts seuls (846). Suites : commit 9 : écran bloquant sur `termsToAccept` et le `403`, textes RG95 des origines (`signup_form`, `account_settings`, `brevo_webhook`).
+- `testeur` : `tm1-member-account-route` (16), CA36 dans `t8-request-code`, CA47/T7/T8 dans `tm1-worker-loop` (6), contrat `account` (6), `consentView` (4) ; tests ESLint témoins en dépassement de délai sous `pnpm -r` en local, verts seuls (846).
 
 ## Issu du commit 7 (`65a11fc`) et de sa reprise 7bis (`1507ccf`)
 
@@ -222,7 +215,14 @@ aucun taux ni montant.
 - Commit 8 : signal dans la transaction qui ouvre la session, « connue » = même résumé actif < 30 j ; `auth.new_device` rendu par INFLUX sans lien ; « mes données » et code frais hors garde CGU (A3). **Signé par `expert-cybersecurite`** (attestation `security-reviewed … covers c971d54`) ; plafonds du secours définitifs (5/h réseau, 10/h IP inconnue, 3/h adresse).
 - 8bis : `chef-de-projet` avance l'E-5 minimale au J8 (porte de production, `21` §J8 6 et §5.8) ; `expert-cybersecurite` : remise par téléchargement dans l'espace membre (runbook §4, EC : 3 téléchargements / 7 j contre RG95), purposes exemptés en liste d'autorisation ; `expert-conformite-rgpd` : A3 validé + `PATCH /v1/me` exempté (art. 16), export complété, échéance au plus tôt de 30 j et 1 mois (`0127`), runbook §2 à §8 ; `product-owner` : RG160, CA117, CA118 ; `architecte` : accusé rendu par INFLUX (`0128`, lecture de la demande et du fuseau, `auth.new_device` dans le fuseau du compte, contrôle « aucun lien » étendu à `@` et aux domaines). Au plus sûr : `kept.erasure` sans « mises en relation » (absentes au Lot 1) ; `17` §6.3 « les données que nous détenons sur vous ».
 - `expert-cybersecurite` (non bloquant) : repère persistant de première session avant la purge des sessions (≈ 0,5 j) ; Lot 5 : file des signalements sans action sur la foi d'un signalement, Q8 tranchée avant, alerte > 30/h. `testeur` : T3.11 de `t3-audit-chain` instable ; `data-request-received-email` (8), connecteur (+6), `tm1-brevo-connector` (+2).
-- Suites : commit 9 (écrans `/compte/*`, écran bloquant CGU avec canal de contact, liens « Mes données » et « Préférences », refus ≠ suppression ; secours sur l'écran de connexion) ; J8 : E-5 minimale + export téléchargeable + `privacy.export_ready` ; juriste : runbook §8 ; RG69 et `auth.email_changed_notice` rendu par INFLUX : à arbitrer.
+- Suites : commit 9 (soldé, sauf le secours sur l'écran de connexion : voir « Issu du commit 9 ») ; J8 : E-5 minimale + export téléchargeable + `privacy.export_ready` ; juriste : runbook §8 ; RG69 et `auth.email_changed_notice` rendu par INFLUX : à arbitrer.
+
+## Issu du commit 9 (`4c7c546`)
+
+- Écrans sous `/fr/compte`, `/compte/preferences`, `/compte/sessions`, `/compte/donnees` · **au plus sûr (EC-15)** `/en/account`, `/account/preferences`, `/account/sessions`, `/account/data` ; « Mes informations » = page d'entrée de `/compte`. Écran CGU bloquant avant toute page (accueils compris), sauf « Mes préférences » et « Mes données » (A3), qui l'annoncent ; refus = déconnexion, compte intact. Client relais (`relay-client.ts`, épinglé, copié au backoffice) : `PATCH`/`PUT`/`DELETE`, code et `issues` de l'enveloppe d'erreur.
+- **Au plus sûr** : jeton du code frais en état de composant seul, oublié après succès, fermeture ou abandon (C4.c) ; `400`/`503` du changement d'adresse ⇒ retour au code frais ; mot `SUPPRIMER`/`DELETE` exact (espaces ignorés) ; bouton « Demander la suppression définitive » (rien n'est supprimé au J7, RG160) ; listes « disparaît / conservé » limitées au Lot 1 (ni conversations ni candidatures) ; « canal de contact » de l'écran CGU = lien vers la politique de confidentialité ; consentement redonnable depuis l'espace (`PUT` à `true`) ; dates au fuseau du navigateur.
+- `expert-cybersecurite` (fin de jalon) : nouvelle empreinte du client relais (lecture de `error.code` et `details[].issue`, mots `snake_case` seuls) ; cookie de session posé en e2e par une réponse `Set-Cookie` interceptée (CDP refuse `__Host-` sur la boucle locale). `testeur` : `account-view` (17 cas), `e2e/account.spec.ts` (5 parcours à 375 px, membres écrits en base sauf le changement d'adresse, inscrit par les écrans) ; `t8-gotrue-findings` b7 en dépassement de délai sous charge, vert seul.
+- Suites : canal de secours sur l'écran de connexion (`POST /v1/support/code-not-received`, RG65) **non fait**, à placer au commit 10 ou au J8 ; textes `account.*` à relire (D48, D36) ; formulation des deux listes : `expert-conformite-rgpd` (Lot 6).
 
 ## Clôture d'un commit (« clôture standard »)
 
