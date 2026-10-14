@@ -8,7 +8,11 @@
 // (0119), identity.revoke_own_session() (0012); the re-acceptance is the member's own insert
 // (0005 §5.2).
 // Behind a fresh code (RG57, J7 commit 7): the re-authentication (reauthentication.ts, decision 4)
-// and the change of address (email-change.ts, decision 5; RG58, A-11).
+// and the change of address (email-change.ts, decision 5; RG58, A-11); "mes données" (J7 commit 8,
+// decision 6, EC-14): export and deletion are REQUESTS (backoffice.submit_data_subject_request(),
+// 0120), acknowledged by e-mail and executed by hand by an admin (docs/mvp/runbooks/
+// demandes-rgpd.md); nothing is executed automatically. Both, and the fresh code they need, are
+// exempt from the terms gate (A3): a right of the person survives a refused version.
 import {
   acceptTermsBodySchema,
   acceptTermsResponseSchema,
@@ -17,6 +21,10 @@ import {
   confirmEmailChangeResponseSchema,
   consentResponseSchema,
   consentSourceSchema,
+  dataRequestBodySchema,
+  dataRequestResponseSchema,
+  dataRequestSchema,
+  dataRequestsResponseSchema,
   emailChangeBodySchema,
   emailChangeParamsSchema,
   emailChangeResponseSchema,
@@ -39,6 +47,10 @@ import {
   type ConfirmEmailChangeBody,
   type ConfirmEmailChangeResponse,
   type ConsentResponse,
+  type DataRequest,
+  type DataRequestBody,
+  type DataRequestResponse,
+  type DataRequestsResponse,
   type EmailChangeBody,
   type EmailChangeParams,
   type EmailChangeResponse,
@@ -83,6 +95,7 @@ import {
 import { withMemberSession, type MemberContext } from "./member-session.ts";
 import {
   requestReauthenticationCode,
+  requireFreshCode,
   verifyReauthenticationCode,
   type ReauthenticatingMember,
 } from "./reauthentication.ts";
@@ -91,13 +104,16 @@ import {
   constraintNameOf,
   insertReacceptance,
   ownConsentStates,
+  ownDataRequests,
   ownOpenSessions,
   ownProfile,
   revokeOwnSession,
   setMarketingConsent,
   sqlStateOf,
+  submitDataRequest,
   updateOwnAccount,
   type ConsentState,
+  type OwnDataRequestRow,
   type TermsToAcceptRow,
 } from "./repository.ts";
 import type { IdentityApp, IdentityDependencies } from "./routes.ts";
@@ -128,6 +144,19 @@ export function consentView(states: readonly ConsentState[]): ConsentResponse {
     occurredAt: shown?.occurredAt ?? null,
     source: shown === null || !source.success ? null : source.data,
   };
+}
+
+/** A row of backoffice.data_subject_requests as the member reads it; the schema checks it again. */
+function dataRequestOf(row: OwnDataRequestRow): DataRequest {
+  return dataRequestSchema.parse({
+    id: row.id,
+    type: row.requestType,
+    receivedAt: row.receivedAt,
+    dueAt: row.dueAt,
+    status: row.status,
+    completedAt: row.completedAt,
+    outcome: row.outcomeCode,
+  });
 }
 
 function termsToAcceptOf(row: TermsToAcceptRow | null): TermsToAccept | null {
@@ -439,8 +468,15 @@ export function registerAccountRoutes(
 
   // --- Behind a fresh code (RG57; J7 decisions 4 and 5, commit 7) -------------------------------
 
-  /** The member asking, read in its own transaction and committed before any call (G4). */
-  const memberOf = (request: FastifyRequest, reply: FastifyReply) =>
+  /**
+   * The member asking, read in its own transaction and committed before any call (G4). The fresh
+   * code of "mes données" is exempt from the terms gate, like the requests it opens (A3).
+   */
+  const memberOf = (
+    request: FastifyRequest,
+    reply: FastifyReply,
+    purpose: ReauthRequestCodeBody["purpose"],
+  ) =>
     withMemberSession(
       database,
       request,
@@ -458,6 +494,7 @@ export function registerAccountRoutes(
           locale: uiLocaleSchema.parse(profile.preferredLanguage),
         };
       },
+      { terms: purpose === "email_change" ? "required" : "exempt" },
     );
 
   const emailChangeCallOf = (
@@ -482,7 +519,7 @@ export function registerAccountRoutes(
       const { purpose } = request.body as ReauthRequestCodeBody;
       // C4.b: the answer carries the signed journey and the phrase: never stored by a cache.
       reply.header("cache-control", "no-store");
-      const member = await memberOf(request, reply);
+      const member = await memberOf(request, reply, purpose);
       const result = await requestReauthenticationCode(dependencies, {
         requestId: request.id,
         member,
@@ -514,7 +551,7 @@ export function registerAccountRoutes(
     async (request, reply): Promise<ReauthVerifyCodeResponse> => {
       const body = request.body as ReauthVerifyCodeBody;
       reply.header("cache-control", "no-store");
-      const member = await memberOf(request, reply);
+      const member = await memberOf(request, reply, body.purpose);
       return verifyReauthenticationCode(dependencies, {
         requestId: request.id,
         member,
@@ -593,6 +630,64 @@ export function registerAccountRoutes(
         cancelOwnEmailChange(tx, changeId),
       );
       return { outcome: "cancelled" };
+    },
+  );
+
+  // --- "Mes données" (EC-14; RG57; 17 §6.3; J7 decision 6, commit 8) --------------------------------
+
+  // GET /v1/me/data-requests: the member's own requests, their state and their deadline.
+  app.get(
+    "/v1/me/data-requests",
+    { schema: { response: { 200: dataRequestsResponseSchema } } },
+    async (request, reply): Promise<DataRequestsResponse> =>
+      withMemberSession(
+        database,
+        request,
+        reply,
+        now,
+        async (tx) => ({
+          requests: (await ownDataRequests(tx)).map(dataRequestOf),
+        }),
+        { terms: "exempt" },
+      ),
+  );
+
+  // POST /v1/me/data-requests (RG57): after a fresh code for data_export (access) or
+  // account_deletion (erasure), consumed by the deposit in its transaction; the acknowledgement
+  // privacy.request_received is queued with it (P1). A request of this type still open is returned
+  // as it is. Nothing is exported nor deleted here: an admin instructs the request (EC-14).
+  app.post(
+    "/v1/me/data-requests",
+    {
+      schema: {
+        body: dataRequestBodySchema,
+        response: { 200: dataRequestResponseSchema },
+      },
+    },
+    async (request, reply): Promise<DataRequestResponse> => {
+      const { type } = request.body as DataRequestBody;
+      return withMemberSession(
+        database,
+        request,
+        reply,
+        now,
+        async (tx, context) => {
+          const deposited = await requireFreshCode(() =>
+            submitDataRequest(tx, context.sessionId, type),
+          );
+          const row = (await ownDataRequests(tx)).find(
+            (candidate) => candidate.id === deposited.requestId,
+          );
+          if (row === undefined) {
+            throw new Error("deposited request not readable by its member");
+          }
+          return {
+            outcome: deposited.created ? "received" : "already_open",
+            request: dataRequestOf(row),
+          };
+        },
+        { terms: "exempt" },
+      );
     },
   );
 }

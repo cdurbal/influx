@@ -109,6 +109,10 @@ export type BrevoSubject = {
   externalContactId: string | null;
   /** A suppression is recorded on the Brevo contact (05 RG93, a complaint): never resynchronised. */
   suppressed: boolean;
+  /** An auth.new_device line: the opening of its session (ISO 8601, 0126); else null. */
+  signedInAt: string | null;
+  /** An auth.new_device line: the browser summary of its session (05 RG141); else null. */
+  browser: string | null;
 };
 
 /** What the Apollo connector reads of a subject, besides the account state of the attempt (0113). */
@@ -303,6 +307,8 @@ export async function readBrevoSubject(
     previous_email: string | null;
     external_contact_id: string | null;
     suppressed: boolean;
+    signed_in_at: string | null;
+    browser: string | null;
   }>(
     sql`select email,
                to_char(signed_up_at at time zone 'UTC',
@@ -310,7 +316,10 @@ export async function readBrevoSubject(
                company, utm_source, utm_medium, utm_campaign, referrer_domain, heard_from,
                to_char(consent_at at time zone 'UTC',
                        'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as consent_at,
-               consent_source, welcome_sent, previous_email, external_contact_id, suppressed
+               consent_source, welcome_sent, previous_email, external_contact_id, suppressed,
+               to_char(signed_in_at at time zone 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as signed_in_at,
+               browser
           from leads.read_brevo_subject(${lineId}::bigint, ${worker}::text)`,
   );
   const row = rows[0];
@@ -332,6 +341,8 @@ export async function readBrevoSubject(
     previousEmail: row.previous_email,
     externalContactId: row.external_contact_id,
     suppressed: row.suppressed,
+    signedInAt: row.signed_in_at,
+    browser: row.browser,
   };
 }
 

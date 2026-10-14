@@ -36,6 +36,19 @@
         "notYou": "Didn't request anything? Ignore this email: without this code, your address cannot be attached to an INFLUX account.",
         "never": "INFLUX will never ask you for this code, by phone, email or message. Do not share it with anyone.",
         "reason": "this address was given as the new address of an INFLUX account"
+      },
+      "newDevice": {
+        "subject": "New sign-in to your INFLUX account",
+        "preheader": "From {browser}. If this was you, there is nothing to do.",
+        "title": "New sign-in from a new browser",
+        "body": "Someone signed in to your INFLUX account on {signedInAt, date, long} at {signedInAt, time, short} ({timeZone}) from {browser}. This browser had not been used on your account in the last 30 days.",
+        "ifYou": "If this was you, there is nothing to do.",
+        "ifNotYou": "If this wasn't you:",
+        "step1": "First secure your email inbox (change its password): it is where your sign-in codes arrive.",
+        "step2": "Sign in to INFLUX, open \"My sessions\" and choose \"Close all sessions\".",
+        "step3": "If you cannot sign in, contact INFLUX from the help on the sign-in screen.",
+        "never": "INFLUX will never ask you for your sign-in code.",
+        "reason": "someone signed in to your INFLUX account from a new browser"
       }
     },
     "internal": {

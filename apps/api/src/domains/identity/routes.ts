@@ -1,7 +1,8 @@
 // Routes of the member authentication (docs/mvp/21 §5.2; 02 §18.10; 05 RG42 to RG69). Web surface
 // only (prefix): request-code, verify-code, the journey resume (GET /v1/auth/journey and its reset,
 // D66), the sign-up (POST /v1/signup, J5), logout, the minimal GET /v1/me of the J3, and the public
-// documents read without an account (GET /v1/terms/current, 21 EC-62). The member's own account
+// documents read without an account (GET /v1/terms/current, 21 EC-62), the rescue channel (POST
+// /v1/support/code-not-received, 05 RG65, J7 commit 8). The member's own account
 // (GET and PATCH /v1/me, consent, sessions, terms re-acceptance): account-routes.ts.
 import {
   journeyResetResponseSchema,
@@ -24,6 +25,11 @@ import {
   type SignupBody,
   type SignupResponse,
 } from "@influx/contracts/signup";
+import {
+  codeNotReceivedBodySchema,
+  codeNotReceivedResponseSchema,
+  type CodeNotReceivedResponse,
+} from "@influx/contracts/support";
 import {
   currentTermsQuerySchema,
   currentTermsResponseSchema,
@@ -66,6 +72,7 @@ import type { SupabaseAuth } from "../../platform/supabase.ts";
 import { userAgentSummaryOf } from "../../platform/user-agent.ts";
 import { MinuteCounter } from "../ops/routes.ts";
 import { registerAccountRoutes } from "./account-routes.ts";
+import { reportCodeNotReceived } from "./code-delivery-report.ts";
 import { completeSignup } from "./complete-signup.ts";
 import { readJourney } from "./journey.ts";
 import { requestLoginCode } from "./login-code.ts";
@@ -76,6 +83,7 @@ import {
 import { revokeOwnSession } from "./repository.ts";
 import {
   CODE_REQUEST_FLOOR_MS,
+  DELIVERY_REPORT_FLOOR_MS,
   MEMBER_SESSION_IDLE_SECONDS,
 } from "./settings.ts";
 import {
@@ -104,6 +112,8 @@ export type IdentityDependencies = {
   now: () => Date;
   /** G3 (02 §18.4); injectable for the tests and the EC-42 measurement only. */
   codeRequestFloorMs?: number;
+  /** 05 RG65, decision 6 of J7 (the rescue channel); injectable for the tests only. */
+  deliveryReportFloorMs?: number;
   /** EC-40 point 3 (backoffice sign-in, enrollment, R); injectable for the tests only. */
   backofficeAuthFloorMs?: number;
   /** Version in force of a public document (EC-62); the database unless a test replaces it. */
@@ -203,6 +213,42 @@ export function registerIdentityRoutes(
       } finally {
         // Step 10: every outcome, failures included, waits for the floor.
         await waitUntil(receivedAt + floorMs);
+      }
+    },
+  );
+
+  // POST /v1/support/code-not-received (05 RG65, CA26; J7 decision 6): the rescue channel, without
+  // sign-in. One answer whatever the addresses, after the same floor, validation included (like
+  // request-code); 429 over the ceiling of the network only. Never a code, never a session.
+  const reportFloorMs =
+    dependencies.deliveryReportFloorMs ?? DELIVERY_REPORT_FLOOR_MS;
+  app.post(
+    "/v1/support/code-not-received",
+    { schema: { response: { 200: codeNotReceivedResponseSchema } } },
+    async (request, reply): Promise<CodeNotReceivedResponse> => {
+      const receivedAt = performance.now() - reply.elapsedTime;
+      try {
+        const parsed = codeNotReceivedBodySchema.safeParse(request.body);
+        if (!parsed.success) {
+          throw new RequestValidationError(
+            parsed.error.issues.map((issue) => ({
+              path: issue.path.map(String).join("."),
+              issue: issue.code,
+            })),
+          );
+        }
+        const outcome = await reportCodeNotReceived(dependencies, {
+          requestId: request.id,
+          body: parsed.data,
+          clientAddress: clientAddressOf(request),
+          logger: request.log,
+        });
+        if (outcome === "rate_limited") {
+          throw new ApiError("rate_limited");
+        }
+        return { outcome: "received" };
+      } finally {
+        await waitUntil(receivedAt + reportFloorMs);
       }
     },
   );

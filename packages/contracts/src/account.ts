@@ -1,6 +1,7 @@
 // Contract of the member's own account, "mon compte" (docs/mvp/05 RG15, RG28, RG34, RG35, RG56,
 // RG71, RG92 to RG95, RG143; 17 §6.1, §6.2, §6.4, §6.7; 21 §5.2, J7 commit 6), and the actions
-// behind a fresh code: re-authentication and change of address (RG57, RG58; J7 commit 7). Shared by
+// behind a fresh code: re-authentication and change of address (RG57, RG58; J7 commit 7), "mes
+// données" (EC-14; 17 §6.3; J7 decision 6, commit 8). Shared by
 // apps/api and apps/web. The account is always the one of the session: no route takes an account
 // id, and a session id is only ever one of the member's own (18 T14).
 // Nothing here carries an amount, a rate or a commission (05 RG9).
@@ -329,3 +330,64 @@ export const cancelEmailChangeResponseSchema = z.strictObject({
 export type CancelEmailChangeResponse = z.infer<
   typeof cancelEmailChangeResponseSchema
 >;
+
+// --- "Mes données": export and deletion as REQUESTS (EC-14; 05 RG57; 17 §6.3; J7 decision 6) -------
+
+/**
+ * The two rights a member deposits from the space at J7: `access` (export, after a fresh code for
+ * `data_export`) and `erasure` (deletion, after a fresh code for `account_deletion`). Nothing is
+ * executed automatically: an admin instructs the request by a written procedure (EC-14).
+ */
+export const DATA_REQUEST_TYPES = ["access", "erasure"] as const;
+export const dataRequestTypeSchema = z.enum(DATA_REQUEST_TYPES);
+export type DataRequestType = z.infer<typeof dataRequestTypeSchema>;
+
+export const DATA_REQUEST_STATUSES = [
+  "received",
+  "in_progress",
+  "closed",
+] as const;
+
+/** The closed list of outcomes of a closed request (15 RG77). */
+export const DATA_REQUEST_OUTCOMES = [
+  "satisfaite",
+  "satisfaite_partiellement",
+  "refusee",
+  "sans_objet",
+  "retiree_par_le_demandeur",
+] as const;
+
+export const dataRequestSchema = z.strictObject({
+  id: z.uuid(),
+  type: dataRequestTypeSchema,
+  receivedAt: z.iso.datetime(),
+  /** The legal deadline: one month, written as 30 days. */
+  dueAt: z.iso.datetime(),
+  status: z.enum(DATA_REQUEST_STATUSES),
+  completedAt: z.iso.datetime().nullable(),
+  outcome: z.enum(DATA_REQUEST_OUTCOMES).nullable(),
+});
+export type DataRequest = z.infer<typeof dataRequestSchema>;
+
+/** GET /v1/me/data-requests: the member's own requests, the most recent first. */
+export const dataRequestsResponseSchema = z.strictObject({
+  requests: z.array(dataRequestSchema),
+});
+export type DataRequestsResponse = z.infer<typeof dataRequestsResponseSchema>;
+
+/** POST /v1/me/data-requests (403 reauthentication_required without the fresh code). */
+export const dataRequestBodySchema = z.strictObject({
+  type: dataRequestTypeSchema,
+});
+export type DataRequestBody = z.infer<typeof dataRequestBodySchema>;
+
+/**
+ * `received`: deposited now, the acknowledgement leaves by e-mail. `already_open`: a request of
+ * this type is still open; it is returned, nothing else is written or sent (the fresh code is
+ * consumed all the same).
+ */
+export const dataRequestResponseSchema = z.strictObject({
+  outcome: z.enum(["received", "already_open"]),
+  request: dataRequestSchema,
+});
+export type DataRequestResponse = z.infer<typeof dataRequestResponseSchema>;

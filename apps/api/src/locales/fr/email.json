@@ -36,6 +36,19 @@
         "notYou": "Vous n'avez rien demandé ? Ignorez cet e-mail : sans ce code, votre adresse ne peut pas être rattachée à un compte INFLUX.",
         "never": "INFLUX ne vous demandera jamais ce code, ni par téléphone, ni par e-mail, ni par message. Ne le communiquez à personne.",
         "reason": "cette adresse a été indiquée comme nouvelle adresse d'un compte INFLUX"
+      },
+      "newDevice": {
+        "subject": "Nouvelle connexion à votre compte INFLUX",
+        "preheader": "Depuis {browser}. Si c'était vous, vous n'avez rien à faire.",
+        "title": "Nouvelle connexion depuis un nouveau navigateur",
+        "body": "Une connexion à votre compte INFLUX a eu lieu le {signedInAt, date, long} à {signedInAt, time, short} ({timeZone}) depuis {browser}. Ce navigateur n'avait pas été utilisé sur votre compte au cours des 30 derniers jours.",
+        "ifYou": "Si c'était vous, vous n'avez rien à faire.",
+        "ifNotYou": "Si ce n'était pas vous :",
+        "step1": "Sécurisez d'abord votre boîte e-mail (changez son mot de passe) : c'est elle qui reçoit vos codes de connexion.",
+        "step2": "Connectez-vous à INFLUX, ouvrez « Mes sessions » et choisissez « Fermer toutes les sessions ».",
+        "step3": "Si vous ne parvenez pas à vous connecter, contactez INFLUX depuis l'aide de l'écran de connexion.",
+        "never": "INFLUX ne vous demandera jamais votre code de connexion.",
+        "reason": "une connexion à votre compte INFLUX a eu lieu depuis un nouveau navigateur"
       }
     },
     "internal": {

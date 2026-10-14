@@ -444,6 +444,9 @@ export function buildServer(
     ...(options.identity?.codeRequestFloorMs === undefined
       ? {}
       : { codeRequestFloorMs: options.identity.codeRequestFloorMs }),
+    ...(options.identity?.deliveryReportFloorMs === undefined
+      ? {}
+      : { deliveryReportFloorMs: options.identity.deliveryReportFloorMs }),
     ...(options.identity?.termsLookup === undefined
       ? {}
       : { termsLookup: options.identity.termsLookup }),

@@ -12,7 +12,9 @@
 //   6  A right code: transaction C finds the account by the GoTrue user id (J3-C rule 3) and
 //      routes by its real role (RG66 to RG69): member session, sign-up token, or no session.
 // Before a successful verification, the outcome depends on the code, the journey and the
-// network, never on the account (RG138). Steps 3 to 5 (checkEmailCode) also check the code of a
+// network, never on the account (RG138). A member session opened from a browser the account has not
+// used for 30 days queues the e-mail auth.new_device, in the same transaction (05 RG141, RG142,
+// EC-43): never a block, never a step more. Steps 3 to 5 (checkEmailCode) also check the code of a
 // member re-authentication (reauthentication.ts, J7 decision 4), under its own motif.
 import type { SignupDoor, VerifyCodeResponse } from "@influx/contracts/auth";
 import type { UserAgentSummary } from "@influx/contracts/user-agent";
@@ -39,6 +41,7 @@ import {
   insertMemberSession,
   recordAuthFailure,
   reserveAuthAttempt,
+  signalNewBrowser,
 } from "./repository.ts";
 import {
   CODE_ATTEMPTS,
@@ -341,11 +344,15 @@ export async function verifyLoginCode(
         return { value: { kind: "internal" as const }, auditSubject: null };
       }
       // A member session (A-9): only the SHA-256 of the identifier is stored (EC-2).
-      await insertMemberSession(tx, {
+      const sessionId = await insertMemberSession(tx, {
         tokenHash: createHash("sha256").update(token).digest(),
         accountId: account.id,
         userAgentSummary: request.browser,
       });
+      // RG141, RG142: the first session and a known browser queue nothing.
+      if (await signalNewBrowser(tx, sessionId)) {
+        request.logger.info({}, "member sign-in: new browser signalled");
+      }
       return {
         value: { kind: "session" as const, role: account.role },
         auditSubject: account.id,

@@ -747,6 +747,107 @@ describe("the member session: renewal, suspension, logout (J3-C rule 12, T8.7, T
   });
 });
 
+describe("05 RG141, RG142, CA80, CA81: the new browser signal of a sign-in (J7 commit 8, 0126)", () => {
+  const SAFARI_IOS =
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1 marker-5b7e";
+
+  async function signIn(server: Server, email: string, agent: string) {
+    const journey = await startJourney(server, email);
+    const response = await server.inject({
+      method: "POST",
+      url: "/v1/auth/verify-code",
+      headers: headers({
+        "content-type": "application/json",
+        "x-real-ip": journey.clientAddress,
+        "client-user-agent": agent,
+        cookie: `__Host-influx-login=${journey.loginCookie}`,
+      }),
+      payload: JSON.stringify({ code: journey.code, door: "creator" }),
+    });
+    expect(response.json()).toEqual({
+      outcome: "signed_in",
+      role: "creator",
+      roleMismatch: false,
+    });
+    return journey;
+  }
+
+  async function signalLinesOf(accountId: string) {
+    return migrationRole()<
+      {
+        destination: string;
+        priority: number;
+        payload: Record<string, unknown>;
+        idempotency_key: string;
+      }[]
+    >`
+      select destination::text as destination, priority, payload, idempotency_key
+        from leads.outbox_events
+       where subject_key = ${`account:${accountId}`} and event_type = 'auth.new_device'`;
+  }
+
+  it("first session: nothing (CA81); Safari on iOS after Firefox on Windows: one e-mail; again the same day: none (CA80)", async () => {
+    const { server, logs } = app();
+    const account = await newAccount("browser", "creator");
+    try {
+      const first = await signIn(server, account.email, AGENT);
+      expect(await signalLinesOf(account.accountId)).toEqual([]);
+
+      const second = await signIn(server, account.email, SAFARI_IOS);
+      const lines = await signalLinesOf(account.accountId);
+      expect(lines).toHaveLength(1);
+      const safari = (await sessionsOf(account.accountId)).filter(
+        (row) => row.user_agent_summary === "safari.ios",
+      );
+      const [session] = await migrationRole()<{ id: string }[]>`
+        select id::text from identity.sessions
+         where account_id = ${account.accountId}::uuid and user_agent_summary = 'safari.ios'`;
+      expect(safari).toHaveLength(1);
+      expect(lines[0]).toMatchObject({
+        destination: "brevo_transactional",
+        priority: 100,
+        payload: {
+          account_id: account.accountId,
+          session_id: session?.id,
+          email_code: "auth.new_device",
+        },
+      });
+      const [day] = await migrationRole()<{ value: string }[]>`
+        select to_char(now() at time zone 'UTC', 'YYYY-MM-DD') as value`;
+      expect(lines[0]?.idempotency_key).toBe(
+        `auth.new_device:${account.accountId}:safari.ios:${day?.value ?? ""}`,
+      );
+      // never a country, never an address in the queue (RG74, EC-43)
+      expect(JSON.stringify(lines[0]?.payload)).not.toMatch(/@|country/);
+
+      const third = await signIn(server, account.email, SAFARI_IOS);
+      expect(await signalLinesOf(account.accountId)).toHaveLength(1);
+      // RG142: no block, no step more: three sessions open
+      expect(
+        (await sessionsOf(account.accountId)).filter(
+          (row) => row.revoked_at === null,
+        ),
+      ).toHaveLength(3);
+
+      watched.push({
+        text: logs.text,
+        values: [
+          account.email,
+          first.code,
+          second.code,
+          third.code,
+          SAFARI_IOS,
+          session?.id ?? "",
+        ],
+      });
+    } finally {
+      await migrationRole()`
+        delete from leads.outbox_events
+         where subject_key = ${`account:${account.accountId}`}`;
+    }
+  });
+});
+
 describe("C-1 and RG-J3-5: nothing of the request in the logs; the summary only in the session row", () => {
   it("finds no address, code, cookie, token or browser agent in the captured streams", () => {
     expect(watched.length).toBeGreaterThanOrEqual(3);

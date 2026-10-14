@@ -4,7 +4,8 @@
 // journal written by the database, RG142 on the attributes read back from the double, the local
 // belt of 16 RG90 (one welcome per account, replay included), the guards of the read (a line of
 // this worker, a Brevo line only), and the notice of a changed address to both addresses (RG58,
-// J7 commit 7). The connectors alone are tested in tests/brevo-connector.
+// J7 commit 7), and the e-mail auth.new_device written by INFLUX from the session named by its line
+// (05 RG142, 16 RG157, J7 commit 8). The connectors alone are tested in tests/brevo-connector.
 // Accounts and lines are COMMITTED by the migration role (the worker reads in its own
 // transactions); the other pending lines of the stack are held while the worker claims, as in
 // tm1-worker-loop. The settings brevo_list_ids and brevo_template_ids are set for the file and
@@ -15,7 +16,7 @@ import {
 } from "@influx/test-kit/brevo-double";
 import { inRolledBackTransaction, localRoleUrl } from "@influx/test-kit/db";
 import { captureLogStream, valuesFoundIn } from "@influx/test-kit/logs";
-import { randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type postgres from "postgres";
 import {
   afterAll,
@@ -576,5 +577,74 @@ describe("05 RG58, J7 commit 7: the notice of a changed address leaves to both a
       },
     ]);
     expect(valuesFoundIn(logs.text(), [previous, current])).toEqual([]);
+  });
+});
+
+describe("05 RG142, 16 RG157, J7 commit 8: auth.new_device, written from the session of its line (0126)", () => {
+  /** A committed member session of `account` with this summary; its id. */
+  async function openSession(
+    account: string,
+    summary: string,
+  ): Promise<string> {
+    const [row] = await migration<{ id: string }[]>`
+      insert into identity.sessions
+        (token_hash, account_id, surface, mfa_method, user_agent_summary)
+      values (${createHash("sha256").update(randomBytes(32)).digest()}, ${account}, 'member',
+              null, ${summary})
+      returning id::text as id`;
+    return row?.id ?? "";
+  }
+
+  async function signalLine(account: string, session: string): Promise<string> {
+    const event = randomUUID();
+    const [row] = await migration<{ id: string }[]>`
+      insert into leads.outbox_events
+        (event_id, event_type, destination, subject_key, priority, payload, idempotency_key)
+      values (${event}, 'auth.new_device', 'brevo_transactional', ${`account:${account}`}, 100,
+              jsonb_build_object('event_id', ${event}::text, 'account_id', ${account}::text,
+                                 'session_id', ${session}::text,
+                                 'email_code', 'auth.new_device'),
+              ${`auth.new_device:${account}:${randomUUID()}`})
+      returning id::text as id`;
+    lines.push(row?.id ?? "");
+    return row?.id ?? "";
+  }
+
+  it("names the browser and the opening of the session, without any link; journaled P1 without a template", async () => {
+    const account = await createAccount({ role: "creator", consent: false });
+    const session = await openSession(account, "safari.ios");
+    const line = await signalLine(account, session);
+
+    expect(await turn()).toBe(1);
+    expect((await lineRow(line)).status).toBe("succeeded");
+    const [message] = double.messages;
+    expect(message?.body.to).toEqual([{ email: emails[0] }]);
+    expect(message?.body.templateId).toBeUndefined();
+    expect(message?.body.textContent).toContain("depuis Safari sur iOS.");
+    expect(
+      `${message?.body.htmlContent ?? ""}${message?.body.textContent ?? ""}`,
+    ).not.toMatch(/href|https?:|www\./i);
+    const journal = await migration<
+      { email_code: string; priority: string; template_ref: string | null }[]
+    >`
+      select email_code, priority::text as priority, template_ref
+        from leads.transactional_sends where outbox_event_id = ${line}`;
+    expect(journal).toEqual([
+      { email_code: "auth.new_device", priority: "p1", template_ref: null },
+    ]);
+  });
+
+  it("a session of ANOTHER account named by the line is never read: failed session_not_found, nothing sent", async () => {
+    const account = await createAccount({ role: "creator" });
+    const other = await createAccount({ role: "creator" });
+    const foreign = await openSession(other, "chrome.android");
+    const line = await signalLine(account, foreign);
+
+    expect(await turn()).toBe(1);
+    expect(await lineRow(line)).toMatchObject({
+      status: "failed",
+      last_error_code: "session_not_found",
+    });
+    expect(double.requests).toHaveLength(0);
   });
 });

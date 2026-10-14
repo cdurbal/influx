@@ -21,6 +21,7 @@ import {
   BREVO_CONTACT_ATTRIBUTES,
   checkContactOutput,
   checkEmailChangeOutput,
+  checkRenderedTransactionalOutput,
   createBrevoConnectors,
   mapContact,
   type BrevoConnectorSettings,
@@ -99,6 +100,8 @@ function subject(overrides: Partial<BrevoSubject> = {}): BrevoSubject {
     previousEmail: null,
     externalContactId: null,
     suppressed: false,
+    signedInAt: null,
+    browser: null,
     ...overrides,
   };
 }
@@ -1139,6 +1142,207 @@ describe("05 RG58, J7 commit 7: the notice of a changed address, to both address
         state({}, NOTICE_SETTINGS),
       ),
     ).toEqual({ kind: "skip", reason: "skipped_non_production" });
+    expect(double.requests).toHaveLength(0);
+  });
+});
+
+describe("05 RG141, RG142, J7 commit 8: auth.new_device, written by INFLUX without any link (16 RG157, RG158)", () => {
+  const SESSION = "7e1f0a2b-3c4d-4e5f-8a9b-0c1d2e3f4a5b";
+  const DAY_KEY = `auth.new_device:${ACCOUNT}:safari.ios:2026-10-14`;
+
+  function newDevice(): ClaimedLine {
+    return line("brevo_transactional", {
+      eventType: "auth.new_device",
+      payload: {
+        event_id: "0a1b2c3d-0000-4000-8000-00000000d1d1",
+        account_id: ACCOUNT,
+        session_id: SESSION,
+        email_code: "auth.new_device",
+      },
+      idempotencyKey: DAY_KEY,
+    });
+  }
+
+  function signalling(overrides: Partial<BrevoSubject> = {}): Connector {
+    return connectors({
+      subject: subject({
+        signedInAt: "2026-10-14T09:30:00.000Z",
+        browser: "safari.ios",
+        ...overrides,
+      }),
+    }).transactional;
+  }
+
+  it("sends the text of RG157 in the account's language, no template, no parameter, under the day's key", async () => {
+    // no template id is ever configured for this code: the text is INFLUX's (16 RG67)
+    const prepared = await prepare(signalling(), newDevice(), state({}, {}));
+    expect(prepared.kind === "mapped" && prepared.description).toEqual({
+      operation: "send_transactional",
+      templateCode: "auth.new_device",
+      attributeNames: [],
+      rejectedAttributeNames: [],
+    });
+    if (prepared.kind !== "mapped") {
+      throw new Error("expected a mapped e-mail");
+    }
+    expect(await prepared.result()).toMatchObject({
+      kind: "succeeded",
+      locale: "fr",
+    });
+    const [message] = double.messages;
+    expect(Object.keys(message?.body ?? {}).sort()).toEqual([
+      "htmlContent",
+      "sender",
+      "subject",
+      "tags",
+      "textContent",
+      "to",
+    ]);
+    expect(message?.body.to).toEqual([{ email: EMAIL }]);
+    expect(message?.body.subject).toBe(
+      "Nouvelle connexion à votre compte INFLUX",
+    );
+    expect(message?.body.textContent).toContain(
+      "le 14 octobre 2026 à 09:30 (UTC) depuis Safari sur iOS.",
+    );
+    expect(message?.body.tags).toEqual(["auth.new_device"]);
+    expect(message?.headers["idempotency-key"]).toBe(DAY_KEY);
+    // whatever the consent: a security e-mail (RG35)
+    double.reset();
+    await run(
+      signalling(),
+      newDevice(),
+      state({ marketingEmailConsent: false, preferredLanguage: "en" }, {}),
+    );
+    expect(double.messages[0]?.body.subject).toBe(
+      "New sign-in to your INFLUX account",
+    );
+  });
+
+  it("a summary outside the closed list is never quoted: 'un navigateur non identifié'", async () => {
+    await run(
+      signalling({ browser: "netscape.beos" }),
+      newDevice(),
+      state({}, {}),
+    );
+    const text = double.messages[0]?.body.textContent ?? "";
+    expect(text).toContain("depuis un navigateur non identifié.");
+    expect(text).not.toContain("netscape");
+  });
+
+  it("no session of the account behind the line: failed session_not_found, no call", async () => {
+    expect(
+      await prepare(
+        signalling({ signedInAt: null, browser: null }),
+        newDevice(),
+        state(),
+      ),
+    ).toEqual({ kind: "fail", errorCode: "session_not_found" });
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("redirect: an address outside BREVO_TEST_RECIPIENTS is skipped_non_production", async () => {
+    const { transactional } = connectors({
+      settings: { testRecipients: [] },
+      subject: subject({
+        signedInAt: "2026-10-14T09:30:00.000Z",
+        browser: "safari.ios",
+      }),
+    });
+    expect(await prepare(transactional, newDevice(), state())).toEqual({
+      kind: "skip",
+      reason: "skipped_non_production",
+    });
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("RG158 and RG137: the output check refuses a template, a parameter, and anything like a link", () => {
+    const body = {
+      sender: { name: "INFLUX", email: "no-reply@tx.influx.example" },
+      to: [{ email: EMAIL }],
+      subject: "s",
+      htmlContent: "<p>h</p>",
+      textContent: "t",
+      tags: ["auth.new_device"],
+    };
+    expect(checkRenderedTransactionalOutput(body)).toEqual([]);
+    expect(
+      checkRenderedTransactionalOutput({ ...body, templateId: 1, params: {} }),
+    ).toEqual(["params", "templateId"]);
+    for (const link of [
+      '<a href="x">y</a>',
+      "https://influx.example",
+      "voir influx.example://x",
+      "mailto:a",
+      "www.influx.example",
+      "<A >",
+    ]) {
+      expect(
+        checkRenderedTransactionalOutput({ ...body, htmlContent: link }),
+        link,
+      ).toEqual(["htmlContent"]);
+      expect(
+        checkRenderedTransactionalOutput({ ...body, textContent: link }),
+        link,
+      ).toEqual(["textContent"]);
+    }
+  });
+});
+
+describe("EC-14, J7 commit 8: privacy.request_received, the acknowledgement of a request (EC-8 template)", () => {
+  const RECEIVED_TEMPLATE = 31;
+  const REQUEST = "3c2b1a0f-9e8d-4c7b-8a69-584736251403";
+
+  function acknowledgement(): ClaimedLine {
+    return line("brevo_transactional", {
+      eventType: "privacy.request_received",
+      payload: {
+        event_id: "0a1b2c3d-0000-4000-8000-00000000a1a1",
+        account_id: ACCOUNT,
+        request_id: REQUEST,
+        email_code: "privacy.request_received",
+      },
+      idempotencyKey: `privacy.request_received:${REQUEST}`,
+    });
+  }
+
+  it("sends its template in the account's language, whatever the consent; not once per account", async () => {
+    await run(
+      connectors({ subject: subject({ welcomeSent: true }) }).transactional,
+      acknowledgement(),
+      state(
+        { marketingEmailConsent: false },
+        {
+          ...SETTINGS,
+          brevo_template_ids: {
+            "privacy.request_received": RECEIVED_TEMPLATE,
+          },
+        },
+      ),
+    );
+    const [message] = double.messages;
+    expect(message?.body.templateId).toBe(RECEIVED_TEMPLATE);
+    expect(message?.body.params).toEqual({ LANGUAGE: "fr" });
+    expect(message?.body.tags).toEqual(["privacy.request_received"]);
+    expect(message?.headers["idempotency-key"]).toBe(
+      `privacy.request_received:${REQUEST}`,
+    );
+  });
+
+  it("EC-8: no template configured (NULL, 0120), skipped template_not_configured", async () => {
+    expect(
+      await prepare(
+        connectors().transactional,
+        acknowledgement(),
+        state(
+          {},
+          {
+            ...SETTINGS,
+            brevo_template_ids: { "privacy.request_received": null },
+          },
+        ),
+      ),
+    ).toEqual({ kind: "skip", reason: "template_not_configured" });
     expect(double.requests).toHaveLength(0);
   });
 });

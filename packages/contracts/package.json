@@ -16,7 +16,8 @@
     "./terms": "./src/terms.ts",
     "./countries": "./src/countries.ts",
     "./signup": "./src/signup.ts",
-    "./brevo-webhook": "./src/brevo-webhook.ts"
+    "./brevo-webhook": "./src/brevo-webhook.ts",
+    "./support": "./src/support.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tests.json",

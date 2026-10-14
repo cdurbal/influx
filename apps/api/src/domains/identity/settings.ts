@@ -79,3 +79,14 @@ export const TOTP_ISSUER = "INFLUX";
 
 /** J3-A d, B-1 point 3: bound of the k-anonymity lookup of a new password. */
 export const PWNED_PASSWORDS_TIMEOUT_MS = 2_000;
+
+/**
+ * 05 RG65, J7 decision 6: the rescue channel. The same answer, never before this many milliseconds
+ * (like G3), on its own counters (0115: never those of the code). Per network, then per sign-in
+ * address; a request without a valid client address counts on one global counter (EC-21).
+ * PROVISIONAL values (expert-cybersecurite, end of J7).
+ */
+export const DELIVERY_REPORT_FLOOR_MS = 1_000;
+export const DELIVERY_REPORTS_PER_IP_HOUR = 5;
+export const DELIVERY_REPORTS_UNKNOWN_IP_HOUR = 10;
+export const DELIVERY_REPORTS_PER_EMAIL_HOUR = 3;

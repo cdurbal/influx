@@ -18,7 +18,10 @@ export type ThrottleScope =
   | "backoffice_login_unknown_ip"
   | "backoffice_login_email"
   | "backoffice_login_platform"
-  | "backoffice_reauth_session";
+  | "backoffice_reauth_session"
+  | "delivery_report_email"
+  | "delivery_report_ip"
+  | "delivery_report_unknown_ip";
 
 export type ThrottleWindow = "15m" | "1h";
 
@@ -247,6 +250,21 @@ export async function insertMemberSession(
     throw new Error("session not inserted");
   }
   return row.id;
+}
+
+/**
+ * 05 RG141, RG142 (0126): on the member session this transaction just opened, queues the e-mail
+ * auth.new_device unless the browser is known or the session is the account's first; true when a
+ * line was queued (at most one per account, summary and UTC day).
+ */
+export async function signalNewBrowser(
+  tx: Transaction,
+  sessionId: string,
+): Promise<boolean> {
+  const rows = await tx.execute<{ queued: boolean }>(
+    sql`select identity.signal_new_browser(${sessionId}::uuid) as queued`,
+  );
+  return rows[0]?.queued === true;
 }
 
 // --- Under the member's own role (withUserTransaction) -----------------------------------------
@@ -1198,4 +1216,97 @@ export async function ownEmailChange(
     oldAttempts: row.old_attempts,
     newAttempts: row.new_attempts,
   };
+}
+
+// --- "Mes données", under the member's own role (EC-14; J7 decision 6, 0120) -----------------------
+
+export type OwnDataRequestRow = {
+  id: string;
+  requestType: string;
+  receivedAt: string;
+  dueAt: string;
+  status: string;
+  completedAt: string | null;
+  outcomeCode: string | null;
+};
+
+/** The member's own requests of the two types exposed at J7, the most recent first (0120 policy). */
+export async function ownDataRequests(
+  tx: Transaction,
+): Promise<OwnDataRequestRow[]> {
+  const rows = await tx.execute<{
+    id: string;
+    request_type: string;
+    received_at: string;
+    due_at: string;
+    status: string;
+    completed_at: string | null;
+    outcome_code: string | null;
+  }>(
+    sql`select id::text as id, request_type::text as request_type,
+               to_char(received_at at time zone 'UTC', ${ISO_UTC}) as received_at,
+               to_char(due_at at time zone 'UTC', ${ISO_UTC}) as due_at,
+               status::text as status,
+               to_char(completed_at at time zone 'UTC', ${ISO_UTC}) as completed_at,
+               outcome_code::text as outcome_code
+          from backoffice.data_subject_requests
+         where requester_account_id = (select influx.current_account_id())
+           and request_type in ('access', 'erasure')
+         order by received_at desc, id`,
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    requestType: row.request_type,
+    receivedAt: row.received_at,
+    dueAt: row.due_at,
+    status: row.status,
+    completedAt: row.completed_at,
+    outcomeCode: row.outcome_code,
+  }));
+}
+
+/**
+ * Deposits a request (0120 backoffice.submit_data_subject_request): consumes the fresh code of its
+ * purpose on this session (55000 without it), queues the acknowledgement. `created` is false when
+ * a request of this type was already open (nothing written, nothing sent).
+ */
+export async function submitDataRequest(
+  tx: Transaction,
+  sessionId: string,
+  requestType: "access" | "erasure",
+): Promise<{ requestId: string; created: boolean }> {
+  const rows = await tx.execute<{ request_id: string; created: boolean }>(
+    sql`select request_id::text as request_id, created
+          from backoffice.submit_data_subject_request(
+                 ${sessionId}::uuid, ${requestType}::backoffice.data_request_type)`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    throw new Error("data subject request not deposited");
+  }
+  return { requestId: row.request_id, created: row.created };
+}
+
+// --- The rescue channel, under influx_auth (E-1 support.report_delivery_issue; 05 RG65, 0120) --------
+
+/** Writes one report and nothing else (no lookup, no code, no session, no e-mail); its id. */
+export async function recordCodeDeliveryReport(
+  tx: Transaction,
+  report: {
+    loginEmail: string;
+    contactEmail: string;
+    message: string | null;
+    locale: string;
+  },
+): Promise<string> {
+  const rows = await tx.execute<{ id: string }>(
+    sql`select backoffice.record_code_delivery_report(
+                 ${report.loginEmail}::text, ${report.contactEmail}::text,
+                 ${report.message}::text, ${report.locale}::text)::text as id`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    throw new Error("delivery report not recorded");
+  }
+  return row.id;
 }

@@ -60,6 +60,17 @@ const TRANSACTIONAL_BODY_FIELDS = new Set([
   "tags",
 ]);
 export const TRANSACTIONAL_PARAMS = ["LANGUAGE"] as const;
+/** Operation 6 of an e-mail written by INFLUX itself (16 RG67): its text, no template. */
+const RENDERED_TRANSACTIONAL_BODY_FIELDS = new Set([
+  "sender",
+  "to",
+  "subject",
+  "htmlContent",
+  "textContent",
+  "tags",
+]);
+/** 16 RG158: anything that could be a link, whatever its form. */
+const LINK_PATTERN = /<a[\s>]|href\s*=|[a-z][a-z0-9+.-]*:\/\/|mailto:|www\./i;
 
 export type BrevoContactBody = {
   email: string;
@@ -167,5 +178,22 @@ export function checkTransactionalOutput(
   return [
     ...outside(Object.keys(body), TRANSACTIONAL_BODY_FIELDS),
     ...outside(params, TRANSACTIONAL_PARAM_SET),
+  ].sort();
+}
+
+/**
+ * 16 RG137 on operation 6 of an e-mail written by INFLUX (auth.new_device): the names refused,
+ * sorted; a text that holds anything like a link is refused by its name too (RG158).
+ */
+export function checkRenderedTransactionalOutput(
+  body: Record<string, unknown>,
+): string[] {
+  const linked = ["subject", "htmlContent", "textContent"].filter((name) => {
+    const value = body[name];
+    return typeof value === "string" && LINK_PATTERN.test(value);
+  });
+  return [
+    ...outside(Object.keys(body), RENDERED_TRANSACTIONAL_BODY_FIELDS),
+    ...linked,
   ].sort();
 }

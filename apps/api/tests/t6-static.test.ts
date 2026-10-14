@@ -110,6 +110,9 @@ describe("T6.1: A = U and U ⊆ P", () => {
         "apps/api/src/domains/maintenance/periodic.ts",
       ],
       "ops.record_telemetry": ["apps/api/src/domains/ops/recorder.ts"],
+      "support.report_delivery_issue": [
+        "apps/api/src/domains/identity/code-delivery-report.ts",
+      ],
     };
     const found = new Map<string, Set<string>>();
     for (const call of scanElevatedCalls(applicationFiles(), DECLARATION)

@@ -60,10 +60,12 @@ export const ELEVATED_POOL_EXCEPTIONS: Readonly<
  * apps/api/src/domains/leads/brevo-webhook.ts, migration 0116); E-4 with the periodic tasks (J7
  * commit 5, apps/api/src/domains/maintenance/periodic.ts, migration 0117); the re-authentication
  * and the address change of a member (J7 commit 7, apps/api/src/domains/identity/reauthentication.ts
- * and email-change.ts, migrations 0118 and 0123).
+ * and email-change.ts, migrations 0118 and 0123); the rescue channel (J7 commit 8,
+ * apps/api/src/domains/identity/code-delivery-report.ts, migration 0120).
  */
 export const ELEVATED_OPERATIONS = [
   "identity.request_code",
+  "support.report_delivery_issue",
   "identity.read_published_terms",
   "identity.verify_code",
   "identity.complete_signup",

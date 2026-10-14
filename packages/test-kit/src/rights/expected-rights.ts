@@ -1467,6 +1467,17 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|column|identity.email_change_requests.completed_at|SELECT",
   "influx_leads_definer|column|identity.email_change_requests.id|SELECT",
   "influx_leads_definer|column|identity.email_change_requests.old_email|SELECT",
+  // 0126 (J7 commit 8): the "new browser" signal (05 RG141, RG142), influx_auth only, and the
+  // worker's read of the session named by an auth.new_device line (member sessions only; never the
+  // token digest, the marker nor the country).
+  "influx_auth|function|identity.signal_new_browser(uuid)|EXECUTE",
+  "influx_identity_definer|function|identity.signal_new_browser(uuid)|EXECUTE",
+  "influx_identity_definer|column|identity.sessions.user_agent_summary|SELECT",
+  "influx_leads_definer|column|identity.sessions.account_id|SELECT",
+  "influx_leads_definer|column|identity.sessions.created_at|SELECT",
+  "influx_leads_definer|column|identity.sessions.id|SELECT",
+  "influx_leads_definer|column|identity.sessions.surface|SELECT",
+  "influx_leads_definer|column|identity.sessions.user_agent_summary|SELECT",
 ];
 
 /**
@@ -1615,4 +1626,6 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
     "influx_identity_definer",
   "backoffice.record_code_delivery_report(text,text,text,text)":
     "influx_identity_definer",
+  // 0126 (J7 commit 8)
+  "identity.signal_new_browser(uuid)": "influx_identity_definer",
 };
