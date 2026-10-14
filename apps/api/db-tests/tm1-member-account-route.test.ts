@@ -7,6 +7,9 @@
 // 0122 that need a state no route can see (a blocked country, a new version in force) are rolled
 // back, the member acting through influx_app in the transaction of the local superuser (actAs).
 // Every log stream is searched BY VALUE (C-1): no address, company name nor session id (D60).
+// The latest drafts are published first when not in force with their text (ensureInForce, like
+// TM10): CI publishes the public documents only after `pnpm check`, and the data set of T2 holds
+// the French terms only.
 import {
   inRolledBackTransaction,
   localRoleUrl,
@@ -23,6 +26,10 @@ import {
   createApiDatabase,
   type ApiDatabase,
 } from "../src/db/index.ts";
+import {
+  ensureInForce,
+  LOCAL_SEED_DRAFTS,
+} from "../scripts/terms-publication.ts";
 import { buildServer } from "../src/server.ts";
 import { captureLogs, testApiConfig, WEB_SECRET } from "../tests/helpers.ts";
 import { actAsMember, localSuperuser, migrationRole } from "./support.ts";
@@ -178,6 +185,9 @@ function errorBody(response: LightMyRequestResponse) {
 
 beforeAll(async () => {
   migration = migrationRole();
+  for (const draft of LOCAL_SEED_DRAFTS) {
+    await ensureInForce(migration, draft);
+  }
   const versions = await migration<
     { id: string; locale: string; version_label: string }[]
   >`
