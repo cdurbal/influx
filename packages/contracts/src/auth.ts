@@ -107,14 +107,6 @@ export const logoutResponseSchema = z.strictObject({
   outcome: z.literal("signed_out"),
 });
 
-/** GET /v1/me, minimal at J3: who is signed in, in which language. */
-export const meResponseSchema = z.strictObject({
-  email: z.email(),
-  role: signupDoorSchema,
-  preferredLanguage: z.string().length(2),
-});
-export type MeResponse = z.infer<typeof meResponseSchema>;
-
 /**
  * GET /v1/auth/journey (D66; 05 RG111): where a reloaded journey resumes, read from the signed
  * httpOnly journey cookies only. `code`: a code was sent (login token); `details`: the address is

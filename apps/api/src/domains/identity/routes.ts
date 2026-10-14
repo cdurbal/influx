@@ -1,12 +1,12 @@
 // Routes of the member authentication (docs/mvp/21 §5.2; 02 §18.10; 05 RG42 to RG69). Web surface
 // only (prefix): request-code, verify-code, the journey resume (GET /v1/auth/journey and its reset,
 // D66), the sign-up (POST /v1/signup, J5), logout, the minimal GET /v1/me of the J3, and the public
-// documents read without an account (GET /v1/terms/current, 21 EC-62).
+// documents read without an account (GET /v1/terms/current, 21 EC-62). The member's own account
+// (GET and PATCH /v1/me, consent, sessions, terms re-acceptance): account-routes.ts.
 import {
   journeyResetResponseSchema,
   journeyResponseSchema,
   logoutResponseSchema,
-  meResponseSchema,
   requestCodeBodySchema,
   requestCodeResponseSchema,
   RESEND_DELAY_SECONDS,
@@ -14,7 +14,6 @@ import {
   verifyCodeResponseSchema,
   type JourneyResetResponse,
   type JourneyResponse,
-  type MeResponse,
   type RequestCodeResponse,
   type VerifyCodeBody,
   type VerifyCodeResponse,
@@ -66,15 +65,15 @@ import type { ZodTypeProvider } from "../../platform/schema-compilers.ts";
 import type { SupabaseAuth } from "../../platform/supabase.ts";
 import { userAgentSummaryOf } from "../../platform/user-agent.ts";
 import { MinuteCounter } from "../ops/routes.ts";
+import { registerAccountRoutes } from "./account-routes.ts";
 import { completeSignup } from "./complete-signup.ts";
 import { readJourney } from "./journey.ts";
 import { requestLoginCode } from "./login-code.ts";
 import {
   sessionTokenHashOf,
   setMemberSessionCookie,
-  withMemberSession,
 } from "./member-session.ts";
-import { ownProfile, revokeOwnSession } from "./repository.ts";
+import { revokeOwnSession } from "./repository.ts";
 import {
   CODE_REQUEST_FLOOR_MS,
   MEMBER_SESSION_IDLE_SECONDS,
@@ -435,27 +434,5 @@ export function registerIdentityRoutes(
     },
   );
 
-  // GET /v1/me, minimal at J3: the first answer that carries personal data (N2, R-2 in place).
-  app.get(
-    "/v1/me",
-    { schema: { response: { 200: meResponseSchema } } },
-    async (request, reply): Promise<MeResponse> =>
-      withMemberSession(
-        dependencies.database,
-        request,
-        reply,
-        dependencies.now,
-        async (tx, context) => {
-          const profile = await ownProfile(tx);
-          if (profile === null) {
-            throw new ApiError("unauthenticated");
-          }
-          return {
-            email: profile.email,
-            role: context.role,
-            preferredLanguage: profile.preferredLanguage,
-          };
-        },
-      ),
-  );
+  registerAccountRoutes(app, dependencies);
 }

@@ -368,10 +368,16 @@ describe("POST /v1/signup: one transaction per door (RG7, EC-30, EC-10)", () => 
           cookie: `__Host-influx-session=${session ?? ""}`,
         },
       });
+      // "mes informations" (05 RG71); the release accepted at sign-up, in French, is the one in
+      // force in English too: nothing to accept again (RG28, 0122)
       expect(me.json()).toEqual({
         email: identity.email,
         role: "advertiser",
         preferredLanguage: "en",
+        countryCode: "GB",
+        declaredStatus: "business",
+        companyName: "Maison TM10",
+        termsToAccept: null,
       });
       expect(
         valuesFoundIn(logs.text(), [

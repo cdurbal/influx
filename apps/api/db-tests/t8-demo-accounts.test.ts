@@ -298,7 +298,7 @@ describe("J3 « Terminé quand »: the four demo accounts reach their own space"
       url: "/v1/me",
       headers: webHeaders(clientAddress, `__Host-influx-session=${session}`),
     });
-    expect(me.json()).toEqual({
+    expect(me.json()).toMatchObject({
       email: account.email,
       role: account.role,
       preferredLanguage: account.preferredLanguage,

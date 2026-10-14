@@ -275,29 +275,241 @@ export async function idleExpiryOf(
   return expires === undefined ? null : new Date(expires);
 }
 
-/** Revocation by the holder (EC-29 point 3). */
+/**
+ * Revocation by the holder (EC-29 point 3; 0012): `logout` for the session of the request,
+ * `revoked_by_holder` from "mes sessions" (05 RG56). False for an unknown, closed or foreign
+ * session: the function cannot tell them apart, nor can the caller (18 T14).
+ */
 export async function revokeOwnSession(
   tx: Transaction,
   sessionId: string,
+  reason: "logout" | "revoked_by_holder" = "logout",
 ): Promise<boolean> {
   const rows = await tx.execute<{ revoked: boolean }>(
-    sql`select identity.revoke_own_session(${sessionId}::uuid, 'logout') as revoked`,
+    sql`select identity.revoke_own_session(${sessionId}::uuid,
+                 ${reason}::identity.session_revocation_reason) as revoked`,
   );
   return rows[0]?.revoked === true;
 }
 
-/** GET /v1/me, minimal: the member's own row (RLS: own account only). */
+/** ISO 8601 in UTC with milliseconds, as the contracts expect (z.iso.datetime()). */
+const ISO_UTC = 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"';
+
+export type OwnProfile = {
+  email: string;
+  preferredLanguage: string;
+  countryCode: string;
+  declaredStatus: string;
+  /** The advertiser's company name (0106); null for a creator, who reads nothing of it. */
+  companyName: string | null;
+};
+
+/**
+ * "Mes informations" (05 RG71): the caller's own row (RLS: own account only). The company name is
+ * read for an advertiser only; GET /v1/bo/me passes no member role.
+ */
 export async function ownProfile(
   tx: Transaction,
-): Promise<{ email: string; preferredLanguage: string } | null> {
-  const rows = await tx.execute<{ email: string; preferred_language: string }>(
-    sql`select email, preferred_language::text as preferred_language
+  role: "advertiser" | "creator" | null = null,
+): Promise<OwnProfile | null> {
+  const rows = await tx.execute<{
+    email: string;
+    preferred_language: string;
+    country_code: string;
+    declared_status: string;
+  }>(
+    sql`select email, preferred_language::text as preferred_language,
+               country_code::text as country_code, declared_status::text as declared_status
           from identity.accounts where id = (select influx.current_account_id())`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    return null;
+  }
+  let companyName: string | null = null;
+  if (role === "advertiser") {
+    const profiles = await tx.execute<{ legal_name: string }>(
+      sql`select legal_name from profiles.advertiser_profiles
+           where account_id = (select influx.current_account_id())`,
+    );
+    companyName = profiles[0]?.legal_name ?? null;
+  }
+  return {
+    email: row.email,
+    preferredLanguage: row.preferred_language,
+    countryCode: row.country_code,
+    declaredStatus: row.declared_status,
+    companyName,
+  };
+}
+
+export type OwnAccountChanges = {
+  countryCode?: string | undefined;
+  preferredLanguage?: string | undefined;
+  declaredStatus?: string | undefined;
+  companyName?: string | undefined;
+};
+
+/**
+ * PATCH /v1/me through identity.update_own_account() (0122): the columns and ONE lead.updated in
+ * this transaction (05 RG15, RG73). True when something changed.
+ */
+export async function updateOwnAccount(
+  tx: Transaction,
+  changes: OwnAccountChanges,
+): Promise<boolean> {
+  const rows = await tx.execute<{ changed: boolean }>(
+    sql`select identity.update_own_account(
+          ${changes.countryCode ?? null}::text,
+          ${changes.preferredLanguage ?? null}::text,
+          ${changes.declaredStatus ?? null}::identity.declared_status,
+          ${changes.companyName ?? null}::text) as changed`,
+  );
+  return rows[0]?.changed === true;
+}
+
+export type TermsToAcceptRow = {
+  versionId: string;
+  versionLabel: string;
+  locale: string;
+  effectiveFrom: string;
+};
+
+/** The terms of service in force not accepted yet by the member (0122; 05 RG28), or null. */
+export async function ownTermsToAccept(
+  tx: Transaction,
+): Promise<TermsToAcceptRow | null> {
+  const rows = await tx.execute<{
+    id: string;
+    version_label: string;
+    locale: string;
+    effective_from: string;
+  }>(
+    sql`select id::text as id, version_label, locale::text as locale,
+               to_char(effective_from at time zone 'UTC', ${ISO_UTC}) as effective_from
+          from identity.own_terms_to_accept()`,
   );
   const row = rows[0];
   return row === undefined
     ? null
-    : { email: row.email, preferredLanguage: row.preferred_language };
+    : {
+        versionId: row.id,
+        versionLabel: row.version_label,
+        locale: row.locale,
+        effectiveFrom: row.effective_from,
+      };
+}
+
+/**
+ * The re-acceptance (05 RG28): written by the member under his own role (0005 §5.2: channel
+ * re_acceptance, own account only); the hash and the instant are copied by
+ * identity.prepare_terms_acceptance(), which refuses any version not in force.
+ */
+export async function insertReacceptance(
+  tx: Transaction,
+  version: { versionId: string; locale: string },
+): Promise<void> {
+  await tx.execute(
+    sql`insert into identity.terms_acceptances
+          (account_id, terms_version_id, nature, channel, locale)
+        values ((select influx.current_account_id()), ${version.versionId}::uuid,
+                'acceptance', 're_acceptance', ${version.locale})`,
+  );
+}
+
+export type ConsentPurpose = "marketing_email" | "commercial_prospection";
+
+/** One checkbox at sign-up, two purposes (05 RG33): both are always changed together. */
+export const CONSENT_PURPOSES: readonly ConsentPurpose[] = [
+  "marketing_email",
+  "commercial_prospection",
+];
+
+export type ConsentState = {
+  purpose: ConsentPurpose;
+  granted: boolean;
+  source: string;
+  occurredAt: string;
+};
+
+/** The consent in force per purpose (RG37: the latest event; a refusal wins a tie). */
+export async function ownConsentStates(
+  tx: Transaction,
+): Promise<ConsentState[]> {
+  const rows = await tx.execute<{
+    purpose: ConsentPurpose;
+    granted: boolean;
+    source: string;
+    occurred_at: string;
+  }>(
+    sql`select distinct on (c.purpose) c.purpose::text as purpose, c.granted,
+               c.source::text as source,
+               to_char(c.occurred_at at time zone 'UTC', ${ISO_UTC}) as occurred_at
+          from identity.consent_events c
+         where c.account_id = (select influx.current_account_id())
+         order by c.purpose, c.occurred_at desc, c.granted`,
+  );
+  return rows.map((row) => ({
+    purpose: row.purpose,
+    granted: row.granted,
+    source: row.source,
+    occurredAt: row.occurred_at,
+  }));
+}
+
+/**
+ * Through identity.set_marketing_consent() (0119), the only door: the event (source
+ * account_settings) and consent.revoked (priority 0) or consent.granted in this transaction
+ * (05 RG73, RG78, RG92). False when the value in force is already the asked one.
+ */
+export async function setMarketingConsent(
+  tx: Transaction,
+  purpose: ConsentPurpose,
+  granted: boolean,
+  evidence: Readonly<Record<string, string>>,
+): Promise<boolean> {
+  const rows = await tx.execute<{ changed: boolean }>(
+    sql`select identity.set_marketing_consent(${purpose}::identity.consent_purpose, ${granted},
+                 ${JSON.stringify(evidence)}::text::jsonb) as changed`,
+  );
+  return rows[0]?.changed === true;
+}
+
+export type OwnSessionRow = {
+  id: string;
+  createdAt: string;
+  lastActivityAt: string;
+  userAgentSummary: string | null;
+};
+
+/** The member's open sessions (05 RG56, RG143), the most recent activity first. */
+export async function ownOpenSessions(
+  tx: Transaction,
+): Promise<OwnSessionRow[]> {
+  const rows = await tx.execute<{
+    id: string;
+    created_at: string;
+    last_activity_at: string;
+    user_agent_summary: string | null;
+  }>(
+    sql`select id::text as id,
+               to_char(created_at at time zone 'UTC', ${ISO_UTC}) as created_at,
+               to_char(last_activity_at at time zone 'UTC', ${ISO_UTC}) as last_activity_at,
+               user_agent_summary
+          from identity.sessions
+         where account_id = (select influx.current_account_id())
+           and surface = 'member'
+           and revoked_at is null
+           and idle_expires_at > now()
+           and absolute_expires_at > now()
+         order by last_activity_at desc, created_at desc`,
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    createdAt: row.created_at,
+    lastActivityAt: row.last_activity_at,
+    userAgentSummary: row.user_agent_summary,
+  }));
 }
 
 // --- Backoffice sign-in, under influx_auth (E-2; 21 §4, J3 commit 10) ---------------------------

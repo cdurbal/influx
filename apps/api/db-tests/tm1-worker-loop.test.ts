@@ -2,8 +2,10 @@
 // on the real queue: the worker's module and pool (queue.ts, influx_worker_login), with in-memory
 // connectors (16 RG148: no test reaches Brevo or Apollo). 05 CA47 (a revocation before 50 ordinary
 // lines), CA48 (the schedule of RG79, then the definitive failure at the tenth attempt), CA50 (two
-// events of one account in the order of emission), and lead-pipeline T9 on the real pool: while a
-// connector waits, the worker holds no transaction and no lock (02 §18.4 G4).
+// events of one account in the order of emission), lead-pipeline T7 (the order P0, revocation, P1,
+// P2) and T8 (a revocation within its 5 minutes however many urgent lines follow it, J7 commit 6),
+// and T9 on the real pool: while a connector waits, the worker holds no transaction and no lock
+// (02 §18.4 G4).
 // Queue lines are inserted and COMMITTED by the migration role, on fresh subjects without an
 // account (no contact state is written), and removed after each case. While the worker claims, a
 // transaction of the migration role holds every OTHER pending line of the stack: SKIP LOCKED
@@ -43,24 +45,35 @@ afterEach(async () => {
   }
 });
 
+type Destination = "brevo_contact" | "brevo_transactional";
+
 type LineSpec = {
   subject?: string;
   eventType?: string;
   priority?: number;
+  destination?: Destination;
 };
 
-/** A committed brevo_contact line; the payload carries identifiers only (05 RG74). */
+/**
+ * A committed line, brevo_contact unless said otherwise (a brevo_transactional line is the welcome
+ * e-mail, P1 of 16 §H); the payload carries identifiers and codes only (05 RG74).
+ */
 async function insertLine(spec: LineSpec = {}): Promise<string> {
   const subject = spec.subject ?? `account:${randomUUID()}`;
   const event = randomUUID();
+  const destination = spec.destination ?? "brevo_contact";
   const payload = JSON.stringify({
     event_id: event,
     account_id: subject.slice("account:".length),
+    ...(destination === "brevo_transactional"
+      ? { email_code: "account.welcome_creator" }
+      : {}),
   });
   const [row] = await migration<{ id: string }[]>`
     insert into leads.outbox_events
       (event_id, event_type, destination, subject_key, priority, payload, idempotency_key)
-    values (${event}, ${spec.eventType ?? "lead.created"}, 'brevo_contact', ${subject},
+    values (${event}, ${spec.eventType ?? "lead.created"},
+            ${destination}::leads.outbox_destination, ${subject},
             ${spec.priority ?? 100}::smallint,
             ${payload}::text::jsonb,
             ${`tm1-loop:${event}`})
@@ -105,17 +118,18 @@ function withOthersLocked<T>(fn: () => Promise<T>): Promise<T> {
   });
 }
 
-/** An in-memory Brevo contact connector: records the lines it prepares and calls. */
+/** An in-memory Brevo connector (contact unless said otherwise): records what it prepares and calls. */
 function contactConnector(
   result: (line: ClaimedLine) => Promise<CallResult> | CallResult = () => ({
     kind: "succeeded",
     providerContactId: "tm1-loop-contact",
   }),
+  destination: Destination = "brevo_contact",
 ) {
   const prepared: string[] = [];
   const sent: string[] = [];
   const connector: Connector = {
-    destination: "brevo_contact",
+    destination,
     hasCredentials: true,
     prepare(line) {
       prepared.push(line.id);
@@ -138,10 +152,14 @@ function contactConnector(
   return { connector, prepared, sent };
 }
 
-/** One turn of the drain on the worker's pool, the other lines of the stack held. */
+/**
+ * One turn of the drain on the worker's pool, the other lines of the stack held. `claimed`
+ * receives the ids of the batch in the order of the claim (priority, available_at, id).
+ */
 async function turnOnWorkerPool(
-  connector: Connector,
+  connector: Connector | readonly Connector[],
   mode: SyncSettings["mode"],
+  claimed?: string[],
 ): Promise<number> {
   const logger = createLogger(
     { service: "worker", environment: "staging", version: "test" },
@@ -158,9 +176,21 @@ async function turnOnWorkerPool(
     logger,
   );
   try {
+    const queue = createWorkerQueue(database);
     const drain = createOutboxDrain({
-      queue: createWorkerQueue(database),
-      connectors: { brevo_contact: connector },
+      queue: {
+        ...queue,
+        claim: async (requestId, worker) => {
+          const lines = await queue.claim(requestId, worker);
+          claimed?.push(...lines.map((line) => line.id));
+          return lines;
+        },
+      },
+      connectors: Object.fromEntries(
+        (Array.isArray(connector) ? connector : [connector]).map(
+          (each: Connector) => [each.destination, each],
+        ),
+      ),
       worker: `tm1-loop-${randomUUID().slice(0, 8)}`,
       sync: {
         mode,
@@ -185,10 +215,9 @@ describe("05 CA47, RG78: a revocation is processed before the ordinary lines", (
     for (let line = 0; line < 50; line += 1) {
       ordinary.push(await insertLine());
     }
-    // RG78 gives a revocation priority 0; its code consent.revoked enters audit.event_types with
-    // its emitter (J7), so the line is a lead.updated of priority 0 here.
+    // RG78: the withdrawal of the member space (0119, PUT /v1/me/consent) at priority 0
     const revocation = await insertLine({
-      eventType: "lead.updated",
+      eventType: "consent.revoked",
       priority: 0,
     });
     const { connector, prepared } = contactConnector();
@@ -205,6 +234,71 @@ describe("05 CA47, RG78: a revocation is processed before the ordinary lines", (
       status: "pending",
       attempts: 0,
     });
+  });
+});
+
+describe("lead-pipeline T7, T8: P0, then the revocations, then P1 and P2, and no starvation", () => {
+  it("T7: takes a revocation emitted last before the P1 and P2 lines of the same second; P0 never queues", async () => {
+    // Emitted in the worst order within the second: P1 (the welcome e-mail, 16 §H), then an
+    // ordinary contact synchronisation, then the withdrawal. P0 (the sign-in code) has its own
+    // synchronous path and writes no queue line (D43; t8-request-code, lead-pipeline T1): it
+    // leaves within its request, before any turn. At Lot 1, P1 and P2 share priority 100 (no
+    // P2 is emitted before Lot 4): between them, the order of emission (05 RG77).
+    const welcome = await insertLine({ destination: "brevo_transactional" });
+    const ordinary = await insertLine({ eventType: "lead.updated" });
+    const revocation = await insertLine({
+      eventType: "consent.revoked",
+      priority: 0,
+    });
+    const contact = contactConnector();
+    const transactional = contactConnector(
+      () => ({ kind: "succeeded", providerMessageId: "<tm1-loop@double>" }),
+      "brevo_transactional",
+    );
+    const claimed: string[] = [];
+
+    expect(
+      await turnOnWorkerPool(
+        [contact.connector, transactional.connector],
+        "dry_run",
+        claimed,
+      ),
+    ).toBe(3);
+    expect(claimed).toEqual([revocation, welcome, ordinary]);
+    expect(contact.prepared).toEqual([revocation, ordinary]);
+    expect(transactional.prepared).toEqual([welcome]);
+  });
+
+  it("T8: a revocation behind a backlog is taken in its turn, before every urgent line emitted after it", async () => {
+    // 05 RG92: under 5 minutes. A backlog of 30 older revocations, then ours, then 20 more
+    // urgent lines before EACH turn: the later ones never pass it (priority 0 is first in,
+    // first out), so its wait is bounded by what was emitted before it, never by what follows.
+    const backlog: string[] = [];
+    for (let line = 0; line < 30; line += 1) {
+      backlog.push(
+        await insertLine({ eventType: "consent.revoked", priority: 0 }),
+      );
+    }
+    const ours = await insertLine({
+      eventType: "consent.revoked",
+      priority: 0,
+    });
+    const emittedAt = Date.now();
+    const { connector } = contactConnector();
+    const turns: string[][] = [];
+    for (let turn = 0; turn < 2; turn += 1) {
+      for (let line = 0; line < 20; line += 1) {
+        await insertLine({ eventType: "consent.revoked", priority: 0 });
+      }
+      const claimed: string[] = [];
+      await turnOnWorkerPool(connector, "dry_run", claimed);
+      turns.push(claimed);
+    }
+
+    expect(turns[0]).toEqual(backlog.slice(0, 20));
+    expect(turns[1]?.slice(0, 11)).toEqual([...backlog.slice(20), ours]);
+    expect(await lineRow(ours)).toMatchObject({ status: "succeeded" });
+    expect(Date.now() - emittedAt).toBeLessThan(5 * 60 * 1000);
   });
 });
 

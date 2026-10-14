@@ -19,6 +19,7 @@ export const HTTP_STATUS_BY_CODE: Readonly<Record<ErrorCode, number>> = {
   internal_error: 500,
   service_unavailable: 503,
   terms_unavailable: 503,
+  terms_acceptance_required: 403,
 };
 
 /** Technical English, never displayed as is: the front translates the code (02 §9.2). */
@@ -34,6 +35,8 @@ const DEFAULT_MESSAGES: Readonly<Record<ErrorCode, string>> = {
   internal_error: "Internal error",
   service_unavailable: "Service unavailable",
   terms_unavailable: "This document cannot be served right now",
+  terms_acceptance_required:
+    "The terms of service in force must be accepted first",
 };
 
 /** An error that the API answers on purpose, with a code of the closed union. */

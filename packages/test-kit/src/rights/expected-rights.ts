@@ -778,7 +778,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_advertiser|column|identity.accounts.id|SELECT",
   "influx_advertiser|column|identity.accounts.is_adult_attested|SELECT",
   "influx_advertiser|column|identity.accounts.last_seen_at|SELECT",
-  "influx_advertiser|column|identity.accounts.preferred_language|SELECT,UPDATE",
+  "influx_advertiser|column|identity.accounts.preferred_language|SELECT",
   "influx_advertiser|column|identity.accounts.status|SELECT",
   "influx_advertiser|column|identity.accounts.timezone|SELECT,UPDATE",
   "influx_advertiser|column|identity.accounts.updated_at|SELECT",
@@ -925,7 +925,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator|column|identity.accounts.id|SELECT",
   "influx_creator|column|identity.accounts.is_adult_attested|SELECT",
   "influx_creator|column|identity.accounts.last_seen_at|SELECT",
-  "influx_creator|column|identity.accounts.preferred_language|SELECT,UPDATE",
+  "influx_creator|column|identity.accounts.preferred_language|SELECT",
   "influx_creator|column|identity.accounts.status|SELECT",
   "influx_creator|column|identity.accounts.timezone|SELECT,UPDATE",
   "influx_creator|column|identity.accounts.updated_at|SELECT",
@@ -1087,14 +1087,14 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator|function|identity.set_declared_status(uuid,identity.declared_status,text,text)|EXECUTE",
   "influx_identity_definer|column|identity.accounts.adult_attested_at|INSERT",
   "influx_identity_definer|column|identity.accounts.auth_user_id|INSERT,SELECT",
-  "influx_identity_definer|column|identity.accounts.country_code|INSERT",
+  "influx_identity_definer|column|identity.accounts.country_code|INSERT,SELECT,UPDATE",
   "influx_identity_definer|column|identity.accounts.declared_status|INSERT,SELECT,UPDATE",
   "influx_identity_definer|column|identity.accounts.email_status|SELECT,UPDATE",
   "influx_identity_definer|column|identity.accounts.email_undeliverable_at|UPDATE",
   "influx_identity_definer|column|identity.accounts.email_verified_at|INSERT,UPDATE",
   "influx_identity_definer|column|identity.accounts.email|INSERT,SELECT,UPDATE",
   "influx_identity_definer|column|identity.accounts.is_adult_attested|INSERT",
-  "influx_identity_definer|column|identity.accounts.preferred_language|INSERT",
+  "influx_identity_definer|column|identity.accounts.preferred_language|INSERT,SELECT,UPDATE",
   "influx_identity_definer|column|identity.accounts.signup_heard_from|INSERT",
   "influx_identity_definer|column|identity.accounts.signup_referrer_domain|INSERT",
   "influx_identity_definer|column|identity.accounts.signup_utm_campaign|INSERT",
@@ -1125,8 +1125,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|column|leads.outbox_events.subject_key|INSERT",
   "influx_identity_definer|column|leads.sync_settings.key|SELECT",
   "influx_identity_definer|column|leads.sync_settings.value|SELECT",
-  "influx_identity_definer|column|profiles.advertiser_profiles.account_id|INSERT",
-  "influx_identity_definer|column|profiles.advertiser_profiles.legal_name|INSERT",
+  "influx_identity_definer|column|profiles.advertiser_profiles.account_id|INSERT,SELECT",
+  "influx_identity_definer|column|profiles.advertiser_profiles.legal_name|INSERT,SELECT,UPDATE",
   "influx_identity_definer|function|identity.correct_email(uuid,text,text,text)|EXECUTE",
   "influx_identity_definer|function|identity.provision_account(uuid,text,identity.account_role,text,text,identity.declared_status,boolean,text,uuid,boolean,text,text,text,text,text,text,text,identity.heard_from)|EXECUTE",
   "influx_identity_definer|function|identity.set_declared_status(uuid,identity.declared_status,text,text)|EXECUTE",
@@ -1391,6 +1391,15 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator|function|identity.set_marketing_consent(identity.consent_purpose,boolean,jsonb)|EXECUTE",
   "influx_identity_definer|function|identity.set_marketing_consent(identity.consent_purpose,boolean,jsonb)|EXECUTE",
   "influx_identity_definer|column|identity.consent_events.occurred_at|SELECT",
+  // 0122 (J7 commit 6, RG15, RG28, RG73): the members' country, language and company name through
+  // identity.update_own_account() only (their direct UPDATE of preferred_language is revoked; the
+  // owner reads and writes those columns, the latter of its own account under RLS); the terms of
+  // service to accept read by identity.own_terms_to_accept() (SECURITY INVOKER).
+  "influx_advertiser|function|identity.update_own_account(text,text,identity.declared_status,text)|EXECUTE",
+  "influx_creator|function|identity.update_own_account(text,text,identity.declared_status,text)|EXECUTE",
+  "influx_identity_definer|function|identity.update_own_account(text,text,identity.declared_status,text)|EXECUTE",
+  "influx_advertiser|function|identity.own_terms_to_accept()|EXECUTE",
+  "influx_creator|function|identity.own_terms_to_accept()|EXECUTE",
   // 0120 (J7 decision 6, EC-14, RG65): data subject requests deposited by the members (own rows),
   // rescue reports written by influx_auth (E-1); both read by agent and admin in aal2.
   "influx_advertiser|schema|backoffice|USAGE",
@@ -1571,6 +1580,9 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "identity.cancel_email_change(uuid)": "influx_identity_definer",
   // 0119 (J7, EC-10)
   "identity.set_marketing_consent(identity.consent_purpose,boolean,jsonb)":
+    "influx_identity_definer",
+  // 0122 (J7 commit 6)
+  "identity.update_own_account(text,text,identity.declared_status,text)":
     "influx_identity_definer",
   // 0120 (J7 decision 6)
   "backoffice.submit_data_subject_request(uuid,backoffice.data_request_type)":

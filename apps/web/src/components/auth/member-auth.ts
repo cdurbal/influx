@@ -5,17 +5,16 @@ import {
   journeyResetResponseSchema,
   journeyResponseSchema,
   logoutResponseSchema,
-  meResponseSchema,
   requestCodeResponseSchema,
   verifyCodeResponseSchema,
   type JourneyResetResponse,
   type JourneyResponse,
-  type MeResponse,
   type RequestCodeResponse,
   type SignupDoor,
   type UiLocale,
   type VerifyCodeResponse,
 } from "@influx/contracts/auth";
+import { meResponseSchema, type MeResponse } from "@influx/contracts/account";
 import {
   signupResponseSchema,
   type SignupBodyInput,

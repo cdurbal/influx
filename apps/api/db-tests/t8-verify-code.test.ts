@@ -341,7 +341,7 @@ describe("RG66: a member signs in", () => {
 
     const profile = await me(server, session);
     expect(profile.statusCode).toBe(200);
-    expect(profile.json()).toEqual({
+    expect(profile.json()).toMatchObject({
       email: account.email,
       role: "advertiser",
       preferredLanguage: "en",

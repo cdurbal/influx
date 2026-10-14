@@ -87,6 +87,8 @@ export function registerOpsRoutes(
               reply,
               dependencies.now,
               async (_tx, context) => context.accountId,
+              // a page that fails behind the re-acceptance screen is still reported (05 RG28)
+              { terms: "exempt" },
             );
       const address = clientAddressOf(request);
       const addressKey =

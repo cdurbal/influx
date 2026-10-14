@@ -6,7 +6,12 @@
 //   next request (RG69, T8.7);
 // - only a member role is accepted on the web surface: a backoffice session is never one;
 // - the sliding renewal is lazy and computed in the database (identity.touch_session: at most
-//   one write per hour); when it wrote, the cookie is set again with the new expiry.
+//   one write per hour); when it wrote, the cookie is set again with the new expiry;
+// - the re-acceptance of the terms of service is blocking (05 RG28, CA70; 17 §6.7): while the
+//   version in force is not accepted, a route answers 403 terms_acceptance_required, unless it is
+//   one of the named exemptions (`terms: "exempt"`): reading the account (which says what to
+//   accept), accepting, the consent (RG34: at any time), the sessions (RG56: the only way to take
+//   one's account back) and the browser error reports. Refusing is signing out (logout).
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { createHash } from "node:crypto";
 import {
@@ -23,12 +28,26 @@ import {
   setAuthCookie,
 } from "../../platform/auth-cookies.ts";
 import { ApiError } from "../../platform/errors.ts";
-import { idleExpiryOf, touchSession } from "./repository.ts";
+import {
+  idleExpiryOf,
+  ownTermsToAccept,
+  touchSession,
+  type TermsToAcceptRow,
+} from "./repository.ts";
 
 /** 32 random bytes in base64url, without padding: 43 characters. */
 const SESSION_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
-export type MemberContext = UserContext & { role: "advertiser" | "creator" };
+export type MemberContext = UserContext & {
+  role: "advertiser" | "creator";
+  /** The terms of service in force not accepted yet (05 RG28); null when nothing is pending. */
+  termsToAccept: TermsToAcceptRow | null;
+};
+
+export type MemberSessionOptions = {
+  /** "required" (the default): 403 terms_acceptance_required while termsToAccept is set. */
+  terms?: "required" | "exempt";
+};
 
 /** The SHA-256 of a cookie value, or null when the value is not a session identifier. */
 export function sessionTokenHashOf(value: string | null): Buffer | null {
@@ -41,7 +60,9 @@ export function sessionTokenHashOf(value: string | null): Buffer | null {
     : null;
 }
 
-function isMember(context: UserContext): context is MemberContext {
+function isMember(
+  context: UserContext,
+): context is UserContext & { role: MemberContext["role"] } {
   return context.role === "advertiser" || context.role === "creator";
 }
 
@@ -65,6 +86,7 @@ export async function withMemberSession<T>(
   reply: FastifyReply,
   now: () => Date,
   fn: (tx: Transaction, context: MemberContext) => Promise<T>,
+  options: MemberSessionOptions = {},
 ): Promise<T> {
   const token = readAuthCookie(request, "webSession");
   const tokenHash = sessionTokenHashOf(token);
@@ -84,11 +106,18 @@ export async function withMemberSession<T>(
           // A backoffice session presented on the web surface.
           throw new SessionNotFoundError();
         }
+        const termsToAccept = await ownTermsToAccept(tx);
+        if (termsToAccept !== null && options.terms !== "exempt") {
+          throw new ApiError("terms_acceptance_required");
+        }
         const renewed = await touchSession(tx, context.sessionId);
         const renewedUntil = renewed
           ? await idleExpiryOf(tx, context.sessionId)
           : null;
-        return { value: await fn(tx, context), renewedUntil };
+        return {
+          value: await fn(tx, { ...context, termsToAccept }),
+          renewedUntil,
+        };
       },
     );
   } catch (error) {

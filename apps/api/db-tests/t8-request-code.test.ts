@@ -411,6 +411,31 @@ describe("02 §18.10: a code that leaves", () => {
   });
 });
 
+describe("05 RG35, CA36: a withdrawn consent never stops the sign-in code", () => {
+  it("sends the code of a member whose consent is withdrawn, through the P0 path, nothing queued", async () => {
+    const { server, logs, calls } = app();
+    const member = await newMemberAccount("withdrawn", "fr");
+    // the withdrawal of the member space (0119): both purposes, consent.revoked queued
+    await migrationRole()`
+      insert into identity.consent_events (account_id, purpose, granted, source)
+      select ${member.accountId}, p, false, 'account_settings'
+        from unnest(array['marketing_email', 'commercial_prospection']::identity.consent_purpose[]) p`;
+    const { response } = await requestCode(server, {
+      email: member.email,
+      locale: "fr",
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ outcome: "sent" });
+    expect(calls).toEqual(["createUser", "generateEmailCode", "send"]);
+    expect(double.messages).toHaveLength(1);
+    expect(double.messages[0]?.body.to).toEqual([{ email: member.email }]);
+    expect(await journalOf(member.email, member.accountId)).toMatchObject([
+      { status: "sent", outbox_event_id: null },
+    ]);
+    watch(logs.text, [member.email]);
+  });
+});
+
 describe("18 T8.5, CA72: a known and an unknown address are answered alike", () => {
   it("gives the same answer, the same headers and the same sequence of calls; the phrase follows the page", async () => {
     const known = await newMemberAccount("known", "en");

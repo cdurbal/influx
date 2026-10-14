@@ -10,6 +10,7 @@
     "./elevated-operations": "./src/elevated-operations.ts",
     "./user-agent": "./src/user-agent.ts",
     "./auth": "./src/auth.ts",
+    "./account": "./src/account.ts",
     "./backoffice-auth": "./src/backoffice-auth.ts",
     "./ops": "./src/ops.ts",
     "./terms": "./src/terms.ts",
