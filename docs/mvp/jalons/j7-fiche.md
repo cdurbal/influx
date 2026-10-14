@@ -16,12 +16,7 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
 
 ## Commits prévus
 
-1. **Dette J6** : fait (`4aef89a`), voir « Issu du commit 1 ».
-2. **Migrations du J7** : fait, `679263a` et 2bis `2f3fdf4`, voir « Issu des commits 2 et 2bis ».
-3. **Webhook Brevo, réception** : fait, `93d1eba`, voir « Issu du commit 3 ».
-4. **Webhook Brevo, traitement** : fait, `40023cf`, voir « Issu du commit 4 ».
-5. **Tâches périodiques E-4** (décision 3) : rapprochement quotidien des 48 h (RG91, RG113, CA53),
-   purge GoTrue horaire (orphelins > 24 h, `04` §9), table brute à 30 j ; opérations 9, 10 en `16` §M1.
+1. à 5. **Faits** (dette J6, migrations, webhook réception et traitement, E-4) : voir « Issu du commit N ».
 6. **API « mon compte » (1)** : `PATCH /v1/me` (RG15, `lead.updated` RG73), `GET`·`PUT /v1/me/consent`
    (RG34, RG92, RG95 ; `consent.revoked` priorité 0, RG78), `GET`·`DELETE /v1/me/sessions[/:id]`
    (RG56, RG143), `POST /v1/me/terms/accept` et blocage (RG28). CA33, CA35, CA36, CA70, CA47 avec le
@@ -68,7 +63,7 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
    P0, `contact_sync_states` ; `spam` ⇒ `suppressed_reason` ; `hard_bounce` transactionnel ⇒ incident
    + `undeliverable` seulement sur l'adresse courante. `pino` : code d'issue seul, URL remplacée par le
    motif de route.
-   - Commits 2 à 4 : faits (abonnement Brevo appliqué au commit 10). Commit 5 : purge 30 j.
+   - Commits 2 à 5 : faits (abonnement Brevo appliqué au commit 10).
 3. **E-4 dans la boucle du worker, gardé par une ligne unique par période ; le rapprochement réinjecte
    ses trouvailles dans la table brute** (RG91, RG113, RG150, `04` §9). `ops.periodic_runs`
    (`task_code`, `period_key` uniques ensemble, `started_at`, `finished_at`, `outcome`, `counts jsonb`)
@@ -81,8 +76,7 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
    `created_at`, `updated_at`, `last_sign_in_at` tous > 24 h ; compte revérifié avant chaque
    `admin.deleteUser` ; clé `SUPABASE_SECRET_KEY` du worker ; `retention.purged` (`auth_orphan_users`,
    nombre).
-   - Commit 2 : table, fonctions, codes `retention.purged`, `elevated.maintenance.run_periodic`.
-     Commit 5 : ordonnanceur, opérations 9 et 10 de `16` §M1, purge, doublures. Commit 10 : variable.
+   - Commits 2 et 5 : faits. Commit 10 : variables `SUPABASE_*` du worker en `staging`.
 4. **Re-authentification = moteur du code de connexion par deux routes membres ; adresse lue dans la
    session ; preuve = marqueur lié à une finalité, à usage unique, valable 5 min** (RG57, RG41, `03`
    A-10). `POST /v1/me/reauthenticate/request-code` et `…/verify-code`, corps `{purpose:
@@ -196,7 +190,6 @@ aucun taux ni montant.
 ## Reports du J6
 
 TM1.5 attend le webhook (commit 4) ; CA47 : émetteur membre de `consent.revoked` en place (`0119`), test au commit 6 (remplacer la ligne `lead.updated` P0) ; `email.changed` : décision 5 ; `account.email_corrected` reste `template_not_supported` jusqu'au J8 ; suspension marketing sur `401` (RG123) au J8 / Lot 5.
-Clé GoTrue du worker (commit 5) : skill `env-secrets` ; le fondateur la documente dans `apps/api/.env.example`.
 
 ## Issu du commit 1 (`4aef89a`)
 
@@ -223,6 +216,13 @@ Clé GoTrue du worker (commit 5) : skill `env-secrets` ; le fondateur la documen
 - `expert-cybersecurite` (fin de jalon) : `influx_leads_definer` lit `id`, `account_id`, `old_email`, `completed_at` des demandes **terminées** (politique) ; `unknown_event` journalisé par id de ligne seul (le nom reste 30 j sur la ligne brute).
 - `testeur` : `tm1-brevo-inbound-worker` (15 cas, lignes engagées, vidées avant et après) ; `format:check` local signale 4 fichiers non touchés (fins de ligne du poste), CI masquée par I-4 : build vérifié en local.
 - Suites : commit 5 (rapprochement par `record_brevo_reconciliation_event`, doublure à étendre aux `GET`) ; commit 7 émet `email.changed` (connecteur prêt) ; J8 : levée de suppression par un `admin` (RG93).
+
+## Issu du commit 5 (`af88ad5`)
+
+- **Au plus sûr** : E-4 entre deux tours du drain, une fois par minute au plus (jamais en parallèle d'un tour) ; échec ⇒ exécution close `failed`, la fenêtre de 48 h couvre un jour manqué ; arrêt demandé ⇒ exécution laissée ouverte (reprise à 1 h). `GET /v3/contacts` n'a **pas** de filtre `emailBlacklisted` (doc relue le 2026-10-13) : filtrage local ; instant coupé à la seconde pour retrouver la clé du webhook ; `gap` = lignes nouvelles (majorant). Plainte marketing relue comme désinscription (la suppression RG93 attend le webhook ou un `admin`). Purge : relecture de l'utilisateur puis du compte juste avant `deleteUser`, 500 suppressions et 100 pages par heure au plus ; `nextPage` d'`auth-js` 2.117.2 ignoré (premier chiffre seulement).
+- `SUPABASE_URL` + `SUPABASE_SECRET_KEY` du worker : les deux ou aucune, **requises en production** ; skill `env-secrets` aligné ; `.env.example` à documenter par le fondateur, valeurs `staging` au commit 10. Domaine `maintenance` ajouté à ESLint ; `maintenance.run_periodic` entre dans U.
+- `expert-cybersecurite` (fin de jalon) : nettoyage des exécutions courantes en test par le superutilisateur local (`session_replication_role`) ; `filter_auth_orphans` sans ligne de registre (lecture) ; `elevated.maintenance.run_periodic` par transaction à effet (réservation, lignes brutes, purges).
+- `testeur` : `tm1-periodic-tasks` (9 cas, plancher déclaré), `periodic-scheduler` (23), adaptateur GoTrue (+5) ; doublures `gotrue-double`, lectures de `brevo-double` (corps rédigés d'après la doc, à enregistrer au commit 10). Suite : écart visible au backoffice (AL27) depuis `ops.periodic_runs.counts`, J8/Lot 5.
 
 ## Clôture d'un commit (« clôture standard »)
 
