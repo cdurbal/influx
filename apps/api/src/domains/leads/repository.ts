@@ -113,6 +113,17 @@ export type BrevoSubject = {
   signedInAt: string | null;
   /** An auth.new_device line: the browser summary of its session (05 RG141); else null. */
   browser: string | null;
+  /** The account's time zone (IANA name, 'UTC' by default; 16 RG157, RG160). */
+  timeZone: string;
+  /** A privacy.request_received line: its request, of the line's account (0128); else all null. */
+  dataRequest: {
+    type: string;
+    /** ISO 8601. */
+    receivedAt: string;
+    /** ISO 8601. */
+    dueAt: string;
+    closed: boolean;
+  } | null;
 };
 
 /** What the Apollo connector reads of a subject, besides the account state of the attempt (0113). */
@@ -309,6 +320,11 @@ export async function readBrevoSubject(
     suppressed: boolean;
     signed_in_at: string | null;
     browser: string | null;
+    time_zone: string;
+    request_type: string | null;
+    request_received_at: string | null;
+    request_due_at: string | null;
+    request_closed: boolean | null;
   }>(
     sql`select email,
                to_char(signed_up_at at time zone 'UTC',
@@ -319,7 +335,12 @@ export async function readBrevoSubject(
                consent_source, welcome_sent, previous_email, external_contact_id, suppressed,
                to_char(signed_in_at at time zone 'UTC',
                        'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as signed_in_at,
-               browser
+               browser, time_zone, request_type,
+               to_char(request_received_at at time zone 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as request_received_at,
+               to_char(request_due_at at time zone 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as request_due_at,
+               request_closed
           from leads.read_brevo_subject(${lineId}::bigint, ${worker}::text)`,
   );
   const row = rows[0];
@@ -343,6 +364,18 @@ export async function readBrevoSubject(
     suppressed: row.suppressed,
     signedInAt: row.signed_in_at,
     browser: row.browser,
+    timeZone: row.time_zone,
+    dataRequest:
+      row.request_type === null ||
+      row.request_received_at === null ||
+      row.request_due_at === null
+        ? null
+        : {
+            type: row.request_type,
+            receivedAt: row.request_received_at,
+            dueAt: row.request_due_at,
+            closed: row.request_closed === true,
+          },
   };
 }
 

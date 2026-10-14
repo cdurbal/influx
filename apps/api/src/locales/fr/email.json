@@ -51,6 +51,38 @@
         "reason": "une connexion à votre compte INFLUX a eu lieu depuis un nouveau navigateur"
       }
     },
+    "privacy": {
+      "requestReceived": {
+        "subject": {
+          "access": "Votre demande d'export de données INFLUX est bien reçue",
+          "erasure": "Votre demande de suppression de compte INFLUX est bien reçue"
+        },
+        "preheader": "Une personne de l'équipe INFLUX la traite. Réponse au plus tard le {dueAt, date, long}.",
+        "title": {
+          "access": "Demande d'export de vos données reçue",
+          "erasure": "Demande de suppression de votre compte reçue"
+        },
+        "received": {
+          "access": "Nous avons bien reçu votre demande d'export de vos données personnelles, déposée depuis votre espace INFLUX le {receivedAt, date, long} à {receivedAt, time, short} ({timeZone}).",
+          "erasure": "Nous avons bien reçu votre demande de suppression de votre compte INFLUX, déposée depuis votre espace le {receivedAt, date, long} à {receivedAt, time, short} ({timeZone})."
+        },
+        "next": {
+          "access": "Rien n'est envoyé automatiquement : une personne de l'équipe INFLUX traite votre demande et prépare un fichier lisible avec les données personnelles que nous détenons sur vous. Nous vous indiquerons comment le récupérer de façon sécurisée ; il ne vous sera jamais envoyé en pièce jointe.",
+          "erasure": "Rien n'est supprimé automatiquement : une personne de l'équipe INFLUX traite votre demande. D'ici là, votre compte reste actif et vous pouvez toujours vous connecter."
+        },
+        "kept": {
+          "erasure": "Certaines informations ne sont pas effacées mais conservées sous une forme qui ne vous nomme plus, par exemple le journal d'activité et la trace de votre acceptation des conditions d'utilisation. Notre réponse vous dira précisément ce qui a été supprimé, ce qui est conservé, et pourquoi."
+        },
+        "deadline": "Nous vous répondrons à cette adresse au plus tard le {dueAt, date, long}.",
+        "followUp": "Vous pouvez suivre cette demande dans votre espace INFLUX, rubrique « Mes données ».",
+        "notYou": "Vous n'êtes pas à l'origine de cette demande ? Elle a été confirmée par un code envoyé à cette adresse :",
+        "step1": "Sécurisez d'abord votre boîte e-mail (changez son mot de passe).",
+        "step2": "Connectez-vous à INFLUX, ouvrez « Mes sessions » et choisissez « Fermer toutes les sessions ».",
+        "step3": "Signalez-le ensuite à INFLUX depuis l'aide de l'écran de connexion, en indiquant la date de la demande.",
+        "never": "INFLUX ne vous demandera jamais votre code de connexion.",
+        "reason": "une demande concernant vos données personnelles a été déposée depuis votre compte INFLUX"
+      }
+    },
     "internal": {
       "criticalAlert": {
         "subject": "INFLUX — Alerte critique / Critical alert",

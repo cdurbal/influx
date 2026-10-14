@@ -1757,8 +1757,8 @@ Mobile 375
 │ ┌───────────────────────────────────────┐ │
 │ │ Exporter mes données                  │ │
 │ │ Vous recevez un fichier lisible avec  │ │
-│ │ vos informations, votre profil, vos   │ │
-│ │ candidatures et vos échanges.         │ │
+│ │ les données que nous détenons sur     │ │
+│ │ vous.                                 │ │
 │ │ [□ Exporter]  → code de vérification  │ │  RG57 — re-authentification
 │ └───────────────────────────────────────┘ │
 │                                           │

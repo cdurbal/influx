@@ -51,6 +51,38 @@
         "reason": "someone signed in to your INFLUX account from a new browser"
       }
     },
+    "privacy": {
+      "requestReceived": {
+        "subject": {
+          "access": "Your INFLUX data export request has been received",
+          "erasure": "Your INFLUX account deletion request has been received"
+        },
+        "preheader": "A member of the INFLUX team will handle it. You will hear from us by {dueAt, date, long} at the latest.",
+        "title": {
+          "access": "Data export request received",
+          "erasure": "Account deletion request received"
+        },
+        "received": {
+          "access": "We have received your request for an export of your personal data, submitted from your INFLUX account on {receivedAt, date, long} at {receivedAt, time, short} ({timeZone}).",
+          "erasure": "We have received your request to delete your INFLUX account, submitted from your account on {receivedAt, date, long} at {receivedAt, time, short} ({timeZone})."
+        },
+        "next": {
+          "access": "Nothing is sent automatically: a member of the INFLUX team handles your request and prepares a readable file with the personal data we hold about you. We will tell you how to retrieve it securely; it will never be sent as an email attachment.",
+          "erasure": "Nothing is deleted automatically: a member of the INFLUX team handles your request. Until then, your account remains active and you can still sign in."
+        },
+        "kept": {
+          "erasure": "Some information is not erased but kept in a form that no longer names you, for example the activity log and the record of your acceptance of the terms of use. Our reply will tell you exactly what was deleted, what is kept, and why."
+        },
+        "deadline": "We will reply to this address by {dueAt, date, long} at the latest.",
+        "followUp": "You can follow this request in your INFLUX account, under \"My data\".",
+        "notYou": "Didn't make this request? It was confirmed with a code sent to this address:",
+        "step1": "First secure your email inbox (change its password).",
+        "step2": "Sign in to INFLUX, open \"My sessions\" and choose \"Close all sessions\".",
+        "step3": "Then report it to INFLUX from the help on the sign-in screen, giving the date of the request.",
+        "never": "INFLUX will never ask you for your sign-in code.",
+        "reason": "a request about your personal data was submitted from your INFLUX account"
+      }
+    },
     "internal": {
       "criticalAlert": {
         "subject": "INFLUX — Alerte critique / Critical alert",

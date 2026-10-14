@@ -604,8 +604,11 @@ demande traitée hors file **n'existe pas** : ni preuve, ni délai, ni trace. Tr
 prévues : l'espace « mes données » du membre, un message reçu à l'adresse de contact et **saisi par
 un agent**, une demande orale **consignée** par un agent avec sa date et son canal.
 
-**RG73** — **`due_at` = date de réception + 30 jours calendaires**, calculé une fois, **figé**
-(`04` §5.10). Un **objectif interne de 10 jours ouvrés** existe en plus, en table, non annoncé au
+**RG73** — **`due_at` = un mois calendaire après la réception** (art. 12(3) RGPD et UK GDPR), calculé
+une fois, **figé** (`04` §5.10). *Jusqu'à `0502` : la plus proche de « réception + 30 jours » et
+« réception + un mois calendaire en UTC » (`0127`, `expert-conformite-rgpd` 2026-10-14 : + 30 jours
+dépasse le mois légal en février).* Prorogation possible de deux mois (demande complexe ou nombreuses),
+annoncée au demandeur avec ses motifs avant la fin du premier mois. Un **objectif interne de 10 jours ouvrés** existe en plus, en table, non annoncé au
 demandeur. Alerte **AL40** à J-7.
 
 **RG74** — **L'identité du demandeur est établie avant toute exécution.** Depuis l'espace membre :

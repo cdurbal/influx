@@ -22,14 +22,17 @@
 // read by the subject read, never carried by the line; `current`: the account's), whatever the
 // consent (a transactional e-mail, RG35). auth.new_device (05 RG142, 16 RG157, J7 commit 8) is
 // written by INFLUX from its translation files (16 RG67), never from a Brevo template, and refused
-// if anything in it looks like a link (RG158); privacy.request_received (EC-14) is a template (EC-8).
+// if anything in it looks like a link (RG158); so is privacy.request_received (16 RG160, EC-14;
+// architecte, 2026-10-14), from the request read at consumption: a request of another type fails
+// unsupported_request_type, a request closed since is skipped request_closed.
 // What leaves for the drain is names and verdicts; the values stay in the closure of `send`.
 import {
   UNIDENTIFIED_USER_AGENT,
   userAgentSummarySchema,
 } from "@influx/contracts/user-agent";
 import type { BrevoMode } from "../../../../config/schema.ts";
-import { DEFAULT_EMAIL_TIME_ZONE } from "../../../identity/login-code-email.ts";
+import { renderDataRequestReceivedEmail } from "../../../identity/data-request-received-email.ts";
+import type { RenderedEmail } from "../../../identity/login-code-email.ts";
 import { renderNewDeviceEmail } from "../../../identity/new-device-email.ts";
 import {
   accountSkip,
@@ -65,18 +68,22 @@ export {
 } from "./mapping.ts";
 
 /**
- * The queue e-mails sent from a Brevo template (16 §H, P1; EC-8): the welcome e-mails (J6), the
- * notice of a changed address and the acknowledgement of a data subject request (J7).
+ * The queue e-mails sent from a Brevo template (16 §H, P1; EC-8): the welcome e-mails (J6) and the
+ * notice of a changed address (J7).
  */
 export const WORKER_TRANSACTIONAL_TEMPLATES = [
   "account.welcome_advertiser",
   "account.welcome_creator",
   "auth.email_changed_notice",
-  "privacy.request_received",
 ] as const;
 
 /** The queue e-mails written by INFLUX itself (16 RG67), without any template nor link (RG158). */
-export const WORKER_RENDERED_EMAILS = ["auth.new_device"] as const;
+export const WORKER_RENDERED_EMAILS = [
+  "auth.new_device",
+  "privacy.request_received",
+] as const;
+
+type RenderedEmailCode = (typeof WORKER_RENDERED_EMAILS)[number];
 
 /** Sent once per account (05 RG76, 16 RG90): the journal says whether it already left. */
 const ONCE_PER_ACCOUNT_TEMPLATES: ReadonlySet<string> = new Set([
@@ -274,15 +281,49 @@ export function createBrevoConnectors(
     };
   }
 
+  /** Operation 6 of an e-mail written by INFLUX: its text checked (RG158), then redirect (RG117). */
+  function rendered(
+    line: ClaimedLine,
+    code: RenderedEmailCode,
+    recipient: string,
+    email: RenderedEmail,
+    locale: ReturnType<typeof languageOf>,
+  ): Preparation {
+    const body = {
+      sender: { name: SENDER_NAME, email: settings.senderTransactional },
+      to: [{ email: recipient }],
+      subject: email.subject,
+      htmlContent: email.html,
+      textContent: email.text,
+      tags: [code],
+    };
+    const rejected = checkRenderedTransactionalOutput(body);
+    if (rejected.length === 0 && redirected(recipient)) {
+      return { kind: "skip", reason: "skipped_non_production" };
+    }
+    return {
+      kind: "mapped",
+      description: {
+        operation: "send_transactional",
+        templateCode: code,
+        attributeNames: [],
+        rejectedAttributeNames: rejected,
+      },
+      recipientDomain: domainOf(recipient),
+      send: guarded(
+        rejected,
+        (brevo) => brevo.sendTransactional(body, line.idempotencyKey, locale),
+        transactionalClient,
+      ),
+    };
+  }
+
   /** auth.new_device (05 RG142, 16 RG157): the text of INFLUX, the session read at consumption. */
-  async function newDevice(
+  function newDevice(
     line: ClaimedLine,
     account: NonNullable<AttemptState["account"]>,
-  ): Promise<Preparation> {
-    const subject = await dependencies.readSubject(line);
-    if (subject === null) {
-      return { kind: "skip", reason: "account_absent" };
-    }
+    subject: BrevoSubject,
+  ): Preparation {
     if (subject.signedInAt === null) {
       // No session of this account behind the line: nothing to tell, visible, never guessed.
       return { kind: "fail", errorCode: "session_not_found" };
@@ -292,38 +333,62 @@ export function createBrevoConnectors(
     const email = renderNewDeviceEmail({
       locale,
       signedInAt: new Date(subject.signedInAt),
-      timeZone: DEFAULT_EMAIL_TIME_ZONE,
+      timeZone: subject.timeZone,
       // a summary outside the closed list is never quoted (05 Q14 point 5)
       browser: summary.success ? summary.data : UNIDENTIFIED_USER_AGENT,
     });
-    const body = {
-      sender: { name: SENDER_NAME, email: settings.senderTransactional },
-      to: [{ email: subject.email }],
-      subject: email.subject,
-      htmlContent: email.html,
-      textContent: email.text,
-      tags: [line.payload.email_code],
-    };
-    const rejected = checkRenderedTransactionalOutput(body);
-    if (rejected.length === 0 && redirected(subject.email)) {
-      return { kind: "skip", reason: "skipped_non_production" };
-    }
-    return {
-      kind: "mapped",
-      description: {
-        operation: "send_transactional",
-        templateCode: "auth.new_device",
-        attributeNames: [],
-        rejectedAttributeNames: rejected,
-      },
-      recipientDomain: domainOf(subject.email),
-      send: guarded(
-        rejected,
-        (brevo) => brevo.sendTransactional(body, line.idempotencyKey, locale),
-        transactionalClient,
-      ),
-    };
+    return rendered(line, "auth.new_device", subject.email, email, locale);
   }
+
+  /** privacy.request_received (16 RG160): the text of INFLUX, the request read at consumption. */
+  function dataRequestReceived(
+    line: ClaimedLine,
+    account: NonNullable<AttemptState["account"]>,
+    subject: BrevoSubject,
+  ): Preparation {
+    const request = subject.dataRequest;
+    if (request === null) {
+      // No request of this account behind the line: nothing to acknowledge, visible, never guessed.
+      return { kind: "fail", errorCode: "request_not_found" };
+    }
+    if (request.type !== "access" && request.type !== "erasure") {
+      // RG160: no generic text for a type the space does not expose.
+      return { kind: "fail", errorCode: "unsupported_request_type" };
+    }
+    if (request.closed) {
+      // RG160: a request already handled is never announced as to be handled.
+      return { kind: "skip", reason: "request_closed" };
+    }
+    const locale = languageOf(account);
+    const email = renderDataRequestReceivedEmail({
+      locale,
+      type: request.type,
+      receivedAt: new Date(request.receivedAt),
+      dueAt: new Date(request.dueAt),
+      timeZone: subject.timeZone,
+    });
+    return rendered(
+      line,
+      "privacy.request_received",
+      subject.email,
+      email,
+      locale,
+    );
+  }
+
+  const RENDERERS: Readonly<
+    Record<
+      RenderedEmailCode,
+      (
+        line: ClaimedLine,
+        account: NonNullable<AttemptState["account"]>,
+        subject: BrevoSubject,
+      ) => Preparation
+    >
+  > = {
+    "auth.new_device": newDevice,
+    "privacy.request_received": dataRequestReceived,
+  };
 
   const contact: Connector = {
     destination: "brevo_contact",
@@ -407,7 +472,11 @@ export function createBrevoConnectors(
         typeof code === "string" &&
         (WORKER_RENDERED_EMAILS as readonly string[]).includes(code)
       ) {
-        return newDevice(line, account);
+        const subject = await dependencies.readSubject(line);
+        if (subject === null) {
+          return { kind: "skip", reason: "account_absent" };
+        }
+        return RENDERERS[code as RenderedEmailCode](line, account, subject);
       }
       if (
         typeof code !== "string" ||

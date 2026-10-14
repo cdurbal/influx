@@ -112,6 +112,19 @@ type Member = {
   clientAddress: string;
 };
 
+/** 0127: the earlier of 30 days and one calendar month in UTC, the day clamped to the month's end. */
+function legalDeadline(receivedAt: number): number {
+  const at = new Date(receivedAt);
+  const lastDay = new Date(
+    Date.UTC(at.getUTCFullYear(), at.getUTCMonth() + 2, 0),
+  ).getUTCDate();
+  const month = new Date(receivedAt);
+  month.setUTCDate(1);
+  month.setUTCMonth(at.getUTCMonth() + 1);
+  month.setUTCDate(Math.min(at.getUTCDate(), lastDay));
+  return Math.min(receivedAt + 30 * 24 * 3_600_000, month.getTime());
+}
+
 function newClientAddress(): string {
   const group = () => randomBytes(2).toString("hex");
   return `2001:db8:${group()}:${group()}::5`;
@@ -368,9 +381,10 @@ describe("POST and GET /v1/me/data-requests (EC-14; 05 RG57; 17 §6.3; decision 
         outcome: null,
       },
     });
-    expect(
-      Date.parse(body.request.dueAt) - Date.parse(body.request.receivedAt),
-    ).toBe(30 * 24 * 3_600_000);
+    // 0127: the earlier of 30 days and one calendar month in UTC (art. 12(3))
+    expect(Date.parse(body.request.dueAt)).toBe(
+      legalDeadline(Date.parse(body.request.receivedAt)),
+    );
 
     const lines = await acknowledgementsOf(member.accountId);
     expect(lines).toEqual([

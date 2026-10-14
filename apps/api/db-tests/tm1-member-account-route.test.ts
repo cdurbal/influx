@@ -479,15 +479,20 @@ describe("the blocking re-acceptance of the terms of service (05 RG28, CA70; 17 
       versionLabel: termsInForce.label,
       locale: "fr",
     });
-    const blocked = await call(server, "PATCH", "/v1/me", session, {
-      countryCode: "BE",
-    });
+    const blocked = await call(server, "GET", "/v1/me/email-change", session);
     expect(errorBody(blocked)).toEqual({
       status: 403,
       code: "terms_acceptance_required",
       message: "The terms of service in force must be accepted first",
     });
-    // exempt: the consent at any time (RG34), the sessions (RG56)
+    // exempt: the rectification (GDPR art. 16), the consent at any time (RG34), the sessions (RG56)
+    expect(
+      (
+        await call(server, "PATCH", "/v1/me", session, {
+          countryCode: "BE",
+        })
+      ).statusCode,
+    ).toBe(200);
     expect(
       (await call(server, "GET", "/v1/me/consent", session)).statusCode,
     ).toBe(200);

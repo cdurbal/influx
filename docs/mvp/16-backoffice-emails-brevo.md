@@ -814,7 +814,7 @@ files (`15` RG26), qui a déjà évité onze files orphelines.
 | `msg.autoreply` | Réponse automatique à qui répond à l'adresse sans réponse | Réponse entrante | L'expéditeur | P2 | adresse + fenêtre de 24 h | `12` RG96 |
 | `report.acknowledgement` | Signalement reçu | Dépôt d'un signalement | Le signalant | P2 | identifiant de signalement | `12` RG82 |
 | `report.outcome` | Suite donnée au signalement | Décision | Le signalant | P2 | identifiant de décision | `12` |
-| `data.request_ack` | Demande relative aux données reçue, avec son échéance | Dépôt | Le demandeur | P1 | identifiant de demande | `15` §G |
+| `privacy.request_received` *(anciennement `data.request_ack`)* | Demande relative aux données reçue, avec son échéance — **texte exact : RG160** | Dépôt depuis « Mes données » (`access`, `erasure`) | Le demandeur, **adresse du compte** | P1 | identifiant de demande | `15` §G, `05` RG57, EC-14 |
 | `data.export_ready` | Export prêt — **lien de courte durée, à usage unique, jamais de pièce jointe** | Export produit | Le demandeur | P1 | identifiant de demande | `15` RG95 |
 | `data.request_done` | Demande exécutée, avec ce qui a été fait et ce qui a été conservé | Clôture | Le demandeur | P1 | identifiant de demande | `15` §G, `04` §9.2 |
 | `internal.invitation` | Invitation d'un compte interne — lien à usage unique, 72 h | Création par un `admin` | La personne invitée | P1 | identifiant d'invitation | `15` RG99 |
@@ -1008,6 +1008,93 @@ lien y est refusé.
 (`auth.login_code` seul, jamais journalisé), `phrase` (`auth.login_code` seul, jamais journalisée),
 `requestedAt` / `signedInAt` et `timeZone` (la règle « jamais sans fuseau » de RG71 s'y applique),
 `browser` (clés `auth.browser.*` de `05`, additif du 2026-09-27).
+
+### H ter — Texte de l'accusé de réception d'une demande « mes données » *(J7, 2026-10-14)*
+
+> Demandé par la fiche du J7 (décision 6, EC-14 : « `privacy.request_received` à ajouter à `16` §H »).
+> Règles d'origine : `05` RG57, `15` RG72 à RG82, `17` §6.3, procédure
+> `docs/mvp/runbooks/demandes-rgpd.md`. **Ce que le produit fait au J7 et que ce texte ne doit jamais
+> dépasser :** le membre **dépose** une demande ; **rien n'est exporté ni supprimé automatiquement** ;
+> une personne de l'équipe INFLUX l'instruit et un `admin` l'exécute à la main.
+
+**RG160 — `privacy.request_received`, texte exact.**
+
+1. **Déclencheur.** Le dépôt d'une demande **nouvelle** depuis la rubrique « Mes données » de
+   l'espace membre, après un code frais de sa finalité (`05` RG57), pour l'un des deux types exposés :
+   `access` (export) ou `erasure` (suppression). Un second dépôt alors qu'une demande du même type
+   est ouverte renvoie la première et **ne produit aucun nouvel e-mail** (clé d'idempotence :
+   identifiant de la demande, RG89 famille 1). Deux demandes de types différents produisent deux
+   e-mails distincts.
+2. **Destinataire.** L'**adresse du compte** demandeur, lue au moment de l'envoi, et elle seule ;
+   jamais une adresse saisie, jamais une copie (RG91). Le message ne dépend d'aucun consentement
+   (RG88) : un membre qui a retiré son consentement marketing le reçoit.
+3. **Langue et fuseau.** La langue du compte (`preferred_language`) au moment de l'envoi, enregistrée
+   avec l'envoi (RG101) ; les dates s'écrivent dans le fuseau du compte, sinon en UTC, et le nom du
+   fuseau est toujours écrit (RG71, « jamais sans fuseau »).
+4. **Expéditeur et forme.** Ceux de RG156 : « INFLUX », sous-domaine transactionnel, sans adresse de
+   réponse fonctionnelle (RG97), aucune image nécessaire à la lecture, version texte seule identique.
+5. **Aucun lien**, pas même vers les préférences de communication : la dérogation de RG158 s'étend à
+   cet e-mail, et le contrôle automatisé « aucun lien » s'y applique (aucune adresse web, aucun nom
+   de domaine, aucune adresse e-mail dans le texte). Motif : cet e-mail parle d'une suppression de
+   compte, c'est un sujet idéal pour une imitation ; le membre retrouve sa demande dans son espace.
+6. **Ordre du corps imposé :** titre, constat de réception (selon le type), ce qui va se passer
+   (selon le type), ce qui est conservé (`erasure` seulement), échéance, où suivre la demande,
+   « pas vous ? » et ses trois étapes, mention « jamais », raison de l'envoi (`email.transactional.why`,
+   RG155).
+7. **Où vit le texte.** Les clés ci-dessous font foi. **Rendu par INFLUX** depuis ses fichiers de
+   traduction (`email.privacy.requestReceived.*`), comme `auth.new_device` (RG67, RG157) : décision
+   `architecte` du 2026-10-14. Aucun modèle Brevo, l'EC-8 ne s'applique plus à ce code (`0128`).
+
+| Clé (`email.privacy.requestReceived.*`) | Français | English |
+|---|---|---|
+| `subject.access` | Votre demande d'export de données INFLUX est bien reçue | Your INFLUX data export request has been received |
+| `subject.erasure` | Votre demande de suppression de compte INFLUX est bien reçue | Your INFLUX account deletion request has been received |
+| `preheader` | Une personne de l'équipe INFLUX la traite. Réponse au plus tard le {dueAt, date, long}. | A member of the INFLUX team will handle it. You will hear from us by {dueAt, date, long} at the latest. |
+| `title.access` | Demande d'export de vos données reçue | Data export request received |
+| `title.erasure` | Demande de suppression de votre compte reçue | Account deletion request received |
+| `received.access` | Nous avons bien reçu votre demande d'export de vos données personnelles, déposée depuis votre espace INFLUX le {receivedAt, date, long} à {receivedAt, time, short} ({timeZone}). | We have received your request for an export of your personal data, submitted from your INFLUX account on {receivedAt, date, long} at {receivedAt, time, short} ({timeZone}). |
+| `received.erasure` | Nous avons bien reçu votre demande de suppression de votre compte INFLUX, déposée depuis votre espace le {receivedAt, date, long} à {receivedAt, time, short} ({timeZone}). | We have received your request to delete your INFLUX account, submitted from your account on {receivedAt, date, long} at {receivedAt, time, short} ({timeZone}). |
+| `next.access` | Rien n'est envoyé automatiquement : une personne de l'équipe INFLUX traite votre demande et prépare un fichier lisible avec les données personnelles que nous détenons sur vous. Nous vous indiquerons comment le récupérer de façon sécurisée ; il ne vous sera jamais envoyé en pièce jointe. | Nothing is sent automatically: a member of the INFLUX team handles your request and prepares a readable file with the personal data we hold about you. We will tell you how to retrieve it securely; it will never be sent as an email attachment. |
+| `next.erasure` | Rien n'est supprimé automatiquement : une personne de l'équipe INFLUX traite votre demande. D'ici là, votre compte reste actif et vous pouvez toujours vous connecter. | Nothing is deleted automatically: a member of the INFLUX team handles your request. Until then, your account remains active and you can still sign in. |
+| `kept.erasure` | Certaines informations ne sont pas effacées mais conservées sous une forme qui ne vous nomme plus, par exemple le journal d'activité et la trace de votre acceptation des conditions d'utilisation. Notre réponse vous dira précisément ce qui a été supprimé, ce qui est conservé, et pourquoi. | Some information is not erased but kept in a form that no longer names you, for example the activity log and the record of your acceptance of the terms of use. Our reply will tell you exactly what was deleted, what is kept, and why. |
+| `deadline` | Nous vous répondrons à cette adresse au plus tard le {dueAt, date, long}. | We will reply to this address by {dueAt, date, long} at the latest. |
+| `followUp` | Vous pouvez suivre cette demande dans votre espace INFLUX, rubrique « Mes données ». | You can follow this request in your INFLUX account, under "My data". |
+| `notYou` | Vous n'êtes pas à l'origine de cette demande ? Elle a été confirmée par un code envoyé à cette adresse : | Didn't make this request? It was confirmed with a code sent to this address: |
+| `step1` | Sécurisez d'abord votre boîte e-mail (changez son mot de passe). | First secure your email inbox (change its password). |
+| `step2` | Connectez-vous à INFLUX, ouvrez « Mes sessions » et choisissez « Fermer toutes les sessions ». | Sign in to INFLUX, open "My sessions" and choose "Close all sessions". |
+| `step3` | Signalez-le ensuite à INFLUX depuis l'aide de l'écran de connexion, en indiquant la date de la demande. | Then report it to INFLUX from the help on the sign-in screen, giving the date of the request. |
+| `never` | INFLUX ne vous demandera jamais votre code de connexion. | INFLUX will never ask you for your sign-in code. |
+| `reason` | une demande concernant vos données personnelles a été déposée depuis votre compte INFLUX | a request about your personal data was submitted from your INFLUX account |
+
+**Variables** (ajout à la liste fermée de RG71, réservées à ce modèle) : `receivedAt` (= `received_at`
+de la demande), `dueAt` (= `due_at`, figé, `15` RG73 : la plus proche de réception + 30 jours et réception + un mois, `0127`), `timeZone` (comme RG159).
+Le **type** de demande ne se substitue pas dans une phrase : il choisit la variante de la clé
+(`*.access` ou `*.erasure`). **Date d'échéance affichée** : la date calendaire de `due_at` dans le
+fuseau du compte ; si elle tombe **après** la date calendaire de `due_at` en UTC, c'est la date UTC qui
+s'écrit — on n'annonce jamais une échéance plus tardive que celle de la base. L'objectif interne de
+10 jours ouvrés (`15` RG73) **n'est jamais annoncé**.
+
+**Interdits dans ce modèle** : nom, raison sociale, pays, adresse IP, navigateur, identifiant de la
+demande ou du compte, rôle (marque ou créateur), toute donnée autre que l'adresse destinataire ;
+lien, pièce jointe, contenu promotionnel ; montant, taux, pourcentage ; toute promesse d'exécution
+(« vos données ont été… », « votre compte sera supprimé le… ») ; l'objectif interne de 10 jours ;
+les mots « preuve légale », « valeur probante », « horodatage certifié » (`17` §6.3) ; tout renvoi
+à un article de loi ou à un sigle réglementaire.
+
+**Cas limites :**
+
+- *Demande d'un autre type* (`rectification`, `portability`, `objection`, `restriction` : non
+  exposés au J7) : aucun texte générique ne part ; la ligne est mise en **échec explicite**, visible
+  et rejouable au backoffice (cause proposée : `unsupported_request_type`).
+- *Demande déjà close* au moment du traitement de la ligne (rejeu tardif, Lot 5) : l'accusé **ne part
+  pas** (`skipped`, cause proposée : `request_closed`), pour ne jamais annoncer comme « à traiter »
+  une demande déjà traitée. *Hypothèse conservatrice.*
+- *Envoi en échec* : la demande reste déposée et son échéance court (RG92) ; rejeu selon RG93 ; la
+  rubrique « Mes données » affiche la demande indépendamment de l'e-mail.
+- *Adresse du compte changée entre le dépôt et l'envoi* : l'e-mail part à l'adresse du compte au
+  moment de l'envoi (point 2).
+- *Membre qui veut retirer sa demande* : aucun moyen n'est proposé dans le produit au J7, donc
+  **le texte n'en promet aucun** (Q15).
 
 ---
 
@@ -1824,6 +1911,23 @@ tableau de bord.
 *alors* on y lit le code, l'identifiant de compte du destinataire, la langue, le modèle, les
 horodatages, le statut et le `messageId` — **et jamais l'adresse recopiée**.
 
+**CA117** *(RG160, J7)* — *Étant donné* un membre de langue anglaise, de fuseau `America/Toronto`,
+qui dépose une demande de suppression depuis « Mes données » après un code frais, *quand* l'accusé
+`privacy.request_received` est rendu, *alors* il part **à la seule adresse du compte**, en anglais,
+avec les textes `*.erasure` de RG160 dans l'ordre imposé (dont `kept.erasure`), la date de réception
+avec son heure et le nom du fuseau, et une échéance qui n'est **jamais postérieure** à la date de
+`due_at` en UTC ; il ne contient **aucun lien** (adresse web, nom de domaine ou adresse e-mail),
+aucune pièce jointe, aucun nom, pays, navigateur ni identifiant, et aucun des mots « preuve légale »,
+« valeur probante », « horodatage certifié » ou leurs équivalents anglais. Le même contrôle, rejoué
+pour une demande d'export en français, produit les textes `*.access` sans `kept.erasure`.
+
+**CA118** *(RG160, J7)* — *Étant donné* une demande d'export ouverte, *quand* le membre redépose une
+demande d'export, puis que la ligne de l'accusé est rejouée trois fois, *alors* **un seul** accusé
+d'export a été transmis (même clé `privacy.request_received:<identifiant de demande>`) ; *et quand*
+il dépose ensuite une demande de suppression, *alors* un **second** accusé, distinct, part pour
+celle-ci. *Et étant donné* une demande d'un type non exposé, *alors* aucun e-mail ne part et la ligne
+est en échec explicite, visible au backoffice.
+
 ### Le suivi des résultats
 
 **CA79** — *Étant donné* un événement Brevo d'un type inconnu, *quand* il arrive, *alors* il est
@@ -2081,6 +2185,7 @@ couleurs, *alors* un **libellé écrit** le porte.
 | **Q12** | **Liste fermée des facettes de segmentation** de la source 1 : laquelle exactement, et qui l'étend ? | Proposition de RG17, à compléter | `expert-marketing` + `product-owner` |
 | **Q13** | **Sous-domaines d'envoi** : les trois noms proposés (`tx.`, `news.`, `pro.`) et leur authentification, à confirmer avec le nom de domaine retenu | RG9 | `integrateur` + **Fondateur** |
 | **Q14** *(J3, 2026-09-27)* | **Zéro lien dans `auth.login_code` et `auth.new_device`** (RG158), et **navigateur absent tant que `user-agent` n'est pas relayé** par le passe-plat | Voir `05` Q17 et Q14 | `expert-cybersecurite` + `expert-conformite-rgpd` ; `architecte` pour le relais |
+| **Q15** *(J7, 2026-10-14)* | **Accusé `privacy.request_received` (RG160)** : (a) rendu par INFLUX ou modèle Brevo ; (b) formulation de `kept.erasure` et absence de tout lien ; (c) canal pour **retirer** une demande ou signaler une demande non faite (l'aide de l'écran de connexion sert-elle à cela ?) ; (d) sort de l'accusé d'une demande déjà close | (a) rendu par INFLUX recommandé, modèle Brevo à l'identique d'ici là ; (b) texte de RG160 ; (c) aucun retrait promis, signalement par l'aide de l'écran de connexion ; (d) non envoyé | (a) `architecte` ; (b) **`expert-conformite-rgpd` (veto, Lot 6)** ; (c) `chef-de-projet` + `expert-conformite-rgpd` ; (d) `product-owner` |
 
 ---
 

@@ -106,7 +106,7 @@ function submitProbe(
 // ---------------------------------------------------------------------------------------------
 
 describe("backoffice.submit_data_subject_request() (EC-14, decision 6)", () => {
-  it("deposits an erasure request with the marker account_deletion: due in 30 days, P1 acknowledgement, register line", async () => {
+  it("deposits an erasure request with the marker account_deletion: due on the earlier of 30 days and one month (0127), P1 acknowledgement, register line", async () => {
     const result = await scenario(async (tx) => {
       const session = await sessionOfAdvertiserA(tx);
       await mark(tx, session, "account_deletion");
@@ -117,12 +117,14 @@ describe("backoffice.submit_data_subject_request() (EC-14, decision 6)", () => {
           request_type: string;
           channel: string;
           status: string;
-          due_days: number;
+          due_rule: boolean;
           requester: string;
         }[]
       >`
         select request_type::text, channel::text, status::text,
-               extract(epoch from due_at - received_at)::int / 86400 as due_days,
+               due_at = least(received_at + interval '720 hours',
+                              ((received_at at time zone 'UTC') + interval '1 month')
+                                at time zone 'UTC') as due_rule,
                requester_account_id::text as requester
           from backoffice.data_subject_requests where id = ${id}`;
       const queue = await tx<
@@ -149,7 +151,7 @@ describe("backoffice.submit_data_subject_request() (EC-14, decision 6)", () => {
       request_type: "erasure",
       channel: "self_service",
       status: "received",
-      due_days: 30,
+      due_rule: true,
       requester: dataSet.accounts.advertiser.a.id,
     });
     expect(result.queue).toHaveLength(1);

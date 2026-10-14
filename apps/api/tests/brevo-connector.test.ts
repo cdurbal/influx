@@ -102,6 +102,8 @@ function subject(overrides: Partial<BrevoSubject> = {}): BrevoSubject {
     suppressed: false,
     signedInAt: null,
     browser: null,
+    timeZone: "UTC",
+    dataRequest: null,
     ...overrides,
   };
 }
@@ -1219,6 +1221,18 @@ describe("05 RG141, RG142, J7 commit 8: auth.new_device, written by INFLUX witho
     );
   });
 
+  it("RG157: the instant in the account's time zone, its name written", async () => {
+    await run(
+      signalling({ timeZone: "America/Toronto" }),
+      newDevice(),
+      state({ preferredLanguage: "en" }, {}),
+    );
+    // \s: the space before AM is the one of the ICU data of the runtime
+    expect(double.messages[0]?.body.textContent).toMatch(
+      /on October 14, 2026 at 5:30\sAM \(EDT\) from Safari on iOS\./,
+    );
+  });
+
   it("a summary outside the closed list is never quoted: 'un navigateur non identifié'", async () => {
     await run(
       signalling({ browser: "netscape.beos" }),
@@ -1276,6 +1290,10 @@ describe("05 RG141, RG142, J7 commit 8: auth.new_device, written by INFLUX witho
       "mailto:a",
       "www.influx.example",
       "<A >",
+      // RG160 point 5: neither an address nor a domain name
+      "écrivez à support@x",
+      "rendez-vous sur influx.example",
+      "INFLUX.COM",
     ]) {
       expect(
         checkRenderedTransactionalOutput({ ...body, htmlContent: link }),
@@ -1289,9 +1307,14 @@ describe("05 RG141, RG142, J7 commit 8: auth.new_device, written by INFLUX witho
   });
 });
 
-describe("EC-14, J7 commit 8: privacy.request_received, the acknowledgement of a request (EC-8 template)", () => {
-  const RECEIVED_TEMPLATE = 31;
+describe("16 RG160, CA117: privacy.request_received, written by INFLUX without any link (architecte, 2026-10-14)", () => {
   const REQUEST = "3c2b1a0f-9e8d-4c7b-8a69-584736251403";
+  const ERASURE = {
+    type: "erasure",
+    receivedAt: "2026-10-14T21:00:00.000Z",
+    dueAt: "2026-11-13T21:00:00.000Z",
+    closed: false,
+  };
 
   function acknowledgement(): ClaimedLine {
     return line("brevo_transactional", {
@@ -1306,43 +1329,103 @@ describe("EC-14, J7 commit 8: privacy.request_received, the acknowledgement of a
     });
   }
 
-  it("sends its template in the account's language, whatever the consent; not once per account", async () => {
-    await run(
-      connectors({ subject: subject({ welcomeSent: true }) }).transactional,
+  function acknowledging(overrides: Partial<BrevoSubject> = {}): Connector {
+    return connectors({
+      subject: subject({ dataRequest: ERASURE, ...overrides }),
+    }).transactional;
+  }
+
+  it("sends the text of RG160 in the account's language and time zone, no template, whatever the consent", async () => {
+    // no template id is configured for this code any more (0128): the text is INFLUX's (16 RG67)
+    const prepared = await prepare(
+      acknowledging({ timeZone: "America/Toronto", welcomeSent: true }),
       acknowledgement(),
-      state(
-        { marketingEmailConsent: false },
-        {
-          ...SETTINGS,
-          brevo_template_ids: {
-            "privacy.request_received": RECEIVED_TEMPLATE,
-          },
-        },
-      ),
+      state({ marketingEmailConsent: false, preferredLanguage: "en" }, {}),
     );
+    expect(prepared.kind === "mapped" && prepared.description).toEqual({
+      operation: "send_transactional",
+      templateCode: "privacy.request_received",
+      attributeNames: [],
+      rejectedAttributeNames: [],
+    });
+    if (prepared.kind !== "mapped") {
+      throw new Error("expected a mapped e-mail");
+    }
+    expect(await prepared.result()).toMatchObject({
+      kind: "succeeded",
+      locale: "en",
+    });
     const [message] = double.messages;
-    expect(message?.body.templateId).toBe(RECEIVED_TEMPLATE);
-    expect(message?.body.params).toEqual({ LANGUAGE: "fr" });
+    expect(Object.keys(message?.body ?? {}).sort()).toEqual([
+      "htmlContent",
+      "sender",
+      "subject",
+      "tags",
+      "textContent",
+      "to",
+    ]);
+    expect(message?.body.to).toEqual([{ email: EMAIL }]);
+    expect(message?.body.subject).toBe(
+      "Your INFLUX account deletion request has been received",
+    );
+    const text = String(message?.body.textContent);
+    expect(text).toMatch(
+      /submitted from your account on October 14, 2026 at 5:00\sPM \(EDT\)\./,
+    );
+    expect(text).toContain("by November 13, 2026 at the latest.");
     expect(message?.body.tags).toEqual(["privacy.request_received"]);
     expect(message?.headers["idempotency-key"]).toBe(
       `privacy.request_received:${REQUEST}`,
     );
   });
 
-  it("EC-8: no template configured (NULL, 0120), skipped template_not_configured", async () => {
+  it("no request of the account behind the line: failed request_not_found, no call", async () => {
     expect(
       await prepare(
-        connectors().transactional,
+        acknowledging({ dataRequest: null }),
         acknowledgement(),
-        state(
-          {},
-          {
-            ...SETTINGS,
-            brevo_template_ids: { "privacy.request_received": null },
-          },
-        ),
+        state(),
       ),
-    ).toEqual({ kind: "skip", reason: "template_not_configured" });
+    ).toEqual({ kind: "fail", errorCode: "request_not_found" });
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("RG160: another type fails unsupported_request_type; a request closed since is skipped request_closed", async () => {
+    expect(
+      await prepare(
+        acknowledging({ dataRequest: { ...ERASURE, type: "rectification" } }),
+        acknowledgement(),
+        state(),
+      ),
+    ).toEqual({ kind: "fail", errorCode: "unsupported_request_type" });
+    expect(
+      await prepare(
+        acknowledging({ dataRequest: { ...ERASURE, closed: true } }),
+        acknowledgement(),
+        state(),
+      ),
+    ).toEqual({ kind: "skip", reason: "request_closed" });
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("a template id left in the settings is ignored: never a template for this code", async () => {
+    await run(
+      acknowledging(),
+      acknowledgement(),
+      state({}, { brevo_template_ids: { "privacy.request_received": 31 } }),
+    );
+    expect(double.messages[0]?.body).not.toHaveProperty("templateId");
+  });
+
+  it("redirect: an address outside BREVO_TEST_RECIPIENTS is skipped_non_production", async () => {
+    const { transactional } = connectors({
+      settings: { testRecipients: [] },
+      subject: subject({ dataRequest: ERASURE }),
+    });
+    expect(await prepare(transactional, acknowledgement(), state())).toEqual({
+      kind: "skip",
+      reason: "skipped_non_production",
+    });
     expect(double.requests).toHaveLength(0);
   });
 });

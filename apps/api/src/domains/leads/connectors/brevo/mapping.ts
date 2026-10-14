@@ -69,8 +69,12 @@ const RENDERED_TRANSACTIONAL_BODY_FIELDS = new Set([
   "textContent",
   "tags",
 ]);
-/** 16 RG158: anything that could be a link, whatever its form. */
-const LINK_PATTERN = /<a[\s>]|href\s*=|[a-z][a-z0-9+.-]*:\/\/|mailto:|www\./i;
+/**
+ * 16 RG158, RG160 point 5: anything that could be a link, whatever its form, an e-mail address
+ * (`@`) or a domain name (a dot between a letter or digit and two letters: `influx.example`).
+ */
+const LINK_PATTERN =
+  /<a[\s>]|href\s*=|[a-z][a-z0-9+.-]*:\/\/|mailto:|www\.|@|[a-z0-9-]\.[a-z]{2,}/i;
 
 export type BrevoContactBody = {
   email: string;
@@ -182,8 +186,9 @@ export function checkTransactionalOutput(
 }
 
 /**
- * 16 RG137 on operation 6 of an e-mail written by INFLUX (auth.new_device): the names refused,
- * sorted; a text that holds anything like a link is refused by its name too (RG158).
+ * 16 RG137 on operation 6 of an e-mail written by INFLUX (auth.new_device, privacy.request_received):
+ * the names refused, sorted; a text that holds anything like a link is refused by its name too
+ * (RG158, RG160).
  */
 export function checkRenderedTransactionalOutput(
   body: Record<string, unknown>,

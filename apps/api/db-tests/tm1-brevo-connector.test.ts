@@ -5,7 +5,8 @@
 // belt of 16 RG90 (one welcome per account, replay included), the guards of the read (a line of
 // this worker, a Brevo line only), and the notice of a changed address to both addresses (RG58,
 // J7 commit 7), and the e-mail auth.new_device written by INFLUX from the session named by its line
-// (05 RG142, 16 RG157, J7 commit 8). The connectors alone are tested in tests/brevo-connector.
+// (05 RG142, 16 RG157, J7 commit 8), and the acknowledgement privacy.request_received written from
+// the request named by its line (16 RG160, 0128). The connectors alone are in tests/brevo-connector.
 // Accounts and lines are COMMITTED by the migration role (the worker reads in its own
 // transactions); the other pending lines of the stack are held while the worker claims, as in
 // tm1-worker-loop. The settings brevo_list_ids and brevo_template_ids are set for the file and
@@ -644,6 +645,94 @@ describe("05 RG142, 16 RG157, J7 commit 8: auth.new_device, written from the ses
     expect(await lineRow(line)).toMatchObject({
       status: "failed",
       last_error_code: "session_not_found",
+    });
+    expect(double.requests).toHaveLength(0);
+  });
+});
+
+describe("16 RG160, CA117: privacy.request_received, written from the request of its line (0128)", () => {
+  /** A committed request of `account`, as the deposit leaves it (dates from the trigger); its id. */
+  async function depositRequest(
+    account: string,
+    type: "access" | "erasure",
+  ): Promise<string> {
+    const [row] = await migration<{ id: string }[]>`
+      insert into backoffice.data_subject_requests (request_type, requester_account_id)
+      values (${type}::backoffice.data_request_type, ${account})
+      returning id::text as id`;
+    return row?.id ?? "";
+  }
+
+  async function acknowledgementLine(
+    account: string,
+    request: string,
+  ): Promise<string> {
+    const event = randomUUID();
+    const [row] = await migration<{ id: string }[]>`
+      insert into leads.outbox_events
+        (event_id, event_type, destination, subject_key, priority, payload, idempotency_key)
+      values (${event}, 'privacy.request_received', 'brevo_transactional',
+              ${`account:${account}`}, 100,
+              jsonb_build_object('event_id', ${event}::text, 'account_id', ${account}::text,
+                                 'request_id', ${request}::text,
+                                 'email_code', 'privacy.request_received'),
+              ${`privacy.request_received:${request}`})
+      returning id::text as id`;
+    lines.push(row?.id ?? "");
+    return row?.id ?? "";
+  }
+
+  it("an erasure in English, in the account's time zone, without any link nor template; journaled P1", async () => {
+    // no template id for this code (0128): the TEMPLATES of this file never name it
+    const account = await createAccount({
+      role: "creator",
+      consent: false,
+      language: "en",
+    });
+    await migration`
+      update identity.accounts set timezone = 'America/Toronto' where id = ${account}`;
+    const request = await depositRequest(account, "erasure");
+    const line = await acknowledgementLine(account, request);
+
+    expect(await turn()).toBe(1);
+    expect((await lineRow(line)).status).toBe("succeeded");
+    const [message] = double.messages;
+    expect(message?.body.to).toEqual([{ email: emails[0] }]);
+    expect(message?.body.templateId).toBeUndefined();
+    expect(message?.body.subject).toBe(
+      "Your INFLUX account deletion request has been received",
+    );
+    expect(message?.body.textContent).toMatch(/\((EDT|EST)\)\./);
+    expect(message?.body.textContent).toContain(
+      "Some information is not erased",
+    );
+    expect(
+      `${message?.body.htmlContent ?? ""}${message?.body.textContent ?? ""}`,
+    ).not.toMatch(/href|https?:|www\.|@/i);
+    const journal = await migration<
+      { email_code: string; priority: string; template_ref: string | null }[]
+    >`
+      select email_code, priority::text as priority, template_ref
+        from leads.transactional_sends where outbox_event_id = ${line}`;
+    expect(journal).toEqual([
+      {
+        email_code: "privacy.request_received",
+        priority: "p1",
+        template_ref: null,
+      },
+    ]);
+  });
+
+  it("a request of ANOTHER account named by the line is never read: failed request_not_found, nothing sent", async () => {
+    const account = await createAccount({ role: "creator" });
+    const other = await createAccount({ role: "creator" });
+    const foreign = await depositRequest(other, "access");
+    const line = await acknowledgementLine(account, foreign);
+
+    expect(await turn()).toBe(1);
+    expect(await lineRow(line)).toMatchObject({
+      status: "failed",
+      last_error_code: "request_not_found",
     });
     expect(double.requests).toHaveLength(0);
   });

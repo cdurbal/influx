@@ -355,8 +355,9 @@ describe("identity.request_email_change()", () => {
   it("opens a 24-hour request from the current address, normalised, and supersedes the open one", async () => {
     const who = member("creator", "b");
     const result = await scenario(async (tx) => {
-      const [previous] = await tx<{ id: string }[]>`
-        select id::text from identity.email_change_requests
+      // an open request left by an earlier run may be past its 24 hours: then it closes "expired"
+      const [previous] = await tx<{ id: string; lapsed: boolean }[]>`
+        select id::text, expires_at <= now() as lapsed from identity.email_change_requests
          where account_id = ${who.account.id} and completed_at is null and cancelled_at is null`;
       const [current] = await tx<{ email: string }[]>`
         select email from identity.accounts where id = ${who.account.id}`;
@@ -372,6 +373,7 @@ describe("identity.request_email_change()", () => {
           previous === undefined
             ? undefined
             : await requestRow(tx, previous.id),
+        lapsed: previous?.lapsed === true,
       };
     });
     expect(result.row).toMatchObject({
@@ -386,7 +388,7 @@ describe("identity.request_email_change()", () => {
       digests: true,
     });
     expect(result.previous).toMatchObject({
-      cancel_reason: "superseded",
+      cancel_reason: result.lapsed ? "expired" : "superseded",
       digests: false,
     });
   });

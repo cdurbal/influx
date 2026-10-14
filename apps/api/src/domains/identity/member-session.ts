@@ -9,11 +9,13 @@
 //   one write per hour); when it wrote, the cookie is set again with the new expiry;
 // - the re-acceptance of the terms of service is blocking (05 RG28, CA70; 17 §6.7): while the
 //   version in force is not accepted, a route answers 403 terms_acceptance_required, unless it is
-//   one of the named exemptions (`terms: "exempt"`): reading the account (which says what to
-//   accept), accepting, the consent (RG34: at any time), the sessions (RG56: the only way to take
-//   one's account back), the browser error reports, and "mes données" with the fresh code it needs
-//   (export and deletion: a right of the person, not a use of the service; J7 commit 8, A3, to be
-//   confirmed by expert-conformite-rgpd). Refusing is signing out (logout).
+//   one of the named exemptions (`terms: "exempt"`): reading and rectifying the account (PATCH
+//   /v1/me, GDPR art. 16), accepting, the consent (RG34: at any time), the sessions (RG56: the
+//   only way to take one's account back), the browser error reports, and "mes données" with the
+//   fresh code it needs (export and deletion: a right of the person, not a use of the service;
+//   J7 commit 8, A3, validated by expert-conformite-rgpd on 2026-10-14). Only the terms of service
+//   gate (identity.own_terms_to_accept): the privacy policy is read, never accepted. Refusing is
+//   signing out (logout).
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { createHash } from "node:crypto";
 import {

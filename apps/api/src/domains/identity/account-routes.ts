@@ -121,6 +121,10 @@ import type { IdentityApp, IdentityDependencies } from "./routes.ts";
 /** The evidence of a change made from the space (0119: codes only, never an address). */
 const CONSENT_EVIDENCE = { form: "account_preferences" } as const;
 
+/** The fresh codes outside the terms gate (A3): "mes données" only, every other purpose gated. */
+const TERMS_EXEMPT_PURPOSES: ReadonlySet<ReauthRequestCodeBody["purpose"]> =
+  new Set(["data_export", "account_deletion"]);
+
 /**
  * The one value shown for two purposes (05 RG33, RG95): granted only when both are; otherwise the
  * latest withdrawal gives the date and the origin. An account without any event shows nothing.
@@ -245,7 +249,9 @@ export function registerAccountRoutes(
   );
 
   // PATCH /v1/me (RG15, RG73): country, language, declared status (creator), company name
-  // (advertiser); one lead.updated per change, in the transaction of the change.
+  // (advertiser); one lead.updated per change, in the transaction of the change. Exempt from the
+  // gate: rectification is a right of the person (GDPR art. 16), these fields bind nothing at Lot 1
+  // and the language is the one the new terms are read in (expert-conformite-rgpd, 2026-10-14).
   app.patch(
     "/v1/me",
     {
@@ -277,6 +283,7 @@ export function registerAccountRoutes(
           }
           return meOf(tx, context);
         },
+        { terms: "exempt" },
       );
     },
   );
@@ -470,7 +477,8 @@ export function registerAccountRoutes(
 
   /**
    * The member asking, read in its own transaction and committed before any call (G4). The fresh
-   * code of "mes données" is exempt from the terms gate, like the requests it opens (A3).
+   * code of "mes données" is exempt from the terms gate, like the requests it opens (A3); an allow
+   * list, so that a purpose added later is gated by default (expert-cybersecurite, 2026-10-14).
    */
   const memberOf = (
     request: FastifyRequest,
@@ -494,7 +502,7 @@ export function registerAccountRoutes(
           locale: uiLocaleSchema.parse(profile.preferredLanguage),
         };
       },
-      { terms: purpose === "email_change" ? "required" : "exempt" },
+      { terms: TERMS_EXEMPT_PURPOSES.has(purpose) ? "exempt" : "required" },
     );
 
   const emailChangeCallOf = (

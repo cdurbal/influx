@@ -1478,6 +1478,16 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|column|identity.sessions.id|SELECT",
   "influx_leads_definer|column|identity.sessions.surface|SELECT",
   "influx_leads_definer|column|identity.sessions.user_agent_summary|SELECT",
+  // 0128 (J7 commit 8bis): the worker's read of the request named by a privacy.request_received
+  // line (16 RG160; never the channel nor the closing) and of the account's time zone.
+  "influx_leads_definer|schema|backoffice|USAGE",
+  "influx_leads_definer|column|backoffice.data_subject_requests.due_at|SELECT",
+  "influx_leads_definer|column|backoffice.data_subject_requests.id|SELECT",
+  "influx_leads_definer|column|backoffice.data_subject_requests.received_at|SELECT",
+  "influx_leads_definer|column|backoffice.data_subject_requests.request_type|SELECT",
+  "influx_leads_definer|column|backoffice.data_subject_requests.requester_account_id|SELECT",
+  "influx_leads_definer|column|backoffice.data_subject_requests.status|SELECT",
+  "influx_leads_definer|column|identity.accounts.timezone|SELECT",
 ];
 
 /**
