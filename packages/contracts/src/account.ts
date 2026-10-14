@@ -1,10 +1,19 @@
 // Contract of the member's own account, "mon compte" (docs/mvp/05 RG15, RG28, RG34, RG35, RG56,
-// RG71, RG92 to RG95, RG143; 17 §6.1, §6.2, §6.4, §6.7; 21 §5.2, J7 commit 6). Shared by apps/api
-// and apps/web. The account is always the one of the session: no route takes an account id, and a
-// session id is only ever one of the member's own (18 T14).
+// RG71, RG92 to RG95, RG143; 17 §6.1, §6.2, §6.4, §6.7; 21 §5.2, J7 commit 6), and the actions
+// behind a fresh code: re-authentication and change of address (RG57, RG58; J7 commit 7). Shared by
+// apps/api and apps/web. The account is always the one of the session: no route takes an account
+// id, and a session id is only ever one of the member's own (18 T14).
 // Nothing here carries an amount, a rate or a commission (05 RG9).
 import * as z from "zod";
-import { signupDoorSchema, uiLocaleSchema } from "./auth.ts";
+import {
+  LOGIN_CODE_PATTERN,
+  MAX_EMAIL_LENGTH,
+  normalizeEmail,
+  REQUEST_CODE_OUTCOMES,
+  RESEND_DELAY_SECONDS,
+  signupDoorSchema,
+  uiLocaleSchema,
+} from "./auth.ts";
 import {
   companyNameSchema,
   countryCodeSchema,
@@ -152,3 +161,168 @@ export const acceptTermsResponseSchema = z.strictObject({
   outcome: z.literal("accepted"),
 });
 export type AcceptTermsResponse = z.infer<typeof acceptTermsResponseSchema>;
+
+// --- Re-authentication by a fresh code (05 RG57; 03 A-10; J7 decision 4, commit 7) -----------------
+
+/** The three actions that need a fresh code (05 RG57); a proof serves one of them, once. */
+export const REAUTH_PURPOSES = [
+  "email_change",
+  "data_export",
+  "account_deletion",
+] as const;
+export const reauthPurposeSchema = z.enum(REAUTH_PURPOSES);
+export type ReauthPurpose = z.infer<typeof reauthPurposeSchema>;
+
+/** A signed journey token is never longer than this (auth-tokens.ts). */
+const REAUTH_TOKEN_MAX_LENGTH = 2_048;
+
+/**
+ * POST /v1/me/reauthenticate/request-code: a sign-in code sent to the address of the session (never
+ * one from the body), under the ceilings of the sign-in code (RG44).
+ */
+export const reauthRequestCodeBodySchema = z.strictObject({
+  purpose: reauthPurposeSchema,
+});
+export type ReauthRequestCodeBody = z.infer<typeof reauthRequestCodeBodySchema>;
+
+/**
+ * The outcomes of the sign-in code (RG60). When `sent`: the matching phrase (RG128) and the signed
+ * journey of this code (RG47), which the verification sends back; held by the page only, so that
+ * the code dies with the tab. Never the code itself.
+ */
+export const reauthRequestCodeResponseSchema = z.strictObject({
+  outcome: z.enum(REQUEST_CODE_OUTCOMES),
+  retryAfterSeconds: z.literal(RESEND_DELAY_SECONDS),
+  matchingPhrase: z.string().min(1).max(64).optional(),
+  reauthToken: z.string().min(1).max(REAUTH_TOKEN_MAX_LENGTH).optional(),
+});
+export type ReauthRequestCodeResponse = z.infer<
+  typeof reauthRequestCodeResponseSchema
+>;
+
+/** POST /v1/me/reauthenticate/verify-code: the code, for the purpose it was asked for. */
+export const reauthVerifyCodeBodySchema = z.strictObject({
+  purpose: reauthPurposeSchema,
+  code: z.string().regex(LOGIN_CODE_PATTERN),
+  reauthToken: z.string().min(1).max(REAUTH_TOKEN_MAX_LENGTH),
+});
+export type ReauthVerifyCodeBody = z.infer<typeof reauthVerifyCodeBodySchema>;
+
+/**
+ * `reauthenticated`: this session may do `purpose` once within `validForSeconds`. The failures are
+ * those of the sign-in code (RG136, RG137); `session_lost` is a journey token missing, expired, of
+ * another session or of another purpose.
+ */
+export const reauthVerifyCodeResponseSchema = z.discriminatedUnion("outcome", [
+  z.strictObject({
+    outcome: z.literal("reauthenticated"),
+    purpose: reauthPurposeSchema,
+    validForSeconds: z.number().int().positive(),
+  }),
+  z.strictObject({
+    outcome: z.literal("invalid"),
+    attemptsLeft: z.number().int().min(1).max(4),
+  }),
+  z.strictObject({ outcome: z.literal("too_many_attempts") }),
+  z.strictObject({ outcome: z.literal("expired") }),
+  z.strictObject({ outcome: z.literal("session_lost") }),
+  z.strictObject({ outcome: z.literal("too_many_requests") }),
+  z.strictObject({ outcome: z.literal("verify_unavailable") }),
+]);
+export type ReauthVerifyCodeResponse = z.infer<
+  typeof reauthVerifyCodeResponseSchema
+>;
+
+// --- Change of address (05 RG58; 03 A-11; 17 §6.1; J7 decision 5, commit 7) -----------------------
+
+/** POST /v1/me/email-change, after a fresh code for `email_change` (403 reauthentication_required). */
+export const emailChangeBodySchema = z.strictObject({
+  newEmail: z
+    .string()
+    .max(MAX_EMAIL_LENGTH * 2)
+    .transform(normalizeEmail)
+    .pipe(z.email().max(MAX_EMAIL_LENGTH)),
+});
+export type EmailChangeBody = z.infer<typeof emailChangeBodySchema>;
+
+/**
+ * The open request of the member (17 §6.1: "En attente de confirmation : 1 sur 2 · expire le
+ * {date}"). Until both sides are confirmed, the sign-in address stays the old one (CA34).
+ */
+export const emailChangeRequestSchema = z.strictObject({
+  id: z.uuid(),
+  newEmail: z.email(),
+  expiresAt: z.iso.datetime(),
+  oldConfirmed: z.boolean(),
+  newConfirmed: z.boolean(),
+});
+export type EmailChangeRequest = z.infer<typeof emailChangeRequestSchema>;
+
+/** GET /v1/me/email-change: the open request, or none. */
+export const emailChangeStateResponseSchema = z.strictObject({
+  request: emailChangeRequestSchema.nullable(),
+});
+export type EmailChangeStateResponse = z.infer<
+  typeof emailChangeStateResponseSchema
+>;
+
+/** POST /v1/me/email-change: both codes left; the previous open request, if any, is closed. */
+export const emailChangeResponseSchema = z.strictObject({
+  outcome: z.literal("pending"),
+  request: emailChangeRequestSchema,
+});
+export type EmailChangeResponse = z.infer<typeof emailChangeResponseSchema>;
+
+/** `old`: the code sent to the current address; `new`: the one sent to the requested address. */
+export const EMAIL_CHANGE_SIDES = ["old", "new"] as const;
+export const emailChangeSideSchema = z.enum(EMAIL_CHANGE_SIDES);
+export type EmailChangeSide = z.infer<typeof emailChangeSideSchema>;
+
+/** POST /v1/me/email-change/confirm: one code of one side of the open request. */
+export const confirmEmailChangeBodySchema = z.strictObject({
+  requestId: z.uuid(),
+  side: emailChangeSideSchema,
+  code: z.string().regex(LOGIN_CODE_PATTERN),
+});
+export type ConfirmEmailChangeBody = z.infer<
+  typeof confirmEmailChangeBodySchema
+>;
+
+/**
+ * `confirmed`: this side is done, the other is awaited. `completed`: both sides are done and the
+ * request is processed; the same answer whether the new address could be taken or not (J7
+ * decision 5), GET /v1/me tells the address in force. `too_many_attempts` (fifth wrong code of a
+ * side) and `expired` (24 hours) close the request. Unknown, closed or another member's: 404.
+ */
+export const confirmEmailChangeResponseSchema = z.discriminatedUnion(
+  "outcome",
+  [
+    z.strictObject({
+      outcome: z.literal("confirmed"),
+      request: emailChangeRequestSchema,
+    }),
+    z.strictObject({ outcome: z.literal("completed") }),
+    z.strictObject({
+      outcome: z.literal("invalid"),
+      attemptsLeft: z.number().int().min(1).max(4),
+    }),
+    z.strictObject({ outcome: z.literal("too_many_attempts") }),
+    z.strictObject({ outcome: z.literal("expired") }),
+  ],
+);
+export type ConfirmEmailChangeResponse = z.infer<
+  typeof confirmEmailChangeResponseSchema
+>;
+
+/** DELETE /v1/me/email-change/:id: the holder cancels his open request (same 404 otherwise). */
+export const emailChangeParamsSchema = z.strictObject({
+  id: z.uuid(),
+});
+export type EmailChangeParams = z.infer<typeof emailChangeParamsSchema>;
+
+export const cancelEmailChangeResponseSchema = z.strictObject({
+  outcome: z.literal("cancelled"),
+});
+export type CancelEmailChangeResponse = z.infer<
+  typeof cancelEmailChangeResponseSchema
+>;

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   acceptTermsBodySchema,
+  confirmEmailChangeBodySchema,
+  confirmEmailChangeResponseSchema,
+  emailChangeBodySchema,
   meResponseSchema,
+  reauthRequestCodeBodySchema,
+  reauthVerifyCodeBodySchema,
   revokeAllSessionsResponseSchema,
   sessionsResponseSchema,
   updateConsentBodySchema,
@@ -100,6 +105,75 @@ describe("the answers carry no country of a session and nothing else than declar
     expect(meResponseSchema.safeParse(me).success).toBe(true);
     expect(
       meResponseSchema.safeParse({ ...me, termsToAccept: undefined }).success,
+    ).toBe(false);
+  });
+});
+
+describe("re-authentication bodies (05 RG57; J7 decision 4)", () => {
+  it("takes a purpose of the closed list only, never an address", () => {
+    expect(
+      reauthRequestCodeBodySchema.safeParse({ purpose: "email_change" })
+        .success,
+    ).toBe(true);
+    for (const body of [
+      {},
+      { purpose: "login" },
+      { purpose: "data_export", email: "autre@example.test" },
+    ]) {
+      expect(reauthRequestCodeBodySchema.safeParse(body).success).toBe(false);
+    }
+  });
+
+  it("verifies six digits with the journey token of the request", () => {
+    const body = {
+      purpose: "account_deletion",
+      code: "012345",
+      reauthToken: "eyJ0eXAiOiJyZWF1dGgifQ.signature",
+    };
+    expect(reauthVerifyCodeBodySchema.safeParse(body).success).toBe(true);
+    for (const wrong of [
+      { ...body, code: "12345" },
+      { ...body, code: "12345a" },
+      { ...body, reauthToken: "" },
+      { purpose: body.purpose, code: body.code },
+    ]) {
+      expect(reauthVerifyCodeBodySchema.safeParse(wrong).success).toBe(false);
+    }
+  });
+});
+
+describe("change of address (05 RG58; J7 decision 5)", () => {
+  it("normalises the new address as the sign-in does (lower case, trimmed)", () => {
+    expect(
+      emailChangeBodySchema.parse({ newEmail: "  Lena.K@Example.TEST " }),
+    ).toEqual({ newEmail: "lena.k@example.test" });
+    expect(
+      emailChangeBodySchema.safeParse({ newEmail: "not-an-address" }).success,
+    ).toBe(false);
+  });
+
+  it("confirms one side of a request with six digits", () => {
+    const body = {
+      requestId: "5d0c7e1a-2b3f-4c6d-8e9f-0a1b2c3d4e5f",
+      side: "new",
+      code: "604218",
+    };
+    expect(confirmEmailChangeBodySchema.safeParse(body).success).toBe(true);
+    expect(
+      confirmEmailChangeBodySchema.safeParse({ ...body, side: "both" }).success,
+    ).toBe(false);
+  });
+
+  it("answers completed without saying whether the new address could be taken (decision 5)", () => {
+    expect(
+      confirmEmailChangeResponseSchema.safeParse({ outcome: "completed" })
+        .success,
+    ).toBe(true);
+    expect(
+      confirmEmailChangeResponseSchema.safeParse({
+        outcome: "completed",
+        addressTaken: true,
+      }).success,
     ).toBe(false);
   });
 });

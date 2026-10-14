@@ -15,10 +15,15 @@
 //   template, the HTTP status and Brevo's error code at most.
 import type { BrevoMode } from "../config/schema.ts";
 
-/** Closed list of the templates the api may send (EC-19 point 3; EC-44, the P0 alert, J6). */
+/**
+ * Closed list of the templates the api may send (EC-19 point 3; EC-44, the P0 alert, J6; the two
+ * codes of an address change, sent synchronously, J7 decision 5).
+ */
 export const API_TRANSACTIONAL_TEMPLATES = [
   "auth.login_code",
   "internal.critical_alert",
+  "auth.email_change_confirm_old",
+  "auth.email_change_confirm_new",
 ] as const;
 export type ApiTransactionalTemplate =
   (typeof API_TRANSACTIONAL_TEMPLATES)[number];

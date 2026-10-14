@@ -7,12 +7,25 @@
 // same transaction (05 RG73): identity.update_own_account() (0122), identity.set_marketing_consent()
 // (0119), identity.revoke_own_session() (0012); the re-acceptance is the member's own insert
 // (0005 §5.2).
+// Behind a fresh code (RG57, J7 commit 7): the re-authentication (reauthentication.ts, decision 4)
+// and the change of address (email-change.ts, decision 5; RG58, A-11).
 import {
   acceptTermsBodySchema,
   acceptTermsResponseSchema,
+  cancelEmailChangeResponseSchema,
+  confirmEmailChangeBodySchema,
+  confirmEmailChangeResponseSchema,
   consentResponseSchema,
   consentSourceSchema,
+  emailChangeBodySchema,
+  emailChangeParamsSchema,
+  emailChangeResponseSchema,
+  emailChangeStateResponseSchema,
   meResponseSchema,
+  reauthRequestCodeBodySchema,
+  reauthRequestCodeResponseSchema,
+  reauthVerifyCodeBodySchema,
+  reauthVerifyCodeResponseSchema,
   revokeAllSessionsResponseSchema,
   revokeSessionResponseSchema,
   sessionParamsSchema,
@@ -22,8 +35,19 @@ import {
   updateMeBodySchema,
   type AcceptTermsBody,
   type AcceptTermsResponse,
+  type CancelEmailChangeResponse,
+  type ConfirmEmailChangeBody,
+  type ConfirmEmailChangeResponse,
   type ConsentResponse,
+  type EmailChangeBody,
+  type EmailChangeParams,
+  type EmailChangeResponse,
+  type EmailChangeStateResponse,
   type MeResponse,
+  type ReauthRequestCodeBody,
+  type ReauthRequestCodeResponse,
+  type ReauthVerifyCodeBody,
+  type ReauthVerifyCodeResponse,
   type RevokeAllSessionsResponse,
   type RevokeSessionResponse,
   type SessionParams,
@@ -33,7 +57,7 @@ import {
   type UpdateConsentResponse,
   type UpdateMeBody,
 } from "@influx/contracts/account";
-import { uiLocaleSchema } from "@influx/contracts/auth";
+import { RESEND_DELAY_SECONDS, uiLocaleSchema } from "@influx/contracts/auth";
 import {
   countryCodeSchema,
   declaredStatusSchema,
@@ -43,10 +67,25 @@ import {
   userAgentSummarySchema,
 } from "@influx/contracts/user-agent";
 import type { ValidationIssue } from "@influx/contracts/errors";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import type { Transaction } from "../../db/index.ts";
 import { clearAuthCookie } from "../../platform/auth-cookies.ts";
+import { clientAddressOf } from "../../platform/client-address.ts";
 import { ApiError, RequestValidationError } from "../../platform/errors.ts";
+import { userAgentSummaryOf } from "../../platform/user-agent.ts";
+import {
+  cancelOwnEmailChange,
+  confirmEmailChangeCode,
+  openEmailChange,
+  startEmailChange,
+  type EmailChangeCall,
+} from "./email-change.ts";
 import { withMemberSession, type MemberContext } from "./member-session.ts";
+import {
+  requestReauthenticationCode,
+  verifyReauthenticationCode,
+  type ReauthenticatingMember,
+} from "./reauthentication.ts";
 import {
   CONSENT_PURPOSES,
   constraintNameOf,
@@ -395,6 +434,162 @@ export function registerAccountRoutes(
         },
         { terms: "exempt" },
       );
+    },
+  );
+
+  // --- Behind a fresh code (RG57; J7 decisions 4 and 5, commit 7) -------------------------------
+
+  /** The member asking, read in its own transaction and committed before any call (G4). */
+  const memberOf = (request: FastifyRequest, reply: FastifyReply) =>
+    withMemberSession(
+      database,
+      request,
+      reply,
+      now,
+      async (tx, context): Promise<ReauthenticatingMember> => {
+        const profile = await ownProfile(tx);
+        if (profile === null) {
+          throw new ApiError("unauthenticated");
+        }
+        return {
+          sessionId: context.sessionId,
+          accountId: context.accountId,
+          email: profile.email,
+          locale: uiLocaleSchema.parse(profile.preferredLanguage),
+        };
+      },
+    );
+
+  const emailChangeCallOf = (
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): EmailChangeCall => ({
+    requestId: request.id,
+    inMember: (fn) => withMemberSession(database, request, reply, now, fn),
+    logger: request.log,
+  });
+
+  // POST /v1/me/reauthenticate/request-code (RG57, RG44): a sign-in code to the session's address.
+  app.post(
+    "/v1/me/reauthenticate/request-code",
+    {
+      schema: {
+        body: reauthRequestCodeBodySchema,
+        response: { 200: reauthRequestCodeResponseSchema },
+      },
+    },
+    async (request, reply): Promise<ReauthRequestCodeResponse> => {
+      const { purpose } = request.body as ReauthRequestCodeBody;
+      const member = await memberOf(request, reply);
+      const result = await requestReauthenticationCode(dependencies, {
+        requestId: request.id,
+        member,
+        purpose,
+        clientAddress: clientAddressOf(request),
+        browser: userAgentSummaryOf(request),
+        logger: request.log,
+      });
+      return result.journey === null
+        ? { outcome: result.outcome, retryAfterSeconds: RESEND_DELAY_SECONDS }
+        : {
+            outcome: result.outcome,
+            retryAfterSeconds: RESEND_DELAY_SECONDS,
+            matchingPhrase: result.journey.phrase,
+            reauthToken: result.journey.token,
+          };
+    },
+  );
+
+  // POST /v1/me/reauthenticate/verify-code: the marker of `purpose` on this session (0118).
+  app.post(
+    "/v1/me/reauthenticate/verify-code",
+    {
+      schema: {
+        body: reauthVerifyCodeBodySchema,
+        response: { 200: reauthVerifyCodeResponseSchema },
+      },
+    },
+    async (request, reply): Promise<ReauthVerifyCodeResponse> => {
+      const body = request.body as ReauthVerifyCodeBody;
+      const member = await memberOf(request, reply);
+      return verifyReauthenticationCode(dependencies, {
+        requestId: request.id,
+        member,
+        purpose: body.purpose,
+        code: body.code,
+        token: body.reauthToken,
+        clientAddress: clientAddressOf(request),
+        logger: request.log,
+      });
+    },
+  );
+
+  // GET /v1/me/email-change (17 §6.1): the open request, "1 sur 2 · expire le {date}".
+  app.get(
+    "/v1/me/email-change",
+    { schema: { response: { 200: emailChangeStateResponseSchema } } },
+    async (request, reply): Promise<EmailChangeStateResponse> => ({
+      request: await withMemberSession(database, request, reply, now, (tx) =>
+        openEmailChange(tx),
+      ),
+    }),
+  );
+
+  // POST /v1/me/email-change (RG58, A-11): after a fresh code for email_change; both codes leave.
+  app.post(
+    "/v1/me/email-change",
+    {
+      schema: {
+        body: emailChangeBodySchema,
+        response: { 200: emailChangeResponseSchema },
+      },
+    },
+    async (request, reply): Promise<EmailChangeResponse> =>
+      startEmailChange(
+        dependencies,
+        emailChangeCallOf(request, reply),
+        (request.body as EmailChangeBody).newEmail,
+      ),
+  );
+
+  // POST /v1/me/email-change/confirm: one code of one side; the second completes the change.
+  app.post(
+    "/v1/me/email-change/confirm",
+    {
+      schema: {
+        body: confirmEmailChangeBodySchema,
+        response: { 200: confirmEmailChangeResponseSchema },
+      },
+    },
+    async (request, reply): Promise<ConfirmEmailChangeResponse> => {
+      const body = request.body as ConfirmEmailChangeBody;
+      return confirmEmailChangeCode(
+        dependencies,
+        emailChangeCallOf(request, reply),
+        {
+          changeId: body.requestId.toLowerCase(),
+          side: body.side,
+          code: body.code,
+        },
+      );
+    },
+  );
+
+  // DELETE /v1/me/email-change/:id: the holder cancels; unknown, closed or another's: 404 (T14).
+  app.delete(
+    "/v1/me/email-change/:id",
+    {
+      schema: {
+        params: emailChangeParamsSchema,
+        response: { 200: cancelEmailChangeResponseSchema },
+      },
+    },
+    async (request, reply): Promise<CancelEmailChangeResponse> => {
+      const changeId = (request.params as EmailChangeParams).id.toLowerCase();
+      await withMemberSession(database, request, reply, now, (tx) =>
+        cancelOwnEmailChange(tx, changeId),
+      );
+      return { outcome: "cancelled" };
     },
   );
 }

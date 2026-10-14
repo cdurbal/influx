@@ -725,3 +725,128 @@ describe("identity.cancel_email_change()", () => {
     expect(result).toEqual({ outcome: "error", code: INSUFFICIENT_PRIVILEGE });
   });
 });
+
+// --- 0123 (J7 commit 7) ---------------------------------------------------------------------------
+
+describe("identity.refuse_email_change_address() (0123: GoTrue refused the new address as taken)", () => {
+  it("closes the holder's fully confirmed request as address_unavailable, and nothing else", async () => {
+    const who = member("creator", "a");
+    const result = await scenario(async (tx) => {
+      const { request } = await openRequest(tx, who);
+      const refuse = (by: Member) =>
+        actAsMember(tx, by.role, by.context, async () => {
+          const [row] = await tx<{ done: boolean }[]>`
+            select identity.refuse_email_change_address(${request}::uuid) as done`;
+          return row?.done;
+        });
+      const early = await refuse(who);
+      await confirm(tx, who, request, "old", digest(`old:${request}`));
+      await confirm(tx, who, request, "new", digest(`new:${request}`));
+      const [before] = await tx<{ email: string }[]>`
+        select email from identity.accounts where id = ${who.account.id}`;
+      const foreign = await refuse(member("creator", "b"));
+      const own = await refuse(who);
+      const again = await refuse(who);
+      const [after] = await tx<{ email: string }[]>`
+        select email from identity.accounts where id = ${who.account.id}`;
+      return {
+        early,
+        foreign,
+        own,
+        again,
+        unchanged: before?.email === after?.email,
+        row: await requestRow(tx, request),
+      };
+    });
+    expect(result).toMatchObject({
+      early: false,
+      foreign: false,
+      own: true,
+      again: false,
+      unchanged: true,
+      row: {
+        completed: false,
+        cancel_reason: "address_unavailable",
+        digests: false,
+      },
+    });
+  });
+
+  it("is refused to influx_auth (42501)", async () => {
+    const result = await inRolledBackTransaction(
+      loginRole("influx_auth_login"),
+      async (tx) => {
+        await takeRole(tx, "influx_auth");
+        return probe(
+          tx,
+          "select identity.refuse_email_change_address(gen_random_uuid())",
+        );
+      },
+    );
+    expect(result).toEqual({ outcome: "error", code: INSUFFICIENT_PRIVILEGE });
+  });
+});
+
+describe("the journal of the two codes (0123: P1, influx_auth, never through the queue)", () => {
+  it("lets influx_auth write, read back and close the P1 line of each side: the old one with its account, the new one with its address", async () => {
+    const who = member("advertiser", "a");
+    const result = await scenario((tx) =>
+      actAs(tx, "auth", async () => {
+        const insert = (
+          code: string,
+          accountId: string | null,
+          address: string | null,
+        ) =>
+          probe(
+            tx,
+            "insert into leads.transactional_sends " +
+              "(email_code, priority, account_id, recipient_email, locale) " +
+              "values ($1, 'p1', $2::uuid, $3, 'fr') returning reference::text",
+            [code, accountId, address],
+          );
+        const written = await tx<{ reference: string }[]>`
+          insert into leads.transactional_sends
+            (email_code, priority, account_id, recipient_email, locale)
+          values ('auth.email_change_confirm_old', 'p1', ${who.account.id}::uuid, null, 'fr'),
+                 ('auth.email_change_confirm_new', 'p1', null, 'changed-0123@example.test', 'fr')
+          returning reference::text as reference`;
+        const closed = await tx<{ status: string }[]>`
+          update leads.transactional_sends
+             set status = 'failed', failure_code = 'provider_unavailable'
+           where reference = any (${written.map((line) => line.reference)}::uuid[])
+             and status = 'queued'
+          returning status::text as status`;
+        return {
+          written: written.length,
+          closed: closed.map((line) => line.status),
+          // refused: the old side without its account, the new side without its address
+          oldWithoutAccount: await insert(
+            "auth.email_change_confirm_old",
+            null,
+            "x-0123@example.test",
+          ),
+          newWithAccount: await insert(
+            "auth.email_change_confirm_new",
+            who.account.id,
+            null,
+          ),
+          // refused: any other P1 code (the queue's), the sign-in code at P1
+          welcome: await insert(
+            "account.welcome_creator",
+            who.account.id,
+            null,
+          ),
+          loginCode: await insert("auth.login_code", who.account.id, null),
+        };
+      }),
+    );
+    expect(result).toEqual({
+      written: 2,
+      closed: ["failed", "failed"],
+      oldWithoutAccount: { outcome: "error", code: INSUFFICIENT_PRIVILEGE },
+      newWithAccount: { outcome: "error", code: INSUFFICIENT_PRIVILEGE },
+      welcome: { outcome: "error", code: INSUFFICIENT_PRIVILEGE },
+      loginCode: { outcome: "error", code: INSUFFICIENT_PRIVILEGE },
+    });
+  });
+});

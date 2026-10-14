@@ -14,6 +14,28 @@
         "notYou": "Didn't request anything? Ignore this email: without this code, no one can sign in to INFLUX with your address.",
         "never": "INFLUX will never ask you for this code, by phone, email or message. Do not share it with anyone.",
         "reason": "a sign-in code was requested for this address on INFLUX"
+      },
+      "emailChangeConfirmOld": {
+        "subject": "Confirm the change of address of your INFLUX account",
+        "preheader": "Code valid for 24 hours, to enter in your INFLUX space.",
+        "title": "Change of address: confirmation from your current address",
+        "codeIntro": "Enter this code in your INFLUX space, at the “current address” step:",
+        "validity": "This code is valid for 24 hours. The change only takes place once it is also confirmed from the new address; until then, you still sign in with this address.",
+        "context": "Request received on {requestedAt, date, long} at {requestedAt, time, short} ({timeZone}).",
+        "notYou": "Didn't request anything? Do not enter this code, and sign out of all your sessions from your INFLUX space: without this code, the address of your account cannot change.",
+        "never": "INFLUX will never ask you for this code, by phone, email or message. Do not share it with anyone.",
+        "reason": "a change of the address of your INFLUX account was requested"
+      },
+      "emailChangeConfirmNew": {
+        "subject": "Confirm your new INFLUX address",
+        "preheader": "Code valid for 24 hours, to enter in your INFLUX space.",
+        "title": "Change of address: confirmation from your new address",
+        "codeIntro": "Enter this code in your INFLUX space, at the “new address” step:",
+        "validity": "This code is valid for 24 hours. Once both confirmations are made, you will sign in with this address.",
+        "context": "Request received on {requestedAt, date, long} at {requestedAt, time, short} ({timeZone}).",
+        "notYou": "Didn't request anything? Ignore this email: without this code, your address cannot be attached to an INFLUX account.",
+        "never": "INFLUX will never ask you for this code, by phone, email or message. Do not share it with anyone.",
+        "reason": "this address was given as the new address of an INFLUX account"
       }
     },
     "internal": {

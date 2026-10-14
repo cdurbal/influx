@@ -140,7 +140,7 @@ describe("EC-36: audit.append_elevated()", () => {
     ).toEqual({ outcome: "error", code: INVALID_PARAMETER });
   });
 
-  it("knows the motifs of E-1 and E-2 (five at J3, the sign-up at J5), E-3 (J6), the four of J7, and no other", async () => {
+  it("knows the motifs of E-1 and E-2 (five at J3, the sign-up at J5), E-3 (J6), the five of J7, and no other", async () => {
     const codes = await migration<{ code: string; subject_type: string }[]>`
       select code, subject_type from audit.event_types
        where code like 'elevated.%' order by code`;
@@ -157,6 +157,11 @@ describe("EC-36: audit.append_elevated()", () => {
       // 0104 (J5, EC-30): the elevated transaction of the sign-up, on the created account
       {
         code: "elevated.identity.complete_signup",
+        subject_type: "account",
+      },
+      // 0123 (J7 decision 5): the journal of the two codes of an address change, on the account
+      {
+        code: "elevated.identity.member_email_change",
         subject_type: "account",
       },
       // 0115 (J7 decision 4): the member's fresh code, on the account

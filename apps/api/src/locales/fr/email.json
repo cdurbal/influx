@@ -14,6 +14,28 @@
         "notYou": "Vous n'avez rien demandé ? Ignorez cet e-mail : sans ce code, personne ne peut se connecter à INFLUX avec votre adresse.",
         "never": "INFLUX ne vous demandera jamais ce code, ni par téléphone, ni par e-mail, ni par message. Ne le communiquez à personne.",
         "reason": "un code de connexion a été demandé pour cette adresse sur INFLUX"
+      },
+      "emailChangeConfirmOld": {
+        "subject": "Confirmez le changement d'adresse de votre compte INFLUX",
+        "preheader": "Code valable 24 heures, à saisir dans votre espace INFLUX.",
+        "title": "Changement d'adresse : confirmation depuis votre adresse actuelle",
+        "codeIntro": "Saisissez ce code dans votre espace INFLUX, à l'étape « adresse actuelle » :",
+        "validity": "Ce code est valable 24 heures. Le changement n'a lieu qu'une fois confirmé aussi depuis la nouvelle adresse ; d'ici là, vous vous connectez toujours avec cette adresse-ci.",
+        "context": "Demande reçue le {requestedAt, date, long} à {requestedAt, time, short} ({timeZone}).",
+        "notYou": "Vous n'avez rien demandé ? Ne saisissez pas ce code et fermez toutes vos sessions depuis votre espace INFLUX : sans ce code, l'adresse de votre compte ne peut pas changer.",
+        "never": "INFLUX ne vous demandera jamais ce code, ni par téléphone, ni par e-mail, ni par message. Ne le communiquez à personne.",
+        "reason": "un changement de l'adresse de votre compte INFLUX a été demandé"
+      },
+      "emailChangeConfirmNew": {
+        "subject": "Confirmez votre nouvelle adresse INFLUX",
+        "preheader": "Code valable 24 heures, à saisir dans votre espace INFLUX.",
+        "title": "Changement d'adresse : confirmation depuis votre nouvelle adresse",
+        "codeIntro": "Saisissez ce code dans votre espace INFLUX, à l'étape « nouvelle adresse » :",
+        "validity": "Ce code est valable 24 heures. Une fois les deux confirmations faites, c'est avec cette adresse que vous vous connecterez.",
+        "context": "Demande reçue le {requestedAt, date, long} à {requestedAt, time, short} ({timeZone}).",
+        "notYou": "Vous n'avez rien demandé ? Ignorez cet e-mail : sans ce code, votre adresse ne peut pas être rattachée à un compte INFLUX.",
+        "never": "INFLUX ne vous demandera jamais ce code, ni par téléphone, ni par e-mail, ni par message. Ne le communiquez à personne.",
+        "reason": "cette adresse a été indiquée comme nouvelle adresse d'un compte INFLUX"
       }
     },
     "internal": {

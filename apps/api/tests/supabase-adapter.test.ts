@@ -662,6 +662,51 @@ describe("factors through the administration API (G-1, EC-56)", () => {
   });
 });
 
+describe("the address of a user through the administration API (05 RG58, J7 decision 5)", () => {
+  it("moves the user to the new address, confirmed, nothing sent; returns the identity", async () => {
+    gotrue.handler = (request) =>
+      request.path === `/auth/v1/admin/users/${USER_A.id}`
+        ? {
+            status: 200,
+            body: { ...USER_A, email: USER_B.email, aud: "authenticated" },
+          }
+        : { status: 404, body: {} };
+    expect(await auth.updateUserEmail(USER_A.id, USER_B.email)).toEqual({
+      ok: true,
+      value: { userId: USER_A.id, email: USER_B.email },
+    });
+    expect(gotrue.received).toHaveLength(1);
+    expect(gotrue.received[0]).toMatchObject({
+      method: "PUT",
+      path: `/auth/v1/admin/users/${USER_A.id}`,
+      body: { email: USER_B.email, email_confirm: true },
+    });
+    expect(gotrue.received[0]?.headers["sb-forwarded-for"]).toBeUndefined();
+  });
+
+  it("an address held by another user is rejected email_exists; an outage is unavailable", async () => {
+    gotrue.handler = () => ({
+      status: 422,
+      body: {
+        code: 422,
+        error_code: "email_exists",
+        msg: "A user with this email address has already been registered",
+      },
+    });
+    expect(await auth.updateUserEmail(USER_A.id, USER_B.email)).toEqual({
+      ok: false,
+      reason: "rejected",
+      errorCode: "email_exists",
+      status: 422,
+    });
+    gotrue.handler = () => ({ status: 503, body: {} });
+    expect(await auth.updateUserEmail(USER_A.id, USER_B.email)).toMatchObject({
+      ok: false,
+      reason: "unavailable",
+    });
+  });
+});
+
 describe("the directory of the purge (04 §9, J7 decision 3): ids and instants, never an address", () => {
   function directory() {
     return createGoTrueUserDirectory({

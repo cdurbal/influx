@@ -973,3 +973,218 @@ export async function termsOfServiceArePublished(
   );
   return rows[0]?.published === true;
 }
+
+// --- Re-authentication and change of address (J7 decisions 4 and 5, commit 7) ------------------
+// The marker is written by influx_auth (E-2 identity.member_reauthenticate, 0118); the journal lines
+// of the two codes by influx_auth (E-1 identity.member_email_change, 0123); the request itself by
+// the member, through the identity functions of 0118 and 0123 only.
+
+/** A reason of 0118 for a fresh code: one action, once. */
+export type ReauthPurpose = "email_change" | "data_export" | "account_deletion";
+
+/**
+ * E-2 (0118): the marker of `purpose` on this member session, at now(). Returns the account, or null
+ * when the session no longer qualifies (closed, expired, not a member's, account not active).
+ */
+export async function markMemberReauthenticated(
+  tx: Transaction,
+  sessionId: string,
+  purpose: ReauthPurpose,
+): Promise<string | null> {
+  const rows = await tx.execute<{ account: string | null }>(
+    sql`select identity.mark_member_reauthenticated(${sessionId}::uuid,
+                                                    ${purpose}::identity.reauth_purpose)::text
+               as account`,
+  );
+  return rows[0]?.account ?? null;
+}
+
+/**
+ * E-1 (0123): the P1 journal line of one code of an address change, status `queued`: the old side
+ * with its account, the new side with its address (not the account's yet, 0015 recipient_xor).
+ * The template version is COPIED (04 R7). Returns the reference that closes it (closeP0Send).
+ */
+export async function insertEmailChangeCodeSend(
+  tx: Transaction,
+  line: {
+    side: "old" | "new";
+    accountId: string;
+    newEmail: string;
+    locale: string;
+    templateVersion: number;
+  },
+): Promise<string> {
+  const code = `auth.email_change_confirm_${line.side}`;
+  const rows = await tx.execute<{ reference: string }>(
+    sql`insert into leads.transactional_sends
+          (email_code, priority, account_id, recipient_email, locale, template_ref,
+           template_version)
+        values (${code}, 'p1', ${line.side === "old" ? line.accountId : null}::uuid,
+                ${line.side === "new" ? line.newEmail : null}, ${line.locale}, ${code},
+                ${line.templateVersion})
+        returning reference::text as reference`,
+  );
+  const reference = rows[0]?.reference;
+  if (reference === undefined) {
+    throw new Error("journal line not inserted");
+  }
+  return reference;
+}
+
+/** identity.request_email_change() (0118): consumes the marker; 55000 without it. */
+export async function requestEmailChange(
+  tx: Transaction,
+  request: {
+    sessionId: string;
+    requestId: string;
+    newEmail: string;
+    oldCodeHash: Buffer;
+    newCodeHash: Buffer;
+  },
+): Promise<void> {
+  await tx.execute(
+    sql`select identity.request_email_change(${request.sessionId}::uuid,
+             ${request.requestId}::uuid, ${request.newEmail}, ${request.oldCodeHash},
+             ${request.newCodeHash})`,
+  );
+}
+
+export type EmailChangeConfirmation = {
+  outcome:
+    | "confirmed"
+    | "already_confirmed"
+    | "invalid_code"
+    | "attempts_exhausted"
+    | "expired"
+    | "not_found";
+  /** Both sides confirmed: GoTrue may now take the new address. */
+  ready: boolean;
+  /** The GoTrue user to update, when ready. */
+  authUserId: string | null;
+};
+
+/** identity.confirm_email_change() (0118): one code of one side; never raises on a wrong code. */
+export async function confirmEmailChange(
+  tx: Transaction,
+  requestId: string,
+  side: "old" | "new",
+  codeHash: Buffer,
+): Promise<EmailChangeConfirmation> {
+  const rows = await tx.execute<{
+    outcome: EmailChangeConfirmation["outcome"];
+    ready: boolean;
+    auth_user_id: string | null;
+  }>(
+    sql`select outcome, ready, auth_user_id::text as auth_user_id
+          from identity.confirm_email_change(${requestId}::uuid,
+                                             ${side}::identity.email_change_side, ${codeHash})`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    throw new Error("identity.confirm_email_change() returned no row");
+  }
+  return {
+    outcome: row.outcome,
+    ready: row.ready,
+    authUserId: row.auth_user_id,
+  };
+}
+
+export type EmailChangeCompletion =
+  | "completed"
+  | "not_found"
+  | "not_ready"
+  | "expired"
+  | "superseded"
+  | "address_unavailable";
+
+/** identity.complete_email_change() (0118): AFTER GoTrue took the new address. */
+export async function completeEmailChange(
+  tx: Transaction,
+  requestId: string,
+  sessionId: string,
+): Promise<EmailChangeCompletion> {
+  const rows = await tx.execute<{ outcome: EmailChangeCompletion }>(
+    sql`select identity.complete_email_change(${requestId}::uuid, ${sessionId}::uuid)
+               as outcome`,
+  );
+  const outcome = rows[0]?.outcome;
+  if (outcome === undefined) {
+    throw new Error("identity.complete_email_change() returned nothing");
+  }
+  return outcome;
+}
+
+/** identity.cancel_email_change() (0118): the holder's own open request; false otherwise. */
+export async function cancelEmailChange(
+  tx: Transaction,
+  requestId: string,
+): Promise<boolean> {
+  const rows = await tx.execute<{ cancelled: boolean }>(
+    sql`select identity.cancel_email_change(${requestId}::uuid) as cancelled`,
+  );
+  return rows[0]?.cancelled === true;
+}
+
+/** identity.refuse_email_change_address() (0123): GoTrue refused the new address as taken. */
+export async function refuseEmailChangeAddress(
+  tx: Transaction,
+  requestId: string,
+): Promise<boolean> {
+  const rows = await tx.execute<{ refused: boolean }>(
+    sql`select identity.refuse_email_change_address(${requestId}::uuid) as refused`,
+  );
+  return rows[0]?.refused === true;
+}
+
+export type OwnEmailChangeRow = {
+  id: string;
+  newEmail: string;
+  expiresAt: string;
+  oldConfirmed: boolean;
+  newConfirmed: boolean;
+  oldAttempts: number;
+  newAttempts: number;
+};
+
+/**
+ * The member's open request (RLS: own rows only, never the digests, 0118 §7.2), or the one named,
+ * open or not: null when absent. An expired request still open is shown until a code closes it.
+ */
+export async function ownEmailChange(
+  tx: Transaction,
+  requestId: string | null = null,
+): Promise<OwnEmailChangeRow | null> {
+  const rows = await tx.execute<{
+    id: string;
+    new_email: string;
+    expires_at: string;
+    old_confirmed: boolean;
+    new_confirmed: boolean;
+    old_attempts: number;
+    new_attempts: number;
+  }>(
+    sql`select id::text as id, new_email,
+               to_char(expires_at at time zone 'UTC', ${ISO_UTC}) as expires_at,
+               old_confirmed_at is not null as old_confirmed,
+               new_confirmed_at is not null as new_confirmed,
+               old_attempts, new_attempts
+          from identity.email_change_requests
+         where account_id = (select influx.current_account_id())
+           and (${requestId}::uuid is null and completed_at is null and cancelled_at is null
+                or id = ${requestId}::uuid)`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    return null;
+  }
+  return {
+    id: row.id,
+    newEmail: row.new_email,
+    expiresAt: row.expires_at,
+    oldConfirmed: row.old_confirmed,
+    newConfirmed: row.new_confirmed,
+    oldAttempts: row.old_attempts,
+    newAttempts: row.new_attempts,
+  };
+}

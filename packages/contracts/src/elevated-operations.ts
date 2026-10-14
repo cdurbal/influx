@@ -14,8 +14,9 @@
  * E-6 enters with its migration (0016, J4), signed by expert-cybersecurite on 2026-10-06
  * (end-of-J4 grouped review). identity.read_published_terms enters E-1 at J5 (21 EC-62), to be
  * signed at the end-of-J5 grouped review. leads.receive_brevo_event (E-1) and
- * identity.member_reauthenticate (E-2) enter with their codes at J7 (0115, decisions 2 and 4), to
- * be signed at the end-of-J7 grouped review.
+ * identity.member_reauthenticate (E-2) enter with their codes at J7 (0115, decisions 2 and 4), and
+ * identity.member_email_change (E-1) with its code at J7 commit 7 (0123, decision 5: the journal of
+ * the two codes of an address change), to be signed at the end-of-J7 grouped review.
  */
 export const SIGNED_ELEVATED_OPERATIONS = [
   "identity.request_code", // E-1, influx_auth
@@ -28,6 +29,7 @@ export const SIGNED_ELEVATED_OPERATIONS = [
   "identity.backoffice_enroll_totp", // E-2, influx_auth
   "identity.backoffice_reauthenticate", // E-2, influx_auth
   "identity.member_reauthenticate", // E-2, influx_auth (J7 decision 4)
+  "identity.member_email_change", // E-1, influx_auth (J7 decision 5, the journal of the two codes)
   "leads.drain_outbox", // E-3, influx_worker
   "maintenance.run_periodic", // E-4, influx_worker
   "privacy.execute_request", // E-5, influx_privacy
@@ -55,7 +57,9 @@ export const ELEVATED_POOL_EXCEPTIONS: Readonly<
  * then the sign-up (J5 commit 4, POST /v1/signup); E-3 with the worker's access to the queue (J6
  * commit 2, apps/api/src/domains/leads/queue.ts, migration 0111); the Brevo webhook (J7 commit 3,
  * apps/api/src/domains/leads/brevo-webhook.ts, migration 0116); E-4 with the periodic tasks (J7
- * commit 5, apps/api/src/domains/maintenance/periodic.ts, migration 0117).
+ * commit 5, apps/api/src/domains/maintenance/periodic.ts, migration 0117); the re-authentication
+ * and the address change of a member (J7 commit 7, apps/api/src/domains/identity/reauthentication.ts
+ * and email-change.ts, migrations 0118 and 0123).
  */
 export const ELEVATED_OPERATIONS = [
   "identity.request_code",
@@ -65,6 +69,8 @@ export const ELEVATED_OPERATIONS = [
   "identity.backoffice_sign_in",
   "identity.backoffice_enroll_totp",
   "identity.backoffice_reauthenticate",
+  "identity.member_reauthenticate",
+  "identity.member_email_change",
   "leads.receive_brevo_event",
   "leads.drain_outbox",
   "maintenance.run_periodic",

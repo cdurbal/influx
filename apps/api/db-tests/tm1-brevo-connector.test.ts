@@ -2,8 +2,9 @@
 // (influx_worker_login), its own read leads.read_brevo_subject() (0112) and the Brevo double on
 // the loopback (16 RG148: no test reaches Brevo). 05 CA38 to CA41 with the contact state and the
 // journal written by the database, RG142 on the attributes read back from the double, the local
-// belt of 16 RG90 (one welcome per account, replay included), and the guards of the read (a line
-// of this worker, a Brevo line only). The connectors alone are tested in tests/brevo-connector.
+// belt of 16 RG90 (one welcome per account, replay included), the guards of the read (a line of
+// this worker, a Brevo line only), and the notice of a changed address to both addresses (RG58,
+// J7 commit 7). The connectors alone are tested in tests/brevo-connector.
 // Accounts and lines are COMMITTED by the migration role (the worker reads in its own
 // transactions); the other pending lines of the stack are held while the worker claims, as in
 // tm1-worker-loop. The settings brevo_list_ids and brevo_template_ids are set for the file and
@@ -39,7 +40,7 @@ import {
 } from "../src/domains/leads/queue.ts";
 import type { ClaimedLine } from "../src/domains/leads/repository.ts";
 import { createLogger } from "../src/platform/logger.ts";
-import { migrationRole } from "./support.ts";
+import { localSuperuser, migrationRole } from "./support.ts";
 
 const INVALID_PARAMETER = "22023";
 const UNIQUE_VIOLATION = "23505";
@@ -48,6 +49,7 @@ const LISTS = { advertisers: 2, creators: 3 };
 const TEMPLATES = {
   "account.welcome_advertiser": 11,
   "account.welcome_creator": 12,
+  "auth.email_changed_notice": 21,
 };
 
 let migration: postgres.Sql;
@@ -497,5 +499,82 @@ describe("0112: leads.read_brevo_subject(), a Brevo line in processing for this 
       cause = cause.cause;
     }
     expect((cause as { code?: string }).code).toBe(INVALID_PARAMETER);
+  });
+});
+
+describe("05 RG58, J7 commit 7: the notice of a changed address leaves to both addresses through the real queue", () => {
+  it("previous: the old address read from the completed request; current: the account's; journaled P1 on the account", async () => {
+    const account = await createAccount({ role: "creator" });
+    const current = emails[0] ?? "";
+    const previous = `tm1-brevo-old-${randomUUID()}@example.test`;
+    emails.push(previous);
+    const request = randomUUID();
+    // a completed request (written by the local superuser: its dates come from the database
+    // functions, which the route test drives end to end)
+    const superuser = localSuperuser();
+    try {
+      await superuser.begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`
+          insert into identity.email_change_requests
+            (id, account_id, old_email, new_email, created_at, expires_at, old_confirmed_at,
+             new_confirmed_at, completed_at)
+          values (${request}, ${account}, ${previous}, ${current}, now(),
+                  now() + interval '24 hours', now(), now(), now())`;
+      });
+    } finally {
+      await superuser.end({ timeout: 1 });
+    }
+    const event = randomUUID();
+    const rows = await migration<{ id: string }[]>`
+      insert into leads.outbox_events
+        (event_id, event_type, destination, subject_key, priority, payload, idempotency_key)
+      select ${event}, 'email.changed', 'brevo_transactional', ${`account:${account}`}, 0,
+             jsonb_build_object('event_id', ${event}::text, 'account_id', ${account}::text,
+                                'request_id', ${request}::text,
+                                'email_code', 'auth.email_changed_notice', 'recipient', side),
+             'auth.email_changed_notice:' || ${request}::text || ':' || side
+        from unnest(array['previous', 'current']) side
+      returning id::text as id`;
+    lines.push(...rows.map((row) => row.id));
+
+    // one line of a subject per turn (the order of a subject is kept)
+    expect([await turn(), await turn()]).toEqual([1, 1]);
+
+    for (const row of rows) {
+      expect((await lineRow(row.id)).status).toBe("succeeded");
+    }
+    expect(
+      double.messages
+        .map((message) => [
+          message.body.to?.[0]?.email,
+          message.body.templateId,
+        ])
+        .sort(),
+    ).toEqual(
+      [
+        [previous, TEMPLATES["auth.email_changed_notice"]],
+        [current, TEMPLATES["auth.email_changed_notice"]],
+      ].sort(),
+    );
+    const journal = await migration<
+      { email_code: string; priority: string; account_id: string }[]
+    >`
+      select email_code, priority::text as priority, account_id::text as account_id
+        from leads.transactional_sends
+       where outbox_event_id = any (${rows.map((row) => row.id)}::bigint[])`;
+    expect(journal).toEqual([
+      {
+        email_code: "auth.email_changed_notice",
+        priority: "p1",
+        account_id: account,
+      },
+      {
+        email_code: "auth.email_changed_notice",
+        priority: "p1",
+        account_id: account,
+      },
+    ]);
+    expect(valuesFoundIn(logs.text(), [previous, current])).toEqual([]);
   });
 });

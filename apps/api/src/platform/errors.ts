@@ -20,6 +20,8 @@ export const HTTP_STATUS_BY_CODE: Readonly<Record<ErrorCode, number>> = {
   service_unavailable: 503,
   terms_unavailable: 503,
   terms_acceptance_required: 403,
+  reauthentication_required: 403,
+  email_change_unavailable: 503,
 };
 
 /** Technical English, never displayed as is: the front translates the code (02 §9.2). */
@@ -37,6 +39,9 @@ const DEFAULT_MESSAGES: Readonly<Record<ErrorCode, string>> = {
   terms_unavailable: "This document cannot be served right now",
   terms_acceptance_required:
     "The terms of service in force must be accepted first",
+  reauthentication_required:
+    "A fresh code is required for this action on this session",
+  email_change_unavailable: "The address cannot be changed right now",
 };
 
 /** An error that the API answers on purpose, with a code of the closed union. */

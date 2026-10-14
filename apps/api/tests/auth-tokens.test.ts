@@ -4,8 +4,10 @@ import { describe, expect, it } from "vitest";
 import {
   createAuthTokenCodec,
   LOGIN_TOKEN_TTL_SECONDS,
+  REAUTH_TOKEN_TTL_SECONDS,
   SIGNUP_TOKEN_TTL_SECONDS,
   type LoginTokenContent,
+  type ReauthTokenContent,
   type SignupTokenContent,
 } from "../src/platform/auth-tokens.ts";
 import { TOKEN_SIGNING_SECRET } from "./helpers.ts";
@@ -24,6 +26,12 @@ const SIGNUP: SignupTokenContent = {
   authUserId: "0b6f7d1e-2c3a-4e5f-8a9b-1c2d3e4f5a6b",
   email: "someone@example.test",
   door: "creator",
+};
+
+const REAUTH: ReauthTokenContent = {
+  ref: "6f1c2b0e-4a7d-4c1e-9b3a-2d5e8f7a1c90",
+  sid: "1d2e3f4a-5b6c-4d7e-8f9a-0b1c2d3e4f5a",
+  purpose: "email_change",
 };
 
 const codec = createAuthTokenCodec(TOKEN_SIGNING_SECRET);
@@ -93,6 +101,34 @@ describe("sign-up token (30 min, EC-4)", () => {
     });
     expect(codec.readSignup(token, secondsLater(1799))).not.toBeNull();
     expect(codec.readSignup(token, secondsLater(1800))).toBeNull();
+  });
+});
+
+describe("re-authentication journey token (15 min, J7 decision 4)", () => {
+  it("reads back what it issued: the send, the session and the purpose, never a code nor an address", () => {
+    const token = codec.issueReauth(REAUTH, NOW);
+    expect(codec.readReauth(token, NOW)).toEqual({
+      ...REAUTH,
+      typ: "reauth",
+      v: 1,
+      exp: NOW_SECONDS + REAUTH_TOKEN_TTL_SECONDS,
+    });
+    expect(token).not.toContain("@");
+  });
+
+  it("expires with the value it signs", () => {
+    const token = codec.issueReauth(REAUTH, NOW);
+    expect(
+      codec.readReauth(token, secondsLater(REAUTH_TOKEN_TTL_SECONDS)),
+    ).toBeNull();
+  });
+
+  it("is never read as a login or a sign-up token, nor the reverse", () => {
+    const reauth = codec.issueReauth(REAUTH, NOW);
+    expect(codec.readLogin(reauth, NOW)).toBeNull();
+    expect(codec.readSignup(reauth, NOW)).toBeNull();
+    expect(codec.readReauth(codec.issueLogin(LOGIN, NOW), NOW)).toBeNull();
+    expect(codec.readReauth(codec.issueSignup(SIGNUP, NOW), NOW)).toBeNull();
   });
 });
 

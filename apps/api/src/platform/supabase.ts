@@ -150,6 +150,15 @@ export type SupabaseAuth = {
   listFactors(userId: string): Promise<GoTrueOutcome<GoTrueFactor[]>>;
   /** Deletes one factor of a user (administration API, EC-56). */
   deleteFactor(userId: string, factorId: string): Promise<GoTrueOutcome<null>>;
+  /**
+   * Moves a user to another address, confirmed, nothing sent (administration API; 05 RG58, J7
+   * decision 5): after both codes of a change were typed, and to set it back when the database
+   * refuses the change. Another user holding the address is `rejected` `email_exists`.
+   */
+  updateUserEmail(
+    userId: string,
+    email: string,
+  ): Promise<GoTrueOutcome<GoTrueIdentity>>;
 };
 
 /** EC-57, B-1: 12 characters at least (code points). */
@@ -513,6 +522,19 @@ export function createSupabaseAuth(
         });
       }
       return { ok: true, value: listed };
+    },
+
+    async updateUserEmail(userId, email) {
+      const outcome = await settled(() =>
+        admin.updateUserById(userId, { email, email_confirm: true }),
+      );
+      if ("ok" in outcome) {
+        return outcome;
+      }
+      const identity = identityOf(outcome.data.user);
+      return identity === null
+        ? MALFORMED_ANSWER
+        : { ok: true, value: identity };
     },
 
     async deleteFactor(userId, factorId) {

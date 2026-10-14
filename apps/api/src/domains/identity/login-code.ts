@@ -83,11 +83,14 @@ export type LoginCodeResult = {
   journey: { reference: string; email: string; phrase: string } | null;
 };
 
-/** 05 RG44, step 3 a: the IP (or the global ceiling of an unknown IP, EC-21), then the address. */
-async function reserveCodeRequest(
+/**
+ * 05 RG44, step 3 a: the IP (or the global ceiling of an unknown IP, EC-21), then the address. Also
+ * the ceilings of a re-authentication code (J7 decision 4): the same code, the same counters.
+ */
+export async function reserveCodeRequest(
   tx: Transaction,
   pepper: string,
-  request: LoginCodeRequest,
+  request: Pick<LoginCodeRequest, "clientAddress" | "email">,
 ): Promise<boolean> {
   const address = request.clientAddress;
   const ipAllowed =
@@ -131,7 +134,7 @@ async function reserveCodeRequest(
 }
 
 /** A promise bounded by a deadline: null when the deadline comes first. */
-async function beforeDeadline<T>(
+export async function beforeDeadline<T>(
   work: Promise<T | null>,
   deadline: number,
 ): Promise<T | null> {
@@ -197,14 +200,14 @@ async function obtainCode(
   return beforeDeadline(work(), deadline);
 }
 
-const FAILURE_OF: Readonly<
+export const FAILURE_OF: Readonly<
   Record<"undeliverable" | "unavailable", P0SendFailure>
 > = {
   undeliverable: "undeliverable_address",
   unavailable: "provider_unavailable",
 };
 
-const OUTCOME_OF: Readonly<
+export const OUTCOME_OF: Readonly<
   Record<"sent" | "undeliverable" | "unavailable", RequestCodeOutcome>
 > = {
   sent: "sent",

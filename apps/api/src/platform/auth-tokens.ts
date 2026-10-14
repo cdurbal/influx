@@ -1,5 +1,6 @@
 // Short signed tokens of the authentication journeys (docs/mvp/21 §4, J3-C rule 8; §3 EC-3, EC-4
-// and EC-24): the login journey (15 min) and the sign-up token (30 min). The session identifier
+// and EC-24): the login journey (15 min), the sign-up token (30 min) and, since J7 commit 7, the
+// journey of a member re-authentication (15 min, decision 4). The session identifier
 // is NOT one of them: it is opaque, never signed, and only its SHA-256 hash is stored.
 // - Signed by the signer of @fastify/cookie (HMAC-SHA-256), key AUTH_TOKEN_SIGNING_SECRET, which
 //   signs nothing else. The signature is checked in constant time (timingSafeEqual, read in
@@ -19,6 +20,8 @@ export const AUTH_TOKEN_VERSION = 1;
 /** Lifetimes, in seconds (J3-C rule 8). */
 export const LOGIN_TOKEN_TTL_SECONDS = 15 * 60;
 export const SIGNUP_TOKEN_TTL_SECONDS = 30 * 60;
+/** The re-authentication journey lives as long as a login journey; its code dies at 10 min (RG136). */
+export const REAUTH_TOKEN_TTL_SECONDS = 15 * 60;
 
 /** A signed value longer than this is refused before any computation. */
 const MAX_TOKEN_LENGTH = 2_048;
@@ -50,17 +53,36 @@ const signupTokenSchema = z.strictObject({
   door: z.enum(["advertiser", "creator"]),
 });
 
+/**
+ * The journey of a re-authentication code (05 RG57, RG47; J7 decision 4): which send it follows,
+ * from which member session, for which action. Held by the page, sent back with the code.
+ */
+const reauthTokenSchema = z.strictObject({
+  typ: z.literal("reauth"),
+  v: z.literal(AUTH_TOKEN_VERSION),
+  exp: epochSeconds,
+  /** Random reference (uuid v4) of the leads.transactional_sends row: the attempts key. */
+  ref: z.uuid({ version: "v4" }),
+  /** The member session the code was asked from, the only one it can mark. */
+  sid: z.uuid(),
+  purpose: z.enum(["email_change", "data_export", "account_deletion"]),
+});
+
 export type LoginToken = z.infer<typeof loginTokenSchema>;
 export type SignupToken = z.infer<typeof signupTokenSchema>;
+export type ReauthToken = z.infer<typeof reauthTokenSchema>;
 export type LoginTokenContent = Omit<LoginToken, "typ" | "v" | "exp">;
 export type SignupTokenContent = Omit<SignupToken, "typ" | "v" | "exp">;
+export type ReauthTokenContent = Omit<ReauthToken, "typ" | "v" | "exp">;
 
 export type AuthTokenCodec = {
   issueLogin(content: LoginTokenContent, now: Date): string;
   issueSignup(content: SignupTokenContent, now: Date): string;
+  issueReauth(content: ReauthTokenContent, now: Date): string;
   /** The token if its signature, type, version and expiry hold at `now`; null otherwise. */
   readLogin(value: string | undefined, now: Date): LoginToken | null;
   readSignup(value: string | undefined, now: Date): SignupToken | null;
+  readReauth(value: string | undefined, now: Date): ReauthToken | null;
 };
 
 function secondsOf(date: Date): number {
@@ -70,7 +92,7 @@ function secondsOf(date: Date): number {
 export function createAuthTokenCodec(signingSecret: string): AuthTokenCodec {
   const signer = new Signer(signingSecret, "sha256");
 
-  function issue(payload: LoginToken | SignupToken): string {
+  function issue(payload: LoginToken | SignupToken | ReauthToken): string {
     const encoded = Buffer.from(JSON.stringify(payload), "utf8").toString(
       "base64url",
     );
@@ -125,11 +147,23 @@ export function createAuthTokenCodec(signingSecret: string): AuthTokenCodec {
         exp: secondsOf(now) + SIGNUP_TOKEN_TTL_SECONDS,
       });
     },
+    issueReauth(content, now) {
+      // Type, version and expiry last: nothing of the content can replace them.
+      return issue({
+        ...content,
+        typ: "reauth",
+        v: AUTH_TOKEN_VERSION,
+        exp: secondsOf(now) + REAUTH_TOKEN_TTL_SECONDS,
+      });
+    },
     readLogin(value, now) {
       return read(loginTokenSchema, value, now);
     },
     readSignup(value, now) {
       return read(signupTokenSchema, value, now);
+    },
+    readReauth(value, now) {
+      return read(reauthTokenSchema, value, now);
     },
   };
 }

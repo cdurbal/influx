@@ -12,11 +12,17 @@
 //   6  A right code: transaction C finds the account by the GoTrue user id (J3-C rule 3) and
 //      routes by its real role (RG66 to RG69): member session, sign-up token, or no session.
 // Before a successful verification, the outcome depends on the code, the journey and the
-// network, never on the account (RG138).
+// network, never on the account (RG138). Steps 3 to 5 (checkEmailCode) also check the code of a
+// member re-authentication (reauthentication.ts, J7 decision 4), under its own motif.
 import type { SignupDoor, VerifyCodeResponse } from "@influx/contracts/auth";
 import type { UserAgentSummary } from "@influx/contracts/user-agent";
 import { createHash, randomBytes } from "node:crypto";
-import { withElevatedTransaction, type ApiDatabase } from "../../db/index.ts";
+import {
+  withElevatedTransaction,
+  type ApiDatabase,
+  type ElevatedResult,
+  type Transaction,
+} from "../../db/index.ts";
 import {
   LOGIN_TOKEN_TTL_SECONDS,
   type AuthTokenCodec,
@@ -25,7 +31,7 @@ import {
   gotrueForwardedAddressOf,
   type ClientAddress,
 } from "../../platform/client-address.ts";
-import type { SupabaseAuth } from "../../platform/supabase.ts";
+import type { GoTrueIdentity, SupabaseAuth } from "../../platform/supabase.ts";
 import {
   accountOfAuthUser,
   emailIsTaken,
@@ -117,12 +123,152 @@ function networkKey(pepper: string, address: ClientAddress): Buffer {
     : globalThrottleKey(pepper, "code_verify_unknown_ip");
 }
 
+/**
+ * Steps 3 to 5 for one code of a known send: the counters, GoTrue, the failures. Shared by the
+ * sign-in and the re-authentication of a member (J7 decision 4), each under its own motif. The
+ * refusals are outcomes of both contracts.
+ */
+export type CodeCheck =
+  | { kind: "verified"; identity: GoTrueIdentity }
+  /** GoTrue verified the code for another address: an anomaly, the journey is lost. */
+  | { kind: "mismatch" }
+  | {
+      kind: "refused";
+      response:
+        | { outcome: "too_many_requests" }
+        | { outcome: "too_many_attempts" }
+        | { outcome: "verify_unavailable" }
+        | { outcome: "invalid"; attemptsLeft: number };
+    };
+
+/**
+ * An elevated transaction under the caller's motif, named by the caller as a literal (18 T6.1):
+ * identity.verify_code for the sign-in, identity.member_reauthenticate for a re-authentication.
+ */
+export type ElevatedRunner = <T>(
+  fn: (tx: Transaction) => Promise<ElevatedResult<T>>,
+) => Promise<T>;
+
+export type CodeCheckRequest = {
+  requestId: string;
+  /** The random reference of the journal line of the send (EC-3 point 1). */
+  reference: string;
+  email: string;
+  code: string;
+  clientAddress: ClientAddress;
+  logger: VerifyCodeLogger;
+};
+
+export async function checkEmailCode(
+  dependencies: Pick<VerifyCodeDependencies, "supabaseAuth" | "pepper">,
+  inMotif: ElevatedRunner,
+  request: CodeCheckRequest,
+): Promise<CodeCheck> {
+  const { pepper } = dependencies;
+  const referenceKey = loginRequestThrottleKey(pepper, request.reference);
+  const ipKey = networkKey(pepper, request.clientAddress);
+
+  // Step 3: transaction A (E-2), committed before GoTrue is called (G4). No audit line: only
+  // a counter is written (EC-52).
+  const admitted = await inMotif(async (tx) => {
+    const ipFailures = await failureCount(tx, "code_verify_ip", ipKey, "1h");
+    if (ipFailures >= CODE_VERIFY_FAILURES_PER_IP_HOUR) {
+      return { value: "too_many_requests" as const, auditSubject: null };
+    }
+    const reserved = await reserveAuthAttempt(
+      tx,
+      "login_request",
+      referenceKey,
+      "15m",
+      CODE_ATTEMPTS,
+    );
+    return {
+      value: reserved ? ("admitted" as const) : ("too_many_attempts" as const),
+      auditSubject: null,
+    };
+  });
+  if (admitted !== "admitted") {
+    return { kind: "refused", response: { outcome: admitted } };
+  }
+
+  // Step 4: GoTrue (J3-A b3), with the pseudonymous address of the client (EC-38).
+  const verified = await dependencies.supabaseAuth.verifyEmailCode(
+    {
+      forwardedFor: gotrueForwardedAddressOf(request.clientAddress, pepper),
+      timeoutMs: CODE_VERIFY_TIMEOUT_MS,
+    },
+    request.email,
+    request.code,
+  );
+
+  if (!verified.ok) {
+    if (verified.reason === "unavailable") {
+      request.logger.warn(
+        { errorCode: verified.errorCode, status: verified.status },
+        "login code: GoTrue verification unavailable",
+      );
+      return { kind: "refused", response: { outcome: "verify_unavailable" } };
+    }
+    // Step 5: a wrong (or dead) code. Transaction B (E-2): the failure only, no audit line.
+    const failures = await inMotif(async (tx) => {
+      const ofCode = await recordAuthFailure(
+        tx,
+        "login_request",
+        referenceKey,
+        "15m",
+      );
+      await recordAuthFailure(tx, "code_verify_ip", ipKey, "1h");
+      const ofPlatform = await recordAuthFailure(
+        tx,
+        "code_verify_platform",
+        globalThrottleKey(pepper, "code_verify_platform"),
+        "15m",
+      );
+      return { value: { ofCode, ofPlatform }, auditSubject: null };
+    });
+    if (failures.ofPlatform >= VERIFY_FAILURE_SPIKE) {
+      // EC-3 point 6 (A-3): alert of the J9; at J3, an error line without data.
+      request.logger.error(
+        { failures: failures.ofPlatform },
+        "security.verify_failure_spike",
+      );
+    }
+    if (failures.ofCode < CODE_ATTEMPTS) {
+      return {
+        kind: "refused",
+        response: {
+          outcome: "invalid",
+          attemptsLeft: CODE_ATTEMPTS - failures.ofCode,
+        },
+      };
+    }
+    // EC-3 point 4: the fifth failure kills the code at GoTrue too: a new one is generated and
+    // thrown away, unread and unlogged (J3-A b4).
+    const regenerated = await dependencies.supabaseAuth.generateEmailCode(
+      request.email,
+    );
+    if (!regenerated.ok) {
+      request.logger.warn(
+        { errorCode: regenerated.errorCode, status: regenerated.status },
+        "login code: regeneration after the fifth failure failed",
+      );
+    }
+    return { kind: "refused", response: { outcome: "too_many_attempts" } };
+  }
+
+  // Step 6: the identity GoTrue returned (J3-C rule 3); the address must be the journey's.
+  if (verified.value.email !== request.email) {
+    request.logger.error({}, "login code: GoTrue returned another address");
+    return { kind: "mismatch" };
+  }
+  return { kind: "verified", identity: verified.value };
+}
+
 export async function verifyLoginCode(
   dependencies: VerifyCodeDependencies,
   request: VerifyCodeRequest,
 ): Promise<VerifyCodeResult> {
   const now = dependencies.now();
-  const { pepper } = dependencies;
 
   // Step 1: the journey (RG47).
   const journey = dependencies.tokens.readLogin(
@@ -143,115 +289,34 @@ export async function verifyLoginCode(
     return answer({ outcome: "expired" });
   }
 
-  const referenceKey = loginRequestThrottleKey(pepper, journey.ref);
-  const ipKey = networkKey(pepper, request.clientAddress);
-
-  // Step 3: transaction A (E-2), committed before GoTrue is called (G4). No audit line: only
-  // a counter is written (EC-52).
-  const admitted = await withElevatedTransaction(
-    dependencies.database,
-    "identity.verify_code",
-    request.requestId,
-    async (tx) => {
-      const ipFailures = await failureCount(tx, "code_verify_ip", ipKey, "1h");
-      if (ipFailures >= CODE_VERIFY_FAILURES_PER_IP_HOUR) {
-        return { value: "too_many_requests" as const, auditSubject: null };
-      }
-      const reserved = await reserveAuthAttempt(
-        tx,
-        "login_request",
-        referenceKey,
-        "15m",
-        CODE_ATTEMPTS,
-      );
-      return {
-        value: reserved
-          ? ("admitted" as const)
-          : ("too_many_attempts" as const),
-        auditSubject: null,
-      };
-    },
-  );
-  if (admitted === "too_many_requests") {
-    return answer({ outcome: "too_many_requests" });
-  }
-  if (admitted === "too_many_attempts") {
-    return answer({ outcome: "too_many_attempts" }, { clearLogin: true });
-  }
-
-  // Step 4: GoTrue (J3-A b3), with the pseudonymous address of the client (EC-38).
-  const verified = await dependencies.supabaseAuth.verifyEmailCode(
+  // Steps 3 to 5.
+  const checked = await checkEmailCode(
+    dependencies,
+    (fn) =>
+      withElevatedTransaction(
+        dependencies.database,
+        "identity.verify_code",
+        request.requestId,
+        fn,
+      ),
     {
-      forwardedFor: gotrueForwardedAddressOf(request.clientAddress, pepper),
-      timeoutMs: CODE_VERIFY_TIMEOUT_MS,
+      requestId: request.requestId,
+      reference: journey.ref,
+      email: journey.email,
+      code: request.code,
+      clientAddress: request.clientAddress,
+      logger: request.logger,
     },
-    journey.email,
-    request.code,
   );
-
-  if (!verified.ok) {
-    if (verified.reason === "unavailable") {
-      request.logger.warn(
-        { errorCode: verified.errorCode, status: verified.status },
-        "login code: GoTrue verification unavailable",
-      );
-      return answer({ outcome: "verify_unavailable" });
-    }
-    // Step 5: a wrong (or dead) code. Transaction B (E-2): the failure only, no audit line.
-    const failures = await withElevatedTransaction(
-      dependencies.database,
-      "identity.verify_code",
-      request.requestId,
-      async (tx) => {
-        const ofCode = await recordAuthFailure(
-          tx,
-          "login_request",
-          referenceKey,
-          "15m",
-        );
-        await recordAuthFailure(tx, "code_verify_ip", ipKey, "1h");
-        const ofPlatform = await recordAuthFailure(
-          tx,
-          "code_verify_platform",
-          globalThrottleKey(pepper, "code_verify_platform"),
-          "15m",
-        );
-        return { value: { ofCode, ofPlatform }, auditSubject: null };
-      },
-    );
-    if (failures.ofPlatform >= VERIFY_FAILURE_SPIKE) {
-      // EC-3 point 6 (A-3): alert of the J9; at J3, an error line without data.
-      request.logger.error(
-        { failures: failures.ofPlatform },
-        "security.verify_failure_spike",
-      );
-    }
-    if (failures.ofCode < CODE_ATTEMPTS) {
-      return answer({
-        outcome: "invalid",
-        attemptsLeft: CODE_ATTEMPTS - failures.ofCode,
-      });
-    }
-    // EC-3 point 4: the fifth failure kills the code at GoTrue too: a new one is generated and
-    // thrown away, unread and unlogged (J3-A b4).
-    const regenerated = await dependencies.supabaseAuth.generateEmailCode(
-      journey.email,
-    );
-    if (!regenerated.ok) {
-      request.logger.warn(
-        { errorCode: regenerated.errorCode, status: regenerated.status },
-        "login code: regeneration after the fifth failure failed",
-      );
-    }
-    return answer({ outcome: "too_many_attempts" }, { clearLogin: true });
-  }
-
-  // Step 6: the identity GoTrue returned (J3-C rule 3); the address must be the journey's.
-  if (verified.value.email !== journey.email) {
-    request.logger.error({}, "login code: GoTrue returned another address");
+  if (checked.kind === "mismatch") {
     return answer({ outcome: "session_lost" }, { clearLogin: true });
   }
-  const identity = verified.value;
+  if (checked.kind === "refused") {
+    // The journey ends with its code; it survives a wrong code, a ceiling or an outage.
+    const ends = checked.response.outcome === "too_many_attempts";
+    return answer(checked.response, { clearLogin: ends });
+  }
+  const identity = checked.identity;
   const token = randomBytes(32);
   const outcome = await withElevatedTransaction<Routing>(
     dependencies.database,

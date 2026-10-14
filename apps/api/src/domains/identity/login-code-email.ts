@@ -64,13 +64,14 @@ export type RenderedEmail = {
   text: string;
 };
 
-type Values = Readonly<Record<string, string | Date>>;
+export type Values = Readonly<Record<string, string | Date>>;
 
 /**
  * A minimal ICU formatter: `{name}`, `{name, date, long}` and `{name, time, short}`, the only
- * forms of these templates. A missing value is a programming error.
+ * forms of these templates (and of auth.email_change_confirm_*, email-change-email.ts). A missing
+ * value is a programming error.
  */
-function format(
+export function format(
   template: string,
   values: Values,
   locale: UiLocale,
@@ -99,7 +100,11 @@ function format(
 }
 
 /** Name of the time zone as the language of the text writes it (`UTC`). */
-function timeZoneName(locale: UiLocale, timeZone: string, at: Date): string {
+export function timeZoneName(
+  locale: UiLocale,
+  timeZone: string,
+  at: Date,
+): string {
   const part = new Intl.DateTimeFormat(locale, {
     timeZone,
     timeZoneName: "short",
@@ -132,7 +137,7 @@ export function browserLabel(
   );
 }
 
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")

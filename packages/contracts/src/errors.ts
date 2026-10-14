@@ -20,6 +20,12 @@ export const ERROR_CODES = [
   "terms_unavailable",
   // The terms of service in force are not accepted yet: the re-acceptance screen first (05 RG28).
   "terms_acceptance_required",
+  // A sensitive action without a fresh code for it on this session (05 RG57; J7 decision 4): the
+  // "code frais" step first (POST /v1/me/reauthenticate/request-code).
+  "reauthentication_required",
+  // The codes of an address change could not be sent, or GoTrue could not take the new address:
+  // nothing changed, try again (05 RG58; J7 decision 5). Never a silent skip.
+  "email_change_unavailable",
 ] as const;
 
 export const errorCodeSchema = z.enum(ERROR_CODES);

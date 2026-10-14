@@ -1,6 +1,6 @@
 // The two Brevo connectors of the worker (J6, commit 4): `brevo_contact` (16 §M1 operations 1, 2
 // and 7, and the address change of J7 decision 5) and `brevo_transactional` (operation 6, the
-// welcome e-mails of 05 RG86, P1 of 16 §H).
+// welcome e-mails of 05 RG86 and the notice of a changed address of RG58, P1 of 16 §H).
 // Their preparation, at consumption (05 RG37), in this order:
 //   1. the account state of the attempt: an account gone or not active is skipped;
 //   2. the qualification: contact without marketing consent (RG80) is skipped no_consent at sign-up,
@@ -17,7 +17,10 @@
 // consent: an ordinary replay never resynchronises it (CA55); only an admin lifts it (J8).
 // email.changed (05 RG58, decision 5 of J7): the contact is updated by its Brevo id, else by its old
 // address, never recreated; Brevo lifts the blacklist on an address change, so operations 2 and 7
-// follow when the consent is withdrawn or the contact suppressed.
+// follow when the consent is withdrawn or the contact suppressed. The notice auth.email_changed_notice
+// goes to the address its payload names (`previous`: the old address of the completed request,
+// read by the subject read, never carried by the line; `current`: the account's), whatever the
+// consent (a transactional e-mail, RG35).
 // What leaves for the drain is names and verdicts; the values stay in the closure of `send`.
 import type { BrevoMode } from "../../../../config/schema.ts";
 import {
@@ -51,11 +54,18 @@ export {
   type BrevoSubject,
 } from "./mapping.ts";
 
-/** The welcome e-mails, the only queue e-mails of J6 (16 §H, P1). */
+/** The queue e-mails (16 §H, P1): the welcome e-mails (J6), the notice of a changed address (J7). */
 export const WORKER_TRANSACTIONAL_TEMPLATES = [
   "account.welcome_advertiser",
   "account.welcome_creator",
+  "auth.email_changed_notice",
 ] as const;
+
+/** Sent once per account (05 RG76, 16 RG90): the journal says whether it already left. */
+const ONCE_PER_ACCOUNT_TEMPLATES: ReadonlySet<string> = new Set([
+  "account.welcome_advertiser",
+  "account.welcome_creator",
+]);
 
 /** Sender name of the transactional flow (16 RG156). */
 const SENDER_NAME = "INFLUX";
@@ -340,23 +350,37 @@ export function createBrevoConnectors(
       if (subject === null) {
         return { kind: "skip", reason: "account_absent" };
       }
-      if (subject.welcomeSent) {
+      if (ONCE_PER_ACCOUNT_TEMPLATES.has(code) && subject.welcomeSent) {
         // 05 RG76, CA41; 16 RG90: the local belt, the one we count on.
         return { kind: "skip", reason: "already_sent" };
       }
+      let recipient = subject.email;
+      if (code === "auth.email_changed_notice") {
+        // RG58: both addresses are told; the line names the side, never the address (RG74).
+        const side = line.payload.recipient;
+        if (side === "previous") {
+          if (subject.previousEmail === null) {
+            // No completed request behind the line: nothing to tell, visible, never guessed.
+            return { kind: "fail", errorCode: "email_change_not_found" };
+          }
+          recipient = subject.previousEmail;
+        } else if (side !== "current") {
+          return { kind: "fail", errorCode: "notice_recipient_unknown" };
+        }
+      }
 
       // Operation 6: one recipient (16 RG91), no promotional content (RG86): the template of the
-      // role, in the account's language.
+      // code, in the account's language.
       const locale = languageOf(account);
       const body = {
         sender: { name: SENDER_NAME, email: settings.senderTransactional },
-        to: [{ email: subject.email }],
+        to: [{ email: recipient }],
         templateId,
         params: { LANGUAGE: locale },
         tags: [code],
       };
       const rejected = checkTransactionalOutput(body);
-      if (rejected.length === 0 && redirected(subject.email)) {
+      if (rejected.length === 0 && redirected(recipient)) {
         return { kind: "skip", reason: "skipped_non_production" };
       }
       return {
@@ -367,7 +391,7 @@ export function createBrevoConnectors(
           attributeNames: Object.keys(body.params).sort(),
           rejectedAttributeNames: rejected,
         },
-        recipientDomain: domainOf(subject.email),
+        recipientDomain: domainOf(recipient),
         send: guarded(
           rejected,
           (brevo) => brevo.sendTransactional(body, line.idempotencyKey, locale),

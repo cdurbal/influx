@@ -993,3 +993,152 @@ describe("05 RG58, J7 decision 5: email.changed updates the contact in place, ne
     ).toEqual(["FIRSTNAME", "emailBlacklisted"]);
   });
 });
+
+describe("05 RG58, J7 commit 7: the notice of a changed address, to both addresses (16 §H)", () => {
+  const NEW_EMAIL = "lena-new-p3x8@example.test";
+  const NOTICE_TEMPLATE = 21;
+  const REQUEST = "5d0c7e1a-2b3f-4c6d-8e9f-0a1b2c3d4e5f";
+  const NOTICE_SETTINGS = {
+    ...SETTINGS,
+    brevo_template_ids: {
+      ...(SETTINGS.brevo_template_ids as Record<string, number>),
+      "auth.email_changed_notice": NOTICE_TEMPLATE,
+    },
+  };
+
+  function notice(recipient: unknown): ClaimedLine {
+    return line("brevo_transactional", {
+      eventType: "email.changed",
+      priority: 0,
+      payload: {
+        event_id: "0a1b2c3d-0000-4000-8000-00000000e1e1",
+        account_id: ACCOUNT,
+        request_id: REQUEST,
+        email_code: "auth.email_changed_notice",
+        recipient,
+      },
+      idempotencyKey: `auth.email_changed_notice:${REQUEST}:${String(recipient)}`,
+    });
+  }
+
+  function noticing(overrides: Partial<BrevoSubject> = {}): Connector {
+    return connectors({
+      settings: { testRecipients: [EMAIL, NEW_EMAIL] },
+      subject: subject({
+        email: NEW_EMAIL,
+        previousEmail: EMAIL,
+        ...overrides,
+      }),
+    }).transactional;
+  }
+
+  it("previous: to the old address of the completed request, read by the subject read, never carried by the line", async () => {
+    const prepared = await prepare(
+      noticing(),
+      notice("previous"),
+      state({}, NOTICE_SETTINGS),
+    );
+    expect(prepared.kind === "mapped" && prepared.description).toEqual({
+      operation: "send_transactional",
+      templateCode: "auth.email_changed_notice",
+      attributeNames: ["LANGUAGE"],
+      rejectedAttributeNames: [],
+    });
+    expect(prepared.kind === "mapped" && prepared.recipientDomain).toBe(
+      "example.test",
+    );
+    if (prepared.kind !== "mapped") {
+      throw new Error("expected a mapped notice");
+    }
+    expect((await prepared.result()).kind).toBe("succeeded");
+    expect(double.messages).toHaveLength(1);
+    const [message] = double.messages;
+    expect(message?.body.to).toEqual([{ email: EMAIL }]);
+    expect(message?.body.templateId).toBe(NOTICE_TEMPLATE);
+    expect(message?.body.params).toEqual({ LANGUAGE: "fr" });
+    expect(message?.body.tags).toEqual(["auth.email_changed_notice"]);
+    expect(message?.headers["idempotency-key"]).toBe(
+      `auth.email_changed_notice:${REQUEST}:previous`,
+    );
+    // RG74: the queue line holds no address
+    expect(JSON.stringify(notice("previous").payload)).not.toContain("@");
+  });
+
+  it("current: to the account's address; whatever the consent (a transactional e-mail, RG35)", async () => {
+    await run(
+      noticing(),
+      notice("current"),
+      state(
+        { marketingEmailConsent: false, commercialProspectionConsent: false },
+        NOTICE_SETTINGS,
+      ),
+    );
+    expect(double.messages.map((message) => message.body.to)).toEqual([
+      [{ email: NEW_EMAIL }],
+    ]);
+  });
+
+  it("is not once per account: a second change notifies again (welcomeSent says nothing of it)", async () => {
+    const prepared = await prepare(
+      noticing({ welcomeSent: true }),
+      notice("current"),
+      state({}, NOTICE_SETTINGS),
+    );
+    expect(prepared.kind).toBe("mapped");
+  });
+
+  it("no completed request behind a previous notice: failed email_change_not_found, no call", async () => {
+    expect(
+      await prepare(
+        noticing({ previousEmail: null }),
+        notice("previous"),
+        state({}, NOTICE_SETTINGS),
+      ),
+    ).toEqual({ kind: "fail", errorCode: "email_change_not_found" });
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("a side outside previous and current fails, visible, never guessed", async () => {
+    for (const side of ["old", undefined, "lena@example.test"]) {
+      expect(
+        await prepare(noticing(), notice(side), state({}, NOTICE_SETTINGS)),
+      ).toEqual({ kind: "fail", errorCode: "notice_recipient_unknown" });
+    }
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("EC-8: no template configured (NULL, 0118), skipped template_not_configured, never guessed", async () => {
+    expect(
+      await prepare(
+        noticing(),
+        notice("previous"),
+        state(
+          {},
+          {
+            ...SETTINGS,
+            brevo_template_ids: {
+              ...(SETTINGS.brevo_template_ids as Record<string, number>),
+              "auth.email_changed_notice": null,
+            },
+          },
+        ),
+      ),
+    ).toEqual({ kind: "skip", reason: "template_not_configured" });
+    expect(reads).toHaveLength(0);
+  });
+
+  it("redirect: the old address outside BREVO_TEST_RECIPIENTS is skipped_non_production", async () => {
+    const { transactional } = connectors({
+      settings: { testRecipients: [NEW_EMAIL] },
+      subject: subject({ email: NEW_EMAIL, previousEmail: EMAIL }),
+    });
+    expect(
+      await prepare(
+        transactional,
+        notice("previous"),
+        state({}, NOTICE_SETTINGS),
+      ),
+    ).toEqual({ kind: "skip", reason: "skipped_non_production" });
+    expect(double.requests).toHaveLength(0);
+  });
+});

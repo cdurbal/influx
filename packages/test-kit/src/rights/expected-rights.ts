@@ -1333,6 +1333,10 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator|function|identity.confirm_email_change(uuid,identity.email_change_side,bytea)|EXECUTE",
   "influx_creator|function|identity.complete_email_change(uuid,uuid)|EXECUTE",
   "influx_creator|function|identity.cancel_email_change(uuid)|EXECUTE",
+  // 0123 (J7 commit 7): the request closed when GoTrue refuses the new address as taken.
+  "influx_identity_definer|function|identity.refuse_email_change_address(uuid)|EXECUTE",
+  "influx_advertiser|function|identity.refuse_email_change_address(uuid)|EXECUTE",
+  "influx_creator|function|identity.refuse_email_change_address(uuid)|EXECUTE",
   "influx_advertiser|column|identity.email_change_requests.account_id|SELECT",
   "influx_advertiser|column|identity.email_change_requests.cancel_reason|SELECT",
   "influx_advertiser|column|identity.email_change_requests.cancelled_at|SELECT",
@@ -1578,6 +1582,8 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
     "influx_identity_definer",
   "identity.complete_email_change(uuid,uuid)": "influx_identity_definer",
   "identity.cancel_email_change(uuid)": "influx_identity_definer",
+  // 0123 (J7 commit 7)
+  "identity.refuse_email_change_address(uuid)": "influx_identity_definer",
   // 0119 (J7, EC-10)
   "identity.set_marketing_consent(identity.consent_purpose,boolean,jsonb)":
     "influx_identity_definer",

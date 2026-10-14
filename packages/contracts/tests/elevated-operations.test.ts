@@ -13,13 +13,14 @@ describe("elevated operations (03 P7, 18 T6.1)", () => {
     }
   });
 
-  it("signs exactly the motifs of the entries of 03 P7 (EC-5; E-6 at J4; EC-62 at J5; J7 decisions 2 and 4)", () => {
+  it("signs exactly the motifs of the entries of 03 P7 (EC-5; E-6 at J4; EC-62 at J5; J7 decisions 2, 4 and 5)", () => {
     expect([...SIGNED_ELEVATED_OPERATIONS].sort()).toEqual(
       [
         "identity.backoffice_enroll_totp",
         "identity.backoffice_reauthenticate",
         "identity.backoffice_sign_in",
         "identity.complete_signup",
+        "identity.member_email_change",
         "identity.member_reauthenticate",
         "identity.read_published_terms",
         "identity.request_code",
@@ -32,7 +33,7 @@ describe("elevated operations (03 P7, 18 T6.1)", () => {
         "support.report_delivery_issue",
       ].sort(),
     );
-    expect(new Set(SIGNED_ELEVATED_OPERATIONS).size).toBe(14);
+    expect(new Set(SIGNED_ELEVATED_OPERATIONS).size).toBe(15);
   });
 
   it("binds the Brevo webhook to the api pool although leads.* runs on the worker (J7 decision 2)", () => {

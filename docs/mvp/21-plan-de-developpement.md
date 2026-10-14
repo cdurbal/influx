@@ -192,7 +192,8 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 | `GET` · `PATCH /v1/me` | Membre | Utilisateur | RG15, RG71 |
 | `GET` · `PUT /v1/me/consent` | Membre | Utilisateur | RG34, RG92, RG95 |
 | `GET` · `DELETE /v1/me/sessions[/:id]` | Membre | Utilisateur | RG56 |
-| `POST /v1/me/email-change` et confirmations | Membre, code frais | Utilisateur | RG57, RG58 (A-11) |
+| `POST /v1/me/reauthenticate/request-code` · `…/verify-code` | Membre | E-1 · E-2 (`identity.member_reauthenticate`) | RG57, RG44, RG47 |
+| `GET` · `POST /v1/me/email-change`, `POST …/confirm`, `DELETE …/:id` | Membre, code frais (`POST`) | Utilisateur ; E-1 `identity.member_email_change` (journal des codes) | RG57, RG58 (A-11) |
 | `POST /v1/me/terms/accept` | Membre | Utilisateur | RG28 |
 | `POST /v1/support/code-not-received` | Public, débit limité | E-1 (EC-5) | RG65 |
 | `POST /v1/webhooks/brevo/:token` | Brevo | Écriture brute (EC-12) | `16` RG146, RG147 |

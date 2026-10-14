@@ -68,3 +68,16 @@ export function totpReplayDigest(
 ): Buffer {
   return hmacOf(pepper, "totp-replay:", `${factorId}:${code}`);
 }
+
+/**
+ * Decision 5 of J7 (0118): the digest of one code of an address change, bound to its request and
+ * its side (label `email-change-code:`). Never the code itself in the database.
+ */
+export function emailChangeCodeDigest(
+  pepper: string,
+  requestId: string,
+  side: "old" | "new",
+  code: string,
+): Buffer {
+  return hmacOf(pepper, "email-change-code:", `${requestId}:${side}:${code}`);
+}
