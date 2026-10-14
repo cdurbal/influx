@@ -16,7 +16,7 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
 
 ## Commits prévus
 
-1. à 8. **Faits** (dette J6, migrations, webhook, E-4, « mon compte » 1, 2a et 2b) : voir « Issu du commit N ».
+1. à 8bis. **Faits** (dette J6, migrations, webhook, E-4, « mon compte » 1, 2a et 2b, arbitrages) : voir « Issu du commit N ».
 9. **Écrans « Mon compte »** (`17` §6.1 à §6.4, CGU bloquante §6.7) sous `/compte/*`, `account.json`,
    étape « code frais », états, accessibilité ; Playwright : préférences, sessions, CGU, adresse en attente.
 10. **Essai et `staging`** : webhook du compte Brevo **de test** vers `staging` (geste du fondateur,
@@ -97,19 +97,18 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
    modèle P1 en file ; le canal de secours écrit dans `backoffice.code_delivery_reports` par sa fonction
    E-1 étroite, sans e-mail** (EC-14, RG65, RG57). Demandes : `id`, `request_type` (six valeurs, seuls
    `access`/`erasure` exposés), `requester_account_id`, `channel='self_service'`, `received_at`,
-   `due_at` généré (+30 j), `status`, `completed_at`, `outcome_code` (liste de `15` RG77) ; dépôt par
+   `due_at` (plus proche de +30 j et +1 mois, `0127`), `status`, `completed_at`, `outcome_code` (liste de `15` RG77) ; dépôt par
    une fonction `SECURITY DEFINER` des rôles membres exigeant le marqueur de la décision 4. Accusé
-   `privacy.request_received` P1 (charge utile = id, clé EC-8, `NULL` ⇒ `skipped`). Procédure
+   `privacy.request_received` P1 (charge utile = id ; rendu par INFLUX, `16` RG160, `0128`). Procédure
    `docs/mvp/runbooks/demandes-rgpd.md`, exécutée par un `admin` ; suppression = demande. Secours : `id`,
    `received_at`, `login_email`, `contact_email`, `message` (500 car.), `locale`, `status`,
    `handled_at` ; réponse identique, plancher 1 000 ms, débit limité, motif
    `support.report_delivery_issue`, code `elevated.support.report_delivery_issue`.
-   - Commits 2 et 8 : faits. Commit 9 : écrans.
+   - Commits 2, 8 et 8bis : faits. Commit 9 : écrans.
 
 **Restent ouverts :** critère de fin ; retrait propagé à Apollo et conservations 30 j, abonnement
-minimal (`expert-conformite-rgpd`, Lot 6) ; D36 ; textes `account.*` (D48) ; `privacy.request_received`
-à ajouter à `16` §H (`product-owner`) ; 5 min, usage unique, remise de l'export (`expert-cybersecurite`,
-fin de jalon) ; webhook du compte Brevo de production (fondateur, `prerequis.md`) ; avant la mise en
+minimal (`expert-conformite-rgpd`, Lot 6) ; D36 ; textes `account.*` (D48) ; 5 min, usage unique
+(`expert-cybersecurite`, fin de jalon) ; webhook du compte Brevo de production (fondateur, `prerequis.md`) ; avant la mise en
 ligne du Lot 1 : C5.c (orphelin GoTrue sur la nouvelle adresse supprimé puis un nouvel essai) et A2
 (code de la nouvelle adresse compté sur RG44) ; avis `auth.email_changed_notice` rendu par INFLUX
 (RG67) ou modèle Brevo (EC-8) : fondateur.
@@ -218,11 +217,12 @@ aucun taux ni montant.
 - `testeur` : `tm1-email-change-route` (17), `t8-reauth-email-change` (+5, dont `not_sent` et A1), `tm1-periodic-tasks` (+4, réalignement avec doublure GoTrue étendue : `PUT`, `generate_link`), `tm1-brevo-connector` (+1) ; unitaires : e-mails, connecteur, jetons, adaptateur (+5), T6 (motif ⇒ fichiers), journal.
 - Suites : commit 8 (CA32 ; export et suppression derrière `requireFreshCode`, garde CGU à lever pour eux : A3, `expert-conformite-rgpd` ; effacement des lignes de journal « nouvelle adresse » : A4) ; commit 9 (C4.c : jeton en mémoire seulement, oublié après succès ou `session_lost` ; après `503` ou `400`, retour au code frais ; textes de `address_unavailable`) ; J8 : interrupteur à `all_paused` ⇒ `503` avant la demande, mise en attente lue sur la classe ; commit 10 : modèle Brevo de l'avis en `staging`.
 
-## Issu du commit 8 (`c971d54`)
+## Issu du commit 8 (`c971d54`) et de sa reprise 8bis (`d81bb5d`, 2026-10-14)
 
-- **Au plus sûr** : signal seulement dans la transaction qui ouvre la session (`created_at = now()`, sinon 55000) ; « connue » = autre session membre du compte, même résumé, activité < 30 j, fermée ou non ; résumé nul = `unidentified` ; jour UTC dans la clé. `auth.new_device` rendu par INFLUX (RG67) avec contrôle de sortie « aucun lien » (RG158), pas de modèle Brevo ; `privacy.request_received` reste un modèle EC-8 (texte à écrire, `16` §H : `product-owner`). Secours : 5/h par réseau ⇒ `429`, 3/h par adresse de connexion ⇒ même réponse sans écriture (valeurs provisoires). Garde CGU levée pour « mes données » et leur code frais (A3) ; `email_change` reste gardé.
-- `expert-cybersecurite` (fin de jalon) : signer `0126` (`signal_new_browser` pour `influx_auth`, lecture des sessions par `influx_leads_definer`) ; `support.report_delivery_issue` entré dans U ; plafonds du secours ; remise de l'export (procédure §4, en attente). `expert-conformite-rgpd` (Lot 6) : A3, procédure, contenu de l'export. `testeur` : `t8-new-browser-signal` (8), `tm1-data-requests-route` (10), `t8-verify-code` (+1, CA80/CA81 de bout en bout), `tm1-brevo-connector` (+2) ; unitaires `new-device-email` (6), connecteur (+7) ; T6 (motif ⇒ fichier), instantané des droits.
-- Suites : commit 9 (écrans `/compte/*` dont « mes données » avec saisie de SUPPRIMER, formulaire de secours sur l'écran de connexion) ; avant toute demande réelle : outil d'exécution E-5 et `account.deleted` (Lot 5), à défaut escalade (procédure §1) ; commit 10 : modèle Brevo `privacy.request_received` en `staging`.
+- Commit 8 : signal dans la transaction qui ouvre la session, « connue » = même résumé actif < 30 j ; `auth.new_device` rendu par INFLUX sans lien ; « mes données » et code frais hors garde CGU (A3). **Signé par `expert-cybersecurite`** (attestation `security-reviewed … covers c971d54`) ; plafonds du secours définitifs (5/h réseau, 10/h IP inconnue, 3/h adresse).
+- 8bis : `chef-de-projet` avance l'E-5 minimale au J8 (porte de production, `21` §J8 6 et §5.8) ; `expert-cybersecurite` : remise par téléchargement dans l'espace membre (runbook §4, EC : 3 téléchargements / 7 j contre RG95), purposes exemptés en liste d'autorisation ; `expert-conformite-rgpd` : A3 validé + `PATCH /v1/me` exempté (art. 16), export complété, échéance au plus tôt de 30 j et 1 mois (`0127`), runbook §2 à §8 ; `product-owner` : RG160, CA117, CA118 ; `architecte` : accusé rendu par INFLUX (`0128`, lecture de la demande et du fuseau, `auth.new_device` dans le fuseau du compte, contrôle « aucun lien » étendu à `@` et aux domaines). Au plus sûr : `kept.erasure` sans « mises en relation » (absentes au Lot 1) ; `17` §6.3 « les données que nous détenons sur vous ».
+- `expert-cybersecurite` (non bloquant) : repère persistant de première session avant la purge des sessions (≈ 0,5 j) ; Lot 5 : file des signalements sans action sur la foi d'un signalement, Q8 tranchée avant, alerte > 30/h. `testeur` : T3.11 de `t3-audit-chain` instable ; `data-request-received-email` (8), connecteur (+6), `tm1-brevo-connector` (+2).
+- Suites : commit 9 (écrans `/compte/*`, écran bloquant CGU avec canal de contact, liens « Mes données » et « Préférences », refus ≠ suppression ; secours sur l'écran de connexion) ; J8 : E-5 minimale + export téléchargeable + `privacy.export_ready` ; juriste : runbook §8 ; RG69 et `auth.email_changed_notice` rendu par INFLUX : à arbitrer.
 
 ## Clôture d'un commit (« clôture standard »)
 

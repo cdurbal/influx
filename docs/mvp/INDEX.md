@@ -454,43 +454,43 @@
 | 29 | 21 | Besoin |  |
 | 50 | 16 | Acteurs |  |
 | 66 | 49 | User stories |  |
-| 115 | 847 | Règles de gestion | RG1–RG124 |
+| 115 | 850 | Règles de gestion | RG1–RG124 |
 | 117 | 71 | ↳ A — Portée, principes et vocabulaire | RG1–RG13 |
 | 188 | 68 | ↳ B — Le tableau de bord | RG5–RG108 |
 | 256 | 102 | ↳ C — Le catalogue unique des files | RG6–RG104 |
 | 358 | 71 | ↳ D — La fiche de compte | RG38–RG108 |
 | 429 | 78 | ↳ E — Suspension, réactivation, réattribution | RG26–RG95 |
 | 507 | 83 | ↳ F — Le catalogue central des alertes | RG8–RG105 |
-| 590 | 92 | ↳ G — Les demandes relatives aux données personnelles | RG71–RG85 |
-| 682 | 49 | ↳ H — Les actions de masse | RG2–RG102 |
-| 731 | 40 | ↳ I — Les exports | RG81–RG106 |
-| 771 | 66 | ↳ J — La gestion des comptes internes | RG60–RG108 |
-| 837 | 41 | ↳ K — Ce qu'un rôle interne ne peut jamais faire | RG7–RG111 |
-| 878 | 84 | ↳ L — Densité, accessibilité et langue | RG11–RG124 |
-| 962 | 44 | Cas limites | RG4–RG116 |
-| 1006 | 304 | Critères d'acceptation | RG16–RG109 |
-| 1008 | 33 | ↳ Tableau de bord | RG16–RG18 |
-| 1041 | 43 | ↳ Catalogue et règles communes des files | RG29 |
-| 1084 | 35 | ↳ Fiche de compte | RG48 |
-| 1119 | 39 | ↳ Suspension, réactivation, réattribution |  |
-| 1158 | 24 | ↳ Alertes |  |
-| 1182 | 41 | ↳ Demandes relatives aux données personnelles | RG81 |
-| 1223 | 33 | ↳ Actions de masse et exports |  |
-| 1256 | 22 | ↳ Comptes internes | RG107 |
-| 1278 | 32 | ↳ Interdits, densité et accessibilité | RG43–RG109 |
-| 1310 | 102 | Impacts | RG8–RG125 |
-| 1412 | 21 | Hors périmètre | RG10–RG100 |
-| 1433 | 29 | Questions ouvertes | RG19–RG111 |
-| 1462 | 160 | Additif du document 16 (2026-09-19) | RG9–RG131 |
+| 590 | 95 | ↳ G — Les demandes relatives aux données personnelles | RG71–RG85 |
+| 685 | 49 | ↳ H — Les actions de masse | RG2–RG102 |
+| 734 | 40 | ↳ I — Les exports | RG81–RG106 |
+| 774 | 66 | ↳ J — La gestion des comptes internes | RG60–RG108 |
+| 840 | 41 | ↳ K — Ce qu'un rôle interne ne peut jamais faire | RG7–RG111 |
+| 881 | 84 | ↳ L — Densité, accessibilité et langue | RG11–RG124 |
+| 965 | 44 | Cas limites | RG4–RG116 |
+| 1009 | 304 | Critères d'acceptation | RG16–RG109 |
+| 1011 | 33 | ↳ Tableau de bord | RG16–RG18 |
+| 1044 | 43 | ↳ Catalogue et règles communes des files | RG29 |
+| 1087 | 35 | ↳ Fiche de compte | RG48 |
+| 1122 | 39 | ↳ Suspension, réactivation, réattribution |  |
+| 1161 | 24 | ↳ Alertes |  |
+| 1185 | 41 | ↳ Demandes relatives aux données personnelles | RG81 |
+| 1226 | 33 | ↳ Actions de masse et exports |  |
+| 1259 | 22 | ↳ Comptes internes | RG107 |
+| 1281 | 32 | ↳ Interdits, densité et accessibilité | RG43–RG109 |
+| 1313 | 102 | Impacts | RG8–RG125 |
+| 1415 | 21 | Hors périmètre | RG10–RG100 |
+| 1436 | 29 | Questions ouvertes | RG19–RG111 |
+| 1465 | 160 | Additif du document 16 (2026-09-19) | RG9–RG131 |
 
-## 16-backoffice-emails-brevo.md (~46k tokens)
+## 16-backoffice-emails-brevo.md (~50k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
 | 48 | 32 | Besoin | RG9–RG78 |
 | 80 | 20 | Acteurs | RG90 |
 | 100 | 57 | User stories | RG35 |
-| 157 | 1333 | Règles de gestion | RG1–RG159 |
+| 157 | 1420 | Règles de gestion | RG1–RG160 |
 | 159 | 94 | ↳ A — Portée, vocabulaire et principes | RG1–RG93 |
 | 253 | 154 | ↳ B — Le parcours d'envoi de masse, écran par écran | RG4–RG102 |
 | 407 | 52 | ↳ C — Source 1 : les contacts de la plateforme | RG22–RG93 |
@@ -498,31 +498,32 @@
 | 521 | 120 | ↳ E — Source 3 : la saisie libre, unitaire | RG9–RG123 |
 | 641 | 82 | ↳ F — La bibliothèque de modèles | RG14–RG78 |
 | 723 | 48 | ↳ G — La cadence maximale par contact | RG3–RG84 |
-| 771 | 170 | ↳ H — Les e-mails transactionnels | RG3–RG122 |
-| 941 | 73 | ↳ H bis — Textes des deux e-mails de sécurité *(J3, 2026-09-27)* | RG9–RG159 |
-| 1014 | 56 | ↳ I — Ce qui remonte de Brevo, et sous quelle forme | RG55–RG146 |
-| 1070 | 88 | ↳ J — Le garde-fou d'environnement et l'interrupteur d'urgence | RG9–RG148 |
-| 1158 | 65 | ↳ K — La supervision | RG15–RG134 |
-| 1223 | 36 | ↳ L — Ce qui ne doit jamais partir dans un e-mail | RG3–RG137 |
-| 1259 | 186 | ↳ M — Le contrat d'interface avec Brevo | RG9–RG150 |
-| 1445 | 45 | ↳ N — Messages, langue et accessibilité | RG11–RG155 |
-| 1490 | 51 | Cas limites | RG7–RG146 |
-| 1541 | 418 | Critères d'acceptation | RG85–RG155 |
-| 1543 | 68 | ↳ Le parcours d'envoi de masse |  |
-| 1611 | 36 | ↳ Source 1 — contacts de la plateforme |  |
-| 1647 | 29 | ↳ Source 2 — segment Brevo |  |
-| 1676 | 51 | ↳ Source 3 — saisie libre |  |
-| 1727 | 26 | ↳ Les modèles |  |
-| 1753 | 22 | ↳ La cadence |  |
-| 1775 | 52 | ↳ Les e-mails transactionnels | RG85 |
-| 1827 | 23 | ↳ Le suivi des résultats |  |
-| 1850 | 29 | ↳ Environnement et interrupteur d'urgence |  |
-| 1879 | 25 | ↳ La supervision |  |
-| 1904 | 39 | ↳ Les interdits et le contrat d'interface | RG135 |
-| 1943 | 16 | ↳ Langue et accessibilité | RG155 |
-| 1959 | 88 | Impacts | RG6–RG146 |
-| 2047 | 19 | Hors périmètre | RG44–RG107 |
-| 2066 | 26 | Questions ouvertes | RG9–RG158 |
+| 771 | 170 | ↳ H — Les e-mails transactionnels | RG3–RG160 |
+| 941 | 71 | ↳ H bis — Textes des deux e-mails de sécurité *(J3, 2026-09-27)* | RG9–RG159 |
+| 1012 | 89 | ↳ H ter — Texte de l'accusé de réception d'une demande « mes données » *(J7, 2026-10-14)* | RG57–RG160 |
+| 1101 | 56 | ↳ I — Ce qui remonte de Brevo, et sous quelle forme | RG55–RG146 |
+| 1157 | 88 | ↳ J — Le garde-fou d'environnement et l'interrupteur d'urgence | RG9–RG148 |
+| 1245 | 65 | ↳ K — La supervision | RG15–RG134 |
+| 1310 | 36 | ↳ L — Ce qui ne doit jamais partir dans un e-mail | RG3–RG137 |
+| 1346 | 186 | ↳ M — Le contrat d'interface avec Brevo | RG9–RG150 |
+| 1532 | 45 | ↳ N — Messages, langue et accessibilité | RG11–RG155 |
+| 1577 | 51 | Cas limites | RG7–RG146 |
+| 1628 | 435 | Critères d'acceptation | RG85–RG160 |
+| 1630 | 68 | ↳ Le parcours d'envoi de masse |  |
+| 1698 | 36 | ↳ Source 1 — contacts de la plateforme |  |
+| 1734 | 29 | ↳ Source 2 — segment Brevo |  |
+| 1763 | 51 | ↳ Source 3 — saisie libre |  |
+| 1814 | 26 | ↳ Les modèles |  |
+| 1840 | 22 | ↳ La cadence |  |
+| 1862 | 69 | ↳ Les e-mails transactionnels | RG85–RG160 |
+| 1931 | 23 | ↳ Le suivi des résultats |  |
+| 1954 | 29 | ↳ Environnement et interrupteur d'urgence |  |
+| 1983 | 25 | ↳ La supervision |  |
+| 2008 | 39 | ↳ Les interdits et le contrat d'interface | RG135 |
+| 2047 | 16 | ↳ Langue et accessibilité | RG155 |
+| 2063 | 88 | Impacts | RG6–RG146 |
+| 2151 | 19 | Hors périmètre | RG44–RG107 |
+| 2170 | 27 | Questions ouvertes | RG9–RG160 |
 
 ## 17-parcours-et-ecrans-espaces-membres.md (~56k tokens)
 
@@ -656,7 +657,7 @@
 | 53 | 39 | 2. Stratégie de développement | RG44–RG148 |
 | 92 | 23 | 3. Écarts actifs pour les jalons restants (J5 à J9) | RG23–RG146 |
 | 115 | 43 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 158 | 143 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG148 |
-| 301 | 9 | 6. Configuration des services externes |  |
-| 310 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 327 | 10 | 8. Guide de lecture par jalon | RG54–RG58 |
+| 158 | 146 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG160 |
+| 304 | 9 | 6. Configuration des services externes |  |
+| 313 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 330 | 10 | 8. Guide de lecture par jalon | RG54–RG58 |
