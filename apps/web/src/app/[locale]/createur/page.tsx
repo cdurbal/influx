@@ -20,7 +20,7 @@ export default async function CreatorHomePage({
   const { locale } = await params;
   const pageLocale = memberPageLocale(locale, "creatorHome", "createur");
   return (
-    <AuthMessages locale={pageLocale}>
+    <AuthMessages locale={pageLocale} withAccount>
       <MemberHome space="creator" />
     </AuthMessages>
   );

@@ -66,7 +66,10 @@ type DoubleMessage = {
 };
 
 /** The code e-mails received by an address, oldest first, read in the double (loopback). */
-async function messagesTo(page: Page, address: string): Promise<string[]> {
+export async function messagesTo(
+  page: Page,
+  address: string,
+): Promise<string[]> {
   const response = await page.request.get(`${DOUBLE_ORIGIN}/messages`);
   const messages = (await response.json()) as DoubleMessage[];
   return messages
@@ -75,7 +78,7 @@ async function messagesTo(page: Page, address: string): Promise<string[]> {
 }
 
 /** The last code e-mail of an address: its six digits on their own line, and its whole text. */
-async function lastCodeEmail(
+export async function lastCodeEmail(
   page: Page,
   address: string,
 ): Promise<{ code: string; text: string }> {

@@ -1,0 +1,279 @@
+{
+  "meta": {
+    "details": "My details — INFLUX",
+    "preferences": "My communication preferences — INFLUX",
+    "sessions": "My sessions — INFLUX",
+    "data": "My data — INFLUX"
+  },
+  "brand": "INFLUX",
+  "nav": {
+    "label": "My account",
+    "home": "Back to my space",
+    "accountDetails": "My details",
+    "accountPreferences": "My preferences",
+    "accountSessions": "My sessions",
+    "accountData": "My data"
+  },
+  "homeLink": "Manage my account",
+  "loading": "Loading…",
+  "unavailable": "We can't show this page right now. Please try again in a few minutes.",
+  "retry": "Try again",
+  "offline": "You are offline. Reconnect to the Internet to save your changes.",
+  "cancel": "Cancel",
+  "signedOut": {
+    "title": "You are signed out",
+    "signInAgain": "Sign in again"
+  },
+  "details": {
+    "title": "My details",
+    "lead": "The details of your account. Your INFLUX account manager and our emails use them.",
+    "privacy": "How we use these details",
+    "country": {
+      "label": "Country",
+      "help": "Introductions open country by country."
+    },
+    "language": {
+      "label": "Language of your emails and your space",
+      "fr": "Français",
+      "en": "English"
+    },
+    "status": {
+      "legend": "You signed up as",
+      "individual": "Individual",
+      "business": "Professional (company, sole trader, agency)"
+    },
+    "company": {
+      "label": "Company name"
+    },
+    "save": "Save",
+    "saving": "Saving…",
+    "messages": {
+      "saved": "Your details are saved.",
+      "unchanged": "There is no change to save.",
+      "companyRequired": "Enter the name of your company.",
+      "companyInvalid": "The company name can't be longer than 120 characters or contain a tab or a line break.",
+      "countryUnavailable": "This country can't be chosen at the moment. Your previous country is kept.",
+      "unavailable": "We can't save your details right now. Your answers are kept: please try again in a few minutes."
+    }
+  },
+  "email": {
+    "title": "Sign-in email address",
+    "current": "You sign in with {email}.",
+    "how": "To change your address, we first check that it's really you. Then a code goes to each of the two addresses: your address only changes once both codes are entered, within 24 hours.",
+    "start": "Change address",
+    "newLabel": "New email address",
+    "send": "Send both codes",
+    "sending": "Sending…",
+    "pending": {
+      "status": "Awaiting confirmation: {confirmed} of 2 · expires on {date}",
+      "stays": "Your sign-in address remains {email} until both codes have been entered.",
+      "oldLabel": "Code received at {email} (current address)",
+      "newLabel": "Code received at {email} (new address)",
+      "confirmed": "Code for {email} confirmed.",
+      "confirm": "Confirm this code",
+      "confirming": "Checking…",
+      "cancel": "Cancel the request",
+      "cancelled": "Request cancelled. Your sign-in address has not changed."
+    },
+    "completed": "Done: you now sign in with {email}. Your other sessions have been closed.",
+    "messages": {
+      "sameAsCurrent": "This is already your sign-in address. Enter another address.",
+      "undeliverable": "We can't send an email to this new address. Check it, then start again.",
+      "unavailable": "We can't send the codes right now. Nothing has changed: start again in a few minutes.",
+      "freshCodeRequired": "The check has expired. Start again: we will send you a new code.",
+      "addressUnavailable": "This address can't be used for your account. Your sign-in address has not changed.",
+      "tooManyAttempts": "Too many attempts with this code. The request is closed: your address has not changed. You can start again.",
+      "expired": "The 24 hours have passed. The request is closed: your address has not changed. You can start again.",
+      "gone": "This request is no longer open. Your sign-in address has not changed.",
+      "invalid": "This code is incorrect. You have {remaining, plural, one {# attempt} other {# attempts}} left.",
+      "format": "The code has 6 digits.",
+      "codeUnavailable": "We can't check this code right now. Please try again in a moment."
+    }
+  },
+  "freshCode": {
+    "title": "Let's check it's really you",
+    "lead": "We send a 6-digit code to {email}. It confirms this one action only, for 5 minutes.",
+    "send": "Get a code",
+    "sending": "Sending…",
+    "sent": "A 6-digit code has just been sent to {email}. Check your spam folder too.",
+    "phraseLabel": "Your matching phrase",
+    "phraseHelp": "Check that it is the same in the email you received. If it is different, don't enter the code.",
+    "codeLabel": "6-digit code",
+    "submit": "Confirm",
+    "submitBusy": "Checking…",
+    "stayInTab": "Stay in this tab: the code only works here.",
+    "countdown": "You can ask for a new code in {seconds} seconds.",
+    "resend": "Get a new code",
+    "messages": {
+      "required": "Enter the 6-digit code you received by email.",
+      "format": "The code has 6 digits.",
+      "invalid": "This code is incorrect. You have {remaining, plural, one {# attempt} other {# attempts}} left.",
+      "expired": "This code is no longer valid. Ask for a new one.",
+      "tooManyAttempts": "Too many attempts with this code. Ask for a new code.",
+      "sessionLost": "This check has expired. Ask for a new code.",
+      "tooManyRequests": "Too many attempts from this network. Please try again later, within an hour at most.",
+      "verifyUnavailable": "We can't check your code right now. Please try again in a moment.",
+      "undeliverable": "We can't send an email to your address. Write to us from the help on the sign-in screen.",
+      "rateLimited": "Too many codes have been requested in a short time. Please try again in a few minutes.",
+      "sendUnavailable": "We can't send your code right now. Please try again in a few minutes."
+    }
+  },
+  "preferences": {
+    "title": "My communication preferences",
+    "cardTitle": "Marketing emails and prospecting",
+    "stateLabel": "Status:",
+    "granted": "given",
+    "withdrawn": "withdrawn",
+    "since": "On {date}, {origin}.",
+    "origin": {
+      "signupForm": "by you, when you signed up",
+      "accountSettings": "by you, from your space",
+      "unsubscribeLink": "through an unsubscribe link in an email",
+      "prospectionOptOut": "through an opt-out from our prospecting tool",
+      "influx": "by the INFLUX team, at your request",
+      "dataRequest": "following a request about your data"
+    },
+    "withdraw": "Withdraw my consent",
+    "withdrawHelp": "Takes effect immediately. No reason asked.",
+    "withdrawing": "Withdrawing…",
+    "grant": "Receive these emails again",
+    "grantHelp": "You can withdraw this consent at any time, here or from any email.",
+    "granting": "Saving…",
+    "done": {
+      "withdrawn": "Done: you no longer receive our marketing emails or our prospecting messages.",
+      "granted": "Done: you will receive our marketing emails again."
+    },
+    "unchanged": {
+      "title": "What withdrawing does not change",
+      "code": "Your sign-in code still arrives.",
+      "introductions": "So do the messages about your introductions.",
+      "account": "Your account and your access are unchanged."
+    },
+    "unavailable": "We can't save your choice right now. Please try again in a few minutes."
+  },
+  "sessions": {
+    "title": "My sessions",
+    "lead": "The browsers where your account is open. If one of them doesn't ring a bell, close it.",
+    "help": "We recognise a browser by its type and operating system (for example \"Firefox on Windows\"), never by your location. Two devices of the same type therefore look alike: check the dates as well.",
+    "current": "This device",
+    "browser": "{family} on {system}",
+    "unidentified": "Unidentified browser",
+    "family": {
+      "chrome": "Chrome",
+      "edge": "Edge",
+      "firefox": "Firefox",
+      "safari": "Safari",
+      "samsung_internet": "Samsung Internet",
+      "opera": "Opera",
+      "instagram": "Instagram",
+      "facebook": "Facebook",
+      "tiktok": "TikTok"
+    },
+    "system": {
+      "windows": "Windows",
+      "macos": "macOS",
+      "ios": "iOS",
+      "android": "Android",
+      "linux": "Linux",
+      "chromeos": "ChromeOS"
+    },
+    "createdAt": "Opened on {date}",
+    "lastActivityAt": "Last active on {date}",
+    "close": "Close this session",
+    "closeCurrent": "Close this session (you will be signed out)",
+    "closing": "Closing…",
+    "closed": "Session closed.",
+    "closeAll": "Close all sessions",
+    "closeAllWarning": "All your sessions will be closed, including the one on this device: you will need to sign in again with a code.",
+    "closeAllConfirm": "Yes, close all sessions",
+    "allClosed": "All your sessions are closed, including the one on this device.",
+    "signedOut": "This session is closed: you are signed out on this device.",
+    "unavailable": "We can't close this session right now. Please try again in a few minutes."
+  },
+  "data": {
+    "title": "My data",
+    "lead": "Ask for a copy of your data or for the deletion of your account. Each request is handled by a member of the INFLUX team.",
+    "requests": {
+      "title": "Your requests",
+      "line": "{type} · {status}",
+      "type": {
+        "access": "Export of your data",
+        "erasure": "Deletion of your account"
+      },
+      "status": {
+        "received": "Received",
+        "in_progress": "Being handled",
+        "closed": "Closed"
+      },
+      "receivedAt": "Submitted on {date}",
+      "dueAt": "Reply by {date} at the latest",
+      "completedAt": "Closed on {date}"
+    },
+    "export": {
+      "title": "Export my data",
+      "text": "You receive a readable file with the data we hold about you.",
+      "how": "Nothing is sent automatically: a member of the INFLUX team prepares the file and tells you how to retrieve it securely. It is never sent to you as an email attachment.",
+      "action": "Export",
+      "open": "An export request is already in progress: follow it above."
+    },
+    "delete": {
+      "title": "Delete my account",
+      "text": "Your request is handled by a member of the INFLUX team. Until then, your account remains active.",
+      "action": "Delete my account",
+      "open": "A deletion request is already in progress: follow it above."
+    },
+    "confirm": {
+      "title": "Delete your INFLUX account",
+      "goneTitle": "What disappears",
+      "gone": {
+        "details": "Your account details: email address, country, language, status or company name.",
+        "crm": "Your contact at Brevo and at Apollo.io: the deletion is passed on to them as a priority.",
+        "access": "Your access: you will no longer be able to sign in."
+      },
+      "keptTitle": "What is kept, and why",
+      "kept": {
+        "emails": "The emails already sent: they have left our systems and we cannot recall them.",
+        "journal": "The entries of the activity log, which cannot be changed, in a form that no longer names you.",
+        "terms": "The record of your acceptance of the terms of use, in a form that no longer names you."
+      },
+      "durations": "How long things are kept: see the privacy policy.",
+      "durationsLink": "Read the privacy policy",
+      "newAccount": "Signing up again with the same address will create an entirely new account, unrelated to this one.",
+      "manual": "Nothing is deleted automatically: a member of the INFLUX team handles your request. Until then, your account remains active and you can still sign in.",
+      "word": "DELETE",
+      "wordLabel": "Type {word} to confirm",
+      "wordError": "Type {word}, in capitals, to confirm.",
+      "submit": "Request permanent deletion",
+      "next": "You will then be asked for a verification code."
+    },
+    "done": {
+      "access": "Export request received. We will reply by {date} at the latest. A confirmation email is on its way to your address.",
+      "erasure": "Deletion request received. We will reply by {date} at the latest. A confirmation email is on its way to your address.",
+      "alreadyOpen": "A request of this type is already in progress: here it is. No new request was created."
+    },
+    "unavailable": "We can't record your request right now. Please try again in a few minutes."
+  },
+  "terms": {
+    "title": "The terms of use have changed",
+    "lead": "To keep using INFLUX, read and then accept the new version ({label}), in force since {date}.",
+    "documentLabel": "Terms of use, version {label}",
+    "fallback": "This version doesn't exist in English yet: here is the version in force.",
+    "loading": "Loading the terms of use…",
+    "unavailable": "The terms of use can't be loaded right now. Please try again in a moment.",
+    "accept": "I accept the terms of use",
+    "accepting": "Saving…",
+    "refuse": "I refuse and sign out",
+    "refuseHelp": "Refusing signs you out. Your account and your data are not deleted: you can accept the next time you sign in.",
+    "newerVersion": "A newer version has just come into force: here it is.",
+    "acceptUnavailable": "We can't record your acceptance right now. Please try again in a moment.",
+    "rightsTitle": "Your rights remain available",
+    "rightsText": "Even without accepting this version, you can:",
+    "rightsPreferences": "manage your communication preferences",
+    "rightsData": "ask for an export of your data or for the deletion of your account",
+    "contact": "A question about these terms? The privacy policy tells you how to write to us.",
+    "contactLink": "Read the privacy policy",
+    "refused": "You are signed out. Your account and your data are kept: you can accept the terms the next time you sign in.",
+    "pendingNotice": "You haven't accepted the new version of the terms of use yet. This page remains available.",
+    "pendingLink": "Read and accept the terms"
+  }
+}

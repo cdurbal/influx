@@ -11,7 +11,11 @@ export type MemberPage =
   | "signupAdvertiser"
   | "signupCreator"
   | "advertiserHome"
-  | "creatorHome";
+  | "creatorHome"
+  | "accountDetails"
+  | "accountPreferences"
+  | "accountSessions"
+  | "accountData";
 
 export const MEMBER_PAGE_SLUGS: Readonly<
   Record<MemberPage, Readonly<Record<AppLocale, string>>>
@@ -22,7 +26,32 @@ export const MEMBER_PAGE_SLUGS: Readonly<
   signupCreator: { fr: "inscription/createur", en: "signup/creator" },
   advertiserHome: { fr: "marque", en: "brand" },
   creatorHome: { fr: "createur", en: "creator" },
+  // "Mon compte" (17 §6.1 to §6.4), common to both spaces: /fr/compte/* · /en/account/* (EC-15).
+  accountDetails: { fr: "compte", en: "account" },
+  accountPreferences: { fr: "compte/preferences", en: "account/preferences" },
+  accountSessions: { fr: "compte/sessions", en: "account/sessions" },
+  accountData: { fr: "compte/donnees", en: "account/data" },
 };
+
+/** The pages of "mon compte", in the order of their navigation. */
+export const ACCOUNT_PAGES = [
+  "accountDetails",
+  "accountPreferences",
+  "accountSessions",
+  "accountData",
+] as const satisfies readonly MemberPage[];
+
+export type AccountPage = (typeof ACCOUNT_PAGES)[number];
+
+/**
+ * The pages a member reaches while a version of the terms waits for acceptance (05 RG28; 17 §6.7;
+ * J7 A3): the rights of the person survive a refused version, so the blocking screen links to
+ * them. apps/api exempts their routes from the terms gate; every other page shows the screen.
+ */
+export const TERMS_EXEMPT_PAGES: readonly AccountPage[] = [
+  "accountPreferences",
+  "accountData",
+];
 
 /** The path of a page in a language, with its locale prefix (redirects, plain links). */
 export function memberPagePath(page: MemberPage, locale: AppLocale): string {

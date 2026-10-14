@@ -41,18 +41,53 @@ export type ResponseSchema<Value> = {
 /**
  * `ok`: a 200 answer of the expected shape. `unauthenticated`: no valid session (401).
  * `failed`: anything else — network, time-out, error envelope, unexpected shape. The screen
- * shows its service message; nothing is retried here.
+ * shows its service message; nothing is retried here. When the answer was an error envelope
+ * (02 §9.2), `code` is its code and `issues` the rules its details name (never a value): the
+ * screen picks its message from them, as a translation key, never by showing them.
  */
 export type RelayResult<Value> =
   | { kind: "ok"; data: Value }
   | { kind: "unauthenticated" }
-  | { kind: "failed" };
+  | { kind: "failed"; code?: string; issues?: readonly string[] };
+
+/** The methods of the relay (03 PP-3); GET and DELETE carry no body. */
+export type RelayMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+
+/** A code or an issue of the error envelope: snake_case words only, else ignored. */
+const ERROR_WORD_PATTERN = /^[a-z][a-z0-9_]{0,63}$/;
+
+/** The code and the issues of an error envelope; nothing when the body is not one. */
+function errorOf(payload: unknown): { code?: string; issues?: string[] } {
+  if (typeof payload !== "object" || payload === null) {
+    return {};
+  }
+  const error: unknown = (payload as { error?: unknown }).error;
+  if (typeof error !== "object" || error === null) {
+    return {};
+  }
+  const { code, details } = error as { code?: unknown; details?: unknown };
+  if (typeof code !== "string" || !ERROR_WORD_PATTERN.test(code)) {
+    return {};
+  }
+  const issues = Array.isArray(details)
+    ? details.flatMap((detail: unknown) => {
+        const issue: unknown =
+          typeof detail === "object" && detail !== null
+            ? (detail as { issue?: unknown }).issue
+            : undefined;
+        return typeof issue === "string" && ERROR_WORD_PATTERN.test(issue)
+          ? [issue]
+          : [];
+      })
+    : [];
+  return { code, issues };
+}
 
 /** Bound of one call, as the relay bounds its own (03 PP-9). */
 const CALL_TIMEOUT_MS = 15_000;
 
 export async function callRelay<Value>(
-  method: "GET" | "POST",
+  method: RelayMethod,
   path: string,
   schema: ResponseSchema<Value>,
   body?: Record<string, unknown>,
@@ -60,6 +95,9 @@ export async function callRelay<Value>(
 ): Promise<RelayResult<Value>> {
   if (!API_PATH_PATTERN.test(path)) {
     throw new Error("relay path outside /v1/");
+  }
+  if (body !== undefined && (method === "GET" || method === "DELETE")) {
+    throw new Error("relay body on a method without one");
   }
   const search = searchOf(query);
   let response: Response;
@@ -81,14 +119,14 @@ export async function callRelay<Value>(
   if (response.status === 401) {
     return { kind: "unauthenticated" };
   }
-  if (response.status !== 200) {
-    return { kind: "failed" };
-  }
   let payload: unknown;
   try {
     payload = await response.json();
   } catch {
     return { kind: "failed" };
+  }
+  if (response.status !== 200) {
+    return { kind: "failed", ...errorOf(payload) };
   }
   const parsed = schema.safeParse(payload);
   return parsed.success

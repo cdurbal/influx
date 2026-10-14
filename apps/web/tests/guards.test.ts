@@ -179,7 +179,12 @@ describe("Additional guards", () => {
     // Every translation file, not only landing.json (02 §13.1, garde annexe).
     const files = readdirSync(path.join(SRC, "locales", "fr")).sort();
     expect(readdirSync(path.join(SRC, "locales", "en")).sort()).toEqual(files);
-    expect(files).toEqual(["auth.json", "landing.json", "legal.json"]);
+    expect(files).toEqual([
+      "account.json",
+      "auth.json",
+      "landing.json",
+      "legal.json",
+    ]);
     for (const file of files) {
       const read = (locale: string) =>
         JSON.parse(

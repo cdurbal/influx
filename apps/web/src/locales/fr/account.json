@@ -1,0 +1,279 @@
+{
+  "meta": {
+    "details": "Mes informations — INFLUX",
+    "preferences": "Mes préférences de communication — INFLUX",
+    "sessions": "Mes sessions — INFLUX",
+    "data": "Mes données — INFLUX"
+  },
+  "brand": "INFLUX",
+  "nav": {
+    "label": "Mon compte",
+    "home": "Retour à mon espace",
+    "accountDetails": "Mes informations",
+    "accountPreferences": "Mes préférences",
+    "accountSessions": "Mes sessions",
+    "accountData": "Mes données"
+  },
+  "homeLink": "Gérer mon compte",
+  "loading": "Chargement…",
+  "unavailable": "Nous ne parvenons pas à afficher cette page pour le moment. Réessayez dans quelques minutes.",
+  "retry": "Réessayer",
+  "offline": "Vous êtes hors ligne. Reconnectez-vous à Internet pour enregistrer vos modifications.",
+  "cancel": "Annuler",
+  "signedOut": {
+    "title": "Vous êtes déconnecté",
+    "signInAgain": "Se reconnecter"
+  },
+  "details": {
+    "title": "Mes informations",
+    "lead": "Les informations de votre compte. Elles servent à votre commercial INFLUX et à nos e-mails.",
+    "privacy": "Comment nous utilisons ces informations",
+    "country": {
+      "label": "Pays",
+      "help": "Les mises en relation s'ouvrent pays par pays."
+    },
+    "language": {
+      "label": "Langue de vos e-mails et de votre espace",
+      "fr": "Français",
+      "en": "English"
+    },
+    "status": {
+      "legend": "Vous êtes inscrit en tant que",
+      "individual": "Particulier",
+      "business": "Professionnel (société, entreprise individuelle, agence)"
+    },
+    "company": {
+      "label": "Nom de l'entreprise"
+    },
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "messages": {
+      "saved": "Vos informations sont enregistrées.",
+      "unchanged": "Aucune modification à enregistrer.",
+      "companyRequired": "Indiquez le nom de votre entreprise.",
+      "companyInvalid": "Le nom de l'entreprise ne peut pas dépasser 120 caractères ni contenir de tabulation ou de retour à la ligne.",
+      "countryUnavailable": "Ce pays ne peut pas être choisi pour le moment. Votre pays précédent est conservé.",
+      "unavailable": "Nous ne parvenons pas à enregistrer vos informations pour le moment. Vos réponses sont conservées : réessayez dans quelques minutes."
+    }
+  },
+  "email": {
+    "title": "Adresse e-mail de connexion",
+    "current": "Vous vous connectez avec {email}.",
+    "how": "Pour changer d'adresse, nous vérifions d'abord que c'est bien vous. Un code part ensuite à chacune des deux adresses : votre adresse ne change qu'une fois les deux codes saisis, dans les 24 heures.",
+    "start": "Changer d'adresse",
+    "newLabel": "Nouvelle adresse e-mail",
+    "send": "Envoyer les deux codes",
+    "sending": "Envoi…",
+    "pending": {
+      "status": "En attente de confirmation : {confirmed} sur 2 · expire le {date}",
+      "stays": "Votre adresse de connexion reste {email} tant que les deux codes n'ont pas été saisis.",
+      "oldLabel": "Code reçu à {email} (adresse actuelle)",
+      "newLabel": "Code reçu à {email} (nouvelle adresse)",
+      "confirmed": "Code de {email} confirmé.",
+      "confirm": "Valider ce code",
+      "confirming": "Vérification…",
+      "cancel": "Annuler la demande",
+      "cancelled": "Demande annulée. Votre adresse de connexion n'a pas changé."
+    },
+    "completed": "C'est fait : vous vous connectez désormais avec {email}. Vos autres sessions ont été fermées.",
+    "messages": {
+      "sameAsCurrent": "C'est déjà votre adresse de connexion. Saisissez une autre adresse.",
+      "undeliverable": "Nous ne parvenons pas à envoyer d'e-mail à cette nouvelle adresse. Vérifiez-la, puis recommencez.",
+      "unavailable": "Nous ne parvenons pas à envoyer les codes pour le moment. Rien n'a changé : recommencez dans quelques minutes.",
+      "freshCodeRequired": "La vérification a expiré. Recommencez : nous vous envoyons un nouveau code.",
+      "addressUnavailable": "Cette adresse ne peut pas être utilisée pour votre compte. Votre adresse de connexion n'a pas changé.",
+      "tooManyAttempts": "Trop d'essais avec ce code. La demande est close : votre adresse n'a pas changé. Vous pouvez recommencer.",
+      "expired": "Le délai de 24 heures est passé. La demande est close : votre adresse n'a pas changé. Vous pouvez recommencer.",
+      "gone": "Cette demande n'est plus ouverte. Votre adresse de connexion n'a pas changé.",
+      "invalid": "Ce code est incorrect. Il vous reste {remaining, plural, one {# essai} other {# essais}}.",
+      "format": "Le code comporte 6 chiffres.",
+      "codeUnavailable": "Nous ne parvenons pas à vérifier ce code pour le moment. Réessayez dans quelques instants."
+    }
+  },
+  "freshCode": {
+    "title": "Vérifions que c'est bien vous",
+    "lead": "Nous envoyons un code à 6 chiffres à {email}. Il confirme cette seule action, pendant 5 minutes.",
+    "send": "Recevoir un code",
+    "sending": "Envoi…",
+    "sent": "Un code à 6 chiffres vient d'être envoyé à {email}. Vérifiez aussi vos indésirables.",
+    "phraseLabel": "Votre phrase de correspondance",
+    "phraseHelp": "Vérifiez qu'elle est identique dans l'e-mail reçu. Si elle est différente, ne saisissez pas le code.",
+    "codeLabel": "Code à 6 chiffres",
+    "submit": "Valider",
+    "submitBusy": "Vérification…",
+    "stayInTab": "Restez dans cet onglet : le code ne fonctionne qu'ici.",
+    "countdown": "Vous pourrez demander un nouveau code dans {seconds} secondes.",
+    "resend": "Recevoir un nouveau code",
+    "messages": {
+      "required": "Saisissez le code à 6 chiffres reçu par e-mail.",
+      "format": "Le code comporte 6 chiffres.",
+      "invalid": "Ce code est incorrect. Il vous reste {remaining, plural, one {# essai} other {# essais}}.",
+      "expired": "Ce code n'est plus valide. Demandez-en un nouveau.",
+      "tooManyAttempts": "Trop d'essais avec ce code. Demandez un nouveau code.",
+      "sessionLost": "Cette vérification a expiré. Demandez un nouveau code.",
+      "tooManyRequests": "Trop de tentatives depuis ce réseau. Réessayez plus tard, au plus tard dans une heure.",
+      "verifyUnavailable": "Nous ne parvenons pas à vérifier votre code pour le moment. Réessayez dans quelques instants.",
+      "undeliverable": "Nous ne parvenons pas à envoyer d'e-mail à votre adresse. Écrivez-nous depuis l'aide de l'écran de connexion.",
+      "rateLimited": "Trop de codes ont été demandés en peu de temps. Réessayez dans quelques minutes.",
+      "sendUnavailable": "Nous ne parvenons pas à envoyer votre code pour le moment. Réessayez dans quelques minutes."
+    }
+  },
+  "preferences": {
+    "title": "Mes préférences de communication",
+    "cardTitle": "E-mails commerciaux et prospection",
+    "stateLabel": "État :",
+    "granted": "accordé",
+    "withdrawn": "retiré",
+    "since": "Le {date}, {origin}.",
+    "origin": {
+      "signupForm": "par vous, à l'inscription",
+      "accountSettings": "par vous, depuis votre espace",
+      "unsubscribeLink": "par un lien de désinscription dans un e-mail",
+      "prospectionOptOut": "par une désinscription auprès de notre outil de prospection",
+      "influx": "par l'équipe INFLUX, à votre demande",
+      "dataRequest": "à la suite d'une demande relative à vos données"
+    },
+    "withdraw": "Retirer mon consentement",
+    "withdrawHelp": "Effet immédiat. Aucune justification demandée.",
+    "withdrawing": "Retrait…",
+    "grant": "Recevoir de nouveau ces e-mails",
+    "grantHelp": "Vous pourrez retirer ce consentement à tout moment, ici ou depuis chaque e-mail.",
+    "granting": "Enregistrement…",
+    "done": {
+      "withdrawn": "C'est fait : vous ne recevez plus nos e-mails commerciaux ni nos messages de prospection.",
+      "granted": "C'est fait : vous recevrez de nouveau nos e-mails commerciaux."
+    },
+    "unchanged": {
+      "title": "Ce que le retrait ne change pas",
+      "code": "Votre code de connexion continue d'arriver.",
+      "introductions": "Les messages liés à vos mises en relation aussi.",
+      "account": "Votre compte et vos accès sont inchangés."
+    },
+    "unavailable": "Nous ne parvenons pas à enregistrer votre choix pour le moment. Réessayez dans quelques minutes."
+  },
+  "sessions": {
+    "title": "Mes sessions",
+    "lead": "Les navigateurs où votre compte est ouvert. Si l'un d'eux ne vous dit rien, fermez-le.",
+    "help": "Nous reconnaissons un navigateur à son type et à son système (par exemple « Firefox sur Windows »), jamais à votre position. Deux appareils du même type se ressemblent donc : vérifiez aussi les dates.",
+    "current": "Cet appareil",
+    "browser": "{family} sur {system}",
+    "unidentified": "Navigateur non identifié",
+    "family": {
+      "chrome": "Chrome",
+      "edge": "Edge",
+      "firefox": "Firefox",
+      "safari": "Safari",
+      "samsung_internet": "Samsung Internet",
+      "opera": "Opera",
+      "instagram": "Instagram",
+      "facebook": "Facebook",
+      "tiktok": "TikTok"
+    },
+    "system": {
+      "windows": "Windows",
+      "macos": "macOS",
+      "ios": "iOS",
+      "android": "Android",
+      "linux": "Linux",
+      "chromeos": "ChromeOS"
+    },
+    "createdAt": "Ouverte le {date}",
+    "lastActivityAt": "Dernière activité le {date}",
+    "close": "Fermer cette session",
+    "closeCurrent": "Fermer cette session (vous serez déconnecté)",
+    "closing": "Fermeture…",
+    "closed": "Session fermée.",
+    "closeAll": "Fermer toutes les sessions",
+    "closeAllWarning": "Toutes vos sessions seront fermées, y compris celle de cet appareil : vous devrez vous reconnecter avec un code.",
+    "closeAllConfirm": "Oui, fermer toutes les sessions",
+    "allClosed": "Toutes vos sessions sont fermées, y compris celle de cet appareil.",
+    "signedOut": "Cette session est fermée : vous êtes déconnecté de cet appareil.",
+    "unavailable": "Nous ne parvenons pas à fermer cette session pour le moment. Réessayez dans quelques minutes."
+  },
+  "data": {
+    "title": "Mes données",
+    "lead": "Demandez une copie de vos données ou la suppression de votre compte. Chaque demande est traitée par une personne de l'équipe INFLUX.",
+    "requests": {
+      "title": "Vos demandes",
+      "line": "{type} · {status}",
+      "type": {
+        "access": "Export de vos données",
+        "erasure": "Suppression de votre compte"
+      },
+      "status": {
+        "received": "Reçue",
+        "in_progress": "En cours de traitement",
+        "closed": "Close"
+      },
+      "receivedAt": "Déposée le {date}",
+      "dueAt": "Réponse au plus tard le {date}",
+      "completedAt": "Close le {date}"
+    },
+    "export": {
+      "title": "Exporter mes données",
+      "text": "Vous recevez un fichier lisible avec les données que nous détenons sur vous.",
+      "how": "Rien n'est envoyé automatiquement : une personne de l'équipe INFLUX prépare le fichier et vous dit comment le récupérer de façon sécurisée. Il ne vous est jamais envoyé en pièce jointe.",
+      "action": "Exporter",
+      "open": "Une demande d'export est déjà en cours : vous la suivez ci-dessus."
+    },
+    "delete": {
+      "title": "Supprimer mon compte",
+      "text": "Votre demande est traitée par une personne de l'équipe INFLUX. D'ici là, votre compte reste actif.",
+      "action": "Supprimer mon compte",
+      "open": "Une demande de suppression est déjà en cours : vous la suivez ci-dessus."
+    },
+    "confirm": {
+      "title": "Supprimer votre compte INFLUX",
+      "goneTitle": "Ce qui disparaît",
+      "gone": {
+        "details": "Vos informations de compte : adresse e-mail, pays, langue, statut ou nom d'entreprise.",
+        "crm": "Votre contact chez Brevo et chez Apollo.io : la suppression leur est transmise en priorité.",
+        "access": "Votre accès : vous ne pourrez plus vous connecter."
+      },
+      "keptTitle": "Ce qui est conservé, et pourquoi",
+      "kept": {
+        "emails": "Les e-mails déjà envoyés : ils sont sortis de nos systèmes et nous ne pouvons pas les rappeler.",
+        "journal": "Les écritures du journal d'activité, qui ne peuvent pas être modifiées, sous une forme qui ne vous nomme plus.",
+        "terms": "La trace de votre acceptation des conditions d'utilisation, sous une forme qui ne vous nomme plus."
+      },
+      "durations": "Durées de conservation : voir la politique de confidentialité.",
+      "durationsLink": "Lire la politique de confidentialité",
+      "newAccount": "Une nouvelle inscription avec la même adresse créera un compte entièrement nouveau, sans lien avec celui-ci.",
+      "manual": "Rien n'est supprimé automatiquement : une personne de l'équipe INFLUX traite votre demande. D'ici là, votre compte reste actif et vous pouvez toujours vous connecter.",
+      "word": "SUPPRIMER",
+      "wordLabel": "Tapez {word} pour confirmer",
+      "wordError": "Tapez {word}, en capitales, pour confirmer.",
+      "submit": "Demander la suppression définitive",
+      "next": "Un code de vérification vous sera ensuite demandé."
+    },
+    "done": {
+      "access": "Demande d'export reçue. Nous vous répondrons au plus tard le {date}. Un e-mail de confirmation part à votre adresse.",
+      "erasure": "Demande de suppression reçue. Nous vous répondrons au plus tard le {date}. Un e-mail de confirmation part à votre adresse.",
+      "alreadyOpen": "Une demande de ce type est déjà en cours : la voici. Aucune nouvelle demande n'a été créée."
+    },
+    "unavailable": "Nous ne parvenons pas à enregistrer votre demande pour le moment. Réessayez dans quelques minutes."
+  },
+  "terms": {
+    "title": "Les conditions d'utilisation ont changé",
+    "lead": "Pour continuer à utiliser INFLUX, lisez puis acceptez la nouvelle version ({label}), en vigueur depuis le {date}.",
+    "documentLabel": "Conditions d'utilisation, version {label}",
+    "fallback": "Cette version n'existe pas encore en français : voici la version anglaise, qui fait foi.",
+    "loading": "Chargement des conditions d'utilisation…",
+    "unavailable": "Les conditions d'utilisation ne peuvent pas être chargées pour le moment. Réessayez dans quelques instants.",
+    "accept": "J'accepte les conditions d'utilisation",
+    "accepting": "Enregistrement…",
+    "refuse": "Je refuse et je me déconnecte",
+    "refuseHelp": "Refuser vous déconnecte. Votre compte et vos données ne sont pas supprimés : vous pourrez accepter à votre prochaine connexion.",
+    "newerVersion": "Une version plus récente vient d'entrer en vigueur : la voici.",
+    "acceptUnavailable": "Nous ne parvenons pas à enregistrer votre acceptation pour le moment. Réessayez dans quelques instants.",
+    "rightsTitle": "Vos droits restent accessibles",
+    "rightsText": "Même sans accepter cette version, vous pouvez :",
+    "rightsPreferences": "gérer vos préférences de communication",
+    "rightsData": "demander l'export de vos données ou la suppression de votre compte",
+    "contact": "Une question sur ces conditions ? La politique de confidentialité indique comment nous écrire.",
+    "contactLink": "Lire la politique de confidentialité",
+    "refused": "Vous êtes déconnecté. Votre compte et vos données sont conservés : vous pourrez accepter les conditions à votre prochaine connexion.",
+    "pendingNotice": "Vous n'avez pas encore accepté la nouvelle version des conditions d'utilisation. Cette page reste accessible.",
+    "pendingLink": "Lire et accepter les conditions"
+  }
+}

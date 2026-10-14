@@ -20,7 +20,7 @@ export default async function BrandHomePage({
   const { locale } = await params;
   const pageLocale = memberPageLocale(locale, "advertiserHome", "marque");
   return (
-    <AuthMessages locale={pageLocale}>
+    <AuthMessages locale={pageLocale} withAccount>
       <MemberHome space="advertiser" />
     </AuthMessages>
   );

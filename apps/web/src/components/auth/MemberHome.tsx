@@ -4,10 +4,13 @@
 // session: GET /v1/me decides. No session ⇒ back to sign-in; a session of the other role ⇒ its own
 // space (the space follows the real role, never the address typed). The home announces what comes
 // next (the profile, Lot 2) and how INFLUX works, without any figure (05 RG9). Sign-out revokes the
-// session, then shows `auth.logout.done`.
+// session, then shows `auth.logout.done`. A version of the terms waiting for acceptance shows the
+// blocking screen first (17 §6.7); "mon compte" is one link away.
+import type { TermsToAccept } from "@influx/contracts/account";
 import type { SignupDoor } from "@influx/contracts/auth";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { TermsGate } from "@/components/account/TermsGate";
 import { Link, useRouter } from "@/i18n/navigation";
 import {
   BRAND_CLASSES,
@@ -28,7 +31,8 @@ import { readMe, signOut } from "./member-auth";
 
 type State =
   | { kind: "loading" }
-  | { kind: "ready"; email: string }
+  | { kind: "ready"; email: string; termsToAccept: TermsToAccept | null }
+  | { kind: "termsRefused"; message: string }
   | { kind: "unavailable" }
   | { kind: "signedOut" };
 
@@ -38,6 +42,7 @@ const HOME_STEPS = ["one", "two", "three"] as const;
 /** `space`: the role whose space this page is. */
 export function MemberHome({ space }: { space: SignupDoor }) {
   const t = useTranslations("auth");
+  const tAccount = useTranslations("account");
   const locale = useLocale();
   const router = useRouter();
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -65,15 +70,41 @@ export function MemberHome({ space }: { space: SignupDoor }) {
         router.replace(memberPageHref(homePageOf(result.data.role), locale));
         return;
       }
-      setState({ kind: "ready", email: result.data.email });
+      setState({
+        kind: "ready",
+        email: result.data.email,
+        termsToAccept: result.data.termsToAccept,
+      });
     });
     return () => {
       active = false;
     };
   }, [space, router, locale]);
 
+  // After the blocking terms screen: the account is read again (05 RG28).
+  const reload = useCallback(async () => {
+    const result = await readMe();
+    if (result.kind === "unauthenticated") {
+      router.replace(memberPageHref("signIn", locale));
+      return;
+    }
+    setState(
+      result.kind === "ok"
+        ? {
+            kind: "ready",
+            email: result.data.email,
+            termsToAccept: result.data.termsToAccept,
+          }
+        : { kind: "unavailable" },
+    );
+  }, [router, locale]);
+
   useEffect(() => {
-    if (state.kind === "ready" || state.kind === "signedOut") {
+    if (
+      state.kind === "ready" ||
+      state.kind === "signedOut" ||
+      state.kind === "termsRefused"
+    ) {
       titleRef.current?.focus();
     }
   }, [state.kind]);
@@ -120,6 +151,37 @@ export function MemberHome({ space }: { space: SignupDoor }) {
     );
   }
 
+  if (state.kind === "termsRefused") {
+    return (
+      <main id="main" className={SCREEN_CLASSES}>
+        {brand}
+        <h1 ref={titleRef} tabIndex={-1} className={TITLE_CLASSES}>
+          {t("logout.done")}
+        </h1>
+        <p role="status" className={INFO_CLASSES}>
+          {state.message}
+        </p>
+        <Link
+          href={memberPageHref("signIn", locale)}
+          className={TEXT_BUTTON_CLASSES}
+        >
+          {t("logout.signInAgain")}
+        </Link>
+      </main>
+    );
+  }
+
+  // 17 §6.7: a version of the terms waits for acceptance — the blocking screen, before the page.
+  if (state.kind === "ready" && state.termsToAccept !== null) {
+    return (
+      <TermsGate
+        termsToAccept={state.termsToAccept}
+        onAccepted={reload}
+        onRefused={(message) => setState({ kind: "termsRefused", message })}
+      />
+    );
+  }
+
   if (state.kind === "signedOut") {
     return (
       <main id="main" className={SCREEN_CLASSES}>
@@ -158,6 +220,12 @@ export function MemberHome({ space }: { space: SignupDoor }) {
         <p className={INFO_CLASSES}>
           {t("home.signedInAs", { email: state.email })}
         </p>
+        <Link
+          href={memberPageHref("accountDetails", locale)}
+          className={TEXT_BUTTON_CLASSES}
+        >
+          {tAccount("homeLink")}
+        </Link>
         <button
           type="button"
           onClick={leave}

@@ -190,7 +190,7 @@ export const RELAY_FILES = {
  */
 export const BROWSER_RELAY_CLIENT_FILE = "src/browser/relay-client.ts";
 export const BROWSER_RELAY_CLIENT_SHA256 =
-  "d7d1d395d0d3ca44489eae5baf15c6f809dc291215bb4bcf0cc7751ecdf6a32f";
+  "e094e84641c6fea702f8bf97e821ccfd36863ea1ba83b850347f62e1ea257e20";
 
 /** Every route file allowed under src/app. EC-22 may add the public health route of web. */
 export const ALLOWED_ROUTE_FILES: readonly string[] = [RELAY_FILES.route];
