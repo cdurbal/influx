@@ -16,11 +16,7 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
 
 ## Commits prévus
 
-1. à 5. **Faits** (dette J6, migrations, webhook réception et traitement, E-4) : voir « Issu du commit N ».
-6. **API « mon compte » (1)** : `PATCH /v1/me` (RG15, `lead.updated` RG73), `GET`·`PUT /v1/me/consent`
-   (RG34, RG92, RG95 ; `consent.revoked` priorité 0, RG78), `GET`·`DELETE /v1/me/sessions[/:id]`
-   (RG56, RG143), `POST /v1/me/terms/accept` et blocage (RG28). CA33, CA35, CA36, CA70, CA47 avec le
-   vrai code, lead-pipeline T7, T8, T14.
+1. à 6. **Faits** (dette J6, migrations, webhook, E-4, « mon compte » 1) : voir « Issu du commit N ».
 7. **API « mon compte » (2a)** (décisions 4, 5) : re-authentification par code frais (RG57) ; adresse
    à double code (RG58, A-11, contact Brevo **mis à jour, jamais dupliqué**). CA32, CA34.
 8. **API « mon compte » (2b)** (décision 6) : « navigateur inconnu » (RG141, RG142, `auth.new_device`
@@ -46,7 +42,6 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
    `{received:true}`. `pino` `warn` `webhook.brevo.rejected` (motif fermé, sans IP, chemin ni jeton) ;
    jeton valide hors plage ⇒ `error` `webhook.brevo.ip_drift` + compteur `ops`. `elevated.*` : une
    ligne **par changement d'état effectif**, aucune sans effet ; compteur agrégé par lot.
-   - Commits 3 et 4 : faits. Autres : rien.
 2. **La route écrit une ligne brute minimale et sans état ; le worker traite par E-3, rattachement par
    `message-id` puis par l'adresse exacte du compte** (RG105 à RG108, RG147, EC-12, M6-6, D60).
    `leads.brevo_inbound_events` en ajout seul : `id`, `received_at`, `origin` (`webhook` ·
@@ -187,14 +182,12 @@ aucun taux ni montant.
   `provider_event_id`) ; `0011` (motif `support.report_delivery_issue` déclaré, aucune fonction) ;
   `0015` (`auth.new_device` admis au journal).
 
-## Reports du J6
+## Issu du commit 1 (`4aef89a`) et reports du J6
 
-TM1.5 attend le webhook (commit 4) ; CA47 : émetteur membre de `consent.revoked` en place (`0119`), test au commit 6 (remplacer la ligne `lead.updated` P0) ; `email.changed` : décision 5 ; `account.email_corrected` reste `template_not_supported` jusqu'au J8 ; suspension marketing sur `401` (RG123) au J8 / Lot 5.
-
-## Issu du commit 1 (`4aef89a`)
+- Reports du J6 : `account.email_corrected` reste `template_not_supported` jusqu'au J8 ; suspension marketing sur `401` (RG123) au J8 / Lot 5.
 
 - **I-4** : ancre fixe `56b8046` ; `4eb8ff1 83ba6d1 662ec3d 7b33351` (J5) non attestés : **l'attestation de fin de J7 doit les nommer**. I-4 rouge tout le J7 ⇒ ni staging ni déploiement avant la revue ; le commit 10 l'exige d'abord.
-- RG47 et J6T-8 stabilisés. `testeur` (fin de jalon) : 3 témoins I-4, `check-security-review` à 46 cas. Tickets restants : J6T-1, J6T-2 (commit 4), J6T-3 (commit 6), J6S-5 (fondateur).
+- RG47 et J6T-8 stabilisés. `testeur` (fin de jalon) : 3 témoins I-4, `check-security-review` à 46 cas. Tickets restants : J6T-1, J6T-2 (commit 4), J6S-5 (fondateur) ; J6T-3 soldé au commit 6.
 
 ## Issu des commits 2 (`679263a`) et 2bis (`2f3fdf4`)
 
@@ -223,6 +216,13 @@ TM1.5 attend le webhook (commit 4) ; CA47 : émetteur membre de `consent.revoked
 - `SUPABASE_URL` + `SUPABASE_SECRET_KEY` du worker : les deux ou aucune, **requises en production** ; skill `env-secrets` aligné ; `.env.example` à documenter par le fondateur, valeurs `staging` au commit 10. Domaine `maintenance` ajouté à ESLint ; `maintenance.run_periodic` entre dans U.
 - `expert-cybersecurite` (fin de jalon) : nettoyage des exécutions courantes en test par le superutilisateur local (`session_replication_role`) ; `filter_auth_orphans` sans ligne de registre (lecture) ; `elevated.maintenance.run_periodic` par transaction à effet (réservation, lignes brutes, purges).
 - `testeur` : `tm1-periodic-tasks` (9 cas, plancher déclaré), `periodic-scheduler` (23), adaptateur GoTrue (+5) ; doublures `gotrue-double`, lectures de `brevo-double` (corps rédigés d'après la doc, à enregistrer au commit 10). Suite : écart visible au backoffice (AL27) depuis `ops.periodic_runs.counts`, J8/Lot 5.
+
+## Issu du commit 6 (`cc00b72`, `9c6bbe0`)
+
+- **Au plus sûr** : une « version » de CGU = son `version_label` (acceptée dans une langue, acceptée dans toutes) ; garde CGU active par défaut sur toute route membre, exemptions nommées (`GET /v1/me`, consentement RG34, sessions RG56, acceptation, erreurs navigateur) ; une case, deux finalités (RG33) : `PUT` change les deux, l'affichage est « accordé » si les deux le sont, sinon date et origine du dernier retrait ; `UPDATE` direct de la langue retiré aux membres (`0122`) ; pays bloqué (RG8) refusé aussi après l'inscription ; « fermer toutes » = `revoked_by_holder`, session courante comprise ; autre version ou double clic concurrent ⇒ `409`. **T7** : au Lot 1, P1 (bienvenue) et P2 partagent la priorité 100 (aucun P2 avant le Lot 4), ordre d'émission entre eux ; échelon P1 < P2 à fixer par `architecte` avant le premier émetteur P2.
+- **J6T-3** (`9c6bbe0`) : `consent.granted` encore en vigueur à la consommation ⇒ opération 1 avec `emailBlacklisted: false` (Brevo garde sinon la liste noire) ; jamais sur un autre événement ni un contact supprimé ; une opération 1 qui mettrait en liste noire est refusée (RG137).
+- `expert-cybersecurite` (fin de jalon) : `update_own_account` appelle `set_declared_status` depuis le définisseur (motif `member_settings`) ; politiques du définisseur sur `advertiser_profiles` (son compte seul) ; instantané des droits modifié (I-4) ; `terms_acceptance_required` révèle seulement qu'une acceptation manque.
+- `testeur` : `tm1-member-account-route` (16), CA36 dans `t8-request-code`, CA47/T7/T8 dans `tm1-worker-loop` (6), contrat `account` (6), `consentView` (4) ; tests ESLint témoins en dépassement de délai sous `pnpm -r` en local, verts seuls (846). Suites : commit 7 (`email-change`, re-authentification) ; commit 9 : écran bloquant sur `termsToAccept` et le `403`, textes RG95 des origines (`signup_form`, `account_settings`, `brevo_webhook`).
 
 ## Clôture d'un commit (« clôture standard »)
 
