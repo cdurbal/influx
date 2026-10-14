@@ -127,21 +127,21 @@
 | 1042 | 11 | ↳ P9 — Ce que la RLS ne sait pas faire, et qui le fait à sa place |  |
 | 1053 | 26 | ↳ P10 — Les politiques du Storage |  |
 | 1079 | 140 | 5. La lecture d'une conversation par un agent non participant | RG132–RG134 |
-| 1219 | 403 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` |  |
-| 1221 | 83 | ↳ 6.1 — Point 1 : D37 dans son ensemble |  |
+| 1219 | 407 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` | RG57 |
+| 1221 | 83 | ↳ 6.1 — Point 1 : D37 dans son ensemble | RG57 |
 | 1304 | 35 | ↳ 6.2 — Point 2 : `aal2` vérifié dans les politiques RLS |  |
 | 1339 | 20 | ↳ 6.3 — Point 3 : le rôle métier lu en base plutôt que dans le jeton |  |
-| 1359 | 68 | ↳ 6.4 — Point 4 : le passe-plat |  |
-| 1427 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
-| 1501 | 21 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
-| 1522 | 27 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
-| 1549 | 30 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
-| 1579 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
-| 1622 | 32 | 7. L'isolement du backoffice |  |
-| 1654 | 39 | 8. Les tests de sécurité exigés |  |
-| 1693 | 62 | 9. Verdict d'étape | RG49–RG55 |
-| 1755 | 41 | 10. Ce qui sort de mon périmètre |  |
-| 1796 | 17 | 11. Mises à jour attendues dans les autres documents |  |
+| 1359 | 72 | ↳ 6.4 — Point 4 : le passe-plat |  |
+| 1431 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
+| 1505 | 21 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
+| 1526 | 27 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
+| 1553 | 30 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
+| 1583 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
+| 1626 | 32 | 7. L'isolement du backoffice |  |
+| 1658 | 39 | 8. Les tests de sécurité exigés |  |
+| 1697 | 62 | 9. Verdict d'étape | RG49–RG55 |
+| 1759 | 41 | 10. Ce qui sort de mon périmètre |  |
+| 1800 | 17 | 11. Mises à jour attendues dans les autres documents |  |
 
 ## 04-modele-de-donnees-mvp.md (~140k tokens)
 
@@ -184,34 +184,34 @@
 | 29 | 19 | Besoin |  |
 | 48 | 19 | Acteurs |  |
 | 67 | 58 | User stories |  |
-| 125 | 625 | Règles de gestion | RG1–RG157 |
+| 125 | 627 | Règles de gestion | RG1–RG157 |
 | 127 | 43 | ↳ A — Parcours général et portes d'entrée | RG1–RG10 |
 | 170 | 39 | ↳ B — Champs de l'inscription annonceur | RG11–RG16 |
 | 209 | 37 | ↳ C — Champs de l'inscription créateur | RG11–RG81 |
 | 246 | 30 | ↳ D — Conditions générales et versions | RG23–RG29 |
 | 276 | 46 | ↳ E — Consentement marketing | RG30–RG94 |
-| 322 | 89 | ↳ F — Connexion par code à 6 chiffres | RG39–RG157 |
-| 411 | 39 | ↳ G — L'e-mail qui n'arrive pas | RG59–RG65 |
-| 450 | 29 | ↳ H — Routage et rôles après vérification | RG66–RG71 |
-| 479 | 106 | ↳ I — Pipeline de leads | RG37–RG88 |
-| 585 | 33 | ↳ J — Désinscriptions dans les deux sens | RG78–RG96 |
-| 618 | 72 | ↳ K — Backoffice v0 | RG63–RG108 |
-| 690 | 60 | ↳ L — États d'écran, messages et accessibilité | RG109–RG115 |
-| 750 | 101 | Cas limites | RG1–RG113 |
-| 851 | 276 | Critères d'acceptation | RG79–RG112 |
-| 1127 | 70 | Impacts | RG6–RG108 |
-| 1197 | 20 | Hors périmètre | RG12–RG85 |
-| 1217 | 25 | Questions ouvertes | RG6–RG108 |
-| 1242 | 55 | Additif du 2026-09-24 — Invitation par un commercial (D54) et source d'acquisition (D55) | RG88–RG123 |
-| 1297 | 43 | Additif du 2026-09-25 — Consentement obligatoire à l'inscription (D63) | RG11–RG127 |
-| 1340 | 328 | Additif du 2026-09-27 — Précisions du J3 : phrase de correspondance, e-mail du code, messages, signal « navigateur inconnu » *(J3, 2026-09-27)* | RG9–RG159 |
-| 1349 | 130 | ↳ Phrase de correspondance — précise RG48 | RG46–RG156 |
-| 1479 | 17 | ↳ E-mail du code — précise RG49 | RG102–RG158 |
-| 1496 | 69 | ↳ Messages de l'écran minimal du J3 — précise RG112 et RG113 | RG44–RG140 |
-| 1565 | 35 | ↳ Signal « navigateur inconnu » — remplace « pays inhabituel » au MVP (EC-43) | RG55–RG157 |
-| 1600 | 16 | ↳ Cas limites du J3 | RG41–RG141 |
-| 1616 | 43 | ↳ Critères d'acceptation du J3 | RG133 |
-| 1659 | 9 | ↳ Questions ouvertes du J3 | RG48–RG158 |
+| 322 | 91 | ↳ F — Connexion par code à 6 chiffres | RG39–RG157 |
+| 413 | 39 | ↳ G — L'e-mail qui n'arrive pas | RG59–RG65 |
+| 452 | 29 | ↳ H — Routage et rôles après vérification | RG66–RG71 |
+| 481 | 106 | ↳ I — Pipeline de leads | RG37–RG88 |
+| 587 | 33 | ↳ J — Désinscriptions dans les deux sens | RG78–RG96 |
+| 620 | 72 | ↳ K — Backoffice v0 | RG63–RG108 |
+| 692 | 60 | ↳ L — États d'écran, messages et accessibilité | RG109–RG115 |
+| 752 | 101 | Cas limites | RG1–RG113 |
+| 853 | 276 | Critères d'acceptation | RG79–RG112 |
+| 1129 | 70 | Impacts | RG6–RG108 |
+| 1199 | 20 | Hors périmètre | RG12–RG85 |
+| 1219 | 25 | Questions ouvertes | RG6–RG108 |
+| 1244 | 55 | Additif du 2026-09-24 — Invitation par un commercial (D54) et source d'acquisition (D55) | RG88–RG123 |
+| 1299 | 43 | Additif du 2026-09-25 — Consentement obligatoire à l'inscription (D63) | RG11–RG127 |
+| 1342 | 328 | Additif du 2026-09-27 — Précisions du J3 : phrase de correspondance, e-mail du code, messages, signal « navigateur inconnu » *(J3, 2026-09-27)* | RG9–RG159 |
+| 1351 | 130 | ↳ Phrase de correspondance — précise RG48 | RG46–RG156 |
+| 1481 | 17 | ↳ E-mail du code — précise RG49 | RG102–RG158 |
+| 1498 | 69 | ↳ Messages de l'écran minimal du J3 — précise RG112 et RG113 | RG44–RG140 |
+| 1567 | 35 | ↳ Signal « navigateur inconnu » — remplace « pays inhabituel » au MVP (EC-43) | RG55–RG157 |
+| 1602 | 16 | ↳ Cas limites du J3 | RG41–RG141 |
+| 1618 | 43 | ↳ Critères d'acceptation du J3 | RG133 |
+| 1661 | 9 | ↳ Questions ouvertes du J3 | RG48–RG158 |
 
 ## 06-criteres-profil-marque.md (~22k tokens)
 
@@ -613,14 +613,14 @@
 | 755 | 37 | ↳ T16 — Aucun calcul de commission |  |
 | 792 | 25 | ↳ T17 — Garde-fou `staging` | RG116 |
 | 817 | 11 | ↳ 3.1 Récapitulatif des contrôles X1 à X4 |  |
-| 828 | 170 | 4. Les tests métier, en complément des 17 |  |
-| 998 | 37 | 5. Le sort des gardes existantes de `apps/web` |  |
-| 1035 | 149 | 6. Le corpus de test de la détection de coordonnées |  |
-| 1184 | 43 | 7. Le parcours de bout en bout du Lot 6 |  |
-| 1227 | 23 | 8. Ce qui n'est pas couvert, et pourquoi |  |
-| 1250 | 57 | 9. Ce qui remonte |  |
-| 1307 | 150 | 10. La définition du « prêt à livrer », lot par lot |  |
-| 1457 | 25 | 11. Verdict |  |
+| 828 | 180 | 4. Les tests métier, en complément des 17 |  |
+| 1008 | 37 | 5. Le sort des gardes existantes de `apps/web` |  |
+| 1045 | 149 | 6. Le corpus de test de la détection de coordonnées |  |
+| 1194 | 43 | 7. Le parcours de bout en bout du Lot 6 |  |
+| 1237 | 23 | 8. Ce qui n'est pas couvert, et pourquoi |  |
+| 1260 | 57 | 9. Ce qui remonte |  |
+| 1317 | 150 | 10. La définition du « prêt à livrer », lot par lot |  |
+| 1467 | 25 | 11. Verdict |  |
 
 ## 19-revue-de-coherence-2026-09-24.md (~5k tokens)
 
@@ -648,7 +648,7 @@
 | 330 | 13 | 9. Questions ouvertes | RG116–RG130 |
 | 343 | 11 | 10. Tokens proposés |  |
 
-## 21-plan-de-developpement.md (~15k tokens)
+## 21-plan-de-developpement.md (~14k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -657,7 +657,7 @@
 | 53 | 39 | 2. Stratégie de développement | RG44–RG148 |
 | 92 | 23 | 3. Écarts actifs pour les jalons restants (J5 à J9) | RG23–RG146 |
 | 115 | 43 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 158 | 148 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG160 |
-| 306 | 9 | 6. Configuration des services externes |  |
-| 315 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 332 | 10 | 8. Guide de lecture par jalon | RG54–RG58 |
+| 158 | 150 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG148 |
+| 308 | 9 | 6. Configuration des services externes |  |
+| 317 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 334 | 10 | 8. Guide de lecture par jalon | RG54–RG58 |

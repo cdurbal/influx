@@ -398,7 +398,9 @@ création, dernière activité, pays approximatif, navigateur) et un bouton **«
 sessions »**. *(J3, 2026-09-27 : colonne « pays approximatif » retirée au MVP, EC-43 — RG143.)*
 
 **RG57** — Trois actions exigent une **re-authentification par un nouveau code** : changer d'adresse
-e-mail, exporter ses données, supprimer son compte.
+e-mail, exporter ses données, supprimer son compte. *Preuve (définitive, `expert-cybersecurite`, revue de
+fin de J7, 2026-10-14) : marqueur lié à la session et à la finalité, à usage unique, valable 300 s,
+consommé dans la transaction de l'action (`03` A-10).*
 
 **RG58** — Le changement d'adresse e-mail exige une **confirmation depuis l'ancienne adresse et depuis
 la nouvelle**. Tant que les deux ne sont pas confirmées dans un délai de **24 heures**, l'adresse de

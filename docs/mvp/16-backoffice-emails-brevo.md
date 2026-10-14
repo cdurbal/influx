@@ -1515,9 +1515,9 @@ jamais présente dans un bundle front, un dépôt ou un journal (skill `env-secr
 | `BREVO_API_BASE_URL` | Adresse de base | Tous | Permet de pointer la doublure en test |
 | `BREVO_MODE` | `disabled` · `redirect` · `live` | Tous | `live` **refusé hors production** (RG116) |
 | `BREVO_TEST_RECIPIENTS` | Liste fermée d'adresses internes | Hors production | Obligatoire si `redirect` |
-| `BREVO_WEBHOOK_SECRET` | Jeton de l'en-tête personnalisé | Tous | Deux valeurs acceptées pendant la rotation (RG146-1) |
-| `BREVO_WEBHOOK_PATH_TOKEN` | Segment non devinable du chemin | Tous | Rotation avec le jeton |
-| `BREVO_IP_ALLOWLIST` | Plages d'adresses autorisées | Tous | Surveillée : une évolution non répercutée coupe les retours |
+| `BREVO_WEBHOOK_SECRET_CURRENT`, `…_PREVIOUS` | Jeton de l'en-tête `brevo-webhook-token` | Service `api` seul | Deux valeurs acceptées pendant la rotation (RG146-1) |
+| `BREVO_WEBHOOK_PATH_TOKEN_CURRENT`, `…_PREVIOUS` | Segment non devinable du chemin (routage seul) | Service `api` seul | Rotation avec le jeton |
+| ~~`BREVO_IP_ALLOWLIST`~~ | Plages d'adresses autorisées | — | **Supprimée (J7 commit 3)** : constante datée de `brevo-webhook.ts` ; une évolution non répercutée coupe les retours, surveillée par `webhook.brevo.ip_drift` |
 | `BREVO_SENDER_TRANSACTIONAL` | Expéditeur du flux transactionnel | Tous | Sous-domaine dédié (RG9) |
 | `BREVO_SENDER_MARKETING` | Expéditeur du flux marketing | Tous | Sous-domaine dédié |
 | `BREVO_SENDER_PROSPECTING` | Expéditeur du flux prospection | **Production uniquement** | Sous-domaine dédié |

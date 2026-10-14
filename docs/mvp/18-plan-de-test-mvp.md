@@ -860,6 +860,16 @@ le métier : la file, les leads, les montants, les transitions. Douze familles s
 | TM1.9 | La charge utile d'un événement ne contient **que des identifiants** (C(33)) : aucun e-mail, aucun nom |
 | TM1.10 | L'arrêt du worker en cours de lot (`SIGTERM`) ne perd aucun événement : il reste `pending` |
 
+*Ajout du 2026-10-14 (revue de fin de J7, `testeur`) :* TM1.5 est porté par `tm1-brevo-webhook-route`
+(réception, 4 cas), `tm1-brevo-inbound` (fonctions de la base : ligne brute, rapprochement, traitement,
+gardes) et `tm1-brevo-inbound-worker` (traitement par le worker, 15 cas) ; les tâches E-4 qui
+l'alimentent par `tm1-periodic-runs` (fonctions `ops`) et `tm1-periodic-tasks` (boucle, 13 cas). Les planchers de cas de base sont dans `apps/api/db-tests/case-floors.ts` (754 cas sur 36
+fichiers à la fin du J7). Exécution : `pnpm test` d'`apps/api` enchaîne les tests unitaires **puis**
+`test:db` (2 106 cas au total à la fin du J7) ; le projet `unit` garde le délai Vitest de 5 s, que
+dépassent sous charge les témoins ESLint et `check-security-review` (J7T-1). En CI, un échec de
+l'étape I-4 **masque les étapes suivantes** (migrations, index, format, build, Playwright) : tant
+qu'elle est rouge, ces étapes se vérifient en local.
+
 ### TM2 — Révélation d'identité atomique (7 cas)
 
 | Cas | Ce qu'il vérifie |
