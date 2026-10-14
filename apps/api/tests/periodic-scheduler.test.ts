@@ -60,6 +60,9 @@ function memoryStore(options: { claimedElsewhere?: boolean } = {}) {
       return [...ids];
     },
     async recordAuthOrphanPurge() {},
+    async realignmentCandidates() {
+      return [];
+    },
     async purgeBrevoInbound() {
       return 0;
     },

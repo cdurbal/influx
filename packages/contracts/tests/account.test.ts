@@ -164,15 +164,16 @@ describe("change of address (05 RG58; J7 decision 5)", () => {
     ).toBe(false);
   });
 
-  it("answers completed without saying whether the new address could be taken (decision 5)", () => {
-    expect(
-      confirmEmailChangeResponseSchema.safeParse({ outcome: "completed" })
-        .success,
-    ).toBe(true);
+  it("tells a taken address by one outcome, never who holds it (decision 5 as revised, C5.a)", () => {
+    for (const outcome of ["completed", "address_unavailable"]) {
+      expect(
+        confirmEmailChangeResponseSchema.safeParse({ outcome }).success,
+      ).toBe(true);
+    }
     expect(
       confirmEmailChangeResponseSchema.safeParse({
-        outcome: "completed",
-        addressTaken: true,
+        outcome: "address_unavailable",
+        heldBy: "account",
       }).success,
     ).toBe(false);
   });

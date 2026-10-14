@@ -821,6 +821,12 @@ files (`15` RG26), qui a déjà évité onze files orphelines.
 | `internal.mfa_reset` | Second facteur réinitialisé | Réinitialisation | L'intéressé **et tous les `admin`** | P1 | identifiant de réinitialisation + destinataire | `15` RG102 |
 | `internal.critical_alert` | Alerte critique : connexion au compte de secours, rupture de chaîne | AL33, AL34, AL36 | Fondateur et `admin` | **P0** | identifiant d'alerte + destinataire | `15` §F |
 
+> *Note (`architecte`, 2026-10-14, J7) :* la priorité de ce tableau est la **classe** de l'e-mail
+> (journal, interrupteur RG121-RG122). L'ordre de passage en file est fixé par l'émetteur et ne la
+> change pas : `auth.email_changed_notice` est P1 et passe en tête de sa voie. Les deux codes
+> `auth.email_change_confirm_*` sont P1 mais partent **en synchrone** depuis `apps/api`, texte dans le
+> dépôt (RG67) : un code qui ne part pas ferme la demande, jamais un `skipped`.
+
 **RG86 — Trois priorités, et elles ne sont pas décoratives** :
 
 | Priorité | Contenu | Traitement |

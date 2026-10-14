@@ -68,6 +68,8 @@ const REDACTED_KEYS: readonly string[] = [
   "matchingPhrase",
   "apikey",
   "sb-forwarded-for",
+  // The signed journey of a member re-authentication (J7 commit 7 review, C4.a): never logged.
+  "reauthToken",
   // The browser agent, raw or summarised, is never logged (05 Q14, decision of 2026-09-27); the
   // two summary keys are added to the five of the decision, since the summary is not logged either.
   "user-agent",

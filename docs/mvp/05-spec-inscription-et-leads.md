@@ -350,7 +350,9 @@ adresse est inscrite.
 **RG47** — Le code n'est acceptable que **dans le parcours qui l'a demandé**, identifié par un cookie
 de parcours d'une durée de 15 minutes. Un code saisi dans un autre navigateur est refusé **sans
 indiquer s'il était correct**. Conséquence assumée, à rendre visible par `expert-ux` : fermer l'onglet
-oblige à redemander un code.
+oblige à redemander un code. *(J7, 2026-10-14, `architecte` :* pour la re-authentification d'un membre
+connecté (RG57), le parcours est un jeton signé gardé en mémoire par la page et lié à la session ;
+fermer l'onglet oblige aussi à redemander un code.*)*
 
 **RG48** — L'écran de saisie du code affiche une **phrase de correspondance de deux ou trois mots**,
 reprise à l'identique dans l'e-mail, tirée d'une liste fermée bilingue de mots neutres. Elle permet de
@@ -401,7 +403,10 @@ e-mail, exporter ses données, supprimer son compte.
 **RG58** — Le changement d'adresse e-mail exige une **confirmation depuis l'ancienne adresse et depuis
 la nouvelle**. Tant que les deux ne sont pas confirmées dans un délai de **24 heures**, l'adresse de
 connexion reste l'ancienne. Une fois le changement effectif, les deux adresses sont notifiées et un
-événement `email.changed` est émis.
+événement `email.changed` est émis. *(J7, 2026-10-14, `architecte` et `expert-cybersecurite` :* un
+code qui ne part pas ferme la demande. Une nouvelle adresse déjà utilisée ferme la demande et le
+membre en est informé, une fois les deux codes saisis seulement ; l'ancienne adresse reste en
+vigueur.*)*
 
 ### G — L'e-mail qui n'arrive pas
 

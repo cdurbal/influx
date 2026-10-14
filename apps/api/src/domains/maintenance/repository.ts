@@ -116,3 +116,36 @@ export async function purgeBrevoInboundEvents(
   );
   return Number(rows[0]?.count ?? 0);
 }
+
+/** C5.b (0125): an account to realign at GoTrue, with its address in force (never logged). */
+export type RealignmentCandidate = {
+  accountId: string;
+  authUserId: string;
+  email: string;
+};
+
+/**
+ * The accounts whose GoTrue user may not hold the address in force (an address change confirmed in
+ * the last 72 hours, none in the last 15 minutes); all of them, or the one named, read again just
+ * before a write.
+ */
+export async function gotrueRealignmentCandidates(
+  tx: Transaction,
+  run: PeriodicRun,
+  accountId: string | null,
+): Promise<RealignmentCandidate[]> {
+  const rows = await tx.execute<{
+    account_id: string;
+    auth_user_id: string;
+    email: string;
+  }>(
+    sql`select account_id::text as account_id, auth_user_id::text as auth_user_id, email
+          from ops.gotrue_realignment_candidates(${run.runId}::uuid, ${run.attempt}::smallint,
+                 ${accountId}::uuid)`,
+  );
+  return rows.map((row) => ({
+    accountId: row.account_id,
+    authUserId: row.auth_user_id,
+    email: row.email,
+  }));
+}

@@ -1292,6 +1292,17 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_maintenance_definer|schema|leads|USAGE",
   "influx_maintenance_definer|schema|ops|USAGE",
   "influx_maintenance_definer|table|leads.brevo_inbound_events|DELETE",
+  // 0125 (C5.b, J7 commit 7 review): the hourly GoTrue pass realigns the address of GoTrue users on
+  // the accounts that changed address (address and state of the account, confirmation instants of
+  // the requests; never their addresses nor their digests).
+  "influx_maintenance_definer|column|identity.accounts.email|SELECT",
+  "influx_maintenance_definer|column|identity.accounts.id|SELECT",
+  "influx_maintenance_definer|column|identity.accounts.status|SELECT",
+  "influx_maintenance_definer|column|identity.email_change_requests.account_id|SELECT",
+  "influx_maintenance_definer|column|identity.email_change_requests.new_confirmed_at|SELECT",
+  "influx_maintenance_definer|column|identity.email_change_requests.old_confirmed_at|SELECT",
+  "influx_maintenance_definer|function|ops.gotrue_realignment_candidates(uuid,smallint,uuid)|EXECUTE",
+  "influx_worker|function|ops.gotrue_realignment_candidates(uuid,smallint,uuid)|EXECUTE",
   "influx_worker|function|ops.claim_periodic_run(ops.periodic_task,text)|EXECUTE",
   "influx_worker|function|ops.filter_auth_orphans(uuid,smallint,uuid[])|EXECUTE",
   "influx_worker|function|ops.finish_periodic_run(uuid,smallint,ops.periodic_run_outcome,jsonb)|EXECUTE",
@@ -1337,6 +1348,10 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|function|identity.refuse_email_change_address(uuid)|EXECUTE",
   "influx_advertiser|function|identity.refuse_email_change_address(uuid)|EXECUTE",
   "influx_creator|function|identity.refuse_email_change_address(uuid)|EXECUTE",
+  // 0124 (J7 commit 7, architecte point 2): the request whose codes did not leave (not_sent).
+  "influx_identity_definer|function|identity.close_unsent_email_change(uuid)|EXECUTE",
+  "influx_advertiser|function|identity.close_unsent_email_change(uuid)|EXECUTE",
+  "influx_creator|function|identity.close_unsent_email_change(uuid)|EXECUTE",
   "influx_advertiser|column|identity.email_change_requests.account_id|SELECT",
   "influx_advertiser|column|identity.email_change_requests.cancel_reason|SELECT",
   "influx_advertiser|column|identity.email_change_requests.cancelled_at|SELECT",
@@ -1568,6 +1583,9 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "ops.finish_periodic_run(uuid,smallint,ops.periodic_run_outcome,jsonb)":
     "influx_maintenance_definer",
   "ops.filter_auth_orphans(uuid,smallint,uuid[])": "influx_maintenance_definer",
+  // 0125
+  "ops.gotrue_realignment_candidates(uuid,smallint,uuid)":
+    "influx_maintenance_definer",
   "ops.record_retention_purge(uuid,smallint,text,integer)":
     "influx_maintenance_definer",
   "ops.purge_brevo_inbound_events(uuid,smallint,integer)":
@@ -1584,6 +1602,8 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "identity.cancel_email_change(uuid)": "influx_identity_definer",
   // 0123 (J7 commit 7)
   "identity.refuse_email_change_address(uuid)": "influx_identity_definer",
+  // 0124
+  "identity.close_unsent_email_change(uuid)": "influx_identity_definer",
   // 0119 (J7, EC-10)
   "identity.set_marketing_consent(identity.consent_purpose,boolean,jsonb)":
     "influx_identity_definer",

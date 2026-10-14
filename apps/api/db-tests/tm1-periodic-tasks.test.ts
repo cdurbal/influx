@@ -517,3 +517,160 @@ describe("decision 3: one run per period, whatever the number of worker instance
     ).toHaveLength(1);
   });
 });
+
+describe("C5.b (J7 commit 7 review, 0125): the hourly pass sets GoTrue back to the address in force", () => {
+  /**
+   * An address change of `account` whose both codes were typed `minutesAgo` minutes ago: open
+   * (the completion failed after GoTrue) or closed. Written by the local superuser, its dates being
+   * the database functions' own (the route test drives them end to end).
+   */
+  async function confirmedChange(
+    account: Account,
+    newEmail: string,
+    options: { minutesAgo?: number; closed?: boolean } = {},
+  ): Promise<void> {
+    const minutes = options.minutesAgo ?? 16;
+    await localSuperuser().begin(async (tx) => {
+      await tx`set local session_replication_role = replica`;
+      await tx`
+        insert into identity.email_change_requests
+          (id, account_id, old_email, new_email, created_at, expires_at, old_code_hash,
+           new_code_hash, old_confirmed_at, new_confirmed_at, cancelled_at, cancel_reason)
+        select ${randomUUID()}, ${account.id}, ${account.email}, ${newEmail}, c.at,
+               c.at + interval '24 hours',
+               case when ${options.closed === true} then null else sha256('old'::bytea || c.salt) end,
+               case when ${options.closed === true} then null else sha256('new'::bytea || c.salt) end,
+               c.ready, c.ready,
+               case when ${options.closed === true} then c.ready end,
+               case when ${options.closed === true}
+                    then 'address_unavailable'::identity.email_change_cancel_reason end
+          from (select now() - make_interval(mins => ${minutes} + 5) as at,
+                       now() - make_interval(mins => ${minutes}) as ready,
+                       convert_to(gen_random_uuid()::text, 'UTF8') as salt) c`;
+    });
+  }
+
+  /** The pool of the file: one per case would exhaust the role's connections. */
+  function sharedWorker(): WorkerDatabase {
+    const database = workers[0];
+    if (database === undefined) {
+      throw new Error("no worker pool");
+    }
+    return database;
+  }
+
+  /** The condition the sign-in checks once GoTrue verified a code (verify-code step 6). */
+  async function signInMatches(account: Account): Promise<boolean> {
+    const [row] = await migration<{ email: string; auth_user_id: string }[]>`
+      select email, auth_user_id::text from identity.accounts where id = ${account.id}`;
+    return (
+      row !== undefined &&
+      gotrue.users.get(row.auth_user_id)?.email === row.email
+    );
+  }
+
+  it("GoTrue left on the new address after a failed completion: set back, the sign-in by the old address matches again", async () => {
+    const account = await createAccount();
+    const newEmail = `tm1-periodic-new-${randomUUID()}@example.test`;
+    gotrue.addUser({ ageHours: 48, id: account.authUserId, email: newEmail });
+    await confirmedChange(account, newEmail);
+    expect(await signInMatches(account)).toBe(false);
+
+    await scheduler(sharedWorker()).tick(signal());
+
+    expect(gotrue.users.get(account.authUserId)?.email).toBe(account.email);
+    expect(await signInMatches(account)).toBe(true);
+    expect(
+      gotrue.requests.filter(
+        (request) =>
+          request.method === "PUT" &&
+          request.path === `/auth/v1/admin/users/${account.authUserId}`,
+      ),
+    ).toHaveLength(1);
+    const run = await runOf("auth_orphan_purge");
+    expect(run.outcome).toBe("succeeded");
+    expect(run.counts.gotrue_realigned).toBeGreaterThanOrEqual(1);
+    expect(valuesFoundIn(logs.text(), [account.email, newEmail])).toEqual([]);
+  });
+
+  it("an orphan created meanwhile on the old address (a code asked while locked out) is deleted, then GoTrue is set back", async () => {
+    const account = await createAccount();
+    const newEmail = `tm1-periodic-new-${randomUUID()}@example.test`;
+    gotrue.addUser({ ageHours: 48, id: account.authUserId, email: newEmail });
+    const orphan = gotrue.addUser({ ageHours: 0, email: account.email });
+    await confirmedChange(account, newEmail, { closed: true });
+
+    await scheduler(sharedWorker()).tick(signal());
+
+    expect(gotrue.users.has(orphan)).toBe(false);
+    expect(gotrue.users.get(account.authUserId)?.email).toBe(account.email);
+    expect(await signInMatches(account)).toBe(true);
+    const run = await runOf("auth_orphan_purge");
+    expect(run.counts).toMatchObject({ realign_orphans_deleted: 1 });
+    expect(await retentionLinesOf(run.id)).toContainEqual({
+      payload: { category: "auth_orphan_users", count: 1 },
+    });
+  });
+
+  it("never deletes the user of another account holding the address: counted failed, nothing deleted", async () => {
+    const account = await createAccount();
+    const other = await createAccount();
+    const newEmail = `tm1-periodic-new-${randomUUID()}@example.test`;
+    gotrue.addUser({ ageHours: 48, id: account.authUserId, email: newEmail });
+    // the other account's user holds the first account's address (a divergence of its own)
+    gotrue.addUser({
+      ageHours: 48,
+      id: other.authUserId,
+      email: account.email,
+    });
+    await confirmedChange(account, newEmail);
+
+    await scheduler(sharedWorker()).tick(signal());
+
+    expect(gotrue.users.get(other.authUserId)?.email).toBe(account.email);
+    expect(gotrue.users.get(account.authUserId)?.email).toBe(newEmail);
+    expect(
+      gotrue.requests.some(
+        (request) =>
+          request.method === "DELETE" &&
+          request.path === `/auth/v1/admin/users/${other.authUserId}`,
+      ),
+    ).toBe(false);
+    expect(
+      (await runOf("auth_orphan_purge")).counts.gotrue_realign_failed,
+    ).toBeGreaterThanOrEqual(1);
+  });
+
+  it("leaves alone a change confirmed less than 15 minutes ago (its completion may be in flight) and a GoTrue user already aligned", async () => {
+    const inFlight = await createAccount();
+    const aligned = await createAccount();
+    const newEmail = `tm1-periodic-new-${randomUUID()}@example.test`;
+    gotrue.addUser({ ageHours: 48, id: inFlight.authUserId, email: newEmail });
+    gotrue.addUser({
+      ageHours: 48,
+      id: aligned.authUserId,
+      email: aligned.email,
+    });
+    await confirmedChange(inFlight, newEmail, { minutesAgo: 2 });
+    await confirmedChange(
+      aligned,
+      `tm1-periodic-x-${randomUUID()}@example.test`,
+      {
+        closed: true,
+      },
+    );
+
+    await scheduler(sharedWorker()).tick(signal());
+
+    expect(gotrue.users.get(inFlight.authUserId)?.email).toBe(newEmail);
+    expect(gotrue.users.get(aligned.authUserId)?.email).toBe(aligned.email);
+    expect(
+      gotrue.requests.filter(
+        (request) =>
+          request.method === "PUT" &&
+          (request.path.endsWith(inFlight.authUserId) ||
+            request.path.endsWith(aligned.authUserId)),
+      ),
+    ).toEqual([]);
+  });
+});

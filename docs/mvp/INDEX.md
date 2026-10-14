@@ -101,7 +101,7 @@
 | 2177 | 13 | ↳ 20.12 Ce que cet addendum demande aux autres agents |  |
 | 2190 | 5 | ↳ Sources (vérifiées le 2026-09-24) |  |
 
-## 03-matrice-des-droits-et-rls.md (~49k tokens)
+## 03-matrice-des-droits-et-rls.md (~50k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -184,34 +184,34 @@
 | 29 | 19 | Besoin |  |
 | 48 | 19 | Acteurs |  |
 | 67 | 58 | User stories |  |
-| 125 | 620 | Règles de gestion | RG1–RG157 |
+| 125 | 625 | Règles de gestion | RG1–RG157 |
 | 127 | 43 | ↳ A — Parcours général et portes d'entrée | RG1–RG10 |
 | 170 | 39 | ↳ B — Champs de l'inscription annonceur | RG11–RG16 |
 | 209 | 37 | ↳ C — Champs de l'inscription créateur | RG11–RG81 |
 | 246 | 30 | ↳ D — Conditions générales et versions | RG23–RG29 |
 | 276 | 46 | ↳ E — Consentement marketing | RG30–RG94 |
-| 322 | 84 | ↳ F — Connexion par code à 6 chiffres | RG39–RG157 |
-| 406 | 39 | ↳ G — L'e-mail qui n'arrive pas | RG59–RG65 |
-| 445 | 29 | ↳ H — Routage et rôles après vérification | RG66–RG71 |
-| 474 | 106 | ↳ I — Pipeline de leads | RG37–RG88 |
-| 580 | 33 | ↳ J — Désinscriptions dans les deux sens | RG78–RG96 |
-| 613 | 72 | ↳ K — Backoffice v0 | RG63–RG108 |
-| 685 | 60 | ↳ L — États d'écran, messages et accessibilité | RG109–RG115 |
-| 745 | 101 | Cas limites | RG1–RG113 |
-| 846 | 276 | Critères d'acceptation | RG79–RG112 |
-| 1122 | 70 | Impacts | RG6–RG108 |
-| 1192 | 20 | Hors périmètre | RG12–RG85 |
-| 1212 | 25 | Questions ouvertes | RG6–RG108 |
-| 1237 | 55 | Additif du 2026-09-24 — Invitation par un commercial (D54) et source d'acquisition (D55) | RG88–RG123 |
-| 1292 | 43 | Additif du 2026-09-25 — Consentement obligatoire à l'inscription (D63) | RG11–RG127 |
-| 1335 | 328 | Additif du 2026-09-27 — Précisions du J3 : phrase de correspondance, e-mail du code, messages, signal « navigateur inconnu » *(J3, 2026-09-27)* | RG9–RG159 |
-| 1344 | 130 | ↳ Phrase de correspondance — précise RG48 | RG46–RG156 |
-| 1474 | 17 | ↳ E-mail du code — précise RG49 | RG102–RG158 |
-| 1491 | 69 | ↳ Messages de l'écran minimal du J3 — précise RG112 et RG113 | RG44–RG140 |
-| 1560 | 35 | ↳ Signal « navigateur inconnu » — remplace « pays inhabituel » au MVP (EC-43) | RG55–RG157 |
-| 1595 | 16 | ↳ Cas limites du J3 | RG41–RG141 |
-| 1611 | 43 | ↳ Critères d'acceptation du J3 | RG133 |
-| 1654 | 9 | ↳ Questions ouvertes du J3 | RG48–RG158 |
+| 322 | 89 | ↳ F — Connexion par code à 6 chiffres | RG39–RG157 |
+| 411 | 39 | ↳ G — L'e-mail qui n'arrive pas | RG59–RG65 |
+| 450 | 29 | ↳ H — Routage et rôles après vérification | RG66–RG71 |
+| 479 | 106 | ↳ I — Pipeline de leads | RG37–RG88 |
+| 585 | 33 | ↳ J — Désinscriptions dans les deux sens | RG78–RG96 |
+| 618 | 72 | ↳ K — Backoffice v0 | RG63–RG108 |
+| 690 | 60 | ↳ L — États d'écran, messages et accessibilité | RG109–RG115 |
+| 750 | 101 | Cas limites | RG1–RG113 |
+| 851 | 276 | Critères d'acceptation | RG79–RG112 |
+| 1127 | 70 | Impacts | RG6–RG108 |
+| 1197 | 20 | Hors périmètre | RG12–RG85 |
+| 1217 | 25 | Questions ouvertes | RG6–RG108 |
+| 1242 | 55 | Additif du 2026-09-24 — Invitation par un commercial (D54) et source d'acquisition (D55) | RG88–RG123 |
+| 1297 | 43 | Additif du 2026-09-25 — Consentement obligatoire à l'inscription (D63) | RG11–RG127 |
+| 1340 | 328 | Additif du 2026-09-27 — Précisions du J3 : phrase de correspondance, e-mail du code, messages, signal « navigateur inconnu » *(J3, 2026-09-27)* | RG9–RG159 |
+| 1349 | 130 | ↳ Phrase de correspondance — précise RG48 | RG46–RG156 |
+| 1479 | 17 | ↳ E-mail du code — précise RG49 | RG102–RG158 |
+| 1496 | 69 | ↳ Messages de l'écran minimal du J3 — précise RG112 et RG113 | RG44–RG140 |
+| 1565 | 35 | ↳ Signal « navigateur inconnu » — remplace « pays inhabituel » au MVP (EC-43) | RG55–RG157 |
+| 1600 | 16 | ↳ Cas limites du J3 | RG41–RG141 |
+| 1616 | 43 | ↳ Critères d'acceptation du J3 | RG133 |
+| 1659 | 9 | ↳ Questions ouvertes du J3 | RG48–RG158 |
 
 ## 06-criteres-profil-marque.md (~22k tokens)
 
@@ -490,7 +490,7 @@
 | 48 | 32 | Besoin | RG9–RG78 |
 | 80 | 20 | Acteurs | RG90 |
 | 100 | 57 | User stories | RG35 |
-| 157 | 1327 | Règles de gestion | RG1–RG159 |
+| 157 | 1333 | Règles de gestion | RG1–RG159 |
 | 159 | 94 | ↳ A — Portée, vocabulaire et principes | RG1–RG93 |
 | 253 | 154 | ↳ B — Le parcours d'envoi de masse, écran par écran | RG4–RG102 |
 | 407 | 52 | ↳ C — Source 1 : les contacts de la plateforme | RG22–RG93 |
@@ -498,31 +498,31 @@
 | 521 | 120 | ↳ E — Source 3 : la saisie libre, unitaire | RG9–RG123 |
 | 641 | 82 | ↳ F — La bibliothèque de modèles | RG14–RG78 |
 | 723 | 48 | ↳ G — La cadence maximale par contact | RG3–RG84 |
-| 771 | 164 | ↳ H — Les e-mails transactionnels | RG3–RG122 |
-| 935 | 73 | ↳ H bis — Textes des deux e-mails de sécurité *(J3, 2026-09-27)* | RG9–RG159 |
-| 1008 | 56 | ↳ I — Ce qui remonte de Brevo, et sous quelle forme | RG55–RG146 |
-| 1064 | 88 | ↳ J — Le garde-fou d'environnement et l'interrupteur d'urgence | RG9–RG148 |
-| 1152 | 65 | ↳ K — La supervision | RG15–RG134 |
-| 1217 | 36 | ↳ L — Ce qui ne doit jamais partir dans un e-mail | RG3–RG137 |
-| 1253 | 186 | ↳ M — Le contrat d'interface avec Brevo | RG9–RG150 |
-| 1439 | 45 | ↳ N — Messages, langue et accessibilité | RG11–RG155 |
-| 1484 | 51 | Cas limites | RG7–RG146 |
-| 1535 | 418 | Critères d'acceptation | RG85–RG155 |
-| 1537 | 68 | ↳ Le parcours d'envoi de masse |  |
-| 1605 | 36 | ↳ Source 1 — contacts de la plateforme |  |
-| 1641 | 29 | ↳ Source 2 — segment Brevo |  |
-| 1670 | 51 | ↳ Source 3 — saisie libre |  |
-| 1721 | 26 | ↳ Les modèles |  |
-| 1747 | 22 | ↳ La cadence |  |
-| 1769 | 52 | ↳ Les e-mails transactionnels | RG85 |
-| 1821 | 23 | ↳ Le suivi des résultats |  |
-| 1844 | 29 | ↳ Environnement et interrupteur d'urgence |  |
-| 1873 | 25 | ↳ La supervision |  |
-| 1898 | 39 | ↳ Les interdits et le contrat d'interface | RG135 |
-| 1937 | 16 | ↳ Langue et accessibilité | RG155 |
-| 1953 | 88 | Impacts | RG6–RG146 |
-| 2041 | 19 | Hors périmètre | RG44–RG107 |
-| 2060 | 26 | Questions ouvertes | RG9–RG158 |
+| 771 | 170 | ↳ H — Les e-mails transactionnels | RG3–RG122 |
+| 941 | 73 | ↳ H bis — Textes des deux e-mails de sécurité *(J3, 2026-09-27)* | RG9–RG159 |
+| 1014 | 56 | ↳ I — Ce qui remonte de Brevo, et sous quelle forme | RG55–RG146 |
+| 1070 | 88 | ↳ J — Le garde-fou d'environnement et l'interrupteur d'urgence | RG9–RG148 |
+| 1158 | 65 | ↳ K — La supervision | RG15–RG134 |
+| 1223 | 36 | ↳ L — Ce qui ne doit jamais partir dans un e-mail | RG3–RG137 |
+| 1259 | 186 | ↳ M — Le contrat d'interface avec Brevo | RG9–RG150 |
+| 1445 | 45 | ↳ N — Messages, langue et accessibilité | RG11–RG155 |
+| 1490 | 51 | Cas limites | RG7–RG146 |
+| 1541 | 418 | Critères d'acceptation | RG85–RG155 |
+| 1543 | 68 | ↳ Le parcours d'envoi de masse |  |
+| 1611 | 36 | ↳ Source 1 — contacts de la plateforme |  |
+| 1647 | 29 | ↳ Source 2 — segment Brevo |  |
+| 1676 | 51 | ↳ Source 3 — saisie libre |  |
+| 1727 | 26 | ↳ Les modèles |  |
+| 1753 | 22 | ↳ La cadence |  |
+| 1775 | 52 | ↳ Les e-mails transactionnels | RG85 |
+| 1827 | 23 | ↳ Le suivi des résultats |  |
+| 1850 | 29 | ↳ Environnement et interrupteur d'urgence |  |
+| 1879 | 25 | ↳ La supervision |  |
+| 1904 | 39 | ↳ Les interdits et le contrat d'interface | RG135 |
+| 1943 | 16 | ↳ Langue et accessibilité | RG155 |
+| 1959 | 88 | Impacts | RG6–RG146 |
+| 2047 | 19 | Hors périmètre | RG44–RG107 |
+| 2066 | 26 | Questions ouvertes | RG9–RG158 |
 
 ## 17-parcours-et-ecrans-espaces-membres.md (~56k tokens)
 

@@ -10,7 +10,16 @@
 //      account checked again; then deleted through the administration API, never a DELETE on
 //      `auth`.
 //   4. retention.purged (auth_orphan_users, count) on the run, even when a later step failed.
-// No address is ever read nor logged (D60): ids and instants only, and counts.
+// No address of a listed user is ever read, and none is logged (D60): ids and instants, and counts.
+//
+// First, in the same run, the realignment of C5.b (J7 commit 7 review, 0125): the address of
+// GoTrue follows identity.accounts.email. For each account that changed address recently
+// (ops.gotrue_realignment_candidates), the GoTrue user is read; when its address differs from the
+// one in force, read again just before, GoTrue takes the database's. If another GoTrue user holds
+// that address (email_exists: typically one created by a code asked for the old address while the
+// account could not sign in), it is deleted when no account references it, then the move is tried
+// once more. Counts: realign_checked, gotrue_realigned, gotrue_realign_failed,
+// realign_orphans_deleted (in retention.purged with the purge). Addresses stay in memory.
 import type {
   GoTrueUserActivity,
   GoTrueUserDirectory,
@@ -18,6 +27,8 @@ import type {
 import {
   checkNotStopped,
   PeriodicTaskError,
+  type PeriodicCounts,
+  type PeriodicRun,
   type PeriodicStore,
   type PeriodicTaskRunner,
 } from "./periodic.ts";
@@ -47,6 +58,75 @@ function gotrueFailure(reason: "rejected" | "unavailable"): PeriodicTaskError {
   return new PeriodicTaskError(`gotrue.${reason}`);
 }
 
+/**
+ * C5.b: GoTrue set to the address in force of each account that changed address recently. An
+ * outage of GoTrue stops the run (the next hour tries again); a refusal is counted and skipped.
+ */
+async function realignGoTrue(
+  directory: GoTrueUserDirectory,
+  store: PeriodicStore,
+  run: PeriodicRun,
+  counts: PeriodicCounts,
+  signal: AbortSignal,
+): Promise<void> {
+  counts.realign_checked = 0;
+  counts.gotrue_realigned = 0;
+  counts.gotrue_realign_failed = 0;
+  counts.realign_orphans_deleted = 0;
+  for (const candidate of await store.realignmentCandidates(run, null)) {
+    checkNotStopped(signal);
+    counts.realign_checked += 1;
+    const held = await directory.readUserAddress(candidate.authUserId);
+    if (!held.ok) {
+      if (held.reason === "unavailable") {
+        throw gotrueFailure("unavailable");
+      }
+      counts.gotrue_realign_failed += 1;
+      continue;
+    }
+    if (held.value.email === candidate.email) {
+      continue;
+    }
+    // Read again as late as possible: a change may have completed since the first read.
+    const [fresh] = await store.realignmentCandidates(run, candidate.accountId);
+    if (fresh === undefined || fresh.email === held.value.email) {
+      continue;
+    }
+    let moved = await directory.moveUserAddress(fresh.authUserId, fresh.email);
+    if (
+      !moved.ok &&
+      moved.reason === "rejected" &&
+      moved.errorCode === "email_exists"
+    ) {
+      const holder = await directory.userOfAddress(fresh.email);
+      if (
+        holder.ok &&
+        holder.value !== fresh.authUserId &&
+        UUID.test(holder.value) &&
+        (await store.filterAuthOrphans(run, [holder.value])).length === 1
+      ) {
+        const deleted = await directory.deleteUser(holder.value);
+        if (deleted.ok) {
+          counts.realign_orphans_deleted += 1;
+        }
+        if (deleted.ok || deleted.status === 404) {
+          moved = await directory.moveUserAddress(
+            fresh.authUserId,
+            fresh.email,
+          );
+        }
+      }
+    }
+    if (moved.ok) {
+      counts.gotrue_realigned += 1;
+    } else if (moved.reason === "unavailable") {
+      throw gotrueFailure("unavailable");
+    } else {
+      counts.gotrue_realign_failed += 1;
+    }
+  }
+}
+
 export function createAuthOrphanPurge(dependencies: {
   directory: GoTrueUserDirectory;
   store: PeriodicStore;
@@ -54,6 +134,18 @@ export function createAuthOrphanPurge(dependencies: {
 }): PeriodicTaskRunner {
   const { directory, store, now } = dependencies;
   return async (run, counts, signal) => {
+    try {
+      await realignGoTrue(directory, store, run, counts, signal);
+    } finally {
+      // A deletion made is traced, even when the run stops here.
+      if ((counts.realign_orphans_deleted ?? 0) > 0) {
+        await store.recordAuthOrphanPurge(
+          run,
+          counts.realign_orphans_deleted ?? 0,
+        );
+      }
+    }
+
     counts.listed = 0;
     counts.aged = 0;
     counts.orphans = 0;

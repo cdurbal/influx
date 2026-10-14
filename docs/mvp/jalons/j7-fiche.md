@@ -85,11 +85,14 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
    `account_id`, `old_email`, `new_email`, `expires_at` (+24 h), `old_code_hash`/`new_code_hash` (HMAC
    poivré), 5 essais par côté, `old_confirmed_at`, `new_confirmed_at`, `completed_at`, `cancelled_at` +
    motif ; une demande ouverte par compte. `auth.email_change_confirm_old/new` synchrones (clé :
-   demande + côté) ; modèle non configuré ⇒ `503` `email_change_unavailable`, jamais `skipped`. Fin :
+   demande + côté), textes dans le dépôt (RG67) ; code non parti ⇒ demande close `not_sent`, `503`
+   `email_change_unavailable` ; nouvelle adresse refusée par Brevo ⇒ `400 undeliverable`. Fin :
    `admin.updateUserById` (`email_confirm`) puis une transaction (`accounts.email`, `email_verified_at`,
    révocation des autres sessions, `email.changed` Brevo + Apollo, `auth.email_changed_notice` ×2,
    charge utile = id de la demande) ; échec GoTrue ⇒ ancienne adresse, nouvel essai possible ; adresse
-   prise ⇒ réponse neutre identique. Brevo : `PUT /v3/contacts/{external_contact_id}
+   prise (compte ou utilisateur GoTrue orphelin) ⇒ demande close, issue explicite `address_unavailable`
+   connue seulement après le code de la nouvelle adresse ; GoTrue toujours réaligné sur la base
+   (révision du 2026-10-14, `architecte` et `expert-cybersecurite`). Brevo : `PUT /v3/contacts/{external_contact_id}
    ?identifierType=contact_id` (sinon ancienne adresse, `email_id`), `{attributes:{EMAIL}}` ; puis
    opérations 2 et 7 réappliquées si sans consentement ou supprimé (Brevo lève la liste noire).
    - Commits 2, 4 et 7 : faits. Commit 9 : écrans. Autres : rien.
@@ -109,7 +112,10 @@ retrait de consentement écrit une ligne de priorité 0 prise sous 5 minutes ; u
 **Restent ouverts :** critère de fin ; retrait propagé à Apollo et conservations 30 j, abonnement
 minimal (`expert-conformite-rgpd`, Lot 6) ; D36 ; textes `account.*` (D48) ; `privacy.request_received`
 à ajouter à `16` §H (`product-owner`) ; 5 min, usage unique, remise de l'export (`expert-cybersecurite`,
-fin de jalon) ; webhook du compte Brevo de production (fondateur, `prerequis.md`).
+fin de jalon) ; webhook du compte Brevo de production (fondateur, `prerequis.md`) ; avant la mise en
+ligne du Lot 1 : C5.c (orphelin GoTrue sur la nouvelle adresse supprimé puis un nouvel essai) et A2
+(code de la nouvelle adresse compté sur RG44) ; avis `auth.email_changed_notice` rendu par INFLUX
+(RG67) ou modèle Brevo (EC-8) : fondateur.
 
 ## Règles d'écart applicables
 
@@ -141,18 +147,14 @@ aucun taux ni montant.
 | CGU (ré-acceptation) ; retrait du consentement | `05` · 267 · 5 (RG28) ; · 303 · 8 (RG34, RG35) |
 | Canal de secours ; contenu de l'espace | `05` · 440 · 5 (RG65) ; · 469 · 5 (RG71) |
 | Émission, priorité, charge utile | `05` · 481 (RG73) ; · 496 (RG74) ; · 513 (RG78) |
-| Désinscriptions dans les deux sens | `05` · 580 · 33 (§J, RG89 à RG96) |
 | Cas limites ; critères | `05` · 820 · 11 ; CA26 · 947 ; CA32–CA36 · 971 · 20 ; CA52–CA55 · 1049 · 17 ; CA70 · 1117 · 5 ; CA80, CA81 · 1646 · 8 |
 | Modèles P1 du J7 (`auth.new_device`, `auth.email_change_*`) | `16-backoffice-emails-brevo.md` · 783 · 10 ; texte `auth.new_device` · 970 · 30 (RG157, RG158) |
-| Ce qui remonte de Brevo | `16` · 1008 · 54 (§I, RG105 à RG114) |
-| Opérations, mapping | `16` · 1265 · 13 (§M1) ; · 1306 · 34 (§M4) |
 | Webhook non signé, six compensations | `16` · 1354 · 31 (§M6, RG146, RG147) ; scénarios 7 à 9 · 1400 · 3 |
 | Écrans « Mon compte » ; routes | `17-parcours-et-ecrans-espaces-membres.md` · 1705 · 124 (§6.1 à §6.4) ; · 1851 · 14 (§6.7) ; · 263 · 14 (§2.6) |
 | A4 et point ouvert du webhook ; A5 ; passe-plat | `03-matrice-des-droits-et-rls.md` · 1395 · 13 ; · 1409 · 8 ; · 1380 · 12 (PP-2 à PP-12) |
 | E-1 à E-5 ; A-11 ; droits `identity` | `03` · 836 · 6 ; · 1259 · 2 ; · 178 · 54 |
 | Modèle : comptes, incidents, sessions, consentement | `04-modele-de-donnees-mvp.md` · 769 · 30 ; · 838 · 37 ; · 1028 · 20 ; · 1157 · 58 |
 | Modèle : `contact_sync_states` (retour Brevo) ; demandes RGPD | `04` · 4133 · 50 ; · 4840 · 1 |
-| Purge GoTrue ; énumération | `04` · 5839 · 30 ; `02-architecture-3-espaces.md` · 1566 · 61 (§18.5) |
 | Worker ; variables par service | `02` · 1118 · 50 (§11) ; · 1205 · 20 |
 | Tests TM1 (TM1.5) ; T7, T8, T14, T15 | `18-plan-de-test-mvp.md` · 848 · 14 ; · 586 · 26 ; · 612 · 27 ; · 727 · 28 |
 | Skill `lead-pipeline` T7, T8 ; skill `brevo-campaign` webhooks | `lead-pipeline` · 198 · 12 ; `brevo-campaign` · 309 · 34 |
@@ -171,7 +173,7 @@ aucun taux ni montant.
   `apps/web/src/lib/member-paths.ts` ; accueils `[locale]/marque`, `brand`, `createur`, `creator`.
 - `apps/api/src/domains/leads/` : `drain.ts`, `queue.ts`, `connectors/brevo/` (bienvenue, avis d'adresse).
   `packages/test-kit/src/brevo-double.ts`, `gotrue-double.ts` ; `apps/api/scripts/record-provider-exchanges.ts`.
-- `supabase/migrations/` : dernière `0123` ; `0012` (`revoke_own_session()`) ; `0104` (`email_status`,
+- `supabase/migrations/` : dernière `0125` ; `0012` (`revoke_own_session()`) ; `0104` (`email_status`,
   `correct_email()`) ; `0105` (`email_delivery_incidents`) ; `0015` (`auth.new_device` admis au journal).
 
 ## Issu du commit 1 (`4aef89a`) et reports du J6
@@ -209,18 +211,18 @@ aucun taux ni montant.
 
 ## Issu du commit 6 (`cc00b72`, `9c6bbe0`)
 
-- **Au plus sûr** : une « version » de CGU = son `version_label` (acceptée dans une langue, acceptée dans toutes) ; garde CGU active par défaut sur toute route membre, exemptions nommées (`GET /v1/me`, consentement RG34, sessions RG56, acceptation, erreurs navigateur) ; une case, deux finalités (RG33) : `PUT` change les deux, l'affichage est « accordé » si les deux le sont, sinon date et origine du dernier retrait ; `UPDATE` direct de la langue retiré aux membres (`0122`) ; pays bloqué (RG8) refusé aussi après l'inscription ; « fermer toutes » = `revoked_by_holder`, session courante comprise ; autre version ou double clic concurrent ⇒ `409`. **T7** : au Lot 1, P1 (bienvenue) et P2 partagent la priorité 100 (aucun P2 avant le Lot 4), ordre d'émission entre eux ; échelon P1 < P2 à fixer par `architecte` avant le premier émetteur P2.
+- **Au plus sûr** : une « version » de CGU = son `version_label` (acceptée dans une langue, acceptée dans toutes) ; garde CGU active par défaut sur toute route membre, exemptions nommées (`GET /v1/me`, consentement RG34, sessions RG56, acceptation, erreurs navigateur) ; une case, deux finalités (RG33) : `PUT` change les deux, l'affichage est « accordé » si les deux le sont, sinon date et origine du dernier retrait ; `UPDATE` direct de la langue retiré aux membres (`0122`) ; pays bloqué (RG8) refusé aussi après l'inscription ; « fermer toutes » = `revoked_by_holder`, session courante comprise ; autre version ou double clic concurrent ⇒ `409`. **T7** : au Lot 1, P1 (bienvenue) et P2 partagent la priorité 100 (aucun P2 avant le Lot 4), ordre d'émission entre eux ; échelon P1 < P2 à fixer par `architecte` avant le premier émetteur P2. `outbox_events.priority` = ordre dans la voie (0 urgent : `consent.revoked` RG78, `auth.email_changed_notice` ; 100 ordinaire), distinct de la classe du catalogue `16` §H ; une ligne de file n'est jamais P0 (`architecte`, 2026-10-14).
 - **J6T-3** (`9c6bbe0`) : `consent.granted` encore en vigueur à la consommation ⇒ opération 1 avec `emailBlacklisted: false` (Brevo garde sinon la liste noire) ; jamais sur un autre événement ni un contact supprimé ; une opération 1 qui mettrait en liste noire est refusée (RG137).
 - `expert-cybersecurite` (fin de jalon) : `update_own_account` appelle `set_declared_status` depuis le définisseur (motif `member_settings`) ; politiques du définisseur sur `advertiser_profiles` (son compte seul) ; instantané des droits modifié (I-4) ; `terms_acceptance_required` révèle seulement qu'une acceptation manque.
 - `testeur` : `tm1-member-account-route` (16), CA36 dans `t8-request-code`, CA47/T7/T8 dans `tm1-worker-loop` (6), contrat `account` (6), `consentView` (4) ; tests ESLint témoins en dépassement de délai sous `pnpm -r` en local, verts seuls (846). Suites : commit 9 : écran bloquant sur `termsToAccept` et le `403`, textes RG95 des origines (`signup_form`, `account_settings`, `brevo_webhook`).
 
-## Issu du commit 7 (`65a11fc`)
+## Issu du commit 7 (`65a11fc`) et de sa reprise (7bis)
 
-- **Au plus sûr** : codes d'adresse rendus par INFLUX comme `auth.login_code` (RG67), « modèle non configuré » sans objet ; un code non parti ferme la demande (`cancelled_by_holder`) ⇒ `503 email_change_unavailable` (nouvelle adresse refusée par Brevo ⇒ `400 undeliverable`) ; journal P1 par `influx_auth` (`0123`), motif E-1 `identity.member_email_change` (EC-5). Code frais : compteurs RG44 de la connexion, parcours = jeton signé `reauth` (envoi, session, finalité) gardé par la page, sans cookie ; `checkEmailCode` partagé avec la connexion.
-- **Au plus sûr (fin)** : `email_exists` GoTrue ⇒ `refuse_email_change_address` (`0123`, `address_unavailable`), réponse `completed` identique ; après GoTrue, tout refus ou échec de la base ⇒ GoTrue réaligné sur l'adresse en vigueur ; GoTrue indisponible ⇒ `503`, demande ouverte, même code rejouable. Avis `auth.email_changed_notice` par le worker (`previous` lu dans la demande terminée ; modèle EC-8, `NULL` ⇒ `skipped`).
-- `expert-cybersecurite` (fin de jalon) : signer `identity.member_email_change` (P) ; jeton `reauth` lisible par la page (id de session) ; utilisateur GoTrue orphelin sur la nouvelle adresse ⇒ changement impossible jusqu'à la purge (24 h) ; réalignement GoTrue échoué ⇒ divergence signalée en `error` sans donnée ; garde CGU active sur la re-authentification (export, suppression : commit 8).
-- `testeur` : `tm1-email-change-route` (17, GoTrue en doublure mémoire de l'adaptateur), `t8-reauth-email-change` (+3), `tm1-brevo-connector` (+1) ; unitaires : e-mails (6), connecteur (+7), jetons (+3), adaptateur (+2), contrat (+5).
-- Suites : commit 8 (CA32 ; export et suppression derrière `requireFreshCode`) ; commit 9 (étape « code frais », « 1 sur 2 · expire le », texte neutre de `completed`) ; commit 10 : identifiant Brevo de `auth.email_changed_notice` en `staging`.
+- **Tranché le 2026-10-14** (`architecte`, `expert-cybersecurite` sans veto) : textes des codes dans le dépôt (RG67) ; code non parti ⇒ `not_sent` (`0124`, `close_unsent_email_change`) ⇒ `503`, `400 undeliverable` ; motif E-1 `identity.member_email_change` **signé** (exception « membre authentifié » de `03` P7, appelant unique vérifié par T6, C3.1, C3.2) ; jeton `reauth` dans le corps gardé (`reauthToken` masqué dans pino, `no-store`, C4.a, C4.b) ; adresse prise ⇒ `address_unavailable` explicite (C5.a) ; avis en priorité de file `0`, classe P1 inchangée.
+- **Durcissements 7bis** : A1, le code d'un côté déjà confirmé est revérifié (`0124` recrée `confirm_email_change`) ; C5.b, la passe GoTrue horaire d'E-4 réaligne GoTrue sur `accounts.email` (`0125`, `ops.gotrue_realignment_candidates` : changement confirmé il y a 15 min à 72 h, 200 au plus, relu avant chaque écriture ; orphelin détenteur de l'adresse supprimé s'il n'a aucun compte ; compteurs `gotrue_realigned`, `gotrue_realign_failed`, `realign_orphans_deleted`). Code frais : compteurs RG44 de la connexion ; `checkEmailCode` partagé avec la connexion.
+- `expert-cybersecurite` (fin de jalon) : attester `65a11fc`, `17c0f9f` et 7bis (conditions C3.1, C3.2, C4.a, C4.b, C5.a, C5.b remplies) ; signer `leads.receive_brevo_event` et `identity.member_reauthenticate` (ajoutés à `03` P7) ; C3.3 : plus d'élargissement des droits d'`influx_auth` sur `transactional_sends` sans signature ; alerte J9 si `gotrue_realign_failed` persiste.
+- `testeur` : `tm1-email-change-route` (17), `t8-reauth-email-change` (+5, dont `not_sent` et A1), `tm1-periodic-tasks` (+4, réalignement avec doublure GoTrue étendue : `PUT`, `generate_link`), `tm1-brevo-connector` (+1) ; unitaires : e-mails, connecteur, jetons, adaptateur (+5), T6 (motif ⇒ fichiers), journal.
+- Suites : commit 8 (CA32 ; export et suppression derrière `requireFreshCode`, garde CGU à lever pour eux : A3, `expert-conformite-rgpd` ; effacement des lignes de journal « nouvelle adresse » : A4) ; commit 9 (C4.c : jeton en mémoire seulement, oublié après succès ou `session_lost` ; après `503` ou `400`, retour au code frais ; textes de `address_unavailable`) ; J8 : interrupteur à `all_paused` ⇒ `503` avant la demande, mise en attente lue sur la classe ; commit 10 : modèle Brevo de l'avis en `staging`.
 
 ## Clôture d'un commit (« clôture standard »)
 

@@ -11,6 +11,8 @@ const OPERATION_ARGUMENT = 1;
 
 export type ElevatedCallReport = {
   operations: string[];
+  /** Each literal call with its file (03 P7 rule (2): each motif has its own callers, C3.2). */
+  calls: { operation: string; file: string }[];
   findings: string[];
 };
 
@@ -19,6 +21,7 @@ export function scanElevatedCalls(
   declarationFile: string,
 ): ElevatedCallReport {
   const operations: string[] = [];
+  const calls: { operation: string; file: string }[] = [];
   const findings: string[] = [];
   for (const file of files) {
     const text = readFileSync(file, "utf8");
@@ -41,6 +44,7 @@ export function scanElevatedCalls(
           const argument = parent.arguments[OPERATION_ARGUMENT];
           if (argument !== undefined && ts.isStringLiteralLike(argument)) {
             operations.push(argument.text);
+            calls.push({ operation: argument.text, file });
           } else {
             findings.push(`${at(node)}: operation is not a string literal`);
           }
@@ -62,5 +66,5 @@ export function scanElevatedCalls(
     };
     visit(source);
   }
-  return { operations, findings };
+  return { operations, calls, findings };
 }

@@ -6,17 +6,20 @@
 //   start     (member) identity.request_email_change() consumes the marker and records the two
 //             HMAC digests (0118); (E-1 identity.member_email_change) the two P1 journal lines
 //             (0123); both sends, synchronous, Idempotency-Key = request + side; (E-1) their
-//             outcomes. A code that did not leave closes the request: 503 email_change_unavailable,
-//             never a silent skip (the texts live in the repository, RG67: nothing to configure).
+//             outcomes. A code that did not leave closes the request (not_sent, 0124): 503
+//             email_change_unavailable, never a silent skip (the texts live in the repository,
+//             RG67: nothing to configure).
 //   confirm   (member) identity.confirm_email_change() for one side (5 attempts per side). Both
 //             sides done: GoTrue takes the new address (admin.updateUserById, confirmed), THEN
 //             (member) identity.complete_email_change(): the address, the other sessions revoked,
 //             email.changed to Brevo and Apollo, the two notices, in one transaction.
 //   failures  GoTrue unavailable: 503, the request stays open, the same code may be typed again.
 //             GoTrue refusing the address as taken, or the database refusing it at completion:
-//             the same answer as a success (decision 5), the request closes, the account keeps its
-//             address. Whenever the database did not complete, GoTrue is set back to the address
-//             in force of the account (never left on an address INFLUX does not hold).
+//             address_unavailable, one answer for both (whoever holds it), known only once both
+//             codes are typed (decision 5 as revised on 2026-10-14, C5.a); the request closes, the
+//             account keeps its address. Whenever the database did not complete, GoTrue is set
+//             back to the address in force of the account; the hourly pass of E-4 does it again
+//             if that failed (0125, C5.b).
 //
 // Nothing here logs an address, a code or a request id (D60, C-1); a queue payload carries ids only
 // (RG74, written by the database).
@@ -46,6 +49,7 @@ import type { MemberContext } from "./member-session.ts";
 import { requireFreshCode } from "./reauthentication.ts";
 import {
   closeP0Send,
+  closeUnsentEmailChange,
   completeEmailChange,
   confirmEmailChange,
   insertEmailChangeCodeSend,
@@ -249,7 +253,7 @@ export async function startEmailChange(
     },
     "email change: codes not sent, request closed",
   );
-  await call.inMember((tx) => cancelEmailChange(tx, changeId));
+  await call.inMember((tx) => closeUnsentEmailChange(tx, changeId));
   if (outcomes[1]?.status === "undeliverable") {
     throw new RequestValidationError([
       { path: "newEmail", issue: "undeliverable" },
@@ -369,7 +373,7 @@ async function finishEmailChange(
   );
   if (!moved.ok) {
     if (moved.reason === "rejected" && moved.errorCode === "email_exists") {
-      // Another GoTrue user holds the address: the request closes, the same answer (decision 5).
+      // Another GoTrue user holds the address: the request closes (C5.a).
       await call.inMember((tx) =>
         refuseEmailChangeAddress(tx, change.changeId),
       );
@@ -377,7 +381,7 @@ async function finishEmailChange(
         {},
         "email change: new address unavailable, request closed",
       );
-      return { outcome: "completed" };
+      return { outcome: "address_unavailable" };
     }
     call.logger.warn(
       {
@@ -415,12 +419,12 @@ async function finishEmailChange(
   );
   switch (completion) {
     case "address_unavailable":
-      // Decision 5: the same answer as a success; the account keeps its address.
+      // C5.a: the same answer as GoTrue's refusal; the account keeps its address.
       call.logger.info(
         {},
         "email change: new address unavailable, request closed",
       );
-      return { outcome: "completed" };
+      return { outcome: "address_unavailable" };
     case "expired":
       return { outcome: "expired" };
     case "not_found":

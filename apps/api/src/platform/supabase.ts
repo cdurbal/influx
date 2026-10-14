@@ -550,7 +550,9 @@ export function createSupabaseAuth(
 // The directory of GoTrue users, for the purge of the users without an account (04 §9, D43;
 // J7 decision 3). The worker's only use of GoTrue: list, read one, delete one, through the
 // administration API, never a DELETE on the auth schema (02 §5.1). Nothing personal is kept of a
-// user: its id and three instants, never its address (D60).
+// listed user: its id and three instants, never its address (D60). The realignment of the same
+// hourly pass (C5.b of the J7 commit 7 review) reads and writes the address of the users of the
+// accounts that changed address, in memory only, never logged.
 // ---------------------------------------------------------------------------------------------
 
 /** What the purge needs of a GoTrue user: its id and its activity instants (epoch ms). */
@@ -579,6 +581,19 @@ export type GoTrueUserDirectory = {
   readUser(userId: string): Promise<GoTrueOutcome<GoTrueUserActivity>>;
   /** Deletes a user for good (`DELETE /admin/users/{id}`, never a soft delete). */
   deleteUser(userId: string): Promise<GoTrueOutcome<null>>;
+  /** The address GoTrue holds for a user; `rejected` with status 404 when it is gone. */
+  readUserAddress(userId: string): Promise<GoTrueOutcome<GoTrueIdentity>>;
+  /** Moves a user to an address, confirmed, nothing sent; another holder is `email_exists`. */
+  moveUserAddress(
+    userId: string,
+    email: string,
+  ): Promise<GoTrueOutcome<GoTrueIdentity>>;
+  /**
+   * The user holding an address, through generateLink (no lookup by address in the API): nothing
+   * is sent, the code it generates is dropped unread. Called only once GoTrue said the address is
+   * held (`email_exists`).
+   */
+  userOfAddress(email: string): Promise<GoTrueOutcome<string>>;
 };
 
 function instantOf(value: unknown): number | null {
@@ -651,6 +666,43 @@ export function createGoTrueUserDirectory(
     async deleteUser(userId) {
       const outcome = await settled(() => admin.deleteUser(userId, false));
       return "ok" in outcome ? outcome : { ok: true, value: null };
+    },
+
+    async readUserAddress(userId) {
+      const outcome = await settled(() => admin.getUserById(userId));
+      if ("ok" in outcome) {
+        return outcome;
+      }
+      const identity = identityOf(outcome.data.user);
+      return identity === null
+        ? MALFORMED_ANSWER
+        : { ok: true, value: identity };
+    },
+
+    async moveUserAddress(userId, email) {
+      const outcome = await settled(() =>
+        admin.updateUserById(userId, { email, email_confirm: true }),
+      );
+      if ("ok" in outcome) {
+        return outcome;
+      }
+      const identity = identityOf(outcome.data.user);
+      return identity === null
+        ? MALFORMED_ANSWER
+        : { ok: true, value: identity };
+    },
+
+    async userOfAddress(email) {
+      const outcome = await settled(() =>
+        admin.generateLink({ type: "magiclink", email }),
+      );
+      if ("ok" in outcome) {
+        return outcome;
+      }
+      const identity = identityOf(outcome.data.user);
+      return identity === null || identity.email !== email
+        ? MALFORMED_ANSWER
+        : { ok: true, value: identity.userId };
     },
   };
 }

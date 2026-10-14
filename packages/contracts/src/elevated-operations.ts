@@ -14,9 +14,10 @@
  * E-6 enters with its migration (0016, J4), signed by expert-cybersecurite on 2026-10-06
  * (end-of-J4 grouped review). identity.read_published_terms enters E-1 at J5 (21 EC-62), to be
  * signed at the end-of-J5 grouped review. leads.receive_brevo_event (E-1) and
- * identity.member_reauthenticate (E-2) enter with their codes at J7 (0115, decisions 2 and 4), and
- * identity.member_email_change (E-1) with its code at J7 commit 7 (0123, decision 5: the journal of
- * the two codes of an address change), to be signed at the end-of-J7 grouped review.
+ * identity.member_reauthenticate (E-2) enter with their codes at J7 (0115, decisions 2 and 4), to be
+ * signed at the end-of-J7 grouped review. identity.member_email_change (E-1, named exception
+ * "authenticated member": the journal of the two codes of an address change, 0123) was signed by
+ * expert-cybersecurite on 2026-10-14 (review of J7 commit 7, 03 P7).
  */
 export const SIGNED_ELEVATED_OPERATIONS = [
   "identity.request_code", // E-1, influx_auth
@@ -29,7 +30,7 @@ export const SIGNED_ELEVATED_OPERATIONS = [
   "identity.backoffice_enroll_totp", // E-2, influx_auth
   "identity.backoffice_reauthenticate", // E-2, influx_auth
   "identity.member_reauthenticate", // E-2, influx_auth (J7 decision 4)
-  "identity.member_email_change", // E-1, influx_auth (J7 decision 5, the journal of the two codes)
+  "identity.member_email_change", // E-1 named exception, influx_auth (signed 2026-10-14)
   "leads.drain_outbox", // E-3, influx_worker
   "maintenance.run_periodic", // E-4, influx_worker
   "privacy.execute_request", // E-5, influx_privacy

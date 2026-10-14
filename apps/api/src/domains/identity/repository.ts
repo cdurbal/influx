@@ -1126,6 +1126,17 @@ export async function cancelEmailChange(
   return rows[0]?.cancelled === true;
 }
 
+/** identity.close_unsent_email_change() (0124): a code of the request did not leave (not_sent). */
+export async function closeUnsentEmailChange(
+  tx: Transaction,
+  requestId: string,
+): Promise<boolean> {
+  const rows = await tx.execute<{ closed: boolean }>(
+    sql`select identity.close_unsent_email_change(${requestId}::uuid) as closed`,
+  );
+  return rows[0]?.closed === true;
+}
+
 /** identity.refuse_email_change_address() (0123): GoTrue refused the new address as taken. */
 export async function refuseEmailChangeAddress(
   tx: Transaction,

@@ -5,6 +5,12 @@
 //   GET    /auth/v1/admin/users?page&per_page   `{users, aud}`, headers x-total-count and link
 //   GET    /auth/v1/admin/users/{id}            the user, or 404 user_not_found
 //   DELETE /auth/v1/admin/users/{id}            the user deleted, or 404 user_not_found
+//   PUT    /auth/v1/admin/users/{id}            {email}: the user moved, 422 email_exists when
+//                                               another user holds it, or 404 user_not_found
+//   POST   /auth/v1/admin/generate_link         {type, email}: the user holding the address with
+//                                               a code (never sent), or a NEW user (magiclink
+//                                               creates one, as GoTrue does)
+// (the last two for the realignment of C5.b, J7 commit 7 review).
 // Users are listed by creation, as GoTrue does. Every request is recorded; an answer queued by a
 // test is used by the next request, whatever its path, and changes nothing.
 import { randomUUID } from "node:crypto";
@@ -24,6 +30,8 @@ export type GoTrueDoubleRequest = {
   method: string;
   path: string;
   authorization: string | undefined;
+  /** The JSON body, or undefined. */
+  body: unknown;
 };
 
 export type GoTrueDoubleAnswer = { status: number; body: unknown };
@@ -40,6 +48,8 @@ export type GoTrueDouble = {
     updatedHoursAgo?: number;
     signedInHoursAgo?: number | null;
     id?: string;
+    /** gotrue-<id>@example.test when absent. */
+    email?: string;
   }): string;
   queue(...answers: GoTrueDoubleAnswer[]): void;
   reset(): void;
@@ -48,12 +58,31 @@ export type GoTrueDouble = {
 
 const USERS_PATH = "/auth/v1/admin/users";
 const USER_PATH = /^\/auth\/v1\/admin\/users\/([0-9a-f-]{36})$/;
+const GENERATE_LINK_PATH = "/auth/v1/admin/generate_link";
 const HOUR_MS = 3_600_000;
 
 const NOT_FOUND: GoTrueDoubleAnswer = {
   status: 404,
   body: { code: 404, error_code: "user_not_found", msg: "User not found" },
 };
+
+const EMAIL_EXISTS: GoTrueDoubleAnswer = {
+  status: 422,
+  body: {
+    code: 422,
+    error_code: "email_exists",
+    msg: "A user with this email address has already been registered",
+  },
+};
+
+function emailOf(body: unknown): string | null {
+  return typeof body === "object" &&
+    body !== null &&
+    "email" in body &&
+    typeof body.email === "string"
+    ? body.email.toLowerCase()
+    : null;
+}
 
 function asGoTrue(user: GoTrueDoubleUser): Record<string, unknown> {
   return {
@@ -102,15 +131,29 @@ export async function startGoTrueDouble(): Promise<GoTrueDouble> {
     };
   }
 
+  function holderOf(email: string): GoTrueDoubleUser | undefined {
+    return [...users.values()].find((user) => user.email === email);
+  }
+
   const server: Server = createServer((request, response) => {
-    request.resume();
+    let text = "";
+    request.on("data", (chunk: Buffer) => {
+      text += chunk.toString("utf8");
+    });
     request.on("end", () => {
       const method = request.method ?? "GET";
       const url = new URL(request.url ?? "/", "http://double.invalid");
+      let body: unknown;
+      try {
+        body = text === "" ? undefined : JSON.parse(text);
+      } catch {
+        body = undefined;
+      }
       requests.push({
         method,
         path: url.pathname + url.search,
         authorization: request.headers.authorization,
+        body,
       });
       let answer: GoTrueDoubleAnswer = NOT_FOUND;
       let headers: Record<string, string> = {};
@@ -120,6 +163,33 @@ export async function startGoTrueDouble(): Promise<GoTrueDouble> {
         answer = queued;
       } else if (method === "GET" && url.pathname === USERS_PATH) {
         ({ answer, headers } = list(url.searchParams));
+      } else if (method === "POST" && url.pathname === GENERATE_LINK_PATH) {
+        const email = emailOf(body);
+        if (email !== null) {
+          const now = new Date().toISOString();
+          let user = holderOf(email);
+          if (user === undefined) {
+            user = {
+              id: randomUUID(),
+              email,
+              created_at: now,
+              updated_at: now,
+              last_sign_in_at: null,
+            };
+            users.set(user.id, user);
+          }
+          answer = {
+            status: 200,
+            body: {
+              ...asGoTrue(user),
+              action_link: "http://double.invalid/verify",
+              email_otp: "000000",
+              hashed_token: "hashed",
+              redirect_to: "http://double.invalid",
+              verification_type: "magiclink",
+            },
+          };
+        }
       } else if (single?.[1] !== undefined) {
         const user = users.get(single[1]);
         if (user !== undefined && method === "GET") {
@@ -127,6 +197,18 @@ export async function startGoTrueDouble(): Promise<GoTrueDouble> {
         } else if (user !== undefined && method === "DELETE") {
           users.delete(user.id);
           answer = { status: 200, body: asGoTrue(user) };
+        } else if (user !== undefined && method === "PUT") {
+          const email = emailOf(body);
+          const holder = email === null ? undefined : holderOf(email);
+          if (holder !== undefined && holder.id !== user.id) {
+            answer = EMAIL_EXISTS;
+          } else {
+            if (email !== null) {
+              user.email = email;
+              user.updated_at = new Date().toISOString();
+            }
+            answer = { status: 200, body: asGoTrue(user) };
+          }
         }
       }
       response.writeHead(answer.status, {
@@ -146,14 +228,14 @@ export async function startGoTrueDouble(): Promise<GoTrueDouble> {
     url: `http://127.0.0.1:${port}`,
     users,
     requests,
-    addUser({ ageHours, updatedHoursAgo, signedInHoursAgo = null, id }) {
+    addUser({ ageHours, updatedHoursAgo, signedInHoursAgo = null, id, email }) {
       const now = Date.now();
       const at = (hours: number) =>
         new Date(now - hours * HOUR_MS).toISOString();
       const userId = id ?? randomUUID();
       users.set(userId, {
         id: userId,
-        email: `gotrue-${userId}@example.test`,
+        email: email ?? `gotrue-${userId}@example.test`,
         created_at: at(ageHours),
         updated_at: at(updatedHoursAgo ?? ageHours),
         last_sign_in_at:

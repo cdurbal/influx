@@ -289,10 +289,12 @@ export type ConfirmEmailChangeBody = z.infer<
 >;
 
 /**
- * `confirmed`: this side is done, the other is awaited. `completed`: both sides are done and the
- * request is processed; the same answer whether the new address could be taken or not (J7
- * decision 5), GET /v1/me tells the address in force. `too_many_attempts` (fifth wrong code of a
- * side) and `expired` (24 hours) close the request. Unknown, closed or another member's: 404.
+ * `confirmed`: this side is done, the other is awaited. `completed`: both sides are done, the
+ * address changed. `address_unavailable`: both sides are done but the new address is held (by
+ * another account or a GoTrue user, never said which); the request is closed and the old address
+ * stays (J7 decision 5 as revised on 2026-10-14: told only once the code of the new address was
+ * typed, never at the request). `too_many_attempts` (fifth wrong code of a side) and `expired`
+ * (24 hours) close the request. Unknown, closed or another member's: 404.
  */
 export const confirmEmailChangeResponseSchema = z.discriminatedUnion(
   "outcome",
@@ -302,6 +304,7 @@ export const confirmEmailChangeResponseSchema = z.discriminatedUnion(
       request: emailChangeRequestSchema,
     }),
     z.strictObject({ outcome: z.literal("completed") }),
+    z.strictObject({ outcome: z.literal("address_unavailable") }),
     z.strictObject({
       outcome: z.literal("invalid"),
       attemptsLeft: z.number().int().min(1).max(4),

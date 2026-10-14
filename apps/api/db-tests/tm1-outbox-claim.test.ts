@@ -1694,6 +1694,8 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       "ops.claim_periodic_run(ops.periodic_task,text)",
       "ops.filter_auth_orphans(uuid,smallint,uuid[])",
       "ops.finish_periodic_run(uuid,smallint,ops.periodic_run_outcome,jsonb)",
+      // 0125 (C5.b, J7 commit 7 review): the realignment of the hourly GoTrue pass
+      "ops.gotrue_realignment_candidates(uuid,smallint,uuid)",
       "ops.purge_brevo_inbound_events(uuid,smallint,integer)",
       "ops.record_retention_purge(uuid,smallint,text,integer)",
     ]);

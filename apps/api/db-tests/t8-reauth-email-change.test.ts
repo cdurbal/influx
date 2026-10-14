@@ -432,7 +432,7 @@ describe("identity.request_email_change()", () => {
 });
 
 describe("identity.confirm_email_change()", () => {
-  it("confirms both sides, then gives the GoTrue user id; a confirmed side answers already_confirmed", async () => {
+  it("confirms both sides, then gives the GoTrue user id; a confirmed side answers already_confirmed to its code only (A1, 0124)", async () => {
     const who = member("advertiser", "a");
     const result = await scenario(async (tx) => {
       const { request } = await openRequest(tx, who);
@@ -450,10 +450,31 @@ describe("identity.confirm_email_change()", () => {
         "new",
         digest(`new:${request}`),
       );
-      const again = await confirm(tx, who, request, "old", digest("anything"));
+      // A1: a retry of the completion needs the code again, a wrong one is counted
+      const guessed = await confirm(
+        tx,
+        who,
+        request,
+        "old",
+        digest("anything"),
+      );
+      const again = await confirm(
+        tx,
+        who,
+        request,
+        "old",
+        digest(`old:${request}`),
+      );
       const [user] = await tx<{ id: string }[]>`
         select auth_user_id::text as id from identity.accounts where id = ${who.account.id}`;
-      return { old, fresh, again, user: user?.id };
+      return {
+        old,
+        fresh,
+        guessed,
+        again,
+        user: user?.id,
+        row: await requestRow(tx, request),
+      };
     });
     expect(result.old).toEqual({
       outcome: "confirmed",
@@ -465,11 +486,17 @@ describe("identity.confirm_email_change()", () => {
       ready: true,
       auth_user_id: result.user,
     });
+    expect(result.guessed).toEqual({
+      outcome: "invalid_code",
+      ready: false,
+      auth_user_id: null,
+    });
     expect(result.again).toEqual({
       outcome: "already_confirmed",
       ready: true,
       auth_user_id: result.user,
     });
+    expect(result.row).toMatchObject({ old_attempts: 1, new_attempts: 0 });
   });
 
   it("counts a wrong code, and closes the request at the fifth of a side (too_many_attempts)", async () => {
@@ -848,5 +875,72 @@ describe("the journal of the two codes (0123: P1, influx_auth, never through the
       welcome: { outcome: "error", code: INSUFFICIENT_PRIVILEGE },
       loginCode: { outcome: "error", code: INSUFFICIENT_PRIVILEGE },
     });
+  });
+});
+
+describe("identity.close_unsent_email_change() (0124: a code of the request did not leave)", () => {
+  it("closes the holder's open, not fully confirmed request as not_sent, and nothing else", async () => {
+    const who = member("creator", "a");
+    const result = await scenario(async (tx) => {
+      const close = (by: Member, request: string) =>
+        actAsMember(tx, by.role, by.context, async () => {
+          const [row] = await tx<{ done: boolean }[]>`
+            select identity.close_unsent_email_change(${request}::uuid) as done`;
+          return row?.done;
+        });
+      const { request } = await openRequest(tx, who);
+      const foreign = await close(member("creator", "b"), request);
+      await confirm(tx, who, request, "old", digest(`old:${request}`));
+      const own = await close(who, request);
+      const again = await close(who, request);
+      const unsent = await requestRow(tx, request);
+      // a request with both sides typed is never "not sent"
+      const ready = await openRequest(tx, who);
+      await confirm(
+        tx,
+        who,
+        ready.request,
+        "old",
+        digest(`old:${ready.request}`),
+      );
+      await confirm(
+        tx,
+        who,
+        ready.request,
+        "new",
+        digest(`new:${ready.request}`),
+      );
+      const confirmed = await close(who, ready.request);
+      return {
+        foreign,
+        own,
+        again,
+        unsent,
+        confirmed,
+        readyRow: await requestRow(tx, ready.request),
+      };
+    });
+    expect(result).toMatchObject({
+      foreign: false,
+      own: true,
+      again: false,
+      unsent: { completed: false, cancel_reason: "not_sent", digests: false },
+      confirmed: false,
+      readyRow: { cancel_reason: null, digests: true },
+    });
+  });
+
+  it("is refused to influx_auth (42501)", async () => {
+    const result = await inRolledBackTransaction(
+      loginRole("influx_auth_login"),
+      async (tx) => {
+        await takeRole(tx, "influx_auth");
+        return probe(
+          tx,
+          "select identity.close_unsent_email_change(gen_random_uuid())",
+        );
+      },
+    );
+    expect(result).toEqual({ outcome: "error", code: INSUFFICIENT_PRIVILEGE });
   });
 });

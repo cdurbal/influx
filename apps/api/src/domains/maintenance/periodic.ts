@@ -27,6 +27,7 @@ import {
   claimPeriodicRun,
   filterAuthOrphans,
   finishPeriodicRun,
+  gotrueRealignmentCandidates,
   PERIODIC_TASKS,
   purgeBrevoInboundEvents,
   recordAuthOrphanPurge,
@@ -34,6 +35,7 @@ import {
   type PeriodicCounts,
   type PeriodicRun,
   type PeriodicTask,
+  type RealignmentCandidate,
   type ReconciliationFinding,
 } from "./repository.ts";
 
@@ -42,6 +44,7 @@ export {
   type PeriodicCounts,
   type PeriodicRun,
   type PeriodicTask,
+  type RealignmentCandidate,
   type ReconciliationFinding,
 } from "./repository.ts";
 
@@ -77,6 +80,11 @@ export type PeriodicStore = {
     authUserIds: readonly string[],
   ): Promise<string[]>;
   recordAuthOrphanPurge(run: PeriodicRun, count: number): Promise<void>;
+  /** C5.b (0125): the accounts to realign at GoTrue, or the one named, read again. */
+  realignmentCandidates(
+    run: PeriodicRun,
+    accountId: string | null,
+  ): Promise<RealignmentCandidate[]>;
   purgeBrevoInbound(run: PeriodicRun, limit: number): Promise<number>;
 };
 
@@ -153,6 +161,12 @@ export function createPeriodicStore(database: WorkerDatabase): PeriodicStore {
         await recordAuthOrphanPurge(tx, run, count);
         return { value: undefined, auditSubject: run.runId };
       }),
+
+    realignmentCandidates: (run, accountId) =>
+      elevated(async (tx) => ({
+        value: await gotrueRealignmentCandidates(tx, run, accountId),
+        auditSubject: null,
+      })),
 
     purgeBrevoInbound: (run, limit) =>
       elevated(async (tx) => {

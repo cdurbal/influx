@@ -71,6 +71,64 @@ describe("T6.1: A = U and U ⊆ P", () => {
     }
   });
 
+  it("calls each operation from its own files only (03 P7 rule (2); C3.2, J7 commit 7 review)", () => {
+    // A new caller of a motif is a change of this table, seen in review: a motif never spreads
+    // silently to another module (identity.member_email_change: email-change.ts alone).
+    const expected: Readonly<Record<string, readonly string[]>> = {
+      "identity.backoffice_enroll_totp": [
+        "apps/api/src/domains/identity/backoffice-sign-in.ts",
+      ],
+      "identity.backoffice_reauthenticate": [
+        "apps/api/src/domains/identity/backoffice-sign-in.ts",
+      ],
+      "identity.backoffice_sign_in": [
+        "apps/api/src/domains/identity/backoffice-sign-in.ts",
+        "apps/api/src/domains/identity/critical-alert.ts",
+      ],
+      "identity.complete_signup": [
+        "apps/api/src/domains/identity/complete-signup.ts",
+      ],
+      "identity.member_email_change": [
+        "apps/api/src/domains/identity/email-change.ts",
+      ],
+      "identity.member_reauthenticate": [
+        "apps/api/src/domains/identity/reauthentication.ts",
+      ],
+      "identity.read_published_terms": [
+        "apps/api/src/domains/identity/terms.ts",
+      ],
+      "identity.request_code": ["apps/api/src/domains/identity/login-code.ts"],
+      "identity.verify_code": ["apps/api/src/domains/identity/verify-code.ts"],
+      "leads.drain_outbox": [
+        "apps/api/src/domains/leads/inbound/processing.ts",
+        "apps/api/src/domains/leads/queue.ts",
+      ],
+      "leads.receive_brevo_event": [
+        "apps/api/src/domains/leads/brevo-webhook.ts",
+      ],
+      "maintenance.run_periodic": [
+        "apps/api/src/domains/maintenance/periodic.ts",
+      ],
+      "ops.record_telemetry": ["apps/api/src/domains/ops/recorder.ts"],
+    };
+    const found = new Map<string, Set<string>>();
+    for (const call of scanElevatedCalls(applicationFiles(), DECLARATION)
+      .calls) {
+      const file = path.relative(ROOT, call.file).split(path.sep).join("/");
+      found.set(
+        call.operation,
+        (found.get(call.operation) ?? new Set<string>()).add(file),
+      );
+    }
+    expect(
+      Object.fromEntries(
+        [...found.entries()]
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([operation, files]) => [operation, [...files].sort()]),
+      ),
+    ).toEqual(expected);
+  });
+
   it("binds each declared operation to the pool of 03 P7 (rule 5)", () => {
     const expected: Readonly<Record<string, string>> = {
       "identity.request_code": "auth",

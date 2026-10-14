@@ -320,6 +320,7 @@ async function reauthenticate(
     purpose,
     validForSeconds: 300,
   });
+  expect(verified.headers["cache-control"]).toBe("no-store");
 }
 
 type Started = { requestId: string; old: string; new: string };
@@ -472,6 +473,8 @@ describe("POST /v1/me/reauthenticate/* (05 RG57, RG44, RG47; 03 A-10; J7 decisio
       { purpose: "email_change" },
     );
     expect(asked.statusCode).toBe(200);
+    // C4.b: the journey and the phrase are never stored by a cache
+    expect(asked.headers["cache-control"]).toBe("no-store");
     expect(asked.json()).toMatchObject({
       outcome: "sent",
       retryAfterSeconds: 60,
@@ -932,8 +935,8 @@ describe("05 CA34, RG58, A-11: a code to each address, and the old one stays the
   });
 });
 
-describe("decision 5: a taken address gets the answer of a success, and nothing changes", () => {
-  it("GoTrue refuses the new address (email_exists): completed, the request closed address_unavailable, the account untouched", async () => {
+describe("decision 5 (revised, C5.a): a taken address is told once both codes are typed, and nothing changes", () => {
+  it("GoTrue refuses the new address (email_exists): address_unavailable, the request closed, the account untouched", async () => {
     const server = app();
     const member = await newMember();
     const taken = newAddress("taken");
@@ -947,7 +950,7 @@ describe("decision 5: a taken address gets the answer of a success, and nothing 
       "new",
       started.new,
     );
-    expect(last.json()).toEqual({ outcome: "completed" });
+    expect(last.json()).toEqual({ outcome: "address_unavailable" });
     expect(await requestRow(started.requestId)).toMatchObject({
       completed: false,
       cancel_reason: "address_unavailable",
@@ -962,7 +965,7 @@ describe("decision 5: a taken address gets the answer of a success, and nothing 
     ).toEqual([]);
   });
 
-  it("another account holds it at completion: completed, GoTrue set back to the address in force", async () => {
+  it("another account holds it at completion: the same address_unavailable, GoTrue set back to the address in force", async () => {
     const server = app();
     const member = await newMember();
     const other = await newMember();
@@ -977,7 +980,7 @@ describe("decision 5: a taken address gets the answer of a success, and nothing 
       "new",
       started.new,
     );
-    expect(last.json()).toEqual({ outcome: "completed" });
+    expect(last.json()).toEqual({ outcome: "address_unavailable" });
     expect(await requestRow(started.requestId)).toMatchObject({
       cancel_reason: "address_unavailable",
     });
@@ -987,11 +990,17 @@ describe("decision 5: a taken address gets the answer of a success, and nothing 
       { userId: member.authUserId, email: member.email },
     ]);
     expect(gotrue.users.get(member.authUserId)).toBe(member.email);
+    // nothing leaves: neither email.changed nor a notice
+    expect(
+      (await queueLinesOf(member.accountId)).filter(
+        (line) => line.event_type === "email.changed",
+      ),
+    ).toEqual([]);
   });
 });
 
 describe("decision 5: outages never leave the account half-changed", () => {
-  it("GoTrue unavailable: 503 email_change_unavailable, GoTrue set back, the request open; the same code completes it later", async () => {
+  it("GoTrue unavailable: 503 email_change_unavailable, GoTrue set back, the request open; only the right code completes it later (A1)", async () => {
     const server = app();
     const member = await newMember();
     const newEmail = newAddress("new");
@@ -1021,6 +1030,18 @@ describe("decision 5: outages never leave the account half-changed", () => {
       cancel_reason: null,
       new_confirmed: true,
     });
+    // A1: a confirmed side still checks its code: a wrong one counts and calls nothing
+    const updates = gotrue.updates.length;
+    const wrong = started.new === "000000" ? "000001" : "000000";
+    const guessed = await confirm(
+      server,
+      member,
+      started.requestId,
+      "new",
+      wrong,
+    );
+    expect(guessed.json()).toEqual({ outcome: "invalid", attemptsLeft: 4 });
+    expect(gotrue.updates).toHaveLength(updates);
     const retried = await confirm(
       server,
       member,
@@ -1032,7 +1053,7 @@ describe("decision 5: outages never leave the account half-changed", () => {
     expect(await accountEmail(member.accountId)).toBe(newEmail);
   });
 
-  it("a code that did not leave: 503 email_change_unavailable, the request closed, never a silent skip", async () => {
+  it("a code that did not leave: 503 email_change_unavailable, the request closed not_sent, never a silent skip", async () => {
     const server = app();
     const member = await newMember();
     await reauthenticate(server, member);
@@ -1050,7 +1071,8 @@ describe("decision 5: outages never leave the account half-changed", () => {
     const [row] = await migration<{ cancel_reason: string | null }[]>`
       select cancel_reason::text as cancel_reason from identity.email_change_requests
        where account_id = ${member.accountId}`;
-    expect(row?.cancel_reason).toBe("cancelled_by_holder");
+    // 0124: its own reason, never as if the holder had cancelled it
+    expect(row?.cancel_reason).toBe("not_sent");
     const statuses = await migration<{ email_code: string; status: string }[]>`
       select email_code, status::text as status from leads.transactional_sends
        where email_code like 'auth.email_change_confirm_%' and account_id = ${member.accountId}`;
@@ -1087,6 +1109,10 @@ describe("decision 5: outages never leave the account half-changed", () => {
     ).toEqual({
       request: null,
     });
+    const [row] = await migration<{ cancel_reason: string | null }[]>`
+      select cancel_reason::text as cancel_reason from identity.email_change_requests
+       where account_id = ${member.accountId}`;
+    expect(row?.cancel_reason).toBe("not_sent");
   });
 });
 

@@ -480,6 +480,8 @@ export function registerAccountRoutes(
     },
     async (request, reply): Promise<ReauthRequestCodeResponse> => {
       const { purpose } = request.body as ReauthRequestCodeBody;
+      // C4.b: the answer carries the signed journey and the phrase: never stored by a cache.
+      reply.header("cache-control", "no-store");
       const member = await memberOf(request, reply);
       const result = await requestReauthenticationCode(dependencies, {
         requestId: request.id,
@@ -511,6 +513,7 @@ export function registerAccountRoutes(
     },
     async (request, reply): Promise<ReauthVerifyCodeResponse> => {
       const body = request.body as ReauthVerifyCodeBody;
+      reply.header("cache-control", "no-store");
       const member = await memberOf(request, reply);
       return verifyReauthenticationCode(dependencies, {
         requestId: request.id,

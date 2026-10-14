@@ -823,3 +823,100 @@ describe("the directory of the purge (04 §9, J7 decision 3): ids and instants, 
     });
   });
 });
+
+describe("the realignment of the hourly pass (C5.b, J7 commit 7 review): the address of a linked user", () => {
+  function directory() {
+    return createGoTrueUserDirectory({
+      url: gotrueUrl,
+      secretKey: TEST_SUPABASE_SECRET_KEY,
+    });
+  }
+
+  it("reads the address of a user, and a gone one as rejected 404", async () => {
+    gotrue.handler = (request) =>
+      request.path === `/auth/v1/admin/users/${USER_A.id}`
+        ? { status: 200, body: { ...USER_A, aud: "authenticated" } }
+        : {
+            status: 404,
+            body: {
+              code: 404,
+              error_code: "user_not_found",
+              msg: "User not found",
+            },
+          };
+    expect(await directory().readUserAddress(USER_A.id)).toEqual({
+      ok: true,
+      value: { userId: USER_A.id, email: USER_A.email },
+    });
+    expect(await directory().readUserAddress(USER_B.id)).toMatchObject({
+      ok: false,
+      reason: "rejected",
+      status: 404,
+    });
+  });
+
+  it("moves a user to the address in force, confirmed; another holder is email_exists", async () => {
+    gotrue.handler = (request) =>
+      request.body.email === USER_B.email
+        ? {
+            status: 422,
+            body: { code: 422, error_code: "email_exists", msg: "taken" },
+          }
+        : {
+            status: 200,
+            body: {
+              ...USER_A,
+              email: request.body.email,
+              aud: "authenticated",
+            },
+          };
+    expect(
+      await directory().moveUserAddress(USER_A.id, "a2@example.test"),
+    ).toEqual({
+      ok: true,
+      value: { userId: USER_A.id, email: "a2@example.test" },
+    });
+    expect(gotrue.received[0]).toMatchObject({
+      method: "PUT",
+      path: `/auth/v1/admin/users/${USER_A.id}`,
+      body: { email: "a2@example.test", email_confirm: true },
+    });
+    expect(
+      await directory().moveUserAddress(USER_A.id, USER_B.email),
+    ).toMatchObject({
+      ok: false,
+      reason: "rejected",
+      errorCode: "email_exists",
+    });
+  });
+
+  it("finds the holder of an address through generateLink, its code dropped; another address is malformed", async () => {
+    const answer = (email: string) => ({
+      status: 200,
+      body: {
+        ...USER_B,
+        email,
+        aud: "authenticated",
+        action_link: "http://gotrue.invalid/verify",
+        email_otp: "135790",
+        hashed_token: "hashed",
+        redirect_to: "http://gotrue.invalid",
+        verification_type: "magiclink",
+      },
+    });
+    gotrue.handler = () => answer(USER_B.email);
+    const found = await directory().userOfAddress(USER_B.email);
+    expect(found).toEqual({ ok: true, value: USER_B.id });
+    expect(JSON.stringify(found)).not.toContain("135790");
+    expect(gotrue.received[0]).toMatchObject({
+      method: "POST",
+      path: "/auth/v1/admin/generate_link",
+      body: { type: "magiclink", email: USER_B.email },
+    });
+    gotrue.handler = () => answer("someone-else@example.test");
+    expect(await directory().userOfAddress(USER_B.email)).toMatchObject({
+      ok: false,
+      reason: "unavailable",
+    });
+  });
+});

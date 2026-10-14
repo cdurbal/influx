@@ -415,6 +415,7 @@ describe("authentication values, searched by value (21 J3-C rule 7, C-1)", () =>
     "recoveryCode",
     "enrollmentToken",
     "matchingPhrase",
+    "reauthToken",
     "apikey",
     "authorization",
     "cookie",
