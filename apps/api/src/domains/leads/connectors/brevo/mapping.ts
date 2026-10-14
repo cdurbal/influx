@@ -35,12 +35,16 @@ export const BREVO_CONTACT_ATTRIBUTES = [
 
 export type BrevoContactAttribute = (typeof BREVO_CONTACT_ATTRIBUTES)[number];
 
-/** The fields of the body of operation 1 (`POST /contacts`). */
+/**
+ * The fields of the body of operation 1 (`POST /contacts`); `emailBlacklisted` only ever false,
+ * on a consent given again (J6T-3).
+ */
 const CONTACT_BODY_FIELDS = new Set([
   "email",
   "attributes",
   "listIds",
   "updateEnabled",
+  "emailBlacklisted",
 ]);
 /** The fields of the body of operation 2 (`PUT /contacts/{email}`): the unsubscription only. */
 export const UNSUBSCRIBE_BODY_FIELDS = new Set(["emailBlacklisted"]);
@@ -131,6 +135,10 @@ export function checkContactOutput(body: Record<string, unknown>): string[] {
   return [
     ...outside(Object.keys(body), CONTACT_BODY_FIELDS),
     ...outside(attributes, CONTACT_ATTRIBUTE_SET),
+    // operation 1 never blacklists: that is operation 2
+    ...("emailBlacklisted" in body && body.emailBlacklisted !== false
+      ? ["emailBlacklisted"]
+      : []),
   ].sort();
 }
 

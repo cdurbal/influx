@@ -286,7 +286,13 @@ export function createBrevoConnectors(
       }
 
       // Operation 1: the contact, by the closed mapping (16 §M4) and the output check (RG137).
-      const body = map(account, subject, listId);
+      // A consent given again from the space (consent.granted, still in force at consumption)
+      // lifts the blacklist that operation 2 set: Brevo keeps it otherwise (J6T-3). Never on any
+      // other event: a blacklist set by Brevo itself waits for its webhook (RG90).
+      const body =
+        line.eventType === "consent.granted"
+          ? { ...map(account, subject, listId), emailBlacklisted: false }
+          : map(account, subject, listId);
       const rejected = checkContactOutput(body);
       if (rejected.length === 0 && redirected(subject.email)) {
         return { kind: "skip", reason: "skipped_non_production" };

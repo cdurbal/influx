@@ -733,6 +733,70 @@ describe("02 §12.4 lock 1: the key of the worker", () => {
   });
 });
 
+describe("J6T-3: a consent given again re-subscribes the contact (consent.granted only)", () => {
+  it("lifts the blacklist of a withdrawal and puts the contact back in its list", async () => {
+    const { contact } = connectors();
+    await run(contact, line("brevo_contact"));
+    await run(
+      contact,
+      line("brevo_contact", { eventType: "consent.revoked", priority: 0 }),
+      state({ marketingEmailConsent: false }),
+    );
+    expect(double.contacts.get(EMAIL)?.emailBlacklisted).toBe(true);
+
+    const result = await run(
+      contact,
+      line("brevo_contact", { eventType: "consent.granted" }),
+      state({ marketingEmailConsent: true }),
+    );
+    expect(result).toMatchObject({ kind: "succeeded" });
+    const upsert = double.requests.at(-1);
+    expect(`${upsert?.method} ${upsert?.path}`).toBe("POST /v3/contacts");
+    expect(upsert?.body).toMatchObject({
+      emailBlacklisted: false,
+      updateEnabled: true,
+    });
+    expect(double.contacts.get(EMAIL)?.emailBlacklisted).toBe(false);
+  });
+
+  it("never lifts it on another event, nor once the consent is withdrawn again, nor for a suppressed contact", async () => {
+    const { contact } = connectors();
+    await run(contact, line("brevo_contact", { eventType: "lead.updated" }));
+    expect(double.requests.at(-1)?.body).not.toHaveProperty("emailBlacklisted");
+
+    // withdrawn again between the emission and the consumption (RG37): operation 2
+    const later = await prepare(
+      contact,
+      line("brevo_contact", { eventType: "consent.granted" }),
+      state({ marketingEmailConsent: false }),
+    );
+    expect(later.kind === "mapped" && later.description.operation).toBe(
+      "unsubscribe_contact",
+    );
+
+    const suppressed = await prepare(
+      connectors({ subject: subject({ suppressed: true }) }).contact,
+      line("brevo_contact", { eventType: "consent.granted" }),
+      state({ marketingEmailConsent: true }),
+    );
+    expect(
+      suppressed.kind === "mapped" && suppressed.description.operation,
+    ).toBe("unsubscribe_contact");
+  });
+
+  it("refuses an operation 1 that would blacklist (RG137)", () => {
+    expect(
+      checkContactOutput({
+        email: EMAIL,
+        attributes: {},
+        listIds: [1],
+        updateEnabled: true,
+        emailBlacklisted: true,
+      }),
+    ).toEqual(["emailBlacklisted"]);
+  });
+});
+
 describe("05 RG93, CA55: a contact under suppression is never resynchronised by an ordinary replay", () => {
   it("a complaint recorded, the consent given again: the replay unsubscribes, never upserts", async () => {
     const { contact } = connectors({ subject: subject({ suppressed: true }) });
