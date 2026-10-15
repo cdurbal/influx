@@ -186,6 +186,14 @@ e2e 16 ; `pnpm test` = 2 106. Tout nouveau fichier `db-tests` entre dans `case-f
 - Table des causes : `domains/backoffice/sync-causes.ts` (code brut ⇒ cause fermée + nature) ; le rejeu du commit 6 aura besoin des identifiants de lignes en échec (non exposés à ce jour, `0101` « never exposed ») : à trancher au commit 6.
 - AL21 (fiches distinctes / 24 h) : données présentes (`history.account_read`, `accounts.searched_partial`), seuil au Lot 3 / Lot 5.
 
+## Issu du commit 6 (`68d6928`)
+
+- Rejeu par paires (compte, destination), jamais par identifiant de ligne ; corrections `POST /v1/bo/accounts/:id/corrections` ; 2V `POST /v1/bo/dual-control` (+ `/:id`, `/confirm` sous R, `/cancel`), demande limitée au changement de rôle et aux clés Apollo (le commit 7 ajoute les invitations) ; `GET /v1/bo/settings/apollo` ; levée `POST /v1/bo/accounts/:id/brevo-suppression/lift` ; `GET /v1/bo/alerts`.
+- `0134` : EC-J8-23 réglé (raison sociale dans la charge 2V) ; EC-J8-27 la levée ne réabonne que sur un consentement postérieur à la désinscription ; EC-J8-28 sujet de `settings.changed` = `md5('leads.sync_settings:' || clé)::uuid` ; EC-J8-29 réévaluation en priorité 100 (aucun émetteur P2) ; EC-J8-30 valeur > 3 000 octets journalisée par empreinte. Seuil AL25 écrit d'après CA62 (15 min) : à confirmer par `product-owner` (`05` RG104 muet).
+- Non faits, reportés : AL48 / seuils de délivrabilité RG63 (J9) ; notification RG44 d'une correction (EC-J8-22) et `account.email_corrected` + suspension marketing sur `401` (RG123) au Lot 5 ; EC-J8-19 (rejeu en lot sans 2V) toujours à arbitrer à la revue cyber.
+- CI rouge à l'étape « Security review markers » depuis le commit 2 (2, 3, 5 et 6 touchent les droits) : attestation `security-reviewed: … covers …` à la revue groupée de fin de J8 ; d'ici là les étapes suivantes de la CI ne tournent pas, la suite locale complète fait foi.
+- Planchers : base 922 (43 fichiers), unitaire `apps/api` 984, contracts 71.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les
