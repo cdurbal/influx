@@ -67,6 +67,12 @@ export const BACKOFFICE_FAILURES_PLATFORM_ALERT = 30;
 /** EC-40 point 5: failed re-authentications of one session in 15 minutes that revoke it. */
 export const REAUTHENTICATION_FAILURES_PER_SESSION = 5;
 
+/**
+ * J3S-1: attempts of R one session may reserve in 15 minutes, BEFORE GoTrue (the counter of the
+ * failures above, request_count of its row): parallel requests never outrun the revocation.
+ */
+export const REAUTHENTICATION_ATTEMPTS_PER_SESSION = 5;
+
 /** EC-40 point 2: R holds while the last TOTP proof of the session is at most this old. */
 export const REAUTHENTICATION_FRESHNESS_SECONDS = 300;
 

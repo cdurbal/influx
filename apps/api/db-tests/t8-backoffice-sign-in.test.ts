@@ -29,6 +29,7 @@ import {
   createTransactionalSender,
   type TransactionalSender,
 } from "../src/platform/brevo-transactional.ts";
+import { readClientAddress } from "../src/platform/client-address.ts";
 import {
   createSupabaseAuth,
   type SupabaseAuth,
@@ -41,7 +42,7 @@ import {
   testApiConfig,
   WEB_SECRET,
 } from "../tests/helpers.ts";
-import { migrationRole } from "./support.ts";
+import { localSuperuser, migrationRole } from "./support.ts";
 
 const AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) Firefox/131.0 marker-bo-5e1a";
@@ -959,6 +960,82 @@ describe("B-5, EC-40: re-authentication R", () => {
     );
     expect(logs.text()).toContain("security.reauthentication_failed");
     expect((await me(server, enrolled.session)).statusCode).toBe(401);
+  });
+
+  it("J3S-1: twenty parallel R on one session make at most five GoTrue calls, then the session is revoked", async () => {
+    const { server, calls } = app();
+    const account = await newInternal("reauth-parallel");
+    const enrolled = await enroll(server, account);
+    const before = calls.passwordSessions;
+    const responses = await Promise.all(
+      Array.from({ length: 20 }, () =>
+        post(
+          server,
+          "/v1/bo/auth/reauthenticate",
+          { password: account.password, code: "000000" },
+          { session: enrolled.session },
+        ),
+      ),
+    );
+    expect(calls.passwordSessions - before).toBeLessThanOrEqual(5);
+    // Each answer is a refusal: uniform, the revocation, or 401 once the session is gone.
+    for (const response of responses) {
+      if (response.statusCode === 401) {
+        continue;
+      }
+      expect(["refused", "session_revoked"]).toContain(
+        response.json<{ outcome: string }>().outcome,
+      );
+    }
+    expect((await sessionsOf(account.accountId))[0]?.revocation_reason).toBe(
+      "reauthentication_failed",
+    );
+  });
+
+  it("J3S-1, EC-47: an IP over its ceiling is refused before GoTrue, without a failure; R holds elsewhere", async () => {
+    const { server, calls } = app();
+    const account = await newInternal("reauth-ip");
+    const enrolled = await enroll(server, account);
+    const crowded = newClientAddress();
+    const address = readClientAddress(
+      crowded,
+      testApiConfig().authThrottlePepper,
+    );
+    if (address.status !== "known") {
+      throw new Error("the test address must be valid");
+    }
+    // The twenty attempts of the hour of this network, reserved as the sign-in would (0014).
+    const key = Buffer.from(address.throttleKey, "hex");
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      await localSuperuser()`
+        select identity.reserve_auth_attempt('backoffice_login_ip', ${key}, '1h', 20)`;
+    }
+    const before = calls.passwordSessions;
+    const refused = await post(
+      server,
+      "/v1/bo/auth/reauthenticate",
+      {
+        password: account.password,
+        code: totpCode(enrolled.secret, new Date(), 1),
+      },
+      { session: enrolled.session, clientAddress: crowded },
+    );
+    expect(refused.json()).toEqual({ outcome: "refused" });
+    expect(calls.passwordSessions).toBe(before);
+    expect(await auditOf(account.accountId)).not.toContain(
+      "agent.reauthentication_failed",
+    );
+
+    const confirmed = await post(
+      server,
+      "/v1/bo/auth/reauthenticate",
+      {
+        password: account.password,
+        code: totpCode(enrolled.secret, new Date(), 1),
+      },
+      { session: enrolled.session },
+    );
+    expect(confirmed.json()).toEqual({ outcome: "confirmed" });
   });
 });
 

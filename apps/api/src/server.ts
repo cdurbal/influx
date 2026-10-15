@@ -18,6 +18,7 @@ import {
   registerBackofficeAuthRoutes,
 } from "./domains/identity/backoffice-routes.ts";
 import { requireBackofficeSession } from "./domains/identity/backoffice-session.ts";
+import { PWNED_PASSWORDS_TIMEOUT_MS } from "./domains/identity/settings.ts";
 import {
   registerIdentityRoutes,
   type IdentityDependencies,
@@ -27,6 +28,7 @@ import { OpsRecorder } from "./domains/ops/recorder.ts";
 import { registerOpsRoutes } from "./domains/ops/routes.ts";
 import { createAuthTokenCodec } from "./platform/auth-tokens.ts";
 import { createTransactionalSender } from "./platform/brevo-transactional.ts";
+import { createPwnedPasswordCheck } from "./platform/hibp.ts";
 import { createSupabaseAuth } from "./platform/supabase.ts";
 import {
   ApiError,
@@ -460,6 +462,13 @@ export function buildServer(
     supabaseAuth,
     sender,
     pepper: config.authThrottlePepper,
+    // J3S-5: every password chosen on the backoffice is looked up (B-1), the service of production.
+    isPwned:
+      options.identity?.isPwned ??
+      createPwnedPasswordCheck({
+        fetch,
+        timeoutMs: PWNED_PASSWORDS_TIMEOUT_MS,
+      }),
     ...(options.identity?.backofficeAuthFloorMs === undefined
       ? {}
       : { floorMs: options.identity.backofficeAuthFloorMs }),

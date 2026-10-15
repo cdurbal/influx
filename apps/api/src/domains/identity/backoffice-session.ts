@@ -10,6 +10,8 @@
 //   session below aal2 (EC-40 point 1).
 // - Renewal: lazy, computed in the database (identity.touch_session: at most once a minute,
 //   30 minutes of inactivity, never beyond the absolute bound). The cookie is not set again.
+// - B-5 (J3S-4): a sensitive action runs through withSensitiveAction(), which hands its database
+//   function the session of the request; R is checked there, in the action's transaction.
 import type { FastifyReply, FastifyRequest } from "fastify";
 import {
   SessionNotFoundError,
@@ -25,6 +27,7 @@ import {
   setAuthCookie,
 } from "../../platform/auth-cookies.ts";
 import { ApiError } from "../../platform/errors.ts";
+import { hasFreshReauthentication } from "./backoffice-sign-in.ts";
 import { sessionTokenHashOf } from "./member-session.ts";
 import { touchSession } from "./repository.ts";
 import { BACKOFFICE_SESSION_ABSOLUTE_SECONDS } from "./settings.ts";
@@ -114,5 +117,79 @@ export function requireBackofficeSession(
     request,
     reply,
     async (_tx, context) => context,
+  );
+}
+
+// ---------------------------------------------------------------------------------------------
+// B-5: the sensitive actions (03 §6.1 B-5, §1.3 PD3; 21 J3S-4)
+// ---------------------------------------------------------------------------------------------
+
+/** A transaction of the backoffice session of the request (withBackofficeSession, or a test's). */
+export type BackofficeTransaction = <T>(
+  fn: (tx: Transaction, context: BackofficeContext) => Promise<T>,
+) => Promise<T>;
+
+/**
+ * The deliberate refusal of the database functions of the backoffice (0130 to 0132): 42501 with
+ * the message `forbidden`, one answer whatever the cause (no oracle). A missing grant is 42501
+ * too, with another message: a fault of ours, left to the 500.
+ */
+function isDeliberateRefusal(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; depth < 4 && current instanceof Error; depth += 1) {
+    const { code, message } = current as Error & { code?: unknown };
+    if (code === "42501") {
+      return message === "forbidden";
+    }
+    current = current.cause;
+  }
+  return false;
+}
+
+/**
+ * J3S-4: runs a B-5 action in the transaction of the session of THIS request. The action's
+ * database function checks R itself, in that transaction (identity.assert_fresh_second_factor(),
+ * 0130), on `context.sessionId` — never a session id of the body. Its refusal is told apart only
+ * after the rollback, for the screen (17b §3.14.d): no fresh R on this session ⇒ 403
+ * reauthentication_required, any other refusal ⇒ 403 forbidden. The reading decides nothing: the
+ * database has already refused.
+ */
+export async function runSensitiveAction<T>(
+  database: ApiDatabase,
+  requestId: string,
+  inSession: BackofficeTransaction,
+  fn: (tx: Transaction, context: BackofficeContext) => Promise<T>,
+): Promise<T> {
+  const seen: { sessionId: string | null } = { sessionId: null };
+  try {
+    return await inSession((tx, context) => {
+      seen.sessionId = context.sessionId;
+      return fn(tx, context);
+    });
+  } catch (error) {
+    if (seen.sessionId === null || !isDeliberateRefusal(error)) {
+      throw error;
+    }
+    if (
+      !(await hasFreshReauthentication(database, requestId, seen.sessionId))
+    ) {
+      throw new ApiError("reauthentication_required");
+    }
+    throw new ApiError("forbidden");
+  }
+}
+
+/** runSensitiveAction() on the backoffice session of a route (cookie, renewal, 401 of the guard). */
+export function withSensitiveAction<T>(
+  database: ApiDatabase,
+  request: FastifyRequest,
+  reply: FastifyReply,
+  fn: (tx: Transaction, context: BackofficeContext) => Promise<T>,
+): Promise<T> {
+  return runSensitiveAction(
+    database,
+    request.id,
+    (body) => withBackofficeSession(database, request, reply, body),
+    fn,
   );
 }

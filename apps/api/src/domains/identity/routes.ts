@@ -63,6 +63,7 @@ import {
 import type { TransactionalSender } from "../../platform/brevo-transactional.ts";
 import { clientAddressOf } from "../../platform/client-address.ts";
 import type { EmailSwitch } from "../../platform/email-switch.ts";
+import type { PwnedPasswordCheck } from "../../platform/hibp.ts";
 import {
   ApiError,
   RequestValidationError,
@@ -117,6 +118,8 @@ export type IdentityDependencies = {
   deliveryReportFloorMs?: number;
   /** EC-40 point 3 (backoffice sign-in, enrollment, R); injectable for the tests only. */
   backofficeAuthFloorMs?: number;
+  /** B-1, J3S-5: the lookup of a chosen password; Pwned Passwords unless a test replaces it. */
+  isPwned?: PwnedPasswordCheck;
   /** Version in force of a public document (EC-62); the database unless a test replaces it. */
   termsLookup?: TermsLookup;
   /** The emergency switch of the e-mails (16 RG121); not stored before Lot 5 unless a test sets it. */

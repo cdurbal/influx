@@ -1,7 +1,8 @@
 // Backoffice authentication without the database (docs/mvp/03 B-1, MFA-3, §6.2; 18 T8.8; 21 §3
 // EC-17, EC-55, EC-57; J3-A d and the security arbitration of B-1): recovery codes and enrollment
-// tokens, the rules of a new password, the k-anonymity lookup with a FAKE fetch (no external call),
-// the aal2 assertion, and the static guards. The flows themselves run on the local stack:
+// tokens, the rules of a new password and its gate before GoTrue (J3S-5), the k-anonymity lookup
+// with a FAKE fetch (no external call), the aal2 assertion, the pass-through of the B-5 guard
+// (J3S-4), and the static guards. The flows themselves run on the local stack:
 // db-tests/t8-backoffice-sign-in.test.ts.
 import { createHash, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -11,9 +12,17 @@ import { RECOVERY_CODE_DISPLAY_PATTERN } from "@influx/contracts/backoffice-auth
 import { listSourceFiles, SCRIPT_EXTENSIONS } from "@influx/test-kit/static";
 import { afterEach, describe, expect, it } from "vitest";
 import * as z from "zod";
-import { SessionNotFoundError, type UserContext } from "../src/db/index.ts";
+import {
+  SessionNotFoundError,
+  type ApiDatabase,
+  type Transaction,
+  type UserContext,
+} from "../src/db/index.ts";
 import { BACKOFFICE_SESSIONLESS_ROUTES } from "../src/domains/identity/backoffice-routes.ts";
-import { assertBackofficeContext } from "../src/domains/identity/backoffice-session.ts";
+import {
+  assertBackofficeContext,
+  runSensitiveAction,
+} from "../src/domains/identity/backoffice-session.ts";
 import {
   enrollmentTokenHashOf,
   generateRecoveryCodes,
@@ -23,6 +32,7 @@ import {
 import {
   localPasswordVerdict,
   newPasswordVerdict,
+  withNewPassword,
 } from "../src/domains/identity/password-policy.ts";
 import {
   createPwnedPasswordCheck,
@@ -152,6 +162,125 @@ describe("B-1, EC-57: rules of a new password", () => {
     expect(await newPasswordVerdict(fine, EMAIL, lookup("unavailable"))).toBe(
       "check_unavailable",
     );
+  });
+});
+
+describe("J3S-5: a chosen password reaches GoTrue only once B-1 accepts it", () => {
+  const EMAIL = "camille.martin@example.test";
+  const FINE = "four random words here";
+
+  function gate(verdict: "clear" | "compromised" | "unavailable") {
+    const lines: { object: object; message: string }[] = [];
+    let gotrueCalls = 0;
+    const run = (password: string) =>
+      withNewPassword(
+        async () => verdict,
+        { info: (object, message) => lines.push({ object, message }) },
+        { password, email: EMAIL },
+        async () => {
+          gotrueCalls += 1;
+          return "user";
+        },
+      );
+    return { run, lines, gotrueCalls: () => gotrueCalls };
+  }
+
+  it("calls GoTrue on an accepted password only, and gives back its result", async () => {
+    const accepted = gate("clear");
+    expect(await accepted.run(FINE)).toEqual({
+      verdict: "accepted",
+      value: "user",
+    });
+    expect(accepted.gotrueCalls()).toBe(1);
+    expect(accepted.lines).toEqual([]);
+  });
+
+  it("never calls GoTrue on a compromised, unverifiable or locally refused password; logs the verdict only", async () => {
+    for (const [verdict, password, expected] of [
+      ["compromised", FINE, "compromised"],
+      ["unavailable", FINE, "check_unavailable"],
+      ["clear", "qwerty7", "too_short"],
+      ["clear", "joining INFLUX today", "context"],
+    ] as const) {
+      const refused = gate(verdict);
+      expect(await refused.run(password)).toEqual({ verdict: expected });
+      expect(refused.gotrueCalls()).toBe(0);
+      expect(refused.lines).toEqual([
+        { object: { verdict: expected }, message: "new password refused" },
+      ]);
+      expect(JSON.stringify(refused.lines)).not.toContain(password);
+    }
+  });
+
+  it("is the one caller of newPasswordVerdict in src/, and the server hands the backoffice a lookup", () => {
+    expect(sourceFilesMentioning(/newPasswordVerdict\(/)).toEqual([
+      "src/domains/identity/password-policy.ts",
+    ]);
+    expect(sourceFilesMentioning(/createPwnedPasswordCheck\(/)).toEqual([
+      "src/platform/hibp.ts",
+      "src/server.ts",
+    ]);
+  });
+});
+
+describe("J3S-4: the guard of the B-5 actions lets every other error through", () => {
+  // Neither branch reads the database: the R reading follows a deliberate refusal only.
+  const database = {} as ApiDatabase;
+  const context = {
+    sessionId: "00000000-0000-4000-8000-000000000001",
+    accountId: "00000000-0000-4000-8000-000000000002",
+    role: "admin",
+    aal: "aal2",
+  } as const;
+
+  function failingWith(error: Error) {
+    return runSensitiveAction(
+      database,
+      "request",
+      (fn) => fn({} as Transaction, context),
+      async () => {
+        throw error;
+      },
+    );
+  }
+
+  it("keeps a 42501 that is not the database's refusal (a missing grant: our fault, a 500)", async () => {
+    const grant = Object.assign(
+      new Error("permission denied for function grant_role"),
+      { code: "42501" },
+    );
+    await expect(failingWith(grant)).rejects.toBe(grant);
+    const wrapped = new Error("Failed query", { cause: grant });
+    await expect(failingWith(wrapped)).rejects.toBe(wrapped);
+  });
+
+  it("keeps any other error, and a refusal before the session was resolved", async () => {
+    const unique = Object.assign(new Error("duplicate key"), {
+      code: "23505",
+    });
+    await expect(failingWith(unique)).rejects.toBe(unique);
+    const refused = Object.assign(new Error("forbidden"), { code: "42501" });
+    await expect(
+      runSensitiveAction(
+        database,
+        "request",
+        async () => {
+          throw refused;
+        },
+        async () => "never",
+      ),
+    ).rejects.toBe(refused);
+  });
+
+  it("returns what the action returns", async () => {
+    expect(
+      await runSensitiveAction(
+        database,
+        "request",
+        (fn) => fn({} as Transaction, context),
+        async (_tx, seen) => seen.sessionId,
+      ),
+    ).toBe(context.sessionId);
   });
 });
 

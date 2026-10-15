@@ -34,6 +34,7 @@ import {
   type Transaction,
 } from "../../db/index.ts";
 import type { TransactionalSender } from "../../platform/brevo-transactional.ts";
+import type { PwnedPasswordCheck } from "../../platform/hibp.ts";
 import {
   gotrueForwardedAddressOf,
   type ClientAddress,
@@ -61,6 +62,7 @@ import {
   revokeAfterFailedReauthentication,
   signInAccountOf,
   sqlStateOf,
+  type ReauthenticationSession,
   type SignInAccount,
 } from "./repository.ts";
 import {
@@ -77,6 +79,7 @@ import {
   BACKOFFICE_FAILURES_PLATFORM_ALERT,
   BACKOFFICE_GOTRUE_BUDGET_MS,
   BACKOFFICE_GOTRUE_CALL_TIMEOUT_MS,
+  REAUTHENTICATION_ATTEMPTS_PER_SESSION,
   REAUTHENTICATION_FAILURES_PER_SESSION,
   REAUTHENTICATION_FRESHNESS_SECONDS,
   TOTP_FACTOR_NAME,
@@ -107,6 +110,8 @@ export type BackofficeAuthDependencies = {
   pepper: string;
   /** The P0 sender of the api: internal.critical_alert (EC-44). */
   sender: TransactionalSender;
+  /** B-1, J3S-5: the k-anonymity lookup of a chosen password (withNewPassword), never at sign-in. */
+  isPwned: PwnedPasswordCheck;
 };
 
 export type BackofficeAuthRequest = {
@@ -165,7 +170,30 @@ function newSessionToken(): { token: string; hash: Buffer } {
 // Steps shared by the three operations
 // ---------------------------------------------------------------------------------------------
 
-/** Step 1, EC-47: the couple (address, IP), then the IP (or the global ceiling without one). */
+/** EC-47: the network scope of an attempt, the IP (or the global ceiling without one). */
+function reserveNetworkAttempt(
+  tx: Transaction,
+  pepper: string,
+  clientAddress: ClientAddress,
+): Promise<boolean> {
+  return clientAddress.status === "known"
+    ? reserveAuthAttempt(
+        tx,
+        "backoffice_login_ip",
+        addressThrottleKey(clientAddress),
+        "1h",
+        BACKOFFICE_ATTEMPTS_PER_IP_HOUR,
+      )
+    : reserveAuthAttempt(
+        tx,
+        "backoffice_login_unknown_ip",
+        globalThrottleKey(pepper, "backoffice_login_unknown_ip"),
+        "1h",
+        BACKOFFICE_ATTEMPTS_UNKNOWN_IP_HOUR,
+      );
+}
+
+/** Step 1, EC-47: the couple (address, IP), then the network scope. */
 async function reserveAttempt(
   dependencies: BackofficeAuthDependencies,
   request: BackofficeAuthRequest,
@@ -184,23 +212,10 @@ async function reserveAttempt(
     if (!couple) {
       return { value: false, auditSubject: null };
     }
-    const network =
-      request.clientAddress.status === "known"
-        ? await reserveAuthAttempt(
-            tx,
-            "backoffice_login_ip",
-            addressThrottleKey(request.clientAddress),
-            "1h",
-            BACKOFFICE_ATTEMPTS_PER_IP_HOUR,
-          )
-        : await reserveAuthAttempt(
-            tx,
-            "backoffice_login_unknown_ip",
-            globalThrottleKey(pepper, "backoffice_login_unknown_ip"),
-            "1h",
-            BACKOFFICE_ATTEMPTS_UNKNOWN_IP_HOUR,
-          );
-    return { value: network, auditSubject: null };
+    return {
+      value: await reserveNetworkAttempt(tx, pepper, request.clientAddress),
+      auditSubject: null,
+    };
   });
 }
 
@@ -803,6 +818,12 @@ export type ReauthenticationResult = {
   revoked: boolean;
 };
 
+/** What the first transaction of R found: the attempt reserved on its session, or an answer. */
+type ReauthenticationOpening =
+  | { kind: "reserved"; session: ReauthenticationSession }
+  | { kind: "refused" }
+  | { kind: "recovery_session" };
+
 export async function reauthenticate(
   dependencies: BackofficeAuthDependencies,
   request: BackofficeAuthRequest,
@@ -816,17 +837,45 @@ export async function reauthenticate(
       request.requestId,
       fn,
     );
-  const held = await elevated(async (tx) => ({
-    value: await reauthenticationSessionOf(tx, sessionId),
-    auditSubject: null,
-  }));
-  if (held === null) {
+  // J3S-1: the session is read and the attempt reserved in ONE transaction, committed BEFORE
+  // GoTrue (G4): the session's own ceiling (the row whose failures revoke it, EC-40 point 5), then
+  // the network scope of EC-47. A stolen cookie never makes more GoTrue calls than that.
+  const opened = await elevated(
+    async (tx): Promise<ElevatedResult<ReauthenticationOpening>> => {
+      const session = await reauthenticationSessionOf(tx, sessionId);
+      if (session === null) {
+        return { value: { kind: "refused" }, auditSubject: null };
+      }
+      if (session.mfaMethod === "recovery_code") {
+        // EC-17 point 4: a session opened by a recovery code never satisfies R.
+        return { value: { kind: "recovery_session" }, auditSubject: null };
+      }
+      const reserved =
+        (await reserveAuthAttempt(
+          tx,
+          "backoffice_reauth_session",
+          reauthenticationThrottleKey(dependencies.pepper, sessionId),
+          "15m",
+          REAUTHENTICATION_ATTEMPTS_PER_SESSION,
+        )) &&
+        (await reserveNetworkAttempt(
+          tx,
+          dependencies.pepper,
+          request.clientAddress,
+        ));
+      return {
+        value: reserved ? { kind: "reserved", session } : { kind: "refused" },
+        auditSubject: null,
+      };
+    },
+  );
+  if (opened.kind === "refused") {
     return { response: REFUSED, revoked: false };
   }
-  if (held.mfaMethod === "recovery_code") {
-    // EC-17 point 4: a session opened by a recovery code never satisfies R.
+  if (opened.kind === "recovery_session") {
     return { response: { outcome: "recovery_session" }, revoked: false };
   }
+  const held = opened.session;
 
   const outcome = await dependencies.supabaseAuth.withPasswordSession(
     contextOf(dependencies, request),
@@ -903,7 +952,9 @@ export async function reauthenticate(
 
 /**
  * EC-40 point 2: whether R holds on this session right now — a TOTP proof at most five minutes
- * old, read by the database clock. Called by the sensitive actions of B-5 before they act.
+ * old, read by the database clock. NEVER the check of an action (J3S-4: the database function of
+ * the action checks R in its own transaction): read after its refusal only, to tell the screen
+ * that R is missing (runSensitiveAction of backoffice-session.ts).
  */
 export function hasFreshReauthentication(
   database: ApiDatabase,
