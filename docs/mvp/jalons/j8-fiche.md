@@ -171,6 +171,14 @@ e2e 16 ; `pnpm test` = 2 106. Tout nouveau fichier `db-tests` entre dans `case-f
 - EC-J8-12 à EC-J8-22 (en-têtes des migrations, message de `1a41e1b`) ; **EC-J8-19 à arbitrer à la revue cyber** (rejeu en lot sans 2V, `03` l. 562 contre `05` RG101) ; EC-J8-22 notification RG44 au commit 6 ou au Lot 5.
 - Planchers : base 878 (40 fichiers), unitaire `apps/api` 957.
 
+## Issu du commit 4 (`748fcd9`)
+
+- **Toute route B-5 passe par `withSensitiveAction`** (`identity/backoffice-session.ts`) et donne `context.sessionId` à sa fonction SQL (jamais un id du corps) ; refus `42501 forbidden` ⇒ `403 reauthentication_required` sans R fraîche, sinon `403 forbidden` ; autre `42501` ⇒ 500.
+- 2V : `domains/backoffice/dual-control.ts` (vue `next` : `confirm_as_peer` · `confirm_degraded` + `secondsLeft` · `await_peer` · `none` ; `confirmAndExecute` en une transaction ; PD6 `degradedConfirmationsByWeek`) ; aucune route : commits 6 et 9. PD7 de l'écran lu par `peerAdminExists`, lié par test à `has_peer_admin`.
+- J3S-1 : la portée IP de R est celle de la connexion (20 / h partagés) ; à surveiller si plusieurs agents partagent une IP. J3S-5 : l'acceptation d'invitation (commit 7) passe par `withNewPassword` (`isPwned` déjà injecté).
+- **EC-J8-23** : la raison sociale de `change_member_role` est hors charge 2V (`0132`), saisie à la confirmation, non couverte par le pair : à régler au commit 6 (charge étendue).
+- Planchers : base 885 (41 fichiers), unitaire `apps/api` 966.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les
