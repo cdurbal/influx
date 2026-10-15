@@ -14,6 +14,8 @@ export default defineConfig({
         test: {
           name: "unit",
           include: ["tests/**/*.test.ts"],
+          // J7T-1: the ESLint witnesses exceed the default 5 s under the load of the full suite.
+          testTimeout: 20_000,
         },
       },
       {

@@ -62,6 +62,7 @@ import {
 } from "../../platform/auth-tokens.ts";
 import type { TransactionalSender } from "../../platform/brevo-transactional.ts";
 import { clientAddressOf } from "../../platform/client-address.ts";
+import type { EmailSwitch } from "../../platform/email-switch.ts";
 import {
   ApiError,
   RequestValidationError,
@@ -118,6 +119,8 @@ export type IdentityDependencies = {
   backofficeAuthFloorMs?: number;
   /** Version in force of a public document (EC-62); the database unless a test replaces it. */
   termsLookup?: TermsLookup;
+  /** The emergency switch of the e-mails (16 RG121); not stored before Lot 5 unless a test sets it. */
+  emailSwitch?: EmailSwitch;
 };
 
 /**

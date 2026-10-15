@@ -5,6 +5,7 @@
 // DEFINER functions of 0014 (EC-53 (2)).
 import { sql } from "drizzle-orm";
 import type { Transaction } from "../../db/index.ts";
+import type { SendPriority } from "../../platform/email-switch.ts";
 
 export type ThrottleScope =
   | "code_request_email"
@@ -1030,6 +1031,8 @@ export async function insertEmailChangeCodeSend(
     newEmail: string;
     locale: string;
     templateVersion: number;
+    /** The class the emergency switch reads (EMAIL_CHANGE_CODE_PRIORITY). */
+    priority: SendPriority;
   },
 ): Promise<string> {
   const code = `auth.email_change_confirm_${line.side}`;
@@ -1037,7 +1040,8 @@ export async function insertEmailChangeCodeSend(
     sql`insert into leads.transactional_sends
           (email_code, priority, account_id, recipient_email, locale, template_ref,
            template_version)
-        values (${code}, 'p1', ${line.side === "old" ? line.accountId : null}::uuid,
+        values (${code}, ${line.priority}::leads.send_priority,
+                ${line.side === "old" ? line.accountId : null}::uuid,
                 ${line.side === "new" ? line.newEmail : null}, ${line.locale}, ${code},
                 ${line.templateVersion})
         returning reference::text as reference`,

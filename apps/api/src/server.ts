@@ -450,6 +450,9 @@ export function buildServer(
     ...(options.identity?.termsLookup === undefined
       ? {}
       : { termsLookup: options.identity.termsLookup }),
+    ...(options.identity?.emailSwitch === undefined
+      ? {}
+      : { emailSwitch: options.identity.emailSwitch }),
   });
   // Authentication of the backoffice (21 §4, J3 commit 10).
   registerBackofficeAuthRoutes(app, {

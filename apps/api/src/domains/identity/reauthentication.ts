@@ -12,9 +12,9 @@
 //            the session's: the marker of 0118 on this session, for this purpose, at now().
 //
 // The proof is consumed by the sensitive action itself, in its own transaction (0118
-// consume_member_reauthentication(): 300 seconds, single use); `requireFreshCode` turns its
-// refusal (55000) into 403 reauthentication_required. Nothing here logs an address, a code, a
-// journey token or a session id (D60, C-1).
+// consume_member_reauthentication(): MEMBER_REAUTHENTICATION_FRESHNESS_SECONDS, single use);
+// `requireFreshCode` turns its refusal (55000) into 403 reauthentication_required. Nothing here
+// logs an address, a code, a journey token or a session id (D60, C-1).
 import type {
   ReauthPurpose,
   ReauthVerifyCodeResponse,
@@ -52,7 +52,7 @@ import {
 import {
   CODE_VALIDITY_SECONDS,
   GOTRUE_CODE_BUDGET_MS,
-  REAUTHENTICATION_FRESHNESS_SECONDS,
+  MEMBER_REAUTHENTICATION_FRESHNESS_SECONDS,
 } from "./settings.ts";
 import { checkEmailCode, type VerifyCodeLogger } from "./verify-code.ts";
 
@@ -310,7 +310,7 @@ export async function verifyReauthenticationCode(
   return {
     outcome: "reauthenticated",
     purpose: request.purpose,
-    validForSeconds: REAUTHENTICATION_FRESHNESS_SECONDS,
+    validForSeconds: MEMBER_REAUTHENTICATION_FRESHNESS_SECONDS,
   };
 }
 

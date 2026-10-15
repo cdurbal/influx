@@ -556,6 +556,49 @@ describe("the blocking re-acceptance of the terms of service (05 RG28, CA70; 17 
     ).toHaveLength(1);
   });
 
+  it("two acceptances at the same time: one is recorded, the other answers 409 (J7T-2)", async () => {
+    const server = app();
+    const member = await newMember("creator", {
+      acceptTerms: false,
+      sessions: 2,
+    });
+    // Both requests read the version to accept, then wait on their insert until the lock is
+    // released: they overlap for sure, and the second meets the unique index (23505), never the
+    // committed first acceptance (which answers "accepted" without writing).
+    const { pending } = await migration.begin(async (tx) => {
+      await tx`lock table identity.terms_acceptances in share mode`;
+      const pending = Promise.all(
+        member.sessions.map((session) =>
+          call(server, "POST", "/v1/me/terms/accept", session, {
+            termsVersionId: termsInForce.fr,
+          }),
+        ),
+      );
+      for (let tries = 0; ; tries += 1) {
+        // pg_locks is read live, through the locking transaction (its pool has one connection)
+        const [row] = await tx<{ waiting: number }[]>`
+          select count(*)::int as waiting from pg_catalog.pg_locks
+           where relation = 'identity.terms_acceptances'::regclass and not granted`;
+        if ((row?.waiting ?? 0) >= 2) {
+          break;
+        }
+        if (tries > 200) {
+          throw new Error("the two acceptances never reached their insert");
+        }
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+      // wrapped: begin() would await the requests before its commit releases the lock
+      return { pending };
+    });
+    const answers = await pending;
+    expect(answers.map((answer) => answer.statusCode).sort()).toEqual([
+      200, 409,
+    ]);
+    expect(
+      await migration`select 1 from identity.terms_acceptances where account_id = ${member.accountId}`,
+    ).toHaveLength(1);
+  });
+
   it("refusing signs out without deleting the account (CA70)", async () => {
     const server = app();
     const member = await newMember("advertiser", { acceptTerms: false });

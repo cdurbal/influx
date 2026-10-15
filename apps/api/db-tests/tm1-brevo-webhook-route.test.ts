@@ -224,6 +224,23 @@ describe("POST /v1/webhooks/brevo/:pathToken: the raw line, written by E-1 (RG14
     }
   });
 
+  it("two identical POSTs at the same time write one line and one audit line, both 200 (J7T-2)", async () => {
+    const { server } = app();
+    const body = brevoEvent(randomUUID(), { event: "soft_bounce" });
+    try {
+      const answers = await Promise.all([
+        receive(server, body),
+        receive(server, body),
+      ]);
+      expect(answers.map((answer) => answer.statusCode)).toEqual([200, 200]);
+      const { lines, audits } = await writtenFor(body["message-id"]);
+      expect(lines).toHaveLength(1);
+      expect(audits).toHaveLength(1);
+    } finally {
+      await server.close();
+    }
+  });
+
   it("records another event of the same message as a line of its own (the key holds the event)", async () => {
     const { server } = app();
     const body = brevoEvent(randomUUID(), { event: "delivered" });

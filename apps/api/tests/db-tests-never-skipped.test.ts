@@ -1,6 +1,6 @@
 // 18 §3 rule 2: the database tests are never skipped. A `.skip`, `.todo`, `.skipIf` or `.only`
 // in db-tests/ fails the run. A dynamic skip, a removed case or an empty `it.each` escapes this
-// static guard: the floor of executed cases per file catches them (scripts/check-db-case-floors.ts,
+// static guard: the floor of executed cases per file catches them (scripts/check-case-floors.ts,
 // db-tests/case-floors.ts, 21 Q2).
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";

@@ -23,7 +23,12 @@ import {
   createApiDatabase,
   type ApiDatabase,
 } from "../src/db/index.ts";
+import { MEMBER_REAUTHENTICATION_FRESHNESS_SECONDS } from "../src/domains/identity/settings.ts";
 import { createTransactionalSender } from "../src/platform/brevo-transactional.ts";
+import type {
+  EmailSwitch,
+  EmailSwitchLevel,
+} from "../src/platform/email-switch.ts";
 import type {
   GoTrueFailure,
   GoTrueOutcome,
@@ -208,13 +213,14 @@ async function newMember(
   };
 }
 
-function app() {
+function app(emailSwitch?: EmailSwitch) {
   const logs = captureLogs();
   logStreams.push(() => logs.text());
   return buildServer(testApiConfig(), {
     logDestination: logs.destination,
     database,
     identity: {
+      ...(emailSwitch === undefined ? {} : { emailSwitch }),
       supabaseAuth: gotrue.auth(),
       sender: createTransactionalSender(
         {
@@ -318,7 +324,7 @@ async function reauthenticate(
   expect(verified.json()).toEqual({
     outcome: "reauthenticated",
     purpose,
-    validForSeconds: 300,
+    validForSeconds: MEMBER_REAUTHENTICATION_FRESHNESS_SECONDS,
   });
   expect(verified.headers["cache-control"]).toBe("no-store");
 }
@@ -628,6 +634,62 @@ describe("POST /v1/me/email-change: behind a fresh code for this action only (RG
       newEmail: newAddress("again"),
     });
     expect(errorOf(again).code).toBe("reauthentication_required");
+  });
+
+  it("two requests at the same time on one fresh code: one wins, the other 403, one request recorded (J7T-2)", async () => {
+    const server = app();
+    const member = await newMember();
+    await reauthenticate(server, member);
+    const from = double.messages.length;
+    const answers = await Promise.all([
+      call(server, "POST", "/v1/me/email-change", member, {
+        newEmail: newAddress("race-a"),
+      }),
+      call(server, "POST", "/v1/me/email-change", member, {
+        newEmail: newAddress("race-b"),
+      }),
+    ]);
+    expect(answers.map((answer) => answer.statusCode).sort()).toEqual([
+      200, 403,
+    ]);
+    const lost = answers.find((answer) => answer.statusCode === 403);
+    expect(lost === undefined ? null : errorOf(lost).code).toBe(
+      "reauthentication_required",
+    );
+    const [count] = await migration<{ count: number }[]>`
+      select count(*)::int as count from identity.email_change_requests
+       where account_id = ${member.accountId}`;
+    expect(count?.count).toBe(1);
+    // the two codes of the winner only
+    expect(double.messages.slice(from)).toHaveLength(2);
+  });
+
+  it("the switch at all_paused holds the two P1 codes: 503 before the request, the fresh code kept; the sign-in code (P0) still leaves (16 RG121, RG122)", async () => {
+    let level: EmailSwitchLevel = "all_paused";
+    const server = app({ level: () => Promise.resolve(level) });
+    const member = await newMember();
+    // P0: the fresh code itself is never held
+    await reauthenticate(server, member);
+    const from = double.messages.length;
+    const held = await call(server, "POST", "/v1/me/email-change", member, {
+      newEmail: newAddress("held"),
+    });
+    expect(errorOf(held)).toEqual({
+      status: 503,
+      code: "email_change_unavailable",
+    });
+    expect(double.messages.slice(from)).toHaveLength(0);
+    const [count] = await migration<{ count: number }[]>`
+      select count(*)::int as count from identity.email_change_requests
+       where account_id = ${member.accountId}`;
+    expect(count?.count).toBe(0);
+    // marketing_paused holds no transactional send; the marker was not consumed
+    level = "marketing_paused";
+    const started = await call(server, "POST", "/v1/me/email-change", member, {
+      newEmail: newAddress("released"),
+    });
+    expect(started.statusCode).toBe(200);
+    expect(double.messages.slice(from)).toHaveLength(2);
   });
 });
 

@@ -1,5 +1,5 @@
 // Floor of executed cases per database test file (docs/mvp/18 §3 rule 2, 21 Q2). Read by
-// scripts/check-db-case-floors.ts after `pnpm test:db`: a file that runs fewer cases than its floor,
+// scripts/check-case-floors.ts after `pnpm test:db`: a file that runs fewer cases than its floor,
 // a case that did not run (skipped, todo), a file without a floor or a floor without a file fails
 // the run. Raise a floor when a file gains cases. LOWERING a floor is done in a commit whose
 // message says which cases disappear and why (18 §3 rule 2).
@@ -18,18 +18,18 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/t8-gotrue-findings.test.ts": 26,
   "db-tests/t8-mfa-throttle-journal.test.ts": 30,
   "db-tests/t8-new-browser-signal.test.ts": 8,
-  "db-tests/t8-reauth-email-change.test.ts": 28,
+  "db-tests/t8-reauth-email-change.test.ts": 29,
   "db-tests/t8-request-code.test.ts": 12,
   "db-tests/t8-session-writes.test.ts": 43,
   "db-tests/t8-verify-code.test.ts": 19,
   "db-tests/tm1-apollo-connector.test.ts": 14,
-  "db-tests/tm1-brevo-connector.test.ts": 14,
+  "db-tests/tm1-brevo-connector.test.ts": 15,
   "db-tests/tm1-brevo-inbound.test.ts": 35,
   "db-tests/tm1-brevo-inbound-worker.test.ts": 15,
-  "db-tests/tm1-brevo-webhook-route.test.ts": 4,
+  "db-tests/tm1-brevo-webhook-route.test.ts": 5,
   "db-tests/tm1-data-requests-route.test.ts": 10,
-  "db-tests/tm1-email-change-route.test.ts": 17,
-  "db-tests/tm1-member-account-route.test.ts": 16,
+  "db-tests/tm1-email-change-route.test.ts": 19,
+  "db-tests/tm1-member-account-route.test.ts": 17,
   "db-tests/tm1-member-consent.test.ts": 9,
   "db-tests/tm1-outbox-claim.test.ts": 71,
   "db-tests/tm1-periodic-runs.test.ts": 32,

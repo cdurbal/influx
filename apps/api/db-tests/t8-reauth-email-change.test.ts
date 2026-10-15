@@ -19,6 +19,7 @@ import {
 import { createHash, randomUUID } from "node:crypto";
 import type postgres from "postgres";
 import { beforeAll, describe, expect, it } from "vitest";
+import { MEMBER_REAUTHENTICATION_FRESHNESS_SECONDS } from "../src/domains/identity/settings.ts";
 import {
   actAs,
   actAsMember,
@@ -30,6 +31,8 @@ import {
 const INSUFFICIENT_PRIVILEGE = "42501";
 const INVALID_PARAMETER = "22023";
 const NOT_IN_PREREQUISITE_STATE = "55000";
+/** J7S-7: the SQL literal of 0118 and the constant of apps/api are one value. */
+const FRESHNESS = MEMBER_REAUTHENTICATION_FRESHNESS_SECONDS;
 
 type Purpose = "email_change" | "data_export" | "account_deletion";
 type MemberRole = "influx_advertiser" | "influx_creator";
@@ -292,11 +295,22 @@ describe("identity.mark_member_reauthenticated() (E-2, influx_auth only)", () =>
   });
 });
 
-describe("the marker is single use, for one purpose, for 300 seconds (consume_member_reauthentication)", () => {
+describe("the marker is single use, for one purpose, for MEMBER_REAUTHENTICATION_FRESHNESS_SECONDS (consume_member_reauthentication)", () => {
+  it("holds the constant of apps/api as its only bound (J7S-7)", async () => {
+    const [row] = await localSuperuser()<{ definition: string }[]>`
+      select pg_catalog.pg_get_functiondef(
+               'identity.consume_member_reauthentication(uuid, identity.reauth_purpose)'::regprocedure)
+               as definition`;
+    const bounds = [
+      ...(row?.definition ?? "").matchAll(/interval '(\d+) seconds'/g),
+    ].map((match) => Number(match[1]));
+    expect(bounds).toEqual([FRESHNESS]);
+  });
+
   it.each([
     ["without a marker", null, 0],
     ["with the marker of another purpose", "data_export", 0],
-    ["with a marker of 301 seconds", "email_change", 301],
+    ["with a marker one second too old", "email_change", FRESHNESS + 1],
   ] as const)(
     "refuses the request %s (55000)",
     async (_label, purpose, age) => {
@@ -318,12 +332,12 @@ describe("the marker is single use, for one purpose, for 300 seconds (consume_me
     },
   );
 
-  it("accepts a marker of 299 seconds once, then refuses the second use", async () => {
+  it("accepts a marker one second short of the bound once, then refuses the second use", async () => {
     const who = member("advertiser", "a");
     const results = await scenario(async (tx) => {
       const session = await sessionOf(tx, who.account);
       await markReauthenticated(tx, session, "email_change");
-      await ageMarker(tx, session, 299);
+      await ageMarker(tx, session, FRESHNESS - 1);
       return [
         await requestChange(tx, who, session, "first@example.test"),
         await requestChange(tx, who, session, "second@example.test"),

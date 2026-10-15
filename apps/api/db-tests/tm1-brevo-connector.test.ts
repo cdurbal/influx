@@ -350,6 +350,30 @@ describe("05 CA38, CA40, 16 RG142: a sign-up reaches Brevo through the real queu
     expect(double.delivered).toHaveLength(1);
   });
 
+  it("TM1.1: Brevo alone answers 500, the account stays and both lines go back to pending, retried later (J6T-1)", async () => {
+    const account = await createAccount({ role: "creator" });
+    const { contact, welcome } = await insertSignupLines(account, "creator");
+    double.queue(
+      { status: 500, body: { code: "internal_error" } },
+      { status: 500, body: { code: "internal_error" } },
+    );
+    await turn();
+    for (const id of [contact, welcome]) {
+      const [line] = await migration<
+        { status: string; attempts: number; later: boolean }[]
+      >`
+        select status::text as status, attempts, available_at > now() as later
+          from leads.outbox_events where id = ${id}`;
+      expect(line).toEqual({ status: "pending", attempts: 1, later: true });
+      expect((await lineRow(id)).last_error_code).not.toBeNull();
+    }
+    expect(double.contacts.size).toBe(0);
+    expect(double.delivered).toHaveLength(0);
+    const [kept] = await migration<{ deleted: boolean }[]>`
+      select deleted_at is not null as deleted from identity.accounts where id = ${account}`;
+    expect(kept).toEqual({ deleted: false });
+  });
+
   it("writes no address, no account and no attribute value in the log lines (D60)", async () => {
     const account = await createAccount({ role: "advertiser" });
     await insertSignupLines(account, "advertiser");

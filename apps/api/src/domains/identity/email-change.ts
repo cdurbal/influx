@@ -8,7 +8,9 @@
 //             (0123); both sends, synchronous, Idempotency-Key = request + side; (E-1) their
 //             outcomes. A code that did not leave closes the request (not_sent, 0124): 503
 //             email_change_unavailable, never a silent skip (the texts live in the repository,
-//             RG67: nothing to configure).
+//             RG67: nothing to configure). The two codes are P1: the emergency switch at
+//             all_paused holds them (16 RG121), so the request answers 503 before anything is
+//             consumed or written, the fresh code staying usable.
 //   confirm   (member) identity.confirm_email_change() for one side (5 attempts per side). Both
 //             sides done: GoTrue takes the new address (admin.updateUserById, confirmed), THEN
 //             (member) identity.complete_email_change(): the address, the other sessions revoked,
@@ -40,6 +42,12 @@ import type {
   SendOutcome,
   TransactionalSender,
 } from "../../platform/brevo-transactional.ts";
+import {
+  EMAIL_SWITCH_NOT_STORED,
+  holdsTransactionalSend,
+  type EmailSwitch,
+  type SendPriority,
+} from "../../platform/email-switch.ts";
 import { ApiError, RequestValidationError } from "../../platform/errors.ts";
 import type { SupabaseAuth } from "../../platform/supabase.ts";
 import { renderEmailChangeEmail } from "./email-change-email.ts";
@@ -67,6 +75,9 @@ import { emailChangeCodeDigest } from "./throttle-keys.ts";
 /** Version of the two code templates, COPIED on the journal lines (04 R7). */
 export const EMAIL_CHANGE_TEMPLATE_VERSION = 1;
 
+/** The class of the two code sends, written on their journal lines and read by the switch. */
+export const EMAIL_CHANGE_CODE_PRIORITY: SendPriority = "p1";
+
 const SIDES: readonly EmailChangeSide[] = ["old", "new"];
 
 export type EmailChangeDependencies = {
@@ -76,6 +87,8 @@ export type EmailChangeDependencies = {
   /** AUTH_THROTTLE_PEPPER: the key of the code digests (label email-change-code:). */
   pepper: string;
   now: () => Date;
+  /** 16 RG121; EMAIL_SWITCH_NOT_STORED until Lot 5, or a test's. */
+  emailSwitch?: EmailSwitch;
 };
 
 /** One transaction of the member session of the request (withMemberSession, terms required). */
@@ -140,6 +153,12 @@ export async function startEmailChange(
     if (profile === null) {
       throw new ApiError("unauthenticated");
     }
+    const switchLevel = await (
+      dependencies.emailSwitch ?? EMAIL_SWITCH_NOT_STORED
+    ).level();
+    if (holdsTransactionalSend(switchLevel, EMAIL_CHANGE_CODE_PRIORITY)) {
+      throw new ApiError("email_change_unavailable");
+    }
     try {
       await requireFreshCode(() =>
         requestEmailChange(tx, {
@@ -184,6 +203,7 @@ export async function startEmailChange(
           newEmail,
           locale: started.locale,
           templateVersion: EMAIL_CHANGE_TEMPLATE_VERSION,
+          priority: EMAIL_CHANGE_CODE_PRIORITY,
         }),
         new: await insertEmailChangeCodeSend(tx, {
           side: "new",
@@ -191,6 +211,7 @@ export async function startEmailChange(
           newEmail,
           locale: started.locale,
           templateVersion: EMAIL_CHANGE_TEMPLATE_VERSION,
+          priority: EMAIL_CHANGE_CODE_PRIORITY,
         }),
       };
       return { value: lines, auditSubject: started.accountId };

@@ -70,6 +70,13 @@ export const REAUTHENTICATION_FAILURES_PER_SESSION = 5;
 /** EC-40 point 2: R holds while the last TOTP proof of the session is at most this old. */
 export const REAUTHENTICATION_FRESHNESS_SECONDS = 300;
 
+/**
+ * J7 decision 4 (provisional): a member's fresh code serves its action this long, once. Written as
+ * a literal in 0118 identity.consume_member_reauthentication(); t8-reauth-email-change ties the
+ * two. Distinct from R of the backoffice, which only shares its value today.
+ */
+export const MEMBER_REAUTHENTICATION_FRESHNESS_SECONDS = 300;
+
 /** 03 §6.1, J3-C rule 8: the absolute bound of a backoffice session, the Max-Age of its cookie. */
 export const BACKOFFICE_SESSION_ABSOLUTE_SECONDS = 8 * 60 * 60;
 
