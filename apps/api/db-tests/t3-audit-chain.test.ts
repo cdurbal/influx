@@ -89,24 +89,72 @@ async function createTargets(count: number): Promise<string[]> {
   return ids;
 }
 
-/** Writes one line through the only public path at J2: identity.grant_role() by an admin. */
-async function grantAsAdmin(
-  tx: postgres.TransactionSql,
-  target: string,
-): Promise<void> {
-  await takeRole(tx, "influx_admin", {
-    accountId: dataSet.accounts.admin.a.id,
+/** A role grant whose dual control (0130) is already confirmed: one register line left to write. */
+type PreparedGrant = { target: string; request: string; session: string };
+
+/** A fresh backoffice session of admin A, committed: its TOTP proof is now (R, 0130). */
+async function freshAdminSession(): Promise<string> {
+  const [row] = await migration<{ id: string }[]>`
+    insert into identity.sessions (token_hash, account_id, surface, mfa_method, user_agent_summary)
+    values (sha256(gen_random_uuid()::text::bytea), ${dataSet.accounts.admin.a.id}, 'backoffice',
+            'totp', 'firefox.linux')
+    returning id::text`;
+  if (row === undefined) {
+    throw new Error("no session");
+  }
+  return row.id;
+}
+
+function asAdmin(tx: postgres.TransactionSql, side: "a" | "b"): Promise<void> {
+  return takeRole(tx, "influx_admin", {
+    accountId: dataSet.accounts.admin[side].id,
     role: "admin",
     aal: "aal2",
   });
-  await tx`select identity.grant_role(${target}, 'advertiser', 'test_t3')`;
+}
+
+/**
+ * Targets and their dual control, committed BEFORE the grants (0130): admin B requests, admin A
+ * confirms with a fresh second factor. The grant itself then writes exactly one register line,
+ * which T3.8 and T3.9 count.
+ */
+async function prepareGrants(count: number): Promise<PreparedGrant[]> {
+  const targets = await createTargets(count);
+  const session = await freshAdminSession();
+  const prepared: PreparedGrant[] = [];
+  await loginRole("influx_app").begin(async (tx) => {
+    for (const target of targets) {
+      await asAdmin(tx, "b");
+      const [row] = await tx<{ id: string }[]>`
+        select backoffice.request_dual_control('identity.grant_role',
+                 jsonb_build_object('account_id', ${target}::uuid, 'role', 'advertiser'),
+                 'test_t3')::text as id`;
+      if (row === undefined) {
+        throw new Error("no request");
+      }
+      await asAdmin(tx, "a");
+      await tx`select backoffice.confirm_dual_control(${session}::uuid, ${row.id}::uuid)`;
+      prepared.push({ target, request: row.id, session });
+    }
+  });
+  return prepared;
+}
+
+/** Writes one line through identity.grant_role() by admin A, the confirmer (2V and R, 0130). */
+async function grantAsAdmin(
+  tx: postgres.TransactionSql,
+  grant: PreparedGrant,
+): Promise<void> {
+  await asAdmin(tx, "a");
+  await tx`select identity.grant_role(${grant.session}::uuid, ${grant.request}::uuid,
+                                      ${grant.target}::uuid, 'advertiser', 'test_t3')`;
 }
 
 async function grantCommitted(
   sql: postgres.Sql,
-  target: string,
+  grant: PreparedGrant,
 ): Promise<void> {
-  await sql.begin((tx) => grantAsAdmin(tx, target));
+  await sql.begin((tx) => grantAsAdmin(tx, grant));
 }
 
 async function lastSeq(): Promise<number> {
@@ -286,12 +334,51 @@ describe("T3.3: the register is written by audit.append() only", () => {
   });
 });
 
+describe("T3: the register codes of the backoffice socle (0130, J8 commit 2)", () => {
+  it("knows the dual control codes, settings.changed and ownership.reassigned, with their subject", async () => {
+    const codes = await migration<
+      { code: string; domain: string; subject_type: string; severity: string }[]
+    >`
+      select code, domain, subject_type, severity from audit.event_types
+       where (code like 'dual\\_control.%'
+              or code in ('settings.changed', 'ownership.reassigned'))
+         and is_active
+       order by code`;
+    expect(codes).toEqual([
+      ...[
+        "dual_control.cancelled",
+        "dual_control.confirmed",
+        "dual_control.confirmed_degraded",
+        "dual_control.expired",
+        "dual_control.requested",
+      ].map((code) => ({
+        code,
+        domain: "backoffice",
+        subject_type: "dual_control_request",
+        severity: "critical",
+      })),
+      {
+        code: "ownership.reassigned",
+        domain: "backoffice",
+        subject_type: "account",
+        severity: "sensitive",
+      },
+      {
+        code: "settings.changed",
+        domain: "backoffice",
+        subject_type: "setting",
+        severity: "sensitive",
+      },
+    ]);
+  });
+});
+
 describe("T3.4 to T3.9: the chain", () => {
   beforeAll(async () => {
     // At least five lines after the genesis, written through audit.append() and committed.
     const app = loginRole("influx_app");
-    for (const target of await createTargets(5)) {
-      await grantCommitted(app, target);
+    for (const grant of await prepareGrants(5)) {
+      await grantCommitted(app, grant);
     }
   });
 
@@ -360,18 +447,19 @@ describe("T3.4 to T3.9: the chain", () => {
   });
 
   it("T3.8: fifty simultaneous writers produce fifty consecutive seq, no fork", async () => {
-    const targets = await createTargets(50);
+    const grants = await prepareGrants(50);
+    const targets = grants.map((grant) => grant.target);
     // Fifty DISTINCT connections (not the shared one), closed at the end.
-    const connections = targets.map(() =>
+    const connections = grants.map(() =>
       connectAsLoginRole("influx_app", { max: 1 }),
     );
     await Promise.all(
-      targets.map((target, index) => {
+      grants.map((grant, index) => {
         const sql = connections[index];
         if (sql === undefined) {
           throw new Error("missing connection");
         }
-        return grantCommitted(sql, target);
+        return grantCommitted(sql, grant);
       }),
     );
     await Promise.all(connections.map((sql) => sql.end({ timeout: 1 })));
@@ -390,7 +478,7 @@ describe("T3.4 to T3.9: the chain", () => {
   });
 
   it("T3.9: a rolled-back transaction leaves no hole", async () => {
-    const [rolledBack, committed] = await createTargets(2);
+    const [rolledBack, committed] = await prepareGrants(2);
     if (rolledBack === undefined || committed === undefined) {
       throw new Error("targets missing");
     }

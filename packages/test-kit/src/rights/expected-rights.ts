@@ -672,6 +672,63 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
       },
     }),
   },
+  {
+    table: "backoffice.queues",
+    source:
+      "0129 (J8, 15 RG26, RG29): the closed catalogue of the queues, written by the migrations only",
+    probeColumn: "code",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "03 §3.5 « Tableau de bord, indicateurs agrégés » L; 15 RG28: the queue counters, aal2",
+      },
+    }),
+  },
+  {
+    table: "backoffice.sla_policies",
+    source:
+      "0129 (J8, D39, 15 RG29, RG38): one delay per queue, written by the migrations only; " +
+      "influx_identity_definer reads the delay of dual_control_pending (0130)",
+    probeColumn: "queue_code",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "03 §3.5 « Tableau de bord, indicateurs agrégés » L; 15 RG28, RG38: delays read in aal2",
+      },
+    }),
+  },
+  {
+    table: "backoffice.alert_definitions",
+    source:
+      "0130 (J8, 15 §F RG63 to RG68): the catalogue of alerts of Lot 1, written by the migrations only",
+    probeColumn: "code",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "03 §3.5 « Tableau de bord, indicateurs agrégés » L; 15 RG63: thresholds read in aal2",
+      },
+    }),
+  },
+  {
+    table: "backoffice.dual_control_requests",
+    source:
+      "0130 (J8, 03 PD4, 15 RG31): written by backoffice.request_dual_control(), " +
+      "confirm_dual_control(), cancel_dual_control() and consumed by identity.grant_role() only",
+    probeColumn: "id",
+    expected: {
+      influx_admin: {
+        select: {
+          form: "autorisé",
+          source:
+            "15 RG29 queue 15 dual_control_pending: « admin distinct du demandeur, ou le demandeur " +
+            "en mode dégradé »; 03 §3.1 2V, aal2",
+        },
+      },
+    },
+  },
 ];
 
 /**
@@ -719,7 +776,8 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * of 0101 to 0106 (J5, Lot 1), each line checked against its migration; and on 2026-10-09 with
  * those of 0111 (J6, E-3: influx_leads_definer column by column, influx_worker on its functions);
  * and on 2026-10-13 with those of 0116 and 0117 (J7 commit 2), then of 0118 to 0120 (J7 commit
- * 2bis), each line checked against its migration.
+ * 2bis), each line checked against its migration; and on 2026-10-15 with those of 0129 and 0130
+ * (J8 commit 2), each line checked against its migration.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -738,7 +796,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.sessions.surface|SELECT",
   "influx_admin|column|identity.sessions.updated_at|SELECT",
   "influx_admin|column|identity.sessions.user_agent_summary|SELECT",
-  "influx_admin|function|identity.grant_role(uuid,identity.account_role,text)|EXECUTE",
+  "influx_admin|function|identity.grant_role(uuid,uuid,uuid,identity.account_role,text)|EXECUTE",
   "influx_admin|function|identity.revoke_own_session(uuid,identity.session_revocation_reason)|EXECUTE",
   "influx_admin|function|identity.touch_session(uuid)|EXECUTE",
   "influx_admin|function|influx.current_aal()|EXECUTE",
@@ -1009,7 +1067,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|function|identity.auth_failure_count(identity.throttle_scope,bytea,identity.throttle_window)|EXECUTE",
   "influx_identity_definer|function|identity.consume_recovery_code(uuid,bytea)|EXECUTE",
   "influx_identity_definer|function|identity.enrollment_token_is_valid(uuid,bytea)|EXECUTE",
-  "influx_identity_definer|function|identity.grant_role(uuid,identity.account_role,text)|EXECUTE",
+  "influx_identity_definer|function|identity.grant_role(uuid,uuid,uuid,identity.account_role,text)|EXECUTE",
   "influx_identity_definer|function|identity.pin_mfa_factor(uuid,uuid,bytea,bytea[])|EXECUTE",
   "influx_identity_definer|function|identity.record_auth_failure(identity.throttle_scope,bytea,identity.throttle_window)|EXECUTE",
   "influx_identity_definer|function|identity.reserve_auth_attempt(identity.throttle_scope,bytea,identity.throttle_window,integer)|EXECUTE",
@@ -1488,6 +1546,50 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|column|backoffice.data_subject_requests.requester_account_id|SELECT",
   "influx_leads_definer|column|backoffice.data_subject_requests.status|SELECT",
   "influx_leads_definer|column|identity.accounts.timezone|SELECT",
+  // 0129 (J8 commit 2): the catalogue of the queues and their delays, read by agent and admin in
+  // aal2; nobody writes them but the migrations.
+  "influx_agent|table|backoffice.queues|SELECT",
+  "influx_admin|table|backoffice.queues|SELECT",
+  "influx_agent|table|backoffice.sla_policies|SELECT",
+  "influx_admin|table|backoffice.sla_policies|SELECT",
+  // 0130 (J8 commit 2): the catalogue of alerts (agent and admin), the dual control requests
+  // (admin), the three 2V functions and grant_role() rewritten (influx_admin only); their owner
+  // reads and writes the requests column by column, reads the delay of dual_control_pending, the
+  // second-factor freshness of a session (R) and the break-glass flag (PD7), and owns the four
+  // SECURITY INVOKER helpers.
+  "influx_agent|table|backoffice.alert_definitions|SELECT",
+  "influx_admin|table|backoffice.alert_definitions|SELECT",
+  "influx_admin|table|backoffice.dual_control_requests|SELECT",
+  "influx_admin|function|backoffice.request_dual_control(text,jsonb,text,text)|EXECUTE",
+  "influx_admin|function|backoffice.confirm_dual_control(uuid,uuid,text)|EXECUTE",
+  "influx_admin|function|backoffice.cancel_dual_control(uuid)|EXECUTE",
+  "influx_identity_definer|function|backoffice.request_dual_control(text,jsonb,text,text)|EXECUTE",
+  "influx_identity_definer|function|backoffice.confirm_dual_control(uuid,uuid,text)|EXECUTE",
+  "influx_identity_definer|function|backoffice.cancel_dual_control(uuid)|EXECUTE",
+  "influx_identity_definer|function|backoffice.consume_dual_control(uuid,text,jsonb,text)|EXECUTE",
+  "influx_identity_definer|function|backoffice.has_peer_admin(uuid)|EXECUTE",
+  "influx_identity_definer|function|identity.require_active_admin()|EXECUTE",
+  "influx_identity_definer|function|identity.assert_fresh_second_factor(uuid)|EXECUTE",
+  "influx_identity_definer|column|backoffice.dual_control_requests.action_code|INSERT,SELECT",
+  "influx_identity_definer|column|backoffice.dual_control_requests.cancelled_by_account_id|SELECT,UPDATE",
+  "influx_identity_definer|column|backoffice.dual_control_requests.confirmed_by_account_id|SELECT,UPDATE",
+  "influx_identity_definer|column|backoffice.dual_control_requests.consumed_at|SELECT,UPDATE",
+  "influx_identity_definer|column|backoffice.dual_control_requests.degraded_justification|UPDATE",
+  "influx_identity_definer|column|backoffice.dual_control_requests.expires_at|SELECT",
+  "influx_identity_definer|column|backoffice.dual_control_requests.id|SELECT",
+  "influx_identity_definer|column|backoffice.dual_control_requests.payload|INSERT,SELECT",
+  "influx_identity_definer|column|backoffice.dual_control_requests.reason_code|INSERT,SELECT",
+  "influx_identity_definer|column|backoffice.dual_control_requests.reason_note|INSERT",
+  "influx_identity_definer|column|backoffice.dual_control_requests.requested_at|SELECT",
+  "influx_identity_definer|column|backoffice.dual_control_requests.requested_by_account_id|INSERT,SELECT",
+  "influx_identity_definer|column|backoffice.dual_control_requests.state|SELECT,UPDATE",
+  "influx_identity_definer|column|backoffice.sla_policies.business_hours|SELECT",
+  "influx_identity_definer|column|backoffice.sla_policies.is_active|SELECT",
+  "influx_identity_definer|column|backoffice.sla_policies.queue_code|SELECT",
+  "influx_identity_definer|column|backoffice.sla_policies.target_decision_minutes|SELECT",
+  "influx_identity_definer|column|identity.agent_profiles.is_break_glass|SELECT",
+  "influx_identity_definer|column|identity.sessions.mfa_method|SELECT",
+  "influx_identity_definer|column|identity.sessions.mfa_verified_at|SELECT",
 ];
 
 /**
@@ -1551,7 +1653,8 @@ export const EXECUTION_ROLES = [
 export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "audit.append(text,text,uuid,jsonb)": "influx_audit_writer",
   "identity.resolve_session(bytea)": "influx_session_resolver",
-  "identity.grant_role(uuid,identity.account_role,text)":
+  // 0130 (J8): the 0004 signature dropped, 2V and R enforced in the function
+  "identity.grant_role(uuid,uuid,uuid,identity.account_role,text)":
     "influx_identity_definer",
   // 0011 (EC-36, EC-44)
   "audit.append_elevated(text,uuid)": "influx_audit_writer",
@@ -1638,4 +1741,11 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
     "influx_identity_definer",
   // 0126 (J7 commit 8)
   "identity.signal_new_browser(uuid)": "influx_identity_definer",
+  // 0130 (J8 commit 2: the dual control, 03 PD1 to PD7). The four helpers
+  // identity.require_active_admin(), identity.assert_fresh_second_factor(),
+  // backoffice.has_peer_admin() and backoffice.consume_dual_control() are SECURITY INVOKER.
+  "backoffice.request_dual_control(text,jsonb,text,text)":
+    "influx_identity_definer",
+  "backoffice.confirm_dual_control(uuid,uuid,text)": "influx_identity_definer",
+  "backoffice.cancel_dual_control(uuid)": "influx_identity_definer",
 };

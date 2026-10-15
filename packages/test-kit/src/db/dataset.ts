@@ -51,6 +51,12 @@ export const TRANSACTIONAL_SEND_REFERENCE =
   "00000000-0000-4000-8000-00000000ff06";
 /** Fact of the queue line of the data set (0101): lead.created of advertiser A. */
 export const OUTBOX_EVENT_ID = "00000000-0000-4000-8000-00000000ff07";
+/**
+ * A pending dual control request of admin A (0130), never confirmed nor consumed: the row that
+ * makes the read of influx_admin observable (18 T2 rule 3). Its expiry passes after a day; it
+ * stays pending (no expiry writer before the periodic task).
+ */
+export const DUAL_CONTROL_REQUEST_ID = "00000000-0000-4000-8000-00000000ff08";
 
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
@@ -321,6 +327,18 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
       insert into backoffice.code_delivery_reports (login_email, contact_email, message, locale)
       select 't2-login@example.test', 't2-contact@example.test', 't2 data set', 'fr'
        where not exists (select 1 from backoffice.code_delivery_reports)`;
+
+    // J8 commit 2 (0130): one dual control request (0129 and 0130 load their catalogues). Its
+    // dates are computed by the trigger; the payload names advertiser B, who already holds a
+    // role, so that it can never be executed.
+    await tx`
+      insert into backoffice.dual_control_requests
+        (id, action_code, payload, reason_code, requested_by_account_id)
+      values (${DUAL_CONTROL_REQUEST_ID}, 'identity.grant_role',
+              jsonb_build_object('account_id', ${accountIdOf("advertiser", "b")}::uuid,
+                                 'role', 'advertiser'),
+              'test_data_set', ${accountIdOf("admin", "a")})
+      on conflict do nothing`;
 
     // At least one verification record, so that its read rights are observable.
     const [checks] = await tx<

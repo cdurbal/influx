@@ -117,6 +117,30 @@ export async function actAsMember<T>(
   return result;
 }
 
+/**
+ * Inside a transaction of localSuperuser(): runs `fn` as an agent or an admin, the way apps/api
+ * takes the role (influx_app, then takeRole with the business context, aal2 unless told), then
+ * clears the context and gives the transaction back to the superuser (J8, 0130).
+ */
+export async function actAsInternal<T>(
+  tx: postgres.TransactionSql,
+  role: "influx_agent" | "influx_admin",
+  context: UserContext,
+  fn: () => Promise<T>,
+): Promise<T> {
+  await tx.unsafe("set local session authorization influx_app");
+  await takeRole(tx, role, context);
+  const result = await fn();
+  await tx.unsafe("reset role");
+  await tx.unsafe("reset session authorization");
+  await tx`select
+    pg_catalog.set_config('request.jwt.claims', '', true),
+    pg_catalog.set_config('influx.account', '', true),
+    pg_catalog.set_config('influx.role', '', true),
+    pg_catalog.set_config('influx.aal', '', true)`;
+  return result;
+}
+
 afterAll(async () => {
   await Promise.all(opened.map((sql) => sql.end({ timeout: 1 })));
   opened.length = 0;

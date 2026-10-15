@@ -14,7 +14,7 @@ import {
   scanSessionState,
   SCRIPT_EXTENSIONS,
 } from "@influx/test-kit/static";
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -268,16 +268,33 @@ describe("T6.6: no session state", () => {
   });
 });
 
-describe("identity.grant_role has no caller in apps/api before 0107", () => {
-  // J2 security review, accepted point (a): 2V and R are not enforced in the database yet.
-  it("is named nowhere in apps/api/src", () => {
-    const files = listSourceFiles(
-      path.join(API_ROOT, "src"),
-      SCRIPT_EXTENSIONS,
-    );
-    const callers = files.filter((file) =>
-      namesIn(file).some((name) => name.includes("grant_role")),
-    );
-    expect(callers).toEqual([]);
+describe("identity.grant_role enforces 2V and R in the database (0130)", () => {
+  // J2 security review, accepted point (a), closed by 0130 (J8 commit 2): the function no longer
+  // relies on apps/api for the dual control and the fresh re-authentication. A later migration
+  // that redefines it without the two guards fails here, before any caller can reach it.
+  it("calls both guards in its last definition of supabase/migrations", () => {
+    const folder = path.join(ROOT, "supabase/migrations");
+    const definitions = readdirSync(folder)
+      .filter((name) => name.endsWith(".sql"))
+      .sort()
+      .flatMap((name) => {
+        const text = readFileSync(path.join(folder, name), "utf8");
+        const start = [
+          ...text.matchAll(
+            /create\s+(?:or\s+replace\s+)?function\s+identity\.grant_role\(/gi,
+          ),
+        ].at(-1)?.index;
+        if (start === undefined) {
+          return [];
+        }
+        const open = text.indexOf("$$", start);
+        const close = text.indexOf("$$", open + 2);
+        return [{ name, body: text.slice(open + 2, close) }];
+      });
+    const last = definitions.at(-1);
+    expect(last?.name).toBeDefined();
+    expect(last?.body).toContain("backoffice.consume_dual_control(");
+    expect(last?.body).toContain("identity.assert_fresh_second_factor(");
+    expect(last?.body).toContain("identity.require_active_admin()");
   });
 });
