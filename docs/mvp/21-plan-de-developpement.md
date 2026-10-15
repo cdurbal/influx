@@ -284,6 +284,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 **Tests** : CA56 à CA64 ; T14 sur les routes du backoffice ; parcours de double validation dégradée.
 
 - [x] Commit 1 (`73cdc5c`) — dette J7 hors base : J7S-7, J7T-1, J7T-2, J7T-3 (planchers unitaires), J6T-1, J6T-2 ; `all_paused` ⇒ `503` avant la demande de changement d'adresse.
+- [x] Commit 2 (`1314e9e`) — `0129` files et délais (4 files du J8, D39), `0130` 14 alertes, `dual_control_requests` (PD2 à PD7), codes `dual_control.*`, `settings.changed`, `ownership.reassigned`, `grant_role()` avec 2V et R ; T2, T3, T4, T6 étendus (base 829).
 
 ### J9 — Durcissement, landing branchée, mise en ligne (4 à 5 jours)
 

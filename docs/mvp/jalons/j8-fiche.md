@@ -156,6 +156,13 @@ e2e 16 ; `pnpm test` = 2 106. Tout nouveau fichier `db-tests` entre dans `case-f
 - Interrupteur : `src/platform/email-switch.ts`, mise en attente lue sur `leads.send_priority` ; non stocké avant le Lot 5 (`0503`), lu `off` ; injectable (`identity.emailSwitch`).
 - Planchers : unitaire `apps/api` figé dans `tests/case-floors.ts` (953, 46 fichiers), contrôle `scripts/check-case-floors.ts unit|db` ; base 760 ; `pnpm test` = 2 119.
 
+## Issu du commit 2 (`1314e9e`)
+
+- Contrat `apps/api` (commit 4) : `request_dual_control()`, `confirm_dual_control(session, demande, justification)` → `peer` | `degraded_single_operator`, puis `grant_role(session, demande, compte, rôle, motif)` par le **confirmateur** ; R (TOTP ≤ 300 s) à la confirmation et à l'exécution ; tout refus `42501`.
+- EC-J8-5 à EC-J8-11 (`0129`, `0130`) : clé `queues.code` + FK différée inverse ; `business_hours` UTC en attente ; `degraded_confirmed_at`, `consumed_at` ; PD7 sans compte de secours ni admin sans facteur ; liste d'actions 2V = `identity.grant_role` seule, **`0131`/`0132` l'étendent**.
+- Revue groupée `expert-cybersecurite` : `p_session_id` non liée à la session de la requête ; blocage possible du secours (RG102) ; aucun écrivain de `expired` ; `correct_email()` sans 2V/R en base (`0132`) ; pas d'AL pour l'attribution `admin`.
+- `product-owner` : seuil d'AL25 (`05` RG104 muet), escalade des files, fuseau ouvré ; sujet `uuid` de `settings.changed` (commit 6). `test:db -- <fichier>` ne filtre pas : `pnpm --filter @influx/api exec vitest run --project db <fichier>`.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les
