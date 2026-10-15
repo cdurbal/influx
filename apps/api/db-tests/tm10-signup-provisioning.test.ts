@@ -529,7 +529,7 @@ describe("0101: the queue constraints", () => {
 });
 
 describe("0103 (EC-8): the shape of leads.sync_settings", () => {
-  it("holds the nine keys with their starting values", async () => {
+  it("holds the ten keys with their starting values (0131: signup_invitation_validity_days)", async () => {
     const rows = await migration<{ key: string; value: unknown }[]>`
       select key, value from leads.sync_settings order by key`;
     expect(
@@ -540,8 +540,9 @@ describe("0103 (EC-8): the shape of leads.sync_settings", () => {
       apollo_prospecting_countries: [],
       signup_blocked_countries: [],
       signup_consent_required: true,
+      signup_invitation_validity_days: 30,
     });
-    expect(rows).toHaveLength(9);
+    expect(rows).toHaveLength(10);
   });
 
   it.each([
@@ -688,14 +689,28 @@ describe("04 §5.1: identity.set_declared_status()", () => {
   });
 });
 
-describe("04 §5.1: identity.correct_email(), administrators only", () => {
+describe("04 §5.1: identity.correct_email(), administrators only, R in base (0132)", () => {
   const CALL =
-    "select identity.correct_email($1::uuid, $2, 'identity_checked_by_phone')";
+    "select identity.correct_email($1::uuid, $2::uuid, $3, 'identity_checked_by_phone')";
+
+  /** A fresh backoffice session of admin A, committed: its TOTP proof is now (R, 0132). */
+  async function freshAdminSession(): Promise<string> {
+    const [row] = await migration<{ id: string }[]>`
+      insert into identity.sessions (token_hash, account_id, surface, mfa_method, user_agent_summary)
+      values (sha256(gen_random_uuid()::text::bytea), ${dataSet.accounts.admin.a.id}, 'backoffice',
+              'totp', 'firefox.linux')
+      returning id::text`;
+    if (row === undefined) {
+      throw new Error("no session");
+    }
+    return row.id;
+  }
 
   it("changes the address, resets its health and proof, queues the notices and the contacts", async () => {
     const creator = dataSet.accounts.creator.b.id;
+    const session = await freshAdminSession();
     const outcome = await asMember(contextOf("admin"), async (tx) => {
-      await tx.unsafe(CALL, [creator, " New-Address@Example.test "]);
+      await tx.unsafe(CALL, [session, creator, " New-Address@Example.test "]);
       await readAsAdmin(tx);
       const [account] = await tx`
         select email, email_status, email_verified_at from identity.accounts where id = ${creator}`;
@@ -753,6 +768,7 @@ describe("04 §5.1: identity.correct_email(), administrators only", () => {
       expect(
         await asMember(contextOf(role), (tx) =>
           probe(tx, CALL, [
+            randomUUID(),
             dataSet.accounts.creator.b.id,
             "other@example.test",
           ]),

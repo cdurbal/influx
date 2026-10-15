@@ -298,3 +298,71 @@ describe("identity.grant_role enforces 2V and R in the database (0130)", () => {
     expect(last?.body).toContain("identity.require_active_admin()");
   });
 });
+
+/** The body of the LAST definition of a function across supabase/migrations, in file order. */
+function lastDefinitionOf(
+  qualifiedName: string,
+): { name: string; body: string } | undefined {
+  const folder = path.join(ROOT, "supabase/migrations");
+  const pattern = new RegExp(
+    `create\\s+(?:or\\s+replace\\s+)?function\\s+${qualifiedName.replace(".", "\\.")}\\(`,
+    "gi",
+  );
+  return readdirSync(folder)
+    .filter((name) => name.endsWith(".sql"))
+    .sort()
+    .flatMap((name) => {
+      const text = readFileSync(path.join(folder, name), "utf8");
+      const start = [...text.matchAll(pattern)].at(-1)?.index;
+      if (start === undefined) {
+        return [];
+      }
+      const open = text.indexOf("$$", start);
+      const close = text.indexOf("$$", open + 2);
+      return [{ name, body: text.slice(open + 2, close) }];
+    })
+    .at(-1);
+}
+
+describe("the admin actions of J8 commit 3 keep their guards in the database (0131, 0132)", () => {
+  // A later migration that redefines one of them without its guards fails here (constat cyber of
+  // commit 2 on correct_email(); 03 §3.1 J · 2V · R for the role change and the admin invitation).
+  it.each([
+    [
+      "identity.change_member_role",
+      [
+        "identity.require_active_admin()",
+        "identity.assert_fresh_second_factor(",
+        "backoffice.consume_dual_control(",
+      ],
+    ],
+    [
+      "identity.approve_admin_invitation",
+      [
+        "identity.require_active_admin()",
+        "identity.assert_fresh_second_factor(",
+        "backoffice.consume_dual_control(",
+      ],
+    ],
+    [
+      "identity.correct_email",
+      [
+        "identity.require_active_admin()",
+        "identity.assert_fresh_second_factor(",
+      ],
+    ],
+    [
+      "identity.create_internal_invitation",
+      [
+        "identity.require_active_admin()",
+        "identity.assert_fresh_second_factor(",
+      ],
+    ],
+  ] as const)("%s calls its guards in its last definition", (name, guards) => {
+    const last = lastDefinitionOf(name);
+    expect(last?.name).toBeDefined();
+    for (const guard of guards) {
+      expect(last?.body).toContain(guard);
+    }
+  });
+});

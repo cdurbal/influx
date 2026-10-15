@@ -57,6 +57,10 @@ export const OUTBOX_EVENT_ID = "00000000-0000-4000-8000-00000000ff07";
  * stays pending (no expiry writer before the periodic task).
  */
 export const DUAL_CONTROL_REQUEST_ID = "00000000-0000-4000-8000-00000000ff08";
+/** An internal invitation of admin A (0131), proposing agent, never accepted. */
+export const INTERNAL_INVITATION_ID = "00000000-0000-4000-8000-00000000ff09";
+/** A member invitation of agent A (0131), proposing creator, never redeemed. */
+export const MEMBER_INVITATION_ID = "00000000-0000-4000-8000-00000000ff0a";
 
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
@@ -338,6 +342,22 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
               jsonb_build_object('account_id', ${accountIdOf("advertiser", "b")}::uuid,
                                  'role', 'advertiser'),
               'test_data_set', ${accountIdOf("admin", "a")})
+      on conflict do nothing`;
+
+    // J8 commit 3 (0131): one invitation of each kind, never used (their dates come from the
+    // triggers: they expire after 72 hours and 30 days and simply stay readable).
+    await tx`
+      insert into identity.internal_invitations
+        (id, email, proposed_role, token_hash, created_by_account_id, reason_code)
+      values (${INTERNAL_INVITATION_ID}, 't2-internal-invitation@example.test', 'agent',
+              sha256('t2-internal-invitation'::bytea), ${accountIdOf("admin", "a")},
+              'new_team_member')
+      on conflict do nothing`;
+    await tx`
+      insert into backoffice.member_invitations
+        (id, code_hash, email, proposed_role, preferred_language, created_by_account_id)
+      values (${MEMBER_INVITATION_ID}, sha256('t2-member-invitation'::bytea),
+              't2-member-invitation@example.test', 'creator', 'fr', ${accountIdOf("agent", "a")})
       on conflict do nothing`;
 
     // At least one verification record, so that its read rights are observable.

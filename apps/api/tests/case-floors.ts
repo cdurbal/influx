@@ -45,7 +45,7 @@ export const UNIT_CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/signup-route.test.ts": 11,
   "tests/supabase-adapter.test.ts": 38,
   "tests/supabase-guards.test.ts": 5,
-  "tests/t6-static.test.ts": 11,
+  "tests/t6-static.test.ts": 15,
   "tests/terms-publication.test.ts": 13,
   "tests/terms-route.test.ts": 21,
   "tests/trial-record-guards.test.ts": 4,

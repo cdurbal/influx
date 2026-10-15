@@ -373,6 +373,113 @@ describe("T3: the register codes of the backoffice socle (0130, J8 commit 2)", (
   });
 });
 
+describe("T3: the register codes of the backoffice actions (0131, 0132, J8 commit 3)", () => {
+  type Code = {
+    code: string;
+    domain: string;
+    subject_type: string;
+    severity: string;
+  };
+  const code = (
+    name: string,
+    domain: string,
+    subject: string,
+    severity: string,
+  ): Code => ({ code: name, domain, subject_type: subject, severity });
+
+  it("knows the invitation codes and ownership.assigned, with their subject (0131)", async () => {
+    const codes = await migration<Code[]>`
+      select code, domain, subject_type, severity from audit.event_types
+       where (code like 'internal\\_invitation.%' or code like 'member\\_invitation.%'
+              or code = 'ownership.assigned')
+         and is_active
+       order by code`;
+    expect(codes).toEqual([
+      code(
+        "internal_invitation.accepted",
+        "identity",
+        "internal_invitation",
+        "critical",
+      ),
+      code(
+        "internal_invitation.confirmed",
+        "identity",
+        "internal_invitation",
+        "critical",
+      ),
+      code(
+        "internal_invitation.created",
+        "identity",
+        "internal_invitation",
+        "critical",
+      ),
+      code(
+        "internal_invitation.revoked",
+        "identity",
+        "internal_invitation",
+        "critical",
+      ),
+      code(
+        "member_invitation.created",
+        "backoffice",
+        "member_invitation",
+        "sensitive",
+      ),
+      code(
+        "member_invitation.redeemed",
+        "backoffice",
+        "member_invitation",
+        "sensitive",
+      ),
+      code(
+        "member_invitation.revoked",
+        "backoffice",
+        "member_invitation",
+        "sensitive",
+      ),
+      code("ownership.assigned", "backoffice", "account", "sensitive"),
+    ]);
+  });
+
+  it("knows the correction, replay and history-read codes, one subject type each (0132)", async () => {
+    const codes = await migration<Code[]>`
+      select code, domain, subject_type, severity from audit.event_types
+       where (code like 'history.%'
+              or code in ('account.corrected', 'leads.replay_requested'))
+         and is_active
+       order by code`;
+    expect(codes).toEqual([
+      code("account.corrected", "identity", "account", "sensitive"),
+      code("history.account_read", "backoffice", "account", "sensitive"),
+      code(
+        "history.data_subject_request_read",
+        "backoffice",
+        "data_subject_request",
+        "sensitive",
+      ),
+      code(
+        "history.dual_control_request_read",
+        "backoffice",
+        "dual_control_request",
+        "sensitive",
+      ),
+      code(
+        "history.internal_invitation_read",
+        "backoffice",
+        "internal_invitation",
+        "sensitive",
+      ),
+      code(
+        "history.member_invitation_read",
+        "backoffice",
+        "member_invitation",
+        "sensitive",
+      ),
+      code("leads.replay_requested", "leads", "outbox_replay", "sensitive"),
+    ]);
+  });
+});
+
 describe("T3.4 to T3.9: the chain", () => {
   beforeAll(async () => {
     // At least five lines after the genesis, written through audit.append() and committed.

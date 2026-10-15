@@ -729,6 +729,37 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
       },
     },
   },
+  {
+    table: "identity.internal_invitations",
+    source:
+      "0131 (J8, 15 RG99, 03 MFA-1, B-8): written by identity.create_internal_invitation(), " +
+      "approve_admin_invitation(), revoke_internal_invitation() and accept_internal_invitation() only",
+    probeColumn: "id",
+    expected: {
+      influx_admin: {
+        select: {
+          form: "autorisé",
+          source:
+            "03 §3.1 « Compte agent/admin — créer par invitation » admin; 17b §3.13, aal2; never the " +
+            "token digest",
+        },
+      },
+    },
+  },
+  {
+    table: "backoffice.member_invitations",
+    source:
+      "0131 (J8, 05 RG116 to RG119, D54): written by backoffice.create_member_invitation(), " +
+      "revoke_member_invitation() and redeem_member_invitation() only",
+    probeColumn: "id",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "05 RG116, RG123: invitations created by agent and admin, read in aal2; never the code digest",
+      },
+    }),
+  },
 ];
 
 /**
@@ -777,7 +808,7 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * those of 0111 (J6, E-3: influx_leads_definer column by column, influx_worker on its functions);
  * and on 2026-10-13 with those of 0116 and 0117 (J7 commit 2), then of 0118 to 0120 (J7 commit
  * 2bis), each line checked against its migration; and on 2026-10-15 with those of 0129 and 0130
- * (J8 commit 2), each line checked against its migration.
+ * (J8 commit 2), then of 0131 and 0132 (J8 commit 3), each line checked against its migration.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -1027,7 +1058,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|column|identity.account_roles.role|INSERT,SELECT",
   "influx_identity_definer|column|identity.accounts.id|SELECT",
   "influx_identity_definer|column|identity.accounts.status|SELECT",
-  "influx_identity_definer|column|identity.agent_profiles.account_id|SELECT",
+  "influx_identity_definer|column|identity.agent_profiles.account_id|INSERT,SELECT",
   "influx_identity_definer|column|identity.agent_profiles.is_active|SELECT",
   "influx_identity_definer|column|identity.agent_profiles.mfa_enrolled_at|UPDATE",
   "influx_identity_definer|column|identity.agent_profiles.mfa_factor_id|SELECT,UPDATE",
@@ -1040,11 +1071,11 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|column|identity.auth_request_throttle.scope|INSERT,SELECT",
   "influx_identity_definer|column|identity.auth_request_throttle.window_code|INSERT,SELECT",
   "influx_identity_definer|column|identity.auth_request_throttle.window_started_at|SELECT,UPDATE",
-  "influx_identity_definer|column|identity.mfa_enrollment_tokens.account_id|SELECT",
+  "influx_identity_definer|column|identity.mfa_enrollment_tokens.account_id|INSERT,SELECT",
   "influx_identity_definer|column|identity.mfa_enrollment_tokens.consumed_at|SELECT,UPDATE",
-  "influx_identity_definer|column|identity.mfa_enrollment_tokens.expires_at|SELECT",
+  "influx_identity_definer|column|identity.mfa_enrollment_tokens.expires_at|INSERT,SELECT",
   "influx_identity_definer|column|identity.mfa_enrollment_tokens.id|SELECT",
-  "influx_identity_definer|column|identity.mfa_enrollment_tokens.token_hash|SELECT",
+  "influx_identity_definer|column|identity.mfa_enrollment_tokens.token_hash|INSERT,SELECT",
   "influx_identity_definer|column|identity.mfa_recovery_codes.account_id|INSERT,SELECT",
   "influx_identity_definer|column|identity.mfa_recovery_codes.batch_id|INSERT",
   "influx_identity_definer|column|identity.mfa_recovery_codes.code_hash|INSERT,SELECT",
@@ -1122,7 +1153,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   // 0101 to 0106 (J5, Lot 1): the queue and the states read by agent and admin, the advertiser
   // profile, set_declared_status() / correct_email() / provision_account() (EC-30, EXECUTE to
   // influx_auth only) and, column by column, what influx_identity_definer reads and writes.
-  "influx_admin|function|identity.correct_email(uuid,text,text,text)|EXECUTE",
+  "influx_admin|function|identity.correct_email(uuid,uuid,text,text,text)|EXECUTE",
   "influx_admin|function|identity.set_declared_status(uuid,identity.declared_status,text,text)|EXECUTE",
   "influx_admin|schema|leads|USAGE",
   "influx_admin|schema|profiles|USAGE",
@@ -1185,7 +1216,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|column|leads.sync_settings.value|SELECT",
   "influx_identity_definer|column|profiles.advertiser_profiles.account_id|INSERT,SELECT",
   "influx_identity_definer|column|profiles.advertiser_profiles.legal_name|INSERT,SELECT,UPDATE",
-  "influx_identity_definer|function|identity.correct_email(uuid,text,text,text)|EXECUTE",
+  "influx_identity_definer|function|identity.correct_email(uuid,uuid,text,text,text)|EXECUTE",
   "influx_identity_definer|function|identity.provision_account(uuid,text,identity.account_role,text,text,identity.declared_status,boolean,text,uuid,boolean,text,text,text,text,text,text,text,identity.heard_from)|EXECUTE",
   "influx_identity_definer|function|identity.set_declared_status(uuid,identity.declared_status,text,text)|EXECUTE",
   "influx_identity_definer|schema|leads|USAGE",
@@ -1238,7 +1269,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|column|leads.outbox_events.priority|INSERT,SELECT",
   "influx_leads_definer|column|leads.outbox_events.provider_contact_id|UPDATE",
   "influx_leads_definer|column|leads.outbox_events.provider_message_id|UPDATE",
-  "influx_leads_definer|column|leads.outbox_events.skip_reason|UPDATE",
+  "influx_leads_definer|column|leads.outbox_events.skip_reason|SELECT,UPDATE",
   "influx_leads_definer|column|leads.outbox_events.status|SELECT,UPDATE",
   "influx_leads_definer|column|leads.outbox_events.subject_key|INSERT,SELECT",
   "influx_leads_definer|column|leads.sync_settings.key|SELECT",
@@ -1590,6 +1621,139 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|column|identity.agent_profiles.is_break_glass|SELECT",
   "influx_identity_definer|column|identity.sessions.mfa_method|SELECT",
   "influx_identity_definer|column|identity.sessions.mfa_verified_at|SELECT",
+  // 0131 and 0132 (J8 commit 3): the two invitations (EC-J8-2), their functions (internal:
+  // influx_admin and influx_auth; member: agent and admin, redemption by influx_auth), the
+  // corrections RG108, the member role change (2V + R), correct_email() with R, the replay
+  // (influx_leads_definer, agent and admin) and the history read EC-31 (influx_identity_definer
+  // reads the register column by column). Each line checked against its migration.
+  "influx_admin|column|backoffice.member_invitations.account_id|SELECT",
+  "influx_admin|column|backoffice.member_invitations.created_at|SELECT",
+  "influx_admin|column|backoffice.member_invitations.created_by_account_id|SELECT",
+  "influx_admin|column|backoffice.member_invitations.email|SELECT",
+  "influx_admin|column|backoffice.member_invitations.expires_at|SELECT",
+  "influx_admin|column|backoffice.member_invitations.id|SELECT",
+  "influx_admin|column|backoffice.member_invitations.preferred_language|SELECT",
+  "influx_admin|column|backoffice.member_invitations.proposed_role|SELECT",
+  "influx_admin|column|backoffice.member_invitations.redeemed_at|SELECT",
+  "influx_admin|column|backoffice.member_invitations.revoke_reason_code|SELECT",
+  "influx_admin|column|backoffice.member_invitations.revoked_at|SELECT",
+  "influx_admin|column|backoffice.member_invitations.revoked_by_account_id|SELECT",
+  "influx_admin|column|backoffice.member_invitations.updated_at|SELECT",
+  "influx_admin|column|identity.internal_invitations.accepted_at|SELECT",
+  "influx_admin|column|identity.internal_invitations.account_id|SELECT",
+  "influx_admin|column|identity.internal_invitations.confirmed_at|SELECT",
+  "influx_admin|column|identity.internal_invitations.created_at|SELECT",
+  "influx_admin|column|identity.internal_invitations.created_by_account_id|SELECT",
+  "influx_admin|column|identity.internal_invitations.dual_control_request_id|SELECT",
+  "influx_admin|column|identity.internal_invitations.email|SELECT",
+  "influx_admin|column|identity.internal_invitations.expires_at|SELECT",
+  "influx_admin|column|identity.internal_invitations.id|SELECT",
+  "influx_admin|column|identity.internal_invitations.proposed_role|SELECT",
+  "influx_admin|column|identity.internal_invitations.reason_code|SELECT",
+  "influx_admin|column|identity.internal_invitations.requires_dual_control|SELECT",
+  "influx_admin|column|identity.internal_invitations.revoke_reason_code|SELECT",
+  "influx_admin|column|identity.internal_invitations.revoked_at|SELECT",
+  "influx_admin|column|identity.internal_invitations.revoked_by_account_id|SELECT",
+  "influx_admin|column|identity.internal_invitations.updated_at|SELECT",
+  "influx_admin|function|backoffice.create_member_invitation(text,identity.account_role,text,bytea)|EXECUTE",
+  "influx_admin|function|backoffice.read_subject_history(text,uuid,integer,bigint)|EXECUTE",
+  "influx_admin|function|backoffice.revoke_member_invitation(uuid,text)|EXECUTE",
+  "influx_admin|function|identity.approve_admin_invitation(uuid,uuid,uuid,text)|EXECUTE",
+  "influx_admin|function|identity.change_member_role(uuid,uuid,uuid,identity.account_role,text,text)|EXECUTE",
+  "influx_admin|function|identity.correct_member_account(uuid,text,identity.declared_status,text,text,text)|EXECUTE",
+  "influx_admin|function|identity.create_internal_invitation(uuid,text,identity.account_role,bytea,text)|EXECUTE",
+  "influx_admin|function|identity.revoke_internal_invitation(uuid,text)|EXECUTE",
+  "influx_admin|function|leads.replay_outbox_lines(bigint[],text)|EXECUTE",
+  "influx_agent|column|backoffice.member_invitations.account_id|SELECT",
+  "influx_agent|column|backoffice.member_invitations.created_at|SELECT",
+  "influx_agent|column|backoffice.member_invitations.created_by_account_id|SELECT",
+  "influx_agent|column|backoffice.member_invitations.email|SELECT",
+  "influx_agent|column|backoffice.member_invitations.expires_at|SELECT",
+  "influx_agent|column|backoffice.member_invitations.id|SELECT",
+  "influx_agent|column|backoffice.member_invitations.preferred_language|SELECT",
+  "influx_agent|column|backoffice.member_invitations.proposed_role|SELECT",
+  "influx_agent|column|backoffice.member_invitations.redeemed_at|SELECT",
+  "influx_agent|column|backoffice.member_invitations.revoke_reason_code|SELECT",
+  "influx_agent|column|backoffice.member_invitations.revoked_at|SELECT",
+  "influx_agent|column|backoffice.member_invitations.revoked_by_account_id|SELECT",
+  "influx_agent|column|backoffice.member_invitations.updated_at|SELECT",
+  "influx_agent|function|backoffice.create_member_invitation(text,identity.account_role,text,bytea)|EXECUTE",
+  "influx_agent|function|backoffice.read_subject_history(text,uuid,integer,bigint)|EXECUTE",
+  "influx_agent|function|backoffice.revoke_member_invitation(uuid,text)|EXECUTE",
+  "influx_agent|function|identity.correct_member_account(uuid,text,identity.declared_status,text,text,text)|EXECUTE",
+  "influx_agent|function|leads.replay_outbox_lines(bigint[],text)|EXECUTE",
+  "influx_auth|function|backoffice.redeem_member_invitation(uuid,bytea)|EXECUTE",
+  "influx_auth|function|identity.accept_internal_invitation(bytea,uuid,text,text,text,text)|EXECUTE",
+  "influx_auth|function|identity.internal_invitation_is_valid(bytea,text)|EXECUTE",
+  "influx_identity_definer|column|audit.audit_events.actor_account_id|SELECT",
+  "influx_identity_definer|column|audit.audit_events.actor_type|SELECT",
+  "influx_identity_definer|column|audit.audit_events.event_type|SELECT",
+  "influx_identity_definer|column|audit.audit_events.occurred_at|SELECT",
+  "influx_identity_definer|column|audit.audit_events.payload|SELECT",
+  "influx_identity_definer|column|audit.audit_events.seq|SELECT",
+  "influx_identity_definer|column|audit.audit_events.subject_id|SELECT",
+  "influx_identity_definer|column|audit.audit_events.subject_type|SELECT",
+  "influx_identity_definer|column|backoffice.member_invitations.account_id|UPDATE",
+  "influx_identity_definer|column|backoffice.member_invitations.code_hash|INSERT,SELECT",
+  "influx_identity_definer|column|backoffice.member_invitations.created_by_account_id|INSERT,SELECT",
+  "influx_identity_definer|column|backoffice.member_invitations.email|INSERT,SELECT",
+  "influx_identity_definer|column|backoffice.member_invitations.expires_at|SELECT",
+  "influx_identity_definer|column|backoffice.member_invitations.id|SELECT",
+  "influx_identity_definer|column|backoffice.member_invitations.preferred_language|INSERT",
+  "influx_identity_definer|column|backoffice.member_invitations.proposed_role|INSERT",
+  "influx_identity_definer|column|backoffice.member_invitations.redeemed_at|SELECT,UPDATE",
+  "influx_identity_definer|column|backoffice.member_invitations.revoke_reason_code|UPDATE",
+  "influx_identity_definer|column|backoffice.member_invitations.revoked_at|SELECT,UPDATE",
+  "influx_identity_definer|column|backoffice.member_invitations.revoked_by_account_id|UPDATE",
+  "influx_identity_definer|column|backoffice.ownership_assignments.account_id|INSERT",
+  "influx_identity_definer|column|backoffice.ownership_assignments.agent_account_id|INSERT",
+  "influx_identity_definer|column|backoffice.ownership_assignments.reason_code|INSERT",
+  "influx_identity_definer|column|identity.accounts.created_at|SELECT",
+  "influx_identity_definer|column|identity.accounts.display_name|INSERT",
+  "influx_identity_definer|column|identity.accounts.owner_agent_id|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.accounts.signup_invitation_id|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.agent_profiles.first_name|INSERT",
+  "influx_identity_definer|column|identity.agent_profiles.invited_at|INSERT",
+  "influx_identity_definer|column|identity.agent_profiles.invited_by_account_id|INSERT",
+  "influx_identity_definer|column|identity.internal_invitations.accepted_at|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.internal_invitations.account_id|UPDATE",
+  "influx_identity_definer|column|identity.internal_invitations.confirmed_at|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.internal_invitations.created_by_account_id|INSERT,SELECT",
+  "influx_identity_definer|column|identity.internal_invitations.dual_control_request_id|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.internal_invitations.email|INSERT,SELECT",
+  "influx_identity_definer|column|identity.internal_invitations.expires_at|SELECT",
+  "influx_identity_definer|column|identity.internal_invitations.id|SELECT",
+  "influx_identity_definer|column|identity.internal_invitations.proposed_role|INSERT,SELECT",
+  "influx_identity_definer|column|identity.internal_invitations.reason_code|INSERT",
+  "influx_identity_definer|column|identity.internal_invitations.requires_dual_control|SELECT",
+  "influx_identity_definer|column|identity.internal_invitations.revoke_reason_code|UPDATE",
+  "influx_identity_definer|column|identity.internal_invitations.revoked_at|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.internal_invitations.revoked_by_account_id|UPDATE",
+  "influx_identity_definer|column|identity.internal_invitations.token_hash|INSERT,SELECT",
+  "influx_identity_definer|column|identity.mfa_enrollment_tokens.created_by_account_id|INSERT",
+  "influx_identity_definer|function|backoffice.canonical_dual_control_payload(text,jsonb,uuid)|EXECUTE",
+  "influx_identity_definer|function|backoffice.create_member_invitation(text,identity.account_role,text,bytea)|EXECUTE",
+  "influx_identity_definer|function|backoffice.read_subject_history(text,uuid,integer,bigint)|EXECUTE",
+  "influx_identity_definer|function|backoffice.redeem_member_invitation(uuid,bytea)|EXECUTE",
+  "influx_identity_definer|function|backoffice.revoke_member_invitation(uuid,text)|EXECUTE",
+  "influx_identity_definer|function|identity.accept_internal_invitation(bytea,uuid,text,text,text,text)|EXECUTE",
+  "influx_identity_definer|function|identity.approve_admin_invitation(uuid,uuid,uuid,text)|EXECUTE",
+  "influx_identity_definer|function|identity.change_member_role(uuid,uuid,uuid,identity.account_role,text,text)|EXECUTE",
+  "influx_identity_definer|function|identity.correct_member_account(uuid,text,identity.declared_status,text,text,text)|EXECUTE",
+  "influx_identity_definer|function|identity.create_internal_invitation(uuid,text,identity.account_role,bytea,text)|EXECUTE",
+  "influx_identity_definer|function|identity.internal_invitation_is_valid(bytea,text)|EXECUTE",
+  "influx_identity_definer|function|identity.revoke_internal_invitation(uuid,text)|EXECUTE",
+  "influx_identity_definer|table|identity.account_roles|DELETE",
+  "influx_leads_definer|column|identity.agent_profiles.account_id|SELECT",
+  "influx_leads_definer|column|identity.agent_profiles.is_active|SELECT",
+  "influx_leads_definer|function|audit.append(text,text,uuid,jsonb)|EXECUTE",
+  "influx_leads_definer|function|influx.current_aal()|EXECUTE",
+  "influx_leads_definer|function|influx.current_account_id()|EXECUTE",
+  "influx_leads_definer|function|influx.current_account_role()|EXECUTE",
+  "influx_leads_definer|function|influx.has_aal2()|EXECUTE",
+  "influx_leads_definer|function|leads.replay_outbox_lines(bigint[],text)|EXECUTE",
+  "influx_leads_definer|schema|audit|USAGE",
+  "influx_leads_definer|schema|influx|USAGE",
 ];
 
 /**
@@ -1678,7 +1842,8 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   // 0104, 0106 (J5: 04 §5.1, EC-30)
   "identity.set_declared_status(uuid,identity.declared_status,text,text)":
     "influx_identity_definer",
-  "identity.correct_email(uuid,text,text,text)": "influx_identity_definer",
+  // 0132 (J8 commit 3): R enforced in the function, the 0104 signature dropped
+  "identity.correct_email(uuid,uuid,text,text,text)": "influx_identity_definer",
   "identity.provision_account(uuid,text,identity.account_role,text,text,identity.declared_status,boolean,text,uuid,boolean,text,text,text,text,text,text,text,identity.heard_from)":
     "influx_identity_definer",
   // 0108 (J5, EC-62)
@@ -1748,4 +1913,27 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
     "influx_identity_definer",
   "backoffice.confirm_dual_control(uuid,uuid,text)": "influx_identity_definer",
   "backoffice.cancel_dual_control(uuid)": "influx_identity_definer",
+  // 0131 (J8 commit 3: the two invitations, EC-J8-2). The helper
+  // backoffice.canonical_dual_control_payload() is SECURITY INVOKER.
+  "identity.create_internal_invitation(uuid,text,identity.account_role,bytea,text)":
+    "influx_identity_definer",
+  "identity.approve_admin_invitation(uuid,uuid,uuid,text)":
+    "influx_identity_definer",
+  "identity.revoke_internal_invitation(uuid,text)": "influx_identity_definer",
+  "identity.internal_invitation_is_valid(bytea,text)":
+    "influx_identity_definer",
+  "identity.accept_internal_invitation(bytea,uuid,text,text,text,text)":
+    "influx_identity_definer",
+  "backoffice.create_member_invitation(text,identity.account_role,text,bytea)":
+    "influx_identity_definer",
+  "backoffice.revoke_member_invitation(uuid,text)": "influx_identity_definer",
+  "backoffice.redeem_member_invitation(uuid,bytea)": "influx_identity_definer",
+  // 0132 (J8 commit 3: corrections RG108, member role change, replay, history read EC-31)
+  "identity.correct_member_account(uuid,text,identity.declared_status,text,text,text)":
+    "influx_identity_definer",
+  "identity.change_member_role(uuid,uuid,uuid,identity.account_role,text,text)":
+    "influx_identity_definer",
+  "backoffice.read_subject_history(text,uuid,integer,bigint)":
+    "influx_identity_definer",
+  "leads.replay_outbox_lines(bigint[],text)": "influx_leads_definer",
 };

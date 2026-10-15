@@ -597,10 +597,12 @@ describe("T2.7: exact snapshot of the privileges of the closed list", () => {
     const appenders = EXPECTED_PRIVILEGES.filter((line) =>
       line.includes("|audit.append("),
     ).map((line) => line.split("|")[0]);
-    // influx_maintenance_definer (0117): retention.purged, from E-4 functions only
+    // influx_maintenance_definer (0117): retention.purged, from E-4 functions only;
+    // influx_leads_definer (0132): leads.replay_requested, from leads.replay_outbox_lines() only
     expect(appenders.sort()).toEqual([
       "influx_audit_writer",
       "influx_identity_definer",
+      "influx_leads_definer",
       "influx_maintenance_definer",
     ]);
   });
