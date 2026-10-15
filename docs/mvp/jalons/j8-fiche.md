@@ -179,6 +179,13 @@ e2e 16 ; `pnpm test` = 2 106. Tout nouveau fichier `db-tests` entre dans `case-f
 - **EC-J8-23** : la raison sociale de `change_member_role` est hors charge 2V (`0132`), saisie à la confirmation, non couverte par le pair : à régler au commit 6 (charge étendue).
 - Planchers : base 885 (41 fichiers), unitaire `apps/api` 966.
 
+## Issu du commit 5 (`8017799`)
+
+- `0133` `backoffice.reserve_account_search()` : 20 recherches partielles / 15 min glissantes par compte interne, comptées dans le registre, ligne `accounts.searched_partial` {outcome, term_length} même au refus (jamais le terme) ; `429` + `Retry-After`.
+- EC-J8-24 : l'ouverture d'une fiche est journalisée par la lecture d'historique EC-31 (`history.account_read`), pas de seconde ligne. EC-J8-25 : limite en constante de `0133` jusqu'à `operational_settings` (`0503`). EC-J8-26 : aucune adresse dans la liste, même masquée (RG97).
+- Table des causes : `domains/backoffice/sync-causes.ts` (code brut ⇒ cause fermée + nature) ; le rejeu du commit 6 aura besoin des identifiants de lignes en échec (non exposés à ce jour, `0101` « never exposed ») : à trancher au commit 6.
+- AL21 (fiches distinctes / 24 h) : données présentes (`history.account_read`, `accounts.searched_partial`), seuil au Lot 3 / Lot 5.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les

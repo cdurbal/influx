@@ -287,6 +287,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] Commit 2 (`1314e9e`) — `0129` files et délais (4 files du J8, D39), `0130` 14 alertes, `dual_control_requests` (PD2 à PD7), codes `dual_control.*`, `settings.changed`, `ownership.reassigned`, `grant_role()` avec 2V et R ; T2, T3, T4, T6 étendus (base 829).
 - [x] Commit 3 (`1a41e1b`) — `0131` invitations interne (admin, R, 72 h, liée à l'adresse ; admin sous 2V) et membre (30 j, attribution à l'inscription), `0132` corrections RG108, `change_member_role` (2V + R), `correct_email` sous R, rejeu ≤ 200 (CA60, CA61), historique EC-31 journalisé (base 878).
 - [x] Commit 4 (`748fcd9`) — garde B-5 : R réservée avant GoTrue (J3S-1, 20 R parallèles ⇒ ≤ 5 appels), R vérifiée dans la transaction de l'action ⇒ `403 reauthentication_required` (J3S-4), HIBP par `withNewPassword` (J3S-5), service 2V PD1 à PD7 avec bascule PD7 sans code (base 885, unitaire 966).
+- [x] Commit 5 (`8017799`) — API de lecture : `GET /v1/bo/accounts` (RG97, curseur plafonné 50, sans adresse), recherche exacte libre et partielle limitée 20 / 15 min + journalisée (`0133`, RG98), fiche (causes en clair RG99/RG100, responsables RG49, historique EC-31 = journal d'ouverture RG40), compteurs RG105 ; T14 sur les trois routes (base 901, unitaire 970).
 
 ### J9 — Durcissement, landing branchée, mise en ligne (4 à 5 jours)
 
