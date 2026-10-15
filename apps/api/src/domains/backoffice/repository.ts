@@ -5,6 +5,7 @@
 // refusal of those functions is 42501 `forbidden`.
 import { sql, type SQL } from "drizzle-orm";
 import type { BusinessRole, Transaction } from "../../db/index.ts";
+import type { StoredApolloSetting } from "./apollo-settings.ts";
 import type { RawSyncState } from "./sync-causes.ts";
 
 const ISO_UTC = 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"';
@@ -14,6 +15,7 @@ export const DUAL_CONTROL_ACTION_CODES = [
   "identity.grant_role",
   "identity.change_member_role",
   "identity.invite_admin",
+  "leads.change_apollo_setting",
 ] as const;
 export type DualControlActionCode = (typeof DUAL_CONTROL_ACTION_CODES)[number];
 
@@ -23,9 +25,12 @@ export type DualControlState =
 /** PD5: how a request was confirmed, as the register line of its action carries it. */
 export type DualControlMode = "peer" | "degraded_single_operator";
 
-/** The canonical payload of 0131 / 0132: identifiers and codes only. */
+/** The canonical payload of 0131, 0132, 0134: identifiers, codes and the confirmed values. */
 export type DualControlPayload =
-  { account_id: string; role: BusinessRole } | { invitation_id: string };
+  | { account_id: string; role: BusinessRole }
+  | { account_id: string; role: "advertiser"; legal_name: string }
+  | { invitation_id: string }
+  | StoredApolloSetting;
 
 // --- Writes: the three functions of 0130 / 0131 (EXECUTE for influx_admin only) ------------------
 
@@ -107,6 +112,22 @@ export async function approveAdminInvitation(
     sql`select identity.approve_admin_invitation(${sessionId}::uuid, ${requestId}::uuid,
                                                  ${call.invitationId}::uuid, ${call.reasonCode})`,
   );
+}
+
+/** 0134 (RG81): backoffice.change_apollo_setting(), by the confirmer; the accounts re-evaluated. */
+export async function changeApolloSetting(
+  tx: Transaction,
+  sessionId: string,
+  requestId: string,
+  call: { setting: StoredApolloSetting; reasonCode: string },
+): Promise<number> {
+  const rows = await tx.execute<{ reevaluated: number }>(
+    sql`select backoffice.change_apollo_setting(${sessionId}::uuid, ${requestId}::uuid,
+                                                ${call.setting.key},
+                                                ${JSON.stringify(call.setting.value)}::jsonb,
+                                                ${call.reasonCode}) as reevaluated`,
+  );
+  return rows[0]?.reevaluated ?? 0;
 }
 
 /** 0132 (EC-J8-17): identity.change_member_role(), creator to advertiser, by the confirmer. */
@@ -849,4 +870,477 @@ export async function dayCounters(tx: Transaction): Promise<DayCounters> {
     brevoFailures: totals.brevo_failures,
     apolloFailures: totals.apollo_failures,
   };
+}
+
+// ---------------------------------------------------------------------------------------------
+// The action API of the backoffice v0 (05 RG81, RG93, RG101 to RG104, RG108; 15 §F; J8 commit 6),
+// under influx_agent or influx_admin in aal2. The rules are the database's: the replay (0132
+// leads.replay_outbox_lines), the corrections (0132 identity.correct_member_account), the Apollo
+// keys and the suppression lift (0134, admin, R), the trace of a refused attempt (0134). The alert
+// reads are plain reads of what agent and admin may read in aal2 (0101, 0129, 0130), and the last
+// reconciliation through its function (0134, admin).
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A Postgres array literal, every element quoted: drizzle expands a JS array into a list of
+ * parameters, not into one array parameter.
+ */
+function arrayLiteral(values: readonly (string | number)[]): string {
+  return `{${values
+    .map((value) => `"${String(value).replace(/["\\]/g, "\\$&")}"`)
+    .join(",")}}`;
+}
+
+/** The two contact destinations of the queue (0101). */
+export type ContactDestination = "brevo_contact" | "apollo_contact";
+
+// ---------------------------------------------------------------------------------------------
+// Replay (05 RG101 to RG103)
+// ---------------------------------------------------------------------------------------------
+
+/** What the replay needs to know of one (account, destination) pair, read before the call. */
+export type ReplayCandidate = {
+  accountId: string;
+  destination: ContactDestination;
+  /** The failed lines of the pair, oldest first (0101 internal ids, never exposed). */
+  failedIds: number[];
+  /** A line of the pair waits or is in processing. */
+  live: boolean;
+  lastStatus: string | null;
+  lastCode: string | null;
+};
+
+/**
+ * The pairs of MEMBER accounts among `pairs` (an internal or unknown account is absent: the route
+ * reports it as nothing to replay, like any pair without a failed line).
+ */
+export async function replayCandidates(
+  tx: Transaction,
+  pairs: readonly { accountId: string; destination: ContactDestination }[],
+): Promise<ReplayCandidate[]> {
+  const rows = await tx.execute<{
+    account_id: string;
+    destination: ContactDestination;
+    failed_ids: number[];
+    live: boolean;
+    last_status: string | null;
+    last_code: string | null;
+  }>(sql`
+    select p.account_id::text as account_id, p.destination,
+           (select coalesce(jsonb_agg(o.id order by o.id), '[]'::jsonb)
+              from leads.outbox_events o
+             where o.subject_key = 'account:' || p.account_id::text
+               and o.destination = p.destination::leads.outbox_destination
+               and o.status = 'failed') as failed_ids,
+           exists (select 1
+                     from leads.outbox_events o
+                    where o.subject_key = 'account:' || p.account_id::text
+                      and o.destination = p.destination::leads.outbox_destination
+                      and o.status in ('pending', 'processing')) as live,
+           s.last_status::text as last_status, s.last_error_code as last_code
+      from unnest(${arrayLiteral(pairs.map((pair) => pair.accountId))}::uuid[],
+                  ${arrayLiteral(pairs.map((pair) => pair.destination))}::text[])
+           as p (account_id, destination)
+      join identity.account_roles r
+        on r.account_id = p.account_id and r.role in ('advertiser', 'creator')
+      left join leads.contact_sync_states s
+        on s.account_id = p.account_id
+       and s.destination = p.destination::leads.outbox_destination`);
+  return rows.map((row) => ({
+    accountId: row.account_id,
+    destination: row.destination,
+    failedIds: row.failed_ids.map(Number),
+    live: row.live,
+    lastStatus: row.last_status,
+    lastCode: row.last_code,
+  }));
+}
+
+export type ReplayLineOutcome = {
+  replayId: string;
+  outboxId: number;
+  outcome: "requeued" | "ignored" | "refused";
+  detail: string | null;
+};
+
+/** 0132: the replay of 1 to 200 lines, one winner per line (CA61), journaled as one object. */
+export async function replayOutboxLines(
+  tx: Transaction,
+  outboxIds: readonly number[],
+  reasonCode: string,
+): Promise<ReplayLineOutcome[]> {
+  const rows = await tx.execute<{
+    replay_id: string;
+    outbox_id: string;
+    outcome: ReplayLineOutcome["outcome"];
+    detail: string | null;
+  }>(
+    sql`select replay_id::text as replay_id, outbox_id::text as outbox_id, outcome, detail
+          from leads.replay_outbox_lines(${arrayLiteral(outboxIds)}::bigint[], ${reasonCode})`,
+  );
+  return rows.map((row) => ({
+    replayId: row.replay_id,
+    outboxId: Number(row.outbox_id),
+    outcome: row.outcome,
+    detail: row.detail,
+  }));
+}
+
+// ---------------------------------------------------------------------------------------------
+// Corrections (05 RG108) and the suppression lift (05 RG93)
+// ---------------------------------------------------------------------------------------------
+
+/** 0132: false when nothing changes. 22023, 23514, 23503 or 42501 otherwise (see the route). */
+export async function correctMemberAccount(
+  tx: Transaction,
+  accountId: string,
+  correction: {
+    reasonCode: string;
+    declaredStatus: "individual" | "business" | null;
+    countryCode: string | null;
+    preferredLanguage: string | null;
+    comment: string | null;
+  },
+): Promise<boolean> {
+  const rows = await tx.execute<{ changed: boolean }>(
+    sql`select identity.correct_member_account(
+                 ${accountId}::uuid, ${correction.reasonCode},
+                 ${correction.declaredStatus}::identity.declared_status,
+                 ${correction.countryCode}, ${correction.preferredLanguage},
+                 ${correction.comment}) as changed`,
+  );
+  return rows[0]?.changed === true;
+}
+
+/** 0134: with R on `sessionId`; true when a consent is sent again to Brevo (EC-J8-27). */
+export async function liftBrevoSuppression(
+  tx: Transaction,
+  sessionId: string,
+  accountId: string,
+  call: { reasonCode: string; comment: string | null },
+): Promise<boolean> {
+  const rows = await tx.execute<{ resync: boolean }>(
+    sql`select backoffice.lift_brevo_suppression(${sessionId}::uuid, ${accountId}::uuid,
+                                                 ${call.reasonCode}, ${call.comment}) as resync`,
+  );
+  return rows[0]?.resync === true;
+}
+
+/** The admin actions an agent may attempt, and whose refusal is journaled (0134, CA63). */
+export type RefusedActionCode =
+  | "leads.change_apollo_setting"
+  | "leads.read_apollo_settings"
+  | "leads.lift_brevo_suppression"
+  | "backoffice.dual_control"
+  | "identity.change_member_role";
+
+/** 0134: backoffice.action_refused on the agent's own account (influx_agent only). */
+export async function recordRefusedAction(
+  tx: Transaction,
+  actionCode: RefusedActionCode,
+): Promise<void> {
+  await tx.execute(sql`select backoffice.record_refused_action(${actionCode})`);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Apollo settings (05 RG81)
+// ---------------------------------------------------------------------------------------------
+
+export type ApolloSettingRow = {
+  key: string;
+  value: unknown;
+  updatedAt: string;
+  updatedBy: string | null;
+};
+
+/** 0134: the three Apollo keys (admin). */
+export async function readApolloSettings(
+  tx: Transaction,
+): Promise<ApolloSettingRow[]> {
+  const rows = await tx.execute<{
+    key: string;
+    value: unknown;
+    updated_at: string;
+    updated_by: string | null;
+  }>(sql`
+    select s.key, s.value, to_char(s.updated_at at time zone 'UTC', ${ISO_UTC}) as updated_at,
+           s.updated_by_account_id::text as updated_by
+      from backoffice.read_apollo_settings() s`);
+  return rows.map((row) => ({
+    key: row.key,
+    value: row.value,
+    updatedAt: row.updated_at,
+    updatedBy: row.updated_by,
+  }));
+}
+
+// ---------------------------------------------------------------------------------------------
+// Alerts (05 RG104; 15 §F AL24 to AL27)
+// ---------------------------------------------------------------------------------------------
+
+export type AlertDefinitionRow = {
+  code: string;
+  threshold: Record<string, unknown>;
+  recipients: string[];
+};
+
+/** The active definitions of the codes asked (0130, 0134), thresholds as data. */
+export async function alertDefinitions(
+  tx: Transaction,
+  codes: readonly string[],
+): Promise<AlertDefinitionRow[]> {
+  const rows = await tx.execute<{
+    code: string;
+    threshold_value: Record<string, unknown>;
+    recipient_roles: string[];
+  }>(sql`
+    select d.code, d.threshold_value, d.recipient_roles
+      from backoffice.alert_definitions d
+     where d.code = any(${arrayLiteral(codes)}::text[]) and d.is_active`);
+  return rows.map((row) => ({
+    code: row.code,
+    threshold: row.threshold_value,
+    recipients: row.recipient_roles,
+  }));
+}
+
+export type QueuePolicyRow = {
+  targetDecisionMinutes: number;
+  businessHours: Record<string, unknown> | null;
+};
+
+/** 0129: the delay of a queue and its business hours (null: calendar time). */
+export async function queuePolicy(
+  tx: Transaction,
+  queueCode: string,
+): Promise<QueuePolicyRow | null> {
+  const [row] = await tx.execute<{
+    target_decision_minutes: number;
+    business_hours: Record<string, unknown> | null;
+  }>(sql`
+    select p.target_decision_minutes, p.business_hours
+      from backoffice.sla_policies p
+     where p.queue_code = ${queueCode} and p.is_active`);
+  return row === undefined
+    ? null
+    : {
+        targetDecisionMinutes: row.target_decision_minutes,
+        businessHours: row.business_hours,
+      };
+}
+
+/** The database clock: every alert is evaluated against it, never another one. */
+export async function databaseNow(tx: Transaction): Promise<string> {
+  const [row] = await tx.execute<{ now: string }>(
+    sql`select to_char(now() at time zone 'UTC', ${ISO_UTC}) as now`,
+  );
+  if (row === undefined) {
+    throw new Error("the database clock returned no row");
+  }
+  return row.now;
+}
+
+export type FailuresPastDelayRow = {
+  destination: ContactDestination;
+  count: number;
+  oldestAt: string;
+};
+
+/**
+ * AL24: the failed contact lines whose failure is older than `cutoff`, per destination; for an
+ * agent (`ownerAgentId`), those of the accounts he is responsible for (owner_agent).
+ */
+export async function failuresPastDelay(
+  tx: Transaction,
+  cutoff: string,
+  ownerAgentId: string | null,
+): Promise<FailuresPastDelayRow[]> {
+  const owner =
+    ownerAgentId === null
+      ? sql`true`
+      : sql`exists (select 1 from identity.accounts a
+                     where 'account:' || a.id::text = o.subject_key
+                       and a.owner_agent_id = ${ownerAgentId}::uuid)`;
+  const rows = await tx.execute<{
+    destination: ContactDestination;
+    count: number;
+    oldest_at: string;
+  }>(sql`
+    select o.destination::text as destination, count(*)::integer as count,
+           to_char(min(o.completed_at) at time zone 'UTC', ${ISO_UTC}) as oldest_at
+      from leads.outbox_events o
+     where o.status = 'failed'
+       and o.destination in ('brevo_contact', 'apollo_contact')
+       and o.completed_at <= ${cutoff}::timestamptz
+       and ${owner}
+     group by o.destination
+     order by o.destination`);
+  return rows.map((row) => ({
+    destination: row.destination,
+    count: row.count,
+    oldestAt: row.oldest_at,
+  }));
+}
+
+/** AL25: the health of one contact destination, as the queue tells it. */
+export type DestinationHealthRow = {
+  destination: ContactDestination;
+  /** Lines pending or in processing (CA62 "le nombre de lignes en attente"). */
+  waiting: number;
+  /** Waiting lines that already failed at least once, created before the window. */
+  retryingOld: number;
+  oldestRetryingAt: string | null;
+  /** Retrying lines whose last error is a quota code. */
+  quotaErrors: number;
+  /** Unhandled lines (waiting or failed) whose last error is a refused key. */
+  keyRefused: number;
+  oldestKeyRefusedAt: string | null;
+  /** A line of this destination succeeded within the window. */
+  recentSuccess: boolean;
+};
+
+export async function destinationHealth(
+  tx: Transaction,
+  options: {
+    windowMinutes: number;
+    immediateCodes: readonly string[];
+    quotaCodes: readonly string[];
+  },
+): Promise<DestinationHealthRow[]> {
+  const window = sql`now() - make_interval(mins => ${options.windowMinutes}::integer)`;
+  const rows = await tx.execute<{
+    destination: ContactDestination;
+    waiting: number;
+    retrying_old: number;
+    oldest_retrying_at: string | null;
+    quota_errors: number;
+    key_refused: number;
+    oldest_key_refused_at: string | null;
+    recent_success: boolean;
+  }>(sql`
+    select d.destination,
+           (select count(*)::integer from leads.outbox_events o
+             where o.destination = d.destination::leads.outbox_destination
+               and o.status in ('pending', 'processing')) as waiting,
+           (select count(*)::integer from leads.outbox_events o
+             where o.destination = d.destination::leads.outbox_destination
+               and o.status in ('pending', 'processing') and o.attempts > 0
+               and o.last_error_code is not null and o.created_at <= ${window}) as retrying_old,
+           (select to_char(min(o.created_at) at time zone 'UTC', ${ISO_UTC})
+              from leads.outbox_events o
+             where o.destination = d.destination::leads.outbox_destination
+               and o.status in ('pending', 'processing') and o.attempts > 0
+               and o.last_error_code is not null) as oldest_retrying_at,
+           (select count(*)::integer from leads.outbox_events o
+             where o.destination = d.destination::leads.outbox_destination
+               and o.status in ('pending', 'processing') and o.attempts > 0
+               and o.last_error_code = any(${arrayLiteral(options.quotaCodes)}::text[])) as quota_errors,
+           (select count(*)::integer from leads.outbox_events o
+             where o.destination = d.destination::leads.outbox_destination
+               and o.status in ('pending', 'processing', 'failed')
+               and o.last_error_code = any(${arrayLiteral(options.immediateCodes)}::text[])) as key_refused,
+           (select to_char(min(o.updated_at) at time zone 'UTC', ${ISO_UTC})
+              from leads.outbox_events o
+             where o.destination = d.destination::leads.outbox_destination
+               and o.status in ('pending', 'processing', 'failed')
+               and o.last_error_code = any(${arrayLiteral(options.immediateCodes)}::text[]))
+             as oldest_key_refused_at,
+           exists (select 1 from leads.outbox_events o
+                    where o.destination = d.destination::leads.outbox_destination
+                      and o.status = 'succeeded' and o.completed_at > ${window}) as recent_success
+      from (values ('brevo_contact'), ('apollo_contact')) as d (destination)
+     order by d.destination`);
+  return rows.map((row) => ({
+    destination: row.destination,
+    waiting: row.waiting,
+    retryingOld: row.retrying_old,
+    oldestRetryingAt: row.oldest_retrying_at,
+    quotaErrors: row.quota_errors,
+    keyRefused: row.key_refused,
+    oldestKeyRefusedAt: row.oldest_key_refused_at,
+    recentSuccess: row.recent_success,
+  }));
+}
+
+/** AL26: the contact lines past their objective (RG79), over one sliding day of lines. */
+export type QueueDelayRow = {
+  destination: ContactDestination;
+  /** Lines created between `objective + 24 h` and `objective` ago, not skipped. */
+  eligible: number;
+  /** Of them, completed within the objective (a dry run counts: the worker processed it). */
+  inTime: number;
+  oldestLateAt: string | null;
+};
+
+export async function queueDelays(
+  tx: Transaction,
+  objectives: Readonly<Record<ContactDestination, number>>,
+): Promise<QueueDelayRow[]> {
+  const rows = await tx.execute<{
+    destination: ContactDestination;
+    eligible: number;
+    in_time: number;
+    oldest_late_at: string | null;
+  }>(sql`
+    with objective as (
+      select d.destination, make_interval(mins => d.minutes) as delay
+        from (values ('brevo_contact', ${objectives.brevo_contact}::integer),
+                     ('apollo_contact', ${objectives.apollo_contact}::integer))
+             as d (destination, minutes)
+    ), lines as (
+      select j.destination, o.created_at, o.completed_at, o.status, j.delay
+        from objective j
+        join leads.outbox_events o
+          on o.destination = j.destination::leads.outbox_destination
+         and o.created_at <= now() - j.delay
+         and o.created_at >  now() - j.delay - interval '24 hours'
+         and o.status <> 'skipped'
+    )
+    select j.destination,
+           (select count(*)::integer from lines l where l.destination = j.destination) as eligible,
+           (select count(*)::integer from lines l
+             where l.destination = j.destination and l.status = 'succeeded'
+               and l.completed_at <= l.created_at + l.delay) as in_time,
+           (select to_char(min(l.created_at) at time zone 'UTC', ${ISO_UTC}) from lines l
+             where l.destination = j.destination
+               and not (l.status = 'succeeded' and l.completed_at <= l.created_at + l.delay))
+             as oldest_late_at
+      from objective j
+     order by j.destination`);
+  return rows.map((row) => ({
+    destination: row.destination,
+    eligible: row.eligible,
+    inTime: row.in_time,
+    oldestLateAt: row.oldest_late_at,
+  }));
+}
+
+export type ReconciliationRow = {
+  periodKey: string;
+  finishedAt: string;
+  outcome: "succeeded" | "failed";
+  gap: number;
+};
+
+/** AL27 (0134, admin): the last finished Brevo reconciliation, or null before the first one. */
+export async function lastBrevoReconciliation(
+  tx: Transaction,
+): Promise<ReconciliationRow | null> {
+  const [row] = await tx.execute<{
+    period_key: string;
+    finished_at: string;
+    outcome: "succeeded" | "failed";
+    gap: number;
+  }>(sql`
+    select r.period_key, to_char(r.finished_at at time zone 'UTC', ${ISO_UTC}) as finished_at,
+           r.outcome, r.gap
+      from backoffice.last_brevo_reconciliation() r`);
+  return row === undefined
+    ? null
+    : {
+        periodKey: row.period_key,
+        finishedAt: row.finished_at,
+        outcome: row.outcome,
+        gap: row.gap,
+      };
 }

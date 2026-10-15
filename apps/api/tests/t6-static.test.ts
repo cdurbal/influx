@@ -324,7 +324,7 @@ function lastDefinitionOf(
     .at(-1);
 }
 
-describe("the admin actions of J8 commit 3 keep their guards in the database (0131, 0132)", () => {
+describe("the admin actions of J8 commits 3 and 6 keep their guards in the database (0131, 0132, 0134)", () => {
   // A later migration that redefines one of them without its guards fails here (constat cyber of
   // commit 2 on correct_email(); 03 §3.1 J · 2V · R for the role change and the admin invitation).
   it.each([
@@ -353,6 +353,22 @@ describe("the admin actions of J8 commit 3 keep their guards in the database (01
     ],
     [
       "identity.create_internal_invitation",
+      [
+        "identity.require_active_admin()",
+        "identity.assert_fresh_second_factor(",
+      ],
+    ],
+    // 0134 (J8 commit 6): the Apollo keys (05 RG81, 2V + R) and the suppression lift (RG93, R)
+    [
+      "backoffice.change_apollo_setting",
+      [
+        "identity.require_active_admin()",
+        "identity.assert_fresh_second_factor(",
+        "backoffice.consume_dual_control(",
+      ],
+    ],
+    [
+      "backoffice.lift_brevo_suppression",
       [
         "identity.require_active_admin()",
         "identity.assert_fresh_second_factor(",

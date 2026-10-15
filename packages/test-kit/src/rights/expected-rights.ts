@@ -808,7 +808,8 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * those of 0111 (J6, E-3: influx_leads_definer column by column, influx_worker on its functions);
  * and on 2026-10-13 with those of 0116 and 0117 (J7 commit 2), then of 0118 to 0120 (J7 commit
  * 2bis), each line checked against its migration; and on 2026-10-15 with those of 0129 and 0130
- * (J8 commit 2), then of 0131 and 0132 (J8 commit 3), each line checked against its migration.
+ * (J8 commit 2), then of 0131 and 0132 (J8 commit 3), then of 0133 and 0134 (J8 commits 5 and 6),
+ * each line checked against its migration.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -1213,7 +1214,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|column|leads.outbox_events.priority|INSERT",
   "influx_identity_definer|column|leads.outbox_events.subject_key|INSERT",
   "influx_identity_definer|column|leads.sync_settings.key|SELECT",
-  "influx_identity_definer|column|leads.sync_settings.value|SELECT",
+  "influx_identity_definer|column|leads.sync_settings.value|SELECT,UPDATE",
   "influx_identity_definer|column|profiles.advertiser_profiles.account_id|INSERT,SELECT",
   "influx_identity_definer|column|profiles.advertiser_profiles.legal_name|INSERT,SELECT,UPDATE",
   "influx_identity_definer|function|identity.correct_email(uuid,uuid,text,text,text)|EXECUTE",
@@ -1363,10 +1364,10 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_maintenance_definer|column|leads.brevo_inbound_outcomes.event_id|SELECT",
   "influx_maintenance_definer|column|leads.brevo_inbound_outcomes.processed_at|SELECT",
   "influx_maintenance_definer|column|ops.periodic_runs.attempt|SELECT,UPDATE",
-  "influx_maintenance_definer|column|ops.periodic_runs.counts|UPDATE",
+  "influx_maintenance_definer|column|ops.periodic_runs.counts|SELECT,UPDATE",
   "influx_maintenance_definer|column|ops.periodic_runs.finished_at|SELECT,UPDATE",
   "influx_maintenance_definer|column|ops.periodic_runs.id|SELECT",
-  "influx_maintenance_definer|column|ops.periodic_runs.outcome|UPDATE",
+  "influx_maintenance_definer|column|ops.periodic_runs.outcome|SELECT,UPDATE",
   "influx_maintenance_definer|column|ops.periodic_runs.period_key|INSERT,SELECT",
   "influx_maintenance_definer|column|ops.periodic_runs.started_at|SELECT",
   "influx_maintenance_definer|column|ops.periodic_runs.task_code|INSERT,SELECT",
@@ -1757,6 +1758,29 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|function|leads.replay_outbox_lines(bigint[],text)|EXECUTE",
   "influx_leads_definer|schema|audit|USAGE",
   "influx_leads_definer|schema|influx|USAGE",
+  // 0134 (J8 commit 6): the Apollo keys under 2V + R (RG81), the suppression lift (RG93), the
+  // trace of a refused attempt (CA63), the last reconciliation (AL27); each line checked against
+  // its migration.
+  "influx_admin|function|backoffice.change_apollo_setting(uuid,uuid,text,jsonb,text)|EXECUTE",
+  "influx_admin|function|backoffice.last_brevo_reconciliation()|EXECUTE",
+  "influx_admin|function|backoffice.lift_brevo_suppression(uuid,uuid,text,text)|EXECUTE",
+  "influx_admin|function|backoffice.read_apollo_settings()|EXECUTE",
+  "influx_agent|function|backoffice.record_refused_action(text)|EXECUTE",
+  "influx_identity_definer|column|leads.contact_sync_states.account_id|SELECT",
+  "influx_identity_definer|column|leads.contact_sync_states.destination|SELECT",
+  "influx_identity_definer|column|leads.contact_sync_states.last_error_code|SELECT",
+  "influx_identity_definer|column|leads.contact_sync_states.last_status|SELECT",
+  "influx_identity_definer|column|leads.contact_sync_states.suppressed_reason|SELECT,UPDATE",
+  "influx_identity_definer|column|leads.contact_sync_states.unsubscribed_at|SELECT",
+  "influx_identity_definer|column|leads.sync_settings.updated_at|SELECT",
+  "influx_identity_definer|column|leads.sync_settings.updated_by_account_id|SELECT,UPDATE",
+  "influx_identity_definer|column|reference.countries.code|SELECT",
+  "influx_identity_definer|function|backoffice.change_apollo_setting(uuid,uuid,text,jsonb,text)|EXECUTE",
+  "influx_identity_definer|function|backoffice.lift_brevo_suppression(uuid,uuid,text,text)|EXECUTE",
+  "influx_identity_definer|function|backoffice.read_apollo_settings()|EXECUTE",
+  "influx_identity_definer|function|backoffice.record_refused_action(text)|EXECUTE",
+  "influx_identity_definer|schema|reference|USAGE",
+  "influx_maintenance_definer|function|backoffice.last_brevo_reconciliation()|EXECUTE",
 ];
 
 /**
@@ -1941,4 +1965,12 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "leads.replay_outbox_lines(bigint[],text)": "influx_leads_definer",
   // 0133 (J8 commit 5: partial search of member accounts, RG98)
   "backoffice.reserve_account_search(integer)": "influx_identity_definer",
+  // 0134 (J8 commit 6: Apollo keys, suppression lift, refused attempts, last reconciliation)
+  "backoffice.change_apollo_setting(uuid,uuid,text,jsonb,text)":
+    "influx_identity_definer",
+  "backoffice.read_apollo_settings()": "influx_identity_definer",
+  "backoffice.lift_brevo_suppression(uuid,uuid,text,text)":
+    "influx_identity_definer",
+  "backoffice.record_refused_action(text)": "influx_identity_definer",
+  "backoffice.last_brevo_reconciliation()": "influx_maintenance_definer",
 };

@@ -518,7 +518,7 @@ describe("05 CA55, RG93: a complaint is a definitive suppression", () => {
     expect(double.contacts.get(email)?.emailBlacklisted).toBe(true);
   });
 
-  it("only the leads owner writes the suppression: no member, agent, admin nor execution role (lifted by an admin at J8)", async () => {
+  it("only the leads owner sets the suppression, and the admin's lift (0134) only clears it: no member, agent, admin nor execution role", async () => {
     const writers = await migration<{ grantee: string }[]>`
       select distinct grantee::text as grantee
         from information_schema.column_privileges
@@ -528,7 +528,22 @@ describe("05 CA55, RG93: a complaint is a definitive suppression", () => {
          and grantee <> (select tableowner from pg_catalog.pg_tables
                           where schemaname = 'leads' and tablename = 'contact_sync_states')
        order by 1`;
-    expect(writers).toEqual([{ grantee: "influx_leads_definer" }]);
+    expect(writers).toEqual([
+      { grantee: "influx_identity_definer" },
+      { grantee: "influx_leads_definer" },
+    ]);
+    // 0134 backoffice.lift_brevo_suppression(): UPDATE only, to NULL only, on Brevo's state only
+    const policies = await migration<
+      { cmd: string; qual: string; with_check: string }[]
+    >`
+      select cmd, qual, with_check
+        from pg_catalog.pg_policies
+       where schemaname = 'leads' and tablename = 'contact_sync_states'
+         and 'influx_identity_definer' = any (roles) and cmd <> 'SELECT'`;
+    expect(policies).toHaveLength(1);
+    expect(policies[0]?.cmd).toBe("UPDATE");
+    expect(policies[0]?.with_check).toContain("suppressed_reason IS NULL");
+    expect(policies[0]?.with_check).toContain("brevo_contact");
   });
 });
 

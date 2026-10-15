@@ -456,17 +456,18 @@ async function requestRoleChange(
   target: string,
   role = "advertiser",
   reason = "signup_error",
+  legalName = "Acme SAS",
 ): Promise<Attempt> {
   return asInternal(tx, "admin", adminA, () =>
     attempt(
       tx,
-      "select backoffice.request_dual_control('identity.change_member_role', jsonb_build_object('account_id', $1::uuid, 'role', $2::text), $3)::text as id",
-      [target, role, reason],
+      "select backoffice.request_dual_control('identity.change_member_role', jsonb_build_object('account_id', $1::uuid, 'role', $2::text, 'legal_name', $4::text), $3)::text as id",
+      [target, role, reason, legalName],
     ),
   );
 }
 
-describe("identity.change_member_role() (05 RG108, 03 §3.1 J · 2V · R · C(3), EC-J8-17)", () => {
+describe("identity.change_member_role() (05 RG108, 03 §3.1 J · 2V · R · C(3), EC-J8-17, EC-J8-23)", () => {
   it("turns a creator into an advertiser under a confirmed 2V and R: role, profile, status, sessions", async () => {
     const outcome = await scenario(async (tx) => {
       const member = await newMember(tx, "creator");
@@ -607,6 +608,17 @@ describe("identity.change_member_role() (05 RG108, 03 §3.1 J · 2V · R · C(3)
           "Acme SAS",
         ]),
       );
+      // EC-J8-23 (0134): the name of the brand is part of what the peer confirmed
+      const wrongName = await asInternal(tx, "admin", adminB, () =>
+        attempt(tx, CHANGE_ROLE, [
+          freshB,
+          request,
+          member,
+          "advertiser",
+          "signup_error",
+          "Other Brand SAS",
+        ]),
+      );
       const agentSession = await freshSession(tx, agentA);
       const agent = await asInternal(tx, "agent", agentA, () =>
         attempt(tx, CHANGE_ROLE, params(agentSession)),
@@ -616,6 +628,7 @@ describe("identity.change_member_role() (05 RG108, 03 §3.1 J · 2V · R · C(3)
         byRequester,
         stale,
         wrongReason,
+        wrongName,
         agent: codeOf(agent),
         roles: await tx<{ role: string }[]>`
           select role::text as role from identity.account_roles where account_id = ${member}`,
@@ -625,6 +638,7 @@ describe("identity.change_member_role() (05 RG108, 03 §3.1 J · 2V · R · C(3)
     expect(outcome.byRequester).toEqual(FORBIDDEN);
     expect(outcome.stale).toEqual(FORBIDDEN);
     expect(outcome.wrongReason).toEqual(FORBIDDEN);
+    expect(outcome.wrongName).toEqual(FORBIDDEN);
     expect(outcome.agent).toBe(INSUFFICIENT_PRIVILEGE);
     expect(outcome.roles).toEqual([{ role: "creator" }]);
   });

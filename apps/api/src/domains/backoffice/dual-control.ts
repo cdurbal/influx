@@ -14,12 +14,15 @@
 //   PD7  no flag, no setting, no code path of its own: dualControlView() reads "another admin can
 //        confirm" at every call, and the database re-reads it at every confirmation.
 // Codes only: the labels of the screen are the backoffice's (17b, D36).
+import type { ApolloSetting } from "@influx/contracts/backoffice-actions";
 import type { BusinessRole, Transaction } from "../../db/index.ts";
 import { ApiError } from "../../platform/errors.ts";
 import type { BackofficeContext } from "../identity/backoffice-session.ts";
+import { apolloSettingOf, storedApolloSetting } from "./apollo-settings.ts";
 import {
   approveAdminInvitation,
   cancelDualControl as cancelRequest,
+  changeApolloSetting,
   changeMemberRole,
   confirmDualControl as confirmRequest,
   degradedConfirmations,
@@ -53,13 +56,16 @@ export type DualControlAction =
       code: "identity.change_member_role";
       accountId: string;
       role: "advertiser";
+      /** EC-J8-23 (0134): the name of the new brand, inside the confirmed payload. */
+      legalName: string;
     }
-  | { code: "identity.invite_admin"; invitationId: string };
+  | { code: "identity.invite_admin"; invitationId: string }
+  | { code: "leads.change_apollo_setting"; setting: ApolloSetting };
 
 /** PD1: what the action does, said before the first gesture. Codes, for the screen to word. */
 export type DualControlRecap = {
   /** How many objects the action touches. */
-  scope: { kind: "account" | "internal_invitation"; count: number };
+  scope: { kind: "account" | "internal_invitation" | "setting"; count: number };
   consequences: readonly string[];
   reversible: boolean;
 };
@@ -67,7 +73,8 @@ export type DualControlRecap = {
 /**
  * PD1, by action. `reversible` says whether the backoffice can undo it: a granted role is not
  * withdrawn before Lot 5, a creator never becomes one again (EC-J8-17), an admin invitation can be
- * revoked until it is accepted (0131).
+ * revoked until it is accepted (0131), an Apollo key is set back by another change (RG81; what left
+ * for Apollo meanwhile stays there).
  */
 const RECAPS: Readonly<Record<DualControlActionCode, DualControlRecap>> = {
   "identity.grant_role": {
@@ -91,6 +98,11 @@ const RECAPS: Readonly<Record<DualControlActionCode, DualControlRecap>> = {
     consequences: ["admin_invitation_usable"],
     reversible: true,
   },
+  "leads.change_apollo_setting": {
+    scope: { kind: "setting", count: 1 },
+    consequences: ["setting_changed", "skipped_accounts_reevaluated"],
+    reversible: true,
+  },
 };
 
 export function dualControlRecap(action: DualControlAction): DualControlRecap {
@@ -98,9 +110,20 @@ export function dualControlRecap(action: DualControlAction): DualControlRecap {
 }
 
 function payloadOf(action: DualControlAction): DualControlPayload {
-  return action.code === "identity.invite_admin"
-    ? { invitation_id: action.invitationId }
-    : { account_id: action.accountId, role: action.role };
+  switch (action.code) {
+    case "identity.invite_admin":
+      return { invitation_id: action.invitationId };
+    case "identity.change_member_role":
+      return {
+        account_id: action.accountId,
+        role: action.role,
+        legal_name: action.legalName,
+      };
+    case "leads.change_apollo_setting":
+      return storedApolloSetting(action.setting);
+    case "identity.grant_role":
+      return { account_id: action.accountId, role: action.role };
+  }
 }
 
 /** The action of a stored request; null for a shape this service does not know (never trusted). */
@@ -108,7 +131,12 @@ function actionOf(
   code: string,
   payload: Record<string, unknown>,
 ): DualControlAction | null {
-  const { account_id: accountId, role, invitation_id: invitationId } = payload;
+  const {
+    account_id: accountId,
+    role,
+    invitation_id: invitationId,
+    legal_name: legalName,
+  } = payload;
   switch (code) {
     case "identity.grant_role":
       return typeof accountId === "string" &&
@@ -119,11 +147,17 @@ function actionOf(
         ? { code, accountId, role }
         : null;
     case "identity.change_member_role":
-      return typeof accountId === "string" && role === "advertiser"
-        ? { code, accountId, role }
+      return typeof accountId === "string" &&
+        role === "advertiser" &&
+        typeof legalName === "string"
+        ? { code, accountId, role, legalName }
         : null;
     case "identity.invite_admin":
       return typeof invitationId === "string" ? { code, invitationId } : null;
+    case "leads.change_apollo_setting": {
+      const setting = apolloSettingOf(payload.key, payload.value);
+      return setting === null ? null : { code, setting };
+    }
     default:
       return null;
   }
@@ -131,7 +165,10 @@ function actionOf(
 
 /** The account an action targets, if any: never one's own (C(3), 15 RG36). */
 function targetAccountOf(action: DualControlAction): string | null {
-  return action.code === "identity.invite_admin" ? null : action.accountId;
+  return action.code === "identity.invite_admin" ||
+    action.code === "leads.change_apollo_setting"
+    ? null
+    : action.accountId;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -297,35 +334,38 @@ export type DualControlExecutor<Result> = (
 
 /**
  * The executor of the closed list: the database function of the request's action, with the
- * session of the request (R in that transaction) and the request id. `legalName`: the name of the
- * new brand of identity.change_member_role, typed at the confirmation — outside the payload of
- * 0132, so not covered by the 2V (EC-J8-23, to settle with the corrections of commit 6).
+ * session of the request (R in that transaction) and the request id. Every parameter of the action
+ * comes from the confirmed payload, the legal name of a role change included (EC-J8-23, 0134).
+ * Returns the accounts re-evaluated by an Apollo key (RG81), null for the other actions.
  */
-export function dualControlExecutor(
-  extras: { legalName: string | null } = { legalName: null },
-): DualControlExecutor<void> {
+export function dualControlExecutor(): DualControlExecutor<number | null> {
   return async (tx, context, request) => {
     const { action } = request;
     switch (action.code) {
       case "identity.grant_role":
-        return grantRole(tx, context.sessionId, request.id, {
+        await grantRole(tx, context.sessionId, request.id, {
           accountId: action.accountId,
           role: action.role,
           reasonCode: request.reasonCode,
         });
+        return null;
       case "identity.invite_admin":
-        return approveAdminInvitation(tx, context.sessionId, request.id, {
+        await approveAdminInvitation(tx, context.sessionId, request.id, {
           invitationId: action.invitationId,
           reasonCode: request.reasonCode,
         });
+        return null;
       case "identity.change_member_role":
-        if (extras.legalName === null) {
-          throw new ApiError("validation_failed");
-        }
-        return changeMemberRole(tx, context.sessionId, request.id, {
+        await changeMemberRole(tx, context.sessionId, request.id, {
           accountId: action.accountId,
           reasonCode: request.reasonCode,
-          legalName: extras.legalName,
+          legalName: action.legalName,
+        });
+        return null;
+      case "leads.change_apollo_setting":
+        return changeApolloSetting(tx, context.sessionId, request.id, {
+          setting: storedApolloSetting(action.setting),
+          reasonCode: request.reasonCode,
         });
     }
   };

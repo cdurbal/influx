@@ -18,6 +18,7 @@ describe("PD1: the recap of each action, before the first gesture", () => {
       "identity.change_member_role",
       "identity.grant_role",
       "identity.invite_admin",
+      "leads.change_apollo_setting",
     ]);
     for (const recap of [
       dualControlRecap({
@@ -29,10 +30,15 @@ describe("PD1: the recap of each action, before the first gesture", () => {
         code: "identity.change_member_role",
         accountId: ACCOUNT,
         role: "advertiser",
+        legalName: "Acme SAS",
       }),
       dualControlRecap({
         code: "identity.invite_admin",
         invitationId: ACCOUNT,
+      }),
+      dualControlRecap({
+        code: "leads.change_apollo_setting",
+        setting: { key: "apollo_scope", value: "annonceurs_seuls" },
       }),
     ]) {
       expect(recap.scope.count).toBe(1);
@@ -46,6 +52,7 @@ describe("PD1: the recap of each action, before the first gesture", () => {
         code: "identity.change_member_role",
         accountId: ACCOUNT,
         role: "advertiser",
+        legalName: "Acme SAS",
       }),
     ).toMatchObject({
       reversible: false,
@@ -58,6 +65,19 @@ describe("PD1: the recap of each action, before the first gesture", () => {
       }),
     ).toMatchObject({
       scope: { kind: "internal_invitation", count: 1 },
+      reversible: true,
+    });
+  });
+
+  it("says that an Apollo key re-evaluates the skipped accounts and can be set back (RG81)", () => {
+    expect(
+      dualControlRecap({
+        code: "leads.change_apollo_setting",
+        setting: { key: "apollo_prospecting_countries", value: ["FR"] },
+      }),
+    ).toEqual({
+      scope: { kind: "setting", count: 1 },
+      consequences: ["setting_changed", "skipped_accounts_reevaluated"],
       reversible: true,
     });
   });
