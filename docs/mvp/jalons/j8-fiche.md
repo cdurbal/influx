@@ -163,6 +163,14 @@ e2e 16 ; `pnpm test` = 2 106. Tout nouveau fichier `db-tests` entre dans `case-f
 - Revue groupée `expert-cybersecurite` : `p_session_id` non liée à la session de la requête ; blocage possible du secours (RG102) ; aucun écrivain de `expired` ; `correct_email()` sans 2V/R en base (`0132`) ; pas d'AL pour l'attribution `admin`.
 - `product-owner` : seuil d'AL25 (`05` RG104 muet), escalade des files, fuseau ouvré ; sujet `uuid` de `settings.changed` (commit 6). `test:db -- <fichier>` ne filtre pas : `pnpm --filter @influx/api exec vitest run --project db <fichier>`.
 
+## Issu du commit 3 (`1a41e1b`)
+
+- `0131` : `create_internal_invitation` (admin, R ; admin ⇒ `approve_admin_invitation` 2V `identity.invite_admin`), `internal_invitation_is_valid` avant GoTrue, `accept_internal_invitation` (compte + jeton TOTP de même empreinte) ; `create_member_invitation` (agent/admin), `redeem_member_invitation` après `provision_account` = `created` (ne lève jamais), `accounts.signup_invitation_id`.
+- `0132` : `correct_member_account` (motifs fermés, un `lead.updated`), `change_member_role` créateur → annonceur (2V + R), `correct_email(session, …)` sous R, `leads.replay_outbox_lines` (1 à 200, `requeued`/`ignored`/`refused`), `backoffice.read_subject_history` (EC-31). Contrat détaillé : en-têtes des deux migrations.
+- 2V : `grant_role`, `invite_admin`, `change_member_role` (charges dans `canonical_dual_control_payload()`). Tout refus interne `42501`.
+- EC-J8-12 à EC-J8-22 (en-têtes des migrations, message de `1a41e1b`) ; **EC-J8-19 à arbitrer à la revue cyber** (rejeu en lot sans 2V, `03` l. 562 contre `05` RG101) ; EC-J8-22 notification RG44 au commit 6 ou au Lot 5.
+- Planchers : base 878 (40 fichiers), unitaire `apps/api` 957.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les

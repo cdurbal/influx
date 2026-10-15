@@ -285,6 +285,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 
 - [x] Commit 1 (`73cdc5c`) — dette J7 hors base : J7S-7, J7T-1, J7T-2, J7T-3 (planchers unitaires), J6T-1, J6T-2 ; `all_paused` ⇒ `503` avant la demande de changement d'adresse.
 - [x] Commit 2 (`1314e9e`) — `0129` files et délais (4 files du J8, D39), `0130` 14 alertes, `dual_control_requests` (PD2 à PD7), codes `dual_control.*`, `settings.changed`, `ownership.reassigned`, `grant_role()` avec 2V et R ; T2, T3, T4, T6 étendus (base 829).
+- [x] Commit 3 (`1a41e1b`) — `0131` invitations interne (admin, R, 72 h, liée à l'adresse ; admin sous 2V) et membre (30 j, attribution à l'inscription), `0132` corrections RG108, `change_member_role` (2V + R), `correct_email` sous R, rejeu ≤ 200 (CA60, CA61), historique EC-31 journalisé (base 878).
 
 ### J9 — Durcissement, landing branchée, mise en ligne (4 à 5 jours)
 
