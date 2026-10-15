@@ -283,6 +283,8 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 
 **Tests** : CA56 à CA64 ; T14 sur les routes du backoffice ; parcours de double validation dégradée.
 
+- [x] Commit 1 (`73cdc5c`) — dette J7 hors base : J7S-7, J7T-1, J7T-2, J7T-3 (planchers unitaires), J6T-1, J6T-2 ; `all_paused` ⇒ `503` avant la demande de changement d'adresse.
+
 ### J9 — Durcissement, landing branchée, mise en ligne (4 à 5 jours)
 
 1. **Sortie du mode maquette de `apps/web`** (`02` §13.3) : retrait du module fictif, d'`IS_MOCKUP` et du bandeau ; gardes resserrées ; boutons et portes de la landing branchés sur les vrais chemins (EC-15). **Bandeau cookies (arbitrage `chef-de-projet` 2026-10-09)**, commit séparé : si l'inventaire des traceurs (`landing-page/07` L9) ne relève aucun traceur non essentiel, bandeau désactivé globalement, lien « Cookies » du pied conservé (`landing-page/11` §8) ; sinon cookie `influx_cookie_consent` (`11` §7, `readStoredConsent`/`writeStoredConsent`) et garde « aucune API de stockage » (D37) ouverte pour ce seul module. Exécution `dev-react-node` ; inventaire et verdict L9 : `expert-conformite-rgpd` (revue Lot 6, avant production) ; cookie : revue groupée `expert-cybersecurite` du J9.

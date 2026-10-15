@@ -151,6 +151,11 @@ ni montant ; libellés du backoffice FR/EN externalisés (D36 ouverte).
 Base 754 cas (36 fichiers) ; unitaire `apps/api` 946 ; contracts 63 ; test-kit 116 ; web 203 ;
 e2e 16 ; `pnpm test` = 2 106. Tout nouveau fichier `db-tests` entre dans `case-floors.ts`.
 
+## Issu du commit 1 (`73cdc5c`)
+
+- Interrupteur : `src/platform/email-switch.ts`, mise en attente lue sur `leads.send_priority` ; non stocké avant le Lot 5 (`0503`), lu `off` ; injectable (`identity.emailSwitch`).
+- Planchers : unitaire `apps/api` figé dans `tests/case-floors.ts` (953, 46 fichiers), contrôle `scripts/check-case-floors.ts unit|db` ; base 760 ; `pnpm test` = 2 119.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les
