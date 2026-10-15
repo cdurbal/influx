@@ -6,7 +6,7 @@
 > l'homologation du Lot 6) ; remise de l'export **tranchée par `expert-cybersecurite` le 2026-10-14**
 > (§4) ; outil d'exécution au J8 (`chef-de-projet`, §1). **La notice et les modèles de réponse sont
 > à valider par un juriste avant la première demande réelle** (§8). Références : `05` RG57, `15` RG72
-> à RG81 (file 14), `17` §6.3, `04` §5.10 et §9.2, décision 6 du J7 (`docs/mvp/jalons/j7-fiche.md`),
+> à RG81 (file 14), `17` §6.3, `04` §5.10 et §9.2, décision 6 du J7 (`git show 5b977f7:docs/mvp/jalons/j7-fiche.md`),
 > migrations `0120`, `0127`, `0128`.
 > **Règle d'or :** rien n'est exécuté automatiquement. Le membre **dépose** une demande ; un
 > `admin` l'**exécute** à la main, en suivant cette page. Une demande traitée hors de cette
