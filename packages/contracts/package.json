@@ -12,6 +12,7 @@
     "./auth": "./src/auth.ts",
     "./account": "./src/account.ts",
     "./backoffice-auth": "./src/backoffice-auth.ts",
+    "./backoffice-accounts": "./src/backoffice-accounts.ts",
     "./ops": "./src/ops.ts",
     "./terms": "./src/terms.ts",
     "./countries": "./src/countries.ts",

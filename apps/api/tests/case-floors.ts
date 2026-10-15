@@ -10,6 +10,7 @@ export const UNIT_CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/auth-cookies.test.ts": 21,
   "tests/auth-tokens.test.ts": 17,
   "tests/backoffice-auth.test.ts": 27,
+  "tests/backoffice-sync-causes.test.ts": 4,
   "tests/brevo-connector.test.ts": 60,
   "tests/brevo-guard.test.ts": 3,
   "tests/brevo-transactional.test.ts": 18,

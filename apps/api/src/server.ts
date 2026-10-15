@@ -18,6 +18,7 @@ import {
   registerBackofficeAuthRoutes,
 } from "./domains/identity/backoffice-routes.ts";
 import { requireBackofficeSession } from "./domains/identity/backoffice-session.ts";
+import { registerBackofficeAccountRoutes } from "./domains/backoffice/accounts-routes.ts";
 import { PWNED_PASSWORDS_TIMEOUT_MS } from "./domains/identity/settings.ts";
 import {
   registerIdentityRoutes,
@@ -473,6 +474,9 @@ export function buildServer(
       ? {}
       : { floorMs: options.identity.backofficeAuthFloorMs }),
   });
+
+  // Read API of the backoffice v0 on member accounts (05 §K, 21 §J8 commit 5).
+  registerBackofficeAccountRoutes(app, { database });
 
   // Browser errors of the connected spaces (D60, 02 §20.5).
   registerOpsRoutes(app, {

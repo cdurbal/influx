@@ -1,0 +1,311 @@
+// Read routes of the backoffice v0 on member accounts (docs/mvp/05 §K RG97 to RG100, RG105, RG107;
+// 15 RG34, RG40, RG49, RG50; 03 §3.1 "compte — lister et consulter" L · J; 21 §J8 commit 5).
+// Backoffice surface; the aal2 guard of server.ts runs first, then each handler reads through
+// withBackofficeSession() (agent and admin read the same thing).
+// - GET /v1/bo/accounts: the list (RG97), a page capped by the server (15 RG34), the exact search
+//   (free) and the partial one (one reservation per page, journaled, 429 beyond the limit: RG98).
+// - GET /v1/bo/accounts/counters: the head banner of the day (RG105).
+// - GET /v1/bo/accounts/:id: the record, its state per destination with the cause in clear (RG99,
+//   RG100), the responsible salespersons (RG49) and the history (EC-31), whose read is the journal
+//   of the opening (RG40, EC-J8-24). Unknown, malformed-free but internal, or own: the same 404
+//   (18 T14.3, T14.4).
+// - Every answer is `Cache-Control: no-store`: it carries personal data.
+import {
+  ACCOUNT_HISTORY_PAGE_SIZE,
+  accountCountersResponseSchema,
+  accountDetailResponseSchema,
+  accountParamsSchema,
+  accountQuerySchema,
+  accountsQuerySchema,
+  accountsResponseSchema,
+  COUNTERS_TOP_COUNTRIES,
+  PARTIAL_SEARCH_WINDOW_SECONDS,
+  type AccountCountersResponse,
+  type AccountDetailResponse,
+  type AccountParams,
+  type AccountQuery,
+  type AccountRow,
+  type AccountsQuery,
+  type AccountsResponse,
+  type HistoryEvent,
+} from "@influx/contracts/backoffice-accounts";
+import type { ApiDatabase } from "../../db/index.ts";
+import {
+  ApiError,
+  RequestValidationError,
+  RetryLaterError,
+} from "../../platform/errors.ts";
+import { withBackofficeSession } from "../identity/backoffice-session.ts";
+import type { IdentityApp } from "../identity/routes.ts";
+import {
+  accountHistory,
+  dayCounters,
+  listMemberAccounts,
+  memberAccountDetail,
+  ownershipOf,
+  reserveAccountSearch,
+  type AccountFilters,
+  type HistoryRow,
+  type MemberAccountRow,
+} from "./repository.ts";
+import { syncStatusOf } from "./sync-causes.ts";
+
+export type BackofficeAccountsDependencies = { database: ApiDatabase };
+
+const CURSOR_PATTERN =
+  /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z)\|([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
+
+/** The opaque cursor of the list: the last line's instant (microseconds) and id. */
+export function encodeCursor(row: { cursorAt: string; id: string }): string {
+  return Buffer.from(`${row.cursorAt}|${row.id}`, "utf8").toString("base64url");
+}
+
+export function decodeCursor(
+  cursor: string,
+): { createdAt: string; id: string } | null {
+  const match = CURSOR_PATTERN.exec(
+    Buffer.from(cursor, "base64url").toString("utf8"),
+  );
+  if (match === null || match[1] === undefined || match[2] === undefined) {
+    return null;
+  }
+  return { createdAt: match[1], id: match[2] };
+}
+
+function rowOf(row: MemberAccountRow): AccountRow {
+  return {
+    id: row.id,
+    createdAt: row.createdAt,
+    role: row.role,
+    status: row.status,
+    countryCode: row.countryCode as AccountRow["countryCode"],
+    preferredLanguage: row.preferredLanguage as AccountRow["preferredLanguage"],
+    declaredStatus: row.declaredStatus,
+    source: {
+      viaInvitation: row.viaInvitation,
+      utmSource: row.utmSource,
+      utmMedium: row.utmMedium,
+      utmCampaign: row.utmCampaign,
+      referrerDomain: row.referrerDomain,
+      heardFrom: row.heardFrom as AccountRow["source"]["heardFrom"],
+    },
+    consent:
+      row.consent === null
+        ? null
+        : {
+            granted: row.consent.granted,
+            occurredAt: row.consent.occurredAt,
+            source: row.consent.source as NonNullable<
+              AccountRow["consent"]
+            >["source"],
+          },
+    sync: { brevo: syncStatusOf(row.brevo), apollo: syncStatusOf(row.apollo) },
+    owner: row.owner,
+    lastSeenAt: row.lastSeenAt,
+  };
+}
+
+/** The payload of a register line as key / value pairs (no free-form object in a response). */
+function historyEventOf(row: HistoryRow): HistoryEvent {
+  return {
+    seq: row.seq,
+    occurredAt: row.occurredAt,
+    eventType: row.eventType,
+    actorType: row.actorType,
+    actorAccountId: row.actorAccountId,
+    details: Object.keys(row.payload)
+      .sort()
+      .map((key) => {
+        const value = row.payload[key];
+        return {
+          key,
+          value:
+            value === null || value === undefined
+              ? null
+              : typeof value === "string"
+                ? value
+                : JSON.stringify(value),
+        };
+      }),
+  };
+}
+
+function filtersOf(query: AccountsQuery): AccountFilters {
+  const filters: AccountFilters = {};
+  if (query.role !== undefined) filters.role = query.role;
+  if (query.country !== undefined) filters.country = query.country;
+  if (query.language !== undefined) filters.language = query.language;
+  if (query.declaredStatus !== undefined) {
+    filters.declaredStatus = query.declaredStatus;
+  }
+  if (query.syncDestination !== undefined) {
+    filters.syncDestination = query.syncDestination;
+  }
+  if (query.syncState !== undefined) filters.syncState = query.syncState;
+  if (query.consent !== undefined) filters.consent = query.consent;
+  if (query.from !== undefined) filters.from = query.from;
+  if (query.to !== undefined) filters.to = query.to;
+  if (query.email !== undefined) filters.email = query.email;
+  if (query.q !== undefined) filters.fragment = query.q;
+  if (query.cursor !== undefined) {
+    const after = decodeCursor(query.cursor);
+    if (after === null) {
+      throw new RequestValidationError([
+        { path: "cursor", issue: "invalid_cursor" },
+      ]);
+    }
+    filters.after = after;
+  }
+  return filters;
+}
+
+export function registerBackofficeAccountRoutes(
+  app: IdentityApp,
+  dependencies: BackofficeAccountsDependencies,
+): void {
+  const { database } = dependencies;
+
+  app.get(
+    "/v1/bo/accounts",
+    {
+      schema: {
+        querystring: accountsQuerySchema,
+        response: { 200: accountsResponseSchema },
+      },
+    },
+    async (request, reply): Promise<AccountsResponse> => {
+      void reply.header("cache-control", "no-store");
+      const query = request.query as AccountsQuery;
+      const filters = filtersOf(query);
+      const page = await withBackofficeSession(
+        database,
+        request,
+        reply,
+        async (tx) => {
+          // RG98: every page of a partial search is one search; the line commits either way
+          if (
+            query.q !== undefined &&
+            !(await reserveAccountSearch(tx, query.q.length))
+          ) {
+            return null;
+          }
+          return listMemberAccounts(tx, filters, query.limit + 1);
+        },
+      );
+      if (page === null) {
+        throw new RetryLaterError(
+          "rate_limited",
+          PARTIAL_SEARCH_WINDOW_SECONDS,
+        );
+      }
+      const items = page.slice(0, query.limit);
+      const last = items.at(-1);
+      return {
+        items: items.map(rowOf),
+        nextCursor:
+          page.length > query.limit && last !== undefined
+            ? encodeCursor(last)
+            : null,
+        search:
+          query.email !== undefined
+            ? "exact"
+            : query.q !== undefined
+              ? "partial"
+              : "none",
+      };
+    },
+  );
+
+  app.get(
+    "/v1/bo/accounts/counters",
+    { schema: { response: { 200: accountCountersResponseSchema } } },
+    async (request, reply): Promise<AccountCountersResponse> => {
+      void reply.header("cache-control", "no-store");
+      const counters = await withBackofficeSession(
+        database,
+        request,
+        reply,
+        async (tx) => dayCounters(tx),
+      );
+      const top = counters.countries.slice(0, COUNTERS_TOP_COUNTRIES);
+      return {
+        day: counters.day,
+        signups: {
+          total: counters.total,
+          advertiser: counters.advertiser,
+          creator: counters.creator,
+        },
+        topCountries: top.map((country) => ({
+          countryCode:
+            country.countryCode as AccountCountersResponse["topCountries"][number]["countryCode"],
+          count: country.count,
+        })),
+        otherCountries: counters.countries
+          .slice(COUNTERS_TOP_COUNTRIES)
+          .reduce((sum, country) => sum + country.count, 0),
+        brevoWithinHour: {
+          synced: counters.brevoSynced,
+          eligible: counters.brevoEligible,
+        },
+        apolloWithin24Hours: {
+          synced: counters.apolloSynced,
+          eligible: counters.apolloEligible,
+        },
+        unhandledFailures: {
+          brevo: counters.brevoFailures,
+          apollo: counters.apolloFailures,
+        },
+      };
+    },
+  );
+
+  app.get(
+    "/v1/bo/accounts/:id",
+    {
+      schema: {
+        params: accountParamsSchema,
+        querystring: accountQuerySchema,
+        response: { 200: accountDetailResponseSchema },
+      },
+    },
+    async (request, reply): Promise<AccountDetailResponse> => {
+      void reply.header("cache-control", "no-store");
+      const accountId = (request.params as AccountParams).id.toLowerCase();
+      const { historyBefore } = request.query as AccountQuery;
+      return withBackofficeSession(database, request, reply, async (tx) => {
+        const account = await memberAccountDetail(tx, accountId);
+        if (account === null) {
+          throw new ApiError("not_found");
+        }
+        const ownership = await ownershipOf(tx, accountId);
+        // last: the register lock is held until COMMIT (04 §7.2)
+        const history = await accountHistory(
+          tx,
+          accountId,
+          ACCOUNT_HISTORY_PAGE_SIZE + 1,
+          historyBefore ?? null,
+        );
+        const events = history.slice(0, ACCOUNT_HISTORY_PAGE_SIZE);
+        const last = events.at(-1);
+        return {
+          account: {
+            ...rowOf(account),
+            email: account.email,
+            emailStatus: account.emailStatus,
+            companyName: account.companyName,
+            suspendedAt: account.suspendedAt,
+            deletedAt: account.deletedAt,
+          },
+          ownership,
+          history: {
+            events: events.map(historyEventOf),
+            nextBefore:
+              history.length > ACCOUNT_HISTORY_PAGE_SIZE && last !== undefined
+                ? last.seq
+                : null,
+          },
+        };
+      });
+    },
+  );
+}

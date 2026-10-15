@@ -1657,6 +1657,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.internal_invitations.updated_at|SELECT",
   "influx_admin|function|backoffice.create_member_invitation(text,identity.account_role,text,bytea)|EXECUTE",
   "influx_admin|function|backoffice.read_subject_history(text,uuid,integer,bigint)|EXECUTE",
+  "influx_admin|function|backoffice.reserve_account_search(integer)|EXECUTE",
   "influx_admin|function|backoffice.revoke_member_invitation(uuid,text)|EXECUTE",
   "influx_admin|function|identity.approve_admin_invitation(uuid,uuid,uuid,text)|EXECUTE",
   "influx_admin|function|identity.change_member_role(uuid,uuid,uuid,identity.account_role,text,text)|EXECUTE",
@@ -1679,6 +1680,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_agent|column|backoffice.member_invitations.updated_at|SELECT",
   "influx_agent|function|backoffice.create_member_invitation(text,identity.account_role,text,bytea)|EXECUTE",
   "influx_agent|function|backoffice.read_subject_history(text,uuid,integer,bigint)|EXECUTE",
+  "influx_agent|function|backoffice.reserve_account_search(integer)|EXECUTE",
   "influx_agent|function|backoffice.revoke_member_invitation(uuid,text)|EXECUTE",
   "influx_agent|function|identity.correct_member_account(uuid,text,identity.declared_status,text,text,text)|EXECUTE",
   "influx_agent|function|leads.replay_outbox_lines(bigint[],text)|EXECUTE",
@@ -1734,6 +1736,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|function|backoffice.canonical_dual_control_payload(text,jsonb,uuid)|EXECUTE",
   "influx_identity_definer|function|backoffice.create_member_invitation(text,identity.account_role,text,bytea)|EXECUTE",
   "influx_identity_definer|function|backoffice.read_subject_history(text,uuid,integer,bigint)|EXECUTE",
+  "influx_identity_definer|function|backoffice.reserve_account_search(integer)|EXECUTE",
   "influx_identity_definer|function|backoffice.redeem_member_invitation(uuid,bytea)|EXECUTE",
   "influx_identity_definer|function|backoffice.revoke_member_invitation(uuid,text)|EXECUTE",
   "influx_identity_definer|function|identity.accept_internal_invitation(bytea,uuid,text,text,text,text)|EXECUTE",
@@ -1936,4 +1939,6 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "backoffice.read_subject_history(text,uuid,integer,bigint)":
     "influx_identity_definer",
   "leads.replay_outbox_lines(bigint[],text)": "influx_leads_definer",
+  // 0133 (J8 commit 5: partial search of member accounts, RG98)
+  "backoffice.reserve_account_search(integer)": "influx_identity_definer",
 };
