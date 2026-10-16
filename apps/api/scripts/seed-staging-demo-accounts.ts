@@ -83,7 +83,9 @@ const backoffice = new URL(required("STAGING_PUBLIC_BACKOFFICE_URL")).origin;
 
 // EC-45: no agent from a script; the agent is invited by this admin.
 const bootstrap = demoAccounts().filter(
-  (account): account is DemoAccount & { role: "advertiser" | "creator" | "admin" } =>
+  (
+    account,
+  ): account is DemoAccount & { role: "advertiser" | "creator" | "admin" } =>
     account.role !== "agent",
 );
 const accounts: DemoAccount[] = bootstrap.map((account) => {

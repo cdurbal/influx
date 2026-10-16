@@ -20,10 +20,16 @@ describe("invitations (J8 commit 7)", () => {
       }).email,
     ).toBe("new.agent@example.test");
     for (const body of [
-      { email: "a@example.test", role: "creator", reasonCode: "new_team_member" },
+      {
+        email: "a@example.test",
+        role: "creator",
+        reasonCode: "new_team_member",
+      },
       { email: "a@example.test", role: "agent", reasonCode: "because" },
     ]) {
-      expect(internalInvitationRequestSchema.safeParse(body).success).toBe(false);
+      expect(internalInvitationRequestSchema.safeParse(body).success).toBe(
+        false,
+      );
     }
   });
 
@@ -66,8 +72,10 @@ describe("invitations (J8 commit 7)", () => {
       "Alex",
     );
     expect(
-      backofficeInvitationAcceptBodySchema.safeParse({ ...body, firstName: "\u0007" })
-        .success,
+      backofficeInvitationAcceptBodySchema.safeParse({
+        ...body,
+        firstName: "\u0007",
+      }).success,
     ).toBe(false);
   });
 

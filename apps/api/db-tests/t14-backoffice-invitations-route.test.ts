@@ -366,7 +366,12 @@ describe("Internal invitations (15 RG99, RG101; CA63)", () => {
       new RegExp(`^${BACKOFFICE_ORIGIN}/activation#[A-Za-z0-9_-]{43}$`),
     );
     const [row] = await migrationRole()<
-      { token_hash: Buffer; email: string; proposed_role: string; hours: number }[]
+      {
+        token_hash: Buffer;
+        email: string;
+        proposed_role: string;
+        hours: number;
+      }[]
     >`
       select token_hash, email, proposed_role::text,
              extract(epoch from expires_at - created_at)::int / 3600 as hours
@@ -534,13 +539,16 @@ describe("POST /v1/bo/auth/invitation/accept (15 RG99, B-1, B-8; 17b §3.14.b)",
         code: totpCode(factor.secret),
       },
     );
-    expect(confirmed.json<{ outcome: string; role: string }>()).toMatchObject(
-      { outcome: "signed_in", role: "agent" },
-    );
+    expect(confirmed.json<{ outcome: string; role: string }>()).toMatchObject({
+      outcome: "signed_in",
+      role: "agent",
+    });
     const listed = (
       await call(server, "GET", "/v1/bo/internal-invitations", admin.session)
     )
-      .json<{ invitations: { id: string; state: string; accountId: string }[] }>()
+      .json<{
+        invitations: { id: string; state: string; accountId: string }[];
+      }>()
       .invitations.find((item) => item.id === created.invitationId);
     expect(listed).toMatchObject({ state: "accepted", accountId: account?.id });
   });
@@ -548,7 +556,9 @@ describe("POST /v1/bo/auth/invitation/accept (15 RG99, B-1, B-8; 17b §3.14.b)",
   it("a retry of the same link after the account exists goes straight to the factor", async () => {
     const server = app();
     const email = newAddress("retry");
-    const token = tokenOfLink((await inviteInternal(server, admin, email)).link);
+    const token = tokenOfLink(
+      (await inviteInternal(server, admin, email)).link,
+    );
     expect(
       (await accept(server, { invitationToken: token, email })).json<{
         outcome: string;
@@ -568,7 +578,9 @@ describe("POST /v1/bo/auth/invitation/accept (15 RG99, B-1, B-8; 17b §3.14.b)",
     const server = app();
     const email = newAddress("bound");
     const other = newAddress("other");
-    const token = tokenOfLink((await inviteInternal(server, admin, email)).link);
+    const token = tokenOfLink(
+      (await inviteInternal(server, admin, email)).link,
+    );
     expect(
       (await accept(server, { invitationToken: token, email: other })).json(),
     ).toEqual({ outcome: "refused" });
@@ -580,7 +592,9 @@ describe("POST /v1/bo/auth/invitation/accept (15 RG99, B-1, B-8; 17b §3.14.b)",
   it("B-1, J3S-5: a compromised or a contextual password is refused before GoTrue, the invitation stays usable", async () => {
     const server = app();
     const email = newAddress("pwned");
-    const token = tokenOfLink((await inviteInternal(server, admin, email)).link);
+    const token = tokenOfLink(
+      (await inviteInternal(server, admin, email)).link,
+    );
     expect(
       (
         await accept(server, {
@@ -625,7 +639,11 @@ describe("POST /v1/bo/auth/invitation/accept (15 RG99, B-1, B-8; 17b §3.14.b)",
 });
 
 describe("Member invitations (05 RG116 to RG119, D54; EC-J8-3)", () => {
-  type MemberCreated = { invitationId: string; expiresAt: string; link: string };
+  type MemberCreated = {
+    invitationId: string;
+    expiresAt: string;
+    link: string;
+  };
 
   async function inviteMember(
     server: Server,

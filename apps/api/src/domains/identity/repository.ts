@@ -690,9 +690,9 @@ export async function redeemMemberInvitation(
     sql`select backoffice.redeem_member_invitation(${accountId}::uuid, ${codeHash}) as outcome`,
   );
   const outcome = rows[0]?.outcome;
-  return (MEMBER_INVITATION_REDEMPTIONS as readonly (string | undefined)[]).includes(
-    outcome,
-  )
+  return (
+    MEMBER_INVITATION_REDEMPTIONS as readonly (string | undefined)[]
+  ).includes(outcome)
     ? (outcome as MemberInvitationRedemption)
     : "error";
 }

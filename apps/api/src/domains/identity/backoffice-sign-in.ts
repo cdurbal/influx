@@ -730,7 +730,8 @@ async function createInvitedAccount(
     dependencies.isPwned,
     request.logger,
     { password: body.password, email: body.email },
-    () => dependencies.supabaseAuth.createPasswordUser(body.email, body.password),
+    () =>
+      dependencies.supabaseAuth.createPasswordUser(body.email, body.password),
   );
   if (choice.verdict !== "accepted") {
     return {
