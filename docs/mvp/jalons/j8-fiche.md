@@ -194,6 +194,14 @@ e2e 16 ; `pnpm test` = 2 106. Tout nouveau fichier `db-tests` entre dans `case-f
 - CI rouge à l'étape « Security review markers » depuis le commit 2 (2, 3, 5 et 6 touchent les droits) : attestation `security-reviewed: … covers …` à la revue groupée de fin de J8 ; d'ici là les étapes suivantes de la CI ne tournent pas, la suite locale complète fait foi.
 - Planchers : base 922 (43 fichiers), unitaire `apps/api` 984, contracts 71.
 
+## Issu du commit 7 (`a7328a9`)
+
+- Routes : `POST/GET /v1/bo/internal-invitations` (+ `/:id/revoke`, admin, création sous R ; un `admin` invité demande sa 2V `identity.invite_admin` dans la même transaction, redemandable par `POST /v1/bo/dual-control`), `POST/GET /v1/bo/member-invitations` (+ `/:id/revoke`) ; `POST /v1/bo/auth/invitation/accept` (sans session : HIBP, utilisateur GoTrue à l'adresse invitée, compte, puis facteur ; la 2ᵉ étape reste `/enroll/confirm`). Liens montrés une fois, secret dans le **fragment** (`/activation#…`, `/<langue>/<porte>#invitation=…`).
+- `0135` : `read_brevo_subject` + `via_invitation` ⇒ `SIGNUP_SOURCE=invitation` (RG122) ; `record_refused_action` + `identity.internal_invitation`. Inscription : `acquisition.invitationCode` racheté dans la transaction d'E-2 (jamais bloquant, code malformé ignoré).
+- EC-J8-31 un `agent` ne liste que ses invitations membres ; EC-J8-32 l'acceptation réutilise le motif E-2 `identity.backoffice_enroll_totp` (aucune opération ajoutée à la liste signée) ; EC-J8-33 adresse déjà connue à l'invitation interne = `403` uniforme (pas d'oracle, `0131`) ; EC-J8-34 (EC-45) le script de `staging` ne crée plus que les membres et le premier `admin`, tout autre compte interne passe par l'invitation.
+- À arbitrer à la revue cyber : l'acceptation sans invitation utilisable retombe sur l'enrôlement (refus uniforme, pas `invitation_invalid`) ; utilisateur GoTrue supprimé si la base refuse (filet : purge des orphelins).
+- Planchers : base 940 (44 fichiers), unitaire `apps/api` 988, contracts 76, web 204.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les
