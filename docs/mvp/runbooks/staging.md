@@ -150,9 +150,15 @@ export SUPABASE_SECRET_KEY='<une clé sb_secret_ de staging>'
 export STAGING_PUBLIC_BACKOFFICE_URL='https://<backoffice-staging>'
 pnpm --filter @influx/api db:staging-demo-accounts -- \
   --advertiser=<adresse interne 1> --creator=<adresse interne 2> \
-  --agent=<adresse interne 3> --admin=<adresse interne 4>
+  --admin=<adresse interne 3>
 unset INFLUX_STAGING_MIGRATION_URL SUPABASE_SECRET_KEY
 ```
+
+- **Depuis le J8 (EC-45)** : le script ne crée plus que les deux membres et le **premier `admin`**
+  (amorçage). Tout autre compte interne (commercial, second `admin`) est créé par **invitation** de
+  cet `admin` depuis le backoffice (`15` RG99 : 72 h, liée à l'adresse ; un `admin` invité exige la
+  double validation). Le lien d'activation s'affiche une seule fois : le transmettre à la personne
+  par un canal direct.
 
 - Les adresses des deux membres doivent figurer dans `BREVO_TEST_RECIPIENTS` du service `api`
   (les codes y sont envoyés).
@@ -182,8 +188,9 @@ Symptôme : un agent ne peut plus s'enrôler, le journal porte `agent.unexpected
 
 1. Un **administrateur** vérifie l'identité de l'agent par un autre canal (téléphone).
 2. *Supabase › Authentication › Users* : ouvrir l'utilisateur, supprimer son facteur **TOTP**.
-3. L'administrateur remet un jeton d'enrôlement (au J8 : invitation ; d'ici là, script des comptes de
-   démonstration en staging seulement). L'agent recommence l'activation.
+3. Le compte existe déjà : son jeton d'enrôlement ne se remet pas par invitation (adresse déjà
+   tenue, 0131). Jusqu'à MFA-6 (réinitialisation du second facteur, Lot 5), reprendre le jeton par
+   le script local en local seulement ; en `staging`, inviter une **nouvelle** adresse.
 4. Journaliser l'intervention (date, administrateur, agent) dans le registre d'incidents. Cette
    procédure disparaît avec MFA-6 (J8).
 

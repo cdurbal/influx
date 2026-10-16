@@ -8,6 +8,7 @@ import {
 import { describe, expect, it } from "vitest";
 import {
   acquisitionFromVisit,
+  invitationCodeOf,
   buildSignupBody,
   draftAfterDoorChange,
   emptySignupDraft,
@@ -298,6 +299,20 @@ describe("acquisitionFromVisit (05 RG120, RG121, 21 EC-11)", () => {
 
   it("is undefined for a visit without any source", () => {
     expect(acquisitionFromVisit("", "", "influx.test")).toBeUndefined();
+  });
+
+  it("05 RG119: reads the invitation code from the fragment only, and drops a malformed one", () => {
+    const code = "A".repeat(42) + "_";
+    expect(
+      acquisitionFromVisit("", "", "influx.test", `#invitation=${code}`),
+    ).toEqual({ invitationCode: code });
+    expect(
+      acquisitionFromVisit(`?invitation=${code}`, "", "influx.test", ""),
+    ).toBeUndefined();
+    expect(
+      acquisitionFromVisit("", "", "influx.test", "#invitation=short"),
+    ).toBeUndefined();
+    expect(invitationCodeOf("#other=1")).toBeNull();
   });
 });
 

@@ -446,10 +446,11 @@ describe("the aal2 guard of server.ts (03 §6.2, 18 T8.8)", () => {
     expect(reached).toBe(0);
   });
 
-  it("lists as sessionless the sign-in, the two enrollment requests and the logout only", () => {
+  it("lists as sessionless the sign-in, the two enrollment requests, the invitation link and the logout only", () => {
     expect([...BACKOFFICE_SESSIONLESS_ROUTES].sort()).toEqual([
       "/v1/bo/auth/enroll",
       "/v1/bo/auth/enroll/confirm",
+      "/v1/bo/auth/invitation/accept",
       "/v1/bo/auth/login",
       "/v1/bo/auth/logout",
     ]);

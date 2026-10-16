@@ -250,8 +250,13 @@ describe("POST /v1/signup, body: source of acquisition (RG120, EC-11)", () => {
       issuesOf({ ...CREATOR, acquisition: { heardFrom: "a friend" } }),
     ).toEqual(["acquisition.heardFrom"]);
     expect(
-      issuesOf({ ...CREATOR, acquisition: { invitationCode: "X" } }),
+      issuesOf({ ...CREATOR, acquisition: { gclid: "X" } }),
     ).toEqual(["acquisition"]);
+    // J8 commit 7: a malformed invitation code is dropped, never refused (05 RG119)
+    expect(
+      signupBodySchema.parse({ ...CREATOR, acquisition: { invitationCode: "X" } })
+        .acquisition,
+    ).toEqual({ invitationCode: null });
     expect(
       issuesOf({ ...CREATOR, acquisition: { utmSource: "x".repeat(257) } }),
     ).toEqual(["acquisition.utmSource"]);

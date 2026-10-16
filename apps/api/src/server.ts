@@ -20,6 +20,7 @@ import {
 import { requireBackofficeSession } from "./domains/identity/backoffice-session.ts";
 import { registerBackofficeAccountRoutes } from "./domains/backoffice/accounts-routes.ts";
 import { registerBackofficeActionRoutes } from "./domains/backoffice/actions-routes.ts";
+import { registerBackofficeInvitationRoutes } from "./domains/backoffice/invitations-routes.ts";
 import { PWNED_PASSWORDS_TIMEOUT_MS } from "./domains/identity/settings.ts";
 import {
   registerIdentityRoutes,
@@ -482,6 +483,12 @@ export function buildServer(
   // Action API of the backoffice v0: replay, corrections, 2V, Apollo, suppression, alerts (21 §J8
   // commit 6).
   registerBackofficeActionRoutes(app, { database });
+
+  // Invitations of an internal account and of a member (21 §J8 commit 7).
+  registerBackofficeInvitationRoutes(app, {
+    database,
+    publicOrigins: config.publicOrigins,
+  });
 
   // Browser errors of the connected spaces (D60, 02 §20.5).
   registerOpsRoutes(app, {

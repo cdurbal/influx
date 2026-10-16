@@ -104,7 +104,7 @@ const CONTACT_DESTINATION: Readonly<
 > = { brevo: "brevo_contact", apollo: "apollo_contact" };
 
 /** The deliberate refusal of the database functions (0130 to 0134): 42501 `forbidden`. */
-function isForbidden(error: unknown): boolean {
+export function isForbidden(error: unknown): boolean {
   let current: unknown = error;
   for (let depth = 0; depth < 4 && current instanceof Error; depth += 1) {
     const { code, message } = current as Error & { code?: unknown };
@@ -117,14 +117,14 @@ function isForbidden(error: unknown): boolean {
 }
 
 /** The answer of a refused agent, given after the COMMIT of the trace of his attempt (CA63). */
-const REFUSED = Symbol("refused");
+export const REFUSED = Symbol("refused");
 
 /**
  * CA63, 15 RG110: an action reserved to admin, attempted by an agent, is refused by the server and
  * the attempt journaled (backoffice.action_refused) in the transaction, which commits; the route
  * answers 403 afterwards. The masking of the screen is never the control.
  */
-async function adminOnly<T>(
+export async function adminOnly<T>(
   tx: Transaction,
   context: BackofficeContext,
   actionCode: RefusedActionCode,
@@ -137,7 +137,7 @@ async function adminOnly<T>(
   return fn();
 }
 
-function unlessRefused<T>(value: T | typeof REFUSED): T {
+export function unlessRefused<T>(value: T | typeof REFUSED): T {
   if (value === REFUSED) {
     throw new ApiError("forbidden");
   }
@@ -297,14 +297,19 @@ async function replay(
 // ---------------------------------------------------------------------------------------------
 
 function actionOfRequest(body: DualControlRequestBody): DualControlAction {
-  return body.code === "identity.change_member_role"
-    ? {
+  switch (body.code) {
+    case "identity.change_member_role":
+      return {
         code: body.code,
         accountId: body.accountId.toLowerCase(),
         role: "advertiser",
         legalName: body.legalName,
-      }
-    : { code: body.code, setting: body.setting };
+      };
+    case "identity.invite_admin":
+      return { code: body.code, invitationId: body.invitationId.toLowerCase() };
+    case "leads.change_apollo_setting":
+      return { code: body.code, setting: body.setting };
+  }
 }
 
 function viewBody(view: DualControlView): DualControlViewBody {
@@ -560,8 +565,12 @@ export function registerBackofficeActionRoutes(
       } catch (error) {
         if (isForbidden(error)) {
           // a role change: own account, unknown, internal or inactive target (T14.3, T14.4); an
+          // admin invitation: unknown, not admin, used, revoked, expired or already confirmed; an
           // Apollo key: a value the database refuses (a country it does not know)
-          if (body.code === "identity.change_member_role") {
+          if (
+            body.code === "identity.change_member_role" ||
+            body.code === "identity.invite_admin"
+          ) {
             throw new ApiError("not_found");
           }
           throw new RequestValidationError([

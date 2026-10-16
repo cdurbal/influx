@@ -6,7 +6,8 @@
 // activated or a member account (17b §3.14 rule 2). `unavailable` only when no identifier was
 // verified yet (rule 5). The password is never kept between two requests (rule 3).
 import * as z from "zod";
-import { MAX_EMAIL_LENGTH, normalizeEmail } from "./auth.ts";
+import { MAX_EMAIL_LENGTH, normalizeEmail, uiLocaleSchema } from "./auth.ts";
+import { countryCodeSchema } from "./signup.ts";
 
 /** Longest password text accepted by the schemas; the 72-byte bound is checked by apps/api (EC-57). */
 export const MAX_PASSWORD_INPUT_LENGTH = 1_024;
@@ -112,6 +113,55 @@ export const backofficeEnrollResponseSchema = z.discriminatedUnion("outcome", [
 ]);
 export type BackofficeEnrollResponse = z.infer<
   typeof backofficeEnrollResponseSchema
+>;
+
+// ---------------------------------------------------------------------------------------------
+// POST /v1/bo/auth/invitation/accept — the activation link of an internal invitation (15 RG99,
+// B-8; 17b §3.14.b; J8 commit 7): the person chooses a password (B-1, HIBP), the account is created
+// with the INVITED address, then the factor is created as by /enroll, in the same request; the
+// second step is /enroll/confirm with the same token. A link whose account already exists goes
+// straight to the factor (a retry after a failure of the factor).
+// ---------------------------------------------------------------------------------------------
+
+export const backofficeInvitationAcceptBodySchema = z.strictObject({
+  invitationToken: enrollmentTokenSchema,
+  email: emailSchema,
+  password: passwordSchema,
+  /** The first name shown to colleagues (agent profile, 0131: 1 to 80 printable characters). */
+  firstName: z
+    .string()
+    .trim()
+    .min(1)
+    .max(80)
+    .regex(/^[^\p{Cc}]*$/u),
+  countryCode: countryCodeSchema,
+  preferredLanguage: uiLocaleSchema,
+});
+export type BackofficeInvitationAcceptBody = z.infer<
+  typeof backofficeInvitationAcceptBodySchema
+>;
+
+/** 17b §3.14.d: one message per refusal of a chosen password. */
+export const NEW_PASSWORD_REFUSALS = [
+  "too_short",
+  "too_long",
+  "context",
+  "compromised",
+  "check_unavailable",
+] as const;
+
+export const backofficeInvitationAcceptResponseSchema = z.discriminatedUnion(
+  "outcome",
+  [
+    ...backofficeEnrollResponseSchema.options,
+    z.strictObject({
+      outcome: z.literal("password_refused"),
+      reason: z.enum(NEW_PASSWORD_REFUSALS),
+    }),
+  ],
+);
+export type BackofficeInvitationAcceptResponse = z.infer<
+  typeof backofficeInvitationAcceptResponseSchema
 >;
 
 // ---------------------------------------------------------------------------------------------

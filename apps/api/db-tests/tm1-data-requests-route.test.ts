@@ -74,6 +74,8 @@ class GoTrueDouble {
     });
     return {
       createUser: notUsed,
+      createPasswordUser: notUsed,
+      deleteUser: notUsed,
       getUser: notUsed,
       generateEmailCode: async (email) => {
         const userId = this.userOf(email);

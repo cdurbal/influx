@@ -98,6 +98,8 @@ export type BrevoSubject = {
   utmCampaign: string | null;
   referrerDomain: string | null;
   heardFrom: string | null;
+  /** The account was created through a member invitation (05 RG120, RG122; 0135). */
+  viaInvitation: boolean;
   /** The marketing_email consent in force: its instant (ISO 8601) and source; null if refused. */
   consentAt: string | null;
   consentSource: string | null;
@@ -312,6 +314,7 @@ export async function readBrevoSubject(
     utm_campaign: string | null;
     referrer_domain: string | null;
     heard_from: string | null;
+    via_invitation: boolean;
     consent_at: string | null;
     consent_source: string | null;
     welcome_sent: boolean;
@@ -330,6 +333,7 @@ export async function readBrevoSubject(
                to_char(signed_up_at at time zone 'UTC',
                        'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as signed_up_at,
                company, utm_source, utm_medium, utm_campaign, referrer_domain, heard_from,
+               via_invitation,
                to_char(consent_at at time zone 'UTC',
                        'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as consent_at,
                consent_source, welcome_sent, previous_email, external_contact_id, suppressed,
@@ -356,6 +360,7 @@ export async function readBrevoSubject(
     utmCampaign: row.utm_campaign,
     referrerDomain: row.referrer_domain,
     heardFrom: row.heard_from,
+    viaInvitation: row.via_invitation,
     consentAt: row.consent_at,
     consentSource: row.consent_source,
     welcomeSent: row.welcome_sent,

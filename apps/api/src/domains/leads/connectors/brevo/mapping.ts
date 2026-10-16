@@ -103,7 +103,8 @@ export function mapContact(
     // 16 RG142, 05 RG88: never a creator's name in "company"
     COMPANY: account.role === "advertiser" ? (subject.company ?? "") : "",
     SIGNED_UP_AT: subject.signedUpAt,
-    SIGNUP_SOURCE: "direct",
+    // 05 RG120, RG122: "direct" by default (§M4), "invitation" through a member invitation (D54)
+    SIGNUP_SOURCE: subject.viaInvitation ? "invitation" : "direct",
     FUNNEL_STAGE: "registered",
     PROFILE_COMPLETENESS: 0,
     MAIN_TOPIC: "",

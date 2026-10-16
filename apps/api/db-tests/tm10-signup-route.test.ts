@@ -12,7 +12,7 @@ import { localRoleUrl, type LoginRole } from "@influx/test-kit/db";
 import { valuesFoundIn } from "@influx/test-kit/logs";
 import { CONSENT_WORDING_KEYS } from "@influx/contracts/signup";
 import type { LightMyRequestResponse } from "fastify";
-import { randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -671,6 +671,139 @@ describe("POST /v1/signup: refusals, nothing written (RG5)", () => {
       expect(
         valuesFoundIn(logs.text(), [holder.email, intruder.authUserId]),
       ).toEqual([]);
+    } finally {
+      await server.close();
+    }
+  });
+});
+
+describe("05 RG119, RG120 (D54): sign-up through a member invitation (J8 commit 7)", () => {
+  /** An active agent (no session needed) and a live member invitation of his, by its code. */
+  async function invitationOfNewAgent(): Promise<{
+    agentId: string;
+    invitationId: string;
+    code: string;
+  }> {
+    const agentId = randomUUID();
+    const bytes = randomBytes(32);
+    const invitationId = await migration.begin(async (tx) => {
+      await tx`
+        insert into identity.accounts
+          (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
+           display_name, is_adult_attested, adult_attested_at, declared_status)
+        values (${agentId}, ${randomUUID()}, ${`tm10-su-agent-${agentId}@example.test`}, now(),
+                'FR', 'fr', 'Camille', true, now(), 'business')`;
+      await tx`insert into identity.account_roles (account_id, role) values (${agentId}, 'agent')`;
+      await tx`
+        insert into identity.agent_profiles
+          (account_id, first_name, activated_at, mfa_enrolled_at, mfa_factor_id)
+        values (${agentId}, 'Camille', now(), now(), ${randomUUID()})`;
+      const [row] = await tx<{ id: string }[]>`
+        insert into backoffice.member_invitations
+          (code_hash, email, proposed_role, preferred_language, created_by_account_id)
+        values (${createHash("sha256").update(bytes).digest()},
+                ${`tm10-su-invited-${agentId}@example.test`}, 'creator', 'fr', ${agentId})
+        returning id::text`;
+      return row?.id ?? "";
+    });
+    return { agentId, invitationId, code: bytes.toString("base64url") };
+  }
+
+  async function sourceOf(authUserId: string) {
+    const [row] = await migration<
+      {
+        owner: string | null;
+        invitation: string | null;
+        assignments: number;
+      }[]
+    >`
+      select a.owner_agent_id::text as owner, a.signup_invitation_id::text as invitation,
+             (select count(*)::int from backoffice.ownership_assignments o
+               where o.account_id = a.id) as assignments
+        from identity.accounts a where a.auth_user_id = ${authUserId}::uuid`;
+    return row;
+  }
+
+  it("a valid code makes its author the responsible agent and records the source; the code is never logged", async () => {
+    const { server, logs } = app();
+    const invitation = await invitationOfNewAgent();
+    const identity = newIdentity("invited");
+    try {
+      const { response } = await signUp(
+        server,
+        creatorBody({ acquisition: { invitationCode: invitation.code } }),
+        tokenOf(identity),
+      );
+      expect(response.json()).toEqual({
+        outcome: "signed_up",
+        role: "creator",
+      });
+      expect(await sourceOf(identity.authUserId)).toEqual({
+        owner: invitation.agentId,
+        invitation: invitation.invitationId,
+        assignments: 1,
+      });
+      expect(logs.text()).toContain('"invitation":"attributed"');
+      expect(valuesFoundIn(logs.text(), [invitation.code])).toEqual([]);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("a code already used records the source without attribution, and never blocks the sign-up", async () => {
+    const { server } = app();
+    const invitation = await invitationOfNewAgent();
+    const first = newIdentity("first");
+    const second = newIdentity("second");
+    try {
+      await signUp(
+        server,
+        creatorBody({ acquisition: { invitationCode: invitation.code } }),
+        tokenOf(first),
+      );
+      const { response } = await signUp(
+        server,
+        creatorBody({ acquisition: { invitationCode: invitation.code } }),
+        tokenOf(second),
+      );
+      expect(response.json()).toEqual({
+        outcome: "signed_up",
+        role: "creator",
+      });
+      expect(await sourceOf(second.authUserId)).toEqual({
+        owner: null,
+        invitation: invitation.invitationId,
+        assignments: 0,
+      });
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("an unknown or malformed code signs up without any source (RG119: never a refusal)", async () => {
+    const { server } = app();
+    const unknown = newIdentity("unknown");
+    const malformed = newIdentity("malformed");
+    try {
+      for (const [identity, code] of [
+        [unknown, randomBytes(32).toString("base64url")],
+        [malformed, "not-a-code"],
+      ] as const) {
+        const { response } = await signUp(
+          server,
+          creatorBody({ acquisition: { invitationCode: code } }),
+          tokenOf(identity),
+        );
+        expect(response.json()).toEqual({
+          outcome: "signed_up",
+          role: "creator",
+        });
+        expect(await sourceOf(identity.authUserId)).toEqual({
+          owner: null,
+          invitation: null,
+          assignments: 0,
+        });
+      }
     } finally {
       await server.close();
     }

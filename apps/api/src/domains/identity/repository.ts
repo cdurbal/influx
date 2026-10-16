@@ -618,6 +618,85 @@ export async function enrollmentTokenIsValid(
   return rows[0]?.valid === true;
 }
 
+/**
+ * 15 RG99 (0131): the token (SHA-256) is a live, usable internal invitation of exactly this address,
+ * and no account holds the address yet. Asked BEFORE the GoTrue user is created.
+ */
+export async function internalInvitationIsValid(
+  tx: Transaction,
+  tokenHash: Buffer,
+  email: string,
+): Promise<boolean> {
+  const rows = await tx.execute<{ valid: boolean }>(
+    sql`select identity.internal_invitation_is_valid(${tokenHash}, ${email}) as valid`,
+  );
+  return rows[0]?.valid === true;
+}
+
+/**
+ * 15 RG99, B-8 (0131): consumes the invitation once and creates the internal account, its role,
+ * its agent profile and the enrollment token of the same digest. Returns the account id. Raises
+ * 42501 for any refusal (used, revoked, expired, unconfirmed, other address, known user), 23503
+ * for an unknown country or a language without translation.
+ */
+export async function acceptInternalInvitation(
+  tx: Transaction,
+  acceptance: {
+    tokenHash: Buffer;
+    authUserId: string;
+    email: string;
+    firstName: string;
+    countryCode: string;
+    preferredLanguage: string;
+  },
+): Promise<string> {
+  const rows = await tx.execute<{ account_id: string }>(
+    sql`select identity.accept_internal_invitation(
+                 ${acceptance.tokenHash}, ${acceptance.authUserId}::uuid, ${acceptance.email},
+                 ${acceptance.firstName}, ${acceptance.countryCode},
+                 ${acceptance.preferredLanguage})::text as account_id`,
+  );
+  const accountId = rows[0]?.account_id;
+  if (accountId === undefined) {
+    throw new Error("identity.accept_internal_invitation returned no account");
+  }
+  return accountId;
+}
+
+/** The outcomes of backoffice.redeem_member_invitation() (0131, RG119, EC-J8-16). */
+export const MEMBER_INVITATION_REDEMPTIONS = [
+  "attributed",
+  "expired",
+  "already_redeemed",
+  "revoked",
+  "author_inactive",
+  "unknown",
+  "not_applicable",
+  "error",
+] as const;
+export type MemberInvitationRedemption =
+  (typeof MEMBER_INVITATION_REDEMPTIONS)[number];
+
+/**
+ * 05 RG119, RG120 (0131): in the sign-up transaction, right after identity.provision_account()
+ * returned `created`. Never raises for a business case: a sign-up is never blocked by an invitation.
+ */
+export async function redeemMemberInvitation(
+  tx: Transaction,
+  accountId: string,
+  codeHash: Buffer,
+): Promise<MemberInvitationRedemption> {
+  const rows = await tx.execute<{ outcome: string }>(
+    sql`select backoffice.redeem_member_invitation(${accountId}::uuid, ${codeHash}) as outcome`,
+  );
+  const outcome = rows[0]?.outcome;
+  return (MEMBER_INVITATION_REDEMPTIONS as readonly (string | undefined)[]).includes(
+    outcome,
+  )
+    ? (outcome as MemberInvitationRedemption)
+    : "error";
+}
+
 /** EC-39 (0013): false when the same code was accepted less than 120 s ago for this account. */
 export async function acceptTotpCode(
   tx: Transaction,

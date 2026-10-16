@@ -10,6 +10,8 @@ import {
   backofficeEnrollConfirmBodySchema,
   backofficeEnrollConfirmResponseSchema,
   backofficeEnrollResponseSchema,
+  backofficeInvitationAcceptBodySchema,
+  backofficeInvitationAcceptResponseSchema,
   backofficeLoginBodySchema,
   backofficeLoginResponseSchema,
   backofficeLogoutResponseSchema,
@@ -18,6 +20,7 @@ import {
   backofficeReauthenticateResponseSchema,
   type BackofficeEnrollConfirmResponse,
   type BackofficeEnrollResponse,
+  type BackofficeInvitationAcceptResponse,
   type BackofficeLoginResponse,
   type BackofficeMeResponse,
   type BackofficeReauthenticateResponse,
@@ -37,6 +40,7 @@ import {
   withBackofficeSession,
 } from "./backoffice-session.ts";
 import {
+  acceptInternalInvitation,
   confirmTotpEnrollment,
   reauthenticate,
   signInToBackoffice,
@@ -53,6 +57,7 @@ export const BACKOFFICE_SESSIONLESS_ROUTES: readonly string[] = [
   "/v1/bo/auth/login",
   "/v1/bo/auth/enroll",
   "/v1/bo/auth/enroll/confirm",
+  "/v1/bo/auth/invitation/accept",
   "/v1/bo/auth/logout",
 ];
 
@@ -143,6 +148,21 @@ export function registerBackofficeAuthRoutes(
           dependencies,
           authRequestOf(request),
           parsed(backofficeEnrollBodySchema, request.body),
+        ),
+      ),
+  );
+
+  // The activation link of an internal invitation (15 RG99, J8 commit 7): the account, then the
+  // factor, as the first enrollment request; the second one is /enroll/confirm.
+  app.post(
+    "/v1/bo/auth/invitation/accept",
+    { schema: { response: { 200: backofficeInvitationAcceptResponseSchema } } },
+    async (request, reply): Promise<BackofficeInvitationAcceptResponse> =>
+      underFloor(reply, async () =>
+        acceptInternalInvitation(
+          dependencies,
+          authRequestOf(request),
+          parsed(backofficeInvitationAcceptBodySchema, request.body),
         ),
       ),
   );

@@ -113,7 +113,16 @@ export function AuthFlow({
       window.location.search,
       document.referrer,
       window.location.hostname,
+      window.location.hash,
     );
+    // The invitation code leaves the address bar once read: never bookmarked nor shared again.
+    if (window.location.hash !== "") {
+      window.history.replaceState(
+        window.history.state,
+        "",
+        window.location.pathname + window.location.search,
+      );
+    }
   }, []);
 
   // D66: without a journey handed over, apps/api's journey cookies say where it stands; screen 1

@@ -86,6 +86,8 @@ class GoTrueDouble {
       status,
     });
     return {
+      createPasswordUser: notUsed,
+      deleteUser: notUsed,
       createUser: async (email) => {
         if (this.userOf(email) !== null) {
           return rejected("email_exists", 422);

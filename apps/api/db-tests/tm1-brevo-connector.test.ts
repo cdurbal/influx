@@ -461,6 +461,7 @@ describe("0112: leads.read_brevo_subject(), a Brevo line in processing for this 
       company: LEGAL_NAME,
       utmSource: "newsletter",
       heardFrom: "social_media",
+      viaInvitation: false,
       consentSource: "signup_form",
       welcomeSent: false,
     });

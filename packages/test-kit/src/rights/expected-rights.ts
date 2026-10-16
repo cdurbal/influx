@@ -809,7 +809,7 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * and on 2026-10-13 with those of 0116 and 0117 (J7 commit 2), then of 0118 to 0120 (J7 commit
  * 2bis), each line checked against its migration; and on 2026-10-15 with those of 0129 and 0130
  * (J8 commit 2), then of 0131 and 0132 (J8 commit 3), then of 0133 and 0134 (J8 commits 5 and 6),
- * each line checked against its migration.
+ * then of 0135 (J8 commit 7), each line checked against its migration.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -1578,6 +1578,9 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|column|backoffice.data_subject_requests.requester_account_id|SELECT",
   "influx_leads_definer|column|backoffice.data_subject_requests.status|SELECT",
   "influx_leads_definer|column|identity.accounts.timezone|SELECT",
+  // 0135 (J8 commit 7): whether the account came through a member invitation (SIGNUP_SOURCE,
+  // 05 RG122); never the invitation itself.
+  "influx_leads_definer|column|identity.accounts.signup_invitation_id|SELECT",
   // 0129 (J8 commit 2): the catalogue of the queues and their delays, read by agent and admin in
   // aal2; nobody writes them but the migrations.
   "influx_agent|table|backoffice.queues|SELECT",

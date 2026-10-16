@@ -14,6 +14,7 @@
 // Every reason is a closed list (backoffice-ops rule 10); the free comment is a complement only.
 import * as z from "zod";
 import { syncDestinationSchema } from "./backoffice-accounts.ts";
+import { INTERNAL_INVITATION_REASONS } from "./backoffice-invitations.ts";
 import { uiLocaleSchema } from "./auth.ts";
 import { countryCodeSchema, declaredStatusSchema } from "./signup.ts";
 
@@ -220,7 +221,10 @@ const legalNameSchema = z
   .max(120)
   .regex(/^[^\p{Cc}]*$/u);
 
-/** The actions a route may request at J8 commit 6 (commit 7 adds the invitations). */
+/**
+ * The actions a route may request: the role change, an Apollo key, and again the 2V of an admin
+ * invitation (J8 commit 7: requested by its creation; again here once an earlier request expired).
+ */
 export const dualControlRequestSchema = z.discriminatedUnion("code", [
   z.strictObject({
     code: z.literal("identity.change_member_role"),
@@ -234,6 +238,12 @@ export const dualControlRequestSchema = z.discriminatedUnion("code", [
     code: z.literal("leads.change_apollo_setting"),
     setting: apolloSettingSchema,
     reasonCode: z.enum(APOLLO_SETTING_REASONS),
+    reasonNote: commentSchema.optional(),
+  }),
+  z.strictObject({
+    code: z.literal("identity.invite_admin"),
+    invitationId: z.uuid(),
+    reasonCode: z.enum(INTERNAL_INVITATION_REASONS),
     reasonNote: commentSchema.optional(),
   }),
 ]);

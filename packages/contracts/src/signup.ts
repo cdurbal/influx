@@ -94,6 +94,19 @@ export function normalizeReferrerDomain(raw: string): string | null {
     : null;
 }
 
+/** A member invitation code (0131, EC-J8-13): 32 random bytes in base64url. */
+export const INVITATION_CODE_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+const INVITATION_CODE_RAW_MAX_LENGTH = 256;
+
+/**
+ * 05 RG119: a code that is not one is DROPPED (null), never a reason to refuse a sign-up: an
+ * invitation never blocks it, whatever its state.
+ */
+export function normalizeInvitationCode(raw: string): string | null {
+  const value = raw.trim();
+  return INVITATION_CODE_PATTERN.test(value) ? value : null;
+}
+
 /** Source of acquisition (05 RG120, D55): every field optional, recorded once, never changed. */
 export const acquisitionSchema = z.strictObject({
   utmSource: z
@@ -118,6 +131,12 @@ export const acquisitionSchema = z.strictObject({
     .optional(),
   /** The answer of the optional question of screen 3. */
   heardFrom: heardFromSchema.optional(),
+  /** 05 RG119, RG120 (D54): the code of the invitation link, read from its fragment. */
+  invitationCode: z
+    .string()
+    .max(INVITATION_CODE_RAW_MAX_LENGTH)
+    .transform(normalizeInvitationCode)
+    .optional(),
 });
 export type Acquisition = z.infer<typeof acquisitionSchema>;
 

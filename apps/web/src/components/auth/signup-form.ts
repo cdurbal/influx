@@ -8,6 +8,7 @@ import {
   CONSENT_WORDING_KEYS,
   companyNameSchema,
   countryCodeSchema,
+  normalizeInvitationCode,
   normalizeReferrerDomain,
   normalizeUtmValue,
   signupBodySchema,
@@ -266,15 +267,26 @@ function referrerHostOf(referrer: string, ownHost: string): string | null {
 }
 
 /**
+ * The code of a member invitation link (05 RG116, RG119; 21 §J8 commit 7): in the FRAGMENT
+ * (`#invitation=<code>`), which no server, log nor Referer receives. Null when absent or malformed.
+ */
+export function invitationCodeOf(hash: string): string | null {
+  const raw = new URLSearchParams(hash.replace(/^#/, "")).get("invitation");
+  return raw === null ? null : normalizeInvitationCode(raw);
+}
+
+/**
  * The source of acquisition of this visit (05 RG120, D55, 21 EC-11): the UTM parameters of the
- * address and the DOMAIN of the referring site, never its full address. Read once, on arrival,
- * kept in memory for the journey only, never stored in the browser (RG121). Every value is
- * normalised as the contract does; a value it would drop is not sent. Undefined when empty.
+ * address, the DOMAIN of the referring site, never its full address, and the code of an invitation
+ * link (fragment). Read once, on arrival, kept in memory for the journey only, never stored in the
+ * browser (RG121). Every value is normalised as the contract does; a value it would drop is not
+ * sent. Undefined when empty.
  */
 export function acquisitionFromVisit(
   search: string,
   referrer: string,
   ownHost: string,
+  hash = "",
 ): AcquisitionInput | undefined {
   const parameters = new URLSearchParams(search);
   const acquisition: AcquisitionInput = {};
@@ -289,6 +301,10 @@ export function acquisitionFromVisit(
   const domain = host === null ? null : normalizeReferrerDomain(host);
   if (domain !== null) {
     acquisition.referrerDomain = domain;
+  }
+  const invitationCode = invitationCodeOf(hash);
+  if (invitationCode !== null) {
+    acquisition.invitationCode = invitationCode;
   }
   return Object.keys(acquisition).length === 0 ? undefined : acquisition;
 }

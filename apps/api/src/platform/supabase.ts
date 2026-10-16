@@ -113,6 +113,20 @@ export type GoTruePasswordSession = {
 export type SupabaseAuth = {
   /** Creates a GoTrue user without password, address confirmed (02 §18.10, step 5; J3-A b7). */
   createUser(email: string): Promise<GoTrueOutcome<GoTrueIdentity>>;
+  /**
+   * Creates a GoTrue user WITH a password, address confirmed: the acceptance of an internal
+   * invitation (15 RG99, J8 commit 7), after the checks of B-1 (withNewPassword). A password
+   * outside the bounds of EC-57 is refused without any call.
+   */
+  createPasswordUser(
+    email: string,
+    password: string,
+  ): Promise<GoTrueOutcome<GoTrueIdentity>>;
+  /**
+   * Deletes a user (administration API): only the user just created by an acceptance the database
+   * then refused (the purge of orphans, J7, is the safety net when this call fails).
+   */
+  deleteUser(userId: string): Promise<GoTrueOutcome<null>>;
   /** The user of an id, as GoTrue holds it (EC-4 point 4). */
   getUser(userId: string): Promise<GoTrueOutcome<GoTrueIdentity>>;
   /**
@@ -382,6 +396,27 @@ export function createSupabaseAuth(
       return identity === null
         ? MALFORMED_ANSWER
         : { ok: true, value: identity };
+    },
+
+    async createPasswordUser(email, password) {
+      if (!isPasswordWithinBounds(password)) {
+        return PASSWORD_OUT_OF_BOUNDS;
+      }
+      const outcome = await settled(() =>
+        admin.createUser({ email, password, email_confirm: true }),
+      );
+      if ("ok" in outcome) {
+        return outcome;
+      }
+      const identity = identityOf(outcome.data.user);
+      return identity === null
+        ? MALFORMED_ANSWER
+        : { ok: true, value: identity };
+    },
+
+    async deleteUser(userId) {
+      const outcome = await settled(() => admin.deleteUser(userId, false));
+      return "ok" in outcome ? outcome : { ok: true, value: null };
     },
 
     async getUser(userId) {

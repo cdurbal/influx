@@ -14,6 +14,7 @@
     "./backoffice-auth": "./src/backoffice-auth.ts",
     "./backoffice-accounts": "./src/backoffice-accounts.ts",
     "./backoffice-actions": "./src/backoffice-actions.ts",
+    "./backoffice-invitations": "./src/backoffice-invitations.ts",
     "./ops": "./src/ops.ts",
     "./terms": "./src/terms.ts",
     "./countries": "./src/countries.ts",

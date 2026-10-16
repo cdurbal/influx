@@ -19,6 +19,8 @@ import type {
   BackofficeEnrollConfirmBody,
   BackofficeEnrollConfirmResponse,
   BackofficeEnrollResponse,
+  BackofficeInvitationAcceptBody,
+  BackofficeInvitationAcceptResponse,
   BackofficeLoginBody,
   BackofficeLoginResponse,
   BackofficeReauthenticateBody,
@@ -46,7 +48,9 @@ import type {
   SupabaseAuth,
 } from "../../platform/supabase.ts";
 import { sendCriticalAlerts, type CriticalAlert } from "./critical-alert.ts";
+import { withNewPassword } from "./password-policy.ts";
 import {
+  acceptInternalInvitation as acceptInternalInvitationRow,
   acceptTotpCode,
   appendAuthEvent,
   consumeRecoveryCode,
@@ -54,6 +58,7 @@ import {
   hasFreshSecondFactorProof,
   insertBackofficeSession,
   internalAccountOfEmail,
+  internalInvitationIsValid,
   pinMfaFactor,
   recordAuthFailure,
   reauthenticationSessionOf,
@@ -104,7 +109,11 @@ export type BackofficeAuthDependencies = {
   database: ApiDatabase;
   supabaseAuth: Pick<
     SupabaseAuth,
-    "withPasswordSession" | "listFactors" | "deleteFactor"
+    | "withPasswordSession"
+    | "listFactors"
+    | "deleteFactor"
+    | "createPasswordUser"
+    | "deleteUser"
   >;
   /** AUTH_THROTTLE_PEPPER. */
   pepper: string;
@@ -582,21 +591,39 @@ async function enrollingAccountOf(
     : { kind: "invitation_invalid" };
 }
 
-export async function startTotpEnrollment(
+/** The elevated transactions of an enrollment, an invitation's acceptance included (E-2). */
+function enrollmentElevated(
   dependencies: BackofficeAuthDependencies,
   request: BackofficeAuthRequest,
-  body: BackofficeEnrollBody,
-): Promise<BackofficeEnrollResponse> {
-  const elevated: Elevated = (fn) =>
+): Elevated {
+  return (fn) =>
     withElevatedTransaction(
       dependencies.database,
       "identity.backoffice_enroll_totp",
       request.requestId,
       fn,
     );
+}
+
+export async function startTotpEnrollment(
+  dependencies: BackofficeAuthDependencies,
+  request: BackofficeAuthRequest,
+  body: BackofficeEnrollBody,
+): Promise<BackofficeEnrollResponse> {
+  const elevated = enrollmentElevated(dependencies, request);
   if (!(await reserveAttempt(dependencies, request, elevated, body.email))) {
     return REFUSED;
   }
+  return createEnrollmentFactor(dependencies, request, elevated, body);
+}
+
+/** The factor of /enroll, the attempt already reserved (step 1 done by the caller). */
+async function createEnrollmentFactor(
+  dependencies: BackofficeAuthDependencies,
+  request: BackofficeAuthRequest,
+  elevated: Elevated,
+  body: BackofficeEnrollBody,
+): Promise<BackofficeEnrollResponse> {
   const outcome = await dependencies.supabaseAuth.withPasswordSession(
     contextOf(dependencies, request),
     body.email,
@@ -678,6 +705,143 @@ export async function startTotpEnrollment(
   return REFUSED;
 }
 
+// ---------------------------------------------------------------------------------------------
+// POST /v1/bo/auth/invitation/accept (15 RG99, B-1, B-8, MFA-1; 17b §3.14.b; J3S-5; J8 commit 7)
+// ---------------------------------------------------------------------------------------------
+
+type InvitedAccount =
+  | { kind: "created" }
+  | { kind: "answer"; response: BackofficeInvitationAcceptResponse };
+
+/**
+ * The account of a usable invitation: the password passes B-1 (withNewPassword: local rules, then
+ * HIBP, fail closed), GoTrue creates the user WITH THE INVITED ADDRESS, then the database consumes
+ * the invitation (E-2). A refusal of the database deletes the user just created (no GoTrue call
+ * inside a transaction, G4); if that deletion fails, the purge of orphans (J7) removes it later.
+ */
+async function createInvitedAccount(
+  dependencies: BackofficeAuthDependencies,
+  request: BackofficeAuthRequest,
+  elevated: Elevated,
+  body: BackofficeInvitationAcceptBody,
+  tokenHash: Buffer,
+): Promise<InvitedAccount> {
+  const choice = await withNewPassword(
+    dependencies.isPwned,
+    request.logger,
+    { password: body.password, email: body.email },
+    () => dependencies.supabaseAuth.createPasswordUser(body.email, body.password),
+  );
+  if (choice.verdict !== "accepted") {
+    return {
+      kind: "answer",
+      response: { outcome: "password_refused", reason: choice.verdict },
+    };
+  }
+  const user = choice.value;
+  if (!user.ok) {
+    request.logger.warn(
+      { errorCode: user.errorCode, status: user.status },
+      "backoffice invitation: GoTrue user not created",
+    );
+    // `email_exists`: a user without account (an earlier acceptance whose deletion failed)
+    return {
+      kind: "answer",
+      response: isUnavailable(user) ? { outcome: "unavailable" } : REFUSED,
+    };
+  }
+  try {
+    await elevated(async (tx) => {
+      const accountId = await acceptInternalInvitationRow(tx, {
+        tokenHash,
+        authUserId: user.value.userId,
+        email: body.email,
+        firstName: body.firstName,
+        countryCode: body.countryCode,
+        preferredLanguage: body.preferredLanguage,
+      });
+      return { value: accountId, auditSubject: accountId };
+    });
+  } catch (error) {
+    const deleted = await dependencies.supabaseAuth.deleteUser(
+      user.value.userId,
+    );
+    if (!deleted.ok) {
+      request.logger.error(
+        { errorCode: deleted.errorCode, status: deleted.status },
+        "backoffice invitation: GoTrue user left without account",
+      );
+    }
+    const state = sqlStateOf(error);
+    if (state === "42501") {
+      // a concurrent acceptance, a revocation or the expiry between the two checks
+      request.logger.info({}, "backoffice invitation: acceptance refused");
+      return {
+        kind: "answer",
+        response: { outcome: "invitation_invalid" },
+      };
+    }
+    if (state === "23503") {
+      request.logger.warn(
+        {},
+        "backoffice invitation: country or language refused by the database",
+      );
+      return { kind: "answer", response: REFUSED };
+    }
+    throw error;
+  }
+  request.logger.info({}, "backoffice invitation: accepted");
+  return { kind: "created" };
+}
+
+/**
+ * The activation link of an internal invitation. Step 1 (EC-47) as every operation; an invitation
+ * usable for this address creates the account first (createInvitedAccount); then, as /enroll, the
+ * factor, with the same token (the acceptance stored it as the enrollment token, 0131). A link
+ * whose account already exists (a retry after a failure of the factor) goes straight to the
+ * factor, whose checks refuse anything else uniformly.
+ */
+export async function acceptInternalInvitation(
+  dependencies: BackofficeAuthDependencies,
+  request: BackofficeAuthRequest,
+  body: BackofficeInvitationAcceptBody,
+): Promise<BackofficeInvitationAcceptResponse> {
+  const elevated = enrollmentElevated(dependencies, request);
+  if (!(await reserveAttempt(dependencies, request, elevated, body.email))) {
+    return REFUSED;
+  }
+  const tokenHash = enrollmentTokenHashOf(body.invitationToken);
+  if (tokenHash === null) {
+    await recordFailure(dependencies, request, elevated, body.email);
+    return { outcome: "invitation_invalid" };
+  }
+  const usable = await elevated(async (tx) => ({
+    value: await internalInvitationIsValid(tx, tokenHash, body.email),
+    auditSubject: null,
+  }));
+  if (usable) {
+    const created = await createInvitedAccount(
+      dependencies,
+      request,
+      elevated,
+      body,
+      tokenHash,
+    );
+    if (created.kind === "answer") {
+      const { outcome } = created.response;
+      if (outcome === "refused" || outcome === "invitation_invalid") {
+        await recordFailure(dependencies, request, elevated, body.email);
+      }
+      return created.response;
+    }
+  }
+  return createEnrollmentFactor(dependencies, request, elevated, {
+    email: body.email,
+    password: body.password,
+    enrollmentToken: body.invitationToken,
+  });
+}
+
 export type EnrollmentConfirmResult = {
   response: BackofficeEnrollConfirmResponse;
   session: NewSession | null;
@@ -688,13 +852,7 @@ export async function confirmTotpEnrollment(
   request: BackofficeAuthRequest,
   body: BackofficeEnrollConfirmBody,
 ): Promise<EnrollmentConfirmResult> {
-  const elevated: Elevated = (fn) =>
-    withElevatedTransaction(
-      dependencies.database,
-      "identity.backoffice_enroll_totp",
-      request.requestId,
-      fn,
-    );
+  const elevated = enrollmentElevated(dependencies, request);
   if (!(await reserveAttempt(dependencies, request, elevated, body.email))) {
     return { response: REFUSED, session: null };
   }

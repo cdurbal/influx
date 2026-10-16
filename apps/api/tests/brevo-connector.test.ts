@@ -94,6 +94,7 @@ function subject(overrides: Partial<BrevoSubject> = {}): BrevoSubject {
     utmCampaign: null,
     referrerDomain: null,
     heardFrom: "social_media",
+    viaInvitation: false,
     consentAt: "2026-10-09T08:15:00.000Z",
     consentSource: "signup_form",
     welcomeSent: false,
@@ -304,6 +305,16 @@ describe("operation 1: create or update a contact (16 §M1, §M4; 05 CA38)", () 
     expect(attributes?.CONSENT_AT).toBe("");
     expect(attributes?.CONSENT_SOURCE).toBe("");
     expect(double.requests[0]?.raw).not.toContain(LEGAL_NAME);
+  });
+
+  it("RG120, RG122: SIGNUP_SOURCE is invitation for an account created through a member invitation", async () => {
+    const { contact } = connectors({
+      subject: subject({ viaInvitation: true }),
+    });
+    await run(contact, line("brevo_contact"));
+    expect(double.contacts.get(EMAIL)?.attributes.SIGNUP_SOURCE).toBe(
+      "invitation",
+    );
   });
 
   it("LANGUAGE falls back to en for a language outside fr and en (16 §M4)", async () => {

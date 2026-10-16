@@ -1,8 +1,10 @@
-// `pnpm --filter @influx/api db:staging-demo-accounts`: the four demonstration accounts of the
-// STAGING project (docs/mvp/21 §4 J4, "Terminé quand"; J3S-2 of the end-of-J3 security review).
+// `pnpm --filter @influx/api db:staging-demo-accounts`: the demonstration accounts of the STAGING
+// project (docs/mvp/21 §4 J4, "Terminé quand"; J3S-2 of the end-of-J3 security review): the two
+// members and the FIRST admin only (EC-45, J8 commit 7): every other internal account is created
+// by an invitation of that admin (15 RG99, POST /v1/bo/internal-invitations), never by a script.
 // Variant of scripts/seed-demo-accounts.ts (local stack) with secrets that are never in the
-// repository: the passwords of the two internal accounts and their enrollment tokens are drawn
-// at random at each run and printed ONCE, here, to the person who runs it.
+// repository: the admin's password and enrollment token are drawn at random at each run and
+// printed ONCE, here, to the person who runs it.
 //
 // Run from the founder's or the developer's machine, with the variables EXPORTED IN THE SHELL
 // (never written to a file, docs/mvp/runbooks/staging.md):
@@ -12,7 +14,7 @@
 //   SUPABASE_URL                  https://<ref>.supabase.co of staging;
 //   SUPABASE_SECRET_KEY           a sb_secret_… key of staging;
 //   STAGING_PUBLIC_BACKOFFICE_URL origin of the staging backoffice, for the activation links.
-// and the four addresses as arguments: --advertiser= --creator= --agent= --admin=. The member
+// and the three addresses as arguments: --advertiser= --creator= --admin=. The member
 // addresses must be listed in BREVO_TEST_RECIPIENTS of the staging api: the codes go there
 // (BREVO_MODE=redirect).
 //
@@ -53,7 +55,6 @@ const { values } = parseArgs({
   options: {
     advertiser: { type: "string" },
     creator: { type: "string" },
-    agent: { type: "string" },
     admin: { type: "string" },
   },
 });
@@ -80,7 +81,12 @@ if (
 }
 const backoffice = new URL(required("STAGING_PUBLIC_BACKOFFICE_URL")).origin;
 
-const accounts: DemoAccount[] = demoAccounts().map((account) => {
+// EC-45: no agent from a script; the agent is invited by this admin.
+const bootstrap = demoAccounts().filter(
+  (account): account is DemoAccount & { role: "advertiser" | "creator" | "admin" } =>
+    account.role !== "agent",
+);
+const accounts: DemoAccount[] = bootstrap.map((account) => {
   const email = values[account.role];
   if (email === undefined || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new Error(`--${account.role}=<address> is required`);

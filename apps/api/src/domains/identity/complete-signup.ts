@@ -12,6 +12,10 @@
 //      database holds it, then a member session, as the verification of the code opens one
 //      (verify-code.ts); the audit line elevated.identity.complete_signup is on the account.
 //   4  `country_blocked` (RG8): nothing written, a neutral answer, an `info` line with the country.
+//   5  `created` with an invitation code (05 RG119, RG120, D54; J8 commit 7): in the same
+//      transaction, backoffice.redeem_member_invitation() records the source and, for a valid
+//      code, makes its author the responsible agent. It never raises: an invitation never blocks
+//      a sign-up. Only its outcome is logged, never the code.
 // No line of the journal carries the address, the GoTrue user, the company name or the wording
 // (D60): only the outcome, the role and, for a blocked country, the country code.
 import type { SignupBody, SignupResponse } from "@influx/contracts/signup";
@@ -24,11 +28,14 @@ import {
   constraintNameOf,
   insertMemberSession,
   provisionAccount,
+  redeemMemberInvitation,
   sqlStateOf,
   termsOfServiceArePublished,
+  type MemberInvitationRedemption,
   type ProvisionOutcome,
   type ProvisionRequest,
 } from "./repository.ts";
+import { enrollmentTokenHashOf } from "./mfa-secrets.ts";
 
 const INVALID_PARAMETER_VALUE = "22023";
 const FOREIGN_KEY_VIOLATION = "23503";
@@ -72,7 +79,12 @@ export type CompleteSignupResult =
 
 /** What the elevated transaction decides. */
 type Decision =
-  | { kind: "session"; role: "advertiser" | "creator"; created: boolean }
+  | {
+      kind: "session";
+      role: "advertiser" | "creator";
+      created: boolean;
+      invitation: MemberInvitationRedemption | null;
+    }
   | { kind: "country_blocked" }
   | { kind: "terms_outdated" }
   | { kind: "terms_not_published" }
@@ -240,6 +252,13 @@ export async function completeSignup(
       ) {
         return { value: { kind: "unavailable" as const }, auditSubject: null };
       }
+      // Step 5: the invitation, only on the account this transaction created (RG119, RG120).
+      const code = body.acquisition?.invitationCode ?? null;
+      const codeHash = code === null ? null : enrollmentTokenHashOf(code);
+      const invitation =
+        provisioned.outcome === "created" && codeHash !== null
+          ? await redeemMemberInvitation(tx, account.id, codeHash)
+          : null;
       // A member session (A-9): only the SHA-256 of the identifier is stored (EC-2).
       await insertMemberSession(tx, {
         tokenHash: createHash("sha256").update(token).digest(),
@@ -251,6 +270,7 @@ export async function completeSignup(
           kind: "session" as const,
           role: account.role,
           created: provisioned.outcome === "created",
+          invitation,
         },
         auditSubject: account.id,
       };
@@ -263,6 +283,9 @@ export async function completeSignup(
         {
           outcome: decision.created ? "created" : "existing",
           role: decision.role,
+          ...(decision.invitation === null
+            ? {}
+            : { invitation: decision.invitation }),
         },
         "sign-up completed",
       );
