@@ -218,6 +218,13 @@ e2e 16 ; `pnpm test` = 2 106. Tout nouveau fichier `db-tests` entre dans `case-f
 - Non vérifié dans un navigateur réel : à couvrir par le Playwright du commit 10 (CA56 à CA63, 2V dégradée, J7T-4).
 - Planchers : base 1032 (47 fichiers), unitaire `apps/api` 1017, contracts 80, web 205, backoffice 30.
 
+## Issu du commit 10 (`b8f17fb`)
+
+- Playwright : 4ᵉ serveur (backoffice, port 3211) dans `apps/web/playwright.config.ts` ; personnes semées avec une session TOTP fraîche (R tient, aucun mot de passe saisi). CA59 à 250 lignes dépasse une page (50, `15` RG34) : le plafond reste couvert par T14, l'e2e couvre un lot sélectionné et son compte rendu. CA62 via AL25 « clé refusée » (immédiat ; « panne 15 min » dépend de succès récents hors de l'e2e).
+- T14 : `t14-backoffice-route-inventory` lit l'arbre de routes du serveur ; une route `/v1/bo/*` nouvelle échoue tant qu'elle n'est pas classée (sans session, ou derrière la session, avec ou sans identifiant).
+- Défauts trouvés et corrigés : compte à rebours 2V affichant « 1 s » sans fin quand la page s'ouvre après le délai (confirmation impossible) ; bandeau de maquette sous le contraste AA (jeton `--color-mockup-banner-text`). EC-J8-61 : `axe-core` 4.13.0 en dépendance de dev de `apps/web` (déjà présent dans l'arbre via `jsx-a11y`).
+- Planchers : base 1038 (48 fichiers), unitaire `apps/api` 1017, web 205, backoffice 30, e2e 24.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les
