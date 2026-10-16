@@ -210,6 +210,14 @@ e2e 16 ; `pnpm test` = 2 106. Tout nouveau fichier `db-tests` entre dans `case-f
 - Fondateur : `PRIVACY_DATABASE_URL` et mot de passe `influx_privacy_login` sur le worker de `staging` (`runbooks/staging.md`). Contact reçu par Apollo ⇒ demande non close, suivi manuel (Lot 5).
 - Planchers : base 1022 (46 fichiers), unitaire `apps/api` 1017, contracts 80, web 204.
 
+## Issu du commit 9 (`c1e6fe3`)
+
+- `0138` : `identity.backoffice_session_state()` (J3S-6 : `GET /v1/bo/me` porte `secondFactor` et `peerControlAvailable`, RG107), `agent.new_browser` écrit à la connexion backoffice (B-7, première session et navigateur connu muets), `backoffice.new_browser_sign_ins()` (admin, 7 j, accueil ; lecture non journalisée, aucun e-mail). Routes `GET /v1/bo/dual-control`, `GET /v1/bo/internal-accounts` (admin ; refus d'un agent journalisé sous `identity.internal_invitation`).
+- EC-J8-58 : le relais n'admet ni `@`, ni `.`, ni `:` en paramètre : recherche exacte par adresse et filtres de période inatteignables depuis l'écran (recherche partielle seule) — J9 (recherche en `POST` ou paramètre encodé). EC-J8-59 : libellés backoffice en français seul (D36 ouverte, garde-fou du module unique) ; l'anglais suivra l'arbitrage.
+- EC-J8-60 : comptes internes sans « dernière connexion » (sessions lisibles par leur seul titulaire) et « responsable de » limité aux comptes membres ; désactivation et transfert de portefeuille au Lot 5. Gabarit de file §2 (verrou, ‹v›/‹r›) non appliqué : aucune file à verrou au J8.
+- Non vérifié dans un navigateur réel : à couvrir par le Playwright du commit 10 (CA56 à CA63, 2V dégradée, J7T-4).
+- Planchers : base 1032 (47 fichiers), unitaire `apps/api` 1017, contracts 80, web 205, backoffice 30.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les
