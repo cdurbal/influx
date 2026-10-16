@@ -251,7 +251,10 @@ function useCountdown(
   if (initial === null || receivedAt === null) {
     return null;
   }
-  return Math.max(0, initial - Math.floor((now - receivedAt) / 1_000));
+  // `now` may predate the answer (set at mount, and never ticking once the count is 0): the time
+  // elapsed is never negative, or a count of 0 would read 1 and hold the button for ever.
+  const elapsed = Math.max(0, now - receivedAt);
+  return Math.max(0, initial - Math.floor(elapsed / 1_000));
 }
 
 export function DualControlScreen({ id }: { id: string }) {

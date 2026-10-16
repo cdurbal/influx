@@ -15,7 +15,7 @@ export function MockupBanner({
   return (
     <aside
       aria-label={regionLabel}
-      className="border-b-(length:--border-width-thick) border-mockup-banner-border bg-mockup-banner-bg px-page-gutter py-2 text-sm text-text-primary"
+      className="border-b-(length:--border-width-thick) border-mockup-banner-border bg-mockup-banner-bg px-page-gutter py-2 text-sm text-mockup-banner-text"
     >
       <p className="mx-auto flex max-w-(--container-max) flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
         <TriangleAlertIcon

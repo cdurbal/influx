@@ -100,6 +100,8 @@
   --color-focus-ring-inverse: #0a0a0a;
   --color-mockup-banner-bg: #ffd978;
   --color-mockup-banner-border: #0a0a0a;
+  /* Dark text on the light banner (WCAG AA, J7T-4: the primary text failed axe on it). */
+  --color-mockup-banner-text: #0a0a0a;
 
   /* ---------- Colors: aliases, no new value (02 §2.9) ---------- */
   --color-action-secondary-inverse-border: var(--color-text-inverse);

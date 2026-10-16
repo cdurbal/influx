@@ -208,3 +208,25 @@ export function consentBox(
     name: t.signup.consent[door].label,
   });
 }
+
+/**
+ * The creator door, already open (by its address or by an invitation link): the code, the details
+ * of a French individual, the terms and the consent, up to the success screen.
+ */
+export async function signUpAsCreator(
+  page: Page,
+  t: AuthLabels,
+  address: string,
+): Promise<void> {
+  await requestCode(page, t, address);
+  await enterCode(page, t, address);
+  await page.getByLabel(t.signup.country.label.creator).selectOption("FR");
+  await page
+    .getByRole("radio", { name: t.signup.status.individual, exact: true })
+    .check();
+  await page.getByRole("checkbox", { name: t.signup.adult.label }).check();
+  await termsBox(page, t).check();
+  await consentBox(page, t, "creator").check();
+  await page.getByRole("button", { name: t.signup.submit }).click();
+  await expect(title(page)).toContainText(t.signup.success.title);
+}

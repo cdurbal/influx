@@ -127,3 +127,27 @@ export async function accountFacts(accountId: string): Promise<{
     await sql.end({ timeout: 1 });
   }
 }
+
+/** The account at this address and its "mes données" requests, oldest first (0120). */
+export async function dataRequestFacts(email: string): Promise<{
+  status: string;
+  requests: { type: string; status: string; channel: string }[];
+}> {
+  const sql = connectAsMigrationRole({ max: 1 });
+  try {
+    const [account] = await sql<{ status: string }[]>`
+      select status::text as status from identity.accounts where email = ${email}`;
+    const requests = await sql<
+      { type: string; status: string; channel: string }[]
+    >`
+      select r.request_type::text as type, r.status::text as status,
+             r.channel::text as channel
+        from backoffice.data_subject_requests r
+        join identity.accounts a on a.id = r.requester_account_id
+       where a.email = ${email}
+       order by r.received_at, r.id`;
+    return { status: account?.status ?? "missing", requests: [...requests] };
+  } finally {
+    await sql.end({ timeout: 1 });
+  }
+}

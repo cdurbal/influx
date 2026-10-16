@@ -18,6 +18,8 @@ export const MAILBOXES = [
   "banner-open-desktop",
   "account-address-old",
   "account-address-new",
+  "data-requests",
+  "bo-invited-member",
 ] as const;
 
 export type Mailbox = (typeof MAILBOXES)[number];

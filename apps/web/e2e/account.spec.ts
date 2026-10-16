@@ -2,23 +2,22 @@
 // 05 RG28, RG34, RG56, RG58, RG95, RG143; CA33, CA34, CA70): the preferences and their origin in
 // full, the sessions and "fermer toutes les sessions", the blocking terms screen (accepted, then
 // refused), and the change of address up to its waiting state. The rules of each screen are unit
-// tests (account-view); these are the journeys only a browser shows.
+// tests (account-view); these are the journeys only a browser shows. J7T-4 (J8 commit 10): each
+// screen passes axe on WCAG 2.1 AA at 375 px ("mes données": account-data.spec.ts).
 import type { Page } from "@playwright/test";
 import enAccount from "@/locales/en/account.json" with { type: "json" };
 import frAccount from "@/locales/fr/account.json" with { type: "json" };
 import { accountFacts, seedMember } from "./support/account";
+import { expectNoAxeViolation } from "./support/axe";
 import {
   AUTH_LABELS,
-  consentBox,
-  enterCode,
   expect,
   fill,
   lastCodeEmail,
   mailboxAddress,
   messagePattern,
   open,
-  requestCode,
-  termsBox,
+  signUpAsCreator,
   test,
   title,
 } from "./support/journey";
@@ -59,6 +58,7 @@ test("the preferences show the value, its date and its origin in full; one gestu
   // RG35, RG94: what withdrawing does not change, said beside the action
   await expect(page.getByText(t.unchanged.code)).toBeVisible();
   await expectNoSideScroll(page);
+  await expectNoAxeViolation(page, "mes préférences");
 
   await page.getByRole("button", { name: t.withdraw }).click();
 
@@ -108,6 +108,7 @@ test("the sessions mark this device; closing all signs this one out, told before
     fill(fill(t.browser, "family", "Firefox"), "system", "Windows"),
   );
   await expectNoSideScroll(page);
+  await expectNoAxeViolation(page, "my sessions");
 
   // The other browser is closed alone; this one stays signed in.
   await cards
@@ -152,6 +153,7 @@ test("a version of the terms waiting blocks every page but the rights; accepting
   ).toHaveCount(0);
   await expect(page.getByText(t.refuseHelp)).toBeVisible();
   await expectNoSideScroll(page);
+  await expectNoAxeViolation(page, "conditions en attente");
 
   // The home shows the same screen, before the page.
   await page.goto("/fr/createur");
@@ -202,21 +204,12 @@ test("a change of address waits for both codes; the sign-in address stays the ol
 
   // A real member, signed up through the screens: the fresh code needs its sign-in user.
   await open(page, "/fr/inscription/createur");
-  await requestCode(page, auth, oldAddress);
-  await enterCode(page, auth, oldAddress);
-  await page.getByLabel(auth.signup.country.label.creator).selectOption("FR");
-  await page
-    .getByRole("radio", { name: auth.signup.status.individual, exact: true })
-    .check();
-  await page.getByRole("checkbox", { name: auth.signup.adult.label }).check();
-  await termsBox(page, auth).check();
-  await consentBox(page, auth, "creator").check();
-  await page.getByRole("button", { name: auth.signup.submit }).click();
-  await expect(title(page)).toContainText(auth.signup.success.title);
+  await signUpAsCreator(page, auth, oldAddress);
   await page.getByRole("link", { name: auth.goToSpace }).click();
   await page.getByRole("link", { name: t.homeLink }).click();
   await expect(title(page)).toHaveText(t.details.title);
   await expectNoSideScroll(page);
+  await expectNoAxeViolation(page, "mon compte");
 
   // The fresh code (RG57), its phrase checked against the e-mail (RG48).
   await page.getByRole("button", { name: t.email.start }).click();
