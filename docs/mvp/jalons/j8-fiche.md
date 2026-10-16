@@ -202,6 +202,14 @@ e2e 16 ; `pnpm test` = 2 106. Tout nouveau fichier `db-tests` entre dans `case-f
 - À arbitrer à la revue cyber : l'acceptation sans invitation utilisable retombe sur l'enrôlement (refus uniforme, pas `invitation_invalid`) ; utilisateur GoTrue supprimé si la base refuse (filet : purge des orphelins).
 - Planchers : base 940 (44 fichiers), unitaire `apps/api` 988, contracts 76, web 204.
 
+## Issu du commit 8 (`6e33ef3`)
+
+- E-5 : `domains/privacy/execution.ts` dans le créneau périodique du worker (≤ 1 min) ; approbation `POST /v1/bo/dual-control` action `privacy.approve_data_request` (EC-J8-52 : le nom d'E-5 est interdit côté api, T6.3) ; membre `GET /v1/me/data-export`, `POST /v1/me/data-export/:id/download` (EC-J8-51 : texte exact dans une enveloppe JSON, le relais épinglé ne transmet pas `Content-Disposition`) ; fiche : `dataRequests`.
+- EC-J8-35 à 50 et 55 à 57 : en-têtes `0136`/`0137` ; EC-J8-53 suppression Brevo par identifiant puis par l'adresse gardée (F5) ; EC-J8-54 notice art. 15 dans `locales/*/data-export.json`, stockée dans le fichier (juriste avant la première demande, runbook §8).
+- Revue `expert-cybersecurite` 2026-10-16 non bloquante, F1, F2, F5 à F7 corrigés. Tickets : F3 liste d'autorisation des codes du journal exporté (avant Lot 3) ; F4 index `audit_events.actor_account_id` et alerte « exécutée, non close depuis 24 h » ; F8 (`legal_name` d'une charge 2V, sauvegardes) et notes libres de 2V non anonymisées : `expert-conformite-rgpd`, Lot 6.
+- Fondateur : `PRIVACY_DATABASE_URL` et mot de passe `influx_privacy_login` sur le worker de `staging` (`runbooks/staging.md`). Contact reçu par Apollo ⇒ demande non close, suivi manuel (Lot 5).
+- Planchers : base 1022 (46 fichiers), unitaire `apps/api` 1017, contracts 80, web 204.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les
