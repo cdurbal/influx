@@ -1,2 +1,3 @@
 import { withElevatedTransaction } from "../src/db/index.ts";
-await withElevatedTransaction(database, "privacy.execute_request", requestId, work);
+// Outside U (and outside P): since J8 commit 8 every signed motif has a caller, E-5 included.
+await withElevatedTransaction(database, "maintenance.export_everything", requestId, work);

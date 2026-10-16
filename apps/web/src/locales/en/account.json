@@ -212,7 +212,7 @@
     "export": {
       "title": "Export my data",
       "text": "You receive a readable file with the data we hold about you.",
-      "how": "Nothing is sent automatically: a member of the INFLUX team prepares the file and tells you how to retrieve it securely. It is never sent to you as an email attachment.",
+      "how": "A member of the INFLUX team approves your request, then the file appears here: you download it after a code sent to your address. It is never sent to you by email.",
       "action": "Export",
       "open": "An export request is already in progress: follow it above."
     },
@@ -251,7 +251,16 @@
       "erasure": "Deletion request received. We will reply by {date} at the latest. A confirmation email is on its way to your address.",
       "alreadyOpen": "A request of this type is already in progress: here it is. No new request was created."
     },
-    "unavailable": "We can't record your request right now. Please try again in a few minutes."
+    "unavailable": "We can't record your request right now. Please try again in a few minutes.",
+    "download": {
+      "title": "Your export is ready",
+      "text": "Available until {date}. You have {count, plural, one {# download} other {# downloads}} left.",
+      "how": "A code is sent to your address before each download. The file is in JSON format, with a notice explaining each category of data.",
+      "action": "Download my data",
+      "saved": "The file {name} is saved on your device.",
+      "gone": "This export is no longer available: it expired or was downloaded three times. You can make a new request.",
+      "failed": "The download did not complete. Try again in a few minutes."
+    }
   },
   "terms": {
     "title": "The terms of use have changed",

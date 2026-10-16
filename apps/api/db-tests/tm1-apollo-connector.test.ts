@@ -44,6 +44,7 @@ import {
   createWorkerQueue,
   LineTakenBackError,
   readApolloSubjectOf,
+  readBrevoErasureSubjectOf,
   readBrevoSubjectOf,
 } from "../src/domains/leads/queue.ts";
 import type {
@@ -285,6 +286,8 @@ async function turn(options: TurnOptions = {}): Promise<number> {
     {
       readSubject: (line) =>
         readBrevoSubjectOf(database, randomUUID(), line, worker),
+      readErasureSubject: (line) =>
+        readBrevoErasureSubjectOf(database, randomUUID(), line, worker),
       logger,
     },
   );

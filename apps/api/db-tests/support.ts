@@ -59,7 +59,7 @@ export function localSuperuser(): postgres.Sql {
   return superuser;
 }
 
-export type Actor = "auth" | "worker";
+export type Actor = "auth" | "worker" | "privacy";
 
 /** Constant statements: a role name is never interpolated (03 P7 rule 4). */
 const BECOME: Readonly<Record<Actor, readonly string[]>> = {
@@ -70,6 +70,11 @@ const BECOME: Readonly<Record<Actor, readonly string[]>> = {
   worker: [
     "set local session authorization influx_worker_login",
     "set local role influx_worker",
+  ],
+  // J8 commit 8 (0136): E-5, the worker's own pool, never influx_worker_login
+  privacy: [
+    "set local session authorization influx_privacy_login",
+    "set local role influx_privacy",
   ],
 };
 

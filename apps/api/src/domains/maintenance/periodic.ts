@@ -8,6 +8,8 @@
 //   brevo_reconciliation   daily (UTC), from 03:00 UTC (brevo-reconciliation.ts)
 //   auth_orphan_purge      hourly (auth-orphan-purge.ts)
 //   brevo_inbound_purge    daily: the raw Brevo lines 30 days after their outcome
+//   data_export_purge      hourly: the content of an export expired or downloaded three times
+//                          (runbook demandes-rgpd §4, J8 commit 8), its digest kept
 //
 // A task without its key in this process (no Brevo key, no GoTrue key) is never claimed. A task
 // that fails closes its run `failed` with the counts reached and a closed code in pino (D60): the
@@ -30,6 +32,7 @@ import {
   gotrueRealignmentCandidates,
   PERIODIC_TASKS,
   purgeBrevoInboundEvents,
+  purgeDataExports,
   recordAuthOrphanPurge,
   recordReconciliationEvent,
   type PeriodicCounts,
@@ -59,6 +62,9 @@ export const FINDINGS_PER_TRANSACTION = 500;
 /** Decision 2: raw lines deleted per call, and calls per run at most. */
 export const INBOUND_PURGE_BATCH = 1_000;
 export const INBOUND_PURGE_MAX_BATCHES = 20;
+/** Exports emptied per call, and calls per run at most (a handful a day at the Lot 1). */
+export const EXPORT_PURGE_BATCH = 100;
+export const EXPORT_PURGE_MAX_BATCHES = 10;
 
 const INVALID_PARAMETER_VALUE = "22023";
 
@@ -86,6 +92,7 @@ export type PeriodicStore = {
     accountId: string | null,
   ): Promise<RealignmentCandidate[]>;
   purgeBrevoInbound(run: PeriodicRun, limit: number): Promise<number>;
+  purgeDataExports(run: PeriodicRun, limit: number): Promise<number>;
 };
 
 export function createPeriodicStore(database: WorkerDatabase): PeriodicStore {
@@ -173,6 +180,12 @@ export function createPeriodicStore(database: WorkerDatabase): PeriodicStore {
         const count = await purgeBrevoInboundEvents(tx, run, limit);
         return { value: count, auditSubject: count > 0 ? run.runId : null };
       }),
+
+    purgeDataExports: (run, limit) =>
+      elevated(async (tx) => {
+        const count = await purgeDataExports(tx, run, limit);
+        return { value: count, auditSubject: count > 0 ? run.runId : null };
+      }),
   };
 }
 
@@ -212,10 +225,16 @@ export type PeriodicTaskRunner = (
   signal: AbortSignal,
 ) => Promise<void>;
 
-/** The UTC period of a task at `now`: YYYY-MM-DD, or YYYY-MM-DDTHH for the hourly purge (0117). */
+/** The hourly tasks; the others run once a day. */
+const HOURLY_TASKS: ReadonlySet<PeriodicTask> = new Set([
+  "auth_orphan_purge",
+  "data_export_purge",
+]);
+
+/** The UTC period of a task at `now`: YYYY-MM-DD, or YYYY-MM-DDTHH for an hourly purge (0117). */
 export function periodKeyOf(task: PeriodicTask, now: number): string {
   const iso = new Date(now).toISOString();
-  return task === "auth_orphan_purge" ? iso.slice(0, 13) : iso.slice(0, 10);
+  return HOURLY_TASKS.has(task) ? iso.slice(0, 13) : iso.slice(0, 10);
 }
 
 /** Whether a task may run at `now` (the reconciliation waits for its hour). */
@@ -348,6 +367,23 @@ export function createPeriodicScheduler(dependencies: {
         }
       }
     },
+  };
+}
+
+/** Runbook §4: the exports past their first deadline (7 days, or 3 downloads), by batches. */
+export function createDataExportPurge(
+  store: PeriodicStore,
+): PeriodicTaskRunner {
+  return async (run, counts, signal) => {
+    counts.purged = 0;
+    for (let batch = 0; batch < EXPORT_PURGE_MAX_BATCHES; batch += 1) {
+      checkNotStopped(signal);
+      const purged = await store.purgeDataExports(run, EXPORT_PURGE_BATCH);
+      counts.purged += purged;
+      if (purged < EXPORT_PURGE_BATCH) {
+        return;
+      }
+    }
   };
 }
 

@@ -1,7 +1,9 @@
 // Entry point of the Railway service `worker` (docs/mvp/02-architecture-3-espaces.md §11).
 // J6: drains the outbox (E-3 `leads.drain_outbox`, src/domains/leads/drain.ts); J7: first processes
 // what Brevo reported back (src/domains/leads/inbound/processing.ts), and, between two turns, the
-// periodic tasks of E-4 (src/domains/maintenance/periodic.ts, J7 decision 3). It opens NO port.
+// periodic tasks of E-4 (src/domains/maintenance/periodic.ts, J7 decision 3), then the "mes données"
+// requests approved by an admin, on a pool of their own (E-5, src/domains/privacy/execution.ts, J8
+// commit 8). It opens NO port.
 // Started by `node apps/api/src/worker.ts` directly, so that SIGTERM reaches it (21 §4, J1-B):
 // the turn in progress finishes, the lines not begun go back to pending (02 §11.2, TM1.10).
 import { randomUUID } from "node:crypto";
@@ -32,6 +34,7 @@ import {
 import {
   createWorkerQueue,
   readApolloSubjectOf,
+  readBrevoErasureSubjectOf,
   readBrevoSubjectOf,
 } from "./domains/leads/queue.ts";
 import type { OutboxDestination } from "./domains/leads/repository.ts";
@@ -40,6 +43,7 @@ import { createBrevoReads } from "./domains/maintenance/brevo-reads.ts";
 import { createBrevoReconciliation } from "./domains/maintenance/brevo-reconciliation.ts";
 import {
   createBrevoInboundPurge,
+  createDataExportPurge,
   createPeriodicScheduler,
   createPeriodicStore,
   type PeriodicLogger,
@@ -47,8 +51,12 @@ import {
   type PeriodicTask,
   type PeriodicTaskRunner,
 } from "./domains/maintenance/periodic.ts";
+import { createPrivacyExecutor } from "./domains/privacy/execution.ts";
 import { createLogger } from "./platform/logger.ts";
-import { createGoTrueUserDirectory } from "./platform/supabase.ts";
+import {
+  createGoTrueUserDirectory,
+  type GoTrueUserDirectory,
+} from "./platform/supabase.ts";
 
 /**
  * The connectors of this process: Brevo (J6 commit 4), with the worker's own key (EC-19), and
@@ -69,6 +77,8 @@ function connectorsOf(
     {
       readSubject: (line) =>
         readBrevoSubjectOf(database, randomUUID(), line, worker),
+      readErasureSubject: (line) =>
+        readBrevoErasureSubjectOf(database, randomUUID(), line, worker),
       logger,
     },
   );
@@ -86,17 +96,20 @@ function connectorsOf(
 
 /**
  * E-4 (decision 3 of J7): the reconciliation with the worker's Brevo key, the purge of GoTrue with
- * its own secret key; a task without its key is never claimed. The 30-day purge needs neither.
+ * its own secret key; a task without its key is never claimed. The 30-day purge and the purge of
+ * the exports (J8 commit 8) need neither.
  */
 function periodicSchedulerOf(
   config: WorkerConfig,
   database: WorkerDatabase,
+  directory: GoTrueUserDirectory | null,
   logger: PeriodicLogger,
 ): PeriodicScheduler {
   const store = createPeriodicStore(database);
   const now = () => Date.now();
   const runners: Partial<Record<PeriodicTask, PeriodicTaskRunner>> = {
     brevo_inbound_purge: createBrevoInboundPurge(store),
+    data_export_purge: createDataExportPurge(store),
   };
   if (config.brevoTransport.apiKey !== null) {
     runners.brevo_reconciliation = createBrevoReconciliation({
@@ -108,9 +121,9 @@ function periodicSchedulerOf(
       now,
     });
   }
-  if (config.supabase !== null) {
+  if (directory !== null) {
     runners.auth_orphan_purge = createAuthOrphanPurge({
-      directory: createGoTrueUserDirectory(config.supabase),
+      directory,
       store,
       now,
     });
@@ -180,7 +193,8 @@ async function main(): Promise<void> {
     "worker started",
   );
 
-  // The worker's ONLY pool: influx_worker_login (EC-20), for E-3 alone.
+  // influx_worker_login (EC-20) for E-3 and E-4; influx_privacy_login for E-5 alone, when set
+  // (required in production): two pools, never one role for both (03 P7).
   const database = createWorkerDatabase(config.database, logger);
   try {
     await verifyPools(database);
@@ -208,6 +222,20 @@ async function main(): Promise<void> {
   process.once("SIGINT", requestStop);
 
   const worker = workerIdentifier(config.instance);
+  const directory =
+    config.supabase === null
+      ? null
+      : createGoTrueUserDirectory(config.supabase);
+  const periodic = periodicSchedulerOf(config, database, directory, logger);
+  // E-5 between two turns, after the periodic tasks: an approved request waits a minute at most.
+  const privacy =
+    database.elevated.privacy === undefined
+      ? null
+      : createPrivacyExecutor({ database, directory, logger });
+  logger.info(
+    { privacyExecution: privacy !== null },
+    "data subject requests execution configured",
+  );
   logger.info({ worker }, "outbox drain started");
   const drain = createOutboxDrain({
     queue: createWorkerQueue(database),
@@ -216,7 +244,12 @@ async function main(): Promise<void> {
       process: (requestId) => processInboundEvent(database, requestId),
       logger,
     }),
-    periodic: periodicSchedulerOf(config, database, logger),
+    periodic: {
+      async tick(signal) {
+        await periodic.tick(signal);
+        await privacy?.tick(signal);
+      },
+    },
     worker,
     sync: {
       mode: config.sync.mode,

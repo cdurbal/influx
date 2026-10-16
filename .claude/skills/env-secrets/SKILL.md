@@ -116,9 +116,9 @@ des `GRANT` et des politiques nommés table par table.
 |---|---|---|---|
 | `DATABASE_URL` | **api uniquement** | **Secrète** | Multiplexeur, rôle de connexion **`influx_app`**, membre des **quatre rôles métier seuls** ; ni propriétaire, ni `BYPASSRLS`, ni `SUPERUSER`, **ni membre d'un rôle élevé**. Unique droit propre : `identity.resolve_session()` |
 | `AUTH_DATABASE_URL` | **api uniquement** | **Secrète** | Multiplexeur, rôle de connexion **`influx_auth_login`**, membre d'`influx_auth` **seul** : opérations E-1 et E-2 (code de connexion) |
-| `WORKER_DATABASE_URL` | **worker uniquement** | **Secrète** | Multiplexeur, rôle de connexion **`influx_worker_login`**, membre d'`influx_worker` **seul** : opérations E-3 et E-4. **Seule variable de base du worker** : ni `DATABASE_URL` ni `AUTH_DATABASE_URL` |
+| `WORKER_DATABASE_URL` | **worker uniquement** | **Secrète** | Multiplexeur, rôle de connexion **`influx_worker_login`**, membre d'`influx_worker` **seul** : opérations E-3 et E-4. Ni `DATABASE_URL` ni `AUTH_DATABASE_URL` sur le worker |
 | `OPS_DATABASE_URL` — *au J4* | **api uniquement** | **Secrète** | Rôle de connexion **`influx_ops_login`** → `influx_ops`, écriture seule du schéma `ops` (D60 ; entrée E-6 à signer avec sa migration) |
-| `PRIVACY_DATABASE_URL` — *au Lot 5* | **worker uniquement** | **Secrète** | Rôle de connexion **`influx_privacy_login`** → `influx_privacy` : opération E-5. **Jamais** ajouté au rôle de connexion du worker |
+| `PRIVACY_DATABASE_URL` — *au J8 (commit 8, `0136`)* | **worker uniquement** | **Secrète** | Multiplexeur, rôle de connexion **`influx_privacy_login`**, membre d'`influx_privacy` **seul** : opération E-5 (demandes « mes données » approuvées par un `admin`). **Jamais** ajouté à `influx_worker_login`. **Obligatoire en production** (refus de démarrage du worker sans elle, `21` §5.8) ; absente ailleurs : aucune demande n'est exécutée |
 | `DIRECT_DATABASE_URL` | **aucun service d'exécution** | **Secrète — CI uniquement** | Rôle de migration, **propriétaire des objets**. Vit dans les GitHub Secrets de l'environnement concerné et **jamais** dans une variable Railway (CI-5) |
 
 Format commun des URL d'exécution : utilisateur `<rôle>.<référence du projet>`, port **6543**
@@ -332,12 +332,13 @@ information des personnes si nécessaire, consignation écrite.
 
 - [ ] Projet Supabase **dédié** créé (un par environnement, jamais deux schémas d'un même projet)
 - [ ] Rôles Postgres créés selon la liste fermée de `03` §4 P7 : `influx_app`, les quatre rôles
-      métier, `influx_auth` + `influx_auth_login`, `influx_worker` + `influx_worker_login`, les
+      métier, `influx_auth` + `influx_auth_login`, `influx_worker` + `influx_worker_login`,
+      `influx_ops` + `influx_ops_login`, `influx_privacy` + `influx_privacy_login` (J8), les
       propriétaires de fonctions sans membre (`influx_audit_writer`, `influx_session_resolver`,
       `influx_identity_definer`) — **aucun avec `BYPASSRLS` ni `SUPERUSER`** ; le rôle Postgres
       `service_role` n'est utilisé nulle part, `influx_service` n'existe pas
-- [ ] `DATABASE_URL` et `AUTH_DATABASE_URL` sur `api` seul, `WORKER_DATABASE_URL` sur `worker`
-      seul (refus de démarrage sinon) ; `DIRECT_DATABASE_URL` **uniquement dans les GitHub Secrets**
+- [ ] `DATABASE_URL` et `AUTH_DATABASE_URL` sur `api` seul, `WORKER_DATABASE_URL` et
+      `PRIVACY_DATABASE_URL` sur `worker` seul (refus de démarrage sinon) ; `DIRECT_DATABASE_URL` **uniquement dans les GitHub Secrets**
 - [ ] Les quatre services Railway créés (`web`, `backoffice`, `api`, `worker`) ; **`api` sans hôte
       public**, joint par le réseau privé
 - [ ] **Domaines d'envoi — bloquant.** Les **trois sous-domaines** de `16` RG9 sont créés et

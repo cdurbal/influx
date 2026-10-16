@@ -110,6 +110,7 @@ describe("T6.1: A = U and U ⊆ P", () => {
         "apps/api/src/domains/maintenance/periodic.ts",
       ],
       "ops.record_telemetry": ["apps/api/src/domains/ops/recorder.ts"],
+      "privacy.execute_request": ["apps/api/src/domains/privacy/execution.ts"],
       "support.report_delivery_issue": [
         "apps/api/src/domains/identity/code-delivery-report.ts",
       ],
@@ -148,10 +149,11 @@ describe("T6.1: A = U and U ⊆ P", () => {
       "identity.member_email_change": "auth",
       "leads.drain_outbox": "worker",
       "maintenance.run_periodic": "worker",
+      // J8 commit 8: E-5 on its own pool (PRIVACY_DATABASE_URL), never influx_worker_login
+      "privacy.execute_request": "privacy",
       "ops.record_telemetry": "ops",
     };
     for (const operation of SIGNED_ELEVATED_OPERATIONS) {
-      // privacy.execute_request (E-5) has no pool in apps/api before the Lot 5.
       expect(elevatedPoolKindOf(operation), operation).toBe(
         expected[operation] ?? null,
       );
@@ -324,7 +326,7 @@ function lastDefinitionOf(
     .at(-1);
 }
 
-describe("the admin actions of J8 commits 3 and 6 keep their guards in the database (0131, 0132, 0134)", () => {
+describe("the admin actions of J8 commits 3, 6 and 8 keep their guards in the database (0131, 0132, 0134, 0136)", () => {
   // A later migration that redefines one of them without its guards fails here (constat cyber of
   // commit 2 on correct_email(); 03 §3.1 J · 2V · R for the role change and the admin invitation).
   it.each([
@@ -372,6 +374,16 @@ describe("the admin actions of J8 commits 3 and 6 keep their guards in the datab
       [
         "identity.require_active_admin()",
         "identity.assert_fresh_second_factor(",
+      ],
+    ],
+    // 0136 (J8 commit 8): the execution of a "mes données" request is approved by an admin under
+    // 2V + R (15 RG75 step 6, RG76); the worker only runs what was approved
+    [
+      "backoffice.approve_data_request_execution",
+      [
+        "identity.require_active_admin()",
+        "identity.assert_fresh_second_factor(",
+        "backoffice.consume_dual_control(",
       ],
     ],
   ] as const)("%s calls its guards in its last definition", (name, guards) => {

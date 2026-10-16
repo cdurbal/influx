@@ -81,6 +81,17 @@
         "step3": "Then report it to INFLUX from the help on the sign-in screen, giving the date of the request.",
         "never": "INFLUX will never ask you for your sign-in code.",
         "reason": "a request about your personal data was submitted from your INFLUX account"
+      },
+      "exportReady": {
+        "subject": "Your INFLUX data export is available",
+        "preheader": "Download it from your INFLUX account, under \"My data\", until {expiresAt, date, long}.",
+        "title": "Your data export is ready",
+        "available": "The file of the personal data we hold about you is available in your INFLUX account, under \"My data\", until {expiresAt, date, long} at {expiresAt, time, short} ({timeZone}).",
+        "howTo": "For each download, a code is sent to this address to confirm that it is you. The file can be downloaded three times at most; it is then erased, and you can always make a new request.",
+        "content": "The file is in JSON format: readable, and reusable by another application. It contains a notice explaining, for each category of data, why we hold it and how long we keep it.",
+        "noAttachment": "This file is never sent by email, and this email contains no link: sign in to INFLUX as usual.",
+        "notYou": "Didn't request this export? It was confirmed with a code sent to this address:",
+        "reason": "you requested an export of your personal data from your INFLUX account"
       }
     },
     "internal": {

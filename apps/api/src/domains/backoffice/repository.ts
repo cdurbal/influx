@@ -14,12 +14,13 @@ import type { RawSyncState } from "./sync-causes.ts";
 
 const ISO_UTC = 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"';
 
-/** The closed list of 2V actions (0131, 0132 backoffice.canonical_dual_control_payload()). */
+/** The closed list of 2V actions (0131, 0132, 0134, 0136 backoffice.canonical_dual_control_payload()). */
 export const DUAL_CONTROL_ACTION_CODES = [
   "identity.grant_role",
   "identity.change_member_role",
   "identity.invite_admin",
   "leads.change_apollo_setting",
+  "privacy.approve_data_request",
 ] as const;
 export type DualControlActionCode = (typeof DUAL_CONTROL_ACTION_CODES)[number];
 
@@ -34,7 +35,8 @@ export type DualControlPayload =
   | { account_id: string; role: BusinessRole }
   | { account_id: string; role: "advertiser"; legal_name: string }
   | { invitation_id: string }
-  | StoredApolloSetting;
+  | StoredApolloSetting
+  | { request_id: string; request_type: "access" | "erasure" };
 
 // --- Writes: the three functions of 0130 / 0131 (EXECUTE for influx_admin only) ------------------
 
@@ -132,6 +134,27 @@ export async function changeApolloSetting(
                                                 ${call.reasonCode}) as reevaluated`,
   );
   return rows[0]?.reevaluated ?? 0;
+}
+
+/**
+ * 0136 (15 RG75 step 6, RG76): backoffice.approve_data_request_execution(), by the confirmer. It
+ * approves; the worker executes (E-5, 03 P7 "déclenché par une tâche").
+ */
+export async function approveDataRequestExecution(
+  tx: Transaction,
+  sessionId: string,
+  requestId: string,
+  call: {
+    dataRequestId: string;
+    requestType: "access" | "erasure";
+    reasonCode: string;
+  },
+): Promise<void> {
+  await tx.execute(
+    sql`select backoffice.approve_data_request_execution(
+                 ${sessionId}::uuid, ${requestId}::uuid, ${call.dataRequestId}::uuid,
+                 ${call.requestType}::backoffice.data_request_type, ${call.reasonCode})`,
+  );
 }
 
 /** 0132 (EC-J8-17): identity.change_member_role(), creator to advertiser, by the confirmer. */
@@ -722,6 +745,89 @@ export async function ownershipOf(
     assignedAt: row.assigned_at,
     unassignedAt: row.unassigned_at,
     reasonCode: row.reason_code,
+  }));
+}
+
+export type AccountDataRequestRow = {
+  id: string;
+  requestType: string;
+  receivedAt: string;
+  dueAt: string;
+  status: string;
+  completedAt: string | null;
+  outcomeCode: string | null;
+  approvedAt: string | null;
+  approvedBy: string | null;
+  executedAt: string | null;
+  authUserDeletedAt: string | null;
+  exportPublishedAt: string | null;
+  exportExpiresAt: string | null;
+  exportDownloads: number | null;
+  exportPurgedAt: string | null;
+};
+
+/**
+ * 15 §G (J8 commit 8): the "mes données" requests of a member account, the most recent first, with
+ * their execution (0136) and the metadata of their export, NEVER its content (agent and admin in
+ * aal2; the columns granted by 0136 only).
+ */
+export async function dataRequestsOf(
+  tx: Transaction,
+  accountId: string,
+): Promise<AccountDataRequestRow[]> {
+  const rows = await tx.execute<{
+    id: string;
+    request_type: string;
+    received_at: string;
+    due_at: string;
+    status: string;
+    completed_at: string | null;
+    outcome_code: string | null;
+    approved_at: string | null;
+    approved_by: string | null;
+    executed_at: string | null;
+    auth_user_deleted_at: string | null;
+    export_published_at: string | null;
+    export_expires_at: string | null;
+    export_downloads: number | null;
+    export_purged_at: string | null;
+  }>(sql`
+    select r.id::text as id, r.request_type::text as request_type,
+           to_char(r.received_at at time zone 'UTC', ${ISO_UTC}) as received_at,
+           to_char(r.due_at at time zone 'UTC', ${ISO_UTC}) as due_at,
+           r.status::text as status,
+           to_char(r.completed_at at time zone 'UTC', ${ISO_UTC}) as completed_at,
+           r.outcome_code::text as outcome_code,
+           to_char(e.approved_at at time zone 'UTC', ${ISO_UTC}) as approved_at,
+           e.approved_by_account_id::text as approved_by,
+           to_char(e.executed_at at time zone 'UTC', ${ISO_UTC}) as executed_at,
+           to_char(e.auth_user_deleted_at at time zone 'UTC', ${ISO_UTC}) as auth_user_deleted_at,
+           to_char(x.published_at at time zone 'UTC', ${ISO_UTC}) as export_published_at,
+           to_char(x.expires_at at time zone 'UTC', ${ISO_UTC}) as export_expires_at,
+           x.downloads_count as export_downloads,
+           to_char(x.purged_at at time zone 'UTC', ${ISO_UTC}) as export_purged_at
+      from backoffice.data_subject_requests r
+      left join privacy.request_executions e on e.request_id = r.id
+      left join privacy.data_exports x on x.request_id = r.id
+     where r.requester_account_id = ${accountId}::uuid
+     order by r.received_at desc, r.id`);
+  return rows.map((row) => ({
+    id: row.id,
+    requestType: row.request_type,
+    receivedAt: row.received_at,
+    dueAt: row.due_at,
+    status: row.status,
+    completedAt: row.completed_at,
+    outcomeCode: row.outcome_code,
+    approvedAt: row.approved_at,
+    approvedBy: row.approved_by,
+    executedAt: row.executed_at,
+    authUserDeletedAt: row.auth_user_deleted_at,
+    exportPublishedAt: row.export_published_at,
+    exportExpiresAt: row.export_expires_at,
+    exportDownloads:
+      row.export_downloads === null ? null : Number(row.export_downloads),
+    exportPurgedAt: row.export_purged_at,
   }));
 }
 
@@ -1416,11 +1522,7 @@ export type InternalInvitationRow = {
   createdAt: string;
   expiresAt: string;
   state:
-    | "awaiting_dual_control"
-    | "pending"
-    | "accepted"
-    | "revoked"
-    | "expired";
+    "awaiting_dual_control" | "pending" | "accepted" | "revoked" | "expired";
   dualControlRequestId: string | null;
   accountId: string | null;
   revokeReasonCode: InvitationRevokeReason | null;

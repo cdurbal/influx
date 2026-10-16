@@ -895,7 +895,8 @@ d'exécution. **`influx_service` n'existe pas** : supprimé, jamais créé.
 | `influx_ops` + `influx_ops_login` | J4, avec le schéma `ops` | Écriture seule sur `ops`, aucune lecture métier ; `OPS_DATABASE_URL`, `api` ; le worker écrit `ops` par des droits nommés d'`influx_worker`. **Entrée E-6 signée le 2026-10-06 avec `0016`** |
 | `influx_leads_definer` | J6, avec `0111` | `NOLOGIN NOINHERIT`, aucun membre : propriétaire des quatre fonctions `SECURITY DEFINER` d'E-3 (`leads.claim_outbox_batch`, `begin_outbox_attempt`, `complete_outbox_attempt`, `recover_stale_outbox_lines`), `EXECUTE` à `influx_worker` **seul**, qui ne garde **aucun droit de table** ; droits colonne par colonne sur la file, les états de contact, le journal (insertion P1), les réglages du worker, le compte et le consentement (lecture). Distinct d'`influx_identity_definer` : aucun des deux ne prête ses droits à l'autre. **À signer par `expert-cybersecurite` à la revue de fin de J6** |
 | `influx_intro_owner` | Lot 4 | Propriétaire des fonctions de révélation (§3.4) |
-| `influx_privacy` + `influx_privacy_login` | Lot 5 | E-5 ; `PRIVACY_DATABASE_URL`, `worker`. **Jamais ajouté à `influx_worker_login`** |
+| `influx_privacy` + `influx_privacy_login` | **J8, `0136`** (avancée du Lot 5, porte de production) | E-5 ; `PRIVACY_DATABASE_URL`, second pool du processus `worker` (obligatoire en production). **Jamais ajouté à `influx_worker_login`** (vérifié par `0136` et T4.3). `influx_privacy` n'a **aucun droit de table** : `EXECUTE` sur ses fonctions seulement |
+| `influx_privacy_definer` | **J8, `0136`** | `NOLOGIN NOINHERIT`, aucun membre : propriétaire des fonctions `SECURITY DEFINER` d'E-5 (`privacy.pending_work`, `execute_request`, `record_auth_user_deleted`, `complete_request`, `0137`) et de `leads.read_brevo_erasure_subject` (E-3, seul lecteur de l'adresse gardée jusqu'à la confirmation de Brevo) ; droits colonne par colonne, même modèle qu'`influx_leads_definer`. L'approbation 2V + R et le téléchargement par le membre appartiennent à `influx_identity_definer` (EC-J8-36). **À signer par `expert-cybersecurite` à la revue du commit 8 du J8** |
 
 **Règles d'écriture de `0001`, exigées :**
 
@@ -939,7 +940,7 @@ d'exécution. **`influx_service` n'existe pas** : supprimé, jamais créé.
 4. **Le nom de rôle du `SET LOCAL ROLE` vient d'une table constante du code** (rôle métier →
    identifiant), jamais d'une interpolation de valeur lue en base ou reçue.
 5. **Chaque opération élevée est liée à sa grappe** (E-1, E-2 → `AUTH_DATABASE_URL` ; E-3, E-4 →
-   `WORKER_DATABASE_URL`) ; un processus ne configure que les grappes de ses opérations.
+   `WORKER_DATABASE_URL` ; E-5 → `PRIVACY_DATABASE_URL`, J8) ; un processus ne configure que les grappes de ses opérations.
 6. **À l'ouverture de chaque grappe**, contrôle en base de `current_user` et de l'absence de
    `rolsuper` / `rolbypassrls` : **refus de démarrer** sinon (T4 en production, pas seulement en CI).
 7. **La CI passe par le multiplexeur local en mode transaction** (`[db.pooler]` de

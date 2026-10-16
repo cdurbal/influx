@@ -8,6 +8,8 @@ import {
   cancelEmailChangeResponseSchema,
   confirmEmailChangeResponseSchema,
   consentResponseSchema,
+  dataExportDownloadResponseSchema,
+  dataExportStateResponseSchema,
   dataRequestResponseSchema,
   dataRequestsResponseSchema,
   emailChangeResponseSchema,
@@ -23,6 +25,8 @@ import {
   type CancelEmailChangeResponse,
   type ConfirmEmailChangeResponse,
   type ConsentResponse,
+  type DataExportDownloadResponse,
+  type DataExportStateResponse,
   type DataRequestResponse,
   type DataRequestsResponse,
   type DataRequestType,
@@ -191,4 +195,21 @@ export function submitDataRequest(
   return callRelay("POST", "/v1/me/data-requests", dataRequestResponseSchema, {
     type,
   });
+}
+
+export function readDataExport(): Promise<
+  RelayResult<DataExportStateResponse>
+> {
+  return callRelay("GET", "/v1/me/data-export", dataExportStateResponseSchema);
+}
+
+/** One download: a fresh code for data_export is consumed by it (403 without one, 410 once gone). */
+export function downloadDataExport(
+  id: string,
+): Promise<RelayResult<DataExportDownloadResponse>> {
+  return callRelay(
+    "POST",
+    `/v1/me/data-export/${idSegment(id)}/download`,
+    dataExportDownloadResponseSchema,
+  );
 }

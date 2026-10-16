@@ -71,6 +71,19 @@ function asAuth(
   });
 }
 
+function asPrivacy(
+  statement: string,
+  parameters: string[] = [],
+): Promise<ProbeResult> {
+  return inRolledBackTransaction(
+    loginRole("influx_privacy_login"),
+    async (tx) => {
+      await takeRole(tx, "influx_privacy");
+      return probe(tx, statement, parameters);
+    },
+  );
+}
+
 function asWorker(
   statement: string,
   parameters: string[] = [],
@@ -140,7 +153,7 @@ describe("EC-36: audit.append_elevated()", () => {
     ).toEqual({ outcome: "error", code: INVALID_PARAMETER });
   });
 
-  it("knows the motifs of E-1 and E-2 (five at J3, the sign-up at J5), E-3 (J6), the five of J7, and no other", async () => {
+  it("knows the motifs of E-1 and E-2 (five at J3, the sign-up at J5), E-3 (J6), the five of J7, E-5 (J8), and no other", async () => {
     const codes = await migration<{ code: string; subject_type: string }[]>`
       select code, subject_type from audit.event_types
        where code like 'elevated.%' order by code`;
@@ -183,6 +196,11 @@ describe("EC-36: audit.append_elevated()", () => {
       {
         code: "elevated.maintenance.run_periodic",
         subject_type: "periodic_run",
+      },
+      // 0136 (J8 commit 8): E-5, on the data subject request executed
+      {
+        code: "elevated.privacy.execute_request",
+        subject_type: "data_subject_request",
       },
       // 0115 (J7 decision 6): the report of the rescue channel
       {
@@ -238,6 +256,72 @@ describe("J6S-2 (0115): the family of a motif is bound to its connection role", 
         operation,
       ]),
     ).toEqual({ outcome: "error", code: INSUFFICIENT_PRIVILEGE });
+  });
+
+  // 0136 (03 P7 E-5): privacy.* belongs to influx_privacy_login, and only privacy.*
+  it("lets influx_privacy write privacy.execute_request, as system (EC-J8-47)", async () => {
+    expect(
+      await asPrivacy("select audit.append_elevated($1, gen_random_uuid())", [
+        "privacy.execute_request",
+      ]),
+    ).toEqual({ outcome: "rows", count: 1 });
+    const reference = randomUUID();
+    const seq = await loginRole("influx_privacy_login").begin(async (tx) => {
+      await takeRole(tx, "influx_privacy");
+      const [row] = await tx<{ seq: string }[]>`
+        select audit.append_elevated('privacy.execute_request', ${reference}::uuid)::text as seq`;
+      return row?.seq;
+    });
+    const [line] = await migration<Line[]>`
+      select event_type, subject_type, subject_id::text, actor_type::text,
+             actor_account_id::text, payload
+        from audit.audit_events where chain_key = 'global' and seq = ${seq ?? "0"}`;
+    expect(line).toEqual({
+      event_type: "elevated.privacy.execute_request",
+      subject_type: "data_subject_request",
+      subject_id: reference,
+      actor_type: "system",
+      actor_account_id: null,
+      payload: { operation: "privacy.execute_request" },
+    });
+  });
+
+  it.each([["influx_auth"], ["influx_worker"]] as const)(
+    "refuses privacy.execute_request to %s (42501)",
+    async (role) => {
+      expect(
+        await (role === "influx_auth" ? asAuth : asWorker)(
+          "select audit.append_elevated($1, gen_random_uuid())",
+          ["privacy.execute_request"],
+        ),
+      ).toEqual({ outcome: "error", code: INSUFFICIENT_PRIVILEGE });
+    },
+  );
+
+  it.each([
+    ["identity.request_code"],
+    ["support.report_delivery_issue"],
+    ["leads.receive_brevo_event"],
+    ["leads.drain_outbox"],
+    ["maintenance.run_periodic"],
+  ])("refuses %s to influx_privacy (42501)", async (operation) => {
+    expect(
+      await asPrivacy("select audit.append_elevated($1, gen_random_uuid())", [
+        operation,
+      ]),
+    ).toEqual({ outcome: "error", code: INSUFFICIENT_PRIVILEGE });
+  });
+
+  it("gives influx_privacy no other way to the register (no append(), no read)", async () => {
+    for (const statement of [
+      "select audit.append('account.anonymized', 'account', gen_random_uuid())",
+      "select seq from audit.audit_events limit 1",
+    ]) {
+      expect(await asPrivacy(statement), statement).toEqual({
+        outcome: "error",
+        code: INSUFFICIENT_PRIVILEGE,
+      });
+    }
   });
 
   it("still answers 22023 before the family check for an unknown motif", async () => {

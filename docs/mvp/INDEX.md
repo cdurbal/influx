@@ -61,45 +61,45 @@
 | 829 | 105 | 8. Structure du dépôt cible |  |
 | 934 | 124 | 9. Le contrat entre l'API et les fronts |  |
 | 1058 | 60 | 10. Où s'applique la RLS, et où elle ne suffit pas |  |
-| 1118 | 50 | 11. Le worker |  |
-| 1168 | 103 | 12. Conséquences sur Railway et Supabase |  |
-| 1271 | 58 | 13. Sortie du mode maquette de `apps/web` |  |
-| 1329 | 60 | 14. Ce qui reste ouvert |  |
-| 1389 | 46 | 15. Conventions pour `dev-react-node` |  |
-| 1435 | 14 | 16. Points à faire valider par le fondateur |  |
-| 1449 | 12 | 17. Mises à jour des autres documents |  |
-| 1461 | 15 | Sources (vérifiées le 2026-09-18) |  |
-| 1476 | 370 | 18. Addendum du 2026-09-19 — D43 : chemin d'envoi des e-mails transactionnels critiques (code de connexion) | RG39–RG122 |
-| 1497 | 17 | ↳ 18.1 Contexte | RG59–RG86 |
-| 1514 | 7 | ↳ 18.2 Les deux questions posées |  |
-| 1521 | 21 | ↳ 18.3 Question (a) — options | RG41–RG87 |
-| 1542 | 24 | ↳ 18.4 Décision (a) : **(i) — appel synchrone dans la requête, avec cinq garde-fous** | RG46–RG64 |
-| 1566 | 61 | ↳ 18.5 L'énumération de comptes — le point que l'envoi synchrone oblige à trancher | RG44–RG60 |
-| 1627 | 11 | ↳ 18.6 Panne du fournisseur : ce qui se passe, et ce que personne ne doit croire | RG64–RG122 |
-| 1638 | 43 | ↳ 18.7 Conséquence non évidente : **c'est `apps/api` qui envoie l'e-mail, pas Supabase Auth** | RG40–RG100 |
-| 1681 | 32 | ↳ 18.8 Décision (b) : `leads.transactional_sends` est **un journal, et rien d'autre** | RG60 |
-| 1713 | 27 | ↳ 18.9 La famine, et pourquoi elle est écartée par construction |  |
-| 1740 | 34 | ↳ 18.10 Contrat d'implémentation — `POST /v1/auth/request-code` | RG44–RG91 |
-| 1774 | 16 | ↳ 18.11 Conséquences | RG122 |
-| 1790 | 9 | ↳ 18.12 Si l'on se trompe | RG46–RG98 |
-| 1799 | 7 | ↳ 18.13 Réversibilité |  |
-| 1806 | 30 | ↳ 18.14 Ce que cet addendum demande aux autres agents | RG60 |
-| 1836 | 10 | ↳ Sources (vérifiées le 2026-09-19) |  |
-| 1846 | 24 | 19. Addendum du 2026-09-24 — D57 : sauvegarde et restauration |  |
-| 1870 | 325 | 20. Addendum du 2026-09-24 — D60 : surveillance de production, entièrement interne | RG98–RG126 |
-| 1887 | 11 | ↳ 20.1 Le besoin, en deux questions |  |
-| 1898 | 19 | ↳ 20.2 Ce qui existe déjà, et ce qui manque | RG98–RG126 |
-| 1917 | 17 | ↳ 20.3 Options |  |
-| 1934 | 14 | ↳ 20.4 Décision : six pièces, toutes internes |  |
-| 1948 | 95 | ↳ 20.5 Comment chaque pièce fonctionne |  |
-| 2043 | 34 | ↳ 20.6 Signaux et seuils d'alerte |  |
-| 2077 | 22 | ↳ 20.7 La période de rodage — « surtout au début » |  |
-| 2099 | 26 | ↳ 20.8 Ce qui n'entre jamais dans un journal ni dans le schéma `ops` |  |
-| 2125 | 12 | ↳ 20.9 Ce que la décision ne couvre pas — risque accepté par le fondateur |  |
-| 2137 | 31 | ↳ 20.10 Conséquences |  |
-| 2168 | 9 | ↳ 20.11 Points à faire valider par le fondateur |  |
-| 2177 | 13 | ↳ 20.12 Ce que cet addendum demande aux autres agents |  |
-| 2190 | 5 | ↳ Sources (vérifiées le 2026-09-24) |  |
+| 1118 | 51 | 11. Le worker |  |
+| 1169 | 103 | 12. Conséquences sur Railway et Supabase |  |
+| 1272 | 58 | 13. Sortie du mode maquette de `apps/web` |  |
+| 1330 | 60 | 14. Ce qui reste ouvert |  |
+| 1390 | 46 | 15. Conventions pour `dev-react-node` |  |
+| 1436 | 14 | 16. Points à faire valider par le fondateur |  |
+| 1450 | 12 | 17. Mises à jour des autres documents |  |
+| 1462 | 15 | Sources (vérifiées le 2026-09-18) |  |
+| 1477 | 370 | 18. Addendum du 2026-09-19 — D43 : chemin d'envoi des e-mails transactionnels critiques (code de connexion) | RG39–RG122 |
+| 1498 | 17 | ↳ 18.1 Contexte | RG59–RG86 |
+| 1515 | 7 | ↳ 18.2 Les deux questions posées |  |
+| 1522 | 21 | ↳ 18.3 Question (a) — options | RG41–RG87 |
+| 1543 | 24 | ↳ 18.4 Décision (a) : **(i) — appel synchrone dans la requête, avec cinq garde-fous** | RG46–RG64 |
+| 1567 | 61 | ↳ 18.5 L'énumération de comptes — le point que l'envoi synchrone oblige à trancher | RG44–RG60 |
+| 1628 | 11 | ↳ 18.6 Panne du fournisseur : ce qui se passe, et ce que personne ne doit croire | RG64–RG122 |
+| 1639 | 43 | ↳ 18.7 Conséquence non évidente : **c'est `apps/api` qui envoie l'e-mail, pas Supabase Auth** | RG40–RG100 |
+| 1682 | 32 | ↳ 18.8 Décision (b) : `leads.transactional_sends` est **un journal, et rien d'autre** | RG60 |
+| 1714 | 27 | ↳ 18.9 La famine, et pourquoi elle est écartée par construction |  |
+| 1741 | 34 | ↳ 18.10 Contrat d'implémentation — `POST /v1/auth/request-code` | RG44–RG91 |
+| 1775 | 16 | ↳ 18.11 Conséquences | RG122 |
+| 1791 | 9 | ↳ 18.12 Si l'on se trompe | RG46–RG98 |
+| 1800 | 7 | ↳ 18.13 Réversibilité |  |
+| 1807 | 30 | ↳ 18.14 Ce que cet addendum demande aux autres agents | RG60 |
+| 1837 | 10 | ↳ Sources (vérifiées le 2026-09-19) |  |
+| 1847 | 24 | 19. Addendum du 2026-09-24 — D57 : sauvegarde et restauration |  |
+| 1871 | 325 | 20. Addendum du 2026-09-24 — D60 : surveillance de production, entièrement interne | RG98–RG126 |
+| 1888 | 11 | ↳ 20.1 Le besoin, en deux questions |  |
+| 1899 | 19 | ↳ 20.2 Ce qui existe déjà, et ce qui manque | RG98–RG126 |
+| 1918 | 17 | ↳ 20.3 Options |  |
+| 1935 | 14 | ↳ 20.4 Décision : six pièces, toutes internes |  |
+| 1949 | 95 | ↳ 20.5 Comment chaque pièce fonctionne |  |
+| 2044 | 34 | ↳ 20.6 Signaux et seuils d'alerte |  |
+| 2078 | 22 | ↳ 20.7 La période de rodage — « surtout au début » |  |
+| 2100 | 26 | ↳ 20.8 Ce qui n'entre jamais dans un journal ni dans le schéma `ops` |  |
+| 2126 | 12 | ↳ 20.9 Ce que la décision ne couvre pas — risque accepté par le fondateur |  |
+| 2138 | 31 | ↳ 20.10 Conséquences |  |
+| 2169 | 9 | ↳ 20.11 Points à faire valider par le fondateur |  |
+| 2178 | 13 | ↳ 20.12 Ce que cet addendum demande aux autres agents |  |
+| 2191 | 5 | ↳ Sources (vérifiées le 2026-09-24) |  |
 
 ## 03-matrice-des-droits-et-rls.md (~50k tokens)
 
@@ -115,33 +115,33 @@
 | 338 | 200 | ↳ 3.4 Domaine `matching` et `messaging` | RG5–RG146 |
 | 538 | 76 | ↳ 3.5 Domaines `billing` (pipeline commercial), `leads` et `backoffice` | RG1–RG39 |
 | 614 | 30 | ↳ 3.6 Domaine `audit` — le registre |  |
-| 644 | 435 | 4. Les principes de Row Level Security | RG5–RG65 |
+| 644 | 436 | 4. Les principes de Row Level Security | RG5–RG65 |
 | 649 | 15 | ↳ P1 — Refus par défaut, sur toutes les tables, sans exception |  |
 | 664 | 53 | ↳ P2 — L'API se connecte avec le rôle de l'utilisateur, jamais avec un rôle qui contourne la RLS |  |
 | 717 | 22 | ↳ P3 — Le rôle métier est lu en base, jamais dans le jeton |  |
 | 739 | 16 | ↳ P4 — Toute condition d'accès est **positive** et échoue en refus |  |
 | 755 | 34 | ↳ P5 — L'anonymisation est une séparation d'objets, doublée d'une absence de droit |  |
 | 789 | 22 | ↳ P6 — Aucune table métier dans le schéma `public` |  |
-| 811 | 179 | ↳ P7 — La liste **nommée et fermée** des opérations autorisées à s'élever | RG5–RG65 |
-| 990 | 52 | ↳ P8 — L'append-only est réel, pas conventionnel |  |
-| 1042 | 11 | ↳ P9 — Ce que la RLS ne sait pas faire, et qui le fait à sa place |  |
-| 1053 | 26 | ↳ P10 — Les politiques du Storage |  |
-| 1079 | 140 | 5. La lecture d'une conversation par un agent non participant | RG132–RG134 |
-| 1219 | 407 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` | RG57 |
-| 1221 | 83 | ↳ 6.1 — Point 1 : D37 dans son ensemble | RG57 |
-| 1304 | 35 | ↳ 6.2 — Point 2 : `aal2` vérifié dans les politiques RLS |  |
-| 1339 | 20 | ↳ 6.3 — Point 3 : le rôle métier lu en base plutôt que dans le jeton |  |
-| 1359 | 72 | ↳ 6.4 — Point 4 : le passe-plat |  |
-| 1431 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
-| 1505 | 21 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
-| 1526 | 27 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
-| 1553 | 30 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
-| 1583 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
-| 1626 | 32 | 7. L'isolement du backoffice |  |
-| 1658 | 39 | 8. Les tests de sécurité exigés |  |
-| 1697 | 62 | 9. Verdict d'étape | RG49–RG55 |
-| 1759 | 41 | 10. Ce qui sort de mon périmètre |  |
-| 1800 | 17 | 11. Mises à jour attendues dans les autres documents |  |
+| 811 | 180 | ↳ P7 — La liste **nommée et fermée** des opérations autorisées à s'élever | RG5–RG65 |
+| 991 | 52 | ↳ P8 — L'append-only est réel, pas conventionnel |  |
+| 1043 | 11 | ↳ P9 — Ce que la RLS ne sait pas faire, et qui le fait à sa place |  |
+| 1054 | 26 | ↳ P10 — Les politiques du Storage |  |
+| 1080 | 140 | 5. La lecture d'une conversation par un agent non participant | RG132–RG134 |
+| 1220 | 407 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` | RG57 |
+| 1222 | 83 | ↳ 6.1 — Point 1 : D37 dans son ensemble | RG57 |
+| 1305 | 35 | ↳ 6.2 — Point 2 : `aal2` vérifié dans les politiques RLS |  |
+| 1340 | 20 | ↳ 6.3 — Point 3 : le rôle métier lu en base plutôt que dans le jeton |  |
+| 1360 | 72 | ↳ 6.4 — Point 4 : le passe-plat |  |
+| 1432 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
+| 1506 | 21 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
+| 1527 | 27 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
+| 1554 | 30 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
+| 1584 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
+| 1627 | 32 | 7. L'isolement du backoffice |  |
+| 1659 | 39 | 8. Les tests de sécurité exigés |  |
+| 1698 | 62 | 9. Verdict d'étape | RG49–RG55 |
+| 1760 | 41 | 10. Ce qui sort de mon périmètre |  |
+| 1801 | 17 | 11. Mises à jour attendues dans les autres documents |  |
 
 ## 04-modele-de-donnees-mvp.md (~140k tokens)
 

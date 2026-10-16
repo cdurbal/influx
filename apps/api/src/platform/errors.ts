@@ -22,6 +22,7 @@ export const HTTP_STATUS_BY_CODE: Readonly<Record<ErrorCode, number>> = {
   terms_acceptance_required: 403,
   reauthentication_required: 403,
   email_change_unavailable: 503,
+  export_unavailable: 410,
 };
 
 /** Technical English, never displayed as is: the front translates the code (02 §9.2). */
@@ -42,6 +43,7 @@ const DEFAULT_MESSAGES: Readonly<Record<ErrorCode, string>> = {
   reauthentication_required:
     "A fresh code is required for this action on this session",
   email_change_unavailable: "The address cannot be changed right now",
+  export_unavailable: "This export can no longer be downloaded",
 };
 
 /** An error that the API answers on purpose, with a code of the closed union. */

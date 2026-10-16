@@ -391,3 +391,53 @@ export const dataRequestResponseSchema = z.strictObject({
   request: dataRequestSchema,
 });
 export type DataRequestResponse = z.infer<typeof dataRequestResponseSchema>;
+
+// --- "Mes données": the export, downloaded in the space (J8 commit 8; runbook demandes-rgpd §4) ----
+
+/** Runbook §4 (expert-cybersecurite, 2026-10-14): 3 downloads at most, for 7 days at most. */
+export const DATA_EXPORT_MAX_DOWNLOADS = 3;
+export const DATA_EXPORT_VALIDITY_DAYS = 7;
+
+export const dataExportIdParamsSchema = z.strictObject({ id: z.uuid() });
+export type DataExportIdParams = z.infer<typeof dataExportIdParamsSchema>;
+
+/**
+ * GET /v1/me/data-export: the member's latest export, published by an admin (15 RG75 step 6), or
+ * null. `available` is false once expired, purged or downloaded three times.
+ */
+export const dataExportStateResponseSchema = z.strictObject({
+  export: z
+    .strictObject({
+      id: z.uuid(),
+      requestId: z.uuid(),
+      publishedAt: z.iso.datetime(),
+      expiresAt: z.iso.datetime(),
+      downloadsLeft: z.number().int().min(0).max(DATA_EXPORT_MAX_DOWNLOADS),
+      available: z.boolean(),
+    })
+    .nullable(),
+});
+export type DataExportStateResponse = z.infer<
+  typeof dataExportStateResponseSchema
+>;
+
+/**
+ * POST /v1/me/data-export/:id/download, after a fresh code for `data_export` consumed by THIS
+ * download (403 reauthentication_required without it; 410 export_unavailable once expired, purged
+ * or downloaded three times). `content` is the file exactly as the database produced it (JSON,
+ * UTF-8): the screen saves these characters as they are, and `sha256` is the digest the register
+ * holds for them.
+ */
+export const dataExportDownloadResponseSchema = z.strictObject({
+  export: z.strictObject({
+    id: z.uuid(),
+    fileName: z.string().regex(/^influx-data-export-\d{4}-\d{2}-\d{2}\.json$/),
+    content: z.string().min(2),
+    sha256: z.string().regex(/^[0-9a-f]{64}$/),
+    sizeBytes: z.number().int().positive(),
+    downloadsLeft: z.number().int().min(0).max(DATA_EXPORT_MAX_DOWNLOADS),
+  }),
+});
+export type DataExportDownloadResponse = z.infer<
+  typeof dataExportDownloadResponseSchema
+>;

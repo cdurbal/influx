@@ -19,6 +19,7 @@ describe("PD1: the recap of each action, before the first gesture", () => {
       "identity.grant_role",
       "identity.invite_admin",
       "leads.change_apollo_setting",
+      "privacy.approve_data_request",
     ]);
     for (const recap of [
       dualControlRecap({
@@ -40,10 +41,50 @@ describe("PD1: the recap of each action, before the first gesture", () => {
         code: "leads.change_apollo_setting",
         setting: { key: "apollo_scope", value: "annonceurs_seuls" },
       }),
+      dualControlRecap({
+        code: "privacy.approve_data_request",
+        requestId: ACCOUNT,
+        requestType: "access",
+      }),
     ]) {
       expect(recap.scope.count).toBe(1);
       expect(recap.consequences.length).toBeGreaterThan(0);
     }
+  });
+
+  it('says, by type, what the execution of a "mes données" request does, and that it is final (J8 commit 8)', () => {
+    expect(
+      dualControlRecap({
+        code: "privacy.approve_data_request",
+        requestId: ACCOUNT,
+        requestType: "erasure",
+      }),
+    ).toEqual({
+      scope: { kind: "data_request", count: 1 },
+      consequences: [
+        "account_anonymized",
+        "sessions_closed",
+        "brevo_contact_deleted",
+        "auth_user_deleted",
+        "request_closed_after_brevo",
+      ],
+      reversible: false,
+    });
+    expect(
+      dualControlRecap({
+        code: "privacy.approve_data_request",
+        requestId: ACCOUNT,
+        requestType: "access",
+      }),
+    ).toEqual({
+      scope: { kind: "data_request", count: 1 },
+      consequences: [
+        "export_published",
+        "member_notified",
+        "request_closed_after_brevo",
+      ],
+      reversible: false,
+    });
   });
 
   it("says that a role change revokes the sessions and cannot be undone, and an admin invitation can", () => {

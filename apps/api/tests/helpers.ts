@@ -23,6 +23,8 @@ export const TEST_DATABASE_URLS = {
     "postgresql://influx_worker_login:worker-pass@127.0.0.1:54322/postgres",
   OPS_DATABASE_URL:
     "postgresql://influx_ops_login:ops-pass@127.0.0.1:54322/postgres",
+  PRIVACY_DATABASE_URL:
+    "postgresql://influx_privacy_login:privacy-pass@127.0.0.1:54322/postgres",
 } as const;
 
 export function testApiConfig(): ApiConfig {

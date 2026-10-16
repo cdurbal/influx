@@ -23,7 +23,12 @@ const USER_ROLE_STATEMENTS: Readonly<Record<BusinessRole, string>> = {
 };
 
 /** Kinds of elevated pool: one connection role, one variable, one service each (EC-20). */
-export const ELEVATED_POOL_KINDS = ["auth", "worker", "ops"] as const;
+export const ELEVATED_POOL_KINDS = [
+  "auth",
+  "worker",
+  "ops",
+  "privacy",
+] as const;
 export type ElevatedPoolKind = (typeof ELEVATED_POOL_KINDS)[number];
 
 /** Statement that takes the elevated role of a pool, from its own connection role only. */
@@ -31,6 +36,7 @@ const ELEVATED_ROLE_STATEMENTS: Readonly<Record<ElevatedPoolKind, string>> = {
   auth: "set local role influx_auth",
   worker: "set local role influx_worker",
   ops: "set local role influx_ops",
+  privacy: "set local role influx_privacy",
 };
 
 /** Connection role each pool must obtain (current_user = session_user outside a transaction). */
@@ -39,6 +45,7 @@ export const POOL_CONNECTION_ROLES = {
   auth: "influx_auth_login",
   worker: "influx_worker_login",
   ops: "influx_ops_login",
+  privacy: "influx_privacy_login",
 } as const satisfies Record<"app" | ElevatedPoolKind, ConnectionRole>;
 
 export function isBusinessRole(value: unknown): value is BusinessRole {

@@ -3,7 +3,7 @@
 // Draws one random password per connection role of the STAGING project and prints, once:
 // 1. the SQL to paste in the Supabase SQL editor of staging: SCRAM verifiers only, so that no
 //    clear password is ever sent to the database nor kept in its statement logs;
-// 2. the four connection URLs, through the Supavisor pooler (transaction mode, port 6543), to set
+// 2. the five connection URLs, through the Supavisor pooler (transaction mode, port 6543), to set
 //    on the ONE Railway service that reads each of them (02 §12.3).
 // Nothing is written to disk. Running it again rotates every password: paste both outputs again.
 import { randomBytes } from "node:crypto";
@@ -19,6 +19,8 @@ const ROLES = [
   ["influx_auth_login", "AUTH_DATABASE_URL", "api"],
   ["influx_ops_login", "OPS_DATABASE_URL", "api"],
   ["influx_worker_login", "WORKER_DATABASE_URL", "worker"],
+  // J8 commit 8 (0136, 03 P7 E-5): the worker's second pool, never influx_worker_login.
+  ["influx_privacy_login", "PRIVACY_DATABASE_URL", "worker"],
 ] as const;
 
 const { values } = parseArgs({

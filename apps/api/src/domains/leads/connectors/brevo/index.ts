@@ -24,7 +24,11 @@
 // written by INFLUX from its translation files (16 RG67), never from a Brevo template, and refused
 // if anything in it looks like a link (RG158); so is privacy.request_received (16 RG160, EC-14;
 // architecte, 2026-10-14), from the request read at consumption: a request of another type fails
-// unsupported_request_type, a request closed since is skipped request_closed.
+// unsupported_request_type, a request closed since is skipped request_closed; and so is
+// privacy.export_ready (J8 commit 8: where and until when the export is downloadable, no link).
+// account.deleted (04 §9.2, 15 RG79, J8 commit 8): operation 2 deletes the contact of an ERASED
+// account, by its Brevo id, else by the address the request holds until Brevo confirms (0136); it
+// comes before the account step, since the account is no longer active by construction.
 // What leaves for the drain is names and verdicts; the values stay in the closure of `send`.
 import {
   UNIDENTIFIED_USER_AGENT,
@@ -34,12 +38,17 @@ import type { BrevoMode } from "../../../../config/schema.ts";
 import { renderDataRequestReceivedEmail } from "../../../identity/data-request-received-email.ts";
 import type { RenderedEmail } from "../../../identity/login-code-email.ts";
 import { renderNewDeviceEmail } from "../../../identity/new-device-email.ts";
+import { renderExportReadyEmail } from "../../../privacy/export-ready-email.ts";
 import {
   accountSkip,
   type Connector,
   type Preparation,
 } from "../../connector.ts";
-import type { AttemptState, ClaimedLine } from "../../repository.ts";
+import type {
+  AttemptState,
+  BrevoErasureSubject,
+  ClaimedLine,
+} from "../../repository.ts";
 import {
   createBrevoClient,
   type BrevoClient,
@@ -81,6 +90,7 @@ export const WORKER_TRANSACTIONAL_TEMPLATES = [
 export const WORKER_RENDERED_EMAILS = [
   "auth.new_device",
   "privacy.request_received",
+  "privacy.export_ready",
 ] as const;
 
 type RenderedEmailCode = (typeof WORKER_RENDERED_EMAILS)[number];
@@ -110,9 +120,15 @@ export type BrevoSubjectReader = (
   line: ClaimedLine,
 ) => Promise<BrevoSubject | null>;
 
+export type BrevoErasureSubjectReader = (
+  line: ClaimedLine,
+) => Promise<BrevoErasureSubject | null>;
+
 export type BrevoConnectorDependencies = {
   /** Reads the subject of a line in processing for this worker (0112), its own transaction. */
   readSubject: BrevoSubjectReader;
+  /** Reads the contact of an erased account on an account.deleted line (0136), its own transaction. */
+  readErasureSubject: BrevoErasureSubjectReader;
   logger: BrevoClientLogger;
   fetch?: typeof fetch;
   timeoutMs?: number;
@@ -221,6 +237,56 @@ export function createBrevoConnectors(
         rejected,
         (brevo) =>
           brevo.unsubscribeContact(email, body, settings.suppressionListId),
+        contactClient,
+      ),
+    };
+  }
+
+  /**
+   * account.deleted (04 §9.2, 15 RG79): operation 2, the contact deleted. Only on an erased account
+   * (the request of the line, of its account, read by 0137); by its Brevo id when known, THEN by the
+   * address held until Brevo confirms (a stale id never closes the request while a contact remains,
+   * security review F5). Once the request is closed (the address released), a replay has nothing
+   * left to delete.
+   */
+  async function deleting(
+    line: ClaimedLine,
+    account: AttemptState["account"],
+  ): Promise<Preparation> {
+    if (account === null || account.status !== "deleted") {
+      // An account.deleted line on an account that is not erased: never deleted, visible.
+      return { kind: "fail", errorCode: "account_not_erased" };
+    }
+    const subject = await dependencies.readErasureSubject(line);
+    if (subject === null) {
+      return { kind: "fail", errorCode: "erasure_not_found" };
+    }
+    const email = subject.email;
+    if (email === null) {
+      return { kind: "skip", reason: "erasure_closed" };
+    }
+    if (redirected(email)) {
+      return { kind: "skip", reason: "skipped_non_production" };
+    }
+    const identifiers: BrevoContactIdentifier[] =
+      subject.externalContactId === null
+        ? [{ type: "email_id", value: email }]
+        : [
+            { type: "contact_id", value: subject.externalContactId },
+            { type: "email_id", value: email },
+          ];
+    return {
+      kind: "mapped",
+      description: {
+        operation: "delete_contact",
+        templateCode: null,
+        attributeNames: [],
+        rejectedAttributeNames: [],
+      },
+      recipientDomain: domainOf(email),
+      send: guarded(
+        [],
+        (brevo) => brevo.deleteContact(identifiers),
         contactClient,
       ),
     };
@@ -376,6 +442,28 @@ export function createBrevoConnectors(
     );
   }
 
+  /** privacy.export_ready (J8 commit 8): where and until when, the export read at consumption. */
+  function exportReady(
+    line: ClaimedLine,
+    account: NonNullable<AttemptState["account"]>,
+    subject: BrevoSubject,
+  ): Preparation {
+    if (subject.dataRequest === null || subject.exportExpiresAt === null) {
+      // No export of this account behind the line: nothing to announce, visible, never guessed.
+      return { kind: "fail", errorCode: "export_not_found" };
+    }
+    if (subject.dataRequest.closed) {
+      return { kind: "skip", reason: "request_closed" };
+    }
+    const locale = languageOf(account);
+    const email = renderExportReadyEmail({
+      locale,
+      expiresAt: new Date(subject.exportExpiresAt),
+      timeZone: subject.timeZone,
+    });
+    return rendered(line, "privacy.export_ready", subject.email, email, locale);
+  }
+
   const RENDERERS: Readonly<
     Record<
       RenderedEmailCode,
@@ -388,12 +476,16 @@ export function createBrevoConnectors(
   > = {
     "auth.new_device": newDevice,
     "privacy.request_received": dataRequestReceived,
+    "privacy.export_ready": exportReady,
   };
 
   const contact: Connector = {
     destination: "brevo_contact",
     hasCredentials,
     async prepare(line, state) {
+      if (line.eventType === "account.deleted") {
+        return deleting(line, state.account);
+      }
       const skipped = accountSkip(state.account);
       if (skipped !== null || state.account === null) {
         return skipped ?? { kind: "skip", reason: "account_absent" };

@@ -136,3 +136,37 @@ describe("Apollo keys and the dual control (05 RG81; 03 PD1 to PD7)", () => {
     ).toBe(false);
   });
 });
+
+describe('the execution of a "mes données" request under 2V (15 RG75 step 6; J8 commit 8)', () => {
+  const REQUEST = "6e5d4c3b-2a19-4807-b6f5-e4d3c2b1a090";
+
+  it("requests an access or an erasure with the only reason of the list", () => {
+    for (const requestType of ["access", "erasure"] as const) {
+      expect(
+        dualControlRequestSchema.safeParse({
+          code: "privacy.approve_data_request",
+          requestId: REQUEST,
+          requestType,
+          reasonCode: "request_instructed",
+        }).success,
+      ).toBe(true);
+    }
+  });
+
+  it("refuses another type, another reason, and any extra field", () => {
+    const base = {
+      code: "privacy.approve_data_request",
+      requestId: REQUEST,
+      requestType: "erasure",
+      reasonCode: "request_instructed",
+    };
+    for (const body of [
+      { ...base, requestType: "rectification" },
+      { ...base, reasonCode: "founder_decision" },
+      { ...base, accountId: REQUEST },
+      { ...base, requestId: "not-a-uuid" },
+    ]) {
+      expect(dualControlRequestSchema.safeParse(body).success).toBe(false);
+    }
+  });
+});

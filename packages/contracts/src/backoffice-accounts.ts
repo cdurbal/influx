@@ -11,7 +11,12 @@
 // Nothing here carries an amount, a rate or a commission (05 RG9).
 import * as z from "zod";
 import { signupDoorSchema, uiLocaleSchema, MAX_EMAIL_LENGTH } from "./auth.ts";
-import { consentSourceSchema } from "./account.ts";
+import {
+  consentSourceSchema,
+  DATA_REQUEST_OUTCOMES,
+  DATA_REQUEST_STATUSES,
+  dataRequestTypeSchema,
+} from "./account.ts";
 import {
   countryCodeSchema,
   declaredStatusSchema,
@@ -285,6 +290,40 @@ export const ownershipEntrySchema = z.strictObject({
 });
 
 /**
+ * A "mes données" request of the member (15 §G, J8 commit 8): what the admin executes from the
+ * record, under 2V + R. `execution` is null until an admin approved it; `executed` once the worker
+ * ran it (E-5); the closing waits for Brevo (15 RG79). `export` is the access export, never its
+ * content (only the member downloads it).
+ */
+export const accountDataRequestSchema = z.strictObject({
+  id: z.uuid(),
+  type: dataRequestTypeSchema,
+  receivedAt: z.iso.datetime(),
+  dueAt: z.iso.datetime(),
+  status: z.enum(DATA_REQUEST_STATUSES),
+  completedAt: z.iso.datetime().nullable(),
+  outcome: z.enum(DATA_REQUEST_OUTCOMES).nullable(),
+  execution: z
+    .strictObject({
+      approvedAt: z.iso.datetime(),
+      approvedBy: z.uuid(),
+      executedAt: z.iso.datetime().nullable(),
+      /** Erasure: the Supabase Auth user deleted (null for an access request). */
+      authUserDeletedAt: z.iso.datetime().nullable(),
+    })
+    .nullable(),
+  export: z
+    .strictObject({
+      publishedAt: z.iso.datetime(),
+      expiresAt: z.iso.datetime(),
+      downloads: z.number().int().nonnegative(),
+      purgedAt: z.iso.datetime().nullable(),
+    })
+    .nullable(),
+});
+export type AccountDataRequest = z.infer<typeof accountDataRequestSchema>;
+
+/**
  * GET /v1/bo/accounts/:id: the record of a member account (15 RG41 / RG42, blocks of the Lot 1).
  * Its opening is journaled (RG40) by the history read itself (EC-J8-24). Never a sign-in code, a
  * password, an e-mail content nor an Apollo datum (05 RG107, 15 RG43).
@@ -298,6 +337,8 @@ export const accountDetailResponseSchema = z.strictObject({
     deletedAt: z.iso.datetime().nullable(),
   }),
   ownership: z.array(ownershipEntrySchema),
+  /** The most recent first (15 §G, J8 commit 8). */
+  dataRequests: z.array(accountDataRequestSchema),
   history: z.strictObject({
     events: z.array(historyEventSchema),
     /** The `historyBefore` of the next page, null at the last one. */

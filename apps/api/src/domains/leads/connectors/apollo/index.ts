@@ -95,6 +95,12 @@ export function createApolloConnector(
     destination: "apollo_contact",
     hasCredentials: client !== null,
     async prepare(line, state): Promise<Preparation> {
+      if (line.eventType === "account.deleted") {
+        // 15 RG79, J8 commit 8: no deletion at Apollo before the Lot 5 ("Apollo skipped noté"). The
+        // closing of the request checks that Apollo never received the contact (0136); otherwise
+        // the request stays open for a follow-up by hand.
+        return { kind: "skip", reason: "erasure_not_propagated" };
+      }
       const skipped = accountSkip(state.account);
       if (skipped !== null || state.account === null) {
         return skipped ?? { kind: "skip", reason: "account_absent" };

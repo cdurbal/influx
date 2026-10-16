@@ -6,8 +6,8 @@
 //   Changing it is a change of 03, signed by expert-cybersecurite.
 // - ELEVATED_OPERATIONS (set U of 18 T6): the operations that have a caller in the code. An
 //   operation enters U in the commit that introduces its first caller (E-1 and E-2 at J3, E-3 at
-//   J6, E-4 with the first periodic task, E-5 at Lot 5). At J2, U is EMPTY: the mechanism exists
-//   and is tested, but no operation can be run.
+//   J6, E-4 with the first periodic task, E-5 at J8, brought forward from Lot 5). At J2, U was
+//   EMPTY: the mechanism existed and was tested, but no operation could be run.
 
 /**
  * Set P: 03 P7, E-1 to E-5, one motif per point of use (EC-5, signed revision of 2026-09-27).
@@ -61,7 +61,9 @@ export const ELEVATED_POOL_EXCEPTIONS: Readonly<
  * commit 5, apps/api/src/domains/maintenance/periodic.ts, migration 0117); the re-authentication
  * and the address change of a member (J7 commit 7, apps/api/src/domains/identity/reauthentication.ts
  * and email-change.ts, migrations 0118 and 0123); the rescue channel (J7 commit 8,
- * apps/api/src/domains/identity/code-delivery-report.ts, migration 0120).
+ * apps/api/src/domains/identity/code-delivery-report.ts, migration 0120); E-5, a "mes données"
+ * request approved by an admin under 2V + R and executed by a task of the worker on its own pool
+ * (J8 commit 8, apps/api/src/domains/privacy/execution.ts, migration 0136).
  */
 export const ELEVATED_OPERATIONS = [
   "identity.request_code",
@@ -77,6 +79,7 @@ export const ELEVATED_OPERATIONS = [
   "leads.receive_brevo_event",
   "leads.drain_outbox",
   "maintenance.run_periodic",
+  "privacy.execute_request",
   "ops.record_telemetry",
 ] as const satisfies readonly SignedElevatedOperation[];
 

@@ -42,6 +42,7 @@ import {
 } from "../src/domains/leads/inbound/processing.ts";
 import {
   createWorkerQueue,
+  readBrevoErasureSubjectOf,
   readBrevoSubjectOf,
 } from "../src/domains/leads/queue.ts";
 import type { ClaimedLine } from "../src/domains/leads/repository.ts";
@@ -225,6 +226,8 @@ async function turn(): Promise<number> {
     {
       readSubject: (line) =>
         readBrevoSubjectOf(worker, randomUUID(), line, name),
+      readErasureSubject: (line) =>
+        readBrevoErasureSubjectOf(worker, randomUUID(), line, name),
       logger,
     },
   );

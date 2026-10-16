@@ -17,7 +17,10 @@ export type BrevoClientLogger = {
   error(object: object, message: string): void;
 };
 
-/** How Brevo finds the contact of an address change (decision 5 of J7): its id, else its address. */
+/**
+ * How Brevo finds a known contact: its id, else its address (an address change, decision 5 of J7;
+ * the deletion of an erased account, J8 commit 8).
+ */
 export type BrevoContactIdentifier = {
   type: "contact_id" | "email_id";
   value: string;
@@ -39,6 +42,15 @@ export type BrevoClient = {
   updateContactEmail(
     identifier: BrevoContactIdentifier,
     body: Record<string, unknown>,
+  ): Promise<CallResult>;
+  /**
+   * Operation 2 on account.deleted (16 §M1; 04 §9.2; 15 RG79): the contact deleted under EACH
+   * identifier given, in order, by `DELETE /contacts/{identifier}?identifierType=…`. A success only
+   * when every one answers 204 or 404: a stale contact id (404) never hides a contact still held
+   * under the address (security review of J8 commit 8, F5).
+   */
+  deleteContact(
+    identifiers: readonly BrevoContactIdentifier[],
   ): Promise<CallResult>;
   /** Operation 6: one recipient, the line's key as Idempotency-Key (16 RG89, RG90). */
   sendTransactional(
@@ -95,9 +107,9 @@ export function createBrevoClient(
   const timeoutMs = dependencies.timeoutMs ?? BREVO_CALL_TIMEOUT_MS;
 
   async function call(
-    method: "POST" | "PUT",
+    method: "POST" | "PUT" | "DELETE",
     path: string,
-    body: Record<string, unknown>,
+    body: Record<string, unknown> | null,
     headers: Record<string, string> = {},
   ): Promise<Answer> {
     let response: Response;
@@ -108,10 +120,10 @@ export function createBrevoClient(
         headers: {
           "api-key": settings.apiKey,
           accept: "application/json",
-          "content-type": "application/json",
+          ...(body === null ? {} : { "content-type": "application/json" }),
           ...headers,
         },
-        body: JSON.stringify(body),
+        ...(body === null ? {} : { body: JSON.stringify(body) }),
         signal: AbortSignal.timeout(timeoutMs),
       });
       const text = await response.text();
@@ -251,6 +263,24 @@ export function createBrevoClient(
       }
       // An address already held by another contact is a 400: failed, visible, replayable (J8).
       return failureOf(answer);
+    },
+
+    async deleteContact(identifiers) {
+      for (const identifier of identifiers) {
+        const answer = await call(
+          "DELETE",
+          `${CONTACTS_PATH}/${encodeURIComponent(identifier.value)}?identifierType=${identifier.type}`,
+          null,
+        );
+        // 404: no contact under this identifier (never created, or already deleted).
+        if (
+          answer.kind !== "answer" ||
+          (answer.status !== 204 && answer.status !== 404)
+        ) {
+          return failureOf(answer);
+        }
+      }
+      return { kind: "succeeded" };
     },
 
     async sendTransactional(body, idempotencyKey, locale) {

@@ -17,6 +17,8 @@ export const LOCAL_ROLE_PASSWORDS = {
   influx_auth_login: "local-only-influx-auth-login-password",
   influx_worker_login: "local-only-influx-worker-login-password",
   influx_ops_login: "local-only-influx-ops-login-password",
+  // J8 commit 8 (0136): E-5, PRIVACY_DATABASE_URL of the worker, never influx_worker_login.
+  influx_privacy_login: "local-only-influx-privacy-login-password",
 } as const;
 
 export type LoginRole = keyof typeof LOCAL_ROLE_PASSWORDS;

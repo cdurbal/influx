@@ -29,6 +29,7 @@ import {
 } from "../src/domains/leads/connectors/brevo/index.ts";
 import type {
   AttemptState,
+  BrevoErasureSubject,
   ClaimedLine,
   OutboxDestination,
   SubjectAccount,
@@ -105,6 +106,7 @@ function subject(overrides: Partial<BrevoSubject> = {}): BrevoSubject {
     browser: null,
     timeZone: "UTC",
     dataRequest: null,
+    exportExpiresAt: null,
     ...overrides,
   };
 }
@@ -143,6 +145,7 @@ function line(
 type Setup = {
   settings?: Partial<BrevoConnectorSettings>;
   subject?: BrevoSubject | null;
+  erasureSubject?: BrevoErasureSubject | null;
   mapContact?: typeof mapContact;
   timeoutMs?: number;
 };
@@ -167,6 +170,14 @@ function connectors(setup: Setup = {}): {
         reads.push(claimed.id);
         return Promise.resolve(
           setup.subject === undefined ? subject() : setup.subject,
+        );
+      },
+      readErasureSubject: (claimed) => {
+        reads.push(claimed.id);
+        return Promise.resolve(
+          setup.erasureSubject === undefined
+            ? { externalContactId: null, email: EMAIL }
+            : setup.erasureSubject,
         );
       },
       ...(setup.mapContact === undefined
@@ -1437,6 +1448,233 @@ describe("16 RG160, CA117: privacy.request_received, written by INFLUX without a
       kind: "skip",
       reason: "skipped_non_production",
     });
+    expect(double.requests).toHaveLength(0);
+  });
+});
+
+describe("04 §9.2, 15 RG79, J8 commit 8: account.deleted deletes the contact of an erased account (operation 2)", () => {
+  const REQUEST = "6e5d4c3b-2a19-4807-b6f5-e4d3c2b1a090";
+
+  function deleted(): ClaimedLine {
+    return line("brevo_contact", {
+      eventType: "account.deleted",
+      payload: {
+        event_id: "0a1b2c3d-0000-4000-8000-00000000d0d0",
+        account_id: ACCOUNT,
+        request_id: REQUEST,
+      },
+    });
+  }
+
+  it("by its Brevo id, then by the held address: the contact and its list memberships are gone, before the account step", async () => {
+    await run(connectors().contact, line("brevo_contact"));
+    expect(double.contacts.has(EMAIL)).toBe(true);
+    const prepared = await prepare(
+      connectors({ erasureSubject: { externalContactId: "1", email: EMAIL } })
+        .contact,
+      deleted(),
+      state({ status: "deleted", marketingEmailConsent: false }),
+    );
+    expect(prepared.kind === "mapped" && prepared.description).toEqual({
+      operation: "delete_contact",
+      templateCode: null,
+      attributeNames: [],
+      rejectedAttributeNames: [],
+    });
+    if (prepared.kind !== "mapped") {
+      throw new Error("expected a mapped deletion");
+    }
+    expect(await prepared.result()).toEqual({ kind: "succeeded" });
+    expect(
+      double.requests
+        .slice(1)
+        .map((request) => `${request.method} ${request.path}`),
+    ).toEqual([
+      "DELETE /v3/contacts/1?identifierType=contact_id",
+      `DELETE /v3/contacts/${encodeURIComponent(EMAIL)}?identifierType=email_id`,
+    ]);
+    expect(double.contacts.size).toBe(0);
+    expect(double.lists.get(CREATORS_LIST)?.has(EMAIL) ?? false).toBe(false);
+  });
+
+  it("F5: a stale Brevo id (404) never closes it while a contact remains under the address", async () => {
+    await run(connectors().contact, line("brevo_contact"));
+    expect(
+      await run(
+        connectors({
+          erasureSubject: { externalContactId: "999", email: EMAIL },
+        }).contact,
+        deleted(),
+        state({ status: "deleted" }),
+      ),
+    ).toEqual({ kind: "succeeded" });
+    expect(double.contacts.size).toBe(0);
+  });
+
+  it("a failure on either identifier fails the call: never a success while Brevo did not answer", async () => {
+    await run(connectors().contact, line("brevo_contact"));
+    double.queue({ status: 503 });
+    const result = await run(
+      connectors({ erasureSubject: { externalContactId: "1", email: EMAIL } })
+        .contact,
+      deleted(),
+      state({ status: "deleted" }),
+    );
+    expect(result).toMatchObject({
+      kind: "retry",
+      errorCode: "brevo.unavailable",
+    });
+  });
+
+  it("without a known id: by the address the request holds until Brevo confirms (email_id)", async () => {
+    await run(connectors().contact, line("brevo_contact"));
+    expect(
+      await run(connectors().contact, deleted(), state({ status: "deleted" })),
+    ).toEqual({ kind: "succeeded" });
+    expect(double.requests.at(-1)?.path).toBe(
+      `/v3/contacts/${encodeURIComponent(EMAIL)}?identifierType=email_id`,
+    );
+    expect(double.contacts.size).toBe(0);
+  });
+
+  it("a contact Brevo does not know (never created, already deleted) is a success: nothing of the person is left", async () => {
+    expect(
+      await run(connectors().contact, deleted(), state({ status: "deleted" })),
+    ).toEqual({ kind: "succeeded" });
+    expect(double.requests.at(-1)?.method).toBe("DELETE");
+  });
+
+  it("an account that is not erased fails account_not_erased, before any read or call", async () => {
+    expect(await prepare(connectors().contact, deleted(), state())).toEqual({
+      kind: "fail",
+      errorCode: "account_not_erased",
+    });
+    expect(reads).toEqual([]);
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("no request of the account behind the line fails erasure_not_found; a closed request (address released) is skipped erasure_closed", async () => {
+    expect(
+      await prepare(
+        connectors({ erasureSubject: null }).contact,
+        deleted(),
+        state({ status: "deleted" }),
+      ),
+    ).toEqual({ kind: "fail", errorCode: "erasure_not_found" });
+    expect(
+      await prepare(
+        connectors({ erasureSubject: { externalContactId: "1", email: null } })
+          .contact,
+        deleted(),
+        state({ status: "deleted" }),
+      ),
+    ).toEqual({ kind: "skip", reason: "erasure_closed" });
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("redirect: an address outside BREVO_TEST_RECIPIENTS is skipped_non_production, never deleted", async () => {
+    const { contact } = connectors({ settings: { testRecipients: [] } });
+    expect(
+      await prepare(contact, deleted(), state({ status: "deleted" })),
+    ).toEqual({ kind: "skip", reason: "skipped_non_production" });
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("logs no address, no contact id (D60)", async () => {
+    await run(connectors().contact, line("brevo_contact"));
+    await run(
+      connectors({ erasureSubject: { externalContactId: "1", email: EMAIL } })
+        .contact,
+      deleted(),
+      state({ status: "deleted" }),
+    );
+    expect(valuesFoundIn(logLines.join("\n"), [EMAIL])).toEqual([]);
+  });
+});
+
+describe("runbook demandes-rgpd §4, J8 commit 8: privacy.export_ready, written by INFLUX without any link", () => {
+  const REQUEST = "7f6e5d4c-3b2a-4918-87a6-f5e4d3c2b1a0";
+  const EXPORT = "8a7f6e5d-4c3b-4a29-9817-a6f5e4d3c2b1";
+  const ACCESS = {
+    type: "access",
+    receivedAt: "2026-10-14T21:00:00.000Z",
+    dueAt: "2026-11-13T21:00:00.000Z",
+    closed: false,
+  };
+
+  function ready(): ClaimedLine {
+    return line("brevo_transactional", {
+      eventType: "privacy.export_ready",
+      payload: {
+        event_id: "0a1b2c3d-0000-4000-8000-00000000e1e1",
+        account_id: ACCOUNT,
+        request_id: REQUEST,
+        export_id: EXPORT,
+        email_code: "privacy.export_ready",
+      },
+      idempotencyKey: `privacy.export_ready:${REQUEST}`,
+    });
+  }
+
+  function announcing(overrides: Partial<BrevoSubject> = {}): Connector {
+    return connectors({
+      subject: subject({
+        dataRequest: ACCESS,
+        exportExpiresAt: "2026-10-23T09:30:00.000Z",
+        ...overrides,
+      }),
+    }).transactional;
+  }
+
+  it("says where and until when, in the account's language and time zone, no template, no link", async () => {
+    const prepared = await prepare(
+      announcing({ timeZone: "Europe/Paris" }),
+      ready(),
+      state({ marketingEmailConsent: false }, {}),
+    );
+    expect(prepared.kind === "mapped" && prepared.description).toEqual({
+      operation: "send_transactional",
+      templateCode: "privacy.export_ready",
+      attributeNames: [],
+      rejectedAttributeNames: [],
+    });
+    if (prepared.kind !== "mapped") {
+      throw new Error("expected a mapped e-mail");
+    }
+    expect(await prepared.result()).toMatchObject({
+      kind: "succeeded",
+      locale: "fr",
+    });
+    const [message] = double.messages;
+    expect(message?.body.to).toEqual([{ email: EMAIL }]);
+    expect(message?.body).not.toHaveProperty("templateId");
+    expect(message?.body).not.toHaveProperty("attachment");
+    expect(message?.body.subject).toBe(
+      "Votre export de données INFLUX est disponible",
+    );
+    const text = String(message?.body.textContent);
+    expect(text).toContain(
+      "rubrique « Mes données », jusqu'au 23 octobre 2026 à 11:30",
+    );
+    expect(text).toContain("trois fois au plus");
+    expect(text).not.toMatch(/https?:|www\.|\.(?:com|fr|io)\b/);
+    expect(message?.body.tags).toEqual(["privacy.export_ready"]);
+    expect(message?.headers["idempotency-key"]).toBe(
+      `privacy.export_ready:${REQUEST}`,
+    );
+  });
+
+  it("no export of the account behind the line fails export_not_found; a request closed since is skipped", async () => {
+    expect(
+      await prepare(announcing({ exportExpiresAt: null }), ready(), state()),
+    ).toEqual({ kind: "fail", errorCode: "export_not_found" });
+    expect(
+      await prepare(
+        announcing({ dataRequest: { ...ACCESS, closed: true } }),
+        ready(),
+        state(),
+      ),
+    ).toEqual({ kind: "skip", reason: "request_closed" });
     expect(double.requests).toHaveLength(0);
   });
 });

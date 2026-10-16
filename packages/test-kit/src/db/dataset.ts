@@ -61,6 +61,12 @@ export const DUAL_CONTROL_REQUEST_ID = "00000000-0000-4000-8000-00000000ff08";
 export const INTERNAL_INVITATION_ID = "00000000-0000-4000-8000-00000000ff09";
 /** A member invitation of agent A (0131), proposing creator, never redeemed. */
 export const MEMBER_INVITATION_ID = "00000000-0000-4000-8000-00000000ff0a";
+/**
+ * The 2V request (0137, privacy.approve_data_request) that approved the execution of the ACCESS
+ * request of creator B: requested by admin A, confirmed by admin B, consumed.
+ */
+export const PRIVACY_DUAL_CONTROL_REQUEST_ID =
+  "00000000-0000-4000-8000-00000000ff0b";
 
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
@@ -359,6 +365,64 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
       values (${MEMBER_INVITATION_ID}, sha256('t2-member-invitation'::bytea),
               't2-member-invitation@example.test', 'creator', 'fr', ${accountIdOf("agent", "a")})
       on conflict do nothing`;
+
+    // J8 commit 8 (0137): one row in each privacy table (18 T2 rule 3). The ACCESS request of
+    // creator B is approved (2V of admins A and B, consumed), executed, notified and CLOSED, its
+    // export already purged: nothing of it is pending for E-5, nothing is downloadable. Written
+    // step by step through the triggers (the migration role bypasses the policies only).
+    const creatorB = accountIdOf("creator", "b");
+    const [execution] = await tx<{ count: number }[]>`
+      select count(*)::int as count from privacy.request_executions where account_id = ${creatorB}`;
+    if (execution?.count === 0) {
+      const [request] = await tx<{ id: string }[]>`
+        select id::text from backoffice.data_subject_requests
+         where requester_account_id = ${creatorB} and request_type = 'access'
+           and status <> 'closed'
+         order by received_at limit 1`;
+      if (request !== undefined) {
+        await tx`
+          insert into backoffice.dual_control_requests
+            (id, action_code, payload, reason_code, requested_by_account_id)
+          values (${PRIVACY_DUAL_CONTROL_REQUEST_ID}, 'privacy.approve_data_request',
+                  jsonb_build_object('request_id', ${request.id}::uuid, 'request_type', 'access'),
+                  'request_instructed', ${accountIdOf("admin", "a")})
+          on conflict do nothing`;
+        await tx`
+          update backoffice.dual_control_requests
+             set state = 'confirmed', confirmed_by_account_id = ${accountIdOf("admin", "b")}
+           where id = ${PRIVACY_DUAL_CONTROL_REQUEST_ID} and state = 'pending'`;
+        await tx`
+          update backoffice.dual_control_requests set consumed_at = now()
+           where id = ${PRIVACY_DUAL_CONTROL_REQUEST_ID} and state = 'confirmed'
+             and consumed_at is null`;
+        await tx`
+          insert into privacy.request_executions
+            (request_id, request_type, account_id, dual_control_request_id, approved_by_account_id)
+          values (${request.id}, 'access', ${creatorB}, ${PRIVACY_DUAL_CONTROL_REQUEST_ID},
+                  ${accountIdOf("admin", "b")})`;
+        await tx`
+          update backoffice.data_subject_requests set status = 'in_progress'
+           where id = ${request.id}`;
+        await tx`
+          update privacy.request_executions set executed_at = now()
+           where request_id = ${request.id}`;
+        await tx`
+          insert into privacy.data_exports
+            (request_id, account_id, content, sha256, size_bytes, categories)
+          values (${request.id}, ${creatorB}, '{}', sha256(convert_to('{}', 'UTF8')), 2,
+                  array['account'])`;
+        await tx`
+          update privacy.data_exports set content = null where request_id = ${request.id}`;
+        await tx`
+          update privacy.request_executions
+             set notification_message_id = 't2-export-ready', completed_at = now()
+           where request_id = ${request.id}`;
+        await tx`
+          update backoffice.data_subject_requests
+             set status = 'closed', outcome_code = 'satisfaite'
+           where id = ${request.id}`;
+      }
+    }
 
     // At least one verification record, so that its read rights are observable.
     const [checks] = await tx<

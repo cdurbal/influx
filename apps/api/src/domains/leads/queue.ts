@@ -23,11 +23,13 @@ import {
   completeAttempt,
   isLineNotInProcessing,
   readApolloSubject,
+  readBrevoErasureSubject,
   readBrevoSubject,
   recoverStaleLines,
   type AttemptOutcome,
   type ApolloSubject,
   type AttemptState,
+  type BrevoErasureSubject,
   type BrevoSubject,
   type ClaimedLine,
   type RecoveredLine,
@@ -133,6 +135,34 @@ export async function readBrevoSubjectOf(
       requestId,
       async (tx) => {
         const subject = await readBrevoSubject(tx, line.id, worker);
+        return {
+          value: subject,
+          auditSubject:
+            subject === null ? null : line.subjectKey.slice("account:".length),
+        };
+      },
+    ),
+  );
+}
+
+/**
+ * The Brevo contact connector's read of an erased account (0136, account.deleted): the contact id
+ * and the address held until Brevo confirms, as readBrevoSubjectOf: a privileged read of an address,
+ * its register line on the account, its own short transaction, closed before the call (G4).
+ */
+export async function readBrevoErasureSubjectOf(
+  database: WorkerDatabase,
+  requestId: string,
+  line: ClaimedLine,
+  worker: string,
+): Promise<BrevoErasureSubject | null> {
+  return translated(
+    withElevatedTransaction(
+      database,
+      "leads.drain_outbox",
+      requestId,
+      async (tx) => {
+        const subject = await readBrevoErasureSubject(tx, line.id, worker);
         return {
           value: subject,
           auditSubject:

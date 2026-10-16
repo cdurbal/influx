@@ -2,7 +2,8 @@
 // pose the context, execute, roll back. Every database test goes through it, so that no test
 // commits by accident and the roles are always taken the way apps/api takes them (18 T2 rule 5:
 // business roles from influx_app, influx_auth from influx_auth_login, influx_worker from
-// influx_worker_login, influx_ops from influx_ops_login — never from the migration role).
+// influx_worker_login, influx_ops from influx_ops_login, influx_privacy from influx_privacy_login —
+// never from the migration role).
 import type postgres from "postgres";
 
 /** Roles a test may take by SET LOCAL ROLE, with the connection role that holds each one. */
@@ -14,6 +15,7 @@ export const TAKEN_ROLES = {
   influx_auth: "influx_auth_login",
   influx_worker: "influx_worker_login",
   influx_ops: "influx_ops_login",
+  influx_privacy: "influx_privacy_login",
 } as const;
 
 export type TakenRole = keyof typeof TAKEN_ROLES;
@@ -27,6 +29,7 @@ const TAKE_ROLE_STATEMENTS: Readonly<Record<TakenRole, string>> = {
   influx_auth: "set local role influx_auth",
   influx_worker: "set local role influx_worker",
   influx_ops: "set local role influx_ops",
+  influx_privacy: "set local role influx_privacy",
 };
 
 /** Business context posed by withUserTransaction (03 P2). */

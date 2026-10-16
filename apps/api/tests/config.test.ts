@@ -52,6 +52,7 @@ const APP_URL = TEST_DATABASE_URLS.DATABASE_URL;
 const AUTH_URL = TEST_DATABASE_URLS.AUTH_DATABASE_URL;
 const WORKER_URL = TEST_DATABASE_URLS.WORKER_DATABASE_URL;
 const OPS_URL = TEST_DATABASE_URLS.OPS_DATABASE_URL;
+const PRIVACY_URL = TEST_DATABASE_URLS.PRIVACY_DATABASE_URL;
 const POOLER_APP_URL =
   "postgresql://influx_app.abcdefghijklmnop:pass@aws-0-eu-west-3.pooler.supabase.com:6543/postgres";
 const POOLER_AUTH_URL =
@@ -342,6 +343,15 @@ describe("api configuration", () => {
         WORKER_DATABASE_URL: WORKER_URL,
       },
       "WORKER_DATABASE_URL is reserved to another service and must not be set here",
+    ],
+    [
+      "on Railway, the E-5 variable set on the api service (J8 commit 8)",
+      {
+        ...VALID_API_ENV,
+        RAILWAY_ENVIRONMENT_NAME: "staging",
+        PRIVACY_DATABASE_URL: PRIVACY_URL,
+      },
+      "PRIVACY_DATABASE_URL is reserved to another service and must not be set here",
     ],
     [
       "no token signing secret (21 J3-E, EC-24)",
@@ -698,6 +708,7 @@ describe("worker configuration", () => {
       apollo: { apiKey: null, baseUrl: "https://api.apollo.io/api/v1" },
       database: {
         worker: { url: WORKER_URL, role: "influx_worker_login", tls: false },
+        privacy: null,
       },
       supabase: null,
       sync: { mode: "dry_run", nonProductionRecipientAllowlist: [] },
@@ -710,7 +721,7 @@ describe("worker configuration", () => {
       DATABASE_URL: APP_URL,
       AUTH_DATABASE_URL: AUTH_URL,
     });
-    expect(Object.keys(config.database)).toEqual(["worker"]);
+    expect(Object.keys(config.database)).toEqual(["worker", "privacy"]);
     expect(JSON.stringify(config)).not.toContain("influx_app");
     expect(JSON.stringify(config)).not.toContain("influx_auth_login");
   });
@@ -795,8 +806,51 @@ describe("worker configuration", () => {
         SYNC_MODE: "live",
         SUPABASE_URL: HOSTED_SUPABASE_URL,
         SUPABASE_SECRET_KEY: TEST_SUPABASE_SECRET_KEY,
+        PRIVACY_DATABASE_URL: PRIVACY_URL,
       }).sync.mode,
     ).toBe("live");
+  });
+
+  describe("PRIVACY_DATABASE_URL: E-5 on a pool of its own, never influx_worker_login (03 P7, J8 commit 8)", () => {
+    it("reads it when set, as influx_privacy_login, next to the worker's pool", () => {
+      expect(
+        loadWorkerConfig({
+          ...VALID_WORKER_ENV,
+          PRIVACY_DATABASE_URL: PRIVACY_URL,
+        }).database,
+      ).toEqual({
+        worker: { url: WORKER_URL, role: "influx_worker_login", tls: false },
+        privacy: {
+          url: PRIVACY_URL,
+          role: "influx_privacy_login",
+          tls: false,
+        },
+      });
+    });
+
+    it.each<[string, Environment, string]>([
+      [
+        "the worker's role behind it",
+        { ...VALID_WORKER_ENV, PRIVACY_DATABASE_URL: WORKER_URL },
+        "PRIVACY_DATABASE_URL must connect as role influx_privacy_login",
+      ],
+      [
+        "production without it (21 §5.8: the execution of the requests is a gate of production)",
+        {
+          ...VALID_WORKER_ENV,
+          INFLUX_ENV: "production",
+          BREVO_MODE: "live",
+          BREVO_API_KEY: "xkeysib-production-like-value",
+          BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
+          SYNC_MODE: "live",
+          SUPABASE_URL: HOSTED_SUPABASE_URL,
+          SUPABASE_SECRET_KEY: TEST_SUPABASE_SECRET_KEY,
+        },
+        "PRIVACY_DATABASE_URL is required in production (execution of the data subject requests)",
+      ],
+    ])("refuses %s", (_case, env, issue) => {
+      expect(refusal(() => loadWorkerConfig(env))).toContain(issue);
+    });
   });
 
   describe("Brevo transport of the worker: its own key (EC-19, J6 commit 4)", () => {

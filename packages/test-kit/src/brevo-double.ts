@@ -5,7 +5,9 @@
 //   6 the unitary transactional send `POST /v3/smtp/email`, 7 `POST /v3/contacts/lists/{id}/
 //   contacts/add`, and the address change of J7 decision 5, `PUT /v3/contacts/{identifier}
 //   ?identifierType=contact_id|email_id` with the attribute EMAIL (Brevo then lifts the
-//   blacklist). It keeps the contacts and the lists it was given, and records every request.
+//   blacklist), and the deletion of operation 2 on account.deleted (J8 commit 8), `DELETE
+//   /v3/contacts/{identifier}?identifierType=…`. It keeps the contacts and the lists it was given,
+//   and records every request.
 // - What Brevo reports back (J7, commit 4): `webhookEvent()` gives the body Brevo would post to
 //   the webhook for one of its contacts, from the exemplars of brevo-exchanges.ts; an unsubscription
 //   or a complaint is first applied to the contact, as at Brevo (05 RG90: Brevo is right).
@@ -30,6 +32,8 @@ import type { AddressInfo } from "node:net";
 import {
   CONTACT_BLACKLISTED,
   CONTACT_CREATED,
+  CONTACT_DELETE_NOT_FOUND,
+  CONTACT_DELETED,
   CONTACT_EMAIL_CHANGED,
   CONTACT_EMAIL_TAKEN,
   CONTACT_NOT_FOUND,
@@ -269,6 +273,22 @@ export async function startBrevoDouble(port = 0): Promise<BrevoDouble> {
     return contacts.get(value.toLowerCase());
   }
 
+  /** Operation 2 on account.deleted: a known contact deleted with its list memberships (204). */
+  function deleteContact(
+    identifier: string,
+    type: string | undefined,
+  ): BrevoDoubleAnswer {
+    const contact = contactOf(identifier, type);
+    if (contact === undefined) {
+      return recorded(CONTACT_DELETE_NOT_FOUND);
+    }
+    contacts.delete(contact.email);
+    for (const members of lists.values()) {
+      members.delete(contact.email);
+    }
+    return recorded(CONTACT_DELETED);
+  }
+
   /** The attribute EMAIL moves the contact, its lists with it; Brevo lifts the blacklist. */
   function moveContact(
     contact: BrevoDoubleContact,
@@ -465,6 +485,9 @@ export async function startBrevoDouble(port = 0): Promise<BrevoDouble> {
     const contact = CONTACT_PATH.exec(path);
     if (method === "PUT" && contact?.[1] !== undefined) {
       return updateContact(contact[1], contact[2], body);
+    }
+    if (method === "DELETE" && contact?.[1] !== undefined) {
+      return deleteContact(contact[1], contact[2]);
     }
     const list = LIST_ADD_PATH.exec(path);
     if (method === "POST" && list?.[1] !== undefined) {

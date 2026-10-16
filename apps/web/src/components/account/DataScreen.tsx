@@ -1,11 +1,16 @@
 "use client";
 
 // "Mes données" (docs/mvp/17 §6.3; 05 RG57; EC-14; J7 decision 6): export and deletion are
-// REQUESTS at J7, handled by hand by an INFLUX admin; the screen never says that anything was
-// exported or deleted. The deletion is confirmed in two steps, never one click: the two lists,
+// REQUESTS, approved by an INFLUX admin; the screen never says that anything was exported or deleted
+// before it was. Once an export is published (J8 commit 8, runbook demandes-rgpd §4), it is
+// downloaded here, after a fresh code for each download, 3 times and 7 days at most. The deletion is confirmed in two steps, never one click: the two lists,
 // "what disappears" and "what is kept, and why", side by side and of the same weight, then a word
 // to type, then a fresh code. Reachable while a version of the terms waits (J7 A3).
-import type { DataRequest, DataRequestType } from "@influx/contracts/account";
+import type {
+  DataExportStateResponse,
+  DataRequest,
+  DataRequestType,
+} from "@influx/contracts/account";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import {
@@ -20,6 +25,7 @@ import {
   SECONDARY_BUTTON_CLASSES,
   TITLE_CLASSES,
 } from "@/components/auth/auth-classes";
+import { saveTextFile } from "@/browser/save-file";
 import { Link } from "@/i18n/navigation";
 import { LEGAL_DOCUMENT_SLUGS } from "@/lib/legal-documents";
 import {
@@ -32,7 +38,12 @@ import {
   SUCCESS_CLASSES,
   TWO_LISTS_CLASSES,
 } from "./account-classes";
-import { readDataRequests, submitDataRequest } from "./account-api";
+import {
+  downloadDataExport,
+  readDataExport,
+  readDataRequests,
+  submitDataRequest,
+} from "./account-api";
 import {
   formatDate,
   isConfirmationWordTyped,
@@ -44,13 +55,19 @@ import { FreshCode } from "./FreshCode";
 type Phase =
   | { kind: "overview" }
   | { kind: "confirmDeletion" }
-  | { kind: "freshCode"; type: DataRequestType };
+  | { kind: "freshCode"; type: DataRequestType }
+  | { kind: "downloadCode"; exportId: string };
 
 type Notice =
   | { kind: "received"; request: DataRequest }
   | { kind: "alreadyOpen" }
   | { kind: "unavailable" }
+  | { kind: "saved"; name: string }
+  | { kind: "exportGone" }
+  | { kind: "downloadFailed" }
   | null;
+
+type DataExport = DataExportStateResponse["export"];
 
 const PURPOSES = {
   access: "data_export",
@@ -61,8 +78,9 @@ export function DataScreen({ me, online }: AccountContext) {
   const t = useTranslations("account.data");
   const tAccount = useTranslations("account");
   const locale = useLocale();
-  const ids = { export: useId(), delete: useId() };
+  const ids = { export: useId(), delete: useId(), download: useId() };
   const [requests, setRequests] = useState<DataRequest[] | null>(null);
+  const [dataExport, setDataExport] = useState<DataExport>(null);
   const [unreadable, setUnreadable] = useState(false);
   const [phase, setPhase] = useState<Phase>({ kind: "overview" });
   const [notice, setNotice] = useState<Notice>(null);
@@ -80,10 +98,62 @@ export function DataScreen({ me, online }: AccountContext) {
         setUnreadable(true);
       }
     });
+    void readDataExport().then((result) => {
+      if (active && result.kind === "ok") {
+        setDataExport(result.data.export);
+      }
+    });
     return () => {
       active = false;
     };
   }, []);
+
+  /** One download, its fresh code just verified (or still fresh): the file saved as received. */
+  async function download(exportId: string) {
+    if (busy) {
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await downloadDataExport(exportId);
+      if (
+        result.kind === "failed" &&
+        result.code === "reauthentication_required"
+      ) {
+        setPhase({ kind: "downloadCode", exportId });
+        return;
+      }
+      setPhase({ kind: "overview" });
+      if (result.kind === "ok") {
+        const file = result.data.export;
+        saveTextFile(file.fileName, file.content);
+        setNotice({ kind: "saved", name: file.fileName });
+        setDataExport((current) =>
+          current === null
+            ? null
+            : {
+                ...current,
+                downloadsLeft: file.downloadsLeft,
+                available: file.downloadsLeft > 0,
+              },
+        );
+        return;
+      }
+      if (
+        result.kind === "failed" &&
+        (result.code === "export_unavailable" || result.code === "not_found")
+      ) {
+        setNotice({ kind: "exportGone" });
+        setDataExport((current) =>
+          current === null ? null : { ...current, available: false },
+        );
+        return;
+      }
+      setNotice({ kind: "downloadFailed" });
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function submit(type: DataRequestType) {
     if (busy) {
@@ -134,6 +204,21 @@ export function DataScreen({ me, online }: AccountContext) {
     );
   }
 
+  if (phase.kind === "downloadCode") {
+    return (
+      <>
+        <h1 className={TITLE_CLASSES}>{t("title")}</h1>
+        <FreshCode
+          purpose="data_export"
+          email={me.email}
+          online={online}
+          onVerified={() => void download(phase.exportId)}
+          onCancel={() => setPhase({ kind: "overview" })}
+        />
+      </>
+    );
+  }
+
   if (phase.kind === "confirmDeletion") {
     return (
       <ConfirmDeletion
@@ -168,10 +253,50 @@ export function DataScreen({ me, online }: AccountContext) {
           {t("unavailable")}
         </p>
       ) : null}
+      {notice?.kind === "saved" ? (
+        <p role="status" className={SUCCESS_CLASSES}>
+          {t("download.saved", { name: notice.name })}
+        </p>
+      ) : null}
+      {notice?.kind === "exportGone" ? (
+        <p role="alert" className={INFO_CLASSES}>
+          {t("download.gone")}
+        </p>
+      ) : null}
+      {notice?.kind === "downloadFailed" ? (
+        <p role="alert" className={ERROR_CLASSES}>
+          {t("download.failed")}
+        </p>
+      ) : null}
       {unreadable ? (
         <p role="alert" className={ERROR_CLASSES}>
           {tAccount("unavailable")}
         </p>
+      ) : null}
+      {dataExport !== null && dataExport.available ? (
+        <section aria-labelledby={ids.download} className={CARD_CLASSES}>
+          <h2 id={ids.download} className={SECTION_TITLE_CLASSES}>
+            {t("download.title")}
+          </h2>
+          <p className={HELP_CLASSES}>
+            {t("download.text", {
+              date: formatDate(dataExport.expiresAt, locale),
+              count: dataExport.downloadsLeft,
+            })}
+          </p>
+          <p className={HELP_CLASSES}>{t("download.how")}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setNotice(null);
+              setPhase({ kind: "downloadCode", exportId: dataExport.id });
+            }}
+            aria-disabled={!online || busy || undefined}
+            className={SECONDARY_BUTTON_CLASSES}
+          >
+            {t("download.action")}
+          </button>
+        </section>
       ) : null}
       {requests !== null && requests.length > 0 ? (
         <RequestList requests={requests} />

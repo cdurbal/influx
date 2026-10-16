@@ -3,6 +3,9 @@ import {
   acceptTermsBodySchema,
   confirmEmailChangeBodySchema,
   confirmEmailChangeResponseSchema,
+  DATA_EXPORT_MAX_DOWNLOADS,
+  dataExportDownloadResponseSchema,
+  dataExportStateResponseSchema,
   emailChangeBodySchema,
   meResponseSchema,
   reauthRequestCodeBodySchema,
@@ -176,5 +179,54 @@ describe("change of address (05 RG58; J7 decision 5)", () => {
         heldBy: "account",
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("the export downloaded in the space (runbook demandes-rgpd §4; J8 commit 8)", () => {
+  const ID = "8a7f6e5d-4c3b-4a29-9817-a6f5e4d3c2b1";
+
+  it("states the latest export or null, never more than three downloads left", () => {
+    expect(
+      dataExportStateResponseSchema.safeParse({ export: null }).success,
+    ).toBe(true);
+    const state = {
+      id: ID,
+      requestId: ID,
+      publishedAt: "2026-10-16T08:00:00.000Z",
+      expiresAt: "2026-10-23T08:00:00.000Z",
+      downloadsLeft: DATA_EXPORT_MAX_DOWNLOADS,
+      available: true,
+    };
+    expect(
+      dataExportStateResponseSchema.safeParse({ export: state }).success,
+    ).toBe(true);
+    expect(
+      dataExportStateResponseSchema.safeParse({
+        export: { ...state, downloadsLeft: DATA_EXPORT_MAX_DOWNLOADS + 1 },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("carries the file as text with its digest and its name, nothing else", () => {
+    const download = {
+      id: ID,
+      fileName: "influx-data-export-2026-10-16.json",
+      content: '{"format": "influx.data_export"}',
+      sha256: "a".repeat(64),
+      sizeBytes: 33,
+      downloadsLeft: 2,
+    };
+    expect(
+      dataExportDownloadResponseSchema.safeParse({ export: download }).success,
+    ).toBe(true);
+    for (const wrong of [
+      { ...download, fileName: "../etc/passwd" },
+      { ...download, sha256: "A".repeat(64) },
+      { ...download, accountId: ID },
+    ]) {
+      expect(
+        dataExportDownloadResponseSchema.safeParse({ export: wrong }).success,
+      ).toBe(false);
+    }
   });
 });

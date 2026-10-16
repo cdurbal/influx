@@ -8,7 +8,9 @@
 // .com transactional-webhooks and marketing-webhooks), until the trial of J7 commit 10: the address
 // change by contact id, and the bodies Brevo posts to the webhook (INBOUND_EXEMPLARS). Drafted from
 // the reference read on 2026-10-13 (16 §M1 operations 9 and 10, J7 commit 5): the two reads of the
-// daily reconciliation, CONTACTS_LISTED and SMTP_EVENTS_LISTED, to be recorded at commit 10.
+// daily reconciliation, CONTACTS_LISTED and SMTP_EVENTS_LISTED, to be recorded at commit 10. Drafted
+// from the reference read on 2026-10-16 (16 §M1 operation 2 on account.deleted, J8 commit 8): the
+// deletion of a contact, CONTACT_DELETED and CONTACT_DELETE_NOT_FOUND, to be recorded at the J8 trial.
 // Nothing here is a real identifier, a real address or a key.
 //
 // A recording is the contract of the double: a test that passes against the double passes against
@@ -18,7 +20,7 @@
 export type RecordedExchange = {
   /** What INFLUX sends, as recorded (addresses replaced by a placeholder of example.test). */
   request: {
-    method: "GET" | "POST" | "PUT";
+    method: "GET" | "POST" | "PUT" | "DELETE";
     path: string;
     body?: unknown;
   };
@@ -154,6 +156,27 @@ export const INVALID_PARAMETER: RecordedExchange = {
   response: {
     status: 400,
     body: { code: "invalid_parameter", message: "email is not valid" },
+  },
+};
+
+/** Operation 2 on account.deleted (J8 commit 8): a known contact deleted by its Brevo id: no body. */
+export const CONTACT_DELETED: RecordedExchange = {
+  request: {
+    method: "DELETE",
+    path: "/v3/contacts/21?identifierType=contact_id",
+  },
+  response: { status: 204 },
+};
+
+/** Operation 2 on account.deleted: a contact Brevo does not know (never created, already deleted). */
+export const CONTACT_DELETE_NOT_FOUND: RecordedExchange = {
+  request: {
+    method: "DELETE",
+    path: "/v3/contacts/recorded-contact%40example.test?identifierType=email_id",
+  },
+  response: {
+    status: 404,
+    body: { code: "document_not_found", message: "Contact does not exist" },
   },
 };
 

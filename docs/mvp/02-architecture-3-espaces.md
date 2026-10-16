@@ -551,9 +551,9 @@ que l'outil réclame la propriété du schéma ».
    |---|---|---|---|---|
    | `DATABASE_URL` | `influx_app` | les quatre rôles métier **seuls** | `withUserTransaction` ; unique droit propre : `identity.resolve_session()` | `api` |
    | `AUTH_DATABASE_URL` | `influx_auth_login` | `influx_auth` **seul** | E-1, E-2 | `api` |
-   | `WORKER_DATABASE_URL` | `influx_worker_login` | `influx_worker` **seul** | E-3, E-4 | `worker` (**sa seule variable de base**) |
+   | `WORKER_DATABASE_URL` | `influx_worker_login` | `influx_worker` **seul** | E-3, E-4 | `worker` |
    | `OPS_DATABASE_URL` *(J4)* | `influx_ops_login` | `influx_ops` | écriture du schéma `ops` (E-6, à signer) | `api` |
-   | `PRIVACY_DATABASE_URL` *(Lot 5)* | `influx_privacy_login` | `influx_privacy` | E-5 | `worker` |
+   | `PRIVACY_DATABASE_URL` *(J8, `0136`)* | `influx_privacy_login` | `influx_privacy` **seul** | E-5 | `worker` (obligatoire en production) |
 
    Les appartenances sont posées `WITH INHERIT FALSE, SET TRUE` : hors d'une transaction qui a pris
    son rôle par `SET LOCAL ROLE`, un rôle de connexion n'a aucun droit. `influx_privacy` n'est
@@ -1138,9 +1138,9 @@ toute table nouvelle absente de la matrice des droits) est dans `docs/mvp/03-mat
 - **Arrêt propre sur `SIGTERM`** : le lot en cours se termine, les verrous se libèrent avec la
   transaction, aucun événement n'est perdu (il reste `pending`).
 - Variables d'environnement : les mêmes que `apps/api`, **plus** les clés Brevo et Apollo, **moins**
-  ce qui concerne le serveur HTTP — **et, pour la base, une seule variable** : `WORKER_DATABASE_URL`.
-  Le worker ne porte **ni `DATABASE_URL` ni `AUTH_DATABASE_URL`** ; il recevra `PRIVACY_DATABASE_URL`
-  au Lot 5 (*révisé le 2026-09-26, `21` EC-20* ; liste exacte : §12.3).
+  ce qui concerne le serveur HTTP — **et, pour la base, deux variables** : `WORKER_DATABASE_URL` et,
+  depuis le J8 (commit 8), `PRIVACY_DATABASE_URL` (E-5, obligatoire en production). Le worker ne porte
+  **ni `DATABASE_URL` ni `AUTH_DATABASE_URL`** (*révisé le 2026-09-26, `21` EC-20* ; liste exacte : §12.3).
 - **Rôle de base : `influx_worker`, sans `BYPASSRLS`**, avec des `GRANT` et des politiques nommés
   table par table (§5, règle 3). Le worker n'est autorisé qu'aux opérations **E-3**
   (`leads.drain_outbox`) et **E-4** (`maintenance.run_periodic`) de la liste fermée du document `03`
@@ -1148,7 +1148,8 @@ toute table nouvelle absente de la matrice des droits) est dans `docs/mvp/03-mat
   *Ajouté le 2026-09-18 (revue `expert-cybersecurite`, B2).* *Précisé le 2026-09-26 (`21` EC-1) :*
   il s'y connecte par le rôle de connexion **`influx_worker_login`** (`LOGIN NOINHERIT`, membre
   d'`influx_worker` **seul**) et prend `influx_worker` par `SET LOCAL ROLE` dans chaque transaction.
-  Au Lot 5, E-5 passera par `influx_privacy_login`, **jamais** ajouté au rôle de connexion du worker.
+  Depuis le J8 (avancée du Lot 5), E-5 passe par `influx_privacy_login`, sur un second pool du même
+  processus, **jamais** ajouté au rôle de connexion du worker (`apps/api/src/domains/privacy/execution.ts`).
 
 ### 11.3 Surveillance
 
@@ -1211,9 +1212,9 @@ démarrage : une variable requise manquante fait **échouer le démarrage** avec
 | `INFLUX_API_INTERNAL_SECRET_WEB`, `INFLUX_API_INTERNAL_SECRET_BACKOFFICE` — *ajoutées le 2026-09-25, D64* | — | — | ✔ | — | **Secrètes** — `apps/api` en déduit la surface appelante et lie `/v1/bo/…` au backoffice (`21` §4, J1-G) |
 | `DATABASE_URL` (multiplexeur, rôle de connexion `influx_app`, membre des quatre rôles métier seuls) | — | — | ✔ | — | **Secrète** |
 | `AUTH_DATABASE_URL` (multiplexeur, rôle de connexion `influx_auth_login`, membre d'`influx_auth` seul : E-1, E-2) — *2026-09-26, EC-20* | — | — | ✔ | — | **Secrète** |
-| `WORKER_DATABASE_URL` (multiplexeur, rôle de connexion `influx_worker_login`, membre d'`influx_worker` seul : E-3, E-4) — *2026-09-26, EC-20* | — | — | — | ✔ | **Secrète** — **seule variable de base du worker** |
+| `WORKER_DATABASE_URL` (multiplexeur, rôle de connexion `influx_worker_login`, membre d'`influx_worker` seul : E-3, E-4) — *2026-09-26, EC-20* | — | — | — | ✔ | **Secrète** |
 | `OPS_DATABASE_URL` (rôle de connexion `influx_ops_login`, écriture du schéma `ops`) — **au J4** | — | — | ✔ | — | **Secrète** |
-| `PRIVACY_DATABASE_URL` (rôle de connexion `influx_privacy_login`, E-5) — **au Lot 5** | — | — | — | ✔ | **Secrète** |
+| `PRIVACY_DATABASE_URL` (rôle de connexion `influx_privacy_login`, E-5) — **au J8** | — | — | — | ✔ | **Secrète** — obligatoire en production |
 | `DIRECT_DATABASE_URL` (rôle de migration, **propriétaire des objets**) | — | — | — | — | **Secrète, CI uniquement** — jamais dans un service d'exécution |
 | `INFLUX_PUBLIC_BACKOFFICE_URL` — *ajoutée le 2026-09-27 (`21` J1-F)* | — | — | ✔ | — | Publique — origine de la surface `backoffice` pour le contrôle d'origine A4 (`03` §6.4) |
 | `SUPABASE_URL` | — | — | ✔ | ✔ (J7) | **Serveur uniquement**, non secrète. Côté `worker`, avec `SUPABASE_SECRET_KEY` (les deux ou aucune, requises en production) |

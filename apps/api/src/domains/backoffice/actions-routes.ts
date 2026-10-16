@@ -309,6 +309,12 @@ function actionOfRequest(body: DualControlRequestBody): DualControlAction {
       return { code: body.code, invitationId: body.invitationId.toLowerCase() };
     case "leads.change_apollo_setting":
       return { code: body.code, setting: body.setting };
+    case "privacy.approve_data_request":
+      return {
+        code: body.code,
+        requestId: body.requestId.toLowerCase(),
+        requestType: body.requestType,
+      };
   }
 }
 
@@ -565,11 +571,14 @@ export function registerBackofficeActionRoutes(
       } catch (error) {
         if (isForbidden(error)) {
           // a role change: own account, unknown, internal or inactive target (T14.3, T14.4); an
-          // admin invitation: unknown, not admin, used, revoked, expired or already confirmed; an
-          // Apollo key: a value the database refuses (a country it does not know)
+          // admin invitation: unknown, not admin, used, revoked, expired or already confirmed; a
+          // "mes données" request: unknown, of another type, closed, already approved, or of an
+          // account no longer active (0136); an Apollo key: a value the database refuses (a
+          // country it does not know)
           if (
             body.code === "identity.change_member_role" ||
-            body.code === "identity.invite_admin"
+            body.code === "identity.invite_admin" ||
+            body.code === "privacy.approve_data_request"
           ) {
             throw new ApiError("not_found");
           }

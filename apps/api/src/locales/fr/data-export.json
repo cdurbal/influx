@@ -1,0 +1,127 @@
+{
+  "notice": {
+    "title": "Vos données personnelles chez INFLUX",
+    "about": "Ce fichier contient les données personnelles qu'INFLUX détient sur vous à la date de sa production, au titre de votre droit d'accès (article 15 du règlement général sur la protection des données de l'Union européenne et du règlement britannique équivalent). Il a été produit à votre demande, après vérification de votre identité par un code envoyé à l'adresse de votre compte.",
+    "format": "Format JSON en UTF-8. La clé « data » regroupe les données par catégorie, sous les clés de la liste « categories » et de la notice. Les dates sont au format ISO 8601, en temps universel (UTC) ; votre fuseau horaire figure sous « time_zone ».",
+    "categories": {
+      "account": {
+        "label": "Compte",
+        "content": "Rôle, adresse e-mail et son état de délivrabilité, pays, langue, fuseau horaire, nom affiché, statut du compte, attestation de majorité et sa date, statut déclaré, source d'acquisition déclarée, dates de création et de dernière activité, prénom du commercial référent.",
+        "purpose": "Vous permettre d'utiliser INFLUX et d'être mis en relation.",
+        "legal_basis": "Exécution du contrat (conditions d'utilisation), article 6.1.b.",
+        "retention": "Pendant la vie du compte, puis 3 ans d'inactivité ; anonymisé en cas de suppression du compte.",
+        "source": "Vous-même, à l'inscription et dans votre espace."
+      },
+      "advertiser_profile": {
+        "label": "Profil de marque",
+        "content": "Raison sociale (annonceurs seulement).",
+        "purpose": "Présenter votre marque aux créateurs dans le cadre des mises en relation.",
+        "legal_basis": "Exécution du contrat (conditions d'utilisation), article 6.1.b.",
+        "retention": "Pendant la vie du compte, puis 3 ans d'inactivité ; effacée en cas de suppression du compte.",
+        "source": "Vous-même."
+      },
+      "consents": {
+        "label": "Consentements",
+        "content": "Pour chaque finalité : accordé ou retiré, date, origine et éléments de preuve.",
+        "purpose": "Respecter vos choix en matière de communications commerciales et pouvoir les prouver.",
+        "legal_basis": "Obligation de pouvoir démontrer le consentement (article 7.1) ; intérêt légitime à la défense de nos droits (article 6.1.f).",
+        "retention": "5 ans après la fin de la relation.",
+        "source": "Vous-même ; Brevo pour une désinscription faite depuis un e-mail."
+      },
+      "terms_acceptances": {
+        "label": "Conditions acceptées",
+        "content": "Version, date, nature et canal de l'acceptation, langue, adresse IP et navigateur enregistrés.",
+        "purpose": "Prouver votre acceptation des conditions d'utilisation.",
+        "legal_basis": "Intérêt légitime à la constatation et à la défense de nos droits (article 6.1.f).",
+        "retention": "5 ans après la fin de la relation.",
+        "source": "Vous-même."
+      },
+      "sessions": {
+        "label": "Sessions",
+        "content": "Création, dernière activité et navigateur (famille et système) de chaque session ; jamais le jeton de session.",
+        "purpose": "Sécuriser votre compte : signal « nouveau navigateur », fermeture des sessions.",
+        "legal_basis": "Intérêt légitime : la sécurité du compte (article 6.1.f).",
+        "retention": "90 jours après la fin de la session.",
+        "source": "Votre navigateur, à la connexion."
+      },
+      "transactional_emails": {
+        "label": "E-mails de service",
+        "content": "Code de l'e-mail, date, langue et statut d'envoi ; jamais le contenu d'un code de connexion.",
+        "purpose": "Vous envoyer les e-mails nécessaires au service et diagnostiquer leur délivrance.",
+        "legal_basis": "Exécution du contrat (article 6.1.b) ; intérêt légitime (article 6.1.f).",
+        "retention": "13 mois.",
+        "source": "INFLUX et son prestataire d'envoi."
+      },
+      "email_changes": {
+        "label": "Changements d'adresse",
+        "content": "Ancienne et nouvelle adresse, dates ; jamais les empreintes des codes.",
+        "purpose": "Sécuriser le changement d'adresse et pouvoir en rendre compte.",
+        "legal_basis": "Intérêt légitime : la sécurité du compte (article 6.1.f).",
+        "retention": "13 mois (durée proposée, en cours de validation).",
+        "source": "Vous-même."
+      },
+      "email_delivery_incidents": {
+        "label": "Incidents de délivrance",
+        "content": "Type d'incident (rebond, plainte, blocage), date et adresse concernée.",
+        "purpose": "Préserver la délivrance des e-mails et ne plus écrire à une adresse qui les refuse.",
+        "legal_basis": "Intérêt légitime (article 6.1.f).",
+        "retention": "24 mois.",
+        "source": "Brevo."
+      },
+      "delivery_reports": {
+        "label": "Signalements « je ne reçois pas mon code »",
+        "content": "Adresses indiquées, message, date et statut des signalements qui portent l'une de vos adresses, actuelle ou ancienne.",
+        "purpose": "Vous aider à retrouver l'accès à votre compte.",
+        "legal_basis": "Intérêt légitime (article 6.1.f).",
+        "retention": "90 jours (durée proposée, en cours de validation).",
+        "source": "La personne qui a fait le signalement."
+      },
+      "brevo_events": {
+        "label": "Événements reçus de Brevo",
+        "content": "Désinscriptions, plaintes et rebonds rattachés à votre compte.",
+        "purpose": "Respecter une désinscription et suivre la délivrance des e-mails.",
+        "legal_basis": "Respect de votre opposition (article 21) ; intérêt légitime (article 6.1.f).",
+        "retention": "30 jours pour l'événement reçu ; son effet est conservé dans vos consentements.",
+        "source": "Brevo."
+      },
+      "activity_log": {
+        "label": "Journal d'activité",
+        "content": "Les événements dont votre compte est l'auteur ou l'objet : code et date. Un membre de l'équipe y apparaît sous le nom « INFLUX ».",
+        "purpose": "Tracer les opérations sur votre compte et pouvoir en rendre compte.",
+        "legal_basis": "Intérêt légitime : la sécurité et la preuve des opérations (article 6.1.f).",
+        "retention": "Sans purge, sous une forme qui ne vous nomme pas (identifiants et codes seulement).",
+        "source": "INFLUX."
+      },
+      "error_reports": {
+        "label": "Rapports d'erreur",
+        "content": "Date, page et service des erreurs survenues pendant vos visites ; pour une erreur de votre navigateur, aussi le message d'erreur et le navigateur résumé. Les détails techniques des erreurs du serveur ne sont pas restitués.",
+        "purpose": "Corriger les erreurs de la plateforme.",
+        "legal_basis": "Intérêt légitime (article 6.1.f).",
+        "retention": "30 jours.",
+        "source": "INFLUX."
+      },
+      "data_requests": {
+        "label": "Demandes « mes données »",
+        "content": "Vos demandes d'export ou de suppression : type, dates, état et issue.",
+        "purpose": "Traiter vos demandes et prouver qu'elles l'ont été dans le délai.",
+        "legal_basis": "Obligation légale (articles 12 à 22).",
+        "retention": "3 ans après la clôture (durée proposée, en cours de validation).",
+        "source": "Vous-même."
+      },
+      "recipients": {
+        "label": "Destinataires",
+        "content": "Pour Brevo et Apollo.io : identifiant chez le prestataire, dernier état de synchronisation et désinscription. Apollo.io : aucune donnée transmise à ce jour.",
+        "purpose": "Vous envoyer les e-mails prévus et suivre leur synchronisation.",
+        "legal_basis": "Exécution du contrat pour les e-mails de service (article 6.1.b) ; consentement pour les communications commerciales (article 6.1.a).",
+        "retention": "Pendant la vie du compte.",
+        "source": "INFLUX et ses prestataires."
+      }
+    },
+    "excluded": "Ne figurent pas dans ce fichier : les empreintes techniques (jetons, codes, compteurs de sécurité) et les empreintes du journal d'activité, qui ne disent rien de vous et servent seulement à la sécurité ; les données d'autres personnes.",
+    "recipients": "Destinataires de vos données : Brevo (envoi des e-mails), Supabase (base de données et authentification), Railway (hébergement de l'application), Apollo.io (non alimenté à ce jour). Aucun prestataire de paiement à ce jour.",
+    "transfers": "Certains prestataires peuvent traiter des données hors du Royaume-Uni et de l'Union européenne. Ces transferts reposent, selon le prestataire, sur une décision d'adéquation ou sur des garanties appropriées (clauses contractuelles types de la Commission européenne, ou accord britannique équivalent).",
+    "rights": "Vous pouvez demander la rectification, l'effacement ou la limitation de vos données, vous opposer à un traitement, demander leur portabilité et retirer votre consentement à tout moment, depuis votre espace INFLUX, rubrique « Mes données ».",
+    "complaint": "Vous pouvez adresser une réclamation à l'Information Commissioner's Office (Royaume-Uni) ou à l'autorité de contrôle du pays de l'Union européenne où vous résidez. Les coordonnées de notre représentant dans l'Union européenne figurent dans notre politique de confidentialité.",
+    "automated_decisions": "INFLUX ne prend aucune décision fondée exclusivement sur un traitement automatisé qui vous concerne : il n'y a pas d'algorithme de mise en relation, et le signal « nouveau navigateur » est une alerte sans effet sur votre compte."
+  }
+}

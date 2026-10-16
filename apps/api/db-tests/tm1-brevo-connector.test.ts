@@ -38,6 +38,7 @@ import { createOutboxDrain } from "../src/domains/leads/drain.ts";
 import {
   createWorkerQueue,
   LineTakenBackError,
+  readBrevoErasureSubjectOf,
   readBrevoSubjectOf,
 } from "../src/domains/leads/queue.ts";
 import type { ClaimedLine } from "../src/domains/leads/repository.ts";
@@ -233,6 +234,8 @@ async function turn(): Promise<number> {
     {
       readSubject: (line) =>
         readBrevoSubjectOf(database, randomUUID(), line, worker),
+      readErasureSubject: (line) =>
+        readBrevoErasureSubjectOf(database, randomUUID(), line, worker),
       logger,
     },
   );

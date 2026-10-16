@@ -221,9 +221,16 @@ const legalNameSchema = z
   .max(120)
   .regex(/^[^\p{Cc}]*$/u);
 
+/** 15 RG75 step 6 (J8 commit 8): the execution of an instructed "mes données" request. */
+export const DATA_REQUEST_EXECUTION_REASONS = ["request_instructed"] as const;
+
+/** The two types of request the minimal execution of J8 covers (21 §J8 point 6). */
+export const EXECUTABLE_DATA_REQUEST_TYPES = ["access", "erasure"] as const;
+
 /**
- * The actions a route may request: the role change, an Apollo key, and again the 2V of an admin
- * invitation (J8 commit 7: requested by its creation; again here once an earlier request expired).
+ * The actions a route may request: the role change, an Apollo key, again the 2V of an admin
+ * invitation (J8 commit 7: requested by its creation; again here once an earlier request expired),
+ * and the execution of a "mes données" request (J8 commit 8: an admin, from the account sheet).
  */
 export const dualControlRequestSchema = z.discriminatedUnion("code", [
   z.strictObject({
@@ -244,6 +251,14 @@ export const dualControlRequestSchema = z.discriminatedUnion("code", [
     code: z.literal("identity.invite_admin"),
     invitationId: z.uuid(),
     reasonCode: z.enum(INTERNAL_INVITATION_REASONS),
+    reasonNote: commentSchema.optional(),
+  }),
+  z.strictObject({
+    code: z.literal("privacy.approve_data_request"),
+    requestId: z.uuid(),
+    /** Checked against the stored request by the database: the recap (PD1) depends on it. */
+    requestType: z.enum(EXECUTABLE_DATA_REQUEST_TYPES),
+    reasonCode: z.enum(DATA_REQUEST_EXECUTION_REASONS),
     reasonNote: commentSchema.optional(),
   }),
 ]);
@@ -273,6 +288,11 @@ export const dualControlActionSchema = z.discriminatedUnion("code", [
     code: z.literal("leads.change_apollo_setting"),
     setting: apolloSettingSchema,
   }),
+  z.strictObject({
+    code: z.literal("privacy.approve_data_request"),
+    requestId: z.uuid(),
+    requestType: z.enum(EXECUTABLE_DATA_REQUEST_TYPES),
+  }),
 ]);
 
 export const DUAL_CONTROL_STATES = [
@@ -290,7 +310,12 @@ export const dualControlViewSchema = z.strictObject({
   /** PD1: scope, consequences (codes), reversibility, said before the first gesture. */
   recap: z.strictObject({
     scope: z.strictObject({
-      kind: z.enum(["account", "internal_invitation", "setting"]),
+      kind: z.enum([
+        "account",
+        "internal_invitation",
+        "setting",
+        "data_request",
+      ]),
       count: z.number().int().positive(),
     }),
     consequences: z.array(z.string()),

@@ -21,6 +21,7 @@ import type { BackofficeContext } from "../identity/backoffice-session.ts";
 import { apolloSettingOf, storedApolloSetting } from "./apollo-settings.ts";
 import {
   approveAdminInvitation,
+  approveDataRequestExecution,
   cancelDualControl as cancelRequest,
   changeApolloSetting,
   changeMemberRole,
@@ -60,12 +61,21 @@ export type DualControlAction =
       legalName: string;
     }
   | { code: "identity.invite_admin"; invitationId: string }
-  | { code: "leads.change_apollo_setting"; setting: ApolloSetting };
+  | { code: "leads.change_apollo_setting"; setting: ApolloSetting }
+  | {
+      /** J8 commit 8 (15 RG75 step 6): an admin approves; the worker executes (E-5). */
+      code: "privacy.approve_data_request";
+      requestId: string;
+      requestType: "access" | "erasure";
+    };
 
 /** PD1: what the action does, said before the first gesture. Codes, for the screen to word. */
 export type DualControlRecap = {
   /** How many objects the action touches. */
-  scope: { kind: "account" | "internal_invitation" | "setting"; count: number };
+  scope: {
+    kind: "account" | "internal_invitation" | "setting" | "data_request";
+    count: number;
+  };
   consequences: readonly string[];
   reversible: boolean;
 };
@@ -76,7 +86,12 @@ export type DualControlRecap = {
  * revoked until it is accepted (0131), an Apollo key is set back by another change (RG81; what left
  * for Apollo meanwhile stays there).
  */
-const RECAPS: Readonly<Record<DualControlActionCode, DualControlRecap>> = {
+const RECAPS: Readonly<
+  Record<
+    Exclude<DualControlActionCode, "privacy.approve_data_request">,
+    DualControlRecap
+  >
+> = {
   "identity.grant_role": {
     scope: { kind: "account", count: 1 },
     consequences: ["role_granted"],
@@ -105,8 +120,40 @@ const RECAPS: Readonly<Record<DualControlActionCode, DualControlRecap>> = {
   },
 };
 
+/**
+ * PD1 of a "mes données" request, by type (04 §9.2; 15 RG79, RG80; runbook demandes-rgpd §4, §5):
+ * an erasure is never undone (no physical deletion, but the anonymisation is final); an export is
+ * a copy the member downloads, erased after 7 days or 3 downloads.
+ */
+const DATA_REQUEST_RECAPS: Readonly<
+  Record<"access" | "erasure", DualControlRecap>
+> = {
+  access: {
+    scope: { kind: "data_request", count: 1 },
+    consequences: [
+      "export_published",
+      "member_notified",
+      "request_closed_after_brevo",
+    ],
+    reversible: false,
+  },
+  erasure: {
+    scope: { kind: "data_request", count: 1 },
+    consequences: [
+      "account_anonymized",
+      "sessions_closed",
+      "brevo_contact_deleted",
+      "auth_user_deleted",
+      "request_closed_after_brevo",
+    ],
+    reversible: false,
+  },
+};
+
 export function dualControlRecap(action: DualControlAction): DualControlRecap {
-  return RECAPS[action.code];
+  return action.code === "privacy.approve_data_request"
+    ? DATA_REQUEST_RECAPS[action.requestType]
+    : RECAPS[action.code];
 }
 
 function payloadOf(action: DualControlAction): DualControlPayload {
@@ -123,6 +170,8 @@ function payloadOf(action: DualControlAction): DualControlPayload {
       return storedApolloSetting(action.setting);
     case "identity.grant_role":
       return { account_id: action.accountId, role: action.role };
+    case "privacy.approve_data_request":
+      return { request_id: action.requestId, request_type: action.requestType };
   }
 }
 
@@ -136,6 +185,8 @@ function actionOf(
     role,
     invitation_id: invitationId,
     legal_name: legalName,
+    request_id: requestId,
+    request_type: requestType,
   } = payload;
   switch (code) {
     case "identity.grant_role":
@@ -158,15 +209,24 @@ function actionOf(
       const setting = apolloSettingOf(payload.key, payload.value);
       return setting === null ? null : { code, setting };
     }
+    case "privacy.approve_data_request":
+      return typeof requestId === "string" &&
+        (requestType === "access" || requestType === "erasure")
+        ? { code, requestId, requestType }
+        : null;
     default:
       return null;
   }
 }
 
-/** The account an action targets, if any: never one's own (C(3), 15 RG36). */
+/**
+ * The account an action targets, if any: never one's own (C(3), 15 RG36). A "mes données" request
+ * is a member's: the database refuses an internal requester and the caller's own account (0136).
+ */
 function targetAccountOf(action: DualControlAction): string | null {
   return action.code === "identity.invite_admin" ||
-    action.code === "leads.change_apollo_setting"
+    action.code === "leads.change_apollo_setting" ||
+    action.code === "privacy.approve_data_request"
     ? null
     : action.accountId;
 }
@@ -336,7 +396,8 @@ export type DualControlExecutor<Result> = (
  * The executor of the closed list: the database function of the request's action, with the
  * session of the request (R in that transaction) and the request id. Every parameter of the action
  * comes from the confirmed payload, the legal name of a role change included (EC-J8-23, 0134).
- * Returns the accounts re-evaluated by an Apollo key (RG81), null for the other actions.
+ * Returns the accounts re-evaluated by an Apollo key (RG81), null for the other actions. The
+ * execution of a "mes données" request is only APPROVED here: the worker runs it (E-5, 0136).
  */
 export function dualControlExecutor(): DualControlExecutor<number | null> {
   return async (tx, context, request) => {
@@ -367,6 +428,13 @@ export function dualControlExecutor(): DualControlExecutor<number | null> {
           setting: storedApolloSetting(action.setting),
           reasonCode: request.reasonCode,
         });
+      case "privacy.approve_data_request":
+        await approveDataRequestExecution(tx, context.sessionId, request.id, {
+          dataRequestId: action.requestId,
+          requestType: action.requestType,
+          reasonCode: request.reasonCode,
+        });
+        return null;
     }
   };
 }

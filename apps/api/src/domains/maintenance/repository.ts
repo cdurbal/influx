@@ -5,11 +5,12 @@
 import { sql } from "drizzle-orm";
 import type { Transaction } from "../../db/index.ts";
 
-/** The closed list of ops.periodic_task (0117). */
+/** The closed list of ops.periodic_task (0117; data_export_purge: 0136, J8 commit 8). */
 export const PERIODIC_TASKS = [
   "brevo_reconciliation",
   "auth_orphan_purge",
   "brevo_inbound_purge",
+  "data_export_purge",
 ] as const;
 export type PeriodicTask = (typeof PERIODIC_TASKS)[number];
 
@@ -112,6 +113,22 @@ export async function purgeBrevoInboundEvents(
 ): Promise<number> {
   const rows = await tx.execute<{ count: number }>(
     sql`select ops.purge_brevo_inbound_events(${run.runId}::uuid, ${run.attempt}::smallint,
+                 ${limit}::integer) as count`,
+  );
+  return Number(rows[0]?.count ?? 0);
+}
+
+/**
+ * Runbook demandes-rgpd §4 (0136): the content of the exports expired or downloaded three times is
+ * erased, their digest kept; at most `limit` per call. retention.purged written by the database.
+ */
+export async function purgeDataExports(
+  tx: Transaction,
+  run: PeriodicRun,
+  limit: number,
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select ops.purge_data_exports(${run.runId}::uuid, ${run.attempt}::smallint,
                  ${limit}::integer) as count`,
   );
   return Number(rows[0]?.count ?? 0);

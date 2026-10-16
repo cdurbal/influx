@@ -212,7 +212,7 @@
     "export": {
       "title": "Exporter mes données",
       "text": "Vous recevez un fichier lisible avec les données que nous détenons sur vous.",
-      "how": "Rien n'est envoyé automatiquement : une personne de l'équipe INFLUX prépare le fichier et vous dit comment le récupérer de façon sécurisée. Il ne vous est jamais envoyé en pièce jointe.",
+      "how": "Une personne de l'équipe INFLUX valide votre demande, puis le fichier apparaît ici : vous le téléchargez après un code envoyé à votre adresse. Il ne vous est jamais envoyé par e-mail.",
       "action": "Exporter",
       "open": "Une demande d'export est déjà en cours : vous la suivez ci-dessus."
     },
@@ -251,7 +251,16 @@
       "erasure": "Demande de suppression reçue. Nous vous répondrons au plus tard le {date}. Un e-mail de confirmation part à votre adresse.",
       "alreadyOpen": "Une demande de ce type est déjà en cours : la voici. Aucune nouvelle demande n'a été créée."
     },
-    "unavailable": "Nous ne parvenons pas à enregistrer votre demande pour le moment. Réessayez dans quelques minutes."
+    "unavailable": "Nous ne parvenons pas à enregistrer votre demande pour le moment. Réessayez dans quelques minutes.",
+    "download": {
+      "title": "Votre export est prêt",
+      "text": "Disponible jusqu'au {date}. Il vous reste {count, plural, one {# téléchargement} other {# téléchargements}}.",
+      "how": "Un code est envoyé à votre adresse avant chaque téléchargement. Le fichier est au format JSON, avec une notice qui explique chaque catégorie de données.",
+      "action": "Télécharger mes données",
+      "saved": "Le fichier {name} est enregistré sur votre appareil.",
+      "gone": "Cet export n'est plus disponible : il a expiré ou a été téléchargé trois fois. Vous pouvez faire une nouvelle demande.",
+      "failed": "Le téléchargement n'a pas abouti. Réessayez dans quelques minutes."
+    }
   },
   "terms": {
     "title": "Les conditions d'utilisation ont changé",

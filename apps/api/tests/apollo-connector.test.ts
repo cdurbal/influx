@@ -586,3 +586,20 @@ describe("02 §12.4 lock 1: APOLLO_API_KEY, the worker's only", () => {
     expect(connector().hasCredentials).toBe(true);
   });
 });
+
+describe("15 RG79, J8 commit 8: account.deleted is noted, never propagated to Apollo before the Lot 5", () => {
+  it("skips erasure_not_propagated, before the account step, without any read or call", async () => {
+    const deleted: ClaimedLine = {
+      ...line(),
+      eventType: "account.deleted",
+      priority: 0,
+    };
+    for (const attempt of [state({ status: "deleted" }), state()]) {
+      expect(skipOf(await connector().prepare(deleted, attempt))).toBe(
+        "erasure_not_propagated",
+      );
+    }
+    expect(reads).toEqual([]);
+    expect(double.requests).toHaveLength(0);
+  });
+});

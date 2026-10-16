@@ -52,7 +52,7 @@ la base de production.
 
 ## Étape 3 — Mots de passe des quatre rôles de connexion
 
-> **Après l'étape 4** : les quatre rôles sont créés par les migrations (`0001`, `0016`) ; la
+> **Après l'étape 4** : les cinq rôles sont créés par les migrations (`0001`, `0016`, `0136` au J8) ; la
 > partie 1 échoue tant que « Migrate staging » n'a pas tourné une fois.
 
 Sur le poste (rien n'est écrit sur le disque) :
@@ -63,8 +63,8 @@ pnpm --filter @influx/test-kit staging:role-passwords -- --ref=<ref-staging> --h
 
 - Coller la partie **1** (des `alter role … password 'SCRAM-SHA-256$…'`) dans l'éditeur SQL de
   staging : la base ne reçoit que des empreintes, jamais un mot de passe en clair.
-- Garder la partie **2** (quatre URL) pour l'étape 5. Relancer le script fait tourner les quatre
-  mots de passe : recoller les deux parties.
+- Garder la partie **2** (cinq URL, dont `PRIVACY_DATABASE_URL` depuis le J8) pour l'étape 5. Relancer
+  le script fait tourner les cinq mots de passe : recoller les deux parties.
 
 ## Étape 4 — GitHub : environnement `staging`
 
@@ -98,7 +98,7 @@ version dans le journal de construction).
 | Service | Fichier | Domaine public | Variables (et rien d'autre) |
 |---|---|---|---|
 | `api` | `deploy/railway/api.json` | **aucun** | `INFLUX_ENV=staging`, `PORT=3100`, `INFLUX_PUBLIC_SITE_URL`, `INFLUX_PUBLIC_BACKOFFICE_URL`, `INFLUX_API_INTERNAL_SECRET_WEB`, `INFLUX_API_INTERNAL_SECRET_BACKOFFICE`, `AUTH_TOKEN_SIGNING_SECRET`, `AUTH_THROTTLE_PEPPER`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (clé `influx_api` du projet de staging), `DATABASE_URL`, `AUTH_DATABASE_URL`, `OPS_DATABASE_URL`, `BREVO_MODE=redirect`, `BREVO_API_KEY` (compte Brevo **de staging**), `BREVO_API_BASE_URL=https://api.brevo.com/v3`, `BREVO_SENDER_TRANSACTIONAL`, `BREVO_TEST_RECIPIENTS` (vos adresses internes) |
-| `worker` | `deploy/railway/worker.json` | **aucun** | `INFLUX_ENV=staging`, `WORKER_DATABASE_URL`, `SYNC_MODE=dry_run`, `BREVO_MODE=disabled` |
+| `worker` | `deploy/railway/worker.json` | **aucun** | `INFLUX_ENV=staging`, `WORKER_DATABASE_URL`, `PRIVACY_DATABASE_URL` (J8 : exécution des demandes « mes données », rôle `influx_privacy_login` du script ci-dessus), `SYNC_MODE=dry_run`, `BREVO_MODE=disabled` |
 | `web` | `deploy/railway/web.json` | oui (`*.up.railway.app` en attendant les domaines) | `INFLUX_ENV=staging` (lu à la construction : `noindex` hors production, J4S-3), `INFLUX_API_INTERNAL_URL=http://api.railway.internal:3100`, `INFLUX_API_INTERNAL_SECRET` (= la valeur web) |
 | `backoffice` | `deploy/railway/backoffice.json` | oui, distinct de `web` | `INFLUX_ENV=staging`, `INFLUX_API_INTERNAL_URL` (idem), `INFLUX_API_INTERNAL_SECRET` (= la valeur backoffice) |
 

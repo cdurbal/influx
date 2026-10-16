@@ -6,9 +6,10 @@
 //   (free) and the partial one (one reservation per page, journaled, 429 beyond the limit: RG98).
 // - GET /v1/bo/accounts/counters: the head banner of the day (RG105).
 // - GET /v1/bo/accounts/:id: the record, its state per destination with the cause in clear (RG99,
-//   RG100), the responsible salespersons (RG49) and the history (EC-31), whose read is the journal
-//   of the opening (RG40, EC-J8-24). Unknown, malformed-free but internal, or own: the same 404
-//   (18 T14.3, T14.4).
+//   RG100), the responsible salespersons (RG49), the "mes données" requests that an admin executes
+//   from here under 2V + R (15 §G, J8 commit 8: their state, never an export's content) and the
+//   history (EC-31), whose read is the journal of the opening (RG40, EC-J8-24). Unknown,
+//   malformed-free but internal, or own: the same 404 (18 T14.3, T14.4).
 // - Every answer is `Cache-Control: no-store`: it carries personal data.
 import {
   ACCOUNT_HISTORY_PAGE_SIZE,
@@ -20,7 +21,9 @@ import {
   accountsResponseSchema,
   COUNTERS_TOP_COUNTRIES,
   PARTIAL_SEARCH_WINDOW_SECONDS,
+  accountDataRequestSchema,
   type AccountCountersResponse,
+  type AccountDataRequest,
   type AccountDetailResponse,
   type AccountParams,
   type AccountQuery,
@@ -39,11 +42,13 @@ import { withBackofficeSession } from "../identity/backoffice-session.ts";
 import type { IdentityApp } from "../identity/routes.ts";
 import {
   accountHistory,
+  dataRequestsOf,
   dayCounters,
   listMemberAccounts,
   memberAccountDetail,
   ownershipOf,
   reserveAccountSearch,
+  type AccountDataRequestRow,
   type AccountFilters,
   type HistoryRow,
   type MemberAccountRow,
@@ -51,6 +56,37 @@ import {
 import { syncStatusOf } from "./sync-causes.ts";
 
 export type BackofficeAccountsDependencies = { database: ApiDatabase };
+
+/** A request as the record shows it; the schema checks the database's values again. */
+function dataRequestOf(row: AccountDataRequestRow): AccountDataRequest {
+  return accountDataRequestSchema.parse({
+    id: row.id,
+    type: row.requestType,
+    receivedAt: row.receivedAt,
+    dueAt: row.dueAt,
+    status: row.status,
+    completedAt: row.completedAt,
+    outcome: row.outcomeCode,
+    execution:
+      row.approvedAt === null || row.approvedBy === null
+        ? null
+        : {
+            approvedAt: row.approvedAt,
+            approvedBy: row.approvedBy,
+            executedAt: row.executedAt,
+            authUserDeletedAt: row.authUserDeletedAt,
+          },
+    export:
+      row.exportPublishedAt === null || row.exportExpiresAt === null
+        ? null
+        : {
+            publishedAt: row.exportPublishedAt,
+            expiresAt: row.exportExpiresAt,
+            downloads: row.exportDownloads ?? 0,
+            purgedAt: row.exportPurgedAt,
+          },
+  });
+}
 
 const CURSOR_PATTERN =
   /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z)\|([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
@@ -278,6 +314,9 @@ export function registerBackofficeAccountRoutes(
           throw new ApiError("not_found");
         }
         const ownership = await ownershipOf(tx, accountId);
+        const dataRequests = (await dataRequestsOf(tx, accountId)).map(
+          dataRequestOf,
+        );
         // last: the register lock is held until COMMIT (04 §7.2)
         const history = await accountHistory(
           tx,
@@ -297,6 +336,7 @@ export function registerBackofficeAccountRoutes(
             deletedAt: account.deletedAt,
           },
           ownership,
+          dataRequests,
           history: {
             events: events.map(historyEventOf),
             nextBefore:

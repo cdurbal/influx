@@ -117,7 +117,10 @@ export type BrevoSubject = {
   browser: string | null;
   /** The account's time zone (IANA name, 'UTC' by default; 16 RG157, RG160). */
   timeZone: string;
-  /** A privacy.request_received line: its request, of the line's account (0128); else all null. */
+  /**
+   * A privacy.request_received or privacy.export_ready line: its request, of the line's account
+   * (0128, 0136); else null.
+   */
   dataRequest: {
     type: string;
     /** ISO 8601. */
@@ -126,6 +129,17 @@ export type BrevoSubject = {
     dueAt: string;
     closed: boolean;
   } | null;
+  /** A privacy.export_ready line: the end of its export's availability (ISO 8601, 0136); else null. */
+  exportExpiresAt: string | null;
+};
+
+/**
+ * What the Brevo contact connector reads of an erased account (operation 2, account.deleted; 0136):
+ * the contact id known at Brevo, and the address held by the request only until Brevo confirms.
+ */
+export type BrevoErasureSubject = {
+  externalContactId: string | null;
+  email: string | null;
 };
 
 /** What the Apollo connector reads of a subject, besides the account state of the attempt (0113). */
@@ -328,6 +342,7 @@ export async function readBrevoSubject(
     request_received_at: string | null;
     request_due_at: string | null;
     request_closed: boolean | null;
+    export_expires_at: string | null;
   }>(
     sql`select email,
                to_char(signed_up_at at time zone 'UTC',
@@ -344,7 +359,9 @@ export async function readBrevoSubject(
                        'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as request_received_at,
                to_char(request_due_at at time zone 'UTC',
                        'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as request_due_at,
-               request_closed
+               request_closed,
+               to_char(export_expires_at at time zone 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as export_expires_at
           from leads.read_brevo_subject(${lineId}::bigint, ${worker}::text)`,
   );
   const row = rows[0];
@@ -381,7 +398,31 @@ export async function readBrevoSubject(
             dueAt: row.request_due_at,
             closed: row.request_closed === true,
           },
+    exportExpiresAt: row.export_expires_at,
   };
+}
+
+/**
+ * The subject of an account.deleted line to brevo_contact in processing for this worker (0136): the
+ * Brevo contact id and the address held until Brevo confirms. null: no such line, or the request
+ * named by the line is not of its account.
+ */
+export async function readBrevoErasureSubject(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<BrevoErasureSubject | null> {
+  const rows = await tx.execute<{
+    external_contact_id: string | null;
+    email: string | null;
+  }>(
+    sql`select external_contact_id, email
+          from leads.read_brevo_erasure_subject(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : { externalContactId: row.external_contact_id, email: row.email };
 }
 
 /**

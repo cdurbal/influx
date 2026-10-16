@@ -26,6 +26,9 @@ export const ERROR_CODES = [
   // The codes of an address change could not be sent, or GoTrue could not take the new address:
   // nothing changed, try again (05 RG58; J7 decision 5). Never a silent skip.
   "email_change_unavailable",
+  // The export of a "mes données" request is no longer downloadable: expired, purged or downloaded
+  // three times (runbook demandes-rgpd §4; J8 commit 8). A new request gives a new export.
+  "export_unavailable",
 ] as const;
 
 export const errorCodeSchema = z.enum(ERROR_CODES);

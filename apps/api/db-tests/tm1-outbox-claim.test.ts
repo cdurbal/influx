@@ -1687,6 +1687,8 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       // 0116 (J7 decision 2): E-3 processing of a raw Brevo line, E-4 reconciliation finding
       "leads.process_brevo_inbound_event()",
       "leads.read_apollo_subject(bigint,text)",
+      // 0137 (J8 commit 8): Brevo operation 2, the subject of an account.deleted line
+      "leads.read_brevo_erasure_subject(bigint,text)",
       "leads.read_brevo_subject(bigint,text)",
       "leads.record_brevo_reconciliation_event(text,timestamp with time zone,text,text,uuid,bigint,bigint,text)",
       "leads.recover_stale_outbox_lines(integer)",
@@ -1697,6 +1699,8 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       // 0125 (C5.b, J7 commit 7 review): the realignment of the hourly GoTrue pass
       "ops.gotrue_realignment_candidates(uuid,smallint,uuid)",
       "ops.purge_brevo_inbound_events(uuid,smallint,integer)",
+      // 0137 (J8 commit 8): E-4, the purge of the exports
+      "ops.purge_data_exports(uuid,smallint,integer)",
       "ops.record_retention_purge(uuid,smallint,text,integer)",
     ]);
   });

@@ -17,6 +17,8 @@ import {
   CLAIMED_ELSEWHERE_BACKOFF_MS,
   createPeriodicScheduler,
   isDue,
+  createDataExportPurge,
+  EXPORT_PURGE_BATCH,
   periodKeyOf,
   PeriodicRunInterrupted,
   PeriodicTaskError,
@@ -66,6 +68,9 @@ function memoryStore(options: { claimedElsewhere?: boolean } = {}) {
     async purgeBrevoInbound() {
       return 0;
     },
+    async purgeDataExports() {
+      return 0;
+    },
   };
   return { store, claims, finishes, findings };
 }
@@ -92,6 +97,8 @@ describe("periods and hours (decision 3)", () => {
     expect(periodKeyOf("brevo_reconciliation", AT_0259)).toBe("2026-10-13");
     expect(periodKeyOf("brevo_inbound_purge", AT_0259)).toBe("2026-10-13");
     expect(periodKeyOf("auth_orphan_purge", AT_0259)).toBe("2026-10-13T02");
+    // J8 commit 8: an export past its deadline is emptied within the hour (runbook §4)
+    expect(periodKeyOf("data_export_purge", AT_0259)).toBe("2026-10-13T02");
   });
 
   it("starts the reconciliation at 03:00 UTC, the other tasks at any hour", () => {
@@ -500,5 +507,45 @@ describe("16 §M1 operations 9 and 10: the reads, against a fake fetch", () => {
         message: "brevo.unreachable",
       },
     );
+  });
+});
+
+describe("data_export_purge (runbook demandes-rgpd §4, J8 commit 8)", () => {
+  it("empties the exports past their deadline by batches, until a batch is not full", async () => {
+    const { store } = memoryStore();
+    const batches = [EXPORT_PURGE_BATCH, EXPORT_PURGE_BATCH, 3];
+    const limits: number[] = [];
+    store.purgeDataExports = async (_run, limit) => {
+      limits.push(limit);
+      return batches.shift() ?? 0;
+    };
+    const counts: PeriodicCounts = {};
+    await createDataExportPurge(store)(
+      { runId: "run-1", attempt: 1 },
+      counts,
+      new AbortController().signal,
+    );
+    expect(counts).toEqual({ purged: 2 * EXPORT_PURGE_BATCH + 3 });
+    expect(limits).toEqual([
+      EXPORT_PURGE_BATCH,
+      EXPORT_PURGE_BATCH,
+      EXPORT_PURGE_BATCH,
+    ]);
+  });
+
+  it("stops between two batches once a stop is requested", async () => {
+    const { store } = memoryStore();
+    const stop = new AbortController();
+    store.purgeDataExports = async () => {
+      stop.abort();
+      return EXPORT_PURGE_BATCH;
+    };
+    await expect(
+      createDataExportPurge(store)(
+        { runId: "run-1", attempt: 1 },
+        {},
+        stop.signal,
+      ),
+    ).rejects.toBeInstanceOf(PeriodicRunInterrupted);
   });
 });

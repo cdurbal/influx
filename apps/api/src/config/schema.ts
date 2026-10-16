@@ -200,6 +200,8 @@ export const DATABASE_URL_ROLES = {
   AUTH_DATABASE_URL: "influx_auth_login",
   WORKER_DATABASE_URL: "influx_worker_login",
   OPS_DATABASE_URL: "influx_ops_login",
+  // E-5 (J8 commit 8): a pool of its own on the worker service, never influx_worker_login (03 P7).
+  PRIVACY_DATABASE_URL: "influx_privacy_login",
 } as const;
 export type DatabaseUrlVariable = keyof typeof DATABASE_URL_ROLES;
 export type ConnectionRole = (typeof DATABASE_URL_ROLES)[DatabaseUrlVariable];
@@ -212,6 +214,13 @@ export const API_DATABASE_VARIABLES = [
 ] as const satisfies readonly DatabaseUrlVariable[];
 export const WORKER_DATABASE_VARIABLES = [
   "WORKER_DATABASE_URL",
+] as const satisfies readonly DatabaseUrlVariable[];
+/**
+ * Read by the worker when set, required in production (J8 commit 8): without it, no "mes données"
+ * request is executed, and an approved one waits (03 P7, E-5).
+ */
+export const WORKER_OPTIONAL_DATABASE_VARIABLES = [
+  "PRIVACY_DATABASE_URL",
 ] as const satisfies readonly DatabaseUrlVariable[];
 
 export type DatabaseConnection = {
@@ -295,18 +304,22 @@ type DatabaseEnv = Partial<Record<DatabaseUrlVariable, string>> & {
  */
 function checkDatabaseVariables(
   env: DatabaseEnv,
-  read: readonly DatabaseUrlVariable[],
+  required: readonly DatabaseUrlVariable[],
   context: z.RefinementCtx,
+  optional: readonly DatabaseUrlVariable[] = [],
 ): void {
+  const read = [...required, ...optional];
   const users = new Map<string, DatabaseUrlVariable>();
   for (const variable of read) {
     const value = env[variable];
     if (value === undefined) {
-      context.addIssue({
-        code: "custom",
-        path: [variable],
-        message: "is required",
-      });
+      if (required.includes(variable)) {
+        context.addIssue({
+          code: "custom",
+          path: [variable],
+          message: "is required",
+        });
+      }
       continue;
     }
     const check = checkDatabaseUrl(value, DATABASE_URL_ROLES[variable]);
@@ -385,6 +398,7 @@ const databaseEnvShape = {
   AUTH_DATABASE_URL: optionalText,
   WORKER_DATABASE_URL: optionalText,
   OPS_DATABASE_URL: optionalText,
+  PRIVACY_DATABASE_URL: optionalText,
   RAILWAY_ENVIRONMENT_NAME: optionalText,
 };
 
@@ -714,14 +728,20 @@ export type WorkerConfig = BaseConfig & {
     apiKey: string | null;
     baseUrl: string;
   };
-  /** WORKER_DATABASE_URL (influx_worker_login) ONLY, EC-20. */
+  /**
+   * WORKER_DATABASE_URL (influx_worker_login, E-3 and E-4, EC-20) and PRIVACY_DATABASE_URL
+   * (influx_privacy_login, E-5 only, J8 commit 8): two pools, never one role for both (03 P7).
+   * `privacy` is null when unset outside production: no request is executed.
+   */
   database: {
     worker: DatabaseConnection;
+    privacy: DatabaseConnection | null;
   };
   /**
    * GoTrue of the Supabase project, with the worker's OWN secret key (skill env-secrets: one key per
-   * service), for the purge of the users without an account only (04 §9, J7 decision 3). Required
-   * in production; null elsewhere when unset, and then the purge never runs.
+   * service), for the purge of the users without an account (04 §9, J7 decision 3) and the user of
+   * an erased account (E-5, J8 commit 8) only. Required in production; null elsewhere when unset,
+   * and then neither runs (an erasure then waits, never closed).
    */
   supabase: {
     url: string;
@@ -950,8 +970,22 @@ export const workerEnvSchema = z
         message: `must not contain the ${PLACEHOLDER} placeholder`,
       });
     }
-    checkDatabaseVariables(env, WORKER_DATABASE_VARIABLES, context);
+    checkDatabaseVariables(
+      env,
+      WORKER_DATABASE_VARIABLES,
+      context,
+      WORKER_OPTIONAL_DATABASE_VARIABLES,
+    );
     const isProduction = env.INFLUX_ENV === "production";
+    // 21 §5.8, J8 commit 8: the execution of the "mes données" requests is a gate of production.
+    if (isProduction && env.PRIVACY_DATABASE_URL === undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["PRIVACY_DATABASE_URL"],
+        message:
+          "is required in production (execution of the data subject requests)",
+      });
+    }
     // 04 §9: the purge of GoTrue needs both; in production it must run (D43, 02 §18.5).
     for (const [variable, other] of [
       ["SUPABASE_URL", "SUPABASE_SECRET_KEY"],
@@ -1020,6 +1054,10 @@ export const workerEnvSchema = z
     },
     database: {
       worker: databaseConnection(env, "WORKER_DATABASE_URL"),
+      privacy:
+        env.PRIVACY_DATABASE_URL === undefined
+          ? null
+          : databaseConnection(env, "PRIVACY_DATABASE_URL"),
     },
     supabase:
       env.SUPABASE_URL !== undefined && env.SUPABASE_SECRET_KEY !== undefined

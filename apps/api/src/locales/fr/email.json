@@ -81,6 +81,17 @@
         "step3": "Signalez-le ensuite à INFLUX depuis l'aide de l'écran de connexion, en indiquant la date de la demande.",
         "never": "INFLUX ne vous demandera jamais votre code de connexion.",
         "reason": "une demande concernant vos données personnelles a été déposée depuis votre compte INFLUX"
+      },
+      "exportReady": {
+        "subject": "Votre export de données INFLUX est disponible",
+        "preheader": "À télécharger dans votre espace INFLUX, rubrique « Mes données », jusqu'au {expiresAt, date, long}.",
+        "title": "Votre export de données est prêt",
+        "available": "Le fichier des données personnelles que nous détenons sur vous est disponible dans votre espace INFLUX, rubrique « Mes données », jusqu'au {expiresAt, date, long} à {expiresAt, time, short} ({timeZone}).",
+        "howTo": "À chaque téléchargement, un code est envoyé à cette adresse pour confirmer qu'il s'agit bien de vous. Le fichier peut être téléchargé trois fois au plus ; il est ensuite effacé, et vous pouvez toujours faire une nouvelle demande.",
+        "content": "Le fichier est au format JSON : lisible, et réutilisable par une autre application. Il contient une notice qui explique, pour chaque catégorie de données, pourquoi nous la détenons et combien de temps nous la gardons.",
+        "noAttachment": "Ce fichier n'est jamais envoyé par e-mail, et cet e-mail ne contient aucun lien : connectez-vous à INFLUX comme d'habitude.",
+        "notYou": "Vous n'êtes pas à l'origine de cette demande d'export ? Elle a été confirmée par un code envoyé à cette adresse :",
+        "reason": "vous avez demandé l'export de vos données personnelles depuis votre compte INFLUX"
       }
     },
     "internal": {

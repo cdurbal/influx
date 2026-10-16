@@ -181,18 +181,26 @@ describe("T4.3: exact memberships", () => {
   });
 
   const FORBIDDEN_TARGETS: Readonly<Record<LoginRole, readonly string[]>> = {
-    influx_app: ["influx_auth", "influx_worker", "influx_ops"],
+    influx_app: [
+      "influx_auth",
+      "influx_worker",
+      "influx_ops",
+      "influx_privacy",
+    ],
     influx_auth_login: [
       "influx_worker",
       "influx_ops",
+      "influx_privacy",
       "influx_advertiser",
       "influx_creator",
       "influx_agent",
       "influx_admin",
     ],
+    // 03 P7: E-5 is never reachable from the worker's connection role
     influx_worker_login: [
       "influx_auth",
       "influx_ops",
+      "influx_privacy",
       "influx_advertiser",
       "influx_creator",
       "influx_agent",
@@ -202,12 +210,48 @@ describe("T4.3: exact memberships", () => {
     influx_ops_login: [
       "influx_auth",
       "influx_worker",
+      "influx_privacy",
+      "influx_advertiser",
+      "influx_creator",
+      "influx_agent",
+      "influx_admin",
+    ],
+    // J8 (0136): the privacy login role takes influx_privacy and nothing else.
+    influx_privacy_login: [
+      "influx_auth",
+      "influx_worker",
+      "influx_ops",
       "influx_advertiser",
       "influx_creator",
       "influx_agent",
       "influx_admin",
     ],
   };
+
+  it("never links the privacy roles to the worker's roles, in either direction (03 P7 E-5)", async () => {
+    const rows = await migration<{ line: string }[]>`
+      with recursive tree as (
+        select m.member, m.roleid from pg_catalog.pg_auth_members m
+        union
+        select t.member, m.roleid
+          from tree t join pg_catalog.pg_auth_members m on m.member = t.roleid)
+      select mem.rolname || ' -> ' || grp.rolname as line
+        from tree t
+        join pg_catalog.pg_roles mem on mem.oid = t.member
+        join pg_catalog.pg_roles grp on grp.oid = t.roleid
+       where (mem.rolname in ('influx_worker_login', 'influx_worker')
+              and grp.rolname in ('influx_privacy', 'influx_privacy_login', 'influx_privacy_definer'))
+          or (mem.rolname in ('influx_privacy', 'influx_privacy_login', 'influx_privacy_definer')
+              and grp.rolname in ('influx_worker_login', 'influx_worker'))`;
+    expect(rows).toEqual([]);
+    const [privacy] = await migration<{ member_of: string[] }[]>`
+      select coalesce(array_agg(grp.rolname order by grp.rolname), '{}') as member_of
+        from pg_catalog.pg_auth_members m
+        join pg_catalog.pg_roles mem on mem.oid = m.member
+        join pg_catalog.pg_roles grp on grp.oid = m.roleid
+       where mem.rolname = 'influx_privacy_login'`;
+    expect(privacy?.member_of).toEqual(["influx_privacy"]);
+  });
 
   it.each(LOGIN_ROLES)(
     "refuses %s every SET ROLE outside its line",
@@ -433,6 +477,34 @@ describe("T4.6 e: the pools of apps/api verify their role when they open", () =>
     opened.push(api, worker);
     await expect(verifyPools(api)).resolves.toBeUndefined();
     await expect(verifyPools(worker)).resolves.toBeUndefined();
+  });
+
+  it("accepts the worker pool with its E-5 pool, each on its own role (0136)", async () => {
+    const worker = createWorkerDatabase(
+      {
+        worker: localConnection("influx_worker_login"),
+        privacy: localConnection("influx_privacy_login"),
+      },
+      recordingLogger(),
+    );
+    opened.push(worker);
+    await expect(verifyPools(worker)).resolves.toBeUndefined();
+  });
+
+  it("refuses the worker's password on the E-5 pool (never influx_worker_login, 03 P7)", async () => {
+    const pool = new ConnectionPool(
+      {
+        url: localRoleUrl("influx_worker_login"),
+        role: "influx_privacy_login",
+        tls: false,
+      },
+      { max: 1, applicationName: "t4" },
+      recordingLogger(),
+    );
+    await expect(pool.verify()).rejects.toMatchObject({
+      reason: "unexpected_current_user",
+    });
+    await pool.close();
   });
 
   it("refuses for good a pool connected as another role", async () => {

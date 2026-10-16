@@ -19,6 +19,7 @@ import {
 } from "./domains/identity/backoffice-routes.ts";
 import { requireBackofficeSession } from "./domains/identity/backoffice-session.ts";
 import { registerBackofficeAccountRoutes } from "./domains/backoffice/accounts-routes.ts";
+import { registerDataExportRoutes } from "./domains/privacy/member/routes.ts";
 import { registerBackofficeActionRoutes } from "./domains/backoffice/actions-routes.ts";
 import { registerBackofficeInvitationRoutes } from "./domains/backoffice/invitations-routes.ts";
 import { PWNED_PASSWORDS_TIMEOUT_MS } from "./domains/identity/settings.ts";
@@ -459,6 +460,12 @@ export function buildServer(
       ? {}
       : { emailSwitch: options.identity.emailSwitch }),
   });
+  // "Mes données": the export downloaded in the member space (21 §J8 commit 8).
+  registerDataExportRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
+  });
+
   // Authentication of the backoffice (21 §4, J3 commit 10).
   registerBackofficeAuthRoutes(app, {
     database,
