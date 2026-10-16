@@ -4,7 +4,9 @@
 //   POST /v1/bo/leads/replays, POST /v1/bo/accounts/:id/corrections, GET /v1/bo/settings/apollo,
 //   POST /v1/bo/dual-control, GET /v1/bo/dual-control/:id, POST /v1/bo/dual-control/:id/confirm,
 //   POST /v1/bo/dual-control/:id/cancel, POST /v1/bo/accounts/:id/brevo-suppression/lift,
-//   GET /v1/bo/alerts.
+//   GET /v1/bo/alerts; and the reads of the screens (J8 commit 9, migration 0138): GET /v1/bo/me
+//   (J3S-6, 15 RG107), GET /v1/bo/dual-control, GET /v1/bo/internal-accounts, the B-7 sign-ins
+//   of GET /v1/bo/alerts.
 // The fixtures (agent, two admins, members, sessions, queue lines, contact states, a reconciliation
 // run) are COMMITTED by the migration role (random identifiers, disposable local stack, like TM1);
 // the queue lines are removed, the internal profiles deactivated and the Apollo scope restored
@@ -29,7 +31,7 @@ import {
   WEB_ORIGIN,
   WEB_SECRET,
 } from "../tests/helpers.ts";
-import { migrationRole } from "./support.ts";
+import { localSuperuser, migrationRole } from "./support.ts";
 
 const NIL = "00000000-0000-4000-8000-000000000000";
 
@@ -71,6 +73,8 @@ const ROUTES: readonly {
     body: { reasonCode: "member_request" },
   },
   { method: "GET", url: "/v1/bo/alerts" },
+  { method: "GET", url: "/v1/bo/dual-control" },
+  { method: "GET", url: "/v1/bo/internal-accounts" },
 ];
 
 let database: ApiDatabase;
@@ -1143,6 +1147,128 @@ describe("GET /v1/bo/alerts (05 RG104, CA62; 15 §F)", () => {
       cause: "unsubscribe_gap",
       count: 4,
     });
+  });
+});
+
+describe("reads of the screens (J8 commit 9; 15 RG107, 17b §3.13, §3.14.e, J3S-6)", () => {
+  it("GET /v1/bo/me: the factor of THIS session, and peer control with two active admins (CA71)", async () => {
+    const response = await call(app(), "GET", "/v1/bo/me", agent.session);
+    expect(response.json()).toEqual({
+      email: agent.email,
+      role: "agent",
+      secondFactor: { method: "totp" },
+      peerControlAvailable: true,
+    });
+  });
+
+  it("GET /v1/bo/dual-control: an admin lists the pending requests with their PD7 step; an agent is refused and journaled", async () => {
+    const server = app();
+    const creator = await newMember("creator");
+    const requested = await call(
+      server,
+      "POST",
+      "/v1/bo/dual-control",
+      adminA.session,
+      {
+        code: "identity.change_member_role",
+        accountId: creator.accountId,
+        legalName: "Maison Listée",
+        reasonCode: "member_request",
+      },
+    );
+    expect(requested.statusCode, requested.body).toBe(200);
+    const id = requested.json<{ id: string }>().id;
+    const listed = (
+      await call(server, "GET", "/v1/bo/dual-control", adminB.session)
+    ).json<{ requests: { id: string; next: { kind: string } }[] }>();
+    expect(listed.requests.find((request) => request.id === id)?.next).toEqual({
+      kind: "confirm_as_peer",
+    });
+    const own = (
+      await call(server, "GET", "/v1/bo/dual-control", adminA.session)
+    ).json<{ requests: { id: string; next: { kind: string } }[] }>();
+    expect(own.requests.find((request) => request.id === id)?.next).toEqual({
+      kind: "await_peer",
+    });
+    expect(
+      errorBody(
+        await call(server, "GET", "/v1/bo/dual-control", agent.session),
+      ),
+    ).toEqual({ status: 403, code: "forbidden" });
+    await call(
+      server,
+      "POST",
+      `/v1/bo/dual-control/${id}/cancel`,
+      adminA.session,
+    );
+    const after = (
+      await call(server, "GET", "/v1/bo/dual-control", adminB.session)
+    ).json<{ requests: { id: string }[] }>();
+    expect(after.requests.some((request) => request.id === id)).toBe(false);
+  });
+
+  it("GET /v1/bo/internal-accounts: the admin sees the team with the accounts each one owns; an agent is refused", async () => {
+    const server = app();
+    await newMember("creator", { owner: otherAgent.accountId });
+    const body = (
+      await call(server, "GET", "/v1/bo/internal-accounts", adminA.session)
+    ).json<{
+      accounts: {
+        id: string;
+        role: string;
+        firstName: string | null;
+        secondFactorActive: boolean;
+        active: boolean;
+        breakGlass: boolean;
+        ownedAccounts: number;
+      }[];
+    }>();
+    expect(
+      body.accounts.find((row) => row.id === otherAgent.accountId),
+    ).toMatchObject({
+      role: "agent",
+      firstName: "Camille",
+      secondFactorActive: true,
+      active: true,
+      breakGlass: false,
+      ownedAccounts: 1,
+    });
+    // the active accounts first, admins before agents
+    const active = body.accounts.filter((row) => row.active);
+    expect(body.accounts.slice(0, active.length)).toEqual(active);
+    const roles = active.map((row) => row.role);
+    expect(roles.indexOf("agent")).toBeGreaterThan(roles.lastIndexOf("admin"));
+    expect(
+      errorBody(
+        await call(server, "GET", "/v1/bo/internal-accounts", agent.session),
+      ),
+    ).toEqual({ status: 403, code: "forbidden" });
+  });
+
+  it("B-7, RG145: an agent.new_browser line reaches the admins through GET /v1/bo/alerts, never an agent", async () => {
+    const server = app();
+    await localSuperuser()`
+      select audit.append('agent.new_browser', 'account', ${otherAgent.accountId}::uuid,
+                          jsonb_build_object('session_id', gen_random_uuid(),
+                                             'browser', 'chrome.windows'))`;
+    const forAdmin = (
+      await call(server, "GET", "/v1/bo/alerts", adminA.session)
+    ).json<{
+      newBrowserSignIns: {
+        accountId: string;
+        firstName: string | null;
+        browser: string;
+      }[];
+    }>();
+    expect(
+      forAdmin.newBrowserSignIns.find(
+        (signIn) => signIn.accountId === otherAgent.accountId,
+      ),
+    ).toMatchObject({ firstName: "Camille", browser: "chrome.windows" });
+    const forAgent = (
+      await call(server, "GET", "/v1/bo/alerts", agent.session)
+    ).json<{ newBrowserSignIns: unknown[] }>();
+    expect(forAgent.newBrowserSignIns).toEqual([]);
   });
 });
 

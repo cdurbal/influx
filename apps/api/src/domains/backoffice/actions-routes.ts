@@ -12,7 +12,9 @@
 //   GET /v1/bo/dual-control/:id; POST /v1/bo/dual-control/:id/confirm (B-5: the confirmation and
 //   the action in ONE transaction with a fresh second factor, PD3); POST /v1/bo/dual-control/:id/
 //   cancel; POST /v1/bo/accounts/:id/brevo-suppression/lift (RG93, B-5).
-// - GET /v1/bo/alerts (RG104, CA62): the state alerts AL24 to AL27, for their recipients.
+// - GET /v1/bo/dual-control (J8 commit 9): the pending requests, admin only.
+// - GET /v1/bo/alerts (RG104, CA62): the state alerts AL24 to AL27, for their recipients, and the
+//   "new browser" sign-ins of B-7 for the admins (RG145, 0138).
 // Unknown, internal and own targets answer the same 404 (18 T14.3, T14.4). `Cache-Control:
 // no-store` everywhere.
 import {
@@ -24,9 +26,12 @@ import {
   dualControlCancelResponseSchema,
   dualControlConfirmResponseSchema,
   dualControlConfirmSchema,
+  dualControlListResponseSchema,
+  DUAL_CONTROL_LIST_CAP,
   dualControlParamsSchema,
   dualControlRequestSchema,
   dualControlViewSchema,
+  NEW_BROWSER_ALERT_DAYS,
   REPLAY_BATCH_CAP,
   replayRequestSchema,
   replayResponseSchema,
@@ -40,6 +45,7 @@ import {
   type CorrectionResponse,
   type DualControlConfirm,
   type DualControlConfirmResponse,
+  type DualControlListResponse,
   type DualControlParams,
   type DualControlRequestBody,
   type DualControlViewBody,
@@ -66,6 +72,8 @@ import {
   failuresPastDelay,
   lastBrevoReconciliation,
   liftBrevoSuppression,
+  newBrowserSignIns,
+  pendingDualControlIds,
   queueDelays,
   queuePolicy,
   readApolloSettings,
@@ -433,7 +441,11 @@ async function evaluateAlerts(
       ),
     );
   }
-  return { evaluatedAt: now, alerts };
+  // B-7 (05 RG145): the "new browser" sign-ins of the team, for the admins only.
+  const signIns = isAdmin
+    ? await newBrowserSignIns(tx, NEW_BROWSER_ALERT_DAYS)
+    : [];
+  return { evaluatedAt: now, alerts, newBrowserSignIns: signIns };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -588,6 +600,33 @@ export function registerBackofficeActionRoutes(
         }
         throw error;
       }
+    },
+  );
+
+  // 17b §2.7 queue 15: the actions awaiting a second validation (admin), each with its PD7 view.
+  app.get(
+    "/v1/bo/dual-control",
+    { schema: { response: { 200: dualControlListResponseSchema } } },
+    async (request, reply): Promise<DualControlListResponse> => {
+      void reply.header("cache-control", "no-store");
+      const views = unlessRefused(
+        await withBackofficeSession(database, request, reply, (tx, context) =>
+          adminOnly(tx, context, "backoffice.dual_control", async () => {
+            const found: DualControlView[] = [];
+            for (const id of await pendingDualControlIds(
+              tx,
+              DUAL_CONTROL_LIST_CAP,
+            )) {
+              const view = await dualControlView(tx, context, id);
+              if (view !== null) {
+                found.push(view);
+              }
+            }
+            return found;
+          }),
+        ),
+      );
+      return { requests: views.map(viewBody) };
     },
   );
 

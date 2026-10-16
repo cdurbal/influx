@@ -168,3 +168,39 @@ export const memberInvitationsResponseSchema = z.strictObject({
 export type MemberInvitationsResponse = z.infer<
   typeof memberInvitationsResponseSchema
 >;
+
+// ---------------------------------------------------------------------------------------------
+// Internal accounts (17b §3.13.a; 15 RG99, RG103, RG106; J8 commit 9): the list of the admin
+// ---------------------------------------------------------------------------------------------
+
+/** The internal accounts a list returns, at most (a team, never a directory). */
+export const INTERNAL_ACCOUNT_LIST_CAP = 200;
+
+/**
+ * GET /v1/bo/internal-accounts (admin): one line per person (15 RG99: a named person, never a
+ * shared account). The break-glass account is listed, never hidden (17b §3.13.b). `ownedAccounts`
+ * counts the member accounts it is responsible for (D54; the introductions and deals come with
+ * Lots 4 and 5). The last sign-in is not read at J8 (sessions are readable by their holder only).
+ */
+export const internalAccountsResponseSchema = z.strictObject({
+  accounts: z
+    .array(
+      z.strictObject({
+        id: z.uuid(),
+        firstName: z.string().nullable(),
+        email: z.email(),
+        role: internalRoleSchema,
+        secondFactorActive: z.boolean(),
+        active: z.boolean(),
+        breakGlass: z.boolean(),
+        absence: z
+          .strictObject({ from: z.iso.date(), to: z.iso.date() })
+          .nullable(),
+        ownedAccounts: z.number().int().nonnegative(),
+      }),
+    )
+    .max(INTERNAL_ACCOUNT_LIST_CAP),
+});
+export type InternalAccountsResponse = z.infer<
+  typeof internalAccountsResponseSchema
+>;

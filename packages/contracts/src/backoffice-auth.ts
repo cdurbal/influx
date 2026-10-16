@@ -238,8 +238,30 @@ export const backofficeLogoutResponseSchema = z.strictObject({
   outcome: z.literal("signed_out"),
 });
 
+/**
+ * J3S-6: the second factor that opened THIS session, read from the database at every call (the
+ * banner of 17b §3.14.a never trusts the address bar).
+ */
+export const backofficeSecondFactorSchema = z.discriminatedUnion("method", [
+  z.strictObject({ method: z.literal("totp") }),
+  z.strictObject({
+    method: z.literal("recovery_code"),
+    recoveryCodesLeft: z.number().int().min(0).max(9),
+  }),
+]);
+export type BackofficeSecondFactor = z.infer<
+  typeof backofficeSecondFactorSchema
+>;
+
 export const backofficeMeResponseSchema = z.strictObject({
   email: z.email(),
   role: internalRoleSchema,
+  secondFactor: backofficeSecondFactorSchema,
+  /**
+   * 15 RG107, CA71: false while there are not two distinct active admins (account and profile
+   * active, a pinned factor, not the break-glass account): the permanent banner of the degraded
+   * dual control. Read at every call (03 PD7: no flag, no setting).
+   */
+  peerControlAvailable: z.boolean(),
 });
 export type BackofficeMeResponse = z.infer<typeof backofficeMeResponseSchema>;

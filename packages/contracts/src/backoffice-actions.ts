@@ -17,6 +17,7 @@ import { syncDestinationSchema } from "./backoffice-accounts.ts";
 import { INTERNAL_INVITATION_REASONS } from "./backoffice-invitations.ts";
 import { uiLocaleSchema } from "./auth.ts";
 import { countryCodeSchema, declaredStatusSchema } from "./signup.ts";
+import { USER_AGENT_SUMMARY_KEY_PATTERN } from "./user-agent.ts";
 
 const commentSchema = z
   .string()
@@ -353,6 +354,16 @@ export type DualControlViewBody = z.infer<typeof dualControlViewSchema>;
 export const DEGRADED_JUSTIFICATION_MIN = 20;
 export const DEGRADED_JUSTIFICATION_MAX = 1_000;
 
+/** GET /v1/bo/dual-control: the pending requests, newest first, at most this many. */
+export const DUAL_CONTROL_LIST_CAP = 50;
+
+export const dualControlListResponseSchema = z.strictObject({
+  requests: z.array(dualControlViewSchema).max(DUAL_CONTROL_LIST_CAP),
+});
+export type DualControlListResponse = z.infer<
+  typeof dualControlListResponseSchema
+>;
+
 export const dualControlConfirmSchema = z.strictObject({
   /** Required in the degraded mode only (PD2 to PD5); the database decides which mode applies. */
   degradedJustification: z
@@ -445,8 +456,26 @@ export const alertSchema = z.strictObject({
 });
 export type Alert = z.infer<typeof alertSchema>;
 
+/** B-7 (05 RG145): how many days back the admins see the "new browser" sign-ins. */
+export const NEW_BROWSER_ALERT_DAYS = 7;
+
+/**
+ * B-7 (05 RG141, RG144, RG145; 17b §3.14.e): a backoffice sign-in from a browser not used on the
+ * account in the last 30 days. An event, not a state: listed for NEW_BROWSER_ALERT_DAYS days. The
+ * browser is a summary key ("firefox.windows"), worded by the screen; never a country (EC-43).
+ */
+export const newBrowserSignInSchema = z.strictObject({
+  accountId: z.uuid(),
+  firstName: z.string().nullable(),
+  signedInAt: z.iso.datetime(),
+  browser: z.string().regex(USER_AGENT_SUMMARY_KEY_PATTERN),
+});
+export type NewBrowserSignIn = z.infer<typeof newBrowserSignInSchema>;
+
 export const alertsResponseSchema = z.strictObject({
   evaluatedAt: z.iso.datetime(),
   alerts: z.array(alertSchema),
+  /** Admins only (RG145); always empty for an agent. 50 at most, newest first. */
+  newBrowserSignIns: z.array(newBrowserSignInSchema).max(50),
 });
 export type AlertsResponse = z.infer<typeof alertsResponseSchema>;

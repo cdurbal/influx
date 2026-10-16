@@ -263,3 +263,23 @@ export function languagePageOf(
   }
   return entry === "signIn" ? "signIn" : signupPageOf(door);
 }
+
+/** 05 RG65: the field message of the rescue channel's other address, or null. */
+export type ContactMessage = "required" | "format" | "tooLong" | "same" | null;
+
+/**
+ * 05 RG65: the answer must reach the person ANOTHER way: the contact address is checked like the
+ * sign-in one, and must differ from it (case and spaces aside). apps/api never looks either up.
+ */
+export function contactFormMessage(
+  loginEmail: string,
+  contactEmail: string,
+): ContactMessage {
+  const shape = emailFormMessage(contactEmail);
+  if (shape === "required" || shape === "format" || shape === "tooLong") {
+    return shape;
+  }
+  return contactEmail.trim().toLowerCase() === loginEmail.trim().toLowerCase()
+    ? "same"
+    : null;
+}

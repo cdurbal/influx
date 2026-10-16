@@ -465,6 +465,8 @@ describe("B-2, MFA-2, MFA-3, G-1: enrollment in two requests", () => {
     expect(profileResponse.json()).toEqual({
       email: account.email,
       role: "agent",
+      secondFactor: { method: "totp" },
+      peerControlAvailable: expect.any(Boolean),
     });
 
     watched.push({
@@ -599,6 +601,8 @@ describe("J3-C rule 4, EC-39: sign-in in one request, directly in aal2", () => {
     expect(await auditOf(account.accountId)).toContain(
       "elevated.identity.backoffice_sign_in",
     );
+    // B-7 (RG141): the browser of the enrollment session is known, nothing is signalled.
+    expect(await auditOf(account.accountId)).not.toContain("agent.new_browser");
     expect(await gotrueSessionsOf(account.authUserId)).toBe(0);
 
     // EC-39, T8.10: GoTrue accepts the same code again; INFLUX refuses it for 120 s.
@@ -616,6 +620,35 @@ describe("J3-C rule 4, EC-39: sign-in in one request, directly in aal2", () => {
       text: logs.text,
       values: [account.password, code, enrolled.secret, sessionOf(response)],
     });
+  });
+
+  it("B-7, RG145: a sign-in from a browser unseen for 30 days writes agent.new_browser for the admins, nothing else", async () => {
+    const { server } = app();
+    const account = await newInternal("new-browser", { role: "admin" });
+    const enrolled = await enroll(server, account);
+    const response = await server.inject({
+      method: "POST",
+      url: "/v1/bo/auth/login",
+      headers: headers(newClientAddress(), {
+        "content-type": "application/json",
+        "client-user-agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0 Safari/537.36",
+      }),
+      payload: {
+        email: account.email,
+        password: account.password,
+        totpCode: totpCode(enrolled.secret, new Date(), 1),
+      },
+    });
+    expect(response.json()).toMatchObject({ outcome: "signed_in" });
+    const lines = await migrationRole()<{ payload: Record<string, unknown> }[]>`
+      select payload from audit.audit_events
+       where subject_id = ${account.accountId}::uuid and event_type = 'agent.new_browser'`;
+    expect(lines.map((line) => line.payload.browser)).toEqual([
+      "chrome.windows",
+    ]);
+    // never a suspension: the session is open and usable
+    expect((await me(server, sessionOf(response))).statusCode).toBe(200);
   });
 
   it("MFA-3, MFA-4, EC-44, T8.11: a recovery code opens one session, alerts, and never serves twice", async () => {
@@ -646,6 +679,10 @@ describe("J3-C rule 4, EC-39: sign-in in one request, directly in aal2", () => {
       "agent.recovery_code_consumed",
     );
     expect(logs.text()).toContain("security.recovery_code_consumed");
+    // J3S-6: the banner is derived from GET /v1/bo/me, never from the address bar.
+    expect((await me(server, sessionOf(response))).json()).toMatchObject({
+      secondFactor: { method: "recovery_code", recoveryCodesLeft: 9 },
+    });
     // EC-44 (J6): one alert per active admin, keyed by the audit line and the recipient.
     const seq = await auditSeqOf(
       account.accountId,

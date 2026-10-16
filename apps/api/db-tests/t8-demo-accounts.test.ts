@@ -356,7 +356,12 @@ describe("J3 « Terminé quand »: the four demo accounts reach their own space"
       url: "/v1/bo/me",
       headers: boHeaders(`__Host-influx-ops-session=${session}`),
     });
-    expect(me.json()).toEqual({ email: account.email, role: account.role });
+    expect(me.json()).toEqual({
+      email: account.email,
+      role: account.role,
+      secondFactor: { method: "totp" },
+      peerControlAvailable: expect.any(Boolean),
+    });
     return [secret, firstCode, nextCode, session];
   }
 

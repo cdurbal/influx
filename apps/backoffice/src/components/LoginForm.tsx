@@ -94,11 +94,8 @@ export function LoginForm() {
           : { kind: "totp", code: code.trim() },
       );
       if (result.kind === "ok" && result.data.outcome === "signed_in") {
-        router.replace(
-          result.data.mfaMethod === "recovery_code"
-            ? `/accueil?secours=${result.data.recoveryCodesLeft}`
-            : "/accueil",
-        );
+        // J3S-6: the recovery banner is read from GET /v1/bo/me, never from the address bar.
+        router.replace("/accueil");
         return;
       }
       // Rule 5: the outage message only when apps/api says nothing was checked. A relay or

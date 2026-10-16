@@ -5,6 +5,7 @@ import {
   announcedSeconds,
   codeDigitsOf,
   codeFormMessage,
+  contactFormMessage,
   emailFormMessage,
   requestMessage,
   verifyStepOf,
@@ -142,5 +143,18 @@ describe("member paths (17 §2.6; 21 EC-15)", () => {
     expect(signupPageOf(null)).toBe("signupDoors");
     expect(signupPageOf("advertiser")).toBe("signupAdvertiser");
     expect(signupPageOf("creator")).toBe("signupCreator");
+  });
+});
+
+describe("contactFormMessage (05 RG65; 17 §3.3)", () => {
+  it("asks for another valid address than the one that receives no code", () => {
+    expect(contactFormMessage("me@example.com", "")).toBe("required");
+    expect(contactFormMessage("me@example.com", "other@")).toBe("format");
+    expect(contactFormMessage("me@example.com", " ME@Example.com ")).toBe(
+      "same",
+    );
+    expect(
+      contactFormMessage("me@example.com", "other@example.org"),
+    ).toBeNull();
   });
 });

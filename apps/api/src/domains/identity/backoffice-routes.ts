@@ -48,7 +48,12 @@ import {
   type BackofficeAuthDependencies,
   type BackofficeAuthRequest,
 } from "./backoffice-sign-in.ts";
-import { ownProfile, revokeOwnSession } from "./repository.ts";
+import {
+  backofficeSessionState,
+  ownProfile,
+  peerControlAvailable,
+  revokeOwnSession,
+} from "./repository.ts";
 import type { IdentityApp } from "./routes.ts";
 import { BACKOFFICE_AUTH_FLOOR_MS } from "./settings.ts";
 
@@ -242,7 +247,8 @@ export function registerBackofficeAuthRoutes(
     },
   );
 
-  // GET /v1/bo/me: the first backoffice answer that carries personal data.
+  // GET /v1/bo/me: the first backoffice answer that carries personal data. J3S-6: the second
+  // factor of THIS session (the recovery banner); 15 RG107: whether peer control exists.
   app.get(
     "/v1/bo/me",
     { schema: { response: { 200: backofficeMeResponseSchema } } },
@@ -254,10 +260,19 @@ export function registerBackofficeAuthRoutes(
         reply,
         async (tx, context) => {
           const profile = await ownProfile(tx);
-          if (profile === null) {
+          const secondFactor = await backofficeSessionState(
+            tx,
+            context.sessionId,
+          );
+          if (profile === null || secondFactor === null) {
             throw new ApiError("unauthenticated");
           }
-          return { email: profile.email, role: context.role };
+          return {
+            email: profile.email,
+            role: context.role,
+            secondFactor,
+            peerControlAvailable: await peerControlAvailable(tx),
+          };
         },
       );
     },

@@ -20,6 +20,10 @@ import {
   type SignupBodyInput,
   type SignupResponse,
 } from "@influx/contracts/signup";
+import {
+  codeNotReceivedResponseSchema,
+  type CodeNotReceivedResponse,
+} from "@influx/contracts/support";
 import { callRelay, type RelayResult } from "@/browser/relay-client";
 
 export function requestCode(
@@ -69,4 +73,24 @@ export function readMe(): Promise<RelayResult<MeResponse>> {
 
 export function signOut(): Promise<RelayResult<{ outcome: "signed_out" }>> {
   return callRelay("POST", "/v1/auth/logout", logoutResponseSchema);
+}
+
+/** 05 RG65: the rescue channel without sign-in; never a code, never a session (one answer). */
+export function reportCodeNotReceived(
+  loginEmail: string,
+  contactEmail: string,
+  message: string,
+  locale: UiLocale,
+): Promise<RelayResult<CodeNotReceivedResponse>> {
+  return callRelay(
+    "POST",
+    "/v1/support/code-not-received",
+    codeNotReceivedResponseSchema,
+    {
+      loginEmail,
+      contactEmail,
+      ...(message === "" ? {} : { message }),
+      locale,
+    },
+  );
 }

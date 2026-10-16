@@ -1754,7 +1754,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|column|identity.accounts.display_name|INSERT",
   "influx_identity_definer|column|identity.accounts.owner_agent_id|SELECT,UPDATE",
   "influx_identity_definer|column|identity.accounts.signup_invitation_id|SELECT,UPDATE",
-  "influx_identity_definer|column|identity.agent_profiles.first_name|INSERT",
+  "influx_identity_definer|column|identity.agent_profiles.first_name|INSERT,SELECT",
   "influx_identity_definer|column|identity.agent_profiles.invited_at|INSERT",
   "influx_identity_definer|column|identity.agent_profiles.invited_by_account_id|INSERT",
   "influx_identity_definer|column|identity.internal_invitations.accepted_at|SELECT,UPDATE",
@@ -2099,6 +2099,16 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_privacy|schema|privacy|USAGE",
   "influx_worker|function|leads.read_brevo_erasure_subject(bigint,text)|EXECUTE",
   "influx_worker|function|ops.purge_data_exports(uuid,smallint,integer)|EXECUTE",
+  // 0138 (J8 commit 9: the reads of the backoffice screens): the factor of the caller's own
+  // session (J3S-6), the "new browser" signal of a backoffice sign-in (B-7, influx_auth only) and
+  // its list for the admins; the first name of the agent profiles for that list.
+  "influx_agent|function|identity.backoffice_session_state(uuid)|EXECUTE",
+  "influx_admin|function|identity.backoffice_session_state(uuid)|EXECUTE",
+  "influx_identity_definer|function|identity.backoffice_session_state(uuid)|EXECUTE",
+  "influx_auth|function|identity.signal_new_backoffice_browser(uuid)|EXECUTE",
+  "influx_identity_definer|function|identity.signal_new_backoffice_browser(uuid)|EXECUTE",
+  "influx_admin|function|backoffice.new_browser_sign_ins(integer)|EXECUTE",
+  "influx_identity_definer|function|backoffice.new_browser_sign_ins(integer)|EXECUTE",
 ];
 
 /**
@@ -2311,4 +2321,8 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
     "influx_identity_definer",
   "privacy.read_own_export()": "influx_identity_definer",
   "privacy.download_own_export(uuid,uuid)": "influx_identity_definer",
+  // 0138 (J8 commit 9: the reads of the backoffice screens, B-7, J3S-6)
+  "identity.backoffice_session_state(uuid)": "influx_identity_definer",
+  "identity.signal_new_backoffice_browser(uuid)": "influx_identity_definer",
+  "backoffice.new_browser_sign_ins(integer)": "influx_identity_definer",
 };

@@ -4,7 +4,8 @@
 // Six boxes drawn, ONE field: the real input lies over the boxes, so that the code offered by the
 // system or pasted fills them at once, and a screen reader hears one field. The sixth digit sends
 // the code; the button stays, for the keyboard and for screen readers. The matching phrase sits
-// ABOVE the field (RG48), so that a forged page is seen before typing.
+// ABOVE the field (RG48), so that a forged page is seen before typing. "Je ne reçois pas le code"
+// opens the panel of 17 §3.3 in the page, with the rescue channel of 05 RG65.
 import { RESEND_DELAY_SECONDS, type SignupDoor } from "@influx/contracts/auth";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
@@ -31,6 +32,7 @@ import {
   type VerifyStep,
 } from "./auth-steps";
 import { RequiredMark, StepTitle } from "./AuthScreen";
+import { CodeNotReceived } from "./CodeNotReceived";
 import { requestCode, verifyCode } from "./member-auth";
 
 const CODE_LENGTH = 6;
@@ -279,7 +281,11 @@ export function CodeStep({
         {t("step2.notReceived.label")}
       </button>
       {showChecklist ? (
-        <p className={HELP_CLASSES}>{t("step2.notReceived.checklist")}</p>
+        <CodeNotReceived
+          email={email}
+          online={online}
+          onChangeEmail={onChangeEmail}
+        />
       ) : null}
     </>
   );

@@ -268,7 +268,70 @@ export async function signalNewBrowser(
   return rows[0]?.queued === true;
 }
 
+/**
+ * 05 RG141, RG145, B-7 (0138): on the backoffice session this transaction just opened, writes
+ * agent.new_browser for the admins unless the browser is known or the session is the account's
+ * first; true when a line was written. Never blocks the sign-in.
+ */
+export async function signalNewBackofficeBrowser(
+  tx: Transaction,
+  sessionId: string,
+): Promise<boolean> {
+  const rows = await tx.execute<{ signalled: boolean }>(
+    sql`select identity.signal_new_backoffice_browser(${sessionId}::uuid) as signalled`,
+  );
+  return rows[0]?.signalled === true;
+}
+
 // --- Under the member's own role (withUserTransaction) -----------------------------------------
+
+/**
+ * 15 RG107, CA71: whether two distinct admins can confirm each other — active account and profile,
+ * a pinned TOTP factor, not the break-glass account: the condition of backoffice
+ * peerAdminExists(), counted over the team. Agent and admin read it (policies of 0004 in aal2).
+ */
+export async function peerControlAvailable(tx: Transaction): Promise<boolean> {
+  const rows = await tx.execute<{ admins: number }>(
+    sql`select count(*)::int as admins
+          from identity.accounts a
+          join identity.account_roles r  on r.account_id = a.id and r.role = 'admin'
+          join identity.agent_profiles p on p.account_id = a.id
+         where a.status = 'active'
+           and p.is_active
+           and not p.is_break_glass
+           and p.mfa_factor_id is not null`,
+  );
+  return (rows[0]?.admins ?? 0) >= 2;
+}
+
+/** J3S-6 (0138): the second factor that opened the caller's own backoffice session. */
+export async function backofficeSessionState(
+  tx: Transaction,
+  sessionId: string,
+): Promise<
+  | { method: "totp" }
+  | { method: "recovery_code"; recoveryCodesLeft: number }
+  | null
+> {
+  const rows = await tx.execute<{
+    mfa_method: string | null;
+    recovery_codes_left: number | null;
+  }>(
+    sql`select mfa_method, recovery_codes_left
+          from identity.backoffice_session_state(${sessionId}::uuid)`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    return null;
+  }
+  if (row.mfa_method === "recovery_code") {
+    return {
+      method: "recovery_code",
+      recoveryCodesLeft: Math.min(9, row.recovery_codes_left ?? 0),
+    };
+  }
+  return row.mfa_method === "totp" ? { method: "totp" } : null;
+}
 
 /** Sliding renewal (EC-29 point 2): true when the database wrote a new expiry. */
 export async function touchSession(

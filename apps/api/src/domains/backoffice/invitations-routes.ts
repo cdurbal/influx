@@ -12,8 +12,12 @@
 //   every one for an admin, EC-J8-31); POST /v1/bo/member-invitations/:id/revoke (its author or an
 //   admin). The link is copied by the agent: no e-mail from INFLUX (EC-J8-3, D35).
 // The link is in the creation answer only: the secret is never stored (SHA-256) nor logged.
+// - GET /v1/bo/internal-accounts (J8 commit 9, 17b §3.13.a): the team, admin only, the break-glass
+//   account listed (never hidden), the member accounts each one is responsible for.
 // `Cache-Control: no-store` everywhere. Unknown and ended targets answer 404.
 import {
+  INTERNAL_ACCOUNT_LIST_CAP,
+  internalAccountsResponseSchema,
   INVITATION_LIST_CAP,
   internalInvitationCreatedSchema,
   internalInvitationRequestSchema,
@@ -24,6 +28,7 @@ import {
   memberInvitationCreatedSchema,
   memberInvitationRequestSchema,
   memberInvitationsResponseSchema,
+  type InternalAccountsResponse,
   type InternalInvitationCreated,
   type InternalInvitationRequest,
   type InternalInvitationsResponse,
@@ -52,6 +57,7 @@ import {
 import {
   createInternalInvitation,
   createMemberInvitation,
+  internalAccounts,
   internalInvitations,
   memberInvitations,
   revokeInternalInvitation,
@@ -142,6 +148,22 @@ export function registerBackofficeInvitationRoutes(
         ),
       );
       return { invitations: rows };
+    },
+  );
+
+  app.get(
+    "/v1/bo/internal-accounts",
+    { schema: { response: { 200: internalAccountsResponseSchema } } },
+    async (request, reply): Promise<InternalAccountsResponse> => {
+      void reply.header("cache-control", "no-store");
+      const rows = unlessRefused(
+        await withBackofficeSession(database, request, reply, (tx, context) =>
+          adminOnly(tx, context, "identity.internal_invitation", () =>
+            internalAccounts(tx, INTERNAL_ACCOUNT_LIST_CAP),
+          ),
+        ),
+      );
+      return { accounts: rows };
     },
   );
 

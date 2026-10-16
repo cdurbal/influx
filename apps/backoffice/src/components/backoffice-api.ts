@@ -1,0 +1,274 @@
+// Calls of the backoffice v0 screens (docs/mvp/17b §2, §3.11 to §3.13; 05 §K; 21 §J8 commit 9),
+// through the same-origin relay and read with the schemas of packages/contracts. No rule lives here:
+// apps/api and the database decide (roles, R, 2V, caps), the screens display what they answer.
+import {
+  accountCountersResponseSchema,
+  accountDetailResponseSchema,
+  accountsResponseSchema,
+  type AccountCountersResponse,
+  type AccountDetailResponse,
+  type AccountsResponse,
+} from "@influx/contracts/backoffice-accounts";
+import {
+  alertsResponseSchema,
+  apolloSettingsResponseSchema,
+  correctionResponseSchema,
+  dualControlCancelResponseSchema,
+  dualControlConfirmResponseSchema,
+  dualControlListResponseSchema,
+  dualControlViewSchema,
+  replayResponseSchema,
+  suppressionLiftResponseSchema,
+  type AlertsResponse,
+  type ApolloSettingsResponse,
+  type CorrectionRequest,
+  type CorrectionResponse,
+  type DualControlConfirmResponse,
+  type DualControlListResponse,
+  type DualControlRequestBody,
+  type DualControlViewBody,
+  type ReplayRequest,
+  type ReplayResponse,
+  type SuppressionLiftRequest,
+  type SuppressionLiftResponse,
+} from "@influx/contracts/backoffice-actions";
+import {
+  backofficeReauthenticateResponseSchema,
+  type BackofficeReauthenticateResponse,
+} from "@influx/contracts/backoffice-auth";
+import {
+  internalAccountsResponseSchema,
+  internalInvitationCreatedSchema,
+  internalInvitationsResponseSchema,
+  invitationRevokeResponseSchema,
+  memberInvitationCreatedSchema,
+  memberInvitationsResponseSchema,
+  type InternalAccountsResponse,
+  type InternalInvitationCreated,
+  type InternalInvitationRequest,
+  type InternalInvitationsResponse,
+  type MemberInvitationCreated,
+  type MemberInvitationRequest,
+  type MemberInvitationsResponse,
+} from "@influx/contracts/backoffice-invitations";
+import { callRelay, type RelayResult } from "@/browser/relay-client";
+
+/** A path segment from a server-issued id: a UUID, or nothing is called. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function idSegment(id: string): string {
+  if (!UUID.test(id)) {
+    throw new Error("identifier outside the UUID shape");
+  }
+  return id.toLowerCase();
+}
+
+// --- Accounts (05 RG97 to RG100, RG105) ------------------------------------------------------
+
+export function readAccounts(
+  query: Readonly<Record<string, string>>,
+): Promise<RelayResult<AccountsResponse>> {
+  return callRelay(
+    "GET",
+    "/v1/bo/accounts",
+    accountsResponseSchema,
+    undefined,
+    query,
+  );
+}
+
+export function readAccount(
+  id: string,
+  historyBefore: number | null,
+): Promise<RelayResult<AccountDetailResponse>> {
+  return callRelay(
+    "GET",
+    `/v1/bo/accounts/${idSegment(id)}`,
+    accountDetailResponseSchema,
+    undefined,
+    historyBefore === null
+      ? undefined
+      : { historyBefore: String(historyBefore) },
+  );
+}
+
+export function readCounters(): Promise<RelayResult<AccountCountersResponse>> {
+  return callRelay(
+    "GET",
+    "/v1/bo/accounts/counters",
+    accountCountersResponseSchema,
+  );
+}
+
+export function readAlerts(): Promise<RelayResult<AlertsResponse>> {
+  return callRelay("GET", "/v1/bo/alerts", alertsResponseSchema);
+}
+
+// --- Actions (05 RG81, RG93, RG101 to RG103, RG108) -------------------------------------------
+
+export function replay(
+  body: ReplayRequest,
+): Promise<RelayResult<ReplayResponse>> {
+  return callRelay("POST", "/v1/bo/leads/replays", replayResponseSchema, body);
+}
+
+export function correctAccount(
+  id: string,
+  body: CorrectionRequest,
+): Promise<RelayResult<CorrectionResponse>> {
+  return callRelay(
+    "POST",
+    `/v1/bo/accounts/${idSegment(id)}/corrections`,
+    correctionResponseSchema,
+    body,
+  );
+}
+
+export function liftSuppression(
+  id: string,
+  body: SuppressionLiftRequest,
+): Promise<RelayResult<SuppressionLiftResponse>> {
+  return callRelay(
+    "POST",
+    `/v1/bo/accounts/${idSegment(id)}/brevo-suppression/lift`,
+    suppressionLiftResponseSchema,
+    body,
+  );
+}
+
+export function readApolloSettings(): Promise<
+  RelayResult<ApolloSettingsResponse>
+> {
+  return callRelay(
+    "GET",
+    "/v1/bo/settings/apollo",
+    apolloSettingsResponseSchema,
+  );
+}
+
+// --- Dual control (03 PD1 to PD7; 17b §3.13.c) -----------------------------------------------
+
+export function requestDualControl(
+  body: DualControlRequestBody,
+): Promise<RelayResult<DualControlViewBody>> {
+  return callRelay("POST", "/v1/bo/dual-control", dualControlViewSchema, body);
+}
+
+export function readDualControls(): Promise<
+  RelayResult<DualControlListResponse>
+> {
+  return callRelay("GET", "/v1/bo/dual-control", dualControlListResponseSchema);
+}
+
+export function readDualControl(
+  id: string,
+): Promise<RelayResult<DualControlViewBody>> {
+  return callRelay(
+    "GET",
+    `/v1/bo/dual-control/${idSegment(id)}`,
+    dualControlViewSchema,
+  );
+}
+
+export function confirmDualControl(
+  id: string,
+  degradedJustification: string | null,
+): Promise<RelayResult<DualControlConfirmResponse>> {
+  return callRelay(
+    "POST",
+    `/v1/bo/dual-control/${idSegment(id)}/confirm`,
+    dualControlConfirmResponseSchema,
+    { degradedJustification },
+  );
+}
+
+export function cancelDualControl(
+  id: string,
+): Promise<RelayResult<{ cancelled: true }>> {
+  return callRelay(
+    "POST",
+    `/v1/bo/dual-control/${idSegment(id)}/cancel`,
+    dualControlCancelResponseSchema,
+  );
+}
+
+// --- R (B-5; 17b §3.14.d) ----------------------------------------------------------------------
+
+export function reauthenticate(
+  password: string,
+  code: string,
+): Promise<RelayResult<BackofficeReauthenticateResponse>> {
+  return callRelay(
+    "POST",
+    "/v1/bo/auth/reauthenticate",
+    backofficeReauthenticateResponseSchema,
+    { password, code },
+  );
+}
+
+// --- Team and invitations (15 RG99; 05 RG116 to RG119) ----------------------------------------
+
+export function readInternalAccounts(): Promise<
+  RelayResult<InternalAccountsResponse>
+> {
+  return callRelay(
+    "GET",
+    "/v1/bo/internal-accounts",
+    internalAccountsResponseSchema,
+  );
+}
+
+export function readInternalInvitations(): Promise<
+  RelayResult<InternalInvitationsResponse>
+> {
+  return callRelay(
+    "GET",
+    "/v1/bo/internal-invitations",
+    internalInvitationsResponseSchema,
+  );
+}
+
+export function createInternalInvitation(
+  body: InternalInvitationRequest,
+): Promise<RelayResult<InternalInvitationCreated>> {
+  return callRelay(
+    "POST",
+    "/v1/bo/internal-invitations",
+    internalInvitationCreatedSchema,
+    body,
+  );
+}
+
+export function readMemberInvitations(): Promise<
+  RelayResult<MemberInvitationsResponse>
+> {
+  return callRelay(
+    "GET",
+    "/v1/bo/member-invitations",
+    memberInvitationsResponseSchema,
+  );
+}
+
+export function createMemberInvitation(
+  body: MemberInvitationRequest,
+): Promise<RelayResult<MemberInvitationCreated>> {
+  return callRelay(
+    "POST",
+    "/v1/bo/member-invitations",
+    memberInvitationCreatedSchema,
+    body,
+  );
+}
+
+export function revokeInvitation(
+  kind: "internal" | "member",
+  id: string,
+  reasonCode: string,
+): Promise<RelayResult<{ revoked: true }>> {
+  return callRelay(
+    "POST",
+    `/v1/bo/${kind === "internal" ? "internal" : "member"}-invitations/${idSegment(id)}/revoke`,
+    invitationRevokeResponseSchema,
+    { reasonCode },
+  );
+}

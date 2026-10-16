@@ -1671,3 +1671,111 @@ export async function memberInvitations(
     accountId: row.account_id,
   }));
 }
+
+// --- Screens of J8 commit 9 (17b §3.13, §3.14.e; 0138) ----------------------------------------------
+
+export type InternalAccountRow = {
+  id: string;
+  firstName: string | null;
+  email: string;
+  role: "agent" | "admin";
+  secondFactorActive: boolean;
+  active: boolean;
+  breakGlass: boolean;
+  absence: { from: string; to: string } | null;
+  ownedAccounts: number;
+};
+
+/**
+ * 17b §3.13.a: the internal accounts — the active ones first, admins before agents, then by first
+ * name — capped (admin, aal2). A deactivated account stays listed: its past actions keep its name.
+ */
+export async function internalAccounts(
+  tx: Transaction,
+  limit: number,
+): Promise<InternalAccountRow[]> {
+  const rows = await tx.execute<{
+    id: string;
+    first_name: string | null;
+    email: string;
+    role: "agent" | "admin";
+    second_factor: boolean;
+    active: boolean;
+    break_glass: boolean;
+    absence_from: string | null;
+    absence_to: string | null;
+    owned: number;
+  }>(sql`
+    select a.id::text, p.first_name, a.email::text as email, r.role::text as role,
+           p.mfa_factor_id is not null as second_factor,
+           a.status = 'active' and p.is_active as active,
+           p.is_break_glass as break_glass,
+           to_char(p.absence_from, 'YYYY-MM-DD') as absence_from,
+           to_char(p.absence_to, 'YYYY-MM-DD') as absence_to,
+           (select count(*)::int from identity.accounts m where m.owner_agent_id = a.id) as owned
+      from identity.accounts a
+      join identity.account_roles r  on r.account_id = a.id and r.role in ('agent', 'admin')
+      join identity.agent_profiles p on p.account_id = a.id
+     order by (a.status = 'active' and p.is_active) desc, (r.role = 'admin') desc,
+              p.first_name nulls last, a.id
+     limit ${limit}`);
+  return rows.map((row) => ({
+    id: row.id,
+    firstName: row.first_name,
+    email: row.email,
+    role: row.role,
+    secondFactorActive: row.second_factor,
+    active: row.active,
+    breakGlass: row.break_glass,
+    absence:
+      row.absence_from !== null && row.absence_to !== null
+        ? { from: row.absence_from, to: row.absence_to }
+        : null,
+    ownedAccounts: row.owned,
+  }));
+}
+
+/** The pending, unexpired 2V requests, newest first (admin, aal2). */
+export async function pendingDualControlIds(
+  tx: Transaction,
+  limit: number,
+): Promise<string[]> {
+  const rows = await tx.execute<{ id: string }>(
+    sql`select r.id::text as id
+          from backoffice.dual_control_requests r
+         where r.state = 'pending' and r.expires_at > now()
+         order by r.requested_at desc, r.id
+         limit ${limit}`,
+  );
+  return rows.map((row) => row.id);
+}
+
+export type NewBrowserSignInRow = {
+  accountId: string;
+  firstName: string | null;
+  signedInAt: string;
+  browser: string;
+};
+
+/** B-7 (0138 backoffice.new_browser_sign_ins, admin only): the signals of the last `days` days. */
+export async function newBrowserSignIns(
+  tx: Transaction,
+  days: number,
+): Promise<NewBrowserSignInRow[]> {
+  const rows = await tx.execute<{
+    account_id: string;
+    first_name: string | null;
+    signed_in_at: string;
+    browser: string;
+  }>(
+    sql`select s.account_id::text as account_id, s.first_name,
+               to_char(s.occurred_at at time zone 'UTC', ${ISO_UTC}) as signed_in_at, s.browser
+          from backoffice.new_browser_sign_ins(${days}) s`,
+  );
+  return rows.map((row) => ({
+    accountId: row.account_id,
+    firstName: row.first_name,
+    signedInAt: row.signed_in_at,
+    browser: row.browser,
+  }));
+}

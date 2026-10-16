@@ -65,6 +65,7 @@ import {
   renewSecondFactorProof,
   reserveAuthAttempt,
   revokeAfterFailedReauthentication,
+  signalNewBackofficeBrowser,
   signInAccountOf,
   sqlStateOf,
   type ReauthenticationSession,
@@ -457,12 +458,14 @@ export async function signInToBackoffice(
             recoveryCodesLeft,
           });
         }
-        await insertBackofficeSession(tx, {
+        const sessionId = await insertBackofficeSession(tx, {
           tokenHash: hash,
           accountId: account.id,
           mfaMethod: recoveryCodesLeft === null ? "totp" : "recovery_code",
           userAgentSummary: request.browser,
         });
+        // B-7 (05 RG145, 0138): a browser unseen for 30 days alerts the admins; never a block.
+        await signalNewBackofficeBrowser(tx, sessionId);
         if (account.isBreakGlass) {
           // MFA-10, EC-44 (1): every sign-in of the break-glass account.
           alerts.unshift({
