@@ -5,9 +5,9 @@
 // confirmed on the distinct screen of the dual control (PD2), where the value is shown again. An
 // empty list of countries is an abstention, never a send by default (RG84): the screen says so.
 import {
-  APOLLO_LEGAL_BASES,
-  APOLLO_SCOPES,
-  APOLLO_SETTING_REASONS,
+  PROSPECTING_LEGAL_BASES,
+  PROSPECTING_SCOPES,
+  PROSPECTING_SETTING_REASONS,
   type ApolloSetting,
   type ApolloSettingsResponse,
 } from "@influx/contracts/backoffice-actions";
@@ -43,7 +43,7 @@ import {
 } from "./view-model";
 
 const t = messages.apollo;
-type Reason = (typeof APOLLO_SETTING_REASONS)[number];
+type Reason = (typeof PROSPECTING_SETTING_REASONS)[number];
 type Row = ApolloSettingsResponse["settings"][number];
 
 function ReasonSelect({
@@ -67,7 +67,7 @@ function ReasonSelect({
         className={SELECT_CLASSES}
       >
         <option value="">{messages.common.reasonPlaceholder}</option>
-        {APOLLO_SETTING_REASONS.map((code) => (
+        {PROSPECTING_SETTING_REASONS.map((code) => (
           <option key={code} value={code}>
             {t.reasons[code]}
           </option>
@@ -113,7 +113,7 @@ function SettingForm({ row }: { row: Row }) {
       case "apollo_scope":
         return {
           key: "apollo_scope",
-          value: scope as (typeof APOLLO_SCOPES)[number],
+          value: scope as (typeof PROSPECTING_SCOPES)[number],
         };
       case "apollo_prospecting_countries": {
         const parsed = parseCountryList(countries);
@@ -131,7 +131,7 @@ function SettingForm({ row }: { row: Row }) {
           : {
               key: "apollo_legal_basis",
               value: {
-                default: basis as (typeof APOLLO_LEGAL_BASES)[number],
+                default: basis as (typeof PROSPECTING_LEGAL_BASES)[number],
                 byCountry: entries.map((entry) => ({
                   countryCode: entry.countryCode as CountryCode,
                   basis: entry.basis,
@@ -196,7 +196,7 @@ function SettingForm({ row }: { row: Row }) {
               onChange={(event) => setScope(event.target.value)}
               className={SELECT_CLASSES}
             >
-              {APOLLO_SCOPES.map((code) => (
+              {PROSPECTING_SCOPES.map((code) => (
                 <option key={code} value={code}>
                   {t.scopes[code]}
                 </option>
@@ -215,7 +215,7 @@ function SettingForm({ row }: { row: Row }) {
               onChange={(event) => setBasis(event.target.value)}
               className={SELECT_CLASSES}
             >
-              {APOLLO_LEGAL_BASES.map((code) => (
+              {PROSPECTING_LEGAL_BASES.map((code) => (
                 <option key={code} value={code}>
                   {t.legalBases[code]}
                 </option>

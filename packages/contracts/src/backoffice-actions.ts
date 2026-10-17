@@ -135,18 +135,20 @@ export type CorrectionResponse = z.infer<typeof correctionResponseSchema>;
 // ---------------------------------------------------------------------------------------------
 // Apollo settings (05 RG81, RG83, RG84)
 // ---------------------------------------------------------------------------------------------
+// The exported names never start with APOLLO_: the backoffice ships them to the browser, where T11
+// (@influx/test-kit/artifacts) forbids every server variable prefix, APOLLO_ included.
 
-export const APOLLO_SCOPES = [
+export const PROSPECTING_SCOPES = [
   "annonceurs_seuls",
   "annonceurs_et_createurs_pro",
   "tous_les_inscrits",
 ] as const;
-export const APOLLO_LEGAL_BASES = [
+export const PROSPECTING_LEGAL_BASES = [
   "consentement_requis",
   "interet_legitime_avec_opposition",
 ] as const;
 
-const legalBasisSchema = z.enum(APOLLO_LEGAL_BASES);
+const legalBasisSchema = z.enum(PROSPECTING_LEGAL_BASES);
 
 /**
  * One Apollo key and its value (0103). The legal basis by country is a list here, a JSON object in
@@ -156,7 +158,7 @@ const legalBasisSchema = z.enum(APOLLO_LEGAL_BASES);
 export const apolloSettingSchema = z.discriminatedUnion("key", [
   z.strictObject({
     key: z.literal("apollo_scope"),
-    value: z.enum(APOLLO_SCOPES),
+    value: z.enum(PROSPECTING_SCOPES),
   }),
   z.strictObject({
     key: z.literal("apollo_prospecting_countries"),
@@ -187,7 +189,7 @@ export const apolloSettingSchema = z.discriminatedUnion("key", [
 export type ApolloSetting = z.infer<typeof apolloSettingSchema>;
 
 /** The reasons of a change of an Apollo key (0134 backoffice.change_apollo_setting). */
-export const APOLLO_SETTING_REASONS = [
+export const PROSPECTING_SETTING_REASONS = [
   "founder_decision",
   "legal_validation",
   "legal_restriction",
@@ -245,7 +247,7 @@ export const dualControlRequestSchema = z.discriminatedUnion("code", [
   z.strictObject({
     code: z.literal("leads.change_apollo_setting"),
     setting: apolloSettingSchema,
-    reasonCode: z.enum(APOLLO_SETTING_REASONS),
+    reasonCode: z.enum(PROSPECTING_SETTING_REASONS),
     reasonNote: commentSchema.optional(),
   }),
   z.strictObject({

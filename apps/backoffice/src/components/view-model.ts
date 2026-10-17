@@ -7,7 +7,7 @@ import type {
   SyncDestination,
 } from "@influx/contracts/backoffice-accounts";
 import {
-  APOLLO_LEGAL_BASES,
+  PROSPECTING_LEGAL_BASES,
   REPLAY_BATCH_CAP,
   type ApolloSetting,
 } from "@influx/contracts/backoffice-actions";
@@ -153,7 +153,7 @@ export function parseCountryList(text: string): {
   return { codes, unknown };
 }
 
-type LegalBasis = (typeof APOLLO_LEGAL_BASES)[number];
+type LegalBasis = (typeof PROSPECTING_LEGAL_BASES)[number];
 
 const BASIS_WORDS: Readonly<Record<string, LegalBasis>> = {
   consentement: "consentement_requis",
