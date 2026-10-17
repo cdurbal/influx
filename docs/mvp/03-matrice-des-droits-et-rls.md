@@ -559,7 +559,7 @@ create policy creator_identity_read_after_reveal
 | `commission_rates` — **écrire** | ⛔ | ⛔ | ⛔ | **⛔ C(32)** | ⛔ |
 | Journal de synchronisation (`outbox_events`) — lire | — | — | L C(33) | L C(33) | ✔ |
 | Synchronisation — rejouer une ligne | — | — | ✔ · J | ✔ · J | ✔ |
-| Synchronisation — rejouer un lot | — | — | ✔ · J · 2V | ✔ · J · 2V | — |
+| Synchronisation — rejouer un lot (≤ 200, sans 2V : EC-J8-19, revue `expert-cybersecurite` 2026-10-16) | — | — | ✔ · J | ✔ · J | — |
 | **E-mail — envoi unitaire, saisie libre** | — | — | ✔ · J C(34) | ✔ · J C(34) | — |
 | **E-mail — envoi à des contacts plateforme** | — | — | ✔ · J · 2V · R C(35) | ✔ · J · 2V · R C(35) | — |
 | **E-mail — envoi à un segment Brevo** | — | — | ✔ · J · 2V · R C(35) | ✔ · J · 2V · R C(35) | — |

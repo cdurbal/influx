@@ -689,7 +689,7 @@ plusieurs objets qui n'y figure pas n'existe pas.
 
 | Code | Action | Plafond par lot | Qui | Contrôle | Réversibilité annoncée |
 |---|---|---|---|---|---|
-| **M1** | **Rejeu en lot** des échecs de synchronisation | **200 lignes** (`05` RG101) | `agent`, `admin` | `2V` (`03` §3.5) | **Sans objet** : le rejeu est idempotent, aucun doublon, aucun e-mail renvoyé |
+| **M1** | **Rejeu en lot** des échecs de synchronisation | **200 lignes** (`05` RG101) | `agent`, `admin` | Aperçu + confirmation séparée, **sans `2V`** (EC-J8-19, revue `expert-cybersecurite` 2026-10-16 : même ligne et même clé, état relu à la consommation, lignes sans consentement refusées, lot journalisé) | **Sans objet** : le rejeu est idempotent, aucun doublon, aucun e-mail renvoyé |
 | **M2** | **Proposition INFLUX** vers plusieurs créateurs | **20 par envoi**, **60 par jour et par commercial** (`13` RG53) | `agent`, `admin` | Aperçu + confirmation séparée (`13` RG55) | **Réversible tant que rien n'est révélé** : retrait avec motif (`13` RG63) |
 | **M3** | **Envoi d'e-mails Brevo** | Plafonds par rôle et par source (**D35**, `04` `email_send_limits`) | `agent`, `admin` | `2V` + re-authentification + **fenêtre d'annulation de 5 min** | **Irréversible passé la fenêtre.** Dit en toutes lettres avant l'envoi |
 | **M4** | **Modération en lot des visuels d'un même profil** | **20** | `agent`, `admin` | Aperçu + confirmation séparée, **motif commun** de la liste de `07` RG97 | Réversible : un visuel refusé peut être approuvé ensuite |

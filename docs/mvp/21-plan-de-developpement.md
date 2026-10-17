@@ -272,27 +272,29 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] Clôture (`5b977f7`, `c8379f6`) — revue de fin de J7 sans point rouge (`expert-cybersecurite`, `testeur`) ; 18 commits attestés, dont 4 du J5 ; test CGU révélé par la CI corrigé ; specs alignées.
 - **Reportés** (détail : `jalons/j8-fiche.md`, et `git show 5b977f7:docs/mvp/jalons/j7-fiche.md`) : avant production J7S-1 à J7S-3 ; avant le webhook de test J7S-4, J7S-6 ; fondateur J7S-5, J6S-5 ; J8 J7S-7, J7T-1 à J7T-6, J6T-1, J6T-2 ; J9 J7S-8.
 
-### J8 — Backoffice v0 (4 à 5 jours)
+### J8 — Backoffice v0 (revue close le 2026-10-16 ; critère de fin sur `staging` en attente)
 
-1. Migrations `0102` (catalogue des files, délais) et `0107` (alertes, double validation, réécriture de `grant_role()` avec 2V et fraîcheur R), table des invitations (EC-11).
+1. Migrations `0129` (ex-`0102`, catalogue des files, délais) et `0130` (ex-`0107`, alertes, double validation, réécriture de `grant_role()` avec 2V et fraîcheur R), table des invitations (EC-11).
 2. **Liste des inscrits** (RG97, RG98, aucun export nominatif RG106) et **fiche d'un inscrit** (état par destination avec cause en clair RG99, compteurs du jour RG105).
-3. **Rejeu** unitaire et en lot plafonné à 200 (RG101, double validation dégradée PD1 à PD7).
+3. **Rejeu** unitaire et en lot plafonné à 200 (RG101, sans 2V : EC-J8-19).
 4. **Réglages Apollo** réservés à `admin` (périmètre, base légale, pays de prospection, réévaluation RG81).
 5. **Corrections** (RG108) par fonctions `SECURITY DEFINER`, files d'incidents et **invitations nominatives** (D54, RG116 à RG119).
 6. **Exécution minimale des demandes « mes données »** (avancée du Lot 5, arbitrage `chef-de-projet` 2026-10-14, porte de production), après `0107` : `influx_privacy` + `PRIVACY_DATABASE_URL` (worker seul) ; `privacy.execute_request` (E-5) restreinte aux tables du Lot 1 selon `04` §9.2 (compte `deleted`, sessions révoquées, `deleted+<id>@invalid`, raison sociale et adresses en clair vidées, y compris `email_delivery_incidents`, `email_change_requests`, `code_delivery_reports` et `brevo_inbound_events` absentes de `04` §9.2, utilisateur GoTrue supprimé, `account.anonymized` au registre, `account.deleted` P0) ; connecteur Brevo opération 2 (suppression du contact), Apollo `skipped` noté ; clôture typée `completed_at` + `outcome_code` (`15` RG77) après confirmation Brevo (RG79) ; déclenchement `admin` 2V + R depuis la fiche d'un inscrit ; `access` : export JSON produit par la base et **téléchargé dans l'espace membre** après un code frais `data_export` à chaque fois, 3 fois / 7 jours au plus, purge E-4, e-mail `privacy.export_ready` sans lien (`expert-cybersecurite` 2026-10-14, runbook §4), même clôture. File 14, autres types et tables des Lots 2 à 4 : Lot 5.
 
-**Tests** : CA56 à CA64 ; T14 sur les routes du backoffice ; parcours de double validation dégradée.
+**Tests** : CA56 à CA63 (CA64 réécrit, EC-J8-1) ; T14 sur les routes du backoffice ; parcours de double validation dégradée.
 
-- [x] Commit 1 (`73cdc5c`) — dette J7 hors base : J7S-7, J7T-1, J7T-2, J7T-3 (planchers unitaires), J6T-1, J6T-2 ; `all_paused` ⇒ `503` avant la demande de changement d'adresse.
-- [x] Commit 2 (`1314e9e`) — `0129` files et délais (4 files du J8, D39), `0130` 14 alertes, `dual_control_requests` (PD2 à PD7), codes `dual_control.*`, `settings.changed`, `ownership.reassigned`, `grant_role()` avec 2V et R ; T2, T3, T4, T6 étendus (base 829).
-- [x] Commit 3 (`1a41e1b`) — `0131` invitations interne (admin, R, 72 h, liée à l'adresse ; admin sous 2V) et membre (30 j, attribution à l'inscription), `0132` corrections RG108, `change_member_role` (2V + R), `correct_email` sous R, rejeu ≤ 200 (CA60, CA61), historique EC-31 journalisé (base 878).
-- [x] Commit 4 (`748fcd9`) — garde B-5 : R réservée avant GoTrue (J3S-1, 20 R parallèles ⇒ ≤ 5 appels), R vérifiée dans la transaction de l'action ⇒ `403 reauthentication_required` (J3S-4), HIBP par `withNewPassword` (J3S-5), service 2V PD1 à PD7 avec bascule PD7 sans code (base 885, unitaire 966).
-- [x] Commit 5 (`8017799`) — API de lecture : `GET /v1/bo/accounts` (RG97, curseur plafonné 50, sans adresse), recherche exacte libre et partielle limitée 20 / 15 min + journalisée (`0133`, RG98), fiche (causes en clair RG99/RG100, responsables RG49, historique EC-31 = journal d'ouverture RG40), compteurs RG105 ; T14 sur les trois routes (base 901, unitaire 970).
-- [x] Commit 6 (`68d6928`) — API d'action : rejeu unitaire et en lot par paires (≤ 200 paires et lignes, surplus signalé CA59, un seul gagnant CA61, sans consentement refusé CA60), corrections RG108, routes 2V (demande, vue PD7, confirmation sous R, annulation), `0134` réglages Apollo admin sous 2V + R avec réévaluation RG81, raison sociale dans la charge 2V (EC-J8-23), refus agent journalisé (CA63), levée de suppression Brevo admin + R (RG93), alertes AL24 à AL27 (CA62, AL27 depuis `ops.periodic_runs.counts`) (base 922, unitaire 984).
-- [x] Commit 7 (`a7328a9`) — invitations : interne `admin` sous R (72 h, liée à l'adresse, 2V pour un `admin`, remplace le jeton fixe EC-45 hors script local), acceptation HIBP + GoTrue + enrôlement ; membre en lien copié (EC-J8-3), rachat à l'inscription (`ownership_assignments`, source `invitation`, `0135` `SIGNUP_SOURCE`) ; J4R-1 : secrets listés au fondateur (base 940, unitaire 988).
-- [x] Commit 8 (`6e33ef3`) — E-5 minimale : `0136` rôles `influx_privacy` (+ `_login`, `PRIVACY_DATABASE_URL` du worker, obligatoire en production) et `influx_privacy_definer`, `0137` approbation `admin` 2V + R depuis la fiche, export produit par la base (notice art. 15) téléchargé dans l'espace membre (code frais `data_export`, 3 / 7 j, purge E-4 horaire, `privacy.export_ready` sans lien), anonymisation du Lot 1 et `account.deleted` P0 (contact Brevo supprimé, Apollo `skipped` noté), clôture `satisfaite` après confirmation Brevo ; revue `expert-cybersecurite` non bloquante, F1, F2, F5 à F7 corrigés (base 1022, unitaire 1017).
-- [x] Commit 9 (`c1e6fe3`) — écrans du backoffice v0 (coquille, accueil RG105 + alertes + B-7, inscrits avec rejeu ≤ 200, fiche, 2V pair / dégradée, réglages Apollo, comptes internes et invitations, bandeaux RG107 et J3S-6 lus dans `GET /v1/bo/me`), `0138` (état de session, signal `agent.new_browser`, liste admin), canal de secours RG65 sur la connexion (base 1032, unitaire 1017, web 205, backoffice 30).
-- [x] Commit 10 (`b8f17fb`) — tests de fin : Playwright backoffice (CA56 à CA63, 2V dégradée, invitation ⇒ attribution), J7T-5 « mes données » en e2e, J7T-4 axe WCAG 2.1 AA à 375 px, T14 sur l'inventaire des routes `/v1/bo/*` du serveur ; corrigés : compte à rebours 2V figé à 1 s, contraste du bandeau de maquette (base 1038, e2e 24).
+- [x] Commit 1 (`73cdc5c`) — dette J7 hors base : J7S-7, J7T-1 à J7T-3, J6T-1, J6T-2 ; `all_paused` ⇒ `503`.
+- [x] Commit 2 (`1314e9e`) — `0129` files et délais, `0130` alertes, 2V (PD2 à PD7), `grant_role()` sous 2V + R.
+- [x] Commit 3 (`1a41e1b`) — `0131` invitations interne et membre, `0132` corrections RG108, rejeu ≤ 200, historique EC-31.
+- [x] Commit 4 (`748fcd9`) — garde B-5 : J3S-1, J3S-4, J3S-5 (HIBP), service 2V dégradé PD1 à PD7.
+- [x] Commit 5 (`8017799`) — API de lecture : liste RG97, recherche partielle limitée et journalisée (`0133`), fiche, RG105.
+- [x] Commit 6 (`68d6928`) — API d'action : rejeu, corrections, routes 2V, réglages Apollo et levée Brevo (`0134`), alertes.
+- [x] Commit 7 (`a7328a9`) — invitations interne (remplace EC-45) et membre en lien copié, source `invitation` (`0135`).
+- [x] Commit 8 (`6e33ef3`) — E-5 minimale (`0136`, `0137`) : export dans l'espace membre, anonymisation du Lot 1, `account.deleted`.
+- [x] Commit 9 (`c1e6fe3`) — écrans du backoffice v0, `0138` (J3S-6, B-7), canal de secours RG65.
+- [x] Commit 10 (`b8f17fb`) — Playwright backoffice (CA56 à CA63, 2V dégradée), J7T-4, J7T-5, T14 sur l'inventaire `/v1/bo/*`.
+- [x] Clôture (`262e626`) — revue de fin de J8 sans point bloquant (`expert-cybersecurite`, `testeur`) ; 6 commits attestés ; EC-J8-19 tranché (rejeu en lot sans 2V) ; `04` §11.2, CA64, `03`, `15`, `18` alignés.
+- **Reportés** (détail : `jalons/j8-fiche.md`) : avant Lot 1 J8S-1 à J8S-4, C5.c, A2 ; J9 J8S-5 à J8S-7, J8T-2 à J8T-7, J7S-8 ; avant production J7S-1 à J7S-3 ; Lot 5 J8S-8, J8S-9 ; fondateur `staging`, J4R-1, J7S-4 à J7S-6, J6S-5.
 
 ### J9 — Durcissement, landing branchée, mise en ligne (4 à 5 jours)
 

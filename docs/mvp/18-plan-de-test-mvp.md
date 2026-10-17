@@ -863,10 +863,12 @@ le métier : la file, les leads, les montants, les transitions. Douze familles s
 *Ajout du 2026-10-14 (revue de fin de J7, `testeur`) :* TM1.5 est porté par `tm1-brevo-webhook-route`
 (réception, 4 cas), `tm1-brevo-inbound` (fonctions de la base : ligne brute, rapprochement, traitement,
 gardes) et `tm1-brevo-inbound-worker` (traitement par le worker, 15 cas) ; les tâches E-4 qui
-l'alimentent par `tm1-periodic-runs` (fonctions `ops`) et `tm1-periodic-tasks` (boucle, 13 cas). Les planchers de cas de base sont dans `apps/api/db-tests/case-floors.ts` (754 cas sur 36
-fichiers à la fin du J7). Exécution : `pnpm test` d'`apps/api` enchaîne les tests unitaires **puis**
-`test:db` (2 106 cas au total à la fin du J7) ; le projet `unit` garde le délai Vitest de 5 s, que
-dépassent sous charge les témoins ESLint et `check-security-review` (J7T-1). En CI, un échec de
+l'alimentent par `tm1-periodic-runs` (fonctions `ops`) et `tm1-periodic-tasks` (boucle, 13 cas). Les planchers de cas sont figés dans `apps/api/db-tests/case-floors.ts` (base) et
+`apps/api/tests/case-floors.ts` (unitaire, J7T-3), contrôlés par `scripts/check-case-floors.ts unit|db`.
+*Constatés à la fin du J8 (`testeur`, 2026-10-16, sur `a2ff7bc`) :* base 1 038 cas (48 fichiers),
+unitaire `apps/api` 1 017 (51), contracts 80, test-kit 116, web 205, backoffice 30, e2e 24 ; `pnpm
+test` = 2 486 (il enchaîne, pour `apps/api`, les tests unitaires **puis** `test:db`). Seul `apps/api`
+a des planchers figés (J8T-6). Le projet `unit` a un délai Vitest de 20 s (J7T-1). En CI, un échec de
 l'étape I-4 **masque les étapes suivantes** (migrations, index, format, build, Playwright) : tant
 qu'elle est rouge, ces étapes se vérifient en local.
 

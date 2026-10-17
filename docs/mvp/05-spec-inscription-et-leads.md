@@ -1099,8 +1099,11 @@ franchi, *alors* une alerte visible apparaît au backoffice avec le nombre de li
 **CA63** — *Étant donné* un commercial (rôle `agent`), *quand* il tente un export ou une bascule du
 périmètre Apollo, *alors* l'action est refusée et journalisée.
 
-**CA64** — *Étant donné* un administrateur, *quand* il exporte la liste des inscrits, *alors* une
-re-authentification et un motif sont exigés, et l'export est journalisé nominativement.
+**CA64** — *Étant donné* un administrateur, *quand* il cherche à exporter la liste des inscrits,
+*alors* aucun export nominatif n'existe (RG106) : seul l'export **agrégé**, sans ligne nominative,
+est possible ; il exige une re-authentification et un motif, et est journalisé nominativement.
+*(Réécrit le 2026-10-16, EC-J8-1 : la première rédaction contredisait RG106. Aucun export au
+Lot 1 ; l'export agrégé relève du Lot 5, `15` §I.)*
 
 ### États d'écran
 
