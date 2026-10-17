@@ -559,7 +559,7 @@ le seuil qui est faux.
 | **AL22** | **Recherches bloquées par le k-anonymat** | **> 20 %** des recherches | État | `admin` + `chef-de-projet` | Masse critique insuffisante (**D38**) ou facettes trop fines | `10` RG86 |
 | **AL23** | **Demande « sélection par l'équipe » sans réponse** | Délai de la file 9 dépassé | État | Tous les commerciaux | Traiter | `10` RG84 |
 | **AL24** | **Échec de synchronisation non traité** | Délai de la file 12 dépassé | État | Commercial + `admin` | Rejouer ou corriger | `05` RG104 |
-| **AL25** | **Panne durable d'un destinataire, clé refusée, quota dépassé** | Échecs consécutifs sur fenêtre glissante | Événement | `admin`, immédiatement | Incident technique | `05` RG104 |
+| **AL25** | **Panne durable d'un destinataire, clé refusée, quota dépassé, configuration de synchronisation manquante** *(dernier motif ajouté le 2026-10-17, D67, tranchée)* | Échecs consécutifs sur fenêtre glissante ; **1re ligne** pour une clé refusée ou une configuration manquante (`list_not_configured`, `template_not_configured`, `apollo_settings_invalid`, `credentials_missing`) | Événement | `admin`, immédiatement | Incident technique ; pour la configuration : renseigner le réglage nommé, les lignes repartent seules (`05` RG161) | `05` RG104, RG160 |
 | **AL26** | **File de leads en retard** | Objectifs de `05` RG79 dépassés (Brevo 1 h, Apollo 24 h) | État | `admin` | Vérifier le worker | `05` RG104 |
 | **AL27** | **Écart de désinscription Brevo** | Écart constaté au rapprochement de 24 h | État | `admin` | Corriger — **Brevo fait foi** (`05` RG90) | `05` RG91 |
 | **AL28** | **Affaire `signed` sans commission facturée** | **J+7** | État | Commercial responsable | Facturer | `01` §6.4 |

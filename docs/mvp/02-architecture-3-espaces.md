@@ -1267,6 +1267,36 @@ Symétriquement, **le worker refuse de démarrer** si `INFLUX_ENV=production` et
 `dry_run` : une production silencieusement muette serait aussi grave qu'un envoi de test réel.
 Chacun de ces trois verrous fait l'objet d'un test (document `18`).
 
+### 12.5 Le pendant en base : une production sans listes ni modèles Brevo est une production muette
+
+*Ajouté le 2026-10-17 (D67, tranchée par `architecte` le même jour). Ne modifie aucun des trois verrous
+du §12.4.* Les identifiants de listes et de modèles Brevo et les réglages Apollo ne sont pas des
+variables d'environnement : ils vivent en base (`leads.sync_settings`, `04` §5.8), lus à chaque
+consommation et modifiables sans redéploiement. Le §12.3 ne les voit donc pas, et une valeur `NULL`
+produisait jusqu'ici un `skipped` silencieux. Règles (`05` RG160 à RG164) :
+
+1. **Refus de démarrage du worker en production** si un réglage indispensable à tout inscrit manque
+   ou est illisible : listes Brevo des deux rôles, deux modèles de bienvenue, `retry_schedule`,
+   `rate_limits` des destinations dotées d'une clé, et les trois réglages Apollo **si**
+   `APOLLO_API_KEY` est présente (`05` RG162). Lecture sans cache : RG81 reste la seule lecture qui
+   décide. Aucune variable nouvelle au §12.3.
+2. **À chaud, jamais d'arrêt** : un réglage manquant après le démarrage (nouveau modèle à `NULL`,
+   pays Apollo validé sans clé) met **les seules lignes concernées** en échec de nature incident,
+   alerté (AL25, §20.6) et rattrapé automatiquement à la correction (`05` RG160, RG161). Arrêter le
+   worker bloquerait les retraits de consentement et les suppressions (`05` RG78), dont le délai est
+   légal.
+3. **Un identifiant Brevo renseigné ne redevient jamais `NULL`** (contrôle en base, `05` RG163) : ce
+   qui a passé le contrôle de démarrage ne peut pas disparaître à chaud.
+4. **En `dry_run`, la trace `would_send` précède le verdict de configuration** (`05` RG164) ; `staging`
+   porte les identifiants du compte Brevo de test et ne refuse pas de démarrer.
+5. *(architecte, 2026-10-17)* **Le rattrapage est une étape de la boucle E-3** du worker, comme la
+   reprise des lignes orphelines (`18` TM1.10) : ni tâche E-4, ni déclencheur qui écrirait dans la file, ni file
+   nouvelle. **Deux déclencheurs** sur `leads.sync_settings`, et rien d'autre en SQL : la garde
+   « jamais `NULL` » et le journal `settings.changed` de toute écriture, écran ou SQL, qui date aussi
+   la modification de chaque clé (`05` RG161, RG163). La validité d'un réglage n'est jugée qu'à un
+   endroit, en TypeScript : la même lecture sert le contrôle de démarrage, la préparation du
+   connecteur et, par elle, le rattrapage.
+
 ---
 
 ## 13. Sortie du mode maquette de `apps/web`
@@ -2050,6 +2080,7 @@ mesure, elle ne se suppose pas.
 |---|---|---|
 | **Site injoignable** (sonde interne : pages d'accueil FR et EN, connexion du backoffice, `/health` de l'API) | 2 échecs consécutifs (≈ 2 min) | Fondateur + développeur, **immédiatement, 24 h/24** |
 | **Worker arrêté** | Aucun battement depuis 60 s | Développeur, immédiatement |
+| **Configuration de synchronisation manquante** (*ajouté le 2026-10-17, D67, tranchée*) : ligne en échec `list_not_configured`, `template_not_configured`, `apollo_settings_invalid` ou `credentials_missing`. Un refus de démarrage pour réglage manquant (§12.5) se voit, lui, par « Worker arrêté » et par la ligne `fatal` du journal, qui nomme le réglage | **1re occurrence** | Développeur + `admin`, immédiatement (AL25, `05` RG160) |
 | **Nouvelle erreur, jamais vue**, ou **régression** | Dès la 1re occurrence **pendant le rodage** (§20.7) ; ensuite, récapitulatif quotidien (les régressions restent immédiates) | Développeur |
 | **Taux d'erreurs serveur** (réponses `5xx`) | > 1 % des requêtes sur 5 min | Développeur + fondateur, immédiatement |
 | **Lenteur de l'API** | p95 > 1 s sur 10 min, **hors** `POST /v1/auth/request-code`, qui a un plancher de 1 s par construction (D43, §18.4) et reçoit son propre seuil au Lot 0 | Développeur |

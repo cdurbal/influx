@@ -878,6 +878,17 @@ visible et rejouable au backoffice. **Un échec définitif sur `intro.reveal_con
 l'alerte AL10** : une mise en relation sans e-mail confirmé est une mise en relation **sans preuve
 externe**, et le commercial doit le savoir pour rattraper à la main (`13` RG80).
 
+**RG161 — Un modèle non configuré est un incident, pas un e-mail « ignoré »** *(ajoutée le
+2026-10-17, D67, tranchée par `architecte` le même jour)*. Tout e-mail transactionnel de la file dont
+l'identifiant de modèle (`brevo_template_ids`, `04` §5.8) manque passe en **échec de configuration**
+(`05` RG160) : aucun réessai selon RG93, alerte immédiate AL25, rattrapage automatique au plus tard
+15 minutes après la pose de l'identifiant (`05` RG161), **sans doublon** (RG89, RG90). Pour
+`intro.reveal_confirmation` (Lot 4), AL10 est levée en plus. Les deux modèles de bienvenue sont en
+outre **exigés au démarrage du worker en production** (`05` RG162) ; les autres ne le sont pas, pour
+qu'une migration ajoutant un modèle ne bloque pas les retraits de consentement. Conséquence : **tout
+nouveau code de ce catalogue servi par un modèle Brevo** ajoute, dans le commit qui l'introduit, sa
+ligne à la liste de contrôle de mise en production (`21` §5.8).
+
 **RG94 — Le `messageId` renvoyé par Brevo est conservé pour tout e-mail transactionnel**, pas
 seulement pour ceux de mise en relation. Pour ces derniers, il vit dans
 `matching.introduction_emails.provider_message_id` (`04` §5.6, unique). Pour les autres, **il
@@ -1446,6 +1457,13 @@ Apollo. La liste des attributs transmis est **fermée** et contrôlée en sortie
 boucle une adresse refusée dégrade la réputation du domaine d'envoi — donc, in fine, la
 délivrabilité du code de connexion (**D37**).
 
+*Ajouté le 2026-10-17 (D67, tranchée) :* une quatrième classe s'ajoute au tableau de RG144, **sans
+appel au fournisseur** : la **configuration INFLUX manquante** (identifiant de liste ou de modèle
+absent, réglage Apollo illisible, clé absente en production). Aucun réessai, alerte immédiate
+(AL25), ligne visible et rejouable, **remise en file automatique** dès que le réglage est corrigé
+(`05` RG160, RG161). Contrairement à une erreur permanente, la rejouer après correction ne touche
+aucune adresse refusée : RG145 ne s'y applique pas.
+
 #### M6 — Le webhook entrant, et le fait qu'il n'est pas signé
 
 **RG146 — Constat vérifié le 2026-09-19 : Brevo ne signe pas ses webhooks.** Il n'existe ni HMAC,
@@ -1502,7 +1520,11 @@ du plan de test (document `18`) :
 14. réglage `live` hors production → **le service refuse de démarrer** ;
 15. échec définitif d'un `intro.reveal_confirmation` → **la révélation reste enregistrée**, AL10
     levée ;
-16. une ligne par interdit de RG135.
+16. une ligne par interdit de RG135 ;
+17. *(ajouté le 2026-10-17, D67)* liste ou modèle non configuré → **échec de nature incident, jamais
+    « ignoré »**, AL25, puis rattrapage automatique après correction, sans doublon ni second e-mail ;
+18. *(ajouté le 2026-10-17, D67)* production sans liste ou sans modèle de bienvenue → **le worker
+    refuse de démarrer**.
 
 #### M8 — Variables d'environnement
 

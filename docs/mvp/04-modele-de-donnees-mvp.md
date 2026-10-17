@@ -4425,6 +4425,14 @@ la lecture se fait **à chaque consommation d'événement**, jamais au démarrag
 changement de périmètre **met en file la réévaluation** des comptes précédemment ignorés pour ce
 motif — la bascule de D33 est donc une mise à jour de ligne, pas un développement.
 
+*Ajouté le 2026-10-17 (D67, `architecte`) :* deux **déclencheurs**, à concevoir par
+`expert-database` : (1) un identifiant de `brevo_list_ids` ou de `brevo_template_ids` renseigné ne
+redevient jamais `NULL` ni absent, la ligne ne se supprime pas (`05` RG163) ; (2) **toute** écriture,
+par la fonction d'écriture comme par SQL du rôle propriétaire, est journalisée (`settings.changed`,
+§4.3) et met à jour `updated_at`, que lit le rattrapage de `05` RG161. La fonction d'écriture cesse
+alors de journaliser elle-même. La liste de clés du `CHECK` ci-dessus est à aligner sur `0103`
+(`brevo_list_ids`, `brevo_template_ids`).
+
 > **Une clé/valeur, et j'assume l'exception.** Je refuse habituellement les tables fourre-tout : elles
 > ne se contraignent pas et deviennent illisibles. Ici, la liste des clés est **fermée par un
 > `CHECK`**, chaque valeur a un schéma zod dans `packages/contracts`, et l'alternative — une colonne

@@ -40,7 +40,7 @@
    jour où une affaire sera conclue dans son dos. Un registre réécrivable ne prouve rien, et
    personne ne s'en apercevrait sans un test fait exprès pour ça.
 3. **Rien de tout cela ne coûte plus cher que de le découvrir après.** Le plan représente environ
-   **205 cas de test** répartis en 29 familles, un corpus figé de 120 messages piégés, et **un seul**
+   **211 cas de test** *(205 + 6, D67, 2026-10-17)* répartis en 29 familles, un corpus figé de 120 messages piégés, et **un seul**
    parcours complet de bout en bout. C'est délibérément peu de tests, mais tous choisis.
 
 **Ce que ce plan ne prétend pas faire.** Il n'empêche pas deux personnes majeures de s'entendre en
@@ -832,7 +832,7 @@ le métier : la file, les leads, les montants, les transitions. Douze familles s
 
 | # | Famille | Niveau | Lot | Cas | Ce qu'elle protège |
 |---|---|---|---|---|---|
-| **TM1** | **Pipeline de leads et consentement** | Intégration, doublures | 1 | 10 | L'indicateur n° 5, et le veto RGPD |
+| **TM1** | **Pipeline de leads et consentement** | Intégration, doublures | 1 | 16 *(10 + 6 le 2026-10-17, D67)* | L'indicateur n° 5, et le veto RGPD |
 | **TM2** | **Révélation d'identité atomique** | Intégration, base | 4 | 7 | La preuve d'intermédiation |
 | **TM3** | **File de validation, verrou et SLA** | Intégration | 4 | 6 | Le premier risque produit (D39) |
 | **TM4** | **Transitions d'état de l'affaire** | Unitaire + base | 5 | 8 | Le chiffre d'affaires |
@@ -845,7 +845,7 @@ le métier : la file, les leads, les montants, les transitions. Douze familles s
 | **TM11** | **Anonymisation au niveau des types et des schémas de réponse** | Statique + intégration | 0-2 | 4 | Défense n° 2 d'A2 |
 | **TM12** | **Recherche : k-anonymat, pagination, export** | Intégration | 3 | 6 | L'annuaire de créateurs |
 
-### TM1 — Pipeline de leads et consentement (10 cas)
+### TM1 — Pipeline de leads et consentement (16 cas)
 
 | Cas | Ce qu'il vérifie |
 |---|---|
@@ -859,6 +859,12 @@ le métier : la file, les leads, les montants, les transitions. Douze familles s
 | TM1.8 | Le quota ou le 429 d'un tiers met en attente avec `available_at` reporté, **sans perdre le lead** ; `attempts ≤ 10` puis `failed` avec cause en clair |
 | TM1.9 | La charge utile d'un événement ne contient **que des identifiants** (C(33)) : aucun e-mail, aucun nom |
 | TM1.10 | L'arrêt du worker en cours de lot (`SIGTERM`) ne perd aucun événement : il reste `pending` |
+| TM1.11 | *(D67, 2026-10-17)* **Configuration manquante = échec, jamais « ignoré »** : liste Brevo d'un rôle, modèle de bienvenue, réglage Apollo illisible ⇒ ligne `failed` avec le code de `05` RG160, nature `incident`, aucune tentative programmée, comptée dans les échecs non traités et non dans les cas normaux, AL25 levée ; un `consent.revoked` du même compte passe quand même (`05` CA82, CA84) |
+| TM1.12 | *(D67)* **Rattrapage automatique** : le réglage corrigé (y compris par écriture SQL directe), les lignes en échec de configuration repartent en moins de 15 min avec la **même clé d'idempotence**, un rejeu système `configuration_restored` est journalisé, aucun second e-mail de bienvenue ; le rejeu manuel unitaire et en lot reste possible ; une ligne `no_consent` reste non rejouable ; *(architecte, 2026-10-17)* une correction faite **pendant** la tentative qui échoue est rattrapée (comparaison au début de la tentative) ; une modification d'une autre clé ne remet rien en file (`05` CA83, CA60, RG161) |
+| TM1.13 | *(D67)* **Refus de démarrage en production, au niveau du processus** (comme T17.10) : chacun des réglages de `05` RG162 à `NULL` ou illisible ⇒ `node src/worker.ts` sort avec un code non nul avant sa première boucle, message qui nomme la clé sans valeur (T17.9) ; réglages Apollo contrôlés **seulement** si `APOLLO_API_KEY` est présente ; liste de pays vide acceptée ; un modèle non indispensable à `NULL` n'empêche pas le démarrage. *Contre-test* : même configuration en `staging` ⇒ démarrage et ligne `leads.settings.missing_at_start` (`05` CA85) |
+| TM1.14 | *(D67)* **Ordre en `dry_run`** : modèle ou liste manquant ⇒ `leads.dry_run.would_send` journalisée avec les noms des réglages manquants, **puis** ligne `failed` ; réglages présents ⇒ `succeeded` avec `dry_run` ; réglage Apollo illisible ⇒ `failed` sans `would_send` ; *(architecte, 2026-10-17)* sans consentement et liste manquante ⇒ `skipped` `no_consent`, ni `would_send` ni échec (`05` CA86, RG164) |
+| TM1.15 | *(D67)* **Clé absente en production** : ligne qualifiée ⇒ `failed` `credentials_missing` ; hors production, `skipped_no_credentials` inchangé (T17.1) (`05` CA87) |
+| TM1.16 | *(D67)* **Un identifiant Brevo renseigné ne redevient jamais vide** : remise à `NULL` ou retrait de la clé refusé en base, remplacement par un entier positif accepté ; *(architecte, 2026-10-17)* toute écriture sur `leads.sync_settings`, y compris par SQL direct, produit un `settings.changed` chaîné (`05` CA88, RG163) |
 
 *Ajout du 2026-10-14 (revue de fin de J7, `testeur`) :* TM1.5 est porté par `tm1-brevo-webhook-route`
 (réception, 4 cas), `tm1-brevo-inbound` (fonctions de la base : ligne brute, rapprochement, traitement,
@@ -1001,8 +1007,8 @@ jamais pré-coché).
 | Famille | Cas |
 |---|---|
 | T1 à T17 (exigés par `expert-cybersecurite`) | **130** |
-| TM1 à TM12 (métier) | **75** |
-| **Total** | **205 cas de test**, dans **29 familles** |
+| TM1 à TM12 (métier) | **81** *(75 + 6, TM1.11 à TM1.16, 2026-10-17, D67)* |
+| **Total** | **211 cas de test**, dans **29 familles** |
 | En complément | 1 corpus figé de **120 cas** de détection (§6), 1 parcours de bout en bout en **12 étapes** + 1 parcours négatif (§7), 2 contrôles non automatisés (X3, X4) |
 
 ---
@@ -1373,12 +1379,15 @@ l'enveloppe `404` / `500` et T13.5 à T13.7 ; T17.5 à T17.10 ; TM11.4.
 
 ### Lot 1 — Inscription et leads ▸ première mise en ligne
 
-**Tests exigibles :** T7, T8, T10, T13, T15, T17 + TM1, TM10 — **8 familles, 68 cas** (dont une
-partie avancée au Lot 0), plus les familles du Lot 0 en non-régression.
+**Tests exigibles :** T7, T8, T10, T13, T15, T17 + TM1, TM10 — **8 familles, 74 cas** *(68 + TM1.11
+à TM1.16, 2026-10-17, D67)* (dont une partie avancée au Lot 0), plus les familles du Lot 0 en
+non-régression.
 
 - [ ] **Aucune garde n'est levée sans son remplaçant dans le même commit** (G2 → CSP testée + garde resserrée ; G4 et G6 → gardes d'absence) — §5. G5, levée au J1, est complétée par **T7 en entier, en intégration**
 - [ ] Le module fictif, `IS_MOCKUP` et le bandeau « Maquette » **n'existent plus** dans le dépôt
 - [ ] Une inscription réelle crée un compte **et** quatre lignes de file, et **aucun appel sortant n'est possible depuis `staging`** (T17)
+- [ ] *(D67, 2026-10-17)* Une inscription de `staging` finit `succeeded` avec `dry_run` sur `brevo_contact` et la bienvenue (identifiants du compte de test posés) ; aucune ligne en échec de configuration (TM1.11 à TM1.16)
+- [ ] **Non automatisable** *(D67)* : identifiants de listes et de modèles Brevo **de production** renseignés dans `leads.sync_settings` de production, puis premier démarrage du worker de production **accepté** par le contrôle de `05` RG162 (`21` §5.8)
 - [ ] La version de CGU acceptée est enregistrée par partie (TM10.4)
 - [ ] **Non automatisable** : relecture humaine des textes FR et EN des pages publiques et des e-mails transactionnels
 - [ ] **Non automatisable** : `expert-conformite-rgpd` a rendu son avis sur **A7 / D33**, et **le juriste a validé** — sans quoi la mise en ligne n'a pas lieu (R4 du cadrage)
@@ -1452,7 +1461,7 @@ détection.
 
 **Tests exigibles :** **toutes** les familles, plus le parcours de bout en bout du §7.
 
-- [ ] Les 29 familles passent, soit 205 cas, en une seule exécution de CI
+- [ ] Les 29 familles passent, soit 211 cas (D67), en une seule exécution de CI
 - [ ] Le parcours de bout en bout (12 étapes) et le parcours négatif (5 vérifications) passent
 - [ ] La vérification complète de la chaîne d'audit renvoie `ok` sur la totalité du registre
 - [ ] `billing.commission_rates` est **toujours vide** (T16.3) — c'est le dernier contrôle avant ouverture
@@ -1477,7 +1486,7 @@ Ce que je peux dire dès maintenant :
 |---|---|
 | Le plan couvre-t-il les exigences de `expert-cybersecurite` ? | **Oui** : T1 à T17 repris un par un, X1 et X2 devenus des tests de CI, X3 et X4 explicitement sortis de la CI avec justification (§9.1, C-1) |
 | Une protection disparaît-elle avec les gardes levées ? | **Non**, à une condition de calendrier : une garde n'est levée que dans le commit qui introduit son remplaçant (§5) |
-| Le plan est-il proportionné ? | **205 cas, 29 familles, un seul parcours de bout en bout.** Peu de tests, tous choisis. Le coût d'entretien a été un critère de sélection au même titre que la couverture |
+| Le plan est-il proportionné ? | **211 cas (D67), 29 familles, un seul parcours de bout en bout.** Peu de tests, tous choisis. Le coût d'entretien a été un critère de sélection au même titre que la couverture |
 | Reste-t-il des zones non couvertes ? | **Quatorze**, listées au §8. Quatre d'entre elles (le tableau de bord Supabase, la malveillance d'un opérateur unique, le test d'intrusion, la sincérité de la saisie) ne relèvent d'aucun test et remontent au fondateur |
 
 **Le point sur lequel je ne transigerai pas :** tant que **T1**, **T2**, **T3** et **T4** ne passent

@@ -526,9 +526,16 @@ départ **paramétrables** : immédiat, puis 1 min, 5 min, 15 min, 1 h, 3 h, 6 h
 **10 tentatives au maximum**, après quoi la ligne passe en **échec définitif**, visible et rejouable au
 backoffice. Objectifs de délai : **contact Brevo synchronisé en moins d'une heure**, **contact Apollo
 en moins de 24 heures**, pour au moins **99 %** des inscrits éligibles.
+*Modifiée le 2026-10-17 (D67, tranchée par `architecte`) :* un **échec de configuration**
+(RG160) ne suit pas ce calendrier — attendre ne corrige pas un réglage : la ligne passe en échec dès
+sa première tentative. Un inscrit éligible ainsi bloqué **compte comme non synchronisé** dans ces
+objectifs de 99 %.
 
 **RG80** — Le consentement est relu à la consommation (RG37). Sans consentement, la ligne passe en
 **« ignoré »** avec le motif, **jamais en « échec »**.
+*Précisée le 2026-10-17 (D67) :* la réciproque est vraie. Une ligne bloquée par un **réglage
+manquant d'INFLUX** (liste, modèle, réglage Apollo, clé en production) n'est **jamais** « ignorée » :
+c'est un échec de nature incident (RG160).
 
 **RG81** — Le **périmètre Apollo** est lu **en configuration à chaque consommation d'événement**, jamais
 au démarrage ni en dur, et prend l'une de **trois valeurs** :
@@ -542,6 +549,9 @@ au démarrage ni en dur, et prend l'une de **trois valeurs** :
 Le changement de valeur est **réservé au rôle `admin`**, prend effet **sans redéploiement**, est
 **journalisé** (qui, quand, ancienne et nouvelle valeur), et **déclenche la réévaluation** des comptes
 précédemment ignorés pour ce motif. Basculer d'une valeur à l'autre ne demande **aucun développement**.
+*Précisée le 2026-10-17 (D67) :* le contrôle de démarrage du worker en production (RG162) lit ces
+réglages **sans les mettre en cache** ; il ne remplace pas la lecture à chaque consommation, seule à
+décider d'un envoi.
 
 **RG82** — Un lead n'est envoyé à Apollo que s'il passe **toute** la qualification, évaluée avant
 l'appel : adresse vérifiée · absence d'opposition · pays du contact figurant dans la liste des pays où
@@ -644,6 +654,12 @@ minimum :
 | Échec — quota du destinataire dépassé | Échec temporaire | Attendre ou augmenter le quota |
 | Échec — service indisponible | Échec temporaire | Rejeu automatique en cours |
 | Échec — clé d'accès refusée | **Incident** | Alerte, intervention immédiate |
+| Échec — configuration manquante : *réglage nommé* (liste Brevo d'un rôle, modèle Brevo, réglages Apollo, clé absente en production) | **Incident** | Renseigner le réglage ; les lignes repartent seules (RG161) ou se rejouent |
+
+*Modifiée le 2026-10-17 (D67, tranchée) :* la dernière ligne est ajoutée. Les codes
+`list_not_configured`, `template_not_configured` et `apollo_settings_invalid` étaient jusqu'ici
+rangés en « ignoré, cas normal » (cause `configuration_missing`) : ils deviennent des **échecs de
+nature incident**, rejouables (RG160 à RG162). La cause nomme le réglage, **jamais sa valeur**.
 
 **RG100** — L'interface **distingue visuellement** « échec à traiter » et « ignoré, cas normal ». Le
 compteur d'échecs ne mélange jamais les deux. Un cas normal présenté comme une erreur fait perdre la
@@ -664,6 +680,8 @@ la synchronisation, pas un rejeu de l'ancienne ligne.
 **RG104** — Le backoffice **alerte** sur : panne durable d'un destinataire (échecs consécutifs sur une
 fenêtre glissante), quota dépassé, clé d'accès refusée, file en retard au-delà des objectifs de RG79, et
 dépassement des seuils de délivrabilité de RG63.
+*Modifiée le 2026-10-17 (D67, tranchée) :* et sur **toute configuration manquante** (RG160), dès la
+première ligne concernée, immédiatement (AL25, `15` §F).
 
 **RG105** — Un bandeau de tête affiche les compteurs du jour : inscriptions totales, par rôle, par pays
 principal, part synchronisée vers Brevo en moins d'une heure, part synchronisée vers Apollo en moins de
@@ -1669,3 +1687,208 @@ ne part.
 | **Q15** | **Valeur réelle de la phrase contre un site d'hameçonnage qui relaie.** La phrase est renvoyée à celui qui fait la demande : un site contrefait qui relaie la demande à INFLUX reçoit la phrase et peut l'afficher. Elle protège contre les sites qui ne relaient pas, et aide à reconnaître le dernier e-mail reçu ; elle ne protège pas contre un relais en temps réel | RG48 maintenue telle quelle (coût nul). Complément possible : citer dans l'e-mail, en texte, le **nom de domaine officiel** où saisir le code, une fois les domaines réservés (`CLAUDE.md` §14.3) — à peser contre la transformation automatique d'un nom de domaine en lien par les messageries | **`expert-cybersecurite`** | Avant la mise en ligne du Lot 1 |
 | **Q16** | **Relecture des listes de mots** par des locuteurs natifs (français, anglais ; portugais pour le critère 6 de RG133) | Listes de RG133 utilisables en local et sur `staging` | `expert-marketing` | Avant la mise en ligne du Lot 1 |
 | **Q17** | **Aucun lien dans les e-mails `auth.login_code` et `auth.new_device`**, y compris vers les préférences (dérogation à `16` RG102, `16` RG158) | Appliquée : zéro lien dans les deux e-mails de sécurité | `expert-cybersecurite` + `expert-conformite-rgpd` | Avant la mise en ligne du Lot 1 |
+
+---
+
+## Additif du 2026-10-17 — Une configuration de synchronisation manquante est un incident, jamais un cas normal (D67)
+
+> **Statut : tranchée par `architecte` le 2026-10-17, avec amendements** (RG160 tableau, RG161
+> mécanisme, RG163 journal, RG164 ordre d'évaluation, « À relire » ; `decisions.md` D67). **Constat** (`staging`,
+> 2026-10-17) : deux inscriptions du fondateur finissent `brevo_contact` `skipped`
+> `list_not_configured` — la clé `brevo_list_ids` vaut `{"advertisers": null, "creators": null}`
+> (valeur de départ de `0103`) — et le backoffice les range en « cas normal », non rejouable. En
+> production, un réglage oublié ou effacé ferait ainsi perdre **chaque inscrit** pour le CRM, sans
+> alerte ni rattrapage : contraire à RG125 (D63), à `CLAUDE.md` §2 (« chaque inscrit doit arriver
+> dans Brevo ») et §5 règle 4 (synchronisation rejouable). **Ce qui suit modifie** RG79, RG99, RG104
+> et **précise** RG80, RG81. **Inchangés** : RG80 et RG103 pour l'absence de consentement, RG84
+> (liste de pays vide = abstention voulue), les verrous de `staging` de `02` §12.4.
+
+**RG160 — Ce qui manque à INFLUX n'est jamais « ignoré ».** Une ligne de file qui ne peut pas être
+traitée parce qu'un **réglage d'INFLUX** manque ou est illisible passe en **échec**, de nature
+**incident** (RG99, RG100), et non en « ignoré ». Liste fermée :
+
+| Code de la ligne | Situation | Destination |
+|---|---|---|
+| `list_not_configured` *(code conservé)* | Identifiant de liste Brevo du rôle absent (`brevo_list_ids`) | `brevo_contact` |
+| `template_not_configured` *(code conservé)* | Identifiant de modèle Brevo absent (`brevo_template_ids`) | `brevo_transactional` |
+| `apollo_settings_invalid` *(code conservé)* | Réglage Apollo illisible (RG81, RG83, RG84) | `apollo_contact` |
+| `credentials_missing` *(nouveau)* | **En production seulement** : ligne qualifiée, mais clé du service absente (aujourd'hui `skipped_no_credentials`) | Toutes ; **en pratique `apollo_contact`** : en production, `BREVO_MODE=live` exige déjà au démarrage la clé et l'expéditeur Brevo (`16` RG116) *(précisé par `architecte`, 2026-10-17)* |
+
+1. **Aucun réessai selon le calendrier de RG79** : attendre ne corrige pas un réglage ; le rattrapage
+   est celui de RG161.
+2. **Visible et compté** : ligne dans la file 12 (`lead_sync_failures`, `15`), **nombre d'échecs non
+   traités** de RG105, et **non synchronisé** dans les objectifs de 99 % de RG79.
+3. **Alerté immédiatement**, dès la première ligne : AL25 à `admin` (`15` §F) et signal de
+   surveillance interne (`02` §20.6, D60).
+4. **La cause nomme le réglage** (« liste Brevo des créateurs », « modèle de bienvenue annonceur »),
+   jamais une valeur, jamais une trace technique (RG99).
+5. **Ce qui n'en dépend pas passe** : un retrait de consentement ou une suppression (RG78, RG92)
+   n'utilise ni liste ni modèle ; il n'est jamais retenu par une configuration manquante.
+
+**Restent des cas normaux, « ignorés »** (inchangé) : sans consentement (RG80, RG103), hors périmètre
+Apollo (RG81), pays non validé — **y compris quand la liste est vide** (RG84 : une abstention voulue
+n'est pas un réglage manquant), opposition, adresse non vérifiée, entreprise non identifiée (RG82),
+compte inactif, et **hors production** les verrous de `02` §12.4 (`skipped_no_credentials`,
+`skipped_non_production`).
+
+**RG161 — Rattrapage automatique, et rejeu manuel.** Une ligne en échec de configuration est
+**rejouable** au backoffice, à l'unité ou en lot (RG101, RG102), **et** elle est **remise en file
+d'elle-même** dès que le réglage en cause redevient valide : **au plus tard 15 minutes** après la
+correction, sans action humaine, quel que soit le chemin de la correction (écran d'administration ou
+SQL). La remise en file garde la **même clé d'idempotence** (RG102) : aucun doublon de contact, aucun
+e-mail de bienvenue envoyé deux fois (RG76). Elle procède par lots plafonnés et se journalise comme un
+**rejeu système** (motif `configuration_restored`, nombre de lignes). Consentement et qualification
+sont relus à la consommation (RG37, RG82) : un inscrit désinscrit entre-temps finit « ignoré — sans
+consentement ». C'est l'analogue, pour les échecs de configuration, de la réévaluation de RG81.
+
+*Bienvenue rattrapée, tranché par `chef-de-projet` le 2026-10-17 :* **aucun âge limite**. Un
+e-mail de bienvenue rattrapé part quel que soit le délai depuis l'inscription (RG86 : transactionnel,
+sans contenu promotionnel, un seul par compte). En production, les deux modèles de bienvenue sont
+exigés au démarrage (RG162) et ne peuvent plus revenir à `NULL` (RG163) : le cas reste théorique, et
+une règle d'âge coûterait un code d'issue et des tests sans bénéfice.
+
+*Mécanisme, tranché par `architecte` le 2026-10-17 :* une **étape de la boucle du worker, dans
+l'opération E-3** `leads.drain_outbox` (`03` §P7), sur le modèle de la reprise des lignes orphelines
+(`18` TM1.10) : au démarrage, puis au plus une fois par minute entre deux tours. **Ni tâche E-4, ni
+déclencheur SQL** : aucune entrée ni aucun motif nouveau au §P7, aucun `GRANT` nouveau, aucune file
+nouvelle (`CLAUDE.md` §5). Une ligne en échec de configuration repart quand la **clé de réglage en
+cause** (`list_not_configured` ⇒ `brevo_list_ids` ; `template_not_configured` ⇒
+`brevo_template_ids` ; `apollo_settings_invalid` ⇒ les trois clés Apollo) a été modifiée **après le
+début de la tentative** qui a échoué — et non après l'échec, pour ne pas manquer une correction faite
+pendant la tentative ; pour `credentials_missing`, quand le processus a démarré après ce début (une
+clé ne s'ajoute que par redéploiement). La date de modification de chaque clé est tenue **par la base**
+quel que soit le chemin d'écriture (RG163). **La préparation du connecteur reste seule juge** : la
+remise en file ne revalide rien elle-même ; une modification qui ne corrige pas produit au plus un
+nouvel échec par ligne et par modification. Mise à jour conditionnelle, sûre à plusieurs instances,
+200 lignes au plus par passage (RG101). Journal : ligne `pino` (motif, codes, nombre de lignes, jamais
+un compte) et trace sur la ligne ; aucun acteur humain, donc pas d'écriture dans la chaîne d'audit.
+
+**RG162 — Refus de démarrage du worker en production.** Si `INFLUX_ENV=production`, le worker
+**refuse de démarrer** — sortie non nulle **avant** sa première boucle, message qui nomme le réglage et
+la règle, **jamais la valeur** (`18` T17.9, T17.10) — quand l'un des réglages **indispensables à tout
+inscrit** manque ou est illisible :
+
+1. `brevo_list_ids` : `advertisers` **et** `creators`, entiers positifs ;
+2. `brevo_template_ids` : `account.welcome_advertiser` **et** `account.welcome_creator`, entiers
+   positifs ;
+3. `retry_schedule` lisible ; `rate_limits` porteur d'un plafond pour chaque destination dotée d'une
+   clé ;
+4. si `APOLLO_API_KEY` est présente : `apollo_scope`, `apollo_legal_basis` et
+   `apollo_prospecting_countries` lisibles — une liste de pays **vide** est valide (RG84).
+
+C'est l'esprit de `16` RG116 et de `02` §12.4 (« une production silencieusement muette serait aussi
+grave qu'un envoi de test réel ») : **un refus, pas un avertissement**. Le contrôle **lit sans mettre
+en cache** (RG81). Un refus ne perd rien : les inscriptions continuent (RG72), les lignes attendent en
+`pending`, la sonde « worker arrêté » alerte (`02` §20.6).
+
+**Volontairement hors du refus** : les autres modèles transactionnels (avis de changement d'adresse,
+accusé « mes données », modèles des lots suivants) et la présence d'une clé Apollo quand des pays sont
+validés. Ces réglages peuvent devenir nécessaires **après** le démarrage — une migration ajoute un
+modèle à `NULL`, un `admin` valide un pays depuis le backoffice : en refuser le redémarrage
+arrêterait aussi les retraits de consentement et les suppressions, dont le délai est **légal** (RG78,
+RG92). Ils relèvent de RG160, RG161 et de la liste de contrôle de mise en ligne (`21` §5.8).
+
+**Hors production, aucun refus** : au démarrage, une ligne `error` `leads.settings.missing_at_start`
+nomme les réglages manquants, puis RG160 et RG164 s'appliquent.
+
+**RG163 — Un identifiant Brevo renseigné ne redevient jamais vide.** Une fois renseigné dans
+`leads.sync_settings`, un identifiant de liste ou de modèle peut être **remplacé** par un autre
+identifiant valide, **jamais remis à `NULL` ni retiré** : contrôle en base, dans tous les
+environnements. Sans cette garde, un réglage indispensable pourrait disparaître à chaud, et le
+redémarrage suivant serait refusé (RG162). **Qui modifie, constaté le 2026-10-17** : les identifiants
+Brevo n'ont **aucun écran** ; ils se posent par SQL (rôle propriétaire), selon le runbook, avec
+confirmation du fondateur en production (`CLAUDE.md` §7 règle 4). Les trois réglages Apollo se
+modifient au backoffice par un `admin` sous double validation (`0134`, RG81). Un écran pour les
+identifiants Brevo n'est pas exigé au Lot 1 (point soumis à `architecte`, D67).
+
+*Tranché par `architecte` le 2026-10-17 :* (1) la garde est un **déclencheur** sur
+`leads.sync_settings` (une contrainte `CHECK` ne voit pas l'ancienne valeur) : il refuse le passage
+d'un identifiant renseigné à `NULL`, le retrait d'une clé renseignée et la suppression de la ligne ;
+ajouter une clé à `NULL` (nouveau modèle) reste possible. Seule une **migration relue** peut la lever.
+Les suites `test:db` qui posent un identifiant doivent l'annuler par leur propre isolation, jamais par
+une remise à `NULL`. (2) **Toute écriture** sur `leads.sync_settings`, par l'écran comme par SQL,
+est journalisée par un **déclencheur** dans la chaîne d'audit (`settings.changed`, `04` §4.3) et tient
+la date de modification de la clé (RG161) ; l'écrivain SQL est nommé par son rôle de connexion,
+faute de compte (`CLAUDE.md` §5 règle 5). La fonction d'écriture de `0134` ne journalise plus elle-même,
+pour qu'il n'y ait qu'un seul écrivain du journal. Conception détaillée : `expert-database`.
+(3) L'**écran `admin`** des identifiants Brevo, sous double validation, **n'est pas exigé** :
+*tranché par `chef-de-projet` le 2026-10-17*, **aucun écran au MVP**. Les identifiants se posent par
+les variables d'environnement du `worker` (D68), ou par SQL, les deux voies étant journalisées.
+Réexamen seulement si les changements deviennent fréquents.
+
+**RG164 — En `dry_run` (`staging`), la trace d'abord, le verdict ensuite.** Quand le mapping se
+calcule sans le réglage manquant (liste ou modèle Brevo), le worker journalise **d'abord**
+`leads.dry_run.would_send` (opération, code du modèle, noms des attributs) **avec les noms des
+réglages manquants**, **puis** applique RG160 : la ligne finit en échec de configuration, comme en
+production. `staging` répète ainsi fidèlement la production : il n'est ni muet (une trace existe), ni
+complaisant (pas de `succeeded` pour une configuration qui perdrait l'inscrit en production). Un
+réglage Apollo illisible ne permet aucun mapping : échec sans `would_send` (la ligne
+`leads.settings.invalid` existe déjà). Pour qu'une inscription de `staging` finisse `succeeded` avec
+`dry_run`, `staging` porte les identifiants de listes et de modèles **du compte Brevo de test**
+(`runbooks/staging.md`, étape 5) ; aucun appel n'en découle (verrous de `02` §12.4 inchangés).
+
+*Contrat de préparation et ordre d'évaluation, tranchés par `architecte` le 2026-10-17.* La
+préparation du connecteur, **sans appel ni effet**, rend l'une de trois issues : (a) **« ignoré »**
+pour une cause normale (consentement, compte, qualification et périmètre Apollo, déjà envoyé…),
+**toujours prioritaire** — une ligne sans consentement n'est jamais un échec de configuration, et
+aucune trace `would_send` n'est écrite pour elle ; (b) un **échec** sans mapping (réglage Apollo
+illisible, modèle non pris en charge) ; (c) une **description du mapping** accompagnée de la liste,
+éventuellement vide, des **réglages manquants**, nommés dans une liste fermée de chemins
+(`brevo_list_ids.creators`, `brevo_template_ids.account.welcome_advertiser`…), jamais une valeur.
+Le worker applique ensuite, dans cet ordre : trace `would_send` en `dry_run`, avec les noms des
+réglages manquants ; **contrôle de sortie** (`16` RG137 : `output_check_rejected` prime, et n'est
+jamais remis en file automatiquement) ; **échec de configuration** si la liste n'est pas vide (en
+`dry_run` comme en `live`) ; succès `dry_run` ; clé absente (production : `credentials_missing` ;
+ailleurs : `skipped_no_credentials`, `18` T17.1 inchangé) ; liste blanche de `02` §12.4 ; appel. La
+ligne en échec garde les noms des réglages manquants, qui alimentent la cause affichée (RG99).
+
+### Critères d'acceptation de D67
+
+**CA82** — *Étant donné* `brevo_list_ids.creators` à `NULL`, *quand* un créateur consentant
+s'inscrit, *alors* la ligne `brevo_contact` passe en **échec** avec la cause « configuration
+manquante : liste Brevo des créateurs », de nature **incident**, sans nouvelle tentative programmée ;
+elle compte dans les échecs non traités, **n'apparaît pas** parmi les cas normaux, et AL25 est levée.
+
+**CA83** — *Étant donné* la situation de CA82 et un e-mail de bienvenue déjà parti, *quand*
+l'identifiant de liste est renseigné, *alors* dans les 15 minutes la ligne repart **sans action
+humaine**, le contact est synchronisé, un rejeu système `configuration_restored` est journalisé, et
+**aucun second e-mail de bienvenue** ne part.
+
+**CA84** — *Étant donné* la situation de CA82, *quand* le membre retire son consentement, *alors* le
+retrait est propagé à Brevo dans l'objectif de RG92, sans attendre la correction de la liste.
+
+**CA85** — *Étant donné* `INFLUX_ENV=production` et un identifiant de RG162 à `NULL`, *quand* le
+worker démarre, *alors* il sort avec un code non nul avant sa première boucle, le message nomme la clé
+(par exemple `brevo_list_ids.creators`) sans aucune valeur, et une inscription faite pendant ce temps
+réussit, sa ligne restant `pending`. *Contre-test* : la même configuration en `staging` démarre, avec
+la ligne `leads.settings.missing_at_start`.
+
+**CA86** — *Étant donné* `staging` en `dry_run` et `account.welcome_creator` à `NULL`, *quand* un
+créateur s'inscrit, *alors* `leads.dry_run.would_send` est journalisée avec le nom du réglage manquant,
+**puis** la ligne passe en échec de configuration. *Contre-test* : avec les identifiants du compte de
+test, la ligne finit `succeeded` avec `dry_run`.
+
+**CA87** — *Étant donné* la production, un pays de prospection validé et aucune `APOLLO_API_KEY`,
+*quand* un annonceur qualifié s'inscrit, *alors* la ligne Apollo passe en échec `credentials_missing`,
+de nature incident. *Contre-test* : en `staging` sans clé, la ligne reste `skipped_no_credentials`
+(`18` T17.1, inchangé).
+
+**CA88** — *Étant donné* un identifiant de liste ou de modèle Brevo renseigné, *quand* une écriture
+tente de le remettre à `NULL` ou de le retirer, *alors* la base la refuse ; le remplacer par un autre
+entier positif reste possible.
+
+### À relire par `expert-cybersecurite` à la revue groupée de fin de J9 *(architecte, 2026-10-17)*
+
+1. **Refus de démarrage (RG162)** : sortie non nulle avant toute boucle et avant toute écriture ;
+   message et ligne `fatal` qui nomment la clé, jamais la valeur (T17.9) ; aucune donnée personnelle.
+2. **Levier de déni de service** : qui peut rendre un réglage de RG162 illisible et bloquer le
+   prochain redémarrage ? Les trois réglages Apollo, écrits par un `admin` sous double validation
+   (`0134`), doivent être validés **à l'écriture** par le même schéma que celui du contrôle de
+   démarrage ; les identifiants Brevo sont tenus par RG163.
+3. **Garde RG163** : aucun rôle d'exécution ne peut la lever ni désactiver le déclencheur ; seule une
+   migration relue le peut.
+4. **Journal par déclencheur** : écriture dans la chaîne par la seule voie `audit.append()` (`03`
+   §P7), attribution de l'écrivain SQL, aucun secret dans l'ancienne ou la nouvelle valeur.
+5. **Remise en file (RG161)** : dans E-3, sans `GRANT` ni motif nouveau (T6 inchangé) ; si
+   l'implémentation en exige un, c'est un motif nouveau à signer.
+6. **Traces** : `would_send` et la cause affichée ne portent que des noms de réglages (D60).

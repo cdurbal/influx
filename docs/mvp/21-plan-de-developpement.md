@@ -303,6 +303,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 3. **Surveillance active** (`02` §20.5 à §20.7) : alertes par e-mail, sonde du worker, écran « Santé technique », route `/health` publique (EC-22) ; préparation de `production` ; relectures humaines de `18` §10 « Lot 1 ».
 
 - [x] Commit 0 (`eec21bb`) — J6S-3 : ligne « without effect to audit » du pool `worker` en `debug` (≈ 35 k lignes/jour en `staging`) ; `staging` remis en marche (worker, région du backoffice) ; Watch Paths à corriger (fondateur).
+- [ ] À développer (D67, tranchée par `architecte` le 2026-10-17), trois commits, tous avant la mise en production : (a) migration des deux déclencheurs sur `leads.sync_settings` (garde RG163, journal `settings.changed` daté) ; (b) worker — contrat et ordre de RG164, codes d'échec RG160, `credentials_missing`, rattrapage RG161 dans E-3, contrôle de démarrage RG162 ; (c) backoffice — causes, rejouabilité, compteurs, motif d'AL25 (`05` RG160 à RG164, TM1.11 à TM1.16). Écran des identifiants Brevo : hors J9 (option Lot 5).
 
 ### 5.8 Portes de la mise en production
 
@@ -313,6 +314,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 | CGU FR et EN avec clause de non-contournement, supervision des conversations, conservation probatoire ; politique de confidentialité nommant Brevo et Apollo | Fondateur + juriste — *`draft-2` validés le 2026-10-08 ; marqueurs `[…]` en attente de la société* | D29, A5, A10, R-1 |
 | Trois sous-domaines d'envoi authentifiés (SPF, DKIM, DMARC) sur le compte Brevo de production | Fondateur + `integrateur` | `16` RG9, `CLAUDE.md` §14.3 |
 | Comptes Brevo et Apollo au nom de la société ; contrats de sous-traitance signés | Fondateur | `CLAUDE.md` §14.3 |
+| *(2026-10-17, D67)* **Identifiants de listes et de modèles Brevo de production renseignés** dans `leads.sync_settings` de production (listes annonceurs et créateurs ; **tous** les modèles de `brevo_template_ids`, bienvenue comprise), par les variables du `worker` (D68) ou par SQL selon le runbook ; premier démarrage du worker de production accepté par le contrôle de `05` RG162 ; aucune ligne en échec de configuration au backoffice | Fondateur (confirmation) + `integrateur` | `05` RG160 à RG164, `02` §12.5 |
 | Textes de la landing relus ; revue visuelle du budget d'effets | `expert-marketing` + `expert-conformite-rgpd` ; `expert-ux` | D48, D59 |
 | Exécution des demandes « mes données » (E-5 minimale, `account.deleted`) livrée | `dev-react-node` + `expert-cybersecurite` | Arbitrage `chef-de-projet` 2026-10-14, `15` RG79, RG80 |
 | Aucune objection ouverte de `expert-cybersecurite` ni de `expert-conformite-rgpd` | Les deux experts | `CLAUDE.md` §10.3 |

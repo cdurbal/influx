@@ -259,6 +259,18 @@ fondateur : sans elle, on constate seulement `leads.dry_run.would_send`.
    `update leads.sync_settings set value = jsonb_set(value, '{auth.email_changed_notice}', '<id>') where key = 'brevo_template_ids';`
    Tant que l'id est nul, la ligne est `skipped` (`template_not_configured`), sans erreur. Faire de même
    pour les deux modèles de bienvenue s'ils ne le sont pas (J6). La forme est contrôlée en base (`0103`).
+   *Ajouté le 2026-10-17 (D67, tranchée) :* poser aussi les **identifiants des listes du compte de
+   test** et ceux de **tous** les modèles de `brevo_template_ids` (bienvenue annonceur et créateur,
+   avis, accusé « mes données »). Voie privilégiée (D68) : les variables du service `worker`
+   `BREVO_LIST_ID_ADVERTISERS`, `BREVO_LIST_ID_CREATORS`, `BREVO_TEMPLATE_ID_WELCOME_ADVERTISER`,
+   `BREVO_TEMPLATE_ID_WELCOME_CREATOR`, `BREVO_TEMPLATE_ID_EMAIL_CHANGED_NOTICE`, recopiées en base au
+   démarrage. Les identifiants sans variable se posent par SQL
+   (`update leads.sync_settings set value = '{"advertisers": <id>, "creators": <id>}' where key = 'brevo_list_ids';`). Dès la livraison de D67, un identifiant nul ne donne plus un `skipped` mais
+   un **échec de configuration**, alerté (`05` RG160), y compris en `staging` : la trace
+   `leads.dry_run.would_send` reste écrite, puis la ligne échoue (`05` RG164). Une inscription de
+   test correcte finit `succeeded` avec `dry_run`. Aucun appel n'en découle (`SYNC_MODE=dry_run`,
+   `BREVO_MODE=disabled`, `02` §12.4 inchangé). Un identifiant posé ne pourra plus être remis à nul
+   (`05` RG163) : seulement remplacé.
 6. **Enregistrer les échanges réels** (`pnpm --filter @influx/api trial:record <mode>`), **sur le
    poste**, jamais sur Railway ni en CI (refus) : comptes de TEST dans le fichier local d'environnement,
    `BREVO_MODE=redirect`, base locale (refus sinon). Les modes `probes` et `worker` (Ctrl+C pour finir)
