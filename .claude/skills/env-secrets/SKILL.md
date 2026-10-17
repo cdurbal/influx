@@ -152,7 +152,7 @@ Toutes sont **serveur uniquement**, dans le paquet `apps/api` (services `api` et
 | Service | Variables |
 |---|---|
 | `api` | `BREVO_API_KEY` (**clé propre à `api`**), `BREVO_API_BASE_URL`, `BREVO_MODE`, `BREVO_TEST_RECIPIENTS`, `BREVO_SENDER_TRANSACTIONAL` (J3) ; `BREVO_WEBHOOK_SECRET_CURRENT`/`_PREVIOUS`, `BREVO_WEBHOOK_PATH_TOKEN_CURRENT`/`_PREVIOUS` (J7, **`api` seul**, refusées au démarrage du `worker` sur Railway) |
-| `worker` | `BREVO_API_KEY` (**clé propre au `worker`**), `BREVO_API_BASE_URL`, `BREVO_MODE`, `BREVO_TEST_RECIPIENTS`, `BREVO_SENDER_TRANSACTIONAL`, `BREVO_SENDER_MARKETING`, `BREVO_SENDER_PROSPECTING`, `BREVO_SUPPRESSION_LIST_ID` (J6) ; **jamais** les secrets du webhook |
+| `worker` | `BREVO_API_KEY` (**clé propre au `worker`**), `BREVO_API_BASE_URL`, `BREVO_MODE`, `BREVO_TEST_RECIPIENTS`, `BREVO_SENDER_TRANSACTIONAL`, `BREVO_SENDER_MARKETING`, `BREVO_SENDER_PROSPECTING`, `BREVO_SUPPRESSION_LIST_ID` (J6) ; `BREVO_LIST_ID_*`, `BREVO_TEMPLATE_ID_*` (D68) ; **jamais** les secrets du webhook |
 
 Deux clés Brevo distinctes par environnement : révocation séparée, usage attribuable dans les
 journaux de Brevo. Les verrous du garde-fou s'appliquent **aux deux services**. Le code servi par le
@@ -171,6 +171,7 @@ processus HTTP n'appelle que l'envoi transactionnel unitaire (garde statique).
 | `BREVO_SENDER_MARKETING` | Expéditeur du flux marketing | Tous | Sous-domaine dédié `news.` |
 | `BREVO_SENDER_PROSPECTING` | Expéditeur du flux prospection | **Production uniquement** | Sous-domaine dédié `pro.` |
 | `BREVO_SUPPRESSION_LIST_ID` | Liste d'exclusion jointe à tout envoi de source 2 | Tous | RG45 |
+| `BREVO_LIST_ID_ADVERTISERS`, `BREVO_LIST_ID_CREATORS`, `BREVO_TEMPLATE_ID_WELCOME_ADVERTISER`, `BREVO_TEMPLATE_ID_WELCOME_CREATOR`, `BREVO_TEMPLATE_ID_EMAIL_CHANGED_NOTICE` | Identifiants Brevo écrits dans `leads.sync_settings` au démarrage du `worker` (non secrets) | Tous, facultatives | D68 : une variable renseignée l'emporte sur une valeur posée par SQL ; absente, la base reste inchangée ; refus de démarrage si la base refuse la valeur. Identifiants **du compte Brevo de l'environnement** (compte de test hors production) |
 
 > **Brevo ne signe pas ses webhooks** (constat vérifié le 2026-09-19, `16` RG146). C'est pourquoi
 > trois variables — jeton d'en-tête, jeton de chemin, liste d'adresses IP — remplacent une

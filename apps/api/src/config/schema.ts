@@ -712,6 +712,35 @@ export type ApiConfig = BaseConfig & {
   brevoWebhook: BrevoWebhookSecrets;
 };
 
+/** D68: the sub-keys of leads.sync_settings.brevo_list_ids / brevo_template_ids, as given. */
+export type BrevoIdsFromEnvironment = {
+  listIds: Readonly<Record<string, number>>;
+  templateIds: Readonly<Record<string, number>>;
+};
+
+/** D68: each optional variable of the worker and the sub-key of leads.sync_settings it sets. */
+export const BREVO_ID_VARIABLES = {
+  BREVO_LIST_ID_ADVERTISERS: { setting: "listIds", key: "advertisers" },
+  BREVO_LIST_ID_CREATORS: { setting: "listIds", key: "creators" },
+  BREVO_TEMPLATE_ID_WELCOME_ADVERTISER: {
+    setting: "templateIds",
+    key: "account.welcome_advertiser",
+  },
+  BREVO_TEMPLATE_ID_WELCOME_CREATOR: {
+    setting: "templateIds",
+    key: "account.welcome_creator",
+  },
+  BREVO_TEMPLATE_ID_EMAIL_CHANGED_NOTICE: {
+    setting: "templateIds",
+    key: "auth.email_changed_notice",
+  },
+} as const satisfies Record<
+  string,
+  { setting: keyof BrevoIdsFromEnvironment; key: string }
+>;
+
+type BrevoIdVariable = keyof typeof BREVO_ID_VARIABLES;
+
 export type BrevoWebhookSecrets = {
   pathTokens: readonly string[];
   headerTokens: readonly string[];
@@ -723,6 +752,11 @@ export type WorkerConfig = BaseConfig & {
     /** BREVO_SUPPRESSION_LIST_ID: the marketing exclusion list (16 RG45), null when unset. */
     suppressionListId: number | null;
   };
+  /**
+   * D68: the Brevo ids of the environment, written into leads.sync_settings at start; only the
+   * variables set appear, never a null (05 RG163). Empty: the base is left alone.
+   */
+  brevoIds: BrevoIdsFromEnvironment;
   /** APOLLO_API_KEY, the worker's only (skill env-secrets): null when absent, as in staging. */
   apollo: {
     apiKey: string | null;
@@ -911,6 +945,39 @@ function presentValues(...values: (string | undefined)[]): string[] {
   return values.filter((value): value is string => value !== undefined);
 }
 
+/** A Brevo list or template id (D68): a positive integer, absent when unset or empty. */
+const brevoId = z.preprocess(
+  emptyAsAbsent,
+  z.coerce
+    .number({ error: "must be a Brevo id" })
+    .int({ error: "must be a Brevo id" })
+    .positive({ error: "must be a Brevo id" })
+    .optional(),
+);
+
+const brevoIdShape = Object.fromEntries(
+  Object.keys(BREVO_ID_VARIABLES).map((variable) => [variable, brevoId]),
+) as Record<BrevoIdVariable, typeof brevoId>;
+
+function brevoIdsOf(
+  env: Partial<Record<BrevoIdVariable, number | undefined>>,
+): BrevoIdsFromEnvironment {
+  const ids: {
+    listIds: Record<string, number>;
+    templateIds: Record<string, number>;
+  } = {
+    listIds: {},
+    templateIds: {},
+  };
+  for (const [variable, target] of Object.entries(BREVO_ID_VARIABLES)) {
+    const value = env[variable as BrevoIdVariable];
+    if (value !== undefined) {
+      ids[target.setting][target.key] = value;
+    }
+  }
+  return ids;
+}
+
 export const workerEnvSchema = z
   .object({
     ...baseEnvShape,
@@ -934,6 +1001,7 @@ export const workerEnvSchema = z
         .positive({ error: "must be a Brevo list id" })
         .optional(),
     ),
+    ...brevoIdShape,
     APOLLO_API_KEY: optionalText,
     SUPABASE_URL: z.preprocess(emptyAsAbsent, supabaseUrl.optional()),
     SUPABASE_SECRET_KEY: z.preprocess(
@@ -1048,6 +1116,7 @@ export const workerEnvSchema = z
       senderTransactional: env.BREVO_SENDER_TRANSACTIONAL ?? null,
       suppressionListId: env.BREVO_SUPPRESSION_LIST_ID ?? null,
     },
+    brevoIds: brevoIdsOf(env),
     apollo: {
       apiKey: env.APOLLO_API_KEY ?? null,
       baseUrl: APOLLO_OFFICIAL_BASE_URL,

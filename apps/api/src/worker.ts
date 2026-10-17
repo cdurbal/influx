@@ -32,7 +32,9 @@ import {
   processInboundEvent,
 } from "./domains/leads/inbound/processing.ts";
 import {
+  applyBrevoIdsFromEnvironment,
   createWorkerQueue,
+  givesBrevoIds,
   readApolloSubjectOf,
   readBrevoErasureSubjectOf,
   readBrevoSubjectOf,
@@ -211,6 +213,24 @@ async function main(): Promise<void> {
     }
     // Unreachable: verified again on first use (21 J1-D point 6).
     logger.warn({ err: error }, "database unreachable at startup");
+  }
+
+  // D68: the Brevo ids of the environment, before the first turn; never run against a base that
+  // contradicts them (a refusal or an unreachable base stops the worker, Railway restarts it).
+  if (givesBrevoIds(config.brevoIds)) {
+    try {
+      const changedKeys = await applyBrevoIdsFromEnvironment(
+        database,
+        randomUUID(),
+        config.brevoIds,
+      );
+      logger.info({ changedKeys }, "leads.settings.environment_applied");
+    } catch (error) {
+      logger.fatal({ err: error }, "leads.settings.environment_refused");
+      await closeDatabase(database);
+      process.exitCode = 1;
+      return;
+    }
   }
 
   const stop = new AbortController();

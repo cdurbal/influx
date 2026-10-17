@@ -455,3 +455,20 @@ export async function readApolloSubject(
     externalContactId: row.external_contact_id,
   };
 }
+
+/**
+ * D68 (0139): writes the Brevo ids of the worker's environment into leads.sync_settings; only the
+ * sub-keys given are merged. Returns the keys changed, sorted; the function journals them itself.
+ */
+export async function writeBrevoIdsFromEnvironment(
+  tx: Transaction,
+  listIds: Readonly<Record<string, number>>,
+  templateIds: Readonly<Record<string, number>>,
+): Promise<string[]> {
+  const rows = await tx.execute<{ changed: string[] }>(
+    sql`select leads.apply_brevo_ids_from_environment(
+                 ${JSON.stringify(listIds)}::text::jsonb,
+                 ${JSON.stringify(templateIds)}::text::jsonb) as changed`,
+  );
+  return rows[0]?.changed ?? [];
+}

@@ -13,6 +13,7 @@
 // Register (EC-52 (3)): the claim is a reservation and the outcome of a queue line closes an
 // existing line, so neither writes one; the journal line of a welcome e-mail is an insertion, whose
 // subject is the account (elevated.leads.drain_outbox).
+import type { BrevoIdsFromEnvironment } from "../../config/schema.ts";
 import {
   withElevatedTransaction,
   type WorkerDatabase,
@@ -26,6 +27,7 @@ import {
   readBrevoErasureSubject,
   readBrevoSubject,
   recoverStaleLines,
+  writeBrevoIdsFromEnvironment,
   type AttemptOutcome,
   type ApolloSubject,
   type AttemptState,
@@ -242,4 +244,38 @@ export function createWorkerQueue(database: WorkerDatabase): OutboxQueue {
         completeOutboxAttempt(database, requestId, lineId, worker, outcome),
       ),
   };
+}
+
+/** D68: true when the worker's environment gives at least one Brevo id. */
+export function givesBrevoIds(ids: BrevoIdsFromEnvironment): boolean {
+  return (
+    Object.keys(ids.listIds).length > 0 ||
+    Object.keys(ids.templateIds).length > 0
+  );
+}
+
+/**
+ * D68 (founder, 2026-10-17): at start, before the first turn and under the motif of E-3 (no new
+ * motif in 03 §P7), the Brevo ids of the environment go into leads.sync_settings (0139). Only the
+ * ids given are merged, never a null (05 RG163); the base stays the source of truth (RG37). The
+ * function journals settings.changed itself: no elevated audit line. Returns the keys changed.
+ */
+export async function applyBrevoIdsFromEnvironment(
+  database: WorkerDatabase,
+  requestId: string,
+  ids: BrevoIdsFromEnvironment,
+): Promise<string[]> {
+  return withElevatedTransaction(
+    database,
+    "leads.drain_outbox",
+    requestId,
+    async (tx) => ({
+      value: await writeBrevoIdsFromEnvironment(
+        tx,
+        ids.listIds,
+        ids.templateIds,
+      ),
+      auditSubject: null,
+    }),
+  );
 }

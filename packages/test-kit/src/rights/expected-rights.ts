@@ -1310,7 +1310,11 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|column|leads.outbox_events.status|SELECT,UPDATE",
   "influx_leads_definer|column|leads.outbox_events.subject_key|INSERT,SELECT",
   "influx_leads_definer|column|leads.sync_settings.key|SELECT",
-  "influx_leads_definer|column|leads.sync_settings.value|SELECT",
+  // 0139 (D68): the Brevo ids of the worker's environment, the value and its author only
+  "influx_leads_definer|column|leads.sync_settings.value|SELECT,UPDATE",
+  "influx_leads_definer|column|leads.sync_settings.updated_by_account_id|UPDATE",
+  "influx_leads_definer|function|leads.apply_brevo_ids_from_environment(jsonb,jsonb)|EXECUTE",
+  "influx_worker|function|leads.apply_brevo_ids_from_environment(jsonb,jsonb)|EXECUTE",
   "influx_leads_definer|column|leads.transactional_sends.account_id|INSERT,SELECT",
   "influx_leads_definer|column|leads.transactional_sends.email_code|INSERT,SELECT",
   "influx_leads_definer|column|leads.transactional_sends.locale|INSERT",
@@ -2220,6 +2224,8 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "leads.read_apollo_subject(bigint,text)": "influx_leads_definer",
   "leads.read_brevo_subject(bigint,text)": "influx_leads_definer",
   "leads.recover_stale_outbox_lines(integer)": "influx_leads_definer",
+  // 0139 (D68): the Brevo ids of the worker's environment
+  "leads.apply_brevo_ids_from_environment(jsonb,jsonb)": "influx_leads_definer",
   // 0116 (J7 decision 2: E-1 receive, E-3 processing, transactional hard bounce).
   // leads.insert_brevo_inbound_event() is SECURITY INVOKER (helper of the two record functions).
   "leads.record_brevo_event(text,timestamp with time zone,text,text,bigint,bigint,text)":
