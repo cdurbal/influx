@@ -92,7 +92,8 @@ services (noms exacts : `web` et `backoffice` joignent `api.railway.internal`). 
 indiqué **saisis à la main** (*Custom Build Command*, *Watch Paths*, *Custom Start Command*,
 *Healthcheck Path* et *Timeout*, *Restart Policy*, *Draining*) : Railway refuse le config-as-code aux
 services créés depuis le 2026-08-28 (abandonné le 2026-12-01 ; passage à son *Infrastructure as Code*
-à arbitrer, `integrateur`), variable `RAILPACK_NODE_VERSION=24` (Node ≥ 24.12 en production, D64 ; vérifier la
+à arbitrer, `integrateur`) ; les *Watch Paths* se saisissent **un motif par ligne**, jamais en
+une chaîne séparée par des virgules (sinon tout déploiement est `SKIPPED`), variable `RAILPACK_NODE_VERSION=24` (Node ≥ 24.12 en production, D64 ; vérifier la
 version dans le journal de construction).
 
 | Service | Fichier | Domaine public | Variables (et rien d'autre) |

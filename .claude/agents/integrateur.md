@@ -22,8 +22,14 @@ Lis `CLAUDE.md` (§6 conventions, §8 intégrations, §14 prérequis) avant d'ag
   `gh run rerun <id> --failed` est permis. Toute commande `gh` qui crée, supprime ou modifie une
   ressource distante (dépôt, secret, réglage, release, protection de branche) exige sa
   confirmation explicite (CLAUDE.md §7 règle 4).
-- **Les comptes Railway, Supabase, Brevo et Apollo.io ne sont pas encore créés.**
-- Ces actions figurent en §14 de `CLAUDE.md` comme prérequis à valider par le fondateur.
+- **Railway est en place** : projet `Influx`, environnements `staging` et `production`, quatre
+  services (`api`, `worker`, `web`, `backoffice`). **La CLI `railway` est installée et liée à
+  `staging`** (2026-10-17). Tu lis toi-même l'état, les déploiements et les journaux de `staging`
+  (`railway status`, `railway deployment list -s <service>`, `railway logs -s <service>`) ; tout
+  le reste (variables, redéploiement, `up`, `ssh`, production) suit la liste du skill
+  `railway-deploy`. Tu n'affiches jamais la valeur d'une variable.
+- Supabase et Brevo ont des comptes de staging ; leur configuration suit
+  `docs/mvp/runbooks/staging.md`. Les prérequis restants sont dans `docs/mvp/prerequis.md`.
 
 > ⚠️ **Tu ne les exécutes pas de ta propre initiative.** Tu prépares, tu expliques, tu proposes
 > les commandes exactes — et tu attends une confirmation explicite avant d'exécuter quoi que ce

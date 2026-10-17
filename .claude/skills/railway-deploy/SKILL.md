@@ -1,125 +1,122 @@
 ---
 name: railway-deploy
-description: Configurer un service, un environnement ou un déploiement Railway pour INFLUX, et diagnostiquer un déploiement en échec. À utiliser pour toute mise en ligne, création d'environnement, configuration de variables de déploiement ou incident de production.
+description: Configurer un service, un environnement ou un déploiement Railway pour INFLUX, et diagnostiquer un déploiement en échec (CLI `railway` liée à staging). À utiliser pour toute mise en ligne, création d'environnement, configuration de variables de déploiement, lecture de journaux Railway ou incident de staging ou de production.
 ---
 
 # Déploiement Railway
 
-Railway héberge l'API et les applications front d'INFLUX. Objectif : des déploiements
+Railway héberge l'API, le worker et les deux fronts d'INFLUX. Objectif : des déploiements
 reproductibles, traçables et réversibles.
 
 Agents concernés : `integrateur` (principal), `architecte`, `expert-cybersecurite`.
+Procédure de mise en place et variables par service : **`docs/mvp/runbooks/staging.md`**
+(étape 5 et section J7), qui fait foi. Ce skill ne la recopie pas.
 
-## ⚠️ Avant toute action
+## État actuel (2026-10-17)
 
-- **Le compte Railway n'est pas encore créé** (cf. §14 de `CLAUDE.md`).
-- **Aucune ressource externe n'est créée, ni aucun déploiement en production lancé, sans
-  confirmation explicite du fondateur.**
-- Ce document prépare et documente ; il n'autorise pas l'exécution autonome.
+- Projet Railway **`Influx`** (espace « Cyrille's Projects »), environnements **`production`** et
+  **`staging`** (`staging` forké de `production`).
+- Quatre services, mêmes noms dans les deux environnements, réglages dans `deploy/railway/<service>.json`
+  **saisis à la main** dans l'interface (Railway refuse le config-as-code aux services créés depuis
+  le 2026-08-28 ; passage à son *Infrastructure as Code* à arbitrer avant le 2026-12-01) :
 
-## Topologie cible
+  | Service | Démarrage | Santé | Domaine public |
+  |---|---|---|---|
+  | `api` | `node apps/api/src/main.ts` | `/health` | aucun (joint par `api.railway.internal:3100`) |
+  | `worker` | `node apps/api/src/worker.ts` | aucune | **aucun attendu** |
+  | `web` | `pnpm --filter @influx/web start` | `/fr` | `*.up.railway.app` |
+  | `backoffice` | `pnpm --filter @influx/backoffice start` | `/` | `*.up.railway.app`, distinct de `web` |
 
+- Déploiement : push sur `main` → CI → « Wait for CI » → déploiement automatique en `staging`.
+  Un déploiement `SKIPPED` = CI rouge ou *Watch Paths* non touchés, pas une panne.
+- **CLI `railway` installée et authentifiée** sur le poste du fondateur, dépôt **lié à `staging`**
+  (aucun service lié par défaut : toujours passer `-s <service>`).
+
+## CLI : ce que l'agent fait seul, et ce qu'il ne fait jamais
+
+**Permis sans demander (lecture seule, `staging` uniquement) :**
+
+```sh
+railway status                                  # projet, environnement lié, état des services
+railway deployment list -s <service>            # historique (SUCCESS, CRASHED, SKIPPED…)
+railway logs -s <service> -n 100                # journal d'exécution du dernier déploiement
+railway logs -s <service> -b -n 200             # journal de construction
+railway logs -s <service> --http -n 50          # requêtes HTTP (web, backoffice)
+railway metrics -s <service>                    # ressources
 ```
-  GitHub (main)
-       │
-       ▼
-  ┌──────────────────────────────┐
-  │  Railway — environnement     │
-  │  STAGING                     │  déploiement automatique depuis main
-  │  · API Node.js               │  clés de bac à sable Brevo / Apollo
-  │  · Front(s) React            │  projet Supabase de test
-  └──────────────┬───────────────┘
-                 │  validation fonctionnelle
-                 ▼  promotion manuelle
-  ┌──────────────────────────────┐
-  │  Railway — environnement     │
-  │  PRODUCTION                  │  déploiement sur validation du fondateur
-  │  · API Node.js               │  clés réelles Brevo / Apollo
-  │  · Front(s) React            │  projet Supabase de production
-  └──────────────────────────────┘
+
+Diagnostic d'une variable **sans en lire la valeur** : n'afficher que les noms, ou une partie non
+secrète (rôle d'une URL de base), jamais la valeur elle-même :
+
+```sh
+railway variables -s <service> --json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(Object.keys(JSON.parse(s)).sort().join('\n')))"
 ```
 
-Le nombre exact de services dépend des décisions **D3** (monorepo vs multi-repo) et **D12**
-(backoffice séparé ou intégré) — à trancher par `architecte` avant configuration définitive.
+**Interdit à l'agent (ou seulement sur confirmation explicite du fondateur, pour cette action-là) :**
+
+| Commande | Pourquoi |
+|---|---|
+| `railway variables` sans filtre, `railway variables --kv` | Affiche les secrets en clair dans le terminal et la conversation |
+| `railway variables --set` / suppression d'une variable | Modifie l'environnement (confirmation ; la valeur est saisie par le fondateur, jamais par l'agent) |
+| `railway run`, `railway shell` | Injecte les secrets de l'environnement dans un processus local |
+| `railway up` | Déploie le code local en contournant la CI et « Wait for CI » |
+| `railway redeploy`, `railway down`, `railway deployment …` qui écrit | Change ce qui tourne (rollback : procédure du runbook, sur confirmation) |
+| `railway ssh`, `railway connect` | Accès interactif au conteneur ou à la base |
+| `railway add`, `service`, `domain`, `environment new/delete`, `delete`, `init`, `link` | Crée, supprime ou relie une ressource |
+| `-e production` sur **n'importe quelle** commande, lecture comprise | La production n'est consultée que sur demande du fondateur |
+| `railway setup agent`, `railway mcp`, `railway skills` | Installe de l'outillage tiers non arbitré (`architecte`) |
+
+Toujours ajouter `-s <service>` ; ne jamais changer le lien (`railway link`, `environment`) pour
+contourner la règle sur la production.
 
 ## Règles non négociables
 
-1. **Deux environnements minimum**, strictement cloisonnés : `staging` et `production`.
-2. **Clés API distinctes par environnement.** Jamais la clé Brevo ou Apollo de production en
-   `staging` : un e-mail ou une séquence commerciale partie vers de vrais contacts depuis un
-   environnement de test est un **incident business**.
-3. **Projets Supabase distincts** par environnement. Aucune donnée personnelle réelle en
-   `staging` (exigence RGPD).
-4. **Aucun secret dans le dépôt.** Les variables vivent dans Railway (exécution) et GitHub
-   Secrets (CI). Cf. skill `env-secrets`.
-5. **Déploiement traçable** : quel commit, par qui, quand, vers quel environnement.
-6. **Rollback connu avant déploiement.** On ne met rien en ligne sans savoir le défaire.
-7. **Les migrations de base sont ordonnées avec le déploiement applicatif** : jamais de migration
-   destructive simultanée à une bascule de code (procéder en étapes).
+1. **Deux environnements**, strictement cloisonnés : `staging` et `production`.
+2. **Clés distinctes par environnement.** Jamais de clé Brevo ou Apollo de production en `staging`
+   (D62) ; aucune clé Apollo en `staging`.
+3. **Projets Supabase distincts**, aucune donnée personnelle réelle en `staging`.
+4. **Aucun secret dans le dépôt ni dans un fichier local** ; aucune valeur de secret recopiée dans
+   la conversation, un journal ou un document (skill `env-secrets`). Pas de capture du *Raw Editor*.
+5. **Déploiement traçable** : `RAILWAY_GIT_COMMIT_SHA`, date, environnement.
+6. **Rollback connu avant déploiement** (procédure « Retour à la version précédente » du runbook ;
+   `api` et `worker` partagent le code et reviennent **ensemble**).
+7. **Migrations additives**, appliquées par le job CI « Migrate staging », jamais par Railway ni à la main.
 8. **La production ne se déploie pas sans validation explicite du fondateur.**
-
-## Configurer un nouveau service
-
-1. Déterminer avec `architecte` s'il s'agit d'un service distinct ou d'une application existante.
-2. Définir la commande de build et la commande de démarrage.
-3. Lister **toutes** les variables d'environnement nécessaires, par environnement
-   (skill `env-secrets`).
-4. Définir un point de contrôle de santé (endpoint de *health check*) et le brancher.
-5. Configurer le domaine et le HTTPS le cas échéant.
-6. Vérifier les journaux au premier démarrage.
-7. **Documenter** la configuration dans le dépôt : un réglage qui n'existe que dans l'interface
-   Railway est perdu à la première rotation d'équipe.
 
 ## Déployer
 
-1. [ ] CI verte sur `main` (typecheck, lint, tests, build)
-2. [ ] Migrations de base préparées, ordonnées et réversibles si possible
-3. [ ] Variables d'environnement à jour dans l'environnement cible
-4. [ ] Déploiement en `staging` d'abord, systématiquement
-5. [ ] Vérification fonctionnelle en `staging` sur les parcours critiques
-6. [ ] Validation explicite du fondateur pour la production
-7. [ ] Déploiement en production
-8. [ ] Vérification post-déploiement : santé du service, journaux, parcours d'inscription,
-      synchronisation des leads
-9. [ ] Consigner : commit déployé, date, contenu du lot
+1. [ ] CI verte sur `main` (`gh run list --limit 5`), dont « Migrate staging »
+2. [ ] Variables nouvelles du jalon posées en `staging` par le fondateur (runbook)
+3. [ ] `railway deployment list -s <service>` : les services touchés sont `SUCCESS` sur le même commit
+4. [ ] Journaux de démarrage propres (ci-dessous), vérification fonctionnelle en `staging`
+5. [ ] Validation explicite du fondateur pour la production, puis déploiement
+6. [ ] Consigner le commit déployé dans `21-plan-de-developpement.md`
 
-## Vérifications post-déploiement propres à INFLUX
+## Journaux attendus au démarrage
 
-- [ ] L'inscription fonctionne pour les deux profils
-- [ ] La synchronisation vers Brevo et Apollo repart (file d'attente vidée, pas d'accumulation)
-- [ ] Le backoffice est accessible aux seuls comptes autorisés
-- [ ] Les montants et la commission s'affichent correctement sur un contrat témoin
-- [ ] Aucun secret dans les journaux
+- `api` : `database pool verified` pour `influx_app`, `influx_auth_login`, `influx_ops_login` ;
+  aucun `database pool refused`.
+- `api` / `worker` : aucun `invalid configuration, refusing to start` (la ligne `issues=[…]` nomme
+  la variable fautive, jamais sa valeur).
 
 ## Diagnostiquer un déploiement en échec
 
+Méthode : `railway status` → `railway deployment list -s <service>` → `railway logs -s <service>`
+(ou `-b` si la construction échoue). Lire **avant** de modifier ; changer **une seule chose à la fois**.
+
 | Symptôme | Pistes |
 |---|---|
-| Échec au build | Version de Node, dépendances manquantes, erreur TypeScript non détectée en CI |
-| Démarrage puis arrêt immédiat | Variable d'environnement manquante, port non lu depuis l'environnement, échec de connexion Supabase |
-| Service accessible mais erreurs 500 | Clés API invalides, migration non appliquée, permissions Supabase |
-| Front déployé mais appels API en échec | URL d'API erronée par environnement, CORS trop restrictif ou mal configuré |
-| Leads non synchronisés | Clé Brevo/Apollo absente ou invalide, file bloquée, quota dépassé |
-
-Méthode : lire les journaux **avant** de modifier quoi que ce soit ; comparer avec
-l'environnement qui fonctionne ; changer **une seule chose à la fois**.
+| `CRASHED`, `invalid configuration, refusing to start` | Variable absente ou fausse : `issues` la nomme ; vérifier noms et rôle des URL avec le filtre ci-dessus |
+| `must connect as role X` | URL d'un autre rôle collée ; régénérer avec `staging:role-passwords` (runbook étape 3), le fondateur la saisit |
+| `SELF_SIGNED_CERT_IN_CHAIN` | `DATABASE_CA_CERT` absent sur `api` ou `worker` (EC-34) |
+| `SKIPPED` en série | CI rouge (souvent I-4 non attesté) ou *Watch Paths* non touchés. Statut GitHub du commit : `gh api repos/cdurbal/influx/commits/<sha>/status --jq '.statuses[]'` |
+| « No deployment needed - watched paths not modified » alors que le commit touche le service | *Watch Paths* saisis en **une chaîne séparée par des virgules** : un seul motif qui ne correspond à rien. Un motif **par ligne** (incident du 2026-10-17). Lecture : `railway api 'query{serviceInstance(serviceId:"<id>",environmentId:"<id>"){watchPatterns}}'` |
+| Échec au build | `RAILPACK_NODE_VERSION`, dépendances, erreur TypeScript non vue en CI |
+| Front en ligne, appels API en échec | `INFLUX_API_INTERNAL_URL` / secret interne du front, service `api` arrêté |
+| Leads non synchronisés | `SYNC_MODE=dry_run` en staging est **normal** ; sinon clé Brevo, file bloquée |
 
 ## Rollback
 
-1. Identifier le dernier déploiement sain.
-2. Vérifier la compatibilité des migrations déjà appliquées avec le code cible — une migration
-   destructive peut rendre le rollback applicatif impossible : c'est pourquoi on les évite dans
-   la même bascule.
-3. Redéployer la version saine.
-4. Vérifier les parcours critiques.
-5. Documenter l'incident : cause, impact, correctif, prévention.
-
-## Checklist de mise en place initiale (à valider par le fondateur)
-
-- [ ] Compte Railway créé
-- [ ] Projet INFLUX créé, environnements `staging` et `production`
-- [ ] Dépôt GitHub connecté, déploiement automatique sur `staging` depuis `main`
-- [ ] Variables d'environnement renseignées par environnement
-- [ ] Domaines et HTTPS configurés
-- [ ] Contrôles de santé actifs
-- [ ] Procédure de rollback testée au moins une fois
+Procédure du runbook (« Retour à la version précédente ») : *Redeploy* du dernier déploiement sain
+pour chaque service touché, migrations jamais annulées, consigner heure, commit et cause.
+Exécuté par le fondateur ou sur sa confirmation explicite.
