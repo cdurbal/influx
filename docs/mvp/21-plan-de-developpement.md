@@ -30,8 +30,8 @@
 | **J5** | 1 | Inscription marque et créateur, transaction unique, file alimentée | ✅ Terminé (2026-10-09, revue groupée sans point rouge) | 4-5 j |
 | **J6** | 1 | Worker, connecteurs Brevo et Apollo, qualification, garde-fous | ▶️ Commits faits, revue groupée 2026-10-12 sans point rouge ; reste le constat `staging` (**1er usage démontrable**) — fiche `jalons/j6-fiche.md` | 4-5 j |
 | **J7** | 1 | Retours Brevo (désinscriptions, rebonds), espace membre minimal | ✅ Revue close (2026-10-14) ; critère `staging` en attente (fondateur) | 3-4 j |
-| **J8** | 1 | Backoffice v0 : inscrits, états de synchronisation, rejeu, réglages Apollo | ⏳ À faire — fiche `jalons/j8-fiche.md` | 4-5 j |
-| **J9** | 1 | Sortie du mode maquette de la landing, en-têtes, surveillance active, production | ⏳ À faire | 4-5 j |
+| **J8** | 1 | Backoffice v0 : inscrits, états de synchronisation, rejeu, réglages Apollo | ✅ Revue close (2026-10-16) ; critère `staging` en attente (fondateur) | 4-5 j |
+| **J9** | 1 | Sortie du mode maquette de la landing, en-têtes, surveillance active, production | ▶️ En cours — fiche `jalons/j9-fiche.md` | 4-5 j |
 
 **Cinq règles qu'aucune urgence ne suspend :**
 
@@ -270,7 +270,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] Commit 9 (`4c7c546`) — écrans `/fr/compte/*` · `/en/account/*`, écran CGU bloquant, Playwright à 375 px.
 - [ ] Commit 10 (`33acb6c`, partiel) — outil `trial:record` et runbook `staging` J7 ; reste au fondateur : déploiement, webhook de test, enregistrements, critère de fin.
 - [x] Clôture (`5b977f7`, `c8379f6`) — revue de fin de J7 sans point rouge (`expert-cybersecurite`, `testeur`) ; 18 commits attestés, dont 4 du J5 ; test CGU révélé par la CI corrigé ; specs alignées.
-- **Reportés** (détail : `jalons/j8-fiche.md`, et `git show 5b977f7:docs/mvp/jalons/j7-fiche.md`) : avant production J7S-1 à J7S-3 ; avant le webhook de test J7S-4, J7S-6 ; fondateur J7S-5, J6S-5 ; J8 J7S-7, J7T-1 à J7T-6, J6T-1, J6T-2 ; J9 J7S-8.
+- **Reportés** (détail : `jalons/j9-fiche.md`, et `git show 5b977f7:docs/mvp/jalons/j7-fiche.md`) : avant production J7S-1 à J7S-3 ; avant le webhook de test J7S-4, J7S-6 ; fondateur J7S-5, J6S-5 ; J8 J7S-7, J7T-1 à J7T-6, J6T-1, J6T-2 ; J9 J7S-8.
 
 ### J8 — Backoffice v0 (revue close le 2026-10-16 ; critère de fin sur `staging` en attente)
 
@@ -294,7 +294,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] Commit 9 (`c1e6fe3`) — écrans du backoffice v0, `0138` (J3S-6, B-7), canal de secours RG65.
 - [x] Commit 10 (`b8f17fb`) — Playwright backoffice (CA56 à CA63, 2V dégradée), J7T-4, J7T-5, T14 sur l'inventaire `/v1/bo/*`.
 - [x] Clôture (`262e626`) — revue de fin de J8 sans point bloquant (`expert-cybersecurite`, `testeur`) ; 6 commits attestés ; EC-J8-19 tranché (rejeu en lot sans 2V) ; `04` §11.2, CA64, `03`, `15`, `18` alignés.
-- **Reportés** (détail : `jalons/j8-fiche.md`) : avant Lot 1 J8S-1 à J8S-4, C5.c, A2 ; J9 J8S-5 à J8S-7, J8T-2 à J8T-7, J7S-8 ; avant production J7S-1 à J7S-3 ; Lot 5 J8S-8, J8S-9 ; fondateur `staging`, J4R-1, J7S-4 à J7S-6, J6S-5.
+- **Reportés** (détail : `jalons/j9-fiche.md`) : avant Lot 1 J8S-1 à J8S-4, C5.c, A2 ; J9 J8S-5 à J8S-7, J8T-2 à J8T-7, J7S-8 ; avant production J7S-1 à J7S-3 ; Lot 5 J8S-8, J8S-9 ; fondateur `staging`, J4R-1, J7S-4 à J7S-6, J6S-5.
 
 ### J9 — Durcissement, landing branchée, mise en ligne (4 à 5 jours)
 
@@ -353,5 +353,5 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 | **J5** | **`jalons/j5-fiche.md` d'abord** (sections et lignes exactes) ; `05` §A à §E, §H, §L ; `17` §2.5, §2.6, §3 ; skill `design-system-influx` |
 | **J6** | **`jalons/j6-fiche.md` d'abord** (sections et lignes exactes) ; `02` §6 et §11 ; `05` §I ; `16` §H, §J, §M ; skills `lead-pipeline`, `brevo-campaign`, `apollo-lead-sync` |
 | **J7** | `05` §F (RG54 à RG58), §J ; `16` §I et §M6 ; `17` §6 ; skills `lead-pipeline`, `brevo-campaign` |
-| **J8** | **`jalons/j8-fiche.md` d'abord** (sections et lignes exactes) ; `05` §K ; `15` §C, §F ; `17b` §3.11 et §3.13 ; skill `backoffice-ops` |
-| **J9** | `02` §13 et §20 ; `03` §6.5 ; `18` §5 et §10 « Lot 1 » |
+| **J8** | `git show a2ff7bc:docs/mvp/jalons/j8-fiche.md` (fiche archivée) ; `05` §K ; `15` §C, §F ; `17b` §3.11 et §3.13 ; skill `backoffice-ops` |
+| **J9** | **`jalons/j9-fiche.md` d'abord** (sections et lignes exactes) ; `02` §13 et §20 ; `03` §6.5 ; `18` §5 et §10 « Lot 1 » |
