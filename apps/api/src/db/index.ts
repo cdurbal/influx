@@ -420,10 +420,14 @@ export async function withElevatedTransaction<T>(
     const result = await fn(tx);
     if (result.auditSubject === null) {
       // EC-52 (3): a reservation, a counted failure or an outcome alone writes no audit line.
-      database.logger.info(
-        { operation },
-        "elevated transaction without effect to audit",
-      );
+      // J6S-3: the worker pool polls every few seconds (E-3: 20k to 50k lines a day), so its line
+      // is debug only. Keyed on the pool, never on an operation name (T6.3).
+      const message = "elevated transaction without effect to audit";
+      if (kind === "worker") {
+        database.logger.debug?.({ operation }, message);
+      } else {
+        database.logger.info({ operation }, message);
+      }
       return result.value;
     }
     // 03 §6.7 point 7, EC-36: one audit line, elevated.<operation>, on the subject the effect was

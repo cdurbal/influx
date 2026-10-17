@@ -1750,8 +1750,9 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
 // ---------------------------------------------------------------------------------------------
 
 describe("T6.4: E-3 through withElevatedTransaction (src/domains/leads/queue.ts)", () => {
+  // J6S-3: E-3's line is written at debug level, below the info level of production.
   const NO_AUDIT_LINE =
-    'elevated transaction without effect to audit {"operation":"leads.drain_outbox"}';
+    'debug: elevated transaction without effect to audit {"operation":"leads.drain_outbox"}';
 
   /** The pool of worker.ts, on the local stack, with its log lines kept. */
   function workerDatabase(): { database: WorkerDatabase; logs: string[] } {
@@ -1759,7 +1760,12 @@ describe("T6.4: E-3 through withElevatedTransaction (src/domains/leads/queue.ts)
     const write = (object: object, message: string) => {
       logs.push(`${message} ${JSON.stringify(object)}`);
     };
-    const logger: DbLogger = { error: write, warn: write, info: write };
+    const logger: DbLogger = {
+      error: write,
+      warn: write,
+      info: write,
+      debug: (object, message) => write(object, `debug: ${message}`),
+    };
     const database = createWorkerDatabase(
       {
         worker: {

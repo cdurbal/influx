@@ -18,6 +18,8 @@ export type DbLogger = {
   error(object: object, message: string): void;
   warn(object: object, message: string): void;
   info(object: object, message: string): void;
+  /** Optional: a logger without it drops the debug lines (pino has it). */
+  debug?(object: object, message: string): void;
 };
 
 export type PoolOptions = {
