@@ -302,6 +302,8 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 2. **En-têtes et CSP à nonce** par surface (`03` §6.5, T10) ; passe-plat complet (T7) ; erreurs sans détail (T13) ; limitation de débit (T15) ; analyse des artefacts (T11).
 3. **Surveillance active** (`02` §20.5 à §20.7) : alertes par e-mail, sonde du worker, écran « Santé technique », route `/health` publique (EC-22) ; préparation de `production` ; relectures humaines de `18` §10 « Lot 1 ».
 
+- [x] Commit 0 (`eec21bb`) — J6S-3 : ligne « without effect to audit » du pool `worker` en `debug` (≈ 35 k lignes/jour en `staging`) ; `staging` remis en marche (worker, région du backoffice) ; Watch Paths à corriger (fondateur).
+
 ### 5.8 Portes de la mise en production
 
 | Porte | Qui | Référence |
