@@ -52,12 +52,18 @@ secrète (rôle d'une URL de base), jamais la valeur elle-même :
 railway variables -s <service> --json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(Object.keys(JSON.parse(s)).sort().join('\n')))"
 ```
 
-**Interdit à l'agent (ou seulement sur confirmation explicite du fondateur, pour cette action-là) :**
+**Écritures en `staging` (autorisées par le fondateur le 2026-10-17)** : toute commande portant
+`-e staging`, et `railway api` avec `--raw-var e=1e43a0b9-c02a-460b-9d29-41fd2f7fe41b` (réglages
+sans commande dédiée : *Watch Paths*, *Restart Policy*, *Draining*). Règles dans
+`.claude/settings.local.json` du poste (non versionné) ; une commande par appel, sans pipe, sinon la
+règle ne s'applique pas. Un secret n'est jamais tapé ni affiché par l'agent : il passe par `--stdin`
+depuis un générateur, ou c'est le fondateur qui le saisit.
+
+**Interdit à l'agent, même en `staging` (ou seulement sur confirmation explicite du fondateur, pour cette action-là) :**
 
 | Commande | Pourquoi |
 |---|---|
 | `railway variables` sans filtre, `railway variables --kv` | Affiche les secrets en clair dans le terminal et la conversation |
-| `railway variables --set` / suppression d'une variable | Modifie l'environnement (confirmation ; la valeur est saisie par le fondateur, jamais par l'agent) |
 | `railway run`, `railway shell` | Injecte les secrets de l'environnement dans un processus local |
 | `railway up` | Déploie le code local en contournant la CI et « Wait for CI » |
 | `railway redeploy`, `railway down`, `railway deployment …` qui écrit | Change ce qui tourne (rollback : procédure du runbook, sur confirmation) |
