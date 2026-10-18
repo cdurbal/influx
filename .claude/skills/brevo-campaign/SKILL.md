@@ -56,10 +56,12 @@ Agents concernés : `expert-integrations-api` (principal), `expert-marketing`,
 4. **Désinscription prioritaire.** Un contact désinscrit côté Brevo l'est aussi côté INFLUX, et
    inversement. Sur ce point, **Brevo fait foi**.
 5. **Clé API côté serveur uniquement.** Jamais dans un bundle front, un dépôt ou un log.
-6. **Clés distinctes par environnement.** En `staging`, clé de bac à sable ou intégration
-   désactivée. **Un e-mail réellement envoyé depuis un environnement de test est un incident.**
-   *(Renforcé le 2026-09-19.)* **Le service refuse de démarrer** si un envoi réel est configuré
-   hors production : un avertissement se lit une fois, puis s'ignore.
+6. **Clés distinctes par environnement.** *Depuis D70 (2026-10-18)*, `staging` envoie réellement
+   avec le **compte Brevo de `staging`** et son propre domaine d'envoi, comme la production ; la
+   pile locale, la CI et les tests restent en doublure ou en `redirect`. **Un e-mail réel parti de la
+   CI, d'un test ou de la pile locale, ou une clé de production hors production, est un incident.**
+   *(Renforcé le 2026-09-19.)* **Le service refuse de démarrer** sur une configuration interdite à
+   son environnement : un avertissement se lit une fois, puis s'ignore.
 7. **Toute tentative est journalisée** : événement, opération, statut, réponse, horodatage.
    Le backoffice affiche les échecs et permet le rejeu.
 8. **Respect des limites de débit** : file d'attente, temporisation exponentielle plafonnée.
@@ -361,8 +363,14 @@ Un `admin` doit pouvoir **tout arrêter en un geste**, sans redéploiement, avec
 
 ## Garde-fou d'environnement
 
-> **Un e-mail réellement envoyé depuis `staging` est un incident.** Le risque est aggravé depuis
-> A4 : le backoffice peut désormais déclencher des envois, y compris de masse.
+> **D70 (2026-10-18).** `staging` se comporte comme la production : envois réels par le compte
+> Brevo de `staging`, sans redirection. Les règles ci-dessous sur le mode désactivé ou redirigé
+> valent désormais pour la pile locale, la CI et les tests ; pour `staging`, elles décrivent l'état
+> d'avant la bascule (`jalons/d70-plan.md`). Restent vrais partout : clé de production seulement en
+> production, aucune donnée de production ailleurs, bandeau d'environnement.
+>
+> **Un e-mail réellement envoyé depuis un environnement de test est un incident.** Le risque est
+> aggravé depuis A4 : le backoffice peut désormais déclencher des envois, y compris de masse.
 
 - **Clés distinctes par environnement**, la clé de production n'existe jamais ailleurs qu'en
   production (skill **`env-secrets`**).

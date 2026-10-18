@@ -63,13 +63,15 @@ Agents concernés : `integrateur` (principal), `expert-cybersecurite` (**veto**)
 6. **Clés distinctes par environnement, sans exception.** La clé de production **n'existe nulle part
    ailleurs qu'en production** : ni en `staging`, ni dans un fichier local, ni dans une variable de
    compilation, ni dans un journal, ni dans un ticket (`16` RG115).
-   **Poste de développement (D62, 2026-09-25)** : il peut porter les clés de **comptes Brevo et
-   Apollo de test**, ouverts spécialement à cet effet et distincts des comptes de production, dans
-   `apps/api/.env.local` (ignoré par Git), jamais en CI ni dans un service Railway. Conditions :
-   `16` RG115 pour Brevo, ligne `APOLLO_API_KEY` ci-dessous pour Apollo. Local = `.env.local` et non
-   `.env`, que la maquette de la branche `demo` charge automatiquement.
+   **`.env.local` = `staging` (D70, 2026-10-18, amende D62)** : `apps/api/.env.local` et ceux des
+   fronts portent les valeurs de **`staging`, et uniquement `staging`** (Supabase, Brevo, Apollo de
+   `staging`). Tous les agents peuvent le lire et passer ses valeurs à une commande (`--stdin`,
+   `--env-file`), **jamais les afficher ni les recopier** (réponse, document, commit, journal,
+   ticket), jamais y écrire une valeur de production, jamais le charger dans un test automatisé
+   (CI et tests sur la pile locale et la doublure, `16` RG148). Local = `.env.local` et non `.env`,
+   que la maquette de la branche `demo` charge automatiquement.
 7. **Aucune donnée de production dans `staging`** (verrou 4, `03` §6.8, B9). `staging` est alimenté
-   **exclusivement** par `supabase/seed`.
+   par `supabase/seed` et par des testeurs internes, jamais par une copie de la production.
 8. **Aucun secret dans les journaux**, les messages d'erreur, les tickets ou les captures d'écran.
    Pas non plus d'adresse e-mail complète ni de corps de message dans les journaux.
 9. **Validation au démarrage.** Une variable requise manquante ou incohérente fait **échouer le
@@ -160,10 +162,10 @@ processus HTTP n'appelle que l'envoi transactionnel unitaire (garde statique).
 
 | Variable | Rôle | Portée | `staging` vs `production` |
 |---|---|---|---|
-| `BREVO_API_KEY` | Clé d'accès | **Production uniquement** pour la clé de production | Rotation planifiée, **deux clés acceptées pendant la bascule**. Hors production : au plus la clé d'un **compte Brevo de test distinct**, et rien du tout si `BREVO_MODE=disabled`. **Poste de développement : clé du compte de test admise** (D62), aux conditions de `16` RG115 — sans donnée réelle, jamais en `live`, sans aucun des sous-domaines de production |
-| `BREVO_API_BASE_URL` | Adresse de base | Tous | Permet de pointer la **doublure de test** hors production (`16` RG148) |
-| `BREVO_MODE` (`disabled` \| `redirect` \| `live`) | Mode d'envoi | Tous | **`live` refusé hors production** — refus de démarrage, pas un avertissement (RG116). `disabled` est la valeur par défaut partout ailleurs |
-| `BREVO_TEST_RECIPIENTS` | Liste **fermée** d'adresses internes | Hors production | **Obligatoire si `redirect`** ; substitution au dernier moment, journalisée (RG117) |
+| `BREVO_API_KEY` | Clé d'accès | La clé de production en production seule | Rotation planifiée, **deux clés acceptées pendant la bascule**. `staging` : clé du **compte Brevo de `staging`** (D70), aussi dans `.env.local`. Tests et CI : aucune (doublure) |
+| `BREVO_API_BASE_URL` | Adresse de base | Tous | Permet de pointer la **doublure de test** hors environnement déployé (`16` RG148) |
+| `BREVO_MODE` (`disabled` \| `redirect` \| `live`) | Mode d'envoi | Tous | **Cible D70** : `live` en `staging` comme en production ; `disabled`/`redirect` réservés à la pile locale et aux tests. **Aujourd'hui, et jusqu'au commit 1 de `jalons/d70-plan.md`** : `live` refusé hors production (RG116) |
+| `BREVO_TEST_RECIPIENTS` | Liste **fermée** d'adresses internes | Pile locale et tests (cible D70) | **Obligatoire si `redirect`** ; substitution au dernier moment, journalisée (RG117) ; refusée en `staging` après la bascule |
 | `BREVO_WEBHOOK_SECRET_CURRENT` / `_PREVIOUS` | Jeton de l'en-tête `brevo-webhook-token` (43 à 128 car. base64url) | `api` seul ; **requis en production**, optionnels en staging (webhook fermé si absents) | **`_PREVIOUS` seulement pendant la rotation** (RG146-1). Comparaison en temps constant ; `_CURRENT` et le jeton de chemin vont ensemble ; valeurs toutes distinctes entre elles et des autres secrets |
 | `BREVO_WEBHOOK_PATH_TOKEN_CURRENT` / `_PREVIOUS` | Segment non devinable du chemin (exactement 43 car. base64url) | `api` seul, idem | Roté **avec** le jeton d'en-tête. Routage seulement (Railway journalise les chemins). Jamais publié |
 | ~~`BREVO_IP_ALLOWLIST`~~ | — | **Supprimée (J7 commit 3)** : plages `1.179.112.0/20` et `172.246.240.0/20` en constante datée de `apps/api/src/domains/leads/brevo-webhook.ts` | Une évolution des plages Brevo non répercutée coupe les retours : surveillée par `webhook.brevo.ip_drift` (jeton valide, IP hors plage) |
@@ -182,9 +184,9 @@ processus HTTP n'appelle que l'envoi transactionnel unitaire (garde statique).
 
 | Variable | Porteurs | Exposition | `staging` vs `production` |
 |---|---|---|---|
-| `APOLLO_API_KEY` | worker | **Secrète** | **Aucune clé Apollo en `staging`** — recommandation d'`expert-cybersecurite` (`03` §6.8) : le connecteur passe alors en `skipped_no_credentials`. Une clé absente ne peut pas être confondue avec une autre. **Poste de développement : clé d'un compte Apollo de test distinct admise** (D62), à conditions cumulatives : aucune donnée de personne réelle, ni importée ni obtenue par enrichissement ; aucune boîte d'envoi connectée ni séquence active sur le compte de test ; `SYNC_MODE=dry_run` par défaut, `live` seulement avec `NON_PRODUCTION_RECIPIENT_ALLOWLIST` (verrou 3) ; jamais en CI ni dans un service Railway |
-| `SYNC_MODE` (`live` \| `dry_run`) | worker | Garde-fou | `dry_run` en `staging`, `live` en production. Lu au démarrage, **immuable à l'exécution**, journalisé |
-| `NON_PRODUCTION_RECIPIENT_ALLOWLIST` | worker | Garde-fou | Condition **positive** évaluée au connecteur, après tout le mappage |
+| `APOLLO_API_KEY` | worker | **Secrète** | `staging` : clé du **compte Apollo de `staging`** (D70, contre la recommandation de `03` §6.8, arbitrage du fondateur), aussi dans `.env.local` ; production : clé de production, après D33. Tests et CI : aucune (doublure). Une clé de production hors production est un incident |
+| `SYNC_MODE` (`live` \| `dry_run`) | worker | Garde-fou | **Cible D70** : `live` en `staging` et en production, `dry_run` réservé à la pile locale et aux tests (aujourd'hui `dry_run` en `staging` jusqu'au commit 1 du plan). Lu au démarrage, **immuable à l'exécution**, journalisé |
+| `NON_PRODUCTION_RECIPIENT_ALLOWLIST` | worker | Garde-fou | Condition **positive** évaluée au connecteur, après tout le mappage. Cible D70 : pile locale et tests seulement, refusée en `staging` |
 
 ---
 
@@ -201,12 +203,11 @@ processus HTTP n'appelle que l'envoi transactionnel unitaire (garde statique).
 4. **Renseigner** aux trois endroits utiles, **par environnement** :
    - Local (*révisé le 2026-09-26, EC-23* ; fichiers ignorés par Git, **jamais `.env`**, que la
      maquette de la branche `demo` charge automatiquement) :
-     - `apps/api/.env.local` — **pile locale** (valeurs de `supabase status`, mots de passe des
-       rôles posés par le script local) et, seul, les clés des comptes Brevo et Apollo **de test**
-       (D62) ; lu par `pnpm dev` et `pnpm dev:worker` ;
-     - `apps/api/.env.staging.local` — valeurs de `staging`, pour les vérifications ponctuelles
-       (script `dev:staging`) ; il reproduit le service Railway `staging` : **aucune clé Brevo ni
-       Apollo**, **jamais `DIRECT_DATABASE_URL`** (CI seule, CI-5) ;
+     - `apps/api/.env.local` — **valeurs de `staging`, et uniquement `staging`** (D70) : ce que
+       portent les services Railway `api` et `worker` de `staging`, clés Brevo et Apollo de `staging`
+       comprises, **jamais `DIRECT_DATABASE_URL`** (CI seule, CI-5) ; lu par `pnpm dev` et
+       `pnpm dev:worker`, qui agissent donc **sur `staging`** ; jamais par un test ;
+       (`apps/api/.env.staging.local` n'existe plus) ;
      - `apps/<front>/.env.local` — chargé nativement par Next.js ; **aucun secret** (règle 4) ;
      - le code ne lit jamais de fichier : `src/config/` ne lit que `process.env`, le fichier est
        chargé par Node dans les seuls scripts de développement ;
@@ -227,7 +228,7 @@ processus HTTP n'appelle que l'envoi transactionnel unitaire (garde statique).
 | **CI-3** | **Analyse de secrets** sur le dépôt **et son historique**, `.env*` ignoré vérifié | Le secret commité puis « retiré » au commit suivant |
 | **CI-4** | **Aucun rôle d'exécution avec `rolbypassrls` ni `rolsuper`** (`03` §8, T4) | La RLS annulée en silence par une chaîne de connexion trop puissante |
 | **CI-5** | **`DIRECT_DATABASE_URL` absente de toute configuration de service Railway** | Le rôle propriétaire du schéma joignable depuis un processus qui sert des requêtes |
-| **CI-6** | **Les quatre verrous du garde-fou `staging`**, chacun testé séparément, plus le refus de démarrage en production avec `dry_run` / hors production avec `live` (`03` §8, T17) | L'e-mail réel parti d'un environnement de test |
+| **CI-6** | **Les verrous du garde-fou**, chacun testé séparément (`03` §8, T17). *Cible D70* : la pile locale et les tests gardent les quatre verrous ; `staging` refuse exactement ce que refuse la production ; aucun script de test ne charge `.env.local` | L'e-mail réel parti de la CI ou d'un test ; un `staging` qui diverge de la production |
 
 ---
 
@@ -285,13 +286,22 @@ pas un environnement de test, c'est la fenêtre à deux clés.**
 6. Vérifier les journaux du fournisseur : plus aucun appel avec l'ancienne clé.
 7. Consigner : date, motif, qui, durée de la fenêtre, date effective de révocation.
 
-> **Ce qui reste testable en `staging` pour ces services :** le **code** du connecteur, contre la
-> **doublure de test** (`16` RG148) et avec `BREVO_MODE=disabled` ou `redirect` — jamais la clé de
-> production.
+> **Ce qui reste testable en `staging` pour ces services :** depuis D70, le flux réel avec les
+> **clés des comptes de `staging`** — jamais la clé de production. Une clé des comptes de `staging`
+> se fait tourner par l'agent, en `staging`, selon la procédure B appliquée au compte de `staging`
+> (nouvelle clé, Railway et `.env.local`, vérification, révocation de l'ancienne).
 
 ---
 
 ## Le garde-fou d'environnement — quatre verrous
+
+> **D70 (2026-10-18, arbitrage du fondateur contre `03` §6.8).** `staging` se comporte comme la
+> production. **Verrou 1 maintenu** (une clé de production n'existe qu'en production) ; **verrous 2
+> et 3 levés pour `staging`**, conservés pour la pile locale, la CI et les tests ; **verrou 4
+> inchangé**. Un envoi réel depuis `staging` n'est plus un incident ; en sont un : un envoi réel
+> depuis la CI, un test ou la pile locale, et toute clé de production hors production. Le texte
+> ci-dessous décrit l'état d'avant la bascule (commit 1 de `jalons/d70-plan.md`) et reste vrai
+> pour la pile locale et la CI.
 
 Trois verrous protègent **l'envoi** (`02` §12.4), un quatrième protège **les données**
 (`03` §6.8, ajouté par `expert-cybersecurite`, **bloquant B9**). Ils sont **indépendants et
@@ -405,7 +415,7 @@ Traiter comme un incident, dans cet ordre :
 | # | Sujet | Qui tranche |
 |---|---|---|
 | 1 | **Noms des trois sous-domaines d'envoi** (`tx.`, `news.`, `pro.`) — propositions de `16` RG9, à confirmer avec le nom de domaine retenu (`16` Q13) | `integrateur` + **Fondateur** |
-| 2 | **`BREVO_API_KEY` hors production** : `16` §M8 la donne « production uniquement », `02` §12.4 prévoit un **compte Brevo de test** en `staging`. Lecture retenue ici : la *clé de production* n'existe qu'en production, et `staging` peut porter la clé d'un **compte de test distinct** — à confirmer. **Tranchée pour le poste de développement** (D62, 2026-09-25 : comptes Brevo et Apollo de test admis) ; reste ouverte pour `staging` | `expert-integrations-api` + `expert-cybersecurite` |
+| 2 | ~~**`BREVO_API_KEY` hors production**~~ — **tranchée par D70 (2026-10-18)** : `staging` porte les clés de ses propres comptes Brevo et Apollo, en `live` | — |
 | 3 | **Absence de signature des webhooks Brevo** (`16` RG146, Q3) : les compensations par jeton, chemin et plages d'IP suffisent-elles ? | **`expert-cybersecurite` (veto)** |
 | 4 | **Politique DMARC** de chaque sous-domaine (`none` puis durcissement, ou `quarantine` d'emblée) | `integrateur` + `expert-marketing` |
 | 5 | **Périmètre et hébergement du stockage des secrets** au-delà de GitHub Secrets et Railway (coffre dédié) le jour où plusieurs personnes y accèdent | `expert-cybersecurite` + **Fondateur** |

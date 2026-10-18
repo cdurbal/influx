@@ -791,6 +791,11 @@ sans supposer ; soumises à `expert-cybersecurite`, §9.1 C-3) :
 
 ### T17 — Garde-fou `staging`
 
+> **D70 (2026-10-18).** T17 devient une matrice par environnement : la pile locale et les tests
+> (`INFLUX_ENV=development`, mécanisme à confirmer) gardent les quatre verrous ci-dessous ;
+> `staging` refuse exactement ce que refuse la production ; un cas vérifie qu'aucun script de test
+> ne charge `.env.local`. Réécriture au commit 1 de `jalons/d70-plan.md`.
+
 **Deux moitiés.** Les **refus de démarrage** (T17.5 à T17.10) sont en place depuis le J1 (`21` §4,
 J1-D point 3 ; `apps/api/tests/config.test.ts`). Les **verrous d'exécution** (T17.1 à T17.4) arrivent
 avec la synchronisation, au Lot 1. La seconde condition de `16` RG116 (trois sous-domaines

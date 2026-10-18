@@ -19,7 +19,8 @@ d'abord, puis dans le code.
 
 | Sujet | Document |
 |---|---|
-| Registre des décisions D1 à D68 (statut, détail) | `docs/mvp/decisions.md` |
+| Registre des décisions D1 à D70 (statut, détail) | `docs/mvp/decisions.md` |
+| `staging` iso-production, autonomie des agents (D70) | `docs/mvp/jalons/d70-plan.md`, `docs/mvp/runbooks/staging.md` |
 | Périmètre et lots du MVP | `docs/mvp/00-cadrage-mvp-v2.md` |
 | Régime courté, commission au MVP | `docs/mvp/01-intermediation-courtee.md` |
 | Architecture, 3 espaces, surveillance (§20), envoi du code (§18.10) | `docs/mvp/02-architecture-3-espaces.md` |
@@ -172,6 +173,12 @@ suppression propagée à Brevo et Apollo. Référents : `expert-conformite-rgpd`
    lui-même la CI (`gh run list`, `gh run watch <id> --exit-status`,
    `gh run view <id> --log-failed`) et corrige un échec sans attendre le fondateur ;
    `gh run rerun --failed` est permis. Toute autre écriture distante via `gh` suit la règle 4.
+   **`staging` est exploité par les agents eux-mêmes (D70)** : variables, réglages, redéploiement
+   et retour arrière Railway ; `config push`, SQL de données et clés du projet Supabase de
+   `staging` ; secrets et variables de l'environnement GitHub `staging` ; comptes Brevo et Apollo de
+   `staging`. Restent sur confirmation : **toute action sur la production, lecture comprise**,
+   création ou suppression d'un projet, d'un environnement ou d'un service, remise à zéro de la base
+   de `staging`, DNS. Migrations par la seule CI, jamais `railway up`.
 5. **Discipline de vélocité (objectif MVP fin octobre) :**
    - Micro-écarts (`EC-*`) sans enjeu d'invariant : appliquer le choix le plus sûr, sans arrêt,
      documentation regroupée en fin de jalon.
@@ -199,7 +206,14 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
   délivrabilité conditionne la connexion des membres.
 - **Apollo.io** : périmètre en configuration, valeur d'attente conservatrice (`05` RG81), seulement
   dans les pays où la base légale est validée.
-- Postes de dev : uniquement des **comptes Brevo/Apollo de test** dans `apps/api/.env.local` (D62).
+- **`staging` = production** (D70) : envois réels, listes Brevo et contacts Apollo, mêmes exigences
+  de démarrage ; seules différences : `INFLUX_ENV`, comptes et clés propres à `staging`, domaine
+  d'envoi propre, `noindex`, bandeau, données synthétiques. Bascule en cours (`jalons/d70-plan.md`) :
+  le code refuse encore `live` hors production jusqu'au commit 1 du plan.
+- **`.env.local` = valeurs de `staging`, et uniquement `staging`** (D70, amende D62) : lisible et
+  utilisable par tous les agents ; jamais une valeur de production ; jamais une valeur recopiée
+  dans une réponse, un document, un commit ou un journal ; jamais chargé par un test automatisé
+  (les tests restent sur la doublure, `16` RG148).
 - Chaque tentative de synchronisation est journalisée, les échecs sont rejouables au backoffice.
 
 ## 9. Décisions ouvertes (détail dans `docs/mvp/decisions.md`)
@@ -211,6 +225,9 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
 - **D24** créateurs particuliers et fiscalité · **D34** libellé du badge · **D38** masse critique
   avant recherche · **D30** coordonnées dans la messagerie · **D35** saisie libre d'e-mails ·
   **D36** langue du backoffice · **D61** points restants · **D14** abonnement.
+- **D70 tranchée (2026-10-18)** : `staging` ouvert sans restriction (risque accepté), domaine
+  d'envoi `influx.cadaero.ovh`, CLI Railway sur un jeton limité à `staging` (production hors
+  d'atteinte du poste) ; reste : mécanisme technique (`architecte`).
 - Reportées en V2 (A1) : D7, D9, D10, D19, D20, D22, D23, D26, D27 — **D7/D23 se réactivent au
   premier euro encaissé, D20 au premier litige.**
 - Ouvert technique : gestion d'état côté front (aucune librairie sans besoin réel).

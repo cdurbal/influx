@@ -1,10 +1,22 @@
 # Mise en place de `staging` et procédures d'exploitation (jalon J4)
 
-> **Public :** le fondateur (actions sur les comptes) et le développeur (vérifications).
-> **Règle :** aucun secret n'est écrit dans un fichier du dépôt ni dans un fichier local. Les
-> valeurs vont directement dans Supabase, GitHub ou Railway, ou sont exportées dans le terminal le
-> temps d'une commande. Références : `docs/mvp/21-plan-de-developpement.md` §4 J4, `02` §12 et §20,
-> skills `railway-deploy` et `env-secrets`.
+> **D70 (2026-10-18) — à lire d'abord.** `staging` se comporte **exactement comme la production**
+> (envois réels, listes Brevo, contacts Apollo, mêmes exigences de démarrage) et **les agents IA
+> l'exploitent eux-mêmes** : variables, réglages et redéploiements Railway, Supabase, environnement
+> GitHub `staging`, comptes Brevo et Apollo de `staging`. Les étapes ci-dessous marquées « fondateur »
+> sont exécutées par l'agent (`integrateur`), sauf : création ou suppression d'un projet, d'un
+> environnement ou d'un service ; DNS et domaines d'envoi ; remise à zéro de la base. **Jamais la
+> production.** Les valeurs de `staging` sont dans `apps/api/.env.local` (et ceux des fronts) : un
+> agent les passe aux commandes par `--stdin` ou `--env-file`, sans jamais les afficher ni les
+> recopier. Bascule et réécriture complète de ce runbook : `jalons/d70-plan.md` (commits 4 et 5).
+> **Tant que le commit 1 de ce plan n'est pas déployé, le code refuse `live` hors production :
+> les variables d'envoi de l'étape 5 restent celles d'aujourd'hui.**
+>
+> **Public :** les agents (exploitation de `staging`) et le fondateur (comptes, DNS, production).
+> **Règle :** aucun secret dans un fichier du dépôt. Hors `apps/*/.env.local` (valeurs de
+> `staging`, D70), aucun fichier local ne porte de secret ; aucune valeur n'est recopiée dans une
+> réponse, un document, un commit ou un journal. Références : `docs/mvp/21-plan-de-developpement.md`
+> §4 J4, `02` §12 et §20, skills `railway-deploy` et `env-secrets`.
 > **Nommage :** staging et production portent **les mêmes noms** (projet `influx`, clés `influx_api`
 > et `influx_worker`, services, variables). Ils se distinguent par le **compte** (Supabase, Brevo,
 > Apollo dédiés à staging) et les **valeurs** des clés ; seule `INFLUX_ENV` change de valeur.
@@ -113,7 +125,12 @@ version dans le journal de construction).
   utilisé, D56).
 - Aucune variable `PORT` hors `api` : Railway fournit la sienne à `web` et `backoffice`.
 - Ne jamais faire de capture du *Raw Editor* : il affiche les secrets en clair.
-- Aucune clé Apollo en staging (`skipped_no_credentials`), aucune clé Brevo de production (D62).
+- Aucune clé Brevo ni Apollo de production en staging (verrou 1). *Cible D70, après le commit 1
+  de `jalons/d70-plan.md`* : `api` en `BREVO_MODE=live` sans `BREVO_TEST_RECIPIENTS` ; `worker` en
+  `SYNC_MODE=live` et `BREVO_MODE=live`, avec sa propre `BREVO_API_KEY`, `APOLLO_API_KEY` (compte
+  Apollo de `staging`), les expéditeurs du domaine d'envoi de `staging`, `BREVO_LIST_ID_*`,
+  `BREVO_WEBHOOK_*` sur `api`, sans `NON_PRODUCTION_RECIPIENT_ALLOWLIST` ni `BREVO_TEST_RECIPIENTS`.
+  Les colonnes ci-dessus (`redirect`, `dry_run`, `disabled`) décrivent l'état d'avant la bascule.
 
 ## Étape 6 — Vérifications du développeur (« Terminé quand » du J4)
 
@@ -197,9 +214,12 @@ Symptôme : un agent ne peut plus s'enrôler, le journal porte `agent.unexpected
 
 ## J7 — Configuration de `staging` du commit 10 (webhook Brevo, purge GoTrue, avis de changement d'adresse)
 
-> **Aucune action de cette section n'est faite par un agent** : chacune est distante et attend la
-> confirmation du fondateur. Aucune valeur de secret n'est écrite ici ni dans un fichier : elle va
-> directement dans Railway (pas de capture du *Raw Editor*) ou dans Brevo.
+> *Révisé le 2026-10-18 (D70)* : les actions de cette section sont **faites par l'agent** sur
+> `staging`, sans confirmation, avec les comptes de `staging` ; seule la production attend le
+> fondateur. Aucune valeur de secret n'est écrite ici : elle va dans Railway ou dans Brevo depuis
+> `apps/api/.env.local` ou un générateur, sans être affichée (pas de capture du *Raw Editor*). Le
+> point 6 (`trial:record`) est rendu caduc par la bascule de `staging` en `live` (`jalons/d70-plan.md`
+> commit 3).
 
 ### Variables introduites ou rendues obligatoires par le J7
 

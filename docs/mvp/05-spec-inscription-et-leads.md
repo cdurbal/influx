@@ -1816,6 +1816,9 @@ pour qu'il n'y ait qu'un seul écrivain du journal. Conception détaillée : `ex
 les variables d'environnement du `worker` (D68), ou par SQL, les deux voies étant journalisées.
 Réexamen seulement si les changements deviennent fréquents.
 
+*Amendé par D70 (2026-10-18) : `staging` n'est plus en `dry_run` et relève du contrôle de
+démarrage de RG162 comme la production ; RG164 ne vaut plus que pour la pile locale et les tests
+(`jalons/d70-plan.md` commit 2).*
 **RG164 — En `dry_run` (`staging`), la trace d'abord, le verdict ensuite.** Quand le mapping se
 calcule sans le réglage manquant (liste ou modèle Brevo), le worker journalise **d'abord**
 `leads.dry_run.would_send` (opération, code du modèle, noms des attributs) **avec les noms des

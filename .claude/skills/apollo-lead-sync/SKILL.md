@@ -42,10 +42,11 @@ Agents concernés : `expert-integrations-api` (principal), `expert-marketing`,
 4. **Idempotence.** Rejouer ne crée pas de doublon. Clé d'idempotence stable côté INFLUX.
 5. **Droit d'opposition respecté.** Une opposition ou une demande de suppression se propage vers
    Apollo. Le contact est retiré des séquences en cours.
-6. **Clé API côté serveur uniquement**, distincte par environnement. En `staging`, bac à sable ou
-   intégration désactivée — une séquence commerciale déclenchée depuis un environnement de test
-   vers de vrais prospects est un incident. Sur un poste de développement, la clé d'un **compte
-   Apollo de test** distinct est admise (D62), aux conditions de la skill `env-secrets`.
+6. **Clé API côté serveur uniquement**, distincte par environnement. *Depuis D70 (2026-10-18)*,
+   `staging` crée réellement les contacts dans le **compte Apollo de `staging`**, comme la
+   production (clé aussi dans `apps/api/.env.local`). Le compte de `staging` n'a ni boîte d'envoi
+   connectée ni séquence active : une séquence déclenchée vers de vrais prospects depuis `staging`
+   reste un incident. Les tests et la CI restent sur la doublure.
 7. **Toute tentative journalisée**, avec rejeu possible depuis le backoffice.
 8. **Respect des quotas et limites de débit** : file d'attente, temporisation exponentielle.
 

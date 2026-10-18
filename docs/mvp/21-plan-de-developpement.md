@@ -15,7 +15,7 @@
 
 | Niveau | Ce qui est vrai | Dépend de |
 |---|---|---|
-| **Prêt en `staging` (démontrable)** | Les deux inscriptions fonctionnent sur `staging` avec des données synthétiques ; le worker traite la file en `dry_run` ; un essai manuel depuis le poste de développement crée de vrais contacts dans les **comptes Brevo et Apollo de test** (D62) | Le développement seul (fin du jalon J6) |
+| **Prêt en `staging` (démontrable)** | Les deux inscriptions fonctionnent sur `staging` avec des testeurs internes ; *depuis D70 (2026-10-18)*, `staging` se comporte comme la production : codes et bienvenue réellement envoyés, contacts réels dans les **comptes Brevo et Apollo de `staging`** (plan `jalons/d70-plan.md`) | Le développement seul, exploité par les agents |
 | **Prêt en production (ouvert au public)** | Idem en production, avec désinscriptions dans les deux sens, backoffice de supervision, surveillance active, documents légaux | J7 à J9 **et** des portes non techniques : société créée (D25), validation du juriste sur Apollo (D33), CGU (D29), domaines d'envoi authentifiés (§5.8) |
 
 **Le chemin : dix jalons.**
@@ -38,7 +38,7 @@
 1. **Aucune donnée réelle avant que le socle de sécurité soit en place** (B1 à B10, `03` §9.1). On construit la tranche verticale *sur* le socle, jamais à côté.
 2. **Le code de connexion suit le contrat de `02` §18.10 à la lettre** : envoi synchrone, une seule tentative, plancher de 1 000 ms, aucun appel externe sous transaction, jamais dans `outbox_events`.
 3. **Tout ce qu'un juriste ou le fondateur peut encore changer est une configuration, jamais une constante** : périmètre et base légale Apollo, pays de prospection, pays bloqués, calendrier de réessais, plafonds de débit (`05` Q1 à Q4).
-4. **Aucun test automatisé n'appelle un service externe réel** (`18` §1.3, `16` RG148). Les vrais appels ne se font qu'à la main, depuis le poste de développement, vers les comptes de test (D62).
+4. **Aucun test automatisé n'appelle un service externe réel** (`18` §1.3, `16` RG148). Les vrais appels ne se font que depuis `staging` (D70, comptes de `staging`) ou à la main avec les valeurs de `staging` ; jamais depuis la CI ni la pile locale.
 5. **Seul un écart structurant arrête le code (révisé le 2026-09-29 — directive de vélocité du fondateur)** : un micro-écart technique ou de librairie (`EC-*`) qui ne touche aucun invariant métier est tranché sur-le-champ de la manière la plus sûre/conservatrice par l'agent qui code, **sans arrêter le développement et sans créer de commit `docs(mvp):` intermédiaire**. Les ajustements documentaires et la **revue de sécurité (`expert-cybersecurite`) sont groupés en une seule passe à la fin de chaque jalon**. De même, les exigences RGPD étant déjà traduites dans les specs (`03`, `04`, `14`, `16`), **`expert-conformite-rgpd` n'intervient pas sur les Lots 0 à 5** et réalise **une seule revue globale d'homologation au Lot 6 (fin du Fast MVP)**. Enfin, aucun journal narratif de commit n'est ajouté dans ce fichier (1 seule ligne d'état/invariant par commit du jalon actif).
 
 ---
@@ -46,7 +46,7 @@
 ## 1. Point de départ & conventions d'environnement
 
 - **`main`** : produit réel construit de zéro (D44). **Ne jamais copier un fichier de la branche `demo`.**
-- **Fichiers d'environnement** : le chargeur de `apps/api` ne lit que `apps/api/.env.local` (pointant vers la **pile locale** `supabase start` et les clés de test D62). Les valeurs de `staging` vont dans `apps/api/.env.staging.local` (sans clé Brevo ni Apollo, sans `DIRECT_DATABASE_URL`). `apps/web/.env.local` et `apps/backoffice/.env.local` portent `INFLUX_API_INTERNAL_URL` et leur `INFLUX_INTERNAL_SECRET`.
+- **Fichiers d'environnement** *(révisé le 2026-10-18, D70)* : `apps/api/.env.local` porte les **valeurs de `staging`, et uniquement `staging`** (Supabase, Brevo et Apollo de `staging`, jamais `DIRECT_DATABASE_URL`) ; lisible par tous les agents, jamais recopié, jamais chargé par un test (les tests et la CI tournent sur la pile locale et la doublure). `apps/api/.env.staging.local` n'existe plus. `apps/web/.env.local` et `apps/backoffice/.env.local` portent `INFLUX_API_INTERNAL_URL` et leur `INFLUX_API_INTERNAL_SECRET`.
 
 ---
 
@@ -68,8 +68,8 @@
 |---|---|---|---|---|
 | **Base** | Pile Supabase locale (`supabase start`, Docker) : Postgres + GoTrue | Pile Supabase locale jetable | Projet Supabase `staging` (UE) | Projet Supabase `production` (D25, PITR D57) |
 | **Données** | `supabase/seed` + saisies synthétiques | `supabase/seed` | `supabase/seed` **seul** (B9) | Réelles |
-| **Brevo** | Doublure locale par défaut ; essai manuel en `BREVO_MODE=redirect` (D62) | Doublure (`16` RG148) | `disabled` ou `redirect`, compte de test | `live`, compte de production, 3 sous-domaines authentifiés |
-| **Apollo** | Doublure ; essai manuel en `SYNC_MODE=live` avec compte de test et liste blanche | Doublure | **Aucune clé** (`skipped_no_credentials`) | `live` après validation du juriste (D33) |
+| **Brevo** | Doublure (tests) ; `.env.local` = valeurs de `staging` (D70) | Doublure (`16` RG148) | **`live`, compte de `staging`**, domaine d'envoi propre (D70, après le commit 1 de `jalons/d70-plan.md`) | `live`, compte de production, 3 sous-domaines authentifiés |
+| **Apollo** | Doublure (tests) | Doublure | **`live`, compte de `staging`** (D70) | `live` après validation du juriste (D33) |
 
 ### 2.3 Stratégie de test & discipline de dépôt
 
@@ -302,6 +302,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 2. **En-têtes et CSP à nonce** par surface (`03` §6.5, T10) ; passe-plat complet (T7) ; erreurs sans détail (T13) ; limitation de débit (T15) ; analyse des artefacts (T11).
 3. **Surveillance active** (`02` §20.5 à §20.7) : alertes par e-mail, sonde du worker, écran « Santé technique », route `/health` publique (EC-22) ; préparation de `production` ; relectures humaines de `18` §10 « Lot 1 ».
 
+- [ ] **Chantier D70 avant la suite du J9** (fondateur, 2026-10-18) : `staging` iso-production et exploité par les agents — plan `jalons/d70-plan.md` (commits 0 à 5 ; son commit 1 précède le commit (b) de D67).
 - [x] Commit 0 (`eec21bb`) — J6S-3 : ligne « without effect to audit » du pool `worker` en `debug` (≈ 35 k lignes/jour en `staging`) ; `staging` remis en marche (worker, région du backoffice) ; Watch Paths à corriger (fondateur).
 - [ ] À développer (D67, tranchée par `architecte` le 2026-10-17), trois commits, tous avant la mise en production : (a) migration des deux déclencheurs sur `leads.sync_settings` (garde RG163, journal `settings.changed` daté) ; (b) worker — contrat et ordre de RG164, codes d'échec RG160, `credentials_missing`, rattrapage RG161 dans E-3, contrôle de démarrage RG162 ; (c) backoffice — causes, rejouabilité, compteurs, motif d'AL25 (`05` RG160 à RG164, TM1.11 à TM1.16). Écran des identifiants Brevo : hors J9 (option Lot 5).
 
@@ -356,4 +357,5 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 | **J6** | **`jalons/j6-fiche.md` d'abord** (sections et lignes exactes) ; `02` §6 et §11 ; `05` §I ; `16` §H, §J, §M ; skills `lead-pipeline`, `brevo-campaign`, `apollo-lead-sync` |
 | **J7** | `05` §F (RG54 à RG58), §J ; `16` §I et §M6 ; `17` §6 ; skills `lead-pipeline`, `brevo-campaign` |
 | **J8** | `git show a2ff7bc:docs/mvp/jalons/j8-fiche.md` (fiche archivée) ; `05` §K ; `15` §C, §F ; `17b` §3.11 et §3.13 ; skill `backoffice-ops` |
+| **D70** | **`jalons/d70-plan.md` d'abord** ; `02` §12.4 ; `03` §6.8 et T17 ; `16` §J ; skills `env-secrets`, `railway-deploy` |
 | **J9** | **`jalons/j9-fiche.md` d'abord** (sections et lignes exactes) ; `02` §13 et §20 ; `03` §6.5 ; `18` §5 et §10 « Lot 1 » |

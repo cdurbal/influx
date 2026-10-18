@@ -1249,6 +1249,15 @@ n'y déclare que des valeurs publiques.
 
 ### 12.4 Le garde-fou : impossible d'envoyer un vrai e-mail depuis `staging`
 
+> **Amendé par D70 (2026-10-18, arbitrage du fondateur contre `03` §6.8).** `staging` se comporte
+> exactement comme la production : `BREVO_MODE=live`, `SYNC_MODE=live`, comptes Brevo et Apollo
+> propres à `staging`, mêmes refus de démarrage que la production. Le verrou 1 (clés distinctes)
+> reste ; les verrous 2 et 3 ci-dessous ne valent plus que pour la pile locale, la CI et les tests ;
+> le verrou 4 (`03` §6.8) reste. Différences admises entre `staging` et production : liste fermée de
+> D70. Mécanisme (troisième valeur `development` d'`INFLUX_ENV`, prédicat unique « environnement
+> déployé ») à confirmer par `architecte` : `jalons/d70-plan.md` commits 0 et 1. Ce paragraphe sera
+> réécrit à ce moment.
+
 Risque explicitement listé au cadrage (§10.2 : « e-mail envoyé par erreur depuis l'environnement de
 test »). **Trois verrous indépendants**, parce qu'un seul finit toujours par sauter :
 

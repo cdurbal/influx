@@ -38,8 +38,10 @@ stratégie marketing et le contenu des messages (→ `expert-marketing`), le mod
    réponse, quel horodatage. Le backoffice expose les échecs et permet le rejeu manuel.
 5. **Les clés API ne quittent jamais le serveur.** Variables d'environnement, rotation possible,
    jamais dans le dépôt ni dans un bundle front.
-6. **Bac à sable en environnement de test.** Clés distinctes ou mode d'intégration désactivé en
-   `staging`. Un e-mail réellement envoyé depuis un environnement de test est un incident.
+6. **Clés distinctes par environnement.** *Depuis D70 (2026-10-18)*, `staging` se comporte comme
+   la production avec ses propres comptes Brevo et Apollo (envois réels, listes, contacts) ; la
+   pile locale, la CI et les tests restent en doublure. Un e-mail réel parti de la CI ou d'un test,
+   ou une clé de production hors production, est un incident.
 7. **Webhooks entrants authentifiés, non rejouables, idempotents.** La **signature cryptographique
    est la méthode de référence — quand le fournisseur en propose une.**
    *Corrigé le 2026-09-19 : **Brevo n'en propose aucune** (vérifié sur la documentation officielle —

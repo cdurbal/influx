@@ -1553,6 +1553,13 @@ Reformulation validée :
 
 ### 6.8 — Point 8 : les trois verrous du garde-fou `staging`
 
+> **Arbitré par le fondateur le 2026-10-18 (D70), contre cette recommandation.** `staging` envoie
+> réellement et porte une clé Apollo, celle de son propre compte ; les verrous 2 et 3 ne valent
+> plus que pour la pile locale, la CI et les tests. Le verrou 1 (aucune clé de production hors
+> production) et le **verrou 4 (B9) restent entiers**. Le complément « `staging` inaccessible au
+> public » est **écarté par le fondateur** le même jour (D70, risque (a) accepté). Les conditions de D70 sont
+> relues par `expert-cybersecurite` à la revue groupée du chantier.
+
 **Verdict : VALIDÉ, et complété par un quatrième verrou qui manque et qui est le plus important.**
 
 Les trois verrous proposés (clés distinctes, `SYNC_MODE=dry_run`, liste blanche de destinataires) sont

@@ -26,14 +26,22 @@ Lis `CLAUDE.md` (§6 conventions, §8 intégrations, §14 prérequis) avant d'ag
   services (`api`, `worker`, `web`, `backoffice`). **La CLI `railway` est installée et liée à
   `staging`** (2026-10-17). Tu lis toi-même l'état, les déploiements et les journaux de `staging`
   (`railway status`, `railway deployment list -s <service>`, `railway logs -s <service>`) ; tout
-  le reste (variables, redéploiement, `up`, `ssh`, production) suit la liste du skill
-  `railway-deploy`. Tu n'affiches jamais la valeur d'une variable.
-- Supabase et Brevo ont des comptes de staging ; leur configuration suit
+  le reste suit la liste du skill `railway-deploy`. Tu n'affiches jamais la valeur d'une variable.
+- Supabase, Brevo et Apollo ont des comptes de `staging` ; leur configuration suit
   `docs/mvp/runbooks/staging.md`. Les prérequis restants sont dans `docs/mvp/prerequis.md`.
+- **D70 (2026-10-18) : tu exploites `staging` toi-même**, sans demander : variables, réglages,
+  redéploiement et retour arrière Railway ; `config push`, SQL de données et clés du projet
+  Supabase de `staging` ; secrets et variables de l'environnement GitHub `staging` ; listes,
+  attributs et webhooks des comptes Brevo et Apollo de `staging`. Les valeurs sont dans
+  `apps/api/.env.local` (**`staging` seul**) : tu les passes par `--stdin` ou `--env-file`, tu ne
+  les affiches ni ne les recopies jamais. `staging` doit se comporter exactement comme la
+  production (plan `docs/mvp/jalons/d70-plan.md`).
 
-> ⚠️ **Tu ne les exécutes pas de ta propre initiative.** Tu prépares, tu expliques, tu proposes
-> les commandes exactes — et tu attends une confirmation explicite avant d'exécuter quoi que ce
-> soit qui crée une ressource externe, engage un coût ou modifie un compte.
+> ⚠️ **Hors `staging`, tu ne les exécutes pas de ta propre initiative.** Tu prépares, tu expliques,
+> tu proposes les commandes exactes — et tu attends une confirmation explicite avant toute action
+> sur la production (**lecture comprise**), toute création ou suppression de projet,
+> d'environnement ou de service, toute remise à zéro de la base de `staging`, tout changement DNS
+> ou tout engagement de coût.
 
 ## Périmètre de responsabilité
 
@@ -88,8 +96,8 @@ contenu des tests (→ `testeur`), le moment de livrer en production (→ fondat
   jamais à la main en production. La `service_role key` n'existe que côté serveur.
 - **Railway** : un service par application (API, front public, front membres, backoffice selon
   la décision D3/D12). Variables d'environnement définies par environnement, jamais partagées.
-- **Brevo / Apollo** : prévoir un mode « intégration désactivée » ou des clés de bac à sable en
-  `staging`, pour ne jamais écrire dans les vrais CRM depuis un environnement de test.
+- **Brevo / Apollo** : `staging` écrit réellement dans les comptes Brevo et Apollo **de `staging`**
+  (D70) ; la clé de production n'existe qu'en production ; la CI et les tests restent en doublure.
 - **DNS et e-mail** : SPF, DKIM et DMARC sont indispensables à la délivrabilité Brevo — à
   cadrer avec `expert-marketing` lors de la configuration du domaine.
 

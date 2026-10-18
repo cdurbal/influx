@@ -62,44 +62,44 @@
 | 934 | 124 | 9. Le contrat entre l'API et les fronts |  |
 | 1058 | 60 | 10. Où s'applique la RLS, et où elle ne suffit pas |  |
 | 1118 | 51 | 11. Le worker |  |
-| 1169 | 133 | 12. Conséquences sur Railway et Supabase | RG78–RG164 |
-| 1302 | 58 | 13. Sortie du mode maquette de `apps/web` |  |
-| 1360 | 60 | 14. Ce qui reste ouvert |  |
-| 1420 | 46 | 15. Conventions pour `dev-react-node` |  |
-| 1466 | 14 | 16. Points à faire valider par le fondateur |  |
-| 1480 | 12 | 17. Mises à jour des autres documents |  |
-| 1492 | 15 | Sources (vérifiées le 2026-09-18) |  |
-| 1507 | 370 | 18. Addendum du 2026-09-19 — D43 : chemin d'envoi des e-mails transactionnels critiques (code de connexion) | RG39–RG122 |
-| 1528 | 17 | ↳ 18.1 Contexte | RG59–RG86 |
-| 1545 | 7 | ↳ 18.2 Les deux questions posées |  |
-| 1552 | 21 | ↳ 18.3 Question (a) — options | RG41–RG87 |
-| 1573 | 24 | ↳ 18.4 Décision (a) : **(i) — appel synchrone dans la requête, avec cinq garde-fous** | RG46–RG64 |
-| 1597 | 61 | ↳ 18.5 L'énumération de comptes — le point que l'envoi synchrone oblige à trancher | RG44–RG60 |
-| 1658 | 11 | ↳ 18.6 Panne du fournisseur : ce qui se passe, et ce que personne ne doit croire | RG64–RG122 |
-| 1669 | 43 | ↳ 18.7 Conséquence non évidente : **c'est `apps/api` qui envoie l'e-mail, pas Supabase Auth** | RG40–RG100 |
-| 1712 | 32 | ↳ 18.8 Décision (b) : `leads.transactional_sends` est **un journal, et rien d'autre** | RG60 |
-| 1744 | 27 | ↳ 18.9 La famine, et pourquoi elle est écartée par construction |  |
-| 1771 | 34 | ↳ 18.10 Contrat d'implémentation — `POST /v1/auth/request-code` | RG44–RG91 |
-| 1805 | 16 | ↳ 18.11 Conséquences | RG122 |
-| 1821 | 9 | ↳ 18.12 Si l'on se trompe | RG46–RG98 |
-| 1830 | 7 | ↳ 18.13 Réversibilité |  |
-| 1837 | 30 | ↳ 18.14 Ce que cet addendum demande aux autres agents | RG60 |
-| 1867 | 10 | ↳ Sources (vérifiées le 2026-09-19) |  |
-| 1877 | 24 | 19. Addendum du 2026-09-24 — D57 : sauvegarde et restauration |  |
-| 1901 | 326 | 20. Addendum du 2026-09-24 — D60 : surveillance de production, entièrement interne | RG98–RG160 |
-| 1918 | 11 | ↳ 20.1 Le besoin, en deux questions |  |
-| 1929 | 19 | ↳ 20.2 Ce qui existe déjà, et ce qui manque | RG98–RG126 |
-| 1948 | 17 | ↳ 20.3 Options |  |
-| 1965 | 14 | ↳ 20.4 Décision : six pièces, toutes internes |  |
-| 1979 | 95 | ↳ 20.5 Comment chaque pièce fonctionne |  |
-| 2074 | 35 | ↳ 20.6 Signaux et seuils d'alerte | RG160 |
-| 2109 | 22 | ↳ 20.7 La période de rodage — « surtout au début » |  |
-| 2131 | 26 | ↳ 20.8 Ce qui n'entre jamais dans un journal ni dans le schéma `ops` |  |
-| 2157 | 12 | ↳ 20.9 Ce que la décision ne couvre pas — risque accepté par le fondateur |  |
-| 2169 | 31 | ↳ 20.10 Conséquences |  |
-| 2200 | 9 | ↳ 20.11 Points à faire valider par le fondateur |  |
-| 2209 | 13 | ↳ 20.12 Ce que cet addendum demande aux autres agents |  |
-| 2222 | 5 | ↳ Sources (vérifiées le 2026-09-24) |  |
+| 1169 | 142 | 12. Conséquences sur Railway et Supabase | RG78–RG164 |
+| 1311 | 58 | 13. Sortie du mode maquette de `apps/web` |  |
+| 1369 | 60 | 14. Ce qui reste ouvert |  |
+| 1429 | 46 | 15. Conventions pour `dev-react-node` |  |
+| 1475 | 14 | 16. Points à faire valider par le fondateur |  |
+| 1489 | 12 | 17. Mises à jour des autres documents |  |
+| 1501 | 15 | Sources (vérifiées le 2026-09-18) |  |
+| 1516 | 370 | 18. Addendum du 2026-09-19 — D43 : chemin d'envoi des e-mails transactionnels critiques (code de connexion) | RG39–RG122 |
+| 1537 | 17 | ↳ 18.1 Contexte | RG59–RG86 |
+| 1554 | 7 | ↳ 18.2 Les deux questions posées |  |
+| 1561 | 21 | ↳ 18.3 Question (a) — options | RG41–RG87 |
+| 1582 | 24 | ↳ 18.4 Décision (a) : **(i) — appel synchrone dans la requête, avec cinq garde-fous** | RG46–RG64 |
+| 1606 | 61 | ↳ 18.5 L'énumération de comptes — le point que l'envoi synchrone oblige à trancher | RG44–RG60 |
+| 1667 | 11 | ↳ 18.6 Panne du fournisseur : ce qui se passe, et ce que personne ne doit croire | RG64–RG122 |
+| 1678 | 43 | ↳ 18.7 Conséquence non évidente : **c'est `apps/api` qui envoie l'e-mail, pas Supabase Auth** | RG40–RG100 |
+| 1721 | 32 | ↳ 18.8 Décision (b) : `leads.transactional_sends` est **un journal, et rien d'autre** | RG60 |
+| 1753 | 27 | ↳ 18.9 La famine, et pourquoi elle est écartée par construction |  |
+| 1780 | 34 | ↳ 18.10 Contrat d'implémentation — `POST /v1/auth/request-code` | RG44–RG91 |
+| 1814 | 16 | ↳ 18.11 Conséquences | RG122 |
+| 1830 | 9 | ↳ 18.12 Si l'on se trompe | RG46–RG98 |
+| 1839 | 7 | ↳ 18.13 Réversibilité |  |
+| 1846 | 30 | ↳ 18.14 Ce que cet addendum demande aux autres agents | RG60 |
+| 1876 | 10 | ↳ Sources (vérifiées le 2026-09-19) |  |
+| 1886 | 24 | 19. Addendum du 2026-09-24 — D57 : sauvegarde et restauration |  |
+| 1910 | 326 | 20. Addendum du 2026-09-24 — D60 : surveillance de production, entièrement interne | RG98–RG160 |
+| 1927 | 11 | ↳ 20.1 Le besoin, en deux questions |  |
+| 1938 | 19 | ↳ 20.2 Ce qui existe déjà, et ce qui manque | RG98–RG126 |
+| 1957 | 17 | ↳ 20.3 Options |  |
+| 1974 | 14 | ↳ 20.4 Décision : six pièces, toutes internes |  |
+| 1988 | 95 | ↳ 20.5 Comment chaque pièce fonctionne |  |
+| 2083 | 35 | ↳ 20.6 Signaux et seuils d'alerte | RG160 |
+| 2118 | 22 | ↳ 20.7 La période de rodage — « surtout au début » |  |
+| 2140 | 26 | ↳ 20.8 Ce qui n'entre jamais dans un journal ni dans le schéma `ops` |  |
+| 2166 | 12 | ↳ 20.9 Ce que la décision ne couvre pas — risque accepté par le fondateur |  |
+| 2178 | 31 | ↳ 20.10 Conséquences |  |
+| 2209 | 9 | ↳ 20.11 Points à faire valider par le fondateur |  |
+| 2218 | 13 | ↳ 20.12 Ce que cet addendum demande aux autres agents |  |
+| 2231 | 5 | ↳ Sources (vérifiées le 2026-09-24) |  |
 
 ## 03-matrice-des-droits-et-rls.md (~50k tokens)
 
@@ -127,7 +127,7 @@
 | 1043 | 11 | ↳ P9 — Ce que la RLS ne sait pas faire, et qui le fait à sa place |  |
 | 1054 | 26 | ↳ P10 — Les politiques du Storage |  |
 | 1080 | 140 | 5. La lecture d'une conversation par un agent non participant | RG132–RG134 |
-| 1220 | 407 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` | RG57 |
+| 1220 | 414 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` | RG57 |
 | 1222 | 83 | ↳ 6.1 — Point 1 : D37 dans son ensemble | RG57 |
 | 1305 | 35 | ↳ 6.2 — Point 2 : `aal2` vérifié dans les politiques RLS |  |
 | 1340 | 20 | ↳ 6.3 — Point 3 : le rôle métier lu en base plutôt que dans le jeton |  |
@@ -135,13 +135,13 @@
 | 1432 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
 | 1506 | 21 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
 | 1527 | 27 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
-| 1554 | 30 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
-| 1584 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
-| 1627 | 32 | 7. L'isolement du backoffice |  |
-| 1659 | 39 | 8. Les tests de sécurité exigés |  |
-| 1698 | 62 | 9. Verdict d'étape | RG49–RG55 |
-| 1760 | 41 | 10. Ce qui sort de mon périmètre |  |
-| 1801 | 17 | 11. Mises à jour attendues dans les autres documents |  |
+| 1554 | 37 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
+| 1591 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
+| 1634 | 32 | 7. L'isolement du backoffice |  |
+| 1666 | 39 | 8. Les tests de sécurité exigés |  |
+| 1705 | 62 | 9. Verdict d'étape | RG49–RG55 |
+| 1767 | 41 | 10. Ce qui sort de mon périmètre |  |
+| 1808 | 17 | 11. Mises à jour attendues dans les autres documents |  |
 
 ## 04-modele-de-donnees-mvp.md (~141k tokens)
 
@@ -212,7 +212,7 @@
 | 1623 | 16 | ↳ Cas limites du J3 | RG41–RG141 |
 | 1639 | 43 | ↳ Critères d'acceptation du J3 | RG133 |
 | 1682 | 11 | ↳ Questions ouvertes du J3 | RG48–RG158 |
-| 1693 | 203 | Additif du 2026-10-17 — Une configuration de synchronisation manquante est un incident, jamais un cas normal (D67) | RG37–RG164 |
+| 1693 | 206 | Additif du 2026-10-17 — Une configuration de synchronisation manquante est un incident, jamais un cas normal (D67) | RG37–RG164 |
 
 ## 06-criteres-profil-marque.md (~22k tokens)
 
@@ -484,14 +484,14 @@
 | 1436 | 29 | Questions ouvertes | RG19–RG111 |
 | 1465 | 160 | Additif du document 16 (2026-09-19) | RG9–RG131 |
 
-## 16-backoffice-emails-brevo.md (~50k tokens)
+## 16-backoffice-emails-brevo.md (~51k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
 | 48 | 32 | Besoin | RG9–RG78 |
 | 80 | 20 | Acteurs | RG90 |
 | 100 | 57 | User stories | RG35 |
-| 157 | 1442 | Règles de gestion | RG1–RG162 |
+| 157 | 1450 | Règles de gestion | RG1–RG162 |
 | 159 | 94 | ↳ A — Portée, vocabulaire et principes | RG1–RG93 |
 | 253 | 154 | ↳ B — Le parcours d'envoi de masse, écran par écran | RG4–RG102 |
 | 407 | 52 | ↳ C — Source 1 : les contacts de la plateforme | RG22–RG93 |
@@ -503,28 +503,28 @@
 | 952 | 71 | ↳ H bis — Textes des deux e-mails de sécurité *(J3, 2026-09-27)* | RG9–RG159 |
 | 1023 | 89 | ↳ H ter — Texte de l'accusé de réception d'une demande « mes données » *(J7, 2026-10-14)* | RG57–RG160 |
 | 1112 | 56 | ↳ I — Ce qui remonte de Brevo, et sous quelle forme | RG55–RG146 |
-| 1168 | 88 | ↳ J — Le garde-fou d'environnement et l'interrupteur d'urgence | RG9–RG148 |
-| 1256 | 65 | ↳ K — La supervision | RG15–RG134 |
-| 1321 | 36 | ↳ L — Ce qui ne doit jamais partir dans un e-mail | RG3–RG137 |
-| 1357 | 197 | ↳ M — Le contrat d'interface avec Brevo | RG9–RG161 |
-| 1554 | 45 | ↳ N — Messages, langue et accessibilité | RG11–RG155 |
-| 1599 | 51 | Cas limites | RG7–RG146 |
-| 1650 | 435 | Critères d'acceptation | RG85–RG160 |
-| 1652 | 68 | ↳ Le parcours d'envoi de masse |  |
-| 1720 | 36 | ↳ Source 1 — contacts de la plateforme |  |
-| 1756 | 29 | ↳ Source 2 — segment Brevo |  |
-| 1785 | 51 | ↳ Source 3 — saisie libre |  |
-| 1836 | 26 | ↳ Les modèles |  |
-| 1862 | 22 | ↳ La cadence |  |
-| 1884 | 69 | ↳ Les e-mails transactionnels | RG85–RG160 |
-| 1953 | 23 | ↳ Le suivi des résultats |  |
-| 1976 | 29 | ↳ Environnement et interrupteur d'urgence |  |
-| 2005 | 25 | ↳ La supervision |  |
-| 2030 | 39 | ↳ Les interdits et le contrat d'interface | RG135 |
-| 2069 | 16 | ↳ Langue et accessibilité | RG155 |
-| 2085 | 88 | Impacts | RG6–RG146 |
-| 2173 | 19 | Hors périmètre | RG44–RG107 |
-| 2192 | 27 | Questions ouvertes | RG9–RG160 |
+| 1168 | 96 | ↳ J — Le garde-fou d'environnement et l'interrupteur d'urgence | RG9–RG148 |
+| 1264 | 65 | ↳ K — La supervision | RG15–RG134 |
+| 1329 | 36 | ↳ L — Ce qui ne doit jamais partir dans un e-mail | RG3–RG137 |
+| 1365 | 197 | ↳ M — Le contrat d'interface avec Brevo | RG9–RG161 |
+| 1562 | 45 | ↳ N — Messages, langue et accessibilité | RG11–RG155 |
+| 1607 | 51 | Cas limites | RG7–RG146 |
+| 1658 | 435 | Critères d'acceptation | RG85–RG160 |
+| 1660 | 68 | ↳ Le parcours d'envoi de masse |  |
+| 1728 | 36 | ↳ Source 1 — contacts de la plateforme |  |
+| 1764 | 29 | ↳ Source 2 — segment Brevo |  |
+| 1793 | 51 | ↳ Source 3 — saisie libre |  |
+| 1844 | 26 | ↳ Les modèles |  |
+| 1870 | 22 | ↳ La cadence |  |
+| 1892 | 69 | ↳ Les e-mails transactionnels | RG85–RG160 |
+| 1961 | 23 | ↳ Le suivi des résultats |  |
+| 1984 | 29 | ↳ Environnement et interrupteur d'urgence |  |
+| 2013 | 25 | ↳ La supervision |  |
+| 2038 | 39 | ↳ Les interdits et le contrat d'interface | RG135 |
+| 2077 | 16 | ↳ Langue et accessibilité | RG155 |
+| 2093 | 88 | Impacts | RG6–RG146 |
+| 2181 | 19 | Hors périmètre | RG44–RG107 |
+| 2200 | 27 | Questions ouvertes | RG9–RG160 |
 
 ## 17-parcours-et-ecrans-espaces-membres.md (~56k tokens)
 
@@ -595,7 +595,7 @@
 | 30 | 23 | 0. Ce qu'il faut retenir si l'on ne lit qu'une page |  |
 | 53 | 41 | 1. En-tête : portée, public, limites |  |
 | 94 | 136 | 2. Les zones critiques, par gravité décroissante |  |
-| 230 | 598 | 3. Les tests exigés par `expert-cybersecurite`, traduits en cas exécutables | RG116 |
+| 230 | 603 | 3. Les tests exigés par `expert-cybersecurite`, traduits en cas exécutables | RG116 |
 | 282 | 47 | ↳ T1 — Anonymisation de bout en bout, sur la charge utile brute |  |
 | 329 | 89 | ↳ T2 — RLS par rôle et par table, et échec de la CI sur toute table non déclarée |  |
 | 418 | 56 | ↳ T3 — Inviolabilité du registre et détection d'altération de chaîne |  |
@@ -612,16 +612,16 @@
 | 727 | 14 | ↳ T14 — Références directes non contrôlées (IDOR) |  |
 | 741 | 14 | ↳ T15 — Limitation de débit |  |
 | 755 | 37 | ↳ T16 — Aucun calcul de commission |  |
-| 792 | 25 | ↳ T17 — Garde-fou `staging` | RG116 |
-| 817 | 11 | ↳ 3.1 Récapitulatif des contrôles X1 à X4 |  |
-| 828 | 188 | 4. Les tests métier, en complément des 17 | RG160–RG164 |
-| 1016 | 37 | 5. Le sort des gardes existantes de `apps/web` |  |
-| 1053 | 149 | 6. Le corpus de test de la détection de coordonnées |  |
-| 1202 | 43 | 7. Le parcours de bout en bout du Lot 6 |  |
-| 1245 | 23 | 8. Ce qui n'est pas couvert, et pourquoi |  |
-| 1268 | 57 | 9. Ce qui remonte |  |
-| 1325 | 153 | 10. La définition du « prêt à livrer », lot par lot | RG162 |
-| 1478 | 25 | 11. Verdict |  |
+| 792 | 30 | ↳ T17 — Garde-fou `staging` | RG116 |
+| 822 | 11 | ↳ 3.1 Récapitulatif des contrôles X1 à X4 |  |
+| 833 | 188 | 4. Les tests métier, en complément des 17 | RG160–RG164 |
+| 1021 | 37 | 5. Le sort des gardes existantes de `apps/web` |  |
+| 1058 | 149 | 6. Le corpus de test de la détection de coordonnées |  |
+| 1207 | 43 | 7. Le parcours de bout en bout du Lot 6 |  |
+| 1250 | 23 | 8. Ce qui n'est pas couvert, et pourquoi |  |
+| 1273 | 57 | 9. Ce qui remonte |  |
+| 1330 | 153 | 10. La définition du « prêt à livrer », lot par lot | RG162 |
+| 1483 | 25 | 11. Verdict |  |
 
 ## 19-revue-de-coherence-2026-09-24.md (~5k tokens)
 
@@ -658,7 +658,7 @@
 | 53 | 39 | 2. Stratégie de développement | RG44–RG148 |
 | 92 | 23 | 3. Écarts actifs pour les jalons restants (J5 à J9) | RG23–RG146 |
 | 115 | 43 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 158 | 167 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG164 |
-| 325 | 9 | 6. Configuration des services externes |  |
-| 334 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 351 | 10 | 8. Guide de lecture par jalon | RG54–RG58 |
+| 158 | 168 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG164 |
+| 326 | 9 | 6. Configuration des services externes |  |
+| 335 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 352 | 11 | 8. Guide de lecture par jalon | RG54–RG58 |
