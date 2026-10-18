@@ -241,8 +241,7 @@ async function turn(): Promise<number> {
     worker: name,
     sync: {
       mode: "live",
-      environment: "staging",
-      nonProductionRecipientAllowlist: ["example.test"],
+      recipientFilter: { kind: "allowlist", domains: ["example.test"] },
     },
     logger,
     now: () => Date.now(),

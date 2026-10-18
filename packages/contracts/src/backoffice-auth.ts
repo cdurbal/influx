@@ -253,6 +253,16 @@ export type BackofficeSecondFactor = z.infer<
   typeof backofficeSecondFactorSchema
 >;
 
+/**
+ * 16 RG118 (D70): the environment of the backoffice and its sending mode, for the permanent banner
+ * of every non-production backoffice, written in words, never a color alone.
+ */
+export const backofficeEnvironmentSchema = z.strictObject({
+  name: z.enum(["development", "staging", "production"]),
+  brevoMode: z.enum(["disabled", "redirect", "live"]),
+});
+export type BackofficeEnvironment = z.infer<typeof backofficeEnvironmentSchema>;
+
 export const backofficeMeResponseSchema = z.strictObject({
   email: z.email(),
   role: internalRoleSchema,
@@ -263,5 +273,6 @@ export const backofficeMeResponseSchema = z.strictObject({
    * dual control. Read at every call (03 PD7: no flag, no setting).
    */
   peerControlAvailable: z.boolean(),
+  environment: backofficeEnvironmentSchema,
 });
 export type BackofficeMeResponse = z.infer<typeof backofficeMeResponseSchema>;

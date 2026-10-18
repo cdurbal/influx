@@ -194,8 +194,7 @@ async function turnOnWorkerPool(
       worker: `tm1-loop-${randomUUID().slice(0, 8)}`,
       sync: {
         mode,
-        environment: "staging",
-        nonProductionRecipientAllowlist: ["example.test"],
+        recipientFilter: { kind: "allowlist", domains: ["example.test"] },
       },
       logger,
       now: () => Date.now(),

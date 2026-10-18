@@ -1,9 +1,10 @@
 "use client";
 
 // The frame of every screen behind the session (docs/mvp/17b §1, §3.14.a; 15 RG107; 21 J3S-6).
-// GET /v1/bo/me decides: no session ⇒ back to sign-in. Two permanent banners, both read from the
-// database at every page, never from the address bar: the recovery-code session (J3S-6) and the
-// degraded dual control while there are not two distinct active admins (15 RG107, CA71). The
+// GET /v1/bo/me decides: no session ⇒ back to sign-in. Permanent banners, all read from apps/api at
+// every page, never from the address bar: the environment and its sending mode outside production
+// (16 RG118, D70), the recovery-code session (J3S-6) and the degraded dual control while there are
+// not two distinct active admins (15 RG107, CA71). The
 // admin entries of the navigation are absent for an agent; the server refuses them anyway (CA63).
 import type { BackofficeMeResponse } from "@influx/contracts/backoffice-auth";
 import Link from "next/link";
@@ -169,6 +170,7 @@ export function Shell({
 
   const { me } = state;
   const factor = me.secondFactor;
+  const { environment } = me;
   return (
     <MeContext.Provider value={me}>
       <div className={PAGE_CLASSES}>
@@ -209,6 +211,14 @@ export function Shell({
               )}
             </ul>
           </nav>
+          {environment.name === "production" ? null : (
+            <p role="status" className={WARNING_CLASSES}>
+              {messages.environmentBanner(
+                environment.name,
+                environment.brevoMode,
+              )}
+            </p>
+          )}
           {factor.method === "recovery_code" ? (
             <p role="status" className={WARNING_CLASSES}>
               {messages.recoveryBanner(factor.recoveryCodesLeft)}

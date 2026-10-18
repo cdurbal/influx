@@ -19,11 +19,12 @@
 // The locks, in this order, after the connector's qualification, mapping and output check:
 //   dry_run   no call, succeeded with dry_run and the would_send line (decision 2 and 3)
 //   no key    skipped_no_credentials (lock 1)
-//   allow-list  live outside production, a recipient domain not listed: skipped_non_production
-//             (lock 3, a positive condition)
+//   allow-list  live in development (the filter the configuration resolved, D70), a recipient
+//             domain not listed: skipped_non_production (lock 3, a positive condition)
 // Log lines (D60): line ids, destinations, codes and attribute NAMES, never an account, an address,
 // a value or a provider's message.
 import { randomUUID } from "node:crypto";
+import type { RecipientFilter } from "../../config/schema.ts";
 import type { CallResult, Connector, Preparation } from "./connector.ts";
 import type { InboundProcessor } from "./inbound/processing.ts";
 import { LineTakenBackError, type OutboxQueue } from "./queue.ts";
@@ -59,9 +60,11 @@ export const CONNECTOR_UNAVAILABLE_DELAY_SECONDS = 3_600;
 export type SyncSettings = {
   /** Read at start, immutable while running (03 §3.1). */
   mode: "live" | "dry_run";
-  environment: string;
-  /** E-mail domains a live run outside production may write to (02 §12.4 lock 3). */
-  nonProductionRecipientAllowlist: readonly string[];
+  /**
+   * The recipients a live run may write to, resolved by the configuration (02 §12.4 lock 3, D70):
+   * an allow-list of domains in development, unrestricted in a deployed environment.
+   */
+  recipientFilter: RecipientFilter;
 };
 
 export type DrainLogger = {
@@ -121,9 +124,12 @@ export function createOutboxDrain(
   } = dependencies;
   const limiter = new CategoryRateLimiter(now);
   const dryRun = sync.mode === "dry_run";
-  const allowlist = new Set(
-    sync.nonProductionRecipientAllowlist.map((domain) => domain.toLowerCase()),
-  );
+  const allowlist =
+    sync.recipientFilter.kind === "allowlist"
+      ? new Set(
+          sync.recipientFilter.domains.map((domain) => domain.toLowerCase()),
+        )
+      : null;
 
   function takenBack(line: ClaimedLine): void {
     logger.warn(
@@ -237,7 +243,7 @@ export function createOutboxDrain(
       return { status: "skipped", dryRun, reason: "skipped_no_credentials" };
     }
     if (
-      sync.environment !== "production" &&
+      allowlist !== null &&
       !allowlist.has(preparation.recipientDomain.toLowerCase())
     ) {
       return { status: "skipped", dryRun, reason: "skipped_non_production" };

@@ -3,14 +3,31 @@
 // schemas in the commit that reads it (J1-D, point 1).
 import * as z from "zod";
 
-export const INFLUX_ENVIRONMENTS = ["staging", "production"] as const;
+/**
+ * `02` §12.4 (D70): `development` is the local stack, the CI, the tests and their helpers;
+ * `staging` and `production` are deployed environments. No default: absent or unknown is refused.
+ */
+export const INFLUX_ENVIRONMENTS = [
+  "development",
+  "staging",
+  "production",
+] as const;
 export type InfluxEnvironment = (typeof INFLUX_ENVIRONMENTS)[number];
 
-/** `16` RG116: `disabled` and `redirect` never exist in production, `live` only there. */
+/**
+ * The single predicate of D70 (`02` §12.4): every value but `development` takes the strict startup
+ * requirements, so that a value added one day is strict by default. Used by these schemas only; the
+ * business code never reads the environment.
+ */
+export function isDeployedEnvironment(environment: InfluxEnvironment): boolean {
+  return environment !== "development";
+}
+
+/** `16` RG116 amended by D70: `live` in a deployed environment, `disabled` or `redirect` elsewhere. */
 export const BREVO_MODES = ["disabled", "redirect", "live"] as const;
 export type BrevoMode = (typeof BREVO_MODES)[number];
 
-/** `02` §12.4: `dry_run` outside production, `live` in production. */
+/** `02` §12.4 (D70): `live` in a deployed environment, `dry_run` by default in `development`. */
 export const SYNC_MODES = ["live", "dry_run"] as const;
 export type SyncMode = (typeof SYNC_MODES)[number];
 
@@ -122,7 +139,7 @@ export const APOLLO_OFFICIAL_BASE_URL = "https://api.apollo.io/api/v1";
 
 /**
  * BREVO_API_BASE_URL (21 J3-C rule 10, EC-19): the official URL, or the Brevo double of
- * @influx/test-kit on a loopback host. The loopback is refused in production (superRefine).
+ * @influx/test-kit on a loopback host. The loopback is refused in a deployed environment.
  */
 const brevoApiBaseUrl = z.preprocess(
   emptyAsAbsent,
@@ -216,7 +233,7 @@ export const WORKER_DATABASE_VARIABLES = [
   "WORKER_DATABASE_URL",
 ] as const satisfies readonly DatabaseUrlVariable[];
 /**
- * Read by the worker when set, required in production (J8 commit 8): without it, no "mes données"
+ * Read by the worker when set, required in a deployed environment (J8 commit 8): without it, no "mes données"
  * request is executed, and an approved one waits (03 P7, E-5).
  */
 export const WORKER_OPTIONAL_DATABASE_VARIABLES = [
@@ -404,7 +421,7 @@ const databaseEnvShape = {
 
 const baseEnvShape = {
   INFLUX_ENV: z.enum(INFLUX_ENVIRONMENTS, {
-    error: "must be staging or production",
+    error: "must be development, staging or production",
   }),
   BREVO_MODE: z.preprocess(
     emptyAsAbsent,
@@ -424,23 +441,43 @@ type BaseEnv = {
   INFLUX_ENV: InfluxEnvironment;
   BREVO_MODE: BrevoMode;
   BREVO_TEST_RECIPIENTS: string[];
+  RAILWAY_ENVIRONMENT_NAME?: string | undefined;
 };
 
-/** Startup refusals shared by api and worker (`16` RG116, `21` J1-D point 3). */
+/**
+ * Startup refusals shared by api and worker (`16` RG116, `21` J1-D point 3, `02` §12.4 after D70).
+ * A deployed environment sends for real: `live` only, and no redirect list, refused rather than
+ * ignored (a dormant list would revive at the first change of INFLUX_ENV). `development` never
+ * sends for real, and never runs on Railway.
+ */
 function checkBrevoMode(env: BaseEnv, context: z.RefinementCtx): void {
-  const isProduction = env.INFLUX_ENV === "production";
-  if (env.BREVO_MODE === "live" && !isProduction) {
+  const isDeployed = isDeployedEnvironment(env.INFLUX_ENV);
+  if (env.BREVO_MODE === "live" && !isDeployed) {
     context.addIssue({
       code: "custom",
       path: ["BREVO_MODE"],
-      message: "live is refused outside production",
+      message: "live is refused in development",
     });
   }
-  if (env.BREVO_MODE !== "live" && isProduction) {
+  if (env.BREVO_MODE !== "live" && isDeployed) {
     context.addIssue({
       code: "custom",
       path: ["BREVO_MODE"],
-      message: "must be live in production",
+      message: "must be live in a deployed environment",
+    });
+  }
+  if (isDeployed && env.BREVO_TEST_RECIPIENTS.length > 0) {
+    context.addIssue({
+      code: "custom",
+      path: ["BREVO_TEST_RECIPIENTS"],
+      message: "is refused in a deployed environment (development only)",
+    });
+  }
+  if (!isDeployed && env.RAILWAY_ENVIRONMENT_NAME !== undefined) {
+    context.addIssue({
+      code: "custom",
+      path: ["INFLUX_ENV"],
+      message: "development is refused on Railway",
     });
   }
   if (env.BREVO_MODE === "redirect" && env.BREVO_TEST_RECIPIENTS.length === 0) {
@@ -470,7 +507,7 @@ type BrevoTransportEnv = BaseEnv & {
 
 /**
  * EC-19 and J3-C rule 10, for api and worker: a sending mode needs its key and its sender; the key
- * is never the template's placeholder; the local double is never reached from production.
+ * is never the template's placeholder; the local double is never reached from a deployed environment.
  */
 function checkBrevoTransport(
   env: BrevoTransportEnv,
@@ -500,13 +537,13 @@ function checkBrevoTransport(
     });
   }
   if (
-    env.INFLUX_ENV === "production" &&
+    isDeployedEnvironment(env.INFLUX_ENV) &&
     env.BREVO_API_BASE_URL !== BREVO_OFFICIAL_BASE_URL
   ) {
     context.addIssue({
       code: "custom",
       path: ["BREVO_API_BASE_URL"],
-      message: "must be the official Brevo URL in production",
+      message: "must be the official Brevo URL in a deployed environment",
     });
   }
 }
@@ -518,8 +555,8 @@ function checkBrevoTransport(
  *   routes only: Railway's edge logs paths (RG146-2).
  * - BREVO_WEBHOOK_SECRET_*: the custom header `brevo-webhook-token`, 43 to 128 base64url
  *   characters: the authentication (RG146-1).
- * Both absent: the webhook is closed (every call is refused as an unknown route), allowed outside
- * production only, where a closed webhook would lose unsubscriptions (RG89).
+ * Both absent: the webhook is closed (every call is refused as an unknown route), allowed in
+ * development only: in a deployed environment, a closed webhook would lose unsubscriptions (RG89).
  */
 export const BREVO_WEBHOOK_VARIABLES = [
   "BREVO_WEBHOOK_PATH_TOKEN_CURRENT",
@@ -563,7 +600,7 @@ type BrevoWebhookEnv = BaseEnv &
 
 /**
  * Refusals of the webhook secrets: a placeholder; a previous value without a current one, or equal
- * to it; a path token without a header secret or the reverse; in production, none at all; and one
+ * to it; a path token without a header secret or the reverse; deployed, none at all; and one
  * value reused for another secret of the process (`others`): one secret, one use.
  */
 function checkBrevoWebhook(
@@ -613,12 +650,12 @@ function checkBrevoWebhook(
         "BREVO_WEBHOOK_PATH_TOKEN_CURRENT and BREVO_WEBHOOK_SECRET_CURRENT go together",
     });
   }
-  if (env.INFLUX_ENV === "production" && !(hasPath && hasSecret)) {
+  if (isDeployedEnvironment(env.INFLUX_ENV) && !(hasPath && hasSecret)) {
     context.addIssue({
       code: "custom",
       path: ["BREVO_WEBHOOK_SECRET_CURRENT"],
       message:
-        "the Brevo webhook secrets are required in production (unsubscriptions, 16 RG89)",
+        "the Brevo webhook secrets are required in a deployed environment (unsubscriptions, 16 RG89)",
     });
   }
   const values = BREVO_WEBHOOK_VARIABLES.map((variable) => env[variable]);
@@ -740,8 +777,16 @@ export type BrevoWebhookSecrets = {
   headerTokens: readonly string[];
 };
 
+/**
+ * The recipients a live connector may reach, resolved by the configuration (`02` §12.4, D70): the
+ * allow-list of NON_PRODUCTION_RECIPIENT_ALLOWLIST in development (verrou 3), no restriction in a
+ * deployed environment. Discriminated, never null: the drain never reads the environment.
+ */
+export type RecipientFilter =
+  { kind: "allowlist"; domains: readonly string[] } | { kind: "unrestricted" };
+
 export type WorkerConfig = BaseConfig & {
-  /** The worker's OWN Brevo key (EC-19), the double outside production, the exclusion list. */
+  /** The worker's OWN Brevo key (EC-19), the double in development, the exclusion list. */
   brevoTransport: BrevoTransportConfig & {
     /** BREVO_SUPPRESSION_LIST_ID: the marketing exclusion list (16 RG45), null when unset. */
     suppressionListId: number | null;
@@ -751,7 +796,7 @@ export type WorkerConfig = BaseConfig & {
    * variables set appear, never a null (05 RG163). Empty: the base is left alone.
    */
   brevoIds: BrevoIdsFromEnvironment;
-  /** APOLLO_API_KEY, the worker's only (skill env-secrets): null when absent, as in staging. */
+  /** APOLLO_API_KEY, the worker's only (skill env-secrets): null when absent. */
   apollo: {
     apiKey: string | null;
     baseUrl: string;
@@ -759,7 +804,7 @@ export type WorkerConfig = BaseConfig & {
   /**
    * WORKER_DATABASE_URL (influx_worker_login, E-3 and E-4, EC-20) and PRIVACY_DATABASE_URL
    * (influx_privacy_login, E-5 only, J8 commit 8): two pools, never one role for both (03 P7).
-   * `privacy` is null when unset outside production: no request is executed.
+   * `privacy` is null when unset in development: no request is executed.
    */
   database: {
     worker: DatabaseConnection;
@@ -768,8 +813,8 @@ export type WorkerConfig = BaseConfig & {
   /**
    * GoTrue of the Supabase project, with the worker's OWN secret key (skill env-secrets: one key per
    * service), for the purge of the users without an account (04 §9, J7 decision 3) and the user of
-   * an erased account (E-5, J8 commit 8) only. Required in production; null elsewhere when unset,
-   * and then neither runs (an erasure then waits, never closed).
+   * an erased account (E-5, J8 commit 8) only. Required in a deployed environment; null in
+   * development when unset, and then neither runs (an erasure then waits, never closed).
    */
   supabase: {
     url: string;
@@ -777,7 +822,7 @@ export type WorkerConfig = BaseConfig & {
   } | null;
   sync: {
     mode: SyncMode;
-    nonProductionRecipientAllowlist: readonly string[];
+    recipientFilter: RecipientFilter;
   };
 };
 
@@ -865,18 +910,9 @@ export const apiEnvSchema = z
         message: "must differ from INFLUX_PUBLIC_SITE_URL",
       });
     }
-    if (
-      env.INFLUX_ENV === "production" &&
-      !env.SUPABASE_URL.startsWith("https://")
-    ) {
-      context.addIssue({
-        code: "custom",
-        path: ["SUPABASE_URL"],
-        message: "must be an https origin in production",
-      });
-    }
-    if (env.INFLUX_ENV === "production") {
+    if (isDeployedEnvironment(env.INFLUX_ENV)) {
       for (const variable of [
+        "SUPABASE_URL",
         "INFLUX_PUBLIC_SITE_URL",
         "INFLUX_PUBLIC_BACKOFFICE_URL",
       ] as const) {
@@ -884,7 +920,7 @@ export const apiEnvSchema = z
           context.addIssue({
             code: "custom",
             path: [variable],
-            message: "must be an https origin in production",
+            message: "must be an https origin in a deployed environment",
           });
         }
       }
@@ -1053,61 +1089,70 @@ export const workerEnvSchema = z
       context,
       WORKER_OPTIONAL_DATABASE_VARIABLES,
     );
-    const isProduction = env.INFLUX_ENV === "production";
-    // 21 §5.8, J8 commit 8: the execution of the "mes données" requests is a gate of production.
-    if (isProduction && env.PRIVACY_DATABASE_URL === undefined) {
+    const isDeployed = isDeployedEnvironment(env.INFLUX_ENV);
+    // 21 §5.8, J8 commit 8: the execution of the "mes données" requests is a gate of any deployed
+    // environment (D70: staging requires what production requires).
+    if (isDeployed && env.PRIVACY_DATABASE_URL === undefined) {
       context.addIssue({
         code: "custom",
         path: ["PRIVACY_DATABASE_URL"],
         message:
-          "is required in production (execution of the data subject requests)",
+          "is required in a deployed environment (execution of the data subject requests)",
       });
     }
-    // 04 §9: the purge of GoTrue needs both; in production it must run (D43, 02 §18.5).
+    // 04 §9: the purge of GoTrue needs both; deployed, it must run (D43, 02 §18.5).
     for (const [variable, other] of [
       ["SUPABASE_URL", "SUPABASE_SECRET_KEY"],
       ["SUPABASE_SECRET_KEY", "SUPABASE_URL"],
     ] as const) {
       if (
         env[variable] === undefined &&
-        (isProduction || env[other] !== undefined)
+        (isDeployed || env[other] !== undefined)
       ) {
         context.addIssue({
           code: "custom",
           path: [variable],
-          message: isProduction
-            ? "is required in production (purge of the GoTrue users without an account)"
+          message: isDeployed
+            ? "is required in a deployed environment (purge of the GoTrue users without an account)"
             : `is required with ${other}`,
         });
       }
     }
     if (
-      isProduction &&
+      isDeployed &&
       env.SUPABASE_URL !== undefined &&
       !env.SUPABASE_URL.startsWith("https://")
     ) {
       context.addIssue({
         code: "custom",
         path: ["SUPABASE_URL"],
-        message: "must be an https origin in production",
+        message: "must be an https origin in a deployed environment",
       });
     }
-    if (env.SYNC_MODE === "dry_run" && isProduction) {
+    // 02 §12.4: a silently mute deployed environment is as serious as a real send from a test.
+    if (env.SYNC_MODE !== "live" && isDeployed) {
       context.addIssue({
         code: "custom",
         path: ["SYNC_MODE"],
-        message: "dry_run is refused in production",
+        message: "must be live in a deployed environment",
+      });
+    }
+    if (isDeployed && env.NON_PRODUCTION_RECIPIENT_ALLOWLIST.length > 0) {
+      context.addIssue({
+        code: "custom",
+        path: ["NON_PRODUCTION_RECIPIENT_ALLOWLIST"],
+        message: "is refused in a deployed environment (development only)",
       });
     }
     if (
       env.SYNC_MODE === "live" &&
-      !isProduction &&
+      !isDeployed &&
       env.NON_PRODUCTION_RECIPIENT_ALLOWLIST.length === 0
     ) {
       context.addIssue({
         code: "custom",
         path: ["NON_PRODUCTION_RECIPIENT_ALLOWLIST"],
-        message: "is required when SYNC_MODE is live outside production",
+        message: "is required when SYNC_MODE is live in development",
       });
     }
   })
@@ -1143,7 +1188,12 @@ export const workerEnvSchema = z
         : null,
     sync: {
       mode: env.SYNC_MODE,
-      nonProductionRecipientAllowlist: env.NON_PRODUCTION_RECIPIENT_ALLOWLIST,
+      recipientFilter: isDeployedEnvironment(env.INFLUX_ENV)
+        ? { kind: "unrestricted" }
+        : {
+            kind: "allowlist",
+            domains: env.NON_PRODUCTION_RECIPIENT_ALLOWLIST,
+          },
     },
   }));
 

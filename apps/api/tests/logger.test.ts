@@ -66,7 +66,7 @@ describe("api request logs", () => {
       .map((entry) => JSON.parse(entry) as Record<string, unknown>)[0];
     expect(line).toMatchObject({
       service: "api",
-      environment: "staging",
+      environment: "development",
       version: "local",
       method: "GET",
       route: "/v1/status",

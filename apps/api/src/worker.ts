@@ -271,12 +271,7 @@ async function main(): Promise<void> {
       },
     },
     worker,
-    sync: {
-      mode: config.sync.mode,
-      environment: config.environment,
-      nonProductionRecipientAllowlist:
-        config.sync.nonProductionRecipientAllowlist,
-    },
+    sync: config.sync,
     logger,
     now: () => Date.now(),
     sleep: pause,

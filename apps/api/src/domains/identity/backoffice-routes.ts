@@ -20,6 +20,7 @@ import {
   backofficeReauthenticateResponseSchema,
   type BackofficeEnrollConfirmResponse,
   type BackofficeEnrollResponse,
+  type BackofficeEnvironment,
   type BackofficeInvitationAcceptResponse,
   type BackofficeLoginResponse,
   type BackofficeMeResponse,
@@ -69,6 +70,8 @@ export const BACKOFFICE_SESSIONLESS_ROUTES: readonly string[] = [
 export type BackofficeRouteDependencies = BackofficeAuthDependencies & {
   /** EC-40 point 3; injectable for the tests only. */
   floorMs?: number;
+  /** 16 RG118: the environment and sending mode of the configuration, for the banner. */
+  environment: BackofficeEnvironment;
 };
 
 /** Waits until `target` (a performance.now() instant), if it is still to come. */
@@ -248,7 +251,8 @@ export function registerBackofficeAuthRoutes(
   );
 
   // GET /v1/bo/me: the first backoffice answer that carries personal data. J3S-6: the second
-  // factor of THIS session (the recovery banner); 15 RG107: whether peer control exists.
+  // factor of THIS session (the recovery banner); 15 RG107: whether peer control exists; 16 RG118:
+  // the environment and its sending mode (the environment banner).
   app.get(
     "/v1/bo/me",
     { schema: { response: { 200: backofficeMeResponseSchema } } },
@@ -272,6 +276,7 @@ export function registerBackofficeAuthRoutes(
             role: context.role,
             secondFactor,
             peerControlAvailable: await peerControlAvailable(tx),
+            environment: dependencies.environment,
           };
         },
       );

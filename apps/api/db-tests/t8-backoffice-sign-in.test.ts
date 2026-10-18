@@ -467,6 +467,7 @@ describe("B-2, MFA-2, MFA-3, G-1: enrollment in two requests", () => {
       role: "agent",
       secondFactor: { method: "totp" },
       peerControlAvailable: expect.any(Boolean),
+      environment: { name: "development", brevoMode: expect.any(String) },
     });
 
     watched.push({

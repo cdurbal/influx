@@ -318,8 +318,7 @@ async function turn(options: TurnOptions = {}): Promise<number> {
     worker,
     sync: {
       mode: options.mode ?? "live",
-      environment: "staging",
-      nonProductionRecipientAllowlist: ["example.test"],
+      recipientFilter: { kind: "allowlist", domains: ["example.test"] },
     },
     logger,
     now: () => Date.now(),

@@ -1158,6 +1158,8 @@ describe("reads of the screens (J8 commit 9; 15 RG107, 17b §3.13, §3.14.e, J3S
       role: "agent",
       secondFactor: { method: "totp" },
       peerControlAvailable: true,
+      // 16 RG118 (D70): the environment banner, from the configuration of the api.
+      environment: { name: "development", brevoMode: "disabled" },
     });
   });
 

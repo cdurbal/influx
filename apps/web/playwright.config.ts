@@ -7,8 +7,9 @@
 // Four servers, started here and stopped at the end, never reused: a server already on one of
 // these ports is an error, not a shortcut (its configuration would not be this one).
 // - The Brevo double, whose `GET /messages` is the members' inbox.
-// - apps/api, from its sources, in `redirect` mode towards the double: only the addresses of
-//   e2e/support/mailboxes.ts receive a code (02 §12.4 verrou 3). The local stack's secret key is
+// - apps/api, from its sources, as `development` (02 §12.4, D70) in `redirect` mode towards the
+//   double: only the addresses of e2e/support/mailboxes.ts receive a code (verrou 3). No env file
+//   is ever loaded (16 RG148). The local stack's secret key is
 //   read by e2e/start-api.ts from the Supabase CLI, never from a file.
 // - apps/web and apps/backoffice, built then started (CI: started only, `pnpm check` has just
 //   built them).
@@ -64,7 +65,7 @@ export default defineConfig({
       command: "node e2e/start-api.ts",
       url: `${API_ORIGIN}/health`,
       env: {
-        INFLUX_ENV: "staging",
+        INFLUX_ENV: "development",
         PORT: String(API_PORT),
         INFLUX_API_INTERNAL_SECRET_WEB: WEB_SECRET,
         INFLUX_API_INTERNAL_SECRET_BACKOFFICE: BACKOFFICE_SECRET,
@@ -88,7 +89,7 @@ export default defineConfig({
           : `pnpm exec next build && pnpm exec next start -H 127.0.0.1 -p ${WEB_PORT}`,
       url: `${WEB_ORIGIN}/fr/connexion`,
       env: {
-        INFLUX_ENV: "staging",
+        INFLUX_ENV: "development",
         INFLUX_API_INTERNAL_URL: API_ORIGIN,
         INFLUX_API_INTERNAL_SECRET: WEB_SECRET,
       },

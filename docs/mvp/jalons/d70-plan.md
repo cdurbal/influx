@@ -55,7 +55,7 @@ Ces constats **soldent les critères `staging` des J6, J7 et J8** (`21` §5) : l
      fondateur sur le diff avant le commit.**
    - Jeton P3 en place (fait le 2026-10-18) : les règles de permission restent une seconde
      ceinture.
-1. **Configuration iso-production** (`dev-react-node` ; tests `testeur`). Option recommandée :
+1. [x] **Configuration iso-production** (`dev-react-node` ; tests `testeur`). Option recommandée :
    - `INFLUX_ENV` prend trois valeurs : **`development`** (pile locale, CI, Playwright, helpers de
      test : verrous 2 et 3, doublure, `redirect`, `dry_run`, liste blanche), **`staging`** et
      **`production`**. Ces deux dernières partagent **un seul prédicat** dans `apps/api/src/config/`

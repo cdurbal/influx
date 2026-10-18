@@ -29,7 +29,7 @@ export const TEST_DATABASE_URLS = {
 
 export function testApiConfig(): ApiConfig {
   return parseApiEnvironment({
-    INFLUX_ENV: "staging",
+    INFLUX_ENV: "development",
     INFLUX_API_INTERNAL_SECRET_WEB: WEB_SECRET,
     INFLUX_API_INTERNAL_SECRET_BACKOFFICE: BACKOFFICE_SECRET,
     INFLUX_PUBLIC_SITE_URL: WEB_ORIGIN,

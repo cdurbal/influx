@@ -303,8 +303,7 @@ function drain(
     worker: "worker-test",
     sync: {
       mode: "live",
-      environment: "staging",
-      nonProductionRecipientAllowlist: ["example.test"],
+      recipientFilter: { kind: "allowlist", domains: ["example.test"] },
       ...sync,
     },
     logger: createLogger(
@@ -750,7 +749,7 @@ describe("TM1.10: SIGTERM during a batch loses no line", () => {
   });
 });
 
-describe("02 §12.4: the three locks of a non-production environment", () => {
+describe("02 §12.4: the three locks of development (D70)", () => {
   it("lock 2, dry_run: no call, succeeded with dry_run, and the would_send line without any value", async () => {
     const queue = new FakeQueue();
     const contact = queue.add("brevo_contact");
@@ -760,7 +759,7 @@ describe("02 §12.4: the three locks of a non-production environment", () => {
     await drain(
       queue,
       { brevo_contact: brevo, brevo_transactional: transactional },
-      { mode: "dry_run", nonProductionRecipientAllowlist: [] },
+      { mode: "dry_run", recipientFilter: { kind: "allowlist", domains: [] } },
     ).turn(new AbortController().signal);
 
     expect([...brevo.sent, ...transactional.sent]).toEqual([]);
@@ -846,7 +845,7 @@ describe("02 §12.4: the three locks of a non-production environment", () => {
     });
   });
 
-  it("lock 3, live outside production: a domain off the allow-list is skipped_non_production, after the mapping", async () => {
+  it("lock 3, live in development: a domain off the allow-list is skipped_non_production, after the mapping", async () => {
     const queue = new FakeQueue();
     const outside = queue.add("brevo_transactional", { subject: "account:a" });
     const outsideBrevo = connector("brevo_transactional", queue, {
@@ -878,7 +877,7 @@ describe("02 §12.4: the three locks of a non-production environment", () => {
     });
   });
 
-  it("in production, live calls every address: the allow-list is a non-production lock", async () => {
+  it("deployed (staging or production), the unrestricted filter calls every address: skipped_non_production is unreachable", async () => {
     const queue = new FakeQueue();
     queue.add("brevo_contact");
     const brevo = connector("brevo_contact", queue, {
@@ -887,7 +886,7 @@ describe("02 §12.4: the three locks of a non-production environment", () => {
     await drain(
       queue,
       { brevo_contact: brevo },
-      { environment: "production", nonProductionRecipientAllowlist: [] },
+      { recipientFilter: { kind: "unrestricted" } },
     ).turn(new AbortController().signal);
     expect(brevo.sent).toHaveLength(1);
   });

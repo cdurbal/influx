@@ -468,6 +468,7 @@ export function buildServer(
 
   // Authentication of the backoffice (21 §4, J3 commit 10).
   registerBackofficeAuthRoutes(app, {
+    environment: { name: config.environment, brevoMode: config.brevo.mode },
     database,
     supabaseAuth,
     sender,

@@ -100,6 +100,23 @@ export const messages = {
     internalAccounts: "Comptes internes",
     skip: "Aller au contenu",
   },
+  /**
+   * 16 RG118 (D70): the permanent banner of every non-production backoffice, in words. Staging sends
+   * for real, like production; development never does (the double, a redirect or nothing).
+   */
+  environmentBanner: (
+    name: "development" | "staging",
+    brevoMode: "disabled" | "redirect" | "live",
+  ) =>
+    name === "staging"
+      ? "staging — envois réels"
+      : `development — envois : ${
+          brevoMode === "redirect"
+            ? "redirigés vers les adresses internes"
+            : brevoMode === "disabled"
+              ? "désactivés"
+              : "réels"
+        }`,
   /** 15 RG107, CA71: the permanent banner while there are not two distinct active admins. */
   peerControlBanner:
     "Contrôle par les pairs indisponible — les actions sensibles sont confirmées en mode différé.",

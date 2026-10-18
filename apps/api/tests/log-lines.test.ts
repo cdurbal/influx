@@ -110,7 +110,7 @@ describe("worker log lines", () => {
   it("never repeat a key, on the real entry point", async () => {
     const systemRoot = process.env.SYSTEMROOT;
     const env: Record<string, string> = {
-      INFLUX_ENV: "staging",
+      INFLUX_ENV: "development",
       WORKER_DATABASE_URL: TEST_DATABASE_URLS.WORKER_DATABASE_URL,
     };
     if (systemRoot !== undefined) {

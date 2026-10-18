@@ -1,5 +1,7 @@
 // Refusal to start on an inconsistent configuration: first half of T17
 // (docs/mvp/18-plan-de-test-mvp.md T17, docs/mvp/21-plan-de-developpement.md §4, J1-D point 3).
+// Since D70 (02 §12.4), a matrix by environment: development keeps locks 2 and 3; staging refuses
+// exactly what production refuses (the single predicate isDeployedEnvironment).
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,7 +30,7 @@ const API_ROOT = path.resolve(
 );
 
 const VALID_API_ENV = {
-  INFLUX_ENV: "staging",
+  INFLUX_ENV: "development",
   INFLUX_API_INTERNAL_SECRET_WEB: WEB_SECRET,
   INFLUX_API_INTERNAL_SECRET_BACKOFFICE: BACKOFFICE_SECRET,
   INFLUX_PUBLIC_SITE_URL: WEB_ORIGIN,
@@ -43,7 +45,7 @@ const VALID_API_ENV = {
 } as const;
 
 const VALID_WORKER_ENV = {
-  INFLUX_ENV: "staging",
+  INFLUX_ENV: "development",
   WORKER_DATABASE_URL: TEST_DATABASE_URLS.WORKER_DATABASE_URL,
 } as const;
 
@@ -57,6 +59,43 @@ const POOLER_APP_URL =
   "postgresql://influx_app.abcdefghijklmnop:pass@aws-0-eu-west-3.pooler.supabase.com:6543/postgres";
 const POOLER_AUTH_URL =
   "postgresql://influx_auth_login.abcdefghijklmnop:pass@aws-0-eu-west-3.pooler.supabase.com:6543/postgres";
+
+/** The deployed environments of D70: they share every startup requirement (02 §12.4). */
+const DEPLOYED = ["staging", "production"] as const;
+type DeployedEnvironment = (typeof DEPLOYED)[number];
+
+/** A complete api configuration of a deployed environment: live, no list, webhook, https. */
+function deployedApiEnv(
+  environment: DeployedEnvironment,
+): Record<string, string> {
+  return {
+    ...VALID_API_ENV,
+    INFLUX_ENV: environment,
+    BREVO_MODE: "live",
+    BREVO_API_KEY: "xkeysib-deployed-like-value",
+    BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
+    SUPABASE_URL: HOSTED_SUPABASE_URL,
+    BREVO_WEBHOOK_PATH_TOKEN_CURRENT: "p".repeat(43),
+    BREVO_WEBHOOK_SECRET_CURRENT: "s".repeat(43),
+  };
+}
+
+/** A complete worker configuration of a deployed environment: live, no list, E-5, GoTrue. */
+function deployedWorkerEnv(
+  environment: DeployedEnvironment,
+): Record<string, string> {
+  return {
+    ...VALID_WORKER_ENV,
+    INFLUX_ENV: environment,
+    BREVO_MODE: "live",
+    BREVO_API_KEY: "xkeysib-worker-deployed-like-value",
+    BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
+    SYNC_MODE: "live",
+    SUPABASE_URL: HOSTED_SUPABASE_URL,
+    SUPABASE_SECRET_KEY: TEST_SUPABASE_SECRET_KEY,
+    PRIVACY_DATABASE_URL: TEST_DATABASE_URLS.PRIVACY_DATABASE_URL,
+  };
+}
 
 /** Issues of the refusal, or a failed expectation when the configuration is accepted. */
 function refusal(load: () => unknown): readonly string[] {
@@ -75,7 +114,7 @@ describe("api configuration", () => {
   it("accepts a coherent configuration, with safe defaults", () => {
     const config = loadApiConfig(VALID_API_ENV);
     expect(config).toEqual({
-      environment: "staging",
+      environment: "development",
       version: "local",
       instance: "local",
       brevo: { mode: "disabled", testRecipients: [] },
@@ -137,24 +176,9 @@ describe("api configuration", () => {
 
   it.each<[string, Environment, string]>([
     [
-      "live Brevo outside production (16 RG116)",
+      "live Brevo in development (16 RG116)",
       { ...VALID_API_ENV, BREVO_MODE: "live" },
-      "BREVO_MODE live is refused outside production",
-    ],
-    [
-      "production without live Brevo",
-      { ...VALID_API_ENV, INFLUX_ENV: "production" },
-      "BREVO_MODE must be live in production",
-    ],
-    [
-      "production with Brevo redirect",
-      {
-        ...VALID_API_ENV,
-        INFLUX_ENV: "production",
-        BREVO_MODE: "redirect",
-        BREVO_TEST_RECIPIENTS: "team@example.com",
-      },
-      "BREVO_MODE must be live in production",
+      "BREVO_MODE live is refused in development",
     ],
     [
       "redirect without test recipients",
@@ -163,7 +187,7 @@ describe("api configuration", () => {
     ],
     [
       "a missing internal secret",
-      { INFLUX_ENV: "staging", INFLUX_API_INTERNAL_SECRET_WEB: WEB_SECRET },
+      { INFLUX_ENV: "development", INFLUX_API_INTERNAL_SECRET_WEB: WEB_SECRET },
       "INFLUX_API_INTERNAL_SECRET_BACKOFFICE is required",
     ],
     [
@@ -241,24 +265,19 @@ describe("api configuration", () => {
       "INFLUX_PUBLIC_BACKOFFICE_URL must differ from INFLUX_PUBLIC_SITE_URL",
     ],
     [
-      "an http public origin in production",
-      {
-        ...VALID_API_ENV,
-        INFLUX_ENV: "production",
-        BREVO_MODE: "live",
-        INFLUX_PUBLIC_SITE_URL: "http://influx.example",
-      },
-      "INFLUX_PUBLIC_SITE_URL must be an https origin in production",
-    ],
-    [
       "the same internal secret for both fronts",
       { ...VALID_API_ENV, INFLUX_API_INTERNAL_SECRET_BACKOFFICE: WEB_SECRET },
       "INFLUX_API_INTERNAL_SECRET_BACKOFFICE must differ from INFLUX_API_INTERNAL_SECRET_WEB",
     ],
     [
-      "an unknown environment",
-      { ...VALID_API_ENV, INFLUX_ENV: "development" },
-      "INFLUX_ENV must be staging or production",
+      "an unknown environment (18 T17.8)",
+      { ...VALID_API_ENV, INFLUX_ENV: "test" },
+      "INFLUX_ENV must be development, staging or production",
+    ],
+    [
+      "an absent environment: no default (02 §12.4)",
+      { ...VALID_API_ENV, INFLUX_ENV: undefined },
+      "INFLUX_ENV must be development, staging or production",
     ],
     // EC-20 and 18 T4.6: database variables of the api service.
     [
@@ -402,15 +421,6 @@ describe("api configuration", () => {
       "SUPABASE_URL must be an https origin (http only on a loopback host), without path, query or credentials",
     ],
     [
-      "the local stack's Supabase URL in production",
-      {
-        ...VALID_API_ENV,
-        INFLUX_ENV: "production",
-        BREVO_MODE: "live",
-      },
-      "SUPABASE_URL must be an https origin in production",
-    ],
-    [
       "no Supabase secret key",
       { ...VALID_API_ENV, SUPABASE_SECRET_KEY: undefined },
       "SUPABASE_SECRET_KEY is required",
@@ -469,22 +479,6 @@ describe("api configuration", () => {
     ).toBe(HOSTED_SUPABASE_URL);
   });
 
-  it("accepts live Brevo in production", () => {
-    expect(
-      loadApiConfig({
-        ...VALID_API_ENV,
-        INFLUX_ENV: "production",
-        BREVO_MODE: "live",
-        BREVO_API_KEY: "xkeysib-production-like-value",
-        BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
-        SUPABASE_URL: HOSTED_SUPABASE_URL,
-        // Required in production from J7 (decision 1).
-        BREVO_WEBHOOK_PATH_TOKEN_CURRENT: "p".repeat(43),
-        BREVO_WEBHOOK_SECRET_CURRENT: "s".repeat(43),
-      }).brevo.mode,
-    ).toBe("live");
-  });
-
   // 21 EC-19, J3-C rule 10: the transactional sender of the api.
   describe("Brevo transport of the api (EC-19)", () => {
     const REDIRECT = {
@@ -495,7 +489,7 @@ describe("api configuration", () => {
       BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
     };
 
-    it("accepts the local double on a loopback host outside production", () => {
+    it("accepts the local double on a loopback host in development", () => {
       const config = loadApiConfig({
         ...REDIRECT,
         BREVO_API_BASE_URL: "http://127.0.0.1:4010/v3/",
@@ -525,20 +519,6 @@ describe("api configuration", () => {
       );
     });
 
-    it("refuses the local double in production", () => {
-      expect(() =>
-        loadApiConfig({
-          ...VALID_API_ENV,
-          INFLUX_ENV: "production",
-          BREVO_MODE: "live",
-          BREVO_API_KEY: "xkeysib-production-like-value",
-          BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
-          BREVO_API_BASE_URL: "http://127.0.0.1:4010/v3",
-          SUPABASE_URL: HOSTED_SUPABASE_URL,
-        }),
-      ).toThrow("BREVO_API_BASE_URL");
-    });
-
     it("needs neither key nor sender when disabled", () => {
       expect(
         loadApiConfig({ ...VALID_API_ENV, BREVO_MODE: "disabled" })
@@ -558,18 +538,7 @@ describe("api configuration", () => {
       BREVO_WEBHOOK_PATH_TOKEN_CURRENT: PATH_CURRENT,
       BREVO_WEBHOOK_SECRET_CURRENT: HEADER_CURRENT,
     };
-    const PRODUCTION = {
-      ...VALID_API_ENV,
-      INFLUX_ENV: "production",
-      BREVO_MODE: "live",
-      BREVO_API_KEY: "xkeysib-production-like-value",
-      BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
-      SUPABASE_URL: HOSTED_SUPABASE_URL,
-      INFLUX_PUBLIC_SITE_URL: WEB_ORIGIN,
-      INFLUX_PUBLIC_BACKOFFICE_URL: BACKOFFICE_ORIGIN,
-    };
-
-    it("closes the webhook when no secret is set, outside production", () => {
+    it("closes the webhook when no secret is set, in development", () => {
       expect(loadApiConfig(VALID_API_ENV).brevoWebhook).toEqual({
         pathTokens: [],
         headerTokens: [],
@@ -589,22 +558,7 @@ describe("api configuration", () => {
       });
     });
 
-    it("accepts production with both secrets", () => {
-      expect(
-        loadApiConfig({
-          ...PRODUCTION,
-          BREVO_WEBHOOK_PATH_TOKEN_CURRENT: PATH_CURRENT,
-          BREVO_WEBHOOK_SECRET_CURRENT: HEADER_CURRENT,
-        }).brevoWebhook.pathTokens,
-      ).toEqual([PATH_CURRENT]);
-    });
-
     it.each<[string, Environment, string]>([
-      [
-        "no webhook secret in production (unsubscriptions lost, RG89)",
-        PRODUCTION,
-        "BREVO_WEBHOOK_SECRET_CURRENT the Brevo webhook secrets are required in production (unsubscriptions, 16 RG89)",
-      ],
       [
         "a path token without a header secret",
         { ...VALID_API_ENV, BREVO_WEBHOOK_PATH_TOKEN_CURRENT: PATH_CURRENT },
@@ -695,7 +649,7 @@ describe("api configuration", () => {
 describe("worker configuration", () => {
   it("accepts a coherent configuration, with safe defaults", () => {
     expect(loadWorkerConfig(VALID_WORKER_ENV)).toEqual({
-      environment: "staging",
+      environment: "development",
       version: "local",
       instance: "local",
       brevo: { mode: "disabled", testRecipients: [] },
@@ -712,7 +666,10 @@ describe("worker configuration", () => {
         privacy: null,
       },
       supabase: null,
-      sync: { mode: "dry_run", nonProductionRecipientAllowlist: [] },
+      sync: {
+        mode: "dry_run",
+        recipientFilter: { kind: "allowlist", domains: [] },
+      },
     });
   });
 
@@ -729,37 +686,23 @@ describe("worker configuration", () => {
 
   it.each<[string, Environment, string]>([
     [
-      "dry_run in production (02 §12.4)",
-      {
-        INFLUX_ENV: "production",
-        BREVO_MODE: "live",
-        SYNC_MODE: "dry_run",
-      },
-      "SYNC_MODE dry_run is refused in production",
+      "live sync in development without an allowlist (lock 3)",
+      { ...VALID_WORKER_ENV, SYNC_MODE: "live" },
+      "NON_PRODUCTION_RECIPIENT_ALLOWLIST is required when SYNC_MODE is live in development",
     ],
     [
-      "production without an explicit SYNC_MODE",
-      { INFLUX_ENV: "production", BREVO_MODE: "live" },
-      "SYNC_MODE dry_run is refused in production",
-    ],
-    [
-      "live sync outside production without an allowlist",
-      { INFLUX_ENV: "staging", SYNC_MODE: "live" },
-      "NON_PRODUCTION_RECIPIENT_ALLOWLIST is required when SYNC_MODE is live outside production",
-    ],
-    [
-      "live Brevo outside production",
-      { INFLUX_ENV: "staging", BREVO_MODE: "live" },
-      "BREVO_MODE live is refused outside production",
+      "live Brevo in development (lock 2)",
+      { ...VALID_WORKER_ENV, BREVO_MODE: "live" },
+      "BREVO_MODE live is refused in development",
     ],
     [
       "redirect without test recipients",
-      { INFLUX_ENV: "staging", BREVO_MODE: "redirect" },
+      { ...VALID_WORKER_ENV, BREVO_MODE: "redirect" },
       "BREVO_TEST_RECIPIENTS is required when BREVO_MODE is redirect",
     ],
     [
       "a missing WORKER_DATABASE_URL",
-      { INFLUX_ENV: "staging" },
+      { INFLUX_ENV: "development" },
       "WORKER_DATABASE_URL is required",
     ],
     [
@@ -789,27 +732,20 @@ describe("worker configuration", () => {
     expect(refusal(() => loadWorkerConfig(env))).toContain(issue);
   });
 
-  it("accepts live sync outside production with an allowlist, and production in live", () => {
+  it("accepts live sync in development with an allowlist, resolved as the recipient filter", () => {
     expect(
       loadWorkerConfig({
         ...VALID_WORKER_ENV,
         SYNC_MODE: "live",
         NON_PRODUCTION_RECIPIENT_ALLOWLIST: "example.com, example.org",
-      }).sync.nonProductionRecipientAllowlist,
-    ).toEqual(["example.com", "example.org"]);
-    expect(
-      loadWorkerConfig({
-        ...VALID_WORKER_ENV,
-        INFLUX_ENV: "production",
-        BREVO_MODE: "live",
-        BREVO_API_KEY: "xkeysib-production-like-value",
-        BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
-        SYNC_MODE: "live",
-        SUPABASE_URL: HOSTED_SUPABASE_URL,
-        SUPABASE_SECRET_KEY: TEST_SUPABASE_SECRET_KEY,
-        PRIVACY_DATABASE_URL: PRIVACY_URL,
-      }).sync.mode,
-    ).toBe("live");
+      }).sync,
+    ).toEqual({
+      mode: "live",
+      recipientFilter: {
+        kind: "allowlist",
+        domains: ["example.com", "example.org"],
+      },
+    });
   });
 
   describe("PRIVACY_DATABASE_URL: E-5 on a pool of its own, never influx_worker_login (03 P7, J8 commit 8)", () => {
@@ -834,20 +770,6 @@ describe("worker configuration", () => {
         "the worker's role behind it",
         { ...VALID_WORKER_ENV, PRIVACY_DATABASE_URL: WORKER_URL },
         "PRIVACY_DATABASE_URL must connect as role influx_privacy_login",
-      ],
-      [
-        "production without it (21 §5.8: the execution of the requests is a gate of production)",
-        {
-          ...VALID_WORKER_ENV,
-          INFLUX_ENV: "production",
-          BREVO_MODE: "live",
-          BREVO_API_KEY: "xkeysib-production-like-value",
-          BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
-          SYNC_MODE: "live",
-          SUPABASE_URL: HOSTED_SUPABASE_URL,
-          SUPABASE_SECRET_KEY: TEST_SUPABASE_SECRET_KEY,
-        },
-        "PRIVACY_DATABASE_URL is required in production (execution of the data subject requests)",
       ],
     ])("refuses %s", (_case, env, issue) => {
       expect(refusal(() => loadWorkerConfig(env))).toContain(issue);
@@ -934,24 +856,10 @@ describe("worker configuration", () => {
       );
     });
 
-    it("scenario 14 for the worker: live outside production refuses to start, key or not", () => {
+    it("scenario 14 for the worker: live in development refuses to start, key or not", () => {
       expect(
         refusal(() => loadWorkerConfig({ ...REDIRECT, BREVO_MODE: "live" })),
-      ).toContain("BREVO_MODE live is refused outside production");
-    });
-
-    it("refuses the local double in production", () => {
-      expect(() =>
-        loadWorkerConfig({
-          ...VALID_WORKER_ENV,
-          INFLUX_ENV: "production",
-          BREVO_MODE: "live",
-          SYNC_MODE: "live",
-          BREVO_API_KEY: "xkeysib-production-like-value",
-          BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
-          BREVO_API_BASE_URL: "http://127.0.0.1:4010/v3",
-        }),
-      ).toThrow("BREVO_API_BASE_URL");
+      ).toContain("BREVO_MODE live is refused in development");
     });
   });
 
@@ -975,7 +883,7 @@ describe("worker configuration", () => {
   });
 
   describe("GoTrue of the worker: its own secret key, for the purge of 04 §9 only (J7 commit 5)", () => {
-    it("reads the origin and the key together; neither is no purge outside production", () => {
+    it("reads the origin and the key together; neither is no purge in development", () => {
       expect(
         loadWorkerConfig({
           ...VALID_WORKER_ENV,
@@ -1007,18 +915,6 @@ describe("worker configuration", () => {
         "SUPABASE_URL is required with SUPABASE_SECRET_KEY",
       ],
       [
-        "production without them (D43: the purge must run)",
-        {
-          ...VALID_WORKER_ENV,
-          INFLUX_ENV: "production",
-          BREVO_MODE: "live",
-          BREVO_API_KEY: "xkeysib-production-like-value",
-          BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
-          SYNC_MODE: "live",
-        },
-        "SUPABASE_URL is required in production (purge of the GoTrue users without an account)",
-      ],
-      [
         "a legacy JWT key",
         {
           ...VALID_WORKER_ENV,
@@ -1033,7 +929,7 @@ describe("worker configuration", () => {
   });
 
   describe("Apollo of the worker: APOLLO_API_KEY, the worker's only (skill env-secrets, J6 commit 5)", () => {
-    it("reads the key; no key is no credentials, never a refusal (none in staging)", () => {
+    it("reads the key; no key is no credentials, never a refusal", () => {
       expect(
         loadWorkerConfig({
           ...VALID_WORKER_ENV,
@@ -1078,6 +974,220 @@ describe("worker configuration", () => {
   });
 });
 
+// 18 T17 after D70 (02 §12.4): each case removes or adds one variable to a complete deployed
+// configuration, and the same case runs for staging and for production.
+type DeployedCase = [string, Environment, string];
+
+const API_DEPLOYED_CASES: readonly DeployedCase[] = [
+  [
+    "Brevo disabled (a mute deployed environment, 16 RG116)",
+    { BREVO_MODE: "disabled" },
+    "BREVO_MODE must be live in a deployed environment",
+  ],
+  [
+    "no BREVO_MODE (the default disabled never passes)",
+    { BREVO_MODE: undefined },
+    "BREVO_MODE must be live in a deployed environment",
+  ],
+  [
+    "Brevo redirect",
+    { BREVO_MODE: "redirect", BREVO_TEST_RECIPIENTS: "team@influx.example" },
+    "BREVO_MODE must be live in a deployed environment",
+  ],
+  [
+    "BREVO_TEST_RECIPIENTS set next to live: refused, never ignored",
+    { BREVO_TEST_RECIPIENTS: "team@influx.example" },
+    "BREVO_TEST_RECIPIENTS is refused in a deployed environment (development only)",
+  ],
+  [
+    "the local double",
+    { BREVO_API_BASE_URL: "http://127.0.0.1:4010/v3" },
+    "BREVO_API_BASE_URL must be the official Brevo URL in a deployed environment",
+  ],
+  [
+    "no webhook secret (unsubscriptions lost, 16 RG89)",
+    {
+      BREVO_WEBHOOK_PATH_TOKEN_CURRENT: undefined,
+      BREVO_WEBHOOK_SECRET_CURRENT: undefined,
+    },
+    "BREVO_WEBHOOK_SECRET_CURRENT the Brevo webhook secrets are required in a deployed environment (unsubscriptions, 16 RG89)",
+  ],
+  [
+    "an http public origin of the site",
+    { INFLUX_PUBLIC_SITE_URL: "http://influx.example" },
+    "INFLUX_PUBLIC_SITE_URL must be an https origin in a deployed environment",
+  ],
+  [
+    "an http public origin of the backoffice",
+    { INFLUX_PUBLIC_BACKOFFICE_URL: "http://bo.influx.example" },
+    "INFLUX_PUBLIC_BACKOFFICE_URL must be an https origin in a deployed environment",
+  ],
+  [
+    "the local stack's Supabase URL",
+    { SUPABASE_URL: TEST_SUPABASE_URL },
+    "SUPABASE_URL must be an https origin in a deployed environment",
+  ],
+];
+
+const WORKER_DEPLOYED_CASES: readonly DeployedCase[] = [
+  [
+    "dry_run (18 T17.5)",
+    { SYNC_MODE: "dry_run" },
+    "SYNC_MODE must be live in a deployed environment",
+  ],
+  [
+    "no SYNC_MODE (the default dry_run never passes, T17.5)",
+    { SYNC_MODE: undefined },
+    "SYNC_MODE must be live in a deployed environment",
+  ],
+  [
+    "NON_PRODUCTION_RECIPIENT_ALLOWLIST set: refused, never ignored",
+    { NON_PRODUCTION_RECIPIENT_ALLOWLIST: "influx.example" },
+    "NON_PRODUCTION_RECIPIENT_ALLOWLIST is refused in a deployed environment (development only)",
+  ],
+  [
+    "BREVO_TEST_RECIPIENTS set: refused, never ignored",
+    { BREVO_TEST_RECIPIENTS: "team@influx.example" },
+    "BREVO_TEST_RECIPIENTS is refused in a deployed environment (development only)",
+  ],
+  [
+    "Brevo disabled",
+    { BREVO_MODE: "disabled" },
+    "BREVO_MODE must be live in a deployed environment",
+  ],
+  [
+    "the local double",
+    { BREVO_API_BASE_URL: "http://127.0.0.1:4010/v3" },
+    "BREVO_API_BASE_URL must be the official Brevo URL in a deployed environment",
+  ],
+  [
+    "no PRIVACY_DATABASE_URL (21 §5.8: the execution of the requests)",
+    { PRIVACY_DATABASE_URL: undefined },
+    "PRIVACY_DATABASE_URL is required in a deployed environment (execution of the data subject requests)",
+  ],
+  [
+    "no GoTrue pair (D43: the purge must run)",
+    { SUPABASE_URL: undefined, SUPABASE_SECRET_KEY: undefined },
+    "SUPABASE_URL is required in a deployed environment (purge of the GoTrue users without an account)",
+  ],
+  [
+    "the local stack's Supabase URL",
+    { SUPABASE_URL: TEST_SUPABASE_URL },
+    "SUPABASE_URL must be an https origin in a deployed environment",
+  ],
+];
+
+describe.each(DEPLOYED)(
+  "T17 in %s, a deployed environment (D70)",
+  (environment) => {
+    it("accepts the complete api configuration, in live", () => {
+      const config = loadApiConfig(deployedApiEnv(environment));
+      expect(config.environment).toBe(environment);
+      expect(config.brevo).toEqual({ mode: "live", testRecipients: [] });
+    });
+
+    it("accepts the complete worker configuration, unrestricted: skipped_non_production is unreachable", () => {
+      const config = loadWorkerConfig(deployedWorkerEnv(environment));
+      expect(config.sync).toEqual({
+        mode: "live",
+        recipientFilter: { kind: "unrestricted" },
+      });
+      expect(config.database.privacy?.role).toBe("influx_privacy_login");
+    });
+
+    it.each(API_DEPLOYED_CASES)("api refuses %s", (_case, change, issue) => {
+      expect(
+        refusal(() =>
+          loadApiConfig({ ...deployedApiEnv(environment), ...change }),
+        ),
+      ).toContain(issue);
+    });
+
+    it.each(WORKER_DEPLOYED_CASES)(
+      "worker refuses %s",
+      (_case, change, issue) => {
+        expect(
+          refusal(() =>
+            loadWorkerConfig({ ...deployedWorkerEnv(environment), ...change }),
+          ),
+        ).toContain(issue);
+      },
+    );
+  },
+);
+
+describe("T17: staging refuses exactly what production refuses (D70)", () => {
+  it.each(API_DEPLOYED_CASES)("api, %s: the same issues", (_case, change) => {
+    expect(
+      refusal(() => loadApiConfig({ ...deployedApiEnv("staging"), ...change })),
+    ).toEqual(
+      refusal(() =>
+        loadApiConfig({ ...deployedApiEnv("production"), ...change }),
+      ),
+    );
+  });
+
+  it.each(WORKER_DEPLOYED_CASES)(
+    "worker, %s: the same issues",
+    (_case, change) => {
+      expect(
+        refusal(() =>
+          loadWorkerConfig({ ...deployedWorkerEnv("staging"), ...change }),
+        ),
+      ).toEqual(
+        refusal(() =>
+          loadWorkerConfig({ ...deployedWorkerEnv("production"), ...change }),
+        ),
+      );
+    },
+  );
+});
+
+describe("T17 in development: locks 2 and 3 kept (D70)", () => {
+  it("accepts the two lists, and redirect towards the double", () => {
+    const config = loadWorkerConfig({
+      ...VALID_WORKER_ENV,
+      BREVO_MODE: "redirect",
+      BREVO_TEST_RECIPIENTS: "team@influx.example",
+      BREVO_API_KEY: "xkeysib-double-key",
+      BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
+      BREVO_API_BASE_URL: "http://127.0.0.1:4010/v3",
+      SYNC_MODE: "live",
+      NON_PRODUCTION_RECIPIENT_ALLOWLIST: "influx.example",
+    });
+    expect(config.brevo).toEqual({
+      mode: "redirect",
+      testRecipients: ["team@influx.example"],
+    });
+    expect(config.sync.recipientFilter).toEqual({
+      kind: "allowlist",
+      domains: ["influx.example"],
+    });
+  });
+
+  it("api: development on Railway is refused (a deployed service never relaxes by a variable)", () => {
+    expect(
+      refusal(() =>
+        loadApiConfig({
+          ...VALID_API_ENV,
+          RAILWAY_ENVIRONMENT_NAME: "staging",
+        }),
+      ),
+    ).toContain("INFLUX_ENV development is refused on Railway");
+  });
+
+  it("worker: development on Railway is refused", () => {
+    expect(
+      refusal(() =>
+        loadWorkerConfig({
+          ...VALID_WORKER_ENV,
+          RAILWAY_ENVIRONMENT_NAME: "production",
+        }),
+      ),
+    ).toContain("INFLUX_ENV development is refused on Railway");
+  });
+});
+
 describe("process start", () => {
   // The real entry points, run by Node on the TypeScript sources (21 J1-B): an inconsistent
   // configuration stops the process with a non-zero exit code before anything listens.
@@ -1093,7 +1203,7 @@ describe("process start", () => {
 
   it("api refuses to start with identical internal secrets", () => {
     const result = start("main.ts", {
-      INFLUX_ENV: "staging",
+      INFLUX_ENV: "development",
       INFLUX_API_INTERNAL_SECRET_WEB: WEB_SECRET,
       INFLUX_API_INTERNAL_SECRET_BACKOFFICE: WEB_SECRET,
       INFLUX_PUBLIC_SITE_URL: WEB_ORIGIN,
@@ -1111,17 +1221,34 @@ describe("process start", () => {
     expect(result.stdout).not.toContain(WEB_SECRET);
   });
 
-  it("worker refuses to start in production with dry_run", () => {
-    const result = start("worker.ts", {
-      INFLUX_ENV: "production",
-      BREVO_MODE: "live",
-      SYNC_MODE: "dry_run",
-    });
-    expect(result.status).toBe(1);
-    expect(result.stdout).toContain(
-      "SYNC_MODE dry_run is refused in production",
-    );
-  });
+  it.each(DEPLOYED)(
+    "worker refuses to start in %s with dry_run (18 T17.5, T17.10)",
+    (environment) => {
+      const result = start("worker.ts", {
+        INFLUX_ENV: environment,
+        BREVO_MODE: "live",
+        SYNC_MODE: "dry_run",
+      });
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain(
+        "SYNC_MODE must be live in a deployed environment",
+      );
+    },
+  );
+
+  it.each(DEPLOYED)(
+    "api refuses to start in %s with a redirect list (D70: refused, never ignored)",
+    (environment) => {
+      const result = start("main.ts", {
+        ...deployedApiEnv(environment),
+        BREVO_TEST_RECIPIENTS: "team@influx.example",
+      });
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain(
+        "BREVO_TEST_RECIPIENTS is refused in a deployed environment (development only)",
+      );
+    },
+  );
 });
 
 describe("DATABASE_CA_CERT (21 EC-34)", () => {

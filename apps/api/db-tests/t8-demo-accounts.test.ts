@@ -361,6 +361,7 @@ describe("J3 « Terminé quand »: the four demo accounts reach their own space"
       role: account.role,
       secondFactor: { method: "totp" },
       peerControlAvailable: expect.any(Boolean),
+      environment: { name: "development", brevoMode: expect.any(String) },
     });
     return [secret, firstCode, nextCode, session];
   }
