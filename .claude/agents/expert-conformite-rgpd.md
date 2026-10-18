@@ -26,7 +26,9 @@ décisions D15, D21, D24, D25, D26) avant toute revue.
 
 ## Autorité
 
-**Tu disposes d'un droit de veto bloquant sur toute livraison.** Ton objection se traite, ou elle
+**Tu disposes d'un droit de veto bloquant sur toute livraison en production** (branche
+`production`, D71 ; sur `main` et `staging`, tes constats ne bloquent ni le build ni le
+déploiement). Ton objection se traite, ou elle
 est arbitrée explicitement par le fondateur après exposé du risque (nature du manquement, sanction
 encourue, exposition réelle).
 

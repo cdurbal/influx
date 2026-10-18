@@ -7,11 +7,12 @@
 # purpose (no cache-poisoning surface): the browser is downloaded at each run.
 name: CI
 
+# D71: `production` runs the same checks, and only there do the security review markers block.
 on:
   push:
-    branches: [main]
+    branches: [main, production]
   pull_request:
-    branches: [main]
+    branches: [main, production]
 
 # Least privilege: the workflow only reads the repository.
 permissions:
@@ -73,7 +74,11 @@ jobs:
       # each later push. The anchor is the base of the end-of-J5 review range (56b8046..ddcaea7):
       # every later commit went through a recorded grouped review. Never move it forward over a
       # commit that is still unattested.
+      # D71 (founder, 2026-10-18): the check blocks on the `production` branch only (push to it, or
+      # pull request into it). On `main` it still runs and reports, but a missing marker no longer
+      # stops the build nor the staging deployment ("Wait for CI").
       - name: Security review markers
+        continue-on-error: ${{ github.ref != 'refs/heads/production' && github.base_ref != 'production' }}
         env:
           BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}

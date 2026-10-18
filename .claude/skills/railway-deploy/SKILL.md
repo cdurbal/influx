@@ -126,7 +126,7 @@ Méthode : `railway status` → `railway deployment list -s <service>` → `rail
 | `CRASHED`, `invalid configuration, refusing to start` | Variable absente ou fausse : `issues` la nomme ; vérifier noms et rôle des URL avec le filtre ci-dessus |
 | `must connect as role X` | URL d'un autre rôle collée ; régénérer avec `staging:role-passwords` (runbook étape 3), l'agent la pose par `--stdin` |
 | `SELF_SIGNED_CERT_IN_CHAIN` | `DATABASE_CA_CERT` absent sur `api` ou `worker` (EC-34) |
-| `SKIPPED` en série | CI rouge (souvent I-4 non attesté) ou *Watch Paths* non touchés. Statut GitHub du commit : `gh api repos/cdurbal/influx/commits/<sha>/status --jq '.statuses[]'` |
+| `SKIPPED` en série | CI rouge ou *Watch Paths* non touchés (I-4 non attesté ne bloque plus `main`, seulement `production`, D71). Statut GitHub du commit : `gh api repos/cdurbal/influx/commits/<sha>/status --jq '.statuses[]'` |
 | « No deployment needed - watched paths not modified » alors que le commit touche le service | *Watch Paths* saisis en **une chaîne séparée par des virgules** : un seul motif qui ne correspond à rien. Un motif **par ligne** (incident du 2026-10-17). Lecture : `railway api 'query{serviceInstance(serviceId:"<id>",environmentId:"<id>"){watchPatterns}}'` |
 | Échec au build | `RAILPACK_NODE_VERSION`, dépendances, erreur TypeScript non vue en CI |
 | Front en ligne, appels API en échec | `INFLUX_API_INTERNAL_URL` / secret interne du front, service `api` arrêté |

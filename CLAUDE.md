@@ -160,12 +160,16 @@ suppression propagée à Brevo et Apollo. Référents : `expert-conformite-rgpd`
 | API externes | `expert-integrations-api` | `architecte` |
 | Git, CI/CD, Railway | `integrateur` | `architecte` |
 | Tests | `testeur` | `architecte` |
-| Sécurité | `expert-cybersecurite` | **veto bloquant** |
-| Conformité | `expert-conformite-rgpd` | **veto bloquant** |
+| Sécurité | `expert-cybersecurite` | **veto bloquant sur `production`** (D71) |
+| Conformité | `expert-conformite-rgpd` | **veto bloquant sur `production`** (D71) |
 
 **Règles :**
 1. Demande floue ou transverse → `chef-de-projet` ; demande cadrée → spécialiste directement.
 2. Un veto ne se contourne pas : il se traite ou s'arbitre explicitement par le fondateur.
+   **Portée (D71)** : les vetos de `expert-cybersecurite` et `expert-conformite-rgpd`, et le
+   contrôle I-4 (`security-reviewed:`), ne bloquent **que la branche `production`** (à créer) et
+   ce qui y entre. Sur `main`, build, CI et déploiement de `staging` passent sans leur revue ;
+   la CI y signale encore les marqueurs manquants, sans échouer.
 3. Toute décision structurante est écrite (ici ou dans `docs/mvp/decisions.md`).
 4. **Aucune création/suppression de dépôt distant ni déploiement en production** sans
    confirmation explicite du fondateur ; idem pour les actions de `docs/mvp/prerequis.md`.
@@ -182,7 +186,8 @@ suppression propagée à Brevo et Apollo. Référents : `expert-conformite-rgpd`
 5. **Discipline de vélocité (objectif MVP fin octobre) :**
    - Micro-écarts (`EC-*`) sans enjeu d'invariant : appliquer le choix le plus sûr, sans arrêt,
      documentation regroupée en fin de jalon.
-   - `expert-cybersecurite` et `testeur` : **une revue groupée en fin de jalon** (marqueurs
+   - `expert-cybersecurite` et `testeur` : **une revue groupée en fin de jalon**, non bloquante
+     sur `main`, exigée avant toute entrée dans `production` (D71) (marqueurs
      `security-reviewed:` I-4 apposés à ce moment ; pour des commits déjà poussés, par un commit
      d'attestation `security-reviewed: <date> covers <sha>…`, jamais en réécrivant `main`).
    - `expert-conformite-rgpd` : **seulement au Lot 6** ; au Lot 1, `dev-react-node` respecte les
@@ -225,6 +230,8 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
 - **D24** créateurs particuliers et fiscalité · **D34** libellé du badge · **D38** masse critique
   avant recherche · **D30** coordonnées dans la messagerie · **D35** saisie libre d'e-mails ·
   **D36** langue du backoffice · **D61** points restants · **D14** abonnement.
+- **D71 tranchée (2026-10-18)** : revues sécurité et RGPD (vetos, I-4) bloquantes sur la seule
+  branche `production` ; `main` et `staging` se construisent et se déploient sans elles.
 - **D70 tranchée (2026-10-18)** : `staging` ouvert sans restriction (risque accepté), domaine
   d'envoi `influx.cadaero.ovh`, CLI Railway sur un jeton limité à `staging` (production hors
   d'atteinte du poste) ; reste : mécanisme technique (`architecte`).

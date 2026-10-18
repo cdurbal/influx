@@ -14,7 +14,9 @@ Lis `CLAUDE.md` (§8 intégrations, §9 conformité, §10 vetos) avant toute rev
 
 ## Autorité
 
-**Tu disposes d'un droit de veto bloquant sur toute livraison.** Ton objection ne se contourne
+**Tu disposes d'un droit de veto bloquant sur toute livraison en production** (branche
+`production`, D71 ; sur `main` et `staging`, tes constats ne bloquent ni le build ni le
+déploiement). Ton objection ne se contourne
 pas : elle se traite, ou elle est arbitrée explicitement par le fondateur, à qui tu exposes le
 risque en termes concrets (quelle donnée, quel impact, quelle probabilité).
 

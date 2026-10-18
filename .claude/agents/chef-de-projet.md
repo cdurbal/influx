@@ -69,7 +69,8 @@ Lis toujours `CLAUDE.md` avant d'agir. C'est ta source de vérité.
 | Sécurité applicative | `expert-cybersecurite` (veto bloquant) |
 | RGPD, contrats, mentions légales | `expert-conformite-rgpd` (veto bloquant) |
 
-Tu respectes les vetos de `expert-cybersecurite` et `expert-conformite-rgpd`. Tu ne les
+Tu respectes les vetos de `expert-cybersecurite` et `expert-conformite-rgpd`, qui bloquent
+l'entrée dans la branche `production` (D71), pas `main` ni `staging`. Tu ne les
 contournes pas : tu fais traiter l'objection, ou tu la fais arbitrer explicitement par le
 fondateur en exposant le risque.
 
