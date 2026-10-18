@@ -46,7 +46,7 @@
 | 552 | 14 | 12. Décisions ouvertes |  |
 | 566 | 20 | 13. Ce qui change en V2 |  |
 
-## 02-architecture-3-espaces.md (~54k tokens)
+## 02-architecture-3-espaces.md (~55k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -62,44 +62,44 @@
 | 934 | 124 | 9. Le contrat entre l'API et les fronts |  |
 | 1058 | 60 | 10. Où s'applique la RLS, et où elle ne suffit pas |  |
 | 1118 | 51 | 11. Le worker |  |
-| 1169 | 142 | 12. Conséquences sur Railway et Supabase | RG78–RG164 |
-| 1311 | 58 | 13. Sortie du mode maquette de `apps/web` |  |
-| 1369 | 60 | 14. Ce qui reste ouvert |  |
-| 1429 | 46 | 15. Conventions pour `dev-react-node` |  |
-| 1475 | 14 | 16. Points à faire valider par le fondateur |  |
-| 1489 | 12 | 17. Mises à jour des autres documents |  |
-| 1501 | 15 | Sources (vérifiées le 2026-09-18) |  |
-| 1516 | 370 | 18. Addendum du 2026-09-19 — D43 : chemin d'envoi des e-mails transactionnels critiques (code de connexion) | RG39–RG122 |
-| 1537 | 17 | ↳ 18.1 Contexte | RG59–RG86 |
-| 1554 | 7 | ↳ 18.2 Les deux questions posées |  |
-| 1561 | 21 | ↳ 18.3 Question (a) — options | RG41–RG87 |
-| 1582 | 24 | ↳ 18.4 Décision (a) : **(i) — appel synchrone dans la requête, avec cinq garde-fous** | RG46–RG64 |
-| 1606 | 61 | ↳ 18.5 L'énumération de comptes — le point que l'envoi synchrone oblige à trancher | RG44–RG60 |
-| 1667 | 11 | ↳ 18.6 Panne du fournisseur : ce qui se passe, et ce que personne ne doit croire | RG64–RG122 |
-| 1678 | 43 | ↳ 18.7 Conséquence non évidente : **c'est `apps/api` qui envoie l'e-mail, pas Supabase Auth** | RG40–RG100 |
-| 1721 | 32 | ↳ 18.8 Décision (b) : `leads.transactional_sends` est **un journal, et rien d'autre** | RG60 |
-| 1753 | 27 | ↳ 18.9 La famine, et pourquoi elle est écartée par construction |  |
-| 1780 | 34 | ↳ 18.10 Contrat d'implémentation — `POST /v1/auth/request-code` | RG44–RG91 |
-| 1814 | 16 | ↳ 18.11 Conséquences | RG122 |
-| 1830 | 9 | ↳ 18.12 Si l'on se trompe | RG46–RG98 |
-| 1839 | 7 | ↳ 18.13 Réversibilité |  |
-| 1846 | 30 | ↳ 18.14 Ce que cet addendum demande aux autres agents | RG60 |
-| 1876 | 10 | ↳ Sources (vérifiées le 2026-09-19) |  |
-| 1886 | 24 | 19. Addendum du 2026-09-24 — D57 : sauvegarde et restauration |  |
-| 1910 | 326 | 20. Addendum du 2026-09-24 — D60 : surveillance de production, entièrement interne | RG98–RG160 |
-| 1927 | 11 | ↳ 20.1 Le besoin, en deux questions |  |
-| 1938 | 19 | ↳ 20.2 Ce qui existe déjà, et ce qui manque | RG98–RG126 |
-| 1957 | 17 | ↳ 20.3 Options |  |
-| 1974 | 14 | ↳ 20.4 Décision : six pièces, toutes internes |  |
-| 1988 | 95 | ↳ 20.5 Comment chaque pièce fonctionne |  |
-| 2083 | 35 | ↳ 20.6 Signaux et seuils d'alerte | RG160 |
-| 2118 | 22 | ↳ 20.7 La période de rodage — « surtout au début » |  |
-| 2140 | 26 | ↳ 20.8 Ce qui n'entre jamais dans un journal ni dans le schéma `ops` |  |
-| 2166 | 12 | ↳ 20.9 Ce que la décision ne couvre pas — risque accepté par le fondateur |  |
-| 2178 | 31 | ↳ 20.10 Conséquences |  |
-| 2209 | 9 | ↳ 20.11 Points à faire valider par le fondateur |  |
-| 2218 | 13 | ↳ 20.12 Ce que cet addendum demande aux autres agents |  |
-| 2231 | 5 | ↳ Sources (vérifiées le 2026-09-24) |  |
+| 1169 | 197 | 12. Conséquences sur Railway et Supabase | RG9–RG164 |
+| 1366 | 58 | 13. Sortie du mode maquette de `apps/web` |  |
+| 1424 | 60 | 14. Ce qui reste ouvert |  |
+| 1484 | 46 | 15. Conventions pour `dev-react-node` |  |
+| 1530 | 14 | 16. Points à faire valider par le fondateur |  |
+| 1544 | 12 | 17. Mises à jour des autres documents |  |
+| 1556 | 15 | Sources (vérifiées le 2026-09-18) |  |
+| 1571 | 370 | 18. Addendum du 2026-09-19 — D43 : chemin d'envoi des e-mails transactionnels critiques (code de connexion) | RG39–RG122 |
+| 1592 | 17 | ↳ 18.1 Contexte | RG59–RG86 |
+| 1609 | 7 | ↳ 18.2 Les deux questions posées |  |
+| 1616 | 21 | ↳ 18.3 Question (a) — options | RG41–RG87 |
+| 1637 | 24 | ↳ 18.4 Décision (a) : **(i) — appel synchrone dans la requête, avec cinq garde-fous** | RG46–RG64 |
+| 1661 | 61 | ↳ 18.5 L'énumération de comptes — le point que l'envoi synchrone oblige à trancher | RG44–RG60 |
+| 1722 | 11 | ↳ 18.6 Panne du fournisseur : ce qui se passe, et ce que personne ne doit croire | RG64–RG122 |
+| 1733 | 43 | ↳ 18.7 Conséquence non évidente : **c'est `apps/api` qui envoie l'e-mail, pas Supabase Auth** | RG40–RG100 |
+| 1776 | 32 | ↳ 18.8 Décision (b) : `leads.transactional_sends` est **un journal, et rien d'autre** | RG60 |
+| 1808 | 27 | ↳ 18.9 La famine, et pourquoi elle est écartée par construction |  |
+| 1835 | 34 | ↳ 18.10 Contrat d'implémentation — `POST /v1/auth/request-code` | RG44–RG91 |
+| 1869 | 16 | ↳ 18.11 Conséquences | RG122 |
+| 1885 | 9 | ↳ 18.12 Si l'on se trompe | RG46–RG98 |
+| 1894 | 7 | ↳ 18.13 Réversibilité |  |
+| 1901 | 30 | ↳ 18.14 Ce que cet addendum demande aux autres agents | RG60 |
+| 1931 | 10 | ↳ Sources (vérifiées le 2026-09-19) |  |
+| 1941 | 24 | 19. Addendum du 2026-09-24 — D57 : sauvegarde et restauration |  |
+| 1965 | 326 | 20. Addendum du 2026-09-24 — D60 : surveillance de production, entièrement interne | RG98–RG160 |
+| 1982 | 11 | ↳ 20.1 Le besoin, en deux questions |  |
+| 1993 | 19 | ↳ 20.2 Ce qui existe déjà, et ce qui manque | RG98–RG126 |
+| 2012 | 17 | ↳ 20.3 Options |  |
+| 2029 | 14 | ↳ 20.4 Décision : six pièces, toutes internes |  |
+| 2043 | 95 | ↳ 20.5 Comment chaque pièce fonctionne |  |
+| 2138 | 35 | ↳ 20.6 Signaux et seuils d'alerte | RG160 |
+| 2173 | 22 | ↳ 20.7 La période de rodage — « surtout au début » |  |
+| 2195 | 26 | ↳ 20.8 Ce qui n'entre jamais dans un journal ni dans le schéma `ops` |  |
+| 2221 | 12 | ↳ 20.9 Ce que la décision ne couvre pas — risque accepté par le fondateur |  |
+| 2233 | 31 | ↳ 20.10 Conséquences |  |
+| 2264 | 9 | ↳ 20.11 Points à faire valider par le fondateur |  |
+| 2273 | 13 | ↳ 20.12 Ce que cet addendum demande aux autres agents |  |
+| 2286 | 5 | ↳ Sources (vérifiées le 2026-09-24) |  |
 
 ## 03-matrice-des-droits-et-rls.md (~50k tokens)
 
@@ -212,7 +212,7 @@
 | 1623 | 16 | ↳ Cas limites du J3 | RG41–RG141 |
 | 1639 | 43 | ↳ Critères d'acceptation du J3 | RG133 |
 | 1682 | 11 | ↳ Questions ouvertes du J3 | RG48–RG158 |
-| 1693 | 206 | Additif du 2026-10-17 — Une configuration de synchronisation manquante est un incident, jamais un cas normal (D67) | RG37–RG164 |
+| 1693 | 204 | Additif du 2026-10-17 — Une configuration de synchronisation manquante est un incident, jamais un cas normal (D67) | RG37–RG164 |
 
 ## 06-criteres-profil-marque.md (~22k tokens)
 

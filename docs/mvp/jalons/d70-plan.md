@@ -71,7 +71,7 @@ Ces constats **soldent les critères `staging` des J6, J7 et J8** (`21` §5) : l
      e2e ne charge `.env.local` (`16` RG148).
    - `apps/api/.env.example`, `apps/api/.env.local` (passé au profil `staging` : `live`, sans listes
      de redirection), `playwright.config.ts` et les helpers passés à `development`.
-2. **Articulation D67**, dans le commit (b) de D67 prévu au J9 : le contrôle de démarrage de
+2. **Articulation D67** — [x] faite dans `05` RG162, RG164, CA85 à CA87 et `21` (ligne D67) ; reste le code, dans le commit (b) de D67 prévu au J9 : le contrôle de démarrage de
    `05` RG162 vaut pour tout environnement déployé (`staging` compris) ; la trace `would_send` de
    RG164 ne concerne plus que `development`. Le commit 1 précède donc le commit (b) de D67.
 3. **Scripts d'exploitation autonomes** (`dev-react-node`, avis `integrateur`).

@@ -1763,7 +1763,8 @@ nouvel échec par ligne et par modification. Mise à jour conditionnelle, sûre 
 200 lignes au plus par passage (RG101). Journal : ligne `pino` (motif, codes, nombre de lignes, jamais
 un compte) et trace sur la ligne ; aucun acteur humain, donc pas d'écriture dans la chaîne d'audit.
 
-**RG162 — Refus de démarrage du worker en production.** Si `INFLUX_ENV=production`, le worker
+**RG162 — Refus de démarrage du worker en environnement déployé.** Si l'environnement est déployé
+(`isDeployedEnvironment`, D70 : `staging` ou `production`, jamais `development`), le worker
 **refuse de démarrer** — sortie non nulle **avant** sa première boucle, message qui nomme le réglage et
 la règle, **jamais la valeur** (`18` T17.9, T17.10) — quand l'un des réglages **indispensables à tout
 inscrit** manque ou est illisible :
@@ -1788,7 +1789,7 @@ modèle à `NULL`, un `admin` valide un pays depuis le backoffice : en refuser l
 arrêterait aussi les retraits de consentement et les suppressions, dont le délai est **légal** (RG78,
 RG92). Ils relèvent de RG160, RG161 et de la liste de contrôle de mise en ligne (`21` §5.8).
 
-**Hors production, aucun refus** : au démarrage, une ligne `error` `leads.settings.missing_at_start`
+**En `development`, aucun refus** : au démarrage, une ligne `error` `leads.settings.missing_at_start`
 nomme les réglages manquants, puis RG160 et RG164 s'appliquent.
 
 **RG163 — Un identifiant Brevo renseigné ne redevient jamais vide.** Une fois renseigné dans
@@ -1816,19 +1817,16 @@ pour qu'il n'y ait qu'un seul écrivain du journal. Conception détaillée : `ex
 les variables d'environnement du `worker` (D68), ou par SQL, les deux voies étant journalisées.
 Réexamen seulement si les changements deviennent fréquents.
 
-*Amendé par D70 (2026-10-18) : `staging` n'est plus en `dry_run` et relève du contrôle de
-démarrage de RG162 comme la production ; RG164 ne vaut plus que pour la pile locale et les tests
-(`jalons/d70-plan.md` commit 2).*
-**RG164 — En `dry_run` (`staging`), la trace d'abord, le verdict ensuite.** Quand le mapping se
+**RG164 — En `dry_run` (`development` seulement, D70), la trace d'abord, le verdict ensuite.** Quand le mapping se
 calcule sans le réglage manquant (liste ou modèle Brevo), le worker journalise **d'abord**
 `leads.dry_run.would_send` (opération, code du modèle, noms des attributs) **avec les noms des
 réglages manquants**, **puis** applique RG160 : la ligne finit en échec de configuration, comme en
-production. `staging` répète ainsi fidèlement la production : il n'est ni muet (une trace existe), ni
+production. La pile locale répète ainsi fidèlement la production : il n'est ni muet (une trace existe), ni
 complaisant (pas de `succeeded` pour une configuration qui perdrait l'inscrit en production). Un
 réglage Apollo illisible ne permet aucun mapping : échec sans `would_send` (la ligne
-`leads.settings.invalid` existe déjà). Pour qu'une inscription de `staging` finisse `succeeded` avec
-`dry_run`, `staging` porte les identifiants de listes et de modèles **du compte Brevo de test**
-(`runbooks/staging.md`, étape 5) ; aucun appel n'en découle (verrous de `02` §12.4 inchangés).
+`leads.settings.invalid` existe déjà). Pour qu'une inscription de `development` finisse `succeeded` avec
+`dry_run`, la pile locale porte des identifiants de listes et de modèles de test ; aucun appel n'en
+découle (verrous de `02` §12.4 inchangés). `staging` n'est plus en `dry_run` (D70) : il relève de RG162.
 
 *Contrat de préparation et ordre d'évaluation, tranchés par `architecte` le 2026-10-17.* La
 préparation du connecteur, **sans appel ni effet**, rend l'une de trois issues : (a) **« ignoré »**
@@ -1860,20 +1858,20 @@ humaine**, le contact est synchronisé, un rejeu système `configuration_restore
 **CA84** — *Étant donné* la situation de CA82, *quand* le membre retire son consentement, *alors* le
 retrait est propagé à Brevo dans l'objectif de RG92, sans attendre la correction de la liste.
 
-**CA85** — *Étant donné* `INFLUX_ENV=production` et un identifiant de RG162 à `NULL`, *quand* le
+**CA85** — *Étant donné* un environnement déployé (`staging` ou `production`) et un identifiant de RG162 à `NULL`, *quand* le
 worker démarre, *alors* il sort avec un code non nul avant sa première boucle, le message nomme la clé
 (par exemple `brevo_list_ids.creators`) sans aucune valeur, et une inscription faite pendant ce temps
-réussit, sa ligne restant `pending`. *Contre-test* : la même configuration en `staging` démarre, avec
+réussit, sa ligne restant `pending`. *Contre-test* : la même configuration en `development` démarre, avec
 la ligne `leads.settings.missing_at_start`.
 
-**CA86** — *Étant donné* `staging` en `dry_run` et `account.welcome_creator` à `NULL`, *quand* un
+**CA86** — *Étant donné* `development` en `dry_run` et `account.welcome_creator` à `NULL`, *quand* un
 créateur s'inscrit, *alors* `leads.dry_run.would_send` est journalisée avec le nom du réglage manquant,
 **puis** la ligne passe en échec de configuration. *Contre-test* : avec les identifiants du compte de
 test, la ligne finit `succeeded` avec `dry_run`.
 
 **CA87** — *Étant donné* la production, un pays de prospection validé et aucune `APOLLO_API_KEY`,
 *quand* un annonceur qualifié s'inscrit, *alors* la ligne Apollo passe en échec `credentials_missing`,
-de nature incident. *Contre-test* : en `staging` sans clé, la ligne reste `skipped_no_credentials`
+de nature incident. *Contre-test* : en `development` sans clé, la ligne reste `skipped_no_credentials`
 (`18` T17.1, inchangé).
 
 **CA88** — *Étant donné* un identifiant de liste ou de modèle Brevo renseigné, *quand* une écriture
