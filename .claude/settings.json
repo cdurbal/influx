@@ -12,10 +12,10 @@
       "Bash(git status*)", "Bash(git diff*)", "Bash(git log*)", "Bash(git show*)",
       "Bash(git add *)", "Bash(git commit *)",
       "Edit(./apps/**)", "Edit(./packages/**)", "Edit(./supabase/migrations/**)","Edit(./docs/mvp/**)",
-      "Edit(./**/.env.example)"
+      "Edit(./**/.env.example)","Edit(./**/.env.local)"
     ],
     "deny": [
-      "Read(./**/.env)", "Read(./**/.env.local)",
+      "Read(./**/.env)",
       "Bash(git push --force*)", "Bash(pnpm exec supabase db push*)",
       "Bash(git checkout demo*)", "Bash(git merge demo*)"
     ]
