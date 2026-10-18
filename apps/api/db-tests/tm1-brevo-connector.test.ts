@@ -10,7 +10,8 @@
 // Accounts and lines are COMMITTED by the migration role (the worker reads in its own
 // transactions); the other pending lines of the stack are held while the worker claims, as in
 // tm1-worker-loop. The settings brevo_list_ids and brevo_template_ids are set for the file and
-// restored after it.
+// restored after it; since D69 the template ids are written only to prove they are never read:
+// every queue e-mail is written by INFLUX (16 RG67).
 import {
   startBrevoDouble,
   type BrevoDouble,
@@ -49,6 +50,7 @@ const INVALID_PARAMETER = "22023";
 const UNIQUE_VIOLATION = "23505";
 const LEGAL_NAME = "Maison Verbeke-Lambrecht";
 const LISTS = { advertisers: 2, creators: 3 };
+/** D69: left in the settings on purpose, never read. */
 const TEMPLATES = {
   "account.welcome_advertiser": 11,
   "account.welcome_creator": 12,
@@ -309,9 +311,8 @@ describe("05 CA38, CA40, 16 RG142: a sign-up reaches Brevo through the real queu
     const welcomeLine = await lineRow(welcome);
     expect(welcomeLine.status).toBe("succeeded");
     expect(double.delivered).toHaveLength(1);
-    expect(double.delivered[0]?.body.templateId).toBe(
-      TEMPLATES["account.welcome_creator"],
-    );
+    expect(double.delivered[0]?.body.templateId).toBeUndefined();
+    expect(double.delivered[0]?.body.subject).toBe("Bienvenue sur INFLUX");
     const journal = await migration<
       { priority: string; locale: string; provider_message_id: string }[]
     >`
@@ -334,9 +335,10 @@ describe("05 CA38, CA40, 16 RG142: a sign-up reaches Brevo through the real queu
     expect(stored?.attributes.COMPANY).toBe(LEGAL_NAME);
     expect(stored?.listIds).toEqual([LISTS.advertisers]);
     expect(double.delivered[0]?.body).toMatchObject({
-      templateId: TEMPLATES["account.welcome_advertiser"],
-      params: { LANGUAGE: "en" },
+      subject: "Welcome to INFLUX",
+      tags: ["account.welcome_advertiser"],
     });
+    expect(double.delivered[0]?.body.templateId).toBeUndefined();
   });
 
   it("CA39, CA40: without consent, no contact (skipped no_consent, no state, no failure), the welcome all the same", async () => {
@@ -578,13 +580,14 @@ describe("05 RG58, J7 commit 7: the notice of a changed address leaves to both a
       double.messages
         .map((message) => [
           message.body.to?.[0]?.email,
-          message.body.templateId,
+          message.body.templateId ?? null,
+          message.body.tags?.[0],
         ])
         .sort(),
     ).toEqual(
       [
-        [previous, TEMPLATES["auth.email_changed_notice"]],
-        [current, TEMPLATES["auth.email_changed_notice"]],
+        [previous, null, "auth.email_changed_notice"],
+        [current, null, "auth.email_changed_notice"],
       ].sort(),
     );
     const journal = await migration<

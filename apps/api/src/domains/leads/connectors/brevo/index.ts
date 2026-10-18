@@ -1,13 +1,15 @@
 // The two Brevo connectors of the worker (J6, commit 4): `brevo_contact` (16 §M1 operations 1, 2
 // and 7, and the address change of J7 decision 5) and `brevo_transactional` (operation 6, the
-// welcome e-mails of 05 RG86 and the notice of a changed address of RG58, P1 of 16 §H).
+// welcome e-mails of 05 RG86 and the notice of a changed address of RG58, P1 of 16 §H). Since D69
+// (founder, 2026-10-18), EVERY queue e-mail is written by INFLUX from its translation files and
+// Brevo only carries it (16 RG67): no Brevo template is referenced any more.
 // Their preparation, at consumption (05 RG37), in this order:
 //   1. the account state of the attempt: an account gone or not active is skipped;
 //   2. the qualification: contact without marketing consent (RG80) is skipped no_consent at sign-up,
 //      and unsubscribed afterwards (RG78: a withdrawal is never doubled by a later send); the
 //      welcome leaves whatever the consent (RG86), once per account (RG76, 16 RG90);
-//   3. the settings read at consumption (EC-8): list and template ids, NULL = skipped with a clear
-//      cause, never guessed (0103);
+//   3. the settings read at consumption (EC-8): list ids, NULL = skipped with a clear cause, never
+//      guessed (0103);
 //   4. the subject's own read (leads.read_brevo_subject, 0112), in its own short transaction;
 //   5. the mapping of 16 §M4 and the output check (RG137): a refusal goes back to the drain, which
 //      fails the line, in dry_run as in live;
@@ -20,9 +22,9 @@
 // follow when the consent is withdrawn or the contact suppressed. The notice auth.email_changed_notice
 // goes to the address its payload names (`previous`: the old address of the completed request,
 // read by the subject read, never carried by the line; `current`: the account's), whatever the
-// consent (a transactional e-mail, RG35). auth.new_device (05 RG142, 16 RG157, J7 commit 8) is
-// written by INFLUX from its translation files (16 RG67), never from a Brevo template, and refused
-// if anything in it looks like a link (RG158); so is privacy.request_received (16 RG160, EC-14;
+// consent (a transactional e-mail, RG35). Every queue e-mail is refused if anything in it looks like
+// a link (RG158, extended by D69): the welcome e-mails (once per account, RG76), the notice,
+// auth.new_device (05 RG142, 16 RG157, J7 commit 8), privacy.request_received (16 RG160, EC-14;
 // architecte, 2026-10-14), from the request read at consumption: a request of another type fails
 // unsupported_request_type, a request closed since is skipped request_closed; and so is
 // privacy.export_ready (J8 commit 8: where and until when the export is downloadable, no link).
@@ -36,8 +38,10 @@ import {
 } from "@influx/contracts/user-agent";
 import type { BrevoMode } from "../../../../config/schema.ts";
 import { renderDataRequestReceivedEmail } from "../../../identity/data-request-received-email.ts";
+import { renderEmailChangedNoticeEmail } from "../../../identity/email-changed-notice-email.ts";
 import type { RenderedEmail } from "../../../identity/login-code-email.ts";
 import { renderNewDeviceEmail } from "../../../identity/new-device-email.ts";
+import { renderWelcomeEmail } from "../../../identity/welcome-email.ts";
 import { renderExportReadyEmail } from "../../../privacy/export-ready-email.ts";
 import {
   accountSkip,
@@ -59,7 +63,6 @@ import {
   checkContactOutput,
   checkEmailChangeOutput,
   checkRenderedTransactionalOutput,
-  checkTransactionalOutput,
   languageOf,
   mapContact,
   UNSUBSCRIBE_BODY_FIELDS,
@@ -77,29 +80,19 @@ export {
 } from "./mapping.ts";
 
 /**
- * The queue e-mails sent from a Brevo template (16 §H, P1; EC-8): the welcome e-mails (J6) and the
- * notice of a changed address (J7).
+ * The queue e-mails, all written by INFLUX itself (16 RG67, D69), without any template nor link
+ * (RG158): the welcome e-mails (J6), the notice of a changed address (J7), and the rest.
  */
-export const WORKER_TRANSACTIONAL_TEMPLATES = [
+export const WORKER_RENDERED_EMAILS = [
   "account.welcome_advertiser",
   "account.welcome_creator",
   "auth.email_changed_notice",
-] as const;
-
-/** The queue e-mails written by INFLUX itself (16 RG67), without any template nor link (RG158). */
-export const WORKER_RENDERED_EMAILS = [
   "auth.new_device",
   "privacy.request_received",
   "privacy.export_ready",
 ] as const;
 
 type RenderedEmailCode = (typeof WORKER_RENDERED_EMAILS)[number];
-
-/** Sent once per account (05 RG76, 16 RG90): the journal says whether it already left. */
-const ONCE_PER_ACCOUNT_TEMPLATES: ReadonlySet<string> = new Set([
-  "account.welcome_advertiser",
-  "account.welcome_creator",
-]);
 
 /** Sender name of the transactional flow (16 RG156). */
 const SENDER_NAME = "INFLUX";
@@ -136,7 +129,7 @@ export type BrevoConnectorDependencies = {
   mapContact?: typeof mapContact;
 };
 
-/** An id of leads.sync_settings (brevo_list_ids, brevo_template_ids): a positive integer, or null. */
+/** An id of leads.sync_settings (brevo_list_ids): a positive integer, or null. */
 function idIn(
   settings: AttemptState["settings"],
   key: string,
@@ -384,6 +377,59 @@ export function createBrevoConnectors(
     };
   }
 
+  /** The welcome e-mail of the code's role (05 RG86), once per account (RG76, 16 RG90). */
+  function welcome(role: "advertiser" | "creator") {
+    return (
+      line: ClaimedLine,
+      account: NonNullable<AttemptState["account"]>,
+      subject: BrevoSubject,
+    ): Preparation => {
+      if (subject.welcomeSent) {
+        // 05 RG76, CA41; 16 RG90: the local belt, the one we count on.
+        return { kind: "skip", reason: "already_sent" };
+      }
+      const locale = languageOf(account);
+      const email = renderWelcomeEmail({ locale, role });
+      return rendered(
+        line,
+        role === "advertiser"
+          ? "account.welcome_advertiser"
+          : "account.welcome_creator",
+        subject.email,
+        email,
+        locale,
+      );
+    };
+  }
+
+  /** auth.email_changed_notice (05 RG58): the side the line names, never the address (RG74). */
+  function emailChangedNotice(
+    line: ClaimedLine,
+    account: NonNullable<AttemptState["account"]>,
+    subject: BrevoSubject,
+  ): Preparation {
+    const side = line.payload.recipient;
+    let recipient = subject.email;
+    if (side === "previous") {
+      if (subject.previousEmail === null) {
+        // No completed request behind the line: nothing to tell, visible, never guessed.
+        return { kind: "fail", errorCode: "email_change_not_found" };
+      }
+      recipient = subject.previousEmail;
+    } else if (side !== "current") {
+      return { kind: "fail", errorCode: "notice_recipient_unknown" };
+    }
+    const locale = languageOf(account);
+    const email = renderEmailChangedNoticeEmail({ locale, side });
+    return rendered(
+      line,
+      "auth.email_changed_notice",
+      recipient,
+      email,
+      locale,
+    );
+  }
+
   /** auth.new_device (05 RG142, 16 RG157): the text of INFLUX, the session read at consumption. */
   function newDevice(
     line: ClaimedLine,
@@ -474,6 +520,9 @@ export function createBrevoConnectors(
       ) => Preparation
     >
   > = {
+    "account.welcome_advertiser": welcome("advertiser"),
+    "account.welcome_creator": welcome("creator"),
+    "auth.email_changed_notice": emailChangedNotice,
     "auth.new_device": newDevice,
     "privacy.request_received": dataRequestReceived,
     "privacy.export_ready": exportReady,
@@ -561,78 +610,17 @@ export function createBrevoConnectors(
       const account = state.account;
       const code = line.payload.email_code;
       if (
-        typeof code === "string" &&
-        (WORKER_RENDERED_EMAILS as readonly string[]).includes(code)
-      ) {
-        const subject = await dependencies.readSubject(line);
-        if (subject === null) {
-          return { kind: "skip", reason: "account_absent" };
-        }
-        return RENDERERS[code as RenderedEmailCode](line, account, subject);
-      }
-      if (
         typeof code !== "string" ||
-        !(WORKER_TRANSACTIONAL_TEMPLATES as readonly string[]).includes(code)
+        !(WORKER_RENDERED_EMAILS as readonly string[]).includes(code)
       ) {
-        // Not a queue e-mail of J6: failed, visible, replayable once supported.
+        // Not a queue e-mail: failed, visible, replayable once supported.
         return { kind: "fail", errorCode: "template_not_supported" };
-      }
-      const templateId = idIn(state.settings, "brevo_template_ids", code);
-      if (templateId === null) {
-        return { kind: "skip", reason: "template_not_configured" };
       }
       const subject = await dependencies.readSubject(line);
       if (subject === null) {
         return { kind: "skip", reason: "account_absent" };
       }
-      if (ONCE_PER_ACCOUNT_TEMPLATES.has(code) && subject.welcomeSent) {
-        // 05 RG76, CA41; 16 RG90: the local belt, the one we count on.
-        return { kind: "skip", reason: "already_sent" };
-      }
-      let recipient = subject.email;
-      if (code === "auth.email_changed_notice") {
-        // RG58: both addresses are told; the line names the side, never the address (RG74).
-        const side = line.payload.recipient;
-        if (side === "previous") {
-          if (subject.previousEmail === null) {
-            // No completed request behind the line: nothing to tell, visible, never guessed.
-            return { kind: "fail", errorCode: "email_change_not_found" };
-          }
-          recipient = subject.previousEmail;
-        } else if (side !== "current") {
-          return { kind: "fail", errorCode: "notice_recipient_unknown" };
-        }
-      }
-
-      // Operation 6: one recipient (16 RG91), no promotional content (RG86): the template of the
-      // code, in the account's language.
-      const locale = languageOf(account);
-      const body = {
-        sender: { name: SENDER_NAME, email: settings.senderTransactional },
-        to: [{ email: recipient }],
-        templateId,
-        params: { LANGUAGE: locale },
-        tags: [code],
-      };
-      const rejected = checkTransactionalOutput(body);
-      if (rejected.length === 0 && redirected(recipient)) {
-        return { kind: "skip", reason: "skipped_non_production" };
-      }
-      return {
-        kind: "mapped",
-        description: {
-          operation: "send_transactional",
-          templateCode: code,
-          attributeNames: Object.keys(body.params).sort(),
-          rejectedAttributeNames: rejected,
-        },
-        recipientDomain: domainOf(recipient),
-        send: guarded(
-          rejected,
-          (brevo) => brevo.sendTransactional(body, line.idempotencyKey, locale),
-          transactionalClient,
-        ),
-      };
+      return RENDERERS[code as RenderedEmailCode](line, account, subject);
     },
   };
 

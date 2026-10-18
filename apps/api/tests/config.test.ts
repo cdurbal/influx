@@ -705,7 +705,7 @@ describe("worker configuration", () => {
         senderTransactional: null,
         suppressionListId: null,
       },
-      brevoIds: { listIds: {}, templateIds: {} },
+      brevoIds: { listIds: {} },
       apollo: { apiKey: null, baseUrl: "https://api.apollo.io/api/v1" },
       database: {
         worker: { url: WORKER_URL, role: "influx_worker_login", tls: false },
@@ -854,31 +854,22 @@ describe("worker configuration", () => {
     });
   });
 
-  describe("Brevo ids from the environment (D68)", () => {
-    it("maps each id given to its sub-key of leads.sync_settings, and leaves the others out", () => {
+  describe("Brevo list ids from the environment (D68, D69)", () => {
+    it("maps each list id given to its sub-key of leads.sync_settings, and leaves the others out", () => {
       expect(
         loadWorkerConfig({
           ...VALID_WORKER_ENV,
           BREVO_LIST_ID_ADVERTISERS: "3",
-          BREVO_LIST_ID_CREATORS: "4",
-          BREVO_TEMPLATE_ID_WELCOME_ADVERTISER: "11",
-          BREVO_TEMPLATE_ID_WELCOME_CREATOR: "",
-          BREVO_TEMPLATE_ID_EMAIL_CHANGED_NOTICE: "13",
+          BREVO_LIST_ID_CREATORS: "",
         }).brevoIds,
-      ).toEqual({
-        listIds: { advertisers: 3, creators: 4 },
-        templateIds: {
-          "account.welcome_advertiser": 11,
-          "auth.email_changed_notice": 13,
-        },
-      });
+      ).toEqual({ listIds: { advertisers: 3 } });
     });
 
     it.each([
       ["BREVO_LIST_ID_ADVERTISERS", "0"],
       ["BREVO_LIST_ID_CREATORS", "-2"],
-      ["BREVO_TEMPLATE_ID_WELCOME_CREATOR", "1.5"],
-      ["BREVO_TEMPLATE_ID_WELCOME_ADVERTISER", "welcome"],
+      ["BREVO_LIST_ID_CREATORS", "1.5"],
+      ["BREVO_LIST_ID_ADVERTISERS", "advertisers"],
     ])("refuses %s=%s, naming the variable", (variable, value) => {
       const issues = refusal(() =>
         loadWorkerConfig({ ...VALID_WORKER_ENV, [variable]: value }),
@@ -886,6 +877,21 @@ describe("worker configuration", () => {
       expect(issues.join("; ")).toContain(variable);
       expect(issues.join("; ")).not.toContain(value);
     });
+
+    it.each([
+      "BREVO_TEMPLATE_ID_WELCOME_ADVERTISER",
+      "BREVO_TEMPLATE_ID_WELCOME_CREATOR",
+      "BREVO_TEMPLATE_ID_EMAIL_CHANGED_NOTICE",
+    ])(
+      "refuses the withdrawn template variable %s (D69), never ignores it",
+      (variable) => {
+        expect(
+          refusal(() =>
+            loadWorkerConfig({ ...VALID_WORKER_ENV, [variable]: "11" }),
+          ).join("; "),
+        ).toContain(`${variable} is no longer read`);
+      },
+    );
   });
 
   describe("Brevo transport of the worker: its own key (EC-19, J6 commit 4)", () => {

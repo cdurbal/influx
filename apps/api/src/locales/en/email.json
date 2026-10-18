@@ -49,6 +49,30 @@
         "step3": "If you cannot sign in, contact INFLUX from the help on the sign-in screen.",
         "never": "INFLUX will never ask you for your sign-in code.",
         "reason": "someone signed in to your INFLUX account from a new browser"
+      },
+      "emailChangedNotice": {
+        "previous": {
+          "subject": "The address of your INFLUX account has changed",
+          "preheader": "This address is no longer the one of your INFLUX account.",
+          "title": "Your account address has changed",
+          "body": "The change of email address of your INFLUX account, confirmed from this address and from the new one, is now in effect. This address can no longer be used to sign in, and we will no longer write to it.",
+          "notYou": "You did not make this change?",
+          "step1": "First secure your mailbox (change its password).",
+          "step2": "Report it to INFLUX from the help of the sign-in screen, giving the date of this email.",
+          "never": "INFLUX will never ask you for your sign-in code.",
+          "reason": "the address of your INFLUX account has just changed"
+        },
+        "current": {
+          "subject": "This address is now the one of your INFLUX account",
+          "preheader": "Use it to sign in to INFLUX.",
+          "title": "Address change in effect",
+          "body": "The change of email address of your INFLUX account is now in effect: you now sign in with this address, and this is where we write to you.",
+          "notYou": "You did not make this change?",
+          "step1": "Sign in to INFLUX, open \"My sessions\" and choose \"Close all sessions\".",
+          "step2": "Report it to INFLUX from the help of the sign-in screen, giving the date of this email.",
+          "never": "INFLUX will never ask you for your sign-in code.",
+          "reason": "the address of your INFLUX account has just changed"
+        }
       }
     },
     "privacy": {
@@ -107,6 +131,30 @@
     },
     "transactional": {
       "why": "You are receiving this email because {reason}. This is not a marketing email."
+    },
+    "account": {
+      "welcomeAdvertiser": {
+        "subject": "Welcome to INFLUX",
+        "preheader": "Your brand account is ready. Here is how INFLUX works.",
+        "title": "Welcome to INFLUX",
+        "intro": "Your brand account is ready. INFLUX connects you with content creators for your campaigns.",
+        "how": "You discover creators through anonymised profiles. Every introduction is approved by an INFLUX account manager, then accepted by both sides: only then does the conversation open and are identities revealed.",
+        "together": "Your INFLUX account manager supports you at every step, from the first exchange to the contract. Everything happens in INFLUX, where your conversations remain available.",
+        "signIn": "To sign in, enter your email address on INFLUX: we send you a 6-digit code. There is no password.",
+        "never": "INFLUX will never ask you for your sign-in code.",
+        "reason": "you have just created a brand account on INFLUX"
+      },
+      "welcomeCreator": {
+        "subject": "Welcome to INFLUX",
+        "preheader": "Your creator account is ready. Here is how INFLUX works.",
+        "title": "Welcome to INFLUX",
+        "intro": "Your creator account is ready. INFLUX connects you with brands looking for creators for their paid campaigns.",
+        "how": "Brands discover your profile in an anonymised form, and you can apply to their campaigns. Every introduction is approved by an INFLUX account manager, then accepted by both sides: only then does the conversation open and are identities revealed.",
+        "together": "Your INFLUX account manager supports you at every step and tells you what you earn for each collaboration. Everything happens in INFLUX, where your conversations remain available.",
+        "signIn": "To sign in, enter your email address on INFLUX: we send you a 6-digit code. There is no password.",
+        "never": "INFLUX will never ask you for your sign-in code.",
+        "reason": "you have just created a creator account on INFLUX"
+      }
     }
   },
   "auth": {

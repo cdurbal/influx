@@ -1,7 +1,9 @@
-// D68 (founder, 2026-10-17) — leads.apply_brevo_ids_from_environment() (migration 0139): the
-// worker writes the Brevo ids of its environment into leads.sync_settings at start. Only the
-// sub-keys given are merged, never a null (05 RG163); a change is journaled settings.changed
-// (reason environment, EC-J8-28 subject); influx_worker executes it, no other role of ours does.
+// D68 (founder, 2026-10-17), amended by D69 (2026-10-18) — leads.apply_brevo_ids_from_environment()
+// (migrations 0139, 0140): the worker writes the Brevo LIST ids of its environment into
+// leads.sync_settings at start; no template id any more (every queue e-mail is written by INFLUX).
+// Only the sub-keys given are merged, never a null (05 RG163); a change is journaled
+// settings.changed (reason environment, EC-J8-28 subject); influx_worker executes it, no other role
+// of ours does.
 //
 // Each case runs in ONE rolled-back transaction of the local superuser, the function under the
 // session_user / current_user pair of the worker (actAs, support.ts).
@@ -19,25 +21,20 @@ function scenario<T>(
   return inRolledBackTransaction(localSuperuser(), fn);
 }
 
-/** Starting values of 0103 / 0118, whatever an earlier run of the local stack left. */
+/** Starting value of 0103, whatever an earlier run of the local stack left. */
 async function resetIds(tx: postgres.TransactionSql): Promise<void> {
   await tx`update leads.sync_settings set value = '{"advertisers": null, "creators": null}'
             where key = 'brevo_list_ids'`;
-  await tx`update leads.sync_settings
-              set value = '{"account.welcome_advertiser": null, "account.welcome_creator": null,
-                            "auth.email_changed_notice": null}'
-            where key = 'brevo_template_ids'`;
 }
 
 function apply(
   tx: postgres.TransactionSql,
   listIds: Record<string, unknown>,
-  templateIds: Record<string, unknown>,
 ): Promise<string[]> {
   return actAs(tx, "worker", async () => {
     const [row] = await tx<{ changed: string[] }[]>`
       select leads.apply_brevo_ids_from_environment(
-               ${JSON.stringify(listIds)}::text::jsonb, ${JSON.stringify(templateIds)}::text::jsonb) as changed`;
+               ${JSON.stringify(listIds)}::text::jsonb) as changed`;
     return row?.changed ?? [];
   });
 }
@@ -45,69 +42,51 @@ function apply(
 function refusalOf(
   tx: postgres.TransactionSql,
   listIds: Record<string, unknown>,
-  templateIds: Record<string, unknown>,
 ) {
   return actAs(tx, "worker", () =>
     probe(
       tx,
-      "select leads.apply_brevo_ids_from_environment($1::text::jsonb, $2::text::jsonb)",
-      [JSON.stringify(listIds), JSON.stringify(templateIds)],
+      "select leads.apply_brevo_ids_from_environment($1::text::jsonb)",
+      [JSON.stringify(listIds)],
     ),
   );
 }
 
-async function settingsOf(tx: postgres.TransactionSql) {
-  const rows = await tx<
-    {
-      key: string;
-      value: Record<string, number | null>;
-      author: string | null;
-    }[]
+async function listIdsOf(tx: postgres.TransactionSql) {
+  const [row] = await tx<
+    { value: Record<string, number | null>; author: string | null }[]
   >`
-    select key, value, updated_by_account_id::text as author from leads.sync_settings
-     where key in ('brevo_list_ids', 'brevo_template_ids') order by key`;
-  return Object.fromEntries(rows.map((row) => [row.key, row]));
+    select value, updated_by_account_id::text as author from leads.sync_settings
+     where key = 'brevo_list_ids'`;
+  return row;
 }
 
-async function journalOf(tx: postgres.TransactionSql, key: string) {
+async function journalOf(tx: postgres.TransactionSql) {
   return tx<{ actor_type: string; payload: Record<string, unknown> }[]>`
     select actor_type::text, payload from audit.audit_events
      where event_type = 'settings.changed'
-       and subject_id = md5('leads.sync_settings:' || ${key})::uuid
+       and subject_id = md5('leads.sync_settings:brevo_list_ids')::uuid
        and occurred_at = now()
      order by seq`;
 }
 
-describe("D68 — the Brevo ids of the worker's environment (0139)", () => {
-  it("merges the sub-keys given, leaves the others alone, and journals each changed key", async () => {
+describe("D68, D69 — the Brevo list ids of the worker's environment (0139, 0140)", () => {
+  it("merges the sub-keys given, leaves the others alone, and journals the change", async () => {
     await scenario(async (tx) => {
       await resetIds(tx);
-      const changed = await apply(
-        tx,
-        { advertisers: 3, creators: 4 },
-        { "account.welcome_creator": 12 },
-      );
-      expect(changed).toEqual(["brevo_list_ids", "brevo_template_ids"]);
+      expect(await apply(tx, { creators: 4 })).toEqual(["brevo_list_ids"]);
 
-      const settings = await settingsOf(tx);
-      expect(settings.brevo_list_ids?.value).toEqual({
-        advertisers: 3,
-        creators: 4,
-      });
-      expect(settings.brevo_template_ids?.value).toEqual({
-        "account.welcome_advertiser": null,
-        "account.welcome_creator": 12,
-        "auth.email_changed_notice": null,
-      });
-      expect(settings.brevo_list_ids?.author).toBeNull();
+      const ids = await listIdsOf(tx);
+      expect(ids?.value).toEqual({ advertisers: null, creators: 4 });
+      expect(ids?.author).toBeNull();
 
-      const [line] = await journalOf(tx, "brevo_list_ids");
+      const [line] = await journalOf(tx);
       expect(line).toEqual({
         actor_type: "system",
         payload: expect.objectContaining({
           key: "brevo_list_ids",
           from: { advertisers: null, creators: null },
-          to: { advertisers: 3, creators: 4 },
+          to: { advertisers: null, creators: 4 },
           reason_code: "environment",
         }),
       });
@@ -117,29 +96,37 @@ describe("D68 — the Brevo ids of the worker's environment (0139)", () => {
   it("writes nothing when the values are already those of the environment", async () => {
     await scenario(async (tx) => {
       await resetIds(tx);
-      await apply(tx, { advertisers: 3 }, {});
-      expect(await apply(tx, { advertisers: 3 }, {})).toEqual([]);
-      expect(await journalOf(tx, "brevo_list_ids")).toHaveLength(1);
-      expect(await journalOf(tx, "brevo_template_ids")).toHaveLength(0);
+      await apply(tx, { advertisers: 3 });
+      expect(await apply(tx, { advertisers: 3 })).toEqual([]);
+      expect(await apply(tx, {})).toEqual([]);
+      expect(await journalOf(tx)).toHaveLength(1);
+    });
+  });
+
+  it("D69: no template id is ever written, brevo_template_ids stays empty", async () => {
+    await scenario(async (tx) => {
+      await apply(tx, { advertisers: 3, creators: 4 });
+      const [row] = await tx<{ value: Record<string, unknown> }[]>`
+        select value from leads.sync_settings where key = 'brevo_template_ids'`;
+      expect(row?.value).toEqual({});
     });
   });
 
   it.each([
-    ["an unknown list", { partners: 3 }, {}],
-    ["an unknown template", {}, { "privacy.request_received": 3 }],
-    ["a null id (05 RG163)", { advertisers: null }, {}],
-    ["a zero id", {}, { "account.welcome_advertiser": 0 }],
-    ["a decimal id", { creators: 1.5 }, {}],
-    ["an id as text", { creators: "4" }, {}],
-  ])("refuses %s, and changes nothing", async (_case, listIds, templateIds) => {
+    ["an unknown list", { partners: 3 }],
+    ["a template key (D69)", { "account.welcome_creator": 3 }],
+    ["a null id (05 RG163)", { advertisers: null }],
+    ["a zero id", { advertisers: 0 }],
+    ["a decimal id", { creators: 1.5 }],
+    ["an id as text", { creators: "4" }],
+  ])("refuses %s, and changes nothing", async (_case, listIds) => {
     await scenario(async (tx) => {
       await resetIds(tx);
-      expect(await refusalOf(tx, listIds, templateIds)).toEqual({
+      expect(await refusalOf(tx, listIds)).toEqual({
         outcome: "error",
         code: INVALID_PARAMETER,
       });
-      const settings = await settingsOf(tx);
-      expect(settings.brevo_list_ids?.value).toEqual({
+      expect((await listIdsOf(tx))?.value).toEqual({
         advertisers: null,
         creators: null,
       });
@@ -154,7 +141,7 @@ describe("D68 — the Brevo ids of the worker's environment (0139)", () => {
         expect(
           await probe(
             tx,
-            "select leads.apply_brevo_ids_from_environment('{\"advertisers\": 3}'::jsonb, '{}'::jsonb)",
+            "select leads.apply_brevo_ids_from_environment('{\"advertisers\": 3}'::jsonb)",
           ),
         ).toEqual({ outcome: "error", code: INSUFFICIENT_PRIVILEGE });
       });

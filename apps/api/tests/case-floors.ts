@@ -37,6 +37,7 @@ export const UNIT_CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/login-code-email.test.ts": 8,
   "tests/matching-phrase.test.ts": 9,
   "tests/new-device-email.test.ts": 6,
+  "tests/queue-emails-written-by-influx.test.ts": 10,
   "tests/ops-scrub.test.ts": 25,
   "tests/periodic-scheduler.test.ts": 25,
   "tests/postgres-unsafe.test.ts": 12,

@@ -712,34 +712,28 @@ export type ApiConfig = BaseConfig & {
   brevoWebhook: BrevoWebhookSecrets;
 };
 
-/** D68: the sub-keys of leads.sync_settings.brevo_list_ids / brevo_template_ids, as given. */
+/** D68: the sub-keys of leads.sync_settings.brevo_list_ids, as given. */
 export type BrevoIdsFromEnvironment = {
   listIds: Readonly<Record<string, number>>;
-  templateIds: Readonly<Record<string, number>>;
 };
 
-/** D68: each optional variable of the worker and the sub-key of leads.sync_settings it sets. */
+/** D68: each optional variable of the worker and the sub-key of brevo_list_ids it sets. */
 export const BREVO_ID_VARIABLES = {
-  BREVO_LIST_ID_ADVERTISERS: { setting: "listIds", key: "advertisers" },
-  BREVO_LIST_ID_CREATORS: { setting: "listIds", key: "creators" },
-  BREVO_TEMPLATE_ID_WELCOME_ADVERTISER: {
-    setting: "templateIds",
-    key: "account.welcome_advertiser",
-  },
-  BREVO_TEMPLATE_ID_WELCOME_CREATOR: {
-    setting: "templateIds",
-    key: "account.welcome_creator",
-  },
-  BREVO_TEMPLATE_ID_EMAIL_CHANGED_NOTICE: {
-    setting: "templateIds",
-    key: "auth.email_changed_notice",
-  },
-} as const satisfies Record<
-  string,
-  { setting: keyof BrevoIdsFromEnvironment; key: string }
->;
+  BREVO_LIST_ID_ADVERTISERS: "advertisers",
+  BREVO_LIST_ID_CREATORS: "creators",
+} as const;
 
 type BrevoIdVariable = keyof typeof BREVO_ID_VARIABLES;
+
+/**
+ * D69: the template variables of D68, withdrawn with the Brevo templates (every queue e-mail is
+ * written by INFLUX). Refused when set, so that a stale configuration is noticed, never ignored.
+ */
+export const WITHDRAWN_BREVO_TEMPLATE_VARIABLES = [
+  "BREVO_TEMPLATE_ID_WELCOME_ADVERTISER",
+  "BREVO_TEMPLATE_ID_WELCOME_CREATOR",
+  "BREVO_TEMPLATE_ID_EMAIL_CHANGED_NOTICE",
+] as const;
 
 export type BrevoWebhookSecrets = {
   pathTokens: readonly string[];
@@ -945,7 +939,7 @@ function presentValues(...values: (string | undefined)[]): string[] {
   return values.filter((value): value is string => value !== undefined);
 }
 
-/** A Brevo list or template id (D68): a positive integer, absent when unset or empty. */
+/** A Brevo list id (D68): a positive integer, absent when unset or empty. */
 const brevoId = z.preprocess(
   emptyAsAbsent,
   z.coerce
@@ -959,23 +953,27 @@ const brevoIdShape = Object.fromEntries(
   Object.keys(BREVO_ID_VARIABLES).map((variable) => [variable, brevoId]),
 ) as Record<BrevoIdVariable, typeof brevoId>;
 
+const withdrawnTemplateShape = Object.fromEntries(
+  WITHDRAWN_BREVO_TEMPLATE_VARIABLES.map((variable) => [
+    variable,
+    optionalText,
+  ]),
+) as Record<
+  (typeof WITHDRAWN_BREVO_TEMPLATE_VARIABLES)[number],
+  typeof optionalText
+>;
+
 function brevoIdsOf(
   env: Partial<Record<BrevoIdVariable, number | undefined>>,
 ): BrevoIdsFromEnvironment {
-  const ids: {
-    listIds: Record<string, number>;
-    templateIds: Record<string, number>;
-  } = {
-    listIds: {},
-    templateIds: {},
-  };
-  for (const [variable, target] of Object.entries(BREVO_ID_VARIABLES)) {
+  const listIds: Record<string, number> = {};
+  for (const [variable, key] of Object.entries(BREVO_ID_VARIABLES)) {
     const value = env[variable as BrevoIdVariable];
     if (value !== undefined) {
-      ids[target.setting][target.key] = value;
+      listIds[key] = value;
     }
   }
-  return ids;
+  return { listIds };
 }
 
 export const workerEnvSchema = z
@@ -1002,6 +1000,7 @@ export const workerEnvSchema = z
         .optional(),
     ),
     ...brevoIdShape,
+    ...withdrawnTemplateShape,
     APOLLO_API_KEY: optionalText,
     SUPABASE_URL: z.preprocess(emptyAsAbsent, supabaseUrl.optional()),
     SUPABASE_SECRET_KEY: z.preprocess(
@@ -1015,6 +1014,16 @@ export const workerEnvSchema = z
   .superRefine((env, context) => {
     checkBrevoMode(env, context);
     checkBrevoTransport(env, context);
+    for (const variable of WITHDRAWN_BREVO_TEMPLATE_VARIABLES) {
+      if (env[variable] !== undefined) {
+        context.addIssue({
+          code: "custom",
+          path: [variable],
+          message:
+            "is no longer read (D69: the e-mails are written by INFLUX, remove it)",
+        });
+      }
+    }
     // Skill env-secrets (porteurs): never on the worker service. Locally, both processes read the
     // same apps/api/.env.local, as for the database variables (EC-20 point 4).
     if (env.RAILWAY_ENVIRONMENT_NAME !== undefined) {

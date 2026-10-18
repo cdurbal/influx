@@ -41,15 +41,11 @@ const LEGAL_NAME = "Maison Verbeke-Lambrecht";
 const CREATORS_LIST = 3;
 const ADVERTISERS_LIST = 2;
 const SUPPRESSION_LIST = 7;
-const WELCOME_CREATOR_TEMPLATE = 12;
-const WELCOME_ADVERTISER_TEMPLATE = 11;
 
 const SETTINGS: Record<string, unknown> = {
   brevo_list_ids: { advertisers: ADVERTISERS_LIST, creators: CREATORS_LIST },
-  brevo_template_ids: {
-    "account.welcome_advertiser": WELCOME_ADVERTISER_TEMPLATE,
-    "account.welcome_creator": WELCOME_CREATOR_TEMPLATE,
-  },
+  // D69: every queue e-mail is written by INFLUX, no Brevo template id is read
+  brevo_template_ids: {},
 };
 
 let double: BrevoDouble;
@@ -587,7 +583,7 @@ describe("RG148 scenarios 3 to 5: the error classes of 16 §M5", () => {
 });
 
 describe("operation 6: the welcome e-mail (05 RG76, RG86; 16 RG89, RG90; CA40, CA41)", () => {
-  it("CA40: leaves whatever the consent, in the account's language, with the template of its role", async () => {
+  it("CA40: leaves whatever the consent, in the account's language, with the text of its role (D69)", async () => {
     const { transactional } = connectors();
     const claimed = line("brevo_transactional");
     const result = await run(
@@ -604,16 +600,26 @@ describe("operation 6: the welcome e-mail (05 RG76, RG86; 16 RG89, RG90; CA40, C
     expect(message?.headers["idempotency-key"]).toBe(
       `account.welcome:${ACCOUNT}`,
     );
-    expect(message?.body).toEqual({
+    expect(message?.body).toMatchObject({
       sender: { name: "INFLUX", email: "no-reply@tx.influx.example" },
       to: [{ email: EMAIL }],
-      templateId: WELCOME_CREATOR_TEMPLATE,
-      params: { LANGUAGE: "fr" },
+      subject: "Bienvenue sur INFLUX",
       tags: ["account.welcome_creator"],
     });
+    // D69 (16 RG67): written by INFLUX, Brevo only carries it
+    expect(message?.body).not.toHaveProperty("templateId");
+    expect(message?.body).not.toHaveProperty("params");
+    expect(message?.body.textContent).toContain(
+      "Votre compte créateur est créé",
+    );
+    expect(message?.body.htmlContent).toContain('<html lang="fr">');
+    // RG86, D48: no promotional content, no amount, no percentage, no link
+    expect(
+      `${String(message?.body.textContent)}${String(message?.body.htmlContent)}`,
+    ).not.toMatch(/%|€|\$|href|https?:/);
   });
 
-  it("the advertiser's welcome uses the advertiser's template", async () => {
+  it("the advertiser's welcome uses the advertiser's text, in the account's language", async () => {
     const { transactional } = connectors();
     await run(
       transactional,
@@ -625,13 +631,13 @@ describe("operation 6: the welcome e-mail (05 RG76, RG86; 16 RG89, RG90; CA40, C
       }),
       state({ role: "advertiser", preferredLanguage: "en" }),
     );
-    expect(double.delivered[0]?.body.templateId).toBe(
-      WELCOME_ADVERTISER_TEMPLATE,
+    expect(double.delivered[0]?.body.subject).toBe("Welcome to INFLUX");
+    expect(double.delivered[0]?.body.textContent).toContain(
+      "Your brand account is ready",
     );
-    expect(double.delivered[0]?.body.params).toEqual({ LANGUAGE: "en" });
   });
 
-  it("describes the send by its template and parameter names only", async () => {
+  it("describes the send by its code only", async () => {
     const { transactional } = connectors();
     const prepared = await prepare(
       transactional,
@@ -641,7 +647,7 @@ describe("operation 6: the welcome e-mail (05 RG76, RG86; 16 RG89, RG90; CA40, C
     expect(prepared.kind === "mapped" && prepared.description).toEqual({
       operation: "send_transactional",
       templateCode: "account.welcome_creator",
-      attributeNames: ["LANGUAGE"],
+      attributeNames: [],
       rejectedAttributeNames: [],
     });
   });
@@ -666,15 +672,22 @@ describe("operation 6: the welcome e-mail (05 RG76, RG86; 16 RG89, RG90; CA40, C
     expect(replay).toEqual(first);
   });
 
-  it("no template configured: skipped with a clear cause (0103); a code outside the welcomes fails", async () => {
+  it("D69: a template id left in the settings is ignored; a code outside the queue e-mails fails", async () => {
     const { transactional } = connectors();
-    expect(
-      await prepare(
-        transactional,
-        line("brevo_transactional"),
-        state({}, { ...SETTINGS, brevo_template_ids: {} }),
+    await run(
+      transactional,
+      line("brevo_transactional"),
+      state(
+        {},
+        {
+          ...SETTINGS,
+          brevo_template_ids: { "account.welcome_creator": 12 },
+        },
       ),
-    ).toEqual({ kind: "skip", reason: "template_not_configured" });
+    );
+    expect(double.messages[0]?.body).not.toHaveProperty("templateId");
+    double.messages.length = 0;
+    double.requests.length = 0;
     expect(
       await prepare(
         transactional,
@@ -1023,15 +1036,8 @@ describe("05 RG58, J7 decision 5: email.changed updates the contact in place, ne
 
 describe("05 RG58, J7 commit 7: the notice of a changed address, to both addresses (16 §H)", () => {
   const NEW_EMAIL = "lena-new-p3x8@example.test";
-  const NOTICE_TEMPLATE = 21;
   const REQUEST = "5d0c7e1a-2b3f-4c6d-8e9f-0a1b2c3d4e5f";
-  const NOTICE_SETTINGS = {
-    ...SETTINGS,
-    brevo_template_ids: {
-      ...(SETTINGS.brevo_template_ids as Record<string, number>),
-      "auth.email_changed_notice": NOTICE_TEMPLATE,
-    },
-  };
+  const NOTICE_SETTINGS = SETTINGS;
 
   function notice(recipient: unknown): ClaimedLine {
     return line("brevo_transactional", {
@@ -1068,7 +1074,7 @@ describe("05 RG58, J7 commit 7: the notice of a changed address, to both address
     expect(prepared.kind === "mapped" && prepared.description).toEqual({
       operation: "send_transactional",
       templateCode: "auth.email_changed_notice",
-      attributeNames: ["LANGUAGE"],
+      attributeNames: [],
       rejectedAttributeNames: [],
     });
     expect(prepared.kind === "mapped" && prepared.recipientDomain).toBe(
@@ -1081,8 +1087,12 @@ describe("05 RG58, J7 commit 7: the notice of a changed address, to both address
     expect(double.messages).toHaveLength(1);
     const [message] = double.messages;
     expect(message?.body.to).toEqual([{ email: EMAIL }]);
-    expect(message?.body.templateId).toBe(NOTICE_TEMPLATE);
-    expect(message?.body.params).toEqual({ LANGUAGE: "fr" });
+    // D69: the text of INFLUX for the old address, which never names the new one
+    expect(message?.body).not.toHaveProperty("templateId");
+    expect(message?.body.subject).toBe(
+      "L'adresse de votre compte INFLUX a changé",
+    );
+    expect(String(message?.body.textContent)).not.toContain(NEW_EMAIL);
     expect(message?.body.tags).toEqual(["auth.email_changed_notice"]);
     expect(message?.headers["idempotency-key"]).toBe(
       `auth.email_changed_notice:${REQUEST}:previous`,
@@ -1134,24 +1144,18 @@ describe("05 RG58, J7 commit 7: the notice of a changed address, to both address
     expect(double.requests).toHaveLength(0);
   });
 
-  it("EC-8: no template configured (NULL, 0118), skipped template_not_configured, never guessed", async () => {
-    expect(
-      await prepare(
-        noticing(),
-        notice("previous"),
-        state(
-          {},
-          {
-            ...SETTINGS,
-            brevo_template_ids: {
-              ...(SETTINGS.brevo_template_ids as Record<string, number>),
-              "auth.email_changed_notice": null,
-            },
-          },
-        ),
-      ),
-    ).toEqual({ kind: "skip", reason: "template_not_configured" });
-    expect(reads).toHaveLength(0);
+  it("D69: the current address has its own text, which never names the old one", async () => {
+    await run(
+      noticing(),
+      notice("current"),
+      state({ preferredLanguage: "en" }),
+    );
+    const [message] = double.messages;
+    expect(message?.body.subject).toBe(
+      "This address is now the one of your INFLUX account",
+    );
+    expect(String(message?.body.textContent)).not.toContain(EMAIL);
+    expect(message?.body).not.toHaveProperty("templateId");
   });
 
   it("redirect: the old address outside BREVO_TEST_RECIPIENTS is skipped_non_production", async () => {

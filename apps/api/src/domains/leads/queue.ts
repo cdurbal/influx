@@ -246,17 +246,15 @@ export function createWorkerQueue(database: WorkerDatabase): OutboxQueue {
   };
 }
 
-/** D68: true when the worker's environment gives at least one Brevo id. */
+/** D68: true when the worker's environment gives at least one Brevo list id. */
 export function givesBrevoIds(ids: BrevoIdsFromEnvironment): boolean {
-  return (
-    Object.keys(ids.listIds).length > 0 ||
-    Object.keys(ids.templateIds).length > 0
-  );
+  return Object.keys(ids.listIds).length > 0;
 }
 
 /**
  * D68 (founder, 2026-10-17): at start, before the first turn and under the motif of E-3 (no new
- * motif in 03 §P7), the Brevo ids of the environment go into leads.sync_settings (0139). Only the
+ * motif in 03 §P7), the Brevo list ids of the environment go into leads.sync_settings (0140, D69:
+ * no template id any more). Only the
  * ids given are merged, never a null (05 RG163); the base stays the source of truth (RG37). The
  * function journals settings.changed itself: no elevated audit line. Returns the keys changed.
  */
@@ -270,11 +268,7 @@ export async function applyBrevoIdsFromEnvironment(
     "leads.drain_outbox",
     requestId,
     async (tx) => ({
-      value: await writeBrevoIdsFromEnvironment(
-        tx,
-        ids.listIds,
-        ids.templateIds,
-      ),
+      value: await writeBrevoIdsFromEnvironment(tx, ids.listIds),
       auditSubject: null,
     }),
   );

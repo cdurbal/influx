@@ -49,6 +49,30 @@
         "step3": "Si vous ne parvenez pas à vous connecter, contactez INFLUX depuis l'aide de l'écran de connexion.",
         "never": "INFLUX ne vous demandera jamais votre code de connexion.",
         "reason": "une connexion à votre compte INFLUX a eu lieu depuis un nouveau navigateur"
+      },
+      "emailChangedNotice": {
+        "previous": {
+          "subject": "L'adresse de votre compte INFLUX a changé",
+          "preheader": "Cette adresse n'est plus celle de votre compte INFLUX.",
+          "title": "L'adresse de votre compte a changé",
+          "body": "Le changement d'adresse e-mail de votre compte INFLUX, confirmé depuis cette adresse et depuis la nouvelle, est effectif. Cette adresse-ci ne sert plus à vous connecter, et nous ne vous y écrirons plus.",
+          "notYou": "Vous n'êtes pas à l'origine de ce changement ?",
+          "step1": "Sécurisez d'abord votre boîte e-mail (changez son mot de passe).",
+          "step2": "Signalez-le à INFLUX depuis l'aide de l'écran de connexion, en indiquant la date de cet e-mail.",
+          "never": "INFLUX ne vous demandera jamais votre code de connexion.",
+          "reason": "l'adresse de votre compte INFLUX vient de changer"
+        },
+        "current": {
+          "subject": "Cette adresse est désormais celle de votre compte INFLUX",
+          "preheader": "Utilisez-la pour vous connecter à INFLUX.",
+          "title": "Changement d'adresse effectif",
+          "body": "Le changement d'adresse e-mail de votre compte INFLUX est effectif : c'est désormais avec cette adresse que vous vous connectez, et c'est à cette adresse que nous vous écrivons.",
+          "notYou": "Vous n'êtes pas à l'origine de ce changement ?",
+          "step1": "Connectez-vous à INFLUX, ouvrez « Mes sessions » et choisissez « Fermer toutes les sessions ».",
+          "step2": "Signalez-le à INFLUX depuis l'aide de l'écran de connexion, en indiquant la date de cet e-mail.",
+          "never": "INFLUX ne vous demandera jamais votre code de connexion.",
+          "reason": "l'adresse de votre compte INFLUX vient de changer"
+        }
       }
     },
     "privacy": {
@@ -107,6 +131,30 @@
     },
     "transactional": {
       "why": "Vous recevez cet e-mail parce que {reason}. Il ne s'agit pas d'un e-mail commercial."
+    },
+    "account": {
+      "welcomeAdvertiser": {
+        "subject": "Bienvenue sur INFLUX",
+        "preheader": "Votre compte marque est créé. Voici comment INFLUX fonctionne.",
+        "title": "Bienvenue sur INFLUX",
+        "intro": "Votre compte marque est créé. INFLUX vous met en relation avec des créateurs de contenu pour vos campagnes.",
+        "how": "Vous découvrez les créateurs sur des profils anonymisés. Chaque mise en relation est validée par un commercial INFLUX, puis acceptée par les deux parties : c'est seulement alors que la conversation s'ouvre et que les identités sont révélées.",
+        "together": "Votre commercial INFLUX vous accompagne à chaque étape, du premier échange au contrat. Tout se passe dans INFLUX : vos échanges y restent consultables.",
+        "signIn": "Pour vous connecter, saisissez votre adresse e-mail sur INFLUX : un code à 6 chiffres vous est envoyé. Il n'y a pas de mot de passe.",
+        "never": "INFLUX ne vous demandera jamais votre code de connexion.",
+        "reason": "vous venez de créer un compte marque sur INFLUX"
+      },
+      "welcomeCreator": {
+        "subject": "Bienvenue sur INFLUX",
+        "preheader": "Votre compte créateur est créé. Voici comment INFLUX fonctionne.",
+        "title": "Bienvenue sur INFLUX",
+        "intro": "Votre compte créateur est créé. INFLUX vous met en relation avec des marques qui cherchent des créateurs pour leurs campagnes rémunérées.",
+        "how": "Les marques découvrent votre profil sous une forme anonymisée, et vous pouvez postuler à leurs campagnes. Chaque mise en relation est validée par un commercial INFLUX, puis acceptée par les deux parties : c'est seulement alors que la conversation s'ouvre et que les identités sont révélées.",
+        "together": "Votre commercial INFLUX vous accompagne à chaque étape et vous précise ce que vous percevez pour chaque collaboration. Tout se passe dans INFLUX : vos échanges y restent consultables.",
+        "signIn": "Pour vous connecter, saisissez votre adresse e-mail sur INFLUX : un code à 6 chiffres vous est envoyé. Il n'y a pas de mot de passe.",
+        "never": "INFLUX ne vous demandera jamais votre code de connexion.",
+        "reason": "vous venez de créer un compte créateur sur INFLUX"
+      }
     }
   },
   "auth": {

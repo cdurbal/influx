@@ -1681,8 +1681,8 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
        order by 1`;
     expect(functions.map((row) => row.name)).toEqual([
       "audit.append_elevated(text,uuid)",
-      // 0139 (D68): the Brevo ids of the environment, at start
-      "leads.apply_brevo_ids_from_environment(jsonb,jsonb)",
+      // 0139 (D68), 0140 (D69): the Brevo list ids of the environment, at start
+      "leads.apply_brevo_ids_from_environment(jsonb)",
       "leads.begin_outbox_attempt(bigint,text)",
       "leads.claim_outbox_batch(text,integer)",
       "leads.complete_outbox_attempt(bigint,text,leads.outbox_status,boolean,text,text,text,integer,text,text,text,integer)",
