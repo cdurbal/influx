@@ -44,7 +44,7 @@ Ces constats **soldent les critères `staging` des J6, J7 et J8** (`21` §5) : l
 
 ## Commits prévus
 
-0. **Gouvernance et outillage** (`integrateur`, avis `architecte`) — sans code applicatif.
+0. [x] **Gouvernance et outillage** (`integrateur`, avis `architecte`) — sans code applicatif.
    - Mécanisme de D70 confirmé par `architecte` (option recommandée au commit 1, sinon variante
      écrite dans D70) ; `02` §12.4 réécrit selon le mécanisme retenu.
    - `.claude/settings.json` : les règles d'écriture `staging` passent du fichier local du fondateur

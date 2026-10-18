@@ -303,6 +303,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 3. **Surveillance active** (`02` §20.5 à §20.7) : alertes par e-mail, sonde du worker, écran « Santé technique », route `/health` publique (EC-22) ; préparation de `production` ; relectures humaines de `18` §10 « Lot 1 ».
 
 - [ ] **Chantier D70 avant la suite du J9** (fondateur, 2026-10-18) : `staging` iso-production et exploité par les agents — plan `jalons/d70-plan.md` (commits 0 à 5 ; son commit 1 précède le commit (b) de D67).
+- [x] Commit D70-0 (`5685524`) — gouvernance : règles d'écriture `staging` et interdits `production` dans `.claude/settings.json`, `02` §12.4 réécrit.
 - [x] Commit 0 (`eec21bb`) — J6S-3 : ligne « without effect to audit » du pool `worker` en `debug` (≈ 35 k lignes/jour en `staging`) ; `staging` remis en marche (worker, région du backoffice) ; Watch Paths à corriger (fondateur).
 - [ ] À développer (D67, tranchée par `architecte` le 2026-10-17), trois commits, tous avant la mise en production : (a) migration des deux déclencheurs sur `leads.sync_settings` (garde RG163, journal `settings.changed` daté) ; (b) worker — contrat et ordre de RG164, codes d'échec RG160, `credentials_missing`, rattrapage RG161 dans E-3, contrôle de démarrage RG162 sur `isDeployedEnvironment` (D70, sans second prédicat ; après le commit 1 de `jalons/d70-plan.md`), `would_send` en `development` seulement ; (c) backoffice — causes, rejouabilité, compteurs, motif d'AL25 (`05` RG160 à RG164, TM1.11 à TM1.16). Écran des identifiants Brevo : hors J9 (option Lot 5).
 

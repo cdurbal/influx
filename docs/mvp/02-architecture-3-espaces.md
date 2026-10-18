@@ -1205,7 +1205,7 @@ démarrage : une variable requise manquante fait **échouer le démarrage** avec
 
 | Variable | `web` | `backoffice` | `api` | `worker` | Nature |
 |---|---|---|---|---|---|
-| `INFLUX_ENV` (`staging` \| `production`) | ✔ | ✔ | ✔ | ✔ | Publique |
+| `INFLUX_ENV` (`development` \| `staging` \| `production`, sans valeur par défaut, §12.4) | ✔ | ✔ | ✔ | ✔ | Publique |
 | `INFLUX_PUBLIC_SITE_URL` | ✔ | — | ✔ | ✔ | Publique |
 | `INFLUX_API_INTERNAL_URL` | ✔ | ✔ | — | — | Interne |
 | `INFLUX_API_INTERNAL_SECRET` (valeur propre à chaque front) — *ajoutée le 2026-09-25, D64* | ✔ | ✔ | — | — | **Secrète** — en-tête `x-influx-internal` (`03` PP-8) |
@@ -1228,7 +1228,7 @@ démarrage : une variable requise manquante fait **échouer le démarrage** avec
 | `AUTH_TOKEN_SIGNING_SECRET` — *remplace `SESSION_COOKIE_SECRET` le 2026-09-27 (`21` EC-24)* | — | — | ✔ | — | **Secrète**, ≥ 32 octets. Signe les seuls jetons courts (cookie de parcours, jeton d'inscription) ; **l'identifiant de session, opaque, n'est jamais signé** (seule son empreinte est en base). Distincte de tout autre secret du processus |
 | `AUTH_THROTTLE_PEPPER` | — | — | ✔ | — | **Secrète**, ≥ 32 octets. Clé HMAC des empreintes de limitation de débit (`04` §12.10), de l'adresse pseudonyme transmise à GoTrue (`21` EC-38) et de l'anti-rejeu TOTP (`21` EC-39), chacune avec son étiquette de séparation |
 | `SYNC_MODE` (`live` \| `dry_run`) | — | — | — | ✔ | Garde-fou, §12.4 |
-| `NON_PRODUCTION_RECIPIENT_ALLOWLIST` | — | — | — | ✔ | Garde-fou, §12.4 |
+| `NON_PRODUCTION_RECIPIENT_ALLOWLIST` | — | — | — | ✔ | Garde-fou, §12.4 : `development` seul, refusée en environnement déployé (comme `BREVO_TEST_RECIPIENTS`) |
 
 **Variables de base : refus de démarrage** (*ajouté le 2026-09-26, `21` EC-20, tranché par
 `expert-cybersecurite`* ; `ELEVATED_DATABASE_URL` disparaît, `03` §4 P7 fait foi) :
@@ -1247,34 +1247,89 @@ démarrage : une variable requise manquante fait **échouer le démarrage** avec
 `process.env` en dehors de `src/config/` dans `apps/web` et `apps/backoffice`, et la configuration
 n'y déclare que des valeurs publiques.
 
-### 12.4 Le garde-fou : impossible d'envoyer un vrai e-mail depuis `staging`
+### 12.4 Le garde-fou d'environnement : `staging` envoie comme la production, la pile locale et les tests jamais
 
-> **Amendé par D70 (2026-10-18, arbitrage du fondateur contre `03` §6.8).** `staging` se comporte
-> exactement comme la production : `BREVO_MODE=live`, `SYNC_MODE=live`, comptes Brevo et Apollo
-> propres à `staging`, mêmes refus de démarrage que la production. Le verrou 1 (clés distinctes)
-> reste ; les verrous 2 et 3 ci-dessous ne valent plus que pour la pile locale, la CI et les tests ;
-> le verrou 4 (`03` §6.8) reste. Différences admises entre `staging` et production : liste fermée de
-> D70. Mécanisme (troisième valeur `development` d'`INFLUX_ENV`, prédicat unique « environnement
-> déployé ») à confirmer par `architecte` : `jalons/d70-plan.md` commits 0 et 1. Ce paragraphe sera
-> réécrit à ce moment.
+*Réécrit le 2026-10-18 (D70, arbitrage du fondateur contre `03` §6.8 ; mécanisme tranché par
+`architecte`, D70 point 5). La version du cadrage (« impossible d'envoyer un vrai e-mail depuis
+`staging` ») est abrogée.* Le risque du cadrage (§10.2 : « e-mail envoyé par erreur depuis
+l'environnement de test ») demeure, mais l'environnement de test est désormais la **pile locale, la
+CI et les tests automatisés**. `staging` est un environnement **déployé** : il envoie réellement,
+avec ses propres comptes, exactement comme la production.
 
-Risque explicitement listé au cadrage (§10.2 : « e-mail envoyé par erreur depuis l'environnement de
-test »). **Trois verrous indépendants**, parce qu'un seul finit toujours par sauter :
+**Trois valeurs d'`INFLUX_ENV`, sans valeur par défaut** (absente ou inconnue ⇒ refus de démarrage,
+`18` T17.8) :
 
-1. **Clés distinctes.** `staging` utilise un compte Brevo de test et une clé Apollo de test. Les
-   clés de production ne sont **jamais** saisies dans l'environnement `staging`. Elles ne se
-   ressemblent pas et ne sont pas interchangeables.
-2. **Mode explicite.** `SYNC_MODE=dry_run` en `staging` : le connecteur **n'appelle rien**, marque la
-   ligne `succeeded` avec `dry_run: true` et journalise ce qu'il aurait envoyé. Le pipeline est donc
-   testé de bout en bout, sans aucun appel sortant.
-3. **Liste blanche de destinataires.** Si `INFLUX_ENV !== 'production'` **et** que `SYNC_MODE=live`
-   (cas d'un test volontaire de bout en bout), tout destinataire dont le domaine n'est pas dans
-   `NON_PRODUCTION_RECIPIENT_ALLOWLIST` est marqué `skipped_non_production`. **Le connecteur ne peut
-   physiquement pas écrire à une vraie adresse de client.**
+| Valeur | Où | Envois |
+|---|---|---|
+| `development` | Pile locale lancée par Playwright, CI, tests automatisés et leurs helpers | Jamais vers un service réel ni une vraie adresse : doublure, verrous 2 et 3 ci-dessous |
+| `staging` | Environnement Railway `staging` ; poste local chargeant `.env.local` (diagnostic court seulement) | Réels, comptes et domaine d'envoi de `staging` (D70) |
+| `production` | Environnement Railway `production` | Réels |
 
-Symétriquement, **le worker refuse de démarrer** si `INFLUX_ENV=production` et que `SYNC_MODE` vaut
-`dry_run` : une production silencieusement muette serait aussi grave qu'un envoi de test réel.
-Chacun de ces trois verrous fait l'objet d'un test (document `18`).
+**Un seul prédicat : « environnement déployé ».** `isDeployedEnvironment`, défini une fois dans
+`apps/api/src/config/`, est vrai pour **toute valeur autre que `development`** : une valeur ajoutée
+un jour prend d'office les exigences strictes. Il porte, pour `staging` comme pour la production et
+sans exception, les refus de démarrage suivants (`api` et `worker` selon la variable) :
+
+1. `BREVO_MODE` différent de `live` ⇒ refus (`api` et `worker`) ; `SYNC_MODE` différent de `live`,
+   absence comprise, ⇒ refus (`worker`). Une production ou un `staging` silencieusement muets sont
+   aussi graves qu'un envoi de test réel.
+2. `BREVO_TEST_RECIPIENTS` ou `NON_PRODUCTION_RECIPIENT_ALLOWLIST` renseignée ⇒ **refus, jamais
+   ignorée** : une variable dormante revivrait au premier changement d'`INFLUX_ENV`, et la
+   configuration de `staging` doit porter les mêmes noms que celle de la production
+   (`staging:check`).
+3. `BREVO_API_BASE_URL` différente de l'URL officielle ⇒ refus (la doublure en bouclage n'est
+   jamais atteinte d'un environnement déployé).
+4. Secrets du webhook Brevo absents ⇒ refus (`api` ; désinscriptions, `16` RG89).
+5. `PRIVACY_DATABASE_URL` absente, ou paire `SUPABASE_URL` / `SUPABASE_SECRET_KEY` incomplète ⇒
+   refus (`worker` ; exécution des demandes « mes données », purge GoTrue).
+6. Origine non `https` pour `SUPABASE_URL` (`api`, `worker`), `INFLUX_PUBLIC_SITE_URL` et
+   `INFLUX_PUBLIC_BACKOFFICE_URL` (`api`) ⇒ refus.
+7. Réglages de synchronisation indispensables manquants ⇒ refus (`worker`, §12.5, `05` RG162),
+   au commit (b) de D67.
+
+En `development`, à l'inverse : `BREVO_MODE=live` ⇒ refus ; `BREVO_MODE=redirect` sans
+`BREVO_TEST_RECIPIENTS` ⇒ refus ; `SYNC_MODE=live` sans `NON_PRODUCTION_RECIPIENT_ALLOWLIST` ⇒
+refus ; **`INFLUX_ENV=development` sur Railway (`RAILWAY_ENVIRONMENT_NAME` présent) ⇒ refus** : un
+service déployé ne se relâche pas en changeant une variable.
+
+**Le code métier ne lit jamais l'environnement.** Le prédicat ne s'emploie que dans les schémas de
+configuration ; la configuration remet au connecteur un filtre de destinataires déjà résolu (liste
+blanche en `development`, « sans restriction » en environnement déployé ; valeur discriminée, jamais
+`null`). Tout nouveau test `=== "production"` dans `apps/api/src` est un défaut de revue, sauf pour
+une différence de la liste fermée de D70.
+
+**Quatre verrous, après D70.**
+
+1. **Clés distinctes — partout, inchangé.** Une clé de production n'existe qu'en production
+   (`16` RG115). `staging` a ses propres comptes et clés (Supabase, Brevo, Apollo, Railway) et son
+   propre domaine d'envoi, jamais l'un des trois sous-domaines de production (`16` RG9) ; la CI et
+   les tests n'ont aucune clé et restent sur la doublure (`16` RG148). Ce verrou est d'exploitation :
+   le prédicat ne lit ni ne relâche aucune clé, et le poste n'atteint pas la production (jeton
+   Railway limité à `staging`, `jalons/d70-plan.md` P3).
+2. **Mode explicite — `development` seul.** `BREVO_MODE=disabled` par défaut ;
+   `SYNC_MODE=dry_run` par défaut : le connecteur **n'appelle rien**, marque la ligne `succeeded`
+   avec `dry_run: true` et journalise ce qu'il aurait envoyé.
+3. **Liste blanche de destinataires — `development` seul.** En `SYNC_MODE=live` (test volontaire de
+   bout en bout contre la doublure), tout destinataire dont le domaine n'est pas dans
+   `NON_PRODUCTION_RECIPIENT_ALLOWLIST` est marqué `skipped_non_production`, évalué au connecteur
+   après tout le mappage, en condition positive (`03` §6.8) ; en `BREVO_MODE=redirect`, seule une
+   adresse de `BREVO_TEST_RECIPIENTS` est atteinte (`16` RG117). **`skipped_non_production` n'est
+   atteignable dans aucun environnement déployé.**
+4. **Aucune donnée de production hors production — inchangé** (`03` §6.8, B9) : `staging` ne porte
+   que des données synthétiques ou de testeurs internes.
+
+**Différences entre `staging` et production** : la liste fermée de D70 (1). Dans le code, seule la
+valeur d'`INFLUX_ENV` les distingue, et elle ne décide d'**aucune** exigence de démarrage ; elle ne
+sert qu'à `noindex` (`apps/web/next.config.ts` : seule la production est indexable) et au libellé
+du bandeau `16` RG118 (« `staging` — envois réels »). Les scripts d'exploitation refusent
+`production` et non « déployé » (`apps/api/scripts/script-guards.ts`), puisqu'ils servent `staging`.
+
+**Incident** (`16` RG120 amendée) : un envoi réel depuis la pile locale, la CI ou un test, ou une
+clé de production hors production. Un envoi réel depuis `staging` n'en est pas un.
+
+Tests : `18` T17, matrice par environnement (`development` garde les verrous 2 et 3 ; `staging`
+refuse exactement ce que refuse la production ; aucun script `test`, `test:db` ou e2e ne charge
+`.env.local`).
 
 ### 12.5 Le pendant en base : une production sans listes ni modèles Brevo est une production muette
 

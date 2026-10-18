@@ -11,13 +11,21 @@
       "Bash(pnpm exec supabase db reset --local*)",
       "Bash(git status*)", "Bash(git diff*)", "Bash(git log*)", "Bash(git show*)",
       "Bash(git add *)", "Bash(git commit *)",
+      "Bash(railway status*)",
+      "Bash(railway * -e staging)", "Bash(railway * -e staging *)",
+      "Bash(railway api * --raw-var e=1e43a0b9-c02a-460b-9d29-41fd2f7fe41b*)",
+      "Bash(gh secret set * --env staging*)", "Bash(gh variable set * --env staging*)",
+      "Bash(pnpm exec supabase link --project-ref pminhrwqepjzkyszgtwm*)",
+      "Bash(pnpm exec supabase config push*)",
       "Edit(./apps/**)", "Edit(./packages/**)", "Edit(./supabase/migrations/**)","Edit(./docs/mvp/**)",
       "Edit(./**/.env.example)","Edit(./**/.env.local)"
     ],
     "deny": [
       "Read(./**/.env)",
       "Bash(git push --force*)", "Bash(pnpm exec supabase db push*)",
-      "Bash(git checkout demo*)", "Bash(git merge demo*)"
+      "Bash(git checkout demo*)", "Bash(git merge demo*)",
+      "Bash(railway * -e production*)", "Bash(railway * --environment production*)",
+      "Bash(railway up*)", "Bash(* --env production*)"
     ]
   }
 }
