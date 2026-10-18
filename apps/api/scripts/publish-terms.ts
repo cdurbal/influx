@@ -9,8 +9,10 @@
 //
 // Targets:
 //   local    (default) the local Supabase stack, with the guards of seed-demo-accounts.ts;
-//   staging  INFLUX_STAGING_MIGRATION_URL (and INFLUX_STAGING_DB_CA_FILE) EXPORTED IN THE SHELL,
-//            with the guards of seed-staging-demo-accounts.ts (marker table of the runbook).
+//   staging  INFLUX_STAGING_MIGRATION_URL (and INFLUX_STAGING_DB_CA_FILE or DATABASE_CA_CERT),
+//            from apps/api/.env.local through `db:publish-terms:staging` (D70 commit 3), or
+//            exported by the CI step of staging; with the guards of seed-staging-demo-accounts.ts
+//            (marker table of the runbook).
 // Production is refused, `draft-*` labels included: publishing there is the founder's action (J9).
 //
 // Refused, before any write: a document or a language outside the closed lists; a malformed

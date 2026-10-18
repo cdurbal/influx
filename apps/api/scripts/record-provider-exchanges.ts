@@ -11,6 +11,11 @@
 // The raw recordings (addresses and ids of the test accounts) stay in .provider-recordings/,
 // ignored by Git; only redacted.json is read to write the fixtures, then raw.jsonl is deleted by
 // hand (the instruction is printed by `redact`).
+//
+// D70 commit 3 (micro-gap, the safest choice): kept for `development` only. apps/api/.env.local now
+// holds the values of staging, so the script no longer loads it: its variables come from
+// apps/api/.env.trial.local alone (development profile, TEST accounts), and INFLUX_ENV must be
+// development. The real exchanges are otherwise observed on staging.
 import { randomUUID } from "node:crypto";
 import { appendFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
@@ -40,6 +45,11 @@ function refuseOutsideTheWorkstation(): void {
     process.env.CI !== undefined
   ) {
     throw new Error(`${WHAT} refused on Railway and in CI (16 RG115 point 4)`);
+  }
+  if (process.env.INFLUX_ENV !== "development") {
+    throw new Error(
+      `${WHAT} refused: INFLUX_ENV must be development (D70, apps/api/.env.trial.local)`,
+    );
   }
   const database = process.env.WORKER_DATABASE_URL;
   if (database === undefined || !LOOPBACK.has(new URL(database).hostname)) {

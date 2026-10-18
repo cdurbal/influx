@@ -4,23 +4,23 @@
 // by an invitation of that admin (15 RG99, POST /v1/bo/internal-invitations), never by a script.
 // Variant of scripts/seed-demo-accounts.ts (local stack) with secrets that are never in the
 // repository: the admin's password and enrollment token are drawn at random at each run and
-// printed ONCE, here, to the person who runs it.
+// written ONCE to a file of .operator-secrets/ ignored by Git, never to the output (D70 commit 3).
 //
-// Run from the founder's or the developer's machine, with the variables EXPORTED IN THE SHELL
-// (never written to a file, docs/mvp/runbooks/staging.md):
-//   INFLUX_STAGING_MIGRATION_URL  direct connection of the migration role (postgres) of staging;
-//   INFLUX_STAGING_DB_CA_FILE     optional, the Supabase root certificate (PEM) when the system
-//                                 store does not know it (EC-34);
+// Run by an agent or the founder, from the machine; the inputs come from apps/api/.env.local
+// (values of staging, D70), loaded by --env-file:
+//   INFLUX_STAGING_MIGRATION_URL  connection of the migration role (postgres) of staging;
+//   INFLUX_STAGING_DB_CA_FILE or DATABASE_CA_CERT  optional, the Supabase root certificate (a PEM
+//                                 file, or its content) when the system store does not know it (EC-34);
 //   SUPABASE_URL                  https://<ref>.supabase.co of staging;
 //   SUPABASE_SECRET_KEY           a sb_secret_… key of staging;
-//   STAGING_PUBLIC_BACKOFFICE_URL origin of the staging backoffice, for the activation links.
-// and the three addresses as arguments: --advertiser= --creator= --admin=. The member
-// addresses must be listed in BREVO_TEST_RECIPIENTS of the staging api: the codes go there
-// (BREVO_MODE=redirect).
+//   INFLUX_PUBLIC_BACKOFFICE_URL  origin of the staging backoffice, for the activation links.
+// and the three addresses as arguments: --advertiser= --creator= --admin=. The members receive
+// their code by a real e-mail (staging is live, D70).
 //
 // Refused: when INFLUX_ENV or NODE_ENV says production; when the database does not carry the
 // marker table `influx_staging.environment_marker` (created by hand by the runbook, never on production); when the
 // Supabase URL is not an https *.supabase.co origin.
+import { writeOperatorSecrets } from "@influx/test-kit/operator-secrets";
 import { randomBytes } from "node:crypto";
 import { parseArgs } from "node:util";
 import { localPasswordVerdict } from "../src/domains/identity/password-policy.ts";
@@ -34,7 +34,7 @@ import {
   assertStagingMarker,
   connectToStagingAsMigrationRole,
   refuseProduction,
-  requiredShellVariable as required,
+  requiredStagingVariable as required,
 } from "./script-guards.ts";
 
 /** A random password that passes the local rules of B-1 and EC-57 for `email`. */
@@ -52,6 +52,8 @@ function randomPassword(email: string): string {
 
 refuseProduction("demo accounts (J3S-2)");
 const { values } = parseArgs({
+  // `pnpm run x -- --a=1` may hand the `--` over: it is not an argument of this script.
+  args: process.argv.slice(2).filter((argument) => argument !== "--"),
   options: {
     advertiser: { type: "string" },
     creator: { type: "string" },
@@ -79,7 +81,7 @@ if (
     "SUPABASE_URL and INFLUX_STAGING_MIGRATION_URL name two different projects: refused",
   );
 }
-const backoffice = new URL(required("STAGING_PUBLIC_BACKOFFICE_URL")).origin;
+const backoffice = new URL(required("INFLUX_PUBLIC_BACKOFFICE_URL")).origin;
 
 // EC-45: no agent from a script; the agent is invited by this admin.
 const bootstrap = demoAccounts().filter(
@@ -119,18 +121,20 @@ try {
       "demo accounts already present on staging: their secrets were shown at creation only.\n",
     );
   } else {
+    const file = writeOperatorSecrets("staging-demo-accounts", [
+      "Demonstration accounts of staging: keep them in the password manager, then delete this file.",
+      ...accounts.map((account) => {
+        const access =
+          account.password === null
+            ? "code by e-mail"
+            : `password "${account.password}"  activation link ${backoffice}/activation#${account.enrollmentToken ?? ""} (72 h)`;
+        return `  ${account.role.padEnd(10)}  ${account.email.padEnd(34)}  ${access}`;
+      }),
+    ]);
     process.stdout.write(
-      "demo accounts created on staging. SHOWN ONCE, keep them in the password manager:\n",
+      `demo accounts created on staging (${accounts.map((account) => account.role).join(", ")}); ` +
+        `their secrets are in ${file} (ignored by Git, never print it)\n`,
     );
-    for (const account of accounts) {
-      const access =
-        account.password === null
-          ? "code by e-mail (Brevo redirect)"
-          : `password "${account.password}"  activation link ${backoffice}/activation#${account.enrollmentToken ?? ""} (72 h)`;
-      process.stdout.write(
-        `  ${account.role.padEnd(10)}  ${account.email.padEnd(34)}  ${access}\n`,
-      );
-    }
   }
 } finally {
   await migration.end({ timeout: 1 });

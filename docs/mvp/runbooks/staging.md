@@ -67,10 +67,12 @@ la base de production.
 > **Après l'étape 4** : les cinq rôles sont créés par les migrations (`0001`, `0016`, `0136` au J8) ; la
 > partie 1 échoue tant que « Migrate staging » n'a pas tourné une fois.
 
-Sur le poste (rien n'est écrit sur le disque) :
+Sur le poste (référence du projet et hôte du pooler lus dans `apps/api/.env.local`, D70 ; sortie
+écrite dans `.operator-secrets/`, ignoré par Git, **jamais affichée** ; à supprimer une fois
+appliquée) :
 
 ```sh
-pnpm --filter @influx/test-kit staging:role-passwords -- --ref=<ref-staging> --host=<région>.pooler.supabase.com
+pnpm --filter @influx/test-kit staging:role-passwords
 ```
 
 - Coller la partie **1** (des `alter role … password 'SCRAM-SHA-256$…'`) dans l'éditeur SQL de
@@ -132,6 +134,27 @@ version dans le journal de construction).
   `BREVO_WEBHOOK_*` sur `api`, sans `NON_PRODUCTION_RECIPIENT_ALLOWLIST` ni `BREVO_TEST_RECIPIENTS`.
   Les colonnes ci-dessus (`redirect`, `dry_run`, `disabled`) décrivent l'état d'avant la bascule.
 
+### Liste fermée cible (D70), contrôlée par `staging:check`
+
+`pnpm --filter @influx/api staging:check` lit **ce tableau** et compare les **noms** des variables
+Railway de chaque service (`-e staging`, variables `RAILWAY_*` ajoutées par Railway exclues) : une
+exigée absente ou un nom hors des deux colonnes est un KO. Il vérifie aussi `INFLUX_ENV=staging`
+partout, `BREVO_MODE=live` (`api`, `worker`) et `SYNC_MODE=live` (`worker`), `.env.local` (mêmes
+modes, sans `BREVO_TEST_RECIPIENTS` ni `NON_PRODUCTION_RECIPIENT_ALLOWLIST`), le marqueur de l'étape
+2 et `leads.sync_settings` (`05` RG162). Il n'affiche **jamais une valeur**. Entrée : `apps/api/.env.local`,
+dont `INFLUX_STAGING_MIGRATION_URL` (rôle de migration de `staging`, lecture seule ici). Liste tirée
+de ce que lit le code (`apps/api/src/config/schema.ts`, `apps/*/src/config/`) : `BREVO_SENDER_MARKETING`
+et `BREVO_SENDER_PROSPECTING` n'y sont pas, aucun code ne les lisant encore.
+
+<!-- staging-check:begin -->
+| Service | Exigées | Facultatives |
+|---|---|---|
+| `api` | `INFLUX_ENV`, `PORT`, `INFLUX_PUBLIC_SITE_URL`, `INFLUX_PUBLIC_BACKOFFICE_URL`, `INFLUX_API_INTERNAL_SECRET_WEB`, `INFLUX_API_INTERNAL_SECRET_BACKOFFICE`, `AUTH_TOKEN_SIGNING_SECRET`, `AUTH_THROTTLE_PEPPER`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `DATABASE_URL`, `AUTH_DATABASE_URL`, `OPS_DATABASE_URL`, `DATABASE_CA_CERT`, `BREVO_MODE`, `BREVO_API_KEY`, `BREVO_API_BASE_URL`, `BREVO_SENDER_TRANSACTIONAL`, `BREVO_WEBHOOK_PATH_TOKEN_CURRENT`, `BREVO_WEBHOOK_SECRET_CURRENT`, `RAILPACK_NODE_VERSION` | `BREVO_WEBHOOK_PATH_TOKEN_PREVIOUS`, `BREVO_WEBHOOK_SECRET_PREVIOUS` (rotation seulement) |
+| `worker` | `INFLUX_ENV`, `WORKER_DATABASE_URL`, `PRIVACY_DATABASE_URL`, `DATABASE_CA_CERT`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SYNC_MODE`, `BREVO_MODE`, `BREVO_API_KEY`, `BREVO_API_BASE_URL`, `BREVO_SENDER_TRANSACTIONAL`, `BREVO_LIST_ID_ADVERTISERS`, `BREVO_LIST_ID_CREATORS`, `APOLLO_API_KEY`, `RAILPACK_NODE_VERSION` | `BREVO_SUPPRESSION_LIST_ID` |
+| `web` | `INFLUX_ENV`, `INFLUX_API_INTERNAL_URL`, `INFLUX_API_INTERNAL_SECRET`, `RAILPACK_NODE_VERSION` | — |
+| `backoffice` | `INFLUX_ENV`, `INFLUX_API_INTERNAL_URL`, `INFLUX_API_INTERNAL_SECRET`, `RAILPACK_NODE_VERSION` | — |
+<!-- staging-check:end -->
+
 ## Étape 6 — Vérifications du développeur (« Terminé quand » du J4)
 
 1. Un commit sur `main` : CI verte → « Migrate staging » vert → déploiement des quatre services.
@@ -158,19 +181,18 @@ version dans le journal de construction).
 
 ## Étape 7 — Comptes de démonstration de staging (J3S-2)
 
-Variables **exportées dans le terminal**, jamais écrites dans un fichier :
+Entrées lues dans `apps/api/.env.local` (D70, `--env-file`) : `INFLUX_STAGING_MIGRATION_URL`,
+`SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `INFLUX_PUBLIC_BACKOFFICE_URL` et, si le magasin du système
+ne connaît pas le certificat racine (EC-34), `INFLUX_STAGING_DB_CA_FILE` ou `DATABASE_CA_CERT` :
 
 ```sh
-export INFLUX_STAGING_MIGRATION_URL='<chaîne Session pooler de l’étape 4>'
-export INFLUX_STAGING_DB_CA_FILE="$HOME/Downloads/prod-ca-2021.crt"  # certificat racine (EC-34)
-export SUPABASE_URL='https://<ref-staging>.supabase.co'
-export SUPABASE_SECRET_KEY='<une clé sb_secret_ de staging>'
-export STAGING_PUBLIC_BACKOFFICE_URL='https://<backoffice-staging>'
 pnpm --filter @influx/api db:staging-demo-accounts -- \
   --advertiser=<adresse interne 1> --creator=<adresse interne 2> \
   --admin=<adresse interne 3>
-unset INFLUX_STAGING_MIGRATION_URL SUPABASE_SECRET_KEY
 ```
+
+Mots de passe et liens d'activation vont dans `.operator-secrets/` (ignoré par Git), **jamais dans
+la sortie**. Même lecture pour `pnpm --filter @influx/api db:publish-terms:staging -- --latest`.
 
 - **Depuis le J8 (EC-45)** : le script ne crée plus que les deux membres et le **premier `admin`**
   (amorçage). Tout autre compte interne (commercial, second `admin`) est créé par **invitation** de
@@ -178,12 +200,11 @@ unset INFLUX_STAGING_MIGRATION_URL SUPABASE_SECRET_KEY
   double validation). Le lien d'activation s'affiche une seule fois : le transmettre à la personne
   par un canal direct.
 
-- Les adresses des deux membres doivent figurer dans `BREVO_TEST_RECIPIENTS` du service `api`
-  (les codes y sont envoyés).
-- Mots de passe et liens d'activation (72 h) sont **tirés au hasard et affichés une seule fois** :
-  les ranger aussitôt dans le gestionnaire de mots de passe. Le script refuse la production et toute
-  base sans le marqueur de l'étape 2.
-- Ne transmettre à personne que la première ligne de la sortie : la suite contient des secrets.
+- Avant la bascule D70, les adresses des deux membres doivent figurer dans `BREVO_TEST_RECIPIENTS`
+  du service `api` ; après, les codes partent réellement à ces adresses.
+- Mots de passe et liens d'activation (72 h) sont **tirés au hasard et écrits une seule fois** dans
+  le fichier nommé par la sortie : les ranger aussitôt dans le gestionnaire de mots de passe, puis
+  supprimer le fichier. Le script refuse la production et toute base sans le marqueur de l'étape 2.
 
 ## Procédure — Retour à la version précédente (02 §20.7 point 5)
 

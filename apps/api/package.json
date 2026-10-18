@@ -14,9 +14,11 @@
     "test:unit": "vitest run --project unit --reporter=default --reporter=json --outputFile.json=test-results/unit-report.json && node scripts/check-case-floors.ts unit",
     "db:demo-accounts": "node scripts/seed-demo-accounts.ts",
     "test:db": "vitest run --project db --reporter=default --reporter=json --outputFile.json=test-results/db-report.json && node scripts/check-case-floors.ts db",
-    "db:staging-demo-accounts": "node scripts/seed-staging-demo-accounts.ts",
+    "db:staging-demo-accounts": "node --env-file=.env.local scripts/seed-staging-demo-accounts.ts",
     "db:publish-terms": "node scripts/publish-terms.ts",
-    "trial:record": "node --env-file-if-exists=.env.local --env-file-if-exists=.env.trial.local scripts/record-provider-exchanges.ts"
+    "db:publish-terms:staging": "node --env-file=.env.local scripts/publish-terms.ts --target=staging",
+    "staging:check": "node --env-file=.env.local scripts/staging-check.ts",
+    "trial:record": "node --env-file-if-exists=.env.trial.local scripts/record-provider-exchanges.ts"
   },
   "dependencies": {
     "@fastify/cookie": "11.1.2",

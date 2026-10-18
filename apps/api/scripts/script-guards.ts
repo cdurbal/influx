@@ -28,6 +28,20 @@ export function refuseOutsideTheLocalStack(what: string): void {
   }
 }
 
+/**
+ * A variable of apps/api/.env.local (values of staging, D70), loaded by the --env-file of the
+ * staging scripts; a variable exported in the shell takes precedence (the CI step of staging).
+ */
+export function requiredStagingVariable(name: string): string {
+  const value = process.env[name];
+  if (value === undefined || value === "") {
+    throw new Error(
+      `${name} is missing from apps/api/.env.local (values of staging)`,
+    );
+  }
+  return value;
+}
+
 /** A variable that must be exported in the shell, never written to a file. */
 export function requiredShellVariable(name: string): string {
   const value = process.env[name];
@@ -38,21 +52,26 @@ export function requiredShellVariable(name: string): string {
 }
 
 /**
- * The migration role of STAGING, from INFLUX_STAGING_MIGRATION_URL (and the optional CA file of
- * EC-34). Nothing is read until assertStagingMarker() has run on it.
+ * The migration role of STAGING, from INFLUX_STAGING_MIGRATION_URL, with the root certificate of
+ * EC-34 when one is given (INFLUX_STAGING_DB_CA_FILE, a PEM file, or DATABASE_CA_CERT, its
+ * content). Nothing is read until assertStagingMarker() has run on it.
  */
 export function connectToStagingAsMigrationRole(): postgres.Sql {
   const migrationUrl = new URL(
-    requiredShellVariable("INFLUX_STAGING_MIGRATION_URL"),
+    requiredStagingVariable("INFLUX_STAGING_MIGRATION_URL"),
   );
   const caFile = process.env.INFLUX_STAGING_DB_CA_FILE;
+  const ca =
+    caFile === undefined || caFile === ""
+      ? process.env.DATABASE_CA_CERT
+      : readFileSync(caFile, "utf8");
   return postgres(migrationUrl.href, {
     max: 1,
     prepare: false,
     ssl:
-      caFile === undefined
+      ca === undefined || ca === ""
         ? { rejectUnauthorized: true }
-        : { rejectUnauthorized: true, ca: readFileSync(caFile, "utf8") },
+        : { rejectUnauthorized: true, ca },
     onnotice: () => undefined,
   });
 }

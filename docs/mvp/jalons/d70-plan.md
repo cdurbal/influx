@@ -74,7 +74,14 @@ Ces constats **soldent les critères `staging` des J6, J7 et J8** (`21` §5) : l
 2. **Articulation D67** — [x] faite dans `05` RG162, RG164, CA85 à CA87 et `21` (ligne D67) ; reste le code, dans le commit (b) de D67 prévu au J9 : le contrôle de démarrage de
    `05` RG162 vaut pour tout environnement déployé (`staging` compris) ; la trace `would_send` de
    RG164 ne concerne plus que `development`. Le commit 1 précède donc le commit (b) de D67.
-3. **Scripts d'exploitation autonomes** (`dev-react-node`, avis `integrateur`).
+3. [x] **Scripts d'exploitation autonomes** (`dev-react-node`, avis `integrateur`). *Fait le
+   2026-10-18* ; liste fermée : runbook `staging` étape 5 ; `trial:record` conservé pour
+   `development` sans `.env.local` (micro-écart, choix le plus sûr). **Point ouvert
+   (`expert-cybersecurite`, revue groupée)** : marqueur et `leads.sync_settings` ne se lisent qu'avec
+   le rôle de migration, d'où `INFLUX_STAGING_MIGRATION_URL` dans `.env.local`, alors que `21` §0 et
+   la skill `env-secrets` y excluent `DIRECT_DATABASE_URL` ; à poser par le fondateur ou à remplacer.
+   Premier passage (2026-10-18) : KO attendu, dont **`INFLUX_ENV=production` sur les quatre services
+   Railway de `staging`** (hérité du fork), à corriger au commit 4.
    - `db:staging-demo-accounts`, `db:publish-terms` (cible `staging`) et `staging:role-passwords`
      lisent leurs entrées dans `apps/api/.env.local` (`--env-file`) au lieu de variables exportées à
      la main. Les secrets à usage unique (mots de passe, liens d'activation) vont dans un fichier

@@ -16,6 +16,7 @@
     "./gotrue-double": "./src/gotrue-double.ts",
     "./apollo-exchanges": "./src/apollo-exchanges.ts",
     "./db": "./src/db/index.ts",
+    "./operator-secrets": "./src/operator-secrets.ts",
     "./static": "./src/static/index.ts",
     "./rights": "./src/rights/expected-rights.ts"
   },
@@ -25,7 +26,7 @@
     "test": "vitest run",
     "db:role-passwords": "node scripts/set-role-passwords.ts",
     "dev:brevo-double": "node scripts/brevo-double.ts",
-    "staging:role-passwords": "node scripts/staging-role-passwords.ts"
+    "staging:role-passwords": "node --env-file=../../apps/api/.env.local scripts/staging-role-passwords.ts"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
