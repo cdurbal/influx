@@ -167,7 +167,7 @@ suppression propagée à Brevo et Apollo. Référents : `expert-conformite-rgpd`
 1. Demande floue ou transverse → `chef-de-projet` ; demande cadrée → spécialiste directement.
 2. Un veto ne se contourne pas : il se traite ou s'arbitre explicitement par le fondateur.
    **Portée (D71)** : les vetos de `expert-cybersecurite` et `expert-conformite-rgpd`, et le
-   contrôle I-4 (`security-reviewed:`), ne bloquent **que la branche `production`** (à créer) et
+   contrôle I-4 (`security-reviewed:`), ne bloquent **que la branche `production`** et
    ce qui y entre. Sur `main`, build, CI et déploiement de `staging` passent sans leur revue ;
    la CI y signale encore les marqueurs manquants, sans échouer.
 3. Toute décision structurante est écrite (ici ou dans `docs/mvp/decisions.md`).
@@ -231,7 +231,8 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
   avant recherche · **D30** coordonnées dans la messagerie · **D35** saisie libre d'e-mails ·
   **D36** langue du backoffice · **D61** points restants · **D14** abonnement.
 - **D71 tranchée (2026-10-18)** : revues sécurité et RGPD (vetos, I-4) bloquantes sur la seule
-  branche `production` ; `main` et `staging` se construisent et se déploient sans elles.
+  branche `production` ; `main` et `staging` se construisent et se déploient sans elles. `production`
+  (créée le 2026-10-19, sans protection GitHub) n'avance que par `git merge --no-ff main`.
 - **D70 tranchée (2026-10-18)** : `staging` ouvert sans restriction (risque accepté), domaine
   d'envoi `influx.cadaero.ovh`, CLI Railway sur un jeton limité à `staging` (production hors
   d'atteinte du poste) ; reste : mécanisme technique (`architecte`).
