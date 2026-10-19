@@ -34,7 +34,15 @@ if ([process.env.INFLUX_ENV, process.env.NODE_ENV].includes("production")) {
 /** The part of an environment URL that is not secret: its host, or its project ref. */
 function hostOf(variable: string): string {
   const value = process.env[variable];
-  return value === undefined || value === "" ? "" : new URL(value).hostname;
+  if (value === undefined || value === "") {
+    return "";
+  }
+  try {
+    return new URL(value).hostname;
+  } catch {
+    // Never the TypeError of new URL(): it carries the input, a password included (D70 S2).
+    throw new Error(`${variable} is not a valid URL (value not shown)`);
+  }
 }
 
 const { values } = parseArgs({

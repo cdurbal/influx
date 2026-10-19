@@ -60,6 +60,11 @@ const POOLER_APP_URL =
 const POOLER_AUTH_URL =
   "postgresql://influx_auth_login.abcdefghijklmnop:pass@aws-0-eu-west-3.pooler.supabase.com:6543/postgres";
 
+/** A pooler URL of the project of HOSTED_SUPABASE_URL, for `role` (`project`: another one). */
+function hostedUrl(role: string, project = "abcdefghijklmnop"): string {
+  return `postgresql://${role}.${project}:pass@aws-0-eu-west-3.pooler.supabase.com:6543/postgres`;
+}
+
 /** The deployed environments of D70: they share every startup requirement (02 §12.4). */
 const DEPLOYED = ["staging", "production"] as const;
 type DeployedEnvironment = (typeof DEPLOYED)[number];
@@ -75,6 +80,9 @@ function deployedApiEnv(
     BREVO_API_KEY: "xkeysib-deployed-like-value",
     BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
     SUPABASE_URL: HOSTED_SUPABASE_URL,
+    DATABASE_URL: hostedUrl("influx_app"),
+    AUTH_DATABASE_URL: hostedUrl("influx_auth_login"),
+    OPS_DATABASE_URL: hostedUrl("influx_ops_login"),
     BREVO_WEBHOOK_PATH_TOKEN_CURRENT: "p".repeat(43),
     BREVO_WEBHOOK_SECRET_CURRENT: "s".repeat(43),
   };
@@ -93,7 +101,9 @@ function deployedWorkerEnv(
     SYNC_MODE: "live",
     SUPABASE_URL: HOSTED_SUPABASE_URL,
     SUPABASE_SECRET_KEY: TEST_SUPABASE_SECRET_KEY,
-    PRIVACY_DATABASE_URL: TEST_DATABASE_URLS.PRIVACY_DATABASE_URL,
+    WORKER_DATABASE_URL: hostedUrl("influx_worker_login"),
+    OPS_DATABASE_URL: hostedUrl("influx_ops_login"),
+    PRIVACY_DATABASE_URL: hostedUrl("influx_privacy_login"),
   };
 }
 
@@ -1093,6 +1103,62 @@ describe.each(DEPLOYED)(
         recipientFilter: { kind: "unrestricted" },
       });
       expect(config.database.privacy?.role).toBe("influx_privacy_login");
+    });
+
+    // D70 end-of-work review (S1): a .env.local half on the local stack never starts.
+    it("worker refuses a database on the loopback next to a hosted project", () => {
+      expect(
+        refusal(() =>
+          loadWorkerConfig({
+            ...deployedWorkerEnv(environment),
+            WORKER_DATABASE_URL: TEST_DATABASE_URLS.WORKER_DATABASE_URL,
+          }),
+        ),
+      ).toContain(
+        "WORKER_DATABASE_URL must reach a hosted Supabase project in a deployed environment, never the loopback",
+      );
+    });
+
+    it("worker refuses two Supabase projects", () => {
+      expect(
+        refusal(() =>
+          loadWorkerConfig({
+            ...deployedWorkerEnv(environment),
+            PRIVACY_DATABASE_URL: hostedUrl(
+              "influx_privacy_login",
+              "qrstuvwxyzabcdef",
+            ),
+          }),
+        ),
+      ).toContain(
+        "PRIVACY_DATABASE_URL names another Supabase project than the other variables",
+      );
+    });
+
+    it("worker refuses a SUPABASE_URL of another project than the databases", () => {
+      expect(
+        refusal(() =>
+          loadWorkerConfig({
+            ...deployedWorkerEnv(environment),
+            SUPABASE_URL: "https://qrstuvwxyzabcdef.supabase.co",
+          }),
+        ),
+      ).toContain(
+        "SUPABASE_URL must be the origin of the Supabase project of the database variables",
+      );
+    });
+
+    it("api refuses a database on the loopback", () => {
+      expect(
+        refusal(() =>
+          loadApiConfig({
+            ...deployedApiEnv(environment),
+            DATABASE_URL: TEST_DATABASE_URLS.DATABASE_URL,
+          }),
+        ),
+      ).toContain(
+        "DATABASE_URL must reach a hosted Supabase project in a deployed environment, never the loopback",
+      );
     });
 
     it.each(API_DEPLOYED_CASES)("api refuses %s", (_case, change, issue) => {

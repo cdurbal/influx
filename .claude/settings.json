@@ -25,7 +25,11 @@
       "Bash(git push --force*)", "Bash(pnpm exec supabase db push*)",
       "Bash(git checkout demo*)", "Bash(git merge demo*)",
       "Bash(railway * -e production*)", "Bash(railway * --environment production*)",
-      "Bash(railway up*)", "Bash(* --env production*)"
+      "Bash(railway up*)", "Bash(* --env production*)",
+      "Bash(railway *production*)", "Bash(railway run*)", "Bash(railway shell*)",
+      "Bash(railway environment*)", "Bash(railway link*)",
+      "Bash(git push *production*)", "Bash(git merge *production*)",
+      "Read(./.operator-secrets/**)", "Bash(*.operator-secrets/*)"
     ]
   }
 }

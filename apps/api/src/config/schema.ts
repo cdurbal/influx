@@ -311,13 +311,31 @@ export function checkDatabaseUrl(
 }
 
 type DatabaseEnv = Partial<Record<DatabaseUrlVariable, string>> & {
+  INFLUX_ENV: InfluxEnvironment;
+  SUPABASE_URL?: string | undefined;
   RAILWAY_ENVIRONMENT_NAME?: string | undefined;
   DATABASE_CA_CERT?: string | undefined;
 };
 
 /**
+ * The Supabase project a URL names: `<ref>` of a pooler user `<role>.<ref>`, of a direct host
+ * `db.<ref>.supabase.co` or of an API origin `https://<ref>.supabase.co`; null otherwise.
+ */
+function supabaseProjectOf(url: URL, user: string): string | null {
+  const separator = user.indexOf(".");
+  if (separator !== -1) {
+    return user.slice(separator + 1);
+  }
+  const host = /^(?:db\.)?([a-z0-9]+)\.supabase\.co$/.exec(url.hostname);
+  return host?.[1] ?? null;
+}
+
+/**
  * Startup refusals of EC-20: exact role per URL, never two URLs of one process with the same
- * user, and on Railway no database variable reserved to another service (18 T4.6 a to d).
+ * user, and on Railway no database variable reserved to another service (18 T4.6 a to d). In a
+ * deployed environment (D70 end-of-work review, S1), never the loopback and ONE Supabase project
+ * for every URL and SUPABASE_URL: a .env.local half on the local stack would otherwise send for
+ * real from the local queue, and purge the staging GoTrue against a local account table.
  */
 function checkDatabaseVariables(
   env: DatabaseEnv,
@@ -327,6 +345,8 @@ function checkDatabaseVariables(
 ): void {
   const read = [...required, ...optional];
   const users = new Map<string, DatabaseUrlVariable>();
+  const isDeployed = isDeployedEnvironment(env.INFLUX_ENV);
+  const projects = new Set<string>();
   for (const variable of read) {
     const value = env[variable];
     if (value === undefined) {
@@ -358,6 +378,38 @@ function checkDatabaseVariables(
       continue;
     }
     users.set(check.user, variable);
+    if (isDeployed) {
+      const url = new URL(value);
+      const project = supabaseProjectOf(url, check.user);
+      if (LOOPBACK_HOSTS.has(url.hostname) || project === null) {
+        context.addIssue({
+          code: "custom",
+          path: [variable],
+          message:
+            "must reach a hosted Supabase project in a deployed environment, never the loopback",
+        });
+      } else if (projects.size > 0 && !projects.has(project)) {
+        context.addIssue({
+          code: "custom",
+          path: [variable],
+          message: "names another Supabase project than the other variables",
+        });
+      } else {
+        projects.add(project);
+      }
+    }
+  }
+  if (isDeployed && env.SUPABASE_URL !== undefined) {
+    const supabase = new URL(env.SUPABASE_URL);
+    const project = supabaseProjectOf(supabase, "");
+    if (project === null || (projects.size > 0 && !projects.has(project))) {
+      context.addIssue({
+        code: "custom",
+        path: ["SUPABASE_URL"],
+        message:
+          "must be the origin of the Supabase project of the database variables",
+      });
+    }
   }
   // On Railway, a variable of another service is a misconfiguration that would otherwise go
   // unnoticed. Locally (shared .env.local), it is tolerated and simply never read (T4.6 d).
