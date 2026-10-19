@@ -92,8 +92,10 @@ Ces constats **soldent les critères `staging` des J6, J7 et J8** (`21` §5) : l
      `leads.sync_settings` complets. Lancé par l'agent avant et après chaque changement.
    - `trial:record` : conservé pour `development` ou retiré (`architecte`) ; les échanges réels se
      constatent désormais sur `staging`.
-4. **Bascule de `staging`** (agent `integrateur`, sans code ; après le déploiement du commit 1 et
-   P2) :
+4. [x] **Bascule de `staging`** (agent `integrateur`, sans code ; après le déploiement du commit 1 et
+   P2). *Fait le 2026-10-19, points 1 à 4 ; points 5 et 6 : constats d'un testeur interne.*
+   Leçon : `railway redeploy` rejoue le commit du dernier déploiement (ici antérieur au commit 1,
+   refus de démarrer) ; utiliser `railway redeploy --from-source`.
    1. `staging:check` à l'état initial ;
    2. expéditeurs basculés de `@cadaero.com` vers `@influx.cadaero.ovh` (expéditeur créé dans le
       compte Brevo de `staging` par API, puis `.env.local`) ; variables Railway : `api` →

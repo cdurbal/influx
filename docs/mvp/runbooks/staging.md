@@ -254,8 +254,9 @@ de configuration locale, **jamais en retirant une variable de Railway**) ; `stag
 
 ## 10. Retour à la version précédente (02 §20.7 point 5)
 
-1. Railway › service › Deployments : *Redeploy* du dernier déploiement sain, ou
-   `railway redeploy -s <service> -e staging`. `api` et `worker` partagent le même code : les revenir
+1. Railway › service › Deployments : *Redeploy* du dernier déploiement sain. Attention :
+   `railway redeploy -s <service> -e staging` rejoue le commit du **dernier** déploiement, même
+   `SKIPPED` ; pour déployer le dernier `main`, `railway redeploy --from-source`. `api` et `worker` partagent le même code : les revenir
    **ensemble**.
 2. Une migration n'est **jamais** annulée par un retour de code (migrations additives). Sinon,
    migration corrective, jamais la modification d'une migration appliquée (EC-37).
