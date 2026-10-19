@@ -1,4 +1,4 @@
-// One-time secrets of the operator scripts of staging (docs/mvp/jalons/d70-plan.md, commit 3): the
+// One-time secrets of the operator scripts of staging (docs/mvp/archives/jalons/d70-plan.md, commit 3): the
 // passwords and activation links of the demonstration accounts, the passwords of the connection
 // roles. They are NEVER printed (the output of an agent's command lands in its conversation): they
 // are written to a file of OPERATOR_SECRETS_DIRECTORY, readable by its owner only, and the file is

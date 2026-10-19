@@ -1,4 +1,4 @@
-// D70 commit 3 (docs/mvp/jalons/d70-plan.md): the pure part of `staging:check`, without network —
+// D70 commit 3 (docs/mvp/archives/jalons/d70-plan.md): the pure part of `staging:check`, without network —
 // the closed list of the runbook, the names of `railway variables --json`, their comparison, the
 // modes, leads.sync_settings (05 RG162), and the rule that no verdict ever carries a value.
 import { readFileSync } from "node:fs";

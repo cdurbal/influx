@@ -1173,7 +1173,7 @@ Ouvrir un e-mail de prospection ne vaut ni accord, ni intérêt légitime, ni au
 > production) **inchangée** ; RG116, RG117 et RG119 ne visent plus que la pile locale, la CI et les
 > tests ; RG118 (bandeau) **inchangée** ; RG120 : un envoi réel depuis `staging` n'est plus un
 > incident, en restent un l'envoi réel depuis la CI, un test ou la pile locale, et toute clé de
-> production hors production ; RG148 **inchangée**. Exécution : `jalons/d70-plan.md`.
+> production hors production ; RG148 **inchangée**. Exécution : `archives/jalons/d70-plan.md`.
 >
 > **Un e-mail réellement envoyé depuis `staging` est un incident**, et A4 a aggravé le risque :
 > le backoffice peut désormais déclencher des envois de masse. Ce qui suit n'est pas une

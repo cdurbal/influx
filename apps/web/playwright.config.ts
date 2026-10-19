@@ -1,4 +1,4 @@
-// The browser journeys of the J5 (docs/mvp/21 §J5 "Tests"; jalons/j5-fiche.md, commit 6): the two
+// The browser journeys of the J5 (docs/mvp/21 §J5 "Tests"; archives/jalons/j5-fiche.md, commit 6): the two
 // nominal sign-ups, one per door, and the D66 rules that only a real browser shows (reload, change
 // of language, the resume that gives up); since J7 "mon compte", since J8 the backoffice v0
 // (e2e/backoffice.spec.ts). Everything runs on the loopback, against the local Supabase stack: the

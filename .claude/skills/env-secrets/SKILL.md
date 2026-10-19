@@ -164,7 +164,7 @@ processus HTTP n'appelle que l'envoi transactionnel unitaire (garde statique).
 |---|---|---|---|
 | `BREVO_API_KEY` | Clé d'accès | La clé de production en production seule | Rotation planifiée, **deux clés acceptées pendant la bascule**. `staging` : clé du **compte Brevo de `staging`** (D70), aussi dans `.env.local`. Tests et CI : aucune (doublure) |
 | `BREVO_API_BASE_URL` | Adresse de base | Tous | Permet de pointer la **doublure de test** hors environnement déployé (`16` RG148) |
-| `BREVO_MODE` (`disabled` \| `redirect` \| `live`) | Mode d'envoi | Tous | **Cible D70** : `live` en `staging` comme en production ; `disabled`/`redirect` réservés à la pile locale et aux tests. **Aujourd'hui, et jusqu'au commit 1 de `jalons/d70-plan.md`** : `live` refusé hors production (RG116) |
+| `BREVO_MODE` (`disabled` \| `redirect` \| `live`) | Mode d'envoi | Tous | **Cible D70** : `live` en `staging` comme en production ; `disabled`/`redirect` réservés à la pile locale et aux tests. **Aujourd'hui, et jusqu'au commit 1 de `archives/jalons/d70-plan.md`** : `live` refusé hors production (RG116) |
 | `BREVO_TEST_RECIPIENTS` | Liste **fermée** d'adresses internes | Pile locale et tests (cible D70) | **Obligatoire si `redirect`** ; substitution au dernier moment, journalisée (RG117) ; refusée en `staging` après la bascule |
 | `BREVO_WEBHOOK_SECRET_CURRENT` / `_PREVIOUS` | Jeton de l'en-tête `brevo-webhook-token` (43 à 128 car. base64url) | `api` seul ; **requis en production**, optionnels en staging (webhook fermé si absents) | **`_PREVIOUS` seulement pendant la rotation** (RG146-1). Comparaison en temps constant ; `_CURRENT` et le jeton de chemin vont ensemble ; valeurs toutes distinctes entre elles et des autres secrets |
 | `BREVO_WEBHOOK_PATH_TOKEN_CURRENT` / `_PREVIOUS` | Segment non devinable du chemin (exactement 43 car. base64url) | `api` seul, idem | Roté **avec** le jeton d'en-tête. Routage seulement (Railway journalise les chemins). Jamais publié |
@@ -300,7 +300,7 @@ pas un environnement de test, c'est la fenêtre à deux clés.**
 > et 3 levés pour `staging`**, conservés pour la pile locale, la CI et les tests ; **verrou 4
 > inchangé**. Un envoi réel depuis `staging` n'est plus un incident ; en sont un : un envoi réel
 > depuis la CI, un test ou la pile locale, et toute clé de production hors production. Le texte
-> ci-dessous décrit l'état d'avant la bascule (commit 1 de `jalons/d70-plan.md`) et reste vrai
+> ci-dessous décrit l'état d'avant la bascule (commit 1 de `archives/jalons/d70-plan.md`) et reste vrai
 > pour la pile locale et la CI.
 
 Trois verrous protègent **l'envoi** (`02` §12.4), un quatrième protège **les données**

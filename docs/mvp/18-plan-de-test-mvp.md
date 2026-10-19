@@ -792,7 +792,7 @@ sans supposer ; soumises à `expert-cybersecurite`, §9.1 C-3) :
 ### T17 — Garde-fou `staging`
 
 > **D70 (2026-10-18), matrice par environnement** (`apps/api/tests/config.test.ts`, commit 1 de
-> `jalons/d70-plan.md`). `INFLUX_ENV` vaut `development` (pile locale, CI, tests : verrous 2 et 3,
+> `archives/jalons/d70-plan.md`). `INFLUX_ENV` vaut `development` (pile locale, CI, tests : verrous 2 et 3,
 > doublure), `staging` ou `production`. Les deux dernières forment « l'environnement déployé »
 > (`isDeployedEnvironment`, un seul prédicat) : `staging` refuse **exactement** ce que refuse la
 > production, et les cas ci-dessous qui disent « hors production » s'entendent « hors environnement

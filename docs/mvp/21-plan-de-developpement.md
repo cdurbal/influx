@@ -15,7 +15,7 @@
 
 | Niveau | Ce qui est vrai | Dépend de |
 |---|---|---|
-| **Prêt en `staging` (démontrable)** | Les deux inscriptions fonctionnent sur `staging` avec des testeurs internes ; *depuis D70 (2026-10-18)*, `staging` se comporte comme la production : codes et bienvenue réellement envoyés, contacts réels dans les **comptes Brevo et Apollo de `staging`** (plan `jalons/d70-plan.md`) | Le développement seul, exploité par les agents |
+| **Prêt en `staging` (démontrable)** | Les deux inscriptions fonctionnent sur `staging` avec des testeurs internes ; *depuis D70 (2026-10-18)*, `staging` se comporte comme la production : codes et bienvenue réellement envoyés, contacts réels dans les **comptes Brevo et Apollo de `staging`** (plan `archives/jalons/d70-plan.md`) | Le développement seul, exploité par les agents |
 | **Prêt en production (ouvert au public)** | Idem en production, avec désinscriptions dans les deux sens, backoffice de supervision, surveillance active, documents légaux | J7 à J9 **et** des portes non techniques : société créée (D25), validation du juriste sur Apollo (D33), CGU (D29), domaines d'envoi authentifiés (§5.8) |
 
 **Le chemin : dix jalons.**
@@ -68,7 +68,7 @@
 |---|---|---|---|---|
 | **Base** | Pile Supabase locale (`supabase start`, Docker) : Postgres + GoTrue | Pile Supabase locale jetable | Projet Supabase `staging` (UE) | Projet Supabase `production` (D25, PITR D57) |
 | **Données** | `supabase/seed` + saisies synthétiques | `supabase/seed` | `supabase/seed` **seul** (B9) | Réelles |
-| **Brevo** | Doublure (tests) ; `.env.local` = valeurs de `staging` (D70) | Doublure (`16` RG148) | **`live`, compte de `staging`**, domaine d'envoi propre (D70, après le commit 1 de `jalons/d70-plan.md`) | `live`, compte de production, 3 sous-domaines authentifiés |
+| **Brevo** | Doublure (tests) ; `.env.local` = valeurs de `staging` (D70) | Doublure (`16` RG148) | **`live`, compte de `staging`**, domaine d'envoi propre (D70, après le commit 1 de `archives/jalons/d70-plan.md`) | `live`, compte de production, 3 sous-domaines authentifiés |
 | **Apollo** | Doublure (tests) | Doublure | **`live`, compte de `staging`** (D70) | `live` après validation du juriste (D33) |
 
 ### 2.3 Stratégie de test & discipline de dépôt
@@ -302,14 +302,14 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 2. **En-têtes et CSP à nonce** par surface (`03` §6.5, T10) ; passe-plat complet (T7) ; erreurs sans détail (T13) ; limitation de débit (T15) ; analyse des artefacts (T11).
 3. **Surveillance active** (`02` §20.5 à §20.7) : alertes par e-mail, sonde du worker, écran « Santé technique », route `/health` publique (EC-22) ; préparation de `production` ; relectures humaines de `18` §10 « Lot 1 ».
 
-- [x] **Chantier D70** (fondateur, 2026-10-18) : `staging` iso-production et exploité par les agents, commits 0 à 5 de `jalons/d70-plan.md`, revue groupée du 2026-10-19 sans bloquant restant (correctifs S1 à S3 et T1, migration URL acceptée sous conditions dans D70, reports au Lot 6bis listés au point 5).
+- [x] **Chantier D70** (fondateur, 2026-10-18) : `staging` iso-production et exploité par les agents, commits 0 à 5 de `archives/jalons/d70-plan.md`, revue groupée du 2026-10-19 sans bloquant restant (correctifs S1 à S3 et T1, migration URL acceptée sous conditions dans D70, reports au Lot 6bis listés au point 5).
 - [x] Commit D70-0 (`464b7b8`) — gouvernance : règles d'écriture `staging` et interdits `production` dans `.claude/settings.json`, `02` §12.4 réécrit.
 - [x] Commit D70-1 (`11fce04`) — `INFLUX_ENV` `development`/`staging`/`production`, prédicat unique `isDeployedEnvironment` (`live`, listes refusées, exigences de production pour `staging`), filtre de destinataires résolu, bandeau RG118, T17 en matrice, garde RG148 ; `.env.local` au profil `staging`.
 - [x] Commit D70-3 — scripts d'exploitation sur `.env.local` (`--env-file`), secrets à usage unique dans `.operator-secrets/` (ignoré), `staging:check` (marqueur, noms Railway = liste fermée du runbook, modes `live`, RG162) ; `trial:record` gardé pour `development` (EC, sans `.env.local`). Premier passage KO attendu (commit 4).
 - [x] Commit D70-4 (sans code, 2026-10-19) — Railway : `INFLUX_ENV=staging` ×4, listes de développement retirées, `worker` complété ; `api`/`worker`/fronts redéployés depuis la source (`live`, `6a9cbb6`) ; webhooks Brevo transactionnel et marketing créés ; `apollo_prospecting_countries` = `["FR"]` (valeur de travail tant que D33 est ouverte) ; `staging:check` vert. Restent les constats du « Terminé quand » (inscription réelle d'un testeur interne).
 - [x] Commit D70-5 — documentation : runbook `staging` réécrit en procédure d'agent (fondateur : P2 à P5), `18` T17 aligné sur la matrice du commit 1 ; reste la revue groupée `expert-cybersecurite` + `testeur`.
 - [x] Commit 0 (`eec21bb`) — J6S-3 : ligne « without effect to audit » du pool `worker` en `debug` (≈ 35 k lignes/jour en `staging`) ; `staging` remis en marche (worker, région du backoffice) ; Watch Paths à corriger (fondateur).
-- [ ] À développer (D67, tranchée par `architecte` le 2026-10-17), trois commits, tous avant la mise en production : (a) migration des deux déclencheurs sur `leads.sync_settings` (garde RG163, journal `settings.changed` daté) ; (b) worker — contrat et ordre de RG164, codes d'échec RG160, `credentials_missing`, rattrapage RG161 dans E-3, contrôle de démarrage RG162 sur `isDeployedEnvironment` (D70, sans second prédicat ; après le commit 1 de `jalons/d70-plan.md`), `would_send` en `development` seulement ; (c) backoffice — causes, rejouabilité, compteurs, motif d'AL25 (`05` RG160 à RG164, TM1.11 à TM1.16). Écran des identifiants Brevo : hors J9 (option Lot 5).
+- [ ] À développer (D67, tranchée par `architecte` le 2026-10-17), trois commits, tous avant la mise en production : (a) migration des deux déclencheurs sur `leads.sync_settings` (garde RG163, journal `settings.changed` daté) ; (b) worker — contrat et ordre de RG164, codes d'échec RG160, `credentials_missing`, rattrapage RG161 dans E-3, contrôle de démarrage RG162 sur `isDeployedEnvironment` (D70, sans second prédicat ; après le commit 1 de `archives/jalons/d70-plan.md`), `would_send` en `development` seulement ; (c) backoffice — causes, rejouabilité, compteurs, motif d'AL25 (`05` RG160 à RG164, TM1.11 à TM1.16). Écran des identifiants Brevo : hors J9 (option Lot 5).
 
 ### 5.8 Portes de la mise en production
 
@@ -358,9 +358,9 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 
 | Avant | Lire uniquement |
 |---|---|
-| **J5** | **`jalons/j5-fiche.md` d'abord** (sections et lignes exactes) ; `05` §A à §E, §H, §L ; `17` §2.5, §2.6, §3 ; skill `design-system-influx` |
+| **J5** | **`archives/jalons/j5-fiche.md` d'abord** (sections et lignes exactes) ; `05` §A à §E, §H, §L ; `17` §2.5, §2.6, §3 ; skill `design-system-influx` |
 | **J6** | **`jalons/j6-fiche.md` d'abord** (sections et lignes exactes) ; `02` §6 et §11 ; `05` §I ; `16` §H, §J, §M ; skills `lead-pipeline`, `brevo-campaign`, `apollo-lead-sync` |
 | **J7** | `05` §F (RG54 à RG58), §J ; `16` §I et §M6 ; `17` §6 ; skills `lead-pipeline`, `brevo-campaign` |
 | **J8** | `git show a2ff7bc:docs/mvp/jalons/j8-fiche.md` (fiche archivée) ; `05` §K ; `15` §C, §F ; `17b` §3.11 et §3.13 ; skill `backoffice-ops` |
-| **D70** | **`jalons/d70-plan.md` d'abord** ; `02` §12.4 ; `03` §6.8 et T17 ; `16` §J ; skills `env-secrets`, `railway-deploy` |
+| **D70** | **`archives/jalons/d70-plan.md` d'abord** ; `02` §12.4 ; `03` §6.8 et T17 ; `16` §J ; skills `env-secrets`, `railway-deploy` |
 | **J9** | **`jalons/j9-fiche.md` d'abord** (sections et lignes exactes) ; `02` §13 et §20 ; `03` §6.5 ; `18` §5 et §10 « Lot 1 » |

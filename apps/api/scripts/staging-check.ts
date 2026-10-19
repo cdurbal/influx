@@ -1,4 +1,4 @@
-// `pnpm --filter @influx/api staging:check` (docs/mvp/jalons/d70-plan.md, commit 3): is staging
+// `pnpm --filter @influx/api staging:check` (docs/mvp/archives/jalons/d70-plan.md, commit 3): is staging
 // configured as production is (D70)? Run by the agent before and after every change of staging.
 // Reads apps/api/.env.local (values of staging, --env-file), the Railway variables of the four
 // services of staging (`railway variables -s <service> -e staging --json`, the CLI on the token

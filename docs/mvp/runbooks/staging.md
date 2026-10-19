@@ -4,7 +4,7 @@
 > production** (envois réels, listes Brevo, contacts Apollo, mêmes exigences de démarrage) et **les
 > agents l'exploitent eux-mêmes** : variables, réglages et redéploiements Railway, Supabase,
 > environnement GitHub `staging`, comptes Brevo et Apollo de `staging`. Décision : `decisions.md`
-> D70 ; mécanisme : `02` §12.4 ; plan : `jalons/d70-plan.md`.
+> D70 ; mécanisme : `02` §12.4 ; plan : `archives/jalons/d70-plan.md`.
 >
 > **Hors de la portée de l'agent (confirmation du fondateur)** : toute action sur la production,
 > lecture comprise ; création ou suppression d'un projet, d'un environnement ou d'un service ;

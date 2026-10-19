@@ -1,4 +1,4 @@
-// The pure part of `pnpm --filter @influx/api staging:check` (docs/mvp/jalons/d70-plan.md, commit 3):
+// The pure part of `pnpm --filter @influx/api staging:check` (docs/mvp/archives/jalons/d70-plan.md, commit 3):
 // no network, no file, unit-tested (tests/staging-check.test.ts). It reads the closed list of the
 // runbook, turns the JSON of `railway variables --json` into NAMES, and judges the modes and the
 // settings. Nothing here returns a value: a verdict names a variable or a setting, never what it

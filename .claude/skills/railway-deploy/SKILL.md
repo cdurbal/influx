@@ -58,7 +58,7 @@ portant `-e staging` qui lit ou configure (variables, réglages), `railway redep
 `railway domain` sur un service de `staging`, et `railway api` avec
 `--raw-var e=1e43a0b9-c02a-460b-9d29-41fd2f7fe41b` (réglages sans commande dédiée : *Watch Paths*,
 *Restart Policy*, *Draining*). Règles de permission : `.claude/settings.local.json` du poste
-aujourd'hui, `.claude/settings.json` après le commit 0 de `jalons/d70-plan.md` ; une commande par
+aujourd'hui, `.claude/settings.json` après le commit 0 de `archives/jalons/d70-plan.md` ; une commande par
 appel, sans pipe, sinon la règle ne s'applique pas. Un secret n'est jamais tapé ni affiché par
 l'agent : il passe par `--stdin` depuis `apps/api/.env.local` (valeurs de `staging`) ou depuis un
 générateur. **Depuis le 2026-10-18, la CLI tourne sur un jeton de projet limité à `staging`**

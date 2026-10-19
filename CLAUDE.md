@@ -20,7 +20,7 @@ d'abord, puis dans le code.
 | Sujet | Document |
 |---|---|
 | Registre des décisions D1 à D70 (statut, détail) | `docs/mvp/decisions.md` |
-| `staging` iso-production, autonomie des agents (D70) | `docs/mvp/jalons/d70-plan.md`, `docs/mvp/runbooks/staging.md` |
+| `staging` iso-production, autonomie des agents (D70) | `docs/mvp/archives/jalons/d70-plan.md`, `docs/mvp/runbooks/staging.md` |
 | Périmètre et lots du MVP | `docs/mvp/00-cadrage-mvp-v2.md` |
 | Régime courté, commission au MVP | `docs/mvp/01-intermediation-courtee.md` |
 | Architecture, 3 espaces, surveillance (§20), envoi du code (§18.10) | `docs/mvp/02-architecture-3-espaces.md` |
@@ -215,8 +215,8 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
   par défaut, RG83).
 - **`staging` = production** (D70) : envois réels, listes Brevo et contacts Apollo, mêmes exigences
   de démarrage ; seules différences : `INFLUX_ENV`, comptes et clés propres à `staging`, domaine
-  d'envoi propre, `noindex`, bandeau, données synthétiques. Bascule en cours (`jalons/d70-plan.md`) :
-  le code refuse encore `live` hors production jusqu'au commit 1 du plan.
+  d'envoi propre, `noindex`, bandeau, données synthétiques. Bascule faite (D70 close le
+  2026-10-19, plan archivé `docs/mvp/archives/jalons/d70-plan.md`) : `live` accepté en `staging`.
 - **`.env.local` = valeurs de `staging`, et uniquement `staging`** (D70, amende D62) : lisible et
   utilisable par tous les agents ; jamais une valeur de production ; jamais une valeur recopiée
   dans une réponse, un document, un commit ou un journal ; jamais chargé par un test automatisé

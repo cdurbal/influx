@@ -1305,7 +1305,7 @@ une différence de la liste fermée de D70.
    propre domaine d'envoi, jamais l'un des trois sous-domaines de production (`16` RG9) ; la CI et
    les tests n'ont aucune clé et restent sur la doublure (`16` RG148). Ce verrou est d'exploitation :
    le prédicat ne lit ni ne relâche aucune clé, et le poste n'atteint pas la production (jeton
-   Railway limité à `staging`, `jalons/d70-plan.md` P3).
+   Railway limité à `staging`, `archives/jalons/d70-plan.md` P3).
 2. **Mode explicite — `development` seul.** `BREVO_MODE=disabled` par défaut ;
    `SYNC_MODE=dry_run` par défaut : le connecteur **n'appelle rien**, marque la ligne `succeeded`
    avec `dry_run: true` et journalise ce qu'il aurait envoyé.

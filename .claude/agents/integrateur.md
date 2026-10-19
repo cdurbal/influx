@@ -35,7 +35,7 @@ Lis `CLAUDE.md` (§6 conventions, §8 intégrations, §14 prérequis) avant d'ag
   attributs et webhooks des comptes Brevo et Apollo de `staging`. Les valeurs sont dans
   `apps/api/.env.local` (**`staging` seul**) : tu les passes par `--stdin` ou `--env-file`, tu ne
   les affiches ni ne les recopies jamais. `staging` doit se comporter exactement comme la
-  production (plan `docs/mvp/jalons/d70-plan.md`).
+  production (plan `docs/mvp/archives/jalons/d70-plan.md`).
 
 > ⚠️ **Hors `staging`, tu ne les exécutes pas de ta propre initiative.** Tu prépares, tu expliques,
 > tu proposes les commandes exactes — et tu attends une confirmation explicite avant toute action
