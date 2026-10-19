@@ -113,10 +113,22 @@ Ces constats **soldent les critères `staging` des J6, J7 et J8** (`21` §5) : l
    **Retour arrière** : après le commit 1, remettre seulement les variables en `dry_run` /
    `disabled` fait refuser le démarrage ; il faut revenir au commit précédent (procédure du
    runbook), puis aux variables d'avant.
-5. **Documentation et revue** — runbook `staging` réécrit en procédure d'agent (les étapes du
+5. [x] **Documentation et revue** — runbook `staging` réécrit en procédure d'agent (les étapes du
    fondateur ne gardent que P2 à P5) ; `18` T17 aligné sur la matrice ; ligne de clôture dans `21`
    (J9) ; `pnpm docs:index`. **Revue groupée `expert-cybersecurite` + `testeur`** en fin de chantier
-   (marqueur `security-reviewed:` sur le commit 1).
+   (marqueur `security-reviewed:` sur le commit 1). *Faite le 2026-10-19, aucun bloquant restant
+   après correctifs :* S1 configuration déployée refusant la boucle locale et deux projets
+   Supabase ; S2 URL mal formée jamais recopiée par les scripts ; S3 règles `deny` étendues
+   (`railway run|shell|environment|link`, `production` dans toute commande `railway`,
+   `git push|merge` vers `production`, `.operator-secrets/`) ; T1 contrôle T17.4 et tests des
+   gardes de scripts. T17.1 : `development` couvert, `credentials_missing` au commit (b) de D67.
+   `INFLUX_STAGING_MIGRATION_URL` acceptée sous conditions (D70). Reportés au Lot 6bis :
+   `RAILWAY_PROJECT_ID` dans le refus de `development` ; contreparties du risque (a) (purge des
+   comptes externes, mention « environnement de test », renvoi `expert-conformite-rgpd`) ; rôle
+   `influx_staging_operator` ; liste des fichiers de harnais de `env-local-guard.test.ts` par
+   motif ; tests processus de `staging:check` et de `main.ts` sans `BREVO_MODE` ; audit du
+   script `staging:reset-internal-account`. Reste au fondateur, avant toute entrée dans
+   `production` : confirmer que `/.env` et `apps/api/.env` ne portent aucune valeur de production.
 
 ## Agents et questions posées
 
