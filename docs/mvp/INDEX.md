@@ -588,14 +588,14 @@
 | 2032 | 82 | 7. Incohérences relevées, écarts d'implémentation, points à valider | RG4–RG126 |
 | 2114 | 61 | 8. Récapitulatif — les écrans spécifiés |  |
 
-## 18-plan-de-test-mvp.md (~42k tokens)
+## 18-plan-de-test-mvp.md (~43k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
 | 30 | 23 | 0. Ce qu'il faut retenir si l'on ne lit qu'une page |  |
 | 53 | 41 | 1. En-tête : portée, public, limites |  |
 | 94 | 136 | 2. Les zones critiques, par gravité décroissante |  |
-| 230 | 603 | 3. Les tests exigés par `expert-cybersecurite`, traduits en cas exécutables | RG116 |
+| 230 | 619 | 3. Les tests exigés par `expert-cybersecurite`, traduits en cas exécutables | RG116–RG148 |
 | 282 | 47 | ↳ T1 — Anonymisation de bout en bout, sur la charge utile brute |  |
 | 329 | 89 | ↳ T2 — RLS par rôle et par table, et échec de la CI sur toute table non déclarée |  |
 | 418 | 56 | ↳ T3 — Inviolabilité du registre et détection d'altération de chaîne |  |
@@ -612,16 +612,16 @@
 | 727 | 14 | ↳ T14 — Références directes non contrôlées (IDOR) |  |
 | 741 | 14 | ↳ T15 — Limitation de débit |  |
 | 755 | 37 | ↳ T16 — Aucun calcul de commission |  |
-| 792 | 30 | ↳ T17 — Garde-fou `staging` | RG116 |
-| 822 | 11 | ↳ 3.1 Récapitulatif des contrôles X1 à X4 |  |
-| 833 | 188 | 4. Les tests métier, en complément des 17 | RG160–RG164 |
-| 1021 | 37 | 5. Le sort des gardes existantes de `apps/web` |  |
-| 1058 | 149 | 6. Le corpus de test de la détection de coordonnées |  |
-| 1207 | 43 | 7. Le parcours de bout en bout du Lot 6 |  |
-| 1250 | 23 | 8. Ce qui n'est pas couvert, et pourquoi |  |
-| 1273 | 57 | 9. Ce qui remonte |  |
-| 1330 | 153 | 10. La définition du « prêt à livrer », lot par lot | RG162 |
-| 1483 | 25 | 11. Verdict |  |
+| 792 | 46 | ↳ T17 — Garde-fou `staging` | RG116–RG148 |
+| 838 | 11 | ↳ 3.1 Récapitulatif des contrôles X1 à X4 |  |
+| 849 | 188 | 4. Les tests métier, en complément des 17 | RG160–RG164 |
+| 1037 | 37 | 5. Le sort des gardes existantes de `apps/web` |  |
+| 1074 | 149 | 6. Le corpus de test de la détection de coordonnées |  |
+| 1223 | 43 | 7. Le parcours de bout en bout du Lot 6 |  |
+| 1266 | 23 | 8. Ce qui n'est pas couvert, et pourquoi |  |
+| 1289 | 57 | 9. Ce qui remonte |  |
+| 1346 | 153 | 10. La définition du « prêt à livrer », lot par lot | RG162 |
+| 1499 | 25 | 11. Verdict |  |
 
 ## 19-revue-de-coherence-2026-09-24.md (~5k tokens)
 
@@ -658,7 +658,7 @@
 | 53 | 39 | 2. Stratégie de développement | RG44–RG148 |
 | 92 | 23 | 3. Écarts actifs pour les jalons restants (J5 à J9) | RG23–RG146 |
 | 115 | 43 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 158 | 171 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG164 |
-| 329 | 9 | 6. Configuration des services externes |  |
-| 338 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 355 | 11 | 8. Guide de lecture par jalon | RG54–RG58 |
+| 158 | 172 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG164 |
+| 330 | 9 | 6. Configuration des services externes |  |
+| 339 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 356 | 11 | 8. Guide de lecture par jalon | RG54–RG58 |

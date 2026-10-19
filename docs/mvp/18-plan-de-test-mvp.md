@@ -791,10 +791,26 @@ sans supposer ; soumises à `expert-cybersecurite`, §9.1 C-3) :
 
 ### T17 — Garde-fou `staging`
 
-> **D70 (2026-10-18).** T17 devient une matrice par environnement : la pile locale et les tests
-> (`INFLUX_ENV=development`, mécanisme à confirmer) gardent les quatre verrous ci-dessous ;
-> `staging` refuse exactement ce que refuse la production ; un cas vérifie qu'aucun script de test
-> ne charge `.env.local`. Réécriture au commit 1 de `jalons/d70-plan.md`.
+> **D70 (2026-10-18), matrice par environnement** (`apps/api/tests/config.test.ts`, commit 1 de
+> `jalons/d70-plan.md`). `INFLUX_ENV` vaut `development` (pile locale, CI, tests : verrous 2 et 3,
+> doublure), `staging` ou `production`. Les deux dernières forment « l'environnement déployé »
+> (`isDeployedEnvironment`, un seul prédicat) : `staging` refuse **exactement** ce que refuse la
+> production, et les cas ci-dessous qui disent « hors production » s'entendent « hors environnement
+> déployé » (`development`). `skipped_non_production` n'est atteignable qu'en `development`.
+>
+> | Cas | `development` | `staging` et `production` (même cas, mêmes refus) |
+> |---|---|---|
+> | `BREVO_MODE` | `disabled` par défaut, `redirect` avec `BREVO_TEST_RECIPIENTS`, `live` accepté vers la doublure | `live` exigé : `disabled`, absent, `redirect` ⇒ refus |
+> | `BREVO_TEST_RECIPIENTS`, `NON_PRODUCTION_RECIPIENT_ALLOWLIST` | acceptées (verrous 2 et 3) | **refusées**, jamais ignorées |
+> | `SYNC_MODE` | `dry_run` par défaut ; `live` exige la liste blanche | `live` exigé, y compris variable absente (T17.5) |
+> | `BREVO_API_BASE_URL`, origines publiques, `SUPABASE_URL` | doublure locale et `http` acceptées | URL officielle Brevo et origines `https` exigées |
+> | Secrets du webhook, `PRIVACY_DATABASE_URL`, paire de purge GoTrue | facultatifs | exigés |
+> | `INFLUX_ENV=development` sur Railway | refusé (un service déployé ne se relâche pas par une variable) | — |
+>
+> Tests : `describe.each` des deux environnements déployés (config complète acceptée, un cas par
+> variable retirée ou ajoutée), comparaison `staging` = `production` sur les mêmes cas, démarrage
+> refusé au niveau du processus pour les deux (T17.5, T17.10), et une garde (`16` RG148) vérifiant
+> qu'aucun script `test`, `test:db` ou e2e ne charge `.env.local`.
 
 **Deux moitiés.** Les **refus de démarrage** (T17.5 à T17.10) sont en place depuis le J1 (`21` §4,
 J1-D point 3 ; `apps/api/tests/config.test.ts`). Les **verrous d'exécution** (T17.1 à T17.4) arrivent
@@ -803,14 +819,14 @@ authentifiés) exige un appel à Brevo, doublé en test : elle entre au J9.
 
 | Cas | Ce qu'il vérifie |
 |---|---|
-| **T17.1** | **Verrou 1** — les clés de production ne sont pas présentes en `staging` ; pas de clé Apollo du tout ⇒ statut `skipped_no_credentials` |
-| **T17.2** | **Verrou 2** — `SYNC_MODE=dry_run` : aucun appel sortant, ligne marquée `succeeded` avec `dry_run: true`, contenu journalisé |
-| **T17.3** | **Verrou 3** — liste blanche de destinataires évaluée **au connecteur, après tout le mappage**, en condition **positive** ; toute adresse hors liste ⇒ `skipped_non_production` |
-| **T17.4** | **Verrou 4 (B9)** — aucune donnée de production dans `staging` : le jeu de données provient exclusivement de `supabase/seed`, et un contrôle échoue si une adresse ne se termine pas par un domaine de test réservé |
-| **T17.5** | Symétrie : le worker **refuse de démarrer** si `INFLUX_ENV=production` et `SYNC_MODE=dry_run`, **y compris quand `SYNC_MODE` est absent** (la valeur par défaut `dry_run` ne passe pas en production) |
-| **T17.6** | **Mode Brevo (`api` et `worker`, `16` RG116).** `BREVO_MODE=live` hors production ⇒ refus ; en production, toute autre valeur que `live` (`disabled`, `redirect`, variable absente) ⇒ refus ; `redirect` sans `BREVO_TEST_RECIPIENTS` ⇒ refus. Contre-tests : `live` accepté en production ; `disabled` par défaut hors production |
-| **T17.7** | **Synchronisation hors production (`worker`).** `SYNC_MODE=live` hors production avec `NON_PRODUCTION_RECIPIENT_ALLOWLIST` vide ⇒ refus. Contre-test : accepté avec une liste de domaines |
-| **T17.8** | **Secret interne par front (`api`, J1-G) et environnement.** Secret absent, de moins de **32 octets** (comptés en octets, pas en caractères), ou **identique pour `web` et `backoffice`** ⇒ refus. `INFLUX_ENV` absent ou hors `staging` / `production` ⇒ refus |
+| **T17.1** | **Verrou 1** — aucune clé de production hors production ; en `development`, pas de clé Apollo ⇒ `skipped_no_credentials` (en environnement déployé, D67 : `credentials_missing`, `TM1.15`) |
+| **T17.2** | **Verrou 2 (`development`)** — `SYNC_MODE=dry_run` : aucun appel sortant, ligne marquée `succeeded` avec `dry_run: true`, contenu journalisé. Refusé en `staging` et en `production` |
+| **T17.3** | **Verrou 3 (`development`)** — liste blanche de destinataires évaluée **au connecteur, après tout le mappage**, en condition **positive** ; toute adresse hors liste ⇒ `skipped_non_production`. Inatteignable en `staging` et en `production` (filtre non restreint, liste refusée) |
+| **T17.4** | **Verrou 4 (B9)** — aucune donnée de production dans `staging` : le jeu de données provient exclusivement de `supabase/seed` et de `db:staging-demo-accounts`, et un contrôle échoue si une adresse ne se termine pas par un domaine de test réservé (hors adresses de testeurs internes posées par l'agent) |
+| **T17.5** | Symétrie : le worker **refuse de démarrer** si `INFLUX_ENV` vaut `staging` ou `production` et `SYNC_MODE=dry_run`, **y compris quand `SYNC_MODE` est absent** (la valeur par défaut `dry_run` ne passe pas en environnement déployé) |
+| **T17.6** | **Mode Brevo (`api` et `worker`, `16` RG116).** En `staging` comme en `production`, toute autre valeur que `live` (`disabled`, `redirect`, variable absente) ⇒ refus ; `BREVO_TEST_RECIPIENTS` présente ⇒ refus. En `development` : `redirect` sans `BREVO_TEST_RECIPIENTS` ⇒ refus. Contre-tests : `live` accepté en `staging` et en `production` ; `disabled` par défaut en `development` |
+| **T17.7** | **Synchronisation (`worker`).** En `development`, `SYNC_MODE=live` avec `NON_PRODUCTION_RECIPIENT_ALLOWLIST` vide ⇒ refus (contre-test : accepté avec une liste de domaines). En `staging` et `production`, la liste présente ⇒ refus |
+| **T17.8** | **Secret interne par front (`api`, J1-G) et environnement.** Secret absent, de moins de **32 octets** (comptés en octets, pas en caractères), ou **identique pour `web` et `backoffice`** ⇒ refus. `INFLUX_ENV` absent ou hors `development` / `staging` / `production` ⇒ refus |
 | **T17.9** | Le refus **nomme la variable et la règle, jamais la valeur** : un secret trop court ou dupliqué n'apparaît ni dans le message d'erreur, ni sur la sortie du processus |
 | **T17.10** | **Au niveau du processus** : les vrais points d'entrée (`node src/main.ts`, `node src/worker.ts`) sortent avec un **code non nul avant d'écouter** sur un port ou d'entamer leur boucle — au moins un cas par processus. Un refus vérifié seulement sur la fonction de chargement ne prouve pas que le service ne démarre pas |
 
