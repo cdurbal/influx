@@ -209,8 +209,10 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
 - **Brevo** : idempotence, rate limits, désinscriptions, segmentation par profil/langue/pays, source
   d'acquisition (D55). **Trois sous-domaines d'envoi** authentifiés avant le Lot 1 : la
   délivrabilité conditionne la connexion des membres.
-- **Apollo.io** : périmètre en configuration, valeur d'attente conservatrice (`05` RG81), seulement
-  dans les pays où la base légale est validée.
+- **Apollo.io** : périmètre en configuration (`05` RG81) ; **tous les pays par défaut**, sauf les
+  pays exclus par un administrateur (`apollo_excluded_countries`, vide par défaut, RG84 amendée par
+  le fondateur le 2026-10-19 contre le veto RGPD, D33) ; base légale par pays (`consentement_requis`
+  par défaut, RG83).
 - **`staging` = production** (D70) : envois réels, listes Brevo et contacts Apollo, mêmes exigences
   de démarrage ; seules différences : `INFLUX_ENV`, comptes et clés propres à `staging`, domaine
   d'envoi propre, `noindex`, bandeau, données synthétiques. Bascule en cours (`jalons/d70-plan.md`) :
@@ -225,7 +227,7 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
 
 - **D25 tranchée (2026-10-08)** : société en **Angleterre**, CGU sous droit d'Angleterre et du
   pays de Galles (UK GDPR + RGPD UE). Identité de la société encore en marqueurs dans `apps/api/legal/`.
-- **D29** fenêtre de non-contournement · **D33** périmètre Apollo (veto RGPD, juriste avant Lot 1) ·
+- **D29** fenêtre de non-contournement · **D33** périmètre Apollo (veto RGPD, juriste avant `production` ; pays : tous par défaut, tranché le 2026-10-19) ·
   **D63** consentement obligatoire (juriste avant Lot 1) · **D21** influence commerciale par pays.
 - **D24** créateurs particuliers et fiscalité · **D34** libellé du badge · **D38** masse critique
   avant recherche · **D30** coordonnées dans la messagerie · **D35** saisie libre d'e-mails ·

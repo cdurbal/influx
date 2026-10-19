@@ -97,6 +97,7 @@ export const SYNC_CAUSES = [
   "no_consent",
   "out_of_apollo_scope_individual",
   "out_of_apollo_scope",
+  "country_excluded",
   "country_not_validated",
   "prospection_opposed",
   "email_not_verified",

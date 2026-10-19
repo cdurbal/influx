@@ -184,7 +184,7 @@
 | 29 | 19 | Besoin |  |
 | 48 | 19 | Acteurs |  |
 | 67 | 58 | User stories |  |
-| 125 | 645 | Règles de gestion | RG1–RG162 |
+| 125 | 646 | Règles de gestion | RG1–RG162 |
 | 127 | 43 | ↳ A — Parcours général et portes d'entrée | RG1–RG10 |
 | 170 | 39 | ↳ B — Champs de l'inscription annonceur | RG11–RG16 |
 | 209 | 37 | ↳ C — Champs de l'inscription créateur | RG11–RG81 |
@@ -193,26 +193,26 @@
 | 322 | 91 | ↳ F — Connexion par code à 6 chiffres | RG39–RG157 |
 | 413 | 39 | ↳ G — L'e-mail qui n'arrive pas | RG59–RG65 |
 | 452 | 29 | ↳ H — Routage et rôles après vérification | RG66–RG71 |
-| 481 | 116 | ↳ I — Pipeline de leads | RG37–RG162 |
-| 597 | 33 | ↳ J — Désinscriptions dans les deux sens | RG78–RG96 |
-| 630 | 80 | ↳ K — Backoffice v0 | RG63–RG162 |
-| 710 | 60 | ↳ L — États d'écran, messages et accessibilité | RG109–RG115 |
-| 770 | 101 | Cas limites | RG1–RG113 |
-| 871 | 279 | Critères d'acceptation | RG79–RG112 |
-| 1150 | 70 | Impacts | RG6–RG108 |
-| 1220 | 20 | Hors périmètre | RG12–RG85 |
-| 1240 | 25 | Questions ouvertes | RG6–RG108 |
-| 1265 | 55 | Additif du 2026-09-24 — Invitation par un commercial (D54) et source d'acquisition (D55) | RG88–RG123 |
-| 1320 | 43 | Additif du 2026-09-25 — Consentement obligatoire à l'inscription (D63) | RG11–RG127 |
-| 1363 | 330 | Additif du 2026-09-27 — Précisions du J3 : phrase de correspondance, e-mail du code, messages, signal « navigateur inconnu » *(J3, 2026-09-27)* | RG9–RG159 |
-| 1372 | 130 | ↳ Phrase de correspondance — précise RG48 | RG46–RG156 |
-| 1502 | 17 | ↳ E-mail du code — précise RG49 | RG102–RG158 |
-| 1519 | 69 | ↳ Messages de l'écran minimal du J3 — précise RG112 et RG113 | RG44–RG140 |
-| 1588 | 35 | ↳ Signal « navigateur inconnu » — remplace « pays inhabituel » au MVP (EC-43) | RG55–RG157 |
-| 1623 | 16 | ↳ Cas limites du J3 | RG41–RG141 |
-| 1639 | 43 | ↳ Critères d'acceptation du J3 | RG133 |
-| 1682 | 11 | ↳ Questions ouvertes du J3 | RG48–RG158 |
-| 1693 | 204 | Additif du 2026-10-17 — Une configuration de synchronisation manquante est un incident, jamais un cas normal (D67) | RG37–RG164 |
+| 481 | 117 | ↳ I — Pipeline de leads | RG37–RG162 |
+| 598 | 33 | ↳ J — Désinscriptions dans les deux sens | RG78–RG96 |
+| 631 | 80 | ↳ K — Backoffice v0 | RG63–RG162 |
+| 711 | 60 | ↳ L — États d'écran, messages et accessibilité | RG109–RG115 |
+| 771 | 101 | Cas limites | RG1–RG113 |
+| 872 | 279 | Critères d'acceptation | RG79–RG112 |
+| 1151 | 70 | Impacts | RG6–RG108 |
+| 1221 | 20 | Hors périmètre | RG12–RG85 |
+| 1241 | 25 | Questions ouvertes | RG6–RG108 |
+| 1266 | 55 | Additif du 2026-09-24 — Invitation par un commercial (D54) et source d'acquisition (D55) | RG88–RG123 |
+| 1321 | 43 | Additif du 2026-09-25 — Consentement obligatoire à l'inscription (D63) | RG11–RG127 |
+| 1364 | 330 | Additif du 2026-09-27 — Précisions du J3 : phrase de correspondance, e-mail du code, messages, signal « navigateur inconnu » *(J3, 2026-09-27)* | RG9–RG159 |
+| 1373 | 130 | ↳ Phrase de correspondance — précise RG48 | RG46–RG156 |
+| 1503 | 17 | ↳ E-mail du code — précise RG49 | RG102–RG158 |
+| 1520 | 69 | ↳ Messages de l'écran minimal du J3 — précise RG112 et RG113 | RG44–RG140 |
+| 1589 | 35 | ↳ Signal « navigateur inconnu » — remplace « pays inhabituel » au MVP (EC-43) | RG55–RG157 |
+| 1624 | 16 | ↳ Cas limites du J3 | RG41–RG141 |
+| 1640 | 43 | ↳ Critères d'acceptation du J3 | RG133 |
+| 1683 | 11 | ↳ Questions ouvertes du J3 | RG48–RG158 |
+| 1694 | 204 | Additif du 2026-10-17 — Une configuration de synchronisation manquante est un incident, jamais un cas normal (D67) | RG37–RG164 |
 
 ## 06-criteres-profil-marque.md (~22k tokens)
 

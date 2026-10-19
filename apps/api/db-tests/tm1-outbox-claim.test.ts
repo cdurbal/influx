@@ -49,8 +49,8 @@ const OTHER_WORKER = "tm1-worker-b";
 
 /** The keys of leads.sync_settings that the worker reads (EC-8), never the signup_* ones. */
 const WORKER_SETTINGS = [
+  "apollo_excluded_countries",
   "apollo_legal_basis",
-  "apollo_prospecting_countries",
   "apollo_scope",
   "brevo_list_ids",
   "brevo_template_ids",
@@ -850,7 +850,7 @@ describe("RG37: leads.begin_outbox_attempt()", () => {
       settings: expect.any(Object) as Record<string, unknown>,
     });
     expect(Object.keys(state.settings).sort()).toEqual(WORKER_SETTINGS);
-    expect(state.settings.apollo_prospecting_countries).toEqual([]);
+    expect(state.settings.apollo_excluded_countries).toEqual([]);
     expect(JSON.stringify(state)).not.toContain("@");
   });
 

@@ -195,7 +195,9 @@ export const messages = {
     no_consent: "Pas de consentement marketing : non envoyé, c’est normal",
     out_of_apollo_scope_individual: "Particulier hors du périmètre Apollo",
     out_of_apollo_scope: "Hors du périmètre Apollo réglé",
-    country_not_validated: "Pays sans base légale validée pour Apollo",
+    country_excluded: "Pays exclu de la prospection Apollo",
+    country_not_validated:
+      "Pays non validé pour Apollo (avant l’exclusion par liste)",
     prospection_opposed: "Opposition à la prospection",
     email_not_verified: "Adresse non vérifiée",
     company_not_identified: "Entreprise non identifiée",
@@ -537,11 +539,11 @@ export const messages = {
       annonceurs_et_createurs_pro: "Marques et créateurs professionnels",
       tous_les_inscrits: "Tous les inscrits",
     },
-    countries: "Pays de prospection",
+    countries: "Pays exclus de la prospection",
     countriesHelp:
-      "Codes pays ISO séparés par des espaces ou des virgules (FR, BE…). Une liste vide est une abstention : aucun envoi.",
+      "Codes pays ISO séparés par des espaces ou des virgules (FR, BE…). Tous les pays sont prospectés sauf ceux de la liste ; une liste vide n’en exclut aucun.",
     countriesInvalid: (codes: string) => `Codes inconnus : ${codes}`,
-    countriesEmpty: "Aucun pays : aucun envoi à Apollo.",
+    countriesEmpty: "Aucun pays exclu : tous les pays sont prospectés.",
     legalBasis: "Base légale",
     legalBasisDefault: "Par défaut",
     legalBases: {

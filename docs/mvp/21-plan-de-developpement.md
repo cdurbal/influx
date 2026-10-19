@@ -95,7 +95,7 @@
 
 | # | Écart / Décision applicable | Règle retenue pour l'implémentation | Jalon |
 |---|---|---|---|
-| **EC-8** | Clés de `leads.sync_settings` (`04` §5.8) | Clés : `apollo_scope`, `apollo_legal_basis` (défaut `consentement_requis`, surcharge par pays), `apollo_prospecting_countries` (autorisation, **vide**), `signup_blocked_countries` (vide), `retry_schedule`, `rate_limits`, identifiants de listes et modèles Brevo | J5, J6 |
+| **EC-8** | Clés de `leads.sync_settings` (`04` §5.8) | Clés : `apollo_scope`, `apollo_legal_basis` (défaut `consentement_requis`, surcharge par pays), `apollo_excluded_countries` (exclusion, **vide** : tous les pays, 0141), `signup_blocked_countries` (vide), `retry_schedule`, `rate_limits`, identifiants de listes et modèles Brevo | J5, J6 |
 | **EC-9** | Calendrier de réessais | Valeur de départ de `retry_schedule` = `05` RG79 (10 tentatives) | J6 |
 | **EC-10** | Événements émis à l'inscription | À l'inscription, `lead.created` seul : 3 lignes (`brevo_contact`, `apollo_contact`, `brevo_transactional` bienvenue) ; `consent.granted` / `consent.revoked` pour les changements ultérieurs | J5 |
 | **EC-11** | D54 (invitations) et D55 (UTM / source d'acquisition) | Colonnes figées sur `identity.accounts` (J5), table des invitations (J8), attributs `UTM_SOURCE`, `UTM_MEDIUM`, `UTM_CAMPAIGN`, `REFERRER_DOMAIN`, `HEARD_FROM` ajoutés au mapping Brevo `16` §M4 | J5, J8 |

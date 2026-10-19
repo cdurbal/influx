@@ -275,7 +275,7 @@ describe("syncSettingsIssues (05 RG162, D69)", () => {
   const complete = {
     apollo_scope: "annonceurs_et_createurs_pro",
     apollo_legal_basis: { default: "consentement_requis", by_country: {} },
-    apollo_prospecting_countries: [],
+    apollo_excluded_countries: [],
     retry_schedule: [0, 60, 300, 900, 3600, 10800, 21600, 43200, 86400, 86400],
     rate_limits: {
       brevo_contact_per_minute: 60,

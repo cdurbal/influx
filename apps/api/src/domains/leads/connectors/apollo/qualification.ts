@@ -30,7 +30,7 @@ const countriesSchema = z.array(z.string().regex(/^[A-Z]{2}$/));
 export type ApolloSettings = {
   scope: ApolloScope;
   legalBasis: z.infer<typeof legalBasisSchema>;
-  countries: ReadonlySet<string>;
+  excludedCountries: ReadonlySet<string>;
 };
 
 export function apolloSettingsOf(
@@ -39,7 +39,7 @@ export function apolloSettingsOf(
   const scope = scopeSchema.safeParse(settings.apollo_scope);
   const legalBasis = legalBasisSchema.safeParse(settings.apollo_legal_basis);
   const countries = countriesSchema.safeParse(
-    settings.apollo_prospecting_countries,
+    settings.apollo_excluded_countries,
   );
   if (!scope.success || !legalBasis.success || !countries.success) {
     return null;
@@ -47,7 +47,7 @@ export function apolloSettingsOf(
   return {
     scope: scope.data,
     legalBasis: legalBasis.data,
-    countries: new Set(countries.data),
+    excludedCountries: new Set(countries.data),
   };
 }
 

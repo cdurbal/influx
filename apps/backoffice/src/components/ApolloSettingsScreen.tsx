@@ -3,7 +3,7 @@
 // The Apollo settings, admin only (docs/mvp/05 RG81, RG83, RG84, CA63; 03 PD1 to PD7; 17b §3.11).
 // Each key is read with its last change; a change is REQUESTED here with a typed reason, then
 // confirmed on the distinct screen of the dual control (PD2), where the value is shown again. An
-// empty list of countries is an abstention, never a send by default (RG84): the screen says so.
+// empty list of excluded countries excludes none (RG84, block-list since 0141): the screen says so.
 import {
   PROSPECTING_LEGAL_BASES,
   PROSPECTING_SCOPES,
@@ -92,9 +92,7 @@ function SettingForm({ row }: { row: Row }) {
     setting.key === "apollo_scope" ? setting.value : "",
   );
   const [countries, setCountries] = useState(
-    setting.key === "apollo_prospecting_countries"
-      ? setting.value.join(" ")
-      : "",
+    setting.key === "apollo_excluded_countries" ? setting.value.join(" ") : "",
   );
   const [basis, setBasis] = useState<string>(
     setting.key === "apollo_legal_basis" ? setting.value.default : "",
@@ -115,12 +113,12 @@ function SettingForm({ row }: { row: Row }) {
           key: "apollo_scope",
           value: scope as (typeof PROSPECTING_SCOPES)[number],
         };
-      case "apollo_prospecting_countries": {
+      case "apollo_excluded_countries": {
         const parsed = parseCountryList(countries);
         return parsed.unknown.length > 0
           ? t.countriesInvalid(parsed.unknown.join(", "))
           : {
-              key: "apollo_prospecting_countries",
+              key: "apollo_excluded_countries",
               value: parsed.codes as CountryCode[],
             };
       }
@@ -168,7 +166,7 @@ function SettingForm({ row }: { row: Row }) {
   const title =
     setting.key === "apollo_scope"
       ? t.scope
-      : setting.key === "apollo_prospecting_countries"
+      : setting.key === "apollo_excluded_countries"
         ? t.countries
         : t.legalBasis;
 
@@ -225,7 +223,7 @@ function SettingForm({ row }: { row: Row }) {
         ) : null}
         <ReasonSelect id={ids.reason} value={reason} onChange={setReason} />
       </div>
-      {setting.key === "apollo_prospecting_countries" ? (
+      {setting.key === "apollo_excluded_countries" ? (
         <div className={FIELD_CLASSES}>
           <label htmlFor={ids.value} className={SMALL_LABEL_CLASSES}>
             {t.countries}

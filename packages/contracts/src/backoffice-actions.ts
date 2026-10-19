@@ -161,7 +161,7 @@ export const apolloSettingSchema = z.discriminatedUnion("key", [
     value: z.enum(PROSPECTING_SCOPES),
   }),
   z.strictObject({
-    key: z.literal("apollo_prospecting_countries"),
+    key: z.literal("apollo_excluded_countries"),
     /** RG84: an EMPTY list is an abstention, never a send by default. */
     value: z.array(countryCodeSchema).max(300),
   }),

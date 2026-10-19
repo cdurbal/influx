@@ -219,7 +219,7 @@ export function syncSettingsIssues(
     for (const key of [
       "apollo_scope",
       "apollo_legal_basis",
-      "apollo_prospecting_countries",
+      "apollo_excluded_countries",
     ] as const) {
       if (apolloSettingOf(key, settings[key]) === null) {
         issues.push(key);

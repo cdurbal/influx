@@ -59,7 +59,7 @@ const LEGAL_NAME = "Atelier Vandenbroucke";
 const SETTING_KEYS = [
   "apollo_scope",
   "apollo_legal_basis",
-  "apollo_prospecting_countries",
+  "apollo_excluded_countries",
   "brevo_list_ids",
   "brevo_template_ids",
 ];
@@ -119,10 +119,10 @@ afterAll(async () => {
 beforeEach(async () => {
   apollo.reset();
   brevo.reset();
-  // The settings of 0103, Belgium validated for prospection: each case changes what it tests.
+  // The settings of 0103, no country excluded (0141): each case changes what it tests.
   await setting("apollo_scope", "annonceurs_et_createurs_pro");
   await setting("apollo_legal_basis", CONSENT_REQUIRED);
-  await setting("apollo_prospecting_countries", ["BE"]);
+  await setting("apollo_excluded_countries", []);
   await setting("brevo_list_ids", { advertisers: 2, creators: 3 });
   await setting("brevo_template_ids", {
     "account.welcome_advertiser": 11,
@@ -393,8 +393,8 @@ describe("a qualified lead reaches Apollo through the real queue, once", () => {
 });
 
 describe("05 CA42 to CA45, TM1.6: the settings of each consumption, without a restart", () => {
-  it("CA44: an empty list of prospecting countries skips country_not_validated, nothing sent", async () => {
-    await setting("apollo_prospecting_countries", []);
+  it("RG84 (0141): an excluded country skips country_excluded, nothing sent", async () => {
+    await setting("apollo_excluded_countries", ["BE"]);
     const account = await createAccount({ role: "advertiser" });
     const { apollo_contact: line } = await insertLines(account, [
       "apollo_contact",
@@ -402,13 +402,13 @@ describe("05 CA42 to CA45, TM1.6: the settings of each consumption, without a re
     await turn();
     expect(await lineRow(line)).toMatchObject({
       status: "skipped",
-      skip_reason: "country_not_validated",
+      skip_reason: "country_excluded",
     });
     expect(apollo.requests).toEqual([]);
   });
 
-  it("staging as it is: empty countries in dry_run, the line is skipped (the dry_run marker is for a success only), never a dry success", async () => {
-    await setting("apollo_prospecting_countries", []);
+  it("an excluded country in dry_run: the line is skipped (the dry_run marker is for a success only), never a dry success", async () => {
+    await setting("apollo_excluded_countries", ["BE"]);
     const account = await createAccount({ role: "advertiser" });
     const { apollo_contact: line } = await insertLines(account, [
       "apollo_contact",
@@ -417,7 +417,7 @@ describe("05 CA42 to CA45, TM1.6: the settings of each consumption, without a re
     expect(await lineRow(line)).toMatchObject({
       status: "skipped",
       dry_run: false,
-      skip_reason: "country_not_validated",
+      skip_reason: "country_excluded",
     });
     expect(apollo.requests).toEqual([]);
     expect(await apolloState(account)).toBeUndefined();

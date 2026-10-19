@@ -15,6 +15,7 @@ const SKIP_CAUSES: Readonly<Record<string, SyncCause>> = {
   no_consent: "no_consent",
   out_of_apollo_scope_individual: "out_of_apollo_scope_individual",
   out_of_apollo_scope: "out_of_apollo_scope",
+  country_excluded: "country_excluded",
   country_not_validated: "country_not_validated",
   prospection_opposed: "prospection_opposed",
   email_not_verified: "email_not_verified",

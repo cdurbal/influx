@@ -751,8 +751,8 @@ describe("Apollo settings under 2V + R (05 RG81, CA63; 03 PD1 to PD7)", () => {
       .json<{ settings: { setting: { key: string } }[] }>()
       .settings.map((row) => row.setting.key);
     expect(keys).toEqual([
+      "apollo_excluded_countries",
       "apollo_legal_basis",
-      "apollo_prospecting_countries",
       "apollo_scope",
     ]);
   });

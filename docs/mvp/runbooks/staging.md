@@ -233,8 +233,7 @@ Tout se fait par API, avec les clés de `staging` lues dans `.env.local`, sans a
    identifiant posé ne se remet plus à nul (`05` RG163), seulement se remplace ; un identifiant nul
    donne un échec de configuration alerté (`05` RG160).
 6. **Réglages Apollo** : `leads.sync_settings` de `staging` aux valeurs prévues pour la production ;
-   tant que D33 n'est pas tranchée, `apollo_prospecting_countries` prend une valeur de travail (pays
-   des testeurs), consignée dans `21`.
+   `apollo_excluded_countries` vide par défaut (0141) : tous les pays sont prospectés.
 7. **Preuve du webhook** : une vraie désinscription d'un contact de test donne **exactement une
    ligne** dans `leads.brevo_inbound_events`, le consentement révoqué (source `brevo_webhook`) et
    aucun `webhook.brevo.ip_drift`. Le doublon et la fenêtre de ±15 min sont prouvés par `test:db` :

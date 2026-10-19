@@ -59,7 +59,7 @@ describe("Apollo keys and the dual control (05 RG81; 03 PD1 to PD7)", () => {
   it("knows the three keys and their shapes (0103)", () => {
     for (const setting of [
       { key: "apollo_scope", value: "tous_les_inscrits" },
-      { key: "apollo_prospecting_countries", value: [] },
+      { key: "apollo_excluded_countries", value: [] },
       {
         key: "apollo_legal_basis",
         value: {
@@ -75,7 +75,7 @@ describe("Apollo keys and the dual control (05 RG81; 03 PD1 to PD7)", () => {
     for (const setting of [
       { key: "apollo_scope", value: "everyone" },
       { key: "rate_limits", value: {} },
-      { key: "apollo_prospecting_countries", value: ["XX"] },
+      { key: "apollo_excluded_countries", value: ["XX"] },
       {
         key: "apollo_legal_basis",
         value: { default: "consentement_requis" },

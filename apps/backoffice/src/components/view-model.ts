@@ -216,7 +216,7 @@ export function apolloSettingWords(setting: ApolloSetting): string {
   switch (setting.key) {
     case "apollo_scope":
       return t.settingLine(t.scope, t.scopes[setting.value]);
-    case "apollo_prospecting_countries":
+    case "apollo_excluded_countries":
       return t.settingLine(
         t.countries,
         setting.value.length === 0

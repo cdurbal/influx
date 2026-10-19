@@ -537,7 +537,7 @@ describe("0103 (EC-8): the shape of leads.sync_settings", () => {
     ).toMatchObject({
       apollo_scope: "annonceurs_et_createurs_pro",
       apollo_legal_basis: { default: "consentement_requis", by_country: {} },
-      apollo_prospecting_countries: [],
+      apollo_excluded_countries: [],
       signup_blocked_countries: [],
       signup_consent_required: true,
       signup_invitation_validity_days: 30,
@@ -566,7 +566,7 @@ describe("0103 (EC-8): the shape of leads.sync_settings", () => {
     ],
     [
       "a malformed country code (refused by the trigger, before the CHECK)",
-      "update leads.sync_settings set value = '[\"fr\"]' where key = 'apollo_prospecting_countries'",
+      "update leads.sync_settings set value = '[\"fr\"]' where key = 'apollo_excluded_countries'",
       FOREIGN_KEY_VIOLATION,
     ],
     [

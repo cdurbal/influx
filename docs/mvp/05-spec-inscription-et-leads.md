@@ -570,10 +570,11 @@ deux valeurs et deux comportements complets :
 Le choix relève de `expert-conformite-rgpd` et du juriste (**Q1**). Les deux comportements sont
 spécifiés ici pour qu'aucun développement ne soit nécessaire au moment de l'arbitrage.
 
-**RG84** — La **liste des pays où la prospection Apollo est validée** est lue en configuration. Elle est
-**vide tant que `expert-conformite-rgpd` ne l'a pas renseignée** : dans ce cas, aucun lead ne part vers
-Apollo et chaque ligne est marquée « ignoré — pays non validé pour la prospection ». Une absence de
-liste doit produire une abstention, jamais un envoi par défaut.
+**RG84** — *(Amendée par le fondateur le 2026-10-19, D33, contre le veto RGPD.)* La prospection Apollo
+est ouverte **dans tous les pays par défaut**. La **liste des pays exclus** (`apollo_excluded_countries`)
+est lue en configuration, **vide par défaut** ; un lead d'un pays exclu n'est pas envoyé et sa ligne est
+marquée « ignoré — pays exclu de la prospection » (`country_excluded`). Une liste illisible reste une
+abstention (aucun envoi). La base légale (RG83) et le périmètre (RG81) s'appliquent toujours.
 
 **RG85** — **Aucune donnée enrichie par Apollo n'est réimportée dans INFLUX.** La réimporter
 déclencherait une obligation d'information supplémentaire à la charge d'INFLUX. Toute exception est une
@@ -1041,9 +1042,9 @@ périmètre » et rien n'est envoyé.
 `tous_les_inscrits`, *alors* le changement prend effet **sans redéploiement**, il est journalisé, et les
 comptes précédemment ignorés pour ce motif sont réévalués puis synchronisés.
 
-**CA44** — *Étant donné* la liste des pays de prospection vide, *quand* un annonceur consentant
-s'inscrit, *alors* **aucun envoi vers Apollo n'a lieu** et la ligne indique « pays non validé pour la
-prospection ».
+**CA44** — *(RG84 amendée.)* *Étant donné* le pays d'un annonceur consentant dans la liste des pays
+exclus, *quand* il s'inscrit, *alors* **aucun envoi vers Apollo n'a lieu** et la ligne indique « pays exclu
+de la prospection » ; avec la liste vide, il est envoyé.
 
 **CA45** — *Étant donné* la base légale Apollo réglée sur `consentement_requis`, *quand* un annonceur
 sans consentement s'inscrit, *alors* rien ne part vers Apollo ; *et quand* la valeur passe à
@@ -1243,7 +1244,7 @@ vivre **en table**, modifiables sans redéploiement, chaque modification étant 
 |---|---|---|---|---|
 | **Q1** | **Base légale de la synchronisation Apollo** : consentement (`CLAUDE.md` §9) ou intérêt légitime avec droit d'opposition (skill `apollo-lead-sync`) ? Les deux textes de référence divergent | **Consentement requis** (position conservatrice). Les deux comportements sont spécifiés (RG83) et la bascule est une valeur de configuration | `expert-conformite-rgpd` (**veto**) + juriste | **Avant la mise en ligne du Lot 1** |
 | **Q2** | **D33 — périmètre Apollo** à la mise en ligne : annonceurs seuls, annonceurs + créateurs professionnels, ou tous les inscrits (A7) ? | `annonceurs_et_createurs_pro`, **position d'attente et non contre-arbitrage** ; le fondateur bascule sans redéploiement (RG81) | Fondateur + `expert-conformite-rgpd` (**veto**) + juriste | **Avant la mise en ligne du Lot 1** |
-| **Q3** | **Pays dans lesquels la prospection Apollo est validée** (CASL au Canada, lois des États américains, LGPD au Brésil, UE) | Liste **vide** : aucun envoi Apollo tant qu'elle n'est pas renseignée (RG84) | `expert-conformite-rgpd` + juriste | Avant la mise en ligne du Lot 1 |
+| **Q3** | **Pays dans lesquels la prospection Apollo est validée** (CASL au Canada, lois des États américains, LGPD au Brésil, UE) | *Tranchée par le fondateur (2026-10-19, D33)* : **tous les pays** par défaut, liste de pays **exclus** vide par défaut (RG84, 0141) ; avis juriste toujours attendu avant `production` | `expert-conformite-rgpd` + juriste | Avant la mise en ligne du Lot 1 |
 | **Q4** | **Pays bloqués à l'inscription** (sanctions internationales, embargos) : faut-il une liste, et laquelle ? | Liste **vide**, mécanisme prêt (RG8) | Fondateur + juriste, **dépend de D25** | Avant la mise en ligne du Lot 1 |
 | **Q5** | **Conservation de l'adresse IP et du navigateur** dans la preuve d'acceptation des CGU : utile comme preuve, mais ce sont des données personnelles | Enregistrées, **conservation à confirmer** | `expert-conformite-rgpd` (**veto**) | Lot 1 |
 | **Q6** | **Durées de conservation** : adresse d'un parcours abandonné (proposition : 24 h), compte créé jamais reconnecté, événements de file en succès (proposition : 30 jours) | Valeurs proposées ci-contre | `expert-conformite-rgpd` (**veto**) | Lot 1 |
