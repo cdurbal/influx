@@ -13,7 +13,7 @@
 // - Members have no password (D37): they sign in with the code the Brevo double receives.
 //   Internal accounts get a password (EC-57: 12 characters to 72 UTF-8 bytes) and a fixed
 //   enrollment token (72 hours), whose SHA-256 alone is stored (enrollmentTokenHashOf).
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import type { connectAsMigrationRole } from "@influx/test-kit/db";
 import { enrollmentTokenHashOf } from "../src/domains/identity/mfa-secrets.ts";
 import { localPasswordVerdict } from "../src/domains/identity/password-policy.ts";
@@ -88,6 +88,19 @@ export function demoAccounts(tag = ""): DemoAccount[] {
       displayName: "Administrateur de démonstration",
     },
   ];
+}
+
+/** A random password (staging) that passes the local rules of B-1 and EC-57 for `email`. */
+export function randomInternalPassword(email: string): string {
+  for (;;) {
+    const candidate = randomBytes(18).toString("base64url");
+    if (
+      isPasswordWithinBounds(candidate) &&
+      localPasswordVerdict(candidate, email) === "accepted"
+    ) {
+      return candidate;
+    }
+  }
 }
 
 /** EC-57 (b) and B-1: every demo password passes the local rules a chosen password passes. */

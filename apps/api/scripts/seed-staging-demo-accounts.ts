@@ -23,10 +23,9 @@
 import { writeOperatorSecrets } from "@influx/test-kit/operator-secrets";
 import { randomBytes } from "node:crypto";
 import { parseArgs } from "node:util";
-import { localPasswordVerdict } from "../src/domains/identity/password-policy.ts";
-import { isPasswordWithinBounds } from "../src/platform/supabase.ts";
 import {
   demoAccounts,
+  randomInternalPassword,
   seedDemoAccounts,
   type DemoAccount,
 } from "./demo-accounts.ts";
@@ -34,21 +33,9 @@ import {
   assertStagingMarker,
   connectToStagingAsMigrationRole,
   refuseProduction,
-  requiredStagingVariable as required,
+  requiredStagingUrl,
+  stagingGoTrue,
 } from "./script-guards.ts";
-
-/** A random password that passes the local rules of B-1 and EC-57 for `email`. */
-function randomPassword(email: string): string {
-  for (;;) {
-    const candidate = randomBytes(18).toString("base64url");
-    if (
-      isPasswordWithinBounds(candidate) &&
-      localPasswordVerdict(candidate, email) === "accepted"
-    ) {
-      return candidate;
-    }
-  }
-}
 
 refuseProduction("demo accounts (J3S-2)");
 const { values } = parseArgs({
@@ -60,28 +47,8 @@ const { values } = parseArgs({
     admin: { type: "string" },
   },
 });
-const supabaseUrl = new URL(required("SUPABASE_URL"));
-if (
-  supabaseUrl.protocol !== "https:" ||
-  !supabaseUrl.hostname.endsWith(".supabase.co")
-) {
-  throw new Error(
-    "SUPABASE_URL must be the https origin of the staging project",
-  );
-}
-// J4S-5: the GoTrue key and the database belong to ONE project. A production key pasted by mistake
-// next to the staging database would otherwise create the accounts in production.
-const projectRef = supabaseUrl.hostname.slice(0, -".supabase.co".length);
-const migrationUrl = new URL(required("INFLUX_STAGING_MIGRATION_URL"));
-if (
-  migrationUrl.hostname !== `db.${projectRef}.supabase.co` &&
-  decodeURIComponent(migrationUrl.username) !== `postgres.${projectRef}`
-) {
-  throw new Error(
-    "SUPABASE_URL and INFLUX_STAGING_MIGRATION_URL name two different projects: refused",
-  );
-}
-const backoffice = new URL(required("INFLUX_PUBLIC_BACKOFFICE_URL")).origin;
+const gotrue = stagingGoTrue();
+const backoffice = requiredStagingUrl("INFLUX_PUBLIC_BACKOFFICE_URL").origin;
 
 // EC-45: no agent from a script; the agent is invited by this admin.
 const bootstrap = demoAccounts().filter(
@@ -100,7 +67,7 @@ const accounts: DemoAccount[] = bootstrap.map((account) => {
     : {
         ...account,
         email: email.toLowerCase(),
-        password: randomPassword(email),
+        password: randomInternalPassword(email),
         enrollmentToken: randomBytes(32).toString("base64url"),
       };
 });
@@ -108,14 +75,7 @@ const accounts: DemoAccount[] = bootstrap.map((account) => {
 const migration = connectToStagingAsMigrationRole();
 try {
   await assertStagingMarker(migration);
-  const outcome = await seedDemoAccounts(
-    migration,
-    {
-      authUrl: `${supabaseUrl.origin}/auth/v1`,
-      secretKey: required("SUPABASE_SECRET_KEY"),
-    },
-    accounts,
-  );
+  const outcome = await seedDemoAccounts(migration, gotrue, accounts);
   if (outcome === "already_present") {
     process.stdout.write(
       "demo accounts already present on staging: their secrets were shown at creation only.\n",

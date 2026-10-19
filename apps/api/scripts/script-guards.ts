@@ -21,7 +21,7 @@ export function refuseOutsideTheLocalStack(what: string): void {
   refuseProduction(what);
   const supabaseUrl = process.env.SUPABASE_URL;
   if (supabaseUrl !== undefined && supabaseUrl !== "") {
-    const host = new URL(supabaseUrl).hostname;
+    const host = urlOf("SUPABASE_URL", supabaseUrl).hostname;
     if (host !== "127.0.0.1" && host !== "localhost" && host !== "[::1]") {
       throw new Error(`${what} refused outside the loopback (EC-45)`);
     }
@@ -42,6 +42,54 @@ export function requiredStagingVariable(name: string): string {
   return value;
 }
 
+/**
+ * The administration API of the STAGING GoTrue, from SUPABASE_URL and SUPABASE_SECRET_KEY. J4S-5:
+ * the key and the database belong to ONE project; a production key pasted by mistake next to the
+ * staging database would otherwise act on production.
+ */
+export function stagingGoTrue(): { authUrl: string; secretKey: string } {
+  const supabaseUrl = requiredStagingUrl("SUPABASE_URL");
+  if (
+    supabaseUrl.protocol !== "https:" ||
+    !supabaseUrl.hostname.endsWith(".supabase.co")
+  ) {
+    throw new Error(
+      "SUPABASE_URL must be the https origin of the staging project",
+    );
+  }
+  const projectRef = supabaseUrl.hostname.slice(0, -".supabase.co".length);
+  const migrationUrl = requiredStagingUrl("INFLUX_STAGING_MIGRATION_URL");
+  if (
+    migrationUrl.hostname !== `db.${projectRef}.supabase.co` &&
+    decodeURIComponent(migrationUrl.username) !== `postgres.${projectRef}`
+  ) {
+    throw new Error(
+      "SUPABASE_URL and INFLUX_STAGING_MIGRATION_URL name two different projects: refused",
+    );
+  }
+  return {
+    authUrl: `${supabaseUrl.origin}/auth/v1`,
+    secretKey: requiredStagingVariable("SUPABASE_SECRET_KEY"),
+  };
+}
+
+/**
+ * A URL variable parsed without ever echoing it: `new URL()` puts its input (a database password
+ * included) in the TypeError that Node prints (D70 end-of-work review, S2).
+ */
+export function urlOf(name: string, value: string): URL {
+  try {
+    return new URL(value);
+  } catch {
+    throw new Error(`${name} is not a valid URL (value not shown)`);
+  }
+}
+
+/** requiredStagingVariable() parsed as a URL by urlOf(). */
+export function requiredStagingUrl(name: string): URL {
+  return urlOf(name, requiredStagingVariable(name));
+}
+
 /** A variable that must be exported in the shell, never written to a file. */
 export function requiredShellVariable(name: string): string {
   const value = process.env[name];
@@ -57,9 +105,7 @@ export function requiredShellVariable(name: string): string {
  * content). Nothing is read until assertStagingMarker() has run on it.
  */
 export function connectToStagingAsMigrationRole(): postgres.Sql {
-  const migrationUrl = new URL(
-    requiredStagingVariable("INFLUX_STAGING_MIGRATION_URL"),
-  );
+  const migrationUrl = requiredStagingUrl("INFLUX_STAGING_MIGRATION_URL");
   const caFile = process.env.INFLUX_STAGING_DB_CA_FILE;
   const ca =
     caFile === undefined || caFile === ""

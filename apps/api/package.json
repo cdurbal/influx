@@ -18,6 +18,7 @@
     "db:publish-terms": "node scripts/publish-terms.ts",
     "db:publish-terms:staging": "node --env-file=.env.local scripts/publish-terms.ts --target=staging",
     "staging:check": "node --env-file=.env.local scripts/staging-check.ts",
+    "staging:reset-internal-account": "node --env-file=.env.local scripts/reset-staging-internal-account.ts",
     "trial:record": "node --env-file-if-exists=.env.trial.local scripts/record-provider-exchanges.ts"
   },
   "dependencies": {

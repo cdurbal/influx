@@ -276,3 +276,19 @@ fermé, voulu).
    inviter une **nouvelle** adresse (reprise par script local en local seulement, jusqu'à MFA-6).
 4. Journaliser l'intervention (date, administrateur, agent) dans le registre d'incidents. Cette
    procédure disparaît avec MFA-6.
+
+## 12. Mot de passe ou TOTP perdu d'un compte interne
+
+`staging` seulement, jusqu'à MFA-6 ; mêmes entrées que le §7 :
+
+```sh
+pnpm --filter @influx/api staging:reset-internal-account -- --email=<adresse> [--password-only]
+```
+
+Nouveau mot de passe aléatoire ; sans `--password-only`, facteurs TOTP supprimés chez GoTrue,
+facteur désépinglé, codes de secours révoqués, sessions backoffice révoquées (`mfa_reset`),
+nouveau lien d'activation de 72 h. `--password-only` quand l'authentificateur est toujours là.
+Secrets écrits une fois dans `.operator-secrets/`. Refuse la production, une base sans
+marqueur, un membre, un compte inactif ou « bris de glace ». Un échec en cours de route se
+termine en relançant la même commande. Aucune ligne d'audit (le rôle de migration n'exécute pas
+`audit.append`) : journaliser l'intervention dans le registre d'incidents, comme au §11.
