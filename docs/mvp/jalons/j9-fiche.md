@@ -259,9 +259,9 @@ recopiée nulle part (D70).
 
 ## Planchers
 
-Recomptés au commit S (2026-10-20, sur `d850bce`) : `pnpm test` = **2 617** (contracts 80,
-test-kit 119, backoffice 30, web 205, `apps/api` unitaire 1 132 en 55 fichiers, base 1 051 en 49
-fichiers) ; `test:db` = **1 051** (49 fichiers). Seul `apps/api` est figé (J8T-6 généralise au
+Recomptés au commit 1 (2026-10-20, sur `bc95f3a`) : `pnpm test` = **2 624** (contracts 80,
+test-kit 119, backoffice 30, web 205, `apps/api` unitaire 1 132 en 55 fichiers, base 1 058 en 49
+fichiers) ; `test:db` = **1 058** (49 fichiers). Seul `apps/api` est figé (J8T-6 généralise au
 commit 10) ; tout nouveau fichier `db-tests` entre dans `case-floors.ts`.
 
 ## Issu du commit S
@@ -271,6 +271,15 @@ commit 10) ; tout nouveau fichier `db-tests` entre dans `case-floors.ts`.
 - D70 §9 vert sauf l'effacement Apollo (`erasure_not_propagated`, Lot 5) ; `BREVO_LIST_ID_*` et
   `APOLLO_API_KEY` absentes ne bloquent le `worker` qu'à D67-b (RG162).
 - J4R-1 : agent et `admin` de `staging` réinitialisés (mot de passe et TOTP). Watch Paths déjà conformes.
+
+## Issu du commit 1
+
+- J8S-3 : claim absent ou malformé ⇒ `influx.current_session_id()` `NULL` ⇒ R refuse en `42501` seul ;
+  fonction exécutable par `influx_identity_definer` seul. API inchangée (`session_id` déjà posé).
+- J8S-5 : deux politiques (une par rôle) ; T2 : `member_invitations` « propres lignes » pour l'agent.
+- J8S-4 : `admin_role_grants(p_days)` (1 à 30, défaut 7) ; « accordé par » = `granted_by_account_id`
+  du payload, sinon l'acteur. F4 : index partiel (`actor_account_id is not null`).
+- `test:db -- <fichier>` lance toute la suite : un fichier seul par `npx vitest run --project db <fichier>` (`apps/api`).
 
 ## Discipline de session (économie de tokens)
 
