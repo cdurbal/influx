@@ -21,7 +21,7 @@
       "Edit(./**/.env.example)","Edit(./**/.env.local)"
     ],
     "deny": [
-      "Read(./**/.env)",
+      "Read(./**/.env)", "Read(./**/.env.trial*)",
       "Bash(git push --force*)", "Bash(pnpm exec supabase db push*)",
       "Bash(git checkout demo*)", "Bash(git merge demo*)",
       "Bash(railway * -e production*)", "Bash(railway * --environment production*)",

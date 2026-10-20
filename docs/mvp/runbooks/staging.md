@@ -214,7 +214,10 @@ Tout se fait par API, avec les clés de `staging` lues dans `.env.local`, sans a
    vont pas sur `web` ni `backoffice`.
 2. **Webhooks** : un transactionnel et un marketing (Brevo les sépare). URL
    `https://<web-staging>/api/v1/webhooks/brevo/<jeton de chemin>` ; en-tête
-   `brevo-webhook-token: <valeur _SECRET_CURRENT>` ; traitement par lots désactivé. Événements =
+   `brevo-webhook-token: <valeur _SECRET_CURRENT>` ; traitement par lots désactivé. **Hôte = le
+   domaine du service `web` de `staging`** (`railway status --json`), jamais un domaine
+   `web-production-*` : le 2026-10-20, les deux webhooks visaient la production (corrigé par
+   `PUT /webhooks/{id}`, lecture : `GET /webhooks?type=…`, jeton masqué). Événements =
    `BREVO_WEBHOOK_SUBSCRIPTION` (`packages/contracts/src/brevo-webhook.ts`) : transactionnel
    `hardBounce`, `invalid`, `blocked`, `spam`, `unsubscribed` ; marketing `hardBounce`, `spam`,
    `unsubscribed` ; rien d'autre. Noter tout écart de libellé.
@@ -236,7 +239,9 @@ Tout se fait par API, avec les clés de `staging` lues dans `.env.local`, sans a
    `apollo_excluded_countries` vide par défaut (0141) : tous les pays sont prospectés.
 7. **Preuve du webhook** : une vraie désinscription d'un contact de test donne **exactement une
    ligne** dans `leads.brevo_inbound_events`, le consentement révoqué (source `brevo_webhook`) et
-   aucun `webhook.brevo.ip_drift`. Le doublon et la fenêtre de ±15 min sont prouvés par `test:db` :
+   aucun `webhook.brevo.ip_drift`. « Vraie » = clic sur le lien de désinscription d'une campagne
+   réellement envoyée (pas un envoi de test) : une *Blacklist* posée dans l'interface Brevo n'émet
+   aucun événement (constaté le 2026-10-20). Le doublon et la fenêtre de ±15 min sont prouvés par `test:db` :
    aucun rejeu manuel.
 
 `trial:record` ne sert plus à `staging` (les échanges réels s'y constatent) ; il reste pour
@@ -250,6 +255,14 @@ pour un motif de qualification (jamais `skipped_no_credentials`, `skipped_non_pr
 `dry_run`) ; désinscription Brevo revenue par le webhook ; « mes données » propagée à Brevo et
 Apollo ; le `worker` refuse de démarrer quand on retire une variable exigée (constat sur une copie
 de configuration locale, **jamais en retirant une variable de Railway**) ; `staging:check` vert.
+
+**Constaté le 2026-10-20 (J9 commit S)**, testeurs `passinbox10` (marque, FR) et `passinbox11`
+(créateur, EN) : tout est vert sauf l'effacement Apollo, `skipped` `erasure_not_propagated` jusqu'au
+Lot 5 (`15` RG79, demande laissée ouverte, contact Apollo de `staging` à retirer à la main). Le refus
+de démarrage, vérifié par `parseWorkerEnvironment` sur une copie, couvre les variables lues ;
+`BREVO_LIST_ID_*` et `APOLLO_API_KEY` absentes ne bloquent qu'avec D67-b (RG162),
+`BREVO_API_BASE_URL` a un défaut, `DATABASE_CA_CERT` est facultative (EC-34) : `staging:check`
+garde ces noms d'ici là.
 
 ## 10. Retour à la version précédente (02 §20.7 point 5)
 
