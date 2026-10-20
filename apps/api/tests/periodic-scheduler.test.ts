@@ -4,6 +4,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AUTH_ORPHAN_AGE_MS,
+  createAuthOrphanPurge,
   isPurgeableAge,
 } from "../src/domains/maintenance/auth-orphan-purge.ts";
 import {
@@ -289,6 +290,67 @@ describe("04 §9: the age of a GoTrue user", () => {
     ],
   ] as const)("%s: purgeable %s", (_label, user, expected) => {
     expect(isPurgeableAge({ userId: "u", ...user }, now)).toBe(expected);
+  });
+});
+
+describe("J7S-2: the breaker of the GoTrue purge", () => {
+  it("stops the run on the refusal of ops.filter_auth_orphans (55000), before any delete", async () => {
+    const { store } = memoryStore();
+    const deletes: string[] = [];
+    const refusal = Object.assign(new Error("accounts read empty"), {
+      code: "55000",
+    });
+    const purge = createAuthOrphanPurge({
+      directory: {
+        listUsers: async () => ({
+          ok: true,
+          value: {
+            users: [
+              {
+                userId: "6f1c2a8e-2b8f-4c1e-9d7a-0c4b8e2f1a3d",
+                createdAt: AT_0300 - 72 * 3_600_000,
+                updatedAt: null,
+                lastSignInAt: null,
+              },
+            ],
+            nextPage: null,
+          },
+        }),
+        readUser: async () => {
+          throw new Error("not reached");
+        },
+        deleteUser: async (userId) => {
+          deletes.push(userId);
+          return { ok: true, value: null };
+        },
+        readUserAddress: async () => {
+          throw new Error("not reached");
+        },
+        moveUserAddress: async () => {
+          throw new Error("not reached");
+        },
+        userOfAddress: async () => {
+          throw new Error("not reached");
+        },
+      },
+      store: {
+        ...store,
+        filterAuthOrphans: async () => {
+          throw refusal;
+        },
+      },
+      now: () => AT_0300,
+    });
+
+    const failure = await purge(
+      { runId: "run-1", attempt: 1 },
+      {},
+      signal(),
+    ).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(PeriodicTaskError);
+    expect((failure as PeriodicTaskError).code).toBe("breaker.filter_refused");
+    expect(deletes).toEqual([]);
   });
 });
 

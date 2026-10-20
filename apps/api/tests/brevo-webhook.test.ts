@@ -192,11 +192,39 @@ describe("A4 exception: one entry, this route, POST, from web (decision 1)", () 
     );
   });
 
-  it("still refuses a write without origin from the backoffice, on this very path", async () => {
-    const response = await post(server(), { secret: BACKOFFICE_SECRET });
-    expect(response.statusCode).toBe(403);
-    expect(response.json().error.code).toBe("forbidden");
-  });
+  it.each<[string, Record<string, string>]>([
+    ["without origin", {}],
+    ["with same-origin", { "sec-fetch-site": "same-origin" }],
+  ])(
+    "answers the backoffice surface, %s, the 404 of an unknown route, before the route reads anything (J7S-3)",
+    async (_case, headers) => {
+      const unknown = await post(server(), {
+        path: `/v1/webhooks/brevx/${PATH_TOKEN}`,
+        headers: { "sec-fetch-site": "same-origin" },
+      });
+      const api = server();
+      const recorded = vi.spyOn(recorder, "recordServerError");
+      const response = await post(api, {
+        secret: BACKOFFICE_SECRET,
+        headers,
+        // An unreadable body: nothing was parsed.
+        payload: "{not json",
+      });
+      expect(response.statusCode).toBe(404);
+      const refused = response.json().error;
+      const reference = unknown.json().error;
+      expect(Object.keys(refused).sort()).toEqual(
+        Object.keys(reference).sort(),
+      );
+      expect({ code: refused.code, message: refused.message }).toEqual({
+        code: reference.code,
+        message: reference.message,
+      });
+      // The route's own checks never ran: no refusal reason, no drift.
+      expect(linesNamed("webhook.brevo.rejected")).toEqual([]);
+      expect(recorded).not.toHaveBeenCalled();
+    },
+  );
 
   it("still refuses a write without origin on any other web route", async () => {
     const response = await post(server(), {

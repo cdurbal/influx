@@ -120,14 +120,21 @@ async function ageMarker(
   await tx`alter table identity.sessions enable trigger sessions_guard_update`;
 }
 
+/**
+ * The request as apps/api makes it: `session` named in the call, `claim` the session of the
+ * request posed as request.jwt.claims (withUserTransaction; null: no claim at all, J7S-1).
+ */
 function requestChange(
   tx: postgres.TransactionSql,
   who: Member,
   session: string,
   newEmail: string,
   request: string = randomUUID(),
+  claim: string | null = session,
 ): Promise<ProbeResult> {
-  return actAsMember(tx, who.role, who.context, () =>
+  const context =
+    claim === null ? who.context : { ...who.context, sessionId: claim };
+  return actAsMember(tx, who.role, context, () =>
     probe(
       tx,
       "select identity.request_email_change($1::uuid, $2::uuid, $3, $4::bytea, $5::bytea)",
@@ -348,6 +355,50 @@ describe("the marker is single use, for one purpose, for MEMBER_REAUTHENTICATION
       { outcome: "rows", count: 1 },
       { outcome: "error", code: NOT_IN_PREREQUISITE_STATE },
       null,
+    ]);
+  });
+
+  it("refuses the marker of another session of the same account, and a call without the session claim (J7S-1)", async () => {
+    const who = member("advertiser", "a");
+    const results = await scenario(async (tx) => {
+      const own = await sessionOf(tx, who.account);
+      const [other] = await tx<{ id: string }[]>`
+        insert into identity.sessions
+          (token_hash, account_id, surface, mfa_method, user_agent_summary)
+        values (${digest(randomUUID())}, ${who.account.id}, 'member', null, 'firefox.windows')
+        returning id::text as id`;
+      const second = other?.id ?? "";
+      await markReauthenticated(tx, second, "email_change");
+      await markReauthenticated(tx, own, "email_change");
+      return [
+        // the marked second session named, the request being made by the first one
+        await requestChange(
+          tx,
+          who,
+          second,
+          "second@example.test",
+          randomUUID(),
+          own,
+        ),
+        // the request's own marked session named, but no session claim posed
+        await requestChange(
+          tx,
+          who,
+          own,
+          "unclaimed@example.test",
+          randomUUID(),
+          null,
+        ),
+        // witness: the session of the request, marked, consumed once
+        await requestChange(tx, who, own, "own@example.test"),
+        (await markerOf(tx, second))?.purpose,
+      ];
+    });
+    expect(results).toEqual([
+      { outcome: "error", code: NOT_IN_PREREQUISITE_STATE },
+      { outcome: "error", code: NOT_IN_PREREQUISITE_STATE },
+      { outcome: "rows", count: 1 },
+      "email_change",
     ]);
   });
 
@@ -823,6 +874,113 @@ describe("identity.refuse_email_change_address() (0123: GoTrue refused the new a
         return probe(
           tx,
           "select identity.refuse_email_change_address(gen_random_uuid())",
+        );
+      },
+    );
+    expect(result).toEqual({ outcome: "error", code: INSUFFICIENT_PRIVILEGE });
+  });
+});
+
+describe("identity.email_change_holder_is_orphan() (0144, C5.c: may the holder of the new address be deleted)", () => {
+  it("names an orphan only on the caller's own fully confirmed open request, on the id, never on an address", async () => {
+    const who = member("creator", "a");
+    const result = await scenario(async (tx) => {
+      const { request } = await openRequest(tx, who);
+      const ask = (by: Member, holder: string | null, on = request) =>
+        actAsMember(tx, by.role, by.context, async () => {
+          const [row] = await tx<{ orphan: boolean }[]>`
+            select identity.email_change_holder_is_orphan(${on}::uuid, ${holder}::uuid)
+                     as orphan`;
+          return row?.orphan;
+        });
+      const orphan = randomUUID();
+      const [held] = await tx<{ id: string }[]>`
+        select auth_user_id::text as id from identity.accounts
+         where id = ${dataSet.accounts.advertiser.b.id}`;
+      const [own] = await tx<{ id: string }[]>`
+        select auth_user_id::text as id from identity.accounts where id = ${who.account.id}`;
+      const early = await ask(who, orphan);
+      await confirm(tx, who, request, "old", digest(`old:${request}`));
+      await confirm(tx, who, request, "new", digest(`new:${request}`));
+      return {
+        early,
+        orphan: await ask(who, orphan),
+        heldByAccount: await ask(who, held?.id ?? ""),
+        ownUser: await ask(who, own?.id ?? ""),
+        noHolder: await ask(who, null),
+        foreign: await ask(member("creator", "b"), orphan),
+        unknownRequest: await ask(who, orphan, randomUUID()),
+        row: await requestRow(tx, request),
+      };
+    });
+    expect(result).toEqual({
+      early: false,
+      orphan: true,
+      heldByAccount: false,
+      ownUser: false,
+      noHolder: false,
+      foreign: false,
+      unknownRequest: false,
+      // a read: the request is left as it was
+      row: expect.objectContaining({ completed: false, cancel_reason: null }),
+    });
+  });
+
+  it("names nothing on an expired or closed request", async () => {
+    const who = member("advertiser", "a");
+    const result = await scenario(async (tx) => {
+      const { request } = await openRequest(tx, who);
+      await confirm(tx, who, request, "old", digest(`old:${request}`));
+      await confirm(tx, who, request, "new", digest(`new:${request}`));
+      const ask = () =>
+        actAsMember(tx, who.role, who.context, async () => {
+          const [row] = await tx<{ orphan: boolean }[]>`
+            select identity.email_change_holder_is_orphan(${request}::uuid,
+                     gen_random_uuid()) as orphan`;
+          return row?.orphan;
+        });
+      const open = await ask();
+      // closed by GoTrue's refusal (0123)
+      await actAsMember(
+        tx,
+        who.role,
+        who.context,
+        () => tx`select identity.refuse_email_change_address(${request}::uuid)`,
+      );
+      return { open, closed: await ask() };
+    });
+    const expired = await scenario(async (tx) => {
+      const { request } = await openRequest(tx, who);
+      await confirm(tx, who, request, "old", digest(`old:${request}`));
+      await confirm(tx, who, request, "new", digest(`new:${request}`));
+      await tx`alter table identity.email_change_requests disable trigger email_change_requests_guard_update`;
+      await tx`
+        update identity.email_change_requests
+           set created_at = now() - interval '25 hours', expires_at = now() - interval '1 hour'
+         where id = ${request}`;
+      await tx`alter table identity.email_change_requests enable trigger email_change_requests_guard_update`;
+      return actAsMember(tx, who.role, who.context, async () => {
+        const [row] = await tx<{ orphan: boolean }[]>`
+          select identity.email_change_holder_is_orphan(${request}::uuid,
+                   gen_random_uuid()) as orphan`;
+        return row?.orphan;
+      });
+    });
+    expect({ ...result, expired }).toEqual({
+      open: true,
+      closed: false,
+      expired: false,
+    });
+  });
+
+  it("is refused to influx_auth (42501)", async () => {
+    const result = await inRolledBackTransaction(
+      loginRole("influx_auth_login"),
+      async (tx) => {
+        await takeRole(tx, "influx_auth");
+        return probe(
+          tx,
+          "select identity.email_change_holder_is_orphan(gen_random_uuid(), gen_random_uuid())",
         );
       },
     );

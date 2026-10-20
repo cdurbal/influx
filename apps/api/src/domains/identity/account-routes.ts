@@ -511,6 +511,7 @@ export function registerAccountRoutes(
   ): EmailChangeCall => ({
     requestId: request.id,
     inMember: (fn) => withMemberSession(database, request, reply, now, fn),
+    clientAddress: clientAddressOf(request),
     logger: request.log,
   });
 

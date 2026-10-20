@@ -1313,6 +1313,22 @@ export async function refuseEmailChangeAddress(
   return rows[0]?.refused === true;
 }
 
+/**
+ * identity.email_change_holder_is_orphan() (0144, C5.c): whether the GoTrue user holding the new
+ * address of the caller's fully confirmed request has no account (on its id), hence may be deleted.
+ */
+export async function emailChangeHolderIsOrphan(
+  tx: Transaction,
+  requestId: string,
+  holderAuthUserId: string,
+): Promise<boolean> {
+  const rows = await tx.execute<{ orphan: boolean }>(
+    sql`select identity.email_change_holder_is_orphan(${requestId}::uuid,
+                 ${holderAuthUserId}::uuid) as orphan`,
+  );
+  return rows[0]?.orphan === true;
+}
+
 export type OwnEmailChangeRow = {
   id: string;
   newEmail: string;

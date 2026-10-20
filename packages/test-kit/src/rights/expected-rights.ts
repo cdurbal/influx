@@ -2129,6 +2129,10 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|function|influx.current_session_id()|EXECUTE",
   "influx_admin|function|backoffice.admin_role_grants(integer)|EXECUTE",
   "influx_identity_definer|function|backoffice.admin_role_grants(integer)|EXECUTE",
+  // 0144 (J9 commit 3, C5.c): may the GoTrue user holding the new address be deleted.
+  "influx_identity_definer|function|identity.email_change_holder_is_orphan(uuid,uuid)|EXECUTE",
+  "influx_advertiser|function|identity.email_change_holder_is_orphan(uuid,uuid)|EXECUTE",
+  "influx_creator|function|identity.email_change_holder_is_orphan(uuid,uuid)|EXECUTE",
 ];
 
 /**
@@ -2350,4 +2354,7 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   // 0142 (J9 commit 1, J8S-4). influx.current_session_id() and the rewritten
   // identity.assert_fresh_second_factor() are SECURITY INVOKER.
   "backoffice.admin_role_grants(integer)": "influx_identity_definer",
+  // 0144 (J9 commit 3, C5.c). The restated identity.consume_member_reauthentication() stays
+  // SECURITY INVOKER; ops.filter_auth_orphans() keeps its 0117 line.
+  "identity.email_change_holder_is_orphan(uuid,uuid)": "influx_identity_definer",
 };

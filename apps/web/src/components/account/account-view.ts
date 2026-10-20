@@ -209,7 +209,11 @@ export function confirmedSidesOf(request: EmailChangeRequest): number {
 }
 
 export type EmailChangeMessage =
-  "sameAsCurrent" | "undeliverable" | "unavailable" | "freshCodeRequired";
+  | "sameAsCurrent"
+  | "undeliverable"
+  | "unavailable"
+  | "freshCodeRequired"
+  | "rateLimited";
 
 /**
  * The message of a refused POST /v1/me/email-change. Each one sends the member back to the fresh
@@ -223,6 +227,10 @@ export function emailChangeRefusalOf(
   }
   if (result.code === "reauthentication_required") {
     return "freshCodeRequired";
+  }
+  // A2: the code of the new address counts on its RG44 ceiling.
+  if (result.code === "rate_limited") {
+    return "rateLimited";
   }
   if (result.code === "validation_failed") {
     const issues = result.issues ?? [];

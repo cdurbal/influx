@@ -69,7 +69,7 @@ import {
 import {
   isWriteMethod,
   isWriteOriginAllowed,
-  isWriteOriginException,
+  writeOriginExceptionSurface,
 } from "./platform/write-origin.ts";
 
 declare module "fastify" {
@@ -340,12 +340,18 @@ export function buildServer(
       config.authThrottlePepper,
     );
     readClientUserAgent(request);
-    if (
-      isWriteMethod(request.method) &&
-      !isWriteOriginException(request.method, routeUrl, caller) &&
-      !isWriteOriginAllowed(request.headers, config.publicOrigins[caller])
-    ) {
-      throw new ApiError("forbidden");
+    if (isWriteMethod(request.method)) {
+      const exempted = writeOriginExceptionSurface(request.method, routeUrl);
+      if (exempted !== null && exempted !== caller) {
+        // J7S-3: the route of the exception exists for its surface only (an unknown route).
+        throw new ApiError("not_found");
+      }
+      if (
+        exempted === null &&
+        !isWriteOriginAllowed(request.headers, config.publicOrigins[caller])
+      ) {
+        throw new ApiError("forbidden");
+      }
     }
     if (request.method === "DELETE" && deleteCarriesBody(request.headers)) {
       throw new ApiError("validation_failed");

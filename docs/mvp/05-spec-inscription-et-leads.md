@@ -408,7 +408,11 @@ connexion reste l'ancienne. Une fois le changement effectif, les deux adresses s
 événement `email.changed` est émis. *(J7, 2026-10-14, `architecte` et `expert-cybersecurite` :* un
 code qui ne part pas ferme la demande. Une nouvelle adresse déjà utilisée ferme la demande et le
 membre en est informé, une fois les deux codes saisis seulement ; l'ancienne adresse reste en
-vigueur.*)*
+vigueur.*)* *(J9, commit 3 : le code envoyé à la nouvelle adresse compte sur les plafonds de RG44,
+par adresse IP puis par adresse, quel que soit le compte demandeur ; au-delà, refus avant que le code
+frais ne soit consommé (A2). Une nouvelle adresse retenue chez le fournisseur d'identité par un
+utilisateur sans compte INFLUX — un code demandé pour elle — n'est pas « déjà utilisée » : cet
+utilisateur est supprimé, puis le changement réessayé (C5.c).)*
 
 ### G — L'e-mail qui n'arrive pas
 

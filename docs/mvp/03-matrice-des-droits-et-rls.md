@@ -1256,7 +1256,7 @@ rend l'absence de second facteur proportionnée.
 | **A-7** | **Le code n'apparaît jamais dans l'objet de l'e-mail** et l'e-mail ne contient **aucun lien de connexion** | Un objet d'e-mail s'affiche sur un écran verrouillé et dans les aperçus. Et un lien cliquable ramène tous les défauts du lien magique qu'on a écartés |
 | **A-8** | L'e-mail indique explicitement : **« INFLUX ne vous demandera jamais ce code »**, l'heure de la demande et le contexte (navigateur, pays approximatif) | Rend l'ingénierie sociale visible par la victime |
 | **A-9** | **Le cookie de session porte un identifiant opaque, jamais un JWT autoportant.** La session est une ligne en base avec `revoked_at` | **BLOQUANT (B4).** Un jeton autoportant ne se révoque pas avant expiration. Sur une plateforme où l'on suspend des comptes et où le rôle est lu en base pour cette raison même, laisser la session survivre à la suspension serait incohérent |
-| **A-10** | **Re-authentification par un nouveau code** pour trois actions : changer l'adresse e-mail, exporter ses données, supprimer son compte. *Preuve (définitive, `expert-cybersecurite`, revue de fin de J7, 2026-10-14) :* marqueur lié à la session et à la finalité, à usage unique, valable 300 s, consommé dans la transaction de l'action (`05` RG57) | Ce sont les trois actions qu'un attaquant ayant un accès temporaire à la boîte voudrait faire |
+| **A-10** | **Re-authentification par un nouveau code** pour trois actions : changer l'adresse e-mail, exporter ses données, supprimer son compte. *Preuve (définitive, `expert-cybersecurite`, revue de fin de J7, 2026-10-14) :* marqueur lié à la session **de la requête** (claim `session_id`, `influx.current_session_id()` ; *J9, J7S-1, `0144` : jamais une autre session ouverte du même compte*) et à la finalité, à usage unique, valable 300 s, consommé dans la transaction de l'action (`05` RG57) | Ce sont les trois actions qu'un attaquant ayant un accès temporaire à la boîte voudrait faire |
 | **A-11** | **Le changement d'adresse exige une confirmation depuis l'ancienne ET la nouvelle adresse** | Sans cela, dix minutes d'accès à la boîte suffisent à s'approprier le compte **définitivement** |
 | **A-12** | **Notification par e-mail de toute connexion depuis un nouvel appareil**, et écran « mes sessions actives » avec déconnexion globale | Faible (la notification part dans la boîte compromise), mais c'est la seule trace que la victime peut voir a posteriori. Coût minime |
 
@@ -1408,7 +1408,11 @@ transmet ; c'est `apps/api` qui décide. Mise en œuvre et jalons : `21` §4 (J1
   `WRITE_ORIGIN_EXCEPTIONS` (`apps/api/src/platform/write-origin.ts`, test : une seule) : cette
   méthode, cette route, la surface `web`. En contrepartie, la route s'authentifie avant toute
   lecture du corps (adresse dans les plages Brevo, deux jetons en temps constant) et ne lit ni
-  cookie ni session. Une seconde entrée est une décision d'`expert-cybersecurite`.
+  cookie ni session. Une seconde entrée est une décision d'`expert-cybersecurite`. *Surface `web`
+  seule (J9, J7S-3) :* appelée sous le secret d'une autre surface (le relais du backoffice relaie
+  tout `/api/*`), la route répond **`404`, la réponse d'une route inconnue**, avant le contrôle
+  d'origine et avant toute vérification qui lui est propre, quels que soient `origin` et
+  `sec-fetch-site` ; une exception de la liste n'existe que pour sa surface.
 
 *A5 — Adresse du client dans `apps/api`, exigée au J3 (constat au J4).*
 1. **`trustProxy: false`** ; `request.ip` n'est **jamais** utilisé.

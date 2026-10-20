@@ -81,6 +81,7 @@
       "undeliverable": "We can't send an email to this new address. Check it, then start again.",
       "unavailable": "We can't send the codes right now. Nothing has changed: start again in a few minutes.",
       "freshCodeRequired": "The check has expired. Start again: we will send you a new code.",
+      "rateLimited": "Too many codes have been requested in a short time. Nothing has changed: please try again in a few minutes.",
       "addressUnavailable": "This address can't be used for your account. Your sign-in address has not changed.",
       "tooManyAttempts": "Too many attempts with this code. The request is closed: your address has not changed. You can start again.",
       "expired": "The 24 hours have passed. The request is closed: your address has not changed. You can start again.",

@@ -81,6 +81,7 @@
       "undeliverable": "Nous ne parvenons pas à envoyer d'e-mail à cette nouvelle adresse. Vérifiez-la, puis recommencez.",
       "unavailable": "Nous ne parvenons pas à envoyer les codes pour le moment. Rien n'a changé : recommencez dans quelques minutes.",
       "freshCodeRequired": "La vérification a expiré. Recommencez : nous vous envoyons un nouveau code.",
+      "rateLimited": "Trop de codes ont été demandés en peu de temps. Rien n'a changé : réessayez dans quelques minutes.",
       "addressUnavailable": "Cette adresse ne peut pas être utilisée pour votre compte. Votre adresse de connexion n'a pas changé.",
       "tooManyAttempts": "Trop d'essais avec ce code. La demande est close : votre adresse n'a pas changé. Vous pouvez recommencer.",
       "expired": "Le délai de 24 heures est passé. La demande est close : votre adresse n'a pas changé. Vous pouvez recommencer.",

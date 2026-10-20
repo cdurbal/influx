@@ -5862,8 +5862,9 @@ un utilisateur dans le schéma `auth` de Supabase — sans jamais devenir un com
 |---|---|
 | **Quand** | **24 heures** après leur création |
 | **Comment** | Tâche périodique, opération élevée **E-4** (`maintenance.run_periodic`, `03` P7). **Par l'API d'administration de GoTrue**, jamais par un `DELETE` sur le schéma `auth` — nous ne modifions jamais un schéma qui appartient à Supabase (§5.1, `accounts.auth_user_id` n'a d'ailleurs **volontairement pas** de clé étrangère) |
-| **Garde-fou** | Le rapprochement se fait sur `identity.accounts.auth_user_id`, **jamais sur l'adresse** : un compte supprimé logiquement (`status = 'deleted'`) garde sa ligne, donc son utilisateur GoTrue n'est **pas** purgé |
+| **Garde-fou** | Le rapprochement se fait sur `identity.accounts.auth_user_id`, **jamais sur l'adresse** : un compte supprimé logiquement (`status = 'deleted'`) garde sa ligne, donc son utilisateur GoTrue n'est **pas** purgé. *Disjoncteur (J9, J7S-2) :* `ops.filter_auth_orphans()` refuse (`55000`) tant que `identity.accounts` paraît vide, et le worker abandonne le passage quand plus de la moitié d'une page de plus de 20 utilisateurs revient orpheline ; rien n'est supprimé, le passage est clos `failed` (`breaker.filter_refused`, `breaker.orphan_ratio`) |
 | **Trace** | Un résumé au registre, comme toute purge : `retention.purged`, catégorie `auth_orphan_users`, avec le nombre |
+| **Exception (J9, C5.c)** | Quand GoTrue refuse la nouvelle adresse d'un changement **dont les deux codes sont saisis**, l'utilisateur qui la détient est supprimé **sans attendre 24 heures** s'il n'a aucun compte (`identity.email_change_holder_is_orphan()`, `0144`, sur l'id), puis le changement est réessayé. Trace : une ligne `pino` sans donnée, **aucune ligne au registre** (aucun type d'événement ne convient). *À trancher par `expert-cybersecurite` à la revue groupée : l'admettre, ou créer un type d'événement sur le compte.* |
 
 > **Pourquoi 24 heures et pas moins.** Le délai doit couvrir un parcours d'inscription interrompu et
 > repris le lendemain matin : purger à une heure ferait perdre le code en cours de quelqu'un qui

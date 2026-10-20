@@ -3,7 +3,9 @@
 // each address, typed in the member space within 24 hours; the sign-in address stays the old one
 // until both are (CA34). The steps, never a transaction open across a call (G4):
 //
-//   start     (member) identity.request_email_change() consumes the marker and records the two
+//   start     (E-1) the code of the new address counted on RG44, the IP then the address, like a
+//             sign-in code to it (A2): over a ceiling, 429 rate_limited, the marker untouched;
+//             (member) identity.request_email_change() consumes the marker and records the two
 //             HMAC digests (0118); (E-1 identity.member_email_change) the two P1 journal lines
 //             (0123); both sends, synchronous, Idempotency-Key = request + side; (E-1) their
 //             outcomes. A code that did not leave closes the request (not_sent, 0124): 503
@@ -16,6 +18,9 @@
 //             (member) identity.complete_email_change(): the address, the other sessions revoked,
 //             email.changed to Brevo and Apollo, the two notices, in one transaction.
 //   failures  GoTrue unavailable: 503, the request stays open, the same code may be typed again.
+//             GoTrue refusing the address as taken by a user no account references (an orphan,
+//             left by a code asked for that address): deleted, then the move tried once more
+//             (C5.c, 0144 identity.email_change_holder_is_orphan()).
 //             GoTrue refusing the address as taken, or the database refusing it at completion:
 //             address_unavailable, one answer for both (whoever holds it), known only once both
 //             codes are typed (decision 5 as revised on 2026-10-14, C5.a); the request closes, the
@@ -48,10 +53,16 @@ import {
   type EmailSwitch,
   type SendPriority,
 } from "../../platform/email-switch.ts";
+import type { ClientAddress } from "../../platform/client-address.ts";
 import { ApiError, RequestValidationError } from "../../platform/errors.ts";
-import type { SupabaseAuth } from "../../platform/supabase.ts";
+import type {
+  GoTrueFailure,
+  GoTrueIdentity,
+  GoTrueOutcome,
+  SupabaseAuth,
+} from "../../platform/supabase.ts";
 import { renderEmailChangeEmail } from "./email-change-email.ts";
-import { FAILURE_OF } from "./login-code.ts";
+import { FAILURE_OF, reserveCodeRequest } from "./login-code.ts";
 import { DEFAULT_EMAIL_TIME_ZONE } from "./login-code-email.ts";
 import type { MemberContext } from "./member-session.ts";
 import { requireFreshCode } from "./reauthentication.ts";
@@ -60,6 +71,7 @@ import {
   closeUnsentEmailChange,
   completeEmailChange,
   confirmEmailChange,
+  emailChangeHolderIsOrphan,
   insertEmailChangeCodeSend,
   ownEmailChange,
   ownProfile,
@@ -80,9 +92,15 @@ export const EMAIL_CHANGE_CODE_PRIORITY: SendPriority = "p1";
 
 const SIDES: readonly EmailChangeSide[] = ["old", "new"];
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export type EmailChangeDependencies = {
   database: ApiDatabase;
-  supabaseAuth: Pick<SupabaseAuth, "updateUserEmail">;
+  /** generateEmailCode and deleteUser: the orphan holding the new address (C5.c) only. */
+  supabaseAuth: Pick<
+    SupabaseAuth,
+    "updateUserEmail" | "generateEmailCode" | "deleteUser"
+  >;
   sender: TransactionalSender;
   /** AUTH_THROTTLE_PEPPER: the key of the code digests (label email-change-code:). */
   pepper: string;
@@ -106,6 +124,8 @@ export type EmailChangeCall = {
   /** The request id of the HTTP request (the register's and the logs'). */
   requestId: string;
   inMember: InMemberTransaction;
+  /** The client address (03 A5): the IP counter of RG44 for the code of the new address (A2). */
+  clientAddress: ClientAddress;
   logger: EmailChangeLogger;
 };
 
@@ -146,6 +166,24 @@ export async function startEmailChange(
   };
   const digest = (side: EmailChangeSide) =>
     emailChangeCodeDigest(dependencies.pepper, changeId, side, codes[side]);
+
+  // A2: the code of the new address counts on RG44 like a sign-in code to it (the IP, then the
+  // address), whichever account asks; over a ceiling, 429 before the fresh code is consumed.
+  const allowed = await withElevatedTransaction(
+    dependencies.database,
+    "identity.member_email_change",
+    call.requestId,
+    async (tx) => ({
+      value: await reserveCodeRequest(tx, dependencies.pepper, {
+        clientAddress: call.clientAddress,
+        email: newEmail,
+      }),
+      auditSubject: null,
+    }),
+  );
+  if (!allowed) {
+    throw new ApiError("rate_limited");
+  }
 
   // The request (member): the fresh code is consumed here; the previous open request closes.
   const started = await call.inMember(async (tx, context) => {
@@ -382,18 +420,89 @@ export async function confirmEmailChangeCode(
   });
 }
 
+type ReadyChange = { changeId: string; authUserId: string; newEmail: string };
+
+function isAddressTaken(outcome: GoTrueOutcome<GoTrueIdentity>): boolean {
+  return (
+    !outcome.ok &&
+    outcome.reason === "rejected" &&
+    outcome.errorCode === "email_exists"
+  );
+}
+
+/**
+ * C5.c: GoTrue refused the new address as taken. Its holder is looked up (generateLink: nothing is
+ * sent, the code it makes is dropped unread); when no account references it (on its id: a code
+ * asked for that address, often by the member himself), it is deleted and the move tried once
+ * more, as the hourly pass of C5.b does. Returns that second outcome, or null when the holder is
+ * not an orphan. GoTrue unavailable on the way: 503, the request stays open (A1: the codes again).
+ */
+async function releaseOrphanHolder(
+  dependencies: EmailChangeDependencies,
+  call: EmailChangeCall,
+  change: ReadyChange,
+): Promise<GoTrueOutcome<GoTrueIdentity> | null> {
+  const unavailable = (failure: GoTrueFailure, message: string): never => {
+    call.logger.warn(
+      {
+        reason: failure.reason,
+        errorCode: failure.errorCode,
+        status: failure.status,
+      },
+      message,
+    );
+    throw new ApiError("email_change_unavailable");
+  };
+  const holder = await dependencies.supabaseAuth.generateEmailCode(
+    change.newEmail,
+  );
+  if (!holder.ok) {
+    return holder.reason === "unavailable"
+      ? unavailable(holder, "email change: holder of the new address unread")
+      : null;
+  }
+  const holderId = holder.value.userId;
+  if (
+    holder.value.email !== change.newEmail ||
+    holderId === change.authUserId ||
+    !UUID.test(holderId) ||
+    !(await call.inMember((tx) =>
+      emailChangeHolderIsOrphan(tx, change.changeId, holderId),
+    ))
+  ) {
+    return null;
+  }
+  const deleted = await dependencies.supabaseAuth.deleteUser(holderId);
+  if (!deleted.ok && deleted.status !== 404) {
+    return deleted.reason === "unavailable"
+      ? unavailable(deleted, "email change: orphan holder not deleted")
+      : null;
+  }
+  call.logger.info(
+    {},
+    "email change: orphan GoTrue holder of the new address deleted",
+  );
+  return dependencies.supabaseAuth.updateUserEmail(
+    change.authUserId,
+    change.newEmail,
+  );
+}
+
 /** Both sides confirmed: GoTrue first, then the database; GoTrue follows the database. */
 async function finishEmailChange(
   dependencies: EmailChangeDependencies,
   call: EmailChangeCall,
-  change: { changeId: string; authUserId: string; newEmail: string },
+  change: ReadyChange,
 ): Promise<ConfirmEmailChangeResponse> {
-  const moved = await dependencies.supabaseAuth.updateUserEmail(
+  let moved = await dependencies.supabaseAuth.updateUserEmail(
     change.authUserId,
     change.newEmail,
   );
+  if (isAddressTaken(moved)) {
+    moved = (await releaseOrphanHolder(dependencies, call, change)) ?? moved;
+  }
   if (!moved.ok) {
-    if (moved.reason === "rejected" && moved.errorCode === "email_exists") {
+    if (isAddressTaken(moved)) {
       // Another GoTrue user holds the address: the request closes (C5.a).
       await call.inMember((tx) =>
         refuseEmailChangeAddress(tx, change.changeId),

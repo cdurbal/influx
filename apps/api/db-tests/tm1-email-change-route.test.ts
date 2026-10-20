@@ -59,6 +59,9 @@ class GoTrueDouble {
   readonly updates: { userId: string; email: string }[] = [];
   /** Failures answered, in order, by the next calls of updateUserEmail. */
   readonly updateFailures: GoTrueFailure[] = [];
+  /** The users deleted (C5.c), and the failures answered by the next calls of deleteUser. */
+  readonly deletes: string[] = [];
+  readonly deleteFailures: GoTrueFailure[] = [];
 
   add(email: string): string {
     const id = randomUUID();
@@ -87,7 +90,17 @@ class GoTrueDouble {
     });
     return {
       createPasswordUser: notUsed,
-      deleteUser: notUsed,
+      deleteUser: async (userId) => {
+        const failure = this.deleteFailures.shift();
+        if (failure !== undefined) {
+          return failure;
+        }
+        if (!this.users.delete(userId)) {
+          return rejected("user_not_found", 404);
+        }
+        this.deletes.push(userId);
+        return { ok: true, value: null };
+      },
       createUser: async (email) => {
         if (this.userOf(email) !== null) {
           return rejected("email_exists", 422);
@@ -638,6 +651,34 @@ describe("POST /v1/me/email-change: behind a fresh code for this action only (RG
     expect(errorOf(again).code).toBe("reauthentication_required");
   });
 
+  it("A2: the code of the new address counts on its RG44 ceiling, whoever asks: 429 before the fresh code is consumed", async () => {
+    const server = app();
+    const target = newAddress("target");
+    // Three accounts, three addresses of their own: the ceiling of the target (3 per 15 min) only
+    for (let index = 0; index < 3; index += 1) {
+      await startChange(server, await newMember(), target);
+    }
+    const fourth = await newMember();
+    await reauthenticate(server, fourth);
+    const from = double.messages.length;
+    const refused = await call(server, "POST", "/v1/me/email-change", fourth, {
+      newEmail: target,
+    });
+    expect(errorOf(refused)).toEqual({ status: 429, code: "rate_limited" });
+    expect(double.messages.slice(from)).toHaveLength(0);
+    const [count] = await migration<{ count: number }[]>`
+      select count(*)::int as count from identity.email_change_requests
+       where account_id = ${fourth.accountId}`;
+    expect(count?.count).toBe(0);
+    // refused before it was consumed: the same fresh code opens a change to another address
+    const other = newAddress("other");
+    const started = await call(server, "POST", "/v1/me/email-change", fourth, {
+      newEmail: other,
+    });
+    expect(started.statusCode).toBe(200);
+    expect(messagesTo(other, from)).toHaveLength(1);
+  });
+
   it("two requests at the same time on one fresh code: one wins, the other 403, one request recorded (J7T-2)", async () => {
     const server = app();
     const member = await newMember();
@@ -1000,12 +1041,14 @@ describe("05 CA34, RG58, A-11: a code to each address, and the old one stays the
 });
 
 describe("decision 5 (revised, C5.a): a taken address is told once both codes are typed, and nothing changes", () => {
-  it("GoTrue refuses the new address (email_exists): address_unavailable, the request closed, the account untouched", async () => {
+  it("GoTrue refuses the new address (email_exists), held by the user of another account: address_unavailable, the request closed, nothing deleted", async () => {
     const server = app();
     const member = await newMember();
+    const other = await newMember();
     const taken = newAddress("taken");
     const started = await startChange(server, member, taken);
-    gotrue.add(taken); // a GoTrue user took it meanwhile
+    // the GoTrue user of another account took it meanwhile (diverged from its database address)
+    gotrue.users.set(other.authUserId, taken);
     await confirm(server, member, started.requestId, "old", started.old);
     const last = await confirm(
       server,
@@ -1022,11 +1065,74 @@ describe("decision 5 (revised, C5.a): a taken address is told once both codes ar
     });
     expect(await accountEmail(member.accountId)).toBe(member.email);
     expect(gotrue.users.get(member.authUserId)).toBe(member.email);
+    expect(gotrue.users.get(other.authUserId)).toBe(taken);
+    expect(gotrue.deletes).toEqual([]);
     expect(
       (await queueLinesOf(member.accountId)).filter(
         (line) => line.event_type === "email.changed",
       ),
     ).toEqual([]);
+  });
+
+  it("C5.c: an orphan GoTrue user holds the new address (a code asked for it): deleted, the move tried again, the change completed", async () => {
+    const server = app();
+    const member = await newMember();
+    const wanted = newAddress("orphaned");
+    const started = await startChange(server, member, wanted);
+    // a sign-in code asked for the new address left a GoTrue user without an account
+    const orphan = gotrue.add(wanted);
+    await confirm(server, member, started.requestId, "old", started.old);
+    const last = await confirm(
+      server,
+      member,
+      started.requestId,
+      "new",
+      started.new,
+    );
+    expect(last.json()).toEqual({ outcome: "completed" });
+    expect(gotrue.deletes).toEqual([orphan]);
+    expect(gotrue.updates).toEqual([
+      { userId: member.authUserId, email: wanted },
+      { userId: member.authUserId, email: wanted },
+    ]);
+    expect(gotrue.users.get(member.authUserId)).toBe(wanted);
+    expect(await accountEmail(member.accountId)).toBe(wanted);
+    expect(await requestRow(started.requestId)).toMatchObject({
+      completed: true,
+    });
+  });
+
+  it("C5.c: the orphan cannot be deleted (GoTrue unavailable): 503, the request open, the account untouched", async () => {
+    const server = app();
+    const member = await newMember();
+    const wanted = newAddress("orphaned");
+    const started = await startChange(server, member, wanted);
+    const orphan = gotrue.add(wanted);
+    gotrue.deleteFailures.push({
+      ok: false,
+      reason: "unavailable",
+      errorCode: null,
+      status: null,
+    });
+    await confirm(server, member, started.requestId, "old", started.old);
+    const last = await confirm(
+      server,
+      member,
+      started.requestId,
+      "new",
+      started.new,
+    );
+    expect(errorOf(last)).toEqual({
+      status: 503,
+      code: "email_change_unavailable",
+    });
+    expect(gotrue.users.get(orphan)).toBe(wanted);
+    expect(gotrue.users.get(member.authUserId)).toBe(member.email);
+    expect(await accountEmail(member.accountId)).toBe(member.email);
+    expect(await requestRow(started.requestId)).toMatchObject({
+      completed: false,
+      cancel_reason: null,
+    });
   });
 
   it("another account holds it at completion: the same address_unavailable, GoTrue set back to the address in force", async () => {

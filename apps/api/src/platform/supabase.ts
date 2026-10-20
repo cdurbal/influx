@@ -124,7 +124,8 @@ export type SupabaseAuth = {
   ): Promise<GoTrueOutcome<GoTrueIdentity>>;
   /**
    * Deletes a user (administration API): only the user just created by an acceptance the database
-   * then refused (the purge of orphans, J7, is the safety net when this call fails).
+   * then refused (the purge of orphans, J7, is the safety net when this call fails), and the
+   * orphan holding the new address of a confirmed change (C5.c, checked by the database first).
    */
   deleteUser(userId: string): Promise<GoTrueOutcome<null>>;
   /** The user of an id, as GoTrue holds it (EC-4 point 4). */

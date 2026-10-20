@@ -12,6 +12,13 @@
 //   4. retention.purged (auth_orphan_users, count) on the run, even when a later step failed.
 // No address of a listed user is ever read, and none is logged (D60): ids and instants, and counts.
 //
+// The breaker (J7S-2): a run that would delete the users of real accounts stops before any delete.
+// ops.filter_auth_orphans() refuses (55000) while identity.accounts reads empty (a policy or a
+// connection gone wrong would make every user an orphan): `breaker.filter_refused`. And a page of
+// more than 20 users of which more than half come back orphans: `breaker.orphan_ratio`. Either
+// way the run is closed failed, its code in the error line of the scheduler; the next hour tries
+// again, and a person looks.
+//
 // First, in the same run, the realignment of C5.b (J7 commit 7 review, 0125): the address of
 // GoTrue follows identity.accounts.email. For each account that changed address recently
 // (ops.gotrue_realignment_candidates), the GoTrue user is read; when its address differs from the
@@ -20,6 +27,7 @@
 // account could not sign in), it is deleted when no account references it, then the move is tried
 // once more. Counts: realign_checked, gotrue_realigned, gotrue_realign_failed,
 // realign_orphans_deleted (in retention.purged with the purge). Addresses stay in memory.
+import { sqlStateOf } from "../../db/sql-state.ts";
 import type {
   GoTrueUserActivity,
   GoTrueUserDirectory,
@@ -41,8 +49,27 @@ export const LIST_PAGE_SIZE = 1_000;
 export const MAX_LIST_PAGES = 100;
 /** Deletions per run at most (the loop of the worker stays short); the rest, the next hour. */
 export const MAX_DELETIONS_PER_RUN = 500;
+/** J7S-2: the breaker looks at a page of MORE than this many users. */
+export const BREAKER_PAGE_USERS = 20;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const NOT_IN_PREREQUISITE_STATE = "55000";
+
+/** ops.filter_auth_orphans(); its refusal (accounts read empty, J7S-2) stops the run. */
+async function orphansAmong(
+  store: PeriodicStore,
+  run: PeriodicRun,
+  authUserIds: string[],
+): Promise<string[]> {
+  try {
+    return await store.filterAuthOrphans(run, authUserIds);
+  } catch (error) {
+    if (sqlStateOf(error) === NOT_IN_PREREQUISITE_STATE) {
+      throw new PeriodicTaskError("breaker.filter_refused");
+    }
+    throw error;
+  }
+}
 
 /** Created, updated and last signed in over 24 hours before `now` (never signed in counts). */
 export function isPurgeableAge(user: GoTrueUserActivity, now: number): boolean {
@@ -103,7 +130,7 @@ async function realignGoTrue(
         holder.ok &&
         holder.value !== fresh.authUserId &&
         UUID.test(holder.value) &&
-        (await store.filterAuthOrphans(run, [holder.value])).length === 1
+        (await orphansAmong(store, run, [holder.value])).length === 1
       ) {
         const deleted = await directory.deleteUser(holder.value);
         if (deleted.ok) {
@@ -165,13 +192,22 @@ export function createAuthOrphanPurge(dependencies: {
       if (!outcome.ok) {
         throw gotrueFailure(outcome.reason);
       }
-      counts.listed += outcome.value.users.length;
-      const aged = outcome.value.users
+      const { users } = outcome.value;
+      counts.listed += users.length;
+      const aged = users
         .filter((user) => UUID.test(user.userId) && isPurgeableAge(user, now()))
         .map((user) => user.userId);
       counts.aged += aged.length;
       if (aged.length > 0) {
-        orphans.push(...(await store.filterAuthOrphans(run, aged)));
+        const named = await orphansAmong(store, run, aged);
+        // J7S-2: over half of a full enough page is not a purge, it is a fault.
+        if (
+          users.length > BREAKER_PAGE_USERS &&
+          named.length * 2 > users.length
+        ) {
+          throw new PeriodicTaskError("breaker.orphan_ratio");
+        }
+        orphans.push(...named);
       }
       page = outcome.value.nextPage;
     }
@@ -194,7 +230,7 @@ export function createAuthOrphanPurge(dependencies: {
         }
         // An account may have been created since the listing: checked again, on the id, as late
         // as possible before the delete.
-        const still = await store.filterAuthOrphans(run, [userId]);
+        const still = await orphansAmong(store, run, [userId]);
         if (still.length === 0) {
           counts.kept += 1;
           continue;

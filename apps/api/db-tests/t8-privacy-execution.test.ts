@@ -155,11 +155,17 @@ function asAgent<T>(tx: Tx, fn: () => Promise<T>): Promise<T> {
   );
 }
 
+/** As the member, its session being the session of the request (the claim of apps/api, J7S-1). */
 function asMember<T>(tx: Tx, member: Member, fn: () => Promise<T>): Promise<T> {
   return actAsMember(
     tx,
     member.role === "advertiser" ? "influx_advertiser" : "influx_creator",
-    { accountId: member.id, role: member.role, aal: "aal1" },
+    {
+      accountId: member.id,
+      role: member.role,
+      aal: "aal1",
+      sessionId: member.session,
+    },
     fn,
   );
 }
