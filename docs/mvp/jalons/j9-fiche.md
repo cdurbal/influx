@@ -259,9 +259,9 @@ recopiée nulle part (D70).
 
 ## Planchers
 
-Recomptés au commit 1 (2026-10-20, sur `bc95f3a`) : `pnpm test` = **2 624** (contracts 80,
-test-kit 119, backoffice 30, web 205, `apps/api` unitaire 1 132 en 55 fichiers, base 1 058 en 49
-fichiers) ; `test:db` = **1 058** (49 fichiers). Seul `apps/api` est figé (J8T-6 généralise au
+Recomptés au commit 2 (2026-10-20) : `pnpm test` = **2 642** (contracts 87, test-kit 119,
+backoffice 34, web 205, `apps/api` unitaire 1 132 en 55 fichiers, base 1 065 en 49 fichiers) ;
+`test:db` = **1 065** (49 fichiers ; planchers `t14-backoffice-accounts-route` 19, `-actions-route` 29). Seul `apps/api` est figé (J8T-6 généralise au
 commit 10) ; tout nouveau fichier `db-tests` entre dans `case-floors.ts`.
 
 ## Issu du commit S
@@ -280,6 +280,13 @@ commit 10) ; tout nouveau fichier `db-tests` entre dans `case-floors.ts`.
 - J8S-4 : `admin_role_grants(p_days)` (1 à 30, défaut 7) ; « accordé par » = `granted_by_account_id`
   du payload, sinon l'acteur. F4 : index partiel (`actor_account_id is not null`).
 - `test:db -- <fichier>` lance toute la suite : un fichier seul par `npx vitest run --project db <fichier>` (`apps/api`).
+
+## Issu du commit 2
+
+- J8S-2 : cible de la 2V = compte membre par rôle, pays, date d'inscription, raison sociale et lien vers la fiche, **jamais l'adresse** (lue sur la fiche journalisée, RG40) ; invitation `admin` par adresse invitée et rôle (EC-J8-62).
+- J8S-7 : `POST /v1/bo/accounts/search` = filtres + **au plus un** terme dans le corps ; l'écran liste par lui seul (un instant de période n'est pas un caractère simple du relais, EC-62) ; `email`/`q` en URL ⇒ `400` ; EC-J8-58 levée (`@`, `.` admis) ; terme en mémoire de l'écran, jamais dans la barre d'adresse.
+- J8S-1 : revue `?weeks=` 1 à 53, **4 par défaut**, `admin` seul (agent refusé et journalisé `backoffice.dual_control`) ; bloc d'accueil `admin` seul. J8S-4 : `adminRoleGrants` dans `GET /v1/bo/alerts` (7 j, `admin`).
+- J8S-6 : `0143` ajoute `backoffice_reauth_ip` (60 / h ; IP inconnue : clé globale propre à R) ; prochaine migration libre **`0144`**.
 
 ## Discipline de session (économie de tokens)
 
