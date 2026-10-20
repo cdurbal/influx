@@ -224,7 +224,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
  - [x] Commit 5sexies (`b136505`) — I-4 : attestation ultérieure `security-reviewed: <date> covers <sha>…` (fondateur, 2026-10-08), sans réécriture de `main` ; les quatre commits J5 restent rouges jusqu'à la revue de fin de J5.
 - [x] Commit 6 (`cff1adf`) — Playwright (`apps/web/e2e`, `pnpm test:e2e`, en CI après `pnpm check`) : deux inscriptions nominales avec la doublure Brevo et relecture en base (CGU, libellé RG32, 3 lignes EC-10), plus les 7 cas D66 du commit 5 (9 parcours).
 
-### J6 — Déversement vers Brevo et Apollo (4 à 5 jours)
+### J6 — Déversement vers Brevo et Apollo (critère de fin constaté sur `staging` en `live` le 2026-10-20, J9 commit S)
 
 1. **La boucle du worker**, en trois temps courts — jamais d'appel externe sous transaction (`02` §18.4 G4, lead-pipeline T9) :
    - `(1) PRISE` : `SELECT … WHERE status='pending' AND available_at<=now() ORDER BY priority, available_at, id LIMIT 20 FOR UPDATE SKIP LOCKED` (en respectant l'ordre RG77 sauf priorité `0` révocations/suppressions) → `status='processing'`.
@@ -247,7 +247,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] Commit 6 (`f4f9ebc`) — EC-44 : `internal.critical_alert` P0 synchrone après le commit de la connexion (jamais `outbox_events`), une ligne et une tentative par `admin` actif (compte de secours exclu), clé = seq d'audit + compte destinataire, contenu FR+EN fixe sans `@` ; `0114` (`consume_recovery_code` rend le seq, politique d'insertion de `influx_auth`) ; `critical-alert-email` (3 cas), `t8-backoffice-sign-in` (15 cas).
 - [x] Commit 7 (`d4625ec`, `9eb1662`, `3fa1d69`, `86120e8`) — essai D62 réussi (Brevo contact + bienvenue, Apollo contact) ; sondes : Apollo `PUT`, id inconnu = 422 ⇒ client corrigé ; fixtures alignées ; revue de fin de J6 sans point rouge (R1, R2, I-2 soldés ; tickets J6S/J6T dans la fiche) ; reste la vérification du critère sur `staging` (fondateur).
 
-### J7 — Retours de Brevo et espace membre minimal (revue close le 2026-10-14 ; critère de fin sur `staging` en attente)
+### J7 — Retours de Brevo et espace membre minimal (revue close le 2026-10-14 ; critère de fin constaté sur `staging` le 2026-10-20, J9 commit S)
 
 1. **Webhook Brevo** selon EC-12 (`16` RG146, RG147) : jeton en temps constant, chemin à jeton, plages IP, fenêtre 15 min, idempotence, traitement par le worker.
 2. **Traitements** (`16` RG106) : désinscription, plainte, rebond dur, adresse invalide, blocage ⇒ `consent_events` (`brevo_webhook`), `contact_sync_states` ; rebond dur transactionnel ⇒ `email_delivery_incidents` et `accounts.email_status = 'undeliverable'`.
@@ -268,11 +268,11 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] Commit 8 (`c971d54`) — navigateur inconnu (`auth.new_device`), « mes données », canal de secours (`0126`).
 - [x] Commit 8bis (`d81bb5d`, attestation `a7bad99`) — arbitrages du commit 8 : accusé rendu par INFLUX, `due_at`, E-5 au J8 (`0127`, `0128`).
 - [x] Commit 9 (`4c7c546`) — écrans `/fr/compte/*` · `/en/account/*`, écran CGU bloquant, Playwright à 375 px.
-- [ ] Commit 10 (`33acb6c`, partiel) — outil `trial:record` et runbook `staging` J7 ; reste au fondateur : déploiement, webhook de test, enregistrements, critère de fin.
+- [x] Commit 10 (`33acb6c`) — outil `trial:record` et runbook `staging` J7 ; webhook réel et critère de fin constatés par l'agent au J9 commit S (D70).
 - [x] Clôture (`5b977f7`, `c8379f6`) — revue de fin de J7 sans point rouge (`expert-cybersecurite`, `testeur`) ; 18 commits attestés, dont 4 du J5 ; test CGU révélé par la CI corrigé ; specs alignées.
 - **Reportés** (détail : `jalons/j9-fiche.md`, et `git show 5b977f7:docs/mvp/jalons/j7-fiche.md`) : avant production J7S-1 à J7S-3 ; avant le webhook de test J7S-4, J7S-6 ; fondateur J7S-5, J6S-5 ; J8 J7S-7, J7T-1 à J7T-6, J6T-1, J6T-2 ; J9 J7S-8.
 
-### J8 — Backoffice v0 (revue close le 2026-10-16 ; critère de fin sur `staging` en attente)
+### J8 — Backoffice v0 (revue close le 2026-10-16 ; critère de fin constaté sur `staging` le 2026-10-20, J9 commit S ; effacement Apollo au Lot 5)
 
 1. Migrations `0129` (ex-`0102`, catalogue des files, délais) et `0130` (ex-`0107`, alertes, double validation, réécriture de `grant_role()` avec 2V et fraîcheur R), table des invitations (EC-11).
 2. **Liste des inscrits** (RG97, RG98, aucun export nominatif RG106) et **fiche d'un inscrit** (état par destination avec cause en clair RG99, compteurs du jour RG105).
@@ -309,6 +309,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] Commit D70-4 (sans code, 2026-10-19) — Railway : `INFLUX_ENV=staging` ×4, listes de développement retirées, `worker` complété ; `api`/`worker`/fronts redéployés depuis la source (`live`, `6a9cbb6`) ; webhooks Brevo transactionnel et marketing créés ; `apollo_prospecting_countries` = `["FR"]` (valeur de travail tant que D33 est ouverte) ; `staging:check` vert. Restent les constats du « Terminé quand » (inscription réelle d'un testeur interne).
 - [x] Commit D70-5 — documentation : runbook `staging` réécrit en procédure d'agent (fondateur : P2 à P5), `18` T17 aligné sur la matrice du commit 1 ; reste la revue groupée `expert-cybersecurite` + `testeur`.
 - [x] Commit 0 (`eec21bb`) — J6S-3 : ligne « without effect to audit » du pool `worker` en `debug` (≈ 35 k lignes/jour en `staging`) ; `staging` remis en marche (worker, région du backoffice) ; Watch Paths à corriger (fondateur).
+- [x] Commit S (`d844219`) — constats D70 §9 sur `staging` (critères J6 à J8 ; effacement Apollo au Lot 5), webhooks Brevo repointés sur `staging`, J4R-1, J7S-4, J7S-5, J7S-6, J6S-5 ; Watch Paths conformes ; planchers 2 617 / 1 051.
 - [ ] À développer (D67, tranchée par `architecte` le 2026-10-17), trois commits, tous avant la mise en production : (a) migration des deux déclencheurs sur `leads.sync_settings` (garde RG163, journal `settings.changed` daté) ; (b) worker — contrat et ordre de RG164, codes d'échec RG160, `credentials_missing`, rattrapage RG161 dans E-3, contrôle de démarrage RG162 sur `isDeployedEnvironment` (D70, sans second prédicat ; après le commit 1 de `archives/jalons/d70-plan.md`), `would_send` en `development` seulement ; (c) backoffice — causes, rejouabilité, compteurs, motif d'AL25 (`05` RG160 à RG164, TM1.11 à TM1.16). Écran des identifiants Brevo : hors J9 (option Lot 5).
 
 ### 5.8 Portes de la mise en production
