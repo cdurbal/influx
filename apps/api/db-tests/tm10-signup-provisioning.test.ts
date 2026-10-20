@@ -709,22 +709,26 @@ describe("04 §5.1: identity.correct_email(), administrators only, R in base (01
   it("changes the address, resets its health and proof, queues the notices and the contacts", async () => {
     const creator = dataSet.accounts.creator.b.id;
     const session = await freshAdminSession();
-    const outcome = await asMember(contextOf("admin"), async (tx) => {
-      await tx.unsafe(CALL, [session, creator, " New-Address@Example.test "]);
-      await readAsAdmin(tx);
-      const [account] = await tx`
+    // the session of the request is the one R is given (J8S-3, 0142), as in apps/api
+    const outcome = await asMember(
+      { ...contextOf("admin"), sessionId: session },
+      async (tx) => {
+        await tx.unsafe(CALL, [session, creator, " New-Address@Example.test "]);
+        await readAsAdmin(tx);
+        const [account] = await tx`
         select email, email_status, email_verified_at from identity.accounts where id = ${creator}`;
-      const queue = await tx`
+        const queue = await tx`
         select event_type, destination, priority, payload ->> 'recipient' as recipient
           from leads.outbox_events where subject_key = ${`account:${creator}`}
            and event_type in ('account.email_corrected', 'lead.updated')
          order by event_type, destination, recipient`;
-      const [line] = await tx`
+        const [line] = await tx`
         select payload from audit.audit_events
          where event_type = 'account.email_corrected' and subject_id = ${creator}
          order by seq desc limit 1`;
-      return { account, queue, line };
-    });
+        return { account, queue, line };
+      },
+    );
     expect(outcome.account).toEqual({
       email: "new-address@example.test",
       email_status: "unknown",

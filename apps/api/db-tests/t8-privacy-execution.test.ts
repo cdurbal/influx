@@ -22,6 +22,7 @@ import {
   actAs,
   actAsInternal,
   actAsMember,
+  bindRequestSession,
   localSuperuser,
   migrationRole,
   testDataSet,
@@ -105,6 +106,19 @@ async function attempt(
       message: failure.message ?? "",
     };
   }
+}
+
+/**
+ * A statement whose $1 is p_session_id, in the session of the request (J8S-3, 0142): the claim
+ * session_id carries the same session, as apps/api passes `context.sessionId` to both.
+ */
+async function attemptInSession(
+  tx: postgres.TransactionSql,
+  statement: string,
+  parameters: readonly postgres.ParameterOrJSON<never>[],
+): Promise<Attempt> {
+  await bindRequestSession(tx, String(parameters[0]));
+  return attempt(tx, statement, parameters);
 }
 
 function codeOf(result: Attempt): string {
@@ -269,7 +283,7 @@ async function confirmedRequest(
   const session = await adminSession(tx, adminA);
   rowsOf(
     await asAdmin(tx, adminA, () =>
-      attempt(tx, CONFIRM_2V, [session, dualControl, null]),
+      attemptInSession(tx, CONFIRM_2V, [session, dualControl, null]),
     ),
   );
   return { dualControl, session };
@@ -284,7 +298,7 @@ async function approve(
   const { dualControl, session } = await confirmedRequest(tx, request, type);
   rowsOf(
     await asAdmin(tx, adminA, () =>
-      attempt(tx, APPROVE, [
+      attemptInSession(tx, APPROVE, [
         session,
         dualControl,
         request,
@@ -684,14 +698,14 @@ describe("backoffice.approve_data_request_execution() (15 RG75 step 6, RG76: adm
       await tx`alter table backoffice.dual_control_requests enable trigger dual_control_requests_guard_update`;
       const session = await adminSession(tx, adminA);
       const confirmed = await asAdmin(tx, adminA, () =>
-        attempt(tx, CONFIRM_2V, [
+        attemptInSession(tx, CONFIRM_2V, [
           session,
           dualControl,
           "Single admin on duty, the request is due this week.",
         ]),
       );
       const approved = await asAdmin(tx, adminA, () =>
-        attempt(tx, APPROVE, [
+        attemptInSession(tx, APPROVE, [
           session,
           dualControl,
           request,
@@ -726,7 +740,7 @@ describe("backoffice.approve_data_request_execution() (15 RG75 step 6, RG76: adm
           ]),
         ),
         approve: codeOf(
-          await attempt(tx, APPROVE, [
+          await attemptInSession(tx, APPROVE, [
             session,
             dualControl,
             request,
@@ -760,7 +774,7 @@ describe("backoffice.approve_data_request_execution() (15 RG75 step 6, RG76: adm
       );
       await ageSession(tx, session, 301);
       const refused = await asAdmin(tx, adminA, () =>
-        attempt(tx, APPROVE, [
+        attemptInSession(tx, APPROVE, [
           session,
           dualControl,
           request,
@@ -797,7 +811,7 @@ describe("backoffice.approve_data_request_execution() (15 RG75 step 6, RG76: adm
       );
       return codeOf(
         await asAdmin(tx, adminA, () =>
-          attempt(tx, APPROVE, [
+          attemptInSession(tx, APPROVE, [
             session,
             dualControl,
             request,
@@ -858,7 +872,7 @@ describe("backoffice.approve_data_request_execution() (15 RG75 step 6, RG76: adm
       );
       return codeOf(
         await asAdmin(tx, adminA, () =>
-          attempt(tx, APPROVE, [
+          attemptInSession(tx, APPROVE, [
             session,
             dualControl,
             request,
@@ -888,7 +902,7 @@ describe("backoffice.approve_data_request_execution() (15 RG75 step 6, RG76: adm
         ),
         replay: codeOf(
           await asAdmin(tx, adminA, () =>
-            attempt(tx, APPROVE, [
+            attemptInSession(tx, APPROVE, [
               session,
               dualControl,
               request,

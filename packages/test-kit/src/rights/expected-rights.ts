@@ -786,13 +786,24 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
       "0131 (J8, 05 RG116 to RG119, D54): written by backoffice.create_member_invitation(), " +
       "revoke_member_invitation() and redeem_member_invitation() only",
     probeColumn: "id",
-    expected: forRoles(INTERNAL, {
-      select: {
-        form: "autorisé",
-        source:
-          "05 RG116, RG123: invitations created by agent and admin, read in aal2; never the code digest",
+    ownerColumn: "created_by_account_id",
+    expected: {
+      // 0142 (J8S-5): the agent reads the invitations it created only (EC-J8-31 in the base)
+      influx_agent: {
+        select: {
+          form: "propre",
+          source:
+            "05 RG116, RG123; 0142 J8S-5: the agent's own invitations, in aal2; never the code digest",
+        },
       },
-    }),
+      influx_admin: {
+        select: {
+          form: "autorisé",
+          source:
+            "05 RG116, RG123; 0142 J8S-5: every invitation for the admin, in aal2; never the code digest",
+        },
+      },
+    },
   },
 ];
 
@@ -2113,6 +2124,11 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|function|identity.signal_new_backoffice_browser(uuid)|EXECUTE",
   "influx_admin|function|backoffice.new_browser_sign_ins(integer)|EXECUTE",
   "influx_identity_definer|function|backoffice.new_browser_sign_ins(integer)|EXECUTE",
+  // 0142 (J9 commit 1): the session of the request read by R (J8S-3), for the owner of R only;
+  // the admin role grants of the last days for the admins (J8S-4).
+  "influx_identity_definer|function|influx.current_session_id()|EXECUTE",
+  "influx_admin|function|backoffice.admin_role_grants(integer)|EXECUTE",
+  "influx_identity_definer|function|backoffice.admin_role_grants(integer)|EXECUTE",
 ];
 
 /**
@@ -2331,4 +2347,7 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "identity.backoffice_session_state(uuid)": "influx_identity_definer",
   "identity.signal_new_backoffice_browser(uuid)": "influx_identity_definer",
   "backoffice.new_browser_sign_ins(integer)": "influx_identity_definer",
+  // 0142 (J9 commit 1, J8S-4). influx.current_session_id() and the rewritten
+  // identity.assert_fresh_second_factor() are SECURITY INVOKER.
+  "backoffice.admin_role_grants(integer)": "influx_identity_definer",
 };

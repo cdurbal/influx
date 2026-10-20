@@ -1626,8 +1626,9 @@ export type MemberInvitationRow = {
 };
 
 /**
- * The newest member invitations: an agent's own (EC-J8-31), every one for an admin (policy
- * member_invitations_internal_select, aal2).
+ * The newest member invitations: an agent's own (EC-J8-31), every one for an admin (policies
+ * member_invitations_agent_select and member_invitations_admin_select, aal2; 0142 J8S-5: the
+ * agent filter is enforced by the base too).
  */
 export async function memberInvitations(
   tx: Transaction,

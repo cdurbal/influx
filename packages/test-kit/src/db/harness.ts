@@ -37,6 +37,11 @@ export type UserContext = {
   accountId: string;
   role: "advertiser" | "creator" | "agent" | "admin";
   aal: "aal1" | "aal2";
+  /**
+   * The session of the request, posed as the claim session_id the way apps/api does (J8S-3, 0142:
+   * R refuses any other session). Absent: no claim, and R refuses.
+   */
+  sessionId?: string;
 };
 
 class RollbackSignal extends Error {
@@ -77,7 +82,14 @@ export async function takeRole(
   if (context !== undefined) {
     await tx`select
       pg_catalog.set_config('request.jwt.claims',
-        ${JSON.stringify({ sub: context.accountId, role: context.role, aal: context.aal })}, true),
+        ${JSON.stringify({
+          sub: context.accountId,
+          role: context.role,
+          aal: context.aal,
+          ...(context.sessionId === undefined
+            ? {}
+            : { session_id: context.sessionId }),
+        })}, true),
       pg_catalog.set_config('influx.account', ${context.accountId}, true),
       pg_catalog.set_config('influx.role', ${context.role}, true),
       pg_catalog.set_config('influx.aal', ${context.aal}, true)`;

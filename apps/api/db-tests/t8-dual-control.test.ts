@@ -86,11 +86,17 @@ function asAdmin<T>(
   account: string,
   fn: () => Promise<T>,
   aal: "aal1" | "aal2" = "aal2",
+  session?: string,
 ): Promise<T> {
   return actAsInternal(
     tx,
     "influx_admin",
-    { accountId: account, role: "admin", aal },
+    {
+      accountId: account,
+      role: "admin",
+      aal,
+      ...(session === undefined ? {} : { sessionId: session }),
+    },
     fn,
   );
 }
@@ -196,12 +202,17 @@ function confirm(
   request: string,
   justification: string | null = null,
 ): Promise<Attempt> {
-  return asAdmin(tx, confirmer, () =>
-    attempt(
-      tx,
-      "select backoffice.confirm_dual_control($1::uuid, $2::uuid, $3) as mode",
-      [session, request, justification],
-    ),
+  return asAdmin(
+    tx,
+    confirmer,
+    () =>
+      attempt(
+        tx,
+        "select backoffice.confirm_dual_control($1::uuid, $2::uuid, $3) as mode",
+        [session, request, justification],
+      ),
+    "aal2",
+    session,
   );
 }
 
@@ -243,6 +254,7 @@ function grant(
         ],
       ),
     aal,
+    call.session,
   );
 }
 
@@ -1241,5 +1253,109 @@ describe("identity.grant_role(): 2V and R enforced in the database (03 §3.1, 01
       ...(row?.definition ?? "").matchAll(/interval '(\d+) seconds'/g),
     ].map((match) => Number(match[1]));
     expect(bounds).toEqual([FRESHNESS]);
+  });
+});
+
+describe("J8S-3: R is bound to the session of the request (0142, claim session_id)", () => {
+  const GRANT =
+    "select identity.grant_role($1::uuid, $2::uuid, $3::uuid, 'advertiser'::identity.account_role, 'test_j8')";
+
+  /** A request of admin A, confirmed by admin B on `session` (claim = `session`). */
+  async function confirmedGrant(tx: postgres.TransactionSql, session: string) {
+    const target = await newTarget(tx);
+    const request = await requestGrant(tx, adminA, target);
+    expect((await confirm(tx, adminB, session, request)).outcome).toBe("rows");
+    return { target, request };
+  }
+
+  it("refuses another fresh backoffice session of the same account than the request's", async () => {
+    const outcome = await scenario(async (tx) => {
+      const ofRequest = await freshSession(tx, adminB);
+      const other = await freshSession(tx, adminB);
+      const { target, request } = await confirmedGrant(tx, ofRequest);
+      const result = await asAdmin(
+        tx,
+        adminB,
+        () => attempt(tx, GRANT, [other, request, target]),
+        "aal2",
+        ofRequest,
+      );
+      // the confirmation is refused the same way on the other session
+      const request2 = await requestGrant(tx, adminA, await newTarget(tx));
+      const confirmation = await asAdmin(
+        tx,
+        adminB,
+        () =>
+          attempt(
+            tx,
+            "select backoffice.confirm_dual_control($1::uuid, $2::uuid, $3) as mode",
+            [other, request2, null],
+          ),
+        "aal2",
+        ofRequest,
+      );
+      return {
+        result,
+        confirmation,
+        consumed: (await requestRow(tx, request))?.consumed,
+      };
+    });
+    expect(outcome).toEqual({
+      result: FORBIDDEN,
+      confirmation: FORBIDDEN,
+      consumed: false,
+    });
+  });
+
+  it("refuses when the claim has no session_id, or a session_id that is not a uuid", async () => {
+    const outcome = await scenario(async (tx) => {
+      const session = await freshSession(tx, adminB);
+      const { target, request } = await confirmedGrant(tx, session);
+      const withoutClaim = await asAdmin(tx, adminB, () =>
+        attempt(tx, GRANT, [session, request, target]),
+      );
+      const malformed = await asAdmin(tx, adminB, async () => {
+        const results: Attempt[] = [];
+        for (const claims of [
+          JSON.stringify({ sub: adminB, session_id: "not-a-uuid" }),
+          "not json",
+          JSON.stringify([session]),
+        ]) {
+          await tx`select pg_catalog.set_config('request.jwt.claims', ${claims}, true)`;
+          results.push(await attempt(tx, GRANT, [session, request, target]));
+        }
+        return results;
+      });
+      return {
+        withoutClaim,
+        malformed,
+        consumed: (await requestRow(tx, request))?.consumed,
+      };
+    });
+    expect(outcome).toEqual({
+      withoutClaim: FORBIDDEN,
+      malformed: [FORBIDDEN, FORBIDDEN, FORBIDDEN],
+      consumed: false,
+    });
+  });
+
+  it("accepts the session of the request, and writes the grant once", async () => {
+    const outcome = await scenario(async (tx) => {
+      const session = await freshSession(tx, adminB);
+      const { target, request } = await confirmedGrant(tx, session);
+      const result = await asAdmin(
+        tx,
+        adminB,
+        () => attempt(tx, GRANT, [session, request, target]),
+        "aal2",
+        session,
+      );
+      return {
+        result: result.outcome,
+        consumed: (await requestRow(tx, request))?.consumed,
+        lines: (await registerLines(tx, "account.role_granted", target)).length,
+      };
+    });
+    expect(outcome).toEqual({ result: "rows", consumed: true, lines: 1 });
   });
 });

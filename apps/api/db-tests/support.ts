@@ -146,6 +146,20 @@ export async function actAsInternal<T>(
   return result;
 }
 
+/**
+ * J8S-3 (0142): inside actAsInternal() (or actAsMember()), poses the claim session_id of the
+ * request on top of the claims of the context, the way apps/api does with `context.sessionId` —
+ * which it also passes as p_session_id. R refuses any other session than this one.
+ */
+export async function bindRequestSession(
+  tx: postgres.TransactionSql,
+  session: string,
+): Promise<void> {
+  await tx`select pg_catalog.set_config('request.jwt.claims',
+    (coalesce(nullif(pg_catalog.current_setting('request.jwt.claims', true), ''), '{}')::jsonb
+       || jsonb_build_object('session_id', ${session}::text))::text, true)`;
+}
+
 afterAll(async () => {
   await Promise.all(opened.map((sql) => sql.end({ timeout: 1 })));
   opened.length = 0;
