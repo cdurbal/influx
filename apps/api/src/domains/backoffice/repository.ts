@@ -292,6 +292,115 @@ export async function isBreakGlassAccount(
   return rows[0]?.break_glass === true;
 }
 
+/**
+ * PD1 (J8S-2): what a 2V action reaches, said by more than an identifier. A member account by its
+ * role, country, sign-up instant and, for an advertiser, its legal name (17b §3.13.c "le compte
+ * ⟨raison sociale⟩"), never its address: the address is read on the record, whose opening is
+ * journaled (05 RG40). An internal account by its first name; an internal invitation by the address
+ * it was sent to and the role it proposes (team data, as on the invitations screen, EC-J8-62).
+ */
+export type DualControlTargetRow =
+  | {
+      kind: "member_account";
+      accountId: string;
+      role: "advertiser" | "creator";
+      countryCode: string;
+      createdAt: string;
+      companyName: string | null;
+    }
+  | { kind: "internal_account"; accountId: string; firstName: string | null }
+  | {
+      kind: "internal_invitation";
+      email: string;
+      role: "agent" | "admin";
+      createdAt: string;
+    };
+
+/** PD1: the account of a 2V action, member or internal; null when it cannot be read. */
+export async function dualControlAccountTarget(
+  tx: Transaction,
+  accountId: string,
+): Promise<DualControlTargetRow | null> {
+  const [row] = await tx.execute<{
+    id: string;
+    member_role: "advertiser" | "creator" | null;
+    country_code: string;
+    created_at: string;
+    company_name: string | null;
+    internal: boolean;
+    first_name: string | null;
+  }>(sql`
+    select a.id::text as id,
+           (select r.role::text from identity.account_roles r
+             where r.account_id = a.id and r.role in ('advertiser', 'creator')
+             order by r.role limit 1) as member_role,
+           a.country_code::text as country_code,
+           to_char(a.created_at at time zone 'UTC', ${ISO_UTC}) as created_at,
+           ap.legal_name as company_name,
+           p.account_id is not null as internal, p.first_name
+      from identity.accounts a
+      left join profiles.advertiser_profiles ap on ap.account_id = a.id
+      left join identity.agent_profiles p on p.account_id = a.id
+     where a.id = ${accountId}::uuid`);
+  if (row === undefined) {
+    return null;
+  }
+  if (row.internal) {
+    return {
+      kind: "internal_account",
+      accountId: row.id,
+      firstName: row.first_name,
+    };
+  }
+  if (row.member_role === null) {
+    return null;
+  }
+  return {
+    kind: "member_account",
+    accountId: row.id,
+    role: row.member_role,
+    countryCode: row.country_code,
+    createdAt: row.created_at,
+    companyName: row.company_name,
+  };
+}
+
+/** PD1: the member account a "mes données" request comes from; null when unknown. */
+export async function dataRequestAccountId(
+  tx: Transaction,
+  requestId: string,
+): Promise<string | null> {
+  const [row] = await tx.execute<{ account_id: string }>(sql`
+    select r.requester_account_id::text as account_id
+      from backoffice.data_subject_requests r
+     where r.id = ${requestId}::uuid`);
+  return row?.account_id ?? null;
+}
+
+/** PD1: the internal invitation an `identity.invite_admin` request confirms (admin, aal2). */
+export async function internalInvitationTarget(
+  tx: Transaction,
+  invitationId: string,
+): Promise<DualControlTargetRow | null> {
+  const [row] = await tx.execute<{
+    email: string;
+    role: "agent" | "admin";
+    created_at: string;
+  }>(sql`
+    select i.email, i.proposed_role::text as role,
+           to_char(i.created_at at time zone 'UTC', ${ISO_UTC}) as created_at
+      from identity.internal_invitations i
+     where i.id = ${invitationId}::uuid`);
+  return row === undefined
+    ? null
+    : {
+        kind: "internal_invitation",
+        email: row.email,
+        role: row.role,
+        createdAt: row.created_at,
+      };
+}
+
 export type DegradedConfirmationRow = {
   /** ISO week of the confirmation, UTC: `2026-W42`. */
   week: string;
@@ -1778,5 +1887,39 @@ export async function newBrowserSignIns(
     firstName: row.first_name,
     signedInAt: row.signed_in_at,
     browser: row.browser,
+  }));
+}
+
+export type AdminRoleGrantRow = {
+  accountId: string;
+  firstName: string | null;
+  grantedBy: string | null;
+  grantedByFirstName: string | null;
+  grantedAt: string;
+};
+
+/** J8S-4 (0142 backoffice.admin_role_grants, admin only): the `admin` role granted in `days` days. */
+export async function adminRoleGrants(
+  tx: Transaction,
+  days: number,
+): Promise<AdminRoleGrantRow[]> {
+  const rows = await tx.execute<{
+    account_id: string;
+    first_name: string | null;
+    granted_by: string | null;
+    granted_by_first_name: string | null;
+    granted_at: string;
+  }>(
+    sql`select g.account_id::text as account_id, g.first_name,
+               g.granted_by_account_id::text as granted_by, g.granted_by_first_name,
+               to_char(g.occurred_at at time zone 'UTC', ${ISO_UTC}) as granted_at
+          from backoffice.admin_role_grants(${days}) g`,
+  );
+  return rows.map((row) => ({
+    accountId: row.account_id,
+    firstName: row.first_name,
+    grantedBy: row.granted_by,
+    grantedByFirstName: row.granted_by_first_name,
+    grantedAt: row.granted_at,
   }));
 }

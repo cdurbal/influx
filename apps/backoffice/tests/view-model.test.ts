@@ -4,11 +4,13 @@
 import type { AccountRow } from "@influx/contracts/backoffice-accounts";
 import { describe, expect, it } from "vitest";
 import {
+  accountSearchOf,
   browserLabel,
   failureOf,
   formatByCountry,
   parseByCountry,
   parseCountryList,
+  periodOf,
   replayPairs,
   sharePercent,
 } from "@/components/view-model";
@@ -113,5 +115,44 @@ describe("words of the screens", () => {
       messages.failure.forbidden,
     );
     expect(failureOf({ kind: "failed" })).toBe(messages.failure.unavailable);
+  });
+});
+
+describe("J8S-7 (05 RG98): the search term, exact or partial, never in a URL", () => {
+  it("reads a whole address as the exact search, any other term as the partial one", () => {
+    expect(accountSearchOf("  Jeanne@Example.test ")).toEqual({
+      email: "Jeanne@Example.test",
+    });
+    // EC-J8-58 lifted: '@' and '.' travel in the body
+    expect(accountSearchOf("@example.")).toEqual({ q: "@example." });
+    expect(accountSearchOf("dup")).toEqual({ q: "dup" });
+    expect(accountSearchOf("   ")).toBeNull();
+  });
+
+  it("refuses a short fragment, a space, a term longer than an address", () => {
+    expect(accountSearchOf("du")).toBe("invalid");
+    expect(accountSearchOf("du pont")).toBe("invalid");
+    expect(accountSearchOf("a".repeat(255))).toBe("invalid");
+  });
+});
+
+describe("05 RG97: the period of the date fields, bounds included, in the browser's zone", () => {
+  it("starts at the local midnight of the first day and ends just before the day after the last", () => {
+    expect(periodOf("2026-10-01", "2026-10-31")).toEqual({
+      from: new Date(2026, 9, 1).toISOString(),
+      to: new Date(new Date(2026, 10, 1).getTime() - 1).toISOString(),
+    });
+    expect(periodOf(undefined, "2026-12-31")).toEqual({
+      to: new Date(new Date(2027, 0, 1).getTime() - 1).toISOString(),
+    });
+    expect(periodOf(undefined, undefined)).toEqual({});
+    // one day is a period
+    expect(periodOf("2026-10-20", "2026-10-20")).not.toBe("invalid");
+  });
+
+  it("refuses a malformed or impossible day, and a period that ends before it starts", () => {
+    expect(periodOf("2026-02-30", undefined)).toBe("invalid");
+    expect(periodOf("20261001", undefined)).toBe("invalid");
+    expect(periodOf("2026-10-02", "2026-10-01")).toBe("invalid");
   });
 });

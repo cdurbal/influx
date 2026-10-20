@@ -85,6 +85,7 @@ import {
   BACKOFFICE_FAILURES_PLATFORM_ALERT,
   BACKOFFICE_GOTRUE_BUDGET_MS,
   BACKOFFICE_GOTRUE_CALL_TIMEOUT_MS,
+  REAUTHENTICATION_ATTEMPTS_PER_IP_HOUR,
   REAUTHENTICATION_ATTEMPTS_PER_SESSION,
   REAUTHENTICATION_FAILURES_PER_SESSION,
   REAUTHENTICATION_FRESHNESS_SECONDS,
@@ -96,6 +97,7 @@ import {
   emailAddressThrottleKey,
   emailThrottleKey,
   globalThrottleKey,
+  reauthenticationAddressThrottleKey,
   reauthenticationThrottleKey,
   totpReplayDigest,
 } from "./throttle-keys.ts";
@@ -1001,7 +1003,8 @@ export async function reauthenticate(
     );
   // J3S-1: the session is read and the attempt reserved in ONE transaction, committed BEFORE
   // GoTrue (G4): the session's own ceiling (the row whose failures revoke it, EC-40 point 5), then
-  // the network scope of EC-47. A stolen cookie never makes more GoTrue calls than that.
+  // the network scope of R, apart from the sign-in's (J8S-6, 0143). A stolen cookie never makes
+  // more GoTrue calls than that.
   const opened = await elevated(
     async (tx): Promise<ElevatedResult<ReauthenticationOpening>> => {
       const session = await reauthenticationSessionOf(tx, sessionId);
@@ -1020,10 +1023,15 @@ export async function reauthenticate(
           "15m",
           REAUTHENTICATION_ATTEMPTS_PER_SESSION,
         )) &&
-        (await reserveNetworkAttempt(
+        (await reserveAuthAttempt(
           tx,
-          dependencies.pepper,
-          request.clientAddress,
+          "backoffice_reauth_ip",
+          reauthenticationAddressThrottleKey(
+            dependencies.pepper,
+            request.clientAddress,
+          ),
+          "1h",
+          REAUTHENTICATION_ATTEMPTS_PER_IP_HOUR,
         ));
       return {
         value: reserved ? { kind: "reserved", session } : { kind: "refused" },

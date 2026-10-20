@@ -261,7 +261,16 @@ async function approve(
     },
   );
   expect(requested.statusCode).toBe(200);
-  const view = requested.json<{ id: string }>();
+  const view = requested.json<{ id: string; target: unknown }>();
+  // J8S-2 (PD1): the member account of the request, never an identifier alone nor its address
+  const [owner] = await migrationRole()<{ account_id: string }[]>`
+    select requester_account_id::text as account_id
+      from backoffice.data_subject_requests where id = ${requestId}`;
+  expect(view.target).toMatchObject({
+    kind: "member_account",
+    accountId: owner?.account_id,
+  });
+  expect(requested.body).not.toContain("@");
   const confirmed = await backoffice(
     server,
     "POST",

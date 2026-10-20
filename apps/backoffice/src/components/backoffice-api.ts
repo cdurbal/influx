@@ -8,11 +8,13 @@ import {
   type AccountCountersResponse,
   type AccountDetailResponse,
   type AccountsResponse,
+  type AccountsSearchBody,
 } from "@influx/contracts/backoffice-accounts";
 import {
   alertsResponseSchema,
   apolloSettingsResponseSchema,
   correctionResponseSchema,
+  degradedReviewResponseSchema,
   dualControlCancelResponseSchema,
   dualControlConfirmResponseSchema,
   dualControlListResponseSchema,
@@ -23,6 +25,7 @@ import {
   type ApolloSettingsResponse,
   type CorrectionRequest,
   type CorrectionResponse,
+  type DegradedReviewResponse,
   type DualControlConfirmResponse,
   type DualControlListResponse,
   type DualControlRequestBody,
@@ -65,15 +68,18 @@ function idSegment(id: string): string {
 
 // --- Accounts (05 RG97 to RG100, RG105) ------------------------------------------------------
 
-export function readAccounts(
-  query: Readonly<Record<string, string>>,
+/**
+ * J8S-7 (05 RG97, RG98): the list, its filters, its period and its search term travel in the BODY,
+ * never in a URL (logs, history; EC-62: an instant is no plain query character).
+ */
+export function searchAccounts(
+  body: AccountsSearchBody,
 ): Promise<RelayResult<AccountsResponse>> {
   return callRelay(
-    "GET",
-    "/v1/bo/accounts",
+    "POST",
+    "/v1/bo/accounts/search",
     accountsResponseSchema,
-    undefined,
-    query,
+    body,
   );
 }
 
@@ -158,6 +164,17 @@ export function readDualControls(): Promise<
   RelayResult<DualControlListResponse>
 > {
   return callRelay("GET", "/v1/bo/dual-control", dualControlListResponseSchema);
+}
+
+/** PD6 (J8S-1): the weekly review of the confirmations made alone, the default weeks. */
+export function readDegradedReview(): Promise<
+  RelayResult<DegradedReviewResponse>
+> {
+  return callRelay(
+    "GET",
+    "/v1/bo/dual-control/degraded",
+    degradedReviewResponseSchema,
+  );
 }
 
 export function readDualControl(

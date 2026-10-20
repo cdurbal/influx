@@ -13,16 +13,22 @@
 //   the action in ONE transaction with a fresh second factor, PD3); POST /v1/bo/dual-control/:id/
 //   cancel; POST /v1/bo/accounts/:id/brevo-suppression/lift (RG93, B-5).
 // - GET /v1/bo/dual-control (J8 commit 9): the pending requests, admin only.
-// - GET /v1/bo/alerts (RG104, CA62): the state alerts AL24 to AL27, for their recipients, and the
-//   "new browser" sign-ins of B-7 for the admins (RG145, 0138).
+// - GET /v1/bo/dual-control/degraded (PD6, J8S-1): the confirmations made alone, week by week,
+//   admin only; an agent's attempt refused and journaled (CA63).
+// - GET /v1/bo/alerts (RG104, CA62): the state alerts AL24 to AL27, for their recipients, and for
+//   the admins the "new browser" sign-ins of B-7 (RG145, 0138) and the `admin` roles granted
+//   (J8S-4, RG101, 0142).
 // Unknown, internal and own targets answer the same 404 (18 T14.3, T14.4). `Cache-Control:
 // no-store` everywhere.
 import {
   accountActionParamsSchema,
+  ADMIN_ROLE_GRANT_ALERT_DAYS,
   alertsResponseSchema,
   apolloSettingsResponseSchema,
   correctionRequestSchema,
   correctionResponseSchema,
+  degradedReviewQuerySchema,
+  degradedReviewResponseSchema,
   dualControlCancelResponseSchema,
   dualControlConfirmResponseSchema,
   dualControlConfirmSchema,
@@ -43,6 +49,8 @@ import {
   type ApolloSettingsResponse,
   type CorrectionRequest,
   type CorrectionResponse,
+  type DegradedReviewQuery,
+  type DegradedReviewResponse,
   type DualControlConfirm,
   type DualControlConfirmResponse,
   type DualControlListResponse,
@@ -65,6 +73,7 @@ import {
 } from "../identity/backoffice-session.ts";
 import type { IdentityApp } from "../identity/routes.ts";
 import {
+  adminRoleGrants,
   alertDefinitions,
   correctMemberAccount,
   databaseNow,
@@ -98,6 +107,7 @@ import {
 import {
   cancelDualControl,
   confirmAndExecute,
+  degradedConfirmationsByWeek,
   dualControlExecutor,
   dualControlView,
   requestDualControl,
@@ -326,11 +336,26 @@ function actionOfRequest(body: DualControlRequestBody): DualControlAction {
   }
 }
 
+type DualControlMemberTarget = Extract<
+  NonNullable<DualControlViewBody["target"]>,
+  { kind: "member_account" }
+>;
+
 function viewBody(view: DualControlView): DualControlViewBody {
+  const { target } = view;
   return {
     id: view.id,
     action: view.action,
     recap: { ...view.recap, consequences: [...view.recap.consequences] },
+    // the response schema checks the country code again
+    target:
+      target?.kind === "member_account"
+        ? {
+            ...target,
+            countryCode:
+              target.countryCode as DualControlMemberTarget["countryCode"],
+          }
+        : target,
     reasonCode: view.reasonCode,
     reasonNote: view.reasonNote,
     requestedBy: view.requestedBy,
@@ -445,7 +470,16 @@ async function evaluateAlerts(
   const signIns = isAdmin
     ? await newBrowserSignIns(tx, NEW_BROWSER_ALERT_DAYS)
     : [];
-  return { evaluatedAt: now, alerts, newBrowserSignIns: signIns };
+  // J8S-4 (15 RG101): the `admin` role granted, for the admins only (0142 refuses anyone else).
+  const grants = isAdmin
+    ? await adminRoleGrants(tx, ADMIN_ROLE_GRANT_ALERT_DAYS)
+    : [];
+  return {
+    evaluatedAt: now,
+    alerts,
+    newBrowserSignIns: signIns,
+    adminRoleGrants: grants,
+  };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -627,6 +661,30 @@ export function registerBackofficeActionRoutes(
         ),
       );
       return { requests: views.map(viewBody) };
+    },
+  );
+
+  // PD6 (J8S-1): the weekly review of the dashboard, the confirmations made alone.
+  app.get(
+    "/v1/bo/dual-control/degraded",
+    {
+      schema: {
+        querystring: degradedReviewQuerySchema,
+        response: { 200: degradedReviewResponseSchema },
+      },
+    },
+    async (request, reply): Promise<DegradedReviewResponse> => {
+      void reply.header("cache-control", "no-store");
+      const { weeks } = request.query as DegradedReviewQuery;
+      return unlessRefused(
+        await withBackofficeSession(database, request, reply, (tx, context) =>
+          adminOnly(tx, context, "backoffice.dual_control", async () => ({
+            weeks,
+            evaluatedAt: await databaseNow(tx),
+            review: await degradedConfirmationsByWeek(tx, weeks),
+          })),
+        ),
+      );
     },
   );
 

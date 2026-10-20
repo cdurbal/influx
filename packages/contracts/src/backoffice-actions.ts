@@ -10,7 +10,9 @@
 //   in one transaction, under a fresh second factor) and the cancellation. Admin only.
 // - Apollo settings (RG81, RG83, RG84): admin only, each change under a dual control.
 // - Brevo suppression (RG93): lifted by an admin, with a fresh second factor and a typed reason.
-// - Alerts (RG104, CA62; 15 §F): state alerts, derived at each read; codes for the screen to word.
+// - Alerts (RG104, CA62; 15 §F): state alerts, derived at each read; codes for the screen to word;
+//   for the admins, the "new browser" sign-ins (B-7) and the `admin` roles granted (J8S-4).
+// - Weekly review of the degraded confirmations (PD6, J8S-1): admin only.
 // Every reason is a closed list (backoffice-ops rule 10); the free comment is a complement only.
 import * as z from "zod";
 import { syncDestinationSchema } from "./backoffice-accounts.ts";
@@ -307,9 +309,41 @@ export const DUAL_CONTROL_STATES = [
 ] as const;
 export const DUAL_CONTROL_MODES = ["peer", "degraded_single_operator"] as const;
 
+/**
+ * PD1 (J8S-2): what the action reaches, never an identifier alone. A member account by its role,
+ * country, sign-up instant and, for an advertiser, its legal name (17b §3.13.c), never its
+ * address: the address is on the record, whose opening is journaled (05 RG40). An internal account
+ * by its first name. An admin invitation by the address it was sent to and the role it proposes
+ * (team data, EC-J8-62).
+ */
+export const dualControlTargetSchema = z.discriminatedUnion("kind", [
+  z.strictObject({
+    kind: z.literal("member_account"),
+    accountId: z.uuid(),
+    role: z.enum(["advertiser", "creator"]),
+    countryCode: countryCodeSchema,
+    createdAt: z.iso.datetime(),
+    companyName: z.string().nullable(),
+  }),
+  z.strictObject({
+    kind: z.literal("internal_account"),
+    accountId: z.uuid(),
+    firstName: z.string().nullable(),
+  }),
+  z.strictObject({
+    kind: z.literal("internal_invitation"),
+    email: z.string(),
+    role: z.enum(["agent", "admin"]),
+    createdAt: z.iso.datetime(),
+  }),
+]);
+export type DualControlTarget = z.infer<typeof dualControlTargetSchema>;
+
 export const dualControlViewSchema = z.strictObject({
   id: z.uuid(),
   action: dualControlActionSchema,
+  /** PD1 (J8S-2): null for a setting, or a target no longer readable (said, never guessed). */
+  target: dualControlTargetSchema.nullable(),
   /** PD1: scope, consequences (codes), reversibility, said before the first gesture. */
   recap: z.strictObject({
     scope: z.strictObject({
@@ -391,6 +425,53 @@ export type DualControlConfirmResponse = z.infer<
 export const dualControlCancelResponseSchema = z.strictObject({
   cancelled: z.literal(true),
 });
+
+/** PD6 (J8S-1): the ISO weeks the weekly review shows by default, and at most (dual-control.ts). */
+export const DEGRADED_REVIEW_WEEKS_DEFAULT = 4;
+export const DEGRADED_REVIEW_WEEKS_MAX = 53;
+
+/** GET /v1/bo/dual-control/degraded (admin): `weeks` ISO weeks, the current one included. */
+export const degradedReviewQuerySchema = z.strictObject({
+  weeks: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(DEGRADED_REVIEW_WEEKS_MAX)
+    .default(DEGRADED_REVIEW_WEEKS_DEFAULT),
+});
+export type DegradedReviewQuery = z.infer<typeof degradedReviewQuerySchema>;
+
+/**
+ * PD6 (03 §1.3; 15 RG9, AL37): the confirmations made alone, week by week, the most recent first;
+ * a week without any is absent. A team discipline, not a technical control: read, it shows who
+ * confirmed what alone, when, and whether it ran.
+ */
+export const degradedReviewResponseSchema = z.strictObject({
+  weeks: z.number().int().min(1).max(DEGRADED_REVIEW_WEEKS_MAX),
+  evaluatedAt: z.iso.datetime(),
+  review: z
+    .array(
+      z.strictObject({
+        /** ISO week, UTC: `2026-W42`. */
+        week: z.string().regex(/^\d{4}-W\d{2}$/),
+        confirmations: z.array(
+          z.strictObject({
+            id: z.uuid(),
+            actionCode: z.string(),
+            reasonCode: z.string(),
+            requestedBy: z.uuid(),
+            requestedAt: z.iso.datetime(),
+            confirmedAt: z.iso.datetime(),
+            executed: z.boolean(),
+          }),
+        ),
+      }),
+    )
+    .max(DEGRADED_REVIEW_WEEKS_MAX),
+});
+export type DegradedReviewResponse = z.infer<
+  typeof degradedReviewResponseSchema
+>;
 
 // ---------------------------------------------------------------------------------------------
 // Brevo suppression (05 RG93, CA55)
@@ -474,10 +555,29 @@ export const newBrowserSignInSchema = z.strictObject({
 });
 export type NewBrowserSignIn = z.infer<typeof newBrowserSignInSchema>;
 
+/** J8S-4 (15 RG101): how many days back the admins see an `admin` role granted (0142: 1 to 30). */
+export const ADMIN_ROLE_GRANT_ALERT_DAYS = 7;
+
+/**
+ * J8S-4 (15 RG101; 17b §3.14.e): the `admin` role granted to an account, by whom (the author of
+ * the invitation, else the confirming admin), when. An event, listed ADMIN_ROLE_GRANT_ALERT_DAYS
+ * days; the e-mail to the admins comes at Lot 5. First names only, never an address.
+ */
+export const adminRoleGrantSchema = z.strictObject({
+  accountId: z.uuid(),
+  firstName: z.string().nullable(),
+  grantedBy: z.uuid().nullable(),
+  grantedByFirstName: z.string().nullable(),
+  grantedAt: z.iso.datetime(),
+});
+export type AdminRoleGrant = z.infer<typeof adminRoleGrantSchema>;
+
 export const alertsResponseSchema = z.strictObject({
   evaluatedAt: z.iso.datetime(),
   alerts: z.array(alertSchema),
   /** Admins only (RG145); always empty for an agent. 50 at most, newest first. */
   newBrowserSignIns: z.array(newBrowserSignInSchema).max(50),
+  /** Admins only (J8S-4, RG101); always empty for an agent. 50 at most, newest first. */
+  adminRoleGrants: z.array(adminRoleGrantSchema).max(50),
 });
 export type AlertsResponse = z.infer<typeof alertsResponseSchema>;

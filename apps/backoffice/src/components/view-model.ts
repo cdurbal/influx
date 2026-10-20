@@ -2,9 +2,11 @@
 // §2, §3.11 to §3.13; 05 RG99, RG100, RG105). Pure functions, outside the components: dates and
 // countries in French (D36 open), the message of a refusal, the pairs a selection replays. No rule
 // is decided here — apps/api and the database decide; this module only words and gathers.
-import type {
-  AccountRow,
-  SyncDestination,
+import { MAX_EMAIL_LENGTH } from "@influx/contracts/auth";
+import {
+  PARTIAL_SEARCH_MIN_LENGTH,
+  type AccountRow,
+  type SyncDestination,
 } from "@influx/contracts/backoffice-accounts";
 import {
   PROSPECTING_LEGAL_BASES,
@@ -204,11 +206,90 @@ export function personName(
   return names.get(accountId) ?? messages.dualControl.unknownPerson;
 }
 
-/** 05 RG98: the characters a partial search may carry through the relay (EC-J8-58). */
-export const PARTIAL_SEARCH_SHAPE = /^[A-Za-z0-9_-]{3,64}$/;
-
 /** A rough shape check before the call; apps/api validates the address. */
 export const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export type AccountSearch = { email: string } | { q: string };
+
+/**
+ * 05 RG98, J8S-7: a whole address is the exact search (free); any other term of 3 characters or
+ * more, without a space, the partial one (journaled by its length). Null for an empty term. The
+ * term goes in the body of the call, never in the address bar (EC-J8-58 lifted: '@' and '.' too).
+ */
+export function accountSearchOf(
+  term: string,
+): AccountSearch | null | "invalid" {
+  const value = term.trim();
+  if (value === "") {
+    return null;
+  }
+  if (value.length > MAX_EMAIL_LENGTH || /\s/.test(value)) {
+    return "invalid";
+  }
+  if (EMAIL_SHAPE.test(value)) {
+    return { email: value };
+  }
+  return value.length >= PARTIAL_SEARCH_MIN_LENGTH ? { q: value } : "invalid";
+}
+
+const DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** The local midnight that starts a day "YYYY-MM-DD", `offsetDays` later; null when no such day. */
+function localDay(day: string, offsetDays: number): Date | null {
+  const match = DAY.exec(day);
+  if (match === null) {
+    return null;
+  }
+  const [year, month, date] = match.slice(1).map(Number) as [
+    number,
+    number,
+    number,
+  ];
+  const start = new Date(year, month - 1, date);
+  if (
+    start.getFullYear() !== year ||
+    start.getMonth() !== month - 1 ||
+    start.getDate() !== date
+  ) {
+    return null;
+  }
+  start.setDate(date + offsetDays);
+  return start;
+}
+
+/**
+ * 05 RG97 "période": the sign-up days of the date fields, bounds included, in the browser's time
+ * zone (the dates of the table are), as the instants apps/api compares. "invalid" when a day is
+ * malformed or the period ends before it starts.
+ */
+export function periodOf(
+  from: string | undefined,
+  to: string | undefined,
+): { from?: string; to?: string } | "invalid" {
+  const period: { from?: string; to?: string } = {};
+  if (from !== undefined) {
+    const start = localDay(from, 0);
+    if (start === null) {
+      return "invalid";
+    }
+    period.from = start.toISOString();
+  }
+  if (to !== undefined) {
+    const end = localDay(to, 1);
+    if (end === null) {
+      return "invalid";
+    }
+    period.to = new Date(end.getTime() - 1).toISOString();
+  }
+  if (
+    period.from !== undefined &&
+    period.to !== undefined &&
+    Date.parse(period.from) > Date.parse(period.to)
+  ) {
+    return "invalid";
+  }
+  return period;
+}
 
 /** An Apollo key and its value, in words (PD1: the exact value the confirmation applies). */
 export function apolloSettingWords(setting: ApolloSetting): string {

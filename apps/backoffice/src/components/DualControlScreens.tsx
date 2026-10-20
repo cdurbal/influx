@@ -6,6 +6,8 @@
 // confirm alone after the 60 seconds written and counted, with a written justification, under the
 // banner that says the control is weakened (RG9); wait for a peer; or nothing. R is asked by
 // apps/api at the confirmation (PD3); the countdown is the only artificial delay of the backoffice.
+// PD1 (J8S-2): the object is named by apps/api's `target`, never by an identifier alone; a member
+// account by role, country and sign-up (its address is on the record, whose opening is journaled).
 import {
   DEGRADED_JUSTIFICATION_MAX,
   DEGRADED_JUSTIFICATION_MIN,
@@ -49,12 +51,18 @@ import {
   TH_CLASSES,
 } from "./bo-classes";
 import { useAction } from "./use-action";
-import { apolloSettingWords, formatDateTime, personName } from "./view-model";
+import {
+  apolloSettingWords,
+  countryName,
+  formatDate,
+  formatDateTime,
+  personName,
+} from "./view-model";
 
 const t = messages.dualControl;
 
 /** First names of the team, to name a requester (admin screens only). */
-function useTeamNames(): ReadonlyMap<string, string | null> {
+export function useTeamNames(): ReadonlyMap<string, string | null> {
   const [names, setNames] = useState<ReadonlyMap<string, string | null>>(
     new Map(),
   );
@@ -79,6 +87,59 @@ function useTeamNames(): ReadonlyMap<string, string | null> {
   return names;
 }
 
+/** PD1 (J8S-2): the account or the invitation the action reaches, in words. */
+function TargetField({
+  view,
+  label,
+}: {
+  view: DualControlViewBody;
+  label: string;
+}) {
+  const { target } = view;
+  if (target === null) {
+    return <Field label={label}>{t.target.unreadable}</Field>;
+  }
+  switch (target.kind) {
+    case "member_account":
+      return (
+        <>
+          <Field label={label}>
+            {t.target.member(
+              messages.roles[target.role],
+              countryName(target.countryCode),
+              formatDate(target.createdAt),
+            )}{" "}
+            <Link
+              href={`/inscrits/${target.accountId}`}
+              className={LINK_CLASSES}
+            >
+              {t.openAccount}
+            </Link>
+          </Field>
+          {target.companyName === null ? null : (
+            <Field label={t.target.legalName}>{target.companyName}</Field>
+          )}
+        </>
+      );
+    case "internal_account":
+      return (
+        <Field label={label}>
+          {t.target.internal(target.firstName ?? t.unknownPerson)}
+        </Field>
+      );
+    case "internal_invitation":
+      return (
+        <Field label={label}>
+          {t.target.invited(
+            target.email,
+            messages.roles[target.role],
+            formatDate(target.createdAt),
+          )}
+        </Field>
+      );
+  }
+}
+
 /** The object of the action, in words (PD1: the exact scope). */
 function ActionTarget({ view }: { view: DualControlViewBody }) {
   const { action } = view;
@@ -86,42 +147,27 @@ function ActionTarget({ view }: { view: DualControlViewBody }) {
     case "identity.grant_role":
       return (
         <>
-          <Field label={t.target.account}>
-            <Link
-              href={`/inscrits/${action.accountId}`}
-              className={LINK_CLASSES}
-            >
-              {t.openAccount}
-            </Link>
-          </Field>
+          <TargetField view={view} label={t.target.account} />
           <Field label={t.target.role}>{messages.roles[action.role]}</Field>
         </>
       );
     case "identity.change_member_role":
       return (
         <>
-          <Field label={t.target.account}>
-            <Link
-              href={`/inscrits/${action.accountId}`}
-              className={LINK_CLASSES}
-            >
-              {t.openAccount}
-            </Link>
-          </Field>
-          <Field label={t.target.legalName}>{action.legalName}</Field>
+          <TargetField view={view} label={t.target.account} />
+          <Field label={t.target.newBrand}>{action.legalName}</Field>
         </>
       );
     case "identity.invite_admin":
-      return (
-        <Field label={t.target.invitation}>
-          <span className="font-mono">{action.invitationId}</span>
-        </Field>
-      );
+      return <TargetField view={view} label={t.target.invitation} />;
     case "privacy.approve_data_request":
       return (
-        <Field label={t.target.request}>
-          {messages.account.dataRequestType[action.requestType]}
-        </Field>
+        <>
+          <TargetField view={view} label={t.target.account} />
+          <Field label={t.target.request}>
+            {messages.account.dataRequestType[action.requestType]}
+          </Field>
+        </>
       );
     case "leads.change_apollo_setting":
       return (

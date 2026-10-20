@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  alertsResponseSchema,
   apolloSettingSchema,
   correctionRequestSchema,
+  DEGRADED_REVIEW_WEEKS_DEFAULT,
+  DEGRADED_REVIEW_WEEKS_MAX,
+  degradedReviewQuerySchema,
+  degradedReviewResponseSchema,
   dualControlConfirmSchema,
   dualControlRequestSchema,
+  dualControlTargetSchema,
   REPLAY_SELECTION_MAX,
   replayRequestSchema,
 } from "../src/backoffice-actions.ts";
@@ -168,5 +174,99 @@ describe('the execution of a "mes données" request under 2V (15 RG75 step 6; J8
     ]) {
       expect(dualControlRequestSchema.safeParse(body).success).toBe(false);
     }
+  });
+});
+
+describe("PD1 (J8S-2): the target of a 2V action, never an identifier alone", () => {
+  it("names a member account without its address, an invitation by its address and role", () => {
+    expect(
+      dualControlTargetSchema.safeParse({
+        kind: "member_account",
+        accountId: ACCOUNT,
+        role: "advertiser",
+        countryCode: "BE",
+        createdAt: "2026-10-01T08:00:00.000Z",
+        companyName: "Acme SAS",
+      }).success,
+    ).toBe(true);
+    expect(
+      dualControlTargetSchema.safeParse({
+        kind: "internal_invitation",
+        email: "camille@influx.test",
+        role: "admin",
+        createdAt: "2026-10-01T08:00:00.000Z",
+      }).success,
+    ).toBe(true);
+    // a member account never carries its address (05 RG40: read on the journaled record)
+    expect(
+      dualControlTargetSchema.safeParse({
+        kind: "member_account",
+        accountId: ACCOUNT,
+        role: "creator",
+        countryCode: "FR",
+        createdAt: "2026-10-01T08:00:00.000Z",
+        companyName: null,
+        email: "member@example.test",
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("PD6 (J8S-1): the weekly review of the degraded confirmations", () => {
+  it("defaults to four ISO weeks, coerced from the query string, 1 to 53", () => {
+    expect(degradedReviewQuerySchema.parse({})).toEqual({
+      weeks: DEGRADED_REVIEW_WEEKS_DEFAULT,
+    });
+    expect(degradedReviewQuerySchema.parse({ weeks: "53" })).toEqual({
+      weeks: DEGRADED_REVIEW_WEEKS_MAX,
+    });
+    for (const query of [{ weeks: "0" }, { weeks: "54" }, { other: "1" }]) {
+      expect(
+        degradedReviewQuerySchema.safeParse(query).success,
+        JSON.stringify(query),
+      ).toBe(false);
+    }
+  });
+
+  it("answers ISO weeks only", () => {
+    const answer = (week: string) => ({
+      weeks: 4,
+      evaluatedAt: "2026-10-20T08:00:00.000Z",
+      review: [{ week, confirmations: [] }],
+    });
+    expect(
+      degradedReviewResponseSchema.safeParse(answer("2026-W43")).success,
+    ).toBe(true);
+    expect(
+      degradedReviewResponseSchema.safeParse(answer("2026-43")).success,
+    ).toBe(false);
+  });
+});
+
+describe("J8S-4: the admin role grants of the home alerts", () => {
+  it("are part of every answer, empty for an agent, without any address", () => {
+    const base = {
+      evaluatedAt: "2026-10-20T08:00:00.000Z",
+      alerts: [],
+      newBrowserSignIns: [],
+    };
+    expect(alertsResponseSchema.safeParse(base).success).toBe(false);
+    const grant = {
+      accountId: ACCOUNT,
+      firstName: "Camille",
+      grantedBy: null,
+      grantedByFirstName: null,
+      grantedAt: "2026-10-20T07:00:00.000Z",
+    };
+    expect(
+      alertsResponseSchema.safeParse({ ...base, adminRoleGrants: [grant] })
+        .success,
+    ).toBe(true);
+    expect(
+      alertsResponseSchema.safeParse({
+        ...base,
+        adminRoleGrants: [{ ...grant, email: "camille@influx.test" }],
+      }).success,
+    ).toBe(false);
   });
 });

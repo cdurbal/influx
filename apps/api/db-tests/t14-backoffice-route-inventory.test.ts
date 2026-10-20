@@ -54,6 +54,9 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
   },
   "GET /v1/bo/me": {},
   "GET /v1/bo/accounts": {},
+  "POST /v1/bo/accounts/search": {
+    body: { email: "t14-inventory-search@example.test" },
+  },
   "GET /v1/bo/accounts/counters": {},
   "GET /v1/bo/accounts/:id": {},
   "POST /v1/bo/accounts/:id/corrections": {
@@ -78,6 +81,7 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
       reasonCode: "founder_decision",
     },
   },
+  "GET /v1/bo/dual-control/degraded": {},
   "GET /v1/bo/dual-control/:id": {},
   "POST /v1/bo/dual-control/:id/confirm": { body: {} },
   "POST /v1/bo/dual-control/:id/cancel": {},

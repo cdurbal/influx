@@ -20,6 +20,7 @@ export type ThrottleScope =
   | "backoffice_login_email"
   | "backoffice_login_platform"
   | "backoffice_reauth_session"
+  | "backoffice_reauth_ip"
   | "delivery_report_email"
   | "delivery_report_ip"
   | "delivery_report_unknown_ip";

@@ -281,6 +281,29 @@ export const messages = {
     noAlert: "Aucune alerte ouverte.",
     alertsError: "Les alertes n’ont pas pu être chargées.",
     evaluatedAt: (at: string) => `Évaluées le ${at}`,
+    /** PD6 (J8S-1; 03 §1.3, 15 RG9): the weekly review, a team discipline. */
+    degraded: {
+      title: "Revue hebdomadaire des confirmations en mode différé",
+      lead: (weeks: number) =>
+        `Actions confirmées seul par la personne qui les avait demandées, semaine par semaine, sur les ${weeks} dernières semaines. Ce contrôle est affaibli : relisez cette liste chaque semaine, en équipe.`,
+      empty: (weeks: number) =>
+        `Aucune confirmation en mode différé au cours des ${weeks} dernières semaines.`,
+      week: (week: string, count: number) => {
+        const [year = "", number = ""] = week.split("-W");
+        return `Semaine ${Number(number)} de ${year} — ${count} confirmation${count > 1 ? "s" : ""}`;
+      },
+      line: (
+        action: string,
+        reason: string,
+        name: string,
+        requestedAt: string,
+        confirmedAt: string,
+        executed: boolean,
+      ) =>
+        `${action} (motif : ${reason}) — demandée par ${name} le ${requestedAt}, confirmée seule le ${confirmedAt}${executed ? ", exécutée" : ", non exécutée"}.`,
+      open: "Ouvrir la demande",
+      error: "La revue hebdomadaire n’a pas pu être chargée.",
+    },
   },
   /** 05 RG104, CA62; 15 §F: an alert says what, how many and since when (never the colour alone). */
   alert: {
@@ -309,6 +332,13 @@ export const messages = {
         `${agentName} s’est connecté le ${date} à ${time} depuis ${browser}, un navigateur jamais utilisé sur ce compte au cours des 30 derniers jours. Aucune mesure automatique n’a été prise. Vérifiez auprès de la personne ; si ce n’est pas elle, révoquez ses sessions et réinitialisez son second facteur.`,
       unnamed: "Une personne sans prénom enregistré",
     },
+    /** J8S-4 (15 RG101): an `admin` role granted, for the admins; the e-mail comes at Lot 5. */
+    adminGrant: {
+      title: "Rôle administrateur attribué",
+      body: (name: string, by: string, date: string, time: string) =>
+        `${name} a reçu le rôle administrateur le ${date} à ${time}, attribué par ${by}. Si cette attribution n’était pas attendue, vérifiez-la auprès de ${by} et de la personne concernée.`,
+      unknownGranter: "une personne non identifiée",
+    },
   },
   accounts: {
     title: "Inscrits",
@@ -331,14 +361,20 @@ export const messages = {
     viewNormal: "Cas normaux",
     viewHelp:
       "« À traiter » et « Cas normaux » sont deux vues, jamais un total : un inscrit sans consentement n’est pas un échec.",
-    search: "Recherche partielle dans l’adresse",
+    search: "Recherche par adresse",
     searchHelp:
-      "3 caractères au moins : lettres, chiffres, tiret ou souligné. Chaque recherche est enregistrée (20 par quart d’heure).",
+      "Une adresse complète : recherche exacte, non enregistrée. Un fragment de 3 caractères au moins, sans espace : recherche partielle, enregistrée à votre nom (20 par quart d’heure). Le terme n’apparaît jamais dans l’adresse de la page.",
     searchInvalid:
-      "3 à 64 caractères parmi les lettres, chiffres, tiret et souligné.",
+      "Saisissez une adresse complète, ou un fragment de 3 caractères au moins, sans espace.",
     searchSubmit: "Chercher",
     reset: "Réinitialiser les filtres",
     searchJournaled: "Cette recherche a été enregistrée à votre nom.",
+    searchExact: "Recherche exacte : elle n’est pas enregistrée.",
+    period: "Période d’inscription",
+    periodFrom: "Du",
+    periodTo: "Au",
+    periodHelp: "Bornes incluses, dans votre fuseau horaire.",
+    periodInvalid: "La période doit commencer avant de finir.",
     columns: {
       select: "Sélection",
       createdAt: "Inscription",
@@ -644,6 +680,15 @@ export const messages = {
       setting: "Nouvelle valeur",
       legalName: "Raison sociale",
       role: "Rôle",
+      /** PD1 (J8S-2): a member account by role, country and sign-up, never by its address. */
+      member: (role: string, country: string, date: string) =>
+        `${role} · ${country} · inscrit le ${date}`,
+      internal: (name: string) => `${name}, membre de l’équipe`,
+      invited: (email: string, role: string, date: string) =>
+        `${email} · rôle proposé : ${role} · invitation du ${date}`,
+      newBrand: "Nouvelle raison sociale",
+      unreadable:
+        "Objet introuvable : il n’existe plus ou n’est plus lisible. Ne confirmez pas sans l’avoir vérifié.",
     },
     openAccount: "Ouvrir la fiche",
     states: {

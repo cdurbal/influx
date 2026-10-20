@@ -73,6 +73,12 @@ export const REAUTHENTICATION_FAILURES_PER_SESSION = 5;
  */
 export const REAUTHENTICATION_ATTEMPTS_PER_SESSION = 5;
 
+/**
+ * J8S-6 (0143): attempts of R per IP (/32, /64) and per hour, in a bucket apart from the sign-in's
+ * (20 / h): a team confirming its actions from one network never locks that network's sign-in.
+ */
+export const REAUTHENTICATION_ATTEMPTS_PER_IP_HOUR = 60;
+
 /** EC-40 point 2: R holds while the last TOTP proof of the session is at most this old. */
 export const REAUTHENTICATION_FRESHNESS_SECONDS = 300;
 

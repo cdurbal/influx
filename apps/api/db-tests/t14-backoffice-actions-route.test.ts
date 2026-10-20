@@ -6,7 +6,8 @@
 //   POST /v1/bo/dual-control/:id/cancel, POST /v1/bo/accounts/:id/brevo-suppression/lift,
 //   GET /v1/bo/alerts; and the reads of the screens (J8 commit 9, migration 0138): GET /v1/bo/me
 //   (J3S-6, 15 RG107), GET /v1/bo/dual-control, GET /v1/bo/internal-accounts, the B-7 sign-ins
-//   of GET /v1/bo/alerts.
+//   of GET /v1/bo/alerts; and the J8 debt of J9 commit 2: the target of a 2V view (J8S-2), GET
+//   /v1/bo/dual-control/degraded (J8S-1) and the `admin` grants of GET /v1/bo/alerts (J8S-4).
 // The fixtures (agent, two admins, members, sessions, queue lines, contact states, a reconciliation
 // run) are COMMITTED by the migration role (random identifiers, disposable local stack, like TM1);
 // the queue lines are removed, the internal profiles deactivated and the Apollo scope restored
@@ -74,6 +75,7 @@ const ROUTES: readonly {
   },
   { method: "GET", url: "/v1/bo/alerts" },
   { method: "GET", url: "/v1/bo/dual-control" },
+  { method: "GET", url: "/v1/bo/dual-control/degraded" },
   { method: "GET", url: "/v1/bo/internal-accounts" },
 ];
 
@@ -1271,6 +1273,200 @@ describe("reads of the screens (J8 commit 9; 15 RG107, 17b §3.13, §3.14.e, J3S
       await call(server, "GET", "/v1/bo/alerts", agent.session)
     ).json<{ newBrowserSignIns: unknown[] }>();
     expect(forAgent.newBrowserSignIns).toEqual([]);
+  });
+});
+
+describe("J9 commit 2: the J8 debt of the 2V and of the home (J8S-1, J8S-2, J8S-4)", () => {
+  it("J8S-2 (PD1): a 2V view names the member account by role, country, sign-up and brand, never by its address", async () => {
+    const server = app();
+    const creator = await newMember("creator");
+    const requested = await call(
+      server,
+      "POST",
+      "/v1/bo/dual-control",
+      adminA.session,
+      {
+        code: "identity.change_member_role",
+        accountId: creator.accountId,
+        legalName: "Maison Visée",
+        reasonCode: "member_request",
+      },
+    );
+    expect(requested.statusCode, requested.body).toBe(200);
+    const view = requested.json<{ id: string; target: unknown }>();
+    expect(view.target).toEqual({
+      kind: "member_account",
+      accountId: creator.accountId,
+      role: "creator",
+      countryCode: "FR",
+      createdAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/) as string,
+      companyName: null,
+    });
+    // the address is read on the record only, whose opening is journaled (05 RG40)
+    expect(requested.body).not.toContain(creator.email);
+    expect(requested.body).not.toContain("@");
+    const listed = (
+      await call(server, "GET", "/v1/bo/dual-control", adminB.session)
+    ).json<{ requests: { id: string; target: unknown }[] }>();
+    expect(
+      listed.requests.find((request) => request.id === view.id)?.target,
+    ).toEqual(view.target);
+    await call(
+      server,
+      "POST",
+      `/v1/bo/dual-control/${view.id}/cancel`,
+      adminA.session,
+    );
+  });
+
+  it("J8S-2 (PD1): the 2V of an admin invitation names the address invited and the role, not an identifier", async () => {
+    const server = app();
+    const email = `t14-act-invited-${randomUUID()}@example.test`;
+    watchedValues.push(email);
+    const created = await call(
+      server,
+      "POST",
+      "/v1/bo/internal-invitations",
+      adminA.session,
+      { email, role: "admin", reasonCode: "new_team_member" },
+    );
+    expect(created.statusCode, created.body).toBe(200);
+    const { invitationId, dualControlRequestId } = created.json<{
+      invitationId: string;
+      dualControlRequestId: string | null;
+    }>();
+    expect(dualControlRequestId).not.toBeNull();
+    const view = (
+      await call(
+        server,
+        "GET",
+        `/v1/bo/dual-control/${dualControlRequestId ?? ""}`,
+        adminB.session,
+      )
+    ).json<{ action: unknown; target: unknown }>();
+    expect(view.action).toEqual({
+      code: "identity.invite_admin",
+      invitationId,
+    });
+    expect(view.target).toEqual({
+      kind: "internal_invitation",
+      email,
+      role: "admin",
+      createdAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/) as string,
+    });
+    await call(
+      server,
+      "POST",
+      `/v1/bo/dual-control/${dualControlRequestId ?? ""}/cancel`,
+      adminA.session,
+    );
+    await call(
+      server,
+      "POST",
+      `/v1/bo/internal-invitations/${invitationId}/revoke`,
+      adminA.session,
+      { reasonCode: "no_longer_needed" },
+    );
+  });
+
+  it("J8S-1 (PD6): GET /v1/bo/dual-control/degraded gives the admin the weeks asked; an agent is refused and journaled", async () => {
+    const server = app();
+    const review = await call(
+      server,
+      "GET",
+      "/v1/bo/dual-control/degraded",
+      adminA.session,
+    );
+    expect(review.statusCode, review.body).toBe(200);
+    expect(review.headers["cache-control"]).toBe("no-store");
+    const body = review.json<{
+      weeks: number;
+      evaluatedAt: string;
+      review: { week: string; confirmations: { requestedBy: string }[] }[];
+    }>();
+    expect(body.weeks).toBe(4);
+    expect(body.review.length).toBeLessThanOrEqual(4);
+    for (const week of body.review) {
+      expect(week.week).toMatch(/^\d{4}-W\d{2}$/);
+      expect(week.confirmations.length).toBeGreaterThan(0);
+    }
+    expect(
+      (
+        await call(
+          server,
+          "GET",
+          "/v1/bo/dual-control/degraded?weeks=53",
+          adminA.session,
+        )
+      ).json<{ weeks: number }>().weeks,
+    ).toBe(53);
+    for (const weeks of ["0", "54", "two"]) {
+      expect(
+        errorBody(
+          await call(
+            server,
+            "GET",
+            `/v1/bo/dual-control/degraded?weeks=${weeks}`,
+            adminA.session,
+          ),
+        ),
+        weeks,
+      ).toEqual({ status: 400, code: "validation_failed" });
+    }
+    const before = (
+      await registerLines("backoffice.action_refused", agent.accountId)
+    ).length;
+    expect(
+      errorBody(
+        await call(
+          server,
+          "GET",
+          "/v1/bo/dual-control/degraded",
+          agent.session,
+        ),
+      ),
+    ).toEqual({ status: 403, code: "forbidden" });
+    expect(
+      (await registerLines("backoffice.action_refused", agent.accountId)).slice(
+        before,
+      ),
+    ).toEqual([
+      {
+        actor: agent.accountId,
+        payload: {
+          action_code: "backoffice.dual_control",
+          required_role: "admin",
+        },
+      },
+    ]);
+  });
+
+  it("J8S-4 (RG101): an `admin` role granted reaches the admins through GET /v1/bo/alerts, never an agent", async () => {
+    const server = app();
+    const promoted = await newInternal("agent");
+    await localSuperuser()`
+      select audit.append('account.role_granted', 'account', ${promoted.accountId}::uuid,
+                          jsonb_build_object('role', 'admin',
+                                             'reason_code', 'internal_invitation',
+                                             'granted_by_account_id', ${adminA.accountId}::text))`;
+    const forAdmin = (
+      await call(server, "GET", "/v1/bo/alerts", adminB.session)
+    ).json<{ adminRoleGrants: { accountId: string }[] }>();
+    expect(
+      forAdmin.adminRoleGrants.find(
+        (grant) => grant.accountId === promoted.accountId,
+      ),
+    ).toEqual({
+      accountId: promoted.accountId,
+      firstName: "Camille",
+      grantedBy: adminA.accountId,
+      grantedByFirstName: "Camille",
+      grantedAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/) as string,
+    });
+    const forAgent = (
+      await call(server, "GET", "/v1/bo/alerts", agent.session)
+    ).json<{ adminRoleGrants: unknown[] }>();
+    expect(forAgent.adminRoleGrants).toEqual([]);
   });
 });
 

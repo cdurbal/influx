@@ -1030,7 +1030,7 @@ describe("B-5, EC-40: re-authentication R", () => {
     );
   });
 
-  it("J3S-1, EC-47: an IP over its ceiling is refused before GoTrue, without a failure; R holds elsewhere", async () => {
+  it("J8S-6 (0143): R has its own network bucket (60 / h); over it, refused before GoTrue, without a failure", async () => {
     const { server, calls } = app();
     const account = await newInternal("reauth-ip");
     const enrolled = await enroll(server, account);
@@ -1042,34 +1042,51 @@ describe("B-5, EC-40: re-authentication R", () => {
     if (address.status !== "known") {
       throw new Error("the test address must be valid");
     }
-    // The twenty attempts of the hour of this network, reserved as the sign-in would (0014).
     const key = Buffer.from(address.throttleKey, "hex");
+    const reauthenticate = () =>
+      post(
+        server,
+        "/v1/bo/auth/reauthenticate",
+        {
+          password: account.password,
+          code: totpCode(enrolled.secret, new Date(), 1),
+        },
+        { session: enrolled.session, clientAddress: crowded },
+      );
+    // The twenty sign-in attempts of the hour of this network (EC-47) no longer refuse R...
     for (let attempt = 0; attempt < 20; attempt += 1) {
       await localSuperuser()`
         select identity.reserve_auth_attempt('backoffice_login_ip', ${key}, '1h', 20)`;
     }
+    expect((await reauthenticate()).json()).toEqual({ outcome: "confirmed" });
+    // ...and R never spends them: its attempt is counted in its own scope.
+    const [counted] = await localSuperuser()<
+      { scope: string; request_count: number }[]
+    >`
+      select scope::text, request_count from identity.auth_request_throttle
+       where scope = 'backoffice_reauth_ip' and scope_key_hash = ${key}`;
+    expect(counted?.request_count).toBe(1);
+
+    // The sixty attempts of R of the hour of this network: the next is refused before GoTrue.
+    for (let attempt = 1; attempt < 60; attempt += 1) {
+      await localSuperuser()`
+        select identity.reserve_auth_attempt('backoffice_reauth_ip', ${key}, '1h', 60)`;
+    }
     const before = calls.passwordSessions;
-    const refused = await post(
-      server,
-      "/v1/bo/auth/reauthenticate",
-      {
-        password: account.password,
-        code: totpCode(enrolled.secret, new Date(), 1),
-      },
-      { session: enrolled.session, clientAddress: crowded },
-    );
-    expect(refused.json()).toEqual({ outcome: "refused" });
+    expect((await reauthenticate()).json()).toEqual({ outcome: "refused" });
     expect(calls.passwordSessions).toBe(before);
     expect(await auditOf(account.accountId)).not.toContain(
       "agent.reauthentication_failed",
     );
 
+    // R holds from another network.
     const confirmed = await post(
       server,
       "/v1/bo/auth/reauthenticate",
       {
         password: account.password,
-        code: totpCode(enrolled.secret, new Date(), 1),
+        // a code not used yet: step 0 enrolled, step 1 confirmed above (EC-39)
+        code: totpCode(enrolled.secret, new Date(), -1),
       },
       { session: enrolled.session },
     );

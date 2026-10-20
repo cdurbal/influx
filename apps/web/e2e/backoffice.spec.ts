@@ -1,9 +1,11 @@
 // The backoffice v0 in a real browser (J8 commit 10; docs/mvp/05 CA56 to CA63; 03 §1.3 PD1 to
 // PD7; 15 RG107; 05 RG116 to RG120; 17b §3.11 to §3.13): the list of the day, the cause in clear,
 // the unit and batch replays, the absence of replay for a normal case, two agents on one line,
-// the alert of a refused key, the refusals of an agent, the degraded dual control of a single admin,
-// and the invitation that makes its author the responsible salesperson. The rules are apps/api's
-// and the database's (T14 files, t8-dual-control-service); here, what only the screens show.
+// the alert of a refused key, the refusals of an agent, the degraded dual control of a single admin
+// (its target named, J8S-2, and its line in the weekly review of the home, J8S-1), the invitation
+// that makes its author the responsible salesperson, and the exact search and the period filters
+// (J8T-7), the term never in the address bar (J8S-7). The rules are apps/api's and the database's
+// (T14 files, t8-dual-control-service); here, what only the screens show.
 // CA59 at 250 lines is beyond one page (50 rows at most, 15 RG34): the cap of 200 is t14-backoffice-
 // actions-route's; here the batch replay of a selection and its counted report.
 // The people are seeded with a session proven by TOTP now (support/backoffice.ts): R holds, no
@@ -23,6 +25,7 @@ import {
   restoreAdmins,
   retireInternals,
   runTag,
+  seededAddress,
   seedInternal,
   seedSignup,
 } from "./support/backoffice";
@@ -72,13 +75,29 @@ function accountRows(page: Page) {
     .getByRole("row");
 }
 
+/** Types a term in the search of the list and submits it (RG98; J8S-7: never in the URL). */
+async function searchList(page: Page, term: string): Promise<void> {
+  await page.getByLabel(m.accounts.search, { exact: true }).fill(term);
+  await page.getByRole("button", { name: m.accounts.searchSubmit }).click();
+}
+
 /** The list filtered by a partial search on the tag of the seeded addresses (RG98). */
 async function openList(page: Page, tag: string): Promise<void> {
-  await page.goto(bo(`/inscrits?q=${tag}`));
+  await page.goto(bo("/inscrits"));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     m.accounts.title,
   );
+  await searchList(page, tag);
   await expect(page.getByText(m.accounts.searchJournaled)).toBeVisible();
+  expect(page.url()).not.toContain(tag);
+}
+
+/** A local calendar day "YYYY-MM-DD", `daysAgo` days before today (the browser's zone is ours). */
+function localDay(daysAgo: number): string {
+  const day = new Date();
+  day.setDate(day.getDate() - daysAgo);
+  const month = String(day.getMonth() + 1).padStart(2, "0");
+  return `${day.getFullYear()}-${month}-${String(day.getDate()).padStart(2, "0")}`;
 }
 
 test("CA56: ten sign-ups of the day, each with role, country, language, status, consent, Brevo and Apollo", async ({
@@ -421,6 +440,19 @@ test("PD1 to PD7: a single admin confirms alone, after 60 s and in writing, unde
     const confirm = page.getByRole("button", { name: m.dualControl.confirm });
     await expect(confirm).toHaveAttribute("aria-disabled", "true");
     await expect(page.getByText("Atelier Ilan")).toBeVisible();
+    // J8S-2 (PD1): the account is named by role, country and sign-up, never by an identifier.
+    await expect(
+      page.getByText(
+        m.dualControl.target.member(
+          m.roles.creator,
+          country("FR"),
+          new Intl.DateTimeFormat("fr-FR", { dateStyle: "short" }).format(
+            new Date(),
+          ),
+        ),
+      ),
+    ).toBeVisible();
+    await expect(page.locator("main")).not.toContainText(creator);
 
     // Past the 60 s (moved back in the base, the database counts): a justification is required.
     await pastTheDelay(requestId);
@@ -451,9 +483,78 @@ test("PD1 to PD7: a single admin confirms alone, after 60 s and in writing, unde
     await expect(
       page.getByRole("region", { name: m.account.identity }),
     ).toContainText(m.roles.advertiser);
+
+    // J8S-1 (PD6): the confirmation made alone is in the weekly review of the home.
+    await page.goto(bo("/accueil"));
+    const review = page.getByRole("region", {
+      name: m.home.degraded.title,
+    });
+    const line = review.getByRole("listitem").filter({
+      has: page.locator(`a[href="/double-validation/${requestId}"]`),
+    });
+    await expect(line).toContainText(
+      m.dualControl.actions["identity.change_member_role"] ?? "",
+    );
+    await expect(line).toContainText("demandée par Ilan");
   } finally {
     await restoreAdmins();
   }
+});
+
+test("J8T-7: the exact search finds one address, the period filters narrow the list; no term in the address bar", async ({
+  page,
+}) => {
+  const tag = runTag("j8t7");
+  await seedSignup({
+    tag,
+    role: "creator",
+    countryCode: "FR",
+    language: "fr",
+    consent: true,
+  });
+  const older = await seedSignup({
+    tag,
+    role: "advertiser",
+    countryCode: "BE",
+    language: "fr",
+    consent: true,
+    daysAgo: 3,
+  });
+  await seedInternal(page, "agent", "Noa");
+  await page.goto(bo("/inscrits"));
+
+  // RG98: a whole address is the exact search, free and said so; the address stays out of the URL.
+  const address = seededAddress(tag, older);
+  await searchList(page, address.toUpperCase());
+  await expect(page.getByText(m.accounts.searchExact)).toBeVisible();
+  const rows = accountRows(page);
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first().getByRole("cell").nth(3)).toHaveText(country("BE"));
+  expect(page.url()).not.toContain("@");
+  expect(page.url()).not.toContain(tag);
+
+  // The partial search of the tag, then the period (RG97), the term kept in the screen only.
+  await searchList(page, tag);
+  await expect(page.getByText(m.accounts.searchJournaled)).toBeVisible();
+  await expect(rows).toHaveCount(2);
+  await page
+    .getByLabel(m.accounts.periodFrom, { exact: true })
+    .fill(localDay(1));
+  await expect(page).toHaveURL(new RegExp(`from=${localDay(1)}`));
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first().getByRole("cell").nth(3)).toHaveText(country("FR"));
+  await page.getByLabel(m.accounts.periodFrom, { exact: true }).fill("");
+  await page.getByLabel(m.accounts.periodTo, { exact: true }).fill(localDay(2));
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first().getByRole("cell").nth(3)).toHaveText(country("BE"));
+  // A period that ends before it starts is said, never sent.
+  await page
+    .getByLabel(m.accounts.periodFrom, { exact: true })
+    .fill(localDay(0));
+  await expect(
+    page.getByRole("alert").filter({ hasText: m.accounts.periodInvalid }),
+  ).toBeVisible();
+  expect(page.url()).not.toContain(tag);
 });
 
 test("D54, RG119: the invitation of an agent makes them the responsible salesperson of the account created", async ({
