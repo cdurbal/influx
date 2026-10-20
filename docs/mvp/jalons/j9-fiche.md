@@ -251,7 +251,8 @@ recopiée nulle part (D70).
   l'`agent` (PD7) ; accord de mise en production et de fusion vers `production` (`21` §5.8, D71).
 - `integrateur` : HSTS `preload` une fois les domaines arrêtés (J4S-8).
 - `expert-cybersecurite` (revue groupée) : seuil des `429`, seuil propre de `request-code`, accès à
-  l'écran « Santé technique », points « À relire » de D67 (`05` l. 1882).
+  l'écran « Santé technique », points « À relire » de D67 (`05` l. 1882) ; C5.c sans ligne de
+  registre (`04` §9.3 « Exception ») : l'admettre ou créer un type d'événement.
 - `product-owner` : numéros des alertes techniques (EC-J9-4) ; seuil d'AL25 ; `15` Q2 à Q4.
 - `expert-conformite-rgpd` (Lot 6, condition d'entrée dans `production`, D71) : verdict L9,
   exemption de consentement du collecteur navigateur, RG118, RG121 (veto), retrait propagé à Apollo,
@@ -259,9 +260,11 @@ recopiée nulle part (D70).
 
 ## Planchers
 
-Recomptés au commit 2 (2026-10-20) : `pnpm test` = **2 642** (contracts 87, test-kit 119,
-backoffice 34, web 205, `apps/api` unitaire 1 132 en 55 fichiers, base 1 065 en 49 fichiers) ;
-`test:db` = **1 065** (49 fichiers ; planchers `t14-backoffice-accounts-route` 19, `-actions-route` 29). Seul `apps/api` est figé (J8T-6 généralise au
+Recomptés au commit 3 (2026-10-21) : `pnpm test` = **2 655** (contracts 87, test-kit 119,
+backoffice 34, web 205, `apps/api` unitaire 1 134 en 55 fichiers, base 1 076 en 49 fichiers) ;
+`test:db` = **1 076** (49 fichiers ; planchers relevés : `t8-reauth-email-change` 33,
+`tm1-email-change-route` 22, `tm1-periodic-runs` 33, `tm1-periodic-tasks` 16 ; unitaires
+`brevo-webhook` 53, `periodic-scheduler` 26). Seul `apps/api` est figé (J8T-6 généralise au
 commit 10) ; tout nouveau fichier `db-tests` entre dans `case-floors.ts`.
 
 ## Issu du commit S
@@ -287,6 +290,13 @@ commit 10) ; tout nouveau fichier `db-tests` entre dans `case-floors.ts`.
 - J8S-7 : `POST /v1/bo/accounts/search` = filtres + **au plus un** terme dans le corps ; l'écran liste par lui seul (un instant de période n'est pas un caractère simple du relais, EC-62) ; `email`/`q` en URL ⇒ `400` ; EC-J8-58 levée (`@`, `.` admis) ; terme en mémoire de l'écran, jamais dans la barre d'adresse.
 - J8S-1 : revue `?weeks=` 1 à 53, **4 par défaut**, `admin` seul (agent refusé et journalisé `backoffice.dual_control`) ; bloc d'accueil `admin` seul. J8S-4 : `adminRoleGrants` dans `GET /v1/bo/alerts` (7 j, `admin`).
 - J8S-6 : `0143` ajoute `backoffice_reauth_ip` (60 / h ; IP inconnue : clé globale propre à R) ; prochaine migration libre **`0144`**.
+
+## Issu du commit 3
+
+- J7S-1 : pas de réglage `influx.session` nouveau ; la session de la requête est la claim `session_id` déjà posée (`influx.current_session_id()`, `0142`), exigée par `consume_member_reauthentication` (`0144`, 55000 inchangé).
+- A2 : `reserveCodeRequest` (IP puis adresse, compteurs de la connexion) **avant** la transaction membre ⇒ `429 rate_limited`, code frais intact ; message web `rateLimited`.
+- C5.c : détenteur lu par `generateLink`, `identity.email_change_holder_is_orphan()` (`0144` : demande propre, deux côtés confirmés, ouverte ; sur l'id), suppression puis un essai ; GoTrue indisponible ⇒ `503`, demande ouverte ; aucune ligne de registre (la purge horaire reste le chemin compté).
+- J7S-2 : `breaker.orphan_ratio` / `breaker.filter_refused` dans `maintenance.periodic.failed`, run `failed`, rien supprimé (alerte : J7S-8, commit 8). J7S-3 : l'exception A4 n'existe que pour sa surface ⇒ `404` avant le contrôle d'origine. Prochaine migration libre **`0145`**.
 
 ## Discipline de session (économie de tokens)
 
