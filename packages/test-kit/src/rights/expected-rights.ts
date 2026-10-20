@@ -2356,5 +2356,6 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "backoffice.admin_role_grants(integer)": "influx_identity_definer",
   // 0144 (J9 commit 3, C5.c). The restated identity.consume_member_reauthentication() stays
   // SECURITY INVOKER; ops.filter_auth_orphans() keeps its 0117 line.
-  "identity.email_change_holder_is_orphan(uuid,uuid)": "influx_identity_definer",
+  "identity.email_change_holder_is_orphan(uuid,uuid)":
+    "influx_identity_definer",
 };
