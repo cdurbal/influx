@@ -312,10 +312,7 @@ describe("syncSettingsIssues (05 RG162, D69): the verdict of the worker at start
         },
         false,
       ),
-    ).toEqual([
-      "retry_schedule",
-      "rate_limits.brevo_transactional_per_minute",
-    ]);
+    ).toEqual(["retry_schedule", "rate_limits.brevo_transactional_per_minute"]);
   });
 
   it("requires the Apollo rate and keys only when the worker has an Apollo key", () => {
