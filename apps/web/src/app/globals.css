@@ -51,15 +51,3 @@
     outline-color: var(--color-focus-ring-inverse);
   }
 }
-
-/*
- * Logo marquee (section 5): paused on hover, on focus inside the block or by its button
- * (02 §2.5, WCAG 2.2.2). Deliberately outside any cascade layer: inside @layer base, the
- * animate-marquee utility (layer utilities) reset animation-play-state through the animation
- * shorthand and the pause had no effect (09 A2). Unlayered styles win over every layer.
- */
-[data-marquee]:hover [data-marquee-track],
-[data-marquee]:focus-within [data-marquee-track],
-[data-marquee][data-paused="true"] [data-marquee-track] {
-  animation-play-state: paused;
-}

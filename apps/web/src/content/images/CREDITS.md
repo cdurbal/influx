@@ -1,13 +1,19 @@
-# Crédits des photos de la maquette
+# Crédits des photos de la landing page
 
-Photos d'illustration de la maquette de la landing page, sélectionnées par `expert-ux`
-(`docs/landing-page/05-images.md`). Toutes proviennent de Pexels, sous
+Photos définitives de la landing page (décision du fondateur, 2026-10-21), sélectionnées par
+`expert-ux` (`docs/landing-page/05-images.md`). Ce fichier est le **manifeste des actifs de
+marque** : la garde qui remplace G4 (`18` §5) refuse toute image de `apps/web` qui n'y figure pas
+(seule exception, déclarée dans la garde : le pictogramme `src/components/ui/camera.png`).
+Toutes proviennent de Pexels, sous
 [licence Pexels](https://www.pexels.com/license/) : usage gratuit, attribution non obligatoire
 (faite ici), interdiction notamment de laisser entendre que les personnes ou marques visibles
 soutiennent INFLUX. Aucune image ne provient de wekollab.fr.
 
 Téléchargées le 2026-09-17 par `curl` depuis l'URL de fichier vérifiée (paramètres
-`auto=compress&cs=tinysrgb&w=1600`). Ces photos disparaissent avec le module fictif au Lot 1.
+`auto=compress&cs=tinysrgb&w=1600`). Elles ont quitté le module fictif au J9 (commit 5) : les
+photos des cartes créateurs, des études de cas et du résultat mis en avant (`img-cre-*`,
+`img-case-*`, `img-result-01`) attendent des contenus réels, leurs blocs ayant disparu avec les
+données inventées.
 
 | Fichier            | ID             | Auteur                                                                         | Page source                                                                                                      | Licence        |
 | ------------------ | -------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | -------------- |

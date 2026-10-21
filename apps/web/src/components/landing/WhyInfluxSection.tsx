@@ -2,11 +2,8 @@ import { getTranslations } from "next-intl/server";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
 import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import type { LandingImage, WhyInfluxItemId } from "@/content/landing-content";
-
-type WhyInfluxSectionProps = {
-  images: Record<WhyInfluxItemId, LandingImage>;
-};
+import type { WhyInfluxItemId } from "@/content/landing-content";
+import { landingPhoto, type PhotoId } from "@/content/landing-images";
 
 const ITEM_IDS: readonly WhyInfluxItemId[] = [
   "qualifiedMatching",
@@ -14,8 +11,14 @@ const ITEM_IDS: readonly WhyInfluxItemId[] = [
   "allInInflux",
 ];
 
+const PHOTO_IDS: Record<WhyInfluxItemId, PhotoId> = {
+  qualifiedMatching: "why01",
+  dedicatedAgent: "why02",
+  allInInflux: "why03",
+};
+
 /** Section 13 (02 §3.15): three reasons to choose INFLUX. */
-export async function WhyInfluxSection({ images }: WhyInfluxSectionProps) {
+export async function WhyInfluxSection() {
   const t = await getTranslations("landing.whyInflux");
 
   return (
@@ -34,7 +37,7 @@ export async function WhyInfluxSection({ images }: WhyInfluxSectionProps) {
               className="flex flex-col overflow-hidden rounded-lg bg-surface-card shadow-sm"
             >
               <ResponsiveImage
-                image={images[id]}
+                image={landingPhoto(PHOTO_IDS[id])}
                 sizes="thirdDesktop"
                 className="aspect-3/2 w-full"
               />

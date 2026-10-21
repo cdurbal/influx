@@ -5,18 +5,15 @@ import { PhoneFrame } from "@/components/ui/PhoneFrame";
 import { mutedTitleTags } from "@/components/ui/rich-text";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
 import { ShortVideoOverlay } from "@/components/ui/ShortVideoOverlay";
-import type { HeroContent } from "@/content/landing-content";
-
-type HeroSectionProps = {
-  content: HeroContent;
-};
+import { landingPhoto } from "@/content/landing-images";
 
 /**
  * Section 1 (02 §3.3): the 10-second test (CA3). The h1, the lead and both doors come before the
  * image in the DOM and fit in the first screen at 375 × 667 and 1440 × 900.
  */
-export async function HeroSection({ content }: HeroSectionProps) {
+export async function HeroSection() {
   const t = await getTranslations("landing.hero");
+  const tImages = await getTranslations("landing.images");
 
   return (
     <section
@@ -58,7 +55,7 @@ export async function HeroSection({ content }: HeroSectionProps) {
             <div className="perspective-hero-card">
               <div className="aspect-card-id1 flex w-full items-start justify-center rotate-x-hero-secondary-x rotate-y-hero-secondary-y rounded-xl border-(length:--border-width-thin) border-border-default bg-metal-card p-3 shadow-metal-card">
                 <ResponsiveImage
-                  image={content.secondaryImage}
+                  image={landingPhoto("hero02")}
                   sizes="heroSecondary"
                   className="aspect-square h-4/5 max-w-full rounded-lg"
                 />
@@ -75,7 +72,7 @@ export async function HeroSection({ content }: HeroSectionProps) {
           <div className="perspective-hero-card relative mx-auto w-full max-w-(--size-phone-mockup) lg:col-span-7 lg:mx-0">
             <PhoneFrame className="aspect-phone-frame w-full rotate-x-hero-main-x rotate-y-hero-main-y">
               <ResponsiveImage
-                image={content.mainImage}
+                image={landingPhoto("hero01", tImages("hero01"))}
                 sizes="heroMain"
                 eager
                 className="h-full w-full"

@@ -1,4 +1,4 @@
-// Guard tests of the landing page mockup (docs/landing-page/01-architecture.md §9.3).
+// Guard tests of apps/web (docs/landing-page/01-architecture.md §9.3, docs/mvp/02 §13.1, 18 §5).
 // File reading only: deterministic, no browser, no network. Shared detectors live in
 // @influx/test-kit (docs/mvp/18-plan-de-test-mvp.md §5, docs/mvp/21 §4 J1-E).
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -28,8 +28,6 @@ const WEB_ROOT = path.resolve(
   "..",
 );
 const SRC = path.join(WEB_ROOT, "src");
-const PLACEHOLDERS_DIR = path.join(SRC, "content", "placeholders");
-const IMAGES_DIR = path.join(PLACEHOLDERS_DIR, "images");
 
 function relative(file: string): string {
   return relativePath(WEB_ROOT, file);
@@ -44,12 +42,25 @@ function findMatches(pattern: RegExp, files: readonly string[]): string[] {
   return findMatchesIn(pattern, files, WEB_ROOT);
 }
 
-describe("G1: no mailto or tel shortcut (CA6, revised 00-cadrage.md §8)", () => {
-  // href= itself was reintroduced on 2026-09-17 for in-app navigation between the account/login
-  // pages (docs/landing-page/00-cadrage.md §8): only the CA6, no-href part is abrogated. Direct
-  // mailto:/tel: shortcuts stay forbidden — the contact e-mail remains plain text (CA6 residual).
-  it("finds no mailto: or tel:", () => {
-    expect(findMatches(/mailto:|\btel:/, SCOPED_FILES)).toEqual([]);
+// Tightened at J9 commit 5 (02 §13.1, 18 §5 G1): a mailto: or tel: link is a way out of the
+// platform. Allowed only in the legal pages and the public contact page, each file named here,
+// never a folder. Empty today: the legal texts come from apps/api without links (EC-62), and no
+// contact page exists yet.
+const G1_ALLOWED_FILES: readonly string[] = [];
+
+describe("G1 tightened: no mailto or tel outside named legal and contact files (18 §5 G1)", () => {
+  it("finds no mailto: or tel: outside the allowlist", () => {
+    const files = SCOPED_FILES.filter(
+      (file) => !G1_ALLOWED_FILES.includes(relative(file)),
+    );
+    expect(findMatches(/mailto:|\btel:/, files)).toEqual([]);
+  });
+
+  it("names existing files only, never a folder", () => {
+    for (const file of G1_ALLOWED_FILES) {
+      expect(file).toMatch(/^src\/.+\.(tsx?|json)$/);
+      expect(existsSync(path.join(WEB_ROOT, file)), file).toBe(true);
+    }
   });
 });
 
@@ -101,45 +112,65 @@ describe("G3: no hard-coded color or length outside the token files (CA22)", () 
   });
 });
 
-describe("G4: every photo is credited, and every credit has a photo (CA26)", () => {
-  const images = readdirSync(IMAGES_DIR).sort();
-  const credits = readFileSync(
-    path.join(PLACEHOLDERS_DIR, "CREDITS.md"),
-    "utf8",
-  );
-  const creditedFiles = [...credits.matchAll(/^\|\s*(img-[\w-]+\.jpg)\s*\|/gm)]
-    .map((match) => match[1])
-    .sort();
+// G4 left with src/content/placeholders/ at J9 commit 5 and was replaced by this absence guard
+// (18 §5 G4): no image file anywhere in apps/web outside the declared manifest of brand assets.
+// The manifest is CREDITS.md (the photos, final since 2026-10-21, each still credited) plus the
+// one uncredited pictogram declared here. Creators' visuals are uploaded and moderated (T9).
+const IMAGES_DIR = path.join(SRC, "content", "images");
+const CREDITS = readFileSync(path.join(IMAGES_DIR, "CREDITS.md"), "utf8");
+const CREDITED_PHOTOS = [...CREDITS.matchAll(/^\|\s*(img-[\w-]+\.jpg)\s*\|/gm)]
+  .map((match) => `src/content/images/${match[1]}`)
+  .sort();
+const BRAND_ASSET_MANIFEST: readonly string[] = [
+  ...CREDITED_PHOTOS,
+  "src/components/ui/camera.png",
+];
 
-  it("lists the 31 photos of 05-images.md", () => {
-    expect(images).toHaveLength(31);
+const IMAGE_FILE = /\.(jpe?g|png|webp|avif|gif|svg|ico|bmp|tiff?|heic)$/i;
+
+/** Folders that are not source: dependencies, build and test outputs. */
+const NON_SOURCE_DIRECTORIES = new Set([
+  "node_modules",
+  ".next",
+  ".turbo",
+  "out",
+  "build",
+  "coverage",
+  "test-results",
+  "playwright-report",
+]);
+
+function sourceFiles(directory: string): string[] {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const fullPath = path.join(directory, entry.name);
+    if (!entry.isDirectory()) {
+      return [fullPath];
+    }
+    return NON_SOURCE_DIRECTORIES.has(entry.name) ? [] : sourceFiles(fullPath);
+  });
+}
+
+describe("G4 replaced: no image outside the brand asset manifest (18 §5 G4)", () => {
+  it("finds no image file in apps/web outside the manifest", () => {
+    const images = sourceFiles(WEB_ROOT)
+      .map(relative)
+      .filter((file) => IMAGE_FILE.test(file))
+      .sort();
+    expect(images).toEqual([...BRAND_ASSET_MANIFEST].sort());
   });
 
-  it("matches the image folder and CREDITS.md exactly", () => {
-    expect(creditedFiles).toEqual(images);
-  });
-
-  it("gives an author, a Pexels source page and the license for each photo", () => {
-    for (const file of images) {
+  it("credits each photo: author, Pexels source page and license (CA26)", () => {
+    expect(CREDITED_PHOTOS.length).toBeGreaterThan(0);
+    for (const file of CREDITED_PHOTOS) {
       // Table cells may be padded by Prettier: compare trimmed first cells.
-      const line = credits
-        .split("\n")
-        .find((row) => row.split("|")[1]?.trim() === file);
+      const line = CREDITS.split("\n").find(
+        (row) => row.split("|")[1]?.trim() === path.basename(file),
+      );
       expect(line, file).toBeDefined();
       expect(line, file).toMatch(/https:\/\/www\.pexels\.com\/@/);
       expect(line, file).toMatch(/https:\/\/www\.pexels\.com\/photo\//);
       expect(line, file).toContain("Licence Pexels");
     }
-  });
-
-  it("keeps no photo in public/ (01 §6.1, 05 §5)", () => {
-    const publicDir = path.join(WEB_ROOT, "public");
-    const publicImages = existsSync(publicDir)
-      ? listFiles(publicDir).filter((file) =>
-          /\.(jpe?g|png|webp|avif|gif)$/i.test(file),
-        )
-      : [];
-    expect(publicImages).toEqual([]);
   });
 });
 
@@ -168,13 +199,72 @@ describe("G5 replaced: the relay is the only server endpoint (21 J1-C, 03 PP-12)
   });
 });
 
-describe("G6: the mockup banner cannot be hidden while fictitious content exists (CA13, CA14)", () => {
-  it("keeps IS_MOCKUP set to true", () => {
-    const source = readFileSync(
-      path.join(PLACEHOLDERS_DIR, "index.ts"),
-      "utf8",
-    );
-    expect(source).toMatch(/export const IS_MOCKUP: boolean = true;/);
+// G6 (IS_MOCKUP === true) and annex 3 (fictitious values confined) left with the fictitious module
+// at J9 commit 5, replaced by this absence guard (18 §5 G6 a, annex 3): the module, the constant
+// and the banner cannot come back silently. Indexing is a matter of environment (J4S-3 below).
+describe("G6 and annex 3 replaced: no fictitious module, mockup constant or banner (18 §5 G6)", () => {
+  const CODE_FILES = [
+    ...SCOPED_FILES,
+    path.join(WEB_ROOT, "eslint.config.mjs"),
+    path.join(WEB_ROOT, "next.config.ts"),
+  ];
+  // Comments may tell the history of the mockup: only code and messages are checked.
+  const stripComments = (source: string) =>
+    source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+
+  it("has no src/content/placeholders/ and no banner component", () => {
+    expect(existsSync(path.join(SRC, "content", "placeholders"))).toBe(false);
+    const banners = listFiles(SRC)
+      .map(relative)
+      .filter((file) => /mockup-?banner/i.test(path.basename(file)));
+    expect(banners).toEqual([]);
+  });
+
+  it("never names the module, the constant or the banner in code", () => {
+    const names =
+      /\bIS_MOCKUP\b|\bMockupBanner\b|getPlaceholderContent|content\/placeholders/;
+    const hits = CODE_FILES.filter((file) =>
+      names.test(stripComments(readFileSync(file, "utf8"))),
+    ).map(relative);
+    expect(hits).toEqual([]);
+  });
+
+  it("carries none of the former fictitious values (CA15)", () => {
+    const fictitiousValues = [
+      "contact@influx.example",
+      "Lysmouré",
+      "Kaffrune",
+      "Ondarive",
+      "Bolbruyère",
+      "Clavembre",
+      "Cousevaine",
+      "Pédalune",
+      "Aurifane",
+      "Crêtenval",
+      "Vuescarde",
+      "Fjelmora",
+      "Flammoisy",
+      "Croquembel",
+      "Semavrille",
+      "Infuvelle",
+      "contenus fictifs",
+      "fictitious content",
+      "rien n’a été envoyé",
+      "nothing was sent",
+      "Votre univers cuisine",
+      "Your cooking content",
+      "Donnée fictive",
+      "Fictitious figure",
+      "Maquette",
+      "Mockup",
+    ];
+    const leaks = CODE_FILES.flatMap((file) => {
+      const content = stripComments(readFileSync(file, "utf8"));
+      return fictitiousValues
+        .filter((value) => content.includes(value))
+        .map((value) => `${relative(file)}: ${value}`);
+    });
+    expect(leaks).toEqual([]);
   });
 });
 
@@ -228,51 +318,6 @@ describe("Additional guards", () => {
     expect(findNetworkOrStorageUse(codeFiles, WEB_ROOT)).toEqual([]);
   });
 
-  it("keeps fictitious values inside src/content/placeholders only (CA15)", () => {
-    const outside = listFiles(SRC).filter(
-      (file) =>
-        !file.startsWith(PLACEHOLDERS_DIR) && /\.(ts|tsx|json|css)$/.test(file),
-    );
-    const fictitiousValues = [
-      "contact@influx.example",
-      "Lysmouré",
-      "Kaffrune",
-      "Ondarive",
-      "Bolbruyère",
-      "Clavembre",
-      "Cousevaine",
-      "Pédalune",
-      "Aurifane",
-      "Crêtenval",
-      "Vuescarde",
-      "Fjelmora",
-      "Flammoisy",
-      "Croquembel",
-      "Semavrille",
-      "Infuvelle",
-      "contenus fictifs",
-      "fictitious content",
-      "rien n’a été envoyé",
-      "nothing was sent",
-      "Votre univers cuisine",
-      "Your cooking content",
-      "Donnée fictive",
-      "Fictitious figure",
-    ];
-    // Comments may name the fictitious module: only code and messages are checked.
-    const stripComments = (source: string) =>
-      source
-        .replace(/\/\*[\s\S]*?\*\//g, "")
-        .replace(/(^|[^:])\/\/.*$/gm, "$1");
-    const leaks = outside.flatMap((file) => {
-      const content = stripComments(readFileSync(file, "utf8"));
-      return fictitiousValues
-        .filter((value) => content.includes(value))
-        .map((value) => `${relative(file)}: ${value}`);
-    });
-    expect(leaks).toEqual([]);
-  });
-
   it("gives the CreatorCard type no identity field (D16, CA17)", () => {
     const source = readFileSync(
       path.join(SRC, "content", "landing-content.ts"),
@@ -294,22 +339,6 @@ describe("Additional guards", () => {
         "verified",
       ].sort(),
     );
-  });
-
-  it("imports the fictitious module only from the locale layout and page (CA15)", () => {
-    const importers = listFiles(SRC)
-      .filter(
-        (file) => !file.startsWith(PLACEHOLDERS_DIR) && /\.tsx?$/.test(file),
-      )
-      .filter((file) =>
-        /from "[^"]*placeholders[^"]*"/.test(readFileSync(file, "utf8")),
-      )
-      .map(relative)
-      .sort();
-    expect(importers).toEqual([
-      "src/app/[locale]/layout.tsx",
-      "src/app/[locale]/page.tsx",
-    ]);
   });
 });
 

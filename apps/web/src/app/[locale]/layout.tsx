@@ -3,8 +3,6 @@ import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { CookieBanner } from "@/components/landing/CookieBanner";
-import { MockupBanner } from "@/components/landing/MockupBanner";
-import { getPlaceholderContent, IS_MOCKUP } from "@/content/placeholders";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
 
@@ -31,8 +29,8 @@ export async function generateMetadata({
   return {
     title: t("title"),
     description: t("description"),
-    // CA13: the mockup must never be indexed. Produces <meta name="robots" content="noindex, nofollow">.
-    robots: IS_MOCKUP ? { index: false, follow: false } : undefined,
+    // No robots tag: indexing is a matter of environment, `X-Robots-Tag` outside production
+    // (securityHeadersFor in next.config.ts, 18 §5 G6 b).
   };
 }
 
@@ -45,19 +43,11 @@ export default async function LocaleLayout({
     notFound();
   }
   setRequestLocale(locale);
-  const { mockupBanner } = getPlaceholderContent(locale);
   const t = await getTranslations("landing.cookieBanner");
 
   return (
     <html lang={locale}>
       <body className="bg-surface-page font-base text-md text-text-primary">
-        {IS_MOCKUP ? (
-          <MockupBanner
-            regionLabel={mockupBanner.regionLabel}
-            label={mockupBanner.label}
-            detail={mockupBanner.detail}
-          />
-        ) : null}
         {/* Early in the DOM, before the header (11 §4.2): a keyboard user settles it on first Tab. */}
         <CookieBanner
           regionLabel={t("regionLabel")}

@@ -72,6 +72,16 @@ function languageNamedPaths(paths: readonly string[]): string[] {
   );
 }
 
+// G1 tightened at J9 commit 5 (18 §5 G1): the back office has no legal or contact page, so no
+// mailto: or tel: link anywhere, without an allowlist.
+describe("G1: no mailto or tel link (18 §5 G1)", () => {
+  it("finds no mailto: or tel:", () => {
+    expect(
+      findMatches(/mailto:|\btel:/, SOURCE_FILES, BACKOFFICE_ROOT),
+    ).toEqual([]);
+  });
+});
+
 describe("G3: no hard-coded color or length outside the token file (CA22)", () => {
   const files = SOURCE_FILES.filter((file) => relative(file) !== TOKENS);
 

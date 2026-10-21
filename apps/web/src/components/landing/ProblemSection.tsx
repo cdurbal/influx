@@ -1,24 +1,16 @@
-import { getTranslations } from "next-intl/server";
-import { Button } from "@/components/ui/Button";
-import { cn } from "@/components/ui/class-names";
+import { getLocale, getTranslations } from "next-intl/server";
 import {
   ClockIcon,
-  FileCheckIcon,
   FileQuestionIcon,
   LockIcon,
   RepeatIcon,
 } from "@/components/ui/icons";
+import { LinkButton } from "@/components/ui/LinkButton";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
 import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import type {
-  ConversationAuthor,
-  ProblemContent,
-} from "@/content/landing-content";
-
-type ProblemSectionProps = {
-  content: ProblemContent;
-};
+import { landingPhoto } from "@/content/landing-images";
+import { memberPageHref } from "@/lib/member-paths";
 
 const PAIN_POINTS = [
   { id: "search", Icon: ClockIcon },
@@ -26,37 +18,14 @@ const PAIN_POINTS = [
   { id: "contract", Icon: FileQuestionIcon },
 ] as const;
 
-// Three participants (A3): the written role carries the author, alignment and color only double it.
-const AUTHORS = {
-  advertiser: {
-    roleKey: "advertiserRole",
-    alignClassName: "items-start text-left",
-    bubbleClassName: "bg-surface-muted",
-  },
-  creator: {
-    roleKey: "creatorRole",
-    alignClassName: "items-end text-right",
-    bubbleClassName: "bg-brand-subtle-bg",
-  },
-  agent: {
-    roleKey: "agentRole",
-    alignClassName: "items-center text-center",
-    bubbleClassName:
-      "border-(length:--border-width-thin) border-brand-subtle-border bg-surface-raised",
-  },
-} as const satisfies Record<
-  ConversationAuthor,
-  { roleKey: string; alignClassName: string; bubbleClassName: string }
->;
-
 /**
- * Section 7 (02 §3.9): the prospecting pain, then an HTML/CSS mock of the three-way INFLUX
- * conversation (brand, creator, INFLUX account manager). Roles instead of names, no contact
- * details (CA18). The author is carried by the written role and the alignment; bubble colors only
- * double it.
+ * Section 7 (02 §3.9): the prospecting pain, the three-way INFLUX conversation in one sentence,
+ * then the brand door, beside the section photo. The mock conversation was fictitious content:
+ * it left with the module (J9 commit 5, 01 §6.1).
  */
-export async function ProblemSection({ content }: ProblemSectionProps) {
+export async function ProblemSection() {
   const t = await getTranslations("landing");
+  const locale = await getLocale();
 
   return (
     <section aria-labelledby="problem-title" className="bg-surface-page">
@@ -82,70 +51,31 @@ export async function ProblemSection({ content }: ProblemSectionProps) {
               </li>
             ))}
           </ul>
-        </div>
-
-        <div className="flex flex-col gap-3 lg:col-span-7 lg:col-start-6 lg:row-span-2 lg:row-start-1">
-          <figure className="relative flex flex-col gap-3">
-            <ResponsiveImage
-              image={content.image}
-              sizes="sideDecoration"
-              className="hidden aspect-4/5 w-9/12 self-end rounded-lg lg:block"
+          <p className="flex items-start gap-3 text-md text-text-secondary">
+            <LockIcon
+              aria-hidden="true"
+              className="mt-1 size-(--size-icon-md) shrink-0"
             />
-            <div className="z-(--z-raised) flex flex-col rounded-xl border-(length:--border-width-thin) border-border-default bg-metal-card shadow-metal-card lg:absolute lg:top-1/2 lg:left-0 lg:w-8/12 lg:-translate-y-1/2">
-              <p className="flex items-center gap-2 border-b-(length:--border-width-thin) border-border-subtle px-inset-card py-4 font-semibold text-text-primary">
-                <LockIcon
-                  aria-hidden="true"
-                  className="size-(--size-icon-md) shrink-0"
-                />
-                {t("problem.conversation.frameTitle")}
-              </p>
-              <ol className="flex flex-col gap-4 px-inset-card py-5">
-                {content.messages.map((message) => {
-                  const author = AUTHORS[message.author];
-                  return (
-                    <li
-                      key={message.id}
-                      className={cn(
-                        "flex flex-col gap-1",
-                        author.alignClassName,
-                      )}
-                    >
-                      <span className="text-sm text-text-tertiary">
-                        {t(`problem.conversation.${author.roleKey}`)}
-                      </span>
-                      <span
-                        className={cn(
-                          "w-10/12 rounded-md px-4 py-3 text-left text-md text-text-primary",
-                          author.bubbleClassName,
-                        )}
-                      >
-                        {message.text}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ol>
-              <p className="flex items-center justify-center gap-2 border-t-(length:--border-width-thin) border-border-subtle px-inset-card py-4 text-sm text-text-tertiary">
-                <FileCheckIcon
-                  aria-hidden="true"
-                  className="size-(--size-icon-sm) shrink-0"
-                />
-                {t("problem.conversation.systemEvent")}
-              </p>
-            </div>
-            <figcaption className="text-sm text-text-secondary lg:w-9/12 lg:self-end">
-              {t("problem.conversation.caption")}
-            </figcaption>
-          </figure>
-          <p className="text-sm text-text-tertiary lg:w-9/12 lg:self-end">
-            {content.sourceNote}
+            {t("problem.privacyNote")}
           </p>
         </div>
 
+        <div className="lg:col-span-7 lg:col-start-6 lg:row-span-2 lg:row-start-1">
+          <ResponsiveImage
+            image={landingPhoto("problem01")}
+            sizes="sideDecoration"
+            className="hidden aspect-4/5 w-9/12 rounded-lg lg:ml-auto lg:block"
+          />
+        </div>
+
         <div className="lg:col-span-5 lg:row-start-2 lg:self-start">
-          <Button variant="primary" className="w-full sm:w-auto">
+          <LinkButton
+            href={memberPageHref("signupAdvertiser", locale)}
+            variant="primary"
+            className="w-full sm:w-auto"
+          >
             {t("common.cta.advertiser")}
-          </Button>
+          </LinkButton>
         </div>
       </div>
     </section>

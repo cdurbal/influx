@@ -13,7 +13,10 @@ type SiteHeaderMobileMenuProps = {
   navLabel: string;
   navItems: readonly HeaderNavItem[];
   loginCta: string;
+  /** Localized paths, without the locale prefix (memberPageHref): the client gets no path table. */
+  loginHref: string;
   signupCta: string;
+  signupHref: string;
 };
 
 const PANEL_ID = "site-header-mobile-menu";
@@ -21,14 +24,16 @@ const PANEL_ID = "site-header-mobile-menu";
 /**
  * Mobile menu below breakpoint lg (02 §3.2). Opening moves focus to the first entry, makes main
  * and footer inert and locks page scroll; Escape, the close button or a click on the scrim close
- * it and return focus to the menu button. Entries and CTAs have no effect (CA7).
+ * it and return focus to the menu button. The two CTAs lead to the real sign-up and sign-in.
  */
 export function SiteHeaderMobileMenu({
   menuButtonLabel,
   navLabel,
   navItems,
   loginCta,
+  loginHref,
   signupCta,
+  signupHref,
 }: SiteHeaderMobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -135,10 +140,10 @@ export function SiteHeaderMobileMenu({
           </ul>
         </nav>
         <div className="mt-4 flex flex-col gap-stack-sm border-t-(length:--border-width-thin) border-border-subtle pt-4">
-          <LinkButton href="/signup" variant="primary" size="lg" fullWidth>
+          <LinkButton href={signupHref} variant="primary" size="lg" fullWidth>
             {signupCta}
           </LinkButton>
-          <LinkButton href="/login" variant="secondary" size="lg" fullWidth>
+          <LinkButton href={loginHref} variant="secondary" size="lg" fullWidth>
             {loginCta}
           </LinkButton>
         </div>

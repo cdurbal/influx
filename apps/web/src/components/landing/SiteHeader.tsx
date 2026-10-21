@@ -2,6 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/Button";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { LinkButton } from "@/components/ui/LinkButton";
+import { memberPageHref } from "@/lib/member-paths";
 import {
   SiteHeaderMobileMenu,
   type HeaderNavItem,
@@ -40,12 +41,20 @@ export async function SiteHeader() {
 
         <div className="ml-auto flex items-center gap-3">
           <div className="hidden lg:block">
-            <LinkButton href="/signup" variant="primary" size="md">
+            <LinkButton
+              href={memberPageHref("signupDoors", locale)}
+              variant="primary"
+              size="md"
+            >
               {t("common.cta.signup")}
             </LinkButton>
           </div>
           <div className="hidden lg:block">
-            <LinkButton href="/login" variant="text" size="md">
+            <LinkButton
+              href={memberPageHref("signIn", locale)}
+              variant="text"
+              size="md"
+            >
               {t("common.cta.login")}
             </LinkButton>
           </div>
@@ -70,7 +79,9 @@ export async function SiteHeader() {
             navLabel={t("header.navLabel")}
             navItems={navItems}
             loginCta={t("common.cta.login")}
+            loginHref={memberPageHref("signIn", locale)}
             signupCta={t("common.cta.signup")}
+            signupHref={memberPageHref("signupDoors", locale)}
           />
         </div>
       </div>

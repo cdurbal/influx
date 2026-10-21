@@ -3,11 +3,7 @@ import { Accordion, type AccordionItem } from "@/components/ui/Accordion";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
 import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import type { LandingImage } from "@/content/landing-content";
-
-type MethodSectionProps = {
-  image: LandingImage;
-};
+import { landingPhoto } from "@/content/landing-images";
 
 // Brokered MVP path (D45, D46, A1): contract and payment happen outside the platform.
 const STEP_IDS = [
@@ -20,7 +16,7 @@ const STEP_IDS = [
 ] as const;
 
 /** Section 8 (02 §3.10): the real MVP path in six steps, first step open on load. */
-export async function MethodSection({ image }: MethodSectionProps) {
+export async function MethodSection() {
   const t = await getTranslations("landing.method");
   const items: AccordionItem[] = STEP_IDS.map((id) => ({
     id,
@@ -41,7 +37,7 @@ export async function MethodSection({ image }: MethodSectionProps) {
         <div className="lg:col-span-5 lg:col-start-8 lg:row-span-2 lg:row-start-1">
           <div className="lg:sticky lg:top-(--sticky-top-offset)">
             <ResponsiveImage
-              image={image}
+              image={landingPhoto("method01")}
               sizes="sideDecoration"
               className="aspect-16/9 w-full rounded-lg lg:aspect-4/5"
             />
