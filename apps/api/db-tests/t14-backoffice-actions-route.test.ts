@@ -458,6 +458,31 @@ describe("POST /v1/bo/leads/replays (05 RG101 to RG103, CA58 to CA61)", () => {
     });
   });
 
+  it("CA82, RG161: a configuration failure is replayable, same line, same key, reason configuration_fixed", async () => {
+    const member = await newMember("creator", { owner: agent.accountId });
+    await queueLines(member.accountId, {
+      destination: "brevo_contact",
+      status: "failed",
+      errorCode: "list_not_configured",
+    });
+    const [before] = await linesOf(member.accountId);
+    const response = await call(
+      app(),
+      "POST",
+      "/v1/bo/leads/replays",
+      agent.session,
+      {
+        items: [{ accountId: member.accountId, destination: "brevo" }],
+        reasonCode: "configuration_fixed",
+      },
+    );
+    expect(response.statusCode).toBe(200);
+    expect(response.json<{ requeued: number }>().requeued).toBe(1);
+    const [after] = await linesOf(member.accountId);
+    expect(after).toMatchObject({ status: "pending", attempts: 0 });
+    expect(after?.idempotency_key).toBe(before?.idempotency_key);
+  });
+
   it("CA60: a contact skipped for want of consent is refused, never replayed, nothing journaled", async () => {
     const member = await newMember("creator");
     await queueLines(member.accountId, {
@@ -1077,6 +1102,7 @@ describe("GET /v1/bo/alerts (05 RG104, CA62; 15 §F)", () => {
       code: string;
       cause: string;
       destination: string | null;
+      setting?: string | null;
       count: number;
     }[];
   };
@@ -1103,6 +1129,27 @@ describe("GET /v1/bo/alerts (05 RG104, CA62; 15 §F)", () => {
     const alert = find(body, "AL25", "apollo");
     expect(alert?.cause).toBe("access_key_refused");
     expect(alert?.count).toBeGreaterThanOrEqual(3);
+  });
+
+  it("CA82, RG160: a missing list raises AL25 at once, naming the setting of the role, never a value", async () => {
+    const member = await newMember("creator");
+    await queueLines(member.accountId, {
+      destination: "brevo_contact",
+      status: "failed",
+      errorCode: "list_not_configured",
+    });
+    const body = (
+      await call(app(), "GET", "/v1/bo/alerts", adminA.session)
+    ).json<Alerts>();
+    const alert = body.alerts.find(
+      (candidate) =>
+        candidate.code === "AL25" &&
+        candidate.cause === "configuration_missing" &&
+        candidate.destination === "brevo",
+    );
+    expect(alert).toMatchObject({ setting: "brevo_list_creators" });
+    expect(alert?.count).toBeGreaterThanOrEqual(1);
+    expect(JSON.stringify(body)).not.toMatch(/brevo_list_ids/);
   });
 
   it("AL24: failures past the delay of their queue, the agent's own accounts only, the admin all of them", async () => {

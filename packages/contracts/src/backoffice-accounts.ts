@@ -119,10 +119,26 @@ export const SYNC_CAUSES = [
 export const syncCauseSchema = z.enum(SYNC_CAUSES);
 export type SyncCause = z.infer<typeof syncCauseSchema>;
 
+/**
+ * 05 RG160 point 4, RG164: the setting a configuration failure names, a closed list of names and
+ * never a value. The screen words it ("liste Brevo des créateurs").
+ */
+export const SYNC_SETTINGS = [
+  "brevo_list_advertisers",
+  "brevo_list_creators",
+  "brevo_template",
+  "apollo_settings",
+  "apollo_credentials",
+] as const;
+export const syncSettingSchema = z.enum(SYNC_SETTINGS);
+export type SyncSetting = z.infer<typeof syncSettingSchema>;
+
 export const syncStatusSchema = z.strictObject({
   state: syncStateSchema,
   nature: syncNatureSchema,
   cause: syncCauseSchema,
+  /** Set only for the cause configuration_missing (RG160): the setting at fault, never its value. */
+  setting: syncSettingSchema.nullable(),
   /** RG99 "nouvelle tentative prévue à HH:MM": set for a pending line that already failed once. */
   retryAt: z.iso.datetime().nullable(),
   lastAttemptAt: z.iso.datetime().nullable(),

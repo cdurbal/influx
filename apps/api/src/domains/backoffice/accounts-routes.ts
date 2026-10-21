@@ -142,7 +142,10 @@ function rowOf(row: MemberAccountRow): AccountRow {
               AccountRow["consent"]
             >["source"],
           },
-    sync: { brevo: syncStatusOf(row.brevo), apollo: syncStatusOf(row.apollo) },
+    sync: {
+      brevo: syncStatusOf(row.brevo, row.role),
+      apollo: syncStatusOf(row.apollo, row.role),
+    },
     owner: row.owner,
     lastSeenAt: row.lastSeenAt,
   };

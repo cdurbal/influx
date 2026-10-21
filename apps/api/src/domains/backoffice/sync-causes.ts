@@ -6,6 +6,7 @@
 import type {
   SyncCause,
   SyncNature,
+  SyncSetting,
   SyncState,
   SyncStatus,
 } from "@influx/contracts/backoffice-accounts";
@@ -25,10 +26,33 @@ const SKIP_CAUSES: Readonly<Record<string, SyncCause>> = {
   role_out_of_scope: "account_not_active",
   skipped_non_production: "non_production",
   skipped_no_credentials: "non_production",
-  apollo_settings_invalid: "configuration_missing",
-  list_not_configured: "configuration_missing",
-  template_not_configured: "configuration_missing",
 };
+
+/**
+ * 05 RG160: what an INFLUX setting lacks is an incident, never a normal case. The code of the line
+ * names the setting (RG164); a Brevo list is that of the role of the account. Never a value.
+ */
+function configurationSetting(
+  code: string,
+  role: MemberRole,
+): SyncSetting | null {
+  switch (code) {
+    case "list_not_configured":
+      return role === "advertiser"
+        ? "brevo_list_advertisers"
+        : "brevo_list_creators";
+    case "template_not_configured":
+      return "brevo_template";
+    case "apollo_settings_invalid":
+      return "apollo_settings";
+    case "credentials_missing":
+      return "apollo_credentials";
+    default:
+      return null;
+  }
+}
+
+export type MemberRole = "advertiser" | "creator";
 
 /** Error codes, without their provider prefix (`brevo.rejected` ⇒ `rejected`). */
 const ERROR_CAUSES: Readonly<Record<string, SyncCause>> = {
@@ -46,6 +70,9 @@ const ERROR_CAUSES: Readonly<Record<string, SyncCause>> = {
 function errorCause(code: string | null): SyncCause {
   if (code === null) {
     return "other_failure";
+  }
+  if (configurationSetting(code, "creator") !== null) {
+    return "configuration_missing";
   }
   const bare = code.replace(/^(?:brevo|apollo)\./, "");
   return ERROR_CAUSES[bare] ?? "other_failure";
@@ -84,9 +111,14 @@ export function syncStateOf(raw: RawSyncState): SyncState {
 }
 
 /** RG99, RG100: the state, the nature and the cause in clear of one destination. */
-export function syncStatusOf(raw: RawSyncState): SyncStatus {
+export function syncStatusOf(raw: RawSyncState, role: MemberRole): SyncStatus {
   const state = syncStateOf(raw);
-  const base = { state, retryAt: null, lastAttemptAt: raw.lastAttemptAt };
+  const base = {
+    state,
+    retryAt: null,
+    setting: null,
+    lastAttemptAt: raw.lastAttemptAt,
+  };
   switch (state) {
     case "synced":
       return { ...base, nature: "success", cause: "synced" };
@@ -104,7 +136,18 @@ export function syncStatusOf(raw: RawSyncState): SyncStatus {
           }
         : { ...base, nature: "in_progress", cause: "waiting" };
     }
-    case "skipped":
+    case "skipped": {
+      // a configuration skip (before 0146 reclassified them) is still an incident, never normal
+      const setting =
+        raw.lastCode === null ? null : configurationSetting(raw.lastCode, role);
+      if (setting !== null) {
+        return {
+          ...base,
+          nature: "incident",
+          cause: "configuration_missing",
+          setting,
+        };
+      }
       return {
         ...base,
         nature: "normal_case",
@@ -112,11 +155,18 @@ export function syncStatusOf(raw: RawSyncState): SyncStatus {
           (raw.lastCode === null ? undefined : SKIP_CAUSES[raw.lastCode]) ??
           "other_normal_case",
       };
+    }
     case "failed": {
       const cause = errorCause(raw.lastCode);
       const nature: SyncNature =
-        cause === "access_key_refused" ? "incident" : "failure";
-      return { ...base, nature, cause };
+        cause === "access_key_refused" || cause === "configuration_missing"
+          ? "incident"
+          : "failure";
+      const setting =
+        cause === "configuration_missing" && raw.lastCode !== null
+          ? configurationSetting(raw.lastCode, role)
+          : null;
+      return { ...base, nature, cause, setting };
     }
   }
 }

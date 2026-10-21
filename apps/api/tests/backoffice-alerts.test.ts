@@ -6,6 +6,7 @@ import {
   businessCutoff,
   businessHoursOf,
   delayAlerts,
+  configurationAlerts,
   destinationAlerts,
   failureAlerts,
   reconciliationAlerts,
@@ -102,6 +103,7 @@ describe("AL25: a destination down, a quota, a refused key (05 RG104, CA62)", ()
         code: "AL25",
         cause: "access_key_refused",
         destination: "brevo",
+        setting: null,
         count: 3,
         since: "2026-10-15T09:00:00.000Z",
       },
@@ -121,6 +123,7 @@ describe("AL25: a destination down, a quota, a refused key (05 RG104, CA62)", ()
         code: "AL25",
         cause: "destination_down",
         destination: "apollo",
+        setting: null,
         count: 3,
         since: "2026-10-15T08:40:00.000Z",
       },
@@ -156,6 +159,7 @@ describe("AL24, AL26, AL27 (05 RG79, RG90, RG91, RG104)", () => {
         code: "AL24",
         cause: "failures_past_delay",
         destination: "brevo",
+        setting: null,
         count: 2,
         since: "2026-10-12T10:00:00.000Z",
       },
@@ -182,6 +186,7 @@ describe("AL24, AL26, AL27 (05 RG79, RG90, RG91, RG104)", () => {
         code: "AL26",
         cause: "queue_late",
         destination: "apollo",
+        setting: null,
         count: 1,
         since: "2026-10-13T10:00:00.000Z",
       },
@@ -213,6 +218,7 @@ describe("AL24, AL26, AL27 (05 RG79, RG90, RG91, RG104)", () => {
         code: "AL27",
         cause: "unsubscribe_gap",
         destination: null,
+        setting: null,
         count: 2,
         since: "2026-10-15T03:05:00.000Z",
       },
@@ -233,5 +239,44 @@ describe("AL24, AL26, AL27 (05 RG79, RG90, RG91, RG104)", () => {
     ).toBe(15);
     expect(thresholdCodes({ codes: ["a", 1] }, "codes", ["b"])).toEqual(["b"]);
     expect(thresholdCodes({ codes: ["a"] }, "codes", ["b"])).toEqual(["a"]);
+  });
+});
+
+describe("AL25: a configuration failure, from the first line (05 RG160, CA82)", () => {
+  it("names the setting at fault, one alert per setting, never a value", () => {
+    expect(
+      configurationAlerts([
+        {
+          destination: "brevo_contact",
+          setting: "brevo_list_creators",
+          count: 2,
+          oldestAt: "2026-10-17T08:00:00.000Z",
+        },
+        {
+          destination: "apollo_contact",
+          setting: "apollo_credentials",
+          count: 1,
+          oldestAt: "2026-10-17T09:00:00.000Z",
+        },
+      ]),
+    ).toEqual([
+      {
+        code: "AL25",
+        cause: "configuration_missing",
+        destination: "brevo",
+        setting: "brevo_list_creators",
+        count: 2,
+        since: "2026-10-17T08:00:00.000Z",
+      },
+      {
+        code: "AL25",
+        cause: "configuration_missing",
+        destination: "apollo",
+        setting: "apollo_credentials",
+        count: 1,
+        since: "2026-10-17T09:00:00.000Z",
+      },
+    ]);
+    expect(configurationAlerts([])).toEqual([]);
   });
 });

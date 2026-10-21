@@ -119,14 +119,20 @@ function Alerts({ data }: { data: AlertsResponse }) {
         const words = t.cause[alert.cause];
         return (
           <li
-            key={`${alert.code}-${alert.cause}-${alert.destination ?? ""}`}
+            key={`${alert.code}-${alert.cause}-${alert.destination ?? ""}-${alert.setting ?? ""}`}
             className={WARNING_CLASSES}
           >
             {t.line(
               alert.code,
               words === undefined
                 ? alert.cause
-                : words(destination, alert.count),
+                : words(
+                    destination,
+                    alert.count,
+                    alert.setting === null
+                      ? undefined
+                      : messages.syncSetting[alert.setting],
+                  ),
               alert.since === null ? null : formatDateTime(alert.since),
             )}
           </li>

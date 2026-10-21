@@ -77,6 +77,7 @@ import {
   alertDefinitions,
   correctMemberAccount,
   databaseNow,
+  configurationFailures,
   destinationHealth,
   failuresPastDelay,
   lastBrevoReconciliation,
@@ -98,6 +99,7 @@ import {
   businessCutoff,
   businessHoursOf,
   delayAlerts,
+  configurationAlerts,
   destinationAlerts,
   failureAlerts,
   reconciliationAlerts,
@@ -433,6 +435,9 @@ async function evaluateAlerts(
         }),
       ),
     );
+  }
+  if (visible("AL25")) {
+    alerts.push(...configurationAlerts(await configurationFailures(tx)));
   }
   if (visible("AL26")) {
     const threshold = definitions.get("AL26")?.threshold;

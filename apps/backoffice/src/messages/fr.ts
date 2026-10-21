@@ -203,7 +203,7 @@ export const messages = {
     company_not_identified: "Entreprise non identifiée",
     account_not_active: "Compte inactif",
     non_production: "Environnement de test : aucun envoi réel",
-    configuration_missing: "Réglage manquant",
+    configuration_missing: "Incident : réglage manquant",
     other_normal_case: "Autre cas normal",
     address_refused: "Adresse refusée par le service",
     quota_exceeded: "Quota journalier dépassé",
@@ -213,6 +213,17 @@ export const messages = {
     other_failure: "Autre échec",
     access_key_refused: "Clé d’accès refusée par le service",
   },
+  /** 05 RG160 point 4, RG164: the setting at fault is named, never its value. */
+  syncSetting: {
+    brevo_list_advertisers: "liste Brevo des annonceurs",
+    brevo_list_creators: "liste Brevo des créateurs",
+    brevo_template: "modèle d’e-mail Brevo",
+    apollo_settings: "réglages Apollo",
+    apollo_credentials: "clé d’accès Apollo",
+  },
+  /** The cause with its setting: « Incident : réglage manquant — liste Brevo des créateurs ». */
+  syncCauseWithSetting: (cause: string, setting: string) =>
+    `${cause} — ${setting}`,
   consentSource: {
     signup_form: "inscription",
     account_settings: "mon compte",
@@ -308,6 +319,12 @@ export const messages = {
   /** 05 RG104, CA62; 15 §F: an alert says what, how many and since when (never the colour alone). */
   alert: {
     cause: {
+      configuration_missing: (
+        destination: string,
+        count: number,
+        setting?: string,
+      ) =>
+        `Réglage manquant : ${setting ?? "inconnu"}. ${count} envoi${count > 1 ? "s" : ""} ${destination} en échec. Renseignez le réglage : les envois repartent seuls en moins de 15 minutes, ou rejouez-les.`,
       failures_past_delay: (destination: string, count: number) =>
         `${count} échec${count > 1 ? "s" : ""} ${destination} attend${count > 1 ? "ent" : ""} au-delà du délai de la file.`,
       access_key_refused: (destination: string, count: number) =>
@@ -322,7 +339,10 @@ export const messages = {
         `Le dernier rapprochement Brevo a trouvé ${count} désinscription${count > 1 ? "s" : ""} non reçue${count > 1 ? "s" : ""} par le webhook.`,
       reconciliation_failed: () => "Le dernier rapprochement Brevo a échoué.",
     } as Readonly<
-      Record<string, (destination: string, count: number) => string>
+      Record<
+        string,
+        (destination: string, count: number, setting?: string) => string
+      >
     >,
     line: (code: string, text: string, since: string | null) =>
       `Alerte ${code} — ${text}${since === null ? "" : ` (depuis le ${since})`}`,

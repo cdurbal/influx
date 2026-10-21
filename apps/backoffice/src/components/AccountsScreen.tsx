@@ -101,7 +101,12 @@ function SyncCell({
         {messages.syncState[status.state]}
       </span>
       <span className="block text-text-secondary">
-        {messages.syncCause[status.cause]}
+        {status.setting === null
+          ? messages.syncCause[status.cause]
+          : messages.syncCauseWithSetting(
+              messages.syncCause[status.cause],
+              messages.syncSetting[status.setting],
+            )}
       </span>
     </>
   );

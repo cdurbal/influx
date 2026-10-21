@@ -15,7 +15,10 @@
 // - Weekly review of the degraded confirmations (PD6, J8S-1): admin only.
 // Every reason is a closed list (backoffice-ops rule 10); the free comment is a complement only.
 import * as z from "zod";
-import { syncDestinationSchema } from "./backoffice-accounts.ts";
+import {
+  syncDestinationSchema,
+  syncSettingSchema,
+} from "./backoffice-accounts.ts";
 import { INTERNAL_INVITATION_REASONS } from "./backoffice-invitations.ts";
 import { uiLocaleSchema } from "./auth.ts";
 import { countryCodeSchema, declaredStatusSchema } from "./signup.ts";
@@ -517,6 +520,7 @@ export const ALERT_CAUSES = [
   "access_key_refused",
   "quota_exceeded",
   "destination_down",
+  "configuration_missing",
   // AL26
   "queue_late",
   // AL27
@@ -529,6 +533,8 @@ export const alertSchema = z.strictObject({
   cause: z.enum(ALERT_CAUSES),
   /** The destination concerned; null for AL27 (Brevo reconciliation, said by its code). */
   destination: syncDestinationSchema.nullable(),
+  /** AL25 configuration_missing only (RG160): the setting at fault, by name, never its value. */
+  setting: syncSettingSchema.nullable(),
   /**
    * CA62 "le nombre de lignes en attente": AL25 the lines waiting for the destination, AL24 the
    * failures past the delay, AL26 the lines late, AL27 the gap of the last reconciliation.

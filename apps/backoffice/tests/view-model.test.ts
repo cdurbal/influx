@@ -20,6 +20,7 @@ const SYNCED = {
   state: "synced",
   nature: "success",
   cause: "synced",
+  setting: null,
   retryAt: null,
   lastAttemptAt: null,
 } as const;

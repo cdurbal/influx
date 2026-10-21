@@ -10,6 +10,7 @@ import type {
   INVITATION_REVOKE_REASONS,
 } from "@influx/contracts/backoffice-invitations";
 import type { StoredApolloSetting } from "./apollo-settings.ts";
+import type { SyncSetting } from "@influx/contracts/backoffice-accounts";
 import type { RawSyncState } from "./sync-causes.ts";
 
 const ISO_UTC = 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"';
@@ -1479,6 +1480,56 @@ export async function destinationHealth(
     keyRefused: row.key_refused,
     oldestKeyRefusedAt: row.oldest_key_refused_at,
     recentSuccess: row.recent_success,
+  }));
+}
+
+/** AL25 (05 RG160): the failed configuration lines of one destination, by the setting at fault. */
+export type ConfigurationFailureRow = {
+  destination: ContactDestination;
+  setting: SyncSetting;
+  count: number;
+  oldestAt: string | null;
+};
+
+/**
+ * The contact lines in failure of configuration (list_not_configured, apollo_settings_invalid,
+ * credentials_missing; no template is read since D69), grouped by the setting they name. A Brevo list is
+ * that of the role of the account of the line. Only names leave: never a value (RG160 point 4).
+ */
+export async function configurationFailures(
+  tx: Transaction,
+): Promise<ConfigurationFailureRow[]> {
+  const rows = await tx.execute<{
+    destination: ContactDestination;
+    setting: SyncSetting;
+    count: number;
+    oldest_at: string | null;
+  }>(sql`
+    select destination, setting, count(*)::integer as count,
+           to_char(min(updated_at) at time zone 'UTC', ${ISO_UTC}) as oldest_at
+      from (select o.destination::text as destination, o.updated_at,
+                   case o.last_error_code
+                     when 'list_not_configured' then
+                       case when r.role = 'advertiser' then 'brevo_list_advertisers'
+                            else 'brevo_list_creators' end
+                     when 'apollo_settings_invalid' then 'apollo_settings'
+                     else 'apollo_credentials' end as setting
+              from leads.outbox_events o
+              left join identity.account_roles r
+                on o.subject_key ~ '^account:[0-9a-f-]{36}$'
+               and r.account_id = substring(o.subject_key from 9)::uuid
+               and r.role in ('advertiser', 'creator')
+             where o.status = 'failed'
+               and o.destination in ('brevo_contact', 'apollo_contact')
+               and o.last_error_code in ('list_not_configured', 'apollo_settings_invalid',
+                                         'credentials_missing')) f
+     group by destination, setting
+     order by destination, setting`);
+  return rows.map((row) => ({
+    destination: row.destination,
+    setting: row.setting,
+    count: row.count,
+    oldestAt: row.oldest_at,
   }));
 }
 

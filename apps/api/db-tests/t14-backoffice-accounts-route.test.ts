@@ -472,6 +472,7 @@ describe("GET /v1/bo/accounts (05 RG97, RG99, RG100; 15 RG34)", () => {
         state: "skipped",
         nature: "normal_case",
         cause: "no_consent",
+        setting: null,
         retryAt: null,
         lastAttemptAt: expect.any(String) as string,
       },
@@ -479,6 +480,7 @@ describe("GET /v1/bo/accounts (05 RG97, RG99, RG100; 15 RG34)", () => {
         state: "failed",
         nature: "incident",
         cause: "access_key_refused",
+        setting: null,
         retryAt: null,
         lastAttemptAt: expect.any(String) as string,
       },
@@ -851,6 +853,34 @@ describe("GET /v1/bo/accounts/counters (05 RG105)", () => {
     ];
     expect(countries.reduce((sum, count) => sum + count, 0)).toBe(
       after.signups.total,
+    );
+  });
+});
+
+describe("GET /v1/bo/accounts/counters, configuration failure (05 RG160 point 2, CA82)", () => {
+  it("a configuration failure is a failure to handle and an eligible line not synced, never a normal case", async () => {
+    const server = app();
+    const read = async () =>
+      (await get(server, "/v1/bo/accounts/counters", agent.session)).json<{
+        brevoWithinHour: { synced: number; eligible: number };
+        unhandledFailures: { brevo: number; apollo: number };
+      }>();
+    const before = await read();
+    const member = await newMember("creator", { country: "TV" });
+    await queueLine(member.accountId, {
+      destination: "brevo_contact",
+      status: "failed",
+      errorCode: "list_not_configured",
+    });
+    const after = await read();
+    expect(after.unhandledFailures.brevo - before.unhandledFailures.brevo).toBe(
+      1,
+    );
+    expect(
+      after.brevoWithinHour.eligible - before.brevoWithinHour.eligible,
+    ).toBe(1);
+    expect(after.brevoWithinHour.synced - before.brevoWithinHour.synced).toBe(
+      0,
     );
   });
 });

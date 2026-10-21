@@ -107,7 +107,14 @@ function SyncBlock({
               <span className="block font-semibold">
                 {messages.syncState[status.state]}
               </span>
-              <span className="block">{messages.syncCause[status.cause]}</span>
+              <span className="block">
+                {status.setting === null
+                  ? messages.syncCause[status.cause]
+                  : messages.syncCauseWithSetting(
+                      messages.syncCause[status.cause],
+                      messages.syncSetting[status.setting],
+                    )}
+              </span>
               {status.lastAttemptAt === null ? null : (
                 <span className="block text-text-secondary">
                   {t.lastAttempt(formatDateTime(status.lastAttemptAt))}
