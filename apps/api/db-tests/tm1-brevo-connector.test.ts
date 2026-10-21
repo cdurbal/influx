@@ -9,9 +9,10 @@
 // the request named by its line (16 RG160, 0128). The connectors alone are in tests/brevo-connector.
 // Accounts and lines are COMMITTED by the migration role (the worker reads in its own
 // transactions); the other pending lines of the stack are held while the worker claims, as in
-// tm1-worker-loop. The settings brevo_list_ids and brevo_template_ids are set for the file and
-// restored after it; since D69 the template ids are written only to prove they are never read:
-// every queue e-mail is written by INFLUX (16 RG67).
+// tm1-worker-loop. The setting brevo_list_ids is set for the file and LEFT in place: since 0145 a
+// Brevo id once set never goes back to null (05 RG163 (1)), and every file that needs list ids sets
+// its own (a replacement). No template id is written (D69: every queue e-mail is written by INFLUX,
+// 16 RG67; the guard of brevo_template_ids is tm1-sync-settings-guard-journal).
 import {
   startBrevoDouble,
   type BrevoDouble,
@@ -50,17 +51,10 @@ const INVALID_PARAMETER = "22023";
 const UNIQUE_VIOLATION = "23505";
 const LEGAL_NAME = "Maison Verbeke-Lambrecht";
 const LISTS = { advertisers: 2, creators: 3 };
-/** D69: left in the settings on purpose, never read. */
-const TEMPLATES = {
-  "account.welcome_advertiser": 11,
-  "account.welcome_creator": 12,
-  "auth.email_changed_notice": 21,
-};
 
 let migration: postgres.Sql;
 let double: BrevoDouble;
 let database: WorkerDatabase;
-let savedSettings: { key: string; value: unknown }[];
 const logs = captureLogStream();
 
 const lines: string[] = [];
@@ -70,15 +64,9 @@ const emails: string[] = [];
 beforeAll(async () => {
   migration = migrationRole();
   double = await startBrevoDouble();
-  savedSettings = await migration<{ key: string; value: unknown }[]>`
-    select key, value from leads.sync_settings
-     where key in ('brevo_list_ids', 'brevo_template_ids')`;
   await migration`
     update leads.sync_settings set value = ${JSON.stringify(LISTS)}::text::jsonb
      where key = 'brevo_list_ids'`;
-  await migration`
-    update leads.sync_settings set value = ${JSON.stringify(TEMPLATES)}::text::jsonb
-     where key = 'brevo_template_ids'`;
   database = createWorkerDatabase(
     {
       worker: {
@@ -95,11 +83,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  for (const { key, value } of savedSettings) {
-    await migration`
-      update leads.sync_settings set value = ${JSON.stringify(value)}::text::jsonb
-       where key = ${key}`;
-  }
+  // brevo_list_ids is left as set: never back to null (05 RG163 (1), 0145)
   await closeDatabase(database);
   await double.close();
 });
@@ -713,7 +697,7 @@ describe("16 RG160, CA117: privacy.request_received, written from the request of
   }
 
   it("an erasure in English, in the account's time zone, without any link nor template; journaled P1", async () => {
-    // no template id for this code (0128): the TEMPLATES of this file never name it
+    // no template id for this code (0128), nor for any other (D69)
     const account = await createAccount({
       role: "creator",
       consent: false,

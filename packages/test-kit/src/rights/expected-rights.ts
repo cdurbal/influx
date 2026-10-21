@@ -1326,6 +1326,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|column|leads.sync_settings.updated_by_account_id|UPDATE",
   "influx_leads_definer|function|leads.apply_brevo_ids_from_environment(jsonb)|EXECUTE",
   "influx_worker|function|leads.apply_brevo_ids_from_environment(jsonb)|EXECUTE",
+  // 0145 (J9 D67-a): the journal trigger of leads.sync_settings, owner's EXECUTE only, no grant
+  "influx_leads_definer|function|leads.journal_sync_setting_change()|EXECUTE",
   "influx_leads_definer|column|leads.transactional_sends.account_id|INSERT,SELECT",
   "influx_leads_definer|column|leads.transactional_sends.email_code|INSERT,SELECT",
   "influx_leads_definer|column|leads.transactional_sends.locale|INSERT",
@@ -2358,4 +2360,7 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   // SECURITY INVOKER; ops.filter_auth_orphans() keeps its 0117 line.
   "identity.email_change_holder_is_orphan(uuid,uuid)":
     "influx_identity_definer",
+  // 0145 (J9 D67-a, 05 RG163): the journal trigger of leads.sync_settings, the only writer of
+  // settings.changed for it; leads.guard_sync_setting_write() is SECURITY INVOKER (migration role).
+  "leads.journal_sync_setting_change()": "influx_leads_definer",
 };

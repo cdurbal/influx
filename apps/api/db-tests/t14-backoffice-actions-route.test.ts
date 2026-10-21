@@ -826,23 +826,30 @@ describe("Apollo settings under 2V + R (05 RG81, CA63; 03 PD1 to PD7)", () => {
         line.destination,
       ]),
     ).toEqual([["lead.updated", "apollo_contact"]]);
-    const [journal] = await migrationRole()<
+    // 0145: written by the trigger of leads.sync_settings, exactly once for this act, with the
+    // context of the backoffice writer (reevaluated included) and nothing of a connection role
+    const journal = await migrationRole()<
       { actor: string; payload: Record<string, unknown> }[]
     >`
       select actor_account_id::text as actor, payload from audit.audit_events
        where event_type = 'settings.changed'
          and subject_id = md5('leads.sync_settings:apollo_scope')::uuid
-       order by seq desc limit 1`;
-    expect(journal).toMatchObject({
-      actor: adminB.accountId,
-      payload: {
-        key: "apollo_scope",
-        to: "tous_les_inscrits",
-        reason_code: "founder_decision",
-        dual_control_request_id: view.id,
-        dual_control: "peer",
+         and payload ->> 'dual_control_request_id' = ${view.id}
+       order by seq`;
+    expect(journal).toEqual([
+      {
+        actor: adminB.accountId,
+        payload: {
+          key: "apollo_scope",
+          from: apolloScopeBefore,
+          to: "tous_les_inscrits",
+          reason_code: "founder_decision",
+          dual_control_request_id: view.id,
+          dual_control: "peer",
+          reevaluated: result.reevaluated,
+        },
       },
-    });
+    ]);
     // single use: a second confirmation is a conflict
     expect(
       errorBody(

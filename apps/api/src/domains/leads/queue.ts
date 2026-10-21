@@ -255,8 +255,9 @@ export function givesBrevoIds(ids: BrevoIdsFromEnvironment): boolean {
  * D68 (founder, 2026-10-17): at start, before the first turn and under the motif of E-3 (no new
  * motif in 03 §P7), the Brevo list ids of the environment go into leads.sync_settings (0140, D69:
  * no template id any more). Only the
- * ids given are merged, never a null (05 RG163); the base stays the source of truth (RG37). The
- * function journals settings.changed itself: no elevated audit line. Returns the keys changed.
+ * ids given are merged, never a null (05 RG163); the base stays the source of truth (RG37). A
+ * change is journaled settings.changed by the trigger of leads.sync_settings (0145, D67 (v)): no
+ * elevated audit line. Returns the keys changed.
  */
 export async function applyBrevoIdsFromEnvironment(
   database: WorkerDatabase,

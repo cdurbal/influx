@@ -2,11 +2,13 @@
 // (migrations 0139, 0140): the worker writes the Brevo LIST ids of its environment into
 // leads.sync_settings at start; no template id any more (every queue e-mail is written by INFLUX).
 // Only the sub-keys given are merged, never a null (05 RG163); a change is journaled
-// settings.changed (reason environment, EC-J8-28 subject); influx_worker executes it, no other role
-// of ours does.
+// settings.changed (reason environment, EC-J8-28 subject) by the trigger of leads.sync_settings
+// (0145), exactly once; influx_worker executes it, no other role of ours does.
 //
 // Each case runs in ONE rolled-back transaction of the local superuser, the function under the
-// session_user / current_user pair of the worker (actAs, support.ts).
+// session_user / current_user pair of the worker (actAs, support.ts). RG163 (1), 0145: an id once
+// set never goes back to null, so no case resets the ids; each reads them first and changes them
+// relatively (another file of the local stack may have committed ids).
 import { inRolledBackTransaction, probe, takeRole } from "@influx/test-kit/db";
 import type postgres from "postgres";
 import { describe, expect, it } from "vitest";
@@ -21,10 +23,12 @@ function scenario<T>(
   return inRolledBackTransaction(localSuperuser(), fn);
 }
 
-/** Starting value of 0103, whatever an earlier run of the local stack left. */
-async function resetIds(tx: postgres.TransactionSql): Promise<void> {
-  await tx`update leads.sync_settings set value = '{"advertisers": null, "creators": null}'
-            where key = 'brevo_list_ids'`;
+/** A positive id that differs from every id of `ids`. */
+function freshId(ids: Record<string, number | null> | undefined): number {
+  const taken = new Set(Object.values(ids ?? {}));
+  let id = 600_000 + Math.floor(Math.random() * 100_000);
+  while (taken.has(id)) id += 1;
+  return id;
 }
 
 function apply(
@@ -71,33 +75,36 @@ async function journalOf(tx: postgres.TransactionSql) {
 }
 
 describe("D68, D69 — the Brevo list ids of the worker's environment (0139, 0140)", () => {
-  it("merges the sub-keys given, leaves the others alone, and journals the change", async () => {
+  it("merges the sub-keys given, leaves the others alone, and journals the change once", async () => {
     await scenario(async (tx) => {
-      await resetIds(tx);
-      expect(await apply(tx, { creators: 4 })).toEqual(["brevo_list_ids"]);
+      const before = (await listIdsOf(tx))?.value;
+      const creators = freshId(before);
+      expect(await apply(tx, { creators })).toEqual(["brevo_list_ids"]);
 
       const ids = await listIdsOf(tx);
-      expect(ids?.value).toEqual({ advertisers: null, creators: 4 });
+      expect(ids?.value).toEqual({ ...before, creators });
       expect(ids?.author).toBeNull();
 
-      const [line] = await journalOf(tx);
-      expect(line).toEqual({
-        actor_type: "system",
-        payload: expect.objectContaining({
-          key: "brevo_list_ids",
-          from: { advertisers: null, creators: null },
-          to: { advertisers: null, creators: 4 },
-          reason_code: "environment",
-        }),
-      });
+      // 0145: one line per change, written by the trigger, never a second one by the function
+      expect(await journalOf(tx)).toEqual([
+        {
+          actor_type: "system",
+          payload: {
+            key: "brevo_list_ids",
+            from: before,
+            to: { ...before, creators },
+            reason_code: "environment",
+          },
+        },
+      ]);
     });
   });
 
   it("writes nothing when the values are already those of the environment", async () => {
     await scenario(async (tx) => {
-      await resetIds(tx);
-      await apply(tx, { advertisers: 3 });
-      expect(await apply(tx, { advertisers: 3 })).toEqual([]);
+      const advertisers = freshId((await listIdsOf(tx))?.value);
+      await apply(tx, { advertisers });
+      expect(await apply(tx, { advertisers })).toEqual([]);
       expect(await apply(tx, {})).toEqual([]);
       expect(await journalOf(tx)).toHaveLength(1);
     });
@@ -121,15 +128,13 @@ describe("D68, D69 — the Brevo list ids of the worker's environment (0139, 014
     ["an id as text", { creators: "4" }],
   ])("refuses %s, and changes nothing", async (_case, listIds) => {
     await scenario(async (tx) => {
-      await resetIds(tx);
+      const before = (await listIdsOf(tx))?.value;
       expect(await refusalOf(tx, listIds)).toEqual({
         outcome: "error",
         code: INVALID_PARAMETER,
       });
-      expect((await listIdsOf(tx))?.value).toEqual({
-        advertisers: null,
-        creators: null,
-      });
+      expect((await listIdsOf(tx))?.value).toEqual(before);
+      expect(await journalOf(tx)).toEqual([]);
     });
   });
 

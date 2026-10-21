@@ -7,8 +7,9 @@
 // data in the database), the empty list of prospecting countries of staging (skipped, in dry_run as
 // in live) and the guards of the read. The connector alone is tested in tests/apollo-connector.
 // Accounts and lines are COMMITTED by the migration role; the other pending lines of the stack are
-// held while the worker claims, as in tm1-brevo-connector. The five settings touched are restored
-// after the file.
+// held while the worker claims, as in tm1-brevo-connector. The three Apollo settings touched are
+// restored after the file; brevo_list_ids is set and left as set (0145: a Brevo id never goes back
+// to null, 05 RG163 (1)); no template id is written (D69).
 import {
   startApolloDouble,
   type ApolloDouble,
@@ -60,8 +61,6 @@ const SETTING_KEYS = [
   "apollo_scope",
   "apollo_legal_basis",
   "apollo_excluded_countries",
-  "brevo_list_ids",
-  "brevo_template_ids",
 ];
 const CONSENT_REQUIRED = { default: "consentement_requis", by_country: {} };
 const LEGITIMATE_INTEREST = {
@@ -124,10 +123,6 @@ beforeEach(async () => {
   await setting("apollo_legal_basis", CONSENT_REQUIRED);
   await setting("apollo_excluded_countries", []);
   await setting("brevo_list_ids", { advertisers: 2, creators: 3 });
-  await setting("brevo_template_ids", {
-    "account.welcome_advertiser": 11,
-    "account.welcome_creator": 12,
-  });
 });
 
 afterEach(async () => {
