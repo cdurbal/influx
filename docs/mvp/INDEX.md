@@ -658,7 +658,7 @@
 | 53 | 39 | 2. Stratégie de développement | RG44–RG148 |
 | 92 | 23 | 3. Écarts actifs pour les jalons restants (J5 à J9) | RG23–RG146 |
 | 115 | 43 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 158 | 181 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG164 |
-| 339 | 9 | 6. Configuration des services externes |  |
-| 348 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 365 | 11 | 8. Guide de lecture par jalon | RG54–RG58 |
+| 158 | 182 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG164 |
+| 340 | 9 | 6. Configuration des services externes |  |
+| 349 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 366 | 11 | 8. Guide de lecture par jalon | RG54–RG58 |
