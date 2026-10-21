@@ -334,6 +334,14 @@ commit 10) ; tout nouveau fichier `db-tests` entre dans `case-floors.ts`.
 - À relire par `expert-ux` (antérieur au commit) : le badge de `ShortVideoOverlay` ressemble au logo YouTube ; la photo principale du héros ne correspond pas à son texte alternatif.
 - Planchers : `pnpm test` = **2 722** (contracts 89, test-kit 119, backoffice 36, web 188, `apps/api` unitaire 1 155, base 1 135). `test:db` local rouge sur un cas intermittent (436 lignes `pending` résiduelles des e2e saturant le lot de TM1.11, comme à D67-c) ; commit accepté par le fondateur.
 
+## Issu du commit 7
+
+- T15 : `PUBLIC_ROUTE_RATES` (`src/platform/public-rate.ts`, 14 routes sans session, par adresse et par instance, à la minute, avant le corps, adresse inconnue = un seul seau), toujours au-dessus des plafonds horaires en base (RG44 répond le premier) ; webhook Brevo seul exempté ; tout `429` porte `Retry-After` (60 s pour les compteurs en base). Valeurs à confirmer à la revue groupée `expert-cybersecurite`.
+- T7 sur `next start` : Next répond **avant** le relais à `//` et `\` (308 même origine, sans nos en-têtes ni `no-store`), à un encodage cassé (500 brut) et résout `.` / `..` ; jamais d’appel à `apps/api`. Cible absolue (`https://x@evil.tld/…`) ⇒ 308 vers cette autorité, inatteignable d’un navigateur : **constat de l’entrée Railway sur `staging` à faire** (revue groupée).
+- T13 fronts : 404 et écrans d’erreur aux jetons (`[locale]/[...rest]` ⇒ 404 localisée, rendue au client par Next, coquille `__next_error__`). T11 : 3e artefact = fichiers exécutés de `apps/api` (`API_RUNTIME_DIRECTORIES`).
+- J4S-6 : texte strict (ni contrôle, ni format, ni usage privé, ni demi-paire) au contrat, au collecteur et dans `scrub.ts` ; 5 empreintes navigateur par compte et par heure (en mémoire). « Aucune alerte nouveau groupe du seul navigateur » ⇒ commit 8 (filtre `source = 'server'`).
+- Planchers : `pnpm test` = **2 835** (contracts 116, test-kit 122, backoffice 36, web 188, `apps/api` unitaire 1 237, base 1 136). Local : `t14` « internal-accounts » rouge par 1 779 profils internes accumulés (plafond 200), vert au premier passage ; 1 025 lignes `pending` résiduelles supprimées (TM1.11).
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les

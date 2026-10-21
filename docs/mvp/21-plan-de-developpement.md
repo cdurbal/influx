@@ -319,6 +319,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] D67 (tranchée par `architecte` le 2026-10-17) — soldée par D67-a à D67-c ; écran des identifiants Brevo hors J9 (option Lot 5).
 - [x] Commit 4 (`103590d`) — CSP à nonce par requête (`src/proxy.ts` des deux fronts, `03` §6.5, aucun `'unsafe-inline'`), J3S-7, redirection de la barre oblique finale dans les proxys, zod `jitless` au navigateur, G2 levée et resserrée (EC-J9-1), T10 sur `next start` (`e2e/security-headers.spec.ts`) ; planchers 2 739 / 1 135.
 - [x] Commit 5 (`dafb876`) — sortie du mode maquette : module fictif, `IS_MOCKUP` et bandeau supprimés ; photos conservées comme actifs de marque (`src/content/images/CREDITS.md`, manifeste de la garde G4) ; G6 et annexe 3 en garde d'absence ; G1 en liste blanche nommée (et backoffice) ; `action`/`formAction` levés ; portes, boutons et en-tête sur les chemins EC-15 ; formulaire devenu renvoi vers les deux portes ; pied légal actif ; planchers 2 722 / 1 135.
+- [x] Commit 7 (`854f492`) — T7 en intégration sur le build des deux fronts (suite partagée, `test:artifacts`), T13 (API balayée, pages 404 et d’erreur aux jetons), T15 (`PUBLIC_ROUTE_RATES`, `429` homogène avec `Retry-After`), T11 (trois artefacts, valeurs Supabase / Brevo), J4S-6 ; planchers 2 835 / 1 136.
 
 ### 5.8 Portes de la mise en production
 
