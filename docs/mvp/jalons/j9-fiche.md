@@ -305,6 +305,14 @@ commit 10) ; tout nouveau fichier `db-tests` entre dans `case-floors.ts`.
 - Pour D67-b : `GRANT SELECT (updated_at)` à `influx_leads_definer` ; marge pour une correction validée après le début d'une tentative ; TM1.11 / CA82 ne remettent plus une liste à `NULL` (sous-clé nouvelle à `NULL`, ou garde levée dans une transaction annulée) ; runbook : `COMMIT` aussitôt en `psql` (verrou de chaîne).
 - `05` / `04` ne décrivent pas encore `influx.sync_setting_change` : additif regroupé à la clôture. Prochaine migration libre **`0146`**.
 
+## Issu du commit D67-b
+
+- RG161 dans la reprise `leads.recover_stale_outbox_lines(integer)` (même signature, même `GRANT`, résultat + motif et code ; EC-J9-D67b-1) : ≤ 200 lignes de contact `failed`, réglage modifié après le **début** de la tentative à 60 s près, attente jusqu'à date + 60 s (une modification ⇒ au plus un nouvel échec, EC-J9-D67b-3) ; `credentials_missing` par l'instant de démarrage du processus (`influx.worker_started_at`, local à la transaction, EC-J9-D67b-2) ; jamais `template_not_configured` (D69 ; file transactionnelle au Lot 5).
+- Démarrage : `apply_brevo_ids_from_environment(jsonb)` devient l'étape de démarrage (réglages en vigueur + instant, `0146`) ; verdict RG162 commun au worker et à `staging:check` (`brevo_list_ids.creators`, `rate_limits.<destination>_per_minute`) ; base injoignable : attente de 5 s (les 5 redémarrages Railway préservés) ; refus de la base : sortie 1.
+- TM1.13 au niveau du processus impossible (un environnement déployé refuse la base locale, D70 S1) : prouvé sur le verdict (`leads-start-check`) et l'étape de démarrage en base. À aligner à la clôture : `18` TM1.13 (contre-test « `staging` » ⇒ `development`, CA85) et `05` RG162 (plus de modèle, D69).
+- `0146` reclasse en `failed` les `skipped` `list_not_configured` / `apollo_settings_invalid` (EC-J9-D67b-4 ; 5 sur `staging`) ; `template_not_configured` inchangés. Jusqu'à D67-c, `sync-causes.ts` affiche ces échecs en `other_failure`. Prochaine migration libre **`0147`**.
+- `staging` : jeton Railway refusé (`Invalid RAILWAY_TOKEN`, P3, fondateur) : `staging:check` KO sur les variables Railway, réglages en base verts (RG162 Apollo compris).
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les

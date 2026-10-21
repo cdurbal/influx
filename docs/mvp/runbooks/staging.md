@@ -260,9 +260,13 @@ de configuration locale, **jamais en retirant une variable de Railway**) ; `stag
 (créateur, EN) : tout est vert sauf l'effacement Apollo, `skipped` `erasure_not_propagated` jusqu'au
 Lot 5 (`15` RG79, demande laissée ouverte, contact Apollo de `staging` à retirer à la main). Le refus
 de démarrage, vérifié par `parseWorkerEnvironment` sur une copie, couvre les variables lues ;
-`BREVO_LIST_ID_*` et `APOLLO_API_KEY` absentes ne bloquent qu'avec D67-b (RG162),
 `BREVO_API_BASE_URL` a un défaut, `DATABASE_CA_CERT` est facultative (EC-34) : `staging:check`
-garde ces noms d'ici là.
+garde ces noms. Depuis D67-b (`0146`, `05` RG162), le `worker` refuse de démarrer sans les deux
+listes Brevo **en base** (posées par `BREVO_LIST_ID_*` ou par SQL), un `retry_schedule` lisible, un
+plafond de `rate_limits` par destination dotée d'une clé et, s'il porte `APOLLO_API_KEY`, les trois
+réglages Apollo lisibles ; `APOLLO_API_KEY` absente ne bloque pas, mais chaque annonceur qualifié
+échoue `credentials_missing`, un incident (RG160). Constaté le 2026-10-21 : réglages de `staging`
+complets, Apollo compris.
 
 ## 10. Retour à la version précédente (02 §20.7 point 5)
 
