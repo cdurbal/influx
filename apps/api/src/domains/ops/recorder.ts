@@ -28,6 +28,13 @@ import {
 
 /** 02 §20.5: ten occurrences kept per fingerprint and minute, the next ones only counted. */
 export const OCCURRENCES_PER_MINUTE = 10;
+/**
+ * J4S-6: distinct browser fingerprints one account may report per hour, an upper bound of the
+ * groups it may open in ops.error_groups (a fingerprint already known counts too: the recorder
+ * does not read the base). Beyond, its reports of another fingerprint are dropped: a member
+ * cannot fill the screen of 02 §20.5 with groups of their own making.
+ */
+export const BROWSER_GROUPS_PER_ACCOUNT_HOUR = 5;
 /** Errors waiting for the next flush; beyond, dropped (an avalanche never saturates the base). */
 export const MAX_PENDING_OCCURRENCES = 200;
 /** Upper bounds of the duration buckets, in ms (0016); the ninth bucket is "beyond". */
@@ -107,6 +114,10 @@ export class OpsRecorder {
     { fingerprint: Buffer; count: number }
   >();
   private droppedOccurrences = 0;
+  /** J4S-6: fingerprints reported per account in the current hour (`browserHour`). */
+  private browserGroups = new Map<string, Set<string>>();
+  private browserHour = -1;
+  private droppedBrowserGroups = 0;
   /** Request cells per minute (epoch ms), then per `${method} ${route}`. */
   private requests = new Map<number, Map<string, RequestCell>>();
   private loopDelay: IntervalHistogram | null = null;
@@ -178,21 +189,50 @@ export class OpsRecorder {
         : input.kind === "unhandledrejection"
           ? "UnhandledRejection"
           : "Error";
-    this.enqueue({
-      source: "browser",
-      service: input.surface,
-      errorType,
-      rawMessage: input.message,
-      route: routeModelOf(input.page),
-      stack: scrubStack(input.stack, STACK_MAX),
-      requestId: null,
-      accountId: UUID_PATTERN.test(input.accountId) ? input.accountId : null,
-      userAgentSummary:
-        input.userAgentSummary !== null &&
-        /^[\x20-\x7E]{1,120}$/.test(input.userAgentSummary)
-          ? input.userAgentSummary
-          : null,
-    });
+    const accountId = UUID_PATTERN.test(input.accountId)
+      ? input.accountId
+      : null;
+    this.enqueue(
+      {
+        source: "browser",
+        service: input.surface,
+        errorType,
+        rawMessage: input.message,
+        route: routeModelOf(input.page),
+        stack: scrubStack(input.stack, STACK_MAX),
+        requestId: null,
+        accountId,
+        userAgentSummary:
+          input.userAgentSummary !== null &&
+          /^[\x20-\x7E]{1,120}$/.test(input.userAgentSummary)
+            ? input.userAgentSummary
+            : null,
+      },
+      (hex) => this.admitBrowserGroup(accountId ?? "unknown", hex),
+    );
+  }
+
+  /** J4S-6: false once the account reported BROWSER_GROUPS_PER_ACCOUNT_HOUR other fingerprints. */
+  private admitBrowserGroup(accountId: string, hex: string): boolean {
+    const hour = Math.floor(this.now().getTime() / 3_600_000);
+    if (hour !== this.browserHour) {
+      this.browserHour = hour;
+      this.browserGroups.clear();
+    }
+    let fingerprints = this.browserGroups.get(accountId);
+    if (fingerprints === undefined) {
+      fingerprints = new Set();
+      this.browserGroups.set(accountId, fingerprints);
+    }
+    if (fingerprints.has(hex)) {
+      return true;
+    }
+    if (fingerprints.size >= BROWSER_GROUPS_PER_ACCOUNT_HOUR) {
+      this.droppedBrowserGroups += 1;
+      return false;
+    }
+    fingerprints.add(hex);
+    return true;
   }
 
   /** One completed request (onResponse): method, route model, status and duration. */
@@ -268,17 +308,21 @@ export class OpsRecorder {
     return this.flushing;
   }
 
-  private enqueue(entry: {
-    source: Occurrence["source"];
-    service: Occurrence["service"];
-    errorType: string;
-    rawMessage: string;
-    route: string | null;
-    stack: string | null;
-    requestId: string | null;
-    accountId: string | null;
-    userAgentSummary: string | null;
-  }): void {
+  /** `admit`: a last say on the fingerprint (J4S-6), before anything is kept or counted. */
+  private enqueue(
+    entry: {
+      source: Occurrence["source"];
+      service: Occurrence["service"];
+      errorType: string;
+      rawMessage: string;
+      route: string | null;
+      stack: string | null;
+      requestId: string | null;
+      accountId: string | null;
+      userAgentSummary: string | null;
+    },
+    admit?: (hex: string) => boolean,
+  ): void {
     const message = scrubText(entry.rawMessage, MESSAGE_MAX) || entry.errorType;
     const groupMessage =
       normalizeMessage(entry.rawMessage, MESSAGE_MAX) || entry.errorType;
@@ -289,6 +333,9 @@ export class OpsRecorder {
       stack: entry.stack,
     });
     const hex = fingerprint.toString("hex");
+    if (admit !== undefined && !admit(hex)) {
+      return;
+    }
     const capKey = `${minuteOf(this.now())}|${hex}`;
     const kept = this.keptThisMinute.get(capKey) ?? 0;
     if (
@@ -374,10 +421,18 @@ export class OpsRecorder {
     this.extraCounts.clear();
     const dropped = this.droppedOccurrences;
     this.droppedOccurrences = 0;
+    const droppedBrowserGroups = this.droppedBrowserGroups;
+    this.droppedBrowserGroups = 0;
     const minutes = this.takeEndedMinutes();
     const processSample = this.takeProcessSample();
     if (dropped > 0) {
       logger.warn({ dropped }, "ops occurrences dropped, buffer full");
+    }
+    if (droppedBrowserGroups > 0) {
+      logger.info(
+        { dropped: droppedBrowserGroups },
+        "browser reports dropped, account over its new groups per hour",
+      );
     }
     if (
       occurrences.length === 0 &&

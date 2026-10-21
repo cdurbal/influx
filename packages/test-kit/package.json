@@ -7,6 +7,7 @@
   "exports": {
     "./guards": "./src/guards.ts",
     "./artifacts": "./src/artifacts.ts",
+    "./relay-integration": "./src/relay-integration.ts",
     "./case-floors": "./src/case-floors.ts",
     "./logs": "./src/logs.ts",
     "./totp": "./src/totp.ts",

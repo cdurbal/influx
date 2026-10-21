@@ -225,6 +225,24 @@ test.describe("T10.6: the CSP enforced by the browser", () => {
     });
   }
 
+  // 18 T13 (J9 commit 7): the 404 screens are ours, tokens only, never Next.js's inline styles.
+  for (const [origin, path, title] of [
+    [WEB_ORIGIN, "/fr/absente", "Cette page n’existe pas"],
+    [WEB_ORIGIN, "/en/absente", "This page does not exist"],
+    [BACKOFFICE_ORIGIN, "/absente", "Cette page n’existe pas"],
+  ] as const) {
+    test(`${origin === WEB_ORIGIN ? "web" : "backoffice"} ${path}: its own 404 screen, without a single violation`, async ({
+      page,
+    }) => {
+      const violations = await watchViolations(page);
+      const response = await page.goto(`${origin}${path}`);
+      expect(response?.status()).toBe(404);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+      await page.waitForLoadState("load");
+      expect(await violations()).toEqual([]);
+    });
+  }
+
   test("refuses an injected inline handler and a request to another origin", async ({
     page,
   }) => {

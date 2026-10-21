@@ -5,7 +5,7 @@
 // message says which cases disappear and why (18 §3 rule 2).
 export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/ops-schema.test.ts": 12,
-  "db-tests/t13-ops-recording.test.ts": 7,
+  "db-tests/t13-ops-recording.test.ts": 8,
   "db-tests/t14-backoffice-accounts-route.test.ts": 20,
   "db-tests/t14-backoffice-actions-route.test.ts": 31,
   "db-tests/t14-backoffice-invitations-route.test.ts": 15,

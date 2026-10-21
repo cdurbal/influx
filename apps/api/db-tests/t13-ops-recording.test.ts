@@ -298,7 +298,8 @@ describe("POST /v1/ops/client-errors (02 §20.5)", () => {
   it("drops the reports of an account over ten a minute, answering 200 to all", async () => {
     const member = dataSet.accounts.advertiser.b;
     const statuses: number[] = [];
-    for (const letter of "abcdefghijkl") {
+    // Two fingerprints: neither reaches its own cap of ten, nor the account's cap of groups.
+    for (const letter of "abababababab") {
       const response = await send(
         "web",
         report(`/fr/opstest/${RUN}/rate`, `report ${letter}`),
@@ -312,5 +313,59 @@ describe("POST /v1/ops/client-errors (02 §20.5)", () => {
       select count(*)::int as count from ops.error_occurrences
        where route = ${`/fr/opstest/${RUN}/rate`}`;
     expect(row?.count).toBe(10);
+  });
+});
+
+describe("J4S-6: new browser groups per account and hour (02 §20.5)", () => {
+  it("opens five groups per account and hour at most; a known fingerprint, another account pass", async () => {
+    const ops = recorder();
+    const page = `/fr/opstest/${RUN}/groups`;
+    const member = dataSet.accounts.creator.b.id;
+    const other = dataSet.accounts.advertiser.a.id;
+    const browser = (accountId: string, message: string) => {
+      ops.recordBrowserError({
+        surface: "web",
+        errorType: "TypeError",
+        kind: "error",
+        message,
+        stack: undefined,
+        page,
+        accountId,
+        userAgentSummary: null,
+      });
+    };
+    for (const letter of "abcdefg") {
+      browser(member, `group ${letter}`);
+    }
+    browser(member, "group a");
+    browser(other, "group f");
+    const lines: string[] = [];
+    await ops.flush(database, {
+      ...silent,
+      info: (object: object, message: string) => {
+        lines.push(`${message} ${JSON.stringify(object)}`);
+      },
+    });
+    const rows = await migration<{ account_id: string; message: string }[]>`
+      select account_id::text, message from ops.error_occurrences
+       where route = ${page} order by message, account_id`;
+    expect(rows).toEqual(
+      [
+        { account_id: member, message: "group a" },
+        { account_id: member, message: "group a" },
+        { account_id: member, message: "group b" },
+        { account_id: member, message: "group c" },
+        { account_id: member, message: "group d" },
+        { account_id: member, message: "group e" },
+        { account_id: other, message: "group f" },
+      ].sort((left, right) =>
+        `${left.message}${left.account_id}`.localeCompare(
+          `${right.message}${right.account_id}`,
+        ),
+      ),
+    );
+    expect(lines).toContain(
+      'browser reports dropped, account over its new groups per hour {"dropped":2}',
+    );
   });
 });

@@ -59,6 +59,7 @@ import {
   readClientAddress,
 } from "./platform/client-address.ts";
 import { createLogger } from "./platform/logger.ts";
+import { PublicRateLimiter } from "./platform/public-rate.ts";
 import { readClientUserAgent } from "./platform/user-agent.ts";
 import {
   withEnvelopeFallback,
@@ -78,6 +79,12 @@ declare module "fastify" {
     surface?: RouteSurface;
   }
 }
+
+/**
+ * Retry-After of a 429 whose limiter names no window (the counters in the database: 15 min, 1 h).
+ * Every 429 carries one, so that all of them look alike to a client (18 T15, J9 commit 7).
+ */
+export const RATE_LIMITED_RETRY_AFTER_SECONDS = 60;
 
 /** Same ceiling as the relay of the fronts (`03` PP-9). */
 export const MAX_BODY_BYTES = 1_048_576;
@@ -218,6 +225,10 @@ export function buildServer(
   const ops =
     options.ops ??
     new OpsRecorder({ version: config.version, instance: config.instance });
+  // 18 T15: the routes without a session, per client address and per instance (public-rate.ts).
+  const publicRate = new PublicRateLimiter(
+    options.identity?.now ?? (() => new Date()),
+  );
 
   const app = Fastify({
     loggerInstance: logger,
@@ -364,6 +375,19 @@ export function buildServer(
       // Same answer as an unknown route: the other surface's routes are not disclosed.
       throw new ApiError("not_found");
     }
+    // 18 T15: before the body is read; the line names the route model and the bound, never the
+    // address (T15.5: no account before a session).
+    const refusal = publicRate.take(
+      `${request.method} ${routeUrl}`,
+      request.clientAddress,
+    );
+    if (refusal !== null) {
+      request.log.info(
+        { route: routeUrl, scope: refusal.scope },
+        "public route over its rate",
+      );
+      throw new RetryLaterError("rate_limited", refusal.retryAfterSeconds);
+    }
   });
 
   // D60 (02 §20.5): every completed request, by route model, in memory; written each minute.
@@ -396,6 +420,11 @@ export function buildServer(
     }
     if (error instanceof RetryLaterError) {
       void reply.header("retry-after", String(error.retryAfterSeconds));
+    } else if (statusCode === 429) {
+      void reply.header(
+        "retry-after",
+        String(RATE_LIMITED_RETRY_AFTER_SECONDS),
+      );
     }
     return reply.code(statusCode).send(errorEnvelope(classified, request.id));
   });

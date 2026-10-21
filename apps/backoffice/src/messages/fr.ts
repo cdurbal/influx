@@ -6,6 +6,16 @@ export const messages = {
     title: "INFLUX — Backoffice",
   },
   brand: "INFLUX — Espace interne",
+  // 18 T13 (J9 commit 7): the 404 and error screens, a fixed text without any detail.
+  errorPages: {
+    notFoundTitle: "Cette page n’existe pas",
+    notFoundBody:
+      "L’adresse est peut-être incomplète, ou la page a été déplacée.",
+    errorTitle: "Un problème est survenu",
+    errorBody: "La page n’a pas pu s’afficher. Réessayez dans un instant.",
+    retry: "Réessayer",
+    home: "Revenir à l’accueil",
+  },
   form: {
     required: "Ce champ est obligatoire.",
   },

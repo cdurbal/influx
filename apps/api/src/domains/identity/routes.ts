@@ -72,7 +72,10 @@ import {
 import type { ZodTypeProvider } from "../../platform/schema-compilers.ts";
 import type { SupabaseAuth } from "../../platform/supabase.ts";
 import { userAgentSummaryOf } from "../../platform/user-agent.ts";
-import { MinuteCounter } from "../ops/routes.ts";
+import {
+  PUBLIC_ROUTE_RATES,
+  type PublicRouteRate,
+} from "../../platform/public-rate.ts";
 import { registerAccountRoutes } from "./account-routes.ts";
 import { reportCodeNotReceived } from "./code-delivery-report.ts";
 import { completeSignup } from "./complete-signup.ts";
@@ -127,11 +130,12 @@ export type IdentityDependencies = {
 };
 
 /**
- * Bounds per minute of GET /v1/terms/current (21 EC-62), in memory like the client errors (one
- * instance at the MVP): per client address (an unknown address shares one key), and for the
- * whole instance. A page reads one document; the sign-up panel, one or two.
+ * Bounds per minute of GET /v1/terms/current (21 EC-62), applied with every public route's by
+ * server.ts (T15, src/platform/public-rate.ts). A page reads one document; the sign-up panel, one
+ * or two.
  */
-export const TERMS_READ_RATE = { address: 30, instance: 1200 } as const;
+export const TERMS_READ_RATE: PublicRouteRate =
+  PUBLIC_ROUTE_RATES["GET /v1/terms/current"];
 
 /** Retry-After of a 503 terms_unavailable (21 EC-62 (D)), in seconds. */
 export const TERMS_RETRY_AFTER_SECONDS = 30;
@@ -269,7 +273,6 @@ export function registerIdentityRoutes(
     lookup:
       dependencies.termsLookup ?? databaseTermsLookup(dependencies.database),
   });
-  const termsCounter = new MinuteCounter(dependencies.now);
   app.get(
     "/v1/terms/current",
     {
@@ -279,15 +282,6 @@ export function registerIdentityRoutes(
       },
     },
     async (request, reply): Promise<CurrentTermsResponse | undefined> => {
-      const address = clientAddressOf(request);
-      const addressKey =
-        address.status === "known" ? address.throttleKey : "unknown";
-      if (
-        !termsCounter.take(`address:${addressKey}`, TERMS_READ_RATE.address) ||
-        !termsCounter.take("instance", TERMS_READ_RATE.instance)
-      ) {
-        throw new ApiError("rate_limited");
-      }
       let version: CurrentTermsResponse | null;
       try {
         version = await terms.current(

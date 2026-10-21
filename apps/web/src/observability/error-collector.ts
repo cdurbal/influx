@@ -6,6 +6,7 @@
 // Byte-for-byte identical in apps/web and apps/backoffice.
 import {
   CLIENT_ERROR_LIMITS,
+  toStrictText,
   type ClientErrorReport,
 } from "@influx/contracts/ops";
 import { systemStatusSchema } from "@influx/contracts/system";
@@ -22,8 +23,9 @@ function reportOf(
   fallback: string,
 ): ClientErrorReport {
   const error = value instanceof Error ? value : null;
-  const message = (error?.message || fallback || "unknown error").slice(
-    0,
+  // Strict text (J4S-6): what the api would refuse is replaced before sending, not lost.
+  const message = toStrictText(
+    error?.message || fallback || "unknown error",
     CLIENT_ERROR_LIMITS.message,
   );
   const errorType = error?.name;
@@ -34,7 +36,7 @@ function reportOf(
       : {}),
     message,
     ...(typeof error?.stack === "string"
-      ? { stack: error.stack.slice(0, CLIENT_ERROR_LIMITS.stack) }
+      ? { stack: toStrictText(error.stack, CLIENT_ERROR_LIMITS.stack, true) }
       : {}),
     // The path only: never the query nor the fragment (02 §20.8).
     page: window.location.pathname.slice(0, CLIENT_ERROR_LIMITS.page),

@@ -31,6 +31,33 @@ export const JWT_PATTERN = /eyJ[\w-]{8,}\.eyJ[\w-]{8,}\.[\w-]{8,}/;
 export const POSTGRES_URL_PATTERN = /postgres(?:ql)?:\/\/[^\s"'`<>]*@/;
 
 /**
+ * The VALUE of a secret, whatever the variable that held it (J9 commit 7, T11): a JWT, a Postgres
+ * connection string with credentials, a Supabase secret key (EC-46), a Brevo key (`xkeysib-` then
+ * hexadecimal). Apollo keys have no prefix: their name is caught in the browser bundles
+ * (BROWSER_FORBIDDEN_NAMES), their value cannot be.
+ */
+export const SECRET_VALUE_PATTERNS: Readonly<Record<string, RegExp>> = {
+  "JWT-like string": JWT_PATTERN,
+  "Postgres connection string": POSTGRES_URL_PATTERN,
+  "Supabase secret key": /sb_secret_[A-Za-z0-9_-]{16,}/,
+  "Brevo key": /xkeysib-[0-9a-f]{32,}/,
+};
+
+/** One finding per file and secret value pattern found in it. */
+export function scanSecretValues(
+  files: readonly string[],
+  root: string,
+): string[] {
+  return files.flatMap((file) => {
+    // latin1 maps every byte to one character: binary files are read safely.
+    const content = readFileSync(file, "latin1");
+    return Object.entries(SECRET_VALUE_PATTERNS).flatMap(([label, pattern]) =>
+      pattern.test(content) ? [`${relativePath(root, file)}: ${label}`] : [],
+    );
+  });
+}
+
+/**
  * Scans the `.next` directory of a front after its build. Returns one finding per offending
  * file and rule; an empty list means T11 holds. Throws when the build output is missing, so that
  * a skipped build can never pass for a clean one.
@@ -55,15 +82,32 @@ export function scanBuildArtifacts(nextDirectory: string): string[] {
     }
   }
 
-  for (const file of listFiles(nextDirectory)) {
-    const content = readFileSync(file, "latin1");
-    if (JWT_PATTERN.test(content)) {
-      findings.push(`${relativePath(root, file)}: JWT-like string`);
-    }
-    if (POSTGRES_URL_PATTERN.test(content)) {
-      findings.push(`${relativePath(root, file)}: Postgres connection string`);
-    }
-  }
-
+  findings.push(...scanSecretValues(listFiles(nextDirectory), root));
   return findings;
+}
+
+/**
+ * The files apps/api runs, its third deployed artifact (J9 commit 7, T11): apps/api has no build,
+ * Railway runs its sources with Node (deploy/railway/api.json, worker.json). Its code, its legal
+ * texts, its operator scripts, the contracts it imports, the deployment files. Not the tests,
+ * whose fake values are deliberate. Relative to the repository root.
+ */
+export const API_RUNTIME_DIRECTORIES: readonly string[] = [
+  "apps/api/src",
+  "apps/api/legal",
+  "apps/api/scripts",
+  "packages/contracts/src",
+  "deploy",
+];
+
+/** T11 on the runtime files of apps/api: no secret value, whatever its variable. */
+export function scanApiRuntimeFiles(repositoryRoot: string): string[] {
+  const files = API_RUNTIME_DIRECTORIES.flatMap((directory) => {
+    const absolute = path.join(repositoryRoot, directory);
+    if (!existsSync(absolute)) {
+      throw new Error(`Missing runtime directory ${directory}.`);
+    }
+    return listFiles(absolute);
+  });
+  return scanSecretValues(files, repositoryRoot);
 }
