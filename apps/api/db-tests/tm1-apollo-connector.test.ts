@@ -311,9 +311,11 @@ async function turn(options: TurnOptions = {}): Promise<number> {
       apollo_contact: apolloConnector,
     },
     worker,
+    startedAt: "2026-01-01T00:00:00.000Z",
     sync: {
       mode: options.mode ?? "live",
       recipientFilter: { kind: "allowlist", domains: ["example.test"] },
+      keyRequired: false,
     },
     logger,
     now: () => Date.now(),

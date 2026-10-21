@@ -233,9 +233,11 @@ async function turn(): Promise<number> {
       logger,
     }),
     worker: name,
+    startedAt: "2026-01-01T00:00:00.000Z",
     sync: {
       mode: "live",
       recipientFilter: { kind: "allowlist", domains: ["example.test"] },
+      keyRequired: false,
     },
     logger,
     now: () => Date.now(),

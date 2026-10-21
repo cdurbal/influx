@@ -679,7 +679,11 @@ describe("worker configuration", () => {
       sync: {
         mode: "dry_run",
         recipientFilter: { kind: "allowlist", domains: [] },
+        // 05 RG160 (D67): in development, no key is skipped_no_credentials (18 T17.1)
+        keyRequired: false,
       },
+      // 05 RG162: in development, a missing setting is named at start, never a refusal
+      settingsRequiredAtStart: false,
     });
   });
 
@@ -755,6 +759,7 @@ describe("worker configuration", () => {
         kind: "allowlist",
         domains: ["example.com", "example.org"],
       },
+      keyRequired: false,
     });
   });
 
@@ -1101,7 +1106,11 @@ describe.each(DEPLOYED)(
       expect(config.sync).toEqual({
         mode: "live",
         recipientFilter: { kind: "unrestricted" },
+        // 05 RG160 (D67): a qualified line without a key fails credentials_missing (CA87)
+        keyRequired: true,
       });
+      // 05 RG162: the worker refuses to start without the settings every sign-up needs (CA85)
+      expect(config.settingsRequiredAtStart).toBe(true);
       expect(config.database.privacy?.role).toBe("influx_privacy_login");
     });
 

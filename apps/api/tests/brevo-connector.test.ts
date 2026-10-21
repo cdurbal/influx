@@ -352,6 +352,7 @@ describe("operation 1: create or update a contact (16 §M1, §M4; 05 CA38)", () 
       templateCode: null,
       attributeNames: [...BREVO_CONTACT_ATTRIBUTES].sort(),
       rejectedAttributeNames: [],
+      missingSettings: [],
     });
     expect(prepared.recipientDomain).toBe("example.test");
     expect(
@@ -363,15 +364,87 @@ describe("operation 1: create or update a contact (16 §M1, §M4; 05 CA38)", () 
     ).toEqual([]);
   });
 
-  it("no list configured for the role: skipped with a clear cause, never guessed (0103)", async () => {
+  it("05 RG164: no list for the role is named with the mapping, never guessed, and the call never leaves (RG160)", async () => {
     const { contact } = connectors();
     const prepared = await prepare(
       contact,
       line("brevo_contact"),
       state({}, { ...SETTINGS, brevo_list_ids: { creators: null } }),
     );
-    expect(prepared).toEqual({ kind: "skip", reason: "list_not_configured" });
+    expect(prepared.kind).toBe("mapped");
+    if (prepared.kind !== "mapped") {
+      return;
+    }
+    expect(prepared.description).toEqual({
+      operation: "upsert_contact",
+      templateCode: null,
+      attributeNames: [...BREVO_CONTACT_ATTRIBUTES].sort(),
+      rejectedAttributeNames: [],
+      missingSettings: ["brevo_list_ids.creators"],
+    });
+    // the drain fails such a line before any call; the call refuses it again (defence in depth)
+    expect(await prepared.result()).toEqual({
+      kind: "failed",
+      errorCode: "list_not_configured",
+    });
     expect(double.requests).toHaveLength(0);
+  });
+
+  it("05 RG164: an advertiser without the advertisers list is named by its own path", async () => {
+    const { contact } = connectors({
+      subject: subject({ company: LEGAL_NAME }),
+    });
+    const prepared = await prepare(
+      contact,
+      line("brevo_contact"),
+      state(
+        { role: "advertiser", declaredStatus: "business" },
+        {
+          ...SETTINGS,
+          brevo_list_ids: { advertisers: null, creators: CREATORS_LIST },
+        },
+      ),
+    );
+    expect(
+      prepared.kind === "mapped" && prepared.description.missingSettings,
+    ).toEqual(["brevo_list_ids.advertisers"]);
+  });
+
+  it("05 RG164 (a): without consent at sign-up and without a list, skipped no_consent, never a configuration failure", async () => {
+    const { contact } = connectors();
+    expect(
+      await prepare(
+        contact,
+        line("brevo_contact"),
+        state(
+          { marketingEmailConsent: false },
+          {
+            ...SETTINGS,
+            brevo_list_ids: { advertisers: null, creators: null },
+          },
+        ),
+      ),
+    ).toEqual({ kind: "skip", reason: "no_consent" });
+    expect(reads).toHaveLength(0);
+  });
+
+  it("05 RG160 point 5, CA84: a withdrawal needs no list, it is unsubscribed whatever the lists", async () => {
+    const { contact } = connectors();
+    const prepared = await prepare(
+      contact,
+      line("brevo_contact", { eventType: "consent.revoked" }),
+      state(
+        { marketingEmailConsent: false },
+        { ...SETTINGS, brevo_list_ids: { advertisers: null, creators: null } },
+      ),
+    );
+    expect(prepared.kind === "mapped" && prepared.description).toEqual({
+      operation: "unsubscribe_contact",
+      templateCode: null,
+      attributeNames: [],
+      rejectedAttributeNames: [],
+      missingSettings: [],
+    });
   });
 
   it("an account gone or not active is skipped, nothing read, nothing called", async () => {
@@ -649,6 +722,7 @@ describe("operation 6: the welcome e-mail (05 RG76, RG86; 16 RG89, RG90; CA40, C
       templateCode: "account.welcome_creator",
       attributeNames: [],
       rejectedAttributeNames: [],
+      missingSettings: [],
     });
   });
 
@@ -909,6 +983,7 @@ describe("05 RG58, J7 decision 5: email.changed updates the contact in place, ne
       templateCode: null,
       attributeNames: ["EMAIL"],
       rejectedAttributeNames: [],
+      missingSettings: [],
     });
     if (prepared.kind === "mapped") {
       expect(await prepared.result()).toEqual({ kind: "succeeded" });
@@ -1076,6 +1151,7 @@ describe("05 RG58, J7 commit 7: the notice of a changed address, to both address
       templateCode: "auth.email_changed_notice",
       attributeNames: [],
       rejectedAttributeNames: [],
+      missingSettings: [],
     });
     expect(prepared.kind === "mapped" && prepared.recipientDomain).toBe(
       "example.test",
@@ -1209,6 +1285,7 @@ describe("05 RG141, RG142, J7 commit 8: auth.new_device, written by INFLUX witho
       templateCode: "auth.new_device",
       attributeNames: [],
       rejectedAttributeNames: [],
+      missingSettings: [],
     });
     if (prepared.kind !== "mapped") {
       throw new Error("expected a mapped e-mail");
@@ -1373,6 +1450,7 @@ describe("16 RG160, CA117: privacy.request_received, written by INFLUX without a
       templateCode: "privacy.request_received",
       attributeNames: [],
       rejectedAttributeNames: [],
+      missingSettings: [],
     });
     if (prepared.kind !== "mapped") {
       throw new Error("expected a mapped e-mail");
@@ -1484,6 +1562,7 @@ describe("04 §9.2, 15 RG79, J8 commit 8: account.deleted deletes the contact of
       templateCode: null,
       attributeNames: [],
       rejectedAttributeNames: [],
+      missingSettings: [],
     });
     if (prepared.kind !== "mapped") {
       throw new Error("expected a mapped deletion");
@@ -1641,6 +1720,7 @@ describe("runbook demandes-rgpd §4, J8 commit 8: privacy.export_ready, written 
       templateCode: "privacy.export_ready",
       attributeNames: [],
       rejectedAttributeNames: [],
+      missingSettings: [],
     });
     if (prepared.kind !== "mapped") {
       throw new Error("expected a mapped e-mail");

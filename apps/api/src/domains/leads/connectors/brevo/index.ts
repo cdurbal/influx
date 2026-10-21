@@ -8,9 +8,11 @@
 //   2. the qualification: contact without marketing consent (RG80) is skipped no_consent at sign-up,
 //      and unsubscribed afterwards (RG78: a withdrawal is never doubled by a later send); the
 //      welcome leaves whatever the consent (RG86), once per account (RG76, 16 RG90);
-//   3. the settings read at consumption (EC-8): list ids, NULL = skipped with a clear cause, never
-//      guessed (0103);
-//   4. the subject's own read (leads.read_brevo_subject, 0112), in its own short transaction;
+//   3. the subject's own read (leads.read_brevo_subject, 0112), in its own short transaction: a
+//      withdrawal or a suppression is unsubscribed, which needs no list (05 RG160 point 5);
+//   4. the settings read at consumption (EC-8): the list of the role, never guessed (0103); missing,
+//      it is named with the mapping (05 RG164) and the drain FAILS the line, an incident (RG160),
+//      after the would_send trace of dry_run and the output check;
 //   5. the mapping of 16 §M4 and the output check (RG137): a refusal goes back to the drain, which
 //      fails the line, in dry_run as in live;
 //   6. BREVO_MODE=redirect: an address outside BREVO_TEST_RECIPIENTS is skipped_non_production
@@ -45,6 +47,7 @@ import { renderWelcomeEmail } from "../../../identity/welcome-email.ts";
 import { renderExportReadyEmail } from "../../../privacy/export-ready-email.ts";
 import {
   accountSkip,
+  type CallDescription,
   type Connector,
   type Preparation,
 } from "../../connector.ts";
@@ -53,6 +56,11 @@ import type {
   BrevoErasureSubject,
   ClaimedLine,
 } from "../../repository.ts";
+import {
+  brevoListIdOf,
+  brevoListPathOf,
+  configurationFailureCode,
+} from "../../settings.ts";
 import {
   createBrevoClient,
   type BrevoClient,
@@ -129,22 +137,6 @@ export type BrevoConnectorDependencies = {
   mapContact?: typeof mapContact;
 };
 
-/** An id of leads.sync_settings (brevo_list_ids): a positive integer, or null. */
-function idIn(
-  settings: AttemptState["settings"],
-  key: string,
-  name: string,
-): number | null {
-  const ids = settings[key];
-  if (typeof ids !== "object" || ids === null) {
-    return null;
-  }
-  const value = (ids as Record<string, unknown>)[name];
-  return typeof value === "number" && Number.isInteger(value) && value > 0
-    ? value
-    : null;
-}
-
 function domainOf(email: string): string {
   return email.slice(email.lastIndexOf("@") + 1).toLowerCase();
 }
@@ -187,18 +179,25 @@ export function createBrevoConnectors(
     );
   }
 
-  /** The call, refused again if the output check refused (defence in depth). */
+  /**
+   * The call, refused again if the output check refused or a setting is missing (defence in depth:
+   * the drain fails such a line before any call).
+   */
   function guarded(
-    rejected: readonly string[],
+    description: CallDescription,
     call: (brevo: BrevoClient) => ReturnType<BrevoClient["upsertContact"]>,
     brevo: BrevoClient | null,
   ) {
     return () => {
-      if (rejected.length > 0) {
+      if (description.rejectedAttributeNames.length > 0) {
         return Promise.resolve({
           kind: "failed" as const,
           errorCode: "output_check_rejected",
         });
+      }
+      const missing = configurationFailureCode(description.missingSettings);
+      if (missing !== null) {
+        return Promise.resolve({ kind: "failed" as const, errorCode: missing });
       }
       if (brevo === null) {
         // Unreachable: the drain skips a connector without credentials before any call.
@@ -217,17 +216,19 @@ export function createBrevoConnectors(
     if (rejected.length === 0 && redirected(email)) {
       return { kind: "skip", reason: "skipped_non_production" };
     }
+    const description: CallDescription = {
+      operation: "unsubscribe_contact",
+      templateCode: null,
+      attributeNames: [],
+      rejectedAttributeNames: rejected,
+      missingSettings: [],
+    };
     return {
       kind: "mapped",
-      description: {
-        operation: "unsubscribe_contact",
-        templateCode: null,
-        attributeNames: [],
-        rejectedAttributeNames: rejected,
-      },
+      description,
       recipientDomain: domainOf(email),
       send: guarded(
-        rejected,
+        description,
         (brevo) =>
           brevo.unsubscribeContact(email, body, settings.suppressionListId),
         contactClient,
@@ -268,17 +269,19 @@ export function createBrevoConnectors(
             { type: "contact_id", value: subject.externalContactId },
             { type: "email_id", value: email },
           ];
+    const description: CallDescription = {
+      operation: "delete_contact",
+      templateCode: null,
+      attributeNames: [],
+      rejectedAttributeNames: [],
+      missingSettings: [],
+    };
     return {
       kind: "mapped",
-      description: {
-        operation: "delete_contact",
-        templateCode: null,
-        attributeNames: [],
-        rejectedAttributeNames: [],
-      },
+      description,
       recipientDomain: domainOf(email),
       send: guarded(
-        [],
+        description,
         (brevo) => brevo.deleteContact(identifiers),
         contactClient,
       ),
@@ -312,17 +315,19 @@ export function createBrevoConnectors(
         ? { type: "email_id", value: previousEmail }
         : { type: "contact_id", value: subject.externalContactId };
     const withdrawn = !account.marketingEmailConsent || subject.suppressed;
+    const description: CallDescription = {
+      operation: "change_contact_email",
+      templateCode: null,
+      attributeNames: Object.keys(body.attributes),
+      rejectedAttributeNames: rejected,
+      missingSettings: [],
+    };
     return {
       kind: "mapped",
-      description: {
-        operation: "change_contact_email",
-        templateCode: null,
-        attributeNames: Object.keys(body.attributes),
-        rejectedAttributeNames: rejected,
-      },
+      description,
       recipientDomain: domainOf(subject.email),
       send: guarded(
-        rejected,
+        description,
         async (brevo) => {
           const changed = await brevo.updateContactEmail(identifier, body);
           if (changed.kind !== "succeeded" || !withdrawn) {
@@ -360,17 +365,19 @@ export function createBrevoConnectors(
     if (rejected.length === 0 && redirected(recipient)) {
       return { kind: "skip", reason: "skipped_non_production" };
     }
+    const description: CallDescription = {
+      operation: "send_transactional",
+      templateCode: code,
+      attributeNames: [],
+      rejectedAttributeNames: rejected,
+      missingSettings: [],
+    };
     return {
       kind: "mapped",
-      description: {
-        operation: "send_transactional",
-        templateCode: code,
-        attributeNames: [],
-        rejectedAttributeNames: rejected,
-      },
+      description,
       recipientDomain: domainOf(recipient),
       send: guarded(
-        rejected,
+        description,
         (brevo) => brevo.sendTransactional(body, line.idempotencyKey, locale),
         transactionalClient,
       ),
@@ -548,24 +555,15 @@ export function createBrevoConnectors(
         // 05 RG80, CA39: no consent, no marketing contact; a skip, never a failure.
         return { kind: "skip", reason: "no_consent" };
       }
-      const listId = unsubscribe
-        ? null
-        : idIn(
-            state.settings,
-            "brevo_list_ids",
-            account.role === "advertiser" ? "advertisers" : "creators",
-          );
-      if (!unsubscribe && listId === null) {
-        return { kind: "skip", reason: "list_not_configured" };
-      }
       const subject = await dependencies.readSubject(line);
       if (subject === null) {
         return { kind: "skip", reason: "account_absent" };
       }
 
-      if (unsubscribe || listId === null || subject.suppressed) {
+      if (unsubscribe || subject.suppressed) {
         // Operation 2 (then 7): the consent withdrawn since the emission (05 RG37, RG78), or a
-        // contact under suppression, whatever the consent (RG93, CA55).
+        // contact under suppression, whatever the consent (RG93, CA55). It needs no list: never
+        // held back by a missing setting (05 RG160 point 5, CA84).
         return unsubscribing(subject.email);
       }
 
@@ -573,25 +571,34 @@ export function createBrevoConnectors(
       // A consent given again from the space (consent.granted, still in force at consumption)
       // lifts the blacklist that operation 2 set: Brevo keeps it otherwise (J6T-3). Never on any
       // other event: a blacklist set by Brevo itself waits for its webhook (RG90).
+      // The list of the role, read at consumption (EC-8): missing, it is named (05 RG164) and the
+      // drain fails the line, an incident (RG160), never a skip.
+      const role = account.role === "advertiser" ? "advertiser" : "creator";
+      const listId = brevoListIdOf(state.settings, role);
       const body =
         line.eventType === "consent.granted"
           ? { ...map(account, subject, listId), emailBlacklisted: false }
           : map(account, subject, listId);
-      const rejected = checkContactOutput(body);
-      if (rejected.length === 0 && redirected(subject.email)) {
+      const description: CallDescription = {
+        operation: "upsert_contact",
+        templateCode: null,
+        attributeNames: Object.keys(body.attributes).sort(),
+        rejectedAttributeNames: checkContactOutput(body),
+        missingSettings: listId === null ? [brevoListPathOf(role)] : [],
+      };
+      if (
+        description.rejectedAttributeNames.length === 0 &&
+        description.missingSettings.length === 0 &&
+        redirected(subject.email)
+      ) {
         return { kind: "skip", reason: "skipped_non_production" };
       }
       return {
         kind: "mapped",
-        description: {
-          operation: "upsert_contact",
-          templateCode: null,
-          attributeNames: Object.keys(body.attributes).sort(),
-          rejectedAttributeNames: rejected,
-        },
+        description,
         recipientDomain: domainOf(subject.email),
         send: guarded(
-          rejected,
+          description,
           (brevo) => brevo.upsertContact(body),
           contactClient,
         ),

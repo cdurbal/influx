@@ -8,7 +8,8 @@
 //             consumption (RG37): account, consents in force, settings (EC-8); never an address
 //   complete  the outcome: succeeded | skipped + reason | pending + delay | failed + cause, the dry
 //             run always explicit (decision 2 of the architect, J6)
-//   recover   the lines a stopped worker left in processing for more than 600 s (TM1.10)
+//   recover   the lines a stopped worker left in processing for more than 600 s (TM1.10), and
+//             the configuration failures whose setting was corrected since (05 RG161, 0146)
 //
 // Register (EC-52 (3)): the claim is a reservation and the outcome of a queue line closes an
 // existing line, so neither writes one; the journal line of a welcome e-mail is an insertion, whose
@@ -27,7 +28,7 @@ import {
   readBrevoErasureSubject,
   readBrevoSubject,
   recoverStaleLines,
-  writeBrevoIdsFromEnvironment,
+  startWorkerStep,
   type AttemptOutcome,
   type ApolloSubject,
   type AttemptState,
@@ -35,6 +36,7 @@ import {
   type BrevoSubject,
   type ClaimedLine,
   type RecoveredLine,
+  type WorkerStart,
   type WrittenStatus,
 } from "./repository.ts";
 
@@ -110,12 +112,16 @@ export async function completeOutboxAttempt(
 export async function recoverStaleOutboxLines(
   database: WorkerDatabase,
   requestId: string,
+  startedAt: string,
 ): Promise<RecoveredLine[]> {
   return withElevatedTransaction(
     database,
     "leads.drain_outbox",
     requestId,
-    async (tx) => ({ value: await recoverStaleLines(tx), auditSubject: null }),
+    async (tx) => ({
+      value: await recoverStaleLines(tx, startedAt),
+      auditSubject: null,
+    }),
   );
 }
 
@@ -207,7 +213,8 @@ export async function readApolloSubjectOf(
  * when the promise settles. Injected, so that the loop is tested on an in-memory queue.
  */
 export type OutboxQueue = {
-  recover(requestId: string): Promise<RecoveredLine[]>;
+  /** `startedAt`: the start of this process by the database clock (WorkerStart). */
+  recover(requestId: string, startedAt: string): Promise<RecoveredLine[]>;
   claim(requestId: string, worker: string): Promise<ClaimedLine[]>;
   /** Rejects with LineTakenBackError on a line no longer this worker's. */
   begin(
@@ -235,7 +242,8 @@ async function translated<T>(step: Promise<T>): Promise<T> {
 /** The queue of the worker process, on its only pool (EC-20). */
 export function createWorkerQueue(database: WorkerDatabase): OutboxQueue {
   return {
-    recover: (requestId) => recoverStaleOutboxLines(database, requestId),
+    recover: (requestId, startedAt) =>
+      recoverStaleOutboxLines(database, requestId, startedAt),
     claim: (requestId, worker) => claimOutboxBatch(database, requestId, worker),
     begin: (requestId, lineId, worker) =>
       translated(beginOutboxAttempt(database, requestId, lineId, worker)),
@@ -246,30 +254,26 @@ export function createWorkerQueue(database: WorkerDatabase): OutboxQueue {
   };
 }
 
-/** D68: true when the worker's environment gives at least one Brevo list id. */
-export function givesBrevoIds(ids: BrevoIdsFromEnvironment): boolean {
-  return Object.keys(ids.listIds).length > 0;
-}
-
 /**
- * D68 (founder, 2026-10-17): at start, before the first turn and under the motif of E-3 (no new
- * motif in 03 §P7), the Brevo list ids of the environment go into leads.sync_settings (0140, D69:
- * no template id any more). Only the
- * ids given are merged, never a null (05 RG163); the base stays the source of truth (RG37). A
+ * The start step of the worker, before the first turn and under the motif of E-3 (no new motif in
+ * 03 §P7). D68 (founder, 2026-10-17): the Brevo list ids of the environment go into
+ * leads.sync_settings (0140, D69: no template id any more); only the ids given are merged, never a
+ * null (05 RG163), and none given writes nothing; the base stays the source of truth (RG37). A
  * change is journaled settings.changed by the trigger of leads.sync_settings (0145, D67 (v)): no
- * elevated audit line. Returns the keys changed.
+ * elevated audit line. Then, in the same transaction (0146): the worker keys in force, for the
+ * start check of 05 RG162 (read now, never cached), and the start instant by the database clock.
  */
-export async function applyBrevoIdsFromEnvironment(
+export async function startWorker(
   database: WorkerDatabase,
   requestId: string,
   ids: BrevoIdsFromEnvironment,
-): Promise<string[]> {
+): Promise<WorkerStart> {
   return withElevatedTransaction(
     database,
     "leads.drain_outbox",
     requestId,
     async (tx) => ({
-      value: await writeBrevoIdsFromEnvironment(tx, ids.listIds),
+      value: await startWorkerStep(tx, ids.listIds),
       auditSubject: null,
     }),
   );

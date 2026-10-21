@@ -270,7 +270,7 @@ describe("modes of D70", () => {
   });
 });
 
-describe("syncSettingsIssues (05 RG162, D69)", () => {
+describe("syncSettingsIssues (05 RG162, D69): the verdict of the worker at start", () => {
   // The seed of 0103, the two list ids set.
   const complete = {
     apollo_scope: "annonceurs_et_createurs_pro",
@@ -290,16 +290,16 @@ describe("syncSettingsIssues (05 RG162, D69)", () => {
     expect(syncSettingsIssues(complete, true)).toEqual([]);
   });
 
-  it("names the lists of the seed, still null", () => {
+  it("names the lists of the seed, still null, by their path (CA85)", () => {
     expect(
       syncSettingsIssues(
         { ...complete, brevo_list_ids: { advertisers: null, creators: 4 } },
         true,
       ),
-    ).toEqual(["brevo_list_ids"]);
+    ).toEqual(["brevo_list_ids.advertisers"]);
     expect(
       syncSettingsIssues({ ...complete, brevo_list_ids: undefined }, false),
-    ).toEqual(["brevo_list_ids"]);
+    ).toEqual(["brevo_list_ids.advertisers", "brevo_list_ids.creators"]);
   });
 
   it("names an unreadable retry schedule and a missing rate limit", () => {
@@ -312,7 +312,10 @@ describe("syncSettingsIssues (05 RG162, D69)", () => {
         },
         false,
       ),
-    ).toEqual(["retry_schedule", "rate_limits"]);
+    ).toEqual([
+      "retry_schedule",
+      "rate_limits.brevo_transactional_per_minute",
+    ]);
   });
 
   it("requires the Apollo rate and keys only when the worker has an Apollo key", () => {
@@ -326,7 +329,7 @@ describe("syncSettingsIssues (05 RG162, D69)", () => {
     };
     expect(syncSettingsIssues(withoutApollo, false)).toEqual([]);
     expect(syncSettingsIssues(withoutApollo, true)).toEqual([
-      "rate_limits",
+      "rate_limits.apollo_contact_per_minute",
       "apollo_scope",
     ]);
   });

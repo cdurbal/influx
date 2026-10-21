@@ -1,8 +1,9 @@
 // The qualification of a lead for Apollo (05 RG81 to RG84, skill apollo-lead-sync), evaluated
 // BEFORE any call, on the settings read at this consumption (EC-8, RG81: never at start, never in
 // the code). Each refusal is a skip with its reason, never a failure: the lead stays in INFLUX and
-// is re-evaluated by a replay (RG82). A setting that does not read is an abstention, never a send by
-// default (RG84).
+// is re-evaluated by a replay (RG82). A setting that does not read is never a send by default
+// (RG84): since D67 it fails the line, an incident (05 RG160), and the worker of a deployed
+// environment refuses to start with it when it holds an Apollo key (RG162), by the same parse.
 import { z } from "zod";
 import type { AttemptState, SubjectAccount } from "../../repository.ts";
 
@@ -32,6 +33,28 @@ export type ApolloSettings = {
   legalBasis: z.infer<typeof legalBasisSchema>;
   excludedCountries: ReadonlySet<string>;
 };
+
+export const APOLLO_SETTING_KEYS = [
+  "apollo_scope",
+  "apollo_legal_basis",
+  "apollo_excluded_countries",
+] as const;
+export type ApolloSettingKey = (typeof APOLLO_SETTING_KEYS)[number];
+
+const APOLLO_SETTING_SCHEMAS: Readonly<Record<ApolloSettingKey, z.ZodType>> = {
+  apollo_scope: scopeSchema,
+  apollo_legal_basis: legalBasisSchema,
+  apollo_excluded_countries: countriesSchema,
+};
+
+/** The Apollo keys that do not read, in the order of APOLLO_SETTING_KEYS; names only. */
+export function unreadableApolloKeys(
+  settings: AttemptState["settings"],
+): ApolloSettingKey[] {
+  return APOLLO_SETTING_KEYS.filter(
+    (key) => !APOLLO_SETTING_SCHEMAS[key].safeParse(settings[key]).success,
+  );
+}
 
 export function apolloSettingsOf(
   settings: AttemptState["settings"],

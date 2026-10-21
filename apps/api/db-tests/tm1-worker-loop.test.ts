@@ -140,6 +140,7 @@ function contactConnector(
           templateCode: null,
           attributeNames: ["LANGUAGE"],
           rejectedAttributeNames: [],
+          missingSettings: [],
         },
         recipientDomain: "example.test",
         send: async () => {
@@ -192,9 +193,11 @@ async function turnOnWorkerPool(
         ),
       ),
       worker: `tm1-loop-${randomUUID().slice(0, 8)}`,
+      startedAt: "2026-01-01T00:00:00.000Z",
       sync: {
         mode,
         recipientFilter: { kind: "allowlist", domains: ["example.test"] },
+        keyRequired: false,
       },
       logger,
       now: () => Date.now(),

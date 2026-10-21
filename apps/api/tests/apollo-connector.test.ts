@@ -280,6 +280,7 @@ describe("create or update a contact, never a duplicate", () => {
       templateCode: null,
       attributeNames: ["email", "label_names", "organization_name"],
       rejectedAttributeNames: [],
+      missingSettings: [],
     });
     expect(preparation.recipientDomain).toBe("example.test");
     expect(
@@ -477,15 +478,29 @@ describe("05 RG81 to RG84: the qualification, before any call", () => {
     ).toBe("account_absent");
   });
 
-  it("a setting that does not read is an abstention, logged by its key only", async () => {
+  it("05 RG160, RG164 (b): a setting that does not read fails the line without a mapping, logged by its key only", async () => {
     const preparation = await connector().prepare(
       line(),
       state({}, { apollo_scope: "everyone" }),
     );
-    expect(skipOf(preparation)).toBe("apollo_settings_invalid");
+    expect(preparation).toEqual({
+      kind: "fail",
+      errorCode: "apollo_settings_invalid",
+    });
     expect(logLines).toEqual([
       'error leads.settings.invalid {"key":"apollo","destination":"apollo_contact"}',
     ]);
+  });
+
+  it("05 RG164 (a): an account gone or not active stays a skip, whatever the settings", async () => {
+    expect(
+      skipOf(
+        await connector().prepare(
+          line(),
+          state({ status: "suspended" }, { apollo_scope: "everyone" }),
+        ),
+      ),
+    ).toBe("account_not_active");
   });
 });
 

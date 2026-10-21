@@ -337,8 +337,9 @@ describe("05 RG163, CA88, TM1.16 — a Brevo id once set never becomes empty (01
       const id = freshId(before);
       const changed = await actAs(tx, "worker", async () => {
         const [row] = await tx<{ changed: string[] }[]>`
-          select leads.apply_brevo_ids_from_environment(
-                   ${JSON.stringify({ advertisers: id })}::text::jsonb) as changed`;
+          select changed_keys as changed
+            from leads.apply_brevo_ids_from_environment(
+                   ${JSON.stringify({ advertisers: id })}::text::jsonb)`;
         return row?.changed;
       });
       expect(changed).toEqual(["brevo_list_ids"]);

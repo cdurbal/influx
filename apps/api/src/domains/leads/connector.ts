@@ -7,6 +7,12 @@
 //            it may read the database in its OWN short transaction, closed when it returns
 //   send     the external call, made by the loop with no transaction open (02 §18.4 G4), and only
 //            in live mode, with a key, to an allowed recipient
+// The preparation, with no call and no effect, gives one of three outcomes (05 RG164, D67): a skip
+// for a normal cause, ALWAYS first (a line without consent is never a configuration failure); a
+// failure without a mapping (an Apollo setting that does not read, an unsupported e-mail); or the
+// description of the mapping with the settings it lacks, possibly none. The loop then applies, in
+// this order: the would_send trace in dry_run, the output check, the configuration failure, the
+// dry-run success, the key, the allow-list, the call.
 // What leaves the connector for the loop and its log lines is names and verdicts, never a value:
 // no address, no attribute value, no template parameter (decision 3 of the architect, D60).
 import type {
@@ -15,6 +21,7 @@ import type {
   OutboxDestination,
   SubjectAccount,
 } from "./repository.ts";
+import type { MissingSetting } from "./settings.ts";
 
 /** What the call would carry, by names only (the dry-run line of decision 3). */
 export type CallDescription = {
@@ -25,6 +32,11 @@ export type CallDescription = {
   attributeNames: readonly string[];
   /** Attributes refused by the output check (16 RG137): any refusal fails the line. */
   rejectedAttributeNames: readonly string[];
+  /**
+   * The settings of INFLUX the call needs and that are missing (05 RG164): any fails the line, a
+   * configuration incident (RG160), after the output check; never sent.
+   */
+  missingSettings: readonly MissingSetting[];
 };
 
 /** The answer of the provider, already classified by the connector (16 §M5). */
@@ -66,7 +78,10 @@ export type Preparation =
 
 export interface Connector {
   readonly destination: OutboxDestination;
-  /** false: no key in this environment, the line is skipped_no_credentials (02 §12.4 lock 1). */
+  /**
+   * false: no key in this process; a qualified line fails credentials_missing in a deployed
+   * environment (05 RG160), and is skipped_no_credentials in development (02 §12.4 lock 1).
+   */
   readonly hasCredentials: boolean;
   prepare(line: ClaimedLine, state: AttemptState): Promise<Preparation>;
 }

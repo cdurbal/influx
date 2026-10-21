@@ -88,11 +88,14 @@ export function languageOf(account: SubjectAccount): "fr" | "en" {
   return account.preferredLanguage === "fr" ? "fr" : "en";
 }
 
-/** Operation 1: the body of the contact, by the closed mapping of 16 §M4 and EC-11. */
+/**
+ * Operation 1: the body of the contact, by the closed mapping of 16 §M4 and EC-11. A list id null
+ * is a missing setting (05 RG164): the body is described, never sent.
+ */
 export function mapContact(
   account: SubjectAccount,
   subject: BrevoSubject,
-  listId: number,
+  listId: number | null,
 ): BrevoContactBody {
   const attributes: Record<BrevoContactAttribute, string | number | boolean> = {
     INFLUX_ACCOUNT_ID: account.id,
@@ -123,7 +126,7 @@ export function mapContact(
   return {
     email: subject.email,
     attributes,
-    listIds: [listId],
+    listIds: listId === null ? [] : [listId],
     updateEnabled: true,
   };
 }

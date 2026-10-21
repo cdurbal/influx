@@ -1300,6 +1300,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|column|leads.contact_sync_states.last_error_code|INSERT,UPDATE",
   "influx_leads_definer|column|leads.contact_sync_states.last_status|INSERT,UPDATE",
   "influx_leads_definer|column|leads.contact_sync_states.last_success_at|INSERT,SELECT,UPDATE",
+  // 0146 (J9 D67-b): the start of the latest attempt, kept after its outcome (05 RG161)
+  "influx_leads_definer|column|leads.outbox_events.attempt_started_at|SELECT,UPDATE",
   "influx_leads_definer|column|leads.outbox_events.attempts|SELECT,UPDATE",
   "influx_leads_definer|column|leads.outbox_events.available_at|SELECT,UPDATE",
   "influx_leads_definer|column|leads.outbox_events.completed_at|UPDATE",
@@ -1309,7 +1311,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|column|leads.outbox_events.event_type|INSERT,SELECT",
   "influx_leads_definer|column|leads.outbox_events.id|SELECT",
   "influx_leads_definer|column|leads.outbox_events.idempotency_key|INSERT,SELECT",
-  "influx_leads_definer|column|leads.outbox_events.last_error_code|UPDATE",
+  // 0146: the catch-up of 05 RG161 reads the code of a failed line
+  "influx_leads_definer|column|leads.outbox_events.last_error_code|SELECT,UPDATE",
   "influx_leads_definer|column|leads.outbox_events.last_error_message|UPDATE",
   "influx_leads_definer|column|leads.outbox_events.locked_at|SELECT,UPDATE",
   "influx_leads_definer|column|leads.outbox_events.locked_by|SELECT,UPDATE",
@@ -1324,6 +1327,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   // 0139 (D68), 0140 (D69): the Brevo list ids of the worker's environment, the value and its author only
   "influx_leads_definer|column|leads.sync_settings.value|SELECT,UPDATE",
   "influx_leads_definer|column|leads.sync_settings.updated_by_account_id|UPDATE",
+  // 0146: the date of modification of a key (0145), compared by the catch-up of 05 RG161
+  "influx_leads_definer|column|leads.sync_settings.updated_at|SELECT",
   "influx_leads_definer|function|leads.apply_brevo_ids_from_environment(jsonb)|EXECUTE",
   "influx_worker|function|leads.apply_brevo_ids_from_environment(jsonb)|EXECUTE",
   // 0145 (J9 D67-a): the journal trigger of leads.sync_settings, owner's EXECUTE only, no grant

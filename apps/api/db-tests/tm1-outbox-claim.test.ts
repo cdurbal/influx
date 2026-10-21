@@ -36,6 +36,7 @@ import {
   claimOutboxBatch,
   completeOutboxAttempt,
   recoverStaleOutboxLines,
+  startWorker,
 } from "../src/domains/leads/queue.ts";
 import { loginRole, migrationRole, testDataSet } from "./support.ts";
 
@@ -1971,11 +1972,27 @@ describe("T6.4: E-3 through withElevatedTransaction (src/domains/leads/queue.ts)
     const requestId = `tm1-recover-${randomUUID()}`;
     const { database } = workerDatabase();
     try {
-      const recovered = await recoverStaleOutboxLines(database, requestId);
+      // 0146: the start instant of the start step, to the microsecond, handed back as it came
+      const start = await startWorker(database, randomUUID(), { listIds: {} });
+      expect(start.startedAt).toMatch(
+        /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{6}Z$/,
+      );
+      const recovered = await recoverStaleOutboxLines(
+        database,
+        requestId,
+        start.startedAt,
+      );
       // stale lines of an interrupted earlier run may come back too: keep this case's own
       expect(
         recovered.filter((line) => line.id === stale || line.id === fresh),
-      ).toEqual([{ id: stale, writtenStatus: "pending" }]);
+      ).toEqual([
+        {
+          id: stale,
+          writtenStatus: "pending",
+          reason: "worker_interrupted",
+          errorCode: null,
+        },
+      ]);
     } finally {
       await closeDatabase(database);
     }

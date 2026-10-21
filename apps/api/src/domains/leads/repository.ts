@@ -84,7 +84,27 @@ export type RecordedOutcome = {
   accountId: string | null;
 };
 
-export type RecoveredLine = { id: string; writtenStatus: "pending" | "failed" };
+/**
+ * A line the take-back returned to the queue (0146): an orphan of a stopped worker (TM1.10), or a
+ * configuration failure whose setting was corrected (05 RG161), with the code it failed with.
+ */
+export type RecoveredLine = {
+  id: string;
+  writtenStatus: "pending" | "failed";
+  reason: "worker_interrupted" | "configuration_restored";
+  /** The code of the configuration failure re-queued; null for an orphan. */
+  errorCode: string | null;
+};
+
+/** The start step of the worker (0146): D68, then what 05 RG162 checks. */
+export type WorkerStart = {
+  /** The keys the environment changed (D68). */
+  changedKeys: string[];
+  /** The worker keys of leads.sync_settings in force after the step, read now (RG81). */
+  settings: Readonly<Record<string, unknown>>;
+  /** The start, by the database clock (ISO 8601, microseconds): 05 RG161, credentials_missing. */
+  startedAt: string;
+};
 
 /** What the Brevo connectors read of a subject, besides the account state of the attempt (0112). */
 export type BrevoSubject = {
@@ -293,20 +313,33 @@ export async function completeAttempt(
   };
 }
 
-/** Takes back the lines left in processing for more than 600 s (TM1.10). */
+/**
+ * Takes back the lines left in processing for more than 600 s (TM1.10) and re-queues the
+ * configuration failures whose setting was corrected (05 RG161, 0146). The start of this process
+ * is handed for this call only (influx.worker_started_at, transaction-local): a credentials_missing
+ * line whose attempt began before it goes back to the queue.
+ */
 export async function recoverStaleLines(
   tx: Transaction,
+  startedAt: string,
 ): Promise<RecoveredLine[]> {
+  await tx.execute(
+    sql`select pg_catalog.set_config('influx.worker_started_at', ${startedAt}::text, true)`,
+  );
   const rows = await tx.execute<{
     id: string;
     written_status: RecoveredLine["writtenStatus"];
+    reason: RecoveredLine["reason"];
+    error_code: string | null;
   }>(
-    sql`select outbox_id::text as id, written_status::text as written_status
+    sql`select outbox_id::text as id, written_status::text as written_status, reason, error_code
           from leads.recover_stale_outbox_lines()`,
   );
   return Array.from(rows, (row) => ({
     id: row.id,
     writtenStatus: row.written_status,
+    reason: row.reason,
+    errorCode: row.error_code,
   }));
 }
 
@@ -457,16 +490,33 @@ export async function readApolloSubject(
 }
 
 /**
- * D68, D69 (0140): writes the Brevo list ids of the worker's environment into leads.sync_settings;
- * only the sub-keys given are merged. Returns the keys changed; the function journals them itself.
+ * The start step (D68, D69; 0146): writes the Brevo list ids of the worker's environment into
+ * leads.sync_settings, only the sub-keys given (none: nothing written), journaled by the trigger of
+ * the table (0145); then returns the keys changed, the worker keys in force and the start instant.
  */
-export async function writeBrevoIdsFromEnvironment(
+export async function startWorkerStep(
   tx: Transaction,
   listIds: Readonly<Record<string, number>>,
-): Promise<string[]> {
-  const rows = await tx.execute<{ changed: string[] }>(
-    sql`select leads.apply_brevo_ids_from_environment(
-                 ${JSON.stringify(listIds)}::text::jsonb) as changed`,
+): Promise<WorkerStart> {
+  const rows = await tx.execute<{
+    changed_keys: string[];
+    settings: Record<string, unknown>;
+    started_at: string;
+  }>(
+    sql`select changed_keys, settings,
+               to_char(started_at at time zone 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as started_at
+          from leads.apply_brevo_ids_from_environment(${JSON.stringify(listIds)}::text::jsonb)`,
   );
-  return rows[0]?.changed ?? [];
+  const row = rows[0];
+  if (row === undefined) {
+    throw new Error(
+      "unexpected answer of leads.apply_brevo_ids_from_environment()",
+    );
+  }
+  return {
+    changedKeys: row.changed_keys,
+    settings: row.settings,
+    startedAt: row.started_at,
+  };
 }

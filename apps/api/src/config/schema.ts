@@ -875,7 +875,17 @@ export type WorkerConfig = BaseConfig & {
   sync: {
     mode: SyncMode;
     recipientFilter: RecipientFilter;
+    /**
+     * 05 RG160 (D67): deployed, a qualified line without a key fails credentials_missing; in
+     * development it is skipped_no_credentials (02 §12.4 lock 1, 18 T17.1).
+     */
+    keyRequired: boolean;
   };
+  /**
+   * 05 RG162 (D67): deployed, the worker refuses to start without the settings every sign-up
+   * needs; in development it starts and names them (leads.settings.missing_at_start).
+   */
+  settingsRequiredAtStart: boolean;
 };
 
 export const apiEnvSchema = z
@@ -1246,7 +1256,9 @@ export const workerEnvSchema = z
             kind: "allowlist",
             domains: env.NON_PRODUCTION_RECIPIENT_ALLOWLIST,
           },
+      keyRequired: isDeployedEnvironment(env.INFLUX_ENV),
     },
+    settingsRequiredAtStart: isDeployedEnvironment(env.INFLUX_ENV),
   }));
 
 /** Refusal to start. Its message names variables and rules, never a value. */
