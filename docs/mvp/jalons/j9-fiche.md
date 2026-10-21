@@ -313,6 +313,12 @@ commit 10) ; tout nouveau fichier `db-tests` entre dans `case-floors.ts`.
 - `0146` reclasse en `failed` les `skipped` `list_not_configured` / `apollo_settings_invalid` (EC-J9-D67b-4 ; 5 sur `staging`) ; `template_not_configured` inchangés. Jusqu'à D67-c, `sync-causes.ts` affiche ces échecs en `other_failure`. Prochaine migration libre **`0147`**.
 - `staging` : jeton Railway refusé (`Invalid RAILWAY_TOKEN`, P3, fondateur) : `staging:check` KO sur les variables Railway, réglages en base verts (RG162 Apollo compris).
 
+## Issu du commit D67-c
+
+- Contrat : `syncStatus.setting` et `alert.setting` (liste fermée `SYNC_SETTINGS`, noms seuls) ; le réglage d'une liste Brevo vient du rôle du compte (`list_not_configured` ⇒ annonceurs / créateurs). AL25 `configuration_missing` : une alerte par réglage, calculée à la lecture, tombe seule après le rattrapage RG161.
+- Rejeu : aucune migration, `leads.replay_outbox_lines` remet déjà tout `failed` en file ; motif `configuration_fixed`. Les `skipped` de configuration d'avant `0146` s'affichent aussi en incident, jamais en cas normal.
+- Libellés `template_not_configured` conservés pour d'éventuelles lignes anciennes (D69). Local : 556 lignes `pending` résiduelles des tests supprimées (saturaient le lot de 50 de TM1.11) ; `t8-gotrue-findings` b4 intermittent, vert seul.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les
