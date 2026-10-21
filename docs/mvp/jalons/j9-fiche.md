@@ -327,6 +327,13 @@ commit 10) ; tout nouveau fichier `db-tests` entre dans `case-floors.ts`.
 - Sans `'unsafe-inline'` nulle part : `ResponsiveImage` retire le `style` de `next/image` (classes équivalentes) ; `@influx/contracts` prend zod de `src/zod.ts` (`jitless` au navigateur : la sonde `new Function` levait une violation). `next dev` seul : `'unsafe-eval'` et styles en ligne.
 - Reste : les pages 404 par défaut de Next (styles en ligne refusés, fond clair) ⇒ pages d'erreur aux jetons au commit 7 (T13). T10.5 reste couvert par `apps/api` (`auth-cookies.test.ts`).
 
+## Issu du commit 5
+
+- Photos **définitives** (fondateur, 2026-10-21) : sorties du module fictif vers `src/content/images/` ; `CREDITS.md` = manifeste de la garde G4 (crédits toujours vérifiés), `camera.png` déclaré dans la garde ; textes alternatifs dans `landing.images`. Les 16 photos des blocs fictifs (cartes, études de cas, résultat) restent au dépôt, non affichées.
+- Non rendus faute de contenu réel (`02` §2.8) : chiffre clé, vitrine, résultat, logos, études de cas, cartes créateurs, conversation fictive, adresse de contact ; « Conditions de vente » et « Mentions légales » absentes du pied (D25). Section 15 fondue dans le renvoi final (mêmes deux portes) ; liens de navigation de l'en-tête et du pied encore inertes.
+- À relire par `expert-ux` (antérieur au commit) : le badge de `ShortVideoOverlay` ressemble au logo YouTube ; la photo principale du héros ne correspond pas à son texte alternatif.
+- Planchers : `pnpm test` = **2 722** (contracts 89, test-kit 119, backoffice 36, web 188, `apps/api` unitaire 1 155, base 1 135). `test:db` local rouge sur un cas intermittent (436 lignes `pending` résiduelles des e2e saturant le lot de TM1.11, comme à D67-c) ; commit accepté par le fondateur.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les
