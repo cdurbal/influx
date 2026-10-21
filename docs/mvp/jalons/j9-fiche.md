@@ -298,6 +298,13 @@ commit 10) ; tout nouveau fichier `db-tests` entre dans `case-floors.ts`.
 - C5.c : détenteur lu par `generateLink`, `identity.email_change_holder_is_orphan()` (`0144` : demande propre, deux côtés confirmés, ouverte ; sur l'id), suppression puis un essai ; GoTrue indisponible ⇒ `503`, demande ouverte ; aucune ligne de registre (la purge horaire reste le chemin compté).
 - J7S-2 : `breaker.orphan_ratio` / `breaker.filter_refused` dans `maintenance.periodic.failed`, run `failed`, rien supprimé (alerte : J7S-8, commit 8). J7S-3 : l'exception A4 n'existe que pour sa surface ⇒ `404` avant le contrôle d'origine. Prochaine migration libre **`0145`**.
 
+## Issu du commit D67-a
+
+- Journal : déclencheur AFTER, `SECURITY DEFINER` (`influx_leads_definer`), seul écrivain de `settings.changed` ; le contexte (`reason_code`, 2V, `reevaluated`) passe par `influx.sync_setting_change` (fermé, lié à la session, effacé à l'usage, sinon `22023`) ; acteur = `session_user` (opérateur et migration : système + `db_session_user`, EC-J9-D67a-1, 4).
+- Garde `23001` (EC-J9-D67a-5) ; `updated_at := clock_timestamp()` au seul changement de valeur (EC-J9-D67a-2) ; Apollo : réévaluation avant l'`UPDATE`, valeur inchangée ⇒ rien écrit, 2V consommée (EC-J9-D67a-3).
+- Pour D67-b : `GRANT SELECT (updated_at)` à `influx_leads_definer` ; marge pour une correction validée après le début d'une tentative ; TM1.11 / CA82 ne remettent plus une liste à `NULL` (sous-clé nouvelle à `NULL`, ou garde levée dans une transaction annulée) ; runbook : `COMMIT` aussitôt en `psql` (verrou de chaîne).
+- `05` / `04` ne décrivent pas encore `influx.sync_setting_change` : additif regroupé à la clôture. Prochaine migration libre **`0146`**.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les
