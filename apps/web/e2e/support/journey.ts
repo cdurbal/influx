@@ -94,7 +94,7 @@ export async function lastCodeEmail(
 }
 
 function localeOf(page: Page): Locale {
-  return new URL(page.url()).pathname.startsWith("/en/") ? "en" : "fr";
+  return /^\/en(?:\/|$)/.test(new URL(page.url()).pathname) ? "en" : "fr";
 }
 
 /**

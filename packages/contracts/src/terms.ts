@@ -1,7 +1,7 @@
 // Contract of the public documents (docs/mvp/21 EC-62; 05 RG23 to RG29): GET /v1/terms/current
 // serves the version in force of a document, in the language asked or, failing that, in English
 // (RG25). Shared by apps/api and apps/web. Readable without an account (RG27).
-import * as z from "zod";
+import { z } from "./zod.ts";
 import { uiLocaleSchema } from "./auth.ts";
 
 /** The documents a visitor reads without an account; never the supervision notice (12 RG103). */

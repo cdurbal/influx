@@ -24,6 +24,10 @@ import {
 } from "@influx/test-kit/guards";
 import { describe, expect, it } from "vitest";
 import nextConfig, { NOINDEX, SECURITY_HEADERS } from "../next.config";
+import {
+  contentSecurityPolicy,
+  createNonce,
+} from "../src/config/security-headers";
 
 const BACKOFFICE_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -237,5 +241,15 @@ describe("never indexed (03 §7.1, D12)", () => {
       "frame-ancestors 'none'",
     );
     expect(byName["Strict-Transport-Security"]).toMatch(/^max-age=\d{8,}/);
+  });
+
+  it("builds the stricter CSP of 03 §6.5: a nonce, no Supabase host (18 T10.2, T10.3, J3S-7)", () => {
+    const nonce = createNonce();
+    expect(nonce).not.toBe(createNonce());
+    const directives = contentSecurityPolicy(nonce).split("; ");
+    expect(directives).toContain(`script-src 'self' 'nonce-${nonce}'`);
+    expect(directives).toContain(`style-src 'self' 'nonce-${nonce}'`);
+    expect(directives).toContain("img-src 'self' blob:");
+    expect(contentSecurityPolicy(nonce)).not.toMatch(/unsafe-|supabase/);
   });
 });

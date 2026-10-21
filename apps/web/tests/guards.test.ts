@@ -53,9 +53,20 @@ describe("G1: no mailto or tel shortcut (CA6, revised 00-cadrage.md §8)", () =>
   });
 });
 
-describe("G2: no third-party URL (CA11)", () => {
-  it("finds no http:// or https:// URL", () => {
-    expect(findMatches(/https?:\/\//, SCOPED_FILES)).toEqual([]);
+// G2 lifted at J9 commit 4, in the commit of its three replacements (18 §5, EC-J9-1): this
+// tightened guard (a), the CSP tested on the production build (b, e2e/security-headers.spec.ts,
+// T10.6), and the ESLint ban of `fetch` outside src/server/api-client.ts (c, J1).
+describe("G2 replaced: no literal URL outside src/config/ and src/locales/ (18 §5 G2 a)", () => {
+  const URL_ALLOWED_DIRS = ["config", "locales"].map(
+    (dir) => path.join(SRC, dir) + path.sep,
+  );
+
+  it("finds no http(s):// or ws(s):// URL anywhere else in src/", () => {
+    const files = SCOPED_FILES.filter(
+      (file) => !URL_ALLOWED_DIRS.some((dir) => file.startsWith(dir)),
+    );
+    expect(files.length).toBeGreaterThan(0);
+    expect(findMatches(/\b(?:https?|wss?):\/\//, files)).toEqual([]);
   });
 });
 
@@ -341,6 +352,22 @@ describe("R7 headers and the browser error collector (21 §4 J4 points 3 and 5)"
     });
     expect(byName["Content-Security-Policy"]).toContain(
       "frame-ancestors 'none'",
+    );
+  });
+
+  it("builds the CSP of 03 §6.5 with a nonce, without 'unsafe-inline' (18 T10.3)", async () => {
+    const { contentSecurityPolicy, createNonce } =
+      await import("../src/config/security-headers");
+    const nonce = createNonce();
+    expect(nonce).not.toBe(createNonce());
+    const directives = contentSecurityPolicy(nonce).split("; ");
+    expect(directives).toContain(
+      `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    );
+    expect(directives).toContain(`style-src 'self' 'nonce-${nonce}'`);
+    expect(contentSecurityPolicy(nonce)).not.toMatch(/unsafe-/);
+    expect(contentSecurityPolicy()).not.toMatch(
+      /nonce-|unsafe-|strict-dynamic/,
     );
   });
 

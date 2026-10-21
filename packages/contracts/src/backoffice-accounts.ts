@@ -9,7 +9,7 @@
 // - The synchronisation state is a closed code per destination, translated by the screen (RG99,
 //   D36 open): never the provider's message, never a raw error code, never an Apollo datum (RG107).
 // Nothing here carries an amount, a rate or a commission (05 RG9).
-import * as z from "zod";
+import { z } from "./zod.ts";
 import { signupDoorSchema, uiLocaleSchema, MAX_EMAIL_LENGTH } from "./auth.ts";
 import {
   consentSourceSchema,

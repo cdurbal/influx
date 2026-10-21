@@ -6,7 +6,7 @@
 // PROVISIONAL (21 §3 EC-54): the content of the list belongs to product-owner, its place to
 // architecte (packages/contracts is an assumption, reversible). The labels shown to members are
 // translations of these keys, written by the fronts and the e-mail templates, never these keys.
-import * as z from "zod";
+import { z } from "./zod.ts";
 
 /** Browser families, in-app browsers of Instagram, Facebook and TikTok included. */
 export const USER_AGENT_FAMILIES = [

@@ -1,7 +1,7 @@
 // Error envelope shared by apps/api and the fronts (docs/mvp/02-architecture-3-espaces.md §9.2).
 // The front translates `code` into a translation key; `message` is technical English and is
 // never displayed as is.
-import * as z from "zod";
+import { z } from "./zod.ts";
 
 /** Closed union of the API error codes, in snake_case. Adding a code is a contract change. */
 export const ERROR_CODES = [

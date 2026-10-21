@@ -4,7 +4,7 @@
 // are declared; every other one (subject, link, IP, user agent, tags, campaign name…) is dropped by
 // the parse and never reaches the database nor a log line (D60). Field names are Brevo's, checked
 // on developers.brevo.com (transactional-webhooks, marketing-webhooks) on 2026-10-13.
-import * as z from "zod";
+import { z } from "./zod.ts";
 
 /** Custom header carrying the shared token (RG146-1), forwarded by the relay (03 PP-5). */
 export const BREVO_WEBHOOK_TOKEN_HEADER = "brevo-webhook-token";

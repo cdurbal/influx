@@ -2,7 +2,7 @@
 // navigateur"; 21 §4 J4 point 3). Sent by the collector of the connected spaces of apps/web and
 // apps/backoffice (src/observability/), never by the landing. Every value is cleaned AGAIN by
 // apps/api before it is stored (02 §20.8): this schema bounds the shape, not the content.
-import * as z from "zod";
+import { z } from "./zod.ts";
 
 export const CLIENT_ERROR_KINDS = [
   "error",

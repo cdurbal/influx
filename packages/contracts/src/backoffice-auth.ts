@@ -5,7 +5,7 @@
 // One failure answer whatever the step at fault — address, password, code, ceiling, account not
 // activated or a member account (17b §3.14 rule 2). `unavailable` only when no identifier was
 // verified yet (rule 5). The password is never kept between two requests (rule 3).
-import * as z from "zod";
+import { z } from "./zod.ts";
 import { MAX_EMAIL_LENGTH, normalizeEmail, uiLocaleSchema } from "./auth.ts";
 import { countryCodeSchema } from "./signup.ts";
 

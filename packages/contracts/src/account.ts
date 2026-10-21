@@ -5,7 +5,7 @@
 // apps/api and apps/web. The account is always the one of the session: no route takes an account
 // id, and a session id is only ever one of the member's own (18 T14).
 // Nothing here carries an amount, a rate or a commission (05 RG9).
-import * as z from "zod";
+import { z } from "./zod.ts";
 import {
   LOGIN_CODE_PATTERN,
   MAX_EMAIL_LENGTH,

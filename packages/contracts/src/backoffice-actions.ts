@@ -14,7 +14,7 @@
 //   for the admins, the "new browser" sign-ins (B-7) and the `admin` roles granted (J8S-4).
 // - Weekly review of the degraded confirmations (PD6, J8S-1): admin only.
 // Every reason is a closed list (backoffice-ops rule 10); the free comment is a complement only.
-import * as z from "zod";
+import { z } from "./zod.ts";
 import {
   syncDestinationSchema,
   syncSettingSchema,

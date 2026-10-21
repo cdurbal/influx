@@ -10,7 +10,7 @@
 //   days of the setting signup_invitation_validity_days. The link is shown ONCE and copied by the
 //   agent: INFLUX sends no invitation e-mail before Lot 5 (EC-J8-3, D35 open, RG118).
 // Never a token, a code nor a digest in a list (RG107).
-import * as z from "zod";
+import { z } from "./zod.ts";
 import { MAX_EMAIL_LENGTH, normalizeEmail, uiLocaleSchema } from "./auth.ts";
 import { internalRoleSchema } from "./backoffice-auth.ts";
 

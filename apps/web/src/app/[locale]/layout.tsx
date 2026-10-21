@@ -8,8 +8,12 @@ import { getPlaceholderContent, IS_MOCKUP } from "@/content/placeholders";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
 
-// Only the declared locales are pre-rendered; any other segment is a 404.
+// Only the declared locales exist; any other segment is a 404.
 export const dynamicParams = false;
+
+// Every page is rendered per request: its scripts carry the nonce of that request's CSP, which
+// a page rendered at build time could not know (03 §6.5, 18 T10).
+export const dynamic = "force-dynamic";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
