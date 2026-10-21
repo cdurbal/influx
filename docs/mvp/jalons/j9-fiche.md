@@ -319,6 +319,14 @@ commit 10) ; tout nouveau fichier `db-tests` entre dans `case-floors.ts`.
 - Rejeu : aucune migration, `leads.replay_outbox_lines` remet déjà tout `failed` en file ; motif `configuration_fixed`. Les `skipped` de configuration d'avant `0146` s'affichent aussi en incident, jamais en cas normal.
 - Libellés `template_not_configured` conservés pour d'éventuelles lignes anciennes (D69). Local : 556 lignes `pending` résiduelles des tests supprimées (saturaient le lot de 50 de TM1.11) ; `t8-gotrue-findings` b4 intermittent, vert seul.
 
+## Issu du commit 4
+
+- Hôte Supabase absent de `img-src` / `connect-src` de `apps/web` : il ne sert qu'à E1 (téléversement direct, Lot 2), qui l'ajoutera depuis `src/config/`. HSTS toujours sans `preload` (J4S-8).
+- Pages de `apps/web` rendues à la requête (`force-dynamic`) : un nonce ne se pré-rend pas. CSP du proxy sur les pages ; ailleurs (relais, fichiers, `_next`), celle de `next.config.ts`, sans nonce ni élément en ligne.
+- La redirection « barre oblique finale » du routeur Next partait **sans aucun en-tête** : `skipTrailingSlashRedirect` + redirection `308` dans les proxys (T10.4).
+- Sans `'unsafe-inline'` nulle part : `ResponsiveImage` retire le `style` de `next/image` (classes équivalentes) ; `@influx/contracts` prend zod de `src/zod.ts` (`jitless` au navigateur : la sonde `new Function` levait une violation). `next dev` seul : `'unsafe-eval'` et styles en ligne.
+- Reste : les pages 404 par défaut de Next (styles en ligne refusés, fond clair) ⇒ pages d'erreur aux jetons au commit 7 (T13). T10.5 reste couvert par `apps/api` (`auth-cookies.test.ts`).
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les

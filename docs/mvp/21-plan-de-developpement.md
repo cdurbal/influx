@@ -317,6 +317,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] Commit D67-b (`37d8b74`) — `0146` : configuration manquante = échec incident sans réessai (RG160, ordre RG164, `credentials_missing` en environnement déployé), rattrapage RG161 dans la reprise E-3 (même signature et `GRANT`, marge 60 s), refus de démarrage RG162 partagé avec `staging:check`, `skipped` de configuration reclassés ; planchers 2 730 / 1 132.
 - [x] Commit D67-c (`483eea2`) — backoffice : `configuration_missing` = incident nommant le réglage (`sync-causes.ts`, jamais la valeur), AL25 `configuration_missing` dès la 1re ligne, rejeu d'un échec de configuration (`configuration_fixed`), compteurs RG79 / RG105 ; planchers 2 734 / 1 134.
 - [x] D67 (tranchée par `architecte` le 2026-10-17) — soldée par D67-a à D67-c ; écran des identifiants Brevo hors J9 (option Lot 5).
+- [x] Commit 4 (`103590d`) — CSP à nonce par requête (`src/proxy.ts` des deux fronts, `03` §6.5, aucun `'unsafe-inline'`), J3S-7, redirection de la barre oblique finale dans les proxys, zod `jitless` au navigateur, G2 levée et resserrée (EC-J9-1), T10 sur `next start` (`e2e/security-headers.spec.ts`) ; planchers 2 739 / 1 135.
 
 ### 5.8 Portes de la mise en production
 
