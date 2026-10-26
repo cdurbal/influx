@@ -51,6 +51,7 @@ import {
   TH_CLASSES,
 } from "./bo-classes";
 import { ReplayPanel } from "./ReplayPanel";
+import { ServicesHint } from "./ServicesLink";
 import {
   accountSearchOf,
   countryName,
@@ -289,6 +290,7 @@ export function AccountsScreen() {
       <h1 className={TITLE_CLASSES}>{t.title}</h1>
       <p className={LEAD_CLASSES}>{t.lead}</p>
       <p className={HELP_CLASSES}>{t.noExport}</p>
+      {view === "failed" ? <ServicesHint text={t.servicesHint} /> : null}
       <section aria-label={t.filters} className={SECTION_CLASSES}>
         <div className={ROW_GROUP_CLASSES}>
           {filterSelect("syncState", t.view, [

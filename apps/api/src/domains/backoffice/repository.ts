@@ -1253,7 +1253,8 @@ export type RefusedActionCode =
   | "leads.lift_brevo_suppression"
   | "backoffice.dual_control"
   | "identity.change_member_role"
-  | "identity.internal_invitation";
+  | "identity.internal_invitation"
+  | "ops.read_health";
 
 /** 0134: backoffice.action_refused on the agent's own account (influx_agent only). */
 export async function recordRefusedAction(

@@ -29,6 +29,7 @@ import {
   TABULAR_CLASSES,
 } from "./bo-classes";
 import { useTeamNames } from "./DualControlScreens";
+import { ServicesLink } from "./ServicesLink";
 import { useMe } from "./Shell";
 import {
   browserLabel,
@@ -94,7 +95,8 @@ function Counters({ counters }: { counters: AccountCountersResponse }) {
         )}{" "}
         <Link href="/inscrits?syncState=failed" className={LINK_CLASSES}>
           {t.seeFailures}
-        </Link>
+        </Link>{" "}
+        <ServicesLink />
       </li>
     </ul>
   );
@@ -134,7 +136,8 @@ function Alerts({ data }: { data: AlertsResponse }) {
                       : messages.syncSetting[alert.setting],
                   ),
               alert.since === null ? null : formatDateTime(alert.since),
-            )}
+            )}{" "}
+            {alert.code === "AL25" ? <ServicesLink /> : null}
           </li>
         );
       })}

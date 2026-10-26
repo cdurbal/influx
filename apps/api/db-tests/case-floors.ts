@@ -9,6 +9,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/t14-backoffice-accounts-route.test.ts": 20,
   "db-tests/t14-backoffice-actions-route.test.ts": 31,
   "db-tests/t14-backoffice-invitations-route.test.ts": 15,
+  "db-tests/t14-backoffice-ops-route.test.ts": 10,
   "db-tests/t14-backoffice-route-inventory.test.ts": 6,
   "db-tests/t16-commission.test.ts": 17,
   "db-tests/t2-rls-matrix.test.ts": 29,
@@ -56,5 +57,6 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/tm10-terms-route.test.ts": 7,
   "db-tests/tm3-backoffice-catalogue.test.ts": 17,
   "db-tests/tm9-monitoring-loop.test.ts": 2,
+  "db-tests/tm9-ops-health-reads.test.ts": 14,
   "db-tests/tm9-ops-monitoring.test.ts": 65,
 };

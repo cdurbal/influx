@@ -54,6 +54,20 @@ import {
   type MemberInvitationRequest,
   type MemberInvitationsResponse,
 } from "@influx/contracts/backoffice-invitations";
+import {
+  opsErrorDetailResponseSchema,
+  opsErrorsResponseSchema,
+  opsProcessesResponseSchema,
+  opsStatusResponseSchema,
+  opsTrafficResponseSchema,
+  type OpsErrorDetailResponse,
+  type OpsErrorFilter,
+  type OpsErrorsResponse,
+  type OpsProcessesResponse,
+  type OpsStatusResponse,
+  type OpsTrafficResponse,
+  type OpsTrafficWindow,
+} from "@influx/contracts/backoffice-ops";
 import { callRelay, type RelayResult } from "@/browser/relay-client";
 
 /** A path segment from a server-issued id: a UUID, or nothing is called. */
@@ -288,4 +302,49 @@ export function revokeInvitation(
     invitationRevokeResponseSchema,
     { reasonCode },
   );
+}
+
+// --- "Santé technique" (02 §20.5; 15 RG165; read only, admins only) ------------------------------
+
+export function readOpsStatus(): Promise<RelayResult<OpsStatusResponse>> {
+  return callRelay("GET", "/v1/bo/ops/status", opsStatusResponseSchema);
+}
+
+export function readOpsErrors(
+  state: OpsErrorFilter,
+  source: "server" | "browser" | null,
+): Promise<RelayResult<OpsErrorsResponse>> {
+  return callRelay(
+    "GET",
+    "/v1/bo/ops/errors",
+    opsErrorsResponseSchema,
+    undefined,
+    source === null ? { state } : { state, source },
+  );
+}
+
+export function readOpsError(
+  id: string,
+): Promise<RelayResult<OpsErrorDetailResponse>> {
+  return callRelay(
+    "GET",
+    `/v1/bo/ops/errors/${idSegment(id)}`,
+    opsErrorDetailResponseSchema,
+  );
+}
+
+export function readOpsTraffic(
+  window: OpsTrafficWindow,
+): Promise<RelayResult<OpsTrafficResponse>> {
+  return callRelay(
+    "GET",
+    "/v1/bo/ops/traffic",
+    opsTrafficResponseSchema,
+    undefined,
+    { window },
+  );
+}
+
+export function readOpsProcesses(): Promise<RelayResult<OpsProcessesResponse>> {
+  return callRelay("GET", "/v1/bo/ops/processes", opsProcessesResponseSchema);
 }

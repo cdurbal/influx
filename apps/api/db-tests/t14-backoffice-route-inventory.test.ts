@@ -73,6 +73,11 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
   },
   "GET /v1/bo/settings/apollo": {},
   "GET /v1/bo/alerts": {},
+  "GET /v1/bo/ops/status": {},
+  "GET /v1/bo/ops/errors": {},
+  "GET /v1/bo/ops/errors/:id": {},
+  "GET /v1/bo/ops/traffic": {},
+  "GET /v1/bo/ops/processes": {},
   "GET /v1/bo/dual-control": {},
   "POST /v1/bo/dual-control": {
     body: {
@@ -378,6 +383,11 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
       { who: admin, id: agent.accountId },
       { who: admin, id: admin.accountId },
     ],
+    // An agent never reaches the "Santé technique" screen (admins only): a group that exists or not,
+    // the same refusal.
+    "GET /v1/bo/ops/errors/:id": async () => [
+      { who: agent, id: await errorGroup() },
+    ],
     // An agent never reaches the dual control (admins only): existing or not, the same answer.
     "GET /v1/bo/dual-control/:id": async () => [
       { who: agent, id: await dualControlRequest() },
@@ -414,6 +424,27 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
         `/v1/bo/dual-control/${id}/cancel`,
         admin.session,
       );
+    }
+  });
+
+  /** One error group, committed by the migration role and removed with the file. */
+  let groupFingerprint: Buffer | undefined;
+
+  async function errorGroup(): Promise<string> {
+    groupFingerprint = randomBytes(32);
+    const [row] = await migrationRole()<{ id: string }[]>`
+      insert into ops.error_groups
+        (fingerprint, source, service, error_type, message, route, first_version, last_version)
+      values (${groupFingerprint}, 'server', 'api', 'TypeError', 't14 inventory group',
+              '/v1/t14/inventory', 'abc123', 'abc123')
+      returning id::text`;
+    return row?.id ?? "";
+  }
+
+  afterAll(async () => {
+    if (groupFingerprint !== undefined) {
+      await migrationRole()`
+        delete from ops.error_groups where fingerprint = ${groupFingerprint}`;
     }
   });
 

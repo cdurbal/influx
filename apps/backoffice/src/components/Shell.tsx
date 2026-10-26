@@ -43,7 +43,8 @@ export type NavKey =
   | "memberInvitations"
   | "dualControl"
   | "apollo"
-  | "internalAccounts";
+  | "internalAccounts"
+  | "health";
 
 const NAV: readonly { key: NavKey; href: string; adminOnly: boolean }[] = [
   { key: "home", href: "/accueil", adminOnly: false },
@@ -52,6 +53,7 @@ const NAV: readonly { key: NavKey; href: string; adminOnly: boolean }[] = [
   { key: "dualControl", href: "/double-validation", adminOnly: true },
   { key: "apollo", href: "/reglages/apollo", adminOnly: true },
   { key: "internalAccounts", href: "/comptes-internes", adminOnly: true },
+  { key: "health", href: "/sante-technique", adminOnly: true },
 ];
 
 const MeContext = createContext<BackofficeMeResponse | null>(null);

@@ -108,6 +108,7 @@ export const messages = {
     dualControl: "Double validation",
     apollo: "Réglages Apollo",
     internalAccounts: "Comptes internes",
+    health: "Santé technique",
     skip: "Aller au contenu",
   },
   /**
@@ -388,6 +389,8 @@ export const messages = {
     view: "Vue",
     viewAll: "Tous les inscrits",
     viewFailed: "À traiter",
+    servicesHint:
+      "Beaucoup d’échecs d’un coup ? Un fournisseur ou un service peut être en cause :",
     viewNormal: "Cas normaux",
     viewHelp:
       "« À traiter » et « Cas normaux » sont deux vues, jamais un total : un inscrit sans consentement n’est pas un échec.",
@@ -842,5 +845,316 @@ export const messages = {
       "Invitation impossible pour cette adresse. Vérifiez qu’elle n’appartient pas déjà à un compte.",
     takenMember: "Cette adresse a déjà un compte ou une invitation en cours.",
     error: "Les invitations n’ont pas pu être chargées.",
+  },
+  // ---------------------------------------------------------------------------------------------
+  // J9 commit 9: the "Santé technique" screen (02 §20.5; 15 RG165), read only, admins only
+  // ---------------------------------------------------------------------------------------------
+  health: {
+    title: "Santé technique",
+    lead: "Lecture seule, réservée aux administrateurs. La disponibilité est celle mesurée par la sonde, le reste vient de la base : rien ne se modifie ici.",
+    workstation:
+      "Cet écran est fait pour un poste de travail. Sur téléphone, l’e-mail d’alerte suffit.",
+    refresh: "Actualiser",
+    refreshing: "Actualisation…",
+    refreshedAt: (time: string) =>
+      `Actualisé à ${time}. Mise à jour automatique toutes les minutes.`,
+    loading: "Chargement de la section…",
+    unavailable: "Cette section n’a pas pu être chargée.",
+    forbidden:
+      "Cet écran est réservé aux administrateurs. La tentative a été enregistrée.",
+    retry: "Réessayer",
+    ago: (age: string) => `il y a ${age}`,
+    /** "12:07 · il y a 3 min": an instant and how old it is. */
+    timeAndAge: (time: string, age: string) => `${time} · il y a ${age}`,
+    /** " · il y a 3 min": the age that follows a state. */
+    afterState: (age: string) => ` · il y a ${age}`,
+    availability: {
+      title: "Disponibilité mesurée par la sonde",
+      lead: "Le worker appelle chaque cible une fois par minute. L’alerte AL49 part au deuxième échec de suite d’une même cible.",
+      columns: {
+        target: "Cible",
+        state: "Dernier relevé",
+        duration: "Durée",
+        day: "24 heures",
+        week: "7 jours",
+        month: "30 jours",
+      },
+      targets: {
+        web_home_fr: "Accueil du site (français)",
+        web_home_en: "Accueil du site (anglais)",
+        backoffice_sign_in: "Connexion du backoffice",
+        api_health: "API — état et base (réseau privé)",
+      },
+      up: "Disponible",
+      down: "Injoignable",
+      unknown: "Aucun relevé",
+      failures: {
+        timeout: "délai dépassé",
+        connection: "aucune réponse",
+        status: "réponse d’erreur",
+        redirect: "redirection inattendue",
+        body: "réponse incomplète",
+      },
+      statusCode: (code: number) => `code ${code}`,
+      cause: (words: string) => ` (${words})`,
+      stale: "relevé ancien : la sonde s’est peut-être arrêtée",
+      window: (share: string, failures: number, checks: number) =>
+        `${share} (${failures} échec${failures > 1 ? "s" : ""} sur ${checks})`,
+      noMeasure:
+        "Pas de relevé : la disponibilité est inconnue, elle n’est pas nulle.",
+    },
+    alerts: {
+      title: "Alertes techniques ouvertes",
+      lead: "Les alertes AL48 à AL63 (15 RG165) : chacune s’affiche ici et part par e-mail. Une alerte d’état est rappelée au plus toutes les 30 minutes ; un e-mail « rétabli » clôt l’incident.",
+      empty: "Aucune alerte technique ouverte.",
+      columns: {
+        alert: "Alerte",
+        since: "Ouverte depuis",
+        notified: "Dernier e-mail",
+        value: "Mesure et seuil",
+      },
+      notified: (time: string, count: number) =>
+        `${time} (${count} envoi${count > 1 ? "s" : ""})`,
+      notNotified: "pas encore envoyé",
+      subject: (subject: string) => `concerne ${subject}`,
+      titles: {
+        AL48: "Délivrabilité du code de connexion hors seuil",
+        AL49: "Site injoignable",
+        AL50: "Worker arrêté",
+        AL51: "Nouvelle erreur serveur, ou régression",
+        AL52: "Taux d’erreurs serveur",
+        AL53: "Lenteur de l’API",
+        AL54: "Lenteur des pages",
+        AL55: "Pic d’appels (information)",
+        AL56: "Réponses 429 en hausse",
+        AL57: "Service saturé",
+        AL58: "Base saturée",
+        AL59: "Code de connexion visé",
+        AL60: "Purge horaire en défaut",
+        AL61: "Webhook Brevo : appels ignorés",
+        AL62: "Webhook Brevo hors plages",
+        AL63: "Demande de données exécutée, non close",
+      } as Readonly<Record<string, string>>,
+      untitled: "Alerte technique",
+    },
+    worker: {
+      title: "État du worker",
+      lead: "Lu depuis la base, pas depuis le worker : l’état reste juste quand il est arrêté (02 §11.3).",
+      state: {
+        running: "Actif — le dernier battement est dans le délai.",
+        silent: "Silencieux — aucun battement dans le délai de l’alerte AL50.",
+        unknown: "Non évalué — le délai de l’alerte AL50 n’est pas renseigné.",
+      },
+      threshold: (seconds: number) => `Délai d’alerte AL50 : ${seconds} s`,
+      noBeat: "Aucun battement n’a jamais été enregistré.",
+      columns: {
+        instance: "Instance",
+        version: "Version",
+        started: "Démarré",
+        beat: "Dernier battement",
+        turn: "Dernier tour de boucle",
+        state: "État",
+      },
+      beating: "bat",
+      silent: "silencieux",
+      notEvaluated: "non évalué",
+      turnHint:
+        "Un worker qui bat sans terminer de tour est occupé par une longue tâche ou bloqué : regardez l’âge du dernier tour.",
+      tasks: {
+        title: "Tâches périodiques",
+        empty: "Aucune tâche périodique n’a encore tourné.",
+        columns: {
+          task: "Tâche",
+          period: "Période",
+          started: "Début",
+          finished: "Fin",
+          outcome: "Résultat",
+        },
+        names: {
+          brevo_reconciliation: "Réconciliation Brevo",
+          auth_orphan_purge: "Purge des comptes d’authentification orphelins",
+          brevo_inbound_purge: "Purge des retours Brevo",
+          data_export_purge: "Purge des exports de données",
+          ops_retention: "Conservation et purges de la surveillance",
+        },
+        outcomes: {
+          succeeded: "réussie",
+          failed: "en échec",
+        } as Readonly<Record<string, string>>,
+        running: "en cours",
+      },
+    },
+    errors: {
+      title: "Erreurs",
+      lead: "Les erreurs sont regroupées par empreinte : type, message nettoyé, route et premières lignes de notre code. Un groupe corrigé qui réapparaît est une régression.",
+      filter: "Afficher",
+      source: "Origine",
+      sources: {
+        all: "Serveur et navigateur",
+        server: "Serveur",
+        browser: "Navigateur",
+      },
+      filters: {
+        open: "Ouvertes",
+        regression: "Régressions",
+        new: "Nouvelles",
+        acknowledged: "Prises en compte",
+        fixed: "Corrigées",
+        ignored: "Ignorées",
+        all: "Toutes",
+      },
+      chip: (label: string, count: number | null) =>
+        count === null ? label : `${label} (${count})`,
+      empty: {
+        open: "Aucune erreur ouverte.",
+        regression: "Aucune régression.",
+        other: "Aucun groupe dans cet état.",
+      },
+      truncated: (cap: number) =>
+        `Seuls les ${cap} groupes les plus récents sont affichés.`,
+      columns: {
+        status: "État",
+        error: "Erreur",
+        route: "Route",
+        service: "Service",
+        count: "Occurrences",
+        first: "Première",
+        last: "Dernière",
+        versions: "Versions",
+        detail: "Détail",
+      },
+      statuses: {
+        new: "nouvelle",
+        acknowledged: "prise en compte",
+        fixed: "corrigée",
+        ignored: "ignorée",
+      },
+      regression: (count: number) =>
+        count > 1 ? `régression (${count} fois)` : "régression",
+      services: {
+        api: "API",
+        worker: "Worker",
+        web: "Site (navigateur)",
+        backoffice: "Backoffice (navigateur)",
+      },
+      versions: (first: string, last: string) =>
+        first === last ? first : `${first} → ${last}`,
+      noRoute: "hors requête",
+      show: "Voir les occurrences",
+      hide: "Masquer les occurrences",
+      detailTitle: (type: string) => `Occurrences de ${type}`,
+      detailLead:
+        "Les 50 plus récentes, conservées 30 jours. Le numéro de requête mène aux journaux Railway ; le compte est un identifiant, jamais un nom.",
+      detailEmpty:
+        "Aucune occurrence conservée (au-delà de 30 jours, ou au-delà du plafond par minute).",
+      detailColumns: {
+        when: "Date",
+        service: "Service",
+        version: "Version",
+        route: "Route",
+        request: "Requête",
+        account: "Compte",
+        message: "Message",
+      },
+      stack: "Pile nettoyée",
+      noStack: "pas de pile",
+      userAgent: (summary: string) => `navigateur : ${summary}`,
+    },
+    traffic: {
+      title: "Appels, durées et erreurs de l’API",
+      lead: "Par route (son modèle, jamais l’adresse réelle). Le p95 est calculé à la lecture sur les histogrammes de toutes les instances additionnés : c’est la borne haute de la tranche qui le contient.",
+      window: "Période",
+      windows: { hour: "1 heure", day: "24 heures", week: "7 jours" },
+      sort: "Trier par",
+      sorts: { calls: "appels", p95: "p95", errors: "taux d’erreurs" },
+      total: "Toutes les routes",
+      empty: "Aucun appel mesuré sur cette période.",
+      columns: {
+        route: "Route",
+        calls: "Appels / min",
+        p95: "p95",
+        errors: "Erreurs 5xx",
+        throttled: "429",
+        curves: "Courbes : appels, p95, erreurs",
+      },
+      callsTotal: (count: number) => `${count} appel${count > 1 ? "s" : ""}`,
+      errorsCell: (count: number, rate: string) => `${count} (${rate})`,
+      curveCalls: "Appels par minute",
+      curveP95: "p95",
+      curveErrors: "Taux d’erreurs 5xx",
+      curveLabel: (name: string, last: string, peak: string) =>
+        `${name} : dernier point ${last}, maximum ${peak}`,
+      curveEmpty: (name: string) => `${name} : rien de mesuré`,
+      bucket: (size: string) => `Un point = ${size}.`,
+      totalLine: (
+        calls: string,
+        rate: string,
+        p95: string,
+        errors: string,
+      ) => `${calls} · ${rate} / min · p95 ${p95} · erreurs 5xx ${errors}`,
+      range: (from: string, now: string) => `${from} → ${now}`,
+      inProgress: "Le dernier point de chaque courbe est la tranche en cours.",
+      read: {
+        title: "Comment lire un ralentissement",
+        columns: { calls: "Appels", durations: "Durées", reading: "Lecture" },
+        rows: [
+          [
+            "En hausse",
+            "Normales",
+            "Pic absorbé : rien à faire, noter son origine.",
+          ],
+          [
+            "En hausse",
+            "Dégradées",
+            "Le pic ralentit le site : augmenter les ressources Railway du service, vérifier la base.",
+          ],
+          [
+            "Normaux",
+            "Dégradées",
+            "Défaut interne (requête lente, base, fournisseur externe) : ce tableau désigne la route, pg_stat_statements la requête.",
+          ],
+          [
+            "Chute brutale",
+            "—",
+            "Site injoignable ou panne en amont : voir la sonde, puis l’état de Railway et de Supabase.",
+          ],
+        ] as ReadonlyArray<readonly [string, string, string]>,
+        origin:
+          "Le premier suspect d’un pic est INFLUX lui-même : un envoi de masse ou une campagne ramène des milliers de visiteurs en quelques minutes.",
+      },
+    },
+    processes: {
+      title: "Processus et base de données",
+      lead: "Le retard de la boucle d’événements est le signe de lenteur le plus direct d’un service Node. Les relevés sont à la minute.",
+      empty: "Aucun processus n’a écrit de relevé depuis 24 heures.",
+      columns: {
+        process: "Processus",
+        last: "Dernier relevé",
+        loop: "Retard de boucle (p99)",
+        loopHour: "Sur 1 h : moyenne · maximum",
+        memory: "Mémoire (RSS)",
+        cpu: "Processeur",
+      },
+      services: { api: "API", worker: "Worker" },
+      stale: "relevé interrompu ?",
+      loopHour: (average: string, maximum: string) => `${average} · ${maximum}`,
+      peak: (value: string) => `pic ${value} sur 1 h`,
+      database: {
+        title: "Connexions à la base",
+        none: "Aucun relevé de connexions : le worker les relève chaque minute.",
+        now: (connections: number, max: number, share: number) =>
+          `${connections} connexions sur ${max} (${share} % du maximum de la grappe)`,
+        peak: (peak: number) => `Pic des 24 dernières heures : ${peak}`,
+        stale: (age: string) =>
+          `Dernier relevé il y a ${age} : le relevé est interrompu.`,
+        curveLabel: (last: number, peak: number) =>
+          `Connexions, dernière heure : dernier point ${last}, maximum ${peak}`,
+      },
+    },
+  },
+  /** The link of the queues to the "Santé technique" screen (15 §C, "file bloquée"): admins only. */
+  servicesLink: {
+    label: "État des services",
+    hint: "Réservé aux administrateurs.",
   },
 } as const;
