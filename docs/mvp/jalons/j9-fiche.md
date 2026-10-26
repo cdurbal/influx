@@ -342,6 +342,14 @@ commit 10) ; tout nouveau fichier `db-tests` entre dans `case-floors.ts`.
 - J4S-6 : texte strict (ni contrôle, ni format, ni usage privé, ni demi-paire) au contrat, au collecteur et dans `scrub.ts` ; 5 empreintes navigateur par compte et par heure (en mémoire). « Aucune alerte nouveau groupe du seul navigateur » ⇒ commit 8 (filtre `source = 'server'`).
 - Planchers : `pnpm test` = **2 835** (contracts 116, test-kit 122, backoffice 36, web 188, `apps/api` unitaire 1 237, base 1 136). Local : `t14` « internal-accounts » rouge par 1 779 profils internes accumulés (plafond 200), vert au premier passage ; 1 025 lignes `pending` résiduelles supprimées (TM1.11).
 
+## Issu du commit 8
+
+- Découpage : AL50 par l'API (E-6, verrou du scope `api`, `on_call` seul) ; AL48, AL49, AL51 à AL63 par le worker (E-4) ; **toutes** les alertes techniques directes vers Brevo, aucune par la file. `on_call` = `OPS_ALERT_RECIPIENTS` (astreinte de `staging` : l'adresse du fondateur, son choix du 2026-10-22), `admin` = `ops.admin_alert_recipients()`. E-4 et E-6 étendus (`03` P7) et `expected-rights.ts` modifié : à signer à la revue groupée (I-4).
+- `/health` de l'API vérifie la base (`503` : la sonde lève AL49, Railway ne promeut pas un déploiement sans base). Base injoignable : AL49 seul, en mémoire, sur sa dernière définition (valeur de départ avant toute lecture), remis à la base à son retour ; un e-mail qui n'atteint personne repart au tour suivant.
+- Écarts : battement toutes les 15 s pendant les tâches périodiques ; AL55 jamais sous son plancher fixe (300 / min) ; AL57 sur `api` seul (le worker n'écrit pas `process_metrics`) ; AL62 sans classement avant le Lot 4 (un e-mail, état clos en silence après 24 h sans occurrence) ; AL59 par `identity.code_failure_tallies` (empreinte, 48 h), alimentée par `verify-code.ts`.
+- Railway a invalidé tous les jetons d'API à son incident du 2026-10-21 au 23 : variables de `staging` et push suspendus à un nouveau jeton (fondateur). Local : `t14` « internal-accounts » rouge (1 856 profils internes, plafond 200), vert sur pile neuve.
+- Planchers : `pnpm test` = **2 995** (contracts 116, test-kit 124, backoffice 36, web 194, `apps/api` unitaire 1 321, base 1 204). Prochaine migration libre **`0148`**.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les
