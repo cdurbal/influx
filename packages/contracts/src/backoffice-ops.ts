@@ -132,7 +132,10 @@ export const opsPeriodicRunSchema = z.strictObject({
   period: z.string().regex(/^\d{4}-\d{2}-\d{2}(?:T\d{2})?$/),
   startedAt: instantSchema,
   finishedAt: instantSchema.nullable(),
-  outcome: z.string().regex(/^[a-z_]{1,40}$/).nullable(),
+  outcome: z
+    .string()
+    .regex(/^[a-z_]{1,40}$/)
+    .nullable(),
 });
 
 /** A flat key / value of an alert: a measured value, its threshold, an instant (15 RG165). */
@@ -239,7 +242,9 @@ export const opsErrorDetailResponseSchema = z.strictObject({
   group: opsErrorGroupSchema,
   occurrences: z.array(opsOccurrenceSchema).max(OPS_OCCURRENCE_LIST_CAP),
 });
-export type OpsErrorDetailResponse = z.infer<typeof opsErrorDetailResponseSchema>;
+export type OpsErrorDetailResponse = z.infer<
+  typeof opsErrorDetailResponseSchema
+>;
 
 // ---------------------------------------------------------------------------------------------
 // Traffic

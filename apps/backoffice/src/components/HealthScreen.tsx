@@ -10,11 +10,7 @@
 // then asks once, to leave that trace, and says it is refused.
 import { useEffect, useState } from "react";
 import { messages } from "@/messages/fr";
-import {
-  ERROR_CLASSES,
-  HELP_CLASSES,
-  TITLE_CLASSES,
-} from "./auth-classes";
+import { ERROR_CLASSES, HELP_CLASSES, TITLE_CLASSES } from "./auth-classes";
 import { readOpsStatus } from "./backoffice-api";
 import { SMALL_SECONDARY_CLASSES } from "./bo-classes";
 import { ErrorsSection } from "./HealthErrors";

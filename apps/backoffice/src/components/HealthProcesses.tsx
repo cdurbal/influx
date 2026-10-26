@@ -86,7 +86,11 @@ function ProcessRow({ process }: { process: OpsProcess }) {
   );
 }
 
-function Database({ database }: { database: OpsProcessesResponse["database"] }) {
+function Database({
+  database,
+}: {
+  database: OpsProcessesResponse["database"];
+}) {
   const td = tp.database;
   const { last } = database;
   if (last === null) {
@@ -146,7 +150,14 @@ export function ProcessesSection({ refresh }: { refresh: number }) {
                   <thead>
                     <tr>
                       {(
-                        ["process", "last", "loop", "loopHour", "memory", "cpu"] as const
+                        [
+                          "process",
+                          "last",
+                          "loop",
+                          "loopHour",
+                          "memory",
+                          "cpu",
+                        ] as const
                       ).map((key) => (
                         <th key={key} scope="col" className={TH_CLASSES}>
                           {tp.columns[key]}

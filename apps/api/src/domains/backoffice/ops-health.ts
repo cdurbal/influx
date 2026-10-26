@@ -118,10 +118,7 @@ const statusRowSchema = z.object({
       opened_at: instant,
       last_notified_at: nullableInstant,
       notified_count: count,
-      value: z.record(
-        z.string(),
-        z.union([z.string(), z.number(), z.null()]),
-      ),
+      value: z.record(z.string(), z.union([z.string(), z.number(), z.null()])),
     }),
   ),
 });
@@ -399,10 +396,7 @@ function addUp(cells: readonly Cell[]): {
   return { calls, serverErrors, throttled, buckets };
 }
 
-function summaryOf(
-  cells: readonly Cell[],
-  minutes: number,
-): OpsTrafficSummary {
+function summaryOf(cells: readonly Cell[], minutes: number): OpsTrafficSummary {
   const sum = addUp(cells);
   return {
     calls: sum.calls,
@@ -547,7 +541,8 @@ export async function readProcesses(
       },
     })),
     database: {
-      last: answer.database.last === null ? null : sampleOf(answer.database.last),
+      last:
+        answer.database.last === null ? null : sampleOf(answer.database.last),
       lastAgeSeconds:
         answer.database.last === null
           ? null

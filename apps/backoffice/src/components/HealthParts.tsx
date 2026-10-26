@@ -99,9 +99,17 @@ const TONE_CLASSES: Readonly<Record<Tone, string>> = {
 };
 
 /** A state in words, with a symbol (hidden from readers) and a colour that only reinforces them. */
-export function StateText({ tone, children }: { tone: Tone; children: ReactNode }) {
+export function StateText({
+  tone,
+  children,
+}: {
+  tone: Tone;
+  children: ReactNode;
+}) {
   return (
-    <span className={`inline-flex items-baseline gap-1 font-semibold ${TONE_CLASSES[tone]}`}>
+    <span
+      className={`inline-flex items-baseline gap-1 font-semibold ${TONE_CLASSES[tone]}`}
+    >
       <span aria-hidden="true">{TONE_SYMBOL[tone]}</span>
       <span>{children}</span>
     </span>

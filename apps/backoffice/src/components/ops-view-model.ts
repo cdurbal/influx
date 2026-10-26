@@ -30,7 +30,9 @@ export function formatCount(value: number): string {
 
 /** "25 ms", "1,5 s": the very bounds of the histogram read well. */
 export function formatMs(ms: number): string {
-  return ms >= 1000 ? `${oneDecimal.format(ms / 1000)} s` : `${integer.format(ms)} ms`;
+  return ms >= 1000
+    ? `${oneDecimal.format(ms / 1000)} s`
+    : `${integer.format(ms)} ms`;
 }
 
 /** The p95 is the upper bound of a bucket of the histogram: "≤ 500 ms", "> 5 s", or a dash. */
@@ -72,7 +74,10 @@ export const STALE_AFTER_SECONDS = 180;
 
 /** Whole seconds from an instant to the `now` of the same answer (never negative). */
 export function secondsSince(now: string, instant: string): number {
-  return Math.max(0, Math.floor((Date.parse(now) - Date.parse(instant)) / 1000));
+  return Math.max(
+    0,
+    Math.floor((Date.parse(now) - Date.parse(instant)) / 1000),
+  );
 }
 
 /** "12 s", "3 min", "2 h 10 min", "4 j": how old a reading is. */
@@ -169,9 +174,13 @@ export function curveValues(
       case "calls":
         return point.callsPerMinute;
       case "p95":
-        return point.p95Ms === null ? null : point.p95Ms + (point.p95Beyond ? 1 : 0);
+        return point.p95Ms === null
+          ? null
+          : point.p95Ms + (point.p95Beyond ? 1 : 0);
       default:
-        return point.calls === 0 ? null : (point.serverErrors * 100) / point.calls;
+        return point.calls === 0
+          ? null
+          : (point.serverErrors * 100) / point.calls;
     }
   });
 }

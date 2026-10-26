@@ -2605,7 +2605,8 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "backoffice.record_refused_action(text)": "influx_identity_definer",
   "backoffice.last_brevo_reconciliation()": "influx_maintenance_definer",
   "backoffice.ops_error_group(uuid)": "influx_maintenance_definer",
-  "backoffice.ops_error_groups(text,text,integer)": "influx_maintenance_definer",
+  "backoffice.ops_error_groups(text,text,integer)":
+    "influx_maintenance_definer",
   "backoffice.ops_health_status()": "influx_maintenance_definer",
   "backoffice.ops_processes()": "influx_maintenance_definer",
   "backoffice.ops_traffic(text)": "influx_maintenance_definer",

@@ -53,8 +53,7 @@ function scenario<T>(
 }
 
 type Attempt<T = Record<string, unknown>> =
-  | { outcome: "answer"; value: T }
-  | { outcome: "error"; code: string };
+  { outcome: "answer"; value: T } | { outcome: "error"; code: string };
 
 /** One statement in a savepoint: its first column `r` (a jsonb) or the SQLSTATE. */
 async function attempt<T = Record<string, unknown>>(
@@ -196,8 +195,7 @@ describe("who calls the reads of the screen (0148)", () => {
       };
       for (const [statement, parameters] of calls) {
         refused.admin?.push(
-          (await asAdmin(tx, () => attempt(tx, statement, parameters)))
-            .outcome,
+          (await asAdmin(tx, () => attempt(tx, statement, parameters))).outcome,
         );
         refused.agent?.push(
           JSON.stringify(
@@ -220,9 +218,7 @@ describe("who calls the reads of the screen (0148)", () => {
         );
         refused.worker?.push(
           JSON.stringify(
-            await actAs(tx, "worker", () =>
-              attempt(tx, statement, parameters),
-            ),
+            await actAs(tx, "worker", () => attempt(tx, statement, parameters)),
           ),
         );
         refused.ops?.push(
@@ -244,8 +240,9 @@ describe("who calls the reads of the screen (0148)", () => {
   });
 
   it("no execution role reads the ops tables itself: the owner of the functions alone does", async () => {
-    const rows = await scenario((tx) =>
-      tx<{ rolname: string; relation: string }[]>`
+    const rows = await scenario(
+      (tx) =>
+        tx<{ rolname: string; relation: string }[]>`
         select r.rolname, t.relation
           from pg_catalog.pg_roles r,
                unnest(array['ops.error_groups', 'ops.error_occurrences', 'ops.probe_results',
@@ -283,7 +280,10 @@ describe("who calls the reads of the screen (0148)", () => {
       return { before: before[0]?.n, known, unknown, after: after[0] };
     });
     expect(result.known.outcome).toBe("answer");
-    expect(result.unknown).toEqual({ outcome: "error", code: INVALID_PARAMETER });
+    expect(result.unknown).toEqual({
+      outcome: "error",
+      code: INVALID_PARAMETER,
+    });
     expect(Number(result.after?.n)).toBeGreaterThanOrEqual(1);
     expect(result.after?.code).toBe("ops.read_health");
   });
@@ -291,10 +291,15 @@ describe("who calls the reads of the screen (0148)", () => {
 
 describe("the closed lists of the contract are the database's own", () => {
   it("probe targets, error states, services and periodic tasks: the enums of ops, in order", async () => {
-    const { OPS_ERROR_STATUSES, OPS_PERIODIC_TASKS, OPS_PROBE_TARGETS, OPS_SERVICES } =
-      await import("@influx/contracts/backoffice-ops");
-    const rows = await scenario((tx) =>
-      tx<{ name: string; labels: string[] }[]>`
+    const {
+      OPS_ERROR_STATUSES,
+      OPS_PERIODIC_TASKS,
+      OPS_PROBE_TARGETS,
+      OPS_SERVICES,
+    } = await import("@influx/contracts/backoffice-ops");
+    const rows = await scenario(
+      (tx) =>
+        tx<{ name: string; labels: string[] }[]>`
         select t.typname as name, array_agg(e.enumlabel order by e.enumsortorder) as labels
           from pg_catalog.pg_type t
           join pg_catalog.pg_enum e on e.enumtypid = t.oid
@@ -303,11 +308,15 @@ describe("the closed lists of the contract are the database's own", () => {
            and t.typname in ('probe_target', 'error_status', 'service_name', 'periodic_task')
          group by t.typname`,
     );
-    const labels = Object.fromEntries(rows.map((row) => [row.name, row.labels]));
+    const labels = Object.fromEntries(
+      rows.map((row) => [row.name, row.labels]),
+    );
     expect(labels.probe_target).toEqual([...OPS_PROBE_TARGETS]);
     expect(labels.error_status).toEqual([...OPS_ERROR_STATUSES]);
     expect(labels.service_name).toEqual([...OPS_SERVICES]);
-    expect([...(labels.periodic_task ?? [])].sort()).toEqual([...OPS_PERIODIC_TASKS].sort());
+    expect([...(labels.periodic_task ?? [])].sort()).toEqual(
+      [...OPS_PERIODIC_TASKS].sort(),
+    );
   });
 });
 
@@ -339,10 +348,14 @@ describe("ops_health_status(): the probe, the worker, the periodic tasks, the al
                 '{60,0,0,0,0,0,0,0,0}')`;
       return [first, await read()] as const;
     });
-    const delta = (key: "day" | "week" | "month", field: "checks" | "failures") =>
-      (after?.[key][field] ?? 0) - (before?.[key][field] ?? 0);
+    const delta = (
+      key: "day" | "week" | "month",
+      field: "checks" | "failures",
+    ) => (after?.[key][field] ?? 0) - (before?.[key][field] ?? 0);
     expect([delta("day", "checks"), delta("day", "failures")]).toEqual([3, 1]);
-    expect([delta("week", "checks"), delta("week", "failures")]).toEqual([4, 2]);
+    expect([delta("week", "checks"), delta("week", "failures")]).toEqual([
+      4, 2,
+    ]);
     // 30 days: the 5 minute lines, the 10-day line (still in the minute table) and the old hour
     expect([delta("month", "checks"), delta("month", "failures")]).toEqual([
       65, 8,
@@ -386,7 +399,10 @@ describe("ops_health_status(): the probe, the worker, the periodic tasks, the al
     const mine = status.workers.filter((worker) =>
       [INSTANCE_A, INSTANCE_B].includes(worker.instance),
     );
-    expect(mine.map((worker) => worker.instance)).toEqual([INSTANCE_A, INSTANCE_B]);
+    expect(mine.map((worker) => worker.instance)).toEqual([
+      INSTANCE_A,
+      INSTANCE_B,
+    ]);
     expect(status.worker_definition?.threshold).toMatchObject({
       heartbeat_max_age_seconds: 60,
     });
@@ -413,13 +429,17 @@ describe("ops_health_status(): the probe, the worker, the periodic tasks, the al
         on conflict (scope, code, subject_key) do nothing`;
       return answerOf(await asAdmin(tx, () => attempt<Status>(tx, STATUS)));
     });
-    const mine = status.alerts.filter((alert) => alert.subject === `tm9h${RUN}`);
+    const mine = status.alerts.filter(
+      (alert) => alert.subject === `tm9h${RUN}`,
+    );
     expect(mine).toHaveLength(1);
     expect(mine[0]).toMatchObject({
       code: "AL52",
       value: { share_bp: 130, threshold_bp: 100 },
     });
-    expect(status.alerts.some((alert) => alert.subject === "watermark")).toBe(false);
+    expect(status.alerts.some((alert) => alert.subject === "watermark")).toBe(
+      false,
+    );
   });
 });
 
@@ -427,7 +447,9 @@ describe("ops_error_groups() and ops_error_group()", () => {
   it("lists one state at a time, the latest sighting first, with the counts of every state", async () => {
     const result = await scenario(async (tx) => {
       const before = answerOf(
-        await asAdmin(tx, () => attempt<Groups>(tx, GROUPS, ["all", null, 200])),
+        await asAdmin(tx, () =>
+          attempt<Groups>(tx, GROUPS, ["all", null, 200]),
+        ),
       );
       await group(tx, "new-now", { status: "new", lastSeenHoursAgo: 0 });
       await group(tx, "ack", { status: "acknowledged", lastSeenHoursAgo: 2 });
@@ -468,7 +490,12 @@ describe("ops_error_groups() and ops_error_group()", () => {
     });
     const { mine } = result;
     // the latest sighting first: new-now (0 h), regression (1 h), ack (2 h), browser (3 h)
-    expect(mine(result.open)).toEqual(["new-now", "regression", "ack", "browser"]);
+    expect(mine(result.open)).toEqual([
+      "new-now",
+      "regression",
+      "ack",
+      "browser",
+    ]);
     expect(mine(result.regression)).toEqual(["regression"]);
     expect(mine(result.fixed)).toEqual(["fixed"]);
     expect(mine(result.ignoredBrowser)).toEqual([]);
@@ -580,7 +607,9 @@ describe("ops_traffic(): the histograms of every instance, added up", () => {
       (route) => route.method === "POST" && route.route === ROUTE,
     );
     // GET: 20 calls in at most two 5-minute buckets (a boundary can split the two minutes)
-    const sum = (cells: { count: number; server_errors: number; buckets: number[] }[]) => ({
+    const sum = (
+      cells: { count: number; server_errors: number; buckets: number[] }[],
+    ) => ({
       count: cells.reduce((total, cell) => total + cell.count, 0),
       errors: cells.reduce((total, cell) => total + cell.server_errors, 0),
       buckets: Array.from({ length: 9 }, (_, index) =>
@@ -647,7 +676,9 @@ describe("ops_processes(): the processes and the connections of the base", () =>
         insert into ops.database_samples (minute, connections, max_connections)
         values (date_trunc('minute', now() + interval '1 minute', 'UTC'), 7777, 9999)
         on conflict (minute) do nothing`;
-      return answerOf(await asAdmin(tx, () => attempt<Processes>(tx, PROCESSES)));
+      return answerOf(
+        await asAdmin(tx, () => attempt<Processes>(tx, PROCESSES)),
+      );
     });
     const mine = result.processes.find((p) => p.instance === INSTANCE_A);
     // the last sample, the two samples of the last hour (the one of 3 hours ago is not in it)

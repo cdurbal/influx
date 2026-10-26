@@ -127,11 +127,21 @@ function OccurrenceRows({ occurrence }: { occurrence: OpsOccurrence }) {
   );
 }
 
-function GroupDetail({ group, refresh }: { group: OpsErrorGroup; refresh: number }) {
+function GroupDetail({
+  group,
+  refresh,
+}: {
+  group: OpsErrorGroup;
+  refresh: number;
+}) {
   const read = useCallback(() => readOpsError(group.id), [group.id]);
   const { load, retry } = useOpsRead(read, refresh);
   return (
-    <div className="flex flex-col gap-2" role="region" aria-label={te.detailTitle(group.errorType)}>
+    <div
+      className="flex flex-col gap-2"
+      role="region"
+      aria-label={te.detailTitle(group.errorType)}
+    >
       <p className={HELP_CLASSES}>{te.detailLead}</p>
       <LoadGate load={load} retry={retry}>
         {(detail) =>
@@ -198,7 +208,10 @@ function GroupRows({
         <td className={TD_CLASSES}>
           <StateText tone={state.tone}>{state.label}</StateText>
         </td>
-        <th scope="row" className={`${TD_CLASSES} text-left font-regular break-words`}>
+        <th
+          scope="row"
+          className={`${TD_CLASSES} text-left font-regular break-words`}
+        >
           <span className="block font-semibold">{group.errorType}</span>
           {group.message}
         </th>
@@ -256,7 +269,11 @@ export function ErrorsSection({ refresh }: { refresh: number }) {
   return (
     <SectionFrame title={te.title} lead={te.lead}>
       <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-wrap gap-2" role="group" aria-label={te.filter}>
+        <div
+          className="flex flex-wrap gap-2"
+          role="group"
+          aria-label={te.filter}
+        >
           {OPS_ERROR_FILTERS.map((value) => (
             <button
               key={value}
@@ -267,7 +284,9 @@ export function ErrorsSection({ refresh }: { refresh: number }) {
                 setOpened(null);
               }}
               className={
-                filter === value ? SMALL_PRIMARY_CLASSES : SMALL_SECONDARY_CLASSES
+                filter === value
+                  ? SMALL_PRIMARY_CLASSES
+                  : SMALL_SECONDARY_CLASSES
               }
             >
               {te.chip(
@@ -302,7 +321,13 @@ export function ErrorsSection({ refresh }: { refresh: number }) {
         {(answer) =>
           answer.groups.length === 0 ? (
             <p>
-              <StateText tone={filter === "open" || filter === "regression" ? "ok" : "neutral"}>
+              <StateText
+                tone={
+                  filter === "open" || filter === "regression"
+                    ? "ok"
+                    : "neutral"
+                }
+              >
                 {filter === "open"
                   ? te.empty.open
                   : filter === "regression"

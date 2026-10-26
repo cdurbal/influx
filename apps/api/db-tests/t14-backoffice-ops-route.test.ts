@@ -214,8 +214,16 @@ describe("T14.1 on the routes of the screen", () => {
   it("the web surface never reaches one: the 404 of an unknown route, even with a member cookie", async () => {
     const server = app();
     const member = await newMember();
-    const options = { surface: "web", cookie: "__Host-influx-session" } as const;
-    const unknown = await get(server, "/v1/bo/no-such-route", member.session, options);
+    const options = {
+      surface: "web",
+      cookie: "__Host-influx-session",
+    } as const;
+    const unknown = await get(
+      server,
+      "/v1/bo/no-such-route",
+      member.session,
+      options,
+    );
     for (const url of ROUTES) {
       const response = await get(server, url, member.session, options);
       expect(response.statusCode, url).toBe(unknown.statusCode);
@@ -287,9 +295,7 @@ describe("an admin reads the screen", () => {
 
   it("errors: the open groups by default, a regression flagged, a state and a source chosen", async () => {
     const server = app();
-    const open = (
-      await get(server, "/v1/bo/ops/errors", admin.session)
-    ).json<{
+    const open = (await get(server, "/v1/bo/ops/errors", admin.session)).json<{
       state: string;
       groups: { message: string; status: string; regression: boolean }[];
       counts: Record<string, number>;
@@ -298,22 +304,32 @@ describe("an admin reads the screen", () => {
     const mine = open.groups.filter((g) =>
       g.message.startsWith(`t14ops ${RUN} `),
     );
-    expect(mine.map((g) => g.message.slice(`t14ops ${RUN} `.length)).sort()).toEqual([
-      "ack",
-      "new",
-      "regression",
-    ]);
-    expect(mine.find((g) => g.message.endsWith("regression"))?.regression).toBe(true);
-    expect(mine.find((g) => g.message.endsWith(" new"))?.regression).toBe(false);
+    expect(
+      mine.map((g) => g.message.slice(`t14ops ${RUN} `.length)).sort(),
+    ).toEqual(["ack", "new", "regression"]);
+    expect(mine.find((g) => g.message.endsWith("regression"))?.regression).toBe(
+      true,
+    );
+    expect(mine.find((g) => g.message.endsWith(" new"))?.regression).toBe(
+      false,
+    );
 
     const fixed = (
-      await get(server, "/v1/bo/ops/errors?state=fixed&source=server", admin.session)
+      await get(
+        server,
+        "/v1/bo/ops/errors?state=fixed&source=server",
+        admin.session,
+      )
     ).json<{ groups: { message: string }[] }>();
     expect(
       fixed.groups.filter((g) => g.message.startsWith(`t14ops ${RUN} `)),
     ).toHaveLength(1);
     const browser = (
-      await get(server, "/v1/bo/ops/errors?state=all&source=browser", admin.session)
+      await get(
+        server,
+        "/v1/bo/ops/errors?state=all&source=browser",
+        admin.session,
+      )
     ).json<{ groups: { message: string }[] }>();
     expect(
       browser.groups.filter((g) => g.message.startsWith(`t14ops ${RUN} `)),
@@ -336,30 +352,58 @@ describe("an admin reads the screen", () => {
 
   it("errors/:id: the group and its occurrences with the request and the account; unknown: 404", async () => {
     const server = app();
-    const found = await get(server, `/v1/bo/ops/errors/${acknowledged}`, admin.session);
+    const found = await get(
+      server,
+      `/v1/bo/ops/errors/${acknowledged}`,
+      admin.session,
+    );
     expect(found.statusCode).toBe(200);
     const detail = found.json<{
       group: { id: string; status: string };
-      occurrences: { requestId: string | null; accountId: string | null; stack: string | null }[];
+      occurrences: {
+        requestId: string | null;
+        accountId: string | null;
+        stack: string | null;
+      }[];
     }>();
-    expect(detail.group).toMatchObject({ id: acknowledged, status: "acknowledged" });
+    expect(detail.group).toMatchObject({
+      id: acknowledged,
+      status: "acknowledged",
+    });
     expect(detail.occurrences).toHaveLength(1);
     expect(detail.occurrences[0]?.requestId).toMatch(/^[0-9a-f-]{36}$/);
     expect(detail.occurrences[0]?.accountId).toMatch(/^[0-9a-f-]{36}$/);
-    const unknown = await get(server, `/v1/bo/ops/errors/${randomUUID()}`, admin.session);
+    const unknown = await get(
+      server,
+      `/v1/bo/ops/errors/${randomUUID()}`,
+      admin.session,
+    );
     expect(unknown.statusCode).toBe(404);
-    expect((await get(server, "/v1/bo/ops/errors/not-a-uuid", admin.session)).statusCode).toBe(400);
+    expect(
+      (await get(server, "/v1/bo/ops/errors/not-a-uuid", admin.session))
+        .statusCode,
+    ).toBe(400);
   });
 
   it("traffic: the p95 comes from the histogram, never stored: 100 calls, p95 = the 95th, in its bucket", async () => {
-    const response = await get(app(), "/v1/bo/ops/traffic?window=hour", admin.session);
+    const response = await get(
+      app(),
+      "/v1/bo/ops/traffic?window=hour",
+      admin.session,
+    );
     expect(response.statusCode).toBe(200);
     const traffic = response.json<{
       bucketSeconds: number;
       routes: {
         method: string;
         route: string;
-        summary: { calls: number; serverErrors: number; throttled: number; p95Ms: number | null; p95Beyond: boolean };
+        summary: {
+          calls: number;
+          serverErrors: number;
+          throttled: number;
+          p95Ms: number | null;
+          p95Beyond: boolean;
+        };
         points: { calls: number; open: boolean }[];
       }[];
       total: { points: unknown[] };
@@ -375,7 +419,9 @@ describe("an admin reads the screen", () => {
       p95Beyond: false,
     });
     expect(mine?.points).toHaveLength(12);
-    expect(mine?.points.reduce((total, point) => total + point.calls, 0)).toBe(100);
+    expect(mine?.points.reduce((total, point) => total + point.calls, 0)).toBe(
+      100,
+    );
     expect(mine?.points.at(-1)?.open).toBe(true);
     expect(traffic.total.points).toHaveLength(12);
   });
@@ -384,7 +430,11 @@ describe("an admin reads the screen", () => {
     const response = await get(app(), "/v1/bo/ops/processes", admin.session);
     expect(response.statusCode).toBe(200);
     const body = response.json<{
-      processes: { instance: string; eventLoopDelayP99Ms: number; cpuPercent: number }[];
+      processes: {
+        instance: string;
+        eventLoopDelayP99Ms: number;
+        cpuPercent: number;
+      }[];
       database: { samples: unknown[] };
     }>();
     expect(body.processes.find((p) => p.instance === INSTANCE)).toMatchObject({

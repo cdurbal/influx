@@ -1086,12 +1086,8 @@ export const messages = {
         `${name} : dernier point ${last}, maximum ${peak}`,
       curveEmpty: (name: string) => `${name} : rien de mesuré`,
       bucket: (size: string) => `Un point = ${size}.`,
-      totalLine: (
-        calls: string,
-        rate: string,
-        p95: string,
-        errors: string,
-      ) => `${calls} · ${rate} / min · p95 ${p95} · erreurs 5xx ${errors}`,
+      totalLine: (calls: string, rate: string, p95: string, errors: string) =>
+        `${calls} · ${rate} / min · p95 ${p95} · erreurs 5xx ${errors}`,
       range: (from: string, now: string) => `${from} → ${now}`,
       inProgress: "Le dernier point de chaque courbe est la tranche en cours.",
       read: {

@@ -76,7 +76,9 @@ function curveLabel(
         return formatPercent(value);
     }
   };
-  const peakIndex = values.findIndex((value) => value === Math.max(...measured));
+  const peakIndex = values.findIndex(
+    (value) => value === Math.max(...measured),
+  );
   return tt.curveLabel(
     name,
     format(last, values.at(-1) ?? null),
@@ -109,7 +111,10 @@ function RouteRow({ route }: { route: OpsTrafficRoute }) {
   const { summary } = route;
   return (
     <tr>
-      <th scope="row" className={`${TD_CLASSES} text-left font-regular break-all`}>
+      <th
+        scope="row"
+        className={`${TD_CLASSES} text-left font-regular break-all`}
+      >
         <span className="font-semibold">{route.method}</span>{" "}
         <span className="font-mono">{route.route}</span>
         <span className={`block ${HELP_CLASSES}`}>
@@ -119,7 +124,9 @@ function RouteRow({ route }: { route: OpsTrafficRoute }) {
       <td className={`${TD_CLASSES} ${TABULAR_CLASSES}`}>
         {formatRate(summary.callsPerMinute)}
       </td>
-      <td className={`${TD_CLASSES} ${TABULAR_CLASSES}`}>{formatP95(summary)}</td>
+      <td className={`${TD_CLASSES} ${TABULAR_CLASSES}`}>
+        {formatP95(summary)}
+      </td>
       <td className={`${TD_CLASSES} ${TABULAR_CLASSES}`}>
         {tt.errorsCell(
           summary.serverErrors,
@@ -213,7 +220,14 @@ function TrafficTable({
           <thead>
             <tr>
               {(
-                ["route", "calls", "p95", "errors", "throttled", "curves"] as const
+                [
+                  "route",
+                  "calls",
+                  "p95",
+                  "errors",
+                  "throttled",
+                  "curves",
+                ] as const
               ).map((key) => (
                 <th key={key} scope="col" className={TH_CLASSES}>
                   {tt.columns[key]}
@@ -249,7 +263,9 @@ export function TrafficSection({ refresh }: { refresh: number }) {
           <select
             id={ids.window}
             value={window}
-            onChange={(event) => setWindow(event.target.value as OpsTrafficWindow)}
+            onChange={(event) =>
+              setWindow(event.target.value as OpsTrafficWindow)
+            }
             className={SELECT_CLASSES}
           >
             {OPS_TRAFFIC_WINDOWS.map((value) => (

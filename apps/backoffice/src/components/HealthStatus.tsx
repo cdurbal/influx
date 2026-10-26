@@ -218,7 +218,14 @@ function Processes({ status }: { status: OpsStatusResponse }) {
         <thead>
           <tr>
             {(
-              ["instance", "version", "started", "beat", "turn", "state"] as const
+              [
+                "instance",
+                "version",
+                "started",
+                "beat",
+                "turn",
+                "state",
+              ] as const
             ).map((key) => (
               <th key={key} scope="col" className={TH_CLASSES}>
                 {tw.columns[key]}

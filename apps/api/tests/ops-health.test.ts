@@ -4,9 +4,7 @@
 // UP over every instance and is the upper bound of a bucket (never a stored value, never one per
 // instance); the worker is judged by the very rule of AL50; the buckets of time are filled with
 // zeros and the last one is in progress; an answer of an unexpected shape is an error, not a guess.
-import {
-  OPS_PROBE_TARGETS,
-} from "@influx/contracts/backoffice-ops";
+import { OPS_PROBE_TARGETS } from "@influx/contracts/backoffice-ops";
 import { describe, expect, it } from "vitest";
 import type { Transaction } from "../src/db/index.ts";
 import {
@@ -187,7 +185,13 @@ describe("readOpsStatus: the worker is judged by the rule of AL50", () => {
 });
 
 describe("readErrorGroups and readErrorGroup", () => {
-  const counts = { new: 2, acknowledged: 1, fixed: 3, ignored: 0, regression: 1 };
+  const counts = {
+    new: 2,
+    acknowledged: 1,
+    fixed: 3,
+    ignored: 0,
+    regression: 1,
+  };
 
   it("flags a regression only on a group still open that was reopened", async () => {
     const answer = await readErrorGroups(
@@ -292,7 +296,13 @@ describe("readTraffic: the p95 of the histograms added up", () => {
               method: "GET",
               route: "/v1/x",
               cells: [
-                { at: "2026-10-26T12:05:00.000000Z", count: 20, server_errors: 0, throttled: 0, buckets: histogram(20) },
+                {
+                  at: "2026-10-26T12:05:00.000000Z",
+                  count: 20,
+                  server_errors: 0,
+                  throttled: 0,
+                  buckets: histogram(20),
+                },
               ],
             },
           ],
@@ -356,7 +366,13 @@ describe("readTraffic: the p95 of the histograms added up", () => {
               method: "POST",
               route: "/v1/slow",
               cells: [
-                { at: "2026-10-26T12:05:00.000000Z", count: 10, server_errors: 0, throttled: 0, buckets: histogram(0, 0, 0, 0, 0, 0, 0, 0, 10) },
+                {
+                  at: "2026-10-26T12:05:00.000000Z",
+                  count: 10,
+                  server_errors: 0,
+                  throttled: 0,
+                  buckets: histogram(0, 0, 0, 0, 0, 0, 0, 0, 10),
+                },
               ],
             },
           ],
@@ -365,8 +381,15 @@ describe("readTraffic: the p95 of the histograms added up", () => {
       ),
       "hour",
     );
-    expect(answer.routes[0]?.summary).toMatchObject({ p95Ms: 5000, p95Beyond: true });
-    expect(answer.total.summary).toMatchObject({ calls: 0, p95Ms: null, p95Beyond: false });
+    expect(answer.routes[0]?.summary).toMatchObject({
+      p95Ms: 5000,
+      p95Beyond: true,
+    });
+    expect(answer.total.summary).toMatchObject({
+      calls: 0,
+      p95Ms: null,
+      p95Beyond: false,
+    });
   });
 
   it("fills every bucket of time with zeros, the last one in progress with the minutes elapsed", async () => {
@@ -379,9 +402,21 @@ describe("readTraffic: the p95 of the histograms added up", () => {
               route: "/v1/x",
               cells: [
                 // the bucket in progress: 12:05 to 12:10, now 12:07:30 => 2 whole minutes elapsed
-                { at: "2026-10-26T12:05:00.000000Z", count: 30, server_errors: 0, throttled: 0, buckets: histogram(30) },
+                {
+                  at: "2026-10-26T12:05:00.000000Z",
+                  count: 30,
+                  server_errors: 0,
+                  throttled: 0,
+                  buckets: histogram(30),
+                },
                 // a closed bucket: 5 minutes
-                { at: "2026-10-26T11:10:00.000000Z", count: 50, server_errors: 0, throttled: 0, buckets: histogram(50) },
+                {
+                  at: "2026-10-26T11:10:00.000000Z",
+                  count: 50,
+                  server_errors: 0,
+                  throttled: 0,
+                  buckets: histogram(50),
+                },
               ],
             },
           ],
@@ -392,9 +427,24 @@ describe("readTraffic: the p95 of the histograms added up", () => {
     );
     const points = answer.routes[0]?.points ?? [];
     expect(points).toHaveLength(12);
-    expect(points[0]).toMatchObject({ at: "2026-10-26T11:10:00.000Z", calls: 50, callsPerMinute: 10, open: false });
-    expect(points[1]).toMatchObject({ calls: 0, callsPerMinute: 0, p95Ms: null, open: false });
-    expect(points[11]).toMatchObject({ at: "2026-10-26T12:05:00.000Z", calls: 30, callsPerMinute: 15, open: true });
+    expect(points[0]).toMatchObject({
+      at: "2026-10-26T11:10:00.000Z",
+      calls: 50,
+      callsPerMinute: 10,
+      open: false,
+    });
+    expect(points[1]).toMatchObject({
+      calls: 0,
+      callsPerMinute: 0,
+      p95Ms: null,
+      open: false,
+    });
+    expect(points[11]).toMatchObject({
+      at: "2026-10-26T12:05:00.000Z",
+      calls: 30,
+      callsPerMinute: 15,
+      open: true,
+    });
     // 80 calls over the 57 whole minutes written so far in the window
     expect(answer.routes[0]?.summary.callsPerMinute).toBeCloseTo(80 / 57, 5);
   });
@@ -405,7 +455,15 @@ describe("readTraffic: the p95 of the histograms added up", () => {
         answering(
           traffic(
             [],
-            [{ at: FROM, count: 1, server_errors: 0, throttled: 0, buckets: [1] }],
+            [
+              {
+                at: FROM,
+                count: 1,
+                server_errors: 0,
+                throttled: 0,
+                buckets: [1],
+              },
+            ],
           ),
         ),
         "hour",
@@ -439,13 +497,26 @@ describe("readProcesses", () => {
           },
         ],
         database: {
-          last: { minute: "2026-10-26T12:06:00.000000Z", connections: 14, max_connections: 60 },
+          last: {
+            minute: "2026-10-26T12:06:00.000000Z",
+            connections: 14,
+            max_connections: 60,
+          },
           peak_24h: 31,
-          samples: [{ minute: "2026-10-26T12:06:00.000000Z", connections: 14, max_connections: 60 }],
+          samples: [
+            {
+              minute: "2026-10-26T12:06:00.000000Z",
+              connections: 14,
+              max_connections: 60,
+            },
+          ],
         },
       }),
     );
-    expect(answer.processes[0]).toMatchObject({ ageSeconds: 150, cpuPercent: 7.5 });
+    expect(answer.processes[0]).toMatchObject({
+      ageSeconds: 150,
+      cpuPercent: 7.5,
+    });
     expect(answer.database).toMatchObject({ lastAgeSeconds: 90, peak24h: 31 });
   });
 

@@ -72,8 +72,12 @@ describe("availability and ages", () => {
   });
 
   it("the seconds since an instant, never negative", () => {
-    expect(secondsSince("2026-10-26T12:00:30.000Z", "2026-10-26T12:00:00.000Z")).toBe(30);
-    expect(secondsSince("2026-10-26T12:00:00.000Z", "2026-10-26T12:00:30.000Z")).toBe(0);
+    expect(
+      secondsSince("2026-10-26T12:00:30.000Z", "2026-10-26T12:00:00.000Z"),
+    ).toBe(30);
+    expect(
+      secondsSince("2026-10-26T12:00:00.000Z", "2026-10-26T12:00:30.000Z"),
+    ).toBe(0);
   });
 
   it("the state of a target comes from its last check; unknown before the first one", () => {
@@ -190,7 +194,11 @@ describe("the curves", () => {
   });
 
   it("draws one value per bucket of time: calls per minute, the p95 bound, the share of 5xx; null where nothing was measured", () => {
-    const points = [point(10, 2, 1, 250), point(0, 0, 0, null), point(4, 0.8, 0, 5000, true)];
+    const points = [
+      point(10, 2, 1, 250),
+      point(0, 0, 0, null),
+      point(4, 0.8, 0, 5000, true),
+    ];
     expect(curveValues(points, "calls")).toEqual([2, 0, 0.8]);
     expect(curveValues(points, "p95")).toEqual([250, null, 5001]);
     expect(curveValues(points, "errors")).toEqual([10, null, 0]);
