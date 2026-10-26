@@ -5,8 +5,6 @@ import { expect, test as base, type Page } from "@playwright/test";
 import { randomInt } from "node:crypto";
 import enAuth from "@/locales/en/auth.json" with { type: "json" };
 import frAuth from "@/locales/fr/auth.json" with { type: "json" };
-import enLanding from "@/locales/en/landing.json" with { type: "json" };
-import frLanding from "@/locales/fr/landing.json" with { type: "json" };
 import { mailboxAddress } from "./mailboxes";
 import { DOUBLE_ORIGIN } from "./servers";
 
@@ -16,13 +14,6 @@ export type AuthLabels = typeof frAuth;
 export const AUTH_LABELS: Readonly<Record<Locale, AuthLabels>> = {
   fr: frAuth,
   en: enAuth,
-};
-
-const COOKIE_BANNER_LABELS: Readonly<
-  Record<Locale, typeof frLanding.cookieBanner>
-> = {
-  fr: frLanding.cookieBanner,
-  en: enLanding.cookieBanner,
 };
 
 /** A random /64 of the documentation prefix (RFC 3849): one per journey. */
@@ -93,49 +84,14 @@ export async function lastCodeEmail(
   return { code, text };
 }
 
-function localeOf(page: Page): Locale {
-  return /^\/en(?:\/|$)/.test(new URL(page.url()).pathname) ? "en" : "fr";
-}
-
-/**
- * The cookie banner opens at each full load (its choice is kept in memory only, at this lot) and
- * covers the bottom of screen 3: the member answers it first, as a person would.
- */
-async function answerCookieBanner(page: Page): Promise<void> {
-  const labels = COOKIE_BANNER_LABELS[localeOf(page)];
-  await page
-    .getByRole("region", { name: labels.regionLabel })
-    .getByRole("button", { name: labels.reject })
-    .click();
-}
-
-/** A full load of a page of the journey. */
+/** A full load of a page of the journey (the cookie banner is off: no tracker, EC-J9-3). */
 export async function open(page: Page, path: string): Promise<void> {
   await page.goto(path);
-  await answerCookieBanner(page);
-}
-
-/** A full load that leaves the cookie banner open, unanswered. */
-export async function openWithBanner(page: Page, path: string): Promise<void> {
-  await page.goto(path);
-}
-
-/** The cookie banner region of the page. */
-export function cookieBanner(page: Page) {
-  return page.getByRole("region", {
-    name: COOKIE_BANNER_LABELS[localeOf(page)].regionLabel,
-  });
-}
-
-/** Refuses all cookies in the banner. */
-export async function rejectCookies(page: Page): Promise<void> {
-  await answerCookieBanner(page);
 }
 
 /** A reload of the page on screen (D66: the journey resumes from apps/api's cookies). */
 export async function reload(page: Page): Promise<void> {
   await page.reload();
-  await answerCookieBanner(page);
 }
 
 export function title(page: Page) {

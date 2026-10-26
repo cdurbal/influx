@@ -13,6 +13,12 @@ export const dynamicParams = false;
 // a page rendered at build time could not know (03 §6.5, 18 T10).
 export const dynamic = "force-dynamic";
 
+// EC-J9-3: the site sets no non-essential tracker (inventory of 2026-10-21: no third-party script,
+// pixel or audience measurement in apps/web/src), so no consent is asked (11 §8, "no tracker" case).
+// Turn it on again only with the first tracker, together with a new consent version; the footer
+// "Cookies" link stays either way.
+const COOKIE_BANNER_ENABLED = false;
+
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
@@ -49,14 +55,16 @@ export default async function LocaleLayout({
     <html lang={locale}>
       <body className="bg-surface-page font-base text-md text-text-primary">
         {/* Early in the DOM, before the header (11 §4.2): a keyboard user settles it on first Tab. */}
-        <CookieBanner
-          regionLabel={t("regionLabel")}
-          title={t("title")}
-          body={t("body")}
-          acceptLabel={t("accept")}
-          rejectLabel={t("reject")}
-          privacyLinkLabel={t("privacyLink")}
-        />
+        {COOKIE_BANNER_ENABLED ? (
+          <CookieBanner
+            regionLabel={t("regionLabel")}
+            title={t("title")}
+            body={t("body")}
+            acceptLabel={t("accept")}
+            rejectLabel={t("reject")}
+            privacyLinkLabel={t("privacyLink")}
+          />
+        ) : null}
         {/* Client components receive their labels through props: no message is sent to the browser. */}
         <NextIntlClientProvider messages={null}>
           {children}
