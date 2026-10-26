@@ -350,6 +350,14 @@ commit 10) ; tout nouveau fichier `db-tests` entre dans `case-floors.ts`.
 - Railway a invalidé tous les jetons d'API à son incident du 2026-10-21 au 23 : variables de `staging` et push suspendus à un nouveau jeton (fondateur). Local : `t14` « internal-accounts » rouge (1 856 profils internes, plafond 200), vert sur pile neuve.
 - Planchers : `pnpm test` = **2 995** (contracts 116, test-kit 124, backoffice 36, web 194, `apps/api` unitaire 1 321, base 1 204). Prochaine migration libre **`0148`**.
 
+## Issu du commit 9
+
+- `0148` : cinq lectures `backoffice.ops_*` (propriétaire `influx_maintenance_definer`, `EXECUTE` à `influx_admin` seul, non journalisées : état technique, pas une personne) ; l'accès du propriétaire s'élargit en colonnes (message, pile, requête et compte d'une occurrence ; code et statut de la sonde). `record_refused_action()` connaît `ops.read_health` (tentative d'un commercial : 403 + journal CA63). À signer à la revue groupée (I-4) avec `expected-rights.ts` ; l'élargissement de `error_occurrences` est à confirmer par `expert-cybersecurite` et `expert-conformite-rgpd` (EC-J9-5).
+- Écarts : disponibilité 30 j = table à la minute (14 j) puis agrégat horaire, jamais deux fois la même heure (EC-J9-5a) ; trafic en 12 × 5 min, 24 × 1 h ou 28 × 6 h, 100 routes au plus, dernière tranche « en cours » (EC-J9-5b) ; « régression » = `regression_count > 0` encore ouverte (EC-J9-5c) ; l'âge de la file `pending`, les événements `failed` et la dernière vérification de chaîne (`02` §11.3) restent aux écrans des leads : aucun propriétaire de `ops` ne lit la file (EC-J9-5d).
+- Écran : état du worker jugé par la règle d'AL50 (`workerStoppedCondition`) ; p95 = borne haute de la tranche (`≤ 500 ms`, `> 5 s`) ; un commercial qui ouvre l'adresse déclenche un appel, donc la trace. À aligner à la clôture : `15` (écran, RG165) et `17b` (EC-J9-5), `04` (table des migrations), `03` P7 (lectures du propriétaire).
+- Local : `t14` « internal-accounts » rouge (profils internes accumulés, plafond 200), vert sur pile neuve ; 350 lignes `pending` résiduelles supprimées (TM1.11) ; `t8-backoffice-sign-in` (bris de glace) intermittent au passage groupé, vert seul.
+- Planchers : `pnpm test` = **3 060** (contracts 121, test-kit 124, backoffice 53, web 194, `apps/api` unitaire 1 340, base 1 228). Prochaine migration libre **`0149`**.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les
