@@ -167,6 +167,20 @@ export async function insertCriticalAlertSend(
   return reference;
 }
 
+/**
+ * AL59 (0147, J3S-8): one failed member code for an address DIGEST (emailThrottleKey, never the
+ * address), in its UTC hour; returns the failures of the last 24 hours. Nothing is blocked (A-4).
+ */
+export async function recordCodeFailure(
+  tx: Transaction,
+  addressKey: Buffer,
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select identity.record_code_failure(${addressKey})::int as count`,
+  );
+  return rows[0]?.count ?? 0;
+}
+
 /** Failures of the current window of a counter (0014), read before calling GoTrue. */
 export async function failureCount(
   tx: Transaction,

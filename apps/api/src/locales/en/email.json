@@ -127,6 +127,121 @@
         "occurredAt": "On {occurredAt, date, long} at {occurredAt, time, medium} (UTC).",
         "auditReference": "Audit reference: {reference}",
         "action": "Check the backoffice audit register. If this sign-in was not planned, treat it as a security incident."
+      },
+      "technicalAlert": {
+        "subject": {
+          "raised": "{code}: {title}",
+          "reminder": "{code} still ongoing: {title}",
+          "resolved": "{code} resolved: {title}"
+        },
+        "heading": "INFLUX technical alert",
+        "fact": {
+          "raised": "Alert raised: {code} — {title}.",
+          "reminder": "Alert {code} — {title} is still ongoing (reminder no. {sequence}).",
+          "resolved": "Alert {code} — {title} is over."
+        },
+        "openedAt": "Raised on {openedAt, date, long} at {openedAt, time, medium} (UTC).",
+        "observedAt": "Observed on {observedAt, date, long} at {observedAt, time, medium} (UTC).",
+        "screen": "The details are on the \"Santé technique\" screen of the backoffice.",
+        "notSet": "not set",
+        "none": "none",
+        "p95Within": "≤ {bound} ms",
+        "p95Beyond": "> {bound} ms",
+        "targets": {
+          "web_home_fr": "FR home page",
+          "web_home_en": "EN home page",
+          "backoffice_sign_in": "backoffice sign-in page",
+          "api_health": "/health of the API (private network, checks the database)"
+        },
+        "groups": {
+          "newGroups": "New server error groups: {count}.",
+          "regressions": "Regressions (fixed groups seen again): {count}.",
+          "digest": "Digest of the new server error groups of the last 24 hours: {count}.",
+          "line": "{errorType} on {route} — group {id}, on {at, date, long} at {at, time, medium} (UTC)",
+          "noRoute": "outside a request"
+        },
+        "codes": {
+          "AL48": {
+            "title": "Sign-in code deliverability out of bounds",
+            "measure": "Codes sent in the window: {sends}. Median delay: {medianDeliverySeconds} s; 9 cases out of 10: {p90DeliverySeconds} s; requests without a sign-in within 10 min: {noSignInShare}; delivered share: {deliveredShare}.",
+            "action": "Incident: people cannot get into their account. Check Brevo and the sending domain."
+          },
+          "AL49": {
+            "title": "Site unreachable",
+            "measure": "Target: {target}. Consecutive failures: {consecutiveFailures} (threshold: {threshold}). Last failure: {failureCode}, HTTP status {statusCode}.",
+            "action": "Check Railway and Supabase; roll back to the previous version if the failure follows a deployment."
+          },
+          "AL50": {
+            "title": "Worker stopped",
+            "measure": "Last beat: {lastBeatAt} ({ageSeconds} s ago; threshold: {thresholdSeconds} s).",
+            "action": "Read its \"fatal\" line in the Railway logs (missing setting), then restart the worker service."
+          },
+          "AL51": {
+            "title": "New server error or regression",
+            "measure": "",
+            "action": "Classify each group: fixed, planned or harmless."
+          },
+          "AL52": {
+            "title": "Server error rate",
+            "measure": "{serverErrors} 5xx responses out of {requests} in {windowMinutes} min, that is {share} (threshold: {threshold}).",
+            "action": "Find the route at fault; fix it or roll back to the previous version."
+          },
+          "AL53": {
+            "title": "Slow API",
+            "measure": "p95 of the API over {windowMinutes} min: {p95}, on {requests} requests (threshold: {thresholdMs} ms, code requests excluded).",
+            "action": "Read the slowdown: call spike, slow query, database or external provider."
+          },
+          "AL54": {
+            "title": "Slow pages",
+            "measure": "{target}: {durationMs} ms at the last probe, beyond {thresholdMs} ms on {probes} consecutive probes.",
+            "action": "Read the slowdown: call spike, slow query, database or external provider."
+          },
+          "AL55": {
+            "title": "Call spike (information)",
+            "measure": "{callsPerMinute} calls per minute over 5 min; usual volume: {usualCallsPerMinute}; limit: {limit}.",
+            "action": "Match it with its origin (e-mail send, campaign); act only if a slowdown follows."
+          },
+          "AL56": {
+            "title": "Rising 429 responses",
+            "measure": "{throttled} 429 responses out of {requests} in {windowMinutes} min, that is {share} (threshold: {threshold} and at least {minCount}).",
+            "action": "Look for abuse before raising a limit."
+          },
+          "AL57": {
+            "title": "Saturated service",
+            "measure": "Service {service}: average event loop delay {avgEventLoopDelayMs} ms over {windowMinutes} min (threshold: {thresholdMs} ms); memory: {memoryShare}.",
+            "action": "Increase the Railway resources; look for the loop or the leak."
+          },
+          "AL58": {
+            "title": "Saturated database",
+            "measure": "Database connections: {connections} out of {maxConnections} (threshold: {threshold} on {samples} consecutive samples).",
+            "action": "Look for the connections and the long queries."
+          },
+          "AL59": {
+            "title": "Targeted sign-in code",
+            "measure": "{failures} code failures in 24 hours for one address (threshold: {threshold}). Nothing is blocked.",
+            "action": "Investigate: targeted attack or member in difficulty."
+          },
+          "AL60": {
+            "title": "Hourly purge at fault",
+            "measure": "Run {runId} finished on {finishedAt}: {realignFailed} failed GoTrue realignment(s); breaker: {breaker}.",
+            "action": "Examine the run and fix it before the next one."
+          },
+          "AL61": {
+            "title": "Brevo webhook: ignored calls",
+            "measure": "{ignored} ignored calls out of {authenticated} authenticated calls in {windowHours} h, that is {share} (threshold: {threshold}).",
+            "action": "Read the main reason: a changed Brevo format loses unsubscriptions."
+          },
+          "AL62": {
+            "title": "Brevo webhook outside its ranges",
+            "measure": "{occurrences} call(s) with a valid token received outside the ranges published by Brevo; last: {lastAt}.",
+            "action": "Update the ranges if Brevo changed them, otherwise change the token."
+          },
+          "AL63": {
+            "title": "Executed personal data request not closed",
+            "measure": "Execution {executionId}, executed on {executedAt}, not closed beyond {thresholdHours} h.",
+            "action": "Complete and close it: the legal deadline runs."
+          }
+        }
       }
     },
     "transactional": {

@@ -97,6 +97,11 @@ export type DrainDependencies = {
   inbound?: InboundProcessor;
   /** E-4 (maintenance/periodic.ts): never throws; none in the loop's tests. */
   periodic?: { tick(signal: AbortSignal): Promise<void> };
+  /**
+   * The beat of the worker (02 §11.3, ops/worker-monitor.ts): at start and after each turn;
+   * never throws; none in the loop's tests.
+   */
+  heartbeat?: { turned(): Promise<void> };
   /** The worker identifier of the claim (workerIdentifier). */
   worker: string;
   /**
@@ -137,6 +142,7 @@ export function createOutboxDrain(
     connectors,
     inbound,
     periodic,
+    heartbeat,
     worker,
     startedAt,
     sync,
@@ -554,6 +560,7 @@ export function createOutboxDrain(
   }
 
   async function run(signal: AbortSignal): Promise<void> {
+    await heartbeat?.turned();
     await recover();
     let lastRecovery = now();
     await periodicTick(signal);
@@ -565,6 +572,7 @@ export function createOutboxDrain(
       } catch (error) {
         logger.error({ err: error }, "leads.drain.turn_failed");
       }
+      await heartbeat?.turned();
       if (signal.aborted) {
         break;
       }

@@ -56,7 +56,10 @@ describe("duplicate key detector (self-check)", () => {
 describe("api log lines", () => {
   it("never repeat a key: success, 4xx and 500", async () => {
     const logs = captureLogs();
-    app = buildServer(testApiConfig(), { logDestination: logs.destination });
+    app = buildServer(testApiConfig(), {
+      logDestination: logs.destination,
+      isDatabaseReachable: async () => true,
+    });
     app.get(
       "/v1/failing",
       { schema: { response: { 200: z.object({ status: z.literal("ok") }) } } },

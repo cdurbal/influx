@@ -1695,6 +1695,9 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       "leads.read_brevo_subject(bigint,text)",
       "leads.record_brevo_reconciliation_event(text,timestamp with time zone,text,text,uuid,bigint,bigint,text)",
       "leads.recover_stale_outbox_lines(integer)",
+      // 0147 (J9 commit 8, D60): the admin recipients of the technical alerts, the round of the scope worker
+      "ops.admin_alert_recipients()",
+      "ops.begin_alert_round(text)",
       // 0117 (J7 decision 3): E-4 maintenance.run_periodic
       "ops.claim_periodic_run(ops.periodic_task,text)",
       "ops.filter_auth_orphans(uuid,smallint,uuid[])",
@@ -1704,7 +1707,15 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       "ops.purge_brevo_inbound_events(uuid,smallint,integer)",
       // 0137 (J8 commit 8): E-4, the purge of the exports
       "ops.purge_data_exports(uuid,smallint,integer)",
+      // 0147 (J9 commit 8, D60): the samples of the base and of the probe, the heartbeat, the
+      // retention of ops, the states and the snapshot of the technical alerts
+      "ops.record_database_sample()",
+      "ops.record_probe_results(text,jsonb)",
       "ops.record_retention_purge(uuid,smallint,text,integer)",
+      "ops.record_worker_heartbeat(text,text,text,timestamp with time zone,boolean)",
+      "ops.run_ops_retention(uuid,smallint)",
+      "ops.save_alert_states(text,jsonb)",
+      "ops.technical_alert_snapshot(timestamp with time zone)",
     ]);
   });
 

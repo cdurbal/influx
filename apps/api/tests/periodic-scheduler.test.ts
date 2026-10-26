@@ -19,7 +19,9 @@ import {
   createPeriodicScheduler,
   isDue,
   createDataExportPurge,
+  createOpsRetention,
   EXPORT_PURGE_BATCH,
+  OPS_RETENTION_MAX_STEPS,
   periodKeyOf,
   PeriodicRunInterrupted,
   PeriodicTaskError,
@@ -71,6 +73,9 @@ function memoryStore(options: { claimedElsewhere?: boolean } = {}) {
     },
     async purgeDataExports() {
       return 0;
+    },
+    async opsRetentionStep() {
+      return { more: 0 };
     },
   };
   return { store, claims, finishes, findings };
@@ -201,6 +206,26 @@ describe("the scheduler", () => {
       failures.map((line) => (line.object as { errorCode: string }).errorCode),
     ).toEqual(["gotrue.unavailable", "internal"]);
     expect(JSON.stringify(lines)).not.toContain("example.test");
+  });
+
+  it("counts a stop by the breaker on its run, the trace AL60 reads (J7S-2, 15 RG165)", async () => {
+    const { store, finishes } = memoryStore();
+    const { logger } = silentLogger();
+    const scheduler = createPeriodicScheduler({
+      store,
+      runners: {
+        auth_orphan_purge: async (_run, counts) => {
+          counts.realign_checked = 0;
+          throw new PeriodicTaskError("breaker.orphan_ratio");
+        },
+      },
+      logger,
+      now: () => AT_0300,
+    });
+    await scheduler.tick(signal());
+    expect(finishes.map((finish) => [finish.outcome, finish.counts])).toEqual([
+      ["failed", { realign_checked: 0, breaker_orphan_ratio: 1 }],
+    ]);
   });
 
   it("leaves a run interrupted by a stop open, for a take-back after an hour", async () => {
@@ -593,6 +618,42 @@ describe("data_export_purge (runbook demandes-rgpd §4, J8 commit 8)", () => {
       EXPORT_PURGE_BATCH,
       EXPORT_PURGE_BATCH,
     ]);
+  });
+
+  it("runs the retention of ops by steps until no more, adding up their counts (0147)", async () => {
+    const { store } = memoryStore();
+    const steps: PeriodicCounts[] = [
+      { request_minutes_rolled_up: 4000, more: 1 },
+      { request_minutes_rolled_up: 120, occurrences_purged: 7, more: 0 },
+    ];
+    let calls = 0;
+    store.opsRetentionStep = async () => steps[calls++] ?? { more: 0 };
+    const counts: PeriodicCounts = {};
+    await createOpsRetention(store)(
+      { runId: "run-1", attempt: 1 },
+      counts,
+      signal(),
+    );
+    expect(calls).toBe(2);
+    expect(counts).toEqual({
+      request_minutes_rolled_up: 4120,
+      occurrences_purged: 7,
+    });
+  });
+
+  it("bounds the steps of the retention of ops per run", async () => {
+    const { store } = memoryStore();
+    let calls = 0;
+    store.opsRetentionStep = async () => {
+      calls += 1;
+      return { more: 1 };
+    };
+    await createOpsRetention(store)(
+      { runId: "run-1", attempt: 1 },
+      {},
+      signal(),
+    );
+    expect(calls).toBe(OPS_RETENTION_MAX_STEPS);
   });
 
   it("stops between two batches once a stop is requested", async () => {

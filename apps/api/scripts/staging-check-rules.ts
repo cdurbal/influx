@@ -63,6 +63,26 @@ export function closedListsOf(runbook: string): ClosedLists {
   return lists as ClosedLists;
 }
 
+/** The names the closed list holds for Railway's build, not for the code (Railpack, D64). */
+export const READ_BY_RAILWAY_BUILD: readonly string[] = [
+  "RAILPACK_NODE_VERSION",
+];
+
+/**
+ * EC-J9-7: the closed list is drawn from what the code reads (runbook §5). The names of a service's
+ * list that its configuration does not read (`readByCode`: the keys of its schema), Railway's build
+ * variables aside: a variable set on Railway that no code reads is either a leftover or a typo.
+ */
+export function namesNotRead(
+  list: ClosedList,
+  readByCode: readonly string[],
+): string[] {
+  const read = new Set([...readByCode, ...READ_BY_RAILWAY_BUILD]);
+  return [...list.required, ...list.optional]
+    .filter((name) => !read.has(name))
+    .sort();
+}
+
 /** The variables Railway adds by itself (RAILWAY_ENVIRONMENT_NAME, RAILWAY_GIT_COMMIT_SHA…). */
 export function isProvidedByRailway(name: string): boolean {
   return name.startsWith("RAILWAY_");

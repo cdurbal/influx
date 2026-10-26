@@ -171,6 +171,31 @@ describe("cap and metrics (02 §20.5)", () => {
     ]);
     await migration`delete from ops.request_metrics where instance = ${INSTANCE}`;
   });
+
+  it("writes the signals of an ended minute once (15 RG165, AL61 and AL62; 0147)", async () => {
+    const minute = Math.floor((Date.now() - 120_000) / 60_000) * 60_000;
+    let now = new Date(minute + 5_000);
+    const ops = recorder(() => now);
+    ops.recordSignal("webhook_brevo_authenticated");
+    ops.recordSignal("webhook_brevo_authenticated");
+    ops.recordSignal("webhook_brevo_ignored");
+    await ops.flush(database, silent);
+    const before = await migration`
+      select 1 from ops.signal_counts where instance = ${INSTANCE}`;
+    expect(before).toHaveLength(0);
+
+    now = new Date(minute + 65_000);
+    await ops.flush(database, silent);
+    await ops.flush(database, silent);
+    const rows = await migration<{ signal: string; count: number }[]>`
+      select signal::text as signal, count from ops.signal_counts
+       where instance = ${INSTANCE} order by signal`;
+    expect(rows).toEqual([
+      { signal: "webhook_brevo_authenticated", count: 2 },
+      { signal: "webhook_brevo_ignored", count: 1 },
+    ]);
+    await migration`delete from ops.signal_counts where instance = ${INSTANCE}`;
+  });
 });
 
 describe("POST /v1/ops/client-errors (02 §20.5)", () => {

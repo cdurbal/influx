@@ -9,6 +9,9 @@
 // Before the first turn, the start step (D68, then 05 RG162; 0146): the Brevo list ids of the
 // environment, then the settings in force; a deployed environment refuses to start without those
 // every sign-up needs (D67), with a non-zero exit code before the loop.
+// Beside the drain, the active monitoring of D60 (02 §20.5, 15 RG165; domains/ops/
+// worker-monitor.ts, J9 commit 8): the beat the api watches, the probe of the site every minute and the
+// technical alerts, sent directly to Brevo with the worker's own key.
 import { randomUUID } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
 import {
@@ -48,11 +51,16 @@ import type {
 } from "./domains/leads/repository.ts";
 import { checkSettingsAtStart } from "./domains/leads/start-check.ts";
 import { createAuthOrphanPurge } from "./domains/maintenance/auth-orphan-purge.ts";
+import {
+  createHeartbeat,
+  createWorkerMonitor,
+} from "./domains/ops/worker-monitor.ts";
 import { createBrevoReads } from "./domains/maintenance/brevo-reads.ts";
 import { createBrevoReconciliation } from "./domains/maintenance/brevo-reconciliation.ts";
 import {
   createBrevoInboundPurge,
   createDataExportPurge,
+  createOpsRetention,
   createPeriodicScheduler,
   createPeriodicStore,
   type PeriodicLogger,
@@ -61,6 +69,7 @@ import {
   type PeriodicTaskRunner,
 } from "./domains/maintenance/periodic.ts";
 import { createPrivacyExecutor } from "./domains/privacy/execution.ts";
+import { createTransactionalSender } from "./platform/brevo-transactional.ts";
 import { createLogger } from "./platform/logger.ts";
 import {
   createGoTrueUserDirectory,
@@ -107,8 +116,8 @@ function connectorsOf(
 
 /**
  * E-4 (decision 3 of J7): the reconciliation with the worker's Brevo key, the purge of GoTrue with
- * its own secret key; a task without its key is never claimed. The 30-day purge and the purge of
- * the exports (J8 commit 8) need neither.
+ * its own secret key; a task without its key is never claimed. The 30-day purge, the purge of the
+ * exports (J8 commit 8) and the retention of ops (J9 commit 8) need neither.
  */
 function periodicSchedulerOf(
   config: WorkerConfig,
@@ -121,6 +130,8 @@ function periodicSchedulerOf(
   const runners: Partial<Record<PeriodicTask, PeriodicTaskRunner>> = {
     brevo_inbound_purge: createBrevoInboundPurge(store),
     data_export_purge: createDataExportPurge(store),
+    // 0147: the roll-up and the purges of the monitoring of D60 (02 §20.5, §20.8)
+    ops_retention: createOpsRetention(store),
   };
   if (config.brevoTransport.apiKey !== null) {
     runners.brevo_reconciliation = createBrevoReconciliation({
@@ -344,6 +355,37 @@ async function main(): Promise<void> {
     { privacyExecution: privacy !== null },
     "data subject requests execution configured",
   );
+  // 02 §11.3: the beat of this process, which the api watches (AL50).
+  const heartbeat = createHeartbeat({
+    database,
+    workerId: worker,
+    instance: config.instance,
+    version: config.version,
+    startedAt: start.startedAt,
+    logger,
+    elapsed: () => performance.now(),
+  });
+  // 02 §20.5: the probe and the technical alerts, every minute, beside the drain (a long turn never
+  // delays them), with a sender of their own on the worker's key (never the queue).
+  const monitor = createWorkerMonitor({
+    database,
+    probe: config.probe,
+    sender: createTransactionalSender(
+      {
+        mode: config.brevo.mode,
+        testRecipients: config.brevo.testRecipients,
+        apiKey: config.brevoTransport.apiKey,
+        baseUrl: config.brevoTransport.baseUrl,
+        senderEmail: config.brevoTransport.senderTransactional,
+      },
+      { logger },
+    ),
+    onCallRecipients: config.alerting.onCallRecipients,
+    instance: config.instance,
+    logger,
+    sleep: pause,
+  });
+  logger.info({ probe: config.probe !== null }, "monitoring started");
   logger.info({ worker }, "outbox drain started");
   const drain = createOutboxDrain({
     queue: createWorkerQueue(database),
@@ -353,11 +395,15 @@ async function main(): Promise<void> {
       logger,
     }),
     periodic: {
+      // A long periodic task is no stopped worker: the beat goes on meanwhile.
       async tick(signal) {
-        await periodic.tick(signal);
-        await privacy?.tick(signal);
+        await heartbeat.during(async () => {
+          await periodic.tick(signal);
+          await privacy?.tick(signal);
+        });
       },
     },
+    heartbeat,
     worker,
     startedAt: start.startedAt,
     sync: config.sync,
@@ -366,7 +412,7 @@ async function main(): Promise<void> {
     sleep: pause,
   });
   // A turn runs to its end even when a stop is requested meanwhile (02 §11.2).
-  await drain.run(stop.signal);
+  await Promise.all([drain.run(stop.signal), monitor.run(stop.signal)]);
   await closeDatabase(database);
   logger.info("worker stopped");
 }

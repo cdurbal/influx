@@ -289,6 +289,56 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
       values ('2026-01-01T00:00:00Z', 'api', 't2', 1, 2, 1, 1, 0)
       on conflict do nothing`;
 
+    // J9 commit 8 (0147): one row in each table of the active monitoring, at the same fixed past
+    // hour; the hourly lines are those of the minute rows above (the hour counts as rolled up). The
+    // alert state is resolved long ago: begin_alert_round() never returns it. The tally's key is a
+    // digest of a fixed label, never of an address.
+    await tx`
+      insert into ops.worker_heartbeats
+        (worker_id, instance, version, started_at, beat_at, loop_turn_at)
+      values ('worker-t2-dataset', 't2', 'local', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z',
+              '2026-01-01T00:00:00Z')
+      on conflict do nothing`;
+    await tx`
+      insert into ops.probe_results
+        (checked_at, instance, target, outcome, status_code, failure_code, duration_ms)
+      values ('2026-01-01T00:00:30Z', 't2', 'api_health', 'up', 200, null, 12)
+      on conflict do nothing`;
+    await tx`
+      insert into ops.database_samples (minute, connections, max_connections)
+      values ('2026-01-01T00:00:00Z', 1, 100)
+      on conflict do nothing`;
+    await tx`
+      insert into ops.signal_counts (minute, service, instance, signal, count)
+      values ('2026-01-01T00:00:00Z', 'api', 't2', 'webhook_brevo_authenticated', 1)
+      on conflict do nothing`;
+    await tx`
+      insert into ops.alert_states
+        (scope, code, subject_key, state, opened_at, last_notified_at, notified_count, resolved_at)
+      values ('worker', 'AL52', 't2-dataset', 'resolved', '2026-01-01T00:00:00Z',
+              '2026-01-01T00:00:00Z', 1, '2026-01-01T00:10:00Z')
+      on conflict do nothing`;
+    await tx`
+      insert into ops.request_metrics_hourly
+        (hour, service, method, route, request_count, server_error_count, throttled_count,
+         duration_buckets)
+      values ('2026-01-01T00:00:00Z', 'api', 'GET', '/v1/status', 1, 0, 0, '{1,0,0,0,0,0,0,0,0}')
+      on conflict do nothing`;
+    await tx`
+      insert into ops.process_metrics_hourly
+        (hour, service, instance, minutes, event_loop_delay_p99_avg_ms, event_loop_delay_max_ms,
+         rss_avg_bytes, rss_max_bytes, heap_used_avg_bytes, cpu_avg_percent, cpu_max_percent)
+      values ('2026-01-01T00:00:00Z', 'api', 't2', 1, 1, 2, 1, 1, 1, 0, 0)
+      on conflict do nothing`;
+    await tx`
+      insert into ops.probe_results_hourly (hour, target, checks, failures, duration_buckets)
+      values ('2026-01-01T00:00:00Z', 'api_health', 1, 0, '{1,0,0,0,0,0,0,0,0}')
+      on conflict do nothing`;
+    await tx`
+      insert into identity.code_failure_tallies (key_hash, hour, failure_count)
+      values (sha256('t2-code-failure'::bytea), '2026-01-01T00:00:00Z', 1)
+      on conflict do nothing`;
+
     // One processed raw Brevo line and its outcome (0116), address already cleared: a line
     // WITHOUT an outcome would be taken by leads.process_brevo_inbound_event() in the TM1 cases.
     // One finished E-4 run at a fixed past period (0117): never the current one, claimable.

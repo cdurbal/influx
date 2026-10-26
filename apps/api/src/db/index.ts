@@ -153,6 +153,33 @@ export async function verifyPools(
   await Promise.all(poolsOf(database).map((pool) => pool.verify()));
 }
 
+/**
+ * 02 §20.10: the /health of the api checks the base. One `select 1` on the pool of influx_app,
+ * outside any transaction (it reads nothing), bounded: false on any failure or beyond `timeoutMs`,
+ * never an exception (the answer of /health carries no detail).
+ */
+export async function isDatabaseReachable(
+  database: ApiDatabase,
+  timeoutMs: number,
+): Promise<boolean> {
+  let timer: NodeJS.Timeout | undefined;
+  const late = new Promise<false>((resolve) => {
+    timer = setTimeout(() => {
+      resolve(false);
+    }, timeoutMs);
+  });
+  const check = (async () => {
+    const db = await database.app.acquire();
+    await db.execute(sql`select 1`);
+    return true as const;
+  })().catch(() => false as const);
+  try {
+    return await Promise.race([check, late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function closeDatabase(
   database: ApiDatabase | WorkerDatabase,
 ): Promise<void> {

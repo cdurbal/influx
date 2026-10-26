@@ -1,7 +1,7 @@
 // The cleaning function of the ops schema and the pure parts of the recorder (docs/mvp/02 §20.5,
 // §20.8; 18 T13.6). The database side is in db-tests/t13-ops-recording.test.ts.
 import { describe, expect, it } from "vitest";
-import { bucketOf } from "../src/domains/ops/recorder.ts";
+import { bucketOf } from "../src/domains/ops/buckets.ts";
 import { CLIENT_ERROR_RATE } from "../src/domains/ops/routes.ts";
 import { MinuteCounter } from "../src/platform/minute-counter.ts";
 import {

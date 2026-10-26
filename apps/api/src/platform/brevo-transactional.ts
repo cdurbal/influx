@@ -17,13 +17,16 @@ import type { BrevoMode } from "../config/schema.ts";
 
 /**
  * Closed list of the templates the api may send (EC-19 point 3; EC-44, the P0 alert, J6; the two
- * codes of an address change, sent synchronously, J7 decision 5).
+ * codes of an address change, sent synchronously, J7 decision 5; the technical alerts of D60, sent
+ * directly by the api (AL50) and by the worker with its own key, never through the queue, 15
+ * RG165).
  */
 export const API_TRANSACTIONAL_TEMPLATES = [
   "auth.login_code",
   "internal.critical_alert",
   "auth.email_change_confirm_old",
   "auth.email_change_confirm_new",
+  "internal.technical_alert",
 ] as const;
 export type ApiTransactionalTemplate =
   (typeof API_TRANSACTIONAL_TEMPLATES)[number];

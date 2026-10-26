@@ -35,9 +35,10 @@ function withoutTrailingSlash(request: NextRequest): NextResponse | null {
 }
 
 export const config = {
-  // Skip the relay to apps/api (/api/…, 21 §4 J1-C), Next.js internals and files with an
-  // extension (images, icons). The dot is escaped TWICE: once for the string, once for the
-  // pattern. "\." alone is a plain "." in a string, and ".*..*" excluded every non-empty path
-  // (21 J1-J T-3). The compiled pattern is checked after the build (18 T7.10).
-  matcher: "/((?!api/|_next|_vercel|.*\\..*).*)",
+  // Skip the relay to apps/api (/api/…, 21 §4 J1-C), the health route (/health exactly, EC-22),
+  // Next.js internals and files with an extension (images, icons). The dot is escaped TWICE: once
+  // for the string, once for the pattern. "\." alone is a plain "." in a string, and ".*..*"
+  // excluded every non-empty path (21 J1-J T-3). The compiled pattern is checked after the build
+  // (18 T7.10).
+  matcher: "/((?!api/|health$|_next|_vercel|.*\\..*).*)",
 };

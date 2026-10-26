@@ -195,6 +195,8 @@ export function registerBrevoWebhookRoute(
     reason: BrevoWebhookIgnored,
   ): BrevoWebhookReceipt {
     request.log.info({ reason }, "webhook.brevo.ignored");
+    // AL61 (15 RG165): the share of authenticated calls that wrote nothing.
+    dependencies.recorder.recordSignal("webhook_brevo_ignored");
     return RECEIVED;
   }
 
@@ -252,6 +254,8 @@ export function registerBrevoWebhookRoute(
           if (address === "outside") {
             if (isAuthenticated) {
               request.log.error({}, "webhook.brevo.ip_drift");
+              // AL62 (15 RG165): counted, and kept as a server error group as before.
+              dependencies.recorder.recordSignal("webhook_brevo_ip_drift");
               dependencies.recorder.recordServerError(
                 new BrevoWebhookAddressDriftError(),
                 { route: BREVO_WEBHOOK_ROUTE, requestId: request.id },
@@ -263,6 +267,7 @@ export function registerBrevoWebhookRoute(
           if (!isAuthenticated) {
             reject(request, "token_invalid");
           }
+          dependencies.recorder.recordSignal("webhook_brevo_authenticated");
         },
       },
       async (request) => {

@@ -192,8 +192,23 @@ export const BROWSER_RELAY_CLIENT_FILE = "src/browser/relay-client.ts";
 export const BROWSER_RELAY_CLIENT_SHA256 =
   "e094e84641c6fea702f8bf97e821ccfd36863ea1ba83b850347f62e1ea257e20";
 
-/** Every route file allowed under src/app. EC-22 may add the public health route of web. */
-export const ALLOWED_ROUTE_FILES: readonly string[] = [RELAY_FILES.route];
+/**
+ * EC-22 (02 §20.10, 21 EC-22): the public health route of apps/web, 200 or 503 with an empty body,
+ * from GET /v1/status through the relay. Web only: the backoffice has none.
+ */
+export const HEALTH_ROUTE_FILE = "src/app/health/route.ts";
+
+/** What a front serves beyond the relay: apps/web its health route (EC-22), the backoffice nothing. */
+export type FrontRoutes = { healthRoute: boolean };
+
+const RELAY_ONLY: FrontRoutes = { healthRoute: false };
+
+/** Every route file allowed under src/app of a front. */
+export function allowedRouteFilesOf(routes: FrontRoutes): readonly string[] {
+  return routes.healthRoute
+    ? [RELAY_FILES.route, HEALTH_ROUTE_FILE]
+    : [RELAY_FILES.route];
+}
 
 /**
  * SHA-256 of the relay files (03 PP-12, T7.8). There is no Pull Request to review a change of
@@ -245,17 +260,21 @@ function resolveLocalSpecifier(
 }
 
 /** Route files under src/app outside the allow-list, and allowed ones that are missing. */
-export function findRouteFileViolations(frontRoot: string): string[] {
+export function findRouteFileViolations(
+  frontRoot: string,
+  frontRoutes: FrontRoutes = RELAY_ONLY,
+): string[] {
+  const allowed = allowedRouteFilesOf(frontRoutes);
   const routes = listFiles(path.join(frontRoot, "src", "app"))
     .filter((file) => /[\\/]route\.(?:ts|tsx|js|jsx|mjs)$/.test(file))
     .map((file) => relativePath(frontRoot, file));
   return [
     ...routes
-      .filter((route) => !ALLOWED_ROUTE_FILES.includes(route))
+      .filter((route) => !allowed.includes(route))
       .map((route) => `unexpected route file: ${route}`),
-    ...ALLOWED_ROUTE_FILES.filter((route) => !routes.includes(route)).map(
-      (route) => `missing route file: ${route}`,
-    ),
+    ...allowed
+      .filter((route) => !routes.includes(route))
+      .map((route) => `missing route file: ${route}`),
   ];
 }
 
@@ -275,9 +294,19 @@ export function findPagesRouterDirectories(frontRoot: string): string[] {
   ).map((relative) => `unexpected Pages Router directory: ${relative}/`);
 }
 
-/** Data-layer imports, Server Actions, and environment reads outside the config file. */
-export function findRelayContentViolations(frontRoot: string): string[] {
-  return Object.values(RELAY_FILES).flatMap((relative) => {
+/**
+ * Data-layer imports, Server Actions, and environment reads outside the config file, in the relay
+ * files and in the health route of web (EC-22).
+ */
+export function findRelayContentViolations(
+  frontRoot: string,
+  frontRoutes: FrontRoutes = RELAY_ONLY,
+): string[] {
+  const files: string[] = [
+    ...Object.values(RELAY_FILES),
+    ...(frontRoutes.healthRoute ? [HEALTH_ROUTE_FILE] : []),
+  ];
+  return files.flatMap((relative) => {
     const file = path.join(frontRoot, relative);
     if (!existsSync(file)) {
       return [`missing relay file: ${relative}`];
@@ -297,17 +326,21 @@ export function findRelayContentViolations(frontRoot: string): string[] {
 }
 
 /**
- * Guard of the importers: relay.ts is imported by route.ts only, api-client.ts by relay.ts only,
- * config/server.ts by api-client.ts only. This keeps every component of the landing page away
- * from the network (CA8).
+ * Guard of the importers: relay.ts is imported by the route files only (the relay route, and the
+ * health route of web, EC-22), api-client.ts by relay.ts only, config/server.ts by api-client.ts
+ * only. This keeps every component of the landing page away from the network (CA8).
  */
-export function findRelayImporterViolations(frontRoot: string): string[] {
-  const chain: ReadonlyArray<readonly [target: string, onlyImporter: string]> =
-    [
-      [RELAY_FILES.relay, RELAY_FILES.route],
-      [RELAY_FILES.apiClient, RELAY_FILES.relay],
-      [RELAY_FILES.config, RELAY_FILES.apiClient],
-    ];
+export function findRelayImporterViolations(
+  frontRoot: string,
+  frontRoutes: FrontRoutes = RELAY_ONLY,
+): string[] {
+  const chain: ReadonlyArray<
+    readonly [target: string, onlyImporters: readonly string[]]
+  > = [
+    [RELAY_FILES.relay, allowedRouteFilesOf(frontRoutes)],
+    [RELAY_FILES.apiClient, [RELAY_FILES.relay]],
+    [RELAY_FILES.config, [RELAY_FILES.apiClient]],
+  ];
   const withoutExtension = (relative: string) =>
     path.join(frontRoot, relative).replace(SOURCE_FILE, "");
   const importers = new Map<string, Set<string>>(
@@ -324,12 +357,13 @@ export function findRelayImporterViolations(frontRoot: string): string[] {
       }
     }
   }
-  return chain.flatMap(([target, onlyImporter]) => {
+  return chain.flatMap(([target, onlyImporters]) => {
     const actual = [...(importers.get(withoutExtension(target)) ?? [])].sort();
-    return actual.length === 1 && actual[0] === onlyImporter
+    const expected = [...onlyImporters].sort();
+    return actual.join("\n") === expected.join("\n")
       ? []
       : [
-          `${target} is imported by [${actual.join(", ")}], expected ${onlyImporter} only`,
+          `${target} is imported by [${actual.join(", ")}], expected ${expected.join(", ")} only`,
         ];
   });
 }

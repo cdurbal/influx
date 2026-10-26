@@ -53,14 +53,21 @@ function proxyRunsOn(pathname: string): boolean {
 }
 
 describe("T7.10: the compiled proxy matcher (21 J1-C point 3, J1-J T-3)", () => {
-  it.each(["/api/v1/status", "/api/v1/bo/status", "/_next/x", "/favicon.ico"])(
-    "never runs on %s",
+  it.each([
+    "/api/v1/status",
+    "/api/v1/bo/status",
+    "/_next/x",
+    "/favicon.ico",
+    // EC-22: the health route, exactly
+    "/health",
+  ])("never runs on %s", (pathname) => {
+    expect(proxyRunsOn(pathname)).toBe(false);
+  });
+
+  it.each(["/", "/fr", "/en", "/xyz", "/healthy", "/health/x"])(
+    "runs on %s",
     (pathname) => {
-      expect(proxyRunsOn(pathname)).toBe(false);
+      expect(proxyRunsOn(pathname)).toBe(true);
     },
   );
-
-  it.each(["/", "/fr", "/en", "/xyz"])("runs on %s", (pathname) => {
-    expect(proxyRunsOn(pathname)).toBe(true);
-  });
 });

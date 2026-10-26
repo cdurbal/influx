@@ -805,6 +805,85 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
       },
     },
   },
+  // 0147 (J9 commit 8, D60 active monitoring): written and read through the functions of ops only
+  // (influx_worker E-4, influx_ops E-6), owner influx_maintenance_definer; the signals by influx_ops.
+  {
+    table: "ops.worker_heartbeats",
+    source:
+      "0147 (02 §11.3): no right for any execution role; written by ops.record_worker_heartbeat() " +
+      "(E-4), read by ops.worker_liveness() (E-6), purged by ops.run_ops_retention()",
+    probeColumn: "worker_id",
+    expected: {},
+  },
+  {
+    table: "ops.probe_results",
+    source:
+      "0147 (02 §20.5): no right for any execution role; written by ops.record_probe_results() (E-4)",
+    probeColumn: "target",
+    expected: {},
+  },
+  {
+    table: "ops.database_samples",
+    source:
+      "0147 (02 §20.5, AL58): no right for any execution role; written by ops.record_database_sample() (E-4)",
+    probeColumn: "minute",
+    expected: {},
+  },
+  {
+    table: "ops.signal_counts",
+    source: "0147 (15 RG165, AL61, AL62; E-6)",
+    probeColumn: "instance",
+    insertTemplate:
+      "insert into ops.signal_counts (minute, service, instance, signal, count) values " +
+      "(date_trunc('minute', now(), 'UTC') - interval '1 minute', 'api', " +
+      "left(replace($1::text, '-', ''), 32), 'webhook_brevo_authenticated', 1)",
+    expected: {
+      influx_ops: {
+        insert: {
+          form: "autorisé",
+          source:
+            "0147, E-6: one line per ended minute and signal, never read back",
+        },
+      },
+    },
+  },
+  {
+    table: "ops.alert_states",
+    source:
+      "0147 (15 RG165): no right for any execution role; read and written by ops.begin_alert_round() " +
+      "and ops.save_alert_states() (worker E-4, api E-6), each for its own scope",
+    probeColumn: "code",
+    expected: {},
+  },
+  {
+    table: "ops.request_metrics_hourly",
+    source:
+      "0147 (02 §20.5): no right for any execution role; written by ops.run_ops_retention() (E-4)",
+    probeColumn: "hour",
+    expected: {},
+  },
+  {
+    table: "ops.process_metrics_hourly",
+    source:
+      "0147 (02 §20.5): no right for any execution role; written by ops.run_ops_retention() (E-4)",
+    probeColumn: "hour",
+    expected: {},
+  },
+  {
+    table: "ops.probe_results_hourly",
+    source:
+      "0147 (02 §20.5): no right for any execution role; written by ops.run_ops_retention() (E-4)",
+    probeColumn: "hour",
+    expected: {},
+  },
+  {
+    table: "identity.code_failure_tallies",
+    source:
+      "0147 (AL59, J3S-8): no right for any execution role; written by identity.record_code_failure() " +
+      "(E-2, influx_auth), read by ops.technical_alert_snapshot() and purged after 48 hours (E-4)",
+    probeColumn: "hour",
+    expected: {},
+  },
 ];
 
 /**
@@ -856,7 +935,8 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * 2bis), each line checked against its migration; and on 2026-10-15 with those of 0129 and 0130
  * (J8 commit 2), then of 0131 and 0132 (J8 commit 3), then of 0133 and 0134 (J8 commits 5 and 6),
  * then of 0135 (J8 commit 7), then on 2026-10-16 of 0136 and 0137 (J8 commit 8, E-5), each line
- * checked against its migration.
+ * checked against its migration; and on 2026-10-22 with those of 0147 (J9 commit 8, D60 active
+ * monitoring), each line checked against its sections 19 and 20.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -2140,6 +2220,162 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|function|identity.email_change_holder_is_orphan(uuid,uuid)|EXECUTE",
   "influx_advertiser|function|identity.email_change_holder_is_orphan(uuid,uuid)|EXECUTE",
   "influx_creator|function|identity.email_change_holder_is_orphan(uuid,uuid)|EXECUTE",
+  // 0147 (J9 commit 8, D60 active monitoring): the worker executes its E-4 functions of ops, the api
+  // (influx_ops, E-6) its two-scope round functions, worker_liveness() and INSERT on the signals; the
+  // owner influx_maintenance_definer reads and purges the ops tables (never a message, a stack nor the
+  // account of an occurrence), the catalogue of alerts, the admin recipients, the member sessions and
+  // login codes of AL48, the open executions of AL63; influx_identity_definer writes the AL59 tallies,
+  // influx_auth executes identity.record_code_failure().
+  "influx_auth|function|identity.record_code_failure(bytea)|EXECUTE",
+  "influx_identity_definer|column|identity.code_failure_tallies.failure_count|SELECT,UPDATE",
+  "influx_identity_definer|column|identity.code_failure_tallies.hour|INSERT,SELECT",
+  "influx_identity_definer|column|identity.code_failure_tallies.key_hash|INSERT,SELECT",
+  "influx_identity_definer|function|identity.record_code_failure(bytea)|EXECUTE",
+  "influx_maintenance_definer|column|backoffice.alert_definitions.code|SELECT",
+  "influx_maintenance_definer|column|backoffice.alert_definitions.is_active|SELECT",
+  "influx_maintenance_definer|column|backoffice.alert_definitions.nature|SELECT",
+  "influx_maintenance_definer|column|backoffice.alert_definitions.recipient_roles|SELECT",
+  "influx_maintenance_definer|column|backoffice.alert_definitions.threshold_value|SELECT",
+  "influx_maintenance_definer|column|identity.account_roles.account_id|SELECT",
+  "influx_maintenance_definer|column|identity.account_roles.role|SELECT",
+  "influx_maintenance_definer|column|identity.agent_profiles.account_id|SELECT",
+  "influx_maintenance_definer|column|identity.agent_profiles.is_active|SELECT",
+  "influx_maintenance_definer|column|identity.agent_profiles.is_break_glass|SELECT",
+  "influx_maintenance_definer|column|identity.code_failure_tallies.failure_count|SELECT",
+  "influx_maintenance_definer|column|identity.code_failure_tallies.hour|SELECT",
+  "influx_maintenance_definer|column|identity.code_failure_tallies.key_hash|SELECT",
+  "influx_maintenance_definer|column|identity.sessions.account_id|SELECT",
+  "influx_maintenance_definer|column|identity.sessions.created_at|SELECT",
+  "influx_maintenance_definer|column|identity.sessions.surface|SELECT",
+  "influx_maintenance_definer|column|leads.transactional_sends.account_id|SELECT",
+  "influx_maintenance_definer|column|leads.transactional_sends.created_at|SELECT",
+  "influx_maintenance_definer|column|leads.transactional_sends.delivered_at|SELECT",
+  "influx_maintenance_definer|column|leads.transactional_sends.email_code|SELECT",
+  "influx_maintenance_definer|column|leads.transactional_sends.priority|SELECT",
+  "influx_maintenance_definer|column|leads.transactional_sends.status|SELECT",
+  "influx_maintenance_definer|column|ops.alert_states.code|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.alert_states.last_notified_at|INSERT,SELECT,UPDATE",
+  "influx_maintenance_definer|column|ops.alert_states.last_value|INSERT,SELECT,UPDATE",
+  "influx_maintenance_definer|column|ops.alert_states.notified_count|INSERT,SELECT,UPDATE",
+  "influx_maintenance_definer|column|ops.alert_states.opened_at|INSERT,SELECT,UPDATE",
+  "influx_maintenance_definer|column|ops.alert_states.resolved_at|INSERT,SELECT,UPDATE",
+  "influx_maintenance_definer|column|ops.alert_states.scope|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.alert_states.state|INSERT,SELECT,UPDATE",
+  "influx_maintenance_definer|column|ops.alert_states.subject_key|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.database_samples.connections|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.database_samples.max_connections|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.database_samples.minute|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.error_groups.error_type|SELECT",
+  "influx_maintenance_definer|column|ops.error_groups.fingerprint|SELECT",
+  "influx_maintenance_definer|column|ops.error_groups.first_seen_at|SELECT",
+  "influx_maintenance_definer|column|ops.error_groups.id|SELECT",
+  "influx_maintenance_definer|column|ops.error_groups.last_regressed_at|SELECT",
+  "influx_maintenance_definer|column|ops.error_groups.last_seen_at|SELECT",
+  "influx_maintenance_definer|column|ops.error_groups.route|SELECT",
+  "influx_maintenance_definer|column|ops.error_groups.source|SELECT",
+  "influx_maintenance_definer|column|ops.error_groups.status|SELECT",
+  "influx_maintenance_definer|column|ops.error_occurrences.group_fingerprint|SELECT",
+  "influx_maintenance_definer|column|ops.error_occurrences.id|SELECT",
+  "influx_maintenance_definer|column|ops.error_occurrences.occurred_at|SELECT",
+  "influx_maintenance_definer|column|ops.probe_results.checked_at|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.probe_results.duration_ms|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.probe_results.failure_code|INSERT",
+  "influx_maintenance_definer|column|ops.probe_results.instance|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.probe_results.outcome|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.probe_results.status_code|INSERT",
+  "influx_maintenance_definer|column|ops.probe_results.target|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.probe_results_hourly.checks|INSERT",
+  "influx_maintenance_definer|column|ops.probe_results_hourly.duration_buckets|INSERT",
+  "influx_maintenance_definer|column|ops.probe_results_hourly.failures|INSERT",
+  "influx_maintenance_definer|column|ops.probe_results_hourly.hour|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.probe_results_hourly.target|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.process_metrics.cpu_percent|SELECT",
+  "influx_maintenance_definer|column|ops.process_metrics.event_loop_delay_max_ms|SELECT",
+  "influx_maintenance_definer|column|ops.process_metrics.event_loop_delay_p99_ms|SELECT",
+  "influx_maintenance_definer|column|ops.process_metrics.heap_used_bytes|SELECT",
+  "influx_maintenance_definer|column|ops.process_metrics.instance|SELECT",
+  "influx_maintenance_definer|column|ops.process_metrics.minute|SELECT",
+  "influx_maintenance_definer|column|ops.process_metrics.rss_bytes|SELECT",
+  "influx_maintenance_definer|column|ops.process_metrics.service|SELECT",
+  "influx_maintenance_definer|column|ops.process_metrics_hourly.cpu_avg_percent|INSERT",
+  "influx_maintenance_definer|column|ops.process_metrics_hourly.cpu_max_percent|INSERT",
+  "influx_maintenance_definer|column|ops.process_metrics_hourly.event_loop_delay_max_ms|INSERT",
+  "influx_maintenance_definer|column|ops.process_metrics_hourly.event_loop_delay_p99_avg_ms|INSERT",
+  "influx_maintenance_definer|column|ops.process_metrics_hourly.heap_used_avg_bytes|INSERT",
+  "influx_maintenance_definer|column|ops.process_metrics_hourly.hour|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.process_metrics_hourly.instance|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.process_metrics_hourly.minutes|INSERT",
+  "influx_maintenance_definer|column|ops.process_metrics_hourly.rss_avg_bytes|INSERT",
+  "influx_maintenance_definer|column|ops.process_metrics_hourly.rss_max_bytes|INSERT",
+  "influx_maintenance_definer|column|ops.process_metrics_hourly.service|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.request_metrics.duration_buckets|SELECT",
+  "influx_maintenance_definer|column|ops.request_metrics.instance|SELECT",
+  "influx_maintenance_definer|column|ops.request_metrics.method|SELECT",
+  "influx_maintenance_definer|column|ops.request_metrics.minute|SELECT",
+  "influx_maintenance_definer|column|ops.request_metrics.request_count|SELECT",
+  "influx_maintenance_definer|column|ops.request_metrics.route|SELECT",
+  "influx_maintenance_definer|column|ops.request_metrics.server_error_count|SELECT",
+  "influx_maintenance_definer|column|ops.request_metrics.service|SELECT",
+  "influx_maintenance_definer|column|ops.request_metrics.throttled_count|SELECT",
+  "influx_maintenance_definer|column|ops.request_metrics_hourly.duration_buckets|INSERT",
+  "influx_maintenance_definer|column|ops.request_metrics_hourly.hour|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.request_metrics_hourly.method|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.request_metrics_hourly.request_count|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.request_metrics_hourly.route|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.request_metrics_hourly.server_error_count|INSERT",
+  "influx_maintenance_definer|column|ops.request_metrics_hourly.service|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.request_metrics_hourly.throttled_count|INSERT",
+  "influx_maintenance_definer|column|ops.signal_counts.count|SELECT",
+  "influx_maintenance_definer|column|ops.signal_counts.instance|SELECT",
+  "influx_maintenance_definer|column|ops.signal_counts.minute|SELECT",
+  "influx_maintenance_definer|column|ops.signal_counts.service|SELECT",
+  "influx_maintenance_definer|column|ops.signal_counts.signal|SELECT",
+  "influx_maintenance_definer|column|ops.worker_heartbeats.beat_at|SELECT,UPDATE",
+  "influx_maintenance_definer|column|ops.worker_heartbeats.instance|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.worker_heartbeats.loop_turn_at|SELECT,UPDATE",
+  "influx_maintenance_definer|column|ops.worker_heartbeats.started_at|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.worker_heartbeats.version|INSERT,SELECT",
+  "influx_maintenance_definer|column|ops.worker_heartbeats.worker_id|INSERT,SELECT",
+  "influx_maintenance_definer|column|privacy.request_executions.completed_at|SELECT",
+  "influx_maintenance_definer|column|privacy.request_executions.executed_at|SELECT",
+  "influx_maintenance_definer|column|privacy.request_executions.request_id|SELECT",
+  "influx_maintenance_definer|function|ops.admin_alert_recipients()|EXECUTE",
+  "influx_maintenance_definer|function|ops.begin_alert_round(text)|EXECUTE",
+  "influx_maintenance_definer|function|ops.iso_utc(timestamp with time zone)|EXECUTE",
+  "influx_maintenance_definer|function|ops.record_database_sample()|EXECUTE",
+  "influx_maintenance_definer|function|ops.record_probe_results(text,jsonb)|EXECUTE",
+  "influx_maintenance_definer|function|ops.record_worker_heartbeat(text,text,text,timestamp with time zone,boolean)|EXECUTE",
+  "influx_maintenance_definer|function|ops.run_ops_retention(uuid,smallint)|EXECUTE",
+  "influx_maintenance_definer|function|ops.save_alert_states(text,jsonb)|EXECUTE",
+  "influx_maintenance_definer|function|ops.technical_alert_snapshot(timestamp with time zone)|EXECUTE",
+  "influx_maintenance_definer|function|ops.threshold_int(jsonb,text,integer,integer,integer)|EXECUTE",
+  "influx_maintenance_definer|function|ops.worker_liveness()|EXECUTE",
+  "influx_maintenance_definer|schema|backoffice|USAGE",
+  "influx_maintenance_definer|table|identity.code_failure_tallies|DELETE",
+  "influx_maintenance_definer|table|ops.alert_states|DELETE",
+  "influx_maintenance_definer|table|ops.database_samples|DELETE",
+  "influx_maintenance_definer|table|ops.error_groups|DELETE",
+  "influx_maintenance_definer|table|ops.error_occurrences|DELETE",
+  "influx_maintenance_definer|table|ops.probe_results_hourly|DELETE",
+  "influx_maintenance_definer|table|ops.probe_results|DELETE",
+  "influx_maintenance_definer|table|ops.process_metrics_hourly|DELETE",
+  "influx_maintenance_definer|table|ops.process_metrics|DELETE",
+  "influx_maintenance_definer|table|ops.request_metrics_hourly|DELETE",
+  "influx_maintenance_definer|table|ops.request_metrics|DELETE",
+  "influx_maintenance_definer|table|ops.signal_counts|DELETE",
+  "influx_maintenance_definer|table|ops.worker_heartbeats|DELETE",
+  "influx_ops|function|ops.begin_alert_round(text)|EXECUTE",
+  "influx_ops|function|ops.save_alert_states(text,jsonb)|EXECUTE",
+  "influx_ops|function|ops.worker_liveness()|EXECUTE",
+  "influx_ops|table|ops.signal_counts|INSERT",
+  "influx_worker|function|ops.admin_alert_recipients()|EXECUTE",
+  "influx_worker|function|ops.begin_alert_round(text)|EXECUTE",
+  "influx_worker|function|ops.record_database_sample()|EXECUTE",
+  "influx_worker|function|ops.record_probe_results(text,jsonb)|EXECUTE",
+  "influx_worker|function|ops.record_worker_heartbeat(text,text,text,timestamp with time zone,boolean)|EXECUTE",
+  "influx_worker|function|ops.run_ops_retention(uuid,smallint)|EXECUTE",
+  "influx_worker|function|ops.save_alert_states(text,jsonb)|EXECUTE",
+  "influx_worker|function|ops.technical_alert_snapshot(timestamp with time zone)|EXECUTE",
 ];
 
 /**
@@ -2368,4 +2604,18 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   // 0145 (J9 D67-a, 05 RG163): the journal trigger of leads.sync_settings, the only writer of
   // settings.changed for it; leads.guard_sync_setting_write() is SECURITY INVOKER (migration role).
   "leads.journal_sync_setting_change()": "influx_leads_definer",
+  // 0147 (J9 commit 8, D60). ops.iso_utc() and ops.threshold_int() are SECURITY INVOKER helpers
+  // of the same owner; ops.guard_worker_heartbeat_update() is a trigger of the migration role.
+  "ops.record_worker_heartbeat(text,text,text,timestamp with time zone,boolean)":
+    "influx_maintenance_definer",
+  "ops.record_probe_results(text,jsonb)": "influx_maintenance_definer",
+  "ops.record_database_sample()": "influx_maintenance_definer",
+  "ops.begin_alert_round(text)": "influx_maintenance_definer",
+  "ops.save_alert_states(text,jsonb)": "influx_maintenance_definer",
+  "ops.worker_liveness()": "influx_maintenance_definer",
+  "ops.technical_alert_snapshot(timestamp with time zone)":
+    "influx_maintenance_definer",
+  "ops.admin_alert_recipients()": "influx_maintenance_definer",
+  "ops.run_ops_retention(uuid,smallint)": "influx_maintenance_definer",
+  "identity.record_code_failure(bytea)": "influx_identity_definer",
 };

@@ -18,6 +18,7 @@ import {
   findRouteFileViolations,
   HARD_CODED_COLOR_PATTERN,
   HARD_CODED_LENGTH_PATTERN,
+  HEALTH_ROUTE_FILE,
   importSpecifiers,
   listFiles,
   RELAY_FILES,
@@ -163,6 +164,39 @@ describe("relay guard detectors (21 J1-C)", () => {
     });
     expect(findRouteFileViolations(extra)).toEqual([
       "unexpected route file: src/app/admin/route.ts",
+    ]);
+  });
+
+  it("allows the health route of web only when declared, as a second importer of the relay (EC-22)", () => {
+    const withHealth = writeFront("health-route", {
+      [HEALTH_ROUTE_FILE]: `import { relay } from "../../server/relay";\nexport const GET = relay;\n`,
+    });
+    expect(findRouteFileViolations(withHealth, { healthRoute: true })).toEqual(
+      [],
+    );
+    expect(
+      findRelayImporterViolations(withHealth, { healthRoute: true }),
+    ).toEqual([]);
+    // The backoffice declares none: the same file is an extra route and an extra importer.
+    expect(findRouteFileViolations(withHealth)).toEqual([
+      `unexpected route file: ${HEALTH_ROUTE_FILE}`,
+    ]);
+    expect(findRelayImporterViolations(withHealth)).toEqual([
+      `src/server/relay.ts is imported by [${RELAY_FILES.route}, ${HEALTH_ROUTE_FILE}], expected ${RELAY_FILES.route} only`,
+    ]);
+    // Declared but absent: missing.
+    expect(
+      findRouteFileViolations(writeFront("no-health"), { healthRoute: true }),
+    ).toEqual([`missing route file: ${HEALTH_ROUTE_FILE}`]);
+  });
+
+  it("applies the content rules to the health route (EC-22)", () => {
+    const root = writeFront("bad-health", {
+      [HEALTH_ROUTE_FILE]: `import postgres from "postgres";\nimport { relay } from "../../server/relay";\nconst u = process.env.X;\n`,
+    });
+    expect(findRelayContentViolations(root, { healthRoute: true })).toEqual([
+      `${HEALTH_ROUTE_FILE}: imports postgres`,
+      `${HEALTH_ROUTE_FILE}: reads process.env`,
     ]);
   });
 

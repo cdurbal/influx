@@ -1621,3 +1621,46 @@ Ils ne sont **pas** traités ici.
 D35, la légalité de la prospection pays par pays, le suivi nominatif des ouvertures et les durées
 de conservation ; **`expert-cybersecurite` (veto)** sur l'**absence de signature des webhooks
 Brevo** et les six compensations retenues (`16` **Q3**).
+
+---
+
+## Additif du J9 (2026-10-21) — alertes techniques de D60
+
+**RG165** — Les alertes techniques de D60 (`02` §20.5, §20.6) complètent le catalogue de RG68, au même format et
+sous le même régime que RG126 (RG63 à RG70) : **aucune liste parallèle**. Chacune s'affiche à l'écran « Santé
+technique » **et** part **par e-mail** (flux transactionnel Brevo, texte rédigé par INFLUX, FR puis EN) : code, titre,
+instant UTC, valeur mesurée et seuil, **rien de `02` §20.8** (ni adresse, ni IP, ni URL complète, ni message d'erreur
+brut). RG70 reste vrai : rien ne part vers les contacts ni les listes Brevo, ni vers Apollo. **Destinataires** :
+`astreinte` = les adresses de la variable `OPS_ALERT_RECIPIENTS`, **jamais une adresse en base** ; `admin` = les
+comptes `admin` actifs, hors compte de secours. Les rôles notifiés sont en base (`alert_definitions.recipient_roles`),
+modifiables par un administrateur, jamais vides. **Déduplication** : une alerte d'état part à sa levée, puis au plus
+une fois par 30 min tant qu'elle dure, et un e-mail « rétabli » part à sa fin ; une alerte d'événement part une fois
+par fait. **En `staging`** (D70, EC-J9-7) : aucune liste blanche, les alertes partent vers les destinataires de
+`staging` ; la puce « En `staging`, les alertes ne partent que vers la liste blanche » de `02` §20.5 est caduque.
+
+| Code | Alerte | Seuil de départ (en table) | Nature | Destinataire | Action attendue | Source |
+|---|---|---|---|---|---|---|
+| **AL49** | **Site injoignable** : accueils FR et EN (adresse publique), connexion du backoffice, `/health` de l'API (réseau privé, vérifie la base) | **2 échecs consécutifs** d'une même cible, sondée toutes les **60 s** | État, par cible | `astreinte` | Vérifier Railway et Supabase ; revenir à la version précédente si l'échec suit un déploiement | `02` §20.5, §20.6 |
+| **AL50** | **Worker arrêté** | Aucun battement depuis **60 s** | État | `astreinte` seule, non modifiable | Lire sa ligne `fatal` (réglage manquant, `02` §12.5), puis redémarrer | `02` §11.3, §20.6 |
+| **AL51** | **Nouvelle erreur serveur, ou régression** (groupe `fixed` qui réapparaît) — source serveur seulement, jamais le seul navigateur | Rodage : **1re occurrence** ; hors rodage : récapitulatif **quotidien à 07:00 UTC** des **24 h** écoulées ; régression : **1re occurrence**, toujours | Événement, un par groupe ; un seul e-mail par tour, qui regroupe ses groupes | `astreinte` | Classer chaque groupe : corrigé, planifié ou sans effet | `02` §20.6, §20.7, J4S-6 |
+| **AL52** | **Taux d'erreurs serveur** | Réponses `5xx` > **1 %** des réponses de l'API sur **5 min** glissantes | État | `astreinte` | Trouver la route en cause ; corriger ou revenir à la version précédente | `02` §20.6 |
+| **AL53** | **Lenteur de l'API** | p95 > **1 s** sur **10 min** glissantes, hors `POST /v1/auth/request-code` ; seuil propre de celle-ci **non fixé** (`expert-cybersecurite`) | État | `astreinte` | Lire le ralentissement (`02` §20.6, « Comment lire ») | `02` §20.6, D43 |
+| **AL54** | **Lenteur des pages** (sonde : accueils FR et EN, connexion du backoffice) | > **2 s** sur **3 relevés consécutifs** d'une même page | État, par page | `astreinte` | Comme AL53 | `02` §20.6 |
+| **AL55** | **Pic d'appels** — **information**, pas incident | Appels à l'API par minute, moyenne sur **5 min** > **3 ×** celle de la même heure UTC sur les **14 jours** précédents ; moins de 14 jours de mesures : > **300 / min** sur 5 min (proposé) | État | `astreinte` | Rapprocher de son origine (envoi `16`, campagne) ; agir seulement si AL53 ou AL54 suit | `02` §20.6 |
+| **AL56** | **Réponses `429` en hausse** | > **2 %** des réponses de l'API sur **15 min** glissantes **et** au moins **20** réponses `429` (proposé, à confirmer par `expert-cybersecurite`) | État | `astreinte` | Chercher l'abus avant de relever une limite | `02` §20.6, `03` A-3 |
+| **AL57** | **Service saturé** (API, worker) | Retard moyen de la boucle d'événements > **200 ms** sur **5 min** ; mémoire moyenne > **85 %** de la limite du service sur **5 min**, limite **non fixée** (`integrateur`) | État, par service | `astreinte` | Augmenter les ressources Railway ; chercher la boucle ou la fuite | `02` §20.6 |
+| **AL58** | **Base saturée** | Connexions > **80 %** du maximum de la grappe sur **3 relevés consécutifs** (worker, chaque minute) ; p95 d'une requête fréquente qui double : **non fixé** (`expert-database`, faute de lecture de `pg_stat_statements`) | État | `astreinte` | Chercher les connexions et les requêtes longues (`04` §7.3) | `02` §20.6 |
+| **AL59** | **Code de connexion visé** (`security.member_code_targeted`) | ≥ **25** échecs de code sur **24 h** glissantes pour une même adresse e-mail | Événement, au plus un par adresse et par 24 h | `astreinte` + `admin` | Instruire : attaque ciblée ou membre en difficulté. **Aucun blocage** (`03` A-4) | J3S-8 |
+| **AL60** | **Purge horaire en défaut** | `ops.periodic_runs.counts.gotrue_realign_failed` > **0**, ou disjoncteur déclenché (`breaker.orphan_ratio`, `breaker.filter_refused`) | Événement, un par passage de purge concerné | `astreinte` | Examiner le passage et corriger avant le suivant : comptes non réalignés, ou purge arrêtée | J7S-8, J7S-2 |
+| **AL61** | **Webhook Brevo : appels ignorés** (`webhook.brevo.ignored` : `invalid_payload`, `outside_window`, `duplicate`) | > **10 %** des appels authentifiés sur **24 h** glissantes **et** au moins **10** appels ignorés (proposé, à confirmer par `expert-cybersecurite`) | État | `astreinte` | Lire le motif dominant ; `invalid_payload` = format Brevo changé, des désinscriptions se perdent | J7S-8 |
+| **AL62** | **Webhook Brevo hors plages** (`webhook.brevo.ip_drift`) : jeton valide reçu hors des plages publiées par Brevo, désinscriptions coupées | **1re occurrence** | Événement, un seul tant qu'il n'est pas classé | `astreinte` | Plages changées par Brevo, ou jeton divulgué : mettre à jour les plages, ou changer le jeton | J7S-8 |
+| **AL63** | **Demande de données personnelles exécutée, non close** | `privacy.request_executions` : `executed_at` sans `completed_at` **24 h** après | État, par exécution | `admin` + `astreinte` | Achever et clore : le délai légal court (AL40) | F4 |
+
+- **Qui envoie.** AL50 part de l'**API** (aucun service ne se surveille lui-même ; aucune lecture d'identité, E-6),
+  toutes les autres du **worker**. AL49, AL50 et AL58 vont **directement à Brevo, jamais par `outbox_events`** ;
+  base injoignable ⇒ `astreinte` seule.
+- **Rodage (AL51)** : période en table, 30 jours après chaque mise en ligne, prolongée par un administrateur tant
+  qu'une erreur bloquante reste ouverte (`02` §20.7) ; sans période saisie, le régime de rodage s'applique.
+- **Non fixé, donc non évalué** : seuil de `request-code` (AL53), limite mémoire (AL57), requête fréquente (AL58).
+  **Proposés, évalués dès maintenant** : AL55 sans historique ; AL56 et AL61, à confirmer par `expert-cybersecurite`
+  à la revue groupée. Qui compose `astreinte`, et la nuit : `02` §20.11 point 2 (fondateur).

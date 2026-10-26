@@ -9,6 +9,8 @@ import {
   verifyPools,
 } from "./db/index.ts";
 import { OpsRecorder } from "./domains/ops/recorder.ts";
+import { startWorkerWatch } from "./domains/ops/worker-watch.ts";
+import { createTransactionalSender } from "./platform/brevo-transactional.ts";
 import { createLogger } from "./platform/logger.ts";
 import { buildServer } from "./server.ts";
 
@@ -64,12 +66,30 @@ async function main(): Promise<void> {
   process.on("uncaughtExceptionMonitor", (error) => {
     ops.recordServerError(error);
   });
+  // 02 §20.5: the api watches the worker (AL50), with a sender of its own: an alert never waits
+  // behind the circuit of the sign-in code.
+  const workerWatch = startWorkerWatch({
+    database,
+    sender: createTransactionalSender(
+      {
+        mode: config.brevo.mode,
+        testRecipients: config.brevo.testRecipients,
+        apiKey: config.brevoTransport.apiKey,
+        baseUrl: config.brevoTransport.baseUrl,
+        senderEmail: config.brevoTransport.senderTransactional,
+      },
+      { logger: app.log },
+    ),
+    onCallRecipients: config.alerting.onCallRecipients,
+    logger: app.log,
+  });
 
   const shutDown = (signal: NodeJS.Signals): void => {
     app.log.info({ signal }, "shutting down");
     // close() stops accepting connections and waits for the requests in flight (02 §4 rule 5).
     app
       .close()
+      .then(() => workerWatch.stop())
       .then(() => ops.stop(database, app.log))
       .then(() => closeDatabase(database))
       .then(

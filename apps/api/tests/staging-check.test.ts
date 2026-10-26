@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { apiEnvSchema, workerEnvSchema } from "../src/config/schema.ts";
 import {
   CLOSED_LIST_BEGIN,
   CLOSED_LIST_END,
@@ -12,6 +13,7 @@ import {
   compareNames,
   envLocalIssues,
   EXPECTED_MODES,
+  namesNotRead,
   namesVerdict,
   RAILWAY_SERVICES,
   railwayVariablesOf,
@@ -134,6 +136,36 @@ describe("the closed list of docs/mvp/runbooks/staging.md (D70)", () => {
       false,
     );
     expect(api).toContain("BREVO_WEBHOOK_SECRET_CURRENT");
+  });
+
+  it("lists on api and worker only what their configuration reads (EC-J9-7)", () => {
+    expect(namesNotRead(lists.api, Object.keys(apiEnvSchema.in.shape))).toEqual(
+      [],
+    );
+    expect(
+      namesNotRead(lists.worker, Object.keys(workerEnvSchema.in.shape)),
+    ).toEqual([]);
+    expect(
+      namesNotRead(
+        {
+          required: ["INFLUX_ENV", "RAILPACK_NODE_VERSION", "TYPO_VARIABLE"],
+          optional: [],
+        },
+        ["INFLUX_ENV"],
+      ),
+    ).toEqual(["TYPO_VARIABLE"]);
+  });
+
+  it("requires the variables of the active monitoring (J9 commit 8, 15 RG165)", () => {
+    expect(lists.api.required).toContain("OPS_ALERT_RECIPIENTS");
+    expect(lists.worker.required).toEqual(
+      expect.arrayContaining([
+        "OPS_ALERT_RECIPIENTS",
+        "INFLUX_PUBLIC_SITE_URL",
+        "INFLUX_PUBLIC_BACKOFFICE_URL",
+        "INFLUX_API_INTERNAL_URL",
+      ]),
+    );
   });
 });
 

@@ -85,6 +85,7 @@ function deployedApiEnv(
     OPS_DATABASE_URL: hostedUrl("influx_ops_login"),
     BREVO_WEBHOOK_PATH_TOKEN_CURRENT: "p".repeat(43),
     BREVO_WEBHOOK_SECRET_CURRENT: "s".repeat(43),
+    OPS_ALERT_RECIPIENTS: "ops@influx.example",
   };
 }
 
@@ -104,6 +105,10 @@ function deployedWorkerEnv(
     WORKER_DATABASE_URL: hostedUrl("influx_worker_login"),
     OPS_DATABASE_URL: hostedUrl("influx_ops_login"),
     PRIVACY_DATABASE_URL: hostedUrl("influx_privacy_login"),
+    OPS_ALERT_RECIPIENTS: "ops@influx.example",
+    INFLUX_PUBLIC_SITE_URL: WEB_ORIGIN,
+    INFLUX_PUBLIC_BACKOFFICE_URL: BACKOFFICE_ORIGIN,
+    INFLUX_API_INTERNAL_URL: "http://api.railway.internal:3100",
   };
 }
 
@@ -145,6 +150,8 @@ describe("api configuration", () => {
       },
       internalSecrets: { web: WEB_SECRET, backoffice: BACKOFFICE_SECRET },
       brevoWebhook: { pathTokens: [], headerTokens: [] },
+      // 15 RG165: nobody to alert in development, where nothing is sent
+      alerting: { onCallRecipients: [] },
     });
   });
 
@@ -684,7 +691,61 @@ describe("worker configuration", () => {
       },
       // 05 RG162: in development, a missing setting is named at start, never a refusal
       settingsRequiredAtStart: false,
+      // 02 §20.5: no probe without its targets in development, and nobody to alert
+      probe: null,
+      alerting: { onCallRecipients: [] },
     });
+  });
+
+  it("reads the targets of the probe and the on-call addresses (02 §20.5, 15 RG165)", () => {
+    const config = loadWorkerConfig({
+      ...VALID_WORKER_ENV,
+      INFLUX_PUBLIC_SITE_URL: "http://localhost:3000/",
+      INFLUX_PUBLIC_BACKOFFICE_URL: "http://localhost:3001",
+      INFLUX_API_INTERNAL_URL: "http://127.0.0.1:3100",
+      OPS_ALERT_RECIPIENTS:
+        "Ops@Influx.example, dev@influx.example,ops@influx.example",
+    });
+    expect(config.probe).toEqual({
+      web: "http://localhost:3000",
+      backoffice: "http://localhost:3001",
+      api: "http://127.0.0.1:3100",
+    });
+    expect(config.alerting).toEqual({
+      onCallRecipients: ["ops@influx.example", "dev@influx.example"],
+    });
+  });
+
+  it("takes the three targets of the probe together, or none", () => {
+    expect(
+      refusal(() =>
+        loadWorkerConfig({
+          ...VALID_WORKER_ENV,
+          INFLUX_PUBLIC_SITE_URL: "http://localhost:3000",
+        }),
+      ),
+    ).toEqual([
+      "INFLUX_PUBLIC_BACKOFFICE_URL is required with the other targets of the probe",
+      "INFLUX_API_INTERNAL_URL is required with the other targets of the probe",
+    ]);
+  });
+
+  it("refuses a target with a path, and an address that is not one", () => {
+    const issues = refusal(() =>
+      loadWorkerConfig({
+        ...VALID_WORKER_ENV,
+        INFLUX_PUBLIC_SITE_URL: "http://localhost:3000/fr",
+        INFLUX_PUBLIC_BACKOFFICE_URL: "http://localhost:3001",
+        INFLUX_API_INTERNAL_URL: "http://127.0.0.1:3100",
+        OPS_ALERT_RECIPIENTS: "not-an-address",
+      }),
+    );
+    expect(issues).toContain(
+      "INFLUX_PUBLIC_SITE_URL must be an http(s) origin, without path, query or credentials",
+    );
+    expect(
+      issues.some((issue) => issue.startsWith("OPS_ALERT_RECIPIENTS")),
+    ).toBe(true);
   });
 
   it("has no key for the api database variables, even when they are set (18 T4.6 a)", () => {
@@ -1042,6 +1103,11 @@ const API_DEPLOYED_CASES: readonly DeployedCase[] = [
     { SUPABASE_URL: TEST_SUPABASE_URL },
     "SUPABASE_URL must be an https origin in a deployed environment",
   ],
+  [
+    "no on-call address (AL50 would warn nobody, 15 RG165)",
+    { OPS_ALERT_RECIPIENTS: undefined },
+    "OPS_ALERT_RECIPIENTS is required in a deployed environment (availability alerts, 02 §20.5)",
+  ],
 ];
 
 const WORKER_DEPLOYED_CASES: readonly DeployedCase[] = [
@@ -1090,6 +1156,21 @@ const WORKER_DEPLOYED_CASES: readonly DeployedCase[] = [
     { SUPABASE_URL: TEST_SUPABASE_URL },
     "SUPABASE_URL must be an https origin in a deployed environment",
   ],
+  [
+    "no on-call address (an unreachable base would warn nobody, 02 §20.9)",
+    { OPS_ALERT_RECIPIENTS: "" },
+    "OPS_ALERT_RECIPIENTS is required in a deployed environment (availability alerts, 02 §20.5)",
+  ],
+  [
+    "no target of the probe (02 §20.5: an unprobed site is down unnoticed)",
+    { INFLUX_API_INTERNAL_URL: undefined },
+    "INFLUX_API_INTERNAL_URL is required in a deployed environment (the probe, 02 §20.5)",
+  ],
+  [
+    "an http public origin of the site to probe",
+    { INFLUX_PUBLIC_SITE_URL: "http://influx.example" },
+    "INFLUX_PUBLIC_SITE_URL must be an https origin in a deployed environment",
+  ],
 ];
 
 describe.each(DEPLOYED)(
@@ -1112,6 +1193,13 @@ describe.each(DEPLOYED)(
       // 05 RG162: the worker refuses to start without the settings every sign-up needs (CA85)
       expect(config.settingsRequiredAtStart).toBe(true);
       expect(config.database.privacy?.role).toBe("influx_privacy_login");
+      // 02 §20.5: the probe runs and the on-call addresses are known (EC-J9-7)
+      expect(config.probe).toEqual({
+        web: WEB_ORIGIN,
+        backoffice: BACKOFFICE_ORIGIN,
+        api: "http://api.railway.internal:3100",
+      });
+      expect(config.alerting.onCallRecipients).toEqual(["ops@influx.example"]);
     });
 
     // D70 end-of-work review (S1): a .env.local half on the local stack never starts.

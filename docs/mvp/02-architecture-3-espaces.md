@@ -1207,7 +1207,7 @@ démarrage : une variable requise manquante fait **échouer le démarrage** avec
 |---|---|---|---|---|---|
 | `INFLUX_ENV` (`development` \| `staging` \| `production`, sans valeur par défaut, §12.4) | ✔ | ✔ | ✔ | ✔ | Publique |
 | `INFLUX_PUBLIC_SITE_URL` | ✔ | — | ✔ | ✔ | Publique |
-| `INFLUX_API_INTERNAL_URL` | ✔ | ✔ | — | — | Interne |
+| `INFLUX_API_INTERNAL_URL` | ✔ | ✔ | — | ✔ (J9) | Interne — côté `worker`, cible du `/health` de la sonde (§20.5), requise en environnement déployé |
 | `INFLUX_API_INTERNAL_SECRET` (valeur propre à chaque front) — *ajoutée le 2026-09-25, D64* | ✔ | ✔ | — | — | **Secrète** — en-tête `x-influx-internal` (`03` PP-8) |
 | `INFLUX_API_INTERNAL_SECRET_WEB`, `INFLUX_API_INTERNAL_SECRET_BACKOFFICE` — *ajoutées le 2026-09-25, D64* | — | — | ✔ | — | **Secrètes** — `apps/api` en déduit la surface appelante et lie `/v1/bo/…` au backoffice (`21` §4, J1-G) |
 | `DATABASE_URL` (multiplexeur, rôle de connexion `influx_app`, membre des quatre rôles métier seuls) | — | — | ✔ | — | **Secrète** |
@@ -1216,7 +1216,7 @@ démarrage : une variable requise manquante fait **échouer le démarrage** avec
 | `OPS_DATABASE_URL` (rôle de connexion `influx_ops_login`, écriture du schéma `ops`) — **au J4** | — | — | ✔ | — | **Secrète** |
 | `PRIVACY_DATABASE_URL` (rôle de connexion `influx_privacy_login`, E-5) — **au J8** | — | — | — | ✔ | **Secrète** — obligatoire en production |
 | `DIRECT_DATABASE_URL` (rôle de migration, **propriétaire des objets**) | — | — | — | — | **Secrète, CI uniquement** — jamais dans un service d'exécution |
-| `INFLUX_PUBLIC_BACKOFFICE_URL` — *ajoutée le 2026-09-27 (`21` J1-F)* | — | — | ✔ | — | Publique — origine de la surface `backoffice` pour le contrôle d'origine A4 (`03` §6.4) |
+| `INFLUX_PUBLIC_BACKOFFICE_URL` — *ajoutée le 2026-09-27 (`21` J1-F)* | — | — | ✔ | ✔ (J9) | Publique — origine de la surface `backoffice` pour le contrôle d'origine A4 (`03` §6.4) ; côté `worker`, cible de la sonde avec `INFLUX_PUBLIC_SITE_URL` (§20.5), les trois cibles ensemble |
 | `SUPABASE_URL` | — | — | ✔ | ✔ (J7) | **Serveur uniquement**, non secrète. Côté `worker`, avec `SUPABASE_SECRET_KEY` (les deux ou aucune, requises en production) |
 | `SUPABASE_SECRET_KEY` — **clé d'API HTTP**, à ne pas confondre avec le rôle Postgres `service_role`, qui n'est utilisé nulle part | — | — | ✔ (J3) | ✔ (J6) | **Secrète, jamais dans un bundle. Une clé par service** (`api`, `worker`), révocable séparément (*2026-09-27, `21` EC-46*). Usage limité à GoTrue (création d'utilisateur, code, second facteur ; côté `worker`, la seule purge E-4 des utilisateurs orphelins) et aux URL signées du Storage. **Jamais pour atteindre une table** |
 | ~~`SUPABASE_PUBLISHABLE_KEY`~~, ~~`SUPABASE_JWKS_URL`~~ | — | — | — | — | **Retirées le 2026-09-27** (`21` EC-46) : tout appel à GoTrue porte la clé secrète, et INFLUX ne vérifie aucun JWT (`21` J3-C règle 3). Sur les projets hébergés, la clé *publishable* est désactivée si la plateforme le permet (`21` G-1) |
@@ -1229,6 +1229,7 @@ démarrage : une variable requise manquante fait **échouer le démarrage** avec
 | `AUTH_THROTTLE_PEPPER` | — | — | ✔ | — | **Secrète**, ≥ 32 octets. Clé HMAC des empreintes de limitation de débit (`04` §12.10), de l'adresse pseudonyme transmise à GoTrue (`21` EC-38) et de l'anti-rejeu TOTP (`21` EC-39), chacune avec son étiquette de séparation |
 | `SYNC_MODE` (`live` \| `dry_run`) | — | — | — | ✔ | Garde-fou, §12.4 |
 | `NON_PRODUCTION_RECIPIENT_ALLOWLIST` | — | — | — | ✔ | Garde-fou, §12.4 : `development` seul, refusée en environnement déployé (comme `BREVO_TEST_RECIPIENTS`) |
+| `OPS_ALERT_RECIPIENTS` — *J9 commit 8 (§20.10, `15` RG165)* | — | — | ✔ | ✔ | Non secrète, **jamais recopiée** : adresses d'astreinte (`on_call`) des alertes techniques, séparées par des virgules, jamais en base (§20.8), seules disponibles base injoignable ; requise en environnement déployé (D70, EC-J9-7) |
 
 **Variables de base : refus de démarrage** (*ajouté le 2026-09-26, `21` EC-20, tranché par
 `expert-cybersecurite`* ; `ELEVATED_DATABASE_URL` disparaît, `03` §4 P7 fait foi) :

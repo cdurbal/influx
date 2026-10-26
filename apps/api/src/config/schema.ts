@@ -496,6 +496,44 @@ type BaseEnv = {
   RAILWAY_ENVIRONMENT_NAME?: string | undefined;
 };
 
+/** OPS_ALERT_RECIPIENTS (02 §20.5, §20.10), api and worker: the on-call addresses of D60. */
+const alertingEnvShape = {
+  OPS_ALERT_RECIPIENTS: commaSeparated(
+    z.email({ error: "must list e-mail addresses" }),
+  ),
+};
+
+/**
+ * D70: a deployed environment alerts for real (EC-J9-7); without an on-call address, an
+ * unreachable base or a stopped worker would warn nobody.
+ */
+function checkAlertRecipients(
+  env: { INFLUX_ENV: InfluxEnvironment; OPS_ALERT_RECIPIENTS: string[] },
+  context: z.RefinementCtx,
+): void {
+  if (
+    isDeployedEnvironment(env.INFLUX_ENV) &&
+    env.OPS_ALERT_RECIPIENTS.length === 0
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["OPS_ALERT_RECIPIENTS"],
+      message:
+        "is required in a deployed environment (availability alerts, 02 §20.5)",
+    });
+  }
+}
+
+function alertingOf(env: { OPS_ALERT_RECIPIENTS: string[] }): AlertingConfig {
+  return {
+    onCallRecipients: [
+      ...new Set(
+        env.OPS_ALERT_RECIPIENTS.map((address) => address.toLowerCase()),
+      ),
+    ],
+  };
+}
+
 /**
  * Startup refusals shared by api and worker (`16` RG116, `21` J1-D point 3, `02` §12.4 after D70).
  * A deployed environment sends for real: `live` only, and no redirect list, refused rather than
@@ -753,6 +791,27 @@ export type PublicOrigins = {
 };
 
 /**
+ * The technical alerts of D60 (02 §20.5, 15 RG165): OPS_ALERT_RECIPIENTS, the on-call addresses
+ * (recipient `on_call` of backoffice.alert_definitions), the only ones an unreachable base leaves.
+ * Never an address in base (02 §20.8), never one in a log line. Required in a deployed
+ * environment (D70: staging alerts for real, EC-J9-7); empty in development, where nothing is sent.
+ */
+export type AlertingConfig = {
+  onCallRecipients: readonly string[];
+};
+
+/**
+ * What the worker probes every minute (02 §20.5, "Sonde interne"): the home pages FR and EN and
+ * the sign-in page of the backoffice by their public origin, the /health of the api on the
+ * private network. Required in a deployed environment; null in development when unset.
+ */
+export type ProbeOrigins = {
+  web: string;
+  backoffice: string;
+  api: string;
+};
+
+/**
  * The transactional sender of the api (21 EC-19): the login code only (D43). Absent key and
  * sender are allowed with BREVO_MODE=disabled only, where nothing is ever sent.
  */
@@ -799,6 +858,8 @@ export type ApiConfig = BaseConfig & {
    * empty when the webhook is closed.
    */
   brevoWebhook: BrevoWebhookSecrets;
+  /** The recipients of the alert "worker stopped", sent by the api (02 §20.5, 15 RG165). */
+  alerting: AlertingConfig;
 };
 
 /** D68: the sub-keys of leads.sync_settings.brevo_list_ids, as given. */
@@ -886,6 +947,10 @@ export type WorkerConfig = BaseConfig & {
    * needs; in development it starts and names them (leads.settings.missing_at_start).
    */
   settingsRequiredAtStart: boolean;
+  /** The targets of the probe (02 §20.5); null in development when unset: no probe runs. */
+  probe: ProbeOrigins | null;
+  /** The on-call recipients of the availability alerts the worker sends (15 RG165). */
+  alerting: AlertingConfig;
 };
 
 export const apiEnvSchema = z
@@ -911,9 +976,11 @@ export const apiEnvSchema = z
     ...brevoTransportShape,
     ...brevoWebhookShape,
     ...databaseEnvShape,
+    ...alertingEnvShape,
   })
   .superRefine((env, context) => {
     checkBrevoMode(env, context);
+    checkAlertRecipients(env, context);
     checkDatabaseVariables(env, API_DATABASE_VARIABLES, context);
     checkBrevoTransport(env, context);
     checkBrevoWebhook(
@@ -1031,6 +1098,7 @@ export const apiEnvSchema = z
         env.BREVO_WEBHOOK_SECRET_PREVIOUS,
       ),
     },
+    alerting: alertingOf(env),
   }));
 
 function presentValues(...values: (string | undefined)[]): string[] {
@@ -1074,6 +1142,67 @@ function brevoIdsOf(
   return { listIds };
 }
 
+const optionalOrigin = z.preprocess(emptyAsAbsent, publicOrigin.optional());
+
+/** The three targets of the probe, all or none (02 §20.5). */
+const PROBE_VARIABLES = [
+  "INFLUX_PUBLIC_SITE_URL",
+  "INFLUX_PUBLIC_BACKOFFICE_URL",
+  "INFLUX_API_INTERNAL_URL",
+] as const;
+
+/**
+ * D70: a deployed worker probes (an unprobed site is down unnoticed); the two public origins are
+ * https there, the api is reached on the private network (http, 02 §12.1). In development, the
+ * three go together or not at all.
+ */
+function checkProbeOrigins(
+  env: { INFLUX_ENV: InfluxEnvironment } & Partial<
+    Record<(typeof PROBE_VARIABLES)[number], string>
+  >,
+  context: z.RefinementCtx,
+): void {
+  const isDeployed = isDeployedEnvironment(env.INFLUX_ENV);
+  const anySet = PROBE_VARIABLES.some(
+    (variable) => env[variable] !== undefined,
+  );
+  for (const variable of PROBE_VARIABLES) {
+    if (env[variable] === undefined && (isDeployed || anySet)) {
+      context.addIssue({
+        code: "custom",
+        path: [variable],
+        message: isDeployed
+          ? "is required in a deployed environment (the probe, 02 §20.5)"
+          : "is required with the other targets of the probe",
+      });
+    }
+  }
+  if (isDeployed) {
+    for (const variable of [
+      "INFLUX_PUBLIC_SITE_URL",
+      "INFLUX_PUBLIC_BACKOFFICE_URL",
+    ] as const) {
+      if (env[variable]?.startsWith("http://") === true) {
+        context.addIssue({
+          code: "custom",
+          path: [variable],
+          message: "must be an https origin in a deployed environment",
+        });
+      }
+    }
+  }
+  if (
+    env.INFLUX_PUBLIC_SITE_URL !== undefined &&
+    env.INFLUX_PUBLIC_SITE_URL === env.INFLUX_PUBLIC_BACKOFFICE_URL
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["INFLUX_PUBLIC_BACKOFFICE_URL"],
+      message: "must differ from INFLUX_PUBLIC_SITE_URL",
+    });
+  }
+}
+
 export const workerEnvSchema = z
   .object({
     ...baseEnvShape,
@@ -1108,10 +1237,18 @@ export const workerEnvSchema = z
     // Read only to be refused on Railway: the webhook secrets are the api service's alone.
     ...brevoWebhookShape,
     ...databaseEnvShape,
+    ...alertingEnvShape,
+    // 02 §20.5: the targets of the probe, by the way a visitor reaches them (web, backoffice) and
+    // by the private network (api).
+    INFLUX_PUBLIC_SITE_URL: optionalOrigin,
+    INFLUX_PUBLIC_BACKOFFICE_URL: optionalOrigin,
+    INFLUX_API_INTERNAL_URL: optionalOrigin,
   })
   .superRefine((env, context) => {
     checkBrevoMode(env, context);
     checkBrevoTransport(env, context);
+    checkAlertRecipients(env, context);
+    checkProbeOrigins(env, context);
     for (const variable of WITHDRAWN_BREVO_TEMPLATE_VARIABLES) {
       if (env[variable] !== undefined) {
         context.addIssue({
@@ -1259,6 +1396,17 @@ export const workerEnvSchema = z
       keyRequired: isDeployedEnvironment(env.INFLUX_ENV),
     },
     settingsRequiredAtStart: isDeployedEnvironment(env.INFLUX_ENV),
+    probe:
+      env.INFLUX_PUBLIC_SITE_URL !== undefined &&
+      env.INFLUX_PUBLIC_BACKOFFICE_URL !== undefined &&
+      env.INFLUX_API_INTERNAL_URL !== undefined
+        ? {
+            web: env.INFLUX_PUBLIC_SITE_URL,
+            backoffice: env.INFLUX_PUBLIC_BACKOFFICE_URL,
+            api: env.INFLUX_API_INTERNAL_URL,
+          }
+        : null,
+    alerting: alertingOf(env),
   }));
 
 /** Refusal to start. Its message names variables and rules, never a value. */

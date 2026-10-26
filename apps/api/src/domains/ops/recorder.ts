@@ -12,9 +12,11 @@ import { monitorEventLoopDelay, type IntervalHistogram } from "node:perf_hooks";
 import type { ApiDatabase } from "../../db/index.ts";
 import { withElevatedTransaction } from "../../db/index.ts";
 import { serializeError } from "../../platform/logger.ts";
+import { bucketOf, DURATION_BUCKETS_MS } from "./buckets.ts";
 import {
   writeTelemetry,
   type Occurrence,
+  type OpsSignal,
   type ProcessSample,
   type RequestCell,
 } from "./repository.ts";
@@ -37,10 +39,6 @@ export const OCCURRENCES_PER_MINUTE = 10;
 export const BROWSER_GROUPS_PER_ACCOUNT_HOUR = 5;
 /** Errors waiting for the next flush; beyond, dropped (an avalanche never saturates the base). */
 export const MAX_PENDING_OCCURRENCES = 200;
-/** Upper bounds of the duration buckets, in ms (0016); the ninth bucket is "beyond". */
-export const DURATION_BUCKETS_MS = [
-  25, 50, 100, 250, 500, 1000, 2500, 5000,
-] as const;
 const FLUSH_INTERVAL_MS = 10_000;
 const MESSAGE_MAX = 500;
 const STACK_MAX = 4000;
@@ -87,12 +85,6 @@ function minuteOf(date: Date): number {
   return Math.floor(date.getTime() / 60_000) * 60_000;
 }
 
-/** Index of the bucket of a duration (0 to 8). */
-export function bucketOf(durationMs: number): number {
-  const index = DURATION_BUCKETS_MS.findIndex((bound) => durationMs <= bound);
-  return index === -1 ? DURATION_BUCKETS_MS.length : index;
-}
-
 const METHODS: ReadonlySet<string> = new Set([
   "GET",
   "POST",
@@ -120,6 +112,8 @@ export class OpsRecorder {
   private droppedBrowserGroups = 0;
   /** Request cells per minute (epoch ms), then per `${method} ${route}`. */
   private requests = new Map<number, Map<string, RequestCell>>();
+  /** Signals per minute (epoch ms), for the technical alerts (15 RG165, AL61, AL62). */
+  private signals = new Map<number, Map<OpsSignal, number>>();
   private loopDelay: IntervalHistogram | null = null;
   private lastCpu = process.cpuUsage();
   private lastCpuAt = Date.now();
@@ -277,6 +271,17 @@ export class OpsRecorder {
     cell.buckets[bucket] = (cell.buckets[bucket] ?? 0) + 1;
   }
 
+  /** Counts a signal in the current minute (ops.signal_counts, written once the minute ends). */
+  recordSignal(signal: OpsSignal): void {
+    const minute = minuteOf(this.now());
+    let counts = this.signals.get(minute);
+    if (counts === undefined) {
+      counts = new Map();
+      this.signals.set(minute, counts);
+    }
+    counts.set(signal, (counts.get(signal) ?? 0) + 1);
+  }
+
   /** Starts the periodic flush and the event loop measurement (main.ts only). */
   start(database: ApiDatabase, logger: OpsLogger): void {
     if (this.timer !== null) {
@@ -385,6 +390,27 @@ export class OpsRecorder {
     return ended;
   }
 
+  private takeEndedSignals(): {
+    minute: number;
+    counts: { signal: OpsSignal; count: number }[];
+  }[] {
+    const current = minuteOf(this.now());
+    const ended: {
+      minute: number;
+      counts: { signal: OpsSignal; count: number }[];
+    }[] = [];
+    for (const [minute, counts] of this.signals) {
+      if (minute < current) {
+        ended.push({
+          minute,
+          counts: [...counts].map(([signal, count]) => ({ signal, count })),
+        });
+        this.signals.delete(minute);
+      }
+    }
+    return ended;
+  }
+
   private takeProcessSample(): ProcessSample | null {
     const current = minuteOf(this.now());
     if (current <= this.processMinute || this.loopDelay === null) {
@@ -424,6 +450,7 @@ export class OpsRecorder {
     const droppedBrowserGroups = this.droppedBrowserGroups;
     this.droppedBrowserGroups = 0;
     const minutes = this.takeEndedMinutes();
+    const signals = this.takeEndedSignals();
     const processSample = this.takeProcessSample();
     if (dropped > 0) {
       logger.warn({ dropped }, "ops occurrences dropped, buffer full");
@@ -438,6 +465,7 @@ export class OpsRecorder {
       occurrences.length === 0 &&
       extras.length === 0 &&
       minutes.length === 0 &&
+      signals.length === 0 &&
       processSample === null
     ) {
       return;
@@ -455,6 +483,7 @@ export class OpsRecorder {
             extras,
             minutes,
             processSample,
+            signals,
           });
           return { value: undefined, auditSubject: null };
         },

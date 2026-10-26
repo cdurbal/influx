@@ -11,6 +11,7 @@ import type { ApiConfig } from "./config/schema.ts";
 import {
   closeDatabase,
   createApiDatabase,
+  isDatabaseReachable,
   type ApiDatabase,
 } from "./db/index.ts";
 import {
@@ -88,6 +89,9 @@ export const RATE_LIMITED_RETRY_AFTER_SECONDS = 60;
 
 /** Same ceiling as the relay of the fronts (`03` PP-9). */
 export const MAX_BODY_BYTES = 1_048_576;
+
+/** Bound of the database check of GET /health: the probe allows 10 s for the whole answer. */
+export const HEALTH_DATABASE_TIMEOUT_MS = 2_000;
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -207,6 +211,11 @@ export type BuildServerOptions = {
    * in memory only, never flushed (tests).
    */
   ops?: OpsRecorder;
+  /**
+   * The database check of GET /health (02 §20.10); the pools' own by default. Replaced by the
+   * tests that run without a database.
+   */
+  isDatabaseReachable?: () => Promise<boolean>;
 };
 
 export function buildServer(
@@ -429,14 +438,6 @@ export function buildServer(
     return reply.code(statusCode).send(errorEnvelope(classified, request.id));
   });
 
-  // Railway health check: no secret, no detail (21 J1-G). The database check arrives at J2.
-  app.get(
-    HEALTH_ROUTE,
-    { schema: { response: { 200: systemStatusSchema } } },
-    async () => ({ status: "ok" as const }),
-  );
-
-  // Authentication of the members and of the backoffice (21 §4, J3 commits 8 to 10).
   const ownsDatabase = options.database === undefined;
   const database =
     options.database ?? createApiDatabase(config.database, app.log);
@@ -445,6 +446,25 @@ export function buildServer(
       await closeDatabase(database);
     });
   }
+  const databaseReachable =
+    options.isDatabaseReachable ??
+    (() => isDatabaseReachable(database, HEALTH_DATABASE_TIMEOUT_MS));
+
+  // Railway's health check and the target of the worker's probe on the private network (21 J1-G,
+  // 02 §20.5, §20.10): no secret, no detail, the base checked. An unreachable base answers 503:
+  // the probe alerts (15 RG165), and a deployment that cannot reach it is not promoted.
+  app.get(
+    HEALTH_ROUTE,
+    { schema: { response: { 200: systemStatusSchema } } },
+    async () => {
+      if (!(await databaseReachable())) {
+        throw new ApiError("service_unavailable");
+      }
+      return { status: "ok" as const };
+    },
+  );
+
+  // Authentication of the members and of the backoffice (21 §4, J3 commits 8 to 10).
   // 03 §6.2, 18 T8.8: no `/v1/bo/…` handler runs for a session that is not internal and in aal2,
   // whatever the handler does itself; only the closed list of sessionless routes escapes.
   app.addHook("preHandler", async (request, reply) => {

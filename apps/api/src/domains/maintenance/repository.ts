@@ -5,12 +5,16 @@
 import { sql } from "drizzle-orm";
 import type { Transaction } from "../../db/index.ts";
 
-/** The closed list of ops.periodic_task (0117; data_export_purge: 0136, J8 commit 8). */
+/**
+ * The closed list of ops.periodic_task (0117; data_export_purge: 0136, J8 commit 8; ops_retention:
+ * 0147, J9 commit 8).
+ */
 export const PERIODIC_TASKS = [
   "brevo_reconciliation",
   "auth_orphan_purge",
   "brevo_inbound_purge",
   "data_export_purge",
+  "ops_retention",
 ] as const;
 export type PeriodicTask = (typeof PERIODIC_TASKS)[number];
 
@@ -132,6 +136,32 @@ export async function purgeDataExports(
                  ${limit}::integer) as count`,
   );
   return Number(rows[0]?.count ?? 0);
+}
+
+/**
+ * 0147 (02 §20.5, §20.8): one bounded step of the retention of ops — the closed hours rolled up,
+ * the minutes after 14 days, the occurrences after 30 days, the hours after 13 months… Its counts,
+ * with `more` = 1 when a bound was reached (call again, in a new transaction). retention.purged is
+ * written by the database.
+ */
+export async function runOpsRetention(
+  tx: Transaction,
+  run: PeriodicRun,
+): Promise<PeriodicCounts> {
+  const rows = await tx.execute<{ counts: unknown }>(
+    sql`select ops.run_ops_retention(${run.runId}::uuid, ${run.attempt}::smallint) as counts`,
+  );
+  const counts = rows[0]?.counts;
+  if (typeof counts !== "object" || counts === null || Array.isArray(counts)) {
+    throw new Error("ops.run_ops_retention answered no counts");
+  }
+  const result: PeriodicCounts = {};
+  for (const [name, value] of Object.entries(counts)) {
+    if (typeof value === "number" && Number.isInteger(value) && value >= 0) {
+      result[name] = value;
+    }
+  }
+  return result;
 }
 
 /** C5.b (0125): an account to realign at GoTrue, with its address in force (never logged). */

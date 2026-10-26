@@ -27,6 +27,9 @@ const WEB_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
 );
+
+/** apps/web serves its public health route beside the relay (EC-22). */
+const WEB_ROUTES = { healthRoute: true } as const;
 const SRC = path.join(WEB_ROOT, "src");
 
 function relative(file: string): string {
@@ -178,8 +181,8 @@ describe("G4 replaced: no image outside the brand asset manifest (18 §5 G4)", (
 // and replaced by this stricter guard (02 §13.1, 18 §5, 21 §4 J1-C). The landing page still never
 // reaches the network: only the route file imports the relay, which alone imports the API client.
 describe("G5 replaced: the relay is the only server endpoint (21 J1-C, 03 PP-12)", () => {
-  it("has exactly one route file under src/app: the relay", () => {
-    expect(findRouteFileViolations(WEB_ROOT)).toEqual([]);
+  it("has exactly two route files under src/app: the relay and the health route (EC-22)", () => {
+    expect(findRouteFileViolations(WEB_ROOT, WEB_ROUTES)).toEqual([]);
   });
 
   it("has no Pages Router directory, pages/ nor src/pages/ (18 §5 G5 b)", () => {
@@ -187,11 +190,11 @@ describe("G5 replaced: the relay is the only server endpoint (21 J1-C, 03 PP-12)
   });
 
   it("keeps data-layer imports, Server Actions and environment reads out of the relay", () => {
-    expect(findRelayContentViolations(WEB_ROOT)).toEqual([]);
+    expect(findRelayContentViolations(WEB_ROOT, WEB_ROUTES)).toEqual([]);
   });
 
-  it("reaches the API client along a single chain: route, relay, API client, config", () => {
-    expect(findRelayImporterViolations(WEB_ROOT)).toEqual([]);
+  it("reaches the API client along a single chain: route files, relay, API client, config", () => {
+    expect(findRelayImporterViolations(WEB_ROOT, WEB_ROUTES)).toEqual([]);
   });
 
   it("matches the pinned SHA-256 of the four relay files (T7.8)", () => {
