@@ -70,9 +70,9 @@ cochée mais explicitement acceptée et datée par le fondateur vaut cochée (`1
       le commit d'attestation de clôture du J9 ; reports listés dans `jalons/j9-fiche.md`.
 - [ ] **Aucune valeur héritée de `staging`** dans les variables Railway de production (J9S-1,
       section 5, script de comparaison sans valeur affichée).
-- [ ] **Constats `staging` de fin de J9** (fiche J9) : API rétablie, `/health` `200` puis `503`
-      API coupée, arrêt du worker ⇒ AL50, en-têtes T10 du backoffice, A5.6 / T7.12, cible absolue
-      (J9S-5) — après renouvellement du jeton Railway.
+- [ ] **Constats `staging` de fin de J9** (fiche J9) : API, sonde, battement, T10 du backoffice et
+      J9S-5 constatés le 2026-10-27 ; restent l'arrêt du worker (AL50), la coupure de l'API
+      (`/health` `503`, AL49) et une inscription réelle, avec l'accord du fondateur.
 - [ ] `expert-conformite-rgpd` (Lot 6) : verdict L9, exemption de consentement du collecteur
       navigateur, RG118, RG121 (veto), retrait propagé à Apollo, notice art. 15, F8, contreparties
       du risque D70 (a).
@@ -263,7 +263,7 @@ vérifie, depuis son poste, qu'**aucune** valeur de production n'égale celle de
 liste blanche de valeurs non secrètes. Le script compare en mémoire et n'affiche **que des noms** :
 
 ```sh
-node -e "const {execFileSync:x}=require('node:child_process');const ok=new Set(['PORT','RAILPACK_NODE_VERSION','BREVO_API_BASE_URL','BREVO_MODE','SYNC_MODE','INFLUX_API_INTERNAL_URL','DATABASE_CA_CERT','OPS_ALERT_RECIPIENTS','BREVO_LIST_ID_ADVERTISERS','BREVO_LIST_ID_CREATORS','BREVO_SUPPRESSION_LIST_ID']);let n=0;for(const s of ['api','worker','web','backoffice']){const r=e=>JSON.parse(x('railway',['variables','-s',s,'-e',e,'--json'],{encoding:'utf8'}));const a=r('staging'),b=r('production');for(const k of Object.keys(b))if(!ok.has(k)&&!k.startsWith('RAILWAY_')&&k in a&&a[k]===b[k]){console.log(s+' '+k);n++}}console.log(n?n+' valeur(s) héritée(s) de staging':'aucune valeur héritée');process.exit(n?1:0)"
+node -e "const {execFileSync:x}=require('node:child_process');const ok=new Set(['PORT','RAILPACK_NODE_VERSION','BREVO_API_BASE_URL','BREVO_MODE','SYNC_MODE','INFLUX_API_INTERNAL_URL','DATABASE_CA_CERT','OPS_ALERT_RECIPIENTS','BREVO_LIST_ID_ADVERTISERS','BREVO_LIST_ID_CREATORS','BREVO_SUPPRESSION_LIST_ID']);let n=0;for(const s of ['api','worker','web','backoffice']){const r=e=>JSON.parse(x('railway',['variables','-s',s,'-e',e,'--json'],{encoding:'utf8',shell:process.platform==='win32'}));const a=r('staging'),b=r('production');for(const k of Object.keys(b))if(!ok.has(k)&&!k.startsWith('RAILWAY_')&&k in a&&a[k]===b[k]){console.log(s+' '+k);n++}}console.log(n?n+' valeur(s) héritée(s) de staging':'aucune valeur héritée');process.exit(n?1:0)"
 ```
 
 Sortie non nulle = **bloquant** : remplacer chaque valeur nommée, puis relancer jusqu'à « aucune valeur

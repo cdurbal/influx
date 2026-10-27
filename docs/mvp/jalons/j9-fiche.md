@@ -6,34 +6,28 @@
 > récit des commits est dans `21` §J9, les décisions dans les specs et les en-têtes de `0139` à `0149` ;
 > la fiche complète reste lisible par `git show 8323aeb:docs/mvp/jalons/j9-fiche.md`.
 
-## Critère de fin du J9 sur `staging` : non constaté
+## Critère de fin du J9 sur `staging` : constaté en partie (2026-10-27, 21:05 UTC)
 
-Constaté le 2026-10-27 : landing FR / EN ⇒ les quatre portes EC-15, en-têtes T10 et CSP à nonce sur
-`web`. **Non constaté** : `/health` répond `503` et le relais `502` (aucun relevé de `apps/api` depuis
-le 2026-10-26 19:40 UTC), jeton Railway refusé (`Unauthorized`, encore le 2026-10-27). Hypothèse
-J9T-1, à confirmer par les journaux : `OPS_ALERT_RECIPIENTS` (api, worker) et les trois adresses de la
-sonde (worker), exigées au démarrage depuis le commit 8, jamais posées sur Railway. Ordre, avec le
-nouveau jeton du fondateur :
+Constaté par l'agent après la clôture (`5dbf608` déployé, CI verte, « Migrate staging » vert,
+`staging:check` vert, noms Railway compris) : landing FR / EN ⇒ les quatre portes EC-15 ; `/health`
+`200`, relais `200` ; en-têtes T10 et CSP à nonce sur `web` **et** le backoffice (`img-src 'self'
+blob:`, `noindex`) ; worker en marche depuis 12:16 UTC (battement à moins de 10 s) ; sonde : les
+quatre cibles `up` chaque minute sur 30 min ; J9S-5 : cible absolue ⇒ `200` sur l'hôte de `staging`,
+aucune redirection sortante. L'hypothèse J9T-1 (variables absentes) est **infirmée** : les noms du
+commit 8 sont posés ; la panne du 2026-10-26 n'a pas été expliquée (journaux illisibles, `railway
+whoami` toujours `Unauthorized`, seules les variables se lisent).
 
-1. Journaux de `api` et `worker` en lecture (« Invalid api/worker configuration »).
-2. `staging:check` (KO attendu sur les noms), puis variables du commit 8 selon `runbooks/staging.md`
-   §5 ; redéployer `api` et `worker` ensemble.
-3. `/health` `200` ; `ops.worker_heartbeats` et `ops.probe_results` non vides ; `staging:check` vert.
-4. Arrêt du worker ⇒ AL50 par l'API (e-mail réel), remise en marche ⇒ « rétabli », aucun doublon sous
-   30 min. API coupée ⇒ `/health` `503`, AL49 au 2e échec, puis « rétabli ».
-5. En-têtes T10 du backoffice ; A5.6 / T7.12 (`X-Real-IP` forgé) ; J9S-5 :
-   `curl --request-target 'https://x@evil.tld/fr'` sur `web` ⇒ `400` ou redirection vers l'hôte de
-   `staging`. Une inscription réelle de `staging` finit `succeeded` (`18` §10 « Lot 1 », case D67).
-6. Consigner dans `21` §J9 (ligne « Constats `staging` »).
-
-Règle tirée de J9T-1 : une variable exigée au démarrage se pose sur Railway `staging` **avant** de
-pousser le commit qui l'exige.
+**Reste, avec l'accord du fondateur** (le jeton ne permet ni arrêt ni remise en marche ;
+`railway down` supprimerait le déploiement) : arrêter le worker ⇒ AL50 par l'API (e-mail réel à
+l'astreinte), remise en marche ⇒ « rétabli », aucun doublon sous 30 min ; couper l'API ⇒ `/health`
+`503`, AL49 au 2e échec, puis « rétabli » ; une inscription réelle de `staging` finit `succeeded`
+(`18` §10 « Lot 1 », case D67). Consigner ensuite dans `21` §J9.
 
 ## Tickets reportés
 
 | Ticket | Contenu | Échéance |
 |---|---|---|
-| J9T-1 · J9S-5 | Constats `staging` ci-dessus | **Avant production** (jeton : fondateur) |
+| J9T-1 | Constats `staging` restants ci-dessus (arrêt du worker, coupure de l'API, inscription réelle) | **Avant production** (accord et moyen d'arrêt : fondateur) |
 | J9S-2 | `api` et `worker` en `INFLUX_ENV=production` démarrent sur une base de `staging` (seul le job CI teste les marqueurs) : au démarrage, base sans `influx_production.environment_marker` ou avec celui de `staging` ⇒ sortie 1, ligne `fatal` sans valeur, test | **Avant production** |
 | J9S-4 | `PUBLIC_ROUTE_RATES` par adresse : `request-code` 10 / min (au lieu de 30), `verify-code` 20 (40), `bo/auth/*` connexion, enrôlement, invitation 10 (30) ; signal « refus de portée `instance` » alerté aussitôt (`15` AL56). Vérifier d'abord que `t8-backoffice-sign-in` et `tm1-email-change-route` restent sous 10 appels / min par adresse (sinon une adresse par cas) | **Avant production** |
 | AL53 | Seuil propre de `request-code` fixé (p95 > 3 s sur 10 min, ≥ 20 appels, `15` RG165) : évaluation et ligne `alert_definitions` à écrire | **Avant production** |
