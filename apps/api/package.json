@@ -17,6 +17,7 @@
     "db:staging-demo-accounts": "node --env-file=.env.local scripts/seed-staging-demo-accounts.ts",
     "db:publish-terms": "node scripts/publish-terms.ts",
     "db:publish-terms:staging": "node --env-file=.env.local scripts/publish-terms.ts --target=staging",
+    "prod:bootstrap-admins": "node scripts/bootstrap-production-admins.ts",
     "staging:check": "node --env-file=.env.local scripts/staging-check.ts",
     "staging:reset-internal-account": "node --env-file=.env.local scripts/reset-staging-internal-account.ts",
     "trial:record": "node --env-file-if-exists=.env.trial.local scripts/record-provider-exchanges.ts"

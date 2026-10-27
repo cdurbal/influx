@@ -42,35 +42,53 @@ export function requiredStagingVariable(name: string): string {
   return value;
 }
 
+/** Where the inputs of an operator script come from: .env.local (staging) or the shell (production). */
+export type VariableSource = (name: string) => string;
+
 /**
- * The administration API of the STAGING GoTrue, from SUPABASE_URL and SUPABASE_SECRET_KEY. J4S-5:
- * the key and the database belong to ONE project; a production key pasted by mistake next to the
- * staging database would otherwise act on production.
+ * The administration API of a hosted GoTrue, from SUPABASE_URL and SUPABASE_SECRET_KEY. J4S-5:
+ * the key and the database (`migrationUrlName`) belong to ONE project; a production key pasted by
+ * mistake next to the staging database would otherwise act on production, and conversely.
  */
-export function stagingGoTrue(): { authUrl: string; secretKey: string } {
-  const supabaseUrl = requiredStagingUrl("SUPABASE_URL");
+export function hostedGoTrue(
+  source: VariableSource,
+  migrationUrlName: string,
+  environment: "staging" | "production",
+): { authUrl: string; secretKey: string; projectRef: string } {
+  const supabaseUrl = urlOf("SUPABASE_URL", source("SUPABASE_URL"));
   if (
     supabaseUrl.protocol !== "https:" ||
     !supabaseUrl.hostname.endsWith(".supabase.co")
   ) {
     throw new Error(
-      "SUPABASE_URL must be the https origin of the staging project",
+      `SUPABASE_URL must be the https origin of the ${environment} project`,
     );
   }
   const projectRef = supabaseUrl.hostname.slice(0, -".supabase.co".length);
-  const migrationUrl = requiredStagingUrl("INFLUX_STAGING_MIGRATION_URL");
+  const migrationUrl = urlOf(migrationUrlName, source(migrationUrlName));
   if (
     migrationUrl.hostname !== `db.${projectRef}.supabase.co` &&
     decodeURIComponent(migrationUrl.username) !== `postgres.${projectRef}`
   ) {
     throw new Error(
-      "SUPABASE_URL and INFLUX_STAGING_MIGRATION_URL name two different projects: refused",
+      `SUPABASE_URL and ${migrationUrlName} name two different projects: refused`,
     );
   }
   return {
     authUrl: `${supabaseUrl.origin}/auth/v1`,
-    secretKey: requiredStagingVariable("SUPABASE_SECRET_KEY"),
+    secretKey: source("SUPABASE_SECRET_KEY"),
+    projectRef,
   };
+}
+
+/** hostedGoTrue() of STAGING, from apps/api/.env.local. */
+export function stagingGoTrue(): { authUrl: string; secretKey: string } {
+  const { authUrl, secretKey } = hostedGoTrue(
+    requiredStagingVariable,
+    "INFLUX_STAGING_MIGRATION_URL",
+    "staging",
+  );
+  return { authUrl, secretKey };
 }
 
 /**
@@ -100,13 +118,17 @@ export function requiredShellVariable(name: string): string {
 }
 
 /**
- * The migration role of STAGING, from INFLUX_STAGING_MIGRATION_URL, with the root certificate of
- * EC-34 when one is given (INFLUX_STAGING_DB_CA_FILE, a PEM file, or DATABASE_CA_CERT, its
- * content). Nothing is read until assertStagingMarker() has run on it.
+ * The migration role of a hosted project, from `migrationUrlName`, with the root certificate of
+ * EC-34 when one is given (`caFileName`, a PEM file, or DATABASE_CA_CERT, its content). Nothing is
+ * read until the caller has checked which database this is (marker table).
  */
-export function connectToStagingAsMigrationRole(): postgres.Sql {
-  const migrationUrl = requiredStagingUrl("INFLUX_STAGING_MIGRATION_URL");
-  const caFile = process.env.INFLUX_STAGING_DB_CA_FILE;
+export function connectAsHostedMigrationRole(
+  source: VariableSource,
+  migrationUrlName: string,
+  caFileName: string,
+): postgres.Sql {
+  const migrationUrl = urlOf(migrationUrlName, source(migrationUrlName));
+  const caFile = process.env[caFileName];
   const ca =
     caFile === undefined || caFile === ""
       ? process.env.DATABASE_CA_CERT
@@ -122,12 +144,32 @@ export function connectToStagingAsMigrationRole(): postgres.Sql {
   });
 }
 
+/** connectAsHostedMigrationRole() of STAGING (INFLUX_STAGING_MIGRATION_URL, _DB_CA_FILE). */
+export function connectToStagingAsMigrationRole(): postgres.Sql {
+  return connectAsHostedMigrationRole(
+    requiredStagingVariable,
+    "INFLUX_STAGING_MIGRATION_URL",
+    "INFLUX_STAGING_DB_CA_FILE",
+  );
+}
+
 /**
  * Hosted Supabase refuses custom parameters (ALTER DATABASE / ROLE SET), so the marker is a table
  * created by hand on staging only, outside every migration (runbook, step 2). Two queries: a
  * reference to a missing table fails at parse time, even in a branch not taken.
  */
 export async function assertStagingMarker(sql: postgres.Sql): Promise<void> {
+  if (!(await carriesStagingMarker(sql))) {
+    throw new Error(
+      "this database does not carry the influx_staging.environment_marker = staging: refused (runbook, step 2)",
+    );
+  }
+}
+
+/** True when the database carries the marker table of staging with its single `staging` row. */
+export async function carriesStagingMarker(
+  sql: postgres.Sql,
+): Promise<boolean> {
   const [table] = await sql<{ present: boolean }[]>`
     select to_regclass('influx_staging.environment_marker') is not null as present`;
   const markers =
@@ -135,9 +177,5 @@ export async function assertStagingMarker(sql: postgres.Sql): Promise<void> {
       ? await sql<{ environment: string }[]>`
           select environment from influx_staging.environment_marker`
       : [];
-  if (markers.length !== 1 || markers[0]?.environment !== "staging") {
-    throw new Error(
-      "this database does not carry the influx_staging.environment_marker = staging: refused (runbook, step 2)",
-    );
-  }
+  return markers.length === 1 && markers[0]?.environment === "staging";
 }

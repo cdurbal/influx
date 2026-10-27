@@ -80,10 +80,29 @@ cochée mais explicitement acceptée et datée par le fondateur vaut cochée (`1
 - [ ] Décisions du fondateur prises : destinataires et astreinte des alertes (`02` §20.11 point 2),
       offre Railway (point 3), rodage de 30 jours (point 4), D33 (pays exclus), D35, D36.
 - [ ] Compte `admin` distinct de l'`agent` quotidien (PD7), compte « bris de glace » créé, codes
-      scellés (`03` MFA-10, B7). **Écart connu :** aucun script ne crée de compte interne en
-      production (EC-45 les refuse) et le chemin d'amorçage du premier `admin` de production n'est
-      pas écrit ; à arbitrer par `architecte` avant l'étape 6.
+      scellés (`03` MFA-10, B7), par `prod:bootstrap-admins` (section 0 bis).
 - [ ] **Accord explicite du fondateur** pour la mise en production, noté avec sa date.
+
+## 0 bis. Amorçage du premier `admin` et du compte de bris de glace
+
+**Action du fondateur**, une seule fois, base de production migrée, avec son accord écrit
+(`CLAUDE.md` §7 règle 4). Jamais par un agent ni par la CI (le script refuse `CI`). Les autres
+comptes internes viennent ensuite d'une invitation de cet `admin` (`15` RG99).
+
+1. Exporter dans le shell, pour cette seule exécution (jamais dans un fichier, jamais
+   `.env.local`) : `INFLUX_PRODUCTION_MIGRATION_URL`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
+   `INFLUX_PUBLIC_BACKOFFICE_URL` de production, et au besoin `INFLUX_PRODUCTION_DB_CA_FILE`.
+2. `pnpm --filter @influx/api prod:bootstrap-admins -- --admin=<adresse> --admin-first-name=<prénom>
+   --break-glass=<autre adresse> --country=GB --confirm=<ref du projet>`. Refusé : `--confirm`
+   différent de la référence du projet de `SUPABASE_URL`, clé et base de deux projets, témoin
+   `influx_production` absent (section 1) ou table
+   témoin de `staging` présente, un compte `agent` ou `admin` déjà existant, adresse de bris de
+   glace alias de celle de l'`admin` (`+étiquette`, points Gmail).
+3. Ouvrir le fichier indiqué de `.operator-secrets/` : mots de passe et liens d'activation (72 h).
+   Inscrire le TOTP de l'`admin` ; celui du bris de glace **sur un appareil hors ligne**, codes de
+   secours imprimés et scellés, rangés à part (`03` MFA-10). Puis supprimer le fichier.
+4. Noter l'amorçage au registre d'incidents (le rôle de migration n'écrit pas l'audit).
+5. Désactiver les variables du shell (`unset`).
 
 ## 1. Projet Supabase de production
 

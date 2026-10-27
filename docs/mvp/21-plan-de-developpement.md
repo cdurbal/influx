@@ -294,6 +294,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] Commit 9 (`c1e6fe3`) — écrans du backoffice v0, `0138` (J3S-6, B-7), canal de secours RG65.
 - [x] Commit 10 (`b8f17fb`) — Playwright backoffice (CA56 à CA63, 2V dégradée), J7T-4, J7T-5, T14 sur l'inventaire `/v1/bo/*`.
 - [x] Clôture (`262e626`) — revue de fin de J8 sans point bloquant (`expert-cybersecurite`, `testeur`) ; 6 commits attestés ; EC-J8-19 tranché (rejeu en lot sans 2V) ; `04` §11.2, CA64, `03`, `15`, `18` alignés.
+- [x] Commit 12 (`SHA`) — `prod:bootstrap-admins` : premier `admin` et bris de glace de production (MFA-10, B7), cœur `scripts/internal-bootstrap.ts`, témoin `influx_production` exigé, confirmation par la référence du projet, refus de la CI et de tout compte interne existant, secrets dans `.operator-secrets/` ; `runbooks/production.md` §0 bis ; planchers +3 db.
 - **Reportés** (détail : `jalons/j9-fiche.md`) : avant Lot 1 J8S-1 à J8S-4, C5.c, A2 ; J9 J8S-5 à J8S-7, J8T-2 à J8T-7, J7S-8 ; avant production J7S-1 à J7S-3 ; Lot 5 J8S-8, J8S-9 ; fondateur `staging`, J4R-1, J7S-4 à J7S-6, J6S-5.
 
 ### J9 — Durcissement, landing branchée, mise en ligne (revue close le 2026-10-27 ; critère de fin `staging` constaté en partie le 2026-10-27, arrêts du worker et de l'API à faire)
