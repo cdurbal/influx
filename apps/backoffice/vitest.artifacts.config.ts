@@ -5,5 +5,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.artifacts.ts"],
+    // J9T-4: a cold scan of the build output takes about 16 s; the default 5 s made T11 flaky.
+    testTimeout: 60_000,
   },
 });

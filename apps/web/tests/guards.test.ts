@@ -322,6 +322,25 @@ describe("Additional guards", () => {
     expect(findNetworkOrStorageUse(codeFiles, WEB_ROOT)).toEqual([]);
   });
 
+  it("loads no tracker, keeps the cookie banner off and the footer Cookies link (EC-J9-3, J9T-6)", () => {
+    const codeFiles = SCOPED_FILES.filter((file) => /\.tsx?$/.test(file));
+    // a tracker comes in by next/script or a <script src>: none exists while the banner is off
+    expect(findMatches(/from\s+["']next\/script["']/, codeFiles)).toEqual([]);
+    expect(findMatches(/<script\b[^>]*\bsrc=/, codeFiles)).toEqual([]);
+    const consent = readFileSync(
+      path.join(SRC, "components/landing/cookie-consent.ts"),
+      "utf8",
+    );
+    expect(consent).toMatch(
+      /export const IS_COOKIE_BANNER_ENABLED: boolean = false;/,
+    );
+    const footer = readFileSync(
+      path.join(SRC, "components/landing/SiteFooter.tsx"),
+      "utf8",
+    );
+    expect(footer).toMatch(/id: "cookies", document: "cookie_policy"/);
+  });
+
   it("gives the CreatorCard type no identity field (D16, CA17)", () => {
     const source = readFileSync(
       path.join(SRC, "content", "landing-content.ts"),

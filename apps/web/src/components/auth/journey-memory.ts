@@ -32,6 +32,10 @@ let snapshot: JourneySnapshot | null = null;
 
 /** Keeps the state of the journey on screen, replacing the previous one. */
 export function remember(current: JourneySnapshot): void {
+  // J9S-8: on the server the module is shared by every visitor, so it never keeps anything there.
+  if (typeof window === "undefined") {
+    return;
+  }
   snapshot = current;
 }
 
@@ -40,7 +44,11 @@ export function remember(current: JourneySnapshot): void {
  * written in this very language (a remount in the same language reads the server instead).
  */
 export function takeForLocale(locale: AppLocale): JourneySnapshot | null {
-  if (snapshot === null || snapshot.locale === locale) {
+  if (
+    typeof window === "undefined" ||
+    snapshot === null ||
+    snapshot.locale === locale
+  ) {
     return null;
   }
   const taken = snapshot;

@@ -38,7 +38,7 @@
 | 2 | Mots de passe des cinq rôles de connexion (section 2) | À faire |
 | 3 | Environnement GitHub `production` et variable d'activation (section 3) | À faire |
 | 4 | Brevo et Apollo : comptes de la société, trois sous-domaines d'envoi (section 4) | À faire |
-| 5 | Railway : quatre services sur la branche `production`, variables (section 5) | À faire |
+| 5 | Railway : quatre services sur la branche `production`, variables **toutes régénérées**, comparaison à `staging` sans valeur héritée (section 5, J9S-1) | À faire |
 | 6 | Première fusion `main` vers `production`, migration, déploiement (section 6) | À faire |
 | 7 | Constats d'ouverture (section 7) | À faire |
 | 8 | Rodage de 30 jours (section 9) | À faire |
@@ -65,10 +65,14 @@ cochée mais explicitement acceptée et datée par le fondateur vaut cochée (`1
 - [ ] Textes de la landing relus (`expert-marketing`, `expert-conformite-rgpd`, verdict L9) ; revue
       du budget d'effets (`expert-ux`) — D48, D59.
 - [ ] Exécution des demandes « mes données » livrée (E-5 minimale, `15` RG79, RG80).
-- [ ] **Revue groupée de fin de J9** par `expert-cybersecurite` et `testeur`, marqueurs I-4
-      (`security-reviewed:`) apposés par commit d'attestation `security-reviewed: <date> covers
-      <sha>…`, jamais en réécrivant `main` ; signatures en attente : `expected-rights.ts` (commits 8
-      et 9), `0148`, `0149`, rôles E-4 et E-6 (`03` P7).
+- [x] **Revue groupée de fin de J9** par `expert-cybersecurite` et `testeur` (2026-10-27) : droits
+      signés (`expected-rights.ts`, `0142` à `0149`, E-4 et E-6 de `03` P7), 14 commits couverts par
+      le commit d'attestation de clôture du J9 ; reports listés dans `jalons/j9-fiche.md`.
+- [ ] **Aucune valeur héritée de `staging`** dans les variables Railway de production (J9S-1,
+      section 5, script de comparaison sans valeur affichée).
+- [ ] **Constats `staging` de fin de J9** (fiche J9) : API rétablie, `/health` `200` puis `503`
+      API coupée, arrêt du worker ⇒ AL50, en-têtes T10 du backoffice, A5.6 / T7.12, cible absolue
+      (J9S-5) — après renouvellement du jeton Railway.
 - [ ] `expert-conformite-rgpd` (Lot 6) : verdict L9, exemption de consentement du collecteur
       navigateur, RG118, RG121 (veto), retrait propagé à Apollo, notice art. 15, F8, contreparties
       du risque D70 (a).
@@ -105,8 +109,20 @@ Création et réglages **par le fondateur** (création d'un projet = confirmatio
 
    Relire l'écran `security_sb_forwarded_for_enabled` (EC-38) : à activer s'il est proposé, sinon
    noter l'écart.
-6. **Aucune table-marqueur de `staging`** (`influx_staging.environment_marker`) en production : le
-   job CI la détecte et refuse alors de migrer (section 3). Il n'existe pas de marqueur de production.
+6. **Marqueur de production** (J9T-2), créé à la main comme celui de `staging`, **avant** toute
+   activation du job (section 3) : le job exige ce marqueur **et** l'absence de celui de `staging`
+   (`influx_staging.environment_marker`), sinon il refuse de migrer.
+
+   ```sql
+   create schema influx_production;
+   revoke all on schema influx_production from public;
+   create table influx_production.environment_marker (
+     environment text primary key check (environment = 'production')
+   );
+   insert into influx_production.environment_marker values ('production');
+   ```
+
+   Le schéma `influx_production` n'est **jamais** exposé à l'API de données (même règle qu'au point 4).
 7. **Test de restauration, chronométré et consigné** (`02` §19 point 3) : avant la première mise en
    ligne, sur une restauration vers un projet jetable (jamais vers `staging`), puis régulièrement ;
    fréquence proposée : une fois avant l'ouverture, puis chaque mois pendant le rodage
@@ -146,12 +162,16 @@ documents publics (section 12) et ne lance **jamais** `railway up`.
 condition est sur le job et non sur une étape : un job qui nomme `environment: production` **crée**
 cet environnement sur GitHub s'il n'existe pas (sans protection) ; un job sauté ne le résout jamais.
 Une seconde garde, dans le job : sans secret `DIRECT_DATABASE_URL`, il se termine en vert sans rien
-migrer ; avec un secret qui pointe une base portant le marqueur de `staging`, il échoue.
+migrer ; avec un secret qui pointe une base sans le marqueur de production (section 1 point 6) ou
+portant celui de `staging`, il échoue. Ces gardes sont prouvées par `packages/test-kit/tests/ci-production-job.test.ts`.
 
 Étapes **du fondateur** (écritures GitHub = confirmation explicite, `CLAUDE.md` §7 règle 4) :
 
 1. Créer l'environnement `production` (Settings › Environments), limité à la branche
-   **`production`** (*Deployment branches*), avec, si le fondateur le souhaite, un relecteur requis.
+   **`production`** (*Deployment branches*), avec **un relecteur requis obligatoire** : le fondateur
+   (J9S-3 : les agents utilisent `gh` sous son compte, l'approbation manuelle reste son geste). Puis un
+   *ruleset* sur la branche `production` : ni force push, ni suppression, contrôles `check` et
+   `relay-node-24` requis.
 2. Y poser le secret `DIRECT_DATABASE_URL` : rôle `postgres` de la base de production, *Session
    pooler* (hôte `…pooler.supabase.com`, port 5432 ; la connexion directe est IPv6 seulement). Il ne
    va **nulle part ailleurs** (CI-5). Depuis le poste du fondateur, valeur lue sur l'entrée standard,
@@ -234,6 +254,20 @@ services dans **l'environnement `production`** :
 - Secrets de 32 octets, **une valeur différente pour chacun** :
   `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"`.
 - Aucune clé Brevo, Apollo ni Supabase de `staging` ; aucun jeton de `staging`.
+
+**Valeurs héritées du fork : toutes remplacées (J9S-1, bloquant, revue de fin de J9).** L'environnement
+`production` a été forké avec `staging` : il en porte les **valeurs**, lisibles par tous les agents
+(`.env.local`, D70). Avant le premier déploiement, le fondateur **régénère ou remplace chaque valeur**
+de chaque service (secrets, `…_DATABASE_URL`, clés Supabase, Brevo et Apollo, jetons du webhook), puis
+vérifie, depuis son poste, qu'**aucune** valeur de production n'égale celle de `staging` hors d'une
+liste blanche de valeurs non secrètes. Le script compare en mémoire et n'affiche **que des noms** :
+
+```sh
+node -e "const {execFileSync:x}=require('node:child_process');const ok=new Set(['PORT','RAILPACK_NODE_VERSION','BREVO_API_BASE_URL','BREVO_MODE','SYNC_MODE','INFLUX_API_INTERNAL_URL','DATABASE_CA_CERT','OPS_ALERT_RECIPIENTS','BREVO_LIST_ID_ADVERTISERS','BREVO_LIST_ID_CREATORS','BREVO_SUPPRESSION_LIST_ID']);let n=0;for(const s of ['api','worker','web','backoffice']){const r=e=>JSON.parse(x('railway',['variables','-s',s,'-e',e,'--json'],{encoding:'utf8'}));const a=r('staging'),b=r('production');for(const k of Object.keys(b))if(!ok.has(k)&&!k.startsWith('RAILWAY_')&&k in a&&a[k]===b[k]){console.log(s+' '+k);n++}}console.log(n?n+' valeur(s) héritée(s) de staging':'aucune valeur héritée');process.exit(n?1:0)"
+```
+
+Sortie non nulle = **bloquant** : remplacer chaque valeur nommée, puis relancer jusqu'à « aucune valeur
+héritée ». Le script se relance après toute modification des variables de production.
 
 **Liste fermée :** celle de `staging.md` §5 (table entre les repères `staging-check`) fait foi, par
 service ; elle n'est pas recopiée ici pour ne pas diverger. Toute variable ajoutée par un jalon entre

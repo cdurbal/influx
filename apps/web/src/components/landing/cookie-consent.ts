@@ -30,10 +30,13 @@ export const COOKIE_CONSENT_NAME = "influx_cookie_consent";
 export const COOKIE_CONSENT_MAX_AGE_SECONDS = 180 * 24 * 60 * 60;
 
 /**
- * Global switch of the banner (11 §8, "no non-essential tracker" case). Turning it off hides the
- * banner everywhere without touching the "Cookies" link of the footer.
+ * Global switch of the banner (11 §8, "no non-essential tracker" case), the only one (J9S-10): the
+ * layout reads it too. Off since EC-J9-3: the site sets no non-essential tracker (inventory of
+ * 2026-10-21: no third-party script, pixel or audience measurement in apps/web/src), so no consent
+ * is asked. Turn it on again only with the first tracker, together with a new consent version; the
+ * footer "Cookies" link stays either way.
  */
-export const IS_COOKIE_BANNER_ENABLED = true;
+export const IS_COOKIE_BANNER_ENABLED: boolean = false;
 
 export function serializeConsent(record: CookieConsentRecord): string {
   return JSON.stringify(record);

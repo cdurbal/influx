@@ -315,7 +315,7 @@ jobs:
       # The URL of the migration role is a secret of the GitHub environment `production` only and is
       # given to the steps below, never to the install (J4S-1, CI-5). Without it the job ends green
       # and migrates nothing (second net, behind the condition of the job).
-      - name: Refuse a database that carries the staging marker
+      - name: Require the production marker and refuse the staging marker
         env:
           DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
           PGSSLMODE: require
@@ -325,12 +325,14 @@ jobs:
             echo "MIGRATE_PRODUCTION=skip" >> "$GITHUB_ENV"
             exit 0
           fi
-          # The marker table of staging (runbook staging, step 1) must never exist in production: a URL
-          # of staging pasted in this environment would be migrated by mistake otherwise.
+          # J9T-2: a positive check, not a deny list. The production base carries its own marker table
+          # (runbook production, step 1, created by hand) and never the one of staging (runbook staging,
+          # step 1): a URL of staging pasted here is refused even after a reset of staging that lost
+          # its marker. Anything else, or a base that cannot be read, is refused.
           marker="$(psql "$DIRECT_DATABASE_URL" --no-psqlrc --tuples-only --no-align \
-            --command "select to_regclass('influx_staging.environment_marker') is not null")"
-          if [ "$marker" != "f" ]; then
-            echo "::error::The database carries the staging marker (or could not be read): refusing to migrate it as production."
+            --command "select to_regclass('influx_production.environment_marker') is not null and to_regclass('influx_staging.environment_marker') is null")"
+          if [ "$marker" != "t" ]; then
+            echo "::error::The database does not carry the production marker, or carries the staging one, or could not be read: refusing to migrate it as production."
             exit 1
           fi
 

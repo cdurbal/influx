@@ -3,7 +3,7 @@
 // variable of journey-memory.ts. Plain functions; the real journey is the Playwright run of J5
 // commit 6.
 import { RESEND_DELAY_SECONDS } from "@influx/contracts/auth";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   codeStepOf,
   firstStepOf,
@@ -143,6 +143,21 @@ describe("firstStepOf and languagePageOf (RG130)", () => {
 });
 
 describe("journey-memory: a change of language (D66, RG111, RG130)", () => {
+  // The module keeps a journey in the browser only (J9S-8): these cases run as a browser would.
+  beforeEach(() => {
+    vi.stubGlobal("window", {});
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps nothing on the server, where the module is shared by every visitor (J9S-8)", () => {
+    vi.unstubAllGlobals();
+    remember(snapshot());
+    vi.stubGlobal("window", {});
+    expect(takeForLocale("en")).toBeNull();
+  });
+
   it("hands the journey over to the other language, once", () => {
     const left = snapshot();
     remember(left);
