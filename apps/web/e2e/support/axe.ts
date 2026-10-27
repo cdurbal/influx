@@ -20,7 +20,9 @@ export async function expectNoAxeViolation(
   screen: string,
 ): Promise<void> {
   if (!(await page.evaluate(() => "axe" in window))) {
-    await page.addScriptTag({ content: axe.source });
+    // Evaluated by the DevTools protocol, which the page's CSP does not govern: an injected
+    // <script> would be refused by the backoffice's (no 'strict-dynamic', 03 §6.5), rightly.
+    await page.evaluate(axe.source);
   }
   const violations = await page.evaluate(async (tags) => {
     const runner = (

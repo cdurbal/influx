@@ -5,9 +5,9 @@
 // message says which cases disappear and why (18 §3 rule 2).
 export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/ops-schema.test.ts": 12,
-  "db-tests/t13-ops-recording.test.ts": 9,
+  "db-tests/t13-ops-recording.test.ts": 10,
   "db-tests/t14-backoffice-accounts-route.test.ts": 20,
-  "db-tests/t14-backoffice-actions-route.test.ts": 31,
+  "db-tests/t14-backoffice-actions-route.test.ts": 36,
   "db-tests/t14-backoffice-invitations-route.test.ts": 15,
   "db-tests/t14-backoffice-ops-route.test.ts": 10,
   "db-tests/t14-backoffice-route-inventory.test.ts": 6,
@@ -33,7 +33,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/t8-request-code.test.ts": 12,
   "db-tests/t8-session-writes.test.ts": 43,
   "db-tests/t8-verify-code.test.ts": 19,
-  "db-tests/tm1-apollo-connector.test.ts": 14,
+  "db-tests/tm1-apollo-connector.test.ts": 15,
   "db-tests/tm1-brevo-connector.test.ts": 15,
   "db-tests/tm1-brevo-ids-from-environment.test.ts": 14,
   "db-tests/tm1-brevo-inbound.test.ts": 35,
@@ -58,5 +58,5 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/tm3-backoffice-catalogue.test.ts": 17,
   "db-tests/tm9-monitoring-loop.test.ts": 2,
   "db-tests/tm9-ops-health-reads.test.ts": 14,
-  "db-tests/tm9-ops-monitoring.test.ts": 65,
+  "db-tests/tm9-ops-monitoring.test.ts": 66,
 };

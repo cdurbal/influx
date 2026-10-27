@@ -322,20 +322,26 @@ export async function dualControlFacts(requestId: string): Promise<{
   });
 }
 
-/** The Apollo scope in force, and its restoration after the journey that changes it. */
-export async function apolloScope(): Promise<string> {
+/** An Apollo setting in force (0141), and its restoration after the journey that changes it. */
+export async function apolloSetting(
+  key: "apollo_scope" | "apollo_excluded_countries",
+): Promise<unknown> {
   return withSql(async (sql) => {
-    const [row] = await sql<{ value: string }[]>`
-      select value #>> '{}' as value from leads.sync_settings where key = 'apollo_scope'`;
-    return row?.value ?? "";
+    const [row] = await sql<{ value: unknown }[]>`
+      select value from leads.sync_settings where key = ${key}`;
+    return row?.value ?? null;
   });
 }
 
-export async function restoreApolloScope(value: string): Promise<void> {
+export async function restoreApolloSetting(
+  key: "apollo_scope" | "apollo_excluded_countries",
+  value: unknown,
+): Promise<void> {
   await withSql(
     (sql) => sql`
-      update leads.sync_settings set value = to_jsonb(${value}::text), updated_by_account_id = null
-       where key = 'apollo_scope'`,
+      update leads.sync_settings
+         set value = ${JSON.stringify(value)}::text::jsonb, updated_by_account_id = null
+       where key = ${key}`,
   );
 }
 

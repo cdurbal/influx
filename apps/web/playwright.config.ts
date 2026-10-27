@@ -45,9 +45,18 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   // Never retried: a retry would hide a flaky journey, and its address is already signed up.
   retries: 0,
+  // J8T-8: two workers, but e2e/backoffice.spec.ts is serial and the only file that seeds an admin
+  // (its degraded dual control deactivates every other admin for a while). A new file that needs
+  // an admin joins it, never a file of its own; and no other job ever shares this local stack
+  // while the journeys run (ci.yml: the same job, after `pnpm check`).
   workers: 2,
   forbidOnly: process.env.CI !== undefined,
-  reporter: process.env.CI !== undefined ? "list" : "dot",
+  // J8T-6: the JSON report is read after the run by the floor of executed tests (e2e/case-floors.ts,
+  // `pnpm test:e2e`). Written at the end of the run, after Playwright emptied test-results/.
+  reporter: [
+    [process.env.CI !== undefined ? "list" : "dot"],
+    ["json", { outputFile: "test-results/e2e-report.json" }],
+  ],
   use: {
     baseURL: WEB_ORIGIN,
     trace: "retain-on-failure",

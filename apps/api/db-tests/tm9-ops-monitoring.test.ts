@@ -790,6 +790,41 @@ describe("ops.technical_alert_snapshot() (15 RG165): measures, no comparison, no
     ).toEqual([90, 5, 5, 0, 0, 0, 0, 0, 0]);
   });
 
+  // 02 §20.12 (testeur, J9 commit 10): two instances of the api on the same minute and route
+  // (Railway replicas) — the evaluator judges their sum, never one instance's histogram.
+  it("adds the histograms of two instances on the same minute and route, never one of them (AL52, AL53)", async () => {
+    const outcome = await scenario(async (tx) => {
+      const before = await snapshot(tx);
+      for (const [instance, counts, buckets] of [
+        [`${INSTANCE}a`, [40, 1, 0], [0, 0, 0, 0, 40, 0, 0, 0, 0]],
+        [`${INSTANCE}b`, [60, 0, 2], [0, 0, 0, 0, 0, 0, 60, 0, 0]],
+      ] as const) {
+        await tx`
+          insert into ops.request_metrics
+            (minute, service, instance, method, route, request_count, server_error_count,
+             throttled_count, duration_buckets)
+          values (date_trunc('minute', now(), 'UTC') - interval '2 minutes', 'api', ${instance},
+                  'GET', ${`/v1/tm9/${RUN}`}, ${counts[0]}, ${counts[1]}, ${counts[2]},
+                  ${`{${buckets.join(",")}}`}::integer[])`;
+      }
+      const after = await snapshot(tx);
+      return { before, after };
+    });
+    const delta = (code: string, key: string) =>
+      Number(outcome.after.measures[code]?.[key]) -
+      Number(outcome.before.measures[code]?.[key]);
+    expect(delta("AL52", "requests")).toBe(100);
+    expect(delta("AL52", "server_errors")).toBe(1);
+    expect(delta("AL56", "throttled")).toBe(2);
+    const buckets = (s: Snapshot) =>
+      measureOf<{ buckets: number[] }>(s, "AL53").buckets;
+    expect(
+      buckets(outcome.after).map(
+        (count, index) => count - (buckets(outcome.before)[index] ?? 0),
+      ),
+    ).toEqual([0, 0, 0, 0, 40, 0, 60, 0, 0]);
+  });
+
   it("names the targeted addresses by an opaque key, never the address (AL59)", async () => {
     const outcome = await scenario(async (tx) => {
       const targeted = createHash("sha256").update(`tm9-a-${RUN}`).digest();

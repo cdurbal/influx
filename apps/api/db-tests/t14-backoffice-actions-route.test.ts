@@ -7,7 +7,9 @@
 //   GET /v1/bo/alerts; and the reads of the screens (J8 commit 9, migration 0138): GET /v1/bo/me
 //   (J3S-6, 15 RG107), GET /v1/bo/dual-control, GET /v1/bo/internal-accounts, the B-7 sign-ins
 //   of GET /v1/bo/alerts; and the J8 debt of J9 commit 2: the target of a 2V view (J8S-2), GET
-//   /v1/bo/dual-control/degraded (J8S-1) and the `admin` grants of GET /v1/bo/alerts (J8S-4).
+//   /v1/bo/dual-control/degraded (J8S-1) and the `admin` grants of GET /v1/bo/alerts (J8S-4);
+//   J9 commit 10: AL25 of a destination down or over quota (J8T-2, CA62), and the Apollo country
+//   lists through the dual control (0149).
 // The fixtures (agent, two admins, members, sessions, queue lines, contact states, a reconciliation
 // run) are COMMITTED by the migration role (random identifiers, disposable local stack, like TM1);
 // the queue lines are removed, the internal profiles deactivated and the Apollo scope restored
@@ -17,7 +19,8 @@ import { localRoleUrl, type LoginRole } from "@influx/test-kit/db";
 import { valuesFoundIn } from "@influx/test-kit/logs";
 import type { LightMyRequestResponse } from "fastify";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type postgres from "postgres";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   closeDatabase,
   createApiDatabase,
@@ -86,6 +89,14 @@ const watchedValues: string[] = [];
 const logStreams: (() => string)[] = [];
 let apolloScopeBefore: unknown;
 
+let migrationSql: postgres.Sql | undefined;
+
+/** One connection of the migration role for the file (each migrationRole() opens a pool). */
+function migration(): postgres.Sql {
+  migrationSql ??= migrationRole();
+  return migrationSql;
+}
+
 function localConnection(role: LoginRole) {
   return { url: localRoleUrl(role), role, tls: false };
 }
@@ -106,7 +117,7 @@ async function newInternal(role: "agent" | "admin"): Promise<Internal> {
   const accountId = randomUUID();
   const email = `t14-act-${role}-${accountId}@example.test`;
   const token = randomBytes(32);
-  const sessionId = await migrationRole().begin(async (tx) => {
+  const sessionId = await migration().begin(async (tx) => {
     await tx`
       insert into identity.accounts
         (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
@@ -137,7 +148,7 @@ async function ageSecondFactor(
   sessionId: string,
   seconds: number,
 ): Promise<void> {
-  await migrationRole().begin(async (tx) => {
+  await migration().begin(async (tx) => {
     await tx`alter table identity.sessions disable trigger sessions_guard_update`;
     await tx`
       update identity.sessions
@@ -161,7 +172,7 @@ async function newMember(
   const accountId = randomUUID();
   const email = `t14-act-member-${accountId}@example.test`;
   const token = randomBytes(32);
-  await migrationRole().begin(async (tx) => {
+  await migration().begin(async (tx) => {
     await tx`
       insert into identity.accounts
         (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
@@ -206,7 +217,7 @@ type LineSpec = {
 /** lead.created queue lines of the account, in a state (constraints of 0101, 0111). */
 async function queueLines(accountId: string, line: LineSpec): Promise<void> {
   const closed = line.status !== "pending";
-  await migrationRole()`
+  await migration()`
     insert into leads.outbox_events
       (event_id, event_type, destination, subject_key, payload, idempotency_key, status, attempts,
        available_at, skip_reason, last_error_code, created_at, completed_at)
@@ -229,7 +240,7 @@ async function contactState(
   lastCode: string | null,
   extra: { unsubscribedAt?: string; suppressed?: string } = {},
 ): Promise<void> {
-  await migrationRole()`
+  await migration()`
     insert into leads.contact_sync_states
       (account_id, destination, last_attempt_at, last_success_at, last_status, last_error_code,
        unsubscribed_at, suppressed_reason)
@@ -285,7 +296,7 @@ async function registerLines(
   eventType: string,
   subjectId: string,
 ): Promise<{ actor: string | null; payload: Record<string, unknown> }[]> {
-  return migrationRole()<
+  return migration()<
     { actor: string | null; payload: Record<string, unknown> }[]
   >`
     select actor_account_id::text as actor, payload
@@ -295,7 +306,7 @@ async function registerLines(
 }
 
 async function linesOf(accountId: string) {
-  return migrationRole()<
+  return migration()<
     {
       event_type: string;
       destination: string;
@@ -329,24 +340,24 @@ beforeAll(async () => {
   otherAgent = await newInternal("agent");
   adminA = await newInternal("admin");
   adminB = await newInternal("admin");
-  const [scope] = await migrationRole()<{ value: unknown }[]>`
+  const [scope] = await migration()<{ value: unknown }[]>`
     select value from leads.sync_settings where key = 'apollo_scope'`;
   apolloScopeBefore = scope?.value;
 });
 
 afterAll(async () => {
   await closeDatabase(database);
-  await migrationRole()`
+  await migration()`
     update leads.sync_settings set value = to_jsonb(${String(apolloScopeBefore)}::text),
            updated_by_account_id = null
      where key = 'apollo_scope'`;
   if (members.length > 0) {
-    await migrationRole()`
+    await migration()`
       delete from leads.outbox_events
        where subject_key = any (${members.map((id) => `account:${id}`)}::text[])`;
   }
   if (internals.length > 0) {
-    await migrationRole()`
+    await migration()`
       update identity.agent_profiles
          set is_active = false, deactivated_at = now(), deactivated_by_account_id = account_id
        where account_id = any(${internals}::uuid[]) and is_active`;
@@ -838,7 +849,7 @@ describe("Apollo settings under 2V + R (05 RG81, CA63; 03 PD1 to PD7)", () => {
     const result = confirmed.json<{ mode: string; reevaluated: number }>();
     expect(result.mode).toBe("peer");
     expect(result.reevaluated).toBeGreaterThanOrEqual(1);
-    const [setting] = await migrationRole()<{ value: unknown; by: string }[]>`
+    const [setting] = await migration()<{ value: unknown; by: string }[]>`
       select value, updated_by_account_id::text as by
         from leads.sync_settings where key = 'apollo_scope'`;
     expect(setting).toEqual({
@@ -853,7 +864,7 @@ describe("Apollo settings under 2V + R (05 RG81, CA63; 03 PD1 to PD7)", () => {
     ).toEqual([["lead.updated", "apollo_contact"]]);
     // 0145: written by the trigger of leads.sync_settings, exactly once for this act, with the
     // context of the backoffice writer (reevaluated included) and nothing of a connection role
-    const journal = await migrationRole()<
+    const journal = await migration()<
       { actor: string; payload: Record<string, unknown> }[]
     >`
       select actor_account_id::text as actor, payload from audit.audit_events
@@ -887,6 +898,72 @@ describe("Apollo settings under 2V + R (05 RG81, CA63; 03 PD1 to PD7)", () => {
         ),
       ),
     ).toEqual({ status: 409, code: "conflict" });
+  });
+
+  // J9 commit 10 (0149, found by the axe journey J8T-4): a country list reaches the database's
+  // check of known codes — before 0149 the definer saw no country and refused every one.
+  it("0149: excluded countries and an exception by country are requested, confirmed by a peer and applied", async () => {
+    const server = app();
+    const sql = migration();
+    const saved = await sql<{ key: string; value: unknown }[]>`
+      select key, value from leads.sync_settings
+       where key in ('apollo_excluded_countries', 'apollo_legal_basis')`;
+    try {
+      for (const setting of [
+        { key: "apollo_excluded_countries", value: ["IT", "DE"] },
+        {
+          key: "apollo_legal_basis",
+          value: {
+            default: "consentement_requis",
+            byCountry: [
+              { countryCode: "BE", basis: "interet_legitime_avec_opposition" },
+            ],
+          },
+        },
+      ]) {
+        const requested = await call(
+          server,
+          "POST",
+          "/v1/bo/dual-control",
+          adminA.session,
+          {
+            code: "leads.change_apollo_setting",
+            setting,
+            reasonCode: "legal_restriction",
+          },
+        );
+        expect(requested.statusCode).toBe(200);
+        const { id } = requested.json<{ id: string }>();
+        const confirmed = await call(
+          server,
+          "POST",
+          `/v1/bo/dual-control/${id}/confirm`,
+          adminB.session,
+          {},
+        );
+        expect(confirmed.statusCode).toBe(200);
+      }
+      const applied = await sql<{ key: string; value: unknown }[]>`
+        select key, value from leads.sync_settings
+         where key in ('apollo_excluded_countries', 'apollo_legal_basis') order by key`;
+      expect(applied).toEqual([
+        { key: "apollo_excluded_countries", value: ["DE", "IT"] },
+        {
+          key: "apollo_legal_basis",
+          value: {
+            default: "consentement_requis",
+            by_country: { BE: "interet_legitime_avec_opposition" },
+          },
+        },
+      ]);
+    } finally {
+      for (const { key, value } of saved) {
+        await sql`
+          update leads.sync_settings
+             set value = ${JSON.stringify(value)}::text::jsonb, updated_by_account_id = null
+           where key = ${key}`;
+      }
+    }
   });
 
   it("without a fresh second factor the confirmation is refused and said so; the request stays pending", async () => {
@@ -969,9 +1046,7 @@ describe("Apollo settings under 2V + R (05 RG81, CA63; 03 PD1 to PD7)", () => {
         )
       ).json(),
     ).toEqual({ mode: "peer", reevaluated: null });
-    const [account] = await migrationRole()<
-      { role: string; legal_name: string }[]
-    >`
+    const [account] = await migration()<{ role: string; legal_name: string }[]>`
       select r.role::text as role, p.legal_name
         from identity.account_roles r
         join profiles.advertiser_profiles p on p.account_id = r.account_id
@@ -1011,7 +1086,7 @@ describe("POST /v1/bo/accounts/:id/brevo-suppression/lift (05 RG93, CA55)", () =
     });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ resyncQueued: true });
-    const [state] = await migrationRole()<{ suppressed: string | null }[]>`
+    const [state] = await migration()<{ suppressed: string | null }[]>`
       select suppressed_reason as suppressed from leads.contact_sync_states
        where account_id = ${member.accountId} and destination = 'brevo_contact'`;
     expect(state?.suppressed).toBeNull();
@@ -1193,7 +1268,7 @@ describe("GET /v1/bo/alerts (05 RG104, CA62; 15 §F)", () => {
       2,
       "0",
     )}-${String(1 + Math.floor(Math.random() * 28)).padStart(2, "0")}`;
-    await migrationRole()`
+    await migration()`
       insert into ops.periodic_runs (task_code, period_key, finished_at, outcome, counts)
       values ('brevo_reconciliation', ${period}, now(), 'succeeded', '{"gap": 4, "refused": 0}')`;
     const body = (
@@ -1521,6 +1596,157 @@ describe("J9 commit 2: the J8 debt of the 2V and of the home (J8S-1, J8S-2, J8S-
       await call(server, "GET", "/v1/bo/alerts", agent.session)
     ).json<{ adminRoleGrants: unknown[] }>();
     expect(forAgent.adminRoleGrants).toEqual([]);
+  });
+});
+
+describe("J8T-2 (05 CA62, RG104): AL25 of a destination down, the query of the queue", () => {
+  type Al25 = {
+    alerts: {
+      code: string;
+      cause: string;
+      destination: string | null;
+      count: number;
+      since: string | null;
+    }[];
+  };
+
+  // The query reads the whole queue: each case owns it. Database files run one after the other
+  // and remove their own lines; what an interrupted run left behind is removed here too.
+  beforeEach(async () => {
+    await migration()`
+      delete from leads.outbox_events
+       where destination in ('brevo_contact', 'apollo_contact')`;
+  });
+
+  /** The AL25 alerts of the contact destinations (thresholds in force: 15 minutes, 0134). */
+  async function al25(): Promise<Al25["alerts"]> {
+    const body = (
+      await call(app(), "GET", "/v1/bo/alerts", adminA.session)
+    ).json<Al25>();
+    return body.alerts.filter(
+      (alert) =>
+        alert.code === "AL25" &&
+        (alert.cause === "destination_down" ||
+          alert.cause === "quota_exceeded"),
+    );
+  }
+
+  const FAILING_FOR_20_MIN = {
+    status: "pending",
+    attempts: 2,
+    agedSeconds: 20 * 60,
+  } as const;
+
+  it("lines failing for more than 15 minutes, nothing succeeded since: destination_down, with every line waiting", async () => {
+    const member = await newMember("advertiser");
+    await queueLines(member.accountId, {
+      destination: "apollo_contact",
+      ...FAILING_FOR_20_MIN,
+      errorCode: "apollo.unavailable",
+      count: 2,
+    });
+    await queueLines(member.accountId, {
+      destination: "apollo_contact",
+      ...FAILING_FOR_20_MIN,
+      agedSeconds: 40 * 60,
+      errorCode: "apollo.unreachable",
+    });
+    // Waiting, never tried: counted as waiting, not as failing.
+    await queueLines(member.accountId, {
+      destination: "apollo_contact",
+      status: "pending",
+    });
+    // A success OUTSIDE the window says nothing of now.
+    await queueLines(member.accountId, {
+      destination: "apollo_contact",
+      status: "succeeded",
+      attempts: 1,
+      agedSeconds: 16 * 60,
+    });
+    const alerts = await al25();
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toMatchObject({
+      cause: "destination_down",
+      destination: "apollo",
+      count: 4,
+    });
+    // `since`: the oldest line still failing, 40 minutes ago.
+    const age = Date.now() - Date.parse(alerts[0]?.since ?? "");
+    expect(age).toBeGreaterThan(39 * 60_000);
+    expect(age).toBeLessThan(41 * 60_000);
+  });
+
+  it("a quota code among the failing lines names the cause quota_exceeded", async () => {
+    const member = await newMember("creator");
+    await queueLines(member.accountId, {
+      destination: "brevo_contact",
+      ...FAILING_FOR_20_MIN,
+      errorCode: "brevo.rate_limited",
+    });
+    await queueLines(member.accountId, {
+      destination: "brevo_contact",
+      ...FAILING_FOR_20_MIN,
+      errorCode: "brevo.unavailable",
+    });
+    expect(await al25()).toEqual([
+      expect.objectContaining({
+        cause: "quota_exceeded",
+        destination: "brevo",
+        count: 2,
+      }),
+    ]);
+  });
+
+  it("no alert under 15 minutes, nor once a line of the same destination succeeded within them", async () => {
+    const member = await newMember("creator");
+    await queueLines(member.accountId, {
+      destination: "brevo_contact",
+      ...FAILING_FOR_20_MIN,
+      agedSeconds: 10 * 60,
+      errorCode: "brevo.unavailable",
+    });
+    expect(await al25()).toEqual([]);
+
+    await queueLines(member.accountId, {
+      destination: "brevo_contact",
+      ...FAILING_FOR_20_MIN,
+      errorCode: "brevo.unavailable",
+    });
+    expect(await al25()).toHaveLength(1);
+    await queueLines(member.accountId, {
+      destination: "brevo_contact",
+      status: "succeeded",
+      attempts: 1,
+      agedSeconds: 2 * 60,
+    });
+    expect(await al25()).toEqual([]);
+  });
+
+  it("a success of Brevo does not clear Apollo; a closed failed line is AL24's, never waiting", async () => {
+    const member = await newMember("advertiser");
+    await queueLines(member.accountId, {
+      destination: "apollo_contact",
+      ...FAILING_FOR_20_MIN,
+      errorCode: "apollo.unavailable",
+    });
+    await queueLines(member.accountId, {
+      destination: "apollo_contact",
+      status: "failed",
+      attempts: 10,
+      errorCode: "apollo.unavailable",
+      agedSeconds: 60 * 60,
+    });
+    await queueLines(member.accountId, {
+      destination: "brevo_contact",
+      status: "succeeded",
+      attempts: 1,
+      agedSeconds: 60,
+    });
+    expect(
+      (await al25()).map(
+        (alert) => `${alert.destination} ${alert.cause} ${alert.count}`,
+      ),
+    ).toEqual(["apollo destination_down 1"]);
   });
 });
 

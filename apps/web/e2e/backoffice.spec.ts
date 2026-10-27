@@ -5,14 +5,19 @@
 // (its target named, J8S-2, and its line in the weekly review of the home, J8S-1), the invitation
 // that makes its author the responsible salesperson, and the exact search and the period filters
 // (J8T-7), the term never in the address bar (J8S-7). The rules are apps/api's and the database's
-// (T14 files, t8-dual-control-service); here, what only the screens show.
+// (T14 files, t8-dual-control-service); here, what only the screens show. J8T-4 (J9 commit 10):
+// axe-core, WCAG 2.1 AA, on the list, the record, the Apollo settings with excluded countries
+// (0141), the dual control (peer and degraded), the invitations and the "Santé technique" screen.
 // CA59 at 250 lines is beyond one page (50 rows at most, 15 RG34): the cap of 200 is t14-backoffice-
 // actions-route's; here the batch replay of a selection and its counted report.
 // The people are seeded with a session proven by TOTP now (support/backoffice.ts): R holds, no
-// password is typed. Serial: the degraded dual control deactivates the other admins for a while.
+// password is typed. Serial: the degraded dual control deactivates the other admins for a while, so
+// this file never runs beside another that needs an admin (J8T-8; playwright.config.ts).
 import type { Browser, Page } from "@playwright/test";
 import { messages } from "../../backoffice/src/messages/fr";
+import { expectNoAxeViolation } from "./support/axe";
 import {
+  apolloSetting,
   attributionOf,
   closedLine,
   dualControlFacts,
@@ -23,6 +28,7 @@ import {
   registerLinesBy,
   removeQueueLines,
   restoreAdmins,
+  restoreApolloSetting,
   retireInternals,
   runTag,
   seededAddress,
@@ -397,6 +403,86 @@ test("CA63: an agent sees no Apollo setting, is refused on its address, and the 
     .toContain("leads.read_apollo_settings");
 });
 
+test("J8T-4: the screens of an admin pass axe (WCAG 2.1 AA), Apollo with its excluded countries", async ({
+  page,
+}) => {
+  const tag = runTag("axe");
+  const member = await seedSignup({
+    tag,
+    role: "advertiser",
+    countryCode: "BE",
+    language: "fr",
+    consent: true,
+  });
+  await closedLine(member, "apollo_contact", {
+    status: "failed",
+    errorCode: "apollo.unavailable",
+  });
+  await seedInternal(page, "admin", "Maé");
+  const excludedBefore = await apolloSetting("apollo_excluded_countries");
+  try {
+    await openList(page, tag);
+    await expect(accountRows(page)).toHaveCount(1);
+    await expectNoAxeViolation(page, "liste des inscrits");
+
+    await page.goto(bo(`/inscrits/${member}`));
+    await expect(page.getByText(m.account.journaled)).toBeVisible();
+    await expectNoAxeViolation(page, "fiche d’inscrit");
+
+    // 0141: a block-list, here with two countries, named in words.
+    await restoreApolloSetting("apollo_excluded_countries", ["DE", "IT"]);
+    await page.goto(bo("/reglages/apollo"));
+    const exclusions = page.getByRole("form", { name: m.apollo.countries });
+    await expect(exclusions).toContainText(
+      m.apollo.settingLine(
+        m.apollo.countries,
+        `${country("DE")}, ${country("IT")}`,
+      ),
+    );
+    await expect(exclusions.getByLabel(m.apollo.countries)).toHaveValue(
+      "DE IT",
+    );
+    await expectNoAxeViolation(page, "réglages Apollo");
+
+    // The dual control of a change of the list: its own screen (PD2), then abandoned.
+    await exclusions.getByLabel(m.apollo.countries).fill("DE IT ES");
+    await exclusions
+      .getByLabel(m.common.reason)
+      .selectOption({ label: m.apollo.reasons.legal_restriction });
+    await exclusions.getByRole("button", { name: m.apollo.change }).click();
+    await expect(page).toHaveURL(/\/double-validation\/[0-9a-f-]{36}$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      m.dualControl.requestTitle,
+    );
+    await expectNoAxeViolation(page, "double validation");
+    await page.getByRole("button", { name: m.dualControl.refuse }).click();
+    await expect(
+      page.getByRole("status").filter({ hasText: m.dualControl.cancelled }),
+    ).toBeVisible();
+
+    await page.goto(bo("/invitations"));
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      m.invitations.memberTitle,
+    );
+    await expect(
+      page.getByRole("table", { name: m.invitations.listTitle }),
+    ).toBeVisible();
+    await expectNoAxeViolation(page, "invitations de membres");
+
+    await page.goto(bo("/sante-technique"));
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      m.health.title,
+    );
+    await expect(page.getByText(m.health.loading)).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: m.health.availability.title }),
+    ).toBeVisible();
+    await expectNoAxeViolation(page, "santé technique");
+  } finally {
+    await restoreApolloSetting("apollo_excluded_countries", excludedBefore);
+  }
+});
+
 test("PD1 to PD7: a single admin confirms alone, after 60 s and in writing, under the weakened-control banner", async ({
   page,
 }) => {
@@ -439,6 +525,7 @@ test("PD1 to PD7: a single admin confirms alone, after 60 s and in writing, unde
     ).toBeVisible();
     const confirm = page.getByRole("button", { name: m.dualControl.confirm });
     await expect(confirm).toHaveAttribute("aria-disabled", "true");
+    await expectNoAxeViolation(page, "double validation en mode différé");
     await expect(page.getByText("Atelier Ilan")).toBeVisible();
     // J8S-2 (PD1): the account is named by role, country and sign-up, never by an identifier.
     await expect(

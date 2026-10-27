@@ -140,6 +140,22 @@ export function replayPairs(
 /** RG101: the cap shown before the gesture; the server applies it (CA59). */
 export const REPLAY_CAP = REPLAY_BATCH_CAP;
 
+/**
+ * What the replay panel says before the gesture (CA59): how many sends for how many members, and,
+ * past the cap, that the surplus is refused and listed (J8T-5).
+ */
+export function replayPreviewOf(pairs: readonly ReplayPair[]): {
+  preview: string;
+  overCap: string | null;
+} {
+  const accounts = new Set(pairs.map((pair) => pair.accountId)).size;
+  return {
+    preview: messages.replay.preview(pairs.length, accounts),
+    overCap:
+      pairs.length > REPLAY_CAP ? messages.replay.overCap(REPLAY_CAP) : null,
+  };
+}
+
 /** "FR BE, de" ⇒ the known codes, and the unknown ones to say. */
 export function parseCountryList(text: string): {
   codes: string[];

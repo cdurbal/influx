@@ -11,7 +11,9 @@ import {
   parseByCountry,
   parseCountryList,
   periodOf,
+  REPLAY_CAP,
   replayPairs,
+  replayPreviewOf,
   sharePercent,
 } from "@/components/view-model";
 import { messages } from "@/messages/fr";
@@ -69,6 +71,32 @@ describe("replayPairs (05 RG101, RG103)", () => {
       { accountId: "b", destination: "apollo" },
     ]);
     expect(replayPairs(rows, new Set())).toEqual([]);
+  });
+});
+
+describe("replayPreviewOf (05 CA59, J8T-5)", () => {
+  function pairs(count: number, accounts: number) {
+    return Array.from({ length: count }, (_, index) => ({
+      accountId: `account-${index % accounts}`,
+      destination: index % 2 === 0 ? ("brevo" as const) : ("apollo" as const),
+    }));
+  }
+
+  it("sums the selection up, and says nothing of the cap up to it", () => {
+    expect(REPLAY_CAP).toBe(200);
+    expect(replayPreviewOf(pairs(3, 2))).toEqual({
+      preview: messages.replay.preview(3, 2),
+      overCap: null,
+    });
+    expect(replayPreviewOf(pairs(REPLAY_CAP, 150)).overCap).toBeNull();
+  });
+
+  it("past the cap, says that the surplus is refused and listed, to replay in a second batch", () => {
+    const preview = replayPreviewOf(pairs(250, 125));
+    expect(preview.preview).toBe(messages.replay.preview(250, 125));
+    expect(preview.overCap).toBe(
+      "Au-delà de 200 envois, le surplus est refusé et listé : il se rejoue dans un second lot.",
+    );
   });
 });
 

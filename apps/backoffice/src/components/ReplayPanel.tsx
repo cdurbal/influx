@@ -24,7 +24,7 @@ import {
   SUCCESS_CLASSES,
 } from "./bo-classes";
 import { useAction } from "./use-action";
-import { REPLAY_CAP, type ReplayPair } from "./view-model";
+import { replayPreviewOf, type ReplayPair } from "./view-model";
 
 type Reason = (typeof REPLAY_REASONS)[number];
 
@@ -42,7 +42,7 @@ export function ReplayPanel({
   const action = useAction();
   const [reason, setReason] = useState<Reason | "">("");
   const [report, setReport] = useState<ReplayResponse | null>(null);
-  const accounts = new Set(pairs.map((pair) => pair.accountId)).size;
+  const { preview, overCap } = replayPreviewOf(pairs);
 
   function confirm() {
     if (reason === "" || action.busy) {
@@ -61,10 +61,8 @@ export function ReplayPanel({
       </h2>
       {report === null ? (
         <>
-          <p>{t.preview(pairs.length, accounts)}</p>
-          {pairs.length > REPLAY_CAP ? (
-            <p className={HELP_CLASSES}>{t.overCap(REPLAY_CAP)}</p>
-          ) : null}
+          <p>{preview}</p>
+          {overCap === null ? null : <p className={HELP_CLASSES}>{overCap}</p>}
           <p className={HELP_CLASSES}>{t.reversibility}</p>
           <p className={HELP_CLASSES}>{t.noConsent}</p>
           <div className={FIELD_CLASSES}>

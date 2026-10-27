@@ -15,7 +15,10 @@ import {
   createApiDatabase,
   type ApiDatabase,
 } from "../src/db/index.ts";
-import { OpsRecorder } from "../src/domains/ops/recorder.ts";
+import {
+  MAX_PENDING_OCCURRENCES,
+  OpsRecorder,
+} from "../src/domains/ops/recorder.ts";
 import { buildServer } from "../src/server.ts";
 import {
   BACKOFFICE_SECRET,
@@ -134,6 +137,46 @@ describe("cap and metrics (02 §20.5)", () => {
              g.occurrence_count::text as counted
         from ops.error_groups g where g.route = ${`/v1/opstest/${RUN}/cap`}`;
     expect(row).toEqual({ kept: 10, counted: "12" });
+  });
+
+  // 02 §20.12 (testeur, J9 commit 10): an avalanche never saturates the base — at most
+  // MAX_PENDING_OCCURRENCES rows per flush, the rest counted where a group exists, and said.
+  it("an avalanche of 1 000 errors on 250 routes writes 200 occurrences at most, in one flush", async () => {
+    const warnings: { object: object; message: string }[] = [];
+    const ops = recorder();
+    // Letters only: a segment of digits would fold every route into one model (`:id`).
+    const segment = (index: number) =>
+      String.fromCharCode(97 + Math.floor(index / 26), 97 + (index % 26));
+    for (let index = 0; index < 1_000; index += 1) {
+      ops.recordServerError(new RangeError("out of range"), {
+        route: `/v1/opstest/${RUN}/avalanche/${segment(index % 250)}`,
+      });
+    }
+    const started = Date.now();
+    await ops.flush(database, {
+      warn: (object, message) => warnings.push({ object, message }),
+      info: () => undefined,
+    });
+    expect(Date.now() - started).toBeLessThan(10_000);
+    expect(MAX_PENDING_OCCURRENCES).toBe(200);
+    expect(warnings).toEqual([
+      {
+        object: { dropped: 800 },
+        message: "ops occurrences dropped, buffer full",
+      },
+    ]);
+    const [row] = await migration<
+      { groups: number; kept: number; counted: string }[]
+    >`
+      select count(*)::int as groups,
+             coalesce(sum((select count(*)::int from ops.error_occurrences o
+                            where o.group_fingerprint = g.fingerprint)), 0)::int as kept,
+             coalesce(sum(g.occurrence_count), 0)::text as counted
+        from ops.error_groups g
+       where g.route like ${`/v1/opstest/${RUN}/avalanche/%`}`;
+    // The first 200 errors open 200 groups; each later error of these routes is counted on its
+    // group; the 50 routes reached only past the buffer invent no group.
+    expect(row).toEqual({ groups: 200, kept: 200, counted: "800" });
   });
 
   it("writes an ended minute once, with a histogram that adds up", async () => {

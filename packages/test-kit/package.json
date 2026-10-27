@@ -24,7 +24,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "test": "vitest run",
+    "test": "vitest run --reporter=default --reporter=json --outputFile.json=test-results/vitest-report.json && node ../../packages/test-kit/scripts/check-case-floors.ts tests/case-floors.ts test-results/vitest-report.json",
     "db:role-passwords": "node scripts/set-role-passwords.ts",
     "dev:brevo-double": "node scripts/brevo-double.ts",
     "staging:role-passwords": "node --env-file=../../apps/api/.env.local scripts/staging-role-passwords.ts"
