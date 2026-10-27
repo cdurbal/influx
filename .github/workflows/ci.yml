@@ -268,3 +268,81 @@ jobs:
           export INFLUX_STAGING_DB_CA_FILE="$(mktemp)"
           printf '%s\n' "$STAGING_DATABASE_CA_CERT" > "$INFLUX_STAGING_DB_CA_FILE"
           pnpm --filter @influx/api db:publish-terms -- --latest --target=staging
+
+  # J9 commit 11 (EC-J9-6, EC-J9-8; D71): the mirror of "Migrate staging" for the `production` branch,
+  # which only advances by `git merge --no-ff main` on the founder's explicit agreement. INERT until
+  # the founder has created the GitHub environment `production` AND set the repository variable
+  # PRODUCTION_MIGRATION_ENABLED to `true` (docs/mvp/runbooks/production.md, step 3). The condition
+  # sits on the job, not in a step, on purpose: a job that names `environment: production` CREATES
+  # that environment on GitHub when it does not exist, and an unprotected one at that. A skipped job
+  # never resolves its environment, so nothing is created, no secret is read. `vars` is the only
+  # context the `if` of a job can use for that (`secrets` cannot be read there). Same required jobs
+  # as staging; the security review markers (I-4) block in `check` on this branch (D71). Never
+  # `railway up`: Railway deploys the branch itself after "Wait for CI". The public documents are NOT
+  # published here: publishing the terms in production is the founder's action (EC-62).
+  migrate-production:
+    name: Migrate production
+    if: >-
+      github.event_name == 'push'
+      && github.ref == 'refs/heads/production'
+      && vars.PRODUCTION_MIGRATION_ENABLED == 'true'
+    needs: [check, relay-node-24]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    # One migration run at a time, never cancelled half-way.
+    concurrency:
+      group: migrate-production
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The URL of the migration role is a secret of the GitHub environment `production` only and is
+      # given to the steps below, never to the install (J4S-1, CI-5). Without it the job ends green
+      # and migrates nothing (second net, behind the condition of the job).
+      - name: Refuse a database that carries the staging marker
+        env:
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
+          PGSSLMODE: require
+        run: |
+          if [ -z "$DIRECT_DATABASE_URL" ]; then
+            echo "::notice::DIRECT_DATABASE_URL is not set in the production environment: production is not migrated (runbook production, step 3)."
+            echo "MIGRATE_PRODUCTION=skip" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          # The marker table of staging (runbook staging, step 1) must never exist in production: a URL
+          # of staging pasted in this environment would be migrated by mistake otherwise.
+          marker="$(psql "$DIRECT_DATABASE_URL" --no-psqlrc --tuples-only --no-align \
+            --command "select to_regclass('influx_staging.environment_marker') is not null")"
+          if [ "$marker" != "f" ]; then
+            echo "::error::The database carries the staging marker (or could not be read): refusing to migrate it as production."
+            exit 1
+          fi
+
+      # The pending migrations are listed first (names only), so the run log says what is applied.
+      - name: Migrate production (supabase db push)
+        if: env.MIGRATE_PRODUCTION != 'skip'
+        env:
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
+        run: |
+          workdir="$(mktemp -d)"
+          mkdir -p "$workdir/supabase"
+          cp -R supabase/migrations "$workdir/supabase/migrations"
+          printf 'project_id = "influx-production-migrations"\n' > "$workdir/supabase/config.toml"
+          pnpm exec supabase db push --db-url "$DIRECT_DATABASE_URL" --workdir "$workdir" --dry-run
+          pnpm exec supabase db push --db-url "$DIRECT_DATABASE_URL" --workdir "$workdir" --yes
