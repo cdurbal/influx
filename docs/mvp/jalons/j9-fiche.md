@@ -358,6 +358,14 @@ commit 10) ; tout nouveau fichier `db-tests` entre dans `case-floors.ts`.
 - Local : `t14` « internal-accounts » rouge (profils internes accumulés, plafond 200), vert sur pile neuve ; 350 lignes `pending` résiduelles supprimées (TM1.11) ; `t8-backoffice-sign-in` (bris de glace) intermittent au passage groupé, vert seul.
 - Planchers : `pnpm test` = **3 060** (contracts 121, test-kit 124, backoffice 53, web 194, `apps/api` unitaire 1 340, base 1 228). Prochaine migration libre **`0149`**.
 
+## Issu du commit 10
+
+- Défaut trouvé par l'axe de J8T-4 : `reference.countries` force la RLS sans politique pour `influx_identity_definer` ⇒ toute 2V Apollo portant un pays (exclusions non vides, exception par pays) refusée depuis `0134`. `0149` : politique de lecture pour ce seul rôle (colonne `code`, déjà accordée). À signer à la revue groupée (`expert-database`, `expert-cybersecurite`).
+- J8T-2 par la route `GET /v1/bo/alerts` (les `db-tests` n'importent pas Drizzle) ; chaque cas vide d'abord les lignes de contact de la file (fichiers en série). axe évalué par le protocole DevTools : la CSP du backoffice refuse, à raison, un script injecté. T10 sur `next start` déjà couvert (`security-headers.spec.ts`).
+- J8T-6 : `tests/case-floors.ts` par paquet et `e2e/case-floors.ts` (rapport JSON de Playwright), vérificateur commun `packages/test-kit/scripts/check-case-floors.ts` ; un fichier e2e seul se lance par `pnpm exec playwright test <fichier>`. J8T-8 : `backoffice.spec.ts`, en série, reste le seul fichier qui crée un `admin`.
+- §20.12 : arrêt du worker ⇒ AL50 par l'API (`tm9-monitoring-loop`) et alerte sans la base (`worker-monitor`) existaient au commit 8. Local : `journey-resume` « change of language » intermittent (réponses perdues au changement de langue, 2 passages sur 3), hors périmètre ; `t14` « internal-accounts » vert sur pile neuve.
+- Planchers : `pnpm test` = **3 073** (contracts 121, test-kit 127, backoffice 55, web 194, `apps/api` unitaire 1 340, base 1 236) ; e2e **56** (7 fichiers). Prochaine migration libre **`0150`**.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les
