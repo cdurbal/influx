@@ -367,6 +367,14 @@ commit 10) ; tout nouveau fichier `db-tests` entre dans `case-floors.ts`.
 - Constats `staging` (2026-10-27) : landing FR / EN ⇒ les quatre portes EC-15 (`200`), aucun chemin de maquette, en-têtes T10 et CSP à nonce présents sur `web` ; **mais `/health` répond `503` et le relais `502`** : aucun relevé de `apps/api` depuis le 2026-10-26 19:40 UTC, `ops.probe_results` et `ops.worker_heartbeats` vides (surveillance du commit 8 jamais en marche). Jeton Railway toujours refusé (P3, fondateur) ⇒ ni journaux, ni variables du commit 8, ni arrêt du worker / coupure de l'API : critère de fin `staging` **non constaté**, à reprendre avec le nouveau jeton.
 - Planchers : `pnpm test` = **3 073** (contracts 121, test-kit 127, backoffice 55, web 194, `apps/api` unitaire 1 340, base 1 236) ; e2e **56** (7 fichiers). Prochaine migration libre **`0150`**.
 
+## Issu du commit 11
+
+- Fichiers `deploy/railway/*.production.json` distincts (ceux de `staging` intacts). « Migrate production » gardé **au niveau du job** par `vars.PRODUCTION_MIGRATION_ENABLED` : un job qui nomme `environment: production` créerait l'environnement, sans protection ; sans secret, vert sans migrer ; base portant le marqueur de `staging` ⇒ échec ; `--dry-run` puis `db push`, ni CGU ni `railway up`.
+- J8S-9 : aucune désactivation d'un compte interne avant le Lot 5 (EC-J8-60) ⇒ `UPDATE` SQL du fondateur sur `identity.agent_profiles`, sans ligne d'audit en base, journalisé à la main ; rouvre le mode dégradé PD1 à PD7 s'il ne reste aucun autre `admin` actif.
+- Manques avant `production`, à arbitrer (`architecte`) : cible `production` de `db:publish-terms` (EC-62, aucune inscription possible sans elle), amorçage du premier `admin` et du bris de glace (EC-45), équivalents production de `staging:check` et de `staging:role-passwords`.
+- `staging.md` §5 reste la seule liste fermée (non recopiée) ; `[à renseigner]` du fondateur dans le runbook (PITR, sous-domaines, astreinte, canal des invitations, Railway Pro). Case « aucun appel sortant depuis `staging` » de `18` §10 caduque (D70) : à reformuler à la clôture.
+- Local : `t8-backoffice-sign-in` intermittent au passage groupé (2 cas), vert seul puis dans `test:db` complet. Planchers inchangés.
+
 ## Discipline de session (économie de tokens)
 
 - Une session par commit (`/clear` entre deux), reprise depuis cette fiche ; ne lire que les
