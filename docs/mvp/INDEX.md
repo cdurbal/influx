@@ -8,7 +8,7 @@
 > avec `Grep` (exemple : `RG113` dans le fichier concerné).
 >
 > **Session de jalon : lire d'abord sa fiche**, qui cite déjà les tranches utiles :
-> `jalons/j6-fiche.md`, `jalons/j9-fiche.md`.
+> `jalons/zone-de-danger-fiche.md`.
 
 ## 00-cadrage-mvp-v2.md (~16k tokens)
 

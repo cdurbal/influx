@@ -31,7 +31,7 @@
 | **J6** | 1 | Worker, connecteurs Brevo et Apollo, qualification, garde-fous | ✅ Revue close (2026-10-12) ; critère `staging` constaté le 2026-10-20 (J9 commit S) | 4-5 j |
 | **J7** | 1 | Retours Brevo (désinscriptions, rebonds), espace membre minimal | ✅ Revue close (2026-10-14) ; critère `staging` constaté le 2026-10-20 (J9 commit S) | 3-4 j |
 | **J8** | 1 | Backoffice v0 : inscrits, états de synchronisation, rejeu, réglages Apollo | ✅ Revue close (2026-10-16) ; critère `staging` constaté le 2026-10-20 (J9 commit S) | 4-5 j |
-| **J9** | 1 | Sortie du mode maquette de la landing, en-têtes, surveillance active, production | ✅ Revue close (2026-10-27) ; critère `staging` constaté en partie (arrêts à faire), production préparée, non créée — reliquat `jalons/j9-fiche.md` | 4-5 j |
+| **J9** | 1 | Sortie du mode maquette de la landing, en-têtes, surveillance active, production | ✅ Revue close (2026-10-27) ; critère `staging` constaté en partie (arrêts à faire), production préparée, non créée — reliquat `archives/jalons/j9-fiche.md` | 4-5 j |
 
 **Cinq règles qu'aucune urgence ne suspend :**
 
@@ -270,7 +270,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] Commit 9 (`4c7c546`) — écrans `/fr/compte/*` · `/en/account/*`, écran CGU bloquant, Playwright à 375 px.
 - [x] Commit 10 (`33acb6c`) — outil `trial:record` et runbook `staging` J7 ; webhook réel et critère de fin constatés par l'agent au J9 commit S (D70).
 - [x] Clôture (`5b977f7`, `c8379f6`) — revue de fin de J7 sans point rouge (`expert-cybersecurite`, `testeur`) ; 18 commits attestés, dont 4 du J5 ; test CGU révélé par la CI corrigé ; specs alignées.
-- **Reportés** (détail : `jalons/j9-fiche.md`, et `git show 5b977f7:docs/mvp/jalons/j7-fiche.md`) : avant production J7S-1 à J7S-3 ; avant le webhook de test J7S-4, J7S-6 ; fondateur J7S-5, J6S-5 ; J8 J7S-7, J7T-1 à J7T-6, J6T-1, J6T-2 ; J9 J7S-8.
+- **Reportés** (détail : `archives/jalons/j9-fiche.md`, et `git show 5b977f7:docs/mvp/jalons/j7-fiche.md`) : avant production J7S-1 à J7S-3 ; avant le webhook de test J7S-4, J7S-6 ; fondateur J7S-5, J6S-5 ; J8 J7S-7, J7T-1 à J7T-6, J6T-1, J6T-2 ; J9 J7S-8.
 
 ### J8 — Backoffice v0 (revue close le 2026-10-16 ; critère de fin constaté sur `staging` le 2026-10-20, J9 commit S ; effacement Apollo au Lot 5)
 
@@ -295,7 +295,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] Commit 10 (`b8f17fb`) — Playwright backoffice (CA56 à CA63, 2V dégradée), J7T-4, J7T-5, T14 sur l'inventaire `/v1/bo/*`.
 - [x] Clôture (`262e626`) — revue de fin de J8 sans point bloquant (`expert-cybersecurite`, `testeur`) ; 6 commits attestés ; EC-J8-19 tranché (rejeu en lot sans 2V) ; `04` §11.2, CA64, `03`, `15`, `18` alignés.
 - [x] Commit 12 (`7560b24`) — `prod:bootstrap-admins` : premier `admin` et bris de glace de production (MFA-10, B7), cœur `scripts/internal-bootstrap.ts`, témoin `influx_production` exigé, confirmation par la référence du projet, refus de la CI et de tout compte interne existant, secrets dans `.operator-secrets/` ; `runbooks/production.md` §0 bis ; planchers +3 db.
-- **Reportés** (détail : `jalons/j9-fiche.md`) : avant Lot 1 J8S-1 à J8S-4, C5.c, A2 ; J9 J8S-5 à J8S-7, J8T-2 à J8T-7, J7S-8 ; avant production J7S-1 à J7S-3 ; Lot 5 J8S-8, J8S-9 ; fondateur `staging`, J4R-1, J7S-4 à J7S-6, J6S-5.
+- **Reportés** (détail : `archives/jalons/j9-fiche.md`) : avant Lot 1 J8S-1 à J8S-4, C5.c, A2 ; J9 J8S-5 à J8S-7, J8T-2 à J8T-7, J7S-8 ; avant production J7S-1 à J7S-3 ; Lot 5 J8S-8, J8S-9 ; fondateur `staging`, J4R-1, J7S-4 à J7S-6, J6S-5.
 
 ### J9 — Durcissement, landing branchée, mise en ligne (revue close le 2026-10-27 ; critère de fin `staging` constaté en partie le 2026-10-27, arrêts du worker et de l'API à faire)
 
@@ -323,7 +323,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] Commit 11 (`aa7f62e`) — préparation de la production (doc et configuration seules, EC-J9-6) : `runbooks/production.md` (miroir de `staging`, portes §5.8, Supabase UE + PITR, quatre services sur `production`, DNS, retour arrière, rodage 30 j, J8S-9, invitation hors e-mail, CGU EC-62, relectures `18` §10), `deploy/railway/*.production.json`, job « Migrate production » inerte (EC-J9-8) ; planchers 3 073 / 1 236.
 - [x] Clôture (`61ac4bd`, attestation `d695165`) — revue de fin de J9 (`expert-cybersecurite`, `testeur`, 2026-10-27) : droits signés (`0142` à `0149`, E-4, E-6, `expected-rights.ts`), 14 commits attestés ; bloquants J9S-1 (valeurs héritées du fork, runbook) et J9T-2 (marqueur de production exigé, `ci-production-job.test.ts`) corrigés, avec J9S-3, J9S-8, J9S-10, J9T-4, J9T-6 ; `03`, `04`, `05`, `15` (seuils AL53, AL56, AL61, écran), `17b` §3.15, `18` (§10 « Lot 1 » : 6 cases sur 11, TM1.13, E3) alignés ; planchers 3 082 / 1 236, e2e 56.
 - [x] Constats `staging` (sans code, 2026-10-27, sur `5dbf608`) — CI et « Migrate staging » verts, `staging:check` vert ; `/health` et relais `200`, sonde (4 cibles `up`) et battement du worker en marche, T10 du backoffice, J9S-5 conforme ; J9T-1 infirmée ; arrêts du worker et de l'API non faits (accord du fondateur).
-- **Reportés** (détail : `jalons/j9-fiche.md`) : avant production J9T-1 (arrêt du worker, coupure de l'API, inscription réelle sur `staging`), J9S-2, J9S-4, AL53, manques du commit 11, points `expert-ux` du commit 5 ; Lot 2 J9S-6, J9S-7, J9S-9, J9T-5, J9T-8, J9T-9, J4S-7 ; Lot 3 T15.2, F3 ; Lot 5 classement des groupes d'erreurs, J9T-3, J9T-10, J8S-8, J8S-9 ; Lot 6 F8, J7T-6 ; fondateur portes §5.8, cases 5 et 7 à 10 de `18` §10 « Lot 1 ».
+- **Reportés** (détail : `archives/jalons/j9-fiche.md`) : avant production J9T-1 (arrêt du worker, coupure de l'API, inscription réelle sur `staging`), J9S-2, J9S-4, AL53, manques du commit 11, points `expert-ux` du commit 5 ; Lot 2 J9S-6, J9S-7, J9S-9, J9T-5, J9T-8, J9T-9, J4S-7 ; Lot 3 T15.2, F3 ; Lot 5 classement des groupes d'erreurs, J9T-3, J9T-10, J8S-8, J8S-9 ; Lot 6 F8, J7T-6 ; fondateur portes §5.8, cases 5 et 7 à 10 de `18` §10 « Lot 1 ».
 
 ### 5.8 Portes de la mise en production
 
@@ -373,8 +373,8 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 | Avant | Lire uniquement |
 |---|---|
 | **J5** | **`archives/jalons/j5-fiche.md` d'abord** (sections et lignes exactes) ; `05` §A à §E, §H, §L ; `17` §2.5, §2.6, §3 ; skill `design-system-influx` |
-| **J6** | **`jalons/j6-fiche.md` d'abord** (sections et lignes exactes) ; `02` §6 et §11 ; `05` §I ; `16` §H, §J, §M ; skills `lead-pipeline`, `brevo-campaign`, `apollo-lead-sync` |
+| **J6** | **`archives/jalons/j6-fiche.md` d'abord** (sections et lignes exactes) ; `02` §6 et §11 ; `05` §I ; `16` §H, §J, §M ; skills `lead-pipeline`, `brevo-campaign`, `apollo-lead-sync` |
 | **J7** | `05` §F (RG54 à RG58), §J ; `16` §I et §M6 ; `17` §6 ; skills `lead-pipeline`, `brevo-campaign` |
 | **J8** | `git show a2ff7bc:docs/mvp/jalons/j8-fiche.md` (fiche archivée) ; `05` §K ; `15` §C, §F ; `17b` §3.11 et §3.13 ; skill `backoffice-ops` |
 | **D70** | **`archives/jalons/d70-plan.md` d'abord** ; `02` §12.4 ; `03` §6.8 et T17 ; `16` §J ; skills `env-secrets`, `railway-deploy` |
-| **J9** | `jalons/j9-fiche.md` (reliquat) ; fiche complète : `git show 8323aeb:docs/mvp/jalons/j9-fiche.md` ; `runbooks/production.md` |
+| **J9** | `archives/jalons/j9-fiche.md` (reliquat) ; fiche complète : `git show 8323aeb:docs/mvp/jalons/j9-fiche.md` ; `runbooks/production.md` |

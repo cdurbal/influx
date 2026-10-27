@@ -67,7 +67,7 @@ cochée mais explicitement acceptée et datée par le fondateur vaut cochée (`1
 - [ ] Exécution des demandes « mes données » livrée (E-5 minimale, `15` RG79, RG80).
 - [x] **Revue groupée de fin de J9** par `expert-cybersecurite` et `testeur` (2026-10-27) : droits
       signés (`expected-rights.ts`, `0142` à `0149`, E-4 et E-6 de `03` P7), 14 commits couverts par
-      le commit d'attestation de clôture du J9 ; reports listés dans `jalons/j9-fiche.md`.
+      le commit d'attestation de clôture du J9 ; reports listés dans `archives/jalons/j9-fiche.md`.
 - [ ] **Aucune valeur héritée de `staging`** dans les variables Railway de production (J9S-1,
       section 5, script de comparaison sans valeur affichée).
 - [ ] **Constats `staging` de fin de J9** (fiche J9) : API, sonde, battement, T10 du backoffice et
