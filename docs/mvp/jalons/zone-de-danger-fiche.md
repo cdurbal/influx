@@ -57,6 +57,14 @@ existante pour `type = erasure` :
 Une demande `erasure` déjà ouverte ⇒ renvoyée telle quelle (idempotence actuelle). Réponse : nouveau
 résultat `erasure_authorised` dans `packages/contracts` (`account`).
 
+> **Validé par `architecte` (2026-10-27), avec précisions.** (a) `SECURITY DEFINER`, `SET search_path
+> = ''`, noms qualifiés ; `REVOKE EXECUTE … FROM PUBLIC`, `GRANT EXECUTE` aux seuls rôles membres ; le
+> compte vient du contexte de session (`SET LOCAL`), **jamais d'un paramètre** ; `influx_identity_definer`
+> reçoit `INSERT` sur `privacy.request_executions` seulement (ni `UPDATE` ni `DELETE`) ; tout échec
+> (code, session) annule l'ensemble. (b) `erasure_authorised` rejoint l'union discriminée de la réponse
+> de la route (schéma zod de réponse obligatoire) ; il ne porte que `requestId` et `status`, et le front
+> traite ce résultat comme une déconnexion (cookie effacé, retour à l'accueil).
+
 ### 2.2 Au tour suivant du worker (≤ 1 min), E-5 inchangé dans son principe
 
 `privacy.pending_work()` retient aussi les exécutions `member_fresh_code`. `privacy.execute_request()`
@@ -103,7 +111,11 @@ nouveau » (RG70) ; « pas vous ? » ⇒ signaler depuis l'aide de l'écran de c
 - `GRANT INSERT` membre : **aucun** ; seule `identity.submit_member_erasure()` écrit ;
 - fonctions recréées par leur propriétaire : `privacy.pending_work()`, `privacy.execute_request()`,
   `privacy.complete_request()` ; lecture de l'adresse pour l'e-mail par une fonction
-  `influx_privacy_definer` sur le modèle de `leads.read_brevo_erasure_subject()` ;
+  `influx_privacy_definer` sur le modèle de `leads.read_brevo_erasure_subject()` — **validé
+  `architecte`** : `privacy.read_erasure_notification_subject(request_id)`, `SECURITY DEFINER`,
+  `search_path` vide, `EXECUTE` au seul `influx_privacy` (worker) ; rend adresse, langue et fuseau
+  uniquement si l'exécution existe, n'est pas close et `propagation_email` n'est pas `NULL` ; aucun
+  `SELECT` direct sur la colonne ;
 - `audit.event_types` : `privacy.execution_authorised_by_member` ; matrice `expected-rights.ts` à jour (T2).
 
 ### 2.5 Backoffice
@@ -281,7 +293,7 @@ Puis `pnpm docs:index`.
 |---|---|---|---|
 | **DZ-1** | **Délai de grâce** (par ex. 7 jours annulables) avant l'exécution ? Sans lui, une boîte e-mail compromise suffit à supprimer définitivement un compte (`03` S-2) | **Aucun délai** (demande du fondateur, conforme à `04` §9.2) | Fondateur, après avis `expert-cybersecurite` (revue de fin de jalon) |
 | **DZ-2** | Suppression **pendant une affaire ou une mise en relation ouverte** : la bloquer ou la différer ? | **Non bloquante** : affaire et mise en relation conservées pseudonymisées, commission traçable, commercial alerté | Fondateur + `expert-paiement-facturation`, avant le Lot 4 |
-| **DZ-3** | E-mail de confirmation envoyé à l'adresse conservée **après** anonymisation | Oui, via `propagation_email` (fenêtre existante, close à la clôture) | `architecte` (mécanisme) ; conformité au Lot 6 |
+| **DZ-3** | E-mail de confirmation envoyé à l'adresse conservée **après** anonymisation | Oui, via `propagation_email` (fenêtre existante, close à la clôture) | **Mécanisme validé par `architecte` le 2026-10-27** (§2.4) ; conformité au Lot 6 |
 | **DZ-4** | Valeurs hex du §5 (le skill exige l'accord du fondateur pour toute nouvelle couleur) | Valeurs du §5, calées sur Railway, conformes AA | Fondateur |
 | **DZ-5** | Entrée dédiée « Zone de danger » dans la navigation du compte, comme Railway ? | Non : section en bas de « Mes données » | Fondateur, avis `expert-ux` |
 | **DZ-6** | Succès, alerte, information gardent un fond teinté : les aligner ? | Non, hors demande | `expert-ux`, puis fondateur |
