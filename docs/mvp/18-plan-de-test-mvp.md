@@ -882,7 +882,7 @@ le métier : la file, les leads, les montants, les transitions. Douze familles s
 | TM1.10 | L'arrêt du worker en cours de lot (`SIGTERM`) ne perd aucun événement : il reste `pending` |
 | TM1.11 | *(D67, 2026-10-17)* **Configuration manquante = échec, jamais « ignoré »** : liste Brevo d'un rôle, modèle de bienvenue, réglage Apollo illisible ⇒ ligne `failed` avec le code de `05` RG160, nature `incident`, aucune tentative programmée, comptée dans les échecs non traités et non dans les cas normaux, AL25 levée ; un `consent.revoked` du même compte passe quand même (`05` CA82, CA84) |
 | TM1.12 | *(D67)* **Rattrapage automatique** : le réglage corrigé (y compris par écriture SQL directe), les lignes en échec de configuration repartent en moins de 15 min avec la **même clé d'idempotence**, un rejeu système `configuration_restored` est journalisé, aucun second e-mail de bienvenue ; le rejeu manuel unitaire et en lot reste possible ; une ligne `no_consent` reste non rejouable ; *(architecte, 2026-10-17)* une correction faite **pendant** la tentative qui échoue est rattrapée (comparaison au début de la tentative) ; une modification d'une autre clé ne remet rien en file (`05` CA83, CA60, RG161) |
-| TM1.13 | *(D67)* **Refus de démarrage en production, au niveau du processus** (comme T17.10) : chacun des réglages de `05` RG162 à `NULL` ou illisible ⇒ `node src/worker.ts` sort avec un code non nul avant sa première boucle, message qui nomme la clé sans valeur (T17.9) ; réglages Apollo contrôlés **seulement** si `APOLLO_API_KEY` est présente ; liste de pays vide acceptée ; un modèle non indispensable à `NULL` n'empêche pas le démarrage. *Contre-test* : même configuration en `staging` ⇒ démarrage et ligne `leads.settings.missing_at_start` (`05` CA85) |
+| TM1.13 | *(D67)* **Refus de démarrage en production, au niveau du processus** (comme T17.10) : chacun des réglages de `05` RG162 à `NULL` ou illisible ⇒ `node src/worker.ts` sort avec un code non nul avant sa première boucle, message qui nomme la clé sans valeur (T17.9) ; réglages Apollo contrôlés **seulement** si `APOLLO_API_KEY` est présente ; liste de pays vide acceptée ; aucun modèle Brevo contrôlé (D69). *Contre-test* : même configuration en `development` ⇒ démarrage et ligne `leads.settings.missing_at_start` (`05` CA85 ; `staging` est déployé depuis D70, il refuse). *Preuve (J9 D67-b)* : un environnement déployé refuse la base locale (D70 S1), le refus est donc prouvé sur le verdict partagé (`leads-start-check`) et l'étape de démarrage en base, pas au niveau du processus |
 | TM1.14 | *(D67)* **Ordre en `dry_run`** : modèle ou liste manquant ⇒ `leads.dry_run.would_send` journalisée avec les noms des réglages manquants, **puis** ligne `failed` ; réglages présents ⇒ `succeeded` avec `dry_run` ; réglage Apollo illisible ⇒ `failed` sans `would_send` ; *(architecte, 2026-10-17)* sans consentement et liste manquante ⇒ `skipped` `no_consent`, ni `would_send` ni échec (`05` CA86, RG164) |
 | TM1.15 | *(D67)* **Clé absente en production** : ligne qualifiée ⇒ `failed` `credentials_missing` ; hors production, `skipped_no_credentials` inchangé (T17.1) (`05` CA87) |
 | TM1.16 | *(D67)* **Un identifiant Brevo renseigné ne redevient jamais vide** : remise à `NULL` ou retrait de la clé refusé en base, remplacement par un entier positif accepté ; *(architecte, 2026-10-17)* toute écriture sur `leads.sync_settings`, y compris par SQL direct, produit un `settings.changed` chaîné (`05` CA88, RG163) |
@@ -1237,7 +1237,7 @@ de démonstration nommés `*.test.invalid`. Outil : **tranché (architecte, 2026
 |---|---|---|
 | **E1** | **Inscription d'une marque** : code à 6 chiffres, CGU acceptées, consentement **non pré-coché**, pays et langue | Compte créé, `terms_acceptances` porte la version en vigueur, `consent_events` porte le choix réel |
 | **E2** | **Inscription d'un créateur** : idem + attestation de majorité | Idem ; un mineur déclaré est refusé |
-| **E3** | **Synchronisation des leads** | 2 comptes ⇒ 4 lignes `outbox_events` (Brevo + Apollo), toutes `succeeded` en `dry_run`, `contact_sync_states` à jour, **aucun appel sortant réel** |
+| **E3** | **Synchronisation des leads** | 2 comptes ⇒ 6 lignes `outbox_events` (contact Brevo, contact Apollo, bienvenue), toutes `succeeded` en `dry_run` (`development`), `contact_sync_states` à jour, **aucun appel sortant réel** (`staging` envoie pour de vrai depuis D70) |
 | **E4** | **Profil créateur** : couche anonyme publiée, couche identifiante remplie, preuve déposée, **badge attribué par un commercial** | Le badge existe, il est **daté**, sa péremption est calculée ; la pièce de vérification est en compartiment privé |
 | **E5** | **Profil marque + campagne** créée puis **validée par un commercial** | La campagne est `published` ; avant validation, elle n'apparaissait nulle part |
 | **E6** | **Recherche anonymisée côté marque** | Le créateur apparaît ; **aucun marqueur identifiant dans la charge utile** (rejeu de T1 sur la page réelle) ; export absent ; pagination plafonnée |
@@ -1404,17 +1404,20 @@ l'enveloppe `404` / `500` et T13.5 à T13.7 ; T17.5 à T17.10 ; TM11.4.
 à TM1.16, 2026-10-17, D67)* (dont une partie avancée au Lot 0), plus les familles du Lot 0 en
 non-régression.
 
-- [ ] **Aucune garde n'est levée sans son remplaçant dans le même commit** (G2 → CSP testée + garde resserrée ; G4 et G6 → gardes d'absence) — §5. G5, levée au J1, est complétée par **T7 en entier, en intégration**
-- [ ] Le module fictif, `IS_MOCKUP` et le bandeau « Maquette » **n'existent plus** dans le dépôt
-- [ ] Une inscription réelle crée un compte **et** quatre lignes de file, et **aucun appel sortant n'est possible depuis `staging`** (T17)
-- [ ] *(D67, 2026-10-17)* Une inscription de `staging` finit `succeeded` avec `dry_run` sur `brevo_contact` et la bienvenue (identifiants du compte de test posés) ; aucune ligne en échec de configuration (TM1.11 à TM1.16)
-- [ ] **Non automatisable** *(D67)* : identifiants de listes et de modèles Brevo **de production** renseignés dans `leads.sync_settings` de production, puis premier démarrage du worker de production **accepté** par le contrôle de `05` RG162 (`21` §5.8)
-- [ ] La version de CGU acceptée est enregistrée par partie (TM10.4)
-- [ ] **Non automatisable** : relecture humaine des textes FR et EN des pages publiques et des e-mails transactionnels
+*État à la clôture du J9 (revue `testeur` du 2026-10-27, sur `8323aeb`) : 6 cases cochées, 5 au
+fondateur. T15.2 (routes de recherche et de profil) entre au Lot 3 : T15 passe pour .1, .3, .4, .5.*
+
+- [x] **Aucune garde n'est levée sans son remplaçant dans le même commit** (G2 → CSP testée + garde resserrée ; G4 et G6 → gardes d'absence) — §5. G5, levée au J1, est complétée par **T7 en entier, en intégration** — *`apps/web/tests/guards.test.ts` (G2, G4, G6), e2e T10.6, `test:artifacts` (T7)*
+- [x] Le module fictif, `IS_MOCKUP` et le bandeau « Maquette » **n'existent plus** dans le dépôt — *`dafb876`, garde d'absence G6*
+- [x] *(reformulée à la clôture du J9, D70)* Une inscription réelle crée un compte **et** trois lignes de file (contact Brevo, contact Apollo, bienvenue) ; aucun appel sortant n'est possible en `development`, en CI ni en test (verrous 2 et 3, doublure, RG148) ; `staging` et `production` refusent de démarrer en `dry_run`, `redirect` ou avec liste blanche (T17.5 à T17.7) ; `staging` envoie pour de vrai (D70) — *`tm10-signup-route`, T17*
+- [x] *(D67, reformulée à la clôture du J9)* Une inscription en `development` finit `succeeded` avec `dry_run` sur `brevo_contact` et la bienvenue ; une inscription de `staging` finit `succeeded` en réel (constaté le 2026-10-20, **à refaire** une fois `staging` rétabli, fiche J9) ; aucune ligne en échec de configuration (TM1.11 à TM1.16, `staging:check`)
+- [ ] **Non automatisable** *(D67, D68, D69)* : identifiants de listes Brevo **de production** posés en variables `BREVO_LIST_ID_ADVERTISERS` et `BREVO_LIST_ID_CREATORS` du `worker` de production ; premier démarrage accepté par le contrôle de `05` RG162 ; aucun identifiant de modèle (D69) (`21` §5.8) — *fondateur*
+- [x] La version de CGU acceptée est enregistrée par partie (TM10.4) — *`tm10-terms-in-force`, `tm10-signup-route`*
+- [ ] **Non automatisable** : relecture humaine des textes FR et EN des pages publiques et des e-mails transactionnels — *fondateur ; points `expert-ux` du J9 commit 5 ouverts*
 - [ ] **Non automatisable** : `expert-conformite-rgpd` a rendu son avis sur **A7 / D33**, et **le juriste a validé** — sans quoi la mise en ligne n'a pas lieu (R4 du cadrage)
-- [ ] **Non automatisable** : documents légaux relus par un juriste, incluant la clause de non-contournement (A5), la supervision des conversations (A10) et la conservation probatoire (R-1)
-- [ ] **Non automatisable** : SPF, DKIM, DMARC en place et vérifiés sur le domaine d'envoi
-- [ ] **Non automatisable** : `staging` non accessible publiquement et non indexé (I-6)
+- [ ] **Non automatisable** : documents légaux relus par un juriste, incluant la clause de non-contournement (A5), la supervision des conversations (A10) et la conservation probatoire (R-1) — *marqueurs D25 de `apps/api/legal/` ouverts*
+- [ ] **Non automatisable** : SPF, DKIM, DMARC en place et vérifiés sur **les trois sous-domaines d'envoi de production** — *`staging` (`influx.cadaero.ovh`) : SPF, DKIM `brevo1`, DMARC `p=none` présents ; `p=quarantine` après le rodage*
+- [x] *(reformulée à la clôture du J9, D70)* `staging` est servi en `noindex, nofollow, noarchive` (`apps/web/tests/guards.test.ts`, e2e T10), avec des données synthétiques (T17.4) ; son accessibilité publique est un risque accepté (D70)
 
 ---
 

@@ -1683,6 +1683,18 @@ ne saisit jamais le jeton d'activation** (G-1 point 2) ; son mode de transmissio
 La confirmation R et le choix du mot de passe servent à partir du J8 (invitation, actions
 sensibles) ; leurs libellés sont fixés dès maintenant parce que le commit 10 porte R et B-1.
 
+### 3.15 Santé technique *(additif du J9, 2026-10-27, EC-J9-5)*
+
+Écrit d'après `02` §20.5 seul, livré au J9 commit 9 (`6b1f62a`). Alertes : `15` RG165 (AL49 à AL63).
+
+| Point | Règle |
+|---|---|
+| Adresse, accès | `/sante-technique`, **`admin` seul, lecture seule**, poste de travail (hors vue téléphone de D58 : l'e-mail d'alerte y suffit). Un `agent` qui ouvre l'adresse voit « réservé aux administrateurs » ; l'appel refusé est journalisé (`ops.read_health`, CA63). Lectures `backoffice.ops_*` (`0148`, `EXECUTE` à `influx_admin` seul) non journalisées : état technique, aucune personne |
+| Sections | Disponibilité mesurée par la sonde (par cible : dernier relevé, 24 h, 7 j, 30 j) ; alertes techniques ouvertes ; état du worker (règle d'AL50) et tâches périodiques ; groupes d'erreurs (`new`, `acknowledged`, `fixed`, `ignored`, régression = `regression_count > 0` encore ouverte) et leurs occurrences ; appels par minute, p95 et taux de `5xx` par route ; processus et connexions à la base |
+| Mesures | p95 calculé à la lecture sur les histogrammes additionnés de toutes les instances, affiché comme borne haute de la tranche (`≤ 500 ms`, `> 5 s`) ; trafic en 12 × 5 min, 24 × 1 h ou 28 × 6 h, 100 routes au plus, dernière tranche « en cours » ; disponibilité 30 j = relevés à la minute (14 j) puis agrégat horaire |
+| Comportement | Chaque section se lit seule (une section en échec laisse les autres lisibles, « Réessayer ») ; lecture de tout l'écran chaque minute, onglet visible, ou par « Actualiser » ; états en mots avec un symbole, jamais la couleur seule |
+| Hors écran | Classer un groupe d'erreurs (`acknowledged`, `fixed`, `ignored`) : **aucun écrivain livré au J9**, tout groupe reste `new` et la régression d'AL51 ne peut pas se lever tant qu'il manque (reliquat, fiche J9) ; âge de la file `pending`, événements `failed` et vérification de chaîne, qui restent aux écrans des leads (§3.11) ; lien « état des services » depuis l'accueil et la file des échecs, `admin` seul |
+
 #### 3.14.e Alerte « nouveau navigateur » — remplace « pays ou opérateur inhabituel » (B-7, J8)
 
 Définition : `05` RG141 et RG145 ; vocabulaire : `05` RG144. Code d'alerte à inscrire au catalogue de
@@ -2159,8 +2171,9 @@ l'hypothèse indiquée et la rend visible.
 | 42 | Panneau de réattribution | 2.5, 3.5 | `agent` `admin` | 4 |
 | 43 | Centre d'alertes — 48 alertes, état / événement | 1.2, 6.4 | `agent` `admin` | 5 |
 | 44 | Écran d'export — E1 à E4 | 3.12, 6.4 | `admin` (E4 : `agent`) | 5 |
+| 45 | Santé technique *(additif J9)* | 3.15 | `admin` | 1 |
 
-**44 écrans**, construits sur **11 composants transverses** (§4) et **un gabarit de file unique**
+**45 écrans**, construits sur **11 composants transverses** (§4) et **un gabarit de file unique**
 appliqué à 16 files.
 
 ---

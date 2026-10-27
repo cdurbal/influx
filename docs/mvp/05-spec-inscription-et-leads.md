@@ -1775,12 +1775,13 @@ la règle, **jamais la valeur** (`18` T17.9, T17.10) — quand l'un des réglage
 inscrit** manque ou est illisible :
 
 1. `brevo_list_ids` : `advertisers` **et** `creators`, entiers positifs ;
-2. `brevo_template_ids` : `account.welcome_advertiser` **et** `account.welcome_creator`, entiers
-   positifs ;
+2. ~~`brevo_template_ids`~~ *(caduc depuis D69, aligné à la clôture du J9 : tous les e-mails de la
+   file sont rédigés par INFLUX, aucun modèle Brevo n'est contrôlé)* ;
 3. `retry_schedule` lisible ; `rate_limits` porteur d'un plafond pour chaque destination dotée d'une
    clé ;
 4. si `APOLLO_API_KEY` est présente : `apollo_scope`, `apollo_legal_basis` et
-   `apollo_prospecting_countries` lisibles — une liste de pays **vide** est valide (RG84).
+   `apollo_excluded_countries` (`0141`) lisibles — une liste de pays **vide** est valide (RG84 amendée :
+   tous les pays).
 
 C'est l'esprit de `16` RG116 et de `02` §12.4 (« une production silencieusement muette serait aussi
 grave qu'un envoi de test réel ») : **un refus, pas un avertissement**. Le contrôle **lit sans mettre
@@ -1802,8 +1803,12 @@ nomme les réglages manquants, puis RG160 et RG164 s'appliquent.
 identifiant valide, **jamais remis à `NULL` ni retiré** : contrôle en base, dans tous les
 environnements. Sans cette garde, un réglage indispensable pourrait disparaître à chaud, et le
 redémarrage suivant serait refusé (RG162). **Qui modifie, constaté le 2026-10-17** : les identifiants
-Brevo n'ont **aucun écran** ; ils se posent par SQL (rôle propriétaire), selon le runbook, avec
-confirmation du fondateur en production (`CLAUDE.md` §7 règle 4). Les trois réglages Apollo se
+Brevo n'ont **aucun écran** ; ils se posent par les variables du `worker` (D68, étape de démarrage
+`apply_brevo_ids_from_environment`) ou par SQL (rôle propriétaire), selon le runbook, avec
+confirmation du fondateur en production (`CLAUDE.md` §7 règle 4). *Implémentation (`0145`, aligné à la
+clôture du J9)* : le journal `settings.changed` est écrit par un déclencheur seul ; le contexte d'un
+changement (`reason_code`, 2V, réévaluation) passe par le réglage de transaction
+`influx.sync_setting_change`, fermé, lié à la session et effacé à l'usage (sinon `22023`). Les trois réglages Apollo se
 modifient au backoffice par un `admin` sous double validation (`0134`, RG81). Un écran pour les
 identifiants Brevo n'est pas exigé au Lot 1 (point soumis à `architecte`, D67).
 
