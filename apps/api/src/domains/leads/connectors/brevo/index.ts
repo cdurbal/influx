@@ -30,6 +30,9 @@
 // architecte, 2026-10-14), from the request read at consumption: a request of another type fails
 // unsupported_request_type, a request closed since is skipped request_closed; and so is
 // privacy.export_ready (J8 commit 8: where and until when the export is downloadable, no link).
+// privacy.erasure_completed (D72, 16 RG160 bis) is the answer to an erasure: it leaves AFTER the
+// account is erased, so it comes before the account step too, to the address the execution holds
+// until the e-mail has its messageId (privacy.read_erasure_notification_subject, E-5 pool).
 // account.deleted (04 §9.2, 15 RG79, J8 commit 8): operation 2 deletes the contact of an ERASED
 // account, by its Brevo id, else by the address the request holds until Brevo confirms (0136); it
 // comes before the account step, since the account is no longer active by construction.
@@ -44,6 +47,8 @@ import { renderEmailChangedNoticeEmail } from "../../../identity/email-changed-n
 import type { RenderedEmail } from "../../../identity/login-code-email.ts";
 import { renderNewDeviceEmail } from "../../../identity/new-device-email.ts";
 import { renderWelcomeEmail } from "../../../identity/welcome-email.ts";
+import { renderErasureCompletedEmail } from "../../../privacy/erasure-completed-email.ts";
+import type { ErasureNotificationSubject } from "../../../privacy/erasure-notification-subject.ts";
 import { renderExportReadyEmail } from "../../../privacy/export-ready-email.ts";
 import {
   accountSkip,
@@ -98,9 +103,13 @@ export const WORKER_RENDERED_EMAILS = [
   "auth.new_device",
   "privacy.request_received",
   "privacy.export_ready",
+  "privacy.erasure_completed",
 ] as const;
 
 type RenderedEmailCode = (typeof WORKER_RENDERED_EMAILS)[number];
+
+/** The e-mails of an active account, read through its subject (the others have their own read). */
+type AccountEmailCode = Exclude<RenderedEmailCode, "privacy.erasure_completed">;
 
 /** Sender name of the transactional flow (16 RG156). */
 const SENDER_NAME = "INFLUX";
@@ -125,9 +134,16 @@ export type BrevoErasureSubjectReader = (
   line: ClaimedLine,
 ) => Promise<BrevoErasureSubject | null>;
 
+/** The address, language and time of an executed erasure whose answer is to leave (0150). */
+export type ErasureNotificationSubjectReader = (
+  requestId: string,
+) => Promise<ErasureNotificationSubject | null>;
+
 export type BrevoConnectorDependencies = {
   /** Reads the subject of a line in processing for this worker (0112), its own transaction. */
   readSubject: BrevoSubjectReader;
+  /** Reads the held address of an executed erasure (0150, E-5 pool), its own transaction. */
+  readErasureNotificationSubject: ErasureNotificationSubjectReader;
   /** Reads the contact of an erased account on an account.deleted line (0136), its own transaction. */
   readErasureSubject: BrevoErasureSubjectReader;
   logger: BrevoClientLogger;
@@ -470,8 +486,9 @@ export function createBrevoConnectors(
       // No request of this account behind the line: nothing to acknowledge, visible, never guessed.
       return { kind: "fail", errorCode: "request_not_found" };
     }
-    if (request.type !== "access" && request.type !== "erasure") {
-      // RG160: no generic text for a type the space does not expose.
+    if (request.type !== "access") {
+      // RG160 (export only since D72): no generic text for another type, an erasure included, which
+      // is answered by privacy.erasure_completed.
       return { kind: "fail", errorCode: "unsupported_request_type" };
     }
     if (request.closed) {
@@ -517,9 +534,39 @@ export function createBrevoConnectors(
     return rendered(line, "privacy.export_ready", subject.email, email, locale);
   }
 
+  /**
+   * privacy.erasure_completed (D72, 16 RG160 bis): the account is erased, so the address, language
+   * and time zone come from the execution that holds them; nothing but the date is written.
+   */
+  async function erasureCompleted(line: ClaimedLine): Promise<Preparation> {
+    const requestId = line.payload.request_id;
+    if (typeof requestId !== "string") {
+      return { kind: "fail", errorCode: "erasure_not_found" };
+    }
+    const subject =
+      await dependencies.readErasureNotificationSubject(requestId);
+    if (subject === null) {
+      // No executed, open erasure with its address held: nothing to answer, visible, never guessed.
+      return { kind: "fail", errorCode: "erasure_not_found" };
+    }
+    const locale = subject.preferredLanguage === "fr" ? "fr" : "en";
+    const email = renderErasureCompletedEmail({
+      locale,
+      erasedAt: new Date(subject.erasedAt),
+      timeZone: subject.timeZone,
+    });
+    return rendered(
+      line,
+      "privacy.erasure_completed",
+      subject.email,
+      email,
+      locale,
+    );
+  }
+
   const RENDERERS: Readonly<
     Record<
-      RenderedEmailCode,
+      AccountEmailCode,
       (
         line: ClaimedLine,
         account: NonNullable<AttemptState["account"]>,
@@ -610,6 +657,10 @@ export function createBrevoConnectors(
     destination: "brevo_transactional",
     hasCredentials: hasCredentials && settings.senderTransactional !== null,
     async prepare(line, state) {
+      if (line.payload.email_code === "privacy.erasure_completed") {
+        // Before the account step: the account is erased by construction.
+        return erasureCompleted(line);
+      }
       const skipped = accountSkip(state.account);
       if (skipped !== null || state.account === null) {
         return skipped ?? { kind: "skip", reason: "account_absent" };
@@ -627,7 +678,7 @@ export function createBrevoConnectors(
       if (subject === null) {
         return { kind: "skip", reason: "account_absent" };
       }
-      return RENDERERS[code as RenderedEmailCode](line, account, subject);
+      return RENDERERS[code as AccountEmailCode](line, account, subject);
     },
   };
 

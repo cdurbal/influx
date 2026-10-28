@@ -1464,6 +1464,35 @@ export async function submitDataRequest(
   return { requestId: row.request_id, created: row.created };
 }
 
+/**
+ * The erasure authorised by the member (0150 identity.submit_member_erasure, D72): consumes the
+ * fresh code `account_deletion` of this session (55000 without it), opens the request in_progress
+ * with its execution, and closes EVERY session of the account, all in this transaction. `created`
+ * is false when an erasure was already open (nothing else written). The account and the session
+ * come from the transaction context, never a parameter.
+ */
+export async function submitMemberErasure(
+  tx: Transaction,
+): Promise<{ requestId: string; status: string; created: boolean }> {
+  const rows = await tx.execute<{
+    request_id: string;
+    status: string;
+    created: boolean;
+  }>(
+    sql`select request_id::text as request_id, status, created
+          from identity.submit_member_erasure()`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    throw new Error("member erasure not authorised");
+  }
+  return {
+    requestId: row.request_id,
+    status: row.status,
+    created: row.created,
+  };
+}
+
 // --- The rescue channel, under influx_auth (E-1 support.report_delivery_issue; 05 RG65, 0120) --------
 
 /** Writes one report and nothing else (no lookup, no code, no session, no e-mail); its id. */

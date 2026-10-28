@@ -3,9 +3,10 @@
 // (0120) and written by the worker at consumption from INFLUX's translation files
 // (src/locales/<language>/email.json), like auth.new_device (16 RG67, RG157): decision of architecte
 // on 2026-10-14, no Brevo template. Order of the body, as RG160 point 6 lists it: title, receipt,
-// what happens next, what is kept (erasure only), deadline, where to follow it, "not you?" and its
-// three steps, "never", reason. No link of any kind, no domain, no address in the text (RG160
-// point 5); never a promise of execution, never the internal goal of 10 days.
+// what happens next, deadline, where to follow it, "not you?" and its three steps, "never", reason.
+// No link of any kind, no domain, no address in the text (RG160 point 5); never a promise of
+// execution, never the internal goal of 10 days. Export requests only: an erasure deposited from the
+// space is authorised by the member and answered by privacy.erasure_completed (D72, RG160 bis).
 import type { UiLocale } from "@influx/contracts/auth";
 import english from "../../locales/en/email.json" with { type: "json" };
 import french from "../../locales/fr/email.json" with { type: "json" };
@@ -23,8 +24,8 @@ const MESSAGES: Readonly<Record<UiLocale, EmailMessages>> = {
   en: english,
 };
 
-/** The two types a member deposits from the space (J7); any other is never acknowledged. */
-export type AcknowledgedRequestType = "access" | "erasure";
+/** The one type that is acknowledged (D72): any other, an erasure included, is never acknowledged. */
+export type AcknowledgedRequestType = "access";
 
 export type DataRequestReceivedEmailInput = {
   /** The account's language (16 RG160 point 3). */
@@ -77,7 +78,6 @@ export function renderDataRequestReceivedEmail(
   const deadline = format(texts.deadline, due, locale, dueTimeZone);
   const subject = texts.subject[type];
   const title = texts.title[type];
-  const kept = type === "erasure" ? [texts.kept.erasure] : [];
   const steps = [texts.step1, texts.step2, texts.step3];
   const why = format(
     messages.email.transactional.why,
@@ -85,7 +85,7 @@ export function renderDataRequestReceivedEmail(
     locale,
     timeZone,
   );
-  const paragraphs = [received, texts.next[type], ...kept, deadline];
+  const paragraphs = [received, texts.next[type], deadline];
   const text = [
     title,
     "",

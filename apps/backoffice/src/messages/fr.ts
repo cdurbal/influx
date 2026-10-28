@@ -578,6 +578,19 @@ export const messages = {
     dataRequestExecuted: (at: string) => `Exécutée le ${at}.`,
     dataRequestApproved: (at: string) =>
       `Exécution approuvée le ${at}, en attente du traitement.`,
+    /** D72: an erasure authorised by the member alone, read-only; never an approval button. */
+    dataRequestMemberErasure: (
+      authorised: string,
+      executed: string | null,
+      brevo: string,
+      apollo: string,
+      closed: string | null,
+    ) =>
+      `Suppression demandée et confirmée par le membre (code frais) le ${authorised} · ${
+        executed === null ? "en attente d’exécution" : `exécutée le ${executed}`
+      } · Brevo ${brevo} · Apollo ${apollo} · ${
+        closed === null ? "non close" : `close le ${closed}`
+      }.`,
     dataRequestExport: (expires: string, downloads: number) =>
       `Export publié, disponible jusqu’au ${expires} · ${downloads} téléchargement${downloads > 1 ? "s" : ""}.`,
     dataRequestApprove: "Approuver l’exécution (double validation)",

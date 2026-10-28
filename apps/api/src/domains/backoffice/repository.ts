@@ -866,6 +866,7 @@ export type AccountDataRequestRow = {
   status: string;
   completedAt: string | null;
   outcomeCode: string | null;
+  authorisedBy: string | null;
   approvedAt: string | null;
   approvedBy: string | null;
   executedAt: string | null;
@@ -893,6 +894,7 @@ export async function dataRequestsOf(
     status: string;
     completed_at: string | null;
     outcome_code: string | null;
+    authorised_by: string | null;
     approved_at: string | null;
     approved_by: string | null;
     executed_at: string | null;
@@ -908,6 +910,7 @@ export async function dataRequestsOf(
            r.status::text as status,
            to_char(r.completed_at at time zone 'UTC', ${ISO_UTC}) as completed_at,
            r.outcome_code::text as outcome_code,
+           e.authorised_by as authorised_by,
            to_char(e.approved_at at time zone 'UTC', ${ISO_UTC}) as approved_at,
            e.approved_by_account_id::text as approved_by,
            to_char(e.executed_at at time zone 'UTC', ${ISO_UTC}) as executed_at,
@@ -929,6 +932,7 @@ export async function dataRequestsOf(
     status: row.status,
     completedAt: row.completed_at,
     outcomeCode: row.outcome_code,
+    authorisedBy: row.authorised_by,
     approvedAt: row.approved_at,
     approvedBy: row.approved_by,
     executedAt: row.executed_at,

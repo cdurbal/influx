@@ -1,6 +1,6 @@
-// The e-mail privacy.request_received, the acknowledgement of a "mes données" request (16 RG160,
-// CA117): the exact texts of RG160 in both languages, the variant of the type (what is kept for an
-// erasure only), the dates in the account's time zone, a deadline never later than the database's,
+// The e-mail privacy.request_received, the acknowledgement of an export request (16 RG160, CA117;
+// export only since D72: an erasure is answered by privacy.erasure_completed): the exact texts of
+// RG160 in both languages, the dates in the account's time zone, a deadline never later than the database's,
 // and NOTHING of what is forbidden: no link, no address, no domain, no promise of execution, no
 // internal goal, none of the words of 17 §6.3.
 import { describe, expect, it } from "vitest";
@@ -46,25 +46,19 @@ describe("content and order (16 RG160 point 6)", () => {
     ]);
   });
 
-  it("CA117: an erasure in English in America/Toronto, what is kept before the deadline", () => {
+  it("CA117: an export in English in America/Toronto, the deadline right after what happens next", () => {
     const { subject, text, html } = render({
       locale: "en",
-      type: "erasure",
       timeZone: "America/Toronto",
     });
-    expect(subject).toBe(
-      "Your INFLUX account deletion request has been received",
-    );
+    expect(subject).toBe("Your INFLUX data export request has been received");
     const lines = text.split("\n").filter((line) => line !== "");
-    expect(lines[0]).toBe("Account deletion request received");
+    expect(lines[0]).toBe("Data export request received");
     expect(lines[1]).toMatch(
-      /^We have received your request to delete your INFLUX account, submitted from your account on October 14, 2026 at 5:30\sAM \(EDT\)\.$/,
+      /^We have received your request for an export of your personal data, submitted from your INFLUX account on October 14, 2026 at 5:30\sAM \(EDT\)\.$/,
     );
-    expect(lines[2]).toBe(
-      "Nothing is deleted automatically: a member of the INFLUX team handles your request. Until then, your account remains active and you can still sign in.",
-    );
-    expect(lines[3]).toMatch(/^Some information is not erased but kept/);
-    expect(lines[4]).toBe(
+    expect(lines[2]).toMatch(/^Nothing is sent automatically:/);
+    expect(lines[3]).toBe(
       "We will reply to this address by November 13, 2026 at the latest.",
     );
     expect(html).toContain(
@@ -109,13 +103,8 @@ describe("nothing of what is forbidden (16 RG160 points 5 and interdits)", () =>
     /%/,
   ];
 
-  it.each([
-    ["fr", "access"],
-    ["fr", "erasure"],
-    ["en", "access"],
-    ["en", "erasure"],
-  ] as const)("%s %s", (locale, type) => {
-    const { subject, text, html } = render({ locale, type });
+  it.each([["fr"], ["en"]] as const)("%s", (locale) => {
+    const { subject, text, html } = render({ locale });
     for (const pattern of FORBIDDEN) {
       expect(subject, String(pattern)).not.toMatch(pattern);
       expect(text, String(pattern)).not.toMatch(pattern);

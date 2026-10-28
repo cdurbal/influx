@@ -20,7 +20,10 @@ import {
   type ApiDatabase,
   type WorkerDatabase,
 } from "../src/db/index.ts";
-import { createPrivacyExecutor } from "../src/domains/privacy/execution.ts";
+import {
+  createPrivacyExecutor,
+  readErasureNotificationSubjectOf,
+} from "../src/domains/privacy/execution.ts";
 import { DATA_EXPORT_CATEGORIES } from "../src/domains/privacy/notice.ts";
 import type { GoTrueFailure, GoTrueOutcome } from "../src/platform/supabase.ts";
 import { buildServer } from "../src/server.ts";
@@ -157,12 +160,15 @@ async function newMember(role: "advertiser" | "creator"): Promise<Member> {
 }
 
 /** The fresh code of decision 4 of J7, as verify-code writes it (0118): the marker of a purpose. */
-async function freshCode(member: Member): Promise<void> {
+async function freshCode(
+  member: Member,
+  purpose: "data_export" | "account_deletion" = "data_export",
+): Promise<void> {
   await migrationRole().begin(async (tx) => {
     await tx`alter table identity.sessions disable trigger sessions_guard_update`;
     await tx`
       update identity.sessions
-         set reauthenticated_at = now(), reauth_purpose = 'data_export'
+         set reauthenticated_at = now(), reauth_purpose = ${purpose}
        where id = ${member.sessionId}`;
     await tx`alter table identity.sessions enable trigger sessions_guard_update`;
   });
@@ -221,6 +227,7 @@ function web(
   method: "GET" | "POST",
   url: string,
   member: Member | null,
+  body?: unknown,
 ): Promise<LightMyRequestResponse> {
   return server.inject({
     method,
@@ -230,10 +237,12 @@ function web(
       "x-request-id": randomUUID(),
       "sec-fetch-site": "same-origin",
       "x-real-ip": "2001:db8:5::7",
+      ...(body === undefined ? {} : { "content-type": "application/json" }),
       ...(member === null
         ? {}
         : { cookie: `__Host-influx-session=${member.session}` }),
     },
+    ...(body === undefined ? {} : { payload: JSON.stringify(body) }),
   });
 }
 
@@ -711,6 +720,111 @@ describe("erasure: anonymised by the worker, propagated to Brevo, closed after i
     expect(await registerCodes(member.accountId)).toEqual(
       expect.arrayContaining(["account.anonymized"]),
     );
+  });
+
+  it("D72 (T1, T4, T9): authorised by the member through the route, executed without an admin, answered by e-mail, closed after its messageId; the address can sign up again", async () => {
+    const server = app();
+    const member = await newMember("creator");
+    await freshCode(member, "account_deletion");
+    const deposited = await web(
+      server,
+      "POST",
+      "/v1/me/data-requests",
+      member,
+      { type: "erasure" },
+    );
+    expect(deposited.json()).toMatchObject({
+      outcome: "erasure_authorised",
+      status: "in_progress",
+    });
+    const requestId = deposited.json<{ requestId: string }>().requestId;
+
+    // T8: the record shows it as authorised by the member, with no approver (read-only)
+    const record = await backoffice(
+      server,
+      "GET",
+      `/v1/bo/accounts/${member.accountId}`,
+      agent,
+    );
+    expect(record.json<{ dataRequests: unknown[] }>().dataRequests).toEqual([
+      expect.objectContaining({
+        id: requestId,
+        type: "erasure",
+        status: "in_progress",
+        execution: expect.objectContaining({
+          authorisedBy: "member_fresh_code",
+          approvedBy: null,
+          executedAt: null,
+        }),
+      }),
+    ]);
+
+    // the next turn of the worker erases it: no approval, no 2V
+    await tick();
+    const [account] = await migrationRole()<{ status: string }[]>`
+      select status::text as status from identity.accounts where id = ${member.accountId}`;
+    expect(account).toEqual({ status: "deleted" });
+    expect(deletedAuthUsers).toEqual([member.authUserId]);
+    const deleted = await linesOf(member.accountId, "account.deleted");
+    expect(deleted).toHaveLength(2);
+
+    // the answer reads the held address on the E-5 pool, in the language and zone of the account
+    expect(await readErasureNotificationSubjectOf(worker, requestId)).toEqual({
+      email: member.email,
+      preferredLanguage: "fr",
+      timeZone: "UTC",
+      erasedAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/),
+    });
+    // another request: nothing to answer
+    expect(await readErasureNotificationSubjectOf(worker, randomUUID())).toBe(
+      null,
+    );
+
+    // closed once Brevo and the answer both left
+    for (const line of deleted) {
+      await settle(
+        line.id,
+        line.destination === "brevo_contact"
+          ? { status: "succeeded" }
+          : { status: "skipped", reason: "erasure_not_propagated" },
+      );
+    }
+    await tick();
+    expect(await requestOf(requestId)).toMatchObject({ status: "in_progress" });
+    const [mail] = await linesOf(member.accountId, "privacy.erasure_completed");
+    await settle(mail?.id ?? "", {
+      status: "succeeded",
+      messageId: "<tm1-self-service@smtp-relay.brevo.com>",
+    });
+    await tick();
+    expect(await requestOf(requestId)).toMatchObject({
+      status: "closed",
+      outcome_code: "satisfaite",
+    });
+    // the address is released with the closure: nothing left to answer
+    expect(await readErasureNotificationSubjectOf(worker, requestId)).toBe(
+      null,
+    );
+
+    // CA31: the same address signs up again as an entirely new account
+    const again = randomUUID();
+    await migrationRole().begin(async (tx) => {
+      await tx`
+        insert into identity.accounts
+          (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
+           is_adult_attested, adult_attested_at, declared_status)
+        values (${again}, ${randomUUID()}, ${member.email}, now(), 'FR', 'fr', true, now(),
+                'individual'::identity.declared_status)`;
+      await tx`
+        insert into identity.account_roles (account_id, role)
+        values (${again}, 'creator'::identity.account_role)`;
+    });
+    members.push(again);
+    const [fresh] = await migrationRole()<{ id: string; status: string }[]>`
+      select id::text as id, status::text as status from identity.accounts
+       where email = ${member.email}`;
+    expect(fresh).toEqual({ id: again, status: "active" });
+    expect(again).not.toBe(member.accountId);
   });
 
   it("calls GoTrue with the account's Auth user, once, and never closes while Brevo has not confirmed", async () => {

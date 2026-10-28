@@ -193,7 +193,7 @@
   },
   "data": {
     "title": "Mes données",
-    "lead": "Demandez une copie de vos données ou la suppression de votre compte. Chaque demande est traitée par une personne de l'équipe INFLUX.",
+    "lead": "Demandez une copie de vos données, traitée par une personne de l'équipe INFLUX, ou supprimez votre compte.",
     "requests": {
       "title": "Vos demandes",
       "line": "{type} · {status}",
@@ -219,7 +219,7 @@
     },
     "delete": {
       "title": "Supprimer mon compte",
-      "text": "Votre demande est traitée par une personne de l'équipe INFLUX. D'ici là, votre compte reste actif.",
+      "text": "Votre compte est supprimé dès que vous confirmez avec un code : aucune validation par l'équipe INFLUX n'est nécessaire.",
       "action": "Supprimer mon compte",
       "open": "Une demande de suppression est déjà en cours : vous la suivez ci-dessus."
     },
@@ -240,7 +240,7 @@
       "durations": "Durées de conservation : voir la politique de confidentialité.",
       "durationsLink": "Lire la politique de confidentialité",
       "newAccount": "Une nouvelle inscription avec la même adresse créera un compte entièrement nouveau, sans lien avec celui-ci.",
-      "manual": "Rien n'est supprimé automatiquement : une personne de l'équipe INFLUX traite votre demande. D'ici là, votre compte reste actif et vous pouvez toujours vous connecter.",
+      "manual": "La suppression est effectuée automatiquement, dans la minute qui suit votre code. Vous êtes déconnecté de tous vos appareils et un e-mail vous confirme la suppression.",
       "word": "SUPPRIMER",
       "wordLabel": "Tapez {word} pour confirmer",
       "wordError": "Tapez {word}, en capitales, pour confirmer.",
@@ -250,6 +250,7 @@
     "done": {
       "access": "Demande d'export reçue. Nous vous répondrons au plus tard le {date}. Un e-mail de confirmation part à votre adresse.",
       "erasure": "Demande de suppression reçue. Nous vous répondrons au plus tard le {date}. Un e-mail de confirmation part à votre adresse.",
+      "erasureAuthorised": "Votre suppression est confirmée : vous êtes déconnecté de tous vos appareils. Votre compte est supprimé dans la minute et un e-mail vous le confirme.",
       "alreadyOpen": "Une demande de ce type est déjà en cours : la voici. Aucune nouvelle demande n'a été créée."
     },
     "unavailable": "Nous ne parvenons pas à enregistrer votre demande pour le moment. Réessayez dans quelques minutes.",

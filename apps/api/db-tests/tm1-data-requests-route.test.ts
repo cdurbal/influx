@@ -292,6 +292,51 @@ async function acknowledgementsOf(accountId: string): Promise<QueueLine[]> {
      order by id`;
 }
 
+type ErasureFacts = {
+  requests: { id: string; status: string; channel: string }[];
+  executions: {
+    request_id: string;
+    authorised_by: string;
+    approved_by_account_id: string | null;
+    dual_control_request_id: string | null;
+    executed_at: string | null;
+  }[];
+  dualControls: number;
+};
+
+/** What an erasure left in the database for an account (D72, T1). */
+async function erasureFactsOf(accountId: string): Promise<ErasureFacts> {
+  const requests = await migration<ErasureFacts["requests"]>`
+    select id::text as id, status::text as status, channel::text as channel
+      from backoffice.data_subject_requests
+     where requester_account_id = ${accountId} and request_type = 'erasure'
+     order by received_at, id`;
+  const executions = await migration<ErasureFacts["executions"]>`
+    select request_id::text as request_id, authorised_by,
+           approved_by_account_id::text as approved_by_account_id,
+           dual_control_request_id::text as dual_control_request_id,
+           executed_at::text as executed_at
+      from privacy.request_executions where account_id = ${accountId}
+     order by approved_at, request_id`;
+  const [dual] = await migration<{ count: string }[]>`
+    select count(*)::text as count
+      from backoffice.dual_control_requests d
+      join privacy.request_executions e on e.dual_control_request_id = d.id
+     where e.account_id = ${accountId}`;
+  return {
+    requests: [...requests],
+    executions: [...executions],
+    dualControls: Number(dual?.count ?? "0"),
+  };
+}
+
+/** The register codes of a request, in order. */
+async function registerOf(requestId: string): Promise<string[]> {
+  const rows = await migration<{ event_type: string }[]>`
+    select event_type from audit.audit_events where subject_id = ${requestId} order by seq`;
+  return rows.map((row) => row.event_type);
+}
+
 beforeAll(async () => {
   migration = migrationRole();
   const [version] = await migration<{ id: string }[]>`
@@ -433,7 +478,7 @@ describe("POST and GET /v1/me/data-requests (EC-14; 05 RG57; 17 §6.3; decision 
     expect(await acknowledgementsOf(member.accountId)).toHaveLength(1);
   });
 
-  it("a deletion needs a fresh code for account_deletion; one for data_export does not do", async () => {
+  it("T1, T2 (D72): a deletion needs a fresh code for account_deletion; it is then authorised by the member alone, in one transaction", async () => {
     const server = app();
     const member = await newMember();
     await reauthenticate(server, member, "data_export");
@@ -444,6 +489,11 @@ describe("POST and GET /v1/me/data-requests (EC-14; 05 RG57; 17 §6.3; decision 
         }),
       ),
     ).toEqual({ status: 403, code: "reauthentication_required" });
+    expect(await erasureFactsOf(member.accountId)).toEqual({
+      requests: [],
+      executions: [],
+      dualControls: 0,
+    });
 
     await reauthenticate(server, member, "account_deletion");
     const deposited = await call(
@@ -453,14 +503,97 @@ describe("POST and GET /v1/me/data-requests (EC-14; 05 RG57; 17 §6.3; decision 
       member,
       { type: "erasure" },
     );
-    expect(deposited.json()).toMatchObject({
-      outcome: "received",
-      request: { type: "erasure", status: "received" },
+    expect(deposited.statusCode).toBe(200);
+    const body = deposited.json() as {
+      outcome: string;
+      requestId: string;
+      status: string;
+    };
+    expect(body).toEqual({
+      outcome: "erasure_authorised",
+      requestId: expect.any(String),
+      status: "in_progress",
     });
-    // a REQUEST at J7: the member still signs in, its sessions are open
+    // the cookie is cleared as "fermer toutes les sessions" does
+    const cookie = String(deposited.headers["set-cookie"]);
+    expect(cookie).toContain("__Host-influx-session=;");
+    expect(cookie).toMatch(/Max-Age=0|Expires=Thu, 01 Jan 1970/);
+    // every session of the account is closed, this one included
     expect(
       (await call(server, "GET", "/v1/me/sessions", member)).statusCode,
-    ).toBe(200);
+    ).toBe(401);
+    // the facts: in progress, self-service, authorised by the member, no 2V, no approval
+    expect(await erasureFactsOf(member.accountId)).toEqual({
+      requests: [
+        {
+          id: body.requestId,
+          status: "in_progress",
+          channel: "self_service",
+        },
+      ],
+      executions: [
+        {
+          request_id: body.requestId,
+          authorised_by: "member_fresh_code",
+          approved_by_account_id: null,
+          dual_control_request_id: null,
+          executed_at: null,
+        },
+      ],
+      dualControls: 0,
+    });
+    expect(await registerOf(body.requestId)).toEqual([
+      "privacy.request_received",
+      "privacy.execution_authorised_by_member",
+    ]);
+    // no acknowledgement for an erasure: it would say that nothing is deleted automatically
+    expect(await acknowledgementsOf(member.accountId)).toEqual([]);
+  });
+
+  it("T2: a code already consumed leaves nothing to create; an open erasure is returned as it is", async () => {
+    const server = app();
+    const member = await newMember();
+    await reauthenticate(server, member, "account_deletion");
+    const first = await call(server, "POST", "/v1/me/data-requests", member, {
+      type: "erasure",
+    });
+    expect(first.json()).toMatchObject({ outcome: "erasure_authorised" });
+    const requestId = (first.json() as { requestId: string }).requestId;
+
+    // another session of the account (the first ones are closed): no fresh code, nothing created
+    const token = randomBytes(32);
+    await migration`
+      insert into identity.sessions
+        (token_hash, account_id, surface, mfa_method, user_agent_summary)
+      values (${createHash("sha256").update(token).digest()}, ${member.accountId}, 'member', null,
+              'safari.ios')`;
+    const other: Member = { ...member, session: token.toString("base64url") };
+    watchedValues.push(other.session);
+    expect(
+      errorOf(
+        await call(server, "POST", "/v1/me/data-requests", other, {
+          type: "erasure",
+        }),
+      ),
+    ).toEqual({ status: 403, code: "reauthentication_required" });
+
+    // with a fresh code: the request still open is returned, nothing else written
+    await reauthenticate(server, other, "account_deletion");
+    const again = await call(server, "POST", "/v1/me/data-requests", other, {
+      type: "erasure",
+    });
+    expect(again.json()).toEqual({
+      outcome: "erasure_authorised",
+      requestId,
+      status: "in_progress",
+    });
+    const facts = await erasureFactsOf(member.accountId);
+    expect(facts.requests).toHaveLength(1);
+    expect(facts.executions).toHaveLength(1);
+    expect(await registerOf(requestId)).toEqual([
+      "privacy.request_received",
+      "privacy.execution_authorised_by_member",
+    ]);
   });
 
   it("A3: a member who has not accepted the terms in force still exercises these rights (the change of address stays gated)", async () => {
@@ -488,7 +621,7 @@ describe("POST and GET /v1/me/data-requests (EC-14; 05 RG57; 17 §6.3; decision 
       member,
       { type: "erasure" },
     );
-    expect(deposited.json()).toMatchObject({ outcome: "received" });
+    expect(deposited.json()).toMatchObject({ outcome: "erasure_authorised" });
   });
 
   it("T14: a member never reads another's requests; no session, 401; another type, 400", async () => {

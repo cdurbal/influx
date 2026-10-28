@@ -108,40 +108,40 @@
 | 51 | 27 | 0. Ce qu'il faut retenir si l'on ne lit qu'une page |  |
 | 78 | 74 | 1. Les cinq rôles |  |
 | 152 | 24 | 2. Conventions de lecture de la matrice |  |
-| 176 | 468 | 3. La matrice des droits | RG1–RG146 |
-| 178 | 54 | ↳ 3.1 Domaine `identity` — comptes, rôles, CGU, sessions | RG5 |
-| 232 | 79 | ↳ 3.2 Domaine `profiles` — profils marque, profils créateur, pièces de vérification, badge |  |
-| 311 | 27 | ↳ 3.3 Domaine `campaigns` et `search` |  |
-| 338 | 200 | ↳ 3.4 Domaine `matching` et `messaging` | RG5–RG146 |
-| 538 | 76 | ↳ 3.5 Domaines `billing` (pipeline commercial), `leads` et `backoffice` | RG1–RG39 |
-| 614 | 30 | ↳ 3.6 Domaine `audit` — le registre |  |
-| 644 | 445 | 4. Les principes de Row Level Security | RG5–RG165 |
-| 649 | 15 | ↳ P1 — Refus par défaut, sur toutes les tables, sans exception |  |
-| 664 | 53 | ↳ P2 — L'API se connecte avec le rôle de l'utilisateur, jamais avec un rôle qui contourne la RLS |  |
-| 717 | 22 | ↳ P3 — Le rôle métier est lu en base, jamais dans le jeton |  |
-| 739 | 16 | ↳ P4 — Toute condition d'accès est **positive** et échoue en refus |  |
-| 755 | 34 | ↳ P5 — L'anonymisation est une séparation d'objets, doublée d'une absence de droit |  |
-| 789 | 22 | ↳ P6 — Aucune table métier dans le schéma `public` |  |
-| 811 | 189 | ↳ P7 — La liste **nommée et fermée** des opérations autorisées à s'élever | RG5–RG165 |
-| 1000 | 52 | ↳ P8 — L'append-only est réel, pas conventionnel |  |
-| 1052 | 11 | ↳ P9 — Ce que la RLS ne sait pas faire, et qui le fait à sa place |  |
-| 1063 | 26 | ↳ P10 — Les politiques du Storage |  |
-| 1089 | 140 | 5. La lecture d'une conversation par un agent non participant | RG132–RG134 |
-| 1229 | 418 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` | RG57 |
-| 1231 | 83 | ↳ 6.1 — Point 1 : D37 dans son ensemble | RG57 |
-| 1314 | 35 | ↳ 6.2 — Point 2 : `aal2` vérifié dans les politiques RLS |  |
-| 1349 | 20 | ↳ 6.3 — Point 3 : le rôle métier lu en base plutôt que dans le jeton |  |
-| 1369 | 76 | ↳ 6.4 — Point 4 : le passe-plat |  |
-| 1445 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
-| 1519 | 21 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
-| 1540 | 27 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
-| 1567 | 37 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
-| 1604 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
-| 1647 | 32 | 7. L'isolement du backoffice |  |
-| 1679 | 39 | 8. Les tests de sécurité exigés |  |
-| 1718 | 62 | 9. Verdict d'étape | RG49–RG55 |
-| 1780 | 41 | 10. Ce qui sort de mon périmètre |  |
-| 1821 | 17 | 11. Mises à jour attendues dans les autres documents |  |
+| 176 | 469 | 3. La matrice des droits | RG1–RG146 |
+| 178 | 55 | ↳ 3.1 Domaine `identity` — comptes, rôles, CGU, sessions | RG5 |
+| 233 | 79 | ↳ 3.2 Domaine `profiles` — profils marque, profils créateur, pièces de vérification, badge |  |
+| 312 | 27 | ↳ 3.3 Domaine `campaigns` et `search` |  |
+| 339 | 200 | ↳ 3.4 Domaine `matching` et `messaging` | RG5–RG146 |
+| 539 | 76 | ↳ 3.5 Domaines `billing` (pipeline commercial), `leads` et `backoffice` | RG1–RG39 |
+| 615 | 30 | ↳ 3.6 Domaine `audit` — le registre |  |
+| 645 | 445 | 4. Les principes de Row Level Security | RG5–RG165 |
+| 650 | 15 | ↳ P1 — Refus par défaut, sur toutes les tables, sans exception |  |
+| 665 | 53 | ↳ P2 — L'API se connecte avec le rôle de l'utilisateur, jamais avec un rôle qui contourne la RLS |  |
+| 718 | 22 | ↳ P3 — Le rôle métier est lu en base, jamais dans le jeton |  |
+| 740 | 16 | ↳ P4 — Toute condition d'accès est **positive** et échoue en refus |  |
+| 756 | 34 | ↳ P5 — L'anonymisation est une séparation d'objets, doublée d'une absence de droit |  |
+| 790 | 22 | ↳ P6 — Aucune table métier dans le schéma `public` |  |
+| 812 | 189 | ↳ P7 — La liste **nommée et fermée** des opérations autorisées à s'élever | RG5–RG165 |
+| 1001 | 52 | ↳ P8 — L'append-only est réel, pas conventionnel |  |
+| 1053 | 11 | ↳ P9 — Ce que la RLS ne sait pas faire, et qui le fait à sa place |  |
+| 1064 | 26 | ↳ P10 — Les politiques du Storage |  |
+| 1090 | 140 | 5. La lecture d'une conversation par un agent non participant | RG132–RG134 |
+| 1230 | 418 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` | RG57 |
+| 1232 | 83 | ↳ 6.1 — Point 1 : D37 dans son ensemble | RG57 |
+| 1315 | 35 | ↳ 6.2 — Point 2 : `aal2` vérifié dans les politiques RLS |  |
+| 1350 | 20 | ↳ 6.3 — Point 3 : le rôle métier lu en base plutôt que dans le jeton |  |
+| 1370 | 76 | ↳ 6.4 — Point 4 : le passe-plat |  |
+| 1446 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
+| 1520 | 21 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
+| 1541 | 27 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
+| 1568 | 37 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
+| 1605 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
+| 1648 | 32 | 7. L'isolement du backoffice |  |
+| 1680 | 39 | 8. Les tests de sécurité exigés |  |
+| 1719 | 62 | 9. Verdict d'étape | RG49–RG55 |
+| 1781 | 41 | 10. Ce qui sort de mon périmètre |  |
+| 1822 | 17 | 11. Mises à jour attendues dans les autres documents |  |
 
 ## 04-modele-de-donnees-mvp.md (~142k tokens)
 
@@ -170,12 +170,12 @@
 | 5242 | 207 | 6. Les politiques RLS — principes et exemples | RG122 |
 | 5449 | 280 | 7. Réponse aux six points du §14.2 du document `02` |  |
 | 5729 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
-| 5767 | 112 | 9. Conservation, suppression, anonymisation | RG44–RG112 |
-| 5879 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
-| 6044 | 132 | 11. Plan de migrations | RG15–RG163 |
-| 6176 | 175 | 12. Ce qui reste ouvert | RG22–RG123 |
-| 6351 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
-| 6387 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
+| 5767 | 124 | 9. Conservation, suppression, anonymisation | RG44–RG112 |
+| 5891 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
+| 6056 | 133 | 11. Plan de migrations | RG15–RG163 |
+| 6189 | 175 | 12. Ce qui reste ouvert | RG22–RG123 |
+| 6364 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
+| 6400 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
 
 ## 05-spec-inscription-et-leads.md (~41k tokens)
 
@@ -448,51 +448,51 @@
 | 1299 | 24 | Ce qui change en V2 |  |
 | 1323 | 55 | Additif du 2026-09-24 — Suivi de livraison (D52) et relations préexistantes (D53) | RG2–RG112 |
 
-## 15-backoffice-files-et-supervision.md (~41k tokens)
+## 15-backoffice-files-et-supervision.md (~42k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
 | 29 | 21 | Besoin |  |
 | 50 | 16 | Acteurs |  |
 | 66 | 49 | User stories |  |
-| 115 | 850 | Règles de gestion | RG1–RG161 |
+| 115 | 867 | Règles de gestion | RG1–RG161 |
 | 117 | 71 | ↳ A — Portée, principes et vocabulaire | RG1–RG13 |
 | 188 | 68 | ↳ B — Le tableau de bord | RG5–RG108 |
 | 256 | 102 | ↳ C — Le catalogue unique des files | RG6–RG104 |
 | 358 | 71 | ↳ D — La fiche de compte | RG38–RG108 |
 | 429 | 78 | ↳ E — Suspension, réactivation, réattribution | RG26–RG95 |
 | 507 | 83 | ↳ F — Le catalogue central des alertes | RG8–RG161 |
-| 590 | 95 | ↳ G — Les demandes relatives aux données personnelles | RG71–RG85 |
-| 685 | 49 | ↳ H — Les actions de masse | RG2–RG102 |
-| 734 | 40 | ↳ I — Les exports | RG81–RG106 |
-| 774 | 66 | ↳ J — La gestion des comptes internes | RG60–RG108 |
-| 840 | 41 | ↳ K — Ce qu'un rôle interne ne peut jamais faire | RG7–RG111 |
-| 881 | 84 | ↳ L — Densité, accessibilité et langue | RG11–RG124 |
-| 965 | 44 | Cas limites | RG4–RG116 |
-| 1009 | 304 | Critères d'acceptation | RG16–RG109 |
-| 1011 | 33 | ↳ Tableau de bord | RG16–RG18 |
-| 1044 | 43 | ↳ Catalogue et règles communes des files | RG29 |
-| 1087 | 35 | ↳ Fiche de compte | RG48 |
-| 1122 | 39 | ↳ Suspension, réactivation, réattribution |  |
-| 1161 | 24 | ↳ Alertes |  |
-| 1185 | 41 | ↳ Demandes relatives aux données personnelles | RG81 |
-| 1226 | 33 | ↳ Actions de masse et exports |  |
-| 1259 | 22 | ↳ Comptes internes | RG107 |
-| 1281 | 32 | ↳ Interdits, densité et accessibilité | RG43–RG109 |
-| 1313 | 102 | Impacts | RG8–RG125 |
-| 1415 | 21 | Hors périmètre | RG10–RG100 |
-| 1436 | 29 | Questions ouvertes | RG19–RG111 |
-| 1465 | 162 | Additif du document 16 (2026-09-19) | RG9–RG131 |
-| 1627 | 45 | Additif du J9 (2026-10-21) — alertes techniques de D60 | RG46–RG165 |
+| 590 | 112 | ↳ G — Les demandes relatives aux données personnelles | RG57–RG160 |
+| 702 | 49 | ↳ H — Les actions de masse | RG2–RG102 |
+| 751 | 40 | ↳ I — Les exports | RG81–RG106 |
+| 791 | 66 | ↳ J — La gestion des comptes internes | RG60–RG108 |
+| 857 | 41 | ↳ K — Ce qu'un rôle interne ne peut jamais faire | RG7–RG111 |
+| 898 | 84 | ↳ L — Densité, accessibilité et langue | RG11–RG124 |
+| 982 | 44 | Cas limites | RG4–RG116 |
+| 1026 | 304 | Critères d'acceptation | RG16–RG109 |
+| 1028 | 33 | ↳ Tableau de bord | RG16–RG18 |
+| 1061 | 43 | ↳ Catalogue et règles communes des files | RG29 |
+| 1104 | 35 | ↳ Fiche de compte | RG48 |
+| 1139 | 39 | ↳ Suspension, réactivation, réattribution |  |
+| 1178 | 24 | ↳ Alertes |  |
+| 1202 | 41 | ↳ Demandes relatives aux données personnelles | RG81 |
+| 1243 | 33 | ↳ Actions de masse et exports |  |
+| 1276 | 22 | ↳ Comptes internes | RG107 |
+| 1298 | 32 | ↳ Interdits, densité et accessibilité | RG43–RG109 |
+| 1330 | 102 | Impacts | RG8–RG125 |
+| 1432 | 21 | Hors périmètre | RG10–RG100 |
+| 1453 | 29 | Questions ouvertes | RG19–RG111 |
+| 1482 | 162 | Additif du document 16 (2026-09-19) | RG9–RG131 |
+| 1644 | 46 | Additif du J9 (2026-10-21) — alertes techniques de D60 | RG46–RG165 |
 
-## 16-backoffice-emails-brevo.md (~51k tokens)
+## 16-backoffice-emails-brevo.md (~52k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
 | 48 | 32 | Besoin | RG9–RG78 |
 | 80 | 20 | Acteurs | RG90 |
 | 100 | 57 | User stories | RG35 |
-| 157 | 1450 | Règles de gestion | RG1–RG162 |
+| 157 | 1495 | Règles de gestion | RG1–RG162 |
 | 159 | 94 | ↳ A — Portée, vocabulaire et principes | RG1–RG93 |
 | 253 | 154 | ↳ B — Le parcours d'envoi de masse, écran par écran | RG4–RG102 |
 | 407 | 52 | ↳ C — Source 1 : les contacts de la plateforme | RG22–RG93 |
@@ -500,32 +500,32 @@
 | 521 | 120 | ↳ E — Source 3 : la saisie libre, unitaire | RG9–RG123 |
 | 641 | 82 | ↳ F — La bibliothèque de modèles | RG14–RG78 |
 | 723 | 48 | ↳ G — La cadence maximale par contact | RG3–RG84 |
-| 771 | 181 | ↳ H — Les e-mails transactionnels | RG3–RG162 |
-| 952 | 71 | ↳ H bis — Textes des deux e-mails de sécurité *(J3, 2026-09-27)* | RG9–RG159 |
-| 1023 | 89 | ↳ H ter — Texte de l'accusé de réception d'une demande « mes données » *(J7, 2026-10-14)* | RG57–RG160 |
-| 1112 | 56 | ↳ I — Ce qui remonte de Brevo, et sous quelle forme | RG55–RG146 |
-| 1168 | 96 | ↳ J — Le garde-fou d'environnement et l'interrupteur d'urgence | RG9–RG148 |
-| 1264 | 65 | ↳ K — La supervision | RG15–RG134 |
-| 1329 | 36 | ↳ L — Ce qui ne doit jamais partir dans un e-mail | RG3–RG137 |
-| 1365 | 197 | ↳ M — Le contrat d'interface avec Brevo | RG9–RG161 |
-| 1562 | 45 | ↳ N — Messages, langue et accessibilité | RG11–RG155 |
-| 1607 | 51 | Cas limites | RG7–RG146 |
-| 1658 | 435 | Critères d'acceptation | RG85–RG160 |
-| 1660 | 68 | ↳ Le parcours d'envoi de masse |  |
-| 1728 | 36 | ↳ Source 1 — contacts de la plateforme |  |
-| 1764 | 29 | ↳ Source 2 — segment Brevo |  |
-| 1793 | 51 | ↳ Source 3 — saisie libre |  |
-| 1844 | 26 | ↳ Les modèles |  |
-| 1870 | 22 | ↳ La cadence |  |
-| 1892 | 69 | ↳ Les e-mails transactionnels | RG85–RG160 |
-| 1961 | 23 | ↳ Le suivi des résultats |  |
-| 1984 | 29 | ↳ Environnement et interrupteur d'urgence |  |
-| 2013 | 25 | ↳ La supervision |  |
-| 2038 | 39 | ↳ Les interdits et le contrat d'interface | RG135 |
-| 2077 | 16 | ↳ Langue et accessibilité | RG155 |
-| 2093 | 88 | Impacts | RG6–RG146 |
-| 2181 | 19 | Hors périmètre | RG44–RG107 |
-| 2200 | 27 | Questions ouvertes | RG9–RG160 |
+| 771 | 182 | ↳ H — Les e-mails transactionnels | RG3–RG162 |
+| 953 | 71 | ↳ H bis — Textes des deux e-mails de sécurité *(J3, 2026-09-27)* | RG9–RG159 |
+| 1024 | 133 | ↳ H ter — Texte de l'accusé de réception d'une demande d'export, et réponse à un effacement *(J7, 2026-10-14 ; D72, 2026-10-27)* | RG57–RG160 |
+| 1157 | 56 | ↳ I — Ce qui remonte de Brevo, et sous quelle forme | RG55–RG146 |
+| 1213 | 96 | ↳ J — Le garde-fou d'environnement et l'interrupteur d'urgence | RG9–RG148 |
+| 1309 | 65 | ↳ K — La supervision | RG15–RG134 |
+| 1374 | 36 | ↳ L — Ce qui ne doit jamais partir dans un e-mail | RG3–RG137 |
+| 1410 | 197 | ↳ M — Le contrat d'interface avec Brevo | RG9–RG161 |
+| 1607 | 45 | ↳ N — Messages, langue et accessibilité | RG11–RG155 |
+| 1652 | 51 | Cas limites | RG7–RG146 |
+| 1703 | 435 | Critères d'acceptation | RG85–RG160 |
+| 1705 | 68 | ↳ Le parcours d'envoi de masse |  |
+| 1773 | 36 | ↳ Source 1 — contacts de la plateforme |  |
+| 1809 | 29 | ↳ Source 2 — segment Brevo |  |
+| 1838 | 51 | ↳ Source 3 — saisie libre |  |
+| 1889 | 26 | ↳ Les modèles |  |
+| 1915 | 22 | ↳ La cadence |  |
+| 1937 | 69 | ↳ Les e-mails transactionnels | RG85–RG160 |
+| 2006 | 23 | ↳ Le suivi des résultats |  |
+| 2029 | 29 | ↳ Environnement et interrupteur d'urgence |  |
+| 2058 | 25 | ↳ La supervision |  |
+| 2083 | 39 | ↳ Les interdits et le contrat d'interface | RG135 |
+| 2122 | 16 | ↳ Langue et accessibilité | RG155 |
+| 2138 | 88 | Impacts | RG6–RG146 |
+| 2226 | 19 | Hors périmètre | RG44–RG107 |
+| 2245 | 27 | Questions ouvertes | RG9–RG160 |
 
 ## 17-parcours-et-ecrans-espaces-membres.md (~56k tokens)
 

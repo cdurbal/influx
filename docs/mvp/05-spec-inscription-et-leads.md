@@ -854,7 +854,7 @@ marque n'est jamais le seul porteur d'un état.
 |---|---|
 | Retrait du consentement après inscription | Effet immédiat dans INFLUX, propagation prioritaire, compte intact (RG92, RG94) |
 | Changement d'adresse e-mail | Double confirmation obligatoire ; tant qu'elle n'est pas complète, l'ancienne adresse reste la bonne (RG58) |
-| Demande de suppression du compte | Re-authentification par code, puis anonymisation ; propagation prioritaire vers Brevo et Apollo (RG57, RG73) |
+| Demande de suppression du compte | Re-authentification par code, puis anonymisation **automatique** au tour suivant du worker, sans validation d'un `admin` (D72) ; toutes les sessions sont fermées au dépôt ; propagation prioritaire vers Brevo et Apollo (RG57, RG73) |
 | Changement de rôle demandé par un membre | Refusé en libre-service au MVP ; un administrateur peut le faire, avec motif et journal (RG108, Q9) |
 | Nouvelle version des CGU refusée | Déconnexion sans suppression du compte ; l'état est visible au backoffice (RG28) |
 | Nouvelle inscription après suppression | Autorisée, compte neuf (RG70) |

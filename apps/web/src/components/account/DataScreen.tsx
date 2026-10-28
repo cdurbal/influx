@@ -74,7 +74,7 @@ const PURPOSES = {
   erasure: "account_deletion",
 } as const;
 
-export function DataScreen({ me, online }: AccountContext) {
+export function DataScreen({ me, online, signedOut }: AccountContext) {
   const t = useTranslations("account.data");
   const tAccount = useTranslations("account");
   const locale = useLocale();
@@ -172,6 +172,11 @@ export function DataScreen({ me, online }: AccountContext) {
       setPhase({ kind: "overview" });
       if (result.kind !== "ok") {
         setNotice({ kind: "unavailable" });
+        return;
+      }
+      if (result.data.outcome === "erasure_authorised") {
+        // D72: every session is closed and the cookie cleared; the account is erased by the worker
+        signedOut(t("done.erasureAuthorised"));
         return;
       }
       const { request, outcome } = result.data;

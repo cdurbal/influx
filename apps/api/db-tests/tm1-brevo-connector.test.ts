@@ -222,6 +222,7 @@ async function turn(): Promise<number> {
         readBrevoSubjectOf(database, randomUUID(), line, worker),
       readErasureSubject: (line) =>
         readBrevoErasureSubjectOf(database, randomUUID(), line, worker),
+      readErasureNotificationSubject: () => Promise.resolve(null),
       logger,
     },
   );
@@ -698,7 +699,7 @@ describe("16 RG160, CA117: privacy.request_received, written from the request of
     return row?.id ?? "";
   }
 
-  it("an erasure in English, in the account's time zone, without any link nor template; journaled P1", async () => {
+  it("an export in English, in the account's time zone, without any link nor template; journaled P1", async () => {
     // no template id for this code (0128), nor for any other (D69)
     const account = await createAccount({
       role: "creator",
@@ -707,7 +708,7 @@ describe("16 RG160, CA117: privacy.request_received, written from the request of
     });
     await migration`
       update identity.accounts set timezone = 'America/Toronto' where id = ${account}`;
-    const request = await depositRequest(account, "erasure");
+    const request = await depositRequest(account, "access");
     const line = await acknowledgementLine(account, request);
 
     expect(await turn()).toBe(1);
@@ -716,11 +717,11 @@ describe("16 RG160, CA117: privacy.request_received, written from the request of
     expect(message?.body.to).toEqual([{ email: emails[0] }]);
     expect(message?.body.templateId).toBeUndefined();
     expect(message?.body.subject).toBe(
-      "Your INFLUX account deletion request has been received",
+      "Your INFLUX data export request has been received",
     );
     expect(message?.body.textContent).toMatch(/\((EDT|EST)\)\./);
     expect(message?.body.textContent).toContain(
-      "Some information is not erased",
+      "Nothing is sent automatically",
     );
     expect(
       `${message?.body.htmlContent ?? ""}${message?.body.textContent ?? ""}`,
@@ -737,6 +738,19 @@ describe("16 RG160, CA117: privacy.request_received, written from the request of
         template_ref: null,
       },
     ]);
+  });
+
+  it("D72: an erasure is no longer acknowledged: failed unsupported_request_type, nothing sent", async () => {
+    const account = await createAccount({ role: "creator" });
+    const request = await depositRequest(account, "erasure");
+    const line = await acknowledgementLine(account, request);
+
+    expect(await turn()).toBe(1);
+    expect(await lineRow(line)).toMatchObject({
+      status: "failed",
+      last_error_code: "unsupported_request_type",
+    });
+    expect(double.requests).toHaveLength(0);
   });
 
   it("a request of ANOTHER account named by the line is never read: failed request_not_found, nothing sent", async () => {

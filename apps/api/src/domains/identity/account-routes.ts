@@ -10,9 +10,11 @@
 // Behind a fresh code (RG57, J7 commit 7): the re-authentication (reauthentication.ts, decision 4)
 // and the change of address (email-change.ts, decision 5; RG58, A-11); "mes données" (J7 commit 8,
 // decision 6, EC-14): export and deletion are REQUESTS (backoffice.submit_data_subject_request(),
-// 0120), acknowledged by e-mail and executed by hand by an admin (docs/mvp/runbooks/
-// demandes-rgpd.md); nothing is executed automatically. Both, and the fresh code they need, are
-// exempt from the terms gate (A3): a right of the person survives a refused version.
+// 0120). The export is acknowledged by e-mail and instructed by an admin (docs/mvp/runbooks/
+// demandes-rgpd.md); the deletion is authorised by the member's own fresh code
+// (identity.submit_member_erasure(), 0150, D72) and executed by the worker, without an admin. Both,
+// and the fresh code they need, are exempt from the terms gate (A3): a right of the person
+// survives a refused version.
 import {
   acceptTermsBodySchema,
   acceptTermsResponseSchema,
@@ -111,6 +113,7 @@ import {
   setMarketingConsent,
   sqlStateOf,
   submitDataRequest,
+  submitMemberErasure,
   updateOwnAccount,
   type ConsentState,
   type OwnDataRequestRow,
@@ -662,9 +665,13 @@ export function registerAccountRoutes(
   );
 
   // POST /v1/me/data-requests (RG57): after a fresh code for data_export (access) or
-  // account_deletion (erasure), consumed by the deposit in its transaction; the acknowledgement
-  // privacy.request_received is queued with it (P1). A request of this type still open is returned
-  // as it is. Nothing is exported nor deleted here: an admin instructs the request (EC-14).
+  // account_deletion (erasure), consumed by the deposit in its transaction.
+  // access: the acknowledgement privacy.request_received is queued with it (P1); a request of this
+  //   type still open is returned as it is; nothing is exported here: an admin instructs it (EC-14).
+  // erasure (D72): identity.submit_member_erasure() authorises it in the same transaction, without
+  //   an admin, closes every session of the account and no acknowledgement leaves; the cookie is
+  //   cleared as "fermer toutes les sessions" does, the worker erases the account at its next turn
+  //   and the answer is the e-mail privacy.erasure_completed.
   app.post(
     "/v1/me/data-requests",
     {
@@ -675,6 +682,22 @@ export function registerAccountRoutes(
     },
     async (request, reply): Promise<DataRequestResponse> => {
       const { type } = request.body as DataRequestBody;
+      if (type === "erasure") {
+        const authorised = await withMemberSession(
+          database,
+          request,
+          reply,
+          now,
+          (tx) => requireFreshCode(() => submitMemberErasure(tx)),
+          { terms: "exempt" },
+        );
+        clearAuthCookie(reply, "webSession");
+        return {
+          outcome: "erasure_authorised",
+          requestId: authorised.requestId,
+          status: dataRequestSchema.shape.status.parse(authorised.status),
+        };
+      }
       return withMemberSession(
         database,
         request,

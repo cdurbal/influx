@@ -628,13 +628,27 @@ un export sur une demande non authentifiée, c'est organiser soi-même la fuite.
 | 6 | **Exécuter** (export, rectification, anonymisation, opposition) | **`admin` uniquement**, `2V` + re-authentification (`03` §3.5) | Deux horodatages |
 | 7 | **Notifier, puis clore** avec une issue typée | `agent` ou `admin` | Date d'envoi, identifiant du message chez le prestataire |
 
+> **Exception (D72, 2026-10-27) — l'effacement déposé depuis l'espace membre.** Il n'est **pas
+> instruit** : il est exécuté **sans `admin`**, après la double validation du **membre** (mot à taper
+> puis code frais `account_deletion`, `05` RG57). Les étapes 1 à 5 sont sans objet : l'identité est
+> établie par le code frais (RG74) ; le périmètre est celui de `04` §9.2 ; l'étape 4 est la
+> notification système ; la réponse est l'e-mail `privacy.erasure_completed` (`16` RG160 bis). L'étape 6
+> est faite par le worker au tour suivant (une minute au plus) ; l'étape 7 se clôt **automatiquement**
+> `satisfaite` quand Brevo, Apollo et l'envoi de l'e-mail sont confirmés. RG72, RG73, RG74, RG79 et RG80
+> sont inchangées. L'export et un effacement reçu par un autre canal (e-mail, oral) suivent RG75 sans
+> exception.
+
 **RG76** — **Un agent n'exécute jamais un export ni une anonymisation.** Il instruit ; un
 administrateur exécute (`03` §3.5). C'est la seule séparation de rôles du MVP qui porte sur une
-obligation légale, et elle ne se contourne pas.
+obligation légale, et elle ne se contourne pas. **Seule exception (D72) :** l'effacement que le membre
+dépose lui-même depuis son espace, que le membre autorise par sa double validation ; un agent n'y
+exécute rien non plus, et la fiche du compte l'affiche en lecture seule, sans bouton d'approbation.
 
 **RG77 — Liste fermée des issues** : `satisfaite`, `satisfaite_partiellement` — **avec la liste écrite
 de ce qui n'est pas satisfait et son fondement** —, `refusée`, `sans_objet` (donnée non détenue),
-`retirée_par_le_demandeur`.
+`retirée_par_le_demandeur`. Un effacement en libre-service (D72) se clôt de lui-même `satisfaite` ;
+une demande d'export ouverte au moment de l'effacement est close `retirée_par_le_demandeur` (le membre
+ne pourra plus se connecter pour télécharger le fichier, qui est effacé).
 
 **RG78 — Liste fermée des motifs de refus**, chacun avec son message : demande **manifestement
 infondée ou excessive** (répétitive), **identité non établie**, **donnée non détenue**, **exception
@@ -679,6 +693,9 @@ par un tiers n'est pas un consentement.
 vérification d'identité, périmètre établi, exécutant, deux horodatages de la double validation,
 contenu de la réponse, date d'envoi et identifiant du message chez le prestataire. On doit pouvoir
 démontrer qu'une demande a été traitée dans le délai **sans reconstituer un enchaînement d'e-mails**.
+Pour un effacement en libre-service (D72), la preuve est : le dépôt, le code frais consommé,
+l'exécution (`authorised_by = member_fresh_code`, sans validation d'un tiers), les confirmations de
+Brevo et d'Apollo et l'identifiant du message de l'e-mail `privacy.erasure_completed`.
 
 ---
 
@@ -1654,7 +1671,8 @@ par fait. **En `staging`** (D70, EC-J9-7) : aucune liste blanche, les alertes pa
 | **AL60** | **Purge horaire en défaut** | `ops.periodic_runs.counts.gotrue_realign_failed` > **0**, ou disjoncteur déclenché (`breaker.orphan_ratio`, `breaker.filter_refused`) | Événement, un par passage de purge concerné | `astreinte` | Examiner le passage et corriger avant le suivant : comptes non réalignés, ou purge arrêtée | J7S-8, J7S-2 |
 | **AL61** | **Webhook Brevo : appels ignorés** (`webhook.brevo.ignored` : `invalid_payload`, `outside_window`, `duplicate`) | > **10 %** des appels authentifiés sur **24 h** glissantes **et** au moins **10** appels ignorés (confirmé par `expert-cybersecurite` le 2026-10-27) | État | `astreinte` | Lire le motif dominant ; `invalid_payload` = format Brevo changé, des désinscriptions se perdent | J7S-8 |
 | **AL62** | **Webhook Brevo hors plages** (`webhook.brevo.ip_drift`) : jeton valide reçu hors des plages publiées par Brevo, désinscriptions coupées | **1re occurrence** | Événement, un seul tant qu'il n'est pas classé | `astreinte` | Plages changées par Brevo, ou jeton divulgué : mettre à jour les plages, ou changer le jeton | J7S-8 |
-| **AL63** | **Demande de données personnelles exécutée, non close** | `privacy.request_executions` : `executed_at` sans `completed_at` **24 h** après | État, par exécution | `admin` + `astreinte` | Achever et clore : le délai légal court (AL40) | F4 |
+| **AL63** | **Demande de données personnelles exécutée, non close** | `privacy.request_executions` : `executed_at` sans `completed_at` **24 h** après (y compris un effacement en libre-service dont Brevo, Apollo ou l'e-mail `privacy.erasure_completed` est en échec, D72) | État, par exécution | `admin` + `astreinte` | Achever et clore : le délai légal court (AL40) | F4 |
+| **AL64** | **Effacement autorisé par un membre, non exécuté** *(D72 ; spécifiée, non encore mesurée)* | `privacy.request_executions` : `authorised_by = 'member_fresh_code'` sans `executed_at` **15 min** après `approved_at` | État, par exécution | `admin` + `astreinte` | Vérifier le worker et son pool `PRIVACY_DATABASE_URL` : le membre est déconnecté, son compte est encore actif | D72 |
 
 - **Qui envoie.** AL50 part de l'**API** (aucun service ne se surveille lui-même ; aucune lecture d'identité, E-6),
   toutes les autres du **worker**. **Toutes** vont **directement à Brevo, jamais par `outbox_events`** (J9 commit 8) ;

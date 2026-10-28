@@ -346,9 +346,11 @@ export const ownershipEntrySchema = z.strictObject({
 
 /**
  * A "mes données" request of the member (15 §G, J8 commit 8): what the admin executes from the
- * record, under 2V + R. `execution` is null until an admin approved it; `executed` once the worker
- * ran it (E-5); the closing waits for Brevo (15 RG79). `export` is the access export, never its
- * content (only the member downloads it).
+ * record, under 2V + R. `execution` is null until an admin approved it, or, for an erasure the
+ * member deposited from the space, until the fresh code authorised it (D72: `authorisedBy`
+ * member_fresh_code, no approver, shown read-only); `executed` once the worker ran it (E-5); the
+ * closing waits for Brevo (15 RG79). `export` is the access export, never its content (only the
+ * member downloads it).
  */
 export const accountDataRequestSchema = z.strictObject({
   id: z.uuid(),
@@ -360,8 +362,11 @@ export const accountDataRequestSchema = z.strictObject({
   outcome: z.enum(DATA_REQUEST_OUTCOMES).nullable(),
   execution: z
     .strictObject({
+      authorisedBy: z.enum(["admin_dual_control", "member_fresh_code"]),
+      /** The instant of the authorisation: the admin's approval, or the member's fresh code. */
       approvedAt: z.iso.datetime(),
-      approvedBy: z.uuid(),
+      /** The approving admin; null when the member authorised it (D72). */
+      approvedBy: z.uuid().nullable(),
       executedAt: z.iso.datetime().nullable(),
       /** Erasure: the Supabase Auth user deleted (null for an access request). */
       authUserDeletedAt: z.iso.datetime().nullable(),

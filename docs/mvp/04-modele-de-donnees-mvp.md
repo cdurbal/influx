@@ -5816,6 +5816,18 @@ les préparer serait inventer.
    `account.deleted` part dans `outbox_events` en **priorité 0** vers Brevo et Apollo — la
    propagation de la suppression aux sous-traitants est une obligation, pas une option.
 
+**Déclenchement (D72, `0150`).** Un effacement déposé depuis l'espace membre est autorisé par le
+membre seul : `identity.submit_member_erasure()` consomme le code frais `account_deletion`, crée la
+demande `in_progress` (canal `self_service`) et son exécution (`privacy.request_executions.
+authorised_by = 'member_fresh_code'`, sans double validation ni approbateur) et **révoque toutes les
+sessions du compte** (`revoked_by_holder`) dans la même transaction. L'exécution ci-dessus a lieu au
+**tour suivant du worker** (une minute au plus) ; elle ferme aussi une demande `access` ouverte du
+compte (`retiree_par_le_demandeur`), efface son export, et met en file l'e-mail
+`privacy.erasure_completed` vers l'adresse conservée (`propagation_email`, relâchée à la clôture).
+Un effacement reçu par un autre canal reste approuvé par un `admin` (`authorised_by =
+'admin_dual_control'`). **Toute table personnelle ajoutée plus tard étend cette exécution** : une
+migration qui crée une donnée identifiante doit l'ajouter à `privacy.execute_request()`.
+
 **Ce qui survit, sous forme pseudonymisée** — et qui doit figurer **dans la politique de
 confidentialité dès le Lot 1** :
 
@@ -6101,6 +6113,7 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | **0136** | **`privacy_roles_and_codes`** | *J8, commit 8 (E-5).* Rôles `influx_privacy`, `influx_privacy_login`, `influx_privacy_definer` (jamais liés au worker), schéma `privacy`, codes `account.anonymized`, `account.deleted`, `privacy.*` | Oui avant toute demande exécutée |
 | **0137** | **`privacy_minimal_execution`** | *J8, commit 8 (E-5).* `request_executions`, `data_exports` (7 j, 3 téléchargements, purge E-4) ; approbation 2V + R ; `execute_request()` (export depuis la base, anonymisation §9.2 sur les tables du Lot 1, `account.deleted` vers Brevo et Apollo), clôture | **Non** dès la première exécution réelle (anonymisation) |
 | **0138** | **`backoffice_screen_reads`** | *J8, commit 9.* `backoffice_session_state()` (J3S-6), `agent.new_browser` à la connexion backoffice (B-7, EC-43), `new_browser_sign_ins()` (admin) | Oui avant toute ligne réelle |
+| **0150** | **`privacy_member_authorised_erasure`** | *D72, hors jalon.* `request_executions.authorised_by` (`admin_dual_control` ou `member_fresh_code`), approbateur et double validation nullables sous CHECK ; `identity.submit_member_erasure()` ; `pending_work()`, `execute_request()`, `complete_request()` recréées (demande `access` ouverte close, e-mail `privacy.erasure_completed`) ; `read_erasure_notification_subject()` | **Non** avant la première exécution réelle |
 | **0139–0149** | *D68, D69, J9* | `0139` identifiants de listes Brevo des variables du worker (D68) ; `0140` e-mails de la file rédigés par INFLUX (D69) ; `0141` `apollo_excluded_countries` ; `0142` R liée à la session, RLS `member_invitations`, `admin_role_grants()` ; `0143` seau `backoffice_reauth_ip` ; `0144` réauthentification liée à la session, orphelin GoTrue ; `0145` garde RG163 et journal `settings.changed` par déclencheur (contexte `influx.sync_setting_change`, `05` RG163) ; `0146` configuration manquante = échec incident, rattrapage RG161 ; `0147` surveillance active (battement, sonde, alertes AL49 à AL63) ; `0148` lectures `backoffice.ops_*` de l'écran « Santé technique » ; `0149` lecture de `reference.countries` par `influx_identity_definer`. Détail : en-tête de chaque fichier | Voir l'en-tête |
 | **Lot 2** | | | |
 | 0201 | `reference_taxonomies` | `topics`, `networks`, `formats`, `sectors`, `usage_rights`, `audience_bands`, **`engagement_bands`**, **`age_bands`** (`check (min_age >= 18)`), **`audience_genders`**, **`editorial_tones`**, **`publication_frequencies`**, **`regions`**, `price_bands` **avec ses bornes nettes et son `REVOKE`** | Oui |

@@ -1,8 +1,9 @@
 // "Mes données" in a real browser, at 375 px (J7T-5, J8 commit 10; docs/mvp/17 §6.3; 05 RG57;
 // 15 §G): a member signed up through the screens asks for the export of their data, then for the
 // deletion of their account — the two lists, the word SUPPRIMER (refused when mistyped), and a
-// fresh code for each request. Both stay REQUESTS: the account is still active, nothing says that
-// anything was exported or deleted. The screen passes axe on WCAG 2.1 AA (J7T-4).
+// fresh code for each request. The export stays a REQUEST, nothing says that anything was exported;
+// the deletion is authorised by the fresh code alone (D72): the member is signed out at once and the
+// worker erases the account. The screen passes axe on WCAG 2.1 AA (J7T-4).
 import type { Page } from "@playwright/test";
 import frAccount from "@/locales/fr/account.json" with { type: "json" };
 import { dataRequestFacts } from "./support/account";
@@ -104,19 +105,13 @@ test("an export, then a deletion: two requests, the word SUPPRIMER and a fresh c
   await wordField.fill(word);
   await page.getByRole("button", { name: t.data.confirm.submit }).click();
   await freshCode(page, address);
-  await expect(
-    page
-      .getByRole("status")
-      .filter({ hasText: messagePattern(t.data.done.erasure, "date") }),
-  ).toBeVisible();
-  await expect(page.getByText(t.data.delete.open)).toBeVisible();
+  // D72: authorised by the fresh code alone, every session closed; the worker erases the account
+  await expect(page.getByText(t.data.done.erasureAuthorised)).toBeVisible();
 
-  // Two requests received, self-service; the account is still there and active.
-  expect(await dataRequestFacts(address)).toEqual({
-    status: "active",
-    requests: [
-      { type: "access", status: "received", channel: "self_service" },
-      { type: "erasure", status: "received", channel: "self_service" },
-    ],
-  });
+  // Two self-service requests: the export waits for an admin, the erasure is already in progress.
+  const facts = await dataRequestFacts(address);
+  expect(facts.requests).toEqual([
+    { type: "access", status: "received", channel: "self_service" },
+    { type: "erasure", status: "in_progress", channel: "self_service" },
+  ]);
 });

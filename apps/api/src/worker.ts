@@ -68,7 +68,10 @@ import {
   type PeriodicTask,
   type PeriodicTaskRunner,
 } from "./domains/maintenance/periodic.ts";
-import { createPrivacyExecutor } from "./domains/privacy/execution.ts";
+import {
+  createPrivacyExecutor,
+  readErasureNotificationSubjectOf,
+} from "./domains/privacy/execution.ts";
 import { createTransactionalSender } from "./platform/brevo-transactional.ts";
 import { createLogger } from "./platform/logger.ts";
 import {
@@ -99,6 +102,8 @@ function connectorsOf(
         readBrevoSubjectOf(database, randomUUID(), line, worker),
       readErasureSubject: (line) =>
         readBrevoErasureSubjectOf(database, randomUUID(), line, worker),
+      readErasureNotificationSubject: (requestId) =>
+        readErasureNotificationSubjectOf(database, requestId),
       logger,
     },
   );

@@ -193,7 +193,7 @@
   },
   "data": {
     "title": "My data",
-    "lead": "Ask for a copy of your data or for the deletion of your account. Each request is handled by a member of the INFLUX team.",
+    "lead": "Ask for a copy of your data, handled by a member of the INFLUX team, or delete your account.",
     "requests": {
       "title": "Your requests",
       "line": "{type} · {status}",
@@ -219,7 +219,7 @@
     },
     "delete": {
       "title": "Delete my account",
-      "text": "Your request is handled by a member of the INFLUX team. Until then, your account remains active.",
+      "text": "Your account is deleted as soon as you confirm with a code: no validation by the INFLUX team is needed.",
       "action": "Delete my account",
       "open": "A deletion request is already in progress: follow it above."
     },
@@ -240,7 +240,7 @@
       "durations": "How long things are kept: see the privacy policy.",
       "durationsLink": "Read the privacy policy",
       "newAccount": "Signing up again with the same address will create an entirely new account, unrelated to this one.",
-      "manual": "Nothing is deleted automatically: a member of the INFLUX team handles your request. Until then, your account remains active and you can still sign in.",
+      "manual": "The deletion is carried out automatically, within a minute of your code. You are signed out of all your devices and an email confirms the deletion.",
       "word": "DELETE",
       "wordLabel": "Type {word} to confirm",
       "wordError": "Type {word}, in capitals, to confirm.",
@@ -250,6 +250,7 @@
     "done": {
       "access": "Export request received. We will reply by {date} at the latest. A confirmation email is on its way to your address.",
       "erasure": "Deletion request received. We will reply by {date} at the latest. A confirmation email is on its way to your address.",
+      "erasureAuthorised": "Your deletion is confirmed: you are signed out of all your devices. Your account is deleted within a minute and an email confirms it.",
       "alreadyOpen": "A request of this type is already in progress: here it is. No new request was created."
     },
     "unavailable": "We can't record your request right now. Please try again in a few minutes.",

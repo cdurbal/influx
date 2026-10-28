@@ -75,9 +75,10 @@ function dataRequestOf(row: AccountDataRequestRow): AccountDataRequest {
     completedAt: row.completedAt,
     outcome: row.outcomeCode,
     execution:
-      row.approvedAt === null || row.approvedBy === null
+      row.approvedAt === null || row.authorisedBy === null
         ? null
         : {
+            authorisedBy: row.authorisedBy,
             approvedAt: row.approvedAt,
             approvedBy: row.approvedBy,
             executedAt: row.executedAt,

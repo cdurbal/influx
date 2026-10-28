@@ -78,24 +78,17 @@
     "privacy": {
       "requestReceived": {
         "subject": {
-          "access": "Your INFLUX data export request has been received",
-          "erasure": "Your INFLUX account deletion request has been received"
+          "access": "Your INFLUX data export request has been received"
         },
         "preheader": "A member of the INFLUX team will handle it. You will hear from us by {dueAt, date, long} at the latest.",
         "title": {
-          "access": "Data export request received",
-          "erasure": "Account deletion request received"
+          "access": "Data export request received"
         },
         "received": {
-          "access": "We have received your request for an export of your personal data, submitted from your INFLUX account on {receivedAt, date, long} at {receivedAt, time, short} ({timeZone}).",
-          "erasure": "We have received your request to delete your INFLUX account, submitted from your account on {receivedAt, date, long} at {receivedAt, time, short} ({timeZone})."
+          "access": "We have received your request for an export of your personal data, submitted from your INFLUX account on {receivedAt, date, long} at {receivedAt, time, short} ({timeZone})."
         },
         "next": {
-          "access": "Nothing is sent automatically: a member of the INFLUX team handles your request and prepares a readable file with the personal data we hold about you. We will tell you how to retrieve it securely; it will never be sent as an email attachment.",
-          "erasure": "Nothing is deleted automatically: a member of the INFLUX team handles your request. Until then, your account remains active and you can still sign in."
-        },
-        "kept": {
-          "erasure": "Some information is not erased but kept in a form that no longer names you, for example the activity log and the record of your acceptance of the terms of use. Our reply will tell you exactly what was deleted, what is kept, and why."
+          "access": "Nothing is sent automatically: a member of the INFLUX team handles your request and prepares a readable file with the personal data we hold about you. We will tell you how to retrieve it securely; it will never be sent as an email attachment."
         },
         "deadline": "We will reply to this address by {dueAt, date, long} at the latest.",
         "followUp": "You can follow this request in your INFLUX account, under \"My data\".",
@@ -116,6 +109,17 @@
         "noAttachment": "This file is never sent by email, and this email contains no link: sign in to INFLUX as usual.",
         "notYou": "Didn't request this export? It was confirmed with a code sent to this address:",
         "reason": "you requested an export of your personal data from your INFLUX account"
+      },
+      "erasureCompleted": {
+        "subject": "Your INFLUX account has been deleted",
+        "preheader": "Your account was deleted on {erasedAt, date, long}.",
+        "title": "Your INFLUX account has been deleted",
+        "done": "Your INFLUX account was deleted, at your request, on {erasedAt, date, long} at {erasedAt, time, short} ({timeZone}). You have been signed out of all your devices and can no longer sign in with this account.",
+        "deleted": "What was deleted: your profile and contact information, your sign-in sessions and your data export files were deleted or made anonymous. We have also asked our email and prospecting providers to delete your contact.",
+        "kept": "What is kept, in a form that no longer names you, and why: the platform's activity log, for security and to prove that we meet our obligations; the record of your acceptance of the terms of use and of your consent, so that we can show they were respected; the emails already sent and the log of those sends, to keep a trace of our communications. If you had any, your introductions, deals and conversations with brands or creators are kept the same way, without naming you.",
+        "newAccount": "Signing up again with the same address creates an entirely new account: nothing from your former account is carried over.",
+        "notYou": "Didn't ask for this deletion? It was confirmed with a code sent to this address. Report it to INFLUX from the help on the sign-in screen, giving the date of this email.",
+        "reason": "you deleted your INFLUX account"
       }
     },
     "internal": {

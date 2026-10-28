@@ -534,7 +534,21 @@ function DataRequests({ detail }: { detail: Detail }) {
                 )}
               </span>
               {request.execution === null ? null : request.execution
-                  .executedAt === null ? (
+                  .authorisedBy === "member_fresh_code" ? (
+                <span>
+                  {t.dataRequestMemberErasure(
+                    formatDateTime(request.execution.approvedAt),
+                    request.execution.executedAt === null
+                      ? null
+                      : formatDateTime(request.execution.executedAt),
+                    messages.syncState[detail.account.sync.brevo.state],
+                    messages.syncState[detail.account.sync.apollo.state],
+                    request.completedAt === null
+                      ? null
+                      : formatDateTime(request.completedAt),
+                  )}
+                </span>
+              ) : request.execution.executedAt === null ? (
                 <span>
                   {t.dataRequestApproved(
                     formatDateTime(request.execution.approvedAt),

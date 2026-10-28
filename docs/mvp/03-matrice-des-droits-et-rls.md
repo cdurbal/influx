@@ -189,7 +189,7 @@ erreur.
 | Compte — **modifier un plafond** (e-mails, candidatures) | — | — | — | ✔ · J · 2V · C(3) | — |
 | Compte — suspendre | — | — | ✔ · J · 2V · C(3) | ✔ · J · 2V · C(3) | — |
 | Compte — lever une suspension | — | — | — | ✔ · J · R · C(3) | — |
-| Compte — supprimer / anonymiser | S (demande) | S (demande) | — | ✔ · J · 2V · R | ✔ C(4) |
+| Compte — supprimer / anonymiser | S · R · J (libre-service, D72) | S · R · J (libre-service, D72) | — | ✔ · J · 2V · R | ✔ C(4) |
 | `terms_versions` — lire la version en vigueur | L | L | L | L | L |
 | `terms_versions` — publier une version | — | — | — | ✔ · J · 2V | — |
 | `terms_acceptances` — écrire | ✔ C(5) | ✔ C(5) | — | — | ✔ C(1) |
@@ -212,7 +212,8 @@ erreur.
 - **C(3)** — **Aucun agent ni administrateur ne peut agir sur son propre compte** : attribution de
   rôle, plafond, suspension, levée de suspension. Exprimé en politique :
   `WITH CHECK (target_account_id <> influx.current_account_id())`.
-- **C(4)** — Propagation d'une suppression validée : révocation des sessions, purge dans les
+- **C(4)** — Propagation d'une suppression validée (par un `admin` en `2V`, ou par le membre
+  lui-même pour son propre effacement, D72) : révocation des sessions, purge dans les
   destinations externes. Opération de worker, jamais déclenchée par une route HTTP.
 - **C(5)** — Une acceptation de CGU est **écrite une fois, jamais modifiée**. La table est en ajout
   seul (§4, P8), au même titre que le registre d'audit : une preuve d'acceptation réécrite ne prouve
@@ -568,7 +569,7 @@ create policy creator_identity_read_after_reveal
 | Demande RGPD — déposer | S | S | — | — | — |
 | Demande RGPD — lire la file | — | — | L · J | L · J | — |
 | Demande RGPD — **exécuter un export** | — | — | — | ✔ · J · 2V · R | ✔ C(4) |
-| Demande RGPD — **exécuter une anonymisation** | — | — | — | ✔ · J · 2V · R | ✔ C(4) |
+| Demande RGPD — **exécuter une anonymisation** | S · R · J (son propre effacement, D72) | S · R · J (son propre effacement, D72) | — | ✔ · J · 2V · R | ✔ C(4) |
 | Tableau de bord, indicateurs agrégés | — | — | L | L | ✔ |
 | Notes internes sur une fiche | ⛔ | ⛔ | ✔ · J | ✔ · J | — |
 
@@ -838,7 +839,7 @@ Toute autre opération privilégiée passe par une fonction `SECURITY DEFINER` (
 | **E-2** | **Vérification d'un facteur et écriture de ses effets.** Motifs : `identity.verify_code` — vérification du code d'un membre, compteurs, jeton d'inscription, session d'un compte existant ; `identity.complete_signup` — création du compte à la validation de l'écran 3 (`05` RG5, J5 ; `identity.provision_account`) et sa session ; `identity.backoffice_sign_in` — mot de passe et TOTP ou code de secours, session née en `aal2` ; `identity.backoffice_enroll_totp` — inscription du second facteur, codes de secours ; `identity.backoffice_reauthenticate` — ré-authentification R, fraîcheur écrite sur la ligne de session ; `identity.member_reauthenticate` — code frais d'un membre connecté, marqueur d'une finalité sur sa session (`05` RG57, J7 décision 4, signé par `expert-cybersecurite` le 2026-10-14, revue de fin de J7) | `influx_auth` | Le compte n'existe pas encore, ou la session à créer ou à rafraîchir ne peut pas l'être par le rôle de l'utilisateur sans lui donner le moyen de se forger une preuve | **Oui** |
 | **E-3** | `leads.drain_outbox` — consommation de la file, appels Brevo et Apollo, mise à jour des statuts | `influx_worker` | Aucun utilisateur ne déclenche l'opération | **Non** |
 | **E-4** | `maintenance.run_periodic` — péremption des badges, relances, purges, vérification de la chaîne, expiration des verrous et des codes ; *depuis le J9 (commit 8, `0147`, signé par `expert-cybersecurite` le 2026-10-27, revue de fin de J9)* : surveillance active de D60 — battement du worker, résultats de la sonde, relevé des connexions, lecture agrégée des mesures et états des alertes techniques (`15` RG165), par les fonctions de `ops` seulement, aucune ligne d'audit | `influx_worker` | Tâches de fond | **Non** |
-| **E-5** | `privacy.execute_request` — export ou anonymisation au titre d'une demande RGPD validée | `influx_privacy` | Écritures transverses sur des lignes qui n'appartiennent pas à l'appelant | **Non** : déclenché par une tâche, après validation `2V` + `R` par un `admin` |
+| **E-5** | `privacy.execute_request` — export ou anonymisation au titre d'une demande RGPD validée | `influx_privacy` | Écritures transverses sur des lignes qui n'appartiennent pas à l'appelant | **Non** : déclenché par une tâche, après validation `2V` + `R` par un `admin`, **ou** après la double validation du membre pour son propre effacement (D72) |
 | **E-6** *(signée par `expert-cybersecurite` le 2026-10-06, revue groupée de fin de J4, avec `0016`)* | `ops.record_telemetry` — surveillance interne D60 : groupes et occurrences d'erreurs, métriques par minute (`0016`), écrits **hors** de la transaction de l'utilisateur ; aucune lecture métier, aucune ligne d'audit (rien d'un sujet métier n'est écrit) ; *depuis le J9 (commit 8, `0147`, signé par `expert-cybersecurite` le 2026-10-27, revue de fin de J9)* : compteurs de signaux du webhook Brevo et surveillance du battement du worker (AL50, état de l'alerte sous verrou), toujours sans lecture métier | `influx_ops` | Une erreur doit pouvoir être enregistrée alors que la transaction de l'utilisateur a échoué, sans donner aux rôles métier le moindre droit sur `ops` | **Non** : vidage périodique en mémoire par `apps/api`, jamais dans une requête |
 
 **Cinq entrées, pas une de plus.** Tout ajout à cette liste est une modification de ce document,

@@ -5,6 +5,7 @@
 // the closing conditions (Brevo confirmed, 15 RG79).
 import { sql } from "drizzle-orm";
 import type { Transaction } from "../../db/index.ts";
+import type { ErasureNotificationSubject } from "./erasure-notification-subject.ts";
 
 /** The two types the minimal execution covers (21 §J8 point 6); any other is never executed. */
 export type ExecutableRequestType = "access" | "erasure";
@@ -118,4 +119,35 @@ export async function completeRequest(
     sql`select privacy.complete_request(${requestId}::uuid) as outcome`,
   );
   return rows[0]?.outcome ?? null;
+}
+
+/**
+ * The address of the e-mail privacy.erasure_completed, held since the execution (0150
+ * privacy.read_erasure_notification_subject): no row once the request is closed or the address
+ * released, never a direct SELECT on the column.
+ */
+export async function readErasureNotificationSubject(
+  tx: Transaction,
+  requestId: string,
+): Promise<ErasureNotificationSubject | null> {
+  const rows = await tx.execute<{
+    email: string;
+    preferred_language: string | null;
+    time_zone: string;
+    erased_at: string;
+  }>(
+    sql`select email, preferred_language, time_zone,
+               to_char(erased_at at time zone 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as erased_at
+          from privacy.read_erasure_notification_subject(${requestId}::uuid)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        email: row.email,
+        preferredLanguage: row.preferred_language,
+        timeZone: row.time_zone,
+        erasedAt: row.erased_at,
+      };
 }
