@@ -11,7 +11,7 @@ type ErrorNoticeProps = {
   children?: ReactNode;
 };
 
-/** An error: icon and text, never the color alone, no red fill (zone-de-danger-fiche §3). */
+/** An error: icon and text, never the color alone, no red fill (D72 §3). */
 export function ErrorNotice({
   id,
   announce = true,

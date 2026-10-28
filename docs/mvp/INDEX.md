@@ -6,9 +6,6 @@
 > **Ne jamais lire une spécification en entier.** Repérer ici la section utile, puis la lire avec
 > `Read` (`offset` = ligne de départ, `limit` = nombre de lignes), ou chercher une règle précise
 > avec `Grep` (exemple : `RG113` dans le fichier concerné).
->
-> **Session de jalon : lire d'abord sa fiche**, qui cite déjà les tranches utiles :
-> `jalons/zone-de-danger-fiche.md`.
 
 ## 00-cadrage-mvp-v2.md (~16k tokens)
 
@@ -660,7 +657,7 @@
 | 53 | 39 | 2. Stratégie de développement | RG44–RG148 |
 | 92 | 23 | 3. Écarts actifs pour les jalons restants (J5 à J9) | RG23–RG146 |
 | 115 | 43 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 158 | 194 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG165 |
-| 352 | 9 | 6. Configuration des services externes |  |
-| 361 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 378 | 11 | 8. Guide de lecture par jalon | RG54–RG58 |
+| 158 | 191 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG165 |
+| 349 | 9 | 6. Configuration des services externes |  |
+| 358 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 375 | 11 | 8. Guide de lecture par jalon | RG54–RG58 |

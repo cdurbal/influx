@@ -342,7 +342,7 @@ avec les mêmes textes adaptés.
 
 ## 10. Tokens proposés
 
-> **Rouge « danger » opaque (D72, `jalons/zone-de-danger-fiche.md` §5).** Aucun rouge translucide ni
+> **Rouge « danger » opaque (D72, D72).** Aucun rouge translucide ni
 > teinté en fond (`rgba`, `hsla`, `#rrggbbaa`, `color-mix`, modificateur `/NN`). Une erreur ou un avertissement
 > destructif = fond du conteneur + bordure rouge pleine 1 px + icône + texte rouge opaque ; une action
 > destructive = bouton rouge plein, texte clair. Tokens, à l'identique dans `apps/web` et `apps/backoffice` :

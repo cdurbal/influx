@@ -2148,7 +2148,7 @@ describe("privacy.record_auth_user_deleted() and privacy.complete_request() (15 
 });
 
 // ---------------------------------------------------------------------------------------------
-// D72 (0150, zone-de-danger-fiche §2.1, §2.2, §2.4): the erasure authorised by the member.
+// D72 (0150, D72 §2.1, §2.2, §2.4): the erasure authorised by the member.
 
 const SUBMIT_ERASURE =
   "select request_id::text, status, created from identity.submit_member_erasure()";

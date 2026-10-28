@@ -422,7 +422,7 @@ export function findNetworkOrStorageUse(
   ];
 }
 
-/** The red "danger" tokens of docs/mvp/jalons/zone-de-danger-fiche.md §5, opaque and identical in both fronts. */
+/** The red "danger" tokens of D72, docs/mvp/decisions.md §5, opaque and identical in both fronts. */
 export const DANGER_RED_TOKENS = [
   "--color-feedback-error-text",
   "--color-feedback-error-icon",

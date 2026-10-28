@@ -2403,7 +2403,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_worker|function|ops.run_ops_retention(uuid,smallint)|EXECUTE",
   "influx_worker|function|ops.save_alert_states(text,jsonb)|EXECUTE",
   "influx_worker|function|ops.technical_alert_snapshot(timestamp with time zone)|EXECUTE",
-  // 0150 (D72, zone-de-danger-fiche §2.4): the member authorises the erasure of his own account
+  // 0150 (D72, D72 §2.4): the member authorises the erasure of his own account
   // through identity.submit_member_erasure() only (no right on the table for any member role); its
   // owner inserts the execution with authorised_by (never UPDATE nor DELETE); agent and admin read
   // who authorised it (account sheet, §2.5); influx_privacy reads the held address of the e-mail

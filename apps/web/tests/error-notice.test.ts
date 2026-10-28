@@ -1,4 +1,4 @@
-// T15 (docs/mvp/jalons/zone-de-danger-fiche.md): every error is an alert icon plus its text, and
+// T15 (D72, docs/mvp/decisions.md): every error is an alert icon plus its text, and
 // the error fill is used nowhere but in the component.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
