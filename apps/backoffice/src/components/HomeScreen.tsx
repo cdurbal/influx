@@ -15,7 +15,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { messages } from "@/messages/fr";
 import {
-  ERROR_CLASSES,
   HELP_CLASSES,
   LEAD_CLASSES,
   TITLE_CLASSES,
@@ -41,6 +40,7 @@ import {
   personName,
   sharePercent,
 } from "./view-model";
+import { ErrorNotice } from "./ErrorNotice";
 
 type Load<T> =
   { kind: "loading" } | { kind: "ok"; data: T } | { kind: "error" };
@@ -206,9 +206,7 @@ function DegradedReview() {
           {messages.common.loading}
         </p>
       ) : review.kind === "error" ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {t.error}
-        </p>
+        <ErrorNotice>{t.error}</ErrorNotice>
       ) : (
         <>
           <p className={HELP_CLASSES}>{t.lead(review.data.weeks)}</p>
@@ -303,9 +301,7 @@ export function HomeScreen() {
             {messages.common.loading}
           </p>
         ) : counters.kind === "error" ? (
-          <p role="alert" className={ERROR_CLASSES}>
-            {messages.home.countersError}
-          </p>
+          <ErrorNotice>{messages.home.countersError}</ErrorNotice>
         ) : (
           <Counters counters={counters.data} />
         )}
@@ -319,9 +315,7 @@ export function HomeScreen() {
             {messages.common.loading}
           </p>
         ) : alerts.kind === "error" ? (
-          <p role="alert" className={ERROR_CLASSES}>
-            {messages.home.alertsError}
-          </p>
+          <ErrorNotice>{messages.home.alertsError}</ErrorNotice>
         ) : (
           <>
             <Alerts data={alerts.data} />

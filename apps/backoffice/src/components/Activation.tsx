@@ -21,7 +21,6 @@ import {
   CARD_CLASSES,
   cn,
   CODE_TEXT_CLASSES,
-  ERROR_CLASSES,
   HELP_CLASSES,
   INFO_CLASSES,
   inputClasses,
@@ -34,6 +33,7 @@ import {
   TITLE_CLASSES,
 } from "./auth-classes";
 import { confirmEnrollment, startEnrollment } from "./backoffice-auth";
+import { ErrorNotice } from "./ErrorNotice";
 
 const t = messages.enroll;
 
@@ -237,9 +237,7 @@ export function Activation() {
 
   const failureBlock =
     failure === null ? null : (
-      <p id={ids.error} role="alert" className={ERROR_CLASSES}>
-        {failure}
-      </p>
+      <ErrorNotice id={ids.error}>{failure}</ErrorNotice>
     );
 
   if (step.kind === "codes") {
@@ -397,9 +395,7 @@ export function Activation() {
       </h1>
       <p className={LEAD_CLASSES}>{t.lead}</p>
       {token === undefined ? null : token === null ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {t.invitationInvalid}
-        </p>
+        <ErrorNotice>{t.invitationInvalid}</ErrorNotice>
       ) : (
         <form noValidate onSubmit={confirmIdentity} className={CARD_CLASSES}>
           <h2 className={LABEL_CLASSES}>{t.step1Title}</h2>

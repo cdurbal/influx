@@ -15,7 +15,6 @@ import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import {
   CARD_CLASSES,
   codeInputClasses,
-  ERROR_CLASSES,
   FIELD_CLASSES,
   HELP_CLASSES,
   INFO_CLASSES,
@@ -32,6 +31,7 @@ import {
   freshCodeStepOf,
   type FreshCodeMessage,
 } from "./account-view";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 type Sent = { token: string; phrase: string };
 
@@ -176,9 +176,7 @@ export function FreshCode({
         <>
           <p className={HELP_CLASSES}>{t("lead", { email })}</p>
           {messageText !== null ? (
-            <p role="alert" className={ERROR_CLASSES}>
-              {messageText}
-            </p>
+            <ErrorNotice>{messageText}</ErrorNotice>
           ) : null}
           <div className={ACTIONS_CLASSES}>
             <button
@@ -232,9 +230,7 @@ export function FreshCode({
             />
           </div>
           {messageText !== null ? (
-            <p id={ids.message} role="alert" className={ERROR_CLASSES}>
-              {messageText}
-            </p>
+            <ErrorNotice id={ids.message}>{messageText}</ErrorNotice>
           ) : null}
           <button
             type="submit"

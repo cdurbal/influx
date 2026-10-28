@@ -15,7 +15,6 @@ import { Link, useRouter } from "@/i18n/navigation";
 import {
   BRAND_CLASSES,
   CARD_CLASSES,
-  ERROR_CLASSES,
   HELP_CLASSES,
   INFO_CLASSES,
   LABEL_CLASSES,
@@ -28,6 +27,7 @@ import {
 import { homePageOf, memberPageHref } from "@/lib/member-paths";
 import { installErrorCollector } from "@/observability/error-collector";
 import { readMe, signOut } from "./member-auth";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 type State =
   | { kind: "loading" }
@@ -144,9 +144,7 @@ export function MemberHome({ space }: { space: SignupDoor }) {
     return (
       <main id="main" className={SCREEN_CLASSES}>
         {brand}
-        <p role="alert" className={ERROR_CLASSES}>
-          {t("home.unavailable")}
-        </p>
+        <ErrorNotice>{t("home.unavailable")}</ErrorNotice>
       </main>
     );
   }

@@ -28,7 +28,6 @@ import {
 } from "react";
 import { messages } from "@/messages/fr";
 import {
-  ERROR_CLASSES,
   HELP_CLASSES,
   inputClasses,
   LEAD_CLASSES,
@@ -63,6 +62,7 @@ import {
   REPLAY_CAP,
   type AccountSearch,
 } from "./view-model";
+import { ErrorNotice } from "./ErrorNotice";
 
 /**
  * The filters the address bar may carry (05 RG97), each value of plain characters only; the period
@@ -408,9 +408,7 @@ export function AccountsScreen() {
           {t.searchHelp}
         </p>
         {termError ? (
-          <p id={ids.searchError} role="alert" className={ERROR_CLASSES}>
-            {t.searchInvalid}
-          </p>
+          <ErrorNotice id={ids.searchError}>{t.searchInvalid}</ErrorNotice>
         ) : null}
       </section>
 
@@ -431,9 +429,7 @@ export function AccountsScreen() {
         </p>
       ) : load.kind === "error" ? (
         <div className="flex flex-col gap-3">
-          <p role="alert" className={ERROR_CLASSES}>
-            {load.message}
-          </p>
+          <ErrorNotice>{load.message}</ErrorNotice>
           <button
             type="button"
             onClick={() => setReload(reload + 1)}

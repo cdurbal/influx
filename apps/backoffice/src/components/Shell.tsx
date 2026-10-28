@@ -21,7 +21,6 @@ import { messages } from "@/messages/fr";
 import { installErrorCollector } from "@/observability/error-collector";
 import {
   BRAND_CLASSES,
-  ERROR_CLASSES,
   HELP_CLASSES,
   SCREEN_CLASSES,
   SECONDARY_BUTTON_CLASSES,
@@ -36,6 +35,7 @@ import {
   navLinkClasses,
   PAGE_CLASSES,
 } from "./bo-classes";
+import { ErrorNotice } from "./ErrorNotice";
 
 export type NavKey =
   | "home"
@@ -147,9 +147,7 @@ export function Shell({
     return (
       <main id="main" className={SCREEN_CLASSES}>
         {brand}
-        <p role="alert" className={ERROR_CLASSES}>
-          {messages.session.ended}
-        </p>
+        <ErrorNotice>{messages.session.ended}</ErrorNotice>
         <Link href="/" className={TEXT_BUTTON_CLASSES}>
           {messages.logout.signInAgain}
         </Link>

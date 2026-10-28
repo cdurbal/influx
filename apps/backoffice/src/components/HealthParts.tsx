@@ -6,7 +6,7 @@
 // carries the information alone — and the small curve. Every value is a token.
 import { useId, type ReactNode } from "react";
 import { messages } from "@/messages/fr";
-import { ERROR_CLASSES, HELP_CLASSES } from "./auth-classes";
+import { HELP_CLASSES } from "./auth-classes";
 import {
   SECTION_CLASSES,
   SECTION_TITLE_CLASSES,
@@ -14,6 +14,7 @@ import {
 } from "./bo-classes";
 import { curveSegments } from "./ops-view-model";
 import type { OpsLoad } from "./use-ops-read";
+import { ErrorNotice } from "./ErrorNotice";
 
 const t = messages.health;
 
@@ -57,17 +58,11 @@ export function LoadGate<T>({
         </p>
       );
     case "forbidden":
-      return (
-        <p role="alert" className={ERROR_CLASSES}>
-          {t.forbidden}
-        </p>
-      );
+      return <ErrorNotice>{t.forbidden}</ErrorNotice>;
     case "error":
       return (
         <div className="flex flex-col items-start gap-3">
-          <p role="alert" className={ERROR_CLASSES}>
-            {t.unavailable}
-          </p>
+          <ErrorNotice>{t.unavailable}</ErrorNotice>
           <button
             type="button"
             onClick={retry}

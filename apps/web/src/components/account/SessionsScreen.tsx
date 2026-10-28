@@ -9,7 +9,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useState } from "react";
 import {
   CARD_CLASSES,
-  ERROR_CLASSES,
   HELP_CLASSES,
   LABEL_CLASSES,
   LEAD_CLASSES,
@@ -27,6 +26,7 @@ import {
 import { readSessions, revokeAllSessions, revokeSession } from "./account-api";
 import { browserOf, formatDateTime } from "./account-view";
 import type { AccountContext } from "./AccountShell";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 type State =
   | { kind: "loading" }
@@ -127,9 +127,7 @@ export function SessionsScreen({ online, signedOut }: AccountContext) {
         </p>
       ) : null}
       {state.kind === "unavailable" ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {tAccount("unavailable")}
-        </p>
+        <ErrorNotice>{tAccount("unavailable")}</ErrorNotice>
       ) : null}
       {notice === "closed" ? (
         <p role="status" className={SUCCESS_CLASSES}>
@@ -137,9 +135,7 @@ export function SessionsScreen({ online, signedOut }: AccountContext) {
         </p>
       ) : null}
       {notice === "unavailable" ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {t("unavailable")}
-        </p>
+        <ErrorNotice>{t("unavailable")}</ErrorNotice>
       ) : null}
       {state.kind === "ready" ? (
         <ul aria-label={t("title")} className="flex flex-col gap-4">

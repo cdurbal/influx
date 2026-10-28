@@ -12,7 +12,6 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   BRAND_CLASSES,
   CARD_CLASSES,
-  ERROR_CLASSES,
   HEADER_CLASSES,
   HELP_CLASSES,
   INFO_CLASSES,
@@ -35,6 +34,7 @@ import {
 } from "./account-classes";
 import { acceptTerms, readTermsToAccept } from "./account-api";
 import { formatDate } from "./account-view";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 type Text =
   | { kind: "loading" }
@@ -154,9 +154,7 @@ export function TermsGate({
         </p>
       ) : null}
       {text.kind === "unavailable" ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {t("terms.unavailable")}
-        </p>
+        <ErrorNotice>{t("terms.unavailable")}</ErrorNotice>
       ) : null}
       {text.kind === "ready" ? (
         <section
@@ -177,9 +175,7 @@ export function TermsGate({
       ) : null}
       <div className={CARD_CLASSES}>
         {message === "acceptUnavailable" ? (
-          <p role="alert" className={ERROR_CLASSES}>
-            {t("terms.acceptUnavailable")}
-          </p>
+          <ErrorNotice>{t("terms.acceptUnavailable")}</ErrorNotice>
         ) : null}
         {text.kind === "ready" ? (
           <button

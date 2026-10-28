@@ -10,7 +10,7 @@
 // then asks once, to leave that trace, and says it is refused.
 import { useEffect, useState } from "react";
 import { messages } from "@/messages/fr";
-import { ERROR_CLASSES, HELP_CLASSES, TITLE_CLASSES } from "./auth-classes";
+import { HELP_CLASSES, TITLE_CLASSES } from "./auth-classes";
 import { readOpsStatus } from "./backoffice-api";
 import { SMALL_SECONDARY_CLASSES } from "./bo-classes";
 import { ErrorsSection } from "./HealthErrors";
@@ -19,6 +19,7 @@ import { StatusSections } from "./HealthStatus";
 import { TrafficSection } from "./HealthTraffic";
 import { useMe } from "./Shell";
 import { formatTime } from "./view-model";
+import { ErrorNotice } from "./ErrorNotice";
 
 const t = messages.health;
 
@@ -33,9 +34,7 @@ function Refused() {
   return (
     <>
       <h1 className={TITLE_CLASSES}>{t.title}</h1>
-      <p role="alert" className={ERROR_CLASSES}>
-        {t.forbidden}
-      </p>
+      <ErrorNotice>{t.forbidden}</ErrorNotice>
     </>
   );
 }

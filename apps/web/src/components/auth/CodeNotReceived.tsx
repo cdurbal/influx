@@ -10,7 +10,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { useId, useState, type FormEvent } from "react";
 import {
   CARD_CLASSES,
-  ERROR_CLASSES,
   FIELD_CLASSES,
   HELP_CLASSES,
   INFO_CLASSES,
@@ -22,6 +21,7 @@ import {
 import { contactFormMessage, type ContactMessage } from "./auth-steps";
 import { RequiredMark } from "./AuthScreen";
 import { reportCodeNotReceived } from "./member-auth";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 type Outcome = "received" | "rateLimited" | "serviceUnavailable" | null;
 
@@ -136,13 +136,9 @@ export function CodeNotReceived({
                   className={inputClasses(fieldMessage !== null)}
                 />
                 {fieldMessage !== null ? (
-                  <p
-                    id={ids.contactError}
-                    role="alert"
-                    className={ERROR_CLASSES}
-                  >
+                  <ErrorNotice id={ids.contactError}>
                     {fieldText(fieldMessage)}
-                  </p>
+                  </ErrorNotice>
                 ) : null}
               </div>
               <div className={FIELD_CLASSES}>
@@ -158,11 +154,11 @@ export function CodeNotReceived({
                 />
               </div>
               {outcome === "rateLimited" || outcome === "serviceUnavailable" ? (
-                <p role="alert" className={ERROR_CLASSES}>
+                <ErrorNotice>
                   {outcome === "rateLimited"
                     ? t("step2.notReceived.rateLimited")
                     : t("errors.serviceUnavailable")}
-                </p>
+                </ErrorNotice>
               ) : null}
               <button
                 type="submit"

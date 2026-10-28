@@ -10,7 +10,6 @@ import {
   CARD_CLASSES,
   CHOICE_INPUT_CLASSES,
   CHOICE_ROW_CLASSES,
-  ERROR_CLASSES,
   FIELD_CLASSES,
   FIELDSET_CLASSES,
   HELP_CLASSES,
@@ -35,6 +34,7 @@ import {
 } from "./account-view";
 import type { AccountContext } from "./AccountShell";
 import { EmailChange } from "./EmailChange";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 const LANGUAGES = ["fr", "en"] as const;
 const STATUSES = ["individual", "business"] as const;
@@ -189,17 +189,14 @@ export function DetailsScreen({ me, online, refresh }: AccountContext) {
             />
           </div>
         )}
-        {message !== null ? (
+        {message !== null && isError ? (
+          <ErrorNotice id={ids.message}>{t(`messages.${message}`)}</ErrorNotice>
+        ) : null}
+        {message !== null && !isError ? (
           <p
             id={ids.message}
-            role={isError ? "alert" : "status"}
-            className={
-              isError
-                ? ERROR_CLASSES
-                : message === "saved"
-                  ? SUCCESS_CLASSES
-                  : HELP_CLASSES
-            }
+            role="status"
+            className={message === "saved" ? SUCCESS_CLASSES : HELP_CLASSES}
           >
             {t(`messages.${message}`)}
           </p>

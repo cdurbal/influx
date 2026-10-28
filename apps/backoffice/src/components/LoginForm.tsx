@@ -11,7 +11,6 @@ import { messages } from "@/messages/fr";
 import {
   BRAND_CLASSES,
   CARD_CLASSES,
-  ERROR_CLASSES,
   HELP_CLASSES,
   inputClasses,
   LABEL_CLASSES,
@@ -22,6 +21,7 @@ import {
   TITLE_CLASSES,
 } from "./auth-classes";
 import { signIn } from "./backoffice-auth";
+import { ErrorNotice } from "./ErrorNotice";
 
 const TOTP_SHAPE = /^\d{6}$/;
 /** 16 characters once spaces and dashes are removed (17b §3.14.a). */
@@ -123,9 +123,9 @@ export function LoginForm() {
   function fieldError(field: Field) {
     const message = errors[field];
     return message === undefined ? null : (
-      <p id={`${ids[field]}-error`} className={ERROR_CLASSES}>
+      <ErrorNotice id={`${ids[field]}-error`} announce={false}>
         {message}
-      </p>
+      </ErrorNotice>
     );
   }
 
@@ -201,9 +201,7 @@ export function LoginForm() {
           {useRecovery ? t.login.useTotp : t.login.useRecoveryCode}
         </button>
         {failure !== null ? (
-          <p id={ids.error} role="alert" className={ERROR_CLASSES}>
-            {failure}
-          </p>
+          <ErrorNotice id={ids.error}>{failure}</ErrorNotice>
         ) : null}
         <button
           type="submit"

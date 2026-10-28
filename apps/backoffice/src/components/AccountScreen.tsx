@@ -29,12 +29,7 @@ import {
   type ReactNode,
 } from "react";
 import { messages } from "@/messages/fr";
-import {
-  ERROR_CLASSES,
-  HELP_CLASSES,
-  inputClasses,
-  TITLE_CLASSES,
-} from "./auth-classes";
+import { HELP_CLASSES, inputClasses, TITLE_CLASSES } from "./auth-classes";
 import { ActionFeedback, AdminOnlyNotice } from "./ActionFeedback";
 import {
   correctAccount,
@@ -68,6 +63,7 @@ import {
   formatDateTime,
   formatLongDate,
 } from "./view-model";
+import { ErrorNotice } from "./ErrorNotice";
 
 type Detail = AccountDetailResponse;
 type Load =
@@ -311,11 +307,7 @@ function CorrectionForm({
           className={TEXTAREA_CLASSES}
         />
       </div>
-      {formError === null ? null : (
-        <p role="alert" className={ERROR_CLASSES}>
-          {formError}
-        </p>
-      )}
+      {formError === null ? null : <ErrorNotice>{formError}</ErrorNotice>}
       <ActionFeedback action={action} />
       {notice === null ? null : (
         <p role="status" className={SUCCESS_CLASSES}>
@@ -409,11 +401,7 @@ function RoleChangeForm({ detail }: { detail: Detail }) {
           </select>
         </div>
       </div>
-      {formError === null ? null : (
-        <p role="alert" className={ERROR_CLASSES}>
-          {formError}
-        </p>
-      )}
+      {formError === null ? null : <ErrorNotice>{formError}</ErrorNotice>}
       <ActionFeedback action={action} />
       <button
         type="submit"
@@ -709,9 +697,7 @@ export function AccountScreen({ id }: { id: string }) {
       <>
         {back}
         <h1 className={TITLE_CLASSES}>{t.title}</h1>
-        <p role="alert" className={ERROR_CLASSES}>
-          {load.message}
-        </p>
+        <ErrorNotice>{load.message}</ErrorNotice>
       </>
     );
   }

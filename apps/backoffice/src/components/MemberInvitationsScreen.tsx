@@ -14,7 +14,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { messages } from "@/messages/fr";
 import {
-  ERROR_CLASSES,
   HELP_CLASSES,
   inputClasses,
   LEAD_CLASSES,
@@ -41,6 +40,7 @@ import {
 import { LinkOnce, RevokeControl } from "./InvitationParts";
 import { useAction } from "./use-action";
 import { EMAIL_SHAPE, formatDateTime } from "./view-model";
+import { ErrorNotice } from "./ErrorNotice";
 
 const t = messages.invitations;
 type Invitation = MemberInvitationsResponse["invitations"][number];
@@ -166,11 +166,7 @@ export function MemberInvitationsScreen() {
             </select>
           </div>
         </div>
-        {formError === null ? null : (
-          <p role="alert" className={ERROR_CLASSES}>
-            {formError}
-          </p>
-        )}
+        {formError === null ? null : <ErrorNotice>{formError}</ErrorNotice>}
         <ActionFeedback action={action} />
         <button
           type="submit"
@@ -188,9 +184,7 @@ export function MemberInvitationsScreen() {
           {t.listTitle}
         </h2>
         {loadError ? (
-          <p role="alert" className={ERROR_CLASSES}>
-            {t.error}
-          </p>
+          <ErrorNotice>{t.error}</ErrorNotice>
         ) : invitations === null ? (
           <p role="status" className={HELP_CLASSES}>
             {messages.common.loading}

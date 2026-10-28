@@ -331,6 +331,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] Commit D72-1c — DZ-8 tranchée : l'API Apollo n'expose aucune suppression de contact, rien codé ; `erasure_not_propagated` demeure, suppression manuelle dans Apollo (`jalons/zone-de-danger-fiche.md` §9).
 - [x] Commit D72-1b (`bb8500e`) — route `POST /v1/me/data-requests` `erasure` ⇒ `submit_member_erasure()`, sessions révoquées, cookie effacé, `erasure_authorised` (contrat, écran web = déconnexion) ; e-mail `privacy.erasure_completed` FR/EN (`16` RG160 bis) envoyé par le connecteur Brevo via la lecture E-5, clôture sur son `messageId` ; RG160 limitée à `access` ; fiche backoffice en lecture seule (`authorisedBy`) ; `03`, `04`, `05`, `15` (AL64 spécifiée, non mesurée), `16` amendés ; T1, T2, T7, T8, T9 ; restent AL64 (mesure), 1b Apollo, commits 2 et 3.
 - [x] Commit D72-2 — zone de danger et rouge opaque (`jalons/zone-de-danger-fiche.md` §3, §5) : tokens `action-danger-*` et rouges opaques web/backoffice, `DANGER_NOTICE_CLASSES`, bouton destructif plein, section « Zone de danger », écran final « Votre compte est supprimé », garde G3b, e2e T10 à T12 ; amende `17` §6.3, `20` §10, skill `design-system-influx`
+- [x] Commit D72-3 — `ErrorNotice` (web et backoffice) : icône triangle `aria-hidden` + texte, sans remplissage rouge ; 57 `<p role="alert" className={ERROR_CLASSES}>` remplacés (`jalons/zone-de-danger-fiche.md`, T15) ; `lucide-react` ajouté au backoffice.
 
 ### 5.8 Portes de la mise en production
 

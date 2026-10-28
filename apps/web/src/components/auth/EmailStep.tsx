@@ -10,7 +10,6 @@ import { useId, useState, type FormEvent } from "react";
 import { legalDocumentPath } from "@/lib/legal-documents";
 import {
   CARD_CLASSES,
-  ERROR_CLASSES,
   HELP_CLASSES,
   inputClasses,
   LABEL_CLASSES,
@@ -26,6 +25,7 @@ import {
 } from "./auth-steps";
 import { RequiredMark, StepTitle } from "./AuthScreen";
 import { requestCode } from "./member-auth";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 export function EmailStep({
   door,
@@ -141,9 +141,7 @@ export function EmailStep({
           className={inputClasses(isFieldError)}
         />
         {message !== null ? (
-          <p id={ids.emailError} role="alert" className={ERROR_CLASSES}>
-            {messageText(message)}
-          </p>
+          <ErrorNotice id={ids.emailError}>{messageText(message)}</ErrorNotice>
         ) : null}
         <button
           type="submit"

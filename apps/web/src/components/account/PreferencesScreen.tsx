@@ -10,7 +10,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useState } from "react";
 import {
   CARD_CLASSES,
-  ERROR_CLASSES,
   HELP_CLASSES,
   INFO_CLASSES,
   LABEL_CLASSES,
@@ -25,6 +24,7 @@ import {
 import { readConsent, updateConsent } from "./account-api";
 import { consentOriginOf, formatDate } from "./account-view";
 import type { AccountContext } from "./AccountShell";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 type State =
   | { kind: "loading" }
@@ -89,9 +89,7 @@ export function PreferencesScreen({ online }: AccountContext) {
         </p>
       ) : null}
       {state.kind === "unavailable" ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {tAccount("unavailable")}
-        </p>
+        <ErrorNotice>{tAccount("unavailable")}</ErrorNotice>
       ) : null}
       {state.kind === "ready" ? (
         <section aria-labelledby={ids.card} className={CARD_CLASSES}>
@@ -116,11 +114,7 @@ export function PreferencesScreen({ online }: AccountContext) {
               {t(`done.${done}`)}
             </p>
           ) : null}
-          {failed ? (
-            <p role="alert" className={ERROR_CLASSES}>
-              {t("unavailable")}
-            </p>
-          ) : null}
+          {failed ? <ErrorNotice>{t("unavailable")}</ErrorNotice> : null}
           <button
             type="button"
             onClick={() => void change(!state.consent.granted)}

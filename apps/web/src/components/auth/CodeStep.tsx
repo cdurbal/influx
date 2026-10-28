@@ -14,7 +14,6 @@ import {
   CODE_BOXES_CLASSES,
   CODE_OVERLAY_INPUT_CLASSES,
   codeBoxClasses,
-  ERROR_CLASSES,
   HELP_CLASSES,
   INFO_CLASSES,
   LABEL_CLASSES,
@@ -34,6 +33,7 @@ import {
 import { RequiredMark, StepTitle } from "./AuthScreen";
 import { CodeNotReceived } from "./CodeNotReceived";
 import { requestCode, verifyCode } from "./member-auth";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 const CODE_LENGTH = 6;
 
@@ -240,9 +240,7 @@ export function CodeStep({
           </>
         )}
         {message !== null ? (
-          <p id={ids.codeError} role="alert" className={ERROR_CLASSES}>
-            {messageText(message)}
-          </p>
+          <ErrorNotice id={ids.codeError}>{messageText(message)}</ErrorNotice>
         ) : null}
         {closed ? null : (
           <button

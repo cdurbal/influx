@@ -15,12 +15,7 @@ import type { CountryCode } from "@influx/contracts/countries";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { messages } from "@/messages/fr";
-import {
-  ERROR_CLASSES,
-  HELP_CLASSES,
-  LEAD_CLASSES,
-  TITLE_CLASSES,
-} from "./auth-classes";
+import { HELP_CLASSES, LEAD_CLASSES, TITLE_CLASSES } from "./auth-classes";
 import { ActionFeedback } from "./ActionFeedback";
 import { readApolloSettings, requestDualControl } from "./backoffice-api";
 import {
@@ -41,6 +36,7 @@ import {
   parseByCountry,
   parseCountryList,
 } from "./view-model";
+import { ErrorNotice } from "./ErrorNotice";
 
 const t = messages.apollo;
 type Reason = (typeof PROSPECTING_SETTING_REASONS)[number];
@@ -259,11 +255,7 @@ function SettingForm({ row }: { row: Row }) {
           </p>
         </div>
       ) : null}
-      {formError === null ? null : (
-        <p role="alert" className={ERROR_CLASSES}>
-          {formError}
-        </p>
-      )}
+      {formError === null ? null : <ErrorNotice>{formError}</ErrorNotice>}
       <ActionFeedback action={action} />
       <button
         type="submit"
@@ -307,9 +299,7 @@ export function ApolloSettingsScreen() {
       <h1 className={TITLE_CLASSES}>{t.title}</h1>
       <p className={LEAD_CLASSES}>{t.lead}</p>
       {error !== null ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {error}
-        </p>
+        <ErrorNotice>{error}</ErrorNotice>
       ) : rows === null ? (
         <p role="status" className={HELP_CLASSES}>
           {messages.common.loading}

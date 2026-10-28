@@ -7,7 +7,6 @@ import Link from "next/link";
 import { useId, useState, type FormEvent } from "react";
 import { messages } from "@/messages/fr";
 import {
-  ERROR_CLASSES,
   HELP_CLASSES,
   inputClasses,
   LABEL_CLASSES,
@@ -22,6 +21,7 @@ import {
   SMALL_SECONDARY_CLASSES,
 } from "./bo-classes";
 import type { Action } from "./use-action";
+import { ErrorNotice } from "./ErrorNotice";
 
 const TOTP_SHAPE = /^\d{6}$/;
 
@@ -109,9 +109,7 @@ function ReauthForm({
         />
       </div>
       {failure === null ? null : (
-        <p role="alert" className={ERROR_CLASSES}>
-          {messages.reauth[failure]}
-        </p>
+        <ErrorNotice>{messages.reauth[failure]}</ErrorNotice>
       )}
       {failure === "revoked" ? (
         <Link href="/" className={SMALL_SECONDARY_CLASSES}>
@@ -149,9 +147,7 @@ export function ActionFeedback({ action }: { action: Action }) {
     );
   }
   return action.error === null ? null : (
-    <p role="alert" className={ERROR_CLASSES}>
-      {action.error}
-    </p>
+    <ErrorNotice>{action.error}</ErrorNotice>
   );
 }
 

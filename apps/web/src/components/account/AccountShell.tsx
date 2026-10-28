@@ -17,7 +17,6 @@ import {
 } from "react";
 import {
   BRAND_CLASSES,
-  ERROR_CLASSES,
   HEADER_CLASSES,
   HELP_CLASSES,
   INFO_CLASSES,
@@ -44,6 +43,7 @@ import {
   navLinkClasses,
 } from "./account-classes";
 import { TermsGate } from "./TermsGate";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 export type AccountContext = {
   me: MeResponse;
@@ -151,9 +151,7 @@ export function AccountShell({
     return (
       <main id="main" className={SCREEN_CLASSES}>
         {header}
-        <p role="alert" className={ERROR_CLASSES}>
-          {t("unavailable")}
-        </p>
+        <ErrorNotice>{t("unavailable")}</ErrorNotice>
         <button
           type="button"
           onClick={() => {

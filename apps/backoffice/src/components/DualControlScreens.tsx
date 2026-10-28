@@ -18,7 +18,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { messages } from "@/messages/fr";
 import {
-  ERROR_CLASSES,
   HELP_CLASSES,
   LEAD_CLASSES,
   TITLE_CLASSES,
@@ -58,6 +57,7 @@ import {
   formatDateTime,
   personName,
 } from "./view-model";
+import { ErrorNotice } from "./ErrorNotice";
 
 const t = messages.dualControl;
 
@@ -219,9 +219,7 @@ export function DualControlListScreen() {
       <h1 className={TITLE_CLASSES}>{t.title}</h1>
       <p className={LEAD_CLASSES}>{t.lead}</p>
       {error !== null ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {error}
-        </p>
+        <ErrorNotice>{error}</ErrorNotice>
       ) : requests === null ? (
         <p role="status" className={HELP_CLASSES}>
           {messages.common.loading}
@@ -351,9 +349,7 @@ export function DualControlScreen({ id }: { id: string }) {
     return (
       <>
         <h1 className={TITLE_CLASSES}>{t.requestTitle}</h1>
-        <p role="alert" className={ERROR_CLASSES}>
-          {loadError}
-        </p>
+        <ErrorNotice>{loadError}</ErrorNotice>
       </>
     );
   }
@@ -507,13 +503,9 @@ export function DualControlScreen({ id }: { id: string }) {
                 />
               </div>
               {justificationError ? (
-                <p
-                  id={ids.justificationError}
-                  role="alert"
-                  className={ERROR_CLASSES}
-                >
+                <ErrorNotice id={ids.justificationError}>
                   {t.justificationInvalid(DEGRADED_JUSTIFICATION_MIN)}
-                </p>
+                </ErrorNotice>
               ) : null}
             </>
           ) : null}

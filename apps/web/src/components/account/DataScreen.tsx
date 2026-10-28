@@ -15,7 +15,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import {
   CARD_CLASSES,
-  ERROR_CLASSES,
   FIELD_CLASSES,
   HELP_CLASSES,
   INFO_CLASSES,
@@ -54,6 +53,7 @@ import {
 } from "./account-view";
 import type { AccountContext } from "./AccountShell";
 import { FreshCode } from "./FreshCode";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 type Phase =
   | { kind: "overview" }
@@ -262,9 +262,7 @@ export function DataScreen({ me, online, accountDeleted }: AccountContext) {
         </p>
       ) : null}
       {notice?.kind === "unavailable" ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {t("unavailable")}
-        </p>
+        <ErrorNotice>{t("unavailable")}</ErrorNotice>
       ) : null}
       {notice?.kind === "saved" ? (
         <p role="status" className={SUCCESS_CLASSES}>
@@ -277,15 +275,9 @@ export function DataScreen({ me, online, accountDeleted }: AccountContext) {
         </p>
       ) : null}
       {notice?.kind === "downloadFailed" ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {t("download.failed")}
-        </p>
+        <ErrorNotice>{t("download.failed")}</ErrorNotice>
       ) : null}
-      {unreadable ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {tAccount("unavailable")}
-        </p>
-      ) : null}
+      {unreadable ? <ErrorNotice>{tAccount("unavailable")}</ErrorNotice> : null}
       {dataExport !== null && dataExport.available ? (
         <section aria-labelledby={ids.download} className={CARD_CLASSES}>
           <h2 id={ids.download} className={SECTION_TITLE_CLASSES}>
@@ -520,9 +512,9 @@ function ConfirmDeletion({
           />
         </div>
         {wordError ? (
-          <p id={ids.wordError} role="alert" className={ERROR_CLASSES}>
+          <ErrorNotice id={ids.wordError}>
             {t("wordError", { word })}
-          </p>
+          </ErrorNotice>
         ) : null}
         <div className={ACTIONS_CLASSES}>
           <button

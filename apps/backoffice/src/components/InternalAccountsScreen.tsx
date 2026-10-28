@@ -17,7 +17,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { messages } from "@/messages/fr";
 import {
-  ERROR_CLASSES,
   HELP_CLASSES,
   inputClasses,
   INFO_CLASSES,
@@ -47,6 +46,7 @@ import {
 import { LinkOnce, RevokeControl } from "./InvitationParts";
 import { useAction } from "./use-action";
 import { EMAIL_SHAPE, formatDateTime, formatDay } from "./view-model";
+import { ErrorNotice } from "./ErrorNotice";
 
 const t = messages.internalAccounts;
 const ti = messages.invitations;
@@ -168,11 +168,7 @@ function InviteForm({ onCreated }: { onCreated: () => void }) {
           </select>
         </div>
       </div>
-      {formError === null ? null : (
-        <p role="alert" className={ERROR_CLASSES}>
-          {formError}
-        </p>
-      )}
+      {formError === null ? null : <ErrorNotice>{formError}</ErrorNotice>}
       <ActionFeedback action={action} />
       <button
         type="submit"
@@ -247,9 +243,7 @@ export function InternalAccountsScreen() {
         <p className={WARNING_CLASSES}>{t.breakGlass}</p>
       ) : null}
       {error !== null ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {error}
-        </p>
+        <ErrorNotice>{error}</ErrorNotice>
       ) : accounts === null || invitations === null ? (
         <p role="status" className={HELP_CLASSES}>
           {messages.common.loading}
