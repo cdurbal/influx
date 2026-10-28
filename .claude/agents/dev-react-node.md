@@ -57,7 +57,9 @@ définition des règles de gestion (→ `product-owner`).
 - Accessibilité : sémantique HTML correcte, navigation clavier, libellés de formulaires.
   Le vert de marque n'est jamais le seul porteur d'une information d'état.
 - Styles : uniquement via les tokens du design system (skill `design-system-influx`). Aucune
-  couleur ni espacement en dur.
+  couleur ni espacement en dur. Deux chartes dans un même `tokens.css` : vitrine (D59) et KEO
+  Emerald sous `[data-theme="keo"]` (D73, `02` §21) ; jamais une valeur de `design-proposals/`
+  recopiée dans un composant.
 
 ## Style de décision
 

@@ -32,6 +32,7 @@
 | **J7** | 1 | Retours Brevo (désinscriptions, rebonds), espace membre minimal | ✅ Revue close (2026-10-14) ; critère `staging` constaté le 2026-10-20 (J9 commit S) | 3-4 j |
 | **J8** | 1 | Backoffice v0 : inscrits, états de synchronisation, rejeu, réglages Apollo | ✅ Revue close (2026-10-16) ; critère `staging` constaté le 2026-10-20 (J9 commit S) | 4-5 j |
 | **J9** | 1 | Sortie du mode maquette de la landing, en-têtes, surveillance active, production | ✅ Revue close (2026-10-27) ; critère `staging` constaté en partie (arrêts à faire), production préparée, non créée — reliquat `archives/jalons/j9-fiche.md` | 4-5 j |
+| **DS** | extra | Charte KEO Emerald des espaces connectés (D73) : tokens, polices, gabarits mobile et poste de travail, rhabillage de l'existant | ⏳ À démarrer (`jalons/ds-fiche.md`), avant le Lot 2 | 6-8 j |
 
 **Cinq règles qu'aucune urgence ne suspend :**
 
@@ -325,6 +326,12 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] Constats `staging` (sans code, 2026-10-27, sur `5dbf608`) — CI et « Migrate staging » verts, `staging:check` vert ; `/health` et relais `200`, sonde (4 cibles `up`) et battement du worker en marche, T10 du backoffice, J9S-5 conforme ; J9T-1 infirmée ; arrêts du worker et de l'API non faits (accord du fondateur).
 - **Reportés** (détail : `archives/jalons/j9-fiche.md`) : avant production J9T-1 (arrêt du worker, coupure de l'API, inscription réelle sur `staging`), J9S-2, J9S-4, AL53, manques du commit 11, points `expert-ux` du commit 5 ; Lot 2 J9S-6, J9S-7, J9S-9, J9T-5, J9T-8, J9T-9, J4S-7 ; Lot 3 T15.2, F3 ; Lot 5 classement des groupes d'erreurs, J9T-3, J9T-10, J8S-8, J8S-9 ; Lot 6 F8, J7T-6 ; fondateur portes §5.8, cases 5 et 7 à 10 de `18` §10 « Lot 1 ».
 
+### Jalon DS — Charte KEO Emerald des espaces connectés (extra, avant le Lot 2)
+
+Décision D73 (fondateur, 2026-10-28). Les espaces membres (inscription et connexion comprises) et le backoffice passent en charte KEO Emerald, en responsive, colonne de navigation à gauche sur poste de travail ; la vitrine ne change pas. Les écrans des Lots 2 à 5 se construisent ensuite directement dans la charte. Point d'entrée : **`jalons/ds-fiche.md`** (commits DS-1 à DS-13, critère de fin, décisions ouvertes) ; mécanique `02` §21 ; charte `20` §11.
+
+<!-- Une ligne par commit, à mesure : - [x] DS-N (`sha`) — invariant clé. -->
+
 ### Hors jalon
 
 - [x] Commits D72-1a à D72-3 (`bfb2dd0`, `bb8500e`, puis rouge opaque, zone de danger, `ErrorNotice`) — suppression de compte en libre-service sans approbation `admin` (D72, migration `0150`, `identity.submit_member_erasure()`, e-mail `privacy.erasure_completed`), zone de danger et rouge opaque web/backoffice ; DZ-8 : Apollo sans suppression de contact, `erasure_not_propagated` demeure ; DZ-1, 2, 4, 5, 6, 7 ouverts dans `decisions.md`. Fiche supprimée.
@@ -361,7 +368,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 
 | Lot | Décisions à obtenir avant de coder | Première étape technique | Tests qui portent le lot |
 |---|---|---|---|
-| **2 — Profils, réseaux, badge** | D34, D61 (`07` Q15 et Q16), D24 instruite, `03` R-4 et R-5 | Migrations `0201` à `0207` : trois objets créateur, compartiments Storage privés ; création de `packages/domain` et `packages/ui` | **T1** (anonymisation sur la charge brute), T9, T14, TM5, TM11 |
+| **2 — Profils, réseaux, badge** | D34, D61 (`07` Q15 et Q16), D24 instruite, `03` R-4 et R-5 | Migrations `0201` à `0207` : trois objets créateur, compartiments Storage privés ; création de `packages/domain` et `packages/ui` (le jalon DS ne le crée pas : tokens et polices en copies gardées, `02` §21.3) ; écrans construits dans la charte KEO (D73) | **T1** (anonymisation sur la charge brute), T9, T14, TM5, TM11 |
 | **3 — Campagnes, recherche anonymisée** *(mode serré `00` §9)* | D38, facettes de `10` | Migrations `0301` à `0306` ; domaine `search` avec k-anonymat, pagination plafonnée, journal ; fil chronologique côté créateur | T1 rejoué, T15, TM12 ; mesure manuelle des 30 secondes |
 | **4 — Mise en relation, messagerie à trois** | D30, apartés (`04` §5.7.1 A2), conditions mobiles de D58 | Migrations `0401` à `0406` ; `reveal_identity()` et affaire créée à la révélation | **T18**, T5, T19, TM2, TM3 |
 | **5 — Backoffice, pipeline, e-mails** *(mode serré `00` §9)* | D35, D36, `03` R-7 | Migrations `0501` à `0503` ; interrupteur d'urgence ; traitement unitaire et exports (`00` §9) | TM4, TM6, TM8, TM9 |
@@ -382,3 +389,4 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 | **J8** | `git show a2ff7bc:docs/mvp/jalons/j8-fiche.md` (fiche archivée) ; `05` §K ; `15` §C, §F ; `17b` §3.11 et §3.13 ; skill `backoffice-ops` |
 | **D70** | **`archives/jalons/d70-plan.md` d'abord** ; `02` §12.4 ; `03` §6.8 et T17 ; `16` §J ; skills `env-secrets`, `railway-deploy` |
 | **J9** | `archives/jalons/j9-fiche.md` (reliquat) ; fiche complète : `git show 8323aeb:docs/mvp/jalons/j9-fiche.md` ; `runbooks/production.md` |
+| **DS** | **`jalons/ds-fiche.md` d'abord** ; `02` §21 ; `20` §11 ; `17` §2.2, §2.3, §8 ; `17b` §1.4, §1.7, §6 ; `18` §5 (gardes G3 à G8) ; skill `design-system-influx` |

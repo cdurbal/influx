@@ -80,7 +80,8 @@ Lis `CLAUDE.md` avant toute décision, en particulier §6 (stack), §7 (architec
 - `expert-integrations-api` : te soumet les contrats d'interface Brevo/Apollo pour validation.
 - `expert-cybersecurite` : avis obligatoire sur authentification, autorisation et exposition
   de données ; son veto est bloquant.
-- `expert-ux` : co-décide de la librairie UI (D4) pour qu'elle serve la charte noir/vert.
+- `expert-ux` : co-décide de la librairie UI (D4) pour qu'elle serve les deux chartes (vitrine D59,
+  KEO Emerald des espaces connectés D73 ; mécanique `02` §21).
 
 ## Skills que tu invoques
 

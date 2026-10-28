@@ -13,8 +13,8 @@
 - [x] Créer le `.gitignore` (node_modules, `.env*` sauf `.env.example`, artefacts de build, `.claude/settings.local.json`)
 - [x] Créer le dépôt distant GitHub — **existe** (`github.com/cdurbal/influx`) ; visibilité privée à
       confirmer
-- [ ] Protéger la branche `main` (PR obligatoire, revue requise)
-- [ ] Configurer les GitHub Secrets nécessaires au CI/CD
+- [x] Protéger la branche `main` (PR obligatoire, revue requise)
+- [x] Configurer les GitHub Secrets nécessaires au CI/CD
 
 ### 14.2 Société, marque et conseils
 
@@ -40,7 +40,7 @@ Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la sociét
       confirmer après D25 — la région ne se change plus après création) et récupérer les clés ;
       prévoir l'option de **restauration à un instant donné** avant la mise en production (D57) —
       *compte créé le 2026-09-25*
-- [ ] Créer le compte **Railway**, les environnements `staging` et `production` — *des commits du
+- [x] Créer le compte **Railway**, les environnements `staging` et `production` — *des commits du
       2026-09-20 préparent le déploiement de la **maquette** sur Railway ; cela ne vaut pas création
       des environnements du produit réel (§16). Depuis le 2026-09-25, un déploiement de la maquette
       se fait **depuis la branche `demo`**, jamais depuis `main`*
@@ -51,7 +51,7 @@ Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la sociét
 - [ ] Créer le compte **Apollo.io**, générer la clé API, définir les séquences commerciales —
       *compte créé le 2026-09-25, avant la société : à transférer à son nom. Même règle pour la
       clé ; aucune synchronisation réelle avant la validation de D33 par un juriste*
-- [ ] Créer les **comptes Brevo et Apollo.io de test**, réservés au poste de développement (D62),
+- [x] Créer les **comptes Brevo et Apollo.io de test**, réservés au poste de développement (D62),
       et poser leurs clés dans `apps/api/.env.local`
 - [ ] ~~Ouvrir le compte chez le **prestataire de paiement** retenu (D9), pendant le Lot 2~~ —
       **reporté en V2** (A1 : le paiement sort du MVP)
@@ -92,7 +92,9 @@ Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la sociét
 - [ ] Revue visuelle de la landing rendue par `expert-ux` : un seul effet spectaculaire par écran
       visible (D59) — **avant la mise en ligne du Lot 1**
 - [x] Figer la palette et les tokens (D6, `expert-ux` + fondateur) — **fait le 2026-09-17**, dark
-      theme par défaut, voir `apps/web/src/styles/tokens.css`
+      theme par défaut, voir `apps/web/src/styles/tokens.css` ; **charte KEO Emerald retenue le
+      2026-10-28 pour les espaces connectés** (D73, `20` §11) — reste à trancher F1 à F7 (`20` §11.9)
+      avant DS-2
 - [ ] Trancher le modèle financier restant : D7, D9, D19, D20, D22, D23, D27
       (`expert-paiement-facturation` + fondateur)
 - [ ] Trancher D24, D25 et D26 (fondateur, avec `expert-conformite-rgpd` et

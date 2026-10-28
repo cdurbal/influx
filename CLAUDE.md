@@ -19,7 +19,7 @@ d'abord, puis dans le code.
 
 | Sujet | Document |
 |---|---|
-| Registre des décisions D1 à D70 (statut, détail) | `docs/mvp/decisions.md` |
+| Registre des décisions D1 à D73 (statut, détail) | `docs/mvp/decisions.md` |
 | `staging` iso-production, autonomie des agents (D70) | `docs/mvp/archives/jalons/d70-plan.md`, `docs/mvp/runbooks/staging.md` |
 | Périmètre et lots du MVP | `docs/mvp/00-cadrage-mvp-v2.md` |
 | Régime courté, commission au MVP | `docs/mvp/01-intermediation-courtee.md` |
@@ -27,7 +27,7 @@ d'abord, puis dans le code.
 | Droits et RLS | `docs/mvp/03-matrice-des-droits-et-rls.md` |
 | Modèle de données | `docs/mvp/04-modele-de-donnees-mvp.md` |
 | Spécifications fonctionnelles | `docs/mvp/05` à `17b` |
-| Direction design | `docs/mvp/20-direction-design.md` |
+| Direction design ; charte KEO Emerald des espaces connectés (D73) | `docs/mvp/20-direction-design.md` (§11), mécanique `02` §21, jalon `docs/mvp/jalons/ds-fiche.md` |
 | Plan de développement, jalons | `docs/mvp/21-plan-de-developpement.md` |
 | Prérequis (société, comptes, juristes) | `docs/mvp/prerequis.md` |
 
@@ -92,9 +92,16 @@ Parcours détaillés : `docs/mvp/00-cadrage-mvp-v2.md`, `17` et `17b`.
 ## 4. Identité et principes UX
 
 - Nom **INFLUX** en capitales. **Dark theme partout, sans exception** (fond noir nuancé, jamais
-  noir pur). **Vert** = marque et action ; **succès en sarcelle**, distinct.
-- **Toute couleur et tout espacement passent par les tokens** (`apps/web/src/styles/tokens.css`,
-  skill `design-system-influx`). Rien en dur.
+  noir pur). **Vert** = marque et action ; **succès** dans sa propre teinte (sarcelle), distinct.
+- **Deux chartes** (D73) : la **vitrine** (landing, pages légales publiques) garde D6 et D59 ; les
+  **espaces connectés** (inscription et connexion, espaces marque et créateur, backoffice) suivent
+  la charte **KEO Emerald** : vert `#1dd68a`, fond `#0a0b0a`, surfaces graduées, **Manrope** (titres,
+  chiffres) et **Source Sans 3** (corps) auto-hébergées, cartes de 16 px, boutons en pilule
+  (`20` §11). Poste de travail : **navigation en colonne à gauche** (comportement de Railway, jamais
+  son style) ; téléphone : barre du bas à cinq entrées (membres), vue limitée D58 (backoffice).
+- **Toute couleur et tout espacement passent par les tokens** (`src/styles/tokens.css` de chaque
+  front, qui porte les deux chartes : bloc `[data-theme="keo"]`, `02` §21 ; skill
+  `design-system-influx`). Rien en dur, et aucune valeur de `design-proposals/` recopiée ailleurs.
 - Landing : carte métallisée premium, **un seul effet spectaculaire par écran** (D59).
 - Principes : compréhension en 10 s ; deux portes d'entrée distinctes ; inscription minimale ;
   tout se passe dans INFLUX ; **mobile-first** ; **WCAG AA**, le vert n'est jamais seul porteur
@@ -107,7 +114,7 @@ Imposé par le fondateur : **React + TS**, **Node.js + TS**, **Supabase**, **Git
 
 | Domaine | Choix |
 |---|---|
-| Fronts | **Next.js** (App Router), next-intl (ICU), **Tailwind v4** alimenté par les seuls tokens, pas de bibliothèque de composants |
+| Fronts | **Next.js** (App Router), next-intl (ICU), **Tailwind v4** alimenté par les seuls tokens, pas de bibliothèque de composants ; polices par `next/font/local` seulement (fichiers versionnés, aucun appel à Google Fonts), icônes `lucide-react` par un seul module `icons.ts` par front (`02` §21) |
 | Dépôt | Monorepo **pnpm 11** : `apps/web` (public + marque + créateur), `apps/backoffice` (hôte distinct, `noindex`, MFA, session courte), `apps/api` (Fastify 5 + worker), `packages/*` au premier besoin, `supabase/{migrations,seed}` |
 | `apps/api` | **Sans build** : TS exécuté par Node (syntaxe effaçable seulement, pas d'`enum`/`namespace`/alias, `import type`, extension `.ts`), Node ≥ 24.12 en prod. Schémas zod compilés dans `src/platform/` ; une route sans schéma de réponse empêche le démarrage. Un secret interne par front (D64) |
 | Données | **Drizzle**, migrations **SQL relues** (`drizzle-kit push` interdit) ; `@supabase/auth-js` cantonné à `apps/api` ; **un schéma par domaine, rien dans `public`**, `REVOKE ALL` sur `anon`/`authenticated` |
@@ -232,6 +239,10 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
 - **D24** créateurs particuliers et fiscalité · **D34** libellé du badge · **D38** masse critique
   avant recherche · **D30** coordonnées dans la messagerie · **D35** saisie libre d'e-mails ·
   **D36** langue du backoffice · **D61** points restants · **D14** abonnement.
+- **D73 tranchée (2026-10-28)** : charte **KEO Emerald** pour les espaces membres et le backoffice
+  (§4) ; exécution par le **Jalon DS**, extra, avant le Lot 2 (`docs/mvp/jalons/ds-fiche.md`).
+  Restent au fondateur, avant DS-2 : points F1 à F7 de `20` §11.9 (dont un seul vert de marque,
+  landing comprise).
 - **D71 tranchée (2026-10-18)** : revues sécurité et RGPD (vetos, I-4) bloquantes sur la seule
   branche `production` ; `main` et `staging` se construisent et se déploient sans elles. `production`
   (créée le 2026-10-19, sans protection GitHub) n'avance que par `git merge --no-ff main`.
@@ -244,9 +255,9 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
 
 ## 10. Lots du MVP
 
-0 Socle · 1 Inscription et leads (1re mise en ligne) · 2 Profils et badge · 3 Campagnes et
-recherche anonymisée · 4 Mise en relation et messagerie · 5 Backoffice, pipeline, e-mails ·
-6 Recette, audit, ouverture. Détail : `docs/mvp/00-cadrage-mvp-v2.md`.
+0 Socle · 1 Inscription et leads (1re mise en ligne) · *jalon extra DS, charte KEO Emerald (D73)* ·
+2 Profils et badge · 3 Campagnes et recherche anonymisée · 4 Mise en relation et messagerie ·
+5 Backoffice, pipeline, e-mails · 6 Recette, audit, ouverture. Détail : `docs/mvp/00-cadrage-mvp-v2.md`.
 
 ## 11. Glossaire
 

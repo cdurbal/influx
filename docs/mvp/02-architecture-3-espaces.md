@@ -2288,3 +2288,256 @@ ligne de code.
 
 - [Railway — Logs (conservation selon l'offre)](https://docs.railway.com/observability/logs)
 - [Railway — Observability Dashboard (métriques conservées 30 jours)](https://docs.railway.com/observability)
+
+---
+
+## 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits)
+
+> **Décision du fondateur (D73, consignée par `chef-de-projet`, fiche `docs/mvp/jalons/ds-fiche.md`).**
+> La charte « KEO Emerald » (`design-proposals/keo-emerald.css`) habille les espaces membres marque
+> et créateur et le backoffice, en responsive, avec une colonne de navigation à gauche sur poste de
+> travail. La vitrine garde sa direction (D6, D59).
+>
+> **Ce que cet addendum tranche :** la mécanique — coexistence de deux chartes dans `apps/web`,
+> polices, gabarits de page, gardes. **Ce qu'il ne tranche pas :** la correspondance KEO → tokens
+> nommés par rôle et l'anatomie des gabarits (`expert-ux`), la présence des entrées de navigation des
+> Lots 2 à 5 avant leur lot (`product-owner`). Il **amende** `17` §2.2 (un seul `<nav>`, rendu une fois
+> et restylé, §21.5) ; report à faire par `expert-ux`.
+
+### 21.1 Vocabulaire
+
+- **Charte** : palette, familles de polices, rayons. Deux chartes : **vitrine** (D6, D59) et **KEO** (D73).
+- **Registre** (`20` §2) : densité et usage — vitrine, espaces membres, backoffice. Espaces membres et
+  backoffice sont **deux registres qui partagent une charte** : partager la palette n'autorise pas à
+  partager un composant (`20` §2 ; `size-bo-control` reste interdit dans `apps/web`, `17b` §6.1).
+
+### 21.2 Frontière
+
+| Surface | Charte | Raison |
+|---|---|---|
+| Landing, pages légales publiques (`cgu`, `confidentialite`, `cookies` et équivalents EN), `not-found`, `error` et `[...rest]` de niveau `[locale]`, `global-error` | Vitrine | D59 ; pages publiques, atteintes sans compte |
+| Parcours d'inscription et de connexion (`connexion`, `inscription/**`, `sign-in`, `signup/**`) | **KEO** | `17` §3 le range dans les espaces membres ; il partage ses classes avec « Mon compte » (`auth-classes.ts`) ; les polices se chargent dès la première page du parcours |
+| Accueils de rôle, « Mon compte », écrans des Lots 2 à 5, erreurs et 404 levées dans ces pages | **KEO** | D73 |
+| `apps/backoffice` entier, connexion et activation comprises | **KEO** | D73 ; aucune vitrine dans le backoffice |
+
+Le texte juridique affiché dans le parcours (fenêtre des CGU, écran bloquant de `17` §6.7) est rendu
+en KEO par le même composant neutre que les pages légales.
+
+### 21.3 Tokens : un fichier, deux chartes, un attribut
+
+| Option | Pour | Contre |
+|---|---|---|
+| **A. Re-valoriser les tokens de rôle sous `[data-theme="keo"]`, dans `tokens.css`** | Mêmes classes partout ; composants inchangés ; vitrine intacte ; G3 « un seul fichier » et la copie octet pour octet du backoffice tiennent | Piège des alias (règle 3), à fermer par une garde |
+| B. Second fichier `tokens-keo.css` | Séparation visible | Même mécanisme que A, avec une copie et une liste de G3 de plus à tenir |
+| C. Bascule globale | Le plus simple | Contraire à D73 ; rejoue la recette de la landing |
+| D. Vocabulaire parallèle (`bg-keo-surface-1`…) | Explicite | Deux langages de classes, aucun composant réutilisable entre chartes |
+
+**Décision : A.**
+
+1. Le bloc `@theme static` reste la **seule déclaration des noms de rôle** (un nom absent de `@theme`
+   n'a pas de classe) et porte les valeurs vitrine. Un rôle demandé par KEO y entre d'abord, avec une
+   valeur vitrine ou un alias.
+2. Les valeurs KEO vivent dans **un seul bloc** de `tokens.css`, après `@theme` :
+   `@layer base { [data-theme="keo"] { … } }`. Il ne déclare que des noms **déjà déclarés** (`@theme`
+   ou `:root`), des valeurs **opaques** (`#rrggbb`, `transparent`, `var()`), et redéfinit **tout**
+   `--color-*`, sauf une liste nommée dans la garde (`KEO_INHERITS` : voile, rouges D72 si `expert-ux`
+   les conserve). Il redéfinit aussi familles de polices et rayons ; échelles d'espacement et de texte,
+   durées et points de rupture **ne changent pas**.
+3. **Piège vérifié sur le CSS compilé (2026-10-28).** Tailwind v4 émet les tokens dans
+   `@layer theme { :root, :host { … } }` et les classes lisent `var(--color-…)` : la redéfinition sous
+   un conteneur fonctionne. Mais un alias (`--color-action-secondary-border: var(--color-border-strong)`)
+   est **résolu sur `:root`** et hérité déjà résolu : redéfinir sa cible sous le conteneur ne le change
+   pas. Tout alias dont la cible est redéfinie est donc **redéclaré à l'identique** dans le bloc KEO
+   (fermeture vérifiée par G3c). `@theme inline` n'est pas une issue : il inscrirait aussi les valeurs
+   littérales dans les classes, et plus aucune redéfinition n'aurait d'effet.
+4. **Activation, à deux endroits seulement** (G8). `apps/web` : un conteneur `<div data-theme="keo">`
+   posé par `app/[locale]/(member)/layout.tsx`, avec les classes de police et
+   `min-h-dvh bg-surface-page font-base text-text-primary` ; `<html>` et `<body>` restent vitrine
+   (écart `#0a0a0a`/`#0a0b0a`, invisible au rebond). `apps/backoffice` : `<html data-theme="keo">` dans
+   `app/layout.tsx`.
+5. Aucun portail vers `document.body` sous la charte KEO (il sortirait du conteneur) ; les modales
+   restent des `<dialog>` natifs sur place, qui héritent de l'arbre.
+6. **Backoffice.** `tokens.css` reste la copie octet pour octet de celui de `apps/web` (garde
+   existante). Les tokens `*-bo-*` (`17b` §6) naissent dans
+   `apps/backoffice/src/styles/tokens-backoffice.css`, second bloc `@theme static`, **noms `--*-bo-*`
+   seulement**, au fil de leur emploi (rail, ligne et cellules de tableau dès ce jalon) ; leurs
+   contrastes se calculent contre les surfaces KEO. Aucune occurrence de `-bo-` dans `apps/web/src`.
+7. **`packages/ui` : pas dans ce jalon.** Les deux fronts partagent aujourd'hui des **fichiers**
+   (tokens, polices), que des copies gardées tiennent déjà (comme le passe-plat et le collecteur
+   d'erreurs) ; leurs composants appartiennent à deux registres et ne se partagent pas sans
+   vérification (`20` §2). Création maintenue au Lot 2 (`21` §7) : elle reprendra `tokens.css` et
+   remplacera la garde de copie. D'ici là, les primitives sont écrites « prêtes à déménager » : pures,
+   tokens seulement, aucun import propre à l'application.
+8. Nom de l'attribut : `data-theme` (code en anglais). Un futur mode clair des espaces membres
+   (`20` Q6) serait une autre valeur, sans autre mécanisme.
+
+### 21.4 Polices
+
+| Option | Verdict |
+|---|---|
+| `next/font/google` | **Refusée.** Déjà interdite par `eslint.front-rules.mjs` (CA11, BO-9). Le build dépendrait de la disponibilité de Google, et les fichiers servis peuvent changer d'un build à l'autre : deux builds du même commit (`staging`, production) ne seraient plus identiques |
+| `@font-face` écrit à la main | Refusée : perd le repli métrique et le préchargement par segment |
+| **`next/font/local` + fichiers versionnés** | **Retenue** |
+
+1. Un seul module par front, `src/styles/fonts.ts`, **identique** dans les deux fronts. Variables
+   `--typeface-manrope` et `--typeface-source-sans`, hors de l'espace `--font-*` de Tailwind (aucune
+   classe parasite). Le bloc KEO compose : `--font-display` (titres, chiffres) = Manrope puis la pile
+   système ; `--font-base` (corps) = Source Sans 3 puis la pile système — celle de la vitrine, écrite
+   une seule fois dans `tokens.css`.
+2. Fichiers : woff2 **variables** (axe `wght`), style normal, **non modifiés**, tels que Google Fonts
+   les distribue (miroir Fontsource, version épinglée) : sous-ensembles `latin` et `latin-ext` de
+   chaque famille, quatre fichiers par front dans `src/styles/fonts/`, avec le texte OFL 1.1 de chaque
+   famille et un manifeste `FONTS.md` (fichier, famille, sous-ensemble, source et version, SHA-256,
+   licence). Pas de redécoupage par nos soins : un fichier modifié perd le droit au nom réservé (OFL ;
+   Source Sans 3 réserve « Source »). Téléchargés une fois sur le poste ; la CI ne télécharge rien.
+3. `latin` couvre tous les libellés FR et EN (« œ », « € », guillemets compris) ; `latin-ext` couvre
+   les noms saisis (ł, ș, ğ, č…). Chaque fichier porte son `unicode-range` et les deux fichiers d'une
+   famille partagent un nom de famille (option `declarations`) : `latin-ext` ne se télécharge que si
+   l'un de ses caractères s'affiche. Au-delà (cyrillique, grec, vietnamien, écritures non latines),
+   repli caractère par caractère sur la pile système, accepté. **À vérifier au commit DS-3 sur
+   Next 16.3.6** ; si le nom de famille commun n'y est pas pris en charge : `latin` seul, consigné en
+   écart.
+4. `display: "swap"`, repli métrique automatique (`adjustFontFallback: "Arial"`, défaut de
+   `next/font/local`), préchargement des seuls fichiers `latin`. Pas d'italique livrée (la charte n'en
+   emploie pas ; l'emphase rare d'un texte juridique reste synthétisée). L'axe variable couvre toutes
+   les graisses ; les tokens n'en emploient que quelques-unes (Manrope 600 à 800, Source Sans 3 400 à
+   600 ; liste finale : `expert-ux`). Vérifier au DS-3 la présence des chiffres tabulaires de Manrope
+   (`--font-variant-numeric-amount`).
+5. **Chargement par segment.** `fonts.ts` n'est importé que par `app/[locale]/(member)/layout.tsx`
+   (web) et `app/layout.tsx` (backoffice) : Next.js précharge une police sur les seules routes de la
+   mise en page qui l'emploie, donc **jamais sur la landing**, qui reste sur sa pile système. CSP
+   inchangée : fichiers sous `/_next/static/media/` (`font-src 'self'`), `@font-face` dans une feuille
+   externe (`style-src 'self'`).
+6. Budget : taille des deux fichiers préchargés relevée au DS-3 et figée par la garde G4f, plafond
+   120 Ko.
+
+### 21.5 Gabarits de page
+
+```
+apps/web/src/app/[locale]/
+  layout.tsx                      racine inchangée (vitrine)
+  page.tsx, cgu/, terms/, …       vitrine
+  (member)/layout.tsx             serveur : conteneur data-theme="keo", polices
+  (member)/error.tsx, not-found.tsx
+  (member)/connexion/, sign-in/, inscription/**, signup/**      parcours, sans navigation
+  (member)/(space)/layout.tsx     serveur : messages, <MemberShell>
+  (member)/(space)/marque/, brand/, createur/, creator/, compte/**, account/**
+
+apps/backoffice/src/app/
+  layout.tsx                      <html data-theme="keo">, polices
+  (auth)/page.tsx, (auth)/activation/                            sans rail
+  (app)/layout.tsx                <Shell>
+  (app)/accueil/, inscrits/, invitations/, double-validation/, reglages/, comptes-internes/, sante-technique/
+```
+
+Les groupes ne changent aucune URL : chemins localisés, `memberPageLocale` et redirections de
+`member-paths.ts` restent tels quels.
+
+1. **La coquille vit dans la mise en page, en composant client.** La session ne se lit que par le
+   passe-plat du navigateur (le client d'API est réservé au passe-plat, G5). `MemberShell` et `Shell`
+   lisent `GET /v1/me` (`/v1/bo/me`) au montage **et à chaque changement de chemin**, sans vider
+   l'écran : l'écran bloquant des CGU (`05` RG28) et les bandeaux du backoffice (environnement, code
+   de secours, contrôle par les pairs, `15` RG107) restent lus à chaque page, comme aujourd'hui ; la
+   colonne ne se remonte plus à chaque navigation. Les pages lisent le contexte (`useMember()`,
+   `useMe()`) et n'appellent plus `readMe` elles-mêmes.
+2. **Aucune logique métier dans la coquille** (`CLAUDE.md` §5) : page d'un chemin, espace exigé,
+   entrée active, entrées par rôle, pages exemptées des CGU sont des fonctions pures de
+   `src/lib/member-paths.ts` et `src/lib/member-nav.ts`, testées seules.
+3. **Un seul `<nav>` « Navigation principale »**, rendu une fois par le serveur et **restylé par le
+   CSS** : barre fixée en bas sous `lg`, liste verticale de la colonne à partir de `lg`. Ni détection de
+   largeur en JavaScript, ni lecture de l'agent utilisateur, ni deux `<nav>` dont l'un est masqué.
+   L'objectif de `17` §2.2 (un seul `<nav>` exposé) est tenu à la lettre : un seul élément dans le DOM.
+   Le bloc d'état du compte, l'aide et la déconnexion sont hors du `<nav>`, dans la colonne seulement.
+   Un libellé par entrée, identique aux deux largeurs (≤ 11 caractères FR et EN, `17` §2.2), icône
+   `aria-hidden`. Toute autre navigation (sous-pages de « Mon compte ») porte un nom distinct.
+4. Grille et tokens : `lg:grid-cols-(--grid-member-shell)` ; `--size-member-rail` (16 rem, `17`
+   §2.3), `--size-nav-bottom-height` (3,5 rem) et `--z-nav-bottom` (90) de `17` §8.2 ; colonne
+   `lg:sticky lg:top-0 lg:h-dvh` ; marge basse de `main` sous `lg` ; zone de geste iOS par une règle de
+   base de `globals.css` écrite en tokens (même procédé que le bandeau des cookies).
+5. **Pas de repli de la colonne, rien de persisté.** Il n'est pas spécifié (`17` §2.3 : largeur fixe ;
+   `17b` §1.2 : rail toujours visible). S'il est demandé plus tard : un état non persisté de la
+   coquille (il survit aux navigations, se perd au rechargement). **Un cookie de préférence est
+   refusé** : `document.cookie` et `cookieStore` sont interdits pour de bon (garde CA8/CA11), un cookie
+   posé par le serveur demanderait une nouvelle route (G5) ou une route d'API pour un réglage
+   cosmétique, et un nouveau cookie rouvre la politique des cookies (Lot 6).
+6. **Icônes** : `lucide-react`, déjà épinglée dans les deux fronts, par le seul module `icons.ts` de
+   chaque front (rendu obligatoire par ESLint) ; ni seconde bibliothèque, ni police d'icônes.
+7. **Mouvement** : les durées tombent déjà à zéro sous `prefers-reduced-motion` (`tokens.css`) ;
+   **aucune transformation d'état** (agrandissement, décalage, soulèvement au survol ou à l'appui) sous
+   KEO, `motion-safe:` compris : transitions de couleur seulement (`20` §11.5 ; arbitrage
+   `chef-de-projet` du 2026-10-28, la règle la plus stricte l'emporte) ; aucune navigation animée.
+8. **Backoffice** : rail à partir de `lg` (`--spacing-bo-rail-w`, 15 rem, `17b` §6.1), bande de tête de
+   `17b` §1.4 ; **entre `md` et `lg`**, le même `<nav>` devient une liste horizontale compacte et le
+   backoffice reste complet (fenêtre demi-écran d'un poste de travail) ; **sous `md`** (téléphone), un
+   écran « poste de travail » sans contenu métier, en attendant la vue « deux gestes » de D58 (Lot 4,
+   conditions de session ouvertes) — arbitrage `chef-de-projet` du 2026-10-28, point F7 de `20` §11.9
+   soumis au fondateur. Seuls les écrans existants y figurent ; les entrées d'administration restent
+   absentes pour un `agent`, le serveur les refuse de toute façon (CA63).
+9. Les entrées des Lots 2 à 5 côté membres viennent de `member-nav.ts` ; **elles sont omises jusqu'à
+   leur lot** (arbitrage `chef-de-projet` du 2026-10-28, `expert-ux` d'accord) et leurs libellés
+   n'entrent dans les fichiers de traduction qu'avec leur écran ; une entrée apparue ne disparaît plus.
+   Les écrans autonomes (parcours, CGU à ré-accepter, déconnecté, compte supprimé) n'affichent aucune
+   navigation principale (`20` §11.8).
+
+### 21.6 Gardes et tests
+
+Les lecteurs de blocs (`@theme`, bloc KEO), la fermeture des alias et l'écart de teinte rejoignent
+`@influx/test-kit/guards`, avec leur auto-test, comme les détecteurs existants.
+
+| Garde | Statut | Ce qu'elle vérifie, depuis les fichiers |
+|---|---|---|
+| G3 | Amendée | `apps/web` : toujours un seul fichier de tokens, en-tête « D6 tranchée » et « D73 ». `apps/backoffice` : `tokens-backoffice.css` rejoint la liste des feuilles |
+| G3b | Amendée | Rouges D72 opaques, identiques entre fronts, contrastes recalculés **par charte**, contre toutes les surfaces où un message d'erreur peut paraître |
+| G3c | Nouvelle | Bloc KEO unique, dans `tokens.css` ; noms ⊆ noms déclarés ; tout `--color-*` redéfini hors `KEO_INHERITS` ; fermeture des alias ; valeurs opaques |
+| G3d | Nouvelle | Matrice de contrastes par charte (paires listées en données, relues par `expert-ux`) : textes ≥ 4,5:1 sur chaque surface permise ; bordure de champ et contour de focus ≥ 3:1 ; texte sur action principale (repos, survol, appui) ≥ 4,5:1 ; succès écarté du vert d'action d'au moins 20° de teinte (`CLAUDE.md` §4) |
+| G3e | Nouvelle | Vitrine figée : chaque valeur de l'instantané `apps/web/tests/fixtures/vitrine-tokens-d59.json` reste égale (ajouts permis) |
+| G3f | Nouvelle | Aucun `-bo-` dans `apps/web/src` ; `tokens-backoffice.css` ne déclare que des `--*-bo-*`, contrastés contre KEO |
+| G4f | Nouvelle | Fichiers de police uniquement sous `src/styles/fonts/`, chacun au manifeste avec SHA-256, licences OFL présentes, copies et `fonts.ts` identiques entre fronts, budget tenu |
+| G8 | Nouvelle | `data-theme` posé dans les deux seules mises en page ; `fonts.ts` importé par elles seules ; aucun module réservé à la landing (liste nommée) importé sous `(member)` ni par `components/{member,auth,account}` ; aucun token réservé à la vitrine (`metal-card`, halos, `phone-*`, `hero-*`, bandeau de maquette) hors de la landing ; aucun `createPortal` sous la charte KEO ; transformations au survol sous `motion-safe:` seulement |
+| ESLint | Amendée | `lucide-react` hors `icons.ts` interdit ; `next/font/local` hors `src/styles/fonts.ts` interdit (`next/font/google` l'est déjà) |
+| Unitaires | Nouveaux | `member-nav.ts` (≤ 5 entrées, libellés ≤ 11 caractères FR et EN lus dans les fichiers de traduction), `pageOfPath`, entrée active, espace exigé |
+| E2E | Nouveaux | Landing FR et EN : aucune police téléchargée, aucune requête tierce. Page membre : polices servies par l'origine seule, `latin-ext` non téléchargé sur un contenu FR. À 375 et 1440 px : un seul repère `navigation` « Navigation principale », `aria-current`, dernier élément de `main` jamais sous la barre. Mouvement réduit émulé : durées nulles. axe WCAG 2.1 AA sur chaque écran rhabillé des deux fronts. Aucune violation CSP en console |
+
+### 21.7 Découpage
+
+Treize commits ordonnés, dans la fiche `docs/mvp/jalons/ds-fiche.md`. Préalables : table de
+correspondance d'`expert-ux` avant DS-2 (faite le 2026-10-28, `20` §11.3) ; anatomie des gabarits
+avant DS-6 et DS-10 (faite, `17` §2.2–2.3, `17b` §1.7) ; entrées des Lots 2 à 5 omises (point 9,
+tranché) ; points F1 à F7 du fondateur (`20` §11.9).
+
+### 21.8 Risques et réversibilité
+
+| Risque | Parade |
+|---|---|
+| Alias résolu sur `:root` qui garde sa valeur vitrine sous KEO | G3c (fermeture), complétude du bloc |
+| Succès KEO `#4ade80` (teinte 142°) à 13° du vert d'action KEO `#1dd68a` (155°) ; la sarcelle actuelle `#2dd4bf` (172°) n'en est plus qu'à 17° (27° en vitrine) ; `CLAUDE.md` §4 exige un succès distinct | `expert-ux` choisit un succès à au moins 20° (teinte ≥ 176°, par exemple `#3ccfcf` de KEO, 180°) ; sinon arbitrage du fondateur et `CLAUDE.md` §4 amendé. G3d le calcule |
+| Rouge D72 `#ec5d5e` : 5,5:1 sur la surface 1 de KEO, 4,5:1 sur la surface 3, sous le seuil au-delà ; `text-tertiary` de KEO `#8a938e` sous 4,5:1 sur les surfaces 4 et 5 | G3b et G3d recalculés ; paires interdites fixées par `expert-ux` |
+| Teintes de rôle KEO (marque `#e6d3a3`, créateur `#ff8fb1`) prises pour seul porteur du rôle, contraire à `12` RG7 et à P7 | Libellé toujours écrit ; `expert-ux` |
+| Nom de famille commun `latin`/`latin-ext` non pris en charge par Next 16.3.6 | Repli `latin` seul (§21.4, point 3) |
+| Coquille déplacée dans la mise en page qui casse un cas de session (déconnexion, compte supprimé, CGU, rôle d'une autre porte) | e2e `account`, `account-data`, `signup-nominal`, `journey-resume`, `backoffice` verts à chaque commit ; règles pures testées |
+| Portail ou `::backdrop` hors du conteneur | §21.3, point 5 ; G8 ; voile dans `KEO_INHERITS` |
+
+**Réversibilité.** Retirer la charte KEO d'un espace revient à retirer l'attribut `data-theme` : il
+retrouve la vitrine sans toucher aux composants. **Aligner plus tard la landing sur KEO** revient à
+poser l'attribut dans la mise en page racine et à y importer les polices : une poignée de lignes,
+puis une recette visuelle des effets D59 (carte métallisée, halos) sur les surfaces KEO, le budget
+de premier affichage de la landing avec deux polices de plus, axe, et la mise à jour explicite de
+G3e. Ordre de grandeur : un à deux jours, presque tout en recette et en revue `expert-ux`. Les
+valeurs KEO passeraient ensuite dans `@theme` et le bloc disparaîtrait.
+
+### 21.9 Ce que cet addendum demande aux autres agents
+
+| Agent | Demande |
+|---|---|
+| `expert-ux` | Table KEO → rôles avec `KEO_INHERITS` et les paires de contraste permises (avant DS-2) ; succès distinct du vert d'action ; anatomie des deux coquilles ; report du §21.5, point 3, dans `17` §2.2 ; skill `design-system-influx` (deux chartes, un attribut, polices) |
+| `product-owner` | *Sans objet : entrées des Lots 2 à 5 omises jusqu'à leur lot (`chef-de-projet`, 2026-10-28, §21.5 point 9)* |
+| `dev-react-node` | Commits DS-1 à DS-12 ; aucune valeur hors `tokens.css` et `tokens-backoffice.css` ; aucune lecture de session hors des coquilles |
+| `testeur` | Gardes et e2e du §21.6 ; revue groupée de fin de jalon |
+| `expert-cybersecurite` | Revue groupée de fin de jalon (D71) : CSP inchangée, aucune requête tierce, coquilles qui ne lisent la session que par le passe-plat |
+| `chef-de-projet` | D73 et fiche DS ; `CLAUDE.md` §4 (deux chartes, polices auto-hébergées) et §5 (ligne « Fronts ») ; `21` §7 (`packages/ui` maintenu au Lot 2) ; `pnpm docs:index` |
+
+### Sources (vérifiées le 2026-10-28)
+
+- [Tailwind CSS — Theme variables (`inline`, `static`, `--*: initial`)](https://tailwindcss.com/docs/theme)
+- [Next.js — Font module (`next/font/local`, `declarations`, `adjustFontFallback`, préchargement par segment)](https://nextjs.org/docs/app/api-reference/components/font)
+- CSS compilé de `apps/web` (build local, `.next/static/chunks/*.css`) : `@layer theme{:root,:host{…}}`, `.bg-surface-page{background-color:var(--color-surface-page)}`, `--color-action-secondary-border:var(--color-border-strong)`

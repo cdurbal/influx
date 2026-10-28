@@ -1,6 +1,7 @@
 # Lot 5 — Parcours et écrans du backoffice INFLUX
 
-> **Date :** 2026-09-19 · **Auteur :** `expert-ux`
+> **Date :** 2026-09-19, **révisé le 2026-10-28 (D73 : charte KEO Emerald, gabarit §1.7, §1.4, §6)** ·
+> **Auteur :** `expert-ux`
 > **Skills appliquées :** `backoffice-ops` (mode opératoire), `design-system-influx` (tokens, états,
 > accessibilité), `feature-spec` (par renvoi pour les critères).
 > **Lot :** 5 — *Backoffice complet, pipeline commercial et e-mails* (`00-cadrage-mvp-v2.md` §7),
@@ -42,7 +43,7 @@
 | `⟨…⟩` | Donnée variable |
 | `▮` | Zone journalisée : son ouverture écrit une ligne de registre |
 | **AA** | Point où le contraste a été vérifié (§6.4) |
-| Largeurs | **Dense** = ≥ 1280 px (`breakpoint-xl`), poste de travail standard. **Étroite** = 1024–1280 px (`breakpoint-lg`), portable. En dessous de 1024 px : mise en page en une colonne, sans tableau — **le backoffice n'est pas mobile-first**, c'est le seul endroit du produit où cette règle ne s'applique pas (`CLAUDE.md` §5.2 point 6, qui vise les parcours influenceurs). **Exception décidée le 2026-09-24 (D58)** : sur téléphone, une vue limitée à deux gestes — répondre dans une conversation dont l'agent est participant, traiter la file de validation. Écrans à spécifier en additif de ce document |
+| Largeurs | **Dense** = ≥ 1280 px (`breakpoint-xl`), poste de travail standard. **Étroite** = 1024–1280 px (`breakpoint-lg`), portable. En dessous de 1024 px : mise en page en une colonne, sans tableau — **le backoffice n'est pas mobile-first**, c'est le seul endroit du produit où cette règle ne s'applique pas (`CLAUDE.md` §5.2 point 6, qui vise les parcours influenceurs). **Exception décidée le 2026-09-24 (D58)** : sur téléphone, une vue limitée à deux gestes — répondre dans une conversation dont l'agent est participant, traiter la file de validation. Écrans à spécifier en additif de ce document. *Révisé le 2026-10-28 (D73, arbitrage `chef-de-projet`), remplace la mise en page en une colonne* : gabarit de poste de travail en §1.7 ; de 768 à 1023 px, backoffice complet avec la navigation en liste horizontale ; sous 768 px, aucun contenu métier tant que les deux vues D58 n'existent pas ; charte KEO Emerald, `20` §11 |
 
 **Trois rappels qui conditionnent tous les écrans de ce document :**
 
@@ -104,6 +105,8 @@ Sept entrées, dans cet ordre. L'ordre est une décision produit : il va de « c
 | Une entrée « Statistiques » | Hors périmètre (`15` §Hors périmètre). Les indicateurs vivent au tableau de bord et dans l'export agrégé **E4** |
 | Un lien « export » global | Les exports sont une **liste fermée de 4** (`15` RG93), rangés sous Administration. Un bouton d'export visible partout banaliserait le geste le plus sensible du produit |
 
+**Forme du rail, entrées visibles aujourd'hui et pages de second niveau : §1.7** *(D73, 2026-10-28)*.
+
 ### 1.3 Regroupement des 16 files
 
 Les 16 files sont un catalogue plat en base (`15` RG26). À l'écran, elles sont **regroupées en cinq
@@ -154,7 +157,7 @@ est le seul élément qui ne change pas d'un écran à l'autre.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────┐
-│ ⬤ PRODUCTION │ INFLUX Backoffice      [⌕ Rechercher ⌘K]      ⚑ 3  Marie D. (agent) ▾ │  ← barre 1
+│ ⬤ PRODUCTION │ [⌕ Rechercher ⌘K]                               ⚑ 3  Marie D. · agent │  ← barre 1
 ├──────────────────────────────────────────────────────────────────────────────────────┤
 │ ⓘ Contrôle par les pairs indisponible — les actions sensibles sont confirmées en     │  ← barre 2
 │   mode différé.                                            [· En savoir plus]        │    (conditionnel)
@@ -172,6 +175,11 @@ est le seul élément qui ne change pas d'un écran à l'autre.
 | 5 | **Bandeau de contrôle affaibli** | `bo.dualControl.degraded`, ton « information », **jamais** « erreur » : ce n'est pas une panne, c'est un état de l'équipe (`15` RG107) | Tant qu'il n'y a pas 2 `admin` actifs |
 | 6 | **Bandeau d'annulation d'envoi** | Compte à rebours, annulable par **n'importe quel** `agent` ou `admin`, depuis **n'importe quel** écran (`16` RG28, `15` RG127-2). Annoncé aux lecteurs d'écran par `role="status"`, mis à jour toutes les 30 s et non à chaque seconde | Pendant la fenêtre de 5 min |
 | 7 | **Bandeau d'interrupteur d'urgence** | AL45 : « Envois marketing suspendus — ⟨cause⟩ ». Ton « alerte ». Affiché à **tous** les rôles internes (`16` RG121) | Tant qu'actif |
+
+*Révisé le 2026-10-28 (D73).* La bande de tête couvre la **zone de contenu**, à droite du rail
+pleine hauteur (§1.7) : le nom « INFLUX Backoffice » passe en tête du rail ; l'identité et le rôle
+restent dans la bande, écrits (« Marie D. · agent »), sans menu déroulant ; « Se déconnecter » est au
+pied du rail. Hauteur `spacing-bo-band-h`, `surface-page` et filet bas `border-default` en production.
 
 **Ce qui n'est jamais dans la bande de tête :** un montant, un nom de membre, un extrait de message,
 un compteur animé. Une bande de tête permanente est lue dix mille fois par mois : tout ce qui y
@@ -216,13 +224,13 @@ Le tableau de bord n'est pas repris bloc par bloc : `15` RG18 et RG21 en fixent 
 ```
 ┌ Tableau de bord ─────────────────────── arrêté à 09 h 41 (Europe/Paris) [□ Actualiser] ┐
 │                                                                                         │
-│ 1 · À TRAITER MAINTENANT                                                    ‹g puis 1›  │
+│ 1 · À TRAITER MAINTENANT                                                    ‹b puis 1›  │
 │   ⚑ HORS DÉLAI ─────────────────────────────────────────────────────────────────────   │
 │   │ MER-2026-000118  Demande de contact   hors délai depuis 3 h 12   [· Ouvrir] ▮  │   │
 │   ────────────────────────────────────────────────────────────────────────────────    │
 │   Entrées dont je tiens le verrou (2) · Tâches datées (1) · Alertes non classées (3)   │
 │                                                                                         │
-│ 2 · LES FILES                                                               ‹g puis 2›  │
+│ 2 · LES FILES                                                               ‹b puis 2›  │
 │   ┌──────────────────────────────┬────────┬───────────────┬───────────┬─────────────┐  │
 │   │ File                         │ En att.│ Plus ancienne │ Hors délai│ Sans preneur│  │
 │   ├──────────────────────────────┼────────┼───────────────┼───────────┼─────────────┤  │
@@ -232,13 +240,13 @@ Le tableau de bord n'est pas repris bloc par bloc : `15` RG18 et RG21 en fixent 
 │   │ Adresses injoignables        │     0  │  ⛔ bloquée — rien depuis 26 h ouvrées   │  │
 │   └──────────────────────────────┴────────┴───────────────┴───────────┴─────────────┘  │
 │                                                                                         │
-│ 3 · MES AFFAIRES                                                            ‹g puis 3›  │
-│ 4 · MA SEMAINE                                                              ‹g puis 4›  │
+│ 3 · MES AFFAIRES                                                            ‹b puis 3›  │
+│ 4 · MA SEMAINE                                                              ‹b puis 4›  │
 │   Commission convenue      EUR  4 200,00      Commission encaissée  EUR  2 100,00      │
 │                            GBP    900,00                            GBP      0,00      │
 │   Écart convenue − encaissée  EUR 2 100,00 · GBP 900,00                                │
 │   ⓘ Montants présentés par devise, sans conversion.                                    │
-│ 5 · MON ACTIVITÉ                                                            ‹g puis 5›  │
+│ 5 · MON ACTIVITÉ                                                            ‹b puis 5›  │
 └─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -250,7 +258,105 @@ Le tableau de bord n'est pas repris bloc par bloc : `15` RG18 et RG21 en fixent 
 | **Deux états vides distincts** | `15` RG24, RG32 : « — dernière traitée il y a 12 min » (normal) contre « ⛔ bloquée — rien depuis 26 h ouvrées » (incident, AL4). Deux formulations, deux pictogrammes, **pas seulement deux couleurs** |
 | **Ma semaine : une ligne par devise** | `15` RG19, CA4. Jamais de total global. La mention `bo.amount.byCurrency` est **sous** le bloc, pas en infobulle |
 | **`admin`, le lundi** | Le bloc 8 « Contrôles » passe **en tête**, au-dessus du bloc 1, et son ouverture est journalisée (`15` RG22, CA8) |
-| **Sauts clavier** | `‹g puis n›` amène le focus sur le bloc n. `‹?›` affiche la liste des raccourcis |
+| **Sauts clavier** | `‹b puis n›` amène le focus sur le bloc n *(révisé le 2026-10-28 : `g` puis n reste réservé aux entrées du rail, §4.11)*. `‹?›` affiche la liste des raccourcis |
+
+### 1.7 Gabarit de page : rail à gauche, bande de tête, vue téléphone *(D73, 2026-10-28)*
+
+Charte KEO Emerald (`20` §11). Référence de comportement : Railway (`20` §3) — colonne fixe à gauche,
+pleine hauteur, en-tête qui dit où l'on est, pied de colonne ; sans sélecteur, sans repli en icônes,
+sans l'accent violet de Railway.
+
+```
+Poste de travail 1440 (conçu à 1280 et 1440 ; identique de 1024 à 1279)
+┌────────────────────────────────┬──────────────────────────────────────────────────────────────┐
+│ INFLUX                         │ ⬤ PRODUCTION │ [⌕ Rechercher  ⌘K]     ⚑ 3   Marie D. · agent │
+│ Backoffice                     ├──────────────────────────────────────────────────────────────┤
+│                                │ ⓘ Contrôle par les pairs indisponible — … [· En savoir plus] │
+│  [i] Tableau de bord           ├──────────────────────────────────────────────────────────────┤
+│  [i] Files                  12 │ Comptes › Inscrits                                           │
+│      ⚑ 2 hors délai            │ Inscrits ▮                                                   │
+│ ▎[i] Comptes                   │ ⟪Inscrits⟫ · Invitations                                     │
+│  [i] Créateurs                 │ Filtres en puces                                             │
+│  [i] Affaires                1 │ ┌──────────────────────────────────────────────────────────┐ │
+│  [i] Alertes                 3 │ │ Inscrit          Rôle         Pays  Inscrit le  Synchro. │ │
+│  [i] Administration          2 │ ├──────────────────────────────────────────────────────────┤ │
+│                                │ │ ⟨adresse⟩        ● Marque     FR    27/10 09:12 ○ à jour │ │
+│ ────────────────────────────── │ │ ⟨adresse⟩        ● Créateur   BE    27/10 08:40 ⚑ échec  │ │
+│  [i] Raccourcis            ‹?› │ └──────────────────────────────────────────────────────────┘ │
+│  [i] Se déconnecter            │                                                              │
+└────────────────────────────────┴──────────────────────────────────────────────────────────────┘
+  spacing-bo-rail-w (15 rem),      zone de contenu : pleine largeur pour un tableau,
+  collant, pleine hauteur          container-narrow pour un formulaire
+  [i] = icône lucide décorative · ▎ = filet 2 px de l'entrée active · ⟪ ⟫ = lien de section courant
+```
+
+| Élément | Règle |
+|---|---|
+| Points de rupture | *(Arbitrage `chef-de-projet` du 2026-10-28.)* ≥ 1 024 px : ce gabarit. **Entre 1 024 et 1 279 px**, rail identique ; les panneaux latéraux (`spacing-bo-panel-w`) recouvrent la liste au lieu de la pousser ; un tableau trop large défile seul, horizontalement, première colonne collante — jamais la page. **Entre 768 et 1 023 px** : backoffice complet, sans rail ; le même `<nav>` devient une **liste horizontale compacte** sous la bande de tête (`02` §21.5 point 8), qui passe à la ligne sans cacher d'entrée ; contenu pleine largeur, tableaux et panneaux comme entre 1 024 et 1 279 px. Cas visé : une fenêtre en demi-écran sur un poste de 1 920 px. **Sous 768 px** : règle téléphone ci-dessous |
+| Rail | `spacing-bo-rail-w` (15 rem), collant, pleine hauteur, `surface-page`, filet droit `border-default`, défilement propre. En tête : INFLUX et « Backoffice » (lien vers le tableau de bord). Les sept entrées de §1.2, dans cet ordre : icône + libellé `text-sm`, hauteur `spacing-bo-row-h`. Actif : filet gauche 2 px `brand-primary`, surface `nav-item-active-bg`, libellé semi-gras, `aria-current="page"` (`20` §11.8). Compteurs en chiffres tabulaires `text-secondary` ; le hors délai est **écrit** sous l'entrée (« ⚑ 2 hors délai », `bo-sla-overdue-text`). Pied : raccourcis (`?`), se déconnecter |
+| Pas de repli | Le gain (environ 11 rem) ne vaut pas un second gabarit à tester ; un repli mémorisé exigerait un stockage que le front n'a pas (D37) |
+| Bande de tête | §1.4, au-dessus de la seule zone de contenu ; hors production, fond `bo-env-nonprod-bg` et mot en capitales (§4.6) |
+| Second niveau | Les pages sœurs d'une entrée sont des **liens de section** en tête de contenu (`<nav aria-label="⟨entrée⟩">`), pas des sous-entrées du rail : le rail reste à sept lignes, les trois niveaux de §1.1 tiennent |
+| Vue identifiée | Barre de 4 px sur la **zone de contenu** concernée (§4.9), jamais sur le rail |
+| Clavier | Lien d'évitement → bande → rail → contenu. `g` puis 1…7 garde **le numéro de §1.2** même quand des entrées sont masquées (`g` puis 3 = Comptes, toujours) ; un numéro sans entrée ne fait rien. Focus au `h1` après navigation. Les blocs du tableau de bord se rejoignent par `b` puis n (§1.6, §4.11 ; arbitrage du 2026-10-28) |
+| Un seul `<nav>` | Un seul élément `<nav>` « Navigation principale », rendu une fois et restylé par le CSS : rail à partir de `lg`, liste horizontale de 768 à 1 023 px (`02` §21.5). Ni détection de largeur en JavaScript, ni second `<nav>` masqué. Les liens de section portent leur propre libellé |
+
+**Entrées visibles au 2026-10-28.** Une entrée apparaît avec son premier écran et ne disparaît plus ;
+le gabarit est conçu et testé pour les sept (arbitrage `chef-de-projet` du 2026-10-28).
+
+| Entrée (§1.2) | Écrans existants, en liens de section | Rôles |
+|---|---|---|
+| 1 Tableau de bord | `/accueil` | `agent`, `admin` |
+| 2 Files | — | masquée |
+| 3 Comptes | Inscrits (`/inscrits`, fiche `/inscrits/[id]`) · Invitations (`/invitations`) | `agent`, `admin` |
+| 4 Créateurs | — (Lot 3) | masquée |
+| 5 Affaires | — (Lot 5) | masquée |
+| 6 Alertes | — | masquée |
+| 7 Administration | Double validation · Comptes internes · Réglages Apollo · Santé technique | `admin` ; absente pour l'`agent`, qui n'y a encore rien (CA63) |
+
+**Téléphone, sous 768 px — règle provisoire jusqu'aux vues D58 (Lot 4)**
+
+```
+Téléphone 375 — tout écran derrière session
+┌─────────────────────────────────────────┐
+│ ⬤ RECETTE · INFLUX Backoffice           │  bande réduite : environnement écrit
+│ Marie D. · agent                        │  identité et rôle
+├─────────────────────────────────────────┤
+│ Le backoffice se consulte sur un poste  │  h1, text-title-page
+│ de travail                              │
+│                                         │
+│ Cet écran demande au moins 768 px de    │  text-md, text-secondary
+│ large. Sur téléphone, vos conversations │
+│ et la file de validation seront         │
+│ disponibles à leur mise en service.     │
+│                                         │
+│                                         │
+│                                         │
+│ [□ Se déconnecter]                      │
+└─────────────────────────────────────────┘
+```
+
+| Règle | Détail |
+|---|---|
+| Contenu | **Aucun contenu métier** sous 768 px, sur tout écran derrière session : bande réduite, écran d'explication, `[□ Se déconnecter]`. Remplace, pour cette période, le « une colonne, sans tableau » de M4 (§7.2). Effet de bord connu (question au fondateur, `20` §11.9 F7) : un téléphone tenu à l'horizontale dépasse souvent 768 px et voit alors le backoffice complet |
+| Pourquoi | (1) D58 n'autorise sur téléphone que deux gestes, qui n'existent pas encore ; (2) les écrans actuels montrent des identités et des actions sensibles, lisibles par-dessus l'épaule dans un lieu public ; (3) les conditions de session sur téléphone ne sont pas fixées (`architecte` + `expert-cybersecurite`, avant le Lot 4) ; (4) aucune version en une colonne à concevoir, tester puis jeter |
+| Connexion | Les écrans de connexion et d'activation du second facteur restent utilisables à toute largeur (formulaires d'une colonne). **Ce masquage est une règle d'écran, pas une mesure de sécurité** : empêcher toute session sur téléphone relève d'`architecte` + `expert-cybersecurite` |
+| Ensuite | Au Lot 4, la conversation et la file de validation reçoivent leur vue téléphone (additif D58, cibles `size-touch-target`) ; tout le reste garde cet écran sous 768 px |
+
+**États du gabarit.** Chargement : rail et bande affichés, entrées et contenu en squelette à hauteur
+fixe. Session illisible : notice et lien de reconnexion, sans rail (existant). Déconnecté : page sans
+rail (existant). Entrée réservée : « réservé aux administrateurs », appel refusé journalisé (CA63).
+Téléphone : écran ci-dessus.
+
+| Clé | Français | English |
+|---|---|---|
+| `bo.shell.skip` | Aller au contenu | Skip to content |
+| `bo.shell.nav.label` | Navigation principale | Main navigation |
+| `bo.shell.signOut` | Se déconnecter | Sign out |
+| `bo.shell.shortcuts` | Raccourcis | Shortcuts |
+| `bo.shell.overdue` | {count, plural, one {# hors délai} other {# hors délai}} | {count, plural, one {# overdue} other {# overdue}} |
+| `bo.shell.workstationOnly.title` | Le backoffice se consulte sur un poste de travail | The back office is designed for a workstation |
+| `bo.shell.workstationOnly.body` | Cet écran demande au moins 768 px de large. Sur téléphone, vos conversations et la file de validation seront disponibles à leur mise en service. | This screen needs a window at least 768 px wide. On a phone, your conversations and the review queue will be available once they launch. |
 
 ---
 
@@ -1723,7 +1829,7 @@ une carte par élément fait défiler, un tableau fait comparer.
 | Remplissage de cellule | `spacing-bo-cell-y` = `spacing-1` · `spacing-bo-cell-x` = `spacing-3` **nouveaux** | La respiration de la landing (`spacing-inset-card`) est ici un défaut |
 | Taille de texte | `text-sm` en corps, `text-xs` en en-tête | En dessous de `text-sm`, la lecture en continu fatigue sur huit heures |
 | Nombres | `font-variant-numeric-amount` (tabulaire) **obligatoire** | Des montants non alignés ne se comparent pas |
-| En-tête | `<th scope="col">`, **collant** sous la bande de tête, `color-surface-muted` | |
+| En-tête | `<th scope="col">`, **collant** sous la bande de tête, `color-surface-raised` *(D73 : `surface-muted` a désormais la valeur des lignes)* | |
 | Ligne survolée / focalisée | `color-bo-row-hover` **nouveau** + **bordure gauche de 2 px** `color-brand-primary` | La couleur seule ne suffit pas au clavier |
 | Zébrure | **Aucune** | Elle entre en conflit avec l'état de ligne (hors délai, verrouillée, bloquée), qui doit rester lisible |
 | Sélection | Case en colonne 1, **seulement sur les files à action de masse** | Une case inutile invite à un geste impossible |
@@ -1881,7 +1987,8 @@ les rend utiles. Ce document en ajoute trois, de navigation seulement, sans effe
 | `Échap` | Fermer le panneau en cours, **sans perdre la saisie** | `15` RG114, RG116 |
 | `?` | Afficher la liste des raccourcis | `15` RG114 |
 | `⌘K` / `Ctrl K` | Recherche globale | **ajout §1.5** |
-| `g` puis `1…7` | Aller à l'entrée n du rail | **ajout §1.2** |
+| `g` puis `1…7` | Aller à l'entrée n du rail (numéro de §1.2, même quand des entrées sont masquées, §1.7) | **ajout §1.2** |
+| `b` puis `1…8` | Tableau de bord : amener le focus sur le bloc n (§1.6) | **ajout du 2026-10-28** (lève le conflit avec `g` puis n) |
 | `espace` | Cocher / décocher la ligne focalisée (files à sélection) | **ajout §3.3** |
 
 **Aucun raccourci ne déclenche une action irréversible sans confirmation** (`15` RG115). `‹?›`
@@ -1953,6 +2060,11 @@ rupture d'automatisme.
 > token existant ne couvre le besoin — c'est le cas le plus fréquent. Sur **douze** besoins
 > identifiés, **neuf sont des alias sans nouvelle valeur** et **deux seulement** introduisent une
 > couleur nouvelle. **D6 n'est pas rouverte.**
+>
+> **Charte KEO Emerald (D73, 2026-10-28).** Les noms de cette section ne changent pas ; les alias
+> résolvent désormais vers les valeurs KEO (`20` §11.3) et les contrastes ci-dessous sont recalculés
+> sur les surfaces KEO : page `#0a0b0a`, ligne et carte `#121413`, ligne survolée `#232725`. Ajout
+> sans valeur nouvelle : `--spacing-bo-band-h` (§6.1).
 
 ### 6.1 Densité — aucune couleur, aucun contraste à vérifier
 
@@ -1965,7 +2077,8 @@ visible par écran.
 | `--spacing-bo-row-h` | **`2.25rem`** *(nouveau)* | Hauteur de ligne du tableau dense | Jamais hors d'un `BoTable` ; jamais sur une liste destinée à un membre |
 | `--spacing-bo-cell-y` | `var(--spacing-1)` *(alias)* | Remplissage vertical de cellule | — |
 | `--spacing-bo-cell-x` | `var(--spacing-3)` *(alias)* | Remplissage horizontal de cellule | — |
-| `--spacing-bo-rail-w` | **`15rem`** *(nouveau)* | Largeur du rail de navigation | — |
+| `--spacing-bo-rail-w` | **`15rem`** *(nouveau)* | Largeur du rail de navigation (§1.7) | Colonne des espaces membres (`size-member-rail`, `17` §8.2) |
+| `--spacing-bo-band-h` | `var(--spacing-8)` *(alias, D73)* | Hauteur de la bande de tête (§1.4, §1.7) | — |
 | `--spacing-bo-panel-w` | **`30rem`** *(nouveau)* | Largeur du panneau latéral (proposition, motif, suspension) | Au-delà, le panneau masque la liste qu'il faut garder visible |
 | `--size-bo-control` | **`1.75rem`** *(nouveau)* | Hauteur minimale d'un contrôle en ligne de tableau. **28 px ≥ les 24 px exigés par WCAG 2.2 AA (2.5.8)** | **Interdit sur `apps/web`** : les parcours membres restent à `size-touch-target` (2,75 rem), mobile-first |
 
@@ -1987,11 +2100,12 @@ autre emploi**.
 
 | Paire | Ratio | Exigence | Verdict |
 |---|---|---|---|
-| `#a78bfa` sur `--color-surface-page` `#0a0a0a` | **7,27 : 1** | 4,5 : 1 (texte) | ✅ AAA |
-| `#a78bfa` sur `--color-surface-card` `#131315` | **6,82 : 1** | 4,5 : 1 | ✅ AAA |
-| `#a78bfa` sur `--color-bo-identified-bg` `#17121f` | **6,73 : 1** | 3 : 1 (barre de 4 px = composant d'interface) | ✅ |
-| `--color-text-primary` `#f5f5f7` sur `#17121f` | **16,89 : 1** | 4,5 : 1 | ✅ AAA |
-| `--color-text-secondary` `#a1a1aa` sur `#17121f` | **6,45 : 1** | 4,5 : 1 | ✅ |
+| `#a78bfa` sur `--color-surface-page` `#0a0b0a` *(KEO)* | **7,24 : 1** | 4,5 : 1 (texte) | ✅ AAA |
+| `#a78bfa` sur `--color-surface-card` `#121413` *(KEO)* | **6,80 : 1** | 4,5 : 1 | ✅ |
+| `#a78bfa` sur `--color-bo-identified-bg` `#17121f` | **6,75 : 1** | 3 : 1 (barre de 4 px = composant d'interface) | ✅ |
+| `--color-text-primary` `#f4f6f5` *(KEO)* sur `#17121f` | **16,93 : 1** | 4,5 : 1 | ✅ AAA |
+| `--color-text-secondary` `#b4bbb7` *(KEO)* sur `#17121f` | **9,39 : 1** | 4,5 : 1 | ✅ AAA |
+| `--color-text-tertiary` `#8a938e` *(KEO)* sur `#17121f` | **5,81 : 1** | 4,5 : 1 | ✅ |
 
 > **La couleur n'est jamais seule porteuse** (`15` RG119). La vue identifiée est signalée par
 > **trois** moyens simultanés : une **forme** (barre verticale pleine), un **texte** (« ⬥ VUE
@@ -2006,11 +2120,11 @@ autre emploi**.
 | `--color-bo-sla-due-text` | `var(--color-feedback-warning-text)` | « dans 45 min » — sous 25 % du délai restant |
 | `--color-bo-sla-overdue-text` | `var(--color-feedback-error-text)` | « HORS DÉLAI depuis 3 h 12 » |
 
-| Paire | Ratio sur `#131315` | Verdict |
-|---|---|---|
-| `#a1a1aa` (à l'heure) | **7,24 : 1** | ✅ |
-| `#fbbf24` (proche) | **11,12 : 1** | ✅ |
-| `#f87171` (hors délai) | **6,71 : 1** | ✅ |
+| Paire *(valeurs KEO et D72, D73)* | Sur la ligne `#121413` | Sur la ligne survolée `#232725` | Verdict |
+|---|---|---|---|
+| `#b4bbb7` (à l'heure) | **9,45 : 1** | **7,73 : 1** | ✅ |
+| `#ffb020` (proche) | **10,12 : 1** | **8,27 : 1** | ✅ |
+| `#ec5d5e` (hors délai, D72) | **5,54 : 1** | **4,53 : 1** | ✅ |
 
 **Chacun est doublé d'un libellé écrit et d'un glyphe** (`○` · `⚑` · `⚑` + capitales), jamais de la
 seule couleur (`15` CA15).
@@ -2019,9 +2133,9 @@ seule couleur (`15` CA15).
 
 | Token | Valeur | Rôle | Contraste |
 |---|---|---|---|
-| `--color-bo-alert-state` | `var(--color-feedback-info-text)` | Alerte **d'état** (se referme seule) | `#60a5fa` sur `#131315` = **7,30 : 1** ✅ |
-| `--color-bo-alert-event` | `var(--color-feedback-warning-text)` | Alerte **d'événement** (à classer) | **11,12 : 1** ✅ |
-| `--color-bo-alert-event-bg` | `var(--color-feedback-warning-bg)` | Fond de ligne d'une alerte d'événement non classée | texte `#fbbf24` sur `#2b2008` = **9,58 : 1** ✅ |
+| `--color-bo-alert-state` | `var(--color-feedback-info-text)` | Alerte **d'état** (se referme seule) | `#4da3ff` sur `#121413` = **7,05 : 1** ✅ *(KEO)* |
+| `--color-bo-alert-event` | `var(--color-feedback-warning-text)` | Alerte **d'événement** (à classer) | `#ffb020` sur `#121413` = **10,12 : 1** ✅ *(KEO)* |
+| `--color-bo-alert-event-bg` | `var(--color-feedback-warning-bg)` | Fond de ligne d'une alerte d'événement non classée | texte `#ffb020` sur `#2b2008` = **8,75 : 1** ✅ *(KEO)* |
 | `--color-bo-env-nonprod-bg` | `var(--color-feedback-warning-bg)` | Fond de la bande de tête hors production | idem ✅ |
 | `--color-bo-env-nonprod-text` | `var(--color-feedback-warning-text)` | Mot « RECETTE » / « LOCAL » | idem ✅ |
 | `--color-bo-row-hover` | `var(--color-surface-hover)` | Ligne survolée ou focalisée, **doublée d'une bordure gauche de 2 px** `var(--color-brand-primary)` | Surface, pas de texte |
@@ -2037,7 +2151,10 @@ seule couleur (`15` CA15).
 `apps/backoffice/src/styles/tokens-backoffice.css` contenant **uniquement** les douze tokens
 ci-dessus. Aucune couleur, aucun espacement, aucun rayon en dur ailleurs (`15` RG120, CA78 ;
 `CLAUDE.md` §10.3 point 7). **Voir l'écart d'implémentation E1 en §7.3 : ce n'est pas le cas
-aujourd'hui.**
+aujourd'hui.** *Depuis D73 (2026-10-28, `02` §21.3)* : `apps/backoffice/src/styles/tokens.css` reste la
+copie identique de celui d'`apps/web`, bloc `[data-theme="keo"]` compris ; l'attribut est posé sur
+`<html>` dans `app/layout.tsx`, si bien que tout le backoffice prend les valeurs KEO de `20` §11.3.
+Les jetons propres à la vitrine (carte métallisée, halos, cadre de téléphone) n'y ont pas d'usage.
 
 ---
 
@@ -2072,7 +2189,7 @@ l'hypothèse indiquée et la rend visible.
 | **M1** | Aucun document ne fixe **l'ordre ni le regroupement** des 16 files dans la navigation | Proposé ici (§1.3), à valider par `chef-de-projet` |
 | **M2** | Aucun document ne définit **ce qui est visible en permanence** dans le backoffice | Proposé ici (§1.4) : environnement, recherche, alertes, rôle, bandeaux conditionnels |
 | **M3** | `15` RG104 prévoit un plafond « fiches distinctes ouvertes par 24 h **à régler au Lot 5** » | L'écran affiche le compteur du jour à l'agent lui-même (« 34 fiches consultées aujourd'hui ») : le rendre visible vaut mieux que le surveiller en silence. Valeur à fixer |
-| **M4** | Aucune spécification ne décrit **le comportement d'un écran sous 1024 px** au backoffice | Tranché ici : une colonne, pas de tableau, message « Cet écran est conçu pour un poste de travail ». Le backoffice n'est pas mobile-first. *Complété le 2026-09-24 par **D58*** : les conversations et la file de validation ont une vue téléphone limitée à deux gestes ; tous les autres écrans gardent cette règle |
+| **M4** | Aucune spécification ne décrit **le comportement d'un écran sous 1024 px** au backoffice | Tranché ici : une colonne, pas de tableau, message « Cet écran est conçu pour un poste de travail ». Le backoffice n'est pas mobile-first. *Complété le 2026-09-24 par **D58*** : les conversations et la file de validation ont une vue téléphone limitée à deux gestes ; tous les autres écrans gardent cette règle. *Révisé le 2026-10-28 (D73, arbitrage `chef-de-projet`)* : de 768 à 1023 px, backoffice complet, navigation en liste horizontale ; sous 768 px, tant que ces deux vues n'existent pas, aucun contenu métier, écran « poste de travail » (§1.7). La version « une colonne, sans tableau » est abandonnée |
 | **M5** | La **langue du backoffice (D36)** reste ouverte, mais les 16 libellés de file, les ~90 motifs typés et les 48 intitulés d'alerte doivent exister en **deux langues dès le premier jour**, parce qu'ils sortent du backoffice (`15` RG124, Q12) | Toutes les clés de ce document sont fournies FR/EN |
 
 ### 7.3 Écarts constatés dans l'implémentation en cours

@@ -18,7 +18,8 @@
 > `11-recherche-campagnes-et-candidature.md` · `12-messagerie-a-trois.md` ·
 > `13-file-de-validation-et-mise-en-relation.md`.
 > Référence de forme : `docs/landing-page/02-ux-wireframes.md` §2 et §2.8.
-> Tokens : `apps/web/src/styles/tokens.css` (**D6 tranchée, dark theme, 2026-09-17**).
+> Tokens : `apps/web/src/styles/tokens.css` (**D6 tranchée, dark theme, 2026-09-17**) ; **charte KEO
+> Emerald des espaces depuis le 2026-10-28 (D73)** : gabarits en §2.2 et §2.3, valeurs en `20` §11.
 >
 > **Ce que ce document tranche :** l'architecture de l'information des deux espaces, la navigation,
 > le routage, les wireframes, la hiérarchie de chaque écran, les états, les clés de traduction et
@@ -144,69 +145,119 @@ export d'une liste (`10` RG63, condition `03` C(17)), compteur de vues ou de can
 créateur (`09` RG82, `11` RG25), note, avis, étoile (`06` RG24, `07` RG31), et **tout écran affichant
 un net créateur à une marque** (`06` RG32, `07` RG70, `09` RG61, `11` RG59).
 
-### 2.2 Navigation mobile : barre du bas, 5 items, jamais 6
+### 2.2 Navigation mobile et tablette : barre du bas, 5 items, jamais 6
+
+*(Révisé le 2026-10-28 — charte KEO Emerald, D73 ; valeurs, contrastes et composants : `20` §11.)*
 
 ```
-Mobile 375 — gabarit commun aux deux espaces
+Mobile 375 — gabarit commun aux deux espaces (ici : espace marque, page « Mes données »)
 ┌─────────────────────────────────────────┐
-│ ┌─────────────────────────────────────┐ │  En-tête collant, header-height
-│ │ INFLUX        [i:bell]³  [FR|EN]    │ │  z-header
-│ └─────────────────────────────────────┘ │
+│ INFLUX                [i:bell]³  FR|EN  │  En-tête collant, header-height, z-header
+├─────────────────────────────────────────┤  surface-page + filet bas border-default
+│ Mon compte                              │  parent (fil d'Ariane réduit)
+│ Mes données                             │  h1, text-title-page
+│ Mes informations · Préférences          │  liens de section (niveau 2) :
+│ Sessions · ⟪Mes données⟫                │  pilules qui passent à la ligne
 │                                         │
-│  Titre de page (h1)                     │  <main id="contenu">
-│  …                                      │  padding bas =
-│  contenu défilant                       │  size-nav-bottom-height + space-5
-│  …                                      │  (le contenu n'est jamais masqué
-│                                         │   par la barre)
-│                                         │
-│ ┌─────────────────────────────────────┐ │  Barre du bas, fixée
-│ │ [i:home] [i:megaphone] [i:search]   │ │  z-nav-bottom (< z-header)
-│ │  Accueil  Campagnes   Créateurs     │ │  size-nav-bottom-height
-│ │ [i:handshake]²  [i:user]            │ │  chaque cible ≥ size-touch-target
-│ │  Relations      Compte              │ │
-│ └─────────────────────────────────────┘ │
-└─────────────────────────────────────────┘
+│ contenu défilant                        │  <main> : padding bas =
+│ …                                       │  size-nav-bottom-height + spacing-5
+│                                         │  + zone de sécurité de l'appareil
+├─────────────────────────────────────────┤
+│ [i:home]  [i:megaphone]  [i:search]     │  Barre du bas, fixe, z-nav-bottom
+│ Accueil   Campagnes      Créateurs      │  (< z-header) ; surface-page
+│                  ▔▔▔▔▔▔                 │  + filet haut border-default
+│ [i:handshake]²   [i:user]               │  ▔ = trait 2 px de l'item actif
+│ Relations        Compte                 │  une seule ligne de 5 cellules à
+└─────────────────────────────────────────┘  l'écran, dessinée ici sur deux
+   ⟪ ⟫ = lien de section courant
 ```
 
 | Règle | Détail |
 |---|---|
-| Libellé toujours visible | Jamais d'icône seule. Une icône seule oblige à apprendre un vocabulaire visuel ; un créateur qui vient trois fois par mois ne l'apprend pas. `text-xs`, Max 11 caractères FR **et** EN |
-| Item actif | **Trois porteurs simultanés** : `aria-current="page"`, libellé en `font-weight-semibold` + `color-text-primary`, et un **trait supérieur** de 2 px `color-brand-primary`. Jamais la couleur seule (`CLAUDE.md` §5.2 point 7) |
-| Pastille de compte | Nombre **exact jusqu'à 9**, puis « 9+ ». Accompagnée d'un texte masqué visuellement : « 3 éléments nouveaux ». Jamais un simple point coloré |
+| Points de rupture | Sous `breakpoint-lg` (1 024 px) : en-tête + barre du bas. Conception à 375 px, vérification à 320 px (WCAG 1.4.10) : cinq cellules de 64 px restent au-dessus de `size-touch-target` |
+| Tablette (768–1 023 px) | Même gabarit. Cellules de la barre plafonnées à `spacing-11` (6 rem), groupe centré ; contenu en `container-narrow`, centré. **Pas de colonne latérale** : une tablette en portrait se tient à deux mains, et 16 rem de colonne ne laisseraient que 512 px au contenu |
+| En-tête | INFLUX (lien vers l'accueil de l'espace) · cloche (Lot 4, absente avant) · langue. `surface-page`, filet bas `border-default`, sans flou ni transparence |
+| Barre du bas | Hauteur `size-nav-bottom-height` **plus la zone de sécurité de l'appareil** (`env(safe-area-inset-bottom)`, `viewport-fit=cover`) : sans elle, l'indicateur d'accueil de l'iPhone recouvre les libellés |
+| Libellé toujours visible | Jamais d'icône seule. Une icône seule oblige à apprendre un vocabulaire visuel ; un créateur qui vient trois fois par mois ne l'apprend pas. `text-xs`, Max 11 caractères FR **et** EN. *« Candidatures » (12) dépasse : à raccourcir par `expert-marketing`, ou limite portée à 12 après essai à 320 px* |
+| Item actif | **Trois porteurs simultanés** : `aria-current="page"`, libellé et icône en `font-weight-semibold` + `color-text-primary`, et un **trait supérieur** de 2 px `color-nav-item-active-indicator`. Inactif : `color-text-secondary`. Jamais la couleur seule (`CLAUDE.md` §5.2 point 7) |
+| Pastille de compte | Nombre **exact jusqu'à 9**, puis « 9+ ». Accompagnée d'un texte masqué visuellement : « 3 éléments nouveaux ». Jamais un simple point coloré. Pastille claire `color-counter-bg` / `-text` (17,46:1) |
 | Sémantique | `<nav aria-label="Navigation principale">` + `<ul>` de liens `next/link`. **Des liens, pas des boutons** : l'ouverture dans un nouvel onglet doit fonctionner |
-| Un seul `<nav>` exposé | La barre du bas et la colonne latérale ne coexistent jamais dans le DOM : rendu conditionnel par point de rupture, pour ne pas exposer deux navigations aux lecteurs d'écran |
-| Sous-navigation | Les onglets internes (ex. *demandes* / *conversations*) sont un `role="tablist"` **dans la page**, jamais un sixième item de barre |
+| Un seul `<nav>` | *(révisé le 2026-10-28, `02` §21.5 point 3)* **Un seul élément `<nav>` « Navigation principale » dans le DOM**, rendu une fois par le serveur et **restylé par le CSS** : barre fixée en bas sous `lg`, liste verticale de la colonne (§2.3) à partir de `lg`. Ni détection de largeur en JavaScript, ni lecture de l'agent utilisateur, ni second `<nav>` masqué. **Un libellé par entrée, identique aux deux largeurs** (≤ 11 caractères FR et EN) ; le titre de page garde le nom complet (« Mes campagnes », « Mises en relation »). Le bloc d'état du compte, l'aide, la langue et la déconnexion sont hors du `<nav>` |
+| Sous-navigation | Les onglets internes d'un écran (ex. *demandes* / *conversations*) sont un `role="tablist"` **dans la page**. Les pages sœurs d'une rubrique (les quatre pages de « Mon compte ») sont des **liens de section** en tête de contenu, `<nav aria-label="Mon compte">`, en pilules qui passent à la ligne, jamais en défilement horizontal qui cacherait une entrée. Jamais un sixième item de barre |
+| Écran-objet | Un écran plein écran de niveau objet (conversation, §4.7) remplace l'en-tête par un retour `[◁]` et son titre, et la barre du bas par sa zone d'action |
+| Entrées sans écran | **Masquées** tant que l'écran n'existe pas (Campagnes, Créateurs ou Candidatures, Relations arrivent aux Lots 3 et 4) ; une entrée apparue ne disparaît plus (§2.4). Le gabarit est conçu et testé pour cinq entrées, avec les libellés FR et EN les plus longs. Au 2026-10-28 : Accueil et Compte. *(Arbitrage `chef-de-projet` du 2026-10-28)* |
+| Clavier et focus | Lien d'évitement « Aller au contenu » en premier élément focalisable, visible au focus, vers `<main>`. Ordre : lien d'évitement → en-tête → barre → contenu. Après une navigation, le focus va au `h1` (`tabindex="-1"`). Dans la barre, anneau intérieur (`focus-ring-offset-inset`) pour ne pas être rogné par le bord de l'écran |
 
-### 2.3 Navigation desktop : colonne latérale persistante
+### 2.3 Navigation desktop : colonne à gauche, façon Railway
+
+*(Révisé le 2026-10-28 — D73. Référence de comportement : Railway ; ce qu'on lui prend et ce qu'on
+ne lui prend pas : `20` §3. Valeurs et composants : `20` §11.)*
 
 ```
-Desktop 1440
-┌────────────────────┬──────────────────────────────────────────────────────────┐
-│ INFLUX             │  Fil d'Ariane · Titre de page (h1)      [i:bell]³ [FR|EN]│
-│                    ├──────────────────────────────────────────────────────────┤
-│ [i:home] Accueil   │                                                          │
-│ [i:megaphone]      │   Contenu, largeur container-max                         │
-│   Mes campagnes  4 │                                                          │
-│ [i:search]         │   Grille 12 colonnes                                     │
-│   Créateurs        │   Colonne de droite « collante » (sticky-top-offset)     │
-│ [i:handshake]      │   pour les récapitulatifs et les actions                 │
-│   Mises en relat. 2│                                                          │
-│ [i:user] Mon compte│                                                          │
-│ ─────────────────  │                                                          │
-│ Profil : publié ✓  │                                                          │
-│ Complétude 78 %    │   (bloc d'état du compte, bas de colonne)                │
-│ [◦ Aide]           │                                                          │
-│ [◦ Se déconnecter] │                                                          │
-└────────────────────┴──────────────────────────────────────────────────────────┘
-   largeur fixe 16 rem, ≥ breakpoint-lg seulement
+Desktop 1440 — gabarit commun aux deux espaces (ici : espace marque, page « Mes données »)
+┌────────────────────────────────────┬──────────────────────────────────────────────────┐
+│ INFLUX                    [i:bell]³│ Mon compte › Mes données                         │
+│ ● Espace marque                    │ Mes données                           [■ Action] │
+│                                    │ Mes informations · Préférences · Sessions ·      │
+│  [i:home]      Accueil             │ ⟪Mes données⟫                                    │
+│  [i:megaphone] Campagnes         4 │ ──────────────────────────────────────────────── │
+│  [i:search]    Créateurs           │                                                  │
+│  [i:handshake] Relations         2 │ Contenu : container-max, centré dans la zone     │
+│ ▎[i:user]      Compte              │ Grille 12 colonnes ; colonne de droite           │
+│                                    │ collante (sticky-top-offset) pour les            │
+│ ────────────────────────────────── │ récapitulatifs et les actions                    │
+│ Profil : brouillon                 │                                                  │
+│ 3 informations manquantes          │                                                  │
+│ [◦ Compléter mon profil]           │                                                  │
+│ ────────────────────────────────── │                                                  │
+│ [i:life-buoy] Aide                 │                                                  │
+│ [i:languages] FR · EN              │                                                  │
+│ Camille R. · Marque Alpha          │                                                  │
+│ [i:log-out] Se déconnecter         │                                                  │
+└────────────────────────────────────┴──────────────────────────────────────────────────┘
+  size-member-rail (16 rem) :          zone de contenu, défile seule
+  collante, pleine hauteur,            ▎ = filet 2 px de l'item actif
+  défilement propre                    ● = point de rôle (color-role-advertiser)
 ```
 
-- Sous `breakpoint-lg` : la colonne disparaît, la barre du bas apparaît. **Aucun menu « hamburger »
-  dans l'espace membre** : cinq items tiennent dans une barre, un menu caché coûte un geste par
-  navigation.
-- Le **bloc d'état du compte** en bas de colonne (état du profil + complétude) n'existe que côté
-  desktop. Sur mobile, il vit sur l'accueil. La complétude **n'est jamais affichée à l'autre
-  partie** (`06` RG57, `07` RG86).
+| Élément | Règle |
+|---|---|
+| Point de rupture | ≥ `breakpoint-lg` (1 024 px) ; conception à 1 440. De 1 024 à 1 279 px, colonne inchangée, le contenu garde au moins 768 px. Sous 1 024 px : §2.2. **Aucun menu « hamburger »** dans l'espace membre : cinq items tiennent dans une barre, un menu caché coûte un geste par navigation |
+| Colonne | Largeur fixe `size-member-rail` (16 rem, nom de `02` §21.5) ; collante, pleine hauteur de fenêtre, défilement propre si son contenu dépasse (petite hauteur, zoom) ; `surface-page`, filet droit `border-default`. Le contenu défile seul. Pas de panneau flottant ni de coins arrondis autour de la colonne (`20` §11.7) |
+| En-tête de colonne | INFLUX (lien vers l'accueil de l'espace) et cloche (Lot 4, absente avant) ; dessous, le nom de l'espace précédé du point de rôle (`20` §11.3). Il dit où l'on est ; ce n'est **pas un sélecteur** (un rôle par compte, D41) |
+| Items | Icône `size-icon-md` + libellé `text-md` sur une ligne + compteur à droite ; hauteur ≥ `size-touch-target`, marge `spacing-2` (l'anneau de focus n'est pas rogné), `radius-md`. Actif : surface `color-nav-item-active-bg`, libellé `text-primary` semi-gras, filet gauche 2 px `color-nav-item-active-indicator`, `aria-current="page"`. Libellés courts, les mêmes que dans la barre du bas (§2.2, un seul `<nav>`). « Compte » est actif sur toutes les pages `/compte/*` |
+| Bloc d'état du compte | Sous les items : état du profil écrit, ce qui manque, `[◦ Compléter mon profil]`. Desktop seulement (sur mobile, il vit sur l'accueil). Arrive avec le profil (Lot 2), absent avant. La complétude **n'est jamais affichée à l'autre partie** (`06` RG57, `07` RG86) |
+| Pied de colonne | Aide (absente tant que la page n'existe pas) · langue (sélecteur existant) · identité du compte (prénom et organisation, ou adresse e-mail tant que le profil est vide) · `[◦ Se déconnecter]`, visible, jamais dans un menu caché |
+| Zone de contenu | En-tête de page : fil d'Ariane à partir du niveau 2, `h1` en `text-title-page`, action principale à droite ; liens de section (§2.2, sous-navigation) ; puis le contenu, `container-max` centré dans la zone, grille de 12 colonnes, colonne de droite collante. **Aucune bande de tête au-dessus du contenu** : la cloche et la langue sont dans la colonne |
+| Pas de repli | Ni repli en icônes, ni bouton pour masquer la colonne : les cinq libellés restent lisibles (§2.2) ; un repli choisi par l'utilisateur devrait être mémorisé, et le front n'a aucun stockage autorisé (D37, gardes CA8 et CA11) — un repli qui se rouvre à chaque page est pire que pas de repli. Si le besoin apparaît : préférence de compte enregistrée côté serveur, comme la langue |
+| Clavier et focus | Lien d'évitement → en-tête de colonne → items → bloc d'état → pied → contenu. Focus au `h1` après une navigation |
+| Entrées sans écran | Comme §2.2 |
+
+**États du gabarit (mobile et desktop)**
+
+| État | Rendu |
+|---|---|
+| Chargement de la session | Cadre affiché (en-tête, colonne ou barre), items et contenu en squelette à hauteur fixe ; aucun saut à l'arrivée |
+| Session illisible | Cadre sans navigation, notice d'erreur, `[□ Réessayer]` (existant) |
+| Session expirée | Retour à la connexion (§6.7) |
+| Hors ligne | Bandeau d'alerte sous l'en-tête de page (existant) |
+| CGU à ré-accepter | Écran bloquant avant toute page, sans navigation (`05` RG28) |
+| Déconnecté, compte supprimé | Page autonome (`20` §11.8), sans navigation |
+| Espace d'un autre rôle | Routage vers l'espace du rôle réel (§2.5) |
+
+**Microcopies du gabarit** (à rapprocher des clés existantes `account.nav.*`)
+
+| Clé | Français | English |
+|---|---|---|
+| `shell.skipToContent` | Aller au contenu | Skip to content |
+| `shell.nav.label` | Navigation principale | Main navigation |
+| `shell.space.advertiser` | Espace marque | Brand space |
+| `shell.space.creator` | Espace créateur | Creator space |
+| `shell.footer.help` | Aide | Help |
+| `shell.footer.signOut` | Se déconnecter | Sign out |
+| `shell.counter.srOnly` | {count, plural, one {# élément nouveau} other {# éléments nouveaux}} | {count, plural, one {# new item} other {# new items}} |
+| `shell.accountState.missing` | {count, plural, one {# information manquante} other {# informations manquantes}} | {count, plural, one {# detail missing} other {# details missing}} |
+| `shell.accountState.complete` | Compléter mon profil | Complete my profile |
 
 ### 2.4 Ce que voit un compte tout neuf
 
@@ -2138,6 +2189,13 @@ Mention fixe, immédiatement dessous, jamais repliée.
 
 ## 8. Tokens
 
+> **Charte KEO Emerald (D73, 2026-10-28).** Les espaces membres, le parcours d'inscription et de
+> connexion et le texte des CGU affiché dans le parcours suivent la charte KEO Emerald, activée par
+> l'attribut `data-theme="keo"` de `app/[locale]/(member)/layout.tsx` (`02` §21.3) ; les pages légales
+> publiques restent en vitrine (`20` §11.1). Les **noms** de ce §8 restent
+> valables ; les **valeurs** et les **contrastes** sont ceux de `20` §11.3 et §11.4, qui remplacent
+> les chiffres D6 cités ici. Jetons ajoutés par D73 : `20` §11.3 et §11.5.
+
 ### 8.1 Tokens existants utilisés, par famille
 
 | Famille | Tokens employés dans ce document |
@@ -2150,9 +2208,9 @@ Mention fixe, immédiatement dessous, jamais repliée.
 | Données financières | `color-data-advertiser-share`, `color-data-creator-share`, `color-data-net-creator` — **créés pour la landing (`02` §2.9), réemployés ici pour le bloc à trois notions**, exactement dans le rôle prévu |
 | Marque | `color-brand-primary`, `-accent`, `-subtle-bg`, `-subtle-border` |
 | Focus | `color-focus-ring`, `focus-ring-width`, `focus-ring-offset` |
-| Typographie | `text-xs`, `-sm`, `-md`, `-lead`, `-heading-3`, `-heading-2`, `text-amount-lg`, poids `regular` → `bold`, `leading-*`, `tracking-*`, `font-variant-numeric-amount` |
+| Typographie | `text-xs`, `-sm`, `-md`, `-lead`, `-heading-3`, `-heading-2`, `text-amount-lg`, poids `regular` → `bold`, `leading-*`, `tracking-*`, `font-variant-numeric-amount`. *Depuis D73* : `font-display` (Manrope) et `font-base` (Source Sans 3), `text-title-page`, `text-title-section`, `text-amount-md`, `font-weight-action` ; les tailles fluides (`-lead`, `-heading-*`, `text-amount-lg`) restent à la vitrine (`20` §11.5) |
 | Espacement | `spacing-1` à `spacing-9`, `spacing-stack-sm/md/lg`, `spacing-inset-card`, `spacing-inset-button-x/y`, `spacing-grid-gap`, `spacing-page-gutter` |
-| Formes | `radius-sm`, `-md`, `-lg`, `-pill`, `shadow-sm`, `-md`, `-lg` |
+| Formes | `radius-sm`, `-md`, `-lg`, `-pill`, `shadow-sm`, `-md`, `-lg`. *Depuis D73* : `radius-card` (cartes, dialogues), `border-width-action-secondary` ; cartes plates, `shadow-lg` réservé aux dialogues et menus |
 | Tailles | `size-touch-target`, `size-button-md/lg`, `size-input`, `size-checkbox`, `size-icon-sm/md/lg` |
 | Structure | `header-height`, `sticky-top-offset`, `container-max`, `container-narrow`, `measure-text`, `z-base/raised/header/overlay`, `breakpoint-sm` → `2xl` |
 | Mouvement | `duration-fast/base/slow`, `ease-standard`, `ease-exit` |
@@ -2161,11 +2219,13 @@ Mention fixe, immédiatement dessous, jamais repliée.
 `--rotate-hero-*`, `--blur-hero-halo`, `color-mockup-banner-*`, `color-decorative-progress`. Ces
 tokens appartiennent au registre **éditorial** de la landing. Un espace de travail consulté tous
 les jours n'a pas besoin d'effets premium sur chaque carte : ils ralentissent la lecture et
-alourdissent le rendu d'une grille de 12 cartes. `background-image-halo-ambient` peut servir
-**une fois** par espace, en fond d'en-tête d'accueil, jamais dans une liste.
+alourdissent le rendu d'une grille de 12 cartes. *(Révisé le 2026-10-28, D73)* :
+`background-image-halo-ambient` n'est plus employé non plus, même une fois par espace — aucun effet
+décoratif dans les espaces connectés (`20` §11.6, K8).
 
-**Tokens `*-inverse` :** aucun usage. Conformément à la décision du fondateur du 2026-09-17, aucune
-section claire pleine largeur n'existe dans les espaces membres.
+**Tokens `*-inverse` :** aucune section claire pleine largeur (décision du fondateur du 2026-09-17).
+Seuls `surface-inverse` et `text-inverse` servent, en accents de petite taille : pastille de compteur
+(`color-counter-*`) et pastille de logo (`20` §10).
 
 ### 8.2 Tokens proposés
 
@@ -2191,6 +2251,10 @@ typographie portent, eux, de nouvelles valeurs, sans effet sur les contrastes.
 | `size-nav-bottom-height` | **`3.5rem`** (nouvelle valeur) | Hauteur de la barre de navigation mobile | — |
 | `size-logo-brand-sm` / `-md` | **`2.5rem` / `4rem`** (nouvelles valeurs) | Logo de marque en ligne de liste / en en-tête de campagne | Visuel de portfolio (ratio 4:5) |
 | `z-nav-bottom` | **`90`** (nouvelle valeur, `:root`) | Barre de navigation mobile, **sous** `z-header` (100) | — |
+| `size-member-rail` *(D73, nom de `02` §21.5)* | **`16rem`** (nouvelle valeur, `:root`) | Largeur de la colonne desktop (§2.3) | Rail du backoffice (`spacing-bo-rail-w`, `17b` §6.1) |
+| `color-nav-item-hover-bg` *(D73)* | = `color-surface-raised` | Survol d'un item de navigation ou d'un lien de section | Item actif |
+| `color-counter-bg` / `color-counter-text` *(D73)* | = `color-surface-inverse` / `color-text-inverse` | Pastille de compteur (barre du bas, colonne) | Statut ou alerte : la pastille compte, elle ne qualifie pas |
+| `focus-ring-offset-inset` *(D73)* | `calc(-1 * var(--focus-ring-width))` (dérivé) | Anneau de focus intérieur des cellules de la barre du bas | Partout où l'anneau extérieur a la place |
 
 **Justification de `text-amount-md`.** Le seul token de montant existant, `text-amount-lg`, est un
 `clamp(1.75rem … 2.5rem)` conçu pour un chiffre clé de landing. Dans une carte de campagne ou dans
@@ -2204,38 +2268,25 @@ minimale ; une barre à cette hauteur exacte ne laisse pas la place au libellé 
 donne une cible pleine hauteur **et** un libellé lisible, sans empiéter sur le contenu (qui reçoit
 un `padding-bottom` égal à cette valeur plus `spacing-5`).
 
-### 8.3 Contrastes calculés (WCAG 2.1, valeurs de `tokens.css`)
+### 8.3 Contrastes calculés
 
-| Premier plan | Fond | Ratio | Seuil | Verdict |
-|---|---|---|---|---|
-| `color-text-primary` #f5f5f7 | `color-surface-page` #0a0a0a | **18,2:1** | 4,5 | ✅ |
-| `color-text-secondary` #a1a1aa | `color-surface-page` | **7,7:1** | 4,5 | ✅ |
-| `color-text-secondary` | `color-surface-card` #131315 | **7,3:1** | 4,5 | ✅ |
-| `color-text-tertiary` #86868f | `color-surface-page` | **5,5:1** | 4,5 | ✅ (dates, sources) |
-| `color-text-tertiary` | `color-surface-card` | **5,2:1** | 4,5 | ✅ — **couple le plus bas du document** |
-| `color-text-brand` #29e075 | `color-surface-page` | **12,7:1** | 4,5 | ✅ |
-| `color-text-brand` | `color-surface-card` | **12,1:1** | 4,5 | ✅ |
-| `color-text-brand-strong` #6ff2a8 | `color-brand-subtle-bg` #0f2118 | **12,0:1** | 4,5 | ✅ (badge « vérifié ») |
-| `color-feedback-warning-text` #fbbf24 | `color-surface-card` | **11,3:1** | 4,5 | ✅ (« à rafraîchir ») |
-| `color-feedback-error-text` #f87171 | `color-surface-page` | **7,2:1** | 4,5 | ✅ |
-| `color-feedback-error-text` | `color-surface-card` | **6,8:1** | 4,5 | ✅ |
-| `color-feedback-info-text` #60a5fa | `color-surface-page` | **7,8:1** | 4,5 | ✅ |
-| `color-feedback-success-text` #2dd4bf | `color-surface-page` | **10,6:1** | 4,5 | ✅ |
-| `color-text-on-action` #0a0a0a | `color-action-primary-bg` #29e075 | **12,7:1** | 4,5 | ✅ |
-| `color-brand-primary` #22c55e (trait de 2 px) | `color-surface-page` | **8,7:1** | 3,0 | ✅ |
-| `color-surface-raised` #1a1a1d | `color-surface-page` | **1,14:1** | 3,0 | ⚠️ **Insuffisant seul** |
+*(Révisé le 2026-10-28, D73.)* Le tableau des valeurs D6 est remplacé par la matrice de `20` §11.4
+(chaque couleur de texte sur page, carte, surélevée, survol et `surface-active`). Couples les plus bas
+des espaces membres : `text-tertiary` sur `surface-hover` **4,79:1** et `feedback-error-text` sur
+`surface-hover` **4,53:1** ; ni l'un ni l'autre ne se pose sur `surface-active` (4,13 et 3,91:1).
 
-> **Conséquence de la dernière ligne, applicable partout.** Sur ce fond quasi noir, une élévation
-> par la seule surface ne se voit pas. Toute carte, toute bulle et tout panneau porte donc
-> **obligatoirement** une bordure `color-border-default` ou `-subtle`, ou l'un des `shadow-*` (qui
-> embarquent un filet blanc à faible opacité). Un composant qui distingue deux niveaux par la seule
+> **Conséquence, applicable partout.** Sur ce fond quasi noir, une élévation par la seule surface ne
+> se voit pas (`surface-raised` sur `surface-page` : **1,16:1**). Toute carte, toute bulle et tout
+> panneau porte donc **obligatoirement** une bordure `color-border-default` ou `-subtle` ; les
+> dialogues et menus y ajoutent `shadow-lg`. Un composant qui distingue deux niveaux par la seule
 > couleur de surface est refusé en revue.
 
 **Le vert n'est jamais seul.** Récapitulatif des états portés par le vert dans ce document, et de
-leur second porteur : item de navigation actif → `aria-current` + graisse ; badge vérifié → icône
-`[i:badge-check]` + texte + date ; bulle d'agent → pastille « INFLUX » + nom + bordure ; net
-créateur → libellé « ce que vous percevez, estimation » ; complétude → pourcentage écrit + liste
-nominative ; profil publié → le mot « Publié » + sa date.
+leur second porteur : item de navigation actif → `aria-current` + graisse ; lien de section courant →
+`aria-current` + graisse ; bulle d'agent → pastille « INFLUX » + nom + bordure ; complétude →
+pourcentage écrit + liste nominative ; profil publié → le mot « Publié » + sa date. *Depuis D73, le
+badge vérifié est bleu (`color-verified-text`, icône + texte + réseau + date, `20` §11.3) et le net
+créateur est suspendu (D48).*
 
 ---
 
