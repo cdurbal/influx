@@ -941,3 +941,148 @@ export function findNonBoDeclarations(css: string): string[] {
     .filter((name) => !BO_TOKEN_MARKER.test(name))
     .map((name) => `${name}: no "-bo-" marker in tokens-backoffice.css`);
 }
+
+// ---------------------------------------------------------------------------------------------
+// G4f: self-hosted fonts (D73; 18 §5.1, TD1.9, 02 §21.4)
+// ---------------------------------------------------------------------------------------------
+
+export const FONTS_DIRECTORY = "src/styles/fonts";
+export const FONTS_MANIFEST = `${FONTS_DIRECTORY}/FONTS.md`;
+export const FONTS_MODULE = "src/styles/fonts.ts";
+
+/** Ceiling of the bytes preloaded by a page: the two `latin` files (02 §21.4 point 6). */
+export const FONT_PRELOAD_CEILING_BYTES = 120_000;
+
+/** Measured at DS-3 (24 836 + 28 872) and frozen: changing a font is a commit that moves this. */
+export const FONT_PRELOAD_PINNED_BYTES = 53_708;
+
+export type FontManifestRow = {
+  file: string;
+  subset: string;
+  sha256: string;
+  preloaded: boolean;
+  license: string;
+};
+
+/** Rows of the manifest table: the cells that hold a backticked `.woff2` file name. */
+export function parseFontManifest(markdown: string): FontManifestRow[] {
+  return markdown.split(/\r?\n/).flatMap((line) => {
+    const cells = line.split("|").map((cell) => cell.trim().replace(/`/g, ""));
+    // | file | family | subset | source | sha256 | weights | preloaded | license |
+    const [, file, , subset, , sha256, , preloaded, license] = cells;
+    return file?.endsWith(".woff2")
+      ? [
+          {
+            file,
+            subset: subset ?? "",
+            sha256: sha256 ?? "",
+            preloaded: preloaded === "yes",
+            license: license ?? "",
+          },
+        ]
+      : [];
+  });
+}
+
+/**
+ * Font violations of one front: a woff2 outside `src/styles/fonts/`, a file missing from the
+ * manifest or listed without being there, a SHA-256 or a `wOF2` signature that is wrong, a
+ * missing OFL text, a preload budget over the ceiling or off the pin.
+ */
+export function findFontViolations(frontRoot: string): string[] {
+  const violations: string[] = [];
+  const fontsDirectory = path.join(frontRoot, FONTS_DIRECTORY);
+  const sources = ["src", "public"]
+    .map((directory) => path.join(frontRoot, directory))
+    .filter((directory) => existsSync(directory));
+  const woff2Files = sources
+    .flatMap(listFiles)
+    .filter((file) => /\.woff2?$/i.test(file));
+  for (const file of woff2Files) {
+    if (path.dirname(path.resolve(file)) !== path.resolve(fontsDirectory)) {
+      violations.push(
+        `${relativePath(frontRoot, file)}: font outside ${FONTS_DIRECTORY}/`,
+      );
+    }
+  }
+  const manifestFile = path.join(frontRoot, FONTS_MANIFEST);
+  if (!existsSync(manifestFile)) {
+    return [...violations, `missing manifest: ${FONTS_MANIFEST}`];
+  }
+  const rows = parseFontManifest(readFileSync(manifestFile, "utf8"));
+  const listed = new Set(rows.map((row) => row.file));
+  for (const file of woff2Files) {
+    const name = path.basename(file);
+    if (
+      !listed.has(name) &&
+      path.dirname(path.resolve(file)) === path.resolve(fontsDirectory)
+    ) {
+      violations.push(`${name}: not listed in ${FONTS_MANIFEST}`);
+    }
+  }
+  let preloadedBytes = 0;
+  for (const row of rows) {
+    const file = path.join(fontsDirectory, row.file);
+    if (!existsSync(file)) {
+      violations.push(
+        `${row.file}: listed in the manifest, absent from ${FONTS_DIRECTORY}/`,
+      );
+      continue;
+    }
+    const bytes = readFileSync(file);
+    if (bytes.subarray(0, 4).toString("latin1") !== "wOF2") {
+      violations.push(`${row.file}: not a woff2 file (signature is not wOF2)`);
+    }
+    if (sha256OfFile(file) !== row.sha256) {
+      violations.push(
+        `${row.file}: SHA-256 differs from the manifest (fonts are never modified)`,
+      );
+    }
+    if (!existsSync(path.join(fontsDirectory, row.license))) {
+      violations.push(`${row.file}: license file ${row.license} is absent`);
+    } else if (
+      !/SIL OPEN FONT LICENSE Version 1\.1/.test(
+        readFileSync(path.join(fontsDirectory, row.license), "utf8"),
+      )
+    ) {
+      violations.push(`${row.license}: not the SIL Open Font License 1.1`);
+    }
+    if (row.preloaded) preloadedBytes += bytes.length;
+  }
+  if (preloadedBytes > FONT_PRELOAD_CEILING_BYTES) {
+    violations.push(
+      `preloaded fonts weigh ${preloadedBytes} bytes, over the ${FONT_PRELOAD_CEILING_BYTES} ceiling`,
+    );
+  }
+  if (preloadedBytes !== FONT_PRELOAD_PINNED_BYTES) {
+    violations.push(
+      `preloaded fonts weigh ${preloadedBytes} bytes, the pin is ${FONT_PRELOAD_PINNED_BYTES} ` +
+        "(update FONT_PRELOAD_PINNED_BYTES in the same commit)",
+    );
+  }
+  return violations;
+}
+
+/** Files of the fonts directory, the manifest and fonts.ts that differ between two fronts. */
+export function findFontCopyDivergences(
+  frontRoot: string,
+  otherRoot: string,
+): string[] {
+  const names = (root: string) =>
+    existsSync(path.join(root, FONTS_DIRECTORY))
+      ? readdirSync(path.join(root, FONTS_DIRECTORY)).sort()
+      : [];
+  const relatives = [
+    ...new Set([...names(frontRoot), ...names(otherRoot)]),
+  ].map((name) => `${FONTS_DIRECTORY}/${name}`);
+  return [...relatives, FONTS_MODULE].flatMap((relative) => {
+    const first = path.join(frontRoot, relative);
+    const second = path.join(otherRoot, relative);
+    if (!existsSync(first) || !existsSync(second)) {
+      return [`${relative}: present in only one front`];
+    }
+    return sha256OfFile(first) === sha256OfFile(second)
+      ? []
+      : [`${relative}: differs between the two fronts`];
+  });
+}

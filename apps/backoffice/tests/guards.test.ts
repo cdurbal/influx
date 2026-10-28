@@ -22,6 +22,7 @@ import {
   RELAY_FILES,
   relativePath,
   effectiveTokens,
+  findFontViolations,
   findNonBoDeclarations,
   findTokenPairFailures,
   DANGER_RED_TOKENS,
@@ -328,5 +329,12 @@ describe("never indexed (03 §7.1, D12)", () => {
     expect(directives).toContain(`style-src 'self' 'nonce-${nonce}'`);
     expect(directives).toContain("img-src 'self' blob:");
     expect(contentSecurityPolicy(nonce)).not.toMatch(/unsafe-|supabase/);
+  });
+});
+
+// G4f (D73, 18 §5.1, TD1.9): self-hosted fonts. Identity with apps/web is checked from the web side.
+describe("G4f: fonts are unmodified, listed, licensed and within budget", () => {
+  it("finds no violation in the fonts directory of apps/backoffice", () => {
+    expect(findFontViolations(BACKOFFICE_ROOT)).toEqual([]);
   });
 });

@@ -24,6 +24,8 @@ import {
   BO_TOKEN_MARKER,
   effectiveTokens,
   findAliasClosureGaps,
+  findFontCopyDivergences,
+  findFontViolations,
   findKeoBlocksOutside,
   findKeoBlockViolations,
   findTokenPairFailures,
@@ -337,6 +339,22 @@ describe("G3d: contrasts and success hue, per charter (20 §11.3, §11.4)", () =
 describe("G3f: no backoffice token in apps/web", () => {
   it("finds no -bo- name anywhere in src/", () => {
     expect(findMatches(BO_TOKEN_MARKER, SCOPED_FILES)).toEqual([]);
+  });
+});
+
+// G4f (D73, 18 §5.1, TD1.9): self-hosted fonts. The detector is self-tested in the test-kit.
+describe("G4f: fonts are unmodified, listed, licensed, within budget and identical in both fronts", () => {
+  it("finds no violation in the fonts directory of apps/web", () => {
+    expect(findFontViolations(WEB_ROOT)).toEqual([]);
+  });
+
+  it("keeps the fonts, the manifest and fonts.ts identical in apps/backoffice", () => {
+    expect(
+      findFontCopyDivergences(
+        WEB_ROOT,
+        path.resolve(WEB_ROOT, "..", "backoffice"),
+      ),
+    ).toEqual([]);
   });
 });
 
