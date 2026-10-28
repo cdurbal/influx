@@ -298,7 +298,7 @@ Puis `pnpm docs:index`.
 | **DZ-5** | Entrée dédiée « Zone de danger » dans la navigation du compte, comme Railway ? | Non : section en bas de « Mes données » | Fondateur, avis `expert-ux` |
 | **DZ-6** | Succès, alerte, information gardent un fond teinté : les aligner ? | Non, hors demande | `expert-ux`, puis fondateur |
 | **DZ-7** | D72 lève la seule séparation de rôles du MVP portant sur une obligation légale (`15` RG76) et modifie EC-14, arbitré à l'époque avec `expert-conformite-rgpd` | Appliqué sur `main`/`staging` ; revue à l'homologation du Lot 6, **veto possible sur `production`** | Fondateur ; `expert-conformite-rgpd` au Lot 6 |
-| **DZ-8** | Apollo : l'API permet-elle la suppression d'un contact ? Sinon, toute suppression d'un compte transmis à Apollo reste ouverte et exige un suivi manuel | Commit 1b ; à défaut, alerte §2.5 et suivi manuel | `expert-integrations-api`, validé par `architecte` |
+| **DZ-8** | Apollo : l'API permet-elle la suppression d'un contact ? Sinon, toute suppression d'un compte transmis à Apollo reste ouverte et exige un suivi manuel | **Tranchée (2026-10-28) : non.** L'API Apollo n'expose aucun point de suppression de contact (index `docs.apollo.io/llms.txt` : créer, mettre à jour, consulter, chercher, étapes, propriétaire ; seul « Remove Records from a List » retire d'une liste, sans supprimer). Commit 1b **non codé** ; le `skip erasure_not_propagated` demeure, la demande reste ouverte et exige la suppression manuelle dans l'interface Apollo (alerte §2.5, runbook `demandes-rgpd.md`). À revérifier si Apollo publie un point de suppression | `expert-integrations-api`, validé par `architecte` |
 
 ## 10. Risques
 
