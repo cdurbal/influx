@@ -327,7 +327,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 
 ### Hors jalon
 
-- [x] Commit D72-1a (`SHA`) — `0150` (`jalons/zone-de-danger-fiche.md` §2.1, §2.2, §2.4) : `authorised_by` (2V nullables, CHECK), `identity.submit_member_erasure()` (code frais, demande `in_progress`, sessions révoquées, `privacy.execution_authorised_by_member`), E-5 recréé (accès ouvert `retiree_par_le_demandeur`, `privacy.erasure_completed` en file, clôture sur son `messageId`), `privacy.read_erasure_notification_subject()` (DZ-3), `expected-rights.ts` ; T3, T4, T6 ; route, contrat et e-mail à `dev-react-node` ; planchers db +12.
+- [x] Commit D72-1a (`bfb2dd0`) — `0150` (`jalons/zone-de-danger-fiche.md` §2.1, §2.2, §2.4) : `authorised_by` (2V nullables, CHECK), `identity.submit_member_erasure()` (code frais, demande `in_progress`, sessions révoquées, `privacy.execution_authorised_by_member`), E-5 recréé (accès ouvert `retiree_par_le_demandeur`, `privacy.erasure_completed` en file, clôture sur son `messageId`), `privacy.read_erasure_notification_subject()` (DZ-3), `expected-rights.ts` ; T3, T4, T6 ; route, contrat et e-mail à `dev-react-node` ; planchers db +12.
 
 ### 5.8 Portes de la mise en production
 
