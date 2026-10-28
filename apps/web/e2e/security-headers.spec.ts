@@ -243,38 +243,43 @@ test.describe("T10.6: the CSP enforced by the browser", () => {
     });
   }
 
-  test("refuses an injected inline handler and a request to another origin", async ({
-    page,
-  }) => {
-    const violations = await watchViolations(page);
-    await open(page, "/fr");
-    // Injected markup, as an XSS would write it. (A <script> appended by page.evaluate proves
-    // nothing: the browser trusts the evaluator, and 'strict-dynamic' then trusts its script.)
-    const outcome = await page.evaluate(async (otherOrigin) => {
-      const holder = document.createElement("div");
-      holder.innerHTML =
-        '<img alt="" src="/absente-t10.png" onerror="window.__injected = true">';
-      document.body.append(holder);
-      let fetched = true;
-      try {
-        // eslint-disable-next-line no-restricted-globals -- the probe of T10.6: refused by the CSP
-        await fetch(`${otherOrigin}/messages`);
-      } catch {
-        fetched = false;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      return {
-        injected:
-          (window as unknown as { __injected?: boolean }).__injected === true,
-        fetched,
-      };
-    }, DOUBLE_ORIGIN);
-    expect(outcome).toEqual({ injected: false, fetched: false });
-    await expect
-      .poll(async () => (await violations()).sort())
-      .toEqual([
-        `connect-src ${DOUBLE_ORIGIN}/messages`,
-        "script-src-attr inline",
-      ]);
+  // The explicit option of the global net (18 §9.3 A-7): this probe provokes the violations.
+  test.describe(() => {
+    test.use({ foreignTrafficMode: "record" });
+
+    test("refuses an injected inline handler and a request to another origin", async ({
+      page,
+    }) => {
+      const violations = await watchViolations(page);
+      await open(page, "/fr");
+      // Injected markup, as an XSS would write it. (A <script> appended by page.evaluate proves
+      // nothing: the browser trusts the evaluator, and 'strict-dynamic' then trusts its script.)
+      const outcome = await page.evaluate(async (otherOrigin) => {
+        const holder = document.createElement("div");
+        holder.innerHTML =
+          '<img alt="" src="/absente-t10.png" onerror="window.__injected = true">';
+        document.body.append(holder);
+        let fetched = true;
+        try {
+          // eslint-disable-next-line no-restricted-globals -- the probe of T10.6: refused by the CSP
+          await fetch(`${otherOrigin}/messages`);
+        } catch {
+          fetched = false;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        return {
+          injected:
+            (window as unknown as { __injected?: boolean }).__injected === true,
+          fetched,
+        };
+      }, DOUBLE_ORIGIN);
+      expect(outcome).toEqual({ injected: false, fetched: false });
+      await expect
+        .poll(async () => (await violations()).sort())
+        .toEqual([
+          `connect-src ${DOUBLE_ORIGIN}/messages`,
+          "script-src-attr inline",
+        ]);
+    });
   });
 });

@@ -332,6 +332,8 @@ Décision D73 (fondateur, 2026-10-28). Les espaces membres (inscription et conne
 
 <!-- Une ligne par commit, à mesure : - [x] DS-N (`sha`) — invariant clé. -->
 
+- [x] DS-1 — lecteur unique `effectiveTokens(css, charte)` (KEO, sinon `@theme`, sinon `:root`) ; vitrine figée par G3e et l'empreinte TD4.2 (fixture reprise par `e2e:record-vitrine` seulement) ; filet A-7 sur tout e2e, sauf `foreignTrafficMode: "record"`.
+
 ### Hors jalon
 
 - [x] Commits D72-1a à D72-3 (`bfb2dd0`, `bb8500e`, puis rouge opaque, zone de danger, `ErrorNotice`) — suppression de compte en libre-service sans approbation `admin` (D72, migration `0150`, `identity.submit_member_erasure()`, e-mail `privacy.erasure_completed`), zone de danger et rouge opaque web/backoffice ; DZ-8 : Apollo sans suppression de contact, `erasure_not_propagated` demeure ; DZ-1, 2, 4, 5, 6, 7 ouverts dans `decisions.md`. Fiche supprimée.

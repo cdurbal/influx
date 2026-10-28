@@ -469,3 +469,440 @@ export function contrastRatio(foreground: string, background: string): number {
 
 /** A class that tints a red family with an opacity modifier (`bg-feedback-error-bg/40`). */
 export const TRANSLUCENT_RED_CLASS = /\b[\w:-]*-(?:error|danger)-[\w-]*\/\d+/;
+
+// ---------------------------------------------------------------------------------------------
+// Token readers per charter, DS milestone (D73; 02 §21.3, §21.6; 18 §5.1, TD1)
+// ---------------------------------------------------------------------------------------------
+// tokenValue above reads the first occurrence in the file: it would read the vitrine and leave
+// the KEO block unchecked while staying green. Every per-charter check reads effectiveTokens.
+
+/** The two charters of a tokens.css: the vitrine (D6, D59) and KEO Emerald (D73). */
+export type Charter = "vitrine" | "keo";
+
+/** One declaration of a CSS block, its value with whitespace collapsed. */
+export type CssDeclaration = { name: string; value: string };
+
+/** A CSS block: its prelude ("" at the top level), its own declarations and its nested blocks. */
+export type CssBlock = {
+  prelude: string;
+  declarations: CssDeclaration[];
+  blocks: CssBlock[];
+};
+
+/** The selector of the KEO block (02 §21.3 point 2), quotes optional. */
+const KEO_SELECTOR = /^\[data-theme=(?:"keo"|'keo'|keo)\]$/;
+
+function collapse(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * The block tree of a stylesheet. Comments are dropped first (a brace or a `--x:` in a comment is
+ * not CSS); a `;` or a brace inside parentheses or quotes does not split (`url(data:…;base64)`).
+ */
+export function parseCssBlocks(css: string): CssBlock {
+  const source = css.replace(/\/\*[\s\S]*?\*\//g, " ");
+  let index = 0;
+  const parseBody = (prelude: string): CssBlock => {
+    const block: CssBlock = { prelude, declarations: [], blocks: [] };
+    let buffer = "";
+    let depth = 0;
+    let quote: string | null = null;
+    const flush = () => {
+      const match = /^\s*(-{0,2}[\w*-]+)\s*:([\s\S]*)$/.exec(buffer);
+      if (match?.[1] !== undefined && match[2] !== undefined) {
+        block.declarations.push({ name: match[1], value: collapse(match[2]) });
+      }
+      buffer = "";
+    };
+    while (index < source.length) {
+      const char = source[index] ?? "";
+      index += 1;
+      if (quote !== null) {
+        if (char === quote) quote = null;
+        buffer += char;
+      } else if (char === '"' || char === "'") {
+        quote = char;
+        buffer += char;
+      } else if (char === "(") {
+        depth += 1;
+        buffer += char;
+      } else if (char === ")") {
+        depth -= 1;
+        buffer += char;
+      } else if (depth === 0 && char === ";") {
+        flush();
+      } else if (depth === 0 && char === "{") {
+        const childPrelude = collapse(buffer);
+        buffer = "";
+        block.blocks.push(parseBody(childPrelude));
+      } else if (depth === 0 && char === "}") {
+        flush();
+        return block;
+      } else {
+        buffer += char;
+      }
+    }
+    flush();
+    return block;
+  };
+  return parseBody("");
+}
+
+/** Every KEO block of a stylesheet, at any depth (inside `@layer base` or not). */
+export function keoBlocks(css: string): CssBlock[] {
+  const visit = (block: CssBlock): CssBlock[] =>
+    block.blocks.flatMap((child) =>
+      KEO_SELECTOR.test(child.prelude) ? [child] : visit(child),
+    );
+  return visit(parseCssBlocks(css));
+}
+
+/** The custom properties of a list of declarations; the reset `--*: initial` is not a token. */
+function customProperties(
+  declarations: readonly CssDeclaration[],
+): Map<string, string> {
+  return new Map(
+    declarations
+      .filter(({ name }) => name.startsWith("--") && !name.includes("*"))
+      .map(({ name, value }) => [name, value]),
+  );
+}
+
+/**
+ * The three scopes a token is read from: the top-level `@theme` blocks, the top-level `:root`
+ * rules (never those of an `@media`: base values only), and the KEO block. Two KEO blocks are an
+ * error: which one would win is a matter of order, not of intent.
+ */
+export function tokenScopes(css: string): {
+  theme: Map<string, string>;
+  root: Map<string, string>;
+  keo: Map<string, string> | null;
+} {
+  const top = parseCssBlocks(css).blocks;
+  const of = (test: (prelude: string) => boolean) =>
+    customProperties(
+      top
+        .filter((block) => test(block.prelude))
+        .flatMap((block) => block.declarations),
+    );
+  const keo = keoBlocks(css);
+  if (keo.length > 1) {
+    throw new Error(`${keo.length} KEO blocks: exactly one is allowed`);
+  }
+  return {
+    theme: of((prelude) => /^@theme\b/.test(prelude)),
+    root: of((prelude) =>
+      prelude.split(",").some((selector) => selector.trim() === ":root"),
+    ),
+    keo: keo[0] === undefined ? null : customProperties(keo[0].declarations),
+  };
+}
+
+/** `var(--name)` or `var(--name, fallback)`: group 1 is the name. */
+const VAR_REFERENCE = /var\(\s*(--[\w-]+)\s*(?:,[^()]*)?\)/g;
+
+/** The custom properties a value refers to, in order. */
+export function varReferences(value: string): string[] {
+  return [...value.matchAll(VAR_REFERENCE)].flatMap((match) =>
+    match[1] === undefined ? [] : [match[1]],
+  );
+}
+
+/**
+ * The value of every token under a charter, aliases followed (02 §21.3; 18 §5.1, TD1.2): the KEO
+ * block, else `@theme`, else `:root`, for the name and for every `var()` it refers to. This is the
+ * value the charter means; the closure guard (findAliasClosureGaps) proves the browser computes
+ * it. A cycle, a missing target, or a KEO charter without its block is an error, never a guess.
+ */
+export function effectiveTokens(
+  css: string,
+  charter: Charter,
+): Map<string, string> {
+  const { theme, root, keo } = tokenScopes(css);
+  if (charter === "keo" && keo === null) {
+    throw new Error("no KEO block: the KEO charter cannot be read");
+  }
+  const raw = (name: string): string | undefined =>
+    (charter === "keo" ? keo?.get(name) : undefined) ??
+    theme.get(name) ??
+    root.get(name);
+  const resolved = new Map<string, string>();
+  const resolve = (name: string, chain: readonly string[]): string => {
+    const known = resolved.get(name);
+    if (known !== undefined) return known;
+    if (chain.includes(name)) {
+      throw new Error(`alias cycle: ${[...chain, name].join(" -> ")}`);
+    }
+    const value = raw(name);
+    if (value === undefined) {
+      throw new Error(
+        `missing alias target: ${chain.at(-1) ?? "?"} refers to ${name}`,
+      );
+    }
+    const result = value.replace(VAR_REFERENCE, (_whole, target: string) =>
+      resolve(target, [...chain, name]),
+    );
+    resolved.set(name, result);
+    return result;
+  };
+  const names = new Set([
+    ...theme.keys(),
+    ...root.keys(),
+    ...(keo?.keys() ?? []),
+  ]);
+  for (const name of names) {
+    resolve(name, []);
+  }
+  return resolved;
+}
+
+/**
+ * The aliases the browser would leave on their vitrine value under KEO (02 §21.3 point 3; G3c,
+ * TD1.3). Tailwind emits @theme in `:root`: an alias is resolved there and inherited resolved, so
+ * an alias whose target (direct or transitive, `calc(var(…))` included) is redefined in the KEO
+ * block must be redeclared in it, identically. Redeclared towards another target is a finding; a
+ * literal value is a redefinition, not an alias, and is accepted.
+ */
+export function findAliasClosureGaps(css: string): string[] {
+  const { theme, root, keo } = tokenScopes(css);
+  if (keo === null) return [];
+  const vitrine = (name: string) => theme.get(name) ?? root.get(name);
+  const targetsOf = (name: string, seen = new Set<string>()): Set<string> => {
+    for (const target of varReferences(vitrine(name) ?? "")) {
+      if (!seen.has(target)) {
+        seen.add(target);
+        targetsOf(target, seen);
+      }
+    }
+    return seen;
+  };
+  const names = new Set([...theme.keys(), ...root.keys()]);
+  return [...names].flatMap((name) => {
+    const ownValue = vitrine(name) ?? "";
+    const redefinedTargets = [...targetsOf(name)].filter((target) =>
+      keo.has(target),
+    );
+    const keoValue = keo.get(name);
+    if (keoValue === undefined) {
+      return redefinedTargets.length === 0
+        ? []
+        : [
+            `${name}: alias of ${redefinedTargets.join(", ")}, redefined in the KEO block, ` +
+              "but not redeclared there (it would keep its vitrine value)",
+          ];
+    }
+    return varReferences(keoValue).length > 0 && keoValue !== ownValue
+      ? [
+          `${name}: redeclared in the KEO block as "${keoValue}", another target than "${ownValue}"`,
+        ]
+      : [];
+  });
+}
+
+/**
+ * What the KEO block of a tokens.css must not contain (G3c; TD1.1, TD1.5, TD1.6): `!important`, a
+ * `--color-*` that is not opaque (`rgba(`, `color-mix(`…), a name that neither `@theme` nor `:root`
+ * declares (a typo creates no class), a nested block, a vitrine `--color-*` that the block neither
+ * redefines nor lists in `inherits` (KEO_INHERITS) or `vitrineOnly` (VITRINE_ONLY), and a stale
+ * list entry. Anything but exactly one block is a finding.
+ */
+export function findKeoBlockViolations(
+  css: string,
+  lists: { inherits: readonly string[]; vitrineOnly: readonly string[] },
+): string[] {
+  const blocks = keoBlocks(css);
+  const block = blocks[0];
+  if (blocks.length !== 1 || block === undefined) {
+    return [`${blocks.length} KEO blocks: exactly one is expected`];
+  }
+  const { theme, root } = tokenScopes(css);
+  const redefined = customProperties(block.declarations);
+  const findings: string[] = [];
+  for (const { name, value } of block.declarations) {
+    if (/!\s*important/i.test(value)) {
+      findings.push(`${name}: !important in the KEO block`);
+    }
+    if (name.startsWith("--") && !theme.has(name) && !root.has(name)) {
+      findings.push(`${name}: declared neither in @theme nor in :root`);
+    }
+    if (
+      name.startsWith("--color-") &&
+      !OPAQUE_TOKEN_VALUE.test(value.replace(/\s*!\s*important$/i, ""))
+    ) {
+      findings.push(`${name}: "${value}" is not an opaque value`);
+    }
+  }
+  if (block.blocks.length > 0) {
+    findings.push("the KEO block nests other blocks");
+  }
+  const colors = [...theme.keys()].filter((name) =>
+    name.startsWith("--color-"),
+  );
+  for (const name of colors) {
+    const listed = [lists.inherits, lists.vitrineOnly].filter((list) =>
+      list.includes(name),
+    ).length;
+    if (!redefined.has(name) && listed === 0) {
+      findings.push(
+        `${name}: neither redefined in the KEO block, nor in KEO_INHERITS, nor in VITRINE_ONLY`,
+      );
+    }
+    if (listed > 1) {
+      findings.push(`${name}: in both KEO_INHERITS and VITRINE_ONLY`);
+    }
+  }
+  for (const [listName, list] of [
+    ["KEO_INHERITS", lists.inherits],
+    ["VITRINE_ONLY", lists.vitrineOnly],
+  ] as const) {
+    for (const name of list) {
+      if (!colors.includes(name)) {
+        findings.push(
+          `${listName}: stale entry ${name}, not a --color-* of @theme`,
+        );
+      } else if (redefined.has(name)) {
+        findings.push(
+          `${listName}: stale entry ${name}, redefined in the KEO block`,
+        );
+      }
+    }
+  }
+  return findings;
+}
+
+/** Files other than the allowed one that hold a KEO block (G3c, TD1.1). */
+export function findKeoBlocksOutside(
+  cssFiles: readonly string[],
+  allowedFile: string,
+  root: string,
+): string[] {
+  return cssFiles
+    .filter((file) => path.resolve(file) !== path.resolve(allowedFile))
+    .filter((file) => keoBlocks(readFileSync(file, "utf8")).length > 0)
+    .map((file) => `${relativePath(root, file)}: holds a KEO block`);
+}
+
+/** HSL hue of a 6-digit hex color, in degrees [0, 360); a gray has no hue and is refused. */
+export function hueOf(hex: string): number {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) {
+    throw new Error(`not a 6-digit hex color: ${hex}`);
+  }
+  const [red = 0, green = 0, blue = 0] = [1, 3, 5].map(
+    (start) => Number.parseInt(hex.slice(start, start + 2), 16) / 255,
+  );
+  const max = Math.max(red, green, blue);
+  const delta = max - Math.min(red, green, blue);
+  if (delta === 0) {
+    throw new Error(`${hex} is a gray: it has no hue`);
+  }
+  const sector =
+    max === red
+      ? (green - blue) / delta
+      : max === green
+        ? (blue - red) / delta + 2
+        : (red - green) / delta + 4;
+  return (sector * 60 + 360) % 360;
+}
+
+/** Shortest distance between two hues, in degrees [0, 180]: 350° and 10° are 20° apart. */
+export function hueDistance(first: number, second: number): number {
+  const gap = Math.abs(first - second) % 360;
+  return gap > 180 ? 360 - gap : gap;
+}
+
+/** HSL hue gap of two 6-digit hex colors, in degrees (G3d; 20 §11.3). */
+export function hueGap(first: string, second: string): number {
+  return hueDistance(hueOf(first), hueOf(second));
+}
+
+/** Whether two colors are at least `minDegrees` apart: the threshold is data, never written here. */
+export function meetsHueGap(
+  first: string,
+  second: string,
+  minDegrees: number,
+): boolean {
+  return hueGap(first, second) >= minDegrees;
+}
+
+/** A pair of tokens checked under a charter (G3d): a contrast ratio or a hue gap, and its floor. */
+export type TokenPair =
+  | { kind: "contrast"; foreground: string; background: string; min: number }
+  | { kind: "hue"; first: string; second: string; min: number };
+
+/**
+ * The pairs that miss their floor in a set of effective tokens (G3d; TD1.8): the guard computes,
+ * the data (pairs and floors, 20 §11.4) decides. A token missing from the set is a finding.
+ */
+export function findTokenPairFailures(
+  tokens: ReadonlyMap<string, string>,
+  pairs: readonly TokenPair[],
+): string[] {
+  return pairs.flatMap((pair) => {
+    const [first, second] =
+      pair.kind === "contrast"
+        ? [pair.foreground, pair.background]
+        : [pair.first, pair.second];
+    const a = tokens.get(first);
+    const b = tokens.get(second);
+    if (a === undefined || b === undefined) {
+      return [`${first} / ${second}: token missing`];
+    }
+    const measured =
+      pair.kind === "contrast" ? contrastRatio(a, b) : hueGap(a, b);
+    return measured >= pair.min
+      ? []
+      : [
+          `${first} (${a}) / ${second} (${b}): ${pair.kind} ${measured.toFixed(2)} under ${pair.min}`,
+        ];
+  });
+}
+
+// ---------------------------------------------------------------------------------------------
+// G3e: the vitrine frozen (D59; 18 §5.1, TD4.1)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * Every declaration of a tokens.css outside the KEO block, by block path ("@theme static",
+ * "@media (width >= 768px) > :root", "@theme static > @keyframes marquee > from"): what the
+ * snapshot of G3e freezes.
+ */
+export function vitrineDeclarations(
+  css: string,
+): Record<string, Record<string, string>> {
+  const scopes: Record<string, Record<string, string>> = {};
+  const visit = (block: CssBlock, trail: readonly string[]) => {
+    for (const child of block.blocks) {
+      if (KEO_SELECTOR.test(child.prelude)) continue;
+      const childTrail = [...trail, child.prelude];
+      if (child.declarations.length > 0) {
+        const scope = (scopes[childTrail.join(" > ")] ??= {});
+        for (const { name, value } of child.declarations) {
+          scope[name] = value;
+        }
+      }
+      visit(child, childTrail);
+    }
+  };
+  visit(parseCssBlocks(css), []);
+  return scopes;
+}
+
+/** Declarations of the snapshot that changed or disappeared; additions are allowed (G3e). */
+export function findVitrineSnapshotChanges(
+  snapshot: Readonly<Record<string, Readonly<Record<string, string>>>>,
+  css: string,
+): string[] {
+  const current = vitrineDeclarations(css);
+  return Object.entries(snapshot).flatMap(([scope, declarations]) =>
+    Object.entries(declarations).flatMap(([name, value]) => {
+      const now = current[scope]?.[name];
+      if (now === value) return [];
+      return [
+        now === undefined
+          ? `${scope} ${name}: removed (was "${value}")`
+          : `${scope} ${name}: "${value}" became "${now}"`,
+      ];
+    }),
+  );
+}

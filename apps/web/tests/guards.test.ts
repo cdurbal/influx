@@ -16,6 +16,7 @@ import {
   findRelayFingerprintMismatches,
   findRelayImporterViolations,
   findRouteFileViolations,
+  findVitrineSnapshotChanges,
   HARD_CODED_COLOR_PATTERN,
   HARD_CODED_LENGTH_PATTERN,
   listFiles,
@@ -179,6 +180,44 @@ describe("G3b: the red of danger is opaque and shared by both fronts (zone-de-da
 
   it("tints no red with an opacity modifier or a color function", () => {
     expect(findMatches(TRANSLUCENT_RED_CLASS, SCOPED_FILES)).toEqual([]);
+  });
+});
+
+// G3e (D73, 18 §5.1, TD4.1): the vitrine frozen before the first change of the DS milestone (DS-1).
+// The snapshot holds every declaration of @theme, :root and the @media blocks; additions are
+// allowed, a change or a removal fails. Changing the snapshot is a commit that names the values.
+// It sees neither a shared component nor globals.css: e2e/vitrine-unchanged.spec.ts (TD4.2) does.
+describe("G3e: the vitrine tokens stay those of the snapshot (D59, TD4.1)", () => {
+  const snapshot = JSON.parse(
+    readFileSync(
+      path.join(WEB_ROOT, "tests", "fixtures", "vitrine-tokens-d59.json"),
+      "utf8",
+    ),
+  ) as Record<string, Record<string, string>>;
+  const tokens = readFileSync(path.join(SRC, "styles", "tokens.css"), "utf8");
+
+  it("keeps every declaration of @theme, :root and @media", () => {
+    expect(Object.keys(snapshot)).toEqual(
+      expect.arrayContaining([
+        "@theme static",
+        ":root",
+        "@media (width >= 768px) > :root",
+        "@media (width >= 1024px) > :root",
+        "@media (prefers-reduced-motion: reduce) > :root",
+      ]),
+    );
+    expect(findVitrineSnapshotChanges(snapshot, tokens)).toEqual([]);
+  });
+
+  it("fails on a changed vitrine value (self-check on the real file)", () => {
+    const changed = tokens.replace(
+      "--color-action-primary-bg: #29e075;",
+      "--color-action-primary-bg: #1dd68a;",
+    );
+    expect(changed).not.toBe(tokens);
+    expect(findVitrineSnapshotChanges(snapshot, changed)).toEqual([
+      '@theme static --color-action-primary-bg: "#29e075" became "#1dd68a"',
+    ]);
   });
 });
 
