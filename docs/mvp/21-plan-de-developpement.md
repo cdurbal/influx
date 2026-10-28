@@ -332,7 +332,8 @@ Décision D73 (fondateur, 2026-10-28). Les espaces membres (inscription et conne
 
 <!-- Une ligne par commit, à mesure : - [x] DS-N (`sha`) — invariant clé. -->
 
-- [x] DS-1 — lecteur unique `effectiveTokens(css, charte)` (KEO, sinon `@theme`, sinon `:root`) ; vitrine figée par G3e et l'empreinte TD4.2 (fixture reprise par `e2e:record-vitrine` seulement) ; filet A-7 sur tout e2e, sauf `foreignTrafficMode: "record"`.
+- [x] DS-1 (`e966209`) — lecteur unique `effectiveTokens(css, charte)` (KEO, sinon `@theme`, sinon `:root`) ; vitrine figée par G3e et l'empreinte TD4.2 (fixture reprise par `e2e:record-vitrine` seulement) ; filet A-7 sur tout e2e, sauf `foreignTrafficMode: "record"`.
+- [x] DS-2 — bloc `[data-theme="keo"]` unique dans `tokens.css` (copie octet pour octet au backoffice), rien activé ; alias redéclarés (G3c), succès KEO `#3ccfcf` à 25° de l'action (G3d, données dans `@influx/test-kit/charter-data`) ; polices et échelle typographique KEO reportées à DS-3 / DS-5.
 
 ### Hors jalon
 

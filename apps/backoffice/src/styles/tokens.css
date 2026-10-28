@@ -1,5 +1,7 @@
 /*
- * INFLUX design tokens — dark theme (D6 tranchée, fondateur, 2026-09-17).
+ * INFLUX design tokens — dark theme (D6 tranchée, fondateur, 2026-09-17), and the KEO Emerald
+ * charter of the connected spaces (D73, fondateur, 2026-10-28): its values live in the single
+ * [data-theme="keo"] block at the end of this file (02 §21.3), nowhere else.
  *
  * Source: docs/landing-page/03-tokens-provisoires.md (expert-ux, 2026-09-17, révisé le
  * 2026-09-17 pour la bascule dark), aliases from docs/landing-page/02-ux-wireframes.md §2.9.
@@ -107,6 +109,27 @@
   --color-mockup-banner-border: #0a0a0a;
   /* Dark text on the light banner (WCAG AA, J7T-4: the primary text failed axe on it). */
   --color-mockup-banner-text: #0a0a0a;
+
+  /*
+   * ---------- Colors: roles introduced by D73 (20 §11.3, 17 §8.2) ----------
+   * Role names are declared here, the only place that gives a name its class (02 §21.3 point 1).
+   * The vitrine value is an alias of an existing token when there is one; a role the vitrine has no
+   * use for carries its KEO value. None is consumed by the landing; the KEO values are at the end.
+   */
+  --color-surface-active: var(--color-action-secondary-bg-active);
+  --color-action-secondary-border-hover: var(--color-text-secondary);
+  --color-nav-item-hover-bg: var(--color-surface-raised);
+  --color-nav-item-active-bg: var(--color-surface-hover);
+  --color-nav-item-active-indicator: var(--color-brand-primary);
+  --color-counter-bg: var(--color-surface-inverse);
+  --color-counter-text: var(--color-text-inverse);
+  --color-role-advertiser: #e6d3a3;
+  --color-role-creator: #ff8fb1;
+  --color-verified-text: #4da3ff;
+  --color-verified-border: var(--color-feedback-info-border);
+  --color-data-1: var(--color-brand-primary);
+  --color-data-2: var(--color-feedback-info-text);
+  --color-data-3: #ffae2b;
 
   /* ---------- Colors: aliases, no new value (02 §2.9) ---------- */
   --color-action-secondary-inverse-border: var(--color-text-inverse);
@@ -279,6 +302,8 @@
   --radius-xl: 2rem;
   --radius-pill: 999px;
   --radius-round: 50%;
+  /* Card and dialog radius (20 §11.5): the vitrine's own, 1 rem under KEO. */
+  --radius-card: var(--radius-lg);
   /*
    * Elevation on a near-black page: a pure dark drop shadow disappears into the background, so
    * each level pairs it with a hairline, near-transparent white edge (glass-like rim) to read as
@@ -434,6 +459,14 @@
   --container-narrow: 48rem;
   --font-variant-numeric-amount: tabular-nums;
 
+  /* Member shell (D73; 17 §8.2, 02 §21.5 point 4): side column from lg, bottom bar below. */
+  --size-member-rail: 16rem;
+  --size-nav-bottom-height: 3.5rem;
+  --z-nav-bottom: 90;
+  --grid-member-shell: var(--size-member-rail) minmax(0, 1fr);
+  /* Inset focus ring where an outer ring would be clipped (cells of the bottom bar). */
+  --focus-ring-offset-inset: calc(-1 * var(--focus-ring-width));
+
   /* Image focal points (05 §4), used as object-(--image-focus-…) by ResponsiveImage */
   --image-focus-center-35: center 35%;
   --image-focus-center-40: center 40%;
@@ -468,5 +501,87 @@
     --duration-fast: var(--duration-instant);
     --duration-base: var(--duration-instant);
     --duration-slow: var(--duration-instant);
+  }
+}
+
+/*
+ * ---------- KEO Emerald, the charter of the connected spaces (D73; 20 §11.3, 02 §21.3) ----------
+ * The one place holding KEO values. It re-values role names that @theme already declares, on the
+ * container that carries data-theme="keo" (set by the two layouts of the connected spaces only,
+ * G8): nothing here applies until that attribute is set, and the vitrine never sets it.
+ * No new color value: each one is KEO's, the vitrine's, D6's or D72's, as listed in 20 §11.3.
+ *
+ * Tailwind emits @theme in :root, and an alias is resolved there then inherited already resolved:
+ * every alias whose target is redefined below is redeclared here, identically (G3c).
+ * Colors not redefined are listed, entry by entry, in KEO_INHERITS (they keep their vitrine value)
+ * or VITRINE_ONLY (no use under KEO) in packages/test-kit/src/charter-data.ts.
+ * Opaque values only (#rrggbb, transparent, var()).
+ */
+@layer base {
+  [data-theme="keo"] {
+    /* Brand and action */
+    --color-brand-primary: #1dd68a;
+    --color-brand-accent: var(--color-brand-primary);
+    --color-action-primary-bg: #1dd68a;
+    --color-action-primary-bg-hover: #4de4a6;
+    --color-action-primary-bg-active: #14af6f;
+    --color-action-disabled-bg: #232725;
+    --color-action-secondary-bg: #1a1d1b;
+    --color-action-secondary-bg-hover: #232725;
+    --color-action-secondary-bg-active: var(--color-surface-active);
+    --color-action-secondary-border: var(--color-border-strong);
+    --color-action-secondary-border-hover: var(--color-text-secondary);
+
+    /* Text */
+    --color-text-primary: #f4f6f5;
+    --color-text-secondary: #b4bbb7;
+    --color-text-tertiary: #8a938e;
+    --color-text-muted: var(--color-text-tertiary);
+    --color-text-brand: #1dd68a;
+    --color-text-brand-strong: #4de4a6;
+    --color-text-on-action: #04150d;
+    --color-text-on-accent: #04150d;
+    --color-text-inverse: #07130d;
+    --color-text-disabled: #5c6561;
+    --color-text-on-danger: var(--color-text-primary);
+
+    /* Surfaces */
+    --color-surface-page: #0a0b0a;
+    --color-surface-muted: #121413;
+    --color-surface-card: #121413;
+    --color-surface-raised: #1a1d1b;
+    --color-surface-hover: #232725;
+    --color-surface-active: #2d322f;
+    --color-surface-accent: var(--color-brand-primary);
+    --color-surface-inverse: var(--color-text-primary);
+
+    /* Borders and focus */
+    --color-border-subtle: var(--color-border-default);
+    --color-border-default: #2a2f2c;
+    --color-border-strong: #78827d;
+    --color-border-selected: var(--color-brand-primary);
+    --color-focus-ring: var(--color-text-primary);
+
+    /* Feedback: success moves to KEO's teal, 25° from the action green (20 §11.3, G3d) */
+    --color-feedback-success-text: #3ccfcf;
+    --color-feedback-success-icon: #3ccfcf;
+    --color-feedback-warning-text: #ffb020;
+    --color-feedback-warning-icon: #ffb020;
+    --color-feedback-info-text: #4da3ff;
+    --color-feedback-info-icon: #4da3ff;
+
+    /* Navigation: aliases whose target is redefined above */
+    --color-nav-item-hover-bg: var(--color-surface-raised);
+    --color-nav-item-active-bg: var(--color-surface-hover);
+    --color-nav-item-active-indicator: var(--color-brand-primary);
+    --color-counter-bg: var(--color-surface-inverse);
+    --color-counter-text: var(--color-text-inverse);
+
+    /* Data series (charts only) */
+    --color-data-1: var(--color-brand-primary);
+    --color-data-2: var(--color-feedback-info-text);
+
+    /* Shapes */
+    --radius-card: 1rem;
   }
 }

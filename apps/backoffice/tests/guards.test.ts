@@ -21,12 +21,15 @@ import {
   listFiles,
   RELAY_FILES,
   relativePath,
-  contrastRatio,
+  effectiveTokens,
+  findNonBoDeclarations,
+  findTokenPairFailures,
   DANGER_RED_TOKENS,
   OPAQUE_TOKEN_VALUE,
-  tokenValue,
   TRANSLUCENT_RED_CLASS,
+  type Charter,
 } from "@influx/test-kit/guards";
+import { DANGER_PAIRS } from "@influx/test-kit/charter-data";
 import { describe, expect, it } from "vitest";
 import nextConfig, { NOINDEX, SECURITY_HEADERS } from "../next.config";
 import {
@@ -41,6 +44,8 @@ const BACKOFFICE_ROOT = path.resolve(
 const WEB_ROOT = path.resolve(BACKOFFICE_ROOT, "..", "web");
 const SRC = path.join(BACKOFFICE_ROOT, "src");
 const TOKENS = "src/styles/tokens.css";
+/** The backoffice-only tokens (D73, 02 §21.3 point 6): born with DS-9, a token file like the other. */
+const TOKENS_BACKOFFICE = "src/styles/tokens-backoffice.css";
 
 const SOURCE_FILES = listFiles(SRC).filter((file) =>
   /\.(ts|tsx|json|css)$/.test(file),
@@ -88,7 +93,9 @@ describe("G1: no mailto or tel link (18 §5 G1)", () => {
 });
 
 describe("G3: no hard-coded color or length outside the token file (CA22)", () => {
-  const files = SOURCE_FILES.filter((file) => relative(file) !== TOKENS);
+  const files = SOURCE_FILES.filter(
+    (file) => ![TOKENS, TOKENS_BACKOFFICE].includes(relative(file)),
+  );
 
   it("finds no hexadecimal color or color function", () => {
     expect(
@@ -113,68 +120,64 @@ describe("G3: no hard-coded color or length outside the token file (CA22)", () =
       .filter((file) => file.endsWith(".css"))
       .map(relative)
       .sort();
-    expect(cssFiles).toEqual(["src/app/globals.css", TOKENS]);
+    expect(cssFiles.filter((file) => file !== TOKENS_BACKOFFICE)).toEqual([
+      "src/app/globals.css",
+      TOKENS,
+    ]);
     expect(
       readFileSync(path.join(SRC, "app", "globals.css"), "utf8"),
     ).not.toMatch(/--color-[\w-]+\s*:/);
   });
 });
 
-describe("G3b: the red of danger is opaque and shared by both fronts (zone-de-danger fiche §5)", () => {
+describe("G3b: the red of danger is opaque and shared by both fronts and both charters (zone-de-danger fiche §5, D73)", () => {
   const tokens = readFileSync(path.join(SRC, "styles", "tokens.css"), "utf8");
   const other = readFileSync(
     path.join(WEB_ROOT, "src", "styles", "tokens.css"),
     "utf8",
   );
-  const value = (name: string): string => tokenValue(tokens, name) ?? "";
+  const value = (css: string, charter: Charter, name: string): string =>
+    effectiveTokens(css, charter).get(name) ?? "";
 
-  it("gives every danger token a 6-digit hex, transparent or var() value", () => {
-    for (const name of DANGER_RED_TOKENS) {
-      expect(value(name), name).toMatch(OPAQUE_TOKEN_VALUE);
-    }
-  });
+  // The backoffice is KEO whole (D73), but its file is the vitrine's byte for byte: both charters
+  // are read, and the KEO one is the one this front shows.
+  for (const charter of ["vitrine", "keo"] as const) {
+    it(`gives every danger token a 6-digit hex, transparent or var() value (${charter})`, () => {
+      for (const name of DANGER_RED_TOKENS) {
+        expect(value(tokens, charter, name), name).toMatch(OPAQUE_TOKEN_VALUE);
+      }
+    });
 
-  it("has the same values as the other front", () => {
-    for (const name of DANGER_RED_TOKENS) {
-      expect(tokenValue(other, name), name).toBe(value(name));
-    }
-  });
+    it(`has the same values as the other front (${charter})`, () => {
+      for (const name of DANGER_RED_TOKENS) {
+        expect(value(other, charter, name), name).toBe(
+          value(tokens, charter, name),
+        );
+      }
+    });
 
-  it("keeps the contrast ratios of §5, recomputed from the file", () => {
-    const surfaces = [
-      "--color-surface-page",
-      "--color-surface-card",
-      "--color-surface-raised",
-    ].map(value);
-    for (const surface of surfaces) {
+    it(`keeps the contrast ratios of §5, recomputed from the file (${charter})`, () => {
       expect(
-        contrastRatio(value("--color-feedback-error-text"), surface),
-      ).toBeGreaterThanOrEqual(4.5);
-      expect(
-        contrastRatio(value("--color-feedback-error-border"), surface),
-      ).toBeGreaterThanOrEqual(3);
-    }
-    for (const name of [
-      "--color-action-danger-bg",
-      "--color-action-danger-bg-hover",
-      "--color-action-danger-bg-active",
-    ]) {
-      expect(
-        contrastRatio(value("--color-text-primary"), value(name)),
-        name,
-      ).toBeGreaterThanOrEqual(4.5);
-    }
-    expect(
-      contrastRatio(
-        value("--color-action-danger-bg"),
-        value("--color-surface-page"),
-      ),
-    ).toBeGreaterThanOrEqual(3);
-  });
+        findTokenPairFailures(effectiveTokens(tokens, charter), DANGER_PAIRS),
+      ).toEqual([]);
+    });
+  }
 
   it("tints no red with an opacity modifier or a color function", () => {
     expect(
       findMatches(TRANSLUCENT_RED_CLASS, SOURCE_FILES, BACKOFFICE_ROOT),
+    ).toEqual([]);
+  });
+});
+
+// G3f (D73, 18 §5.1, 02 §21.3 point 6): tokens-backoffice.css, once it exists (DS-9), declares
+// `--*-bo-*` names only. The other half (no -bo- name in apps/web) is in apps/web/tests.
+describe("G3f: tokens-backoffice.css holds backoffice tokens only", () => {
+  const file = path.join(SRC, "styles", "tokens-backoffice.css");
+
+  it("declares nothing but -bo- names (vacuous until the file exists)", () => {
+    expect(
+      existsSync(file) ? findNonBoDeclarations(readFileSync(file, "utf8")) : [],
     ).toEqual([]);
   });
 });

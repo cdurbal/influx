@@ -21,12 +21,26 @@ import {
   HARD_CODED_LENGTH_PATTERN,
   listFiles,
   relativePath,
-  contrastRatio,
+  BO_TOKEN_MARKER,
+  effectiveTokens,
+  findAliasClosureGaps,
+  findKeoBlocksOutside,
+  findKeoBlockViolations,
+  findTokenPairFailures,
+  hueGap,
+  keoBlocks,
   DANGER_RED_TOKENS,
   OPAQUE_TOKEN_VALUE,
-  tokenValue,
   TRANSLUCENT_RED_CLASS,
+  type Charter,
 } from "@influx/test-kit/guards";
+import {
+  CONTRAST_MATRIX,
+  DANGER_PAIRS,
+  KEO_INHERITS,
+  SUCCESS_MIN_HUE_GAP,
+  VITRINE_ONLY,
+} from "@influx/test-kit/charter-data";
 import { describe, expect, it } from "vitest";
 
 const WEB_ROOT = path.resolve(
@@ -105,7 +119,7 @@ describe("G3: no hard-coded color or length outside the token files (CA22)", () 
     expect(findMatches(HARD_CODED_LENGTH_PATTERN, files)).toEqual([]);
   });
 
-  it("keeps a single tokens file, marked with its D6 status", () => {
+  it("keeps a single tokens file, marked with its D6 and D73 status", () => {
     const cssFiles = listFiles(SRC)
       .filter((file) => file.endsWith(".css"))
       .map(relative);
@@ -114,14 +128,24 @@ describe("G3: no hard-coded color or length outside the token files (CA22)", () 
       "src/styles/tokens.css",
     ]);
     const tokens = readFileSync(path.join(SRC, "styles", "tokens.css"), "utf8");
-    expect(tokens.slice(0, 200)).toContain("D6 tranchée");
+    expect(tokens.slice(0, 400)).toContain("D6 tranchée");
+    expect(tokens.slice(0, 400)).toContain("D73");
     expect(
       readFileSync(path.join(SRC, "app", "globals.css"), "utf8"),
     ).not.toMatch(/--color-[\w-]+\s*:/);
   });
 });
 
-describe("G3b: the red of danger is opaque and shared by both fronts (zone-de-danger fiche §5)", () => {
+/** The tokens.css with one more declaration at the end of its KEO block, where it wins (negative cases). */
+function withKeoDeclaration(css: string, declaration: string): string {
+  const lastDeclaration = "    --radius-card: 1rem;\n";
+  expect(css).toContain(lastDeclaration);
+  return css.replace(lastDeclaration, `${lastDeclaration}    ${declaration}\n`);
+}
+
+const CHARTERS = ["vitrine", "keo"] as const;
+
+describe("G3b: the red of danger is opaque and shared by both fronts and both charters (zone-de-danger fiche §5, D73)", () => {
   const tokens = readFileSync(path.join(SRC, "styles", "tokens.css"), "utf8");
   const other = readFileSync(
     path.join(
@@ -132,54 +156,187 @@ describe("G3b: the red of danger is opaque and shared by both fronts (zone-de-da
     ),
     "utf8",
   );
-  const value = (name: string): string => tokenValue(tokens, name) ?? "";
+  // Read per charter, aliases followed: tokenValue reads the first occurrence, the vitrine, and
+  // would leave the KEO block unchecked.
+  const value = (css: string, charter: Charter, name: string): string =>
+    effectiveTokens(css, charter).get(name) ?? "";
 
-  it("gives every danger token a 6-digit hex, transparent or var() value", () => {
+  for (const charter of CHARTERS) {
+    it(`gives every danger token a 6-digit hex, transparent or var() value (${charter})`, () => {
+      for (const name of DANGER_RED_TOKENS) {
+        expect(value(tokens, charter, name), name).toMatch(OPAQUE_TOKEN_VALUE);
+      }
+    });
+
+    it(`has the same values as the other front (${charter})`, () => {
+      for (const name of DANGER_RED_TOKENS) {
+        expect(value(other, charter, name), name).toBe(
+          value(tokens, charter, name),
+        );
+      }
+    });
+
+    it(`keeps the contrast ratios of §5, recomputed from the file (${charter})`, () => {
+      expect(
+        findTokenPairFailures(effectiveTokens(tokens, charter), DANGER_PAIRS),
+      ).toEqual([]);
+    });
+  }
+
+  it("keeps the same red under KEO as in the vitrine (KEO_INHERITS), the text on it excepted", () => {
     for (const name of DANGER_RED_TOKENS) {
-      expect(value(name), name).toMatch(OPAQUE_TOKEN_VALUE);
+      if (name === "--color-text-on-danger") continue;
+      expect(value(tokens, "keo", name), name).toBe(
+        value(tokens, "vitrine", name),
+      );
     }
   });
 
-  it("has the same values as the other front", () => {
-    for (const name of DANGER_RED_TOKENS) {
-      expect(tokenValue(other, name), name).toBe(value(name));
-    }
-  });
-
-  it("keeps the contrast ratios of §5, recomputed from the file", () => {
-    const surfaces = [
-      "--color-surface-page",
-      "--color-surface-card",
-      "--color-surface-raised",
-    ].map(value);
-    for (const surface of surfaces) {
-      expect(
-        contrastRatio(value("--color-feedback-error-text"), surface),
-      ).toBeGreaterThanOrEqual(4.5);
-      expect(
-        contrastRatio(value("--color-feedback-error-border"), surface),
-      ).toBeGreaterThanOrEqual(3);
-    }
-    for (const name of [
-      "--color-action-danger-bg",
-      "--color-action-danger-bg-hover",
-      "--color-action-danger-bg-active",
-    ]) {
-      expect(
-        contrastRatio(value("--color-text-primary"), value(name)),
-        name,
-      ).toBeGreaterThanOrEqual(4.5);
-    }
+  it("fails on a KEO red that is too weak, while the vitrine still passes (negative case)", () => {
+    const weak = withKeoDeclaration(
+      tokens,
+      "--color-feedback-error-text: #7a1f1f;",
+    );
     expect(
-      contrastRatio(
-        value("--color-action-danger-bg"),
-        value("--color-surface-page"),
-      ),
-    ).toBeGreaterThanOrEqual(3);
+      findTokenPairFailures(effectiveTokens(weak, "keo"), DANGER_PAIRS),
+    ).not.toEqual([]);
+    expect(
+      findTokenPairFailures(effectiveTokens(weak, "vitrine"), DANGER_PAIRS),
+    ).toEqual([]);
   });
 
   it("tints no red with an opacity modifier or a color function", () => {
     expect(findMatches(TRANSLUCENT_RED_CLASS, SCOPED_FILES)).toEqual([]);
+  });
+});
+
+// G3c (D73, 02 §21.3, 18 §5.1): one KEO block, in tokens.css; every color redefined, inherited
+// (KEO_INHERITS) or vitrine-only (VITRINE_ONLY); no value that is not opaque; the aliases closed.
+describe("G3c: the KEO block is unique, complete, opaque and closes its aliases (02 §21.3)", () => {
+  const tokens = readFileSync(path.join(SRC, "styles", "tokens.css"), "utf8");
+  const lists = { inherits: KEO_INHERITS, vitrineOnly: VITRINE_ONLY } as const;
+
+  it("holds exactly one KEO block, inside @layer base, in tokens.css and in no other sheet", () => {
+    expect(keoBlocks(tokens)).toHaveLength(1);
+    expect(tokens).toMatch(/@layer base\s*\{\s*\[data-theme="keo"\]\s*\{/);
+    const sheets = listFiles(SRC).filter((file) => file.endsWith(".css"));
+    expect(
+      findKeoBlocksOutside(
+        sheets,
+        path.join(SRC, "styles", "tokens.css"),
+        WEB_ROOT,
+      ),
+    ).toEqual([]);
+  });
+
+  it("declares declared names only, opaque, and accounts for every --color-*", () => {
+    expect(findKeoBlockViolations(tokens, lists)).toEqual([]);
+  });
+
+  it("redeclares every alias whose target KEO redefines (the browser resolves aliases on :root)", () => {
+    expect(findAliasClosureGaps(tokens, VITRINE_ONLY)).toEqual([]);
+  });
+
+  it("fails on an alias left on its vitrine value, a translucent color and a forgotten color (negative cases)", () => {
+    const forgotten = tokens.replace(
+      "    --color-text-on-danger: var(--color-text-primary);\n",
+      "",
+    );
+    expect(forgotten).not.toBe(tokens);
+    expect(findAliasClosureGaps(forgotten, VITRINE_ONLY)).toEqual([
+      "--color-text-on-danger: alias of --color-text-primary, redefined in the KEO block, " +
+        "but not redeclared there (it would keep its vitrine value)",
+    ]);
+    expect(
+      findKeoBlockViolations(
+        withKeoDeclaration(
+          tokens,
+          "--color-brand-primary: rgba(29, 214, 138, 0.14);",
+        ),
+        lists,
+      ),
+    ).toEqual([
+      '--color-brand-primary: "rgba(29, 214, 138, 0.14)" is not an opaque value',
+    ]);
+    expect(
+      findKeoBlockViolations(tokens, {
+        inherits: KEO_INHERITS.filter((name) => name !== "--color-data-3"),
+        vitrineOnly: VITRINE_ONLY,
+      }),
+    ).toEqual([
+      "--color-data-3: neither redefined in the KEO block, nor in KEO_INHERITS, nor in VITRINE_ONLY",
+    ]);
+  });
+});
+
+// G3d (D73, 18 §5.1, 20 §11.4): the matrix of contrasts per charter and the hue gap of the success.
+// The pairs, the floors and SUCCESS_MIN_HUE_GAP are data (@influx/test-kit/charter-data): the guard
+// computes, it decides nothing. What it does not see (a usage not listed) is left to axe and TD3.
+describe("G3d: contrasts and success hue, per charter (20 §11.3, §11.4)", () => {
+  const tokens = readFileSync(path.join(SRC, "styles", "tokens.css"), "utf8");
+
+  for (const charter of CHARTERS) {
+    it(`holds every pair of the ${charter} matrix at its floor`, () => {
+      expect(CONTRAST_MATRIX[charter].length).toBeGreaterThan(30);
+      expect(
+        findTokenPairFailures(
+          effectiveTokens(tokens, charter),
+          CONTRAST_MATRIX[charter],
+        ),
+      ).toEqual([]);
+    });
+  }
+
+  it("gives the success its own color per charter, 20 degrees or more from the action", () => {
+    const keo = effectiveTokens(tokens, "keo");
+    const vitrine = effectiveTokens(tokens, "vitrine");
+    expect(keo.get("--color-feedback-success-text")).toBe("#3ccfcf");
+    expect(vitrine.get("--color-feedback-success-text")).toBe("#2dd4bf");
+    for (const tokenSet of [keo, vitrine]) {
+      expect(
+        hueGap(
+          tokenSet.get("--color-feedback-success-text") ?? "",
+          tokenSet.get("--color-action-primary-bg") ?? "",
+        ),
+      ).toBeGreaterThanOrEqual(SUCCESS_MIN_HUE_GAP);
+    }
+  });
+
+  it("fails on a KEO success too close to the green and on a KEO surface that sinks a text (negative cases)", () => {
+    const failures = findTokenPairFailures(
+      effectiveTokens(
+        withKeoDeclaration(
+          withKeoDeclaration(tokens, "--color-feedback-success-text: #4ade80;"),
+          "--color-surface-card: #3a3a3a;",
+        ),
+        "keo",
+      ),
+      CONTRAST_MATRIX.keo,
+    );
+    expect(failures.some((line) => line.includes(": hue 1"))).toBe(true);
+    expect(
+      failures.some((line) =>
+        line.includes("/ --color-surface-card (#3a3a3a)"),
+      ),
+    ).toBe(true);
+    // The same surface edit, made in the KEO block, leaves the vitrine matrix untouched.
+    expect(
+      findTokenPairFailures(
+        effectiveTokens(
+          withKeoDeclaration(tokens, "--color-surface-card: #3a3a3a;"),
+          "vitrine",
+        ),
+        CONTRAST_MATRIX.vitrine,
+      ),
+    ).toEqual([]);
+  });
+});
+
+// G3f skeleton (D73, 18 §5.1): the backoffice-only tokens stay in the backoffice. The other half,
+// tokens-backoffice.css declaring `--*-bo-*` only, is in apps/backoffice/tests/guards.test.ts.
+describe("G3f: no backoffice token in apps/web", () => {
+  it("finds no -bo- name anywhere in src/", () => {
+    expect(findMatches(BO_TOKEN_MARKER, SCOPED_FILES)).toEqual([]);
   });
 });
 

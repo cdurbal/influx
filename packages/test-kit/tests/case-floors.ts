@@ -13,6 +13,6 @@ export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/logs.test.ts": 11,
   "tests/operator-secrets.test.ts": 3,
   "tests/t16-static.test.ts": 13,
-  "tests/token-readers.test.ts": 26,
+  "tests/token-readers.test.ts": 32,
   "tests/totp.test.ts": 8,
 };

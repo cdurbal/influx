@@ -9,8 +9,10 @@ import {
   findAliasClosureGaps,
   findKeoBlocksOutside,
   findKeoBlockViolations,
+  findNonBoDeclarations,
   findTokenPairFailures,
   findVitrineSnapshotChanges,
+  contrastRatio,
   hueDistance,
   hueGap,
   hueOf,
@@ -20,6 +22,12 @@ import {
   vitrineDeclarations,
   type TokenPair,
 } from "../src/guards.ts";
+import {
+  CONTRAST_MATRIX,
+  KEO_INHERITS,
+  SUCCESS_MIN_HUE_GAP,
+  VITRINE_ONLY,
+} from "../src/charter-data.ts";
 
 const TEMP_ROOT = mkdtempSync(path.join(tmpdir(), "influx-token-readers-"));
 
@@ -412,5 +420,84 @@ describe("G3e detector: the vitrine snapshot (TD4.1)", () => {
       '@theme static --color-action: "#22c55e" became "#1dd68a"',
       '@media (width >= 1024px) > :root --header-height: removed (was "4.5rem")',
     ]);
+  });
+});
+
+describe("TD1.3 amended: the alias of the KEO block over a vitrine literal, and the vitrine-only tokens", () => {
+  it("accepts an alias declared in the KEO block for a token that is a literal in the vitrine", () => {
+    // 20 §11.3: brand-accent is the vitrine's own green there, an alias of brand-primary under KEO.
+    const css = tokensCss(
+      keoWith(
+        "  --color-action: #1dd68a;",
+        "  --color-muted: var(--color-action);",
+        "  --color-border-strong: #78827d;",
+        "  --color-secondary-border: var(--color-border-strong);",
+      ),
+    );
+    expect(findAliasClosureGaps(css)).toEqual([]);
+    expect(effectiveTokens(css, "keo").get("--color-muted")).toBe("#1dd68a");
+    expect(effectiveTokens(css, "vitrine").get("--color-muted")).toBe(
+      "#86868f",
+    );
+  });
+
+  it("exempts a vitrine-only token from the closure, and only that one", () => {
+    const css = tokensCss(keoWith("  --color-border-strong: #78827d;"));
+    expect(findAliasClosureGaps(css)).toHaveLength(1);
+    expect(findAliasClosureGaps(css, ["--color-secondary-border"])).toEqual([]);
+    expect(findAliasClosureGaps(css, ["--color-muted"])).toHaveLength(1);
+  });
+});
+
+describe("G3d data (20 §11.3, §11.4): the lists and the matrix hold together", () => {
+  it("lists no color twice, in KEO_INHERITS and VITRINE_ONLY together", () => {
+    const all = [...KEO_INHERITS, ...VITRINE_ONLY];
+    expect(new Set(all).size).toBe(all.length);
+  });
+
+  it("holds the success threshold of 20 degrees, and a hue pair for each of its sources", () => {
+    expect(SUCCESS_MIN_HUE_GAP).toBe(20);
+    for (const charter of ["keo", "vitrine"] as const) {
+      const hues = CONTRAST_MATRIX[charter].filter(
+        (pair) => pair.kind === "hue",
+      );
+      expect(hues, charter).toHaveLength(8);
+      expect(new Set(hues.map((pair) => pair.min))).toEqual(
+        new Set([SUCCESS_MIN_HUE_GAP]),
+      );
+    }
+  });
+
+  it("leaves out the pairs that 20 §11.4 forbids because they fail (tertiary and error on surface-active)", () => {
+    const pairs = CONTRAST_MATRIX.keo.filter(
+      (pair) =>
+        pair.kind === "contrast" &&
+        pair.background === "--color-surface-active" &&
+        ["--color-text-tertiary", "--color-feedback-error-text"].includes(
+          pair.foreground,
+        ),
+    );
+    expect(pairs).toEqual([]);
+    // They are left out because they fail: 4.13 and 3.91 against the 4.5 floor.
+    expect(contrastRatio("#8a938e", "#2d322f")).toBeLessThan(4.5);
+    expect(contrastRatio("#ec5d5e", "#2d322f")).toBeLessThan(4.5);
+  });
+});
+
+describe("G3f detector: the tokens of tokens-backoffice.css carry a -bo- marker", () => {
+  it("accepts -bo- names, reports any other custom property", () => {
+    const css = [
+      "@theme static {",
+      "  --spacing-bo-row-h: 2.25rem;",
+      "  --color-bo-row-hover: var(--color-surface-hover);",
+      "  --spacing-row: 2rem;",
+      "}",
+    ].join("\n");
+    expect(findNonBoDeclarations(css)).toEqual([
+      '--spacing-row: no "-bo-" marker in tokens-backoffice.css',
+    ]);
+    expect(findNonBoDeclarations("@theme static { --*: initial; }")).toEqual(
+      [],
+    );
   });
 });

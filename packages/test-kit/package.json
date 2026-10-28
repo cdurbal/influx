@@ -6,6 +6,7 @@
   "sideEffects": false,
   "exports": {
     "./guards": "./src/guards.ts",
+    "./charter-data": "./src/charter-data.ts",
     "./artifacts": "./src/artifacts.ts",
     "./relay-integration": "./src/relay-integration.ts",
     "./case-floors": "./src/case-floors.ts",

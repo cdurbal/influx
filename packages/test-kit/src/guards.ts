@@ -662,9 +662,15 @@ export function effectiveTokens(
  * TD1.3). Tailwind emits @theme in `:root`: an alias is resolved there and inherited resolved, so
  * an alias whose target (direct or transitive, `calc(var(…))` included) is redefined in the KEO
  * block must be redeclared in it, identically. Redeclared towards another target is a finding; a
- * literal value is a redefinition, not an alias, and is accepted.
+ * literal value is a redefinition, not an alias, and is accepted. So is an alias declared in the
+ * KEO block for a token that is a literal in the vitrine (20 §11.3: `brand-accent` is the vitrine's
+ * own green there and an alias of `brand-primary` under KEO). A token of `vitrineOnly` (VITRINE_ONLY)
+ * is not consumable under KEO (G8): its stale resolution is no gap.
  */
-export function findAliasClosureGaps(css: string): string[] {
+export function findAliasClosureGaps(
+  css: string,
+  vitrineOnly: readonly string[] = [],
+): string[] {
   const { theme, root, keo } = tokenScopes(css);
   if (keo === null) return [];
   const vitrine = (name: string) => theme.get(name) ?? root.get(name);
@@ -679,6 +685,7 @@ export function findAliasClosureGaps(css: string): string[] {
   };
   const names = new Set([...theme.keys(), ...root.keys()]);
   return [...names].flatMap((name) => {
+    if (vitrineOnly.includes(name)) return [];
     const ownValue = vitrine(name) ?? "";
     const redefinedTargets = [...targetsOf(name)].filter((target) =>
       keo.has(target),
@@ -692,7 +699,9 @@ export function findAliasClosureGaps(css: string): string[] {
               "but not redeclared there (it would keep its vitrine value)",
           ];
     }
-    return varReferences(keoValue).length > 0 && keoValue !== ownValue
+    return varReferences(ownValue).length > 0 &&
+      varReferences(keoValue).length > 0 &&
+      keoValue !== ownValue
       ? [
           `${name}: redeclared in the KEO block as "${keoValue}", another target than "${ownValue}"`,
         ]
@@ -905,4 +914,30 @@ export function findVitrineSnapshotChanges(
       ];
     }),
   );
+}
+
+// ---------------------------------------------------------------------------------------------
+// G3f: the backoffice-only tokens (D73; 18 §5.1, 02 §21.3 point 6)
+// ---------------------------------------------------------------------------------------------
+
+/** The marker of a backoffice-only token name: `--spacing-bo-row-h`, `--color-bo-sla-…`. */
+export const BO_TOKEN_MARKER = /-bo-/;
+
+/**
+ * Custom properties of tokens-backoffice.css whose name carries no `-bo-` marker: the file holds
+ * the `--*-bo-*` tokens of the backoffice and nothing else (a plain name would leak into the shared
+ * vocabulary of tokens.css).
+ */
+export function findNonBoDeclarations(css: string): string[] {
+  const names: string[] = [];
+  const visit = (block: CssBlock) => {
+    for (const { name } of block.declarations) {
+      if (name.startsWith("--") && !name.includes("*")) names.push(name);
+    }
+    block.blocks.forEach(visit);
+  };
+  visit(parseCssBlocks(css));
+  return names
+    .filter((name) => !BO_TOKEN_MARKER.test(name))
+    .map((name) => `${name}: no "-bo-" marker in tokens-backoffice.css`);
 }
