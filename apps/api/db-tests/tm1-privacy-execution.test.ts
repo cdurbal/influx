@@ -676,6 +676,15 @@ describe("erasure: anonymised by the worker, propagated to Brevo, closed after i
           : { status: "skipped", reason: "erasure_not_propagated" },
       );
     }
+    // D72 (0150): the confirmation e-mail is queued P1 and must leave with its messageId
+    const mails = await linesOf(member.accountId, "privacy.erasure_completed");
+    expect(
+      mails.map((line) => [line.destination, line.priority, line.status]),
+    ).toEqual([["brevo_transactional", 100, "pending"]]);
+    await settle(mails[0]?.id ?? "", {
+      status: "succeeded",
+      messageId: "<tm1-erasure@smtp-relay.brevo.com>",
+    });
     await tick();
     expect(await requestOf(requestId)).toMatchObject({ status: "in_progress" });
 
@@ -724,6 +733,11 @@ describe("erasure: anonymised by the worker, propagated to Brevo, closed after i
       reason: "erasure_not_propagated",
     });
     await settle(brevo?.id ?? "", { status: "succeeded", dryRun: true });
+    const [mail] = await linesOf(member.accountId, "privacy.erasure_completed");
+    await settle(mail?.id ?? "", {
+      status: "succeeded",
+      messageId: "<tm1-erasure@smtp-relay.brevo.com>",
+    });
     await tick();
     expect(await requestOf(requestId)).toMatchObject({ status: "in_progress" });
     await settle(brevo?.id ?? "", { status: "succeeded" });

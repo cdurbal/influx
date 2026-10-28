@@ -325,6 +325,10 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 - [x] Constats `staging` (sans code, 2026-10-27, sur `5dbf608`) — CI et « Migrate staging » verts, `staging:check` vert ; `/health` et relais `200`, sonde (4 cibles `up`) et battement du worker en marche, T10 du backoffice, J9S-5 conforme ; J9T-1 infirmée ; arrêts du worker et de l'API non faits (accord du fondateur).
 - **Reportés** (détail : `archives/jalons/j9-fiche.md`) : avant production J9T-1 (arrêt du worker, coupure de l'API, inscription réelle sur `staging`), J9S-2, J9S-4, AL53, manques du commit 11, points `expert-ux` du commit 5 ; Lot 2 J9S-6, J9S-7, J9S-9, J9T-5, J9T-8, J9T-9, J4S-7 ; Lot 3 T15.2, F3 ; Lot 5 classement des groupes d'erreurs, J9T-3, J9T-10, J8S-8, J8S-9 ; Lot 6 F8, J7T-6 ; fondateur portes §5.8, cases 5 et 7 à 10 de `18` §10 « Lot 1 ».
 
+### Hors jalon
+
+- [x] Commit D72-1a (`SHA`) — `0150` (`jalons/zone-de-danger-fiche.md` §2.1, §2.2, §2.4) : `authorised_by` (2V nullables, CHECK), `identity.submit_member_erasure()` (code frais, demande `in_progress`, sessions révoquées, `privacy.execution_authorised_by_member`), E-5 recréé (accès ouvert `retiree_par_le_demandeur`, `privacy.erasure_completed` en file, clôture sur son `messageId`), `privacy.read_erasure_notification_subject()` (DZ-3), `expected-rights.ts` ; T3, T4, T6 ; route, contrat et e-mail à `dev-react-node` ; planchers db +12.
+
 ### 5.8 Portes de la mise en production
 
 | Porte | Qui | Référence |

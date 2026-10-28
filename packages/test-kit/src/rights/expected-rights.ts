@@ -754,7 +754,8 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     table: "privacy.request_executions",
     source:
       "0137 (J8 commit 8, 03 P7 E-5, 15 RG75 step 6): written by " +
-      "backoffice.approve_data_request_execution() (admin, 2V + R) and the E-5 functions only",
+      "backoffice.approve_data_request_execution() (admin, 2V + R), " +
+      "identity.submit_member_erasure() (0150, D72: the member, fresh code) and the E-5 functions only",
     probeColumn: "request_id",
     expected: forRoles(INTERNAL, {
       select: {
@@ -2402,6 +2403,19 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_worker|function|ops.run_ops_retention(uuid,smallint)|EXECUTE",
   "influx_worker|function|ops.save_alert_states(text,jsonb)|EXECUTE",
   "influx_worker|function|ops.technical_alert_snapshot(timestamp with time zone)|EXECUTE",
+  // 0150 (D72, zone-de-danger-fiche §2.4): the member authorises the erasure of his own account
+  // through identity.submit_member_erasure() only (no right on the table for any member role); its
+  // owner inserts the execution with authorised_by (never UPDATE nor DELETE); agent and admin read
+  // who authorised it (account sheet, §2.5); influx_privacy reads the held address of the e-mail
+  // privacy.erasure_completed through its own function (DZ-3), never the column.
+  "influx_admin|column|privacy.request_executions.authorised_by|SELECT",
+  "influx_agent|column|privacy.request_executions.authorised_by|SELECT",
+  "influx_identity_definer|column|privacy.request_executions.authorised_by|INSERT",
+  "influx_identity_definer|function|identity.submit_member_erasure()|EXECUTE",
+  "influx_advertiser|function|identity.submit_member_erasure()|EXECUTE",
+  "influx_creator|function|identity.submit_member_erasure()|EXECUTE",
+  "influx_privacy_definer|function|privacy.read_erasure_notification_subject(uuid)|EXECUTE",
+  "influx_privacy|function|privacy.read_erasure_notification_subject(uuid)|EXECUTE",
 ];
 
 /**
@@ -2650,4 +2664,7 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "ops.admin_alert_recipients()": "influx_maintenance_definer",
   "ops.run_ops_retention(uuid,smallint)": "influx_maintenance_definer",
   "identity.record_code_failure(bytea)": "influx_identity_definer",
+  // 0150 (D72): the member authorisation of an erasure; the read of the address of its e-mail
+  "identity.submit_member_erasure()": "influx_identity_definer",
+  "privacy.read_erasure_notification_subject(uuid)": "influx_privacy_definer",
 };
