@@ -1810,6 +1810,7 @@ Mobile 375
 | Le vocabulaire évite « preuve légale », « valeur probante », « horodatage certifié » | Interdits par `12` RG105 et `01` M4. On écrit « journal d'activité », « historique de la mise en relation » |
 | Re-authentification par code | Exigée pour export, suppression et changement d'adresse (`05` RG57) |
 | Confirmation par saisie d'un mot | Un bouton rouge seul se clique par réflexe ; taper un mot exige une intention |
+| **Zone de danger** (D72, `jalons/zone-de-danger-fiche.md` §3 et §5) | La suppression est la **dernière section** de « Mes données » : h2 « Zone de danger » (icône + mot), encadré sans remplissage (fond du conteneur, bordure rouge 1 px, icône triangle, texte rouge opaque, phrase en gras), avertissement « Téléchargez d'abord votre export » si un export existe, **bouton rouge plein** en pilule. L'écran de confirmation reprend le même encadré (il remplace l'ancien encadré « rien n'est supprimé automatiquement ») et son bouton est rouge plein. Après le code : écran final sans navigation de compte, « Votre compte est supprimé », `role="status"`, lien vers l'accueil |
 | Une mise en relation ouverte n'empêche pas la suppression | Mais l'écran l'annonce : « 1 conversation ouverte sera close et l'autre partie en sera informée » (message système `party.account_deleted`, `12` RG14) |
 
 > **À valider par `expert-conformite-rgpd`** (§9) : la formulation exacte des deux listes, les

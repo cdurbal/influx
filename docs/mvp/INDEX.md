@@ -554,12 +554,12 @@
 | 1525 | 96 | ↳ 5.6 C6 et C7 — Fiche de campagne et candidature | RG16–RG81 |
 | 1621 | 56 | ↳ 5.7 C8 — Mes candidatures : les huit états | RG67–RG78 |
 | 1677 | 23 | ↳ 5.8 C9 — Conversation, et les autres écrans créateur | RG5–RG102 |
-| 1700 | 167 | 6. Écrans transverses | RG14–RG143 |
-| 1867 | 271 | 7. Les deux écrans qui portent la valeur et le risque | RG4–RG113 |
-| 2138 | 103 | 8. Tokens |  |
-| 2241 | 36 | 9. Écarts et manques constatés | RG2–RG112 |
-| 2277 | 46 | 10. Ce qui reste à valider | RG6–RG109 |
-| 2323 | 51 | 11. Récapitulatif des écrans spécifiés |  |
+| 1700 | 168 | 6. Écrans transverses | RG14–RG143 |
+| 1868 | 271 | 7. Les deux écrans qui portent la valeur et le risque | RG4–RG113 |
+| 2139 | 103 | 8. Tokens |  |
+| 2242 | 36 | 9. Écarts et manques constatés | RG2–RG112 |
+| 2278 | 46 | 10. Ce qui reste à valider | RG6–RG109 |
+| 2324 | 51 | 11. Récapitulatif des écrans spécifiés |  |
 
 ## 17b-parcours-et-ecrans-backoffice.md (~57k tokens)
 
@@ -649,7 +649,7 @@
 | 151 | 166 | 7. Les apartés (D47) : conception de l'interface | RG46–RG146 |
 | 317 | 13 | 8. Angles morts du dark theme |  |
 | 330 | 13 | 9. Questions ouvertes | RG116–RG130 |
-| 343 | 11 | 10. Tokens proposés |  |
+| 343 | 19 | 10. Tokens proposés |  |
 
 ## 21-plan-de-developpement.md (~17k tokens)
 
@@ -660,7 +660,7 @@
 | 53 | 39 | 2. Stratégie de développement | RG44–RG148 |
 | 92 | 23 | 3. Écarts actifs pour les jalons restants (J5 à J9) | RG23–RG146 |
 | 115 | 43 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 158 | 192 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG165 |
-| 350 | 9 | 6. Configuration des services externes |  |
-| 359 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 376 | 11 | 8. Guide de lecture par jalon | RG54–RG58 |
+| 158 | 194 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG165 |
+| 352 | 9 | 6. Configuration des services externes |  |
+| 361 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 378 | 11 | 8. Guide de lecture par jalon | RG54–RG58 |

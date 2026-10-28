@@ -421,3 +421,51 @@ export function findNetworkOrStorageUse(
     ...findMatches(NETWORK_API_PATTERN, outsideApiClient, frontRoot),
   ];
 }
+
+/** The red "danger" tokens of docs/mvp/jalons/zone-de-danger-fiche.md §5, opaque and identical in both fronts. */
+export const DANGER_RED_TOKENS = [
+  "--color-feedback-error-text",
+  "--color-feedback-error-icon",
+  "--color-feedback-error-border",
+  "--color-feedback-error-bg",
+  "--color-border-error",
+  "--color-action-danger-bg",
+  "--color-action-danger-bg-hover",
+  "--color-action-danger-bg-active",
+  "--color-text-on-danger",
+  "--color-decorative-progress",
+] as const;
+
+/** The value of a custom property in a token file, or null. */
+export function tokenValue(css: string, name: string): string | null {
+  const match = new RegExp(`${name}\\s*:\\s*([^;]+);`).exec(css);
+  return match?.[1] === undefined ? null : match[1].trim();
+}
+
+/** A token that carries no alpha channel: a 6-digit hex, `transparent` or a `var()`. */
+export const OPAQUE_TOKEN_VALUE =
+  /^(?:#[0-9a-fA-F]{6}|transparent|var\([^)]+\))$/;
+
+/** WCAG 2.x contrast ratio of two 6-digit hex colors. */
+export function contrastRatio(foreground: string, background: string): number {
+  const luminance = (hex: string): number => {
+    const channels = [1, 3, 5].map((start) => {
+      const value = Number.parseInt(hex.slice(start, start + 2), 16) / 255;
+      return value <= 0.03928
+        ? value / 12.92
+        : ((value + 0.055) / 1.055) ** 2.4;
+    });
+    return (
+      0.2126 * (channels[0] ?? 0) +
+      0.7152 * (channels[1] ?? 0) +
+      0.0722 * (channels[2] ?? 0)
+    );
+  };
+  const [light, dark] = [luminance(foreground), luminance(background)].sort(
+    (a, b) => b - a,
+  );
+  return ((light ?? 0) + 0.05) / ((dark ?? 0) + 0.05);
+}
+
+/** A class that tints a red family with an opacity modifier (`bg-feedback-error-bg/40`). */
+export const TRANSLUCENT_RED_CLASS = /\b[\w:-]*-(?:error|danger)-[\w-]*\/\d+/;

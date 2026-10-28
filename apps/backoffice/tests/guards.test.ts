@@ -21,6 +21,11 @@ import {
   listFiles,
   RELAY_FILES,
   relativePath,
+  contrastRatio,
+  DANGER_RED_TOKENS,
+  OPAQUE_TOKEN_VALUE,
+  tokenValue,
+  TRANSLUCENT_RED_CLASS,
 } from "@influx/test-kit/guards";
 import { describe, expect, it } from "vitest";
 import nextConfig, { NOINDEX, SECURITY_HEADERS } from "../next.config";
@@ -112,6 +117,65 @@ describe("G3: no hard-coded color or length outside the token file (CA22)", () =
     expect(
       readFileSync(path.join(SRC, "app", "globals.css"), "utf8"),
     ).not.toMatch(/--color-[\w-]+\s*:/);
+  });
+});
+
+describe("G3b: the red of danger is opaque and shared by both fronts (zone-de-danger fiche §5)", () => {
+  const tokens = readFileSync(path.join(SRC, "styles", "tokens.css"), "utf8");
+  const other = readFileSync(
+    path.join(WEB_ROOT, "src", "styles", "tokens.css"),
+    "utf8",
+  );
+  const value = (name: string): string => tokenValue(tokens, name) ?? "";
+
+  it("gives every danger token a 6-digit hex, transparent or var() value", () => {
+    for (const name of DANGER_RED_TOKENS) {
+      expect(value(name), name).toMatch(OPAQUE_TOKEN_VALUE);
+    }
+  });
+
+  it("has the same values as the other front", () => {
+    for (const name of DANGER_RED_TOKENS) {
+      expect(tokenValue(other, name), name).toBe(value(name));
+    }
+  });
+
+  it("keeps the contrast ratios of §5, recomputed from the file", () => {
+    const surfaces = [
+      "--color-surface-page",
+      "--color-surface-card",
+      "--color-surface-raised",
+    ].map(value);
+    for (const surface of surfaces) {
+      expect(
+        contrastRatio(value("--color-feedback-error-text"), surface),
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrastRatio(value("--color-feedback-error-border"), surface),
+      ).toBeGreaterThanOrEqual(3);
+    }
+    for (const name of [
+      "--color-action-danger-bg",
+      "--color-action-danger-bg-hover",
+      "--color-action-danger-bg-active",
+    ]) {
+      expect(
+        contrastRatio(value("--color-text-primary"), value(name)),
+        name,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(
+      contrastRatio(
+        value("--color-action-danger-bg"),
+        value("--color-surface-page"),
+      ),
+    ).toBeGreaterThanOrEqual(3);
+  });
+
+  it("tints no red with an opacity modifier or a color function", () => {
+    expect(
+      findMatches(TRANSLUCENT_RED_CLASS, SOURCE_FILES, BACKOFFICE_ROOT),
+    ).toEqual([]);
   });
 });
 

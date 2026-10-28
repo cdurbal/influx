@@ -52,13 +52,16 @@ export type AccountContext = {
   refresh: () => Promise<void>;
   /** Ends the page on "signed out", with the sentence that says why. */
   signedOut: (message: string) => void;
+  /** Ends the page on "your account is deleted" (D72): no account navigation, the session is closed. */
+  accountDeleted: () => void;
 };
 
 type State =
   | { kind: "loading" }
   | { kind: "ready"; me: MeResponse }
   | { kind: "unavailable" }
-  | { kind: "signedOut"; message: string };
+  | { kind: "signedOut"; message: string }
+  | { kind: "deleted" };
 
 export function AccountShell({
   page,
@@ -68,6 +71,7 @@ export function AccountShell({
   children: (context: AccountContext) => ReactNode;
 }) {
   const t = useTranslations("account");
+  const tData = useTranslations("account.data");
   const locale = useLocale();
   const router = useRouter();
   const online = useOnline();
@@ -116,8 +120,12 @@ export function AccountShell({
     setState({ kind: "signedOut", message });
   }, []);
 
+  const accountDeleted = useCallback(() => {
+    setState({ kind: "deleted" });
+  }, []);
+
   useEffect(() => {
-    if (state.kind === "signedOut") {
+    if (state.kind === "signedOut" || state.kind === "deleted") {
       titleRef.current?.focus();
     }
   }, [state.kind]);
@@ -156,6 +164,23 @@ export function AccountShell({
         >
           {t("retry")}
         </button>
+      </main>
+    );
+  }
+
+  if (state.kind === "deleted") {
+    return (
+      <main id="main" className={SCREEN_CLASSES}>
+        {header}
+        <h1 ref={titleRef} tabIndex={-1} className={TITLE_CLASSES}>
+          {tData("deleted.title")}
+        </h1>
+        <p role="status" className={INFO_CLASSES}>
+          {tData("deleted.text")}
+        </p>
+        <Link href="/" className={TEXT_BUTTON_CLASSES}>
+          {tData("deleted.home")}
+        </Link>
       </main>
     );
   }
@@ -232,7 +257,7 @@ export function AccountShell({
           </Link>
         </p>
       ) : null}
-      {children({ me, online, refresh: load, signedOut })}
+      {children({ me, online, refresh: load, signedOut, accountDeleted })}
     </main>
   );
 }

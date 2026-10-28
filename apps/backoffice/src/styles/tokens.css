@@ -71,11 +71,11 @@
   --color-border-default: #242428;
   --color-border-strong: #74747c;
   --color-border-selected: #29e075;
-  --color-border-error: #f87171;
+  --color-border-error: #e5484d;
   --color-border-inverse: #d4d4d8;
 
   /* ---------- Color: decorative video progress bar (hero short-video mockup) ---------- */
-  --color-decorative-progress: #f61c0d88;
+  --color-decorative-progress: #cc1a0d;
 
   /* ---------- Colors: feedback, distinct from brand green (03 §2.5) ---------- */
   --color-feedback-success-text: #2dd4bf;
@@ -86,10 +86,15 @@
   --color-feedback-warning-bg: #2b2008;
   --color-feedback-warning-border: #92650a;
   --color-feedback-warning-icon: #fbbf24;
-  --color-feedback-error-text: #f87171;
-  --color-feedback-error-bg: #2b1212;
-  --color-feedback-error-border: #8f2e2e;
-  --color-feedback-error-icon: #f87171;
+  --color-feedback-error-text: #ec5d5e;
+  --color-feedback-error-bg: transparent;
+  --color-feedback-error-border: #e5484d;
+  --color-feedback-error-icon: #ec5d5e;
+  /* Destructive action: a solid red button, never a tinted fill (zone-de-danger fiche §5). */
+  --color-action-danger-bg: #b92c2c;
+  --color-action-danger-bg-hover: #c93636;
+  --color-action-danger-bg-active: #a32424;
+  --color-text-on-danger: var(--color-text-primary);
   --color-feedback-info-text: #60a5fa;
   --color-feedback-info-bg: #0f1f33;
   --color-feedback-info-border: #2f5a99;

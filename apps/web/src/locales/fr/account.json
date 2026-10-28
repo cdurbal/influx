@@ -193,7 +193,7 @@
   },
   "data": {
     "title": "Mes données",
-    "lead": "Demandez une copie de vos données, traitée par une personne de l'équipe INFLUX, ou supprimez votre compte.",
+    "lead": "Demandez une copie de vos données, ou supprimez votre compte.",
     "requests": {
       "title": "Vos demandes",
       "line": "{type} · {status}",
@@ -218,9 +218,6 @@
       "open": "Une demande d'export est déjà en cours : vous la suivez ci-dessus."
     },
     "delete": {
-      "title": "Supprimer mon compte",
-      "text": "Votre compte est supprimé dès que vous confirmez avec un code : aucune validation par l'équipe INFLUX n'est nécessaire.",
-      "action": "Supprimer mon compte",
       "open": "Une demande de suppression est déjà en cours : vous la suivez ci-dessus."
     },
     "confirm": {
@@ -240,7 +237,6 @@
       "durations": "Durées de conservation : voir la politique de confidentialité.",
       "durationsLink": "Lire la politique de confidentialité",
       "newAccount": "Une nouvelle inscription avec la même adresse créera un compte entièrement nouveau, sans lien avec celui-ci.",
-      "manual": "La suppression est effectuée automatiquement, dans la minute qui suit votre code. Vous êtes déconnecté de tous vos appareils et un e-mail vous confirme la suppression.",
       "word": "SUPPRIMER",
       "wordLabel": "Tapez {word} pour confirmer",
       "wordError": "Tapez {word}, en capitales, pour confirmer.",
@@ -249,8 +245,6 @@
     },
     "done": {
       "access": "Demande d'export reçue. Nous vous répondrons au plus tard le {date}. Un e-mail de confirmation part à votre adresse.",
-      "erasure": "Demande de suppression reçue. Nous vous répondrons au plus tard le {date}. Un e-mail de confirmation part à votre adresse.",
-      "erasureAuthorised": "Votre suppression est confirmée : vous êtes déconnecté de tous vos appareils. Votre compte est supprimé dans la minute et un e-mail vous le confirme.",
       "alreadyOpen": "Une demande de ce type est déjà en cours : la voici. Aucune nouvelle demande n'a été créée."
     },
     "unavailable": "Nous ne parvenons pas à enregistrer votre demande pour le moment. Réessayez dans quelques minutes.",
@@ -262,6 +256,17 @@
       "saved": "Le fichier {name} est enregistré sur votre appareil.",
       "gone": "Cet export n'est plus disponible : il a expiré ou a été téléchargé trois fois. Vous pouvez faire une nouvelle demande.",
       "failed": "Le téléchargement n'a pas abouti. Réessayez dans quelques minutes."
+    },
+    "danger": {
+      "title": "Zone de danger",
+      "deleteTitle": "Supprimer mon compte",
+      "warning": "<strong>La suppression de votre compte est immédiate et définitive. Elle ne peut pas être annulée.</strong> Vous serez déconnecté de tous vos appareils.",
+      "exportFirst": "Téléchargez d'abord votre export : il sera effacé avec votre compte."
+    },
+    "deleted": {
+      "title": "Votre compte est supprimé",
+      "text": "Un e-mail de confirmation part à votre adresse. Une nouvelle inscription avec la même adresse créera un compte entièrement nouveau.",
+      "home": "Retour à l'accueil"
     }
   },
   "terms": {

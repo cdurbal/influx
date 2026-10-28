@@ -65,7 +65,7 @@ Nommer par rôle, pas par apparence (`color-action-primary-bg`, pas `color-green
 | Couleur — marque et action | action principale, survol, actif, désactivé, action secondaire |
 | Couleur — texte | principal (clair), secondaire, tertiaire, sur action (sombre), inversé, désactivé |
 | Couleur — surface | page, muette, carte, surélevée, survol, bordures (subtile, défaut, forte, sélection) |
-| Couleur — sémantique | succès (sarcelle), alerte, erreur, information — chacune en texte, fond, bordure, icône |
+| Couleur — sémantique | succès (sarcelle), alerte, erreur, information — chacune en texte, fond, bordure, icône. **Erreur = rouge opaque** : fond du conteneur (`transparent`), bordure pleine, icône et texte rouges, jamais de fond rouge teinté ni de rouge translucide ; action destructive = bouton `action-danger-*` plein (`20` §10, garde G3b) |
 | Couleur — backoffice | vue identifiée (violet, **seule teinte réservée au backoffice**), délais, alertes (`17b` §6) |
 | Typographie | échelle de tailles, graisses, hauteurs de ligne ; chiffres tabulaires pour les montants |
 | Espacement | échelle unique de base 4 px, tokens sémantiques |

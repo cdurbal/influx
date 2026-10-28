@@ -18,14 +18,24 @@ export function navLinkClasses(isCurrent: boolean): string {
 }
 
 /**
- * A destructive action: its label says what it does (17 §6.3, never an icon alone); the error
- * family marks it, the text carries the meaning.
+ * A destructive action: a solid red button, light text, INFLUX pill (zone-de-danger fiche §5).
+ * Its label says what it does (17 §6.3, never an icon alone); offline (`aria-disabled`) it is grey.
  */
 export const DESTRUCTIVE_BUTTON_CLASSES = cn(
   BUTTON_BASE_CLASSES,
   SIZE_CLASSES.md,
-  "rounded-pill border-(length:--border-width-thick) border-feedback-error-border bg-feedback-error-bg",
-  "px-inset-button-x py-inset-button-y text-feedback-error-text hover:bg-surface-hover",
+  "rounded-pill bg-action-danger-bg px-inset-button-x py-inset-button-y text-text-on-danger",
+  "hover:bg-action-danger-bg-hover active:bg-action-danger-bg-active",
+  "aria-disabled:bg-action-disabled-bg aria-disabled:text-text-disabled",
+);
+
+/**
+ * The danger notice: the container's own background, a full 1 px red border and red text, with an
+ * icon beside it (never the color alone, P7). No tinted fill (zone-de-danger fiche §5).
+ */
+export const DANGER_NOTICE_CLASSES = cn(
+  "flex items-start gap-3 rounded-sm border-(length:--border-width-thin) border-feedback-error-border",
+  "px-4 py-3 text-sm text-feedback-error-text",
 );
 
 /** A success: teal, a family distinct from the brand green (skill design-system-influx). */

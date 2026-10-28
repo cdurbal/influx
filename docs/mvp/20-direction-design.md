@@ -342,6 +342,14 @@ avec les mêmes textes adaptés.
 
 ## 10. Tokens proposés
 
+> **Rouge « danger » opaque (D72, `jalons/zone-de-danger-fiche.md` §5).** Aucun rouge translucide ni
+> teinté en fond (`rgba`, `hsla`, `#rrggbbaa`, `color-mix`, modificateur `/NN`). Une erreur ou un avertissement
+> destructif = fond du conteneur + bordure rouge pleine 1 px + icône + texte rouge opaque ; une action
+> destructive = bouton rouge plein, texte clair. Tokens, à l'identique dans `apps/web` et `apps/backoffice` :
+> `feedback-error-text` et `-icon` `#ec5d5e`, `feedback-error-border` et `border-error` `#e5484d`,
+> `feedback-error-bg` `transparent`, `action-danger-bg` `#b92c2c` (survol `#c93636`, appui `#a32424`),
+> `text-on-danger` (alias de `text-primary`), `decorative-progress` `#cc1a0d`. Garde G3b.
+
 Trois **alias**, aucune nouvelle valeur : ils relèvent d'`expert-ux` (skill `design-system-influx`,
 « Ajouter un token »). Ils rejoindront `tokens.css` quand le produit réel les utilisera.
 

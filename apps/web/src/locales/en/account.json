@@ -193,7 +193,7 @@
   },
   "data": {
     "title": "My data",
-    "lead": "Ask for a copy of your data, handled by a member of the INFLUX team, or delete your account.",
+    "lead": "Request a copy of your data, or delete your account.",
     "requests": {
       "title": "Your requests",
       "line": "{type} · {status}",
@@ -218,9 +218,6 @@
       "open": "An export request is already in progress: follow it above."
     },
     "delete": {
-      "title": "Delete my account",
-      "text": "Your account is deleted as soon as you confirm with a code: no validation by the INFLUX team is needed.",
-      "action": "Delete my account",
       "open": "A deletion request is already in progress: follow it above."
     },
     "confirm": {
@@ -240,7 +237,6 @@
       "durations": "How long things are kept: see the privacy policy.",
       "durationsLink": "Read the privacy policy",
       "newAccount": "Signing up again with the same address will create an entirely new account, unrelated to this one.",
-      "manual": "The deletion is carried out automatically, within a minute of your code. You are signed out of all your devices and an email confirms the deletion.",
       "word": "DELETE",
       "wordLabel": "Type {word} to confirm",
       "wordError": "Type {word}, in capitals, to confirm.",
@@ -249,8 +245,6 @@
     },
     "done": {
       "access": "Export request received. We will reply by {date} at the latest. A confirmation email is on its way to your address.",
-      "erasure": "Deletion request received. We will reply by {date} at the latest. A confirmation email is on its way to your address.",
-      "erasureAuthorised": "Your deletion is confirmed: you are signed out of all your devices. Your account is deleted within a minute and an email confirms it.",
       "alreadyOpen": "A request of this type is already in progress: here it is. No new request was created."
     },
     "unavailable": "We can't record your request right now. Please try again in a few minutes.",
@@ -262,6 +256,17 @@
       "saved": "The file {name} is saved on your device.",
       "gone": "This export is no longer available: it expired or was downloaded three times. You can make a new request.",
       "failed": "The download did not complete. Try again in a few minutes."
+    },
+    "danger": {
+      "title": "Danger zone",
+      "deleteTitle": "Delete my account",
+      "warning": "<strong>Deleting your account is immediate and permanent. It can't be undone.</strong> You will be signed out on all your devices.",
+      "exportFirst": "Download your export first: it will be erased with your account."
+    },
+    "deleted": {
+      "title": "Your account has been deleted",
+      "text": "A confirmation email is on its way to your address. Signing up again with the same address will create an entirely new account.",
+      "home": "Back to home"
     }
   },
   "terms": {

@@ -26,10 +26,13 @@ import {
   TITLE_CLASSES,
 } from "@/components/auth/auth-classes";
 import { saveTextFile } from "@/browser/save-file";
+import { cn } from "@/components/ui/class-names";
 import { Link } from "@/i18n/navigation";
+import { TriangleAlertIcon } from "@/components/ui/icons";
 import { LEGAL_DOCUMENT_SLUGS } from "@/lib/legal-documents";
 import {
   ACTIONS_CLASSES,
+  DANGER_NOTICE_CLASSES,
   DESTRUCTIVE_BUTTON_CLASSES,
   INLINE_LINK_CLASSES,
   LIST_CLASSES,
@@ -74,7 +77,7 @@ const PURPOSES = {
   erasure: "account_deletion",
 } as const;
 
-export function DataScreen({ me, online, signedOut }: AccountContext) {
+export function DataScreen({ me, online, accountDeleted }: AccountContext) {
   const t = useTranslations("account.data");
   const tAccount = useTranslations("account");
   const locale = useLocale();
@@ -176,10 +179,15 @@ export function DataScreen({ me, online, signedOut }: AccountContext) {
       }
       if (result.data.outcome === "erasure_authorised") {
         // D72: every session is closed and the cookie cleared; the account is erased by the worker
-        signedOut(t("done.erasureAuthorised"));
+        accountDeleted();
         return;
       }
       const { request, outcome } = result.data;
+      if (request.type === "erasure") {
+        // an erasure is only ever authorised by the member's own code (D72): nothing to announce here
+        setNotice({ kind: "unavailable" });
+        return;
+      }
       setRequests([
         request,
         ...(requests ?? []).filter((item) => item.id !== request.id),
@@ -243,7 +251,7 @@ export function DataScreen({ me, online, signedOut }: AccountContext) {
       <p className={LEAD_CLASSES}>{t("lead")}</p>
       {notice?.kind === "received" ? (
         <p role="status" className={SUCCESS_CLASSES}>
-          {t(`done.${notice.request.type}`, {
+          {t("done.access", {
             date: formatDate(notice.request.dueAt, locale),
           })}
         </p>
@@ -330,9 +338,20 @@ export function DataScreen({ me, online, signedOut }: AccountContext) {
       </section>
       <section aria-labelledby={ids.delete} className={CARD_CLASSES}>
         <h2 id={ids.delete} className={SECTION_TITLE_CLASSES}>
-          {t("delete.title")}
+          <TriangleAlertIcon
+            aria-hidden="true"
+            className="mr-2 inline size-(--size-icon-md) align-text-bottom text-feedback-error-icon"
+          />
+          {t("danger.title")}
         </h2>
-        <p className={HELP_CLASSES}>{t("delete.text")}</p>
+        <h3 className="text-md font-bold text-text-primary">
+          {t("danger.deleteTitle")}
+        </h3>
+        <DangerNotice />
+        {(dataExport !== null && dataExport.available) ||
+        openAccess !== null ? (
+          <p className={HELP_CLASSES}>{t("danger.exportFirst")}</p>
+        ) : null}
         {openErasure !== null ? (
           <p className={INFO_CLASSES}>{t("delete.open")}</p>
         ) : (
@@ -343,13 +362,31 @@ export function DataScreen({ me, online, signedOut }: AccountContext) {
               setPhase({ kind: "confirmDeletion" });
             }}
             aria-disabled={!online || undefined}
-            className={DESTRUCTIVE_BUTTON_CLASSES}
+            className={cn(DESTRUCTIVE_BUTTON_CLASSES, "self-start")}
           >
-            {t("delete.action")}
+            {t("danger.deleteTitle")}
           </button>
         )}
       </section>
     </>
+  );
+}
+
+/** The warning of the deletion: the container's own background, a red border, icon and bold text (P7). */
+function DangerNotice() {
+  const t = useTranslations("account.data");
+  return (
+    <div className={DANGER_NOTICE_CLASSES}>
+      <TriangleAlertIcon
+        aria-hidden="true"
+        className="size-(--size-icon-md) shrink-0 text-feedback-error-icon"
+      />
+      <p>
+        {t.rich("danger.warning", {
+          strong: (chunks) => <strong>{chunks}</strong>,
+        })}
+      </p>
+    </div>
   );
 }
 
@@ -460,7 +497,7 @@ function ConfirmDeletion({
         </section>
       </div>
       <p className={HELP_CLASSES}>{t("newAccount")}</p>
-      <p className={INFO_CLASSES}>{t("manual")}</p>
+      <DangerNotice />
       <form noValidate onSubmit={submit} className={CARD_CLASSES}>
         <div className={FIELD_CLASSES}>
           <label htmlFor={ids.word} className={LABEL_CLASSES}>
