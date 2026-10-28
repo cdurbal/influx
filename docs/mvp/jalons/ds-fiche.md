@@ -98,8 +98,8 @@ DS-1 (gardes et instantané de la vitrine) peut commencer sans attendre.
 | F1 | Frontière : faut-il passer aussi les pages légales publiques en KEO ? | Défaut appliqué : non (arbitrage ci-dessus) ; `expert-ux` recommandait oui | DS-4 |
 | F2 | **Un seul vert de marque**, landing comprise (`#29e075` en vitrine, `#1dd68a` dans les espaces, deux écrans consécutifs) ? | `expert-ux` : oui, avec revue visuelle D59. Coût estimé par `architecte` : un à deux jours, surtout de recette (`02` §21.8). Si oui : ajouter un commit DS-14 et mettre à jour G3e | DS-4 |
 | F3 | Badge « vérifié » en bleu, jamais une coche seule ni collée à un nom | Oui | DS-5 |
-| F4 | Couleurs de rôle sable (marque) et rose (créateur) : marque visuelle seulement, liste fermée de quatre usages | Oui | DS-2 |
-| F5 | Affectations différentes de la maquette, sans valeur nouvelle (succès, rouge D72, fonds opaques, contour secondaire `#78827d`, séquestre et surface 5 non repris) | Oui | DS-2 |
+| F4 | Couleurs de rôle sable (marque) et rose (créateur) : marque visuelle seulement, liste fermée de quatre usages | **Tranché (2026-10-28) : oui** | DS-2 |
+| F5 | Affectations différentes de la maquette, sans valeur nouvelle (succès, rouge D72, fonds opaques, contour secondaire `#78827d`, séquestre et surface 5 non repris) | **Tranché (2026-10-28) : oui** | DS-2 |
 | F6 | Effets de type Spotify écartés | Oui | DS-5 |
 | F7 | Backoffice : rien de métier sur téléphone avant D58, navigation compacte entre `md` et `lg` | Oui (compromis ci-dessus) | DS-10 |
 
@@ -132,7 +132,7 @@ règle 5), plus `pnpm test:e2e` pour tout commit qui touche un écran. Une ligne
 
 | Ordre | Agent | Question |
 |---|---|---|
-| 1 | Fondateur | F1 à F7 (ci-dessus) |
+| 1 | Fondateur | F1 à F3, F6, F7 (ci-dessus ; F4 et F5 tranchés) |
 | 2 | `testeur` | DS-1 : lecteur de valeur effective, instantané et empreinte de la vitrine, filet global A-7 ; puis les gardes G3c à G9 au fil des commits (`18` §5.1) |
 | 3 | `dev-react-node` | DS-2 à DS-12 |
 | 4 | `expert-ux` | Relecture visuelle à DS-6, DS-8, DS-10 et DS-12 (test du logo, `20` §11.7) ; recette en extérieur sur téléphone |
@@ -155,7 +155,7 @@ change (`CLAUDE.md` §7 règle 5).
 
 | Sujet | Arbitre | Échéance |
 |---|---|---|
-| F1 à F7 | Fondateur | Avant DS-2 (F1, F2 avant DS-4 ; F7 avant DS-10) |
+| F1 à F3, F6, F7 | Fondateur | F1, F2 avant DS-4 ; F3, F6 avant DS-5 ; F7 avant DS-10 (F4, F5 tranchés le 2026-10-28) |
 | Libellé « Candidatures » (12 caractères, limite de 11 de la barre du bas maintenue, `17` §2.2) | `expert-marketing` | Lot 3 (entrée masquée jusque-là) |
 | Repli de la colonne, s'il est demandé : état non persisté | `expert-ux` + `architecte` | Après le pilote |
 

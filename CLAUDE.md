@@ -241,8 +241,8 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
   **D36** langue du backoffice · **D61** points restants · **D14** abonnement.
 - **D73 tranchée (2026-10-28)** : charte **KEO Emerald** pour les espaces membres et le backoffice
   (§4) ; exécution par le **Jalon DS**, extra, avant le Lot 2 (`docs/mvp/jalons/ds-fiche.md`).
-  Restent au fondateur, avant DS-2 : points F1 à F7 de `20` §11.9 (dont un seul vert de marque,
-  landing comprise).
+  F4 et F5 tranchés (2026-10-28, recommandations retenues). Restent au fondateur : F1, F2 avant DS-4
+  (dont un seul vert de marque, landing comprise), F3, F6 avant DS-5, F7 avant DS-10 (`20` §11.9).
 - **D71 tranchée (2026-10-18)** : revues sécurité et RGPD (vetos, I-4) bloquantes sur la seule
   branche `production` ; `main` et `staging` se construisent et se déploient sans elles. `production`
   (créée le 2026-10-19, sans protection GitHub) n'avance que par `git merge --no-ff main`.
