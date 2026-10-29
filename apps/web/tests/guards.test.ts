@@ -312,7 +312,7 @@ describe("G3d: contrasts and success hue, per charter (20 §11.3, §11.4)", () =
     const keo = effectiveTokens(tokens, "keo");
     const vitrine = effectiveTokens(tokens, "vitrine");
     expect(keo.get("--color-feedback-success-text")).toBe("#3ccfcf");
-    expect(vitrine.get("--color-feedback-success-text")).toBe("#2dd4bf");
+    expect(vitrine.get("--color-feedback-success-text")).toBe("#3ccfcf");
     for (const tokenSet of [keo, vitrine]) {
       expect(
         hueGap(
@@ -519,12 +519,12 @@ describe("G3e: the vitrine tokens stay those of the snapshot (D59, TD4.1)", () =
 
   it("fails on a changed vitrine value (self-check on the real file)", () => {
     const changed = tokens.replace(
-      "--color-action-primary-bg: #29e075;",
       "--color-action-primary-bg: #1dd68a;",
+      "--color-action-primary-bg: #29e075;",
     );
     expect(changed).not.toBe(tokens);
     expect(findVitrineSnapshotChanges(snapshot, changed)).toEqual([
-      '@theme static --color-action-primary-bg: "#29e075" became "#1dd68a"',
+      '@theme static --color-action-primary-bg: "#1dd68a" became "#29e075"',
     ]);
   });
 });

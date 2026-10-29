@@ -25,13 +25,13 @@
   --*: initial;
 
   /* ---------- Colors: brand and actions (03 §2.1) ---------- */
-  --color-brand-primary: #22c55e;
-  --color-brand-accent: #29e075;
+  --color-brand-primary: #1dd68a;
+  --color-brand-accent: #1dd68a;
   --color-brand-subtle-bg: #0f2118;
   --color-brand-subtle-border: #1f3d2b;
-  --color-action-primary-bg: #29e075;
-  --color-action-primary-bg-hover: #22c766;
-  --color-action-primary-bg-active: #1bb857;
+  --color-action-primary-bg: #1dd68a;
+  --color-action-primary-bg-hover: #4de4a6;
+  --color-action-primary-bg-active: #14af6f;
   --color-action-disabled-bg: #2a2a2e;
   --color-action-secondary-bg: transparent;
   --color-action-secondary-bg-hover: #1a1a1d;
@@ -45,8 +45,8 @@
   --color-text-tertiary: #86868f;
   /* Alias kept for backward compat — prefer text-tertiary in new code. */
   --color-text-muted: var(--color-text-tertiary);
-  --color-text-brand: #29e075;
-  --color-text-brand-strong: #6ff2a8;
+  --color-text-brand: #1dd68a;
+  --color-text-brand-strong: #4de4a6;
   --color-text-on-action: #0a0a0a;
   --color-text-on-accent: #0a0a0a;
   --color-text-inverse: #0a0a0a;
@@ -61,7 +61,7 @@
   --color-surface-raised: #1a1a1d;
   --color-surface-hover: #1f1f23;
   --color-surface-brand-subtle: #0f2118;
-  --color-surface-accent: #29e075;
+  --color-surface-accent: #1dd68a;
   --color-surface-inverse: #f5f5f7;
   --color-surface-inverse-raised: #e8e8ea;
   --color-overlay-scrim: rgba(0, 0, 0, 0.7);
@@ -72,7 +72,7 @@
   --color-border-subtle: #1c1c1f;
   --color-border-default: #242428;
   --color-border-strong: #74747c;
-  --color-border-selected: #29e075;
+  --color-border-selected: #1dd68a;
   --color-border-error: #e5484d;
   --color-border-inverse: #d4d4d8;
 
@@ -80,10 +80,10 @@
   --color-decorative-progress: #cc1a0d;
 
   /* ---------- Colors: feedback, distinct from brand green (03 §2.5) ---------- */
-  --color-feedback-success-text: #2dd4bf;
+  --color-feedback-success-text: #3ccfcf;
   --color-feedback-success-bg: #0d2b28;
   --color-feedback-success-border: #146b62;
-  --color-feedback-success-icon: #2dd4bf;
+  --color-feedback-success-icon: #3ccfcf;
   --color-feedback-warning-text: #fbbf24;
   --color-feedback-warning-bg: #2b2008;
   --color-feedback-warning-border: #92650a;

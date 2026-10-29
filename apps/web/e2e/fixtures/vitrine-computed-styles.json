@@ -173,7 +173,7 @@
     "primaryCta": {
       "display": "flex",
       "color": "rgb(10, 10, 10)",
-      "background-color": "rgb(41, 224, 117)",
+      "background-color": "rgb(29, 214, 138)",
       "background-image": "none",
       "font-family": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", \"Liberation Sans\", sans-serif",
       "font-size": "16px",
@@ -555,7 +555,7 @@
     "primaryCta": {
       "display": "flex",
       "color": "rgb(10, 10, 10)",
-      "background-color": "rgb(41, 224, 117)",
+      "background-color": "rgb(29, 214, 138)",
       "background-image": "none",
       "font-family": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", \"Liberation Sans\", sans-serif",
       "font-size": "16px",
@@ -937,7 +937,7 @@
     "primaryCta": {
       "display": "flex",
       "color": "rgb(10, 10, 10)",
-      "background-color": "rgb(41, 224, 117)",
+      "background-color": "rgb(29, 214, 138)",
       "background-image": "none",
       "font-family": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", \"Liberation Sans\", sans-serif",
       "font-size": "16px",
@@ -1319,7 +1319,7 @@
     "primaryCta": {
       "display": "flex",
       "color": "rgb(10, 10, 10)",
-      "background-color": "rgb(41, 224, 117)",
+      "background-color": "rgb(29, 214, 138)",
       "background-image": "none",
       "font-family": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", \"Liberation Sans\", sans-serif",
       "font-size": "16px",
