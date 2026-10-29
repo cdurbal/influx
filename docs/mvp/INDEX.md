@@ -670,7 +670,7 @@
 | 758 | 45 | ↳ 11.8 Gabarits et composants |  |
 | 803 | 12 | ↳ 11.9 Points soumis au fondateur |  |
 
-## 21-plan-de-developpement.md (~18k tokens)
+## 21-plan-de-developpement.md (~19k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -679,7 +679,7 @@
 | 54 | 39 | 2. Stratégie de développement | RG44–RG148 |
 | 93 | 23 | 3. Écarts actifs pour les jalons restants (J5 à J9) | RG23–RG146 |
 | 116 | 43 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 159 | 209 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG165 |
-| 368 | 9 | 6. Configuration des services externes |  |
-| 377 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 394 | 12 | 8. Guide de lecture par jalon | RG54–RG58 |
+| 159 | 210 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG165 |
+| 369 | 9 | 6. Configuration des services externes |  |
+| 378 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 395 | 12 | 8. Guide de lecture par jalon | RG54–RG58 |
