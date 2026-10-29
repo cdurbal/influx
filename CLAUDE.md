@@ -93,9 +93,9 @@ Parcours détaillés : `docs/mvp/00-cadrage-mvp-v2.md`, `17` et `17b`.
 
 - Nom **INFLUX** en capitales. **Dark theme partout, sans exception** (fond noir nuancé, jamais
   noir pur). **Vert** = marque et action ; **succès** dans sa propre teinte (sarcelle), distinct.
-- **Deux chartes** (D73) : la **vitrine** (landing, pages légales publiques) garde D6 et D59 ; les
-  **espaces connectés** (inscription et connexion, espaces marque et créateur, backoffice) suivent
-  la charte **KEO Emerald** : vert `#1dd68a`, fond `#0a0b0a`, surfaces graduées, **Manrope** (titres,
+- **Deux chartes** (D73) : la **vitrine** (landing, pages légales publiques) garde D6 et D59, sauf
+  le vert de marque, unique (F2) ; les **espaces connectés** (inscription et connexion, espaces
+  marque et créateur, backoffice) suivent la charte **KEO Emerald** : vert `#1dd68a`, fond `#0a0b0a`, surfaces graduées, **Manrope** (titres,
   chiffres) et **Source Sans 3** (corps) auto-hébergées, cartes de 16 px, boutons en pilule
   (`20` §11). Poste de travail : **navigation en colonne à gauche** (comportement de Railway, jamais
   son style) ; téléphone : barre du bas à cinq entrées (membres), vue limitée D58 (backoffice).
@@ -241,8 +241,9 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
   **D36** langue du backoffice · **D61** points restants · **D14** abonnement.
 - **D73 tranchée (2026-10-28)** : charte **KEO Emerald** pour les espaces membres et le backoffice
   (§4) ; exécution par le **Jalon DS**, extra, avant le Lot 2 (`docs/mvp/jalons/ds-fiche.md`).
-  F4 et F5 tranchés (2026-10-28, recommandations retenues). Restent au fondateur : F1, F2 avant DS-4
-  (dont un seul vert de marque, landing comprise), F3, F6 avant DS-5, F7 avant DS-10 (`20` §11.9).
+  F4 et F5 tranchés (2026-10-28), F1 et F2 (2026-10-29) : pages légales publiques en vitrine, **un
+  seul vert de marque `#1dd68a`, landing comprise** (DS-14). Restent : F3, F6 avant DS-5, F7 avant
+  DS-10 (`20` §11.9).
 - **D71 tranchée (2026-10-18)** : revues sécurité et RGPD (vetos, I-4) bloquantes sur la seule
   branche `production` ; `main` et `staging` se construisent et se déploient sans elles. `production`
   (créée le 2026-10-19, sans protection GitHub) n'avance que par `git merge --no-ff main`.

@@ -1693,13 +1693,13 @@ Ce qui reste hors de portée est au §8, lignes 15 à 22.
 ### 12.5 Points à arbitrer qui conditionnent des tests *(relevés le 2026-10-28)*
 
 Réponses du `chef-de-projet` (2026-10-28), reportées dans `02` §21.5 et `jalons/ds-fiche.md` § « Arbitrages
-appliqués » ; le point 1 est tranché par `expert-ux` ; F1, F2 et F7 restent ouverts au fondateur.
+appliqués » ; le point 1 est tranché par `expert-ux` ; F1 et F2 sont tranchés par le fondateur (2026-10-29), F7 reste ouvert.
 
 | # | Conflit entre les documents | Test touché | Avant |
 |---|---|---|---|
 | 1 | **Teinte du succès** : `20` §11.3 retenait `#2dd4bf` (17,0° du vert d'action `#1dd68a`), `02` §21.8 exige ≥ 20° ; `expert-ux` ajuste (peut-être `#3ccfcf`, 24,6°). G3d lit `SUCCESS_MIN_HUE_GAP` et ses paires dans un module de données renvoyant à `20` §11.4 : la valeur finale n'engage aucun code. Un seuil sous 20° exige l'arbitrage écrit du fondateur, `CLAUDE.md` §4 amendé, et l'interdiction d'un succès en fond plein | G3d, TD1.7 (seuil en paramètre) | DS-2 — **tranché par `expert-ux` : `#3ccfcf` sous KEO** (25° de l'action), vitrine `#2dd4bf` ; seuil **20°** face à l'action (repos, survol, appui) et à l'information, dans chaque charte (`20` §11.3, §11.4) |
-| 2 | **F2, un seul vert** (`20` §11.9) : s'il est accepté, la vitrine change de vert | G3e, TD4.2 (liste explicite des noms modifiés) | DS-1 (l'instantané) |
-| 3 | **Pages légales** : vitrine (`02` §21.2) ou KEO (`20` §11.1) | TD4.4, TD3.3, G8 | DS-4 — **tranché : vitrine** (`02` §21.2 ; F1 ouvert au fondateur) |
+| 2 | **F2, un seul vert** (`20` §11.9) : s'il est accepté, la vitrine change de vert | G3e, TD4.2 (liste explicite des noms modifiés) | DS-1 (l'instantané) ; **accepté le 2026-10-29**, mise à jour par DS-14 |
+| 3 | **Pages légales** : vitrine (`02` §21.2) ou KEO (`20` §11.1) | TD4.4, TD3.3, G8 | DS-4 — **tranché : vitrine** (`02` §21.2 ; F1 confirmé par le fondateur le 2026-10-29) |
 | 4 | **Transformations d'état** : aucune (`20` §11.5) ou sous `motion-safe:` (`02` §21.5 point 7) | G8, TD5.7 | DS-4 — **tranché : aucune transformation d'état**, `motion-safe:` compris (`02` §21.5 point 7 amendé) |
 | 5 | **Backoffice sous 1024 px** *(écrit le 2026-10-28 dans `17b` §1.7 et §7.2 M4, `02` §21.5 point 8)* : navigation compacte de 768 à 1023 px, écran « poste de travail » sous 768 px. Les deux documents le disent désormais | TD6.2, §12.2 | DS-10 — **tranché : ce compromis** (`02` §21.5 point 8 amendé ; F7 ouvert au fondateur) |
 | 6 | **« Candidatures » a 12 caractères** pour une limite de 11 (`17` §2.2) | TD2.2 | DS-6 — **tranché : limite de 11 maintenue** ; l'entrée est omise jusqu'au Lot 3 et son libellé n'entre qu'avec elle (`expert-marketing`) |

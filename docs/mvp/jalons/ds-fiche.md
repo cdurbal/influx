@@ -36,8 +36,8 @@ matrice d'axe par largeur, plan par commit et recette : `18` §12. **Terminé qu
       134, e2e 56), chaque nouveau fichier de test avec son plancher ;
 - [ ] gardes G3, G3b à G3h, G4f, G8 et G9 vertes, chacune avec son cas négatif ; G1 à G7 jamais
       assouplies (`18` §5.1) ;
-- [ ] **vitrine inchangée** : instantané G3e, empreinte de styles calculés (TD4) et sonde de cascade
-      verts sans toucher leurs fixtures ; aucune police chargée sur la landing ;
+- [ ] **vitrine inchangée** hors du vert de marque (F2, DS-14) : instantané G3e, empreinte de styles
+      calculés (TD4) et sonde de cascade verts, fixtures touchées par DS-14 seul (liste explicite des noms) ; aucune police chargée sur la landing ;
 - [ ] **cascade prouvée dans le navigateur** : sur le parcours, une page membre et le backoffice, les
       couleurs calculées sous KEO égalent la table de `20` §11.3 ;
 - [ ] polices servies par l'origine seule, deux fichiers `latin` préchargés pour 120 Ko au plus,
@@ -65,7 +65,7 @@ sur 4G, paires de couleurs hors matrice (`18` §8, lignes 15 à 22).
 
 | Dans le jalon | Hors du jalon |
 |---|---|
-| Bloc de tokens KEO dans `tokens.css` des deux fronts (`02` §21.3), `tokens-backoffice.css` | La **landing** et les **pages légales publiques** (vitrine D59 ; F1 et F2 ci-dessous) |
+| Bloc de tokens KEO dans `tokens.css` des deux fronts (`02` §21.3), `tokens-backoffice.css` | La **landing** et les **pages légales publiques** (vitrine D59, F1), sauf leur vert de marque aligné par DS-14 (F2) |
 | Polices Manrope et Source Sans 3 auto-hébergées (`02` §21.4) | `packages/ui` (reste au Lot 2, `21` §7) |
 | Gabarit des espaces membres : colonne gauche ≥ `lg`, barre du bas < `lg` (`17` §2.2, §2.3) | Les écrans des Lots 2 à 5 (construits plus tard, directement en KEO) |
 | Gabarit du backoffice : rail, bande de tête, navigation compacte, écran « poste de travail » (`17b` §1.4, §1.7) | Les deux vues téléphone de D58 (Lot 4) |
@@ -77,7 +77,7 @@ sur 4G, paires de couleurs hors matrice (`18` §8, lignes 15 à 22).
 
 | Sujet | Décision | Par | Référence |
 |---|---|---|---|
-| Frontière dans `apps/web` | **KEO** : parcours d'inscription et de connexion, accueils, « Mon compte », Lots 2 à 5. **Vitrine** : landing, pages légales publiques, 404 et erreur de niveau `[locale]`, bandeau cookies. Le texte des CGU affiché *dans* le parcours est rendu en KEO | `chef-de-projet` (entre `architecte` et `expert-ux`) ; F1 reste ouvert au fondateur | `02` §21.2, `20` §11.1 |
+| Frontière dans `apps/web` | **KEO** : parcours d'inscription et de connexion, accueils, « Mon compte », Lots 2 à 5. **Vitrine** : landing, pages légales publiques, 404 et erreur de niveau `[locale]`, bandeau cookies. Le texte des CGU affiché *dans* le parcours est rendu en KEO | `chef-de-projet` (entre `architecte` et `expert-ux`) ; F1 tranché par le fondateur (2026-10-29) : pages légales publiques en vitrine | `02` §21.2, `20` §11.1 |
 | Mécanique des tokens | Un seul `tokens.css` par front, deux chartes : `@theme static` (vitrine) + bloc `[data-theme="keo"]` qui re-valorise les rôles ; attribut posé par `app/[locale]/(member)/layout.tsx` et par `<html>` du backoffice ; alias redéclarés ; liste `KEO_INHERITS` | `architecte` | `02` §21.3 |
 | Valeurs | Table KEO → rôles, **aucune nouvelle valeur de couleur** (KEO, D6, D72 ou violet `17b` V1) ; contrastes calculés sur chaque surface | `expert-ux` | `20` §11.3, §11.4 |
 | Succès | Sous KEO, texte et icône de succès en **`#3ccfcf`** (teinte de la palette KEO réaffectée, aucune valeur nouvelle ; 180° contre 155° pour l'action, soit 25°), fond `#0d2b28` et bordure `#146b62` hérités ; vitrine inchangée (`#2dd4bf`). **G3d** : dans chaque charte, succès à **20° au moins** de l'action (repos, survol, appui) et de l'information ; un succès n'est jamais plein | `expert-ux`, sur le calcul de `architecte` (`#2dd4bf` à 17° du vert KEO) | `20` §11.3, §11.4, `02` §21.8 |
@@ -95,8 +95,8 @@ DS-1 (gardes et instantané de la vitrine) peut commencer sans attendre.
 
 | # | Question | Recommandation | Bloque |
 |---|---|---|---|
-| F1 | Frontière : faut-il passer aussi les pages légales publiques en KEO ? | Défaut appliqué : non (arbitrage ci-dessus) ; `expert-ux` recommandait oui | DS-4 |
-| F2 | **Un seul vert de marque**, landing comprise (`#29e075` en vitrine, `#1dd68a` dans les espaces, deux écrans consécutifs) ? | `expert-ux` : oui, avec revue visuelle D59. Coût estimé par `architecte` : un à deux jours, surtout de recette (`02` §21.8). Si oui : ajouter un commit DS-14 et mettre à jour G3e | DS-4 |
+| F1 | Frontière : faut-il passer aussi les pages légales publiques en KEO ? | **Tranché (2026-10-29) : non**, pages légales publiques en vitrine (défaut confirmé) | DS-4 |
+| F2 | **Un seul vert de marque**, landing comprise (`#29e075` en vitrine, `#1dd68a` dans les espaces, deux écrans consécutifs) ? | **Tranché (2026-10-29) : oui**, `#1dd68a` partout, revue visuelle D59 ; commit DS-14 ajouté, G3e mise à jour par liste explicite | DS-14 |
 | F3 | Badge « vérifié » en bleu, jamais une coche seule ni collée à un nom | Oui | DS-5 |
 | F4 | Couleurs de rôle sable (marque) et rose (créateur) : marque visuelle seulement, liste fermée de quatre usages | **Tranché (2026-10-28) : oui** | DS-2 |
 | F5 | Affectations différentes de la maquette, sans valeur nouvelle (succès, rouge D72, fonds opaques, contour secondaire `#78827d`, séquestre et surface 5 non repris) | **Tranché (2026-10-28) : oui** | DS-2 |
@@ -126,13 +126,14 @@ règle 5), plus `pnpm test:e2e` pour tout commit qui touche un écran. Une ligne
 | DS-10 | `feat(backoffice): shell with rail and head band` | Groupes `(auth)` et `(app)`, `Shell` dans la mise en page, rail ≥ `lg`, bande `17b` §1.4, navigation compacte `md`–`lg`, écran « poste de travail » < `md` | Bandeaux relus à chaque navigation, entrées d'administration absentes pour un `agent` (CA63), un seul repère, axe |
 | DS-11 | `feat(backoffice): KEO sign-in and activation screens` | Connexion, activation, codes de secours | Mot de passe + TOTP + codes de secours inchangés |
 | DS-12 | `feat(backoffice): KEO operations screens` (scindable 12a listes et fiche / 12b administration) | Accueil, inscrits et fiche (tableau dense 36 px), invitations, double validation, réglages Apollo, comptes internes, santé technique | axe sur chaque écran ; e2e du backoffice verts |
+| DS-14 | `feat(web): one brand green across the vitrine (F2)` | Vert de marque de la vitrine aligné sur `#1dd68a` ; G3e et la fixture TD4.2 mises à jour par une liste explicite des noms modifiés ; G3d recalculée pour la vitrine (le succès `#2dd4bf` y tombe à 17° du vert : à aligner sur `#3ccfcf` sans valeur nouvelle, sinon `expert-ux`) | Aucune autre déclaration de la vitrine ne bouge ; effets D59 relus par `expert-ux` |
 | DS-13 | `docs(mvp): close the DS milestone` | `21` (une ligne), écarts `EC-DS-*` regroupés, specs alignées ; revue groupée | Revue `testeur` + `expert-cybersecurite` faite (non bloquante sur `main`, exigée avant `production`, D71) ; recette visuelle `expert-ux` |
 
 ## Agents et questions posées
 
 | Ordre | Agent | Question |
 |---|---|---|
-| 1 | Fondateur | F1 à F3, F6, F7 (ci-dessus ; F4 et F5 tranchés) |
+| 1 | Fondateur | F3, F6, F7 (ci-dessus ; F1, F2, F4 et F5 tranchés) |
 | 2 | `testeur` | DS-1 : lecteur de valeur effective, instantané et empreinte de la vitrine, filet global A-7 ; puis les gardes G3c à G9 au fil des commits (`18` §5.1) |
 | 3 | `dev-react-node` | DS-2 à DS-12 |
 | 4 | `expert-ux` | Relecture visuelle à DS-6, DS-8, DS-10 et DS-12 (test du logo, `20` §11.7) ; recette en extérieur sur téléphone |
@@ -149,13 +150,13 @@ change (`CLAUDE.md` §7 règle 5).
 - Rouge « danger » opaque et identique entre les deux fronts (D72, G3b) ; violet réservé au backoffice.
 - La couleur ne porte jamais seule une information (`20` P7) ; WCAG AA calculé **et** vérifié par axe.
 - Aucune API de stockage, aucun appel réseau hors du client d'API, CSP à nonce inchangée.
-- La landing reste au pixel près celle d'aujourd'hui (G3e), tant que F2 n'est pas tranché.
+- La landing reste au pixel près celle d'aujourd'hui (G3e), hors du vert de marque aligné par DS-14 (F2).
 
 ## Décisions ouvertes
 
 | Sujet | Arbitre | Échéance |
 |---|---|---|
-| F1 à F3, F6, F7 | Fondateur | F1, F2 avant DS-4 ; F3, F6 avant DS-5 ; F7 avant DS-10 (F4, F5 tranchés le 2026-10-28) |
+| F3, F6, F7 | Fondateur | F3, F6 avant DS-5 ; F7 avant DS-10 (F4, F5 tranchés le 2026-10-28 ; F1, F2 le 2026-10-29) |
 | Libellé « Candidatures » (12 caractères, limite de 11 de la barre du bas maintenue, `17` §2.2) | `expert-marketing` | Lot 3 (entrée masquée jusque-là) |
 | Repli de la colonne, s'il est demandé : état non persisté | `expert-ux` + `architecte` | Après le pilote |
 

@@ -335,7 +335,7 @@ avec les mêmes textes adaptés.
 | **Maquette** | La messagerie de la maquette reprend la palette de WhatsApp Web, en dur : l'écran central du modèle ressemble à une autre marque devant les partenaires | À corriger si `chef-de-projet` juge que cela fausse la vision présentée (`CLAUDE.md` §16.2 point 1) | `chef-de-projet` | Avant les démonstrations |
 | **Émeraude et sarcelle** *(D73)* | Le vert KEO `#1dd68a` (teinte 155°) n'est qu'à 17° de la sarcelle de succès `#2dd4bf` (172°), contre 28° avec le vert de la vitrine | **Tranché le 2026-10-28** : sous KEO, succès `#3ccfcf` (180°, écart 25°), valeur de la palette KEO ; seuil de 20° vérifié par la garde G3d ; la forme reste un second séparateur (le plein est réservé à l'action) (§11.3) | `expert-ux` | Fait |
 | **Ressemblance avec Spotify** *(D73)* | Vert vif sur noir et pilules : on reconnaît la référence avant INFLUX | Signatures de Spotify retirées, signatures INFLUX mises en avant (§11.7) | `expert-ux` | Jalon DS |
-| **Deux verts de marque** *(D73)* | Vitrine `#29e075`, espaces `#1dd68a`, sur deux écrans consécutifs (porte, puis inscription) | Recommandation : un seul vert (§11.1) | Fondateur | Avant le premier commit du jalon DS |
+| **Deux verts de marque** *(D73)* | Vitrine `#29e075`, espaces `#1dd68a`, sur deux écrans consécutifs (porte, puis inscription) | **Tranché le 2026-10-29 (F2)** : un seul vert, `#1dd68a`, vitrine comprise (commit DS-14, revue visuelle D59) | Fondateur | Fait |
 | **Polices sur 4G** *(D73)* | Deux familles web au lieu de la police système : poids au premier affichage, saut de mise en page | Fichiers variables auto-hébergés, sous-ensembles latins, métriques de repli ajustées, chargés par les seuls gabarits KEO (§11.5) ; poids mesuré au jalon | `dev-react-node` + `expert-ux` | Jalon DS |
 
 ---
@@ -408,7 +408,7 @@ le code, ils partagent leurs classes avec « Mon compte » (`auth-classes.ts`).
 **Pages légales publiques en vitrine.** Elles s'atteignent sans compte, depuis la vitrine, et le
 périmètre demandé par le fondateur est celui des trois espaces. Le même texte, affiché **dans** le
 parcours (fenêtre des CGU, écran de ré-acceptation), est rendu en KEO par le même composant neutre.
-Étendre la charte KEO aux pages publiques reste une question au fondateur (§11.9, F1).
+Le fondateur a confirmé ce défaut le 2026-10-29 (§11.9, F1).
 
 **Mécanisme** (`architecte`, `02` §21.3 à §21.5). Un seul `tokens.css` par front, copie identique dans
 les deux fronts : `@theme static` déclare tous les noms de rôle avec les valeurs vitrine ; un bloc
@@ -420,12 +420,12 @@ et de texte, les durées et les points de rupture ne changent pas.
 
 **Deux verts de marque.** La vitrine garde `#29e075` (teinte 145°), les espaces passent à `#1dd68a`
 (155°). Deux verts presque identiques sur deux écrans consécutifs (bouton d'une porte, puis écran
-d'inscription) se lisent comme une erreur, pas comme un choix. **Recommandation au fondateur, non
-appliquée par ce jalon :** un seul vert, `#1dd68a`, sur toute la plateforme. La vitrine garde sa
+d'inscription) se lisent comme une erreur, pas comme un choix. **Tranché par le fondateur le 2026-10-29
+(F2), appliqué par DS-14 :** un seul vert, `#1dd68a`, sur toute la plateforme. La vitrine garde sa
 direction D59, qui porte sur les effets et non sur la valeur du vert, moyennant une revue visuelle de
 la page avant sa mise en ligne. Le mécanisme n'en dépend pas : aligner la vitrine revient à poser
 l'attribut dans la mise en page racine, puis à recetter les effets D59 (`02` §21.8, un à deux jours).
-À trancher avant la mise en ligne de la vitrine.
+Revue visuelle D59 avant la mise en ligne de la vitrine.
 
 ### 11.2 Ce qui ne change pas
 
@@ -794,8 +794,8 @@ sans objet.
 
 | # | Point | Recommandation |
 |---|---|---|
-| F1 | Étendre la charte KEO aux pages légales publiques ? | Défaut arbitré par `chef-de-projet` : pages légales publiques en vitrine, texte des CGU affiché dans le parcours en KEO (§11.1, `02` §21.2). À étendre seulement si le fondateur le souhaite |
-| F2 | Deux verts de marque | Un seul vert, `#1dd68a`, vitrine comprise, revue visuelle D59 avant la mise en ligne de la vitrine ; le mécanisme n'en dépend pas (§11.1) |
+| F1 | Étendre la charte KEO aux pages légales publiques ? | Défaut arbitré par `chef-de-projet` : pages légales publiques en vitrine, texte des CGU affiché dans le parcours en KEO (§11.1, `02` §21.2). **Tranché (2026-10-29) : défaut confirmé**, pages légales publiques en vitrine |
+| F2 | Deux verts de marque | Un seul vert, `#1dd68a`, vitrine comprise, revue visuelle D59 avant la mise en ligne de la vitrine ; le mécanisme n'en dépend pas (§11.1). **Tranché (2026-10-29) : oui**, commit DS-14 |
 | F3 | Badge vérifié en bleu (KEO) plutôt qu'en vert | Oui, avec la règle de forme : jamais une coche seule, jamais collée à un nom (§11.3) |
 | F4 | Couleurs de rôle sable et rose | Marque visuelle seulement, liste fermée de quatre usages (§11.3) |
 | F5 | Affectations différentes de la maquette, sans valeur nouvelle | Succès sous KEO en `#3ccfcf` (teinte « séquestre » de KEO, réaffectée : 25° du vert d'action, contre 17° pour `#2dd4bf`), vitrine inchangée ; rouge D72 conservé ; fonds `rgba` remplacés par les fonds opaques validés ; contour du bouton secondaire en `#78827d` pour rester ≥ 3:1 ; badge séquestre, vert « disponible », `surface-5` et trois couleurs de données non repris (§11.3, §11.6) |

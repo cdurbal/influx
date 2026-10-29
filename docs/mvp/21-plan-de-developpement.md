@@ -328,7 +328,7 @@ Préfixes : `/v1/…` pour les membres et le public (`web`), `/v1/bo/…` pour l
 
 ### Jalon DS — Charte KEO Emerald des espaces connectés (extra, avant le Lot 2)
 
-Décision D73 (fondateur, 2026-10-28). Les espaces membres (inscription et connexion comprises) et le backoffice passent en charte KEO Emerald, en responsive, colonne de navigation à gauche sur poste de travail ; la vitrine ne change pas. Les écrans des Lots 2 à 5 se construisent ensuite directement dans la charte. Point d'entrée : **`jalons/ds-fiche.md`** (commits DS-1 à DS-13, critère de fin, décisions ouvertes) ; mécanique `02` §21 ; charte `20` §11.
+Décision D73 (fondateur, 2026-10-28). Les espaces membres (inscription et connexion comprises) et le backoffice passent en charte KEO Emerald, en responsive, colonne de navigation à gauche sur poste de travail ; la vitrine ne change pas, sauf son vert de marque aligné sur `#1dd68a` (F2, DS-14). Les écrans des Lots 2 à 5 se construisent ensuite directement dans la charte. Point d'entrée : **`jalons/ds-fiche.md`** (commits DS-1 à DS-14, critère de fin, décisions ouvertes) ; mécanique `02` §21 ; charte `20` §11.
 
 <!-- Une ligne par commit, à mesure : - [x] DS-N (`sha`) — invariant clé. -->
 
