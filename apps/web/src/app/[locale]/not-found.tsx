@@ -16,7 +16,9 @@ export default async function LocaleNotFound() {
   const t = await getTranslations("errors");
   return (
     <main id="main" className={SCREEN_CLASSES}>
-      <p className={BRAND_CLASSES}>{t("brand")}</p>
+      <Link href="/" className={BRAND_CLASSES}>
+        {t("brand")}
+      </Link>
       <h1 className={TITLE_CLASSES}>{t("notFound.title")}</h1>
       <p className={LEAD_CLASSES}>{t("notFound.body")}</p>
       <Link href="/" className={cn(SECONDARY_BUTTON_CLASSES, "self-start")}>

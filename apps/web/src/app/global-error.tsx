@@ -23,7 +23,9 @@ export default function GlobalError() {
     <html lang={locale}>
       <body className="bg-surface-page font-base text-md text-text-primary">
         <main id="main" className={SCREEN_CLASSES}>
-          <p className={BRAND_CLASSES}>{t.brand}</p>
+          <a href={`/${locale}`} className={BRAND_CLASSES}>
+            {t.brand}
+          </a>
           <h1 className={TITLE_CLASSES}>{t.error.title}</h1>
           <p className={LEAD_CLASSES}>{t.error.body}</p>
           <a href={`/${locale}`} className={TEXT_BUTTON_CLASSES}>

@@ -132,7 +132,9 @@ export function TermsGate({
   return (
     <main id="main" className={SCREEN_CLASSES}>
       <header className={HEADER_CLASSES}>
-        <p className={BRAND_CLASSES}>{t("brand")}</p>
+        <Link href="/" className={BRAND_CLASSES}>
+          {t("brand")}
+        </Link>
       </header>
       <h1 ref={titleRef} tabIndex={-1} className={TITLE_CLASSES}>
         {t("terms.title")}

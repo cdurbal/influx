@@ -20,7 +20,9 @@ export default function LocaleError({ reset }: { reset: () => void }) {
   const t = locale === "en" ? en : fr;
   return (
     <main id="main" className={SCREEN_CLASSES}>
-      <p className={BRAND_CLASSES}>{t.brand}</p>
+      <a href={locale === "en" ? "/en" : "/fr"} className={BRAND_CLASSES}>
+        {t.brand}
+      </a>
       <h1 className={TITLE_CLASSES}>{t.error.title}</h1>
       <p className={LEAD_CLASSES}>{t.error.body}</p>
       <button
