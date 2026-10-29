@@ -245,7 +245,9 @@ test("TD3.5: Manrope's tabular figures align, its proportional ones do not", asy
         span.style.fontFamily = "var(--font-display)";
         span.style.fontVariantNumeric = numeric;
         container.append(span);
-        const family = getComputedStyle(span).fontFamily;
+        // The web family alone: its metric fallback is a local font (Arial) that a Linux runner
+        // lacks, and loading the whole list would fail on it.
+        const family = getComputedStyle(span).fontFamily.split(",")[0] ?? "";
         await document.fonts.load(`16px ${family}`, text);
         const width = span.getBoundingClientRect().width;
         span.remove();
