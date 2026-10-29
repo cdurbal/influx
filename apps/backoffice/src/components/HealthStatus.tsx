@@ -14,11 +14,11 @@ import { HELP_CLASSES } from "./auth-classes";
 import { readOpsStatus } from "./backoffice-api";
 import {
   TABLE_CLASSES,
-  TABLE_WRAP_CLASSES,
   TABULAR_CLASSES,
   TD_CLASSES,
   TH_CLASSES,
 } from "./bo-classes";
+import { DenseTableRegion } from "./DenseTableRegion";
 import { LoadGate, SectionFrame, StateText, type Tone } from "./HealthParts";
 import {
   formatAge,
@@ -97,7 +97,7 @@ function Availability({ status }: { status: OpsStatusResponse }) {
   const measured = probes.some((probe) => probe.last !== null);
   return (
     <>
-      <div className={TABLE_WRAP_CLASSES}>
+      <DenseTableRegion label={ta.title}>
         <table className={TABLE_CLASSES}>
           <caption className="sr-only">{ta.title}</caption>
           <thead>
@@ -117,7 +117,7 @@ function Availability({ status }: { status: OpsStatusResponse }) {
             ))}
           </tbody>
         </table>
-      </div>
+      </DenseTableRegion>
       {measured ? null : <p className={HELP_CLASSES}>{ta.noMeasure}</p>}
     </>
   );
@@ -180,7 +180,7 @@ function Alerts({ status }: { status: OpsStatusResponse }) {
     );
   }
   return (
-    <div className={TABLE_WRAP_CLASSES}>
+    <DenseTableRegion label={tl.title}>
       <table className={TABLE_CLASSES}>
         <caption className="sr-only">{tl.title}</caption>
         <thead>
@@ -202,7 +202,7 @@ function Alerts({ status }: { status: OpsStatusResponse }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </DenseTableRegion>
   );
 }
 
@@ -212,7 +212,7 @@ function Processes({ status }: { status: OpsStatusResponse }) {
     return <p className={HELP_CLASSES}>{tw.noBeat}</p>;
   }
   return (
-    <div className={TABLE_WRAP_CLASSES}>
+    <DenseTableRegion label={tw.title}>
       <table className={TABLE_CLASSES}>
         <caption className="sr-only">{tw.title}</caption>
         <thead>
@@ -268,7 +268,7 @@ function Processes({ status }: { status: OpsStatusResponse }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </DenseTableRegion>
   );
 }
 
@@ -278,7 +278,7 @@ function PeriodicTasks({ status }: { status: OpsStatusResponse }) {
     return <p className={HELP_CLASSES}>{tw.tasks.empty}</p>;
   }
   return (
-    <div className={TABLE_WRAP_CLASSES}>
+    <DenseTableRegion label={tw.tasks.title}>
       <table className={TABLE_CLASSES}>
         <caption className="sr-only">{tw.tasks.title}</caption>
         <thead>
@@ -320,7 +320,7 @@ function PeriodicTasks({ status }: { status: OpsStatusResponse }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </DenseTableRegion>
   );
 }
 

@@ -44,11 +44,11 @@ import {
   SMALL_SECONDARY_CLASSES,
   SUCCESS_CLASSES,
   TABLE_CLASSES,
-  TABLE_WRAP_CLASSES,
   TD_CLASSES,
   TEXTAREA_CLASSES,
   TH_CLASSES,
 } from "./bo-classes";
+import { DenseTableRegion } from "./DenseTableRegion";
 import { useAction } from "./use-action";
 import {
   apolloSettingWords,
@@ -227,7 +227,7 @@ export function DualControlListScreen() {
       ) : requests.length === 0 ? (
         <p className={HELP_CLASSES}>{t.empty}</p>
       ) : (
-        <div className={TABLE_WRAP_CLASSES}>
+        <DenseTableRegion label={t.title}>
           <table className={TABLE_CLASSES}>
             <caption className="sr-only">{t.title}</caption>
             <thead>
@@ -269,7 +269,7 @@ export function DualControlListScreen() {
               ))}
             </tbody>
           </table>
-        </div>
+        </DenseTableRegion>
       )}
     </>
   );

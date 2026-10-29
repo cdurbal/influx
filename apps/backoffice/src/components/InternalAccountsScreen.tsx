@@ -39,10 +39,10 @@ import {
   SMALL_LABEL_CLASSES,
   SMALL_PRIMARY_CLASSES,
   TABLE_CLASSES,
-  TABLE_WRAP_CLASSES,
   TD_CLASSES,
   TH_CLASSES,
 } from "./bo-classes";
+import { DenseTableRegion } from "./DenseTableRegion";
 import { LinkOnce, RevokeControl } from "./InvitationParts";
 import { useAction } from "./use-action";
 import { EMAIL_SHAPE, formatDateTime, formatDay } from "./view-model";
@@ -250,7 +250,7 @@ export function InternalAccountsScreen() {
         </p>
       ) : (
         <>
-          <div className={TABLE_WRAP_CLASSES}>
+          <DenseTableRegion label={t.title}>
             <table className={TABLE_CLASSES}>
               <caption className="sr-only">{t.title}</caption>
               <thead>
@@ -291,7 +291,7 @@ export function InternalAccountsScreen() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </DenseTableRegion>
           <p className={HELP_CLASSES}>{t.lastSignInLater}</p>
           <InviteForm onCreated={() => setReload(reload + 1)} />
           <section aria-labelledby="internal-list" className={SECTION_CLASSES}>
@@ -301,7 +301,7 @@ export function InternalAccountsScreen() {
             {invitations.length === 0 ? (
               <p className={HELP_CLASSES}>{ti.empty}</p>
             ) : (
-              <div className={TABLE_WRAP_CLASSES}>
+              <DenseTableRegion label={ti.listTitle}>
                 <table className={TABLE_CLASSES}>
                   <caption className="sr-only">{ti.listTitle}</caption>
                   <thead>
@@ -364,7 +364,7 @@ export function InternalAccountsScreen() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </DenseTableRegion>
             )}
           </section>
         </>

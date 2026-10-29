@@ -11,8 +11,6 @@ export const SECTION_CLASSES = cn(
 export const SECTION_TITLE_CLASSES =
   "text-lead font-semibold text-text-primary";
 
-export const TABLE_WRAP_CLASSES = "w-full overflow-x-auto";
-
 /**
  * The dense table scrolls in its own region (17b §1.7), never the page; the region is focusable so a
  * keyboard reaches what overflows (axe scrollable-region-focusable). Its head stays in view.

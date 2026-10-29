@@ -21,11 +21,11 @@ import {
   SELECT_CLASSES,
   SMALL_LABEL_CLASSES,
   TABLE_CLASSES,
-  TABLE_WRAP_CLASSES,
   TABULAR_CLASSES,
   TD_CLASSES,
   TH_CLASSES,
 } from "./bo-classes";
+import { DenseTableRegion } from "./DenseTableRegion";
 import { Curve, LoadGate, SectionFrame } from "./HealthParts";
 import {
   curveValues,
@@ -150,7 +150,7 @@ function ReadingGuide() {
       <summary className="cursor-pointer font-semibold text-text-primary">
         {guide.title}
       </summary>
-      <div className={`${TABLE_WRAP_CLASSES} mt-2`}>
+      <DenseTableRegion label={guide.title} className="mt-2">
         <table className={TABLE_CLASSES}>
           <caption className="sr-only">{guide.title}</caption>
           <thead>
@@ -172,7 +172,7 @@ function ReadingGuide() {
             ))}
           </tbody>
         </table>
-      </div>
+      </DenseTableRegion>
       <p className={`mt-2 ${HELP_CLASSES}`}>{guide.origin}</p>
     </details>
   );
@@ -214,7 +214,7 @@ function TrafficTable({
         </div>
         <Curves points={total.points} large />
       </div>
-      <div className={TABLE_WRAP_CLASSES}>
+      <DenseTableRegion label={tt.title}>
         <table className={TABLE_CLASSES}>
           <caption className="sr-only">{tt.title}</caption>
           <thead>
@@ -241,7 +241,7 @@ function TrafficTable({
             ))}
           </tbody>
         </table>
-      </div>
+      </DenseTableRegion>
     </>
   );
 }

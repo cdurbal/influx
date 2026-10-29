@@ -937,3 +937,64 @@ test("DS-10: the home of an admin passes axe (WCAG 2.2 AA) at 1024 and 1440 px",
     });
   }
 });
+
+test("DS-12b: the dual control, the Apollo settings, the internal accounts and the technical health pass axe (WCAG 2.2 AA) at 1024 and 1440 px", async ({
+  page,
+}) => {
+  const admin = await seedInternal(page, "admin", "Zoé");
+  const excludedBefore = await apolloSetting("apollo_excluded_countries");
+  const axeAt = async (screen: string): Promise<void> => {
+    for (const width of [LG, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth - window.innerWidth,
+        ),
+      ).toBeLessThanOrEqual(0);
+      await expectNoAxeViolation(page, `${screen} à ${String(width)} px`, {
+        wcag22: true,
+      });
+    }
+  };
+  try {
+    await onlyAdmin(admin.accountId);
+
+    // A pending request (the weakened form, the one that holds a countdown) and its list.
+    await restoreApolloSetting("apollo_excluded_countries", ["DE"]);
+    await page.goto(bo("/reglages/apollo"));
+    const exclusions = page.getByRole("form", { name: m.apollo.countries });
+    await expect(exclusions.getByLabel(m.apollo.countries)).toHaveValue("DE");
+    await axeAt("réglages Apollo");
+    await exclusions.getByLabel(m.apollo.countries).fill("DE IT");
+    await exclusions
+      .getByLabel(m.common.reason)
+      .selectOption({ label: m.apollo.reasons.legal_restriction });
+    await exclusions.getByRole("button", { name: m.apollo.change }).click();
+    await expect(page).toHaveURL(/\/double-validation\/[0-9a-f-]{36}$/);
+    await expect(
+      page.getByRole("status").filter({ hasText: m.dualControl.degraded }),
+    ).toBeVisible();
+    await axeAt("double validation en mode différé");
+
+    await page.goto(bo("/double-validation"));
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await axeAt("liste des doubles validations");
+
+    await page.goto(bo("/comptes-internes"));
+    await expect(
+      page.getByRole("heading", { level: 1, name: m.internalAccounts.title }),
+    ).toBeVisible();
+    await expect(page.getByText(m.common.loading)).toHaveCount(0);
+    await axeAt("comptes internes");
+
+    await page.goto(bo("/sante-technique"));
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      m.health.title,
+    );
+    await expect(page.getByText(m.health.loading)).toHaveCount(0);
+    await axeAt("santé technique");
+  } finally {
+    await restoreApolloSetting("apollo_excluded_countries", excludedBefore);
+    await restoreAdmins();
+  }
+});

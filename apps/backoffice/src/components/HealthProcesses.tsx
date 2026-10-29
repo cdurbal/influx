@@ -13,11 +13,11 @@ import { HELP_CLASSES } from "./auth-classes";
 import { readOpsProcesses } from "./backoffice-api";
 import {
   TABLE_CLASSES,
-  TABLE_WRAP_CLASSES,
   TABULAR_CLASSES,
   TD_CLASSES,
   TH_CLASSES,
 } from "./bo-classes";
+import { DenseTableRegion } from "./DenseTableRegion";
 import { Curve, LoadGate, SectionFrame, StateText } from "./HealthParts";
 import {
   connectionShare,
@@ -144,7 +144,7 @@ export function ProcessesSection({ refresh }: { refresh: number }) {
             {answer.processes.length === 0 ? (
               <p className={HELP_CLASSES}>{tp.empty}</p>
             ) : (
-              <div className={TABLE_WRAP_CLASSES}>
+              <DenseTableRegion label={tp.title}>
                 <table className={TABLE_CLASSES}>
                   <caption className="sr-only">{tp.title}</caption>
                   <thead>
@@ -174,7 +174,7 @@ export function ProcessesSection({ refresh }: { refresh: number }) {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </DenseTableRegion>
             )}
             <h3 className="text-sm font-semibold text-text-primary">
               {tp.database.title}

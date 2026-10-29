@@ -25,11 +25,11 @@ import {
   SMALL_PRIMARY_CLASSES,
   SMALL_SECONDARY_CLASSES,
   TABLE_CLASSES,
-  TABLE_WRAP_CLASSES,
   TABULAR_CLASSES,
   TD_CLASSES,
   TH_CLASSES,
 } from "./bo-classes";
+import { DenseTableRegion } from "./DenseTableRegion";
 import { LoadGate, SectionFrame, StateText, type Tone } from "./HealthParts";
 import { formatCount } from "./ops-view-model";
 import { useOpsRead } from "./use-ops-read";
@@ -148,7 +148,7 @@ function GroupDetail({
           detail.occurrences.length === 0 ? (
             <p className={HELP_CLASSES}>{te.detailEmpty}</p>
           ) : (
-            <div className={TABLE_WRAP_CLASSES}>
+            <DenseTableRegion label={te.detailTitle(group.errorType)}>
               <table className={TABLE_CLASSES}>
                 <caption className="sr-only">
                   {te.detailTitle(group.errorType)}
@@ -181,7 +181,7 @@ function GroupDetail({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </DenseTableRegion>
           )
         }
       </LoadGate>
@@ -337,7 +337,7 @@ export function ErrorsSection({ refresh }: { refresh: number }) {
             </p>
           ) : (
             <>
-              <div className={TABLE_WRAP_CLASSES}>
+              <DenseTableRegion label={te.title}>
                 <table className={TABLE_CLASSES}>
                   <caption className="sr-only">{te.title}</caption>
                   <thead>
@@ -377,7 +377,7 @@ export function ErrorsSection({ refresh }: { refresh: number }) {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </DenseTableRegion>
               {answer.truncated ? (
                 <p className={HELP_CLASSES}>
                   {te.truncated(answer.groups.length)}
