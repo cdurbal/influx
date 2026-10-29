@@ -1472,21 +1472,21 @@ e2e **56** (7 fichiers) ; `apps/api` (unitaire et base) inchangé. Aucun planche
 
 **Automatisé, bloquant :**
 
-- [ ] `pnpm check` puis `pnpm test:e2e` verts, trois exécutions consécutives identiques ; durée du pas e2e mesurée avant/après (ajout ≤ 90 s, plafond du pas : 5 minutes)
-- [ ] Gardes G3, G3b, G3c, G3d, G3e, G3f, G3g, G4f, G8, G9 vertes, **chacune avec son auto-test** (TD1) ; G1 à G7 et annexes inchangées, aucune assouplie sans remplaçant dans le même commit (§5)
-- [ ] **Vitrine inchangée** : G3e, empreinte TD4 et sonde de cascade côté vitrine verts **sans modifier leurs fixtures** (toute modification = commit qui nomme les valeurs et la raison)
-- [ ] **Cascade** (TD3, build de production) : sur `/fr/connexion`, `/en/sign-in`, une page membre avec session et la connexion du backoffice, les `--color-*` calculés du conteneur KEO égalent les valeurs effectives lues par le lecteur ; sur `/fr` et `/en`, ils égalent l'instantané de la vitrine ; `[data-theme="keo"]` : un sur les espaces connectés, zéro sur la landing
-- [ ] **Polices** : landing sans fichier `woff2` ni `preload` de police ; page membre et backoffice : deux fichiers `latin` préchargés, ≤ 120 Ko, même origine ; `latin-ext` jamais téléchargé sur un contenu FR, téléchargé quand l'un de ses caractères s'affiche (sinon repli `latin` seul, consigné en écart) ; chiffres tabulaires de Manrope vérifiés
-- [ ] **Aucune requête tierce, aucune violation de CSP** dans aucun e2e (A-7) ; `src/config/security-headers.ts` des deux fronts et les attendus de `security-headers.spec.ts` inchangés (`git diff` vide, sauf des chemins ajoutés en T10.6)
-- [ ] **axe WCAG 2.1 AA + `wcag22aa`**, zéro violation et zéro « incomplete » de contraste non justifié, sur chaque écran rhabillé, aux largeurs de la matrice §12.2 ; reflow : aucun défilement horizontal de page à 320, 375 et 768 px
-- [ ] **Contraste par le calcul (G3d, paires relues par `expert-ux`) et par axe**, et la sonde de cascade prouve que le navigateur applique les valeurs calculées
-- [ ] **Clavier** (375 et 1440) : premier `Tab` = lien d'évitement visible, `Entrée` met le focus dans `main` ; ordre déclaré ; anneau de focus visible sur chaque élément focalisable des nouvelles surfaces ; focus jamais masqué par la barre du bas ni l'en-tête collant ; après une navigation cliente, focus sur le `h1`
-- [ ] **Navigation** : un seul repère `navigation` « Navigation principale » / « Main navigation », noms de repères tous distincts, un seul `aria-current="page"` ; barre en bas à 1023 px, colonne à gauche à 1024 px ; dernier élément de `main` jamais sous la barre
-- [ ] **`prefers-reduced-motion`** émulé : durées de transition nulles sur les éléments interactifs de la coquille, aucune animation infinie en cours
-- [ ] **Session** : la coquille relit la session à chaque navigation cliente (CGU publiées en cours de session, session fermée ailleurs, bandeaux du backoffice) ; « compte supprimé » et « déconnecté » sans navigation
-- [ ] **FR/EN** : parité des clés (nouveau fichier de traduction compris), libellés de navigation ≤ limite arbitrée (11 ou 12), lus dans les fichiers ; parcours existants verts en FR et en EN
-- [ ] **Non-régression à chaque commit DS** : `signup-nominal` (2), `journey-resume` (7), `landing-signup` (4), `account` (5), `account-data` (1), `backoffice.spec` (9), `security-headers.spec` (28), **sans modifier leurs attendus** hors les exceptions écrites au §12.3 ; aucun test supprimé
-- [ ] **Logique intacte** : aucun changement aux tests de `auth-steps`, `signup-form`, `journey-memory`, `account-view`, `view-model`, `ops-view-model` ; règles de la coquille (`member-nav`, `member-paths`, navigation du backoffice) testées seules
+- [x] `pnpm check` puis `pnpm test:e2e` verts, trois exécutions consécutives identiques ; durée du pas e2e mesurée avant/après (ajout ≤ 90 s, plafond du pas : 5 minutes)
+- [x] Gardes G3, G3b, G3c, G3d, G3e, G3f, G3g, G4f, G8, G9 vertes, **chacune avec son auto-test** (TD1) ; G1 à G7 et annexes inchangées, aucune assouplie sans remplaçant dans le même commit (§5)
+- [x] **Vitrine inchangée** : G3e, empreinte TD4 et sonde de cascade côté vitrine verts **sans modifier leurs fixtures** (toute modification = commit qui nomme les valeurs et la raison)
+- [x] **Cascade** (TD3, build de production) : sur `/fr/connexion`, `/en/sign-in`, une page membre avec session et la connexion du backoffice, les `--color-*` calculés du conteneur KEO égalent les valeurs effectives lues par le lecteur ; sur `/fr` et `/en`, ils égalent l'instantané de la vitrine ; `[data-theme="keo"]` : un sur les espaces connectés, zéro sur la landing
+- [x] **Polices** : landing sans fichier `woff2` ni `preload` de police ; page membre et backoffice : deux fichiers `latin` préchargés, ≤ 120 Ko, même origine ; `latin-ext` jamais téléchargé sur un contenu FR, téléchargé quand l'un de ses caractères s'affiche (sinon repli `latin` seul, consigné en écart) ; chiffres tabulaires de Manrope vérifiés
+- [x] **Aucune requête tierce, aucune violation de CSP** dans aucun e2e (A-7) ; `src/config/security-headers.ts` des deux fronts et les attendus de `security-headers.spec.ts` inchangés (`git diff` vide, sauf des chemins ajoutés en T10.6)
+- [x] **axe WCAG 2.1 AA + `wcag22aa`**, zéro violation et zéro « incomplete » de contraste non justifié, sur chaque écran rhabillé, aux largeurs de la matrice §12.2 ; reflow : aucun défilement horizontal de page à 320, 375 et 768 px
+- [x] **Contraste par le calcul (G3d, paires relues par `expert-ux`) et par axe**, et la sonde de cascade prouve que le navigateur applique les valeurs calculées
+- [x] **Clavier** (375 et 1440) : premier `Tab` = lien d'évitement visible, `Entrée` met le focus dans `main` ; ordre déclaré ; anneau de focus visible sur chaque élément focalisable des nouvelles surfaces ; focus jamais masqué par la barre du bas ni l'en-tête collant ; après une navigation cliente, focus sur le `h1`
+- [x] **Navigation** : un seul repère `navigation` « Navigation principale » / « Main navigation », noms de repères tous distincts, un seul `aria-current="page"` ; barre en bas à 1023 px, colonne à gauche à 1024 px ; dernier élément de `main` jamais sous la barre
+- [x] **`prefers-reduced-motion`** émulé : durées de transition nulles sur les éléments interactifs de la coquille, aucune animation infinie en cours
+- [x] **Session** : la coquille relit la session à chaque navigation cliente (CGU publiées en cours de session, session fermée ailleurs, bandeaux du backoffice) ; « compte supprimé » et « déconnecté » sans navigation
+- [x] **FR/EN** : parité des clés (nouveau fichier de traduction compris), libellés de navigation ≤ limite arbitrée (11 ou 12), lus dans les fichiers ; parcours existants verts en FR et en EN
+- [x] **Non-régression à chaque commit DS** : `signup-nominal` (2), `journey-resume` (7), `landing-signup` (4), `account` (5), `account-data` (1), `backoffice.spec` (9), `security-headers.spec` (28), **sans modifier leurs attendus** hors les exceptions écrites au §12.3 ; aucun test supprimé
+- [x] **Logique intacte** : aucun changement aux tests de `auth-steps`, `signup-form`, `journey-memory`, `account-view`, `view-model`, `ops-view-model` ; règles de la coquille (`member-nav`, `member-paths`, navigation du backoffice) testées seules
 
 **Non automatisable (recette humaine, §12.4) :**
 

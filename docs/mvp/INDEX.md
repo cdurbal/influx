@@ -100,7 +100,7 @@
 | 2265 | 9 | ↳ 20.11 Points à faire valider par le fondateur |  |
 | 2274 | 13 | ↳ 20.12 Ce que cet addendum demande aux autres agents |  |
 | 2287 | 7 | ↳ Sources (vérifiées le 2026-09-24) |  |
-| 2294 | 252 | 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits) | RG7–RG107 |
+| 2294 | 255 | 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits) | RG7–RG107 |
 
 ## 03-matrice-des-droits-et-rls.md (~51k tokens)
 
@@ -659,18 +659,18 @@
 | 326 | 17 | 8. Angles morts du dark theme |  |
 | 343 | 13 | 9. Questions ouvertes | RG116–RG130 |
 | 356 | 24 | 10. Tokens proposés |  |
-| 380 | 435 | 11. Charte KEO Emerald des espaces connectés (D73) | RG1–RG65 |
+| 380 | 436 | 11. Charte KEO Emerald des espaces connectés (D73) | RG1–RG65 |
 | 391 | 39 | ↳ 11.1 Périmètre et frontière |  |
 | 430 | 14 | ↳ 11.2 Ce qui ne change pas |  |
 | 444 | 152 | ↳ 11.3 Correspondance KEO → tokens INFLUX | RG1–RG10 |
 | 596 | 42 | ↳ 11.4 Contrastes calculés |  |
-| 638 | 65 | ↳ 11.5 Typographie, formes, élévation, mouvement |  |
-| 703 | 33 | ↳ 11.6 Ce qu'on ne prend pas de la maquette | RG4–RG65 |
-| 736 | 22 | ↳ 11.7 Test du logo : INFLUX, pas Spotify |  |
-| 758 | 45 | ↳ 11.8 Gabarits et composants |  |
-| 803 | 12 | ↳ 11.9 Points soumis au fondateur |  |
+| 638 | 66 | ↳ 11.5 Typographie, formes, élévation, mouvement |  |
+| 704 | 33 | ↳ 11.6 Ce qu'on ne prend pas de la maquette | RG4–RG65 |
+| 737 | 22 | ↳ 11.7 Test du logo : INFLUX, pas Spotify |  |
+| 759 | 45 | ↳ 11.8 Gabarits et composants |  |
+| 804 | 12 | ↳ 11.9 Points soumis au fondateur |  |
 
-## 21-plan-de-developpement.md (~19k tokens)
+## 21-plan-de-developpement.md (~18k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -679,7 +679,7 @@
 | 54 | 39 | 2. Stratégie de développement | RG44–RG148 |
 | 93 | 23 | 3. Écarts actifs pour les jalons restants (J5 à J9) | RG23–RG146 |
 | 116 | 43 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 159 | 212 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG165 |
-| 371 | 9 | 6. Configuration des services externes |  |
-| 380 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 397 | 12 | 8. Guide de lecture par jalon | RG54–RG58 |
+| 159 | 197 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG165 |
+| 356 | 9 | 6. Configuration des services externes |  |
+| 365 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 382 | 12 | 8. Guide de lecture par jalon | RG54–RG58 |

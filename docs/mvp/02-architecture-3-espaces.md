@@ -2394,9 +2394,12 @@ en KEO par le même composant neutre que les pages légales.
    les noms saisis (ł, ș, ğ, č…). Chaque fichier porte son `unicode-range` et les deux fichiers d'une
    famille partagent un nom de famille (option `declarations`) : `latin-ext` ne se télécharge que si
    l'un de ses caractères s'affiche. Au-delà (cyrillique, grec, vietnamien, écritures non latines),
-   repli caractère par caractère sur la pile système, accepté. **À vérifier au commit DS-3 sur
-   Next 16.3.6** ; si le nom de famille commun n'y est pas pris en charge : `latin` seul, consigné en
-   écart.
+   repli caractère par caractère sur la pile système, accepté. **Réalisé (DS-3, DS-4) :** le repli
+   métrique de `next/font` dessine un glyphe `latin-ext` avant qu'une seconde famille puisse le
+   faire (TD3.4) ; les piles KEO (`--font-base`, `--font-display`) citent donc le seul fichier
+   `latin`, puis la pile système. Les deux fichiers `latin-ext` sont versionnés (manifeste, G4f) mais
+   non câblés : un « ł » s'affiche en repli système et aucun `latin-ext` n'est jamais téléchargé
+   (EC-DS-3-1).
 4. `display: "swap"`, repli métrique automatique (`adjustFontFallback: "Arial"`, défaut de
    `next/font/local`), préchargement des seuls fichiers `latin`. Pas d'italique livrée (la charte n'en
    emploie pas ; l'emphase rare d'un texte juridique reste synthétisée). L'axe variable couvre toutes
@@ -2408,8 +2411,8 @@ en KEO par le même composant neutre que les pages légales.
    mise en page qui l'emploie, donc **jamais sur la landing**, qui reste sur sa pile système. CSP
    inchangée : fichiers sous `/_next/static/media/` (`font-src 'self'`), `@font-face` dans une feuille
    externe (`style-src 'self'`).
-6. Budget : taille des deux fichiers préchargés relevée au DS-3 et figée par la garde G4f, plafond
-   120 Ko.
+6. Budget : les deux fichiers `latin` préchargés pèsent 53 708 octets (24 836 + 28 872), figés par
+   la garde G4f, plafond 120 000 octets (relevé à la clôture du jalon, 2026-10-29).
 
 ### 21.5 Gabarits de page
 

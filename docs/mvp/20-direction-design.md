@@ -665,12 +665,13 @@ pas celle du contenu à côté d'une colonne ; ils restent à la vitrine.
 **Chargement des polices** (`architecte`, `02` §21.4). `next/font/local` et fichiers woff2 variables
 versionnés dans le dépôt (module `src/styles/fonts.ts`, identique dans les deux fronts) : **aucun
 appel à Google Fonts**, que la maquette sollicite (politique de sécurité de contenu, adresse IP
-transmise à un tiers), et la CI ne télécharge rien. Sous-ensembles `latin` et `latin-ext` (noms à
-diacritiques d'Europe centrale), `display: swap` avec métriques de repli ajustées (pas de saut de mise
+transmise à un tiers), et la CI ne télécharge rien. Sous-ensembles `latin` et `latin-ext` versionnés (noms à
+diacritiques d'Europe centrale ; **réalisé : `latin` seul câblé**, `latin-ext` en repli système,
+`02` §21.4 point 3), `display: swap` avec métriques de repli ajustées (pas de saut de mise
 en page) ; chargées par les deux seules mises en page KEO, jamais par la vitrine ; écritures non
 couvertes (cyrillique, arabe, CJK…) : repli système. **Graisses employées** : Manrope 700 et 800,
-Source Sans 3 400 et 600. Chiffres tabulaires de Manrope à vérifier sur le fichier livré (deux montants
-superposés doivent s'aligner) ; à défaut, les montants passent en Source Sans 3.
+Source Sans 3 400 et 600. Chiffres tabulaires de Manrope **vérifiés** sur le fichier livré (TD3.5 : « 1111 » et
+« 8888 » de même largeur) ; les montants restent en Manrope.
 
 **Formes**
 

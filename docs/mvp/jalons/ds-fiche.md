@@ -31,24 +31,24 @@ aucune migration** ne bouge. D48 (aucun taux, aucun net) reste appliqué tel que
 Liste complète et cases vérifiables : `18` §10 « Jalon DS » ; tests par famille (TD1 à TD8, 44 cas),
 matrice d'axe par largeur, plan par commit et recette : `18` §12. **Terminé quand** :
 
-- [ ] `pnpm check` puis `pnpm test:e2e` verts trois fois de suite ; le pas e2e ne prend pas plus de
+- [x] `pnpm check` puis `pnpm test:e2e` verts trois fois de suite ; le pas e2e ne prend pas plus de
       90 s de plus ; planchers en hausse depuis le parent de DS-1 (web 203, backoffice 62, test-kit
       134, e2e 56), chaque nouveau fichier de test avec son plancher ;
-- [ ] gardes G3, G3b à G3h, G4f, G8 et G9 vertes, chacune avec son cas négatif ; G1 à G7 jamais
+- [x] gardes G3, G3b à G3h, G4f, G8 et G9 vertes, chacune avec son cas négatif ; G1 à G7 jamais
       assouplies (`18` §5.1) ;
-- [ ] **vitrine inchangée** hors du vert de marque (F2, DS-14) : instantané G3e, empreinte de styles
+- [x] **vitrine inchangée** hors du vert de marque (F2, DS-14) : instantané G3e, empreinte de styles
       calculés (TD4) et sonde de cascade verts, fixtures touchées par DS-14 seul (liste explicite des noms) ; aucune police chargée sur la landing ;
-- [ ] **cascade prouvée dans le navigateur** : sur le parcours, une page membre et le backoffice, les
+- [x] **cascade prouvée dans le navigateur** : sur le parcours, une page membre et le backoffice, les
       couleurs calculées sous KEO égalent la table de `20` §11.3 ;
-- [ ] polices servies par l'origine seule, deux fichiers `latin` préchargés pour 120 Ko au plus,
+- [x] polices servies par l'origine seule, deux fichiers `latin` préchargés pour 120 Ko au plus,
       `latin-ext` absent d'une page en français ; aucune requête tierce ni violation de CSP dans aucun
       e2e (filet global A-7) ; `security-headers.ts` inchangé ;
-- [ ] axe WCAG 2.1 AA + 2.2 AA sans violation sur chaque écran rhabillé, aux largeurs de `18` §12.2 ;
+- [x] axe WCAG 2.1 AA + 2.2 AA sans violation sur chaque écran rhabillé, aux largeurs de `18` §12.2 ;
       aucun défilement horizontal à 320, 375 et 768 px ;
-- [ ] un seul repère « Navigation principale », un seul `aria-current`, barre en bas à 1 023 px et
+- [x] un seul repère « Navigation principale », un seul `aria-current`, barre en bas à 1 023 px et
       colonne à gauche à 1 024 px, rien caché sous la barre ; lien d'évitement en premier, focus
       visible et jamais masqué, focus sur le `h1` après navigation ; mouvement réduit respecté ;
-- [ ] session et CGU relues à chaque navigation ; parité FR/EN ; e2e existants (`signup-nominal`,
+- [x] session et CGU relues à chaque navigation ; parité FR/EN ; e2e existants (`signup-nominal`,
       `journey-resume`, `landing-signup`, `account`, `account-data`, `backoffice.spec`,
       `security-headers.spec`) verts **sans modifier leurs attendus**, tests de logique inchangés ;
 - [ ] recette humaine faite (`18` §12.4) : lecture en extérieur sur un vrai téléphone, test du logo,
