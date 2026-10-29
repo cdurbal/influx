@@ -45,7 +45,7 @@ import {
   SMALL_PRIMARY_CLASSES,
   SMALL_SECONDARY_CLASSES,
   TABLE_CLASSES,
-  TABLE_WRAP_CLASSES,
+  DENSE_TABLE_WRAP_CLASSES,
   TD_CLASSES,
   TH_CLASSES,
 } from "./bo-classes";
@@ -465,8 +465,16 @@ export function AccountsScreen() {
             <p className={HELP_CLASSES}>{t.empty}</p>
           ) : (
             // the keys are listened on the table's container: a keyboard user moves with ‹j›/‹k›
-            // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-            <div className={TABLE_WRAP_CLASSES} onKeyDown={onTableKey}>
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
+            <div
+              role="region"
+              aria-label={t.title}
+              // a scrollable region must be reachable by keyboard (axe scrollable-region-focusable)
+              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+              tabIndex={0}
+              className={DENSE_TABLE_WRAP_CLASSES}
+              onKeyDown={onTableKey}
+            >
               <table className={TABLE_CLASSES}>
                 <caption className="sr-only">{t.title}</caption>
                 <thead>

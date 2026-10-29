@@ -4,8 +4,8 @@
 import { cn } from "./auth-classes";
 
 export const SECTION_CLASSES = cn(
-  "flex flex-col gap-3 rounded-lg border-(length:--border-width-thin) border-border-default",
-  "bg-surface-card p-4",
+  "flex flex-col gap-3 rounded-card border-(length:--border-width-thin) border-border-default",
+  "bg-surface-card p-inset-card",
 );
 
 export const SECTION_TITLE_CLASSES =
@@ -13,19 +13,32 @@ export const SECTION_TITLE_CLASSES =
 
 export const TABLE_WRAP_CLASSES = "w-full overflow-x-auto";
 
+/**
+ * The dense table scrolls in its own region (17b §1.7), never the page; the region is focusable so a
+ * keyboard reaches what overflows (axe scrollable-region-focusable). Its head stays in view.
+ */
+export const DENSE_TABLE_WRAP_CLASSES = cn(
+  "max-h-dvh w-full overflow-auto rounded-md",
+  "border-(length:--border-width-thin) border-border-default",
+);
+
 export const TABLE_CLASSES = "w-full border-collapse text-sm";
 
 export const TH_CLASSES = cn(
-  "border-b-(length:--border-width-thin) border-border-strong px-2 py-2 text-left align-bottom",
+  "sticky top-0 border-b-(length:--border-width-thin) border-border-strong bg-surface-card",
+  "px-(--spacing-bo-cell-x) py-(--spacing-bo-cell-y) text-left align-bottom",
   "font-semibold text-text-secondary",
 );
 
 export const TD_CLASSES = cn(
-  "border-b-(length:--border-width-thin) border-border-subtle px-2 py-2 align-top text-text-primary",
+  "h-(--spacing-bo-row-h) border-b-(length:--border-width-thin) border-border-subtle",
+  "px-(--spacing-bo-cell-x) py-(--spacing-bo-cell-y) align-top text-text-primary",
 );
 
 export function rowClasses(selected: boolean): string {
-  return selected ? "bg-surface-raised" : "focus-within:bg-surface-hover";
+  return selected
+    ? "bg-surface-raised"
+    : "hover:bg-surface-raised focus-within:bg-surface-hover";
 }
 
 export const FIELD_CLASSES = "flex flex-col gap-1";
@@ -33,7 +46,7 @@ export const FIELD_CLASSES = "flex flex-col gap-1";
 export const SMALL_LABEL_CLASSES = "text-sm font-semibold text-text-primary";
 
 export const SELECT_CLASSES = cn(
-  "min-h-(--size-button-md) rounded-md border-(length:--border-width-thin) border-border-strong",
+  "min-h-(--size-bo-control) rounded-md border-(length:--border-width-thin) border-border-strong",
   "bg-surface-page px-2 text-sm text-text-primary",
 );
 
@@ -43,15 +56,15 @@ export const TEXTAREA_CLASSES = cn(
 );
 
 export const SMALL_PRIMARY_CLASSES = cn(
-  "inline-flex min-h-(--size-button-md) items-center justify-center rounded-pill",
-  "bg-action-primary-bg px-4 text-sm font-medium text-text-on-action",
+  "inline-flex min-h-(--size-bo-control) items-center justify-center rounded-pill",
+  "bg-action-primary-bg px-4 font-display text-sm font-action text-text-on-action",
   "hover:bg-action-primary-bg-hover active:bg-action-primary-bg-active",
 );
 
 export const SMALL_SECONDARY_CLASSES = cn(
-  "inline-flex min-h-(--size-button-md) items-center justify-center rounded-pill",
+  "inline-flex min-h-(--size-bo-control) items-center justify-center rounded-pill",
   "border-(length:--border-width-thin) border-action-secondary-border bg-action-secondary-bg",
-  "px-4 text-sm font-medium text-text-primary hover:bg-action-secondary-bg-hover",
+  "px-4 font-display text-sm font-action text-text-primary hover:bg-action-secondary-bg-hover",
 );
 
 export const LINK_CLASSES = "text-text-primary underline";

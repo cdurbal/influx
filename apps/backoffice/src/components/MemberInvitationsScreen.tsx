@@ -33,7 +33,7 @@ import {
   SMALL_LABEL_CLASSES,
   SMALL_PRIMARY_CLASSES,
   TABLE_CLASSES,
-  TABLE_WRAP_CLASSES,
+  DENSE_TABLE_WRAP_CLASSES,
   TD_CLASSES,
   TH_CLASSES,
 } from "./bo-classes";
@@ -192,7 +192,14 @@ export function MemberInvitationsScreen() {
         ) : invitations.length === 0 ? (
           <p className={HELP_CLASSES}>{t.empty}</p>
         ) : (
-          <div className={TABLE_WRAP_CLASSES}>
+          <div
+            role="region"
+            aria-label={t.listTitle}
+            // a scrollable region must be reachable by keyboard (axe scrollable-region-focusable)
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+            tabIndex={0}
+            className={DENSE_TABLE_WRAP_CLASSES}
+          >
             <table className={TABLE_CLASSES}>
               <caption className="sr-only">{t.listTitle}</caption>
               <thead>
