@@ -15,10 +15,15 @@ type Violation = {
 
 const WCAG_AA_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
+/** WCAG 2.2 AA on top (target size, focus not obscured), for the screens of D73 (18 §12.1 TD7). */
+const WCAG_22_TAGS = [...WCAG_AA_TAGS, "wcag22aa"];
+
 export async function expectNoAxeViolation(
   page: Page,
   screen: string,
+  { wcag22 = false }: { wcag22?: boolean } = {},
 ): Promise<void> {
+  const tagsRun = wcag22 ? WCAG_22_TAGS : WCAG_AA_TAGS;
   if (!(await page.evaluate(() => "axe" in window))) {
     // Evaluated by the DevTools protocol, which the page's CSP does not govern: an injected
     // <script> would be refused by the backoffice's (no 'strict-dynamic', 03 §6.5), rightly.
@@ -45,7 +50,7 @@ export async function expectNoAxeViolation(
       help: violation.help,
       nodes: violation.nodes.map((node) => ({ target: node.target })),
     }));
-  }, WCAG_AA_TAGS);
+  }, tagsRun);
   expect(
     violations.map(
       (violation) =>
@@ -53,6 +58,6 @@ export async function expectNoAxeViolation(
           .map((node) => node.target.join(" "))
           .join(", ")}`,
     ),
-    `axe, WCAG 2.1 AA, ${screen}`,
+    `axe, WCAG ${wcag22 ? "2.2" : "2.1"} AA, ${screen}`,
   ).toEqual([]);
 }

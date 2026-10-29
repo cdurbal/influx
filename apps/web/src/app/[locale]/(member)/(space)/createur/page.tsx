@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import {
-  AuthMessages,
   memberPageLocale,
   memberPageMetadata,
 } from "@/components/auth/AuthPage";
@@ -18,10 +17,6 @@ export default async function CreatorHomePage({
   params,
 }: PageProps<"/[locale]/createur">) {
   const { locale } = await params;
-  const pageLocale = memberPageLocale(locale, "creatorHome", "createur");
-  return (
-    <AuthMessages locale={pageLocale} withAccount>
-      <MemberHome space="creator" />
-    </AuthMessages>
-  );
+  memberPageLocale(locale, "creatorHome", "createur");
+  return <MemberHome space="creator" />;
 }

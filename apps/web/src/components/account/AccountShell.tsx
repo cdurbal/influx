@@ -1,49 +1,34 @@
 "use client";
 
-// The frame of every "mon compte" page (docs/mvp/17 §6, §6.7; 05 RG28, RG54, RG71): behind the
-// session (GET /v1/me decides; no session ⇒ the sign-in page), the navigation between the four
-// pages, the offline banner, and the blocking terms screen BEFORE any page — except "mes
-// préférences" and "mes données", whose rights survive a refused version (J7 A3): they show a
-// notice instead. The page itself receives the account, a way to read it again, and a way to
-// end on "signed out" (closing the current session, changing the address).
+// The frame of every "mon compte" page (docs/mvp/17 §6, §6.7; 05 RG28, RG54, RG71), inside the
+// member shell (src/components/member/MemberShell.tsx), which reads the session, sends a member
+// without one to the sign-in page and shows the blocking terms screen BEFORE any page, except
+// "mes préférences" and "mes données", whose rights survive a refused version (J7 A3): they show a
+// notice instead. Here: the navigation between the four pages, the offline banner, that notice.
+// The page itself receives the account, a way to read it again, and a way to end on "signed out"
+// (closing the current session, changing the address) or "account deleted".
 import type { MeResponse } from "@influx/contracts/account";
 import { useLocale, useTranslations } from "next-intl";
+import type { ReactNode } from "react";
 import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import {
-  BRAND_CLASSES,
-  HEADER_CLASSES,
-  HELP_CLASSES,
   INFO_CLASSES,
-  SCREEN_CLASSES,
-  SECONDARY_BUTTON_CLASSES,
-  TEXT_BUTTON_CLASSES,
-  TITLE_CLASSES,
+  SPACE_SCREEN_CLASSES,
   WARNING_CLASSES,
 } from "@/components/auth/auth-classes";
-import { readMe } from "@/components/auth/member-auth";
 import { useOnline } from "@/components/auth/use-online";
-import { Link, useRouter } from "@/i18n/navigation";
+import { useMember } from "@/components/member/member-context";
+import { Link } from "@/i18n/navigation";
 import {
   ACCOUNT_PAGES,
   homePageOf,
   memberPageHref,
-  TERMS_EXEMPT_PAGES,
   type AccountPage,
 } from "@/lib/member-paths";
-import { installErrorCollector } from "@/observability/error-collector";
 import {
   INLINE_LINK_CLASSES,
   NAV_LIST_CLASSES,
   navLinkClasses,
 } from "./account-classes";
-import { TermsGate } from "./TermsGate";
-import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 export type AccountContext = {
   me: MeResponse;
@@ -56,13 +41,6 @@ export type AccountContext = {
   accountDeleted: () => void;
 };
 
-type State =
-  | { kind: "loading" }
-  | { kind: "ready"; me: MeResponse }
-  | { kind: "unavailable" }
-  | { kind: "signedOut"; message: string }
-  | { kind: "deleted" };
-
 export function AccountShell({
   page,
   children,
@@ -71,153 +49,15 @@ export function AccountShell({
   children: (context: AccountContext) => ReactNode;
 }) {
   const t = useTranslations("account");
-  const tData = useTranslations("account.data");
   const locale = useLocale();
-  const router = useRouter();
   const online = useOnline();
-  const titleRef = useRef<HTMLHeadingElement>(null);
-  const [state, setState] = useState<State>({ kind: "loading" });
+  const { me, refresh, signedOut, accountDeleted } = useMember();
 
-  // Browser errors of the connected space (D60, 02 §20.5).
-  useEffect(() => installErrorCollector(), []);
-
-  const load = useCallback(async () => {
-    const result = await readMe();
-    if (result.kind === "unauthenticated") {
-      // 17 §6.7, "Session expirée": back to the sign-in page.
-      router.replace(memberPageHref("signIn", locale));
-      return;
-    }
-    setState(
-      result.kind === "ok"
-        ? { kind: "ready", me: result.data }
-        : { kind: "unavailable" },
-    );
-  }, [router, locale]);
-
-  useEffect(() => {
-    let active = true;
-    void readMe().then((result) => {
-      if (!active) {
-        return;
-      }
-      if (result.kind === "unauthenticated") {
-        router.replace(memberPageHref("signIn", locale));
-        return;
-      }
-      setState(
-        result.kind === "ok"
-          ? { kind: "ready", me: result.data }
-          : { kind: "unavailable" },
-      );
-    });
-    return () => {
-      active = false;
-    };
-  }, [router, locale]);
-
-  const signedOut = useCallback((message: string) => {
-    setState({ kind: "signedOut", message });
-  }, []);
-
-  const accountDeleted = useCallback(() => {
-    setState({ kind: "deleted" });
-  }, []);
-
-  useEffect(() => {
-    if (state.kind === "signedOut" || state.kind === "deleted") {
-      titleRef.current?.focus();
-    }
-  }, [state.kind]);
-
-  const header = (
-    <header className={HEADER_CLASSES}>
-      <p className={BRAND_CLASSES}>{t("brand")}</p>
-    </header>
-  );
-
-  if (state.kind === "loading") {
-    return (
-      <main id="main" className={SCREEN_CLASSES} aria-busy="true">
-        {header}
-        <p role="status" className={HELP_CLASSES}>
-          {t("loading")}
-        </p>
-      </main>
-    );
-  }
-
-  if (state.kind === "unavailable") {
-    return (
-      <main id="main" className={SCREEN_CLASSES}>
-        {header}
-        <ErrorNotice>{t("unavailable")}</ErrorNotice>
-        <button
-          type="button"
-          onClick={() => {
-            setState({ kind: "loading" });
-            void load();
-          }}
-          className={SECONDARY_BUTTON_CLASSES}
-        >
-          {t("retry")}
-        </button>
-      </main>
-    );
-  }
-
-  if (state.kind === "deleted") {
-    return (
-      <main id="main" className={SCREEN_CLASSES}>
-        {header}
-        <h1 ref={titleRef} tabIndex={-1} className={TITLE_CLASSES}>
-          {tData("deleted.title")}
-        </h1>
-        <p role="status" className={INFO_CLASSES}>
-          {tData("deleted.text")}
-        </p>
-        <Link href="/" className={TEXT_BUTTON_CLASSES}>
-          {tData("deleted.home")}
-        </Link>
-      </main>
-    );
-  }
-
-  if (state.kind === "signedOut") {
-    return (
-      <main id="main" className={SCREEN_CLASSES}>
-        {header}
-        <h1 ref={titleRef} tabIndex={-1} className={TITLE_CLASSES}>
-          {t("signedOut.title")}
-        </h1>
-        <p role="status" className={INFO_CLASSES}>
-          {state.message}
-        </p>
-        <Link
-          href={memberPageHref("signIn", locale)}
-          className={TEXT_BUTTON_CLASSES}
-        >
-          {t("signedOut.signInAgain")}
-        </Link>
-      </main>
-    );
-  }
-
-  const { me } = state;
+  // The shell lets a pending version through on the exempted pages only (isTermsExempt).
   const termsPending = me.termsToAccept !== null;
-  if (me.termsToAccept !== null && !TERMS_EXEMPT_PAGES.includes(page)) {
-    return (
-      <TermsGate
-        termsToAccept={me.termsToAccept}
-        onAccepted={load}
-        onRefused={signedOut}
-      />
-    );
-  }
 
   return (
-    <main id="main" className={SCREEN_CLASSES}>
-      {header}
+    <div className={SPACE_SCREEN_CLASSES}>
       <nav aria-label={t("nav.label")} className="flex flex-col gap-3">
         <Link
           href={memberPageHref(homePageOf(me.role), locale)}
@@ -255,7 +95,7 @@ export function AccountShell({
           </Link>
         </p>
       ) : null}
-      {children({ me, online, refresh: load, signedOut, accountDeleted })}
-    </main>
+      {children({ me, online, refresh, signedOut, accountDeleted })}
+    </div>
   );
 }

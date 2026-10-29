@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import {
-  AuthMessages,
   memberPageLocale,
   memberPageMetadata,
 } from "@/components/auth/AuthPage";
@@ -18,10 +17,6 @@ export default async function AccountDetailsPage({
   params,
 }: PageProps<"/[locale]/account">) {
   const { locale } = await params;
-  const pageLocale = memberPageLocale(locale, "accountDetails", "account");
-  return (
-    <AuthMessages locale={pageLocale} withAccount>
-      <AccountPageView page="accountDetails" />
-    </AuthMessages>
-  );
+  memberPageLocale(locale, "accountDetails", "account");
+  return <AccountPageView page="accountDetails" />;
 }

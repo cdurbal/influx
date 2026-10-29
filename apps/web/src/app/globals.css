@@ -36,6 +36,30 @@
     );
   }
 
+  /*
+   * The member shell below lg (17 §2.2; 02 §21.5 point 4): the bottom bar adds the iOS gesture zone
+   * to its height, the content keeps clear of the bar, and a focused element is never scrolled
+   * under it (WCAG 2.4.11). env() has no utility class, hence these base rules, written in tokens;
+   * from lg the shell's own classes cancel the first two (lg:pb-0), and the third does no harm.
+   */
+  [data-member-nav] {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  [data-member-main] {
+    padding-bottom: calc(
+      var(--size-nav-bottom-height) + var(--spacing-5) +
+        env(safe-area-inset-bottom)
+    );
+  }
+
+  html:has([data-member-nav]) {
+    scroll-padding-bottom: calc(
+      var(--size-nav-bottom-height) + var(--spacing-5) +
+        env(safe-area-inset-bottom)
+    );
+  }
+
   /* Page scroll is locked while the mobile menu is open (02 §3.2). */
   html[data-mobile-menu="open"] {
     overflow: hidden;

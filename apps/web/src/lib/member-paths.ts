@@ -53,6 +53,49 @@ export const TERMS_EXEMPT_PAGES: readonly AccountPage[] = [
   "accountData",
 ];
 
+/** Whether a page lets the member through while a version of the terms waits (05 RG28, J7 A3). */
+export function isTermsExempt(page: MemberPage): boolean {
+  return (TERMS_EXEMPT_PAGES as readonly MemberPage[]).includes(page);
+}
+
+/**
+ * The space a page belongs to (17 §2.1): the brand space is the advertiser's, the creator space
+ * the creator's; "mon compte" and the journey belong to none (null).
+ */
+const PAGE_SPACES: Readonly<Partial<Record<MemberPage, SignupDoor>>> = {
+  advertiserHome: "advertiser",
+  creatorHome: "creator",
+};
+
+export function spaceOf(page: MemberPage): SignupDoor | null {
+  return PAGE_SPACES[page] ?? null;
+}
+
+/**
+ * Where a member of `role` is sent from a page of the other space: the home of their own (17 §2.5,
+ * 05 RG66, the space follows the real role, never the address typed); null when the page is theirs.
+ */
+export function spaceRedirectOf(
+  page: MemberPage,
+  role: SignupDoor,
+): MemberPage | null {
+  const space = spaceOf(page);
+  return space === null || space === role ? null : homePageOf(role);
+}
+
+/**
+ * The page a path of the CURRENT language leads to, without the locale prefix (the `usePathname`
+ * of src/i18n/navigation.ts: "/compte/donnees"), or null for any other path.
+ */
+export function memberPageOfPath(
+  pathname: string,
+  locale: AppLocale,
+): MemberPage | null {
+  const slug = pathname.replace(/^\/+|\/+$/g, "");
+  const pages = Object.keys(MEMBER_PAGE_SLUGS) as MemberPage[];
+  return pages.find((page) => MEMBER_PAGE_SLUGS[page][locale] === slug) ?? null;
+}
+
 /** The path of a page in a language, with its locale prefix (redirects, plain links). */
 export function memberPagePath(page: MemberPage, locale: AppLocale): string {
   return `/${locale}/${MEMBER_PAGE_SLUGS[page][locale]}`;

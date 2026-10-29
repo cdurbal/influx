@@ -10,6 +10,7 @@ import {
   findMemberGroupMismatches,
   findPortalUse,
   findRoleColorUse,
+  findSessionReadViolations,
   findStateTransforms,
   findVitrineImportsUnder,
   findVitrineTokenUse,
@@ -256,6 +257,78 @@ describe("TD1.10: the member pages are exactly those of the group", () => {
       "/compte: a member page outside (member)",
       "/marque: no page in (member)",
       "/cookies: in (member), not a member page",
+    ]);
+  });
+});
+
+describe("TD1.12: G9, the session read by the shells alone", () => {
+  const CHAIN = {
+    module: "src/components/auth/member-auth.ts",
+    reader: "readMe",
+    endpoint: "/v1/me",
+    shells: ["src/components/member/MemberShell.tsx"],
+  };
+
+  /** The correct chain: the module reads GET /v1/me, the shell alone imports its reader. */
+  function writeChain(): void {
+    write(
+      CHAIN.module,
+      [
+        'import { callRelay } from "@/browser/relay-client";',
+        'export function readMe() { return callRelay("GET", "/v1/me", schema); }',
+        'export function signOut() { return callRelay("POST", "/v1/auth/logout", schema); }',
+      ].join("\n"),
+    );
+    write(
+      CHAIN.shells[0] ?? "",
+      'import { readMe, signOut } from "@/components/auth/member-auth";\nvoid readMe; void signOut;\n',
+    );
+    write(
+      "src/components/account/account-api.ts",
+      'export const A = () => callRelay("PATCH", "/v1/me", s);\nexport const B = () => callRelay("GET", "/v1/me/consent", s);\n',
+    );
+    write(
+      "src/components/auth/MemberHome.tsx",
+      [
+        'import { signOut } from "./member-auth";',
+        "// the home never calls readMe itself: useMember() hands the session over",
+        "void signOut;",
+      ].join("\n"),
+    );
+  }
+
+  it("accepts the chain: other functions of the module, other verbs and paths, comments aside", () => {
+    writeChain();
+    expect(findSessionReadViolations(front, CHAIN)).toEqual([]);
+  });
+
+  it("detects a reader imported outside a shell, a direct GET, a shell that lost its read and a lost reader", () => {
+    writeChain();
+    write(
+      "src/components/account/AccountShell.tsx",
+      'import { readMe } from "../auth/member-auth";\nvoid readMe;\n',
+    );
+    write(
+      "src/components/auth/Probe.tsx",
+      'import * as auth from "./member-auth";\nvoid auth.readMe;\n',
+    );
+    write(
+      "src/components/account/Peek.tsx",
+      "export const peek = () => callRelay('GET', '/v1/me', schema);\n",
+    );
+    expect(findSessionReadViolations(front, CHAIN)).toEqual([
+      "src/components/account/Peek.tsx: reads GET /v1/me itself",
+      "src/components/auth/member-auth.ts readMe is imported in [src/components/account/AccountShell.tsx, src/components/auth/Probe.tsx, src/components/member/MemberShell.tsx], expected [src/components/member/MemberShell.tsx]",
+    ]);
+    write(CHAIN.shells[0] ?? "", "export const NOTHING = 1;\n");
+    write(
+      CHAIN.module,
+      "// export function readMe() {}\nexport const x = 1;\n",
+    );
+    expect(findSessionReadViolations(front, CHAIN)).toEqual([
+      "src/components/auth/member-auth.ts: does not export readMe",
+      "src/components/account/Peek.tsx: reads GET /v1/me itself",
+      "src/components/auth/member-auth.ts readMe is imported in [src/components/account/AccountShell.tsx, src/components/auth/Probe.tsx], expected [src/components/member/MemberShell.tsx]",
     ]);
   });
 });

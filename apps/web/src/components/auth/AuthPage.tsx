@@ -1,8 +1,9 @@
 // Server side of the member pages: the journey, the homes and "mon compte" (docs/mvp/17 §2.6, §3,
 // §6; 21 EC-15).
 // One address per language (src/lib/member-paths.ts): a page reached under the other language's
-// slug is sent to its own one. Every page is noindex (17 §2.6). Only the `auth` and `account`
-// namespaces reach the browser; the landing keeps sending none of its texts.
+// slug is sent to its own one. Every page is noindex (17 §2.6). Only the `auth` namespace reaches
+// the browser on the journey; the pages of the spaces receive theirs from (space)/layout.tsx
+// (`SpaceMessages`); the landing keeps sending none of its texts.
 import type { Metadata } from "next";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -63,28 +64,35 @@ export function memberPageLocale(
   return locale;
 }
 
-/**
- * The texts the browser receives: `auth` on every member page; `account` too on the homes and
- * the pages of "mon compte" (the blocking terms screen, 17 §6.7, can show on any of them).
- */
+/** The texts of the journey, the one namespace its screens read. */
 export function AuthMessages({
   locale,
-  withAccount = false,
   children,
 }: {
   locale: AppLocale;
-  withAccount?: boolean;
   children: ReactNode;
 }) {
-  const messages = MESSAGES[locale];
   return (
-    <NextIntlClientProvider
-      messages={
-        withAccount
-          ? { auth: messages.auth, account: messages.account }
-          : { auth: messages.auth }
-      }
-    >
+    <NextIntlClientProvider messages={{ auth: MESSAGES[locale].auth }}>
+      {children}
+    </NextIntlClientProvider>
+  );
+}
+
+/**
+ * The texts of the spaces, given once by (space)/layout.tsx: `auth` and `account` for the homes and
+ * "mon compte" (the blocking terms screen, 17 §6.7, can show on any page), `member` for the shell.
+ */
+export function SpaceMessages({
+  locale,
+  children,
+}: {
+  locale: AppLocale;
+  children: ReactNode;
+}) {
+  const { auth, account, member } = MESSAGES[locale];
+  return (
+    <NextIntlClientProvider messages={{ auth, account, member }}>
       {children}
     </NextIntlClientProvider>
   );

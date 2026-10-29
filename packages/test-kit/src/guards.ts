@@ -1430,3 +1430,71 @@ export function findMemberGroupMismatches(
     .map((route) => `/${route}: in ${group}, not a member page`);
   return [...outside, ...missing, ...foreign];
 }
+
+// G9: the session read confined to the shells (D73; 02 §21.5 point 1, §21.9; 18 §5.1, TD1.12)
+// ---------------------------------------------------------------------------------------------
+
+/** Where a front reads its session: one module calls the endpoint, its shells alone import it. */
+export type SessionReadChain = {
+  /** The module that calls the session endpoint through the relay client (member-auth.ts…). */
+  module: string;
+  /** The function of that module that reads the session (`readMe`…). */
+  reader: string;
+  /** The endpoint it reads (`/v1/me`…): a GET of it anywhere else bypasses the chain. */
+  endpoint: string;
+  /** The shells, the only modules that import the reader (02 §21.5 point 1). */
+  shells: readonly string[];
+};
+
+/**
+ * G9, the guard of the importers, like G5 (d): the session is read by the shells alone, which
+ * hand it to the pages (`useMember()`, `useMe()`). Finds a module of the chain that is missing or
+ * no longer exports its reader, an importer of the module naming the reader outside the shells
+ * (named or namespace import alike), a shell that no longer reads it, and a GET of the endpoint
+ * outside the module. Comments do not count.
+ */
+export function findSessionReadViolations(
+  frontRoot: string,
+  chain: SessionReadChain,
+): string[] {
+  const moduleFile = path.join(frontRoot, chain.module);
+  if (!existsSync(moduleFile)) {
+    return [`${chain.module}: the session module does not exist`];
+  }
+  const reader = new RegExp(`\\b${chain.reader}\\b`);
+  const exported = new RegExp(
+    `\\bexport\\s+(?:async\\s+)?(?:function\\s*\\*?|const|let)\\s*${chain.reader}\\b`,
+  );
+  const findings = exported.test(
+    withoutComments(readFileSync(moduleFile, "utf8")),
+  )
+    ? []
+    : [`${chain.module}: does not export ${chain.reader}`];
+  const target = moduleFile.replace(SOURCE_FILE, "");
+  const endpoint = chain.endpoint.replace(/[.*+?^$()|[\]\\/{}]/g, "\\$&");
+  const endpointRead = new RegExp(
+    `["'\`]GET["'\`]\\s*,\\s*["'\`]${endpoint}["'\`]`,
+  );
+  const importers: string[] = [];
+  for (const file of sourceFilesUnder(frontRoot)) {
+    const relative = relativePath(frontRoot, file);
+    if (relative === chain.module) continue;
+    const source = withoutComments(readFileSync(file, "utf8"));
+    const importsModule = importSpecifiers(source).some(
+      (specifier) =>
+        resolveLocalSpecifier(frontRoot, file, specifier) === target,
+    );
+    if (importsModule && reader.test(source)) importers.push(relative);
+    if (endpointRead.test(source)) {
+      findings.push(`${relative}: reads GET ${chain.endpoint} itself`);
+    }
+  }
+  return [
+    ...findings,
+    ...exactSetFinding(
+      `${chain.module} ${chain.reader} is imported`,
+      importers,
+      chain.shells,
+    ),
+  ];
+}

@@ -2,38 +2,11 @@
 // journey, and axe in the error state): the sign-in page, which wears the buttons, the fields and
 // the notices of components/member/ui. No code is requested: the error is the client's own (format
 // of the address), so no mail and no database are involved.
-import type { Page } from "@playwright/test";
 import { expectNoAxeViolation } from "./support/axe";
+import { focusedElement } from "./support/focus";
 import { AUTH_LABELS, expect, open, test } from "./support/journey";
 
 const T = AUTH_LABELS.fr;
-
-type Focus = {
-  description: string;
-  outlineWidth: number;
-  outlineStyle: string;
-  covered: boolean;
-} | null;
-
-/** The focused element: what it is, its ring, and whether something else is painted over it. */
-function focusedElement(page: Page): Promise<Focus> {
-  return page.evaluate(() => {
-    const element = document.activeElement;
-    if (element === null || element === document.body) return null;
-    const style = getComputedStyle(element);
-    const box = element.getBoundingClientRect();
-    const top = document.elementFromPoint(
-      box.x + box.width / 2,
-      box.y + box.height / 2,
-    );
-    return {
-      description: `${element.tagName.toLowerCase()} ${(element.textContent ?? "").trim().slice(0, 40)} ${element.getAttribute("name") ?? ""}`,
-      outlineWidth: parseFloat(style.outlineWidth),
-      outlineStyle: style.outlineStyle,
-      covered: top === null || !(top === element || element.contains(top)),
-    };
-  });
-}
 
 test("TD5.4: every focusable element of the sign-in journey shows a ring of 2 px at least and is never covered, at 375 px", async ({
   page,

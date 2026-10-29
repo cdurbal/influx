@@ -35,6 +35,7 @@ import {
   findFontViolations,
   findForbiddenClassPairs,
   findRoleColorUse,
+  findSessionReadViolations,
   findKeoBlocksOutside,
   findKeoBlockViolations,
   findTokenPairFailures,
@@ -432,6 +433,21 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
   });
 });
 
+// G9 (D73; 02 §21.5 point 1, §21.9): the session is read by the member shell alone, which hands
+// it to the pages through useMember(). The detector is self-tested in the test-kit (TD1.12).
+describe("G9: the session read confined to the member shell", () => {
+  it("imports readMe in MemberShell only, and reads GET /v1/me in member-auth only", () => {
+    expect(
+      findSessionReadViolations(WEB_ROOT, {
+        module: "src/components/auth/member-auth.ts",
+        reader: "readMe",
+        endpoint: "/v1/me",
+        shells: ["src/components/member/MemberShell.tsx"],
+      }),
+    ).toEqual([]);
+  });
+});
+
 // G3g (D73, 20 §11.3, F4): the role colors mark a role visually and nothing else; one component
 // consumes them and requires the role written. The detector is self-tested in the test-kit.
 describe("G3g: the role colors are consumed by the role component alone (P7, 12 RG7)", () => {
@@ -687,6 +703,7 @@ describe("Additional guards", () => {
       "errors.json",
       "landing.json",
       "legal.json",
+      "member.json",
     ]);
     for (const file of files) {
       const read = (locale: string) =>

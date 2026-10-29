@@ -15,11 +15,14 @@ import {
 import { noticeClasses } from "@/components/member/ui/notice-classes";
 import { PAGE_TITLE_CLASSES } from "@/components/member/ui/PageHeader";
 
-/** One centred column of `container-narrow`, mobile first. */
-export const SCREEN_CLASSES = cn(
-  "mx-auto flex min-h-screen w-full max-w-(--container-narrow) flex-col gap-6",
+/** A page inside the member shell, which holds the frame and its height (17 §2.2, §2.3). */
+export const SPACE_SCREEN_CLASSES = cn(
+  "mx-auto flex w-full max-w-(--container-narrow) flex-col gap-6",
   "px-page-gutter py-section-header",
 );
+
+/** A standalone page (the journey, signed out, terms to accept): one centred column, mobile first. */
+export const SCREEN_CLASSES = cn(SPACE_SCREEN_CLASSES, "min-h-screen");
 
 export const BRAND_CLASSES = "font-display text-md font-bold text-text-primary";
 
