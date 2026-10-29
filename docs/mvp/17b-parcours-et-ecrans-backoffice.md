@@ -314,7 +314,7 @@ le gabarit est conçu et testé pour les sept (arbitrage `chef-de-projet` du 202
 | 6 Alertes | — | masquée |
 | 7 Administration | Double validation · Comptes internes · Réglages Apollo · Santé technique | `admin` ; absente pour l'`agent`, qui n'y a encore rien (CA63) |
 
-**Téléphone, sous 768 px — règle provisoire jusqu'aux vues D58 (Lot 4)**
+**Téléphone, sous 768 px de large ou 500 px de haut — règle provisoire jusqu'aux vues D58 (Lot 4)**
 
 ```
 Téléphone 375 — tout écran derrière session
@@ -338,7 +338,7 @@ Téléphone 375 — tout écran derrière session
 
 | Règle | Détail |
 |---|---|
-| Contenu | **Aucun contenu métier** sous 768 px, sur tout écran derrière session : bande réduite, écran d'explication, `[□ Se déconnecter]`. Remplace, pour cette période, le « une colonne, sans tableau » de M4 (§7.2). Effet de bord connu (question au fondateur, `20` §11.9 F7) : un téléphone tenu à l'horizontale dépasse souvent 768 px et voit alors le backoffice complet |
+| Contenu | **Aucun contenu métier** quand la fenêtre fait **moins de 768 px de large ou moins de 500 px de haut**, sur tout écran derrière session : bande réduite, écran d'explication, `[□ Se déconnecter]`. Remplace, pour cette période, le « une colonne, sans tableau » de M4 (§7.2). La condition de hauteur couvre le téléphone tenu à l'horizontale, qui dépasse souvent 768 px de large (F7, tranché par le fondateur le 2026-10-29, `20` §11.9). Les deux seuils sont déclarés une seule fois, en CSS (aucune détection en JavaScript), à côté des tokens du backoffice |
 | Pourquoi | (1) D58 n'autorise sur téléphone que deux gestes, qui n'existent pas encore ; (2) les écrans actuels montrent des identités et des actions sensibles, lisibles par-dessus l'épaule dans un lieu public ; (3) les conditions de session sur téléphone ne sont pas fixées (`architecte` + `expert-cybersecurite`, avant le Lot 4) ; (4) aucune version en une colonne à concevoir, tester puis jeter |
 | Connexion | Les écrans de connexion et d'activation du second facteur restent utilisables à toute largeur (formulaires d'une colonne). **Ce masquage est une règle d'écran, pas une mesure de sécurité** : empêcher toute session sur téléphone relève d'`architecte` + `expert-cybersecurite` |
 | Ensuite | Au Lot 4, la conversation et la file de validation reçoivent leur vue téléphone (additif D58, cibles `size-touch-target`) ; tout le reste garde cet écran sous 768 px |
@@ -356,7 +356,7 @@ Téléphone : écran ci-dessus.
 | `bo.shell.shortcuts` | Raccourcis | Shortcuts |
 | `bo.shell.overdue` | {count, plural, one {# hors délai} other {# hors délai}} | {count, plural, one {# overdue} other {# overdue}} |
 | `bo.shell.workstationOnly.title` | Le backoffice se consulte sur un poste de travail | The back office is designed for a workstation |
-| `bo.shell.workstationOnly.body` | Cet écran demande au moins 768 px de large. Sur téléphone, vos conversations et la file de validation seront disponibles à leur mise en service. | This screen needs a window at least 768 px wide. On a phone, your conversations and the review queue will be available once they launch. |
+| `bo.shell.workstationOnly.body` | Cet écran demande une fenêtre d'au moins 768 px de large et 500 px de haut. Sur téléphone, vos conversations et la file de validation seront disponibles à leur mise en service. | This screen needs a window at least 768 px wide and 500 px tall. On a phone, your conversations and the review queue will be available once they launch. |
 
 ---
 
@@ -2189,7 +2189,7 @@ l'hypothèse indiquée et la rend visible.
 | **M1** | Aucun document ne fixe **l'ordre ni le regroupement** des 16 files dans la navigation | Proposé ici (§1.3), à valider par `chef-de-projet` |
 | **M2** | Aucun document ne définit **ce qui est visible en permanence** dans le backoffice | Proposé ici (§1.4) : environnement, recherche, alertes, rôle, bandeaux conditionnels |
 | **M3** | `15` RG104 prévoit un plafond « fiches distinctes ouvertes par 24 h **à régler au Lot 5** » | L'écran affiche le compteur du jour à l'agent lui-même (« 34 fiches consultées aujourd'hui ») : le rendre visible vaut mieux que le surveiller en silence. Valeur à fixer |
-| **M4** | Aucune spécification ne décrit **le comportement d'un écran sous 1024 px** au backoffice | Tranché ici : une colonne, pas de tableau, message « Cet écran est conçu pour un poste de travail ». Le backoffice n'est pas mobile-first. *Complété le 2026-09-24 par **D58*** : les conversations et la file de validation ont une vue téléphone limitée à deux gestes ; tous les autres écrans gardent cette règle. *Révisé le 2026-10-28 (D73, arbitrage `chef-de-projet`)* : de 768 à 1023 px, backoffice complet, navigation en liste horizontale ; sous 768 px, tant que ces deux vues n'existent pas, aucun contenu métier, écran « poste de travail » (§1.7). La version « une colonne, sans tableau » est abandonnée |
+| **M4** | Aucune spécification ne décrit **le comportement d'un écran sous 1024 px** au backoffice | Tranché ici : une colonne, pas de tableau, message « Cet écran est conçu pour un poste de travail ». Le backoffice n'est pas mobile-first. *Complété le 2026-09-24 par **D58*** : les conversations et la file de validation ont une vue téléphone limitée à deux gestes ; tous les autres écrans gardent cette règle. *Révisé le 2026-10-28 (D73, arbitrage `chef-de-projet`)* : de 768 à 1023 px, backoffice complet, navigation en liste horizontale ; sous 768 px de large ou 500 px de haut (F7, fondateur, 2026-10-29), tant que ces deux vues n'existent pas, aucun contenu métier, écran « poste de travail » (§1.7). La version « une colonne, sans tableau » est abandonnée |
 | **M5** | La **langue du backoffice (D36)** reste ouverte, mais les 16 libellés de file, les ~90 motifs typés et les 48 intitulés d'alerte doivent exister en **deux langues dès le premier jour**, parce qu'ils sortent du backoffice (`15` RG124, Q12) | Toutes les clés de ce document sont fournies FR/EN |
 
 ### 7.3 Écarts constatés dans l'implémentation en cours

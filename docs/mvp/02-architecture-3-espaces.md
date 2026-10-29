@@ -2469,10 +2469,10 @@ Les groupes ne changent aucune URL : chemins localisés, `memberPageLocale` et r
    l'appui (`20` §11.5) ; aucune navigation animée.
 8. **Backoffice** : rail à partir de `lg` (`--spacing-bo-rail-w`, 15 rem, `17b` §6.1), bande de tête de
    `17b` §1.4 ; **entre `md` et `lg`**, le même `<nav>` devient une liste horizontale compacte et le
-   backoffice reste complet (fenêtre demi-écran d'un poste de travail) ; **sous `md`** (téléphone), un
-   écran « poste de travail » sans contenu métier, en attendant la vue « deux gestes » de D58 (Lot 4,
-   conditions de session ouvertes) — arbitrage `chef-de-projet` du 2026-10-28, point F7 de `20` §11.9
-   soumis au fondateur. Seuls les écrans existants y figurent ; les entrées d'administration restent
+   backoffice reste complet (fenêtre demi-écran d'un poste de travail) ; **sous `md`, ou sous 500 px de
+   haut** (téléphone, y compris en paysage), un écran « poste de travail » sans contenu métier, en
+   attendant la vue « deux gestes » de D58 (Lot 4, conditions de session ouvertes) — arbitrage
+   `chef-de-projet` du 2026-10-28, condition de hauteur ajoutée par le fondateur (F7, 2026-10-29). Seuls les écrans existants y figurent ; les entrées d'administration restent
    absentes pour un `agent`, le serveur les refuse de toute façon (CA63).
 9. Les entrées des Lots 2 à 5 côté membres viennent de `member-nav.ts` ; **elles sont omises jusqu'à
    leur lot** (arbitrage `chef-de-projet` du 2026-10-28, `expert-ux` d'accord) et leurs libellés
@@ -2504,7 +2504,7 @@ Les lecteurs de blocs (`@theme`, bloc KEO), la fermeture des alias et l'écart d
 Quatorze commits ordonnés (DS-14 ajouté par F2), dans la fiche `docs/mvp/jalons/ds-fiche.md`. Préalables : table de
 correspondance d'`expert-ux` avant DS-2 (faite le 2026-10-28, `20` §11.3) ; anatomie des gabarits
 avant DS-6 et DS-10 (faite, `17` §2.2–2.3, `17b` §1.7) ; entrées des Lots 2 à 5 omises (point 9,
-tranché) ; points F1 à F7 du fondateur (`20` §11.9 ; F1 à F6 tranchés, F7 ouvert).
+tranché) ; points F1 à F7 du fondateur (`20` §11.9 ; tous tranchés, F7 le 2026-10-29).
 
 ### 21.8 Risques et réversibilité
 

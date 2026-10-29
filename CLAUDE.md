@@ -244,8 +244,8 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
   F4 et F5 tranchés (2026-10-28), F1, F2, F3 et F6 (2026-10-29) : pages légales publiques en
   vitrine, **un seul vert de marque `#1dd68a`, landing comprise** (DS-14), badge vérifié en bleu
   (jamais une coche seule), effets de la maquette gardés (halo, ombre lumineuse du bouton,
-  agrandissement et soulèvement sous `motion-safe:`, panneaux flottants si pertinents, F6). Reste :
-  F7 avant DS-10 (`20` §11.9).
+  agrandissement et soulèvement sous `motion-safe:`, panneaux flottants si pertinents, F6). F7 (2026-10-29) : backoffice
+  complet dès 768 px, écran « poste de travail » sous 768 px de large ou 500 px de haut (`17b` §1.7).
 - **D71 tranchée (2026-10-18)** : revues sécurité et RGPD (vetos, I-4) bloquantes sur la seule
   branche `production` ; `main` et `staging` se construisent et se déploient sans elles. `production`
   (créée le 2026-10-19, sans protection GitHub) n'avance que par `git merge --no-ff main`.

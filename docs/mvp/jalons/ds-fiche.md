@@ -84,7 +84,7 @@ sur 4G, paires de couleurs hors matrice (`18` §8, lignes 15 à 22).
 | Polices | `next/font/local`, woff2 non modifiés (OFL), `latin` + `latin-ext`, manifeste `FONTS.md`, ≤ 120 Ko préchargés, aucune requête tierce, CSP inchangée | `architecte` | `02` §21.4 |
 | Navigation | Un seul `<nav>` « Navigation principale », rendu une fois et restylé en CSS (barre du bas < `lg`, colonne ≥ `lg`) ; aucun repli persisté (aucune API de stockage, D37) | `architecte`, `expert-ux` | `02` §21.5, `17` §2.2 |
 | Entrées sans écran | **Masquées** jusqu'à leur lot ; une entrée apparue ne disparaît plus ; gabarit conçu et testé pour 5 entrées (membres) et 7 (backoffice) | `chef-de-projet` | `17` §2.1, `17b` §1.7 |
-| Backoffice sous `lg` | Entre `md` et `lg` : backoffice complet, navigation compacte horizontale (fenêtre demi-écran d'un commercial). Sous `md` : écran « poste de travail », sans contenu métier, jusqu'aux vues D58 | `chef-de-projet` (compromis entre `architecte` et `expert-ux`) ; F7 ouvert au fondateur | `17b` §1.7, §7.2 M4 |
+| Backoffice sous `lg` | Entre `md` et `lg` : backoffice complet, navigation compacte horizontale (fenêtre demi-écran d'un commercial). Sous `md`, ou sous 500 px de haut (téléphone en paysage) : écran « poste de travail », sans contenu métier, jusqu'aux vues D58 | `chef-de-projet` (compromis entre `architecte` et `expert-ux`) ; condition de hauteur ajoutée par le fondateur (F7, 2026-10-29) | `17b` §1.7, §7.2 M4 |
 | Effets | **Halo d'en-tête, agrandissement au survol et soulèvement des cartes gardés**, sous `motion-safe:` seulement, jamais `transition: all`, durées et halo par tokens ; ombre lumineuse du bouton principal gardée (token) ; panneaux flottants autorisés là où ils sont pertinents (jugement `expert-ux`, écran par écran) ; réduction à l'appui écartée | Fondateur (F6, 2026-10-29, contre la recommandation ; amende l'arbitrage `chef-de-projet` du 2026-10-28) | `20` §11.5 à §11.7, `02` §21.5 point 7 |
 | Pages autonomes | Parcours, CGU à ré-accepter, déconnecté, compte supprimé : aucune navigation principale | `expert-ux` | `20` §11.8, `02` §21.5 point 9 |
 | Icônes | `lucide-react` (déjà épinglé) par le seul `icons.ts` de chaque front, règle ESLint | `architecte` | `02` §21.5 |
@@ -101,7 +101,7 @@ DS-1 (gardes et instantané de la vitrine) peut commencer sans attendre.
 | F4 | Couleurs de rôle sable (marque) et rose (créateur) : marque visuelle seulement, liste fermée de quatre usages | **Tranché (2026-10-28) : oui** | DS-2 |
 | F5 | Affectations différentes de la maquette, sans valeur nouvelle (succès, rouge D72, fonds opaques, contour secondaire `#78827d`, séquestre et surface 5 non repris) | **Tranché (2026-10-28) : oui** | DS-2 |
 | F6 | Effets de type Spotify écartés | **Tranché (2026-10-29) : non**, halo, ombre lumineuse du bouton, agrandissement et soulèvement gardés (sous `motion-safe:`) ; panneaux flottants si pertinents | DS-5 |
-| F7 | Backoffice : rien de métier sur téléphone avant D58, navigation compacte entre `md` et `lg` | Oui (compromis ci-dessus) | DS-10 |
+| F7 | Backoffice : rien de métier sur téléphone avant D58, navigation compacte entre `md` et `lg` | **Tranché (2026-10-29) : oui, plus une condition de hauteur** (écran « poste de travail » sous 500 px de haut, téléphone en paysage compris) | DS-10 |
 
 Le détail argumenté est dans `20` §11.9 ; la décision du fondateur s'inscrit dans D73.
 
@@ -133,7 +133,7 @@ règle 5), plus `pnpm test:e2e` pour tout commit qui touche un écran. Une ligne
 
 | Ordre | Agent | Question |
 |---|---|---|
-| 1 | Fondateur | F7 (ci-dessus ; F1 à F6 tranchés) |
+| 1 | Fondateur | Aucune (F1 à F7 tranchés) ; accord écrit sur les trois gabarits à la recette |
 | 2 | `testeur` | DS-1 : lecteur de valeur effective, instantané et empreinte de la vitrine, filet global A-7 ; puis les gardes G3c à G9 au fil des commits (`18` §5.1) |
 | 3 | `dev-react-node` | DS-2 à DS-12 |
 | 4 | `expert-ux` | Relecture visuelle à DS-6, DS-8, DS-10 et DS-12 (test du logo, `20` §11.7) ; recette en extérieur sur téléphone |
@@ -156,7 +156,6 @@ change (`CLAUDE.md` §7 règle 5).
 
 | Sujet | Arbitre | Échéance |
 |---|---|---|
-| F7 | Fondateur | Avant DS-10 (F4, F5 tranchés le 2026-10-28 ; F1, F2, F3, F6 le 2026-10-29) |
 | Libellé « Candidatures » (12 caractères, limite de 11 de la barre du bas maintenue, `17` §2.2) | `expert-marketing` | Lot 3 (entrée masquée jusque-là) |
 | Repli de la colonne, s'il est demandé : état non persisté | `expert-ux` + `architecte` | Après le pilote |
 
