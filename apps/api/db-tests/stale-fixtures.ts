@@ -6,7 +6,9 @@
 // afterAll never ran. Local stack only (disposable); the data set of T2 is kept.
 import type postgres from "postgres";
 
-export async function sweepStaleFixtures(migration: postgres.Sql): Promise<void> {
+export async function sweepStaleFixtures(
+  migration: postgres.Sql,
+): Promise<void> {
   await migration.begin(async (tx) => {
     // Executions left open: most wait, by design, for a Brevo confirmation no case sends. Their
     // request is closed (pending_work leaves a closed request out, EC-DZ-3).
