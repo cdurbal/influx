@@ -1646,7 +1646,7 @@ horizontal de page) vérifié en plus à 320 px sur les écrans membres.
 
 ### 12.3 Plan par commit
 
-> **Numérotation** : celle de `jalons/ds-fiche.md` (recalée le 2026-10-28 : DS-11 = connexion et
+> **Numérotation** : celle de `archives/jalons/ds-fiche.md` (recalée le 2026-10-28 : DS-11 = connexion et
 > activation du backoffice, DS-12 = écrans d'exploitation) ; la règle suit la **nature** du commit. **Avant chaque commit** : vérification par paliers de `CLAUDE.md` §7 règle 5, et `pnpm test:e2e` pour
 > tout commit qui touche un écran.
 
@@ -1692,7 +1692,7 @@ Ce qui reste hors de portée est au §8, lignes 15 à 22.
 
 ### 12.5 Points à arbitrer qui conditionnent des tests *(relevés le 2026-10-28)*
 
-Réponses du `chef-de-projet` (2026-10-28), reportées dans `02` §21.5 et `jalons/ds-fiche.md` § « Arbitrages
+Réponses du `chef-de-projet` (2026-10-28), reportées dans `02` §21.5 et `archives/jalons/ds-fiche.md` § « Arbitrages
 appliqués » ; le point 1 est tranché par `expert-ux` ; F1, F2, F3 et F6 sont tranchés par le fondateur (2026-10-29), F7 reste ouvert.
 
 | # | Conflit entre les documents | Test touché | Avant |

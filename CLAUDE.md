@@ -27,7 +27,7 @@ d'abord, puis dans le code.
 | Droits et RLS | `docs/mvp/03-matrice-des-droits-et-rls.md` |
 | Modèle de données | `docs/mvp/04-modele-de-donnees-mvp.md` |
 | Spécifications fonctionnelles | `docs/mvp/05` à `17b` |
-| Direction design ; charte KEO Emerald des espaces connectés (D73) | `docs/mvp/20-direction-design.md` (§11), mécanique `02` §21, jalon `docs/mvp/jalons/ds-fiche.md` |
+| Direction design ; charte KEO Emerald des espaces connectés (D73) | `docs/mvp/20-direction-design.md` (§11), mécanique `02` §21, jalon `docs/mvp/archives/jalons/ds-fiche.md` |
 | Plan de développement, jalons | `docs/mvp/21-plan-de-developpement.md` |
 | Prérequis (société, comptes, juristes) | `docs/mvp/prerequis.md` |
 
@@ -249,7 +249,7 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
   avant recherche · **D30** coordonnées dans la messagerie · **D35** saisie libre d'e-mails ·
   **D36** langue du backoffice · **D61** points restants · **D14** abonnement.
 - **D73 tranchée (2026-10-28)** : charte **KEO Emerald** pour les espaces membres et le backoffice
-  (§4) ; exécution par le **Jalon DS**, extra, avant le Lot 2 (`docs/mvp/jalons/ds-fiche.md`).
+  (§4) ; exécution par le **Jalon DS**, extra, clos le 2026-10-29 (`docs/mvp/archives/jalons/ds-fiche.md`).
   F4 et F5 tranchés (2026-10-28), F1, F2, F3 et F6 (2026-10-29) : pages légales publiques en
   vitrine, **un seul vert de marque `#1dd68a`, landing comprise** (DS-14), badge vérifié en bleu
   (jamais une coche seule), effets de la maquette gardés (halo, ombre lumineuse du bouton,

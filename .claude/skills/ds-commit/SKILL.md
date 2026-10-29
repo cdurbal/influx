@@ -52,7 +52,7 @@ Ordre : `1` à `12b`, puis `14` si F2 est accepté, puis `13`, puis `revue`. `ux
 
 ## 3. Règles de session
 
-- Point d'entrée : `docs/mvp/jalons/ds-fiche.md`, lu en entier. Ensuite, seulement les tranches citées
+- Point d'entrée : `docs/mvp/archives/jalons/ds-fiche.md`, lu en entier. Ensuite, seulement les tranches citées
   par le fichier de la tâche : `NN@L+n` = `docs/mvp/NN-*.md`, `Read` offset=L limit=n (lignes au
   2026-10-28 ; si le texte a bougé, `docs/mvp/INDEX.md` fait foi). Jamais une spec entière ;
   `design-proposals/` fermé, sauf mention contraire.

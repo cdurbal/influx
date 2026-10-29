@@ -6,9 +6,6 @@
 > **Ne jamais lire une spécification en entier.** Repérer ici la section utile, puis la lire avec
 > `Read` (`offset` = ligne de départ, `limit` = nombre de lignes), ou chercher une règle précise
 > avec `Grep` (exemple : `RG113` dans le fichier concerné).
->
-> **Session de jalon : lire d'abord sa fiche**, qui cite déjà les tranches utiles :
-> `jalons/ds-fiche.md`.
 
 ## 00-cadrage-mvp-v2.md (~16k tokens)
 

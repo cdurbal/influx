@@ -385,7 +385,7 @@ et §11.5.
 > sur desktop un menu à gauche « comme Railway ». Le choix de la maquette vaut validation de ses
 > valeurs de couleur au sens de D6. **Aucune valeur de couleur n'est ajustée ici** : chaque couleur
 > est une valeur de KEO ou une valeur déjà validée (D6, D72, `17b` V1). Mise en œuvre : jalon DS
-> (`docs/mvp/jalons/ds-fiche.md`) ; d'ici là, cette section fait foi, et `keo-emerald.css` n'est jamais
+> (`docs/mvp/archives/jalons/ds-fiche.md`) ; d'ici là, cette section fait foi, et `keo-emerald.css` n'est jamais
 > importé tel quel (noms par apparence, `rgba`, valeurs écartées en §11.6).
 
 ### 11.1 Périmètre et frontière

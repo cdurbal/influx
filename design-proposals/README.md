@@ -10,4 +10,4 @@ Ces fichiers sont des **références visuelles**, pas du code :
   de tokens, sous leurs noms de rôle (`docs/mvp/20-direction-design.md` §11.3) ;
 - la maquette contient des éléments contraires au MVP qui ne sont pas repris (`20` §11.6) ;
 - mécanique technique : `docs/mvp/02-architecture-3-espaces.md` §21 ; exécution :
-  `docs/mvp/jalons/ds-fiche.md`.
+  `docs/mvp/archives/jalons/ds-fiche.md`.

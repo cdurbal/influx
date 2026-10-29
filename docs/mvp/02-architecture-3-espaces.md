@@ -2293,7 +2293,7 @@ ligne de code.
 
 ## 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits)
 
-> **Décision du fondateur (D73, consignée par `chef-de-projet`, fiche `docs/mvp/jalons/ds-fiche.md`).**
+> **Décision du fondateur (D73, consignée par `chef-de-projet`, fiche `docs/mvp/archives/jalons/ds-fiche.md`).**
 > La charte « KEO Emerald » (`design-proposals/keo-emerald.css`) habille les espaces membres marque
 > et créateur et le backoffice, en responsive, avec une colonne de navigation à gauche sur poste de
 > travail. La vitrine garde sa direction (D6, D59).
@@ -2504,7 +2504,7 @@ Les lecteurs de blocs (`@theme`, bloc KEO), la fermeture des alias et l'écart d
 
 ### 21.7 Découpage
 
-Quatorze commits ordonnés (DS-14 ajouté par F2), dans la fiche `docs/mvp/jalons/ds-fiche.md`. Préalables : table de
+Quatorze commits ordonnés (DS-14 ajouté par F2), dans la fiche `docs/mvp/archives/jalons/ds-fiche.md`. Préalables : table de
 correspondance d'`expert-ux` avant DS-2 (faite le 2026-10-28, `20` §11.3) ; anatomie des gabarits
 avant DS-6 et DS-10 (faite, `17` §2.2–2.3, `17b` §1.7) ; entrées des Lots 2 à 5 omises (point 9,
 tranché) ; points F1 à F7 du fondateur (`20` §11.9 ; tous tranchés, F7 le 2026-10-29).

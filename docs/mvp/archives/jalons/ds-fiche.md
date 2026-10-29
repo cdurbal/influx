@@ -1,5 +1,7 @@
 # Fiche DS — Charte KEO Emerald des espaces connectés (jalon extra du MVP)
 
+> **Jalon DS clos et archivé le 2026-10-29** (commits DS-1 à DS-14, bilan dans `21` § « Jalon DS »). Fiche conservée pour mémoire : ne plus la lire pour démarrer une session ; la recette humaine (`18` §12.4) et la revue groupée restent tracées dans `21`.
+
 > **Point d'entrée de toute session du jalon DS.** Décision : `decisions.md` **D73** (fondateur,
 > 2026-10-28). Jalon **extra**, placé **avant le Lot 2** : les écrans des Lots 2 à 5 se construiront
 > directement dans la charte, sans reprise. Lire ensuite **seulement** les tranches citées :
