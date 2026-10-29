@@ -148,9 +148,7 @@ test("a version of the terms waiting blocks every page but the rights; accepting
 
   await open(page, "/fr/compte/informations");
   await expect(title(page)).toHaveText(t.title);
-  await expect(
-    page.getByRole("navigation", { name: ACCOUNT.fr.nav.label }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("navigation")).toHaveCount(0);
   await expect(page.getByText(t.refuseHelp)).toBeVisible();
   await expectNoSideScroll(page);
   await expectNoAxeViolation(page, "conditions en attente");

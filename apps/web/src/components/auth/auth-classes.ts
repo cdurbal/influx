@@ -13,7 +13,7 @@ import {
   memberControlClasses,
 } from "@/components/member/ui/field-classes";
 import { noticeClasses } from "@/components/member/ui/notice-classes";
-import { PAGE_TITLE_CLASSES } from "@/components/member/ui/PageHeader";
+import { PAGE_TITLE_CLASSES } from "@/components/member/ui/page-header-classes";
 
 /** A page inside the member shell, which holds the frame and its height (17 §2.2, §2.3). */
 export const SPACE_SCREEN_CLASSES = cn(

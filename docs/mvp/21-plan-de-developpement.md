@@ -337,7 +337,8 @@ Décision D73 (fondateur, 2026-10-28). Les espaces membres (inscription et conne
 
 Décision D74 (fondateur, 2026-10-29). Les pilules de section disparaissent : sous-menu de la rubrique active dans la colonne (membres) et le rail (backoffice), page-menu « Mon compte » sous 1 024 px, « Mes informations » à `/compte/informations`. Point d'entrée : **`jalons/sn-fiche.md`** (commits SN-1 à SN-5, critère de fin, tests TN1 à TN9).
 
-- [x] SN-1 — page-menu « Mon compte » (`/fr/compte` · `/en/account`, exemptée des CGU), « Mes informations » à `/compte/informations` · `/account/details`, « Gérer mon compte » repointé ; TN2 et e2e (page-menu FR/EN, liens de langue, CGU en attente, axe).
+- [x] SN-1 (`202933f`) — page-menu « Mon compte » (`/fr/compte` · `/en/account`, exemptée des CGU), « Mes informations » à `/compte/informations` · `/account/details`, « Gérer mon compte » repointé ; TN2 et e2e (page-menu FR/EN, liens de langue, CGU en attente, axe).
+- [x] SN-2 — sous-entrées de « Compte » dans la colonne (`activePlaceOf`, `<ul>` imbriquée masquée sous `lg`, états ancêtre et courant), pilules et « Retour à mon espace » retirées, « ‹ Mon compte » au-dessus du `h1` ; TN1, TN4, TN6, TN8.
 
 ### Hors jalon
 

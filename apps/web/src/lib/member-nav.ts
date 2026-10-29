@@ -59,16 +59,38 @@ export function navItemsOf(role: SignupDoor): NavItem[] {
 }
 
 /**
- * The entry a page belongs to: its own, and "account" for the page-menu and every page of "mon
- * compte" (17 §2.3, §6.0); null for the journey and an unknown path.
+ * The pages of each rubric that has several (D74, sn-fiche "Poste de travail"): its sub-entries in
+ * the column, in order. A rubric of a single page has none (Accueil); its entry is its page.
  */
-export function activeEntryOf(page: MemberPage | null): NavEntry | null {
+const SUB_PAGES: Readonly<Partial<Record<NavEntry, readonly MemberPage[]>>> = {
+  account: ACCOUNT_PAGES,
+};
+
+/** The sub-entries of a rubric, in order; none for a rubric of a single page. */
+export function subEntriesOf(entry: NavEntry): readonly MemberPage[] {
+  const pages = SUB_PAGES[entry] ?? [];
+  return pages.length > 1 ? pages : [];
+}
+
+/** Where a page stands in the navigation: its rubric, and its sub-entry when it is one. */
+export type ActivePlace = { entry: NavEntry; sub: MemberPage | null };
+
+/**
+ * The place of a page (17 §2.3, D74): a page of a rubric marks the rubric as its ancestor and
+ * itself as the current sub-entry ({ account, accountData }); the page of an entry, page-menu
+ * included, marks the entry itself ({ account, null }, { home, null }); null for the journey and
+ * an unknown path.
+ */
+export function activePlaceOf(page: MemberPage | null): ActivePlace | null {
   if (page === null) {
     return null;
   }
-  if ((ACCOUNT_PAGES as readonly MemberPage[]).includes(page)) {
-    return "account";
-  }
   const entries = Object.values(SPACE_ENTRIES).flat();
-  return entries.find((item) => item.page === page)?.entry ?? null;
+  for (const { entry } of entries) {
+    if (subEntriesOf(entry).includes(page)) {
+      return { entry, sub: page };
+    }
+  }
+  const entry = entries.find((item) => item.page === page)?.entry;
+  return entry === undefined ? null : { entry, sub: null };
 }

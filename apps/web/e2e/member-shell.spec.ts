@@ -345,11 +345,14 @@ test("TD5.6 a: terms published during the session block the next page, without a
     .click();
   // The page-menu is exempted (sn-fiche): the next page that is not shows the screen.
   await page
+    .getByRole("main")
     .getByRole("link", { name: ACCOUNT.fr.nav.accountDetails, exact: true })
     .click();
   await expect(title(page)).toHaveText(ACCOUNT.fr.terms.title);
   await expect(page.getByRole("navigation")).toHaveCount(0);
   expect(await stillLoaded()).toBe(true);
+  // A read of the session may still be in flight: the test ends without it.
+  await page.unrouteAll({ behavior: "ignoreErrors" });
 });
 
 test("TD5.6 b: a session closed elsewhere leads to sign-in at the next click", async ({
@@ -506,6 +509,133 @@ test("TD5.8: a role color always beside the role written; the current entry heav
       expect(current[0]?.weight ?? 0, `${width} px`).toBeGreaterThan(
         other.weight,
       );
+    }
+  }
+});
+
+/** The four pages of "mon compte", in the order of the column and of the page-menu (D74). */
+const ACCOUNT_SUB_PAGES = [
+  { key: "accountDetails", screen: "details" },
+  { key: "accountPreferences", screen: "preferences" },
+  { key: "accountSessions", screen: "sessions" },
+  { key: "accountData", screen: "data" },
+] as const;
+
+/** « ‹ Mon compte » above the h1, read « Retour à Mon compte » (sn-fiche Microcopies). */
+function backToHub(page: Page, locale: Locale) {
+  const hub = ACCOUNT[locale].hub;
+  return page
+    .getByRole("main")
+    .getByRole("link", { name: `${hub.backPrefix} ${hub.back}`, exact: true });
+}
+
+test("TN6: at 1440 px, the four sub-entries under Compte on mes données, the current one marked; none on the home", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openHome(page, "fr", "advertiser");
+  const nav = mainNavigation(page, "fr");
+  await expect(nav.locator("ul ul")).toHaveCount(0);
+
+  await open(page, "/fr/compte/donnees");
+  await expect(title(page)).toHaveText(ACCOUNT.fr.data.title);
+  const account = nav.getByRole("listitem").filter({
+    has: page.getByRole("link", {
+      name: MEMBER.fr.nav.entries.account,
+      exact: true,
+    }),
+  });
+  await expect(account.locator("ul a")).toHaveText(
+    ACCOUNT_SUB_PAGES.map(({ key }) => ACCOUNT.fr.nav[key]),
+  );
+  await expect(account.locator("ul a").first()).toBeVisible();
+  await expect(nav.locator('[aria-current="page"]')).toHaveText(
+    ACCOUNT.fr.nav.accountData,
+  );
+  await expect(
+    nav.getByRole("link", { name: MEMBER.fr.nav.entries.account, exact: true }),
+  ).not.toHaveAttribute("aria-current");
+  await expect(backToHub(page, "fr")).toBeVisible();
+
+  // The page-menu: the rubric is the current item, its sub-menu open, no sub-entry current.
+  await nav
+    .getByRole("link", { name: MEMBER.fr.nav.entries.account, exact: true })
+    .click();
+  await expect(title(page)).toHaveText(ACCOUNT.fr.hub.title);
+  await expect(account.locator("ul a")).toHaveCount(ACCOUNT_SUB_PAGES.length);
+  await expect(nav.locator('[aria-current="page"]')).toHaveText(
+    MEMBER.fr.nav.entries.account,
+  );
+  await expect(backToHub(page, "fr")).toHaveCount(0);
+
+  await nav
+    .getByRole("link", { name: MEMBER.fr.nav.entries.home, exact: true })
+    .click();
+  await expect(title(page)).toHaveText(AUTH_LABELS.fr.home.advertiser.title);
+  await expect(nav.locator("ul ul")).toHaveCount(0);
+});
+
+for (const width of [375, 768]) {
+  test(`TN6: at ${width} px, a bar without sub-entries, Compte to the page-menu, each sub-page back to it`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 812 });
+    await openHome(page, "fr", "creator");
+    const nav = mainNavigation(page, "fr");
+    const visibleLinks = () =>
+      nav
+        .getByRole("link")
+        .evaluateAll(
+          (links) =>
+            links.filter((link) => link.getClientRects().length > 0).length,
+        );
+
+    await nav
+      .getByRole("link", { name: MEMBER.fr.nav.entries.account, exact: true })
+      .click();
+    await expect(title(page)).toHaveText(ACCOUNT.fr.hub.title);
+    await expect(title(page)).toBeFocused();
+    expect(await visibleLinks()).toBe(2);
+    await expect(page.getByRole("main").getByRole("listitem")).toHaveCount(
+      ACCOUNT_SUB_PAGES.length,
+    );
+
+    for (const { key, screen } of ACCOUNT_SUB_PAGES) {
+      await page
+        .getByRole("main")
+        .getByRole("link", { name: ACCOUNT.fr.nav[key], exact: true })
+        .click();
+      await expect(title(page), key).toHaveText(ACCOUNT.fr[screen].title);
+      await expect(title(page), key).toBeFocused();
+      expect(await visibleLinks(), key).toBe(2);
+      await expect(
+        nav.getByRole("link", {
+          name: MEMBER.fr.nav.entries.account,
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(backToHub(page, "fr")).toBeVisible();
+      await backToHub(page, "fr").click();
+      await expect(title(page), key).toHaveText(ACCOUNT.fr.hub.title);
+      await expect(title(page), key).toBeFocused();
+    }
+  });
+}
+
+test("TN6: one navigation landmark and one aria-current on the page-menu and a sub-page, at 375, 768, 1024 and 1440 px", async ({
+  page,
+}) => {
+  await seedMember(page, {
+    role: "creator",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  for (const path of ["/fr/compte", "/fr/compte/donnees"]) {
+    await open(page, path);
+    await expect(title(page)).toBeVisible();
+    for (const width of [375, 768, 1024, 1440]) {
+      await expectOneMainNavigation(page, "fr", width);
     }
   }
 });

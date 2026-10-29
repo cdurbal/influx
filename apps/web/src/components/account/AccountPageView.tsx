@@ -22,9 +22,5 @@ function screenOf(page: AccountPage, context: AccountContext) {
 }
 
 export function AccountPageView({ page }: { page: AccountPage }) {
-  return (
-    <AccountShell page={page}>
-      {(context) => screenOf(page, context)}
-    </AccountShell>
-  );
+  return <AccountShell>{(context) => screenOf(page, context)}</AccountShell>;
 }

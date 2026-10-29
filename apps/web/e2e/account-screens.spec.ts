@@ -30,7 +30,7 @@ const SCREENS = [
     locale: "fr",
     path: "/fr/compte",
     key: "hub",
-    widths: [375, 768, 1024, 1440],
+    widths: [320, 375, 768, 1024, 1440],
   },
   { locale: "en", path: "/en/account", key: "hub", widths: [375, 1440] },
   {
@@ -55,7 +55,7 @@ const SCREENS = [
     locale: "fr",
     path: "/fr/compte/donnees",
     key: "data",
-    widths: [375, 768, 1024, 1440],
+    widths: [320, 375, 768, 1024, 1440],
   },
   {
     locale: "en",
@@ -125,7 +125,9 @@ for (const { locale, path, key, widths } of SCREENS) {
     await expect(page.locator("h1")).toHaveCount(1);
     for (const width of widths) {
       await page.setViewportSize({ width, height: 900 });
-      await expectNoAxeViolation(page, `${key} ${locale} à ${width}`);
+      await expectNoAxeViolation(page, `${key} ${locale} à ${width}`, {
+        wcag22: true,
+      });
     }
     await expectNoSideScroll320(page);
   });

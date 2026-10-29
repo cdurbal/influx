@@ -55,6 +55,17 @@ export const SECTION_TITLE_CLASSES =
 /** Actions side by side when they fit, stacked otherwise; labels wrap, never truncated. */
 export const ACTIONS_CLASSES = "flex flex-wrap items-center gap-3";
 
+/**
+ * « ‹ Mon compte » above the h1 of a sub-page (D74): a link of its own, the chevron beside the
+ * word, a full touch target.
+ */
+export const BACK_LINK_CLASSES = cn(
+  "inline-flex min-h-(--size-touch-target) items-center gap-1 rounded-md",
+  "text-sm font-medium text-text-secondary hover:text-text-primary",
+);
+
+export const BACK_ICON_CLASSES = "size-(--size-icon-sm) shrink-0";
+
 /** A link inside a text: underlined, so that it is not told by its color alone. */
 export const INLINE_LINK_CLASSES =
   "font-medium text-text-primary underline underline-offset-2 hover:text-text-brand";

@@ -10,12 +10,13 @@ import enMember from "@/locales/en/member.json";
 import frMember from "@/locales/fr/member.json";
 import type { AppLocale } from "@/i18n/routing";
 import {
-  activeEntryOf,
+  activePlaceOf,
   NAV_ENTRY_MAX,
   NAV_LABEL_MAX_LENGTH,
   navItemsOf,
   navLabelFits,
   SPACE_ENTRIES,
+  subEntriesOf,
   type NavEntry,
 } from "@/lib/member-nav";
 import {
@@ -161,7 +162,7 @@ describe("TD2.4: the active entry of each page", () => {
         expect(found, `/${locale}/${MEMBER_PAGE_SLUGS[page][locale]}`).toBe(
           page,
         );
-        expect(activeEntryOf(found), page).toBe(EXPECTED[page]);
+        expect(activePlaceOf(found)?.entry ?? null, page).toBe(EXPECTED[page]);
       }
     }
   });
@@ -177,7 +178,7 @@ describe("TD2.4: the active entry of each page", () => {
     ] as const) {
       expect(memberPageOfPath(pathname, locale), pathname).toBeNull();
     }
-    expect(activeEntryOf(null)).toBeNull();
+    expect(activePlaceOf(null)).toBeNull();
   });
 });
 
@@ -248,11 +249,67 @@ describe("TN2: the page-menu of mon compte and mes informations (D74, sn-fiche A
     expect(memberPageOfPath("/account/details", "en")).toBe("accountDetails");
     expect(memberPageOfPath("/account/details", "fr")).toBeNull();
     expect(ACCOUNT_PAGES).not.toContain("accountHub");
-    expect(activeEntryOf("accountHub")).toBe("account");
+    expect(activePlaceOf("accountHub")?.entry).toBe("account");
   });
 
   it("exempts the page-menu from the terms screen, never mes informations", () => {
     expect(isTermsExempt("accountHub")).toBe(true);
     expect(isTermsExempt("accountDetails")).toBe(false);
+  });
+});
+
+describe("TN1: the sub-entries of a rubric and the place of a page (D74, sn-fiche)", () => {
+  it("gives Compte the pages of mon compte in the order of ACCOUNT_PAGES, and Accueil none", () => {
+    expect(subEntriesOf("account")).toEqual([...ACCOUNT_PAGES]);
+    expect(subEntriesOf("account")).toEqual([
+      "accountDetails",
+      "accountPreferences",
+      "accountSessions",
+      "accountData",
+    ]);
+    for (const entry of [
+      "home",
+      "campaigns",
+      "creators",
+      "applications",
+      "relations",
+    ] as const) {
+      expect(subEntriesOf(entry), entry).toEqual([]);
+    }
+  });
+
+  it("places the page-menu on its rubric, a sub-page under it, a home on its entry", () => {
+    expect(activePlaceOf("accountHub")).toEqual({
+      entry: "account",
+      sub: null,
+    });
+    expect(activePlaceOf("accountData")).toEqual({
+      entry: "account",
+      sub: "accountData",
+    });
+    for (const page of ACCOUNT_PAGES) {
+      expect(activePlaceOf(page), page).toEqual({
+        entry: "account",
+        sub: page,
+      });
+    }
+    expect(activePlaceOf("advertiserHome")).toEqual({
+      entry: "home",
+      sub: null,
+    });
+    expect(activePlaceOf("creatorHome")).toEqual({ entry: "home", sub: null });
+  });
+
+  it("places neither the journey nor an unknown path", () => {
+    expect(activePlaceOf(null)).toBeNull();
+    expect(activePlaceOf(memberPageOfPath("/inconnue", "fr"))).toBeNull();
+    for (const page of [
+      "signIn",
+      "signupDoors",
+      "signupAdvertiser",
+      "signupCreator",
+    ] as const) {
+      expect(activePlaceOf(page), page).toBeNull();
+    }
   });
 });

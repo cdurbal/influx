@@ -487,6 +487,10 @@
   --size-nav-bottom-height: 3.5rem;
   --z-nav-bottom: 90;
   --grid-member-shell: var(--size-member-rail) minmax(0, 1fr);
+  /* Derived, no new visual value: a sub-entry's label aligned on its rubric's (inset, icon, gap; D74) */
+  --spacing-nav-sub-indent: calc(
+    var(--spacing-3) + var(--size-icon-md) + var(--spacing-3)
+  );
   /* Inset focus ring where an outer ring would be clipped (cells of the bottom bar). */
   --focus-ring-offset-inset: calc(-1 * var(--focus-ring-width));
 

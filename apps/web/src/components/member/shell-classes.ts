@@ -61,23 +61,64 @@ export const NAV_LIST_CLASSES = cn(
 export const NAV_CELL_CLASSES = "flex-1 max-w-(--spacing-11) lg:max-w-none";
 
 /**
- * An entry (20 §11.8): icon over its label in a full-height cell of the bar, the focus ring inside
- * so that the edge of the screen never cuts it; icon and label on one line in the column. Active:
- * three carriers at once, `aria-current`, a heavier label in `text-primary`, and a 2 px line, on
- * top in the bar and on the left in the column (never the color alone, P7).
+ * The state of an entry (D74): "current" on its own page, page-menu included; "ancestor" when the
+ * current page is one of its sub-entries; "idle" otherwise.
  */
-export function navLinkClasses(isActive: boolean): string {
+export type NavLinkState = "current" | "ancestor" | "idle";
+
+/**
+ * An entry (20 §11.8): icon over its label in a full-height cell of the bar, the focus ring inside
+ * so that the edge of the screen never cuts it; icon and label on one line in the column. Current:
+ * three carriers at once, `aria-current`, a heavier label in `text-primary`, and a 2 px line, on
+ * top in the bar and on the left in the column (never the color alone, P7). Ancestor: in the
+ * column, the heavier label alone, no surface, no line, no `aria-current` (the sub-entry carries
+ * them); in the bar, which has no sub-entry, the look of the current cell without `aria-current`.
+ */
+export function navLinkClasses(state: NavLinkState): string {
   return cn(
     "relative flex h-full flex-col items-center justify-center gap-1 px-1 text-xs",
     "transition-colors hover:bg-nav-item-hover-bg hover:text-text-primary",
     "focus-visible:outline-offset-(--focus-ring-offset-inset)",
     "lg:min-h-(--size-touch-target) lg:flex-row lg:justify-start lg:gap-3 lg:rounded-md lg:px-3 lg:text-md",
     "lg:focus-visible:outline-offset-(--focus-ring-offset)",
-    isActive
+    state === "current"
       ? cn(
           "bg-nav-item-active-bg font-semibold text-text-primary",
           "before:absolute before:left-3 before:right-3 before:top-0 before:h-(--border-width-thick) before:bg-nav-item-active-indicator",
           "lg:before:left-0 lg:before:right-auto lg:before:top-2 lg:before:bottom-2 lg:before:h-auto lg:before:w-(--border-width-thick)",
+        )
+      : state === "ancestor"
+        ? cn(
+            "font-semibold text-text-primary",
+            // The bar shows no sub-entry: there the rubric keeps the look of the current cell.
+            "max-lg:bg-nav-item-active-bg",
+            "max-lg:before:absolute max-lg:before:left-3 max-lg:before:right-3 max-lg:before:top-0 max-lg:before:h-(--border-width-thick) max-lg:before:bg-nav-item-active-indicator",
+          )
+        : "text-text-secondary",
+  );
+}
+
+/**
+ * The sub-entries of the active rubric (D74; 20 §11.8 "Sous-entrée de navigation"), nested in its
+ * item: from lg only. Below lg the CSS takes them out (`display: none`, out of the accessibility
+ * tree too, SN-0): the bar never shows a sub-entry, and no width is read in JavaScript.
+ */
+export const SUB_NAV_LIST_CLASSES = "mt-1 flex flex-col gap-1 max-lg:hidden";
+
+/**
+ * A sub-entry: no icon, its label aligned on the rubric's (the link's inset, the icon and the
+ * gap), `text-sm`. Current: surface, 2 px line and a heavier label, with `aria-current`.
+ */
+export function subNavLinkClasses(isCurrent: boolean): string {
+  return cn(
+    "relative flex min-h-(--size-touch-target) items-center rounded-md pr-3 text-sm",
+    "pl-(--spacing-nav-sub-indent)",
+    "transition-colors hover:bg-nav-item-hover-bg hover:text-text-primary",
+    "focus-visible:outline-offset-(--focus-ring-offset)",
+    isCurrent
+      ? cn(
+          "bg-nav-item-active-bg font-semibold text-text-primary",
+          "before:absolute before:left-0 before:top-2 before:bottom-2 before:w-(--border-width-thick) before:bg-nav-item-active-indicator",
         )
       : "text-text-secondary",
   );

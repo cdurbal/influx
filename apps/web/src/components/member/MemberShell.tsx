@@ -39,21 +39,23 @@ import { readMe, signOut as closeSession } from "@/components/auth/member-auth";
 import type { RelayResult } from "@/browser/relay-client";
 import { cn } from "@/components/ui/class-names";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
-import { HomeIcon, LogOutIcon, UserRoundIcon } from "@/components/ui/icons";
+import { LogOutIcon } from "@/components/ui/icons";
 import type { Messages } from "@/i18n/messages";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
-import { activeEntryOf, navItemsOf, type NavEntry } from "@/lib/member-nav";
+import { activePlaceOf, navItemsOf, subEntriesOf } from "@/lib/member-nav";
 import {
   homePageOf,
   isTermsExempt,
   memberPageHref,
   memberPageOfPath,
   spaceRedirectOf,
+  type AccountPage,
   type MemberPage,
 } from "@/lib/member-paths";
 import { installErrorCollector } from "@/observability/error-collector";
 import { MemberContext, type MemberContextValue } from "./member-context";
+import { MemberNav, type MemberNavEntry } from "./MemberNav";
 import {
   BRAND_LINK_CLASSES,
   COLUMN_CLASSES,
@@ -62,16 +64,12 @@ import {
   HEADER_ONLY_CLASSES,
   IDENTITY_CLASSES,
   MAIN_CLASSES,
-  NAV_CELL_CLASSES,
-  NAV_CLASSES,
   NAV_ICON_CLASSES,
-  NAV_LIST_CLASSES,
   NAV_PLACEHOLDER_CLASSES,
   NAV_PLACEHOLDER_LIST_CLASSES,
   SHELL_CLASSES,
   SKIP_LINK_CLASSES,
   SPACE_NAME_CLASSES,
-  navLinkClasses,
 } from "./shell-classes";
 import { memberButtonClasses } from "./ui/button-classes";
 import { RoleBadge } from "./ui/RoleBadge";
@@ -85,11 +83,6 @@ type State =
 
 /** The labels of member.json: only the entries whose screen exists have one (TD2.2, TD2.3). */
 type EntryWithLabel = keyof Messages["member"]["shell"]["nav"]["entries"];
-
-const ENTRY_ICONS: Partial<Record<NavEntry, typeof HomeIcon>> = {
-  home: HomeIcon,
-  account: UserRoundIcon,
-};
 
 export function MemberShell({ children }: { children: ReactNode }) {
   const locale = useLocale();
@@ -275,9 +268,24 @@ function Frame({
 }) {
   const t = useTranslations("member.shell");
   const tAuth = useTranslations("auth");
+  const tAccount = useTranslations("account");
   const locale = useLocale();
   const [signingOut, setSigningOut] = useState(false);
-  const active = activeEntryOf(page);
+
+  // "Compte" is the one rubric with sub-entries today: their labels are those of its pages.
+  const entries: MemberNavEntry[] =
+    me === null
+      ? []
+      : navItemsOf(me.role).map((item) => ({
+          entry: item.entry,
+          href: memberPageHref(item.page, locale),
+          label: t(`nav.entries.${item.entry as EntryWithLabel}`),
+          subEntries: subEntriesOf(item.entry).map((sub) => ({
+            page: sub,
+            href: memberPageHref(sub, locale),
+            label: tAccount(`nav.${sub as AccountPage}`),
+          })),
+        }));
 
   async function leave() {
     if (signingOut) {
@@ -326,32 +334,12 @@ function Frame({
             <div className={NAV_PLACEHOLDER_LIST_CLASSES} />
           </div>
         ) : (
-          <nav
-            aria-label={t("nav.label")}
-            data-member-nav=""
-            className={NAV_CLASSES}
-          >
-            <ul className={NAV_LIST_CLASSES}>
-              {navItemsOf(me.role).map((item) => {
-                const isActive = item.entry === active;
-                const Icon = ENTRY_ICONS[item.entry];
-                return (
-                  <li key={item.entry} className={NAV_CELL_CLASSES}>
-                    <Link
-                      href={memberPageHref(item.page, locale)}
-                      aria-current={isActive ? "page" : undefined}
-                      className={navLinkClasses(isActive)}
-                    >
-                      {Icon === undefined ? null : (
-                        <Icon aria-hidden="true" className={NAV_ICON_CLASSES} />
-                      )}
-                      {t(`nav.entries.${item.entry as EntryWithLabel}`)}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
+          <MemberNav
+            label={t("nav.label")}
+            entries={entries}
+            place={activePlaceOf(page)}
+            LinkComponent={Link}
+          />
         )}
         {me === null ? null : (
           <div className={FOOTER_CLASSES}>

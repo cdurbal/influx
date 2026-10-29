@@ -9,6 +9,8 @@
   "brand": "INFLUX",
   "hub": {
     "title": "Mon compte",
+    "back": "Mon compte",
+    "backPrefix": "Retour à",
     "items": {
       "accountDetails": "Adresse e-mail, pays, langue",
       "accountPreferences": "Les e-mails que vous recevez",
@@ -17,8 +19,6 @@
     }
   },
   "nav": {
-    "label": "Mon compte",
-    "home": "Retour à mon espace",
     "accountDetails": "Mes informations",
     "accountPreferences": "Mes préférences",
     "accountSessions": "Mes sessions",
