@@ -7,6 +7,7 @@
 // without any figure (05 RG9); "mon compte" is one link away, and signing out ends on the shell's
 // "signed out" page.
 import { Notice } from "@/components/member/ui/Notice";
+import { PageHeader } from "@/components/member/ui/PageHeader";
 import type { SignupDoor } from "@influx/contracts/auth";
 import { useLocale, useTranslations } from "next-intl";
 import { useId, useState } from "react";
@@ -19,7 +20,6 @@ import {
   SECONDARY_BUTTON_CLASSES,
   SPACE_SCREEN_CLASSES,
   TEXT_BUTTON_CLASSES,
-  TITLE_CLASSES,
 } from "./auth-classes";
 import { memberPageHref } from "@/lib/member-paths";
 
@@ -49,9 +49,7 @@ export function MemberHome({ space }: { space: SignupDoor }) {
 
   return (
     <div className={SPACE_SCREEN_CLASSES}>
-      <h1 tabIndex={-1} className={TITLE_CLASSES}>
-        {t(`home.${space}.title`)}
-      </h1>
+      <PageHeader title={t(`home.${space}.title`)} />
       <p className={LEAD_CLASSES}>{t(`home.${space}.lead`)}</p>
       <section aria-labelledby={stepsTitleId} className={CARD_CLASSES}>
         <h2 id={stepsTitleId} className={LABEL_CLASSES}>

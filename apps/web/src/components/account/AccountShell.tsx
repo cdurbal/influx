@@ -10,12 +10,9 @@
 import type { MeResponse } from "@influx/contracts/account";
 import { useLocale, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
-import {
-  INFO_CLASSES,
-  SPACE_SCREEN_CLASSES,
-  WARNING_CLASSES,
-} from "@/components/auth/auth-classes";
+import { SPACE_SCREEN_CLASSES } from "@/components/auth/auth-classes";
 import { useOnline } from "@/components/auth/use-online";
+import { Notice } from "@/components/member/ui/Notice";
 import { useMember } from "@/components/member/member-context";
 import { Link } from "@/i18n/navigation";
 import {
@@ -79,13 +76,9 @@ export function AccountShell({
           ))}
         </ul>
       </nav>
-      {online ? null : (
-        <p role="status" className={WARNING_CLASSES}>
-          {t("offline")}
-        </p>
-      )}
+      {online ? null : <Notice tone="warning">{t("offline")}</Notice>}
       {termsPending ? (
-        <p role="note" className={INFO_CLASSES}>
+        <Notice tone="info" announce={false}>
           {t("terms.pendingNotice")}{" "}
           <Link
             href={memberPageHref("accountDetails", locale)}
@@ -93,7 +86,7 @@ export function AccountShell({
           >
             {t("terms.pendingLink")}
           </Link>
-        </p>
+        </Notice>
       ) : null}
       {children({ me, online, refresh, signedOut, accountDeleted })}
     </div>

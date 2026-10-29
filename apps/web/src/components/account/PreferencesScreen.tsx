@@ -14,13 +14,10 @@ import {
   INFO_CLASSES,
   LABEL_CLASSES,
   SECONDARY_BUTTON_CLASSES,
-  TITLE_CLASSES,
 } from "@/components/auth/auth-classes";
-import {
-  LIST_CLASSES,
-  SECTION_TITLE_CLASSES,
-  SUCCESS_CLASSES,
-} from "./account-classes";
+import { Notice } from "@/components/member/ui/Notice";
+import { PageHeader } from "@/components/member/ui/PageHeader";
+import { LIST_CLASSES, SECTION_TITLE_CLASSES } from "./account-classes";
 import { readConsent, updateConsent } from "./account-api";
 import { consentOriginOf, formatDate } from "./account-view";
 import type { AccountContext } from "./AccountShell";
@@ -82,7 +79,7 @@ export function PreferencesScreen({ online }: AccountContext) {
 
   return (
     <>
-      <h1 className={TITLE_CLASSES}>{t("title")}</h1>
+      <PageHeader title={t("title")} />
       {state.kind === "loading" ? (
         <p role="status" className={HELP_CLASSES}>
           {tAccount("loading")}
@@ -110,9 +107,7 @@ export function PreferencesScreen({ online }: AccountContext) {
             </p>
           ) : null}
           {done !== null ? (
-            <p role="status" className={SUCCESS_CLASSES}>
-              {t(`done.${done}`)}
-            </p>
+            <Notice tone="success">{t(`done.${done}`)}</Notice>
           ) : null}
           {failed ? <ErrorNotice>{t("unavailable")}</ErrorNotice> : null}
           <button

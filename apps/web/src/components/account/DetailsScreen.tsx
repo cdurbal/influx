@@ -17,12 +17,13 @@ import {
   LABEL_CLASSES,
   LEAD_CLASSES,
   PRIMARY_SUBMIT_CLASSES,
-  TITLE_CLASSES,
 } from "@/components/auth/auth-classes";
+import { Notice } from "@/components/member/ui/Notice";
+import { PageHeader } from "@/components/member/ui/PageHeader";
 import { getLocalizedCountryOptions } from "@/content/country-codes";
 import { Link } from "@/i18n/navigation";
 import { LEGAL_DOCUMENT_SLUGS } from "@/lib/legal-documents";
-import { INLINE_LINK_CLASSES, SUCCESS_CLASSES } from "./account-classes";
+import { INLINE_LINK_CLASSES } from "./account-classes";
 import { updateMe } from "./account-api";
 import {
   changedFieldsOf,
@@ -97,7 +98,7 @@ export function DetailsScreen({ me, online, refresh }: AccountContext) {
 
   return (
     <>
-      <h1 className={TITLE_CLASSES}>{t("title")}</h1>
+      <PageHeader title={t("title")} />
       <p className={LEAD_CLASSES}>
         {t("lead")}{" "}
         <Link href={privacyHref} className={INLINE_LINK_CLASSES}>
@@ -192,12 +193,13 @@ export function DetailsScreen({ me, online, refresh }: AccountContext) {
         {message !== null && isError ? (
           <ErrorNotice id={ids.message}>{t(`messages.${message}`)}</ErrorNotice>
         ) : null}
-        {message !== null && !isError ? (
-          <p
-            id={ids.message}
-            role="status"
-            className={message === "saved" ? SUCCESS_CLASSES : HELP_CLASSES}
-          >
+        {message === "saved" ? (
+          <Notice tone="success" id={ids.message}>
+            {t(`messages.${message}`)}
+          </Notice>
+        ) : null}
+        {message === "unchanged" ? (
+          <p id={ids.message} role="status" className={HELP_CLASSES}>
             {t(`messages.${message}`)}
           </p>
         ) : null}
