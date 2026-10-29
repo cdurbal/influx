@@ -86,7 +86,7 @@ Chaque ligne dit **ce qu'on prend** et, aussi important, **ce qu'on ne prend pas
 | **Discord** pour la messagerie | Registre communautaire, alors qu'il s'agit d'une négociation qui fait preuve. Rôles portés par la couleur du pseudo, ce que `12` RG7 interdit. Écrire dans le mauvais salon y est l'erreur classique : avec les apartés, c'est un incident |
 | **Stripe** pour la logique des montants | Stripe affiche de l'argent **calculé**. Au MVP, l'application ne calcule rien et n'affiche aucun taux (`CLAUDE.md` §3, D48) : reprendre sa décomposition suggère un calcul et invite à le « compléter » |
 | **Vercel** comme modèle visuel de la landing | Il vend à des développeurs, presque sans visages. La landing, déjà réalisée et seul code conservé (D44), a pris une autre direction, choisie par le fondateur (carte métallisée, le 2026-09-17) |
-| **Spotify** comme modèle visuel des espaces connectés | La maquette KEO s'en dit inspirée. Le fondateur en a retenu la **palette et les formes** (D73), pas la ressemblance : panneaux flottants, halos de couleur, agrandissement au survol sont écartés. Test du logo appliqué : §11.7 |
+| **Spotify** comme modèle visuel des espaces connectés | La maquette KEO s'en dit inspirée. Le fondateur en a retenu la **palette et les formes** (D73), pas la ressemblance : halo, ombre lumineuse du bouton, agrandissement au survol et soulèvement gardés par le fondateur, panneaux flottants autorisés là où ils sont pertinents (jugement `expert-ux`, écran par écran) (F6, 2026-10-29, §11.5). Test du logo appliqué : §11.7 |
 
 **Concurrents.** wekollab.fr reste la référence officielle de finition (`CLAUDE.md` §2). `17` §1.2
 consulte aussi Malt, Upwork et Kolsquare pour les places de marché à deux faces. Un concurrent
@@ -334,7 +334,7 @@ avec les mêmes textes adaptés.
 | **Vert d'action / vert de succès** | Un badge « Acceptée » vert ressemble à un bouton | Séparés dans les tokens (succès en sarcelle) ; `CLAUDE.md` §5.1 aligné le 2026-09-24 (Q5) | Fondateur | Fait |
 | **Maquette** | La messagerie de la maquette reprend la palette de WhatsApp Web, en dur : l'écran central du modèle ressemble à une autre marque devant les partenaires | À corriger si `chef-de-projet` juge que cela fausse la vision présentée (`CLAUDE.md` §16.2 point 1) | `chef-de-projet` | Avant les démonstrations |
 | **Émeraude et sarcelle** *(D73)* | Le vert KEO `#1dd68a` (teinte 155°) n'est qu'à 17° de la sarcelle de succès `#2dd4bf` (172°), contre 28° avec le vert de la vitrine | **Tranché le 2026-10-28** : sous KEO, succès `#3ccfcf` (180°, écart 25°), valeur de la palette KEO ; seuil de 20° vérifié par la garde G3d ; la forme reste un second séparateur (le plein est réservé à l'action) (§11.3) | `expert-ux` | Fait |
-| **Ressemblance avec Spotify** *(D73)* | Vert vif sur noir et pilules : on reconnaît la référence avant INFLUX | Signatures de Spotify retirées, signatures INFLUX mises en avant (§11.7) | `expert-ux` | Jalon DS |
+| **Ressemblance avec Spotify** *(D73)* | Vert vif sur noir et pilules : on reconnaît la référence avant INFLUX | Halo, ombre lumineuse du bouton, agrandissement et soulèvement gardés, panneaux flottants si pertinents (F6, fondateur, 2026-10-29) ; signatures INFLUX mises en avant (§11.7) | `expert-ux` | Jalon DS |
 | **Deux verts de marque** *(D73)* | Vitrine `#29e075`, espaces `#1dd68a`, sur deux écrans consécutifs (porte, puis inscription) | **Tranché le 2026-10-29 (F2)** : un seul vert, `#1dd68a`, vitrine comprise (commit DS-14, revue visuelle D59) | Fondateur | Fait |
 | **Polices sur 4G** *(D73)* | Deux familles web au lieu de la police système : poids au premier affichage, saut de mise en page | Fichiers variables auto-hébergés, sous-ensembles latins, métriques de repli ajustées, chargés par les seuls gabarits KEO (§11.5) ; poids mesuré au jalon | `dev-react-node` + `expert-ux` | Jalon DS |
 
@@ -542,7 +542,7 @@ texte coloré (nom, montant, titre), fond de surface, bouton, contour de carte, 
 Le badge vérifié passe du vert au bleu de KEO : le vert est réservé à l'action. Le bleu évoque la
 coche des réseaux sociaux, qui n'affirme pas la même chose (`08` RG4, RG10, D34) : le badge n'est donc
 **jamais une coche seule ni collé à un nom** ; il écrit « Vérifié · ⟨réseau⟩ · ⟨mois année⟩ » sur la
-ligne du réseau concerné.
+ligne du réseau concerné. Le fondateur a retenu ce bleu et cette règle de forme le 2026-10-29 (§11.9, F3).
 
 **Données** (graphiques seulement, chaque série étiquetée directement, jamais pour un état ou un rôle)
 
@@ -683,13 +683,22 @@ superposés doivent s'aligner) ; à défaut, les montants passent en Source Sans
 | `border-width-action-secondary` *(nouveau)* | 1 px dans les espaces (KEO), 2 px en vitrine (actuel) | Contour du bouton secondaire |
 | `focus-ring-offset-inset` *(nouveau, dérivé)* | `calc(-1 * var(--focus-ring-width))` | Anneau intérieur là où un anneau extérieur serait rogné (barre du bas) |
 
-**Élévation sur fond noir.** Les cartes sont plates : surface + `border-default`, ni ombre ni
-soulèvement. `shadow-lg` est réservé aux couches au-dessus de la page (dialogue, menu, palette `⌘K`),
-sur `overlay-scrim`. Aucun halo, aucune ombre colorée.
+**Élévation sur fond noir.** Au repos, les cartes sont plates : surface + `border-default`, sans
+ombre. `shadow-lg` est réservé aux couches au-dessus de la page (dialogue, menu, palette `⌘K`), sur
+`overlay-scrim`. **Ombre lumineuse du bouton principal** (F6, fondateur, 2026-10-29) : par un token
+d'ombre de rôle dérivé du vert de marque, sans valeur nouvelle ; décorative, elle ne remplace jamais
+l'anneau `focus-ring` et disparaît sur un bouton désactivé. **Halo** (F6, fondateur, 2026-10-29) : un halo
+ambiant derrière l'en-tête d'un espace, par un token de rôle sous KEO (aucun token de la vitrine,
+aucune valeur nouvelle : dérivé du vert de marque), défini par `expert-ux` à DS-5 ; décoratif, il ne
+porte aucune information et ne fait jamais passer un texte sous l'AA calculé.
 
-**Mouvement.** Transitions de couleur seulement (`duration-fast`, `ease-standard`), jamais
-`transition: all`, aucune transformation (ni agrandissement, ni soulèvement). Sous
-`prefers-reduced-motion`, durées à zéro et balayage du squelette supprimé (`animation: none`).
+**Mouvement.** Transitions de couleur (`duration-fast`, `ease-standard`), jamais `transition: all`.
+**Agrandissement au survol et soulèvement des cartes gardés** (F6, fondateur, 2026-10-29, contre la
+recommandation) : transformation d'état (`scale`, `translate`) **sous `motion-safe:` seulement**,
+propriétés de transition nommées (couleurs et `transform`), durées par tokens ; la transformation ne
+déplace pas la mise en page et l'anneau de focus reste entier. Réduction à l'appui écartée. Sous
+`prefers-reduced-motion`, aucune transformation, durées à zéro et balayage du squelette supprimé
+(`animation: none`).
 
 ### 11.6 Ce qu'on ne prend pas de la maquette
 
@@ -707,8 +716,8 @@ montants, « Brouillon sauvegardé automatiquement ».
 | K5 | « Match brief : Audience B2B SaaS compatible » et son point bleu | Pas de matching au MVP (D11) ; une suggestion dit « Proposé car : … » avec des raisons vérifiables (`10` RG41) ; point de couleur seul (P7) | « Proposé car : … » quand la suggestion existera |
 | K6 | Émoji cadenas dans l'onglet d'aparté | Rendu variable selon le système, hors tokens, nom accessible imprévisible | Icône `lucide` `lock`, décorative, et texte (§7) |
 | K7 | Commission convenue en vert | Un montant vert se lit comme un gain ou un lien | `text-primary`, chiffres tabulaires, provenance (§6, `17b` §4.10) |
-| K8 | Halo vert (`spotify-ambient-glow`), ombre lumineuse du bouton | Effets réservés à la vitrine (D59) ; dans un outil quotidien ils ralentissent la lecture (`17` §8.1) ; signature de Spotify (§11.7) | Surfaces à filet, sans effet |
-| K9 | Agrandissement au survol, réduction à l'appui, carte qui se soulève, `transition: all` | Mouvement à chaque survol dans un outil de huit heures, non coupé par `prefers-reduced-motion`, décalage de mise en page | Transition de couleur seule (§11.5) |
+| K8 | Halo vert (`spotify-ambient-glow`), ombre lumineuse du bouton | Halo **gardé** par le fondateur (F6, 2026-10-29), de même que l'ombre lumineuse du bouton ; `spotify-ambient-glow` est nommé par référence (K20) | Halo ambiant d'en-tête et ombre lumineuse du bouton principal par tokens de rôle (§11.5) |
+| K9 | Agrandissement au survol, réduction à l'appui, carte qui se soulève, `transition: all` | Agrandissement et soulèvement **gardés** par le fondateur (F6, 2026-10-29) ; dans la maquette, non coupés par `prefers-reduced-motion`, en `transition: all`, avec décalage de mise en page ; la réduction à l'appui reste écartée | Agrandissement et soulèvement sous `motion-safe:`, transitions nommées, sans décalage (§11.5) |
 | K10 | Textes en 11 px (surtitres, provenance, légendes) | Sous le plancher de 12 px, en gris et en capitales de surcroît | `text-xs` minimum |
 | K11 | Carte anonymisée avec « 14 vidéos » et « 420 / post » exacts, « Rythme » en vert, identifiant `#CRT-84920` | Avant la révélation, métriques en tranches (D61, `10` F24-F25) ; une carte se réfère à un alias, jamais à un identifiant de compte (`10` RG65) | Tranches, alias, `text-primary` |
 | K12 | Badge « Vérifié INFLUX » générique, près du titre | Badge par réseau, daté, avec ce qu'il n'affirme pas (`08` RG4, RG10) ; une coche bleue près d'un nom imite celle des réseaux sociaux | Badge vérifié (§11.3, §11.8) |
@@ -732,10 +741,10 @@ ressemblance. Test de §1 : *sans le logo, reconnaît-on INFLUX ou Spotify ?*
 | Signature de Spotify | Dans la maquette | Traitement INFLUX |
 |---|---|---|
 | Vert vif sur noir | `#1dd68a` sur `#0a0b0a` | Gardé (choix du fondateur). Plus émeraude (155° contre 141° pour le vert de Spotify), et **rare** : action principale, indicateur d'item actif, sélection ; jamais en texte courant, sur un montant ou un état |
-| Panneaux arrondis flottants séparés par des gouttières noires | Cartes partout | Colonne pleine hauteur à filet (Railway), contenu posé sur la page ; les cartes groupent, elles n'encadrent jamais la navigation |
-| Halos de couleur derrière les en-têtes | `spotify-ambient-glow` | Aucun (K8) |
-| Boutons qui grossissent, cartes qui se soulèvent | `scale`, `translateY` | Aucun (K9) |
-| La grande pilule verte comme geste central | Bouton principal | Gardée : une seule action principale par écran, libellé verbe + objet, sans ombre |
+| Panneaux arrondis flottants séparés par des gouttières noires | Cartes partout | Autorisés là où ils sont pertinents (choix du fondateur, F6), jugés par `expert-ux` écran par écran ; la colonne de navigation garde son gabarit (`17` §2.2) tant que la relecture de DS-6 ne le change pas |
+| Halos de couleur derrière les en-têtes | `spotify-ambient-glow` | Gardé (choix du fondateur, F6) : token de rôle, décoratif (K8) |
+| Boutons qui grossissent, cartes qui se soulèvent | `scale`, `translateY` | Gardés (choix du fondateur, F6) sous `motion-safe:` ; réduction à l'appui écartée (K9) |
+| La grande pilule verte comme geste central | Bouton principal | Gardée : une seule action principale par écran, libellé verbe + objet, ombre lumineuse par token (F6) |
 | Grilles de vignettes carrées | — | Les espaces montrent des listes, des tableaux et des personnes nommées |
 
 **Ce qui signe INFLUX** et doit se voir sur chaque gabarit : le commercial nommé (« Prénom —
@@ -743,7 +752,8 @@ INFLUX », P5), les statuts écrits et datés (P6), la provenance à côté de c
 de couleurs de rôle en marque visuelle, la barre violette de la vue identifiée au backoffice.
 
 **En revue :** une capture de chaque gabarit, logo masqué, montrée à deux personnes extérieures au
-projet. Si l'une cite Spotify en premier, on retire d'abord un effet, jamais une couleur.
+projet. Si l'une cite Spotify en premier, on renforce d'abord les signatures INFLUX ; retirer un effet
+gardé par le fondateur (F6) ou une couleur revient au fondateur.
 
 ### 11.8 Gabarits et composants
 
@@ -796,8 +806,8 @@ sans objet.
 |---|---|---|
 | F1 | Étendre la charte KEO aux pages légales publiques ? | Défaut arbitré par `chef-de-projet` : pages légales publiques en vitrine, texte des CGU affiché dans le parcours en KEO (§11.1, `02` §21.2). **Tranché (2026-10-29) : défaut confirmé**, pages légales publiques en vitrine |
 | F2 | Deux verts de marque | Un seul vert, `#1dd68a`, vitrine comprise, revue visuelle D59 avant la mise en ligne de la vitrine ; le mécanisme n'en dépend pas (§11.1). **Tranché (2026-10-29) : oui**, commit DS-14 |
-| F3 | Badge vérifié en bleu (KEO) plutôt qu'en vert | Oui, avec la règle de forme : jamais une coche seule, jamais collée à un nom (§11.3) |
+| F3 | Badge vérifié en bleu (KEO) plutôt qu'en vert | Oui, avec la règle de forme : jamais une coche seule, jamais collée à un nom (§11.3). **Tranché (2026-10-29) : oui** |
 | F4 | Couleurs de rôle sable et rose | Marque visuelle seulement, liste fermée de quatre usages (§11.3) |
 | F5 | Affectations différentes de la maquette, sans valeur nouvelle | Succès sous KEO en `#3ccfcf` (teinte « séquestre » de KEO, réaffectée : 25° du vert d'action, contre 17° pour `#2dd4bf`), vitrine inchangée ; rouge D72 conservé ; fonds `rgba` remplacés par les fonds opaques validés ; contour du bouton secondaire en `#78827d` pour rester ≥ 3:1 ; badge séquestre, vert « disponible », `surface-5` et trois couleurs de données non repris (§11.3, §11.6) |
-| F6 | Effets « Spotify » de la maquette (halo, agrandissement, soulèvement, panneaux flottants) | Écartés (§11.6, §11.7) |
+| F6 | Effets « Spotify » de la maquette (halo, agrandissement, soulèvement, panneaux flottants) | Écartés (§11.6, §11.7). **Tranché (2026-10-29), contre la recommandation : halo, agrandissement au survol et soulèvement gardés** (sous `motion-safe:` seulement, jamais `transition: all`, durées et halo par tokens, §11.5) ; ombre lumineuse du bouton gardée, panneaux flottants autorisés là où ils sont pertinents (jugement `expert-ux`, écran par écran) ; réduction à l'appui écartée |
 | F7 | Backoffice sur petit écran : compromis arbitré par `chef-de-projet` | De 768 à 1 023 px, backoffice complet avec la navigation en liste horizontale (fenêtre en demi-écran d'un poste de 1 920 px) ; sous 768 px, aucun contenu métier jusqu'aux vues D58 (`17b` §1.7). Effet de bord à connaître : un téléphone tenu à l'horizontale dépasse souvent 768 px et voit alors le backoffice complet |

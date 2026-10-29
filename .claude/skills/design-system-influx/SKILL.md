@@ -58,8 +58,9 @@ Les références citées (Linear, Stripe, Intercom, Airbnb, Railway…) apporten
 une file triable au clavier, une chronologie d'affaire, une colonne de navigation fixe à gauche.
 **Leur style visuel n'est jamais repris** : le style vient uniquement des tokens.
 Test en revue : *sans le logo, reconnaît-on INFLUX, ou la référence ?* La maquette KEO se dit
-inspirée de Spotify : sa palette est retenue, ses signatures (panneaux flottants, halos,
-agrandissement au survol) ne le sont pas (`20` §11.7).
+inspirée de Spotify : sa palette est retenue, ainsi que le halo d'en-tête, l'agrandissement au
+survol, le soulèvement des cartes (F6, sous `motion-safe:`), l'ombre lumineuse du bouton principal,
+et les panneaux flottants là où ils sont pertinents (`20` §11.7).
 Carte des références par surface : `docs/mvp/20-direction-design.md` §3.
 
 ## Trois registres visuels
@@ -121,7 +122,7 @@ marque casse la sémantique des états, et un état ressemble à une action.
 | **Rouge sur surface claire** | Le texte d'erreur tient 4,53:1 sur `surface-hover`, 3,91:1 sur `surface-active` : jamais au-delà de `surface-hover` |
 | **Translucide** | Pas de fond en `rgba` pour une couleur d'état : sa valeur change selon la surface et son contraste devient invérifiable. Interdit pour le rouge (G3b), évité partout ailleurs |
 | **Émeraude et sarcelle** | La sarcelle de la vitrine `#2dd4bf` n'est qu'à 17° du vert KEO : sous KEO, le succès est `#3ccfcf` (25°). Toute nouvelle teinte de succès ou d'action se vérifie contre le seuil de 20° (G3d) ; la forme reste un second séparateur (plein = action ; succès en contour + icône + mot) |
-| **Ressemblance avec Spotify** | Vert vif sur noir et pilules : aucun halo, aucune ombre lumineuse, aucun agrandissement au survol, pas de panneaux flottants (`20` §11.7) |
+| **Ressemblance avec Spotify** | Vert vif sur noir, pilules, halo, ombre lumineuse du bouton, agrandissement, soulèvement et panneaux flottants (gardés, F6) : les signatures INFLUX doivent se voir sur chaque gabarit ; panneau flottant seulement s'il sert l'écran (`20` §11.7) |
 | **Polices** | `next/font/local`, fichiers variables versionnés, sous-ensembles latins, métriques de repli ajustées ; **aucun appel à Google Fonts** (`next/font/google` interdit) ; chargées par les deux seules mises en page KEO, jamais par la vitrine |
 | **E-mails** | Les clients de messagerie inversent les couleurs à leur manière. Un e-mail (dont le **code de connexion**, D43) a son propre gabarit, **testé en clair et en sombre** ; ce n'est pas une copie du dark theme |
 | **Lecture en extérieur** | Un fond sombre se lit moins bien en plein soleil. Les écrans créateur se testent **dehors, sur un vrai téléphone**, pas seulement au bureau |
@@ -165,7 +166,7 @@ marque casse la sémantique des états, et un état ressemble à une action.
 - [ ] Texte de 12 px au moins (`text-xs`).
 - [ ] Cibles tactiles d'au moins `size-touch-target` dans les espaces membres ; au moins 24 px
       au backoffice (`size-bo-control`).
-- [ ] Aucune transformation au survol ; animations désactivées sous `prefers-reduced-motion` (les
+- [ ] Transformation au survol sous `motion-safe:` seulement, jamais `transition-all` ; animations désactivées sous `prefers-reduced-motion` (les
       durées passent à `duration-instant`, les animations en boucle à `none`).
 
 ## Checklist INFLUX spécifique
@@ -191,8 +192,10 @@ marque casse la sémantique des états, et un état ressemble à une action.
       influenceur.
 - [ ] **Couleurs de rôle** : marque visuelle seulement, à côté du rôle écrit, dans la liste fermée
       d'usages (`20` §11.3) ; jamais sur un nom, un fond ou un bouton.
-- [ ] **Aucun effet décoratif dans les espaces connectés** (halo, ombre lumineuse, agrandissement,
-      soulèvement) ; les effets restent à la vitrine (D59).
+- [ ] **Effets des espaces connectés limités à F6** : halo d'en-tête par token de rôle,
+      ombre lumineuse du bouton principal par token, agrandissement au survol et soulèvement des
+      cartes sous `motion-safe:`, panneaux flottants seulement s'ils sont pertinents ; ni réduction
+      à l'appui, ni token de la vitrine (D59) (`20` §11.5).
 - [ ] **Complétude du profil visible et désirable**, et factuelle.
 - [ ] **Recherche et suggestions explicables** : « Proposé car : … », jamais un score en
       pourcentage (le scoring algorithmique est reporté, D11).

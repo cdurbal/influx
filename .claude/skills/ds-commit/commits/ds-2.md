@@ -2,7 +2,7 @@
 
 Rien ne s'active : aucun rendu ne change (G3e et TD4 verts sans toucher leurs fixtures).
 
-**Lire :** `02@2326+48` (§21.3), `02@2508+20` (§21.8), `20@444+152` (§11.3, table), `20@596+42`
+**Lire :** `02@2326+48` (§21.3), `02@2509+20` (§21.8), `20@444+152` (§11.3, table), `20@596+42`
 (§11.4), `18@1077+29` (G3, G3b, G3c, G3d, G3f), `18@1693+15` (§12.5, points 1 et 2).
 
 **Livrer :**

@@ -2220,8 +2220,10 @@ Mention fixe, immédiatement dessous, jamais repliée.
 tokens appartiennent au registre **éditorial** de la landing. Un espace de travail consulté tous
 les jours n'a pas besoin d'effets premium sur chaque carte : ils ralentissent la lecture et
 alourdissent le rendu d'une grille de 12 cartes. *(Révisé le 2026-10-28, D73)* :
-`background-image-halo-ambient` n'est plus employé non plus, même une fois par espace — aucun effet
-décoratif dans les espaces connectés (`20` §11.6, K8).
+`background-image-halo-ambient` (vitrine) n'est plus employé non plus. *(Révisé le 2026-10-29, F6)* :
+le fondateur garde un halo d'en-tête et l'ombre lumineuse du bouton principal, par des tokens de rôle
+propres à KEO, l'agrandissement au survol et le soulèvement des cartes sous `motion-safe:`, et les
+panneaux flottants là où ils sont pertinents (`20` §11.5 à §11.7, K8, K9).
 
 **Tokens `*-inverse` :** aucune section claire pleine largeur (décision du fondateur du 2026-09-17).
 Seuls `surface-inverse` et `text-inverse` servent, en accents de petite taille : pastille de compteur

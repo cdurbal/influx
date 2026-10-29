@@ -17,7 +17,7 @@ N est le nombre qui suit `ux` dans les arguments. Aucun fichier du dépôt modif
 écrites dans le scratchpad, à 375 et 1440 px sauf indication contraire. Supprime la spec ensuite ; elle
 n'est jamais commitée.
 
-**Grille :** `20@727+21` (§11.7, test du logo), `20@694+33` (§11.6). Exception à la règle de session :
+**Grille :** `20@736+22` (§11.7, test du logo), `20@703+33` (§11.6). Exception à la règle de session :
 tu peux ouvrir `design-proposals/proposition-4-keo-emerald.html` pour comparer (écarts K1 à K23).
 
 **Sortie :** écarts classés (bloquant / à corriger au commit suivant / accepté).

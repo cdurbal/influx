@@ -2463,9 +2463,10 @@ Les groupes ne changent aucune URL : chemins localisés, `memberPageLocale` et r
 6. **Icônes** : `lucide-react`, déjà épinglée dans les deux fronts, par le seul module `icons.ts` de
    chaque front (rendu obligatoire par ESLint) ; ni seconde bibliothèque, ni police d'icônes.
 7. **Mouvement** : les durées tombent déjà à zéro sous `prefers-reduced-motion` (`tokens.css`) ;
-   **aucune transformation d'état** (agrandissement, décalage, soulèvement au survol ou à l'appui) sous
-   KEO, `motion-safe:` compris : transitions de couleur seulement (`20` §11.5 ; arbitrage
-   `chef-de-projet` du 2026-10-28, la règle la plus stricte l'emporte) ; aucune navigation animée.
+   sous KEO, **agrandissement au survol et soulèvement des cartes sous `motion-safe:` seulement**
+   (F6, fondateur, 2026-10-29, amende l'arbitrage `chef-de-projet` du 2026-10-28 qui les excluait) ;
+   jamais `transition-all`, aucune transformation d'état hors `motion-safe:`, aucune réduction à
+   l'appui (`20` §11.5) ; aucune navigation animée.
 8. **Backoffice** : rail à partir de `lg` (`--spacing-bo-rail-w`, 15 rem, `17b` §6.1), bande de tête de
    `17b` §1.4 ; **entre `md` et `lg`**, le même `<nav>` devient une liste horizontale compacte et le
    backoffice reste complet (fenêtre demi-écran d'un poste de travail) ; **sous `md`** (téléphone), un
@@ -2503,7 +2504,7 @@ Les lecteurs de blocs (`@theme`, bloc KEO), la fermeture des alias et l'écart d
 Quatorze commits ordonnés (DS-14 ajouté par F2), dans la fiche `docs/mvp/jalons/ds-fiche.md`. Préalables : table de
 correspondance d'`expert-ux` avant DS-2 (faite le 2026-10-28, `20` §11.3) ; anatomie des gabarits
 avant DS-6 et DS-10 (faite, `17` §2.2–2.3, `17b` §1.7) ; entrées des Lots 2 à 5 omises (point 9,
-tranché) ; points F1 à F7 du fondateur (`20` §11.9 ; F1, F2, F4, F5 tranchés).
+tranché) ; points F1 à F7 du fondateur (`20` §11.9 ; F1 à F6 tranchés, F7 ouvert).
 
 ### 21.8 Risques et réversibilité
 

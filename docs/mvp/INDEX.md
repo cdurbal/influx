@@ -100,7 +100,7 @@
 | 2265 | 9 | ↳ 20.11 Points à faire valider par le fondateur |  |
 | 2274 | 13 | ↳ 20.12 Ce que cet addendum demande aux autres agents |  |
 | 2287 | 7 | ↳ Sources (vérifiées le 2026-09-24) |  |
-| 2294 | 251 | 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits) | RG7–RG107 |
+| 2294 | 252 | 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits) | RG7–RG107 |
 
 ## 03-matrice-des-droits-et-rls.md (~51k tokens)
 
@@ -557,10 +557,10 @@
 | 1728 | 23 | ↳ 5.8 C9 — Conversation, et les autres écrans créateur | RG5–RG102 |
 | 1751 | 168 | 6. Écrans transverses | RG14–RG143 |
 | 1919 | 271 | 7. Les deux écrans qui portent la valeur et le risque | RG4–RG113 |
-| 2190 | 103 | 8. Tokens |  |
-| 2293 | 36 | 9. Écarts et manques constatés | RG2–RG112 |
-| 2329 | 46 | 10. Ce qui reste à valider | RG6–RG109 |
-| 2375 | 51 | 11. Récapitulatif des écrans spécifiés |  |
+| 2190 | 105 | 8. Tokens |  |
+| 2295 | 36 | 9. Écarts et manques constatés | RG2–RG112 |
+| 2331 | 46 | 10. Ce qui reste à valider | RG6–RG109 |
+| 2377 | 51 | 11. Récapitulatif des écrans spécifiés |  |
 
 ## 17b-parcours-et-ecrans-backoffice.md (~61k tokens)
 
@@ -645,7 +645,7 @@
 | 214 | 24 | 4. Questions ouvertes des spécifications |  |
 | 238 | 24 | 5. Suites | RG113–RG146 |
 
-## 20-direction-design.md (~22k tokens)
+## 20-direction-design.md (~23k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -659,16 +659,16 @@
 | 326 | 17 | 8. Angles morts du dark theme |  |
 | 343 | 13 | 9. Questions ouvertes | RG116–RG130 |
 | 356 | 24 | 10. Tokens proposés |  |
-| 380 | 425 | 11. Charte KEO Emerald des espaces connectés (D73) | RG1–RG65 |
+| 380 | 435 | 11. Charte KEO Emerald des espaces connectés (D73) | RG1–RG65 |
 | 391 | 39 | ↳ 11.1 Périmètre et frontière |  |
 | 430 | 14 | ↳ 11.2 Ce qui ne change pas |  |
 | 444 | 152 | ↳ 11.3 Correspondance KEO → tokens INFLUX | RG1–RG10 |
 | 596 | 42 | ↳ 11.4 Contrastes calculés |  |
-| 638 | 56 | ↳ 11.5 Typographie, formes, élévation, mouvement |  |
-| 694 | 33 | ↳ 11.6 Ce qu'on ne prend pas de la maquette | RG4–RG65 |
-| 727 | 21 | ↳ 11.7 Test du logo : INFLUX, pas Spotify |  |
-| 748 | 45 | ↳ 11.8 Gabarits et composants |  |
-| 793 | 12 | ↳ 11.9 Points soumis au fondateur |  |
+| 638 | 65 | ↳ 11.5 Typographie, formes, élévation, mouvement |  |
+| 703 | 33 | ↳ 11.6 Ce qu'on ne prend pas de la maquette | RG4–RG65 |
+| 736 | 22 | ↳ 11.7 Test du logo : INFLUX, pas Spotify |  |
+| 758 | 45 | ↳ 11.8 Gabarits et composants |  |
+| 803 | 12 | ↳ 11.9 Points soumis au fondateur |  |
 
 ## 21-plan-de-developpement.md (~18k tokens)
 

@@ -85,7 +85,7 @@ sur 4G, paires de couleurs hors matrice (`18` §8, lignes 15 à 22).
 | Navigation | Un seul `<nav>` « Navigation principale », rendu une fois et restylé en CSS (barre du bas < `lg`, colonne ≥ `lg`) ; aucun repli persisté (aucune API de stockage, D37) | `architecte`, `expert-ux` | `02` §21.5, `17` §2.2 |
 | Entrées sans écran | **Masquées** jusqu'à leur lot ; une entrée apparue ne disparaît plus ; gabarit conçu et testé pour 5 entrées (membres) et 7 (backoffice) | `chef-de-projet` | `17` §2.1, `17b` §1.7 |
 | Backoffice sous `lg` | Entre `md` et `lg` : backoffice complet, navigation compacte horizontale (fenêtre demi-écran d'un commercial). Sous `md` : écran « poste de travail », sans contenu métier, jusqu'aux vues D58 | `chef-de-projet` (compromis entre `architecte` et `expert-ux`) ; F7 ouvert au fondateur | `17b` §1.7, §7.2 M4 |
-| Effets | Transitions de couleur seulement ; aucun halo, agrandissement ni soulèvement au survol, **`motion-safe:` compris** (la règle la plus stricte l'emporte sur `02` §21.5 point 7, amendé) | `expert-ux` ; `chef-de-projet` | `20` §11.5 à §11.7 |
+| Effets | **Halo d'en-tête, agrandissement au survol et soulèvement des cartes gardés**, sous `motion-safe:` seulement, jamais `transition: all`, durées et halo par tokens ; ombre lumineuse du bouton principal gardée (token) ; panneaux flottants autorisés là où ils sont pertinents (jugement `expert-ux`, écran par écran) ; réduction à l'appui écartée | Fondateur (F6, 2026-10-29, contre la recommandation ; amende l'arbitrage `chef-de-projet` du 2026-10-28) | `20` §11.5 à §11.7, `02` §21.5 point 7 |
 | Pages autonomes | Parcours, CGU à ré-accepter, déconnecté, compte supprimé : aucune navigation principale | `expert-ux` | `20` §11.8, `02` §21.5 point 9 |
 | Icônes | `lucide-react` (déjà épinglé) par le seul `icons.ts` de chaque front, règle ESLint | `architecte` | `02` §21.5 |
 
@@ -97,10 +97,10 @@ DS-1 (gardes et instantané de la vitrine) peut commencer sans attendre.
 |---|---|---|---|
 | F1 | Frontière : faut-il passer aussi les pages légales publiques en KEO ? | **Tranché (2026-10-29) : non**, pages légales publiques en vitrine (défaut confirmé) | DS-4 |
 | F2 | **Un seul vert de marque**, landing comprise (`#29e075` en vitrine, `#1dd68a` dans les espaces, deux écrans consécutifs) ? | **Tranché (2026-10-29) : oui**, `#1dd68a` partout, revue visuelle D59 ; commit DS-14 ajouté, G3e mise à jour par liste explicite | DS-14 |
-| F3 | Badge « vérifié » en bleu, jamais une coche seule ni collée à un nom | Oui | DS-5 |
+| F3 | Badge « vérifié » en bleu, jamais une coche seule ni collée à un nom | **Tranché (2026-10-29) : oui** | DS-5 |
 | F4 | Couleurs de rôle sable (marque) et rose (créateur) : marque visuelle seulement, liste fermée de quatre usages | **Tranché (2026-10-28) : oui** | DS-2 |
 | F5 | Affectations différentes de la maquette, sans valeur nouvelle (succès, rouge D72, fonds opaques, contour secondaire `#78827d`, séquestre et surface 5 non repris) | **Tranché (2026-10-28) : oui** | DS-2 |
-| F6 | Effets de type Spotify écartés | Oui | DS-5 |
+| F6 | Effets de type Spotify écartés | **Tranché (2026-10-29) : non**, halo, ombre lumineuse du bouton, agrandissement et soulèvement gardés (sous `motion-safe:`) ; panneaux flottants si pertinents | DS-5 |
 | F7 | Backoffice : rien de métier sur téléphone avant D58, navigation compacte entre `md` et `lg` | Oui (compromis ci-dessus) | DS-10 |
 
 Le détail argumenté est dans `20` §11.9 ; la décision du fondateur s'inscrit dans D73.
@@ -118,7 +118,7 @@ règle 5), plus `pnpm test:e2e` pour tout commit qui touche un écran. Une ligne
 | DS-2 | `feat(tokens): KEO theme block in tokens.css (D73)` | Bloc `[data-theme="keo"]` (table `20` §11.3), rôles nouveaux déclarés dans `@theme`, tokens de gabarit (colonne, barre du bas, `z-nav-bottom`) ; copie octet pour octet dans le backoffice ; G3c, G3d, G3b par charte | Palette AA par calcul, alias fermés, vitrine inchangée ; aucun écran modifié |
 | DS-3 | `feat(fonts): self-hosted Manrope and Source Sans 3 (OFL)` | Quatre woff2, licences OFL, `FONTS.md`, `src/styles/fonts.ts` par front ; règle ESLint ; G4f | Licence, empreintes, budget, copies identiques ; nom de famille commun `latin`/`latin-ext` et chiffres tabulaires vérifiés (sinon `latin` seul, consigné) |
 | DS-4 | `feat(web): KEO boundary for the member pages` | Groupes `(member)` et `(member)/(space)` (URL inchangées), attribut et polices, `error`/`not-found` de `(member)` ; G8 | Parcours, accueils et « Mon compte » en KEO ; landing et pages légales inchangées ; e2e existants verts |
-| DS-5 | `feat(web): member primitives in the KEO theme` | `components/member/ui` (boutons pilule, carte, champs, notices, pastille d'état, compteur « 9+ », en-tête de page) ; `auth-classes.ts` et `account-classes.ts` repointés ; icônes ; G7 étendue ; G3g (couleurs de rôle confinées), G3h | Tokens seuls, aucun conflit de classes, aucune transformation d'état ; primitives partagées avec la landing sans changer son empreinte (TD4) |
+| DS-5 | `feat(web): member primitives in the KEO theme` | `components/member/ui` (boutons pilule, carte, champs, notices, pastille d'état, compteur « 9+ », en-tête de page) ; `auth-classes.ts` et `account-classes.ts` repointés ; icônes ; G7 étendue ; G3g (couleurs de rôle confinées), G3h | Tokens seuls, aucun conflit de classes, transformation d'état sous `motion-safe:` seulement (F6, G8 assouplie), halo par token de rôle ; primitives partagées avec la landing sans changer son empreinte (TD4) |
 | DS-6 | `feat(web): member shell with side column and bottom bar` | `(space)/layout.tsx`, `MemberShell` (session relue au montage et à chaque chemin, CGU), `member-nav.ts`, un seul `<nav>` restylé, bloc d'état à partir de `lg`, `member.json` FR/EN (garde de parité amendée) ; G9 (lecture de session confinée aux coquilles) | Un seul repère à 375 et 1 440 px, `aria-current`, rien sous la barre, redirections de rôle (`17` §2.5) et CGU (`05` RG28) intactes ; aucune navigation sur les pages autonomes |
 | DS-7 | `feat(web): KEO sign-in and sign-up screens` | Les trois écrans du parcours et leurs états (`17` §3) | axe à chaque étape ; aucun appel réseau ajouté (`05` RG113) |
 | DS-8 | `feat(web): KEO homes and account screens` | Accueils (`17` §2.4), informations, préférences, sessions, données et zone de danger (D72) | axe ; rouge opaque intact (G3b) |
@@ -133,7 +133,7 @@ règle 5), plus `pnpm test:e2e` pour tout commit qui touche un écran. Une ligne
 
 | Ordre | Agent | Question |
 |---|---|---|
-| 1 | Fondateur | F3, F6, F7 (ci-dessus ; F1, F2, F4 et F5 tranchés) |
+| 1 | Fondateur | F7 (ci-dessus ; F1 à F6 tranchés) |
 | 2 | `testeur` | DS-1 : lecteur de valeur effective, instantané et empreinte de la vitrine, filet global A-7 ; puis les gardes G3c à G9 au fil des commits (`18` §5.1) |
 | 3 | `dev-react-node` | DS-2 à DS-12 |
 | 4 | `expert-ux` | Relecture visuelle à DS-6, DS-8, DS-10 et DS-12 (test du logo, `20` §11.7) ; recette en extérieur sur téléphone |
@@ -156,7 +156,7 @@ change (`CLAUDE.md` §7 règle 5).
 
 | Sujet | Arbitre | Échéance |
 |---|---|---|
-| F3, F6, F7 | Fondateur | F3, F6 avant DS-5 ; F7 avant DS-10 (F4, F5 tranchés le 2026-10-28 ; F1, F2 le 2026-10-29) |
+| F7 | Fondateur | Avant DS-10 (F4, F5 tranchés le 2026-10-28 ; F1, F2, F3, F6 le 2026-10-29) |
 | Libellé « Candidatures » (12 caractères, limite de 11 de la barre du bas maintenue, `17` §2.2) | `expert-marketing` | Lot 3 (entrée masquée jusque-là) |
 | Repli de la colonne, s'il est demandé : état non persisté | `expert-ux` + `architecte` | Après le pilote |
 
@@ -164,7 +164,7 @@ change (`CLAUDE.md` §7 règle 5).
 
 | Risque | Parade |
 |---|---|
-| On reconnaît Spotify plutôt qu'INFLUX (P1) | Effets écartés, vocabulaire et formes propres à INFLUX, test du logo à chaque relecture (`20` §11.7) |
+| On reconnaît Spotify plutôt qu'INFLUX (P1), d'autant que les effets de la maquette sont gardés (F6) | Panneaux flottants réservés aux écrans où ils servent, vocabulaire et formes propres à INFLUX, test du logo à chaque relecture (`20` §11.7) ; un effet gardé ne se retire que par le fondateur |
 | Vert d'action et succès confondus (teintes proches) | Seuil de teinte vérifié par G3d ; le plein réservé à l'action, le succès jamais en fond plein (`20` §11.3) |
 | Un alias garde sa valeur vitrine sous KEO (résolu sur `:root`) | Redéclaration dans le bloc KEO, garde G3c (fermeture des alias) |
 | Une modale rendue hors du conteneur perd la charte | Aucun `createPortal` sous KEO, `<dialog>` natif sur place (G8) |
