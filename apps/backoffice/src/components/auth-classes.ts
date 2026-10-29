@@ -14,14 +14,24 @@ export const SCREEN_CLASSES = cn(
   "px-page-gutter py-section-header",
 );
 
-export const BRAND_CLASSES = "text-md font-bold text-text-primary";
+/** The standalone head of a page: INFLUX, a step line when there is one, then the glow of F6. */
+export const AUTH_HEAD_CLASSES = "relative isolate flex flex-col gap-3 py-4";
 
-export const TITLE_CLASSES = "text-heading-3 font-bold text-text-primary";
+/** Decorative, valued under KEO only (20 §11.5); behind the title, never over a control. */
+export const AUTH_GLOW_CLASSES =
+  "pointer-events-none absolute inset-0 z-(--z-behind) bg-header-glow";
+
+export const BRAND_CLASSES =
+  "font-display text-md font-bold tracking-heading text-text-primary";
+
+export const TITLE_CLASSES = cn(
+  "font-display text-title-page font-extrabold tracking-heading text-text-primary",
+);
 
 export const LEAD_CLASSES = "text-md text-text-secondary";
 
 export const CARD_CLASSES = cn(
-  "flex flex-col gap-4 rounded-lg border-(length:--border-width-thin) border-border-default",
+  "flex flex-col gap-4 rounded-card border-(length:--border-width-thin) border-border-default",
   "bg-surface-card p-inset-card",
 );
 
@@ -36,17 +46,27 @@ export function inputClasses(hasError: boolean): string {
   );
 }
 
+/** The KEO pill: the hover zoom (F6) under `motion-safe:` and off when disabled; never `transition-all`. */
+const BUTTON_BASE_CLASSES = cn(
+  "inline-flex items-center justify-center gap-2 text-center font-display text-md font-action leading-snug",
+  "transition-lift motion-safe:not-aria-disabled:not-disabled:hover:scale-(--scale-hover)",
+  "aria-disabled:cursor-not-allowed disabled:cursor-not-allowed",
+);
+
 export const PRIMARY_BUTTON_CLASSES = cn(
-  "inline-flex min-h-(--size-button-lg) w-full items-center justify-center rounded-pill",
-  "bg-action-primary-bg px-inset-button-x py-inset-button-y font-medium text-text-on-action",
+  BUTTON_BASE_CLASSES,
+  "min-h-(--size-button-lg) w-full rounded-pill",
+  "bg-action-primary-bg px-inset-button-x py-inset-button-y text-text-on-action shadow-action-glow",
   "hover:bg-action-primary-bg-hover active:bg-action-primary-bg-active",
+  "aria-disabled:shadow-none disabled:bg-action-disabled-bg disabled:text-text-disabled disabled:shadow-none",
 );
 
 export const SECONDARY_BUTTON_CLASSES = cn(
-  "inline-flex min-h-(--size-button-md) items-center justify-center rounded-pill",
-  "border-(length:--border-width-thick) border-action-secondary-border bg-action-secondary-bg",
-  "px-inset-button-x py-inset-button-y font-medium text-text-primary",
-  "hover:bg-action-secondary-bg-hover",
+  BUTTON_BASE_CLASSES,
+  "min-h-(--size-button-md) rounded-pill",
+  "border-(length:--border-width-action-secondary) border-action-secondary-border bg-action-secondary-bg",
+  "px-inset-button-x py-inset-button-y text-text-primary",
+  "hover:border-action-secondary-border-hover hover:bg-action-secondary-bg-hover active:bg-action-secondary-bg-active",
 );
 
 export const TEXT_BUTTON_CLASSES = cn(

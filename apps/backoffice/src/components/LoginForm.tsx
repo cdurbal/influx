@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { messages } from "@/messages/fr";
 import {
-  BRAND_CLASSES,
   CARD_CLASSES,
   HELP_CLASSES,
   inputClasses,
@@ -18,8 +17,8 @@ import {
   PRIMARY_BUTTON_CLASSES,
   SCREEN_CLASSES,
   TEXT_BUTTON_CLASSES,
-  TITLE_CLASSES,
 } from "./auth-classes";
+import { AuthHeader } from "./AuthHeader";
 import { signIn } from "./backoffice-auth";
 import { ErrorNotice } from "./ErrorNotice";
 
@@ -131,10 +130,7 @@ export function LoginForm() {
 
   return (
     <main id="main" className={SCREEN_CLASSES}>
-      <p className={BRAND_CLASSES}>{t.brand}</p>
-      <h1 ref={titleRef} tabIndex={-1} className={TITLE_CLASSES}>
-        {t.login.title}
-      </h1>
+      <AuthHeader title={t.login.title} titleRef={titleRef} />
       <p className={LEAD_CLASSES}>{t.login.lead}</p>
       <form noValidate onSubmit={submit} className={CARD_CLASSES}>
         <label htmlFor={ids.email} className={LABEL_CLASSES}>

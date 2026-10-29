@@ -15,6 +15,7 @@
 // screens anyway (CA63).
 import type { BackofficeMeResponse } from "@influx/contracts/backoffice-auth";
 import Link from "next/link";
+import { AuthHeader } from "./AuthHeader";
 import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
@@ -191,10 +192,7 @@ export function Shell({ children }: { children: ReactNode }) {
   if (state.kind === "signedOut") {
     return (
       <main id="main" className={SCREEN_CLASSES}>
-        {brand}
-        <h1 ref={titleRef} tabIndex={-1} className={TITLE_CLASSES}>
-          {messages.logout.done}
-        </h1>
+        <AuthHeader title={messages.logout.done} titleRef={titleRef} />
         <Link href="/" className={TEXT_BUTTON_CLASSES}>
           {messages.logout.signInAgain}
         </Link>

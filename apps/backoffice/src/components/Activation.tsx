@@ -17,7 +17,6 @@ import {
 } from "react";
 import { messages } from "@/messages/fr";
 import {
-  BRAND_CLASSES,
   CARD_CLASSES,
   cn,
   CODE_TEXT_CLASSES,
@@ -30,8 +29,8 @@ import {
   SCREEN_CLASSES,
   SECONDARY_BUTTON_CLASSES,
   TEXT_BUTTON_CLASSES,
-  TITLE_CLASSES,
 } from "./auth-classes";
+import { AuthHeader } from "./AuthHeader";
 import { confirmEnrollment, startEnrollment } from "./backoffice-auth";
 import { ErrorNotice } from "./ErrorNotice";
 
@@ -226,13 +225,8 @@ export function Activation() {
     }
   }
 
-  const header = (
-    <>
-      <p className={BRAND_CLASSES}>{messages.brand}</p>
-      <p className={HELP_CLASSES}>
-        {t.step(step.kind === "identity" ? 1 : step.kind === "factor" ? 2 : 3)}
-      </p>
-    </>
+  const stepLine = t.step(
+    step.kind === "identity" ? 1 : step.kind === "factor" ? 2 : 3,
   );
 
   const failureBlock =
@@ -244,10 +238,11 @@ export function Activation() {
     const codes = step.codes;
     return (
       <main id="main" className={SCREEN_CLASSES}>
-        {header}
-        <h1 ref={titleRef} tabIndex={-1} className={TITLE_CLASSES}>
-          {messages.recoveryCodes.title}
-        </h1>
+        <AuthHeader
+          step={stepLine}
+          title={messages.recoveryCodes.title}
+          titleRef={titleRef}
+        />
         <p className={LEAD_CLASSES}>{messages.recoveryCodes.lead}</p>
         <section aria-labelledby={`${ids.code}-codes`} className={CARD_CLASSES}>
           <h2 id={`${ids.code}-codes`} className={LABEL_CLASSES}>
@@ -309,10 +304,7 @@ export function Activation() {
   if (step.kind === "factor") {
     return (
       <main id="main" className={SCREEN_CLASSES}>
-        {header}
-        <h1 ref={titleRef} tabIndex={-1} className={TITLE_CLASSES}>
-          {t.step2Title}
-        </h1>
+        <AuthHeader step={stepLine} title={t.step2Title} titleRef={titleRef} />
         {restarted ? (
           <p role="status" className={INFO_CLASSES}>
             {t.step2Restarted}
@@ -389,10 +381,7 @@ export function Activation() {
 
   return (
     <main id="main" className={SCREEN_CLASSES}>
-      {header}
-      <h1 ref={titleRef} tabIndex={-1} className={TITLE_CLASSES}>
-        {t.title}
-      </h1>
+      <AuthHeader step={stepLine} title={t.title} titleRef={titleRef} />
       <p className={LEAD_CLASSES}>{t.lead}</p>
       {token === undefined ? null : token === null ? (
         <ErrorNotice>{t.invitationInvalid}</ErrorNotice>
