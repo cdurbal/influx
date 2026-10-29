@@ -1,3 +1,4 @@
+import { LANDING_SECTION_ANCHORS } from "./landing-sections";
 import { getTranslations } from "next-intl/server";
 import { Accordion, type AccordionItem } from "@/components/ui/Accordion";
 import { mutedTitleTags } from "@/components/ui/rich-text";
@@ -28,7 +29,11 @@ export async function FaqSection() {
   }));
 
   return (
-    <section aria-labelledby="faq-title" className="bg-surface-muted">
+    <section
+      id={LANDING_SECTION_ANCHORS.faq}
+      aria-labelledby="faq-title"
+      className="bg-surface-muted"
+    >
       <div className="mx-auto grid max-w-(--container-max) grid-cols-1 gap-section-header px-page-gutter py-section-block lg:grid-cols-12 lg:gap-grid-gap">
         <div className="lg:col-span-4">
           <div className="flex flex-col gap-6 lg:sticky lg:top-(--sticky-top-offset)">

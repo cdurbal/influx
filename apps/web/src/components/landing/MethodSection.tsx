@@ -1,3 +1,4 @@
+import { LANDING_SECTION_ANCHORS } from "./landing-sections";
 import { getTranslations } from "next-intl/server";
 import { Accordion, type AccordionItem } from "@/components/ui/Accordion";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
@@ -25,7 +26,11 @@ export async function MethodSection() {
   }));
 
   return (
-    <section aria-labelledby="method-title" className="bg-surface-muted">
+    <section
+      id={LANDING_SECTION_ANCHORS.method}
+      aria-labelledby="method-title"
+      className="bg-surface-muted"
+    >
       <div className="mx-auto grid max-w-(--container-max) grid-cols-1 gap-8 px-page-gutter py-section-block lg:grid-cols-12 lg:gap-grid-gap">
         <SectionHeader
           titleId="method-title"

@@ -1,12 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/Button";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+} from "react";
+import { flushSync } from "react-dom";
+import {
+  BUTTON_BASE_CLASSES,
+  Button,
+  VARIANT_CLASSES,
+} from "@/components/ui/Button";
 import { cn } from "@/components/ui/class-names";
 import { CloseIcon, MenuIcon } from "@/components/ui/icons";
 import { LinkButton } from "@/components/ui/LinkButton";
 
-export type HeaderNavItem = { id: string; label: string };
+/** `anchor` is the id of the landing section the entry scrolls to. */
+export type HeaderNavItem = { id: string; anchor: string; label: string };
 
 type SiteHeaderMobileMenuProps = {
   menuButtonLabel: string;
@@ -38,7 +50,7 @@ export function SiteHeaderMobileMenu({
   const [isOpen, setIsOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const scrimRef = useRef<HTMLDivElement>(null);
-  const firstItemRef = useRef<HTMLButtonElement>(null);
+  const firstItemRef = useRef<HTMLAnchorElement>(null);
 
   const close = useCallback((restoreFocus: boolean) => {
     setIsOpen(false);
@@ -46,6 +58,17 @@ export function SiteHeaderMobileMenu({
       toggleRef.current?.focus();
     }
   }, []);
+
+  // The menu locks page scroll and makes main inert: close it synchronously (its cleanup runs
+  // with the commit) before jumping to the section.
+  const goToSection = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>, anchor: string) => {
+      event.preventDefault();
+      flushSync(() => setIsOpen(false));
+      window.location.hash = anchor;
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!isOpen) {
@@ -127,14 +150,18 @@ export function SiteHeaderMobileMenu({
           <ul className="flex flex-col gap-1">
             {navItems.map((item, index) => (
               <li key={item.id}>
-                <Button
+                <a
                   ref={index === 0 ? firstItemRef : undefined}
-                  variant="text"
-                  fullWidth
-                  className="justify-start"
+                  href={`#${item.anchor}`}
+                  onClick={(event) => goToSection(event, item.anchor)}
+                  className={cn(
+                    BUTTON_BASE_CLASSES,
+                    VARIANT_CLASSES.text,
+                    "w-full justify-start",
+                  )}
                 >
                   {item.label}
-                </Button>
+                </a>
               </li>
             ))}
           </ul>

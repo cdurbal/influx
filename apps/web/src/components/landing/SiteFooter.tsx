@@ -1,11 +1,12 @@
 import type { PublicDocument } from "@influx/contracts/terms";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Button } from "@/components/ui/Button";
+import { BUTTON_BASE_CLASSES, VARIANT_CLASSES } from "@/components/ui/Button";
+import { cn } from "@/components/ui/class-names";
 import { FileCheckIcon, LockIcon } from "@/components/ui/icons";
 import { LinkButton } from "@/components/ui/LinkButton";
 import { legalDocumentHref } from "@/lib/legal-documents";
+import { LANDING_NAV_IDS, LANDING_SECTION_ANCHORS } from "./landing-sections";
 
-const NAV_IDS = ["method", "creators", "useCases", "pricing", "faq"] as const;
 // The public documents served by apps/api (21 EC-62). The legal notice and the sales terms wait
 // for the company's identity (D25): no entry until they exist.
 const LEGAL_LINKS: readonly {
@@ -42,11 +43,18 @@ export async function SiteFooter() {
             <h2 className="text-md font-semibold">{t("footer.navTitle")}</h2>
             <nav aria-label={t("footer.navLabel")}>
               <ul className="-ml-3 flex flex-col">
-                {NAV_IDS.map((id) => (
+                {LANDING_NAV_IDS.map((id) => (
                   <li key={id}>
-                    <Button variant="text" className="justify-start text-left">
+                    <a
+                      href={`#${LANDING_SECTION_ANCHORS[id]}`}
+                      className={cn(
+                        BUTTON_BASE_CLASSES,
+                        VARIANT_CLASSES.text,
+                        "justify-start text-left",
+                      )}
+                    >
                       {t(`header.nav.${id}`)}
-                    </Button>
+                    </a>
                   </li>
                 ))}
               </ul>

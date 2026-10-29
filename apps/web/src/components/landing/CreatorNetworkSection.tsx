@@ -1,3 +1,4 @@
+import { LANDING_SECTION_ANCHORS } from "./landing-sections";
 import { getLocale, getTranslations } from "next-intl/server";
 import { LinkButton } from "@/components/ui/LinkButton";
 import { mutedTitleTags } from "@/components/ui/rich-text";
@@ -15,6 +16,7 @@ export async function CreatorNetworkSection() {
 
   return (
     <section
+      id={LANDING_SECTION_ANCHORS.creators}
       aria-labelledby="creator-network-title"
       className="bg-surface-page"
     >

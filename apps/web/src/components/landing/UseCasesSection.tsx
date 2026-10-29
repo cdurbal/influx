@@ -1,3 +1,4 @@
+import { LANDING_SECTION_ANCHORS } from "./landing-sections";
 import { getTranslations } from "next-intl/server";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
 import { mutedTitleTags } from "@/components/ui/rich-text";
@@ -26,7 +27,11 @@ export async function UseCasesSection() {
   const tImages = await getTranslations("landing.images");
 
   return (
-    <section aria-labelledby="use-cases-title" className="bg-surface-muted">
+    <section
+      id={LANDING_SECTION_ANCHORS.useCases}
+      aria-labelledby="use-cases-title"
+      className="bg-surface-muted"
+    >
       <div className="mx-auto flex max-w-(--container-max) flex-col gap-section-header px-page-gutter py-section-block">
         <SectionHeader
           titleId="use-cases-title"
