@@ -13,6 +13,7 @@
 // - After the code, the space follows the REAL role, never the door (17 §2.5, RG66 to RG69).
 // Accessibility: one h1 per step, focused at each step (StepTitle); errors in role="alert" AND
 // linked to their field.
+import { Notice } from "@/components/member/ui/Notice";
 import type { SignupDoor } from "@influx/contracts/auth";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
@@ -25,7 +26,6 @@ import {
 } from "@/lib/member-paths";
 import {
   HELP_CLASSES,
-  INFO_CLASSES,
   LEAD_CLASSES,
   PRIMARY_SUBMIT_CLASSES,
   TEXT_BUTTON_CLASSES,
@@ -336,11 +336,13 @@ function NoticeStep({
             ? t("signup.success.title")
             : t("roleMismatch.title")}
         </StepTitle>
-        <p className={notice.kind === "signedUp" ? LEAD_CLASSES : INFO_CLASSES}>
-          {notice.kind === "signedUp"
-            ? t("signup.success.lead")
-            : t("roleMismatch.notice", { role: notice.role })}
-        </p>
+        {notice.kind === "signedUp" ? (
+          <p className={LEAD_CLASSES}>{t("signup.success.lead")}</p>
+        ) : (
+          <Notice tone="info" announce={false}>
+            {t("roleMismatch.notice", { role: notice.role })}
+          </Notice>
+        )}
         <Link href={home} className={PRIMARY_SUBMIT_CLASSES}>
           {t("goToSpace")}
         </Link>
@@ -359,11 +361,11 @@ function NoticeStep({
           ? t("internalAccount.title")
           : t("suspended.title")}
       </StepTitle>
-      <div className={INFO_CLASSES} role="status">
+      <Notice tone="info">
         {lines.map((line) => (
           <p key={line}>{line}</p>
         ))}
-      </div>
+      </Notice>
       <button type="button" onClick={onRestart} className={TEXT_BUTTON_CLASSES}>
         {t("restart")}
       </button>

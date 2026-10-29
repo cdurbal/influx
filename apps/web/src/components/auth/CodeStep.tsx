@@ -6,6 +6,7 @@
 // the code; the button stays, for the keyboard and for screen readers. The matching phrase sits
 // ABOVE the field (RG48), so that a forged page is seen before typing. "Je ne reçois pas le code"
 // opens the panel of 17 §3.3 in the page, with the rescue channel of 05 RG65.
+import { Notice } from "@/components/member/ui/Notice";
 import { RESEND_DELAY_SECONDS, type SignupDoor } from "@influx/contracts/auth";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
@@ -15,7 +16,6 @@ import {
   CODE_OVERLAY_INPUT_CLASSES,
   codeBoxClasses,
   HELP_CLASSES,
-  INFO_CLASSES,
   LABEL_CLASSES,
   LEAD_CLASSES,
   PRIMARY_SUBMIT_CLASSES,
@@ -174,9 +174,7 @@ export function CodeStep({
   return (
     <>
       <StepTitle step={2}>{t("step2.title")}</StepTitle>
-      <p className={INFO_CLASSES} role="status">
-        {t("code.sent")}
-      </p>
+      <Notice tone="info">{t("code.sent")}</Notice>
       <p className={LEAD_CLASSES}>
         {t("step2.sentTo", { email })}{" "}
         <button

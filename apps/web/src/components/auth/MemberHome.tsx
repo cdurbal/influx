@@ -6,6 +6,7 @@
 // first (17 §6.7). The home announces what comes next (the profile, Lot 2) and how INFLUX works,
 // without any figure (05 RG9); "mon compte" is one link away, and signing out ends on the shell's
 // "signed out" page.
+import { Notice } from "@/components/member/ui/Notice";
 import type { SignupDoor } from "@influx/contracts/auth";
 import { useLocale, useTranslations } from "next-intl";
 import { useId, useState } from "react";
@@ -13,7 +14,6 @@ import { useMember } from "@/components/member/member-context";
 import { Link } from "@/i18n/navigation";
 import {
   CARD_CLASSES,
-  INFO_CLASSES,
   LABEL_CLASSES,
   LEAD_CLASSES,
   SECONDARY_BUTTON_CLASSES,
@@ -64,9 +64,9 @@ export function MemberHome({ space }: { space: SignupDoor }) {
         </ol>
       </section>
       <div className={CARD_CLASSES}>
-        <p className={INFO_CLASSES}>
+        <Notice tone="info" announce={false}>
           {t("home.signedInAs", { email: me.email })}
-        </p>
+        </Notice>
         <Link
           href={memberPageHref("accountDetails", locale)}
           className={TEXT_BUTTON_CLASSES}

@@ -9,6 +9,7 @@
 // - On an error: the list of the fields at the top AND a message per field, focus on the first
 //   invalid field, nothing lost (17 §3.5). The checks are those of the contract (signup-form.ts);
 //   apps/api decides. No amount, no rate, no percentage anywhere (RG9).
+import { Notice } from "@/components/member/ui/Notice";
 import type { SignupDoor } from "@influx/contracts/auth";
 import {
   CONSENT_WORDING_KEYS,
@@ -36,7 +37,6 @@ import {
   FIELD_CLASSES,
   FIELDSET_CLASSES,
   HELP_CLASSES,
-  INFO_CLASSES,
   inputClasses,
   LABEL_CLASSES,
   LEAD_CLASSES,
@@ -338,9 +338,9 @@ export function SignupDetailsStep({
               </option>
             ))}
           </select>
-          <p id={ids.countryHelp} className={INFO_CLASSES}>
+          <Notice tone="info" id={ids.countryHelp} announce={false}>
             {t("signup.country.help")}
-          </p>
+          </Notice>
           {countryError !== null ? (
             <ErrorNotice id={ids.countryError} announce={false}>
               {t("signup.country.errors.required")}

@@ -5,6 +5,7 @@
 // address, then report it through the rescue channel, from another address. The channel never
 // gives a code, never opens a session and never puts two members in touch: the screen says so, and
 // announces no delay that no written policy holds. The answer is one value whatever the addresses.
+import { Notice } from "@/components/member/ui/Notice";
 import { MAX_DELIVERY_REPORT_MESSAGE_LENGTH } from "@influx/contracts/support";
 import { useLocale, useTranslations } from "next-intl";
 import { useId, useState, type FormEvent } from "react";
@@ -12,7 +13,6 @@ import {
   CARD_CLASSES,
   FIELD_CLASSES,
   HELP_CLASSES,
-  INFO_CLASSES,
   inputClasses,
   LABEL_CLASSES,
   SECONDARY_BUTTON_CLASSES,
@@ -106,9 +106,7 @@ export function CodeNotReceived({
         <li>
           <p>{t("step2.notReceived.stillNothing")}</p>
           {outcome === "received" ? (
-            <p role="status" className={INFO_CLASSES}>
-              {t("step2.notReceived.received")}
-            </p>
+            <Notice tone="info">{t("step2.notReceived.received")}</Notice>
           ) : (
             <form
               noValidate
