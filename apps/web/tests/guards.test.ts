@@ -873,3 +873,74 @@ describe("R7 headers and the browser error collector (21 §4 J4 points 3 and 5)"
     expect(importers).toEqual([]);
   });
 });
+
+// TN9 (D74, SN-4): the section-link pills are gone, and the connected space draws one <nav>, in its
+// shell and the nav component extracted from it. Comment lines are skipped: they may speak of a <nav>.
+type SourceFile = { file: string; source: string };
+
+function findNavLandmarks(
+  sources: readonly SourceFile[],
+  allowed: readonly string[],
+): string[] {
+  return sources
+    .filter(
+      ({ file, source }) =>
+        !allowed.includes(file) &&
+        source
+          .split("\n")
+          .some(
+            (line) =>
+              !/^\s*(?:\/\/|\*|\/\*)/.test(line) && /<nav[\s>]/.test(line),
+          ),
+    )
+    .map(({ file }) => file);
+}
+
+function findSectionPills(sources: readonly SourceFile[]): string[] {
+  return sources
+    .filter(({ source }) => source.includes("sectionLinkClasses"))
+    .map(({ file }) => file);
+}
+
+describe("TN9: no section-link pills, one <nav> in the member space (D74)", () => {
+  const MEMBER_NAV_FILES = [
+    "src/components/member/MemberShell.tsx",
+    "src/components/member/MemberNav.tsx",
+  ];
+  const sources: SourceFile[] = SCOPED_FILES.filter((file) =>
+    /\.tsx?$/.test(file),
+  ).map((file) => ({
+    file: relative(file),
+    source: readFileSync(file, "utf8"),
+  }));
+  const memberSpace = sources.filter(({ file }) =>
+    /^src\/(?:components\/(?:member|account)|app\/\[locale\]\/\(member\))\//.test(
+      file,
+    ),
+  );
+
+  it("keeps no occurrence of sectionLinkClasses in src", () => {
+    expect(findSectionPills(sources)).toEqual([]);
+  });
+
+  it("draws <nav> in the member shell and its nav component only", () => {
+    expect(memberSpace.length).toBeGreaterThan(10);
+    expect(findNavLandmarks(memberSpace, MEMBER_NAV_FILES)).toEqual([]);
+  });
+
+  it("refuses a made-up page that draws its own <nav> or brings the pills back", () => {
+    const fake = {
+      file: "src/components/account/Fake.tsx",
+      source:
+        'const c = sectionLinkClasses(true);\nreturn <nav aria-label="x" />;',
+    };
+    expect(findNavLandmarks([fake], MEMBER_NAV_FILES)).toEqual([fake.file]);
+    expect(findSectionPills([fake])).toEqual([fake.file]);
+    expect(
+      findNavLandmarks(
+        [{ file: fake.file, source: "// never a <nav>\n * a <nav> here" }],
+        MEMBER_NAV_FILES,
+      ),
+    ).toEqual([]);
+  });
+});

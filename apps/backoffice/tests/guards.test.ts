@@ -426,3 +426,69 @@ describe("G4f: fonts are unmodified, listed, licensed and within budget", () => 
     expect(findFontViolations(BACKOFFICE_ROOT)).toEqual([]);
   });
 });
+
+// TN9 (D74, SN-4): the section-link pills are gone, and the backoffice draws one <nav>, in its shell
+// and the nav component extracted from it. Comment lines are skipped: they may speak of a <nav>.
+type SourceFile = { file: string; source: string };
+
+function findNavLandmarks(
+  sources: readonly SourceFile[],
+  allowed: readonly string[],
+): string[] {
+  return sources
+    .filter(
+      ({ file, source }) =>
+        !allowed.includes(file) &&
+        source
+          .split("\n")
+          .some(
+            (line) =>
+              !/^\s*(?:\/\/|\*|\/\*)/.test(line) && /<nav[\s>]/.test(line),
+          ),
+    )
+    .map(({ file }) => file);
+}
+
+function findSectionPills(sources: readonly SourceFile[]): string[] {
+  return sources
+    .filter(({ source }) => source.includes("sectionLinkClasses"))
+    .map(({ file }) => file);
+}
+
+describe("TN9: no section-link pills, one <nav> in the backoffice (D74)", () => {
+  const SHELL_NAV_FILES = [
+    "src/components/Shell.tsx",
+    "src/components/BoNav.tsx",
+  ];
+  const sources: SourceFile[] = SOURCE_FILES.filter((file) =>
+    /\.tsx?$/.test(file),
+  ).map((file) => ({
+    file: relative(file),
+    source: readFileSync(file, "utf8"),
+  }));
+
+  it("keeps no occurrence of sectionLinkClasses in src", () => {
+    expect(findSectionPills(sources)).toEqual([]);
+  });
+
+  it("draws <nav> in the shell and its nav component only", () => {
+    expect(sources.length).toBeGreaterThan(10);
+    expect(findNavLandmarks(sources, SHELL_NAV_FILES)).toEqual([]);
+  });
+
+  it("refuses a made-up screen that draws its own <nav> or brings the pills back", () => {
+    const fake = {
+      file: "src/components/Fake.tsx",
+      source:
+        'const c = sectionLinkClasses(true);\nreturn <nav aria-label="x" />;',
+    };
+    expect(findNavLandmarks([fake], SHELL_NAV_FILES)).toEqual([fake.file]);
+    expect(findSectionPills([fake])).toEqual([fake.file]);
+    expect(
+      findNavLandmarks(
+        [{ file: fake.file, source: "// never a <nav>\n * a <nav> here" }],
+        SHELL_NAV_FILES,
+      ),
+    ).toEqual([]);
+  });
+});

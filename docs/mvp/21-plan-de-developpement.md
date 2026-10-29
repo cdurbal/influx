@@ -339,7 +339,8 @@ Décision D74 (fondateur, 2026-10-29). Les pilules de section disparaissent : so
 
 - [x] SN-1 (`202933f`) — page-menu « Mon compte » (`/fr/compte` · `/en/account`, exemptée des CGU), « Mes informations » à `/compte/informations` · `/account/details`, « Gérer mon compte » repointé ; TN2 et e2e (page-menu FR/EN, liens de langue, CGU en attente, axe).
 - [x] SN-2 (`3d766af`) — sous-entrées de « Compte » dans la colonne (`activePlaceOf`, `<ul>` imbriquée masquée sous `lg`, états ancêtre et courant), pilules et « Retour à mon espace » retirées, « ‹ Mon compte » au-dessus du `h1` ; TN1, TN4, TN6, TN8.
-- [x] SN-3 — sous-entrées dans le rail du backoffice (`BoNav` pur, `subEntriesOf`, `entryStateOf`, `/inscrits/⟨id⟩` → « Inscrits »), seconde ligne de 768 à 1 023 px sans défilement, `SectionLinks` retiré ; TN3, TN5, TN7, TN8.
+- [x] SN-3 (`26089ba`) — sous-entrées dans le rail du backoffice (`BoNav` pur, `subEntriesOf`, `entryStateOf`, `/inscrits/⟨id⟩` → « Inscrits »), seconde ligne de 768 à 1 023 px sans défilement, `SectionLinks` retiré ; TN3, TN5, TN7, TN8.
+- [x] SN-4 — pilules de section retirées (`sectionLinkClasses`, `NAV_LIST_CLASSES`/`navLinkClasses` du compte), garde TN9 (aucune pilule, un seul `<nav` par coquille) dans les deux fronts.
 
 ### Hors jalon
 

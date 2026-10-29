@@ -24,7 +24,6 @@ import {
 } from "react";
 import { TermsGate } from "@/components/account/TermsGate";
 import {
-  BRAND_CLASSES,
   HEADER_CLASSES as SCREEN_HEADER_CLASSES,
   HELP_CLASSES,
   INFO_CLASSES,
@@ -311,7 +310,9 @@ function Frame({
       <div className={COLUMN_CLASSES}>
         <header className={HEADER_CLASSES}>
           {me === null ? (
-            <p className={BRAND_CLASSES}>{tAuth("brand")}</p>
+            <Link href="/" className={BRAND_LINK_CLASSES}>
+              {tAuth("brand")}
+            </Link>
           ) : (
             <Link
               href={memberPageHref(homePageOf(me.role), locale)}
@@ -450,7 +451,9 @@ function StandalonePage({
   return (
     <main id="main" className={SCREEN_CLASSES}>
       <header className={SCREEN_HEADER_CLASSES}>
-        <p className={BRAND_CLASSES}>{t("brand")}</p>
+        <Link href="/" className={BRAND_LINK_CLASSES}>
+          {t("brand")}
+        </Link>
       </header>
       <h1 ref={titleRef} tabIndex={-1} className={TITLE_CLASSES}>
         {title}

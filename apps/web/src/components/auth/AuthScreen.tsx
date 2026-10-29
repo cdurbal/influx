@@ -57,7 +57,9 @@ export function AuthScreen({
   return (
     <main id="main" className={SCREEN_CLASSES}>
       <div className={HEADER_CLASSES}>
-        <p className={BRAND_CLASSES}>{t("brand")}</p>
+        <Link href="/" className={BRAND_CLASSES}>
+          {t("brand")}
+        </Link>
         {languagePage === null ? null : (
           <nav aria-label={t("language.label")}>
             {otherLocales.map((other) => (

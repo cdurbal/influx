@@ -148,19 +148,6 @@ export const MAIN_CLASSES = cn(
   "lg:col-start-2 lg:row-start-2",
 );
 
-/** The section links (20 §11.8): the screens of the active entry, wrapping, never scrolling. */
-export const SECTION_LIST_CLASSES = "flex flex-wrap gap-2";
-
-export function sectionLinkClasses(isCurrent: boolean): string {
-  return cn(
-    "inline-flex min-h-(--spacing-bo-row-h) items-center rounded-pill px-4 text-sm",
-    "border-(length:--border-width-thin)",
-    isCurrent
-      ? "border-border-selected bg-surface-brand-subtle font-semibold text-text-primary"
-      : "border-border-default text-text-secondary hover:bg-nav-item-hover-bg hover:text-text-primary",
-  );
-}
-
 /** The "poste de travail" screen (17b §1.7, F7): shown under `bo-small:` only. */
 export const SMALL_SCREEN_CLASSES = cn(
   "hidden min-h-dvh flex-col gap-6 pb-6 bo-small:flex",

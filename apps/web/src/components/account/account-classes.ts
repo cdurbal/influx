@@ -6,19 +6,6 @@ import { memberButtonClasses } from "@/components/member/ui/button-classes";
 import { noticeClasses } from "@/components/member/ui/notice-classes";
 import { statusBadgeClasses } from "@/components/member/ui/status-badge-classes";
 
-/** The navigation of "mon compte": wraps on a narrow screen, never scrolls sideways (17 §6.7). */
-export const NAV_LIST_CLASSES = "flex flex-wrap gap-2";
-
-export function navLinkClasses(isCurrent: boolean): string {
-  return cn(
-    "inline-flex min-h-(--size-touch-target) items-center rounded-pill px-3 text-sm font-medium",
-    "border-(length:--border-width-thin)",
-    isCurrent
-      ? "border-border-selected bg-surface-brand-subtle text-text-primary"
-      : "border-border-strong text-text-secondary hover:bg-action-secondary-bg-hover",
-  );
-}
-
 /**
  * A destructive action: a solid red button, light text, INFLUX pill (zone-de-danger fiche §5).
  * Its label says what it does (17 §6.3, never an icon alone); offline (`aria-disabled`) it is grey.

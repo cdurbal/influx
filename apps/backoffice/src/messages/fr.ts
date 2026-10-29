@@ -99,7 +99,7 @@ export const messages = {
   // ---------------------------------------------------------------------------------------------
   // J8 commit 9: the screens of the backoffice v0 (17b §2, §3.11 to §3.13, §3.14.e; 05 §K)
   // ---------------------------------------------------------------------------------------------
-  // DS-10 (D73): the rail of 17b §1.2 and §1.7, its entries, then the screens as section links.
+  // DS-10 (D73): the rail of 17b §1.2 and §1.7, its entries, then its sub-entries (D74).
   nav: {
     label: "Navigation principale",
     skip: "Aller au contenu",
