@@ -171,15 +171,67 @@ describe("G3b: the red of danger is opaque and shared by both fronts and both ch
   });
 });
 
-// G3f (D73, 18 §5.1, 02 §21.3 point 6): tokens-backoffice.css, once it exists (DS-9), declares
-// `--*-bo-*` names only. The other half (no -bo- name in apps/web) is in apps/web/tests.
+// G3f (D73, 18 §5.1, 02 §21.3 point 6): tokens-backoffice.css declares `--*-bo-*` names only, and
+// the file exists since DS-9. The other half (no -bo- name in apps/web) is in apps/web/tests.
 describe("G3f: tokens-backoffice.css holds backoffice tokens only", () => {
   const file = path.join(SRC, "styles", "tokens-backoffice.css");
+  const css = existsSync(file) ? readFileSync(file, "utf8") : "";
 
-  it("declares nothing but -bo- names (vacuous until the file exists)", () => {
+  it("exists and declares the rail, row, cell and control tokens of 17b §6.1", () => {
     expect(
-      existsSync(file) ? findNonBoDeclarations(readFileSync(file, "utf8")) : [],
+      [
+        "--spacing-bo-row-h",
+        "--spacing-bo-cell-y",
+        "--spacing-bo-cell-x",
+        "--spacing-bo-rail-w",
+        "--size-bo-control",
+      ].filter((name) => !css.includes(`${name}:`)),
     ).toEqual([]);
+  });
+
+  it("declares nothing but -bo- names", () => {
+    expect(findNonBoDeclarations(css)).toEqual([]);
+  });
+
+  it("detects a plain name (self-check of the detector)", () => {
+    expect(
+      findNonBoDeclarations("@theme static { --color-brand-primary: red; }"),
+    ).toHaveLength(1);
+  });
+
+  it("is imported by globals.css, after tokens.css", () => {
+    const globals = readFileSync(path.join(SRC, "app", "globals.css"), "utf8");
+    expect(globals.indexOf("tokens-backoffice.css")).toBeGreaterThan(
+      globals.indexOf("tokens.css"),
+    );
+  });
+});
+
+// G8 backoffice half (02 §21.3 point 4): the KEO attribute and the font variables are set by the
+// root layout and by no other file; the whole backoffice is KEO.
+describe("the backoffice is KEO whole, set by the root layout alone", () => {
+  const sources = SOURCE_FILES.filter((file) => /\.tsx?$/.test(file));
+  const layout = "src/app/layout.tsx";
+
+  it('sets data-theme="keo" on <html> in the root layout', () => {
+    expect(readFileSync(path.join(BACKOFFICE_ROOT, layout), "utf8")).toMatch(
+      /<html[^>]*data-theme="keo"/,
+    );
+  });
+
+  it("uses the attribute and imports fonts.ts nowhere else", () => {
+    const others = sources.filter(
+      (file) =>
+        ![layout, "src/styles/fonts.ts"].includes(relative(file)) &&
+        /data-theme|styles\/fonts"/.test(readFileSync(file, "utf8")),
+    );
+    expect(others.map(relative)).toEqual([]);
+  });
+
+  it("keeps fonts.ts identical to that of apps/web (G4f)", () => {
+    expect(
+      readFileSync(path.join(BACKOFFICE_ROOT, "src/styles/fonts.ts")),
+    ).toEqual(readFileSync(path.join(WEB_ROOT, "src/styles/fonts.ts")));
   });
 });
 

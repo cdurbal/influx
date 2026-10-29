@@ -28,7 +28,7 @@ import {
   test,
   title,
 } from "./support/journey";
-import { WEB_ORIGIN } from "./support/servers";
+import { BACKOFFICE_ORIGIN, WEB_ORIGIN } from "./support/servers";
 
 const WEB_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -163,6 +163,15 @@ test.describe("TD3.1: a member page computes the KEO value of every color", () =
   });
 });
 
+test("TD3.2: the backoffice is KEO whole, on <html>, every --color-* at its KEO value", async ({
+  page,
+}) => {
+  await page.goto(`${BACKOFFICE_ORIGIN}/`);
+  await expect(page.locator("[data-theme]")).toHaveCount(1);
+  await expect(page.locator("html[data-theme='keo']")).toHaveCount(1);
+  expect(await colorDifferences(page, "html", KEO_COLORS, "keo")).toEqual([]);
+});
+
 for (const locale of ["fr", "en"] as const) {
   test(`TD3.3: /${locale} carries no data-theme and computes the vitrine value of every color`, async ({
     page,
@@ -201,6 +210,22 @@ test.describe("TD3.4: the KEO fonts, from this origin, on member pages only", ()
     expect(received.map((font) => font.origin)).toEqual([
       WEB_ORIGIN,
       WEB_ORIGIN,
+    ]);
+    const bytes = received.reduce((total, font) => total + font.bytes, 0);
+    expect(bytes).toBeLessThanOrEqual(FONT_PRELOAD_CEILING_BYTES);
+  });
+
+  test("a backoffice page preloads the two latin files, from its own origin, within the budget", async ({
+    page,
+  }) => {
+    const fonts = fontWatcher(page);
+    await page.goto(`${BACKOFFICE_ORIGIN}/`);
+    await expect(page.locator('link[rel="preload"][as="font"]')).toHaveCount(2);
+    const received = await receivedFonts(page, fonts);
+    expect(received.map((font) => font.file).sort()).toEqual(PRELOADED_FONTS);
+    expect(received.map((font) => font.origin)).toEqual([
+      BACKOFFICE_ORIGIN,
+      BACKOFFICE_ORIGIN,
     ]);
     const bytes = received.reduce((total, font) => total + font.bytes, 0);
     expect(bytes).toBeLessThanOrEqual(FONT_PRELOAD_CEILING_BYTES);

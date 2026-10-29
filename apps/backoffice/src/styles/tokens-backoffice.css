@@ -1,0 +1,20 @@
+/*
+ * Backoffice-only tokens (D73; 02 §21.3 point 6; 17b §6.1, §6.5). Density of the workstation: the
+ * rail, the dense table row, its cells and the in-row control. Names carry `-bo-` and nothing else
+ * is declared here (G3f); none of them exists in apps/web. They hold lengths only, so there is no
+ * contrast to compute against the KEO surfaces: the colors of the backoffice (§6.2 to §6.4) are
+ * added with the screens that consume them. Cell padding is an alias of the shared scale, which
+ * tokens.css declares first.
+ */
+@theme static {
+  /* Dense table row: 36 px (17b §6.1). Never outside a table of the backoffice. */
+  --spacing-bo-row-h: 2.25rem;
+  --spacing-bo-cell-y: var(--spacing-1);
+  --spacing-bo-cell-x: var(--spacing-3);
+
+  /* Navigation rail, fixed width from `lg` (17b §1.7). */
+  --spacing-bo-rail-w: 15rem;
+
+  /* In-row control: 28 px, above the 24 px of WCAG 2.2 AA (2.5.8). Forbidden in apps/web. */
+  --size-bo-control: 1.75rem;
+}

@@ -5,7 +5,7 @@
 // floor is done in a commit whose message says which cases disappear and why (18 §3 rule 2).
 export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/error-notice.test.ts": 3,
-  "tests/guards.test.ts": 30,
+  "tests/guards.test.ts": 36,
   "tests/ops-view-model.test.ts": 17,
   "tests/relay.test.ts": 5,
   "tests/view-model.test.ts": 12,

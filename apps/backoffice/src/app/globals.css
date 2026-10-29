@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "../styles/tokens.css";
+@import "../styles/tokens-backoffice.css";
 
 /* Base styles only, written with token variables. No literal value here (CA22, G3). */
 @layer base {
