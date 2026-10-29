@@ -103,7 +103,7 @@ Page-menu « Mon compte » (/fr/compte)       Une sous-page (/fr/compte/donnees)
 
 | Règle | Détail |
 |---|---|
-| Barre du bas | Inchangée : cinq cellules au plus, **jamais de sous-entrée** ; les `<ul>` imbriquées sont masquées par le CSS sous `lg` (`display: none`, donc hors de l'arbre d'accessibilité). « Compte » reste actif sur toute page `/compte/*` |
+| Barre du bas | Inchangée : cinq cellules au plus, **jamais de sous-entrée** ; les `<ul>` imbriquées sont masquées par le CSS sous `lg` (`max-lg:hidden` sur la `<ul>` imbriquée : `display: none`, donc hors de l'arbre d'accessibilité ; retenu par `architecte`, SN-0). « Compte » reste actif sur toute page `/compte/*` |
 | Page-menu | Une page à part entière, son adresse propre, son `h1` (« Mon compte »). Une liste de liens en **lignes pleine largeur** : icône décorative, libellé `text-md` semi-gras, une phrase `text-sm` `text-secondary`, chevron décoratif ; ligne entière cliquable (lien étiré), hauteur ≥ `size-touch-target`, séparateur `border-subtle`. Une `<ul>` dans `<main>`, **pas un `<nav>`** (un seul repère de navigation) |
 | Compteurs (SN-E) | Une sous-page qui a des éléments en attente affiche sa pastille de compteur (`20` §11.8) à droite de son libellé, sur la page-menu et dans le sous-menu de la colonne. « Mon compte » n'en a aucune aujourd'hui |
 | Poste de travail | La page-menu existe aussi à ≥ 1 024 px (même adresse, même contenu, en `container-narrow`) : c'est la page du lien de la rubrique ; le sous-menu de la colonne est ouvert à côté |
@@ -112,11 +112,14 @@ Page-menu « Mon compte » (/fr/compte)       Une sous-page (/fr/compte/donnees)
 
 ### Backoffice de 768 à 1 023 px
 
-Le même `<nav>` reste une liste horizontale compacte sous la bande de tête (`17b` §1.7) ; **les
-sous-entrées de l'entrée active forment une seconde ligne** sous la première, pleine largeur, qui passe
-à la ligne sans cacher d'entrée, sans défilement horizontal. Indication de réalisation (à confirmer par
-`architecte`) : liste en `flex-wrap`, `<li>` actif en `display: contents`, sa `<ul>` en `order-last
-basis-full`. Sous 768 px ou 500 px de haut : écran « poste de travail », inchangé (F7).
+Le même `<nav>` reste une liste horizontale compacte sous la bande de tête (`17b` §1.7) ; **l'entrée
+active et ses sous-entrées occupent leur propre ligne**, pleine largeur, à sa place dans l'ordre des
+entrées, qui passe à la ligne sans cacher d'entrée, sans défilement horizontal. Réalisation retenue
+(`architecte`, SN-0, 2026-10-29) : liste en `flex flex-wrap` ; `<li>` actif en `max-lg:flex
+max-lg:basis-full max-lg:flex-wrap max-lg:items-center max-lg:gap-1` (son lien, puis sa `<ul>` en `flex
+flex-wrap gap-1` ; `lg:block`, `lg:flex-col` dans le rail). Ni `display: contents` (rôle d'élément de
+liste incertain sous WebKit), ni `order` : l'ordre visuel suit celui du DOM et du clavier. Sous 768 px
+ou 500 px de haut : écran « poste de travail », inchangé (F7).
 
 ### Ce que la règle couvre, aujourd'hui et plus tard
 
@@ -161,7 +164,7 @@ compte » des accueils mène à la page-menu.
 | `account.hub.items.accountDetails` | Adresse e-mail, pays, langue | Email address, country, language |
 | `account.hub.items.accountPreferences` | Les e-mails que vous recevez | The emails you receive |
 | `account.hub.items.accountSessions` | Les appareils connectés à votre compte | The devices signed in to your account |
-| `account.hub.items.accountData` | Export et suppression de vos données | Export and deletion of your data |
+| `account.hub.items.accountData` | Exporter ou supprimer vos données | Export or delete your data |
 | `meta.accountHub` | Mon compte — INFLUX | My account — INFLUX |
 
 Supprimées : `account.nav.label` et `account.nav.home` (« Retour à mon espace »). Les libellés
@@ -232,7 +235,7 @@ Charge estimée : 1,5 à 2 jours.
 
 | Ordre | Agent | Question |
 |---|---|---|
-| 1 | `architecte` | Confirmer la seconde ligne du backoffice (768–1 023 px) en CSS seul et la sous-liste masquée sous `lg` (aucune détection en JavaScript, un seul `<nav>`) ; avant SN-2 |
+| 1 | `architecte` | Confirmer la seconde ligne du backoffice (768–1 023 px) en CSS seul et la sous-liste masquée sous `lg` (aucune détection en JavaScript, un seul `<nav>`) ; avant SN-2 — **tranchée en SN-0** (2026-10-29) |
 | 2 | `dev-react-node` | SN-1 à SN-4 |
 | 3 | `testeur` | TN1 à TN9, liste nommée des attendus e2e modifiés |
 | 4 | `expert-ux` | Relecture visuelle à SN-2 et SN-3 (état ancêtre, retrait, contraste des sous-entrées) |
