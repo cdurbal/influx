@@ -234,6 +234,8 @@
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
   --font-weight-extrabold: 800;
+  /* Weight of a button label (20 §11.5): 500 in the vitrine, 700 under KEO. */
+  --font-weight-action: 500;
   --leading-tight: 1.05;
   --leading-heading: 1.15;
   --leading-snug: 1.3;
@@ -265,6 +267,11 @@
   --text-figure-lg--line-height: var(--leading-tight);
   --text-figure-xl: clamp(3.5rem, 2.2676rem + 5.2582vw, 7rem);
   --text-figure-xl--line-height: var(--leading-tight);
+  /* Fixed sizes of the connected spaces (20 §11.5); the landing consumes none. */
+  --text-title-page: 1.5rem;
+  --text-title-page--line-height: var(--leading-heading);
+  --text-title-section: 1.25rem;
+  --text-title-section--line-height: var(--leading-snug);
 
   /* ---------- Spacing scale, base 4 px (03 §5) ---------- */
   --spacing-0: 0;
@@ -304,6 +311,14 @@
   --radius-round: 50%;
   /* Card and dialog radius (20 §11.5): the vitrine's own, 1 rem under KEO. */
   --radius-card: var(--radius-lg);
+  /*
+   * Effects of the connected spaces kept by the founder (F6, 2026-10-29; 20 §11.5): neutral here
+   * (the vitrine has none of them, D59), valued in the KEO block below, from the classes of the
+   * members' primitives only. Derived from the brand green, no new value; decorative, never
+   * carrying information and never under the text's AA.
+   */
+  --shadow-action-glow: none;
+  --background-image-header-glow: none;
   /*
    * Elevation on a near-black page: a pure dark drop shadow disappears into the background, so
    * each level pairs it with a hairline, near-transparent white edge (glass-like rim) to read as
@@ -385,6 +400,12 @@
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
   --default-transition-duration: var(--duration-fast);
   --default-transition-timing-function: var(--ease-standard);
+  /* Named properties for the lift and the zoom of a state (F6; never `transition: all`). */
+  --transition-property-lift:
+    color, background-color, border-color, box-shadow, translate, scale;
+  /* Hover zoom of a button and lift of a clickable card (F6): none in the vitrine. */
+  --scale-hover: 1;
+  --translate-lift: 0;
   --animate-marquee: marquee var(--duration-marquee-loop) linear infinite;
 
   @keyframes marquee {
@@ -446,6 +467,8 @@
   /* Borders and focus (03 §7) */
   --border-width-thin: 1px;
   --border-width-thick: 2px;
+  /* Outline of the secondary button (20 §11.5): 2 px in the vitrine, 1 px under KEO. */
+  --border-width-action-secondary: 2px;
   --focus-ring-width: 3px;
   --focus-ring-offset: 2px;
 
@@ -504,6 +527,7 @@
     --spacing-grid-gap: var(--spacing-6);
     --spacing-inset-card: var(--spacing-6);
     --header-height: 4.5rem;
+    --text-title-page: 1.75rem;
   }
 }
 
@@ -602,6 +626,20 @@
     --default-font-family: var(--font-base);
 
     /* Shapes */
+    --font-weight-action: 700;
+    --border-width-action-secondary: 1px;
+
+    /* Effects kept by the founder (F6; 20 §11.5), under motion-safe: for the two movements. The
+     * glow of the primary button is an opaque green blurred into the page, gone when disabled; the
+     * header glow is the muted brand green fading into the page. Opaque brand values, none new. */
+    --shadow-action-glow: 0 0.5rem 1.5rem -0.5rem var(--color-brand-primary);
+    --background-image-header-glow: radial-gradient(
+      ellipse 70% 100% at 50% 0%,
+      var(--color-brand-subtle-bg),
+      transparent 100%
+    );
+    --scale-hover: 1.02;
+    --translate-lift: -0.125rem;
     --radius-card: 1rem;
   }
 }

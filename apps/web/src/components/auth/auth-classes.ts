@@ -2,11 +2,18 @@
 // theme, one decision per screen on mobile (skill design-system-influx). Every value is a token
 // of src/styles/tokens.css; nothing here is a literal color, size or spacing (CA22, G3).
 import { cn } from "@/components/ui/class-names";
+import { memberButtonClasses } from "@/components/member/ui/button-classes";
 import {
-  BUTTON_BASE_CLASSES,
-  SIZE_CLASSES,
-  VARIANT_CLASSES,
-} from "@/components/ui/Button";
+  MEMBER_CARD_CLASSES,
+  MEMBER_CLICKABLE_CARD_CLASSES,
+} from "@/components/member/ui/card-classes";
+import {
+  MEMBER_FIELD_HELP_CLASSES,
+  MEMBER_FIELD_LABEL_CLASSES,
+  memberControlClasses,
+} from "@/components/member/ui/field-classes";
+import { noticeClasses } from "@/components/member/ui/notice-classes";
+import { PAGE_TITLE_CLASSES } from "@/components/member/ui/PageHeader";
 
 /** One centred column of `container-narrow`, mobile first. */
 export const SCREEN_CLASSES = cn(
@@ -14,50 +21,34 @@ export const SCREEN_CLASSES = cn(
   "px-page-gutter py-section-header",
 );
 
-export const BRAND_CLASSES = "text-md font-bold text-text-primary";
+export const BRAND_CLASSES = "font-display text-md font-bold text-text-primary";
 
-export const TITLE_CLASSES = "text-heading-2 font-bold text-text-primary";
+/** The h1 of a screen: the primitive's, so that every page of the spaces titles alike (20 §11.5). */
+export const TITLE_CLASSES = PAGE_TITLE_CLASSES;
 
 export const LEAD_CLASSES = "text-md text-text-secondary";
 
-export const CARD_CLASSES = cn(
-  "flex flex-col gap-4 rounded-lg border-(length:--border-width-thin) border-border-default",
-  "bg-surface-card p-inset-card",
-);
+export const CARD_CLASSES = MEMBER_CARD_CLASSES;
 
-export const LABEL_CLASSES = "font-semibold text-text-primary";
+export const LABEL_CLASSES = MEMBER_FIELD_LABEL_CLASSES;
 
-export function inputClasses(hasError: boolean): string {
-  return cn(
-    "h-(--size-input) w-full rounded-md bg-surface-page px-4 text-md text-text-primary",
-    hasError
-      ? "border-(length:--border-width-thick) border-border-error"
-      : "border-(length:--border-width-thin) border-border-strong",
-  );
-}
+export const inputClasses = memberControlClasses;
 
 /** The code field: one logical input, tabular digits (17 §3.2). */
 export function codeInputClasses(hasError: boolean): string {
   return cn(inputClasses(hasError), "tabular-nums tracking-overline");
 }
 
-/** A submit button that looks like the primary button of the landing. */
+/** A submit button that looks like the primary button of the spaces (20 §11.8). */
 export const PRIMARY_SUBMIT_CLASSES = cn(
-  BUTTON_BASE_CLASSES,
-  VARIANT_CLASSES.primary,
-  SIZE_CLASSES.lg,
+  memberButtonClasses("primary", "lg"),
   "w-full",
 );
 
-export const SECONDARY_BUTTON_CLASSES = cn(
-  BUTTON_BASE_CLASSES,
-  VARIANT_CLASSES.secondary,
-  SIZE_CLASSES.md,
-);
+export const SECONDARY_BUTTON_CLASSES = memberButtonClasses("secondary", "md");
 
 export const TEXT_BUTTON_CLASSES = cn(
-  BUTTON_BASE_CLASSES,
-  VARIANT_CLASSES.text,
+  memberButtonClasses("text"),
   "self-start",
 );
 
@@ -67,12 +58,9 @@ export const ERROR_CLASSES = cn(
   "bg-feedback-error-bg px-4 py-3 text-sm text-feedback-error-text",
 );
 
-export const INFO_CLASSES = cn(
-  "rounded-md border-(length:--border-width-thin) border-feedback-info-border",
-  "bg-feedback-info-bg px-4 py-3 text-sm text-text-primary",
-);
+export const INFO_CLASSES = noticeClasses("info");
 
-export const HELP_CLASSES = "text-sm text-text-secondary";
+export const HELP_CLASSES = MEMBER_FIELD_HELP_CLASSES;
 
 /** The header of the journey: the brand, then the language of the page (17 §3.1). */
 export const HEADER_CLASSES = "flex items-center justify-between gap-4";
@@ -87,10 +75,7 @@ export const LANGUAGE_LINK_CLASSES = cn(
 export const PROGRESS_CLASSES = "text-sm font-medium text-text-secondary";
 
 /** The offline banner: text, never a color alone (17 §3.5). */
-export const WARNING_CLASSES = cn(
-  "rounded-md border-(length:--border-width-thin) border-feedback-warning-border",
-  "bg-feedback-warning-bg px-4 py-3 text-sm text-feedback-warning-text",
-);
+export const WARNING_CLASSES = noticeClasses("warning");
 
 /** One field and its texts: label, control, help, error. */
 export const FIELD_CLASSES = "flex flex-col gap-2";
@@ -110,9 +95,8 @@ export const DIVIDER_CLASSES =
 
 /** A door of the choice step (05 RG1): a card-sized button, its audience under the action. */
 export const DOOR_BUTTON_CLASSES = cn(
-  "flex w-full flex-col items-start gap-1 rounded-lg p-inset-card text-left",
-  "border-(length:--border-width-thin) border-border-strong bg-surface-card",
-  "hover:bg-surface-hover",
+  MEMBER_CLICKABLE_CARD_CLASSES,
+  "w-full items-start",
 );
 
 /** The six boxes of the code: drawn only, the one real field lies over them (17 §3.2). */
@@ -121,7 +105,7 @@ export const CODE_BOXES_CLASSES = "grid grid-cols-6 gap-2";
 export function codeBoxClasses(isCurrent: boolean, hasError: boolean): string {
   return cn(
     "flex h-(--size-input) items-center justify-center rounded-md bg-surface-page",
-    "text-heading-3 font-bold tabular-nums text-text-primary",
+    "font-display text-title-section font-bold tabular-nums text-text-primary",
     hasError
       ? "border-(length:--border-width-thick) border-border-error"
       : isCurrent
@@ -136,7 +120,7 @@ export const CODE_OVERLAY_INPUT_CLASSES =
 
 /** The terms panel: a modal dialog, full height on mobile, centred column on desktop. */
 export const DIALOG_CLASSES = cn(
-  "m-auto max-h-full w-full max-w-(--container-narrow) overflow-y-auto rounded-lg",
+  "m-auto max-h-full w-full max-w-(--container-narrow) overflow-y-auto rounded-card",
   "border-(length:--border-width-thin) border-border-default bg-surface-raised p-inset-card text-text-primary",
-  "backdrop:bg-overlay-scrim",
+  "shadow-lg backdrop:bg-overlay-scrim",
 );

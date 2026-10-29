@@ -315,3 +315,30 @@ export const CONTRAST_MATRIX: Readonly<Record<Charter, readonly TokenPair[]>> =
       ...SUCCESS_HUE_PAIRS,
     ],
   };
+
+// ---------------------------------------------------------------------------------------------
+// G3g and G3h: where the role colors live, which pairs of classes never go together (20 §11.3, §11.4)
+// ---------------------------------------------------------------------------------------------
+
+/** The component that alone consumes `role-advertiser` and `role-creator` (G3g; 20 §11.3, F4). */
+export const ROLE_COLOR_COMPONENTS: readonly string[] = [
+  "src/components/member/ui/RoleBadge.tsx",
+];
+
+/**
+ * Surfaces and the foregrounds that fail AA on them (20 §11.4, consequence 1): tertiary text is
+ * 4.13:1 and error text 3.91:1 on `surface-active`, which carries `text-primary` only.
+ */
+export const FORBIDDEN_CLASS_PAIRS: ReadonlyArray<{
+  surface: string;
+  foregrounds: readonly string[];
+}> = [
+  {
+    surface: "bg-surface-active",
+    foregrounds: [
+      "text-text-tertiary",
+      "text-text-muted",
+      "text-feedback-error-text",
+    ],
+  },
+];

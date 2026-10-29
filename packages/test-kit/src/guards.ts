@@ -1117,11 +1117,24 @@ export const KEO_ATTRIBUTE_PATTERN = /\bdata-theme\b/;
 export const PORTAL_PATTERN = /\bcreatePortal\b/;
 
 /**
- * A transformation on a state (hover, active, focus, group or peer), or `transition-all`: KEO moves
- * colors only, `motion-safe:` included (20 §11.5; 02 §21.5 point 7). A static transform is no state.
+ * A transformation on a state (hover, active, focus, group or peer). KEO keeps the zoom and the lift
+ * the founder asked for (F6, 2026-10-29), but under `motion-safe:` only: the same class without
+ * that variant is refused (20 §11.5; 02 §21.5 point 7). A static transform is no state. The two
+ * capture groups are the variants before and after the state, where `motion-safe:` may stand.
  */
 export const STATE_TRANSFORM_PATTERN =
-  /(?<![\w-])(?:[\w-]+:)*(?:hover|active|focus|focus-visible|focus-within|group-hover|group-focus|peer-hover|peer-focus):(?:[\w-]+:)*-?(?:scale|translate|rotate|skew)(?!\w)|\btransition-all\b/;
+  /(?<![\w-])((?:[\w-]+:)*)(?:hover|active|focus|focus-visible|focus-within|group-hover|group-focus|peer-hover|peer-focus):((?:[\w-]+:)*)-?(?:scale|translate|rotate|skew)(?!\w)/g;
+
+/** `transition-all` moves every property, layout included: refused everywhere (20 §11.5). */
+export const TRANSITION_ALL_PATTERN = /\btransition-all\b/;
+
+/** A line with a state transformation that is not under `motion-safe:`, or `transition-all`. */
+export function hasUnsafeStateTransform(line: string): boolean {
+  if (TRANSITION_ALL_PATTERN.test(line)) return true;
+  return [...line.matchAll(STATE_TRANSFORM_PATTERN)].some(
+    (match) => !`${match[1] ?? ""}${match[2] ?? ""}`.includes("motion-safe:"),
+  );
+}
 
 /** A source without its comments, which may name what the code must not do. */
 function withoutComments(source: string): string {
@@ -1265,12 +1278,116 @@ export function findVitrineTokenUse(
   );
 }
 
-/** Lines of the KEO scopes with a transformation on a state, or `transition-all` (20 §11.5). */
+/**
+ * Lines of the KEO scopes with a transformation on a state outside `motion-safe:`, or with
+ * `transition-all` (20 §11.5; F6).
+ */
 export function findStateTransforms(
   frontRoot: string,
   keoScopes: readonly string[],
 ): string[] {
-  return findStrippedMatches(frontRoot, keoScopes, STATE_TRANSFORM_PATTERN);
+  return sourceFilesUnder(frontRoot, keoScopes).flatMap((file) =>
+    withoutComments(readFileSync(file, "utf8"))
+      .split("\n")
+      .flatMap((line, index) =>
+        hasUnsafeStateTransform(line)
+          ? [`${relativePath(frontRoot, file)}:${index + 1}: ${line.trim()}`]
+          : [],
+      ),
+  );
+}
+
+// ---------------------------------------------------------------------------------------------
+// G3g and G3h: the role colors confined, the forbidden pairs of classes (D73; 20 §11.3, §11.4)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A role color used as a class (`text-`, `bg-`, `border-`… `-role-advertiser` / `-role-creator`) or
+ * read as a variable. The role colors are a visual mark and nothing else (12 RG7, 20 §11.3).
+ */
+export const ROLE_COLOR_PATTERN =
+  /(?<![\w-])(?:[\w-]+:)*(?:text|bg|border|ring|outline|fill|stroke|decoration|accent|caret|shadow|from|via|to|divide|placeholder)-role-(?:advertiser|creator)(?![\w-])|var\(--color-role-/;
+
+/**
+ * G3g: lines outside the given components (relative to the front root) that use a role color, plus
+ * every given component that does not exist or does not require its label (`label: string`): a role
+ * color is always followed by the role written (P7), the type is what makes it so.
+ */
+export function findRoleColorUse(
+  frontRoot: string,
+  allowedComponents: readonly string[],
+): string[] {
+  const allowed = allowedComponents.map((file) => path.join(frontRoot, file));
+  const gaps = allowed.flatMap((file) => {
+    if (!existsSync(file)) {
+      return [
+        `${relativePath(frontRoot, file)}: listed as a role component, does not exist`,
+      ];
+    }
+    return /\blabel:\s*string\b/.test(
+      withoutComments(readFileSync(file, "utf8")),
+    )
+      ? []
+      : [
+          `${relativePath(frontRoot, file)}: a role component without a required label: string`,
+        ];
+  });
+  const uses = sourceFilesUnder(frontRoot)
+    .filter((file) => !allowed.includes(file))
+    .flatMap((file) =>
+      withoutComments(readFileSync(file, "utf8"))
+        .split("\n")
+        .flatMap((line, index) =>
+          ROLE_COLOR_PATTERN.test(line)
+            ? [`${relativePath(frontRoot, file)}:${index + 1}: ${line.trim()}`]
+            : [],
+        ),
+    );
+  return [...gaps, ...uses];
+}
+
+/** A surface and the foreground classes that must never be painted on it (20 §11.4). */
+export type ForbiddenClassPair = {
+  surface: string;
+  foregrounds: readonly string[];
+};
+
+function hasClass(literal: string, className: string): boolean {
+  const escaped = className.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(String.raw`(?<![\w-])(?:[\w-]+:)*${escaped}(?![\w-])`).test(
+    literal,
+  );
+}
+
+/**
+ * G3h: string literals of the given folders that hold both the surface and a foreground of a
+ * forbidden pair (tertiary text, or error text, on `surface-active`). Weak by design: only the
+ * same literal is seen; axe is the net for the rest (18 §5.1).
+ */
+export function findForbiddenClassPairs(
+  frontRoot: string,
+  folders: readonly string[],
+  pairs: readonly ForbiddenClassPair[],
+): string[] {
+  return sourceFilesUnder(frontRoot, folders).flatMap((file) =>
+    [
+      ...withoutComments(readFileSync(file, "utf8")).matchAll(
+        /"([^"\n]*)"|'([^'\n]*)'|`([^`]*)`/g,
+      ),
+    ].flatMap((match) => {
+      const literal = match[1] ?? match[2] ?? match[3] ?? "";
+      return pairs.flatMap(({ surface, foregrounds }) =>
+        hasClass(literal, surface)
+          ? foregrounds
+              .filter((foreground) => hasClass(literal, foreground))
+              .map(
+                (foreground) =>
+                  `${relativePath(frontRoot, file)}: ${foreground} on ${surface} in "${literal.trim()}"`,
+              )
+          : [],
+      );
+    }),
+  );
 }
 
 /** The URL path of a page file under an app folder: route groups `(…)` dropped. */

@@ -5,9 +5,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import {
+  findForbiddenClassPairs,
   findKeoActivationViolations,
   findMemberGroupMismatches,
   findPortalUse,
+  findRoleColorUse,
   findStateTransforms,
   findVitrineImportsUnder,
   findVitrineTokenUse,
@@ -136,8 +138,8 @@ describe("TD1.10: no module of the vitrine under the KEO scopes", () => {
   });
 });
 
-describe("TD1.10: colors move, shapes do not, under KEO", () => {
-  it("detects a transformation on a state and transition-all, accepts a static transform", () => {
+describe("TD1.10: colors move, and the zoom and the lift only under motion-safe:", () => {
+  it("accepts a state transformation under motion-safe:, refuses it without, and transition-all always", () => {
     expect(findStateTransforms(front, KEO_SCOPES)).toEqual([]);
     write(
       "src/components/auth/Card.tsx",
@@ -147,13 +149,76 @@ describe("TD1.10: colors move, shapes do not, under KEO", () => {
         'export const C = "group-hover:rotate-3 lg:focus-visible:skew-x-2";',
         'export const D = "transition-all duration-fast";',
         'export const E = "-translate-x-1/2 transition-colors hover:bg-surface-hover";',
+        'export const F = "motion-safe:not-aria-disabled:hover:scale-(--scale-hover) transition-lift";',
+        'export const G = "hover:motion-safe:translate-y-(--translate-lift)";',
+        'export const H = "motion-safe:transition-all lg:hover:translate-y-1";',
+        'export const I = "motion-safe:hover:scale-105 hover:rotate-3";',
       ].join("\n"),
     );
     expect(findStateTransforms(front, KEO_SCOPES)).toEqual([
       'src/components/auth/Card.tsx:1: export const A = "hover:scale-105";',
-      'src/components/auth/Card.tsx:2: export const B = "motion-safe:hover:-translate-y-0.5";',
       'src/components/auth/Card.tsx:3: export const C = "group-hover:rotate-3 lg:focus-visible:skew-x-2";',
       'src/components/auth/Card.tsx:4: export const D = "transition-all duration-fast";',
+      'src/components/auth/Card.tsx:8: export const H = "motion-safe:transition-all lg:hover:translate-y-1";',
+      'src/components/auth/Card.tsx:9: export const I = "motion-safe:hover:scale-105 hover:rotate-3";',
+    ]);
+  });
+
+  it("confines the role colors to the role component, which must require its label (G3g)", () => {
+    const allowed = ["src/components/member/ui/RoleBadge.tsx"];
+    expect(findRoleColorUse(front, allowed)).toEqual([
+      "src/components/member/ui/RoleBadge.tsx: listed as a role component, does not exist",
+    ]);
+    write(
+      allowed[0] ?? "",
+      'export const DOT = "bg-role-creator"; // label: string is required\ntype P = { label: string };\n',
+    );
+    expect(findRoleColorUse(front, allowed)).toEqual([]);
+    write(
+      "src/components/auth/Name.tsx",
+      [
+        'export const A = "text-role-advertiser";',
+        'export const B = "lg:hover:border-role-creator";',
+        'export const C = "var(--color-role-creator)";',
+        "// a comment may name bg-role-creator",
+        'export const D = "text-roles-list role-advertiser";',
+      ].join("\n"),
+    );
+    expect(findRoleColorUse(front, allowed)).toEqual([
+      'src/components/auth/Name.tsx:1: export const A = "text-role-advertiser";',
+      'src/components/auth/Name.tsx:2: export const B = "lg:hover:border-role-creator";',
+      'src/components/auth/Name.tsx:3: export const C = "var(--color-role-creator)";',
+    ]);
+    write(allowed[0] ?? "", 'export const DOT = "bg-role-creator";\n');
+    expect(findRoleColorUse(front, allowed)).toEqual([
+      "src/components/member/ui/RoleBadge.tsx: a role component without a required label: string",
+      'src/components/auth/Name.tsx:1: export const A = "text-role-advertiser";',
+      'src/components/auth/Name.tsx:2: export const B = "lg:hover:border-role-creator";',
+      'src/components/auth/Name.tsx:3: export const C = "var(--color-role-creator)";',
+    ]);
+  });
+
+  it("detects a forbidden foreground on surface-active in one literal, not apart (G3h)", () => {
+    const pairs = [
+      {
+        surface: "bg-surface-active",
+        foregrounds: ["text-text-tertiary", "text-feedback-error-text"],
+      },
+    ];
+    expect(findForbiddenClassPairs(front, KEO_SCOPES, pairs)).toEqual([]);
+    write(
+      "src/components/auth/Tabs.tsx",
+      [
+        'export const A = "bg-surface-active text-text-primary";',
+        'export const B = "px-3 text-text-tertiary aria-selected:bg-surface-active";',
+        'export const C = "hover:bg-surface-active lg:text-feedback-error-text";',
+        'export const D = "bg-surface-active-ish text-text-tertiary";',
+        'export const E = "text-text-tertiary"; export const F = "bg-surface-active";',
+      ].join("\n"),
+    );
+    expect(findForbiddenClassPairs(front, KEO_SCOPES, pairs)).toEqual([
+      'src/components/auth/Tabs.tsx: text-text-tertiary on bg-surface-active in "px-3 text-text-tertiary aria-selected:bg-surface-active"',
+      'src/components/auth/Tabs.tsx: text-feedback-error-text on bg-surface-active in "hover:bg-surface-active lg:text-feedback-error-text"',
     ]);
   });
 

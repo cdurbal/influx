@@ -33,6 +33,8 @@ import {
   tokenScopes,
   findFontCopyDivergences,
   findFontViolations,
+  findForbiddenClassPairs,
+  findRoleColorUse,
   findKeoBlocksOutside,
   findKeoBlockViolations,
   findTokenPairFailures,
@@ -46,8 +48,10 @@ import {
 import {
   CONTRAST_MATRIX,
   DANGER_PAIRS,
+  FORBIDDEN_CLASS_PAIRS,
   KEO_INHERITS,
   KEO_RETARGETED,
+  ROLE_COLOR_COMPONENTS,
   SUCCESS_MIN_HUE_GAP,
   VITRINE_ONLY,
   VITRINE_TOKEN_MARKERS,
@@ -408,7 +412,7 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
     ).toEqual([]);
   });
 
-  it("transforms nothing on a state and never transitions all (20 §11.5)", () => {
+  it("transforms a state under motion-safe: only and never transitions all (20 §11.5, F6)", () => {
     expect(findStateTransforms(WEB_ROOT, KEO_SCOPES)).toEqual([]);
   });
 
@@ -423,6 +427,33 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
         "src/app/[locale]",
         "(member)",
         memberPaths,
+      ),
+    ).toEqual([]);
+  });
+});
+
+// G3g (D73, 20 §11.3, F4): the role colors mark a role visually and nothing else; one component
+// consumes them and requires the role written. The detector is self-tested in the test-kit.
+describe("G3g: the role colors are consumed by the role component alone (P7, 12 RG7)", () => {
+  it("uses role-advertiser and role-creator nowhere but in RoleBadge, whose label is required", () => {
+    expect(findRoleColorUse(WEB_ROOT, ROLE_COLOR_COMPONENTS)).toEqual([]);
+  });
+});
+
+// G3h (D73, 20 §11.4): no tertiary text, no error text on surface-active, which carries text-primary
+// only. A weak net by design (the same literal); axe checks the rest.
+describe("G3h: no forbidden pair of classes in one literal (20 §11.4)", () => {
+  it("paints neither tertiary text nor error text on surface-active under the KEO scopes", () => {
+    expect(
+      findForbiddenClassPairs(
+        WEB_ROOT,
+        [
+          "src/app/[locale]/(member)",
+          "src/components/member",
+          "src/components/auth",
+          "src/components/account",
+        ],
+        FORBIDDEN_CLASS_PAIRS,
       ),
     ).toEqual([]);
   });
@@ -742,9 +773,11 @@ describe("G7: no Tailwind class conflict that cn() cannot resolve (10 #10)", () 
   });
 
   it("keeps width and white-space out of the base classes of primitives that accept className", () => {
-    const primitiveFiles = listFiles(path.join(SRC, "components", "ui")).filter(
-      (file) => file.endsWith(".tsx"),
-    );
+    // The primitives of the spaces too (DS-5): they take className like the landing's.
+    const primitiveFiles = [
+      ...listFiles(path.join(SRC, "components", "ui")),
+      ...listFiles(path.join(SRC, "components", "member", "ui")),
+    ].filter((file) => file.endsWith(".tsx"));
     expect(findPrimitiveBaseClassConflicts(primitiveFiles, WEB_ROOT)).toEqual(
       [],
     );

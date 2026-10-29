@@ -10,6 +10,7 @@ export {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   CircleAlert as CircleAlertIcon,
+  CircleCheck as CircleCheckIcon,
   Clock as ClockIcon,
   Eye as EyeIcon,
   FileCheck as FileCheckIcon,

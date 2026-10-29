@@ -12,6 +12,7 @@ export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "e2e/global-net.spec.ts": 4,
   "e2e/journey-resume.spec.ts": 7,
   "e2e/landing-signup.spec.ts": 4,
+  "e2e/member-primitives.spec.ts": 3,
   "e2e/security-headers.spec.ts": 30,
   "e2e/signup-nominal.spec.ts": 2,
   "e2e/vitrine-unchanged.spec.ts": 4,
