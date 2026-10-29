@@ -478,6 +478,18 @@
   --image-focus-60-center: 60% center;
   --image-focus-65-center: 65% center;
   --image-focus-70-center: 70% center;
+  /*
+   * Typefaces of the connected spaces (02 §21.4): the classes of src/styles/fonts.ts define the
+   * --typeface-* on the KEO container, for the families of the KEO block below. Declared here
+   * too, on the system stack, so that every name that block refers to exists outside it.
+   * --font-stack-system repeats the vitrine's --font-base: @theme stays as the snapshot froze it
+   * (G3e), so that the KEO families can end on the system stack without referring to it.
+   */
+  --font-stack-system:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", "Liberation Sans", sans-serif;
+  --typeface-manrope: var(--font-stack-system);
+  --typeface-source-sans: var(--font-stack-system);
 }
 
 /* Responsive semantic tokens (03 §5 and §6). Values mirror the breakpoints above. */
@@ -580,6 +592,14 @@
     /* Data series (charts only) */
     --color-data-1: var(--color-brand-primary);
     --color-data-2: var(--color-feedback-info-text);
+
+    /* Families (20 §11.5, 02 §21.4): Manrope for titles and figures, Source Sans 3 for the body,
+     * `latin` only, then the system stack (02 §21.4 point 3, fallback case: the metric fallback of
+     * next/font draws a `latin-ext` glyph before a second family could, TD3.4).
+     * --font-display is an alias of --font-base in @theme: retargeted here (KEO_RETARGETED). */
+    --font-base: var(--typeface-source-sans), var(--font-stack-system);
+    --font-display: var(--typeface-manrope), var(--font-stack-system);
+    --default-font-family: var(--font-base);
 
     /* Shapes */
     --radius-card: 1rem;

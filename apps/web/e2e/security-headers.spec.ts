@@ -12,6 +12,7 @@ import {
   type APIResponse,
   type Page,
 } from "@playwright/test";
+import { seedMember } from "./support/account";
 import { expect, open, test } from "./support/journey";
 import {
   BACKOFFICE_ORIGIN,
@@ -210,6 +211,8 @@ test.describe("T10.6: the CSP enforced by the browser", () => {
     "/en",
     "/fr/inscription/marque",
     "/en/signup/creator",
+    // DS-4: the member pages under KEO, with the fonts of their layout (02 §21.4 point 5).
+    "/fr/connexion",
   ]) {
     test(`${path} hydrates without a single violation`, async ({ page }) => {
       const violations = await watchViolations(page);
@@ -224,6 +227,24 @@ test.describe("T10.6: the CSP enforced by the browser", () => {
       expect(await violations()).toEqual([]);
     });
   }
+
+  test("/fr/createur, with a session, hydrates without a single violation", async ({
+    page,
+  }) => {
+    const violations = await watchViolations(page);
+    await seedMember(page, {
+      role: "creator",
+      language: "fr",
+      acceptTerms: true,
+      sessions: ["chrome.windows"],
+    });
+    await open(page, "/fr/createur");
+    await page.waitForLoadState("load");
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+    });
+    expect(await violations()).toEqual([]);
+  });
 
   // 18 T13 (J9 commit 7): the 404 screens are ours, tokens only, never Next.js's inline styles.
   for (const [origin, path, title] of [

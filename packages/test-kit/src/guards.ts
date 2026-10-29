@@ -665,11 +665,13 @@ export function effectiveTokens(
  * literal value is a redefinition, not an alias, and is accepted. So is an alias declared in the
  * KEO block for a token that is a literal in the vitrine (20 §11.3: `brand-accent` is the vitrine's
  * own green there and an alias of `brand-primary` under KEO). A token of `vitrineOnly` (VITRINE_ONLY)
- * is not consumable under KEO (G8): its stale resolution is no gap.
+ * is not consumable under KEO (G8): its stale resolution is no gap. A token of `retargeted`
+ * (KEO_RETARGETED) may be redeclared towards another target; listed but not retargeted is stale.
  */
 export function findAliasClosureGaps(
   css: string,
   vitrineOnly: readonly string[] = [],
+  retargeted: readonly string[] = [],
 ): string[] {
   const { theme, root, keo } = tokenScopes(css);
   if (keo === null) return [];
@@ -684,29 +686,46 @@ export function findAliasClosureGaps(
     return seen;
   };
   const names = new Set([...theme.keys(), ...root.keys()]);
-  return [...names].flatMap((name) => {
-    if (vitrineOnly.includes(name)) return [];
+  const isRetargeted = (name: string): boolean => {
     const ownValue = vitrine(name) ?? "";
-    const redefinedTargets = [...targetsOf(name)].filter((target) =>
-      keo.has(target),
-    );
-    const keoValue = keo.get(name);
-    if (keoValue === undefined) {
-      return redefinedTargets.length === 0
-        ? []
-        : [
-            `${name}: alias of ${redefinedTargets.join(", ")}, redefined in the KEO block, ` +
-              "but not redeclared there (it would keep its vitrine value)",
-          ];
-    }
-    return varReferences(ownValue).length > 0 &&
+    const keoValue = keo.get(name) ?? ownValue;
+    return (
+      varReferences(ownValue).length > 0 &&
       varReferences(keoValue).length > 0 &&
       keoValue !== ownValue
-      ? [
-          `${name}: redeclared in the KEO block as "${keoValue}", another target than "${ownValue}"`,
-        ]
-      : [];
-  });
+    );
+  };
+  const stale = retargeted
+    .filter((name) => !isRetargeted(name))
+    .map(
+      (name) =>
+        `KEO_RETARGETED: stale entry ${name}, not an alias redeclared towards another target`,
+    );
+  return [
+    ...stale,
+    ...[...names].flatMap((name) => {
+      if (vitrineOnly.includes(name)) return [];
+      if (retargeted.includes(name)) return [];
+      const ownValue = vitrine(name) ?? "";
+      const redefinedTargets = [...targetsOf(name)].filter((target) =>
+        keo.has(target),
+      );
+      const keoValue = keo.get(name);
+      if (keoValue === undefined) {
+        return redefinedTargets.length === 0
+          ? []
+          : [
+              `${name}: alias of ${redefinedTargets.join(", ")}, redefined in the KEO block, ` +
+                "but not redeclared there (it would keep its vitrine value)",
+            ];
+      }
+      return isRetargeted(name)
+        ? [
+            `${name}: redeclared in the KEO block as "${keoValue}", another target than "${ownValue}"`,
+          ]
+        : [];
+    }),
+  ];
 }
 
 /**
@@ -1085,4 +1104,212 @@ export function findFontCopyDivergences(
       ? []
       : [`${relative}: differs between the two fronts`];
   });
+}
+
+// ---------------------------------------------------------------------------------------------
+// G8: the two charters of a front kept apart (D73; 02 §21.3 to §21.6; 18 §5.1, TD1.10)
+// ---------------------------------------------------------------------------------------------
+
+/** The attribute that turns the KEO charter on (02 §21.3 point 4). */
+export const KEO_ATTRIBUTE_PATTERN = /\bdata-theme\b/;
+
+/** A portal renders outside the KEO container, which its content would leave (02 §21.3 point 5). */
+export const PORTAL_PATTERN = /\bcreatePortal\b/;
+
+/**
+ * A transformation on a state (hover, active, focus, group or peer), or `transition-all`: KEO moves
+ * colors only, `motion-safe:` included (20 §11.5; 02 §21.5 point 7). A static transform is no state.
+ */
+export const STATE_TRANSFORM_PATTERN =
+  /(?<![\w-])(?:[\w-]+:)*(?:hover|active|focus|focus-visible|focus-within|group-hover|group-focus|peer-hover|peer-focus):(?:[\w-]+:)*-?(?:scale|translate|rotate|skew)(?!\w)|\btransition-all\b/;
+
+/** A source without its comments, which may name what the code must not do. */
+function withoutComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[^:])\/\/.*$/gm, "$1");
+}
+
+/** The source files (.ts, .tsx…) under src/ of a front, or under the given folders of it. */
+function sourceFilesUnder(
+  frontRoot: string,
+  folders: readonly string[] = ["src"],
+): string[] {
+  return folders.flatMap((folder) => {
+    const directory = path.join(frontRoot, folder);
+    return existsSync(directory)
+      ? listFiles(directory).filter((file) => SOURCE_FILE.test(file))
+      : [];
+  });
+}
+
+/** "… in [a, b], expected [c]" when the two sets differ; nothing otherwise. */
+function exactSetFinding(
+  subject: string,
+  actual: readonly string[],
+  expected: readonly string[],
+): string[] {
+  const found = [...new Set(actual)].sort();
+  const wanted = [...new Set(expected)].sort();
+  return found.join("\n") === wanted.join("\n")
+    ? []
+    : [`${subject} in [${found.join(", ")}], expected [${wanted.join(", ")}]`];
+}
+
+/**
+ * Where the KEO charter is turned on (02 §21.3 point 4): `data-theme` written, and fonts.ts
+ * imported (02 §21.4 point 5), by exactly the given layouts. Comments do not count.
+ */
+export function findKeoActivationViolations(
+  frontRoot: string,
+  layouts: readonly string[],
+): string[] {
+  const sources = sourceFilesUnder(frontRoot);
+  const fontsModule = path
+    .join(frontRoot, FONTS_MODULE)
+    .replace(SOURCE_FILE, "");
+  const attribute = sources.filter((file) =>
+    KEO_ATTRIBUTE_PATTERN.test(withoutComments(readFileSync(file, "utf8"))),
+  );
+  const fontImporters = sources.filter((file) =>
+    importSpecifiers(readFileSync(file, "utf8")).some(
+      (specifier) =>
+        resolveLocalSpecifier(frontRoot, file, specifier) === fontsModule,
+    ),
+  );
+  const relative = (files: readonly string[]) =>
+    files.map((file) => relativePath(frontRoot, file));
+  return [
+    ...exactSetFinding("data-theme is written", relative(attribute), layouts),
+    ...exactSetFinding(
+      `${FONTS_MODULE} is imported`,
+      relative(fontImporters),
+      layouts,
+    ),
+  ];
+}
+
+/** Every `createPortal` of src/, comments aside (02 §21.3 point 5): none is allowed. */
+export function findPortalUse(frontRoot: string): string[] {
+  return sourceFilesUnder(frontRoot)
+    .filter((file) =>
+      PORTAL_PATTERN.test(withoutComments(readFileSync(file, "utf8"))),
+    )
+    .map((file) => `${relativePath(frontRoot, file)}: createPortal`);
+}
+
+/**
+ * Modules of the vitrine (files or folders, relative to the front root) imported from the KEO
+ * scopes, plus every listed module that does not exist: a list that names nothing protects nothing.
+ */
+export function findVitrineImportsUnder(
+  frontRoot: string,
+  keoScopes: readonly string[],
+  vitrineModules: readonly string[],
+): string[] {
+  const missing = vitrineModules
+    .filter((module) => !existsSync(path.join(frontRoot, module)))
+    .map((module) => `${module}: listed as a vitrine module, does not exist`);
+  const vitrine = vitrineModules.map((module) =>
+    path.join(frontRoot, module).replace(SOURCE_FILE, ""),
+  );
+  const isVitrine = (resolved: string) =>
+    vitrine.some(
+      (module) => resolved === module || resolved.startsWith(module + path.sep),
+    );
+  const imports = sourceFilesUnder(frontRoot, keoScopes).flatMap((file) =>
+    importSpecifiers(readFileSync(file, "utf8")).flatMap((specifier) => {
+      const resolved = resolveLocalSpecifier(frontRoot, file, specifier);
+      return resolved !== null && isVitrine(resolved)
+        ? [`${relativePath(frontRoot, file)}: imports ${specifier}`]
+        : [];
+    }),
+  );
+  return [...missing, ...imports];
+}
+
+/** Lines of the given folders matching a pattern, comments aside. */
+function findStrippedMatches(
+  frontRoot: string,
+  folders: readonly string[],
+  pattern: RegExp,
+): string[] {
+  return sourceFilesUnder(frontRoot, folders).flatMap((file) =>
+    withoutComments(readFileSync(file, "utf8"))
+      .split("\n")
+      .flatMap((line, index) =>
+        pattern.test(line)
+          ? [`${relativePath(frontRoot, file)}:${index + 1}: ${line.trim()}`]
+          : [],
+      ),
+  );
+}
+
+/**
+ * Lines of the KEO scopes that consume a token of the vitrine: a fragment of its name (a
+ * VITRINE_ONLY color without `--color-`, an effect of the landing), not followed by more of a name.
+ */
+export function findVitrineTokenUse(
+  frontRoot: string,
+  keoScopes: readonly string[],
+  fragments: readonly string[],
+): string[] {
+  if (fragments.length === 0) return [];
+  const escaped = fragments.map((fragment) =>
+    fragment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+  );
+  return findStrippedMatches(
+    frontRoot,
+    keoScopes,
+    new RegExp(`(?:${escaped.join("|")})(?![\\w-])`),
+  );
+}
+
+/** Lines of the KEO scopes with a transformation on a state, or `transition-all` (20 §11.5). */
+export function findStateTransforms(
+  frontRoot: string,
+  keoScopes: readonly string[],
+): string[] {
+  return findStrippedMatches(frontRoot, keoScopes, STATE_TRANSFORM_PATTERN);
+}
+
+/** The URL path of a page file under an app folder: route groups `(…)` dropped. */
+function routeOfPage(appDirectory: string, pageFile: string): string {
+  return path
+    .relative(appDirectory, path.dirname(pageFile))
+    .split(path.sep)
+    .filter((segment) => segment !== "" && !/^\(.+\)$/.test(segment))
+    .join("/");
+}
+
+/**
+ * The member pages are exactly those of the group (18 §5.1 G8): every member path (a slug, both
+ * languages, relative to `appDirectory`) is served by a page inside `group`, none outside it, and
+ * the group serves no other page. The move into the group changes no URL.
+ */
+export function findMemberGroupMismatches(
+  frontRoot: string,
+  appDirectory: string,
+  group: string,
+  memberPaths: readonly string[],
+): string[] {
+  const app = path.join(frontRoot, appDirectory);
+  const pages = listFiles(app).filter(
+    (file) => path.basename(file).replace(SOURCE_FILE, "") === "page",
+  );
+  const inGroup = (file: string) =>
+    path.relative(app, file).split(path.sep).includes(group);
+  const grouped = pages.filter(inGroup).map((file) => routeOfPage(app, file));
+  const outside = pages
+    .filter((file) => !inGroup(file))
+    .map((file) => routeOfPage(app, file))
+    .filter((route) => memberPaths.includes(route))
+    .map((route) => `/${route}: a member page outside ${group}`);
+  const missing = memberPaths
+    .filter((route) => !grouped.includes(route))
+    .map((route) => `/${route}: no page in ${group}`);
+  const foreign = grouped
+    .filter((route) => !memberPaths.includes(route))
+    .map((route) => `/${route}: in ${group}, not a member page`);
+  return [...outside, ...missing, ...foreign];
 }

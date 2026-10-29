@@ -334,7 +334,8 @@ Décision D73 (fondateur, 2026-10-28). Les espaces membres (inscription et conne
 
 - [x] DS-1 (`e966209`) — lecteur unique `effectiveTokens(css, charte)` (KEO, sinon `@theme`, sinon `:root`) ; vitrine figée par G3e et l'empreinte TD4.2 (fixture reprise par `e2e:record-vitrine` seulement) ; filet A-7 sur tout e2e, sauf `foreignTrafficMode: "record"`.
 - [x] DS-2 (`7e41ee7`) — bloc `[data-theme="keo"]` unique dans `tokens.css` (copie octet pour octet au backoffice), rien activé ; alias redéclarés (G3c), succès KEO `#3ccfcf` à 25° de l'action (G3d, données dans `@influx/test-kit/charter-data`) ; polices et échelle typographique KEO reportées à DS-3 / DS-5.
-- [x] DS-3 — quatre woff2 OFL non modifiés par front (`src/styles/fonts/`, manifeste `FONTS.md`, SHA-256) et `fonts.ts` identiques, importés par personne ; G4f (budget préchargé 53 708 octets, plafond 120 000) ; `next/font/local` et `lucide-react` confinés par ESLint ; `latin-ext` en famille de repli (EC-DS-3-1).
+- [x] DS-3 (`18d8653`) — quatre woff2 OFL non modifiés par front (`src/styles/fonts/`, manifeste `FONTS.md`, SHA-256) et `fonts.ts` identiques, importés par personne ; G4f (budget préchargé 53 708 octets, plafond 120 000) ; `next/font/local` et `lucide-react` confinés par ESLint ; `latin-ext` en famille de repli (EC-DS-3-1).
+- [x] DS-4 — pages membres sous `app/[locale]/(member)` et `(member)/(space)` (URL inchangées) ; `data-theme="keo"` et `fonts.ts` posés par `(member)/layout.tsx` seul (G8, six `it`) ; familles KEO `latin` seul puis pile système (`--font-display` réorienté, `KEO_RETARGETED`) ; cascade prouvée au navigateur (TD3.1, TD3.3 à TD3.6, frontière TD4.4 en données dans `e2e/support/charter-boundary.ts`) ; axe sans « incomplete » sur les pages KEO.
 
 ### Hors jalon
 

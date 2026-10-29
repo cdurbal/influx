@@ -226,6 +226,20 @@ describe("TD1.3: the closure of the aliases", () => {
     );
     expect(findAliasClosureGaps(literal)).toEqual([]);
   });
+
+  it("accepts an alias retargeted on purpose (KEO_RETARGETED), refuses a stale entry", () => {
+    const other = tokensCss(
+      keoWith("  --color-secondary-border: var(--color-text);"),
+    );
+    expect(
+      findAliasClosureGaps(other, [], ["--color-secondary-border"]),
+    ).toEqual([]);
+    expect(
+      findAliasClosureGaps(tokensCss(), [], ["--color-secondary-border"]),
+    ).toEqual([
+      "KEO_RETARGETED: stale entry --color-secondary-border, not an alias redeclared towards another target",
+    ]);
+  });
 });
 
 describe("TD1.4: a reader insensitive to comments, one-line CSS and Windows line breaks", () => {

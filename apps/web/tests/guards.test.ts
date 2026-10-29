@@ -24,6 +24,13 @@ import {
   BO_TOKEN_MARKER,
   effectiveTokens,
   findAliasClosureGaps,
+  findKeoActivationViolations,
+  findMemberGroupMismatches,
+  findPortalUse,
+  findStateTransforms,
+  findVitrineImportsUnder,
+  findVitrineTokenUse,
+  tokenScopes,
   findFontCopyDivergences,
   findFontViolations,
   findKeoBlocksOutside,
@@ -40,9 +47,12 @@ import {
   CONTRAST_MATRIX,
   DANGER_PAIRS,
   KEO_INHERITS,
+  KEO_RETARGETED,
   SUCCESS_MIN_HUE_GAP,
   VITRINE_ONLY,
+  VITRINE_TOKEN_MARKERS,
 } from "@influx/test-kit/charter-data";
+import { MEMBER_PAGE_SLUGS } from "@/lib/member-paths";
 import { describe, expect, it } from "vitest";
 
 const WEB_ROOT = path.resolve(
@@ -236,7 +246,9 @@ describe("G3c: the KEO block is unique, complete, opaque and closes its aliases 
   });
 
   it("redeclares every alias whose target KEO redefines (the browser resolves aliases on :root)", () => {
-    expect(findAliasClosureGaps(tokens, VITRINE_ONLY)).toEqual([]);
+    expect(findAliasClosureGaps(tokens, VITRINE_ONLY, KEO_RETARGETED)).toEqual(
+      [],
+    );
   });
 
   it("fails on an alias left on its vitrine value, a translucent color and a forgotten color (negative cases)", () => {
@@ -245,7 +257,9 @@ describe("G3c: the KEO block is unique, complete, opaque and closes its aliases 
       "",
     );
     expect(forgotten).not.toBe(tokens);
-    expect(findAliasClosureGaps(forgotten, VITRINE_ONLY)).toEqual([
+    expect(
+      findAliasClosureGaps(forgotten, VITRINE_ONLY, KEO_RETARGETED),
+    ).toEqual([
       "--color-text-on-danger: alias of --color-text-primary, redefined in the KEO block, " +
         "but not redeclared there (it would keep its vitrine value)",
     ]);
@@ -339,6 +353,78 @@ describe("G3d: contrasts and success hue, per charter (20 §11.3, §11.4)", () =
 describe("G3f: no backoffice token in apps/web", () => {
   it("finds no -bo- name anywhere in src/", () => {
     expect(findMatches(BO_TOKEN_MARKER, SCOPED_FILES)).toEqual([]);
+  });
+});
+
+// G8 (D73, 02 §21.3 to §21.6, 18 §5.1): the two charters of apps/web kept apart, one case per
+// rule. The detectors are self-tested in the test-kit (TD1.10).
+describe("G8: the KEO charter stays inside the member pages, the vitrine outside them", () => {
+  const MEMBER_LAYOUT = "src/app/[locale]/(member)/layout.tsx";
+  /** What renders under KEO: the member group and the components only it uses. */
+  const KEO_SCOPES = [
+    "src/app/[locale]/(member)",
+    "src/components/member",
+    "src/components/auth",
+    "src/components/account",
+  ];
+  /** Modules of the landing (D59), each one checked to exist. */
+  const VITRINE_MODULES = [
+    "src/components/landing",
+    "src/content/landing-content.ts",
+    "src/content/landing-images.ts",
+    "src/content/images",
+    "src/components/ui/AudienceDoors.tsx",
+    "src/components/ui/PhoneFrame.tsx",
+    "src/components/ui/ResponsiveImage.tsx",
+    "src/components/ui/ShortVideoOverlay.tsx",
+  ];
+  const tokens = readFileSync(path.join(SRC, "styles", "tokens.css"), "utf8");
+
+  it("sets data-theme and imports fonts.ts in the member layout only", () => {
+    expect(findKeoActivationViolations(WEB_ROOT, [MEMBER_LAYOUT])).toEqual([]);
+  });
+
+  it("uses no createPortal anywhere in src/ (02 §21.3 point 5)", () => {
+    expect(findPortalUse(WEB_ROOT)).toEqual([]);
+  });
+
+  it("imports no module of the landing under the KEO scopes", () => {
+    expect(
+      findVitrineImportsUnder(WEB_ROOT, KEO_SCOPES, VITRINE_MODULES),
+    ).toEqual([]);
+  });
+
+  it("consumes no vitrine-only token under the KEO scopes (VITRINE_ONLY, landing effects)", () => {
+    const { theme, root } = tokenScopes(tokens);
+    const marker = new RegExp(VITRINE_TOKEN_MARKERS.join("|"));
+    const effects = [...theme.keys(), ...root.keys()].flatMap((name) => {
+      const at = name.search(marker);
+      return at === -1 ? [] : [name.slice(at)];
+    });
+    const colors = VITRINE_ONLY.map((name) => name.replace("--color-", ""));
+    expect(effects).toContain("metal-card");
+    expect(
+      findVitrineTokenUse(WEB_ROOT, KEO_SCOPES, [...colors, ...effects]),
+    ).toEqual([]);
+  });
+
+  it("transforms nothing on a state and never transitions all (20 §11.5)", () => {
+    expect(findStateTransforms(WEB_ROOT, KEO_SCOPES)).toEqual([]);
+  });
+
+  it("serves exactly the pages of MEMBER_PAGE_SLUGS from the (member) group, URLs unchanged", () => {
+    const memberPaths = Object.values(MEMBER_PAGE_SLUGS).flatMap((slugs) =>
+      Object.values(slugs),
+    );
+    expect(memberPaths).toHaveLength(20);
+    expect(
+      findMemberGroupMismatches(
+        WEB_ROOT,
+        "src/app/[locale]",
+        "(member)",
+        memberPaths,
+      ),
+    ).toEqual([]);
   });
 });
 

@@ -70,6 +70,33 @@ export const VITRINE_ONLY: readonly string[] = [
   "--color-data-net-creator",
 ];
 
+/**
+ * Aliases of @theme that the KEO block redeclares towards another target, on purpose. Each entry
+ * says why; any other retargeted alias, and a stale entry, fails G3c (findAliasClosureGaps).
+ */
+export const KEO_RETARGETED: readonly string[] = [
+  // One family in the vitrine; under KEO, Manrope for titles and figures, Source Sans 3 for the
+  // body (20 §11.5, 02 §21.4).
+  "--font-display",
+];
+
+// ---------------------------------------------------------------------------------------------
+// G8: what the member pages never consume (02 §21.6; 18 §5.1)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * Words that mark a token of the landing's effects (D59: metal card, hero, phone frame, halo,
+ * former mockup banner). A token whose name holds one is consumed by the landing only, like the
+ * colors of VITRINE_ONLY.
+ */
+export const VITRINE_TOKEN_MARKERS: readonly string[] = [
+  "metal",
+  "hero",
+  "phone",
+  "halo",
+  "mockup",
+];
+
 // ---------------------------------------------------------------------------------------------
 // G3d: the matrix of contrasts and the hue gap of the success, per charter (20 §11.3, §11.4)
 // ---------------------------------------------------------------------------------------------
