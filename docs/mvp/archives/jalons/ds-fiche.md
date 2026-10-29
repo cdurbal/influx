@@ -1,6 +1,6 @@
 # Fiche DS — Charte KEO Emerald des espaces connectés (jalon extra du MVP)
 
-> **Jalon DS clos et archivé le 2026-10-29** (commits DS-1 à DS-14, bilan dans `21` § « Jalon DS »). Fiche conservée pour mémoire : ne plus la lire pour démarrer une session ; la recette humaine (`18` §12.4) et la revue groupée restent tracées dans `21`.
+> **Jalon DS clos et archivé le 2026-10-29** (commits DS-1 à DS-14, bilan dans `21` § « Jalon DS »). Fiche conservée pour mémoire : ne plus la lire pour démarrer une session ; la recette humaine (`18` §12.4) est faite le 2026-10-29.
 
 > **Point d'entrée de toute session du jalon DS.** Décision : `decisions.md` **D73** (fondateur,
 > 2026-10-28). Jalon **extra**, placé **avant le Lot 2** : les écrans des Lots 2 à 5 se construiront
@@ -53,7 +53,7 @@ matrice d'axe par largeur, plan par commit et recette : `18` §12. **Terminé qu
 - [x] session et CGU relues à chaque navigation ; parité FR/EN ; e2e existants (`signup-nominal`,
       `journey-resume`, `landing-signup`, `account`, `account-data`, `backoffice.spec`,
       `security-headers.spec`) verts **sans modifier leurs attendus**, tests de logique inchangés ;
-- [ ] recette humaine faite (`18` §12.4) : lecture en extérieur sur un vrai téléphone, test du logo,
+- [x] recette humaine faite (2026-10-29) (`18` §12.4) : lecture en extérieur sur un vrai téléphone, test du logo,
       clavier seul et lecteur d'écran, zoom 200 % et 400 %, appareils réels ; **accord écrit du
       fondateur** sur les trois gabarits ;
 - [ ] revue groupée `testeur` + `expert-cybersecurite` (non bloquante sur `main`, exigée avant
