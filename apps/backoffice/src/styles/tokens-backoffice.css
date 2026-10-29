@@ -15,6 +15,21 @@
   /* Navigation rail, fixed width from `lg` (17b §1.7). */
   --spacing-bo-rail-w: 15rem;
 
+  /* The shell from `lg`: the rail, then the content; the head band, then the page (17b §1.7). */
+  --grid-bo-shell: var(--spacing-bo-rail-w) minmax(0, 1fr);
+  --grid-bo-shell-rows: auto 1fr;
+
   /* In-row control: 28 px, above the 24 px of WCAG 2.2 AA (2.5.8). Forbidden in apps/web. */
   --size-bo-control: 1.75rem;
+}
+
+/*
+ * The window too small for the backoffice (17b §1.7, F7): narrower than `md` (--breakpoint-md of
+ * tokens.css) or lower than 500 px, a phone held either way. Declared here once, in CSS: no width
+ * nor height is ever detected in JavaScript. Used as `bo-small:` by the shell alone, until D58.
+ */
+@custom-variant bo-small {
+  @media (width < 768px), (height < 500px) {
+    @slot;
+  }
 }

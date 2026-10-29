@@ -4,8 +4,9 @@
 // a floor or a floor without a file fails the run. Raise a floor when a file gains cases. LOWERING a
 // floor is done in a commit whose message says which cases disappear and why (18 §3 rule 2).
 export const CASE_FLOORS: Readonly<Record<string, number>> = {
+  "tests/bo-nav.test.ts": 15,
   "tests/error-notice.test.ts": 3,
-  "tests/guards.test.ts": 36,
+  "tests/guards.test.ts": 38,
   "tests/ops-view-model.test.ts": 17,
   "tests/relay.test.ts": 5,
   "tests/view-model.test.ts": 12,

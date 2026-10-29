@@ -92,7 +92,6 @@ export const messages = {
     ended: "Votre session a pris fin. Reconnectez-vous.",
   },
   logout: {
-    action: "Me déconnecter",
     busy: "Déconnexion…",
     done: "Vous êtes déconnecté.",
     signInAgain: "Me reconnecter",
@@ -100,16 +99,42 @@ export const messages = {
   // ---------------------------------------------------------------------------------------------
   // J8 commit 9: the screens of the backoffice v0 (17b §2, §3.11 to §3.13, §3.14.e; 05 §K)
   // ---------------------------------------------------------------------------------------------
+  // DS-10 (D73): the rail of 17b §1.2 and §1.7, its entries, then the screens as section links.
   nav: {
-    label: "Navigation de l’espace interne",
+    label: "Navigation principale",
+    skip: "Aller au contenu",
+    dashboard: "Tableau de bord",
+    queues: "Files",
+    accounts: "Comptes",
+    creatorSearch: "Créateurs",
+    deals: "Affaires",
+    alerts: "Alertes",
+    admin: "Administration",
     home: "Accueil",
-    accounts: "Inscrits",
-    memberInvitations: "Invitations de membres",
+    signups: "Inscrits",
+    memberInvitations: "Invitations",
     dualControl: "Double validation",
     apollo: "Réglages Apollo",
     internalAccounts: "Comptes internes",
     health: "Santé technique",
-    skip: "Aller au contenu",
+  },
+  /** 17b §1.4 and §1.7: the head band, the rail, and the screen of a window too small. */
+  shell: {
+    name: "INFLUX",
+    product: "Backoffice",
+    signOut: "Se déconnecter",
+    /** The environment, always written; the colour of the band is never alone (16 RG118). */
+    environment: {
+      production: "PRODUCTION",
+      staging: "RECETTE",
+      development: "LOCAL",
+    },
+    identity: (email: string, role: "agent" | "admin") =>
+      `${email} · ${role === "admin" ? "administrateur" : "commercial"}`,
+    workstationOnly: {
+      title: "Le backoffice se consulte sur un poste de travail",
+      body: "Cet écran demande une fenêtre d’au moins 768 px de large et 500 px de haut. Sur téléphone, vos conversations et la file de validation seront disponibles à leur mise en service.",
+    },
   },
   /**
    * 16 RG118 (D70): the permanent banner of every non-production backoffice, in words. Staging sends
@@ -276,8 +301,6 @@ export const messages = {
     title: "Espace interne",
     lead: "Inscrits du jour, synchronisation des leads et alertes.",
     loading: "Chargement…",
-    signedInAs: (email: string, role: "agent" | "admin") =>
-      `Connecté avec ${email} — ${role === "admin" ? "administrateur" : "commercial"}`,
     countersTitle: (day: string) => `Aujourd’hui (${day}, jour UTC)`,
     signups: (total: number, advertisers: number, creators: number) =>
       `${total} inscrit${total > 1 ? "s" : ""} : ${advertisers} marque${advertisers > 1 ? "s" : ""}, ${creators} créateur${creators > 1 ? "s" : ""}`,

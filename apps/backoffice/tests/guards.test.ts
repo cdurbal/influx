@@ -25,6 +25,7 @@ import {
   findFontViolations,
   findNonBoDeclarations,
   findTokenPairFailures,
+  findSessionReadViolations,
   DANGER_RED_TOKENS,
   OPAQUE_TOKEN_VALUE,
   TRANSLUCENT_RED_CLASS,
@@ -381,6 +382,41 @@ describe("never indexed (03 §7.1, D12)", () => {
     expect(directives).toContain(`style-src 'self' 'nonce-${nonce}'`);
     expect(directives).toContain("img-src 'self' blob:");
     expect(contentSecurityPolicy(nonce)).not.toMatch(/unsafe-|supabase/);
+  });
+});
+
+// G9 (D73; 02 §21.5 point 1, §21.9): the session is read by the shell alone, which hands it to the
+// screens through useMe(). The detector is self-tested in the test-kit (TD1.12).
+describe("G9: the session read confined to the backoffice shell", () => {
+  it("imports readMe in Shell only, and reads GET /v1/bo/me in backoffice-auth only", () => {
+    expect(
+      findSessionReadViolations(BACKOFFICE_ROOT, {
+        module: "src/components/backoffice-auth.ts",
+        reader: "readMe",
+        endpoint: "/v1/bo/me",
+        shells: ["src/components/Shell.tsx"],
+      }),
+    ).toEqual([]);
+  });
+});
+
+// F7 (17b §1.7): the window too small is declared once, in CSS, beside the backoffice tokens.
+describe("the workstation thresholds live in tokens-backoffice.css alone", () => {
+  it("declares bo-small there, at md wide and 500 px high, and nowhere else", () => {
+    const css = readFileSync(
+      path.join(SRC, "styles", "tokens-backoffice.css"),
+      "utf8",
+    );
+    expect(css).toMatch(
+      /@custom-variant bo-small \{\s*@media \(width < 768px\), \(height < 500px\) \{\s*@slot;/,
+    );
+    expect(
+      findMatches(
+        /@custom-variant|matchMedia|innerWidth|innerHeight/,
+        SOURCE_FILES,
+        BACKOFFICE_ROOT,
+      ).map((match) => match.split(":")[0]),
+    ).toEqual(["src/styles/tokens-backoffice.css"]);
   });
 });
 

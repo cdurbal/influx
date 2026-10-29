@@ -13,7 +13,11 @@
 // The people are seeded with a session proven by TOTP now (support/backoffice.ts): R holds, no
 // password is typed. Serial: the degraded dual control deactivates the other admins for a while, so
 // this file never runs beside another that needs an admin (J8T-8; playwright.config.ts).
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Browser, Page } from "@playwright/test";
+import { effectiveTokens } from "@influx/test-kit/guards";
 import { messages } from "../../backoffice/src/messages/fr";
 import { expectNoAxeViolation } from "./support/axe";
 import {
@@ -697,4 +701,239 @@ test("D54, RG119: the invitation of an agent makes them the responsible salesper
   await expect(row).toContainText(m.accounts.sourceInvitation);
   await expect(row).toContainText("Morgane");
   await backoffice.context().close();
+});
+
+// DS-10 (D73; 18 §12.1 TD6.1 to TD6.4; 17b §1.4, §1.7; 02 §21.5 point 8): the shell of the backoffice,
+// mounted once by (app)/layout.tsx. The breakpoints are read in the tokens (18 §12.5 point 5): md and
+// lg in tokens.css, the height of the window too small in the bo-small variant of
+// tokens-backoffice.css.
+const BACKOFFICE_STYLES = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+  "backoffice",
+  "src",
+  "styles",
+);
+const BREAKPOINTS = effectiveTokens(
+  readFileSync(path.join(BACKOFFICE_STYLES, "tokens.css"), "utf8"),
+  "keo",
+);
+const MD = parseInt(BREAKPOINTS.get("--breakpoint-md") ?? "", 10);
+const LG = parseInt(BREAKPOINTS.get("--breakpoint-lg") ?? "", 10);
+const MIN_HEIGHT = parseInt(
+  /\(height < (\d+)px\)/.exec(
+    readFileSync(path.join(BACKOFFICE_STYLES, "tokens-backoffice.css"), "utf8"),
+  )?.[1] ?? "",
+  10,
+);
+
+/** The environment word of the band, whichever the run is (16 RG118). */
+const ENVIRONMENT_WORD = new RegExp(
+  Object.values(m.shell.environment).join("|"),
+);
+
+function mainNavigation(page: Page) {
+  return page.getByRole("navigation", { name: m.nav.label });
+}
+
+/** Whether the page scrolls sideways (never: a wide table scrolls in its own region). */
+function pageScrollsSideways(page: Page): Promise<boolean> {
+  return page.evaluate(
+    () =>
+      document.documentElement.scrollWidth >
+      document.documentElement.clientWidth,
+  );
+}
+
+test("TD6.1: one main navigation, no admin entry for an agent, the skip link first, the focus on the h1 after a navigation", async ({
+  page,
+}) => {
+  expect([MD, LG, MIN_HEIGHT].every(Number.isFinite)).toBe(true);
+  await seedInternal(page, "agent", "Elio");
+  await page.goto(bo("/accueil"));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    m.home.title,
+  );
+  await expect(page.getByRole("navigation")).toHaveCount(1);
+  const nav = mainNavigation(page);
+  await expect(nav.getByRole("link")).toHaveText([
+    m.nav.dashboard,
+    m.nav.accounts,
+  ]);
+  await expect(nav.getByRole("link", { name: m.nav.admin })).toHaveCount(0);
+  await expect(nav.locator("[aria-current=page]")).toHaveText(m.nav.dashboard);
+
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: m.nav.skip })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#main")).toBeFocused();
+
+  // A client navigation: the rail stays, the focus goes to the h1 of the new page.
+  await nav.getByRole("link", { name: m.nav.accounts }).click();
+  await expect(page).toHaveURL(bo("/inscrits"));
+  const heading = page.getByRole("heading", { level: 1 });
+  await expect(heading).toHaveText(m.accounts.title);
+  await expect(heading).toBeFocused();
+  await expect(nav.locator("[aria-current=page]")).toHaveText(m.nav.accounts);
+  // The screens of the entry, as section links under their own name.
+  const sections = page.getByRole("navigation", { name: m.nav.accounts });
+  await expect(sections.getByRole("link")).toHaveText([
+    m.nav.signups,
+    m.nav.memberInvitations,
+  ]);
+  await expect(sections.locator("[aria-current=page]")).toHaveText(
+    m.nav.signups,
+  );
+});
+
+test("TD6.2: the rail from lg, the compact list from md, the workstation screen below md or below 500 px high", async ({
+  page,
+}) => {
+  await seedInternal(page, "admin", "Rémi");
+  await page.goto(bo("/inscrits"));
+  const table = page.getByRole("table", { name: m.accounts.title });
+  await expect(table).toBeVisible();
+  const nav = mainNavigation(page);
+  const workstation = page.getByRole("heading", {
+    level: 1,
+    name: m.shell.workstationOnly.title,
+  });
+
+  // From lg: the rail at the left edge, from the top of the window.
+  for (const width of [LG, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(nav.getByRole("link")).toHaveText([
+      m.nav.dashboard,
+      m.nav.accounts,
+      m.nav.admin,
+    ]);
+    const box = await nav.boundingBox();
+    const main = await page.locator("#main").boundingBox();
+    expect(box?.x ?? Infinity).toBeLessThan(main?.x ?? 0);
+    await expect(workstation).toHaveCount(0);
+  }
+
+  // From md to lg: the same single <nav>, a horizontal list under the band, every link reachable.
+  for (const width of [MD, LG - 1]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(mainNavigation(page)).toHaveCount(1);
+    const links = nav.getByRole("link");
+    await expect(links).toHaveCount(3);
+    const tops = await links.evaluateAll((elements) =>
+      elements.map((element) => element.getBoundingClientRect().top),
+    );
+    expect(new Set(tops).size).toBe(1);
+    const band = await page.locator("header").first().boundingBox();
+    const box = await nav.boundingBox();
+    expect(box?.y ?? 0).toBeGreaterThanOrEqual(
+      (band?.y ?? 0) + (band?.height ?? 0) - 1,
+    );
+    await expect(table).toBeVisible();
+    await expect(workstation).toHaveCount(0);
+    expect(await pageScrollsSideways(page)).toBe(false);
+  }
+
+  // Below md wide, or below 500 px high (a phone held sideways): no business content at all.
+  for (const [width, height] of [
+    [MD - 1, 900],
+    [375, 812],
+    [LG, MIN_HEIGHT - 1],
+    [844, 390],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    await expect(workstation).toBeVisible();
+    await expect(page.getByRole("navigation")).toHaveCount(0);
+    await expect(page.getByRole("table")).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { level: 1, name: m.accounts.title }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: m.shell.signOut }),
+    ).toBeVisible();
+    await expect(page.locator("body")).toContainText(ENVIRONMENT_WORD);
+    expect(await pageScrollsSideways(page)).toBe(false);
+  }
+
+  // Exactly 500 px high: the whole backoffice.
+  await page.setViewportSize({ width: LG, height: MIN_HEIGHT });
+  await expect(workstation).toHaveCount(0);
+  await expect(table).toBeVisible();
+});
+
+test("TD6.3: the banners are read again at each client navigation; the environment is always written", async ({
+  page,
+  browser,
+}) => {
+  const other = await otherBrowser(browser);
+  await seedInternal(other, "admin", "Yaël");
+  const admin = await seedInternal(page, "admin", "Sami");
+  try {
+    await page.goto(bo("/accueil"));
+    const band = page.locator("header").first();
+    await expect(band).toContainText(ENVIRONMENT_WORD);
+    await expect(
+      page.getByRole("status").filter({ hasText: m.peerControlBanner }),
+    ).toHaveCount(0);
+
+    // The other admins leave; the next click shows the banner, without a reload.
+    await onlyAdmin(admin.accountId);
+    await page.evaluate(() => {
+      (window as unknown as { stayed: boolean }).stayed = true;
+    });
+    await mainNavigation(page)
+      .getByRole("link", { name: m.nav.accounts })
+      .click();
+    await expect(page).toHaveURL(bo("/inscrits"));
+    await expect(
+      page.getByRole("status").filter({ hasText: m.peerControlBanner }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { stayed?: boolean }).stayed,
+      ),
+    ).toBe(true);
+    await expect(band).toContainText(ENVIRONMENT_WORD);
+  } finally {
+    await restoreAdmins();
+    await other.context().close();
+  }
+});
+
+test("TD6.4: without a session a click goes to sign-in; after sign-out, the signed-out screen, its h1 focused, no navigation", async ({
+  page,
+}) => {
+  await seedInternal(page, "agent", "Jade");
+  await page.goto(bo("/accueil"));
+  await expect(mainNavigation(page)).toBeVisible();
+  await page.context().clearCookies();
+  await mainNavigation(page)
+    .getByRole("link", { name: m.nav.accounts })
+    .click();
+  await expect(page).toHaveURL(bo("/"));
+
+  await seedInternal(page, "agent", "Jade");
+  await page.goto(bo("/accueil"));
+  await page.getByRole("button", { name: m.shell.signOut }).click();
+  const done = page.getByRole("heading", { level: 1, name: m.logout.done });
+  await expect(done).toBeVisible();
+  await expect(done).toBeFocused();
+  await expect(page.getByRole("navigation")).toHaveCount(0);
+});
+
+test("DS-10: the home of an admin passes axe (WCAG 2.2 AA) at 1024 and 1440 px", async ({
+  page,
+}) => {
+  await seedInternal(page, "admin", "Inès");
+  await page.goto(bo("/accueil"));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    m.home.title,
+  );
+  for (const width of [LG, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(mainNavigation(page)).toBeVisible();
+    await expectNoAxeViolation(page, `accueil à ${String(width)} px`, {
+      wcag22: true,
+    });
+  }
 });

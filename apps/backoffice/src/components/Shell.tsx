@@ -1,16 +1,24 @@
 "use client";
 
-// The frame of every screen behind the session (docs/mvp/17b §1, §3.14.a; 15 RG107; 21 J3S-6).
-// GET /v1/bo/me decides: no session ⇒ back to sign-in. Permanent banners, all read from apps/api at
-// every page, never from the address bar: the environment and its sending mode outside production
-// (16 RG118, D70), the recovery-code session (J3S-6) and the degraded dual control while there are
-// not two distinct active admins (15 RG107, CA71). The
-// admin entries of the navigation are absent for an agent; the server refuses them anyway (CA63).
+// The frame of every screen behind the session (docs/mvp/17b §1.4, §1.7, §3.14.a; 02 §21.5 points 1
+// and 8; 15 RG107; 21 J3S-6), mounted once by (app)/layout.tsx: it stays in place across the pages,
+// the rail is no longer rebuilt at each navigation. GET /v1/bo/me is read when it mounts AND at each
+// change of path, without emptying the screen: no session ⇒ back to sign-in; the permanent banners
+// are read from apps/api at every page, never from the address bar: the environment, always written,
+// and its sending mode outside production (16 RG118, D70), the recovery-code session (J3S-6) and the
+// degraded dual control while there are not two distinct active admins (15 RG107, CA71). The pages
+// receive the session through useMe() and never read it themselves (G9).
+// One <nav> "Navigation principale", restyled by CSS: the rail from lg, a compact horizontal list
+// from md to lg; a window too small (bo-small:, tokens-backoffice.css) shows the "poste de travail"
+// screen instead, without business content (F7). The entries a role sees and the entry of a path
+// are pure functions of bo-nav.ts; the admin entry is absent for an agent, the server refuses those
+// screens anyway (CA63).
 import type { BackofficeMeResponse } from "@influx/contracts/backoffice-auth";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -22,39 +30,64 @@ import { installErrorCollector } from "@/observability/error-collector";
 import {
   BRAND_CLASSES,
   HELP_CLASSES,
+  INFO_CLASSES,
+  LEAD_CLASSES,
   SCREEN_CLASSES,
-  SECONDARY_BUTTON_CLASSES,
   TEXT_BUTTON_CLASSES,
   TITLE_CLASSES,
   WARNING_CLASSES,
 } from "./auth-classes";
 import { readMe, signOut } from "./backoffice-auth";
+import { SMALL_SECONDARY_CLASSES } from "./bo-classes";
 import {
-  HEADER_CLASSES,
+  activePlaceOf,
+  navItemsOf,
+  type ActivePlace,
+  type NavItem,
+  type RailKey,
+} from "./bo-nav";
+import { ErrorNotice } from "./ErrorNotice";
+import {
+  BellIcon,
+  BriefcaseIcon,
+  InboxIcon,
+  LayoutDashboardIcon,
+  LogOutIcon,
+  SearchIcon,
+  SettingsIcon,
+  UsersRoundIcon,
+} from "./icons";
+import {
+  BAND_CLASSES,
+  BANNERS_CLASSES,
+  BRAND_LINK_CLASSES,
+  ENV_NAME_CLASSES,
+  envBarClasses,
+  FRAME_CLASSES,
+  MAIN_CLASSES,
+  NAV_ICON_CLASSES,
   NAV_LIST_CLASSES,
   navLinkClasses,
-  PAGE_CLASSES,
-} from "./bo-classes";
-import { ErrorNotice } from "./ErrorNotice";
+  PRODUCT_CLASSES,
+  RAIL_CLASSES,
+  RAIL_FOOT_CLASSES,
+  RAIL_HEAD_CLASSES,
+  SECTION_LIST_CLASSES,
+  sectionLinkClasses,
+  SKIP_LINK_CLASSES,
+  SMALL_BODY_CLASSES,
+  SMALL_SCREEN_CLASSES,
+} from "./shell-classes";
 
-export type NavKey =
-  | "home"
-  | "accounts"
-  | "memberInvitations"
-  | "dualControl"
-  | "apollo"
-  | "internalAccounts"
-  | "health";
-
-const NAV: readonly { key: NavKey; href: string; adminOnly: boolean }[] = [
-  { key: "home", href: "/accueil", adminOnly: false },
-  { key: "accounts", href: "/inscrits", adminOnly: false },
-  { key: "memberInvitations", href: "/invitations", adminOnly: false },
-  { key: "dualControl", href: "/double-validation", adminOnly: true },
-  { key: "apollo", href: "/reglages/apollo", adminOnly: true },
-  { key: "internalAccounts", href: "/comptes-internes", adminOnly: true },
-  { key: "health", href: "/sante-technique", adminOnly: true },
-];
+const ENTRY_ICONS: Record<RailKey, typeof InboxIcon> = {
+  dashboard: LayoutDashboardIcon,
+  queues: InboxIcon,
+  accounts: UsersRoundIcon,
+  creatorSearch: SearchIcon,
+  deals: BriefcaseIcon,
+  alerts: BellIcon,
+  admin: SettingsIcon,
+};
 
 const MeContext = createContext<BackofficeMeResponse | null>(null);
 
@@ -73,24 +106,24 @@ type State =
   | { kind: "unavailable" }
   | { kind: "signedOut" };
 
-export function Shell({
-  current,
-  children,
-}: {
-  current: NavKey;
-  children: ReactNode;
-}) {
+export function Shell({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [state, setState] = useState<State>({ kind: "loading" });
   const [busy, setBusy] = useState(false);
+  // Signed out: the page ends there, no later read brings the frame back.
+  const ended = useRef(false);
 
   // Browser errors of the connected space (D60, 02 §20.5).
   useEffect(() => installErrorCollector(), []);
+
+  // At the mount and at each change of path (02 §21.5 point 1): the session and the banners read
+  // again, the screen kept meanwhile. A read overtaken by the next navigation is dropped.
   useEffect(() => {
-    let active = true;
+    let current = true;
     void readMe().then((result) => {
-      if (!active) {
+      if (!current || ended.current) {
         return;
       }
       if (result.kind === "unauthenticated") {
@@ -104,9 +137,9 @@ export function Shell({
       );
     });
     return () => {
-      active = false;
+      current = false;
     };
-  }, [router]);
+  }, [router, pathname]);
 
   useEffect(() => {
     if (state.kind === "signedOut") {
@@ -114,22 +147,23 @@ export function Shell({
     }
   }, [state.kind]);
 
-  async function leave() {
+  const leave = useCallback(async () => {
     if (busy) {
       return;
     }
     setBusy(true);
     try {
       const result = await signOut();
-      setState(
-        result.kind === "failed"
-          ? { kind: "unavailable" }
-          : { kind: "signedOut" },
-      );
+      if (result.kind === "failed") {
+        setState({ kind: "unavailable" });
+        return;
+      }
+      ended.current = true;
+      setState({ kind: "signedOut" });
     } finally {
       setBusy(false);
     }
-  }
+  }, [busy]);
 
   const brand = <p className={BRAND_CLASSES}>{messages.brand}</p>;
 
@@ -169,71 +203,233 @@ export function Shell({
   }
 
   const { me } = state;
-  const factor = me.secondFactor;
-  const { environment } = me;
+  const signOutButton = (
+    <button
+      type="button"
+      onClick={() => void leave()}
+      aria-disabled={busy || undefined}
+      className={SMALL_SECONDARY_CLASSES}
+    >
+      <LogOutIcon aria-hidden="true" className={NAV_ICON_CLASSES} />
+      {busy ? messages.logout.busy : messages.shell.signOut}
+    </button>
+  );
   return (
     <MeContext.Provider value={me}>
-      <div className={PAGE_CLASSES}>
-        <a href="#main" className="sr-only focus:not-sr-only">
-          {messages.nav.skip}
-        </a>
-        <header className={HEADER_CLASSES}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {brand}
-            <div className="flex flex-wrap items-center gap-3">
-              <p className={HELP_CLASSES}>
-                {messages.home.signedInAs(me.email, me.role)}
-              </p>
-              <button
-                type="button"
-                onClick={leave}
-                aria-disabled={busy || undefined}
-                className={SECONDARY_BUTTON_CLASSES}
-              >
-                {busy ? messages.logout.busy : messages.logout.action}
-              </button>
-            </div>
-          </div>
-          <nav aria-label={messages.nav.label}>
-            <ul className={NAV_LIST_CLASSES}>
-              {NAV.filter((item) => !item.adminOnly || me.role === "admin").map(
-                (item) => (
-                  <li key={item.key}>
-                    <Link
-                      href={item.href}
-                      aria-current={item.key === current ? "page" : undefined}
-                      className={navLinkClasses(item.key === current)}
-                    >
-                      {messages.nav[item.key]}
-                    </Link>
-                  </li>
-                ),
-              )}
-            </ul>
-          </nav>
-          {environment.name === "production" ? null : (
-            <p role="status" className={WARNING_CLASSES}>
-              {messages.environmentBanner(
-                environment.name,
-                environment.brevoMode,
-              )}
-            </p>
-          )}
-          {factor.method === "recovery_code" ? (
-            <p role="status" className={WARNING_CLASSES}>
-              {messages.recoveryBanner(factor.recoveryCodesLeft)}
-            </p>
-          ) : null}
-          {me.peerControlAvailable ? null : (
-            <p role="status" className={WARNING_CLASSES}>
-              {messages.peerControlBanner}
-            </p>
-          )}
-        </header>
-        <main id="main" className="flex flex-col gap-6">
-          {children}
-        </main>
-      </div>
+      <Frame
+        me={me}
+        place={activePlaceOf(pathname)}
+        pathname={pathname}
+        signOutButton={signOutButton}
+      >
+        {children}
+      </Frame>
+      <SmallWindow me={me} signOutButton={signOutButton} />
     </MeContext.Provider>
+  );
+}
+
+/** Bar 1 of the band: the environment, always written, then who is signed in and as what. */
+function EnvironmentBar({
+  me,
+  withProduct,
+}: {
+  me: BackofficeMeResponse;
+  withProduct: boolean;
+}) {
+  const { environment } = me;
+  const production = environment.name === "production";
+  return (
+    <div className={envBarClasses(production)}>
+      <p>
+        <span className={ENV_NAME_CLASSES}>
+          {messages.shell.environment[environment.name]}
+        </span>
+        {withProduct ? ` · ${messages.brand}` : null}
+        {environment.name === "production"
+          ? null
+          : ` — ${messages.environmentBanner(environment.name, environment.brevoMode)}`}
+      </p>
+      <p className="break-all">{messages.shell.identity(me.email, me.role)}</p>
+    </div>
+  );
+}
+
+/**
+ * The workstation frame: skip link, head band, the rail (a strip from md to lg), then <main> with
+ * the section links of the active entry. The focus goes to the h1 of the new page after a
+ * navigation (17b §1.7), not at the first load, where the first Tab must reach the skip link.
+ */
+function Frame({
+  me,
+  place,
+  pathname,
+  signOutButton,
+  children,
+}: {
+  me: BackofficeMeResponse;
+  place: ActivePlace | null;
+  pathname: string;
+  signOutButton: ReactNode;
+  children: ReactNode;
+}) {
+  const mainRef = useRef<HTMLElement>(null);
+  const shownPath = useRef(pathname);
+  useEffect(() => {
+    if (shownPath.current === pathname) {
+      return;
+    }
+    shownPath.current = pathname;
+    const main = mainRef.current;
+    if (main === null) {
+      return;
+    }
+    // The screen may draw its h1 after the path changed (a suspended page, a first read): the
+    // focus waits for it, and gives up at the next navigation.
+    const focusTitle = (): boolean => {
+      const title = main.querySelector("h1");
+      if (!(title instanceof HTMLElement)) {
+        return false;
+      }
+      if (!title.hasAttribute("tabindex")) {
+        title.tabIndex = -1;
+      }
+      title.focus();
+      return true;
+    };
+    if (focusTitle()) {
+      return;
+    }
+    const observer = new MutationObserver(() => {
+      if (focusTitle()) {
+        observer.disconnect();
+      }
+    });
+    observer.observe(main, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [pathname]);
+
+  const items = navItemsOf(me.role);
+  const active = items.find((item) => item.key === place?.entry);
+  const factor = me.secondFactor;
+  return (
+    <div className={FRAME_CLASSES}>
+      <a href="#main" className={SKIP_LINK_CLASSES}>
+        {messages.nav.skip}
+      </a>
+      <header className={BAND_CLASSES}>
+        <EnvironmentBar me={me} withProduct={false} />
+        {factor.method === "recovery_code" || !me.peerControlAvailable ? (
+          <div className={BANNERS_CLASSES}>
+            {factor.method === "recovery_code" ? (
+              <p role="status" className={WARNING_CLASSES}>
+                {messages.recoveryBanner(factor.recoveryCodesLeft)}
+              </p>
+            ) : null}
+            {me.peerControlAvailable ? null : (
+              <p role="status" className={INFO_CLASSES}>
+                {messages.peerControlBanner}
+              </p>
+            )}
+          </div>
+        ) : null}
+      </header>
+      <div className={RAIL_CLASSES}>
+        <div className={RAIL_HEAD_CLASSES}>
+          <Link href="/accueil" className={BRAND_LINK_CLASSES}>
+            {messages.shell.name}
+            <span className={PRODUCT_CLASSES}>{messages.shell.product}</span>
+          </Link>
+        </div>
+        <nav aria-label={messages.nav.label}>
+          <ul className={NAV_LIST_CLASSES}>
+            {items.map((item) => {
+              const isActive = item.key === place?.entry;
+              const Icon = ENTRY_ICONS[item.key];
+              return (
+                <li key={item.key}>
+                  <Link
+                    href={item.href}
+                    aria-current={isActive ? "page" : undefined}
+                    className={navLinkClasses(isActive)}
+                  >
+                    <Icon aria-hidden="true" className={NAV_ICON_CLASSES} />
+                    {messages.nav[item.key]}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+        <div className={RAIL_FOOT_CLASSES}>{signOutButton}</div>
+      </div>
+      <main id="main" ref={mainRef} tabIndex={-1} className={MAIN_CLASSES}>
+        {active === undefined ? null : (
+          <SectionLinks item={active} current={place?.section ?? null} />
+        )}
+        {children}
+      </main>
+    </div>
+  );
+}
+
+/** The screens of the active entry, as links of the second level (17b §1.7); none for one screen. */
+function SectionLinks({
+  item,
+  current,
+}: {
+  item: NavItem;
+  current: string | null;
+}) {
+  if (item.sections.length < 2) {
+    return null;
+  }
+  return (
+    <nav aria-label={messages.nav[item.key]}>
+      <ul className={SECTION_LIST_CLASSES}>
+        {item.sections.map((section) => {
+          const isCurrent = section.key === current;
+          return (
+            <li key={section.key}>
+              <Link
+                href={section.href}
+                aria-current={isCurrent ? "page" : undefined}
+                className={sectionLinkClasses(isCurrent)}
+              >
+                {messages.nav[section.key]}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
+/**
+ * 17b §1.7, F7: narrower than 768 px or lower than 500 px, a reduced band, the explanation and
+ * sign-out, no business content, until the views of D58 (Lot 4). Shown by CSS alone (bo-small:);
+ * not a <main>: the page keeps a single one, that of the frame.
+ */
+function SmallWindow({
+  me,
+  signOutButton,
+}: {
+  me: BackofficeMeResponse;
+  signOutButton: ReactNode;
+}) {
+  return (
+    <div className={SMALL_SCREEN_CLASSES}>
+      <header className={BAND_CLASSES}>
+        <EnvironmentBar me={me} withProduct />
+      </header>
+      <div className={SMALL_BODY_CLASSES}>
+        <h1 className={TITLE_CLASSES}>
+          {messages.shell.workstationOnly.title}
+        </h1>
+        <p className={LEAD_CLASSES}>{messages.shell.workstationOnly.body}</p>
+        {signOutButton}
+      </div>
+    </div>
   );
 }

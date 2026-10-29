@@ -3,26 +3,6 @@
 // text and a border, never by the colour alone. Every value is a token of src/styles/tokens.css.
 import { cn } from "./auth-classes";
 
-export const PAGE_CLASSES = cn(
-  "mx-auto flex min-h-screen w-full max-w-(--container-max) flex-col gap-6",
-  "px-page-gutter py-6",
-);
-
-export const HEADER_CLASSES = cn(
-  "flex flex-col gap-3 border-b-(length:--border-width-thin) border-border-subtle pb-4",
-);
-
-export const NAV_LIST_CLASSES = "flex flex-wrap gap-2";
-
-export function navLinkClasses(current: boolean): string {
-  return cn(
-    "inline-flex min-h-(--size-button-md) items-center rounded-md px-3 text-sm",
-    current
-      ? "border-(length:--border-width-thick) border-border-selected font-semibold text-text-primary"
-      : "text-text-secondary underline hover:bg-action-secondary-bg-hover",
-  );
-}
-
 export const SECTION_CLASSES = cn(
   "flex flex-col gap-3 rounded-lg border-(length:--border-width-thin) border-border-default",
   "bg-surface-card p-4",
