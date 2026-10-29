@@ -33,6 +33,7 @@
 | **J8** | 1 | Backoffice v0 : inscrits, états de synchronisation, rejeu, réglages Apollo | ✅ Revue close (2026-10-16) ; critère `staging` constaté le 2026-10-20 (J9 commit S) | 4-5 j |
 | **J9** | 1 | Sortie du mode maquette de la landing, en-têtes, surveillance active, production | ✅ Revue close (2026-10-27) ; critère `staging` constaté en partie (arrêts à faire), production préparée, non créée — reliquat `archives/jalons/j9-fiche.md` | 4-5 j |
 | **DS** | extra | Charte KEO Emerald des espaces connectés (D73) : tokens, polices, gabarits mobile et poste de travail, rhabillage de l'existant | ✅ Clos (2026-10-29, `archives/jalons/ds-fiche.md`) | 6-8 j |
+| **SN** | extra | Sous-navigation dans la colonne (D74) : sous-menus de la colonne et du rail à la place des pilules de section, page-menu « Mon compte » sur téléphone | ⏳ Spécifié (2026-10-29, `jalons/sn-fiche.md`) | 1,5-2 j |
 
 **Cinq règles qu'aucune urgence ne suspend :**
 
@@ -332,6 +333,10 @@ Décision D73 (fondateur, 2026-10-28). Les espaces membres (inscription et conne
 
 - [x] Jalon DS clos (DS-1 `e966209` à DS-12b `ee9ed76`, DS-14 `398ff9f`, DS-13 clôture) — charte KEO Emerald en place sur les espaces membres et le backoffice, vitrine figée (G3e, TD4) hors du vert de marque unique `#1dd68a` (F2) ; `pnpm check` + `pnpm test:e2e` verts trois fois de suite (e2e local 120, 120 et 126 s ; en CI 74 s au parent de DS-1 contre 154 s, soit +80 s pour 90 s permis) ; planchers web 203→252, backoffice 62→90, test-kit 134→188, e2e 56→133 ; polices `latin` préchargées 53 708 octets (plafond 120 000), `latin-ext` versionné mais non câblé (EC-DS-3-1) ; écarts EC-DS-3-1, EC-DS-5-1 à -3 et EC-DS-6-1 à -4 (détail dans les réponses de session, non repris ici) ; un test de base intermittent vu une fois (`t14-backoffice-invitations-route`, « a retry of the same link after the account exists goes straight to the factor » : `unavailable` au lieu de `factor_created`), vert au rejeu : à surveiller ; recette humaine faite (`18` §12.4, 2026-10-29) ; **reste** : revue groupée `testeur` + `expert-cybersecurite` (`/ds-commit revue`).
 
+### Jalon SN — Sous-navigation dans la colonne (extra, avant le Lot 2)
+
+Décision D74 (fondateur, 2026-10-29). Les pilules de section disparaissent : sous-menu de la rubrique active dans la colonne (membres) et le rail (backoffice), page-menu « Mon compte » sous 1 024 px, « Mes informations » à `/compte/informations`. Point d'entrée : **`jalons/sn-fiche.md`** (commits SN-1 à SN-5, critère de fin, tests TN1 à TN9).
+
 ### Hors jalon
 
 - [x] Commits D72-1a à D72-3 (`bfb2dd0`, `bb8500e`, puis rouge opaque, zone de danger, `ErrorNotice`) — suppression de compte en libre-service sans approbation `admin` (D72, migration `0150`, `identity.submit_member_erasure()`, e-mail `privacy.erasure_completed`), zone de danger et rouge opaque web/backoffice ; DZ-8 : Apollo sans suppression de contact, `erasure_not_propagated` demeure ; DZ-1, 2, 4, 5, 6, 7 ouverts dans `decisions.md`. Fiche supprimée.
@@ -389,4 +394,5 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 | **J8** | `git show a2ff7bc:docs/mvp/jalons/j8-fiche.md` (fiche archivée) ; `05` §K ; `15` §C, §F ; `17b` §3.11 et §3.13 ; skill `backoffice-ops` |
 | **D70** | **`archives/jalons/d70-plan.md` d'abord** ; `02` §12.4 ; `03` §6.8 et T17 ; `16` §J ; skills `env-secrets`, `railway-deploy` |
 | **J9** | `archives/jalons/j9-fiche.md` (reliquat) ; fiche complète : `git show 8323aeb:docs/mvp/jalons/j9-fiche.md` ; `runbooks/production.md` |
+| **SN** | **`jalons/sn-fiche.md` d'abord** ; `17` §2.2, §2.3, §6.0 ; `17b` §1.7 ; `20` §11.8 ; `02` §21.5 points 3 et 8 |
 | **DS** | **`archives/jalons/ds-fiche.md` d'abord** ; `02` §21 ; `20` §11 ; `17` §2.2, §2.3, §8 ; `17b` §1.4, §1.7, §6 ; `18` §5 (gardes G3 à G8) ; skill `design-system-influx` |

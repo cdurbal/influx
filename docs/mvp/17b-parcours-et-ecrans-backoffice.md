@@ -105,7 +105,8 @@ Sept entrées, dans cet ordre. L'ordre est une décision produit : il va de « c
 | Une entrée « Statistiques » | Hors périmètre (`15` §Hors périmètre). Les indicateurs vivent au tableau de bord et dans l'export agrégé **E4** |
 | Un lien « export » global | Les exports sont une **liste fermée de 4** (`15` RG93), rangés sous Administration. Un bouton d'export visible partout banaliserait le geste le plus sensible du produit |
 
-**Forme du rail, entrées visibles aujourd'hui et pages de second niveau : §1.7** *(D73, 2026-10-28)*.
+**Forme du rail, entrées visibles aujourd'hui et pages de second niveau : §1.7** *(D73, 2026-10-28 ;
+second niveau en sous-menu du rail, D74, 2026-10-29)*.
 
 ### 1.3 Regroupement des 16 files
 
@@ -275,19 +276,20 @@ Poste de travail 1440 (conçu à 1280 et 1440 ; identique de 1024 à 1279)
 │  [i] Tableau de bord           ├──────────────────────────────────────────────────────────────┤
 │  [i] Files                  12 │ Comptes › Inscrits                                           │
 │      ⚑ 2 hors délai            │ Inscrits ▮                                                   │
-│ ▎[i] Comptes                   │ ⟪Inscrits⟫ · Invitations                                     │
-│  [i] Créateurs                 │ Filtres en puces                                             │
-│  [i] Affaires                1 │ ┌──────────────────────────────────────────────────────────┐ │
-│  [i] Alertes                 3 │ │ Inscrit          Rôle         Pays  Inscrit le  Synchro. │ │
-│  [i] Administration          2 │ ├──────────────────────────────────────────────────────────┤ │
-│                                │ │ ⟨adresse⟩        ● Marque     FR    27/10 09:12 ○ à jour │ │
-│ ────────────────────────────── │ │ ⟨adresse⟩        ● Créateur   BE    27/10 08:40 ⚑ échec  │ │
-│  [i] Raccourcis            ‹?› │ └──────────────────────────────────────────────────────────┘ │
+│  [i] Comptes                   │ Filtres en puces                                             │
+│      ▎ Inscrits                │ ┌──────────────────────────────────────────────────────────┐ │
+│        Invitations             │ │ Inscrit          Rôle         Pays  Inscrit le  Synchro. │ │
+│  [i] Créateurs                 │ ├──────────────────────────────────────────────────────────┤ │
+│  [i] Affaires                1 │ │ ⟨adresse⟩        ● Marque     FR    27/10 09:12 ○ à jour │ │
+│  [i] Alertes                 3 │ │ ⟨adresse⟩        ● Créateur   BE    27/10 08:40 ⚑ échec  │ │
+│  [i] Administration          2 │ └──────────────────────────────────────────────────────────┘ │
+│ ────────────────────────────── │                                                              │
+│  [i] Raccourcis            ‹?› │                                                              │
 │  [i] Se déconnecter            │                                                              │
 └────────────────────────────────┴──────────────────────────────────────────────────────────────┘
   spacing-bo-rail-w (15 rem),      zone de contenu : pleine largeur pour un tableau,
   collant, pleine hauteur          container-narrow pour un formulaire
-  [i] = icône lucide décorative · ▎ = filet 2 px de l'entrée active · ⟪ ⟫ = lien de section courant
+  [i] = icône lucide décorative · ▎ = filet 2 px de la sous-entrée courante (D74)
 ```
 
 | Élément | Règle |
@@ -296,15 +298,15 @@ Poste de travail 1440 (conçu à 1280 et 1440 ; identique de 1024 à 1279)
 | Rail | `spacing-bo-rail-w` (15 rem), collant, pleine hauteur, `surface-page`, filet droit `border-default`, défilement propre. En tête : INFLUX et « Backoffice » (lien vers le tableau de bord). Les sept entrées de §1.2, dans cet ordre : icône + libellé `text-sm`, hauteur `spacing-bo-row-h`. Actif : filet gauche 2 px `brand-primary`, surface `nav-item-active-bg`, libellé semi-gras, `aria-current="page"` (`20` §11.8). Compteurs en chiffres tabulaires `text-secondary` ; le hors délai est **écrit** sous l'entrée (« ⚑ 2 hors délai », `bo-sla-overdue-text`). Pied : raccourcis (`?`), se déconnecter |
 | Pas de repli | Le gain (environ 11 rem) ne vaut pas un second gabarit à tester ; un repli mémorisé exigerait un stockage que le front n'a pas (D37) |
 | Bande de tête | §1.4, au-dessus de la seule zone de contenu ; hors production, fond `bo-env-nonprod-bg` et mot en capitales (§4.6) |
-| Second niveau | Les pages sœurs d'une entrée sont des **liens de section** en tête de contenu (`<nav aria-label="⟨entrée⟩">`), pas des sous-entrées du rail : le rail reste à sept lignes, les trois niveaux de §1.1 tiennent |
+| Second niveau | *(Révisé le 2026-10-29, D74 ; détail : `jalons/sn-fiche.md`.)* Les écrans d'une entrée sont des **sous-entrées du rail**, liste imbriquée dans l'entrée **active seulement** : sans icône, libellé aligné, hauteur `spacing-bo-row-h` ; l'entrée passe à l'état ancêtre (semi-gras, sans surface ni filet, sans `aria-current`), la sous-entrée courante porte surface, filet et `aria-current="page"` ; une fiche (`/inscrits/⟨id⟩`) rend sa sous-entrée courante. Une entrée à un seul écran n'a pas de sous-menu. **Plus aucun lien de section ni onglet de rubrique en tête de contenu** ; le fil d'Ariane « ⟨entrée⟩ › ⟨écran⟩ » reste. Le lien d'une entrée ouvre son premier écran, comme avant : le backoffice n'a pas de page-menu, faute de vue téléphone (F7). De 768 à 1 023 px, les sous-entrées de l'entrée active forment une **seconde ligne** sous la liste horizontale, qui passe à la ligne sans défilement. Files (Lots 2 à 5) : le lien de l'entrée mène au catalogue (§1.3), les files sont ses sous-entrées sous les cinq intitulés de groupe |
 | Vue identifiée | Barre de 4 px sur la **zone de contenu** concernée (§4.9), jamais sur le rail |
 | Clavier | Lien d'évitement → bande → rail → contenu. `g` puis 1…7 garde **le numéro de §1.2** même quand des entrées sont masquées (`g` puis 3 = Comptes, toujours) ; un numéro sans entrée ne fait rien. Focus au `h1` après navigation. Les blocs du tableau de bord se rejoignent par `b` puis n (§1.6, §4.11 ; arbitrage du 2026-10-28) |
-| Un seul `<nav>` | Un seul élément `<nav>` « Navigation principale », rendu une fois et restylé par le CSS : rail à partir de `lg`, liste horizontale de 768 à 1 023 px (`02` §21.5). Ni détection de largeur en JavaScript, ni second `<nav>` masqué. Les liens de section portent leur propre libellé |
+| Un seul `<nav>` | Un seul élément `<nav>` « Navigation principale », rendu une fois et restylé par le CSS : rail à partir de `lg`, liste horizontale de 768 à 1 023 px (`02` §21.5). Ni détection de largeur en JavaScript, ni second `<nav>` masqué. Les sous-entrées vivent dans ce même `<nav>` (D74) |
 
 **Entrées visibles au 2026-10-28.** Une entrée apparaît avec son premier écran et ne disparaît plus ;
 le gabarit est conçu et testé pour les sept (arbitrage `chef-de-projet` du 2026-10-28).
 
-| Entrée (§1.2) | Écrans existants, en liens de section | Rôles |
+| Entrée (§1.2) | Écrans existants, en sous-entrées du rail (D74) | Rôles |
 |---|---|---|
 | 1 Tableau de bord | `/accueil` | `agent`, `admin` |
 | 2 Files | — | masquée |
@@ -514,7 +516,7 @@ et messages restent la propriété du document cité dans `15` RG29.
 | 1 | Profils marque à valider | Raison sociale · pays · complétude · champs modifiés · responsable | Pays · première soumission / modification | Publier · Refuser (motifs `06`) | Non |
 | 2 | Profils créateur à valider | Alias · pays · réseaux déclarés · complétude · badges | Pays · réseau · avec/sans badge | Publier · Refuser (motifs `07`) | Non |
 | 3 | Visuels de portfolio à modérer | Vignette · alias · date de dépôt · nb de visuels du profil | Profil · type | Approuver · Refuser (motifs `07` RG97) | **Oui** — un seul profil, **20 max**, motif commun (M4) |
-| 4 | Demandes de vérification et badge | **Deux onglets : Créateurs · Marques** · niveau demandé · réseau · pièces | Niveau · réseau · population | Accorder · Refuser (motifs `08`) | Non |
+| 4 | Demandes de vérification et badge | **Deux sous-entrées : Vérifications créateurs · Vérifications marques** (D74) · niveau demandé · réseau · pièces | Niveau · réseau · population | Accorder · Refuser (motifs `08`) | Non |
 | 5 | Contestations de badge | Alias · décision contestée · date · **décideur d'origine** | Type de décision | Confirmer · Infirmer (motifs `08` RG77) | Non |
 | 6 | Identifiants modifiés à contrôler | Alias · ancien `@` · nouveau `@` · réseau · badge en cours | Réseau | Constater · Exiger une nouvelle preuve | Non |
 | 7 | Campagnes à valider | Titre · marque · catégorie de produit · budget + devise · **⚑ revue renforcée** | Secteur sensible · marque · budget | Publier · Refuser (motifs `09` RG90) | Non |
@@ -1175,7 +1177,8 @@ Même gabarit, **contenu et vocabulaire propres** (`15` RG42). Les différences 
 ### 3.7 Vérification d'un profil et attribution du badge
 
 **Population et tâche.** Commercial, file 4, plusieurs fois par jour. Constater une preuve, puis
-accorder ou refuser. **Deux onglets — Créateurs · Marques — jamais un écran mixte** (`08` RG61).
+accorder ou refuser. **Deux sous-entrées du rail — Vérifications créateurs · Vérifications marques —
+jamais un écran mixte** (`08` RG61 ; sous-entrées plutôt qu'onglets depuis D74, 2026-10-29).
 
 ```
 ┌ VER-2026-000214 · Vérification Instagram · Niveau 2 : Audience ─────── ▮ ──┐

@@ -19,7 +19,7 @@ d'abord, puis dans le code.
 
 | Sujet | Document |
 |---|---|
-| Registre des décisions D1 à D73 (statut, détail) | `docs/mvp/decisions.md` |
+| Registre des décisions D1 à D74 (statut, détail) | `docs/mvp/decisions.md` |
 | `staging` iso-production, autonomie des agents (D70) | `docs/mvp/archives/jalons/d70-plan.md`, `docs/mvp/runbooks/staging.md` |
 | Périmètre et lots du MVP | `docs/mvp/00-cadrage-mvp-v2.md` |
 | Régime courté, commission au MVP | `docs/mvp/01-intermediation-courtee.md` |
@@ -98,7 +98,9 @@ Parcours détaillés : `docs/mvp/00-cadrage-mvp-v2.md`, `17` et `17b`.
   marque et créateur, backoffice) suivent la charte **KEO Emerald** : vert `#1dd68a`, fond `#0a0b0a`, surfaces graduées, **Manrope** (titres,
   chiffres) et **Source Sans 3** (corps) auto-hébergées, cartes de 16 px, boutons en pilule
   (`20` §11). Poste de travail : **navigation en colonne à gauche** (comportement de Railway, jamais
-  son style) ; téléphone : barre du bas à cinq entrées (membres), vue limitée D58 (backoffice).
+  son style), pages d'une rubrique en **sous-menu** de la rubrique active (D74) ; téléphone : barre du
+  bas à cinq entrées et page-menu par rubrique (membres), vue limitée D58 (backoffice). Ni pilules de
+  section ni onglets de rubrique en tête de contenu.
 - **Toute couleur et tout espacement passent par les tokens** (`src/styles/tokens.css` de chaque
   front, qui porte les deux chartes : bloc `[data-theme="keo"]`, `02` §21 ; skill
   `design-system-influx`). Rien en dur, et aucune valeur de `design-proposals/` recopiée ailleurs.
@@ -255,6 +257,9 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
   (jamais une coche seule), effets de la maquette gardés (halo, ombre lumineuse du bouton,
   agrandissement et soulèvement sous `motion-safe:`, panneaux flottants si pertinents, F6). F7 (2026-10-29) : backoffice
   complet dès 768 px, écran « poste de travail » sous 768 px de large ou 500 px de haut (`17b` §1.7).
+- **D74 tranchée (2026-10-29)** : sous-navigation dans la colonne (sous-menu de la rubrique active),
+  page-menu sur téléphone, membres et backoffice ; seuls les canaux d'une conversation restent en
+  onglets. Exécution par le **Jalon SN**, extra, avant le Lot 2 (`docs/mvp/jalons/sn-fiche.md`).
 - **D71 tranchée (2026-10-18)** : revues sécurité et RGPD (vetos, I-4) bloquantes sur la seule
   branche `production` ; `main` et `staging` se construisent et se déploient sans elles. `production`
   (créée le 2026-10-19, sans protection GitHub) n'avance que par `git merge --no-ff main`.
@@ -268,6 +273,7 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
 ## 10. Lots du MVP
 
 0 Socle · 1 Inscription et leads (1re mise en ligne) · *jalon extra DS, charte KEO Emerald (D73)* ·
+*jalon extra SN, sous-navigation dans la colonne (D74)* ·
 2 Profils et badge · 3 Campagnes et recherche anonymisée · 4 Mise en relation et messagerie ·
 5 Backoffice, pipeline, e-mails · 6 Recette, audit, ouverture. Détail : `docs/mvp/00-cadrage-mvp-v2.md`.
 

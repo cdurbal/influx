@@ -6,6 +6,9 @@
 > **Ne jamais lire une spécification en entier.** Repérer ici la section utile, puis la lire avec
 > `Read` (`offset` = ligne de départ, `limit` = nombre de lignes), ou chercher une règle précise
 > avec `Grep` (exemple : `RG113` dans le fichier concerné).
+>
+> **Session de jalon : lire d'abord sa fiche**, qui cite déjà les tranches utiles :
+> `jalons/sn-fiche.md`.
 
 ## 00-cadrage-mvp-v2.md (~16k tokens)
 
@@ -97,7 +100,7 @@
 | 2265 | 9 | ↳ 20.11 Points à faire valider par le fondateur |  |
 | 2274 | 13 | ↳ 20.12 Ce que cet addendum demande aux autres agents |  |
 | 2287 | 7 | ↳ Sources (vérifiées le 2026-09-24) |  |
-| 2294 | 255 | 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits) | RG7–RG107 |
+| 2294 | 259 | 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits) | RG7–RG107 |
 
 ## 03-matrice-des-droits-et-rls.md (~51k tokens)
 
@@ -531,69 +534,69 @@
 |---|---|---|---|
 | 39 | 28 | 0. Conventions de lecture | RG16–RG73 |
 | 67 | 54 | 1. Cadrage : populations, tâches, enseignements du benchmark | RG2–RG117 |
-| 121 | 207 | 2. Architecture de l'information des deux espaces | RG1–RG140 |
-| 328 | 289 | 3. Le parcours d'inscription et de connexion | RG2–RG140 |
-| 617 | 597 | 4. Espace marque | RG1–RG116 |
-| 624 | 44 | ↳ 4.1 M1 — Accueil marque | RG57–RG101 |
-| 668 | 108 | ↳ 4.2 M2 — Profil marque : complétion progressive et couches visibles | RG2–RG102 |
-| 776 | 80 | ↳ 4.3 M3 — Créer une campagne : 8 blocs, 5 étapes, un brouillon permanent | RG4–RG79 |
-| 856 | 105 | ↳ 4.4 M4 — Recherche de créateurs anonymisée | RG1–RG64 |
-| 961 | 57 | ↳ 4.5 M5 — Demander une mise en relation | RG15–RG116 |
-| 1018 | 54 | ↳ 4.6 M6 — Suivi des demandes et des mises en relation | RG73–RG111 |
-| 1072 | 95 | ↳ 4.7 M7 — La conversation à trois (spécification commune, vocabulaire par rôle) | RG7–RG104 |
-| 1167 | 34 | ↳ 4.8 M8 — Le canal de documents | RG65–RG74 |
-| 1201 | 13 | ↳ 4.9 Les autres écrans de l'espace marque | RG3–RG102 |
-| 1214 | 537 | 5. Espace créateur | RG1–RG117 |
-| 1225 | 50 | ↳ 5.1 C1 — Accueil créateur | RG13–RG99 |
-| 1275 | 105 | ↳ 5.2 C2 — Profil créateur : sept blocs, trois couches, une complétude honnête | RG8–RG112 |
-| 1380 | 76 | ↳ 5.3 C3 — Réseaux, preuves et badges | RG1–RG117 |
-| 1456 | 65 | ↳ 5.4 C4 — Mon offre et mes tarifs : l'écran de la transparence financière | RG22–RG73 |
-| 1521 | 55 | ↳ 5.5 C5 — Le fil des campagnes | RG15–RG60 |
-| 1576 | 96 | ↳ 5.6 C6 et C7 — Fiche de campagne et candidature | RG16–RG81 |
-| 1672 | 56 | ↳ 5.7 C8 — Mes candidatures : les huit états | RG67–RG78 |
-| 1728 | 23 | ↳ 5.8 C9 — Conversation, et les autres écrans créateur | RG5–RG102 |
-| 1751 | 168 | 6. Écrans transverses | RG14–RG143 |
-| 1919 | 271 | 7. Les deux écrans qui portent la valeur et le risque | RG4–RG113 |
-| 2190 | 105 | 8. Tokens |  |
-| 2295 | 36 | 9. Écarts et manques constatés | RG2–RG112 |
-| 2331 | 46 | 10. Ce qui reste à valider | RG6–RG109 |
-| 2377 | 51 | 11. Récapitulatif des écrans spécifiés |  |
+| 121 | 208 | 2. Architecture de l'information des deux espaces | RG1–RG140 |
+| 329 | 289 | 3. Le parcours d'inscription et de connexion | RG2–RG140 |
+| 618 | 599 | 4. Espace marque | RG1–RG116 |
+| 625 | 44 | ↳ 4.1 M1 — Accueil marque | RG57–RG101 |
+| 669 | 108 | ↳ 4.2 M2 — Profil marque : complétion progressive et couches visibles | RG2–RG102 |
+| 777 | 80 | ↳ 4.3 M3 — Créer une campagne : 8 blocs, 5 étapes, un brouillon permanent | RG4–RG79 |
+| 857 | 105 | ↳ 4.4 M4 — Recherche de créateurs anonymisée | RG1–RG64 |
+| 962 | 57 | ↳ 4.5 M5 — Demander une mise en relation | RG15–RG116 |
+| 1019 | 56 | ↳ 4.6 M6 — Suivi des demandes et des mises en relation | RG73–RG111 |
+| 1075 | 95 | ↳ 4.7 M7 — La conversation à trois (spécification commune, vocabulaire par rôle) | RG7–RG104 |
+| 1170 | 34 | ↳ 4.8 M8 — Le canal de documents | RG65–RG74 |
+| 1204 | 13 | ↳ 4.9 Les autres écrans de l'espace marque | RG3–RG102 |
+| 1217 | 537 | 5. Espace créateur | RG1–RG117 |
+| 1228 | 50 | ↳ 5.1 C1 — Accueil créateur | RG13–RG99 |
+| 1278 | 105 | ↳ 5.2 C2 — Profil créateur : sept blocs, trois couches, une complétude honnête | RG8–RG112 |
+| 1383 | 76 | ↳ 5.3 C3 — Réseaux, preuves et badges | RG1–RG117 |
+| 1459 | 65 | ↳ 5.4 C4 — Mon offre et mes tarifs : l'écran de la transparence financière | RG22–RG73 |
+| 1524 | 55 | ↳ 5.5 C5 — Le fil des campagnes | RG15–RG60 |
+| 1579 | 96 | ↳ 5.6 C6 et C7 — Fiche de campagne et candidature | RG16–RG81 |
+| 1675 | 56 | ↳ 5.7 C8 — Mes candidatures : les huit états | RG67–RG78 |
+| 1731 | 23 | ↳ 5.8 C9 — Conversation, et les autres écrans créateur | RG5–RG102 |
+| 1754 | 172 | 6. Écrans transverses | RG14–RG143 |
+| 1926 | 271 | 7. Les deux écrans qui portent la valeur et le risque | RG4–RG113 |
+| 2197 | 105 | 8. Tokens |  |
+| 2302 | 36 | 9. Écarts et manques constatés | RG2–RG112 |
+| 2338 | 46 | 10. Ce qui reste à valider | RG6–RG109 |
+| 2384 | 51 | 11. Récapitulatif des écrans spécifiés |  |
 
 ## 17b-parcours-et-ecrans-backoffice.md (~61k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
 | 31 | 31 | 0. Conventions de lecture | RG1–RG124 |
-| 62 | 301 | 1. Architecture de l'information | RG12–RG127 |
+| 62 | 303 | 1. Architecture de l'information | RG12–RG127 |
 | 64 | 20 | ↳ 1.1 Le problème à résoudre | RG116 |
-| 84 | 26 | ↳ 1.2 Le rail de navigation | RG18–RG93 |
-| 110 | 43 | ↳ 1.3 Regroupement des 16 files | RG26–RG125 |
-| 153 | 35 | ↳ 1.4 Ce qui est visible en permanence | RG28–RG127 |
-| 188 | 31 | ↳ 1.5 La recherche globale | RG34–RG121 |
-| 219 | 44 | ↳ 1.6 Tableau de bord, par rôle | RG12–RG32 |
-| 263 | 100 | ↳ 1.7 Gabarit de page : rail à gauche, bande de tête, vue téléphone *(D73, 2026-10-28)* |  |
-| 363 | 190 | 2. Anatomie standard d'une file | RG7–RG130 |
-| 553 | 1263 | 3. Écrans clés en détail | RG2–RG165 |
-| 555 | 123 | ↳ 3.1 Décision sur une demande de contact ou une candidature | RG32–RG115 |
-| 678 | 136 | ↳ 3.2 La proposition INFLUX — l'écran le plus important du backoffice | RG52–RG116 |
-| 814 | 94 | ↳ 3.3 La recherche de créateurs en vue identifiée | RG2–RG119 |
-| 908 | 136 | ↳ 3.4 La conversation à trois, vue backoffice | RG13–RG124 |
-| 1044 | 79 | ↳ 3.5 Fiche de compte marque | RG4–RG123 |
-| 1123 | 52 | ↳ 3.6 Fiche de compte créateur | RG42–RG119 |
-| 1175 | 62 | ↳ 3.7 Vérification d'un profil et attribution du badge | RG27–RG70 |
-| 1237 | 53 | ↳ 3.8 Validation d'une campagne, et revue renforcée | RG36–RG85 |
-| 1290 | 89 | ↳ 3.9 L'affaire — pipeline commercial | RG4–RG109 |
-| 1379 | 79 | ↳ 3.10 Le parcours d'envoi d'e-mails — sept écrans | RG15–RG127 |
-| 1458 | 38 | ↳ 3.11 Supervision des leads et adresses injoignables | RG23–RG106 |
-| 1496 | 48 | ↳ 3.12 Demandes relatives aux données personnelles | RG75–RG95 |
-| 1544 | 95 | ↳ 3.13 Comptes internes, compte de secours, double validation | RG9–RG118 |
-| 1639 | 153 | ↳ 3.14 Connexion, activation du second facteur et codes de secours *(J3, 2026-09-27)* |  |
-| 1792 | 24 | ↳ 3.15 Santé technique *(additif du J9, 2026-10-27, EC-J9-5)* | RG68–RG165 |
-| 1816 | 195 | 4. Composants transverses | RG4–RG129 |
-| 2011 | 46 | 5. Vérification du chronométrage | RG27–RG73 |
-| 2057 | 104 | 6. Extensions de tokens proposées | RG64–RG120 |
-| 2161 | 82 | 7. Incohérences relevées, écarts d'implémentation, points à valider | RG4–RG126 |
-| 2243 | 62 | 8. Récapitulatif — les écrans spécifiés |  |
+| 84 | 27 | ↳ 1.2 Le rail de navigation | RG18–RG93 |
+| 111 | 43 | ↳ 1.3 Regroupement des 16 files | RG26–RG125 |
+| 154 | 35 | ↳ 1.4 Ce qui est visible en permanence | RG28–RG127 |
+| 189 | 31 | ↳ 1.5 La recherche globale | RG34–RG121 |
+| 220 | 44 | ↳ 1.6 Tableau de bord, par rôle | RG12–RG32 |
+| 264 | 101 | ↳ 1.7 Gabarit de page : rail à gauche, bande de tête, vue téléphone *(D73, 2026-10-28)* |  |
+| 365 | 190 | 2. Anatomie standard d'une file | RG7–RG130 |
+| 555 | 1264 | 3. Écrans clés en détail | RG2–RG165 |
+| 557 | 123 | ↳ 3.1 Décision sur une demande de contact ou une candidature | RG32–RG115 |
+| 680 | 136 | ↳ 3.2 La proposition INFLUX — l'écran le plus important du backoffice | RG52–RG116 |
+| 816 | 94 | ↳ 3.3 La recherche de créateurs en vue identifiée | RG2–RG119 |
+| 910 | 136 | ↳ 3.4 La conversation à trois, vue backoffice | RG13–RG124 |
+| 1046 | 79 | ↳ 3.5 Fiche de compte marque | RG4–RG123 |
+| 1125 | 52 | ↳ 3.6 Fiche de compte créateur | RG42–RG119 |
+| 1177 | 63 | ↳ 3.7 Vérification d'un profil et attribution du badge | RG27–RG70 |
+| 1240 | 53 | ↳ 3.8 Validation d'une campagne, et revue renforcée | RG36–RG85 |
+| 1293 | 89 | ↳ 3.9 L'affaire — pipeline commercial | RG4–RG109 |
+| 1382 | 79 | ↳ 3.10 Le parcours d'envoi d'e-mails — sept écrans | RG15–RG127 |
+| 1461 | 38 | ↳ 3.11 Supervision des leads et adresses injoignables | RG23–RG106 |
+| 1499 | 48 | ↳ 3.12 Demandes relatives aux données personnelles | RG75–RG95 |
+| 1547 | 95 | ↳ 3.13 Comptes internes, compte de secours, double validation | RG9–RG118 |
+| 1642 | 153 | ↳ 3.14 Connexion, activation du second facteur et codes de secours *(J3, 2026-09-27)* |  |
+| 1795 | 24 | ↳ 3.15 Santé technique *(additif du J9, 2026-10-27, EC-J9-5)* | RG68–RG165 |
+| 1819 | 195 | 4. Composants transverses | RG4–RG129 |
+| 2014 | 46 | 5. Vérification du chronométrage | RG27–RG73 |
+| 2060 | 104 | 6. Extensions de tokens proposées | RG64–RG120 |
+| 2164 | 82 | 7. Incohérences relevées, écarts d'implémentation, points à valider | RG4–RG126 |
+| 2246 | 62 | 8. Récapitulatif — les écrans spécifiés |  |
 
 ## 18-plan-de-test-mvp.md (~54k tokens)
 
@@ -627,9 +630,9 @@
 | 1255 | 43 | 7. Le parcours de bout en bout du Lot 6 |  |
 | 1298 | 31 | 8. Ce qui n'est pas couvert, et pourquoi |  |
 | 1329 | 60 | 9. Ce qui remonte |  |
-| 1389 | 192 | 10. La définition du « prêt à livrer », lot par lot | RG148–RG162 |
-| 1581 | 21 | 11. Verdict |  |
-| 1602 | 113 | 12. Les tests du jalon DS, charte KEO Emerald (D73) *(ajouté le 2026-10-28)* | RG66 |
+| 1389 | 198 | 10. La définition du « prêt à livrer », lot par lot | RG148–RG162 |
+| 1587 | 21 | 11. Verdict |  |
+| 1608 | 113 | 12. Les tests du jalon DS, charte KEO Emerald (D73) *(ajouté le 2026-10-28)* | RG66 |
 
 ## 19-revue-de-coherence-2026-09-24.md (~5k tokens)
 
@@ -656,7 +659,7 @@
 | 326 | 17 | 8. Angles morts du dark theme |  |
 | 343 | 13 | 9. Questions ouvertes | RG116–RG130 |
 | 356 | 24 | 10. Tokens proposés |  |
-| 380 | 436 | 11. Charte KEO Emerald des espaces connectés (D73) | RG1–RG65 |
+| 380 | 437 | 11. Charte KEO Emerald des espaces connectés (D73) | RG1–RG65 |
 | 391 | 39 | ↳ 11.1 Périmètre et frontière |  |
 | 430 | 14 | ↳ 11.2 Ce qui ne change pas |  |
 | 444 | 152 | ↳ 11.3 Correspondance KEO → tokens INFLUX | RG1–RG10 |
@@ -664,19 +667,19 @@
 | 638 | 66 | ↳ 11.5 Typographie, formes, élévation, mouvement |  |
 | 704 | 33 | ↳ 11.6 Ce qu'on ne prend pas de la maquette | RG4–RG65 |
 | 737 | 22 | ↳ 11.7 Test du logo : INFLUX, pas Spotify |  |
-| 759 | 45 | ↳ 11.8 Gabarits et composants |  |
-| 804 | 12 | ↳ 11.9 Points soumis au fondateur |  |
+| 759 | 46 | ↳ 11.8 Gabarits et composants |  |
+| 805 | 12 | ↳ 11.9 Points soumis au fondateur |  |
 
 ## 21-plan-de-developpement.md (~18k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
-| 10 | 37 | 0. L'essentiel | RG72–RG148 |
-| 47 | 7 | 1. Point de départ & conventions d'environnement |  |
-| 54 | 39 | 2. Stratégie de développement | RG44–RG148 |
-| 93 | 23 | 3. Écarts actifs pour les jalons restants (J5 à J9) | RG23–RG146 |
-| 116 | 43 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 159 | 197 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG165 |
-| 356 | 9 | 6. Configuration des services externes |  |
-| 365 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 382 | 12 | 8. Guide de lecture par jalon | RG54–RG58 |
+| 10 | 38 | 0. L'essentiel | RG72–RG148 |
+| 48 | 7 | 1. Point de départ & conventions d'environnement |  |
+| 55 | 39 | 2. Stratégie de développement | RG44–RG148 |
+| 94 | 23 | 3. Écarts actifs pour les jalons restants (J5 à J9) | RG23–RG146 |
+| 117 | 43 | 4. Lot 0 — le socle (J0 à J4) |  |
+| 160 | 201 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG165 |
+| 361 | 9 | 6. Configuration des services externes |  |
+| 370 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 387 | 13 | 8. Guide de lecture par jalon | RG54–RG58 |

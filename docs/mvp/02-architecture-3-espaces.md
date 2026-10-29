@@ -2452,7 +2452,10 @@ Les groupes ne changent aucune URL : chemins localisés, `memberPageLocale` et r
    L'objectif de `17` §2.2 (un seul `<nav>` exposé) est tenu à la lettre : un seul élément dans le DOM.
    Le bloc d'état du compte, l'aide et la déconnexion sont hors du `<nav>`, dans la colonne seulement.
    Un libellé par entrée, identique aux deux largeurs (≤ 11 caractères FR et EN, `17` §2.2), icône
-   `aria-hidden`. Toute autre navigation (sous-pages de « Mon compte ») porte un nom distinct.
+   `aria-hidden`. *(D74, 2026-10-29)* Les pages d'une rubrique sont une `<ul>` **imbriquée dans le
+   `<li>` de l'entrée active**, dans ce même `<nav>`, masquée sous `lg` ; **aucun second `<nav>`**
+   (les liens de section de « Mon compte » et du backoffice sont retirés). Sous `lg`, l'entrée mène à
+   une page-menu (une liste dans `<main>`). Détail : `jalons/sn-fiche.md`.
 4. Grille et tokens : `lg:grid-cols-(--grid-member-shell)` ; `--size-member-rail` (16 rem, `17`
    §2.3), `--size-nav-bottom-height` (3,5 rem) et `--z-nav-bottom` (90) de `17` §8.2 ; colonne
    `lg:sticky lg:top-0 lg:h-dvh` ; marge basse de `main` sous `lg` ; zone de geste iOS par une règle de
@@ -2472,7 +2475,8 @@ Les groupes ne changent aucune URL : chemins localisés, `memberPageLocale` et r
    l'appui (`20` §11.5) ; aucune navigation animée.
 8. **Backoffice** : rail à partir de `lg` (`--spacing-bo-rail-w`, 15 rem, `17b` §6.1), bande de tête de
    `17b` §1.4 ; **entre `md` et `lg`**, le même `<nav>` devient une liste horizontale compacte et le
-   backoffice reste complet (fenêtre demi-écran d'un poste de travail) ; **sous `md`, ou sous 500 px de
+   backoffice reste complet (fenêtre demi-écran d'un poste de travail), les sous-entrées de l'entrée
+   active en seconde ligne (D74) ; **sous `md`, ou sous 500 px de
    haut** (téléphone, y compris en paysage), un écran « poste de travail » sans contenu métier, en
    attendant la vue « deux gestes » de D58 (Lot 4, conditions de session ouvertes) — arbitrage
    `chef-de-projet` du 2026-10-28, condition de hauteur ajoutée par le fondateur (F7, 2026-10-29). Seuls les écrans existants y figurent ; les entrées d'administration restent

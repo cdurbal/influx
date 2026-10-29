@@ -130,7 +130,7 @@ La règle appliquée : **un item de navigation = une tâche récurrente**. Tout 
 | 1 | **Accueil** — ce qui attend une action de ma part | **Accueil** — ce qui attend une action de ma part |
 | 2 | **Mes campagnes** — liste, création, états, prévisualisation | **Campagnes** — le fil des offres ouvertes, filtres, fiche |
 | 3 | **Créateurs** — recherche anonymisée, sélections | **Mes candidatures** — les 8 états, compteur de plafond |
-| 4 | **Mises en relation** — 2 onglets : *demandes* · *conversations* | **Mes relations** — 2 onglets : *invitations* · *conversations* |
+| 4 | **Mises en relation** — 2 sous-pages (D74) : *demandes* · *conversations* | **Mes relations** — 2 sous-pages (D74) : *invitations* · *conversations* |
 | 5 | **Mon compte** — profil marque, informations, données, sessions, aide | **Mon compte** — profil créateur, informations, données, sessions, aide |
 
 **Pourquoi le profil n'est pas un item de navigation.** Ni côté marque, ni côté créateur. Le profil
@@ -154,11 +154,9 @@ Mobile 375 — gabarit commun aux deux espaces (ici : espace marque, page « Mes
 ┌─────────────────────────────────────────┐
 │ INFLUX                [i:bell]³  FR|EN  │  En-tête collant, header-height, z-header
 ├─────────────────────────────────────────┤  surface-page + filet bas border-default
-│ Mon compte                              │  parent (fil d'Ariane réduit)
+│ ‹ Mon compte                            │  retour à la page-menu (D74)
 │ Mes données                             │  h1, text-title-page
-│ Mes informations · Préférences          │  liens de section (niveau 2) :
-│ Sessions · ⟪Mes données⟫                │  pilules qui passent à la ligne
-│                                         │
+│                                         │  aucune pilule de section (D74)
 │ contenu défilant                        │  <main> : padding bas =
 │ …                                       │  size-nav-bottom-height + spacing-5
 │                                         │  + zone de sécurité de l'appareil
@@ -169,7 +167,6 @@ Mobile 375 — gabarit commun aux deux espaces (ici : espace marque, page « Mes
 │ [i:handshake]²   [i:user]               │  ▔ = trait 2 px de l'item actif
 │ Relations        Compte                 │  une seule ligne de 5 cellules à
 └─────────────────────────────────────────┘  l'écran, dessinée ici sur deux
-   ⟪ ⟫ = lien de section courant
 ```
 
 | Règle | Détail |
@@ -183,7 +180,7 @@ Mobile 375 — gabarit commun aux deux espaces (ici : espace marque, page « Mes
 | Pastille de compte | Nombre **exact jusqu'à 9**, puis « 9+ ». Accompagnée d'un texte masqué visuellement : « 3 éléments nouveaux ». Jamais un simple point coloré. Pastille claire `color-counter-bg` / `-text` (17,46:1) |
 | Sémantique | `<nav aria-label="Navigation principale">` + `<ul>` de liens `next/link`. **Des liens, pas des boutons** : l'ouverture dans un nouvel onglet doit fonctionner |
 | Un seul `<nav>` | *(révisé le 2026-10-28, `02` §21.5 point 3)* **Un seul élément `<nav>` « Navigation principale » dans le DOM**, rendu une fois par le serveur et **restylé par le CSS** : barre fixée en bas sous `lg`, liste verticale de la colonne (§2.3) à partir de `lg`. Ni détection de largeur en JavaScript, ni lecture de l'agent utilisateur, ni second `<nav>` masqué. **Un libellé par entrée, identique aux deux largeurs** (≤ 11 caractères FR et EN) ; le titre de page garde le nom complet (« Mes campagnes », « Mises en relation »). Le bloc d'état du compte, l'aide, la langue et la déconnexion sont hors du `<nav>` |
-| Sous-navigation | Les onglets internes d'un écran (ex. *demandes* / *conversations*) sont un `role="tablist"` **dans la page**. Les pages sœurs d'une rubrique (les quatre pages de « Mon compte ») sont des **liens de section** en tête de contenu, `<nav aria-label="Mon compte">`, en pilules qui passent à la ligne, jamais en défilement horizontal qui cacherait une entrée. Jamais un sixième item de barre |
+| Sous-navigation | *(Révisé le 2026-10-29, D74 ; détail : `jalons/sn-fiche.md`.)* Une rubrique à plusieurs pages (les quatre pages de « Mon compte » ; au Lot 4, *demandes* · *conversations*) ouvre sa **page-menu** : liste de liens pleine largeur, une phrase par ligne, compteur éventuel ; chaque sous-page porte « ‹ ⟨rubrique⟩ » au-dessus du `h1`. **Ni pilules de section, ni onglets de rubrique** ; seule exception, les canaux d'une conversation (§4.7, `20` §7). La barre du bas ne porte jamais de sous-entrée, jamais un sixième item |
 | Écran-objet | Un écran plein écran de niveau objet (conversation, §4.7) remplace l'en-tête par un retour `[◁]` et son titre, et la barre du bas par sa zone d'action |
 | Entrées sans écran | **Masquées** tant que l'écran n'existe pas (Campagnes, Créateurs ou Candidatures, Relations arrivent aux Lots 3 et 4) ; une entrée apparue ne disparaît plus (§2.4). Le gabarit est conçu et testé pour cinq entrées, avec les libellés FR et EN les plus longs. Au 2026-10-28 : Accueil et Compte. *(Arbitrage `chef-de-projet` du 2026-10-28)* |
 | Clavier et focus | Lien d'évitement « Aller au contenu » en premier élément focalisable, visible au focus, vers `<main>`. Ordre : lien d'évitement → en-tête → barre → contenu. Après une navigation, le focus va au `h1` (`tabindex="-1"`). Dans la barre, anneau intérieur (`focus-ring-offset-inset`) pour ne pas être rogné par le bord de l'écran |
@@ -196,16 +193,19 @@ ne lui prend pas : `20` §3. Valeurs et composants : `20` §11.)*
 ```
 Desktop 1440 — gabarit commun aux deux espaces (ici : espace marque, page « Mes données »)
 ┌────────────────────────────────────┬──────────────────────────────────────────────────┐
-│ INFLUX                    [i:bell]³│ Mon compte › Mes données                         │
+│ INFLUX                    [i:bell]³│ ‹ Mon compte                                     │
 │ ● Espace marque                    │ Mes données                           [■ Action] │
-│                                    │ Mes informations · Préférences · Sessions ·      │
-│  [i:home]      Accueil             │ ⟪Mes données⟫                                    │
-│  [i:megaphone] Campagnes         4 │ ──────────────────────────────────────────────── │
-│  [i:search]    Créateurs           │                                                  │
-│  [i:handshake] Relations         2 │ Contenu : container-max, centré dans la zone     │
-│ ▎[i:user]      Compte              │ Grille 12 colonnes ; colonne de droite           │
-│                                    │ collante (sticky-top-offset) pour les            │
-│ ────────────────────────────────── │ récapitulatifs et les actions                    │
+│                                    │ ──────────────────────────────────────────────── │
+│  [i:home]      Accueil             │                                                  │
+│  [i:megaphone] Campagnes         4 │ Contenu : container-max, centré dans la zone     │
+│  [i:search]    Créateurs           │ Grille 12 colonnes ; colonne de droite           │
+│  [i:handshake] Relations         2 │ collante (sticky-top-offset) pour les            │
+│  [i:user]      Compte              │ récapitulatifs et les actions                    │
+│                Mes informations    │                                                  │
+│                Mes préférences     │ sous-menu de la rubrique active (D74)            │
+│                Mes sessions        │                                                  │
+│              ▎ Mes données         │                                                  │
+│ ────────────────────────────────── │                                                  │
 │ Profil : brouillon                 │                                                  │
 │ 3 informations manquantes          │                                                  │
 │ [◦ Compléter mon profil]           │                                                  │
@@ -226,11 +226,12 @@ Desktop 1440 — gabarit commun aux deux espaces (ici : espace marque, page « M
 | Colonne | Largeur fixe `size-member-rail` (16 rem, nom de `02` §21.5) ; collante, pleine hauteur de fenêtre, défilement propre si son contenu dépasse (petite hauteur, zoom) ; `surface-page`, filet droit `border-default`. Le contenu défile seul. Pas de panneau flottant ni de coins arrondis autour de la colonne (`20` §11.7) |
 | En-tête de colonne | INFLUX (lien vers l'accueil de l'espace) et cloche (Lot 4, absente avant) ; dessous, le nom de l'espace précédé du point de rôle (`20` §11.3). Il dit où l'on est ; ce n'est **pas un sélecteur** (un rôle par compte, D41) |
 | Items | Icône `size-icon-md` + libellé `text-md` sur une ligne + compteur à droite ; hauteur ≥ `size-touch-target`, marge `spacing-2` (l'anneau de focus n'est pas rogné), `radius-md`. Actif : surface `color-nav-item-active-bg`, libellé `text-primary` semi-gras, filet gauche 2 px `color-nav-item-active-indicator`, `aria-current="page"`. Libellés courts, les mêmes que dans la barre du bas (§2.2, un seul `<nav>`). « Compte » est actif sur toutes les pages `/compte/*` |
+| Sous-menu *(D74, 2026-10-29)* | Les pages d'une rubrique sont une liste **imbriquée dans l'entrée active seulement**, dans le même `<nav>` ; sans icône, libellé aligné sur celui de la rubrique, `text-sm`, hauteur ≥ `size-touch-target`. Sur sa page-menu, la rubrique est l'item courant ; sur une sous-page, elle passe à l'état **ancêtre** (`text-primary` semi-gras, sans surface, sans filet, sans `aria-current`) et la sous-entrée porte surface, filet et `aria-current="page"`. Un seul `aria-current` par page. Masqué sous `lg`. Détail : `jalons/sn-fiche.md` |
 | Bloc d'état du compte | Sous les items : état du profil écrit, ce qui manque, `[◦ Compléter mon profil]`. Desktop seulement (sur mobile, il vit sur l'accueil). Arrive avec le profil (Lot 2), absent avant. La complétude **n'est jamais affichée à l'autre partie** (`06` RG57, `07` RG86) |
 | Pied de colonne | Aide (absente tant que la page n'existe pas) · langue (sélecteur existant) · identité du compte (prénom et organisation, ou adresse e-mail tant que le profil est vide) · `[◦ Se déconnecter]`, visible, jamais dans un menu caché |
-| Zone de contenu | En-tête de page : fil d'Ariane à partir du niveau 2, `h1` en `text-title-page`, action principale à droite ; liens de section (§2.2, sous-navigation) ; puis le contenu, `container-max` centré dans la zone, grille de 12 colonnes, colonne de droite collante. **Aucune bande de tête au-dessus du contenu** : la cloche et la langue sont dans la colonne |
+| Zone de contenu | En-tête de page : à partir du niveau 2, lien « ‹ ⟨rubrique⟩ » vers la page-menu (D74), `h1` en `text-title-page`, action principale à droite ; puis le contenu, `container-max` centré dans la zone, grille de 12 colonnes, colonne de droite collante. **Aucune bande de tête au-dessus du contenu** : la cloche et la langue sont dans la colonne |
 | Pas de repli | Ni repli en icônes, ni bouton pour masquer la colonne : les cinq libellés restent lisibles (§2.2) ; un repli choisi par l'utilisateur devrait être mémorisé, et le front n'a aucun stockage autorisé (D37, gardes CA8 et CA11) — un repli qui se rouvre à chaque page est pire que pas de repli. Si le besoin apparaît : préférence de compte enregistrée côté serveur, comme la langue |
-| Clavier et focus | Lien d'évitement → en-tête de colonne → items → bloc d'état → pied → contenu. Focus au `h1` après une navigation |
+| Clavier et focus | Lien d'évitement → en-tête de colonne → items (chaque sous-menu juste après sa rubrique) → bloc d'état → pied → contenu. Focus au `h1` après une navigation |
 | Entrées sans écran | Comme §2.2 |
 
 **États du gabarit (mobile et desktop)**
@@ -317,7 +318,7 @@ l'espace interne** (`05` RG140). Messages avant et après vérification : `05` R
 |---|---|---|
 | Marque | `/[locale]/marque`, `/campagnes`, `/campagnes/[id]`, `/createurs`, `/selections`, `/relations`, `/relations/[reference]`, `/compte/*` | `[id]` de campagne **opaque**, jamais séquentiel |
 | Créateur | `/[locale]/createur`, `/campagnes`, `/campagnes/[id]`, `/candidatures`, `/relations`, `/relations/[reference]`, `/compte/*` | Une carte créateur est référencée par son **alias** (`10` RG65) |
-| Commun | `/[locale]/connexion` (3 écrans), `/[locale]/compte/donnees`, `/sessions`, `/aide` | — |
+| Commun | `/[locale]/connexion` (3 écrans), `/[locale]/compte` (page-menu, D74), `/compte/informations`, `/compte/preferences`, `/compte/sessions`, `/compte/donnees`, `/aide` | « Mes informations » a quitté `/compte` le 2026-10-29 (D74) |
 
 Les segments sont **traduits par langue** (`/marque` ↔ `/brand`, `/campagnes` ↔ `/campaigns`) via le
 routage localisé de next-intl : une URL en anglais qui affiche des segments français trahit une
@@ -1017,13 +1018,15 @@ panneau, **motif conservé** (`13` RG116) · *succès* le panneau se remplace pa
 
 ### 4.6 M6 — Suivi des demandes et des mises en relation
 
-Deux onglets, parce que ce sont deux tâches : *ce que j'attends* et *ce qui est ouvert*.
+Deux sous-pages, parce que ce sont deux tâches : *ce que j'attends* et *ce qui est ouvert*.
+*(Révisé le 2026-10-29, D74 : sous-entrées de « Mises en relation » dans la colonne, page-menu avec
+compteurs sous 1 024 px ; plus d'onglets.)*
 
 ```
 Desktop
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ Mises en relation                                                        h1  │
-│ [ Demandes (3) | Conversations (2) ]                       role="tablist"    │
+│ ‹ Mises en relation                                                          │
+│ Demandes                                                                 h1  │
 │ ────────────────────────────────────────────────────────────────────────────│
 │ Filtre : [Toutes v] [Campagne v]                                             │
 │                                                                              │
@@ -1753,6 +1756,10 @@ confidentialité le couvre.
 Ces écrans existent dans les deux espaces, sous « Mon compte ». Leur **structure** est commune ;
 leur **vocabulaire** suit le rôle (« votre entreprise » / « votre profil de créateur »).
 
+**§6.0 Page-menu « Mon compte »** *(D74, 2026-10-29)* : `/fr/compte` · `/en/account`, page du lien
+« Compte » ; une ligne par page (icône, libellé, phrase, chevron), dans l'ordre T1, T2, T4, T3 ;
+exemptée des CGU (liens seuls). Gabarit, microcopies et tests : `jalons/sn-fiche.md`.
+
 ### 6.1 T1 — Mes informations
 
 Les champs du Lot 1, modifiables : adresse e-mail, pays, langue, statut déclaré (créateur), nom
@@ -2254,7 +2261,7 @@ typographie portent, eux, de nouvelles valeurs, sans effet sur les contrastes.
 | `size-logo-brand-sm` / `-md` | **`2.5rem` / `4rem`** (nouvelles valeurs) | Logo de marque en ligne de liste / en en-tête de campagne | Visuel de portfolio (ratio 4:5) |
 | `z-nav-bottom` | **`90`** (nouvelle valeur, `:root`) | Barre de navigation mobile, **sous** `z-header` (100) | — |
 | `size-member-rail` *(D73, nom de `02` §21.5)* | **`16rem`** (nouvelle valeur, `:root`) | Largeur de la colonne desktop (§2.3) | Rail du backoffice (`spacing-bo-rail-w`, `17b` §6.1) |
-| `color-nav-item-hover-bg` *(D73)* | = `color-surface-raised` | Survol d'un item de navigation ou d'un lien de section | Item actif |
+| `color-nav-item-hover-bg` *(D73)* | = `color-surface-raised` | Survol d'un item ou d'une sous-entrée de navigation | Item actif |
 | `color-counter-bg` / `color-counter-text` *(D73)* | = `color-surface-inverse` / `color-text-inverse` | Pastille de compteur (barre du bas, colonne) | Statut ou alerte : la pastille compte, elle ne qualifie pas |
 | `focus-ring-offset-inset` *(D73)* | `calc(-1 * var(--focus-ring-width))` (dérivé) | Anneau de focus intérieur des cellules de la barre du bas | Partout où l'anneau extérieur a la place |
 
@@ -2284,8 +2291,8 @@ des espaces membres : `text-tertiary` sur `surface-hover` **4,79:1** et `feedbac
 > couleur de surface est refusé en revue.
 
 **Le vert n'est jamais seul.** Récapitulatif des états portés par le vert dans ce document, et de
-leur second porteur : item de navigation actif → `aria-current` + graisse ; lien de section courant →
-`aria-current` + graisse ; bulle d'agent → pastille « INFLUX » + nom + bordure ; complétude →
+leur second porteur : item de navigation actif → `aria-current` + graisse ; sous-entrée de navigation
+courante → `aria-current` + graisse + filet ; bulle d'agent → pastille « INFLUX » + nom + bordure ; complétude →
 pourcentage écrit + liste nominative ; profil publié → le mot « Publié » + sa date. *Depuis D73, le
 badge vérifié est bleu (`color-verified-text`, icône + texte + réseau + date, `20` §11.3) et le net
 créateur est suspendu (D48).*
