@@ -292,7 +292,7 @@ test("TD5.5: after a navigation through the shell, the focus is on the h1", asyn
   await nav
     .getByRole("link", { name: MEMBER.fr.nav.entries.account, exact: true })
     .click();
-  await expect(title(page)).toHaveText(ACCOUNT.fr.details.title);
+  await expect(title(page)).toHaveText(ACCOUNT.fr.hub.title);
   await expect(title(page)).toBeFocused();
   await expect(
     nav.getByRole("link", { name: MEMBER.fr.nav.entries.account }),
@@ -342,6 +342,10 @@ test("TD5.6 a: terms published during the session block the next page, without a
 
   await mainNavigation(page, "fr")
     .getByRole("link", { name: MEMBER.fr.nav.entries.account, exact: true })
+    .click();
+  // The page-menu is exempted (sn-fiche): the next page that is not shows the screen.
+  await page
+    .getByRole("link", { name: ACCOUNT.fr.nav.accountDetails, exact: true })
     .click();
   await expect(title(page)).toHaveText(ACCOUNT.fr.terms.title);
   await expect(page.getByRole("navigation")).toHaveCount(0);

@@ -24,14 +24,14 @@ export const SPACE_ENTRIES: Readonly<
     { entry: "campaigns", page: null }, // Lot 3, "Mes campagnes"
     { entry: "creators", page: null }, // Lot 3, the anonymised search
     { entry: "relations", page: null }, // Lot 4, "Mises en relation"
-    { entry: "account", page: "accountDetails" },
+    { entry: "account", page: "accountHub" },
   ],
   creator: [
     { entry: "home", page: "creatorHome" },
     { entry: "campaigns", page: null }, // Lot 3, the feed of open campaigns
     { entry: "applications", page: null }, // Lot 3, "Mes candidatures"
     { entry: "relations", page: null }, // Lot 4, "Mes relations"
-    { entry: "account", page: "accountDetails" },
+    { entry: "account", page: "accountHub" },
   ],
 };
 
@@ -59,8 +59,8 @@ export function navItemsOf(role: SignupDoor): NavItem[] {
 }
 
 /**
- * The entry a page belongs to: its own, and "account" for every page of "mon compte" (17 §2.3);
- * null for the journey and an unknown path.
+ * The entry a page belongs to: its own, and "account" for the page-menu and every page of "mon
+ * compte" (17 §2.3, §6.0); null for the journey and an unknown path.
  */
 export function activeEntryOf(page: MemberPage | null): NavEntry | null {
   if (page === null) {

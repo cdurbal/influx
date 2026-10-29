@@ -337,6 +337,8 @@ Décision D73 (fondateur, 2026-10-28). Les espaces membres (inscription et conne
 
 Décision D74 (fondateur, 2026-10-29). Les pilules de section disparaissent : sous-menu de la rubrique active dans la colonne (membres) et le rail (backoffice), page-menu « Mon compte » sous 1 024 px, « Mes informations » à `/compte/informations`. Point d'entrée : **`jalons/sn-fiche.md`** (commits SN-1 à SN-5, critère de fin, tests TN1 à TN9).
 
+- [x] SN-1 — page-menu « Mon compte » (`/fr/compte` · `/en/account`, exemptée des CGU), « Mes informations » à `/compte/informations` · `/account/details`, « Gérer mon compte » repointé ; TN2 et e2e (page-menu FR/EN, liens de langue, CGU en attente, axe).
+
 ### Hors jalon
 
 - [x] Commits D72-1a à D72-3 (`bfb2dd0`, `bb8500e`, puis rouge opaque, zone de danger, `ErrorNotice`) — suppression de compte en libre-service sans approbation `admin` (D72, migration `0150`, `identity.submit_member_erasure()`, e-mail `privacy.erasure_completed`), zone de danger et rouge opaque web/backoffice ; DZ-8 : Apollo sans suppression de contact, `erasure_not_propagated` demeure ; DZ-1, 2, 4, 5, 6, 7 ouverts dans `decisions.md`. Fiche supprimée.

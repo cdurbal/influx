@@ -1,11 +1,21 @@
 {
   "meta": {
+    "hub": "Mon compte — INFLUX",
     "details": "Mes informations — INFLUX",
     "preferences": "Mes préférences de communication — INFLUX",
     "sessions": "Mes sessions — INFLUX",
     "data": "Mes données — INFLUX"
   },
   "brand": "INFLUX",
+  "hub": {
+    "title": "Mon compte",
+    "items": {
+      "accountDetails": "Adresse e-mail, pays, langue",
+      "accountPreferences": "Les e-mails que vous recevez",
+      "accountSessions": "Les appareils connectés à votre compte",
+      "accountData": "Exporter ou supprimer vos données"
+    }
+  },
   "nav": {
     "label": "Mon compte",
     "home": "Retour à mon espace",

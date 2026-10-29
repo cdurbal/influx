@@ -24,6 +24,7 @@ const PAGE_TITLES = {
   signupCreator: "auth.meta.signupCreatorTitle",
   advertiserHome: "auth.meta.homeTitle",
   creatorHome: "auth.meta.homeTitle",
+  accountHub: "account.meta.hub",
   accountDetails: "account.meta.details",
   accountPreferences: "account.meta.preferences",
   accountSessions: "account.meta.sessions",

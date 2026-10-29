@@ -66,7 +66,7 @@ export function MemberHome({ space }: { space: SignupDoor }) {
           {t("home.signedInAs", { email: me.email })}
         </Notice>
         <Link
-          href={memberPageHref("accountDetails", locale)}
+          href={memberPageHref("accountHub", locale)}
           className={TEXT_BUTTON_CLASSES}
         >
           {tAccount("homeLink")}

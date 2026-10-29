@@ -12,6 +12,7 @@ export type MemberPage =
   | "signupCreator"
   | "advertiserHome"
   | "creatorHome"
+  | "accountHub"
   | "accountDetails"
   | "accountPreferences"
   | "accountSessions"
@@ -26,14 +27,19 @@ export const MEMBER_PAGE_SLUGS: Readonly<
   signupCreator: { fr: "inscription/createur", en: "signup/creator" },
   advertiserHome: { fr: "marque", en: "brand" },
   creatorHome: { fr: "createur", en: "creator" },
-  // "Mon compte" (17 §6.1 to §6.4), common to both spaces: /fr/compte/* · /en/account/* (EC-15).
-  accountDetails: { fr: "compte", en: "account" },
+  // "Mon compte" (17 §6.0 to §6.4), common to both spaces: /fr/compte/* · /en/account/* (EC-15);
+  // its page-menu (D74) holds the bare address, each page of the rubric a sub-path.
+  accountHub: { fr: "compte", en: "account" },
+  accountDetails: { fr: "compte/informations", en: "account/details" },
   accountPreferences: { fr: "compte/preferences", en: "account/preferences" },
   accountSessions: { fr: "compte/sessions", en: "account/sessions" },
   accountData: { fr: "compte/donnees", en: "account/data" },
 };
 
-/** The pages of "mon compte", in the order of their navigation. */
+/**
+ * The pages of "mon compte", in the order of their navigation; its page-menu (accountHub, 17 §6.0)
+ * is the page of the rubric, not one of them.
+ */
 export const ACCOUNT_PAGES = [
   "accountDetails",
   "accountPreferences",
@@ -46,16 +52,18 @@ export type AccountPage = (typeof ACCOUNT_PAGES)[number];
 /**
  * The pages a member reaches while a version of the terms waits for acceptance (05 RG28; 17 §6.7;
  * J7 A3): the rights of the person survive a refused version, so the blocking screen links to
- * them. apps/api exempts their routes from the terms gate; every other page shows the screen.
+ * them. apps/api exempts their routes from the terms gate; every other page shows the screen. The
+ * page-menu of "mon compte" (D74) shows links only, so that a phone goes from one to the other.
  */
-export const TERMS_EXEMPT_PAGES: readonly AccountPage[] = [
+export const TERMS_EXEMPT_PAGES: readonly MemberPage[] = [
+  "accountHub",
   "accountPreferences",
   "accountData",
 ];
 
 /** Whether a page lets the member through while a version of the terms waits (05 RG28, J7 A3). */
 export function isTermsExempt(page: MemberPage): boolean {
-  return (TERMS_EXEMPT_PAGES as readonly MemberPage[]).includes(page);
+  return TERMS_EXEMPT_PAGES.includes(page);
 }
 
 /**

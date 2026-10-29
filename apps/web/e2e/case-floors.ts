@@ -6,8 +6,8 @@
 // says which tests disappear and why (18 §3 rule 2).
 export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "e2e/account-data.spec.ts": 1,
-  "e2e/account-screens.spec.ts": 10,
-  "e2e/account.spec.ts": 5,
+  "e2e/account-screens.spec.ts": 12,
+  "e2e/account.spec.ts": 8,
   "e2e/backoffice-auth-screens.spec.ts": 5,
   "e2e/backoffice-ops-screens.spec.ts": 2,
   "e2e/backoffice.spec.ts": 15,

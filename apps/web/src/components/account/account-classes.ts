@@ -58,3 +58,35 @@ export const ACTIONS_CLASSES = "flex flex-wrap items-center gap-3";
 /** A link inside a text: underlined, so that it is not told by its color alone. */
 export const INLINE_LINK_CLASSES =
   "font-medium text-text-primary underline underline-offset-2 hover:text-text-brand";
+
+/**
+ * The page-menu of "mon compte" (17 §6.0; 20 page-menu): full-width rows split by a subtle line.
+ * The row is `relative` so that the label's link, stretched by its `after`, covers it whole; the
+ * focus ring is drawn by that `after` around the row (the link's own outline would ring its label
+ * only), and the row lights up on hover.
+ */
+export const HUB_LIST_CLASSES = cn(
+  "flex flex-col border-t-(length:--border-width-thin) border-border-subtle",
+);
+
+export const HUB_ROW_CLASSES = cn(
+  "relative flex min-h-(--size-touch-target) items-center gap-3 rounded-md px-3 py-3",
+  "border-b-(length:--border-width-thin) border-border-subtle",
+  "transition-colors hover:bg-surface-raised",
+);
+
+export const HUB_LINK_CLASSES = cn(
+  "text-md font-semibold text-text-primary",
+  "after:absolute after:inset-0 after:rounded-md",
+  "focus-visible:outline-hidden focus-visible:after:outline-(length:--focus-ring-width)",
+  "focus-visible:after:outline-solid focus-visible:after:outline-focus-ring",
+  "focus-visible:after:outline-offset-(--focus-ring-offset-inset)",
+);
+
+export const HUB_SENTENCE_CLASSES = "text-sm text-text-secondary";
+
+export const HUB_ICON_CLASSES =
+  "size-(--size-icon-md) shrink-0 text-text-secondary";
+
+export const HUB_CHEVRON_CLASSES =
+  "size-(--size-icon-md) shrink-0 text-text-secondary";

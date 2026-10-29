@@ -78,11 +78,11 @@ describe("TD2.1: five entries at most per role, in a fixed order (17 §2.1)", ()
   it("shows the entries whose screen exists only: Accueil and Compte before Lot 2", () => {
     expect(navItemsOf("advertiser")).toEqual([
       { entry: "home", page: "advertiserHome" },
-      { entry: "account", page: "accountDetails" },
+      { entry: "account", page: "accountHub" },
     ]);
     expect(navItemsOf("creator")).toEqual([
       { entry: "home", page: "creatorHome" },
-      { entry: "account", page: "accountDetails" },
+      { entry: "account", page: "accountHub" },
     ]);
   });
 });
@@ -144,6 +144,7 @@ describe("TD2.4: the active entry of each page", () => {
     signupCreator: null,
     advertiserHome: "home",
     creatorHome: "home",
+    accountHub: "account",
     accountDetails: "account",
     accountPreferences: "account",
     accountSessions: "account",
@@ -166,7 +167,7 @@ describe("TD2.4: the active entry of each page", () => {
   });
 
   it("marks none on an unknown path, a slug of the other language or a deeper path", () => {
-    expect(memberPageOfPath("/compte/", "fr")).toBe("accountDetails");
+    expect(memberPageOfPath("/compte/", "fr")).toBe("accountHub");
     for (const [pathname, locale] of [
       ["/", "fr"],
       ["/inconnue", "fr"],
@@ -199,15 +200,14 @@ describe("TD2.5: the space a page demands (17 §2.5, 05 RG66)", () => {
 });
 
 describe("TD2.6: the pages the blocking terms screen lets through (05 RG28, J7 A3)", () => {
-  it("exempts exactly TERMS_EXEMPT_PAGES, mes préférences and mes données", () => {
+  it("exempts exactly TERMS_EXEMPT_PAGES: the page-menu, mes préférences and mes données", () => {
     expect([...TERMS_EXEMPT_PAGES].sort()).toEqual([
       "accountData",
+      "accountHub",
       "accountPreferences",
     ]);
     for (const page of PAGES) {
-      expect(isTermsExempt(page), page).toBe(
-        (TERMS_EXEMPT_PAGES as readonly MemberPage[]).includes(page),
-      );
+      expect(isTermsExempt(page), page).toBe(TERMS_EXEMPT_PAGES.includes(page));
     }
   });
 
@@ -220,5 +220,39 @@ describe("TD2.6: the pages the blocking terms screen lets through (05 RG28, J7 A
     ] as const) {
       expect(isTermsExempt(page), page).toBe(false);
     }
+  });
+});
+
+describe("TN2: the page-menu of mon compte and mes informations (D74, sn-fiche Adresses)", () => {
+  it("gives accountHub and accountDetails their FR and EN slugs, unique in each language", () => {
+    expect(MEMBER_PAGE_SLUGS.accountHub).toEqual({
+      fr: "compte",
+      en: "account",
+    });
+    expect(MEMBER_PAGE_SLUGS.accountDetails).toEqual({
+      fr: "compte/informations",
+      en: "account/details",
+    });
+    for (const locale of LOCALES) {
+      const slugs = PAGES.map((page) => MEMBER_PAGE_SLUGS[page][locale]);
+      expect(new Set(slugs).size, locale).toBe(slugs.length);
+    }
+  });
+
+  it("tells the two pages apart by their path, and keeps the page-menu out of ACCOUNT_PAGES", () => {
+    expect(memberPageOfPath("/compte", "fr")).toBe("accountHub");
+    expect(memberPageOfPath("/account", "en")).toBe("accountHub");
+    expect(memberPageOfPath("/compte/informations", "fr")).toBe(
+      "accountDetails",
+    );
+    expect(memberPageOfPath("/account/details", "en")).toBe("accountDetails");
+    expect(memberPageOfPath("/account/details", "fr")).toBeNull();
+    expect(ACCOUNT_PAGES).not.toContain("accountHub");
+    expect(activeEntryOf("accountHub")).toBe("account");
+  });
+
+  it("exempts the page-menu from the terms screen, never mes informations", () => {
+    expect(isTermsExempt("accountHub")).toBe(true);
+    expect(isTermsExempt("accountDetails")).toBe(false);
   });
 });

@@ -3,20 +3,20 @@ import {
   memberPageLocale,
   memberPageMetadata,
 } from "@/components/auth/AuthPage";
-import { AccountPageView } from "@/components/account/AccountPageView";
+import { AccountHub } from "@/components/account/AccountHub";
 
-// "Mes informations" (docs/mvp/17 §6; §2.6), English path, behind the session.
+// The page-menu of "mon compte" (docs/mvp/17 §6.0; D74), English path, behind the session.
 export async function generateMetadata({
   params,
 }: PageProps<"/[locale]/account">): Promise<Metadata> {
   const { locale } = await params;
-  return memberPageMetadata(locale, "accountDetails");
+  return memberPageMetadata(locale, "accountHub");
 }
 
-export default async function AccountDetailsPage({
+export default async function AccountHubPage({
   params,
 }: PageProps<"/[locale]/account">) {
   const { locale } = await params;
-  memberPageLocale(locale, "accountDetails", "account");
-  return <AccountPageView page="accountDetails" />;
+  memberPageLocale(locale, "accountHub", "account");
+  return <AccountHub />;
 }

@@ -26,7 +26,19 @@ const HOMES = [
 ] as const;
 
 const SCREENS = [
-  { locale: "fr", path: "/fr/compte", key: "details", widths: [375, 1440] },
+  {
+    locale: "fr",
+    path: "/fr/compte",
+    key: "hub",
+    widths: [375, 768, 1024, 1440],
+  },
+  { locale: "en", path: "/en/account", key: "hub", widths: [375, 1440] },
+  {
+    locale: "fr",
+    path: "/fr/compte/informations",
+    key: "details",
+    widths: [375, 1440],
+  },
   {
     locale: "fr",
     path: "/fr/compte/preferences",
