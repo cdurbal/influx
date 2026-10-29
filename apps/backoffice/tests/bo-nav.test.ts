@@ -1,10 +1,13 @@
 // The navigation rules of the backoffice shell (docs/mvp/18 §12.1 TD2.7, TD2.8; 17b §1.2, §1.7;
-// 05 CA63): pure functions of src/components/bo-nav.ts, without a browser.
+// 05 CA63; D74, sn-fiche TN3): pure functions of src/components/bo-nav.ts, without a browser.
 import { describe, expect, it } from "vitest";
 import {
   activePlaceOf,
+  entryStateOf,
   navItemsOf,
   RAIL_ENTRIES,
+  subEntriesOf,
+  type NavItem,
   type RailEntry,
   type RailKey,
 } from "../src/components/bo-nav";
@@ -113,5 +116,66 @@ describe("TD2.8: the active entry of each address (17b §1.7)", () => {
     expect(activePlaceOf("/absente")).toBeNull();
     expect(activePlaceOf("/inscritsx")).toBeNull();
     expect(activePlaceOf("/reglages")).toBeNull();
+  });
+});
+
+describe("TN3: the screens of an entry as its sub-entries in the rail (D74)", () => {
+  function itemOf(key: RailKey): NavItem {
+    const item = navItemsOf("admin").find((entry) => entry.key === key);
+    if (item === undefined) {
+      throw new Error(`no ${key} entry`);
+    }
+    return item;
+  }
+
+  it("exposes no sub-menu for an entry of a single screen", () => {
+    expect(subEntriesOf(itemOf("dashboard"))).toEqual([]);
+    for (const item of navItemsOf("admin", SEVEN)) {
+      expect(subEntriesOf(item), item.key).toEqual([]);
+    }
+  });
+
+  it("gives Comptes and Administration their screens in order, the entry opening the first", () => {
+    const accounts = itemOf("accounts");
+    expect(subEntriesOf(accounts).map((section) => section.key)).toEqual([
+      "signups",
+      "memberInvitations",
+    ]);
+    expect(accounts.href).toBe(subEntriesOf(accounts)[0]?.href);
+    const admin = itemOf("admin");
+    expect(subEntriesOf(admin).map((section) => section.key)).toEqual([
+      "dualControl",
+      "internalAccounts",
+      "apollo",
+      "health",
+    ]);
+    expect(admin.href).toBe(subEntriesOf(admin)[0]?.href);
+  });
+
+  it("makes Inscrits the current sub-entry of a record, its entry an ancestor", () => {
+    const place = activePlaceOf(
+      "/inscrits/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
+    );
+    expect(place).toEqual({ entry: "accounts", section: "signups" });
+    expect(entryStateOf(itemOf("accounts"), place)).toBe("ancestor");
+    expect(entryStateOf(itemOf("admin"), place)).toBe("idle");
+  });
+
+  it("makes the entry of a single screen current on that screen, and nothing current elsewhere", () => {
+    const home = activePlaceOf("/accueil");
+    expect(entryStateOf(itemOf("dashboard"), home)).toBe("current");
+    expect(entryStateOf(itemOf("accounts"), home)).toBe("idle");
+    for (const item of navItemsOf("admin")) {
+      expect(entryStateOf(item, null), item.key).toBe("idle");
+    }
+  });
+
+  it("leaves an agent no Administration entry, hence none of its sub-entries (CA63)", () => {
+    const agent = navItemsOf("agent");
+    expect(agent.map((item) => item.key)).not.toContain("admin");
+    expect(agent.flatMap(subEntriesOf).map((section) => section.key)).toEqual([
+      "signups",
+      "memberInvitations",
+    ]);
   });
 });

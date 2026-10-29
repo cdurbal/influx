@@ -11,8 +11,9 @@
 // One <nav> "Navigation principale", restyled by CSS: the rail from lg, a compact horizontal list
 // from md to lg; a window too small (bo-small:, tokens-backoffice.css) shows the "poste de travail"
 // screen instead, without business content (F7). The entries a role sees and the entry of a path
-// are pure functions of bo-nav.ts; the admin entry is absent for an agent, the server refuses those
-// screens anyway (CA63).
+// are pure functions of bo-nav.ts, drawn by BoNav.tsx with the screens of the active entry as its
+// sub-entries (D74); the admin entry is absent for an agent, the server refuses those screens
+// anyway (CA63).
 import type { BackofficeMeResponse } from "@influx/contracts/backoffice-auth";
 import Link from "next/link";
 import { AuthHeader } from "./AuthHeader";
@@ -40,24 +41,10 @@ import {
 } from "./auth-classes";
 import { readMe, signOut } from "./backoffice-auth";
 import { SMALL_SECONDARY_CLASSES } from "./bo-classes";
-import {
-  activePlaceOf,
-  navItemsOf,
-  type ActivePlace,
-  type NavItem,
-  type RailKey,
-} from "./bo-nav";
+import { activePlaceOf, navItemsOf, type ActivePlace } from "./bo-nav";
+import { BoNav } from "./BoNav";
 import { ErrorNotice } from "./ErrorNotice";
-import {
-  BellIcon,
-  BriefcaseIcon,
-  InboxIcon,
-  LayoutDashboardIcon,
-  LogOutIcon,
-  SearchIcon,
-  SettingsIcon,
-  UsersRoundIcon,
-} from "./icons";
+import { LogOutIcon } from "./icons";
 import {
   BAND_CLASSES,
   BANNERS_CLASSES,
@@ -67,28 +54,14 @@ import {
   FRAME_CLASSES,
   MAIN_CLASSES,
   NAV_ICON_CLASSES,
-  NAV_LIST_CLASSES,
-  navLinkClasses,
   PRODUCT_CLASSES,
   RAIL_CLASSES,
   RAIL_FOOT_CLASSES,
   RAIL_HEAD_CLASSES,
-  SECTION_LIST_CLASSES,
-  sectionLinkClasses,
   SKIP_LINK_CLASSES,
   SMALL_BODY_CLASSES,
   SMALL_SCREEN_CLASSES,
 } from "./shell-classes";
-
-const ENTRY_ICONS: Record<RailKey, typeof InboxIcon> = {
-  dashboard: LayoutDashboardIcon,
-  queues: InboxIcon,
-  accounts: UsersRoundIcon,
-  creatorSearch: SearchIcon,
-  deals: BriefcaseIcon,
-  alerts: BellIcon,
-  admin: SettingsIcon,
-};
 
 const MeContext = createContext<BackofficeMeResponse | null>(null);
 
@@ -254,8 +227,8 @@ function EnvironmentBar({
 }
 
 /**
- * The workstation frame: skip link, head band, the rail (a strip from md to lg), then <main> with
- * the section links of the active entry. The focus goes to the h1 of the new page after a
+ * The workstation frame: skip link, head band, the rail (a strip from md to lg) holding the
+ * sub-entries of the active entry, then <main>. The focus goes to the h1 of the new page after a
  * navigation (17b §1.7), not at the first load, where the first Tab must reach the skip link.
  */
 function Frame({
@@ -307,8 +280,6 @@ function Frame({
     return () => observer.disconnect();
   }, [pathname]);
 
-  const items = navItemsOf(me.role);
-  const active = items.find((item) => item.key === place?.entry);
   const factor = me.secondFactor;
   return (
     <div className={FRAME_CLASSES}>
@@ -339,68 +310,13 @@ function Frame({
             <span className={PRODUCT_CLASSES}>{messages.shell.product}</span>
           </Link>
         </div>
-        <nav aria-label={messages.nav.label}>
-          <ul className={NAV_LIST_CLASSES}>
-            {items.map((item) => {
-              const isActive = item.key === place?.entry;
-              const Icon = ENTRY_ICONS[item.key];
-              return (
-                <li key={item.key}>
-                  <Link
-                    href={item.href}
-                    aria-current={isActive ? "page" : undefined}
-                    className={navLinkClasses(isActive)}
-                  >
-                    <Icon aria-hidden="true" className={NAV_ICON_CLASSES} />
-                    {messages.nav[item.key]}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+        <BoNav items={navItemsOf(me.role)} place={place} LinkComponent={Link} />
         <div className={RAIL_FOOT_CLASSES}>{signOutButton}</div>
       </div>
       <main id="main" ref={mainRef} tabIndex={-1} className={MAIN_CLASSES}>
-        {active === undefined ? null : (
-          <SectionLinks item={active} current={place?.section ?? null} />
-        )}
         {children}
       </main>
     </div>
-  );
-}
-
-/** The screens of the active entry, as links of the second level (17b §1.7); none for one screen. */
-function SectionLinks({
-  item,
-  current,
-}: {
-  item: NavItem;
-  current: string | null;
-}) {
-  if (item.sections.length < 2) {
-    return null;
-  }
-  return (
-    <nav aria-label={messages.nav[item.key]}>
-      <ul className={SECTION_LIST_CLASSES}>
-        {item.sections.map((section) => {
-          const isCurrent = section.key === current;
-          return (
-            <li key={section.key}>
-              <Link
-                href={section.href}
-                aria-current={isCurrent ? "page" : undefined}
-                className={sectionLinkClasses(isCurrent)}
-              >
-                {messages.nav[section.key]}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
   );
 }
 

@@ -775,16 +775,15 @@ test("TD6.1: one main navigation, no admin entry for an agent, the skip link fir
   const heading = page.getByRole("heading", { level: 1 });
   await expect(heading).toHaveText(m.accounts.title);
   await expect(heading).toBeFocused();
-  await expect(nav.locator("[aria-current=page]")).toHaveText(m.nav.accounts);
-  // The screens of the entry, as section links under their own name.
-  const sections = page.getByRole("navigation", { name: m.nav.accounts });
-  await expect(sections.getByRole("link")).toHaveText([
+  // The screens of the entry, as its sub-entries in the same <nav> (D74): the screen is current.
+  await expect(page.getByRole("navigation")).toHaveCount(1);
+  await expect(nav.locator("[aria-current=page]")).toHaveText(m.nav.signups);
+  await expect(nav.getByRole("link")).toHaveText([
+    m.nav.dashboard,
+    m.nav.accounts,
     m.nav.signups,
     m.nav.memberInvitations,
   ]);
-  await expect(sections.locator("[aria-current=page]")).toHaveText(
-    m.nav.signups,
-  );
 });
 
 test("TD6.2: the rail from lg, the compact list from md, the workstation screen below md or below 500 px high", async ({
@@ -806,6 +805,8 @@ test("TD6.2: the rail from lg, the compact list from md, the workstation screen 
     await expect(nav.getByRole("link")).toHaveText([
       m.nav.dashboard,
       m.nav.accounts,
+      m.nav.signups,
+      m.nav.memberInvitations,
       m.nav.admin,
     ]);
     const box = await nav.boundingBox();
@@ -818,12 +819,12 @@ test("TD6.2: the rail from lg, the compact list from md, the workstation screen 
   for (const width of [MD, LG - 1]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(mainNavigation(page)).toHaveCount(1);
+    // The entries and the sub-entries of Comptes, every one in the window (its lines: TN7).
     const links = nav.getByRole("link");
-    await expect(links).toHaveCount(3);
-    const tops = await links.evaluateAll((elements) =>
-      elements.map((element) => element.getBoundingClientRect().top),
-    );
-    expect(new Set(tops).size).toBe(1);
+    await expect(links).toHaveCount(5);
+    for (const link of await links.all()) {
+      await expect(link).toBeInViewport();
+    }
     const band = await page.locator("header").first().boundingBox();
     const box = await nav.boundingBox();
     expect(box?.y ?? 0).toBeGreaterThanOrEqual(
@@ -859,6 +860,110 @@ test("TD6.2: the rail from lg, the compact list from md, the workstation screen 
   await page.setViewportSize({ width: LG, height: MIN_HEIGHT });
   await expect(workstation).toHaveCount(0);
   await expect(table).toBeVisible();
+});
+
+/** The links of the sub-menu nested in the <li> of `entry` (D74). */
+function subEntriesIn(page: Page, entry: string) {
+  return mainNavigation(page)
+    .getByRole("listitem")
+    .filter({ has: page.getByRole("link", { name: entry, exact: true }) })
+    .getByRole("list")
+    .getByRole("link");
+}
+
+/** The widths of the matrix of sn-fiche (critère de fin, ligne 7). */
+const SN_WIDTHS = [320, 375, 768, 1024, 1440] as const;
+
+test("TN7: the screens of the active entry as sub-entries of the rail, a second line at 900 px, one landmark and one aria-current (D74)", async ({
+  page,
+}) => {
+  await seedInternal(page, "admin", "Noé");
+  const record = await seedSignup({
+    tag: runTag("tn7"),
+    role: "creator",
+    countryCode: "FR",
+    language: "fr",
+    consent: true,
+  });
+  const nav = mainNavigation(page);
+  const current = page.locator("[aria-current]");
+
+  // 1 440 px: Comptes on its list and on a record, Inscrits current; then Administration.
+  for (const address of ["/inscrits", `/inscrits/${record}`]) {
+    await page.goto(bo(address));
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("navigation")).toHaveCount(1);
+    await expect(subEntriesIn(page, m.nav.accounts)).toHaveText([
+      m.nav.signups,
+      m.nav.memberInvitations,
+    ]);
+    await expect(current).toHaveCount(1);
+    await expect(current).toHaveText(m.nav.signups);
+    await expect(
+      nav.getByRole("link", { name: m.nav.accounts, exact: true }),
+    ).not.toHaveAttribute("aria-current");
+  }
+  await page.goto(bo("/reglages/apollo"));
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(subEntriesIn(page, m.nav.admin)).toHaveText([
+    m.nav.dualControl,
+    m.nav.internalAccounts,
+    m.nav.apollo,
+    m.nav.health,
+  ]);
+  await expect(nav.getByRole("link", { name: m.nav.signups })).toHaveCount(0);
+  await expect(current).toHaveCount(1);
+  await expect(current).toHaveText(m.nav.apollo);
+
+  // 900 px: Comptes and its sub-entries on a line of their own, at their place, never scrolling.
+  await page.goto(bo("/inscrits"));
+  await page.setViewportSize({ width: 900, height: 900 });
+  await expect(
+    page.getByRole("table", { name: m.accounts.title }),
+  ).toBeVisible();
+  const topOf = async (name: string): Promise<number> =>
+    (await nav.getByRole("link", { name, exact: true }).boundingBox())?.y ??
+    NaN;
+  const dashboardTop = await topOf(m.nav.dashboard);
+  const accountsTop = await topOf(m.nav.accounts);
+  expect(accountsTop).toBeGreaterThan(dashboardTop);
+  expect(await topOf(m.nav.signups)).toBeGreaterThanOrEqual(accountsTop - 1);
+  expect(await topOf(m.nav.admin)).toBeGreaterThan(accountsTop);
+  for (const link of await nav.getByRole("link").all()) {
+    await expect(link).toBeInViewport();
+  }
+  expect(await pageScrollsSideways(page)).toBe(false);
+  await expect(current).toHaveCount(1);
+
+  // One landmark from md, none on the "poste de travail" screen (F7, unchanged).
+  for (const width of [375, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(page.getByRole("navigation")).toHaveCount(width < MD ? 0 : 1);
+    await expect(page.locator("[aria-current]:visible")).toHaveCount(
+      width < MD ? 0 : 1,
+    );
+  }
+});
+
+test("TN8: two screens with a sub-menu pass axe (WCAG 2.1 and 2.2 AA) at the five widths of the matrix", async ({
+  page,
+}) => {
+  await seedInternal(page, "admin", "Lou");
+  for (const [address, screen] of [
+    ["/inscrits", "inscrits"],
+    ["/double-validation", "doubles validations"],
+  ] as const) {
+    await page.goto(bo(address));
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    for (const width of SN_WIDTHS) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      expect(await pageScrollsSideways(page)).toBe(false);
+      await expectNoAxeViolation(page, `${screen} à ${String(width)} px`, {
+        wcag22: true,
+      });
+    }
+  }
 });
 
 test("TD6.3: the banners are read again at each client navigation; the environment is always written", async ({

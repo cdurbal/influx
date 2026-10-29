@@ -1,9 +1,11 @@
 // Token-only classes of the backoffice shell (docs/mvp/17b §1.4, §1.7; 20 §11.8 "Item de navigation",
-// "Liens de section"; 02 §21.5 point 8). One frame, restyled by the breakpoints of tokens.css: from
-// lg, the rail on the left at full height, the head band over the content; from md to lg, the same
-// <nav> as a compact horizontal list under the band; under `bo-small:` (tokens-backoffice.css), the
-// frame gives way to the "poste de travail" screen. No width is detected in JavaScript.
+// "Sous-entrée de navigation", "Liens de section" until SN-4; 02 §21.5 point 8). One frame, restyled
+// by the breakpoints of tokens.css: from lg, the rail on the left at full height, the head band over
+// the content; from md to lg, the same <nav> as a compact horizontal list under the band; under
+// `bo-small:` (tokens-backoffice.css), the frame gives way to the "poste de travail" screen. No
+// width is detected in JavaScript.
 import { cn } from "./auth-classes";
+import type { EntryState } from "./bo-nav";
 
 /** The frame: one column below lg; from lg, the rail spans both rows, band and content beside it. */
 export const FRAME_CLASSES = cn(
@@ -65,18 +67,65 @@ export const BRAND_LINK_CLASSES = cn(
 
 export const PRODUCT_CLASSES = "text-sm font-semibold text-text-secondary";
 
+/**
+ * The <nav> in the strip (md to lg) takes the room the sign-out leaves, so that the line of the
+ * active entry spans it; in the rail, a block like before.
+ */
+export const NAV_CLASSES = "max-lg:min-w-0 max-lg:flex-1";
+
 export const NAV_LIST_CLASSES = "flex flex-wrap gap-1 lg:flex-col lg:px-2";
 
 /**
- * An entry (20 §11.8): icon and label on one line, 36 px high. Active: `aria-current`, a heavier
- * label in `text-primary` and a 2 px line, at the bottom in the strip, on the left in the rail
- * (never the colour alone, P7).
+ * An item of the list. From md to lg, the active entry holding sub-entries takes a line of its own
+ * at its place (sn-fiche "Backoffice de 768 à 1 023 px", SN-0): its link, then its sub-list, which
+ * wrap; neither `display: contents` nor `order`, the visual order stays the DOM's and the keyboard's.
  */
-export function navLinkClasses(isActive: boolean): string {
+export function navCellClasses(withSubEntries: boolean): string {
+  return withSubEntries
+    ? "max-lg:flex max-lg:basis-full max-lg:flex-wrap max-lg:items-center max-lg:gap-1"
+    : "";
+}
+
+/**
+ * An entry (20 §11.8): icon and label on one line, 36 px high. Current: `aria-current`, a heavier
+ * label in `text-primary` and a 2 px line, at the bottom in the strip, on the left in the rail
+ * (never the colour alone, P7). Ancestor (D74): the heavier label alone, no surface, no line, no
+ * `aria-current`; the current sub-entry carries them.
+ */
+export function navLinkClasses(state: EntryState): string {
   return cn(
     "relative flex h-(--spacing-bo-row-h) items-center gap-2 rounded-md px-3 text-sm",
     "transition-colors hover:bg-nav-item-hover-bg hover:text-text-primary lg:gap-3",
-    isActive
+    state === "current"
+      ? cn(
+          "bg-nav-item-active-bg font-semibold text-text-primary",
+          "before:absolute before:bottom-0 before:left-3 before:right-3 before:h-(--border-width-thick) before:bg-nav-item-active-indicator",
+          "lg:before:bottom-1 lg:before:left-0 lg:before:right-auto lg:before:top-1 lg:before:h-auto lg:before:w-(--border-width-thick)",
+        )
+      : state === "ancestor"
+        ? "font-semibold text-text-primary"
+        : "text-text-secondary",
+  );
+}
+
+/**
+ * The sub-entries of the active entry (D74; 20 §11.8 "Sous-entrée de navigation"), nested in its
+ * item: a column under the entry in the rail, a row that wraps after it in the strip.
+ */
+export const SUB_NAV_LIST_CLASSES =
+  "flex flex-wrap gap-1 lg:mt-1 lg:flex-col lg:flex-nowrap";
+
+/**
+ * A sub-entry: no icon, 36 px high, `text-sm`; in the rail its label aligned on the entry's (the
+ * link's inset, the icon and the gap). Current: surface, 2 px line (at the bottom in the strip, on
+ * the left in the rail) and a heavier label, with `aria-current`.
+ */
+export function subNavLinkClasses(isCurrent: boolean): string {
+  return cn(
+    "relative flex h-(--spacing-bo-row-h) items-center rounded-md px-3 text-sm",
+    "lg:pl-(--spacing-nav-sub-indent)",
+    "transition-colors hover:bg-nav-item-hover-bg hover:text-text-primary",
+    isCurrent
       ? cn(
           "bg-nav-item-active-bg font-semibold text-text-primary",
           "before:absolute before:bottom-0 before:left-3 before:right-3 before:h-(--border-width-thick) before:bg-nav-item-active-indicator",

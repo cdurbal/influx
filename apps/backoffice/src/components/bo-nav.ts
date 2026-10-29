@@ -1,7 +1,7 @@
-// The main navigation of the backoffice (docs/mvp/17b §1.2, §1.7; 02 §21.5 point 8): the seven
-// entries of the rail in their fixed order, the screens each one holds as section links, which
-// entries a role sees and which entry and section a path belongs to. Pure functions, tested alone
-// (tests/bo-nav.test.ts); the shell (Shell.tsx) only draws them.
+// The main navigation of the backoffice (docs/mvp/17b §1.2, §1.7; 02 §21.5 point 8; D74, sn-fiche
+// "Poste de travail"): the seven entries of the rail in their fixed order, the screens each one
+// holds as its sub-entries, which entries a role sees and which entry and screen a path belongs to.
+// Pure functions, tested alone (tests/bo-nav.test.ts); BoNav.tsx only draws them.
 import type { BackofficeMeResponse } from "@influx/contracts/backoffice-auth";
 
 export type InternalRole = BackofficeMeResponse["role"];
@@ -16,7 +16,7 @@ export type RailKey =
   | "alerts"
   | "admin";
 
-/** The screens that exist today, each the section link of one entry (17b §1.7). */
+/** The screens that exist today, each a sub-entry of one entry (17b §1.7, D74). */
 export type SectionKey =
   | "home"
   | "signups"
@@ -100,4 +100,25 @@ export function activePlaceOf(
     }
   }
   return null;
+}
+
+/** An entry of a single screen has no sub-menu (D74): its link is the screen. */
+export function subEntriesOf(item: NavItem): Section[] {
+  return item.sections.length < 2 ? [] : item.sections;
+}
+
+/**
+ * The state of an entry's link (D74): "current" when the page is its one screen; "ancestor" when the
+ * page is one of its sub-entries (the sub-entry carries `aria-current`); "idle" otherwise.
+ */
+export type EntryState = "current" | "ancestor" | "idle";
+
+export function entryStateOf(
+  item: NavItem,
+  place: ActivePlace | null,
+): EntryState {
+  if (place?.entry !== item.key) {
+    return "idle";
+  }
+  return subEntriesOf(item).length === 0 ? "current" : "ancestor";
 }
