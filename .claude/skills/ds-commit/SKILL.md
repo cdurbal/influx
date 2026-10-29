@@ -68,8 +68,8 @@ Ordre : `1` à `12b`, puis `14` si F2 est accepté, puis `13`, puis `revue`. `ux
   et la piste (l'utilisateur relancera avec plus d'effort).
 - Micro-écart sans invariant : choix le plus sûr, noté `EC-DS-<id>-<n>` dans la réponse finale, aucun
   commit docs.
-- Avant le commit : `pnpm format:check`, `pnpm typecheck`, `pnpm lint`, `pnpm test -- --reporter=dot`,
-  `pnpm --filter @influx/api test:db -- --reporter=dot`, plus `pnpm test:e2e` si un écran change. Tout
+- Avant le commit : vérification par paliers de `CLAUDE.md` §7 règle 5 selon les fichiers indexés
+  (`test:db` seulement si la base est touchée), plus `pnpm test:e2e` si un écran change. Tout
   nouveau fichier de test reçoit son plancher (`case-floors.ts`).
 - Un seul commit, au titre imposé (Conventional Commits). Dans ce commit,
   `docs/mvp/21-plan-de-developpement.md` § Jalon DS : complète le sha de la ligne DS précédente s'il

@@ -1647,7 +1647,7 @@ horizontal de page) vérifié en plus à 320 px sur les écrans membres.
 ### 12.3 Plan par commit
 
 > **Numérotation** : celle de `jalons/ds-fiche.md` (recalée le 2026-10-28 : DS-11 = connexion et
-> activation du backoffice, DS-12 = écrans d'exploitation) ; la règle suit la **nature** du commit. **Avant chaque commit** : suite complète de `CLAUDE.md` §7 règle 5, et `pnpm test:e2e` pour
+> activation du backoffice, DS-12 = écrans d'exploitation) ; la règle suit la **nature** du commit. **Avant chaque commit** : vérification par paliers de `CLAUDE.md` §7 règle 5, et `pnpm test:e2e` pour
 > tout commit qui touche un écran.
 
 | Commit | Ce qui le prouve | E2E existants qui doivent rester verts |

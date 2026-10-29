@@ -201,8 +201,17 @@ suppression propagée à Brevo et Apollo. Référents : `expert-conformite-rgpd`
      cases non pré-cochées et l'attestation 18+ de `04`.
    - Tests : pendant le codage, le seul fichier en cours
      (`pnpm --filter @influx/api test:db -- <fichier> --reporter=dot`). **Avant chaque commit,
-     suite complète obligatoire** : `pnpm typecheck`, `pnpm lint`, `pnpm test -- --reporter=dot`,
-     `pnpm --filter @influx/api test:db -- --reporter=dot`.
+     vérification proportionnée aux fichiers indexés** (`git diff --cached --name-only`) :
+     - **Documentation seule** (`*.md`, `docs/**`, `.claude/**`) : `pnpm format:check` seulement
+       (et `pnpm docs:index` si une spécification a changé). Aucun test ne lit ces fichiers.
+     - **Code sans base** (fronts, `packages/*`, `apps/api` hors accès aux données) :
+       `pnpm format:check`, `pnpm typecheck`, `pnpm lint`, `pnpm test -- --reporter=dot`.
+     - **Base touchée** (`supabase/**`, `apps/api` repositories, schémas Drizzle, routes ou
+       services qui lisent ou écrivent en base, `db-tests/**`, dépendances, configuration
+       TypeScript, Vitest ou CI) : suite complète, soit le palier précédent plus
+       `pnpm --filter @influx/api test:db -- --reporter=dot`.
+     - En cas de doute, palier supérieur. `pnpm test:e2e` si un écran change. La CI rejoue
+       tout après le push : un écart s'y corrige aussitôt (règle 4).
    - `21-plan-de-developpement.md` : **1 ligne par commit** (`[x] Commit N (\`sha\`) — …`),
      condensée en 1 ligne à la clôture ; aucun récit.
    - Lots 3 à 5 : mode serré (`00` §9) d'abord, puis **reprise intégrale du mode normal (Lot 6bis)**.

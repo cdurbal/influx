@@ -107,7 +107,7 @@ Le détail argumenté est dans `20` §11.9 ; la décision du fondateur s'inscrit
 
 ## Commits prévus
 
-Petits commits sur `main`, Conventional Commits, suite complète avant chaque commit (`CLAUDE.md` §7
+Petits commits sur `main`, Conventional Commits, vérification par paliers avant chaque commit (`CLAUDE.md` §7
 règle 5), plus `pnpm test:e2e` pour tout commit qui touche un écran. Une ligne par commit dans `21`
 § Jalon DS, à mesure. Exécution : `dev-react-node` ; gardes : `testeur` ; relecture visuelle :
 `expert-ux`. Tests exacts de chaque commit et e2e à garder verts : `18` §12.3.
