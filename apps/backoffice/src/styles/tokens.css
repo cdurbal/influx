@@ -227,6 +227,15 @@
     monospace;
   --default-font-family: var(--font-base);
   --default-mono-font-family: var(--font-mono);
+  /*
+   * Typefaces of the connected spaces (02 §21.4): the classes of src/styles/fonts.ts define the
+   * --typeface-* on the KEO container, for the families of the KEO block. Declared here too, on the
+   * system stack, so that every name that block refers to exists outside it. In the theme layer,
+   * not in the unlayered :root: the backoffice carries those classes on <html>, where an unlayered
+   * :root, emitted after the rule of next/font, would beat it (UX-1, as --effect-action-glow).
+   */
+  --typeface-manrope: var(--font-stack-system);
+  --typeface-source-sans: var(--font-stack-system);
 
   /* ---------- Typography: weights, line heights, letter spacing (03 §4.3) ---------- */
   --font-weight-regular: 400;
@@ -517,17 +526,13 @@
   --image-focus-65-center: 65% center;
   --image-focus-70-center: 70% center;
   /*
-   * Typefaces of the connected spaces (02 §21.4): the classes of src/styles/fonts.ts define the
-   * --typeface-* on the KEO container, for the families of the KEO block below. Declared here
-   * too, on the system stack, so that every name that block refers to exists outside it.
-   * --font-stack-system repeats the vitrine's --font-base: @theme stays as the snapshot froze it
-   * (G3e), so that the KEO families can end on the system stack without referring to it.
+   * The system stack the KEO families end on (02 §21.4). It repeats the vitrine's --font-base:
+   * @theme stays as the snapshot froze it (G3e), so that the KEO families can end on the system
+   * stack without referring to it.
    */
   --font-stack-system:
     system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
     "Noto Sans", "Liberation Sans", sans-serif;
-  --typeface-manrope: var(--font-stack-system);
-  --typeface-source-sans: var(--font-stack-system);
 }
 
 /* Responsive semantic tokens (03 §5 and §6). Values mirror the breakpoints above. */

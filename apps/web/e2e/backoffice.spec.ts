@@ -54,6 +54,7 @@ import {
   displayFamily,
   expectGreenGlow,
   expectHeadingTracking,
+  expectKeoTypefaces,
   expectNoGlow,
   expectSoftGlow,
   expectStill,
@@ -1228,6 +1229,29 @@ test("TK1.2 (backoffice): neither zoom nor press on a disabled button", async ({
   const button = signInButton(page);
   await button.evaluate((element) => element.setAttribute("disabled", ""));
   await expectStill(page, button, { force: true });
+});
+
+test("UX-1 (backoffice): the sign-in screen drawn in the KEO typefaces, Manrope loaded", async ({
+  page,
+}) => {
+  await openSignIn(page);
+  await expectKeoTypefaces(
+    page,
+    page.getByRole("heading", { level: 1 }),
+    signInButton(page),
+  );
+});
+
+test("UX-1 (backoffice): a screen of the space drawn in the KEO typefaces, Manrope loaded", async ({
+  page,
+}) => {
+  await seedInternal(page, "agent", "Noa");
+  await page.goto(bo("/accueil"));
+  await expectKeoTypefaces(
+    page,
+    page.getByRole("heading", { level: 1 }),
+    page.getByRole("button", { name: m.shell.signOut }),
+  );
 });
 
 test("TK1.3 (backoffice): the primary button in 700", async ({ page }) => {

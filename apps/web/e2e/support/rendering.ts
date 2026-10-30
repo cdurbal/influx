@@ -275,10 +275,36 @@ export function firstFamily(fontFamily: string): string {
     .toLowerCase();
 }
 
-/** The first family of `--font-display` inside the KEO container (Manrope's, under KEO). */
-export function displayFamily(page: Page): Promise<string> {
+/** A face of the document's font set: its family, unquoted and in lower case, and its status. */
+export type DocumentFontFace = { family: string; status: FontFaceLoadStatus };
+
+/** The faces of the document (those next/font declared), once `document.fonts` is ready. */
+export function documentFontFaces(page: Page): Promise<DocumentFontFace[]> {
   return page
-    .evaluate((selector) => {
+    .evaluate(async () => {
+      await document.fonts.ready;
+      const faces: { family: string; status: FontFaceLoadStatus }[] = [];
+      document.fonts.forEach((face) => {
+        faces.push({ family: face.family, status: face.status });
+      });
+      return faces;
+    })
+    .then((faces) =>
+      faces.map(({ family, status }) => ({
+        family: firstFamily(family),
+        status,
+      })),
+    );
+}
+
+/**
+ * The first family of `--font-display` inside the KEO container (Manrope's, under KEO). Under KEO it
+ * is a family that next/font declared, never one of the system stack: a token resolved on the system
+ * stack fails here (UX-1), instead of being compared with a title that falls back on it too.
+ */
+export async function displayFamily(page: Page): Promise<string> {
+  const family = firstFamily(
+    await page.evaluate((selector) => {
       const container = document.querySelector(selector);
       if (container === null) return "";
       const host =
@@ -289,8 +315,47 @@ export function displayFamily(page: Page): Promise<string> {
       const family = getComputedStyle(probe).fontFamily;
       probe.remove();
       return family;
-    }, KEO_CONTAINER)
-    .then(firstFamily);
+    }, KEO_CONTAINER),
+  );
+  const declared = (await documentFontFaces(page))
+    .map((face) => face.family)
+    .filter((name) => !name.endsWith(" fallback"));
+  if (!declared.includes(family)) {
+    throw new Error(
+      `--font-display resolves to "${family}" under KEO, not a family of next/font (${declared.join(", ")})`,
+    );
+  }
+  return family;
+}
+
+/**
+ * UX-1: the KEO typefaces rendered, not only declared. Once `document.fonts` is ready, the latin face
+ * of Manrope (the one next/font preloads) is loaded; the heading is drawn in its family, and the
+ * button in a family that next/font generated, never in the system stack (02 §21.4).
+ */
+export async function expectKeoTypefaces(
+  page: Page,
+  heading: Locator,
+  button: Locator,
+): Promise<void> {
+  await expect(heading).toBeVisible();
+  await expect(button).toBeVisible();
+  const faces = await documentFontFaces(page);
+  const manrope = faces.find(
+    ({ family }) => family.includes("manrope") && !/ext|fallback/.test(family),
+  );
+  expect(manrope, "the latin face of Manrope declared").toBeDefined();
+  expect(manrope?.status, "the latin face of Manrope loaded").toBe("loaded");
+  expect(
+    firstFamily(await computed(heading, "font-family")),
+    "the heading in Manrope",
+  ).toBe(manrope?.family);
+  expect(
+    faces
+      .map(({ family }) => family)
+      .filter((family) => !family.endsWith(" fallback")),
+    "the button in a family of next/font",
+  ).toContain(firstFamily(await computed(button, "font-family")));
 }
 
 /**

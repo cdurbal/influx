@@ -29,6 +29,7 @@ import {
   contrast,
   displayFamily,
   expectGreenGlow,
+  expectKeoTypefaces,
   expectHeadingTracking,
   expectNoGlow,
   expectSoftGlow,
@@ -165,6 +166,17 @@ test("TK1.3: the secondary button and the text button in 600", async ({
   const text = page.getByRole("link", { name: ACCOUNT.homeLink });
   expect(await computed(secondary, "font-weight"), "secondary").toBe("600");
   expect(await computed(text, "font-weight"), "text button").toBe("600");
+});
+
+test("UX-1: a member page drawn in the KEO typefaces, Manrope loaded", async ({
+  page,
+}) => {
+  await openAs(page, "/fr/compte/informations", ACCOUNT.details.title);
+  await expectKeoTypefaces(
+    page,
+    title(page),
+    page.getByRole("button", { name: ACCOUNT.details.save }),
+  );
 });
 
 test("TK1.5: a card is rounded at 16 px under KEO", async ({ page }) => {
