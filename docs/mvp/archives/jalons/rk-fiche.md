@@ -268,3 +268,47 @@ change (`CLAUDE.md` §7 règle 5).
 | Un effet RK fuit vers la vitrine par un composant partagé | TK8.2 pris sur le parent de RK-1, TD4 et G3e |
 | Bouton pleine largeur à 103 % sur un écran de 320 px | TK2.3 et la mesure de défilement de RK-4 |
 | Mesures sensibles au moment (transitions) | Lecture après la fin des animations ; aucune attente fixe |
+
+## Cas d'absence déclarés R2 (session RKT-2, revue de clôture)
+
+Finding RKT-2 (`testeur`) : R4 (« chaque cas est vu rouge sur le parent ») ne peut pas s'appliquer à une
+exigence d'absence que le parent tenait déjà. Ces cas sont des tests simples depuis RK-1 (`78fb02a`) ou
+depuis leur commit ; ils sont déclarés R2, et la preuve que leur mesure voit le défaut vient d'un cas
+positif rouge sur le parent qui lit la même propriété avec la même aide (`e2e/support/rendering.ts`), ou
+d'un auto-test négatif. Le relevé de la session n'avait pas été écrit : tableau reconstitué le 2026-10-30
+depuis `charter-rendering.spec.ts`, `backoffice.spec.ts`, `vitrine-unchanged.spec.ts` et le test-kit, à
+RK-1 et à `43afefe`, chaque cas vérifié présent.
+
+| Cas (spec) | Raison de l'absence de rouge sur le parent | Test de remplacement |
+|---|---|---|
+| TK1.1 « no glow on an unavailable primary button » (membres, `aria-disabled`) ; TK1.1 BO « no glow on a disabled or unavailable button » (`disabled` et `aria-disabled`) | Sur le parent, l'ombre ne s'affichait sur aucun bouton (C1, `--tw-shadow:none`) | TK1.1 « glows in the brand green » membres et BO (`test.fail` RK-2) : même `visibleShadows` du `box-shadow` calculé |
+| TK1.2 « neither zoom nor press under reduced motion » (membres, BO) | Le zoom de F6 (1,02) était déjà sous `motion-safe:` | TK1.2 « grows to 1.03… shrinks to 0.98 » membres et BO (`test.fail` RK-4) : même `drawnRatio` ; TD5.7 |
+| TK1.2 « neither zoom nor press on an unavailable button » (membres, `aria-disabled`) ; TK1.2 BO « on a disabled button » (`disabled`) | Le zoom du parent était déjà coupé par `not-aria-disabled:` (membres) et `not-aria-disabled:not-disabled:` (BO) | Même cas positif TK1.2 (RK-4) ; au BO, UX-2 lit aussi le ratio 1 des cinq classes désactivées |
+| TK1.4 « the small buttons of the screens stay sober » (BO) | `SMALL_PRIMARY_CLASSES` et `SMALL_SECONDARY_CLASSES` n'avaient ni ombre ni `scale` : RK-4 confirme l'existant | TK1.1 et TK1.2 BO sur le bouton de connexion (RK-2, RK-4) : mêmes `expectNoGlow` / `expectGreenGlow`, `expectStill` / `expectZoomAndPress` |
+| TK2.3 « no sideways scroll at 320, 375 and 768 px, the glow drawn » (membres) ; TK2.3 BO à 375 et 768 px (connexion, puis page de travail depuis RK-9) | Le calque du parent restait dans la boîte du `header` : aucun débordement | Condition « halo dessiné » du même cas (le cas n'est pas vide) ; aucun négatif de la mesure de défilement (donnée manquante 3) |
+| TK1.2 « a full-width button hovered at 103 % does not scroll sideways at 320 px » (membres, ajouté par RK-4 `3e46a59`) | Écrit dans le commit qui pose le 103 % : pas de parent à 103 % | Le cas positif TK1.2 prouve que le 103 % est appliqué ; `boundingBox ≤ 320` dans le même cas |
+| TK4.1 « a card that is not clickable stays still on hover » (membres) | La carte non cliquable n'avait déjà aucun effet au survol (seule `card-classes.ts` cliquable en portait) | TK4.1 « a clickable card lights its border up » (`test.fail` RK-8) : même lecture calculée de `border-top-color` |
+| TK5.1 « after a click in the navigation / in the rail, the h1 focused without a ring » (membres, BO) | Chromium ne retient pas `:focus-visible` sur le `h1` après un pointeur (commentaire du spec) | TK5.1 à l'arrivée, après `Entrée` et après le lien d'évitement, membres et BO (`test.fail` RK-7) : même `outlineStyle` de `focusedElement` |
+| TK5.2 BO « at Tab, a link, a button, a field and the region of a table keep a ring of 2 px » | L'anneau existait (C4 est un anneau de trop) : le cas garde que RK-7 ne l'enlève pas (jamais un `[tabindex]` générique) | TK5.1 BO rouges sur le parent (RK-7) : la même lecture d'`outline-style` y voyait l'anneau. Membres : TK5.2 = TD5.4 (`member-shell.spec`, `member-primitives.spec`), non doublé |
+| TK6.2 « no row marked at rest, nor the neighbour of the hovered one » (BO) | Aucun filet sur le parent (C5) | TK6.2 au survol et au focus clavier (`test.fail` RK-9) : même `rowIndicators` |
+| TK3.4 « /fr and /en keep the body unsmoothed (auto) » (`vitrine-unchanged`) | La vitrine n'a jamais été lissée | TK3.4 du conteneur KEO, du dialogue des CGU et du `html` du BO (`test.fail` RK-5a, RK-5b) : même propriété |
+| TK8.2 « the states of the landing's calls to action and of a card are those of the parent of RK-1 » | Attendu pris sur le parent lui-même : vert par construction | Aucun requis : comparaison stricte au parent ; `vitrine-states.json` inchangé depuis `78fb02a` |
+| Gardes TK7.3 (aucun `clamp(` ni `vw` dans les tokens sous KEO) et TK7.5 (aucun lissage sur `:root`, `html`, `body` ; `badge-error-bg` confiné), sur les sources des deux fronts | Sources déjà conformes au parent (`it` simples à RK-1 ; G3i a et G8 étendue étaient des `it.fails`) | Auto-tests négatifs de `packages/test-kit/tests/rendering-guards.test.ts` (« detects a clamp( or a vw… », « detects a smoothing… minified and with CRLF », « confines a token to its files… ») |
+
+Hors tableau : membres, TK1.1 et TK1.2 sans `disabled` : aucun bouton membre ne porte `disabled`
+(`Button.tsx`, `17` : « jamais un `disabled` muet ») ; le BO couvre les deux attributs.
+
+**Données manquantes** (à trancher par `testeur`, aucune n'est corrigée ici) :
+
+1. **Bouton texte sans agrandissement** (`20` §11.5) : ni cas rendu ni ligne en `18` §12.7. Membres : le
+   seul test de classes `member-ui.test.ts` (« the text button still ») ; le parent zoomait pourtant le
+   bouton texte (zoom dans la base des classes), le cas aurait donc été rouge. BO (`TEXT_BUTTON_CLASSES`) :
+   aucun test.
+2. **Absences portées par un cas positif**, pas par un cas à part : TK2.1 (un seul halo par page, aucun
+   ancêtre qui le tronque, dans `expectWholeGlow`) ; TK2.3 BO page de travail (aucun halo à 375 px sur
+   l'écran poste de travail) ; TK3.2 (surtitre jamais vert) ; badge jamais vert (`20` §11.4 (6)),
+   seulement indirect par TK4.2 (fond égal à un token de la matrice).
+3. **Mesure de défilement** (`scrollWidth − innerWidth`) : jamais vue rouge dans RK, sans auto-test négatif.
+4. **Cas positifs verts sur le parent**, hors R2, R4 non tenue et non déclarée : TK1.3 « primary button in
+   700 » (membres, BO), TK1.5 « rounded at 16 px » (membres, BO), TK3.3 « h1 tightened by
+   --tracking-heading » (membres, BO), TK3.3 « a block title (h3) in 700 » (membres).
