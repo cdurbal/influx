@@ -20,11 +20,13 @@
     "typecheck": "pnpm -r run typecheck",
     "lint": "pnpm -r run lint",
     "test": "pnpm -r run test",
+    "test:unit": "pnpm -r --filter=!@influx/api run test && pnpm --filter @influx/api test:unit",
     "test:e2e": "pnpm --filter @influx/web test:e2e",
     "docs:index": "node docs/mvp/build-index.mjs && prettier --write docs/mvp/INDEX.md",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm format:check && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm -r run test:artifacts"
+    "check": "pnpm format:check && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm -r run test:artifacts",
+    "check:fast": "pnpm format:check && pnpm typecheck && pnpm lint && pnpm test:unit"
   },
   "devDependencies": {
     "prettier": "3.9.6",

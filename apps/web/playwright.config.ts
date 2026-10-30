@@ -11,8 +11,8 @@
 //   double: only the addresses of e2e/support/mailboxes.ts receive a code (verrou 3). No env file
 //   is ever loaded (16 RG148). The local stack's secret key is
 //   read by e2e/start-api.ts from the Supabase CLI, never from a file.
-// - apps/web and apps/backoffice, built then started (CI: started only, `pnpm check` has just
-//   built them).
+// - apps/web and apps/backoffice, built then started (CI: started only, the `e2e` job of ci.yml
+//   has just built them).
 // The secrets below are fake values for this run only, like those of apps/api/tests/helpers.ts.
 import { defineConfig, devices } from "@playwright/test";
 import { randomUUID } from "node:crypto";
@@ -48,7 +48,7 @@ export default defineConfig({
   // J8T-8: two workers, but e2e/backoffice.spec.ts is serial and the only file that seeds an admin
   // (its degraded dual control deactivates every other admin for a while). A new file that needs
   // an admin joins it, never a file of its own; and no other job ever shares this local stack
-  // while the journeys run (ci.yml: the same job, after `pnpm check`).
+  // while the journeys run (ci.yml: the `e2e` job starts a stack of its own).
   workers: 2,
   forbidOnly: process.env.CI !== undefined,
   // J8T-6: the JSON report is read after the run by the floor of executed tests (e2e/case-floors.ts,

@@ -61,7 +61,7 @@ describe("J9T-2: the Migrate production job", () => {
   });
 
   it("waits for the required jobs", () => {
-    expect(JOB).toMatch(/needs: \[check, relay-node-24\]/);
+    expect(JOB).toMatch(/needs: \[check, db, e2e, relay-node-24\]/);
   });
 
   it("is the only job that names the production environment", () => {
@@ -91,5 +91,54 @@ describe("J9T-2: the Migrate production job", () => {
       const text = code(readFileSync(path.join(WORKFLOWS, file), "utf8"));
       expect(text, file).not.toMatch(/\brailway\s+(up|deploy|redeploy)\b/);
     }
+  });
+});
+
+// D76: the documentation-only skip lightens a push to `main`, never `production` nor a pull request,
+// and never lets staging be migrated before every check has passed.
+describe("D76: the documentation-only skip", () => {
+  const CHANGES = code(JOBS.get("changes") ?? "");
+
+  it("only applies to a push to main", () => {
+    expect(CHANGES).toContain(
+      "MAIN_PUSH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}",
+    );
+    expect(CHANGES).toContain('if [ "$MAIN_PUSH" = "true" ]; then');
+  });
+
+  it("compares with the last green run, and counts anything unknown as code", () => {
+    expect(CHANGES).toMatch(/^ {10}code=true$/m);
+    expect(CHANGES).toContain("--status success");
+    expect(CHANGES).toContain(
+      'git merge-base --is-ancestor "$base" "$GITHUB_SHA"',
+    );
+  });
+
+  it("skips the heavy jobs only, never the cheap checks of `check`", () => {
+    for (const name of ["db", "e2e", "relay-node-24"]) {
+      expect(code(JOBS.get(name) ?? ""), name).toContain(
+        "if: needs.changes.outputs.code == 'true'",
+      );
+    }
+    const check = code(JOBS.get("check") ?? "");
+    expect(check).not.toMatch(/^ {4}if:/m);
+    for (const step of [
+      "Security review markers",
+      "Migration file names, order and immutability",
+      "Spec index is up to date",
+      "Format",
+    ]) {
+      const body = new RegExp(
+        String.raw`- name: ${step}\n([\s\S]*?)(\n {6}- name:|$)`,
+      ).exec(check)?.[1];
+      expect(body, step).toBeDefined();
+      expect(body, step).not.toContain("if:");
+    }
+  });
+
+  it("migrates staging after every check", () => {
+    expect(code(JOBS.get("migrate-staging") ?? "")).toMatch(
+      /needs: \[check, db, e2e, relay-node-24\]/,
+    );
   });
 });
