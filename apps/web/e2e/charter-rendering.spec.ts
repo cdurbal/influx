@@ -103,13 +103,12 @@ function homeCard(page: Page): Locator {
 // TK1: the buttons (RK-1 to RK-4 of the fiche; 20 §11.5, §11.8)
 // ---------------------------------------------------------------------------------------------
 
-test.fail(
-  "RK-2: TK1.1, the primary button glows in the brand green at rest, wider on hover",
-  async ({ page }) => {
-    await open(page, SIGN_IN);
-    await expectGreenGlow(page, signInButton(page));
-  },
-);
+test("TK1.1: the primary button glows in the brand green at rest, wider on hover", async ({
+  page,
+}) => {
+  await open(page, SIGN_IN);
+  await expectGreenGlow(page, signInButton(page));
+});
 
 test("TK1.1: no glow on an unavailable primary button, at rest nor on hover", async ({
   page,

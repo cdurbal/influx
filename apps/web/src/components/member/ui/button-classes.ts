@@ -19,9 +19,9 @@ export const MEMBER_BUTTON_VARIANT_CLASSES: Record<
   string
 > = {
   primary: cn(
-    "rounded-pill bg-action-primary-bg px-inset-button-x py-inset-button-y text-text-on-action shadow-action-glow",
+    "rounded-pill bg-action-primary-bg px-inset-button-x py-inset-button-y text-text-on-action shadow-(--effect-action-glow)",
     "hover:bg-action-primary-bg-hover active:bg-action-primary-bg-active",
-    "aria-disabled:shadow-none",
+    "not-aria-disabled:hover:shadow-(--effect-action-glow-hover) aria-disabled:shadow-none",
   ),
   secondary: cn(
     "rounded-pill border-(length:--border-width-action-secondary) border-action-secondary-border bg-action-secondary-bg",

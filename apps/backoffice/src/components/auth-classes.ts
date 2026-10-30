@@ -56,8 +56,9 @@ const BUTTON_BASE_CLASSES = cn(
 export const PRIMARY_BUTTON_CLASSES = cn(
   BUTTON_BASE_CLASSES,
   "min-h-(--size-button-lg) w-full rounded-pill",
-  "bg-action-primary-bg px-inset-button-x py-inset-button-y text-text-on-action shadow-action-glow",
+  "bg-action-primary-bg px-inset-button-x py-inset-button-y text-text-on-action shadow-(--effect-action-glow)",
   "hover:bg-action-primary-bg-hover active:bg-action-primary-bg-active",
+  "not-aria-disabled:not-disabled:hover:shadow-(--effect-action-glow-hover)",
   "aria-disabled:shadow-none disabled:bg-action-disabled-bg disabled:text-text-disabled disabled:shadow-none",
 );
 

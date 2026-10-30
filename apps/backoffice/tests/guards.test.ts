@@ -248,12 +248,9 @@ describe("the backoffice is KEO whole, set by the root layout alone", () => {
 describe("G3i (a), TK7.3 and TK7.5: no inscribed KEO token, no fluid size, no smoothing on the document", () => {
   const tokens = readFileSync(path.join(BACKOFFICE_ROOT, TOKENS), "utf8");
 
-  it.fails(
-    "RK-2: redefines no token of a namespace that Tailwind inscribes, color-mix in the tokens of RK-A only (G3i a)",
-    () => {
-      expect(findKeoTrapViolations(tokens, KEO_COLOR_MIX)).toEqual([]);
-    },
-  );
+  it("redefines no token of a namespace that Tailwind inscribes, color-mix in the tokens of RK-A only (G3i a)", () => {
+    expect(findKeoTrapViolations(tokens, KEO_COLOR_MIX)).toEqual([]);
+  });
 
   it("lets no fluid size nor letter-spacing through to KEO (TK7.3)", () => {
     expect(findFluidKeoTypography(tokens)).toEqual([]);

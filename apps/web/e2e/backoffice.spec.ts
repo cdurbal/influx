@@ -1182,13 +1182,12 @@ async function rowIndicators(page: Page, cell: Locator) {
   );
 }
 
-test.fail(
-  "RK-2: TK1.1 (backoffice), the sign-in button glows in the brand green at rest, wider on hover",
-  async ({ page }) => {
-    await openSignIn(page);
-    await expectGreenGlow(page, signInButton(page));
-  },
-);
+test("TK1.1 (backoffice): the sign-in button glows in the brand green at rest, wider on hover", async ({
+  page,
+}) => {
+  await openSignIn(page);
+  await expectGreenGlow(page, signInButton(page));
+});
 
 test("TK1.1 (backoffice): no glow on a disabled or unavailable button, at rest nor on hover", async ({
   page,

@@ -44,10 +44,12 @@ describe("buttons (20 §11.8)", () => {
   });
 
   it("gives the glow to the primary button alone, and takes it away when disabled", () => {
-    expect(memberButtonClasses("primary")).toContain("shadow-action-glow");
-    expect(memberButtonClasses("primary")).toContain(
-      "aria-disabled:shadow-none",
+    const primary = memberButtonClasses("primary");
+    expect(primary).toContain("shadow-(--effect-action-glow)");
+    expect(primary).toContain(
+      "not-aria-disabled:hover:shadow-(--effect-action-glow-hover)",
     );
+    expect(primary).toContain("aria-disabled:shadow-none");
     for (const variant of ["secondary", "danger", "text"] as const) {
       expect(memberButtonClasses(variant), variant).not.toContain("shadow-");
     }
