@@ -347,7 +347,7 @@ Décision D75 (fondateur, 2026-10-30). Dix-sept écarts entre la proposition 4 e
 - [x] RK-1 (`78fb02a`) — filet du rendu sans code de production : 31 cas e2e et 5 gardes rouges sur le parent, annotés RK-n ; `vitrine-states.json` prise ici
 - [x] RK-2 (`f1b27c2`) — `--effect-action-glow*` hors de l'espace `--shadow-*`, lu par `var()` : l'ombre du bouton principal s'affiche ; G3i (a) verte
 - [x] RK-3 (`69eaa1f`) — G3i (b) : la CSS construite de chaque front lit tout token redéfini sous KEO par `var()`, négatif vérifié sur la construction réelle (`test:artifacts`)
-- [x] RK-4 — réduction à 98 % à l'appui et agrandissement à 103 % sous `motion-safe:` (hors bouton texte et petits boutons du BO), graisse 600 du secondaire et du bouton texte
+- [x] RK-4 (`3e46a59`) — réduction à 98 % à l'appui et agrandissement à 103 % sous `motion-safe:` (hors bouton texte et petits boutons du BO), graisse 600 du secondaire et du bouton texte
 
 ### Hors jalon
 
