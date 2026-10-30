@@ -88,12 +88,9 @@ test("TK3.1: the axe passes of 18 §12.2 recorded the titles of every screen, me
   expect(of(WEB_ORIGIN).some((survey) => survey.width === 1440)).toBe(true);
 });
 
-test.fail(
-  "RK-5a: TK3.1, every title of the member screens in Manrope, at a fixed KEO size, the same at 375 and 1 440 px",
-  () => {
-    expect(headingProblems(of(WEB_ORIGIN))).toEqual([]);
-  },
-);
+test("TK3.1, every title of the member screens in Manrope, at a fixed KEO size, the same at 375 and 1 440 px", () => {
+  expect(headingProblems(of(WEB_ORIGIN))).toEqual([]);
+});
 
 test.fail(
   "RK-5b: TK3.1, every title of the backoffice screens in Manrope, at a fixed KEO size, the same at 375 and 1 440 px",

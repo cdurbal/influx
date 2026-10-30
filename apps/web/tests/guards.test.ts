@@ -455,20 +455,12 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
     expect(findStateTransforms(WEB_ROOT, KEO_SCOPES)).toEqual([]);
   });
 
-  // G8 extended (D75 RK-5; 18 §5.1, TK7.3): the fluid sizes stay with the vitrine. The code before
-  // the RK milestone fails it (CodeStep, FreshCode, DoorStep): RK-5a turns it into a plain `it`.
-  it.fails(
-    "RK-5a: uses no class of the vitrine's fluid typography under the KEO scopes (TK7.3)",
-    () => {
-      expect(
-        findVitrineTokenUse(
-          WEB_ROOT,
-          KEO_SCOPES,
-          fluidTypographyClasses(tokens),
-        ),
-      ).toEqual([]);
-    },
-  );
+  // G8 extended (D75 RK-5; 18 §5.1, TK7.3): the fluid sizes stay with the vitrine.
+  it("uses no class of the vitrine's fluid typography under the KEO scopes (TK7.3)", () => {
+    expect(
+      findVitrineTokenUse(WEB_ROOT, KEO_SCOPES, fluidTypographyClasses(tokens)),
+    ).toEqual([]);
+  });
 
   it("serves exactly the pages of MEMBER_PAGE_SLUGS from the (member) group, URLs unchanged", () => {
     const memberPaths = Object.values(MEMBER_PAGE_SLUGS).flatMap((slugs) =>

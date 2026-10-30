@@ -644,6 +644,8 @@
     --font-weight-action: 700;
     --font-weight-action-secondary: 600;
     --border-width-action-secondary: 1px;
+    /* Titles of 20 px and more (h1, h2) sit tighter than the vitrine's -0.01em (RK-6). */
+    --tracking-heading: -0.025em;
 
     /* Effects kept by the founder (F6; 20 §11.5), under motion-safe: for the two movements. The
      * glow of the primary button is the brand green mixed with transparency (RK-A), stronger on

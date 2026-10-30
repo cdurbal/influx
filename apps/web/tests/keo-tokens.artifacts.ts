@@ -8,8 +8,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readBuiltStylesheets } from "@influx/test-kit/artifacts";
 import {
+  classLiteralsOf,
+  findClassesWithoutRule,
   findInscribedKeoTokens,
   findUnreadKeoTokens,
+  listFiles,
 } from "@influx/test-kit/guards";
 import { describe, expect, it } from "vitest";
 
@@ -32,6 +35,26 @@ const UNREAD_JUSTIFIED: readonly string[] = [
   "--color-data-2",
 ];
 
+// A word of a module of classes that the build names no rule for, one line each. None is a class: the
+// words are the variants and sizes passed as arguments to the builders of classes
+// (`memberButtonClasses("danger", "md")`, `statusBadgeClasses("neutral")`, `noticeClasses("info")`).
+const CLASSES_JUSTIFIED: readonly string[] = [
+  "danger",
+  "md",
+  "success",
+  "neutral",
+  "primary",
+  "lg",
+  "secondary",
+  "text",
+  "info",
+  "warning",
+  "current",
+  "ancestor",
+  "idle",
+  "error",
+];
+
 describe("G3i (b): the built CSS reads every KEO token through var()", () => {
   it("has no utility of a redefined token that holds the vitrine value instead", () => {
     expect(findInscribedKeoTokens(builtCss, tokens)).toEqual([]);
@@ -39,6 +62,18 @@ describe("G3i (b): the built CSS reads every KEO token through var()", () => {
 
   it("reads every token redefined under KEO, or justifies it", () => {
     expect(findUnreadKeoTokens(builtCss, tokens, UNREAD_JUSTIFIED)).toEqual([]);
+  });
+
+  // TK7.2 (D75 RK-5): a class of a module of classes that no rule of the build names does nothing
+  // (`tracking-wide` without a token, constat C3). The negative case is in packages/test-kit.
+  it("has a compiled rule for every class literal of the modules of classes (TK7.2)", () => {
+    const classes = listFiles(path.join(ROOT, "src"))
+      .filter((file) => file.endsWith("-classes.ts"))
+      .flatMap((file) => classLiteralsOf(readFileSync(file, "utf8")));
+    expect(classes.length).toBeGreaterThan(100);
+    expect(
+      findClassesWithoutRule(classes, builtCss, CLASSES_JUSTIFIED),
+    ).toEqual([]);
   });
 
   it("sees an inscribed value once added to the built CSS, CRLF included (R4)", () => {

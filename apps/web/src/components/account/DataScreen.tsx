@@ -23,6 +23,7 @@ import {
   LEAD_CLASSES,
   SECONDARY_BUTTON_CLASSES,
 } from "@/components/auth/auth-classes";
+import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageHeader } from "@/components/member/ui/PageHeader";
 import { saveTextFile } from "@/browser/save-file";
@@ -336,9 +337,7 @@ export function DataScreen({ me, online, accountDeleted }: AccountContext) {
           />
           {t("danger.title")}
         </h2>
-        <h3 className="text-md font-bold text-text-primary">
-          {t("danger.deleteTitle")}
-        </h3>
+        <h3 className={CARD_TITLE}>{t("danger.deleteTitle")}</h3>
         <DangerNotice />
         {(dataExport !== null && dataExport.available) ||
         openAccess !== null ? (

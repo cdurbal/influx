@@ -5,6 +5,7 @@
 // address, then report it through the rescue channel, from another address. The channel never
 // gives a code, never opens a session and never puts two members in touch: the screen says so, and
 // announces no delay that no written policy holds. The answer is one value whatever the addresses.
+import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import { Notice } from "@/components/member/ui/Notice";
 import { MAX_DELIVERY_REPORT_MESSAGE_LENGTH } from "@influx/contracts/support";
 import { useLocale, useTranslations } from "next-intl";
@@ -88,7 +89,7 @@ export function CodeNotReceived({
 
   return (
     <section aria-labelledby={ids.title} className={CARD_CLASSES}>
-      <h2 id={ids.title} className={LABEL_CLASSES}>
+      <h2 id={ids.title} className={CARD_TITLE}>
         {t("step2.notReceived.title")}
       </h2>
       <ol className="flex list-decimal flex-col gap-3 pl-6 text-md text-text-primary">

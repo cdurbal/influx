@@ -13,7 +13,7 @@ export default function MemberLayout({
   return (
     <div
       data-theme="keo"
-      className={`${FONT_VARIABLE_CLASSES} min-h-dvh bg-surface-page font-base text-text-primary`}
+      className={`${FONT_VARIABLE_CLASSES} min-h-dvh bg-surface-page font-base text-text-primary antialiased`}
     >
       {children}
     </div>

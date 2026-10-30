@@ -5,6 +5,7 @@
 // with Brevo and Apollo.io named (RG6). The answer of apps/api is the same whatever the address
 // (RG113): the screen only shows it.
 import type { SignupDoor } from "@influx/contracts/auth";
+import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import { useLocale, useTranslations } from "next-intl";
 import { useId, useState, type FormEvent } from "react";
 import { legalDocumentPath } from "@/lib/legal-documents";
@@ -153,7 +154,7 @@ export function EmailStep({
       </form>
       {/* 05 RG6: visible from screen 1, never folded away. */}
       <section aria-labelledby={ids.privacy} className="flex flex-col gap-2">
-        <h2 id={ids.privacy} className={LABEL_CLASSES}>
+        <h2 id={ids.privacy} className={CARD_TITLE}>
           {t("privacy.title")}
         </h2>
         <p className={HELP_CLASSES}>{t("privacy.notice")}</p>

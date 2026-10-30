@@ -6,6 +6,7 @@
 // first (17 §6.7). The home announces what comes next (the profile, Lot 2) and how INFLUX works,
 // without any figure (05 RG9); "mon compte" is one link away, and signing out ends on the shell's
 // "signed out" page.
+import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageHeader } from "@/components/member/ui/PageHeader";
 import type { SignupDoor } from "@influx/contracts/auth";
@@ -15,7 +16,6 @@ import { useMember } from "@/components/member/member-context";
 import { Link } from "@/i18n/navigation";
 import {
   CARD_CLASSES,
-  LABEL_CLASSES,
   LEAD_CLASSES,
   SECONDARY_BUTTON_CLASSES,
   SPACE_SCREEN_CLASSES,
@@ -52,7 +52,7 @@ export function MemberHome({ space }: { space: SignupDoor }) {
       <PageHeader title={t(`home.${space}.title`)} />
       <p className={LEAD_CLASSES}>{t(`home.${space}.lead`)}</p>
       <section aria-labelledby={stepsTitleId} className={CARD_CLASSES}>
-        <h2 id={stepsTitleId} className={LABEL_CLASSES}>
+        <h2 id={stepsTitleId} className={CARD_TITLE}>
           {t("home.howItWorks")}
         </h2>
         <ol className="flex list-decimal flex-col gap-2 pl-5 text-md text-text-secondary">

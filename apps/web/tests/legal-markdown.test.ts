@@ -16,9 +16,12 @@ const WEB_ROOT = path.resolve(
 );
 const LEGAL_ROOT = path.resolve(WEB_ROOT, "..", "api", "legal");
 
-function render(source: string): string {
+function render(source: string, variant?: "keo"): string {
   return renderToStaticMarkup(
-    createElement(LegalMarkdown, { blocks: parseLegalMarkdown(source) }),
+    createElement(LegalMarkdown, {
+      blocks: parseLegalMarkdown(source),
+      variant,
+    }),
   );
 }
 
@@ -99,6 +102,17 @@ describe("LegalMarkdown: no HTML is interpreted", () => {
         '<ul class="flex list-disc flex-col gap-2 pl-5 text-md text-text-secondary">' +
         "<li><span>i</span></li></ul></div>",
     );
+  });
+
+  it("titles the headings in Manrope at fixed sizes under KEO, the fluid ones staying with the vitrine (RK-5)", () => {
+    const html = render("# T\n\n## S\n\n### U", "keo");
+    expect(html).toContain(
+      '<h2 class="font-display text-title-section font-bold tracking-heading text-text-primary pt-2">',
+    );
+    expect(html).toContain(
+      '<h3 class="font-display text-md font-bold leading-snug text-text-primary pt-2">',
+    );
+    expect(html).not.toMatch(/text-(lead|heading-\d|display|figure)/);
   });
 
   it("escapes markup, in a paragraph, a heading, a list item and a bold run", () => {

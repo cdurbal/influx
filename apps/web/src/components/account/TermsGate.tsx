@@ -171,7 +171,7 @@ export function TermsGate({
             </p>
           ) : null}
           <article lang={text.terms.locale}>
-            <LegalMarkdown blocks={blocks} />
+            <LegalMarkdown blocks={blocks} variant="keo" />
           </article>
         </section>
       ) : null}

@@ -205,7 +205,7 @@ export function FreshCode({
             <p className={LABEL_CLASSES}>{t("phraseLabel")}</p>
             <p
               lang={locale}
-              className="text-heading-3 font-bold uppercase text-text-primary"
+              className="font-display text-title-section font-extrabold uppercase text-text-primary"
             >
               {sent.phrase}
             </p>

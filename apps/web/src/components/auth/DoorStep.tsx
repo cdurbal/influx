@@ -28,7 +28,7 @@ export function DoorStep({
               onClick={() => onChoose(door)}
               className={DOOR_BUTTON_CLASSES}
             >
-              <span className="text-lead font-bold text-text-primary">
+              <span className="font-display text-title-section font-bold text-text-primary">
                 {t(`door.${door}.action`)}
               </span>
               <span className="text-sm text-text-secondary">

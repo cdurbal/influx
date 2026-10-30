@@ -6,6 +6,7 @@
 // the code; the button stays, for the keyboard and for screen readers. The matching phrase sits
 // ABOVE the field (RG48), so that a forged page is seen before typing. "Je ne reçois pas le code"
 // opens the panel of 17 §3.3 in the page, with the rescue channel of 05 RG65.
+import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import { Notice } from "@/components/member/ui/Notice";
 import { RESEND_DELAY_SECONDS, type SignupDoor } from "@influx/contracts/auth";
 import { useLocale, useTranslations } from "next-intl";
@@ -186,12 +187,12 @@ export function CodeStep({
         </button>
       </p>
       <section aria-labelledby={ids.phrase} className={CARD_CLASSES}>
-        <h2 id={ids.phrase} className={LABEL_CLASSES}>
+        <h2 id={ids.phrase} className={CARD_TITLE}>
           {t("step2.phrase.label")}
         </h2>
         <p
           lang={locale}
-          className="text-heading-3 font-bold uppercase text-text-primary"
+          className="font-display text-title-section font-extrabold uppercase text-text-primary"
         >
           {matchingPhrase}
         </p>

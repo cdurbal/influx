@@ -228,48 +228,47 @@ test("TK2.3: no sideways scroll at 320, 375 and 768 px, the glow drawn", async (
 // TK3: the typography (RK-5 to RK-7 of the fiche; 20 §11.5). TK3.1 is grafted on the axe passes.
 // ---------------------------------------------------------------------------------------------
 
-test.fail(
-  "RK-5a: TK3.2, the overline in Manrope 700, in capitals, 12 px at least, never green",
-  async ({ page }) => {
-    // The class of the overline, created by RK-5a (rk-fiche, RK-5): drawn on a probe inside the KEO
-    // container, so that what the browser computes is the build's own rule for it.
-    const classes = (await import(
-      pathToFileURL(
-        path.join(WEB_ROOT, "src/components/member/ui/heading-classes.ts"),
-      ).href
-    )) as { OVERLINE?: unknown };
-    expect(typeof classes.OVERLINE, "OVERLINE in heading-classes.ts").toBe(
-      "string",
-    );
-    await open(page, SIGN_IN);
-    const facts = await page.evaluate(
-      ({ selector, className }) => {
-        const overline = document.createElement("p");
-        overline.className = className;
-        overline.textContent = "Surtitre";
-        document.querySelector(selector)?.append(overline);
-        const style = getComputedStyle(overline);
-        const read = {
-          family: style.fontFamily,
-          weight: style.fontWeight,
-          transform: style.textTransform,
-          size: parseFloat(style.fontSize),
-          color: style.color,
-        };
-        overline.remove();
-        return read;
-      },
-      { selector: KEO_CONTAINER, className: String(classes.OVERLINE) },
-    );
-    expect(firstFamily(facts.family)).toBe(await displayFamily(page));
-    expect(facts.weight).toBe("700");
-    expect(facts.transform).toBe("uppercase");
-    expect(facts.size).toBeGreaterThanOrEqual(12);
-    const color = rgbaOf(facts.color);
-    if (color === null) throw new Error(`unread color ${facts.color}`);
-    expect(sameColor(color, await brandGreen(page)), "never green").toBe(false);
-  },
-);
+test("TK3.2, the overline in Manrope 700, in capitals, 12 px at least, never green", async ({
+  page,
+}) => {
+  // The class of the overline, created by RK-5a (rk-fiche, RK-5): drawn on a probe inside the KEO
+  // container, so that what the browser computes is the build's own rule for it.
+  const classes = (await import(
+    pathToFileURL(
+      path.join(WEB_ROOT, "src/components/member/ui/heading-classes.ts"),
+    ).href
+  )) as { OVERLINE?: unknown };
+  expect(typeof classes.OVERLINE, "OVERLINE in heading-classes.ts").toBe(
+    "string",
+  );
+  await open(page, SIGN_IN);
+  const facts = await page.evaluate(
+    ({ selector, className }) => {
+      const overline = document.createElement("p");
+      overline.className = className;
+      overline.textContent = "Surtitre";
+      document.querySelector(selector)?.append(overline);
+      const style = getComputedStyle(overline);
+      const read = {
+        family: style.fontFamily,
+        weight: style.fontWeight,
+        transform: style.textTransform,
+        size: parseFloat(style.fontSize),
+        color: style.color,
+      };
+      overline.remove();
+      return read;
+    },
+    { selector: KEO_CONTAINER, className: String(classes.OVERLINE) },
+  );
+  expect(firstFamily(facts.family)).toBe(await displayFamily(page));
+  expect(facts.weight).toBe("700");
+  expect(facts.transform).toBe("uppercase");
+  expect(facts.size).toBeGreaterThanOrEqual(12);
+  const color = rgbaOf(facts.color);
+  if (color === null) throw new Error(`unread color ${facts.color}`);
+  expect(sameColor(color, await brandGreen(page)), "never green").toBe(false);
+});
 
 test("TK3.3: the h1 tightened by --tracking-heading, a negative token", async ({
   page,
@@ -278,16 +277,15 @@ test("TK3.3: the h1 tightened by --tracking-heading, a negative token", async ({
   await expectHeadingTracking(page, title(page));
 });
 
-test.fail(
-  "RK-5a: TK3.3, a section title (h2) tightened by --tracking-heading, a negative token",
-  async ({ page }) => {
-    await openAs(page, "/fr/compte/donnees", ACCOUNT.data.title);
-    await expectHeadingTracking(
-      page,
-      page.getByRole("heading", { level: 2 }).first(),
-    );
-  },
-);
+test("TK3.3, a section title (h2) tightened by --tracking-heading, a negative token", async ({
+  page,
+}) => {
+  await openAs(page, "/fr/compte/donnees", ACCOUNT.data.title);
+  await expectHeadingTracking(
+    page,
+    page.getByRole("heading", { level: 2 }).first(),
+  );
+});
 
 test("TK3.3: a block title (h3) in 700", async ({ page }) => {
   await openAs(page, "/fr/compte/donnees", ACCOUNT.data.title);
@@ -296,46 +294,37 @@ test("TK3.3: a block title (h3) in 700", async ({ page }) => {
   expect(await computed(heading, "font-weight")).toBe("700");
 });
 
-test.fail(
-  "RK-5a: TK3.3, the key figure of the code step, its phrase, in Manrope 800",
-  async ({ page }) => {
-    await open(page, SIGN_IN);
-    await requestCode(page, T, mailboxAddress("rendering-key-figure"));
-    const phrase = matchingPhrase(page, T);
-    await expect(phrase).toBeVisible();
-    expect(firstFamily(await computed(phrase, "font-family"))).toBe(
-      await displayFamily(page),
-    );
-    expect(await computed(phrase, "font-weight")).toBe("800");
-  },
-);
+test("TK3.3, the key figure of the code step, its phrase, in Manrope 800", async ({
+  page,
+}) => {
+  await open(page, SIGN_IN);
+  await requestCode(page, T, mailboxAddress("rendering-key-figure"));
+  const phrase = matchingPhrase(page, T);
+  await expect(phrase).toBeVisible();
+  expect(firstFamily(await computed(phrase, "font-family"))).toBe(
+    await displayFamily(page),
+  );
+  expect(await computed(phrase, "font-weight")).toBe("800");
+});
 
-test.fail(
-  "RK-5a: TK3.4, the KEO container smoothed (antialiased)",
-  async ({ page }) => {
-    await openHome(page);
-    expect(
-      await computed(page.locator(KEO_CONTAINER), "-webkit-font-smoothing"),
-    ).toBe("antialiased");
-  },
-);
+test("TK3.4, the KEO container smoothed (antialiased)", async ({ page }) => {
+  await openHome(page);
+  expect(
+    await computed(page.locator(KEO_CONTAINER), "-webkit-font-smoothing"),
+  ).toBe("antialiased");
+});
 
-test.fail(
-  "RK-5a: TK3.4, the terms dialog smoothed (antialiased)",
-  async ({ page }) => {
-    const address = mailboxAddress("rendering-dialog-smoothing");
-    await open(page, "/fr/inscription/createur");
-    await requestCode(page, T, address);
-    await enterCode(page, T, address);
-    await expect(title(page)).toContainText(T.signup.title.creator);
-    await page.getByRole("button", { name: T.signup.terms.read }).click();
-    const dialog = page.getByRole("dialog", { name: T.signup.terms.title });
-    await expect(dialog).toBeVisible();
-    expect(await computed(dialog, "-webkit-font-smoothing")).toBe(
-      "antialiased",
-    );
-  },
-);
+test("TK3.4, the terms dialog smoothed (antialiased)", async ({ page }) => {
+  const address = mailboxAddress("rendering-dialog-smoothing");
+  await open(page, "/fr/inscription/createur");
+  await requestCode(page, T, address);
+  await enterCode(page, T, address);
+  await expect(title(page)).toContainText(T.signup.title.creator);
+  await page.getByRole("button", { name: T.signup.terms.read }).click();
+  const dialog = page.getByRole("dialog", { name: T.signup.terms.title });
+  await expect(dialog).toBeVisible();
+  expect(await computed(dialog, "-webkit-font-smoothing")).toBe("antialiased");
+});
 
 // ---------------------------------------------------------------------------------------------
 // TK4: the cards and the badges (RK-10, RK-11 of the fiche; 20 §11.8)

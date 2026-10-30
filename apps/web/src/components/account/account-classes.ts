@@ -3,6 +3,7 @@
 // (skill design-system-influx); every value is a token of src/styles/tokens.css (CA22, G3).
 import { cn } from "@/components/ui/class-names";
 import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { SECTION_TITLE } from "@/components/member/ui/heading-classes";
 import { noticeClasses } from "@/components/member/ui/notice-classes";
 import { statusBadgeClasses } from "@/components/member/ui/status-badge-classes";
 
@@ -36,8 +37,7 @@ export const LIST_CLASSES =
 /** A line of facts under a title (dates, status). */
 export const META_CLASSES = "text-sm text-text-secondary";
 
-export const SECTION_TITLE_CLASSES =
-  "font-display text-title-section font-bold text-text-primary";
+export const SECTION_TITLE_CLASSES = cn(SECTION_TITLE, "text-text-primary");
 
 /** Actions side by side when they fit, stacked otherwise; labels wrap, never truncated. */
 export const ACTIONS_CLASSES = "flex flex-wrap items-center gap-3";

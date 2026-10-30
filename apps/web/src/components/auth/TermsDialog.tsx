@@ -63,7 +63,7 @@ export function TermsDialog({
           </p>
         ) : null}
         <article lang={terms.locale}>
-          <LegalMarkdown blocks={blocks} />
+          <LegalMarkdown blocks={blocks} variant="keo" />
         </article>
         <button
           type="button"

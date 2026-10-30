@@ -15,6 +15,7 @@ import {
   LABEL_CLASSES,
   SECONDARY_BUTTON_CLASSES,
 } from "@/components/auth/auth-classes";
+import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageHeader } from "@/components/member/ui/PageHeader";
 import { LIST_CLASSES, SECTION_TITLE_CLASSES } from "./account-classes";
@@ -130,7 +131,7 @@ export function PreferencesScreen({ online }: AccountContext) {
         </section>
       ) : null}
       <section aria-labelledby={ids.unchanged} className={INFO_CLASSES}>
-        <h2 id={ids.unchanged} className={LABEL_CLASSES}>
+        <h2 id={ids.unchanged} className={CARD_TITLE}>
           {t("unchanged.title")}
         </h2>
         <ul className={LIST_CLASSES}>
