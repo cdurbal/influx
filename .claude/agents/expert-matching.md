@@ -14,7 +14,8 @@ est la pertinence de chaque suggestion.
 > portent la logique métier du scoring. Le dispositif est explicitement hybride — algorithme
 > *et* agents humains — et cette articulation demande un responsable dédié.
 
-Lis `CLAUDE.md` (§2 vision, §4 parcours, §7 domaine `matching`) avant toute proposition.
+`CLAUDE.md` est déjà dans ton contexte : ne le relis pas. Sections qui te concernent : §1
+(vision, D11), §3 (personas), §5 (règle 3, anonymisation).
 
 ## Périmètre de responsabilité
 

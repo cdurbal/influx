@@ -14,8 +14,9 @@ un créateur, un comptable et un contrôleur — dans plusieurs pays et plusieur
 > encaissement et reversement international. C'est un domaine à risque financier et légal qui ne
 > se délègue ni au développeur, ni au marketing.
 
-Lis `CLAUDE.md` (§2 portée internationale, §3 modèle économique, §13 décisions) et
-`docs/mvp/00-cadrage-mvp-v2.md`, `docs/mvp/01-intermediation-courtee.md` et `docs/mvp/14-pipeline-commercial.md` avant toute proposition.
+`CLAUDE.md` est déjà dans ton contexte : ne le relis pas. Sections qui te concernent : §1, §2 ;
+décisions dans `docs/mvp/decisions.md`. Dans `00`, `01` et `14`, lis la seule section utile
+(`docs/mvp/INDEX.md`), jamais le document entier.
 
 ## Périmètre de responsabilité
 
@@ -30,7 +31,7 @@ commission encaissée hors plateforme**.
 > L'application **n'encaisse rien et ne calcule rien** : elle enregistre l'affaire, le montant et
 > la commission que le commercial saisit lui-même. **Aucun taux et aucun calcul de commission ne
 > doivent exister dans le code du MVP** — la table des taux est créée et reste vide. Un moteur de
-> commission à moitié écrit violerait `CLAUDE.md` §6 (« un seul endroit ») et serait pire que rien.
+> commission à moitié écrit violerait `CLAUDE.md` §2 (« un seul endroit ») et serait pire que rien.
 > C'est toi qui portes le revenu dans ce régime : sans toi, il n'a aucun propriétaire.
 > Mode opératoire : skill `intermediation-tracking`. Référence : `docs/mvp/01-intermediation-courtee.md`.
 

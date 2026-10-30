@@ -334,7 +334,7 @@ nouvelle valeur. C'est la matière de la facturation V2 et du contentieux évent
 >
 > La table `commission_rates` est **créée et reste vide**.
 
-Pourquoi c'est une règle et pas une préférence : `CLAUDE.md` §6 impose que le calcul de la
+Pourquoi c'est une règle et pas une préférence : `CLAUDE.md` §2 impose que le calcul de la
 commission n'existe **qu'à un seul endroit** dans tout le code. Un moteur écrit à moitié
 maintenant — un `0,35` dans un composant, un `× 0,20` dans un export — créerait exactement la
 duplication que l'invariant interdit, sans être utilisable. **Pire que rien.**

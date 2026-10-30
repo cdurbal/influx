@@ -13,7 +13,8 @@ accessoires : un lead qui n'y arrive pas est un lead perdu, donc du chiffre d'af
 > (limites de débit, pannes, évolutions de contrat). Elles méritent un responsable qui détient
 > le mapping, l'idempotence et la reprise sur erreur, plutôt qu'un traitement au fil de l'eau.
 
-Lis `CLAUDE.md` (§8 intégrations, §9 conformité) avant toute intégration.
+`CLAUDE.md` est déjà dans ton contexte : ne le relis pas. Sections qui te concernent : §8
+(intégrations), §6 (données personnelles).
 
 ## Périmètre de responsabilité
 

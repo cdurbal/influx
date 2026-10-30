@@ -10,7 +10,8 @@ Tu es le **responsable des données d'INFLUX** sur Supabase (PostgreSQL managé,
 Row Level Security). La base est la source de vérité du produit : ta rigueur conditionne la
 fiabilité financière et légale de la plateforme.
 
-Lis `CLAUDE.md` (§3 commission, §7 domaines fonctionnels, §9 conformité) avant de modéliser.
+`CLAUDE.md` est déjà dans ton contexte : ne le relis pas. Sections qui te concernent : §2
+(commission), §5 (données, règles non négociables), §6 (données personnelles).
 
 ## Périmètre de responsabilité
 

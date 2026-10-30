@@ -1,7 +1,7 @@
 # INFLUX — Guide projet pour Claude Code
 
 > **Statut :** spécifications du MVP dans `docs/mvp/` ; avancement du produit réel dans
-> `docs/mvp/21-plan-de-developpement.md` (jalon actif). La **maquette de démonstration** vit
+> `docs/mvp/21-plan-de-developpement.md` (§0 état, §8 jalon actif). La **maquette de démonstration** vit
 > **uniquement sur la branche `demo`** et ne doit **jamais être fusionnée dans `main`** (§12).
 > Ce document est lu par les agents IA **et** par le fondateur.
 
@@ -12,23 +12,24 @@ d'abord, puis dans le code.
 
 ## Documents de référence (à lire à la demande, par section)
 
-> **Ne jamais lire une spécification en entier** (3 Mo au total, `04` seul ≈ 140k tokens).
-> Consulter `docs/mvp/INDEX.md` (sections, lignes de départ, RG citées), puis lire la seule
-> tranche utile avec `Read` (`offset`/`limit`) ou chercher la règle avec `Grep` (`RG113`).
-> Après toute modification d'une spécification : `pnpm docs:index`.
+> **Ne jamais lire une spécification en entier** (3 Mo au total, `04` seul ≈ 140k tokens), ni
+> `docs/mvp/INDEX.md` en entier (≈ 11k tokens) : `Grep` sur `^## 04-` (par exemple) dans l'index
+> avec `-A 56` donne les sections, lignes de départ et RG citées ; puis `Read` de la seule tranche
+> (`offset`/`limit`), ou `Grep` de la règle (`RG113`). `docs/mvp/archives/` ne se lit que si la
+> tâche cite un de ses identifiants. Index régénéré par le hook pré-commit (§7 règle 5).
 
 | Sujet | Document |
 |---|---|
-| Registre des décisions D1 à D76 (statut, détail) | `docs/mvp/decisions.md` |
-| `staging` iso-production, autonomie des agents (D70) | `docs/mvp/archives/jalons/d70-plan.md`, `docs/mvp/runbooks/staging.md` |
+| Registre des décisions D1 à D77 (statut, détail) | `docs/mvp/decisions.md` |
+| `staging` iso-production, exploité par les agents (D70) | `docs/mvp/runbooks/staging.md` |
 | Périmètre et lots du MVP | `docs/mvp/00-cadrage-mvp-v2.md` |
 | Régime courté, commission au MVP | `docs/mvp/01-intermediation-courtee.md` |
 | Architecture, 3 espaces, surveillance (§20), envoi du code (§18.10) | `docs/mvp/02-architecture-3-espaces.md` |
 | Droits et RLS | `docs/mvp/03-matrice-des-droits-et-rls.md` |
 | Modèle de données | `docs/mvp/04-modele-de-donnees-mvp.md` |
 | Spécifications fonctionnelles | `docs/mvp/05` à `17b` |
-| Direction design ; charte KEO Emerald des espaces connectés (D73) | `docs/mvp/20-direction-design.md` (§11), mécanique `02` §21, jalon `docs/mvp/archives/jalons/ds-fiche.md` |
-| Plan de développement, jalons | `docs/mvp/21-plan-de-developpement.md` |
+| Direction design ; charte KEO Emerald des espaces connectés (D73) | `docs/mvp/20-direction-design.md` (§11), mécanique `02` §21 |
+| Plan de développement, reliquat, jalon actif | `docs/mvp/21-plan-de-developpement.md` (§0, §8) |
 | Prérequis (société, comptes, juristes) | `docs/mvp/prerequis.md` |
 
 ---
@@ -240,56 +241,37 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
   par défaut, RG83).
 - **`staging` = production** (D70) : envois réels, listes Brevo et contacts Apollo, mêmes exigences
   de démarrage ; seules différences : `INFLUX_ENV`, comptes et clés propres à `staging`, domaine
-  d'envoi propre, `noindex`, bandeau, données synthétiques. Bascule faite (D70 close le
-  2026-10-19, plan archivé `docs/mvp/archives/jalons/d70-plan.md`) : `live` accepté en `staging`.
+  d'envoi propre, `noindex`, bandeau, données synthétiques ; `live` accepté en `staging`.
 - **`.env.local` = valeurs de `staging`, et uniquement `staging`** (D70, amende D62) : lisible et
   utilisable par tous les agents ; jamais une valeur de production ; jamais une valeur recopiée
   dans une réponse, un document, un commit ou un journal ; jamais chargé par un test automatisé
   (les tests restent sur la doublure, `16` RG148).
 - Chaque tentative de synchronisation est journalisée, les échecs sont rejouables au backoffice.
 
-## 9. Décisions ouvertes (détail dans `docs/mvp/decisions.md`)
+## 9. Décisions ouvertes (détail dans `docs/mvp/decisions.md`, qui fait foi)
 
-- **D25 tranchée (2026-10-08)** : société en **Angleterre**, CGU sous droit d'Angleterre et du
-  pays de Galles (UK GDPR + RGPD UE). Identité de la société encore en marqueurs dans `apps/api/legal/`.
-- **D29** fenêtre de non-contournement · **D33** périmètre Apollo (veto RGPD, juriste avant `production` ; pays : tous par défaut, tranché le 2026-10-19) ·
-  **D63** consentement obligatoire (juriste avant Lot 1) · **D21** influence commerciale par pays.
-- **D24** créateurs particuliers et fiscalité · **D34** libellé du badge · **D38** masse critique
-  avant recherche · **D30** coordonnées dans la messagerie · **D35** saisie libre d'e-mails ·
-  **D36** langue du backoffice · **D61** points restants · **D14** abonnement.
-- **D73 tranchée (2026-10-28)** : charte **KEO Emerald** pour les espaces membres et le backoffice
-  (§4) ; exécution par le **Jalon DS**, extra, clos le 2026-10-29 (`docs/mvp/archives/jalons/ds-fiche.md`).
-  F4 et F5 tranchés (2026-10-28), F1, F2, F3 et F6 (2026-10-29) : pages légales publiques en
-  vitrine, **un seul vert de marque `#1dd68a`, landing comprise** (DS-14), badge vérifié en bleu
-  (jamais une coche seule), effets de la maquette gardés (halo, ombre lumineuse du bouton,
-  agrandissement et soulèvement sous `motion-safe:`, panneaux flottants si pertinents, F6). F7 (2026-10-29) : backoffice
-  complet dès 768 px, écran « poste de travail » sous 768 px de large ou 500 px de haut (`17b` §1.7).
-- **D74 tranchée (2026-10-29)** : sous-navigation dans la colonne (sous-menu de la rubrique active),
-  page-menu sur téléphone, membres et backoffice ; seuls les canaux d'une conversation restent en
-  onglets. Exécution par le **Jalon SN**, extra, clos le 2026-10-30 (`docs/mvp/archives/jalons/sn-fiche.md`).
-- **D75 tranchée (2026-10-30)** : réalignement sur la référence KEO 4 (17 écarts, 4 défauts) ; amende F6 (réduction
-  à l'appui à 98 %), `color-mix` du vert de marque admis dans les seuls halos, fond rouge sombre du seul badge
-  d'erreur. Exécutée par le **Jalon RK**, extra, clos le 2026-10-30 (`docs/mvp/archives/jalons/rk-fiche.md`).
-- **D76 tranchée (2026-10-30)** : cadence de validation (§7 règles 4 et 5) : `pnpm check:fast` avant
-  chaque commit, suite complète aux moments clés, push par lot, CI complète en jobs parallèles
-  suivie en arrière-plan, hook pré-commit de l'index.
-- **D71 tranchée (2026-10-18)** : revues sécurité et RGPD (vetos, I-4) bloquantes sur la seule
-  branche `production` ; `main` et `staging` se construisent et se déploient sans elles. `production`
-  (créée le 2026-10-19, sans protection GitHub) n'avance que par `git merge --no-ff main`.
-- **D70 tranchée (2026-10-18)** : `staging` ouvert sans restriction (risque accepté), domaine
-  d'envoi `influx.cadaero.ovh`, CLI Railway sur un jeton limité à `staging` (production hors
-  d'atteinte du poste) ; reste : mécanisme technique (`architecte`).
-- Reportées en V2 (A1) : D7, D9, D10, D19, D20, D22, D23, D26, D27 — **D7/D23 se réactivent au
+- **Avant le Lot 2** : **D34** libellé du badge · **D61** points restants (`07` Q15, Q16) ·
+  **D24** créateurs particuliers et fiscalité (instruite) · `03` R-4 et R-5.
+- **Plus tard** : **D29** non-contournement · **D33** périmètre Apollo (veto RGPD, juriste avant
+  `production` ; pays : tous par défaut) · **D63** consentement obligatoire (juriste) · **D21**
+  influence commerciale par pays · **D38** masse critique (Lot 3) · **D30** coordonnées dans la
+  messagerie (Lot 4) · **D35** saisie libre d'e-mails, **D36** langue du backoffice (Lot 5) ·
+  **D14** abonnement · DZ-1, 2, 4 à 7 · **D77** chaîne automatisée lot → jalons → commits (proposée).
+- **Reportées en V2 (A1)** : D7, D9, D10, D19, D20, D22, D23, D26, D27 — **D7/D23 se réactivent au
   premier euro encaissé, D20 au premier litige.**
+- **Tranchées qui cadrent le travail courant** : D25 société en Angleterre (identité encore en
+  marqueurs dans `apps/api/legal/`) · D70 `staging` iso-production, exploité par les agents (§7, §8)
+  · D71 vetos sur la seule `production`, qui n'avance que par `git merge --no-ff main` · D73 à D75
+  charte KEO Emerald, sous-navigation, réalignement (§4 ; détail `20` §11, `17b` §1.7) · D76 cadence
+  de validation (§7 règle 5).
 - Ouvert technique : gestion d'état côté front (aucune librairie sans besoin réel).
 
 ## 10. Lots du MVP
 
-0 Socle · 1 Inscription et leads (1re mise en ligne) · *jalon extra DS, charte KEO Emerald (D73)* ·
-*jalon extra SN, sous-navigation dans la colonne (D74)* ·
-*jalon extra RK, réalignement sur la référence KEO (D75)* ·
-2 Profils et badge · 3 Campagnes et recherche anonymisée · 4 Mise en relation et messagerie ·
-5 Backoffice, pipeline, e-mails · 6 Recette, audit, ouverture. Détail : `docs/mvp/00-cadrage-mvp-v2.md`.
+0 Socle ✅ · 1 Inscription et leads ✅ (`staging` ; production préparée, non ouverte) · extras DS,
+SN, RK ✅ (D73 à D75) · **2 Profils et badge (prochain)** · 3 Campagnes et recherche anonymisée ·
+4 Mise en relation et messagerie · 5 Backoffice, pipeline, e-mails · 6 Recette, audit, ouverture ·
+6bis rattrapage du mode normal. Périmètre : `docs/mvp/00-cadrage-mvp-v2.md` ; état : `21` §0 et §8.
 
 ## 11. Glossaire
 
@@ -305,5 +287,5 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
   copiée dans `main`**, jamais branchée sur de vrais services. Les spécifications font foi, pas la
   maquette. Aucun secret ni donnée réelle ; montrée seulement sur URL protégée, bandeau
   « Démonstration », non indexée (D56).
-- Avant la mise en ligne de la landing : brancher les boutons `/signup`, `/login`,
-  `/signup/advertiser`, `/signup/creator` sur le vrai Lot 1 et faire relire les textes (D48).
+- Boutons de la landing branchés sur le vrai Lot 1 (J9) ; relecture des textes (D48) : porte de
+  production (`21` §5.8).
