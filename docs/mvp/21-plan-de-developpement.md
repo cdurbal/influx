@@ -339,6 +339,12 @@ Décision D74 (fondateur, 2026-10-29). Les pilules de section disparaissent : so
 
 - [x] Jalon SN clos (SN-1 `202933f` à SN-4 `fc54686`, avec `40e1559` et `5e49da1`, SN-5 clôture) — sous-navigation D74 en place : page-menu « Mon compte » (`/compte`, exemptée des CGU), « Mes informations » à `/compte/informations`, sous-entrées dans la colonne membres et le rail du backoffice, pilules de section retirées, garde TN9 ; TN1 à TN9 présents et raised-only (planchers jamais baissés), axe sur la page-menu (FR à quatre largeurs, EN à deux), seuls des attendus e2e d'adresse modifiés ; `pnpm check` et `pnpm test:e2e` verts aux commits du jalon ; accord du fondateur sur un vrai téléphone le 2026-10-30 ; revue groupée `testeur` + `expert-cybersecurite` faite (2026-10-30, attestation `dff4de2`, aucun changement sous `apps/api` ni `supabase`) ; **reste** : SNT-1 (TD3.6 intermittent en run complet), SNT-2 (`21` omet SN-4 et deux commits hors plan), SNT-3 (pas de test du défilement des entrées du menu de la landing ni des liens de marque) ; aucun SNS ; écarts EC-SN-1 à -9 et décisions ouvertes dans `archives/jalons/sn-fiche.md`.
 
+### Jalon RK — Réalignement sur la référence KEO Emerald (extra, avant le Lot 2)
+
+Décision D75 (fondateur, 2026-10-30). Dix-sept écarts entre la proposition 4 et le rendu réel, tranchés un par un ; quatre défauts corrigés (ombre lumineuse du bouton principal jamais affichée, halo d'en-tête à bords nets, sous-titres hors Manrope, filet de ligne du tableau dense absent), effets et primitives réalignés, vitrine inchangée. Point d'entrée : **`jalons/rk-fiche.md`** (commits RK-0 à RK-10, tests TK1 à TK8, garde G3i, critère de fin).
+
+- [ ] Jalon RK ouvert — une ligne par commit.
+
 ### Hors jalon
 
 - [x] Commits D72-1a à D72-3 (`bfb2dd0`, `bb8500e`, puis rouge opaque, zone de danger, `ErrorNotice`) — suppression de compte en libre-service sans approbation `admin` (D72, migration `0150`, `identity.submit_member_erasure()`, e-mail `privacy.erasure_completed`), zone de danger et rouge opaque web/backoffice ; DZ-8 : Apollo sans suppression de contact, `erasure_not_propagated` demeure ; DZ-1, 2, 4, 5, 6, 7 ouverts dans `decisions.md`. Fiche supprimée.

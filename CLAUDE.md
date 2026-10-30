@@ -19,7 +19,7 @@ d'abord, puis dans le code.
 
 | Sujet | Document |
 |---|---|
-| Registre des décisions D1 à D74 (statut, détail) | `docs/mvp/decisions.md` |
+| Registre des décisions D1 à D75 (statut, détail) | `docs/mvp/decisions.md` |
 | `staging` iso-production, autonomie des agents (D70) | `docs/mvp/archives/jalons/d70-plan.md`, `docs/mvp/runbooks/staging.md` |
 | Périmètre et lots du MVP | `docs/mvp/00-cadrage-mvp-v2.md` |
 | Régime courté, commission au MVP | `docs/mvp/01-intermediation-courtee.md` |
@@ -260,6 +260,9 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
 - **D74 tranchée (2026-10-29)** : sous-navigation dans la colonne (sous-menu de la rubrique active),
   page-menu sur téléphone, membres et backoffice ; seuls les canaux d'une conversation restent en
   onglets. Exécution par le **Jalon SN**, extra, clos le 2026-10-30 (`docs/mvp/archives/jalons/sn-fiche.md`).
+- **D75 tranchée (2026-10-30)** : réalignement sur la référence KEO 4 (17 écarts, 4 défauts) ; amende F6 (réduction
+  à l'appui à 98 %), `color-mix` du vert de marque admis dans les seuls halos, fond rouge sombre du seul badge
+  d'erreur. Exécution par le **Jalon RK**, extra, avant le Lot 2 (`docs/mvp/jalons/rk-fiche.md`).
 - **D71 tranchée (2026-10-18)** : revues sécurité et RGPD (vetos, I-4) bloquantes sur la seule
   branche `production` ; `main` et `staging` se construisent et se déploient sans elles. `production`
   (créée le 2026-10-19, sans protection GitHub) n'avance que par `git merge --no-ff main`.
@@ -274,6 +277,7 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
 
 0 Socle · 1 Inscription et leads (1re mise en ligne) · *jalon extra DS, charte KEO Emerald (D73)* ·
 *jalon extra SN, sous-navigation dans la colonne (D74)* ·
+*jalon extra RK, réalignement sur la référence KEO (D75)* ·
 2 Profils et badge · 3 Campagnes et recherche anonymisée · 4 Mise en relation et messagerie ·
 5 Backoffice, pipeline, e-mails · 6 Recette, audit, ouverture. Détail : `docs/mvp/00-cadrage-mvp-v2.md`.
 
