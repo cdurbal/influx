@@ -267,6 +267,16 @@ describe("J8S-4 (0142): backoffice.admin_role_grants(), the admin role grants of
         { actor: adminB, ageDays: 8 },
       );
       await grantLine(tx, notAdmin, { role: "agent" }, { actor: adminB });
+      // The function caps at 50 lines: push the grants other runs committed out of every window
+      // (rolled-back fixture only), so the assertions hold on a database that has plenty of them.
+      await tx`alter table audit.audit_events disable trigger audit_events_no_update_delete`;
+      await tx`
+        update audit.audit_events
+           set occurred_at = occurred_at - make_interval(days => 60)
+         where event_type = 'account.role_granted'
+           and subject_id not in (${agentB}::uuid, ${byInvitation}::uuid, ${old}::uuid,
+                                  ${notAdmin}::uuid)`;
+      await tx`alter table audit.audit_events enable trigger audit_events_no_update_delete`;
       const names = await tx<{ account_id: string; first_name: string }[]>`
         select account_id::text, first_name from identity.agent_profiles
          where account_id in (${admin}, ${adminB}, ${agentB})`;
