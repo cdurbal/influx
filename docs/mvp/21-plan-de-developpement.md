@@ -341,24 +341,9 @@ Décision D74 (fondateur, 2026-10-29). Les pilules de section disparaissent : so
 
 ### Jalon RK — Réalignement sur la référence KEO Emerald (extra, avant le Lot 2)
 
-Décision D75 (fondateur, 2026-10-30). Dix-sept écarts entre la proposition 4 et le rendu réel, tranchés un par un ; quatre défauts corrigés (ombre lumineuse du bouton principal jamais affichée, halo d'en-tête à bords nets, sous-titres hors Manrope, filet de ligne du tableau dense absent), effets et primitives réalignés, vitrine inchangée. Point d'entrée : **`jalons/rk-fiche.md`** (commits RK-0 à RK-10, tests TK1 à TK8, garde G3i, critère de fin).
+Décision D75 (fondateur, 2026-10-30). Dix-sept écarts entre la proposition 4 et le rendu réel, tranchés un par un ; quatre défauts corrigés (ombre lumineuse du bouton principal jamais affichée, halo d'en-tête à bords nets, sous-titres hors Manrope, filet de ligne du tableau dense absent), effets et primitives réalignés, vitrine inchangée. Point d'entrée : **`archives/jalons/rk-fiche.md`** (commits RK-0 à RK-10, tests TK1 à TK8, garde G3i, critère de fin).
 
-- [x] RK-0 (`8c62c28`) — charte amendée avant tout code ; `badge-error-bg` `#2e1213`, halo 16 rem, seuil TK2.2 de 16 à 25/255
-- [x] RK-1 (`78fb02a`) — filet du rendu sans code de production : 31 cas e2e et 5 gardes rouges sur le parent, annotés RK-n ; `vitrine-states.json` prise ici
-- [x] RK-2 (`f1b27c2`) — `--effect-action-glow*` hors de l'espace `--shadow-*`, lu par `var()` : l'ombre du bouton principal s'affiche ; G3i (a) verte
-- [x] RK-3 (`69eaa1f`) — G3i (b) : la CSS construite de chaque front lit tout token redéfini sous KEO par `var()`, négatif vérifié sur la construction réelle (`test:artifacts`)
-- [x] RK-4 (`3e46a59`) — réduction à 98 % à l'appui et agrandissement à 103 % sous `motion-safe:` (hors bouton texte et petits boutons du BO), graisse 600 du secondaire et du bouton texte
-- [x] RK-4 · UX-1 (`5832dd2`) — typefaces KEO chargées au backoffice, prouvées par la FontFace
-- [x] RK-4 · UX-2 (`a1e430f`) — état désactivé des boutons BO, aria-disabled compris
-- [x] RK-5a (`39179b6`) — titres des membres en Manrope à tailles fixes (`heading-classes.ts`, `LegalMarkdown` en variante KEO), `--tracking-heading` −0,025 em, lissage sur le conteneur KEO ; G8 étendue et TK7.2 vertes (BO : RK-5b)
-- [x] RK-5b (`9c709b8`) — titres du backoffice en Manrope à tailles fixes (`SECTION_TITLE`, `BLOCK_TITLE`, titre de carte des pages d'auth), `tracking-overline`, `antialiased` sur `<html>` ; TK3 BO, TK3.4 et G8 BO libérés
-- [x] RK-6 (`418442f`) — halo d'en-tête en fond du conteneur d'écran (`bg-header-glow bg-no-repeat`, 15 % sur 16 rem, sans calque ni bord) ; TK2 libérés dans les deux fronts, pic `#0d291d` dans G3d
-- [x] RK-7 (`fe45da8`) — aucun anneau sur un titre ni sur `main` pris par l'application (`:where(h1, h2, h3, h4, main)[tabindex="-1"]:focus-visible`, jamais un `[tabindex]` générique) ; TK5.1 libérés, libellé « Étape N sur 3 » repris sur `OVERLINE`
-- [x] RK-8 (`e3f088a`) — contour de la carte cliquable éclairci au survol (`border-hover`) ; badges remplis en Manrope gras, `badge-error-bg` `#2e1213` confiné au badge d'erreur (TK7.5), paires dans G3d
-- [x] RK-9 — en-tête du tableau dense en `surface-hover` Manrope 700, filet de 2 px `--effect-bo-row-indicator` sur la première cellule de la ligne survolée ou focalisée ; halo d'en-tête aussi sur le `<main>` des pages de travail du BO (`min-h` du halo) ; TK6 libérés, TK2 rejoués sur `/accueil`
-- [x] EC-RK-ux9-1 (`sha`) — halo entier pendant le chargement
-- [x] EC-RK-ux9-2 (`sha`) — écart icône/libellé de la déconnexion
-- [x] EC-RK-revue-1 — tokens.css en UTF-8 valide, garde ajoutée
+- [ ] Jalon RK clos (RK-0 `8c62c28` à RK-9 `b68f724`, RK-10 clôture ; avec UX-1 `5832dd2`, UX-2 `a1e430f`, EC-RK-ux9-1 `0a30690`, EC-RK-ux9-2 `a6aa2cb` et le correctif UTF-8 `0b7b06e`) — réalignement D75 sur la référence KEO 4 : ombre lumineuse du bouton lue par `var()` (G3i a et b), réduction à 98 % et agrandissement à 103 % sous `motion-safe:`, titres en Manrope à tailles fixes, halo d'en-tête en fond du conteneur sans bord, aucun anneau sur un titre ni sur `main`, contour de carte cliquable éclairci, badges remplis, tableau dense du BO, vitrine inchangée ; `pnpm check` + `pnpm test:e2e` verts trois fois de suite [RÉSULTAT À RENSEIGNER] ; durée e2e : environ 58 s cumulés, +48 s en temps réel, marge d'environ 2 s sur les 60 s permis, à surveiller au Lot 2 ; planchers web 267→275, backoffice 105→111, test-kit 188→215, e2e 144→212 ; écarts EC-RK-ux9-1, EC-RK-ux9-2, EC-RK-revue-1 (tokens.css en UTF-8 valide, garde ajoutée) et ceux de la session RKT-2 (cas d'absence déclarés R2, [TABLEAU À REPRENDRE]) ; revue groupée `testeur` + `expert-cybersecurite` faite, findings RKT-2 à RKT-4 traités ici, commit d'attestation `security-reviewed:` à venir dans une session à part ; **reste** : attestation de sécurité, recette humaine du fondateur (1 440 et 375 px) et sur Mac (Safari, Chrome), test du logo (`expert-ux`), RK-16 (densité du tableau des inscrits) au Lot 5.
 
 ### Hors jalon
 

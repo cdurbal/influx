@@ -2352,7 +2352,7 @@ en KEO par le même composant neutre que les pages légales.
    (fermeture vérifiée par G3c). `@theme inline` n'est pas une issue : il inscrirait aussi les valeurs
    littérales dans les classes, et plus aucune redéfinition n'aurait d'effet.
 
-   **Second piège, vérifié sur le CSS compilé (2026-10-30, D75, constat C1 de `jalons/rk-fiche.md`).**
+   **Second piège, vérifié sur le CSS compilé (2026-10-30, D75, constat C1 de `archives/jalons/rk-fiche.md`).**
    Pour certains espaces de noms, Tailwind v4 **inscrit en dur la valeur `@theme`** dans l'utilitaire
    au lieu de lire `var()` : il décompose une ombre pour y substituer `--tw-shadow-color`
    (`.shadow-action-glow{--tw-shadow:none}`, valeur vitrine, d'où l'ombre lumineuse jamais affichée), et

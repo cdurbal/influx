@@ -1097,7 +1097,7 @@ contrôles par charte : il lirait la vitrine et laisserait KEO sans contrôle, t
 | **G9** | Nouvelle *(ajoutée)* | Lecture de session confinée aux coquilles et à `member-auth` / `backoffice-auth` (garde des importeurs, comme G5 d) | `02` §21.9 l'exige du développeur sans la garde qui la prouve |
 | **ESLint** | Amendée | `lucide-react` hors `icons.ts` ; `next/font/local` hors `fonts.ts` | Le lint est le test : aucun cas de plus |
 
-**Gardes du jalon RK** *(ajouté le 2026-10-30, D75, `02` §21.3 point 3, `jalons/rk-fiche.md`)*. Même
+**Gardes du jalon RK** *(ajouté le 2026-10-30, D75, `02` §21.3 point 3, `archives/jalons/rk-fiche.md`)*. Même
 règle : chaque garde a son auto-test, cas négatif compris (R4 : vu rouge sur le parent).
 
 | Garde | Statut | Ce qu'elle prouve | Réserves de `testeur` |
@@ -1479,7 +1479,7 @@ fondateur. T15.2 (routes de recherche et de profil) entre au Lot 3 : T15 passe p
 ### Jalon RK — Réalignement sur la référence KEO Emerald (D75) ▸ extra du MVP, avant le Lot 2 *(ajouté le 2026-10-30)*
 
 **Tests exigibles :** TK1 à TK8 (§12.6) et gardes G3i, TK7.2 à TK7.5 (§5.1) ; TD1 à TD8 et TN1 à TN9 en
-non-régression. Règles R1 à R4 de `jalons/rk-fiche.md` : un rendu se prouve par un style calculé sur
+non-régression. Règles R1 à R4 de `archives/jalons/rk-fiche.md` : un rendu se prouve par un style calculé sur
 l'élément réel, dans l'état concerné, sur la construction de production ; une absence est un cas à
 part ; chaque phrase normative de `20` §11 a sa preuve (§12.7) ; chaque cas est vu rouge sur le parent.
 Planchers relevés au RK-1, puis à chaque commit qui ajoute des tests ; aucun ne baisse.
@@ -1753,7 +1753,7 @@ appliqués » ; le point 1 est tranché par `expert-ux` ; F1, F2, F3 et F6 sont 
 
 ### 12.6 Les familles TK1 à TK8 du jalon RK (D75) *(ajouté le 2026-10-30)*
 
-**Source :** `jalons/rk-fiche.md` § Tests, repris sans reformuler les mesures. E2e web dans un nouveau
+**Source :** `archives/jalons/rk-fiche.md` § Tests, repris sans reformuler les mesures. E2e web dans un nouveau
 `apps/web/e2e/charter-rendering.spec.ts` (session semée, construction de production) ; cas du
 backoffice dans `backoffice.spec.ts`. Lecture après la fin des animations
 (`Promise.all(el.getAnimations().map((a) => a.finished))`) ; état appuyé par `mouse.down()`, lecture,
@@ -1832,7 +1832,7 @@ ne porte aucune règle. Une ligne sans preuve est un défaut du plan, pas de la 
 | 11.4 | (3) texte d'erreur lisible sur une ligne survolée, pas au-delà | G3d |
 | 11.4 | (4) halo sur la page seulement, jamais sur `surface-card` ou plus clair | TK2.1 |
 | 11.4 | (5) ni texte tertiaire ni texte d'erreur à moins de `spacing-5` d'un bouton principal survolé | Recette humaine |
-| 11.4 | (6) surtitre ou badge jamais vert | TK4.2 (fond = token de la matrice) ; surtitre : recette humaine |
+| 11.4 | (6) surtitre ou badge jamais vert | TK4.2 (fond = token de la matrice) ; surtitre : TK3.2 |
 | 11.4 | (7) halo d'en-tête à 15 % au plus | G3i (a), TK2.2 (borne haute) |
 | 11.5 | Familles : Manrope pour tous les titres `h1`–`h4`, chiffres, boutons, surtitres, badges ; Source Sans 3 pour le corps | TK3.1, TD3.1, TK4.2, TK6.1 |
 | 11.5 | Aucun token fluide sous KEO, `LegalMarkdown` compris ; tailles inchangées | TK7.3, TK3.1 |

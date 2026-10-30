@@ -386,7 +386,7 @@ et §11.5.
 > valeurs de couleur au sens de D6. **Aucune valeur de couleur n'est ajustée ici** : chaque couleur
 > est une valeur de KEO ou une valeur déjà validée (D6, D72, `17b` V1), sauf le fond du badge
 > d'erreur, seule valeur créée par D75 (RK-B, §11.3). Réalignement sur la référence : D75, jalon RK
-> (`docs/mvp/jalons/rk-fiche.md`). Mise en œuvre : jalon DS
+> (`docs/mvp/archives/jalons/rk-fiche.md`). Mise en œuvre : jalon DS
 > (`docs/mvp/archives/jalons/ds-fiche.md`) ; d'ici là, cette section fait foi, et `keo-emerald.css` n'est jamais
 > importé tel quel (noms par apparence, `rgba`, valeurs écartées en §11.6).
 

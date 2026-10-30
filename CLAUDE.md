@@ -269,7 +269,7 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
   onglets. Exécution par le **Jalon SN**, extra, clos le 2026-10-30 (`docs/mvp/archives/jalons/sn-fiche.md`).
 - **D75 tranchée (2026-10-30)** : réalignement sur la référence KEO 4 (17 écarts, 4 défauts) ; amende F6 (réduction
   à l'appui à 98 %), `color-mix` du vert de marque admis dans les seuls halos, fond rouge sombre du seul badge
-  d'erreur. Exécution par le **Jalon RK**, extra, avant le Lot 2 (`docs/mvp/jalons/rk-fiche.md`).
+  d'erreur. Exécutée par le **Jalon RK**, extra, clos le 2026-10-30 (`docs/mvp/archives/jalons/rk-fiche.md`).
 - **D76 tranchée (2026-10-30)** : cadence de validation (§7 règles 4 et 5) : `pnpm check:fast` avant
   chaque commit, suite complète aux moments clés, push par lot, CI complète en jobs parallèles
   suivie en arrière-plan, hook pré-commit de l'index.
