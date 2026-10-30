@@ -58,9 +58,11 @@ export const PRIMARY_BUTTON_CLASSES = cn(
   BUTTON_BASE_CLASSES,
   "min-h-(--size-button-lg) w-full rounded-pill",
   "bg-action-primary-bg px-inset-button-x py-inset-button-y font-action text-text-on-action shadow-(--effect-action-glow)",
-  "hover:bg-action-primary-bg-hover active:bg-action-primary-bg-active",
+  "not-aria-disabled:not-disabled:hover:bg-action-primary-bg-hover",
+  "not-aria-disabled:not-disabled:active:bg-action-primary-bg-active",
   "not-aria-disabled:not-disabled:hover:shadow-(--effect-action-glow-hover)",
-  "aria-disabled:shadow-none disabled:bg-action-disabled-bg disabled:text-text-disabled disabled:shadow-none",
+  "aria-disabled:bg-action-disabled-bg aria-disabled:text-text-disabled aria-disabled:shadow-none",
+  "disabled:bg-action-disabled-bg disabled:text-text-disabled disabled:shadow-none",
 );
 
 export const SECONDARY_BUTTON_CLASSES = cn(
@@ -68,12 +70,19 @@ export const SECONDARY_BUTTON_CLASSES = cn(
   "min-h-(--size-button-md) rounded-pill",
   "border-(length:--border-width-action-secondary) border-action-secondary-border bg-action-secondary-bg",
   "px-inset-button-x py-inset-button-y font-action-secondary text-text-primary",
-  "hover:border-action-secondary-border-hover hover:bg-action-secondary-bg-hover active:bg-action-secondary-bg-active",
+  "not-aria-disabled:not-disabled:hover:border-action-secondary-border-hover",
+  "not-aria-disabled:not-disabled:hover:bg-action-secondary-bg-hover",
+  "not-aria-disabled:not-disabled:active:bg-action-secondary-bg-active",
+  "aria-disabled:border-transparent aria-disabled:bg-action-disabled-bg aria-disabled:text-text-disabled",
+  "disabled:border-transparent disabled:bg-action-disabled-bg disabled:text-text-disabled",
 );
 
 export const TEXT_BUTTON_CLASSES = cn(
   "inline-flex min-h-(--size-touch-target) items-center self-start rounded-md px-3",
-  "font-action-secondary text-text-primary underline hover:bg-action-secondary-bg-hover",
+  "font-action-secondary text-text-primary underline",
+  "not-aria-disabled:not-disabled:hover:bg-action-secondary-bg-hover",
+  "aria-disabled:cursor-not-allowed aria-disabled:text-text-disabled",
+  "disabled:cursor-not-allowed disabled:text-text-disabled",
 );
 
 /** Errors carry border, text and role="alert", never the color alone. */

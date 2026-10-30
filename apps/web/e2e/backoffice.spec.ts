@@ -52,6 +52,7 @@ import {
   brandGreen,
   computed,
   displayFamily,
+  drawnRatio,
   expectGreenGlow,
   expectHeadingTracking,
   expectKeoTypefaces,
@@ -67,7 +68,9 @@ import {
   luminance,
   rgbaOf,
   sameColor,
+  settled,
   sidewaysFacts,
+  tokenColor,
   visibleShadows,
 } from "./support/rendering";
 import { BACKOFFICE_ORIGIN } from "./support/servers";
@@ -1296,6 +1299,117 @@ test("TK1.4: the small buttons of the screens stay sober: neither glow nor zoom,
     await expectStill(page, button);
   }
 });
+
+/**
+ * The five button classes of the backoffice, each on a real button of a screen (UX-2; 20 §11.8,
+ * state D). The secondary button is reachable as a link only (the not-found page: its buttons sit
+ * on the recovery-codes step, behind an activation that no seed gives), and a link takes no
+ * `disabled`: it is read with `aria-disabled` alone (EC-RK-UX4-1).
+ */
+const DISABLED_LOOKS = [
+  {
+    name: "small primary",
+    filled: true,
+    attributes: ["aria-disabled", "disabled"],
+    open: async (page: Page) => {
+      await seedInternal(page, "agent", "Ugo");
+      await page.goto(bo("/inscrits"));
+      return page.getByRole("button", {
+        name: m.accounts.searchSubmit,
+        exact: true,
+      });
+    },
+  },
+  {
+    name: "small secondary",
+    filled: true,
+    attributes: ["aria-disabled", "disabled"],
+    open: async (page: Page) => {
+      await seedInternal(page, "agent", "Ugo");
+      await page.goto(bo("/inscrits"));
+      return page.getByRole("button", { name: m.accounts.reset, exact: true });
+    },
+  },
+  {
+    name: "sign-in primary",
+    filled: true,
+    attributes: ["aria-disabled", "disabled"],
+    open: async (page: Page) => {
+      await openSignIn(page);
+      return signInButton(page);
+    },
+  },
+  {
+    name: "secondary (link)",
+    filled: true,
+    attributes: ["aria-disabled"],
+    open: async (page: Page) => {
+      await page.goto(bo("/introuvable-rk"));
+      return page.getByRole("link", { name: m.errorPages.home });
+    },
+  },
+  {
+    name: "text",
+    filled: false,
+    attributes: ["aria-disabled", "disabled"],
+    open: async (page: Page) => {
+      await openSignIn(page);
+      return page.getByRole("button", { name: m.login.useRecoveryCode });
+    },
+  },
+] as const;
+
+for (const look of DISABLED_LOOKS) {
+  test(`UX-2 (backoffice): the ${look.name} button looks disabled with ${look.attributes.join(" and ")}, at rest and on hover`, async ({
+    page,
+  }) => {
+    const button = await look.open(page);
+    await expect(button).toBeVisible();
+    const disabledGround = await tokenColor(page, "--color-action-disabled-bg");
+    const disabledText = await tokenColor(page, "--color-text-disabled");
+    if (disabledGround === null || disabledText === null) {
+      throw new Error("a disabled token is not declared");
+    }
+    for (const attribute of look.attributes) {
+      await button.evaluate((element, name) => {
+        element.setAttribute(name, name === "disabled" ? "" : "true");
+      }, attribute);
+      for (const state of ["at rest", "on hover"]) {
+        if (state === "on hover") await button.hover({ force: true });
+        await settled(button);
+        const where = `${look.name} ${attribute} ${state}`;
+        const ground = rgbaOf(await computed(button, "background-color"));
+        const text = rgbaOf(await computed(button, "color"));
+        const border = rgbaOf(await computed(button, "border-top-color"));
+        if (ground === null || text === null || border === null) {
+          throw new Error(`${where}: an unread color`);
+        }
+        if (look.filled) {
+          expect(sameColor(ground, disabledGround), `${where}: ground`).toBe(
+            true,
+          );
+          expect(ground.a, `${where}: ground opaque`).toBe(1);
+        } else {
+          expect(ground.a, `${where}: no ground`).toBe(0);
+        }
+        expect(sameColor(text, disabledText), `${where}: text`).toBe(true);
+        if (look.name.includes("secondary")) {
+          expect(border.a, `${where}: border transparent`).toBe(0);
+        }
+        expect(
+          visibleShadows(await computed(button, "box-shadow")),
+          `${where}: no shadow`,
+        ).toEqual([]);
+        expect(await drawnRatio(button), `${where}: ratio`).toBeCloseTo(1, 3);
+      }
+      await expectStill(page, button, { force: true });
+      await page.mouse.move(1, 1);
+      await button.evaluate((element, name) => {
+        element.removeAttribute(name);
+      }, attribute);
+    }
+  });
+}
 
 test("TK1.5 (backoffice): a card is rounded at 16 px", async ({ page }) => {
   await openSignIn(page);

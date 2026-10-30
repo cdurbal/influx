@@ -53,16 +53,32 @@ export const TEXTAREA_CLASSES = cn(
   "bg-surface-page p-2 text-sm text-text-primary",
 );
 
+/**
+ * The disabled look of a button, `aria-disabled` or `disabled` alike (20 §11.8, state D): the
+ * disabled ground and text, the not-allowed cursor; hover and press change nothing (the hover and
+ * press classes of each button are under `not-aria-disabled:not-disabled:`).
+ */
+const DISABLED_FILL_CLASSES = cn(
+  "aria-disabled:cursor-not-allowed aria-disabled:bg-action-disabled-bg aria-disabled:text-text-disabled",
+  "disabled:cursor-not-allowed disabled:bg-action-disabled-bg disabled:text-text-disabled",
+);
+
+/** Small buttons: sober, neither glow nor zoom (RK-4, TK1.4). */
 export const SMALL_PRIMARY_CLASSES = cn(
   "inline-flex min-h-(--size-bo-control) items-center justify-center rounded-pill",
   "bg-action-primary-bg px-4 font-display text-sm font-action text-text-on-action",
-  "hover:bg-action-primary-bg-hover active:bg-action-primary-bg-active",
+  "not-aria-disabled:not-disabled:hover:bg-action-primary-bg-hover",
+  "not-aria-disabled:not-disabled:active:bg-action-primary-bg-active",
+  DISABLED_FILL_CLASSES,
 );
 
 export const SMALL_SECONDARY_CLASSES = cn(
   "inline-flex min-h-(--size-bo-control) items-center justify-center rounded-pill",
   "border-(length:--border-width-thin) border-action-secondary-border bg-action-secondary-bg",
-  "px-4 font-display text-sm font-action-secondary text-text-primary hover:bg-action-secondary-bg-hover",
+  "px-4 font-display text-sm font-action-secondary text-text-primary",
+  "not-aria-disabled:not-disabled:hover:bg-action-secondary-bg-hover",
+  DISABLED_FILL_CLASSES,
+  "aria-disabled:border-transparent disabled:border-transparent",
 );
 
 export const LINK_CLASSES = "text-text-primary underline";
