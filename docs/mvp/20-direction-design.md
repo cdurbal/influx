@@ -384,7 +384,9 @@ et §11.5.
 > (valeurs : `design-proposals/keo-emerald.css`), avec un gabarit mobile et un gabarit desktop, et
 > sur desktop un menu à gauche « comme Railway ». Le choix de la maquette vaut validation de ses
 > valeurs de couleur au sens de D6. **Aucune valeur de couleur n'est ajustée ici** : chaque couleur
-> est une valeur de KEO ou une valeur déjà validée (D6, D72, `17b` V1). Mise en œuvre : jalon DS
+> est une valeur de KEO ou une valeur déjà validée (D6, D72, `17b` V1), sauf le fond du badge
+> d'erreur, seule valeur créée par D75 (RK-B, §11.3). Réalignement sur la référence : D75, jalon RK
+> (`docs/mvp/jalons/rk-fiche.md`). Mise en œuvre : jalon DS
 > (`docs/mvp/archives/jalons/ds-fiche.md`) ; d'ici là, cette section fait foi, et `keo-emerald.css` n'est jamais
 > importé tel quel (noms par apparence, `rgba`, valeurs écartées en §11.6).
 
@@ -415,7 +417,8 @@ les deux fronts : `@theme static` déclare tous les noms de rôle avec les valeu
 unique `[data-theme="keo"]` les re-valorise. L'attribut est posé par `app/[locale]/(member)/layout.tsx`
 dans `apps/web` et sur `<html>` dans `apps/backoffice`. Polices par `next/font/local` (§11.5). Le bloc
 KEO redéfinit tout `--color-*` sauf la liste `KEO_INHERITS` (§11.3), plus `font-display`, `font-base`,
-les rayons, `font-weight-action` et `border-width-action-secondary` (§11.5) ; les échelles d'espacement
+les rayons, `font-weight-action`, `font-weight-action-secondary` et `border-width-action-secondary`
+(§11.5) ; les échelles d'espacement
 et de texte, les durées et les points de rupture ne changent pas.
 
 **Deux verts de marque.** La vitrine garde `#29e075` (teinte 145°), les espaces passent à `#1dd68a`
@@ -456,7 +459,7 @@ D73. La colonne **Écart** signale chaque rôle où l'affectation diffère de la
 | `color-brand-accent`, `color-surface-accent` | alias `brand-primary` | alias | — | Un seul vert dans les espaces |
 | `color-action-primary-bg` | `#1dd68a` | KEO | Bouton principal | — |
 | `color-action-primary-bg-hover` | `#4de4a6` | KEO `brand-primary-hover` | Survol | — |
-| `color-action-primary-bg-active` | `#14af6f` | KEO `brand-primary-pressed` | Appui | KEO : réduction d'échelle, écartée (§11.6) |
+| `color-action-primary-bg-active` | `#14af6f` | KEO `brand-primary-pressed` | Appui | Réduction d'échelle de KEO **reprise à 98 %** (`scale-press`, D75 RK-2, §11.5) |
 | `color-action-secondary-bg` | `#1a1d1b` | KEO `surface-2` | Bouton secondaire | — |
 | `color-action-secondary-bg-hover` | `#232725` | KEO `surface-3` | Survol | — |
 | `color-action-secondary-bg-active` | alias `surface-active` (`#2d322f`) | KEO `surface-4` | Appui | — |
@@ -488,8 +491,8 @@ D73. La colonne **Écart** signale chaque rôle où l'affectation diffère de la
 | `color-surface-page` | `#0a0b0a` | KEO `bg` | Page, colonne de navigation, bande de tête, champ de saisie | — |
 | `color-surface-muted` | `#121413` | KEO `surface-1` | Zone en retrait, en renfort (aparté) | Même valeur que la carte |
 | `color-surface-card` | `#121413` | KEO `surface-1` | Carte, ligne de tableau | — |
-| `color-surface-raised` | `#1a1d1b` | KEO `surface-2` | Bloc dans une carte, dialogue, en-tête de tableau, survol d'item de navigation, piste d'onglets | — |
-| `color-surface-hover` | `#232725` | KEO `surface-3` | Ligne survolée, item de navigation actif | KEO survole les lignes en `surface-2` : trop proche de la ligne (1,09:1) |
+| `color-surface-raised` | `#1a1d1b` | KEO `surface-2` | Bloc dans une carte, dialogue, ligne survolée du tableau dense, carte cliquable survolée, survol d'item de navigation, piste d'onglets, badge neutre | — |
+| `color-surface-hover` | `#232725` | KEO `surface-3` | En-tête du tableau dense, item de navigation actif | D75 (RK-15) : l'en-tête passe de `surface-2` (1,09:1 contre les lignes, invisible) à `surface-3` ; la ligne survolée reste en `surface-2`, distinguée par son filet |
 | `color-surface-active` *(nouveau)* | `#2d322f` | KEO `surface-4` | Appui du bouton secondaire, onglet segmenté actif | — |
 | `color-surface-inverse` | alias `text-primary` | alias | Pastille de compteur, pastille de logo (§10) | — |
 | — | `#383e3a` | KEO `surface-5` | **Non repris** : aucun usage | — |
@@ -501,7 +504,8 @@ D73. La colonne **Écart** signale chaque rôle où l'affectation diffère de la
 | `color-border-subtle` | alias `border-default` | alias | Séparateur de lignes | KEO n'a qu'un filet décoratif |
 | `color-border-default` | `#2a2f2c` | KEO `neutral-border` | Contour de carte, filets de colonne, de bande et de barre | — |
 | `color-border-strong` | `#78827d` | KEO `neutral-border-input` | Champ, case, bouton secondaire, cadre d'aparté : tout contour qui doit atteindre 3:1 | Rôle élargi au-delà des champs |
-| — | `#454c48` | KEO `neutral-border-strong` | **Non repris** : ni assez contrasté pour un composant, ni utile en décor ; candidat `color-border-hover` au Lot 3 (cartes cliquables) | — |
+| `color-border-hover` *(nouveau, D75)* | alias `text-secondary` | alias, redéclaré sous KEO | Contour d'une carte cliquable au survol (RK-10) ; au repos, la carte cliquable garde `border-strong`, seul indice sur téléphone | KEO éclaircit le contour au survol ; valeur reprise des gris de texte, aucune nouvelle |
+| — | `#454c48` | KEO `neutral-border-strong` | **Non repris** : ni assez contrasté pour un composant, ni utile en décor ; le contour de survol est `border-hover` | — |
 | `color-border-selected` | alias `brand-primary` | alias | Sélection | — |
 | `color-border-error` | `#e5484d` | validée D72 | Champ en erreur (2 px) | — |
 | `color-focus-ring` | alias `text-primary` | alias | Anneau de 3 px décalé de 2 px (`focus-ring-width`, `-offset`) | **KEO : bordure verte et `outline: none`, écartés** |
@@ -521,12 +525,15 @@ de `feedback-success-text` et de `feedback-success-icon` est à **au moins 20°*
 `#3ccfcf` 180° contre 155° (25°) et contre l'information 211° (31°) ; vitrine `#2dd4bf` 172° contre
 143° à 145° (28° au moins) et contre 213° (41°). Le fond `#0d2b28` et la bordure `#146b62` (174°), très
 sombres, ne portent pas la teinte et restent hors du calcul. La forme reste un second séparateur : le
-plein est réservé à l'action, un succès n'est jamais plein.
+plein vif est réservé à l'action, un succès n'est jamais rempli de sa teinte vive (son badge est
+rempli du fond sombre opaque de sa famille, D75 RK-11).
 
-**Rôles et vérifié**
+**Rôles, vérifié et badges**
 
 | Token | Valeur | Origine | Usage |
 |---|---|---|---|
+| `color-verified-bg` *(nouveau, D75)* | alias `feedback-info-bg` (`#0f1f33`) | alias, `KEO_INHERITS` | Fond du badge vérifié (RK-11) |
+| `color-badge-error-bg` *(nouveau, D75 RK-B)* | **`#2e1213`** | **valeur créée** (seule du jalon RK), `KEO_INHERITS`, sans usage en vitrine | Fond du **seul badge de statut d'erreur**. Teinte 358°, saturation 44 %, clarté 12,5 % : de la famille des fonds teintés (succès 11 %, alerte 10 %, information 12,9 %). Ce n'est **pas un rouge D72** (absent de la liste de G3b) ; **jamais le fond d'une notice**, qui reste sans fond teinté (D72, DZ-6) ; confiné au badge (TK7.5). Confirmé par `expert-ux` au RK-0 : `#ec5d5e` y atteint 5,19:1 (§11.4) ; un fond plus sombre gagnerait 0,1 point en se confondant avec la carte (1,11:1 contre 1,14:1 avec la page) |
 | `color-role-advertiser` *(nouveau)* | `#e6d3a3` | KEO `platform-brand-side` | Marque visuelle du rôle marque (liste fermée ci-dessous) |
 | `color-role-creator` *(nouveau)* | `#ff8fb1` | KEO `platform-creator-side` | Marque visuelle du rôle créateur (idem) |
 | `color-verified-text` *(nouveau)* | `#4da3ff` | KEO `platform-verified` | Texte et icône du badge vérifié ; même valeur que l'information, rôle distinct pour pouvoir diverger |
@@ -574,14 +581,17 @@ la couleur du succès : non repris. Les tokens de la barre de répartition de la
 | `color-bo-sla-ontime-text` / `-due-text` / `-overdue-text` | alias `text-secondary` / `feedback-warning-text` / `feedback-error-text` | alias |
 | `color-bo-alert-state` / `-event` / `-event-bg` | alias information / alerte / fond d'alerte | alias |
 | `color-bo-env-nonprod-bg` / `-text` | alias fond d'alerte / texte d'alerte | alias |
-| `color-bo-row-hover` | alias `surface-hover`, doublé d'un filet gauche de 2 px `brand-primary` | alias |
+| `color-bo-row-hover` | alias `surface-raised` (D75 RK-15 : `surface-hover` passe à l'en-tête), doublé du filet gauche de 2 px `brand-primary` | alias |
+| `effect-bo-row-indicator` *(nouveau, D75)* | `inset var(--border-width-thick) 0 0 var(--color-brand-primary)` | dérivé, aucune valeur nouvelle : filet de la ligne survolée ou focalisée, ombre intérieure sur la première cellule (`-bo-` obligatoire, G3f) |
 
 **Pour le bloc `[data-theme="keo"]` (`02` §21.3).** *Nouveaux rôles* (`surface-active`,
 `role-advertiser`, `role-creator`, `verified-*`, `counter-*`, `nav-item-hover-bg`, `data-1` à `-3`,
-`action-secondary-border-hover`) : déclarés d'abord dans `@theme`, en alias d'un token vitrine quand il
+`action-secondary-border-hover` ; D75 : `border-hover`, `verified-bg`, `badge-error-bg`) : déclarés
+d'abord dans `@theme`, en alias d'un token vitrine quand il
 existe (`surface-active` → `action-secondary-bg-active`, `counter-*` → `surface-inverse` /
 `text-inverse`, `nav-item-hover-bg` → `surface-raised`), sinon avec la même valeur qu'en KEO (sans
-usage en vitrine). *`KEO_INHERITS`* (valeur vitrine conservée sous KEO) : `overlay-scrim` ; rouges D72
+usage en vitrine). *`KEO_INHERITS`* (valeur vitrine conservée sous KEO) : `overlay-scrim` ;
+`verified-bg` et `badge-error-bg` (D75) ; rouges D72
 (`feedback-error-text`, `-bg`, `-border`, `-icon`, `border-error`, `action-danger-bg`, `-hover`,
 `-active`, `decorative-progress`) ; fonds et bordures teintés identiques dans les deux chartes
 (`brand-subtle-bg`, `surface-brand-subtle`, `brand-subtle-border`, `feedback-success-bg`, `-border`,
@@ -591,7 +601,7 @@ usage sous KEO (`mockup-banner-*`, `overlay-hero-halo`, `action-inverse-bg`,
 `surface-inverse-raised`, `border-inverse`, `focus-ring-inverse`, `data-advertiser-share`,
 `data-creator-share`, `data-net-creator`). Tout le reste est redéfini, **alias compris** quand leur
 cible l'est (`text-on-danger`, `action-secondary-border`, `border-subtle`, `border-selected`,
-`brand-accent`, `surface-accent`, `focus-ring`, `surface-inverse` : fermeture G3c).
+`brand-accent`, `surface-accent`, `focus-ring`, `surface-inverse`, `border-hover` : fermeture G3c).
 
 ### 11.4 Contrastes calculés
 
@@ -621,7 +631,14 @@ d'interface ou un objet graphique.
 | `text-on-danger` sur `action-danger-bg` / `-hover` / `-active` | 5,59 / 4,76 / 6,82 | 4,5 ✅ |
 | `counter-text` sur `counter-bg` | 17,46 | 4,5 ✅ |
 | `text-primary` sur fond de succès / d'alerte / d'information | 13,89 / 14,74 / 15,31 | 4,5 ✅ |
-| Texte de succès / d'alerte / d'information sur son propre fond | 7,91 / 8,75 / 6,33 | 4,5 ✅ |
+| Texte de succès / d'alerte / d'information sur son propre fond (notice, badge rempli) | 7,91 / 8,75 / 6,33 | 4,5 ✅ |
+| *(D75)* Badge vérifié : `verified-text` sur `verified-bg` | 6,33 | 4,5 ✅ |
+| *(D75)* Badge neutre : `text-secondary` sur `surface-raised` | 8,69 | 4,5 ✅ |
+| *(D75)* Badge d'erreur : `feedback-error-text` `#ec5d5e` sur `badge-error-bg` `#2e1213` | 5,19 | 4,5 ✅ |
+| *(D75)* Intitulé d'en-tête du tableau dense : `text-secondary` sur `surface-hover` | 7,73 | 4,5 ✅ |
+| *(D75)* Filet de la ligne : `brand-primary` sur `surface-hover` (pire cas) | 7,95 | 3 ✅ |
+| *(D75)* Surtitre : `text-secondary` sur page / carte / surélevée | 10,08 / 9,45 / 8,69 | 4,5 ✅ |
+| *(D75)* Contour de carte cliquable : `border-strong` sur carte (repos) ; `border-hover` sur `surface-raised` (survol) | 4,66 ; 8,69 | 3 ✅ |
 | Écart de teinte succès / action principale (repos, survol, appui) ; succès / information | 25° ; 31° | 20° ✅ (G3d) |
 | Bouton principal (forme) sur page / carte | 10,36 / 9,72 | 3 ✅ |
 | Bouton rouge (forme) sur page / carte | 3,25 / 3,05 | 3 ✅ |
@@ -635,31 +652,56 @@ distinguent pas seules de la page (carte 1,07:1, surélevée 1,16:1, survol 1,30
 panneau et toute bulle porte une bordure `border-default` (`17` §8.3), les dialogues en plus
 `shadow-lg`. (3) Le texte d'erreur reste lisible sur une ligne survolée (4,53:1), pas au-delà.
 
+**Au pic du halo d'en-tête** *(D75, RK-9)*. Le halo est `color-mix(… 15 %, transparent)` du vert de
+marque posé sur `surface-page` : composé, `0,15 × #1dd68a + 0,85 × #0a0b0a` = **`#0d291d`**
+(luminance relative 0,0176). Le texte qui s'y pose garde l'AA :
+
+| Premier plan sur `#0d291d` | Calcul (L + 0,05) / (0,0176 + 0,05) | Ratio | Seuil |
+|---|---|---|---|
+| `text-primary` (L 0,9174) | 0,9674 / 0,0676 | 14,31 | 4,5 ✅ |
+| `text-secondary` (L 0,4866) | 0,5366 / 0,0676 | 7,94 | 4,5 ✅ |
+| `text-tertiary` (L 0,2822) | 0,3322 / 0,0676 | 4,91 | 4,5 ✅ |
+| `feedback-error-text` (L 0,2647) | 0,3147 / 0,0676 | 4,66 | 4,5 ✅ |
+| `border-strong` (L 0,2144) | 0,2644 / 0,0676 | 3,91 | 3 ✅ |
+
+Badge d'erreur : `#ec5d5e` (L 0,2647) sur `#2e1213` (L 0,0106) : 0,3147 / 0,0606 = **5,19**. Ces paires
+entrent dans la matrice de G3d, pic composé compris.
+
+**Paires interdites** *(D75, en plus de (1))* : (4) le **halo sur `surface-card` ou plus clair** — il
+se pose sur la page seulement, en fond du conteneur d'écran (§11.5) ; (5) un **texte tertiaire ou
+d'erreur à moins de `spacing-5` d'un bouton principal survolé** (son ombre lumineuse éclaircit le
+fond) ; (6) un **surtitre ou un badge en vert** ; (7) un **halo d'en-tête au-delà de 15 %**.
+
 ### 11.5 Typographie, formes, élévation, mouvement
 
 **Familles** (mêmes noms de rôle, valeur selon le registre)
 
 | Token | Espaces connectés (KEO) | Vitrine | Emploi |
 |---|---|---|---|
-| `font-display` | Manrope, repli système | police système (inchangée) | Titres, chiffres clés, boutons, surtitres |
+| `font-display` | Manrope, repli système | police système (inchangée) | **Tous les titres, `h1` à `h4`** (D75 RK-5), chiffres clés, boutons, surtitres, badges, en-tête du tableau dense |
 | `font-base` | Source Sans 3, repli système | police système (inchangée) | Corps, champs, navigation, tableaux |
 | `font-mono` | inchangé | inchangé | Références `MER-…` au backoffice |
 
 **Échelle des espaces connectés.** Tailles fixes : les tokens fluides (`text-lead`, `text-heading-2`,
 `-3`, `text-display`, `text-amount-lg`, `text-figure-*`) suivent la largeur de la fenêtre, qui n'est
-pas celle du contenu à côté d'une colonne ; ils restent à la vitrine.
+pas celle du contenu à côté d'une colonne ; ils restent à la vitrine. **Aucun token fluide sous KEO**
+(D75 RK-5) : ni `text-display`, `text-heading-*`, `text-lead`, `text-figure-*`, ni `clamp(` ou `vw`
+dans un `--text-*` ou un `--tracking-*` effectif (G8 étendue, TK7.3), texte juridique (`LegalMarkdown`)
+compris. Tailles du texte inchangées (RK-8) : 16 px membres, 14 px backoffice, plancher 12 px.
 
 | Rôle | Token | Taille | Famille, graisse | Interligne |
 |---|---|---|---|---|
-| Titre de page (`h1`) | `text-title-page` *(nouveau)* | 1,5 rem sous `lg`, 1,75 rem au-delà | Manrope 800, `tracking-heading` | `leading-heading` |
-| Titre de section (`h2`) | `text-title-section` *(nouveau)* | 1,25 rem | Manrope 700 | `leading-snug` |
-| Titre de carte (`h3`) | `text-md` | 1 rem | Manrope 700 | `leading-snug` |
+| Titre de page (`h1`) | `text-title-page` *(nouveau)* | 1,5 rem sous `lg`, 1,75 rem au-delà | Manrope 800, `tracking-heading` (−0,025 em, D75 RK-6) | `leading-heading` |
+| Titre de section (`h2`) | `text-title-section` *(nouveau)* | 1,25 rem | Manrope 700, `tracking-heading` (D75) | `leading-snug` |
+| Titre de carte (`h3`) | `text-md` | 1 rem | Manrope 700, sans approche serrée (à 16 px, −0,025 em colle les lettres) | `leading-snug` |
+| *(D75)* Titre de bloc dense (BO, `h3`, `h4`) | `text-sm` | 0,875 rem | Manrope 700, sans approche serrée | `leading-snug` |
 | Corps, espaces membres | `text-md` | 1 rem | Source Sans 3 400, emphase 600 | `leading-body` |
 | Corps du backoffice, aides | `text-sm` | 0,875 rem | Source Sans 3 400 | `leading-body` ; tableau `leading-snug` |
-| Mention, surtitre, libellé de barre du bas | `text-xs` | 0,75 rem, **plancher** | Source Sans 3 600 ; surtitre Manrope 700 en capitales, `tracking-overline` | `leading-body` |
-| Montant dans une carte | `text-amount-md` (`17` §8.2) | 1,125 rem | Manrope 700, `font-variant-numeric-amount` | `leading-tight` |
+| Mention, libellé de barre du bas | `text-xs` | 0,75 rem, **plancher** | Source Sans 3 600 | `leading-body` |
+| *(D75)* Surtitre | `text-xs` | 0,75 rem, **plancher** | Manrope 700 en capitales, `tracking-overline`, `text-secondary`, **jamais vert** | `leading-body` |
+| Montant dans une carte, chiffre clé | `text-amount-md` (`17` §8.2) | 1,125 rem | Manrope **800** (D75 RK-6), `font-variant-numeric-amount` | `leading-tight` |
 | Montant en tableau | `text-sm` | 0,875 rem | Source Sans 3 400, `font-variant-numeric-amount` | `leading-snug` |
-| Bouton | `text-md` (membres), `text-sm` (BO) | — | `font-display`, `font-weight-action` *(nouveau : 700 dans les espaces, 500 en vitrine)* | `leading-snug` |
+| Bouton | `text-md` (membres), `text-sm` (BO) | — | `font-display` ; principal et danger `font-weight-action` *(700 dans les espaces, 500 en vitrine)* ; secondaire et bouton texte `font-weight-action-secondary` *(nouveau, D75 RK-3 : 600 dans les espaces, 500 en vitrine)* | `leading-snug` |
 | Item de navigation | `text-md` (colonne), `text-sm` (rail BO), `text-xs` (barre du bas) | — | Source Sans 3 400, actif 600 | — |
 
 **Chargement des polices** (`architecte`, `02` §21.4). `next/font/local` et fichiers woff2 variables
@@ -669,9 +711,15 @@ transmise à un tiers), et la CI ne télécharge rien. Sous-ensembles `latin` et
 diacritiques d'Europe centrale ; **réalisé : `latin` seul câblé**, `latin-ext` en repli système,
 `02` §21.4 point 3), `display: swap` avec métriques de repli ajustées (pas de saut de mise
 en page) ; chargées par les deux seules mises en page KEO, jamais par la vitrine ; écritures non
-couvertes (cyrillique, arabe, CJK…) : repli système. **Graisses employées** : Manrope 700 et 800,
-Source Sans 3 400 et 600. Chiffres tabulaires de Manrope **vérifiés** sur le fichier livré (TD3.5 : « 1111 » et
+couvertes (cyrillique, arabe, CJK…) : repli système. **Graisses employées** : Manrope 600 (bouton
+secondaire, bouton texte, D75), 700 et 800, Source Sans 3 400 et 600. Chiffres tabulaires de Manrope **vérifiés** sur le fichier livré (TD3.5 : « 1111 » et
 « 8888 » de même largeur) ; les montants restent en Manrope.
+
+**Lissage** *(D75 RK-7)*. Sous KEO seulement, `-webkit-font-smoothing: antialiased` (et son pendant
+`-moz-osx-font-smoothing: grayscale`) par l'utilitaire `antialiased` posé sur le conteneur KEO des
+membres et sur le `<html data-theme="keo">` du backoffice ; la propriété s'hérite. `html` et `body` de
+la vitrine restent en `auto` ; aucune propriété de lissage n'est déclarée dans `:root`, `html` ou
+`body` (TK7.5). L'effet ne se voit que sur macOS : il se recette sur Mac (Safari et Chrome).
 
 **Formes**
 
@@ -686,20 +734,59 @@ Source Sans 3 400 et 600. Chiffres tabulaires de Manrope **vérifiés** sur le f
 
 **Élévation sur fond noir.** Au repos, les cartes sont plates : surface + `border-default`, sans
 ombre. `shadow-lg` est réservé aux couches au-dessus de la page (dialogue, menu, palette `⌘K`), sur
-`overlay-scrim`. **Ombre lumineuse du bouton principal** (F6, fondateur, 2026-10-29) : par un token
-d'ombre de rôle dérivé du vert de marque, sans valeur nouvelle ; décorative, elle ne remplace jamais
-l'anneau `focus-ring` et disparaît sur un bouton désactivé. **Halo** (F6, fondateur, 2026-10-29) : un halo
-ambiant derrière l'en-tête d'un espace, par un token de rôle sous KEO (aucun token de la vitrine,
-aucune valeur nouvelle : dérivé du vert de marque), défini par `expert-ux` à DS-5 ; décoratif, il ne
-porte aucune information et ne fait jamais passer un texte sous l'AA calculé.
+`overlay-scrim`. **Ombre lumineuse du bouton principal** (F6, fondateur, 2026-10-29 ; intensités de la
+référence, D75 RK-1) : dérivée du vert de marque, sans valeur nouvelle ; décorative, elle ne remplace
+jamais l'anneau `focus-ring` et disparaît sur un bouton désactivé (`aria-disabled` ou `disabled`, au
+repos comme au survol). Elle n'est pas un token de l'espace `--shadow-*` (Tailwind en inscrit la valeur
+vitrine en dur, `02` §21.3 point 3) mais deux tokens `--effect-*` :
+
+| Token | `:root` (vitrine) | Bloc KEO |
+|---|---|---|
+| `--effect-action-glow` (repos) | `0 0 transparent` | `0 0.25rem 0.875rem color-mix(in srgb, var(--color-brand-primary) 25%, transparent)` |
+| `--effect-action-glow-hover` (survol) | `0 0 transparent` | `0 0.375rem 1.25rem color-mix(in srgb, var(--color-brand-primary) 40%, transparent)` |
+
+Diffuse tout autour, plus large et plus forte au survol. Neutre en `0 0 transparent`, **jamais
+`none`** (qui invaliderait la liste de `box-shadow`). Ni ombre ni transformation sur les petits
+boutons des écrans du backoffice (`size-bo-control`, RK-4) ; les boutons de connexion du backoffice
+gardent les effets.
+
+**Halo d'en-tête** (F6, fondateur, 2026-10-29 ; doux, sans bord, intensité de la référence, un seul par
+page, D75 RK-9) : **fond du conteneur d'écran** (`bg-header-glow bg-no-repeat`), jamais un calque ;
+décoratif, il ne porte aucune information et ne fait jamais passer un texte sous l'AA calculé (§11.4,
+pic `#0d291d`).
+
+| Token | `:root` / `@theme` (vitrine) | Bloc KEO |
+|---|---|---|
+| `--background-image-header-glow` | `none` | `radial-gradient(ellipse 50% var(--size-header-glow) at 50% 0%, color-mix(in srgb, var(--color-brand-primary) 15%, transparent), transparent)` |
+| `--size-header-glow` *(nouveau, `:root`)* | **16 rem** | hérité |
+
+**Hauteur du halo, `--size-header-glow` = 16 rem (256 px)**, tranchée par `expert-ux` au RK-0, bornée
+entre 12 et 20 rem. Le long de l'axe vertical, l'opacité décroît linéairement de 15 % à 0 sur la
+hauteur H ; un écart d'opacité de 1 vaut 158,5/255 de luma (`0,2126 × 19 + 0,7152 × 203 + 0,0722 × 128`,
+écarts de canaux entre le vert et la page). (a) **Sans bord** : sur 8 px (± 4 px autour du bas de
+l'en-tête), l'écart vaut `158,5 × 0,15 × 8 / H` ; ≤ 2/255 dès H ≥ 95 px, ≤ 1/255 (marge pour le tramage)
+dès H ≥ 190 px, d'où **12 rem au moins** ; à 16 rem, 0,74/255. (b) **Pic préservé** : à 4 px du bord
+haut, l'opacité vaut `0,15 × (1 − 4/256)` = 14,8 %, soit `#0d291d` arrondi. (c) **Nul avant la barre du
+bas** : à 375 × 667, le conteneur commence sous l'en-tête de 4 rem ; 64 + 256 = 320 px, loin des 611 px
+du haut de la barre (512 px à 320 × 568) ; 20 rem au plus garde cette marge. (d) **Jamais tronqué** : le
+dégradé doit atteindre 0 dans la boîte du conteneur ; un conteneur d'écran plus court que
+`--size-header-glow` s'arrêterait net (vérifié par TK2.1 et TK2.2).
+
+**Borne de `color-mix`** (D75 RK-A) : `color-mix(in srgb, var(--color-brand-primary) N%, transparent)`
+est admis **dans les seuls** `--effect-action-glow`, `--effect-action-glow-hover` et
+`--background-image-header-glow` du bloc KEO ; jamais dans un `--color-*`, un texte, un fond de carte ni
+un contour ; **N ≤ 15 pour le halo d'en-tête**. Jamais de modificateur `/NN` sur une couleur (G3i).
 
 **Mouvement.** Transitions de couleur (`duration-fast`, `ease-standard`), jamais `transition: all`.
 **Agrandissement au survol et soulèvement des cartes gardés** (F6, fondateur, 2026-10-29, contre la
 recommandation) : transformation d'état (`scale`, `translate`) **sous `motion-safe:` seulement**,
 propriétés de transition nommées (couleurs et `transform`), durées par tokens ; la transformation ne
-déplace pas la mise en page et l'anneau de focus reste entier. Réduction à l'appui écartée. Sous
-`prefers-reduced-motion`, aucune transformation, durées à zéro et balayage du squelette supprimé
-(`animation: none`).
+déplace pas la mise en page et l'anneau de focus reste entier. **Réduction à l'appui reprise** (D75
+RK-2, amende F6) : bouton `scale-hover` **1,03** au survol (KEO, 1,02 jusqu'à D75 ; 1 en vitrine),
+`scale-press` *(nouveau)* **0,98** à l'appui (1 en vitrine), jamais sur un bouton désactivé ni sur un
+petit bouton du backoffice ; bouton texte sans agrandissement. Durée et courbe des boutons inchangées
+(120 ms, `ease-standard`). Sous `prefers-reduced-motion`, aucune transformation, durées à zéro et
+balayage du squelette supprimé (`animation: none`).
 
 ### 11.6 Ce qu'on ne prend pas de la maquette
 
@@ -717,9 +804,9 @@ montants, « Brouillon sauvegardé automatiquement ».
 | K5 | « Match brief : Audience B2B SaaS compatible » et son point bleu | Pas de matching au MVP (D11) ; une suggestion dit « Proposé car : … » avec des raisons vérifiables (`10` RG41) ; point de couleur seul (P7) | « Proposé car : … » quand la suggestion existera |
 | K6 | Émoji cadenas dans l'onglet d'aparté | Rendu variable selon le système, hors tokens, nom accessible imprévisible | Icône `lucide` `lock`, décorative, et texte (§7) |
 | K7 | Commission convenue en vert | Un montant vert se lit comme un gain ou un lien | `text-primary`, chiffres tabulaires, provenance (§6, `17b` §4.10) |
-| K8 | Halo vert (`spotify-ambient-glow`), ombre lumineuse du bouton | Halo **gardé** par le fondateur (F6, 2026-10-29), de même que l'ombre lumineuse du bouton ; `spotify-ambient-glow` est nommé par référence (K20) | Halo ambiant d'en-tête et ombre lumineuse du bouton principal par tokens de rôle (§11.5) |
-| K9 | Agrandissement au survol, réduction à l'appui, carte qui se soulève, `transition: all` | Agrandissement et soulèvement **gardés** par le fondateur (F6, 2026-10-29) ; dans la maquette, non coupés par `prefers-reduced-motion`, en `transition: all`, avec décalage de mise en page ; la réduction à l'appui reste écartée | Agrandissement et soulèvement sous `motion-safe:`, transitions nommées, sans décalage (§11.5) |
-| K10 | Textes en 11 px (surtitres, provenance, légendes) | Sous le plancher de 12 px, en gris et en capitales de surcroît | `text-xs` minimum |
+| K8 | Halo vert (`spotify-ambient-glow`), ombre lumineuse du bouton | Halo **gardé** par le fondateur (F6, 2026-10-29), de même que l'ombre lumineuse du bouton, **aux intensités de la référence** (D75 RK-1, RK-9) ; `spotify-ambient-glow` est nommé par référence (K20) | Halo ambiant d'en-tête (15 % au plus) et ombre lumineuse du bouton principal par tokens de rôle (§11.5) |
+| K9 | Agrandissement au survol, réduction à l'appui, carte qui se soulève, `transition: all` | Agrandissement, soulèvement et **réduction à l'appui reprise** (F6, 2026-10-29 ; D75 RK-2) ; dans la maquette, non coupés par `prefers-reduced-motion`, en `transition: all`, avec décalage de mise en page : `transition: all` **toujours écarté** | Agrandissement 1,03 et réduction 0,98 des boutons, soulèvement des cartes, sous `motion-safe:`, transitions nommées, sans décalage (§11.5) |
+| K10 | Textes en 11 px (surtitres, provenance, légendes) | Sous le plancher de 12 px, en gris et en capitales de surcroît | `text-xs` minimum ; surtitre en Manrope 700 capitales, **`text-secondary`** (D75), jamais vert |
 | K11 | Carte anonymisée avec « 14 vidéos » et « 420 / post » exacts, « Rythme » en vert, identifiant `#CRT-84920` | Avant la révélation, métriques en tranches (D61, `10` F24-F25) ; une carte se réfère à un alias, jamais à un identifiant de compte (`10` RG65) | Tranches, alias, `text-primary` |
 | K12 | Badge « Vérifié INFLUX » générique, près du titre | Badge par réseau, daté, avec ce qu'il n'affirme pas (`08` RG4, RG10) ; une coche bleue près d'un nom imite celle des réseaux sociaux | Badge vérifié (§11.3, §11.8) |
 | K13 | Noms de marque et de créateur colorés (sable, rose) dans le tableau | Rôle porté par la couleur d'un nom : bruit sur huit heures, déjà refusé pour la messagerie (§3.1) | Point de rôle et rôle écrit, noms en `text-primary` |
@@ -727,7 +814,7 @@ montants, « Brouillon sauvegardé automatiquement ».
 | K15 | « VUE IDENTIFIÉE » en pastille, dans un coin | Une pastille se perd sur une capture recadrée | Barre de 4 px sur la zone et chapeau écrit, violet conservé |
 | K16 | Onglet actif rempli de vert | Deux pleins verts dans la même carte, l'onglet et « Envoyer en privé » : l'onglet se lit comme un bouton | Onglet actif `surface-active`, texte en gras |
 | K17 | Phrase d'audience en `#5cf2a8` (`platform-available`) et « La marque » | Vert d'état confondu avec l'action ; la phrase nomme l'autre partie (§7.7) | `text-secondary`, icône cadenas, `{otherParty}` |
-| K18 | Focus du champ par bordure verte, `outline: none` | Indicateur de focus supprimé (WCAG 2.4.7) | Anneau `focus-ring` |
+| K18 | Focus du champ par bordure verte, `outline: none` | Indicateur de focus supprimé (WCAG 2.4.7) | Anneau `focus-ring` ; contour `border-strong` des champs ; **confirmé par D75** (RK-14) |
 | K19 | Polices et Tailwind chargés depuis des CDN tiers | Sécurité de contenu, adresse IP transmise à un tiers, poids sur 4G | Polices auto-hébergées, Tailwind compilé |
 | K20 | Valeurs hexadécimales dans les classes, classes `spotify-*`, surfaces numérotées | CA22, G3 ; nommage par référence ou par numéro au lieu du rôle | Tokens par rôle |
 | K21 | « Rencontre directe », « Zéro commission cachée », « INFLUX MARKETPLACE » | Contraire au modèle courté (D45) et au discours du pilote (D48) | Hors périmètre (vitrine, `expert-marketing`) |
@@ -744,13 +831,19 @@ ressemblance. Test de §1 : *sans le logo, reconnaît-on INFLUX ou Spotify ?*
 | Vert vif sur noir | `#1dd68a` sur `#0a0b0a` | Gardé (choix du fondateur). Plus émeraude (155° contre 141° pour le vert de Spotify), et **rare** : action principale, indicateur d'item actif, sélection ; jamais en texte courant, sur un montant ou un état |
 | Panneaux arrondis flottants séparés par des gouttières noires | Cartes partout | Autorisés là où ils sont pertinents (choix du fondateur, F6), jugés par `expert-ux` écran par écran ; la colonne de navigation garde son gabarit (`17` §2.2) tant que la relecture de DS-6 ne le change pas |
 | Halos de couleur derrière les en-têtes | `spotify-ambient-glow` | Gardé (choix du fondateur, F6) : token de rôle, décoratif (K8) |
-| Boutons qui grossissent, cartes qui se soulèvent | `scale`, `translateY` | Gardés (choix du fondateur, F6) sous `motion-safe:` ; réduction à l'appui écartée (K9) |
+| Boutons qui grossissent, cartes qui se soulèvent | `scale`, `translateY` | Gardés (choix du fondateur, F6) sous `motion-safe:` ; réduction à l'appui reprise à 98 % (D75 RK-2, K9) |
 | La grande pilule verte comme geste central | Bouton principal | Gardée : une seule action principale par écran, libellé verbe + objet, ombre lumineuse par token (F6) |
 | Grilles de vignettes carrées | — | Les espaces montrent des listes, des tableaux et des personnes nommées |
 
 **Ce qui signe INFLUX** et doit se voir sur chaque gabarit : le commercial nommé (« Prénom —
 INFLUX », P5), les statuts écrits et datés (P6), la provenance à côté de chaque montant (P3), la paire
 de couleurs de rôle en marque visuelle, la barre violette de la vue identifiée au backoffice.
+
+**Parades du jalon RK** *(D75)*. Zoom et réduction sur une pilule verte lumineuse, c'est le geste du
+bouton de lecture de Spotify. D'où : **jamais de bouton vert rond à icône seule**, toujours un libellé
+verbe + objet ; halo au vert de marque **sous l'en-tête seulement, jamais sur une carte** ; **surtitre
+jamais vert** ; commercial nommé et statuts datés **visibles au premier écran** de chaque espace ; test
+du logo refait par `expert-ux` en fin de jalon RK.
 
 **En revue :** une capture de chaque gabarit, logo masqué, montrée à deux personnes extérieures au
 projet. Si l'une cite Spotify en premier, on renforce d'abord les signatures INFLUX ; retirer un effet
@@ -775,31 +868,41 @@ largeur en JavaScript ni second `<nav>` masqué ; les entrées dont l'écran n'e
 **masquées**, et une entrée apparue ne disparaît plus ; **aucun repli de colonne** (rien à mémoriser :
 le front n'a aucun stockage, D37) ; lien d'évitement en premier ; focus au `h1` après navigation.
 
+**Règle du focus** *(D75 RK-13, RK-C)*. L'anneau `focus-ring` (3 px, décalé de 2 px) est visible **sur
+tout élément interactif** : bouton, lien, champ, onglet, région défilante, carte à lien étiré. Il n'est
+**pas dessiné sur un élément non interactif focalisé par programme** : le `h1` après une navigation, un
+titre `h2` à `h4`, `main` cible du lien d'évitement. Sélecteur fermé, dans les deux `globals.css` :
+`:where(h1, h2, h3, h4, main)[tabindex="-1"]:focus-visible { outline: none; }`, **jamais** un
+`[tabindex="-1"]` générique (le tabindex itinérant des onglets de canaux garde son anneau). Le focus,
+lui, reste posé sur le titre (annonce du lecteur d'écran, TD5.5) ; WCAG 2.4.7 vise les composants
+opérables au clavier.
+
 **Composants à livrer.** États : R repos · S survol · A appui · F focus · D désactivé · C chargement ·
-E erreur. Le focus est partout l'anneau `focus-ring` (3 px, décalé de 2 px) ; un état non cité est
-sans objet.
+E erreur. Le focus est partout l'anneau `focus-ring` (3 px, décalé de 2 px), selon la règle ci-dessus ;
+un état non cité est sans objet.
 
 | Composant | Registres | États et tokens |
 |---|---|---|
-| Bouton principal (pilule) | Membres, BO | R `action-primary-bg` + `text-on-action` · S `-hover` · A `-active` · D `action-disabled-bg` + `text-disabled`, `aria-disabled`, explication adjacente · C libellé d'action en cours, `aria-busy`, largeur figée, pas d'icône tournante seule · E portée par le formulaire, jamais par le bouton. Hauteur `size-button-md`/`-lg` (membres), `spacing-bo-row-h` (BO, `size-bo-control` en ligne). `font-display`, `font-weight-action`, `radius-pill`, aucune ombre |
-| Bouton secondaire | Membres, BO | R `action-secondary-bg` + contour `action-secondary-border` (`border-width-action-secondary`) + `text-primary` · S `-bg-hover` + `-border-hover` · A `-bg-active` · D comme le principal, sans contour · C idem |
-| Bouton texte | Membres, BO | R `text-primary`, sans fond · S `action-secondary-bg-hover` · D `text-disabled` · cible ≥ `size-touch-target` (membres) |
+| Bouton principal (pilule) | Membres, BO | R `action-primary-bg` + `text-on-action` + ombre `--effect-action-glow` · S `-hover` + ombre `--effect-action-glow-hover` + agrandissement `scale-hover` (1,03) · A `-active` + réduction `scale-press` (0,98) · D `action-disabled-bg` + `text-disabled`, `aria-disabled`, explication adjacente, **ni ombre ni transformation** · C libellé d'action en cours, `aria-busy`, largeur figée, pas d'icône tournante seule · E portée par le formulaire, jamais par le bouton. Transformations sous `motion-safe:` seulement (D75 RK-1, RK-2). Hauteur `size-button-md`/`-lg` (membres), `spacing-bo-row-h` (BO, `size-bo-control` en ligne). `font-display`, `font-weight-action` (700), `radius-pill`. **Petit bouton des écrans du backoffice** (`size-bo-control`) : ni ombre ni transformation (RK-4) ; boutons de connexion du backoffice : effets gardés |
+| Bouton secondaire | Membres, BO | R `action-secondary-bg` + contour `action-secondary-border` (`border-width-action-secondary`) + `text-primary` en `font-weight-action-secondary` (600, D75 RK-3) · S `-bg-hover` + `-border-hover` + `scale-hover` · A `-bg-active` + `scale-press` · D comme le principal, sans contour, sans transformation · C idem · petit bouton BO : sans transformation |
+| Bouton texte | Membres, BO | R `text-primary` en `font-weight-action-secondary` (600, D75), sans fond · S `action-secondary-bg-hover`, **sans agrandissement** · D `text-disabled` · cible ≥ `size-touch-target` (membres) |
 | Bouton danger (D72) | Membres, BO | R `action-danger-bg` + `text-on-danger` · S, A `-hover`, `-active` · D `action-disabled-bg` + `text-disabled` · C idem principal · libellé qui dit l'action ; au BO, jamais par raccourci (§5, niveau 3) |
-| Carte | Membres ; BO pour les blocs du tableau de bord et des fiches | R `surface-card` + `border-default` + `radius-card` + `spacing-inset-card` ; bloc intérieur `surface-raised` + `radius-md` · S (carte cliquable seulement) `surface-raised` · F anneau autour de la carte (lien étiré sur le titre) · C squelette de même hauteur · E notice dans la carte |
-| Badge de rôle | Membres (liste fermée §11.3), BO | Point `spacing-2` `role-advertiser` / `role-creator` + rôle écrit `text-secondary` |
-| Badge vérifié | Membres, BO | Pilule à contour `verified-border`, icône `badge-check` + « Vérifié · ⟨réseau⟩ · ⟨mois année⟩ » en `verified-text`, fond du conteneur |
-| Badge de statut | Membres, BO | Pilule à contour, libellé écrit, fond du conteneur ; tons : neutre (`text-secondary` + `border-default`), succès, alerte, erreur D72, information (texte et contour de la famille). **Jamais plein** : le plein est réservé à l'action |
+| Carte | Membres ; BO pour les blocs du tableau de bord et des fiches | R `surface-card` + `border-default` + `radius-card` (16 px) + `spacing-inset-card` ; bloc intérieur `surface-raised` + `radius-md` · **carte cliquable seulement** (D75 RK-10) : R contour `border-strong`, S `surface-raised` + contour `border-hover` · carte non cliquable : immobile · F anneau autour de la carte (lien étiré sur le titre) · C squelette de même hauteur · E notice dans la carte |
+| Badge de rôle | Membres (liste fermée §11.3), BO | Point `spacing-2` `role-advertiser` / `role-creator` + rôle écrit `text-secondary` ; nom en `text-primary` (F4 maintenu, D75 RK-12) |
+| Badge vérifié | Membres, BO | Pilule **remplie** `verified-bg` (D75 RK-11), contour `verified-border`, icône `badge-check` + « Vérifié · ⟨réseau⟩ · ⟨mois année⟩ » (texte F3 inchangé) en `verified-text`, `font-display` 700 |
+| Badge de statut | Membres, BO | Pilule **remplie d'une teinte opaque** (D75 RK-11), libellé écrit, `font-display` 700 ; tons : neutre (`surface-raised`, `text-secondary`), succès, alerte, information (`feedback-*-bg`, texte et contour de la famille), erreur (`badge-error-bg`, texte et contour D72). **Jamais plein de vert ni d'une teinte vive** : le plein vif est réservé à l'action ; jamais vert |
 | Onglets segmentés (`tablist`) — *réservés aux canaux d'une conversation (§7) depuis D74* | Membres, BO | Piste `surface-raised` + `border-default` + `radius-pill` · R inactif `text-secondary` · S `text-primary` · actif `surface-active` + `text-primary` 600 + `aria-selected` · compteurs écrits · flèches au clavier. Jamais vert |
 | Sous-entrée de navigation *(D74, remplace les liens de section)* | Colonne (membres), rail (BO) | Dans l'entrée active seulement, sans icône, libellé aligné sur celui de l'entrée, `text-sm` (membres) · R `text-secondary` · S `nav-item-hover-bg` + `text-primary` · courante `nav-item-active-bg` + `text-primary` 600 + filet gauche 2 px `nav-item-active-indicator` + `aria-current="page"` ; entrée ancêtre `text-primary` 600 sans surface, sans filet, sans `aria-current`. Hauteur ≥ `size-touch-target` (membres), `spacing-bo-row-h` (BO). Liste horizontale du BO (768–1 023 px) : seconde ligne, filet en bas. Masquée sous `lg` côté membres |
 | Page-menu *(D74)* | Membres (< et ≥ 1 024 px) | Liste de lignes pleine largeur dans `<main>` (pas un `<nav>`) : icône décorative, libellé `text-md` 600, phrase `text-sm` `text-secondary`, pastille de compteur éventuelle, chevron décoratif ; lien étiré sur la ligne, hauteur ≥ `size-touch-target`, séparateur `border-subtle` · S `surface-raised` · F anneau autour de la ligne. Sous-page : « ‹ ⟨rubrique⟩ » au-dessus du `h1`. Détail : `archives/jalons/sn-fiche.md` |
 | Champ, zone de texte | Membres, BO | R `surface-page` + contour `border-strong` 1 px + `radius-md` ; libellé `text-primary` 600 au-dessus, aide `text-secondary`, exemple `text-tertiary` jamais seul libellé · D `surface-raised` + `text-disabled` + `border-default` · E contour `border-error` 2 px + message (icône + `feedback-error-text`) relié par `aria-describedby`, `aria-invalid`. Hauteur `size-input` (membres), `spacing-bo-row-h` (BO) |
 | Notice | Membres, BO | Succès, alerte, information : fond, contour, icône et texte de la famille (texte principal `text-primary` pour l'information). Erreur D72 : fond du conteneur, contour `feedback-error-border`, icône et texte `feedback-error-*`. Icônes `circle-check`, `triangle-alert`, `circle-alert`, `info` ; `role="status"` ou `role="alert"` ; non refermable pour un état permanent ; `radius-md` |
-| Tableau dense | BO | En-tête collant `surface-raised`, `text-xs` 600 `text-secondary` · lignes `surface-card`, hauteur `spacing-bo-row-h`, séparateur `border-subtle` · S et F `bo-row-hover` + filet gauche 2 px `brand-primary` · C lignes en squelette à hauteur fixe · vide : les deux états de `17b` §2.3 · E notice au-dessus, lignes conservées · chiffres tabulaires |
+| Tableau dense | BO | En-tête collant **`surface-hover`**, `text-sm` **Manrope 700** `text-secondary` (D75 RK-15) · lignes `surface-card`, hauteur `spacing-bo-row-h`, séparateur `border-subtle` · S et F (survol, `focus-within` du lien de la ligne) `bo-row-hover` (`surface-raised`) + filet gauche 2 px `brand-primary` par `--effect-bo-row-indicator`, ombre intérieure de largeur constante sur la **première cellule** (aucun décalage en `border-collapse` ; Safari ne dessine pas d'ombre sur un `tr`) ; aucun filet au repos ; 4 px reste réservé à la vue identifiée · C lignes en squelette à hauteur fixe · vide : les deux états de `17b` §2.3 · E notice au-dessus, lignes conservées · chiffres tabulaires |
 | État vide | Membres, BO | Icône décorative `text-tertiary`, titre `text-title-section`, phrase `text-secondary` (pourquoi c'est vide, quoi faire), une action principale au plus ; ni illustration ni « 0 » |
 | Squelette | Membres, BO | `color-skeleton-base` (= `surface-raised`), balayage `color-skeleton-sheen` (= `surface-hover`) supprimé sous `prefers-reduced-motion` ; hauteur finale ; `aria-busy` sur le conteneur et « Chargement… » masqué visuellement |
 | Item de navigation | Colonne (membres), barre du bas (membres), rail (BO) | R `text-secondary` · S `nav-item-hover-bg` + `text-primary` · actif `nav-item-active-bg` + `text-primary` 600 + filet 2 px `nav-item-active-indicator` (gauche ; en haut dans la barre du bas) + `aria-current="page"`. Colonne : hauteur ≥ `size-touch-target`, marge `spacing-2`, `radius-md`. Barre du bas : icône sur libellé, cellule pleine hauteur, anneau intérieur (`focus-ring-offset-inset`). Rail : hauteur `spacing-bo-row-h`. Liste horizontale du backoffice (768–1 023 px) : même `<nav>`, mêmes états, filet de 2 px en bas de l'entrée active |
 | Pastille de compteur | Membres ; BO en chiffres | Membres : `counter-bg` + `counter-text`, `text-xs` 700 tabulaire, `radius-pill`, « 9+ » au-delà de 9, texte masqué « ⟨n⟩ éléments nouveaux » (`17` §2.2). BO : nombre tabulaire `text-secondary`, et retard **écrit** « ⚑ ⟨n⟩ hors délai » en `bo-sla-overdue-text` |
-| En-tête de page | Membres, BO | Fil d'Ariane `text-sm` `text-secondary` (à partir du niveau 2), `h1` `text-title-page`, action principale à droite (desktop) ou sous le titre, pleine largeur (mobile) |
+| En-tête de page | Membres, BO | Fil d'Ariane `text-sm` `text-secondary` (à partir du niveau 2), `h1` `text-title-page` Manrope 800 `tracking-heading`, sans anneau quand il reçoit le focus après une navigation, action principale à droite (desktop) ou sous le titre, pleine largeur (mobile). Halo : fond du conteneur d'écran qui le porte (§11.5), aucun calque dans l'en-tête, un seul par page |
+| Surtitre *(D75)* | Membres, BO | Ligne au-dessus d'un titre : `font-display` `text-xs` 700, capitales, `tracking-overline`, `text-secondary` ; **jamais vert**, jamais seul porteur d'une information |
 | Dialogue | Membres, BO | `surface-raised` + `border-default` + `radius-card` + `shadow-lg`, voile `overlay-scrim`, focus piégé, `Échap` ferme sans perdre la saisie |
 
 ### 11.9 Points soumis au fondateur
@@ -811,5 +914,5 @@ sans objet.
 | F3 | Badge vérifié en bleu (KEO) plutôt qu'en vert | Oui, avec la règle de forme : jamais une coche seule, jamais collée à un nom (§11.3). **Tranché (2026-10-29) : oui** |
 | F4 | Couleurs de rôle sable et rose | Marque visuelle seulement, liste fermée de quatre usages (§11.3) |
 | F5 | Affectations différentes de la maquette, sans valeur nouvelle | Succès sous KEO en `#3ccfcf` (teinte « séquestre » de KEO, réaffectée : 25° du vert d'action, contre 17° pour `#2dd4bf`), vitrine inchangée ; rouge D72 conservé ; fonds `rgba` remplacés par les fonds opaques validés ; contour du bouton secondaire en `#78827d` pour rester ≥ 3:1 ; badge séquestre, vert « disponible », `surface-5` et trois couleurs de données non repris (§11.3, §11.6) |
-| F6 | Effets « Spotify » de la maquette (halo, agrandissement, soulèvement, panneaux flottants) | Écartés (§11.6, §11.7). **Tranché (2026-10-29), contre la recommandation : halo, agrandissement au survol et soulèvement gardés** (sous `motion-safe:` seulement, jamais `transition: all`, durées et halo par tokens, §11.5) ; ombre lumineuse du bouton gardée, panneaux flottants autorisés là où ils sont pertinents (jugement `expert-ux`, écran par écran) ; réduction à l'appui écartée |
+| F6 | Effets « Spotify » de la maquette (halo, agrandissement, soulèvement, panneaux flottants) | Écartés (§11.6, §11.7). **Tranché (2026-10-29), contre la recommandation : halo, agrandissement au survol et soulèvement gardés** (sous `motion-safe:` seulement, jamais `transition: all`, durées et halo par tokens, §11.5) ; ombre lumineuse du bouton gardée, panneaux flottants autorisés là où ils sont pertinents (jugement `expert-ux`, écran par écran) ; réduction à l'appui écartée (reprise à 98 % par D75, RK-2) |
 | F7 | Backoffice sur petit écran : compromis arbitré par `chef-de-projet` | De 768 à 1 023 px, backoffice complet avec la navigation en liste horizontale (fenêtre en demi-écran d'un poste de 1 920 px) ; sous 768 px, aucun contenu métier jusqu'aux vues D58 (`17b` §1.7). Effet de bord à connaître : un téléphone tenu à l'horizontale dépasse souvent 768 px et voit alors le backoffice complet. **Tranché (2026-10-29), selon la recommandation : compromis gardé, plus une condition de hauteur** (écran « poste de travail » aussi quand la hauteur est sous 500 px, ce qui couvre le téléphone en paysage) |

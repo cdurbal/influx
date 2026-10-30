@@ -1097,6 +1097,18 @@ contrôles par charte : il lirait la vitrine et laisserait KEO sans contrôle, t
 | **G9** | Nouvelle *(ajoutée)* | Lecture de session confinée aux coquilles et à `member-auth` / `backoffice-auth` (garde des importeurs, comme G5 d) | `02` §21.9 l'exige du développeur sans la garde qui la prouve |
 | **ESLint** | Amendée | `lucide-react` hors `icons.ts` ; `next/font/local` hors `fonts.ts` | Le lint est le test : aucun cas de plus |
 
+**Gardes du jalon RK** *(ajouté le 2026-10-30, D75, `02` §21.3 point 3, `jalons/rk-fiche.md`)*. Même
+règle : chaque garde a son auto-test, cas négatif compris (R4 : vu rouge sur le parent).
+
+| Garde | Statut | Ce qu'elle prouve | Réserves de `testeur` |
+|---|---|---|---|
+| **G3i** (TK7.1) | Nouvelle | **(a) sources** : échec si le bloc KEO redéfinit un nom des espaces `--shadow-`, `--inset-shadow-`, `--drop-shadow-`, `--text-shadow-`, `--breakpoint-`, `--container-`, si `tokens.css` contient `@theme inline`, ou si un `color-mix` sort de la liste de RK-A (trois tokens, halo ≤ 15 %, liste en données dans `charter-data.ts`). **(b) construction** (une spec par front, feuilles servies) : tout utilitaire d'un token redéfini sous KEO lit `var(--nom)`, jamais la valeur vitrine | Auto-test : `.shadow-action-glow{--tw-shadow:none}` échoue, CSS minifié et CRLF compris ; token redéfini sans consommateur = échec sauf entrée justifiée. (a) seule ne suffit pas : un futur espace de noms inscrit en dur ne se voit que sur la construction |
+| **TK7.2** | Nouvelle | Toute classe littérale des fichiers de classes a une règle compilée (liste blanche justifiée) | Négatif : `tracking-wide` (aucun token, aucune règle : constat C3) |
+| **G8 étendue** (TK7.3, TK7.4) | Amendée (seule extension admise) | Aucun `clamp(` ni `vw` dans les `--text-*` et `--tracking-*` effectifs sous KEO ; `text-display`, `text-heading-*`, `text-lead`, `text-figure-*` refusés sous KEO ; `motion-safe:…active:scale-(--scale-press)` accepté ; `active:scale-…` et `hover:scale-…` hors `motion-safe:` refusés | Étend G8 sans l'assouplir : tout ce qu'elle refusait reste refusé |
+| **TK7.5** | Nouvelle | `badge-error-bg` consommé par le seul badge d'erreur (confinement, comme G3g) ; aucune propriété de lissage déclarée dans `:root`, `html` ou `body` | Le confinement interdit aussi le fond d'une notice (D72, DZ-6) |
+
+G1 à G9 ne s'assouplissent jamais dans ce jalon ; seule G8 s'étend.
+
 **Garde existante touchée.** La parité FR/EN de `apps/web` compare une **liste exacte** de fichiers
 (`account`, `auth`, `errors`, `landing`, `legal`) : un nouveau fichier de traduction de la coquille la
 casse. Elle s'amende dans le commit qui l'ajoute ; la parité des clés le couvre ensuite.
@@ -1464,6 +1476,33 @@ fondateur. T15.2 (routes de recherche et de profil) entre au Lot 3 : T15 passe p
 
 ---
 
+### Jalon RK — Réalignement sur la référence KEO Emerald (D75) ▸ extra du MVP, avant le Lot 2 *(ajouté le 2026-10-30)*
+
+**Tests exigibles :** TK1 à TK8 (§12.6) et gardes G3i, TK7.2 à TK7.5 (§5.1) ; TD1 à TD8 et TN1 à TN9 en
+non-régression. Règles R1 à R4 de `jalons/rk-fiche.md` : un rendu se prouve par un style calculé sur
+l'élément réel, dans l'état concerné, sur la construction de production ; une absence est un cas à
+part ; chaque phrase normative de `20` §11 a sa preuve (§12.7) ; chaque cas est vu rouge sur le parent.
+Planchers relevés au RK-1, puis à chaque commit qui ajoute des tests ; aucun ne baisse.
+
+**Automatisé, bloquant :**
+
+- [ ] `pnpm check` puis `pnpm test:e2e` verts trois fois de suite ; ajout de durée e2e ≤ 60 s ; planchers relevés à chaque commit qui ajoute des tests, aucun ne baisse (`check-case-floors` compte un `test.fail()` comme exécuté : vérifié par `integrateur` au RK-1)
+- [ ] e2e existants (`signup-nominal`, `journey-resume`, `landing-signup`, `account`, `account-data`, `backoffice.spec`, `security-headers`, `member-shell`, `charter-cascade`) verts **sans modifier leurs attendus**
+- [ ] axe WCAG 2.1 AA + 2.2 AA sans violation aux largeurs de §12.2 ; aucun défilement horizontal à 320, 375 et 768 px
+- [ ] **Vitrine inchangée** : G3e, TD4 et TK8.2 verts ; aucune requête tierce ni violation de CSP
+- [ ] G3i (a) et (b) vertes avec leur cas négatif ; G1 à G9 jamais assouplies, sauf G8 étendue (TK7.3, TK7.4)
+- [ ] Table de traçabilité `20` §11 → TK, TD, G ou recette sans ligne orpheline (§12.7, R3)
+
+**Non automatisable (recette humaine) :**
+
+- [ ] **Fondateur, à 1 440 et 375 px** : bouton principal (repos, survol, appui, désactivé), halo d'en-tête sans bord, titres en Manrope, carte cliquable survolée, badges, ligne de tableau survolée, plus de cadre sur le titre
+- [ ] **Sur Mac** (RK-7), Safari et Chrome : avant/après de l'espace connecté, landing identique
+- [ ] **Test du logo** (`20` §11.7) refait par `expert-ux`
+- [ ] Revue groupée `testeur` + `expert-cybersecurite` faite (D71 : non bloquante sur `main`, exigée avant `production`) ; `21` § Jalon RK à jour
+
+Non couvert, accepté : le rendu perçu (intensité, beauté), Safari et Firefox en automatique (e2e Chromium
+seul), le survol tactile, un `p` stylé en titre hors `h1`–`h4`.
+
 ### Jalon SN — Sous-navigation dans la colonne (D74) ▸ extra du MVP, avant le Lot 2 *(ajouté le 2026-10-29)*
 
 **Tests exigibles et critère de fin :** famille **TN1 à TN9** et cases du critère de fin de
@@ -1711,6 +1750,145 @@ appliqués » ; le point 1 est tranché par `expert-ux` ; F1, F2, F3 et F6 sont 
 | 6 | **« Candidatures » a 12 caractères** pour une limite de 11 (`17` §2.2) | TD2.2 | DS-6 — **tranché : limite de 11 maintenue** ; l'entrée est omise jusqu'au Lot 3 et son libellé n'entre qu'avec elle (`expert-marketing`) |
 | 7 | **La navigation principale reste-t-elle sur l'écran bloquant des CGU ?** `account.spec.ts` n'attend que l'absence de la navigation du compte | TD5, `account.spec.ts` | DS-6 — **tranché : non**, l'écran bloquant est une page autonome sans navigation principale (`20` §11.8, `02` §21.5 point 9) |
 | 8 | **Entrées des Lots 2 à 5** : masquées (`17` §2.2) ou « bientôt » (`02` §21.5 point 9) | TD2.3 | DS-6 — **tranché : omises** jusqu'à leur lot (`02` §21.5 point 9) |
+
+### 12.6 Les familles TK1 à TK8 du jalon RK (D75) *(ajouté le 2026-10-30)*
+
+**Source :** `jalons/rk-fiche.md` § Tests, repris sans reformuler les mesures. E2e web dans un nouveau
+`apps/web/e2e/charter-rendering.spec.ts` (session semée, construction de production) ; cas du
+backoffice dans `backoffice.spec.ts`. Lecture après la fin des animations
+(`Promise.all(el.getAnimations().map((a) => a.finished))`) ; état appuyé par `mouse.down()`, lecture,
+sortie de l'élément, `mouse.up()` (aucun clic). Ordre : filet d'abord (RK-1, cas en `test.fail()`
+annotés « RK-n ») ; chaque commit de correction retire le `test.fail()` de ses cas et relève les
+planchers.
+
+| Famille | Cas | Mesure |
+|---|---|---|
+| TK1 Boutons | TK1.1 (RK-1) | `box-shadow` ≠ `none` au repos et porte la valeur calculée du vert ; différent et plus large au survol ; `none` sur `aria-disabled` et `disabled`, au repos et au survol |
+| | TK1.2 (RK-2) | Ratio `getBoundingClientRect().width / offsetWidth` : 0,98 ± 0,01 à l'appui, 1,03 ± 0,01 au survol sous `no-preference` ; 1 sous `reducedMotion: reduce` et sur un bouton désactivé |
+| | TK1.3 (RK-3) | `font-weight` 700 (principal) et 600 (secondaire, texte), membres et BO |
+| | TK1.4 (RK-4) | Petits boutons du BO : `box-shadow: none`, ratio 1 dans les trois états (liste en données, entrée introuvable = échec) ; bouton standard du BO soumis à TK1.1 et TK1.2 |
+| | TK1.5 | `border-radius` calculé d'une carte = 16 px sous KEO |
+| TK2 Halo (RK-9) | TK2.1 | Le fond du conteneur porte le dégradé ; aucun ancêtre ne le tronque |
+| | TK2.2 | Sonde de pixels (capture décodée par `createImageBitmap` et un canvas, sans nouvelle dépendance ; sinon `architecte` tranche) : écart de luminance ≤ 2/255 entre lignes à ± 4 px du bas de l'en-tête ; pixel sous le centre plus clair que la page d'un seuil posé par `expert-ux` : **de 16/255 à 25/255** (RK-0, ci-dessous) ; négatif : le rectangle du parent dépasse le seuil |
+| | TK2.3 | `scrollWidth ≤ innerWidth` à 320, 375 et 768 px (membres), 375 et 768 (BO), halo présent |
+| TK3 Typographie | TK3.1 (RK-5) | Greffé sur les passes axe de §12.2 : chaque `h1`–`h4` visible a pour première famille celle de `--font-display`, une taille de l'ensemble des `--text-*` KEO, identique à 375 et 1 440 px ; au moins un titre par écran |
+| | TK3.2 | Surtitre : Manrope, 700, capitales, ≥ 12 px |
+| | TK3.3 (RK-6) | `letter-spacing` d'un `h1`/`h2` = token, négatif ; chiffre clé 800 ; `h3`/`h4` 700 |
+| | TK3.4 (RK-7) | `-webkit-font-smoothing: antialiased` sur le conteneur KEO, le `html` du BO et le dialogue des CGU ; `auto` sur le `body` de `/fr` et `/en` (assertion à part dans `vitrine-unchanged`) |
+| TK4 Cartes, badges | TK4.1 (RK-10) | Luminance du contour d'une carte cliquable plus haute au survol, valeur = token ; carte non cliquable immobile |
+| | TK4.2 (RK-11) | Fond du badge opaque et égal à un token ; Manrope ≥ 700 ; contraste ≥ 4,5 ; paires dans la matrice G3d ; texte présent (P7) |
+| TK5 Focus (RK-13) | TK5.1 | Après navigation par clic, par `Entrée` et après le lien d'évitement : `activeElement` est le `h1` ou `main`, `outline-style: none` ; même cas au BO |
+| | TK5.2 | Au `Tab`, lien, bouton, champ et région défilante gardent un anneau ≥ 2 px non masqué (TD5.4, jamais relâché) |
+| TK6 Tableau (RK-15) | TK6.1 | Fond de `thead th` plus clair que les lignes ; Manrope 700 |
+| | TK6.2 | Au survol et au focus clavier du lien d'une ligne : une ombre de 2 px de la couleur de `--color-brand-primary` sur la première cellule ; aucune au repos ni sur la ligne voisine |
+| TK7 Gardes statiques | TK7.1 = **G3i** | (a) sur les sources : échec si le bloc KEO redéfinit un nom des espaces `--shadow-`, `--inset-shadow-`, `--drop-shadow-`, `--text-shadow-`, `--breakpoint-`, `--container-`, si `tokens.css` contient `@theme inline`, ou si un `color-mix` sort de la liste de RK-A ; (b) sur la construction (spec par front, feuilles servies) : tout utilitaire d'un token redéfini sous KEO lit `var(--nom)`, jamais la valeur vitrine. Auto-test : `.shadow-action-glow{--tw-shadow:none}` échoue, CSS minifié et CRLF compris ; token redéfini sans consommateur = échec sauf entrée justifiée |
+| | TK7.2 | Toute classe littérale des fichiers de classes a une règle compilée (liste blanche justifiée) ; négatif : `tracking-wide` |
+| | TK7.3 | Aucun `clamp(` ni `vw` dans les `--text-*` et `--tracking-*` effectifs sous KEO ; G8 refuse `text-display`, `text-heading-*`, `text-lead`, `text-figure-*` sous KEO |
+| | TK7.4 | G8 : `motion-safe:…active:scale-(--scale-press)` accepté ; `active:scale-…` et `hover:scale-…` hors `motion-safe:` refusés |
+| | TK7.5 | `badge-error-bg` consommé par le seul badge d'erreur ; aucune propriété de lissage déclarée dans `:root`, `html` ou `body` |
+| TK8 Vitrine | TK8.1 | Fixture TD4 inchangée, G3e verte |
+| | TK8.2 | Nouvelle fixture `vitrine-states.json`, prise **sur le parent de RK-1** : survol, appui et focus des boutons d'appel et d'une carte de la landing (`box-shadow`, ratio, `border-color`, `font-weight`, `-webkit-font-smoothing`, `transition-*`) ; prouve qu'aucun effet RK ne fuit par un composant partagé |
+
+**Seuils de TK2.2, posés par `expert-ux` au RK-0** (calcul : `20` §11.5). Luminance = luma
+`0,2126 R + 0,7152 G + 0,0722 B` sur les canaux 8 bits de la capture, en /255. Le pixel « sous le
+centre » est au centre horizontal du conteneur d'écran, à 4 px sous son bord haut (marge intérieure,
+aucun contenu) ; la page est `surface-page` (`#0a0b0a`, luma 10,7). Attendu à 15 % et
+`--size-header-glow` 16 rem : `#0d291d`, écart **23,4/255** ; borne basse **16/255** (≈ 10 % : halo
+absent ou trop faible = échec), borne haute **25/255** (au-delà de 15 % plus l'arrondi : 18 % donne
+28,5 = échec). Écart entre lignes à ± 4 px du bas de l'en-tête : attendu 0,74/255 pour un seuil de
+2/255. Le tramage des dégradés de Chromium se neutralise en moyennant chaque ligne sur 16 px de large.
+
+### 12.7 Traçabilité de `20` §11 : chaque phrase normative a sa preuve (R3) *(ajouté le 2026-10-30)*
+
+Chaque règle de `20` §11.1 à §11.8 renvoie à un cas (TK, TD, TN, T, TM), à une garde (G, ESLint,
+annexe) ou à la recette humaine (§12.4, recette de fin du jalon RK). §11.9 (points soumis au fondateur)
+ne porte aucune règle. Une ligne sans preuve est un défaut du plan, pas de la charte.
+
+| § | Règle | Preuve |
+|---|---|---|
+| 11 | Aucune valeur de couleur ajustée, sauf `badge-error-bg` (RK-B) ; `keo-emerald.css` jamais importé | G3, G3c, G3e |
+| 11.1 | Frontière par le groupe `(member)` ; pages légales publiques en vitrine ; CGU du parcours en KEO | TD4.4, G8, TD3.6 |
+| 11.1 | Un seul `tokens.css`, copie identique dans les deux fronts ; attribut posé à deux endroits | G3, G8, TD3.1, TD3.2 |
+| 11.1 | Le bloc KEO redéfinit tout `--color-*` hors `KEO_INHERITS`, familles, rayons, graisses d'action, contour secondaire | G3c, TD3.1, TD3.2 |
+| 11.1 | Échelles d'espacement et de texte, durées, points de rupture inchangés sous KEO | G3i (a) (points de rupture, conteneurs), TK7.3 (texte), TD5.7 (durées) ; espacement : recette humaine |
+| 11.1 | Un seul vert `#1dd68a` sur toute la plateforme (F2) | G3e, TD3.3, TD4.2 |
+| 11.2 | Succès en sarcelle, à au moins 20° de l'action et de l'information | G3d, TD1.7 |
+| 11.2 | Rouge « danger » opaque, inchangé, aucun rouge translucide | G3b, `account-data.spec` |
+| 11.2 | Fonds teintés opaques ; violet réservé au backoffice | G3c, G3f |
+| 11.2 | La couleur ne porte jamais seule une information | TD5.8, TD6.5, G3g, TK4.2 |
+| 11.2 | Contraste AA sur chaque surface réelle ; tokens seuls | G3d, TD7, G3 |
+| 11.2 | Aucun taux, aucun net ; provenance des montants au BO | T16 ; provenance : recette humaine (Lot 5) |
+| 11.2 | Densité par registre, lignes de 36 px au backoffice | TD7 (`wcag22aa`) ; densité : recette humaine (§12.4) |
+| 11.3 | Valeurs de chaque token par charte | G3c, TD3.1, TD3.2, G3e |
+| 11.3 | Alias redéclarés quand leur cible l'est (fermeture), nouveaux rôles déclarés dans `@theme` d'abord | G3c (TD1.3, TD1.6) |
+| 11.3 | Couleurs de rôle : liste fermée, toujours suivies du rôle écrit | G3g, TD5.8 |
+| 11.3 | Badge vérifié bleu, jamais une coche seule ni collé à un nom, texte « Vérifié · ⟨réseau⟩ · ⟨mois année⟩ » | TK4.2 (texte présent) ; forme et place : recette humaine (Lot 2) |
+| 11.3 | `badge-error-bg` confiné au badge d'erreur, jamais une notice ; `verified-bg`, `border-hover` | TK7.5, TK4.2, TK4.1 |
+| 11.3 | Couleurs de données réservées aux graphiques étiquetés | Recette humaine (aucun graphique avant le Lot 5) |
+| 11.3 | Ligne survolée du tableau dense : `surface-raised` + filet `effect-bo-row-indicator` | TK6.2 |
+| 11.4 | Matrice des contrastes, paires propres, pic du halo composé | G3d |
+| 11.4 | (1) ni texte tertiaire ni texte d'erreur sur `surface-active` | G3h, G3d |
+| 11.4 | (2) toute carte porte `border-default`, les dialogues `shadow-lg` | Recette humaine |
+| 11.4 | (3) texte d'erreur lisible sur une ligne survolée, pas au-delà | G3d |
+| 11.4 | (4) halo sur la page seulement, jamais sur `surface-card` ou plus clair | TK2.1 |
+| 11.4 | (5) ni texte tertiaire ni texte d'erreur à moins de `spacing-5` d'un bouton principal survolé | Recette humaine |
+| 11.4 | (6) surtitre ou badge jamais vert | TK4.2 (fond = token de la matrice) ; surtitre : recette humaine |
+| 11.4 | (7) halo d'en-tête à 15 % au plus | G3i (a), TK2.2 (borne haute) |
+| 11.5 | Familles : Manrope pour tous les titres `h1`–`h4`, chiffres, boutons, surtitres, badges ; Source Sans 3 pour le corps | TK3.1, TD3.1, TK4.2, TK6.1 |
+| 11.5 | Aucun token fluide sous KEO, `LegalMarkdown` compris ; tailles inchangées | TK7.3, TK3.1 |
+| 11.5 | Graisses et approche : `h1` 800 et `h2` 700 serrés, `h3`/`h4` 700, chiffre clé 800 | TK3.3 |
+| 11.5 | Surtitre : `text-xs`, Manrope 700, capitales, `tracking-overline` | TK3.2, TK7.2 |
+| 11.5 | Plancher de 12 px | TK3.2 ; ailleurs : recette humaine |
+| 11.5 | Boutons : 700 (principal, danger), 600 (secondaire, texte) | TK1.3 |
+| 11.5 | Item de navigation : actif en 600 | TD5.8 |
+| 11.5 | Polices par `next/font/local`, aucun appel à Google Fonts, `latin` seul câblé, budget | G4f, ESLint, TD3.4, TD8.1 |
+| 11.5 | Chiffres tabulaires de Manrope | TD3.5 |
+| 11.5 | Lissage sous KEO seulement, rien dans `:root`, `html`, `body` | TK3.4, TK7.5 ; rendu : recette sur Mac |
+| 11.5 | Rayon des cartes 16 px ; contour secondaire 1 px sous KEO, 2 px en vitrine | TK1.5, TD4.2 ; contour sous KEO : recette humaine |
+| 11.5 | Anneau intérieur de la barre du bas | TD5.4 |
+| 11.5 | Cartes plates au repos ; `shadow-lg` réservé aux couches | Recette humaine |
+| 11.5 | Ombre lumineuse : valeurs, plus forte au survol, absente si désactivé, jamais `none` en neutre | TK1.1, G3i (a) (b) |
+| 11.5 | Petits boutons BO sans effet ; boutons de connexion BO avec | TK1.4 |
+| 11.5 | Halo : fond du conteneur, sans bord, pic `#0d291d`, nul avant la barre du bas, `--size-header-glow` 16 rem | TK2.1, TK2.2, TK2.3 |
+| 11.5 | Borne de `color-mix`, jamais de `/NN` sur une couleur | G3i (a), G3c |
+| 11.5 | Transitions nommées, jamais `transition: all` | G8 (TD1.10) |
+| 11.5 | Agrandissement 1,03 et réduction 0,98 sous `motion-safe:`, jamais désactivé | TK1.2, TK7.4 |
+| 11.5 | Soulèvement des cartes sous `motion-safe:` ; transformation sans décalage de mise en page | G8, TD5.7, TK2.3 (et mesure de RK-4 à 320 px) |
+| 11.5 | Mouvement réduit : aucune transformation, durées nulles, squelette sans balayage | TD5.7, TK1.2 |
+| 11.6 | K1, K2, K3 (succès sarcelle, rouge opaque, aucun `rgba`) | G3d, G3b, G3c |
+| 11.6 | K4, K5, K7, K15, K16, K17, K21, K22 (composants des Lots 3 à 5, vitrine, libellés) | Recette humaine, au lot de chaque composant (RK-17) |
+| 11.6 | K6 (icône `lock` par `icons.ts`) | ESLint ; recette humaine (Lot 4) |
+| 11.6 | K8, K9 (halo, ombre, mouvements aux intensités de la référence) | TK1.1, TK1.2, TK2, G8 |
+| 11.6 | K10 (plancher, surtitre `text-secondary`) | TK3.2 |
+| 11.6 | K11 (tranches et alias avant révélation) | T1, TM11 |
+| 11.6 | K12 (badge par réseau, daté) | TK4.2 ; recette humaine (Lot 2) |
+| 11.6 | K13 (rôle jamais porté par la couleur d'un nom) | G3g |
+| 11.6 | K14 (filet de 2 px, 4 px réservé à la vue identifiée) | TK6.2 |
+| 11.6 | K18 (anneau `focus-ring`, contour des champs) | TD5.4, TK5.2 |
+| 11.6 | K19 (polices et CSS servis par l'origine) | G4f, TD3.4, TD8.1 |
+| 11.6 | K20, K23 (tokens par rôle, valeurs non reprises) | G3, G3c |
+| 11.7 | Test du logo ; parades (pas de bouton vert rond à icône seule, halo jamais sur une carte, surtitre jamais vert, commercial nommé et statuts datés au premier écran) | Recette humaine (§12.4, fin du jalon RK) ; halo : TK2.1 |
+| 11.8 | Gabarits par largeur, un seul `<nav>` restylé par le CSS | TD5.1, TD5.2, TD6.1, TD6.2 |
+| 11.8 | Entrées sans écran masquées, jamais retirées une fois apparues | TD2.3 |
+| 11.8 | Aucun repli de colonne, rien de persisté | Garde annexe 2 (stockage) |
+| 11.8 | Lien d'évitement en premier ; focus au `h1` après navigation | TD5.3, TD5.5, TD6.1 |
+| 11.8 | Anneau sur tout élément interactif ; aucun anneau sur un `h1`–`h4` ou `main` focalisé par programme | TK5.2, TD5.4 ; TK5.1 |
+| 11.8 | Bouton principal, secondaire, texte (états R, S, A, D) | TK1.1 à TK1.4, G3d |
+| 11.8 | Boutons : chargement (`aria-busy`, largeur figée), erreur portée par le formulaire | Recette humaine |
+| 11.8 | Bouton danger D72 | G3b, `account-data.spec` |
+| 11.8 | Carte : rayon, carte cliquable seule réactive, contour éclairci | TK1.5, TK4.1 |
+| 11.8 | Badges de rôle, vérifié, de statut | G3g, TD5.8, TK4.2, TK7.5, TD6.5 |
+| 11.8 | Onglets segmentés (canaux, Lot 4) | Recette humaine (Lot 4) |
+| 11.8 | Sous-entrée de navigation, page-menu (D74) | TN1 à TN9 |
+| 11.8 | Champ : contour `border-strong`, erreur 2 px reliée par `aria-describedby` | G3d, TD7 (état d'erreur) |
+| 11.8 | Notice : fonds de famille, erreur sans fond teinté | G3b, TK7.5, TD7 |
+| 11.8 | Tableau dense : en-tête `surface-hover` Manrope 700, filet de ligne, région défilante | TK6.1, TK6.2, TD6.2, TD6.5 |
+| 11.8 | État vide (pas de « 0 » ni d'illustration) | Recette humaine (DS-8 : accueil neuf sans « 0 ») |
+| 11.8 | Squelette sans balayage sous mouvement réduit | TD5.7 |
+| 11.8 | Item de navigation, pastille de compteur | TD5.1, TD5.4, TD5.8 ; pastille « 9+ » : recette humaine (§12.4) |
+| 11.8 | En-tête de page : `h1` Manrope 800 serré, halo du conteneur, un seul par page | TK3.1, TK3.3, TK2.1 |
+| 11.8 | Surtitre | TK3.2 |
+| 11.8 | Dialogue : voile, focus piégé, `Échap` | TD3.6, DS-7 (e2e du dialogue des CGU) |
 
 ---
 

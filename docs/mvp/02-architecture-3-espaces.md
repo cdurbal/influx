@@ -2339,7 +2339,8 @@ en KEO par le même composant neutre que les pages légales.
    valeur vitrine ou un alias.
 2. Les valeurs KEO vivent dans **un seul bloc** de `tokens.css`, après `@theme` :
    `@layer base { [data-theme="keo"] { … } }`. Il ne déclare que des noms **déjà déclarés** (`@theme`
-   ou `:root`), des valeurs **opaques** (`#rrggbb`, `transparent`, `var()`), et redéfinit **tout**
+   ou `:root`), des valeurs **opaques** (`#rrggbb`, `transparent`, `var()` ; seule exception bornée,
+   le `color-mix` des halos, point 3), et redéfinit **tout**
    `--color-*`, sauf une liste nommée dans la garde (`KEO_INHERITS` : voile, rouges D72 si `expert-ux`
    les conserve). Il redéfinit aussi familles de polices et rayons ; échelles d'espacement et de texte,
    durées et points de rupture **ne changent pas**.
@@ -2350,6 +2351,26 @@ en KEO par le même composant neutre que les pages légales.
    pas. Tout alias dont la cible est redéfinie est donc **redéclaré à l'identique** dans le bloc KEO
    (fermeture vérifiée par G3c). `@theme inline` n'est pas une issue : il inscrirait aussi les valeurs
    littérales dans les classes, et plus aucune redéfinition n'aurait d'effet.
+
+   **Second piège, vérifié sur le CSS compilé (2026-10-30, D75, constat C1 de `jalons/rk-fiche.md`).**
+   Pour certains espaces de noms, Tailwind v4 **inscrit en dur la valeur `@theme`** dans l'utilitaire
+   au lieu de lire `var()` : il décompose une ombre pour y substituer `--tw-shadow-color`
+   (`.shadow-action-glow{--tw-shadow:none}`, valeur vitrine, d'où l'ombre lumineuse jamais affichée), et
+   un point de rupture ou un conteneur sert dans une requête `@media` ou `@container`, où `var()` est
+   sans effet. Le bloc KEO ne redéfinit donc **aucun nom** des espaces `--shadow-*`, `--inset-shadow-*`,
+   `--drop-shadow-*`, `--text-shadow-*`, `--breakpoint-*`, `--container-*` (G3i a). De même, **jamais de
+   modificateur d'opacité `/NN` sur une couleur** : il produit un `color-mix` translucide (K3, `20`
+   §11.6) et peut inscrire en repli la valeur `@theme` en dur. Un effet qui doit changer sous KEO passe
+   par un token **`--effect-*`**, hors de tout espace de Tailwind : déclaré dans `:root` avec une valeur
+   neutre **`0 0 transparent`** (jamais `none`, qui invaliderait la liste composée de `box-shadow` et
+   effacerait aussi les anneaux), valorisé dans le bloc KEO, lu par `shadow-(--effect-…)` ; `@utility`
+   (collision de nom) et `@theme inline` (tout en dur) sont écartés. La construction le prouve : tout
+   utilitaire d'un token redéfini sous KEO lit `var(--nom)` dans les feuilles servies (G3i b).
+
+   **Borne de `color-mix` (D75 RK-A).** `color-mix(in srgb, var(--color-brand-primary) N%,
+   transparent)` est admis dans les seuls `--effect-action-glow`, `--effect-action-glow-hover` et
+   `--background-image-header-glow` du bloc KEO (liste en données, `charter-data.ts`), N ≤ 15 pour le
+   halo d'en-tête ; jamais dans un `--color-*`. Valeurs : `20` §11.5.
 4. **Activation, à deux endroits seulement** (G8). `apps/web` : un conteneur `<div data-theme="keo">`
    posé par `app/[locale]/(member)/layout.tsx`, avec les classes de police et
    `min-h-dvh bg-surface-page font-base text-text-primary` ; `<html>` et `<body>` restent vitrine
@@ -2471,8 +2492,22 @@ Les groupes ne changent aucune URL : chemins localisés, `memberPageLocale` et r
 7. **Mouvement** : les durées tombent déjà à zéro sous `prefers-reduced-motion` (`tokens.css`) ;
    sous KEO, **agrandissement au survol et soulèvement des cartes sous `motion-safe:` seulement**
    (F6, fondateur, 2026-10-29, amende l'arbitrage `chef-de-projet` du 2026-10-28 qui les excluait) ;
-   jamais `transition-all`, aucune transformation d'état hors `motion-safe:`, aucune réduction à
-   l'appui (`20` §11.5) ; aucune navigation animée.
+   jamais `transition-all`, aucune transformation d'état hors `motion-safe:` ; aucune navigation
+   animée. *(D75, 2026-10-30)* **Réduction à l'appui reprise** :
+   `motion-safe:not-aria-disabled:active:scale-(--scale-press)` (backoffice : `not-disabled:` en plus),
+   `--scale-press` 0,98 sous KEO, 1 en vitrine ; agrandissement `--scale-hover` 1,03 ; ni l'un ni
+   l'autre sur un petit bouton des écrans du backoffice (`20` §11.5, §11.8). Durée et courbe inchangées :
+   une durée redéfinie sur le conteneur KEO masquerait la mise à zéro de `prefers-reduced-motion`
+   portée par `:root`. **Lissage** par l'utilitaire `antialiased` posé sur le conteneur
+   `<div data-theme="keo">` de `(member)/layout.tsx` et sur `<html data-theme="keo">` du backoffice
+   (propriété héritée) ; aucune règle de lissage dans `:root`, `html` ou `body`, vitrine inchangée.
+   **Halo en fond du conteneur d'écran** : `bg-header-glow bg-no-repeat` sur `SPACE_SCREEN_CLASSES`
+   (web, donc aussi `SCREEN_CLASSES`) et `SCREEN_CLASSES` (backoffice) ; plus de calque (le `div`
+   décoratif de `PageHeader` et `AUTH_GLOW_CLASSES` disparaissent) : un fond ne crée aucun défilement,
+   ne recouvre rien et s'arrête avant la barre du bas. **Règle du focus** :
+   `:where(h1, h2, h3, h4, main)[tabindex="-1"]:focus-visible { outline: none; }` dans les deux
+   `globals.css`, jamais un `[tabindex="-1"]` générique ; aucune règle `[data-theme="keo"]` hors du bloc
+   de `tokens.css` (elle tomberait sous `findKeoBlocksOutside`, G3c).
 8. **Backoffice** : rail à partir de `lg` (`--spacing-bo-rail-w`, 15 rem, `17b` §6.1), bande de tête de
    `17b` §1.4 ; **entre `md` et `lg`**, le même `<nav>` devient une liste horizontale compacte et le
    backoffice reste complet (fenêtre demi-écran d'un poste de travail), l'entrée active et ses

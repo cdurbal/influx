@@ -46,7 +46,7 @@
 | 552 | 14 | 12. Décisions ouvertes |  |
 | 566 | 20 | 13. Ce qui change en V2 |  |
 
-## 02-architecture-3-espaces.md (~62k tokens)
+## 02-architecture-3-espaces.md (~63k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -100,7 +100,7 @@
 | 2265 | 9 | ↳ 20.11 Points à faire valider par le fondateur |  |
 | 2274 | 13 | ↳ 20.12 Ce que cet addendum demande aux autres agents |  |
 | 2287 | 7 | ↳ Sources (vérifiées le 2026-09-24) |  |
-| 2294 | 259 | 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits) | RG7–RG107 |
+| 2294 | 294 | 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits) | RG7–RG107 |
 
 ## 03-matrice-des-droits-et-rls.md (~51k tokens)
 
@@ -598,7 +598,7 @@
 | 2164 | 82 | 7. Incohérences relevées, écarts d'implémentation, points à valider | RG4–RG126 |
 | 2246 | 62 | 8. Récapitulatif — les écrans spécifiés |  |
 
-## 18-plan-de-test-mvp.md (~54k tokens)
+## 18-plan-de-test-mvp.md (~60k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -625,14 +625,14 @@
 | 796 | 46 | ↳ T17 — Garde-fou `staging` | RG116–RG148 |
 | 842 | 11 | ↳ 3.1 Récapitulatif des contrôles X1 à X4 |  |
 | 853 | 189 | 4. Les tests métier, en complément des 17 | RG160–RG164 |
-| 1042 | 64 | 5. Le sort des gardes existantes de `apps/web` | RG7 |
-| 1106 | 149 | 6. Le corpus de test de la détection de coordonnées |  |
-| 1255 | 43 | 7. Le parcours de bout en bout du Lot 6 |  |
-| 1298 | 31 | 8. Ce qui n'est pas couvert, et pourquoi |  |
-| 1329 | 60 | 9. Ce qui remonte |  |
-| 1389 | 198 | 10. La définition du « prêt à livrer », lot par lot | RG148–RG162 |
-| 1587 | 21 | 11. Verdict |  |
-| 1608 | 113 | 12. Les tests du jalon DS, charte KEO Emerald (D73) *(ajouté le 2026-10-28)* | RG66 |
+| 1042 | 76 | 5. Le sort des gardes existantes de `apps/web` | RG7 |
+| 1118 | 149 | 6. Le corpus de test de la détection de coordonnées |  |
+| 1267 | 43 | 7. Le parcours de bout en bout du Lot 6 |  |
+| 1310 | 31 | 8. Ce qui n'est pas couvert, et pourquoi |  |
+| 1341 | 60 | 9. Ce qui remonte |  |
+| 1401 | 225 | 10. La définition du « prêt à livrer », lot par lot | RG148–RG162 |
+| 1626 | 21 | 11. Verdict |  |
+| 1647 | 252 | 12. Les tests du jalon DS, charte KEO Emerald (D73) *(ajouté le 2026-10-28)* | RG66 |
 
 ## 19-revue-de-coherence-2026-09-24.md (~5k tokens)
 
@@ -645,7 +645,7 @@
 | 214 | 24 | 4. Questions ouvertes des spécifications |  |
 | 238 | 24 | 5. Suites | RG113–RG146 |
 
-## 20-direction-design.md (~23k tokens)
+## 20-direction-design.md (~27k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -659,16 +659,16 @@
 | 326 | 17 | 8. Angles morts du dark theme |  |
 | 343 | 13 | 9. Questions ouvertes | RG116–RG130 |
 | 356 | 24 | 10. Tokens proposés |  |
-| 380 | 437 | 11. Charte KEO Emerald des espaces connectés (D73) | RG1–RG65 |
-| 391 | 39 | ↳ 11.1 Périmètre et frontière |  |
-| 430 | 14 | ↳ 11.2 Ce qui ne change pas |  |
-| 444 | 152 | ↳ 11.3 Correspondance KEO → tokens INFLUX | RG1–RG10 |
-| 596 | 42 | ↳ 11.4 Contrastes calculés |  |
-| 638 | 66 | ↳ 11.5 Typographie, formes, élévation, mouvement |  |
-| 704 | 33 | ↳ 11.6 Ce qu'on ne prend pas de la maquette | RG4–RG65 |
-| 737 | 22 | ↳ 11.7 Test du logo : INFLUX, pas Spotify |  |
-| 759 | 46 | ↳ 11.8 Gabarits et composants |  |
-| 805 | 12 | ↳ 11.9 Points soumis au fondateur |  |
+| 380 | 540 | 11. Charte KEO Emerald des espaces connectés (D73) | RG1–RG65 |
+| 393 | 40 | ↳ 11.1 Périmètre et frontière |  |
+| 433 | 14 | ↳ 11.2 Ce qui ne change pas |  |
+| 447 | 159 | ↳ 11.3 Correspondance KEO → tokens INFLUX | RG1–RG10 |
+| 606 | 69 | ↳ 11.4 Contrastes calculés |  |
+| 675 | 116 | ↳ 11.5 Typographie, formes, élévation, mouvement |  |
+| 791 | 33 | ↳ 11.6 Ce qu'on ne prend pas de la maquette | RG4–RG65 |
+| 824 | 28 | ↳ 11.7 Test du logo : INFLUX, pas Spotify |  |
+| 852 | 56 | ↳ 11.8 Gabarits et composants |  |
+| 908 | 12 | ↳ 11.9 Points soumis au fondateur |  |
 
 ## 21-plan-de-developpement.md (~18k tokens)
 
