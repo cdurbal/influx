@@ -207,7 +207,7 @@ dans `21` § Jalon RK. Exécution : `dev-react-node` ; gardes et filet : `testeu
       désactivé), halo d'en-tête sans bord, titres en Manrope, carte cliquable survolée, badges, ligne de
       tableau survolée, plus de cadre sur le titre ; **sur Mac** (RK-7), Safari et Chrome, avant/après de
       l'espace connecté et landing identique ; **test du logo** (`20` §11.7) refait par `expert-ux`.
-- [ ] Revue groupée `testeur` + `expert-cybersecurite` faite ; `21` § Jalon RK à jour.
+- [x] Revue groupée `testeur` + `expert-cybersecurite` faite (attestation `bfb4b17`, 2026-10-30) ; `21` § Jalon RK à jour.
 
 Non couvert, accepté : le rendu perçu (intensité, beauté), Safari et Firefox en automatique (e2e
 Chromium seul), le survol tactile, un `p` stylé en titre hors `h1`–`h4`.
