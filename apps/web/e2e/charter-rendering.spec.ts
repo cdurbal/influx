@@ -168,6 +168,22 @@ test("TK1.3: the secondary button and the text button in 600", async ({
   expect(await computed(text, "font-weight"), "text button").toBe("600");
 });
 
+test("EC-RK-REC-1: a live button shows the hand, an unavailable one the not-allowed cursor", async ({
+  page,
+}) => {
+  await open(page, SIGN_IN);
+  expect(await computed(signInButton(page), "cursor"), "primary").toBe(
+    "pointer",
+  );
+  await openHome(page);
+  const secondary = page.getByRole("button", { name: T.logout.action });
+  expect(await computed(secondary, "cursor"), "secondary").toBe("pointer");
+  expect(
+    await computed(await unavailablePrimary(page), "cursor"),
+    "unavailable",
+  ).toBe("not-allowed");
+});
+
 test("UX-1: a member page drawn in the KEO typefaces, Manrope loaded", async ({
   page,
 }) => {

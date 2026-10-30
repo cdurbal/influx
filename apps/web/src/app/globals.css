@@ -13,6 +13,16 @@
   }
 
   /*
+   * Tailwind v4 leaves buttons on the default cursor: every live button takes the hand, as a link
+   * does (founder, 2026-10-30). A disabled one keeps the not-allowed cursor of its own classes.
+   */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  input:is([type="submit"], [type="button"], [type="reset"]):not(:disabled) {
+    cursor: pointer;
+  }
+
+  /*
    * While the cookie banner is visible, a focused element must not hide under it (WCAG 2.4.11).
    * --cookie-banner-height is measured at runtime by CookieBanner.tsx.
    */

@@ -1248,6 +1248,16 @@ test("TK1.2 (backoffice): neither zoom nor press on a disabled button", async ({
   await expectStill(page, button, { force: true });
 });
 
+test("EC-RK-REC-1 (backoffice): a live button shows the hand, a disabled one the not-allowed cursor", async ({
+  page,
+}) => {
+  await openSignIn(page);
+  const button = signInButton(page);
+  expect(await computed(button, "cursor"), "live").toBe("pointer");
+  await button.evaluate((element) => element.setAttribute("disabled", ""));
+  expect(await computed(button, "cursor"), "disabled").toBe("not-allowed");
+});
+
 test("UX-1 (backoffice): the sign-in screen drawn in the KEO typefaces, Manrope loaded", async ({
   page,
 }) => {
