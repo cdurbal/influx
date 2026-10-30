@@ -87,6 +87,23 @@ export function scanBuildArtifacts(nextDirectory: string): string[] {
 }
 
 /**
+ * The stylesheets a front serves, as built: every `.css` of `.next/static`, joined (G3i b). Throws
+ * when there is none, so that a skipped build can never pass for a clean one.
+ */
+export function readBuiltStylesheets(nextDirectory: string): string {
+  const staticDirectory = path.join(nextDirectory, "static");
+  const sheets = existsSync(staticDirectory)
+    ? listFiles(staticDirectory).filter((file) => file.endsWith(".css"))
+    : [];
+  if (sheets.length === 0) {
+    throw new Error(
+      `No built stylesheet in ${staticDirectory}: run the build before test:artifacts.`,
+    );
+  }
+  return sheets.map((file) => readFileSync(file, "utf8")).join("\n");
+}
+
+/**
  * The files apps/api runs, its third deployed artifact (J9 commit 7, T11): apps/api has no build,
  * Railway runs its sources with Node (deploy/railway/api.json, worker.json). Its code, its legal
  * texts, its operator scripts, the contracts it imports, the deployment files. Not the tests,

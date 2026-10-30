@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   API_RUNTIME_DIRECTORIES,
+  readBuiltStylesheets,
   scanApiRuntimeFiles,
   scanBuildArtifacts,
 } from "../src/artifacts.ts";
@@ -39,6 +40,24 @@ beforeEach(() => {
 
 afterEach(() => {
   rmSync(appRoot, { recursive: true, force: true });
+});
+
+describe("readBuiltStylesheets (G3i b)", () => {
+  it("throws when there is no built stylesheet", () => {
+    expect(() => readBuiltStylesheets(nextDirectory)).toThrow(/run the build/);
+    writeArtifact("static/chunks/app.js", "console.log('hello');");
+    expect(() => readBuiltStylesheets(nextDirectory)).toThrow(/run the build/);
+  });
+
+  it("joins the stylesheets of .next/static, and nothing else", () => {
+    writeArtifact("static/chunks/a.css", ".a{color:red}");
+    writeArtifact("static/chunks/b.css", ".b{color:blue}");
+    writeArtifact("server/app/c.css", ".c{color:green}");
+    const css = readBuiltStylesheets(nextDirectory);
+    expect(css).toContain(".a{color:red}");
+    expect(css).toContain(".b{color:blue}");
+    expect(css).not.toContain(".c{");
+  });
 });
 
 describe("scanBuildArtifacts (T11)", () => {

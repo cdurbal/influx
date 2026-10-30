@@ -345,7 +345,8 @@ Décision D75 (fondateur, 2026-10-30). Dix-sept écarts entre la proposition 4 e
 
 - [x] RK-0 (`8c62c28`) — charte amendée avant tout code ; `badge-error-bg` `#2e1213`, halo 16 rem, seuil TK2.2 de 16 à 25/255
 - [x] RK-1 (`78fb02a`) — filet du rendu sans code de production : 31 cas e2e et 5 gardes rouges sur le parent, annotés RK-n ; `vitrine-states.json` prise ici
-- [x] RK-2 — `--effect-action-glow*` hors de l'espace `--shadow-*`, lu par `var()` : l'ombre du bouton principal s'affiche ; G3i (a) verte
+- [x] RK-2 (`f1b27c2`) — `--effect-action-glow*` hors de l'espace `--shadow-*`, lu par `var()` : l'ombre du bouton principal s'affiche ; G3i (a) verte
+- [x] RK-3 — G3i (b) : la CSS construite de chaque front lit tout token redéfini sous KEO par `var()`, négatif vérifié sur la construction réelle (`test:artifacts`)
 
 ### Hors jalon
 
