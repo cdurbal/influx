@@ -70,6 +70,11 @@
     outline-offset: var(--focus-ring-offset);
   }
 
+  /* Titles and main take the focus from the app, never from the keyboard: no ring (20 §11.8). */
+  :where(h1, h2, h3, h4, main)[tabindex="-1"]:focus-visible {
+    outline: none;
+  }
+
   /* Dark surfaces (section 15, footer, phone frame): inverse focus ring (03 §2.6). */
   [data-surface="inverse"] :focus-visible {
     outline-color: var(--color-focus-ring-inverse);

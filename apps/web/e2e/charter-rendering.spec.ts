@@ -445,14 +445,13 @@ function accountEntry(page: Page): Locator {
     .getByRole("link", { name: SHELL.nav.entries.account, exact: true });
 }
 
-test.fail(
-  "RK-7: TK5.1, on arrival on a page, the h1 focused without a ring",
-  async ({ page }) => {
-    await open(page, SIGN_IN);
-    await expect(title(page)).toBeFocused();
-    expect(await appFocus(page)).toEqual({ element: "h1", outline: "none" });
-  },
-);
+test("TK5.1, on arrival on a page, the h1 focused without a ring", async ({
+  page,
+}) => {
+  await open(page, SIGN_IN);
+  await expect(title(page)).toBeFocused();
+  expect(await appFocus(page)).toEqual({ element: "h1", outline: "none" });
+});
 
 // Green before the milestone: after a pointer, Chromium does not match :focus-visible on the h1.
 test("TK5.1: after a click in the navigation, the h1 focused without a ring", async ({
@@ -465,29 +464,27 @@ test("TK5.1: after a click in the navigation, the h1 focused without a ring", as
   expect(await appFocus(page)).toEqual({ element: "h1", outline: "none" });
 });
 
-test.fail(
-  "RK-7: TK5.1, after Enter on a link of the navigation, the h1 focused without a ring",
-  async ({ page }) => {
-    await openHome(page);
-    await accountEntry(page).focus();
-    await page.keyboard.press("Enter");
-    await expect(title(page)).toHaveText(ACCOUNT.hub.title);
-    await expect(title(page)).toBeFocused();
-    expect(await appFocus(page)).toEqual({ element: "h1", outline: "none" });
-  },
-);
+test("TK5.1, after Enter on a link of the navigation, the h1 focused without a ring", async ({
+  page,
+}) => {
+  await openHome(page);
+  await accountEntry(page).focus();
+  await page.keyboard.press("Enter");
+  await expect(title(page)).toHaveText(ACCOUNT.hub.title);
+  await expect(title(page)).toBeFocused();
+  expect(await appFocus(page)).toEqual({ element: "h1", outline: "none" });
+});
 
-test.fail(
-  "RK-7: TK5.1, after the skip link, main or the h1 focused without a ring",
-  async ({ page }) => {
-    await openHome(page);
-    await page.keyboard.press("Tab");
-    await expect(
-      page.getByRole("link", { name: SHELL.skipToContent }),
-    ).toBeFocused();
-    await page.keyboard.press("Enter");
-    const focus = await appFocus(page);
-    expect(["main", "h1"]).toContain(focus.element);
-    expect(focus.outline).toBe("none");
-  },
-);
+test("TK5.1, after the skip link, main or the h1 focused without a ring", async ({
+  page,
+}) => {
+  await openHome(page);
+  await page.keyboard.press("Tab");
+  await expect(
+    page.getByRole("link", { name: SHELL.skipToContent }),
+  ).toBeFocused();
+  await page.keyboard.press("Enter");
+  const focus = await appFocus(page);
+  expect(["main", "h1"]).toContain(focus.element);
+  expect(focus.outline).toBe("none");
+});

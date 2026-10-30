@@ -12,6 +12,7 @@ import {
   MEMBER_FIELD_LABEL_CLASSES,
   memberControlClasses,
 } from "@/components/member/ui/field-classes";
+import { OVERLINE } from "@/components/member/ui/heading-classes";
 import { noticeClasses } from "@/components/member/ui/notice-classes";
 import { PAGE_TITLE_CLASSES } from "@/components/member/ui/page-header-classes";
 
@@ -77,8 +78,8 @@ export const LANGUAGE_LINK_CLASSES = cn(
   "hover:bg-action-secondary-bg-hover",
 );
 
-/** "Step 2 of 3", announced with the title (17 §3.6). */
-export const PROGRESS_CLASSES = "text-sm font-medium text-text-secondary";
+/** "Step 2 of 3", announced with the title (17 §3.6): the overline above it (20 §11.8). */
+export const PROGRESS_CLASSES = OVERLINE;
 
 /** The offline banner: text, never a color alone (17 §3.5). */
 export const WARNING_CLASSES = noticeClasses("warning");

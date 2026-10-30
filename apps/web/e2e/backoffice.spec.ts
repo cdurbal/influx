@@ -1493,13 +1493,12 @@ test("TK3.4 (backoffice), the html smoothed (antialiased)", async ({
   );
 });
 
-test.fail(
-  "RK-7: TK5.1 (backoffice), on arrival, the h1 focused without a ring",
-  async ({ page }) => {
-    await openSignIn(page);
-    expect((await focusedElement(page))?.outlineStyle).toBe("none");
-  },
-);
+test("TK5.1 (backoffice), on arrival, the h1 focused without a ring", async ({
+  page,
+}) => {
+  await openSignIn(page);
+  expect((await focusedElement(page))?.outlineStyle).toBe("none");
+});
 
 /** The dashboard of a seeded agent, drawn (its h1 written) before any key is pressed. */
 async function openDashboard(page: Page): Promise<void> {
@@ -1523,32 +1522,30 @@ test("TK5.1 (backoffice): after a click in the rail, the h1 focused without a ri
   expect((await focusedElement(page))?.outlineStyle).toBe("none");
 });
 
-test.fail(
-  "RK-7: TK5.1 (backoffice), after Enter on a link of the rail, the h1 focused without a ring",
-  async ({ page }) => {
-    await openDashboard(page);
-    await mainNavigation(page)
-      .getByRole("link", { name: m.nav.accounts })
-      .focus();
-    await page.keyboard.press("Enter");
-    const heading = page.getByRole("heading", { level: 1 });
-    await expect(heading).toHaveText(m.accounts.title);
-    await expect(heading).toBeFocused();
-    expect((await focusedElement(page))?.outlineStyle).toBe("none");
-  },
-);
+test("TK5.1 (backoffice), after Enter on a link of the rail, the h1 focused without a ring", async ({
+  page,
+}) => {
+  await openDashboard(page);
+  await mainNavigation(page)
+    .getByRole("link", { name: m.nav.accounts })
+    .focus();
+  await page.keyboard.press("Enter");
+  const heading = page.getByRole("heading", { level: 1 });
+  await expect(heading).toHaveText(m.accounts.title);
+  await expect(heading).toBeFocused();
+  expect((await focusedElement(page))?.outlineStyle).toBe("none");
+});
 
-test.fail(
-  "RK-7: TK5.1 (backoffice), after the skip link, main focused without a ring",
-  async ({ page }) => {
-    await openDashboard(page);
-    await page.keyboard.press("Tab");
-    await expect(page.getByRole("link", { name: m.nav.skip })).toBeFocused();
-    await page.keyboard.press("Enter");
-    await expect(page.locator("#main")).toBeFocused();
-    expect((await focusedElement(page))?.outlineStyle).toBe("none");
-  },
-);
+test("TK5.1 (backoffice), after the skip link, main focused without a ring", async ({
+  page,
+}) => {
+  await openDashboard(page);
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: m.nav.skip })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#main")).toBeFocused();
+  expect((await focusedElement(page))?.outlineStyle).toBe("none");
+});
 
 test("TK5.2 (backoffice): at Tab, a link, a button, a field and the region of a table keep a ring of 2 px, never covered", async ({
   page,
