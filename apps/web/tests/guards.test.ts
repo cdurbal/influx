@@ -49,12 +49,15 @@ import {
   DANGER_RED_TOKENS,
   OPAQUE_TOKEN_VALUE,
   TRANSLUCENT_RED_CLASS,
+  withGlowPeak,
   type Charter,
 } from "@influx/test-kit/guards";
 import {
   CONTRAST_MATRIX,
   DANGER_PAIRS,
   FORBIDDEN_CLASS_PAIRS,
+  GLOW_PEAK,
+  GLOW_PEAK_PAIRS,
   KEO_COLOR_MIX,
   KEO_INHERITS,
   KEO_RETARGETED,
@@ -345,6 +348,25 @@ describe("G3d: contrasts and success hue, per charter (20 §11.3, §11.4)", () =
       ).toEqual([]);
     });
   }
+
+  it("holds the texts and the field border at the peak of the header glow, about #0d291d (RK-9)", () => {
+    const keo = effectiveTokens(tokens, "keo");
+    const withPeak = withGlowPeak(keo, GLOW_PEAK);
+    expect(withPeak.get(GLOW_PEAK)).toBe("#0d291d");
+    expect(findTokenPairFailures(withPeak, GLOW_PEAK_PAIRS)).toEqual([]);
+    // A glow past the 15 % ceiling sinks the tertiary text and the error red: the pairs see it.
+    const strong = withGlowPeak(
+      effectiveTokens(
+        withKeoDeclaration(
+          tokens,
+          "--background-image-header-glow: radial-gradient(ellipse 50% 16rem at 50% 0%, color-mix(in srgb, var(--color-brand-primary) 45%, transparent), transparent);",
+        ),
+        "keo",
+      ),
+      GLOW_PEAK,
+    );
+    expect(findTokenPairFailures(strong, GLOW_PEAK_PAIRS)).not.toEqual([]);
+  });
 
   it("gives the success its own color per charter, 20 degrees or more from the action", () => {
     const keo = effectiveTokens(tokens, "keo");

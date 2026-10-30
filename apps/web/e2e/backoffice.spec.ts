@@ -1426,21 +1426,19 @@ test("TK1.5 (backoffice): a card is rounded at 16 px", async ({ page }) => {
   }
 });
 
-test.fail(
-  "RK-6: TK2.1 (backoffice), the screen container carries the glow, whole, the only one of the page",
-  async ({ page }) => {
-    await openSignIn(page);
-    expectWholeGlow("sign-in", await glowFacts(page));
-  },
-);
+test("TK2.1 (backoffice), the screen container carries the glow, whole, the only one of the page", async ({
+  page,
+}) => {
+  await openSignIn(page);
+  expectWholeGlow("sign-in", await glowFacts(page));
+});
 
-test.fail(
-  "RK-6: TK2.2 (backoffice), the glow without an edge, 16 to 25/255 over the page under the centre",
-  async ({ page }) => {
-    await openSignIn(page);
-    expectSoftGlow("sign-in at 1440 px", await glowProbe(page));
-  },
-);
+test("TK2.2 (backoffice), the glow without an edge, 16 to 25/255 over the page under the centre", async ({
+  page,
+}) => {
+  await openSignIn(page);
+  expectSoftGlow("sign-in at 1440 px", await glowProbe(page));
+});
 
 test("TK2.3 (backoffice): no sideways scroll at 375 and 768 px, the glow drawn", async ({
   page,

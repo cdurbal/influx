@@ -15,10 +15,13 @@ import {
 import { noticeClasses } from "@/components/member/ui/notice-classes";
 import { PAGE_TITLE_CLASSES } from "@/components/member/ui/page-header-classes";
 
-/** A page inside the member shell, which holds the frame and its height (17 §2.2, §2.3). */
+/**
+ * A page inside the member shell, which holds the frame and its height (17 §2.2, §2.3). Its ground
+ * is the header glow of F6 (RK-9): one per page, no layer over the content, valued under KEO only.
+ */
 export const SPACE_SCREEN_CLASSES = cn(
   "mx-auto flex w-full max-w-(--container-narrow) flex-col gap-6",
-  "px-page-gutter py-section-header",
+  "px-page-gutter py-section-header bg-header-glow bg-no-repeat",
 );
 
 /** A standalone page (the journey, signed out, terms to accept): one centred column, mobile first. */

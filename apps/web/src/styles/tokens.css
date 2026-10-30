@@ -459,6 +459,9 @@
 
   /* Control and icon sizes (03 §8) */
   --size-touch-target: 2.75rem;
+  /* Height of the header glow's ellipse (RK-9; 20 �11.5): 12 to 20 rem, edgeless from 12, gone
+   * before the bottom bar at 375 px up to 20. */
+  --size-header-glow: 16rem;
   --size-button-md: 2.75rem;
   --size-button-lg: 3.25rem;
   --size-input: 3rem;
@@ -654,16 +657,16 @@
 
     /* Effects kept by the founder (F6; 20 §11.5), under motion-safe: for the two movements. The
      * glow of the primary button is the brand green mixed with transparency (RK-A), stronger on
-     * hover and gone when disabled; the header glow is the muted brand green fading into the page.
+     * hover and gone when disabled; the header glow is the brand green at 15 % fading into the page (RK-A).
      * Brand values, none new. */
     --effect-action-glow: 0 0.25rem 0.875rem
       color-mix(in srgb, var(--color-brand-primary) 25%, transparent);
     --effect-action-glow-hover: 0 0.375rem 1.25rem
       color-mix(in srgb, var(--color-brand-primary) 40%, transparent);
     --background-image-header-glow: radial-gradient(
-      ellipse 70% 100% at 50% 0%,
-      var(--color-brand-subtle-bg),
-      transparent 100%
+      ellipse 50% var(--size-header-glow) at 50% 0%,
+      color-mix(in srgb, var(--color-brand-primary) 15%, transparent),
+      transparent
     );
     --scale-hover: 1.03;
     --scale-press: 0.98;

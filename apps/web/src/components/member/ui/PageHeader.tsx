@@ -23,8 +23,9 @@ type PageHeaderProps = {
 };
 
 /**
- * The head of a page: the glow of F6 behind it (decorative, valued under KEO only), then the single
- * `h1`, then the action. The component renders exactly one `h1`, and nothing else is a heading.
+ * The head of a page: the single `h1`, then the action (the glow of F6 is the ground of the screen
+ * container, not a layer of the head). The component renders exactly one `h1`, and nothing else is
+ * a heading.
  */
 export function PageHeader({
   title,
@@ -36,13 +37,7 @@ export function PageHeader({
   const back = useContext(PageBackContext);
   const lead = above ?? back;
   return (
-    <header
-      className={cn("relative isolate flex flex-col gap-3 py-4", className)}
-    >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-(--z-behind) bg-header-glow"
-      />
+    <header className={cn("flex flex-col gap-3 py-4", className)}>
       {lead === null || lead === undefined ? null : (
         <div className="text-sm text-text-secondary">{lead}</div>
       )}

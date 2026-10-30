@@ -886,6 +886,42 @@ export function findTokenPairFailures(
   });
 }
 
+const COLOR_MIX_OVER_TRANSPARENT =
+  /color-mix\(\s*in srgb\s*,\s*(#[0-9a-fA-F]{6})\s+(\d+(?:\.\d+)?)%\s*,\s*transparent\s*\)/;
+
+/**
+ * The effective tokens plus one derived color, `name`: the peak of the header glow, i.e. the brand
+ * green of its `color-mix(… N%, transparent)` laid over the page (RK-9; 20 §11.4). The percentage
+ * is read from the stylesheet, so a stronger glow moves the pairs checked against it. Nothing is
+ * declared: the color exists only here, for G3d. A glow with no such mix is a finding (it throws).
+ */
+export function withGlowPeak(
+  tokens: ReadonlyMap<string, string>,
+  name: string,
+): Map<string, string> {
+  const mix = COLOR_MIX_OVER_TRANSPARENT.exec(
+    tokens.get("--background-image-header-glow") ?? "",
+  );
+  const page = tokens.get("--color-surface-page");
+  if (mix === null || page === undefined) {
+    throw new Error("no header glow made of a color-mix over the page");
+  }
+  const share = Number(mix[2]) / 100;
+  const channel = (hex: string, start: number): number =>
+    Number.parseInt(hex.slice(start, start + 2), 16);
+  const peak = [1, 3, 5]
+    .map((start) =>
+      Math.round(
+        channel(mix[1] ?? "", start) * share +
+          channel(page, start) * (1 - share),
+      )
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("");
+  return new Map([...tokens, [name, `#${peak}`]]);
+}
+
 // ---------------------------------------------------------------------------------------------
 // G3e: the vitrine frozen (D59; 18 §5.1, TD4.1)
 // ---------------------------------------------------------------------------------------------

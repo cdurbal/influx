@@ -1,7 +1,6 @@
 import type { ReactNode, Ref } from "react";
 import { messages } from "@/messages/fr";
 import {
-  AUTH_GLOW_CLASSES,
   AUTH_HEAD_CLASSES,
   BRAND_CLASSES,
   HELP_CLASSES,
@@ -16,11 +15,10 @@ type AuthHeaderProps = {
   step?: ReactNode;
 };
 
-/** The head of a standalone page (20 §11.8): INFLUX, the glow of F6, the single `h1`. No navigation. */
+/** The head of a standalone page (20 §11.8): INFLUX, the single `h1`. No navigation. */
 export function AuthHeader({ title, titleRef, step }: AuthHeaderProps) {
   return (
     <header className={AUTH_HEAD_CLASSES}>
-      <div aria-hidden="true" className={AUTH_GLOW_CLASSES} />
       <p className={BRAND_CLASSES}>{messages.brand}</p>
       {step === undefined ? null : <p className={HELP_CLASSES}>{step}</p>}
       <h1 ref={titleRef} tabIndex={-1} className={TITLE_CLASSES}>

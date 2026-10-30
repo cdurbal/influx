@@ -9,17 +9,14 @@ export function cn(
   return classes.filter(Boolean).join(" ");
 }
 
+/** A standalone screen; its ground is the header glow of F6 (RK-9), valued under KEO only. */
 export const SCREEN_CLASSES = cn(
   "mx-auto flex min-h-screen w-full max-w-(--container-narrow) flex-col gap-6",
-  "px-page-gutter py-section-header",
+  "px-page-gutter py-section-header bg-header-glow bg-no-repeat",
 );
 
-/** The standalone head of a page: INFLUX, a step line when there is one, then the glow of F6. */
-export const AUTH_HEAD_CLASSES = "relative isolate flex flex-col gap-3 py-4";
-
-/** Decorative, valued under KEO only (20 §11.5); behind the title, never over a control. */
-export const AUTH_GLOW_CLASSES =
-  "pointer-events-none absolute inset-0 z-(--z-behind) bg-header-glow";
+/** The standalone head of a page: INFLUX, a step line when there is one. */
+export const AUTH_HEAD_CLASSES = "flex flex-col gap-3 py-4";
 
 export const BRAND_CLASSES =
   "font-display text-md font-bold tracking-heading text-text-primary";

@@ -98,7 +98,7 @@ describe("counter (17 §2.2)", () => {
 });
 
 describe("page header (20 §11.8)", () => {
-  it("renders exactly one h1 and a decorative glow, and the action beside it", () => {
+  it("renders exactly one h1 and no glow layer of its own, and the action beside it", () => {
     const markup = html(
       createElement(PageHeader, {
         title: "Campaigns",
@@ -109,7 +109,7 @@ describe("page header (20 §11.8)", () => {
     expect(markup.match(/<h1[ >]/g)).toHaveLength(1);
     expect(markup).not.toMatch(/<h[2-6][ >]/);
     expect(markup).toContain('tabindex="-1"');
-    expect(markup).toMatch(/aria-hidden="true"[^>]*bg-header-glow/);
+    expect(markup).not.toContain("bg-header-glow");
     expect(markup).toContain("Campaigns");
     expect(markup).toContain("New");
   });

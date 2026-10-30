@@ -198,31 +198,29 @@ test("TK1.5: a card is rounded at 16 px under KEO", async ({ page }) => {
 // TK2: the header glow, on the ground of the screen container (RK-9 of the fiche; 20 §11.5)
 // ---------------------------------------------------------------------------------------------
 
-test.fail(
-  "RK-6: TK2.1, the screen container carries the glow, whole, the only one of the page",
-  async ({ page }) => {
-    await openHome(page);
-    const inShell = await glowFacts(page);
-    await openSignedOut(page, SIGN_IN);
-    const standalone = await glowFacts(page);
-    expectWholeGlow("home", inShell);
-    expectWholeGlow("sign-in", standalone);
-  },
-);
+test("TK2.1, the screen container carries the glow, whole, the only one of the page", async ({
+  page,
+}) => {
+  await openHome(page);
+  const inShell = await glowFacts(page);
+  await openSignedOut(page, SIGN_IN);
+  const standalone = await glowFacts(page);
+  expectWholeGlow("home", inShell);
+  expectWholeGlow("sign-in", standalone);
+});
 
-test.fail(
-  "RK-6: TK2.2, the glow without an edge, 16 to 25/255 over the page under the centre",
-  async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 812 });
-    await openHome(page);
-    const home = await glowProbe(page);
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await openSignedOut(page, SIGN_IN);
-    const signIn = await glowProbe(page);
-    expectSoftGlow("home at 375 px", home);
-    expectSoftGlow("sign-in at 1440 px", signIn);
-  },
-);
+test("TK2.2, the glow without an edge, 16 to 25/255 over the page under the centre", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await openHome(page);
+  const home = await glowProbe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openSignedOut(page, SIGN_IN);
+  const signIn = await glowProbe(page);
+  expectSoftGlow("home at 375 px", home);
+  expectSoftGlow("sign-in at 1440 px", signIn);
+});
 
 test("TK2.3: no sideways scroll at 320, 375 and 768 px, the glow drawn", async ({
   page,

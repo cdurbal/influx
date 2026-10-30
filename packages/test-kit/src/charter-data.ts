@@ -331,6 +331,24 @@ export const CONTRAST_MATRIX: Readonly<Record<Charter, readonly TokenPair[]>> =
     ],
   };
 
+/** The derived color of the header glow's peak, laid over the page (`withGlowPeak`; RK-9). */
+export const GLOW_PEAK = "--derived-header-glow-peak";
+
+/**
+ * The texts and the shape that may sit at the peak of the header glow (20 §11.4, "au pic du halo"):
+ * the composite of the glow over the page, about `#0d291d`. Kept apart from CONTRAST_MATRIX, whose
+ * pairs are all declared tokens; the G3d test of each front checks both.
+ */
+export const GLOW_PEAK_PAIRS: readonly TokenPair[] = [
+  ...contrasts(
+    ["--color-text-primary", "--color-text-secondary", "--color-text-tertiary"],
+    [GLOW_PEAK],
+    TEXT_MIN,
+  ),
+  ...contrasts(["--color-feedback-error-text"], [GLOW_PEAK], TEXT_MIN),
+  ...contrasts(["--color-border-strong"], [GLOW_PEAK], NON_TEXT_MIN),
+];
+
 // ---------------------------------------------------------------------------------------------
 // G3g and G3h: where the role colors live, which pairs of classes never go together (20 §11.3, §11.4)
 // ---------------------------------------------------------------------------------------------
