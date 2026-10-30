@@ -31,6 +31,7 @@ import { messages } from "@/messages/fr";
 import { installErrorCollector } from "@/observability/error-collector";
 import {
   BRAND_CLASSES,
+  cn,
   HELP_CLASSES,
   INFO_CLASSES,
   LEAD_CLASSES,
@@ -179,7 +180,7 @@ export function Shell({ children }: { children: ReactNode }) {
       type="button"
       onClick={() => void leave()}
       aria-disabled={busy || undefined}
-      className={SMALL_SECONDARY_CLASSES}
+      className={cn(SMALL_SECONDARY_CLASSES, "gap-2")}
     >
       <LogOutIcon aria-hidden="true" className={NAV_ICON_CLASSES} />
       {busy ? messages.logout.busy : messages.shell.signOut}
