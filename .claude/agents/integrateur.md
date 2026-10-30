@@ -14,9 +14,14 @@ Lis `CLAUDE.md` (§6 conventions, §8 intégrations, §14 prérequis) avant d'ag
 ## État actuel du projet — à connaître
 
 - **Le dépôt GitHub existe** (compte `cdurbal`, branche `main`) et la CI GitHub Actions tourne à
-  chaque push.
+  chaque push, en jobs parallèles (D76) : `changes` (documentation seule depuis le dernier run vert
+  de `main` ?), `check` (marqueurs I-4, migrations, index, format, puis types, lint, tests sans base,
+  build), `db` (pile Supabase locale, tests base), `e2e` (pile démarrée pendant le build, parcours
+  Playwright), `relay-node-24`, puis `migrate-staging`. Les pushes se font par lot (`CLAUDE.md` §7
+  règle 5) ; un hook pré-commit (`.githooks/`) régénère `docs/mvp/INDEX.md`.
 - **La GitHub CLI `gh` est installée et authentifiée** sur le poste du fondateur (2026-10-09,
-  portées `repo`, `workflow`, `read:org`, `gist`). Après un push, tu suis toi-même la CI :
+  portées `repo`, `workflow`, `read:org`, `gist`). Après un push, tu suis toi-même la CI, en arrière-plan
+  sans bloquer le travail (D76) :
   `gh run list --limit 5`, `gh run watch <id> --exit-status`, `gh run view <id> --log-failed`.
   Tu lis, diagnostiques et corriges sans demander au fondateur de copier les journaux.
   `gh run rerun <id> --failed` est permis. Toute commande `gh` qui crée, supprime ou modifie une

@@ -102,9 +102,12 @@ migrations puis publie les documents publics (`21` EC-62 (C)).
 
 ## 4. Suivi d'un push
 
-Après chaque push : `gh run list --limit 5`, `gh run watch <id> --exit-status`, `gh run view <id>
---log-failed`. Un échec se corrige sans attendre ; `gh run rerun --failed` est permis. Enchaînement
-attendu : CI verte → « Migrate staging » vert → déploiement des quatre services (« Wait for CI »).
+Les pushes se font par lot (D76, `CLAUDE.md` §7 règle 5). Après chaque push, en arrière-plan :
+`gh run list --limit 5`, `gh run watch <id> --exit-status`, `gh run view <id> --log-failed`. Un échec
+se corrige avant tout nouveau commit ; `gh run rerun --failed` est permis. Enchaînement attendu : jobs
+`check`, `db`, `e2e` et `relay-node-24` verts en parallèle → « Migrate staging » vert → déploiement des
+quatre services (« Wait for CI »). Un push de documentation seule ne lance que les contrôles légers
+de `check` : « Migrate staging » est alors sauté, aucune migration n'ayant changé.
 
 ## 5. Railway : quatre services
 

@@ -19,7 +19,7 @@ d'abord, puis dans le code.
 
 | Sujet | Document |
 |---|---|
-| Registre des décisions D1 à D75 (statut, détail) | `docs/mvp/decisions.md` |
+| Registre des décisions D1 à D76 (statut, détail) | `docs/mvp/decisions.md` |
 | `staging` iso-production, autonomie des agents (D70) | `docs/mvp/archives/jalons/d70-plan.md`, `docs/mvp/runbooks/staging.md` |
 | Périmètre et lots du MVP | `docs/mvp/00-cadrage-mvp-v2.md` |
 | Régime courté, commission au MVP | `docs/mvp/01-intermediation-courtee.md` |
@@ -182,9 +182,10 @@ suppression propagée à Brevo et Apollo. Référents : `expert-conformite-rgpd`
 3. Toute décision structurante est écrite (ici ou dans `docs/mvp/decisions.md`).
 4. **Aucune création/suppression de dépôt distant ni déploiement en production** sans
    confirmation explicite du fondateur ; idem pour les actions de `docs/mvp/prerequis.md`.
-   **GitHub CLI `gh` authentifiée** (compte `cdurbal`) : après chaque push, l'agent suit
-   lui-même la CI (`gh run list`, `gh run watch <id> --exit-status`,
-   `gh run view <id> --log-failed`) et corrige un échec sans attendre le fondateur ;
+   **GitHub CLI `gh` authentifiée** (compte `cdurbal`) : après chaque push (cadence de la règle 5,
+   D76), l'agent suit lui-même la CI **en arrière-plan** (`gh run list`,
+   `gh run watch <id> --exit-status` en tâche de fond, `gh run view <id> --log-failed`) sans
+   bloquer son travail, et corrige un échec avant tout nouveau commit, sans attendre le fondateur ;
    `gh run rerun --failed` est permis. Toute autre écriture distante via `gh` suit la règle 4.
    **`staging` est exploité par les agents eux-mêmes (D70)** : variables, réglages, redéploiement
    et retour arrière Railway ; `config push`, SQL de données et clés du projet Supabase de
@@ -201,19 +202,25 @@ suppression propagée à Brevo et Apollo. Référents : `expert-conformite-rgpd`
      d'attestation `security-reviewed: <date> covers <sha>…`, jamais en réécrivant `main`).
    - `expert-conformite-rgpd` : **seulement au Lot 6** ; au Lot 1, `dev-react-node` respecte les
      cases non pré-cochées et l'attestation 18+ de `04`.
-   - Tests : pendant le codage, le seul fichier en cours
-     (`pnpm --filter @influx/api test:db -- <fichier> --reporter=dot`). **Avant chaque commit,
-     vérification proportionnée aux fichiers indexés** (`git diff --cached --name-only`) :
-     - **Documentation seule** (`*.md`, `docs/**`, `.claude/**`) : `pnpm format:check` seulement
-       (et `pnpm docs:index` si une spécification a changé). Aucun test ne lit ces fichiers.
-     - **Code sans base** (fronts, `packages/*`, `apps/api` hors accès aux données) :
-       `pnpm format:check`, `pnpm typecheck`, `pnpm lint`, `pnpm test -- --reporter=dot`.
-     - **Base touchée** (`supabase/**`, `apps/api` repositories, schémas Drizzle, routes ou
-       services qui lisent ou écrivent en base, `db-tests/**`, dépendances, configuration
-       TypeScript, Vitest ou CI) : suite complète, soit le palier précédent plus
-       `pnpm --filter @influx/api test:db -- --reporter=dot`.
-     - En cas de doute, palier supérieur. `pnpm test:e2e` si un écran change. La CI rejoue
-       tout après le push : un écart s'y corrige aussitôt (règle 4).
+   - **Tests et push (D76).** Pendant le codage : le seul fichier en cours
+     (`pnpm --filter @influx/api test:db -- <fichier> --reporter=dot`). **Avant chaque commit**,
+     selon les fichiers indexés (`git diff --cached --name-only`) :
+     - **Documentation seule** (`*.md`, `docs/**`, `.claude/**`) : rien à lancer. Le hook
+       pré-commit régénère et ajoute `docs/mvp/INDEX.md` quand une spécification change (activé
+       une fois par clone : `git config core.hooksPath .githooks`).
+     - **Code** : `pnpm check:fast` (format, types, lint, tests sans base). Base touchée
+       (`supabase/**`, repositories, schémas Drizzle, routes ou services qui lisent ou écrivent en
+       base, `db-tests/**`) : en plus les fichiers `db-tests/` du domaine
+       (`pnpm --filter @influx/api test:db -- <fichiers> --reporter=dot`), et **toute la suite
+       base** pour une migration ou une politique RLS. Écran touché : sa spec Playwright
+       (`pnpm --filter @influx/web exec playwright test <spec> --reporter=line`).
+     - **Suite locale complète** (`pnpm check` puis `pnpm test:e2e`) : en fin de jalon, avant une
+       revue groupée, avant toute entrée dans `production`, et pour une dépendance. En cas de
+       doute, palier supérieur.
+     - **Push par lot** : tous les 3 à 4 commits, en fin de jalon, avant une revue groupée, quand le
+       fondateur veut voir l'état sur `staging`, et au moins une fois par journée de travail. La
+       CI rejoue **tout** à chaque push sur `main` (base et parcours compris, en jobs parallèles ;
+       un push de documentation seule n'exécute que les contrôles légers). Suivi : règle 4.
    - `21-plan-de-developpement.md` : **1 ligne par commit** (`[x] Commit N (\`sha\`) — …`),
      condensée en 1 ligne à la clôture ; aucun récit.
    - Lots 3 à 5 : mode serré (`00` §9) d'abord, puis **reprise intégrale du mode normal (Lot 6bis)**.
@@ -263,6 +270,9 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
 - **D75 tranchée (2026-10-30)** : réalignement sur la référence KEO 4 (17 écarts, 4 défauts) ; amende F6 (réduction
   à l'appui à 98 %), `color-mix` du vert de marque admis dans les seuls halos, fond rouge sombre du seul badge
   d'erreur. Exécution par le **Jalon RK**, extra, avant le Lot 2 (`docs/mvp/jalons/rk-fiche.md`).
+- **D76 tranchée (2026-10-30)** : cadence de validation (§7 règles 4 et 5) : `pnpm check:fast` avant
+  chaque commit, suite complète aux moments clés, push par lot, CI complète en jobs parallèles
+  suivie en arrière-plan, hook pré-commit de l'index.
 - **D71 tranchée (2026-10-18)** : revues sécurité et RGPD (vetos, I-4) bloquantes sur la seule
   branche `production` ; `main` et `staging` se construisent et se déploient sans elles. `production`
   (créée le 2026-10-19, sans protection GitHub) n'avance que par `git merge --no-ff main`.

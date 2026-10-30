@@ -167,8 +167,9 @@ sortie de l'élément, `mouse.up()` (aucun clic).
 
 ## Commits prévus
 
-Petits commits sur `main`, Conventional Commits, vérification par paliers avant chaque commit
-(`CLAUDE.md` §7 règle 5) et `pnpm test:e2e` pour tout commit qui touche un écran. Une ligne par commit
+Petits commits sur `main`, Conventional Commits, vérification avant chaque commit (`CLAUDE.md` §7
+règle 5, D76) avec les specs Playwright des écrans touchés, `pnpm test:e2e` complet au dernier commit,
+push par lot. Une ligne par commit
 dans `21` § Jalon RK. Exécution : `dev-react-node` ; gardes et filet : `testeur` ; relecture visuelle :
 `expert-ux`. **Ordre : filet d'abord** ; chaque commit de correction retire le `test.fail()` de ses cas
 (la CI rougit si on l'oublie) et relève les planchers.

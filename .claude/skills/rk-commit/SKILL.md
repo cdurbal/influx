@@ -71,14 +71,16 @@ Ordre : `0`, `1`, `2`, `3`, `4`, `ux 4`, `5a`, `5b`, `6`, `ux 6`, `7`, `8`, `9`,
   et la piste (l'utilisateur relancera un cran plus haut).
 - Micro-écart sans invariant : choix le plus sûr, noté `EC-RK-<id>-<n>` dans la réponse finale, aucun
   commit docs.
-- Avant le commit : vérification par paliers de `CLAUDE.md` §7 règle 5 selon les fichiers indexés
-  (`test:db` jamais nécessaire dans ce jalon, sauf dépendance ou configuration touchée), plus
-  `pnpm test:e2e` si un écran ou un e2e change.
+- Avant le commit : vérification de `CLAUDE.md` §7 règle 5 (D76) selon les fichiers indexés
+  (`pnpm check:fast` ; `test:db` jamais nécessaire dans ce jalon, sauf dépendance touchée), plus les
+  specs Playwright du ou des écrans touchés ; `pnpm test:e2e` complet au dernier commit du jalon.
 - Un seul commit, au titre imposé par la fiche (Conventional Commits). Dans ce commit,
   `docs/mvp/21-plan-de-developpement.md` § Jalon RK : complète le sha de la ligne RK précédente s'il
   manque, ajoute `- [x] RK-<id> — <invariant clé>` (une ligne, aucun récit). `git add` des seuls
-  fichiers du commit. Push, puis `gh run watch <id> --exit-status` (`gh run view <id> --log-failed`
-  seulement en cas d'échec, corrigé aussitôt).
+  fichiers du commit. Push par lot (D76) : seulement si 3 commits au moins attendent, au dernier
+  commit du jalon ou à la demande du fondateur ; sinon, le dire dans la réponse finale (« non
+  poussé, N commits en attente »). Après un push, `gh run watch <id> --exit-status` en arrière-plan
+  (`gh run view <id> --log-failed` seulement en cas d'échec, corrigé avant tout nouveau commit).
 - Réponse finale en 15 lignes au plus : ce qui est livré, les EC, ce que le commit suivant doit savoir.
 
 `revue` et `ux` ne commitent rien : les deux derniers points de commit ne s'y appliquent pas.
