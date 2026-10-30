@@ -46,17 +46,18 @@ export function inputClasses(hasError: boolean): string {
   );
 }
 
-/** The KEO pill: the hover zoom (F6) under `motion-safe:` and off when disabled; never `transition-all`. */
+/** The KEO pill: the hover zoom (F6) and the press (RK-2) under `motion-safe:` and off when disabled; never `transition-all`. */
 const BUTTON_BASE_CLASSES = cn(
-  "inline-flex items-center justify-center gap-2 text-center font-display text-md font-action leading-snug",
+  "inline-flex items-center justify-center gap-2 text-center font-display text-md leading-snug",
   "transition-lift motion-safe:not-aria-disabled:not-disabled:hover:scale-(--scale-hover)",
+  "motion-safe:not-aria-disabled:not-disabled:active:scale-(--scale-press)",
   "aria-disabled:cursor-not-allowed disabled:cursor-not-allowed",
 );
 
 export const PRIMARY_BUTTON_CLASSES = cn(
   BUTTON_BASE_CLASSES,
   "min-h-(--size-button-lg) w-full rounded-pill",
-  "bg-action-primary-bg px-inset-button-x py-inset-button-y text-text-on-action shadow-(--effect-action-glow)",
+  "bg-action-primary-bg px-inset-button-x py-inset-button-y font-action text-text-on-action shadow-(--effect-action-glow)",
   "hover:bg-action-primary-bg-hover active:bg-action-primary-bg-active",
   "not-aria-disabled:not-disabled:hover:shadow-(--effect-action-glow-hover)",
   "aria-disabled:shadow-none disabled:bg-action-disabled-bg disabled:text-text-disabled disabled:shadow-none",
@@ -66,13 +67,13 @@ export const SECONDARY_BUTTON_CLASSES = cn(
   BUTTON_BASE_CLASSES,
   "min-h-(--size-button-md) rounded-pill",
   "border-(length:--border-width-action-secondary) border-action-secondary-border bg-action-secondary-bg",
-  "px-inset-button-x py-inset-button-y text-text-primary",
+  "px-inset-button-x py-inset-button-y font-action-secondary text-text-primary",
   "hover:border-action-secondary-border-hover hover:bg-action-secondary-bg-hover active:bg-action-secondary-bg-active",
 );
 
 export const TEXT_BUTTON_CLASSES = cn(
   "inline-flex min-h-(--size-touch-target) items-center self-start rounded-md px-3",
-  "text-text-primary underline hover:bg-action-secondary-bg-hover",
+  "font-action-secondary text-text-primary underline hover:bg-action-secondary-bg-hover",
 );
 
 /** Errors carry border, text and role="alert", never the color alone. */

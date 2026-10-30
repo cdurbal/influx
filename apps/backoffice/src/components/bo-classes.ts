@@ -62,7 +62,7 @@ export const SMALL_PRIMARY_CLASSES = cn(
 export const SMALL_SECONDARY_CLASSES = cn(
   "inline-flex min-h-(--size-bo-control) items-center justify-center rounded-pill",
   "border-(length:--border-width-thin) border-action-secondary-border bg-action-secondary-bg",
-  "px-4 font-display text-sm font-action text-text-primary hover:bg-action-secondary-bg-hover",
+  "px-4 font-display text-sm font-action-secondary text-text-primary hover:bg-action-secondary-bg-hover",
 );
 
 export const LINK_CLASSES = "text-text-primary underline";

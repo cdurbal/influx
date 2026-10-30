@@ -28,16 +28,23 @@ describe("buttons (20 §11.8)", () => {
     "text",
   ];
 
-  it("are pills with a named transition, zoomed under motion-safe: and never when aria-disabled", () => {
+  it("are pills with a named transition, zoomed and pressed under motion-safe: and never when aria-disabled, the text button still", () => {
     for (const variant of variants) {
       const classes = memberButtonClasses(variant);
       expect(classes, variant).toContain("transition-lift");
       expect(classes, variant).not.toContain("transition-all");
+      expect(classes, variant).toContain("aria-disabled:bg-action-disabled-bg");
+    }
+    for (const variant of ["primary", "secondary", "danger"] as const) {
+      const classes = memberButtonClasses(variant);
       expect(classes, variant).toContain(
         "motion-safe:not-aria-disabled:hover:scale-(--scale-hover)",
       );
-      expect(classes, variant).toContain("aria-disabled:bg-action-disabled-bg");
+      expect(classes, variant).toContain(
+        "motion-safe:not-aria-disabled:active:scale-(--scale-press)",
+      );
     }
+    expect(memberButtonClasses("text")).not.toContain("scale-");
     for (const variant of ["primary", "secondary", "danger"] as const) {
       expect(memberButtonClasses(variant)).toContain("rounded-pill");
     }

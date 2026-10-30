@@ -1206,13 +1206,12 @@ test("TK1.1 (backoffice): no glow on a disabled or unavailable button, at rest n
   }
 });
 
-test.fail(
-  "RK-4: TK1.2 (backoffice), the sign-in button grows to 1.03 on hover and shrinks to 0.98 while pressed",
-  async ({ page }) => {
-    await openSignIn(page);
-    await expectZoomAndPress(page, signInButton(page));
-  },
-);
+test("TK1.2 (backoffice): the sign-in button grows to 1.03 on hover and shrinks to 0.98 while pressed", async ({
+  page,
+}) => {
+  await openSignIn(page);
+  await expectZoomAndPress(page, signInButton(page));
+});
 
 test("TK1.2 (backoffice): neither zoom nor press under reduced motion", async ({
   page,
@@ -1236,17 +1235,16 @@ test("TK1.3 (backoffice): the primary button in 700", async ({ page }) => {
   expect(await computed(signInButton(page), "font-weight")).toBe("700");
 });
 
-test.fail(
-  "RK-4: TK1.3 (backoffice), the secondary button and the text button in 600",
-  async ({ page }) => {
-    await openSignIn(page);
-    const text = page.getByRole("button", { name: m.login.useRecoveryCode });
-    expect(await computed(text, "font-weight"), "text button").toBe("600");
-    await page.goto(bo("/introuvable-rk"));
-    const secondary = page.getByRole("link", { name: m.errorPages.home });
-    expect(await computed(secondary, "font-weight"), "secondary").toBe("600");
-  },
-);
+test("TK1.3 (backoffice): the secondary button and the text button in 600", async ({
+  page,
+}) => {
+  await openSignIn(page);
+  const text = page.getByRole("button", { name: m.login.useRecoveryCode });
+  expect(await computed(text, "font-weight"), "text button").toBe("600");
+  await page.goto(bo("/introuvable-rk"));
+  const secondary = page.getByRole("link", { name: m.errorPages.home });
+  expect(await computed(secondary, "font-weight"), "secondary").toBe("600");
+});
 
 test("TK1.4: the small buttons of the screens stay sober: neither glow nor zoom, at rest, on hover, pressed", async ({
   page,

@@ -116,13 +116,29 @@ test("TK1.1: no glow on an unavailable primary button, at rest nor on hover", as
   await expectNoGlow(await unavailablePrimary(page));
 });
 
-test.fail(
-  "RK-4: TK1.2, the primary button grows to 1.03 on hover and shrinks to 0.98 while pressed",
-  async ({ page }) => {
-    await open(page, SIGN_IN);
-    await expectZoomAndPress(page, signInButton(page));
-  },
-);
+test("TK1.2: the primary button grows to 1.03 on hover and shrinks to 0.98 while pressed", async ({
+  page,
+}) => {
+  await open(page, SIGN_IN);
+  await expectZoomAndPress(page, signInButton(page));
+});
+
+test("TK1.2: a full-width button hovered at 103 % does not scroll sideways at 320 px", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await open(page, SIGN_IN);
+  const button = signInButton(page);
+  await hovered(button);
+  expect(
+    (await button.boundingBox())?.width,
+    "the button is wider than the viewport",
+  ).toBeLessThanOrEqual(320);
+  expect(
+    (await sidewaysFacts(page)).overflow,
+    "sideways overflow",
+  ).toBeLessThanOrEqual(0);
+});
 
 test("TK1.2: neither zoom nor press under reduced motion", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -141,16 +157,15 @@ test("TK1.3: the primary button in 700", async ({ page }) => {
   expect(await computed(signInButton(page), "font-weight")).toBe("700");
 });
 
-test.fail(
-  "RK-4: TK1.3, the secondary button and the text button in 600",
-  async ({ page }) => {
-    await openHome(page);
-    const secondary = page.getByRole("button", { name: T.logout.action });
-    const text = page.getByRole("link", { name: ACCOUNT.homeLink });
-    expect(await computed(secondary, "font-weight"), "secondary").toBe("600");
-    expect(await computed(text, "font-weight"), "text button").toBe("600");
-  },
-);
+test("TK1.3: the secondary button and the text button in 600", async ({
+  page,
+}) => {
+  await openHome(page);
+  const secondary = page.getByRole("button", { name: T.logout.action });
+  const text = page.getByRole("link", { name: ACCOUNT.homeLink });
+  expect(await computed(secondary, "font-weight"), "secondary").toBe("600");
+  expect(await computed(text, "font-weight"), "text button").toBe("600");
+});
 
 test("TK1.5: a card is rounded at 16 px under KEO", async ({ page }) => {
   await openHome(page);
