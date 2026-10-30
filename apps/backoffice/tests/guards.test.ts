@@ -26,12 +26,18 @@ import {
   findNonBoDeclarations,
   findTokenPairFailures,
   findSessionReadViolations,
+  findDocumentSmoothing,
+  findFluidKeoTypography,
+  findKeoTrapViolations,
+  findTokenUseOutside,
+  findVitrineTokenUse,
+  fluidTypographyClasses,
   DANGER_RED_TOKENS,
   OPAQUE_TOKEN_VALUE,
   TRANSLUCENT_RED_CLASS,
   type Charter,
 } from "@influx/test-kit/guards";
-import { DANGER_PAIRS } from "@influx/test-kit/charter-data";
+import { DANGER_PAIRS, KEO_COLOR_MIX } from "@influx/test-kit/charter-data";
 import { describe, expect, it } from "vitest";
 import nextConfig, { NOINDEX, SECURITY_HEADERS } from "../next.config";
 import {
@@ -233,6 +239,54 @@ describe("the backoffice is KEO whole, set by the root layout alone", () => {
     expect(
       readFileSync(path.join(BACKOFFICE_ROOT, "src/styles/fonts.ts")),
     ).toEqual(readFileSync(path.join(WEB_ROOT, "src/styles/fonts.ts")));
+  });
+});
+
+// The guards of the RK milestone on the backoffice sources (D75; 18 §5.1, TK7.1, TK7.3, TK7.5). A
+// case that the code before the milestone fails is an `it.fails` named after the commit that frees
+// it (RK-n); that commit turns it into a plain `it`. G3i (b) and TK7.2 read the build (RK-3, RK-5).
+describe("G3i (a), TK7.3 and TK7.5: no inscribed KEO token, no fluid size, no smoothing on the document", () => {
+  const tokens = readFileSync(path.join(BACKOFFICE_ROOT, TOKENS), "utf8");
+
+  it.fails(
+    "RK-2: redefines no token of a namespace that Tailwind inscribes, color-mix in the tokens of RK-A only (G3i a)",
+    () => {
+      expect(findKeoTrapViolations(tokens, KEO_COLOR_MIX)).toEqual([]);
+    },
+  );
+
+  it("lets no fluid size nor letter-spacing through to KEO (TK7.3)", () => {
+    expect(findFluidKeoTypography(tokens)).toEqual([]);
+  });
+
+  it.fails(
+    "RK-5b: uses no class of the vitrine's fluid typography, the backoffice being KEO whole (TK7.3, G8 extended)",
+    () => {
+      expect(
+        findVitrineTokenUse(
+          BACKOFFICE_ROOT,
+          ["src"],
+          fluidTypographyClasses(tokens),
+        ),
+      ).toEqual([]);
+    },
+  );
+
+  it("declares no font smoothing on :root, html or body (TK7.5)", () => {
+    const sheets = [TOKENS, TOKENS_BACKOFFICE, "src/app/globals.css"];
+    expect(
+      sheets.flatMap((sheet) =>
+        findDocumentSmoothing(
+          readFileSync(path.join(BACKOFFICE_ROOT, sheet), "utf8"),
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  it("paints badge-error-bg nowhere: the backoffice has no badge (TK7.5)", () => {
+    expect(findTokenUseOutside(BACKOFFICE_ROOT, "badge-error-bg", [])).toEqual(
+      [],
+    );
   });
 });
 

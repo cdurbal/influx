@@ -343,7 +343,8 @@ Décision D74 (fondateur, 2026-10-29). Les pilules de section disparaissent : so
 
 Décision D75 (fondateur, 2026-10-30). Dix-sept écarts entre la proposition 4 et le rendu réel, tranchés un par un ; quatre défauts corrigés (ombre lumineuse du bouton principal jamais affichée, halo d'en-tête à bords nets, sous-titres hors Manrope, filet de ligne du tableau dense absent), effets et primitives réalignés, vitrine inchangée. Point d'entrée : **`jalons/rk-fiche.md`** (commits RK-0 à RK-10, tests TK1 à TK8, garde G3i, critère de fin).
 
-- [x] RK-0 — charte amendée avant tout code ; `badge-error-bg` `#2e1213`, halo 16 rem, seuil TK2.2 de 16 à 25/255
+- [x] RK-0 (`8c62c28`) — charte amendée avant tout code ; `badge-error-bg` `#2e1213`, halo 16 rem, seuil TK2.2 de 16 à 25/255
+- [x] RK-1 — filet du rendu sans code de production : 31 cas e2e et 5 gardes rouges sur le parent, annotés RK-n ; `vitrine-states.json` prise ici
 
 ### Hors jalon
 

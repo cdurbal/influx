@@ -241,6 +241,50 @@ describe("TD1.10: colors move, and the zoom and the lift only under motion-safe:
   });
 });
 
+// G8 extended by the RK milestone (D75; 18 §5.1, TK7.3 and TK7.4), never relaxed: what it refused
+// stays refused.
+describe("TK7.3 and TK7.4: G8 refuses the fluid sizes under KEO, and admits the press under motion-safe: only", () => {
+  it("refuses a class of the vitrine's fluid typography under the KEO scopes, never a fixed size nor the landing", () => {
+    const fluid = ["text-lead", "text-heading-3", "text-display"];
+    write(
+      "src/components/auth/Titles.tsx",
+      [
+        'export const A = "font-display text-heading-3 font-bold";',
+        'export const B = "md:text-lead text-text-secondary";',
+        'export const C = "font-display text-title-section text-heading-30";',
+        "// never text-display here",
+      ].join("\n"),
+    );
+    write(
+      "src/components/landing/Hero.tsx",
+      'export const HERO = "text-display";\n',
+    );
+    expect(findVitrineTokenUse(front, KEO_SCOPES, fluid)).toEqual([
+      'src/components/auth/Titles.tsx:1: export const A = "font-display text-heading-3 font-bold";',
+      'src/components/auth/Titles.tsx:2: export const B = "md:text-lead text-text-secondary";',
+    ]);
+  });
+
+  it("admits the press of RK-2 under motion-safe:, refuses a press or a zoom outside it", () => {
+    write(
+      "src/components/auth/Press.tsx",
+      [
+        'export const A = "motion-safe:not-aria-disabled:active:scale-(--scale-press)";',
+        'export const B = "motion-safe:not-aria-disabled:not-disabled:active:scale-(--scale-press)";',
+        'export const C = "motion-safe:not-aria-disabled:hover:scale-(--scale-hover)";',
+        'export const D = "active:scale-(--scale-press)";',
+        'export const E = "not-aria-disabled:active:scale-95";',
+        'export const F = "not-disabled:hover:scale-(--scale-hover)";',
+      ].join("\n"),
+    );
+    expect(findStateTransforms(front, KEO_SCOPES)).toEqual([
+      'src/components/auth/Press.tsx:4: export const D = "active:scale-(--scale-press)";',
+      'src/components/auth/Press.tsx:5: export const E = "not-aria-disabled:active:scale-95";',
+      'src/components/auth/Press.tsx:6: export const F = "not-disabled:hover:scale-(--scale-hover)";',
+    ]);
+  });
+});
+
 describe("TD1.10: the member pages are exactly those of the group", () => {
   it("accepts the pages of the group, route groups nested or not", () => {
     expect(findMemberGroupMismatches(front, APP, GROUP, MEMBER_PATHS)).toEqual(

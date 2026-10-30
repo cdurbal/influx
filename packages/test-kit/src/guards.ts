@@ -1498,3 +1498,467 @@ export function findSessionReadViolations(
     ),
   ];
 }
+
+// ---------------------------------------------------------------------------------------------
+// G3i and the guards of the RK milestone (D75; 02 §21.3 point 3; 18 §5.1, TK7.1 to TK7.5)
+// ---------------------------------------------------------------------------------------------
+// Tailwind v4 inscribes in its utilities the @theme value of the tokens of some namespaces: the
+// shadows (`.shadow-action-glow{--tw-shadow:none}`, constat C1), the breakpoints and the containers
+// of the media queries. A redefinition in the KEO block is then never read. The sources are checked
+// (G3i a); so is the build (G3i b), where a future namespace inscribed the same way shows first.
+
+/** Namespaces whose @theme value Tailwind inscribes where it is used (G3i a; 02 §21.3 point 3). */
+export const KEO_FORBIDDEN_NAMESPACES: readonly string[] = [
+  "--shadow-",
+  "--inset-shadow-",
+  "--drop-shadow-",
+  "--text-shadow-",
+  "--breakpoint-",
+  "--container-",
+];
+
+/** A token allowed to mix the brand green with transparency (RK-A), and its ceiling in percent. */
+export type ColorMixAllowance = { name: string; maxPercent?: number };
+
+/** The only `color-mix` RK-A admits: the brand green, a percentage, then transparency. */
+const BRAND_COLOR_MIX =
+  /^color-mix\(\s*in srgb\s*,\s*var\(\s*--color-brand-primary\s*\)\s+(\d+(?:\.\d+)?)%\s*,\s*transparent\s*\)$/;
+
+/** Every `color-mix(…)` of a value, its parentheses balanced. */
+function colorMixesOf(value: string): string[] {
+  const found: string[] = [];
+  let from = value.indexOf("color-mix(");
+  while (from !== -1) {
+    let depth = 0;
+    let end = value.length;
+    for (let index = from; index < value.length; index += 1) {
+      const char = value[index];
+      if (char === "(") depth += 1;
+      if (char === ")") depth -= 1;
+      if (char === ")" && depth === 0) {
+        end = index + 1;
+        break;
+      }
+    }
+    found.push(value.slice(from, end));
+    from = value.indexOf("color-mix(", from + 1);
+  }
+  return found;
+}
+
+/**
+ * G3i (a), on the sources: a token of a namespace that Tailwind inscribes, redefined in the KEO
+ * block; an `@theme inline` (every value inscribed, 02 §21.3 point 3); a `color-mix` anywhere but
+ * in a token of `allowances` inside the KEO block, in the form RK-A admits, within its ceiling.
+ */
+export function findKeoTrapViolations(
+  css: string,
+  allowances: readonly ColorMixAllowance[],
+): string[] {
+  const findings: string[] = [];
+  if (/@theme\b[^{;]*\binline\b/.test(css.replace(/\/\*[\s\S]*?\*\//g, " "))) {
+    findings.push(
+      "@theme inline: Tailwind would inscribe every value, KEO would be read nowhere",
+    );
+  }
+  for (const block of keoBlocks(css)) {
+    for (const { name } of block.declarations) {
+      const namespace = KEO_FORBIDDEN_NAMESPACES.find((prefix) =>
+        name.startsWith(prefix),
+      );
+      if (namespace !== undefined) {
+        findings.push(
+          `${name}: redefined in the KEO block, in the ${namespace}* namespace that Tailwind inscribes`,
+        );
+      }
+    }
+  }
+  const visit = (block: CssBlock, inKeo: boolean) => {
+    for (const { name, value } of block.declarations) {
+      for (const mix of colorMixesOf(value)) {
+        const allowance = inKeo
+          ? allowances.find((entry) => entry.name === name)
+          : undefined;
+        const percent = BRAND_COLOR_MIX.exec(mix)?.[1];
+        if (allowance === undefined) {
+          findings.push(
+            `${name}: "${mix}" outside the tokens of RK-A${inKeo ? "" : " (not in the KEO block)"}`,
+          );
+        } else if (percent === undefined) {
+          findings.push(
+            `${name}: "${mix}" is not the brand green mixed with transparency`,
+          );
+        } else if (
+          allowance.maxPercent !== undefined &&
+          Number(percent) > allowance.maxPercent
+        ) {
+          findings.push(
+            `${name}: ${percent}% over its ceiling of ${allowance.maxPercent}%`,
+          );
+        }
+      }
+    }
+    for (const child of block.blocks) {
+      visit(child, inKeo || KEO_SELECTOR.test(child.prelude));
+    }
+  };
+  visit(parseCssBlocks(css), false);
+  return findings;
+}
+
+/** Tailwind's utility roots per token namespace, the longer namespace first (G3i b). */
+const NAMESPACE_UTILITY_ROOTS: ReadonlyArray<
+  readonly [string, readonly string[]]
+> = [
+  ["--inset-shadow-", ["inset-shadow"]],
+  ["--drop-shadow-", ["drop-shadow"]],
+  ["--text-shadow-", ["text-shadow"]],
+  ["--shadow-", ["shadow"]],
+  [
+    "--color-",
+    [
+      "bg",
+      "text",
+      "border",
+      ...["t", "r", "b", "l", "x", "y", "s", "e"].map(
+        (side) => `border-${side}`,
+      ),
+      "outline",
+      "ring",
+      "ring-offset",
+      "fill",
+      "stroke",
+      "accent",
+      "caret",
+      "decoration",
+      "divide",
+      "placeholder",
+      "from",
+      "via",
+      "to",
+      "shadow",
+      "inset-shadow",
+      "drop-shadow",
+      "text-shadow",
+    ],
+  ],
+  [
+    "--radius-",
+    [
+      "rounded",
+      ...["t", "r", "b", "l", "s", "e", "tl", "tr", "br", "bl"].map(
+        (corner) => `rounded-${corner}`,
+      ),
+      ...["ss", "se", "es", "ee"].map((corner) => `rounded-${corner}`),
+    ],
+  ],
+  ["--font-weight-", ["font"]],
+  ["--font-", ["font"]],
+  ["--text-", ["text"]],
+  ["--tracking-", ["tracking"]],
+  ["--leading-", ["leading"]],
+  ["--background-image-", ["bg"]],
+];
+
+/** A CSS identifier unescaped: `hover\:bg-x` gives `hover:bg-x`, `\31 0` gives `10`. */
+function unescapeCssIdentifier(text: string): string {
+  return text.replace(
+    /\\([0-9a-fA-F]{1,6})\s?|\\([\s\S])/g,
+    (_whole, hex: string | undefined, char: string | undefined) =>
+      hex === undefined
+        ? (char ?? "")
+        : String.fromCodePoint(parseInt(hex, 16)),
+  );
+}
+
+/** The class names of a selector, unescaped: `.hover\:bg-x:hover` gives `hover:bg-x`. */
+export function selectorClasses(selector: string): string[] {
+  return [
+    ...selector.matchAll(
+      /\.((?:\\[0-9a-fA-F]{1,6}\s?|\\[^0-9a-fA-F\r\n]|[\w-])+)/g,
+    ),
+  ].map((match) => unescapeCssIdentifier(match[1] ?? ""));
+}
+
+/** A class without its variants and its important mark: `motion-safe:hover:scale-x!` → `scale-x`. */
+export function utilityOf(className: string): string {
+  let depth = 0;
+  let start = 0;
+  for (let index = 0; index < className.length; index += 1) {
+    const char = className[index];
+    if (char === "(" || char === "[") depth += 1;
+    if (char === ")" || char === "]") depth -= 1;
+    if (char === ":" && depth === 0) start = index + 1;
+  }
+  return className.slice(start).replace(/^!|!$/g, "");
+}
+
+/** A style rule of a stylesheet: its selector, nesting resolved, and its own declarations. */
+type StyleRule = { selector: string; declarations: CssDeclaration[] };
+
+/**
+ * The style rules of a stylesheet, minified or not: an at-rule keeps the selector around it, a
+ * nested `&` stands for it (Tailwind writes its variants nested, `.x{&:hover{@media …{…}}}`).
+ */
+function styleRules(css: string): StyleRule[] {
+  const rules: StyleRule[] = [];
+  const visit = (block: CssBlock, selector: string) => {
+    for (const child of block.blocks) {
+      const own = child.prelude.startsWith("@")
+        ? selector
+        : child.prelude.includes("&")
+          ? child.prelude.replaceAll("&", selector)
+          : selector === ""
+            ? child.prelude
+            : `${selector} ${child.prelude}`;
+      if (own !== "" && child.declarations.length > 0) {
+        rules.push({ selector: own, declarations: child.declarations });
+      }
+      visit(child, own);
+    }
+  };
+  visit(parseCssBlocks(css), "");
+  return rules;
+}
+
+/** `var(--name)` or `var(--name, fallback)`, for one name. */
+function readsOf(name: string): RegExp {
+  return new RegExp(
+    `var\\(\\s*${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*[,)]`,
+  );
+}
+
+/**
+ * G3i (b), on the build: every rule of a utility of a token that the KEO block redefines
+ * (`shadow-action-glow` for `--shadow-action-glow`, `rounded-card` for `--radius-card`, variants
+ * included) reads `var(--name)`; a rule that holds a value instead keeps the vitrine's under KEO.
+ */
+export function findInscribedKeoTokens(
+  builtCss: string,
+  tokensCss: string,
+): string[] {
+  const { keo } = tokenScopes(tokensCss);
+  if (keo === null) return ["no KEO block in the tokens"];
+  const rules = styleRules(builtCss);
+  return [...keo.keys()].flatMap((name) => {
+    const namespace = NAMESPACE_UTILITY_ROOTS.find(([prefix]) =>
+      name.startsWith(prefix),
+    );
+    if (namespace === undefined) return [];
+    const key = name.slice(namespace[0].length);
+    const utilities = new Set(namespace[1].map((root) => `${root}-${key}`));
+    const reads = readsOf(name);
+    return rules.flatMap((rule) => {
+      const isUtility = selectorClasses(rule.selector).some((className) =>
+        utilities.has(utilityOf(className)),
+      );
+      const text = rule.declarations
+        .map((declaration) => `${declaration.name}:${declaration.value}`)
+        .join(";");
+      return isUtility && !reads.test(text)
+        ? [
+            `${rule.selector}: a utility of ${name} that does not read var(${name}) {${text}}`,
+          ]
+        : [];
+    });
+  });
+}
+
+/**
+ * G3i (b): a token that the KEO block redefines and that no rule of the build reads through
+ * `var()` (unread, or inscribed), unless `justified` names it; a justified entry that is read, or
+ * that the block does not redefine, is stale.
+ */
+export function findUnreadKeoTokens(
+  builtCss: string,
+  tokensCss: string,
+  justified: readonly string[] = [],
+): string[] {
+  const { keo } = tokenScopes(tokensCss);
+  if (keo === null) return ["no KEO block in the tokens"];
+  const source = builtCss.replace(/\/\*[\s\S]*?\*\//g, " ");
+  const unread = [...keo.keys()].filter((name) => !readsOf(name).test(source));
+  return [
+    ...unread
+      .filter((name) => !justified.includes(name))
+      .map(
+        (name) =>
+          `${name}: redefined in the KEO block, read through var() by no rule of the build`,
+      ),
+    ...justified
+      .filter((name) => !unread.includes(name))
+      .map(
+        (name) =>
+          `${name}: stale justification, ${keo.has(name) ? "read by the build" : "not redefined in the KEO block"}`,
+      ),
+  ];
+}
+
+/** Every class named by a selector of a stylesheet, unescaped (TK7.2). */
+export function compiledClasses(css: string): Set<string> {
+  const classes = new Set<string>();
+  const visit = (block: CssBlock) => {
+    for (const child of block.blocks) {
+      if (!child.prelude.startsWith("@")) {
+        for (const className of selectorClasses(child.prelude)) {
+          classes.add(className);
+        }
+      }
+      visit(child);
+    }
+  };
+  visit(parseCssBlocks(css));
+  return classes;
+}
+
+/**
+ * The class names of a module of classes (TK7.2): the words of its double-quoted literals, the
+ * module specifiers of its imports and its directives (`"use client"`) aside.
+ */
+export function classLiteralsOf(source: string): string[] {
+  return classesOf(
+    withoutComments(source)
+      .replace(/^\s*["']use (?:client|server)["'];?\s*$/gm, "")
+      .replace(/\bfrom\s+"[^"]*"/g, "")
+      .replace(/\bimport\s+"[^"]*"/g, ""),
+  );
+}
+
+/**
+ * TK7.2: the classes that no rule of the build names (`tracking-wide` without a token, constat C3).
+ * `allowed` lists the justified ones; an entry that is compiled, or that no class names, is stale.
+ */
+export function findClassesWithoutRule(
+  classes: readonly string[],
+  builtCss: string,
+  allowed: readonly string[] = [],
+): string[] {
+  const compiled = compiledClasses(builtCss);
+  const unique = [...new Set(classes)];
+  const missing = unique.filter((name) => !compiled.has(name));
+  return [
+    ...missing
+      .filter((name) => !allowed.includes(name))
+      .map((name) => `${name}: no rule of the build names this class`),
+    ...allowed
+      .filter((name) => !missing.includes(name))
+      .map(
+        (name) =>
+          `${name}: stale entry, ${unique.includes(name) ? "compiled" : "no class names it"}`,
+      ),
+  ];
+}
+
+/** A value that follows the width of the window (20 §11.5): `clamp(` or a `vw` length. */
+const FLUID_VALUE = /clamp\(|\d(?:\.\d+)?vw\b/;
+
+/** The size and letter-spacing tokens: `--text-*` (not their `--line-height`) and `--tracking-*`. */
+function isTypographyToken(name: string): boolean {
+  return (
+    (name.startsWith("--text-") &&
+      !name.startsWith("--text-shadow-") &&
+      !name.slice(2).includes("--")) ||
+    name.startsWith("--tracking-")
+  );
+}
+
+/**
+ * The fluid typography of the vitrine (20 §11.5: `text-lead`, `text-heading-*`, `text-display`,
+ * `text-amount-lg`, `text-figure-*`), read in the values rather than listed: the tokens whose
+ * vitrine value follows the window. They stay with the vitrine; G8 refuses their classes under KEO.
+ */
+export function fluidTypographyTokens(css: string): string[] {
+  return [...effectiveTokens(css, "vitrine")]
+    .filter(
+      ([name, value]) => isTypographyToken(name) && FLUID_VALUE.test(value),
+    )
+    .map(([name]) => name);
+}
+
+/** The classes of the fluid typography (`text-lead`…), for G8 under the KEO scopes (TK7.3). */
+export function fluidTypographyClasses(css: string): string[] {
+  return fluidTypographyTokens(css).map((name) => name.slice(2));
+}
+
+/**
+ * TK7.3: no `clamp(` nor `vw` in a `--text-*` or `--tracking-*` that KEO may consume: every such
+ * token but the vitrine's fluid ones, at its effective KEO value (aliases followed), and every one
+ * that the KEO block declares.
+ */
+export function findFluidKeoTypography(css: string): string[] {
+  const fluid = fluidTypographyTokens(css);
+  const block = tokenScopes(css).keo ?? new Map<string, string>();
+  return [...effectiveTokens(css, "keo")]
+    .filter(
+      ([name, value]) =>
+        isTypographyToken(name) &&
+        FLUID_VALUE.test(value) &&
+        (!fluid.includes(name) || block.has(name)),
+    )
+    .map(([name, value]) => `${name}: "${value}" follows the window under KEO`);
+}
+
+/** The font smoothing, by property or by Tailwind's utility (`@apply antialiased`). */
+const SMOOTHING = /font-smoothing|(?<![\w-])(?:subpixel-)?antialiased(?![\w-])/;
+
+/** A selector whose subject is the document: `:root`, `html…` or `body…`, after any ancestor. */
+function selectsDocument(selector: string): boolean {
+  return selector.split(",").some((part) => {
+    const subject =
+      part
+        .trim()
+        .split(/\s*[\s>+~]\s*/)
+        .at(-1) ?? "";
+    return /^(?::root|html|body)(?![\w-])/.test(subject);
+  });
+}
+
+/**
+ * TK7.5: a font smoothing declared on `:root`, `html` or `body` (20 §11.5: under KEO only, by the
+ * `antialiased` utility on the KEO container; the vitrine stays `auto`). The innermost rules of a
+ * stylesheet, comments aside, so that an `@apply` counts as much as a property.
+ */
+export function findDocumentSmoothing(css: string): string[] {
+  const source = css.replace(/\/\*[\s\S]*?\*\//g, " ");
+  return [...source.matchAll(/([^{};]*)\{([^{}]*)\}/g)].flatMap((match) => {
+    const selector = collapse(match[1] ?? "");
+    const body = match[2] ?? "";
+    return selectsDocument(selector) && SMOOTHING.test(body)
+      ? [`${selector}: declares a font smoothing (${collapse(body)})`]
+      : [];
+  });
+}
+
+/**
+ * A token confined to a few files (TK7.5: `badge-error-bg` to the badge of an error, never the
+ * ground of a notice, D72): every line elsewhere in src/ that names it as a class or a variable,
+ * comments aside, and every listed file that does not exist.
+ */
+export function findTokenUseOutside(
+  frontRoot: string,
+  fragment: string,
+  allowedFiles: readonly string[],
+): string[] {
+  const allowed = allowedFiles.map((file) => path.join(frontRoot, file));
+  const missing = allowed
+    .filter((file) => !existsSync(file))
+    .map(
+      (file) =>
+        `${relativePath(frontRoot, file)}: listed as allowed to use ${fragment}, does not exist`,
+    );
+  const pattern = new RegExp(
+    `(?<!\\w)${fragment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`,
+  );
+  const uses = sourceFilesUnder(frontRoot)
+    .filter((file) => !allowed.includes(file))
+    .flatMap((file) =>
+      withoutComments(readFileSync(file, "utf8"))
+        .split("\n")
+        .flatMap((line, index) =>
+          pattern.test(line)
+            ? [`${relativePath(frontRoot, file)}:${index + 1}: ${line.trim()}`]
+            : [],
+        ),
+    );
+  return [...missing, ...uses];
+}

@@ -16,7 +16,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Browser, Page } from "@playwright/test";
+import type { Browser, Locator, Page } from "@playwright/test";
 import { effectiveTokens } from "@influx/test-kit/guards";
 import { messages } from "../../backoffice/src/messages/fr";
 import { expectNoAxeViolation } from "./support/axe";
@@ -47,6 +47,28 @@ import {
   signUpAsCreator,
   test,
 } from "./support/journey";
+import { focusedElement } from "./support/focus";
+import {
+  brandGreen,
+  computed,
+  displayFamily,
+  expectGreenGlow,
+  expectHeadingTracking,
+  expectNoGlow,
+  expectSoftGlow,
+  expectStill,
+  expectWholeGlow,
+  expectZoomAndPress,
+  firstFamily,
+  glowFacts,
+  glowProbe,
+  hovered,
+  luminance,
+  rgbaOf,
+  sameColor,
+  sidewaysFacts,
+  visibleShadows,
+} from "./support/rendering";
 import { BACKOFFICE_ORIGIN } from "./support/servers";
 
 const m = messages;
@@ -1102,4 +1124,400 @@ test("DS-12b: the dual control, the Apollo settings, the internal accounts and t
     await restoreApolloSetting("apollo_excluded_countries", excludedBefore);
     await restoreAdmins();
   }
+});
+
+// The RK milestone (D75; 18 §12.6, TK1 to TK6; jalons/rk-fiche.md R1 to R4): the rendered state of
+// the KEO charter on the backoffice, read on the real element in the state it concerns (helpers of
+// support/rendering.ts, shared with charter-rendering.spec.ts). A case that the code before the
+// milestone fails is a test.fail() named after the commit that frees it (RK-n), which turns it into
+// a plain test; an absence is a case of its own (R2).
+
+/** The small buttons of the screens (RK-4: sober, neither glow nor zoom); one not found fails. */
+const SMALL_BUTTONS = [
+  { path: "/inscrits", name: m.accounts.searchSubmit },
+  { path: "/inscrits", name: m.accounts.reset },
+] as const;
+
+function signInButton(page: Page) {
+  return page.getByRole("button", { name: m.login.submit });
+}
+
+/** The sign-in page, its h1 focused on arrival (DS-11): the standalone screen of the backoffice. */
+async function openSignIn(page: Page): Promise<void> {
+  await page.goto(bo("/"));
+  await expect(
+    page.getByRole("heading", { level: 1, name: m.login.title }),
+  ).toBeFocused();
+}
+
+/** Two sign-ups of one tag, their list on screen: the rows of the dense table (TK6). */
+async function twoRows(page: Page, name: string) {
+  const tag = runTag(name);
+  for (const role of ["creator", "advertiser"] as const) {
+    await seedSignup({
+      tag,
+      role,
+      countryCode: "BE",
+      language: "fr",
+      consent: true,
+    });
+  }
+  await seedInternal(page, "agent", "Lina");
+  await openList(page, tag);
+  const rows = accountRows(page);
+  await expect(rows).toHaveCount(2);
+  await page.mouse.move(1, 1);
+  return {
+    rows,
+    firstCell: (index: number) => rows.nth(index).locator("td").first(),
+  };
+}
+
+/** The layers of an inset shadow of 2 px on the left, in the brand green (TK6.2). */
+async function rowIndicators(page: Page, cell: Locator) {
+  const green = await brandGreen(page);
+  return visibleShadows(await computed(cell, "box-shadow")).filter(
+    (layer) =>
+      layer.inset && layer.x === 2 && layer.y === 0 && sameColor(layer, green),
+  );
+}
+
+test.fail(
+  "RK-2: TK1.1 (backoffice), the sign-in button glows in the brand green at rest, wider on hover",
+  async ({ page }) => {
+    await openSignIn(page);
+    await expectGreenGlow(page, signInButton(page));
+  },
+);
+
+test("TK1.1 (backoffice): no glow on a disabled or unavailable button, at rest nor on hover", async ({
+  page,
+}) => {
+  await openSignIn(page);
+  const button = signInButton(page);
+  for (const state of ["disabled", "aria-disabled"] as const) {
+    await button.evaluate((element, attribute) => {
+      element.setAttribute(attribute, "true");
+    }, state);
+    await expectNoGlow(button, { force: true });
+    await page.mouse.move(1, 1);
+    await button.evaluate((element, attribute) => {
+      element.removeAttribute(attribute);
+    }, state);
+  }
+});
+
+test.fail(
+  "RK-4: TK1.2 (backoffice), the sign-in button grows to 1.03 on hover and shrinks to 0.98 while pressed",
+  async ({ page }) => {
+    await openSignIn(page);
+    await expectZoomAndPress(page, signInButton(page));
+  },
+);
+
+test("TK1.2 (backoffice): neither zoom nor press under reduced motion", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await openSignIn(page);
+  await expectStill(page, signInButton(page));
+});
+
+test("TK1.2 (backoffice): neither zoom nor press on a disabled button", async ({
+  page,
+}) => {
+  await openSignIn(page);
+  const button = signInButton(page);
+  await button.evaluate((element) => element.setAttribute("disabled", ""));
+  await expectStill(page, button, { force: true });
+});
+
+test("TK1.3 (backoffice): the primary button in 700", async ({ page }) => {
+  await openSignIn(page);
+  expect(await computed(signInButton(page), "font-weight")).toBe("700");
+});
+
+test.fail(
+  "RK-4: TK1.3 (backoffice), the secondary button and the text button in 600",
+  async ({ page }) => {
+    await openSignIn(page);
+    const text = page.getByRole("button", { name: m.login.useRecoveryCode });
+    expect(await computed(text, "font-weight"), "text button").toBe("600");
+    await page.goto(bo("/introuvable-rk"));
+    const secondary = page.getByRole("link", { name: m.errorPages.home });
+    expect(await computed(secondary, "font-weight"), "secondary").toBe("600");
+  },
+);
+
+test("TK1.4: the small buttons of the screens stay sober: neither glow nor zoom, at rest, on hover, pressed", async ({
+  page,
+}) => {
+  await seedInternal(page, "agent", "Sacha");
+  for (const { path: screen, name } of SMALL_BUTTONS) {
+    await page.goto(bo(screen));
+    const button = page.getByRole("button", { name, exact: true });
+    await expect(button, `${screen}: ${name}`).toBeVisible();
+    await expectNoGlow(button);
+    await expectStill(page, button);
+  }
+});
+
+test("TK1.5 (backoffice): a card is rounded at 16 px", async ({ page }) => {
+  await openSignIn(page);
+  const card = page.locator("form").first();
+  for (const corner of [
+    "top-left",
+    "top-right",
+    "bottom-right",
+    "bottom-left",
+  ]) {
+    expect(await computed(card, `border-${corner}-radius`), corner).toBe(
+      "16px",
+    );
+  }
+});
+
+test.fail(
+  "RK-6: TK2.1 (backoffice), the screen container carries the glow, whole, the only one of the page",
+  async ({ page }) => {
+    await openSignIn(page);
+    expectWholeGlow("sign-in", await glowFacts(page));
+  },
+);
+
+test.fail(
+  "RK-6: TK2.2 (backoffice), the glow without an edge, 16 to 25/255 over the page under the centre",
+  async ({ page }) => {
+    await openSignIn(page);
+    expectSoftGlow("sign-in at 1440 px", await glowProbe(page));
+  },
+);
+
+test("TK2.3 (backoffice): no sideways scroll at 375 and 768 px, the glow drawn", async ({
+  page,
+}) => {
+  await openSignIn(page);
+  for (const width of [375, 768]) {
+    await page.setViewportSize({ width, height: 800 });
+    const facts = await sidewaysFacts(page);
+    expect(facts.glows, `${width} px: the glow drawn`).toBeGreaterThan(0);
+    expect(facts.overflow, `${width} px`).toBeLessThanOrEqual(0);
+  }
+});
+
+test("TK3.3 (backoffice): the h1 tightened by --tracking-heading, a negative token", async ({
+  page,
+}) => {
+  await openSignIn(page);
+  await expectHeadingTracking(page, page.getByRole("heading", { level: 1 }));
+});
+
+test.fail(
+  "RK-5b: TK3.3 (backoffice), a section title (h2) tightened by --tracking-heading, a negative token",
+  async ({ page }) => {
+    await seedInternal(page, "agent", "Eden");
+    await page.goto(bo("/accueil"));
+    await expectHeadingTracking(
+      page,
+      page.getByRole("heading", { level: 2 }).first(),
+    );
+  },
+);
+
+test.fail(
+  "RK-5b: TK3.3 (backoffice), a block title (h3) in Manrope 700",
+  async ({ page }) => {
+    await seedInternal(page, "admin", "Ilian");
+    await page.goto(bo("/sante-technique"));
+    await expect(page.getByText(m.health.loading)).toHaveCount(0);
+    const heading = page.getByRole("heading", { level: 3 }).first();
+    await expect(heading).toBeVisible();
+    expect(firstFamily(await computed(heading, "font-family"))).toBe(
+      await displayFamily(page),
+    );
+    expect(await computed(heading, "font-weight")).toBe("700");
+  },
+);
+
+test.fail(
+  "RK-5b: TK3.4 (backoffice), the html smoothed (antialiased)",
+  async ({ page }) => {
+    await openSignIn(page);
+    expect(await computed(page.locator("html"), "-webkit-font-smoothing")).toBe(
+      "antialiased",
+    );
+  },
+);
+
+test.fail(
+  "RK-7: TK5.1 (backoffice), on arrival, the h1 focused without a ring",
+  async ({ page }) => {
+    await openSignIn(page);
+    expect((await focusedElement(page))?.outlineStyle).toBe("none");
+  },
+);
+
+/** The dashboard of a seeded agent, drawn (its h1 written) before any key is pressed. */
+async function openDashboard(page: Page): Promise<void> {
+  await seedInternal(page, "agent", "Mila");
+  await page.goto(bo("/accueil"));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    m.home.title,
+  );
+}
+
+test("TK5.1 (backoffice): after a click in the rail, the h1 focused without a ring", async ({
+  page,
+}) => {
+  await openDashboard(page);
+  await mainNavigation(page)
+    .getByRole("link", { name: m.nav.accounts })
+    .click();
+  const heading = page.getByRole("heading", { level: 1 });
+  await expect(heading).toHaveText(m.accounts.title);
+  await expect(heading).toBeFocused();
+  expect((await focusedElement(page))?.outlineStyle).toBe("none");
+});
+
+test.fail(
+  "RK-7: TK5.1 (backoffice), after Enter on a link of the rail, the h1 focused without a ring",
+  async ({ page }) => {
+    await openDashboard(page);
+    await mainNavigation(page)
+      .getByRole("link", { name: m.nav.accounts })
+      .focus();
+    await page.keyboard.press("Enter");
+    const heading = page.getByRole("heading", { level: 1 });
+    await expect(heading).toHaveText(m.accounts.title);
+    await expect(heading).toBeFocused();
+    expect((await focusedElement(page))?.outlineStyle).toBe("none");
+  },
+);
+
+test.fail(
+  "RK-7: TK5.1 (backoffice), after the skip link, main focused without a ring",
+  async ({ page }) => {
+    await openDashboard(page);
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("link", { name: m.nav.skip })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#main")).toBeFocused();
+    expect((await focusedElement(page))?.outlineStyle).toBe("none");
+  },
+);
+
+test("TK5.2 (backoffice): at Tab, a link, a button, a field and the region of a table keep a ring of 2 px, never covered", async ({
+  page,
+}) => {
+  const { rows } = await twoRows(page, "tk52");
+  await expect(rows.first()).toBeVisible();
+  const seen = new Set<string>();
+  for (let press = 0; press < 60 && seen.size < 4; press += 1) {
+    await page.keyboard.press("Tab");
+    // The centre of the element's first fragment: « Ouvrir la fiche » wraps on two lines in its
+    // cell, and the centre of its whole box falls between them, on the cell itself.
+    const focus = await page.evaluate(() => {
+      const element = document.activeElement;
+      if (element === null) return null;
+      const style = getComputedStyle(element);
+      const box =
+        element.getClientRects()[0] ?? element.getBoundingClientRect();
+      const top = document.elementFromPoint(
+        box.x + box.width / 2,
+        box.y + box.height / 2,
+      );
+      return {
+        kind:
+          element.getAttribute("role") === "region"
+            ? "region"
+            : element.tagName.toLowerCase(),
+        outlineStyle: style.outlineStyle,
+        outlineWidth: parseFloat(style.outlineWidth),
+        covered: top === null || !(top === element || element.contains(top)),
+      };
+    });
+    if (
+      focus === null ||
+      !["a", "button", "input", "region"].includes(focus.kind) ||
+      seen.has(focus.kind)
+    ) {
+      continue;
+    }
+    seen.add(focus.kind);
+    expect(focus.outlineStyle, focus.kind).not.toBe("none");
+    expect(focus.outlineWidth, focus.kind).toBeGreaterThanOrEqual(2);
+    expect(focus.covered, `${focus.kind} is covered`).toBe(false);
+  }
+  expect([...seen].sort()).toEqual(["a", "button", "input", "region"]);
+});
+
+test.fail(
+  "RK-9: TK6.1, the head of the dense table lighter than its rows, in Manrope 700",
+  async ({ page }) => {
+    const { rows } = await twoRows(page, "tk61");
+    const head = page
+      .getByRole("table", { name: m.accounts.title })
+      .locator("thead th")
+      .first();
+    const ground = async (cell: Locator) =>
+      cell.evaluate((element) => {
+        for (
+          let node: Element | null = element;
+          node !== null;
+          node = node.parentElement
+        ) {
+          const color = getComputedStyle(node).backgroundColor;
+          if (!/^rgba\(.*,\s*0\)$|^transparent$/.test(color)) return color;
+        }
+        return getComputedStyle(document.body).backgroundColor;
+      });
+    const headGround = rgbaOf(await ground(head));
+    const rowGround = rgbaOf(await ground(rows.first().locator("td").first()));
+    if (headGround === null || rowGround === null) {
+      throw new Error("unread grounds");
+    }
+    expect(luminance(headGround), "the head lighter").toBeGreaterThan(
+      luminance(rowGround),
+    );
+    expect(firstFamily(await computed(head, "font-family"))).toBe(
+      await displayFamily(page),
+    );
+    expect(await computed(head, "font-weight")).toBe("700");
+  },
+);
+
+test.fail(
+  "RK-9: TK6.2, a hovered row marked by 2 px of the brand green on its first cell",
+  async ({ page }) => {
+    const { rows, firstCell } = await twoRows(page, "tk62-hover");
+    await hovered(rows.first());
+    await expect
+      .poll(async () => (await rowIndicators(page, firstCell(0))).length)
+      .toBe(1);
+  },
+);
+
+test.fail(
+  "RK-9: TK6.2, a row whose link has the keyboard focus marked by 2 px of the brand green",
+  async ({ page }) => {
+    const { rows, firstCell } = await twoRows(page, "tk62-focus");
+    await rows
+      .first()
+      .getByRole("link", { name: m.accounts.openRecord })
+      .focus();
+    expect(await rowIndicators(page, firstCell(0))).toHaveLength(1);
+  },
+);
+
+test("TK6.2: no row marked at rest, nor the neighbour of the hovered one", async ({
+  page,
+}) => {
+  const { rows, firstCell } = await twoRows(page, "tk62-none");
+  expect(await rowIndicators(page, firstCell(0)), "at rest").toEqual([]);
+  expect(await rowIndicators(page, firstCell(1)), "at rest").toEqual([]);
+  await hovered(rows.first());
+  expect(
+    await rowIndicators(page, firstCell(1)),
+    "the neighbour of the hovered row",
+  ).toEqual([]);
 });

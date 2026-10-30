@@ -166,6 +166,25 @@ describe("a Playwright report read as a Vitest one (J8T-6)", () => {
     ).toEqual({ problems: [], aboveFloor: [] });
   });
 
+  // RK-1 (rk-fiche, integrateur): the safety net of a milestone writes its red cases as test.fail();
+  // Playwright reports such a case "expected", its last result "failed": it ran. One that passes
+  // is "unexpected" and fails the run by itself.
+  it("counts a test.fail() that failed, as expected, as executed", () => {
+    const report = playwright({
+      "a.spec.ts": [
+        { status: "expected", results: ["failed"] },
+        { status: "unexpected", results: ["passed"] },
+      ],
+    });
+    expect(
+      checkCaseFloors(
+        vitestReportOfPlaywright(report),
+        { "e2e/a.spec.ts": 2 },
+        WEB,
+      ),
+    ).toEqual({ problems: [], aboveFloor: [] });
+  });
+
   it("reports a skipped test, and one a serial file never ran after a failure", () => {
     const { problems } = checkCaseFloors(
       vitestReportOfPlaywright(

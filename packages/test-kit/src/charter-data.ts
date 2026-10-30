@@ -3,7 +3,7 @@
 // what is inherited, what is vitrine-only, which pairs are checked and at which floor are data, in
 // this one module, that `expert-ux` keeps up to date. A floor goes down only by a written decision
 // of the founder (CLAUDE.md §4). Read by apps/web and apps/backoffice (same tokens.css, same data).
-import type { Charter, TokenPair } from "./guards.ts";
+import type { Charter, ColorMixAllowance, TokenPair } from "./guards.ts";
 
 // ---------------------------------------------------------------------------------------------
 // G3c: the --color-* that the KEO block does not redefine (02 §21.3 point 2; 20 §11.3, last table)
@@ -78,6 +78,21 @@ export const KEO_RETARGETED: readonly string[] = [
   // One family in the vitrine; under KEO, Manrope for titles and figures, Source Sans 3 for the
   // body (20 §11.5, 02 §21.4).
   "--font-display",
+];
+
+// ---------------------------------------------------------------------------------------------
+// G3i (a): the brand green mixed with transparency, in the halos only (D75 RK-A; 20 §11.5)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * The tokens of the KEO block that may hold `color-mix(in srgb, var(--color-brand-primary) N%,
+ * transparent)`: the glow of the primary button at rest and on hover, and the header glow, at 15 %
+ * at most. Never a `--color-*`, a text, the ground of a card nor a border.
+ */
+export const KEO_COLOR_MIX: readonly ColorMixAllowance[] = [
+  { name: "--effect-action-glow" },
+  { name: "--effect-action-glow-hover" },
+  { name: "--background-image-header-glow", maxPercent: 15 },
 ];
 
 // ---------------------------------------------------------------------------------------------

@@ -39,6 +39,11 @@ import {
   findKeoBlocksOutside,
   findKeoBlockViolations,
   findTokenPairFailures,
+  findDocumentSmoothing,
+  findFluidKeoTypography,
+  findKeoTrapViolations,
+  findTokenUseOutside,
+  fluidTypographyClasses,
   hueGap,
   keoBlocks,
   DANGER_RED_TOKENS,
@@ -50,6 +55,7 @@ import {
   CONTRAST_MATRIX,
   DANGER_PAIRS,
   FORBIDDEN_CLASS_PAIRS,
+  KEO_COLOR_MIX,
   KEO_INHERITS,
   KEO_RETARGETED,
   ROLE_COLOR_COMPONENTS,
@@ -290,6 +296,41 @@ describe("G3c: the KEO block is unique, complete, opaque and closes its aliases 
   });
 });
 
+// The guards of the RK milestone on the sources (D75; 02 §21.3 point 3; 18 §5.1, TK7.1, TK7.3, TK7.5).
+// A case that the code before the milestone fails is an `it.fails` named after the commit that frees
+// it (RK-n); that commit turns it into a plain `it`. G3i (b) and TK7.2 read the build (RK-3, RK-5).
+describe("G3i (a), TK7.3 and TK7.5: no inscribed KEO token, no fluid size, no smoothing on the document", () => {
+  const tokens = readFileSync(path.join(SRC, "styles", "tokens.css"), "utf8");
+
+  it.fails(
+    "RK-2: redefines no token of a namespace that Tailwind inscribes, color-mix in the tokens of RK-A only (G3i a)",
+    () => {
+      expect(findKeoTrapViolations(tokens, KEO_COLOR_MIX)).toEqual([]);
+    },
+  );
+
+  it("lets no fluid size nor letter-spacing through to KEO (TK7.3)", () => {
+    expect(findFluidKeoTypography(tokens)).toEqual([]);
+  });
+
+  it("declares no font smoothing on :root, html or body (TK7.5)", () => {
+    const sheets = ["styles/tokens.css", "app/globals.css"];
+    expect(
+      sheets.flatMap((sheet) =>
+        findDocumentSmoothing(readFileSync(path.join(SRC, sheet), "utf8")),
+      ),
+    ).toEqual([]);
+  });
+
+  it("paints badge-error-bg on the error badge alone, never a notice (TK7.5, D72)", () => {
+    expect(
+      findTokenUseOutside(WEB_ROOT, "badge-error-bg", [
+        "src/components/member/ui/status-badge-classes.ts",
+      ]),
+    ).toEqual([]);
+  });
+});
+
 // G3d (D73, 18 §5.1, 20 §11.4): the matrix of contrasts per charter and the hue gap of the success.
 // The pairs, the floors and SUCCESS_MIN_HUE_GAP are data (@influx/test-kit/charter-data): the guard
 // computes, it decides nothing. What it does not see (a usage not listed) is left to axe and TD3.
@@ -416,6 +457,21 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
   it("transforms a state under motion-safe: only and never transitions all (20 §11.5, F6)", () => {
     expect(findStateTransforms(WEB_ROOT, KEO_SCOPES)).toEqual([]);
   });
+
+  // G8 extended (D75 RK-5; 18 §5.1, TK7.3): the fluid sizes stay with the vitrine. The code before
+  // the RK milestone fails it (CodeStep, FreshCode, DoorStep): RK-5a turns it into a plain `it`.
+  it.fails(
+    "RK-5a: uses no class of the vitrine's fluid typography under the KEO scopes (TK7.3)",
+    () => {
+      expect(
+        findVitrineTokenUse(
+          WEB_ROOT,
+          KEO_SCOPES,
+          fluidTypographyClasses(tokens),
+        ),
+      ).toEqual([]);
+    },
+  );
 
   it("serves exactly the pages of MEMBER_PAGE_SLUGS from the (member) group, URLs unchanged", () => {
     const memberPaths = Object.values(MEMBER_PAGE_SLUGS).flatMap((slugs) =>

@@ -23,6 +23,8 @@ export const MAILBOXES = [
   "landing-brand-fr",
   "landing-creator-en",
   "charter-terms-dialog",
+  "rendering-key-figure",
+  "rendering-dialog-smoothing",
 ] as const;
 
 export type Mailbox = (typeof MAILBOXES)[number];

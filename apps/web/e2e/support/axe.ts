@@ -1,10 +1,12 @@
 // The automated accessibility check of the browser journeys (J7T-4; docs/mvp/18 risk 8: automated
 // on the key screens, blocking on what it finds; the rest is a visual check). axe-core runs in the
 // page, on the rules of WCAG 2.1 A and AA only, and the journey fails on ANY violation: each one is
-// named with its rule and the elements it found.
+// named with its rule and the elements it found. Each pass also records the titles of the screen
+// for TK3.1 (D75; 18 §12.6), read once every pass ran by charter-headings.spec.ts: no assertion here.
 import type { Page } from "@playwright/test";
 import axe from "axe-core";
 import { expect } from "./journey";
+import { recordHeadings } from "./rendering";
 
 type Violation = {
   id: string;
@@ -60,4 +62,5 @@ export async function expectNoAxeViolation(
     ),
     `axe, WCAG ${wcag22 ? "2.2" : "2.1"} AA, ${screen}`,
   ).toEqual([]);
+  await recordHeadings(page, screen);
 }

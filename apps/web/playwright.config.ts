@@ -61,7 +61,20 @@ export default defineConfig({
     baseURL: WEB_ORIGIN,
     trace: "retain-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  // TK3.1 (D75; 18 §12.6) reads what the axe passes of "chromium" recorded: a project of its own,
+  // run once they all passed. Its spec navigates nowhere.
+  projects: [
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      testIgnore: /charter-headings\.spec\.ts$/,
+    },
+    {
+      name: "charter-headings",
+      testMatch: /charter-headings\.spec\.ts$/,
+      dependencies: ["chromium"],
+    },
+  ],
   webServer: [
     {
       command: "node ../../packages/test-kit/scripts/brevo-double.ts",
