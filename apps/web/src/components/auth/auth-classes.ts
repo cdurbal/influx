@@ -22,7 +22,7 @@ import { PAGE_TITLE_CLASSES } from "@/components/member/ui/page-header-classes";
  */
 export const SPACE_SCREEN_CLASSES = cn(
   "mx-auto flex w-full max-w-(--container-narrow) flex-col gap-6",
-  "px-page-gutter py-section-header bg-header-glow bg-no-repeat",
+  "min-h-(--size-header-glow) px-page-gutter py-section-header bg-header-glow bg-no-repeat",
 );
 
 /** A standalone page (the journey, signed out, terms to accept): one centred column, mobile first. */

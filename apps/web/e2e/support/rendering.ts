@@ -530,8 +530,11 @@ const STRIP_WIDTH_PX = 16;
 export function glowFacts(page: Page) {
   return page.evaluate(() => {
     const title = document.querySelector("h1");
+    // Loading has no title yet: the container is then the first block of <main>.
     const container =
-      title?.closest("header")?.parentElement ?? title?.closest("main");
+      title?.closest("header")?.parentElement ??
+      title?.closest("main") ??
+      document.querySelector("main > div");
     if (container === null || container === undefined) return null;
     const probe = document.createElement("div");
     probe.style.height = "var(--size-header-glow)";

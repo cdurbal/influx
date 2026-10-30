@@ -356,6 +356,7 @@ Décision D75 (fondateur, 2026-10-30). Dix-sept écarts entre la proposition 4 e
 - [x] RK-7 (`fe45da8`) — aucun anneau sur un titre ni sur `main` pris par l'application (`:where(h1, h2, h3, h4, main)[tabindex="-1"]:focus-visible`, jamais un `[tabindex]` générique) ; TK5.1 libérés, libellé « Étape N sur 3 » repris sur `OVERLINE`
 - [x] RK-8 (`e3f088a`) — contour de la carte cliquable éclairci au survol (`border-hover`) ; badges remplis en Manrope gras, `badge-error-bg` `#2e1213` confiné au badge d'erreur (TK7.5), paires dans G3d
 - [x] RK-9 — en-tête du tableau dense en `surface-hover` Manrope 700, filet de 2 px `--effect-bo-row-indicator` sur la première cellule de la ligne survolée ou focalisée ; halo d'en-tête aussi sur le `<main>` des pages de travail du BO (`min-h` du halo) ; TK6 libérés, TK2 rejoués sur `/accueil`
+- [x] EC-RK-ux9-1 (`sha`) — halo entier pendant le chargement
 
 ### Hors jalon
 

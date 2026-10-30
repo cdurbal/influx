@@ -13,7 +13,7 @@ export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "e2e/backoffice.spec.ts": 52,
   "e2e/charter-cascade.spec.ts": 15,
   "e2e/charter-headings.spec.ts": 3,
-  "e2e/charter-rendering.spec.ts": 27,
+  "e2e/charter-rendering.spec.ts": 28,
   "e2e/global-net.spec.ts": 4,
   "e2e/journey-resume.spec.ts": 7,
   "e2e/journey-screens.spec.ts": 12,

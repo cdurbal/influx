@@ -209,6 +209,32 @@ test("TK2.1, the screen container carries the glow, whole, the only one of the p
   expectWholeGlow("sign-in", standalone);
 });
 
+test("TK2.1, the glow stays whole while the member space loads", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await seedMember(page, {
+    role: "creator",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.windows", "firefox.macos"],
+  });
+  // The read of the account is held, not failed: the space stays in its loading state.
+  let release: () => void = () => undefined;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/api/v1/me", async (route) => {
+    await held;
+    await route.continue().catch(() => undefined);
+  });
+  await open(page, "/fr/createur");
+  await expect(page.getByText(T.home.loading)).toBeVisible();
+  const loading = await glowFacts(page);
+  release();
+  expectWholeGlow("loading", loading);
+});
+
 test("TK2.2, the glow without an edge, 16 to 25/255 over the page under the centre", async ({
   page,
 }) => {
