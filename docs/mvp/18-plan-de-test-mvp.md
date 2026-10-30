@@ -1467,7 +1467,7 @@ fondateur. T15.2 (routes de recherche et de profil) entre au Lot 3 : T15 passe p
 ### Jalon SN — Sous-navigation dans la colonne (D74) ▸ extra du MVP, avant le Lot 2 *(ajouté le 2026-10-29)*
 
 **Tests exigibles et critère de fin :** famille **TN1 à TN9** et cases du critère de fin de
-`jalons/sn-fiche.md` ; familles TD1 à TD8 du jalon DS en non-régression (un seul repère de
+`archives/jalons/sn-fiche.md` ; familles TD1 à TD8 du jalon DS en non-régression (un seul repère de
 navigation, un seul `aria-current`, axe aux largeurs de §12.2). Aucun plancher ne baisse.
 
 ### Jalon DS — Charte KEO Emerald (D73) ▸ extra du MVP, entre le Lot 1 et le Lot 2 *(ajouté le 2026-10-28)*

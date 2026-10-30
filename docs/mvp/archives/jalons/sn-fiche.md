@@ -270,3 +270,15 @@ change. L'exemption CGU de la page-menu n'ouvre aucune donnée (`CLAUDE.md` §7 
 | Un second `<nav>` réapparaît dans un écran futur | Garde TN9 ; règle écrite dans `02` §21.5 point 3 |
 | Confusion entre rubrique ancêtre et sous-entrée courante | Un seul `aria-current`, surface et filet sur la seule sous-entrée ; relecture `expert-ux` |
 | Régression des e2e sur les adresses de « Mon compte » | Attendus modifiés listés nommément dans SN-1 ; aucun autre attendu ne bouge |
+
+## Écarts constatés
+
+- EC-SN-1 (SN-1) : trois parcours e2e gagnent une étape ou un titre au-delà de l'adresse, « Compte » ouvrant la page-menu (exemptée) et non « Mes informations ».
+- EC-SN-2 (SN-1) : clé de méta nommée `account.meta.hub` (à côté de `account.meta.details`) au lieu de `meta.accountHub`.
+- EC-SN-3 (SN-2) : les bandeaux hors ligne et CGU en attente restent au-dessus de l'en-tête de page, donc de « ‹ Mon compte ».
+- EC-SN-4 (SN-2) : sur téléphone, sur une sous-page, « Compte » dans la barre garde l'aspect de la cellule courante sans `aria-current` (le seul est sur la sous-entrée masquée sous `lg`).
+- EC-SN-5 (SN-2) : `PAGE_TITLE_CLASSES` passe dans `ui/page-header-classes.ts` pour que `PageHeader` devienne un module client sans que les composants serveur perdent la chaîne de classes.
+- EC-SN-6 (SN-2) : jeton dérivé `--spacing-nav-sub-indent` (retrait + icône + écart), dans les `tokens.css` des deux fronts, qui restent identiques.
+- EC-SN-7 (SN-3) : le backoffice n'a encore ni fil d'Ariane ni raccourci `g` ; rien à conserver.
+- EC-SN-8 (SN-3) : sous 768 px l'écran « poste de travail » n'a pas de navigation ; TN7 vérifie un repère de navigation dès 768 px et aucun à 375 px.
+- EC-SN-9 (SN-3) : dans la bande, le `<nav>` prend la place laissée par la déconnexion (`max-lg:flex-1`) pour que la ligne de l'entrée active l'occupe.

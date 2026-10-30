@@ -33,7 +33,7 @@
 | **J8** | 1 | Backoffice v0 : inscrits, états de synchronisation, rejeu, réglages Apollo | ✅ Revue close (2026-10-16) ; critère `staging` constaté le 2026-10-20 (J9 commit S) | 4-5 j |
 | **J9** | 1 | Sortie du mode maquette de la landing, en-têtes, surveillance active, production | ✅ Revue close (2026-10-27) ; critère `staging` constaté en partie (arrêts à faire), production préparée, non créée — reliquat `archives/jalons/j9-fiche.md` | 4-5 j |
 | **DS** | extra | Charte KEO Emerald des espaces connectés (D73) : tokens, polices, gabarits mobile et poste de travail, rhabillage de l'existant | ✅ Clos (2026-10-29, `archives/jalons/ds-fiche.md`) | 6-8 j |
-| **SN** | extra | Sous-navigation dans la colonne (D74) : sous-menus de la colonne et du rail à la place des pilules de section, page-menu « Mon compte » sur téléphone | ⏳ Spécifié (2026-10-29, `jalons/sn-fiche.md`) | 1,5-2 j |
+| **SN** | extra | Sous-navigation dans la colonne (D74) : sous-menus de la colonne et du rail à la place des pilules de section, page-menu « Mon compte » sur téléphone | ✅ Clos (2026-10-30, `archives/jalons/sn-fiche.md`) | 1,5-2 j |
 
 **Cinq règles qu'aucune urgence ne suspend :**
 
@@ -335,12 +335,9 @@ Décision D73 (fondateur, 2026-10-28). Les espaces membres (inscription et conne
 
 ### Jalon SN — Sous-navigation dans la colonne (extra, avant le Lot 2)
 
-Décision D74 (fondateur, 2026-10-29). Les pilules de section disparaissent : sous-menu de la rubrique active dans la colonne (membres) et le rail (backoffice), page-menu « Mon compte » sous 1 024 px, « Mes informations » à `/compte/informations`. Point d'entrée : **`jalons/sn-fiche.md`** (commits SN-1 à SN-5, critère de fin, tests TN1 à TN9).
+Décision D74 (fondateur, 2026-10-29). Les pilules de section disparaissent : sous-menu de la rubrique active dans la colonne (membres) et le rail (backoffice), page-menu « Mon compte » sous 1 024 px, « Mes informations » à `/compte/informations`. Point d'entrée : **`archives/jalons/sn-fiche.md`** (commits SN-1 à SN-5, critère de fin, tests TN1 à TN9).
 
-- [x] SN-1 (`202933f`) — page-menu « Mon compte » (`/fr/compte` · `/en/account`, exemptée des CGU), « Mes informations » à `/compte/informations` · `/account/details`, « Gérer mon compte » repointé ; TN2 et e2e (page-menu FR/EN, liens de langue, CGU en attente, axe).
-- [x] SN-2 (`3d766af`) — sous-entrées de « Compte » dans la colonne (`activePlaceOf`, `<ul>` imbriquée masquée sous `lg`, états ancêtre et courant), pilules et « Retour à mon espace » retirées, « ‹ Mon compte » au-dessus du `h1` ; TN1, TN4, TN6, TN8.
-- [x] SN-3 (`26089ba`) — sous-entrées dans le rail du backoffice (`BoNav` pur, `subEntriesOf`, `entryStateOf`, `/inscrits/⟨id⟩` → « Inscrits »), seconde ligne de 768 à 1 023 px sans défilement, `SectionLinks` retiré ; TN3, TN5, TN7, TN8.
-- [x] SN-4 — pilules de section retirées (`sectionLinkClasses`, `NAV_LIST_CLASSES`/`navLinkClasses` du compte), garde TN9 (aucune pilule, un seul `<nav` par coquille) dans les deux fronts.
+- [x] Jalon SN clos (SN-1 `202933f` à SN-4 `fc54686`, avec `40e1559` et `5e49da1`, SN-5 clôture) — sous-navigation D74 en place : page-menu « Mon compte » (`/compte`, exemptée des CGU), « Mes informations » à `/compte/informations`, sous-entrées dans la colonne membres et le rail du backoffice, pilules de section retirées, garde TN9 ; TN1 à TN9 présents et raised-only (planchers jamais baissés), axe sur la page-menu (FR à quatre largeurs, EN à deux), seuls des attendus e2e d'adresse modifiés ; `pnpm check` et `pnpm test:e2e` verts aux commits du jalon ; accord du fondateur sur un vrai téléphone le 2026-10-30 ; revue groupée `testeur` + `expert-cybersecurite` faite (2026-10-30, attestation `dff4de2`, aucun changement sous `apps/api` ni `supabase`) ; **reste** : SNT-1 (TD3.6 intermittent en run complet), SNT-2 (`21` omet SN-4 et deux commits hors plan), SNT-3 (pas de test du défilement des entrées du menu de la landing ni des liens de marque) ; aucun SNS ; écarts EC-SN-1 à -9 et décisions ouvertes dans `archives/jalons/sn-fiche.md`.
 
 ### Hors jalon
 
@@ -399,5 +396,5 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 | **J8** | `git show a2ff7bc:docs/mvp/jalons/j8-fiche.md` (fiche archivée) ; `05` §K ; `15` §C, §F ; `17b` §3.11 et §3.13 ; skill `backoffice-ops` |
 | **D70** | **`archives/jalons/d70-plan.md` d'abord** ; `02` §12.4 ; `03` §6.8 et T17 ; `16` §J ; skills `env-secrets`, `railway-deploy` |
 | **J9** | `archives/jalons/j9-fiche.md` (reliquat) ; fiche complète : `git show 8323aeb:docs/mvp/jalons/j9-fiche.md` ; `runbooks/production.md` |
-| **SN** | **`jalons/sn-fiche.md` d'abord** ; `17` §2.2, §2.3, §6.0 ; `17b` §1.7 ; `20` §11.8 ; `02` §21.5 points 3 et 8 |
+| **SN** | **`archives/jalons/sn-fiche.md` d'abord** ; `17` §2.2, §2.3, §6.0 ; `17b` §1.7 ; `20` §11.8 ; `02` §21.5 points 3 et 8 |
 | **DS** | **`archives/jalons/ds-fiche.md` d'abord** ; `02` §21 ; `20` §11 ; `17` §2.2, §2.3, §8 ; `17b` §1.4, §1.7, §6 ; `18` §5 (gardes G3 à G8) ; skill `design-system-influx` |

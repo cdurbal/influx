@@ -2455,7 +2455,7 @@ Les groupes ne changent aucune URL : chemins localisés, `memberPageLocale` et r
    `aria-hidden`. *(D74, 2026-10-29)* Les pages d'une rubrique sont une `<ul>` **imbriquée dans le
    `<li>` de l'entrée active**, dans ce même `<nav>`, masquée sous `lg` ; **aucun second `<nav>`**
    (les liens de section de « Mon compte » et du backoffice sont retirés). Sous `lg`, l'entrée mène à
-   une page-menu (une liste dans `<main>`). Détail : `jalons/sn-fiche.md`.
+   une page-menu (une liste dans `<main>`). Détail : `archives/jalons/sn-fiche.md`.
 4. Grille et tokens : `lg:grid-cols-(--grid-member-shell)` ; `--size-member-rail` (16 rem, `17`
    §2.3), `--size-nav-bottom-height` (3,5 rem) et `--z-nav-bottom` (90) de `17` §8.2 ; colonne
    `lg:sticky lg:top-0 lg:h-dvh` ; marge basse de `main` sous `lg` ; zone de geste iOS par une règle de

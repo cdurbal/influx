@@ -259,7 +259,7 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
   complet dès 768 px, écran « poste de travail » sous 768 px de large ou 500 px de haut (`17b` §1.7).
 - **D74 tranchée (2026-10-29)** : sous-navigation dans la colonne (sous-menu de la rubrique active),
   page-menu sur téléphone, membres et backoffice ; seuls les canaux d'une conversation restent en
-  onglets. Exécution par le **Jalon SN**, extra, avant le Lot 2 (`docs/mvp/jalons/sn-fiche.md`).
+  onglets. Exécution par le **Jalon SN**, extra, clos le 2026-10-30 (`docs/mvp/archives/jalons/sn-fiche.md`).
 - **D71 tranchée (2026-10-18)** : revues sécurité et RGPD (vetos, I-4) bloquantes sur la seule
   branche `production` ; `main` et `staging` se construisent et se déploient sans elles. `production`
   (créée le 2026-10-19, sans protection GitHub) n'avance que par `git merge --no-ff main`.
