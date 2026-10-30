@@ -358,6 +358,7 @@ Décision D75 (fondateur, 2026-10-30). Dix-sept écarts entre la proposition 4 e
 - [x] RK-9 — en-tête du tableau dense en `surface-hover` Manrope 700, filet de 2 px `--effect-bo-row-indicator` sur la première cellule de la ligne survolée ou focalisée ; halo d'en-tête aussi sur le `<main>` des pages de travail du BO (`min-h` du halo) ; TK6 libérés, TK2 rejoués sur `/accueil`
 - [x] EC-RK-ux9-1 (`sha`) — halo entier pendant le chargement
 - [x] EC-RK-ux9-2 (`sha`) — écart icône/libellé de la déconnexion
+- [x] EC-RK-revue-1 — tokens.css en UTF-8 valide, garde ajoutée
 
 ### Hors jalon
 

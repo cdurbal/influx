@@ -18,6 +18,7 @@ import {
   HARD_CODED_COLOR_PATTERN,
   HARD_CODED_LENGTH_PATTERN,
   importSpecifiers,
+  isValidUtf8,
   listFiles,
   RELAY_FILES,
   relativePath,
@@ -121,6 +122,10 @@ describe("G3: no hard-coded color or length outside the token file (CA22)", () =
     expect(readFileSync(path.join(BACKOFFICE_ROOT, TOKENS))).toEqual(
       readFileSync(path.join(WEB_ROOT, TOKENS)),
     );
+  });
+
+  it("keeps tokens.css valid UTF-8", () => {
+    expect(isValidUtf8(path.join(BACKOFFICE_ROOT, TOKENS))).toBe(true);
   });
 
   it("keeps globals.css and tokens.css as the only style sheets, colors in tokens only", () => {

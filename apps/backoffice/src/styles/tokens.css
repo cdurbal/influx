@@ -463,7 +463,7 @@
 
   /* Control and icon sizes (03 §8) */
   --size-touch-target: 2.75rem;
-  /* Height of the header glow's ellipse (RK-9; 20 �11.5): 12 to 20 rem, edgeless from 12, gone
+  /* Height of the header glow's ellipse (RK-9; 20 §11.5): 12 to 20 rem, edgeless from 12, gone
    * before the bottom bar at 375 px up to 20. */
   --size-header-glow: 16rem;
   --size-button-md: 2.75rem;

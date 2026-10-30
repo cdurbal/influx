@@ -14,6 +14,16 @@ export function listFiles(directory: string): string[] {
   });
 }
 
+/** Whether a file is valid UTF-8 (a stray Latin-1 byte in a comment is invisible in review). */
+export function isValidUtf8(file: string): boolean {
+  try {
+    new TextDecoder("utf-8", { fatal: true }).decode(readFileSync(file));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Path of a file relative to a root, with forward slashes on every platform. */
 export function relativePath(root: string, file: string): string {
   return path.relative(root, file).split(path.sep).join("/");

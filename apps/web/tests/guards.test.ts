@@ -19,6 +19,7 @@ import {
   findVitrineSnapshotChanges,
   HARD_CODED_COLOR_PATTERN,
   HARD_CODED_LENGTH_PATTERN,
+  isValidUtf8,
   listFiles,
   relativePath,
   BO_TOKEN_MARKER,
@@ -143,6 +144,10 @@ describe("G3: no hard-coded color or length outside the token files (CA22)", () 
 
   it("finds no literal length (px, rem, em, vh, vw, ch)", () => {
     expect(findMatches(HARD_CODED_LENGTH_PATTERN, files)).toEqual([]);
+  });
+
+  it("keeps tokens.css valid UTF-8", () => {
+    expect(isValidUtf8(path.join(SRC, "styles", "tokens.css"))).toBe(true);
   });
 
   it("keeps a single tokens file, marked with its D6 and D73 status", () => {

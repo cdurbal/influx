@@ -20,6 +20,7 @@ import {
   HARD_CODED_LENGTH_PATTERN,
   HEALTH_ROUTE_FILE,
   importSpecifiers,
+  isValidUtf8,
   listFiles,
   RELAY_FILES,
 } from "../src/guards.ts";
@@ -35,6 +36,16 @@ function writeFixture(relative: string, content: string): string {
 
 afterAll(() => {
   rmSync(TEMP_ROOT, { recursive: true, force: true });
+});
+
+describe("isValidUtf8", () => {
+  it("accepts UTF-8 and refuses a lone Latin-1 byte", () => {
+    const good = writeFixture("utf8/good.css", "/* § and ç */");
+    const bad = path.join(TEMP_ROOT, "utf8/bad.css");
+    writeFileSync(bad, Buffer.from([0x2f, 0x2a, 0x20, 0xa7, 0x20]));
+    expect(isValidUtf8(good)).toBe(true);
+    expect(isValidUtf8(bad)).toBe(false);
+  });
 });
 
 describe("file helpers", () => {
