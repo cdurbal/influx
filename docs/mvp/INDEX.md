@@ -100,7 +100,7 @@
 | 2265 | 9 | ↳ 20.11 Points à faire valider par le fondateur |  |
 | 2274 | 13 | ↳ 20.12 Ce que cet addendum demande aux autres agents |  |
 | 2287 | 7 | ↳ Sources (vérifiées le 2026-09-24) |  |
-| 2294 | 294 | 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits) | RG7–RG107 |
+| 2294 | 298 | 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits) | RG7–RG107 |
 
 ## 03-matrice-des-droits-et-rls.md (~51k tokens)
 
@@ -679,7 +679,7 @@
 | 55 | 39 | 2. Stratégie de développement | RG44–RG148 |
 | 94 | 23 | 3. Écarts actifs pour les jalons restants (J5 à J9) | RG23–RG146 |
 | 117 | 43 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 160 | 220 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG165 |
-| 380 | 9 | 6. Configuration des services externes |  |
-| 389 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 406 | 13 | 8. Guide de lecture par jalon | RG54–RG58 |
+| 160 | 221 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG165 |
+| 381 | 9 | 6. Configuration des services externes |  |
+| 390 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 407 | 13 | 8. Guide de lecture par jalon | RG54–RG58 |

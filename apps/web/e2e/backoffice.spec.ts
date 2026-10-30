@@ -1452,6 +1452,49 @@ test("TK2.3 (backoffice): no sideways scroll at 375 and 768 px, the glow drawn",
   }
 });
 
+/** A work page of the backoffice, an agent seeded: the dashboard, whose h1 sits straight in <main>. */
+async function openWorkPage(page: Page) {
+  await seedInternal(page, "agent", "Eden");
+  await page.goto(bo("/accueil"));
+  await expect(
+    page.getByRole("heading", { level: 1, name: m.home.title }),
+  ).toBeVisible();
+}
+
+test("TK2.1 (backoffice), the container of a work page carries the glow, whole, the only one", async ({
+  page,
+}) => {
+  await openWorkPage(page);
+  const facts = await glowFacts(page);
+  expectWholeGlow("home", facts);
+  // Whatever its content (loading included), the container is as high as the glow.
+  expect(
+    parseFloat(await computed(page.locator("main"), "min-height")),
+    "home: min-height of the container",
+  ).toBeGreaterThanOrEqual(facts?.glowHeight ?? Infinity);
+});
+
+test("TK2.2 (backoffice), the glow of a work page without an edge, 16 to 25/255 over the page", async ({
+  page,
+}) => {
+  await openWorkPage(page);
+  expectSoftGlow("home at 1440 px", await glowProbe(page));
+});
+
+test("TK2.3 (backoffice), a work page: no sideways scroll at 375 and 768 px, the glow drawn at 768 only", async ({
+  page,
+}) => {
+  await openWorkPage(page);
+  await page.setViewportSize({ width: 768, height: 800 });
+  const work = await sidewaysFacts(page);
+  expect(work.drawn, "768 px: the glow drawn").toBe(1);
+  expect(work.overflow, "768 px").toBeLessThanOrEqual(0);
+  await page.setViewportSize({ width: 375, height: 800 });
+  const small = await sidewaysFacts(page);
+  expect(small.drawn, "375 px: the workstation screen has no glow").toBe(0);
+  expect(small.overflow, "375 px").toBeLessThanOrEqual(0);
+});
+
 test("TK3.3 (backoffice): the h1 tightened by --tracking-heading, a negative token", async ({
   page,
 }) => {
@@ -1592,63 +1635,57 @@ test("TK5.2 (backoffice): at Tab, a link, a button, a field and the region of a 
   expect([...seen].sort()).toEqual(["a", "button", "input", "region"]);
 });
 
-test.fail(
-  "RK-9: TK6.1, the head of the dense table lighter than its rows, in Manrope 700",
-  async ({ page }) => {
-    const { rows } = await twoRows(page, "tk61");
-    const head = page
-      .getByRole("table", { name: m.accounts.title })
-      .locator("thead th")
-      .first();
-    const ground = async (cell: Locator) =>
-      cell.evaluate((element) => {
-        for (
-          let node: Element | null = element;
-          node !== null;
-          node = node.parentElement
-        ) {
-          const color = getComputedStyle(node).backgroundColor;
-          if (!/^rgba\(.*,\s*0\)$|^transparent$/.test(color)) return color;
-        }
-        return getComputedStyle(document.body).backgroundColor;
-      });
-    const headGround = rgbaOf(await ground(head));
-    const rowGround = rgbaOf(await ground(rows.first().locator("td").first()));
-    if (headGround === null || rowGround === null) {
-      throw new Error("unread grounds");
-    }
-    expect(luminance(headGround), "the head lighter").toBeGreaterThan(
-      luminance(rowGround),
-    );
-    expect(firstFamily(await computed(head, "font-family"))).toBe(
-      await displayFamily(page),
-    );
-    expect(await computed(head, "font-weight")).toBe("700");
-  },
-);
+test("TK6.1: the head of the dense table lighter than its rows, in Manrope 700", async ({
+  page,
+}) => {
+  const { rows } = await twoRows(page, "tk61");
+  const head = page
+    .getByRole("table", { name: m.accounts.title })
+    .locator("thead th")
+    .first();
+  const ground = async (cell: Locator) =>
+    cell.evaluate((element) => {
+      for (
+        let node: Element | null = element;
+        node !== null;
+        node = node.parentElement
+      ) {
+        const color = getComputedStyle(node).backgroundColor;
+        if (!/^rgba\(.*,\s*0\)$|^transparent$/.test(color)) return color;
+      }
+      return getComputedStyle(document.body).backgroundColor;
+    });
+  const headGround = rgbaOf(await ground(head));
+  const rowGround = rgbaOf(await ground(rows.first().locator("td").first()));
+  if (headGround === null || rowGround === null) {
+    throw new Error("unread grounds");
+  }
+  expect(luminance(headGround), "the head lighter").toBeGreaterThan(
+    luminance(rowGround),
+  );
+  expect(firstFamily(await computed(head, "font-family"))).toBe(
+    await displayFamily(page),
+  );
+  expect(await computed(head, "font-weight")).toBe("700");
+});
 
-test.fail(
-  "RK-9: TK6.2, a hovered row marked by 2 px of the brand green on its first cell",
-  async ({ page }) => {
-    const { rows, firstCell } = await twoRows(page, "tk62-hover");
-    await hovered(rows.first());
-    await expect
-      .poll(async () => (await rowIndicators(page, firstCell(0))).length)
-      .toBe(1);
-  },
-);
+test("TK6.2: a hovered row marked by 2 px of the brand green on its first cell", async ({
+  page,
+}) => {
+  const { rows, firstCell } = await twoRows(page, "tk62-hover");
+  await hovered(rows.first());
+  await expect
+    .poll(async () => (await rowIndicators(page, firstCell(0))).length)
+    .toBe(1);
+});
 
-test.fail(
-  "RK-9: TK6.2, a row whose link has the keyboard focus marked by 2 px of the brand green",
-  async ({ page }) => {
-    const { rows, firstCell } = await twoRows(page, "tk62-focus");
-    await rows
-      .first()
-      .getByRole("link", { name: m.accounts.openRecord })
-      .focus();
-    expect(await rowIndicators(page, firstCell(0))).toHaveLength(1);
-  },
-);
+test("TK6.2: a row whose link has the keyboard focus marked by 2 px of the brand green", async ({
+  page,
+}) => {
+  const { rows, firstCell } = await twoRows(page, "tk62-focus");
+  await rows.first().getByRole("link", { name: m.accounts.openRecord }).focus();
+  expect(await rowIndicators(page, firstCell(0))).toHaveLength(1);
+});
 
 test("TK6.2: no row marked at rest, nor the neighbour of the hovered one", async ({
   page,

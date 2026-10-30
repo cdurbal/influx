@@ -522,15 +522,16 @@ const EDGE_OFFSET_PX = 4;
 const STRIP_WIDTH_PX = 16;
 
 /**
- * What TK2.1 reads: the ground of the screen container (the parent of the header that holds the h1),
+ * What TK2.1 reads: the ground of the screen container (the parent of the header that holds the h1, or
+ * the <main> of a work page of the backoffice, whose h1 has no header),
  * the elements of the page whose ground is a radial gradient, the height of the glow, and the
  * ancestors whose overflow cuts the glow's box.
  */
 export function glowFacts(page: Page) {
   return page.evaluate(() => {
-    const container = document
-      .querySelector("h1")
-      ?.closest("header")?.parentElement;
+    const title = document.querySelector("h1");
+    const container =
+      title?.closest("header")?.parentElement ?? title?.closest("main");
     if (container === null || container === undefined) return null;
     const probe = document.createElement("div");
     probe.style.height = "var(--size-header-glow)";
@@ -601,8 +602,12 @@ export async function glowProbe(
 ): Promise<{ peak: number; edges: Record<string, number> }> {
   await page.evaluate(() => window.scrollTo(0, 0));
   const boxes = await page.evaluate(() => {
-    const header = document.querySelector("h1")?.closest("header");
-    const container = header?.parentElement;
+    const title = document.querySelector("h1");
+    // The head of the page: its <header> when it has one, else the title itself (work pages of the
+    // backoffice, whose h1 sits straight in <main>).
+    const header = title?.closest("header") ?? title;
+    const container =
+      title?.closest("header")?.parentElement ?? title?.closest("main");
     if (header === null || header === undefined || !container) return null;
     const box = container.getBoundingClientRect();
     const head = header.getBoundingClientRect();
@@ -613,7 +618,7 @@ export async function glowProbe(
       headerBottom: head.bottom,
     };
   });
-  if (boxes === null) throw new Error("no header holding the h1");
+  if (boxes === null) throw new Error("no head of page holding the h1");
   const top = Math.floor(boxes.top);
   const lumas = await rowLumas(page, {
     x: Math.round(boxes.centre - STRIP_WIDTH_PX / 2),
@@ -654,16 +659,25 @@ export function expectSoftGlow(
   }
 }
 
-/** Whether the page scrolls sideways, and whether a glow is drawn on it (TK2.3). */
+/**
+ * Whether the page scrolls sideways, and whether a glow is drawn on it (TK2.3): `glows` counts the
+ * elements whose ground is a glow, `drawn` those of them that are rendered (a hidden frame still
+ * has its computed style).
+ */
 export function sidewaysFacts(
   page: Page,
-): Promise<{ overflow: number; glows: number }> {
-  return page.evaluate(() => ({
-    overflow: document.documentElement.scrollWidth - window.innerWidth,
-    glows: [...document.querySelectorAll("*")].filter((element) =>
+): Promise<{ overflow: number; glows: number; drawn: number }> {
+  return page.evaluate(() => {
+    const glows = [...document.querySelectorAll("*")].filter((element) =>
       getComputedStyle(element).backgroundImage.includes("radial-gradient"),
-    ).length,
-  }));
+    );
+    return {
+      overflow: document.documentElement.scrollWidth - window.innerWidth,
+      glows: glows.length,
+      drawn: glows.filter((element) => element.getClientRects().length > 0)
+        .length,
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------------------------

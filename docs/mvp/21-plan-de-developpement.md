@@ -354,7 +354,8 @@ Décision D75 (fondateur, 2026-10-30). Dix-sept écarts entre la proposition 4 e
 - [x] RK-5b (`9c709b8`) — titres du backoffice en Manrope à tailles fixes (`SECTION_TITLE`, `BLOCK_TITLE`, titre de carte des pages d'auth), `tracking-overline`, `antialiased` sur `<html>` ; TK3 BO, TK3.4 et G8 BO libérés
 - [x] RK-6 (`418442f`) — halo d'en-tête en fond du conteneur d'écran (`bg-header-glow bg-no-repeat`, 15 % sur 16 rem, sans calque ni bord) ; TK2 libérés dans les deux fronts, pic `#0d291d` dans G3d
 - [x] RK-7 (`fe45da8`) — aucun anneau sur un titre ni sur `main` pris par l'application (`:where(h1, h2, h3, h4, main)[tabindex="-1"]:focus-visible`, jamais un `[tabindex]` générique) ; TK5.1 libérés, libellé « Étape N sur 3 » repris sur `OVERLINE`
-- [x] RK-8 — contour de la carte cliquable éclairci au survol (`border-hover`) ; badges remplis en Manrope gras, `badge-error-bg` `#2e1213` confiné au badge d'erreur (TK7.5), paires dans G3d
+- [x] RK-8 (`e3f088a`) — contour de la carte cliquable éclairci au survol (`border-hover`) ; badges remplis en Manrope gras, `badge-error-bg` `#2e1213` confiné au badge d'erreur (TK7.5), paires dans G3d
+- [x] RK-9 — en-tête du tableau dense en `surface-hover` Manrope 700, filet de 2 px `--effect-bo-row-indicator` sur la première cellule de la ligne survolée ou focalisée ; halo d'en-tête aussi sur le `<main>` des pages de travail du BO (`min-h` du halo) ; TK6 libérés, TK2 rejoués sur `/accueil`
 
 ### Hors jalon
 

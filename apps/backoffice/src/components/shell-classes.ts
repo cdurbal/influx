@@ -143,8 +143,15 @@ export const RAIL_FOOT_CLASSES = cn(
   "lg:ml-0 lg:mt-auto lg:border-t-(length:--border-width-thin) lg:border-border-default lg:p-4",
 );
 
+/**
+ * The work page: its ground is the header glow (20 §11.8 "En-tête de page", D75 RK-9), like the
+ * standalone screens' (`SCREEN_CLASSES`); the container is at least as high as the glow, so that the
+ * gradient never stops dead, loading included. Not on `SMALL_SCREEN_CLASSES` (the frame is hidden
+ * under `bo-small:`): one glow per page.
+ */
 export const MAIN_CLASSES = cn(
-  "flex w-full max-w-(--container-max) flex-col gap-6 px-page-gutter py-6",
+  "flex min-h-(--size-header-glow) w-full max-w-(--container-max) flex-col gap-6",
+  "bg-header-glow bg-no-repeat px-page-gutter py-6",
   "lg:col-start-2 lg:row-start-2",
 );
 

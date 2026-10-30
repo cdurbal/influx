@@ -2504,7 +2504,11 @@ Les groupes ne changent aucune URL : chemins localisés, `memberPageLocale` et r
    **Halo en fond du conteneur d'écran** : `bg-header-glow bg-no-repeat` sur `SPACE_SCREEN_CLASSES`
    (web, donc aussi `SCREEN_CLASSES`) et `SCREEN_CLASSES` (backoffice) ; plus de calque (le `div`
    décoratif de `PageHeader` et `AUTH_GLOW_CLASSES` disparaissent) : un fond ne crée aucun défilement,
-   ne recouvre rien et s'arrête avant la barre du bas. **Règle du focus** :
+   ne recouvre rien et s'arrête avant la barre du bas. **Backoffice : le halo est aussi sur le
+   conteneur des pages de travail** (`MAIN_CLASSES`, le `<main>` du cadre, dont le `h1` n'est pas dans
+   un `<header>`), de hauteur minimale `--size-header-glow` (le dégradé ne s'arrête jamais net, chargement
+   compris), jamais sur l'écran « poste de travail » (`SMALL_SCREEN_CLASSES`, le cadre est masqué sous
+   `bo-small:`) ni en double avec `SCREEN_CLASSES` : un seul halo par page. **Règle du focus** :
    `:where(h1, h2, h3, h4, main)[tabindex="-1"]:focus-visible { outline: none; }` dans les deux
    `globals.css`, jamais un `[tabindex="-1"]` générique ; aucune règle `[data-theme="keo"]` hors du bloc
    de `tokens.css` (elle tomberait sous `findKeoBlocksOutside`, G3c).

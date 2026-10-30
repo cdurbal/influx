@@ -27,9 +27,9 @@ export const DENSE_TABLE_WRAP_CLASSES = cn(
 export const TABLE_CLASSES = "w-full border-collapse text-sm";
 
 export const TH_CLASSES = cn(
-  "sticky top-0 border-b-(length:--border-width-thin) border-border-strong bg-surface-card",
+  "sticky top-0 border-b-(length:--border-width-thin) border-border-strong bg-surface-hover",
   "px-(--spacing-bo-cell-x) py-(--spacing-bo-cell-y) text-left align-bottom",
-  "font-semibold text-text-secondary",
+  "font-display text-sm font-bold text-text-secondary",
 );
 
 export const TD_CLASSES = cn(
@@ -37,10 +37,18 @@ export const TD_CLASSES = cn(
   "px-(--spacing-bo-cell-x) py-(--spacing-bo-cell-y) align-top text-text-primary",
 );
 
+/**
+ * A row of the dense table. Hovered or holding the keyboard focus (D75 RK-15): `surface-raised` and
+ * the line of the brand green on its first cell, never on the `tr`. A selected row keeps its ground.
+ */
 export function rowClasses(selected: boolean): string {
   return selected
     ? "bg-surface-raised"
-    : "hover:bg-surface-raised focus-within:bg-surface-hover";
+    : cn(
+        "hover:bg-surface-raised focus-within:bg-surface-raised",
+        "hover:*:first:shadow-(--effect-bo-row-indicator)",
+        "focus-within:*:first:shadow-(--effect-bo-row-indicator)",
+      );
 }
 
 export const FIELD_CLASSES = "flex flex-col gap-1";
