@@ -1269,7 +1269,7 @@ vivre **en table**, modifiables sans redéploiement, chaque modification étant 
 
 ## Additif du 2026-09-24 — Invitation par un commercial (D54) et source d'acquisition (D55)
 
-> **Arbitrages du fondateur du 2026-09-24** (`CLAUDE.md` §13, revue `19-revue-de-coherence-2026-09-24.md`).
+> **Arbitrages du fondateur du 2026-09-24** (`decisions.md`, revue `archives/19-revue-de-coherence-2026-09-24.md`).
 > Cadre de règles ; écrans et critères d'acceptation à compléter par `product-owner` et `expert-ux`,
 > **avis obligatoire d'`expert-conformite-rgpd` (veto)** sur RG118 et RG121. Numérotation reprise
 > après RG115.

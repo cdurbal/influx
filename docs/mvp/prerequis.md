@@ -80,7 +80,7 @@ Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la sociét
 - [x] Trancher D39 et D40 — **fait le 2026-09-18** (portée de D40 après l'ouverture : D46)
 - [ ] Trancher D29, D32 (rédaction) et D33 — bloquent la mise en ligne du Lot 1
 - [x] Trancher les contradictions relevées par la revue de cohérence du 2026-09-24 (D42, D45 à
-      D51) — **fait le 2026-09-24**, voir `docs/mvp/19-revue-de-coherence-2026-09-24.md`
+      D51) — **fait le 2026-09-24**, voir `docs/mvp/archives/19-revue-de-coherence-2026-09-24.md`
 - [x] Arbitrer les oublis signalés par cette revue (D52 à D57) — **fait le 2026-09-24**
 - [ ] **Mesurer l'activité de départ** avant le pilote : affaires traitées au téléphone par semaine (D53)
 - [x] Réécrire les textes de la landing page pour le MVP courté, sans taux (D48) — **fait le

@@ -6326,7 +6326,7 @@ pour que le modèle ne comporte pas de manque, et chacun peut être rouvert par 
 
 ### 12.11 Points ouverts par les arbitrages du fondateur du 2026-09-24
 
-Ajoutés par la revue de cohérence (`19-revue-de-coherence-2026-09-24.md`). Ce sont des décisions
+Ajoutés par la revue de cohérence (`archives/19-revue-de-coherence-2026-09-24.md`). Ce sont des décisions
 **prises** ; il reste à les traduire dans le schéma.
 
 | # | Arbitrage | Conséquence à modéliser | Arbitre de la forme |

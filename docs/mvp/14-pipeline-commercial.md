@@ -1322,7 +1322,7 @@ n'est valide tant qu'un expert-comptable du pays de la société ne l'a pas conf
 
 ## Additif du 2026-09-24 — Suivi de livraison (D52) et relations préexistantes (D53)
 
-> **Arbitrages du fondateur du 2026-09-24** (`CLAUDE.md` §13, revue `19-revue-de-coherence-2026-09-24.md`).
+> **Arbitrages du fondateur du 2026-09-24** (`decisions.md`, revue `archives/19-revue-de-coherence-2026-09-24.md`).
 > Cet additif pose les règles ; les écrans (fiche d'affaire, `17b` §3.9) et les critères
 > d'acceptation sont à compléter par `product-owner` et `expert-ux`. La numérotation reprend après
 > RG104, sans toucher aux règles existantes.

@@ -1555,7 +1555,7 @@ aparté (RG118, RG146) :
 
 **Tests** — à ajouter au plan `18` : cloisonnement par rôle en accès direct (CA63), données dérivées
 (CA61, CA62), refus de l'API (CA64, CA65), journal par canal (CA67, CA68), notifications (CA73,
-CA74), export au titre du droit d'accès (CA79). Tâche confiée au `testeur` (`19` §5, point 6).
+CA74), export au titre du droit d'accès (CA79). Tâche confiée au `testeur` (`archives/19-revue-de-coherence-2026-09-24.md` §5, point 6).
 
 **Indicateurs** :
 

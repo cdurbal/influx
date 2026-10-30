@@ -656,16 +656,16 @@
 | 852 | 56 | ↳ 11.8 Gabarits et composants |  |
 | 908 | 12 | ↳ 11.9 Points soumis au fondateur |  |
 
-## 21-plan-de-developpement.md (~19k tokens)
+## 21-plan-de-developpement.md (~5k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
-| 10 | 38 | 0. L'essentiel | RG72–RG148 |
-| 48 | 7 | 1. Point de départ & conventions d'environnement |  |
-| 55 | 39 | 2. Stratégie de développement | RG44–RG148 |
-| 94 | 23 | 3. Écarts actifs pour les jalons restants (J5 à J9) | RG23–RG146 |
-| 117 | 43 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 160 | 210 | 5. Lot 1 — le premier usage (J5 à J9) | RG5–RG165 |
-| 370 | 9 | 6. Configuration des services externes |  |
-| 379 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 396 | 13 | 8. Guide de lecture par jalon | RG54–RG58 |
+| 10 | 22 | 0. L'essentiel | RG148 |
+| 32 | 7 | 1. Point de départ & conventions d'environnement |  |
+| 39 | 37 | 2. Stratégie de développement | RG44–RG148 |
+| 76 | 6 | 3. Écarts (`EC-*`) des Lots 0 et 1 |  |
+| 82 | 6 | 4. Lot 0 — le socle (J0 à J4) |  |
+| 88 | 21 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
+| 109 | 9 | 6. Configuration des services externes |  |
+| 118 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 135 | 27 | 8. Lot 2 — entrée et jalon actif |  |

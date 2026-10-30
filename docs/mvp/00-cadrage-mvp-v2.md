@@ -10,7 +10,7 @@
 > de mise en relation courtée et le suivi de la commission. Il contraint toutes les spécifications
 > qui suivent.
 >
-> **Mise à jour du 2026-09-24 (revue de cohérence, `19-revue-de-coherence-2026-09-24.md`).** Les
+> **Mise à jour du 2026-09-24 (revue de cohérence, `archives/19-revue-de-coherence-2026-09-24.md`).** Les
 > décisions **D2, D5, D12, D18, D37** (le 2026-09-18), **D39**, **D40**, **D41** (le 2026-09-18) et
 > **D43** (le 2026-09-19) sont tranchées : ce document les présentait encore comme ouvertes, c'est
 > corrigé ci-dessous. Le fondateur a précisé le **statut du code existant (D44)** : hors landing page,
