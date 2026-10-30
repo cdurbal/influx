@@ -315,11 +315,18 @@
    * Effects of the connected spaces kept by the founder (F6, 2026-10-29; 20 §11.5): neutral here
    * (the vitrine has none of them, D59), valued in the KEO block below, from the classes of the
    * members' primitives only. Derived from the brand green, no new value; decorative, never
-   * carrying information and never under the text's AA. The glow of the primary button is not in
-   * the --shadow-* namespace (Tailwind would inscribe its @theme value, constat C1): see
-   * --effect-action-glow in :root.
+   * carrying information and never under the text's AA.
    */
   --background-image-header-glow: none;
+  /*
+   * Glow of the primary button, at rest and on hover, read by `shadow-(--effect-action-glow)`.
+   * Outside the --shadow-* namespace, whose @theme value Tailwind inscribes in the utility
+   * (constat C1). `0 0 transparent`, never `none`, which would invalidate the box-shadow list it
+   * joins. Declared here, in the theme layer, not in the unlayered :root: the backoffice carries
+   * data-theme="keo" on <html>, where an unlayered :root would beat the KEO block of @layer base.
+   */
+  --effect-action-glow: 0 0 transparent;
+  --effect-action-glow-hover: 0 0 transparent;
   /*
    * Elevation on a near-black page: a pure dark drop shadow disappears into the background, so
    * each level pairs it with a hairline, near-transparent white edge (glass-like rim) to read as
@@ -430,12 +437,6 @@
   --z-header: 100;
   --z-overlay: 200;
   --z-cookie-banner: 300;
-
-  /* Glow of the primary button, at rest and on hover (F6; RK-1): neutral here, valued in the KEO
-   * block and read by `shadow-(--effect-action-glow)`. `0 0 transparent`, never `none`, which
-   * would invalidate the box-shadow list it joins. */
-  --effect-action-glow: 0 0 transparent;
-  --effect-action-glow-hover: 0 0 transparent;
 
   /* Durations (03 §9) */
   --duration-instant: 0ms;
