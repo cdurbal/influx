@@ -139,21 +139,29 @@ describe("badges and notices", () => {
     expect(markup).toContain("Verified · Instagram · October 2026");
     expect(markup).toContain("text-verified-text");
     expect(markup).toContain("border-verified-border");
+    expect(markup).toContain("bg-verified-bg");
+    expect(markup).toMatch(/font-display(?=[ "])[^"]*font-bold/);
     expect(markup).toMatch(/<svg[^>]*aria-hidden="true"/);
   });
 
-  it("outlines a status badge and never fills it", () => {
-    for (const tone of [
-      "neutral",
-      "success",
-      "warning",
-      "error",
-      "info",
-    ] as const) {
+  it("fills a status badge with the opaque ground of its own family, never green (RK-11)", () => {
+    const grounds = {
+      neutral: "bg-surface-raised",
+      success: "bg-feedback-success-bg",
+      warning: "bg-feedback-warning-bg",
+      error: "bg-badge-error-bg",
+      info: "bg-feedback-info-bg",
+    } as const;
+    for (const [tone, ground] of Object.entries(grounds) as [
+      keyof typeof grounds,
+      string,
+    ][]) {
       const markup = html(createElement(StatusBadge, { tone }, "Accepted"));
       expect(markup, tone).toContain("Accepted");
       expect(markup, tone).toContain("rounded-pill");
-      expect(markup, tone).not.toMatch(/(?:^|[ "])bg-/);
+      expect(markup, tone).toContain(ground);
+      expect(markup, tone).toMatch(/font-display(?=[ "])[^"]*font-bold/);
+      expect(markup, tone).not.toMatch(/bg-(?:brand|action-primary)/);
     }
   });
 

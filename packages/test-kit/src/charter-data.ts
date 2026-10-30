@@ -43,6 +43,8 @@ export const KEO_INHERITS: readonly string[] = [
   "--color-role-creator",
   "--color-verified-text",
   "--color-verified-border",
+  "--color-verified-bg",
+  "--color-badge-error-bg",
   "--color-data-3",
 ];
 
@@ -264,6 +266,18 @@ export const CONTRAST_MATRIX: Readonly<Record<Charter, readonly TokenPair[]>> =
       ...contrasts(
         ["--color-feedback-info-text"],
         ["--color-feedback-info-bg"],
+        TEXT_MIN,
+      ),
+      // The filled badges (D75 RK-11): the verified text on its ground, the error text on the one
+      // ground that may carry it, the neutral badge on `surface-raised` (secondary text, above).
+      ...contrasts(
+        ["--color-verified-text"],
+        ["--color-verified-bg"],
+        TEXT_MIN,
+      ),
+      ...contrasts(
+        ["--color-feedback-error-text"],
+        ["--color-badge-error-bg"],
         TEXT_MIN,
       ),
       // Non-text, 3:1: border of a field and of the secondary button, the shape of the main button,

@@ -42,6 +42,8 @@ const UNREAD_JUSTIFIED: readonly string[] = [
   "--color-counter-bg",
   "--color-counter-text",
   "--translate-lift",
+  // The border of a clickable card on hover (RK-10): the backoffice has no clickable card.
+  "--color-border-hover",
 ];
 
 describe("G3i (b): the built CSS reads every KEO token through var()", () => {

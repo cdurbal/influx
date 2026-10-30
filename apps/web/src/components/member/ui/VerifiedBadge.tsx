@@ -26,7 +26,7 @@ export function VerifiedBadge({
     <span
       className={cn(
         "inline-flex items-center gap-1 self-start rounded-pill px-3 py-1",
-        "border-(length:--border-width-thin) border-verified-border text-xs font-semibold text-verified-text",
+        "border-(length:--border-width-thin) border-verified-border bg-verified-bg font-display text-xs font-bold text-verified-text",
         className,
       )}
     >

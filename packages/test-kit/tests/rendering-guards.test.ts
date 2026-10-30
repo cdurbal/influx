@@ -386,21 +386,17 @@ const BADGE_PAIRS = [
 ] as const;
 
 describe("TK4.2 (data): the filled badges are pairs of the G3d matrix", () => {
-  // RK-8 fills the badges: the verified and error grounds do not exist before it.
-  it.fails(
-    "RK-8: lists the text of each badge on its own ground, at 4.5:1 at least, under KEO",
-    () => {
-      const missing = BADGE_PAIRS.filter(
-        ([foreground, background]) =>
-          !CONTRAST_MATRIX.keo.some(
-            (pair) =>
-              pair.kind === "contrast" &&
-              pair.foreground === foreground &&
-              pair.background === background &&
-              pair.min >= 4.5,
-          ),
-      );
-      expect(missing).toEqual([]);
-    },
-  );
+  it("lists the text of each badge on its own ground, at 4.5:1 at least, under KEO", () => {
+    const missing = BADGE_PAIRS.filter(
+      ([foreground, background]) =>
+        !CONTRAST_MATRIX.keo.some(
+          (pair) =>
+            pair.kind === "contrast" &&
+            pair.foreground === foreground &&
+            pair.background === background &&
+            pair.min >= 4.5,
+        ),
+    );
+    expect(missing).toEqual([]);
+  });
 });

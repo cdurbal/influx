@@ -340,26 +340,21 @@ test("TK3.4, the terms dialog smoothed (antialiased)", async ({ page }) => {
 // TK4: the cards and the badges (RK-10, RK-11 of the fiche; 20 §11.8)
 // ---------------------------------------------------------------------------------------------
 
-test.fail(
-  "RK-8: TK4.1, a clickable card lights its border up on hover, to --color-border-hover",
-  async ({ page }) => {
-    await open(page, "/fr/inscription");
-    const door = page.getByRole("button", { name: T.door.creator.action });
-    await expect(door).toBeVisible();
-    const rest = rgbaOf(await computed(door, "border-top-color"));
-    await hovered(door);
-    const hover = rgbaOf(await computed(door, "border-top-color"));
-    if (rest === null || hover === null) throw new Error("no border color");
-    expect(luminance(hover), "lighter on hover").toBeGreaterThan(
-      luminance(rest),
-    );
-    const token = await tokenColor(page, "--color-border-hover");
-    expect(token, "--color-border-hover").not.toBeNull();
-    expect(sameColor(hover, token ?? rest), "the border is the token").toBe(
-      true,
-    );
-  },
-);
+test("TK4.1, a clickable card lights its border up on hover, to --color-border-hover", async ({
+  page,
+}) => {
+  await open(page, "/fr/inscription");
+  const door = page.getByRole("button", { name: T.door.creator.action });
+  await expect(door).toBeVisible();
+  const rest = rgbaOf(await computed(door, "border-top-color"));
+  await hovered(door);
+  const hover = rgbaOf(await computed(door, "border-top-color"));
+  if (rest === null || hover === null) throw new Error("no border color");
+  expect(luminance(hover), "lighter on hover").toBeGreaterThan(luminance(rest));
+  const token = await tokenColor(page, "--color-border-hover");
+  expect(token, "--color-border-hover").not.toBeNull();
+  expect(sameColor(hover, token ?? rest), "the border is the token").toBe(true);
+});
 
 test("TK4.1: a card that is not clickable stays still on hover", async ({
   page,
@@ -388,40 +383,39 @@ test("TK4.1: a card that is not clickable stays still on hover", async ({
   expect(await read()).toEqual(rest);
 });
 
-test.fail(
-  "RK-8: TK4.2, a badge filled with an opaque token, in Manrope 700 at least, its text at 4.5:1",
-  async ({ page }) => {
-    await openAs(page, "/fr/compte/sessions", ACCOUNT.sessions.title);
-    const badge = page.getByText(ACCOUNT.sessions.current, { exact: true });
-    await expect(badge).toBeVisible();
-    expect((await badge.textContent())?.trim()).toBe(ACCOUNT.sessions.current);
-    const ground = rgbaOf(await computed(badge, "background-color"));
-    const text = rgbaOf(await computed(badge, "color"));
-    if (ground === null || text === null) throw new Error("no badge colors");
-    expect(ground.a, "an opaque ground").toBe(1);
-    const grounds = await Promise.all(
-      [
-        "--color-surface-raised",
-        "--color-feedback-success-bg",
-        "--color-feedback-warning-bg",
-        "--color-feedback-info-bg",
-        "--color-verified-bg",
-        "--color-badge-error-bg",
-      ].map((name) => tokenColor(page, name)),
-    );
-    expect(
-      grounds.some((token) => token !== null && sameColor(token, ground)),
-      "the ground is a token",
-    ).toBe(true);
-    expect(firstFamily(await computed(badge, "font-family"))).toBe(
-      await displayFamily(page),
-    );
-    expect(Number(await computed(badge, "font-weight"))).toBeGreaterThanOrEqual(
-      700,
-    );
-    expect(contrast(text, ground)).toBeGreaterThanOrEqual(4.5);
-  },
-);
+test("TK4.2, a badge filled with an opaque token, in Manrope 700 at least, its text at 4.5:1", async ({
+  page,
+}) => {
+  await openAs(page, "/fr/compte/sessions", ACCOUNT.sessions.title);
+  const badge = page.getByText(ACCOUNT.sessions.current, { exact: true });
+  await expect(badge).toBeVisible();
+  expect((await badge.textContent())?.trim()).toBe(ACCOUNT.sessions.current);
+  const ground = rgbaOf(await computed(badge, "background-color"));
+  const text = rgbaOf(await computed(badge, "color"));
+  if (ground === null || text === null) throw new Error("no badge colors");
+  expect(ground.a, "an opaque ground").toBe(1);
+  const grounds = await Promise.all(
+    [
+      "--color-surface-raised",
+      "--color-feedback-success-bg",
+      "--color-feedback-warning-bg",
+      "--color-feedback-info-bg",
+      "--color-verified-bg",
+      "--color-badge-error-bg",
+    ].map((name) => tokenColor(page, name)),
+  );
+  expect(
+    grounds.some((token) => token !== null && sameColor(token, ground)),
+    "the ground is a token",
+  ).toBe(true);
+  expect(firstFamily(await computed(badge, "font-family"))).toBe(
+    await displayFamily(page),
+  );
+  expect(Number(await computed(badge, "font-weight"))).toBeGreaterThanOrEqual(
+    700,
+  );
+  expect(contrast(text, ground)).toBeGreaterThanOrEqual(4.5);
+});
 
 // ---------------------------------------------------------------------------------------------
 // TK5: no ring on a title or main focused by the app (RK-13, RK-C of the fiche; 20 §11.8). The ring

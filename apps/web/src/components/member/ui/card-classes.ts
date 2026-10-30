@@ -8,11 +8,12 @@ export const MEMBER_CARD_CLASSES = cn(
 );
 
 /**
- * A card that is a click zone (a door, a choice): `surface-raised` on hover, and the lift of F6
+ * A card that is a click zone (a door, a choice): `surface-raised` and a lighter border on hover
+ * (`border-hover`; the resting `border-strong` is the only hint on a phone), and the lift of F6
  * under `motion-safe:` only. Flat at rest.
  */
 export const MEMBER_CLICKABLE_CARD_CLASSES = cn(
   "flex flex-col gap-1 rounded-card border-(length:--border-width-thin) border-border-strong",
-  "bg-surface-card p-inset-card text-left transition-lift hover:bg-surface-raised",
+  "bg-surface-card p-inset-card text-left transition-lift hover:border-border-hover hover:bg-surface-raised",
   "motion-safe:hover:translate-y-(--translate-lift)",
 );

@@ -118,6 +118,7 @@
    */
   --color-surface-active: var(--color-action-secondary-bg-active);
   --color-action-secondary-border-hover: var(--color-text-secondary);
+  --color-border-hover: var(--color-text-secondary);
   --color-nav-item-hover-bg: var(--color-surface-raised);
   --color-nav-item-active-bg: var(--color-surface-hover);
   --color-nav-item-active-indicator: var(--color-brand-primary);
@@ -127,6 +128,9 @@
   --color-role-creator: #ff8fb1;
   --color-verified-text: #4da3ff;
   --color-verified-border: var(--color-feedback-info-border);
+  --color-verified-bg: var(--color-feedback-info-bg);
+  /* The ground of the error badge alone, never of a notice (D72, DZ-6; 20 section 11.3, TK7.5). */
+  --color-badge-error-bg: #2e1213;
   --color-data-1: var(--color-brand-primary);
   --color-data-2: var(--color-feedback-info-text);
   --color-data-3: #ffae2b;
@@ -590,6 +594,7 @@
     --color-action-secondary-bg-active: var(--color-surface-active);
     --color-action-secondary-border: var(--color-border-strong);
     --color-action-secondary-border-hover: var(--color-text-secondary);
+    --color-border-hover: var(--color-text-secondary);
 
     /* Text */
     --color-text-primary: #f4f6f5;
