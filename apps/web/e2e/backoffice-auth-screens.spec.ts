@@ -62,6 +62,10 @@ test("DS-11: the focus ring is visible on the first field and on the primary but
   page,
 }) => {
   await page.goto(bo("/"));
+  // The h1 takes the focus on arrival (DS-11): a Tab pressed before would lose its focus to it.
+  await expect(
+    page.getByRole("heading", { level: 1, name: m.login.title }),
+  ).toBeFocused();
   await page.keyboard.press("Tab");
   const email = page.getByLabel(m.login.emailLabel);
   await expect(email).toBeFocused();

@@ -631,17 +631,6 @@
 | 1626 | 21 | 11. Verdict |  |
 | 1647 | 252 | 12. Les tests du jalon DS, charte KEO Emerald (D73) *(ajouté le 2026-10-28)* | RG66 |
 
-## 19-revue-de-coherence-2026-09-24.md (~5k tokens)
-
-| Ligne | Lignes | Section | RG citées |
-|---|---|---|---|
-| 15 | 19 | 0. Préalable : le statut du code (D44) |  |
-| 34 | 17 | 1. Corrections factuelles appliquées le 2026-09-24 | RG8–RG9 |
-| 51 | 142 | 2. Contradictions tranchées par le fondateur | RG2–RG122 |
-| 193 | 21 | 3. Oublis : tranchés par le fondateur le 2026-09-24 | RG2–RG123 |
-| 214 | 24 | 4. Questions ouvertes des spécifications |  |
-| 238 | 24 | 5. Suites | RG113–RG146 |
-
 ## 20-direction-design.md (~27k tokens)
 
 | Ligne | Lignes | Section | RG citées |
