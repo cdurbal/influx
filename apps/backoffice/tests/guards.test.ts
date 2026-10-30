@@ -256,18 +256,15 @@ describe("G3i (a), TK7.3 and TK7.5: no inscribed KEO token, no fluid size, no sm
     expect(findFluidKeoTypography(tokens)).toEqual([]);
   });
 
-  it.fails(
-    "RK-5b: uses no class of the vitrine's fluid typography, the backoffice being KEO whole (TK7.3, G8 extended)",
-    () => {
-      expect(
-        findVitrineTokenUse(
-          BACKOFFICE_ROOT,
-          ["src"],
-          fluidTypographyClasses(tokens),
-        ),
-      ).toEqual([]);
-    },
-  );
+  it("uses no class of the vitrine's fluid typography, the backoffice being KEO whole (TK7.3, G8 extended)", () => {
+    expect(
+      findVitrineTokenUse(
+        BACKOFFICE_ROOT,
+        ["src"],
+        fluidTypographyClasses(tokens),
+      ),
+    ).toEqual([]);
+  });
 
   it("declares no font smoothing on :root, html or body (TK7.5)", () => {
     const sheets = [TOKENS, TOKENS_BACKOFFICE, "src/app/globals.css"];

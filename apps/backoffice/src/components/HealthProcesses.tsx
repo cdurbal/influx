@@ -12,6 +12,7 @@ import { messages } from "@/messages/fr";
 import { HELP_CLASSES } from "./auth-classes";
 import { readOpsProcesses } from "./backoffice-api";
 import {
+  BLOCK_TITLE,
   TABLE_CLASSES,
   TABULAR_CLASSES,
   TD_CLASSES,
@@ -176,9 +177,7 @@ export function ProcessesSection({ refresh }: { refresh: number }) {
                 </table>
               </DenseTableRegion>
             )}
-            <h3 className="text-sm font-semibold text-text-primary">
-              {tp.database.title}
-            </h3>
+            <h3 className={BLOCK_TITLE}>{tp.database.title}</h3>
             <Database database={answer.database} />
           </>
         )}

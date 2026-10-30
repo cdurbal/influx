@@ -34,7 +34,7 @@ import {
   LINK_CLASSES,
   ROW_GROUP_CLASSES,
   SECTION_CLASSES,
-  SECTION_TITLE_CLASSES,
+  SECTION_TITLE,
   SELECT_CLASSES,
   SMALL_LABEL_CLASSES,
   SMALL_PRIMARY_CLASSES,
@@ -111,7 +111,7 @@ function InviteForm({ onCreated }: { onCreated: () => void }) {
       aria-labelledby="invite-title"
       className={SECTION_CLASSES}
     >
-      <h2 id="invite-title" className={SECTION_TITLE_CLASSES}>
+      <h2 id="invite-title" className={SECTION_TITLE}>
         {ti.internalTitle}
       </h2>
       <p className={HELP_CLASSES}>{ti.internalLead}</p>
@@ -295,7 +295,7 @@ export function InternalAccountsScreen() {
           <p className={HELP_CLASSES}>{t.lastSignInLater}</p>
           <InviteForm onCreated={() => setReload(reload + 1)} />
           <section aria-labelledby="internal-list" className={SECTION_CLASSES}>
-            <h2 id="internal-list" className={SECTION_TITLE_CLASSES}>
+            <h2 id="internal-list" className={SECTION_TITLE}>
               {ti.listTitle}
             </h2>
             {invitations.length === 0 ? (

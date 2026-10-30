@@ -8,8 +8,12 @@ export const SECTION_CLASSES = cn(
   "bg-surface-card p-inset-card",
 );
 
-export const SECTION_TITLE_CLASSES =
-  "text-lead font-semibold text-text-primary";
+/** The `h2` of a section: as the members' (20 §11.5; D75 RK-5, RK-6), Manrope at a fixed size, tightened. */
+export const SECTION_TITLE =
+  "font-display text-title-section font-bold tracking-heading text-text-primary";
+
+/** The `h3` of a dense block: 14 px bold, left at its natural spacing (D75 RK-5). */
+export const BLOCK_TITLE = "font-display text-sm font-bold text-text-primary";
 
 /**
  * The dense table scrolls in its own region (17b §1.7), never the page; the region is focusable so a

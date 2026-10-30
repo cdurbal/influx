@@ -19,7 +19,11 @@ export const metadata: Metadata = {
 // font variables are set here and nowhere else.
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="fr" data-theme="keo" className={FONT_VARIABLE_CLASSES}>
+    <html
+      lang="fr"
+      data-theme="keo"
+      className={`${FONT_VARIABLE_CLASSES} antialiased`}
+    >
       <body>{children}</body>
     </html>
   );

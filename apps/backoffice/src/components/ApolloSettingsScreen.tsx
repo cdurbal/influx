@@ -22,7 +22,7 @@ import {
   FIELD_CLASSES,
   ROW_GROUP_CLASSES,
   SECTION_CLASSES,
-  SECTION_TITLE_CLASSES,
+  SECTION_TITLE,
   SELECT_CLASSES,
   SMALL_LABEL_CLASSES,
   SMALL_PRIMARY_CLASSES,
@@ -173,7 +173,7 @@ function SettingForm({ row }: { row: Row }) {
       aria-labelledby={ids.title}
       className={SECTION_CLASSES}
     >
-      <h2 id={ids.title} className={SECTION_TITLE_CLASSES}>
+      <h2 id={ids.title} className={SECTION_TITLE}>
         {title}
       </h2>
       <p>{apolloSettingWords(setting)}</p>

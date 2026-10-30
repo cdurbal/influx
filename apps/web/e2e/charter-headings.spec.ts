@@ -92,9 +92,6 @@ test("TK3.1, every title of the member screens in Manrope, at a fixed KEO size, 
   expect(headingProblems(of(WEB_ORIGIN))).toEqual([]);
 });
 
-test.fail(
-  "RK-5b: TK3.1, every title of the backoffice screens in Manrope, at a fixed KEO size, the same at 375 and 1 440 px",
-  () => {
-    expect(headingProblems(of(BACKOFFICE_ORIGIN))).toEqual([]);
-  },
-);
+test("TK3.1, every title of the backoffice screens in Manrope, at a fixed KEO size, the same at 375 and 1 440 px", () => {
+  expect(headingProblems(of(BACKOFFICE_ORIGIN))).toEqual([]);
+});

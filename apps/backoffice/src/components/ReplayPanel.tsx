@@ -17,7 +17,7 @@ import { replay } from "./backoffice-api";
 import {
   FIELD_CLASSES,
   SECTION_CLASSES,
-  SECTION_TITLE_CLASSES,
+  SECTION_TITLE,
   SELECT_CLASSES,
   SMALL_PRIMARY_CLASSES,
   SMALL_SECONDARY_CLASSES,
@@ -56,7 +56,7 @@ export function ReplayPanel({
 
   return (
     <section aria-labelledby={ids.title} className={SECTION_CLASSES}>
-      <h2 id={ids.title} className={SECTION_TITLE_CLASSES}>
+      <h2 id={ids.title} className={SECTION_TITLE}>
         {t.title}
       </h2>
       {report === null ? (

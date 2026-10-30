@@ -41,7 +41,7 @@ export function envBarClasses(production: boolean): string {
   );
 }
 
-export const ENV_NAME_CLASSES = "font-display font-bold tracking-wide";
+export const ENV_NAME_CLASSES = "font-display font-bold tracking-overline";
 
 /** Bars 2 and 3: the banners, under bar 1, inside the band. */
 export const BANNERS_CLASSES = "flex flex-col gap-2 px-page-gutter pb-3";

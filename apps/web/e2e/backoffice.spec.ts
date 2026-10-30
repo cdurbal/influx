@@ -1461,42 +1461,39 @@ test("TK3.3 (backoffice): the h1 tightened by --tracking-heading, a negative tok
   await expectHeadingTracking(page, page.getByRole("heading", { level: 1 }));
 });
 
-test.fail(
-  "RK-5b: TK3.3 (backoffice), a section title (h2) tightened by --tracking-heading, a negative token",
-  async ({ page }) => {
-    await seedInternal(page, "agent", "Eden");
-    await page.goto(bo("/accueil"));
-    await expectHeadingTracking(
-      page,
-      page.getByRole("heading", { level: 2 }).first(),
-    );
-  },
-);
+test("TK3.3 (backoffice), a section title (h2) tightened by --tracking-heading, a negative token", async ({
+  page,
+}) => {
+  await seedInternal(page, "agent", "Eden");
+  await page.goto(bo("/accueil"));
+  await expectHeadingTracking(
+    page,
+    page.getByRole("heading", { level: 2 }).first(),
+  );
+});
 
-test.fail(
-  "RK-5b: TK3.3 (backoffice), a block title (h3) in Manrope 700",
-  async ({ page }) => {
-    await seedInternal(page, "admin", "Ilian");
-    await page.goto(bo("/sante-technique"));
-    await expect(page.getByText(m.health.loading)).toHaveCount(0);
-    const heading = page.getByRole("heading", { level: 3 }).first();
-    await expect(heading).toBeVisible();
-    expect(firstFamily(await computed(heading, "font-family"))).toBe(
-      await displayFamily(page),
-    );
-    expect(await computed(heading, "font-weight")).toBe("700");
-  },
-);
+test("TK3.3 (backoffice), a block title (h3) in Manrope 700", async ({
+  page,
+}) => {
+  await seedInternal(page, "admin", "Ilian");
+  await page.goto(bo("/sante-technique"));
+  await expect(page.getByText(m.health.loading)).toHaveCount(0);
+  const heading = page.getByRole("heading", { level: 3 }).first();
+  await expect(heading).toBeVisible();
+  expect(firstFamily(await computed(heading, "font-family"))).toBe(
+    await displayFamily(page),
+  );
+  expect(await computed(heading, "font-weight")).toBe("700");
+});
 
-test.fail(
-  "RK-5b: TK3.4 (backoffice), the html smoothed (antialiased)",
-  async ({ page }) => {
-    await openSignIn(page);
-    expect(await computed(page.locator("html"), "-webkit-font-smoothing")).toBe(
-      "antialiased",
-    );
-  },
-);
+test("TK3.4 (backoffice), the html smoothed (antialiased)", async ({
+  page,
+}) => {
+  await openSignIn(page);
+  expect(await computed(page.locator("html"), "-webkit-font-smoothing")).toBe(
+    "antialiased",
+  );
+});
 
 test.fail(
   "RK-7: TK5.1 (backoffice), on arrival, the h1 focused without a ring",

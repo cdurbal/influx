@@ -28,7 +28,7 @@ import {
   FIELD_CLASSES,
   ROW_GROUP_CLASSES,
   SECTION_CLASSES,
-  SECTION_TITLE_CLASSES,
+  SECTION_TITLE,
   SELECT_CLASSES,
   SMALL_LABEL_CLASSES,
   SMALL_PRIMARY_CLASSES,
@@ -113,7 +113,7 @@ export function MemberInvitationsScreen() {
         aria-labelledby="member-invite-title"
         className={SECTION_CLASSES}
       >
-        <h2 id="member-invite-title" className={SECTION_TITLE_CLASSES}>
+        <h2 id="member-invite-title" className={SECTION_TITLE}>
           {t.create}
         </h2>
         <div className={ROW_GROUP_CLASSES}>
@@ -180,7 +180,7 @@ export function MemberInvitationsScreen() {
         )}
       </form>
       <section aria-labelledby="member-list" className={SECTION_CLASSES}>
-        <h2 id="member-list" className={SECTION_TITLE_CLASSES}>
+        <h2 id="member-list" className={SECTION_TITLE}>
           {t.listTitle}
         </h2>
         {loadError ? (

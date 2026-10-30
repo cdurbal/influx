@@ -38,7 +38,7 @@ import {
   FIELD_CLASSES,
   LINK_CLASSES,
   SECTION_CLASSES,
-  SECTION_TITLE_CLASSES,
+  SECTION_TITLE,
   SMALL_LABEL_CLASSES,
   SMALL_PRIMARY_CLASSES,
   SMALL_SECONDARY_CLASSES,
@@ -417,7 +417,7 @@ export function DualControlScreen({ id }: { id: string }) {
         )}
       </p>
       <section aria-labelledby="action-title" className={SECTION_CLASSES}>
-        <h2 id="action-title" className={SECTION_TITLE_CLASSES}>
+        <h2 id="action-title" className={SECTION_TITLE}>
           {t.actions[view.action.code] ?? view.action.code}
         </h2>
         <dl className={DL_CLASSES}>
@@ -469,7 +469,7 @@ export function DualControlScreen({ id }: { id: string }) {
         <p className={HELP_CLASSES}>{t.noAction}</p>
       ) : (
         <section aria-labelledby="confirm-title" className={SECTION_CLASSES}>
-          <h2 id="confirm-title" className={SECTION_TITLE_CLASSES}>
+          <h2 id="confirm-title" className={SECTION_TITLE}>
             {t.confirm}
           </h2>
           {degraded ? (

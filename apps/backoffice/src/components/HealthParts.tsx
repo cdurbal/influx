@@ -9,7 +9,7 @@ import { messages } from "@/messages/fr";
 import { HELP_CLASSES } from "./auth-classes";
 import {
   SECTION_CLASSES,
-  SECTION_TITLE_CLASSES,
+  SECTION_TITLE,
   SMALL_SECONDARY_CLASSES,
 } from "./bo-classes";
 import { curveSegments } from "./ops-view-model";
@@ -31,7 +31,7 @@ export function SectionFrame({
   const titleId = useId();
   return (
     <section aria-labelledby={titleId} className={SECTION_CLASSES}>
-      <h2 id={titleId} className={SECTION_TITLE_CLASSES}>
+      <h2 id={titleId} className={SECTION_TITLE}>
         {title}
       </h2>
       {lead === undefined ? null : <p className={HELP_CLASSES}>{lead}</p>}

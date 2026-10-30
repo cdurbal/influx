@@ -16,7 +16,7 @@ import { reauthenticate } from "./backoffice-api";
 import {
   FIELD_CLASSES,
   SECTION_CLASSES,
-  SECTION_TITLE_CLASSES,
+  SECTION_TITLE,
   SMALL_PRIMARY_CLASSES,
   SMALL_SECONDARY_CLASSES,
 } from "./bo-classes";
@@ -76,7 +76,7 @@ function ReauthForm({
       aria-labelledby={ids.title}
       className={SECTION_CLASSES}
     >
-      <h2 id={ids.title} className={SECTION_TITLE_CLASSES}>
+      <h2 id={ids.title} className={SECTION_TITLE}>
         {messages.reauth.title}
       </h2>
       <p className={HELP_CLASSES}>{messages.reauth.lead}</p>

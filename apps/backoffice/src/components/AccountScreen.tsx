@@ -45,7 +45,7 @@ import {
   LINK_CLASSES,
   ROW_GROUP_CLASSES,
   SECTION_CLASSES,
-  SECTION_TITLE_CLASSES,
+  SECTION_TITLE,
   SELECT_CLASSES,
   SMALL_LABEL_CLASSES,
   SMALL_PRIMARY_CLASSES,
@@ -92,7 +92,7 @@ function SyncBlock({
   const [replaying, setReplaying] = useState<SyncDestination | null>(null);
   return (
     <section aria-labelledby="sync-title" className={SECTION_CLASSES}>
-      <h2 id="sync-title" className={SECTION_TITLE_CLASSES}>
+      <h2 id="sync-title" className={SECTION_TITLE}>
         {t.sync}
       </h2>
       <dl className={DL_CLASSES}>
@@ -217,7 +217,7 @@ function CorrectionForm({
       aria-labelledby="correct-title"
       className={SECTION_CLASSES}
     >
-      <h2 id="correct-title" className={SECTION_TITLE_CLASSES}>
+      <h2 id="correct-title" className={SECTION_TITLE}>
         {t.corrections}
       </h2>
       <p className={HELP_CLASSES}>{t.correctionsLead}</p>
@@ -364,7 +364,7 @@ function RoleChangeForm({ detail }: { detail: Detail }) {
       aria-labelledby="role-title"
       className={SECTION_CLASSES}
     >
-      <h2 id="role-title" className={SECTION_TITLE_CLASSES}>
+      <h2 id="role-title" className={SECTION_TITLE}>
         {t.roleChange}
       </h2>
       <p className={HELP_CLASSES}>{t.roleChangeLead}</p>
@@ -443,7 +443,7 @@ function SuppressionForm({ detail }: { detail: Detail }) {
       aria-labelledby="suppression-title"
       className={SECTION_CLASSES}
     >
-      <h2 id="suppression-title" className={SECTION_TITLE_CLASSES}>
+      <h2 id="suppression-title" className={SECTION_TITLE}>
         {t.suppression}
       </h2>
       <p className={HELP_CLASSES}>{t.suppressionLead}</p>
@@ -502,7 +502,7 @@ function DataRequests({ detail }: { detail: Detail }) {
 
   return (
     <section aria-labelledby="data-title" className={SECTION_CLASSES}>
-      <h2 id="data-title" className={SECTION_TITLE_CLASSES}>
+      <h2 id="data-title" className={SECTION_TITLE}>
         {t.dataRequests}
       </h2>
       {detail.dataRequests.length === 0 ? (
@@ -593,7 +593,7 @@ function History({
 }) {
   return (
     <section aria-labelledby="history-title" className={SECTION_CLASSES}>
-      <h2 id="history-title" className={SECTION_TITLE_CLASSES}>
+      <h2 id="history-title" className={SECTION_TITLE}>
         {t.history}
       </h2>
       {events.length === 0 ? (
@@ -712,7 +712,7 @@ export function AccountScreen({ id }: { id: string }) {
         {t.journaled}
       </p>
       <section aria-labelledby="identity-title" className={SECTION_CLASSES}>
-        <h2 id="identity-title" className={SECTION_TITLE_CLASSES}>
+        <h2 id="identity-title" className={SECTION_TITLE}>
           {t.identity}
         </h2>
         <dl className={DL_CLASSES}>

@@ -13,6 +13,7 @@ import { messages } from "@/messages/fr";
 import { HELP_CLASSES } from "./auth-classes";
 import { readOpsStatus } from "./backoffice-api";
 import {
+  BLOCK_TITLE,
   TABLE_CLASSES,
   TABULAR_CLASSES,
   TD_CLASSES,
@@ -343,9 +344,7 @@ function Worker({ status }: { status: OpsStatusResponse }) {
       )}
       <Processes status={status} />
       <p className={HELP_CLASSES}>{tw.turnHint}</p>
-      <h3 className="text-sm font-semibold text-text-primary">
-        {tw.tasks.title}
-      </h3>
+      <h3 className={BLOCK_TITLE}>{tw.tasks.title}</h3>
       <PeriodicTasks status={status} />
     </>
   );

@@ -28,6 +28,10 @@ export const TITLE_CLASSES = cn(
   "font-display text-title-page font-extrabold tracking-heading text-text-primary",
 );
 
+/** The `h2` of a card of the standalone pages: as the members' card title (D75 RK-5). */
+export const CARD_TITLE =
+  "font-display text-md font-bold leading-snug text-text-primary";
+
 export const LEAD_CLASSES = "text-md text-text-secondary";
 
 export const CARD_CLASSES = cn(

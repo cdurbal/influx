@@ -18,6 +18,7 @@ import {
 import { messages } from "@/messages/fr";
 import {
   CARD_CLASSES,
+  CARD_TITLE,
   cn,
   CODE_TEXT_CLASSES,
   HELP_CLASSES,
@@ -245,7 +246,7 @@ export function Activation() {
         />
         <p className={LEAD_CLASSES}>{messages.recoveryCodes.lead}</p>
         <section aria-labelledby={`${ids.code}-codes`} className={CARD_CLASSES}>
-          <h2 id={`${ids.code}-codes`} className={LABEL_CLASSES}>
+          <h2 id={`${ids.code}-codes`} className={CARD_TITLE}>
             {messages.recoveryCodes.listLabel}
           </h2>
           <ol className="flex list-inside list-decimal flex-col gap-2">
@@ -387,7 +388,7 @@ export function Activation() {
         <ErrorNotice>{t.invitationInvalid}</ErrorNotice>
       ) : (
         <form noValidate onSubmit={confirmIdentity} className={CARD_CLASSES}>
-          <h2 className={LABEL_CLASSES}>{t.step1Title}</h2>
+          <h2 className={CARD_TITLE}>{t.step1Title}</h2>
           <label htmlFor={ids.email} className={LABEL_CLASSES}>
             {messages.login.emailLabel}
           </label>

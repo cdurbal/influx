@@ -22,9 +22,10 @@ import {
 } from "./auth-classes";
 import { readAlerts, readCounters, readDegradedReview } from "./backoffice-api";
 import {
+  BLOCK_TITLE,
   LINK_CLASSES,
   SECTION_CLASSES,
-  SECTION_TITLE_CLASSES,
+  SECTION_TITLE,
   TABULAR_CLASSES,
 } from "./bo-classes";
 import { useTeamNames } from "./DualControlScreens";
@@ -198,7 +199,7 @@ function DegradedReview() {
 
   return (
     <section aria-labelledby="degraded-title" className={SECTION_CLASSES}>
-      <h2 id="degraded-title" className={SECTION_TITLE_CLASSES}>
+      <h2 id="degraded-title" className={SECTION_TITLE}>
         {t.title}
       </h2>
       {review.kind === "loading" ? (
@@ -215,7 +216,7 @@ function DegradedReview() {
           ) : (
             review.data.review.map((week) => (
               <div key={week.week} className="flex flex-col gap-1">
-                <h3 className="text-sm font-semibold">
+                <h3 className={BLOCK_TITLE}>
                   {t.week(week.week, week.confirmations.length)}
                 </h3>
                 <ul className="flex flex-col gap-1 text-sm">
@@ -291,7 +292,7 @@ export function HomeScreen() {
       <h1 className={TITLE_CLASSES}>{messages.home.title}</h1>
       <p className={LEAD_CLASSES}>{messages.home.lead}</p>
       <section aria-labelledby="counters-title" className={SECTION_CLASSES}>
-        <h2 id="counters-title" className={SECTION_TITLE_CLASSES}>
+        <h2 id="counters-title" className={SECTION_TITLE}>
           {counters.kind === "ok"
             ? messages.home.countersTitle(formatDay(counters.data.day))
             : messages.nav.home}
@@ -307,7 +308,7 @@ export function HomeScreen() {
         )}
       </section>
       <section aria-labelledby="alerts-title" className={SECTION_CLASSES}>
-        <h2 id="alerts-title" className={SECTION_TITLE_CLASSES}>
+        <h2 id="alerts-title" className={SECTION_TITLE}>
           {messages.home.alertsTitle}
         </h2>
         {alerts.kind === "loading" ? (
