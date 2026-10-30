@@ -1,0 +1,3 @@
+#!/bin/sh
+# D76: keeps docs/mvp/INDEX.md in step with the staged specs (the CI fails on a stale index).
+exec node .githooks/sync-spec-index.mjs
