@@ -349,7 +349,7 @@ Décision D75 (fondateur, 2026-10-30). Dix-sept écarts entre la proposition 4 e
 - [x] RK-3 (`69eaa1f`) — G3i (b) : la CSS construite de chaque front lit tout token redéfini sous KEO par `var()`, négatif vérifié sur la construction réelle (`test:artifacts`)
 - [x] RK-4 (`3e46a59`) — réduction à 98 % à l'appui et agrandissement à 103 % sous `motion-safe:` (hors bouton texte et petits boutons du BO), graisse 600 du secondaire et du bouton texte
 - [x] RK-4 · UX-1 (`5832dd2`) — typefaces KEO chargées au backoffice, prouvées par la FontFace
-- [x] RK-4 · UX-2 — état désactivé des boutons BO, aria-disabled compris
+- [x] RK-4 · UX-2 (`a1e430f`) — état désactivé des boutons BO, aria-disabled compris
 - [x] RK-5a — titres des membres en Manrope à tailles fixes (`heading-classes.ts`, `LegalMarkdown` en variante KEO), `--tracking-heading` −0,025 em, lissage sur le conteneur KEO ; G8 étendue et TK7.2 vertes (BO : RK-5b)
 
 ### Hors jalon
