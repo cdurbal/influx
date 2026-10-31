@@ -32,6 +32,16 @@ import { messages } from "@/messages/fr";
 import { HELP_CLASSES, inputClasses, TITLE_CLASSES } from "./auth-classes";
 import { ActionFeedback, AdminOnlyNotice } from "./ActionFeedback";
 import {
+  correctionNotice,
+  correctionOutcome,
+  LEGAL_NAME_MAX,
+  NOTE_MAX,
+  roleChangeOutcome,
+  suppressionCanSubmit,
+  suppressionOutcome,
+  suppressionRefusal,
+} from "./account-record-forms";
+import {
   correctAccount,
   liftSuppression,
   readAccount,
@@ -177,32 +187,22 @@ function CorrectionForm({
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setNotice(null);
-    if (declaredStatus === "" && country === "" && language === "") {
-      setFormError(t.nothingToCorrect);
-      return;
-    }
-    if (reason === "") {
-      setFormError(messages.common.reasonPlaceholder);
+    const outcome = correctionOutcome({
+      declaredStatus,
+      country,
+      language,
+      reason,
+      note,
+    });
+    if (!outcome.ok) {
+      setFormError(outcome.error);
       return;
     }
     setFormError(null);
     void action.run(
-      () =>
-        correctAccount(detail.account.id, {
-          reasonCode: reason as (typeof CORRECTION_REASONS)[number],
-          ...(declaredStatus === ""
-            ? {}
-            : { declaredStatus: declaredStatus as "individual" | "business" }),
-          ...(country === ""
-            ? {}
-            : { countryCode: country as Detail["account"]["countryCode"] }),
-          ...(language === ""
-            ? {}
-            : { preferredLanguage: language as "fr" | "en" }),
-          ...(note.trim() === "" ? {} : { comment: note.trim() }),
-        }),
+      () => correctAccount(detail.account.id, outcome.body),
       (data) => {
-        setNotice(data.changed ? t.corrected : t.nothingChanged);
+        setNotice(correctionNotice(data.changed));
         if (data.changed) {
           onCorrected();
         }
@@ -301,7 +301,7 @@ function CorrectionForm({
         </label>
         <textarea
           id={ids.note}
-          maxLength={500}
+          maxLength={NOTE_MAX}
           value={note}
           onChange={(event) => setNote(event.target.value)}
           className={TEXTAREA_CLASSES}
@@ -335,24 +335,14 @@ function RoleChangeForm({ detail }: { detail: Detail }) {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const name = legalName.trim();
-    if (name.length < 2 || name.length > 120) {
-      setFormError(t.legalNameInvalid);
-      return;
-    }
-    if (reason === "") {
-      setFormError(messages.common.reasonPlaceholder);
+    const outcome = roleChangeOutcome(detail.account.id, { legalName, reason });
+    if (!outcome.ok) {
+      setFormError(outcome.error);
       return;
     }
     setFormError(null);
     void action.run(
-      () =>
-        requestDualControl({
-          code: "identity.change_member_role",
-          accountId: detail.account.id,
-          legalName: name,
-          reasonCode: reason as (typeof ROLE_CHANGE_REASONS)[number],
-        }),
+      () => requestDualControl(outcome.body),
       (view) => router.push(`/double-validation/${view.id}`),
     );
   }
@@ -376,7 +366,7 @@ function RoleChangeForm({ detail }: { detail: Detail }) {
           <input
             id={ids.legalName}
             type="text"
-            maxLength={120}
+            maxLength={LEGAL_NAME_MAX}
             value={legalName}
             onChange={(event) => setLegalName(event.target.value)}
             className={inputClasses(false)}
@@ -422,17 +412,15 @@ function SuppressionForm({ detail }: { detail: Detail }) {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (reason === "") {
+    const outcome = suppressionOutcome(reason);
+    if (!outcome.ok) {
       return;
     }
     setNotice(null);
     void action.run(
-      () =>
-        liftSuppression(detail.account.id, {
-          reasonCode: reason as (typeof SUPPRESSION_LIFT_REASONS)[number],
-        }),
+      () => liftSuppression(detail.account.id, outcome.body),
       (data) => setNotice(t.suppressionDone(data.resyncQueued)),
-      (code) => (code === "conflict" ? t.suppressionNone : null),
+      suppressionRefusal,
     );
   }
 
@@ -473,7 +461,9 @@ function SuppressionForm({ detail }: { detail: Detail }) {
       )}
       <button
         type="submit"
-        aria-disabled={reason === "" || action.busy || undefined}
+        aria-disabled={
+          !suppressionCanSubmit(reason) || action.busy || undefined
+        }
         className={`${SMALL_PRIMARY_CLASSES} self-start`}
       >
         {t.suppressionSubmit}
