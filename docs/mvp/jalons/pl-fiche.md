@@ -282,4 +282,24 @@ soit une réserve d'environ 110 s de cumul local.
 
 ## Revue
 
-*(rempli par `/jalon-run` : constats PLT-n, PLS-n)*
+2026-10-31, `48e1b44..ec87b56` : aucun bloquant. Détail (fichier:ligne, constat, correctif) :
+`jalons/pl/revue-constats.md` ; « reliquat » : `21` §8, lignes écrites par PL-C (`jalons/pl/cloture.md`).
+
+| Id | Gravité | Traité par |
+|---|---|---|
+| PLT-1 | dans le jalon | `fix-1` |
+| PLT-2 | avant production | reliquat |
+| PLT-3 | dans le jalon | `fix-2` |
+| PLT-4 | plus tard | reliquat |
+| PLT-5 | avant production | reliquat |
+| PLT-6 | plus tard | reliquat |
+| PLT-7 | plus tard | reliquat |
+| PLS-1 | avant production | reliquat |
+| PLS-2 | avant production | reliquat |
+| PLS-3 | plus tard | reliquat |
+| PLS-4 | plus tard | `fix-1` (test), reliquat (route) |
+| PLS-5 | plus tard | reliquat, avec PLT-5 |
+| PLS-6 | plus tard | reliquat, avec PLT-5 |
+| PLS-7 | plus tard | reliquat |
+| PLS-8 | plus tard | reliquat |
+| PLS-9 | plus tard | reliquat, avec PLT-4 |
