@@ -159,4 +159,6 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 
 - **PL** (préparation du Lot 2, corrections K1 et K3 à K10 de `revue-pre-lot2-2026-10-31.md`) : ouvert le 2026-10-31 ; `jalons/pl-fiche.md`, `jalons/pl/run.md`.
 
+**Registre des décisions** (PL-11) : `decisions.md` ne garde que sujet et statut résumés de D1 à D77 ; le texte intégral (sujet, arbitre, statut, échéance, mot pour mot) est dans `decisions-detail.md` (§ Dxx), qui fait foi en cas d'écart.
+
 **Guide de lecture** : session de jalon, sa fiche `jalons/<id>-fiche.md` d'abord (elle cite les tranches utiles) ; jalons clos, `archives/` seulement quand une tâche cite leur identifiant.

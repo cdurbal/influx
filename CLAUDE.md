@@ -20,7 +20,7 @@ d'abord, puis dans le code.
 
 | Sujet | Document |
 |---|---|
-| Registre des décisions D1 à D77 (statut, détail) | `docs/mvp/decisions.md` |
+| Registre des décisions D1 à D77 : résumé (sujet, statut) · texte intégral (`Grep "^## D66 "`, jamais en entier) | `docs/mvp/decisions.md` · `docs/mvp/decisions-detail.md` |
 | `staging` iso-production, exploité par les agents (D70) | `docs/mvp/runbooks/staging.md` |
 | Périmètre et lots du MVP | `docs/mvp/00-cadrage-mvp-v2.md` |
 | Régime courté, commission au MVP | `docs/mvp/01-intermediation-courtee.md` |
@@ -253,7 +253,7 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
   (les tests restent sur la doublure, `16` RG148).
 - Chaque tentative de synchronisation est journalisée, les échecs sont rejouables au backoffice.
 
-## 9. Décisions ouvertes (détail dans `docs/mvp/decisions.md`, qui fait foi)
+## 9. Décisions ouvertes (résumé dans `docs/mvp/decisions.md`, texte intégral dans `docs/mvp/decisions-detail.md`, qui fait foi)
 
 - **Avant le Lot 2** : **D34** libellé du badge · **D61** points restants (`07` Q15, Q16) ·
   **D24** créateurs particuliers et fiscalité (instruite) · `03` R-4 et R-5.
