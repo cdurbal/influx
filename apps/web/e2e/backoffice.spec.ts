@@ -513,6 +513,66 @@ test("J8T-4: the screens of an admin pass axe (WCAG 2.1 AA), Apollo with its exc
     ).toBeVisible();
     await expectNoAxeViolation(page, "invitations de membres");
 
+    // J9S-7: a browser error group whose text is a member's free text (a link, markup): shown as
+    // "source navigateur, texte non vérifié", inert text, never a link. The answer is stubbed
+    // (no member's browser writes into the database of the run).
+    const hostile =
+      'Click <a href="https://evil.example/x">here</a> https://evil.example/y';
+    const hostileGroup = {
+      id: "6f1c1c6e-2d57-4a43-9d0e-5b9f6a7d3c11",
+      source: "browser",
+      service: "web",
+      errorType: "TypeError",
+      message: hostile,
+      route: null,
+      status: "new",
+      occurrenceCount: 1,
+      regressionCount: 0,
+      firstSeenAt: "2026-10-31T10:00:00.000Z",
+      lastSeenAt: "2026-10-31T10:00:00.000Z",
+      lastRegressedAt: null,
+      firstVersion: "1.0.0",
+      lastVersion: "1.0.0",
+      regression: false,
+    };
+    await page.route("**/api/v1/bo/ops/errors/*", (route) =>
+      route.fulfill({
+        json: {
+          group: hostileGroup,
+          occurrences: [
+            {
+              occurredAt: "2026-10-31T10:00:00.000Z",
+              service: "web",
+              version: "1.0.0",
+              route: null,
+              requestId: null,
+              accountId: null,
+              message: hostile,
+              stack: null,
+              userAgentSummary: null,
+            },
+          ],
+        },
+      }),
+    );
+    await page.route(/\/api\/v1\/bo\/ops\/errors\?/, (route) =>
+      route.fulfill({
+        json: {
+          state: "open",
+          source: null,
+          counts: {
+            new: 1,
+            acknowledged: 0,
+            fixed: 0,
+            ignored: 0,
+            regression: 0,
+          },
+          groups: [hostileGroup],
+          truncated: false,
+        },
+      }),
+    );
+
     await page.goto(bo("/sante-technique"));
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       m.health.title,
@@ -521,6 +581,20 @@ test("J8T-4: the screens of an admin pass axe (WCAG 2.1 AA), Apollo with its exc
     await expect(
       page.getByRole("heading", { name: m.health.availability.title }),
     ).toBeVisible();
+    const errorRow = page.getByRole("row", { name: /TypeError/ });
+    await expect(errorRow).toContainText(m.health.errors.unverified);
+    await expect(errorRow).toContainText(hostile);
+    await errorRow.getByRole("button", { name: m.health.errors.show }).click();
+    const occurrences = page
+      .getByRole("region", {
+        name: m.health.errors.detailTitle("TypeError"),
+      })
+      .first();
+    await expect(occurrences).toContainText(m.health.errors.unverified);
+    await expect(occurrences).toContainText(hostile);
+    await expect(
+      page.locator("main a[href*='evil.example'], main a:has-text('here')"),
+    ).toHaveCount(0);
     await expectNoAxeViolation(page, "santé technique");
   } finally {
     await restoreApolloSetting("apollo_excluded_countries", excludedBefore);

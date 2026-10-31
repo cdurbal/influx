@@ -668,6 +668,18 @@ describe("PP-4, PP-10, PP-11: the answer", () => {
 
 // EC-22 (02 §20.10): the public health route of web, from GET /v1/status through the relay.
 describe("GET /health of web (EC-22)", () => {
+  // J9S-6: the route keeps the answer of /v1/status 5 s. Each case starts a clean window: the clock
+  // (Date only, the sockets keep their timers) moves a minute ahead of the previous case.
+  let clock = Date.UTC(2026, 9, 31, 12, 0, 0);
+  beforeEach(() => {
+    clock += 60_000;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(clock);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   function probe(headers: Record<string, string> = {}): Promise<Response> {
     return health.GET(
       new Request("http://localhost:3000/health", { method: "GET", headers }),
@@ -712,6 +724,35 @@ describe("GET /health of web (EC-22)", () => {
       expect(await response.text()).toBe("");
     },
   );
+
+  it("J9S-6: two probes less than 5 s apart make one call to apps/api, a later one a new call", async () => {
+    expect((await probe()).status).toBe(200);
+    vi.setSystemTime(clock + 4_900);
+    expect((await probe()).status).toBe(200);
+    expect(received).toHaveLength(1);
+    vi.setSystemTime(clock + 5_100);
+    expect((await probe()).status).toBe(200);
+    expect(received).toHaveLength(2);
+  });
+
+  it("J9S-6: a flood spends one call, and a failure is kept for the window like a success", async () => {
+    handler = (_request, response) => {
+      response.writeHead(429, { "content-type": "application/json" });
+      response.end(JSON.stringify({ error: { code: "rate_limited" } }));
+    };
+    const answers = await Promise.all(
+      Array.from({ length: 25 }, () => probe({ "x-real-ip": "203.0.113.9" })),
+    );
+    expect(answers.map((answer) => answer.status)).toEqual(
+      Array.from({ length: 25 }, () => 503),
+    );
+    handler = answerOk;
+    expect((await probe()).status).toBe(503);
+    expect(received).toHaveLength(1);
+    vi.setSystemTime(clock + 5_100);
+    expect((await probe()).status).toBe(200);
+    expect(received).toHaveLength(2);
+  });
 
   it("answers 503 with an empty body when apps/api is unreachable", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});

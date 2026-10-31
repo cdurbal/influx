@@ -1095,6 +1095,7 @@ export const messages = {
       stack: "Pile nettoyée",
       noStack: "pas de pile",
       userAgent: (summary: string) => `navigateur : ${summary}`,
+      unverified: "source navigateur, texte non vérifié",
     },
     traffic: {
       title: "Appels, durées et erreurs de l’API",

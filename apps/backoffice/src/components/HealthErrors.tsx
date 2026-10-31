@@ -4,7 +4,9 @@
 // "Erreurs du navigateur"; 21 §J9 commit 9). One state at a time (the open ones by default), one
 // origin, a group opened on demand to see its kept occurrences. Read only: classifying a group is
 // not part of this screen. What is shown is the NORMALISED message of a group and the cleaned
-// message and stack of an occurrence (02 §20.8), always as plain text.
+// message and stack of an occurrence (02 §20.8), always as plain text. J9S-7: the message of a
+// browser group is free text written by a member's browser: it carries the note "source navigateur,
+// texte non vérifié" and stays inert text (no link, no `href`, no HTML), whatever it contains.
 import {
   OPS_ERROR_FILTERS,
   OPS_ERROR_SOURCES,
@@ -69,7 +71,20 @@ function groupState(group: OpsErrorGroup): { tone: Tone; label: string } {
   }
 }
 
-function OccurrenceRows({ occurrence }: { occurrence: OpsOccurrence }) {
+/** The note that goes with a message whose source is a member's browser (J9S-7). */
+function UnverifiedNote({ source }: { source: OpsErrorGroup["source"] }) {
+  return source === "browser" ? (
+    <span className={`block ${HELP_CLASSES}`}>{te.unverified}</span>
+  ) : null;
+}
+
+export function OccurrenceRows({
+  occurrence,
+  source,
+}: {
+  occurrence: OpsOccurrence;
+  source: OpsErrorGroup["source"];
+}) {
   const td = te.detailColumns;
   return (
     <>
@@ -102,6 +117,7 @@ function OccurrenceRows({ occurrence }: { occurrence: OpsOccurrence }) {
         </td>
         <td className={`${TD_CLASSES} break-words`}>
           {occurrence.message}
+          <UnverifiedNote source={source} />
           {occurrence.userAgentSummary === null ? null : (
             <span className={`block ${HELP_CLASSES}`}>
               {te.userAgent(occurrence.userAgentSummary)}
@@ -177,6 +193,7 @@ function GroupDetail({
                     <OccurrenceRows
                       key={`${occurrence.occurredAt}-${occurrence.requestId ?? ""}-${occurrence.message}`}
                       occurrence={occurrence}
+                      source={group.source}
                     />
                   ))}
                 </tbody>
@@ -189,7 +206,7 @@ function GroupDetail({
   );
 }
 
-function GroupRows({
+export function GroupRows({
   group,
   open,
   onToggle,
@@ -214,6 +231,7 @@ function GroupRows({
         >
           <span className="block font-semibold">{group.errorType}</span>
           {group.message}
+          <UnverifiedNote source={group.source} />
         </th>
         <td className={`${TD_CLASSES} font-mono break-all`}>
           {group.route ?? te.noRoute}
