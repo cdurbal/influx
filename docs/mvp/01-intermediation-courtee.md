@@ -406,7 +406,7 @@ positif et inférieur à 2 000,00. **Elle n'a appliqué aucun taux.**
 >
 > La table `commission_rates` est **créée et reste vide**.
 
-Pourquoi c'est une règle et non une préférence : `CLAUDE.md` §6 impose que le calcul de la commission
+Pourquoi c'est une règle et non une préférence : `CLAUDE.md` §2 impose que le calcul de la commission
 n'existe **qu'à un seul endroit** dans tout le code. Un moteur écrit à moitié maintenant — un `0,35`
 dans un composant, un `× 0,20` dans un export — créerait exactement la duplication que l'invariant
 interdit, sans être utilisable pour autant. **Pire que rien.**
@@ -415,7 +415,7 @@ Créer la table vide n'est pas une anticipation, c'est un **garde-fou** : elle f
 la V2 à lire les taux en base plutôt qu'à écrire `0.35` en dur, et, vide, elle rend tout calcul
 impossible au MVP.
 
-Le taux de 35 % et sa répartition 20 % / 15 % restent l'invariant de `CLAUDE.md` §3 et relèvent du
+Le taux de 35 % et sa répartition 20 % / 15 % restent l'invariant de `CLAUDE.md` §2 et relèvent du
 fondateur seul. Ce document ne les discute pas : il décrit comment INFLUX les applique
 **commercialement**, hors de l'application, pendant la durée du pilote.
 
@@ -570,7 +570,7 @@ Rien de ce qui est construit maintenant n'est à jeter :
 - Le **contrat et le paiement entrent dans l'application** (D8, D9). L'`introduction` reste l'objet
   pivot ; le contrat s'y rattache.
 - **`commission_rates` se remplit** et le calcul apparaît, **à un seul endroit, côté serveur**,
-  conformément à `CLAUDE.md` §6 et à la skill `contract-commission`. Les deux taux sont figés et
+  conformément à `CLAUDE.md` §2 et à la skill `contract-commission`. Les deux taux sont figés et
   historisés à la signature.
 - `deals` devient l'historique commercial du pilote et **la référence pour régler le barème**.
 - La clause de non-contournement, acceptée dès le jour 1, **devient exploitable** — c'est tout
@@ -580,5 +580,5 @@ Rien de ce qui est construit maintenant n'est à jeter :
 
 ---
 
-**Ce document ne modifie aucun autre fichier.** Les mises à jour de `CLAUDE.md` (§3 régime
-transitoire, §13 décisions D29-D39) relèvent de `chef-de-projet`.
+**Ce document ne modifie aucun autre fichier.** Les mises à jour de `CLAUDE.md` (§2 régime
+transitoire, `decisions.md` D29-D39) relèvent de `chef-de-projet`.

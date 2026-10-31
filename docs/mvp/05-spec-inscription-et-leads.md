@@ -35,7 +35,7 @@ qu'une panne d'un service externe n'empêche jamais quelqu'un de s'inscrire.**
 
 Trois raisons d'être, dans cet ordre :
 
-1. **Commerciale.** Un lead qui n'arrive pas dans Brevo et Apollo est un lead perdu (`CLAUDE.md` §3).
+1. **Commerciale.** Un lead qui n'arrive pas dans Brevo et Apollo est un lead perdu (`CLAUDE.md` §2).
    C'est le second pilier du modèle économique, et au Lot 1 c'est le seul qui produise de la valeur.
 2. **Produit.** Sans compte réel, aucun des lots suivants n'existe : ni profil, ni campagne, ni mise
    en relation courtée.
@@ -568,7 +568,7 @@ deux valeurs et deux comportements complets :
 
 | Valeur | Comportement |
 |---|---|
-| `consentement_requis` | **Valeur d'attente au Lot 1** (position conservatrice, `CLAUDE.md` §9). Sans consentement enregistré, aucun envoi vers Apollo ; ligne « ignorée », motif « sans consentement » |
+| `consentement_requis` | **Valeur d'attente au Lot 1** (position conservatrice, `CLAUDE.md` §6). Sans consentement enregistré, aucun envoi vers Apollo ; ligne « ignorée », motif « sans consentement » |
 | `interet_legitime_avec_opposition` | Envoi possible sans consentement pour les profils du périmètre, **à condition** que l'information renforcée ait été délivrée (mention d'inscription et politique de confidentialité citant Apollo) et qu'aucune opposition ne soit enregistrée. Une opposition vaut exclusion définitive |
 
 Le choix relève de `expert-conformite-rgpd` et du juriste (**Q1**). Les deux comportements sont
@@ -1238,7 +1238,7 @@ vivre **en table**, modifiables sans redéploiement, chaque modification étant 
 | Réimport des données enrichies par Apollo | RG85 | Sur décision écrite de `expert-conformite-rgpd` |
 | Blocage des domaines d'e-mail jetables | Faux positifs, inscrits réels perdus (RG12) | Si la qualité de base le justifie |
 | Traduction en portugais | Français et anglais au lancement | Avant l'ouverture du Brésil |
-| Tout montant, taux, commission, facture | **A1**, `CLAUDE.md` §3 | V2 |
+| Tout montant, taux, commission, facture | **A1**, `CLAUDE.md` §2 | V2 |
 
 ---
 
@@ -1246,7 +1246,7 @@ vivre **en table**, modifiables sans redéploiement, chaque modification étant 
 
 | # | Question | Hypothèse retenue en attendant | Arbitre | Échéance |
 |---|---|---|---|---|
-| **Q1** | **Base légale de la synchronisation Apollo** : consentement (`CLAUDE.md` §9) ou intérêt légitime avec droit d'opposition (skill `apollo-lead-sync`) ? Les deux textes de référence divergent | **Consentement requis** (position conservatrice). Les deux comportements sont spécifiés (RG83) et la bascule est une valeur de configuration | `expert-conformite-rgpd` (**veto**) + juriste | **Avant la mise en ligne du Lot 1** |
+| **Q1** | **Base légale de la synchronisation Apollo** : consentement (`CLAUDE.md` §6) ou intérêt légitime avec droit d'opposition (skill `apollo-lead-sync`) ? Les deux textes de référence divergent | **Consentement requis** (position conservatrice). Les deux comportements sont spécifiés (RG83) et la bascule est une valeur de configuration | `expert-conformite-rgpd` (**veto**) + juriste | **Avant la mise en ligne du Lot 1** |
 | **Q2** | **D33 — périmètre Apollo** à la mise en ligne : annonceurs seuls, annonceurs + créateurs professionnels, ou tous les inscrits (A7) ? | `annonceurs_et_createurs_pro`, **position d'attente et non contre-arbitrage** ; le fondateur bascule sans redéploiement (RG81) | Fondateur + `expert-conformite-rgpd` (**veto**) + juriste | **Avant la mise en ligne du Lot 1** |
 | **Q3** | **Pays dans lesquels la prospection Apollo est validée** (CASL au Canada, lois des États américains, LGPD au Brésil, UE) | *Tranchée par le fondateur (2026-10-19, D33)* : **tous les pays** par défaut, liste de pays **exclus** vide par défaut (RG84, 0141) ; avis juriste toujours attendu avant `production` | `expert-conformite-rgpd` + juriste | Avant la mise en ligne du Lot 1 |
 | **Q4** | **Pays bloqués à l'inscription** (sanctions internationales, embargos) : faut-il une liste, et laquelle ? | Liste **vide**, mécanisme prêt (RG8) | Fondateur + juriste, **dépend de D25** | Avant la mise en ligne du Lot 1 |
@@ -1427,7 +1427,7 @@ critères 5 à 9, par la relecture de RG134.
    objets, aliments, loisirs. Aucun nom propre. En anglais, **orthographe identique en anglais
    américain et britannique** (ni *colour*, ni *theatre* / *theater*, ni *yogurt*).
 6. **Rien d'offensant ni de connoté, en français, en anglais ni en portugais** (langue suivante,
-   `CLAUDE.md` §2) : aucune insulte ni sens argotique courant (écartés, par exemple : « pelote »,
+   `CLAUDE.md` §1) : aucune insulte ni sens argotique courant (écartés, par exemple : « pelote »,
    « bonbon », « melon », « raton », « phoque » ; *pine*, qui est vulgaire en français ; *slope*,
    *cracker*, *grape*) ; rien sur le corps, la violence, les armes, la mort, la maladie, la religion,
    la politique, une nationalité ou une couleur de peau ; aucune couleur.
@@ -1689,7 +1689,7 @@ ne part.
 | # | Question | Hypothèse retenue en attendant | Arbitre | Échéance |
 |---|---|---|---|---|
 | **Q14** | **Le navigateur n'arrive pas jusqu'à `apps/api`.** L'en-tête `user-agent` ne figure pas dans la liste blanche du passe-plat (`03` PP-5). Sans lui, ni l'e-mail du code (A-8, RG49), ni `user_agent_summary` (EC-2, RG-J3-5), ni le signal « navigateur inconnu » ne peuvent citer le navigateur | E-mail écrit **sans le navigateur** (variante de `16` RG156) ; résumé « non identifié ». Options : ajouter `user-agent` à PP-5 (la chaîne brute n'est ni conservée ni journalisée, seul le résumé l'est) — avec ré-épinglage de `relay.ts` (PP-12) | `architecte` + **`expert-cybersecurite` (veto)** | **Avant le commit 8** (e-mail) et le commit 9 (sessions) — **Tranchée par `expert-cybersecurite` le 2026-09-27 : relayé, sous conditions.** Le passe-plat retransmet l'agent du navigateur **sous le nom `client-user-agent`**, seulement s'il correspond à `^[\x20-\x7E]{1,512}$`, sans troncature ni analyse (`03` PP-5) ; `apps/api` le lit après le secret interne, le re-valide et le **résume elle-même** en une valeur d'une liste fermée « famille + système » (dont « non identifié ») ; **seul le résumé est stocké** (`identity.sessions`, contrainte de format demandée à `expert-database`) ; **ni la chaîne brute ni le résumé ne sont journalisés** ; jamais transmis à GoTrue ; l'e-mail ne reçoit que le libellé traduit, « non identifié » ⇒ `contextNoBrowser` (RG135). Commit dédié avant le commit 8, empreinte PP-12 mise à jour dans le même commit. **Reste à `architecte`** : l'emplacement de la liste fermée partagée avec les fronts ; son contenu à `product-owner` (RG-J3-5). Détail et tests : `21` §4, « Revue de sécurité des commits 1 à 4 du J3 » |
-| **Q15** | **Valeur réelle de la phrase contre un site d'hameçonnage qui relaie.** La phrase est renvoyée à celui qui fait la demande : un site contrefait qui relaie la demande à INFLUX reçoit la phrase et peut l'afficher. Elle protège contre les sites qui ne relaient pas, et aide à reconnaître le dernier e-mail reçu ; elle ne protège pas contre un relais en temps réel | RG48 maintenue telle quelle (coût nul). Complément possible : citer dans l'e-mail, en texte, le **nom de domaine officiel** où saisir le code, une fois les domaines réservés (`CLAUDE.md` §14.3) — à peser contre la transformation automatique d'un nom de domaine en lien par les messageries | **`expert-cybersecurite`** | Avant la mise en ligne du Lot 1 |
+| **Q15** | **Valeur réelle de la phrase contre un site d'hameçonnage qui relaie.** La phrase est renvoyée à celui qui fait la demande : un site contrefait qui relaie la demande à INFLUX reçoit la phrase et peut l'afficher. Elle protège contre les sites qui ne relaient pas, et aide à reconnaître le dernier e-mail reçu ; elle ne protège pas contre un relais en temps réel | RG48 maintenue telle quelle (coût nul). Complément possible : citer dans l'e-mail, en texte, le **nom de domaine officiel** où saisir le code, une fois les domaines réservés (`docs/mvp/prerequis.md` §14.3) — à peser contre la transformation automatique d'un nom de domaine en lien par les messageries | **`expert-cybersecurite`** | Avant la mise en ligne du Lot 1 |
 | **Q16** | **Relecture des listes de mots** par des locuteurs natifs (français, anglais ; portugais pour le critère 6 de RG133) | Listes de RG133 utilisables en local et sur `staging` | `expert-marketing` | Avant la mise en ligne du Lot 1 |
 | **Q17** | **Aucun lien dans les e-mails `auth.login_code` et `auth.new_device`**, y compris vers les préférences (dérogation à `16` RG102, `16` RG158) | Appliquée : zéro lien dans les deux e-mails de sécurité | `expert-cybersecurite` + `expert-conformite-rgpd` | Avant la mise en ligne du Lot 1 |
 

@@ -16,7 +16,7 @@
 > (`read_conversation()` à **canal obligatoire**, une ligne de journal par canal), §8 (T5 étendu,
 > **nouveau test T19**). **Le cloisonnement par règle d'accès à canal constant, doublée d'une
 > contrainte en base, est un arbitrage explicite du fondateur** (`04` §5.7.1 A1, 2026-09-24), rendu
-> dans un domaine sous veto de `expert-cybersecurite` (`CLAUDE.md` §10.3 point 2). **Restent soumises
+> dans un domaine sous veto de `expert-cybersecurite` (`CLAUDE.md` §7 règle 2). **Restent soumises
 > à l'avis de `expert-cybersecurite`** : les deux fonctions `SECURITY DEFINER` ajoutées par les
 > apartés (`04` §5.7.1 A2) et la relecture de cette révision.
 > **Auteurs :** `expert-cybersecurite` (rédacteur, **veto bloquant**) + `architecte` (co-signataire
@@ -167,7 +167,7 @@ l'est pas.
 droits ne sont pas décidés : il ne doit pas être créé. La CI le vérifie (§8, test T2).
 
 **Règle de lecture n° 2.** Cette matrice décrit ce qui est **possible**, pas ce qui est **affiché**.
-Le masquage d'interface n'est jamais un contrôle d'accès (`CLAUDE.md` §9, skill `backoffice-ops`
+Le masquage d'interface n'est jamais un contrôle d'accès (`CLAUDE.md` §6, skill `backoffice-ops`
 règle 26). Un droit absent de cette matrice doit échouer **en base**, même si l'API l'autorisait par
 erreur.
 
@@ -592,7 +592,7 @@ create policy creator_identity_read_after_reveal
 - **C(31)** — Les transitions autorisées sont contraintes **en base** (déclencheur), pas seulement
   dans `packages/domain`. La base reste l'arbitre (`02-architecture` §10.2, point 6).
 - **C(32) — Interdiction structurelle.** `commission_rates` est **créée et reste vide** au MVP
-  (`CLAUDE.md` §3, `01-intermediation-courtee.md` §7). Aucun rôle applicatif n'a le droit d'y écrire :
+  (`CLAUDE.md` §2, `01-intermediation-courtee.md` §7). Aucun rôle applicatif n'a le droit d'y écrire :
   seul le rôle de migration le peut, donc seule une migration relue peut la remplir. **C'est une
   barrière technique contre le retour clandestin d'un calcul de commission au MVP.** Contrôle
   complémentaire en CI : aucune multiplication d'un montant par une constante dans `apps/` et
@@ -1187,7 +1187,7 @@ première chose que je vérifierai à la revue du Lot 4, et c'est un test de CI 
 
 **Ce que le journal contient — et ce qu'il ne contient pas.** Qui, quand, quelle conversation, quel
 écran, participant ou non, identifiant de requête, bornes de pagination. **Jamais le contenu d'un
-message**, jamais un extrait, jamais un aperçu. Journaliser l'accès, pas la donnée (`CLAUDE.md` §9).
+message**, jamais un extrait, jamais un aperçu. Journaliser l'accès, pas la donnée (`CLAUDE.md` §6).
 
 **Une ligne par appel**, sans regroupement ni temporisation. Au volume du pilote (quelques centaines
 de lectures par jour), l'économie de lignes ne vaut pas la perte de précision. Un `read_session_id`
@@ -1317,7 +1317,7 @@ Conditions de mise en œuvre :
 **Verdict : VALIDÉ, avec une reformulation honnête de ce que cela protège.**
 
 Je confirme l'exigence : un contrôle uniquement dans `apps/api` serait **un masquage d'interface
-déguisé**, exactement ce que `CLAUDE.md` §9 et la skill `backoffice-ops` interdisent.
+déguisé**, exactement ce que `CLAUDE.md` §6 et la skill `backoffice-ops` interdisent.
 
 Deux précisions qui font partie de ma validation.
 
@@ -1697,10 +1697,10 @@ qui ne s'exécute pas à chaque fois n'existe pas.
 | **T10** | **En-têtes et CSP.** Jeu d'en-têtes exact par surface, en mode production. Aucun `'unsafe-inline'` dans `script-src`. `X-Robots-Tag` présent sur **toutes** les réponses du backoffice, y compris les erreurs et les redirections | L'en-tête oublié sur la page d'erreur, cas classique | 1 |
 | **T11** | **Secrets.** Analyse des artefacts de construction de `apps/web` et `apps/backoffice` : aucune occurrence de `SUPABASE_SECRET_KEY`, `BREVO_API_KEY`, `APOLLO_API_KEY`, `AUTH_TOKEN_SIGNING_SECRET`, `AUTH_THROTTLE_PEPPER` (*remplacent `SESSION_COOKIE_SECRET` le 2026-09-27, EC-24*), aucune chaîne ressemblant à un JWT. Analyse de secrets sur le dépôt et l'historique. `.env*` ignoré | La fuite par empaquetage : la variable lue au mauvais endroit se retrouve dans le bundle | 0 |
 | **T12** | **Dépendances.** Échec de la CI sur toute vulnérabilité **critique ou élevée**. **Exécution planifiée hebdomadaire**, pas seulement à chaque commit — une CVE publiée n'attend pas notre prochain commit. Dérogations dans un fichier dédié, chacune **avec une date d'expiration** ; une dérogation expirée fait échouer la CI | Une dérogation sans échéance est un mensonge différé | 0 |
-| **T13** | **Erreurs.** Aucune réponse 4xx ou 5xx ne contient de trace d'exécution, de fragment SQL, de nom d'hôte interne, de nom de table ni de version de composant. Seuls `code`, un message traduisible et `requestId` | `CLAUDE.md` §9 et la checklist de `security-rgpd-audit` | 1 |
+| **T13** | **Erreurs.** Aucune réponse 4xx ou 5xx ne contient de trace d'exécution, de fragment SQL, de nom d'hôte interne, de nom de table ni de version de composant. Seuls `code`, un message traduisible et `requestId` | `CLAUDE.md` §6 et la checklist de `security-rgpd-audit` | 1 |
 | **T14** | **IDOR.** Pour chaque type d'objet, un utilisateur de chaque rôle tente de lire et de modifier un objet d'autrui en changeant l'identifiant ⇒ refus, **avec le même code de réponse** que pour un objet inexistant | Ne pas divulguer l'existence d'une ressource par la différence entre 403 et 404 | 2→5 |
 | **T15** | **Limitation de débit.** 429 effectif sur la connexion, l'inscription, la recherche, le détail de profil et les routes coûteuses. La limite est appliquée dans `apps/api`, **jamais** dans le front, et elle porte sur le compte **et** sur l'IP. *Ajout du 2026-09-25 (revue de fin de J1, A5) :* clé /32 en IPv4, /64 en IPv6, `::ffff:` ramené en IPv4 ; adresse absente ou invalide ⇒ compteur par e-mail et compteur global « adresse inconnue » ; aucune adresse en clair dans le flux de journal capturé | Une limite posée dans le front est contournée par le premier appel qui ne passe pas par le front | 1 |
-| **T16** | **Aucun calcul de commission.** Analyse statique : aucune multiplication d'un montant par une constante numérique dans `apps/` et `packages/`. `commission_rates` est vide et aucun rôle applicatif n'a de droit d'écriture dessus | `CLAUDE.md` §3 et §6, `01-intermediation-courtee.md` §7. C'est une règle métier **et** une règle d'intégrité | 0 |
+| **T16** | **Aucun calcul de commission.** Analyse statique : aucune multiplication d'un montant par une constante numérique dans `apps/` et `packages/`. `commission_rates` est vide et aucun rôle applicatif n'a de droit d'écriture dessus | `CLAUDE.md` §2, `01-intermediation-courtee.md` §7. C'est une règle métier **et** une règle d'intégrité | 0 |
 | **T17** | **Garde-fou `staging`.** Les quatre verrous du §6.8, chacun testé séparément, plus le refus de démarrage en production avec `dry_run` | `02-architecture` §12.4 | 1 |
 | **T18** | **Le cycle de révélation, moment par moment** (C(21a) à C(21d)). **a)** `has_function_privilege` sur `matching.reveal_identity(uuid)` est **faux pour les six rôles** — `influx_app`, les quatre rôles applicatifs et `influx_worker` — et un appel direct depuis chacun d'eux **échoue**. **b)** Un agent `aal2` valide une entrée : `status = 'approved'`, `identity_revealed_at` **reste nul**, **aucune ligne** dans `conversations`. **c)** Un agent qui n'est pas titulaire du verrou ⇒ refus. **d)** Une partie accepte : son seul horodatage est posé, celui de l'autre reste nul, rien n'est révélé, la réponse ne contient **aucun élément identifiant de l'autre partie**. **e)** Un tiers, puis un agent, puis un administrateur tentent d'enregistrer l'acceptation d'une partie ⇒ refus, **même code de réponse** qu'une mise en relation inexistante. **f)** La **seconde** acceptation produit, en une transaction, `identity_revealed_at`, l'événement chaîné, la conversation, **trois** participants, l'affaire et **deux** e-mails en file ; une panne simulée sur l'un des six ⇒ **aucun des six** ne subsiste. **g)** Deux acceptations **concurrentes** (la première et la seconde jouées en parallèle) ⇒ **une seule** révélation, **un seul** événement, **une seule** conversation. **h)** Un `UPDATE` direct de `identity_revealed_at`, `advertiser_accepted_at`, `creator_accepted_at` ou `status` par chacun des quatre rôles applicatifs ⇒ échec | Que l'invariant A2 / D16 ne dépende ni de la discipline d'un développeur, ni de l'ordre des appels, ni de l'absence de concurrence. **C'est le test le plus important du Lot 4** | 4 |
 | **T19** | **Cloisonnement des apartés** (D47, `04` §5.7.1 tests TA1 à TA8). **a)** `messages.channel` et `conversation_access_log.channel` n'ont **aucune valeur par défaut**. **b)** Sous `influx_creator` participant, les lignes `advertiser_private` de `messages`, `conversation_channel_activity` et `conversation_reads` renvoient **zéro ligne** alors qu'elles existent ; miroir sous `influx_advertiser`. **c)** Une insertion du créateur dans `advertiser_private` échoue par la politique ; la même insertion, politiques désactivées dans la base de test, échoue par la contrainte `messages_party_channel`. **d)** La réponse brute de chaque route membre de la messagerie (liste, fil, compteurs) est identique, octet pour octet hors horodatage de réponse, avant et après l'écriture d'un message dans l'aparté de **l'autre** partie — **même méthode que T1 : on teste la charge utile, pas une liste de champs**. **e)** Un message d'aparté laisse l'état `open`. **f)** Sous `influx_agent`, un signalement visant un message d'agent est invisible ; sous `influx_admin`, l'auteur ne voit pas celui qui le vise (C(27)) | Qu'un aparté ne fuie ni par un message, ni par un compteur, ni par un tri, ni par un changement d'état. **Le point d) est celui qui compte** : c'est lui qui attrape la fuite qu'on n'a pas anticipée | 4 |

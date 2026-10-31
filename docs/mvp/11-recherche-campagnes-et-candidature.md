@@ -1,6 +1,6 @@
 # Lot 3 — Le créateur cherche une campagne et y postule : fil, filtres, candidature, file de validation
 
-> **⚠️ Régime du pilote — D48 (arbitrage du fondateur du 2026-09-24).** Pendant le pilote, **aucun taux ni aucun net créateur estimé n'est affiché**, ni aux marques ni aux créateurs. Toutes les mentions du « net créateur estimé » et du pourcentage de commission dans ce document sont **suspendues** jusqu'à nouvel arbitrage ; la commission est présentée comme « incluse, précisée par votre commercial ». Voir `CLAUDE.md` §3 et §13 (D48).
+> **⚠️ Régime du pilote — D48 (arbitrage du fondateur du 2026-09-24).** Pendant le pilote, **aucun taux ni aucun net créateur estimé n'est affiché**, ni aux marques ni aux créateurs. Toutes les mentions du « net créateur estimé » et du pourcentage de commission dans ce document sont **suspendues** jusqu'à nouvel arbitrage ; la commission est présentée comme « incluse, précisée par votre commercial ». Voir `CLAUDE.md` §2 et `decisions.md` (D48).
 
 > **Date :** 2026-09-19 · **Auteur :** agent `product-owner` · **Statut :** spécification complète du
 > parcours créateur « trouver une campagne et candidater » (Lot 3, prolongée au Lot 4 pour la file),
@@ -14,7 +14,7 @@
 > (objet mise en relation, origine, révélation), `backoffice-ops` (file, verrou, motifs typés, SLA),
 > `design-system-influx` (états d'écran, affichage des montants).
 >
-> **Documents qui contraignent celui-ci :** `CLAUDE.md` (source de vérité, §3 modèle économique),
+> **Documents qui contraignent celui-ci :** `CLAUDE.md` (source de vérité, §2 modèle économique),
 > `docs/mvp/00-cadrage-mvp-v2.md` (arbitrages **A1**, **A2**, **A9**, §4.1 les trois déclencheurs),
 > `docs/mvp/01-intermediation-courtee.md` §3 et §4.2 (déroulé, candidature),
 > `docs/mvp/03-matrice-des-droits-et-rls.md` §3.3 et §3.4 (conditions **C(17)**, **C(18)**, **C(19)**,
@@ -192,7 +192,7 @@ toujours avec leur devise :
 | **Net créateur estimé** | « Ce que vous percevriez, estimation » | Dérivé du référentiel (RG57) | **Jamais** |
 
 **RG10** — Les deux premiers montants ont **la même assiette** : le **coût total pour l'annonceur**,
-commission **incluse** (`CLAUDE.md` §3), identique à celle du tarif indicatif du profil (`07` RG65) et
+commission **incluse** (`CLAUDE.md` §2), identique à celle du tarif indicatif du profil (`07` RG65) et
 du budget indicatif de la marque (`06` RG29). Sans cette identité, une fourchette de campagne et un
 tarif de créateur ne seraient pas comparables.
 
@@ -812,7 +812,7 @@ marque n'est jamais le seul porteur d'un état** (les huit états de RG71 porten
 (`design-system-influx`).
 
 **RG115** — Le fil et le formulaire sont conçus **mobile d'abord** : les créateurs consultent
-majoritairement sur mobile (`CLAUDE.md` §5.2). Une candidature doit pouvoir s'écrire entièrement au
+majoritairement sur mobile (`CLAUDE.md` §4). Une candidature doit pouvoir s'écrire entièrement au
 pouce, brouillon compris.
 
 **RG116** — Aucun écran de ce périmètre n'affiche de **montant de contrat**, de **facture**, de **taux
@@ -1257,7 +1257,7 @@ vérifiés » vivent **en table**, modifiables sans redéploiement, chaque modif
 | Sauvegarde de campagnes en favoris, alertes de mots-clés | Confort, sans effet mesuré sur la conversion | Après le pilote |
 | Candidature groupée à plusieurs campagnes | Contraire au motif écrit obligatoire (**A9**) | Jamais |
 | Réponse directe de la marque au créateur avant validation | **A9** : rien ne circule sans l'accord d'un commercial | Jamais |
-| Contrat, signature, paiement, calcul de commission | **A1**, `CLAUDE.md` §3 | V2, avec D9 et D25 |
+| Contrat, signature, paiement, calcul de commission | **A1**, `CLAUDE.md` §2 | V2, avec D9 et D25 |
 | Portugais et autres langues | Français et anglais au lancement | Avant l'ouverture du Brésil |
 
 ---

@@ -1,6 +1,6 @@
 # Lot 2 — Vérification des profils et badge : ce qu'INFLUX affirme, sur quelles pièces, et pour combien de temps
 
-> **✳️ Additif du 2026-09-30 — D65 (arbitrage du fondateur) : connexion OAuth YouTube en fin de MVP et trajectoire de remplacement des challenges de bio.** En fin de MVP (Lot 6 / transition V2), INFLUX intègre la **connexion OAuth pour YouTube** afin de valider la propriété d'une chaîne et de remonter ses métriques directement. Pour les autres réseaux (Instagram, TikTok, etc.), le **challenge de bio temporaire** (code public constaté par un agent, §C RG21 à RG30) demeure le procédé nominal de départ au MVP, avec pour vocation d'être **progressivement remplacé par du OAuth** au fur et à mesure des accords et agréments API. Voir `CLAUDE.md` §13 (D65).
+> **✳️ Additif du 2026-09-30 — D65 (arbitrage du fondateur) : connexion OAuth YouTube en fin de MVP et trajectoire de remplacement des challenges de bio.** En fin de MVP (Lot 6 / transition V2), INFLUX intègre la **connexion OAuth pour YouTube** afin de valider la propriété d'une chaîne et de remonter ses métriques directement. Pour les autres réseaux (Instagram, TikTok, etc.), le **challenge de bio temporaire** (code public constaté par un agent, §C RG21 à RG30) demeure le procédé nominal de départ au MVP, avec pour vocation d'être **progressivement remplacé par du OAuth** au fur et à mesure des accords et agréments API. Voir `decisions.md` (D65).
 
 > **Date :** 2026-09-19 · **Auteur :** agent `product-owner` · **Statut :** spécification complète de
 > la vérification et du badge (Lot 2), soumise à la validation de `chef-de-projet`, avec **avis
@@ -1244,7 +1244,7 @@ redéploiement, chaque modification étant journalisée.
 | Partage d'une pièce avec un annonceur, même consenti par le créateur | **C(13)** : interdiction absolue | **Jamais** |
 | Vérification des créateurs mineurs | **D15** : mineurs exclus au MVP | Non planifié |
 | Portugais et autres langues | Français et anglais au lancement | Avant l'ouverture du Brésil |
-| Tout montant, taux ou commission | **A1**, `CLAUDE.md` §3 | V2 |
+| Tout montant, taux ou commission | **A1**, `CLAUDE.md` §2 | V2 |
 
 ---
 

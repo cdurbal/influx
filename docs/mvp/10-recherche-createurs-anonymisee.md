@@ -11,7 +11,7 @@
 > A8, garde-fous A9, vue commerciale A10, facettes A11, conformité A12, mesure A13, cas de test A14),
 > `feature-spec` (format de sortie, 8 cas limites, 7 contrôles INFLUX).
 >
-> **Documents qui contraignent celui-ci :** `CLAUDE.md` (source de vérité, §3 modèle économique) ·
+> **Documents qui contraignent celui-ci :** `CLAUDE.md` (source de vérité, §2 modèle économique) ·
 > `docs/mvp/00-cadrage-mvp-v2.md` (arbitrages A1 à A12, Lot 3, **D38**, **D39**) ·
 > `docs/mvp/03-matrice-des-droits-et-rls.md` (conditions C(10), C(11), C(13), C(16), C(17), C(18),
 > C(26) — **la mise en œuvre technique de l'anonymisation s'y trouve, pas ici**) ·

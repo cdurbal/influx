@@ -1,6 +1,6 @@
 # Lot 3 — Campagne : contenu, blocs, validation commerciale et publication
 
-> **⚠️ Régime du pilote — D48 (arbitrage du fondateur du 2026-09-24).** Pendant le pilote, **aucun taux ni aucun net créateur estimé n'est affiché**, ni aux marques ni aux créateurs. Toutes les mentions du « net créateur estimé » et du pourcentage de commission dans ce document sont **suspendues** jusqu'à nouvel arbitrage ; la commission est présentée comme « incluse, précisée par votre commercial ». Voir `CLAUDE.md` §3 et §13 (D48).
+> **⚠️ Régime du pilote — D48 (arbitrage du fondateur du 2026-09-24).** Pendant le pilote, **aucun taux ni aucun net créateur estimé n'est affiché**, ni aux marques ni aux créateurs. Toutes les mentions du « net créateur estimé » et du pourcentage de commission dans ce document sont **suspendues** jusqu'à nouvel arbitrage ; la commission est présentée comme « incluse, précisée par votre commercial ». Voir `CLAUDE.md` §2 et `decisions.md` (D48).
 
 > **Date :** 2026-09-19 · **Auteur :** agent `product-owner` · **Statut :** spécification complète du
 > contenu d'une campagne (Lot 3), soumise à la validation de `chef-de-projet`, avec **avis
@@ -14,7 +14,7 @@
 > `contract-commission` (assiette du montant affiché), `backoffice-ops` (file, verrou, motifs typés),
 > `design-system-influx` (états d'écran, affichage des montants).
 >
-> **Documents qui contraignent celui-ci :** `CLAUDE.md` (source de vérité, **§3 modèle économique**),
+> **Documents qui contraignent celui-ci :** `CLAUDE.md` (source de vérité, **§2 modèle économique**),
 > `docs/mvp/00-cadrage-mvp-v2.md` (périmètre, arbitrages **A1**, **A2**, **A3**, **A5**, **A9**,
 > Lot 3), `docs/mvp/03-matrice-des-droits-et-rls.md` §3.3 (qui crée, qui valide, bloc interne) et
 > C(7), C(8), C(17), `docs/mvp/04-modele-de-donnees-mvp.md` §5.4 (`campaigns.*`),
@@ -287,7 +287,7 @@ y compris vers le site de la marque. Le domaine de la marque est déjà public s
 **RG23** — **Aucun montant chiffré n'est accepté dans un texte libre de campagne.** Le budget se
 déclare dans le bloc budget (§F), où il est nommé, borné et accompagné de sa mention. Un montant
 glissé dans le brief est le moyen le plus simple de publier un « net créateur » déguisé et de créer
-exactement le malentendu de 35 % que tout le produit cherche à éviter (`CLAUDE.md` §4.2). La détection
+exactement le malentendu de 35 % que tout le produit cherche à éviter (`CLAUDE.md` §3). La détection
 signale tout nombre accompagné d'un symbole ou d'un code de devise ; le modérateur décide, et le
 refus porte le motif « montant dans un texte publié ».
 
@@ -463,7 +463,7 @@ plafond de 3 est identique.
 ### F — Bloc 5 : budget
 
 > **C'est le bloc le plus dangereux du document.** Un chiffre mal nommé ici produit exactement le
-> malentendu de 35 % que `CLAUDE.md` §4.2 désigne comme le point UX le plus sensible du produit.
+> malentendu de 35 % que `CLAUDE.md` §3 désigne comme le point UX le plus sensible du produit.
 
 **RG55** — Le bloc « budget » comporte **exactement** ces champs :
 
@@ -477,7 +477,7 @@ plafond de 3 est identique.
 | **Budget total de la campagne** | Recommandé | **INTERNE — jamais publié** | Montant > 0, même devise | Le commercial doit savoir jusqu'où la marque peut aller |
 
 **RG56** — **La fourchette de rémunération par créateur est le coût total pour l'annonceur,
-commission INFLUX incluse** (`CLAUDE.md` §3). C'est **la même assiette et les mêmes bornes** que le
+commission INFLUX incluse** (`CLAUDE.md` §2). C'est **la même assiette et les mêmes bornes** que le
 **tarif indicatif d'un créateur** (`07` RG65) et que le **budget indicatif par collaboration** d'une
 marque (`06` RG27). Sans cette identité, les trois valeurs seraient incomparables et tout
 rapprochement, humain comme futur, serait faux.
@@ -580,7 +580,7 @@ automatique parce qu'elle ne porte aucun jugement — elle ne contredit pas RG5.
 
 **RG73** — Les quatre dates sont des **dates civiles sans heure** (`04` §4, règle des dates civiles),
 interprétées dans le fuseau horaire déclaré de la marque et **affichées au format de la langue du
-lecteur** (`CLAUDE.md` §5.2, principe 8).
+lecteur** (`CLAUDE.md` §4).
 
 **RG74** — La **durée maximale d'une période de publication est de 12 mois**. Au-delà, il s'agit d'un
 contrat d'ambassadeur, qui se renouvelle par une nouvelle campagne — c'est aussi ce qui garantit que

@@ -1,6 +1,6 @@
 # Parcours et écrans des espaces membres — marque et créateur
 
-> **⚠️ Régime du pilote — D48 (arbitrage du fondateur du 2026-09-24).** Pendant le pilote, **aucun taux ni aucun net créateur estimé n'est affiché**, ni aux marques ni aux créateurs. Toutes les mentions du « net créateur estimé » et du pourcentage de commission dans ce document sont **suspendues** jusqu'à nouvel arbitrage ; la commission est présentée comme « incluse, précisée par votre commercial ». Voir `CLAUDE.md` §3 et §13 (D48).
+> **⚠️ Régime du pilote — D48 (arbitrage du fondateur du 2026-09-24).** Pendant le pilote, **aucun taux ni aucun net créateur estimé n'est affiché**, ni aux marques ni aux créateurs. Toutes les mentions du « net créateur estimé » et du pourcentage de commission dans ce document sont **suspendues** jusqu'à nouvel arbitrage ; la commission est présentée comme « incluse, précisée par votre commercial ». Voir `CLAUDE.md` §2 et `decisions.md` (D48).
 
 > **Date :** 2026-09-19 · **Auteur :** agent `expert-ux` · **Statut :** conception UX complète des
 > **deux espaces membres** du MVP (`apps/web`), soumise au fondateur (branding, §9),
@@ -10,7 +10,7 @@
 > **Skill appliquée :** `design-system-influx` (format de sortie, checklist d'accessibilité,
 > procédure de token).
 >
-> **Documents qui contraignent celui-ci, et qui priment en cas d'écart :** `CLAUDE.md` §2 à §5 ·
+> **Documents qui contraignent celui-ci, et qui priment en cas d'écart :** `CLAUDE.md` §1 à §4 ·
 > `docs/mvp/00-cadrage-mvp-v2.md` §6.1 et §6.2 · `03-matrice-des-droits-et-rls.md` (ce qu'un membre
 > ne voit jamais) · `05-spec-inscription-et-leads.md` · `06-criteres-profil-marque.md` ·
 > `07-criteres-profil-createur-reseaux-audience.md` · `08-verification-et-badge.md` ·
@@ -30,7 +30,7 @@
 > (`15` et `16`), l'implémentation (`dev-react-node`).
 >
 > **Invariant rappelé :** au MVP, **aucun taux et aucun calcul de commission dans le code**
-> (`CLAUDE.md` §3, régime transitoire). Les montants nets affichés au créateur sont **lus dans le
+> (`CLAUDE.md` §2, régime transitoire). Les montants nets affichés au créateur sont **lus dans le
 > référentiel des tranches** (`07` RG72, `09` RG59, `11` RG57). Aucun écran de ce document ne
 > multiplie un montant par un taux.
 
@@ -77,7 +77,7 @@
 | Vocabulaire | campagne, brief, livrables, droits d'usage, budget | offre, contenu, tarif, **ce que je touche**, délai |
 | Conséquence de conception | Densité acceptable, tableaux, filtres, prévisualisation | **Mobile-first strict**, une décision par écran, pouce atteignable, texte court |
 
-**Conséquence non négociable** (`CLAUDE.md` §5.2 principe 2, D41) : **aucun écran n'est partagé
+**Conséquence non négociable** (`CLAUDE.md` §4, D41) : **aucun écran n'est partagé
 entre les deux rôles.** Pas de composant « profil » générique paramétré par un rôle, pas de
 navigation commune conditionnée, pas de libellé mutualisé. Les seuls écrans réellement communs sont
 ceux du §3 (inscription/connexion, avant que le rôle n'existe) et du §6 (mes données, mes sessions),
@@ -176,7 +176,7 @@ Mobile 375 — gabarit commun aux deux espaces (ici : espace marque, page « Mes
 | En-tête | INFLUX (lien vers l'accueil de l'espace) · cloche (Lot 4, absente avant) · langue. `surface-page`, filet bas `border-default`, sans flou ni transparence |
 | Barre du bas | Hauteur `size-nav-bottom-height` **plus la zone de sécurité de l'appareil** (`env(safe-area-inset-bottom)`, `viewport-fit=cover`) : sans elle, l'indicateur d'accueil de l'iPhone recouvre les libellés |
 | Libellé toujours visible | Jamais d'icône seule. Une icône seule oblige à apprendre un vocabulaire visuel ; un créateur qui vient trois fois par mois ne l'apprend pas. `text-xs`, Max 11 caractères FR **et** EN. *« Candidatures » (12) dépasse : à raccourcir par `expert-marketing`, ou limite portée à 12 après essai à 320 px* |
-| Item actif | **Trois porteurs simultanés** : `aria-current="page"`, libellé et icône en `font-weight-semibold` + `color-text-primary`, et un **trait supérieur** de 2 px `color-nav-item-active-indicator`. Inactif : `color-text-secondary`. Jamais la couleur seule (`CLAUDE.md` §5.2 point 7) |
+| Item actif | **Trois porteurs simultanés** : `aria-current="page"`, libellé et icône en `font-weight-semibold` + `color-text-primary`, et un **trait supérieur** de 2 px `color-nav-item-active-indicator`. Inactif : `color-text-secondary`. Jamais la couleur seule (`CLAUDE.md` §4) |
 | Pastille de compte | Nombre **exact jusqu'à 9**, puis « 9+ ». Accompagnée d'un texte masqué visuellement : « 3 éléments nouveaux ». Jamais un simple point coloré. Pastille claire `color-counter-bg` / `-text` (17,46:1) |
 | Sémantique | `<nav aria-label="Navigation principale">` + `<ul>` de liens `next/link`. **Des liens, pas des boutons** : l'ouverture dans un nouvel onglet doit fonctionner |
 | Un seul `<nav>` | *(révisé le 2026-10-28, `02` §21.5 point 3)* **Un seul élément `<nav>` « Navigation principale » dans le DOM**, rendu une fois par le serveur et **restylé par le CSS** : barre fixée en bas sous `lg`, liste verticale de la colonne (§2.3) à partir de `lg`. Ni détection de largeur en JavaScript, ni lecture de l'agent utilisateur, ni second `<nav>` masqué. **Un libellé par entrée, identique aux deux largeurs** (≤ 11 caractères FR et EN) ; le titre de page garde le nom complet (« Mes campagnes », « Mises en relation »). Le bloc d'état du compte, l'aide, la langue et la déconnexion sont hors du `<nav>` |
@@ -1864,7 +1864,7 @@ Mobile 375
 
 | Décision | Justification |
 |---|---|
-| Les deux listes sont **côte à côte, de même poids typographique** | Cacher « ce qui est conservé » dans un lien serait exactement le « coût découvert en fin de parcours » interdit par `CLAUDE.md` §5.2 point 4 |
+| Les deux listes sont **côte à côte, de même poids typographique** | Cacher « ce qui est conservé » dans un lien serait exactement le « coût découvert en fin de parcours » interdit par `CLAUDE.md` §2 |
 | Le vocabulaire évite « preuve légale », « valeur probante », « horodatage certifié » | Interdits par `12` RG105 et `01` M4. On écrit « journal d'activité », « historique de la mise en relation » |
 | Re-authentification par code | Exigée pour export, suppression et changement d'adresse (`05` RG57) |
 | Confirmation par saisie d'un mot | Un bouton rouge seul se clique par réflexe ; taper un mot exige une intention |
@@ -2185,7 +2185,7 @@ Mention fixe, immédiatement dessous, jamais repliée.
 ```
 
 - **Format localisé** : `1 000,00 €` / `€1,000.00`, `35 %` / `35%`, via next-intl. Jamais de
-  concaténation, jamais de symbole codé en dur (`CLAUDE.md` §5.2 point 8).
+  concaténation, jamais de symbole codé en dur (`CLAUDE.md` §4).
 - **Insécable** : montant et devise ne se séparent jamais en fin de ligne.
 - **Le mot « environ »** accompagne tout net issu d'une tranche (`09` RG60, `11` RG57).
 - **Jamais « HT » ni « TTC »** tant que D7 est ouverte (`07` RG71, `09` RG67).
@@ -2328,8 +2328,8 @@ spécifications `06`, `07` et `08` font foi** ; ces écarts sont signalés à `d
 | **E1** | **Le tarif se choisit dans une liste de tranches** (`<select>` de `PRICE_BAND_OPTIONS`), et la valeur exacte (`exactAmountMinor`) est posée en dur à la création d'une ligne, sans champ de saisie | `07` RG22 et RG66 : le tarif est **saisi en valeur exacte** (couche N) et **le système en dérive la tranche** | Deux conséquences : la couche N est vide de sens, et la tranche déclarée n'est plus adossée à un montant réel — donc la comparaison avec un budget de campagne devient déclarative. Le §5.4 dessine la saisie exacte attendue |
 | **E2** | **Les étiquettes de couche exposent le vocabulaire interne** : « Couche A · Public Anonyme », « Couche I · Révélé sur accord », « Couche N · Interne INFLUX » | `07` RG112 : libellés imposés — « Visible de toutes les marques inscrites », « Visible uniquement après l'ouverture d'une mise en relation », « Visible uniquement par vous et l'équipe INFLUX » | Un créateur ne sait pas ce qu'est une « couche A ». Les codes A/I/N sont un outil de spécification. Libellés du §5.2 |
 | **E3** | **Les listes fermées sont codées en dur dans le composant, en français uniquement** (formats, réseaux, tranches de prix, droits d'usage, disponibilité), et les tranches sont libellées **en euros en dur** (« Moins de 250 € ») alors que la devise est un champ | D28, `06` RG26, `07` RG66 (« une tranche sans devise n'existe pas »), `04` R8 (libellés depuis les fichiers de traduction) | L'écran est monolingue et mono-devise. C'est le point le plus coûteux à rattraper plus tard |
-| **E4** | **Le taux figure en dur dans le code applicatif** : `STANDARD_COMMISSION_DISPLAY = "35 % (Barème standard)"` | `CLAUDE.md` §3, régime transitoire : « aucun taux et aucun calcul de commission dans le code » ; `07` RG69 fixe le libellé exact | Même à titre d'affichage, un taux littéral dans un composant est ce que le contrôle T16 cherche à interdire. La phrase doit venir d'une clé (`creatorProfile.rate.net`) |
-| **E5** | **Le montant net est formaté à la main** : `Math.round(min/100)` puis `« … € »` concaténé | `CLAUDE.md` §5.2 point 8, D28 | Arrondi à l'euro, séparateurs et position du symbole non localisés ; en anglais, le rendu est faux |
+| **E4** | **Le taux figure en dur dans le code applicatif** : `STANDARD_COMMISSION_DISPLAY = "35 % (Barème standard)"` | `CLAUDE.md` §2, régime transitoire : « aucun taux et aucun calcul de commission dans le code » ; `07` RG69 fixe le libellé exact | Même à titre d'affichage, un taux littéral dans un composant est ce que le contrôle T16 cherche à interdire. La phrase doit venir d'une clé (`creatorProfile.rate.net`) |
+| **E5** | **Le montant net est formaté à la main** : `Math.round(min/100)` puis `« … € »` concaténé | `CLAUDE.md` §4, D28 | Arrondi à l'euro, séparateurs et position du symbole non localisés ; en anglais, le rendu est faux |
 | **E6** | **Le net est peint avec les tokens `feedback-success-*`** (texte teal + icône de tendance) | `design-system-influx` : marque et succès sont deux tokens distincts ; `02` §2.9 a créé `color-data-net-creator` pour ce rôle exact | Un montant n'est pas un succès. Une flèche montante suggère en outre une performance qu'INFLUX ne mesure pas (`08` RG2) |
 | **E7** | *Point positif, à conserver* : `getEstimatedNetForPriceBand` **lit** les bornes nettes dans le référentiel (`ref.netMinAmountMinor`) et ne multiplie rien | `07` RG72 | Conforme. C'est la partie la plus risquée du sujet, et elle est juste |
 

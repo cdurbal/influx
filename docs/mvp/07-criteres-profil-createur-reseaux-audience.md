@@ -1,8 +1,8 @@
 # Lot 2 — Profil créateur : réseaux, audience, offre, portfolio et couches de visibilité
 
-> **⚠️ Régime du pilote — D48 (arbitrage du fondateur du 2026-09-24).** Pendant le pilote, **aucun taux ni aucun net créateur estimé n'est affiché**, ni aux marques ni aux créateurs. Toutes les mentions du « net créateur estimé » et du pourcentage de commission dans ce document sont **suspendues** jusqu'à nouvel arbitrage ; la commission est présentée comme « incluse, précisée par votre commercial ». Voir `CLAUDE.md` §3 et §13 (D48).
+> **⚠️ Régime du pilote — D48 (arbitrage du fondateur du 2026-09-24).** Pendant le pilote, **aucun taux ni aucun net créateur estimé n'est affiché**, ni aux marques ni aux créateurs. Toutes les mentions du « net créateur estimé » et du pourcentage de commission dans ce document sont **suspendues** jusqu'à nouvel arbitrage ; la commission est présentée comme « incluse, précisée par votre commercial ». Voir `CLAUDE.md` §2 et `decisions.md` (D48).
 
-> **✳️ Additif du 2026-09-25 — D61 (arbitrage du fondateur) : trois métriques prioritaires par réseau.** Pour chaque réseau déclaré, INFLUX suit **en priorité** trois chiffres : **(1) la taille de la communauté** (nombre d'abonnés), **(2) le rythme de publication**, **(3) le nombre moyen de commentaires par publication**. Les trois sont **obligatoires** sur chaque ligne de réseau, **affichés en tête de ligne**, **constatés** lors de la vérification et **historisés**. Le taux d'engagement et la portée moyenne deviennent des indicateurs **secondaires**, facultatifs. Règles : **§E bis (RG113 à RG119)** ; cas limites et critères d'acceptation dédiés ; questions ouvertes **Q15 à Q18**. Voir `CLAUDE.md` §13 (D61).
+> **✳️ Additif du 2026-09-25 — D61 (arbitrage du fondateur) : trois métriques prioritaires par réseau.** Pour chaque réseau déclaré, INFLUX suit **en priorité** trois chiffres : **(1) la taille de la communauté** (nombre d'abonnés), **(2) le rythme de publication**, **(3) le nombre moyen de commentaires par publication**. Les trois sont **obligatoires** sur chaque ligne de réseau, **affichés en tête de ligne**, **constatés** lors de la vérification et **historisés**. Le taux d'engagement et la portée moyenne deviennent des indicateurs **secondaires**, facultatifs. Règles : **§E bis (RG113 à RG119)** ; cas limites et critères d'acceptation dédiés ; questions ouvertes **Q15 à Q18**. Voir `decisions.md` (D61).
 
 > **Date :** 2026-09-19 · **Auteur :** agent `product-owner` · **Statut :** spécification complète du
 > profil créateur (Lot 2), soumise à la validation de `chef-de-projet`, avec **avis obligatoire
@@ -16,7 +16,7 @@
 > `backoffice-ops` (file, verrou, motifs typés), `design-system-influx` (états d'écran, affichage
 > des montants).
 >
-> **Documents qui contraignent celui-ci :** `CLAUDE.md` (source de vérité, §3 modèle économique),
+> **Documents qui contraignent celui-ci :** `CLAUDE.md` (source de vérité, §2 modèle économique),
 > `docs/mvp/00-cadrage-mvp-v2.md` (périmètre, arbitrages A1 à A12, Lot 2),
 > `docs/mvp/03-matrice-des-droits-et-rls.md` §3.2 (conditions C(7) à C(16), règle des trois objets),
 > `docs/mvp/04-modele-de-donnees-mvp.md` §5.2 (`profiles.creator_public_*`,
@@ -686,7 +686,7 @@ devise, sans rapprochement automatique et sans taux.
 
 **RG68** — **À côté de chaque tarif indicatif, le profil affiche la tranche de « net créateur
 estimé »**, dans la même devise. Par défaut, elle vaut **65 % du tarif** : le montant du contrat est
-le coût total pour l'annonceur, commission **incluse** (`CLAUDE.md` §3), et la commission INFLUX
+le coût total pour l'annonceur, commission **incluse** (`CLAUDE.md` §2), et la commission INFLUX
 totale est de **35 %** — **20 % à la charge de l'annonceur et 15 % à la charge du créateur**.
 
 **RG69** — Le libellé affiché distingue **sans ambiguïté trois notions**, toujours nommées, toujours

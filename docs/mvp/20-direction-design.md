@@ -20,7 +20,7 @@
 >
 > **Statut :** proposition d'`expert-ux`, qui s'applique dès maintenant aux spécifications.
 > **Arbitrages du fondateur du 2026-09-24** sur Q1 à Q5 (§9) : les cinq recommandations sont
-> retenues. Elles sont reportées dans `CLAUDE.md` (§4.3, §5.1, D6, D47, **D58**, **D59**),
+> retenues. Elles sont reportées dans `CLAUDE.md` (§3, §4, D6, D47, **D58**, **D59**),
 > `12` (§K) et `17b` (§0, M4). **Décision du fondateur du 2026-10-28 (D73)** : charte KEO Emerald
 > pour les espaces membres et le backoffice, menu à gauche sur desktop façon Railway (§11, §3).
 >
@@ -84,11 +84,11 @@ Chaque ligne dit **ce qu'on prend** et, aussi important, **ce qu'on ne prend pas
 | Référence | Pourquoi elle n'est pas un modèle |
 |---|---|
 | **Discord** pour la messagerie | Registre communautaire, alors qu'il s'agit d'une négociation qui fait preuve. Rôles portés par la couleur du pseudo, ce que `12` RG7 interdit. Écrire dans le mauvais salon y est l'erreur classique : avec les apartés, c'est un incident |
-| **Stripe** pour la logique des montants | Stripe affiche de l'argent **calculé**. Au MVP, l'application ne calcule rien et n'affiche aucun taux (`CLAUDE.md` §3, D48) : reprendre sa décomposition suggère un calcul et invite à le « compléter » |
+| **Stripe** pour la logique des montants | Stripe affiche de l'argent **calculé**. Au MVP, l'application ne calcule rien et n'affiche aucun taux (`CLAUDE.md` §2, D48) : reprendre sa décomposition suggère un calcul et invite à le « compléter » |
 | **Vercel** comme modèle visuel de la landing | Il vend à des développeurs, presque sans visages. La landing, déjà réalisée et seul code conservé (D44), a pris une autre direction, choisie par le fondateur (carte métallisée, le 2026-09-17) |
 | **Spotify** comme modèle visuel des espaces connectés | La maquette KEO s'en dit inspirée. Le fondateur en a retenu la **palette et les formes** (D73), pas la ressemblance : halo, ombre lumineuse du bouton, agrandissement au survol et soulèvement gardés par le fondateur, panneaux flottants autorisés là où ils sont pertinents (jugement `expert-ux`, écran par écran) (F6, 2026-10-29, §11.5). Test du logo appliqué : §11.7 |
 
-**Concurrents.** wekollab.fr reste la référence officielle de finition (`CLAUDE.md` §2). `17` §1.2
+**Concurrents.** wekollab.fr reste la référence officielle de finition (`CLAUDE.md` §1). `17` §1.2
 consulte aussi Malt, Upwork et Kolsquare pour les places de marché à deux faces. Un concurrent
 sert à comprendre les conventions du métier, jamais à en copier l'apparence.
 
@@ -102,11 +102,11 @@ Aucune référence ne les fournit : ils viennent du modèle de place de marché 
 |---|---|---|---|---|
 | **P1** | **Emprunter des comportements, jamais des styles** | Un produit cohérent plutôt qu'un patchwork | Aucune valeur hors tokens ; test du logo (§1) | D4, D6 |
 | **P2** | **Chaque zone de saisie annonce qui lira le message** | Avec le fil commun, deux apartés et la note interne, le commercial a **quatre audiences** dans un seul écran | La phrase d'audience nomme les lecteurs, est visible sans interaction et change avec le canal | `17b` §3.4.b ; §7 |
-| **P3** | **Chaque montant dit qui l'a saisi et quand** | Au MVP, rien n'est calculé : un montant sans auteur ressemble à un résultat de calcul | Aucun montant sans auteur et date au backoffice ; aucun taux ; aucun montant déduit d'un taux | `CLAUDE.md` §3, `14` RG73 ; §6 |
+| **P3** | **Chaque montant dit qui l'a saisi et quand** | Au MVP, rien n'est calculé : un montant sans auteur ressemble à un résultat de calcul | Aucun montant sans auteur et date au backoffice ; aucun taux ; aucun montant déduit d'un taux | `CLAUDE.md` §2, `14` RG73 ; §6 |
 | **P4** | **La révélation est un moment, pas un changement d'état** | C'est l'instant le plus sensible du produit et le fait générateur de la créance | Écran plein, humain nommé, horodatage affiché ; jamais une carte qui se dévoile en rafraîchissant une liste | D45, `17` §7.2 |
 | **P5** | **Le commercial est une personne** | Son métier *est* le produit ; un logo ne négocie pas | Partout où il agit : « Prénom — INFLUX », rôle écrit, photo **facultative, au choix de l'agent** (sinon initiales) ; jamais signé « l'équipe » dans une mise en relation | `12` RG5, RG7 |
 | **P6** | **Le délai est promis et visible** | Un délai affiché puis tenu construit la confiance ; un silence la détruit | Tout état d'attente dit **qui** doit agir et **avant quand** | D39, D45, D49, `10` RG52 |
-| **P7** | **La couleur ne porte jamais seule une information** | Daltonisme, impression, capture recadrée | Chaque état a un texte ou une forme ; la couleur ne fait que renforcer | `CLAUDE.md` §5.2 point 7 |
+| **P7** | **La couleur ne porte jamais seule une information** | Daltonisme, impression, capture recadrée | Chaque état a un texte ou une forme ; la couleur ne fait que renforcer | `CLAUDE.md` §4 |
 
 ---
 
@@ -129,7 +129,7 @@ Côté membres, l'acceptation qui révèle les identités est de niveau 3 : c'es
 ## 6. Montants : la règle de provenance
 
 Au MVP, le commercial **saisit** le montant négocié et la commission convenue ; l'application les
-enregistre et les additionne, **elle ne les déduit jamais d'un taux** (`CLAUDE.md` §3). `14` RG73
+enregistre et les additionne, **elle ne les déduit jamais d'un taux** (`CLAUDE.md` §2). `14` RG73
 met déjà l'historique dans la fiche d'affaire. Ce document demande en plus que **l'origine figure à
 côté de chaque valeur**, sans ouvrir l'historique.
 
@@ -331,8 +331,8 @@ avec les mêmes textes adaptés.
 | **E-mails** | Les clients de messagerie inversent les couleurs à leur manière ; le code de connexion (D43) doit rester lisible partout | Gabarit d'e-mail propre, testé en clair et en sombre dans les principaux clients | `expert-marketing` + `expert-integrations-api` | Lot 1 |
 | **Lecture en extérieur** | Un fond sombre se lit moins bien en plein soleil, cas typique du créateur | Test des écrans créateur **dehors, sur un vrai téléphone** | `testeur` + `expert-ux` | Recettes des Lots 2 et 6 |
 | **Gris pâles** | Les références « premium » descendent sous le contraste AA | Plancher : `color-text-tertiary`, réservé aux aides et mentions | Revue `expert-ux` | Permanent |
-| **Vert d'action / vert de succès** | Un badge « Acceptée » vert ressemble à un bouton | Séparés dans les tokens (succès en sarcelle) ; `CLAUDE.md` §5.1 aligné le 2026-09-24 (Q5) | Fondateur | Fait |
-| **Maquette** | La messagerie de la maquette reprend la palette de WhatsApp Web, en dur : l'écran central du modèle ressemble à une autre marque devant les partenaires | À corriger si `chef-de-projet` juge que cela fausse la vision présentée (`CLAUDE.md` §16.2 point 1) | `chef-de-projet` | Avant les démonstrations |
+| **Vert d'action / vert de succès** | Un badge « Acceptée » vert ressemble à un bouton | Séparés dans les tokens (succès en sarcelle) ; `CLAUDE.md` §4 aligné le 2026-09-24 (Q5) | Fondateur | Fait |
+| **Maquette** | La messagerie de la maquette reprend la palette de WhatsApp Web, en dur : l'écran central du modèle ressemble à une autre marque devant les partenaires | À corriger si `chef-de-projet` juge que cela fausse la vision présentée (`CLAUDE.md` §12) | `chef-de-projet` | Avant les démonstrations |
 | **Émeraude et sarcelle** *(D73)* | Le vert KEO `#1dd68a` (teinte 155°) n'est qu'à 17° de la sarcelle de succès `#2dd4bf` (172°), contre 28° avec le vert de la vitrine | **Tranché le 2026-10-28** : sous KEO, succès `#3ccfcf` (180°, écart 25°), valeur de la palette KEO ; seuil de 20° vérifié par la garde G3d ; la forme reste un second séparateur (le plein est réservé à l'action) (§11.3) | `expert-ux` | Fait |
 | **Ressemblance avec Spotify** *(D73)* | Vert vif sur noir et pilules : on reconnaît la référence avant INFLUX | Halo, ombre lumineuse du bouton, agrandissement et soulèvement gardés, panneaux flottants si pertinents (F6, fondateur, 2026-10-29) ; signatures INFLUX mises en avant (§11.7) | `expert-ux` | Jalon DS |
 | **Deux verts de marque** *(D73)* | Vitrine `#29e075`, espaces `#1dd68a`, sur deux écrans consécutifs (porte, puis inscription) | **Tranché le 2026-10-29 (F2)** : un seul vert, `#1dd68a`, vitrine comprise (commit DS-14, revue visuelle D59) | Fondateur | Fait |
@@ -348,7 +348,7 @@ avec les mêmes textes adaptés.
 | **Q2** | Un aparté est-il lu par **tous les agents participants**, ou par le seul commercial responsable ? | **Tranchée (fondateur, 2026-09-24) : tous les agents participants**, chaque lecture journalisée : un commercial qui reprend l'affaire doit lire l'historique. Écrite en `12` RG116 et RG130 | — | Fait |
 | **Q3** | Faut-il une **vue mobile minimale du backoffice** ? `17b` M4 l'écarte sous 1024 px. Or le commercial participe à chaque conversation, avec un délai d'un jour ouvré, et le métier se fait aujourd'hui en déplacement | **Tranchée (fondateur, 2026-09-24) : oui — D58.** Limitée à deux gestes : lire et répondre dans une conversation dont on est participant ; prendre en charge, valider ou refuser dans la file. Le reste du backoffice reste un poste de travail. Restent : les conditions de session sur téléphone, puis les écrans en additif de `17b` | `architecte` + `expert-cybersecurite` (session, second facteur), puis `expert-ux` | Conditions avant le Lot 4 |
 | **Q4** | Direction visuelle de la landing : **carte métallisée premium** (actuelle) ou **sobriété façon Vercel** ? | **Tranchée (fondateur, 2026-09-24) : oui — D59.** La direction actuelle est conservée, avec un **budget d'effets** : un seul effet spectaculaire par écran visible. Reste la revue visuelle de la page rendue, pour appliquer ce budget | `expert-ux` | Avant la mise en ligne du Lot 1 |
-| **Q5** | Aligner `CLAUDE.md` §5.1, qui présente le vert comme couleur « d'accent, d'action et de succès », alors que les tokens donnent au succès sa propre teinte | **Tranchée (fondateur, 2026-09-24) : oui.** `CLAUDE.md` §5.1 et D6 alignés : le vert est la couleur de marque et d'action, le succès a sa propre teinte (sarcelle) | — | Fait |
+| **Q5** | Aligner `CLAUDE.md` §4, qui présente le vert comme couleur « d'accent, d'action et de succès », alors que les tokens donnent au succès sa propre teinte | **Tranchée (fondateur, 2026-09-24) : oui.** `CLAUDE.md` §4 et D6 alignés : le vert est la couleur de marque et d'action, le succès a sa propre teinte (sarcelle) | — | Fait |
 | **Q6** | Un **mode clair** pour les espaces membres, plus tard ? | Pas au MVP. Garder des tokens nommés par rôle pour ne pas le rendre coûteux ; décider après le pilote, au vu des tests en extérieur (§8) | Fondateur | Après le pilote |
 
 ---
@@ -373,7 +373,7 @@ et §11.5.
 |---|---|---|---|
 | `--color-chat-private-border` | `var(--color-border-strong)` | Cadre de 2 px du champ de saisie d'un aparté | Pour tout autre champ : il perdrait sa valeur de signal |
 | `--color-chat-private-surface` | `var(--color-surface-muted)` | Fond de la zone des messages d'un aparté, en renfort | Seul, sans bandeau ni icône (P7) |
-| `--color-logo-plate` | `var(--color-surface-inverse)` | Pastille claire derrière un logo de marque déposé | Section pleine largeur (interdite, `CLAUDE.md` §5.1) ; photo de créateur ou visuel de portfolio |
+| `--color-logo-plate` | `var(--color-surface-inverse)` | Pastille claire derrière un logo de marque déposé | Section pleine largeur (interdite, `CLAUDE.md` §4) ; photo de créateur ou visuel de portfolio |
 
 ---
 

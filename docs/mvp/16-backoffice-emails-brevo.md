@@ -10,7 +10,7 @@
 > **Skills appliquées :** `feature-spec` (format de sortie), `brevo-campaign` (mode opératoire),
 > `lead-pipeline` (file d'événements), `env-secrets` (clés), `backoffice-ops` (écrans internes).
 >
-> **Documents qui contraignent celui-ci :** `CLAUDE.md` §3, §8 et §9 (source de vérité) ;
+> **Documents qui contraignent celui-ci :** `CLAUDE.md` §2, §6 et §8 (source de vérité) ;
 > `00-cadrage-mvp-v2.md` (**A4**, Lot 5) ; `01-intermediation-courtee.md` §5 M2 (l'e-mail de
 > révélation est une preuve) ; `03-matrice-des-droits-et-rls.md` (rôles, double validation,
 > interdits) ; `04-modele-de-donnees-mvp.md` §5.8, §5.10 et §9 (tables et conservation) ;
@@ -93,7 +93,7 @@ Quatre raisons d'être, dans cet ordre :
 
 > **Deux populations, deux discours.** Un envoi ne mélange jamais annonceurs et créateurs dans un
 > même modèle : ni le vocabulaire, ni la promesse, ni le lien d'arrivée ne sont les mêmes
-> (`CLAUDE.md` §5.2). Un segment mixte est un segment mal construit, et l'écran le signale.
+> (`CLAUDE.md` §4). Un segment mixte est un segment mal construit, et l'écran le signale.
 
 ---
 
@@ -292,7 +292,7 @@ croire à un bogue.
 
 **RG18** — **Un segment mixte est signalé.** Si le périmètre contient à la fois des annonceurs et
 des créateurs, l'écran affiche un avertissement écrit : deux populations, deux discours
-(`CLAUDE.md` §5.2). Ce n'est pas bloquant — un message strictement neutre existe — mais cela doit
+(`CLAUDE.md` §4). Ce n'est pas bloquant — un message strictement neutre existe — mais cela doit
 être un choix conscient, et ce choix est journalisé.
 
 **RG19 — Écran 4 : le modèle et la langue.** L'agent choisit un modèle **validé** (§F) de nature
@@ -1582,7 +1582,7 @@ du plan de test (document `18`) :
 #### M8 — Variables d'environnement
 
 **RG149 — Toutes les variables sont côté serveur, dans `apps/api` uniquement**, et aucune n'est
-jamais présente dans un bundle front, un dépôt ou un journal (skill `env-secrets`, `CLAUDE.md` §6).
+jamais présente dans un bundle front, un dépôt ou un journal (skill `env-secrets`, `CLAUDE.md` §5).
 
 | Variable | Rôle | Portée | Remarque |
 |---|---|---|---|

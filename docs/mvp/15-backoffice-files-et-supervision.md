@@ -59,7 +59,7 @@ Trois raisons de le traiter comme un produit et non comme un écran d'administra
 
 > **Deux populations, deux fiches.** Une fiche de compte marque et une fiche de compte créateur ne
 > partagent ni les mêmes blocs, ni le même vocabulaire, ni les mêmes actions. **Elles ne sont jamais
-> fusionnées dans un écran unique** (`CLAUDE.md` §5.2, **D41** : un rôle par compte au MVP).
+> fusionnées dans un écran unique** (`CLAUDE.md` §4, **D41** : un rôle par compte au MVP).
 
 ---
 
@@ -129,7 +129,7 @@ chaque action. Le masquage d'interface n'est **jamais** un contrôle d'accès.
 leur est commun (§C), et pour tout le reste il **renvoie** au document qui fait autorité. Toute règle
 de ce document qui contredirait `05` à `13` est une erreur de ce document, à corriger ici.
 
-**RG4** — **Aucun taux, aucun calcul de commission, nulle part** (**A1**, `CLAUDE.md` §3, `03`
+**RG4** — **Aucun taux, aucun calcul de commission, nulle part** (**A1**, `CLAUDE.md` §2, `03`
 C(32)). Le backoffice **additionne et soustrait** des montants saisis par un commercial ; il ne les
 déduit jamais d'un pourcentage. **Aucun écran de ce document n'affiche un net créateur** : il n'est
 calculé nulle part au MVP.
@@ -596,7 +596,7 @@ montants. Ce sont des données internes d'INFLUX.
 > point 6) — **sans cette mention, le droit de conserver n'existe pas**.
 
 **RG71** — **Six types de demande** sont traités : **accès**, **rectification**, **effacement**,
-**portabilité**, **opposition**, **limitation** (`04` §5.10). *(`CLAUDE.md` §9 en cite cinq :
+**portabilité**, **opposition**, **limitation** (`04` §5.10). *(`CLAUDE.md` §6 en cite cinq :
 l'ajout de la limitation est à confirmer — **Q6**.)*
 
 **RG72** — **Toute demande, quelle que soit son origine, crée une entrée dans la file 14.** Une
@@ -940,7 +940,7 @@ distincte. Contrastes **WCAG AA** au minimum.
 
 **RG120** — **Tous les tokens viennent du design system** (`design-system-influx`), dark theme par
 défaut, **aucune couleur ni espacement en dur**. Le vert de marque n'est jamais seul porteur d'un
-état (`CLAUDE.md` §5.2).
+état (`CLAUDE.md` §4).
 
 **RG121** — **L'état de tri, de filtre et de pagination d'une liste figure dans l'adresse de la
 page**, pour qu'un lien soit partageable entre collègues. **Cette adresse ne contient aucune donnée
@@ -1384,7 +1384,7 @@ des codes et des identifiants **et aucune donnée personnelle**.
    verrou pourrait devoir différer par file. À confirmer : global (position actuelle, cohérente avec
    les six documents qui écrivent tous « 30 minutes ») ou par `queue_code`.
 10. **Le type `restriction`** figure dans `data_subject_requests.request_type` (`04` §5.10) mais pas
-    dans les cinq droits cités par `CLAUDE.md` §9. À trancher (**Q6**).
+    dans les cinq droits cités par `CLAUDE.md` §6. À trancher (**Q6**).
 11. **Durées de conservation manquantes au §9.1 de `04`** pour trois catégories créées ici : notes
     internes, instances d'alerte, journal des exports. Proposition à soumettre à
     `expert-conformite-rgpd` : notes internes alignées sur la vie du compte, alertes 24 mois, journal
@@ -1436,7 +1436,7 @@ des codes et des identifiants **et aucune donnée personnelle**.
 | **Le contenu de chaque file** : critères, motifs, messages, écrans de décision | Chaque file a son document (`05` à `13`). Ce document les fédère, il ne les réécrit pas | — |
 | **Le pipeline commercial** : états d'affaire, saisie des montants, relances, rapprochement, export comptable détaillé | `01` §6, puis le document dédié du Lot 5 (`expert-paiement-facturation`). Ce document n'en affiche que les agrégats | Lot 5, en parallèle |
 | **L'envoi d'e-mails Brevo depuis le backoffice** : sources, bases légales, segments, contenus, plafonds | **A4**, **D35** (veto `expert-conformite-rgpd`), document attendu de `expert-marketing`. Ce document n'en fixe que le cadre d'action de masse (M3) et de plafond par rôle | Lot 5 |
-| **Le calcul, la facturation et l'encaissement de la commission** | **A1**, `CLAUDE.md` §3 | **V2**, avec **D9** et **D25** |
+| **Le calcul, la facturation et l'encaissement de la commission** | **A1**, `CLAUDE.md` §2 | **V2**, avec **D9** et **D25** |
 | **L'algorithme de mise en relation et tout score** | **D11** : aucune donnée pour le régler. Le pilote la produit | Après le pilote |
 | **Les portefeuilles de clients cloisonnés par commercial** | Au MVP, tous les commerciaux voient tout ; **le responsable est déjà enregistré partout** (RG10) | Dès que l'équipe le justifie : un changement de règle d'accès |
 | **Les droits fins par agent** (au-delà de `agent` / `admin`) | Confort ; deux rôles suffisent à une équipe de deux ou trois personnes | Quand l'équipe le justifie |
@@ -1459,7 +1459,7 @@ des codes et des identifiants **et aucune donnée personnelle**.
 | **Q3** | **SLA de la file « sélection par l'équipe INFLUX »** : `10` RG84 parle d'un « délai paramétré » sans jamais en fixer la valeur | **1 jour ouvré**, aligné sur les autres files. C'est un lead qualifié dont le brief est écrit : le faire attendre est le plus coûteux des retards | **Fondateur** + `chef-de-projet`, rattaché à **D39** | Lot 5 |
 | **Q4** | **SLA des files `lead_sync_failures` et `email_delivery_incidents`** : `05` fixe des objectifs de synchronisation (1 h, 24 h) mais **aucun délai de traitement d'un échec**. Or `05` RG105 pose une cible de **zéro échec non traité** | **2 jours ouvrés**. En deçà, l'objectif est irréaliste ; au-delà, « zéro échec non traité » n'a plus de sens. Depuis **D37**, une adresse injoignable est un **compte inaccessible**, pas une gêne marketing : ce délai n'est pas confortable | **Fondateur** + `expert-integrations-api` | Lot 5 |
 | **Q5** | **Harmonisation du tri par défaut.** `06`, `07`, `08`, `09` écrivent « ancienneté croissante » ; `13` RG19 écrit « échéance croissante ». Les deux donnent le même ordre **tant que le délai est uniforme dans une file** — ce qui est faux pour `campaigns` (1 j / 2 j en revue renforcée) | **Échéance croissante partout** (RG27 C5). C'est le seul tri qui reste juste quand deux délais coexistent | `product-owner` + `expert-ux` | Lot 5 |
-| **Q6** | **Le droit à la limitation du traitement est-il dans le périmètre ?** `04` §5.10 le prévoit (6 types) ; `CLAUDE.md` §9 en cite cinq | **Oui, retenu** : coût marginal nul puisque la table le prévoit, et son absence serait un manquement. `CLAUDE.md` §9 est à compléter | **`expert-conformite-rgpd` (veto)** | Lot 5 |
+| **Q6** | **Le droit à la limitation du traitement est-il dans le périmètre ?** `04` §5.10 le prévoit (6 types) ; `CLAUDE.md` §6 en cite cinq | **Oui, retenu** : coût marginal nul puisque la table le prévoit, et son absence serait un manquement. `CLAUDE.md` §6 est à compléter | **`expert-conformite-rgpd` (veto)** | Lot 5 |
 | **Q7** | **Périmètre d'un export au titre du droit d'accès** : le texte écrit par l'autre partie d'une conversation en fait-il partie ? Et les **notes internes** sont-elles communicables ? | **Hypothèse conservatrice** : messages de l'autre partie **exclus**, métadonnées incluses ; **notes internes communicables** (RG48), l'écran prévenant l'agent avant qu'il écrive | **`expert-conformite-rgpd` (veto)** + juriste | **Lot 5, avant la première demande réelle** |
 | **Q8** | **Modération en lot des visuels de portfolio** (M4) : accepter ou refuser jusqu'à 20 visuels **d'un même profil** avec un motif commun est-il compatible avec l'examen visuel par visuel exigé par `07` RG97 ? | **Oui, limité à un seul profil et à un motif commun.** C'est la file la plus répétitive du MVP ; l'examen reste individuel, seule la saisie est groupée | `product-owner` + `expert-ux` | Lot 5 |
 | **Q9** | **Durées de conservation** des notes internes, des instances d'alerte, du journal des exports et du journal des actions internes | Notes alignées sur la vie du compte ; alertes **24 mois** ; journal des exports **sans purge** (il vit dans le registre) | **`expert-conformite-rgpd` (veto)** | Lot 5 |
@@ -1474,7 +1474,7 @@ des codes et des identifiants **et aucune donnée personnelle**.
 
 **Ce document ne modifie aucun autre fichier.** Les douze écarts du modèle de données sont adressés à
 `expert-database` ; les tests attendus sont adressés à `testeur` (document `18`) ; la mise à jour de
-`CLAUDE.md` §13 relève de `chef-de-projet` ; la validation de §G relève d'`expert-conformite-rgpd`
+`decisions.md` relève de `chef-de-projet` ; la validation de §G relève d'`expert-conformite-rgpd`
 (**veto**) et celle de §I, §J et §K d'`expert-cybersecurite` (**veto**).
 
 ---

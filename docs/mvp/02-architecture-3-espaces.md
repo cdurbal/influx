@@ -81,7 +81,7 @@ moins une option** dans les sections qui suivent.
 | **C3** | Conversation à trois, commercial **visible et nommé** ; **chaque lecture par un agent est journalisée** | A3, A10 | Une politique RLS ne sait pas écrire une ligne : il faut une fonction `SECURITY DEFINER` et **retirer tout autre chemin de lecture** au rôle agent |
 | **C4** | Registre d'audit **append-only chaîné**, impossible à réécrire | M4 | `REVOKE UPDATE, DELETE` + trigger + chaînage par empreinte + **sérialisation des écritures** + vérification périodique. Rien de tout cela n'est exprimable dans un ORM |
 | **C5** | Contrat et paiement **hors application** ; le commercial saisit montant et commission | A1, A8 | **Aucun taux, aucune multiplication** nulle part. Table `commission_rates` créée et vide |
-| **C6** | Un lead non synchronisé est un lead perdu ; un échec Brevo/Apollo ne fait jamais échouer une inscription | `CLAUDE.md` §7, skill `lead-pipeline` | File **persistée et transactionnelle** : l'événement s'écrit dans la même transaction que le fait métier |
+| **C6** | Un lead non synchronisé est un lead perdu ; un échec Brevo/Apollo ne fait jamais échouer une inscription | `CLAUDE.md` §5, skill `lead-pipeline` | File **persistée et transactionnelle** : l'événement s'écrit dans la même transaction que le fait métier |
 | **C7** | Le backoffice voit **toutes les identités, toutes les conversations, toutes les affaires** | §6.3 du cadrage | Surface privilégiée : isolement d'hôte, MFA, session courte, et **aucune autorisation par masquage d'UI** |
 | **C8** | Mise en ligne progressive **dès le Lot 1** (semaine 5) | A6 | Le socle doit être livrable en 1-2 semaines et supporter un site public déjà en production pendant qu'on construit le reste |
 | **C9** | Un développeur à plein temps, des agents IA, un poste Windows | §7 du cadrage | Peu de pièces, outils standard, mêmes commandes en local et en CI. **Toute complexité doit se payer en sécurité ou en vitesse, sinon elle est refusée** |
@@ -458,7 +458,7 @@ HTTP, qui est mince par construction.**
 
 ### Contexte
 
-La base est la source de vérité (`CLAUDE.md` §7). Elle porte des politiques RLS, des `GRANT` et
+La base est la source de vérité (`CLAUDE.md` §5). Elle porte des politiques RLS, des `GRANT` et
 `REVOKE` de colonnes, des déclencheurs, des fonctions `SECURITY DEFINER`, un registre chaîné et des
 contraintes de machine à états. **Aucun de ces objets n'est exprimable dans le langage de schéma
 d'un ORM.** La question n'est donc pas « quel ORM », mais « quelle couche de requêtes typée, sans
@@ -907,7 +907,7 @@ influx/
 │   │   ▸ ne doit JAMAIS contenir : entrée/sortie, base, réseau, horloge implicite
 │   │     (l'instant est injecté), ET SURTOUT AUCUN CALCUL DE COMMISSION — au MVP il n'en
 │   │     existe aucun (C5) ; en V2 il vivra dans apps/api/src/domains/billing, à un seul
-│   │     endroit, conformément à CLAUDE.md §6
+│   │     endroit, conformément à CLAUDE.md §2
 │   │   ▸ créé au Lot 2, parce que c'est le premier moment où deux applications ont besoin
 │   │     de la même règle (complétude affichée côté membre ET côté backoffice)
 │   │
@@ -1396,9 +1396,9 @@ doivent être **levés chirurgicalement**, pas supprimés en bloc.
 
 | Test | Vérifie aujourd'hui | Décision | Ce qui le remplace |
 |---|---|---|---|
-| **G1** | Aucun `mailto:` ni `tel:` | **Conservé au Lot 0, resserré au Lot 1** | Interdiction maintenue **dans l'espace membres et dans tout composant affichant du contenu utilisateur** (c'est un vecteur de contournement, `CLAUDE.md` §3). Autorisé sur les pages légales et la page de contact publique |
+| **G1** | Aucun `mailto:` ni `tel:` | **Conservé au Lot 0, resserré au Lot 1** | Interdiction maintenue **dans l'espace membres et dans tout composant affichant du contenu utilisateur** (c'est un vecteur de contournement, `CLAUDE.md` §2). Autorisé sur les pages légales et la page de contact publique |
 | **G2** | Aucune URL `http(s)://` | **Levé au Lot 1** | Remplacé par : (a) une garde **resserrée** — aucune URL littérale hors de `src/config/` et `src/locales/` (les URL viennent de la configuration ou des traductions) ; (b) une **CSP `default-src 'self'`** avec `connect-src` explicite, appliquée en production et **testée**, qui rend la règle vérifiable à l'exécution plutôt qu'à la lecture |
-| **G3** | Aucune couleur ni longueur en dur hors fichiers de tokens | **Conservé définitivement, et étendu** à `apps/backoffice` et `packages/ui` | — (c'est l'invariant du design system, `CLAUDE.md` §10.3 règle 7) |
+| **G3** | Aucune couleur ni longueur en dur hors fichiers de tokens | **Conservé définitivement, et étendu** à `apps/backoffice` et `packages/ui` | — (c'est l'invariant du design system, `CLAUDE.md` §4) |
 | **G4** | Chaque photo est créditée | **Conservé tant que `src/content/placeholders/` existe**, supprimé avec lui au Lot 1 | La procédure de retrait est déjà écrite (`01-architecture.md` §6.1) |
 | **G5** | Aucun `route.ts` sous `src/app` | **Levé et remplacé par une garde plus stricte** | **Liste blanche** : le seul fichier de route autorisé est `src/app/api/[...path]/route.ts`, et son contenu **ne doit contenir aucun import de `@supabase/*`, `drizzle-orm`, `pg`, `postgres`, aucune lecture de variable d'environnement secrète, et aucun `if` métier**. C'est une garantie **meilleure** que « zéro route » : elle survit à la vraie application |
 | **G6** | `IS_MOCKUP === true` tant que le fictif existe | **Conservé jusqu'au retrait du module fictif au Lot 1**, puis supprimé | La non-indexation devient une affaire d'environnement : `staging` non indexé par en-tête, `production` indexé — réglage d'`integrateur`, plus une constante de code |
@@ -1418,7 +1418,7 @@ doivent être **levés chirurgicalement**, pas supprimés en bloc.
 | Interdiction d'importer `next/link`, `next/form`, `next/script`, `next/font/google` | **Conservée** (`next/link` : on utilise le lien localisé de next-intl) |
 | Interdiction d'importer le module fictif hors de deux fichiers | **Supprimée avec le module**, au Lot 1 |
 | `react/jsx-no-literals` | **Conservée** (bilingue par construction) |
-| `@typescript-eslint/no-explicit-any` | **Conservée** (`CLAUDE.md` §6) |
+| `@typescript-eslint/no-explicit-any` | **Conservée** (`CLAUDE.md` §5) |
 | Classes Tailwind inconnues et valeurs arbitraires | **Conservées et étendues** aux nouveaux paquets |
 | **Nouvelle règle** | **Interdire l'import de `@supabase/*`, `drizzle-orm`, `pg`, `postgres` dans `apps/web` et `apps/backoffice`** — c'est la règle §2 rendue structurelle plutôt que morale |
 | **Nouvelle règle** | **Interdire `process.env` hors de `src/config/`** dans les deux fronts |
@@ -1507,7 +1507,7 @@ Elles complètent les douze conventions de `docs/landing-page/01-architecture.md
 applicables à `apps/web`.
 
 1. **Aucune logique métier dans un composant React**, dans aucune des deux applications. Un composant
-   reçoit des données et des libellés, il affiche. Règle déjà posée par `CLAUDE.md` §6, réaffirmée.
+   reçoit des données et des libellés, il affiche. Règle déjà posée par `CLAUDE.md` §5, réaffirmée.
 2. **Aucun front n'importe `@supabase/*`, `drizzle-orm`, `pg` ni `postgres`.** Vérifié par ESLint.
 3. **Aucun accès réseau hors de `src/server/api-client.ts`** dans un front. Ce module est le seul à
    connaître l'URL de l'API. *Depuis PL-09 (arbitrage PL-07), il vit dans `packages/web-platform`,
@@ -1540,7 +1540,7 @@ applicables à `apps/web`.
     d'URL signée, action de masse, export. Si l'action n'est pas traçable, elle n'est pas écrite.
 12. **Aucun secret dans le code, aucune valeur de secret dans un journal.** Toute variable nouvelle
     passe par la skill `env-secrets` et est documentée dans `.env.example` avec une valeur factice.
-13. **TypeScript strict, aucun `any`** sans justification écrite en commentaire (`CLAUDE.md` §6).
+13. **TypeScript strict, aucun `any`** sans justification écrite en commentaire (`CLAUDE.md` §5).
 14. **Commits** en anglais, *Conventional Commits*, directement sur `main` tant que la dérogation du
     fondateur du 2026-09-17 n'est pas levée.
 15. **Avant d'utiliser une API d'une dépendance, lire la documentation de la version installée**,

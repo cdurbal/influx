@@ -993,7 +993,7 @@ fichier) vivent **en table**, modifiables sans redéploiement, chaque modificati
 | Logo animé, bannière, galerie d'images de marque | Coût de modération sans effet mesuré sur la conversion | Après le pilote |
 | Traduction automatique de la présentation | La marque écrit dans la ou les langues qu'elle déclare | Après le pilote |
 | Portugais et autres langues | Français et anglais au lancement | Avant l'ouverture du Brésil |
-| Tout montant de contrat, taux, commission, net créateur | **A1**, `CLAUDE.md` §3 | V2 |
+| Tout montant de contrat, taux, commission, net créateur | **A1**, `CLAUDE.md` §2 | V2 |
 
 ---
 
