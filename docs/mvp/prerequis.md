@@ -92,7 +92,7 @@ Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la sociét
 - [ ] Revue visuelle de la landing rendue par `expert-ux` : un seul effet spectaculaire par écran
       visible (D59) — **avant la mise en ligne du Lot 1**
 - [x] Figer la palette et les tokens (D6, `expert-ux` + fondateur) — **fait le 2026-09-17**, dark
-      theme par défaut, voir `apps/web/src/styles/tokens.css` ; **charte KEO Emerald retenue le
+      theme par défaut, voir `packages/ui/src/styles/tokens.css` ; **charte KEO Emerald retenue le
       2026-10-28 pour les espaces connectés** (D73, `20` §11) — reste à trancher F1 à F7 (`20` §11.9)
       avant DS-2
 - [ ] Trancher le modèle financier restant : D7, D9, D19, D20, D22, D23, D27

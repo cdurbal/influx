@@ -2450,7 +2450,7 @@ en KEO par le même composant neutre que les pages légales.
    une seule fois dans `tokens.css`.
 2. Fichiers : woff2 **variables** (axe `wght`), style normal, **non modifiés**, tels que Google Fonts
    les distribue (miroir Fontsource, version épinglée) : sous-ensembles `latin` et `latin-ext` de
-   chaque famille, quatre fichiers par front dans `src/styles/fonts/`, avec le texte OFL 1.1 de chaque
+   chaque famille, quatre fichiers dans `packages/ui/src/styles/fonts/`, avec le texte OFL 1.1 de chaque
    famille et un manifeste `FONTS.md` (fichier, famille, sous-ensemble, source et version, SHA-256,
    licence). Pas de redécoupage par nos soins : un fichier modifié perd le droit au nom réservé (OFL ;
    Source Sans 3 réserve « Source »). Téléchargés une fois sur le poste ; la CI ne télécharge rien.
@@ -2470,7 +2470,7 @@ en KEO par le même composant neutre que les pages légales.
    les graisses ; les tokens n'en emploient que quelques-unes (Manrope 600 à 800, Source Sans 3 400 à
    600 ; liste finale : `expert-ux`). Vérifier au DS-3 la présence des chiffres tabulaires de Manrope
    (`--font-variant-numeric-amount`).
-5. **Chargement par segment.** `fonts.ts` n'est importé que par `app/[locale]/(member)/layout.tsx`
+5. **Chargement par segment.** `@influx/ui/fonts` n'est importé que par `app/[locale]/(member)/layout.tsx`
    (web) et `app/layout.tsx` (backoffice) : Next.js précharge une police sur les seules routes de la
    mise en page qui l'emploie, donc **jamais sur la landing**, qui reste sur sa pile système. CSP
    inchangée : fichiers sous `/_next/static/media/` (`font-src 'self'`), `@font-face` dans une feuille
@@ -2582,9 +2582,9 @@ Les lecteurs de blocs (`@theme`, bloc KEO), la fermeture des alias et l'écart d
 | G3d | Nouvelle | Matrice de contrastes par charte (paires listées en données, relues par `expert-ux`) : textes ≥ 4,5:1 sur chaque surface permise ; bordure de champ et contour de focus ≥ 3:1 ; texte sur action principale (repos, survol, appui) ≥ 4,5:1 ; succès écarté du vert d'action d'au moins 20° de teinte (`CLAUDE.md` §4) |
 | G3e | Nouvelle | Vitrine figée : chaque valeur de l'instantané `apps/web/tests/fixtures/vitrine-tokens-d59.json` reste égale (ajouts permis) |
 | G3f | Nouvelle | Aucun `-bo-` dans `apps/web/src` ; `tokens-backoffice.css` ne déclare que des `--*-bo-*`, contrastés contre KEO |
-| G4f | Nouvelle | Fichiers de police uniquement sous `src/styles/fonts/`, chacun au manifeste avec SHA-256, licences OFL présentes, copies et `fonts.ts` identiques entre fronts, budget tenu |
-| G8 | Nouvelle | `data-theme` posé dans les deux seules mises en page ; `fonts.ts` importé par elles seules ; aucun module réservé à la landing (liste nommée) importé sous `(member)` ni par `components/{member,auth,account}` ; aucun token réservé à la vitrine (`metal-card`, halos, `phone-*`, `hero-*`, bandeau de maquette) hors de la landing ; aucun `createPortal` sous la charte KEO ; transformations au survol sous `motion-safe:` seulement |
-| ESLint | Amendée | `lucide-react` hors `icons.ts` interdit ; `next/font/local` hors `src/styles/fonts.ts` interdit (`next/font/google` l'est déjà) |
+| G4f | Nouvelle | Fichiers de police uniquement sous `packages/ui/src/styles/fonts/`, chacun au manifeste avec SHA-256, licences OFL présentes, aucune copie dans un front (garde d'absence, PL-08), budget tenu |
+| G8 | Nouvelle | `data-theme` posé dans les deux seules mises en page ; `@influx/ui/fonts` importé par elles seules ; aucun module réservé à la landing (liste nommée) importé sous `(member)` ni par `components/{member,auth,account}` ; aucun token réservé à la vitrine (`metal-card`, halos, `phone-*`, `hero-*`, bandeau de maquette) hors de la landing ; aucun `createPortal` sous la charte KEO ; transformations au survol sous `motion-safe:` seulement |
+| ESLint | Amendée | `lucide-react` hors `icons.ts` interdit ; `next/font/local` hors `packages/ui` interdit (`next/font/google` l'est déjà) |
 | Unitaires | Nouveaux | `member-nav.ts` (≤ 5 entrées, libellés ≤ 11 caractères FR et EN lus dans les fichiers de traduction), `pageOfPath`, entrée active, espace exigé |
 | E2E | Nouveaux | Landing FR et EN : aucune police téléchargée, aucune requête tierce. Page membre : polices servies par l'origine seule, `latin-ext` non téléchargé sur un contenu FR. À 375 et 1440 px : un seul repère `navigation` « Navigation principale », `aria-current`, dernier élément de `main` jamais sous la barre. Mouvement réduit émulé : durées nulles. axe WCAG 2.1 AA sur chaque écran rhabillé des deux fronts. Aucune violation CSP en console |
 

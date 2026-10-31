@@ -2154,8 +2154,8 @@ seule couleur (`15` CA15).
 `apps/backoffice/src/styles/tokens-backoffice.css` contenant **uniquement** les douze tokens
 ci-dessus. Aucune couleur, aucun espacement, aucun rayon en dur ailleurs (`15` RG120, CA78 ;
 `CLAUDE.md` §10.3 point 7). **Voir l'écart d'implémentation E1 en §7.3 : ce n'est pas le cas
-aujourd'hui.** *Depuis D73 (2026-10-28, `02` §21.3)* : `apps/backoffice/src/styles/tokens.css` reste la
-copie identique de celui d'`apps/web`, bloc `[data-theme="keo"]` compris ; l'attribut est posé sur
+aujourd'hui.** *Depuis D73 (2026-10-28, `02` §21.3)* : le `tokens.css` de `packages/ui` (PL-08, `02` §21.3
+point 7) est celui des deux fronts, bloc `[data-theme="keo"]` compris ; l'attribut est posé sur
 `<html>` dans `app/layout.tsx`, si bien que tout le backoffice prend les valeurs KEO de `20` §11.3.
 Les jetons propres à la vitrine (carte métallisée, halos, cadre de téléphone) n'y ont pas d'usage.
 

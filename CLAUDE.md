@@ -102,8 +102,8 @@ Parcours détaillés : `docs/mvp/00-cadrage-mvp-v2.md`, `17` et `17b`.
   son style), pages d'une rubrique en **sous-menu** de la rubrique active (D74) ; téléphone : barre du
   bas à cinq entrées et page-menu par rubrique (membres), vue limitée D58 (backoffice). Ni pilules de
   section ni onglets de rubrique en tête de contenu.
-- **Toute couleur et tout espacement passent par les tokens** (`src/styles/tokens.css` de chaque
-  front, qui porte les deux chartes : bloc `[data-theme="keo"]`, `02` §21 ; skill
+- **Toute couleur et tout espacement passent par les tokens** (`packages/ui/src/styles/tokens.css`, importé par
+  chaque front, qui porte les deux chartes : bloc `[data-theme="keo"]`, `02` §21 ; skill
   `design-system-influx`). Rien en dur, et aucune valeur de `design-proposals/` recopiée ailleurs.
 - Landing : carte métallisée premium, **un seul effet spectaculaire par écran** (D59).
 - Principes : compréhension en 10 s ; deux portes d'entrée distinctes ; inscription minimale ;

@@ -1011,9 +1011,20 @@ export function findNonBoDeclarations(css: string): string[] {
 // G4f: self-hosted fonts (D73; 18 §5.1, TD1.9, 02 §21.4)
 // ---------------------------------------------------------------------------------------------
 
+// Since PL-08 (arbitration PL-07, 02 §21.3 point 7) the fonts, their manifest, fonts.ts and
+// tokens.css live once, in packages/ui; the paths below are relative to the root of that package.
+// The fronts hold none of them (findCharterFileCopies) and import them by package name.
+
 export const FONTS_DIRECTORY = "src/styles/fonts";
 export const FONTS_MANIFEST = `${FONTS_DIRECTORY}/FONTS.md`;
 export const FONTS_MODULE = "src/styles/fonts.ts";
+/** The tokens of the package, relative to its root. */
+export const TOKENS_MODULE = "src/styles/tokens.css";
+
+/** The specifier by which a front imports the tokens (its globals.css only). */
+export const UI_TOKENS_SPECIFIER = "@influx/ui/tokens.css";
+/** The specifier by which a front imports the font classes (its KEO layout only, G8). */
+export const UI_FONTS_SPECIFIER = "@influx/ui/fonts";
 
 /** Ceiling of the bytes preloaded by a page: the two `latin` files (02 §21.4 point 6). */
 export const FONT_PRELOAD_CEILING_BYTES = 120_000;
@@ -1050,15 +1061,16 @@ export function parseFontManifest(markdown: string): FontManifestRow[] {
 }
 
 /**
- * Font violations of one front: a woff2 outside `src/styles/fonts/`, a file missing from the
- * manifest or listed without being there, a SHA-256 or a `wOF2` signature that is wrong, a
- * missing OFL text, a preload budget over the ceiling or off the pin.
+ * Font violations of the package that holds the fonts (packages/ui): a woff2 outside
+ * `src/styles/fonts/`, a file missing from the manifest or listed without being there, a SHA-256 or
+ * a `wOF2` signature that is wrong, a missing OFL text, a preload budget over the ceiling or off
+ * the pin.
  */
-export function findFontViolations(frontRoot: string): string[] {
+export function findFontViolations(packageRoot: string): string[] {
   const violations: string[] = [];
-  const fontsDirectory = path.join(frontRoot, FONTS_DIRECTORY);
+  const fontsDirectory = path.join(packageRoot, FONTS_DIRECTORY);
   const sources = ["src", "public"]
-    .map((directory) => path.join(frontRoot, directory))
+    .map((directory) => path.join(packageRoot, directory))
     .filter((directory) => existsSync(directory));
   const woff2Files = sources
     .flatMap(listFiles)
@@ -1066,11 +1078,11 @@ export function findFontViolations(frontRoot: string): string[] {
   for (const file of woff2Files) {
     if (path.dirname(path.resolve(file)) !== path.resolve(fontsDirectory)) {
       violations.push(
-        `${relativePath(frontRoot, file)}: font outside ${FONTS_DIRECTORY}/`,
+        `${relativePath(packageRoot, file)}: font outside ${FONTS_DIRECTORY}/`,
       );
     }
   }
-  const manifestFile = path.join(frontRoot, FONTS_MANIFEST);
+  const manifestFile = path.join(packageRoot, FONTS_MANIFEST);
   if (!existsSync(manifestFile)) {
     return [...violations, `missing manifest: ${FONTS_MANIFEST}`];
   }
@@ -1128,28 +1140,47 @@ export function findFontViolations(frontRoot: string): string[] {
   return violations;
 }
 
-/** Files of the fonts directory, the manifest and fonts.ts that differ between two fronts. */
-export function findFontCopyDivergences(
+/**
+ * What a front keeps of the charter files that live in packages/ui (arbitration PL-07): its own
+ * `src/styles/tokens.css`, `src/styles/fonts.ts` or `src/styles/fonts/`, and any font file under
+ * `src/` or `public/`. The identity guard of the copies became this absence guard, one for one.
+ */
+export function findCharterFileCopies(frontRoot: string): string[] {
+  const violations = [TOKENS_MODULE, FONTS_MODULE, FONTS_DIRECTORY]
+    .filter((relative) => existsSync(path.join(frontRoot, relative)))
+    .map((relative) => `${relative}: copy of a file of packages/ui`);
+  const fontFiles = ["src", "public"]
+    .map((directory) => path.join(frontRoot, directory))
+    .filter((directory) => existsSync(directory))
+    .flatMap(listFiles)
+    .filter((file) => /\.woff2?$/i.test(file))
+    .map(
+      (file) =>
+        `${relativePath(frontRoot, file)}: font file in a front (packages/ui holds them)`,
+    );
+  return [...violations, ...fontFiles];
+}
+
+/**
+ * The style sheets of a front that import the tokens of packages/ui (`@import "@influx/ui/tokens.css"`),
+ * compared with the given sheets: each globals.css imports them, no other sheet does (02 §21.3 point 3).
+ */
+export function findTokensImportViolations(
   frontRoot: string,
-  otherRoot: string,
+  sheets: readonly string[],
 ): string[] {
-  const names = (root: string) =>
-    existsSync(path.join(root, FONTS_DIRECTORY))
-      ? readdirSync(path.join(root, FONTS_DIRECTORY)).sort()
-      : [];
-  const relatives = [
-    ...new Set([...names(frontRoot), ...names(otherRoot)]),
-  ].map((name) => `${FONTS_DIRECTORY}/${name}`);
-  return [...relatives, FONTS_MODULE].flatMap((relative) => {
-    const first = path.join(frontRoot, relative);
-    const second = path.join(otherRoot, relative);
-    if (!existsSync(first) || !existsSync(second)) {
-      return [`${relative}: present in only one front`];
-    }
-    return sha256OfFile(first) === sha256OfFile(second)
-      ? []
-      : [`${relative}: differs between the two fronts`];
-  });
+  const sourcesDirectory = path.join(frontRoot, "src");
+  const importers = listFiles(sourcesDirectory)
+    .filter((file) => file.endsWith(".css"))
+    .filter((file) =>
+      readFileSync(file, "utf8").includes(`@import "${UI_TOKENS_SPECIFIER}"`),
+    )
+    .map((file) => relativePath(frontRoot, file));
+  return exactSetFinding(
+    `${UI_TOKENS_SPECIFIER} is imported`,
+    importers,
+    sheets,
+  );
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1216,32 +1247,26 @@ function exactSetFinding(
 }
 
 /**
- * Where the KEO charter is turned on (02 §21.3 point 4): `data-theme` written, and fonts.ts
- * imported (02 §21.4 point 5), by exactly the given layouts. Comments do not count.
+ * Where the KEO charter is turned on (02 §21.3 point 4): `data-theme` written, and the fonts of
+ * packages/ui imported as `@influx/ui/fonts` (02 §21.4 point 5), by exactly the given layouts. Comments do not count.
  */
 export function findKeoActivationViolations(
   frontRoot: string,
   layouts: readonly string[],
 ): string[] {
   const sources = sourceFilesUnder(frontRoot);
-  const fontsModule = path
-    .join(frontRoot, FONTS_MODULE)
-    .replace(SOURCE_FILE, "");
   const attribute = sources.filter((file) =>
     KEO_ATTRIBUTE_PATTERN.test(withoutComments(readFileSync(file, "utf8"))),
   );
   const fontImporters = sources.filter((file) =>
-    importSpecifiers(readFileSync(file, "utf8")).some(
-      (specifier) =>
-        resolveLocalSpecifier(frontRoot, file, specifier) === fontsModule,
-    ),
+    importSpecifiers(readFileSync(file, "utf8")).includes(UI_FONTS_SPECIFIER),
   );
   const relative = (files: readonly string[]) =>
     files.map((file) => relativePath(frontRoot, file));
   return [
     ...exactSetFinding("data-theme is written", relative(attribute), layouts),
     ...exactSetFinding(
-      `${FONTS_MODULE} is imported`,
+      `${UI_FONTS_SPECIFIER} is imported`,
       relative(fontImporters),
       layouts,
     ),

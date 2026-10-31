@@ -819,7 +819,7 @@ test("D54, RG119: the invitation of an agent makes them the responsible salesper
 
 // DS-10 (D73; 18 §12.1 TD6.1 to TD6.4; 17b §1.4, §1.7; 02 §21.5 point 8): the shell of the backoffice,
 // mounted once by (app)/layout.tsx. The breakpoints are read in the tokens (18 §12.5 point 5): md and
-// lg in tokens.css, the height of the window too small in the bo-small variant of
+// lg in tokens.css (packages/ui), the height of the window too small in the bo-small variant of
 // tokens-backoffice.css.
 const BACKOFFICE_STYLES = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -830,7 +830,21 @@ const BACKOFFICE_STYLES = path.join(
   "styles",
 );
 const BREAKPOINTS = effectiveTokens(
-  readFileSync(path.join(BACKOFFICE_STYLES, "tokens.css"), "utf8"),
+  readFileSync(
+    path.join(
+      BACKOFFICE_STYLES,
+      "..",
+      "..",
+      "..",
+      "..",
+      "packages",
+      "ui",
+      "src",
+      "styles",
+      "tokens.css",
+    ),
+    "utf8",
+  ),
   "keo",
 );
 const MD = parseInt(BREAKPOINTS.get("--breakpoint-md") ?? "", 10);

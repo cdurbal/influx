@@ -40,7 +40,7 @@ cohérent.
 |---|---|
 | Un geste, un enchaînement, une organisation de l'information, un état d'écran | Une couleur, une police, un rayon, une ombre, une icône, une illustration |
 
-**Le style vient d'une seule source :** `apps/web/src/styles/tokens.css` (D6), plus l'extension
+**Le style vient d'une seule source :** `packages/ui/src/styles/tokens.css` (D6), plus l'extension
 `tokens-backoffice.css` (`17b` §6.5). Depuis D73, les mêmes noms de rôle portent deux jeux de
 valeurs selon le registre : vitrine (D6, D59) et espaces connectés (KEO Emerald, §11.3).
 
@@ -412,7 +412,7 @@ périmètre demandé par le fondateur est celui des trois espaces. Le même text
 parcours (fenêtre des CGU, écran de ré-acceptation), est rendu en KEO par le même composant neutre.
 Le fondateur a confirmé ce défaut le 2026-10-29 (§11.9, F1).
 
-**Mécanisme** (`architecte`, `02` §21.3 à §21.5). Un seul `tokens.css` par front, copie identique dans
+**Mécanisme** (`architecte`, `02` §21.3 à §21.5). Un seul `tokens.css`, dans `packages/ui`, importé par
 les deux fronts : `@theme static` déclare tous les noms de rôle avec les valeurs vitrine ; un bloc
 unique `[data-theme="keo"]` les re-valorise. L'attribut est posé par `app/[locale]/(member)/layout.tsx`
 dans `apps/web` et sur `<html>` dans `apps/backoffice`. Polices par `next/font/local` (§11.5). Le bloc
@@ -705,7 +705,7 @@ compris. Tailles du texte inchangées (RK-8) : 16 px membres, 14 px backoffice, 
 | Item de navigation | `text-md` (colonne), `text-sm` (rail BO), `text-xs` (barre du bas) | — | Source Sans 3 400, actif 600 | — |
 
 **Chargement des polices** (`architecte`, `02` §21.4). `next/font/local` et fichiers woff2 variables
-versionnés dans le dépôt (module `src/styles/fonts.ts`, identique dans les deux fronts) : **aucun
+versionnés dans le dépôt (module `packages/ui/src/styles/fonts.ts`, importé par les deux fronts) : **aucun
 appel à Google Fonts**, que la maquette sollicite (politique de sécurité de contenu, adresse IP
 transmise à un tiers), et la CI ne télécharge rien. Sous-ensembles `latin` et `latin-ext` versionnés (noms à
 diacritiques d'Europe centrale ; **réalisé : `latin` seul câblé**, `latin-ext` en repli système,

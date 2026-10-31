@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   // The trailing-slash redirect is src/proxy.ts's: the router's went out without the headers below.
   skipTrailingSlashRedirect: true,
   // Contracts are TypeScript sources; the relay imports their types only (21 §4, J1-E).
-  transpilePackages: ["@influx/contracts"],
+  transpilePackages: ["@influx/contracts", "@influx/ui"],
   // Every response (03 §6.5, §7.1); the pages get their CSP with a nonce from src/proxy.ts.
   async headers() {
     return [

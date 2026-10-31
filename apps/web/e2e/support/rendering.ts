@@ -19,9 +19,18 @@ export const WEB_ROOT = path.resolve(
   "..",
 );
 
-/** The tokens of both fronts (one file, identical byte for byte, G3). */
+/** The tokens of both fronts (one file, in packages/ui, G3). */
 export const TOKENS = readFileSync(
-  path.join(WEB_ROOT, "src", "styles", "tokens.css"),
+  path.join(
+    WEB_ROOT,
+    "..",
+    "..",
+    "packages",
+    "ui",
+    "src",
+    "styles",
+    "tokens.css",
+  ),
   "utf8",
 );
 

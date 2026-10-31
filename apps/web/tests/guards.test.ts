@@ -32,7 +32,8 @@ import {
   findVitrineImportsUnder,
   findVitrineTokenUse,
   tokenScopes,
-  findFontCopyDivergences,
+  findCharterFileCopies,
+  findTokensImportViolations,
   findFontViolations,
   findForbiddenClassPairs,
   findRoleColorUse,
@@ -78,6 +79,12 @@ const WEB_ROOT = path.resolve(
 /** apps/web serves its public health route beside the relay (EC-22). */
 const WEB_ROUTES = { healthRoute: true } as const;
 const SRC = path.join(WEB_ROOT, "src");
+/** packages/ui: the tokens and the fonts of both fronts live there (arbitration PL-07, PL-08). */
+const BACKOFFICE_ROOT = path.resolve(WEB_ROOT, "..", "backoffice");
+const UI_ROOT = path.resolve(WEB_ROOT, "..", "..", "packages", "ui");
+const UI_SRC = path.join(UI_ROOT, "src");
+const TOKENS_FILE = path.join(UI_SRC, "styles", "tokens.css");
+const GLOBALS = "src/app/globals.css";
 
 function relative(file: string): string {
   return relativePath(WEB_ROOT, file);
@@ -132,10 +139,7 @@ describe("G2 replaced: no literal URL outside src/config/ and src/locales/ (18 �
 });
 
 describe("G3: no hard-coded color or length outside the token files (CA22)", () => {
-  const TOKEN_FILES = new Set([
-    "src/styles/tokens.css",
-    "src/styles/image-sizes.ts",
-  ]);
+  const TOKEN_FILES = new Set(["src/styles/image-sizes.ts"]);
   const files = SCOPED_FILES.filter((file) => !TOKEN_FILES.has(relative(file)));
 
   it("finds no hexadecimal color or color function", () => {
@@ -147,18 +151,35 @@ describe("G3: no hard-coded color or length outside the token files (CA22)", () 
   });
 
   it("keeps tokens.css valid UTF-8", () => {
-    expect(isValidUtf8(path.join(SRC, "styles", "tokens.css"))).toBe(true);
+    expect(isValidUtf8(TOKENS_FILE)).toBe(true);
   });
 
-  it("keeps a single tokens file, marked with its D6 and D73 status", () => {
+  it("finds no hexadecimal color or literal length in the files of packages/ui beside its tokens", () => {
+    const uiFiles = listFiles(UI_SRC).filter(
+      (file) => /.(ts|tsx|json|css)$/.test(file) && file !== TOKENS_FILE,
+    );
+    expect(uiFiles.length).toBeGreaterThan(0);
+    for (const pattern of [
+      HARD_CODED_COLOR_PATTERN,
+      HARD_CODED_LENGTH_PATTERN,
+    ]) {
+      expect(findMatchesIn(pattern, uiFiles, UI_ROOT)).toEqual([]);
+    }
+  });
+
+  it("keeps a single tokens file, in packages/ui, marked with its D6 and D73 status", () => {
     const cssFiles = listFiles(SRC)
       .filter((file) => file.endsWith(".css"))
       .map(relative);
-    expect(cssFiles.sort()).toEqual([
-      "src/app/globals.css",
-      "src/styles/tokens.css",
-    ]);
-    const tokens = readFileSync(path.join(SRC, "styles", "tokens.css"), "utf8");
+    expect(cssFiles.sort()).toEqual([GLOBALS]);
+    expect(
+      listFiles(UI_SRC)
+        .filter((file) => file.endsWith(".css"))
+        .map((file) => relativePath(UI_ROOT, file)),
+    ).toEqual(["src/styles/tokens.css"]);
+    expect(findCharterFileCopies(WEB_ROOT)).toEqual([]);
+    expect(findTokensImportViolations(WEB_ROOT, [GLOBALS])).toEqual([]);
+    const tokens = readFileSync(TOKENS_FILE, "utf8");
     expect(tokens.slice(0, 400)).toContain("D6 tranchée");
     expect(tokens.slice(0, 400)).toContain("D73");
     expect(
@@ -177,16 +198,7 @@ function withKeoDeclaration(css: string, declaration: string): string {
 const CHARTERS = ["vitrine", "keo"] as const;
 
 describe("G3b: the red of danger is opaque and shared by both fronts and both charters (zone-de-danger fiche §5, D73)", () => {
-  const tokens = readFileSync(path.join(SRC, "styles", "tokens.css"), "utf8");
-  const other = readFileSync(
-    path.join(
-      path.resolve(WEB_ROOT, "..", "backoffice"),
-      "src",
-      "styles",
-      "tokens.css",
-    ),
-    "utf8",
-  );
+  const tokens = readFileSync(TOKENS_FILE, "utf8");
   // Read per charter, aliases followed: tokenValue reads the first occurrence, the vitrine, and
   // would leave the KEO block unchecked.
   const value = (css: string, charter: Charter, name: string): string =>
@@ -199,11 +211,13 @@ describe("G3b: the red of danger is opaque and shared by both fronts and both ch
       }
     });
 
-    it(`has the same values as the other front (${charter})`, () => {
+    it(`has the same values as the other front, which imports the same file (${charter})`, () => {
+      expect(findTokensImportViolations(BACKOFFICE_ROOT, [GLOBALS])).toEqual(
+        [],
+      );
+      expect(findCharterFileCopies(BACKOFFICE_ROOT)).toEqual([]);
       for (const name of DANGER_RED_TOKENS) {
-        expect(value(other, charter, name), name).toBe(
-          value(tokens, charter, name),
-        );
+        expect(value(tokens, charter, name), name).toMatch(OPAQUE_TOKEN_VALUE);
       }
     });
 
@@ -244,20 +258,17 @@ describe("G3b: the red of danger is opaque and shared by both fronts and both ch
 // G3c (D73, 02 §21.3, 18 §5.1): one KEO block, in tokens.css; every color redefined, inherited
 // (KEO_INHERITS) or vitrine-only (VITRINE_ONLY); no value that is not opaque; the aliases closed.
 describe("G3c: the KEO block is unique, complete, opaque and closes its aliases (02 §21.3)", () => {
-  const tokens = readFileSync(path.join(SRC, "styles", "tokens.css"), "utf8");
+  const tokens = readFileSync(TOKENS_FILE, "utf8");
   const lists = { inherits: KEO_INHERITS, vitrineOnly: VITRINE_ONLY } as const;
 
   it("holds exactly one KEO block, inside @layer base, in tokens.css and in no other sheet", () => {
     expect(keoBlocks(tokens)).toHaveLength(1);
     expect(tokens).toMatch(/@layer base\s*\{\s*\[data-theme="keo"\]\s*\{/);
-    const sheets = listFiles(SRC).filter((file) => file.endsWith(".css"));
-    expect(
-      findKeoBlocksOutside(
-        sheets,
-        path.join(SRC, "styles", "tokens.css"),
-        WEB_ROOT,
-      ),
-    ).toEqual([]);
+    const sheets = [...listFiles(SRC), ...listFiles(UI_SRC)].filter((file) =>
+      file.endsWith(".css"),
+    );
+    expect(sheets).toContain(TOKENS_FILE);
+    expect(findKeoBlocksOutside(sheets, TOKENS_FILE, WEB_ROOT)).toEqual([]);
   });
 
   it("declares declared names only, opaque, and accounts for every --color-*", () => {
@@ -308,7 +319,7 @@ describe("G3c: the KEO block is unique, complete, opaque and closes its aliases 
 // A case that the code before the milestone fails is an `it.fails` named after the commit that frees
 // it (RK-n); that commit turns it into a plain `it`. G3i (b) and TK7.2 read the build (RK-3, RK-5).
 describe("G3i (a), TK7.3 and TK7.5: no inscribed KEO token, no fluid size, no smoothing on the document", () => {
-  const tokens = readFileSync(path.join(SRC, "styles", "tokens.css"), "utf8");
+  const tokens = readFileSync(TOKENS_FILE, "utf8");
 
   it("redefines no token of a namespace that Tailwind inscribes, color-mix in the tokens of RK-A only (G3i a)", () => {
     expect(findKeoTrapViolations(tokens, KEO_COLOR_MIX)).toEqual([]);
@@ -319,10 +330,10 @@ describe("G3i (a), TK7.3 and TK7.5: no inscribed KEO token, no fluid size, no sm
   });
 
   it("declares no font smoothing on :root, html or body (TK7.5)", () => {
-    const sheets = ["styles/tokens.css", "app/globals.css"];
+    const sheets = [TOKENS_FILE, path.join(SRC, "app", "globals.css")];
     expect(
       sheets.flatMap((sheet) =>
-        findDocumentSmoothing(readFileSync(path.join(SRC, sheet), "utf8")),
+        findDocumentSmoothing(readFileSync(sheet, "utf8")),
       ),
     ).toEqual([]);
   });
@@ -340,7 +351,7 @@ describe("G3i (a), TK7.3 and TK7.5: no inscribed KEO token, no fluid size, no sm
 // The pairs, the floors and SUCCESS_MIN_HUE_GAP are data (@influx/test-kit/charter-data): the guard
 // computes, it decides nothing. What it does not see (a usage not listed) is left to axe and TD3.
 describe("G3d: contrasts and success hue, per charter (20 §11.3, §11.4)", () => {
-  const tokens = readFileSync(path.join(SRC, "styles", "tokens.css"), "utf8");
+  const tokens = readFileSync(TOKENS_FILE, "utf8");
 
   for (const charter of CHARTERS) {
     it(`holds every pair of the ${charter} matrix at its floor`, () => {
@@ -448,9 +459,9 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
     "src/components/ui/ResponsiveImage.tsx",
     "src/components/ui/ShortVideoOverlay.tsx",
   ];
-  const tokens = readFileSync(path.join(SRC, "styles", "tokens.css"), "utf8");
+  const tokens = readFileSync(TOKENS_FILE, "utf8");
 
-  it("sets data-theme and imports fonts.ts in the member layout only", () => {
+  it("sets data-theme and imports @influx/ui/fonts in the member layout only", () => {
     expect(findKeoActivationViolations(WEB_ROOT, [MEMBER_LAYOUT])).toEqual([]);
   });
 
@@ -548,18 +559,14 @@ describe("G3h: no forbidden pair of classes in one literal (20 §11.4)", () => {
 });
 
 // G4f (D73, 18 §5.1, TD1.9): self-hosted fonts. The detector is self-tested in the test-kit.
-describe("G4f: fonts are unmodified, listed, licensed, within budget and identical in both fronts", () => {
-  it("finds no violation in the fonts directory of apps/web", () => {
-    expect(findFontViolations(WEB_ROOT)).toEqual([]);
+describe("G4f: fonts are unmodified, listed, licensed, within budget and held once, in packages/ui", () => {
+  it("finds no violation in the fonts directory of packages/ui", () => {
+    expect(findFontViolations(UI_ROOT)).toEqual([]);
   });
 
-  it("keeps the fonts, the manifest and fonts.ts identical in apps/backoffice", () => {
-    expect(
-      findFontCopyDivergences(
-        WEB_ROOT,
-        path.resolve(WEB_ROOT, "..", "backoffice"),
-      ),
-    ).toEqual([]);
+  it("keeps no copy of the fonts, the manifest or fonts.ts in apps/web and apps/backoffice", () => {
+    expect(findCharterFileCopies(WEB_ROOT)).toEqual([]);
+    expect(findCharterFileCopies(BACKOFFICE_ROOT)).toEqual([]);
   });
 });
 
@@ -574,7 +581,7 @@ describe("G3e: the vitrine tokens stay those of the snapshot (D59, TD4.1)", () =
       "utf8",
     ),
   ) as Record<string, Record<string, string>>;
-  const tokens = readFileSync(path.join(SRC, "styles", "tokens.css"), "utf8");
+  const tokens = readFileSync(TOKENS_FILE, "utf8");
 
   it("keeps every declaration of @theme, :root and @media", () => {
     expect(Object.keys(snapshot)).toEqual(

@@ -34,8 +34,10 @@ const WEB_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
 );
+/** packages/ui holds the tokens and the fonts of both fronts (arbitration PL-07). */
+const UI_ROOT = path.resolve(WEB_ROOT, "..", "..", "packages", "ui");
 const TOKENS = readFileSync(
-  path.join(WEB_ROOT, "src", "styles", "tokens.css"),
+  path.join(UI_ROOT, "src", "styles", "tokens.css"),
   "utf8",
 );
 const KEO_CONTAINER = '[data-theme="keo"]';
@@ -48,11 +50,11 @@ const KEO_COLORS = THEME_COLORS.filter((name) => !VITRINE_ONLY.includes(name));
 
 /** The font files of the repository, by the SHA-256 of their bytes. */
 const FONT_FILES = new Map(
-  readdirSync(path.join(WEB_ROOT, FONTS_DIRECTORY))
+  readdirSync(path.join(UI_ROOT, FONTS_DIRECTORY))
     .filter((name) => name.endsWith(".woff2"))
     .map((name) => [
       createHash("sha256")
-        .update(readFileSync(path.join(WEB_ROOT, FONTS_DIRECTORY, name)))
+        .update(readFileSync(path.join(UI_ROOT, FONTS_DIRECTORY, name)))
         .digest("hex"),
       name,
     ]),

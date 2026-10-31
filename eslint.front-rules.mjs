@@ -48,10 +48,11 @@ const FRONT_RESTRICTED_SYNTAX = [
 const FRONT_RESTRICTED_IMPORT_PATHS = [
   { name: "next/script", message: "No scripts (CA11, BO-9)." },
   { name: "next/font/google", message: "No third-party fonts (CA11, BO-9)." },
-  // G4f, 02 §21.4 point 1: one module per front declares the self-hosted fonts.
+  // G4f, 02 §21.4 point 1: the self-hosted fonts are declared once, in packages/ui (PL-07).
   {
     name: "next/font/local",
-    message: "Fonts are declared in src/styles/fonts.ts only (02 §21.4, G4f).",
+    message:
+      "Fonts are declared in packages/ui (@influx/ui/fonts) only (02 §21.4, G4f).",
   },
   // 02 §21.5: one module per front is the single import point of the icons.
   {
@@ -59,9 +60,6 @@ const FRONT_RESTRICTED_IMPORT_PATHS = [
     message: "Import icons from the icons.ts module of the front (02 §21.5).",
   },
 ];
-
-/** The only module of a front allowed to call `next/font/local` (02 §21.4). */
-export const FONTS_FILE = "src/styles/fonts.ts";
 
 /** The only module of a front allowed to import `lucide-react` (02 §21.5). */
 export const ICONS_FILES = "src/**/icons.ts";
@@ -200,20 +198,18 @@ export function frontRuleBlocks({
         ],
       },
     },
-    ...[
-      [FONTS_FILE, "next/font/local"],
-      [ICONS_FILES, "lucide-react"],
-    ].map(([file, allowed]) => ({
-      // G4f, 02 §21.5: the module that owns a restricted import may make it.
-      files: [file],
+    {
+      // 02 §21.5: the icons module of the front owns the import of lucide-react. (next/font/local
+      // has no owner in a front since PL-08: packages/ui/eslint.config.mjs allows it there.)
+      files: [ICONS_FILES],
       rules: {
         "no-restricted-imports": frontRestrictedImports({
           importPaths,
           importPatterns,
-          allow: [allowed],
+          allow: ["lucide-react"],
         }),
       },
-    })),
+    },
     {
       // The two exceptions to the network ban: the global fetch, in the API client (server) and
       // in the relay client (browser, same origin) only.

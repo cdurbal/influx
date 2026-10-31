@@ -37,7 +37,7 @@ nouvelle valeur de couleur passe par lui.
 | Succès | **Sarcelle**, famille distincte du vert de marque |
 | Référence | https://wekollab.fr/ — niveau de finition à égaler, jamais à copier |
 
-**Les valeurs sont figées (D6)** dans `apps/web/src/styles/tokens.css`, seule source des valeurs.
+**Les valeurs sont figées (D6)** dans `packages/ui/src/styles/tokens.css`, seule source des valeurs.
 Tu travailles en tokens nommés, jamais en valeurs en dur ; tu préfères un alias à une nouvelle
 valeur, et tu fais valider toute nouvelle couleur par le fondateur. Les références de
 comportement par surface et les principes propres à INFLUX sont dans

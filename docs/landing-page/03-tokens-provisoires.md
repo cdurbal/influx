@@ -21,11 +21,11 @@
 > **Préparé par :** `expert-ux` (skill `design-system-influx`), étape 2 du plan validé le 2026-09-16.
 > **Sources :** `CLAUDE.md` §5.1 et §13 (D6), `00-cadrage.md` (CA22, CA25), skill `design-system-influx`.
 > **Documents liés :** `02-ux-wireframes.md` (usage des tokens par bloc), `05-images.md`.
-> **Implémentation de référence :** `apps/web/src/styles/tokens.css`.
+> **Implémentation de référence :** `packages/ui/src/styles/tokens.css`.
 
 ## 1. Règles d'emploi
 
-1. **Un seul fichier de tokens** dans le code, en variables CSS (`apps/web/src/styles/tokens.css`).
+1. **Un seul fichier de tokens** dans le code, en variables CSS (`packages/ui/src/styles/tokens.css`).
    Chaque token ci-dessous devient `--<nom-du-token>` (exemple : `--color-text-primary`).
 2. **Aucune valeur littérale ailleurs** (couleur, taille, espacement, rayon, ombre, durée) : les
    composants n'utilisent que les tokens (CA22).

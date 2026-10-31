@@ -232,7 +232,7 @@
   --default-font-family: var(--font-base);
   --default-mono-font-family: var(--font-mono);
   /*
-   * Typefaces of the connected spaces (02 §21.4): the classes of src/styles/fonts.ts define the
+   * Typefaces of the connected spaces (02 §21.4): the classes of fonts.ts (this package) define the
    * --typeface-* on the KEO container, for the families of the KEO block. Declared here too, on the
    * system stack, so that every name that block refers to exists outside it. In the theme layer,
    * not in the unlayered :root: the backoffice carries those classes on <html>, where an unlayered

@@ -11,7 +11,7 @@ est compréhensible, accessible et cohérent avec la marque.
 Agents concernés : `expert-ux` (principal), `dev-react-node`, `expert-marketing`.
 
 Documents de référence :
-- `apps/web/src/styles/tokens.css` et `apps/backoffice/src/styles/tokens.css` — **seule source des
+- `packages/ui/src/styles/tokens.css` (importé par les deux fronts) — **seule source des
   valeurs dans le code** (couleurs, tailles, espacements, rayons, ombres, durées), plus
   `tokens-backoffice.css` (`17b` §6).
 - `docs/mvp/20-direction-design.md` — **§11 : charte KEO Emerald des espaces connectés (D73)**

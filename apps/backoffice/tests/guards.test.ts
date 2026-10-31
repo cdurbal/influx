@@ -23,7 +23,9 @@ import {
   RELAY_FILES,
   relativePath,
   effectiveTokens,
+  findCharterFileCopies,
   findFontViolations,
+  findTokensImportViolations,
   findNonBoDeclarations,
   findTokenPairFailures,
   findSessionReadViolations,
@@ -52,7 +54,10 @@ const BACKOFFICE_ROOT = path.resolve(
 );
 const WEB_ROOT = path.resolve(BACKOFFICE_ROOT, "..", "web");
 const SRC = path.join(BACKOFFICE_ROOT, "src");
-const TOKENS = "src/styles/tokens.css";
+/** The tokens of both fronts live once, in packages/ui (arbitration PL-07, PL-08). */
+const UI_ROOT = path.resolve(BACKOFFICE_ROOT, "..", "..", "packages", "ui");
+const TOKENS_FILE = path.join(UI_ROOT, "src", "styles", "tokens.css");
+const GLOBALS = "src/app/globals.css";
 /** The backoffice-only tokens (D73, 02 §21.3 point 6): born with DS-9, a token file like the other. */
 const TOKENS_BACKOFFICE = "src/styles/tokens-backoffice.css";
 
@@ -103,7 +108,7 @@ describe("G1: no mailto or tel link (18 §5 G1)", () => {
 
 describe("G3: no hard-coded color or length outside the token file (CA22)", () => {
   const files = SOURCE_FILES.filter(
-    (file) => ![TOKENS, TOKENS_BACKOFFICE].includes(relative(file)),
+    (file) => relative(file) !== TOKENS_BACKOFFICE,
   );
 
   it("finds no hexadecimal color or color function", () => {
@@ -118,24 +123,23 @@ describe("G3: no hard-coded color or length outside the token file (CA22)", () =
     ).toEqual([]);
   });
 
-  it("keeps a byte-for-byte copy of the apps/web tokens until packages/ui exists (J1-E)", () => {
-    expect(readFileSync(path.join(BACKOFFICE_ROOT, TOKENS))).toEqual(
-      readFileSync(path.join(WEB_ROOT, TOKENS)),
-    );
+  it("keeps no copy of the tokens: apps/backoffice imports those of packages/ui, as apps/web does (J1-E, PL-08)", () => {
+    expect(findCharterFileCopies(BACKOFFICE_ROOT)).toEqual([]);
+    expect(findTokensImportViolations(BACKOFFICE_ROOT, [GLOBALS])).toEqual([]);
+    expect(findTokensImportViolations(WEB_ROOT, [GLOBALS])).toEqual([]);
   });
 
   it("keeps tokens.css valid UTF-8", () => {
-    expect(isValidUtf8(path.join(BACKOFFICE_ROOT, TOKENS))).toBe(true);
+    expect(isValidUtf8(TOKENS_FILE)).toBe(true);
   });
 
-  it("keeps globals.css and tokens.css as the only style sheets, colors in tokens only", () => {
+  it("keeps globals.css and tokens-backoffice.css as the only style sheets of the front, colors in tokens only", () => {
     const cssFiles = listFiles(SRC)
       .filter((file) => file.endsWith(".css"))
       .map(relative)
       .sort();
     expect(cssFiles.filter((file) => file !== TOKENS_BACKOFFICE)).toEqual([
-      "src/app/globals.css",
-      TOKENS,
+      GLOBALS,
     ]);
     expect(
       readFileSync(path.join(SRC, "app", "globals.css"), "utf8"),
@@ -144,16 +148,12 @@ describe("G3: no hard-coded color or length outside the token file (CA22)", () =
 });
 
 describe("G3b: the red of danger is opaque and shared by both fronts and both charters (zone-de-danger fiche §5, D73)", () => {
-  const tokens = readFileSync(path.join(SRC, "styles", "tokens.css"), "utf8");
-  const other = readFileSync(
-    path.join(WEB_ROOT, "src", "styles", "tokens.css"),
-    "utf8",
-  );
+  const tokens = readFileSync(TOKENS_FILE, "utf8");
   const value = (css: string, charter: Charter, name: string): string =>
     effectiveTokens(css, charter).get(name) ?? "";
 
-  // The backoffice is KEO whole (D73), but its file is the vitrine's byte for byte: both charters
-  // are read, and the KEO one is the one this front shows.
+  // The backoffice is KEO whole (D73), but its file is the one of the vitrine: both charters are
+  // read, and the KEO one is the one this front shows.
   for (const charter of ["vitrine", "keo"] as const) {
     it(`gives every danger token a 6-digit hex, transparent or var() value (${charter})`, () => {
       for (const name of DANGER_RED_TOKENS) {
@@ -161,11 +161,11 @@ describe("G3b: the red of danger is opaque and shared by both fronts and both ch
       }
     });
 
-    it(`has the same values as the other front (${charter})`, () => {
+    it(`has the same values as the other front, which imports the same file (${charter})`, () => {
+      expect(findTokensImportViolations(WEB_ROOT, [GLOBALS])).toEqual([]);
+      expect(findCharterFileCopies(WEB_ROOT)).toEqual([]);
       for (const name of DANGER_RED_TOKENS) {
-        expect(value(other, charter, name), name).toBe(
-          value(tokens, charter, name),
-        );
+        expect(value(tokens, charter, name), name).toMatch(OPAQUE_TOKEN_VALUE);
       }
     });
 
@@ -231,19 +231,20 @@ describe("the backoffice is KEO whole, set by the root layout alone", () => {
     );
   });
 
-  it("uses the attribute and imports fonts.ts nowhere else", () => {
+  it("uses the attribute and imports @influx/ui/fonts nowhere else", () => {
     const others = sources.filter(
       (file) =>
-        ![layout, "src/styles/fonts.ts"].includes(relative(file)) &&
-        /data-theme|styles\/fonts"/.test(readFileSync(file, "utf8")),
+        relative(file) !== layout &&
+        /data-theme|@influx\/ui\/fonts/.test(readFileSync(file, "utf8")),
     );
     expect(others.map(relative)).toEqual([]);
   });
 
-  it("keeps fonts.ts identical to that of apps/web (G4f)", () => {
-    expect(
-      readFileSync(path.join(BACKOFFICE_ROOT, "src/styles/fonts.ts")),
-    ).toEqual(readFileSync(path.join(WEB_ROOT, "src/styles/fonts.ts")));
+  it("holds no copy of fonts.ts: the fonts are those of packages/ui, as in apps/web (G4f)", () => {
+    expect(findCharterFileCopies(BACKOFFICE_ROOT)).toEqual([]);
+    expect(readFileSync(path.join(BACKOFFICE_ROOT, layout), "utf8")).toContain(
+      'from "@influx/ui/fonts"',
+    );
   });
 });
 
@@ -251,7 +252,7 @@ describe("the backoffice is KEO whole, set by the root layout alone", () => {
 // case that the code before the milestone fails is an `it.fails` named after the commit that frees
 // it (RK-n); that commit turns it into a plain `it`. G3i (b) and TK7.2 read the build (RK-3, RK-5).
 describe("G3i (a), TK7.3 and TK7.5: no inscribed KEO token, no fluid size, no smoothing on the document", () => {
-  const tokens = readFileSync(path.join(BACKOFFICE_ROOT, TOKENS), "utf8");
+  const tokens = readFileSync(TOKENS_FILE, "utf8");
 
   it("redefines no token of a namespace that Tailwind inscribes, color-mix in the tokens of RK-A only (G3i a)", () => {
     expect(findKeoTrapViolations(tokens, KEO_COLOR_MIX)).toEqual([]);
@@ -272,12 +273,14 @@ describe("G3i (a), TK7.3 and TK7.5: no inscribed KEO token, no fluid size, no sm
   });
 
   it("declares no font smoothing on :root, html or body (TK7.5)", () => {
-    const sheets = [TOKENS, TOKENS_BACKOFFICE, "src/app/globals.css"];
+    const sheets = [
+      TOKENS_FILE,
+      path.join(BACKOFFICE_ROOT, TOKENS_BACKOFFICE),
+      path.join(BACKOFFICE_ROOT, GLOBALS),
+    ];
     expect(
       sheets.flatMap((sheet) =>
-        findDocumentSmoothing(
-          readFileSync(path.join(BACKOFFICE_ROOT, sheet), "utf8"),
-        ),
+        findDocumentSmoothing(readFileSync(sheet, "utf8")),
       ),
     ).toEqual([]);
   });
@@ -473,10 +476,10 @@ describe("the workstation thresholds live in tokens-backoffice.css alone", () =>
   });
 });
 
-// G4f (D73, 18 §5.1, TD1.9): self-hosted fonts. Identity with apps/web is checked from the web side.
+// G4f (D73, 18 §5.1, TD1.9): self-hosted fonts, held once in packages/ui (the same check is in apps/web).
 describe("G4f: fonts are unmodified, listed, licensed and within budget", () => {
-  it("finds no violation in the fonts directory of apps/backoffice", () => {
-    expect(findFontViolations(BACKOFFICE_ROOT)).toEqual([]);
+  it("finds no violation in the fonts directory of packages/ui", () => {
+    expect(findFontViolations(UI_ROOT)).toEqual([]);
   });
 });
 

@@ -36,11 +36,10 @@ function write(relative: string, content: string): void {
 /** A front shaped like apps/web: one KEO layout, member pages in their group, a landing outside. */
 beforeEach(() => {
   front = path.join(TEMP_ROOT, `front-${(counter += 1)}`);
-  write("src/styles/fonts.ts", "export const FONT_VARIABLE_CLASSES = '';\n");
   write(
     LAYOUT,
     [
-      'import { FONT_VARIABLE_CLASSES } from "@/styles/fonts";',
+      'import { FONT_VARIABLE_CLASSES } from "@influx/ui/fonts";',
       "// data-theme is set here only",
       "export default function Layout() {",
       '  return <div data-theme="keo" className={FONT_VARIABLE_CLASSES} />;',
@@ -71,24 +70,24 @@ afterAll(() => {
   rmSync(TEMP_ROOT, { recursive: true, force: true });
 });
 
-describe("TD1.10: data-theme and fonts.ts, in the KEO layouts only", () => {
+describe("TD1.10: data-theme and @influx/ui/fonts, in the KEO layouts only", () => {
   it("accepts the layout alone, a comment that names the attribute aside", () => {
     expect(findKeoActivationViolations(front, [LAYOUT])).toEqual([]);
   });
 
-  it("detects the attribute and an import of fonts.ts elsewhere, and a layout that lost them", () => {
+  it("detects the attribute and an import of the fonts elsewhere, and a layout that lost them", () => {
     write(
       "src/components/auth/Shell.tsx",
-      'import "../../styles/fonts";\nexport const A = { "data-theme": "keo" };\n',
+      'import "@influx/ui/fonts";\nexport const A = { "data-theme": "keo" };\n',
     );
     expect(findKeoActivationViolations(front, [LAYOUT])).toEqual([
       `data-theme is written in [${LAYOUT}, src/components/auth/Shell.tsx], expected [${LAYOUT}]`,
-      `src/styles/fonts.ts is imported in [${LAYOUT}, src/components/auth/Shell.tsx], expected [${LAYOUT}]`,
+      `@influx/ui/fonts is imported in [${LAYOUT}, src/components/auth/Shell.tsx], expected [${LAYOUT}]`,
     ]);
     write(LAYOUT, "export default function Layout() { return null; }\n");
     expect(findKeoActivationViolations(front, [LAYOUT])).toEqual([
       `data-theme is written in [src/components/auth/Shell.tsx], expected [${LAYOUT}]`,
-      `src/styles/fonts.ts is imported in [src/components/auth/Shell.tsx], expected [${LAYOUT}]`,
+      `@influx/ui/fonts is imported in [src/components/auth/Shell.tsx], expected [${LAYOUT}]`,
     ]);
   });
 });

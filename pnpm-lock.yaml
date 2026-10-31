@@ -69,6 +69,9 @@ importers:
       '@influx/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@influx/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       lucide-react:
         specifier: 1.46.0
         version: 1.46.0(react@19.3.0)
@@ -124,6 +127,9 @@ importers:
       '@influx/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@influx/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       lucide-react:
         specifier: 1.46.0
         version: 1.46.0(react@19.3.0)
@@ -229,6 +235,27 @@ importers:
       vitest:
         specifier: 4.1.11
         version: 4.1.11(@types/node@22.20.3)(vite@8.3.0(@types/node@22.20.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13))
+
+  packages/ui:
+    devDependencies:
+      '@eslint/js':
+        specifier: 9.39.5
+        version: 9.39.5
+      '@types/node':
+        specifier: 22.20.3
+        version: 22.20.3
+      eslint:
+        specifier: 9.39.5
+        version: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
+      next:
+        specifier: 16.3.6
+        version: 16.3.6(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.0)(@types/node@22.20.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      typescript-eslint:
+        specifier: 8.70.0
+        version: 8.70.0(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3)
 
 packages:
 

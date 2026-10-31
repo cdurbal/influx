@@ -18,7 +18,7 @@
 > `11-recherche-campagnes-et-candidature.md` · `12-messagerie-a-trois.md` ·
 > `13-file-de-validation-et-mise-en-relation.md`.
 > Référence de forme : `docs/landing-page/02-ux-wireframes.md` §2 et §2.8.
-> Tokens : `apps/web/src/styles/tokens.css` (**D6 tranchée, dark theme, 2026-09-17**) ; **charte KEO
+> Tokens : `packages/ui/src/styles/tokens.css` (**D6 tranchée, dark theme, 2026-09-17**) ; **charte KEO
 > Emerald des espaces depuis le 2026-10-28 (D73)** : gabarits en §2.2 et §2.3, valeurs en `20` §11.
 >
 > **Ce que ce document tranche :** l'architecture de l'information des deux espaces, la navigation,

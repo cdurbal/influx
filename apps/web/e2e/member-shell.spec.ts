@@ -35,6 +35,10 @@ const LG = parseInt(
       path.join(
         path.dirname(fileURLToPath(import.meta.url)),
         "..",
+        "..",
+        "..",
+        "packages",
+        "ui",
         "src",
         "styles",
         "tokens.css",

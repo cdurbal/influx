@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { HydrationMarker } from "@/components/HydrationMarker";
 import { messages } from "@/messages/fr";
-import { FONT_VARIABLE_CLASSES } from "@/styles/fonts";
+import { FONT_VARIABLE_CLASSES } from "@influx/ui/fonts";
 import "./globals.css";
 
 // The backoffice is never indexed: robots meta here, X-Robots-Tag header on every response

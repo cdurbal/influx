@@ -18,8 +18,9 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const builtCss = readBuiltStylesheets(path.join(ROOT, ".next"));
+// The tokens of both fronts are the one file of packages/ui (arbitration PL-07).
 const tokens = readFileSync(
-  path.join(ROOT, "src", "styles", "tokens.css"),
+  path.join(ROOT, "..", "..", "packages", "ui", "src", "styles", "tokens.css"),
   "utf8",
 );
 

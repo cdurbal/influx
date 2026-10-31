@@ -1,6 +1,6 @@
 // KEO typefaces, self-hosted (02 §21.4, D73): Manrope (headings, figures) and Source Sans 3 (body).
-// Imported by the member layout (web) and the root layout (backoffice) only, so no route of the
-// vitrine ever preloads a font (G8). Byte-for-byte identical in both fronts (G4f).
+// Imported (as @influx/ui/fonts) by the member layout (web) and the root layout (backoffice) only, so no route of the
+// vitrine ever preloads a font (G8). One copy for both fronts, in packages/ui (G4f, PL-07).
 // Each family is two faces: `latin` (preloaded) and `latin-ext` (names such as ł, ș, ğ, č), listed
 // after it in the font stack so that it is fetched only when a glyph is missing from `latin`.
 import localFont from "next/font/local";

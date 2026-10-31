@@ -15,8 +15,9 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const builtCss = readBuiltStylesheets(path.join(ROOT, ".next"));
+// The tokens of both fronts are the one file of packages/ui (arbitration PL-07).
 const tokens = readFileSync(
-  path.join(ROOT, "src", "styles", "tokens.css"),
+  path.join(ROOT, "..", "..", "packages", "ui", "src", "styles", "tokens.css"),
   "utf8",
 );
 
@@ -30,7 +31,7 @@ const UNREAD_JUSTIFIED: readonly string[] = [
   // Chart series (20 §11.4): no chart is drawn in this front yet.
   "--color-data-1",
   "--color-data-2",
-  // Same tokens.css as apps/web (byte for byte): roles of the member spaces that this front never names.
+  // Same tokens.css as apps/web (packages/ui): roles of the member spaces that this front never names.
   "--color-text-brand",
   "--color-text-brand-strong",
   "--color-text-on-danger",

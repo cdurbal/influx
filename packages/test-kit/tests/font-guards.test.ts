@@ -13,32 +13,33 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import {
-  findFontCopyDivergences,
+  findCharterFileCopies,
   findFontViolations,
   FONT_PRELOAD_PINNED_BYTES,
   FONTS_DIRECTORY,
   parseFontManifest,
+  findTokensImportViolations,
 } from "../src/guards.ts";
 
-const REAL_FRONT = path.resolve(
+const REAL_PACKAGE = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  "../../../apps/web",
+  "../../ui",
 );
 const TEMP_ROOT = mkdtempSync(path.join(tmpdir(), "influx-font-guards-"));
 let front = "";
 let counter = 0;
 
-/** A fresh copy of the real fonts directory and fonts.ts of apps/web. */
+/** A fresh copy of the real fonts directory and fonts.ts of packages/ui. */
 beforeEach(() => {
   front = path.join(TEMP_ROOT, `front-${(counter += 1)}`);
   mkdirSync(path.join(front, "src/styles"), { recursive: true });
   cpSync(
-    path.join(REAL_FRONT, FONTS_DIRECTORY),
+    path.join(REAL_PACKAGE, FONTS_DIRECTORY),
     path.join(front, FONTS_DIRECTORY),
     { recursive: true },
   );
   cpSync(
-    path.join(REAL_FRONT, "src/styles/fonts.ts"),
+    path.join(REAL_PACKAGE, "src/styles/fonts.ts"),
     path.join(front, "src/styles/fonts.ts"),
   );
 });
@@ -51,7 +52,7 @@ const inFonts = (name: string) => path.join(front, FONTS_DIRECTORY, name);
 const LATIN = "manrope-latin-wght-normal.woff2";
 
 describe("G4f font manifest and files", () => {
-  it("accepts the real fonts directory", () => {
+  it("accepts the real fonts directory of packages/ui", () => {
     expect(findFontViolations(front)).toEqual([]);
     expect(FONT_PRELOAD_PINNED_BYTES).toBeLessThanOrEqual(120_000);
   });
@@ -119,18 +120,55 @@ describe("G4f font manifest and files", () => {
   });
 });
 
-describe("G4f copies between fronts", () => {
-  it("accepts identical copies and detects a divergence or a missing file", () => {
+describe("G4f copies in a front (arbitration PL-07)", () => {
+  it("accepts a front without any copy and detects each file of packages/ui copied back", () => {
     const other = path.join(TEMP_ROOT, "other");
-    cpSync(front, other, { recursive: true });
-    expect(findFontCopyDivergences(front, other)).toEqual([]);
-    writeFileSync(path.join(other, "src/styles/fonts.ts"), "// changed\n");
-    expect(findFontCopyDivergences(front, other)).toEqual([
-      "src/styles/fonts.ts: differs between the two fronts",
+    mkdirSync(path.join(other, "src/styles"), { recursive: true });
+    writeFileSync(path.join(other, "src/styles/image-sizes.ts"), "// kept\n");
+    expect(findCharterFileCopies(other)).toEqual([]);
+    writeFileSync(path.join(other, "src/styles/fonts.ts"), "// copy\n");
+    writeFileSync(path.join(other, "src/styles/tokens.css"), "/* copy */\n");
+    mkdirSync(path.join(other, FONTS_DIRECTORY), { recursive: true });
+    expect(findCharterFileCopies(other)).toEqual([
+      "src/styles/tokens.css: copy of a file of packages/ui",
+      "src/styles/fonts.ts: copy of a file of packages/ui",
+      `${FONTS_DIRECTORY}: copy of a file of packages/ui`,
     ]);
-    rmSync(path.join(other, FONTS_DIRECTORY, "FONTS.md"));
-    expect(findFontCopyDivergences(front, other)).toContain(
-      `${FONTS_DIRECTORY}/FONTS.md: present in only one front`,
+  });
+
+  it("detects a font file anywhere in src/ or public/ of a front", () => {
+    const other = path.join(TEMP_ROOT, "other-fonts");
+    mkdirSync(path.join(other, "public"), { recursive: true });
+    mkdirSync(path.join(other, "src/assets"), { recursive: true });
+    writeFileSync(path.join(other, "public/stray.woff2"), Buffer.from("wOF2"));
+    writeFileSync(path.join(other, "src/assets/old.woff"), Buffer.from("wOFF"));
+    expect(findCharterFileCopies(other)).toEqual([
+      "src/assets/old.woff: font file in a front (packages/ui holds them)",
+      "public/stray.woff2: font file in a front (packages/ui holds them)",
+    ]);
+  });
+});
+
+describe("G4f tokens import (arbitration PL-07)", () => {
+  it("accepts the sheets named and detects a sheet that lost or gained the import", () => {
+    const other = path.join(TEMP_ROOT, "other-sheets");
+    const sheet = "src/app/globals.css";
+    const local = path.join(other, "src/styles/local.css");
+    mkdirSync(path.join(other, "src/app"), { recursive: true });
+    mkdirSync(path.join(other, "src/styles"), { recursive: true });
+    writeFileSync(
+      path.join(other, sheet),
+      '@import "tailwindcss";\n@import "@influx/ui/tokens.css";\n',
     );
+    writeFileSync(local, "/* none */\n");
+    expect(findTokensImportViolations(other, [sheet])).toEqual([]);
+    writeFileSync(local, '@import "@influx/ui/tokens.css";\n');
+    expect(findTokensImportViolations(other, [sheet])).toEqual([
+      `@influx/ui/tokens.css is imported in [${sheet}, src/styles/local.css], expected [${sheet}]`,
+    ]);
+    writeFileSync(path.join(other, sheet), '@import "../styles/tokens.css";\n');
+    expect(findTokensImportViolations(other, [sheet])).toEqual([
+      `@influx/ui/tokens.css is imported in [src/styles/local.css], expected [${sheet}]`,
+    ]);
   });
 });
