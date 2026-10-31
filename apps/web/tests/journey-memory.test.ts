@@ -12,10 +12,11 @@ import {
   resumedStepOf,
 } from "@/components/auth/auth-steps";
 import {
+  discardHandedOver,
   forget,
+  peekForLocale,
   remember,
   snapshotFits,
-  takeForLocale,
   type JourneySnapshot,
 } from "@/components/auth/journey-memory";
 import {
@@ -155,31 +156,54 @@ describe("journey-memory: a change of language (D66, RG111, RG130)", () => {
     vi.unstubAllGlobals();
     remember(snapshot());
     vi.stubGlobal("window", {});
-    expect(takeForLocale("en")).toBeNull();
+    expect(peekForLocale("en")).toBeNull();
   });
 
   it("hands the journey over to the other language, once", () => {
     const left = snapshot();
     remember(left);
-    expect(takeForLocale("en")).toEqual(left);
-    expect(takeForLocale("en")).toBeNull();
+    expect(peekForLocale("en")).toEqual(left);
+    discardHandedOver("en");
+    expect(peekForLocale("en")).toBeNull();
+  });
+
+  it("reads the same journey again until the hand-over ends (a render React restarts)", () => {
+    const left = snapshot();
+    remember(left);
+    expect(peekForLocale("en")).toEqual(left);
+    expect(peekForLocale("en")).toEqual(left);
+  });
+
+  it("keeps the journey the mounted page wrote when the hand-over ends", () => {
+    remember(snapshot());
+    const written = snapshot({ locale: "en", email: "after@example.test" });
+    remember(written);
+    discardHandedOver("en");
+    expect(peekForLocale("fr")).toEqual(written);
+  });
+
+  it("hands nothing over to a third reader once discarded, whatever its language", () => {
+    remember(snapshot());
+    discardHandedOver("en");
+    expect(peekForLocale("en")).toBeNull();
+    expect(peekForLocale("fr")).toBeNull();
   });
 
   it("hands nothing over to the same language (a remount reads the server)", () => {
     remember(snapshot());
-    expect(takeForLocale("fr")).toBeNull();
+    expect(peekForLocale("fr")).toBeNull();
   });
 
   it("keeps the last state only", () => {
     remember(snapshot({ email: "first@example.test" }));
     remember(snapshot({ email: "second@example.test" }));
-    expect(takeForLocale("en")?.email).toBe("second@example.test");
+    expect(peekForLocale("en")?.email).toBe("second@example.test");
   });
 
   it("hands nothing over once forgotten (notice, success, restart)", () => {
     remember(snapshot());
     forget();
-    expect(takeForLocale("en")).toBeNull();
+    expect(peekForLocale("en")).toBeNull();
   });
 
   it("fits the page its language link led to, and no other", () => {

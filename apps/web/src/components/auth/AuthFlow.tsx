@@ -45,10 +45,11 @@ import { CodeStep } from "./CodeStep";
 import { DoorStep } from "./DoorStep";
 import { EmailStep } from "./EmailStep";
 import {
+  discardHandedOver,
   forget,
+  peekForLocale,
   remember,
   snapshotFits,
-  takeForLocale,
 } from "./journey-memory";
 import { readJourney, resetJourney } from "./member-auth";
 import {
@@ -79,10 +80,11 @@ export function AuthFlow({
   const locale = useLocale();
   const router = useRouter();
   const online = useOnline();
-  // D66: the journey handed over by the other language, taken once at mount. Always null while
-  // rendering on the server and at a full page load: only a client navigation finds one.
+  // D66: the journey handed over by the other language, read at mount without emptying anything
+  // (a render React restarts finds it again; the effect below ends the hand-over). Always null
+  // while rendering on the server and at a full page load: only a client navigation finds one.
   const [handedOver] = useState(() => {
-    const taken = takeForLocale(locale);
+    const taken = peekForLocale(locale);
     const page =
       initialEntry === "signIn" ? "signIn" : signupPageOf(initialDoor);
     return taken !== null && snapshotFits(taken, page) ? taken : null;
@@ -107,6 +109,11 @@ export function AuthFlow({
   const acquisitionRef = useRef<AcquisitionInput | undefined>(undefined);
   // The resume runs once per mount, React's development double effect included.
   const resumeStartedRef = useRef(false);
+
+  // D66: once mounted, the journey of the other language has been handed over: dropped, once.
+  useEffect(() => {
+    discardHandedOver(locale);
+  }, [locale]);
 
   useEffect(() => {
     acquisitionRef.current = acquisitionFromVisit(
