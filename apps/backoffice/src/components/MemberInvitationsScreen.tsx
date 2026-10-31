@@ -196,7 +196,7 @@ export function MemberInvitationsScreen() {
             role="region"
             aria-label={t.listTitle}
             // a scrollable region must be reachable by keyboard (axe scrollable-region-focusable)
-            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard-focusable (18 §12)
             tabIndex={0}
             className={DENSE_TABLE_WRAP_CLASSES}
           >

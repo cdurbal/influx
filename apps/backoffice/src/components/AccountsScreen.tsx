@@ -465,12 +465,12 @@ export function AccountsScreen() {
             <p className={HELP_CLASSES}>{t.empty}</p>
           ) : (
             // the keys are listened on the table's container: a keyboard user moves with ‹j›/‹k›
-            // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the region listens to ‹j›/‹k› for row navigation
             <div
               role="region"
               aria-label={t.title}
               // a scrollable region must be reachable by keyboard (axe scrollable-region-focusable)
-              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard-focusable (18 §12)
               tabIndex={0}
               className={DENSE_TABLE_WRAP_CLASSES}
               onKeyDown={onTableKey}

@@ -17,7 +17,7 @@ export function DenseTableRegion({
     <div
       role="region"
       aria-label={label}
-      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard-focusable (18 §12)
       tabIndex={0}
       className={cn(DENSE_TABLE_WRAP_CLASSES, className)}
     >
