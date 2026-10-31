@@ -10,13 +10,14 @@
 Ouvrir le Lot 2 sur une base stable et sobre : CI sans intermittent connu, dette J9 du Lot 2 soldée,
 gros fichiers découpés, fichiers communs des deux fronts mis en paquets, renvois et registre de
 décisions allégés, budget de durée e2e fixé avant les écrans des profils. **Ne change pas** : aucune
-migration, aucune route ajoutée ou retirée, aucun écran nouveau, aucune règle métier, la vitrine.
+migration (sauf `0151`, PL-04a), aucune route ajoutée ou retirée, aucun écran nouveau, aucune règle métier, la vitrine.
 
 ## Invariants
 
 1. Refactors à comportement constant : mêmes réponses d'API, mêmes écrans, mêmes en-têtes ; seules
    exceptions, J9S-6 et J9S-7 (PL-03), telles qu'écrites dans `archives/jalons/j9-fiche.md` l. 36-37,
-   et PL-01a (brouillon gardé au changement de langue, choix A du fondateur le 2026-10-31).
+   PL-01a (brouillon gardé au changement de langue) et PL-04a (contrainte Apollo resserrée), choix A
+   du fondateur le 2026-10-31.
 2. Aucun attendu d'un test existant n'est affaibli ; une attente de synchronisation peut changer
    (PL-01), jamais une assertion. Planchers (`packages/test-kit/src/case-floors.ts`) jamais baissés.
 3. Passe-plat (`03` PP-12, D64) : un secret interne par front, logique inchangée, octets épinglés
@@ -35,6 +36,8 @@ migration, aucune route ajoutée ou retirée, aucun écran nouveau, aucune règl
 | 01a | `apps/web/src/components/auth/AuthFlow.tsx` l. 70-110 ; `journey-memory.ts` ; `journey-resume.spec.ts` l. 90-130 |
 | 01 | `apps/web/e2e/support/journey.ts` l. 172-181 ; `backoffice-auth-screens.spec.ts` l. 61-75 (`64bcb6e`) ; `security-headers.spec.ts` l. 205-235 ; `journey-resume.spec.ts` l. 104 ; `charter-cascade.spec.ts` l. 302 ; `apps/web/playwright.config.ts` l. 40-60 |
 | 03, 04 | `archives/jalons/j9-fiche.md` l. 36-41 |
+| 04a | `0141_leads_apollo_excluded_countries.sql` (`sync_settings_value_shape`) ; `qualification.ts` (`unreadableApolloKeys`) ; `05` RG160, RG162 |
+| 04b | `apps/api/package.json` (`test:db`) ; `apps/api/scripts/check-case-floors.ts` |
 | 07 | `02` l. 850-860 et §21.3 (l. 2326-2394) ; `21` §7 ligne du Lot 2 ; `packages/test-kit/src/guards.ts` l. 186-230 et 381-410 |
 | 10 | `CLAUDE.md` (titres) ; `git log` de `CLAUDE.md` (renumérotation `5d232af`, 2026-10-05) |
 | 11 | `decisions.md` en-tête l. 1-10 ; lignes par `Grep "^\| D[0-9]"` |
@@ -48,6 +51,8 @@ migration, aucune route ajoutée ou retirée, aucun écran nouveau, aucune règl
 | PL-01 | `test(e2e): one hydration barrier for the journeys and DS-11` | K1 : attente d'hydratation partagée ; `open()`, `reload()`, DS-11 ; commentaire périmé | DS-11, `journey-resume`, TD3.6, T10.6 |
 | PL-02 | `chore: Node 24.12 engines and justified lint exceptions` | K7 : `engines.node` `>=24.12.0` ; motif `--` sur quatre `eslint-disable` | `pnpm check:fast` |
 | PL-03 | `fix(health): cached status for /health and unverified browser errors` | J9S-6, J9S-7 | tests unitaires des deux points ; spec e2e de l'écran Santé |
+| PL-04a | `fix(db): refuse non-string country bases in the Apollo sync settings` | Migration `0151` : `by_country` n'admet que les chaînes prévues (arrêt de PL-04) | suite base complète ; parité 49/49 |
+| PL-04b | `fix(api): test:db runs only the files it is given` | La commande de `CLAUDE.md` §7 règle 5 ne filtre pas (arrêt de PL-04) | `test:db` filtré et complet |
 | PL-04 | `test: Apollo settings parity, case ids in titles, artifact floors` | J9S-9, J9T-8, J9T-9 ; intermittent `t14-backoffice-invitations-route` | parité, planchers `test:artifacts` |
 | PL-05 | `refactor(api): split the backoffice repository by sub-domain` | K5 | `db-tests` qui importent le dépôt backoffice |
 | PL-06 | `refactor(backoffice): account record form rules in a view model` | K8 | tests unitaires du module de vue ; `backoffice.spec` |
@@ -87,6 +92,10 @@ réduire).
   hydratation (`AuthFlow` vide le brouillon de changement de langue dans un initialiseur de
   `useState`). Choix A du fondateur : ligne PL-01a avant PL-01. `EC-PL-01-1` : signal
   `data-hydrated` sur `<html>`, aucun signal existant ne couvrant toutes les pages.
+- 2026-10-31, arrêt de PL-04 (`decision`) : la contrainte de `0141` admet dans
+  `apollo_legal_basis.by_country` des valeurs non texte (`1`, `true`, `{}`, `[]`) que le worker
+  refuse (RG160, RG162) ; et `test:db -- <fichier>` lance toute la suite. Choix A du fondateur :
+  lignes PL-04a (migration `0151`) et PL-04b avant PL-04.
 - PL-07 peut conclure au report de K4 : PL-08 et PL-09 passent alors à `ignoré`, avec le motif.
 - PL-09 touche le passe-plat épinglé (PP-12) : revue de sécurité ciblée en fin de jalon.
 - Risque : PL-08 et PL-09 créent des paquets du dépôt (dépendance) ; suite locale complète exigée.
