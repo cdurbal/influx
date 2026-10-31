@@ -13,7 +13,7 @@ import {
   thresholdCodes,
   thresholdNumber,
 } from "../src/domains/backoffice/alerts.ts";
-import type { DestinationHealthRow } from "../src/domains/backoffice/repository.ts";
+import type { DestinationHealthRow } from "../src/domains/backoffice/alerts/repository.ts";
 
 const OFFICE = businessHoursOf({
   time_zone: "UTC",

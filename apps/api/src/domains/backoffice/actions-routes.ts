@@ -73,27 +73,31 @@ import {
 } from "../identity/backoffice-session.ts";
 import type { IdentityApp } from "../identity/routes.ts";
 import {
-  adminRoleGrants,
   alertDefinitions,
-  correctMemberAccount,
   databaseNow,
   configurationFailures,
   destinationHealth,
   failuresPastDelay,
   lastBrevoReconciliation,
-  liftBrevoSuppression,
   newBrowserSignIns,
-  pendingDualControlIds,
   queueDelays,
   queuePolicy,
   readApolloSettings,
+} from "./alerts/repository.ts";
+import {
+  adminRoleGrants,
+  pendingDualControlIds,
+} from "./dual-control/repository.ts";
+import {
+  correctMemberAccount,
+  liftBrevoSuppression,
   recordRefusedAction,
   replayCandidates,
   replayOutboxLines,
   type ContactDestination,
   type RefusedActionCode,
   type ReplayCandidate,
-} from "./repository.ts";
+} from "./sync-replay/repository.ts";
 import { apolloSettingOf } from "./apollo-settings.ts";
 import {
   businessCutoff,

@@ -8,7 +8,7 @@ import {
   degradedConfirmationsByWeek,
   dualControlRecap,
 } from "../src/domains/backoffice/dual-control.ts";
-import { DUAL_CONTROL_ACTION_CODES } from "../src/domains/backoffice/repository.ts";
+import { DUAL_CONTROL_ACTION_CODES } from "../src/domains/backoffice/dual-control/repository.ts";
 
 const ACCOUNT = "00000000-0000-4000-8000-000000000001";
 

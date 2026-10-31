@@ -41,13 +41,13 @@ import {
   type DualControlPayload,
   type DualControlState,
   type DualControlTargetRow,
-} from "./repository.ts";
+} from "./dual-control/repository.ts";
 
 export type {
   DualControlActionCode,
   DualControlMode,
   DualControlTargetRow,
-} from "./repository.ts";
+} from "./dual-control/repository.ts";
 
 /** 03 PD2: the requester confirms alone this long after the request at the earliest (0130). */
 export const DEGRADED_CONFIRMATION_DELAY_SECONDS = 60;

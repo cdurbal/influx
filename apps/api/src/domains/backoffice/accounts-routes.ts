@@ -51,15 +51,17 @@ import {
   accountHistory,
   dataRequestsOf,
   dayCounters,
+  reserveAccountSearch,
+  type AccountDataRequestRow,
+  type HistoryRow,
+} from "./account-history/repository.ts";
+import {
   listMemberAccounts,
   memberAccountDetail,
   ownershipOf,
-  reserveAccountSearch,
-  type AccountDataRequestRow,
   type AccountFilters,
-  type HistoryRow,
   type MemberAccountRow,
-} from "./repository.ts";
+} from "./accounts/repository.ts";
 import { syncStatusOf } from "./sync-causes.ts";
 
 export type BackofficeAccountsDependencies = { database: ApiDatabase };

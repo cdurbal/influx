@@ -91,7 +91,7 @@ export type RawSyncState = {
   lastAttemptAt: string | null;
 };
 
-/** The state filter of the list, computed the same way in SQL (repository.ts). */
+/** The state filter of the list, computed the same way in SQL (accounts/repository.ts). */
 export function syncStateOf(raw: RawSyncState): SyncState {
   if (raw.liveStatus !== null) {
     return "pending";

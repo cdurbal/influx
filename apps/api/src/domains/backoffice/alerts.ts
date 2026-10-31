@@ -11,12 +11,12 @@ import type {
 } from "@influx/contracts/backoffice-accounts";
 import type {
   ConfigurationFailureRow,
-  ContactDestination,
   DestinationHealthRow,
   FailuresPastDelayRow,
   QueueDelayRow,
   ReconciliationRow,
-} from "./repository.ts";
+} from "./alerts/repository.ts";
+import type { ContactDestination } from "./sync-replay/repository.ts";
 
 const DESTINATION: Readonly<Record<ContactDestination, SyncDestination>> = {
   brevo_contact: "brevo",
