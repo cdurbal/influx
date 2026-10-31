@@ -263,6 +263,9 @@ soit une réserve d'environ 110 s de cumul local.
 4. **Levier structurel** (éclats CI) à arbitrer par `architecte`, sur recommandation `testeur`, dès
    qu'un passage dépasse 7 min 30 ou avant le Lot 3.
 
+**Décision PL-13 (fondateur, 2026-10-31) :** points 1 à 4 acceptés tels quels ; PL-C les écrit dans
+`21` §2.3.
+
 **Constats hors budget.** `GET /v1/bo/alerts` répond 500 (42501 dans `newBrowserSignIns`,
 `backoffice/alerts/repository.ts`) pendant DS-12b dans 3 passages locaux sur 4, cas vert : à instruire
 à la revue (R). Commentaire périmé de `ci.yml` (étape Playwright « About 45 s locally »).
