@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { HydrationMarker } from "@/components/HydrationMarker";
 import { messages } from "@/messages/fr";
 import { FONT_VARIABLE_CLASSES } from "@/styles/fonts";
 import "./globals.css";
@@ -24,7 +25,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       data-theme="keo"
       className={`${FONT_VARIABLE_CLASSES} antialiased`}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* After the page: its effects (the focus of the h1) run before the marker's (EC-PL-01-1). */}
+        <HydrationMarker />
+      </body>
     </html>
   );
 }

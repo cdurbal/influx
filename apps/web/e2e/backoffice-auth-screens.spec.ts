@@ -8,7 +8,7 @@ import type { Page } from "@playwright/test";
 import { messages } from "../../backoffice/src/messages/fr";
 import { expectNoAxeViolation } from "./support/axe";
 import { seedInternal } from "./support/backoffice";
-import { expect, test } from "./support/journey";
+import { expect, open, test } from "./support/journey";
 import { BACKOFFICE_ORIGIN } from "./support/servers";
 
 const m = messages;
@@ -61,11 +61,9 @@ test("DS-11: the sign-in is a standalone page; default, empty and recovery state
 test("DS-11: the focus ring is visible on the first field and on the primary button", async ({
   page,
 }) => {
-  await page.goto(bo("/"));
-  // The h1 takes the focus on arrival (DS-11): a Tab pressed before would lose its focus to it.
-  await expect(
-    page.getByRole("heading", { level: 1, name: m.login.title }),
-  ).toBeFocused();
+  // `open` returns once the page is hydrated, so the h1 holds the focus it takes on arrival (DS-11):
+  // a Tab pressed before would lose its focus to it.
+  await open(page, bo("/"));
   await page.keyboard.press("Tab");
   const email = page.getByLabel(m.login.emailLabel);
   await expect(email).toBeFocused();

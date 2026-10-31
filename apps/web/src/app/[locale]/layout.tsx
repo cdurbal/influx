@@ -4,6 +4,7 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { CookieBanner } from "@/components/landing/CookieBanner";
 import { IS_COOKIE_BANNER_ENABLED } from "@/components/landing/cookie-consent";
+import { HydrationMarker } from "@/components/ui/HydrationMarker";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
 
@@ -65,6 +66,8 @@ export default async function LocaleLayout({
         <NextIntlClientProvider messages={null}>
           {children}
         </NextIntlClientProvider>
+        {/* After the page: its effects run before the marker's (EC-PL-01-1). */}
+        <HydrationMarker />
       </body>
     </html>
   );

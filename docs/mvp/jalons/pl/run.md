@@ -3,7 +3,7 @@
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
 | 01a | 01a.md | commit | sonnet | high | dev-react-node | fait | Brouillon perdu au changement de langue (`AuthFlow`, arrêt de PL-01) ; exception à l'invariant 1, choix A du fondateur le 2026-10-31 ; validé par le fondateur le 2026-10-31 (`valider 01a`) ; lecture sans vidage au rendu (`peekForLocale`), vidage en effet après montage (`discardHandedOver`), `journey-resume` 5 passages verts |
-| 01 | 01.md | commit | sonnet | high | testeur | à faire | K1 ; validé par le fondateur le 2026-10-31 (`valider tout`) ; 1er passage arrêté (`echec-repete`, `journey-resume:104`, cause dans `AuthFlow`) : reprise après 01a, barrière non commitée dans l'arbre |
+| 01 | 01.md | commit | sonnet | high | testeur | fait | K1 ; validé par le fondateur le 2026-10-31 (`valider tout`) ; 1er passage arrêté (`echec-repete`, `journey-resume:104`, cause dans `AuthFlow`) : reprise après 01a, barrière non commitée dans l'arbre ; barrière `data-hydrated` posée par un effet client (`HydrationMarker`, EC-PL-01-1), attendue par `open()`, `reload()` et DS-11, aucune assertion ni délai touché ; quatre specs vertes 5 invocations séparées chacune ; `pnpm test:e2e` : 214 passés en 3 min 19 s (référence 4 min 10 s) |
 | 02 | 02.md | commit | sonnet | medium | dev-react-node | à faire | K7 ; validé par le fondateur le 2026-10-31 (`valider tout`) |
 | 03 | 03.md | commit | sonnet | high | dev-react-node | à faire | K6 (J9S-6, J9S-7) ; validé par le fondateur le 2026-10-31 (`valider tout`) |
 | 04 | 04.md | commit | sonnet | high | testeur | à faire | K6 (J9S-9, J9T-8, J9T-9) ; validé par le fondateur le 2026-10-31 (`valider tout`) |

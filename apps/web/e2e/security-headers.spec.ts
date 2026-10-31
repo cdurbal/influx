@@ -216,7 +216,7 @@ test.describe("T10.6: the CSP enforced by the browser", () => {
   ]) {
     test(`${path} hydrates without a single violation`, async ({ page }) => {
       const violations = await watchViolations(page);
-      // `open` answers the cookie banner: a click that only a hydrated page handles.
+      // `open` returns once the page is hydrated: the CSP is judged on the scripts that ran.
       await open(page, path);
       // The lazy images too: to the bottom of the page, then the time for them to load.
       await page.waitForLoadState("load");

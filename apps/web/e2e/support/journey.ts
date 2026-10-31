@@ -10,6 +10,7 @@ import {
 import { randomInt } from "node:crypto";
 import enAuth from "@/locales/en/auth.json" with { type: "json" };
 import frAuth from "@/locales/fr/auth.json" with { type: "json" };
+import { waitForHydration } from "./hydration";
 import { mailboxAddress } from "./mailboxes";
 import { BACKOFFICE_ORIGIN, DOUBLE_ORIGIN, WEB_ORIGIN } from "./servers";
 
@@ -169,14 +170,19 @@ export async function lastCodeEmail(
   return { code, text };
 }
 
-/** A full load of a page of the journey (the cookie banner is off: no tracker, EC-J9-3). */
+/**
+ * A full load of a page of the journey (the cookie banner is off: no tracker, EC-J9-3), returned
+ * once the page is hydrated: a gesture made before would be lost (EC-PL-01-1).
+ */
 export async function open(page: Page, path: string): Promise<void> {
   await page.goto(path);
+  await waitForHydration(page);
 }
 
 /** A reload of the page on screen (D66: the journey resumes from apps/api's cookies). */
 export async function reload(page: Page): Promise<void> {
   await page.reload();
+  await waitForHydration(page);
 }
 
 export function title(page: Page) {
