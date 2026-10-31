@@ -15,7 +15,8 @@ migration, aucune route ajoutée ou retirée, aucun écran nouveau, aucune règl
 ## Invariants
 
 1. Refactors à comportement constant : mêmes réponses d'API, mêmes écrans, mêmes en-têtes ; seules
-   exceptions, J9S-6 et J9S-7 (PL-03), telles qu'écrites dans `archives/jalons/j9-fiche.md` l. 36-37.
+   exceptions, J9S-6 et J9S-7 (PL-03), telles qu'écrites dans `archives/jalons/j9-fiche.md` l. 36-37,
+   et PL-01a (brouillon gardé au changement de langue, choix A du fondateur le 2026-10-31).
 2. Aucun attendu d'un test existant n'est affaibli ; une attente de synchronisation peut changer
    (PL-01), jamais une assertion. Planchers (`packages/test-kit/src/case-floors.ts`) jamais baissés.
 3. Passe-plat (`03` PP-12, D64) : un secret interne par front, logique inchangée, octets épinglés
@@ -31,6 +32,7 @@ migration, aucune route ajoutée ou retirée, aucun écran nouveau, aucune règl
 
 | Ligne | Tranches |
 |---|---|
+| 01a | `apps/web/src/components/auth/AuthFlow.tsx` l. 70-110 ; `journey-memory.ts` ; `journey-resume.spec.ts` l. 90-130 |
 | 01 | `apps/web/e2e/support/journey.ts` l. 172-181 ; `backoffice-auth-screens.spec.ts` l. 61-75 (`64bcb6e`) ; `security-headers.spec.ts` l. 205-235 ; `journey-resume.spec.ts` l. 104 ; `charter-cascade.spec.ts` l. 302 ; `apps/web/playwright.config.ts` l. 40-60 |
 | 03, 04 | `archives/jalons/j9-fiche.md` l. 36-41 |
 | 07 | `02` l. 850-860 et §21.3 (l. 2326-2394) ; `21` §7 ligne du Lot 2 ; `packages/test-kit/src/guards.ts` l. 186-230 et 381-410 |
@@ -42,6 +44,7 @@ migration, aucune route ajoutée ou retirée, aucun écran nouveau, aucune règl
 
 | # | Titre imposé | Contenu | Tests |
 |---|---|---|---|
+| PL-01a | `fix(web): keep the language hand-over draft when React restarts a render` | Brouillon lu sans vidage pendant le rendu, vidé après le montage (arrêt de PL-01) | unitaires du module ; `journey-resume` cinq fois |
 | PL-01 | `test(e2e): one hydration barrier for the journeys and DS-11` | K1 : attente d'hydratation partagée ; `open()`, `reload()`, DS-11 ; commentaire périmé | DS-11, `journey-resume`, TD3.6, T10.6 |
 | PL-02 | `chore: Node 24.12 engines and justified lint exceptions` | K7 : `engines.node` `>=24.12.0` ; motif `--` sur quatre `eslint-disable` | `pnpm check:fast` |
 | PL-03 | `fix(health): cached status for /health and unverified browser errors` | J9S-6, J9S-7 | tests unitaires des deux points ; spec e2e de l'écran Santé |
@@ -80,6 +83,10 @@ réduire).
 
 ## Écarts, décisions ouvertes, risques
 
+- 2026-10-31, arrêt de PL-01 : `journey-resume.spec.ts:104` intermittent sous charge, cause hors
+  hydratation (`AuthFlow` vide le brouillon de changement de langue dans un initialiseur de
+  `useState`). Choix A du fondateur : ligne PL-01a avant PL-01. `EC-PL-01-1` : signal
+  `data-hydrated` sur `<html>`, aucun signal existant ne couvrant toutes les pages.
 - PL-07 peut conclure au report de K4 : PL-08 et PL-09 passent alors à `ignoré`, avec le motif.
 - PL-09 touche le passe-plat épinglé (PP-12) : revue de sécurité ciblée en fin de jalon.
 - Risque : PL-08 et PL-09 créent des paquets du dépôt (dépendance) ; suite locale complète exigée.
