@@ -198,7 +198,7 @@ describe("api configuration", () => {
       "BREVO_MODE live is refused in development",
     ],
     [
-      "redirect without test recipients",
+      "redirect without test recipients (T17.6)",
       { ...VALID_API_ENV, BREVO_MODE: "redirect" },
       "BREVO_TEST_RECIPIENTS is required when BREVO_MODE is redirect",
     ],
@@ -761,7 +761,7 @@ describe("worker configuration", () => {
 
   it.each<[string, Environment, string]>([
     [
-      "live sync in development without an allowlist (lock 3)",
+      "live sync in development without an allowlist (lock 3, T17.7)",
       { ...VALID_WORKER_ENV, SYNC_MODE: "live" },
       "NON_PRODUCTION_RECIPIENT_ALLOWLIST is required when SYNC_MODE is live in development",
     ],
@@ -771,7 +771,7 @@ describe("worker configuration", () => {
       "BREVO_MODE live is refused in development",
     ],
     [
-      "redirect without test recipients",
+      "redirect without test recipients (T17.6)",
       { ...VALID_WORKER_ENV, BREVO_MODE: "redirect" },
       "BREVO_TEST_RECIPIENTS is required when BREVO_MODE is redirect",
     ],
@@ -1056,22 +1056,22 @@ type DeployedCase = [string, Environment, string];
 
 const API_DEPLOYED_CASES: readonly DeployedCase[] = [
   [
-    "Brevo disabled (a mute deployed environment, 16 RG116)",
+    "Brevo disabled (a mute deployed environment, 16 RG116, T17.6)",
     { BREVO_MODE: "disabled" },
     "BREVO_MODE must be live in a deployed environment",
   ],
   [
-    "no BREVO_MODE (the default disabled never passes)",
+    "no BREVO_MODE (the default disabled never passes, T17.6)",
     { BREVO_MODE: undefined },
     "BREVO_MODE must be live in a deployed environment",
   ],
   [
-    "Brevo redirect",
+    "Brevo redirect (T17.6)",
     { BREVO_MODE: "redirect", BREVO_TEST_RECIPIENTS: "team@influx.example" },
     "BREVO_MODE must be live in a deployed environment",
   ],
   [
-    "BREVO_TEST_RECIPIENTS set next to live: refused, never ignored",
+    "BREVO_TEST_RECIPIENTS set next to live: refused, never ignored (T17.6)",
     { BREVO_TEST_RECIPIENTS: "team@influx.example" },
     "BREVO_TEST_RECIPIENTS is refused in a deployed environment (development only)",
   ],
@@ -1122,17 +1122,17 @@ const WORKER_DEPLOYED_CASES: readonly DeployedCase[] = [
     "SYNC_MODE must be live in a deployed environment",
   ],
   [
-    "NON_PRODUCTION_RECIPIENT_ALLOWLIST set: refused, never ignored",
+    "NON_PRODUCTION_RECIPIENT_ALLOWLIST set: refused, never ignored (T17.7)",
     { NON_PRODUCTION_RECIPIENT_ALLOWLIST: "influx.example" },
     "NON_PRODUCTION_RECIPIENT_ALLOWLIST is refused in a deployed environment (development only)",
   ],
   [
-    "BREVO_TEST_RECIPIENTS set: refused, never ignored",
+    "BREVO_TEST_RECIPIENTS set: refused, never ignored (T17.6)",
     { BREVO_TEST_RECIPIENTS: "team@influx.example" },
     "BREVO_TEST_RECIPIENTS is refused in a deployed environment (development only)",
   ],
   [
-    "Brevo disabled",
+    "Brevo disabled (T17.6)",
     { BREVO_MODE: "disabled" },
     "BREVO_MODE must be live in a deployed environment",
   ],
@@ -1307,7 +1307,7 @@ describe("T17: staging refuses exactly what production refuses (D70)", () => {
 });
 
 describe("T17 in development: locks 2 and 3 kept (D70)", () => {
-  it("accepts the two lists, and redirect towards the double", () => {
+  it("accepts the two lists, and redirect towards the double (T17.6, T17.7)", () => {
     const config = loadWorkerConfig({
       ...VALID_WORKER_ENV,
       BREVO_MODE: "redirect",

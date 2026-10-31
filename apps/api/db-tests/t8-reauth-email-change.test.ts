@@ -499,7 +499,7 @@ describe("identity.request_email_change()", () => {
 });
 
 describe("identity.confirm_email_change()", () => {
-  it("confirms both sides, then gives the GoTrue user id; a confirmed side answers already_confirmed to its code only (A1, 0124)", async () => {
+  it("confirms both sides, then gives the GoTrue user id; a confirmed side answers already_confirmed to its code only (A1, 0124, T8.9)", async () => {
     const who = member("advertiser", "a");
     const result = await scenario(async (tx) => {
       const { request } = await openRequest(tx, who);
@@ -725,7 +725,7 @@ describe("identity.complete_email_change()", () => {
     expect(result.row).toMatchObject({ completed: true, digests: false });
   });
 
-  it("answers not_ready before both confirmations, and changes nothing", async () => {
+  it("answers not_ready before both confirmations, and changes nothing (T8.9)", async () => {
     const who = member("creator", "a");
     const result = await scenario(async (tx) => {
       const { request, session } = await openRequest(tx, who);

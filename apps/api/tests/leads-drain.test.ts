@@ -766,7 +766,7 @@ describe("TM1.10: SIGTERM during a batch loses no line", () => {
 });
 
 describe("02 §12.4: the three locks of development (D70)", () => {
-  it("lock 2, dry_run: no call, succeeded with dry_run, and the would_send line without any value", async () => {
+  it("T17.2, lock 2, dry_run: no call, succeeded with dry_run, and the would_send line without any value", async () => {
     const queue = new FakeQueue();
     const contact = queue.add("brevo_contact");
     const welcome = queue.add("brevo_transactional");
@@ -861,7 +861,7 @@ describe("02 §12.4: the three locks of development (D70)", () => {
     });
   });
 
-  it("lock 3, live in development: a domain off the allow-list is skipped_non_production, after the mapping", async () => {
+  it("T17.3, lock 3, live in development: a domain off the allow-list is skipped_non_production, after the mapping", async () => {
     const queue = new FakeQueue();
     const outside = queue.add("brevo_transactional", { subject: "account:a" });
     const outsideBrevo = connector("brevo_transactional", queue, {

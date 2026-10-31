@@ -52,7 +52,7 @@ function creatorDraft(changes: Partial<SignupDraft> = {}): SignupDraft {
 }
 
 describe("emptySignupDraft (05 RG11, RG17)", () => {
-  it("pre-checks no box, preselects no status and no country, takes the page language", () => {
+  it("TM10.1: pre-checks no box, preselects no status and no country, takes the page language", () => {
     expect(emptySignupDraft("en")).toEqual({
       companyName: "",
       countryCode: "",
@@ -76,7 +76,7 @@ describe("validateSignupDraft (05 RG11, RG17, RG124, CA5)", () => {
     ]);
   });
 
-  it("lists every missing field of the creator door, never the company name", () => {
+  it("lists every missing field of the creator door, the attestation of majority included (TM10.2), never the company name", () => {
     expect(validateSignupDraft("creator", emptySignupDraft("fr"))).toEqual([
       { field: "countryCode", error: "required" },
       { field: "declaredStatus", error: "required" },
@@ -132,7 +132,7 @@ describe("validateSignupDraft (05 RG11, RG17, RG124, CA5)", () => {
 });
 
 describe("draftAfterDoorChange (05 RG4)", () => {
-  it("unticks the consent and clears the fields of the door left", () => {
+  it("TM10.1: unticks the consent and clears the fields of the door left", () => {
     const changed = draftAfterDoorChange(
       advertiserDraft({ heardFrom: "event", preferredLanguage: "en" }),
       "advertiser",

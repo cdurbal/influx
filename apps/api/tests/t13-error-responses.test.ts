@@ -155,27 +155,30 @@ function expectNoDetail(response: Answer, code: string): string {
 }
 
 describe("T13: whatever a handler throws, the answer has no detail", () => {
-  it.each(THROWN)("%s", async (_label, make) => {
-    const { api, logs } = server();
-    api.get(
-      "/v1/failing",
-      { schema: { response: { 200: okSchema } } },
-      async () => {
-        throw make();
-      },
-    );
-    const response = await api.inject({
-      method: "GET",
-      url: "/v1/failing",
-      headers: { "x-influx-internal": WEB_SECRET },
-    });
-    const code =
-      response.statusCode === 400 ? "validation_failed" : "internal_error";
-    expect([400, 500]).toContain(response.statusCode);
-    const requestId = expectNoDetail(response, code);
-    // T13.5: the identifier given to the client is the one of the server's lines.
-    expect(logs.text()).toContain(`"requestId":"${requestId}"`);
-  });
+  it.each(THROWN)(
+    "T13.2: %s (with T13.1, T13.3 to T13.5)",
+    async (_label, make) => {
+      const { api, logs } = server();
+      api.get(
+        "/v1/failing",
+        { schema: { response: { 200: okSchema } } },
+        async () => {
+          throw make();
+        },
+      );
+      const response = await api.inject({
+        method: "GET",
+        url: "/v1/failing",
+        headers: { "x-influx-internal": WEB_SECRET },
+      });
+      const code =
+        response.statusCode === 400 ? "validation_failed" : "internal_error";
+      expect([400, 500]).toContain(response.statusCode);
+      const requestId = expectNoDetail(response, code);
+      // T13.5: the identifier given to the client is the one of the server's lines.
+      expect(logs.text()).toContain(`"requestId":"${requestId}"`);
+    },
+  );
 });
 
 describe("T13: errors of the parsers and of the router, before any handler", () => {
