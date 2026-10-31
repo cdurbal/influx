@@ -2,8 +2,9 @@
 // §9.3, docs/mvp/03-matrice-des-droits-et-rls.md §6.4 PP-1 to PP-12, docs/mvp/21 §4 J1-G).
 // NO LOGIC: it checks the shape of the request, forwards it, and relays the answer. It never
 // reads or interprets a body, never makes or changes a cookie, holds no business rule.
-// Imported by src/app/api/[...path]/route.ts only. Byte-for-byte identical in apps/web and
-// apps/backoffice, SHA-256 pinned in @influx/test-kit (PP-12): any change is a conscious gesture.
+// Imported, as @influx/web-platform/relay, by the route files of the fronts only. Lives once, in
+// packages/web-platform (arbitration PL-07, PL-09), SHA-256 pinned in @influx/test-kit (PP-12):
+// any change is a conscious gesture.
 import type { ErrorEnvelope } from "@influx/contracts/errors";
 import { callApi, ServerConfigError } from "./api-client";
 

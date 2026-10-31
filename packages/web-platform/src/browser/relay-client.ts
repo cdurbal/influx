@@ -1,12 +1,12 @@
-// The ONLY browser module of this front allowed to call the network (docs/mvp/02 §9.3, §13.2;
+// The ONLY browser module of the fronts allowed to call the network (docs/mvp/02 §9.3, §13.2;
 // 21 §4, J3 commit 12). It reaches the relay of the same origin, `/api/v1/…`, and nothing else:
 // - the path is a constant of the caller, checked against the pattern of the relay (03 PP-2);
 // - query parameters (J5, 21 EC-62) are names and values of plain characters only: nothing is
 //   ever percent-encoded, so the relay and apps/api read them in one way only;
 // - same origin only: relative URL, `credentials: "same-origin"`, no redirect followed, no cache;
 // - the answer is read through a schema of packages/contracts: an unexpected shape is a failure.
-// The session is an httpOnly cookie: this module never sees it (D37). Byte-for-byte identical in
-// apps/web and apps/backoffice, SHA-256 pinned in @influx/test-kit, like the relay files.
+// The session is an httpOnly cookie: this module never sees it (D37). Lives once, in
+// packages/web-platform (PL-09), SHA-256 pinned in @influx/test-kit, like the relay files.
 
 /** Mount point of the relay route, /api/v1/… (src/server/relay.ts). */
 const RELAY_PREFIX = "/api";

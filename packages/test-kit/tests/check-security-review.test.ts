@@ -298,14 +298,17 @@ describe("I-4 marker check on migrations and expected rights", () => {
     expect(result.status, result.output).toBe(1);
   });
 
-  // J3S-9 (end-of-J3 security review): the signed list P and the relay files of both fronts.
+  // J3S-9 (end-of-J3 security review): the signed list P and the relay files, in packages/web-platform
+  // since PL-09 with the package.json whose exports close the chain, the route in both fronts.
   it.each([
     "packages/contracts/src/elevated-operations.ts",
-    "apps/web/src/server/relay.ts",
+    "packages/web-platform/src/server/relay.ts",
     "apps/web/src/app/api/[...path]/route.ts",
-    "apps/backoffice/src/server/api-client.ts",
-    "apps/backoffice/src/config/server.ts",
-    "apps/web/src/browser/relay-client.ts",
+    "apps/backoffice/src/app/api/[...path]/route.ts",
+    "packages/web-platform/src/server/api-client.ts",
+    "packages/web-platform/src/config/server.ts",
+    "packages/web-platform/src/browser/relay-client.ts",
+    "packages/web-platform/package.json",
   ])("fails without the marker on any change of %s (J3S-9)", (file) => {
     const result = checkOne(() =>
       commit("refactor: harmless-looking change", {
@@ -319,6 +322,16 @@ describe("I-4 marker check on migrations and expected rights", () => {
     const result = checkOne(() =>
       commit("feat(web): a page", {
         "apps/web/src/app/page.tsx": "export {};\n",
+      }),
+    );
+    expect(result.status, result.output).toBe(0);
+  });
+
+  it("passes without the marker on a file of packages/web-platform outside the relay (PL-09)", () => {
+    const result = checkOne(() =>
+      commit("refactor(web): the collector", {
+        "packages/web-platform/src/observability/error-collector.ts":
+          "export {};\n",
       }),
     );
     expect(result.status, result.output).toBe(0);

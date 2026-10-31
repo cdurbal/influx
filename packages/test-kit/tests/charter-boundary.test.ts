@@ -317,7 +317,7 @@ describe("TD1.12: G9, the session read by the shells alone", () => {
     write(
       CHAIN.module,
       [
-        'import { callRelay } from "@/browser/relay-client";',
+        'import { callRelay } from "@influx/web-platform/relay-client";',
         'export function readMe() { return callRelay("GET", "/v1/me", schema); }',
         'export function signOut() { return callRelay("POST", "/v1/auth/logout", schema); }',
       ].join("\n"),

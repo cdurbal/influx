@@ -3,7 +3,7 @@
 // reach `window` through reportError), sent to POST /v1/ops/client-errors through the relay
 // client. Never mounted on the landing: no collection script on the public pages (02 §20.5).
 // No cookie, no storage, no retry: a report that fails is lost. A few reports per page at most.
-// Byte-for-byte identical in apps/web and apps/backoffice.
+// Lives once, in packages/web-platform (arbitration PL-07, PL-09), for both fronts.
 import {
   CLIENT_ERROR_LIMITS,
   toStrictText,

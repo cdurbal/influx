@@ -11,12 +11,16 @@ import {
   findMatches as findMatchesIn,
   findNetworkOrStorageUse,
   findPagesRouterDirectories,
+  findPlatformExportViolations,
+  findPlatformFileCopies,
   findPrimitiveBaseClassConflicts,
   findRelayContentViolations,
   findRelayFingerprintMismatches,
   findRelayImporterViolations,
   findRouteFileViolations,
   findVitrineSnapshotChanges,
+  PLATFORM_EXPORTS,
+  PLATFORM_NETWORK_FILES,
   HARD_CODED_COLOR_PATTERN,
   HARD_CODED_LENGTH_PATTERN,
   isValidUtf8,
@@ -85,6 +89,15 @@ const UI_ROOT = path.resolve(WEB_ROOT, "..", "..", "packages", "ui");
 const UI_SRC = path.join(UI_ROOT, "src");
 const TOKENS_FILE = path.join(UI_SRC, "styles", "tokens.css");
 const GLOBALS = "src/app/globals.css";
+/** packages/web-platform: the relay, its browser client, the collector and the marker (PL-07, PL-09). */
+const PLATFORM_ROOT = path.resolve(
+  WEB_ROOT,
+  "..",
+  "..",
+  "packages",
+  "web-platform",
+);
+const PLATFORM_SRC = path.join(PLATFORM_ROOT, "src");
 
 function relative(file: string): string {
   return relativePath(WEB_ROOT, file);
@@ -123,7 +136,8 @@ describe("G1 tightened: no mailto or tel outside named legal and contact files (
 
 // G2 lifted at J9 commit 4, in the commit of its three replacements (18 §5, EC-J9-1): this
 // tightened guard (a), the CSP tested on the production build (b, e2e/security-headers.spec.ts,
-// T10.6), and the ESLint ban of `fetch` outside src/server/api-client.ts (c, J1).
+// T10.6), and the ESLint ban of `fetch` outside src/server/api-client.ts (c, J1), in
+// packages/web-platform since PL-09.
 describe("G2 replaced: no literal URL outside src/config/ and src/locales/ (18 §5 G2 a)", () => {
   const URL_ALLOWED_DIRS = ["config", "locales"].map(
     (dir) => path.join(SRC, dir) + path.sep,
@@ -164,6 +178,21 @@ describe("G3: no hard-coded color or length outside the token files (CA22)", () 
       HARD_CODED_LENGTH_PATTERN,
     ]) {
       expect(findMatchesIn(pattern, uiFiles, UI_ROOT)).toEqual([]);
+    }
+  });
+
+  it("finds no hexadecimal color, literal length, literal URL or mailto in packages/web-platform (G1 to G3, PL-09)", () => {
+    const platformFiles = listFiles(PLATFORM_SRC).filter((file) =>
+      /\.(ts|tsx|json|css)$/.test(file),
+    );
+    expect(platformFiles.length).toBeGreaterThan(5);
+    for (const pattern of [
+      HARD_CODED_COLOR_PATTERN,
+      HARD_CODED_LENGTH_PATTERN,
+      /\b(?:https?|wss?):\/\//,
+      /mailto:|\btel:/,
+    ]) {
+      expect(findMatchesIn(pattern, platformFiles, PLATFORM_ROOT)).toEqual([]);
     }
   });
 
@@ -683,15 +712,26 @@ describe("G5 replaced: the relay is the only server endpoint (21 J1-C, 03 PP-12)
   });
 
   it("keeps data-layer imports, Server Actions and environment reads out of the relay", () => {
-    expect(findRelayContentViolations(WEB_ROOT, WEB_ROUTES)).toEqual([]);
+    expect(
+      findRelayContentViolations(WEB_ROOT, PLATFORM_ROOT, WEB_ROUTES),
+    ).toEqual([]);
   });
 
   it("reaches the API client along a single chain: route files, relay, API client, config", () => {
-    expect(findRelayImporterViolations(WEB_ROOT, WEB_ROUTES)).toEqual([]);
+    expect(
+      findRelayImporterViolations(WEB_ROOT, PLATFORM_ROOT, WEB_ROUTES),
+    ).toEqual([]);
   });
 
-  it("matches the pinned SHA-256 of the four relay files (T7.8)", () => {
-    expect(findRelayFingerprintMismatches(WEB_ROOT)).toEqual([]);
+  it("matches the pinned SHA-256 of the four relay files, the route here and the rest in packages/web-platform (T7.8)", () => {
+    expect(findRelayFingerprintMismatches(WEB_ROOT, PLATFORM_ROOT)).toEqual([]);
+  });
+
+  it("keeps no copy of a file of packages/web-platform, whose exports stay frozen (arbitration PL-07)", () => {
+    expect(findPlatformFileCopies(WEB_ROOT, PLATFORM_ROOT)).toEqual([]);
+    expect(findPlatformExportViolations(PLATFORM_ROOT)).toEqual([]);
+    expect(Object.keys(PLATFORM_EXPORTS)).not.toContain("./api-client");
+    expect(existsSync(path.join(SRC, "server", "relay.ts"))).toBe(false);
   });
 });
 
@@ -794,9 +834,9 @@ describe("Additional guards", () => {
   });
 
   it("pins the browser relay client, the only browser module that calls the network (J3 commit 12)", () => {
-    expect(findBrowserRelayClientMismatches(WEB_ROOT)).toEqual([]);
+    expect(findBrowserRelayClientMismatches(PLATFORM_ROOT)).toEqual([]);
     const source = readFileSync(
-      path.join(WEB_ROOT, BROWSER_RELAY_CLIENT_FILE),
+      path.join(PLATFORM_ROOT, BROWSER_RELAY_CLIENT_FILE),
       "utf8",
     );
     // Same origin only: one fetch, on the relay prefix, never an absolute URL. The query (J5,
@@ -811,9 +851,20 @@ describe("Additional guards", () => {
   });
 
   // Split at J1 (02 §13.2, 18 §5 annex 2): network only in src/server/api-client.ts, storage never.
+  // Since PL-09 both network files are in packages/web-platform: no file of apps/web calls fetch.
   it("uses no storage API, and no network API outside the API client (CA8, CA11)", () => {
     const codeFiles = SCOPED_FILES.filter((file) => /\.tsx?$/.test(file));
     expect(findNetworkOrStorageUse(codeFiles, WEB_ROOT)).toEqual([]);
+    const platformFiles = listFiles(PLATFORM_SRC).filter((file) =>
+      /\.tsx?$/.test(file),
+    );
+    expect(
+      findNetworkOrStorageUse(
+        platformFiles,
+        PLATFORM_ROOT,
+        PLATFORM_NETWORK_FILES,
+      ),
+    ).toEqual([]);
   });
 
   it("loads no tracker, keeps the cookie banner off and the footer Cookies link (EC-J9-3, J9T-6)", () => {
@@ -930,10 +981,27 @@ describe("R7 headers and the browser error collector (21 §4 J4 points 3 and 5)"
     expect(robots("production")).toBeUndefined();
   });
 
-  it("keeps the collector identical to that of apps/backoffice", () => {
-    expect(readFileSync(path.join(WEB, COLLECTOR))).toEqual(
-      readFileSync(path.join(WEB, "..", "backoffice", COLLECTOR)),
+  // Formerly "identical to that of apps/backoffice": the copy became one file of
+  // packages/web-platform (PL-09), mounted by the shell of each connected space only.
+  it("keeps the collector once, in packages/web-platform, imported by the two shells only", () => {
+    expect(existsSync(path.join(PLATFORM_ROOT, COLLECTOR))).toBe(true);
+    for (const front of [WEB, BACKOFFICE_ROOT]) {
+      expect(existsSync(path.join(front, COLLECTOR)), front).toBe(false);
+    }
+    const importers = [WEB, BACKOFFICE_ROOT].flatMap((front) =>
+      listFiles(path.join(front, "src"))
+        .filter((file) => /\.tsx?$/.test(file))
+        .filter((file) =>
+          readFileSync(file, "utf8").includes(
+            '"@influx/web-platform/error-collector"',
+          ),
+        )
+        .map((file) => relativePath(path.dirname(front), file)),
     );
+    expect(importers.sort()).toEqual([
+      "backoffice/src/components/Shell.tsx",
+      "web/src/components/member/MemberShell.tsx",
+    ]);
   });
 
   it("never mounts the collector on the landing (02 §20.5)", () => {
@@ -946,8 +1014,9 @@ describe("R7 headers and the browser error collector (21 §4 J4 points 3 and 5)"
         .filter((file) => /\.tsx?$/.test(file))
         .map((file) => path.join(WEB, "src/components/landing", file)),
     ];
+    // The specifier is @influx/web-platform/error-collector since PL-09: both names are checked.
     const importers = landing.filter((file) =>
-      readFileSync(file, "utf8").includes("observability"),
+      /observability|error-collector/.test(readFileSync(file, "utf8")),
     );
     expect(importers).toEqual([]);
   });

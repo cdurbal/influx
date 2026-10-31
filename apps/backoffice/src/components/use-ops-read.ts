@@ -6,7 +6,7 @@
 // never from the answer to the previous question. No rule here: apps/api decides, an admin reads.
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { RelayResult } from "@/browser/relay-client";
+import type { RelayResult } from "@influx/web-platform/relay-client";
 
 export type OpsLoad<T> =
   | { kind: "loading" }

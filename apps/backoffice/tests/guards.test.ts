@@ -10,11 +10,14 @@ import {
   findMatches,
   findNetworkOrStorageUse,
   findPagesRouterDirectories,
+  findPlatformExportViolations,
+  findPlatformFileCopies,
   findPrimitiveBaseClassConflicts,
   findRelayContentViolations,
   findRelayFingerprintMismatches,
   findRelayImporterViolations,
   findRouteFileViolations,
+  PLATFORM_NETWORK_FILES,
   HARD_CODED_COLOR_PATTERN,
   HARD_CODED_LENGTH_PATTERN,
   importSpecifiers,
@@ -58,6 +61,14 @@ const SRC = path.join(BACKOFFICE_ROOT, "src");
 const UI_ROOT = path.resolve(BACKOFFICE_ROOT, "..", "..", "packages", "ui");
 const TOKENS_FILE = path.join(UI_ROOT, "src", "styles", "tokens.css");
 const GLOBALS = "src/app/globals.css";
+/** The relay, its browser client, the collector and the marker of both fronts (PL-07, PL-09). */
+const PLATFORM_ROOT = path.resolve(
+  BACKOFFICE_ROOT,
+  "..",
+  "..",
+  "packages",
+  "web-platform",
+);
 /** The backoffice-only tokens (D73, 02 §21.3 point 6): born with DS-9, a token file like the other. */
 const TOKENS_BACKOFFICE = "src/styles/tokens-backoffice.css";
 
@@ -321,35 +332,57 @@ describe("the relay is the only server endpoint (21 J1-C, 03 PP-12)", () => {
   });
 
   it("keeps data-layer imports, Server Actions and environment reads out of the relay", () => {
-    expect(findRelayContentViolations(BACKOFFICE_ROOT)).toEqual([]);
+    expect(findRelayContentViolations(BACKOFFICE_ROOT, PLATFORM_ROOT)).toEqual(
+      [],
+    );
   });
 
   it("reaches the API client along a single chain: route, relay, API client, config", () => {
-    expect(findRelayImporterViolations(BACKOFFICE_ROOT)).toEqual([]);
+    expect(findRelayImporterViolations(BACKOFFICE_ROOT, PLATFORM_ROOT)).toEqual(
+      [],
+    );
   });
 
-  it("matches the pinned SHA-256 of the four relay files (T7.8)", () => {
-    expect(findRelayFingerprintMismatches(BACKOFFICE_ROOT)).toEqual([]);
-  });
-
-  it("keeps the four relay files identical to those of apps/web", () => {
-    for (const file of Object.values(RELAY_FILES)) {
-      expect(readFileSync(path.join(BACKOFFICE_ROOT, file)), file).toEqual(
-        readFileSync(path.join(WEB_ROOT, file)),
-      );
-    }
-  });
-
-  it("pins the browser relay client and keeps it identical to that of apps/web (J3 commit 12)", () => {
-    expect(findBrowserRelayClientMismatches(BACKOFFICE_ROOT)).toEqual([]);
+  it("matches the pinned SHA-256 of the four relay files, the route here and the rest in packages/web-platform (T7.8)", () => {
     expect(
-      readFileSync(path.join(BACKOFFICE_ROOT, BROWSER_RELAY_CLIENT_FILE)),
-    ).toEqual(readFileSync(path.join(WEB_ROOT, BROWSER_RELAY_CLIENT_FILE)));
+      findRelayFingerprintMismatches(BACKOFFICE_ROOT, PLATFORM_ROOT),
+    ).toEqual([]);
+  });
+
+  // Formerly "the four relay files identical to those of apps/web": since PL-09 only the route is a
+  // copy (arbitration PL-07 point 2); the three others live once, in packages/web-platform.
+  it("keeps the route file identical to that of apps/web, and no copy of packages/web-platform in either front", () => {
+    expect(readFileSync(path.join(BACKOFFICE_ROOT, RELAY_FILES.route))).toEqual(
+      readFileSync(path.join(WEB_ROOT, RELAY_FILES.route)),
+    );
+    expect(findPlatformFileCopies(BACKOFFICE_ROOT, PLATFORM_ROOT)).toEqual([]);
+    expect(findPlatformFileCopies(WEB_ROOT, PLATFORM_ROOT)).toEqual([]);
+    expect(findPlatformExportViolations(PLATFORM_ROOT)).toEqual([]);
+  });
+
+  it("pins the browser relay client of packages/web-platform, absent from both fronts (J3 commit 12)", () => {
+    expect(findBrowserRelayClientMismatches(PLATFORM_ROOT)).toEqual([]);
+    for (const front of [BACKOFFICE_ROOT, WEB_ROOT]) {
+      expect(
+        existsSync(path.join(front, BROWSER_RELAY_CLIENT_FILE)),
+        front,
+      ).toBe(false);
+    }
   });
 
   it("uses no storage API, and no network API outside the API client and the relay client", () => {
     const codeFiles = SOURCE_FILES.filter((file) => /\.tsx?$/.test(file));
     expect(findNetworkOrStorageUse(codeFiles, BACKOFFICE_ROOT)).toEqual([]);
+    const platformFiles = listFiles(path.join(PLATFORM_ROOT, "src")).filter(
+      (file) => /\.tsx?$/.test(file),
+    );
+    expect(
+      findNetworkOrStorageUse(
+        platformFiles,
+        PLATFORM_ROOT,
+        PLATFORM_NETWORK_FILES,
+      ),
+    ).toEqual([]);
   });
 });
 

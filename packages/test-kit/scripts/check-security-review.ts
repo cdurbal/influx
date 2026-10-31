@@ -63,17 +63,21 @@ const SECURITY_PREFIXES: readonly string[] = [
   "apps/backoffice/next.config.ts",
   "deploy/railway/",
 ];
+// Since PL-09 (arbitration PL-07 point 6) the relay lives in packages/web-platform: its files, and
+// its package.json whose `exports` close the chain route → relay → API client → configuration. The
+// route file stays a pinned copy in each front.
 const SECURITY_FILES: readonly string[] = [
   "packages/contracts/src/elevated-operations.ts",
-  ...["apps/web", "apps/backoffice"].flatMap((front) =>
-    [
-      "src/app/api/[...path]/route.ts",
-      "src/server/relay.ts",
-      "src/server/api-client.ts",
-      "src/config/server.ts",
-      "src/browser/relay-client.ts",
-    ].map((file) => `${front}/${file}`),
+  ...["apps/web", "apps/backoffice"].map(
+    (front) => `${front}/src/app/api/[...path]/route.ts`,
   ),
+  ...[
+    "package.json",
+    "src/server/relay.ts",
+    "src/server/api-client.ts",
+    "src/config/server.ts",
+    "src/browser/relay-client.ts",
+  ].map((file) => `packages/web-platform/${file}`),
 ];
 const MIGRATIONS_PATH = "supabase/migrations/";
 const SUPABASE_CONFIG = "supabase/config.toml";

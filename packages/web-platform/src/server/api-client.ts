@@ -1,6 +1,6 @@
-// The ONLY module of this front allowed to call the network (docs/mvp/02-architecture-3-espaces.md
-// §15 rule 3, docs/mvp/21 §4 J1-C). Imported by src/server/relay.ts only. Byte-for-byte identical
-// in apps/web and apps/backoffice, SHA-256 pinned (03 PP-12).
+// The ONLY server module of the fronts allowed to call the network (docs/mvp/02 §15 rule 3,
+// docs/mvp/21 §4 J1-C). Imported by src/server/relay.ts only, never exported by
+// packages/web-platform (arbitration PL-07, PL-09). SHA-256 pinned (03 PP-12).
 import { readServerConfig } from "../config/server";
 
 // Re-exported so that the relay can name a configuration error without importing the config

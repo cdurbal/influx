@@ -68,7 +68,7 @@ import {
   type OpsTrafficResponse,
   type OpsTrafficWindow,
 } from "@influx/contracts/backoffice-ops";
-import { callRelay, type RelayResult } from "@/browser/relay-client";
+import { callRelay, type RelayResult } from "@influx/web-platform/relay-client";
 
 /** A path segment from a server-issued id: a UUID, or nothing is called. */
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

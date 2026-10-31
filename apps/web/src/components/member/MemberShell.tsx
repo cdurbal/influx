@@ -35,7 +35,7 @@ import {
   TITLE_CLASSES,
 } from "@/components/auth/auth-classes";
 import { readMe, signOut as closeSession } from "@/components/auth/member-auth";
-import type { RelayResult } from "@/browser/relay-client";
+import type { RelayResult } from "@influx/web-platform/relay-client";
 import { cn } from "@/components/ui/class-names";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import { LogOutIcon } from "@/components/ui/icons";
@@ -52,7 +52,7 @@ import {
   type AccountPage,
   type MemberPage,
 } from "@/lib/member-paths";
-import { installErrorCollector } from "@/observability/error-collector";
+import { installErrorCollector } from "@influx/web-platform/error-collector";
 import { MemberContext, type MemberContextValue } from "./member-context";
 import { MemberNav, type MemberNavEntry } from "./MemberNav";
 import {

@@ -186,7 +186,13 @@ export const STORAGE_API_PATTERN =
 // Relay allow-list: the replacement of G5 (03 PP-12, 18 §5, 21 J1-C)
 // ---------------------------------------------------------------------------------------------
 
-/** The four relay files, identical byte for byte in apps/web and apps/backoffice. */
+// Since PL-09 (arbitration PL-07, 02 §21.3 point 7) the relay, its API client and configuration,
+// the browser relay client, the error collector and the hydration marker live once, in
+// packages/web-platform, which keeps the src/ tree of the fronts. Only the route file stays in each
+// front, a named copy: Next.js reads its runtime, dynamic and revalidate literals in the file itself.
+// Paths below are relative to the root of a front (`route`) or of packages/web-platform (the rest).
+
+/** The four relay files: the route in each front, the other three in packages/web-platform. */
 export const RELAY_FILES = {
   route: "src/app/api/[...path]/route.ts",
   relay: "src/server/relay.ts",
@@ -196,11 +202,35 @@ export const RELAY_FILES = {
 
 /**
  * The only browser module that calls the network: the same-origin relay (21 §4, J3 commit 12).
- * Identical in both fronts and pinned, like the relay files: changing it is a conscious gesture.
+ * In packages/web-platform and pinned, like the relay files: changing it is a conscious gesture.
  */
 export const BROWSER_RELAY_CLIENT_FILE = "src/browser/relay-client.ts";
 export const BROWSER_RELAY_CLIENT_SHA256 =
-  "e094e84641c6fea702f8bf97e821ccfd36863ea1ba83b850347f62e1ea257e20";
+  "18126a39e83e6a6242a5a9d66665b03b1ecacafabc0151aa63e4009e3c97f894";
+
+/** The package of the plumbing of both fronts (arbitration PL-07). */
+export const WEB_PLATFORM_PACKAGE = "@influx/web-platform";
+
+/** The specifier by which the route files of a front, and they alone, import the relay. */
+export const PLATFORM_RELAY_SPECIFIER = `${WEB_PLATFORM_PACKAGE}/relay`;
+
+/**
+ * The `exports` of packages/web-platform, frozen (arbitration PL-07 point 1): neither the API
+ * client nor the configuration is exported, so that the package closes the chain route → relay →
+ * API client → configuration itself. Exporting more is a commit that changes this list.
+ */
+export const PLATFORM_EXPORTS: Readonly<Record<string, string>> = {
+  "./relay": `./${RELAY_FILES.relay}`,
+  "./relay-client": `./${BROWSER_RELAY_CLIENT_FILE}`,
+  "./error-collector": "./src/observability/error-collector.ts",
+  "./hydration-marker": "./src/components/HydrationMarker.tsx",
+};
+
+/** The two files of packages/web-platform allowed to call the network (02 §13.2, 21 J1-C). */
+export const PLATFORM_NETWORK_FILES: readonly string[] = [
+  RELAY_FILES.apiClient,
+  BROWSER_RELAY_CLIENT_FILE,
+];
 
 /**
  * EC-22 (02 §20.10, 21 EC-22): the public health route of apps/web, 200 or 503 with an empty body,
@@ -221,19 +251,20 @@ export function allowedRouteFilesOf(routes: FrontRoutes): readonly string[] {
 }
 
 /**
- * SHA-256 of the relay files (03 PP-12, T7.8). There is no Pull Request to review a change of
- * these files: changing one requires updating its pin here, in the same commit, and copying the
- * file to the other front. That is the conscious gesture.
+ * SHA-256 of the relay files (03 PP-12, T7.8), on the bytes where they live: the route in each
+ * front, the rest in packages/web-platform. There is no Pull Request to review a change of these
+ * files: changing one requires updating its pin here, in the same commit (and, for the route,
+ * copying the file to the other front). That is the conscious gesture.
  */
 export const RELAY_FILE_SHA256: Readonly<Record<string, string>> = {
   [RELAY_FILES.route]:
-    "d289b6bdad293b1b51e462458f67fbb78ce0ba946abca1cc389b73a51530e267",
+    "a79a3d1dad364cdc19058c3818a29f98a03b341469ad11c43eb2809bbe1f57d6",
   [RELAY_FILES.relay]:
-    "bc93d1d86f20dfde6510515a45f14eb8dc8bb5da4625dd3c90a579a6fbbe7108",
+    "1002289bbc5b53bd6e590b0481db2320209ba964912efb886a3f5bbd3a22114e",
   [RELAY_FILES.apiClient]:
-    "e9e52a248631c4d4d4e8438e1b2dcff6fac7d7916e4cd3610139065b4a190503",
+    "36c772dca55144f0334ca40df0a51227264bcdcebae39626ad0534201d0c5985",
   [RELAY_FILES.config]:
-    "12e6b15aa8496de30d7015e01d0c8431123ab9150b50c4d11e17e61c6710efdc",
+    "7602a247f0deeb9d45569f2627ef244c0414fd45f50b406c9df2cac1dfd9b30f",
 };
 
 const DATA_LAYER_IMPORT =
@@ -304,20 +335,37 @@ export function findPagesRouterDirectories(frontRoot: string): string[] {
   ).map((relative) => `unexpected Pages Router directory: ${relative}/`);
 }
 
+/** A relay file and the root it lives under: the route in a front, the rest in packages/web-platform. */
+function relayFileLocations(
+  frontRoot: string,
+  platformRoot: string,
+): ReadonlyArray<readonly [root: string, relative: string]> {
+  return [
+    [frontRoot, RELAY_FILES.route],
+    [platformRoot, RELAY_FILES.relay],
+    [platformRoot, RELAY_FILES.apiClient],
+    [platformRoot, RELAY_FILES.config],
+  ];
+}
+
 /**
  * Data-layer imports, Server Actions, and environment reads outside the config file, in the relay
- * files and in the health route of web (EC-22).
+ * files (the route of the front, the rest in packages/web-platform) and in the health route of web
+ * (EC-22).
  */
 export function findRelayContentViolations(
   frontRoot: string,
+  platformRoot: string,
   frontRoutes: FrontRoutes = RELAY_ONLY,
 ): string[] {
-  const files: string[] = [
-    ...Object.values(RELAY_FILES),
-    ...(frontRoutes.healthRoute ? [HEALTH_ROUTE_FILE] : []),
+  const files: ReadonlyArray<readonly [root: string, relative: string]> = [
+    ...relayFileLocations(frontRoot, platformRoot),
+    ...(frontRoutes.healthRoute
+      ? [[frontRoot, HEALTH_ROUTE_FILE] as const]
+      : []),
   ];
-  return files.flatMap((relative) => {
-    const file = path.join(frontRoot, relative);
+  return files.flatMap(([root, relative]) => {
+    const file = path.join(root, relative);
     if (!existsSync(file)) {
       return [`missing relay file: ${relative}`];
     }
@@ -335,74 +383,147 @@ export function findRelayContentViolations(
   });
 }
 
+function sourceFilesOf(root: string): string[] {
+  const sources = path.join(root, "src");
+  return existsSync(sources)
+    ? listFiles(sources).filter((file) => SOURCE_FILE.test(file))
+    : [];
+}
+
+/** `expected` is the exact list of `actual`, in any order; otherwise one finding. */
+function importerFinding(
+  target: string,
+  actual: readonly string[],
+  expected: readonly string[],
+): string[] {
+  const sortedActual = [...actual].sort();
+  const sortedExpected = [...expected].sort();
+  if (sortedActual.join("\n") === sortedExpected.join("\n")) {
+    return [];
+  }
+  const wanted =
+    sortedExpected.length === 0 ? "none" : `${sortedExpected.join(", ")} only`;
+  return [
+    `${target} is imported by [${sortedActual.join(", ")}], expected ${wanted}`,
+  ];
+}
+
 /**
- * Guard of the importers: relay.ts is imported by the route files only (the relay route, and the
- * health route of web, EC-22), api-client.ts by relay.ts only, config/server.ts by api-client.ts
- * only. This keeps every component of the landing page away from the network (CA8).
+ * Guard of the importers, along the chain route → relay → API client → configuration:
+ * - in the front, `@influx/web-platform/relay` is imported by the route files only (the relay
+ *   route, and the health route of web, EC-22); no file reaches packages/web-platform by a path,
+ *   nor by a subpath outside its frozen `exports`;
+ * - in packages/web-platform, relay.ts is imported by no file of the package, api-client.ts by
+ *   relay.ts only, config/server.ts by api-client.ts only.
+ * This keeps every component of the landing page away from the network (CA8).
  */
 export function findRelayImporterViolations(
   frontRoot: string,
+  platformRoot: string,
   frontRoutes: FrontRoutes = RELAY_ONLY,
 ): string[] {
+  const findings: string[] = [];
+  const platformDirectory = path.resolve(platformRoot) + path.sep;
+  const relayImporters: string[] = [];
+  for (const file of sourceFilesOf(frontRoot)) {
+    const relative = relativePath(frontRoot, file);
+    for (const specifier of importSpecifiers(readFileSync(file, "utf8"))) {
+      if (specifier === PLATFORM_RELAY_SPECIFIER) {
+        relayImporters.push(relative);
+      } else if (
+        specifier.startsWith(`${WEB_PLATFORM_PACKAGE}/`) &&
+        !(
+          `.${specifier.slice(WEB_PLATFORM_PACKAGE.length)}` in PLATFORM_EXPORTS
+        )
+      ) {
+        findings.push(`${relative}: imports ${specifier}, not an export`);
+      }
+      const resolved = resolveLocalSpecifier(frontRoot, file, specifier);
+      if (
+        resolved !== null &&
+        path.resolve(resolved).startsWith(platformDirectory)
+      ) {
+        findings.push(
+          `${relative}: imports packages/web-platform by a path (${specifier})`,
+        );
+      }
+    }
+  }
+  findings.push(
+    ...importerFinding(
+      PLATFORM_RELAY_SPECIFIER,
+      relayImporters,
+      allowedRouteFilesOf(frontRoutes),
+    ),
+  );
   const chain: ReadonlyArray<
     readonly [target: string, onlyImporters: readonly string[]]
   > = [
-    [RELAY_FILES.relay, allowedRouteFilesOf(frontRoutes)],
+    [RELAY_FILES.relay, []],
     [RELAY_FILES.apiClient, [RELAY_FILES.relay]],
     [RELAY_FILES.config, [RELAY_FILES.apiClient]],
   ];
   const withoutExtension = (relative: string) =>
-    path.join(frontRoot, relative).replace(SOURCE_FILE, "");
+    path.join(platformRoot, relative).replace(SOURCE_FILE, "");
   const importers = new Map<string, Set<string>>(
     chain.map(([target]) => [withoutExtension(target), new Set<string>()]),
   );
-  const sources = listFiles(path.join(frontRoot, "src")).filter((file) =>
-    SOURCE_FILE.test(file),
-  );
-  for (const file of sources) {
+  for (const file of sourceFilesOf(platformRoot)) {
     for (const specifier of importSpecifiers(readFileSync(file, "utf8"))) {
-      const resolved = resolveLocalSpecifier(frontRoot, file, specifier);
+      const resolved = resolveLocalSpecifier(platformRoot, file, specifier);
       if (resolved !== null) {
-        importers.get(resolved)?.add(relativePath(frontRoot, file));
+        importers.get(resolved)?.add(relativePath(platformRoot, file));
       }
     }
   }
-  return chain.flatMap(([target, onlyImporters]) => {
-    const actual = [...(importers.get(withoutExtension(target)) ?? [])].sort();
-    const expected = [...onlyImporters].sort();
-    return actual.join("\n") === expected.join("\n")
-      ? []
-      : [
-          `${target} is imported by [${actual.join(", ")}], expected ${expected.join(", ")} only`,
-        ];
-  });
+  return [
+    ...findings,
+    ...chain.flatMap(([target, onlyImporters]) =>
+      importerFinding(
+        target,
+        [...(importers.get(withoutExtension(target)) ?? [])],
+        onlyImporters,
+      ),
+    ),
+  ];
 }
 
 export function sha256OfFile(file: string): string {
   return createHash("sha256").update(readFileSync(file)).digest("hex");
 }
 
-/** Relay files whose SHA-256 differs from the pin. */
-export function findRelayFingerprintMismatches(frontRoot: string): string[] {
-  return Object.entries(RELAY_FILE_SHA256).flatMap(([relative, pinned]) => {
-    const file = path.join(frontRoot, relative);
-    if (!existsSync(file)) {
-      return [`missing relay file: ${relative}`];
-    }
-    const actual = sha256OfFile(file);
-    return actual === pinned
-      ? []
-      : [
-          `${relative}: SHA-256 ${actual} differs from the pin. A relay change is a conscious ` +
-            "gesture: update RELAY_FILE_SHA256 in packages/test-kit/src/guards.ts in the same " +
-            "commit, and copy the file to the other front (03 PP-12).",
-        ];
-  });
+/** Relay files whose SHA-256 differs from the pin: the route of the front, the rest in the package. */
+export function findRelayFingerprintMismatches(
+  frontRoot: string,
+  platformRoot: string,
+): string[] {
+  return relayFileLocations(frontRoot, platformRoot).flatMap(
+    ([root, relative]) => {
+      const file = path.join(root, relative);
+      if (!existsSync(file)) {
+        return [`missing relay file: ${relative}`];
+      }
+      const actual = sha256OfFile(file);
+      const copy =
+        relative === RELAY_FILES.route
+          ? ", and copy the route file to the other front"
+          : "";
+      return actual === RELAY_FILE_SHA256[relative]
+        ? []
+        : [
+            `${relative}: SHA-256 ${actual} differs from the pin. A relay change is a conscious ` +
+              "gesture: update RELAY_FILE_SHA256 in packages/test-kit/src/guards.ts in the same " +
+              `commit${copy} (03 PP-12).`,
+          ];
+    },
+  );
 }
 
-/** The browser relay client, when its SHA-256 differs from the pin (or when it is missing). */
-export function findBrowserRelayClientMismatches(frontRoot: string): string[] {
-  const file = path.join(frontRoot, BROWSER_RELAY_CLIENT_FILE);
+/** The browser relay client of packages/web-platform, when its SHA-256 differs from the pin or it is missing. */
+export function findBrowserRelayClientMismatches(
+  platformRoot: string,
+): string[] {
+  const file = path.join(platformRoot, BROWSER_RELAY_CLIENT_FILE);
   if (!existsSync(file)) {
     return [`missing browser relay client: ${BROWSER_RELAY_CLIENT_FILE}`];
   }
@@ -411,24 +532,87 @@ export function findBrowserRelayClientMismatches(frontRoot: string): string[] {
     ? []
     : [
         `${BROWSER_RELAY_CLIENT_FILE}: SHA-256 ${actual} differs from the pin. Update ` +
-          "BROWSER_RELAY_CLIENT_SHA256 in the same commit and copy the file to the other front.",
+          "BROWSER_RELAY_CLIENT_SHA256 in packages/test-kit/src/guards.ts in the same commit.",
       ];
 }
 
-/** Storage APIs anywhere, network APIs anywhere but in the API client and the relay client. */
+/**
+ * What a front keeps of the files of packages/web-platform (arbitration PL-07 point 6): a file at
+ * the same path under the front, or a file with the same bytes anywhere under its src/ (apps/web
+ * held the hydration marker under src/components/ui/). The identity guard of the copies became
+ * this absence guard, one for one; the route file is not in the package.
+ */
+export function findPlatformFileCopies(
+  frontRoot: string,
+  platformRoot: string,
+): string[] {
+  const platformFiles = listFiles(path.join(platformRoot, "src"));
+  const samePath = platformFiles
+    .map((file) => relativePath(platformRoot, file))
+    .filter((relative) => existsSync(path.join(frontRoot, relative)))
+    .map((relative) => `${relative}: copy of a file of packages/web-platform`);
+  const fingerprints = new Map(
+    platformFiles.map((file) => [
+      sha256OfFile(file),
+      relativePath(platformRoot, file),
+    ]),
+  );
+  const frontSources = path.join(frontRoot, "src");
+  const sameBytes = (
+    existsSync(frontSources) ? listFiles(frontSources) : []
+  ).flatMap((file) => {
+    const twin = fingerprints.get(sha256OfFile(file));
+    const relative = relativePath(frontRoot, file);
+    return twin === undefined || twin === relative
+      ? []
+      : [`${relative}: identical to packages/web-platform/${twin}`];
+  });
+  return [...samePath, ...sameBytes];
+}
+
+/** The name and the `exports` of packages/web-platform, when they differ from PLATFORM_EXPORTS. */
+export function findPlatformExportViolations(platformRoot: string): string[] {
+  const manifest = JSON.parse(
+    readFileSync(path.join(platformRoot, "package.json"), "utf8"),
+  ) as { name?: unknown; exports?: unknown };
+  const findings: string[] =
+    manifest.name === WEB_PLATFORM_PACKAGE
+      ? []
+      : [`package.json: name is not ${WEB_PLATFORM_PACKAGE}`];
+  const actual =
+    typeof manifest.exports === "object" && manifest.exports !== null
+      ? (manifest.exports as Record<string, unknown>)
+      : {};
+  const names = new Set([
+    ...Object.keys(actual),
+    ...Object.keys(PLATFORM_EXPORTS),
+  ]);
+  for (const name of [...names].sort()) {
+    if (actual[name] !== PLATFORM_EXPORTS[name]) {
+      findings.push(
+        `package.json: export ${name} is ${JSON.stringify(actual[name])}, expected ${JSON.stringify(PLATFORM_EXPORTS[name])}`,
+      );
+    }
+  }
+  return findings;
+}
+
+/**
+ * Storage APIs anywhere, network APIs anywhere but in the given files, relative to the root. A
+ * front gives none since PL-09; packages/web-platform gives PLATFORM_NETWORK_FILES.
+ */
 export function findNetworkOrStorageUse(
   files: readonly string[],
-  frontRoot: string,
+  root: string,
+  networkFiles: readonly string[] = [],
 ): string[] {
-  const allowed = [RELAY_FILES.apiClient, BROWSER_RELAY_CLIENT_FILE].map(
-    (file) => path.resolve(frontRoot, file),
-  );
-  const outsideApiClient = files.filter(
+  const allowed = networkFiles.map((file) => path.resolve(root, file));
+  const outsideNetworkFiles = files.filter(
     (file) => !allowed.includes(path.resolve(file)),
   );
   return [
-    ...findMatches(STORAGE_API_PATTERN, files, frontRoot),
-    ...findMatches(NETWORK_API_PATTERN, outsideApiClient, frontRoot),
+    ...findMatches(STORAGE_API_PATTERN, files, root),
+    ...findMatches(NETWORK_API_PATTERN, outsideNetworkFiles, root),
   ];
 }
 

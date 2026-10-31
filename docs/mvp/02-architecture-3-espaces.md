@@ -843,7 +843,7 @@ influx/
 │   │       │                    copie épinglée, identique dans les deux fronts, qui importe
 │   │       │                    @influx/web-platform/relay (arbitrage PL-07, PL-09)
 │   │       ├── server/          status-cache.ts de /health (EC-22) ; l'appel de l'API, seul endroit
-│   │       │                    où « fetch » est autorisé, part dans @influx/web-platform (PL-09)
+│   │       │                    où « fetch » est autorisé, est dans @influx/web-platform (PL-09)
 │   │       ├── components/      RENDU UNIQUEMENT — jamais de logique métier
 │   │       ├── i18n/ locales/   next-intl, FR + EN (D28)
 │   │       └── app/globals.css  importe @influx/ui/tokens.css, FICHIER DE TOKENS UNIQUE (D4, D6),
@@ -859,7 +859,7 @@ influx/
 │   │       ├── app/api/[...path]/route.ts   passe-plat, copie épinglée identique à celle de web
 │   │       ├── styles/tokens-backoffice.css   noms --*-bo-* seulement (§21.3, point 6)
 │   │       └── app/globals.css  importe @influx/ui/tokens.css puis tokens-backoffice.css
-│   │                            (PL-08) ; l'appel de l'API part dans @influx/web-platform (PL-09) ;
+│   │                            (PL-08) ; l'appel de l'API est dans @influx/web-platform (PL-09) ;
 │   │                            plus de styles/tokens.css copié ni de server/ (arbitrage PL-07)
 │   │       ▸ ne doit JAMAIS contenir : next-intl tant que D36 n'est pas tranchée, de contenu
 │   │         fictif, de SEO, de lecture directe de la base, une autorisation par masquage d'UI
@@ -1411,7 +1411,7 @@ doivent être **levés chirurgicalement**, pas supprimés en bloc.
 
 | Règle | Décision |
 |---|---|
-| Interdiction de `fetch` et consorts | **Scindée.** `fetch` devient autorisé **dans le seul module `src/server/api-client.ts`** et interdit partout ailleurs : aucun composant n'appelle jamais le réseau directement |
+| Interdiction de `fetch` et consorts | **Scindée.** `fetch` devient autorisé **dans le seul module `src/server/api-client.ts`** et interdit partout ailleurs : aucun composant n'appelle jamais le réseau directement. *Depuis PL-09 (arbitrage PL-07) : ce module et le client navigateur `src/browser/relay-client.ts` sont dans `packages/web-platform`, seuls à y lever l'interdiction ; aucun fichier d'un front n'appelle le réseau* |
 | Interdiction de `localStorage`, `sessionStorage`, `indexedDB`, `document.cookie`, `cookieStore`, `sendBeacon` | **Conservée définitivement.** La session est un cookie `httpOnly` ; aucun jeton ne doit pouvoir être lu par du JavaScript (D37) |
 | Interdiction de `'use server'` (Server Actions) | **Conservée définitivement.** Une Server Action est un point d'accès RPC à contrat implicite ; nos contrats sont explicites et vivent dans `packages/contracts` |
 | Interdiction des attributs `style`, `action`, `formAction` | `style` **conservé** (invariant tokens) ; `action`/`formAction` **levés** au Lot 1 (les formulaires réels soumettent) |
@@ -1510,7 +1510,8 @@ applicables à `apps/web`.
    reçoit des données et des libellés, il affiche. Règle déjà posée par `CLAUDE.md` §6, réaffirmée.
 2. **Aucun front n'importe `@supabase/*`, `drizzle-orm`, `pg` ni `postgres`.** Vérifié par ESLint.
 3. **Aucun accès réseau hors de `src/server/api-client.ts`** dans un front. Ce module est le seul à
-   connaître l'URL de l'API.
+   connaître l'URL de l'API. *Depuis PL-09 (arbitrage PL-07), il vit dans `packages/web-platform`,
+   non exporté, avec le client navigateur du passe-plat ; un front n'appelle plus le réseau.*
 4. **Aucun accès à la base hors de `withUserTransaction` / `withElevatedTransaction`** dans
    `apps/api`. `withElevatedTransaction` n'accepte qu'une valeur de la **liste fermée** E-1 à E-5 ;
    tout le reste passe par une fonction `SECURITY DEFINER` étroite. **Aucun rôle utilisé à

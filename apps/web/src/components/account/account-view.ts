@@ -19,7 +19,7 @@ import {
   type UserAgentSummary,
   type UserAgentSystem,
 } from "@influx/contracts/user-agent";
-import type { RelayResult } from "@/browser/relay-client";
+import type { RelayResult } from "@influx/web-platform/relay-client";
 
 // --- Dates --------------------------------------------------------------------------------------
 

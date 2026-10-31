@@ -1,5 +1,5 @@
 // Calls of the "mon compte" screens (docs/mvp/17 §6.1 to §6.4, §6.7; 21 §5.2, J7 commits 6 to 9).
-// Each one goes through the same-origin relay (src/browser/relay-client.ts) and reads the answer
+// Each one goes through the same-origin relay (@influx/web-platform/relay-client) and reads the answer
 // with the schema of packages/contracts. No rule lives here: apps/api decides, the screen
 // displays. The account is always the session's: no call names an account.
 import type { UiLocale } from "@influx/contracts/auth";
@@ -47,7 +47,7 @@ import {
   currentTermsResponseSchema,
   type CurrentTermsResponse,
 } from "@influx/contracts/terms";
-import { callRelay, type RelayResult } from "@/browser/relay-client";
+import { callRelay, type RelayResult } from "@influx/web-platform/relay-client";
 
 /** A session id or a request id: the only values a path carries (03 PP-2). */
 const ID_PATTERN = /^[0-9a-f-]{36}$/;

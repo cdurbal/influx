@@ -28,7 +28,7 @@ import {
   type ReactNode,
 } from "react";
 import { messages } from "@/messages/fr";
-import { installErrorCollector } from "@/observability/error-collector";
+import { installErrorCollector } from "@influx/web-platform/error-collector";
 import {
   BRAND_CLASSES,
   cn,

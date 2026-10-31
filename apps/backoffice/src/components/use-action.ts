@@ -5,7 +5,7 @@
 // is sent again. No rule here: apps/api decides whether R is needed (403 reauthentication_required).
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { RelayResult } from "@/browser/relay-client";
+import type { RelayResult } from "@influx/web-platform/relay-client";
 import { failureOf } from "./view-model";
 
 export type Action = {

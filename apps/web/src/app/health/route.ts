@@ -4,7 +4,7 @@
 // (its own rate, 18 T15). Outside the matcher of the proxy (no locale, no page CSP); never cached
 // by the browser or a CDN. J9S-6: the answer of apps/api is kept 5 s in the memory of the process
 // (success and failure), so that a flood does not drain the instance bucket of /v1/status.
-import { relay } from "../../server/relay";
+import { relay } from "@influx/web-platform/relay";
 import { createStatusCache } from "../../server/status-cache";
 
 export const runtime = "nodejs";

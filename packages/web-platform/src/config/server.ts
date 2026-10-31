@@ -1,7 +1,8 @@
 // Server-side configuration of the relay (docs/mvp/21-plan-de-developpement.md §4, J1-F and J1-G).
 // Read at each request, never when the module loads: `next build` runs without these variables.
-// Imported by src/server/api-client.ts only (guard of importers, @influx/test-kit). This file is
-// byte-for-byte identical in apps/web and apps/backoffice, and its SHA-256 is pinned (03 PP-12).
+// Imported by src/server/api-client.ts only (guard of importers, @influx/test-kit), never exported
+// by packages/web-platform: each front runs it in its own process, with its own secret (D64). Its
+// SHA-256 is pinned (03 PP-12).
 
 const MIN_SECRET_BYTES = 32;
 

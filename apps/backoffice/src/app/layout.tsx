@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { HydrationMarker } from "@/components/HydrationMarker";
+import { HydrationMarker } from "@influx/web-platform/hydration-marker";
 import { messages } from "@/messages/fr";
 import { FONT_VARIABLE_CLASSES } from "@influx/ui/fonts";
 import "./globals.css";

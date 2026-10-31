@@ -14,7 +14,7 @@ import {
   type ApolloSetting,
 } from "@influx/contracts/backoffice-actions";
 import { ISO_COUNTRY_CODES } from "@influx/contracts/countries";
-import type { RelayResult } from "@/browser/relay-client";
+import type { RelayResult } from "@influx/web-platform/relay-client";
 import { messages } from "@/messages/fr";
 
 const LOCALE = "fr-FR";

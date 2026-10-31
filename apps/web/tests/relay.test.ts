@@ -20,7 +20,7 @@ import {
 } from "vitest";
 import * as route from "@/app/api/[...path]/route";
 import * as health from "@/app/health/route";
-import { relay } from "@/server/relay";
+import { relay } from "@influx/web-platform/relay";
 
 type Received = {
   method: string;

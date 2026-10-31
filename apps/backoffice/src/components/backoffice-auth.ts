@@ -12,7 +12,7 @@ import {
   type BackofficeLoginResponse,
   type BackofficeMeResponse,
 } from "@influx/contracts/backoffice-auth";
-import { callRelay, type RelayResult } from "@/browser/relay-client";
+import { callRelay, type RelayResult } from "@influx/web-platform/relay-client";
 
 export type SecondFactor =
   { kind: "totp"; code: string } | { kind: "recovery"; code: string };
