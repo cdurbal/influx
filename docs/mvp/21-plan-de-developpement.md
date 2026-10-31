@@ -157,4 +157,6 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 
 **Jalons** (D77) : le Lot 2 est à découper (`/lot-decoupe 2`). Un jalon se suit dans `jalons/<id>/run.md` (une ligne par commit) ; ici, une ligne à son ouverture et une à sa clôture.
 
+- **PL** (préparation du Lot 2, corrections K1 et K3 à K10 de `revue-pre-lot2-2026-10-31.md`) : ouvert le 2026-10-31 ; `jalons/pl-fiche.md`, `jalons/pl/run.md`.
+
 **Guide de lecture** : session de jalon, sa fiche `jalons/<id>-fiche.md` d'abord (elle cite les tranches utiles) ; jalons clos, `archives/` seulement quand une tâche cite leur identifiant.
