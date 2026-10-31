@@ -51,7 +51,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/tm1-privacy-execution.test.ts": 6,
   "db-tests/tm1-sync-settings-guard-journal.test.ts": 41,
   "db-tests/tm1-worker-loop.test.ts": 6,
-  "db-tests/tm10-signup-provisioning.test.ts": 42,
+  "db-tests/tm10-signup-provisioning.test.ts": 48,
   "db-tests/tm10-signup-route.test.ts": 19,
   "db-tests/tm10-terms-in-force.test.ts": 41,
   "db-tests/tm10-terms-publication.test.ts": 2,

@@ -584,6 +584,34 @@ describe("0103 (EC-8): the shape of leads.sync_settings", () => {
       await inRolledBackTransaction(migration, (tx) => probe(tx, statement)),
     ).toEqual({ outcome: "error", code });
   });
+
+  // PL-04a (0151): a basis of a country that is not a string was let in by 0141 (lax jsonpath),
+  // then refused by the worker (05 RG160, RG162). The CHECK refuses it now, 23514 as before.
+  it.each([
+    ["a number", 1],
+    ["a boolean", true],
+    ["an object", {}],
+    ["a list", []],
+    ["a decimal", 1.5],
+    ["a list holding a number", [1]],
+  ])(
+    "refuses a legal basis of a country that is %s (0151)",
+    async (_label, basis) => {
+      const value = JSON.stringify({
+        default: "consentement_requis",
+        by_country: { FR: basis },
+      });
+      expect(
+        await inRolledBackTransaction(migration, (tx) =>
+          probe(
+            tx,
+            "update leads.sync_settings set value = $1::text::jsonb where key = 'apollo_legal_basis'",
+            [value],
+          ),
+        ),
+      ).toEqual({ outcome: "error", code: CHECK_VIOLATION });
+    },
+  );
 });
 
 describe("04 §5.1: identity.set_declared_status()", () => {
