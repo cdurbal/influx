@@ -155,6 +155,6 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 
 **Plus tard** (sans action au Lot 2) : *avant production* J9T-1, J9S-2, J9S-4, AL53, J4S-8, manques du commit J9-11 et points `expert-ux` du commit J9-5 (`archives/jalons/j9-fiche.md`) ; *Lot 3* T15.2, F3 ; *Lot 5* classement des groupes d'erreurs, J9T-3, J9T-10, J8S-8, J8S-9, RK-16, effacement Apollo, écran des identifiants Brevo (option) ; *Lot 6* F8, J7T-6 ; *Lot 6bis* reports D70 (`archives/jalons/d70-plan.md` l. 125 à 130) ; décisions DZ-1, 2, 4 à 7 (`decisions.md`).
 
-**Jalons du Lot 2** : à découper. Le jalon actif se suit ici, une ligne par commit (`- [x] <ID> (\`sha\`) — <invariant clé>`), condensée en une ligne à sa clôture.
+**Jalons** (D77) : le Lot 2 est à découper (`/lot-decoupe 2`). Un jalon se suit dans `jalons/<id>/run.md` (une ligne par commit) ; ici, une ligne à son ouverture et une à sa clôture.
 
 **Guide de lecture** : session de jalon, sa fiche `jalons/<id>-fiche.md` d'abord (elle cite les tranches utiles) ; jalons clos, `archives/` seulement quand une tâche cite leur identifiant.

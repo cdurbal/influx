@@ -7,7 +7,9 @@
 > du plan, des fiches archivées et du registre. Aucune spécification lue en entier, aucun sous-agent.
 > **Statut :** archivage et synthèse de la documentation **appliqués** (§2). Corrections de code et de
 > spécification **proposées, à valider** (§3) ; les prompts suivront la validation. Mécanisme
-> d'automatisation **proposé** (§4, D77 ouverte). Ce fichier s'archive quand §3 est soldé.
+> d'automatisation **validé le 2026-10-31** (§4, D77 tranchée ; découpage, fiche, arbitrage et revue
+> de sécurité en Opus 5.5 · xhigh). Corrections K1, K3 à K10 validées, préparées en jalon PL ;
+> K2 inscrite (`95be92e`). Ce fichier s'archive quand §3 est soldé.
 
 ---
 
@@ -144,7 +146,7 @@ de début de J5, J7 et J8.
 
 | Tâche | Modèle · effort |
 |---|---|
-| Découpage, fiche, arbitrage, revue de sécurité | Opus 5.5 · high |
+| Découpage, fiche, arbitrage, revue de sécurité | Opus 5.5 · xhigh (choix du fondateur) |
 | Migration, RLS, fonction `SECURITY DEFINER`, anonymisation | Opus 5.5 · high (xhigh si invariant D45/D46) |
 | Route, écran, test, refactor à comportement constant | Sonnet 5.5 · high |
 | Documentation, clôture, correctif simple | Sonnet 5.5 · medium |

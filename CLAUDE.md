@@ -222,8 +222,13 @@ suppression propagée à Brevo et Apollo. Référents : `expert-conformite-rgpd`
        fondateur veut voir l'état sur `staging`, et au moins une fois par journée de travail. La
        CI rejoue **tout** à chaque push sur `main` (base et parcours compris, en jobs parallèles ;
        un push de documentation seule n'exécute que les contrôles légers). Suivi : règle 4.
-   - `21-plan-de-developpement.md` : **1 ligne par commit** (`[x] Commit N (\`sha\`) — …`),
-     condensée en 1 ligne à la clôture ; aucun récit.
+   - **Chaîne des jalons (D77)** : `/lot-decoupe <N>` → `/jalon-prepare <id>` → `/jalon-run <id>`,
+     chaque ligne dans un sous-agent neuf (`/jalon-commit`) au modèle et à l'effort de
+     `jalons/<id>/run.md`. Arrêts : validation du fondateur, revue de fin de jalon qui demande un
+     correctif, échec répété, décision manquante, CI rouge, recette. Fiche de jalon ≤ 25 Ko ; un
+     crochet refuse la lecture sans `limit` d'un document de `docs/mvp/` de plus de 30 Ko.
+   - État d'un jalon : **une ligne par commit dans `jalons/<id>/run.md`** ; `21` §8 ne reçoit
+     qu'une ligne à l'ouverture et une à la clôture ; aucun récit.
    - Lots 3 à 5 : mode serré (`00` §9) d'abord, puis **reprise intégrale du mode normal (Lot 6bis)**.
 
 Agents : `.claude/agents/<nom>.md`. Skills : `.claude/skills/<nom>/SKILL.md` (la description de
@@ -256,14 +261,14 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
   `production` ; pays : tous par défaut) · **D63** consentement obligatoire (juriste) · **D21**
   influence commerciale par pays · **D38** masse critique (Lot 3) · **D30** coordonnées dans la
   messagerie (Lot 4) · **D35** saisie libre d'e-mails, **D36** langue du backoffice (Lot 5) ·
-  **D14** abonnement · DZ-1, 2, 4 à 7 · **D77** chaîne automatisée lot → jalons → commits (proposée).
+  **D14** abonnement · DZ-1, 2, 4 à 7.
 - **Reportées en V2 (A1)** : D7, D9, D10, D19, D20, D22, D23, D26, D27 — **D7/D23 se réactivent au
   premier euro encaissé, D20 au premier litige.**
 - **Tranchées qui cadrent le travail courant** : D25 société en Angleterre (identité encore en
   marqueurs dans `apps/api/legal/`) · D70 `staging` iso-production, exploité par les agents (§7, §8)
   · D71 vetos sur la seule `production`, qui n'avance que par `git merge --no-ff main` · D73 à D75
   charte KEO Emerald, sous-navigation, réalignement (§4 ; détail `20` §11, `17b` §1.7) · D76 cadence
-  de validation (§7 règle 5).
+  de validation (§7 règle 5) · D77 chaîne des jalons (§7 règle 5).
 - Ouvert technique : gestion d'état côté front (aucune librairie sans besoin réel).
 
 ## 10. Lots du MVP
