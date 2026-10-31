@@ -140,7 +140,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 
 | # | Correctif attendu | Échéance | Détail |
 |---|---|---|---|
-| RK-fin | Critère de fin RK non coché : `pnpm check` + `pnpm test:e2e` verts trois fois, e2e existants, axe, vitrine, G3i, traçabilité R3 ; recette du fondateur (1 440 et 375 px, Mac Safari et Chrome) ; test du logo (`expert-ux`) | Avant le 1er commit du Lot 2 | `archives/jalons/rk-fiche.md` l. 194 à 206 |
+| RK-fin | Reste du critère de fin RK : table de traçabilité `20` §11 → TK sans ligne orpheline (R3) ; test du logo (`expert-ux`, `20` §11.7). Passages `pnpm check` + `pnpm test:e2e` et recette du fondateur attestés le 2026-10-31 | Avant le 1er commit du Lot 2 | `archives/jalons/rk-fiche.md` l. 205 à 210 |
 | RK-e2e | Marge de durée e2e d'environ 2 s sur les 60 s permis | À mesurer à chaque jalon du Lot 2 | ligne RK de l'archive §5 |
 | J9S-6 | `/health` de `apps/web` : garder 5 s en mémoire le résultat de `/v1/status` (un flot donne un `503` trompeur) | Lot 2 | `archives/jalons/j9-fiche.md` l. 36 |
 | J9S-7 | « Santé technique » : message d'erreur navigateur affiché « source navigateur, texte non vérifié », jamais cliquable | Lot 2 | idem l. 37 |

@@ -191,22 +191,23 @@ dans `21` § Jalon RK. Exécution : `dev-react-node` ; gardes et filet : `testeu
 
 ## Critère de fin
 
-- [ ] `pnpm check` puis `pnpm test:e2e` verts trois fois de suite ; ajout de durée e2e ≤ 60 s ;
+- [x] `pnpm check` puis `pnpm test:e2e` verts trois fois de suite ; ajout de durée e2e ≤ 60 s ;
       planchers relevés à chaque commit qui ajoute des tests, aucun ne baisse (`check-case-floors` doit
-      compter un `test.fail()` comme exécuté : à vérifier par `integrateur` au RK-1).
-- [ ] e2e existants (`signup-nominal`, `journey-resume`, `landing-signup`, `account`, `account-data`,
+      compter un `test.fail()` comme exécuté : à vérifier par `integrateur` au RK-1). *Attesté par le fondateur le 2026-10-31 (trois passages verts ; durées non relevées).*
+- [x] e2e existants (`signup-nominal`, `journey-resume`, `landing-signup`, `account`, `account-data`,
       `backoffice.spec`, `security-headers`, `member-shell`, `charter-cascade`) verts **sans modifier
       leurs attendus**.
-- [ ] axe WCAG 2.1 AA + 2.2 AA sans violation aux largeurs de `18` §12.2 ; aucun défilement horizontal à
+- [x] axe WCAG 2.1 AA + 2.2 AA sans violation aux largeurs de `18` §12.2 ; aucun défilement horizontal à
       320, 375 et 768 px.
-- [ ] **Vitrine inchangée** : G3e, TD4 et TK8.2 verts ; aucune requête tierce ni violation de CSP.
-- [ ] G3i (a) et (b) vertes avec leur cas négatif ; G1 à G9 jamais assouplies, sauf G8 étendue (TK7.3,
+- [x] **Vitrine inchangée** : G3e, TD4 et TK8.2 verts ; aucune requête tierce ni violation de CSP.
+- [x] G3i (a) et (b) vertes avec leur cas négatif ; G1 à G9 jamais assouplies, sauf G8 étendue (TK7.3,
       TK7.4).
 - [ ] Table de traçabilité `20` §11 → TK ou recette sans ligne orpheline (R3).
-- [ ] **Recette humaine** (fondateur, à 1 440 et 375 px) : bouton principal (repos, survol, appui,
+- [x] **Recette humaine** (fondateur, à 1 440 et 375 px) : bouton principal (repos, survol, appui,
       désactivé), halo d'en-tête sans bord, titres en Manrope, carte cliquable survolée, badges, ligne de
       tableau survolée, plus de cadre sur le titre ; **sur Mac** (RK-7), Safari et Chrome, avant/après de
       l'espace connecté et landing identique ; **test du logo** (`20` §11.7) refait par `expert-ux`.
+      *Recette du fondateur attestée le 2026-10-31 ; test du logo (`expert-ux`) non attesté : reliquat `21` §8.*
 - [x] Revue groupée `testeur` + `expert-cybersecurite` faite (attestation `bfb4b17`, 2026-10-30) ; `21` § Jalon RK à jour.
 
 Non couvert, accepté : le rendu perçu (intensité, beauté), Safari et Firefox en automatique (e2e
