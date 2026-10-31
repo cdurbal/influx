@@ -202,6 +202,81 @@ totale et locale (recopier les fichiers, rétablir imports et gardes de copie de
 donnée, variable ni service Railway touché. **`CLAUDE.md` :** §4 (« `src/styles/tokens.css` de chaque
 front » → `packages/ui`), par PL-08, dans le commit qui rend la phrase vraie.
 
+## Mesure PL-12 (`testeur`, 2026-10-31)
+
+**Conditions.** `4773a33`, `pnpm test:e2e` tel quel (2 workers, `backoffice.spec` en série, builds
+compris), serveurs horodatés par `DEBUG=pw:webserver`. Poste : i7-1185G7 (4 cœurs, 8 fils), 15,8 Go
+dont 2,7 Go libres pile lancée, charge au repos 16 à 32 %. CI : `ubuntu-latest` d'un dépôt privé
+(2 vCPU selon GitHub, non relevé).
+
+**Mesures (annexe).** Trois passages verts de suite, sans rejeu : 295, 227 et 244 s. Les quatre
+serveurs démarrent l'un après l'autre : 108 s avant le premier cas à froid (API 22 s, build et
+démarrage web 58 s), 36 et 39 s ensuite (cache de build). Phase des cas 185 à 203 s ; cumul des cas
+348 à 387 s (médiane 359 s) : ±5 % de bruit sur un même code. L'écart avec les 3,0 min après PL-08
+tient au poste : en CI, l'étape passe de 149 s (PL-04b) à 158 s (PL-09) sur runner rapide.
+
+| Spec (dix plus longues) | Cas | Cumul médian | Part |
+|---|---|---|---|
+| `backoffice` (série) | 53 | 120 s | 33 % |
+| `journey-resume` | 7 | 32 s | 9 % |
+| `charter-rendering` | 29 | 29 s | 8 % |
+| `member-shell` | 18 | 29 s | 8 % |
+| `charter-cascade` | 15 | 24 s | 7 % |
+| `account` | 8 | 20 s | 6 % |
+| `account-screens` | 12 | 18 s | 5 % |
+| `security-headers` | 30 | 17 s | 5 % |
+| `vitrine-unchanged` | 6 | 14 s | 4 % |
+| `journey-screens` | 12 | 13 s | 4 % |
+
+Cas les plus longs : DS-12b (`backoffice:1174`, 15-16 s), J8T-4 (`:436`, 13-17 s), compte à rebours
+(`journey-resume:24`, 12-13 s dont 10 s d'attente réelle), PD1-PD7 (`:604`, 8-11 s). Un cas presque
+vide coûte 0,6 à 1,0 s (`journey-screens:34` : contexte, navigation, hydratation) : ce coût fixe
+pèse environ 150 s des 359.
+
+**CI, job « Browser journeys ».** Dernier passage (`41227138649`, `6fe6e48`) : 407 s, dont attente de
+la pile 133 s, build 44 s, Chromium 29 s, étape Playwright 158 s (serveurs 7 s, cas 150 s, cumul
+285 s). Onze derniers verts : job 332 à 422 s, étape 149 à 231 s ; un runner lent (build ≈ 100 s) fait
+la phase en 210-219 s (cumul 394-414 s), 1,4 fois un rapide. **Le garde-fou qui mord le premier est
+l'étape à 5 min** : 69 s de marge au pire passage (contre 178 s au job sous les 10 min de `21` §2.3),
+soit une réserve d'environ 110 s de cumul local.
+
+| Levier | Mesure | Gain | Verdict |
+|---|---|---|---|
+| Session réutilisée (`storageState`) | Déjà appliquée autrement (J7) : 101 sessions semées par passage (61 membres, 29 agents, 11 admins), SQL et `Set-Cookie` intercepté, 60 ms chacune ; aucune connexion par code hors des parcours qui la testent | ≤ 6 s cumulés | Écarté : l'isolement compte (révocations, déconnexions, double contrôle à deux admins distincts) |
+| Workers 2 → 3 | Passage local à 3 workers : phase 195 s (190 à 2), cumul 493 s (+37 %), `backoffice` 163 s | 0 | Écarté : poste saturé dès 2 ; runner CI à 2 vCPU |
+| Specs parallélisables | Charge des deux workers à 11 s près ; `backoffice` (seul fichier qui sème des admins) n'est chemin critique qu'à 3 workers | ≤ 5 s (`fullyParallel`, fin de passage) | Sans objet à 2 workers |
+| Attentes réelles | Compte à rebours de 10 s (`journey-resume:24`), silence de 3 s (`:187`) ; le plancher serveur de 1 s par code reste | 10 à 13 s cumulés (`page.clock` : attente seule, assertions inchangées) | **Retenu** |
+| Cas redondants | Axe de l'accueil créateur fr aux quatre largeurs dans `member-shell:647` et `account-screens:93` ; un cas par largeur dans `journey-screens` (9 cas où 3 suffisent) | 2 s (doublon), 6 s (regroupement) | Planchers jamais baissés : règle pour les cas neufs, aucun retrait |
+| Job CI en deux éclats (`--shard`) | `backoffice` dans un éclat, le reste dans l'autre | ≈ −100 s sur l'étape au pire | Structurant (`integrateur`, `architecte`) : rapport fusionné pour les planchers, TK3.1 lit les passes axe de tous les fichiers, préparation (≈ 200 s) payée deux fois |
+
+**Proposition de budget du Lot 2.**
+1. **Ajout ≤ 20 s par jalon**, mesuré à la clôture : somme des durées médianes, sur les trois passages
+   de clôture, des cas ajoutés ou allongés (`test-results/e2e-report.json`), notée dans `run.md` ; le
+   cumul total reste indicatif (bruit ±5 %). 20 s ≈ +12 s sur l'étape CI au pire : cinq jalons
+   épuisent la réserve.
+2. **Job « Browser journeys » sous 8 min** sur chaque passage vert (étape alors sous ≈ 4 min 50 s au
+   pire) ; garde-fous de 5 et 15 min inchangés, dans les 10 min de `21` §2.3. Dépassement : levier au
+   jalon suivant ou arbitrage.
+3. **Levier du premier jalon : horloge simulée** (`page.clock`) sur les deux attentes de
+   `journey-resume` (−10 à −13 s) ; règle des cas neufs : un cas par page et par langue, largeurs en
+   boucle dans le cas (comme `account-screens`).
+4. **Levier structurel** (éclats CI) à arbitrer par `architecte`, sur recommandation `testeur`, dès
+   qu'un passage dépasse 7 min 30 ou avant le Lot 3.
+
+**Constats hors budget.** `GET /v1/bo/alerts` répond 500 (42501 dans `newBrowserSignIns`,
+`backoffice/alerts/repository.ts`) pendant DS-12b dans 3 passages locaux sur 4, cas vert : à instruire
+à la revue (R). Commentaire périmé de `ci.yml` (étape Playwright « About 45 s locally »).
+
+**Annexe — passages mesurés** (`4773a33` ; total par `date`, le reste par le rapport JSON) :
+
+| Passage | Total | Avant le 1er cas (API / web / BO) | Phase des cas | Cumul | Charge par worker | Cas |
+|---|---|---|---|---|---|---|
+| 1 (à froid) | 295 s | 108 s (22 / 58 / 17) | 185 s | 348 s | 169 / 180 s | 214 verts |
+| 2 | 227 s | 36 s (6 / 13 / 11) | 190 s | 359 s | 174 / 185 s | 214 verts |
+| 3 | 244 s | 39 s (5 / 16 / 12) | 203 s | 387 s | 196 / 190 s | 214 verts |
+| Levier, 3 workers | 228 s | 31 s (4 / 12 / 11) | 195 s | 493 s | 147 / 192 / 155 s | 214 verts |
+| CI `6fe6e48` | 407 s (job) | 7 s (sans build) | 150 s | 285 s | — | 214 verts |
+
 ## Revue
 
 *(rempli par `/jalon-run` : constats PLT-n, PLS-n)*
