@@ -1162,6 +1162,13 @@ test("DS-10: the home of an admin passes axe (WCAG 2.2 AA) at 1024 and 1440 px",
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     m.home.title,
   );
+  // The home reads (alerts included) run server-side after the h1 shows; the
+  // next test deactivates this admin (`onlyAdmin`), so wait for them to end.
+  const alerts = page.getByRole("region", { name: m.home.alertsTitle });
+  await expect(alerts).toBeVisible();
+  await expect(alerts.getByText(m.common.loading)).toHaveCount(0);
+  await expect(alerts.getByText(m.home.alertsError)).toHaveCount(0);
+  await expect(page.getByText(m.common.loading)).toHaveCount(0);
   for (const width of [LG, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(mainNavigation(page)).toBeVisible();
