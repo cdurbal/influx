@@ -6,9 +6,6 @@
 > **Ne jamais lire une spécification en entier.** Repérer ici la section utile, puis la lire avec
 > `Read` (`offset` = ligne de départ, `limit` = nombre de lignes), ou chercher une règle précise
 > avec `Grep` (exemple : `RG113` dans le fichier concerné).
->
-> **Session de jalon : lire d'abord sa fiche**, qui cite déjà les tranches utiles :
-> `jalons/pl-fiche.md`.
 
 ## 00-cadrage-mvp-v2.md (~16k tokens)
 
@@ -669,16 +666,16 @@
 | 852 | 56 | ↳ 11.8 Gabarits et composants |  |
 | 908 | 12 | ↳ 11.9 Points soumis au fondateur |  |
 
-## 21-plan-de-developpement.md (~5k tokens)
+## 21-plan-de-developpement.md (~6k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
 | 10 | 22 | 0. L'essentiel | RG148 |
 | 32 | 7 | 1. Point de départ & conventions d'environnement |  |
-| 39 | 37 | 2. Stratégie de développement | RG44–RG148 |
-| 76 | 6 | 3. Écarts (`EC-*`) des Lots 0 et 1 |  |
-| 82 | 6 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 88 | 21 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
-| 109 | 9 | 6. Configuration des services externes |  |
-| 118 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 135 | 31 | 8. Lot 2 — entrée et jalon actif |  |
+| 39 | 42 | 2. Stratégie de développement | RG44–RG148 |
+| 81 | 6 | 3. Écarts (`EC-*`) des Lots 0 et 1 |  |
+| 87 | 6 | 4. Lot 0 — le socle (J0 à J4) |  |
+| 93 | 21 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
+| 114 | 9 | 6. Configuration des services externes |  |
+| 123 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 140 | 46 | 8. Lot 2 — entrée et jalon actif |  |

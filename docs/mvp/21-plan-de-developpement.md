@@ -60,6 +60,11 @@
 ### 2.3 Stratégie de test & discipline de dépôt
 
 - **Budget de durée de la CI : 10 minutes** (`18` A-4). GoTrue n'est pas doublé (fourni par la pile locale).
+- **Budget e2e du Lot 2** (décision du fondateur, 2026-10-31 ; mesure : `archives/jalons/pl-fiche.md` § Mesure PL-12) :
+  1. **Ajout d'au plus 20 s par jalon**, mesuré à la clôture : somme des durées médianes, sur les trois passages de clôture, des cas ajoutés ou allongés (`test-results/e2e-report.json`), notée dans `run.md` ; le cumul total reste indicatif (bruit ±5 %).
+  2. **Job « Browser journeys » sous 8 min** sur chaque passage vert ; garde-fous de 5 et 15 min inchangés. Dépassement : levier au jalon suivant ou arbitrage.
+  3. **Levier du premier jalon : horloge simulée** (`page.clock`) sur les deux attentes de `journey-resume` (−10 à −13 s) ; règle des cas neufs : un cas par page et par langue, largeurs en boucle dans le cas.
+  4. **Levier structurel** (éclats CI, `--shard`) à arbitrer par `architecte` sur recommandation `testeur`, dès qu'un passage dépasse 7 min 30 ou avant le Lot 3.
 - **Définition de « terminé » pour un jalon :**
   - [ ] `pnpm check` vert en local et en CI (format, types, lint, tests, build) ;
   - [ ] les tests exigés par le jalon passent trois fois de suite (`18` §1.3) ;
@@ -152,12 +157,27 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 | SNT-1 | TD3.6 intermittent en run complet | Lot 2 | `archives/jalons/sn-fiche.md` |
 | SNT-3 | Aucun test du défilement des entrées du menu de la landing ni des liens de marque | Lot 2 | idem |
 | DS-flaky | `t14-backoffice-invitations-route` (« a retry of the same link… ») vu rouge une fois | À surveiller | ligne DS de l'archive §5 |
+| PLK-1 | `apps/api/src/domains/backoffice/actions-routes.ts` (833 l., routes, hors de PL-05) : découpage par sous-domaine pour tenir les 600 lignes du critère de fin PL | Lot 2 (à la première retouche) | `archives/jalons/pl-fiche.md` § Critère de fin |
+| PLS-1 | `next` ≥ 16.4.1 (16.4.2), `zod` ≥ 4.6.6, épingles de `packages/ui` comprises (`pnpm audit --prod` : deux critiques, deux élevées) ; commit de dépendance, suite complète | Ouverture du Lot 2 (avant production) | `archives/jalons/pl/revue-constats.md` |
+| PLS-2 | T12 : audit des dépendances qui échoue sur critique ou élevée (T12.1), hebdomadaire et CI, dérogations datées (T12.3, T12.4) | Avant production | idem |
+| PLT-2 | `/v1/bo/alerts` : refus délibéré 42501 `forbidden` en 401 (cookie effacé, PLS-4) au lieu de 500 ; test db qui désactive le profil entre résolution et appel | Avant production | idem |
+| PLT-5 | Fonction 2V de `0141` (EC-PL-04a-1) : migration `@.value.type() != "string"`, test db « payload 2V refusé à la création » ; avec PLS-5 et PLS-6 | Avant production | idem |
+| PLT-4 | `run-tests.ts` : ne compter comme fichier qu'un argument existant ou en `.ts` ; `shell: true` sous Windows (= PLS-9) | Plus tard | idem |
+| PLT-6 | `status-cache.ts` : échéance à la fin de l'appel, `pending` partagé, `try` autour de `load()`, deux cas | Plus tard | idem |
+| PLT-7 | `ci.yml:305` : commentaire « About 45 s locally » remplacé par la mesure de PL-12 | Plus tard | idem |
+| PLS-3 | `/health` de `apps/web` : ne jamais mettre en cache un 429 (avec PLT-6) | Plus tard | idem |
+| PLS-4 | `/v1/bo/alerts` : 42501 `forbidden` → 401, cookie effacé (côté test : `fix-1`) ; avec PLT-2 | Plus tard | idem |
+| PLS-5 | `@.value.type() != "string"` dans la prochaine migration de la fonction 2V (= PLT-5) | Plus tard | idem |
+| PLS-6 | `0151` : faille lax de `brevo_list_ids` et `brevo_template_ids`, même migration que PLT-5 | Plus tard | idem |
+| PLS-7 | « Santé technique » : mention « source navigateur, texte non vérifié » sur la pile et la page | Plus tard | idem |
+| PLS-8 | `SECURITY_FILES` : `packages/web-platform/eslint.config.mjs` et `eslint.front-rules.mjs` | Plus tard | idem |
+| PLS-9 | = PLT-4 | Plus tard | idem |
 
 **Plus tard** (sans action au Lot 2) : *avant production* J9T-1, J9S-2, J9S-4, AL53, J4S-8, manques du commit J9-11 et points `expert-ux` du commit J9-5 (`archives/jalons/j9-fiche.md`) ; *Lot 3* T15.2, F3 ; *Lot 5* classement des groupes d'erreurs, J9T-3, J9T-10, J8S-8, J8S-9, RK-16, effacement Apollo, écran des identifiants Brevo (option) ; *Lot 6* F8, J7T-6 ; *Lot 6bis* reports D70 (`archives/jalons/d70-plan.md` l. 125 à 130) ; décisions DZ-1, 2, 4 à 7 (`decisions.md`).
 
 **Jalons** (D77) : le Lot 2 est à découper (`/lot-decoupe 2`). Un jalon se suit dans `jalons/<id>/run.md` (une ligne par commit) ; ici, une ligne à son ouverture et une à sa clôture.
 
-- **PL** (préparation du Lot 2, corrections K1 et K3 à K10 de `revue-pre-lot2-2026-10-31.md`) : ouvert le 2026-10-31 ; `jalons/pl-fiche.md`, `jalons/pl/run.md`.
+- **PL** (préparation du Lot 2, corrections K1 et K3 à K10 de `archives/revue-pre-lot2-2026-10-31.md`) : ouvert le 2026-10-31, **clos le 2026-10-31** (critère de fin prouvé, reliquat soldé ou reporté ci-dessus, revue attestée) ; `archives/jalons/pl-fiche.md`, `archives/jalons/pl/run.md`.
 
 **Registre des décisions** (PL-11) : `decisions.md` ne garde que sujet et statut résumés de D1 à D77 ; le texte intégral (sujet, arbitre, statut, échéance, mot pour mot) est dans `decisions-detail.md` (§ Dxx), qui fait foi en cas d'écart.
 

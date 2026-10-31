@@ -2412,7 +2412,7 @@ en KEO par le même composant neutre que les pages légales.
    remplacera la garde de copie. D'ici là, les primitives sont écrites « prêtes à déménager » : pures,
    tokens seulement, aucun import propre à l'application.
 
-   **Amendement du 2026-10-31 (arbitrage PL-07, détail : `jalons/pl-fiche.md` § Arbitrage PL-07).**
+   **Amendement du 2026-10-31 (arbitrage PL-07, détail : `archives/jalons/pl-fiche.md` § Arbitrage PL-07).**
    Les fichiers communs aux deux fronts quittent les copies gardées pour **deux paquets source, sans
    build**, consommés par `transpilePackages`, chacun avec l'arborescence `src/` des fronts :
    - **`@influx/ui`** (PL-08) : `styles/tokens.css`, `styles/fonts.ts`, `styles/fonts/`. Chaque

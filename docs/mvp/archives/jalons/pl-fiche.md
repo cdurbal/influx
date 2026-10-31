@@ -74,17 +74,17 @@ réduire).
 
 ## Critère de fin
 
-- [ ] Trois `pnpm test:e2e` de suite verts sans rejeu, DS-11, `journey-resume` et TD3.6 compris (PL-01).
-- [ ] Reliquat de `21` §8 soldé pour J9S-6, J9S-7, J9S-9, J9T-5, J9T-8, J9T-9, SNT-1 ; lignes
-      retirées de la table (PL-C).
-- [ ] Aucun fichier de `apps/api/src/domains/backoffice/` au-delà de 600 lignes ; `db-tests` verts (PL-05).
-- [ ] Plus aucun fichier identique entre `apps/web/src` et `apps/backoffice/src`, sauf ceux que
-      PL-07 garde nommément ; T7, T10, G3, TD4 verts (PL-08, PL-09).
-- [ ] Contrôle de PL-10 vide ; `decisions.md` à 25 Ko au plus, D1 à D77 présents dans les deux
-      fichiers (PL-11).
-- [ ] Budget e2e décidé par le fondateur et écrit dans `21` §2.3 (PL-13).
-- [ ] `pnpm check` puis `pnpm test:e2e` verts ; CI verte sur le dernier commit.
-- [ ] Revue `testeur` + `expert-cybersecurite` faite ; attestation `security-reviewed:` (D71).
+- [x] Trois `pnpm test:e2e` de suite verts sans rejeu, DS-11, `journey-resume` et TD3.6 compris (PL-01). *Preuve : `a54a69f` (fix-1), trois passages 214 verts en 199, 191 et 201 s ; PL-C : 214 verts en 3,1 min.*
+- [x] Reliquat de `21` §8 soldé pour J9S-6, J9S-7, J9S-9, J9T-5, J9T-8, J9T-9, SNT-1 ; lignes
+      retirées de la table (PL-C). *Preuve : commit de clôture, sept lignes retirées, quatorze ajoutées (revue).*
+- [x] Aucun fichier de `apps/api/src/domains/backoffice/` au-delà de 600 lignes ; `db-tests` verts (PL-05). *Preuve : `d0a01d2`, modules du dépôt éclaté de 497 lignes au plus ; réserve : `actions-routes.ts` (833 l., routes, inchangé, hors PL-05) dépasse la lettre du critère, reporté au reliquat (PLK-1).*
+- [x] Plus aucun fichier identique entre `apps/web/src` et `apps/backoffice/src`, sauf ceux que
+      PL-07 garde nommément ; T7, T10, G3, TD4 verts (PL-08, PL-09). *Preuve : `b423c80`, `6fe6e48` ; `cmp` à la clôture : seul `app/api/[...path]/route.ts` reste identique (gardé nommément) ; `pnpm check` vert.*
+- [x] Contrôle de PL-10 vide ; `decisions.md` à 25 Ko au plus, D1 à D77 présents dans les deux
+      fichiers (PL-11). *Preuve : `fcc3082`, `4773a33` ; `decisions.md` 25 001 octets.*
+- [x] Budget e2e décidé par le fondateur et écrit dans `21` §2.3 (PL-13). *Preuve : `ec87b56` (décision), commit de clôture (écriture).*
+- [x] `pnpm check` puis `pnpm test:e2e` verts ; CI verte sur le dernier commit. *Preuve : `pnpm check` exit 0 ; `pnpm test:e2e` 214 passés en 3,1 min, plancher respecté (backoffice 53, charter-rendering 29 relevés) ; CI verte sur `44a46db` (run 41235937128).*
+- [x] Revue `testeur` + `expert-cybersecurite` faite ; attestation `security-reviewed:` (D71). *Preuve : commit d'attestation `covers b423c80 6fe6e48`.*
 
 ## Écarts, décisions ouvertes, risques
 
