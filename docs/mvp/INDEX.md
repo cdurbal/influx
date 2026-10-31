@@ -46,7 +46,7 @@
 | 552 | 14 | 12. Décisions ouvertes |  |
 | 566 | 20 | 13. Ce qui change en V2 |  |
 
-## 02-architecture-3-espaces.md (~63k tokens)
+## 02-architecture-3-espaces.md (~64k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -58,49 +58,59 @@
 | 457 | 169 | 5. D5 — Accès aux données |  |
 | 626 | 96 | 6. D18 — File de synchronisation des leads |  |
 | 722 | 107 | 7. D37 — Méthode d'authentification *(décision nouvelle)* |  |
-| 829 | 105 | 8. Structure du dépôt cible |  |
-| 934 | 124 | 9. Le contrat entre l'API et les fronts |  |
-| 1058 | 60 | 10. Où s'applique la RLS, et où elle ne suffit pas |  |
-| 1118 | 51 | 11. Le worker |  |
-| 1169 | 198 | 12. Conséquences sur Railway et Supabase | RG9–RG165 |
-| 1367 | 58 | 13. Sortie du mode maquette de `apps/web` |  |
-| 1425 | 60 | 14. Ce qui reste ouvert |  |
-| 1485 | 46 | 15. Conventions pour `dev-react-node` |  |
-| 1531 | 14 | 16. Points à faire valider par le fondateur |  |
-| 1545 | 12 | 17. Mises à jour des autres documents |  |
-| 1557 | 15 | Sources (vérifiées le 2026-09-18) |  |
-| 1572 | 370 | 18. Addendum du 2026-09-19 — D43 : chemin d'envoi des e-mails transactionnels critiques (code de connexion) | RG39–RG122 |
-| 1593 | 17 | ↳ 18.1 Contexte | RG59–RG86 |
-| 1610 | 7 | ↳ 18.2 Les deux questions posées |  |
-| 1617 | 21 | ↳ 18.3 Question (a) — options | RG41–RG87 |
-| 1638 | 24 | ↳ 18.4 Décision (a) : **(i) — appel synchrone dans la requête, avec cinq garde-fous** | RG46–RG64 |
-| 1662 | 61 | ↳ 18.5 L'énumération de comptes — le point que l'envoi synchrone oblige à trancher | RG44–RG60 |
-| 1723 | 11 | ↳ 18.6 Panne du fournisseur : ce qui se passe, et ce que personne ne doit croire | RG64–RG122 |
-| 1734 | 43 | ↳ 18.7 Conséquence non évidente : **c'est `apps/api` qui envoie l'e-mail, pas Supabase Auth** | RG40–RG100 |
-| 1777 | 32 | ↳ 18.8 Décision (b) : `leads.transactional_sends` est **un journal, et rien d'autre** | RG60 |
-| 1809 | 27 | ↳ 18.9 La famine, et pourquoi elle est écartée par construction |  |
-| 1836 | 34 | ↳ 18.10 Contrat d'implémentation — `POST /v1/auth/request-code` | RG44–RG91 |
-| 1870 | 16 | ↳ 18.11 Conséquences | RG122 |
-| 1886 | 9 | ↳ 18.12 Si l'on se trompe | RG46–RG98 |
-| 1895 | 7 | ↳ 18.13 Réversibilité |  |
-| 1902 | 30 | ↳ 18.14 Ce que cet addendum demande aux autres agents | RG60 |
-| 1932 | 10 | ↳ Sources (vérifiées le 2026-09-19) |  |
-| 1942 | 24 | 19. Addendum du 2026-09-24 — D57 : sauvegarde et restauration |  |
-| 1966 | 328 | 20. Addendum du 2026-09-24 — D60 : surveillance de production, entièrement interne | RG98–RG160 |
-| 1983 | 11 | ↳ 20.1 Le besoin, en deux questions |  |
-| 1994 | 19 | ↳ 20.2 Ce qui existe déjà, et ce qui manque | RG98–RG126 |
-| 2013 | 17 | ↳ 20.3 Options |  |
-| 2030 | 14 | ↳ 20.4 Décision : six pièces, toutes internes |  |
-| 2044 | 95 | ↳ 20.5 Comment chaque pièce fonctionne |  |
-| 2139 | 35 | ↳ 20.6 Signaux et seuils d'alerte | RG160 |
-| 2174 | 22 | ↳ 20.7 La période de rodage — « surtout au début » |  |
-| 2196 | 26 | ↳ 20.8 Ce qui n'entre jamais dans un journal ni dans le schéma `ops` |  |
-| 2222 | 12 | ↳ 20.9 Ce que la décision ne couvre pas — risque accepté par le fondateur |  |
-| 2234 | 31 | ↳ 20.10 Conséquences |  |
-| 2265 | 9 | ↳ 20.11 Points à faire valider par le fondateur |  |
-| 2274 | 13 | ↳ 20.12 Ce que cet addendum demande aux autres agents |  |
-| 2287 | 7 | ↳ Sources (vérifiées le 2026-09-24) |  |
-| 2294 | 298 | 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits) | RG7–RG107 |
+| 829 | 124 | 8. Structure du dépôt cible |  |
+| 953 | 124 | 9. Le contrat entre l'API et les fronts |  |
+| 1077 | 60 | 10. Où s'applique la RLS, et où elle ne suffit pas |  |
+| 1137 | 51 | 11. Le worker |  |
+| 1188 | 198 | 12. Conséquences sur Railway et Supabase | RG9–RG165 |
+| 1386 | 58 | 13. Sortie du mode maquette de `apps/web` |  |
+| 1444 | 60 | 14. Ce qui reste ouvert |  |
+| 1504 | 46 | 15. Conventions pour `dev-react-node` |  |
+| 1550 | 14 | 16. Points à faire valider par le fondateur |  |
+| 1564 | 12 | 17. Mises à jour des autres documents |  |
+| 1576 | 15 | Sources (vérifiées le 2026-09-18) |  |
+| 1591 | 370 | 18. Addendum du 2026-09-19 — D43 : chemin d'envoi des e-mails transactionnels critiques (code de connexion) | RG39–RG122 |
+| 1612 | 17 | ↳ 18.1 Contexte | RG59–RG86 |
+| 1629 | 7 | ↳ 18.2 Les deux questions posées |  |
+| 1636 | 21 | ↳ 18.3 Question (a) — options | RG41–RG87 |
+| 1657 | 24 | ↳ 18.4 Décision (a) : **(i) — appel synchrone dans la requête, avec cinq garde-fous** | RG46–RG64 |
+| 1681 | 61 | ↳ 18.5 L'énumération de comptes — le point que l'envoi synchrone oblige à trancher | RG44–RG60 |
+| 1742 | 11 | ↳ 18.6 Panne du fournisseur : ce qui se passe, et ce que personne ne doit croire | RG64–RG122 |
+| 1753 | 43 | ↳ 18.7 Conséquence non évidente : **c'est `apps/api` qui envoie l'e-mail, pas Supabase Auth** | RG40–RG100 |
+| 1796 | 32 | ↳ 18.8 Décision (b) : `leads.transactional_sends` est **un journal, et rien d'autre** | RG60 |
+| 1828 | 27 | ↳ 18.9 La famine, et pourquoi elle est écartée par construction |  |
+| 1855 | 34 | ↳ 18.10 Contrat d'implémentation — `POST /v1/auth/request-code` | RG44–RG91 |
+| 1889 | 16 | ↳ 18.11 Conséquences | RG122 |
+| 1905 | 9 | ↳ 18.12 Si l'on se trompe | RG46–RG98 |
+| 1914 | 7 | ↳ 18.13 Réversibilité |  |
+| 1921 | 30 | ↳ 18.14 Ce que cet addendum demande aux autres agents | RG60 |
+| 1951 | 10 | ↳ Sources (vérifiées le 2026-09-19) |  |
+| 1961 | 24 | 19. Addendum du 2026-09-24 — D57 : sauvegarde et restauration |  |
+| 1985 | 328 | 20. Addendum du 2026-09-24 — D60 : surveillance de production, entièrement interne | RG98–RG160 |
+| 2002 | 11 | ↳ 20.1 Le besoin, en deux questions |  |
+| 2013 | 19 | ↳ 20.2 Ce qui existe déjà, et ce qui manque | RG98–RG126 |
+| 2032 | 17 | ↳ 20.3 Options |  |
+| 2049 | 14 | ↳ 20.4 Décision : six pièces, toutes internes |  |
+| 2063 | 95 | ↳ 20.5 Comment chaque pièce fonctionne |  |
+| 2158 | 35 | ↳ 20.6 Signaux et seuils d'alerte | RG160 |
+| 2193 | 22 | ↳ 20.7 La période de rodage — « surtout au début » |  |
+| 2215 | 26 | ↳ 20.8 Ce qui n'entre jamais dans un journal ni dans le schéma `ops` |  |
+| 2241 | 12 | ↳ 20.9 Ce que la décision ne couvre pas — risque accepté par le fondateur |  |
+| 2253 | 31 | ↳ 20.10 Conséquences |  |
+| 2284 | 9 | ↳ 20.11 Points à faire valider par le fondateur |  |
+| 2293 | 13 | ↳ 20.12 Ce que cet addendum demande aux autres agents |  |
+| 2306 | 7 | ↳ Sources (vérifiées le 2026-09-24) |  |
+| 2313 | 326 | 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits) | RG7–RG107 |
+| 2326 | 7 | ↳ 21.1 Vocabulaire |  |
+| 2333 | 12 | ↳ 21.2 Frontière |  |
+| 2345 | 92 | ↳ 21.3 Tokens : un fichier, deux chartes, un attribut |  |
+| 2437 | 44 | ↳ 21.4 Polices |  |
+| 2481 | 91 | ↳ 21.5 Gabarits de page | RG28–RG107 |
+| 2572 | 23 | ↳ 21.6 Gardes et tests |  |
+| 2595 | 7 | ↳ 21.7 Découpage |  |
+| 2602 | 20 | ↳ 21.8 Risques et réversibilité | RG7 |
+| 2622 | 11 | ↳ 21.9 Ce que cet addendum demande aux autres agents |  |
+| 2633 | 6 | ↳ Sources (vérifiées le 2026-10-28) |  |
 
 ## 03-matrice-des-droits-et-rls.md (~51k tokens)
 

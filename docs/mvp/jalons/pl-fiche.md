@@ -100,6 +100,108 @@ réduire).
 - PL-09 touche le passe-plat épinglé (PP-12) : revue de sécurité ciblée en fin de jalon.
 - Risque : PL-08 et PL-09 créent des paquets du dépôt (dépendance) ; suite locale complète exigée.
 
+## Arbitrage PL-07 (`architecte`, 2026-10-31)
+
+**Contexte (K4, M2).** Inventaire revérifié par `cmp` sur `bf1724f` : **16 fichiers identiques** entre
+`apps/web/src` et `apps/backoffice/src` : 7 modules (`app/api/[...path]/route.ts`, `server/relay.ts`,
+`server/api-client.ts`, `config/server.ts`, `browser/relay-client.ts`,
+`observability/error-collector.ts`, `styles/fonts.ts`), `styles/tokens.css`, les 7 fichiers de
+`styles/fonts/` (4 woff2, 2 OFL, `FONTS.md`) et `HydrationMarker.tsx` (PL-01 : `components/ui/` dans
+web, `components/` dans le backoffice). Hors périmètre, car différents : `globals.css`,
+`global-error.tsx`, `config/security-headers.ts`, `proxy.ts`. Propres à un front : `tokens-backoffice.css`
+(G3f), `server/status-cache.ts` (route `/health` de web, EC-22, PL-03).
+
+| Option | Pour | Contre |
+|---|---|---|
+| A. Report de K4 | Aucun risque immédiat | Le Lot 2 retouche les tokens (profils, badge) et sans doute le passe-plat (pièces de vérification relayées par `apps/api`, J3S-7) : chaque geste fait deux fois. Le moment le moins cher est avant ses écrans |
+| **B. Deux paquets source, sans build : `@influx/ui` (charte) et `@influx/web-platform` (plomberie d'exécution)** | Un rôle nommable par paquet (`02` §8 refuse `utils`) ; surface de sécurité (PP-12, I-4) séparée de la charte ; modèle de `@influx/contracts` | Deux `package.json` de plus |
+| C. Un seul paquet commun | Un paquet de moins | Rôle innommable ; ESLint, I-4 et revue de sécurité s'étendraient à la charte |
+| D. Paquets construits (`dist/`) | Découplage de Next | Étape de build écartée ailleurs (D64 écarte `tsup`) ; un artefact de plus à tenir égal à sa source |
+
+**Décision : B ; K4 n'est pas reporté.**
+
+1. **Ce qui sort.** Chaque paquet reproduit l'arborescence `src/` des fronts : les imports relatifs
+   entre fichiers déplacés et les chemins des gardes restent les mêmes.
+   - `packages/ui` (`@influx/ui`), PL-08 : `src/styles/tokens.css`, `src/styles/fonts.ts`,
+     `src/styles/fonts/` (7 fichiers). Exports `./tokens.css`, `./fonts`. Aucune primitive : les
+     composants appartiennent à deux registres (`20` §2) ; une primitive n'y entre qu'employée par les
+     deux, après vérification `expert-ux`, avec alors un `@source` du paquet dans chaque `globals.css`.
+   - `packages/web-platform` (`@influx/web-platform`), PL-09 : `src/server/relay.ts`,
+     `src/server/api-client.ts`, `src/config/server.ts`, `src/browser/relay-client.ts`,
+     `src/observability/error-collector.ts`, `src/components/HydrationMarker.tsx` (rend `null` : ni
+     charte ni registre). Exports `./relay`, `./relay-client`, `./error-collector`,
+     `./hydration-marker`, sans barrel : **ni le client d'API ni la configuration ne sont exportés**,
+     le paquet ferme lui-même la chaîne route → relay → client → configuration. La configuration du
+     passe-plat ne sert qu'aux deux fronts : ce n'est pas le paquet `config` écarté par `02` §8.
+2. **Ce qui reste copié, nommément.** `src/app/api/[...path]/route.ts` : Next.js exige le fichier de
+   route dans l'application et lit `runtime`, `dynamic` et `revalidate` comme littéraux du fichier (une
+   réexportation n'est pas analysée). Il garde ces littéraux et ses cinq méthodes, importe
+   `@influx/web-platform/relay`, reste identique dans les deux fronts et épinglé. Hors `src`, l'outillage
+   lu à la racine de chaque application (`tsconfig.json`, `postcss.config.mjs`, `vitest*.config.ts`,
+   `next-env.d.ts`) reste par application. `status-cache.ts` reste dans `apps/web`, non épinglé :
+   fonction pure de la seule route `/health`, sans import, réseau ni environnement, qui ne voit ni
+   requête relayée ni secret ; ses tests et les gardes générales la couvrent.
+3. **Consommation par Next.js, sans build.** Dépendances `workspace:*` ; `exports` vers les sources TS,
+   comme `@influx/contracts` ; `transpilePackages: ["@influx/contracts", "@influx/ui",
+   "@influx/web-platform"]` dans les deux `next.config.ts` ; `globals.css` importe
+   `@influx/ui/tokens.css` au lieu de `../styles/tokens.css` (le backoffice ajoute ensuite
+   `tokens-backoffice.css`) ; les deux mises en page de G8 importent `@influx/ui/fonts` ; `next/font/local`
+   est appelé dans le paquet, `src` relatif au module. Pairs : `next` (ui), `react` (web-platform).
+   Chaque paquet a ses scripts `typecheck` et `lint` (sans eux, `pnpm -r` le saute en silence et ses
+   interdits ESLint tombent) ; pas de suite de tests propre : les tests qui exercent et épinglent le
+   code déplacé restent dans les fronts, qui prouvent chacun le paquet qu'ils servent (`ci.yml`
+   l. 345-349 inchangé). Railway : `packages/**` déjà surveillé (`02` §12.1), commandes inchangées.
+4. **CSP inchangée.** Rien d'inline : polices sous `/_next/static/media/` (`font-src 'self'`),
+   `@font-face` en feuille externe, marqueur posé par un effet client. T10 et le contrôle « aucune
+   violation CSP » des e2e en font foi.
+5. **`test:artifacts` : planchers inchangés** (web 12 + 4 + 35, backoffice 1 + 3 + 35).
+   `keo-tokens.artifacts.ts` lit le `tokens.css` du paquet (chemin seul) ; T11 sur `.next/static`
+   prouve qu'aucun nom serveur (`INFLUX_API_INTERNAL_`) n'atteint un lot navigateur par le paquet ;
+   l'intégration du passe-plat tourne sur le front construit, paquet compris.
+6. **Gardes : aucune affaiblie.** Une garde d'**identité** entre copies devient, un pour un, une garde
+   d'**absence** (aucune copie dans aucun front : ni `styles/tokens.css` ni `fonts.ts`, aucun woff2
+   sous `src` ou `public`, aucun fichier du passe-plat hors la route) et d'**import** (chaque
+   `globals.css` importe `@influx/ui/tokens.css` ; seules les deux mises en page de G8 importent
+   `@influx/ui/fonts`) : autant de cas au moins, planchers jamais baissés. Les **épingles** PP-12 ne
+   sont pas des gardes de copie et restent : octets épinglés là où ils vivent (invariant 3),
+   `relay.ts`, `api-client.ts`, `config/server.ts` et `relay-client.ts` dans le paquet, `route.ts` dans
+   chaque front ; valeurs toujours déclarées dans `@influx/test-kit/guards` (le geste conscient reste
+   un fichier distinct), vérifiées par les tests de chaque front ; détecteurs à racine paramétrée,
+   auto-tests adaptés. Les autres gardes suivent le code : contenu (aucun import de données, aucun
+   `use server`, `process.env` dans `config/server.ts` seul) et chaîne des importateurs dans le
+   paquet ; `@influx/web-platform/relay` importé par les seuls fichiers de route (web : passe-plat et
+   `/health`) ; `exports` du paquet figés par une garde ; `fetch` admis dans `api-client.ts` et
+   `relay-client.ts` du paquet, nulle part dans les fronts ; exceptions ESLint (`next/font/local`,
+   `fetch`, `process.env`) déplacées vers les fichiers du paquet et retirées des fronts ; G3 étendue
+   aux deux paquets ; G3e lit le fichier du paquet, instantané inchangé. **I-4**
+   (`check-security-review.ts`, `SECURITY_FILES`) suit le passe-plat dans le paquet, avec
+   `packages/web-platform/package.json`, dont les `exports` ferment la chaîne.
+7. **Preuve du comportement constant.** PL-08 : feuilles construites des deux fronts identiques avant
+   et après, aux identifiants générés par `next/font` près ; fichiers de `/_next/static/media/`
+   identiques. PL-09 : chaque fichier déplacé ne diffère de sa copie de `bf1724f` que par ses
+   commentaires (`git diff -M`, noté dans `run.md`), épingles mises à jour dans le même commit. Les
+   deux : suite locale complète (dépendance) ; mentions de chemin vivantes corrigées dans le commit
+   (`git grep` des anciens chemins hors `archives/`, `decisions.md` et revues datées : `CLAUDE.md` §4,
+   `02` §13.2 et §15 règle 3, `03`, `17`, `17b`, `18`, `20`, `prerequis.md`, `expert-ux`, skill
+   `design-system-influx`).
+8. **Repli écrit d'avance (PL-08 seulement).** Si `next/font/local` appelé depuis le paquet échoue au
+   `next build` (Turbopack, Next 16.3.6) ou change les fichiers servis, `fonts.ts` et `styles/fonts/`
+   restent des copies gardées (G4f inchangée) et PL-08 ne déplace que `tokens.css`, noté
+   `EC-PL-08-n` ; la liste des copies du critère de fin s'allonge d'autant. Tout autre échec : arrêt.
+9. **`packages/domain` reste au Lot 2** (`21` §7) : il naît avec la première règle dont deux
+   applications ont besoin (complétude, `02` §8). Rien d'actuel n'y va : les fronts ne portent aucune
+   règle métier.
+
+**Hors des cas d'arrêt.** D64 intact : le même module lit `INFLUX_API_INTERNAL_SECRET` dans le
+processus de chaque front, valeur propre à chaque service. PP-12 : aucune logique touchée, liste
+blanche des routes et épingles conservées ; seuls l'emplacement et les commentaires changent.
+
+**Conséquences.** Deux paquets, deux `next.config.ts` modifiés (préfixe I-4 : revue de fin de jalon),
+`pnpm-lock.yaml` relié ; tokens, polices et passe-plat n'évoluent plus qu'une fois. **Réversibilité :**
+totale et locale (recopier les fichiers, rétablir imports et gardes de copie depuis `bf1724f`), sans
+donnée, variable ni service Railway touché. **`CLAUDE.md` :** §4 (« `src/styles/tokens.css` de chaque
+front » → `packages/ui`), par PL-08, dans le commit qui rend la phrase vraie.
+
 ## Revue
 
 *(rempli par `/jalon-run` : constats PLT-n, PLS-n)*

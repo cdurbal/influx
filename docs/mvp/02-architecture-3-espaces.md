@@ -839,12 +839,15 @@ influx/
 │   │   │                        existe déjà (Lot 0 : sortie du mode maquette, §13)
 │   │   └── src/
 │   │       ├── app/[locale]/    pages publiques et espaces membres
-│   │       ├── app/api/[...path]/route.ts   ⚠ UNIQUE route : passe-plat vers apps/api (§9.3)
-│   │       ├── server/          appel de l'API depuis les composants serveur (seul endroit où
-│   │       │                    « fetch » est autorisé)
+│   │       ├── app/api/[...path]/route.ts   ⚠ UNIQUE route : passe-plat vers apps/api (§9.3) ;
+│   │       │                    copie épinglée, identique dans les deux fronts, qui importe
+│   │       │                    @influx/web-platform/relay (arbitrage PL-07, PL-09)
+│   │       ├── server/          status-cache.ts de /health (EC-22) ; l'appel de l'API, seul endroit
+│   │       │                    où « fetch » est autorisé, part dans @influx/web-platform (PL-09)
 │   │       ├── components/      RENDU UNIQUEMENT — jamais de logique métier
 │   │       ├── i18n/ locales/   next-intl, FR + EN (D28)
-│   │       └── styles/tokens.css  FICHIER DE TOKENS UNIQUE (D4, D6)
+│   │       └── app/globals.css  importe @influx/ui/tokens.css, FICHIER DE TOKENS UNIQUE (D4, D6),
+│   │                            jusqu'ici styles/tokens.css (déplacé par PL-08, arbitrage PL-07)
 │   │       ▸ ne doit JAMAIS contenir : une clé Supabase, une clé Brevo/Apollo, une requête SQL,
 │   │         un import de @supabase/*, drizzle, pg ou postgres, un calcul de montant,
 │   │         un taux de commission, une Server Action
@@ -853,9 +856,11 @@ influx/
 │   │   │                        hôte distinct · noindex · MFA · session courte · FR seul (D36)
 │   │   └── src/
 │   │       ├── app/             files de validation, conversations, pipeline commercial, comptes
-│   │       ├── app/api/[...path]/route.ts   passe-plat, identique à celui de web
-│   │       ├── server/          appel de l'API
-│   │       └── styles/tokens.css  ré-export ou copie contrôlée des mêmes tokens
+│   │       ├── app/api/[...path]/route.ts   passe-plat, copie épinglée identique à celle de web
+│   │       ├── styles/tokens-backoffice.css   noms --*-bo-* seulement (§21.3, point 6)
+│   │       └── app/globals.css  importe @influx/ui/tokens.css puis tokens-backoffice.css
+│   │                            (PL-08) ; l'appel de l'API part dans @influx/web-platform (PL-09) ;
+│   │                            plus de styles/tokens.css copié ni de server/ (arbitrage PL-07)
 │   │       ▸ ne doit JAMAIS contenir : next-intl tant que D36 n'est pas tranchée, de contenu
 │   │         fictif, de SEO, de lecture directe de la base, une autorisation par masquage d'UI
 │   │
@@ -906,12 +911,26 @@ influx/
 │   │   ▸ créé au Lot 2, parce que c'est le premier moment où deux applications ont besoin
 │   │     de la même règle (complétude affichée côté membre ET côté backoffice)
 │   │
-│   ├── ui/                      @influx/ui — primitives partagées                        ◀ Lot 2
-│   │   ▸ contient : les primitives de apps/web/src/components/ui RÉELLEMENT utilisées par
-│   │     les deux applications, et les tokens
+│   ├── ui/                      @influx/ui — charte partagée            ◀ jalon PL (PL-08)
+│   │   ▸ contient : styles/tokens.css (les deux chartes, §21.3), styles/fonts.ts et
+│   │     styles/fonts/ (§21.4) ; plus tard, les primitives de apps/web/src/components/ui
+│   │     RÉELLEMENT utilisées par les deux registres, vérifiées par expert-ux (20 §2)
 │   │   ▸ ne doit JAMAIS contenir : une page, un appel réseau, une règle métier, un libellé
 │   │     (les libellés arrivent par props — convention déjà en vigueur)
-│   │   ▸ créé quand le backoffice a besoin de la deuxième primitive, pas de la première
+│   │   ▸ créé au jalon PL pour les tokens et les polices (arbitrage PL-07), et non plus « quand
+│   │     le backoffice a besoin de la deuxième primitive » ; une primitive n'y entre qu'à la
+│   │     deuxième commune aux deux registres, avec un @source du paquet dans chaque globals.css
+│   │
+│   ├── web-platform/            @influx/web-platform — plomberie des fronts  ◀ jalon PL (PL-09)
+│   │   ▸ contient : le passe-plat (server/relay.ts, server/api-client.ts, config/server.ts,
+│   │     épinglés, 03 PP-12), son client navigateur (browser/relay-client.ts, épinglé), le
+│   │     collecteur d'erreurs (§20.5), le marqueur d'hydratation (EC-PL-01-1)
+│   │   ▸ n'exporte NI le client d'API NI la configuration : un front n'atteint le réseau que
+│   │     par sa route de passe-plat ; la configuration ne sert qu'aux deux fronts (ce n'est
+│   │     pas le paquet « config » écarté plus bas)
+│   │   ▸ ne doit JAMAIS contenir : un composant qui rend un élément, un libellé, une règle
+│   │     métier, un token, un import de @supabase/*, drizzle, pg ou postgres, une Server
+│   │     Action, une lecture de process.env hors de config/server.ts
 │   │
 │   └── i18n/                    @influx/i18n                             ◀ Lot 5, ou JAMAIS
 │       ▸ créé uniquement si D36 rend le backoffice bilingue. Sinon il n'existe pas
@@ -2378,8 +2397,10 @@ en KEO par le même composant neutre que les pages légales.
    `app/layout.tsx`.
 5. Aucun portail vers `document.body` sous la charte KEO (il sortirait du conteneur) ; les modales
    restent des `<dialog>` natifs sur place, qui héritent de l'arbre.
-6. **Backoffice.** `tokens.css` reste la copie octet pour octet de celui de `apps/web` (garde
-   existante). Les tokens `*-bo-*` (`17b` §6) naissent dans
+6. **Backoffice.** ~~`tokens.css` reste la copie octet pour octet de celui de `apps/web` (garde
+   existante).~~ *Amendé le 2026-10-31 (arbitrage PL-07, point 7)* : un seul `tokens.css`, dans
+   `packages/ui`, importé par le `globals.css` de chaque front ; la garde de copie devient une garde
+   d'absence et d'import. Les tokens `*-bo-*` (`17b` §6) naissent dans
    `apps/backoffice/src/styles/tokens-backoffice.css`, second bloc `@theme static`, **noms `--*-bo-*`
    seulement**, au fil de leur emploi (rail, ligne et cellules de tableau dès ce jalon) ; leurs
    contrastes se calculent contre les surfaces KEO. Aucune occurrence de `-bo-` dans `apps/web/src`.
@@ -2389,6 +2410,27 @@ en KEO par le même composant neutre que les pages légales.
    vérification (`20` §2). Création maintenue au Lot 2 (`21` §7) : elle reprendra `tokens.css` et
    remplacera la garde de copie. D'ici là, les primitives sont écrites « prêtes à déménager » : pures,
    tokens seulement, aucun import propre à l'application.
+
+   **Amendement du 2026-10-31 (arbitrage PL-07, détail : `jalons/pl-fiche.md` § Arbitrage PL-07).**
+   Les fichiers communs aux deux fronts quittent les copies gardées pour **deux paquets source, sans
+   build**, consommés par `transpilePackages`, chacun avec l'arborescence `src/` des fronts :
+   - **`@influx/ui`** (PL-08) : `styles/tokens.css`, `styles/fonts.ts`, `styles/fonts/`. Chaque
+     `globals.css` importe `@influx/ui/tokens.css` ; les deux mises en page du point 4 importent
+     `@influx/ui/fonts`, où se fait le seul appel de `next/font/local` (amende §21.4 points 1, 2 et 5).
+     Aucune primitive : elle n'y entre qu'employée par les deux registres, vérifiée par `expert-ux`.
+     Repli écrit d'avance : si `next/font/local` échoue depuis le paquet, les polices restent des
+     copies gardées et seul `tokens.css` déménage.
+   - **`@influx/web-platform`** (PL-09) : passe-plat (`server/relay.ts`, `server/api-client.ts`,
+     `config/server.ts`), client navigateur du passe-plat, collecteur d'erreurs, marqueur
+     d'hydratation. Ni le client d'API ni la configuration ne sont exportés. La route
+     `app/api/[...path]/route.ts` reste une **copie nommée** dans chaque front (Next.js lit ses
+     littéraux `runtime`, `dynamic`, `revalidate` dans le fichier même), épinglée.
+   - **Gardes** (amende les lignes G3, G3b, G4f, G8 et ESLint de §21.6) : chaque garde d'identité
+     entre copies devient une garde d'absence (aucune copie dans aucun front) et d'import, à nombre de
+     cas égal au moins ; les épingles PP-12 restent, sur les octets là où ils vivent (paquet, route de
+     chaque front), déclarées dans `@influx/test-kit/guards` ; I-4 suit le passe-plat dans le paquet.
+     D64 (un secret interne par front) et la logique du passe-plat sont inchangés ; CSP inchangée.
+   - `packages/domain` reste au Lot 2 (`21` §7).
 8. Nom de l'attribut : `data-theme` (code en anglais). Un futur mode clair des espaces membres
    (`20` Q6) serait une autre valeur, sans autre mécanisme.
 
@@ -2400,7 +2442,8 @@ en KEO par le même composant neutre que les pages légales.
 | `@font-face` écrit à la main | Refusée : perd le repli métrique et le préchargement par segment |
 | **`next/font/local` + fichiers versionnés** | **Retenue** |
 
-1. Un seul module par front, `src/styles/fonts.ts`, **identique** dans les deux fronts. Variables
+1. Un seul module par front, `src/styles/fonts.ts`, **identique** dans les deux fronts *(amendé par
+   PL-07, §21.3 point 7 : un seul module, `packages/ui/src/styles/fonts.ts`, avec ses fichiers)*. Variables
    `--typeface-manrope` et `--typeface-source-sans`, hors de l'espace `--font-*` de Tailwind (aucune
    classe parasite). Le bloc KEO compose : `--font-display` (titres, chiffres) = Manrope puis la pile
    système ; `--font-base` (corps) = Source Sans 3 puis la pile système — celle de la vitrine, écrite
@@ -2544,6 +2587,10 @@ Les lecteurs de blocs (`@theme`, bloc KEO), la fermeture des alias et l'écart d
 | ESLint | Amendée | `lucide-react` hors `icons.ts` interdit ; `next/font/local` hors `src/styles/fonts.ts` interdit (`next/font/google` l'est déjà) |
 | Unitaires | Nouveaux | `member-nav.ts` (≤ 5 entrées, libellés ≤ 11 caractères FR et EN lus dans les fichiers de traduction), `pageOfPath`, entrée active, espace exigé |
 | E2E | Nouveaux | Landing FR et EN : aucune police téléchargée, aucune requête tierce. Page membre : polices servies par l'origine seule, `latin-ext` non téléchargé sur un contenu FR. À 375 et 1440 px : un seul repère `navigation` « Navigation principale », `aria-current`, dernier élément de `main` jamais sous la barre. Mouvement réduit émulé : durées nulles. axe WCAG 2.1 AA sur chaque écran rhabillé des deux fronts. Aucune violation CSP en console |
+
+> *Amendé le 2026-10-31 (arbitrage PL-07, §21.3 point 7)* : G3, G3b, G4f, G8 et ESLint lisent
+> `packages/ui` (tokens, polices, seul appel de `next/font/local`) ; leurs cas « copies identiques
+> entre fronts » deviennent des cas d'absence et d'import, à nombre égal au moins.
 
 ### 21.7 Découpage
 
