@@ -18,6 +18,7 @@ import {
   findRelayFingerprintMismatches,
   findRelayImporterViolations,
   findRouteFileViolations,
+  BACKOFFICE_STRUCTURAL_SEGMENTS,
   PLATFORM_NETWORK_FILES,
   HARD_CODED_COLOR_PATTERN,
   HARD_CODED_LENGTH_PATTERN,
@@ -326,9 +327,13 @@ describe("G7: no Tailwind class conflict that cn() cannot resolve (10 #10)", () 
 // J4S-7: the error collector sends location.pathname (error-collector.ts l. 42); a name or a handle
 // in a backoffice path would reach `ops`. Segments are opaque identifiers or fixed words.
 describe("J4S-7: no name or handle in a backoffice path", () => {
-  it("carries no dynamic segment outside the closed list under (app)", () => {
+  it("carries no dynamic segment outside the closed list in any tree of src/app (L2AT-4)", () => {
     expect(
-      findDynamicSegmentViolations(path.join(SRC, "app", "(app)")),
+      findDynamicSegmentViolations(
+        path.join(SRC, "app"),
+        undefined,
+        BACKOFFICE_STRUCTURAL_SEGMENTS,
+      ),
     ).toEqual([]);
   });
 });

@@ -537,3 +537,330 @@ describe("04 §4.2: the net bounds of reference.price_bands", () => {
     expect(await attempt(BAND + values)).toEqual({ outcome: "rows", count: 1 });
   });
 });
+
+// L2AT-5: EVERY check constraint of the Lot 2 lists has a case that it alone refuses. Two proofs
+// per case, so that no case passes by luck (R4, "seen red by mutation"): the statement is refused
+// BY THAT constraint (its name, read from the error), and, with that constraint dropped in the
+// rolled-back transaction, the same statement is accepted. A constraint added to these tables
+// without a case fails the inventory below. Contiguity of price_bands per currency is deferred
+// while the table is empty (D78): run.md of L2B, line 01.
+type Refusal =
+  | { outcome: "accepted" }
+  | { outcome: "refused"; code: string; constraint: string | undefined };
+
+/** One statement in a rolled-back transaction, after `beforehand` (a mutation) when given. */
+function refusalOf(statement: string, beforehand?: string): Promise<Refusal> {
+  return inRolledBackTransaction(localSuperuser(), async (tx) => {
+    if (beforehand !== undefined) {
+      await tx.unsafe(beforehand);
+    }
+    try {
+      await tx.savepoint((savepoint) => savepoint.unsafe(statement));
+      return { outcome: "accepted" } satisfies Refusal;
+    } catch (error) {
+      const found = error as { code?: string; constraint_name?: string };
+      return {
+        outcome: "refused",
+        code: found.code ?? "unknown",
+        constraint: found.constraint_name,
+      } satisfies Refusal;
+    }
+  });
+}
+
+/** The twelve lists keyed by `code` alone: their extra not-null columns, with valid values. */
+const CODE_LISTS: readonly {
+  table: string;
+  singular: string;
+  columns?: string;
+  values?: string;
+}[] = [
+  { table: "topics", singular: "topic" },
+  {
+    table: "networks",
+    singular: "network",
+    columns: ", supports_ownership_proof",
+    values: ", false",
+  },
+  { table: "formats", singular: "format" },
+  {
+    table: "sectors",
+    singular: "sector",
+    columns: ", is_sensitive",
+    values: ", false",
+  },
+  {
+    table: "usage_rights",
+    singular: "usage_right",
+    columns: ", sort_order",
+    values: ", 99",
+  },
+  {
+    table: "audience_bands",
+    singular: "audience_band",
+    columns: ", min_followers",
+    values: ", 0",
+  },
+  {
+    table: "engagement_bands",
+    singular: "engagement_band",
+    columns: ", min_rate_bp",
+    values: ", 0",
+  },
+  {
+    table: "age_bands",
+    singular: "age_band",
+    columns: ", min_age",
+    values: ", 18",
+  },
+  { table: "audience_genders", singular: "audience_gender" },
+  { table: "editorial_tones", singular: "editorial_tone" },
+  {
+    table: "publication_frequencies",
+    singular: "publication_frequency",
+    columns: ", min_posts_30d, sort_order",
+    values: ", 0, 99",
+  },
+  {
+    table: "comment_bands",
+    singular: "comment_band",
+    columns: ", min_comments",
+    values: ", 0",
+  },
+];
+
+/** constraint name → statements that only that constraint refuses. */
+const CONSTRAINT_CASES: Readonly<Record<string, readonly string[]>> = (() => {
+  const cases: Record<string, string[]> = {};
+  const add = (constraint: string, ...statements: string[]) => {
+    cases[constraint] = [...(cases[constraint] ?? []), ...statements];
+  };
+  for (const { table, singular, columns = "", values = "" } of CODE_LISTS) {
+    const insert = (code: string, key: string, more = ["", ""]) =>
+      `insert into reference.${table} (code, label_key${columns}${more[0]})
+       values ('${code}', '${key}'${values}${more[1]})`;
+    add(`${table}_code_format`, insert("Bad-Code", `${singular}.Bad-Code`));
+    add(`${table}_label_key`, insert("fine_code", `${singular}s.fine_code`));
+    add(
+      `${table}_retired`,
+      insert("fine_code", `${singular}.fine_code`, [
+        ", introduced_at, retired_at",
+        ", now(), now() - interval '1 day'",
+      ]),
+    );
+  }
+  add(
+    "topics_parent_other",
+    `insert into reference.topics (code, parent_code, label_key)
+     values ('diy', 'diy', 'topic.diy')`,
+  );
+  add(
+    "formats_network_prefix",
+    `insert into reference.formats (code, network_code, label_key)
+     values ('reel_instagram', 'instagram', 'format.reel_instagram')`,
+  );
+  add(
+    "usage_rights_sort_order",
+    `insert into reference.usage_rights (code, label_key, sort_order)
+     values ('zero_right', 'usage_right.zero_right', 0)`,
+  );
+  add(
+    "audience_bands_bounds",
+    `insert into reference.audience_bands (code, label_key, min_followers)
+     values ('neg', 'audience_band.neg', -1)`,
+    `insert into reference.audience_bands (code, label_key, min_followers, max_followers)
+     values ('reversed', 'audience_band.reversed', 50, 10)`,
+  );
+  add(
+    "engagement_bands_bounds",
+    `insert into reference.engagement_bands (code, label_key, min_rate_bp)
+     values ('neg', 'engagement_band.neg', -1)`,
+    `insert into reference.engagement_bands (code, label_key, min_rate_bp, max_rate_bp)
+     values ('reversed', 'engagement_band.reversed', 50, 10)`,
+  );
+  add(
+    "age_bands_adult_only",
+    `insert into reference.age_bands (code, label_key, min_age, max_age)
+     values ('17_19', 'age_band.17_19', 17, 19)`,
+  );
+  add(
+    "age_bands_bounds",
+    `insert into reference.age_bands (code, label_key, min_age, max_age)
+     values ('reversed', 'age_band.reversed', 30, 20)`,
+  );
+  add(
+    "publication_frequencies_sort_order",
+    `insert into reference.publication_frequencies (code, label_key, min_posts_30d, sort_order)
+     values ('zero_order', 'publication_frequency.zero_order', 0, 0)`,
+  );
+  add(
+    "publication_frequencies_bounds",
+    `insert into reference.publication_frequencies (code, label_key, min_posts_30d, sort_order)
+     values ('neg', 'publication_frequency.neg', -1, 99)`,
+    `insert into reference.publication_frequencies (code, label_key, min_posts_30d, max_posts_30d, sort_order)
+     values ('reversed', 'publication_frequency.reversed', 8, 2, 99)`,
+  );
+  add(
+    "comment_bands_bounds",
+    `insert into reference.comment_bands (code, label_key, min_comments)
+     values ('neg', 'comment_band.neg', -1)`,
+    `insert into reference.comment_bands (code, label_key, min_comments, max_comments)
+     values ('reversed', 'comment_band.reversed', 50, 10)`,
+  );
+  // Regions: the full ISO 3166-2 code, its country as prefix.
+  add(
+    "regions_code_format",
+    `insert into reference.regions (country_code, code, label_key)
+     values ('FR', 'FR-ABCD', 'region.FR-ABCD')`,
+    `insert into reference.regions (country_code, code, label_key)
+     values ('FR', 'GB-ZZ', 'region.GB-ZZ')`,
+  );
+  add(
+    "regions_label_key",
+    `insert into reference.regions (country_code, code, label_key)
+     values ('FR', 'FR-ZZ', 'region.ZZ')`,
+  );
+  add(
+    "regions_retired",
+    `insert into reference.regions (country_code, code, label_key, introduced_at, retired_at)
+     values ('FR', 'FR-ZZ', 'region.FR-ZZ', now(), now() - interval '1 day')`,
+  );
+  // Price bands: the table is empty, the rows below exist in the transaction only.
+  const band = (
+    code: string,
+    key: string,
+    min: number,
+    max: number,
+    net = "",
+    more = ["", ""],
+  ) =>
+    `insert into reference.price_bands
+       (currency, code, label_key, min_amount_minor, max_amount_minor${net === "" ? "" : ", net_min_amount_minor, net_max_amount_minor, net_basis_label, net_computed_at"}${more[0]})
+     values ('EUR', '${code}', '${key}', ${min}, ${max}${net === "" ? "" : `, ${net}`}${more[1]})`;
+  add(
+    "price_bands_code_format",
+    band("Bad-Code", "price_band.Bad-Code", 0, 10),
+  );
+  add("price_bands_label_key", band("fine", "price_bands.fine", 0, 10));
+  add(
+    "price_bands_bounds",
+    band("neg", "price_band.neg", -1, 10),
+    band("reversed", "price_band.reversed", 50, 10),
+  );
+  add(
+    "price_bands_retired",
+    band("fine", "price_band.fine", 0, 10, "", [
+      ", introduced_at, retired_at",
+      ", now(), now() - interval '1 day'",
+    ]),
+  );
+  add(
+    "price_bands_net_pair",
+    band("pair", "price_band.pair", 10000, 50000, "6000, null, 'basis', now()"),
+  );
+  add(
+    "price_bands_net_within_gross",
+    band(
+      "high",
+      "price_band.high",
+      10000,
+      50000,
+      "12000, 30000, 'basis', now()",
+    ),
+    band(
+      "over",
+      "price_band.over",
+      10000,
+      50000,
+      "6000, 60000, 'basis', now()",
+    ),
+    band(
+      "below",
+      "price_band.below",
+      10000,
+      50000,
+      "-1, 30000, 'basis', now()",
+    ),
+    band(
+      "reverse",
+      "price_band.reverse",
+      10000,
+      50000,
+      "9000, 8000, 'basis', now()",
+    ),
+  );
+  add(
+    "price_bands_net_needs_basis",
+    band(
+      "nobasis",
+      "price_band.nobasis",
+      10000,
+      50000,
+      "6000, 30000, null, now()",
+    ),
+    band(
+      "nodate",
+      "price_band.nodate",
+      10000,
+      50000,
+      "6000, 30000, 'basis', null",
+    ),
+  );
+  return cases;
+})();
+
+const TABLES_OF_THE_LISTS = [
+  ...CODE_LISTS.map((list) => list.table),
+  "regions",
+  "price_bands",
+];
+
+describe("L2AT-5: every check constraint of the Lot 2 lists has a case", () => {
+  it("inventories exactly the check constraints of the 14 lists", async () => {
+    const rows = await migration<{ name: string }[]>`
+      select conname as name
+        from pg_constraint
+       where contype = 'c'
+         and connamespace = 'reference'::regnamespace
+         and conrelid::regclass::text = any(${TABLES_OF_THE_LISTS.map((table) => `reference.${table}`)})
+       order by conname`;
+    expect(rows.map((row) => row.name)).toEqual(
+      Object.keys(CONSTRAINT_CASES).sort(),
+    );
+  });
+
+  const flat = Object.entries(CONSTRAINT_CASES).flatMap(
+    ([constraint, statements]) =>
+      statements.map((statement, index) => ({
+        constraint,
+        index,
+        statement,
+        table: TABLES_OF_THE_LISTS.find((name) =>
+          constraint.startsWith(`${name}_`),
+        ),
+      })),
+  );
+
+  it.each(flat)(
+    "refuses $constraint (case $index) by that constraint",
+    async ({ constraint, statement }) => {
+      expect(await refusalOf(statement)).toEqual({
+        outcome: "refused",
+        code: CHECK_VIOLATION,
+        constraint,
+      });
+    },
+  );
+
+  it.each(flat)(
+    "accepts the case $index of $constraint once it is dropped (mutation)",
+    async ({ constraint, statement, table }) => {
+      expect(
+        await refusalOf(
+          statement,
+          `alter table reference.${table} drop constraint ${constraint}`,
+        ),
+      ).toEqual({ outcome: "accepted" });
+    },
+  );
+});

@@ -22,6 +22,7 @@ import {
   findRouteFileViolations,
   findVitrineSnapshotChanges,
   PLATFORM_EXPORTS,
+  WEB_STRUCTURAL_SEGMENTS,
   PLATFORM_NETWORK_FILES,
   HARD_CODED_COLOR_PATTERN,
   HARD_CODED_LENGTH_PATTERN,
@@ -704,10 +705,12 @@ describe("G4 replaced: no image outside the brand asset manifest (18 §5 G4)", (
 // J4S-7: the error collector sends location.pathname (error-collector.ts l. 42); a name or a handle
 // in a connected-space path would reach `ops`. Segments are opaque identifiers or fixed words.
 describe("J4S-7: no name or handle in a member path", () => {
-  it("carries no dynamic segment outside the closed list under [locale]/(member)", () => {
+  it("carries no dynamic segment outside the closed list in any tree of src/app (L2AT-4)", () => {
     expect(
       findDynamicSegmentViolations(
-        path.join(WEB_ROOT, "src", "app", "[locale]", "(member)"),
+        path.join(WEB_ROOT, "src", "app"),
+        undefined,
+        WEB_STRUCTURAL_SEGMENTS,
       ),
     ).toEqual([]);
   });

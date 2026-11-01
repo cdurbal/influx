@@ -24,6 +24,7 @@ import {
   fingerprintOf,
   normalizeMessage,
   routeModelOf,
+  type RouteModelFilter,
   scrubStack,
   scrubText,
 } from "./scrub.ts";
@@ -75,6 +76,8 @@ export type OpsRecorderSettings = {
   version: string;
   instance: string;
   now?: () => Date;
+  /** Tests only: the closed list of route models is the default (L2AS-2). */
+  routeModels?: RouteModelFilter;
 };
 
 const UUID_PATTERN =
@@ -118,6 +121,7 @@ export class OpsRecorder {
   private lastCpu = process.cpuUsage();
   private lastCpuAt = Date.now();
   private processMinute: number;
+  private readonly isKnownRoute: RouteModelFilter | undefined;
   private timer: NodeJS.Timeout | null = null;
   private flushing: Promise<void> | null = null;
 
@@ -129,6 +133,7 @@ export class OpsRecorder {
       scrubText(settings.instance, 64).replace(/[^A-Za-z0-9._:-]/g, "-") ||
       "api";
     this.now = settings.now ?? (() => new Date());
+    this.isKnownRoute = settings.routeModels;
     this.processMinute = minuteOf(this.now());
   }
 
@@ -149,7 +154,7 @@ export class OpsRecorder {
       raw === undefined
         ? `${errorType}${code} (message withheld)`
         : `${raw}${code}`;
-    const route = routeModelOf(context.route);
+    const route = routeModelOf(context.route, this.isKnownRoute);
     const stack = scrubStack(safe.stack, STACK_MAX);
     this.enqueue({
       source: "server",
@@ -192,7 +197,7 @@ export class OpsRecorder {
         service: input.surface,
         errorType,
         rawMessage: input.message,
-        route: routeModelOf(input.page),
+        route: routeModelOf(input.page, this.isKnownRoute),
         stack: scrubStack(input.stack, STACK_MAX),
         requestId: null,
         accountId,
@@ -241,7 +246,9 @@ export class OpsRecorder {
     }
     const minute = minuteOf(this.now());
     const model =
-      route === undefined ? "unmatched" : (routeModelOf(route) ?? "unmatched");
+      route === undefined
+        ? "unmatched"
+        : (routeModelOf(route, this.isKnownRoute) ?? "unmatched");
     let cells = this.requests.get(minute);
     if (cells === undefined) {
       cells = new Map();

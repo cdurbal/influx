@@ -354,13 +354,34 @@ const DYNAMIC_SEGMENT = /^\[.*\]$/;
 const LITERAL_SLUG = /^[A-Za-z0-9/-]+$/;
 
 /**
- * J4S-7: the pages and routes under a connected-space directory (apps/web `[locale]/(member)`,
- * apps/backoffice `(app)`) whose path holds a dynamic segment (`[x]`, `[...x]`, `[[...x]]`) outside
- * the closed list. Returns "relative/dir: [segment] (message)".
+ * J4S-7 (L2AT-4): the dynamic segments that are not data, by position from the root of `src/app`:
+ * the locale (a closed set, fr and en), the catch-all that answers the localized 404 (it renders
+ * nothing and calls `notFound()`), and the relay route (`api/[...path]`, pinned by the route-file
+ * and fingerprint guards). Exact positions, never a name: `[locale]` below another directory, or
+ * the same catch-all one level deeper, is still a violation.
+ */
+export const WEB_STRUCTURAL_SEGMENTS: readonly string[] = [
+  "[locale]",
+  "[locale]/[...rest]",
+  "api/[...path]",
+];
+
+/** The backoffice has the relay route only (L2AT-4). */
+export const BACKOFFICE_STRUCTURAL_SEGMENTS: readonly string[] = [
+  "api/[...path]",
+];
+
+/**
+ * J4S-7: the pages and routes under a front's `src/app` (every tree since L2B, not only
+ * `[locale]/(member)` and `(app)`) whose path holds a dynamic segment (`[x]`, `[...x]`,
+ * `[[...x]]`) outside the closed list. `structural` lists, by position from the root, the segments
+ * that are not data (WEB_STRUCTURAL_SEGMENTS); the closed list itself is unchanged.
+ * Returns "relative/dir: [segment] (message)".
  */
 export function findDynamicSegmentViolations(
   spaceRoot: string,
   allowed: readonly string[] = OPAQUE_DYNAMIC_SEGMENTS,
+  structural: readonly string[] = [],
 ): string[] {
   if (!existsSync(spaceRoot)) {
     return [`${spaceRoot}: connected-space directory not found`];
@@ -373,8 +394,12 @@ export function findDynamicSegmentViolations(
   return [...directories].sort().flatMap((directory) =>
     directory
       .split("/")
-      .filter((segment) => DYNAMIC_SEGMENT.test(segment))
-      .filter((segment) => !allowed.includes(segment))
+      .filter(
+        (segment, index, segments) =>
+          DYNAMIC_SEGMENT.test(segment) &&
+          !allowed.includes(segment) &&
+          !structural.includes(segments.slice(0, index + 1).join("/")),
+      )
       .map((segment) => `${directory}: ${segment} (${OPAQUE_PATH_RULE})`),
   );
 }

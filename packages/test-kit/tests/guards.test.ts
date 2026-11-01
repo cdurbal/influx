@@ -5,6 +5,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import {
+  BACKOFFICE_STRUCTURAL_SEGMENTS,
+  WEB_STRUCTURAL_SEGMENTS,
   classConflicts,
   classesOf,
   findClassListConflicts,
@@ -390,6 +392,56 @@ describe("J4S-7: no name or handle in a connected-space path", () => {
     expect(findDynamicSegmentViolations(root, ["[uuid]"])).toEqual([]);
     expect(findDynamicSegmentViolations(root)).toEqual([
       `a/[uuid]: [uuid] (${OPAQUE_PATH_RULE})`,
+    ]);
+  });
+
+  it("lets the structural segments through at their position only, on a witness tree (L2AT-4)", () => {
+    for (const tree of [
+      "[locale]/page.tsx",
+      "[locale]/[...rest]/page.tsx",
+      "[locale]/(member)/inscription/page.tsx",
+      "api/[...path]/route.ts",
+    ]) {
+      writeFixture(`j4s7-struct-ok/${tree}`, page);
+    }
+    const ok = path.join(TEMP_ROOT, "j4s7-struct-ok");
+    expect(findDynamicSegmentViolations(ok)).not.toEqual([]);
+    expect(
+      findDynamicSegmentViolations(ok, undefined, WEB_STRUCTURAL_SEGMENTS),
+    ).toEqual([]);
+    expect(
+      findDynamicSegmentViolations(
+        ok,
+        undefined,
+        BACKOFFICE_STRUCTURAL_SEGMENTS,
+      ),
+    ).toEqual([
+      `[locale]: [locale] (${OPAQUE_PATH_RULE})`,
+      `[locale]/(member)/inscription: [locale] (${OPAQUE_PATH_RULE})`,
+      `[locale]/[...rest]: [locale] (${OPAQUE_PATH_RULE})`,
+      `[locale]/[...rest]: [...rest] (${OPAQUE_PATH_RULE})`,
+    ]);
+  });
+
+  it("still rejects a structural segment out of position, and a name under a structural one", () => {
+    writeFixture("j4s7-struct-bad/[locale]/profil/[handle]/page.tsx", page);
+    writeFixture("j4s7-struct-bad/[locale]/blog/[...rest]/page.tsx", page);
+    writeFixture("j4s7-struct-bad/espace/[locale]/page.tsx", page);
+    writeFixture(
+      "j4s7-struct-bad/api/[...path]/[alias]/route.ts",
+      "export {};\n",
+    );
+    expect(
+      findDynamicSegmentViolations(
+        path.join(TEMP_ROOT, "j4s7-struct-bad"),
+        undefined,
+        WEB_STRUCTURAL_SEGMENTS,
+      ),
+    ).toEqual([
+      `[locale]/blog/[...rest]: [...rest] (${OPAQUE_PATH_RULE})`,
+      `[locale]/profil/[handle]: [handle] (${OPAQUE_PATH_RULE})`,
+      `api/[...path]/[alias]: [alias] (${OPAQUE_PATH_RULE})`,
+      `espace/[locale]: [locale] (${OPAQUE_PATH_RULE})`,
     ]);
   });
 
