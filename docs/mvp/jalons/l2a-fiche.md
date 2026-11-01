@@ -135,3 +135,66 @@ J4S-7, SNT-3, PLS-3, PLT-6).
 ## Revue
 
 (rempli par `/jalon-run` : `L2AT-n`, `L2AS-n`, `L2AU-n` pour le test du logo)
+
+### Test du logo (ligne 02, `expert-ux`, 2026-11-01)
+
+Grille de `20` §11.7, sur les 10 captures de `apps/web/test-results/logo-test/` (logo masqué,
+texte courant visible). Lecteur unique (`expert-ux`) : le test à **deux personnes extérieures** de
+§11.7 « En revue » reste à faire à la recette ; ce qui suit en est la lecture préparatoire.
+
+**Signature reconnue en premier, par capture**
+
+| Capture | Reconnu en premier | Cause visible |
+|---|---|---|
+| accueil-marque-1440 | Aucune franchement (outil sombre générique) ; Spotify faible | Rail à gauche et cartes de 16 px neutres ; halo vert sous l'en-tête et barre verte de l'item actif. INFLUX seulement par le texte « Un commercial INFLUX vous met en relation » et un point de rôle de 8 px |
+| accueil-marque-375 | Spotify, faible à moyen | Barre du bas à icône + libellé, trait vert sur l'item actif, pilule « English », halo ; aucune signature INFLUX hors du point de rôle |
+| accueil-createur-1440 | Idem marque : aucune franchement ; Spotify faible | Mêmes causes ; seul le point rose distingue l'espace de la marque |
+| accueil-createur-375 | Spotify, faible à moyen | Mêmes causes que marque-375 |
+| accueil-backoffice-1440 | Aucune : outil interne générique | Le bandeau orange d'environnement domine ; aucune pilule verte, vert limité à l'item actif ; pas de signature INFLUX visible (la barre violette n'existe que dans la vue identifiée, absente de la capture) |
+| accueil-backoffice-375 | Aucune | Écran « poste de travail » (F7) : texte et bouton neutre, aucun effet ; rien de Spotify ni d'INFLUX hors le texte du bandeau |
+| connexion-1440 | **Spotify** | Seule pilule verte lumineuse (ombre) sur noir, halo vert derrière le titre ; rien d'autre ne signe INFLUX |
+| connexion-375 | **Spotify** (plus net) | Même cause, la pilule pleine largeur est l'unique objet saillant de l'écran |
+| mon-compte-1440 | Aucune ; Spotify faible | Liste de lignes à icône et chevron (écran de réglages), halo ; point de rôle rose seul signe INFLUX |
+| mon-compte-375 | Spotify faible | Barre du bas, trait vert de l'item actif ; même point de rôle |
+
+**Parades de §11.7, une à une**
+
+| Parade | Résultat |
+|---|---|
+| Jamais de bouton vert rond à icône seule | Tenue sur 10/10 : le seul bouton vert est « Recevoir mon compte » (pilule à libellé, connexion) ; les autres boutons sont neutres, à libellé |
+| Halo jamais sur une carte | Tenue sur 10/10 : le halo reste sous l'en-tête, aucune carte n'en porte. (L'ombre lumineuse de la pilule verte est celle de F6, hors cette parade.) |
+| Surtitre jamais vert | Tenue : « ÉTAPE 1 SUR 3 » est gris (`connexion`) ; aucun autre surtitre |
+| Vert rare (jamais en texte, montant ou état) | Tenue : vert limité à l'indicateur d'item actif et à la pilule principale |
+| Commercial nommé et statuts datés au premier écran | Sans objet avant les Lots 4 et 5 (aucun commercial affecté, aucune mise en relation) ; non compté en défaut. À contrôler à la recette du Lot 4 |
+| Provenance des montants (P3), barre violette de la vue identifiée | Sans objet : aucun montant ni vue identifiée dans ces écrans ; non compté |
+
+**Constats**
+
+- **L2AU-1 (moyen) : la connexion évoque Spotify en premier**, 1440 et 375. Cause : une seule pilule
+  verte lumineuse + halo + noir, et aucune signature INFLUX sur l'écran (le logo masqué ne laisse
+  rien qui dise « marketplace courtée »). Renforts **additifs** proposés, sans retirer d'effet ni de
+  couleur : (a) une ligne d'assurance de médiation sous le titre, par exemple « Un commercial INFLUX
+  vous accompagne jusqu'à la mise en relation » / « An INFLUX sales rep guides you through to the
+  introduction » (P5 ; formulation à aligner avec `expert-marketing`, sans promesse de délai) ; (b) le
+  point de rôle de la porte d'entrée reprise en pastille avec libellé (« Marque » / « Créateur »)
+  au-dessus du titre, quand la porte est connue.
+- **L2AU-2 (faible) : la paire de couleurs de rôle, signature de marque (§11.7), est quasi invisible**
+  : point de 8 px à côté de « Espace marque / créateur » sur 6 captures. Renfort : pastille à
+  libellé et point d'au moins 12 px en tête de la colonne (poste de travail) et de l'en-tête
+  (téléphone), tokens de rôle existants, aucune nouvelle couleur.
+- **L2AU-3 (moyen, accessibilité, hors test logo) : liens sans signe de lien.** « Politique de
+  confidentialité (nouvel onglet) » (`connexion`, centré et en gras sur 375, il se lit comme un
+  titre) et « Gérer mon compte » (carte des accueils) ne sont ni soulignés ni distincts du texte
+  courant, alors que le lien « Voir les échecs à traiter » du backoffice est souligné. WCAG 1.4.1 :
+  souligner, ou donner l'allure d'un bouton secondaire avec icône ; aligner à gauche sur 375.
+- **L2AU-4 (faible, hors test logo) : doublons à 1440 sur les accueils.** « Connecté avec … » figure
+  dans le pied du rail et dans la bannière bleue de la carte, et deux boutons de déconnexion
+  coexistent (« Se déconnecter » du rail, « Me déconnecter » de la carte). Garder le rail, retirer
+  carte et bannière quand l'accueil recevra son contenu (L2B) ; pas d'action avant.
+
+**Verdict.** Un seul gabarit, la connexion, fait lire Spotify en premier ; les écrans connectés se
+lisent comme un outil sombre générique, ni Spotify ni encore INFLUX : le risque est le manque de
+signature plus que l'excès d'emprunt. Les renforts de L2AU-1 et L2AU-2 sont additifs ; **aucun ne
+retire un effet ou une couleur gardés par le fondateur (F6) : pas d'arrêt `fondateur`**. Si le test
+à deux personnes extérieures cite encore Spotify après ces renforts, la suite (alléger l'ombre
+lumineuse ou le halo de la connexion) revient au fondateur.
