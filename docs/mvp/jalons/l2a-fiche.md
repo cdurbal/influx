@@ -55,7 +55,7 @@ taux, net ni tarif (CLAUDE.md §2, D48, D78).
 | 01 | `docs(mvp): charter traceability without orphan rule (RK-fin)` | `18` §12.7 : chaque phrase normative de `20` §11 a sa ligne, chaque preuve citée existe ; captures logo masqué pour 02, non commitées | contrôle scripté des identifiants |
 | 02 | — (`ux`, sans commit) | Test du logo de `20` §11.7 par `expert-ux` (RK-fin) | — |
 | 03 | `chore(deps): next 16.4 and zod 4.6.6 for the audited advisories` | PLS-1 ; **I-4** (`package.json` des fronts) | `pnpm audit --prod --audit-level high` ; suite complète |
-| 04 | `test(e2e): simulated clock for the journey-resume waits` | Levier de `21` §2.3 point 3 | `journey-resume` trois fois avant et après |
+| 04 | `test(e2e): simulated clock for the journey-resume abandon wait` | Levier de `21` §2.3 point 3 | `journey-resume` trois fois avant et après |
 | 05 | `fix(web): /health cache window from the answer, never a 429` | PLS-3, PLT-6 | 3 cas unitaires au moins |
 | 06 | `test(e2e): landing menu scrolling and brand links` | SNT-3 | 4 cas e2e au plus, ≤ 8 s |
 | 07 | `test: no name or handle in a connected-space path` | J4S-7, garde avant les routes de profil de L2B | garde + cas négatif |
@@ -69,7 +69,7 @@ Aucune famille nouvelle : les cas portent la règle qu'ils prouvent (`04` §4.2,
 J4S-7, SNT-3, PLS-3, PLT-6).
 
 - **03** : `pnpm audit --prod --audit-level high` exit 0 ; `pnpm check` puis `pnpm test:e2e` verts.
-- **04** : cumul médian de `journey-resume` sur trois invocations avant et après ; gain ≥ 10 s ;
+- **04** : cumul médian de `journey-resume` sur trois invocations avant et après ; gain environ 3 s, décision du fondateur ; le reste du levier de `21` §2.3 point 3 (≈ 7 à 10 s) est reporté : cherché aux jalons suivants (cas redondants, éclats CI) ;
   assertions identiques (diff limité aux attentes et à l'horloge).
 - **05** : `tests/status-cache.test.ts` + 3 cas au moins (échéance au règlement, levée synchrone, 429
   jamais gardé), horloge injectée ; plancher web relevé.
@@ -79,12 +79,12 @@ J4S-7, SNT-3, PLS-3, PLT-6).
 - **09** : T2.1 à T2.7 avec les quatorze tables ; T16.4 et T16.5 étendus à `price_bands` ; fichier
   db-tests neuf : âge 17 refusé, contraintes nettes, tranches contiguës, valeurs exactes ; plancher base
   relevé ; suite base complète.
-- **Durée e2e du jalon** : ajout ≤ 20 s (06 seul en ajoute) ; gain de 04 ≥ 10 s ; bilan net dans `run.md`.
+- **Durée e2e du jalon** : ajout ≤ 20 s (06 seul en ajoute) ; gain de 04 : environ 3 s, décision du fondateur ; le reste du levier de `21` §2.3 point 3 (≈ 7 à 10 s) est reporté : cherché aux jalons suivants (cas redondants, éclats CI) ; bilan net dans `run.md`.
 
 ## Critère de fin
 
 - [ ] `pnpm audit --prod --audit-level high` sans critique ni élevée (03). *Preuve : sortie, exit 0.*
-- [ ] e2e allégé : `journey-resume` au moins 10 s de moins (04) ; ajout du jalon ≤ 20 s (somme des
+- [ ] e2e allégé : `journey-resume` environ 3 s de moins, abandon seul (04, décision du fondateur ; reste du levier reporté) ; ajout du jalon ≤ 20 s (somme des
       médianes des cas ajoutés, trois passages de clôture) ; job « Browser journeys » sous 8 min.
       *Preuve : `run.md`, rapport JSON, run CI.*
 - [ ] `0201` appliquée sur `staging`. *Preuve : job « Migrate staging » vert, comptes de lignes des
@@ -118,8 +118,8 @@ J4S-7, SNT-3, PLS-3, PLT-6).
 - 03 : `sharp` < 0.35.5 et `source-map-js` < 1.2.2 (élevées, transitives de `next`, relevé du
   2026-11-01) : si la montée de `next` ne les corrige pas, `overrides` exacts et commentés (EC) ;
   `minimumReleaseAge: 1440` peut retarder la dernière version.
-- 04 : si le compte à rebours dépend d'une heure serveur, l'horloge simulée changerait une assertion :
-  arrêt.
+- 04 : le compte à rebours dépend d'une heure serveur (`page.clock` ne le gouverne pas) : laissé tel
+  quel, 04 rescopé sur l'abandon (fondateur, 2026-11-01) ; arrêt si une assertion de l'abandon change.
 - I-4 : 03 et 09 portent le marqueur à la revue, par attestation (D71).
 - Risques : RK-e2e (marge) ; DS-flaky (`t14-backoffice-invitations-route`) relevé à chaque passage ;
   hors L2A : J9S-7 et PLS-7, PLK-1 (L2C) ; PLT-5, PLS-5, PLS-6 (L2F).

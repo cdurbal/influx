@@ -63,7 +63,7 @@
 - **Budget e2e du Lot 2** (décision du fondateur, 2026-10-31 ; mesure : `archives/jalons/pl-fiche.md` § Mesure PL-12) :
   1. **Ajout d'au plus 20 s par jalon**, mesuré à la clôture : somme des durées médianes, sur les trois passages de clôture, des cas ajoutés ou allongés (`test-results/e2e-report.json`), notée dans `run.md` ; le cumul total reste indicatif (bruit ±5 %).
   2. **Job « Browser journeys » sous 8 min** sur chaque passage vert ; garde-fous de 5 et 15 min inchangés. Dépassement : levier au jalon suivant ou arbitrage.
-  3. **Levier du premier jalon : horloge simulée** (`page.clock`) sur les deux attentes de `journey-resume` (−10 à −13 s) ; règle des cas neufs : un cas par page et par langue, largeurs en boucle dans le cas.
+  3. **Levier du premier jalon : horloge simulée** (`page.clock`) sur les deux attentes de `journey-resume` (−10 à −13 s ; 2026-11-01 : `page.clock` ne couvre que l'abandon, −3 s, le compte à rebours dépendant d'une heure serveur ; le reste est reporté) ; règle des cas neufs : un cas par page et par langue, largeurs en boucle dans le cas.
   4. **Levier structurel** (éclats CI, `--shard`) à arbitrer par `architecte` sur recommandation `testeur`, dès qu'un passage dépasse 7 min 30 ou avant le Lot 3.
 - **Définition de « terminé » pour un jalon :**
   - [ ] `pnpm check` vert en local et en CI (format, types, lint, tests, build) ;
