@@ -173,7 +173,7 @@ Mobile 375 — gabarit commun aux deux espaces (ici : espace marque, page « Mes
 |---|---|
 | Points de rupture | Sous `breakpoint-lg` (1 024 px) : en-tête + barre du bas. Conception à 375 px, vérification à 320 px (WCAG 1.4.10) : cinq cellules de 64 px restent au-dessus de `size-touch-target` |
 | Tablette (768–1 023 px) | Même gabarit. Cellules de la barre plafonnées à `spacing-11` (6 rem), groupe centré ; contenu en `container-narrow`, centré. **Pas de colonne latérale** : une tablette en portrait se tient à deux mains, et 16 rem de colonne ne laisseraient que 512 px au contenu |
-| En-tête | INFLUX (lien vers l'accueil de l'espace) · cloche (Lot 4, absente avant) · langue. `surface-page`, filet bas `border-default`, sans flou ni transparence |
+| En-tête | INFLUX (lien vers l'accueil de l'espace) · pastille de rôle de l'espace (« Espace marque », « Espace créateur », `20` §11.3 usage (1) ; L2AU-2) · cloche (Lot 4, absente avant) · langue. Ni débordement ni troncature à 320 px. `surface-page`, filet bas `border-default`, sans flou ni transparence |
 | Barre du bas | Hauteur `size-nav-bottom-height` **plus la zone de sécurité de l'appareil** (`env(safe-area-inset-bottom)`, `viewport-fit=cover`) : sans elle, l'indicateur d'accueil de l'iPhone recouvre les libellés |
 | Libellé toujours visible | Jamais d'icône seule. Une icône seule oblige à apprendre un vocabulaire visuel ; un créateur qui vient trois fois par mois ne l'apprend pas. `text-xs`, Max 11 caractères FR **et** EN. *« Candidatures » (12) dépasse : à raccourcir par `expert-marketing`, ou limite portée à 12 après essai à 320 px* |
 | Item actif | **Trois porteurs simultanés** : `aria-current="page"`, libellé et icône en `font-weight-semibold` + `color-text-primary`, et un **trait supérieur** de 2 px `color-nav-item-active-indicator`. Inactif : `color-text-secondary`. Jamais la couleur seule (`CLAUDE.md` §4) |
@@ -224,7 +224,7 @@ Desktop 1440 — gabarit commun aux deux espaces (ici : espace marque, page « M
 |---|---|
 | Point de rupture | ≥ `breakpoint-lg` (1 024 px) ; conception à 1 440. De 1 024 à 1 279 px, colonne inchangée, le contenu garde au moins 768 px. Sous 1 024 px : §2.2. **Aucun menu « hamburger »** dans l'espace membre : cinq items tiennent dans une barre, un menu caché coûte un geste par navigation |
 | Colonne | Largeur fixe `size-member-rail` (16 rem, nom de `02` §21.5) ; collante, pleine hauteur de fenêtre, défilement propre si son contenu dépasse (petite hauteur, zoom) ; `surface-page`, filet droit `border-default`. Le contenu défile seul. Pas de panneau flottant ni de coins arrondis autour de la colonne (`20` §11.7) |
-| En-tête de colonne | INFLUX (lien vers l'accueil de l'espace) et cloche (Lot 4, absente avant) ; dessous, le nom de l'espace précédé du point de rôle (`20` §11.3). Il dit où l'on est ; ce n'est **pas un sélecteur** (un rôle par compte, D41) |
+| En-tête de colonne | INFLUX (lien vers l'accueil de l'espace) et cloche (Lot 4, absente avant) ; dessous, le nom de l'espace dans la pastille neutre de rôle, point de `spacing-3` (`20` §11.3, §11.8 ; L2AU-2). Il dit où l'on est ; ce n'est **pas un sélecteur** (un rôle par compte, D41) |
 | Items | Icône `size-icon-md` + libellé `text-md` sur une ligne + compteur à droite ; hauteur ≥ `size-touch-target`, marge `spacing-2` (l'anneau de focus n'est pas rogné), `radius-md`. Actif : surface `color-nav-item-active-bg`, libellé `text-primary` semi-gras, filet gauche 2 px `color-nav-item-active-indicator`, `aria-current="page"`. Libellés courts, les mêmes que dans la barre du bas (§2.2, un seul `<nav>`). « Compte » est actif sur toutes les pages `/compte/*` |
 | Sous-menu *(D74, 2026-10-29)* | Les pages d'une rubrique sont une liste **imbriquée dans l'entrée active seulement**, dans le même `<nav>` ; sans icône, libellé aligné sur celui de la rubrique, `text-sm`, hauteur ≥ `size-touch-target`. Sur sa page-menu, la rubrique est l'item courant ; sur une sous-page, elle passe à l'état **ancêtre** (`text-primary` semi-gras, sans surface, sans filet, sans `aria-current`) et la sous-entrée porte surface, filet et `aria-current="page"`. Un seul `aria-current` par page. Masqué sous `lg`. Détail : `archives/jalons/sn-fiche.md` |
 | Bloc d'état du compte | Sous les items : état du profil écrit, ce qui manque, `[◦ Compléter mon profil]`. Desktop seulement (sur mobile, il vit sur l'accueil). Arrive avec le profil (Lot 2), absent avant. La complétude **n'est jamais affichée à l'autre partie** (`06` RG57, `07` RG86) |
@@ -391,6 +391,7 @@ Mobile 375                                Desktop 1440 (colonne centrée, contai
 
 | Bloc | Contenu | Règle |
 |---|---|---|
+| Signature de médiation *(L2AU-1)* | Sous le `h1`, en `text-secondary`, à la connexion comme à l'inscription : un commercial INFLUX accompagne jusqu'à la mise en relation, **sans promesse de délai**. Porte connue (inscription seulement, jamais `connexion`) : pastille de rôle « Marque » / « Créateur » au-dessus du `h1` (`20` §11.3 usage (2)) | `20` §11.7, D45 |
 | Rappel de porte | Le profil choisi, **modifiable jusqu'à la création du compte**. « Changer » revient au choix de porte et **décoche le consentement** et efface les champs du profil abandonné | `05` RG3, RG4 |
 | Champ e-mail | Étiquette visible, `type="email"`, `inputmode="email"`, `autocomplete="email"`, `spellcheck="false"`. **Jamais un texte d'exemple seul** | `05` RG115 |
 | Mention d'information | **Visible dès cet écran**, pas repliée dans un accordéon fermé : finalités, **Brevo et Apollo.io nommés**, droits, lien vers la politique de confidentialité | `05` RG6 |
@@ -401,6 +402,8 @@ Mobile 375                                Desktop 1440 (colonne centrée, contai
 | Clé | FR (intention) | EN (intention) | Max |
 |---|---|---|---|
 | `auth.step1.title` | Continuer avec votre e-mail | Continue with your email | 40 |
+| `auth.step1.mediation` *(L2AU-1)* | Un commercial INFLUX vous accompagne jusqu'à la mise en relation. | An INFLUX salesperson guides you through to the introduction. | 80 |
+| `auth.step1.role.advertiser` · `.creator` *(L2AU-1)* | Marque · Créateur | Brand · Creator | 12 |
 | `auth.step1.lead` | Pas de mot de passe : nous vous envoyons un code à 6 chiffres. | No password: we send you a 6-digit code. | 90 |
 | `auth.step1.roleRecap.advertiser` | Vous vous inscrivez comme **marque**. | You are signing up as a **brand**. | 45 |
 | `auth.step1.roleRecap.creator` | Vous vous inscrivez comme **créateur**. | You are signing up as a **creator**. | 45 |

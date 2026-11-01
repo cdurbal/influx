@@ -539,10 +539,14 @@ rempli du fond sombre opaque de sa famille, D75 RK-11).
 | `color-verified-text` *(nouveau)* | `#4da3ff` | KEO `platform-verified` | Texte et icône du badge vérifié ; même valeur que l'information, rôle distinct pour pouvoir diverger |
 | `color-verified-border` *(nouveau)* | alias `feedback-info-border` | alias | Contour du badge vérifié (KEO `rgba` remplacé) |
 
-Les couleurs de rôle ne servent **que** de marque visuelle (`12` RG7) : un point de `spacing-2`
-toujours suivi du rôle écrit. **Usages autorisés, liste fermée :** (1) en-tête de colonne d'un espace
-(« Espace marque », « Espace créateur ») ; (2) les deux cartes de l'écran de choix d'une porte
-(`05` RG1) ; (3) au backoffice, devant le rôle écrit d'un compte ou d'un participant ; (4) dans la
+Les couleurs de rôle ne servent **que** de marque visuelle (`12` RG7) : un point toujours suivi du
+rôle écrit, de `spacing-3` dans la pastille neutre des espaces membres (`RoleBadge`, §11.8 ; L2AU-2,
+fondateur 2026-11-01), de `spacing-2` au backoffice. **Usages autorisés, liste fermée :** (1) en-tête
+de colonne d'un espace (« Espace marque », « Espace créateur »), et en-tête des espaces sous `lg`
+(L2AU-2) ; (2) les deux cartes de l'écran de choix d'une porte (`05` RG1), et l'écran 1 de
+l'inscription quand la porte est connue, au-dessus du `h1` (« Marque », « Créateur » ; jamais sur
+`connexion` ; L2AU-1, élargissement accordé par le fondateur le 2026-11-01) ; (3) au backoffice,
+devant le rôle écrit d'un compte ou d'un participant ; (4) dans la
 conversation à trois (Lot 4), devant le nom et le rôle écrit, jamais en fond de bulle. **Interdits :**
 texte coloré (nom, montant, titre), fond de surface, bouton, contour de carte, état.
 
@@ -837,7 +841,11 @@ ressemblance. Test de §1 : *sans le logo, reconnaît-on INFLUX ou Spotify ?*
 
 **Ce qui signe INFLUX** et doit se voir sur chaque gabarit : le commercial nommé (« Prénom —
 INFLUX », P5), les statuts écrits et datés (P6), la provenance à côté de chaque montant (P3), la paire
-de couleurs de rôle en marque visuelle, la barre violette de la vue identifiée au backoffice.
+de couleurs de rôle en marque visuelle, la barre violette de la vue identifiée au backoffice. Avant
+le Lot 4 *(L2AU-1 à L2AU-3, test du logo de L2A)* : la ligne de médiation sous le `h1` de l'écran 1
+(« Un commercial INFLUX vous accompagne jusqu'à la mise en relation », sans délai), la pastille de
+rôle de l'en-tête à toutes les largeurs, et des liens soulignés (WCAG 1.4.1), jamais tenus par la
+seule graisse.
 
 **Parades du jalon RK** *(D75)*. Zoom et réduction sur une pilule verte lumineuse, c'est le geste du
 bouton de lecture de Spotify. D'où : **jamais de bouton vert rond à icône seule**, toujours un libellé
@@ -885,10 +893,10 @@ un état non cité est sans objet.
 |---|---|---|
 | Bouton principal (pilule) | Membres, BO | R `action-primary-bg` + `text-on-action` + ombre `--effect-action-glow` · S `-hover` + ombre `--effect-action-glow-hover` + agrandissement `scale-hover` (1,03) · A `-active` + réduction `scale-press` (0,98) · D `action-disabled-bg` + `text-disabled`, `aria-disabled`, explication adjacente, **ni ombre ni transformation** · C libellé d'action en cours, `aria-busy`, largeur figée, pas d'icône tournante seule · E portée par le formulaire, jamais par le bouton. Transformations sous `motion-safe:` seulement (D75 RK-1, RK-2). Hauteur `size-button-md`/`-lg` (membres), `spacing-bo-row-h` (BO, `size-bo-control` en ligne). `font-display`, `font-weight-action` (700), `radius-pill`. **Petit bouton des écrans du backoffice** (`size-bo-control`) : ni ombre ni transformation (RK-4) ; boutons de connexion du backoffice : effets gardés |
 | Bouton secondaire | Membres, BO | R `action-secondary-bg` + contour `action-secondary-border` (`border-width-action-secondary`) + `text-primary` en `font-weight-action-secondary` (600, D75 RK-3) · S `-bg-hover` + `-border-hover` + `scale-hover` · A `-bg-active` + `scale-press` · D comme le principal, sans contour, sans transformation · C idem · petit bouton BO : sans transformation |
-| Bouton texte | Membres, BO | R `text-primary` en `font-weight-action-secondary` (600, D75), sans fond · S `action-secondary-bg-hover`, **sans agrandissement** · D `text-disabled` · cible ≥ `size-touch-target` (membres) |
+| Bouton texte | Membres, BO | R `text-primary` en `font-weight-action-secondary` (600, D75), sans fond · S `action-secondary-bg-hover`, **sans agrandissement** · D `text-disabled` · cible ≥ `size-touch-target` (membres) · **lien** (`<a>`) à l'allure de bouton texte *(L2AU-3)* : souligné, texte aligné à gauche, 600 gardé (TK1.3) ; un bouton (`<button>`) ne l'est pas |
 | Bouton danger (D72) | Membres, BO | R `action-danger-bg` + `text-on-danger` · S, A `-hover`, `-active` · D `action-disabled-bg` + `text-disabled` · C idem principal · libellé qui dit l'action ; au BO, jamais par raccourci (§5, niveau 3) |
 | Carte | Membres ; BO pour les blocs du tableau de bord et des fiches | R `surface-card` + `border-default` + `radius-card` (16 px) + `spacing-inset-card` ; bloc intérieur `surface-raised` + `radius-md` · **carte cliquable seulement** (D75 RK-10) : R contour `border-strong`, S `surface-raised` + contour `border-hover` · carte non cliquable : immobile · F anneau autour de la carte (lien étiré sur le titre) · C squelette de même hauteur · E notice dans la carte |
-| Badge de rôle | Membres (liste fermée §11.3), BO | Point `spacing-2` `role-advertiser` / `role-creator` + rôle écrit `text-secondary` ; nom en `text-primary` (F4 maintenu, D75 RK-12) |
+| Badge de rôle | Membres (liste fermée §11.3), BO | Membres *(L2AU-2)* : pastille neutre `surface-raised` + contour `border-default` + `radius-pill`, point `spacing-3` `role-advertiser` / `role-creator` + rôle écrit `text-secondary` (8,69:1, §11.4). BO : point `spacing-2` + rôle écrit `text-secondary`. Nom en `text-primary` (F4 maintenu, D75 RK-12) |
 | Badge vérifié | Membres, BO | Pilule **remplie** `verified-bg` (D75 RK-11), contour `verified-border`, icône `badge-check` + « Vérifié · ⟨réseau⟩ · ⟨mois année⟩ » (texte F3 inchangé) en `verified-text`, `font-display` 700 |
 | Badge de statut | Membres, BO | Pilule **remplie d'une teinte opaque** (D75 RK-11), libellé écrit, `font-display` 700 ; tons : neutre (`surface-raised`, `text-secondary`), succès, alerte, information (`feedback-*-bg`, texte et contour de la famille), erreur (`badge-error-bg`, texte et contour D72). **Jamais plein de vert ni d'une teinte vive** : le plein vif est réservé à l'action ; jamais vert |
 | Onglets segmentés (`tablist`) — *réservés aux canaux d'une conversation (§7) depuis D74* | Membres, BO | Piste `surface-raised` + `border-default` + `radius-pill` · R inactif `text-secondary` · S `text-primary` · actif `surface-active` + `text-primary` 600 + `aria-selected` · compteurs écrits · flèches au clavier. Jamais vert |

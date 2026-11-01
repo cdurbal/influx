@@ -655,3 +655,81 @@ test("axe finds nothing on the creator home at 375, 768, 1024 and 1440 px (WCAG 
     });
   }
 });
+
+// L2AU-2 and L2AU-3 (logo test of L2A; 20 §11.3, §11.8; 17 §2.2, §2.3): the space's role pill in
+// the header at every width, a dot of 12 px on a neutral ground, nothing cut or overflowing at
+// 320 px; the link of the home card underlined and aligned to the left. One case per language.
+for (const [locale, role] of [
+  ["fr", "creator"],
+  ["en", "advertiser"],
+] as const) {
+  test(`L2AU-2, L2AU-3: the ${role} home in ${locale}, the role pill in the header and an underlined link, at 320, 375 and 1440 px`, async ({
+    page,
+  }) => {
+    await openHome(page, locale, role);
+    // The banner: the page's own header, inside <main>, titles the home with the same words.
+    const pill = page
+      .getByRole("banner")
+      .getByText(MEMBER[locale].space[role], { exact: true });
+    for (const width of [320, 375, 1440]) {
+      const where = `${width} px`;
+      await page.setViewportSize({ width, height: 900 });
+      await expect(pill, where).toBeVisible();
+      const look = await pill.evaluate((element) => {
+        const style = getComputedStyle(element);
+        const dot = element.querySelector('[aria-hidden="true"]');
+        const header = element.closest("header");
+        const probe = document.createElement("span");
+        element.append(probe);
+        probe.style.backgroundColor = "var(--color-surface-raised)";
+        const raised = getComputedStyle(probe).backgroundColor;
+        probe.remove();
+        return {
+          inHeader: header !== null,
+          neutral: style.backgroundColor === raised,
+          bordered: parseFloat(style.borderTopWidth) > 0,
+          dot: dot?.getBoundingClientRect().width ?? 0,
+          cut: element.scrollWidth > element.clientWidth,
+          lines: Math.round(
+            (element.clientHeight -
+              parseFloat(style.paddingTop) -
+              parseFloat(style.paddingBottom)) /
+              parseFloat(style.lineHeight),
+          ),
+          headerCut:
+            header === null ? true : header.scrollWidth > header.clientWidth,
+          right: Math.max(
+            ...[...(header?.children ?? [])].map(
+              (child) => child.getBoundingClientRect().right,
+            ),
+          ),
+        };
+      });
+      expect(look.inHeader, where).toBe(true);
+      expect(look.neutral, where).toBe(true);
+      expect(look.bordered, where).toBe(true);
+      expect(look.dot, where).toBeGreaterThanOrEqual(12);
+      expect([look.cut, look.headerCut, look.lines], where).toEqual([
+        false,
+        false,
+        1,
+      ]);
+      expect(look.right, where).toBeLessThanOrEqual(width);
+      if (width === 320) continue;
+      const link = page.getByRole("link", { name: ACCOUNT[locale].homeLink });
+      const style = await link.evaluate((element) => {
+        const computed = getComputedStyle(element);
+        return {
+          decoration: computed.textDecorationLine,
+          align: computed.textAlign,
+          weight: computed.fontWeight,
+        };
+      });
+      expect(style, where).toEqual({
+        decoration: "underline",
+        align: "left",
+        weight: "600",
+      });
+    }
+  });
+}

@@ -31,7 +31,7 @@ import {
   SCREEN_CLASSES,
   SECONDARY_BUTTON_CLASSES,
   SPACE_SCREEN_CLASSES,
-  TEXT_BUTTON_CLASSES,
+  TEXT_LINK_CLASSES,
   TITLE_CLASSES,
 } from "@/components/auth/auth-classes";
 import { readMe, signOut as closeSession } from "@/components/auth/member-auth";
@@ -475,7 +475,7 @@ function SignedOutPage({ message }: { message: string | null }) {
       )}
       <Link
         href={memberPageHref("signIn", locale)}
-        className={TEXT_BUTTON_CLASSES}
+        className={TEXT_LINK_CLASSES}
       >
         {t("signInAgain")}
       </Link>
@@ -491,7 +491,7 @@ function DeletedPage() {
       <p role="status" className={INFO_CLASSES}>
         {t("text")}
       </p>
-      <Link href="/" className={TEXT_BUTTON_CLASSES}>
+      <Link href="/" className={TEXT_LINK_CLASSES}>
         {t("home")}
       </Link>
     </StandalonePage>

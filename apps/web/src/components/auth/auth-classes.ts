@@ -2,7 +2,10 @@
 // theme, one decision per screen on mobile (skill design-system-influx). Every value is a token
 // of src/styles/tokens.css; nothing here is a literal color, size or spacing (CA22, G3).
 import { cn } from "@/components/ui/class-names";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import {
+  memberButtonClasses,
+  memberTextLinkClasses,
+} from "@/components/member/ui/button-classes";
 import {
   MEMBER_CARD_CLASSES,
   MEMBER_CLICKABLE_CARD_CLASSES,
@@ -58,6 +61,9 @@ export const TEXT_BUTTON_CLASSES = cn(
   memberButtonClasses("text"),
   "self-start",
 );
+
+/** A link with the look of a text button: underlined, aligned to the left (20 §11.8, L2AU-3). */
+export const TEXT_LINK_CLASSES = cn(memberTextLinkClasses(), "self-start");
 
 /** An error: border, text and role="alert", never the color alone (17 §3.6). */
 export const ERROR_CLASSES = cn(

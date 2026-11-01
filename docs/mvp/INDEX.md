@@ -545,32 +545,32 @@
 | 39 | 28 | 0. Conventions de lecture | RG16–RG73 |
 | 67 | 54 | 1. Cadrage : populations, tâches, enseignements du benchmark | RG2–RG117 |
 | 121 | 208 | 2. Architecture de l'information des deux espaces | RG1–RG140 |
-| 329 | 289 | 3. Le parcours d'inscription et de connexion | RG2–RG140 |
-| 618 | 599 | 4. Espace marque | RG1–RG116 |
-| 625 | 44 | ↳ 4.1 M1 — Accueil marque | RG57–RG101 |
-| 669 | 108 | ↳ 4.2 M2 — Profil marque : complétion progressive et couches visibles | RG2–RG102 |
-| 777 | 80 | ↳ 4.3 M3 — Créer une campagne : 8 blocs, 5 étapes, un brouillon permanent | RG4–RG79 |
-| 857 | 105 | ↳ 4.4 M4 — Recherche de créateurs anonymisée | RG1–RG64 |
-| 962 | 57 | ↳ 4.5 M5 — Demander une mise en relation | RG15–RG116 |
-| 1019 | 56 | ↳ 4.6 M6 — Suivi des demandes et des mises en relation | RG73–RG111 |
-| 1075 | 95 | ↳ 4.7 M7 — La conversation à trois (spécification commune, vocabulaire par rôle) | RG7–RG104 |
-| 1170 | 34 | ↳ 4.8 M8 — Le canal de documents | RG65–RG74 |
-| 1204 | 13 | ↳ 4.9 Les autres écrans de l'espace marque | RG3–RG102 |
-| 1217 | 542 | 5. Espace créateur | RG1–RG117 |
-| 1228 | 50 | ↳ 5.1 C1 — Accueil créateur | RG13–RG99 |
-| 1278 | 105 | ↳ 5.2 C2 — Profil créateur : sept blocs, trois couches, une complétude honnête | RG8–RG112 |
-| 1383 | 76 | ↳ 5.3 C3 — Réseaux, preuves et badges | RG1–RG117 |
-| 1459 | 70 | ↳ 5.4 C4 — Mon offre et mes tarifs : l'écran de la transparence financière | RG22–RG73 |
-| 1529 | 55 | ↳ 5.5 C5 — Le fil des campagnes | RG15–RG60 |
-| 1584 | 96 | ↳ 5.6 C6 et C7 — Fiche de campagne et candidature | RG16–RG81 |
-| 1680 | 56 | ↳ 5.7 C8 — Mes candidatures : les huit états | RG67–RG78 |
-| 1736 | 23 | ↳ 5.8 C9 — Conversation, et les autres écrans créateur | RG5–RG102 |
-| 1759 | 172 | 6. Écrans transverses | RG14–RG143 |
-| 1931 | 271 | 7. Les deux écrans qui portent la valeur et le risque | RG4–RG113 |
-| 2202 | 105 | 8. Tokens |  |
-| 2307 | 36 | 9. Écarts et manques constatés | RG2–RG112 |
-| 2343 | 46 | 10. Ce qui reste à valider | RG6–RG109 |
-| 2389 | 51 | 11. Récapitulatif des écrans spécifiés |  |
+| 329 | 292 | 3. Le parcours d'inscription et de connexion | RG2–RG140 |
+| 621 | 599 | 4. Espace marque | RG1–RG116 |
+| 628 | 44 | ↳ 4.1 M1 — Accueil marque | RG57–RG101 |
+| 672 | 108 | ↳ 4.2 M2 — Profil marque : complétion progressive et couches visibles | RG2–RG102 |
+| 780 | 80 | ↳ 4.3 M3 — Créer une campagne : 8 blocs, 5 étapes, un brouillon permanent | RG4–RG79 |
+| 860 | 105 | ↳ 4.4 M4 — Recherche de créateurs anonymisée | RG1–RG64 |
+| 965 | 57 | ↳ 4.5 M5 — Demander une mise en relation | RG15–RG116 |
+| 1022 | 56 | ↳ 4.6 M6 — Suivi des demandes et des mises en relation | RG73–RG111 |
+| 1078 | 95 | ↳ 4.7 M7 — La conversation à trois (spécification commune, vocabulaire par rôle) | RG7–RG104 |
+| 1173 | 34 | ↳ 4.8 M8 — Le canal de documents | RG65–RG74 |
+| 1207 | 13 | ↳ 4.9 Les autres écrans de l'espace marque | RG3–RG102 |
+| 1220 | 542 | 5. Espace créateur | RG1–RG117 |
+| 1231 | 50 | ↳ 5.1 C1 — Accueil créateur | RG13–RG99 |
+| 1281 | 105 | ↳ 5.2 C2 — Profil créateur : sept blocs, trois couches, une complétude honnête | RG8–RG112 |
+| 1386 | 76 | ↳ 5.3 C3 — Réseaux, preuves et badges | RG1–RG117 |
+| 1462 | 70 | ↳ 5.4 C4 — Mon offre et mes tarifs : l'écran de la transparence financière | RG22–RG73 |
+| 1532 | 55 | ↳ 5.5 C5 — Le fil des campagnes | RG15–RG60 |
+| 1587 | 96 | ↳ 5.6 C6 et C7 — Fiche de campagne et candidature | RG16–RG81 |
+| 1683 | 56 | ↳ 5.7 C8 — Mes candidatures : les huit états | RG67–RG78 |
+| 1739 | 23 | ↳ 5.8 C9 — Conversation, et les autres écrans créateur | RG5–RG102 |
+| 1762 | 172 | 6. Écrans transverses | RG14–RG143 |
+| 1934 | 271 | 7. Les deux écrans qui portent la valeur et le risque | RG4–RG113 |
+| 2205 | 105 | 8. Tokens |  |
+| 2310 | 36 | 9. Écarts et manques constatés | RG2–RG112 |
+| 2346 | 46 | 10. Ce qui reste à valider | RG6–RG109 |
+| 2392 | 51 | 11. Récapitulatif des écrans spécifiés |  |
 
 ## 17b-parcours-et-ecrans-backoffice.md (~61k tokens)
 
@@ -658,16 +658,16 @@
 | 326 | 17 | 8. Angles morts du dark theme |  |
 | 343 | 13 | 9. Questions ouvertes | RG116–RG130 |
 | 356 | 24 | 10. Tokens proposés |  |
-| 380 | 540 | 11. Charte KEO Emerald des espaces connectés (D73) | RG1–RG65 |
+| 380 | 548 | 11. Charte KEO Emerald des espaces connectés (D73) | RG1–RG65 |
 | 393 | 40 | ↳ 11.1 Périmètre et frontière |  |
 | 433 | 14 | ↳ 11.2 Ce qui ne change pas |  |
-| 447 | 159 | ↳ 11.3 Correspondance KEO → tokens INFLUX | RG1–RG10 |
-| 606 | 69 | ↳ 11.4 Contrastes calculés |  |
-| 675 | 116 | ↳ 11.5 Typographie, formes, élévation, mouvement |  |
-| 791 | 33 | ↳ 11.6 Ce qu'on ne prend pas de la maquette | RG4–RG65 |
-| 824 | 28 | ↳ 11.7 Test du logo : INFLUX, pas Spotify |  |
-| 852 | 56 | ↳ 11.8 Gabarits et composants |  |
-| 908 | 12 | ↳ 11.9 Points soumis au fondateur |  |
+| 447 | 163 | ↳ 11.3 Correspondance KEO → tokens INFLUX | RG1–RG10 |
+| 610 | 69 | ↳ 11.4 Contrastes calculés |  |
+| 679 | 116 | ↳ 11.5 Typographie, formes, élévation, mouvement |  |
+| 795 | 33 | ↳ 11.6 Ce qu'on ne prend pas de la maquette | RG4–RG65 |
+| 828 | 32 | ↳ 11.7 Test du logo : INFLUX, pas Spotify |  |
+| 860 | 56 | ↳ 11.8 Gabarits et composants |  |
+| 916 | 12 | ↳ 11.9 Points soumis au fondateur |  |
 
 ## 21-plan-de-developpement.md (~6k tokens)
 

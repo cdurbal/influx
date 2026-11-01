@@ -19,7 +19,7 @@ import {
   LEAD_CLASSES,
   SECONDARY_BUTTON_CLASSES,
   SPACE_SCREEN_CLASSES,
-  TEXT_BUTTON_CLASSES,
+  TEXT_LINK_CLASSES,
 } from "./auth-classes";
 import { memberPageHref } from "@/lib/member-paths";
 
@@ -67,7 +67,7 @@ export function MemberHome({ space }: { space: SignupDoor }) {
         </Notice>
         <Link
           href={memberPageHref("accountHub", locale)}
-          className={TEXT_BUTTON_CLASSES}
+          className={TEXT_LINK_CLASSES}
         >
           {tAccount("homeLink")}
         </Link>
