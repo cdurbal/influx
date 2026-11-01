@@ -9,7 +9,9 @@ import {
   classesOf,
   findClassListConflicts,
   findMatches,
+  findDynamicSegmentViolations,
   findNetworkOrStorageUse,
+  findNonLiteralSlugs,
   findPagesRouterDirectories,
   findPlatformExportViolations,
   findPlatformFileCopies,
@@ -25,6 +27,7 @@ import {
   importSpecifiers,
   isValidUtf8,
   listFiles,
+  OPAQUE_PATH_RULE,
   PLATFORM_EXPORTS,
   PLATFORM_NETWORK_FILES,
   RELAY_FILES,
@@ -348,6 +351,79 @@ describe("relay guard detectors (21 J1-C; packages/web-platform since PL-09)", (
     expect(findPlatformExportViolations(platform)).toEqual([
       'package.json: export ./api-client is "./src/server/api-client.ts", expected undefined',
       'package.json: export ./relay is undefined, expected "./src/server/relay.ts"',
+    ]);
+  });
+});
+
+describe("J4S-7: no name or handle in a connected-space path", () => {
+  const page = "export default function Page() { return null; }\n";
+
+  it("accepts the opaque [id] and static segments, route groups included", () => {
+    writeFixture("j4s7-ok/(app)/inscrits/page.tsx", page);
+    writeFixture("j4s7-ok/(app)/inscrits/[id]/page.tsx", page);
+    writeFixture("j4s7-ok/(app)/(group)/reglages/apollo/page.tsx", page);
+    expect(
+      findDynamicSegmentViolations(path.join(TEMP_ROOT, "j4s7-ok")),
+    ).toEqual([]);
+  });
+
+  it("rejects [handle], [alias] and the catch-all forms, naming the path and the rule", () => {
+    writeFixture("j4s7-bad/profil/[handle]/page.tsx", page);
+    writeFixture("j4s7-bad/createur/[alias]/avis/route.ts", "export {};\n");
+    writeFixture("j4s7-bad/blog/[...slug]/page.tsx", page);
+    writeFixture("j4s7-bad/doc/[[...path]]/page.tsx", page);
+    writeFixture("j4s7-bad/inscrits/[id]/page.tsx", page);
+    expect(
+      findDynamicSegmentViolations(path.join(TEMP_ROOT, "j4s7-bad")),
+    ).toEqual([
+      `blog/[...slug]: [...slug] (${OPAQUE_PATH_RULE})`,
+      `createur/[alias]/avis: [alias] (${OPAQUE_PATH_RULE})`,
+      `doc/[[...path]]: [[...path]] (${OPAQUE_PATH_RULE})`,
+      `profil/[handle]: [handle] (${OPAQUE_PATH_RULE})`,
+    ]);
+  });
+
+  it("takes the closed list as a parameter and ignores a directory without page or route", () => {
+    writeFixture("j4s7-list/a/[uuid]/page.tsx", page);
+    writeFixture("j4s7-list/b/[handle]/helper.ts", "export {};\n");
+    const root = path.join(TEMP_ROOT, "j4s7-list");
+    expect(findDynamicSegmentViolations(root, ["[uuid]"])).toEqual([]);
+    expect(findDynamicSegmentViolations(root)).toEqual([
+      `a/[uuid]: [uuid] (${OPAQUE_PATH_RULE})`,
+    ]);
+  });
+
+  it("fails on a missing directory rather than passing on an empty tree", () => {
+    expect(
+      findDynamicSegmentViolations(path.join(TEMP_ROOT, "j4s7-absent")),
+    ).toHaveLength(1);
+  });
+
+  it("states the imposed message", () => {
+    expect(OPAQUE_PATH_RULE).toBe(
+      "segment = identifiant opaque, ou modèle de route Next envoyé par le collecteur (`error-collector.ts` l. 42)",
+    );
+  });
+
+  it("accepts literal slugs of letters, digits, hyphens and slashes, and rejects anything else", () => {
+    expect(
+      findNonLiteralSlugs({
+        a: { fr: "inscription/marque", en: "sign-in2" },
+      }),
+    ).toEqual([]);
+    expect(
+      findNonLiteralSlugs({
+        a: { fr: "marque/[handle]", en: "brand/${name}" },
+        b: { fr: "", en: "profil/jean dupont" },
+        c: { fr: "profil/é", en: "x?y=1" },
+      }),
+    ).toEqual([
+      `a.fr: "marque/[handle]" (${OPAQUE_PATH_RULE})`,
+      `a.en: "brand/\${name}" (${OPAQUE_PATH_RULE})`,
+      `b.fr: "" (${OPAQUE_PATH_RULE})`,
+      `b.en: "profil/jean dupont" (${OPAQUE_PATH_RULE})`,
+      `c.fr: "profil/é" (${OPAQUE_PATH_RULE})`,
+      `c.en: "x?y=1" (${OPAQUE_PATH_RULE})`,
     ]);
   });
 });

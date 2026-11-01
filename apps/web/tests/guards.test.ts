@@ -9,7 +9,9 @@ import {
   findBrowserRelayClientMismatches,
   findClassListConflicts,
   findMatches as findMatchesIn,
+  findDynamicSegmentViolations,
   findNetworkOrStorageUse,
+  findNonLiteralSlugs,
   findPagesRouterDirectories,
   findPlatformExportViolations,
   findPlatformFileCopies,
@@ -696,6 +698,22 @@ describe("G4 replaced: no image outside the brand asset manifest (18 §5 G4)", (
       expect(line, file).toMatch(/https:\/\/www\.pexels\.com\/photo\//);
       expect(line, file).toContain("Licence Pexels");
     }
+  });
+});
+
+// J4S-7: the error collector sends location.pathname (error-collector.ts l. 42); a name or a handle
+// in a connected-space path would reach `ops`. Segments are opaque identifiers or fixed words.
+describe("J4S-7: no name or handle in a member path", () => {
+  it("carries no dynamic segment outside the closed list under [locale]/(member)", () => {
+    expect(
+      findDynamicSegmentViolations(
+        path.join(WEB_ROOT, "src", "app", "[locale]", "(member)"),
+      ),
+    ).toEqual([]);
+  });
+
+  it("writes every localized page slug as a literal of letters, digits, hyphens and slashes", () => {
+    expect(findNonLiteralSlugs(MEMBER_PAGE_SLUGS)).toEqual([]);
   });
 });
 

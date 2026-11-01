@@ -335,6 +335,67 @@ export function findPagesRouterDirectories(frontRoot: string): string[] {
   ).map((relative) => `unexpected Pages Router directory: ${relative}/`);
 }
 
+/**
+ * The dynamic segments a connected-space page or route may carry (J4S-7, 21 §8 and
+ * docs/mvp/archives/21-journal-lot1-archive.md l. 68): a closed list, each entry an opaque
+ * identifier (UUID), never a name or a handle. The error collector sends `location.pathname` to the
+ * API (`packages/web-platform/src/observability/error-collector.ts` l. 42): a name in a path would
+ * reach `ops` as personal data. Extending the list is a conscious gesture, in the commit of the
+ * route that needs it.
+ */
+export const OPAQUE_DYNAMIC_SEGMENTS: readonly string[] = ["[id]"];
+
+/** The message of both guards of J4S-7, imposed by the milestone sheet. */
+export const OPAQUE_PATH_RULE =
+  "segment = identifiant opaque, ou modèle de route Next envoyé par le collecteur (`error-collector.ts` l. 42)";
+
+const PAGE_OR_ROUTE_FILE = /^(?:page|route)\.(?:ts|tsx|js|jsx|mjs)$/;
+const DYNAMIC_SEGMENT = /^\[.*\]$/;
+const LITERAL_SLUG = /^[A-Za-z0-9/-]+$/;
+
+/**
+ * J4S-7: the pages and routes under a connected-space directory (apps/web `[locale]/(member)`,
+ * apps/backoffice `(app)`) whose path holds a dynamic segment (`[x]`, `[...x]`, `[[...x]]`) outside
+ * the closed list. Returns "relative/dir: [segment] (message)".
+ */
+export function findDynamicSegmentViolations(
+  spaceRoot: string,
+  allowed: readonly string[] = OPAQUE_DYNAMIC_SEGMENTS,
+): string[] {
+  if (!existsSync(spaceRoot)) {
+    return [`${spaceRoot}: connected-space directory not found`];
+  }
+  const directories = new Set(
+    listFiles(spaceRoot)
+      .filter((file) => PAGE_OR_ROUTE_FILE.test(path.basename(file)))
+      .map((file) => relativePath(spaceRoot, path.dirname(file))),
+  );
+  return [...directories].sort().flatMap((directory) =>
+    directory
+      .split("/")
+      .filter((segment) => DYNAMIC_SEGMENT.test(segment))
+      .filter((segment) => !allowed.includes(segment))
+      .map((segment) => `${directory}: ${segment} (${OPAQUE_PATH_RULE})`),
+  );
+}
+
+/**
+ * J4S-7: the slugs of a page table that are not a literal of letters, digits, `-` and `/`. A slug
+ * built from a name, a handle or any runtime value would put it in a path.
+ */
+export function findNonLiteralSlugs(
+  slugs: Readonly<Record<string, Readonly<Record<string, string>>>>,
+): string[] {
+  return Object.entries(slugs).flatMap(([page, byLocale]) =>
+    Object.entries(byLocale)
+      .filter(([, slug]) => !LITERAL_SLUG.test(slug))
+      .map(
+        ([locale, slug]) =>
+          `${page}.${locale}: ${JSON.stringify(slug)} (${OPAQUE_PATH_RULE})`,
+      ),
+  );
+}
+
 /** A relay file and the root it lives under: the route in a front, the rest in packages/web-platform. */
 function relayFileLocations(
   frontRoot: string,

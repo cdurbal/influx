@@ -8,6 +8,7 @@ import {
   findBrowserRelayClientMismatches,
   findClassListConflicts,
   findMatches,
+  findDynamicSegmentViolations,
   findNetworkOrStorageUse,
   findPagesRouterDirectories,
   findPlatformExportViolations,
@@ -318,6 +319,16 @@ describe("G7: no Tailwind class conflict that cn() cannot resolve (10 #10)", () 
       : [];
     expect(
       findPrimitiveBaseClassConflicts(primitiveFiles, BACKOFFICE_ROOT),
+    ).toEqual([]);
+  });
+});
+
+// J4S-7: the error collector sends location.pathname (error-collector.ts l. 42); a name or a handle
+// in a backoffice path would reach `ops`. Segments are opaque identifiers or fixed words.
+describe("J4S-7: no name or handle in a backoffice path", () => {
+  it("carries no dynamic segment outside the closed list under (app)", () => {
+    expect(
+      findDynamicSegmentViolations(path.join(SRC, "app", "(app)")),
     ).toEqual([]);
   });
 });
