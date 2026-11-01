@@ -175,6 +175,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 
 - **PL** (préparation du Lot 2, corrections K1 et K3 à K10 de `archives/revue-pre-lot2-2026-10-31.md`) : ouvert le 2026-10-31, **clos le 2026-10-31** (critère de fin prouvé, reliquat soldé ou reporté ci-dessus, revue attestée) ; `archives/jalons/pl-fiche.md`, `archives/jalons/pl/run.md`.
 - **L2A** (reliquat RK-fin, PLS-1, PLS-3, PLT-6, SNT-3, J4S-7, listes de départ des référentiels, migration `0201`) : ouvert le 2026-11-01, **clos le 2026-11-01** (critère de fin prouvé, reliquat soldé ou reporté ci-dessus, revue attestée) ; `archives/jalons/l2a-fiche.md`, `archives/jalons/l2a/run.md`.
+- **L2B** (profil marque : saisie, logo, soumission ; `packages/domain`, Storage en CI, migrations `0202` à `0204`) : ouvert le 2026-11-01 ; `jalons/l2b-fiche.md`, `jalons/l2b/run.md`.
 
 **Registre des décisions** (PL-11) : `decisions.md` ne garde que sujet et statut résumés de D1 à D79 ; le texte intégral (sujet, arbitre, statut, échéance, mot pour mot) est dans `decisions-detail.md` (§ Dxx), qui fait foi en cas d'écart.
 
