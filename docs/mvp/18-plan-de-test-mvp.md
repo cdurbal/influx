@@ -1798,19 +1798,27 @@ absent ou trop faible = échec), borne haute **25/255** (au-delà de 15 % plus l
 28,5 = échec). Écart entre lignes à ± 4 px du bas de l'en-tête : attendu 0,74/255 pour un seuil de
 2/255. Le tramage des dégradés de Chromium se neutralise en moyennant chaque ligne sur 16 px de large.
 
-### 12.7 Traçabilité de `20` §11 : chaque phrase normative a sa preuve (R3) *(ajouté le 2026-10-30)*
+### 12.7 Traçabilité de `20` §11 : chaque phrase normative a sa preuve (R3) *(ajouté le 2026-10-30, relu phrase à phrase le 2026-11-01, L2A-01)*
 
 Chaque règle de `20` §11.1 à §11.8 renvoie à un cas (TK, TD, TN, T, TM), à une garde (G, ESLint,
 annexe) ou à la recette humaine (§12.4, recette de fin du jalon RK). §11.9 (points soumis au fondateur)
 ne porte aucune règle. Une ligne sans preuve est un défaut du plan, pas de la charte.
 
+Relecture du 2026-11-01 : toute phrase de §11.1 à §11.8 portant « jamais », « toujours », « seul »,
+« au plus » ou un impératif a sa ligne (une ligne peut en couvrir plusieurs, qu'elle nomme). Chaque
+identifiant cité (TK, TD, TN, TM, T, G, DS) a été retrouvé dans `apps/*/e2e`, `apps/*/tests`,
+`packages/test-kit` ou dans les familles de ce plan (T1, T16 et TM11 : cas du plan, écrits au lot de
+leur objet ; RK-17 : décision de `decisions-detail.md`, non un cas). Là où un cas ne mesure qu'une partie
+de la phrase, la ligne le dit et renvoie le reste à la recette humaine, avec son motif.
+
 | § | Règle | Preuve |
 |---|---|---|
 | 11 | Aucune valeur de couleur ajustée, sauf `badge-error-bg` (RK-B) ; `keo-emerald.css` jamais importé | G3, G3c, G3e |
-| 11.1 | Frontière par le groupe `(member)` ; pages légales publiques en vitrine ; CGU du parcours en KEO | TD4.4, G8, TD3.6 |
+| 11.1 | Frontière par le groupe `(member)` ; pages légales publiques en vitrine ; CGU du parcours en KEO ; inscription, connexion et écrans hors session en KEO ; 404 et erreurs de niveau `[locale]` et bandeau cookies en vitrine | TD4.4, TD3.1, G8, TD3.6 |
+| 11.1 | Vitrine : valeurs de `tokens.css` et direction D59 gardées ; revue visuelle de la page avant sa mise en ligne | G3e, TD4.1, TD4.2 ; revue visuelle D59 : recette humaine (porte de production, `21` §5.8) |
 | 11.1 | Un seul `tokens.css`, dans `packages/ui`, importé par les deux fronts ; attribut posé à deux endroits | G3, G8, TD3.1, TD3.2 |
 | 11.1 | Le bloc KEO redéfinit tout `--color-*` hors `KEO_INHERITS`, familles, rayons, graisses d'action, contour secondaire | G3c, TD3.1, TD3.2 |
-| 11.1 | Échelles d'espacement et de texte, durées, points de rupture inchangés sous KEO | G3i (a) (points de rupture, conteneurs), TK7.3 (texte), TD5.7 (durées) ; espacement : recette humaine |
+| 11.1 | Échelles d'espacement et de texte, durées, points de rupture inchangés sous KEO | G3i (a) (points de rupture, conteneurs), TK7.3 (texte), TD5.7 (durées, sous mouvement réduit seulement) ; espacement, et valeur des durées (120 ms, `ease-standard`) sous KEO, qu'aucune garde ne lit : recette humaine (revue de code) |
 | 11.1 | Un seul vert `#1dd68a` sur toute la plateforme (F2) | G3e, TD3.3, TD4.2 |
 | 11.2 | Succès en sarcelle, à au moins 20° de l'action et de l'information | G3d, TD1.7 |
 | 11.2 | Rouge « danger » opaque, inchangé, aucun rouge translucide | G3b, `account-data.spec` |
@@ -1822,6 +1830,8 @@ ne porte aucune règle. Une ligne sans preuve est un défaut du plan, pas de la 
 | 11.3 | Valeurs de chaque token par charte | G3c, TD3.1, TD3.2, G3e |
 | 11.3 | Alias redéclarés quand leur cible l'est (fermeture), nouveaux rôles déclarés dans `@theme` d'abord | G3c (TD1.3, TD1.6) |
 | 11.3 | Couleurs de rôle : liste fermée, toujours suivies du rôle écrit | G3g, TD5.8 |
+| 11.3, 11.7 | Le vert reste rare : `text-brand` jamais en texte courant ni sur un montant, jamais seul porteur d'un état ; montant jamais en vert (K7) | G3d (contraste de `text-brand` seulement) ; usage : recette humaine (§12.4, fondateur, K1 à K23) : aucune garde ne lit l'emploi d'un jeton |
+| 11.3, 11.8 | Bouton désactivé (`action-disabled-bg`) toujours expliqué à côté | TK1.1, TK1.2 (ni ombre ni transformation) ; explication adjacente : recette humaine (§12.4, fondateur) : dépend du texte de chaque écran |
 | 11.3 | Badge vérifié bleu, jamais une coche seule ni collé à un nom, texte « Vérifié · ⟨réseau⟩ · ⟨mois année⟩ » | TK4.2 (texte présent) ; forme et place : recette humaine (Lot 2) |
 | 11.3 | `badge-error-bg` confiné au badge d'erreur, jamais une notice ; `verified-bg`, `border-hover` | TK7.5, TK4.2, TK4.1 |
 | 11.3 | Couleurs de données réservées aux graphiques étiquetés | Recette humaine (aucun graphique avant le Lot 5) |
@@ -1836,13 +1846,14 @@ ne porte aucune règle. Une ligne sans preuve est un défaut du plan, pas de la 
 | 11.4 | (7) halo d'en-tête à 15 % au plus | G3i (a), TK2.2 (borne haute) |
 | 11.5 | Familles : Manrope pour tous les titres `h1`–`h4`, chiffres, boutons, surtitres, badges ; Source Sans 3 pour le corps | TK3.1, TD3.1, TK4.2, TK6.1 |
 | 11.5 | Aucun token fluide sous KEO, `LegalMarkdown` compris ; tailles inchangées | TK7.3, TK3.1 |
-| 11.5 | Graisses et approche : `h1` 800 et `h2` 700 serrés, `h3`/`h4` 700, chiffre clé 800 | TK3.3 |
+| 11.5 | Graisses et approche : `h1` 800 et `h2` 700 serrés, `h3`/`h4` 700, chiffre clé 800 | TK3.3 ; `h3`/`h4` sans approche serrée : recette humaine (TK3.3 ne mesure que leur graisse) |
 | 11.5 | Surtitre : `text-xs`, Manrope 700, capitales, `tracking-overline` | TK3.2, TK7.2 |
-| 11.5 | Plancher de 12 px | TK3.2 ; ailleurs : recette humaine |
+| 11.5 | Plancher de 12 px ; tailles inchangées (16 px membres, 14 px backoffice) | TK3.2, TK3.1 (taille dans l'ensemble des `--text-*`, identique à 375 et 1 440 px) ; plancher ailleurs, 16 px et 14 px : recette humaine |
+| 11.5 | Rayons `radius-md`, `radius-sm`, `radius-pill` (boutons, badges, pastilles) | TK1.5 (carte seule) ; les autres : recette humaine (§12.4, fondateur, K1 à K23) |
 | 11.5 | Boutons : 700 (principal, danger), 600 (secondaire, texte) | TK1.3 |
 | 11.5 | Item de navigation : actif en 600 | TD5.8 |
-| 11.5 | Polices par `next/font/local`, aucun appel à Google Fonts, `latin` seul câblé, budget | G4f, ESLint, TD3.4, TD8.1 |
-| 11.5 | Chiffres tabulaires de Manrope | TD3.5 |
+| 11.5 | Polices par `next/font/local`, aucun appel à Google Fonts, `latin` seul câblé, budget ; chargées par les deux seules mises en page KEO, jamais par la vitrine | G4f, TD1.10 (G8), ESLint, TD3.4, TD8.1 ; écritures non couvertes en repli système : recette humaine (§12.4, glyphes hors police) |
+| 11.5 | Chiffres tabulaires de Manrope | TD3.5 ; emploi sur les montants : recette humaine (Lot 5, premier montant affiché) |
 | 11.5 | Lissage sous KEO seulement, rien dans `:root`, `html`, `body` | TK3.4, TK7.5 ; rendu : recette sur Mac |
 | 11.5 | Rayon des cartes 16 px ; contour secondaire 1 px sous KEO, 2 px en vitrine | TK1.5, TD4.2 ; contour sous KEO : recette humaine |
 | 11.5 | Anneau intérieur de la barre du bas | TD5.4 |
@@ -1853,6 +1864,7 @@ ne porte aucune règle. Une ligne sans preuve est un défaut du plan, pas de la 
 | 11.5 | Borne de `color-mix`, jamais de `/NN` sur une couleur | G3i (a), G3c |
 | 11.5 | Transitions nommées, jamais `transition: all` | G8 (TD1.10) |
 | 11.5 | Agrandissement 1,03 et réduction 0,98 sous `motion-safe:`, jamais désactivé | TK1.2, TK7.4 |
+| 11.5 | Bouton texte sans agrandissement ; ombre lumineuse jamais substituée à l'anneau `focus-ring` | TK1.2 (bouton principal et bouton indisponible), TK5.2 (anneau au `Tab`) ; bouton texte et secondaire survolés : recette humaine (aucun cas ne les mesure) |
 | 11.5 | Soulèvement des cartes sous `motion-safe:` ; transformation sans décalage de mise en page | G8, TD5.7, TK2.3 (et mesure de RK-4 à 320 px) |
 | 11.5 | Mouvement réduit : aucune transformation, durées nulles, squelette sans balayage | TD5.7, TK1.2 |
 | 11.6 | K1, K2, K3 (succès sarcelle, rouge opaque, aucun `rgba`) | G3d, G3b, G3c |
@@ -1867,26 +1879,33 @@ ne porte aucune règle. Une ligne sans preuve est un défaut du plan, pas de la 
 | 11.6 | K18 (anneau `focus-ring`, contour des champs) | TD5.4, TK5.2 |
 | 11.6 | K19 (polices et CSS servis par l'origine) | G4f, TD3.4, TD8.1 |
 | 11.6 | K20, K23 (tokens par rôle, valeurs non reprises) | G3, G3c |
-| 11.7 | Test du logo ; parades (pas de bouton vert rond à icône seule, halo jamais sur une carte, surtitre jamais vert, commercial nommé et statuts datés au premier écran) | Recette humaine (§12.4, fin du jalon RK) ; halo : TK2.1 |
-| 11.8 | Gabarits par largeur, un seul `<nav>` restylé par le CSS | TD5.1, TD5.2, TD6.1, TD6.2 |
+| 11.7 | Test du logo ; parades (pas de bouton vert rond à icône seule, une seule action principale par écran en libellé verbe + objet, halo jamais sur une carte, surtitre jamais vert, commercial nommé et statuts datés au premier écran) | Recette humaine (§12.4, fin du jalon RK) ; halo : TK2.1 ; surtitre : TK3.2 |
+| 11.8 | Gabarits par largeur (membres sous et dès 1 024 px ; backoffice dès 1 024 px, de 768 à 1 023 px en navigation compacte, sous 768 px de large ou 500 px de haut en écran « poste de travail »), un seul `<nav>` restylé par le CSS | TD5.1, TD5.2, TD6.1, TD6.2 ; absence de détection de largeur en JavaScript : recette humaine (revue de code, TD5.1 ne voit que le DOM) |
+| 11.8 | Page autonome KEO (inscription, connexion, déconnecté, compte supprimé, CGU à ré-accepter) : INFLUX et langue en tête, une colonne, aucune navigation ; pages légales publiques en gabarit de vitrine | TD5.6 (c), TD6.4, `account.spec` (écran des CGU sans navigation, §12.5 point 7), TD4.4 ; en-tête et colonne `container-narrow` : recette humaine (§12.4, fondateur) |
 | 11.8 | Entrées sans écran masquées, jamais retirées une fois apparues | TD2.3 |
 | 11.8 | Aucun repli de colonne, rien de persisté | Garde annexe 2 (stockage) |
 | 11.8 | Lien d'évitement en premier ; focus au `h1` après navigation | TD5.3, TD5.5, TD6.1 |
 | 11.8 | Anneau sur tout élément interactif ; aucun anneau sur un `h1`–`h4` ou `main` focalisé par programme | TK5.2, TD5.4 ; TK5.1 |
+| 11.8 | Règle du focus : sélecteur fermé `:where(h1, h2, h3, h4, main)[tabindex="-1"]`, jamais un `[tabindex="-1"]` générique ; le tabindex itinérant des onglets de canaux garde son anneau | TK5.1, TK5.2 (effets sur les pages existantes) ; forme du sélecteur : recette humaine (revue de code, aucune garde ne le lit) ; onglets : recette humaine (Lot 4) |
 | 11.8 | Bouton principal, secondaire, texte (états R, S, A, D) | TK1.1 à TK1.4, G3d |
 | 11.8 | Boutons : chargement (`aria-busy`, largeur figée), erreur portée par le formulaire | Recette humaine |
-| 11.8 | Bouton danger D72 | G3b, `account-data.spec` |
+| 11.8 | Bouton danger D72 | G3b, `account-data.spec` ; au backoffice, jamais par raccourci (`20` §5 niveau 3) : recette humaine (Lot 5, premières actions destructives) |
 | 11.8 | Carte : rayon, carte cliquable seule réactive, contour éclairci | TK1.5, TK4.1 |
+| 11.8 | Carte : anneau autour de la carte à lien étiré, squelette de même hauteur, notice dans la carte, bloc intérieur `surface-raised` | TD5.4 (anneau, pages existantes) ; le reste : recette humaine (au lot de chaque carte, Lot 2 pour la première) |
 | 11.8 | Badges de rôle, vérifié, de statut | G3g, TD5.8, TK4.2, TK7.5, TD6.5 |
 | 11.8 | Onglets segmentés (canaux, Lot 4) | Recette humaine (Lot 4) |
 | 11.8 | Sous-entrée de navigation, page-menu (D74) | TN1 à TN9 |
 | 11.8 | Champ : contour `border-strong`, erreur 2 px reliée par `aria-describedby` | G3d, TD7 (état d'erreur) |
+| 11.8 | Champ : libellé au-dessus en 600, aide en `text-secondary`, exemple en `text-tertiary` jamais seul libellé, état désactivé | Recette humaine (§12.4, fondateur) : aucun cas ne mesure le libellé ni l'état désactivé |
 | 11.8 | Notice : fonds de famille, erreur sans fond teinté | G3b, TK7.5, TD7 |
+| 11.8 | Notice : `role="status"` ou `role="alert"`, icône du couple de la famille, non refermable pour un état permanent | `error-notice.test.ts` (web et backoffice : erreur en `role="alert"` avec icône) ; succès, alerte et information, non refermable : recette humaine (au lot du premier écran qui en porte) |
 | 11.8 | Tableau dense : en-tête `surface-hover` Manrope 700, filet de ligne, région défilante | TK6.1, TK6.2, TD6.2, TD6.5 |
+| 11.8 | Tableau dense : en-tête collant, lignes de hauteur fixe en squelette, deux états vides de `17b` §2.3, chiffres tabulaires | Recette humaine (§12.4, backoffice : densité) |
 | 11.8 | État vide (pas de « 0 » ni d'illustration) | Recette humaine (DS-8 : accueil neuf sans « 0 ») |
-| 11.8 | Squelette sans balayage sous mouvement réduit | TD5.7 |
-| 11.8 | Item de navigation, pastille de compteur | TD5.1, TD5.4, TD5.8 ; pastille « 9+ » : recette humaine (§12.4) |
+| 11.8 | Squelette sans balayage sous mouvement réduit | TD5.7 ; `aria-busy` sur le conteneur et « Chargement… » masqué : recette humaine (§12.4, lecteur d'écran) |
+| 11.8 | Item de navigation, pastille de compteur | TD5.1, TD5.4, TD5.8 ; pastille « 9+ » : recette humaine (§12.4) ; cible tactile, barre du bas en icône sur libellé : recette humaine (§12.4, iPhone) ; retard écrit « ⚑ ⟨n⟩ hors délai » au backoffice : recette humaine (Lot 5) |
 | 11.8 | En-tête de page : `h1` Manrope 800 serré, halo du conteneur, un seul par page | TK3.1, TK3.3, TK2.1 |
+| 11.8 | En-tête de page : fil d'Ariane `text-sm` à partir du niveau 2, action principale à droite (desktop) ou sous le titre en pleine largeur (mobile) | Recette humaine (Lot 2, première page de niveau 2) |
 | 11.8 | Surtitre | TK3.2 |
 | 11.8 | Dialogue : voile, focus piégé, `Échap` | TD3.6, DS-7 (e2e du dialogue des CGU) |
 

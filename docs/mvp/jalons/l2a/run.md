@@ -2,7 +2,7 @@
 
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
-| 01 | 01.md | commit | sonnet | high | testeur | à faire | RK-fin (R3) ; captures pour 02 |
+| 01 | 01.md | commit | sonnet | high | testeur | fait | RK-fin (R3) : 12 lignes ajoutées à `18` §12.7 (83 à 95), 73 identifiants relus, aucun manquant ; 10 captures logo masqué dans `apps/web/test-results/logo-test/` (non indexées) |
 | 02 | 02.md | ux | sonnet | high | expert-ux | à faire | RK-fin, test du logo ; sans commit |
 | 03 | 03.md | commit | sonnet | high | dev-react-node | à faire | PLS-1 ; dépendance : suite complète ; I-4 |
 | 04 | 04.md | commit | sonnet | high | testeur | à faire | levier `page.clock` ; gain ≥ 10 s |

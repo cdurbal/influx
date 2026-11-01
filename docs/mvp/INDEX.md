@@ -608,7 +608,7 @@
 | 2164 | 82 | 7. Incohérences relevées, écarts d'implémentation, points à valider | RG4–RG126 |
 | 2246 | 62 | 8. Récapitulatif — les écrans spécifiés |  |
 
-## 18-plan-de-test-mvp.md (~60k tokens)
+## 18-plan-de-test-mvp.md (~61k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -642,7 +642,7 @@
 | 1341 | 60 | 9. Ce qui remonte |  |
 | 1401 | 225 | 10. La définition du « prêt à livrer », lot par lot | RG148–RG162 |
 | 1626 | 21 | 11. Verdict |  |
-| 1647 | 252 | 12. Les tests du jalon DS, charte KEO Emerald (D73) *(ajouté le 2026-10-28)* | RG66 |
+| 1647 | 271 | 12. Les tests du jalon DS, charte KEO Emerald (D73) *(ajouté le 2026-10-28)* | RG66 |
 
 ## 20-direction-design.md (~27k tokens)
 
