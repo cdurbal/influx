@@ -1,0 +1,21 @@
+{
+  "name": "@influx/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./brand-profile": "./src/brand-profile/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tests.json",
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run --reporter=default --reporter=json --outputFile.json=test-results/vitest-report.json && node ../../packages/test-kit/scripts/check-case-floors.ts tests/case-floors.ts test-results/vitest-report.json"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "eslint": "9.39.5",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.70.0",
+    "vitest": "4.1.11"
+  }
+}
