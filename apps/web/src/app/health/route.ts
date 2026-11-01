@@ -3,7 +3,8 @@
 // detail: it asks apps/api for GET /v1/status through the relay, with the caller's address only
 // (its own rate, 18 T15). Outside the matcher of the proxy (no locale, no page CSP); never cached
 // by the browser or a CDN. J9S-6: the answer of apps/api is kept 5 s in the memory of the process
-// (success and failure), so that a flood does not drain the instance bucket of /v1/status.
+// (success and failure), so that a flood does not drain the instance bucket of /v1/status. PLS-3: a
+// 429 is never kept (this pass answers 503, the next one goes upstream).
 import { relay } from "@influx/web-platform/relay";
 import { createStatusCache } from "../../server/status-cache";
 
@@ -31,7 +32,10 @@ export async function GET(request: Request): Promise<Response> {
       }),
     );
     await status.body?.cancel();
-    return status.status === 200;
+    if (status.status === 429) {
+      return "throttled";
+    }
+    return status.status === 200 ? "healthy" : "unhealthy";
   });
   return new Response(null, {
     status: healthy ? 200 : 503,

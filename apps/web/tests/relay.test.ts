@@ -737,8 +737,8 @@ describe("GET /health of web (EC-22)", () => {
 
   it("J9S-6: a flood spends one call, and a failure is kept for the window like a success", async () => {
     handler = (_request, response) => {
-      response.writeHead(429, { "content-type": "application/json" });
-      response.end(JSON.stringify({ error: { code: "rate_limited" } }));
+      response.writeHead(500, { "content-type": "application/json" });
+      response.end(JSON.stringify({ error: { code: "internal" } }));
     };
     const answers = await Promise.all(
       Array.from({ length: 25 }, () => probe({ "x-real-ip": "203.0.113.9" })),
@@ -750,6 +750,23 @@ describe("GET /health of web (EC-22)", () => {
     expect((await probe()).status).toBe(503);
     expect(received).toHaveLength(1);
     vi.setSystemTime(clock + 5_100);
+    expect((await probe()).status).toBe(200);
+    expect(received).toHaveLength(2);
+  });
+
+  it("PLS-3: a flood answered 429 spends one call, but the 429 is not kept: the next probe goes upstream", async () => {
+    handler = (_request, response) => {
+      response.writeHead(429, { "content-type": "application/json" });
+      response.end(JSON.stringify({ error: { code: "rate_limited" } }));
+    };
+    const answers = await Promise.all(
+      Array.from({ length: 25 }, () => probe({ "x-real-ip": "203.0.113.9" })),
+    );
+    expect(answers.map((answer) => answer.status)).toEqual(
+      Array.from({ length: 25 }, () => 503),
+    );
+    expect(received).toHaveLength(1);
+    handler = answerOk;
     expect((await probe()).status).toBe(200);
     expect(received).toHaveLength(2);
   });
