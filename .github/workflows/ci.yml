@@ -203,8 +203,8 @@ jobs:
 
       # Local Supabase stack (CLI pinned at the root, 21 J1-A): the database, plus Supabase Auth
       # behind its gateway and Mailpit for the findings of J3 commit 7 (21 §4, J3-A: GoTrue is
-      # never assumed, it is observed; Mailpit is where a native e-mail would land). The other
-      # containers are not started (time budget).
+      # never assumed, it is observed; Mailpit is where a native e-mail would land) and, since
+      # L2B-03, Storage. The other containers are not started (time budget).
       # The workstation runs the GoTrue version of staging, which the CLI reads from
       # supabase/.temp/gotrue-version since the J4 link (ignored by Git). The runner is not linked:
       # the same version is pinned here, or the CLI default GoTrue answers differently (EC-57).
@@ -217,7 +217,12 @@ jobs:
       - name: Start the local Supabase stack (database, Auth, gateway, Mailpit)
         run: >-
           pnpm exec supabase start
-          -x realtime,storage-api,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+          -x realtime,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      # L2B-03 (D80): Storage is part of the stack, for the brand-logo bucket and the purge task.
+      # The CLI already waits for its health check; this proves the gateway routes to it.
+      - name: Check that Storage answers through the gateway
+        run: curl --fail --silent --show-error --retry 10 --retry-delay 2 --retry-connrefused http://127.0.0.1:54321/storage/v1/status
 
       # The base is rebuilt from zero in one command (21 J2, "Terminé quand").
       - name: Rebuild the database from the migrations
@@ -268,7 +273,7 @@ jobs:
       # the background while both fronts build and Chromium downloads, and is awaited below.
       - name: Start the local Supabase stack in the background
         run: |
-          nohup bash -c 'pnpm exec supabase start -x realtime,storage-api,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor > "$RUNNER_TEMP/supabase-start.log" 2>&1; echo $? > "$RUNNER_TEMP/supabase-start.exit"' > /dev/null 2>&1 &
+          nohup bash -c 'pnpm exec supabase start -x realtime,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor > "$RUNNER_TEMP/supabase-start.log" 2>&1; echo $? > "$RUNNER_TEMP/supabase-start.exit"' > /dev/null 2>&1 &
 
       # The journeys start both fronts without building them under CI (apps/web/playwright.config.ts).
       - name: Build both fronts
@@ -285,6 +290,10 @@ jobs:
           while [ ! -f "$RUNNER_TEMP/supabase-start.exit" ]; do sleep 2; done
           cat "$RUNNER_TEMP/supabase-start.log"
           exit "$(cat "$RUNNER_TEMP/supabase-start.exit")"
+
+      # L2B-03 (D80): Storage answers through the gateway before the base is rebuilt.
+      - name: Check that Storage answers through the gateway
+        run: curl --fail --silent --show-error --retry 10 --retry-delay 2 --retry-connrefused http://127.0.0.1:54321/storage/v1/status
 
       # The base is rebuilt from zero, as in `db`, so that both jobs test the same base.
       - name: Rebuild the database from the migrations
