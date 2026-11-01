@@ -229,48 +229,48 @@
 | 37 | 20 | Besoin |  |
 | 57 | 17 | Acteurs |  |
 | 74 | 48 | User stories |  |
-| 122 | 499 | Règles de gestion | RG1–RG85 |
+| 122 | 504 | Règles de gestion | RG1–RG101 |
 | 124 | 80 | ↳ A — Portée, états et publication | RG1–RG73 |
 | 204 | 65 | ↳ B — Bloc 1 : identité publique | RG15–RG70 |
 | 269 | 45 | ↳ C — Bloc 2 : attentes de collaboration | RG5–RG34 |
 | 314 | 71 | ↳ D — Bloc 3 : interlocuteur, et masquage symétrique (D40) | RG29–RG80 |
-| 385 | 55 | ↳ E — Bloc 4 : champs internes et badge « Marque vérifiée » | RG46–RG56 |
-| 440 | 36 | ↳ F — Indicateur de complétude | RG5–RG62 |
-| 476 | 52 | ↳ G — Backoffice : validation, correction, supervision | RG63–RG72 |
-| 528 | 38 | ↳ H — Ce qu'un créateur voit d'une marque, avant et après | RG73–RG77 |
-| 566 | 55 | ↳ I — Leads, messages et accessibilité | RG78–RG85 |
-| 621 | 102 | Cas limites | RG4–RG83 |
-| 723 | 186 | Critères d'acceptation | RG42–RG84 |
-| 909 | 71 | Impacts | RG7–RG79 |
-| 980 | 20 | Hors périmètre | RG4–RG44 |
-| 1000 | 15 | Questions ouvertes | RG8–RG80 |
+| 385 | 60 | ↳ E — Bloc 4 : champs internes et badge « Marque vérifiée » | RG46–RG101 |
+| 445 | 36 | ↳ F — Indicateur de complétude | RG5–RG62 |
+| 481 | 52 | ↳ G — Backoffice : validation, correction, supervision | RG63–RG72 |
+| 533 | 38 | ↳ H — Ce qu'un créateur voit d'une marque, avant et après | RG73–RG77 |
+| 571 | 55 | ↳ I — Leads, messages et accessibilité | RG78–RG85 |
+| 626 | 102 | Cas limites | RG4–RG83 |
+| 728 | 186 | Critères d'acceptation | RG42–RG84 |
+| 914 | 71 | Impacts | RG7–RG79 |
+| 985 | 20 | Hors périmètre | RG4–RG44 |
+| 1005 | 15 | Questions ouvertes | RG8–RG100 |
 
-## 07-criteres-profil-createur-reseaux-audience.md (~36k tokens)
+## 07-criteres-profil-createur-reseaux-audience.md (~37k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
 | 50 | 21 | Besoin |  |
 | 71 | 18 | Acteurs |  |
 | 89 | 63 | User stories |  |
-| 152 | 838 | Règles de gestion | RG1–RG119 |
+| 152 | 846 | Règles de gestion | RG1–RG119 |
 | 154 | 85 | ↳ A — Portée, états et publication | RG1–RG96 |
 | 239 | 136 | ↳ B — Les trois couches, et le tableau central des champs | RG8–RG115 |
 | 375 | 47 | ↳ C — Bloc 1 : alias, titre court, bio | RG23–RG96 |
 | 422 | 39 | ↳ D — Bloc 2 : thématiques, ton, langues, résidence | RG27–RG40 |
 | 461 | 67 | ↳ E — Bloc 3 : réseaux sociaux, une ligne par réseau | RG22–RG54 |
-| 528 | 81 | ↳ E bis — Les trois métriques prioritaires (D61, additif du 2026-09-25) | RG4–RG119 |
-| 609 | 42 | ↳ F — Bloc 4 : audience | RG48–RG63 |
-| 651 | 84 | ↳ G — Bloc 5 : offre, tarifs indicatifs et net créateur estimé | RG4–RG76 |
-| 735 | 49 | ↳ H — Bloc 6 : portfolio | RG27–RG85 |
-| 784 | 40 | ↳ I — Bloc 7 : complétude | RG4–RG91 |
-| 824 | 63 | ↳ J — Backoffice : validation, modération, badges, correction | RG61–RG101 |
-| 887 | 42 | ↳ K — Ce qu'une marque voit d'un créateur, avant et après | RG37–RG119 |
-| 929 | 61 | ↳ L — Leads, messages, états d'écran et accessibilité | RG106–RG119 |
-| 990 | 134 | Cas limites | RG4–RG119 |
-| 1124 | 287 | Critères d'acceptation | RG4–RG119 |
-| 1411 | 100 | Impacts | RG3–RG119 |
-| 1511 | 22 | Hors périmètre | RG31–RG103 |
-| 1533 | 23 | Questions ouvertes | RG4–RG119 |
+| 528 | 82 | ↳ E bis — Les trois métriques prioritaires (D61, additif du 2026-09-25) | RG4–RG119 |
+| 610 | 42 | ↳ F — Bloc 4 : audience | RG48–RG63 |
+| 652 | 91 | ↳ G — Bloc 5 : offre, tarifs indicatifs et net créateur estimé | RG4–RG76 |
+| 743 | 49 | ↳ H — Bloc 6 : portfolio | RG27–RG85 |
+| 792 | 40 | ↳ I — Bloc 7 : complétude | RG4–RG91 |
+| 832 | 63 | ↳ J — Backoffice : validation, modération, badges, correction | RG61–RG101 |
+| 895 | 42 | ↳ K — Ce qu'une marque voit d'un créateur, avant et après | RG37–RG119 |
+| 937 | 61 | ↳ L — Leads, messages, états d'écran et accessibilité | RG106–RG119 |
+| 998 | 134 | Cas limites | RG4–RG119 |
+| 1132 | 287 | Critères d'acceptation | RG4–RG119 |
+| 1419 | 100 | Impacts | RG3–RG119 |
+| 1519 | 22 | Hors périmètre | RG31–RG103 |
+| 1541 | 23 | Questions ouvertes | RG4–RG119 |
 
 ## 08-verification-et-badge.md (~30k tokens)
 
@@ -535,7 +535,7 @@
 | 2226 | 19 | Hors périmètre | RG44–RG107 |
 | 2245 | 27 | Questions ouvertes | RG9–RG160 |
 
-## 17-parcours-et-ecrans-espaces-membres.md (~59k tokens)
+## 17-parcours-et-ecrans-espaces-membres.md (~60k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -553,21 +553,21 @@
 | 1075 | 95 | ↳ 4.7 M7 — La conversation à trois (spécification commune, vocabulaire par rôle) | RG7–RG104 |
 | 1170 | 34 | ↳ 4.8 M8 — Le canal de documents | RG65–RG74 |
 | 1204 | 13 | ↳ 4.9 Les autres écrans de l'espace marque | RG3–RG102 |
-| 1217 | 537 | 5. Espace créateur | RG1–RG117 |
+| 1217 | 542 | 5. Espace créateur | RG1–RG117 |
 | 1228 | 50 | ↳ 5.1 C1 — Accueil créateur | RG13–RG99 |
 | 1278 | 105 | ↳ 5.2 C2 — Profil créateur : sept blocs, trois couches, une complétude honnête | RG8–RG112 |
 | 1383 | 76 | ↳ 5.3 C3 — Réseaux, preuves et badges | RG1–RG117 |
-| 1459 | 65 | ↳ 5.4 C4 — Mon offre et mes tarifs : l'écran de la transparence financière | RG22–RG73 |
-| 1524 | 55 | ↳ 5.5 C5 — Le fil des campagnes | RG15–RG60 |
-| 1579 | 96 | ↳ 5.6 C6 et C7 — Fiche de campagne et candidature | RG16–RG81 |
-| 1675 | 56 | ↳ 5.7 C8 — Mes candidatures : les huit états | RG67–RG78 |
-| 1731 | 23 | ↳ 5.8 C9 — Conversation, et les autres écrans créateur | RG5–RG102 |
-| 1754 | 172 | 6. Écrans transverses | RG14–RG143 |
-| 1926 | 271 | 7. Les deux écrans qui portent la valeur et le risque | RG4–RG113 |
-| 2197 | 105 | 8. Tokens |  |
-| 2302 | 36 | 9. Écarts et manques constatés | RG2–RG112 |
-| 2338 | 46 | 10. Ce qui reste à valider | RG6–RG109 |
-| 2384 | 51 | 11. Récapitulatif des écrans spécifiés |  |
+| 1459 | 70 | ↳ 5.4 C4 — Mon offre et mes tarifs : l'écran de la transparence financière | RG22–RG73 |
+| 1529 | 55 | ↳ 5.5 C5 — Le fil des campagnes | RG15–RG60 |
+| 1584 | 96 | ↳ 5.6 C6 et C7 — Fiche de campagne et candidature | RG16–RG81 |
+| 1680 | 56 | ↳ 5.7 C8 — Mes candidatures : les huit états | RG67–RG78 |
+| 1736 | 23 | ↳ 5.8 C9 — Conversation, et les autres écrans créateur | RG5–RG102 |
+| 1759 | 172 | 6. Écrans transverses | RG14–RG143 |
+| 1931 | 271 | 7. Les deux écrans qui portent la valeur et le risque | RG4–RG113 |
+| 2202 | 105 | 8. Tokens |  |
+| 2307 | 36 | 9. Écarts et manques constatés | RG2–RG112 |
+| 2343 | 46 | 10. Ce qui reste à valider | RG6–RG109 |
+| 2389 | 51 | 11. Récapitulatif des écrans spécifiés |  |
 
 ## 17b-parcours-et-ecrans-backoffice.md (~61k tokens)
 

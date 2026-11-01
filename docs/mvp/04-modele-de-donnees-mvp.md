@@ -5775,7 +5775,7 @@ les préparer serait inventer.
 |---|---|---|---|---|
 | Compte actif | `identity.accounts`, `profiles.*` | Vie du compte + **3 ans** d'inactivité | `last_seen_at` | Un créateur inactif 3 ans n'est plus une offre commerciale |
 | Preuves d'acceptation | `identity.terms_acceptances`, `identity.consent_events` | **5 ans** après la fin de la relation | `deleted_at` du compte | Preuve du consentement et de l'acceptation des CGU (durée usuelle de prescription) |
-| Pièces de vérification | `verification.evidence_files` | **90 jours** après la décision | `decided_at` | La pièce n'a plus de raison d'être une fois le constat saisi. C'est le constat qui vaut, pas la pièce (`profile-verification` règle 27) |
+| Pièces de vérification | `verification.evidence_files` | **45 jours** après la décision *(fondateur, 2026-11-01, `08` Q2)* | `decided_at` | La pièce n'a plus de raison d'être une fois le constat saisi. C'est le constat qui vaut, pas la pièce (`profile-verification` règle 27) |
 | Badges et décisions | `verification.badges`, `verification_requests` | **3 ans** | `decided_at` | Historique de responsabilité : INFLUX répond de ce qu'il a affirmé |
 | Messages | `messaging.messages` | **3 ans** après la clôture de la conversation | `closed_at` | Preuve d'une négociation d'où peut naître une créance V2 (D29) |
 | Journal des lectures | `messaging.conversation_access_log` | **3 ans** | `accessed_at` | Contrepartie de la supervision annoncée (A10) : elle doit être vérifiable aussi longtemps que les échanges |

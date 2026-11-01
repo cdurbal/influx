@@ -1458,6 +1458,11 @@ doivent être relus par un juriste avant tout affichage (`08` RG10, Q1).
 
 ### 5.4 C4 — Mon offre et mes tarifs : l'écran de la transparence financière
 
+> **⚠️ Régime du pilote, premier temps (D78, 2026-11-01) : aucun tarif saisi ni affiché**, les coûts
+> se négocient avec le commercial. C4 devient « Mon offre » : couples (réseau, format), droits
+> d'usage, disponibilité, secteurs refusés, contrepartie non monétaire (`07` §G). Les champs et
+> libellés de tarif ci-dessous sont suspendus.
+
 **L'écran le plus dangereux du produit côté créateur** (`07` RG65). Un créateur qui saisit « ce que
 je veux toucher » là où le produit attend « ce que la marque paie » se trompe de 35 %.
 

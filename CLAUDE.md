@@ -20,7 +20,7 @@ d'abord, puis dans le code.
 
 | Sujet | Document |
 |---|---|
-| Registre des décisions D1 à D77 : résumé (sujet, statut) · texte intégral (`Grep "^## D66 "`, jamais en entier) | `docs/mvp/decisions.md` · `docs/mvp/decisions-detail.md` |
+| Registre des décisions D1 à D79 : résumé (sujet, statut) · texte intégral (`Grep "^## D66 "`, jamais en entier) | `docs/mvp/decisions.md` · `docs/mvp/decisions-detail.md` |
 | `staging` iso-production, exploité par les agents (D70) | `docs/mvp/runbooks/staging.md` |
 | Périmètre et lots du MVP | `docs/mvp/00-cadrage-mvp-v2.md` |
 | Régime courté, commission au MVP | `docs/mvp/01-intermediation-courtee.md` |
@@ -71,7 +71,8 @@ influenceurs (créateurs).** INFLUX est l'intermédiaire et se rémunère sur le
 > **Interdiction : aucun taux ni calcul de commission dans le code.** `commission_rates` existe et
 > reste vide ; le commercial saisit montant et commission, l'application enregistre et additionne
 > sans jamais déduire d'un taux. **Aucun pourcentage ni net estimé affiché** (D48) : « commission
-> incluse, précisée par votre commercial ». Encaissement dans la plateforme : V2.
+> incluse, précisée par votre commercial ». Dans un premier temps, **aucun tarif créateur saisi ni
+> annoncé** : les coûts se négocient avec le commercial (D78). Encaissement dans la plateforme : V2.
 
 **Leads :** inscription gratuite ; chaque inscrit doit arriver dans **Brevo** (et **Apollo.io**
 selon la configuration, D33). La synchronisation est une fonctionnalité de premier plan.
@@ -255,8 +256,9 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
 
 ## 9. Décisions ouvertes (résumé dans `docs/mvp/decisions.md`, texte intégral dans `docs/mvp/decisions-detail.md`, qui fait foi)
 
-- **Avant le Lot 2** : **D34** libellé du badge · **D61** points restants (`07` Q15, Q16) ·
-  **D24** créateurs particuliers et fiscalité (instruite) · `03` R-4 et R-5.
+- **Lot 2** (`jalons/lot2-plan.md`, validé le 2026-11-01 ; questions ouvertes tranchées par D61
+  et D79, revue RGPD au Lot 6) : **D34** hypothèse de `staging` validée, libellés relus avant `production` · **D24**
+  créateurs particuliers et fiscalité (instruite, porte de `production`).
 - **Plus tard** : **D29** non-contournement · **D33** périmètre Apollo (veto RGPD, juriste avant
   `production` ; pays : tous par défaut) · **D63** consentement obligatoire (juriste) · **D21**
   influence commerciale par pays · **D38** masse critique (Lot 3) · **D30** coordonnées dans la
@@ -268,7 +270,10 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
   marqueurs dans `apps/api/legal/`) · D70 `staging` iso-production, exploité par les agents (§7, §8)
   · D71 vetos sur la seule `production`, qui n'avance que par `git merge --no-ff main` · D73 à D75
   charte KEO Emerald, sous-navigation, réalignement (§4 ; détail `20` §11, `17b` §1.7) · D76 cadence
-  de validation (§7 règle 5) · D77 chaîne des jalons (§7 règle 5).
+  de validation (§7 règle 5) · D77 chaîne des jalons (§7 règle 5) · D78 aucun tarif créateur
+  annoncé au pilote, coûts négociés avec le commercial (prolonge D48 ; `07` §G) · D79 arbitrages
+  d'ouverture du Lot 2 (« identité masquée », pièces 45 j, ville jamais révélée, visages admis,
+  « Compte vérifié » requis, tranches et paramètres de départ).
 - Ouvert technique : gestion d'état côté front (aucune librairie sans besoin réel).
 
 ## 10. Lots du MVP
