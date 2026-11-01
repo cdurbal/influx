@@ -3,7 +3,7 @@
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
 | 01 | 01.md | commit | sonnet | high | testeur | fait | Liste fermée des modèles de route (`contracts/route-models`), inconnu = `unmatched` ; garde J4S-7 sur tout `src/app` ; toutes les contraintes check de 0201 (inventaire, refus par nom, mutation) ; contiguïté `price_bands` reportée (table vide, D78) |
-| 02 | 02.md | arbitrage | opus | xhigh | architecte | à faire | Storage, ré-encodage, CI, `packages/domain` ; D80 |
+| 02 | 02.md | arbitrage | opus | xhigh | architecte | fait | D80, `stockage.md` : logo par le passe-plat (2 Mio), aucune URL signée (E1-3 intenable : URL Supabase de 2 h) ; `sharp` 0.35.5, `storage-js` 2.117.2 ; ligne avant objet, purge E-4 |
 | 03 | 03.md | commit | sonnet | high | integrateur | à faire | I-4 (`.github/workflows/`) |
 | 04 | 04.md | commit | sonnet | high | dev-react-node | à faire | Dépend de la réponse 1 ; suite complète |
 | 05 | 05.md | commit | opus | xhigh | expert-database | à faire | I-4 ; D46 ; suite base |

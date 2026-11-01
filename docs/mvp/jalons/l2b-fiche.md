@@ -168,6 +168,9 @@ Les cas portent la règle qu'ils prouvent (`06` RGn, CAn, `18` T9.n, T14.n, `03`
 - **EC-L2B-6** : `06` l. 968 (« compartiment public pour les logos modérés ») contredit `03` P10.1 :
   compartiment privé ; `04` §5.11 (aucun compartiment de logo) amendé.
 - **EC-L2B-7** : chemin de M2 absent de `17` §2.6 : `compte/profil` · `account/profile` ; amendé.
+- **D80 (L2B-02)** : logo par le passe-plat (2 Mio, PP-9 amendé), ni E1 ni URL signée au L2B ;
+  compartiment `brand-logo` en WebP ≤ 1 Mio ; T9.2 devient « aucune réponse du logo ne porte d'hôte
+  Supabase ni de jeton » ; `l2b/stockage.md` prime sur les prompts 03, 08, 09, 12 et la revue.
 - **Hors L2B** : bloc 4, badge et bloc interne RG46 (L2E) ; aperçu « ce que voit un créateur » (`06`
   §H, après les campagnes) ; détection d'une coordonnée (RG19), doublons de nom et de domaine (RG25,
   RG70), re-validation (RG9), `profile.completed` et attributs Brevo (RG78 à RG81), modération du
