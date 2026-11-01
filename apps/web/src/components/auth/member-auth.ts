@@ -1,5 +1,5 @@
 // Calls of the member sign-in and sign-up screens (docs/mvp/17 §3; 21 §4, §5.2). Each one goes
-// through the same-origin relay (src/browser/relay-client.ts) and reads the answer with the
+// through the same-origin relay (@influx/web-platform/relay-client) and reads the answer with the
 // schema of packages/contracts. No rule lives here: apps/api decides, the screen displays.
 import {
   journeyResetResponseSchema,
@@ -24,7 +24,7 @@ import {
   codeNotReceivedResponseSchema,
   type CodeNotReceivedResponse,
 } from "@influx/contracts/support";
-import { callRelay, type RelayResult } from "@/browser/relay-client";
+import { callRelay, type RelayResult } from "@influx/web-platform/relay-client";
 
 export function requestCode(
   email: string,

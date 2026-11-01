@@ -6,6 +6,8 @@
 // confirm alone after the 60 seconds written and counted, with a written justification, under the
 // banner that says the control is weakened (RG9); wait for a peer; or nothing. R is asked by
 // apps/api at the confirmation (PD3); the countdown is the only artificial delay of the backoffice.
+// PD1 (J8S-2): the object is named by apps/api's `target`, never by an identifier alone; a member
+// account by role, country and sign-up (its address is on the record, whose opening is journaled).
 import {
   DEGRADED_JUSTIFICATION_MAX,
   DEGRADED_JUSTIFICATION_MIN,
@@ -16,7 +18,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { messages } from "@/messages/fr";
 import {
-  ERROR_CLASSES,
   HELP_CLASSES,
   LEAD_CLASSES,
   TITLE_CLASSES,
@@ -37,24 +38,31 @@ import {
   FIELD_CLASSES,
   LINK_CLASSES,
   SECTION_CLASSES,
-  SECTION_TITLE_CLASSES,
+  SECTION_TITLE,
   SMALL_LABEL_CLASSES,
   SMALL_PRIMARY_CLASSES,
   SMALL_SECONDARY_CLASSES,
   SUCCESS_CLASSES,
   TABLE_CLASSES,
-  TABLE_WRAP_CLASSES,
   TD_CLASSES,
   TEXTAREA_CLASSES,
   TH_CLASSES,
 } from "./bo-classes";
+import { DenseTableRegion } from "./DenseTableRegion";
 import { useAction } from "./use-action";
-import { apolloSettingWords, formatDateTime, personName } from "./view-model";
+import {
+  apolloSettingWords,
+  countryName,
+  formatDate,
+  formatDateTime,
+  personName,
+} from "./view-model";
+import { ErrorNotice } from "./ErrorNotice";
 
 const t = messages.dualControl;
 
 /** First names of the team, to name a requester (admin screens only). */
-function useTeamNames(): ReadonlyMap<string, string | null> {
+export function useTeamNames(): ReadonlyMap<string, string | null> {
   const [names, setNames] = useState<ReadonlyMap<string, string | null>>(
     new Map(),
   );
@@ -79,6 +87,59 @@ function useTeamNames(): ReadonlyMap<string, string | null> {
   return names;
 }
 
+/** PD1 (J8S-2): the account or the invitation the action reaches, in words. */
+function TargetField({
+  view,
+  label,
+}: {
+  view: DualControlViewBody;
+  label: string;
+}) {
+  const { target } = view;
+  if (target === null) {
+    return <Field label={label}>{t.target.unreadable}</Field>;
+  }
+  switch (target.kind) {
+    case "member_account":
+      return (
+        <>
+          <Field label={label}>
+            {t.target.member(
+              messages.roles[target.role],
+              countryName(target.countryCode),
+              formatDate(target.createdAt),
+            )}{" "}
+            <Link
+              href={`/inscrits/${target.accountId}`}
+              className={LINK_CLASSES}
+            >
+              {t.openAccount}
+            </Link>
+          </Field>
+          {target.companyName === null ? null : (
+            <Field label={t.target.legalName}>{target.companyName}</Field>
+          )}
+        </>
+      );
+    case "internal_account":
+      return (
+        <Field label={label}>
+          {t.target.internal(target.firstName ?? t.unknownPerson)}
+        </Field>
+      );
+    case "internal_invitation":
+      return (
+        <Field label={label}>
+          {t.target.invited(
+            target.email,
+            messages.roles[target.role],
+            formatDate(target.createdAt),
+          )}
+        </Field>
+      );
+  }
+}
+
 /** The object of the action, in words (PD1: the exact scope). */
 function ActionTarget({ view }: { view: DualControlViewBody }) {
   const { action } = view;
@@ -86,42 +147,27 @@ function ActionTarget({ view }: { view: DualControlViewBody }) {
     case "identity.grant_role":
       return (
         <>
-          <Field label={t.target.account}>
-            <Link
-              href={`/inscrits/${action.accountId}`}
-              className={LINK_CLASSES}
-            >
-              {t.openAccount}
-            </Link>
-          </Field>
+          <TargetField view={view} label={t.target.account} />
           <Field label={t.target.role}>{messages.roles[action.role]}</Field>
         </>
       );
     case "identity.change_member_role":
       return (
         <>
-          <Field label={t.target.account}>
-            <Link
-              href={`/inscrits/${action.accountId}`}
-              className={LINK_CLASSES}
-            >
-              {t.openAccount}
-            </Link>
-          </Field>
-          <Field label={t.target.legalName}>{action.legalName}</Field>
+          <TargetField view={view} label={t.target.account} />
+          <Field label={t.target.newBrand}>{action.legalName}</Field>
         </>
       );
     case "identity.invite_admin":
-      return (
-        <Field label={t.target.invitation}>
-          <span className="font-mono">{action.invitationId}</span>
-        </Field>
-      );
+      return <TargetField view={view} label={t.target.invitation} />;
     case "privacy.approve_data_request":
       return (
-        <Field label={t.target.request}>
-          {messages.account.dataRequestType[action.requestType]}
-        </Field>
+        <>
+          <TargetField view={view} label={t.target.account} />
+          <Field label={t.target.request}>
+            {messages.account.dataRequestType[action.requestType]}
+          </Field>
+        </>
       );
     case "leads.change_apollo_setting":
       return (
@@ -173,9 +219,7 @@ export function DualControlListScreen() {
       <h1 className={TITLE_CLASSES}>{t.title}</h1>
       <p className={LEAD_CLASSES}>{t.lead}</p>
       {error !== null ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {error}
-        </p>
+        <ErrorNotice>{error}</ErrorNotice>
       ) : requests === null ? (
         <p role="status" className={HELP_CLASSES}>
           {messages.common.loading}
@@ -183,7 +227,7 @@ export function DualControlListScreen() {
       ) : requests.length === 0 ? (
         <p className={HELP_CLASSES}>{t.empty}</p>
       ) : (
-        <div className={TABLE_WRAP_CLASSES}>
+        <DenseTableRegion label={t.title}>
           <table className={TABLE_CLASSES}>
             <caption className="sr-only">{t.title}</caption>
             <thead>
@@ -225,7 +269,7 @@ export function DualControlListScreen() {
               ))}
             </tbody>
           </table>
-        </div>
+        </DenseTableRegion>
       )}
     </>
   );
@@ -305,9 +349,7 @@ export function DualControlScreen({ id }: { id: string }) {
     return (
       <>
         <h1 className={TITLE_CLASSES}>{t.requestTitle}</h1>
-        <p role="alert" className={ERROR_CLASSES}>
-          {loadError}
-        </p>
+        <ErrorNotice>{loadError}</ErrorNotice>
       </>
     );
   }
@@ -375,7 +417,7 @@ export function DualControlScreen({ id }: { id: string }) {
         )}
       </p>
       <section aria-labelledby="action-title" className={SECTION_CLASSES}>
-        <h2 id="action-title" className={SECTION_TITLE_CLASSES}>
+        <h2 id="action-title" className={SECTION_TITLE}>
           {t.actions[view.action.code] ?? view.action.code}
         </h2>
         <dl className={DL_CLASSES}>
@@ -427,7 +469,7 @@ export function DualControlScreen({ id }: { id: string }) {
         <p className={HELP_CLASSES}>{t.noAction}</p>
       ) : (
         <section aria-labelledby="confirm-title" className={SECTION_CLASSES}>
-          <h2 id="confirm-title" className={SECTION_TITLE_CLASSES}>
+          <h2 id="confirm-title" className={SECTION_TITLE}>
             {t.confirm}
           </h2>
           {degraded ? (
@@ -461,13 +503,9 @@ export function DualControlScreen({ id }: { id: string }) {
                 />
               </div>
               {justificationError ? (
-                <p
-                  id={ids.justificationError}
-                  role="alert"
-                  className={ERROR_CLASSES}
-                >
+                <ErrorNotice id={ids.justificationError}>
                   {t.justificationInvalid(DEGRADED_JUSTIFICATION_MIN)}
-                </p>
+                </ErrorNotice>
               ) : null}
             </>
           ) : null}

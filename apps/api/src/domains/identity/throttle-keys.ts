@@ -58,6 +58,20 @@ export function reauthenticationThrottleKey(
 }
 
 /**
+ * J8S-6 (0143): the network of a re-authentication R, in its own scope `backoffice_reauth_ip`,
+ * never the sign-in's. The key of A5 (already an HMAC) when the address is known, else one global
+ * key of R (label of its own: never equal to the sign-in's global key).
+ */
+export function reauthenticationAddressThrottleKey(
+  pepper: string,
+  address: ClientAddress,
+): Buffer {
+  return address.status === "known"
+    ? addressThrottleKey(address)
+    : globalThrottleKey(pepper, "backoffice_reauth_unknown_ip");
+}
+
+/**
  * EC-39: the digest of an accepted TOTP code, bound to its factor (label `totp-replay:`, 0013).
  * Never the code itself in the database.
  */

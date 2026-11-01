@@ -18,6 +18,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import {
   actAsInternal,
   actAsMember,
+  bindRequestSession,
   localSuperuser,
   testDataSet,
 } from "./support.ts";
@@ -69,6 +70,19 @@ async function attempt(
       message: failure.message ?? "",
     };
   }
+}
+
+/**
+ * A statement whose $1 is p_session_id, in the session of the request (J8S-3, 0142): the claim
+ * session_id carries the same session, as apps/api passes `context.sessionId` to both.
+ */
+async function attemptInSession(
+  tx: postgres.TransactionSql,
+  statement: string,
+  parameters: readonly postgres.ParameterOrJSON<never>[],
+): Promise<Attempt> {
+  await bindRequestSession(tx, String(parameters[0]));
+  return attempt(tx, statement, parameters);
 }
 
 const FORBIDDEN = {
@@ -481,14 +495,14 @@ describe("identity.change_member_role() (05 RG108, 03 §3.1 J · 2V · R · C(3)
       );
       const sessionB = await freshSession(tx, adminB);
       await asInternal(tx, "admin", adminB, () =>
-        attempt(
+        attemptInSession(
           tx,
           "select backoffice.confirm_dual_control($1::uuid, $2::uuid)",
           [sessionB, request],
         ),
       );
       const changed = await asInternal(tx, "admin", adminB, () =>
-        attempt(tx, CHANGE_ROLE, [
+        attemptInSession(tx, CHANGE_ROLE, [
           sessionB,
           request,
           member,
@@ -579,10 +593,10 @@ describe("identity.change_member_role() (05 RG108, 03 §3.1 J · 2V · R · C(3)
         "Acme SAS",
       ];
       const unconfirmed = await asInternal(tx, "admin", adminB, () =>
-        attempt(tx, CHANGE_ROLE, params(sessionB)),
+        attemptInSession(tx, CHANGE_ROLE, params(sessionB)),
       );
       await asInternal(tx, "admin", adminB, () =>
-        attempt(
+        attemptInSession(
           tx,
           "select backoffice.confirm_dual_control($1::uuid, $2::uuid)",
           [sessionB, request],
@@ -590,16 +604,16 @@ describe("identity.change_member_role() (05 RG108, 03 §3.1 J · 2V · R · C(3)
       );
       const sessionA = await freshSession(tx, adminA);
       const byRequester = await asInternal(tx, "admin", adminA, () =>
-        attempt(tx, CHANGE_ROLE, params(sessionA)),
+        attemptInSession(tx, CHANGE_ROLE, params(sessionA)),
       );
       await ageSession(tx, sessionB, 301);
       const stale = await asInternal(tx, "admin", adminB, () =>
-        attempt(tx, CHANGE_ROLE, params(sessionB)),
+        attemptInSession(tx, CHANGE_ROLE, params(sessionB)),
       );
       const freshB = await freshSession(tx, adminB);
       // the request was confirmed for signup_error: another reason does not consume it
       const wrongReason = await asInternal(tx, "admin", adminB, () =>
-        attempt(tx, CHANGE_ROLE, [
+        attemptInSession(tx, CHANGE_ROLE, [
           freshB,
           request,
           member,
@@ -610,7 +624,7 @@ describe("identity.change_member_role() (05 RG108, 03 §3.1 J · 2V · R · C(3)
       );
       // EC-J8-23 (0134): the name of the brand is part of what the peer confirmed
       const wrongName = await asInternal(tx, "admin", adminB, () =>
-        attempt(tx, CHANGE_ROLE, [
+        attemptInSession(tx, CHANGE_ROLE, [
           freshB,
           request,
           member,
@@ -621,7 +635,7 @@ describe("identity.change_member_role() (05 RG108, 03 §3.1 J · 2V · R · C(3)
       );
       const agentSession = await freshSession(tx, agentA);
       const agent = await asInternal(tx, "agent", agentA, () =>
-        attempt(tx, CHANGE_ROLE, params(agentSession)),
+        attemptInSession(tx, CHANGE_ROLE, params(agentSession)),
       );
       return {
         unconfirmed,
@@ -657,34 +671,34 @@ describe("identity.correct_email(): R in the database (05 RG62, EC-J8-18)", () =
       const sessionB = await freshSession(tx, adminB);
       const sessionA = await freshSession(tx, adminA);
       return asInternal(tx, "admin", adminA, async () => ({
-        stale: await attempt(tx, CALL, [
+        stale: await attemptInSession(tx, CALL, [
           stale,
           member,
           "x@example.test",
           "identity_checked_by_phone",
         ]),
-        other: await attempt(tx, CALL, [
+        other: await attemptInSession(tx, CALL, [
           sessionB,
           member,
           "x@example.test",
           "identity_checked_by_phone",
         ]),
         reason: codeOf(
-          await attempt(tx, CALL, [
+          await attemptInSession(tx, CALL, [
             sessionA,
             member,
             "x@example.test",
             "member_request",
           ]),
         ),
-        self: await attempt(tx, CALL, [
+        self: await attemptInSession(tx, CALL, [
           sessionA,
           adminA,
           "x@example.test",
           "identity_checked_by_phone",
         ]),
         ok: codeOf(
-          await attempt(tx, CALL, [
+          await attemptInSession(tx, CALL, [
             sessionA,
             member,
             "x@example.test",

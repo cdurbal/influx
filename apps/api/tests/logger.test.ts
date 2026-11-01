@@ -22,7 +22,10 @@ const QUERY_MARKER = "query-value-marker";
 describe("api request logs", () => {
   it("contain no cookie, authorization, internal secret or raw URL", async () => {
     const logs = captureLogs();
-    app = buildServer(testApiConfig(), { logDestination: logs.destination });
+    app = buildServer(testApiConfig(), {
+      logDestination: logs.destination,
+      isDatabaseReachable: async () => true,
+    });
     for (const url of [
       "/v1/status",
       `/v1/unknown?q=${QUERY_MARKER}`,
@@ -52,7 +55,10 @@ describe("api request logs", () => {
 
   it("carry the service, environment, version, route model and request identifier", async () => {
     const logs = captureLogs();
-    app = buildServer(testApiConfig(), { logDestination: logs.destination });
+    app = buildServer(testApiConfig(), {
+      logDestination: logs.destination,
+      isDatabaseReachable: async () => true,
+    });
     const requestId = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
     await app.inject({
       method: "GET",
@@ -77,7 +83,10 @@ describe("api request logs", () => {
 
   it("put the request identifier of an error response in the log (T13.5)", async () => {
     const logs = captureLogs();
-    app = buildServer(testApiConfig(), { logDestination: logs.destination });
+    app = buildServer(testApiConfig(), {
+      logDestination: logs.destination,
+      isDatabaseReachable: async () => true,
+    });
     const response = await app.inject({ method: "GET", url: "/v1/status" });
     const requestId: string = response.json().error.requestId;
     expect(logs.text()).toContain(requestId);
@@ -149,7 +158,10 @@ describe("masking of personal data and secrets (02 §20.8, 18 T13.6, 21 J1-J A1)
 
   it("(a) does the same for an error thrown by a route, through the error handler", async () => {
     const logs = captureLogs();
-    app = buildServer(testApiConfig(), { logDestination: logs.destination });
+    app = buildServer(testApiConfig(), {
+      logDestination: logs.destination,
+      isDatabaseReachable: async () => true,
+    });
     app.get(
       "/v1/failing",
       { schema: { response: { 200: z.object({ status: z.literal("ok") }) } } },

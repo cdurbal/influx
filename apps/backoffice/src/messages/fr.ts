@@ -6,6 +6,16 @@ export const messages = {
     title: "INFLUX — Backoffice",
   },
   brand: "INFLUX — Espace interne",
+  // 18 T13 (J9 commit 7): the 404 and error screens, a fixed text without any detail.
+  errorPages: {
+    notFoundTitle: "Cette page n’existe pas",
+    notFoundBody:
+      "L’adresse est peut-être incomplète, ou la page a été déplacée.",
+    errorTitle: "Un problème est survenu",
+    errorBody: "La page n’a pas pu s’afficher. Réessayez dans un instant.",
+    retry: "Réessayer",
+    home: "Revenir à l’accueil",
+  },
   form: {
     required: "Ce champ est obligatoire.",
   },
@@ -82,7 +92,6 @@ export const messages = {
     ended: "Votre session a pris fin. Reconnectez-vous.",
   },
   logout: {
-    action: "Me déconnecter",
     busy: "Déconnexion…",
     done: "Vous êtes déconnecté.",
     signInAgain: "Me reconnecter",
@@ -90,15 +99,42 @@ export const messages = {
   // ---------------------------------------------------------------------------------------------
   // J8 commit 9: the screens of the backoffice v0 (17b §2, §3.11 to §3.13, §3.14.e; 05 §K)
   // ---------------------------------------------------------------------------------------------
+  // DS-10 (D73): the rail of 17b §1.2 and §1.7, its entries, then its sub-entries (D74).
   nav: {
-    label: "Navigation de l’espace interne",
+    label: "Navigation principale",
+    skip: "Aller au contenu",
+    dashboard: "Tableau de bord",
+    queues: "Files",
+    accounts: "Comptes",
+    creatorSearch: "Créateurs",
+    deals: "Affaires",
+    alerts: "Alertes",
+    admin: "Administration",
     home: "Accueil",
-    accounts: "Inscrits",
-    memberInvitations: "Invitations de membres",
+    signups: "Inscrits",
+    memberInvitations: "Invitations",
     dualControl: "Double validation",
     apollo: "Réglages Apollo",
     internalAccounts: "Comptes internes",
-    skip: "Aller au contenu",
+    health: "Santé technique",
+  },
+  /** 17b §1.4 and §1.7: the head band, the rail, and the screen of a window too small. */
+  shell: {
+    name: "INFLUX",
+    product: "Backoffice",
+    signOut: "Se déconnecter",
+    /** The environment, always written; the colour of the band is never alone (16 RG118). */
+    environment: {
+      production: "PRODUCTION",
+      staging: "RECETTE",
+      development: "LOCAL",
+    },
+    identity: (email: string, role: "agent" | "admin") =>
+      `${email} · ${role === "admin" ? "administrateur" : "commercial"}`,
+    workstationOnly: {
+      title: "Le backoffice se consulte sur un poste de travail",
+      body: "Cet écran demande une fenêtre d’au moins 768 px de large et 500 px de haut. Sur téléphone, vos conversations et la file de validation seront disponibles à leur mise en service.",
+    },
   },
   /**
    * 16 RG118 (D70): the permanent banner of every non-production backoffice, in words. Staging sends
@@ -195,13 +231,15 @@ export const messages = {
     no_consent: "Pas de consentement marketing : non envoyé, c’est normal",
     out_of_apollo_scope_individual: "Particulier hors du périmètre Apollo",
     out_of_apollo_scope: "Hors du périmètre Apollo réglé",
-    country_not_validated: "Pays sans base légale validée pour Apollo",
+    country_excluded: "Pays exclu de la prospection Apollo",
+    country_not_validated:
+      "Pays non validé pour Apollo (avant l’exclusion par liste)",
     prospection_opposed: "Opposition à la prospection",
     email_not_verified: "Adresse non vérifiée",
     company_not_identified: "Entreprise non identifiée",
     account_not_active: "Compte inactif",
     non_production: "Environnement de test : aucun envoi réel",
-    configuration_missing: "Réglage manquant",
+    configuration_missing: "Incident : réglage manquant",
     other_normal_case: "Autre cas normal",
     address_refused: "Adresse refusée par le service",
     quota_exceeded: "Quota journalier dépassé",
@@ -211,6 +249,17 @@ export const messages = {
     other_failure: "Autre échec",
     access_key_refused: "Clé d’accès refusée par le service",
   },
+  /** 05 RG160 point 4, RG164: the setting at fault is named, never its value. */
+  syncSetting: {
+    brevo_list_advertisers: "liste Brevo des annonceurs",
+    brevo_list_creators: "liste Brevo des créateurs",
+    brevo_template: "modèle d’e-mail Brevo",
+    apollo_settings: "réglages Apollo",
+    apollo_credentials: "clé d’accès Apollo",
+  },
+  /** The cause with its setting: « Incident : réglage manquant — liste Brevo des créateurs ». */
+  syncCauseWithSetting: (cause: string, setting: string) =>
+    `${cause} — ${setting}`,
   consentSource: {
     signup_form: "inscription",
     account_settings: "mon compte",
@@ -252,8 +301,6 @@ export const messages = {
     title: "Espace interne",
     lead: "Inscrits du jour, synchronisation des leads et alertes.",
     loading: "Chargement…",
-    signedInAs: (email: string, role: "agent" | "admin") =>
-      `Connecté avec ${email} — ${role === "admin" ? "administrateur" : "commercial"}`,
     countersTitle: (day: string) => `Aujourd’hui (${day}, jour UTC)`,
     signups: (total: number, advertisers: number, creators: number) =>
       `${total} inscrit${total > 1 ? "s" : ""} : ${advertisers} marque${advertisers > 1 ? "s" : ""}, ${creators} créateur${creators > 1 ? "s" : ""}`,
@@ -279,10 +326,39 @@ export const messages = {
     noAlert: "Aucune alerte ouverte.",
     alertsError: "Les alertes n’ont pas pu être chargées.",
     evaluatedAt: (at: string) => `Évaluées le ${at}`,
+    /** PD6 (J8S-1; 03 §1.3, 15 RG9): the weekly review, a team discipline. */
+    degraded: {
+      title: "Revue hebdomadaire des confirmations en mode différé",
+      lead: (weeks: number) =>
+        `Actions confirmées seul par la personne qui les avait demandées, semaine par semaine, sur les ${weeks} dernières semaines. Ce contrôle est affaibli : relisez cette liste chaque semaine, en équipe.`,
+      empty: (weeks: number) =>
+        `Aucune confirmation en mode différé au cours des ${weeks} dernières semaines.`,
+      week: (week: string, count: number) => {
+        const [year = "", number = ""] = week.split("-W");
+        return `Semaine ${Number(number)} de ${year} — ${count} confirmation${count > 1 ? "s" : ""}`;
+      },
+      line: (
+        action: string,
+        reason: string,
+        name: string,
+        requestedAt: string,
+        confirmedAt: string,
+        executed: boolean,
+      ) =>
+        `${action} (motif : ${reason}) — demandée par ${name} le ${requestedAt}, confirmée seule le ${confirmedAt}${executed ? ", exécutée" : ", non exécutée"}.`,
+      open: "Ouvrir la demande",
+      error: "La revue hebdomadaire n’a pas pu être chargée.",
+    },
   },
   /** 05 RG104, CA62; 15 §F: an alert says what, how many and since when (never the colour alone). */
   alert: {
     cause: {
+      configuration_missing: (
+        destination: string,
+        count: number,
+        setting?: string,
+      ) =>
+        `Réglage manquant : ${setting ?? "inconnu"}. ${count} envoi${count > 1 ? "s" : ""} ${destination} en échec. Renseignez le réglage : les envois repartent seuls en moins de 15 minutes, ou rejouez-les.`,
       failures_past_delay: (destination: string, count: number) =>
         `${count} échec${count > 1 ? "s" : ""} ${destination} attend${count > 1 ? "ent" : ""} au-delà du délai de la file.`,
       access_key_refused: (destination: string, count: number) =>
@@ -297,7 +373,10 @@ export const messages = {
         `Le dernier rapprochement Brevo a trouvé ${count} désinscription${count > 1 ? "s" : ""} non reçue${count > 1 ? "s" : ""} par le webhook.`,
       reconciliation_failed: () => "Le dernier rapprochement Brevo a échoué.",
     } as Readonly<
-      Record<string, (destination: string, count: number) => string>
+      Record<
+        string,
+        (destination: string, count: number, setting?: string) => string
+      >
     >,
     line: (code: string, text: string, since: string | null) =>
       `Alerte ${code} — ${text}${since === null ? "" : ` (depuis le ${since})`}`,
@@ -306,6 +385,13 @@ export const messages = {
       body: (agentName: string, date: string, time: string, browser: string) =>
         `${agentName} s’est connecté le ${date} à ${time} depuis ${browser}, un navigateur jamais utilisé sur ce compte au cours des 30 derniers jours. Aucune mesure automatique n’a été prise. Vérifiez auprès de la personne ; si ce n’est pas elle, révoquez ses sessions et réinitialisez son second facteur.`,
       unnamed: "Une personne sans prénom enregistré",
+    },
+    /** J8S-4 (15 RG101): an `admin` role granted, for the admins; the e-mail comes at Lot 5. */
+    adminGrant: {
+      title: "Rôle administrateur attribué",
+      body: (name: string, by: string, date: string, time: string) =>
+        `${name} a reçu le rôle administrateur le ${date} à ${time}, attribué par ${by}. Si cette attribution n’était pas attendue, vérifiez-la auprès de ${by} et de la personne concernée.`,
+      unknownGranter: "une personne non identifiée",
     },
   },
   accounts: {
@@ -326,17 +412,25 @@ export const messages = {
     view: "Vue",
     viewAll: "Tous les inscrits",
     viewFailed: "À traiter",
+    servicesHint:
+      "Beaucoup d’échecs d’un coup ? Un fournisseur ou un service peut être en cause :",
     viewNormal: "Cas normaux",
     viewHelp:
       "« À traiter » et « Cas normaux » sont deux vues, jamais un total : un inscrit sans consentement n’est pas un échec.",
-    search: "Recherche partielle dans l’adresse",
+    search: "Recherche par adresse",
     searchHelp:
-      "3 caractères au moins : lettres, chiffres, tiret ou souligné. Chaque recherche est enregistrée (20 par quart d’heure).",
+      "Une adresse complète : recherche exacte, non enregistrée. Un fragment de 3 caractères au moins, sans espace : recherche partielle, enregistrée à votre nom (20 par quart d’heure). Le terme n’apparaît jamais dans l’adresse de la page.",
     searchInvalid:
-      "3 à 64 caractères parmi les lettres, chiffres, tiret et souligné.",
+      "Saisissez une adresse complète, ou un fragment de 3 caractères au moins, sans espace.",
     searchSubmit: "Chercher",
     reset: "Réinitialiser les filtres",
     searchJournaled: "Cette recherche a été enregistrée à votre nom.",
+    searchExact: "Recherche exacte : elle n’est pas enregistrée.",
+    period: "Période d’inscription",
+    periodFrom: "Du",
+    periodTo: "Au",
+    periodHelp: "Bornes incluses, dans votre fuseau horaire.",
+    periodInvalid: "La période doit commencer avant de finir.",
     columns: {
       select: "Sélection",
       createdAt: "Inscription",
@@ -507,6 +601,19 @@ export const messages = {
     dataRequestExecuted: (at: string) => `Exécutée le ${at}.`,
     dataRequestApproved: (at: string) =>
       `Exécution approuvée le ${at}, en attente du traitement.`,
+    /** D72: an erasure authorised by the member alone, read-only; never an approval button. */
+    dataRequestMemberErasure: (
+      authorised: string,
+      executed: string | null,
+      brevo: string,
+      apollo: string,
+      closed: string | null,
+    ) =>
+      `Suppression demandée et confirmée par le membre (code frais) le ${authorised} · ${
+        executed === null ? "en attente d’exécution" : `exécutée le ${executed}`
+      } · Brevo ${brevo} · Apollo ${apollo} · ${
+        closed === null ? "non close" : `close le ${closed}`
+      }.`,
     dataRequestExport: (expires: string, downloads: number) =>
       `Export publié, disponible jusqu’au ${expires} · ${downloads} téléchargement${downloads > 1 ? "s" : ""}.`,
     dataRequestApprove: "Approuver l’exécution (double validation)",
@@ -537,11 +644,11 @@ export const messages = {
       annonceurs_et_createurs_pro: "Marques et créateurs professionnels",
       tous_les_inscrits: "Tous les inscrits",
     },
-    countries: "Pays de prospection",
+    countries: "Pays exclus de la prospection",
     countriesHelp:
-      "Codes pays ISO séparés par des espaces ou des virgules (FR, BE…). Une liste vide est une abstention : aucun envoi.",
+      "Codes pays ISO séparés par des espaces ou des virgules (FR, BE…). Tous les pays sont prospectés sauf ceux de la liste ; une liste vide n’en exclut aucun.",
     countriesInvalid: (codes: string) => `Codes inconnus : ${codes}`,
-    countriesEmpty: "Aucun pays : aucun envoi à Apollo.",
+    countriesEmpty: "Aucun pays exclu : tous les pays sont prospectés.",
     legalBasis: "Base légale",
     legalBasisDefault: "Par défaut",
     legalBases: {
@@ -642,6 +749,15 @@ export const messages = {
       setting: "Nouvelle valeur",
       legalName: "Raison sociale",
       role: "Rôle",
+      /** PD1 (J8S-2): a member account by role, country and sign-up, never by its address. */
+      member: (role: string, country: string, date: string) =>
+        `${role} · ${country} · inscrit le ${date}`,
+      internal: (name: string) => `${name}, membre de l’équipe`,
+      invited: (email: string, role: string, date: string) =>
+        `${email} · rôle proposé : ${role} · invitation du ${date}`,
+      newBrand: "Nouvelle raison sociale",
+      unreadable:
+        "Objet introuvable : il n’existe plus ou n’est plus lisible. Ne confirmez pas sans l’avoir vérifié.",
     },
     openAccount: "Ouvrir la fiche",
     states: {
@@ -765,5 +881,313 @@ export const messages = {
       "Invitation impossible pour cette adresse. Vérifiez qu’elle n’appartient pas déjà à un compte.",
     takenMember: "Cette adresse a déjà un compte ou une invitation en cours.",
     error: "Les invitations n’ont pas pu être chargées.",
+  },
+  // ---------------------------------------------------------------------------------------------
+  // J9 commit 9: the "Santé technique" screen (02 §20.5; 15 RG165), read only, admins only
+  // ---------------------------------------------------------------------------------------------
+  health: {
+    title: "Santé technique",
+    lead: "Lecture seule, réservée aux administrateurs. La disponibilité est celle mesurée par la sonde, le reste vient de la base : rien ne se modifie ici.",
+    workstation:
+      "Cet écran est fait pour un poste de travail. Sur téléphone, l’e-mail d’alerte suffit.",
+    refresh: "Actualiser",
+    refreshing: "Actualisation…",
+    refreshedAt: (time: string) =>
+      `Actualisé à ${time}. Mise à jour automatique toutes les minutes.`,
+    loading: "Chargement de la section…",
+    unavailable: "Cette section n’a pas pu être chargée.",
+    forbidden:
+      "Cet écran est réservé aux administrateurs. La tentative a été enregistrée.",
+    retry: "Réessayer",
+    ago: (age: string) => `il y a ${age}`,
+    /** "12:07 · il y a 3 min": an instant and how old it is. */
+    timeAndAge: (time: string, age: string) => `${time} · il y a ${age}`,
+    /** " · il y a 3 min": the age that follows a state. */
+    afterState: (age: string) => ` · il y a ${age}`,
+    availability: {
+      title: "Disponibilité mesurée par la sonde",
+      lead: "Le worker appelle chaque cible une fois par minute. L’alerte AL49 part au deuxième échec de suite d’une même cible.",
+      columns: {
+        target: "Cible",
+        state: "Dernier relevé",
+        duration: "Durée",
+        day: "24 heures",
+        week: "7 jours",
+        month: "30 jours",
+      },
+      targets: {
+        web_home_fr: "Accueil du site (français)",
+        web_home_en: "Accueil du site (anglais)",
+        backoffice_sign_in: "Connexion du backoffice",
+        api_health: "API — état et base (réseau privé)",
+      },
+      up: "Disponible",
+      down: "Injoignable",
+      unknown: "Aucun relevé",
+      failures: {
+        timeout: "délai dépassé",
+        connection: "aucune réponse",
+        status: "réponse d’erreur",
+        redirect: "redirection inattendue",
+        body: "réponse incomplète",
+      },
+      statusCode: (code: number) => `code ${code}`,
+      cause: (words: string) => ` (${words})`,
+      stale: "relevé ancien : la sonde s’est peut-être arrêtée",
+      window: (share: string, failures: number, checks: number) =>
+        `${share} (${failures} échec${failures > 1 ? "s" : ""} sur ${checks})`,
+      noMeasure:
+        "Pas de relevé : la disponibilité est inconnue, elle n’est pas nulle.",
+    },
+    alerts: {
+      title: "Alertes techniques ouvertes",
+      lead: "Les alertes AL48 à AL63 (15 RG165) : chacune s’affiche ici et part par e-mail. Une alerte d’état est rappelée au plus toutes les 30 minutes ; un e-mail « rétabli » clôt l’incident.",
+      empty: "Aucune alerte technique ouverte.",
+      columns: {
+        alert: "Alerte",
+        since: "Ouverte depuis",
+        notified: "Dernier e-mail",
+        value: "Mesure et seuil",
+      },
+      notified: (time: string, count: number) =>
+        `${time} (${count} envoi${count > 1 ? "s" : ""})`,
+      notNotified: "pas encore envoyé",
+      subject: (subject: string) => `concerne ${subject}`,
+      titles: {
+        AL48: "Délivrabilité du code de connexion hors seuil",
+        AL49: "Site injoignable",
+        AL50: "Worker arrêté",
+        AL51: "Nouvelle erreur serveur, ou régression",
+        AL52: "Taux d’erreurs serveur",
+        AL53: "Lenteur de l’API",
+        AL54: "Lenteur des pages",
+        AL55: "Pic d’appels (information)",
+        AL56: "Réponses 429 en hausse",
+        AL57: "Service saturé",
+        AL58: "Base saturée",
+        AL59: "Code de connexion visé",
+        AL60: "Purge horaire en défaut",
+        AL61: "Webhook Brevo : appels ignorés",
+        AL62: "Webhook Brevo hors plages",
+        AL63: "Demande de données exécutée, non close",
+      } as Readonly<Record<string, string>>,
+      untitled: "Alerte technique",
+    },
+    worker: {
+      title: "État du worker",
+      lead: "Lu depuis la base, pas depuis le worker : l’état reste juste quand il est arrêté (02 §11.3).",
+      state: {
+        running: "Actif — le dernier battement est dans le délai.",
+        silent: "Silencieux — aucun battement dans le délai de l’alerte AL50.",
+        unknown: "Non évalué — le délai de l’alerte AL50 n’est pas renseigné.",
+      },
+      threshold: (seconds: number) => `Délai d’alerte AL50 : ${seconds} s`,
+      noBeat: "Aucun battement n’a jamais été enregistré.",
+      columns: {
+        instance: "Instance",
+        version: "Version",
+        started: "Démarré",
+        beat: "Dernier battement",
+        turn: "Dernier tour de boucle",
+        state: "État",
+      },
+      beating: "bat",
+      silent: "silencieux",
+      notEvaluated: "non évalué",
+      turnHint:
+        "Un worker qui bat sans terminer de tour est occupé par une longue tâche ou bloqué : regardez l’âge du dernier tour.",
+      tasks: {
+        title: "Tâches périodiques",
+        empty: "Aucune tâche périodique n’a encore tourné.",
+        columns: {
+          task: "Tâche",
+          period: "Période",
+          started: "Début",
+          finished: "Fin",
+          outcome: "Résultat",
+        },
+        names: {
+          brevo_reconciliation: "Réconciliation Brevo",
+          auth_orphan_purge: "Purge des comptes d’authentification orphelins",
+          brevo_inbound_purge: "Purge des retours Brevo",
+          data_export_purge: "Purge des exports de données",
+          ops_retention: "Conservation et purges de la surveillance",
+        },
+        outcomes: {
+          succeeded: "réussie",
+          failed: "en échec",
+        } as Readonly<Record<string, string>>,
+        running: "en cours",
+      },
+    },
+    errors: {
+      title: "Erreurs",
+      lead: "Les erreurs sont regroupées par empreinte : type, message nettoyé, route et premières lignes de notre code. Un groupe corrigé qui réapparaît est une régression.",
+      filter: "Afficher",
+      source: "Origine",
+      sources: {
+        all: "Serveur et navigateur",
+        server: "Serveur",
+        browser: "Navigateur",
+      },
+      filters: {
+        open: "Ouvertes",
+        regression: "Régressions",
+        new: "Nouvelles",
+        acknowledged: "Prises en compte",
+        fixed: "Corrigées",
+        ignored: "Ignorées",
+        all: "Toutes",
+      },
+      chip: (label: string, count: number | null) =>
+        count === null ? label : `${label} (${count})`,
+      empty: {
+        open: "Aucune erreur ouverte.",
+        regression: "Aucune régression.",
+        other: "Aucun groupe dans cet état.",
+      },
+      truncated: (cap: number) =>
+        `Seuls les ${cap} groupes les plus récents sont affichés.`,
+      columns: {
+        status: "État",
+        error: "Erreur",
+        route: "Route",
+        service: "Service",
+        count: "Occurrences",
+        first: "Première",
+        last: "Dernière",
+        versions: "Versions",
+        detail: "Détail",
+      },
+      statuses: {
+        new: "nouvelle",
+        acknowledged: "prise en compte",
+        fixed: "corrigée",
+        ignored: "ignorée",
+      },
+      regression: (count: number) =>
+        count > 1 ? `régression (${count} fois)` : "régression",
+      services: {
+        api: "API",
+        worker: "Worker",
+        web: "Site (navigateur)",
+        backoffice: "Backoffice (navigateur)",
+      },
+      versions: (first: string, last: string) =>
+        first === last ? first : `${first} → ${last}`,
+      noRoute: "hors requête",
+      show: "Voir les occurrences",
+      hide: "Masquer les occurrences",
+      detailTitle: (type: string) => `Occurrences de ${type}`,
+      detailLead:
+        "Les 50 plus récentes, conservées 30 jours. Le numéro de requête mène aux journaux Railway ; le compte est un identifiant, jamais un nom.",
+      detailEmpty:
+        "Aucune occurrence conservée (au-delà de 30 jours, ou au-delà du plafond par minute).",
+      detailColumns: {
+        when: "Date",
+        service: "Service",
+        version: "Version",
+        route: "Route",
+        request: "Requête",
+        account: "Compte",
+        message: "Message",
+      },
+      stack: "Pile nettoyée",
+      noStack: "pas de pile",
+      userAgent: (summary: string) => `navigateur : ${summary}`,
+      unverified: "source navigateur, texte non vérifié",
+    },
+    traffic: {
+      title: "Appels, durées et erreurs de l’API",
+      lead: "Par route (son modèle, jamais l’adresse réelle). Le p95 est calculé à la lecture sur les histogrammes de toutes les instances additionnés : c’est la borne haute de la tranche qui le contient.",
+      window: "Période",
+      windows: { hour: "1 heure", day: "24 heures", week: "7 jours" },
+      sort: "Trier par",
+      sorts: { calls: "appels", p95: "p95", errors: "taux d’erreurs" },
+      total: "Toutes les routes",
+      empty: "Aucun appel mesuré sur cette période.",
+      columns: {
+        route: "Route",
+        calls: "Appels / min",
+        p95: "p95",
+        errors: "Erreurs 5xx",
+        throttled: "429",
+        curves: "Courbes : appels, p95, erreurs",
+      },
+      callsTotal: (count: number) => `${count} appel${count > 1 ? "s" : ""}`,
+      errorsCell: (count: number, rate: string) => `${count} (${rate})`,
+      curveCalls: "Appels par minute",
+      curveP95: "p95",
+      curveErrors: "Taux d’erreurs 5xx",
+      curveLabel: (name: string, last: string, peak: string) =>
+        `${name} : dernier point ${last}, maximum ${peak}`,
+      curveEmpty: (name: string) => `${name} : rien de mesuré`,
+      bucket: (size: string) => `Un point = ${size}.`,
+      totalLine: (calls: string, rate: string, p95: string, errors: string) =>
+        `${calls} · ${rate} / min · p95 ${p95} · erreurs 5xx ${errors}`,
+      range: (from: string, now: string) => `${from} → ${now}`,
+      inProgress: "Le dernier point de chaque courbe est la tranche en cours.",
+      read: {
+        title: "Comment lire un ralentissement",
+        columns: { calls: "Appels", durations: "Durées", reading: "Lecture" },
+        rows: [
+          [
+            "En hausse",
+            "Normales",
+            "Pic absorbé : rien à faire, noter son origine.",
+          ],
+          [
+            "En hausse",
+            "Dégradées",
+            "Le pic ralentit le site : augmenter les ressources Railway du service, vérifier la base.",
+          ],
+          [
+            "Normaux",
+            "Dégradées",
+            "Défaut interne (requête lente, base, fournisseur externe) : ce tableau désigne la route, pg_stat_statements la requête.",
+          ],
+          [
+            "Chute brutale",
+            "—",
+            "Site injoignable ou panne en amont : voir la sonde, puis l’état de Railway et de Supabase.",
+          ],
+        ] as ReadonlyArray<readonly [string, string, string]>,
+        origin:
+          "Le premier suspect d’un pic est INFLUX lui-même : un envoi de masse ou une campagne ramène des milliers de visiteurs en quelques minutes.",
+      },
+    },
+    processes: {
+      title: "Processus et base de données",
+      lead: "Le retard de la boucle d’événements est le signe de lenteur le plus direct d’un service Node. Les relevés sont à la minute.",
+      empty: "Aucun processus n’a écrit de relevé depuis 24 heures.",
+      columns: {
+        process: "Processus",
+        last: "Dernier relevé",
+        loop: "Retard de boucle (p99)",
+        loopHour: "Sur 1 h : moyenne · maximum",
+        memory: "Mémoire (RSS)",
+        cpu: "Processeur",
+      },
+      services: { api: "API", worker: "Worker" },
+      stale: "relevé interrompu ?",
+      loopHour: (average: string, maximum: string) => `${average} · ${maximum}`,
+      peak: (value: string) => `pic ${value} sur 1 h`,
+      database: {
+        title: "Connexions à la base",
+        none: "Aucun relevé de connexions : le worker les relève chaque minute.",
+        now: (connections: number, max: number, share: number) =>
+          `${connections} connexions sur ${max} (${share} % du maximum de la grappe)`,
+        peak: (peak: number) => `Pic des 24 dernières heures : ${peak}`,
+        stale: (age: string) =>
+          `Dernier relevé il y a ${age} : le relevé est interrompu.`,
+        curveLabel: (last: number, peak: number) =>
+          `Connexions, dernière heure : dernier point ${last}, maximum ${peak}`,
+      },
+    },
+  },
+  /** The link of the queues to the "Santé technique" screen (15 §C, "file bloquée"): admins only. */
+  servicesLink: {
+    label: "État des services",
+    hint: "Réservé aux administrateurs.",
   },
 } as const;

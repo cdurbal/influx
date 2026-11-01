@@ -9,12 +9,15 @@
     "start": "next start -H 0.0.0.0",
     "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "test": "vitest run",
-    "test:artifacts": "vitest run --config vitest.artifacts.config.ts",
-    "test:e2e": "playwright test"
+    "test": "vitest run --reporter=default --reporter=json --outputFile.json=test-results/vitest-report.json && node ../../packages/test-kit/scripts/check-case-floors.ts tests/case-floors.ts test-results/vitest-report.json",
+    "test:artifacts": "vitest run --config vitest.artifacts.config.ts --reporter=default --reporter=json --outputFile.json=test-results/artifacts-report.json && node ../../packages/test-kit/scripts/check-case-floors.ts tests/artifact-floors.ts test-results/artifacts-report.json",
+    "test:e2e": "playwright test && node ../../packages/test-kit/scripts/check-case-floors.ts e2e/case-floors.ts test-results/e2e-report.json",
+    "e2e:record-vitrine": "playwright test e2e/vitrine-unchanged.spec.ts --update-snapshots"
   },
   "dependencies": {
     "@influx/contracts": "workspace:*",
+    "@influx/ui": "workspace:*",
+    "@influx/web-platform": "workspace:*",
     "lucide-react": "1.46.0",
     "next": "16.3.6",
     "next-intl": "4.14.5",

@@ -10,7 +10,7 @@
 > **Statut :** spécification de design, rédigée par `expert-ux` le 2026-09-17
 > (skill `design-system-influx`). **Remplace `02-ux-wireframes.md` §3.20** pour le composant
 > `CookieBanner.tsx` : deux boutons au lieu de trois (« Personnaliser » supprimé, cf. §8).
-> **Sources :** `CLAUDE.md` §5 (dark theme, WCAG AA, bilingue), `apps/web/src/styles/tokens.css`
+> **Sources :** `CLAUDE.md` §5 (dark theme, WCAG AA, bilingue), `packages/ui/src/styles/tokens.css`
 > (seule source de valeurs), `01-architecture.md` §5 et §11 (next-intl, D28),
 > `07-revue-conformite.md` §2.5 et ligne L9.
 > **Destinataires :** `dev-react-node` (implémentation), `expert-conformite-rgpd` (validation du
@@ -99,7 +99,7 @@ en bas via `position: fixed`.
 
 ## 5. Style visuel — tokens exclusivement
 
-Aucune valeur littérale : tout vient de `apps/web/src/styles/tokens.css`.
+Aucune valeur littérale : tout vient de `packages/ui/src/styles/tokens.css`.
 
 | Élément | Token(s) |
 |---|---|

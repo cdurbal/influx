@@ -10,20 +10,46 @@ import {
   findMatches,
   findNetworkOrStorageUse,
   findPagesRouterDirectories,
+  findPlatformExportViolations,
+  findPlatformFileCopies,
   findPrimitiveBaseClassConflicts,
   findRelayContentViolations,
   findRelayFingerprintMismatches,
   findRelayImporterViolations,
   findRouteFileViolations,
+  PLATFORM_NETWORK_FILES,
   HARD_CODED_COLOR_PATTERN,
   HARD_CODED_LENGTH_PATTERN,
   importSpecifiers,
+  isValidUtf8,
   listFiles,
   RELAY_FILES,
   relativePath,
+  effectiveTokens,
+  findCharterFileCopies,
+  findFontViolations,
+  findTokensImportViolations,
+  findNonBoDeclarations,
+  findTokenPairFailures,
+  findSessionReadViolations,
+  findDocumentSmoothing,
+  findFluidKeoTypography,
+  findKeoTrapViolations,
+  findTokenUseOutside,
+  findVitrineTokenUse,
+  fluidTypographyClasses,
+  DANGER_RED_TOKENS,
+  OPAQUE_TOKEN_VALUE,
+  TRANSLUCENT_RED_CLASS,
+  type Charter,
 } from "@influx/test-kit/guards";
+import { DANGER_PAIRS, KEO_COLOR_MIX } from "@influx/test-kit/charter-data";
 import { describe, expect, it } from "vitest";
 import nextConfig, { NOINDEX, SECURITY_HEADERS } from "../next.config";
+import {
+  contentSecurityPolicy,
+  createNonce,
+} from "../src/config/security-headers";
 
 const BACKOFFICE_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -31,7 +57,20 @@ const BACKOFFICE_ROOT = path.resolve(
 );
 const WEB_ROOT = path.resolve(BACKOFFICE_ROOT, "..", "web");
 const SRC = path.join(BACKOFFICE_ROOT, "src");
-const TOKENS = "src/styles/tokens.css";
+/** The tokens of both fronts live once, in packages/ui (arbitration PL-07, PL-08). */
+const UI_ROOT = path.resolve(BACKOFFICE_ROOT, "..", "..", "packages", "ui");
+const TOKENS_FILE = path.join(UI_ROOT, "src", "styles", "tokens.css");
+const GLOBALS = "src/app/globals.css";
+/** The relay, its browser client, the collector and the marker of both fronts (PL-07, PL-09). */
+const PLATFORM_ROOT = path.resolve(
+  BACKOFFICE_ROOT,
+  "..",
+  "..",
+  "packages",
+  "web-platform",
+);
+/** The backoffice-only tokens (D73, 02 §21.3 point 6): born with DS-9, a token file like the other. */
+const TOKENS_BACKOFFICE = "src/styles/tokens-backoffice.css";
 
 const SOURCE_FILES = listFiles(SRC).filter((file) =>
   /\.(ts|tsx|json|css)$/.test(file),
@@ -68,8 +107,20 @@ function languageNamedPaths(paths: readonly string[]): string[] {
   );
 }
 
+// G1 tightened at J9 commit 5 (18 §5 G1): the back office has no legal or contact page, so no
+// mailto: or tel: link anywhere, without an allowlist.
+describe("G1: no mailto or tel link (18 §5 G1)", () => {
+  it("finds no mailto: or tel:", () => {
+    expect(
+      findMatches(/mailto:|\btel:/, SOURCE_FILES, BACKOFFICE_ROOT),
+    ).toEqual([]);
+  });
+});
+
 describe("G3: no hard-coded color or length outside the token file (CA22)", () => {
-  const files = SOURCE_FILES.filter((file) => relative(file) !== TOKENS);
+  const files = SOURCE_FILES.filter(
+    (file) => relative(file) !== TOKENS_BACKOFFICE,
+  );
 
   it("finds no hexadecimal color or color function", () => {
     expect(
@@ -83,21 +134,172 @@ describe("G3: no hard-coded color or length outside the token file (CA22)", () =
     ).toEqual([]);
   });
 
-  it("keeps a byte-for-byte copy of the apps/web tokens until packages/ui exists (J1-E)", () => {
-    expect(readFileSync(path.join(BACKOFFICE_ROOT, TOKENS))).toEqual(
-      readFileSync(path.join(WEB_ROOT, TOKENS)),
-    );
+  it("keeps no copy of the tokens: apps/backoffice imports those of packages/ui, as apps/web does (J1-E, PL-08)", () => {
+    expect(findCharterFileCopies(BACKOFFICE_ROOT)).toEqual([]);
+    expect(findTokensImportViolations(BACKOFFICE_ROOT, [GLOBALS])).toEqual([]);
+    expect(findTokensImportViolations(WEB_ROOT, [GLOBALS])).toEqual([]);
   });
 
-  it("keeps globals.css and tokens.css as the only style sheets, colors in tokens only", () => {
+  it("keeps tokens.css valid UTF-8", () => {
+    expect(isValidUtf8(TOKENS_FILE)).toBe(true);
+  });
+
+  it("keeps globals.css and tokens-backoffice.css as the only style sheets of the front, colors in tokens only", () => {
     const cssFiles = listFiles(SRC)
       .filter((file) => file.endsWith(".css"))
       .map(relative)
       .sort();
-    expect(cssFiles).toEqual(["src/app/globals.css", TOKENS]);
+    expect(cssFiles.filter((file) => file !== TOKENS_BACKOFFICE)).toEqual([
+      GLOBALS,
+    ]);
     expect(
       readFileSync(path.join(SRC, "app", "globals.css"), "utf8"),
     ).not.toMatch(/--color-[\w-]+\s*:/);
+  });
+});
+
+describe("G3b: the red of danger is opaque and shared by both fronts and both charters (zone-de-danger fiche §5, D73)", () => {
+  const tokens = readFileSync(TOKENS_FILE, "utf8");
+  const value = (css: string, charter: Charter, name: string): string =>
+    effectiveTokens(css, charter).get(name) ?? "";
+
+  // The backoffice is KEO whole (D73), but its file is the one of the vitrine: both charters are
+  // read, and the KEO one is the one this front shows.
+  for (const charter of ["vitrine", "keo"] as const) {
+    it(`gives every danger token a 6-digit hex, transparent or var() value (${charter})`, () => {
+      for (const name of DANGER_RED_TOKENS) {
+        expect(value(tokens, charter, name), name).toMatch(OPAQUE_TOKEN_VALUE);
+      }
+    });
+
+    it(`has the same values as the other front, which imports the same file (${charter})`, () => {
+      expect(findTokensImportViolations(WEB_ROOT, [GLOBALS])).toEqual([]);
+      expect(findCharterFileCopies(WEB_ROOT)).toEqual([]);
+      for (const name of DANGER_RED_TOKENS) {
+        expect(value(tokens, charter, name), name).toMatch(OPAQUE_TOKEN_VALUE);
+      }
+    });
+
+    it(`keeps the contrast ratios of §5, recomputed from the file (${charter})`, () => {
+      expect(
+        findTokenPairFailures(effectiveTokens(tokens, charter), DANGER_PAIRS),
+      ).toEqual([]);
+    });
+  }
+
+  it("tints no red with an opacity modifier or a color function", () => {
+    expect(
+      findMatches(TRANSLUCENT_RED_CLASS, SOURCE_FILES, BACKOFFICE_ROOT),
+    ).toEqual([]);
+  });
+});
+
+// G3f (D73, 18 §5.1, 02 §21.3 point 6): tokens-backoffice.css declares `--*-bo-*` names only, and
+// the file exists since DS-9. The other half (no -bo- name in apps/web) is in apps/web/tests.
+describe("G3f: tokens-backoffice.css holds backoffice tokens only", () => {
+  const file = path.join(SRC, "styles", "tokens-backoffice.css");
+  const css = existsSync(file) ? readFileSync(file, "utf8") : "";
+
+  it("exists and declares the rail, row, cell and control tokens of 17b §6.1", () => {
+    expect(
+      [
+        "--spacing-bo-row-h",
+        "--spacing-bo-cell-y",
+        "--spacing-bo-cell-x",
+        "--spacing-bo-rail-w",
+        "--size-bo-control",
+      ].filter((name) => !css.includes(`${name}:`)),
+    ).toEqual([]);
+  });
+
+  it("declares nothing but -bo- names", () => {
+    expect(findNonBoDeclarations(css)).toEqual([]);
+  });
+
+  it("detects a plain name (self-check of the detector)", () => {
+    expect(
+      findNonBoDeclarations("@theme static { --color-brand-primary: red; }"),
+    ).toHaveLength(1);
+  });
+
+  it("is imported by globals.css, after tokens.css", () => {
+    const globals = readFileSync(path.join(SRC, "app", "globals.css"), "utf8");
+    expect(globals.indexOf("tokens-backoffice.css")).toBeGreaterThan(
+      globals.indexOf("tokens.css"),
+    );
+  });
+});
+
+// G8 backoffice half (02 §21.3 point 4): the KEO attribute and the font variables are set by the
+// root layout and by no other file; the whole backoffice is KEO.
+describe("the backoffice is KEO whole, set by the root layout alone", () => {
+  const sources = SOURCE_FILES.filter((file) => /\.tsx?$/.test(file));
+  const layout = "src/app/layout.tsx";
+
+  it('sets data-theme="keo" on <html> in the root layout', () => {
+    expect(readFileSync(path.join(BACKOFFICE_ROOT, layout), "utf8")).toMatch(
+      /<html[^>]*data-theme="keo"/,
+    );
+  });
+
+  it("uses the attribute and imports @influx/ui/fonts nowhere else", () => {
+    const others = sources.filter(
+      (file) =>
+        relative(file) !== layout &&
+        /data-theme|@influx\/ui\/fonts/.test(readFileSync(file, "utf8")),
+    );
+    expect(others.map(relative)).toEqual([]);
+  });
+
+  it("holds no copy of fonts.ts: the fonts are those of packages/ui, as in apps/web (G4f)", () => {
+    expect(findCharterFileCopies(BACKOFFICE_ROOT)).toEqual([]);
+    expect(readFileSync(path.join(BACKOFFICE_ROOT, layout), "utf8")).toContain(
+      'from "@influx/ui/fonts"',
+    );
+  });
+});
+
+// The guards of the RK milestone on the backoffice sources (D75; 18 §5.1, TK7.1, TK7.3, TK7.5). A
+// case that the code before the milestone fails is an `it.fails` named after the commit that frees
+// it (RK-n); that commit turns it into a plain `it`. G3i (b) and TK7.2 read the build (RK-3, RK-5).
+describe("G3i (a), TK7.3 and TK7.5: no inscribed KEO token, no fluid size, no smoothing on the document", () => {
+  const tokens = readFileSync(TOKENS_FILE, "utf8");
+
+  it("redefines no token of a namespace that Tailwind inscribes, color-mix in the tokens of RK-A only (G3i a)", () => {
+    expect(findKeoTrapViolations(tokens, KEO_COLOR_MIX)).toEqual([]);
+  });
+
+  it("lets no fluid size nor letter-spacing through to KEO (TK7.3)", () => {
+    expect(findFluidKeoTypography(tokens)).toEqual([]);
+  });
+
+  it("uses no class of the vitrine's fluid typography, the backoffice being KEO whole (TK7.3, G8 extended)", () => {
+    expect(
+      findVitrineTokenUse(
+        BACKOFFICE_ROOT,
+        ["src"],
+        fluidTypographyClasses(tokens),
+      ),
+    ).toEqual([]);
+  });
+
+  it("declares no font smoothing on :root, html or body (TK7.5)", () => {
+    const sheets = [
+      TOKENS_FILE,
+      path.join(BACKOFFICE_ROOT, TOKENS_BACKOFFICE),
+      path.join(BACKOFFICE_ROOT, GLOBALS),
+    ];
+    expect(
+      sheets.flatMap((sheet) =>
+        findDocumentSmoothing(readFileSync(sheet, "utf8")),
+      ),
+    ).toEqual([]);
+  });
+
+  it("paints badge-error-bg nowhere: the backoffice has no badge (TK7.5)", () => {
+    expect(findTokenUseOutside(BACKOFFICE_ROOT, "badge-error-bg", [])).toEqual(
+      [],
+    );
   });
 });
 
@@ -130,35 +332,57 @@ describe("the relay is the only server endpoint (21 J1-C, 03 PP-12)", () => {
   });
 
   it("keeps data-layer imports, Server Actions and environment reads out of the relay", () => {
-    expect(findRelayContentViolations(BACKOFFICE_ROOT)).toEqual([]);
+    expect(findRelayContentViolations(BACKOFFICE_ROOT, PLATFORM_ROOT)).toEqual(
+      [],
+    );
   });
 
   it("reaches the API client along a single chain: route, relay, API client, config", () => {
-    expect(findRelayImporterViolations(BACKOFFICE_ROOT)).toEqual([]);
+    expect(findRelayImporterViolations(BACKOFFICE_ROOT, PLATFORM_ROOT)).toEqual(
+      [],
+    );
   });
 
-  it("matches the pinned SHA-256 of the four relay files (T7.8)", () => {
-    expect(findRelayFingerprintMismatches(BACKOFFICE_ROOT)).toEqual([]);
-  });
-
-  it("keeps the four relay files identical to those of apps/web", () => {
-    for (const file of Object.values(RELAY_FILES)) {
-      expect(readFileSync(path.join(BACKOFFICE_ROOT, file)), file).toEqual(
-        readFileSync(path.join(WEB_ROOT, file)),
-      );
-    }
-  });
-
-  it("pins the browser relay client and keeps it identical to that of apps/web (J3 commit 12)", () => {
-    expect(findBrowserRelayClientMismatches(BACKOFFICE_ROOT)).toEqual([]);
+  it("matches the pinned SHA-256 of the four relay files, the route here and the rest in packages/web-platform (T7.8)", () => {
     expect(
-      readFileSync(path.join(BACKOFFICE_ROOT, BROWSER_RELAY_CLIENT_FILE)),
-    ).toEqual(readFileSync(path.join(WEB_ROOT, BROWSER_RELAY_CLIENT_FILE)));
+      findRelayFingerprintMismatches(BACKOFFICE_ROOT, PLATFORM_ROOT),
+    ).toEqual([]);
+  });
+
+  // Formerly "the four relay files identical to those of apps/web": since PL-09 only the route is a
+  // copy (arbitration PL-07 point 2); the three others live once, in packages/web-platform.
+  it("keeps the route file identical to that of apps/web, and no copy of packages/web-platform in either front", () => {
+    expect(readFileSync(path.join(BACKOFFICE_ROOT, RELAY_FILES.route))).toEqual(
+      readFileSync(path.join(WEB_ROOT, RELAY_FILES.route)),
+    );
+    expect(findPlatformFileCopies(BACKOFFICE_ROOT, PLATFORM_ROOT)).toEqual([]);
+    expect(findPlatformFileCopies(WEB_ROOT, PLATFORM_ROOT)).toEqual([]);
+    expect(findPlatformExportViolations(PLATFORM_ROOT)).toEqual([]);
+  });
+
+  it("pins the browser relay client of packages/web-platform, absent from both fronts (J3 commit 12)", () => {
+    expect(findBrowserRelayClientMismatches(PLATFORM_ROOT)).toEqual([]);
+    for (const front of [BACKOFFICE_ROOT, WEB_ROOT]) {
+      expect(
+        existsSync(path.join(front, BROWSER_RELAY_CLIENT_FILE)),
+        front,
+      ).toBe(false);
+    }
   });
 
   it("uses no storage API, and no network API outside the API client and the relay client", () => {
     const codeFiles = SOURCE_FILES.filter((file) => /\.tsx?$/.test(file));
     expect(findNetworkOrStorageUse(codeFiles, BACKOFFICE_ROOT)).toEqual([]);
+    const platformFiles = listFiles(path.join(PLATFORM_ROOT, "src")).filter(
+      (file) => /\.tsx?$/.test(file),
+    );
+    expect(
+      findNetworkOrStorageUse(
+        platformFiles,
+        PLATFORM_ROOT,
+        PLATFORM_NETWORK_FILES,
+      ),
+    ).toEqual([]);
   });
 });
 
@@ -237,5 +461,123 @@ describe("never indexed (03 §7.1, D12)", () => {
       "frame-ancestors 'none'",
     );
     expect(byName["Strict-Transport-Security"]).toMatch(/^max-age=\d{8,}/);
+  });
+
+  it("builds the stricter CSP of 03 §6.5: a nonce, no Supabase host (18 T10.2, T10.3, J3S-7)", () => {
+    const nonce = createNonce();
+    expect(nonce).not.toBe(createNonce());
+    const directives = contentSecurityPolicy(nonce).split("; ");
+    expect(directives).toContain(`script-src 'self' 'nonce-${nonce}'`);
+    expect(directives).toContain(`style-src 'self' 'nonce-${nonce}'`);
+    expect(directives).toContain("img-src 'self' blob:");
+    expect(contentSecurityPolicy(nonce)).not.toMatch(/unsafe-|supabase/);
+  });
+});
+
+// G9 (D73; 02 §21.5 point 1, §21.9): the session is read by the shell alone, which hands it to the
+// screens through useMe(). The detector is self-tested in the test-kit (TD1.12).
+describe("G9: the session read confined to the backoffice shell", () => {
+  it("imports readMe in Shell only, and reads GET /v1/bo/me in backoffice-auth only", () => {
+    expect(
+      findSessionReadViolations(BACKOFFICE_ROOT, {
+        module: "src/components/backoffice-auth.ts",
+        reader: "readMe",
+        endpoint: "/v1/bo/me",
+        shells: ["src/components/Shell.tsx"],
+      }),
+    ).toEqual([]);
+  });
+});
+
+// F7 (17b §1.7): the window too small is declared once, in CSS, beside the backoffice tokens.
+describe("the workstation thresholds live in tokens-backoffice.css alone", () => {
+  it("declares bo-small there, at md wide and 500 px high, and nowhere else", () => {
+    const css = readFileSync(
+      path.join(SRC, "styles", "tokens-backoffice.css"),
+      "utf8",
+    );
+    expect(css).toMatch(
+      /@custom-variant bo-small \{\s*@media \(width < 768px\), \(height < 500px\) \{\s*@slot;/,
+    );
+    expect(
+      findMatches(
+        /@custom-variant|matchMedia|innerWidth|innerHeight/,
+        SOURCE_FILES,
+        BACKOFFICE_ROOT,
+      ).map((match) => match.split(":")[0]),
+    ).toEqual(["src/styles/tokens-backoffice.css"]);
+  });
+});
+
+// G4f (D73, 18 §5.1, TD1.9): self-hosted fonts, held once in packages/ui (the same check is in apps/web).
+describe("G4f: fonts are unmodified, listed, licensed and within budget", () => {
+  it("finds no violation in the fonts directory of packages/ui", () => {
+    expect(findFontViolations(UI_ROOT)).toEqual([]);
+  });
+});
+
+// TN9 (D74, SN-4): the section-link pills are gone, and the backoffice draws one <nav>, in its shell
+// and the nav component extracted from it. Comment lines are skipped: they may speak of a <nav>.
+type SourceFile = { file: string; source: string };
+
+function findNavLandmarks(
+  sources: readonly SourceFile[],
+  allowed: readonly string[],
+): string[] {
+  return sources
+    .filter(
+      ({ file, source }) =>
+        !allowed.includes(file) &&
+        source
+          .split("\n")
+          .some(
+            (line) =>
+              !/^\s*(?:\/\/|\*|\/\*)/.test(line) && /<nav[\s>]/.test(line),
+          ),
+    )
+    .map(({ file }) => file);
+}
+
+function findSectionPills(sources: readonly SourceFile[]): string[] {
+  return sources
+    .filter(({ source }) => source.includes("sectionLinkClasses"))
+    .map(({ file }) => file);
+}
+
+describe("TN9: no section-link pills, one <nav> in the backoffice (D74)", () => {
+  const SHELL_NAV_FILES = [
+    "src/components/Shell.tsx",
+    "src/components/BoNav.tsx",
+  ];
+  const sources: SourceFile[] = SOURCE_FILES.filter((file) =>
+    /\.tsx?$/.test(file),
+  ).map((file) => ({
+    file: relative(file),
+    source: readFileSync(file, "utf8"),
+  }));
+
+  it("keeps no occurrence of sectionLinkClasses in src", () => {
+    expect(findSectionPills(sources)).toEqual([]);
+  });
+
+  it("draws <nav> in the shell and its nav component only", () => {
+    expect(sources.length).toBeGreaterThan(10);
+    expect(findNavLandmarks(sources, SHELL_NAV_FILES)).toEqual([]);
+  });
+
+  it("refuses a made-up screen that draws its own <nav> or brings the pills back", () => {
+    const fake = {
+      file: "src/components/Fake.tsx",
+      source:
+        'const c = sectionLinkClasses(true);\nreturn <nav aria-label="x" />;',
+    };
+    expect(findNavLandmarks([fake], SHELL_NAV_FILES)).toEqual([fake.file]);
+    expect(findSectionPills([fake])).toEqual([fake.file]);
+    expect(
+      findNavLandmarks(
+        [{ file: fake.file, source: "// never a <nav>\n * a <nav> here" }],
+        SHELL_NAV_FILES,
+      ),
+    ).toEqual([]);
   });
 });

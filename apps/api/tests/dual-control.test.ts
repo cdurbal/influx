@@ -8,7 +8,7 @@ import {
   degradedConfirmationsByWeek,
   dualControlRecap,
 } from "../src/domains/backoffice/dual-control.ts";
-import { DUAL_CONTROL_ACTION_CODES } from "../src/domains/backoffice/repository.ts";
+import { DUAL_CONTROL_ACTION_CODES } from "../src/domains/backoffice/dual-control/repository.ts";
 
 const ACCOUNT = "00000000-0000-4000-8000-000000000001";
 
@@ -114,7 +114,7 @@ describe("PD1: the recap of each action, before the first gesture", () => {
     expect(
       dualControlRecap({
         code: "leads.change_apollo_setting",
-        setting: { key: "apollo_prospecting_countries", value: ["FR"] },
+        setting: { key: "apollo_excluded_countries", value: ["FR"] },
       }),
     ).toEqual({
       scope: { kind: "setting", count: 1 },

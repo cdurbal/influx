@@ -1,14 +1,9 @@
-// The pure part of `pnpm --filter @influx/api staging:check` (docs/mvp/jalons/d70-plan.md, commit 3):
+// The pure part of `pnpm --filter @influx/api staging:check` (docs/mvp/archives/jalons/d70-plan.md, commit 3):
 // no network, no file, unit-tested (tests/staging-check.test.ts). It reads the closed list of the
 // runbook, turns the JSON of `railway variables --json` into NAMES, and judges the modes and the
 // settings. Nothing here returns a value: a verdict names a variable or a setting, never what it
 // holds (skill env-secrets rule 8).
-import { apolloSettingOf } from "../src/domains/backoffice/apollo-settings.ts";
-import type { OutboxDestination } from "../src/domains/leads/repository.ts";
-import {
-  ratePerMinuteOf,
-  retryScheduleOf,
-} from "../src/domains/leads/settings.ts";
+import { startSettingsIssues } from "../src/domains/leads/start-check.ts";
 
 export const RAILWAY_SERVICES = ["api", "worker", "web", "backoffice"] as const;
 export type RailwayService = (typeof RAILWAY_SERVICES)[number];
@@ -66,6 +61,26 @@ export function closedListsOf(runbook: string): ClosedLists {
     }
   }
   return lists as ClosedLists;
+}
+
+/** The names the closed list holds for Railway's build, not for the code (Railpack, D64). */
+export const READ_BY_RAILWAY_BUILD: readonly string[] = [
+  "RAILPACK_NODE_VERSION",
+];
+
+/**
+ * EC-J9-7: the closed list is drawn from what the code reads (runbook §5). The names of a service's
+ * list that its configuration does not read (`readByCode`: the keys of its schema), Railway's build
+ * variables aside: a variable set on Railway that no code reads is either a leftover or a typo.
+ */
+export function namesNotRead(
+  list: ClosedList,
+  readByCode: readonly string[],
+): string[] {
+  const read = new Set([...readByCode, ...READ_BY_RAILWAY_BUILD]);
+  return [...list.required, ...list.optional]
+    .filter((name) => !read.has(name))
+    .sort();
 }
 
 /** The variables Railway adds by itself (RAILWAY_ENVIRONMENT_NAME, RAILWAY_GIT_COMMIT_SHA…). */
@@ -176,57 +191,22 @@ export function envLocalIssues(
   return issues;
 }
 
-function isPositiveInteger(value: unknown): boolean {
-  return typeof value === "number" && Number.isInteger(value) && value > 0;
-}
-
 /**
- * The settings that every sign-up needs (05 RG162, D69: no template id is read any more), as the
- * worker of a deployed environment requires them at start: the two Brevo lists, a readable retry
- * schedule, a rate limit for each destination with a key, and the three Apollo keys when the worker
- * has an Apollo key (an empty list of countries is valid, RG84). Returns the keys at fault.
+ * The settings that every sign-up needs (05 RG162, D69: no template id is read any more), judged as
+ * the worker of a deployed environment judges them at start (src/domains/leads/start-check.ts, the
+ * same function): the two Brevo lists, a readable retry schedule, a rate limit for each destination
+ * with a key (Brevo always, deployed: 16 RG116), and the three Apollo keys when the worker has an
+ * Apollo key (an empty list of countries is valid, RG84). Returns the settings at fault, by name.
  */
 export function syncSettingsIssues(
   settings: Readonly<Record<string, unknown>>,
   withApollo: boolean,
 ): string[] {
-  const issues: string[] = [];
-  const lists = settings.brevo_list_ids;
-  if (
-    typeof lists !== "object" ||
-    lists === null ||
-    !isPositiveInteger((lists as Record<string, unknown>).advertisers) ||
-    !isPositiveInteger((lists as Record<string, unknown>).creators)
-  ) {
-    issues.push("brevo_list_ids");
-  }
-  if (retryScheduleOf(settings) === null) {
-    issues.push("retry_schedule");
-  }
-  const destinations: OutboxDestination[] = [
+  return startSettingsIssues(settings, [
     "brevo_contact",
     "brevo_transactional",
     ...(withApollo ? (["apollo_contact"] as const) : []),
-  ];
-  if (
-    destinations.some(
-      (destination) => ratePerMinuteOf(settings, destination) === null,
-    )
-  ) {
-    issues.push("rate_limits");
-  }
-  if (withApollo) {
-    for (const key of [
-      "apollo_scope",
-      "apollo_legal_basis",
-      "apollo_prospecting_countries",
-    ] as const) {
-      if (apolloSettingOf(key, settings[key]) === null) {
-        issues.push(key);
-      }
-    }
-  }
-  return issues;
+  ]);
 }
 
 export type Verdict = { label: string; ok: boolean; detail?: string };

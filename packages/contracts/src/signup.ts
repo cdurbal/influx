@@ -8,7 +8,7 @@
 // - The address and the identity of the person are NEVER in the body: they come from the signed
 //   sign-up token, issued after the verification of the code (21 EC-4).
 // - Nothing here carries an amount, a rate or a commission (05 RG9).
-import * as z from "zod";
+import { z } from "./zod.ts";
 import { signupDoorSchema, uiLocaleSchema } from "./auth.ts";
 import { ISO_COUNTRY_CODES } from "./countries.ts";
 

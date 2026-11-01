@@ -5,15 +5,15 @@
 // address, then report it through the rescue channel, from another address. The channel never
 // gives a code, never opens a session and never puts two members in touch: the screen says so, and
 // announces no delay that no written policy holds. The answer is one value whatever the addresses.
+import { CARD_TITLE } from "@/components/member/ui/heading-classes";
+import { Notice } from "@/components/member/ui/Notice";
 import { MAX_DELIVERY_REPORT_MESSAGE_LENGTH } from "@influx/contracts/support";
 import { useLocale, useTranslations } from "next-intl";
 import { useId, useState, type FormEvent } from "react";
 import {
   CARD_CLASSES,
-  ERROR_CLASSES,
   FIELD_CLASSES,
   HELP_CLASSES,
-  INFO_CLASSES,
   inputClasses,
   LABEL_CLASSES,
   SECONDARY_BUTTON_CLASSES,
@@ -22,6 +22,7 @@ import {
 import { contactFormMessage, type ContactMessage } from "./auth-steps";
 import { RequiredMark } from "./AuthScreen";
 import { reportCodeNotReceived } from "./member-auth";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 type Outcome = "received" | "rateLimited" | "serviceUnavailable" | null;
 
@@ -88,7 +89,7 @@ export function CodeNotReceived({
 
   return (
     <section aria-labelledby={ids.title} className={CARD_CLASSES}>
-      <h2 id={ids.title} className={LABEL_CLASSES}>
+      <h2 id={ids.title} className={CARD_TITLE}>
         {t("step2.notReceived.title")}
       </h2>
       <ol className="flex list-decimal flex-col gap-3 pl-6 text-md text-text-primary">
@@ -106,9 +107,7 @@ export function CodeNotReceived({
         <li>
           <p>{t("step2.notReceived.stillNothing")}</p>
           {outcome === "received" ? (
-            <p role="status" className={INFO_CLASSES}>
-              {t("step2.notReceived.received")}
-            </p>
+            <Notice tone="info">{t("step2.notReceived.received")}</Notice>
           ) : (
             <form
               noValidate
@@ -136,13 +135,9 @@ export function CodeNotReceived({
                   className={inputClasses(fieldMessage !== null)}
                 />
                 {fieldMessage !== null ? (
-                  <p
-                    id={ids.contactError}
-                    role="alert"
-                    className={ERROR_CLASSES}
-                  >
+                  <ErrorNotice id={ids.contactError}>
                     {fieldText(fieldMessage)}
-                  </p>
+                  </ErrorNotice>
                 ) : null}
               </div>
               <div className={FIELD_CLASSES}>
@@ -158,11 +153,11 @@ export function CodeNotReceived({
                 />
               </div>
               {outcome === "rateLimited" || outcome === "serviceUnavailable" ? (
-                <p role="alert" className={ERROR_CLASSES}>
+                <ErrorNotice>
                   {outcome === "rateLimited"
                     ? t("step2.notReceived.rateLimited")
                     : t("errors.serviceUnavailable")}
-                </p>
+                </ErrorNotice>
               ) : null}
               <button
                 type="submit"

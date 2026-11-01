@@ -1,0 +1,19 @@
+{
+  "shell": {
+    "skipToContent": "Skip to content",
+    "nav": {
+      "label": "Main navigation",
+      "entries": {
+        "home": "Home",
+        "account": "Account"
+      }
+    },
+    "space": {
+      "advertiser": "Brand space",
+      "creator": "Creator space"
+    },
+    "footer": {
+      "signOut": "Sign out"
+    }
+  }
+}

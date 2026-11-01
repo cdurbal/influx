@@ -1,4 +1,18 @@
 {
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-read.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
   "permissions": {
     "allow": [
       "Bash(pnpm typecheck*)", "Bash(pnpm lint*)", "Bash(pnpm test*)",
@@ -21,11 +35,15 @@
       "Edit(./**/.env.example)","Edit(./**/.env.local)"
     ],
     "deny": [
-      "Read(./**/.env)",
+      "Read(./**/.env)", "Read(./**/.env.trial*)",
       "Bash(git push --force*)", "Bash(pnpm exec supabase db push*)",
       "Bash(git checkout demo*)", "Bash(git merge demo*)",
       "Bash(railway * -e production*)", "Bash(railway * --environment production*)",
-      "Bash(railway up*)", "Bash(* --env production*)"
+      "Bash(railway up*)", "Bash(* --env production*)",
+      "Bash(railway *production*)", "Bash(railway run*)", "Bash(railway shell*)",
+      "Bash(railway environment*)", "Bash(railway link*)",
+      "Bash(git push *production*)", "Bash(git merge *production*)",
+      "Read(./.operator-secrets/**)", "Bash(*.operator-secrets/*)"
     ]
   }
 }

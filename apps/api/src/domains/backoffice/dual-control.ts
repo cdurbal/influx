@@ -3,7 +3,8 @@
 // 0132): who requests, confirms, cancels, the 60 seconds, R, the two instants, the mark, the
 // switch. This service chains them for a route, and says what the screen shows:
 //   PD1  dualControlRecap(): scope, consequences, reversibility of an action, shown BEFORE the
-//        request (the first gesture) and again on the confirmation screen.
+//        request (the first gesture) and again on the confirmation screen; `target` (J8S-2): what
+//        the action reaches, by more than an identifier.
 //   PD2  `confirmableAt` and `secondsLeft`, by the database clock: the one artificial delay of the
 //        backoffice, counted on the screen; the database refuses a confirmation before it.
 //   PD3  confirmAndExecute() runs in ONE transaction, which must be runSensitiveAction's (B-5): the
@@ -26,9 +27,12 @@ import {
   changeApolloSetting,
   changeMemberRole,
   confirmDualControl as confirmRequest,
+  dataRequestAccountId,
   degradedConfirmations,
+  dualControlAccountTarget,
   dualControlRequestOf,
   grantRole,
+  internalInvitationTarget,
   isBreakGlassAccount,
   peerAdminExists,
   requestDualControl as insertRequest,
@@ -36,9 +40,14 @@ import {
   type DualControlMode,
   type DualControlPayload,
   type DualControlState,
-} from "./repository.ts";
+  type DualControlTargetRow,
+} from "./dual-control/repository.ts";
 
-export type { DualControlActionCode, DualControlMode } from "./repository.ts";
+export type {
+  DualControlActionCode,
+  DualControlMode,
+  DualControlTargetRow,
+} from "./dual-control/repository.ts";
 
 /** 03 PD2: the requester confirms alone this long after the request at the earliest (0130). */
 export const DEGRADED_CONFIRMATION_DELAY_SECONDS = 60;
@@ -149,6 +158,31 @@ const DATA_REQUEST_RECAPS: Readonly<
     reversible: false,
   },
 };
+
+/**
+ * PD1 (J8S-2): the account or the invitation the action reaches, read now; null for a setting, or
+ * when the object can no longer be read (the screen says so, never an identifier alone).
+ */
+async function dualControlTarget(
+  tx: Transaction,
+  action: DualControlAction,
+): Promise<DualControlTargetRow | null> {
+  switch (action.code) {
+    case "identity.grant_role":
+    case "identity.change_member_role":
+      return dualControlAccountTarget(tx, action.accountId);
+    case "identity.invite_admin":
+      return internalInvitationTarget(tx, action.invitationId);
+    case "privacy.approve_data_request": {
+      const accountId = await dataRequestAccountId(tx, action.requestId);
+      return accountId === null
+        ? null
+        : dualControlAccountTarget(tx, accountId);
+    }
+    case "leads.change_apollo_setting":
+      return null;
+  }
+}
 
 export function dualControlRecap(action: DualControlAction): DualControlRecap {
   return action.code === "privacy.approve_data_request"
@@ -274,6 +308,8 @@ export type DualControlView = {
   id: string;
   action: DualControlAction;
   recap: DualControlRecap;
+  /** PD1 (J8S-2): what the action reaches; null for a setting or an object no longer readable. */
+  target: DualControlTargetRow | null;
   reasonCode: string;
   reasonNote: string | null;
   requestedBy: string;
@@ -358,6 +394,7 @@ export async function dualControlView(
     id: row.id,
     action,
     recap: dualControlRecap(action),
+    target: await dualControlTarget(tx, action),
     reasonCode: row.reasonCode,
     reasonNote: row.reasonNote,
     requestedBy: row.requestedBy,

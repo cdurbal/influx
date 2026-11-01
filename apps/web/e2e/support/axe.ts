@@ -1,10 +1,12 @@
 // The automated accessibility check of the browser journeys (J7T-4; docs/mvp/18 risk 8: automated
 // on the key screens, blocking on what it finds; the rest is a visual check). axe-core runs in the
 // page, on the rules of WCAG 2.1 A and AA only, and the journey fails on ANY violation: each one is
-// named with its rule and the elements it found.
+// named with its rule and the elements it found. Each pass also records the titles of the screen
+// for TK3.1 (D75; 18 §12.6), read once every pass ran by charter-headings.spec.ts: no assertion here.
 import type { Page } from "@playwright/test";
 import axe from "axe-core";
 import { expect } from "./journey";
+import { recordHeadings } from "./rendering";
 
 type Violation = {
   id: string;
@@ -15,12 +17,19 @@ type Violation = {
 
 const WCAG_AA_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
+/** WCAG 2.2 AA on top (target size, focus not obscured), for the screens of D73 (18 §12.1 TD7). */
+const WCAG_22_TAGS = [...WCAG_AA_TAGS, "wcag22aa"];
+
 export async function expectNoAxeViolation(
   page: Page,
   screen: string,
+  { wcag22 = false }: { wcag22?: boolean } = {},
 ): Promise<void> {
+  const tagsRun = wcag22 ? WCAG_22_TAGS : WCAG_AA_TAGS;
   if (!(await page.evaluate(() => "axe" in window))) {
-    await page.addScriptTag({ content: axe.source });
+    // Evaluated by the DevTools protocol, which the page's CSP does not govern: an injected
+    // <script> would be refused by the backoffice's (no 'strict-dynamic', 03 §6.5), rightly.
+    await page.evaluate(axe.source);
   }
   const violations = await page.evaluate(async (tags) => {
     const runner = (
@@ -43,7 +52,7 @@ export async function expectNoAxeViolation(
       help: violation.help,
       nodes: violation.nodes.map((node) => ({ target: node.target })),
     }));
-  }, WCAG_AA_TAGS);
+  }, tagsRun);
   expect(
     violations.map(
       (violation) =>
@@ -51,6 +60,7 @@ export async function expectNoAxeViolation(
           .map((node) => node.target.join(" "))
           .join(", ")}`,
     ),
-    `axe, WCAG 2.1 AA, ${screen}`,
+    `axe, WCAG ${wcag22 ? "2.2" : "2.1"} AA, ${screen}`,
   ).toEqual([]);
+  await recordHeadings(page, screen);
 }

@@ -16,7 +16,6 @@ import { useEffect, useId, useState, type FormEvent } from "react";
 import {
   CARD_CLASSES,
   codeInputClasses,
-  ERROR_CLASSES,
   FIELD_CLASSES,
   HELP_CLASSES,
   INFO_CLASSES,
@@ -46,6 +45,7 @@ import {
   type EmailChangeMessage,
 } from "./account-view";
 import { FreshCode } from "./FreshCode";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 type EndMessage =
   "addressUnavailable" | "tooManyAttempts" | "expired" | "gone" | "cancelled";
@@ -146,9 +146,7 @@ export function EmailChange({
     return (
       <>
         {phase.refusal !== null ? (
-          <p role="alert" className={ERROR_CLASSES}>
-            {t(`messages.${phase.refusal}`)}
-          </p>
+          <ErrorNotice>{t(`messages.${phase.refusal}`)}</ErrorNotice>
         ) : null}
         <FreshCode
           purpose="email_change"
@@ -265,9 +263,7 @@ export function EmailChange({
           {t("pending.cancelled")}
         </p>
       ) : phase.notice !== null ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {t(`messages.${phase.notice}`)}
-        </p>
+        <ErrorNotice>{t(`messages.${phase.notice}`)}</ErrorNotice>
       ) : null}
       <p className={HELP_CLASSES}>{t("how")}</p>
       <div className={ACTIONS_CLASSES}>
@@ -380,9 +376,7 @@ function ConfirmSide({
         className={codeInputClasses(error !== null)}
       />
       {error !== null ? (
-        <p id={ids.error} role="alert" className={ERROR_CLASSES}>
-          {error}
-        </p>
+        <ErrorNotice id={ids.error}>{error}</ErrorNotice>
       ) : null}
       <button
         type="submit"

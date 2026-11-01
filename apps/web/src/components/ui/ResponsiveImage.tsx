@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { getImageProps } from "next/image";
 import type { ImageFocus, LandingImage } from "@/content/landing-content";
 import { IMAGE_SIZES, type ImageSizesKey } from "@/styles/image-sizes";
 import { cn } from "./class-names";
@@ -32,6 +32,8 @@ type ResponsiveImageProps = {
 /**
  * The only wrapper of next/image (01 §11 rule 6). The frame reserves the final ratio (no layout
  * shift) and shows the muted surface while loading or if the image fails (02 §2.8).
+ * The `style` attribute next/image writes for `fill` is dropped and replaced by the same rules as
+ * classes: the CSP refuses inline style attributes (03 §6.5, no 'unsafe-inline', 18 T10.3).
  */
 export function ResponsiveImage({
   image,
@@ -39,16 +41,25 @@ export function ResponsiveImage({
   className,
   eager = false,
 }: ResponsiveImageProps) {
+  const { props } = getImageProps({
+    src: image.src,
+    alt: image.alt,
+    fill: true,
+    sizes: IMAGE_SIZES[sizes],
+    loading: eager ? "eager" : "lazy",
+    fetchPriority: eager ? "high" : "auto",
+  });
+  const imageProps = { ...props, style: undefined };
   return (
     <div className={cn("relative overflow-hidden bg-surface-muted", className)}>
-      <Image
-        src={image.src}
+      {/* eslint-disable-next-line @next/next/no-img-element -- next/image props, without its inline style */}
+      <img
+        {...imageProps}
         alt={image.alt}
-        fill
-        sizes={IMAGE_SIZES[sizes]}
-        loading={eager ? "eager" : "lazy"}
-        fetchPriority={eager ? "high" : "auto"}
-        className={cn("object-cover", FOCUS_CLASSES[image.focus])}
+        className={cn(
+          "absolute inset-0 size-full object-cover text-transparent",
+          FOCUS_CLASSES[image.focus],
+        )}
       />
     </div>
   );

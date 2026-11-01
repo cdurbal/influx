@@ -1,8 +1,9 @@
 // The cleaning function of the ops schema and the pure parts of the recorder (docs/mvp/02 §20.5,
 // §20.8; 18 T13.6). The database side is in db-tests/t13-ops-recording.test.ts.
 import { describe, expect, it } from "vitest";
-import { bucketOf } from "../src/domains/ops/recorder.ts";
-import { CLIENT_ERROR_RATE, MinuteCounter } from "../src/domains/ops/routes.ts";
+import { bucketOf } from "../src/domains/ops/buckets.ts";
+import { CLIENT_ERROR_RATE } from "../src/domains/ops/routes.ts";
+import { MinuteCounter } from "../src/platform/minute-counter.ts";
 import {
   fingerprintOf,
   normalizeMessage,
@@ -38,6 +39,15 @@ describe("scrubText (02 §20.8)", () => {
     expect(text.length).toBe(500);
     // eslint-disable-next-line no-control-regex -- the absence of control characters is the point
     expect(text).not.toMatch(/[\u0000-\u001f]/);
+  });
+
+  it("keeps strict text only: no format, private-use or lone surrogate character (J4S-6)", () => {
+    const text = scrubText("a\u202Eb\u200Bc\uFEFFd\uE000e\uD800f\u009Bg", 500);
+    expect(text).toBe("a b c d e f g");
+    // A cut never leaves half of a surrogate pair.
+    expect(scrubText(`${"x".repeat(498)}🚧🚧`, 500)).toBe(
+      `${"x".repeat(498)}…`,
+    );
   });
 });
 

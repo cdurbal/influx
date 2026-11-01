@@ -14,7 +14,8 @@ testeur peut vérifier sans interpréter.
 > de son intention en règles explicites, chaque développement repose sur des suppositions
 > silencieuses, découvertes trop tard.
 
-Lis `CLAUDE.md` (§3 modèle économique, §4 parcours, §7 domaines) avant de spécifier.
+`CLAUDE.md` est déjà dans ton contexte : ne le relis pas. Sections qui te concernent : §2
+(modèle économique), §3 (personas), §5 (architecture).
 
 ## Périmètre de responsabilité
 

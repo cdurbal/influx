@@ -128,6 +128,19 @@ export async function accountFacts(accountId: string): Promise<{
   }
 }
 
+/** Every session of the account closed, as "fermer toutes les sessions" does from another device. */
+export async function revokeSessions(accountId: string): Promise<void> {
+  const sql = connectAsMigrationRole({ max: 1 });
+  try {
+    await sql`
+      update identity.sessions
+         set revoked_at = now(), revocation_reason = 'revoked_by_holder'
+       where account_id = ${accountId} and revoked_at is null`;
+  } finally {
+    await sql.end({ timeout: 1 });
+  }
+}
+
 /** The account at this address and its "mes données" requests, oldest first (0120). */
 export async function dataRequestFacts(email: string): Promise<{
   status: string;

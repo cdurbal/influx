@@ -66,7 +66,6 @@ let migration: postgres.Sql;
 let double: BrevoDouble;
 let worker: WorkerDatabase;
 let api: ApiDatabase;
-let savedLists: unknown;
 const logs = captureLogStream();
 
 const accounts: string[] = [];
@@ -91,9 +90,7 @@ async function processWaiting(): Promise<number> {
 beforeAll(async () => {
   migration = migrationRole();
   double = await startBrevoDouble();
-  const [row] = await migration<{ value: unknown }[]>`
-    select value from leads.sync_settings where key = 'brevo_list_ids'`;
-  savedLists = row?.value;
+  // left as set after the file: a Brevo id never goes back to null (05 RG163 (1), 0145)
   await migration`
     update leads.sync_settings set value = ${JSON.stringify(LISTS)}::text::jsonb
      where key = 'brevo_list_ids'`;
@@ -132,9 +129,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await processWaiting();
-  await migration`
-    update leads.sync_settings set value = ${JSON.stringify(savedLists)}::text::jsonb
-     where key = 'brevo_list_ids'`;
   await closeDatabase(worker);
   await closeDatabase(api);
   await double.close();
@@ -228,6 +222,7 @@ async function turn(): Promise<number> {
         readBrevoSubjectOf(worker, randomUUID(), line, name),
       readErasureSubject: (line) =>
         readBrevoErasureSubjectOf(worker, randomUUID(), line, name),
+      readErasureNotificationSubject: () => Promise.resolve(null),
       logger,
     },
   );
@@ -239,9 +234,11 @@ async function turn(): Promise<number> {
       logger,
     }),
     worker: name,
+    startedAt: "2026-01-01T00:00:00.000Z",
     sync: {
       mode: "live",
       recipientFilter: { kind: "allowlist", domains: ["example.test"] },
+      keyRequired: false,
     },
     logger,
     now: () => Date.now(),

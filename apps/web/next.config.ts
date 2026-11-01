@@ -1,54 +1,29 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
+import { NOINDEX, securityHeadersFor } from "./src/config/security-headers";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
+export { NOINDEX, securityHeadersFor };
+
 /**
- * Security headers of every response, required before staging is exposed (21 §4 J4 point 5; 03
- * §6.5, R7). The CSP holds only the directives that need no nonce; the CSP with nonce arrives at
- * J9 (T10). HSTS without `preload` until the domains are settled (03 §6.5, integrateur).
+ * Sent on every response (03 §6.5, R7). The pages get their CSP with a nonce from src/proxy.ts,
+ * which replaces the one here (18 T10).
  */
-const BASE_SECURITY_HEADERS: readonly { key: string; value: string }[] = [
-  {
-    key: "Content-Security-Policy",
-    value:
-      "frame-ancestors 'none'; base-uri 'none'; object-src 'none'; form-action 'self'",
-  },
-  { key: "X-Frame-Options", value: "DENY" },
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  {
-    key: "Strict-Transport-Security",
-    value: "max-age=63072000; includeSubDomains",
-  },
-  {
-    key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
-  },
-  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-  { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
-];
-
-/** J4S-3: outside production (staging, a workstation), nothing of `web` is ever indexed. */
-export const NOINDEX = "noindex, nofollow, noarchive";
-
-/** The headers for an environment, read at build time from INFLUX_ENV (02 §12.3). */
-export function securityHeadersFor(
-  environment: string | undefined,
-): readonly { key: string; value: string }[] {
-  return environment === "production"
-    ? BASE_SECURITY_HEADERS
-    : [{ key: "X-Robots-Tag", value: NOINDEX }, ...BASE_SECURITY_HEADERS];
-}
-
 export const SECURITY_HEADERS = securityHeadersFor(process.env.INFLUX_ENV);
 
 const nextConfig: NextConfig = {
   // The root CLAUDE.md stays the single source of agent instructions (01 §12).
   agentRules: false,
   poweredByHeader: false,
-  // Contracts are TypeScript sources; the relay imports their types only (21 §4, J1-E).
-  transpilePackages: ["@influx/contracts"],
+  // The trailing-slash redirect is src/proxy.ts's: the router's went out without the headers below.
+  skipTrailingSlashRedirect: true,
+  // Workspace packages are TypeScript sources, without build (21 §4 J1-E; arbitration PL-07).
+  transpilePackages: [
+    "@influx/contracts",
+    "@influx/ui",
+    "@influx/web-platform",
+  ],
   // No images.remotePatterns: remote images are refused (CA11, 01 §6.3).
   async headers() {
     return [{ source: "/:path*", headers: [...SECURITY_HEADERS] }];

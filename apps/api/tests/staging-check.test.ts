@@ -1,10 +1,11 @@
-// D70 commit 3 (docs/mvp/jalons/d70-plan.md): the pure part of `staging:check`, without network —
+// D70 commit 3 (docs/mvp/archives/jalons/d70-plan.md): the pure part of `staging:check`, without network —
 // the closed list of the runbook, the names of `railway variables --json`, their comparison, the
 // modes, leads.sync_settings (05 RG162), and the rule that no verdict ever carries a value.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { apiEnvSchema, workerEnvSchema } from "../src/config/schema.ts";
 import {
   CLOSED_LIST_BEGIN,
   CLOSED_LIST_END,
@@ -12,6 +13,7 @@ import {
   compareNames,
   envLocalIssues,
   EXPECTED_MODES,
+  namesNotRead,
   namesVerdict,
   RAILWAY_SERVICES,
   railwayVariablesOf,
@@ -134,6 +136,36 @@ describe("the closed list of docs/mvp/runbooks/staging.md (D70)", () => {
       false,
     );
     expect(api).toContain("BREVO_WEBHOOK_SECRET_CURRENT");
+  });
+
+  it("lists on api and worker only what their configuration reads (EC-J9-7)", () => {
+    expect(namesNotRead(lists.api, Object.keys(apiEnvSchema.in.shape))).toEqual(
+      [],
+    );
+    expect(
+      namesNotRead(lists.worker, Object.keys(workerEnvSchema.in.shape)),
+    ).toEqual([]);
+    expect(
+      namesNotRead(
+        {
+          required: ["INFLUX_ENV", "RAILPACK_NODE_VERSION", "TYPO_VARIABLE"],
+          optional: [],
+        },
+        ["INFLUX_ENV"],
+      ),
+    ).toEqual(["TYPO_VARIABLE"]);
+  });
+
+  it("requires the variables of the active monitoring (J9 commit 8, 15 RG165)", () => {
+    expect(lists.api.required).toContain("OPS_ALERT_RECIPIENTS");
+    expect(lists.worker.required).toEqual(
+      expect.arrayContaining([
+        "OPS_ALERT_RECIPIENTS",
+        "INFLUX_PUBLIC_SITE_URL",
+        "INFLUX_PUBLIC_BACKOFFICE_URL",
+        "INFLUX_API_INTERNAL_URL",
+      ]),
+    );
   });
 });
 
@@ -270,12 +302,12 @@ describe("modes of D70", () => {
   });
 });
 
-describe("syncSettingsIssues (05 RG162, D69)", () => {
+describe("syncSettingsIssues (05 RG162, D69): the verdict of the worker at start", () => {
   // The seed of 0103, the two list ids set.
   const complete = {
     apollo_scope: "annonceurs_et_createurs_pro",
     apollo_legal_basis: { default: "consentement_requis", by_country: {} },
-    apollo_prospecting_countries: [],
+    apollo_excluded_countries: [],
     retry_schedule: [0, 60, 300, 900, 3600, 10800, 21600, 43200, 86400, 86400],
     rate_limits: {
       brevo_contact_per_minute: 60,
@@ -290,16 +322,16 @@ describe("syncSettingsIssues (05 RG162, D69)", () => {
     expect(syncSettingsIssues(complete, true)).toEqual([]);
   });
 
-  it("names the lists of the seed, still null", () => {
+  it("names the lists of the seed, still null, by their path (CA85)", () => {
     expect(
       syncSettingsIssues(
         { ...complete, brevo_list_ids: { advertisers: null, creators: 4 } },
         true,
       ),
-    ).toEqual(["brevo_list_ids"]);
+    ).toEqual(["brevo_list_ids.advertisers"]);
     expect(
       syncSettingsIssues({ ...complete, brevo_list_ids: undefined }, false),
-    ).toEqual(["brevo_list_ids"]);
+    ).toEqual(["brevo_list_ids.advertisers", "brevo_list_ids.creators"]);
   });
 
   it("names an unreadable retry schedule and a missing rate limit", () => {
@@ -312,7 +344,7 @@ describe("syncSettingsIssues (05 RG162, D69)", () => {
         },
         false,
       ),
-    ).toEqual(["retry_schedule", "rate_limits"]);
+    ).toEqual(["retry_schedule", "rate_limits.brevo_transactional_per_minute"]);
   });
 
   it("requires the Apollo rate and keys only when the worker has an Apollo key", () => {
@@ -326,7 +358,7 @@ describe("syncSettingsIssues (05 RG162, D69)", () => {
     };
     expect(syncSettingsIssues(withoutApollo, false)).toEqual([]);
     expect(syncSettingsIssues(withoutApollo, true)).toEqual([
-      "rate_limits",
+      "rate_limits.apollo_contact_per_minute",
       "apollo_scope",
     ]);
   });

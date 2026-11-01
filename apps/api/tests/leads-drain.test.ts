@@ -5,8 +5,10 @@
 // category), 18 TM1.7, TM1.8 and TM1.10 (SIGTERM during a batch), the three locks of 02 §12.4,
 // the retry schedule of 05 RG79 (EC-9) and the dry-run line of the architect's decision 3, with
 // no personal value in any log line (D60); J7 commit 4: the raw Brevo lines processed first in each
-// turn (inbound/processing.ts). The database half is in db-tests/tm1-worker-loop and
-// tm1-brevo-inbound-worker.
+// turn (inbound/processing.ts); J9 D67-b: a missing setting is an incident (05 RG160), in the order
+// of RG164, and the take-back re-queues what its correction restored (RG161, the log line). The
+// database half is in db-tests/tm1-worker-loop, tm1-brevo-inbound-worker and
+// tm1-configuration-failures.
 import { captureLogStream, valuesFoundIn } from "@influx/test-kit/logs";
 import { beforeEach, describe, expect, it } from "vitest";
 import type {
@@ -43,6 +45,7 @@ import type {
 import {
   MAX_RETRY_DELAY_SECONDS,
   retryDelaySeconds,
+  type MissingSetting,
 } from "../src/domains/leads/settings.ts";
 import { createLogger } from "../src/platform/logger.ts";
 
@@ -52,6 +55,8 @@ const RECIPIENT = "lena-k7q2@example.test";
 const RECIPIENT_DOMAIN = "example.test";
 const ATTRIBUTE_VALUE = "Maison Verbeke-Lambrecht";
 const PROVIDER_CONTACT = "provider-contact-9318";
+/** The start of the process by the database clock (WorkerStart), handed to every take-back. */
+const STARTED_AT = "2026-10-21T08:00:00.000000Z";
 
 const SCHEDULE = [0, 60, 300, 900, 3600, 10800, 21600, 43200, 86400, 86400];
 const SETTINGS: Record<string, unknown> = {
@@ -83,6 +88,9 @@ class FakeQueue implements OutboxQueue {
   settings: Record<string, unknown> = SETTINGS;
   openTransactions = 0;
   recoveries = 0;
+  /** What the next take-backs return (0146), and the start instants they were handed. */
+  recovered: RecoveredLine[] = [];
+  recoveredWith: string[] = [];
   #next = 1;
 
   add(
@@ -127,10 +135,11 @@ class FakeQueue implements OutboxQueue {
     }
   }
 
-  recover(): Promise<RecoveredLine[]> {
+  recover(_requestId: string, startedAt: string): Promise<RecoveredLine[]> {
     return this.#transaction(() => {
       this.recoveries += 1;
-      return [];
+      this.recoveredWith.push(startedAt);
+      return this.recovered.splice(0);
     });
   }
 
@@ -213,6 +222,8 @@ type ConnectorSpec = {
   skip?: string;
   fail?: string;
   rejected?: string[];
+  /** The settings the mapping lacks (05 RG164). */
+  missing?: MissingSetting[];
   result?: (line: ClaimedLine) => CallResult | Promise<CallResult>;
 };
 
@@ -254,6 +265,7 @@ function connector(
               : null,
           attributeNames: Object.keys(attributes).reverse(),
           rejectedAttributeNames: spec.rejected ?? [],
+          missingSettings: spec.missing ?? [],
         },
         recipientDomain: spec.recipientDomain ?? RECIPIENT_DOMAIN,
         send: async () => {
@@ -301,9 +313,11 @@ function drain(
     queue,
     connectors,
     worker: "worker-test",
+    startedAt: STARTED_AT,
     sync: {
       mode: "live",
       recipientFilter: { kind: "allowlist", domains: ["example.test"] },
+      keyRequired: false,
       ...sync,
     },
     logger: createLogger(
@@ -676,6 +690,8 @@ describe("TM1.10: SIGTERM during a batch loses no line", () => {
     stop.abort();
     await running;
     expect(queue.recoveries).toBe(1);
+    // 0146: the start of the process, handed to the take-back (05 RG161, credentials_missing)
+    expect(queue.recoveredWith).toEqual([STARTED_AT]);
   });
 
   it("ticks the periodic tasks of E-4 at start, then at most once a minute, between two turns (J7 decision 3)", async () => {
@@ -750,7 +766,7 @@ describe("TM1.10: SIGTERM during a batch loses no line", () => {
 });
 
 describe("02 §12.4: the three locks of development (D70)", () => {
-  it("lock 2, dry_run: no call, succeeded with dry_run, and the would_send line without any value", async () => {
+  it("T17.2, lock 2, dry_run: no call, succeeded with dry_run, and the would_send line without any value", async () => {
     const queue = new FakeQueue();
     const contact = queue.add("brevo_contact");
     const welcome = queue.add("brevo_transactional");
@@ -845,7 +861,7 @@ describe("02 §12.4: the three locks of development (D70)", () => {
     });
   });
 
-  it("lock 3, live in development: a domain off the allow-list is skipped_non_production, after the mapping", async () => {
+  it("T17.3, lock 3, live in development: a domain off the allow-list is skipped_non_production, after the mapping", async () => {
     const queue = new FakeQueue();
     const outside = queue.add("brevo_transactional", { subject: "account:a" });
     const outsideBrevo = connector("brevo_transactional", queue, {
@@ -922,6 +938,195 @@ describe("02 §12.4: the three locks of development (D70)", () => {
       });
       expect(brevo.sent).toHaveLength(0);
     }
+  });
+});
+
+describe("05 RG160, RG164 (D67): a missing setting of INFLUX is an incident, never a skip", () => {
+  it("dry_run: the would_send trace names the missing setting first, then the line fails, nothing called (CA86, TM1.14)", async () => {
+    const queue = new FakeQueue();
+    const id = queue.add("brevo_contact");
+    const brevo = connector("brevo_contact", queue, {
+      missing: ["brevo_list_ids.creators"],
+    });
+    await drain(queue, { brevo_contact: brevo }, { mode: "dry_run" }).turn(
+      new AbortController().signal,
+    );
+    expect(brevo.sent).toEqual([]);
+    expect(queue.outcomeOf(id)?.outcome).toEqual({
+      status: "failed",
+      dryRun: true,
+      errorCode: "list_not_configured",
+      errorMessage: "settings missing: brevo_list_ids.creators",
+    });
+    const lines = logLines();
+    const trace = lines.findIndex(
+      (line) => line.msg === "leads.dry_run.would_send",
+    );
+    const verdict = lines.findIndex(
+      (line) => line.msg === "leads.line.completed",
+    );
+    expect(lines[trace]).toMatchObject({
+      outputCheck: "pass",
+      missingSettings: ["brevo_list_ids.creators"],
+    });
+    expect(trace).toBeGreaterThanOrEqual(0);
+    expect(verdict).toBeGreaterThan(trace);
+    expect(lines[verdict]).toMatchObject({
+      status: "failed",
+      errorCode: "list_not_configured",
+    });
+  });
+
+  it("live: failed at once, without any attempt programmed, nothing called (CA82, TM1.11)", async () => {
+    const queue = new FakeQueue();
+    const id = queue.add("brevo_contact");
+    const brevo = connector("brevo_contact", queue, {
+      missing: ["brevo_list_ids.advertisers"],
+    });
+    await drain(
+      queue,
+      { brevo_contact: brevo },
+      { recipientFilter: { kind: "unrestricted" }, keyRequired: true },
+    ).turn(new AbortController().signal);
+    expect(brevo.sent).toEqual([]);
+    expect(queue.line(id).status).toBe("failed");
+    expect(queue.outcomeOf(id)?.outcome).toEqual({
+      status: "failed",
+      dryRun: false,
+      errorCode: "list_not_configured",
+      errorMessage: "settings missing: brevo_list_ids.advertisers",
+    });
+  });
+
+  it("the output check prevails over a missing setting (RG164, 16 RG137)", async () => {
+    const queue = new FakeQueue();
+    const id = queue.add("brevo_contact");
+    const brevo = connector("brevo_contact", queue, {
+      rejected: ["COMPANY"],
+      missing: ["brevo_list_ids.creators"],
+    });
+    await drain(queue, { brevo_contact: brevo }, { mode: "dry_run" }).turn(
+      new AbortController().signal,
+    );
+    expect(queue.outcomeOf(id)?.outcome).toMatchObject({
+      status: "failed",
+      errorCode: "output_check_rejected",
+    });
+  });
+
+  it("a skip of the connector is never a configuration failure, and writes no would_send (RG164 (a))", async () => {
+    const queue = new FakeQueue();
+    const id = queue.add("brevo_contact");
+    const brevo = connector("brevo_contact", queue, { skip: "no_consent" });
+    await drain(queue, { brevo_contact: brevo }, { mode: "dry_run" }).turn(
+      new AbortController().signal,
+    );
+    expect(queue.outcomeOf(id)?.outcome).toEqual({
+      status: "skipped",
+      dryRun: true,
+      reason: "no_consent",
+    });
+    expect(
+      logLines().filter((line) => line.msg === "leads.dry_run.would_send"),
+    ).toEqual([]);
+  });
+
+  it("deployed, no key: a qualified line fails credentials_missing, nothing called (CA87, TM1.15)", async () => {
+    const queue = new FakeQueue();
+    const id = queue.add("apollo_contact");
+    const apollo = connector("apollo_contact", queue, {
+      hasCredentials: false,
+    });
+    await drain(
+      queue,
+      { apollo_contact: apollo },
+      { recipientFilter: { kind: "unrestricted" }, keyRequired: true },
+    ).turn(new AbortController().signal);
+    expect(apollo.sent).toEqual([]);
+    expect(queue.outcomeOf(id)?.outcome).toEqual({
+      status: "failed",
+      dryRun: false,
+      errorCode: "credentials_missing",
+      errorMessage: "no key of this destination in the worker",
+    });
+  });
+
+  it("deployed, no key: a line the connector skips stays a normal case (RG164 (a))", async () => {
+    const queue = new FakeQueue();
+    const id = queue.add("apollo_contact");
+    const apollo = connector("apollo_contact", queue, {
+      hasCredentials: false,
+      skip: "out_of_apollo_scope",
+    });
+    await drain(
+      queue,
+      { apollo_contact: apollo },
+      { recipientFilter: { kind: "unrestricted" }, keyRequired: true },
+    ).turn(new AbortController().signal);
+    expect(queue.outcomeOf(id)?.outcome).toEqual({
+      status: "skipped",
+      dryRun: false,
+      reason: "out_of_apollo_scope",
+    });
+  });
+
+  it("RG161: the take-back logs the system replay by its motif, its codes and its count, never an account", async () => {
+    const queue = new FakeQueue();
+    queue.recovered = [
+      {
+        id: "11",
+        writtenStatus: "pending",
+        reason: "configuration_restored",
+        errorCode: "list_not_configured",
+      },
+      {
+        id: "12",
+        writtenStatus: "pending",
+        reason: "configuration_restored",
+        errorCode: "list_not_configured",
+      },
+      {
+        id: "13",
+        writtenStatus: "pending",
+        reason: "configuration_restored",
+        errorCode: "credentials_missing",
+      },
+      {
+        id: "14",
+        writtenStatus: "failed",
+        reason: "worker_interrupted",
+        errorCode: null,
+      },
+    ];
+    const stop = new AbortController();
+    const worker = drain(
+      queue,
+      {},
+      {},
+      {
+        sleep: (_ms: number, signal?: AbortSignal) =>
+          new Promise<void>((done) => {
+            signal?.addEventListener("abort", () => done(), { once: true });
+          }),
+      },
+    );
+    const running = worker.run(stop.signal);
+    await waitUntil(() => queue.recoveries === 1);
+    stop.abort();
+    await running;
+    const lines = logLines();
+    expect(
+      lines.find((line) => line.msg === "leads.lines.configuration_restored"),
+    ).toMatchObject({
+      level: "info",
+      motif: "configuration_restored",
+      count: 3,
+      codes: { list_not_configured: 2, credentials_missing: 1 },
+    });
+    expect(
+      lines.find((line) => line.msg === "leads.lines.recovered"),
+    ).toMatchObject({ count: 1, failed: 1 });
+    expect(capture.text()).not.toContain(ACCOUNT);
   });
 });
 

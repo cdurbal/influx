@@ -41,7 +41,7 @@ const LEGAL_NAME = "Atelier Vandenbroucke";
 const SETTINGS: Record<string, unknown> = {
   apollo_scope: "annonceurs_et_createurs_pro",
   apollo_legal_basis: { default: "consentement_requis", by_country: {} },
-  apollo_prospecting_countries: ["BE"],
+  apollo_excluded_countries: [],
 };
 
 let double: ApolloDouble;
@@ -280,6 +280,7 @@ describe("create or update a contact, never a duplicate", () => {
       templateCode: null,
       attributeNames: ["email", "label_names", "organization_name"],
       rejectedAttributeNames: [],
+      missingSettings: [],
     });
     expect(preparation.recipientDomain).toBe("example.test");
     expect(
@@ -366,23 +367,24 @@ describe("05 RG81 to RG84: the qualification, before any call", () => {
     ).toBe("mapped");
   });
 
-  it("CA44: an empty list of prospecting countries is an abstention, never a send by default", async () => {
+  // 0141 (D33 and RG84 overridden by the founder, 2026-10-19): a block-list, empty by default.
+  it("RG84: an empty list of excluded countries excludes none", async () => {
+    const preparation = await connector().prepare(
+      line(),
+      state({ countryCode: "CA" }, { apollo_excluded_countries: [] }),
+    );
+    expect(preparation.kind).toBe("mapped");
+  });
+
+  it("RG84: an excluded country is skipped country_excluded, before any read or call", async () => {
     const apollo = connector();
     const preparation = await apollo.prepare(
       line(),
-      state({}, { apollo_prospecting_countries: [] }),
+      state({ countryCode: "CA" }, { apollo_excluded_countries: ["CA"] }),
     );
-    expect(skipOf(preparation)).toBe("country_not_validated");
+    expect(skipOf(preparation)).toBe("country_excluded");
     expect(reads).toEqual([]);
     expect(double.requests).toEqual([]);
-  });
-
-  it("RG84: a country absent from the list is not validated", async () => {
-    const preparation = await connector().prepare(
-      line(),
-      state({ countryCode: "CA" }),
-    );
-    expect(skipOf(preparation)).toBe("country_not_validated");
   });
 
   it("CA45: consentement_requis refuses an advertiser without consent; interet_legitime_avec_opposition takes it, no code change", async () => {
@@ -476,15 +478,29 @@ describe("05 RG81 to RG84: the qualification, before any call", () => {
     ).toBe("account_absent");
   });
 
-  it("a setting that does not read is an abstention, logged by its key only", async () => {
+  it("05 RG160, RG164 (b): a setting that does not read fails the line without a mapping, logged by its key only", async () => {
     const preparation = await connector().prepare(
       line(),
       state({}, { apollo_scope: "everyone" }),
     );
-    expect(skipOf(preparation)).toBe("apollo_settings_invalid");
+    expect(preparation).toEqual({
+      kind: "fail",
+      errorCode: "apollo_settings_invalid",
+    });
     expect(logLines).toEqual([
       'error leads.settings.invalid {"key":"apollo","destination":"apollo_contact"}',
     ]);
+  });
+
+  it("05 RG164 (a): an account gone or not active stays a skip, whatever the settings", async () => {
+    expect(
+      skipOf(
+        await connector().prepare(
+          line(),
+          state({ status: "suspended" }, { apollo_scope: "everyone" }),
+        ),
+      ),
+    ).toBe("account_not_active");
   });
 });
 

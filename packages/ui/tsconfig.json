@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "allowJs": false,
+    // No DOM, no Node: the package declares fonts and ships a style sheet, nothing else.
+    "lib": ["ES2022"],
+    "types": []
+  },
+  "include": ["src"]
+}

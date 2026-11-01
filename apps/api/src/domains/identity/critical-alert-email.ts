@@ -6,6 +6,10 @@
 import type { UiLocale } from "@influx/contracts/auth";
 import english from "../../locales/en/email.json" with { type: "json" };
 import french from "../../locales/fr/email.json" with { type: "json" };
+import {
+  formatInternalText as format,
+  renderInternalEmail,
+} from "../../platform/internal-email.ts";
 import type { RenderedEmail } from "./login-code-email.ts";
 
 /** The two audit events that raise the alert (EC-44 (1)). */
@@ -28,49 +32,6 @@ const LANGUAGES: readonly { locale: UiLocale; texts: Texts }[] = [
 ];
 
 type Texts = typeof french.email.internal.criticalAlert;
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
-/** `{name}`, `{name, date, long}` and `{name, time, medium}` (24 h), always in UTC. */
-function format(
-  template: string,
-  values: Readonly<Record<string, string | number | Date>>,
-  locale: UiLocale,
-): string {
-  return template.replace(
-    /\{(\w+)(?:, (date|time), (long|medium))?\}/g,
-    (_match, name: string, kind?: string) => {
-      const value = values[name];
-      if (value === undefined) {
-        throw new Error(`missing value for {${name}}`);
-      }
-      if (kind === undefined) {
-        return String(value);
-      }
-      if (!(value instanceof Date)) {
-        throw new Error(`{${name}} is not a date`);
-      }
-      const options: Intl.DateTimeFormatOptions =
-        kind === "date"
-          ? { dateStyle: "long", timeZone: "UTC" }
-          : {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-              hourCycle: "h23",
-              timeZone: "UTC",
-            };
-      return new Intl.DateTimeFormat(locale, options).format(value);
-    },
-  );
-}
 
 function paragraphsOf(
   input: CriticalAlertEmailInput,
@@ -102,26 +63,5 @@ export function renderCriticalAlertEmail(
     title: texts.title,
     paragraphs: paragraphsOf(input, locale, texts),
   }));
-  const text = blocks
-    .flatMap((block) => [
-      block.title,
-      "",
-      ...block.paragraphs.flatMap((paragraph) => [paragraph, ""]),
-    ])
-    .join("\n")
-    .trimEnd();
-  const html = [
-    `<!doctype html><html lang="fr"><head><meta charset="utf-8">`,
-    `<title>${escapeHtml(subject)}</title></head><body>`,
-    ...blocks.map(
-      (block) =>
-        `<div lang="${block.locale}"><h1>${escapeHtml(block.title)}</h1>` +
-        block.paragraphs
-          .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
-          .join("") +
-        "</div>",
-    ),
-    "</body></html>",
-  ].join("");
-  return { subject, html, text };
+  return renderInternalEmail(subject, blocks);
 }

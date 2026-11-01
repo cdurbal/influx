@@ -16,11 +16,20 @@
 // domains/maintenance/periodic.ts): in the same loop, never side by side with a turn.
 // A turn every 2 s while there is work, every 5 s at rest (02 §11.1). On SIGTERM the attempts in
 // progress finish and the lines not begun go back to pending without using an attempt (TM1.10).
-// The locks, in this order, after the connector's qualification, mapping and output check:
-//   dry_run   no call, succeeded with dry_run and the would_send line (decision 2 and 3)
-//   no key    skipped_no_credentials (lock 1)
+// After the connector's preparation (a skip always first, 05 RG164), in this order:
+//   would_send  dry_run: the line of decision 3, with the names of the missing settings
+//   output check  a refusal fails output_check_rejected (16 RG137), never re-queued by itself
+//   settings    a missing setting fails the line, in dry_run as in live: an incident without retry
+//             (05 RG160), re-queued once the setting is corrected (RG161, below)
+//   dry_run   no call, succeeded with dry_run (decision 2)
+//   no key    deployed, credentials_missing, an incident (RG160); in development,
+//             skipped_no_credentials (lock 1, 18 T17.1)
 //   allow-list  live in development (the filter the configuration resolved, D70), a recipient
 //             domain not listed: skipped_non_production (lock 3, a positive condition)
+// The take-back, at start then at most once a minute between two turns, also re-queues the lines
+// failed for a setting corrected since the start of their attempt, or for a key missing from an
+// earlier process (05 RG161, D67 (i): in E-3, no new motif nor grant; 0146): the same line, the
+// same idempotency key.
 // Log lines (D60): line ids, destinations, codes and attribute NAMES, never an account, an address,
 // a value or a provider's message.
 import { randomUUID } from "node:crypto";
@@ -36,6 +45,7 @@ import type {
   OutboxDestination,
 } from "./repository.ts";
 import {
+  configurationFailureCode,
   ratePerMinuteOf,
   retryDelaySeconds,
   retryScheduleOf,
@@ -65,6 +75,12 @@ export type SyncSettings = {
    * an allow-list of domains in development, unrestricted in a deployed environment.
    */
   recipientFilter: RecipientFilter;
+  /**
+   * 05 RG160 (D67, D70): a qualified line without a key fails credentials_missing, an incident, in
+   * a deployed environment; it is skipped_no_credentials in development (02 §12.4 lock 1, 18
+   * T17.1). Resolved by the configuration: the drain never reads the environment.
+   */
+  keyRequired: boolean;
 };
 
 export type DrainLogger = {
@@ -81,8 +97,18 @@ export type DrainDependencies = {
   inbound?: InboundProcessor;
   /** E-4 (maintenance/periodic.ts): never throws; none in the loop's tests. */
   periodic?: { tick(signal: AbortSignal): Promise<void> };
+  /**
+   * The beat of the worker (02 §11.3, ops/worker-monitor.ts): at start and after each turn;
+   * never throws; none in the loop's tests.
+   */
+  heartbeat?: { turned(): Promise<void> };
   /** The worker identifier of the claim (workerIdentifier). */
   worker: string;
+  /**
+   * The start of this process by the database clock (its start step, 0146): the take-back
+   * re-queues a credentials_missing line whose attempt began before it (05 RG161).
+   */
+  startedAt: string;
   sync: SyncSettings;
   logger: DrainLogger;
   now: () => number;
@@ -116,7 +142,9 @@ export function createOutboxDrain(
     connectors,
     inbound,
     periodic,
+    heartbeat,
     worker,
+    startedAt,
     sync,
     logger,
     now,
@@ -211,8 +239,10 @@ export function createOutboxDrain(
 
     const { description } = preparation;
     const rejected = [...description.rejectedAttributeNames].sort();
+    const missing = [...description.missingSettings].sort();
     if (dryRun) {
-      // Decision 3: what it would have sent, by names only; never a column.
+      // Decision 3: what it would have sent, by names only; never a column. 05 RG164: the trace
+      // comes first, with the names of the missing settings, and the verdict after it.
       logger.info(
         {
           outboxEventId: line.id,
@@ -223,11 +253,13 @@ export function createOutboxDrain(
           attributeNames: [...description.attributeNames].sort(),
           outputCheck: rejected.length === 0 ? "pass" : "reject",
           rejectedAttributeNames: rejected,
+          missingSettings: missing,
         },
         "leads.dry_run.would_send",
       );
     }
-    // 16 RG137: the output check fails the line, in dry_run as in live (decision 2).
+    // 16 RG137: the output check fails the line, in dry_run as in live (decision 2); it prevails
+    // over a missing setting, and is never re-queued by itself (05 RG164).
     if (rejected.length > 0) {
       return {
         status: "failed",
@@ -236,11 +268,29 @@ export function createOutboxDrain(
         errorMessage: `attributes refused by the output check: ${rejected.join(", ")}`,
       };
     }
+    // 05 RG160: a setting of INFLUX missing is an incident, in dry_run as in live, without retry;
+    // the names of the settings stay on the line, for the cause shown (RG99), never a value.
+    const configurationCode = configurationFailureCode(missing);
+    if (configurationCode !== null) {
+      return {
+        status: "failed",
+        dryRun,
+        errorCode: configurationCode,
+        errorMessage: `settings missing: ${missing.join(", ")}`,
+      };
+    }
     if (dryRun) {
       return { status: "succeeded", dryRun: true };
     }
     if (!connector.hasCredentials) {
-      return { status: "skipped", dryRun, reason: "skipped_no_credentials" };
+      return sync.keyRequired
+        ? {
+            status: "failed",
+            dryRun,
+            errorCode: "credentials_missing",
+            errorMessage: "no key of this destination in the worker",
+          }
+        : { status: "skipped", dryRun, reason: "skipped_no_credentials" };
     }
     if (
       allowlist !== null &&
@@ -458,17 +508,39 @@ export function createOutboxDrain(
     return processed + lines.length;
   }
 
+  /**
+   * The take-back (TM1.10) and, in the same step, the catch-up of 05 RG161: a system replay,
+   * journaled by its motif, its codes and its count, never an account (no human actor: no register
+   * line, 0146).
+   */
   async function recover(): Promise<void> {
     try {
-      const recovered = await queue.recover(randomUUID());
-      if (recovered.length > 0) {
+      const recovered = await queue.recover(randomUUID(), startedAt);
+      const orphans = recovered.filter(
+        (line) => line.reason === "worker_interrupted",
+      );
+      if (orphans.length > 0) {
         logger.info(
           {
-            count: recovered.length,
-            failed: recovered.filter((line) => line.writtenStatus === "failed")
+            count: orphans.length,
+            failed: orphans.filter((line) => line.writtenStatus === "failed")
               .length,
           },
           "leads.lines.recovered",
+        );
+      }
+      const restored = recovered.filter(
+        (line) => line.reason === "configuration_restored",
+      );
+      if (restored.length > 0) {
+        const codes: Record<string, number> = {};
+        for (const line of restored) {
+          const code = line.errorCode ?? "unknown";
+          codes[code] = (codes[code] ?? 0) + 1;
+        }
+        logger.info(
+          { motif: "configuration_restored", count: restored.length, codes },
+          "leads.lines.configuration_restored",
         );
       }
     } catch (error) {
@@ -488,6 +560,7 @@ export function createOutboxDrain(
   }
 
   async function run(signal: AbortSignal): Promise<void> {
+    await heartbeat?.turned();
     await recover();
     let lastRecovery = now();
     await periodicTick(signal);
@@ -499,6 +572,7 @@ export function createOutboxDrain(
       } catch (error) {
         logger.error({ err: error }, "leads.drain.turn_failed");
       }
+      await heartbeat?.turned();
       if (signal.aborted) {
         break;
       }

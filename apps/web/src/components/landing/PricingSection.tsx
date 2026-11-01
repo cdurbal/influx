@@ -1,3 +1,4 @@
+import { LANDING_SECTION_ANCHORS } from "./landing-sections";
 import { getTranslations } from "next-intl/server";
 import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
@@ -13,7 +14,11 @@ export async function PricingSection() {
   const t = await getTranslations("landing.pricing");
 
   return (
-    <section aria-labelledby="pricing-title" className="bg-surface-muted">
+    <section
+      id={LANDING_SECTION_ANCHORS.pricing}
+      aria-labelledby="pricing-title"
+      className="bg-surface-muted"
+    >
       <div className="mx-auto grid max-w-(--container-max) grid-cols-1 gap-8 px-page-gutter py-section-block lg:grid-cols-12 lg:gap-grid-gap">
         <div className="flex flex-col gap-section-header lg:col-span-8">
           <SectionHeader

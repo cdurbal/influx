@@ -77,7 +77,7 @@ Trois libellés, deux populations, deux parcours distincts.
 8. **Le badge est par réseau, pas par personne.** Un créateur peut être vérifié sur Instagram et
    pas sur TikTok ; l'interface doit le dire, jamais afficher un badge global.
 9. « Marque vérifiée » suit son propre parcours, avec ses propres pièces et ses propres motifs de
-   refus. Ne pas mélanger les deux populations dans une même story (`CLAUDE.md` §5.2).
+   refus. Ne pas mélanger les deux populations dans une même story (`CLAUDE.md` §4).
 
 ---
 

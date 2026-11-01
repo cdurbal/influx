@@ -7,7 +7,9 @@
 // 4. no temporary right of an interrupted run is left in the stack (J2 review of 0009, V4);
 // 5. the data set of T2 is loaded once, BEFORE any file: a file that creates the current terms
 //    version first (the demo accounts of t8-demo-accounts) would otherwise keep the fixed-id
-//    version of the data set out, whatever the file order (the cause of T-1, end of J3).
+//    version of the data set out, whatever the file order (the cause of T-1, end of J3);
+// 6. the fixtures that earlier runs left committed are swept (stale-fixtures.ts): the capped reads
+//    would otherwise fill up with them and fail on a stack that was never reset.
 import {
   connectAsMigrationRole,
   loadDataSet,
@@ -18,6 +20,7 @@ import {
   assertNoTemporaryRights,
   INTERRUPTED_RUN_MESSAGE,
 } from "./temporary-rights.ts";
+import { sweepStaleFixtures } from "./stale-fixtures.ts";
 
 export default async function setup(): Promise<void> {
   await requireLocalStack();
@@ -40,6 +43,7 @@ export default async function setup(): Promise<void> {
     }
     await assertNoTemporaryRights(migration);
     await loadDataSet(migration);
+    await sweepStaleFixtures(migration);
   } finally {
     await migration.end({ timeout: 1 });
   }

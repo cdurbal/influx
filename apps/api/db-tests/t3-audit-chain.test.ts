@@ -106,11 +106,17 @@ async function freshAdminSession(): Promise<string> {
   return row.id;
 }
 
-function asAdmin(tx: postgres.TransactionSql, side: "a" | "b"): Promise<void> {
+/** Admin A or B; `session`: the session of the request, the claim R reads (J8S-3, 0142). */
+function asAdmin(
+  tx: postgres.TransactionSql,
+  side: "a" | "b",
+  session?: string,
+): Promise<void> {
   return takeRole(tx, "influx_admin", {
     accountId: dataSet.accounts.admin[side].id,
     role: "admin",
     aal: "aal2",
+    ...(session === undefined ? {} : { sessionId: session }),
   });
 }
 
@@ -133,7 +139,7 @@ async function prepareGrants(count: number): Promise<PreparedGrant[]> {
       if (row === undefined) {
         throw new Error("no request");
       }
-      await asAdmin(tx, "a");
+      await asAdmin(tx, "a", session);
       await tx`select backoffice.confirm_dual_control(${session}::uuid, ${row.id}::uuid)`;
       prepared.push({ target, request: row.id, session });
     }
@@ -146,7 +152,7 @@ async function grantAsAdmin(
   tx: postgres.TransactionSql,
   grant: PreparedGrant,
 ): Promise<void> {
-  await asAdmin(tx, "a");
+  await asAdmin(tx, "a", grant.session);
   await tx`select identity.grant_role(${grant.session}::uuid, ${grant.request}::uuid,
                                       ${grant.target}::uuid, 'advertiser', 'test_t3')`;
 }

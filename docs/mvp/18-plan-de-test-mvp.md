@@ -15,6 +15,10 @@
 > **Révisé le 2026-09-27** (vérification de fin de J2, `21` §3 EC-35 tranché) : §3 (plancher,
 > chemin de connexion), T2 (forme `vide`, code de refus d'un déclencheur, exclusions de T2.2, essai
 > `delete` des formes `propre`), T3.7, T3.8, T4.7, T6.3 (exemptions), T16.5.
+> **Révisé le 2026-10-28** (jalon DS, D73, charte KEO Emerald ; `02` §21) : §3.2 (ligne du jalon),
+> §5.1 (nouveau : gardes G3 à G3h, G4f, G8, G9), §8 (lignes 15 à 22), §9.3 (A-7 à A-9), §10 (jalon DS,
+> entre le Lot 1 et le Lot 2), §11 (compte des zones non couvertes), §12 (nouveau : familles TD1 à TD8,
+> matrice de largeurs, plan par commit, recette humaine).
 >
 > **Ce document reprend et exécute** les tests T1 à T17 exigés au §8 de
 > `docs/mvp/03-matrice-des-droits-et-rls.md` et les contrôles X1 à X4 de son §5.3, comme le demande
@@ -791,10 +795,26 @@ sans supposer ; soumises à `expert-cybersecurite`, §9.1 C-3) :
 
 ### T17 — Garde-fou `staging`
 
-> **D70 (2026-10-18).** T17 devient une matrice par environnement : la pile locale et les tests
-> (`INFLUX_ENV=development`, mécanisme à confirmer) gardent les quatre verrous ci-dessous ;
-> `staging` refuse exactement ce que refuse la production ; un cas vérifie qu'aucun script de test
-> ne charge `.env.local`. Réécriture au commit 1 de `jalons/d70-plan.md`.
+> **D70 (2026-10-18), matrice par environnement** (`apps/api/tests/config.test.ts`, commit 1 de
+> `archives/jalons/d70-plan.md`). `INFLUX_ENV` vaut `development` (pile locale, CI, tests : verrous 2 et 3,
+> doublure), `staging` ou `production`. Les deux dernières forment « l'environnement déployé »
+> (`isDeployedEnvironment`, un seul prédicat) : `staging` refuse **exactement** ce que refuse la
+> production, et les cas ci-dessous qui disent « hors production » s'entendent « hors environnement
+> déployé » (`development`). `skipped_non_production` n'est atteignable qu'en `development`.
+>
+> | Cas | `development` | `staging` et `production` (même cas, mêmes refus) |
+> |---|---|---|
+> | `BREVO_MODE` | `disabled` par défaut, `redirect` avec `BREVO_TEST_RECIPIENTS`, `live` accepté vers la doublure | `live` exigé : `disabled`, absent, `redirect` ⇒ refus |
+> | `BREVO_TEST_RECIPIENTS`, `NON_PRODUCTION_RECIPIENT_ALLOWLIST` | acceptées (verrous 2 et 3) | **refusées**, jamais ignorées |
+> | `SYNC_MODE` | `dry_run` par défaut ; `live` exige la liste blanche | `live` exigé, y compris variable absente (T17.5) |
+> | `BREVO_API_BASE_URL`, origines publiques, `SUPABASE_URL` | doublure locale et `http` acceptées | URL officielle Brevo et origines `https` exigées |
+> | Secrets du webhook, `PRIVACY_DATABASE_URL`, paire de purge GoTrue | facultatifs | exigés |
+> | `INFLUX_ENV=development` sur Railway | refusé (un service déployé ne se relâche pas par une variable) | — |
+>
+> Tests : `describe.each` des deux environnements déployés (config complète acceptée, un cas par
+> variable retirée ou ajoutée), comparaison `staging` = `production` sur les mêmes cas, démarrage
+> refusé au niveau du processus pour les deux (T17.5, T17.10), et une garde (`16` RG148) vérifiant
+> qu'aucun script `test`, `test:db` ou e2e ne charge `.env.local`.
 
 **Deux moitiés.** Les **refus de démarrage** (T17.5 à T17.10) sont en place depuis le J1 (`21` §4,
 J1-D point 3 ; `apps/api/tests/config.test.ts`). Les **verrous d'exécution** (T17.1 à T17.4) arrivent
@@ -803,14 +823,14 @@ authentifiés) exige un appel à Brevo, doublé en test : elle entre au J9.
 
 | Cas | Ce qu'il vérifie |
 |---|---|
-| **T17.1** | **Verrou 1** — les clés de production ne sont pas présentes en `staging` ; pas de clé Apollo du tout ⇒ statut `skipped_no_credentials` |
-| **T17.2** | **Verrou 2** — `SYNC_MODE=dry_run` : aucun appel sortant, ligne marquée `succeeded` avec `dry_run: true`, contenu journalisé |
-| **T17.3** | **Verrou 3** — liste blanche de destinataires évaluée **au connecteur, après tout le mappage**, en condition **positive** ; toute adresse hors liste ⇒ `skipped_non_production` |
-| **T17.4** | **Verrou 4 (B9)** — aucune donnée de production dans `staging` : le jeu de données provient exclusivement de `supabase/seed`, et un contrôle échoue si une adresse ne se termine pas par un domaine de test réservé |
-| **T17.5** | Symétrie : le worker **refuse de démarrer** si `INFLUX_ENV=production` et `SYNC_MODE=dry_run`, **y compris quand `SYNC_MODE` est absent** (la valeur par défaut `dry_run` ne passe pas en production) |
-| **T17.6** | **Mode Brevo (`api` et `worker`, `16` RG116).** `BREVO_MODE=live` hors production ⇒ refus ; en production, toute autre valeur que `live` (`disabled`, `redirect`, variable absente) ⇒ refus ; `redirect` sans `BREVO_TEST_RECIPIENTS` ⇒ refus. Contre-tests : `live` accepté en production ; `disabled` par défaut hors production |
-| **T17.7** | **Synchronisation hors production (`worker`).** `SYNC_MODE=live` hors production avec `NON_PRODUCTION_RECIPIENT_ALLOWLIST` vide ⇒ refus. Contre-test : accepté avec une liste de domaines |
-| **T17.8** | **Secret interne par front (`api`, J1-G) et environnement.** Secret absent, de moins de **32 octets** (comptés en octets, pas en caractères), ou **identique pour `web` et `backoffice`** ⇒ refus. `INFLUX_ENV` absent ou hors `staging` / `production` ⇒ refus |
+| **T17.1** | **Verrou 1** — aucune clé de production hors production ; en `development`, pas de clé Apollo ⇒ `skipped_no_credentials` (en environnement déployé, D67 : `credentials_missing`, `TM1.15`) |
+| **T17.2** | **Verrou 2 (`development`)** — `SYNC_MODE=dry_run` : aucun appel sortant, ligne marquée `succeeded` avec `dry_run: true`, contenu journalisé. Refusé en `staging` et en `production` |
+| **T17.3** | **Verrou 3 (`development`)** — liste blanche de destinataires évaluée **au connecteur, après tout le mappage**, en condition **positive** ; toute adresse hors liste ⇒ `skipped_non_production`. Inatteignable en `staging` et en `production` (filtre non restreint, liste refusée) |
+| **T17.4** | **Verrou 4 (B9)** — aucune donnée de production dans `staging` : le jeu de données provient exclusivement de `supabase/seed` et de `db:staging-demo-accounts`, et un contrôle échoue si une adresse ne se termine pas par un domaine de test réservé (hors adresses de testeurs internes posées par l'agent) |
+| **T17.5** | Symétrie : le worker **refuse de démarrer** si `INFLUX_ENV` vaut `staging` ou `production` et `SYNC_MODE=dry_run`, **y compris quand `SYNC_MODE` est absent** (la valeur par défaut `dry_run` ne passe pas en environnement déployé) |
+| **T17.6** | **Mode Brevo (`api` et `worker`, `16` RG116).** En `staging` comme en `production`, toute autre valeur que `live` (`disabled`, `redirect`, variable absente) ⇒ refus ; `BREVO_TEST_RECIPIENTS` présente ⇒ refus. En `development` : `redirect` sans `BREVO_TEST_RECIPIENTS` ⇒ refus. Contre-tests : `live` accepté en `staging` et en `production` ; `disabled` par défaut en `development` |
+| **T17.7** | **Synchronisation (`worker`).** En `development`, `SYNC_MODE=live` avec `NON_PRODUCTION_RECIPIENT_ALLOWLIST` vide ⇒ refus (contre-test : accepté avec une liste de domaines). En `staging` et `production`, la liste présente ⇒ refus |
+| **T17.8** | **Secret interne par front (`api`, J1-G) et environnement.** Secret absent, de moins de **32 octets** (comptés en octets, pas en caractères), ou **identique pour `web` et `backoffice`** ⇒ refus. `INFLUX_ENV` absent ou hors `development` / `staging` / `production` ⇒ refus |
 | **T17.9** | Le refus **nomme la variable et la règle, jamais la valeur** : un secret trop court ou dupliqué n'apparaît ni dans le message d'erreur, ni sur la sortie du processus |
 | **T17.10** | **Au niveau du processus** : les vrais points d'entrée (`node src/main.ts`, `node src/worker.ts`) sortent avec un **code non nul avant d'écouter** sur un port ou d'entamer leur boucle — au moins un cas par processus. Un refus vérifié seulement sur la fonction de chargement ne prouve pas que le service ne démarre pas |
 
@@ -866,7 +886,7 @@ le métier : la file, les leads, les montants, les transitions. Douze familles s
 | TM1.10 | L'arrêt du worker en cours de lot (`SIGTERM`) ne perd aucun événement : il reste `pending` |
 | TM1.11 | *(D67, 2026-10-17)* **Configuration manquante = échec, jamais « ignoré »** : liste Brevo d'un rôle, modèle de bienvenue, réglage Apollo illisible ⇒ ligne `failed` avec le code de `05` RG160, nature `incident`, aucune tentative programmée, comptée dans les échecs non traités et non dans les cas normaux, AL25 levée ; un `consent.revoked` du même compte passe quand même (`05` CA82, CA84) |
 | TM1.12 | *(D67)* **Rattrapage automatique** : le réglage corrigé (y compris par écriture SQL directe), les lignes en échec de configuration repartent en moins de 15 min avec la **même clé d'idempotence**, un rejeu système `configuration_restored` est journalisé, aucun second e-mail de bienvenue ; le rejeu manuel unitaire et en lot reste possible ; une ligne `no_consent` reste non rejouable ; *(architecte, 2026-10-17)* une correction faite **pendant** la tentative qui échoue est rattrapée (comparaison au début de la tentative) ; une modification d'une autre clé ne remet rien en file (`05` CA83, CA60, RG161) |
-| TM1.13 | *(D67)* **Refus de démarrage en production, au niveau du processus** (comme T17.10) : chacun des réglages de `05` RG162 à `NULL` ou illisible ⇒ `node src/worker.ts` sort avec un code non nul avant sa première boucle, message qui nomme la clé sans valeur (T17.9) ; réglages Apollo contrôlés **seulement** si `APOLLO_API_KEY` est présente ; liste de pays vide acceptée ; un modèle non indispensable à `NULL` n'empêche pas le démarrage. *Contre-test* : même configuration en `staging` ⇒ démarrage et ligne `leads.settings.missing_at_start` (`05` CA85) |
+| TM1.13 | *(D67)* **Refus de démarrage en production, au niveau du processus** (comme T17.10) : chacun des réglages de `05` RG162 à `NULL` ou illisible ⇒ `node src/worker.ts` sort avec un code non nul avant sa première boucle, message qui nomme la clé sans valeur (T17.9) ; réglages Apollo contrôlés **seulement** si `APOLLO_API_KEY` est présente ; liste de pays vide acceptée ; aucun modèle Brevo contrôlé (D69). *Contre-test* : même configuration en `development` ⇒ démarrage et ligne `leads.settings.missing_at_start` (`05` CA85 ; `staging` est déployé depuis D70, il refuse). *Preuve (J9 D67-b)* : un environnement déployé refuse la base locale (D70 S1), le refus est donc prouvé sur le verdict partagé (`leads-start-check`) et l'étape de démarrage en base, pas au niveau du processus |
 | TM1.14 | *(D67)* **Ordre en `dry_run`** : modèle ou liste manquant ⇒ `leads.dry_run.would_send` journalisée avec les noms des réglages manquants, **puis** ligne `failed` ; réglages présents ⇒ `succeeded` avec `dry_run` ; réglage Apollo illisible ⇒ `failed` sans `would_send` ; *(architecte, 2026-10-17)* sans consentement et liste manquante ⇒ `skipped` `no_consent`, ni `would_send` ni échec (`05` CA86, RG164) |
 | TM1.15 | *(D67)* **Clé absente en production** : ligne qualifiée ⇒ `failed` `credentials_missing` ; hors production, `skipped_no_credentials` inchangé (T17.1) (`05` CA87) |
 | TM1.16 | *(D67)* **Un identifiant Brevo renseigné ne redevient jamais vide** : remise à `NULL` ou retrait de la clé refusé en base, remplacement par un entier positif accepté ; *(architecte, 2026-10-17)* toute écriture sur `leads.sync_settings`, y compris par SQL direct, produit un `settings.changed` chaîné (`05` CA88, RG163) |
@@ -1015,6 +1035,7 @@ jamais pré-coché).
 | TM1 à TM12 (métier) | **81** *(75 + 6, TM1.11 à TM1.16, 2026-10-17, D67)* |
 | **Total** | **211 cas de test**, dans **29 familles** |
 | En complément | 1 corpus figé de **120 cas** de détection (§6), 1 parcours de bout en bout en **12 étapes** + 1 parcours négatif (§7), 2 contrôles non automatisés (X3, X4) |
+| Jalon DS (D73, 2026-10-28), **hors total ci-dessus** | Familles **TD1 à TD8**, **44 cas** plus la matrice d'axe de TD7 (§12) : jalon extra du MVP, entre le Lot 1 et le Lot 2 |
 
 ---
 
@@ -1033,14 +1054,14 @@ garantir qu'**aucune protection ne disparaît sans contrepartie**.
 | Garde | Ce qu'elle protège, en clair | Décision (`02` §13.1) | **Contrepartie exigée** | Lot |
 |---|---|---|---|---|
 | **G1** — aucun `mailto:` ni `tel:` | Le contournement : une adresse cliquable dans une page est une sortie de plateforme | **Conservée au Lot 0, resserrée au Lot 1** | Interdiction **maintenue et durcie** dans l'espace membres, le backoffice et **tout composant affichant du contenu utilisateur**. Autorisée uniquement sur les pages légales et la page de contact publique, par une liste blanche de fichiers **nommés**, pas par un chemin de dossier | 0-1 |
-| **G2** — aucune URL `http(s)://` | La fuite vers un tiers, l'appel réseau non prévu | **Levée au Lot 1** | **Trois remplaçants, pas un** : (a) garde resserrée — aucune URL littérale hors de `src/config/` et `src/locales/` ; (b) **CSP testée en production** (T10.6) ; (c) règle ESLint interdisant `fetch` hors du seul `src/server/api-client.ts`. La garde passe d'une vérification de lecture à une vérification d'exécution : c'est **plus fort**, à condition que (b) existe le jour où (a) est levée — **dans le même commit** | 1 |
-| **G3** — aucune couleur ni longueur en dur | L'invariant du design system (`CLAUDE.md` §10.3 règle 7) | **Conservée définitivement, étendue** | Étendue à `apps/backoffice` et `packages/ui` **via le harnais partagé**. Aucune contrepartie nécessaire : rien n'est levé | permanent |
+| **G2** — aucune URL `http(s)://` | La fuite vers un tiers, l'appel réseau non prévu | **Levée au Lot 1** | **Trois remplaçants, pas un** : (a) garde resserrée — aucune URL littérale hors de `src/config/` et `src/locales/` ; (b) **CSP testée en production** (T10.6) ; (c) règle ESLint interdisant `fetch` hors du seul `src/server/api-client.ts` (dans `packages/web-platform` depuis PL-09). La garde passe d'une vérification de lecture à une vérification d'exécution : c'est **plus fort**, à condition que (b) existe le jour où (a) est levée — **dans le même commit** | 1 |
+| **G3** — aucune couleur ni longueur en dur | L'invariant du design system (`CLAUDE.md` §4) | **Conservée définitivement, étendue** | Étendue à `apps/backoffice`, `packages/ui` et `packages/web-platform` (PL-09, avec G1 et G2) **via le harnais partagé**. Aucune contrepartie nécessaire : rien n'est levé | permanent |
 | **G4** — chaque photo est créditée | Le risque juridique des visuels d'illustration | **Conservée tant que `src/content/placeholders/` existe, supprimée avec lui au Lot 1** | **Remplacée par une garde d'absence** : aucun fichier image dans le dépôt en dehors d'un manifeste d'actifs de marque déclaré. Le risque change de nature au Lot 1 (les visuels deviennent des portfolios déposés par des créateurs) et il est alors porté par la **modération** et par T9. Sans la garde d'absence, une photo non créditée pourrait revenir sans bruit | 1 |
-| **G5** — aucun `route.ts` sous `src/app` | L'apparition d'un point d'accès serveur non prévu dans une maquette | **Levée au J1 dans le commit du passe-plat, remplacée par une garde plus stricte** (EC-13, `21` §4 J1-C) | **Garde de remplacement**, écrite une fois dans `packages/test-kit` et appliquée aux deux fronts : (a) les fichiers de route sous `src/app` sont **exactement** `{ src/app/api/[...path]/route.ts }` (EC-22 y ajoutera `src/app/health/route.ts`) ; (b) **aucun dossier `src/pages/` ni `pages/`** — le routeur historique de Next.js ouvrirait des routes `pages/api/*` hors de la liste blanche ; (c) `route.ts`, `src/server/relay.ts` et `src/server/api-client.ts` n'importent ni `@supabase/*`, ni `drizzle-orm`, ni `pg`, ni `postgres`, ne lisent pas `process.env` et ne contiennent pas `'use server'` ; (d) **garde des importeurs** (`relay.ts` importé par `route.ts` seul, `api-client.ts` par `relay.ts` seul, `src/config/server.ts` par `api-client.ts` seul) ; (e) **empreinte SHA-256** des quatre fichiers, identiques octet pour octet dans les deux fronts (T7.8). **Tests** : les conditions PP en **unitaire dès le J1** (PP-2, PP-3, PP-5, PP-7, PP-9, PP-10, PP-11 contre un faux serveur HTTP local ; T7.9 côté `apps/api`) et T7.10 ; **T7 complet, en intégration, au J9**. Le remplacement est nettement plus fort que l'original, et il survit à la vraie application | 0 (J1) |
+| **G5** — aucun `route.ts` sous `src/app` | L'apparition d'un point d'accès serveur non prévu dans une maquette | **Levée au J1 dans le commit du passe-plat, remplacée par une garde plus stricte** (EC-13, `21` §4 J1-C) | **Garde de remplacement**, écrite une fois dans `packages/test-kit` et appliquée aux deux fronts : (a) les fichiers de route sous `src/app` sont **exactement** `{ src/app/api/[...path]/route.ts }` (EC-22 y ajoutera `src/app/health/route.ts`) ; (b) **aucun dossier `src/pages/` ni `pages/`** — le routeur historique de Next.js ouvrirait des routes `pages/api/*` hors de la liste blanche ; (c) `route.ts`, `src/server/relay.ts` et `src/server/api-client.ts` n'importent ni `@supabase/*`, ni `drizzle-orm`, ni `pg`, ni `postgres`, ne lisent pas `process.env` et ne contiennent pas `'use server'` ; (d) **garde des importeurs** (`relay.ts` importé par `route.ts` seul, `api-client.ts` par `relay.ts` seul, `src/config/server.ts` par `api-client.ts` seul) ; (e) **empreinte SHA-256** des quatre fichiers, identiques octet pour octet dans les deux fronts (T7.8). *Depuis PL-09 (arbitrage PL-07) : `relay.ts`, `api-client.ts`, `config/server.ts` et le client navigateur vivent dans `packages/web-platform` ; (c) à (e) s'y appliquent, `route.ts` reste une copie épinglée dans chaque front qui importe `@influx/web-platform/relay`, seul importeur avec la route de santé ; l'identité entre copies devient une garde d'absence (aucun fichier du paquet copié dans un front) et les `exports` du paquet sont figés.* **Tests** : les conditions PP en **unitaire dès le J1** (PP-2, PP-3, PP-5, PP-7, PP-9, PP-10, PP-11 contre un faux serveur HTTP local ; T7.9 côté `apps/api`) et T7.10 ; **T7 complet, en intégration, au J9**. Le remplacement est nettement plus fort que l'original, et il survit à la vraie application | 0 (J1) |
 | **G6** — `IS_MOCKUP === true` | Qu'un site de démonstration soit pris pour le vrai, ou indexé | **Conservée jusqu'au retrait du module fictif au Lot 1, puis supprimée** | **Deux remplaçants** : (a) une **garde d'absence** — le module fictif, la constante `IS_MOCKUP` et le composant de bandeau **n'existent plus** dans le dépôt, de sorte qu'ils ne peuvent pas revenir silencieusement ; (b) la non-indexation devient une affaire d'environnement, **testée** (T10.4 pour le backoffice, en-tête `noindex` sur `staging` pour I-6). Point non automatisable, à vérifier à l'œil : le bandeau disparaît **dans le même commit** que la première donnée réelle, jamais avant | 1 |
 | **G7** — aucun conflit de classes Tailwind | Une régression visuelle silencieuse déjà survenue deux fois | **Conservée et étendue** | Étendue à `apps/backoffice` et `packages/ui` via le harnais partagé. L'auto-test du détecteur (dernier cas actuel) est **conservé** : c'est une bonne pratique, un détecteur qui ne sait plus détecter est un test qui ment | permanent |
 | *(annexe 1)* — parité des clés FR/EN | Un écran à moitié traduit en production | **Conservée, étendue** à tous les fichiers de traduction de `apps/web`, pas seulement `landing.json` | **`apps/web`** : parité des clés sur tous les fichiers de `src/locales/<langue>/`. **`apps/backoffice`, tant que D36 est ouverte** (français seul, sans `next-intl` ; EC-25, appliquée au J1) : la garde vérifie (a) **un seul module de libellés, `src/messages/fr.ts`** : `src/messages/` ne contient rien d'autre, et aucun autre fichier de `src/` ne porte pour nom un code de langue (`fr`, `en`, `pt`, `es`, `de`, `it`, avec ou sans région : `en.ts`, `pt-BR.ts`, `fr_FR.ts`…) — `src/i18n/en.ts` fait échouer la garde ; (b) **aucun dossier `locales/` ni `i18n/`** sous `src/` ; (c) **aucun fichier `.json` sous `src/`** ; (d) **`next-intl` absent** de `package.json` et de tout import. La décision D36 reste ainsi visible dans le code. **Si D36 ouvre le backoffice à l'anglais**, cette garde est remplacée, dans le commit qui ajoute la seconde langue, par la parité des clés de `apps/web` | permanent |
-| *(annexe 2)* — aucune API réseau ni stockage | Le vol de session par JavaScript, l'appel réseau sauvage | **Scindée au J1**, dans le commit qui lève G5 (`21` §4 J1-C, point 1) | **(a)** `fetch` : autorisé **dans le seul** `src/server/api-client.ts`, interdit ailleurs (ESLint + garde). **(b)** `localStorage`, `sessionStorage`, `indexedDB`, `document.cookie`, `cookieStore`, `sendBeacon` : **interdits définitivement**, sans exception et sans liste blanche — la session est un cookie `httpOnly` (A-9). Le second volet est plus important que le premier et ne doit jamais être assoupli « pour un besoin de confort » | 0 (J1) puis permanent |
+| *(annexe 2)* — aucune API réseau ni stockage | Le vol de session par JavaScript, l'appel réseau sauvage | **Scindée au J1**, dans le commit qui lève G5 (`21` §4 J1-C, point 1) | **(a)** `fetch` : autorisé **dans le seul** `src/server/api-client.ts`, interdit ailleurs (ESLint + garde) ; depuis PL-09, ce module et `src/browser/relay-client.ts` sont dans `packages/web-platform`, et aucun fichier d'un front n'y fait exception. **(b)** `localStorage`, `sessionStorage`, `indexedDB`, `document.cookie`, `cookieStore`, `sendBeacon` : **interdits définitivement**, sans exception et sans liste blanche — la session est un cookie `httpOnly` (A-9). Le second volet est plus important que le premier et ne doit jamais être assoupli « pour un besoin de confort » | 0 (J1) puis permanent |
 | *(annexe 3)* — valeurs fictives confinées | Qu'un nom inventé se retrouve en production | **Conservée jusqu'au Lot 1**, disparaît avec le module fictif | Remplacée par la garde d'absence de G6. Aucune protection perdue : sans module fictif, il n'y a plus de valeur fictive à confiner | 1 |
 | *(annexe 4)* — `CreatorCard` sans champ d'identité | **A2 / D16 au niveau du type** | **Conservée et promue en règle permanente** | Devient **TM11.1**, généralisée : *aucun type exposé à une marque ne porte de champ identifiant*, appliquée à tout `packages/contracts`. Doublée par T1 (charge utile brute) et par T2 (droits en base). C'est la garde qui monte le plus en importance dans tout ce tableau | permanent |
 
@@ -1052,6 +1073,45 @@ l'originale, à une condition de calendrier non négociable :
 > **Une garde n'est levée que dans le commit qui introduit son remplaçant, jamais avant.** Un lot qui
 > lève G2 sans livrer la CSP testée, ou G5 sans livrer la garde de liste blanche et les tests
 > unitaires du passe-plat (T7 complet au J9), n'est pas livrable.
+
+### 5.1 Les gardes du jalon DS, charte KEO Emerald *(ajouté le 2026-10-28, D73, `02` §21.6)*
+
+Les lecteurs vivent dans `@influx/test-kit/guards`, avec leur auto-test (TD1) : un détecteur qui ne sait
+plus détecter est un test qui ment (G7). **Un seul lecteur de valeur effective**,
+`effectiveTokens(css, charte)` (bloc KEO, sinon `@theme`, sinon `:root`, alias suivis ; cycle ou cible
+absente = erreur), sert G3b à G3f. `tokenValue` (première occurrence du fichier) ne sert plus aux
+contrôles par charte : il lirait la vitrine et laisserait KEO sans contrôle, tout en restant vert.
+
+| Garde | Statut | Ce qu'elle prouve | Réserves et amendements de `testeur` |
+|---|---|---|---|
+| **G3** | Amendée | Un seul fichier de jetons, `packages/ui/src/styles/tokens.css`, importé par chaque `globals.css` (plus `tokens-backoffice.css` au backoffice), aucune couleur ni longueur littérale ailleurs, `keo-emerald.css` jamais importé (aucune feuille de plus) | Couvre les valeurs KEO littérales (hexadécimal, fonctions, longueurs, valeurs arbitraires `bg-[#…]`). Trou connu : une couleur nommée (`white`) dans une valeur arbitraire ; un `style=` en ligne est refusé à l'exécution par la CSP. Aucun faux positif attendu sur `fonts.ts` (plages `U+…` sans unité). L'en-tête « D73 » du fichier est cosmétique : ce n'est pas lui qui protège |
+| **G3b** | Amendée | D72 : rouges opaques, identiques entre fronts **et entre chartes** (`KEO_INHERITS`), aucune classe translucide | Ses ratios passent dans la matrice de G3d (un seul endroit où l'on calcule). Lecture **par charte**, avec un cas négatif (un rouge KEO insuffisant doit échouer) ; sinon elle reste verte sur la vitrine pendant que KEO se dégrade |
+| **G3c** | Nouvelle | Bloc KEO unique, dans `tokens.css` seul ; noms ⊆ déclarés ; tout `--color-*` redéfini, hérité (`KEO_INHERITS`) ou réservé à la vitrine (`VITRINE_ONLY`) ; valeurs opaques ; aucun `!important` ; fermeture des alias | Fermeture sur **toute référence `var()`** (alias entier, `calc(var(…))`), **transitive**, en `@theme` et en `:root`. Entrée périmée d'une des deux listes refusée, chaque entrée justifiée par un commentaire. `VITRINE_ONLY` est le pendant de G8 : un jeton listé ne peut pas être consommé sous KEO |
+| **G3d** | Nouvelle | Matrice de contrastes par charte, en données relues par `expert-ux` (`20` §11.4) | Texte ≥ 4,5:1 ; **non-texte ≥ 3:1** : bordure de champ, contour du bouton secondaire (alias, donc via la fermeture), anneau de focus, forme du bouton principal et du bouton rouge (3,05:1 sur carte : marge de 0,05) ; états survol et appui. **Les paires, les seuils et la teinte du succès sont des données**, pas du code : une constante nommée `SUCCESS_MIN_HUE_GAP` (degrés) et le tableau des paires sont lus dans un seul module de données, dont les valeurs renvoient à `20` §11.4 et que `expert-ux` tient à jour ; la garde calcule, elle ne décide pas. Valeur de départ **20°** (`02` §21.8) ; `expert-ux` ajuste le succès sous KEO (par exemple `#3ccfcf`, 24,6°) : si la valeur retenue passe sous le seuil, le seuil ne baisse que par un arbitrage écrit du fondateur, avec `CLAUDE.md` §4 amendé, et G3d interdit alors un succès en fond plein. Ne voit ni un état ni un usage non listé : d'où G3h, axe et la sonde TD3 |
+| **G3e** | Nouvelle | Vitrine figée : déclarations de `@theme`, de `:root` et des `@media` | Instantané pris **avant** toute modification (DS-1), ajouts permis, modification = commit qui nomme les valeurs. Si F2 (un seul vert) est accepté : liste explicite des noms modifiés. Ne voit ni un composant partagé ni `globals.css` : doublée par l'empreinte de styles calculés TD4 |
+| **G3f** | Nouvelle | Aucun `-bo-` dans `apps/web/src` ; `tokens-backoffice.css` ne déclare que des `--*-bo-*`, contrastés contre KEO | Triviale et gardée |
+| **G3g** | Nouvelle *(ajoutée)* | Couleurs de rôle confinées (P7, `12` RG7) : `color-role-*` consommé par le seul composant de la liste fermée de `20` §11.3 (point + rôle écrit, libellé obligatoire par le type) ; aucune classe `text-`, `border-` ni `bg-` de rôle ailleurs | Testable **en partie** : le confinement, statiquement ; l'exécution, par la sonde TD5 (tout élément peint d'une couleur de rôle porte le rôle écrit). Le **sens** (bon libellé, point décoratif) reste en revue |
+| **G3h** | Nouvelle *(ajoutée, facultative)* | Aucune paire interdite par `20` §11.4 dans un même littéral de classe (`text-tertiary` ou texte d'erreur sur `surface-active`) | Rappel faible (même littéral seulement), coût nul ; axe reste le filet |
+| **G4f** | Nouvelle | Polices : fichiers sous `packages/ui/src/styles/fonts/` seulement, manifeste ↔ fichiers dans les deux sens, SHA-256, signature `wOF2`, licences OFL, aucune copie dans un front (absence, PL-08), budget | `*.woff2 binary` est déjà au `.gitattributes`. G4f ne voit que les sources : ce qui est **réellement préchargé** se mesure en e2e (TD3) |
+| **G8** | Nouvelle | Séparation des deux chartes dans `apps/web` | À éclater en `it` distincts. `data-theme` et l'import de `@influx/ui/fonts` limités aux deux mises en page ; `createPortal` interdit partout dans `src/` (aucun usage aujourd'hui : pas de portée à définir) ; modules de la vitrine (liste nommée, existence vérifiée) hors du segment `(member)` ; transformations d'état et `transition-all` : `transition-all` interdit ; transformation d'état acceptée **sous `motion-safe:` seulement** (F6, fondateur, 2026-10-29 ; `20` §11.5, `02` §21.5 point 7), garde amendée à DS-5 ; les pages de `MEMBER_PAGE_SLUGS` sont **exactement** celles de `(member)` (le déplacement ne change aucune URL) |
+| **G9** | Nouvelle *(ajoutée)* | Lecture de session confinée aux coquilles et à `member-auth` / `backoffice-auth` (garde des importeurs, comme G5 d) | `02` §21.9 l'exige du développeur sans la garde qui la prouve |
+| **ESLint** | Amendée | `lucide-react` hors `icons.ts` ; `next/font/local` hors `packages/ui` | Le lint est le test : aucun cas de plus |
+
+**Gardes du jalon RK** *(ajouté le 2026-10-30, D75, `02` §21.3 point 3, `archives/jalons/rk-fiche.md`)*. Même
+règle : chaque garde a son auto-test, cas négatif compris (R4 : vu rouge sur le parent).
+
+| Garde | Statut | Ce qu'elle prouve | Réserves de `testeur` |
+|---|---|---|---|
+| **G3i** (TK7.1) | Nouvelle | **(a) sources** : échec si le bloc KEO redéfinit un nom des espaces `--shadow-`, `--inset-shadow-`, `--drop-shadow-`, `--text-shadow-`, `--breakpoint-`, `--container-`, si `tokens.css` contient `@theme inline`, ou si un `color-mix` sort de la liste de RK-A (trois tokens, halo ≤ 15 %, liste en données dans `charter-data.ts`). **(b) construction** (une spec par front, feuilles servies) : tout utilitaire d'un token redéfini sous KEO lit `var(--nom)`, jamais la valeur vitrine | Auto-test : `.shadow-action-glow{--tw-shadow:none}` échoue, CSS minifié et CRLF compris ; token redéfini sans consommateur = échec sauf entrée justifiée. (a) seule ne suffit pas : un futur espace de noms inscrit en dur ne se voit que sur la construction |
+| **TK7.2** | Nouvelle | Toute classe littérale des fichiers de classes a une règle compilée (liste blanche justifiée) | Négatif : `tracking-wide` (aucun token, aucune règle : constat C3) |
+| **G8 étendue** (TK7.3, TK7.4) | Amendée (seule extension admise) | Aucun `clamp(` ni `vw` dans les `--text-*` et `--tracking-*` effectifs sous KEO ; `text-display`, `text-heading-*`, `text-lead`, `text-figure-*` refusés sous KEO ; `motion-safe:…active:scale-(--scale-press)` accepté ; `active:scale-…` et `hover:scale-…` hors `motion-safe:` refusés | Étend G8 sans l'assouplir : tout ce qu'elle refusait reste refusé |
+| **TK7.5** | Nouvelle | `badge-error-bg` consommé par le seul badge d'erreur (confinement, comme G3g) ; aucune propriété de lissage déclarée dans `:root`, `html` ou `body` | Le confinement interdit aussi le fond d'une notice (D72, DZ-6) |
+
+G1 à G9 ne s'assouplissent jamais dans ce jalon ; seule G8 s'étend.
+
+**Garde existante touchée.** La parité FR/EN de `apps/web` compare une **liste exacte** de fichiers
+(`account`, `auth`, `errors`, `landing`, `legal`) : un nouveau fichier de traduction de la coquille la
+casse. Elle s'amende dans le commit qui l'ajoute ; la parité des clés le couvre ensuite.
 
 ---
 
@@ -1221,7 +1281,7 @@ de démonstration nommés `*.test.invalid`. Outil : **tranché (architecte, 2026
 |---|---|---|
 | **E1** | **Inscription d'une marque** : code à 6 chiffres, CGU acceptées, consentement **non pré-coché**, pays et langue | Compte créé, `terms_acceptances` porte la version en vigueur, `consent_events` porte le choix réel |
 | **E2** | **Inscription d'un créateur** : idem + attestation de majorité | Idem ; un mineur déclaré est refusé |
-| **E3** | **Synchronisation des leads** | 2 comptes ⇒ 4 lignes `outbox_events` (Brevo + Apollo), toutes `succeeded` en `dry_run`, `contact_sync_states` à jour, **aucun appel sortant réel** |
+| **E3** | **Synchronisation des leads** | 2 comptes ⇒ 6 lignes `outbox_events` (contact Brevo, contact Apollo, bienvenue), toutes `succeeded` en `dry_run` (`development`), `contact_sync_states` à jour, **aucun appel sortant réel** (`staging` envoie pour de vrai depuis D70) |
 | **E4** | **Profil créateur** : couche anonyme publiée, couche identifiante remplie, preuve déposée, **badge attribué par un commercial** | Le badge existe, il est **daté**, sa péremption est calculée ; la pièce de vérification est en compartiment privé |
 | **E5** | **Profil marque + campagne** créée puis **validée par un commercial** | La campagne est `published` ; avant validation, elle n'apparaissait nulle part |
 | **E6** | **Recherche anonymisée côté marque** | Le créateur apparaît ; **aucun marqueur identifiant dans la charge utile** (rejeu de T1 sur la page réelle) ; export absent ; pagination plafonnée |
@@ -1267,6 +1327,14 @@ Un trou connu vaut mieux qu'un faux sentiment de sécurité. Voici les miens, sa
 | **12** | **La restauration des sauvegardes** | Non automatisable au MVP | **Une répétition manuelle documentée au Lot 6**, inscrite dans les procédures écrites, **puis répétée régulièrement** (fréquence fixée par `architecte` au Lot 0, **D57**) ; la restauration **à un instant donné** est testée, pas seulement la sauvegarde quotidienne. Une sauvegarde jamais restaurée n'est pas une sauvegarde |
 | **13** | **Le test d'intrusion externe** | Hors de mes moyens et de mon périmètre | **F-9**, arbitrage du fondateur. Ce plan ne le remplace pas, et je ne le prétends nulle part |
 | **14** | **La sécurité du poste des commerciaux** | Hors périmètre applicatif | Session de 8 h, inactivité de 30 min, re-authentification (B-7) |
+| **15** | **Le rendu pixel de la vitrine** *(2026-10-28, jalon DS)* | Pas de captures de référence en CI : rendu différent entre Windows et Linux, photos, perspective 3D, halos et défilement infini de la landing, `retries: 0`, pas de cache, et le dépôt borne ses images (G4) | G3e, l'empreinte de styles calculés (TD4), un diff d'images **ponctuel** hors CI avant/après, relu par `expert-ux` |
+| **16** | **Les vrais appareils** : zone de sécurité iOS, clavier virtuel qui recouvre la barre du bas, `dvh`, lecture en extérieur (`20` §8) | Playwright émule une taille d'écran, pas un système | Recette humaine (§12.4) |
+| **17** | **Safari, Firefox, lecteurs d'écran, `forced-colors`, zoom 200 %, espacement du texte** | Chromium seul (A-5) ; axe ne lit pas ce qu'un lecteur annonce ; WCAG 1.4.4 et 1.4.12 ne s'automatisent pas ; le reflow à 320 px l'est (défilement horizontal) | Recette humaine (§12.4) |
+| **18** | **Les états et les paires de couleurs non listés** : survol, appui, désactivé, texte d'aide, texte posé sur un fond translucide | axe ne voit pas les états, et classe en « incomplete » ce qu'il ne sait pas mélanger ; G3d ne calcule que ses paires | Matrice relue par `expert-ux` ; inventaire des « incomplete » (A-8) |
+| **19** | **WCAG 1.4.1 (la couleur ne porte jamais seule) hors rôles et navigation** | Ce n'est pas une propriété du CSS | Revue `expert-ux` ; sonde TD5 pour les rôles et `aria-current` |
+| **20** | **Poids et fluidité réels des polices sur 4G** : flash au `swap`, décalage de mise en page | Un plafond de 120 Ko est testé, pas une expérience ; pas de LCP ni de CLS en CI (même raison que la ligne 7) | Recette humaine sous limitation réseau |
+| **21** | **Écrans d'erreur et 404 levés dans `(member)`** | Aucune page n'y appelle `notFound()` ni ne lève d'erreur aujourd'hui | Revue visuelle à la première page qui le fait (Lot 2) |
+| **22** | **La connexion et l'activation du backoffice par l'interface** | Les e2e sèment des sessions déjà prouvées par TOTP (`support/backoffice.ts`) : aucun parcours mot de passe + second facteur n'est joué dans un navigateur. Au jalon DS, axe ne voit que le rendu des formulaires (connexion ; activation sans jeton valide) | `apps/api/tests/backoffice-auth.test.ts` pour la logique ; recette humaine du formulaire rhabillé (§12.4) |
 
 ---
 
@@ -1296,7 +1364,7 @@ Un trou connu vaut mieux qu'un faux sentiment de sécurité. Voici les miens, sa
 | **G-4** | **Critères d'acceptation des demandes RGPD** (TM9) : que doit contenir exactement un export, et qu'est-ce qui est exclu de l'effacement (affaires, registre) | Sans ses critères, TM9.1 et TM9.2 ne sont que des intentions. **Échéance Lot 5**, mais la forme du test se décide au Lot 1 |
 | **G-5** | **A7 / D33 — l'interrupteur Apollo par catégorie de profil** | Je le teste (TM1.6) **avant** qu'il ne serve. **Confirmer** que la granularité testée (catégorie de profil) est celle dont le juriste aura besoin ; si c'est par pays, il faut le dire maintenant |
 
-### 9.3 À `architecte` — six points d'outillage, à trancher au Lot 0
+### 9.3 À `architecte` — neuf points d'outillage (A-1 à A-6 au Lot 0 ; A-7 à A-9 ajoutés le 2026-10-28, jalon DS)
 
 | # | Point | Ma recommandation |
 |---|---|---|
@@ -1306,6 +1374,9 @@ Un trou connu vaut mieux qu'un faux sentiment de sécurité. Voici les miens, sa
 | **A-4** | **Durée d'exécution.** La matrice complète représente de l'ordre de 78 tables × 8 rôles × 4 opérations | Une exécution par transaction annulée, en lot, plutôt qu'un test par assertion. À dimensionner au Lot 0 : au-delà de **10 minutes**, la CI sera contournée |
 | **A-5** | **Outil de bout en bout** | **Tranché (architecte, 2026-10-08) : Playwright** pour le §7. `@playwright/test` en version exacte (devDependency de `apps/web`), **Chromium seul**, `retries: 0`, serveurs démarrés par la configuration (doublure Brevo, `apps/api` depuis ses sources, `apps/web`), jamais réutilisés ; lancé en CI **après `pnpm check`**. Autre navigateur seulement sur besoin constaté |
 | **A-6** | **Il n'existe aujourd'hui aucun workflow d'intégration continue** (`.github/` absent) ; la racine expose `pnpm check` | À créer au Lot 0 avec `integrateur`, avec les déclencheurs du §3 (à chaque exécution / hebdomadaire / avant déploiement) |
+| **A-7** | *2026-10-28, jalon DS.* **Filet global des e2e** | Une fixture automatique dans `e2e/support/journey.ts` (`test.extend`) : toute requête hors des deux origines des fronts et toute violation de CSP font échouer le test, sauf option explicite (le test T10.6 qui en provoque une). Un seul endroit, et tous les parcours existants en bénéficient. À poser en DS-1, **avant** le premier changement : si un parcours existant n'est pas propre, c'est une trouvaille |
+| **A-8** | *2026-10-28.* **Aide axe** (`e2e/support/axe.ts`) | (a) rejouer sur plusieurs largeurs **dans le même parcours** (`setViewportSize`, sans rechargement : une exécution d'axe par largeur, pas un parcours de plus) ; (b) ajouter l'étiquette `wcag22aa` (taille de cible, `axe-core` 4.13) sur les écrans rhabillés ; (c) rapporter les résultats `incomplete` de `color-contrast`, aujourd'hui ignorés (`resultTypes: ["violations"]`), avec un plafond par écran fixé à zéro après un premier inventaire au DS-4 |
+| **A-9** | *2026-10-28.* **Empreinte de styles calculés de la vitrine** (TD4) | Un fichier JSON sous `apps/web/e2e/fixtures/`, jamais une image (G4) ; propriétés indépendantes des métriques de police (couleur, fond, famille **déclarée**, tailles, rayons, espacements, ombres) ; mise à jour = commit qui le dit, comme les empreintes de G5 |
 
 ### 9.4 Au fondateur — quatre points
 
@@ -1388,17 +1459,89 @@ l'enveloppe `404` / `500` et T13.5 à T13.7 ; T17.5 à T17.10 ; TM11.4.
 à TM1.16, 2026-10-17, D67)* (dont une partie avancée au Lot 0), plus les familles du Lot 0 en
 non-régression.
 
-- [ ] **Aucune garde n'est levée sans son remplaçant dans le même commit** (G2 → CSP testée + garde resserrée ; G4 et G6 → gardes d'absence) — §5. G5, levée au J1, est complétée par **T7 en entier, en intégration**
-- [ ] Le module fictif, `IS_MOCKUP` et le bandeau « Maquette » **n'existent plus** dans le dépôt
-- [ ] Une inscription réelle crée un compte **et** quatre lignes de file, et **aucun appel sortant n'est possible depuis `staging`** (T17)
-- [ ] *(D67, 2026-10-17)* Une inscription de `staging` finit `succeeded` avec `dry_run` sur `brevo_contact` et la bienvenue (identifiants du compte de test posés) ; aucune ligne en échec de configuration (TM1.11 à TM1.16)
-- [ ] **Non automatisable** *(D67)* : identifiants de listes et de modèles Brevo **de production** renseignés dans `leads.sync_settings` de production, puis premier démarrage du worker de production **accepté** par le contrôle de `05` RG162 (`21` §5.8)
-- [ ] La version de CGU acceptée est enregistrée par partie (TM10.4)
-- [ ] **Non automatisable** : relecture humaine des textes FR et EN des pages publiques et des e-mails transactionnels
+*État à la clôture du J9 (revue `testeur` du 2026-10-27, sur `8323aeb`) : 6 cases cochées, 5 au
+fondateur. T15.2 (routes de recherche et de profil) entre au Lot 3 : T15 passe pour .1, .3, .4, .5.*
+
+- [x] **Aucune garde n'est levée sans son remplaçant dans le même commit** (G2 → CSP testée + garde resserrée ; G4 et G6 → gardes d'absence) — §5. G5, levée au J1, est complétée par **T7 en entier, en intégration** — *`apps/web/tests/guards.test.ts` (G2, G4, G6), e2e T10.6, `test:artifacts` (T7)*
+- [x] Le module fictif, `IS_MOCKUP` et le bandeau « Maquette » **n'existent plus** dans le dépôt — *`dafb876`, garde d'absence G6*
+- [x] *(reformulée à la clôture du J9, D70)* Une inscription réelle crée un compte **et** trois lignes de file (contact Brevo, contact Apollo, bienvenue) ; aucun appel sortant n'est possible en `development`, en CI ni en test (verrous 2 et 3, doublure, RG148) ; `staging` et `production` refusent de démarrer en `dry_run`, `redirect` ou avec liste blanche (T17.5 à T17.7) ; `staging` envoie pour de vrai (D70) — *`tm10-signup-route`, T17*
+- [x] *(D67, reformulée à la clôture du J9)* Une inscription en `development` finit `succeeded` avec `dry_run` sur `brevo_contact` et la bienvenue ; une inscription de `staging` finit `succeeded` en réel (constaté le 2026-10-20, **à refaire** une fois `staging` rétabli, fiche J9) ; aucune ligne en échec de configuration (TM1.11 à TM1.16, `staging:check`)
+- [ ] **Non automatisable** *(D67, D68, D69)* : identifiants de listes Brevo **de production** posés en variables `BREVO_LIST_ID_ADVERTISERS` et `BREVO_LIST_ID_CREATORS` du `worker` de production ; premier démarrage accepté par le contrôle de `05` RG162 ; aucun identifiant de modèle (D69) (`21` §5.8) — *fondateur*
+- [x] La version de CGU acceptée est enregistrée par partie (TM10.4) — *`tm10-terms-in-force`, `tm10-signup-route`*
+- [ ] **Non automatisable** : relecture humaine des textes FR et EN des pages publiques et des e-mails transactionnels — *fondateur ; points `expert-ux` du J9 commit 5 ouverts*
 - [ ] **Non automatisable** : `expert-conformite-rgpd` a rendu son avis sur **A7 / D33**, et **le juriste a validé** — sans quoi la mise en ligne n'a pas lieu (R4 du cadrage)
-- [ ] **Non automatisable** : documents légaux relus par un juriste, incluant la clause de non-contournement (A5), la supervision des conversations (A10) et la conservation probatoire (R-1)
-- [ ] **Non automatisable** : SPF, DKIM, DMARC en place et vérifiés sur le domaine d'envoi
-- [ ] **Non automatisable** : `staging` non accessible publiquement et non indexé (I-6)
+- [ ] **Non automatisable** : documents légaux relus par un juriste, incluant la clause de non-contournement (A5), la supervision des conversations (A10) et la conservation probatoire (R-1) — *marqueurs D25 de `apps/api/legal/` ouverts*
+- [ ] **Non automatisable** : SPF, DKIM, DMARC en place et vérifiés sur **les trois sous-domaines d'envoi de production** — *`staging` (`influx.cadaero.ovh`) : SPF, DKIM `brevo1`, DMARC `p=none` présents ; `p=quarantine` après le rodage*
+- [x] *(reformulée à la clôture du J9, D70)* `staging` est servi en `noindex, nofollow, noarchive` (`apps/web/tests/guards.test.ts`, e2e T10), avec des données synthétiques (T17.4) ; son accessibilité publique est un risque accepté (D70)
+
+---
+
+### Jalon RK — Réalignement sur la référence KEO Emerald (D75) ▸ extra du MVP, avant le Lot 2 *(ajouté le 2026-10-30)*
+
+**Tests exigibles :** TK1 à TK8 (§12.6) et gardes G3i, TK7.2 à TK7.5 (§5.1) ; TD1 à TD8 et TN1 à TN9 en
+non-régression. Règles R1 à R4 de `archives/jalons/rk-fiche.md` : un rendu se prouve par un style calculé sur
+l'élément réel, dans l'état concerné, sur la construction de production ; une absence est un cas à
+part ; chaque phrase normative de `20` §11 a sa preuve (§12.7) ; chaque cas est vu rouge sur le parent.
+Planchers relevés au RK-1, puis à chaque commit qui ajoute des tests ; aucun ne baisse.
+
+**Automatisé, bloquant :**
+
+- [ ] `pnpm check` puis `pnpm test:e2e` verts trois fois de suite ; ajout de durée e2e ≤ 60 s ; planchers relevés à chaque commit qui ajoute des tests, aucun ne baisse (`check-case-floors` compte un `test.fail()` comme exécuté : vérifié par `integrateur` au RK-1)
+- [ ] e2e existants (`signup-nominal`, `journey-resume`, `landing-signup`, `account`, `account-data`, `backoffice.spec`, `security-headers`, `member-shell`, `charter-cascade`) verts **sans modifier leurs attendus**
+- [ ] axe WCAG 2.1 AA + 2.2 AA sans violation aux largeurs de §12.2 ; aucun défilement horizontal à 320, 375 et 768 px
+- [ ] **Vitrine inchangée** : G3e, TD4 et TK8.2 verts ; aucune requête tierce ni violation de CSP
+- [ ] G3i (a) et (b) vertes avec leur cas négatif ; G1 à G9 jamais assouplies, sauf G8 étendue (TK7.3, TK7.4)
+- [ ] Table de traçabilité `20` §11 → TK, TD, G ou recette sans ligne orpheline (§12.7, R3)
+
+**Non automatisable (recette humaine) :**
+
+- [ ] **Fondateur, à 1 440 et 375 px** : bouton principal (repos, survol, appui, désactivé), halo d'en-tête sans bord, titres en Manrope, carte cliquable survolée, badges, ligne de tableau survolée, plus de cadre sur le titre
+- [ ] **Sur Mac** (RK-7), Safari et Chrome : avant/après de l'espace connecté, landing identique
+- [ ] **Test du logo** (`20` §11.7) refait par `expert-ux`
+- [ ] Revue groupée `testeur` + `expert-cybersecurite` faite (D71 : non bloquante sur `main`, exigée avant `production`) ; `21` § Jalon RK à jour
+
+Non couvert, accepté : le rendu perçu (intensité, beauté), Safari et Firefox en automatique (e2e Chromium
+seul), le survol tactile, un `p` stylé en titre hors `h1`–`h4`.
+
+### Jalon SN — Sous-navigation dans la colonne (D74) ▸ extra du MVP, avant le Lot 2 *(ajouté le 2026-10-29)*
+
+**Tests exigibles et critère de fin :** famille **TN1 à TN9** et cases du critère de fin de
+`archives/jalons/sn-fiche.md` ; familles TD1 à TD8 du jalon DS en non-régression (un seul repère de
+navigation, un seul `aria-current`, axe aux largeurs de §12.2). Aucun plancher ne baisse.
+
+### Jalon DS — Charte KEO Emerald (D73) ▸ extra du MVP, entre le Lot 1 et le Lot 2 *(ajouté le 2026-10-28)*
+
+**Tests exigibles :** TD1 à TD8 (§12), plus les familles des lots précédents en non-régression.
+Planchers de départ, mesurés au parent de DS-1 : web **203**, backoffice **62**, test-kit **134**,
+e2e **56** (7 fichiers) ; `apps/api` (unitaire et base) inchangé. Aucun plancher ne baisse.
+
+**Automatisé, bloquant :**
+
+- [x] `pnpm check` puis `pnpm test:e2e` verts, trois exécutions consécutives identiques ; durée du pas e2e mesurée avant/après (ajout ≤ 90 s, plafond du pas : 5 minutes)
+- [x] Gardes G3, G3b, G3c, G3d, G3e, G3f, G3g, G4f, G8, G9 vertes, **chacune avec son auto-test** (TD1) ; G1 à G7 et annexes inchangées, aucune assouplie sans remplaçant dans le même commit (§5)
+- [x] **Vitrine inchangée** : G3e, empreinte TD4 et sonde de cascade côté vitrine verts **sans modifier leurs fixtures** (toute modification = commit qui nomme les valeurs et la raison)
+- [x] **Cascade** (TD3, build de production) : sur `/fr/connexion`, `/en/sign-in`, une page membre avec session et la connexion du backoffice, les `--color-*` calculés du conteneur KEO égalent les valeurs effectives lues par le lecteur ; sur `/fr` et `/en`, ils égalent l'instantané de la vitrine ; `[data-theme="keo"]` : un sur les espaces connectés, zéro sur la landing
+- [x] **Polices** : landing sans fichier `woff2` ni `preload` de police ; page membre et backoffice : deux fichiers `latin` préchargés, ≤ 120 Ko, même origine ; `latin-ext` jamais téléchargé sur un contenu FR, téléchargé quand l'un de ses caractères s'affiche (sinon repli `latin` seul, consigné en écart) ; chiffres tabulaires de Manrope vérifiés
+- [x] **Aucune requête tierce, aucune violation de CSP** dans aucun e2e (A-7) ; `src/config/security-headers.ts` des deux fronts et les attendus de `security-headers.spec.ts` inchangés (`git diff` vide, sauf des chemins ajoutés en T10.6)
+- [x] **axe WCAG 2.1 AA + `wcag22aa`**, zéro violation et zéro « incomplete » de contraste non justifié, sur chaque écran rhabillé, aux largeurs de la matrice §12.2 ; reflow : aucun défilement horizontal de page à 320, 375 et 768 px
+- [x] **Contraste par le calcul (G3d, paires relues par `expert-ux`) et par axe**, et la sonde de cascade prouve que le navigateur applique les valeurs calculées
+- [x] **Clavier** (375 et 1440) : premier `Tab` = lien d'évitement visible, `Entrée` met le focus dans `main` ; ordre déclaré ; anneau de focus visible sur chaque élément focalisable des nouvelles surfaces ; focus jamais masqué par la barre du bas ni l'en-tête collant ; après une navigation cliente, focus sur le `h1`
+- [x] **Navigation** : un seul repère `navigation` « Navigation principale » / « Main navigation », noms de repères tous distincts, un seul `aria-current="page"` ; barre en bas à 1023 px, colonne à gauche à 1024 px ; dernier élément de `main` jamais sous la barre
+- [x] **`prefers-reduced-motion`** émulé : durées de transition nulles sur les éléments interactifs de la coquille, aucune animation infinie en cours
+- [x] **Session** : la coquille relit la session à chaque navigation cliente (CGU publiées en cours de session, session fermée ailleurs, bandeaux du backoffice) ; « compte supprimé » et « déconnecté » sans navigation
+- [x] **FR/EN** : parité des clés (nouveau fichier de traduction compris), libellés de navigation ≤ limite arbitrée (11 ou 12), lus dans les fichiers ; parcours existants verts en FR et en EN
+- [x] **Non-régression à chaque commit DS** : `signup-nominal` (2), `journey-resume` (7), `landing-signup` (4), `account` (5), `account-data` (1), `backoffice.spec` (9), `security-headers.spec` (28), **sans modifier leurs attendus** hors les exceptions écrites au §12.3 ; aucun test supprimé
+- [x] **Logique intacte** : aucun changement aux tests de `auth-steps`, `signup-form`, `journey-memory`, `account-view`, `view-model`, `ops-view-model` ; règles de la coquille (`member-nav`, `member-paths`, navigation du backoffice) testées seules
+
+**Non automatisable (recette humaine, §12.4) :**
+
+- [ ] **Lecture en extérieur**, écrans créateur, sur un vrai téléphone (`20` §8) : verdict écrit de `expert-ux` et `testeur`
+- [ ] **Test du logo** (`20` §11.7) : une capture par gabarit, logo masqué, deux personnes extérieures au projet
+- [ ] Passe clavier, lecteur d'écran (VoiceOver iOS, NVDA), zoom 200 % et 400 %, `forced-colors`
+- [ ] iPhone (zone de sécurité, clavier), Android sous limitation réseau (polices), iPad en portrait
+- [ ] Le fondateur valide les trois gabarits contre la maquette KEO, écart par écart (K1 à K23 de `20` §11.6)
+- [ ] `expert-cybersecurite` : revue groupée de fin de jalon (D71) ; marqueur `security-reviewed:` exigé avant `production`, non bloquant sur `main`
+- [ ] `expert-conformite-rgpd` : sans objet (aucune donnée personnelle nouvelle) tant qu'aucun stockage ni cookie n'est ajouté (garde annexe 2) ; un repli de colonne mémorisé le rouvrirait (`02` §21.5 point 5)
 
 ---
 
@@ -1492,12 +1635,260 @@ Ce que je peux dire dès maintenant :
 | Le plan couvre-t-il les exigences de `expert-cybersecurite` ? | **Oui** : T1 à T17 repris un par un, X1 et X2 devenus des tests de CI, X3 et X4 explicitement sortis de la CI avec justification (§9.1, C-1) |
 | Une protection disparaît-elle avec les gardes levées ? | **Non**, à une condition de calendrier : une garde n'est levée que dans le commit qui introduit son remplaçant (§5) |
 | Le plan est-il proportionné ? | **211 cas (D67), 29 familles, un seul parcours de bout en bout.** Peu de tests, tous choisis. Le coût d'entretien a été un critère de sélection au même titre que la couverture |
-| Reste-t-il des zones non couvertes ? | **Quatorze**, listées au §8. Quatre d'entre elles (le tableau de bord Supabase, la malveillance d'un opérateur unique, le test d'intrusion, la sincérité de la saisie) ne relèvent d'aucun test et remontent au fondateur |
+| Reste-t-il des zones non couvertes ? | **Quatorze**, listées au §8 (plus huit du jalon DS, lignes 15 à 22, *ajoutées le 2026-10-28*). Quatre d'entre elles (le tableau de bord Supabase, la malveillance d'un opérateur unique, le test d'intrusion, la sincérité de la saisie) ne relèvent d'aucun test et remontent au fondateur |
 
 **Le point sur lequel je ne transigerai pas :** tant que **T1**, **T2**, **T3** et **T4** ne passent
 pas, aucune affirmation de ce projet sur l'anonymisation ou sur la preuve d'intermédiation n'est
 vérifiée. Ce sont quatre tests, ils appartiennent tous au Lot 0 ou au Lot 2, et ils portent à eux
 seuls les deux zones critiques n° 1 et n° 2.
+
+---
+
+## 12. Les tests du jalon DS, charte KEO Emerald (D73) *(ajouté le 2026-10-28)*
+
+**Sources :** `02` §21 (mécanique), `20` §11 (charte, contrastes, composants), `17` §2.2 et §2.3,
+`17b` §1. **Niveaux :** unitaire et gardes pour les règles pures ; e2e Playwright, sur le build de
+production, pour ce qu'un navigateur seul prouve. Aucun service externe ; les sessions sont semées
+(`seedMember`), un parcours d'inscription ne sert que lorsqu'il s'agit d'inscription. Les e2e du
+backoffice entrent dans `backoffice.spec.ts` (sériel, seul fichier qui sème un administrateur,
+`playwright.config.ts`). Tout nouveau fichier de test reçoit son plancher (`check-case-floors`).
+
+### 12.1 Les familles TD1 à TD8, 44 cas
+
+| Famille | Niveau | Cas |
+|---|---|---|
+| **TD1 — Lecteurs et gardes du jalon** (12) | Unitaire, `packages/test-kit/tests`, **auto-tests** | **TD1.1** bloc KEO absent, dupliqué ou hors `tokens.css` détecté · **TD1.2** valeur effective par charte (bloc KEO, sinon `@theme`, sinon `:root`), alias suivis, cycle et cible absente en erreur · **TD1.3** fermeture des alias : alias direct, alias à deux niveaux, `calc(var(…))` non redéclaré détectés ; redéclaré à l'identique accepté ; redéclaré vers une autre cible détecté · **TD1.4** lecteur insensible aux commentaires (accolades, `--x:` en commentaire), au CSS sur une ligne, aux sauts de ligne Windows · **TD1.5** `rgba(`, `color-mix(`, `!important`, nom absent de `@theme` (faute de frappe) dans le bloc détectés · **TD1.6** `--color-*` ni redéfini, ni dans `KEO_INHERITS`, ni dans `VITRINE_ONLY` détecté ; entrée périmée détectée · **TD1.7** écart de teinte, **seuil passé en paramètre** (la fonction n'écrit aucun 20 en dur) : `#2dd4bf` / `#1dd68a` = 17,0°, `#3ccfcf` = 24,6°, `#4ade80` = 13,5°, chacun comparé à un seuil de 20° puis de 15° ; gris sans teinte refusé ; passage par 0° (350° et 10° = 20°) · **TD1.8** une paire sous le seuil **dans le bloc KEO** échoue alors que la même paire passe en vitrine (le lecteur lit le bon bloc) · **TD1.9** manifeste de polices : SHA-256 modifié, fichier non listé, fichier listé absent, signature ≠ `wOF2`, licence absente, copies divergentes, budget dépassé · **TD1.10** G8 : `data-theme` ou `fonts.ts` hors des deux mises en page, `createPortal`, module de la vitrine sous `(member)`, transformation d'état, `transition-all`, page de `MEMBER_PAGE_SLUGS` hors de `(member)` · **TD1.11** G3g : classe de rôle hors du composant autorisé, composant sans libellé · **TD1.12** G9 : lecture de session importée hors d'une coquille, chaîne correcte acceptée |
+| **TD2 — Règles de navigation** (8) | Unitaire, `apps/web/tests/member-nav.test.ts`, `apps/backoffice/tests` | **TD2.1** cinq entrées au plus par rôle, ordre fixe (`17` §2.1) · **TD2.2** libellé ≤ limite arbitrée (11 ou 12), FR **et** EN, lu dans les fichiers de traduction (« Candidatures », 12, échoue à 11) · **TD2.3** chaque entrée visible mène à une page existante, FR et EN : aucun lien mort ; une entrée sans écran est absente ou « bientôt » sans lien · **TD2.4** entrée active : chaque page de `MEMBER_PAGE_SLUGS` dans les deux langues, sous-pages de « Mon compte » comprises ; chemin inconnu, aucune · **TD2.5** espace exigé par chemin : l'espace marque est refusé à un créateur et inversement, avec renvoi à son accueil (`05` RG66) · **TD2.6** pages exemptées de l'écran des CGU = `TERMS_EXEMPT_PAGES`, et elles seules · **TD2.7** backoffice : un `agent` n'a aucune entrée d'administration, un `admin` a les sept, ordre fixe · **TD2.8** backoffice : entrée active pour chaque adresse (`/inscrits/[id]`, `/double-validation/[id]`, `/reglages/apollo` comprises) |
+| **TD3 — Cascade des chartes et polices** (6) | E2E, `e2e/charter-cascade.spec.ts` | **TD3.1** pages membres (`/fr/connexion`, `/en/sign-in`, accueil avec session) : un seul `[data-theme="keo"]` ; chaque `--color-*` de `@theme`, lu sur le conteneur, égale la valeur effective KEO (lecteur du test-kit sur le même `tokens.css`) : **un alias resté vitrine échoue ici même si G3c passe** · **TD3.2** backoffice (`/`, accueil avec session) : `html[data-theme="keo"]`, mêmes égalités · **TD3.3** `/fr` et `/en` : aucun `[data-theme]`, chaque `--color-*` égale l'instantané vitrine · **TD3.4** polices : landing sans `woff2` ni `link[rel=preload][as=font]` ; page membre et backoffice : deux fichiers `latin`, même origine, somme ≤ 120 Ko ; `latin-ext` non servi sur un contenu FR, servi quand un « ł » s'affiche (repli `latin` seul : attendu inverse, consigné) · **TD3.5** chiffres tabulaires : « 1111 » et « 8888 » de même largeur (à 0,01 px près) en `font-display` + `tabular-nums` une fois la police chargée · **TD3.6** le voile du dialogue des CGU (`::backdrop`) n'est pas transparent, et le dialogue reste descendant du conteneur KEO |
+| **TD4 — Vitrine inchangée** (4) | G3e + e2e, `e2e/vitrine-unchanged.spec.ts` | **TD4.1** G3e : chaque déclaration de `vitrine-tokens-d59.json` reste égale (ajouts permis) · **TD4.2** empreinte de styles calculés de `/fr` et `/en` à 375 et 1440 (en-tête, `h1`, boutons d'appel, une carte, une section, pied de page) égale à `e2e/fixtures/vitrine-computed-styles.json`, **prise sur le parent de DS-1** : elle voit un composant partagé ou `globals.css` modifié, que G3e ne voit pas (rayon, graisse 500, contour de 2 px du bouton secondaire) · **TD4.3** `html` et `body` de la landing : mêmes classes et même `font-family` déclarée · **TD4.4** frontière : chaque page de la liste de `02` §21.2 porte ou non `data-theme`, liste en données dans un seul endroit (à jour de l'arbitrage sur les pages légales, §12.5) |
+| **TD5 — Coquille membre** (8) | E2E, `e2e/member-shell.spec.ts`, session semée | **TD5.1** à 375, 768, 1023, 1024 et 1440 : un seul repère `navigation` « Navigation principale » / « Main navigation », noms de tous les repères distincts, un seul `aria-current="page"`, un seul `<nav>` dans le DOM · **TD5.2** à 1023 px la navigation est collée au bas de la fenêtre, à 1024 px elle est à gauche sur toute la hauteur ; le dernier élément de `main` n'est jamais sous la barre (défilé au bas, 375 et 768) · **TD5.3** premier `Tab` = lien d'évitement visible, `Entrée` met le focus dans `main`, ordre évitement → en-tête → navigation → contenu, `Maj+Tab` revient · **TD5.4** sur chaque élément focalisable (375 et 1440) : anneau visible (contour ≥ 2 px) et jamais masqué (`elementFromPoint` au centre) par la barre du bas ni l'en-tête collant · **TD5.5** après une navigation cliente par la coquille, le focus est sur le `h1` · **TD5.6** session relue à chaque navigation cliente : (a) des CGU publiées en cours de session font apparaître l'écran bloquant au clic suivant, sans rechargement ; (b) une session fermée ailleurs mène à la connexion au clic suivant ; (c) « compte supprimé » n'a aucun repère `navigation` · **TD5.7** mouvement réduit émulé : `transition-duration` nulle sur les éléments interactifs de la coquille, aucune animation infinie (`document.getAnimations()`), aucune transformation au survol · **TD5.8** sonde P7 : tout élément peint d'une couleur de rôle (valeur du jeton lue sur le conteneur) porte le rôle écrit dans son voisinage ; l'entrée active porte `aria-current` **et** une graisse supérieure à l'inactive |
+| **TD6 — Coquille backoffice** (5) | E2E, dans `backoffice.spec.ts` | **TD6.1** un seul repère `navigation` ; un `agent` sans entrée d'administration (CA63 inchangé) ; lien d'évitement ; focus sur le `h1` après navigation · **TD6.2** rail à gauche à partir de 1024 px ; de 768 à 1023 px navigation compacte (un seul `<nav>`, tous les liens accessibles) ; sous 768 px de large, et à 1024 × 499 (fenêtre basse) comme à 844 × 390 (téléphone en paysage), l'écran « poste de travail » (`17b` M4, F7), sans tableau ni donnée métier ; à 1024 × 500, backoffice complet ; aucun défilement horizontal de page à 768 et 375 ; un tableau dense défile dans sa région, atteignable au clavier. Seuils lus dans les tokens, à 767/768 et 1023/1024 px (§12.5, point 5) · **TD6.3** bandeaux relus à chaque navigation cliente : « contrôle par les pairs indisponible » apparaît après un changement en base, sans rechargement ; bandeau d'environnement toujours écrit · **TD6.4** sans session, un clic de navigation renvoie à `/` ; après « Se déconnecter » : écran « déconnecté », focus sur le `h1`, aucune navigation · **TD6.5** chaque cellule de statut de la liste des inscrits porte son statut en texte (P7) |
+| **TD7 — Accessibilité des écrans rhabillés** | E2E, axe, étendu aux specs existantes | Matrice §12.2. Tout écran rhabillé : zéro violation WCAG 2.1 AA et `wcag22aa`, zéro « incomplete » de contraste non justifié |
+| **TD8 — Filet global** (1) | E2E, fixture automatique (A-7) | **TD8.1** toute requête hors des origines des fronts et toute violation de CSP font échouer **tout** e2e (sauf l'option explicite de T10.6) |
+
+### 12.2 Matrice axe : largeurs par écran
+
+Une exécution d'axe par largeur **dans le même parcours** (`setViewportSize`, A-8) : le coût d'une
+largeur de plus est une exécution, pas un parcours. Quatre largeurs partout coûterait ~70 exécutions
+pour peu de gain (le contraste ne dépend pas de la largeur ; la mise en page change à 1024 px) :
+**quatre largeurs sur un écran représentatif par gabarit, deux ailleurs.** Chaque écran en FR ; en EN :
+les deux accueils, un écran de « Mon compte » et les détails d'inscription (libellés les plus longs).
+Formulaires : état par défaut **et** état d'erreur (soumission vide). Reflow (aucun défilement
+horizontal de page) vérifié en plus à 320 px sur les écrans membres.
+
+| Écran | 375 | 768 | 1024 | 1440 |
+|---|---|---|---|---|
+| Parcours : connexion (e-mail, code, code non reçu), choix de porte, succès d'inscription, dialogue des CGU ouvert | ✓ | – | – | ✓ |
+| Parcours : détails d'inscription marque et créateur *(représentatif du parcours)* | ✓ | ✓ | – | ✓ |
+| Accueil marque, CGU en attente | ✓ | – | – | ✓ |
+| Accueil créateur, compte neuf *(représentatif de la coquille)* | ✓ | ✓ | ✓ | ✓ |
+| Mon compte : informations, préférences, sessions | ✓ | – | – | ✓ |
+| Mes données, zone de danger, suppression *(page la plus longue)* | ✓ | ✓ | ✓ | ✓ |
+| Déconnecté, compte supprimé, 404 membre | ✓ | – | – | ✓ |
+| Backoffice : connexion, activation, déconnecté | ✓ | ✓ | – | ✓ |
+| Backoffice : accueil, fiche d'inscrit, invitations, double validation (liste, détail, mode différé), réglages Apollo, comptes internes, santé technique | – | – | ✓ | ✓ |
+| Backoffice : liste des inscrits *(représentatif)*. À 375 : l'écran « poste de travail » ; à 768 : navigation compacte (disposition en cours chez `expert-ux`) | ✓ | ✓ | ✓ | ✓ |
+
+### 12.3 Plan par commit
+
+> **Numérotation** : celle de `archives/jalons/ds-fiche.md` (recalée le 2026-10-28 : DS-11 = connexion et
+> activation du backoffice, DS-12 = écrans d'exploitation) ; la règle suit la **nature** du commit. **Avant chaque commit** : vérification par paliers de `CLAUDE.md` §7 règle 5, et `pnpm test:e2e` pour
+> tout commit qui touche un écran.
+
+| Commit | Ce qui le prouve | E2E existants qui doivent rester verts |
+|---|---|---|
+| **DS-1 Filet** | Posé sur le code **inchangé**, tout vert avant le premier changement, sinon le filet est faux : lecteurs et auto-tests (TD1.1 à TD1.8), instantané G3e (pris ici), empreinte TD4.2 et TD4.3 (prise ici), filet global TD8, planchers relevés aux effectifs mesurés | tous |
+| **DS-2 Bloc KEO** | G3, G3b (par charte), G3c, G3d, squelette de G3f ; décisions §12.5 points 1 et 2 prises. Rien n'est activé : aucun rendu ne change | tous ; G3e et TD4 prouvent la vitrine |
+| **DS-3 Polices** | G4f (TD1.9), ESLint, budget relevé et figé. `fonts.ts` n'est importé par personne : zéro changement de rendu, et TD3.4 (landing sans police) le prouve | `security-headers` (T10.6) |
+| **DS-4 Activation web** | Groupe `(member)`, conteneur, polices : G8 (TD1.10), TD3.1, TD3.3 à TD3.6, TD4.4, T10.6 étendu (`/fr/connexion`, accueil avec session), inventaire des « incomplete ». **L'axe existant à 375 devient le vrai filet** (contrastes KEO) : un échec se corrige dans les jetons, jamais en desserrant le test | `signup-nominal`, `journey-resume`, `landing-signup`, `account`, `account-data`, `security-headers` : toutes les pages ont changé de charte |
+| **DS-5 Primitives** | G3g, G3h, G8 (transformation d'état sous `motion-safe:` seulement, F6), TD5.4 sur le parcours à 375, axe en état d'erreur. **Primitives partagées avec la landing** : TD4.2 reste vert sans toucher à la fixture | `signup-nominal`, `journey-resume`, `landing-signup`, `account*` |
+| **DS-6 Coquille membre** | TD2.1 à TD2.6, G9, TD5.1 à TD5.8, parité FR/EN amendée (liste de fichiers), axe sur quatre largeurs (accueil créateur) | `account` (navigation du compte absente aux CGU), `account-data` (aucune navigation à « compte supprimé »), `signup-nominal`, `journey-resume` (le sélecteur de langue garde son repère `navigation`) |
+| **DS-7 Parcours** | Axe 375/768/1440 selon §12.2, états d'erreur, dialogue des CGU (focus piégé, `Échap`, TD3.6), reflow à 320 px | `signup-nominal` (2), `journey-resume` (7), `landing-signup` (4) ; tests de `auth-steps`, `signup-form`, `journey-memory` **non modifiés** |
+| **DS-8 Accueils et compte** | Axe §12.2 (quatre largeurs sur « Mes données »), accueil neuf sans « 0 » factice, couleurs D72 de la zone de danger | `account` (5), `account-data` (1) ; `account-view.test` non modifié |
+| **DS-9 Backoffice : charte** | G3 backoffice, G3f, G4f côté backoffice, copies identiques, TD3.2, TD3.4 côté backoffice | `backoffice.spec` (9), `security-headers` (T10.2, T10.4, 404 du backoffice) |
+| **DS-10 Coquille backoffice** | TD2.7, TD2.8, TD6.1 à TD6.4, G9 côté backoffice, axe 1024/1440 sur l'accueil | `backoffice.spec` : CA56 à CA63, PD1 à PD7 (bandeaux), J8T-7, D54 ; `view-model` non modifié |
+| **DS-11 Connexion et erreurs du backoffice** | Axe 375/768/1440, focus, 404 et déconnexion en KEO ; mot de passe, TOTP et codes de secours inchangés | `backoffice.spec`, `security-headers` (404 du backoffice) |
+| **DS-12 Écrans d'exploitation** (scindable 12a / 12b) | Axe 1024/1440 sur les huit écrans avec `wcag22aa` (lignes de 36 px), TD6.2, TD6.5 | `backoffice.spec` J8T-4 (axe sur six écrans) ; `ops-view-model.test` non modifié |
+| **DS-13 Clôture** | Matrice §12.2 complète en une exécution, trois exécutions consécutives, planchers consignés, mesures (poids des polices, durée du pas e2e), diff d'images ponctuel avant/après, revue groupée `testeur` + `expert-cybersecurite`, recette §12.4 | tous |
+
+**Attendus existants dont dépend le jalon** (ils se lisent avant de rhabiller, ils ne se desserrent pas) :
+`account-data.spec.ts` lit trois couleurs D72 en dur (`rgb(229, 72, 77)`, `rgb(236, 93, 94)`,
+`rgb(185, 44, 44)`) : vraies tant que `KEO_INHERITS` garde les rouges (`20` §11.3 : oui) ; si elles
+changent, le commit lit le jeton au lieu de la valeur. `account.spec.ts` (navigation du compte absente à
+l'écran des CGU) et `account-data.spec.ts` (aucun `navigation` à « compte supprimé ») fixent un
+comportement de la coquille. `journey.ts` (`switchLanguage`) dépend du repère `navigation` du sélecteur
+de langue. `title(page)` est `locator("h1")` : un seul `h1` par page.
+
+### 12.4 Recette humaine de fin de jalon
+
+| Qui | Quoi | Sur quoi | Critère |
+|---|---|---|---|
+| `expert-ux` + `testeur` | **Lecture en extérieur** des écrans créateur (`20` §8) : texte tertiaire, contour des champs, item actif de la barre | Un vrai téléphone, plein jour, luminosité automatique | Verdict écrit : lisible sans abri, ou liste des éléments à relever |
+| `expert-ux` | **Test du logo** (`20` §11.7) : une capture par gabarit (membre mobile, membre desktop, backoffice), logo masqué | Deux personnes extérieures au projet | Aucune ne cite Spotify en premier ; sinon on retire un effet, jamais une couleur |
+| `testeur` | **Clavier seul** sur les trois gabarits ; **lecteur d'écran** : barre du bas, lien d'évitement, focus au `h1`, `aria-current`, pastille « 9+ » lue en texte | VoiceOver iOS, NVDA (Chrome ou Firefox) | Chaque tâche de `17` §3 et §6 réalisable ; un seul repère de navigation annoncé |
+| `testeur` | **Zoom 200 % et 400 %**, texte agrandi du système, `forced-colors` | Bureau et Android | Rien de rogné ni de superposé ; l'item actif reste distinguable |
+| `testeur` + `expert-ux` | **iPhone** : zone de sécurité sous la barre, clavier virtuel qui ne recouvre ni le champ ni le bouton ; **iPad** en portrait (768 px, pas de colonne) ; **Android** sous « 4G lente » : flash au `swap`, décalage de mise en page | Appareils réels | Aucun libellé de barre masqué ; pas de saut visible |
+| `expert-ux` | **Passage landing, porte, inscription** : deux verts, deux polices, une rupture de charte qui doit se lire comme un choix (`20` §11.1) | Mobile et bureau | Verdict écrit |
+| `expert-ux` | **Glyphes hors police** (`⚑`, `○`, `→`, `✓`) : rendus par le repli système, parfois en émoji | iOS, Android, Windows | Aucun rendu qui change le sens (`20` §11.6, K6) |
+| `expert-ux` | **Backoffice** : densité (lignes de 36 px), bannières, rail, huit heures de lecture | 1440×900, 1366×768, 1280×720 | Revue écrite |
+| Fondateur | **Les trois gabarits contre la maquette KEO**, écart par écart (K1 à K23) ; « menu à gauche façon Railway » | Poste et téléphone | Accord écrit, ou écarts nommés |
+
+Ce qui reste hors de portée est au §8, lignes 15 à 22.
+
+### 12.5 Points à arbitrer qui conditionnent des tests *(relevés le 2026-10-28)*
+
+Réponses du `chef-de-projet` (2026-10-28), reportées dans `02` §21.5 et `archives/jalons/ds-fiche.md` § « Arbitrages
+appliqués » ; le point 1 est tranché par `expert-ux` ; F1, F2, F3 et F6 sont tranchés par le fondateur (2026-10-29), F7 reste ouvert.
+
+| # | Conflit entre les documents | Test touché | Avant |
+|---|---|---|---|
+| 1 | **Teinte du succès** : `20` §11.3 retenait `#2dd4bf` (17,0° du vert d'action `#1dd68a`), `02` §21.8 exige ≥ 20° ; `expert-ux` ajuste (peut-être `#3ccfcf`, 24,6°). G3d lit `SUCCESS_MIN_HUE_GAP` et ses paires dans un module de données renvoyant à `20` §11.4 : la valeur finale n'engage aucun code. Un seuil sous 20° exige l'arbitrage écrit du fondateur, `CLAUDE.md` §4 amendé, et l'interdiction d'un succès en fond plein | G3d, TD1.7 (seuil en paramètre) | DS-2 — **tranché par `expert-ux` : `#3ccfcf` sous KEO** (25° de l'action), vitrine `#2dd4bf` ; seuil **20°** face à l'action (repos, survol, appui) et à l'information, dans chaque charte (`20` §11.3, §11.4) |
+| 2 | **F2, un seul vert** (`20` §11.9) : s'il est accepté, la vitrine change de vert | G3e, TD4.2 (liste explicite des noms modifiés) | DS-1 (l'instantané) ; **accepté le 2026-10-29**, mise à jour par DS-14 |
+| 3 | **Pages légales** : vitrine (`02` §21.2) ou KEO (`20` §11.1) | TD4.4, TD3.3, G8 | DS-4 — **tranché : vitrine** (`02` §21.2 ; F1 confirmé par le fondateur le 2026-10-29) |
+| 4 | **Transformations d'état** : aucune (`20` §11.5) ou sous `motion-safe:` (`02` §21.5 point 7) | G8, TD5.7 | DS-4 — tranché le 2026-10-28 : aucune ; **amendé par le fondateur le 2026-10-29 (F6) : sous `motion-safe:` seulement**, jamais `transition-all` ; G8 assouplie à DS-5 |
+| 5 | **Backoffice sous 1024 px** *(écrit le 2026-10-28 dans `17b` §1.7 et §7.2 M4, `02` §21.5 point 8)* : navigation compacte de 768 à 1023 px, écran « poste de travail » sous 768 px. Les deux documents le disent désormais | TD6.2, §12.2 | DS-10 — **tranché : ce compromis** (`02` §21.5 point 8 amendé), **plus une condition de hauteur** (écran « poste de travail » sous 500 px de haut ; F7 tranché par le fondateur le 2026-10-29) |
+| 6 | **« Candidatures » a 12 caractères** pour une limite de 11 (`17` §2.2) | TD2.2 | DS-6 — **tranché : limite de 11 maintenue** ; l'entrée est omise jusqu'au Lot 3 et son libellé n'entre qu'avec elle (`expert-marketing`) |
+| 7 | **La navigation principale reste-t-elle sur l'écran bloquant des CGU ?** `account.spec.ts` n'attend que l'absence de la navigation du compte | TD5, `account.spec.ts` | DS-6 — **tranché : non**, l'écran bloquant est une page autonome sans navigation principale (`20` §11.8, `02` §21.5 point 9) |
+| 8 | **Entrées des Lots 2 à 5** : masquées (`17` §2.2) ou « bientôt » (`02` §21.5 point 9) | TD2.3 | DS-6 — **tranché : omises** jusqu'à leur lot (`02` §21.5 point 9) |
+
+### 12.6 Les familles TK1 à TK8 du jalon RK (D75) *(ajouté le 2026-10-30)*
+
+**Source :** `archives/jalons/rk-fiche.md` § Tests, repris sans reformuler les mesures. E2e web dans un nouveau
+`apps/web/e2e/charter-rendering.spec.ts` (session semée, construction de production) ; cas du
+backoffice dans `backoffice.spec.ts`. Lecture après la fin des animations
+(`Promise.all(el.getAnimations().map((a) => a.finished))`) ; état appuyé par `mouse.down()`, lecture,
+sortie de l'élément, `mouse.up()` (aucun clic). Ordre : filet d'abord (RK-1, cas en `test.fail()`
+annotés « RK-n ») ; chaque commit de correction retire le `test.fail()` de ses cas et relève les
+planchers.
+
+| Famille | Cas | Mesure |
+|---|---|---|
+| TK1 Boutons | TK1.1 (RK-1) | `box-shadow` ≠ `none` au repos et porte la valeur calculée du vert ; différent et plus large au survol ; `none` sur `aria-disabled` et `disabled`, au repos et au survol |
+| | TK1.2 (RK-2) | Ratio `getBoundingClientRect().width / offsetWidth` : 0,98 ± 0,01 à l'appui, 1,03 ± 0,01 au survol sous `no-preference` ; 1 sous `reducedMotion: reduce` et sur un bouton désactivé |
+| | TK1.3 (RK-3) | `font-weight` 700 (principal) et 600 (secondaire, texte), membres et BO |
+| | TK1.4 (RK-4) | Petits boutons du BO : `box-shadow: none`, ratio 1 dans les trois états (liste en données, entrée introuvable = échec) ; bouton standard du BO soumis à TK1.1 et TK1.2 |
+| | TK1.5 | `border-radius` calculé d'une carte = 16 px sous KEO |
+| TK2 Halo (RK-9) | TK2.1 | Le fond du conteneur porte le dégradé ; aucun ancêtre ne le tronque |
+| | TK2.2 | Sonde de pixels (capture décodée par `createImageBitmap` et un canvas, sans nouvelle dépendance ; sinon `architecte` tranche) : écart de luminance ≤ 2/255 entre lignes à ± 4 px du bas de l'en-tête ; pixel sous le centre plus clair que la page d'un seuil posé par `expert-ux` : **de 16/255 à 25/255** (RK-0, ci-dessous) ; négatif : le rectangle du parent dépasse le seuil |
+| | TK2.3 | `scrollWidth ≤ innerWidth` à 320, 375 et 768 px (membres), 375 et 768 (BO), halo présent |
+| TK3 Typographie | TK3.1 (RK-5) | Greffé sur les passes axe de §12.2 : chaque `h1`–`h4` visible a pour première famille celle de `--font-display`, une taille de l'ensemble des `--text-*` KEO, identique à 375 et 1 440 px ; au moins un titre par écran |
+| | TK3.2 | Surtitre : Manrope, 700, capitales, ≥ 12 px |
+| | TK3.3 (RK-6) | `letter-spacing` d'un `h1`/`h2` = token, négatif ; chiffre clé 800 ; `h3`/`h4` 700 |
+| | TK3.4 (RK-7) | `-webkit-font-smoothing: antialiased` sur le conteneur KEO, le `html` du BO et le dialogue des CGU ; `auto` sur le `body` de `/fr` et `/en` (assertion à part dans `vitrine-unchanged`) |
+| TK4 Cartes, badges | TK4.1 (RK-10) | Luminance du contour d'une carte cliquable plus haute au survol, valeur = token ; carte non cliquable immobile |
+| | TK4.2 (RK-11) | Fond du badge opaque et égal à un token ; Manrope ≥ 700 ; contraste ≥ 4,5 ; paires dans la matrice G3d ; texte présent (P7) |
+| TK5 Focus (RK-13) | TK5.1 | Après navigation par clic, par `Entrée` et après le lien d'évitement : `activeElement` est le `h1` ou `main`, `outline-style: none` ; même cas au BO |
+| | TK5.2 | Au `Tab`, lien, bouton, champ et région défilante gardent un anneau ≥ 2 px non masqué (TD5.4, jamais relâché) |
+| TK6 Tableau (RK-15) | TK6.1 | Fond de `thead th` plus clair que les lignes ; Manrope 700 |
+| | TK6.2 | Au survol et au focus clavier du lien d'une ligne : une ombre de 2 px de la couleur de `--color-brand-primary` sur la première cellule ; aucune au repos ni sur la ligne voisine |
+| TK7 Gardes statiques | TK7.1 = **G3i** | (a) sur les sources : échec si le bloc KEO redéfinit un nom des espaces `--shadow-`, `--inset-shadow-`, `--drop-shadow-`, `--text-shadow-`, `--breakpoint-`, `--container-`, si `tokens.css` contient `@theme inline`, ou si un `color-mix` sort de la liste de RK-A ; (b) sur la construction (spec par front, feuilles servies) : tout utilitaire d'un token redéfini sous KEO lit `var(--nom)`, jamais la valeur vitrine. Auto-test : `.shadow-action-glow{--tw-shadow:none}` échoue, CSS minifié et CRLF compris ; token redéfini sans consommateur = échec sauf entrée justifiée |
+| | TK7.2 | Toute classe littérale des fichiers de classes a une règle compilée (liste blanche justifiée) ; négatif : `tracking-wide` |
+| | TK7.3 | Aucun `clamp(` ni `vw` dans les `--text-*` et `--tracking-*` effectifs sous KEO ; G8 refuse `text-display`, `text-heading-*`, `text-lead`, `text-figure-*` sous KEO |
+| | TK7.4 | G8 : `motion-safe:…active:scale-(--scale-press)` accepté ; `active:scale-…` et `hover:scale-…` hors `motion-safe:` refusés |
+| | TK7.5 | `badge-error-bg` consommé par le seul badge d'erreur ; aucune propriété de lissage déclarée dans `:root`, `html` ou `body` |
+| TK8 Vitrine | TK8.1 | Fixture TD4 inchangée, G3e verte |
+| | TK8.2 | Nouvelle fixture `vitrine-states.json`, prise **sur le parent de RK-1** : survol, appui et focus des boutons d'appel et d'une carte de la landing (`box-shadow`, ratio, `border-color`, `font-weight`, `-webkit-font-smoothing`, `transition-*`) ; prouve qu'aucun effet RK ne fuit par un composant partagé |
+
+**Seuils de TK2.2, posés par `expert-ux` au RK-0** (calcul : `20` §11.5). Luminance = luma
+`0,2126 R + 0,7152 G + 0,0722 B` sur les canaux 8 bits de la capture, en /255. Le pixel « sous le
+centre » est au centre horizontal du conteneur d'écran, à 4 px sous son bord haut (marge intérieure,
+aucun contenu) ; la page est `surface-page` (`#0a0b0a`, luma 10,7). Attendu à 15 % et
+`--size-header-glow` 16 rem : `#0d291d`, écart **23,4/255** ; borne basse **16/255** (≈ 10 % : halo
+absent ou trop faible = échec), borne haute **25/255** (au-delà de 15 % plus l'arrondi : 18 % donne
+28,5 = échec). Écart entre lignes à ± 4 px du bas de l'en-tête : attendu 0,74/255 pour un seuil de
+2/255. Le tramage des dégradés de Chromium se neutralise en moyennant chaque ligne sur 16 px de large.
+
+### 12.7 Traçabilité de `20` §11 : chaque phrase normative a sa preuve (R3) *(ajouté le 2026-10-30)*
+
+Chaque règle de `20` §11.1 à §11.8 renvoie à un cas (TK, TD, TN, T, TM), à une garde (G, ESLint,
+annexe) ou à la recette humaine (§12.4, recette de fin du jalon RK). §11.9 (points soumis au fondateur)
+ne porte aucune règle. Une ligne sans preuve est un défaut du plan, pas de la charte.
+
+| § | Règle | Preuve |
+|---|---|---|
+| 11 | Aucune valeur de couleur ajustée, sauf `badge-error-bg` (RK-B) ; `keo-emerald.css` jamais importé | G3, G3c, G3e |
+| 11.1 | Frontière par le groupe `(member)` ; pages légales publiques en vitrine ; CGU du parcours en KEO | TD4.4, G8, TD3.6 |
+| 11.1 | Un seul `tokens.css`, dans `packages/ui`, importé par les deux fronts ; attribut posé à deux endroits | G3, G8, TD3.1, TD3.2 |
+| 11.1 | Le bloc KEO redéfinit tout `--color-*` hors `KEO_INHERITS`, familles, rayons, graisses d'action, contour secondaire | G3c, TD3.1, TD3.2 |
+| 11.1 | Échelles d'espacement et de texte, durées, points de rupture inchangés sous KEO | G3i (a) (points de rupture, conteneurs), TK7.3 (texte), TD5.7 (durées) ; espacement : recette humaine |
+| 11.1 | Un seul vert `#1dd68a` sur toute la plateforme (F2) | G3e, TD3.3, TD4.2 |
+| 11.2 | Succès en sarcelle, à au moins 20° de l'action et de l'information | G3d, TD1.7 |
+| 11.2 | Rouge « danger » opaque, inchangé, aucun rouge translucide | G3b, `account-data.spec` |
+| 11.2 | Fonds teintés opaques ; violet réservé au backoffice | G3c, G3f |
+| 11.2 | La couleur ne porte jamais seule une information | TD5.8, TD6.5, G3g, TK4.2 |
+| 11.2 | Contraste AA sur chaque surface réelle ; tokens seuls | G3d, TD7, G3 |
+| 11.2 | Aucun taux, aucun net ; provenance des montants au BO | T16 ; provenance : recette humaine (Lot 5) |
+| 11.2 | Densité par registre, lignes de 36 px au backoffice | TD7 (`wcag22aa`) ; densité : recette humaine (§12.4) |
+| 11.3 | Valeurs de chaque token par charte | G3c, TD3.1, TD3.2, G3e |
+| 11.3 | Alias redéclarés quand leur cible l'est (fermeture), nouveaux rôles déclarés dans `@theme` d'abord | G3c (TD1.3, TD1.6) |
+| 11.3 | Couleurs de rôle : liste fermée, toujours suivies du rôle écrit | G3g, TD5.8 |
+| 11.3 | Badge vérifié bleu, jamais une coche seule ni collé à un nom, texte « Vérifié · ⟨réseau⟩ · ⟨mois année⟩ » | TK4.2 (texte présent) ; forme et place : recette humaine (Lot 2) |
+| 11.3 | `badge-error-bg` confiné au badge d'erreur, jamais une notice ; `verified-bg`, `border-hover` | TK7.5, TK4.2, TK4.1 |
+| 11.3 | Couleurs de données réservées aux graphiques étiquetés | Recette humaine (aucun graphique avant le Lot 5) |
+| 11.3 | Ligne survolée du tableau dense : `surface-raised` + filet `effect-bo-row-indicator` | TK6.2 |
+| 11.4 | Matrice des contrastes, paires propres, pic du halo composé | G3d |
+| 11.4 | (1) ni texte tertiaire ni texte d'erreur sur `surface-active` | G3h, G3d |
+| 11.4 | (2) toute carte porte `border-default`, les dialogues `shadow-lg` | Recette humaine |
+| 11.4 | (3) texte d'erreur lisible sur une ligne survolée, pas au-delà | G3d |
+| 11.4 | (4) halo sur la page seulement, jamais sur `surface-card` ou plus clair | TK2.1 |
+| 11.4 | (5) ni texte tertiaire ni texte d'erreur à moins de `spacing-5` d'un bouton principal survolé | Recette humaine |
+| 11.4 | (6) surtitre ou badge jamais vert | TK4.2 (fond = token de la matrice) ; surtitre : TK3.2 |
+| 11.4 | (7) halo d'en-tête à 15 % au plus | G3i (a), TK2.2 (borne haute) |
+| 11.5 | Familles : Manrope pour tous les titres `h1`–`h4`, chiffres, boutons, surtitres, badges ; Source Sans 3 pour le corps | TK3.1, TD3.1, TK4.2, TK6.1 |
+| 11.5 | Aucun token fluide sous KEO, `LegalMarkdown` compris ; tailles inchangées | TK7.3, TK3.1 |
+| 11.5 | Graisses et approche : `h1` 800 et `h2` 700 serrés, `h3`/`h4` 700, chiffre clé 800 | TK3.3 |
+| 11.5 | Surtitre : `text-xs`, Manrope 700, capitales, `tracking-overline` | TK3.2, TK7.2 |
+| 11.5 | Plancher de 12 px | TK3.2 ; ailleurs : recette humaine |
+| 11.5 | Boutons : 700 (principal, danger), 600 (secondaire, texte) | TK1.3 |
+| 11.5 | Item de navigation : actif en 600 | TD5.8 |
+| 11.5 | Polices par `next/font/local`, aucun appel à Google Fonts, `latin` seul câblé, budget | G4f, ESLint, TD3.4, TD8.1 |
+| 11.5 | Chiffres tabulaires de Manrope | TD3.5 |
+| 11.5 | Lissage sous KEO seulement, rien dans `:root`, `html`, `body` | TK3.4, TK7.5 ; rendu : recette sur Mac |
+| 11.5 | Rayon des cartes 16 px ; contour secondaire 1 px sous KEO, 2 px en vitrine | TK1.5, TD4.2 ; contour sous KEO : recette humaine |
+| 11.5 | Anneau intérieur de la barre du bas | TD5.4 |
+| 11.5 | Cartes plates au repos ; `shadow-lg` réservé aux couches | Recette humaine |
+| 11.5 | Ombre lumineuse : valeurs, plus forte au survol, absente si désactivé, jamais `none` en neutre | TK1.1, G3i (a) (b) |
+| 11.5 | Petits boutons BO sans effet ; boutons de connexion BO avec | TK1.4 |
+| 11.5 | Halo : fond du conteneur, sans bord, pic `#0d291d`, nul avant la barre du bas, `--size-header-glow` 16 rem | TK2.1, TK2.2, TK2.3 |
+| 11.5 | Borne de `color-mix`, jamais de `/NN` sur une couleur | G3i (a), G3c |
+| 11.5 | Transitions nommées, jamais `transition: all` | G8 (TD1.10) |
+| 11.5 | Agrandissement 1,03 et réduction 0,98 sous `motion-safe:`, jamais désactivé | TK1.2, TK7.4 |
+| 11.5 | Soulèvement des cartes sous `motion-safe:` ; transformation sans décalage de mise en page | G8, TD5.7, TK2.3 (et mesure de RK-4 à 320 px) |
+| 11.5 | Mouvement réduit : aucune transformation, durées nulles, squelette sans balayage | TD5.7, TK1.2 |
+| 11.6 | K1, K2, K3 (succès sarcelle, rouge opaque, aucun `rgba`) | G3d, G3b, G3c |
+| 11.6 | K4, K5, K7, K15, K16, K17, K21, K22 (composants des Lots 3 à 5, vitrine, libellés) | Recette humaine, au lot de chaque composant (RK-17) |
+| 11.6 | K6 (icône `lock` par `icons.ts`) | ESLint ; recette humaine (Lot 4) |
+| 11.6 | K8, K9 (halo, ombre, mouvements aux intensités de la référence) | TK1.1, TK1.2, TK2, G8 |
+| 11.6 | K10 (plancher, surtitre `text-secondary`) | TK3.2 |
+| 11.6 | K11 (tranches et alias avant révélation) | T1, TM11 |
+| 11.6 | K12 (badge par réseau, daté) | TK4.2 ; recette humaine (Lot 2) |
+| 11.6 | K13 (rôle jamais porté par la couleur d'un nom) | G3g |
+| 11.6 | K14 (filet de 2 px, 4 px réservé à la vue identifiée) | TK6.2 |
+| 11.6 | K18 (anneau `focus-ring`, contour des champs) | TD5.4, TK5.2 |
+| 11.6 | K19 (polices et CSS servis par l'origine) | G4f, TD3.4, TD8.1 |
+| 11.6 | K20, K23 (tokens par rôle, valeurs non reprises) | G3, G3c |
+| 11.7 | Test du logo ; parades (pas de bouton vert rond à icône seule, halo jamais sur une carte, surtitre jamais vert, commercial nommé et statuts datés au premier écran) | Recette humaine (§12.4, fin du jalon RK) ; halo : TK2.1 |
+| 11.8 | Gabarits par largeur, un seul `<nav>` restylé par le CSS | TD5.1, TD5.2, TD6.1, TD6.2 |
+| 11.8 | Entrées sans écran masquées, jamais retirées une fois apparues | TD2.3 |
+| 11.8 | Aucun repli de colonne, rien de persisté | Garde annexe 2 (stockage) |
+| 11.8 | Lien d'évitement en premier ; focus au `h1` après navigation | TD5.3, TD5.5, TD6.1 |
+| 11.8 | Anneau sur tout élément interactif ; aucun anneau sur un `h1`–`h4` ou `main` focalisé par programme | TK5.2, TD5.4 ; TK5.1 |
+| 11.8 | Bouton principal, secondaire, texte (états R, S, A, D) | TK1.1 à TK1.4, G3d |
+| 11.8 | Boutons : chargement (`aria-busy`, largeur figée), erreur portée par le formulaire | Recette humaine |
+| 11.8 | Bouton danger D72 | G3b, `account-data.spec` |
+| 11.8 | Carte : rayon, carte cliquable seule réactive, contour éclairci | TK1.5, TK4.1 |
+| 11.8 | Badges de rôle, vérifié, de statut | G3g, TD5.8, TK4.2, TK7.5, TD6.5 |
+| 11.8 | Onglets segmentés (canaux, Lot 4) | Recette humaine (Lot 4) |
+| 11.8 | Sous-entrée de navigation, page-menu (D74) | TN1 à TN9 |
+| 11.8 | Champ : contour `border-strong`, erreur 2 px reliée par `aria-describedby` | G3d, TD7 (état d'erreur) |
+| 11.8 | Notice : fonds de famille, erreur sans fond teinté | G3b, TK7.5, TD7 |
+| 11.8 | Tableau dense : en-tête `surface-hover` Manrope 700, filet de ligne, région défilante | TK6.1, TK6.2, TD6.2, TD6.5 |
+| 11.8 | État vide (pas de « 0 » ni d'illustration) | Recette humaine (DS-8 : accueil neuf sans « 0 ») |
+| 11.8 | Squelette sans balayage sous mouvement réduit | TD5.7 |
+| 11.8 | Item de navigation, pastille de compteur | TD5.1, TD5.4, TD5.8 ; pastille « 9+ » : recette humaine (§12.4) |
+| 11.8 | En-tête de page : `h1` Manrope 800 serré, halo du conteneur, un seul par page | TK3.1, TK3.3, TK2.1 |
+| 11.8 | Surtitre | TK3.2 |
+| 11.8 | Dialogue : voile, focus piégé, `Échap` | TD3.6, DS-7 (e2e du dialogue des CGU) |
 
 ---
 

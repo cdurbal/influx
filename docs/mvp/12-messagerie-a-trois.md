@@ -183,7 +183,7 @@ d'entrée**. Le panneau des participants affiche les trois, avec la date d'entr�
 Aucun compte d'agent ne porte « INFLUX » dans son nom affiché en base.
 
 **RG7** — Le rôle d'un participant est porté par **un libellé écrit et une marque visuelle**, jamais
-par la couleur seule (`CLAUDE.md` §5.2, point 7). Un lecteur daltonien doit distinguer un message
+par la couleur seule (`CLAUDE.md` §4). Un lecteur daltonien doit distinguer un message
 d'agent d'un message de partie sans effort.
 
 **RG8** — **L'ajout d'un agent en cours de route est un événement visible et horodaté** : un message
@@ -1124,7 +1124,7 @@ Trois points de ce périmètre touchent directement la rémunération d'INFLUX, 
 ---
 
 **Ce document ne modifie aucun autre fichier.** Les sept manques du modèle de données (§Impacts) sont
-adressés à `expert-database` ; la mise à jour de `CLAUDE.md` §13 relève de `chef-de-projet`.
+adressés à `expert-database` ; la mise à jour de `decisions.md` relève de `chef-de-projet`.
 
 ---
 
@@ -1396,7 +1396,7 @@ suit sa conversation. À la suppression d'un compte, l'aparté est pseudonymisé
 dans le code applicatif : un compte marque qui interrogerait directement la base sous son propre rôle
 n'obtiendrait **aucune ligne** de l'aparté créateur, et réciproquement. Cette règle est **doublée**
 d'un filtre de sortie dans `apps/api` et d'un **test automatisé** exécuté en intégration continue —
-la même doctrine que l'anonymisation des profils (`CLAUDE.md` §6). La maquette filtre dans le code :
+la même doctrine que l'anonymisation des profils (`CLAUDE.md` §5). La maquette filtre dans le code :
 c'est un écart de maquette, pas un modèle.
 
 **RG146** — Les **données dérivées** de RG118 (compteurs, dernière activité, ordre, état,
@@ -1555,7 +1555,7 @@ aparté (RG118, RG146) :
 
 **Tests** — à ajouter au plan `18` : cloisonnement par rôle en accès direct (CA63), données dérivées
 (CA61, CA62), refus de l'API (CA64, CA65), journal par canal (CA67, CA68), notifications (CA73,
-CA74), export au titre du droit d'accès (CA79). Tâche confiée au `testeur` (`19` §5, point 6).
+CA74), export au titre du droit d'accès (CA79). Tâche confiée au `testeur` (`archives/19-revue-de-coherence-2026-09-24.md` §5, point 6).
 
 **Indicateurs** :
 

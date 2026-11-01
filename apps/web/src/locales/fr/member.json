@@ -1,0 +1,19 @@
+{
+  "shell": {
+    "skipToContent": "Aller au contenu",
+    "nav": {
+      "label": "Navigation principale",
+      "entries": {
+        "home": "Accueil",
+        "account": "Compte"
+      }
+    },
+    "space": {
+      "advertiser": "Espace marque",
+      "creator": "Espace créateur"
+    },
+    "footer": {
+      "signOut": "Se déconnecter"
+    }
+  }
+}

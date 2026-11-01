@@ -27,6 +27,7 @@ import {
   type BrevoConnectorSettings,
   type BrevoSubject,
 } from "../src/domains/leads/connectors/brevo/index.ts";
+import type { ErasureNotificationSubject } from "../src/domains/privacy/erasure-notification-subject.ts";
 import type {
   AttemptState,
   BrevoErasureSubject,
@@ -142,6 +143,7 @@ type Setup = {
   settings?: Partial<BrevoConnectorSettings>;
   subject?: BrevoSubject | null;
   erasureSubject?: BrevoErasureSubject | null;
+  notificationSubject?: ErasureNotificationSubject | null;
   mapContact?: typeof mapContact;
   timeoutMs?: number;
 };
@@ -174,6 +176,19 @@ function connectors(setup: Setup = {}): {
           setup.erasureSubject === undefined
             ? { externalContactId: null, email: EMAIL }
             : setup.erasureSubject,
+        );
+      },
+      readErasureNotificationSubject: () => {
+        reads.push("notification");
+        return Promise.resolve(
+          setup.notificationSubject === undefined
+            ? {
+                email: EMAIL,
+                preferredLanguage: "fr",
+                timeZone: "UTC",
+                erasedAt: "2026-10-28T09:30:00.000Z",
+              }
+            : setup.notificationSubject,
         );
       },
       ...(setup.mapContact === undefined
@@ -352,6 +367,7 @@ describe("operation 1: create or update a contact (16 §M1, §M4; 05 CA38)", () 
       templateCode: null,
       attributeNames: [...BREVO_CONTACT_ATTRIBUTES].sort(),
       rejectedAttributeNames: [],
+      missingSettings: [],
     });
     expect(prepared.recipientDomain).toBe("example.test");
     expect(
@@ -363,15 +379,87 @@ describe("operation 1: create or update a contact (16 §M1, §M4; 05 CA38)", () 
     ).toEqual([]);
   });
 
-  it("no list configured for the role: skipped with a clear cause, never guessed (0103)", async () => {
+  it("05 RG164: no list for the role is named with the mapping, never guessed, and the call never leaves (RG160)", async () => {
     const { contact } = connectors();
     const prepared = await prepare(
       contact,
       line("brevo_contact"),
       state({}, { ...SETTINGS, brevo_list_ids: { creators: null } }),
     );
-    expect(prepared).toEqual({ kind: "skip", reason: "list_not_configured" });
+    expect(prepared.kind).toBe("mapped");
+    if (prepared.kind !== "mapped") {
+      return;
+    }
+    expect(prepared.description).toEqual({
+      operation: "upsert_contact",
+      templateCode: null,
+      attributeNames: [...BREVO_CONTACT_ATTRIBUTES].sort(),
+      rejectedAttributeNames: [],
+      missingSettings: ["brevo_list_ids.creators"],
+    });
+    // the drain fails such a line before any call; the call refuses it again (defence in depth)
+    expect(await prepared.result()).toEqual({
+      kind: "failed",
+      errorCode: "list_not_configured",
+    });
     expect(double.requests).toHaveLength(0);
+  });
+
+  it("05 RG164: an advertiser without the advertisers list is named by its own path", async () => {
+    const { contact } = connectors({
+      subject: subject({ company: LEGAL_NAME }),
+    });
+    const prepared = await prepare(
+      contact,
+      line("brevo_contact"),
+      state(
+        { role: "advertiser", declaredStatus: "business" },
+        {
+          ...SETTINGS,
+          brevo_list_ids: { advertisers: null, creators: CREATORS_LIST },
+        },
+      ),
+    );
+    expect(
+      prepared.kind === "mapped" && prepared.description.missingSettings,
+    ).toEqual(["brevo_list_ids.advertisers"]);
+  });
+
+  it("05 RG164 (a): without consent at sign-up and without a list, skipped no_consent, never a configuration failure", async () => {
+    const { contact } = connectors();
+    expect(
+      await prepare(
+        contact,
+        line("brevo_contact"),
+        state(
+          { marketingEmailConsent: false },
+          {
+            ...SETTINGS,
+            brevo_list_ids: { advertisers: null, creators: null },
+          },
+        ),
+      ),
+    ).toEqual({ kind: "skip", reason: "no_consent" });
+    expect(reads).toHaveLength(0);
+  });
+
+  it("05 RG160 point 5, CA84: a withdrawal needs no list, it is unsubscribed whatever the lists", async () => {
+    const { contact } = connectors();
+    const prepared = await prepare(
+      contact,
+      line("brevo_contact", { eventType: "consent.revoked" }),
+      state(
+        { marketingEmailConsent: false },
+        { ...SETTINGS, brevo_list_ids: { advertisers: null, creators: null } },
+      ),
+    );
+    expect(prepared.kind === "mapped" && prepared.description).toEqual({
+      operation: "unsubscribe_contact",
+      templateCode: null,
+      attributeNames: [],
+      rejectedAttributeNames: [],
+      missingSettings: [],
+    });
   });
 
   it("an account gone or not active is skipped, nothing read, nothing called", async () => {
@@ -649,6 +737,7 @@ describe("operation 6: the welcome e-mail (05 RG76, RG86; 16 RG89, RG90; CA40, C
       templateCode: "account.welcome_creator",
       attributeNames: [],
       rejectedAttributeNames: [],
+      missingSettings: [],
     });
   });
 
@@ -909,6 +998,7 @@ describe("05 RG58, J7 decision 5: email.changed updates the contact in place, ne
       templateCode: null,
       attributeNames: ["EMAIL"],
       rejectedAttributeNames: [],
+      missingSettings: [],
     });
     if (prepared.kind === "mapped") {
       expect(await prepared.result()).toEqual({ kind: "succeeded" });
@@ -1076,6 +1166,7 @@ describe("05 RG58, J7 commit 7: the notice of a changed address, to both address
       templateCode: "auth.email_changed_notice",
       attributeNames: [],
       rejectedAttributeNames: [],
+      missingSettings: [],
     });
     expect(prepared.kind === "mapped" && prepared.recipientDomain).toBe(
       "example.test",
@@ -1209,6 +1300,7 @@ describe("05 RG141, RG142, J7 commit 8: auth.new_device, written by INFLUX witho
       templateCode: "auth.new_device",
       attributeNames: [],
       rejectedAttributeNames: [],
+      missingSettings: [],
     });
     if (prepared.kind !== "mapped") {
       throw new Error("expected a mapped e-mail");
@@ -1335,8 +1427,8 @@ describe("05 RG141, RG142, J7 commit 8: auth.new_device, written by INFLUX witho
 
 describe("16 RG160, CA117: privacy.request_received, written by INFLUX without any link (architecte, 2026-10-14)", () => {
   const REQUEST = "3c2b1a0f-9e8d-4c7b-8a69-584736251403";
-  const ERASURE = {
-    type: "erasure",
+  const EXPORT = {
+    type: "access",
     receivedAt: "2026-10-14T21:00:00.000Z",
     dueAt: "2026-11-13T21:00:00.000Z",
     closed: false,
@@ -1357,7 +1449,7 @@ describe("16 RG160, CA117: privacy.request_received, written by INFLUX without a
 
   function acknowledging(overrides: Partial<BrevoSubject> = {}): Connector {
     return connectors({
-      subject: subject({ dataRequest: ERASURE, ...overrides }),
+      subject: subject({ dataRequest: EXPORT, ...overrides }),
     }).transactional;
   }
 
@@ -1373,6 +1465,7 @@ describe("16 RG160, CA117: privacy.request_received, written by INFLUX without a
       templateCode: "privacy.request_received",
       attributeNames: [],
       rejectedAttributeNames: [],
+      missingSettings: [],
     });
     if (prepared.kind !== "mapped") {
       throw new Error("expected a mapped e-mail");
@@ -1392,11 +1485,11 @@ describe("16 RG160, CA117: privacy.request_received, written by INFLUX without a
     ]);
     expect(message?.body.to).toEqual([{ email: EMAIL }]);
     expect(message?.body.subject).toBe(
-      "Your INFLUX account deletion request has been received",
+      "Your INFLUX data export request has been received",
     );
     const text = String(message?.body.textContent);
     expect(text).toMatch(
-      /submitted from your account on October 14, 2026 at 5:00\sPM \(EDT\)\./,
+      /submitted from your INFLUX account on October 14, 2026 at 5:00\sPM \(EDT\)\./,
     );
     expect(text).toContain("by November 13, 2026 at the latest.");
     expect(message?.body.tags).toEqual(["privacy.request_received"]);
@@ -1416,17 +1509,20 @@ describe("16 RG160, CA117: privacy.request_received, written by INFLUX without a
     expect(double.requests).toHaveLength(0);
   });
 
-  it("RG160: another type fails unsupported_request_type; a request closed since is skipped request_closed", async () => {
+  it("RG160: another type fails unsupported_request_type, an erasure included (D72); a request closed since is skipped request_closed", async () => {
+    for (const type of ["rectification", "erasure"]) {
+      expect(
+        await prepare(
+          acknowledging({ dataRequest: { ...EXPORT, type } }),
+          acknowledgement(),
+          state(),
+        ),
+        type,
+      ).toEqual({ kind: "fail", errorCode: "unsupported_request_type" });
+    }
     expect(
       await prepare(
-        acknowledging({ dataRequest: { ...ERASURE, type: "rectification" } }),
-        acknowledgement(),
-        state(),
-      ),
-    ).toEqual({ kind: "fail", errorCode: "unsupported_request_type" });
-    expect(
-      await prepare(
-        acknowledging({ dataRequest: { ...ERASURE, closed: true } }),
+        acknowledging({ dataRequest: { ...EXPORT, closed: true } }),
         acknowledgement(),
         state(),
       ),
@@ -1446,7 +1542,7 @@ describe("16 RG160, CA117: privacy.request_received, written by INFLUX without a
   it("redirect: an address outside BREVO_TEST_RECIPIENTS is skipped_non_production", async () => {
     const { transactional } = connectors({
       settings: { testRecipients: [] },
-      subject: subject({ dataRequest: ERASURE }),
+      subject: subject({ dataRequest: EXPORT }),
     });
     expect(await prepare(transactional, acknowledgement(), state())).toEqual({
       kind: "skip",
@@ -1484,6 +1580,7 @@ describe("04 §9.2, 15 RG79, J8 commit 8: account.deleted deletes the contact of
       templateCode: null,
       attributeNames: [],
       rejectedAttributeNames: [],
+      missingSettings: [],
     });
     if (prepared.kind !== "mapped") {
       throw new Error("expected a mapped deletion");
@@ -1641,6 +1738,7 @@ describe("runbook demandes-rgpd §4, J8 commit 8: privacy.export_ready, written 
       templateCode: "privacy.export_ready",
       attributeNames: [],
       rejectedAttributeNames: [],
+      missingSettings: [],
     });
     if (prepared.kind !== "mapped") {
       throw new Error("expected a mapped e-mail");
@@ -1680,5 +1778,128 @@ describe("runbook demandes-rgpd §4, J8 commit 8: privacy.export_ready, written 
       ),
     ).toEqual({ kind: "skip", reason: "request_closed" });
     expect(double.requests).toHaveLength(0);
+  });
+});
+
+describe("D72, 16 RG160 bis: privacy.erasure_completed answers an erasure after the account is gone", () => {
+  const REQUEST = "7b1f0c3e-5a2d-4e86-9c14-d3a8b6f20e51";
+
+  function answer(): ClaimedLine {
+    return line("brevo_transactional", {
+      eventType: "privacy.erasure_completed",
+      payload: {
+        event_id: "0a1b2c3d-0000-4000-8000-00000000d721",
+        account_id: ACCOUNT,
+        request_id: REQUEST,
+        email_code: "privacy.erasure_completed",
+      },
+      idempotencyKey: `privacy.erasure_completed:${REQUEST}`,
+    });
+  }
+
+  /** The state the drain reads once the worker anonymised the account (04 §9.2). */
+  function erased(): AttemptState {
+    return state({ status: "deleted" });
+  }
+
+  it("leaves to the held address, in the language and time zone of the execution, with its code and key", async () => {
+    const { transactional } = connectors({
+      notificationSubject: {
+        email: EMAIL,
+        preferredLanguage: "en",
+        timeZone: "America/Toronto",
+        erasedAt: "2026-10-28T09:30:00.000Z",
+      },
+    });
+    const result = await run(transactional, answer(), erased());
+    expect(result).toMatchObject({ kind: "succeeded", locale: "en" });
+    expect(result.kind === "succeeded" && result.providerMessageId).toMatch(
+      /@double\.brevo\.test>$/,
+    );
+    const [message] = double.delivered;
+    expect(message?.body).toMatchObject({
+      to: [{ email: EMAIL }],
+      subject: "Your INFLUX account has been deleted",
+      tags: ["privacy.erasure_completed"],
+    });
+    expect(message?.body.textContent).toMatch(
+      /October 28, 2026 at 5:30\sAM \(EDT\)/,
+    );
+    expect(message?.headers["idempotency-key"]).toBe(
+      `privacy.erasure_completed:${REQUEST}`,
+    );
+    // read by the request of the line; the subject read of an active account is never made
+    expect(reads).toEqual(["notification"]);
+  });
+
+  it("is sent whatever the account state, even absent: the account is erased by construction", async () => {
+    const { transactional } = connectors();
+    const claimed = answer();
+    expect(
+      (await prepare(transactional, claimed, { ...erased(), account: null }))
+        .kind,
+    ).toBe("mapped");
+    expect(
+      (await prepare(transactional, claimed, state({ status: "suspended" })))
+        .kind,
+    ).toBe("mapped");
+  });
+
+  it("English for any language outside fr, French when the execution captured it", async () => {
+    const { transactional } = connectors({
+      notificationSubject: {
+        email: EMAIL,
+        preferredLanguage: "de",
+        timeZone: "UTC",
+        erasedAt: "2026-10-28T09:30:00.000Z",
+      },
+    });
+    expect(await run(transactional, answer(), erased())).toMatchObject({
+      locale: "en",
+    });
+    const french = connectors();
+    expect(await run(french.transactional, answer(), erased())).toMatchObject({
+      locale: "fr",
+    });
+  });
+
+  it("no executed, open erasure behind the line fails erasure_not_found, nothing called", async () => {
+    const { transactional } = connectors({ notificationSubject: null });
+    expect(await prepare(transactional, answer(), erased())).toEqual({
+      kind: "fail",
+      errorCode: "erasure_not_found",
+    });
+    const noRequest = answer();
+    expect(
+      await prepare(
+        transactional,
+        { ...noRequest, payload: { email_code: "privacy.erasure_completed" } },
+        erased(),
+      ),
+    ).toEqual({ kind: "fail", errorCode: "erasure_not_found" });
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("redirect: an address outside BREVO_TEST_RECIPIENTS is skipped_non_production", async () => {
+    const { transactional } = connectors({
+      settings: { testRecipients: ["someone-else@example.test"] },
+    });
+    expect(await prepare(transactional, answer(), erased())).toEqual({
+      kind: "skip",
+      reason: "skipped_non_production",
+    });
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("describes the send by its code only", async () => {
+    const { transactional } = connectors();
+    const prepared = await prepare(transactional, answer(), erased());
+    expect(prepared.kind === "mapped" && prepared.description).toEqual({
+      operation: "send_transactional",
+      templateCode: "privacy.erasure_completed",
+      attributeNames: [],
+      rejectedAttributeNames: [],
+      missingSettings: [],
+    });
   });
 });

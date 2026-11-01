@@ -1,14 +1,17 @@
 "use client";
 
 // The registered members and their synchronisation (docs/mvp/05 RG97 to RG100, RG106, CA58 to
-// CA61; 15 RG33, RG34, RG121; 17b §2.2, §3.11). A dense table; the address bar carries the filters
-// and the page, codes only, never personal data. "À traiter" and "Cas normaux" are two views, never
-// a sum (RG100). A row without a failure has no replay box — absence plus a phrase, never a greyed
+// CA61; 15 RG33, RG34, RG121; 17b §2.2, §3.11). A dense table; the address bar carries the filters,
+// the period (days) and the page, codes only, never personal data. The search term stays in the
+// screen's memory and travels in the body of POST /v1/bo/accounts/search (J8S-7): never in the
+// address bar, the history or a log. "À traiter" and "Cas normaux" are two views, never a sum
+// (RG100). A row without a failure has no replay box — absence plus a phrase, never a greyed
 // control (RG103). No export exists, for any role (RG106). ‹j›/‹k› move between rows.
 import {
   SYNC_DESTINATIONS,
   type AccountRow,
   type AccountsResponse,
+  type AccountsSearchBody,
 } from "@influx/contracts/backoffice-accounts";
 import { SIGNUP_DOORS, UI_LOCALES } from "@influx/contracts/auth";
 import { DECLARED_STATUSES } from "@influx/contracts/signup";
@@ -25,13 +28,12 @@ import {
 } from "react";
 import { messages } from "@/messages/fr";
 import {
-  ERROR_CLASSES,
   HELP_CLASSES,
   inputClasses,
   LEAD_CLASSES,
   TITLE_CLASSES,
 } from "./auth-classes";
-import { readAccounts } from "./backoffice-api";
+import { searchAccounts } from "./backoffice-api";
 import {
   FIELD_CLASSES,
   LINK_CLASSES,
@@ -43,22 +45,29 @@ import {
   SMALL_PRIMARY_CLASSES,
   SMALL_SECONDARY_CLASSES,
   TABLE_CLASSES,
-  TABLE_WRAP_CLASSES,
+  DENSE_TABLE_WRAP_CLASSES,
   TD_CLASSES,
   TH_CLASSES,
 } from "./bo-classes";
 import { ReplayPanel } from "./ReplayPanel";
+import { ServicesHint } from "./ServicesLink";
 import {
+  accountSearchOf,
   countryName,
   countryOptions,
   failedDestinations,
   formatDate,
-  PARTIAL_SEARCH_SHAPE,
+  periodOf,
   replayPairs,
   REPLAY_CAP,
+  type AccountSearch,
 } from "./view-model";
+import { ErrorNotice } from "./ErrorNotice";
 
-/** The filters the address bar may carry (05 RG97), each value of plain characters only. */
+/**
+ * The filters the address bar may carry (05 RG97), each value of plain characters only; the period
+ * as two days "YYYY-MM-DD". Never a search term (J8S-7).
+ */
 const FILTER_KEYS = [
   "role",
   "country",
@@ -67,7 +76,8 @@ const FILTER_KEYS = [
   "syncState",
   "syncDestination",
   "consent",
-  "q",
+  "from",
+  "to",
   "cursor",
 ] as const;
 type FilterKey = (typeof FILTER_KEYS)[number];
@@ -92,7 +102,12 @@ function SyncCell({
         {messages.syncState[status.state]}
       </span>
       <span className="block text-text-secondary">
-        {messages.syncCause[status.cause]}
+        {status.setting === null
+          ? messages.syncCause[status.cause]
+          : messages.syncCauseWithSetting(
+              messages.syncCause[status.cause],
+              messages.syncSetting[status.setting],
+            )}
       </span>
     </>
   );
@@ -101,7 +116,12 @@ function SyncCell({
 export function AccountsScreen() {
   const router = useRouter();
   const search = useSearchParams();
-  const ids = { search: useId(), searchHelp: useId(), searchError: useId() };
+  const ids = {
+    search: useId(),
+    searchHelp: useId(),
+    searchError: useId(),
+    periodHelp: useId(),
+  };
   const query = useMemo(() => {
     const found: Partial<Record<FilterKey, string>> = {};
     for (const key of FILTER_KEYS) {
@@ -112,10 +132,12 @@ export function AccountsScreen() {
     }
     return found;
   }, [search]);
-  // Each answer is kept with the load it belongs to: a new address or a reload shows "loading"
-  // and an empty selection without a state reset inside the effect.
+  // The search submitted, in memory only (J8S-7): never in the address bar.
+  const [searched, setSearched] = useState<AccountSearch | null>(null);
+  // Each answer is kept with the load it belongs to: a new address, a new search or a reload shows
+  // "loading" and an empty selection without a state reset inside the effect.
   const [reload, setReload] = useState(0);
-  const loadKey = `${JSON.stringify(query)}#${reload}`;
+  const loadKey = `${JSON.stringify(query)}#${JSON.stringify(searched)}#${reload}`;
   const [answer, setAnswer] = useState<{ key: string; load: Load } | null>(
     null,
   );
@@ -123,22 +145,38 @@ export function AccountsScreen() {
     key: string;
     ids: ReadonlySet<string>;
   } | null>(null);
+  // 05 RG97: a period that ends before it starts is said, never sent.
+  const period = useMemo(() => periodOf(query.from, query.to), [query]);
   const load: Load =
-    answer?.key === loadKey ? answer.load : { kind: "loading" };
+    period === "invalid"
+      ? { kind: "error", message: messages.accounts.periodInvalid }
+      : answer?.key === loadKey
+        ? answer.load
+        : { kind: "loading" };
   const selected: ReadonlySet<string> =
     selection?.key === loadKey ? selection.ids : new Set();
   function setSelected(ids: ReadonlySet<string>) {
     setSelection({ key: loadKey, ids });
   }
   const [replaying, setReplaying] = useState(false);
-  const [term, setTerm] = useState(query.q ?? "");
+  const [term, setTerm] = useState("");
   const [termError, setTermError] = useState(false);
   const links = useRef<(HTMLAnchorElement | null)[]>([]);
   const countries = useMemo(() => countryOptions(), []);
 
   useEffect(() => {
+    if (period === "invalid") {
+      return undefined;
+    }
     let active = true;
-    void readAccounts(query as Record<string, string>).then((result) => {
+    // codes of the address bar, checked again by apps/api's schema (a wrong one is a 400); the
+    // days of the period replaced by their instants
+    const body = {
+      ...query,
+      ...period,
+      ...searched,
+    } as AccountsSearchBody;
+    void searchAccounts(body).then((result) => {
       if (!active) {
         return;
       }
@@ -162,7 +200,7 @@ export function AccountsScreen() {
     return () => {
       active = false;
     };
-  }, [query, loadKey, router]);
+  }, [query, period, searched, loadKey, router]);
 
   /** A new address: the filters changed, so the page restarts at the first one. */
   function go(changes: Partial<Record<FilterKey, string | null>>) {
@@ -188,13 +226,14 @@ export function AccountsScreen() {
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const value = term.trim();
-    if (value !== "" && !PARTIAL_SEARCH_SHAPE.test(value)) {
+    const parsed = accountSearchOf(term);
+    if (parsed === "invalid") {
       setTermError(true);
       return;
     }
     setTermError(false);
-    go({ q: value === "" ? null : value });
+    setSearched(parsed);
+    go({});
   }
 
   function onTableKey(event: KeyboardEvent<HTMLDivElement>) {
@@ -251,6 +290,7 @@ export function AccountsScreen() {
       <h1 className={TITLE_CLASSES}>{t.title}</h1>
       <p className={LEAD_CLASSES}>{t.lead}</p>
       <p className={HELP_CLASSES}>{t.noExport}</p>
+      {view === "failed" ? <ServicesHint text={t.servicesHint} /> : null}
       <section aria-label={t.filters} className={SECTION_CLASSES}>
         <div className={ROW_GROUP_CLASSES}>
           {filterSelect("syncState", t.view, [
@@ -305,6 +345,29 @@ export function AccountsScreen() {
           ])}
         </div>
         <p className={HELP_CLASSES}>{t.viewHelp}</p>
+        <fieldset
+          aria-describedby={ids.periodHelp}
+          className={ROW_GROUP_CLASSES}
+        >
+          <legend className={SMALL_LABEL_CLASSES}>{t.period}</legend>
+          {(["from", "to"] as const).map((key) => (
+            <div key={key} className={FIELD_CLASSES}>
+              <label htmlFor={`period-${key}`} className={SMALL_LABEL_CLASSES}>
+                {key === "from" ? t.periodFrom : t.periodTo}
+              </label>
+              <input
+                id={`period-${key}`}
+                type="date"
+                value={query[key] ?? ""}
+                onChange={(event) => go({ [key]: event.target.value || null })}
+                className={inputClasses(false)}
+              />
+            </div>
+          ))}
+        </fieldset>
+        <p id={ids.periodHelp} className={HELP_CLASSES}>
+          {t.periodHelp}
+        </p>
         <form noValidate onSubmit={submitSearch} className={ROW_GROUP_CLASSES}>
           <div className={FIELD_CLASSES}>
             <label htmlFor={ids.search} className={SMALL_LABEL_CLASSES}>
@@ -332,6 +395,8 @@ export function AccountsScreen() {
             type="button"
             onClick={() => {
               setTerm("");
+              setTermError(false);
+              setSearched(null);
               router.replace("/inscrits");
             }}
             className={SMALL_SECONDARY_CLASSES}
@@ -343,9 +408,7 @@ export function AccountsScreen() {
           {t.searchHelp}
         </p>
         {termError ? (
-          <p id={ids.searchError} role="alert" className={ERROR_CLASSES}>
-            {t.searchInvalid}
-          </p>
+          <ErrorNotice id={ids.searchError}>{t.searchInvalid}</ErrorNotice>
         ) : null}
       </section>
 
@@ -366,9 +429,7 @@ export function AccountsScreen() {
         </p>
       ) : load.kind === "error" ? (
         <div className="flex flex-col gap-3">
-          <p role="alert" className={ERROR_CLASSES}>
-            {load.message}
-          </p>
+          <ErrorNotice>{load.message}</ErrorNotice>
           <button
             type="button"
             onClick={() => setReload(reload + 1)}
@@ -381,7 +442,9 @@ export function AccountsScreen() {
         <>
           {load.data.search === "none" ? null : (
             <p role="status" className={HELP_CLASSES}>
-              {t.searchJournaled}
+              {load.data.search === "partial"
+                ? t.searchJournaled
+                : t.searchExact}
             </p>
           )}
           <div className={ROW_GROUP_CLASSES}>
@@ -402,8 +465,16 @@ export function AccountsScreen() {
             <p className={HELP_CLASSES}>{t.empty}</p>
           ) : (
             // the keys are listened on the table's container: a keyboard user moves with ‹j›/‹k›
-            // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-            <div className={TABLE_WRAP_CLASSES} onKeyDown={onTableKey}>
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the region listens to ‹j›/‹k› for row navigation
+            <div
+              role="region"
+              aria-label={t.title}
+              // a scrollable region must be reachable by keyboard (axe scrollable-region-focusable)
+              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard-focusable (18 §12)
+              tabIndex={0}
+              className={DENSE_TABLE_WRAP_CLASSES}
+              onKeyDown={onTableKey}
+            >
               <table className={TABLE_CLASSES}>
                 <caption className="sr-only">{t.title}</caption>
                 <thead>

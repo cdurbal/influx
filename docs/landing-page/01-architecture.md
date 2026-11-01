@@ -18,7 +18,7 @@
 |---|---|---|
 | **D1** Framework React | **Next.js 16.3** (App Router), pages publiques pré-rendues par langue, servies par Node.js | Moyenne |
 | **D3** Dépôt | **Monorepo pnpm 11** (activé par corepack) : `apps/*`, `packages/*`, sans outil d'orchestration | Élevée |
-| **D4** UI et styles | **Tailwind CSS 4.3** alimenté **uniquement** par `apps/web/src/styles/tokens.css` ; aucune bibliothèque de composants ; primitives « headless » choisies au premier besoin réel (Lot 1) | Moyenne |
+| **D4** UI et styles | **Tailwind CSS 4.3** alimenté **uniquement** par `packages/ui/src/styles/tokens.css` ; aucune bibliothèque de composants ; primitives « headless » choisies au premier besoin réel (Lot 1) | Moyenne |
 | **D28** Traduction | **next-intl 4** ; messages JSON ICU dans `apps/web/src/locales/{fr,en}/landing.json` ; parité des clés FR/EN vérifiée à la compilation | Moyenne |
 | Contenu fictif (CA15) | Un seul module `apps/web/src/content/placeholders/` (données, textes FR/EN, photos, crédits), importable seulement par le layout et la page | Élevée |
 | Maquette (CA13, CA14) | Constante unique `IS_MOCKUP` dans ce module : bandeau + `<meta name="robots" content="noindex, nofollow">` | Élevée |
@@ -217,7 +217,7 @@ accordéons, carrousels, menu et formulaire s'écrivent avec des éléments HTML
 
 ### Mécanisme de tokens
 
-- **Fichier unique** `apps/web/src/styles/tokens.css`, qui commence par le commentaire
+- **Fichier unique** `packages/ui/src/styles/tokens.css`, qui commence par le commentaire
   `PROVISOIRE (D6)`. Il contient :
   1. un bloc `@theme` qui commence par `--*: initial;` (efface tout le thème par défaut de Tailwind),
      puis nos tokens ; chaque token devient une variable CSS **et** des classes utilitaires ;

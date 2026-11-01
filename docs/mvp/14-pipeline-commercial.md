@@ -6,14 +6,14 @@
 
 > **Date :** 2026-09-19 · **Auteur :** agent `expert-paiement-facturation`, avec `product-owner` en
 > appui pour le format · **Statut :** spécification complète du pipeline commercial (Lot 5), soumise
-> à la validation du **Fondateur** (§10.2 de `CLAUDE.md` : commission, facturation et flux financiers
+> à la validation du **Fondateur** (§7 de `CLAUDE.md` : commission, facturation et flux financiers
 > relèvent de lui), avec avis obligatoire de `expert-database` (écarts de modèle §Impacts) et de
 > `expert-conformite-rgpd` sur les questions fiscales et la conservation.
 >
 > **Skills appliquées :** `intermediation-tracking` (mode opératoire), `feature-spec` (format de
 > sortie), `backoffice-ops` (anatomie des écrans internes).
 >
-> **Documents qui contraignent celui-ci :** `CLAUDE.md` §3 (invariant et **régime transitoire**),
+> **Documents qui contraignent celui-ci :** `CLAUDE.md` §2 (invariant et **régime transitoire**),
 > `docs/mvp/00-cadrage-mvp-v2.md` (arbitrages **A1** et **A8**),
 > `docs/mvp/01-intermediation-courtee.md` §6 et §7 (**document pivot**),
 > `docs/mvp/03-matrice-des-droits-et-rls.md` §3.5 (conditions **C(27)** à **C(32)**),
@@ -316,7 +316,7 @@ Les motifs d'annulation après signature sont une **liste distincte**
 ### C. Les champs saisis
 
 **RG23** — **Le montant du contrat est le coût total pour l'annonceur, commission comprise**
-(`CLAUDE.md` §3). Le libellé du champ le dit mot pour mot : *« Montant du contrat — coût total pour
+(`CLAUDE.md` §2). Le libellé du champ le dit mot pour mot : *« Montant du contrat — coût total pour
 l'annonceur, commission INFLUX comprise »*. Il n'est jamais appelé « budget », « cachet » ni
 « rémunération du créateur ».
 
@@ -478,7 +478,7 @@ aucun placeholder chiffré.
 > `700 / 2 700 = 25,9 %` serait une division de deux montants saisis, techniquement licite. Mais un
 > pourcentage affiché devient un pourcentage attendu, puis un pourcentage par défaut, puis un
 > pourcentage appliqué : c'est le chemin exact par lequel un moteur de commission rentre par la
-> fenêtre alors qu'on l'a sorti par la porte (`CLAUDE.md` §6, `01` §7). La vraisemblance d'une
+> fenêtre alors qu'on l'a sorti par la porte (`CLAUDE.md` §2, `01` §7). La vraisemblance d'une
 > commission se contrôle très bien en revue hebdomadaire de pipeline, par des humains qui connaissent
 > le barème.
 
@@ -676,7 +676,7 @@ de réception**, jamais sur la date de signature.
 **RG85** — **Indicateur du passage à l'échelle : affaires traitées par commercial et par semaine.**
 Une affaire est « traitée » si elle a connu au moins un changement d'état ou une saisie de montant
 dans la semaine. C'est l'indicateur que le fondateur regarde pour savoir si la plateforme fait
-réellement passer le métier à l'échelle (`CLAUDE.md` §14.5).
+réellement passer le métier à l'échelle (`docs/mvp/prerequis.md` §14.5).
 
 **RG86** — **Taux de transformation** : mises en relation révélées → affaires `signed`, par
 déclencheur d'origine (demande de contact, candidature, proposition INFLUX) et par commercial. C'est
@@ -1189,7 +1189,7 @@ réouverture apparaît dans l'historique avec son motif.
 | **Export** | Choix de la période, des devises et du type (affaires / encaissements), confirmation et re-authentification |
 
 Tous ces écrans sont validés avec `expert-ux` sur un point non négociable : **aucun montant sans
-devise ni étiquette** (`CLAUDE.md` §5.2 principe 4, adapté au backoffice).
+devise ni étiquette** (`CLAUDE.md` §2, adapté au backoffice).
 
 ### Données — écarts constatés avec `04-modele-de-donnees-mvp.md`
 
@@ -1242,7 +1242,7 @@ en tire les conséquences en RG2, RG8bis et cas limite 1bis. **Ce n'est plus un 
 | Indicateur | Cible / seuil |
 |---|---|
 | **Commission encaissée, par devise et par mois** | **L'indicateur n° 1.** Aucune cible chiffrée au pilote : on mesure d'abord |
-| **Affaires traitées par commercial et par semaine** | Le plafond de croissance (`CLAUDE.md` §14.5) |
+| **Affaires traitées par commercial et par semaine** | Le plafond de croissance (`docs/mvp/prerequis.md` §14.5) |
 | Taux de transformation révélée → signée, par déclencheur | Dit lequel des trois déclencheurs produit du revenu |
 | Délai révélation → signature (médiane, 9ᵉ cas sur 10) | Longueur réelle du cycle commercial |
 | Délai signature → encaissement | Conditions de règlement à revoir si elles dérivent |
@@ -1260,7 +1260,7 @@ en tire les conséquences en RG2, RG8bis et cas limite 1bis. **Ce n'est plus un 
 
 | Exclu | Pourquoi | Quand cela revient |
 |---|---|---|
-| **Tout calcul de commission, tout taux, tout arrondi** | **A1**, `CLAUDE.md` §3 et §6, `01` §7 | V2, à un seul endroit côté serveur, avec `commission_rates` remplie |
+| **Tout calcul de commission, tout taux, tout arrondi** | **A1**, `CLAUDE.md` §2, `01` §7 | V2, à un seul endroit côté serveur, avec `commission_rates` remplie |
 | Encaissement et reversement dans l'application | **A1** ; **D8** tranchée mais reportée | V2, avec **D9** et **D25** |
 | Émission de factures, avoirs, mentions légales de facturation | **D23** non tranchée, société inexistante (**D25**) | Avant la première commission encaissée pour la **qualification**, en V2 pour l'**émission** |
 | Traitement de la TVA / GST / sales tax | **D7** | Voir **Q3** : plus tôt que prévu |
@@ -1322,7 +1322,7 @@ n'est valide tant qu'un expert-comptable du pays de la société ne l'a pas conf
 
 ## Additif du 2026-09-24 — Suivi de livraison (D52) et relations préexistantes (D53)
 
-> **Arbitrages du fondateur du 2026-09-24** (`CLAUDE.md` §13, revue `19-revue-de-coherence-2026-09-24.md`).
+> **Arbitrages du fondateur du 2026-09-24** (`decisions.md`, revue `archives/19-revue-de-coherence-2026-09-24.md`).
 > Cet additif pose les règles ; les écrans (fiche d'affaire, `17b` §3.9) et les critères
 > d'acceptation sont à compléter par `product-owner` et `expert-ux`. La numérotation reprend après
 > RG104, sans toucher aux règles existantes.

@@ -92,3 +92,73 @@ export function checkCaseFloors(
   }
   return { problems, aboveFloor };
 }
+
+/** The part of Playwright's JSON reporter output that the adapter reads. */
+type PlaywrightSuite = {
+  title: string;
+  file?: string;
+  specs?: {
+    title: string;
+    tests?: { status?: string; results?: { status?: string }[] }[];
+  }[];
+  suites?: PlaywrightSuite[];
+};
+
+function isPlaywrightReport(
+  value: unknown,
+): value is { config: { rootDir: string }; suites: PlaywrightSuite[] } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "suites" in value &&
+    Array.isArray(value.suites) &&
+    "config" in value &&
+    typeof value.config === "object" &&
+    value.config !== null &&
+    "rootDir" in value.config &&
+    typeof value.config.rootDir === "string"
+  );
+}
+
+/**
+ * The browser journeys (J8T-6): a Playwright JSON report read as a Vitest one, one entry per spec
+ * file, one case per test and project. A test Playwright skipped, or one with no result (a serial
+ * file stopped by a failure), did not run; its last result says passed or failed.
+ */
+export function vitestReportOfPlaywright(report: unknown): unknown {
+  if (!isPlaywrightReport(report)) {
+    return report;
+  }
+  const rootDir = report.config.rootDir.split(path.sep).join("/");
+  const files = new Map<string, VitestJsonReport["testResults"][number]>();
+  const visit = (suite: PlaywrightSuite, file: string, prefix: string) => {
+    const entry = files.get(file) ?? {
+      name: path.posix.join(rootDir, file),
+      assertionResults: [],
+    };
+    files.set(file, entry);
+    for (const spec of suite.specs ?? []) {
+      for (const test of spec.tests ?? []) {
+        const last = test.results?.at(-1)?.status;
+        entry.assertionResults.push({
+          status:
+            test.status === "skipped"
+              ? "skipped"
+              : last === undefined
+                ? "pending"
+                : last === "passed"
+                  ? "passed"
+                  : "failed",
+          fullName: `${prefix}${spec.title}`,
+        });
+      }
+    }
+    for (const child of suite.suites ?? []) {
+      visit(child, file, `${prefix}${child.title} › `);
+    }
+  };
+  for (const suite of report.suites) {
+    visit(suite, (suite.file ?? suite.title).split(path.sep).join("/"), "");
+  }
+  return { testResults: [...files.values()] };
+}

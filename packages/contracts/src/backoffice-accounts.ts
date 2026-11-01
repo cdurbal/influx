@@ -9,7 +9,7 @@
 // - The synchronisation state is a closed code per destination, translated by the screen (RG99,
 //   D36 open): never the provider's message, never a raw error code, never an Apollo datum (RG107).
 // Nothing here carries an amount, a rate or a commission (05 RG9).
-import * as z from "zod";
+import { z } from "./zod.ts";
 import { signupDoorSchema, uiLocaleSchema, MAX_EMAIL_LENGTH } from "./auth.ts";
 import {
   consentSourceSchema,
@@ -97,6 +97,7 @@ export const SYNC_CAUSES = [
   "no_consent",
   "out_of_apollo_scope_individual",
   "out_of_apollo_scope",
+  "country_excluded",
   "country_not_validated",
   "prospection_opposed",
   "email_not_verified",
@@ -118,10 +119,26 @@ export const SYNC_CAUSES = [
 export const syncCauseSchema = z.enum(SYNC_CAUSES);
 export type SyncCause = z.infer<typeof syncCauseSchema>;
 
+/**
+ * 05 RG160 point 4, RG164: the setting a configuration failure names, a closed list of names and
+ * never a value. The screen words it ("liste Brevo des créateurs").
+ */
+export const SYNC_SETTINGS = [
+  "brevo_list_advertisers",
+  "brevo_list_creators",
+  "brevo_template",
+  "apollo_settings",
+  "apollo_credentials",
+] as const;
+export const syncSettingSchema = z.enum(SYNC_SETTINGS);
+export type SyncSetting = z.infer<typeof syncSettingSchema>;
+
 export const syncStatusSchema = z.strictObject({
   state: syncStateSchema,
   nature: syncNatureSchema,
   cause: syncCauseSchema,
+  /** Set only for the cause configuration_missing (RG160): the setting at fault, never its value. */
+  setting: syncSettingSchema.nullable(),
   /** RG99 "nouvelle tentative prévue à HH:MM": set for a pending line that already failed once. */
   retryAt: z.iso.datetime().nullable(),
   lastAttemptAt: z.iso.datetime().nullable(),
@@ -178,22 +195,74 @@ export const accountsCursorSchema = z.string().regex(/^[A-Za-z0-9_-]{1,200}$/);
 
 export const CONSENT_FILTERS = ["granted", "withdrawn"] as const;
 
+/** The filters of RG97 (15 RG33), shared by the list and the search. Codes and instants only. */
+const accountFilterShape = {
+  role: signupDoorSchema.optional(),
+  country: countryCodeSchema.optional(),
+  language: uiLocaleSchema.optional(),
+  declaredStatus: declaredStatusSchema.optional(),
+  syncDestination: syncDestinationSchema.optional(),
+  syncState: syncStateSchema.optional(),
+  consent: z.enum(CONSENT_FILTERS).optional(),
+  from: z.iso.datetime().optional(),
+  to: z.iso.datetime().optional(),
+  cursor: accountsCursorSchema.optional(),
+};
+
+type FilterRefinable = {
+  from?: string | undefined;
+  to?: string | undefined;
+  syncDestination?: string | undefined;
+  syncState?: string | undefined;
+};
+
+const periodInOrder = (query: FilterRefinable): boolean =>
+  query.from === undefined ||
+  query.to === undefined ||
+  Date.parse(query.from) <= Date.parse(query.to);
+
+/** A `syncState` without `syncDestination` matches either destination; never the reverse. */
+const destinationWithState = (query: FilterRefinable): boolean =>
+  query.syncDestination === undefined || query.syncState !== undefined;
+
+const pageSizeSchema = z
+  .number()
+  .int()
+  .min(1)
+  .max(ACCOUNTS_PAGE_SIZE_MAX)
+  .default(ACCOUNTS_PAGE_SIZE_DEFAULT);
+
 /**
- * GET /v1/bo/accounts (05 RG97, RG98). Filters of RG97 only (15 RG33). `email` is the exact
- * address (free, RG98); `q` a fragment of it (rate-limited and journaled, RG98): never both. A
- * `syncState` without `syncDestination` matches either destination.
+ * GET /v1/bo/accounts (05 RG97): the list and its filters, NO search term. J8S-7 (EC-J8-58): an
+ * address or a fragment of one never travels in a URL, where the access logs, the history and the
+ * proxies keep it; the search is POST /v1/bo/accounts/search, the term in the body. A term in the
+ * query string is refused (400), never ignored.
  */
 export const accountsQuerySchema = z
   .strictObject({
-    role: signupDoorSchema.optional(),
-    country: countryCodeSchema.optional(),
-    language: uiLocaleSchema.optional(),
-    declaredStatus: declaredStatusSchema.optional(),
-    syncDestination: syncDestinationSchema.optional(),
-    syncState: syncStateSchema.optional(),
-    consent: z.enum(CONSENT_FILTERS).optional(),
-    from: z.iso.datetime().optional(),
-    to: z.iso.datetime().optional(),
+    ...accountFilterShape,
+    limit: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(ACCOUNTS_PAGE_SIZE_MAX)
+      .default(ACCOUNTS_PAGE_SIZE_DEFAULT),
+  })
+  .refine(periodInOrder, { message: "period_order" })
+  .refine(destinationWithState, { message: "destination_without_state" });
+export type AccountsQuery = z.infer<typeof accountsQuerySchema>;
+
+/**
+ * POST /v1/bo/accounts/search (05 RG97, RG98; J8S-7): the filters of the list and AT MOST one term,
+ * all in the body. `email` is the exact address (free); `q` a fragment of it (rate-limited and
+ * journaled by its length, never its text): never both. The answer is the list's. The screen lists
+ * through this route: an instant of the period (`:`, `.`) is no plain character of the relay's
+ * query string (EC-62), and a body carries the filters, the term and the cursor alike.
+ */
+export const accountsSearchSchema = z
+  .strictObject({
+    ...accountFilterShape,
+    limit: pageSizeSchema,
     email: z
       .string()
       .trim()
@@ -207,31 +276,17 @@ export const accountsQuerySchema = z
       .toLowerCase()
       .min(PARTIAL_SEARCH_MIN_LENGTH)
       .max(MAX_EMAIL_LENGTH)
+      .regex(/^[^\p{Cc}\s]*$/u)
       .optional(),
-    limit: z.coerce
-      .number()
-      .int()
-      .min(1)
-      .max(ACCOUNTS_PAGE_SIZE_MAX)
-      .default(ACCOUNTS_PAGE_SIZE_DEFAULT),
-    cursor: accountsCursorSchema.optional(),
   })
-  .refine((query) => query.email === undefined || query.q === undefined, {
+  .refine((body) => body.email === undefined || body.q === undefined, {
     message: "exact_or_partial",
   })
-  .refine(
-    (query) =>
-      query.from === undefined ||
-      query.to === undefined ||
-      Date.parse(query.from) <= Date.parse(query.to),
-    { message: "period_order" },
-  )
-  .refine(
-    (query) =>
-      query.syncDestination === undefined || query.syncState !== undefined,
-    { message: "destination_without_state" },
-  );
-export type AccountsQuery = z.infer<typeof accountsQuerySchema>;
+  .refine(periodInOrder, { message: "period_order" })
+  .refine(destinationWithState, { message: "destination_without_state" });
+export type AccountsSearch = z.infer<typeof accountsSearchSchema>;
+/** What a caller sends (the page size may be left to its default). */
+export type AccountsSearchBody = z.input<typeof accountsSearchSchema>;
 
 export const SEARCH_KINDS = ["none", "exact", "partial"] as const;
 
@@ -291,9 +346,11 @@ export const ownershipEntrySchema = z.strictObject({
 
 /**
  * A "mes données" request of the member (15 §G, J8 commit 8): what the admin executes from the
- * record, under 2V + R. `execution` is null until an admin approved it; `executed` once the worker
- * ran it (E-5); the closing waits for Brevo (15 RG79). `export` is the access export, never its
- * content (only the member downloads it).
+ * record, under 2V + R. `execution` is null until an admin approved it, or, for an erasure the
+ * member deposited from the space, until the fresh code authorised it (D72: `authorisedBy`
+ * member_fresh_code, no approver, shown read-only); `executed` once the worker ran it (E-5); the
+ * closing waits for Brevo (15 RG79). `export` is the access export, never its content (only the
+ * member downloads it).
  */
 export const accountDataRequestSchema = z.strictObject({
   id: z.uuid(),
@@ -305,8 +362,11 @@ export const accountDataRequestSchema = z.strictObject({
   outcome: z.enum(DATA_REQUEST_OUTCOMES).nullable(),
   execution: z
     .strictObject({
+      authorisedBy: z.enum(["admin_dual_control", "member_fresh_code"]),
+      /** The instant of the authorisation: the admin's approval, or the member's fresh code. */
       approvedAt: z.iso.datetime(),
-      approvedBy: z.uuid(),
+      /** The approving admin; null when the member authorised it (D72). */
+      approvedBy: z.uuid().nullable(),
       executedAt: z.iso.datetime().nullable(),
       /** Erasure: the Supabase Auth user deleted (null for an access request). */
       authUserDeletedAt: z.iso.datetime().nullable(),

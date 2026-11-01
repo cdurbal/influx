@@ -1,0 +1,773 @@
+# INFLUX — Registre des décisions, texte intégral (D1 à D77)
+
+> Texte **mot pour mot** des colonnes Sujet, Arbitre, Statut et Échéance de chaque décision, déplacé de `decisions.md` le 2026-10-31 (PL-11, K10). **Fait foi en cas d'écart avec le registre** `decisions.md`, qui n'en garde qu'un résumé. Hors index des spécifications ; à lire par section (`Grep "^## D66 "`), jamais en entier.
+
+## D1 — Framework React
+
+**Sujet** : Framework React : Vite (SPA) vs Next.js (SSR/SEO) — impacte fortement le SEO de la partie publique, bilingue
+
+**Arbitre** : `architecte`
+
+**Statut** : **Tranchée (2026-09-16)** : Next.js (App Router), pages publiques pré-rendues par langue, sans logique métier dans le front — voir `docs/landing-page/01-architecture.md`
+
+**Échéance** : —
+
+## D2 — Framework backend Node
+
+**Sujet** : Framework backend Node : Express / Fastify / NestJS
+
+**Arbitre** : `architecte`
+
+**Statut** : **Tranchée (2026-09-18)** : Fastify 5 dans `apps/api`, plus un worker issu du même paquet déployé comme service Railway distinct — voir `docs/mvp/02-architecture-3-espaces.md`
+
+**Échéance** : —
+
+## D3 — Structure du dépôt
+
+**Sujet** : Structure du dépôt : monorepo (front + back + backoffice) vs multi-repo
+
+**Arbitre** : `architecte`
+
+**Statut** : **Tranchée (2026-09-16)** : monorepo pnpm 11 (`apps/*`, `packages/*`), sans orchestrateur ; ne tranche pas D12
+
+**Échéance** : —
+
+## D4 — Librairie UI
+
+**Sujet** : Librairie UI : headless + utilitaire CSS, ou bibliothèque de composants — doit servir la charte noir/vert
+
+**Arbitre** : `architecte` + `expert-ux`
+
+**Statut** : **Tranchée (2026-09-16)** : Tailwind CSS v4 alimenté uniquement par un fichier de tokens unique, sans bibliothèque de composants ; nommage des tokens à confirmer par `expert-ux`
+
+**Échéance** : —
+
+## D5 — Accès aux données
+
+**Sujet** : Accès aux données : client Supabase direct, ORM (Prisma/Drizzle) ou couche d'accès maison
+
+**Arbitre** : `expert-database` + `architecte`
+
+**Statut** : **Tranchée (2026-09-18)** : Drizzle, migrations en SQL relu dans `supabase/migrations` (`drizzle-kit push` interdit), `@supabase/supabase-js` cantonné à `apps/api`, connexion sous **rôles Postgres dédiés sans `BYPASSRLS`**, **un schéma par domaine** et rien dans `public`
+
+**Échéance** : —
+
+## D6 — Palette
+
+**Sujet** : Palette exacte : nuance de vert de marque, échelle de gris, tokens clair/sombre
+
+**Arbitre** : `expert-ux` + Fondateur
+
+**Statut** : **Tranchée (2026-09-17)** : dark theme par défaut sur toute la plateforme, noir profond nuancé, vert de marque recalibré pour le fond sombre (WCAG AA) — voir `apps/web/src/styles/tokens.css` et §5.1. **Précisée le 2026-09-24** : le succès a sa propre teinte (sarcelle), distincte du vert de marque (`20` Q5). **Amendée par D73 (2026-10-28)** : ces valeurs ne régissent plus que la vitrine ; les espaces connectés suivent la charte KEO Emerald ; vert de marque unique `#1dd68a`, vitrine comprise (D73 F2, 2026-10-29)
+
+**Échéance** : —
+
+## D7 — Traitement fiscal de la commission
+
+**Sujet** : Traitement fiscal de la commission : montants hors taxes ou taxes comprises ; TVA / GST / sales tax sur chaque part, selon le pays de la société et celui des parties
+
+**Arbitre** : `expert-paiement-facturation` + expert-comptable + Fondateur
+
+**Statut** : Ouverte (dépend de D25)
+
+**Échéance** : Avant le Lot 4
+
+## D8 — Flux financier
+
+**Sujet** : Flux financier : INFLUX encaisse et reverse, ou facture sa seule commission
+
+**Arbitre** : `expert-paiement-facturation` + Fondateur
+
+**Statut** : **Tranchée (2026-09-16)** : INFLUX encaisse le montant du contrat et reverse le net créateur via un prestataire de paiement agréé
+
+**Échéance** : —
+
+## D9 — Prestataire de paiement
+
+**Sujet** : Prestataire de paiement (Stripe Connect ou équivalent) : compatible avec le pays de la société, les reversements internationaux et le multi-devises
+
+**Arbitre** : `expert-paiement-facturation` + `architecte`
+
+**Statut** : Ouverte, **bloquante** (dépend de D25)
+
+**Échéance** : Étude au Lot 2, tranchée avant le Lot 3
+
+## D10 — Signature électronique des contrats
+
+**Sujet** : Signature électronique des contrats : solution tierce ou acceptation en ligne horodatée (valeur juridique selon les pays)
+
+**Arbitre** : `expert-conformite-rgpd` + `architecte`
+
+**Statut** : Ouverte
+
+**Échéance** : Avant le Lot 4
+
+## D11 — Version 1 du matching
+
+**Sujet** : Version 1 du matching : règles explicites pondérées ou approche par score appris
+
+**Arbitre** : `expert-matching`
+
+**Statut** : Ouverte, repoussée : pas d'algorithme au MVP, collecte des données dès les Lots 2 et 3
+
+**Échéance** : Après le MVP
+
+## D12 — Backoffice
+
+**Sujet** : Backoffice : application séparée ou espace protégé de l'app membres
+
+**Arbitre** : `architecte` + `product-owner`
+
+**Statut** : **Tranchée (2026-09-18)** : **application séparée** `apps/backoffice`, hôte distinct, `noindex`, MFA, session courte, inscription impossible. Marque et créateur restent dans `apps/web` : deux applications, trois espaces
+
+**Échéance** : —
+
+## D13 — Périmètre du MVP et ordre de livraison des lots
+
+**Sujet** : Périmètre du MVP et ordre de livraison des lots
+
+**Arbitre** : `chef-de-projet` + Fondateur
+
+**Statut** : **Re-tranchée (2026-09-18)** : MVP **place de marché courtée**, **7 lots (0 à 6)**, 18 à 25 semaines — voir `docs/mvp/00-cadrage-mvp-v2.md`. *Abroge l'arbitrage du 2026-09-16 (« MVP opéré par l'équipe », Lots 0 à 5, `docs/cadrage-mvp.md`, document périmé).*
+
+**Échéance** : —
+
+## D14 — Modèle d'abonnement complémentaire à la commission
+
+**Sujet** : Modèle d'abonnement complémentaire à la commission (à moyen terme)
+
+**Arbitre** : Fondateur
+
+**Statut** : Ouverte
+
+**Échéance** : Après le pilote
+
+## D15 — Influenceurs mineurs
+
+**Sujet** : Influenceurs mineurs : exclusion ou régime spécifique
+
+**Arbitre** : Fondateur + `expert-conformite-rgpd`
+
+**Statut** : **Tranchée (2026-09-16)** : exclus au MVP. **Précisée le 2026-10-08 (fondateur)** : la seule règle d'âge est **« 18 ans ou plus »**, pour tous et dans tous les pays ; aucun libellé ne renvoie plus à la majorité du pays de résidence (`05` RG19, `17` §3.4 et C6). Les CGU `draft-2` (« au moins 18 ans et majeur selon la loi de votre pays ») sont à aligner dans une nouvelle version relue par le juriste
+
+**Échéance** : —
+
+## D16 — Pseudos et liens réseaux visibles ou non avant la signature
+
+**Sujet** : Pseudos et liens réseaux visibles ou non avant la signature
+
+**Arbitre** : Fondateur + `expert-ux` + `expert-conformite-rgpd`
+
+**Statut** : **Tranchée (2026-09-16), étendue le 2026-09-18 (A2), précisée le 2026-09-24 (D45)** : masqués (statistiques vérifiées, portfolio, badge). Le MVP n'ayant pas de signature dans la plateforme, le point de révélation devient **la seconde acceptation des parties, après validation par un commercial** (D45). Voir D40 et D46 pour la symétrie côté marque
+
+**Échéance** : —
+
+## D17 — Qui peut signer un contrat
+
+**Sujet** : Qui peut signer un contrat
+
+**Arbitre** : Fondateur + `expert-paiement-facturation` + `expert-conformite-rgpd`
+
+**Statut** : **Tranchée (2026-09-16)** : tout créateur majeur, particuliers compris
+
+**Échéance** : —
+
+## D18 — Mécanisme de file d'attente pour la synchronisation des leads
+
+**Sujet** : Mécanisme de file d'attente pour la synchronisation des leads
+
+**Arbitre** : `architecte`
+
+**Statut** : **Tranchée (2026-09-18)** : table `outbox_events` + worker `FOR UPDATE SKIP LOCKED`, verrou consultatif de transaction, priorité aux révocations ; elle transporte aussi les e-mails transactionnels de révélation d'identité
+
+**Échéance** : —
+
+## D19 — Règle d'arrondi
+
+**Sujet** : Règle d'arrondi sur les deux parts et dans chaque devise, attribution du reliquat
+
+**Arbitre** : `expert-paiement-facturation`
+
+**Statut** : Ouverte
+
+**Échéance** : Lot 4
+
+## D20 — Paiement, annulation, litige, remboursement
+
+**Sujet** : Moment du paiement, annulation, litige, remboursement : sort de chaque part
+
+**Arbitre** : `expert-paiement-facturation` + Fondateur
+
+**Statut** : Ouverte
+
+**Échéance** : Lot 4
+
+## D21 — Influence commerciale par pays ouvert
+
+**Sujet** : Règles de l'influence commerciale et statut d'INFLUX par pays ouvert (loi française du 9 juin 2023, FTC, ASA, Bureau de la concurrence du Canada, CONAR…) ; DSA pour les utilisateurs de l'UE
+
+**Arbitre** : `expert-conformite-rgpd` + juristes
+
+**Statut** : Ouverte
+
+**Échéance** : Niveau de base avant le Lot 1 ; chaque pays avant son ouverture
+
+## D22 — Facturation électronique selon le pays de la société
+
+**Sujet** : Facturation électronique selon le pays de la société
+
+**Arbitre** : `expert-paiement-facturation` + expert-comptable
+
+**Statut** : Ouverte (dépend de D25)
+
+**Échéance** : Lot 4
+
+## D23 — Structure des factures quand la commission est incluse dans le contrat
+
+**Sujet** : Structure des factures quand la commission est incluse dans le contrat : qui facture quoi à qui, mentions, taxes
+
+**Arbitre** : `expert-paiement-facturation` + expert-comptable
+
+**Statut** : Ouverte
+
+**Échéance** : Étude dès le Lot 1, tranchée avant le Lot 4
+
+## D24 — Créateurs particuliers et fiscalité
+
+**Sujet** : Créateurs particuliers : déclarations fiscales de la plateforme (DAC7, 1099…), part créateur facturée à un consommateur, risque de requalification
+
+**Arbitre** : `expert-conformite-rgpd` + `expert-paiement-facturation` + expert-comptable
+
+**Statut** : Ouverte
+
+**Échéance** : Lot 2
+
+## D25 — Pays d'établissement de la société
+
+**Sujet** : **Pays d'établissement de la société.** Critères : prestataire de paiement et reversements vers les zones visées, compte bancaire multi-devises, taxes sur les commissions, déclarations fiscales de la plateforme, droit applicable aux CGU, obligations RGPD, crédibilité auprès des annonceurs, coût
+
+**Arbitre** : **Fondateur** + avocat fiscaliste international ; dossier préparé par `expert-paiement-facturation` + `expert-conformite-rgpd`
+
+**Statut** : **Tranchée (2026-10-08, fondateur)** : société créée en **Angleterre** ; droit applicable aux CGU : Angleterre et pays de Galles. Textes `draft-2` (`apps/api/legal/`) rédigés en conséquence par `expert-conformite-rgpd` ; identité de la société en marqueurs `[…]` à remplir. Restent à instruire : D7, D9, D22, D23 (TVA HMRC, prestataire), représentant UE (RGPD art. 27, DSA art. 13), data protection fee, relecture solicitor
+
+**Échéance** : —
+
+## D26 — Pays ouverts aux contrats
+
+**Sujet** : Pays ouverts aux contrats : première vague (1 à 3 pays recommandés) puis vagues suivantes
+
+**Arbitre** : Fondateur + `expert-conformite-rgpd` + `expert-paiement-facturation`
+
+**Statut** : Ouverte
+
+**Échéance** : Étude au Lot 2, tranchée avant le Lot 4
+
+## D27 — Devises
+
+**Sujet** : Devises : liste fermée liée aux pays ouverts, devise fixée par contrat, prise en charge des frais de conversion
+
+**Arbitre** : `expert-paiement-facturation` + Fondateur
+
+**Statut** : Ouverte
+
+**Échéance** : Avant le Lot 2
+
+## D28 — Librairie de traduction
+
+**Sujet** : Librairie de traduction (français et anglais au lancement, formats de nombres et montants selon la langue)
+
+**Arbitre** : `architecte`
+
+**Statut** : **Tranchée (2026-09-16)** : next-intl, messages JSON ICU par langue, parité des clés FR/EN vérifiée à la compilation
+
+**Échéance** : —
+
+## D29 — Durée de la fenêtre de non-contournement et régime de la clause
+
+**Sujet** : Durée de la fenêtre de non-contournement et régime de la clause (**rédaction asymétrique** : ferme côté annonceur B2B, loyauté et obligation de déclaration côté créateur particulier, où une clause pénale risque la nullité)
+
+**Arbitre** : **Fondateur** + juriste, dossier par `expert-conformite-rgpd`
+
+**Statut** : Ouverte
+
+**Échéance** : Avant le Lot 1 (CGU)
+
+## D30 — Politique de signalement des coordonnées dans la messagerie
+
+**Sujet** : Politique de signalement des coordonnées dans la messagerie (signaler / masquer / bloquer) et interdiction des pièces jointes
+
+**Arbitre** : `product-owner` + `expert-ux` + Fondateur
+
+**Statut** : Ouverte
+
+**Échéance** : Avant le Lot 4
+
+## D31 — Sans objet (suite donnée par les utilisateurs)
+
+**Sujet** : *Sans objet.* La déclaration de la suite donnée par les utilisateurs est remplacée par la saisie de l'issue par le commercial (arbitrage A8)
+
+**Arbitre** : —
+
+**Statut** : **Close (2026-09-18)**
+
+**Échéance** : —
+
+## D32 — Portée de la clause de non-contournement pendant le pilote
+
+**Sujet** : Portée de la clause de non-contournement pendant le pilote
+
+**Arbitre** : **Fondateur**
+
+**Statut** : **Tranchée (2026-09-18, A5)** : clause posée dès les premières CGU, **usage suspendu pendant le pilote** par un moratoire daté, révocable et conditionné à la déclaration de l'affaire. Rédaction à valider par un juriste
+
+**Échéance** : —
+
+## D33 — Périmètre de la synchronisation vers Apollo
+
+**Sujet** : Périmètre de la synchronisation vers Apollo : tous les inscrits ou annonceurs + créateurs professionnels seulement
+
+**Arbitre** : `expert-conformite-rgpd` (**veto**) + Fondateur
+
+**Statut** : **Ouverte.** Orientation du fondateur (A7, 2026-09-18) : **tous les inscrits**, particuliers compris — **prise contre la recommandation**. Veto maintenu, **validation d'un juriste obligatoire avant la mise en ligne du Lot 1**. Périmètre lu en configuration, valeur d'attente conservatrice. **Pays (fondateur, 2026-10-19, contre le veto, qui reste opposable à l'entrée en `production`, D71)** : prospection Apollo ouverte **dans tous les pays par défaut**, `staging` et production ; un administrateur peut **exclure** des pays (`apollo_excluded_countries`, vide par défaut, migration 0141, motif `country_excluded`). La base légale (`apollo_legal_basis`, défaut `consentement_requis`) et le périmètre restent inchangés
+
+**Échéance** : Lot 1
+
+## D34 — Badge « Vérifié » : libellé, niveaux, péremption
+
+**Sujet** : Libellé, niveaux et péremption du badge « Vérifié » — ce qu'il affirme et ce qu'il n'affirme pas (**il ne garantit ni l'authenticité des abonnés, ni la performance**)
+
+**Arbitre** : `product-owner` + `expert-conformite-rgpd`
+
+**Statut** : Ouverte
+
+**Échéance** : Lot 2
+
+## D35 — Saisie libre d'adresses pour les e-mails du backoffice
+
+**Sujet** : Plafonds et conditions de la saisie libre d'adresses pour les e-mails du backoffice ; définition d'« adresse professionnelle » ; rôle habilité
+
+**Arbitre** : `expert-conformite-rgpd` (**veto**) + Fondateur
+
+**Statut** : Ouverte
+
+**Échéance** : Lot 5
+
+## D36 — Langue du backoffice
+
+**Sujet** : Langue du backoffice (français confirmé ou bilingue)
+
+**Arbitre** : Fondateur
+
+**Statut** : Ouverte
+
+**Échéance** : Lot 5
+
+## D37 — Méthode d'authentification
+
+**Sujet** : Méthode d'authentification
+
+**Arbitre** : `architecte` + `expert-cybersecurite` + `expert-ux`
+
+**Statut** : **Tranchée (2026-09-18)** : membres = **code à 6 chiffres par e-mail, sans mot de passe** ; backoffice = mot de passe + **TOTP obligatoire** ; pas de connexion Google / Instagram / TikTok au MVP. **Validée sous conditions par `expert-cybersecurite`**, avec **clause de caducité** : l'absence de second facteur côté membres n'est acceptable que parce qu'un compte ne contient aucune coordonnée bancaire au MVP — **dès que l'encaissement entre dans l'application (V2), un second facteur devient obligatoire**
+
+**Échéance** : —
+
+## D38 — Masse critique de profils publiés avant d'ouvrir la recherche libre aux marques
+
+**Sujet** : Masse critique de profils publiés avant d'ouvrir la recherche libre aux marques (une recherche vide est pire que pas de recherche)
+
+**Arbitre** : `chef-de-projet` + Fondateur
+
+**Statut** : Ouverte
+
+**Échéance** : Lot 3
+
+## D39 — SLA de la file de validation
+
+**Sujet** : SLA de la file de validation
+
+**Arbitre** : **Fondateur** + `product-owner`
+
+**Statut** : **Tranchée (2026-09-18)** : **1 jour ouvré** pour traiter une demande de contact ou une candidature. Délai affiché aux deux parties, alerte interne au bout de quelques heures, escalade au-delà. Le respect du délai est un indicateur suivi : un délai affiché puis non tenu abîme plus la confiance qu'un délai plus long tenu
+
+**Échéance** : —
+
+## D40 — Masquage symétrique des coordonnées côté marque
+
+**Sujet** : Masquage symétrique des coordonnées côté marque
+
+**Arbitre** : Fondateur + `expert-ux` + `expert-conformite-rgpd`
+
+**Statut** : **Tranchée (2026-09-18), précisée le 2026-09-24 (D46)** : **oui, masquage symétrique**. Nom, logo, site et secteur de la marque restent publics ; le **prénom** de l'interlocuteur n'est révélé qu'à l'ouverture de la mise en relation ; son **e-mail, son téléphone et sa page de contact ne sont jamais montrés aux membres** (D46). Sans cela, un créateur contacte la marque en direct et le commercial est contourné dans l'autre sens
+
+**Échéance** : —
+
+## D41 — Un compte peut-il être à la fois annonceur et créateur ?
+
+**Sujet** : Un compte peut-il être à la fois annonceur et créateur ?
+
+**Arbitre** : Fondateur + `product-owner`
+
+**Statut** : **Tranchée (2026-09-18)** : **un rôle par compte au MVP**, parcours nets et anonymisation garantie ; mais **le modèle de données prévoit dès le Lot 0 la liaison compte ↔ rôles**, pour que l'ouverture ultérieure ne coûte qu'un écran au lieu d'une migration sur des données en production
+
+**Échéance** : —
+
+## D42 — Renouvellement d'une collaboration
+
+**Sujet** : **Renouvellement d'une collaboration** entre deux parties déjà mises en relation sur une même campagne
+
+**Arbitre** : Fondateur + `chef-de-projet` + `product-owner` (avis `expert-matching`)
+
+**Statut** : **Tranchée (2026-09-24)** : renouvellement possible **uniquement par proposition INFLUX**, une fois l'affaire précédente terminée, avec un **lien vers la mise en relation d'origine** ; la créance (D29) reste rattachée à la première révélation. Définition exacte de « terminée » (perdue, annulée ou soldée) et champ de lien dans le modèle : `product-owner` + `expert-database`
+
+**Échéance** : —
+
+## D43 — Chemin d'envoi du code de connexion
+
+**Sujet** : **Chemin d'envoi du code de connexion** (e-mail transactionnel critique, priorité P0) : appel synchrone, file dédiée ou file partagée
+
+**Arbitre** : `architecte` (avis `expert-cybersecurite`, veto)
+
+**Statut** : **Tranchée (2026-09-19)** : **envoi synchrone dans la requête, par `apps/api`** (pas par Supabase Auth, dont le Send Email Hook exigerait d'exposer publiquement l'API) ; délais bornés, **une seule tentative sans réessai**, **plancher de réponse constant de 1 s** et `200` uniforme pour ne pas révéler l'existence d'un compte ; `leads.transactional_sends` est **un journal, jamais une file** ; `P1` et `P2` restent dans `outbox_events`. Contrat d'implémentation : `docs/mvp/02-architecture-3-espaces.md` §18.10. **Limite assumée : pas d'expéditeur de secours, une panne durable de Brevo empêche toute connexion de membre** (`docs/mvp/16-backoffice-emails-brevo.md` Q8, décision de risque du fondateur)
+
+**Échéance** : —
+
+## D44 — Statut du code existant
+
+**Sujet** : **Statut du code existant**
+
+**Arbitre** : **Fondateur**
+
+**Statut** : **Tranchée (2026-09-24)** : tout le code, **sauf la landing page**, est une **maquette de démonstration jetable**, destinée à faire valider la vision du MVP par des partenaires ; jamais mise en production, jamais reprise. Le produit réel repart du Lot 0 de `docs/mvp/00-cadrage-mvp-v2.md`. Voir §16
+
+**Échéance** : —
+
+## D45 — Moment de la révélation d'identité
+
+**Sujet** : **Moment de la révélation d'identité**
+
+**Arbitre** : **Fondateur**
+
+**Statut** : **Tranchée (2026-09-24) : double acceptation.** Le commercial valide, puis chaque partie accepte à l'écran ; les identités sont révélées **à la seconde acceptation**, simultanément. Sans réponse sous 7 jours : clôture sans suite, rien n'est révélé. `13` et `01` font foi ; `00` §4.2 et D16 sont alignés
+
+**Échéance** : —
+
+## D46 — Coordonnées de contact après l'ouverture
+
+**Sujet** : **Coordonnées de contact après l'ouverture (portée de D40)**
+
+**Arbitre** : **Fondateur** (+ `expert-conformite-rgpd`)
+
+**Statut** : **Tranchée (2026-09-24) : l'identité, jamais les coordonnées.** À l'ouverture, la marque voit les pseudos et réseaux du créateur ; le créateur voit le nom de la marque, le prénom et la fonction de l'interlocuteur. **L'e-mail, le téléphone et la page de contact ne sont jamais montrés aux membres**, dans aucun sens : le commercial envoie lui-même le contrat. `12` RG29 fait foi ; `06` RG35 à RG42, `13` RG76, `11` et `04` sont alignés (restriction du droit de lecture à signaler à `expert-database`)
+
+**Échéance** : —
+
+## D47 — Apartés privés commercial ↔ une seule partie dans une conversation
+
+**Sujet** : **Apartés privés commercial ↔ une seule partie** dans une conversation
+
+**Arbitre** : **Fondateur** + `expert-conformite-rgpd` (veto) + `product-owner`
+
+**Statut** : **Tranchée (2026-09-24) : conservés, et annoncés.** Le commercial peut échanger en privé avec la marque seule ou avec le créateur seul ; les CGU, la politique de confidentialité et l'écran d'information avant le premier message le disent aux deux parties. **Précisée le 2026-09-24 : un membre peut aussi ouvrir lui-même l'aparté** (l'onglet « Vous et INFLUX » est toujours présent pour les deux parties, ce qui ne révèle l'existence d'aucun aparté donné), et **un aparté est lu par tous les agents participants**, chaque lecture journalisée. Spécification écrite le 2026-09-24 : `12` §K (RG113 à RG146), **soumise au veto d'`expert-conformite-rgpd`** (information, confidentialité, droit d'accès) ; interface : `20` §7 ; **modèle de données : `04` §5.7.1**, droits : `03` C(23) à C(27). **Arbitrages du fondateur du 2026-09-24 sur le modèle** : cloisonnement **par règle d'accès à canal constant, doublée d'une contrainte en base** (et non par tables séparées) ; un signalement visant un message de l'**administrateur unique** reste en file sans instructeur, avec une alerte sans détail, jusqu'à l'arrivée d'un second administrateur. Reste l'avis d'`expert-cybersecurite` sur les deux fonctions privilégiées ajoutées (`04` §5.7.1 A2). **Confidentialité de l'aparté vis-à-vis de l'autre partie tranchée le 2026-09-24 (`12` Q12) : confidentiel par défaut.** Le commercial fait ses propres propositions (« INFLUX propose 1 200 EUR ») mais ne rapporte jamais à l'autre partie ce qu'une partie lui a confié sans son accord (`12` RG122). Reste la rédaction de cet engagement dans les CGU, validée par un juriste, avant le Lot 1
+
+**Échéance** : —
+
+## D48 — Discours public pendant le MVP
+
+**Sujet** : **Discours public pendant le MVP**
+
+**Arbitre** : **Fondateur** (+ `expert-conformite-rgpd`)
+
+**Statut** : **Tranchée (2026-09-24) : aligner, sans taux.** La landing page est réécrite pour le MVP courté (commercial intermédiaire, contrat et paiement hors plateforme, révélation à l'ouverture) avant sa mise en ligne. **Pendant le pilote, aucun pourcentage ni aucun net estimé n'est affiché**, ni sur la landing ni dans les espaces membres : « commission INFLUX incluse, précisée par votre commercial ». Le net créateur estimé de `07`, `11` et `13` est suspendu. Le barème de 35 % reste le barème par défaut (§3)
+
+**Échéance** : —
+
+## D49 — Dépassement du délai de la file de validation
+
+**Sujet** : **Dépassement du délai de la file de validation**
+
+**Arbitre** : `chef-de-projet` + `product-owner`, **arbitré par le fondateur**
+
+**Statut** : **Tranchée (2026-09-24) : l'entrée reste en file** jusqu'à décision, marquée hors délai ; l'initiateur est prévenu, un administrateur est alerté à J+1 (`13` RG26, RG99). Aucune expiration au seul écoulement du délai ; le skill `intermediation-tracking` est aligné
+
+**Échéance** : —
+
+## D50 — Qui écrit sur une affaire
+
+**Sujet** : **Qui écrit sur une affaire**
+
+**Arbitre** : `expert-cybersecurite` + `chef-de-projet`, **arbitré par le fondateur**
+
+**Statut** : **Tranchée (2026-09-24) : le commercial responsable et l'administrateur seulement** (`14` RG39). Un autre agent lit et demande la réattribution, journalisée. `03` §3.5 est à aligner par `expert-cybersecurite`
+
+**Échéance** : —
+
+## D51 — Qui retire un badge
+
+**Sujet** : **Qui retire un badge**
+
+**Arbitre** : `architecte` + `product-owner`, **arbitré par le fondateur**
+
+**Statut** : **Tranchée (2026-09-24) : un agent demande, un administrateur distinct approuve** (`03` §3.2, `08` RG75) ; tant qu'une seule personne cumule les deux rôles, confirmation différée journalisée. `06` est aligné
+
+**Échéance** : —
+
+## D52 — Suivi de l'exécution après signature
+
+**Sujet** : **Suivi de l'exécution après signature**
+
+**Arbitre** : `chef-de-projet` + `product-owner` + `expert-paiement-facturation`, **arbitré par le fondateur**
+
+**Statut** : **Tranchée (2026-09-24) : suivi léger par le commercial.** Dans la fiche d'affaire, le commercial saisit la date de publication prévue et réelle, le lien de publication et la validation par la marque (déclarée par lui) ; un **qualificatif « livraison »** (attendue · publiée · validée · en retard), cumulable avec l'état comme `stalled` et `disputed`. Aucun écran membre. Lot 5. Cadre : additif de `14`
+
+**Échéance** : —
+
+## D53 — Affaires hors plateforme et relations préexistantes
+
+**Sujet** : **Affaires conclues hors plateforme, relations préexistantes et mesure de départ du pilote**
+
+**Arbitre** : **Fondateur** + `expert-paiement-facturation` + `expert-conformite-rgpd`
+
+**Statut** : **Tranchée (2026-09-24) : mesure de départ + registre, aucune affaire hors plateforme.** (1) Avant le pilote, mesure de l'activité au téléphone (affaires traitées par semaine) pour disposer d'un point de comparaison ; (2) **registre des relations préexistantes**, déclarées à l'arrivée d'un client, qui matérialise la clause de sauvegarde (`01` §8.1) ; (3) les clients du réseau du fondateur entrent par invitation (D54) puis **proposition INFLUX** ; `14` RG2bis maintenue
+
+**Échéance** : —
+
+## D54 — Invitation nominative par un commercial
+
+**Sujet** : **Invitation nominative par un commercial**
+
+**Arbitre** : `chef-de-projet` + `product-owner` + `expert-marketing`, **arbitré par le fondateur**
+
+**Statut** : **Tranchée (2026-09-24) : lien d'invitation nominatif.** Le commercial génère une invitation pour une personne ; l'inscription reste faite par elle (CGU, consentement, attestation) ; à l'inscription, le commercial devient son **commercial responsable** et la source « invitation » est enregistrée (D55). Aucun profil pré-rempli par un tiers. L'e-mail d'invitation suit les règles de la saisie libre (D35). Lot 1. Cadre : additif de `05`
+
+**Échéance** : —
+
+## D55 — Source d'acquisition à l'inscription
+
+**Sujet** : **Source d'acquisition à l'inscription**
+
+**Arbitre** : `expert-marketing` + `expert-conformite-rgpd`, **arbitré par le fondateur**
+
+**Statut** : **Tranchée (2026-09-24) : UTM + question.** Enregistrement des paramètres UTM, du site d'origine et du code d'invitation **de la session d'inscription**, sans traceur de suivi entre visites, plus une question facultative « Comment avez-vous connu INFLUX ? » (liste fermée). Transmis à Brevo comme attributs de segmentation. Lot 1. Cadre : additif de `05` ; absence de traceur à valider par `expert-conformite-rgpd`
+
+**Échéance** : —
+
+## D56 — Protection de la démonstration
+
+**Sujet** : **Protection de la démonstration**
+
+**Arbitre** : **Fondateur** + `expert-cybersecurite`
+
+**Statut** : **Tranchée (2026-09-24) : URL protégée.** La maquette n'est montrée hors du poste local que sur une URL **protégée par un mot de passe** communiqué à chaque partenaire, avec un bandeau « Démonstration — données fictives », **non indexée**, et **jamais sur le nom de domaine de production**. Mission 6.4 de `implementation_plan.md` (branche `demo`)
+
+**Échéance** : —
+
+## D57 — Politique de sauvegarde du produit réel
+
+**Sujet** : **Politique de sauvegarde du produit réel**
+
+**Arbitre** : `architecte` + `expert-database` + `expert-conformite-rgpd`, **arbitré par le fondateur**
+
+**Statut** : **Tranchée (2026-09-24) : perte maximale de quelques minutes.** Restauration à un instant donné (option payante de Supabase, coût à chiffrer par `architecte`) dès la mise en production, et **test de restauration régulier** (pas seulement au Lot 6). L'architecte fixe au Lot 0 la fréquence des tests et la reprise des purges RGPD après une restauration (`02` addendum du 2026-09-24)
+
+**Échéance** : —
+
+## D58 — Vue mobile du backoffice
+
+**Sujet** : **Vue mobile du backoffice**
+
+**Arbitre** : **Fondateur** + `architecte` + `expert-cybersecurite`
+
+**Statut** : **Tranchée (2026-09-24) : oui, limitée à deux gestes** — lire et répondre dans une conversation dont l'agent est participant ; prendre en charge, valider ou refuser une entrée de la file. Le reste du backoffice reste un poste de travail (`17b` M4). Mêmes garanties qu'au bureau (D12, D37 : hôte distinct, second facteur, session courte) ; conditions de session sur téléphone à fixer par `architecte` + `expert-cybersecurite`, écrans en additif de `17b` par `expert-ux` (`20` Q3)
+
+**Échéance** : Conditions avant le Lot 4
+
+## D59 — Direction visuelle de la landing
+
+**Sujet** : **Direction visuelle de la landing**
+
+**Arbitre** : **Fondateur** (+ `expert-ux`)
+
+**Statut** : **Tranchée (2026-09-24) : carte métallisée premium conservée**, avec un **budget d'effets** : un seul effet spectaculaire par écran visible. Revue visuelle de la page rendue par `expert-ux` pour appliquer ce budget (`20` Q4)
+
+**Échéance** : Revue avant la mise en ligne du Lot 1
+
+## D60 — Surveillance de production
+
+**Sujet** : **Surveillance de production : journaux, erreurs, lenteurs et pics d'appels**
+
+**Arbitre** : **Fondateur** ; conception `architecte` + `integrateur`, avis `expert-cybersecurite` et `expert-conformite-rgpd` (**veto**)
+
+**Statut** : **Tranchée (2026-09-24) : tout en interne**, aucun outil de surveillance externe (Sentry et sonde externe écartés). Journaux `pino` dans Railway ; erreurs serveur et navigateur (espaces membres et backoffice, **jamais la landing**) regroupées dans un schéma `ops` de notre base ; temps de réponse et volume d'appels agrégés chaque minute par route ; **sonde interne** (le worker vérifie le site chaque minute, l'API surveille le worker) ; alertes par e-mail et écran « Santé technique » au backoffice. **Risque accepté** : une panne complète de Railway n'est signalée par personne chez INFLUX (parade : notifications des pages d'état des prestataires). **Rodage de 30 jours** après chaque mise en ligne. Interdits : corps de requêtes, messages, e-mails, codes, jetons, **enregistrement de session**. Restent ouverts : destinataires des alertes la nuit et le week-end, offre Railway Pro, rodage. Détail : `02` §20
+
+**Échéance** : Collecte au Lot 0 ; alertes, sonde et écran actifs avant la mise en ligne du Lot 1
+
+## D61 — Métriques prioritaires des créateurs
+
+**Sujet** : **Métriques prioritaires des créateurs**
+
+**Arbitre** : **Fondateur** ; définitions et bornes : `expert-matching` + `product-owner`
+
+**Statut** : **Tranchée (2026-09-25)** : pour chaque réseau d'un créateur, INFLUX suit **en priorité** trois chiffres : la **taille de la communauté** (nombre d'abonnés), le **rythme de publication** (publications des 30 derniers jours) et le **nombre moyen de commentaires par publication** (12 dernières publications, hors jeux-concours). Ils sont **obligatoires** sur chaque ligne de réseau, **affichés en tête de ligne** (en tranches avant l'ouverture de la mise en relation, en valeur exacte après), **constatés par l'agent** lors de la vérification d'audience et **historisés** pour suivre leur évolution. Le taux d'engagement et la portée deviennent des indicateurs **secondaires**. Règles : `07` §E bis (RG113 à RG119), `08` RG38bis, `10` F24 et F25 ; modèle de données : `04` §12.12. **Restent ouverts** : obligation sur chaque réseau ou sur le seul compte principal (`07` Q15), définitions et bornes des tranches (`07` Q16), constat sur le profil public et charge de l'agent (`07` Q17, `17b` geste 5a), conservation de l'historique (`07` Q18, veto `expert-conformite-rgpd`), entrée des deux nouveaux filtres dans le socle de la recherche (`10` Q13)
+
+**Échéance** : Q15 et Q16 avant le Lot 2
+
+## D63 — Consentement à l'enregistrement dans Brevo et Apollo obligatoire à l'inscription
+
+**Sujet** : **Consentement à l'enregistrement dans Brevo et Apollo obligatoire à l'inscription**
+
+**Arbitre** : **Fondateur** ; `expert-conformite-rgpd` (**veto**)
+
+**Statut** : **Tranchée par le fondateur (2026-09-25), contre la recommandation** : sans consentement, **aucun compte n'est créé**. Chaque inscription devient un contact Brevo (sous 1 h) et, quand la configuration l'autorise, un contact Apollo (sous 24 h). Abroge `05` RG30 (« refuser n'empêche jamais de créer un compte »). **Risque inscrit, non levé** : un consentement conditionnant l'accès au service risque de ne pas être « libre » au sens du RGPD (art. 7 §4) et d'être invalide — ce qui priverait alors l'envoi Brevo et Apollo de toute base légale. Le retrait ultérieur du consentement reste possible à tout moment et ne supprime pas le compte (`05` RG34, RG94). **Validation d'un juriste obligatoire avant la mise en ligne du Lot 1**, comme D33
+
+**Échéance** : Avant la mise en ligne du Lot 1
+
+## D62 — Clés Brevo et Apollo sur le poste de développement
+
+**Sujet** : **Clés Brevo et Apollo sur le poste de développement**
+
+**Arbitre** : **Fondateur** ; conditions relues par `expert-cybersecurite`
+
+**Statut** : ***Amendée par D70 (2026-10-18)** : le fichier local porte désormais les valeurs de `staging`, et les « comptes de test » sont ceux de `staging` ; les conditions ci-dessous ne valent plus que pour la pile locale et la CI.* **Tranchée (2026-09-25) : comptes de test dédiés.** Un poste local peut porter les clés de **comptes Brevo et Apollo.io de test**, ouverts spécialement et distincts des comptes de production, dans `apps/api/.env.local` (ignoré par Git ; pas `.env`, que la maquette charge). Les clés de production restent en production seule. Conditions cumulatives : aucune donnée réelle dans les comptes de test ; Brevo jamais en `live` (`redirect` vers les adresses internes au plus) et sans aucun des trois sous-domaines d'envoi de production ; Apollo sans boîte d'envoi ni séquence active, `live` seulement avec la liste blanche ; ces clés n'entrent ni en CI ni dans Railway, les tests automatisés restent sur la doublure. `staging` n'est pas concerné. Règles : `16` RG115 et RG148, skill `env-secrets` règle 6
+
+**Échéance** : Conditions à relire par `expert-cybersecurite` avant le Lot 0
+
+## D64 — Socle technique du jalon J1
+
+**Sujet** : **Socle technique du jalon J1** : exécution de `apps/api`, dépendances, passe-plat
+
+**Arbitre** : `architecte` (avis `expert-cybersecurite` sur le passe-plat)
+
+**Statut** : **Tranchée (2026-09-25)** : `apps/api` **sans étape de construction** (effacement des types par Node, **Node ≥ 24.12 en production**) ; versions exactes fixées (Fastify 5.12.5, zod 4.6.5, pino 10.3.1, Drizzle 0.45.3, postgres 3.4.9, ~~supabase-js 2.117.1~~ **auth-js 2.117.2** (révisé au J3, `21` J3-B), **Next.js 16.3.6 pour les deux fronts**, correctif de sécurité) ; `tsup`, `fastify-type-provider-zod` et `pino-pretty` écartés ; **un secret interne par front**, liant `/v1/bo/…` au backoffice ; **G5 levée au J1** avec sa garde de remplacement (EC-13). Détail : `21` §4, J1-A à J1-I ; écarts ouverts EC-19 à EC-24
+
+**Échéance** : Le secret par front est soumis à `expert-cybersecurite` à sa revue de fin de J2
+
+## D65 — Connexion OAuth YouTube et trajectoire de remplacement des challenges de bio
+
+**Sujet** : **Connexion OAuth YouTube et trajectoire de remplacement des challenges de bio**
+
+**Arbitre** : **Fondateur** ; cadrage technique : `architecte` + `product-owner`
+
+**Statut** : **Tranchée (2026-09-30) : OAuth YouTube en fin de MVP.** Pour la vérification de compte (propriété de chaîne et relevé de métriques), l'intégration OAuth directe est ajoutée en **fin de MVP pour YouTube** (Google OAuth 2.0 / YouTube API). Pour les autres réseaux (Instagram, TikTok, etc.), le **challenge de bio temporaire** (code public constaté par un agent, `08` RG21 à RG30) est la méthode de départ au lancement, et a vocation à être **progressivement remplacé par du OAuth** au fil des agréments API. Cadre : `00` §6.2 et §8, `08` §C et Hors périmètre, `07` Hors périmètre, `21` §7
+
+**Échéance** : Fin du MVP (Lot 6 / transition V2)
+
+## D66 — Reprise du parcours d'inscription après rechargement ou changement de langue
+
+**Sujet** : **Reprise du parcours d'inscription après rechargement ou changement de langue** (`05` RG111, `17` §3 « Changement de langue », RG130) — issu du J5 commit 5
+
+**Arbitre** : `architecte` (avis `expert-cybersecurite` à la revue de fin de J5)
+
+**Statut** : **Tranchée (2026-10-08) : aucun stockage nouveau, deux mécanismes.** *Contexte* : le commit 5 renvoie à l'écran 1 sur rechargement ou changement de langue aux écrans 2-3, faute de stockage navigateur (02 §13.2, D37, garde ESLint/test). *Options* : (a) brouillon de parcours en base côté `apps/api` — écarté : nouvelle donnée personnelle de non-inscrits (nom, société), purge, RLS, durée de conservation, pour un gain marginal ; (b) exception `sessionStorage` — écartée : brèche dans une garde transverse, lisible par tout script de la page, survit sur poste partagé, précédent ; (c) **retenue** : l'état du parcours est déjà détenu côté serveur dans les deux jetons signés `httpOnly` existants (connexion 15 min : adresse, phrase ; inscription 30 min : adresse vérifiée). *Décision* : **(1) rechargement** — `GET /v1/auth/journey` (sans base, sans GoTrue, `no-store`) lit ces cookies et rend l'étape (`none` · `code` avec adresse, phrase, délai de renvoi restant · `details` avec adresse) ; la porte vient de l'URL, jamais du jeton ; les champs saisis à l'écran 3 **ne sont pas conservés** au rechargement (RG111 exige le profil et l'étape, pas la saisie : précision, pas amendement) ; `POST /v1/auth/journey/reset` efface les deux cookies quand la personne change d'adresse ou recommence. **(2) changement de langue** — navigation client : l'état complet (étape, porte, adresse, phrase, saisie de l'écran 3) passe par une variable de module **en mémoire** du front, consommée au remontage dans l'autre langue ; jamais de stockage. L'URL est resynchronisée sur la porte choisie (`history.replaceState`). *Conséquences* : 2 routes, 1 schéma de contrat, aucun schéma SQL ; l'adresse revient au navigateur de son propriétaire pendant la vie du jeton. *Réversible* : suppression des deux routes et du module. Détail : `archives/jalons/j5-fiche.md` « Issu du commit 5 »
+
+**Échéance** : J5, avant la clôture
+
+## D67 — Une configuration de synchronisation manquante est un incident
+
+**Sujet** : **Une configuration de synchronisation manquante est un incident, jamais un cas normal** (listes et modèles Brevo, réglages Apollo, clé absente en production) — issu du constat `staging` du 2026-10-17
+
+**Arbitre** : `architecte` ; avis `expert-cybersecurite` (refus de démarrage, garde en base) à la revue de fin de J9
+
+**Statut** : **Tranchée par `architecte` le 2026-10-17, avec amendements** (proposée le même jour par `expert-integrations-api`). *Arbitrages d'`architecte`* : **(i)** la remise en file automatique est une étape de la boucle E-3 `leads.drain_outbox`, sur le modèle de la reprise des orphelines (au démarrage, puis au plus une fois par minute) — ni tâche E-4, ni déclencheur sur `leads.sync_settings` : aucune entrée ni aucun motif nouveau au `03` §P7, aucun `GRANT` nouveau, et la préparation du connecteur reste **seule juge** de la validité d'un réglage (pas de seconde validation en SQL) ; une ligne repart quand la clé de réglage en cause a été modifiée **après le début de la tentative** qui a échoué, ou, pour `credentials_missing`, quand le processus a démarré après (`05` RG161) ; **(ii)** garde « jamais `NULL` » par déclencheur validée dans son principe, conception à `expert-database` ; seule une migration relue peut la lever ; **(iii)** contrat de préparation complété par l'ordre d'évaluation (`05` RG164) ; **(iv)** `credentials_missing` en production seulement validé — en pratique Apollo seul, Brevo exigeant déjà clé et expéditeur au démarrage en production ; **(v)** journal `settings.changed` écrit par un déclencheur sur `leads.sync_settings`, quel que soit le chemin (écran ou SQL) ; écran `admin` des identifiants Brevo non exigé, renvoyé au Lot 5 comme option ; **(vi)** points de revue `expert-cybersecurite` listés dans `05` additif D67, « À relire ». *Constat* : liste Brevo `NULL` (valeur de départ de `0103`) ⇒ `skipped` `list_not_configured`, évalué avant le `dry_run`, rangé en « cas normal » non rejouable (`sync-causes.ts`, `actions-routes.ts`) : en production, chaque inscrit serait perdu pour le CRM sans alerte. *Options* : (a) refus de démarrage seul — écarté : ces réglages vivent en base et changent à chaud ; arrêter le worker à chaud bloquerait aussi les retraits et suppressions, au délai légal ; (b) maintien en attente sans tentative — écarté : invisible dans les compteurs d'échec, retient les lignes suivantes du même compte ; (c) **retenue** : quatre pièces. **(1)** Échec de nature incident, sans réessai, alerté (AL25, `02` §20.6), compté dans RG79 et RG105, rejouable, **remis en file automatiquement** dans les 15 min suivant la correction, même clé d'idempotence (`05` RG160, RG161). **(2)** Refus de démarrage du worker **en production** limité aux réglages indispensables à tout inscrit et non modifiables par écran : listes des deux rôles, deux modèles de bienvenue, `retry_schedule`, `rate_limits`, réglages Apollo lisibles si une clé Apollo est présente (`05` RG162, `02` §12.5). **(3)** Un identifiant Brevo renseigné ne redevient jamais `NULL`, contrôle en base (`05` RG163). **(4)** En `dry_run`, la trace `would_send` précède le verdict ; `staging` porte les identifiants du compte Brevo de test (`05` RG164). *Structurante* (pas un `EC-*`) : elle change la sémantique « ignoré / échec » que lisent le backoffice, les alertes et l'objectif de 99 %, et ajoute une condition de démarrage en production. **Inchangés** : `no_consent` (RG80, RG103), RG84, les verrous de `02` §12.4, D33, D63. *Réversible* : retour des codes en `skipped`, retrait du contrôle de démarrage et des deux déclencheurs (une migration). *Arbitrages `chef-de-projet` du 2026-10-17* : bienvenue rattrapée sans âge limite (sous RG161) ; aucun écran `admin` des identifiants au MVP, variables du `worker` (D68) ou SQL (RG163). Règles : `05` additif D67 (RG160 à RG164, CA82 à CA88), `16` RG161, `15` AL25, `18` TM1.11 à TM1.16
+
+**Échéance** : Avant la mise en production du Lot 1 (`21` §5.8)
+
+## D68 — Identifiants Brevo par variables d'environnement
+
+**Sujet** : **Identifiants Brevo (listes et modèles) fournis par variables d'environnement du worker** — issu de la configuration du poste du fondateur, 2026-10-17
+
+**Arbitre** : **Fondateur**
+
+**Statut** : **Tranchée par le fondateur le 2026-10-17 (option 1 : l'environnement alimente la base) ; amendée par D69 le 2026-10-18 : listes seulement, plus aucun modèle.** *Contexte* : les identifiants des listes et des modèles Brevo ne se posaient que par SQL dans `leads.sync_settings` (`0103`, EC-8, runbook `staging` étape 5) ; le fondateur exige de les configurer comme le reste, par variables d'environnement. *Options* : (1) **retenue** : les variables alimentent la base au démarrage du worker, la base reste la source de vérité lue à chaque consommation (`05` RG37) ; (2) variables seules, table ignorée — écartée : reprise de `0103`, des contrôles de D67 et des tests, redéploiement à chaque changement. *Décision* : cinq variables **facultatives, `worker` seul** : `BREVO_LIST_ID_ADVERTISERS`, `BREVO_LIST_ID_CREATORS` (→ `brevo_list_ids`), `BREVO_TEMPLATE_ID_WELCOME_ADVERTISER`, `BREVO_TEMPLATE_ID_WELCOME_CREATOR`, `BREVO_TEMPLATE_ID_EMAIL_CHANGED_NOTICE` (→ `brevo_template_ids`) ; entier positif, contrôlé au démarrage (refus nommant la variable, jamais la valeur). Au démarrage, avant la première boucle E-3 et sous son motif `leads.drain_outbox` (aucun motif nouveau au `03` §P7), le worker appelle `leads.apply_brevo_ids_from_environment(jsonb, jsonb)` (`0139`, `SECURITY DEFINER`, propriétaire `influx_leads_definer`, `EXECUTE` à `influx_worker` seul) : seules les sous-clés **fournies** sont fusionnées, liste fermée, jamais de `NULL` (une variable absente ne touche pas la base, cohérent avec `05` RG163) ; une clé modifiée écrit `settings.changed` {key, from, to, reason_code `environment`} sur le sujet de EC-J8-28, `updated_by_account_id` remis à `NULL` ; une valeur identique n'écrit rien. Un échec (valeur refusée, base injoignable) **arrête le worker** (sortie 1, redémarrage par Railway) : il ne tourne jamais avec une base qui contredit son environnement. *Précédence* : une variable renseignée l'emporte à chaque démarrage sur une valeur posée par SQL ; pour changer un identifiant à chaud, on modifie la variable (redémarrage) ou on la retire et on passe par SQL. *Nouveau droit* : `influx_leads_definer` reçoit `UPDATE (value, updated_by_account_id)` sur `leads.sync_settings`, borné par politique aux deux clés Brevo. *Articulation D67* : le contrôle de démarrage RG162 s'évalue **après** cette étape ; quand le déclencheur de journal de D67 (v) sera livré, la fonction cesse d'écrire elle-même `settings.changed` (pas de double ligne). *Réversible* : retrait des variables et de l'étape, une migration (`drop function`, retrait du droit et de la politique). Revue `expert-cybersecurite` groupée en fin de J9
+
+**Échéance** : J9
+
+## D69 — Tous les e-mails de la file sont rédigés par INFLUX
+
+**Sujet** : **Tous les e-mails de la file sont rédigés par INFLUX, Brevo n'assure que le transport** (bienvenue annonceur et créateur, avis de changement d'adresse) — issu de la configuration du poste du fondateur, 2026-10-18
+
+**Arbitre** : **Fondateur**
+
+**Statut** : **Tranchée par le fondateur le 2026-10-18.** *Contexte* : `16` RG67 place déjà le texte des e-mails transactionnels dans les fichiers de traduction d'INFLUX ; EC-8 avait pris le raccourci de modèles Brevo référencés par identifiant pour `account.welcome_advertiser`, `account.welcome_creator` et `auth.email_changed_notice`, alors que `auth.new_device`, `privacy.request_received` (`0128`) et `privacy.export_ready` étaient déjà rédigés par INFLUX. Le fondateur refuse les modèles Brevo. *Décision* : **(1)** les trois e-mails sont rédigés par le worker à partir de `apps/api/src/locales/{fr,en}/email.json` (sujet, HTML, texte brut ; corps `POST /smtp/email` sans `templateId` ni `params`), un texte par rôle pour la bienvenue (`05` RG86 : aucun contenu promotionnel, ni montant ni pourcentage, D48), un texte par côté pour l'avis (`previous` / `current`, aucun ne nomme l'autre adresse) ; **(2)** **aucun lien** (choix du fondateur) : le contrôle de sortie de RG158 s'applique à tous les e-mails rédigés par INFLUX ; **(3)** `0140` vide `brevo_template_ids` (`{}`, la clé reste dans la liste fermée, plus rien ne la lit) ; une ligne de code inconnu échoue `template_not_supported` ; une fois par compte (RG76, RG90) et idempotence inchangées ; **(4)** **D68 amendée** : la fonction ne reçoit plus que les listes (`apply_brevo_ids_from_environment(jsonb)`), les variables `BREVO_TEMPLATE_ID_*` sont **refusées au démarrage** (« no longer read »), jamais ignorées ; `BREVO_LIST_ID_ADVERTISERS` et `BREVO_LIST_ID_CREATORS` restent. *Articulation D67* (documents en cours) : le contrôle de démarrage RG162 et RG164 ne peuvent plus exiger « deux modèles de bienvenue » ; seules les listes restent des réglages Brevo indispensables. À répercuter dans `05` additif D67, `02` §12.5, `21` §5.8 et le runbook `staging` étape 5. *Textes* : rédigés par l'agent, **relecture du fondateur requise** avant la production (D48). *Réversible* : une migration remet les clés, le connecteur retrouve la voie par modèle (historique `git`). Revue `expert-cybersecurite` groupée en fin de J9
+
+**Échéance** : J9
+
+## D70 — staging iso-production
+
+**Sujet** : **`staging` se comporte exactement comme la production, et les agents IA l'exploitent seuls** (envois réels, listes Brevo, contacts Apollo ; déploiement et configuration Railway et Supabase ; `.env.local` = valeurs de `staging`) — demande du fondateur, 2026-10-18
+
+**Arbitre** : **Fondateur** ; mécanisme : `architecte` ; conditions relues par `expert-cybersecurite` (revue groupée de fin de chantier) ; `expert-conformite-rgpd` à la revue du Lot 6
+
+**Statut** : **Tranchée par le fondateur le 2026-10-18, contre la recommandation de `03` §6.8** (verrous 2 et 3, « aucune clé Apollo en `staging` »). **(1) Iso-production.** `staging` envoie réellement (code de connexion, bienvenue, avis), inscrit les contacts dans les listes Brevo et crée les contacts Apollo **comme la production** : `BREVO_MODE=live` (`api` et `worker`), `SYNC_MODE=live`, sans redirection ni liste blanche, mêmes exigences de démarrage que la production (webhook Brevo, exécution « mes données », purge GoTrue, contrôle D67 RG162) et mêmes réglages `leads.sync_settings` que ceux prévus pour la production. **Seules différences admises (liste fermée)** : la valeur d'`INFLUX_ENV` ; des comptes et des clés propres à `staging` (Supabase, Brevo, Apollo, Railway) ; un domaine d'envoi propre à `staging`, **jamais** les trois sous-domaines de production (`16` RG9) ; `noindex` et bandeau d'environnement (`16` RG118) ; le marqueur `influx_staging` et les scripts de démonstration ; des données synthétiques ou de testeurs internes. Toute autre différence est un défaut. **(2) Verrous** (`02` §12.4, `03` §6.8) : verrou 1 **maintenu** (une clé de production n'existe qu'en production) ; verrous 2 et 3 **levés pour `staging`**, conservés pour la pile locale, la CI et les tests de bout en bout (doublure ; `16` RG148 et `21` §0 règle 4 inchangées : aucun test automatisé n'appelle un service réel) ; verrou 4 **inchangé** (aucune donnée de production dans `staging`). Un envoi réel depuis `staging` n'est plus un incident ; en sont un : un envoi réel depuis la pile locale ou la CI, une clé de production hors production (`16` RG120 amendée). **(3) Fichier local.** `apps/api/.env.local` (et ceux des fronts) porte les valeurs de **`staging`, et uniquement `staging`** ; tous les agents peuvent le lire et l'employer (lecture ouverte par le fondateur dans `.claude/settings.json`). Interdits : y placer une valeur de production ; recopier une valeur dans une réponse, un document, un commit, un journal ou un ticket ; le charger dans un test automatisé. `apps/api/.env.staging.local` n'existe plus. **(4) Autonomie des agents sur `staging`**, sans demander : Railway (variables, réglages, redéploiement et retour arrière, journaux), Supabase (`config push`, SQL de données et de réglages, clés du projet de `staging`), environnement GitHub `staging` (secrets et variables), comptes Brevo et Apollo de `staging` par API (listes, attributs, webhooks), comptes de démonstration et publication des documents. **Restent sur confirmation du fondateur** : toute action sur la production, **lecture comprise** ; création ou suppression d'un projet, d'un environnement ou d'un service ; remise à zéro de la base de `staging` ; DNS et domaines d'envoi. Inchangés : migrations par le seul job « Migrate staging » (`supabase db push` interdit), aucun `railway up` (traçabilité du commit déployé), production sur accord explicite (`CLAUDE.md` §7 règle 4). **(5) Mécanisme, tranché par `architecte` le 2026-10-18** (option recommandée du plan, précisée) : `INFLUX_ENV` prend trois valeurs, **sans valeur par défaut** (absente ou inconnue ⇒ refus de démarrage) : `development` (pile locale lancée par Playwright, CI, tests ; verrous 2 et 3, doublure), `staging`, `production`. **Un seul prédicat**, `isDeployedEnvironment`, dans `apps/api/src/config/`, écrit en négatif (« toute valeur autre que `development` ») : une valeur ajoutée un jour prend d'office les exigences strictes. Il remplace chacun des tests `=== "production"` des schémas de configuration d'`api` et de `worker`. **Le code métier ne lit plus l'environnement** : la configuration remet au connecteur son filtre de destinataires (liste blanche en `development`, « sans restriction » en environnement déployé ; valeur discriminée, jamais `null`), ce qui retire le test de `drain.ts`. En environnement déployé, `BREVO_TEST_RECIPIENTS` et `NON_PRODUCTION_RECIPIENT_ALLOWLIST` sont **refusées**, jamais ignorées (une variable dormante revivrait au premier changement d'`INFLUX_ENV`). **Ajout** : `INFLUX_ENV=development` est refusé au démarrage quand `RAILWAY_ENVIRONMENT_NAME` est présent (un service Railway ne se relâche pas en changeant une variable). Restent sur `production`, à dessein : la garde des scripts d'exploitation (`scripts/script-guards.ts`, qui doivent tourner sur `staging`) et `noindex` (`apps/web/next.config.ts`, différence admise). *Variantes écartées* : (i) déduire « déployé » de `RAILWAY_ENVIRONMENT_NAME` — moins de fichiers touchés, mais **ouverte en cas d'échec** : un hébergement sans cette variable ferait tourner la production en `dry_run`, muette ; (ii) garder deux valeurs, tests en `staging` — impossible sans appeler le vrai Brevo (URL officielle exigée en environnement déployé, `16` RG148) ; (iii) indicateur de test distinct d'`INFLUX_ENV` — une variable et une combinaison interdite de plus pour le même effet. Le verrou 1 n'est pas affaibli : il est d'exploitation (comptes et clés distincts, jeton Railway limité à `staging`), et aucun prédicat ne lit ni ne relâche une clé. Sites et exigences : `02` §12.4. **Risques inscrits, non levés** : (a) tant que `staging` est joignable par tous, une personne réelle peut s'y inscrire et devenir un contact des comptes Brevo et Apollo de `staging`, hors du cadre juridique de la production (D25, D33, D63) — **accès restreint refusé par le fondateur le 2026-10-18** (comptes Supabase, Brevo et Apollo de `staging` distincts de ceux de la production) : **risque accepté** ; (b) la réputation du domaine d'envoi de `staging`, **`influx.cadaero.ovh`** (fondateur, 2026-10-18 ; production probablement `influx.app`), authentifié dans le compte Brevo de `staging` (constat par l'API le même jour, avec `cadaero.com` ; `influx` n'est sur `cadaero.com` qu'un sous-domaine de marque pour les liens de suivi, pas un domaine d'envoi) — les expéditeurs sont encore en `@cadaero.com`, à basculer sur `@influx.cadaero.ovh` avant les envois réels ; (c) **Railway héberge `staging` et la production dans un seul compte et un seul projet** : constat du 2026-10-18, la CLI du poste tourne sur la **session OAuth du compte du fondateur** (aucun `RAILWAY_TOKEN`), qui atteint aussi la production ; seules les règles de permission l'en empêchent. Un **jeton de projet limité à l'environnement `staging`** est donc exigé (`archives/jalons/d70-plan.md` P3) — **en place le même jour** (`RAILWAY_TOKEN` dans `.claude/settings.local.json`, session du fondateur retirée du poste) : la production n'est plus joignable depuis le poste. Supabase : la CLI est connectée au compte de `staging`, qui ne voit que le projet de `staging` (constat du 2026-10-18) ; aucun jeton supplémentaire. *Réversible* : variables Railway remises en `dry_run` / `disabled` et retour du commit de configuration. **Revue de fin de chantier (2026-10-19, `expert-cybersecurite`, arbitrage du fondateur)** : `INFLUX_STAGING_MIGRATION_URL` (rôle `postgres` de `staging`) **acceptée dans `apps/api/.env.local`**, par dérogation à `21` §0 et à la skill `env-secrets`, aux conditions : `staging` seulement ; consommateurs limités aux scripts opérateur de `apps/api/scripts` et `packages/test-kit/scripts`, chacun avec `refuseProduction`, `assertStagingMarker` et la cohérence du projet Supabase ; `staging:check` en lecture seule ; valeur jamais recopiée (y compris dans une erreur d'URL) ; rotation à l'ouverture de `staging` à des personnes réelles et au moindre soupçon, `DIRECT_DATABASE_URL` mis à jour en même temps. Au Lot 6bis, remplacement par un rôle `influx_staging_operator` `NOBYPASSRLS` limité aux écritures des scripts. Les processus déployés refusent la boucle locale et tout mélange de projets Supabase. Plan d'exécution : `archives/jalons/d70-plan.md`
+
+**Échéance** : **Close (2026-10-19)**
+
+## D71 — Revues sécurité et RGPD bloquantes sur la seule branche `production`
+
+**Sujet** : **Revues sécurité et RGPD bloquantes sur la seule branche `production`** — demande du fondateur, 2026-10-18
+
+**Arbitre** : **Fondateur**
+
+**Statut** : **Tranchée par le fondateur le 2026-10-18.** Les vetos de `expert-cybersecurite` et `expert-conformite-rgpd` et le contrôle de CI I-4 (`security-reviewed:`, `03` I-4, `18` C-8) **ne bloquent plus ni le build, ni la CI, ni le déploiement de `staging`** depuis `main`. Sur `main`, l'étape « Security review markers » de `.github/workflows/ci.yml` tourne encore et signale les commits non attestés, sans faire échouer le job (`continue-on-error`). **Comportement d'origine conservé pour la branche `production`** (à créer, depuis `main`) : la CI tourne sur chaque push vers `production` et chaque Pull Request vers elle, et l'étape I-4 y est **bloquante** ; un commit non attesté ne peut donc y entrer qu'après la revue groupée et un commit d'attestation `security-reviewed: <date> covers <sha>…` poussé sur `main`. La revue globale de `expert-conformite-rgpd` (Lot 6) devient la condition d'entrée dans `production`. Inchangés : les revues groupées de fin de jalon (désormais non bloquantes sur `main`), le reste de la CI (format, types, lint, tests, migrations, parcours), la confirmation du fondateur pour toute action sur la production (`CLAUDE.md` §7 règle 4). **Branche `production` créée le 2026-10-19** depuis `main` (`888bdc6`) ; sa première CI est rouge à l'étape I-4, comme voulu. **Pas de protection de branche** : GitHub la refuse (ainsi que les *rulesets*) sur un dépôt privé sans GitHub Pro ; un push direct sur `production` reste donc possible, et le blocage tient à la CI rouge plus « Wait for CI » côté Railway. **`production` n'avance que par `git merge --no-ff main`** (jamais en avance rapide) : le commit de fusion est neuf, et Railway ne peut pas reprendre le résultat vert de la CI obtenu sur `main` pour le même sha. **Reste à faire** (confirmation du fondateur) : faire déployer l'environnement Railway de production depuis `production` avec « Wait for CI » ; GitHub Pro si une protection de branche est voulue. *Risque accepté* : `staging` peut porter un défaut de droits non encore revu
+
+**Échéance** : À la création de `production`
+
+## D72 — Suppression d'un compte sans approbation d'un admin
+
+**Sujet** : **La suppression d'un compte demandée depuis l'espace membre s'exécute sans approbation d'un `admin`**, après la double validation du membre (mot à taper + code frais `account_deletion`) — demande du fondateur, 2026-10-27
+
+**Arbitre** : **Fondateur** ; mécanisme : `architecte` (validé le 2026-10-27)
+
+**Statut** : **Tranchée par le fondateur le 2026-10-27.** Modifie EC-14 et la décision 6 du J7 pour ce seul cas ; l'export (`access`) et un effacement reçu par un autre canal restent approuvés par un `admin`. Exécution par `identity.submit_member_erasure()` (`SECURITY DEFINER`, propriétaire `influx_identity_definer`, sans `BYPASSRLS`), contrat `erasure_authorised`, e-mail de confirmation lu via une fonction `influx_privacy_definer`. Détail : commits D72-1a à D72-3 (`21`, « Hors jalon »), points ouverts DZ ci-dessous. Revue `expert-conformite-rgpd` au Lot 6, **veto possible sur `production`** (DZ-7, D71)
+
+**Échéance** : Avant `production` (Lot 6)
+
+## D73 — Charte KEO Emerald
+
+**Sujet** : **Charte « KEO Emerald » pour les espaces membres marque et créateur et pour le backoffice**, responsive (mobile et poste de travail), navigation en colonne à gauche sur poste de travail (référence de comportement : Railway) — choix du fondateur parmi quatre propositions (`design-proposals/`), 2026-10-28
+
+**Arbitre** : **Fondateur** ; correspondance des tokens et gabarits : `expert-ux` ; mécanique : `architecte` ; tests : `testeur`
+
+**Statut** : **Tranchée par le fondateur le 2026-10-28.** Proposition 4 (`design-proposals/proposition-4-keo-emerald.html`, valeurs `keo-emerald.css`) retenue. **Amende D6** pour ces surfaces : vert de marque et d'action `#1dd68a`, fond `#0a0b0a`, surfaces graduées, Manrope (titres, chiffres) et Source Sans 3 (corps) auto-hébergées, rayon de carte 16 px, boutons en pilule. **Frontière** (arbitrage `chef-de-projet`, `02` §21.2) : KEO pour le parcours d'inscription et de connexion, les accueils, « Mon compte », les écrans des Lots 2 à 5 et le backoffice entier ; **la vitrine (landing, pages légales publiques, 404 de niveau `[locale]`, bandeau cookies) garde D6 et D59** (sauf le vert de marque, unique depuis F2). **Invariants maintenus** : succès distinct du vert de marque (`CLAUDE.md` §4), rouge « danger » opaque (D72, G3b), violet réservé au backoffice, couleur jamais seule porteuse (`20` P7), WCAG AA calculé sur chaque surface, D48 ; la maquette n'est qu'une référence, ses éléments contraires au MVP ne sont pas repris (`20` §11.6). **Gabarits** : colonne gauche de 16 rem (membres) et rail de 15 rem (backoffice) à partir de `breakpoint-lg`, barre du bas à 5 entrées sous `lg` (membres), aucun repli persisté (D37) ; entrées de navigation sans écran masquées jusqu'à leur lot. **Mécanique** : `02` §21 (un `tokens.css` par front portant deux chartes, bloc `[data-theme="keo"]`, `next/font/local`, un seul `<nav>` restylé, gardes G3c à G8). **Charte** : `20` §11 ; gabarits : `17` §2.2–2.3, `17b` §1.7 ; skill `design-system-influx`. **Exécution** : Jalon DS (`archives/jalons/ds-fiche.md`), avant le Lot 2. Points soumis au fondateur : `20` §11.9 (F1 à F7) et fiche DS § « Décisions ouvertes ». **F4 et F5 tranchés par le fondateur le 2026-10-28, selon la recommandation de `20` §11.9** : F4, couleurs de rôle sable (marque) et rose (créateur) en marque visuelle seulement, liste fermée de quatre usages (§11.3) ; F5, affectations différentes de la maquette sans valeur nouvelle (succès KEO `#3ccfcf`, vitrine inchangée ; rouge D72 conservé ; fonds opaques validés au lieu des `rgba` ; contour du bouton secondaire `#78827d` ; badge séquestre, vert « disponible », `surface-5` et trois couleurs de données non repris). **F1 et F2 tranchés par le fondateur le 2026-10-29** : F1, pages légales publiques en vitrine (défaut de `02` §21.2 confirmé, contre la recommandation d'`expert-ux`) ; F2, **un seul vert de marque, `#1dd68a`, landing comprise** (recommandation de `20` §11.9), par le commit DS-14 (G3e mise à jour par liste explicite des noms, revue visuelle D59 par `expert-ux`). **F3 et F6 tranchés par le fondateur le 2026-10-29, selon la recommandation de `20` §11.9** : F3, badge vérifié en bleu KEO (`verified-*`), jamais une coche seule ni collé à un nom, « Vérifié · ⟨réseau⟩ · ⟨mois année⟩ » sur la ligne du réseau (§11.3) ; F6, **contre la recommandation**, halo d'en-tête, agrandissement au survol et soulèvement des cartes **gardés** (sous `motion-safe:` seulement, jamais `transition: all`, durées et halo par tokens, aucun token de la vitrine ; amende l'arbitrage `chef-de-projet` du 2026-10-28 et `02` §21.5 point 7 ; G8 assouplie à DS-5), ombre lumineuse du bouton principal gardée (token de rôle), panneaux flottants autorisés là où ils sont pertinents (jugement `expert-ux`, écran par écran), réduction à l'appui seule écartée (§11.5 à §11.7)
+
+**Échéance** : F1 à F6 tranchés (DS-2, DS-4 et DS-5 débloqués, DS-14 ajouté) ; **F7 tranché par le fondateur le 2026-10-29, selon la recommandation** : compromis `chef-de-projet` (backoffice complet dès 768 px, navigation compacte de 768 à 1 023 px) **plus une condition de hauteur** : écran « poste de travail » si la largeur est sous 768 px **ou** la hauteur sous 500 px, pour qu'un téléphone tenu à l'horizontale ne voie pas le backoffice complet (`17b` §1.7) ; règle d'écran, pas mesure de sécurité ; DS-10 débloqué ; jalon avant le Lot 2
+
+## D74 — Sous-navigation dans la colonne
+
+**Sujet** : **Sous-navigation dans la colonne : les pages d'une rubrique deviennent un sous-menu de la colonne de gauche (poste de travail) et une page-menu (téléphone et tablette), à la place des liens de section en pilules et des onglets de rubrique** — demande du fondateur, 2026-10-29
+
+**Arbitre** : **Fondateur** ; mécanique : `architecte` ; composants : `expert-ux` ; tests : `testeur`
+
+**Statut** : **Tranchée par le fondateur le 2026-10-29, selon les recommandations `chef-de-projet` sauf SN-D.** **Amende D73** (`17` §2.2, §2.3 ; `17b` §1.7 ; `20` §3 et §11.8 ; `02` §21.5), qui rangeait les pages sœurs en liens en tête de contenu, « pas en sous-menu ». **(SN-A)** côté membres, sous 1 024 px, une rubrique à plusieurs pages ouvre une **page-menu** (liste de liens pleine largeur, phrase d'explication, compteur éventuel), et chaque sous-page porte « ‹ ⟨rubrique⟩ » au-dessus du `h1` ; la barre du bas ne porte jamais de sous-entrée. **(SN-B)** à partir de 1 024 px, les sous-entrées sont une liste imbriquée dans l'entrée **active seulement**, dans l'unique `<nav>` « Navigation principale » ; rubrique ancêtre sans `aria-current`, un seul `aria-current` par page ; rien à mémoriser (D37). **(SN-C)** membres et backoffice ; au backoffice, le lien d'une entrée ouvre son premier écran (pas de page-menu, faute de vue téléphone), et de 768 à 1 023 px, seconde ligne sous la liste horizontale ; écran « poste de travail » (F7) inchangé. **(SN-D, contre la recommandation)** les onglets de rubrique passent aussi en sous-pages (Lot 4 : *demandes · conversations*, *invitations · conversations* ; backoffice : files, la file 4 en deux sous-entrées « Vérifications créateurs » et « Vérifications marques », `08` RG61) ; **exception unique** : les canaux d'une conversation (`20` §7) restent des onglets dans la conversation (recommandation suivie). **(SN-E)** une rubrique quotidienne garde la page-menu, avec les compteurs par sous-page ; à réexaminer au Lot 4. Conséquences : page-menu « Mon compte » à `/fr/compte` · `/en/account`, exemptée des CGU (liens seuls) ; « Mes informations » à `/fr/compte/informations` · `/en/account/details` ; « Retour à mon espace » supprimé ; composant « Liens de section » retiré de `20` §11.8. Exécution : Jalon SN (`archives/jalons/sn-fiche.md`, clos le 2026-10-30). **Décisions ouvertes** : **(SN-O1)** page-menu d'une rubrique quotidienne (« Relations ») : la garder ou ouvrir directement la première sous-page, selon l'usage constaté (`chef-de-projet` puis fondateur, Lot 4, après deux semaines d'usage réel). **(SN-O2)** rail du backoffice avec les 16 files ouvertes : longueur acceptable à 1 024 × 768 ? Sinon groupes en intitulés repliés par défaut sauf celui de la file courante (`expert-ux`, Lot 5, première file livrée).
+
+**Échéance** : Jalon SN, avant le Lot 2
+
+## D75 — Réalignement des espaces connectés sur la référence KEO Emerald
+
+**Sujet** : **Réalignement des espaces connectés sur la référence KEO Emerald** : 17 écarts entre la proposition 4 et le rendu réel, revus un par un, dont quatre défauts (ombre lumineuse du bouton principal jamais affichée, halo d'en-tête en rectangle à bords nets, sous-titres hors Manrope, filet de ligne du tableau dense absent) — demande du fondateur, 2026-10-30
+
+**Arbitre** : **Fondateur** ; valeurs : `expert-ux` ; mécanique : `architecte` ; tests : `testeur`
+
+**Statut** : **Tranchée par le fondateur le 2026-10-30, selon les recommandations `chef-de-projet` sauf RK-B.** **Amende D73 (F6)** et `20` §11.5 à §11.8, `02` §21.3 et §21.5. **(RK-1)** ombre lumineuse du bouton principal de la référence, diffuse, plus forte au survol, absente si désactivé ; **(RK-2)** réduction à 98 % à l'appui (reprise, contre « réduction à l'appui écartée » de F6) et agrandissement à 103 % au survol, sous `motion-safe:` ; **(RK-3)** bouton secondaire en 600, contour F5 gardé ; **(RK-4)** petits boutons des écrans du backoffice sans effet ; **(RK-5)** tous les titres en Manrope à tailles fixes, surtitre créé ; **(RK-6)** approche serrée des grands titres, chiffres clés en 800, sous-titres en 700 ; **(RK-7)** lissage des polices sous KEO ; **(RK-8)** tailles du texte inchangées ; **(RK-9)** halo d'en-tête doux, sans bord, intensité de la référence ; **(RK-10)** seules les cartes cliquables réagissent, contour éclairci au survol ; **(RK-11)** badges remplis de teintes opaques, Manrope gras ; **(RK-12)** F4 maintenu ; **(RK-13, RK-C)** aucun anneau de focus sur un élément non interactif focalisé par programme (titres, `main` cible du lien d'évitement), anneau gardé sur tout élément interactif ; **(RK-14)** champs et anneau blanc inchangés (K18) ; **(RK-15)** en-tête du tableau dense plus clair en Manrope 700, filet de 2 px `brand-primary` sur la ligne survolée ou focalisée ; **(RK-16)** densité des lignes du tableau des inscrits reportée au Lot 5 (`product-owner` + `expert-ux`, `05` RG99) ; **(RK-17)** spécification des composants des Lots 3 à 5 maintenue (K6, K7, K15, K16, K17). **(RK-A)** `color-mix(in srgb, var(--color-brand-primary) N%, transparent)` admis dans les seuls tokens d'ombre du bouton et de halo d'en-tête du bloc KEO, jamais dans un `--color-*` ; halo d'en-tête à 15 % au plus. **(RK-B, contre la recommandation d'un fond neutre)** fond rouge sombre opaque créé pour le seul badge d'erreur (`--color-badge-error-bg`, candidat `#2e1213`, 5,19:1 avec le texte d'erreur, à confirmer par `expert-ux`), confiné au badge : les notices d'erreur restent sans fond teinté (D72). Cause de l'ombre absente : Tailwind v4 inscrit en dur la valeur `@theme` d'un token de l'espace `--shadow-*` ; correctif par des tokens `--effect-*` hors de cet espace et garde G3i. Exécution : Jalon RK (`archives/jalons/rk-fiche.md`), avant le Lot 2
+
+**Échéance** : Jalon RK, avant le Lot 2
+
+## D76 — Cadence de validation et CI parallèle
+
+**Sujet** : **Cadence de validation et CI parallèle** : la validation de fin de commit (suite locale complète, puis attente de la CI d'environ 11 min à chaque push) freine le développement ; un commit de spécification sur deux échouait en 35 s sur un index périmé — demande du fondateur, 2026-10-30
+
+**Arbitre** : **Fondateur** ; CI : `integrateur` ; tests : `testeur`
+
+**Statut** : **Tranchée par le fondateur le 2026-10-30, sur proposition de l'agent principal (avis `chef-de-projet` et `integrateur`).** Amende `CLAUDE.md` §7 règles 4 et 5. **(1) Avant chaque commit** : `pnpm check:fast` (format, types, lint, tests sans base), plus les seuls tests base du domaine touché (toute la suite base pour une migration ou une politique RLS) et la spec Playwright de l'écran touché ; suite locale complète (`pnpm check`, `pnpm test:e2e`) en fin de jalon, avant une revue groupée, avant toute entrée dans `production` et pour une dépendance. **(2) Push par lot** : tous les 3 à 4 commits, en fin de jalon, avant une revue, à la demande du fondateur, au moins une fois par journée de travail ; la CI est suivie en arrière-plan et un échec se corrige avant tout nouveau commit. **(3) La CI reste complète à chaque push sur `main`**, tests base et parcours compris (`main` se déploie sur `staging`, qui envoie de vrais e-mails, D70 ; la RLS et l'anonymisation restent vérifiées à chaque déploiement), découpée en jobs parallèles (`changes`, `check`, `db`, `e2e`, `relay-node-24`), la pile Supabase des parcours démarrant pendant le build. **(4) Push de documentation seule** (`docs/`, `.claude/`, Markdown de la racine) depuis le dernier run vert de `main` : contrôles légers seuls (marqueurs I-4, migrations, index, format) ; jamais sur `production` ni une pull request. **(5) Hook pré-commit** `.githooks/` (activé une fois par clone) : `docs/mvp/INDEX.md` régénéré depuis les fichiers indexés et ajouté au commit. Écartés : CI allégée hors moments clés (invariants non vérifiés avant `staging`) ; cache des dépendances et des images Docker (surface d'empoisonnement, avis `expert-cybersecurite` requis) ; parcours Playwright en deux moitiés (gain d'environ 1 min pour 4 à 5 min de runner de plus)
+
+**Échéance** : —
+
+## D77 — Chaîne automatisée lot → jalons → commits
+
+**Sujet** : **Chaîne automatisée lot → jalons → commits** : le fondateur demandait à la main le découpage d'un lot en jalons, puis d'un jalon en commits, puis un prompt optimisé par commit (qualité, respect des spécifications, économie de tokens), et exécutait ces prompts un à un en s'arrêtant quand une revue de jalon demandait des correctifs — demande du fondateur, 2026-10-31
+
+**Arbitre** : **Fondateur** ; mécanique : `architecte` ; tests : `testeur`
+
+**Statut** : **Tranchée par le fondateur le 2026-10-31** (revue pré-Lot 2, `docs/mvp/archives/revue-pre-lot2-2026-10-31.md` §4 : chaîne et arrêts, sous-agents, crochet, politique de modèle, avec découpage, fiche, arbitrage et revue de sécurité en **Opus 5.5 · xhigh**). Quatre skills génériques à invocation manuelle remplacent les skills jetables par jalon (`ds-commit`, `rk-commit`, archivés) : `/lot-decoupe <N>` (`jalons/lot<N>-plan.md`), `/jalon-prepare <id>` (fiche `jalons/<id>-fiche.md` de 25 Ko au plus, un prompt de 2 Ko au plus par ligne dans `jalons/<id>/`, table `jalons/<id>/run.md` : ordre, type, modèle, effort, agent, état), `/jalon-commit <id> <n>` (une ligne, règles de session sobres, dernière ligne `ETAT: livre <sha>` ou `ETAT: arret <motif>`) et `/jalon-run <id>` (orchestrateur : chaque ligne dans un sous-agent neuf au modèle et à l'effort de la table ; push et CI selon D76 ; revue `testeur` en Sonnet 5.5 high et `expert-cybersecurite` en Opus 5.5 xhigh, en parallèle). **Arrêts obligatoires** : validation du découpage et des prompts ; revue de fin de jalon qui demande un correctif (constats et prompts `fix` écrits, exécution après `/jalon-run <id> valider …`) ; `ETAT: arret` (échec répété, décision ou valeur manquante, invariant) ; CI rouge non rétablie ; recette ou décision du fondateur ; `CLAUDE.md` §7 règle 4. L'état par commit vit dans `run.md` ; `21` §8 ne reçoit qu'une ligne d'ouverture et une de clôture (amende la règle « une ligne par commit dans `21` »). Crochet `PreToolUse` (`.claude/hooks/guard-read.mjs`) : lecture sans `limit` (ou au-delà de 400 lignes) d'un document de `docs/mvp/` de plus de 30 Ko refusée
+
+**Échéance** : —

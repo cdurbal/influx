@@ -1,6 +1,6 @@
 # Lot 4 — La file de validation, la proposition INFLUX et l'ouverture d'une mise en relation
 
-> **⚠️ Régime du pilote — D48 (arbitrage du fondateur du 2026-09-24).** Pendant le pilote, **aucun taux ni aucun net créateur estimé n'est affiché**, ni aux marques ni aux créateurs. Toutes les mentions du « net créateur estimé » et du pourcentage de commission dans ce document sont **suspendues** jusqu'à nouvel arbitrage ; la commission est présentée comme « incluse, précisée par votre commercial ». Voir `CLAUDE.md` §3 et §13 (D48).
+> **⚠️ Régime du pilote — D48 (arbitrage du fondateur du 2026-09-24).** Pendant le pilote, **aucun taux ni aucun net créateur estimé n'est affiché**, ni aux marques ni aux créateurs. Toutes les mentions du « net créateur estimé » et du pourcentage de commission dans ce document sont **suspendues** jusqu'à nouvel arbitrage ; la commission est présentée comme « incluse, précisée par votre commercial ». Voir `CLAUDE.md` §2 et `decisions.md` (D48).
 >
 > **Mise à jour du 2026-09-24.** Ce document fait foi pour **D45** (révélation à la seconde acceptation) et **D49** (une entrée hors délai reste en file). Les coordonnées révélées sont limitées par **D46** (jamais d'e-mail ni de téléphone) ; le renouvellement suit **D42** (RG104bis).
 
@@ -18,7 +18,7 @@
 > (format de sortie, huit cas limites, sept contrôles INFLUX), `design-system-influx` (états
 > d'écran, couleur jamais seule porteuse d'information).
 >
-> **Documents qui contraignent celui-ci :** `CLAUDE.md` (source de vérité, §3 modèle économique),
+> **Documents qui contraignent celui-ci :** `CLAUDE.md` (source de vérité, §2 modèle économique),
 > `docs/mvp/00-cadrage-mvp-v2.md` (arbitrages **A1**, **A3**, **A3bis**, **A5**, **A8**, **A9**,
 > **A10**), `docs/mvp/01-intermediation-courtee.md` (**document pivot** : §3 processus, §4 les trois
 > déclencheurs, §5 mécanismes M1 à M7, §8 matière de la clause), `docs/mvp/03-matrice-des-droits-et-rls.md`
@@ -1561,7 +1561,7 @@ sélection (20), plafond journalier de propositions (60), seuils des alertes A5 
 |---|---|---|
 | Tout ce qui se passe **dans** la conversation | Document `12` — frontière écrite ci-dessus | Lot 4, en parallèle |
 | Le pipeline commercial et la saisie des montants | Document `01` §6 ; ce document crée l'affaire, il ne la pilote pas | Lot 5 |
-| Le contrat, la signature, l'encaissement, le calcul de commission | **A1**, `CLAUDE.md` §3 | V2, avec **D9** et **D25** |
+| Le contrat, la signature, l'encaissement, le calcul de commission | **A1**, `CLAUDE.md` §2 | V2, avec **D9** et **D25** |
 | Le contrôle « pays ouvert » sur une mise en relation | Il conditionne les **contrats**, absents au MVP (RG11) | V2, avec **D26** |
 | Un score de pertinence ou un classement de la file par valeur estimée | **D11** ; aucune donnée pour régler des pondérations | Après le pilote |
 | Une action de masse de validation ou de refus | Chaque décision engage une révélation et une affaire (RG50) | Jamais sous cette forme |

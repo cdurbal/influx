@@ -1,19 +1,25 @@
 // E-5 `privacy.execute_request` in the loop of the worker (docs/mvp/03 P7; 15 RG75 steps 6 and 7,
 // RG76, RG79; 04 §9.2; runbook demandes-rgpd §4 to §6; 21 §J8 point 6; migration 0136). Nothing
 // here decides: an admin approved the request under 2V + R from the account sheet
-// (backoffice.approve_data_request_execution, 03 P7 "déclenché par une tâche"); this task runs it on
+// (backoffice.approve_data_request_execution, 03 P7 "déclenché par une tâche"), or, for an erasure
+// deposited from the member space, the member did with a fresh code (authorised_by
+// member_fresh_code, identity.submit_member_erasure(), 0150, D72); this task runs it on
 // the pool of influx_privacy_login, never on influx_worker_login. Between two turns of the drain,
 // with the periodic tasks (worker.ts), each approved request goes through three steps, each its own
 // short elevated transaction:
 //   execute           access: the export produced by the database, with the notice of the account's
 //                     language (notice.ts), the e-mail privacy.export_ready queued (P1, no link);
 //                     erasure: the anonymisation of 04 §9.2 and of 21 §J8, account.deleted queued
-//                     to Brevo and Apollo (P0)
+//                     to Brevo and Apollo (P0), an open access request withdrawn, and the answer
+//                     privacy.erasure_completed queued (P1); it leaves through the Brevo drain
+//                     (leads/connectors/brevo, to the address the execution holds), which records
+//                     its messageId on the queue line
 //   delete_auth_user  erasure: the Supabase Auth user deleted by the administration API, AFTER the
 //                     commit (never inside a transaction, 02 §18.4 G4), then recorded; a user
 //                     already gone counts as deleted
 //   complete          closed with an outcome (15 RG77) once Brevo confirmed (RG79): the contact
-//                     deleted, or the export's e-mail sent with its messageId; until then, nothing
+//                     deleted AND the answer sent with its messageId, or the export's e-mail sent
+//                     with its messageId; until then, nothing
 // A step that fails is tried again at the next tick, from the state the database holds. Register
 // (03 §6.7, EC-52): one elevated.privacy.execute_request line on the request per transaction with an
 // effect; none for the read of the pending work nor for a closing not yet possible. Log lines (D60):
@@ -27,17 +33,43 @@ import {
 } from "../../db/index.ts";
 import { sqlStateOf } from "../../db/sql-state.ts";
 import type { GoTrueUserDirectory } from "../../platform/supabase.ts";
+import type { ErasureNotificationSubject } from "./erasure-notification-subject.ts";
 import { exportNotice, noticeLocaleOf } from "./notice.ts";
 import {
   completeRequest,
   executeRequest,
   pendingWork,
+  readErasureNotificationSubject,
   recordAuthUserDeleted,
   type PendingWork,
 } from "./repository.ts";
 
 /** Requests looked at per tick; the others wait for the next one (a minute later). */
 export const PENDING_WORK_LIMIT = 20;
+
+/**
+ * The Brevo connector's read for the answer to an erasure (0150 DZ-3, E-5 pool): the address held
+ * since the execution, the account's language and time zone, the instant of the erasure. A
+ * privileged read of an address: its register line on the request, its own short transaction,
+ * closed before the call (02 §18.4 G4). null: no executed, open erasure with its address held.
+ */
+export async function readErasureNotificationSubjectOf(
+  database: WorkerDatabase,
+  requestId: string,
+): Promise<ErasureNotificationSubject | null> {
+  return withElevatedTransaction(
+    database,
+    "privacy.execute_request",
+    randomUUID(),
+    async (tx) => {
+      const subject = await readErasureNotificationSubject(tx, requestId);
+      return {
+        value: subject,
+        auditSubject: subject === null ? null : requestId,
+      };
+    },
+  );
+}
 
 export type PrivacyLogger = {
   info(object: object, message: string): void;

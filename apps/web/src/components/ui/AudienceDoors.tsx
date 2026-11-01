@@ -1,4 +1,5 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { memberPageHref } from "@/lib/member-paths";
 import { cn } from "./class-names";
 import { LinkButton } from "./LinkButton";
 
@@ -12,8 +13,9 @@ type AudienceDoorsProps = {
 
 /**
  * The "two doors" pair (02 §2.2): advertiser (primary) then creator (secondary), each preceded by
- * a line naming its audience, linked to the button with aria-describedby. Each opens the matching
- * step of the account creation mockup (docs/landing-page/00-cadrage.md §6).
+ * a line naming its audience, linked to the button with aria-describedby. Each opens the real
+ * sign-up page of its door, by the localized link of next-intl: /fr/inscription/marque ·
+ * /en/signup/brand, creator alike (EC-15, EC-J9-2).
  */
 export async function AudienceDoors({
   idPrefix,
@@ -21,6 +23,7 @@ export async function AudienceDoors({
   className,
 }: AudienceDoorsProps) {
   const t = await getTranslations("landing.common");
+  const locale = await getLocale();
   const advertiserLineId = `${idPrefix}-advertiser-audience`;
   const creatorLineId = `${idPrefix}-creator-audience`;
   const audienceClassName = cn(
@@ -40,7 +43,7 @@ export async function AudienceDoors({
           {t("doors.advertiserAudience")}
         </p>
         <LinkButton
-          href="/signup/advertiser"
+          href={memberPageHref("signupAdvertiser", locale)}
           variant="primary"
           aria-describedby={advertiserLineId}
         >
@@ -52,7 +55,7 @@ export async function AudienceDoors({
           {t("doors.creatorAudience")}
         </p>
         <LinkButton
-          href="/signup/creator"
+          href={memberPageHref("signupCreator", locale)}
           variant={tone === "inverse" ? "secondaryInverse" : "secondary"}
           aria-describedby={creatorLineId}
         >

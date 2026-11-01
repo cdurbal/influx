@@ -8,6 +8,7 @@ import { systemStatusSchema } from "@influx/contracts/system";
 import { clientErrorReportSchema } from "@influx/contracts/ops";
 import type { ApiDatabase } from "../../db/index.ts";
 import { clientAddressOf } from "../../platform/client-address.ts";
+import { MinuteCounter } from "../../platform/minute-counter.ts";
 import { userAgentSummaryOf } from "../../platform/user-agent.ts";
 import { withBackofficeSession } from "../identity/backoffice-session.ts";
 import { withMemberSession } from "../identity/member-session.ts";
@@ -24,32 +25,6 @@ export const CLIENT_ERROR_RATE = {
   address: 30,
   instance: 300,
 } as const;
-
-/** Fixed one-minute windows, in memory: one instance at the MVP (EC, J4). */
-export class MinuteCounter {
-  private minute = -1;
-  private readonly counts = new Map<string, number>();
-  private readonly now: () => Date;
-
-  constructor(now: () => Date) {
-    this.now = now;
-  }
-
-  /** True when `key` is still under `limit` for the current minute (and counts it). */
-  take(key: string, limit: number): boolean {
-    const minute = Math.floor(this.now().getTime() / 60_000);
-    if (minute !== this.minute) {
-      this.minute = minute;
-      this.counts.clear();
-    }
-    const count = this.counts.get(key) ?? 0;
-    if (count >= limit) {
-      return false;
-    }
-    this.counts.set(key, count + 1);
-    return true;
-  }
-}
 
 export type OpsRouteDependencies = {
   database: ApiDatabase;

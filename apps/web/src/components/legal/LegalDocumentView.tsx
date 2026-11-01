@@ -15,7 +15,6 @@ import {
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ERROR_CLASSES,
   HELP_CLASSES,
   INFO_CLASSES,
   SECONDARY_BUTTON_CLASSES,
@@ -23,6 +22,7 @@ import {
 import { parseLegalMarkdown } from "@/lib/legal-markdown";
 import { readCurrentTerms } from "./legal-documents-api";
 import { LegalMarkdown } from "./LegalMarkdown";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 type State =
   | { kind: "loading" }
@@ -76,9 +76,7 @@ export function LegalDocumentView({ document }: { document: PublicDocument }) {
   if (state.kind === "unavailable") {
     return (
       <div className="flex flex-col gap-4">
-        <p role="alert" className={ERROR_CLASSES}>
-          {t("unavailable")}
-        </p>
+        <ErrorNotice>{t("unavailable")}</ErrorNotice>
         <button
           type="button"
           onClick={retry}

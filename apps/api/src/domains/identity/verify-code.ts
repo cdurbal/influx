@@ -40,6 +40,7 @@ import {
   failureCount,
   insertMemberSession,
   recordAuthFailure,
+  recordCodeFailure,
   reserveAuthAttempt,
   signalNewBrowser,
 } from "./repository.ts";
@@ -52,6 +53,7 @@ import {
 } from "./settings.ts";
 import {
   addressThrottleKey,
+  emailThrottleKey,
   globalThrottleKey,
   loginRequestThrottleKey,
 } from "./throttle-keys.ts";
@@ -227,6 +229,9 @@ export async function checkEmailCode(
         globalThrottleKey(pepper, "code_verify_platform"),
         "15m",
       );
+      // AL59 (J3S-8, 15 RG165): the failures of this address over 24 hours, by its digest only;
+      // the alert is the worker's, from its threshold in base, and nothing is ever blocked (A-4).
+      await recordCodeFailure(tx, emailThrottleKey(pepper, request.email));
       return { value: { ofCode, ofPlatform }, auditSubject: null };
     });
     if (failures.ofPlatform >= VERIFY_FAILURE_SPIKE) {

@@ -14,7 +14,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { messages } from "@/messages/fr";
 import {
-  ERROR_CLASSES,
   HELP_CLASSES,
   inputClasses,
   LEAD_CLASSES,
@@ -29,18 +28,19 @@ import {
   FIELD_CLASSES,
   ROW_GROUP_CLASSES,
   SECTION_CLASSES,
-  SECTION_TITLE_CLASSES,
+  SECTION_TITLE,
   SELECT_CLASSES,
   SMALL_LABEL_CLASSES,
   SMALL_PRIMARY_CLASSES,
   TABLE_CLASSES,
-  TABLE_WRAP_CLASSES,
+  DENSE_TABLE_WRAP_CLASSES,
   TD_CLASSES,
   TH_CLASSES,
 } from "./bo-classes";
 import { LinkOnce, RevokeControl } from "./InvitationParts";
 import { useAction } from "./use-action";
 import { EMAIL_SHAPE, formatDateTime } from "./view-model";
+import { ErrorNotice } from "./ErrorNotice";
 
 const t = messages.invitations;
 type Invitation = MemberInvitationsResponse["invitations"][number];
@@ -113,7 +113,7 @@ export function MemberInvitationsScreen() {
         aria-labelledby="member-invite-title"
         className={SECTION_CLASSES}
       >
-        <h2 id="member-invite-title" className={SECTION_TITLE_CLASSES}>
+        <h2 id="member-invite-title" className={SECTION_TITLE}>
           {t.create}
         </h2>
         <div className={ROW_GROUP_CLASSES}>
@@ -166,11 +166,7 @@ export function MemberInvitationsScreen() {
             </select>
           </div>
         </div>
-        {formError === null ? null : (
-          <p role="alert" className={ERROR_CLASSES}>
-            {formError}
-          </p>
-        )}
+        {formError === null ? null : <ErrorNotice>{formError}</ErrorNotice>}
         <ActionFeedback action={action} />
         <button
           type="submit"
@@ -184,13 +180,11 @@ export function MemberInvitationsScreen() {
         )}
       </form>
       <section aria-labelledby="member-list" className={SECTION_CLASSES}>
-        <h2 id="member-list" className={SECTION_TITLE_CLASSES}>
+        <h2 id="member-list" className={SECTION_TITLE}>
           {t.listTitle}
         </h2>
         {loadError ? (
-          <p role="alert" className={ERROR_CLASSES}>
-            {t.error}
-          </p>
+          <ErrorNotice>{t.error}</ErrorNotice>
         ) : invitations === null ? (
           <p role="status" className={HELP_CLASSES}>
             {messages.common.loading}
@@ -198,7 +192,14 @@ export function MemberInvitationsScreen() {
         ) : invitations.length === 0 ? (
           <p className={HELP_CLASSES}>{t.empty}</p>
         ) : (
-          <div className={TABLE_WRAP_CLASSES}>
+          <div
+            role="region"
+            aria-label={t.listTitle}
+            // a scrollable region must be reachable by keyboard (axe scrollable-region-focusable)
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard-focusable (18 §12)
+            tabIndex={0}
+            className={DENSE_TABLE_WRAP_CLASSES}
+          >
             <table className={TABLE_CLASSES}>
               <caption className="sr-only">{t.listTitle}</caption>
               <thead>

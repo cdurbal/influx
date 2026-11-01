@@ -1,0 +1,15 @@
+{
+  "brand": "INFLUX",
+  "notFound": {
+    "metaTitle": "Page introuvable — INFLUX",
+    "title": "Cette page n’existe pas",
+    "body": "L’adresse est peut-être incomplète, ou la page a été déplacée.",
+    "home": "Revenir à l’accueil"
+  },
+  "error": {
+    "title": "Un problème est survenu",
+    "body": "La page n’a pas pu s’afficher. Réessayez dans un instant.",
+    "retry": "Réessayer",
+    "home": "Revenir à l’accueil"
+  }
+}

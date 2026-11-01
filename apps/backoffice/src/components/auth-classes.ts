@@ -9,19 +9,30 @@ export function cn(
   return classes.filter(Boolean).join(" ");
 }
 
+/** A standalone screen; its ground is the header glow of F6 (RK-9), valued under KEO only. */
 export const SCREEN_CLASSES = cn(
   "mx-auto flex min-h-screen w-full max-w-(--container-narrow) flex-col gap-6",
-  "px-page-gutter py-section-header",
+  "px-page-gutter py-section-header bg-header-glow bg-no-repeat",
 );
 
-export const BRAND_CLASSES = "text-md font-bold text-text-primary";
+/** The standalone head of a page: INFLUX, a step line when there is one. */
+export const AUTH_HEAD_CLASSES = "flex flex-col gap-3 py-4";
 
-export const TITLE_CLASSES = "text-heading-3 font-bold text-text-primary";
+export const BRAND_CLASSES =
+  "font-display text-md font-bold tracking-heading text-text-primary";
+
+export const TITLE_CLASSES = cn(
+  "font-display text-title-page font-extrabold tracking-heading text-text-primary",
+);
+
+/** The `h2` of a card of the standalone pages: as the members' card title (D75 RK-5). */
+export const CARD_TITLE =
+  "font-display text-md font-bold leading-snug text-text-primary";
 
 export const LEAD_CLASSES = "text-md text-text-secondary";
 
 export const CARD_CLASSES = cn(
-  "flex flex-col gap-4 rounded-lg border-(length:--border-width-thin) border-border-default",
+  "flex flex-col gap-4 rounded-card border-(length:--border-width-thin) border-border-default",
   "bg-surface-card p-inset-card",
 );
 
@@ -36,22 +47,43 @@ export function inputClasses(hasError: boolean): string {
   );
 }
 
+/** The KEO pill: the hover zoom (F6) and the press (RK-2) under `motion-safe:` and off when disabled; never `transition-all`. */
+const BUTTON_BASE_CLASSES = cn(
+  "inline-flex items-center justify-center gap-2 text-center font-display text-md leading-snug",
+  "transition-lift motion-safe:not-aria-disabled:not-disabled:hover:scale-(--scale-hover)",
+  "motion-safe:not-aria-disabled:not-disabled:active:scale-(--scale-press)",
+  "aria-disabled:cursor-not-allowed disabled:cursor-not-allowed",
+);
+
 export const PRIMARY_BUTTON_CLASSES = cn(
-  "inline-flex min-h-(--size-button-lg) w-full items-center justify-center rounded-pill",
-  "bg-action-primary-bg px-inset-button-x py-inset-button-y font-medium text-text-on-action",
-  "hover:bg-action-primary-bg-hover active:bg-action-primary-bg-active",
+  BUTTON_BASE_CLASSES,
+  "min-h-(--size-button-lg) w-full rounded-pill",
+  "bg-action-primary-bg px-inset-button-x py-inset-button-y font-action text-text-on-action shadow-(--effect-action-glow)",
+  "not-aria-disabled:not-disabled:hover:bg-action-primary-bg-hover",
+  "not-aria-disabled:not-disabled:active:bg-action-primary-bg-active",
+  "not-aria-disabled:not-disabled:hover:shadow-(--effect-action-glow-hover)",
+  "aria-disabled:bg-action-disabled-bg aria-disabled:text-text-disabled aria-disabled:shadow-none",
+  "disabled:bg-action-disabled-bg disabled:text-text-disabled disabled:shadow-none",
 );
 
 export const SECONDARY_BUTTON_CLASSES = cn(
-  "inline-flex min-h-(--size-button-md) items-center justify-center rounded-pill",
-  "border-(length:--border-width-thick) border-action-secondary-border bg-action-secondary-bg",
-  "px-inset-button-x py-inset-button-y font-medium text-text-primary",
-  "hover:bg-action-secondary-bg-hover",
+  BUTTON_BASE_CLASSES,
+  "min-h-(--size-button-md) rounded-pill",
+  "border-(length:--border-width-action-secondary) border-action-secondary-border bg-action-secondary-bg",
+  "px-inset-button-x py-inset-button-y font-action-secondary text-text-primary",
+  "not-aria-disabled:not-disabled:hover:border-action-secondary-border-hover",
+  "not-aria-disabled:not-disabled:hover:bg-action-secondary-bg-hover",
+  "not-aria-disabled:not-disabled:active:bg-action-secondary-bg-active",
+  "aria-disabled:border-transparent aria-disabled:bg-action-disabled-bg aria-disabled:text-text-disabled",
+  "disabled:border-transparent disabled:bg-action-disabled-bg disabled:text-text-disabled",
 );
 
 export const TEXT_BUTTON_CLASSES = cn(
   "inline-flex min-h-(--size-touch-target) items-center self-start rounded-md px-3",
-  "text-text-primary underline hover:bg-action-secondary-bg-hover",
+  "font-action-secondary text-text-primary underline",
+  "not-aria-disabled:not-disabled:hover:bg-action-secondary-bg-hover",
+  "aria-disabled:cursor-not-allowed aria-disabled:text-text-disabled",
+  "disabled:cursor-not-allowed disabled:text-text-disabled",
 );
 
 /** Errors carry border, text and role="alert", never the color alone. */

@@ -4,7 +4,7 @@
 // What never appears in a response: the code, the provider's message id, the journal line, the
 // existence, role, state or history of an account BEFORE a successful verification (02 §18.10,
 // 05 RG46, RG138).
-import * as z from "zod";
+import { z } from "./zod.ts";
 
 /** Languages of the pages, and of the matching phrase (05 RG129). */
 export const UI_LOCALES = ["fr", "en"] as const;

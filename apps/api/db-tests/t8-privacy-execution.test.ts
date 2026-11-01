@@ -11,6 +11,9 @@
 //   account already deleted, nothing else);
 // - the member's export (read, download after a fresh code each time, 3 times, 7 days), the E-4
 //   purge, the two Brevo reads of the worker.
+// - D72 (0150): the erasure authorised by the member (identity.submit_member_erasure(), CHECKs of
+//   T3), its turn of the worker (T4: the open access withdrawn, privacy.erasure_completed queued,
+//   its address read by privacy.read_erasure_notification_subject()), the closure on its messageId.
 //
 // Each case runs in ONE rolled-back transaction of the local superuser, which writes the fixtures
 // and acts as apps/api and the worker do (support.ts: actAsInternal, actAsMember, actAs).
@@ -22,6 +25,7 @@ import {
   actAs,
   actAsInternal,
   actAsMember,
+  bindRequestSession,
   localSuperuser,
   migrationRole,
   testDataSet,
@@ -31,6 +35,10 @@ const INSUFFICIENT_PRIVILEGE = "42501";
 const INVALID_PARAMETER = "22023";
 const NOT_IN_PREREQUISITE_STATE = "55000";
 const NO_DATA_FOUND = "P0002";
+const CHECK_VIOLATION = "23514";
+
+/** The Brevo messageId of the e-mail privacy.erasure_completed (D72, 0150). */
+const ERASURE_MESSAGE_ID = "<t8-erasure@smtp-relay.brevo.com>";
 
 /** The 14 category keys of the export, in the order of the notice (EC-J8-48). */
 const CATEGORIES = [
@@ -107,6 +115,19 @@ async function attempt(
   }
 }
 
+/**
+ * A statement whose $1 is p_session_id, in the session of the request (J8S-3, 0142): the claim
+ * session_id carries the same session, as apps/api passes `context.sessionId` to both.
+ */
+async function attemptInSession(
+  tx: postgres.TransactionSql,
+  statement: string,
+  parameters: readonly postgres.ParameterOrJSON<never>[],
+): Promise<Attempt> {
+  await bindRequestSession(tx, String(parameters[0]));
+  return attempt(tx, statement, parameters);
+}
+
 function codeOf(result: Attempt): string {
   return result.outcome === "error" ? result.code : "rows";
 }
@@ -141,11 +162,17 @@ function asAgent<T>(tx: Tx, fn: () => Promise<T>): Promise<T> {
   );
 }
 
+/** As the member, its session being the session of the request (the claim of apps/api, J7S-1). */
 function asMember<T>(tx: Tx, member: Member, fn: () => Promise<T>): Promise<T> {
   return actAsMember(
     tx,
     member.role === "advertiser" ? "influx_advertiser" : "influx_creator",
-    { accountId: member.id, role: member.role, aal: "aal1" },
+    {
+      accountId: member.id,
+      role: member.role,
+      aal: "aal1",
+      sessionId: member.session,
+    },
     fn,
   );
 }
@@ -269,7 +296,7 @@ async function confirmedRequest(
   const session = await adminSession(tx, adminA);
   rowsOf(
     await asAdmin(tx, adminA, () =>
-      attempt(tx, CONFIRM_2V, [session, dualControl, null]),
+      attemptInSession(tx, CONFIRM_2V, [session, dualControl, null]),
     ),
   );
   return { dualControl, session };
@@ -284,7 +311,7 @@ async function approve(
   const { dualControl, session } = await confirmedRequest(tx, request, type);
   rowsOf(
     await asAdmin(tx, adminA, () =>
-      attempt(tx, APPROVE, [
+      attemptInSession(tx, APPROVE, [
         session,
         dualControl,
         request,
@@ -467,7 +494,7 @@ describe("the roles of E-5 (0136, 03 P7)", () => {
     ]);
   });
 
-  it("gives influx_privacy no table right anywhere, and EXECUTE on its four functions and append_elevated() only", async () => {
+  it("gives influx_privacy no table right anywhere, and EXECUTE on its five functions and append_elevated() only", async () => {
     const [tables] = await migration<{ granted: string[] }[]>`
       select coalesce(array_agg(c.oid::regclass::text), '{}') as granted
         from pg_catalog.pg_class c
@@ -492,6 +519,7 @@ describe("the roles of E-5 (0136, 03 P7)", () => {
       "privacy.complete_request(uuid)",
       "privacy.execute_request(uuid,jsonb)",
       "privacy.pending_work(integer)",
+      "privacy.read_erasure_notification_subject(uuid)",
       "privacy.record_auth_user_deleted(uuid)",
     ]);
   });
@@ -684,14 +712,14 @@ describe("backoffice.approve_data_request_execution() (15 RG75 step 6, RG76: adm
       await tx`alter table backoffice.dual_control_requests enable trigger dual_control_requests_guard_update`;
       const session = await adminSession(tx, adminA);
       const confirmed = await asAdmin(tx, adminA, () =>
-        attempt(tx, CONFIRM_2V, [
+        attemptInSession(tx, CONFIRM_2V, [
           session,
           dualControl,
           "Single admin on duty, the request is due this week.",
         ]),
       );
       const approved = await asAdmin(tx, adminA, () =>
-        attempt(tx, APPROVE, [
+        attemptInSession(tx, APPROVE, [
           session,
           dualControl,
           request,
@@ -726,7 +754,7 @@ describe("backoffice.approve_data_request_execution() (15 RG75 step 6, RG76: adm
           ]),
         ),
         approve: codeOf(
-          await attempt(tx, APPROVE, [
+          await attemptInSession(tx, APPROVE, [
             session,
             dualControl,
             request,
@@ -760,7 +788,7 @@ describe("backoffice.approve_data_request_execution() (15 RG75 step 6, RG76: adm
       );
       await ageSession(tx, session, 301);
       const refused = await asAdmin(tx, adminA, () =>
-        attempt(tx, APPROVE, [
+        attemptInSession(tx, APPROVE, [
           session,
           dualControl,
           request,
@@ -797,7 +825,7 @@ describe("backoffice.approve_data_request_execution() (15 RG75 step 6, RG76: adm
       );
       return codeOf(
         await asAdmin(tx, adminA, () =>
-          attempt(tx, APPROVE, [
+          attemptInSession(tx, APPROVE, [
             session,
             dualControl,
             request,
@@ -858,7 +886,7 @@ describe("backoffice.approve_data_request_execution() (15 RG75 step 6, RG76: adm
       );
       return codeOf(
         await asAdmin(tx, adminA, () =>
-          attempt(tx, APPROVE, [
+          attemptInSession(tx, APPROVE, [
             session,
             dualControl,
             request,
@@ -888,7 +916,7 @@ describe("backoffice.approve_data_request_execution() (15 RG75 step 6, RG76: adm
         ),
         replay: codeOf(
           await asAdmin(tx, adminA, () =>
-            attempt(tx, APPROVE, [
+            attemptInSession(tx, APPROVE, [
               session,
               dualControl,
               request,
@@ -1811,6 +1839,12 @@ describe("privacy.record_auth_user_deleted() and privacy.complete_request() (15 
       skipReason?: string;
     };
     apolloEverSynced?: boolean;
+    /** The e-mail privacy.erasure_completed (D72); sent with its messageId when absent. */
+    mail?: {
+      status: "pending" | "succeeded" | "failed";
+      dryRun?: boolean;
+      messageId?: string;
+    };
     closes: boolean;
   };
   const SKIPPED = {
@@ -1910,6 +1944,46 @@ describe("privacy.record_auth_user_deleted() and privacy.complete_request() (15 
         closes: false,
       },
     ],
+    [
+      "the e-mail privacy.erasure_completed pending: waits (D72)",
+      {
+        gotrue: true,
+        brevo: { status: "succeeded" },
+        apollo: SKIPPED,
+        mail: { status: "pending" },
+        closes: false,
+      },
+    ],
+    [
+      "the e-mail privacy.erasure_completed failed: waits (D72)",
+      {
+        gotrue: true,
+        brevo: { status: "succeeded" },
+        apollo: SKIPPED,
+        mail: { status: "failed" },
+        closes: false,
+      },
+    ],
+    [
+      "the e-mail privacy.erasure_completed in dry run: waits (D72)",
+      {
+        gotrue: true,
+        brevo: { status: "succeeded" },
+        apollo: SKIPPED,
+        mail: { status: "succeeded", dryRun: true },
+        closes: false,
+      },
+    ],
+    [
+      "the e-mail privacy.erasure_completed sent without a messageId: waits (D72)",
+      {
+        gotrue: true,
+        brevo: { status: "succeeded" },
+        apollo: SKIPPED,
+        mail: { status: "succeeded" },
+        closes: false,
+      },
+    ],
   ])("erasure: %s", async (_label, testCase) => {
     const outcome = await scenario(async (tx) => {
       const { member, request } = await executedErasure(tx);
@@ -1941,6 +2015,13 @@ describe("privacy.record_auth_user_deleted() and privacy.complete_request() (15 
         "apollo_contact",
         testCase.apollo,
       );
+      await settle(
+        tx,
+        member.id,
+        "privacy.erasure_completed",
+        "brevo_transactional",
+        testCase.mail ?? { status: "succeeded", messageId: ERASURE_MESSAGE_ID },
+      );
       const closed = rowsOf(
         await asPrivacy(tx, () =>
           attempt(tx, "select privacy.complete_request($1::uuid) as outcome", [
@@ -1951,7 +2032,8 @@ describe("privacy.record_auth_user_deleted() and privacy.complete_request() (15 
       const [state] = await tx<Row[]>`
         select d.status::text as status, d.outcome_code::text as outcome_code,
                d.completed_at is not null as request_completed,
-               e.completed_at is not null as execution_completed, e.propagation_email
+               e.completed_at is not null as execution_completed, e.propagation_email,
+               e.notification_message_id
           from backoffice.data_subject_requests d
           join privacy.request_executions e on e.request_id = d.id
          where d.id = ${request}`;
@@ -1970,6 +2052,7 @@ describe("privacy.record_auth_user_deleted() and privacy.complete_request() (15 
         request_completed: true,
         execution_completed: true,
         propagation_email: null,
+        notification_message_id: ERASURE_MESSAGE_ID,
       });
       expect(outcome.register).toEqual([
         {
@@ -1994,6 +2077,7 @@ describe("privacy.record_auth_user_deleted() and privacy.complete_request() (15 
         request_completed: false,
         execution_completed: false,
         propagation_email: outcome.member.email,
+        notification_message_id: null,
       });
       expect(outcome.register).toEqual([]);
     }
@@ -2060,6 +2144,587 @@ describe("privacy.record_auth_user_deleted() and privacy.complete_request() (15 
         notification_message_id: null,
       });
     }
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// D72 (0150, D72 §2.1, §2.2, §2.4): the erasure authorised by the member.
+
+const SUBMIT_ERASURE =
+  "select request_id::text, status, created from identity.submit_member_erasure()";
+
+/** The fresh code account_deletion of a member session (decision 4 of J7), as E-2 writes it. */
+async function markAccountDeletion(tx: Tx, session: string): Promise<void> {
+  await tx`update identity.sessions
+              set reauthenticated_at = now(), reauth_purpose = 'account_deletion'
+            where id = ${session}`;
+}
+
+/** A second open member session of the same account (another device). */
+async function otherSession(tx: Tx, member: Member): Promise<string> {
+  const [row] = await tx<{ id: string }[]>`
+    insert into identity.sessions (token_hash, account_id, surface, user_agent_summary)
+    values (sha256(gen_random_uuid()::text::bytea), ${member.id}, 'member', 'safari.ios')
+    returning id::text`;
+  if (row === undefined) {
+    throw new Error("no session");
+  }
+  return row.id;
+}
+
+/** The member authorises the erasure of his own account (fresh code, then the function). */
+async function memberErasure(tx: Tx, member: Member): Promise<string> {
+  await markAccountDeletion(tx, member.session);
+  const rows = rowsOf(
+    await asMember(tx, member, () => attempt(tx, SUBMIT_ERASURE)),
+  );
+  return String(rows[0]?.request_id);
+}
+
+const INSERT_EXECUTION =
+  "insert into privacy.request_executions (request_id, request_type, account_id, authorised_by, " +
+  "dual_control_request_id, approved_by_account_id) values ($1::uuid, " +
+  "$2::backoffice.data_request_type, $3::uuid, $4, $5::uuid, $6::uuid)";
+
+describe("privacy.request_executions: who authorised the execution (0150 §2.4, T3)", () => {
+  it("refuses by CHECK a member authorisation of an access, a member authorisation with a 2V, an admin one without it, an approver who is the subject", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx);
+      const access = await deposit(tx, member, "access");
+      const erasure = await deposit(tx, member, "erasure");
+      const dualControl = randomUUID();
+      const insert = (
+        request: string,
+        type: "access" | "erasure",
+        by: string,
+        twoV: string | null,
+        approver: string | null,
+      ) =>
+        attempt(tx, INSERT_EXECUTION, [
+          request,
+          type,
+          member.id,
+          by,
+          twoV,
+          approver,
+        ]);
+      return {
+        memberAccess: codeOf(
+          await insert(access, "access", "member_fresh_code", null, null),
+        ),
+        memberWith2V: codeOf(
+          await insert(
+            erasure,
+            "erasure",
+            "member_fresh_code",
+            dualControl,
+            adminA,
+          ),
+        ),
+        memberWithApprover: codeOf(
+          await insert(erasure, "erasure", "member_fresh_code", null, adminA),
+        ),
+        adminWithout2V: codeOf(
+          await insert(erasure, "erasure", "admin_dual_control", null, null),
+        ),
+        adminWithoutApprover: codeOf(
+          await insert(
+            erasure,
+            "erasure",
+            "admin_dual_control",
+            dualControl,
+            null,
+          ),
+        ),
+        approverIsSubject: codeOf(
+          await insert(
+            erasure,
+            "erasure",
+            "admin_dual_control",
+            dualControl,
+            member.id,
+          ),
+        ),
+        unknown: codeOf(
+          await insert(erasure, "erasure", "agent_decision", null, null),
+        ),
+        // the one valid shape of a member authorisation (written here by the superuser)
+        member: codeOf(
+          await insert(erasure, "erasure", "member_fresh_code", null, null),
+        ),
+      };
+    });
+    expect(outcome).toEqual({
+      memberAccess: CHECK_VIOLATION,
+      memberWith2V: CHECK_VIOLATION,
+      memberWithApprover: CHECK_VIOLATION,
+      adminWithout2V: CHECK_VIOLATION,
+      adminWithoutApprover: CHECK_VIOLATION,
+      approverIsSubject: CHECK_VIOLATION,
+      unknown: CHECK_VIOLATION,
+      member: "rows",
+    });
+  });
+
+  it("lets no member, agent nor admin insert an execution directly (42501): only the functions write", async () => {
+    const outcome = await scenario(async (tx) => {
+      const creator = await newMember(tx, "creator");
+      const advertiser = await newMember(tx, "advertiser");
+      const insertOwn = (member: Member, request: string) =>
+        asMember(tx, member, () =>
+          attempt(tx, INSERT_EXECUTION, [
+            request,
+            "erasure",
+            member.id,
+            "member_fresh_code",
+            null,
+            null,
+          ]),
+        );
+      const creatorRequest = await deposit(tx, creator, "erasure");
+      const advertiserRequest = await deposit(tx, advertiser, "erasure");
+      return {
+        creator: codeOf(await insertOwn(creator, creatorRequest)),
+        advertiser: codeOf(await insertOwn(advertiser, advertiserRequest)),
+        agent: codeOf(
+          await asAgent(tx, () =>
+            attempt(tx, INSERT_EXECUTION, [
+              creatorRequest,
+              "erasure",
+              creator.id,
+              "member_fresh_code",
+              null,
+              null,
+            ]),
+          ),
+        ),
+        admin: codeOf(
+          await asAdmin(tx, adminA, () =>
+            attempt(tx, INSERT_EXECUTION, [
+              creatorRequest,
+              "erasure",
+              creator.id,
+              "member_fresh_code",
+              null,
+              null,
+            ]),
+          ),
+        ),
+        // the authorisation never changes afterwards (update guard, superuser included)
+        frozen: await (async () => {
+          rowsOf(
+            await attempt(tx, INSERT_EXECUTION, [
+              advertiserRequest,
+              "erasure",
+              advertiser.id,
+              "member_fresh_code",
+              null,
+              null,
+            ]),
+          );
+          return codeOf(
+            await attempt(
+              tx,
+              "update privacy.request_executions set authorised_by = 'admin_dual_control' " +
+                "where request_id = $1::uuid",
+              [advertiserRequest],
+            ),
+          );
+        })(),
+      };
+    });
+    expect(outcome).toEqual({
+      creator: INSUFFICIENT_PRIVILEGE,
+      advertiser: INSUFFICIENT_PRIVILEGE,
+      agent: INSUFFICIENT_PRIVILEGE,
+      admin: INSUFFICIENT_PRIVILEGE,
+      frozen: INSUFFICIENT_PRIVILEGE,
+    });
+  });
+});
+
+describe("identity.submit_member_erasure() (0150 §2.1, D72)", () => {
+  it("authorises the erasure in one transaction: request in_progress, execution without 2V, every session revoked, two register lines, no e-mail", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const second = await otherSession(tx, member);
+      await markAccountDeletion(tx, member.session);
+      const submitted = rowsOf(
+        await asMember(tx, member, () => attempt(tx, SUBMIT_ERASURE)),
+      );
+      const request = String(submitted[0]?.request_id);
+      const [row] = await tx<Row[]>`
+        select d.request_type::text as request_type, d.channel::text as channel,
+               d.status::text as status, e.authorised_by, e.dual_control_request_id,
+               e.approved_by_account_id, e.executed_at
+          from backoffice.data_subject_requests d
+          join privacy.request_executions e on e.request_id = d.id
+         where d.id = ${request}`;
+      const sessions = await tx<Row[]>`
+        select id::text as id, revoked_at is not null as revoked,
+               revocation_reason::text as reason, reauth_purpose::text as marker
+          from identity.sessions where account_id = ${member.id} order by created_at, id`;
+      const [counts] = await tx<{ acks: number; dual_controls: number }[]>`
+        select (select count(*)::int from leads.outbox_events
+                 where event_type = 'privacy.request_received'
+                   and payload ->> 'request_id' = ${request}) as acks,
+               (select count(*)::int from backoffice.dual_control_requests
+                 where payload ->> 'request_id' = ${request}) as dual_controls`;
+      return {
+        member,
+        second,
+        submitted,
+        row,
+        sessions,
+        counts,
+        received: await registerLines(tx, "privacy.request_received", request),
+        authorised: await registerLines(
+          tx,
+          "privacy.execution_authorised_by_member",
+          request,
+        ),
+        work: await workOf(tx, request),
+      };
+    });
+    expect(outcome.submitted).toEqual([
+      {
+        request_id: expect.any(String),
+        status: "in_progress",
+        created: true,
+      },
+    ]);
+    expect(outcome.row).toEqual({
+      request_type: "erasure",
+      channel: "self_service",
+      status: "in_progress",
+      authorised_by: "member_fresh_code",
+      dual_control_request_id: null,
+      approved_by_account_id: null,
+      executed_at: null,
+    });
+    expect(outcome.sessions).toHaveLength(2);
+    for (const session of outcome.sessions) {
+      expect(session).toMatchObject({
+        revoked: true,
+        reason: "revoked_by_holder",
+        marker: null,
+      });
+    }
+    expect(outcome.counts).toEqual({ acks: 0, dual_controls: 0 });
+    expect(outcome.received).toEqual([
+      { actor_type: "member", payload: { request_type: "erasure" } },
+    ]);
+    expect(outcome.authorised).toEqual([
+      {
+        actor_type: "member",
+        payload: { request_type: "erasure", sessions_revoked: 2 },
+      },
+    ]);
+    // the worker takes it at its next turn, like an approved request
+    expect(outcome.work).toEqual([
+      expect.objectContaining({
+        step: "execute",
+        account_id: outcome.member.id,
+      }),
+    ]);
+  });
+
+  it("writes nothing without a fresh code account_deletion of the session (55000), or with the export code", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx);
+      const none = codeOf(
+        await asMember(tx, member, () => attempt(tx, SUBMIT_ERASURE)),
+      );
+      await markDataExport(tx, member.session);
+      const wrongPurpose = codeOf(
+        await asMember(tx, member, () => attempt(tx, SUBMIT_ERASURE)),
+      );
+      // the code of another session of the same account never serves (J7S-1)
+      const second = await otherSession(tx, member);
+      await markAccountDeletion(tx, second);
+      const otherSessionCode = codeOf(
+        await asMember(tx, member, () => attempt(tx, SUBMIT_ERASURE)),
+      );
+      const [counts] = await tx<{ requests: number; revoked: number }[]>`
+        select (select count(*)::int from backoffice.data_subject_requests
+                 where requester_account_id = ${member.id}) as requests,
+               (select count(*)::int from identity.sessions
+                 where account_id = ${member.id} and revoked_at is not null) as revoked`;
+      return { none, wrongPurpose, otherSessionCode, counts };
+    });
+    expect(outcome).toEqual({
+      none: NOT_IN_PREREQUISITE_STATE,
+      wrongPurpose: NOT_IN_PREREQUISITE_STATE,
+      otherSessionCode: NOT_IN_PREREQUISITE_STATE,
+      counts: { requests: 0, revoked: 0 },
+    });
+  });
+
+  it("returns an open erasure as it is (created = false) and refuses anyone but an active member", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx);
+      const open = await deposit(tx, member, "erasure");
+      await markAccountDeletion(tx, member.session);
+      const again = rowsOf(
+        await asMember(tx, member, () => attempt(tx, SUBMIT_ERASURE)),
+      );
+      const [state] = await tx<{ executions: number; revoked: number }[]>`
+        select (select count(*)::int from privacy.request_executions
+                 where request_id = ${open}) as executions,
+               (select count(*)::int from identity.sessions
+                 where account_id = ${member.id} and revoked_at is not null) as revoked`;
+      return {
+        open,
+        again,
+        state,
+        agent: codeOf(await asAgent(tx, () => attempt(tx, SUBMIT_ERASURE))),
+        admin: codeOf(
+          await asAdmin(tx, adminA, () => attempt(tx, SUBMIT_ERASURE)),
+        ),
+        privacy: codeOf(await asPrivacy(tx, () => attempt(tx, SUBMIT_ERASURE))),
+        worker: codeOf(await asWorker(tx, () => attempt(tx, SUBMIT_ERASURE))),
+      };
+    });
+    expect(outcome.again).toEqual([
+      { request_id: outcome.open, status: "received", created: false },
+    ]);
+    expect(outcome.state).toEqual({ executions: 0, revoked: 0 });
+    expect(outcome.agent).toBe(INSUFFICIENT_PRIVILEGE);
+    expect(outcome.admin).toBe(INSUFFICIENT_PRIVILEGE);
+    expect(outcome.privacy).toBe(INSUFFICIENT_PRIVILEGE);
+    expect(outcome.worker).toBe(INSUFFICIENT_PRIVILEGE);
+  });
+
+  it("is refused to admin approval afterwards: no 2V can even be requested on it", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx);
+      const request = await memberErasure(tx, member);
+      return codeOf(
+        await asAdmin(tx, adminB, () =>
+          attempt(tx, REQUEST_2V, [
+            payloadOf(request, "erasure"),
+            "request_instructed",
+          ]),
+        ),
+      );
+    });
+    expect(outcome).toBe(INSUFFICIENT_PRIVILEGE);
+  });
+});
+
+describe("the worker's turn on a member erasure (0150 §2.2, T4)", () => {
+  const NOTIFICATION_SUBJECT =
+    "select email, preferred_language, time_zone, erased_at is not null as dated " +
+    "from privacy.read_erasure_notification_subject($1::uuid)";
+
+  it("anonymises, deletes the sessions, propagates P0, withdraws the open access, purges its export, queues privacy.erasure_completed", async () => {
+    const outcome = await scenario(async (tx) => {
+      // an access request approved and executed: its export is published, its e-mail pending
+      const {
+        member,
+        request: access,
+        exportId,
+      } = await executedAccess(tx, "advertiser");
+      await tx`update identity.accounts set timezone = 'Europe/Paris', preferred_language = 'fr'
+                where id = ${member.id}`;
+      const erasure = await memberErasure(tx, member);
+      const executed = rowsOf(await execute(tx, erasure, null));
+      const [account] = await tx<Row[]>`
+        select status::text as status, email, display_name, anonymized_at is not null as anonymized
+          from identity.accounts where id = ${member.id}`;
+      const [sessions] = await tx<{ n: number }[]>`
+        select count(*)::int as n from identity.sessions where account_id = ${member.id}`;
+      const [withdrawn] = await tx<Row[]>`
+        select status::text as status, outcome_code::text as outcome_code
+          from backoffice.data_subject_requests where id = ${access}`;
+      const [exported] = await tx<Row[]>`
+        select content is null as purged, purged_at is not null as dated
+          from privacy.data_exports where id = ${exportId}`;
+      return {
+        member,
+        access,
+        erasure,
+        executed,
+        account,
+        sessions: sessions?.n,
+        withdrawn,
+        exported,
+        deleted: await queueLines(tx, member.id, "account.deleted"),
+        mail: await queueLines(tx, member.id, "privacy.erasure_completed"),
+        accessClosure: await registerLines(
+          tx,
+          "privacy.request_completed",
+          access,
+        ),
+        anonymized: await registerLines(tx, "account.anonymized", member.id),
+        accessWork: await workOf(tx, access),
+        erasureWork: await workOf(tx, erasure),
+        subject: rowsOf(
+          await asPrivacy(tx, () =>
+            attempt(tx, NOTIFICATION_SUBJECT, [erasure]),
+          ),
+        ),
+        accessSubject: rowsOf(
+          await asPrivacy(tx, () =>
+            attempt(tx, NOTIFICATION_SUBJECT, [access]),
+          ),
+        ),
+        accessCompletion: rowsOf(
+          await asPrivacy(tx, () =>
+            attempt(
+              tx,
+              "select privacy.complete_request($1::uuid) as outcome",
+              [access],
+            ),
+          ),
+        )[0]?.outcome,
+      };
+    });
+    expect(outcome.executed).toEqual([
+      { request_type: "erasure", auth_user_id: outcome.member.authUserId },
+    ]);
+    expect(outcome.account).toEqual({
+      status: "deleted",
+      email: `deleted+${outcome.member.id}@invalid`,
+      display_name: null,
+      anonymized: true,
+    });
+    expect(outcome.sessions).toBe(0);
+    expect(outcome.withdrawn).toEqual({
+      status: "closed",
+      outcome_code: "retiree_par_le_demandeur",
+    });
+    expect(outcome.exported).toEqual({ purged: true, dated: true });
+    expect(
+      outcome.deleted.map((line) => [line.destination, line.priority]),
+    ).toEqual([
+      ["apollo_contact", 0],
+      ["brevo_contact", 0],
+    ]);
+    expect(outcome.mail).toEqual([
+      {
+        id: expect.any(String),
+        event_type: "privacy.erasure_completed",
+        destination: "brevo_transactional",
+        priority: 100,
+        payload: {
+          event_id: expect.any(String),
+          account_id: outcome.member.id,
+          request_id: outcome.erasure,
+          email_code: "privacy.erasure_completed",
+        },
+        idempotency_key: `privacy.erasure_completed:${outcome.erasure}`,
+      },
+    ]);
+    expect(outcome.accessClosure).toEqual([
+      {
+        actor_type: "system",
+        payload: {
+          request_type: "access",
+          outcome_code: "retiree_par_le_demandeur",
+        },
+      },
+    ]);
+    expect(outcome.anonymized).toEqual([
+      { actor_type: "system", payload: { request_id: outcome.erasure } },
+    ]);
+    // the withdrawn access leaves E-5 (EC-DZ-3); the erasure goes on to its GoTrue deletion
+    expect(outcome.accessWork).toEqual([]);
+    expect(outcome.accessCompletion).toBeNull();
+    expect(outcome.erasureWork).toEqual([
+      expect.objectContaining({ step: "delete_auth_user" }),
+    ]);
+    // the e-mail goes to the held address, in the account's language and time zone (§2.3)
+    expect(outcome.subject).toEqual([
+      {
+        email: outcome.member.email,
+        preferred_language: "fr",
+        time_zone: "Europe/Paris",
+        dated: true,
+      },
+    ]);
+    expect(outcome.accessSubject).toEqual([]);
+  });
+
+  it("reads the address of the e-mail for influx_privacy only, and never once the erasure is closed", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx);
+      const request = await memberErasure(tx, member);
+      const read = () =>
+        asPrivacy(tx, () => attempt(tx, NOTIFICATION_SUBJECT, [request]));
+      const beforeExecution = rowsOf(await read());
+      rowsOf(await execute(tx, request, null));
+      const executed = rowsOf(await read());
+      const worker = codeOf(
+        await asWorker(tx, () => attempt(tx, NOTIFICATION_SUBJECT, [request])),
+      );
+      const admin = codeOf(
+        await asAdmin(tx, adminA, () =>
+          attempt(tx, NOTIFICATION_SUBJECT, [request]),
+        ),
+      );
+      const own = codeOf(
+        await asMember(tx, member, () =>
+          attempt(tx, NOTIFICATION_SUBJECT, [request]),
+        ),
+      );
+      await asPrivacy(tx, () =>
+        attempt(tx, "select privacy.record_auth_user_deleted($1::uuid)", [
+          request,
+        ]),
+      );
+      await settle(tx, member.id, "account.deleted", "brevo_contact", {
+        status: "succeeded",
+      });
+      await settle(tx, member.id, "account.deleted", "apollo_contact", {
+        status: "skipped",
+        skipReason: "connector_disabled",
+      });
+      await settle(
+        tx,
+        member.id,
+        "privacy.erasure_completed",
+        "brevo_transactional",
+        { status: "succeeded", messageId: ERASURE_MESSAGE_ID },
+      );
+      const closed = rowsOf(
+        await asPrivacy(tx, () =>
+          attempt(tx, "select privacy.complete_request($1::uuid) as outcome", [
+            request,
+          ]),
+        ),
+      )[0]?.outcome;
+      return {
+        member,
+        beforeExecution,
+        executed,
+        worker,
+        admin,
+        own,
+        closed,
+        afterClosure: rowsOf(await read()),
+        unknown: rowsOf(
+          await asPrivacy(tx, () =>
+            attempt(tx, NOTIFICATION_SUBJECT, [randomUUID()]),
+          ),
+        ),
+      };
+    });
+    expect(outcome.beforeExecution).toEqual([]);
+    expect(outcome.executed).toEqual([
+      {
+        email: outcome.member.email,
+        preferred_language: "en",
+        time_zone: "UTC",
+        dated: true,
+      },
+    ]);
+    expect(outcome.worker).toBe(INSUFFICIENT_PRIVILEGE);
+    expect(outcome.admin).toBe(INSUFFICIENT_PRIVILEGE);
+    expect(outcome.own).toBe(INSUFFICIENT_PRIVILEGE);
+    expect(outcome.closed).toBe("satisfaite");
+    expect(outcome.afterClosure).toEqual([]);
+    expect(outcome.unknown).toEqual([]);
   });
 });
 
@@ -2339,6 +3004,16 @@ describe("the two Brevo reads of the worker (E-3)", () => {
                       completed_at = now() where id = ${brevo}`;
       await tx`update leads.outbox_events set status = 'skipped', skip_reason = 'connector_disabled',
                       locked_by = null, locked_at = null, completed_at = now() where id = ${apollo}`;
+      await settle(
+        tx,
+        member.id,
+        "privacy.erasure_completed",
+        "brevo_transactional",
+        {
+          status: "succeeded",
+          messageId: ERASURE_MESSAGE_ID,
+        },
+      );
       rowsOf(
         await asPrivacy(tx, () =>
           attempt(tx, "select privacy.complete_request($1::uuid)", [request]),
@@ -2564,7 +3239,7 @@ describe("an address reused by another account (EC-J8-55, review F1)", () => {
 });
 
 describe("the closed lists of the owners (review F7) and the hourly purge (EC-J8-57)", () => {
-  it("lets influx_privacy_definer own exactly the nine functions of E-5; only the member's two identity functions read the exports", async () => {
+  it("lets influx_privacy_definer own exactly the ten functions of E-5; only the member's two identity functions read the exports", async () => {
     const owned = await migration<{ name: string; definer: boolean }[]>`
       select p.oid::regprocedure::text as name, p.prosecdef as definer
         from pg_catalog.pg_proc p
@@ -2579,6 +3254,10 @@ describe("the closed lists of the owners (review F7) and the hourly purge (EC-J8
       { name: "privacy.export_document(uuid,text[],jsonb)", definer: false },
       { name: "privacy.iso_utc(timestamp with time zone)", definer: false },
       { name: "privacy.pending_work(integer)", definer: true },
+      {
+        name: "privacy.read_erasure_notification_subject(uuid)",
+        definer: true,
+      },
       { name: "privacy.record_auth_user_deleted(uuid)", definer: true },
     ]);
     const readers = await migration<{ name: string; owner: string }[]>`

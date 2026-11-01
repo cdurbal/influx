@@ -19,30 +19,39 @@ const NONE: RawSyncState = {
 
 describe("05 RG99, RG100: state, nature and cause of one destination", () => {
   it("no attempt, a waiting line, a scheduled retry, a line taken by the worker", () => {
-    expect(syncStatusOf(NONE)).toMatchObject({
+    expect(syncStatusOf(NONE, "creator")).toMatchObject({
       state: "not_attempted",
       nature: "in_progress",
       cause: "not_attempted",
     });
     expect(
-      syncStatusOf({ ...NONE, liveStatus: "pending", liveAttempts: 0 }),
+      syncStatusOf(
+        { ...NONE, liveStatus: "pending", liveAttempts: 0 },
+        "creator",
+      ),
     ).toMatchObject({ state: "pending", cause: "waiting", retryAt: null });
     expect(
-      syncStatusOf({
-        ...NONE,
-        liveStatus: "pending",
-        liveAttempts: 3,
-        liveAvailableAt: "2026-10-15T09:30:00.000Z",
-        lastStatus: "failed",
-        lastCode: "brevo.unavailable",
-      }),
+      syncStatusOf(
+        {
+          ...NONE,
+          liveStatus: "pending",
+          liveAttempts: 3,
+          liveAvailableAt: "2026-10-15T09:30:00.000Z",
+          lastStatus: "failed",
+          lastCode: "brevo.unavailable",
+        },
+        "creator",
+      ),
     ).toMatchObject({
       state: "pending",
       cause: "retry_scheduled",
       retryAt: "2026-10-15T09:30:00.000Z",
     });
     expect(
-      syncStatusOf({ ...NONE, liveStatus: "processing", liveAttempts: 1 }),
+      syncStatusOf(
+        { ...NONE, liveStatus: "processing", liveAttempts: 1 },
+        "creator",
+      ),
     ).toMatchObject({ state: "pending", cause: "waiting", retryAt: null });
   });
 
@@ -52,11 +61,13 @@ describe("05 RG99, RG100: state, nature and cause of one destination", () => {
       ["out_of_apollo_scope_individual", "out_of_apollo_scope_individual"],
       ["country_not_validated", "country_not_validated"],
       ["skipped_no_credentials", "non_production"],
-      ["list_not_configured", "configuration_missing"],
       ["something_new", "other_normal_case"],
     ] as const) {
       expect(
-        syncStatusOf({ ...NONE, lastStatus: "skipped", lastCode: code }),
+        syncStatusOf(
+          { ...NONE, lastStatus: "skipped", lastCode: code },
+          "creator",
+        ),
         code,
       ).toMatchObject({ state: "skipped", nature: "normal_case", cause });
     }
@@ -73,11 +84,10 @@ describe("05 RG99, RG100: state, nature and cause of one destination", () => {
       ["brevo.teapot", "failure", "other_failure"],
       [null, "failure", "other_failure"],
     ] as const) {
-      const status = syncStatusOf({
-        ...NONE,
-        lastStatus: "failed",
-        lastCode: code,
-      });
+      const status = syncStatusOf(
+        { ...NONE, lastStatus: "failed", lastCode: code },
+        "creator",
+      );
       expect(status, String(code)).toMatchObject({
         state: "failed",
         nature,
@@ -89,17 +99,47 @@ describe("05 RG99, RG100: state, nature and cause of one destination", () => {
 
   it("a success is synced", () => {
     expect(
-      syncStatusOf({
-        ...NONE,
-        lastStatus: "succeeded",
-        lastAttemptAt: "2026-10-15T08:00:00.000Z",
-      }),
+      syncStatusOf(
+        {
+          ...NONE,
+          lastStatus: "succeeded",
+          lastAttemptAt: "2026-10-15T08:00:00.000Z",
+        },
+        "creator",
+      ),
     ).toEqual({
       state: "synced",
       nature: "success",
       cause: "synced",
+      setting: null,
       retryAt: null,
       lastAttemptAt: "2026-10-15T08:00:00.000Z",
     });
+  });
+
+  // CA82, RG160: a missing setting is an incident that names the setting, never a normal case
+  it("a configuration failure is an incident naming the setting, by role, never a value", () => {
+    for (const [code, role, setting] of [
+      ["list_not_configured", "creator", "brevo_list_creators"],
+      ["list_not_configured", "advertiser", "brevo_list_advertisers"],
+      ["apollo_settings_invalid", "advertiser", "apollo_settings"],
+      ["credentials_missing", "advertiser", "apollo_credentials"],
+    ] as const) {
+      const failed = syncStatusOf(
+        { ...NONE, lastStatus: "failed", lastCode: code },
+        role,
+      );
+      expect(failed, code).toMatchObject({
+        state: "failed",
+        nature: "incident",
+        cause: "configuration_missing",
+        setting,
+      });
+      // the skips of before 0146 are never shown as a normal case either
+      expect(
+        syncStatusOf({ ...NONE, lastStatus: "skipped", lastCode: code }, role),
+        code,
+      ).toMatchObject({ nature: "incident", cause: "configuration_missing" });
+    }
   });
 });

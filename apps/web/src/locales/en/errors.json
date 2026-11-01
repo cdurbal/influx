@@ -1,0 +1,15 @@
+{
+  "brand": "INFLUX",
+  "notFound": {
+    "metaTitle": "Page not found — INFLUX",
+    "title": "This page does not exist",
+    "body": "The address may be incomplete, or the page has moved.",
+    "home": "Back to the home page"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "body": "The page could not be shown. Please try again in a moment.",
+    "retry": "Try again",
+    "home": "Back to the home page"
+  }
+}

@@ -3,7 +3,9 @@
 // journey, which takes the state of the one left from here. A MODULE VARIABLE ONLY: never the
 // browser's storage (02 §13.2, D37), never a cookie; a reload or another tab starts from the
 // server's journey cookies instead (GET /v1/auth/journey).
-// Written and read from effects and handlers only, never while rendering: on the server, this
+// Written from effects and handlers only; read while rendering ONLY without side effect
+// (peekForLocale): React may abandon a render and restart it, and the restart must find the same
+// journey. The hand-over ends in an effect after the mount (discardHandedOver). On the server this
 // module is shared by every visitor and must stay empty.
 import type { SignupDoor } from "@influx/contracts/auth";
 import type { AppLocale } from "@/i18n/routing";
@@ -32,20 +34,38 @@ let snapshot: JourneySnapshot | null = null;
 
 /** Keeps the state of the journey on screen, replacing the previous one. */
 export function remember(current: JourneySnapshot): void {
+  // J9S-8: on the server the module is shared by every visitor, so it never keeps anything there.
+  if (typeof window === "undefined") {
+    return;
+  }
   snapshot = current;
 }
 
 /**
- * The journey left in ANOTHER language, handed over once: null when there is none, or when it was
- * written in this very language (a remount in the same language reads the server instead).
+ * The journey left in ANOTHER language: null when there is none, or when it was written in this
+ * very language (a remount in the same language reads the server instead). It empties nothing, so
+ * it is safe while rendering: an abandoned render that React restarts reads the same journey.
  */
-export function takeForLocale(locale: AppLocale): JourneySnapshot | null {
-  if (snapshot === null || snapshot.locale === locale) {
+export function peekForLocale(locale: AppLocale): JourneySnapshot | null {
+  if (
+    typeof window === "undefined" ||
+    snapshot === null ||
+    snapshot.locale === locale
+  ) {
     return null;
   }
-  const taken = snapshot;
-  snapshot = null;
-  return taken;
+  return snapshot;
+}
+
+/**
+ * Ends the hand-over, from an effect once the page has mounted: the journey left in another
+ * language than `locale` is dropped, so that it is handed over once. The journey of `locale` itself
+ * (written since by the mounted page) stays.
+ */
+export function discardHandedOver(locale: AppLocale): void {
+  if (snapshot !== null && snapshot.locale !== locale) {
+    snapshot = null;
+  }
 }
 
 /** The journey ended (notice, success, restart): nothing is handed over any more. */

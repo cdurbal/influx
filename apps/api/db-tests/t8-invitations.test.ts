@@ -19,6 +19,7 @@ import {
   actAs,
   actAsInternal,
   actAsMember,
+  bindRequestSession,
   localSuperuser,
   testDataSet,
 } from "./support.ts";
@@ -74,6 +75,19 @@ async function attempt(
       message: failure.message ?? "",
     };
   }
+}
+
+/**
+ * A statement whose $1 is p_session_id, in the session of the request (J8S-3, 0142): the claim
+ * session_id carries the same session, as apps/api passes `context.sessionId` to both.
+ */
+async function attemptInSession(
+  tx: postgres.TransactionSql,
+  statement: string,
+  parameters: readonly postgres.ParameterOrJSON<never>[],
+): Promise<Attempt> {
+  await bindRequestSession(tx, String(parameters[0]));
+  return attempt(tx, statement, parameters);
 }
 
 const FORBIDDEN = {
@@ -150,7 +164,7 @@ async function createInternal(
   const token = call.token ?? digest();
   const session = await freshSession(tx, admin);
   const result = await asInternal(tx, "admin", admin, () =>
-    attempt(tx, CREATE_INTERNAL, [
+    attemptInSession(tx, CREATE_INTERNAL, [
       session,
       call.email,
       call.role ?? "agent",
@@ -263,7 +277,7 @@ describe("identity.create_internal_invitation() (15 RG99, 03 §3.1 J · R)", () 
       const stale = await freshSession(tx, adminA);
       await ageSession(tx, stale, 301);
       const withStale = await asInternal(tx, "admin", adminA, () =>
-        attempt(tx, CREATE_INTERNAL, [
+        attemptInSession(tx, CREATE_INTERNAL, [
           stale,
           address("r"),
           "agent",
@@ -277,7 +291,7 @@ describe("identity.create_internal_invitation() (15 RG99, 03 §3.1 J · R)", () 
         "admin",
         adminA,
         () =>
-          attempt(tx, CREATE_INTERNAL, [
+          attemptInSession(tx, CREATE_INTERNAL, [
             fresh,
             address("aal1"),
             "agent",
@@ -288,7 +302,7 @@ describe("identity.create_internal_invitation() (15 RG99, 03 §3.1 J · R)", () 
       );
       // another admin's session is not the caller's R
       const otherSession = await asInternal(tx, "admin", adminB, () =>
-        attempt(tx, CREATE_INTERNAL, [
+        attemptInSession(tx, CREATE_INTERNAL, [
           fresh,
           address("other"),
           "agent",
@@ -298,7 +312,7 @@ describe("identity.create_internal_invitation() (15 RG99, 03 §3.1 J · R)", () 
       );
       const agentSession = await freshSession(tx, agentA);
       const agent = await asInternal(tx, "agent", agentA, () =>
-        attempt(tx, CREATE_INTERNAL, [
+        attemptInSession(tx, CREATE_INTERNAL, [
           agentSession,
           address("agent"),
           "agent",
@@ -322,7 +336,7 @@ describe("identity.create_internal_invitation() (15 RG99, 03 §3.1 J · R)", () 
       const session = await freshSession(tx, adminA);
       const call = (role: string, reason: string, token: Buffer) =>
         asInternal(tx, "admin", adminA, () =>
-          attempt(tx, CREATE_INTERNAL, [
+          attemptInSession(tx, CREATE_INTERNAL, [
             session,
             address("shape"),
             role,
@@ -344,7 +358,7 @@ describe("identity.create_internal_invitation() (15 RG99, 03 §3.1 J · R)", () 
     const outcome = await scenario(async (tx) => {
       const session = await freshSession(tx, adminA);
       const existing = await asInternal(tx, "admin", adminA, () =>
-        attempt(tx, CREATE_INTERNAL, [
+        attemptInSession(tx, CREATE_INTERNAL, [
           session,
           "t2-creator-a@example.test",
           "agent",
@@ -354,7 +368,7 @@ describe("identity.create_internal_invitation() (15 RG99, 03 §3.1 J · R)", () 
       );
       await createInternal(tx, { email });
       const second = await asInternal(tx, "admin", adminA, () =>
-        attempt(tx, CREATE_INTERNAL, [
+        attemptInSession(tx, CREATE_INTERNAL, [
           session,
           email,
           "agent",
@@ -686,7 +700,7 @@ describe("an invitation proposing admin needs a dual control (EC-J8-12, 15 RG101
       );
       const sessionB = await freshSession(tx, adminB);
       await asInternal(tx, "admin", adminB, () =>
-        attempt(
+        attemptInSession(
           tx,
           "select backoffice.confirm_dual_control($1::uuid, $2::uuid)",
           [sessionB, request],
@@ -695,13 +709,13 @@ describe("an invitation proposing admin needs a dual control (EC-J8-12, 15 RG101
       // the requester is not the confirmer: he cannot execute it
       const sessionA = await freshSession(tx, adminA);
       const byRequester = await asInternal(tx, "admin", adminA, () =>
-        attempt(tx, APPROVE, [sessionA, request, created.id]),
+        attemptInSession(tx, APPROVE, [sessionA, request, created.id]),
       );
       const approved = await asInternal(tx, "admin", adminB, () =>
-        attempt(tx, APPROVE, [sessionB, request, created.id]),
+        attemptInSession(tx, APPROVE, [sessionB, request, created.id]),
       );
       const again = await asInternal(tx, "admin", adminB, () =>
-        attempt(tx, APPROVE, [sessionB, request, created.id]),
+        attemptInSession(tx, APPROVE, [sessionB, request, created.id]),
       );
       const validAfter = await isValid(tx, created.token, email);
       const confirmed = await registerLines(
@@ -773,7 +787,7 @@ describe("an invitation proposing admin needs a dual control (EC-J8-12, 15 RG101
       );
       const sessionB = await freshSession(tx, adminB);
       await asInternal(tx, "admin", adminB, () =>
-        attempt(
+        attemptInSession(
           tx,
           "select backoffice.confirm_dual_control($1::uuid, $2::uuid)",
           [sessionB, request],
@@ -781,7 +795,7 @@ describe("an invitation proposing admin needs a dual control (EC-J8-12, 15 RG101
       );
       await ageSession(tx, sessionB, 301);
       const stale = await asInternal(tx, "admin", adminB, () =>
-        attempt(tx, APPROVE, [sessionB, request, adminInvite.id]),
+        attemptInSession(tx, APPROVE, [sessionB, request, adminInvite.id]),
       );
       return { onAgent, stale };
     });

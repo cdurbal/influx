@@ -8,11 +8,13 @@ import {
   type AccountCountersResponse,
   type AccountDetailResponse,
   type AccountsResponse,
+  type AccountsSearchBody,
 } from "@influx/contracts/backoffice-accounts";
 import {
   alertsResponseSchema,
   apolloSettingsResponseSchema,
   correctionResponseSchema,
+  degradedReviewResponseSchema,
   dualControlCancelResponseSchema,
   dualControlConfirmResponseSchema,
   dualControlListResponseSchema,
@@ -23,6 +25,7 @@ import {
   type ApolloSettingsResponse,
   type CorrectionRequest,
   type CorrectionResponse,
+  type DegradedReviewResponse,
   type DualControlConfirmResponse,
   type DualControlListResponse,
   type DualControlRequestBody,
@@ -51,7 +54,21 @@ import {
   type MemberInvitationRequest,
   type MemberInvitationsResponse,
 } from "@influx/contracts/backoffice-invitations";
-import { callRelay, type RelayResult } from "@/browser/relay-client";
+import {
+  opsErrorDetailResponseSchema,
+  opsErrorsResponseSchema,
+  opsProcessesResponseSchema,
+  opsStatusResponseSchema,
+  opsTrafficResponseSchema,
+  type OpsErrorDetailResponse,
+  type OpsErrorFilter,
+  type OpsErrorsResponse,
+  type OpsProcessesResponse,
+  type OpsStatusResponse,
+  type OpsTrafficResponse,
+  type OpsTrafficWindow,
+} from "@influx/contracts/backoffice-ops";
+import { callRelay, type RelayResult } from "@influx/web-platform/relay-client";
 
 /** A path segment from a server-issued id: a UUID, or nothing is called. */
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -65,15 +82,18 @@ function idSegment(id: string): string {
 
 // --- Accounts (05 RG97 to RG100, RG105) ------------------------------------------------------
 
-export function readAccounts(
-  query: Readonly<Record<string, string>>,
+/**
+ * J8S-7 (05 RG97, RG98): the list, its filters, its period and its search term travel in the BODY,
+ * never in a URL (logs, history; EC-62: an instant is no plain query character).
+ */
+export function searchAccounts(
+  body: AccountsSearchBody,
 ): Promise<RelayResult<AccountsResponse>> {
   return callRelay(
-    "GET",
-    "/v1/bo/accounts",
+    "POST",
+    "/v1/bo/accounts/search",
     accountsResponseSchema,
-    undefined,
-    query,
+    body,
   );
 }
 
@@ -158,6 +178,17 @@ export function readDualControls(): Promise<
   RelayResult<DualControlListResponse>
 > {
   return callRelay("GET", "/v1/bo/dual-control", dualControlListResponseSchema);
+}
+
+/** PD6 (J8S-1): the weekly review of the confirmations made alone, the default weeks. */
+export function readDegradedReview(): Promise<
+  RelayResult<DegradedReviewResponse>
+> {
+  return callRelay(
+    "GET",
+    "/v1/bo/dual-control/degraded",
+    degradedReviewResponseSchema,
+  );
 }
 
 export function readDualControl(
@@ -271,4 +302,49 @@ export function revokeInvitation(
     invitationRevokeResponseSchema,
     { reasonCode },
   );
+}
+
+// --- "Santé technique" (02 §20.5; 15 RG165; read only, admins only) ------------------------------
+
+export function readOpsStatus(): Promise<RelayResult<OpsStatusResponse>> {
+  return callRelay("GET", "/v1/bo/ops/status", opsStatusResponseSchema);
+}
+
+export function readOpsErrors(
+  state: OpsErrorFilter,
+  source: "server" | "browser" | null,
+): Promise<RelayResult<OpsErrorsResponse>> {
+  return callRelay(
+    "GET",
+    "/v1/bo/ops/errors",
+    opsErrorsResponseSchema,
+    undefined,
+    source === null ? { state } : { state, source },
+  );
+}
+
+export function readOpsError(
+  id: string,
+): Promise<RelayResult<OpsErrorDetailResponse>> {
+  return callRelay(
+    "GET",
+    `/v1/bo/ops/errors/${idSegment(id)}`,
+    opsErrorDetailResponseSchema,
+  );
+}
+
+export function readOpsTraffic(
+  window: OpsTrafficWindow,
+): Promise<RelayResult<OpsTrafficResponse>> {
+  return callRelay(
+    "GET",
+    "/v1/bo/ops/traffic",
+    opsTrafficResponseSchema,
+    undefined,
+    { window },
+  );
+}
+
+export function readOpsProcesses(): Promise<RelayResult<OpsProcessesResponse>> {
+  return callRelay("GET", "/v1/bo/ops/processes", opsProcessesResponseSchema);
 }

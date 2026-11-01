@@ -14,20 +14,6 @@
     "doors": {
       "advertiserAudience": "You’re a brand",
       "creatorAudience": "You create content"
-    },
-    "creatorCard": {
-      "audienceRange": "{min, number, ::compact-short}–{max, number, ::compact-short} followers",
-      "countryLabel": "Country:",
-      "verifiedBadge": "Verified",
-      "verifiedLegend": "Verified: stats and account ownership checked by our team. INFLUX makes no claim about follower authenticity. Usernames stay hidden until the brand and the creator both accept the introduction."
-    },
-    "carousel": {
-      "pause": "Pause the scrolling",
-      "previous": "Previous slide",
-      "next": "Next slide",
-      "roleDescription": "carousel",
-      "slideRoleDescription": "slide",
-      "slideLabel": "{current, number} of {total, number}"
     }
   },
   "header": {
@@ -55,32 +41,6 @@
     "reassurance": "Free to sign up. INFLUX commission only on concluded collaborations.",
     "visualChip": "New proposal received"
   },
-  "keyFigure": {
-    "srTitle": "INFLUX in numbers",
-    "statement": "{value, plural, one {<highlight>#</highlight> collaboration concluded} other {<highlight>#</highlight> collaborations concluded}} <muted>between brands and creators through INFLUX</muted>"
-  },
-  "creatorShowcase": {
-    "overline": "Hand-picked creators",
-    "title": "Verified profiles, <muted>chosen for your brief</muted>",
-    "lead": "For each campaign, our team suggests creators whose topics, audience and formats match your brief. You can also browse verified profiles yourself, shown anonymously."
-  },
-  "featuredResult": {
-    "overline": "Campaign result",
-    "title": "When the profile fits the product, <muted>the audience responds</muted>",
-    "valueDisplay": "{value, number, ::percent .0}",
-    "trendDisplay": "{value, number, ::sign-always .0} pts in {months, plural, one {# month} other {# months}}",
-    "trendUp": "rising"
-  },
-  "brandLogos": {
-    "title": "Brands running their campaigns on INFLUX"
-  },
-  "caseStudies": {
-    "overline": "Case studies",
-    "title": "Campaigns concluded <muted>and delivered with INFLUX</muted>",
-    "lead": "Each example shows the sector, formats, duration and number of creators, along with the metric the brand tracked.",
-    "metricDisplay": "{value, number, ::percent sign-always}",
-    "videoButton": "Watch the video"
-  },
   "problem": {
     "overline": "What slows your campaigns down",
     "title": "Between follow-ups and informal deals, <muted>collaborations stall</muted>",
@@ -90,14 +50,7 @@
       "followUp": "Follow-ups scattered across emails, social networks and chat apps.",
       "contract": "Deals agreed in a few lines, with no written contract and no one to bridge the gap."
     },
-    "conversation": {
-      "frameTitle": "INFLUX messaging",
-      "advertiserRole": "Brand",
-      "creatorRole": "Creator",
-      "agentRole": "INFLUX account manager",
-      "systemEvent": "Introduction followed by your INFLUX account manager",
-      "caption": "The brand, the creator and the INFLUX account manager talk in one place: your contact details are never shared."
-    }
+    "privacyNote": "The brand, the creator and the INFLUX account manager talk in one place: your contact details are never shared."
   },
   "method": {
     "overline": "Our method",
@@ -133,8 +86,7 @@
   "creatorNetwork": {
     "overline": "Creator network",
     "title": "Our team presents your profile <muted>to brands in your space</muted>",
-    "lead": "Complete your profile, get your stats verified and browse open campaigns. Your username is only shared with a brand once you accept the introduction.",
-    "countLabel": "{count, plural, one {<highlight>#</highlight> verified creator} other {<highlight>#</highlight> verified creators}}"
+    "lead": "Complete your profile, get your stats verified and browse open campaigns. Your username is only shared with a brand once you accept the introduction."
   },
   "useCases": {
     "overline": "Use cases",
@@ -256,99 +208,17 @@
         "question": "Who can join as a creator, and how are profiles verified?",
         "answer": "Any creator aged 18 or older, whether an individual or a professional, wherever they live. People under 18 are not accepted. Our team checks the stats provided and the ownership of each account, for example with a code added to the bio. Checked profiles get the “verified” badge. INFLUX makes no claim about follower authenticity."
       }
-    },
-    "contactPrompt": "Another question? Write to us:"
+    }
   },
-  "finalCta": {
-    "title": "Your next collaboration <muted>starts here</muted>",
-    "lead": "Brands, publish your brief. Creators, complete your profile. The INFLUX team makes the introductions and supports you all the way to an agreement."
-  },
-  "startForm": {
+  "signupDoors": {
     "overline": "Create an account",
-    "title": "Create your account <muted>in three steps</muted>",
-    "lead": "Choose your profile, enter the essentials, then accept the terms. You can complete the rest of your profile later, at your own pace.",
+    "title": "Your next collaboration <muted>starts here</muted>",
+    "lead": "Brands, publish your brief. Creators, complete your profile. The INFLUX team makes the introductions and supports you all the way to an agreement.",
     "reassurance": {
       "free": "No subscription: signing up is free",
       "progressive": "Complete your profile at your own pace",
       "noPayment": "No payment details required to sign up"
-    },
-    "progress": "Step {current, number} of {total, number}",
-    "steps": {
-      "profile": {
-        "title": "Your profile"
-      },
-      "account": {
-        "title": "Your account"
-      },
-      "consents": {
-        "title": "Terms and preferences"
-      }
-    },
-    "requiredLegend": "* Required field",
-    "requiredMark": "*",
-    "actions": {
-      "back": "Back",
-      "continue": "Continue",
-      "submit": "Create my account"
-    },
-    "profile": {
-      "legend": "You are signing up as",
-      "advertiser": {
-        "title": "Brand or advertiser",
-        "description": "You’re looking for creators to promote your products"
-      },
-      "creator": {
-        "title": "Content creator",
-        "description": "You offer your audience and formats to brands"
-      },
-      "errors": {
-        "required": "Choose a profile to continue."
-      }
-    },
-    "email": {
-      "label": "Email address",
-      "errors": {
-        "required": "Enter your email address.",
-        "format": "Check the format: an email address contains an @ and a domain."
-      }
-    },
-    "company": {
-      "label": "Company name",
-      "errors": {
-        "required": "Enter your company name."
-      }
-    },
-    "country": {
-      "labelAdvertiser": "Company country",
-      "labelCreator": "Country of residence",
-      "emptyOption": "Select a country",
-      "openCountriesInfo": "Sign-up and introductions are open in every country.",
-      "errors": {
-        "required": "Select your country."
-      }
-    },
-    "language": {
-      "legend": "Communication language"
-    },
-    "adult": {
-      "label": "I confirm I am 18 or older.",
-      "hint": "People under 18 cannot sign up as creators on INFLUX.",
-      "errors": {
-        "required": "Confirm you are 18 or older to continue."
-      }
-    },
-    "terms": {
-      "label": "I accept the INFLUX terms of use.",
-      "errors": {
-        "required": "Accept the terms of use to create your account."
-      }
-    },
-    "marketingConsent": {
-      "labelAdvertiser": "I agree to receive marketing emails from INFLUX (tips, news, offers) and to be contacted by its sales team (optional).",
-      "labelCreator": "I agree to receive tips, news and invitations from INFLUX by email (optional). Campaign proposals don’t depend on this.",
-      "hint": "You can withdraw this consent at any time, from your account or via the link in every email."
-    },
-    "privacyNotice": "INFLUX uses this information to manage your account and, with your consent, to send you marketing emails. Your data and rights are described in the privacy policy."
+    }
   },
   "footer": {
     "tagline": "Verified creators, approved introductions, an account manager by your side: the marketplace for brands and creators.",
@@ -357,17 +227,21 @@
     "legalTitle": "Legal",
     "legal": {
       "terms": "Terms of use",
-      "salesTerms": "Terms of sale",
       "privacy": "Privacy policy",
-      "legalNotice": "Legal notice",
       "cookies": "Cookie policy"
     },
-    "contactTitle": "Contact",
     "copyright": "© 2026 INFLUX",
     "trust": {
       "validated": "Every introduction approved by an INFLUX account manager",
       "privacy": "Your contact details are never shared"
     }
+  },
+  "images": {
+    "hero01": "Hands photographing a freshly unboxed product with a smartphone",
+    "use01": "Kraft cardboard packaging boxes on an orange background",
+    "use02": "Silhouetted audience filming a concert on smartphones",
+    "use03": "Hand photographing a fruit pie with a smartphone",
+    "use04": "Hands holding a smartphone and a bank card to shop online"
   },
   "cookieBanner": {
     "regionLabel": "Cookie consent",

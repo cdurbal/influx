@@ -146,11 +146,9 @@ test("a version of the terms waiting blocks every page but the rights; accepting
     sessions: ["chrome.android"],
   });
 
-  await open(page, "/fr/compte");
+  await open(page, "/fr/compte/informations");
   await expect(title(page)).toHaveText(t.title);
-  await expect(
-    page.getByRole("navigation", { name: ACCOUNT.fr.nav.label }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("navigation")).toHaveCount(0);
   await expect(page.getByText(t.refuseHelp)).toBeVisible();
   await expectNoSideScroll(page);
   await expectNoAxeViolation(page, "conditions en attente");
@@ -207,6 +205,8 @@ test("a change of address waits for both codes; the sign-in address stays the ol
   await signUpAsCreator(page, auth, oldAddress);
   await page.getByRole("link", { name: auth.goToSpace }).click();
   await page.getByRole("link", { name: t.homeLink }).click();
+  await expect(title(page)).toHaveText(t.hub.title);
+  await page.getByRole("link", { name: t.nav.accountDetails }).click();
   await expect(title(page)).toHaveText(t.details.title);
   await expectNoSideScroll(page);
   await expectNoAxeViolation(page, "mon compte");
@@ -265,4 +265,122 @@ test("a change of address waits for both codes; the sign-in address stays the ol
   await expect(
     page.getByText(fill(t.email.pending.stays, "email", oldAddress)),
   ).toBeVisible();
+});
+
+/** The language link the screen shows (header below lg, foot of the column from lg). */
+function languageLink(page: Page, to: "fr" | "en") {
+  return page.locator(`a[hreflang="${to}"]:visible`);
+}
+
+const HUB_ROWS = [
+  "accountDetails",
+  "accountPreferences",
+  "accountSessions",
+  "accountData",
+] as const;
+
+const HUB_PATHS = {
+  fr: {
+    accountDetails: "/fr/compte/informations",
+    accountPreferences: "/fr/compte/preferences",
+    accountSessions: "/fr/compte/sessions",
+    accountData: "/fr/compte/donnees",
+  },
+  en: {
+    accountDetails: "/en/account/details",
+    accountPreferences: "/en/account/preferences",
+    accountSessions: "/en/account/sessions",
+    accountData: "/en/account/data",
+  },
+} as const;
+
+test("the page-menu lists the four pages of mon compte, in French then in English (17 §6.0, D74)", async ({
+  page,
+}) => {
+  await seedMember(page, {
+    role: "creator",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.android"],
+  });
+  await open(page, "/fr/compte");
+  for (const locale of ["fr", "en"] as const) {
+    const t = ACCOUNT[locale];
+    await expect(title(page)).toHaveText(t.hub.title);
+    const rows = page.getByRole("main").getByRole("listitem");
+    await expect(rows).toHaveCount(HUB_ROWS.length);
+    for (const [index, key] of HUB_ROWS.entries()) {
+      const row = rows.nth(index);
+      await expect(row.getByRole("link")).toHaveText(t.nav[key]);
+      await expect(row.getByRole("link")).toHaveAttribute(
+        "href",
+        HUB_PATHS[locale][key],
+      );
+      await expect(row).toContainText(t.hub.items[key]);
+    }
+    await expect(page.getByRole("main").getByRole("navigation")).toHaveCount(0);
+    await expectNoSideScroll(page);
+    if (locale === "fr") {
+      await expect(languageLink(page, "en")).toHaveAttribute(
+        "href",
+        "/en/account",
+      );
+      await languageLink(page, "en").click();
+      await expect(page).toHaveURL(/\/en\/account$/);
+    }
+  }
+  await expect(languageLink(page, "fr")).toHaveAttribute("href", "/fr/compte");
+});
+
+test("« Mes informations » links to its own page in the other language (sn-fiche Adresses)", async ({
+  page,
+}) => {
+  await seedMember(page, {
+    role: "advertiser",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["edge.windows"],
+  });
+  await open(page, "/fr/compte/informations");
+  await expect(title(page)).toHaveText(ACCOUNT.fr.details.title);
+  await expect(languageLink(page, "en")).toHaveAttribute(
+    "href",
+    "/en/account/details",
+  );
+  await languageLink(page, "en").click();
+  await expect(page).toHaveURL(/\/en\/account\/details$/);
+  await expect(title(page)).toHaveText(ACCOUNT.en.details.title);
+});
+
+test("while terms wait, the page-menu leads to the exempted pages and « Mes informations » to the screen (RG28, J7 A3)", async ({
+  page,
+}) => {
+  const t = ACCOUNT.fr;
+  await seedMember(page, {
+    role: "creator",
+    language: "fr",
+    acceptTerms: false,
+    sessions: ["chrome.android"],
+  });
+  await open(page, "/fr/compte");
+  await expect(title(page)).toHaveText(t.hub.title);
+  await expectNoAxeViolation(page, "page-menu, CGU en attente");
+
+  await page
+    .getByRole("link", { name: t.nav.accountPreferences, exact: true })
+    .click();
+  await expect(title(page)).toHaveText(t.preferences.title);
+
+  await open(page, "/fr/compte");
+  await page
+    .getByRole("link", { name: t.nav.accountData, exact: true })
+    .click();
+  await expect(title(page)).toHaveText(t.data.title);
+
+  await open(page, "/fr/compte");
+  await page
+    .getByRole("link", { name: t.nav.accountDetails, exact: true })
+    .click();
+  await expect(title(page)).toHaveText(t.terms.title);
+  await expect(page.getByRole("navigation")).toHaveCount(0);
 });

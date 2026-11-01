@@ -11,6 +11,7 @@ import type { ApiConfig } from "./config/schema.ts";
 import {
   closeDatabase,
   createApiDatabase,
+  isDatabaseReachable,
   type ApiDatabase,
 } from "./db/index.ts";
 import {
@@ -22,6 +23,7 @@ import { registerBackofficeAccountRoutes } from "./domains/backoffice/accounts-r
 import { registerDataExportRoutes } from "./domains/privacy/member/routes.ts";
 import { registerBackofficeActionRoutes } from "./domains/backoffice/actions-routes.ts";
 import { registerBackofficeInvitationRoutes } from "./domains/backoffice/invitations-routes.ts";
+import { registerBackofficeOpsRoutes } from "./domains/backoffice/ops-routes.ts";
 import { PWNED_PASSWORDS_TIMEOUT_MS } from "./domains/identity/settings.ts";
 import {
   registerIdentityRoutes,
@@ -59,6 +61,7 @@ import {
   readClientAddress,
 } from "./platform/client-address.ts";
 import { createLogger } from "./platform/logger.ts";
+import { PublicRateLimiter } from "./platform/public-rate.ts";
 import { readClientUserAgent } from "./platform/user-agent.ts";
 import {
   withEnvelopeFallback,
@@ -69,7 +72,7 @@ import {
 import {
   isWriteMethod,
   isWriteOriginAllowed,
-  isWriteOriginException,
+  writeOriginExceptionSurface,
 } from "./platform/write-origin.ts";
 
 declare module "fastify" {
@@ -79,8 +82,17 @@ declare module "fastify" {
   }
 }
 
+/**
+ * Retry-After of a 429 whose limiter names no window (the counters in the database: 15 min, 1 h).
+ * Every 429 carries one, so that all of them look alike to a client (18 T15, J9 commit 7).
+ */
+export const RATE_LIMITED_RETRY_AFTER_SECONDS = 60;
+
 /** Same ceiling as the relay of the fronts (`03` PP-9). */
 export const MAX_BODY_BYTES = 1_048_576;
+
+/** Bound of the database check of GET /health: the probe allows 10 s for the whole answer. */
+export const HEALTH_DATABASE_TIMEOUT_MS = 2_000;
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -200,6 +212,11 @@ export type BuildServerOptions = {
    * in memory only, never flushed (tests).
    */
   ops?: OpsRecorder;
+  /**
+   * The database check of GET /health (02 §20.10); the pools' own by default. Replaced by the
+   * tests that run without a database.
+   */
+  isDatabaseReachable?: () => Promise<boolean>;
 };
 
 export function buildServer(
@@ -218,6 +235,10 @@ export function buildServer(
   const ops =
     options.ops ??
     new OpsRecorder({ version: config.version, instance: config.instance });
+  // 18 T15: the routes without a session, per client address and per instance (public-rate.ts).
+  const publicRate = new PublicRateLimiter(
+    options.identity?.now ?? (() => new Date()),
+  );
 
   const app = Fastify({
     loggerInstance: logger,
@@ -340,12 +361,18 @@ export function buildServer(
       config.authThrottlePepper,
     );
     readClientUserAgent(request);
-    if (
-      isWriteMethod(request.method) &&
-      !isWriteOriginException(request.method, routeUrl, caller) &&
-      !isWriteOriginAllowed(request.headers, config.publicOrigins[caller])
-    ) {
-      throw new ApiError("forbidden");
+    if (isWriteMethod(request.method)) {
+      const exempted = writeOriginExceptionSurface(request.method, routeUrl);
+      if (exempted !== null && exempted !== caller) {
+        // J7S-3: the route of the exception exists for its surface only (an unknown route).
+        throw new ApiError("not_found");
+      }
+      if (
+        exempted === null &&
+        !isWriteOriginAllowed(request.headers, config.publicOrigins[caller])
+      ) {
+        throw new ApiError("forbidden");
+      }
     }
     if (request.method === "DELETE" && deleteCarriesBody(request.headers)) {
       throw new ApiError("validation_failed");
@@ -357,6 +384,19 @@ export function buildServer(
     if (!isReachableFrom(owner, caller)) {
       // Same answer as an unknown route: the other surface's routes are not disclosed.
       throw new ApiError("not_found");
+    }
+    // 18 T15: before the body is read; the line names the route model and the bound, never the
+    // address (T15.5: no account before a session).
+    const refusal = publicRate.take(
+      `${request.method} ${routeUrl}`,
+      request.clientAddress,
+    );
+    if (refusal !== null) {
+      request.log.info(
+        { route: routeUrl, scope: refusal.scope },
+        "public route over its rate",
+      );
+      throw new RetryLaterError("rate_limited", refusal.retryAfterSeconds);
     }
   });
 
@@ -390,18 +430,15 @@ export function buildServer(
     }
     if (error instanceof RetryLaterError) {
       void reply.header("retry-after", String(error.retryAfterSeconds));
+    } else if (statusCode === 429) {
+      void reply.header(
+        "retry-after",
+        String(RATE_LIMITED_RETRY_AFTER_SECONDS),
+      );
     }
     return reply.code(statusCode).send(errorEnvelope(classified, request.id));
   });
 
-  // Railway health check: no secret, no detail (21 J1-G). The database check arrives at J2.
-  app.get(
-    HEALTH_ROUTE,
-    { schema: { response: { 200: systemStatusSchema } } },
-    async () => ({ status: "ok" as const }),
-  );
-
-  // Authentication of the members and of the backoffice (21 §4, J3 commits 8 to 10).
   const ownsDatabase = options.database === undefined;
   const database =
     options.database ?? createApiDatabase(config.database, app.log);
@@ -410,6 +447,25 @@ export function buildServer(
       await closeDatabase(database);
     });
   }
+  const databaseReachable =
+    options.isDatabaseReachable ??
+    (() => isDatabaseReachable(database, HEALTH_DATABASE_TIMEOUT_MS));
+
+  // Railway's health check and the target of the worker's probe on the private network (21 J1-G,
+  // 02 §20.5, §20.10): no secret, no detail, the base checked. An unreachable base answers 503:
+  // the probe alerts (15 RG165), and a deployment that cannot reach it is not promoted.
+  app.get(
+    HEALTH_ROUTE,
+    { schema: { response: { 200: systemStatusSchema } } },
+    async () => {
+      if (!(await databaseReachable())) {
+        throw new ApiError("service_unavailable");
+      }
+      return { status: "ok" as const };
+    },
+  );
+
+  // Authentication of the members and of the backoffice (21 §4, J3 commits 8 to 10).
   // 03 §6.2, 18 T8.8: no `/v1/bo/…` handler runs for a session that is not internal and in aal2,
   // whatever the handler does itself; only the closed list of sessionless routes escapes.
   app.addHook("preHandler", async (request, reply) => {
@@ -497,6 +553,9 @@ export function buildServer(
     database,
     publicOrigins: config.publicOrigins,
   });
+
+  // The "Santé technique" screen, read-only, admins only (D60, 02 §20.5; 21 §J9 commit 9).
+  registerBackofficeOpsRoutes(app, { database });
 
   // Browser errors of the connected spaces (D60, 02 §20.5).
   registerOpsRoutes(app, {

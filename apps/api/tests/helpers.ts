@@ -144,3 +144,36 @@ export function duplicateJsonKeys(text: string): string[] {
 export function captureLogs(): LogCapture & { destination: DestinationStream } {
   return captureLogStream();
 }
+
+/**
+ * Every route the server registers, `METHOD /path` (`:id` for a parameter), sorted, HEAD left out:
+ * read from Fastify's own tree, never from a list kept by hand (18 T14, T15). Each line of
+ * `printRoutes({ commonPrefix: false })` is a segment indented under its parent; a line ending
+ * with "(METHODS)" ends a route.
+ */
+export async function registeredRoutes(server: {
+  ready(): PromiseLike<unknown>;
+  printRoutes(options: { commonPrefix: boolean }): string;
+}): Promise<string[]> {
+  await server.ready();
+  const found: string[] = [];
+  const stack: { depth: number; path: string }[] = [];
+  for (const line of server.printRoutes({ commonPrefix: false }).split("\n")) {
+    const match = /^([\s│├└─]*)(\S.*?)(?: \(([A-Z, ]+)\))?$/.exec(line);
+    if (match === null) {
+      continue;
+    }
+    const [, indent = "", segment = "", methods] = match;
+    while ((stack.at(-1)?.depth ?? -1) >= indent.length) {
+      stack.pop();
+    }
+    const path = `${stack.at(-1)?.path ?? ""}${segment}`;
+    stack.push({ depth: indent.length, path });
+    for (const method of methods?.split(", ") ?? []) {
+      if (method !== "HEAD") {
+        found.push(`${method} ${path}`);
+      }
+    }
+  }
+  return found.sort();
+}

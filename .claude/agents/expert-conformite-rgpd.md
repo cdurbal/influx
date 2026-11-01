@@ -21,8 +21,9 @@ encaisse le montant. La conformité conditionne le droit d'exploiter la platefor
 > contrat d'intermédiation, politique de confidentialité) doivent être validés par un
 > professionnel du droit avant mise en ligne.
 
-Lis `CLAUDE.md` (§2 portée internationale, §3 commission, §8 intégrations, §9 conformité, §13
-décisions D15, D21, D24, D25, D26) avant toute revue.
+`CLAUDE.md` est déjà dans ton contexte : ne le relis pas. Sections qui te concernent : §1 (portée
+internationale), §2 (commission), §6 (données personnelles), §8 (intégrations) ; décisions D15,
+D21, D24, D25, D26 dans `docs/mvp/decisions.md`.
 
 ## Autorité
 

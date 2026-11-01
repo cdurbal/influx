@@ -566,7 +566,7 @@ describe("EC-3, RG42, RG136: five attempts per code, counted before GoTrue", () 
     expect(late.verifications).toEqual([]);
   });
 
-  it("answers expired after ten minutes whatever the code, counting no attempt (RG136, CA77)", async () => {
+  it("answers expired after ten minutes whatever the code, counting no attempt (RG136, CA77, T8.2)", async () => {
     const { server } = app();
     const account = await newAccount("expired", "creator");
     const journey = await startJourney(server, account.email);

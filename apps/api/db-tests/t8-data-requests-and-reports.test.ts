@@ -46,11 +46,13 @@ function scenario<T>(
   return inRolledBackTransaction(localSuperuser(), fn);
 }
 
-function advertiserA(): UserContext {
+/** The member context; `session`: the session of the request, posed as apps/api does (J7S-1). */
+function advertiserA(session?: string): UserContext {
   return {
     accountId: dataSet.accounts.advertiser.a.id,
     role: "advertiser",
     aal: "aal1",
+    ...(session === undefined ? {} : { sessionId: session }),
   };
 }
 
@@ -87,10 +89,15 @@ async function submit(
   session: string,
   type: string,
 ): Promise<Submitted | undefined> {
-  return actAsMember(tx, "influx_advertiser", advertiserA(), async () => {
-    const [row] = await tx.unsafe<Submitted[]>(SUBMIT, [session, type]);
-    return row;
-  });
+  return actAsMember(
+    tx,
+    "influx_advertiser",
+    advertiserA(session),
+    async () => {
+      const [row] = await tx.unsafe<Submitted[]>(SUBMIT, [session, type]);
+      return row;
+    },
+  );
 }
 
 function submitProbe(
@@ -98,7 +105,7 @@ function submitProbe(
   session: string,
   type: string,
 ): Promise<ProbeResult> {
-  return actAsMember(tx, "influx_advertiser", advertiserA(), () =>
+  return actAsMember(tx, "influx_advertiser", advertiserA(session), () =>
     probe(tx, SUBMIT, [session, type]),
   );
 }

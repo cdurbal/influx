@@ -21,7 +21,7 @@ import {
   it,
   vi,
 } from "vitest";
-import { relay } from "@/server/relay";
+import { relay } from "@influx/web-platform/relay";
 
 type Received = { url: string; headers: IncomingHttpHeaders };
 

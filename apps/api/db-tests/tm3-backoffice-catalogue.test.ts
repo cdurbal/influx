@@ -303,8 +303,8 @@ describe("backoffice.sla_policies: one delay per queue, as data (D39, 15 RG29, R
   });
 });
 
-describe("backoffice.alert_definitions: the alerts of Lot 1 (15 §F, 16 RG98)", () => {
-  it("holds the fourteen alerts whose condition reads objects of J8, with nature and recipients", async () => {
+describe("backoffice.alert_definitions: the alerts of Lot 1 (15 §F, 16 RG98) and the technical alerts (15 RG165)", () => {
+  it("holds the fourteen alerts of J8 and the fifteen of D60 (0147), with nature and recipients", async () => {
     const rows = await migration<
       {
         code: string;
@@ -331,6 +331,22 @@ describe("backoffice.alert_definitions: the alerts of Lot 1 (15 §F, 16 RG98)", 
       ["AL40", "etat", ["admin"]],
       ["AL41", "etat", ["admin"]],
       ["AL48", "etat", ["admin"]],
+      // 0147 (J9 commit 8, 15 RG165): on_call = the addresses of OPS_ALERT_RECIPIENTS
+      ["AL49", "etat", ["on_call"]],
+      ["AL50", "etat", ["on_call"]],
+      ["AL51", "evenement", ["on_call"]],
+      ["AL52", "etat", ["on_call"]],
+      ["AL53", "etat", ["on_call"]],
+      ["AL54", "etat", ["on_call"]],
+      ["AL55", "etat", ["on_call"]],
+      ["AL56", "etat", ["on_call"]],
+      ["AL57", "etat", ["on_call"]],
+      ["AL58", "etat", ["on_call"]],
+      ["AL59", "evenement", ["on_call", "admin"]],
+      ["AL60", "evenement", ["on_call"]],
+      ["AL61", "etat", ["on_call"]],
+      ["AL62", "evenement", ["on_call"]],
+      ["AL63", "etat", ["admin", "on_call"]],
     ]);
     expect(rows.every((row) => row.is_active)).toBe(true);
   });
@@ -359,6 +375,9 @@ describe("backoffice.alert_definitions: the alerts of Lot 1 (15 §F, 16 RG98)", 
         no_sign_in_within_minutes: 10,
         no_sign_in_share_max_bp: 1500,
         delivered_share_min_bp: 9700,
+        // 0147: its window, written in table like the others (the codes of the hour that ended
+        // no_sign_in_within_minutes ago)
+        window_minutes: 60,
       },
     });
   });

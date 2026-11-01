@@ -12,6 +12,7 @@ import {
   SCREEN_CLASSES,
   TITLE_CLASSES,
 } from "@/components/auth/auth-classes";
+import { Link } from "@/i18n/navigation";
 import { MESSAGES } from "@/i18n/messages";
 import { routing } from "@/i18n/routing";
 import { LEGAL_DOCUMENT_SLUGS, legalDocumentPath } from "@/lib/legal-documents";
@@ -52,7 +53,9 @@ export async function LegalPage({
   return (
     <NextIntlClientProvider messages={{ legal: MESSAGES[locale].legal }}>
       <main id="main" className={SCREEN_CLASSES}>
-        <p className={BRAND_CLASSES}>{t("brand")}</p>
+        <Link href="/" className={BRAND_CLASSES}>
+          {t("brand")}
+        </Link>
         <h1 className={TITLE_CLASSES}>{t(`documents.${document}`)}</h1>
         <LegalDocumentView document={document} />
       </main>

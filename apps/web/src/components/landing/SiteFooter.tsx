@@ -1,32 +1,36 @@
-import { getTranslations } from "next-intl/server";
-import { Button } from "@/components/ui/Button";
-import { FileCheckIcon, LockIcon, MailIcon } from "@/components/ui/icons";
+import type { PublicDocument } from "@influx/contracts/terms";
+import { getLocale, getTranslations } from "next-intl/server";
+import { BUTTON_BASE_CLASSES, VARIANT_CLASSES } from "@/components/ui/Button";
+import { cn } from "@/components/ui/class-names";
+import { FileCheckIcon, LockIcon } from "@/components/ui/icons";
+import { LinkButton } from "@/components/ui/LinkButton";
+import { legalDocumentHref } from "@/lib/legal-documents";
+import { LANDING_NAV_IDS, LANDING_SECTION_ANCHORS } from "./landing-sections";
 
-type SiteFooterProps = {
-  contactEmail: string;
-};
-
-const NAV_IDS = ["method", "creators", "useCases", "pricing", "faq"] as const;
-const LEGAL_IDS = [
-  "terms",
-  "salesTerms",
-  "privacy",
-  "legalNotice",
-  "cookies",
-] as const;
+// The public documents served by apps/api (21 EC-62). The legal notice and the sales terms wait
+// for the company's identity (D25): no entry until they exist.
+const LEGAL_LINKS: readonly {
+  id: "terms" | "privacy" | "cookies";
+  document: PublicDocument;
+}[] = [
+  { id: "terms", document: "terms_of_service" },
+  { id: "privacy", document: "privacy_policy" },
+  { id: "cookies", document: "cookie_policy" },
+];
 
 /**
- * Footer (02 §3.19): brand, navigation, legal documents of Lot 1 and contact, as inactive
- * buttons or text. No company name, legal form, address or registration number (CA12, D25).
+ * Footer (02 §3.19): brand, navigation and the legal documents, linked to their localized pages
+ * (J9 commit 5). No company name, legal form, address or registration number (CA12, D25).
  */
-export async function SiteFooter({ contactEmail }: SiteFooterProps) {
+export async function SiteFooter() {
   const t = await getTranslations("landing");
+  const locale = await getLocale();
 
   return (
     <footer className="bg-surface-muted text-text-primary">
       <div className="mx-auto flex max-w-(--container-max) flex-col gap-8 px-page-gutter py-section-block">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-12 lg:gap-grid-gap">
-          <div className="flex flex-col gap-3 lg:col-span-4">
+          <div className="flex flex-col gap-3 lg:col-span-5">
             <p className="text-heading-3 font-extrabold tracking-display">
               {t("common.brandName")}
             </p>
@@ -35,45 +39,43 @@ export async function SiteFooter({ contactEmail }: SiteFooterProps) {
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 lg:col-span-2">
+          <div className="flex flex-col gap-3 lg:col-span-3">
             <h2 className="text-md font-semibold">{t("footer.navTitle")}</h2>
             <nav aria-label={t("footer.navLabel")}>
               <ul className="-ml-3 flex flex-col">
-                {NAV_IDS.map((id) => (
+                {LANDING_NAV_IDS.map((id) => (
                   <li key={id}>
-                    <Button variant="text" className="justify-start text-left">
+                    <a
+                      href={`#${LANDING_SECTION_ANCHORS[id]}`}
+                      className={cn(
+                        BUTTON_BASE_CLASSES,
+                        VARIANT_CLASSES.text,
+                        "justify-start text-left",
+                      )}
+                    >
                       {t(`header.nav.${id}`)}
-                    </Button>
+                    </a>
                   </li>
                 ))}
               </ul>
             </nav>
           </div>
 
-          <div className="flex flex-col gap-3 lg:col-span-3">
+          <div className="flex flex-col gap-3 lg:col-span-4">
             <h2 className="text-md font-semibold">{t("footer.legalTitle")}</h2>
             <ul className="-ml-3 flex flex-col">
-              {LEGAL_IDS.map((id) => (
+              {LEGAL_LINKS.map(({ id, document }) => (
                 <li key={id}>
-                  <Button variant="text" className="justify-start text-left">
+                  <LinkButton
+                    href={legalDocumentHref(document, locale)}
+                    variant="text"
+                    className="justify-start text-left"
+                  >
                     {t(`footer.legal.${id}`)}
-                  </Button>
+                  </LinkButton>
                 </li>
               ))}
             </ul>
-          </div>
-
-          <div className="flex flex-col gap-3 lg:col-span-3">
-            <h2 className="text-md font-semibold">
-              {t("footer.contactTitle")}
-            </h2>
-            <p className="flex items-center gap-2 text-md text-text-secondary">
-              <MailIcon
-                aria-hidden="true"
-                className="size-(--size-icon-md) shrink-0"
-              />
-              <span className="break-all">{contactEmail}</span>
-            </p>
           </div>
         </div>
 

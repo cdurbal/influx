@@ -366,7 +366,7 @@ Un `admin` doit pouvoir **tout arrêter en un geste**, sans redéploiement, avec
 > **D70 (2026-10-18).** `staging` se comporte comme la production : envois réels par le compte
 > Brevo de `staging`, sans redirection. Les règles ci-dessous sur le mode désactivé ou redirigé
 > valent désormais pour la pile locale, la CI et les tests ; pour `staging`, elles décrivent l'état
-> d'avant la bascule (`jalons/d70-plan.md`). Restent vrais partout : clé de production seulement en
+> d'avant la bascule (`archives/jalons/d70-plan.md`). Restent vrais partout : clé de production seulement en
 > production, aucune donnée de production ailleurs, bandeau d'environnement.
 >
 > **Un e-mail réellement envoyé depuis un environnement de test est un incident.** Le risque est

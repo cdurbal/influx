@@ -1,13 +1,14 @@
 import { getLocale, getTranslations } from "next-intl/server";
-import { Button } from "@/components/ui/Button";
+import { BUTTON_BASE_CLASSES, VARIANT_CLASSES } from "@/components/ui/Button";
+import { cn } from "@/components/ui/class-names";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { LinkButton } from "@/components/ui/LinkButton";
+import { memberPageHref } from "@/lib/member-paths";
 import {
   SiteHeaderMobileMenu,
   type HeaderNavItem,
 } from "./SiteHeaderMobileMenu";
-
-const NAV_IDS = ["method", "creators", "useCases", "pricing", "faq"] as const;
+import { LANDING_NAV_IDS, LANDING_SECTION_ANCHORS } from "./landing-sections";
 
 /**
  * Sticky header (Malt-style order, 2026-09-17): brand, menu, signup, login and a language menu
@@ -16,8 +17,9 @@ const NAV_IDS = ["method", "creators", "useCases", "pricing", "faq"] as const;
 export async function SiteHeader() {
   const t = await getTranslations("landing");
   const locale = await getLocale();
-  const navItems: HeaderNavItem[] = NAV_IDS.map((id) => ({
+  const navItems: HeaderNavItem[] = LANDING_NAV_IDS.map((id) => ({
     id,
+    anchor: LANDING_SECTION_ANCHORS[id],
     label: t(`header.nav.${id}`),
   }));
 
@@ -32,7 +34,12 @@ export async function SiteHeader() {
           <ul className="flex items-center gap-1">
             {navItems.map((item) => (
               <li key={item.id}>
-                <Button variant="text">{item.label}</Button>
+                <a
+                  href={`#${item.anchor}`}
+                  className={cn(BUTTON_BASE_CLASSES, VARIANT_CLASSES.text)}
+                >
+                  {item.label}
+                </a>
               </li>
             ))}
           </ul>
@@ -40,12 +47,20 @@ export async function SiteHeader() {
 
         <div className="ml-auto flex items-center gap-3">
           <div className="hidden lg:block">
-            <LinkButton href="/signup" variant="primary" size="md">
+            <LinkButton
+              href={memberPageHref("signupDoors", locale)}
+              variant="primary"
+              size="md"
+            >
               {t("common.cta.signup")}
             </LinkButton>
           </div>
           <div className="hidden lg:block">
-            <LinkButton href="/login" variant="text" size="md">
+            <LinkButton
+              href={memberPageHref("signIn", locale)}
+              variant="text"
+              size="md"
+            >
               {t("common.cta.login")}
             </LinkButton>
           </div>
@@ -70,7 +85,9 @@ export async function SiteHeader() {
             navLabel={t("header.navLabel")}
             navItems={navItems}
             loginCta={t("common.cta.login")}
+            loginHref={memberPageHref("signIn", locale)}
             signupCta={t("common.cta.signup")}
+            signupHref={memberPageHref("signupDoors", locale)}
           />
         </div>
       </div>

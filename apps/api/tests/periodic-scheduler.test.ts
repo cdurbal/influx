@@ -4,6 +4,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AUTH_ORPHAN_AGE_MS,
+  createAuthOrphanPurge,
   isPurgeableAge,
 } from "../src/domains/maintenance/auth-orphan-purge.ts";
 import {
@@ -18,7 +19,9 @@ import {
   createPeriodicScheduler,
   isDue,
   createDataExportPurge,
+  createOpsRetention,
   EXPORT_PURGE_BATCH,
+  OPS_RETENTION_MAX_STEPS,
   periodKeyOf,
   PeriodicRunInterrupted,
   PeriodicTaskError,
@@ -70,6 +73,9 @@ function memoryStore(options: { claimedElsewhere?: boolean } = {}) {
     },
     async purgeDataExports() {
       return 0;
+    },
+    async opsRetentionStep() {
+      return { more: 0 };
     },
   };
   return { store, claims, finishes, findings };
@@ -202,6 +208,26 @@ describe("the scheduler", () => {
     expect(JSON.stringify(lines)).not.toContain("example.test");
   });
 
+  it("counts a stop by the breaker on its run, the trace AL60 reads (J7S-2, 15 RG165)", async () => {
+    const { store, finishes } = memoryStore();
+    const { logger } = silentLogger();
+    const scheduler = createPeriodicScheduler({
+      store,
+      runners: {
+        auth_orphan_purge: async (_run, counts) => {
+          counts.realign_checked = 0;
+          throw new PeriodicTaskError("breaker.orphan_ratio");
+        },
+      },
+      logger,
+      now: () => AT_0300,
+    });
+    await scheduler.tick(signal());
+    expect(finishes.map((finish) => [finish.outcome, finish.counts])).toEqual([
+      ["failed", { realign_checked: 0, breaker_orphan_ratio: 1 }],
+    ]);
+  });
+
   it("leaves a run interrupted by a stop open, for a take-back after an hour", async () => {
     const { store, finishes } = memoryStore();
     const { logger, lines } = silentLogger();
@@ -289,6 +315,67 @@ describe("04 §9: the age of a GoTrue user", () => {
     ],
   ] as const)("%s: purgeable %s", (_label, user, expected) => {
     expect(isPurgeableAge({ userId: "u", ...user }, now)).toBe(expected);
+  });
+});
+
+describe("J7S-2: the breaker of the GoTrue purge", () => {
+  it("stops the run on the refusal of ops.filter_auth_orphans (55000), before any delete", async () => {
+    const { store } = memoryStore();
+    const deletes: string[] = [];
+    const refusal = Object.assign(new Error("accounts read empty"), {
+      code: "55000",
+    });
+    const purge = createAuthOrphanPurge({
+      directory: {
+        listUsers: async () => ({
+          ok: true,
+          value: {
+            users: [
+              {
+                userId: "6f1c2a8e-2b8f-4c1e-9d7a-0c4b8e2f1a3d",
+                createdAt: AT_0300 - 72 * 3_600_000,
+                updatedAt: null,
+                lastSignInAt: null,
+              },
+            ],
+            nextPage: null,
+          },
+        }),
+        readUser: async () => {
+          throw new Error("not reached");
+        },
+        deleteUser: async (userId) => {
+          deletes.push(userId);
+          return { ok: true, value: null };
+        },
+        readUserAddress: async () => {
+          throw new Error("not reached");
+        },
+        moveUserAddress: async () => {
+          throw new Error("not reached");
+        },
+        userOfAddress: async () => {
+          throw new Error("not reached");
+        },
+      },
+      store: {
+        ...store,
+        filterAuthOrphans: async () => {
+          throw refusal;
+        },
+      },
+      now: () => AT_0300,
+    });
+
+    const failure = await purge(
+      { runId: "run-1", attempt: 1 },
+      {},
+      signal(),
+    ).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(PeriodicTaskError);
+    expect((failure as PeriodicTaskError).code).toBe("breaker.filter_refused");
+    expect(deletes).toEqual([]);
   });
 });
 
@@ -531,6 +618,42 @@ describe("data_export_purge (runbook demandes-rgpd §4, J8 commit 8)", () => {
       EXPORT_PURGE_BATCH,
       EXPORT_PURGE_BATCH,
     ]);
+  });
+
+  it("runs the retention of ops by steps until no more, adding up their counts (0147)", async () => {
+    const { store } = memoryStore();
+    const steps: PeriodicCounts[] = [
+      { request_minutes_rolled_up: 4000, more: 1 },
+      { request_minutes_rolled_up: 120, occurrences_purged: 7, more: 0 },
+    ];
+    let calls = 0;
+    store.opsRetentionStep = async () => steps[calls++] ?? { more: 0 };
+    const counts: PeriodicCounts = {};
+    await createOpsRetention(store)(
+      { runId: "run-1", attempt: 1 },
+      counts,
+      signal(),
+    );
+    expect(calls).toBe(2);
+    expect(counts).toEqual({
+      request_minutes_rolled_up: 4120,
+      occurrences_purged: 7,
+    });
+  });
+
+  it("bounds the steps of the retention of ops per run", async () => {
+    const { store } = memoryStore();
+    let calls = 0;
+    store.opsRetentionStep = async () => {
+      calls += 1;
+      return { more: 1 };
+    };
+    await createOpsRetention(store)(
+      { runId: "run-1", attempt: 1 },
+      {},
+      signal(),
+    );
+    expect(calls).toBe(OPS_RETENTION_MAX_STEPS);
   });
 
   it("stops between two batches once a stop is requested", async () => {

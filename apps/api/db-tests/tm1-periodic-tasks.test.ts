@@ -214,6 +214,15 @@ async function retentionLinesOf(run: string) {
 
 const signal = () => new AbortController().signal;
 
+/** The first worker pool of the file: influx_worker_login holds 10 connections at most (0001). */
+function firstWorker(): WorkerDatabase {
+  const database = workers[0];
+  if (database === undefined) {
+    throw new Error("no worker pool");
+  }
+  return database;
+}
+
 beforeAll(async () => {
   migration = migrationRole();
   brevo = await startBrevoDouble();
@@ -418,6 +427,55 @@ describe("04 §9, 02 §18.5: the hourly purge of the GoTrue users without an acc
 
     expect([...gotrue.users.keys()].sort()).toEqual([updated, signedIn].sort());
   });
+
+  /** `users` GoTrue users of 72 hours, the first `orphans` of them without an account. */
+  async function agedPage(users: number, orphans: number): Promise<string[]> {
+    const ids: string[] = [];
+    for (let index = 0; index < users; index += 1) {
+      const id = gotrue.addUser({ ageHours: 72 });
+      if (index >= orphans) {
+        await createAccount({ authUserId: id });
+      }
+      ids.push(id);
+    }
+    return ids.slice(0, orphans);
+  }
+
+  it("J7S-2 breaker: a page of over 20 users more than half orphans stops the run before any delete, logged", async () => {
+    await agedPage(21, 11);
+    const before = logs.lines().length;
+
+    await scheduler(firstWorker()).tick(signal());
+
+    expect(gotrue.users.size).toBe(21);
+    expect(gotrue.requests.some((request) => request.method === "DELETE")).toBe(
+      false,
+    );
+    const run = await runOf("auth_orphan_purge");
+    expect(run).toMatchObject({ outcome: "failed" });
+    expect(run.counts).toMatchObject({ deleted: 0 });
+    expect(await retentionLinesOf(run.id)).toEqual([]);
+    const written = logs.lines().slice(before).join("\n");
+    expect(written).toContain('"errorCode":"breaker.orphan_ratio"');
+  });
+
+  it.each([
+    ["exactly half of a page of 22", 22, 11],
+    ["a page of 20, all orphans", 20, 20],
+  ])(
+    "J7S-2 breaker: purges as before with %s",
+    async (_case, users, orphans) => {
+      const purged = await agedPage(users, orphans);
+
+      await scheduler(firstWorker()).tick(signal());
+
+      expect(purged.some((id) => gotrue.users.has(id))).toBe(false);
+      expect(gotrue.users.size).toBe(users - orphans);
+      const run = await runOf("auth_orphan_purge");
+      expect(run).toMatchObject({ outcome: "succeeded" });
+      expect(run.counts).toMatchObject({ orphans, deleted: orphans });
+    },
+  );
 
   it("keeps the user whose account appeared after the listing (checked again before the delete)", async () => {
     const adopted = gotrue.addUser({ ageHours: 30 });

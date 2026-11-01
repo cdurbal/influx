@@ -1,12 +1,10 @@
+import { LANDING_SECTION_ANCHORS } from "./landing-sections";
 import { getTranslations } from "next-intl/server";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
 import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import type { LandingImage, UseCaseId } from "@/content/landing-content";
-
-type UseCasesSectionProps = {
-  images: Record<UseCaseId, LandingImage>;
-};
+import type { UseCaseId } from "@/content/landing-content";
+import { landingPhoto } from "@/content/landing-images";
 
 // Display order fixed by the compliance review (02 §3.12).
 const USE_CASE_IDS: readonly UseCaseId[] = [
@@ -16,12 +14,24 @@ const USE_CASE_IDS: readonly UseCaseId[] = [
   "awareness",
 ];
 
+const PHOTO_IDS: Record<UseCaseId, "use01" | "use02" | "use03" | "use04"> = {
+  ugc: "use03",
+  acquisition: "use04",
+  productLaunch: "use01",
+  awareness: "use02",
+};
+
 /** Section 10 (02 §3.12): four advertiser goals, as non-focusable cards without links. */
-export async function UseCasesSection({ images }: UseCasesSectionProps) {
+export async function UseCasesSection() {
   const t = await getTranslations("landing.useCases");
+  const tImages = await getTranslations("landing.images");
 
   return (
-    <section aria-labelledby="use-cases-title" className="bg-surface-muted">
+    <section
+      id={LANDING_SECTION_ANCHORS.useCases}
+      aria-labelledby="use-cases-title"
+      className="bg-surface-muted"
+    >
       <div className="mx-auto flex max-w-(--container-max) flex-col gap-section-header px-page-gutter py-section-block">
         <SectionHeader
           titleId="use-cases-title"
@@ -36,7 +46,7 @@ export async function UseCasesSection({ images }: UseCasesSectionProps) {
               className="flex flex-col overflow-hidden rounded-lg bg-surface-card shadow-sm"
             >
               <ResponsiveImage
-                image={images[id]}
+                image={landingPhoto(PHOTO_IDS[id], tImages(PHOTO_IDS[id]))}
                 sizes="halfDesktop"
                 className="aspect-3/2 w-full"
               />

@@ -1,10 +1,17 @@
-# Continuous integration: security review markers, local Supabase stack, then format, types,
-# lint, tests (database tests included, never skipped) and build (`pnpm check`), then the J5
-# browser journeys (Playwright, Chromium headless shell only, 5-minute cap on the step); in
-# parallel, the relay and the origin check on Node 24, the production runtime (C-2).
+# Continuous integration, in parallel jobs (D76):
+# - `changes` tells whether anything but documentation changed since the last green run of `main`;
+# - `check`: security review markers, migration names, spec index and format, always; then types,
+#   lint, the tests without database, the build and its artefact checks;
+# - `db`: the local Supabase stack, rebuilt from the migrations, and the database tests (never
+#   skipped when code changed);
+# - `e2e`: the J5 browser journeys (Playwright, Chromium headless shell only, 5-minute cap on the
+#   step) against their own local stack, started in the background while both fronts build;
+# - `relay-node-24`: the relay and the origin check on Node 24, the production runtime (C-2).
+# A documentation-only push to `main` runs `check`'s cheap steps alone; `production` and pull
+# requests always run everything.
 # Plan: docs/mvp/21-plan-de-developpement.md §4, J0, J2 point 7, J3-F commit 4 and J5 commit 6.
-# Duration budget: 10 minutes for the whole job, journeys included (`18` A-4); no cache, on
-# purpose (no cache-poisoning surface): the browser is downloaded at each run.
+# Duration budget: 10 minutes for the whole run, journeys included (`18` A-4); no cache, on
+# purpose (no cache-poisoning surface): the browser and the images are downloaded at each run.
 name: CI
 
 # D71: `production` runs the same checks, and only there do the security review markers block.
@@ -28,18 +35,56 @@ env:
   COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
 
 jobs:
-  check:
-    name: pnpm check
+  # D76: does this push change anything but documentation (`docs/`, `.claude/`, the Markdown files
+  # of the root)? Compared with the last SUCCESSFUL run of `main`, not with the previous push: a
+  # code push whose run was cancelled (concurrency above) or failed is never hidden by a
+  # documentation push after it. Anything unknown (no green run yet, history rewritten, a re-run of
+  # the same commit) counts as code.
+  changes:
+    name: Changes
     runs-on: ubuntu-latest
-    # Safety net above the 10-minute budget: a stuck run must not burn minutes.
+    timeout-minutes: 5
+    # Reading the past runs of this workflow needs `actions: read`, for this job only.
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      code: ${{ steps.detect.outputs.code }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Detect a documentation-only change
+        id: detect
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MAIN_PUSH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: |
+          code=true
+          if [ "$MAIN_PUSH" = "true" ]; then
+            base="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --branch main --event push \
+              --status success --limit 1 --json headSha --jq '.[0].headSha // empty')"
+            if [ -n "$base" ] && git cat-file -e "$base^{commit}" 2>/dev/null \
+              && git merge-base --is-ancestor "$base" "$GITHUB_SHA"; then
+              changed="$(git diff --name-only "$base" "$GITHUB_SHA")"
+              echo "Changed since the last green run ($base):"
+              printf '%s\n' "$changed"
+              if [ -n "$changed" ] && ! printf '%s\n' "$changed" | grep -Eqv '^(docs/|\.claude/|[^/]+\.md$)'; then
+                code=false
+              fi
+            fi
+          fi
+          echo "code=$code"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
+  check:
+    name: Static checks, unit tests, build
+    needs: [changes]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Raised rate limits of the LOCAL Supabase Auth, read by `env()` in supabase/config.toml (EC-38
-    # point 4): never a value that `supabase config push` would carry to a hosted project. Every
-    # Supabase CLI command refuses to read the config when they are unset (EC-51). Set on THIS job
-    # only (C5-2): a job that would run the CLI against a hosted project must not inherit them.
-    env:
-      INFLUX_LOCAL_AUTH_SIGN_IN_LIMIT: "1000"
-      INFLUX_LOCAL_AUTH_VERIFY_LIMIT: "1000"
     steps:
       # Actions are pinned to a full commit SHA (the tag is only a mutable label).
       - name: Checkout
@@ -100,6 +145,62 @@ jobs:
           pnpm docs:index
           git diff --exit-code docs/mvp/INDEX.md || { echo "::error::docs/mvp/INDEX.md is stale: run 'pnpm docs:index' and commit it"; exit 1; }
 
+      - name: Format
+        run: pnpm format:check
+
+      # What `pnpm check` runs, the database tests aside (job `db`).
+      - name: Typecheck
+        if: needs.changes.outputs.code == 'true'
+        run: pnpm typecheck
+
+      - name: Lint
+        if: needs.changes.outputs.code == 'true'
+        run: pnpm lint
+
+      - name: Tests without database
+        if: needs.changes.outputs.code == 'true'
+        run: pnpm test:unit
+
+      - name: Build
+        if: needs.changes.outputs.code == 'true'
+        run: pnpm build
+
+      - name: Build artefact checks
+        if: needs.changes.outputs.code == 'true'
+        run: pnpm -r run test:artifacts
+
+  db:
+    name: Database tests
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Raised rate limits of the LOCAL Supabase Auth, read by `env()` in supabase/config.toml (EC-38
+    # point 4): never a value that `supabase config push` would carry to a hosted project. Every
+    # Supabase CLI command refuses to read the config when they are unset (EC-51). Set on the jobs
+    # of the local stack only (C5-2): a job that would run the CLI against a hosted project must not
+    # inherit them.
+    env:
+      INFLUX_LOCAL_AUTH_SIGN_IN_LIMIT: "1000"
+      INFLUX_LOCAL_AUTH_VERIFY_LIMIT: "1000"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       # Local Supabase stack (CLI pinned at the root, 21 J1-A): the database, plus Supabase Auth
       # behind its gateway and Mailpit for the findings of J3 commit 7 (21 §4, J3-A: GoTrue is
       # never assumed, it is observed; Mailpit is where a native e-mail would land). The other
@@ -107,7 +208,7 @@ jobs:
       # The workstation runs the GoTrue version of staging, which the CLI reads from
       # supabase/.temp/gotrue-version since the J4 link (ignored by Git). The runner is not linked:
       # the same version is pinned here, or the CLI default GoTrue answers differently (EC-57).
-      # Keep it equal to the staging version (docs/mvp/runbooks/staging.md).
+      # Keep it equal to the staging version (docs/mvp/runbooks/staging.md), here and in `e2e`.
       - name: Pin the GoTrue version of staging
         run: |
           mkdir -p supabase/.temp
@@ -126,25 +227,79 @@ jobs:
       - name: Set the test passwords of the connection roles
         run: pnpm db:role-passwords
 
-      - name: Format, typecheck, lint, test (database included), build
-        run: pnpm check
+      - name: Database tests
+        run: pnpm --filter @influx/api test:db
 
-      # The four demonstration accounts of example.test (21 J3 commit 11), as on a workstation.
-      # After the tests: the seed creates the current terms version, which the fixed-id version of
-      # the test data set (packages/test-kit/src/db/dataset.ts) would then never be inserted beside.
-      - name: Create the demonstration accounts
-        run: pnpm db:demo-accounts
+  e2e:
+    name: Browser journeys
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Same local stack as `db`, same raised limits of its Auth (EC-38, EC-51, C5-2).
+    env:
+      INFLUX_LOCAL_AUTH_SIGN_IN_LIMIT: "1000"
+      INFLUX_LOCAL_AUTH_VERIFY_LIMIT: "1000"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      # The browser journeys of the J5 (21 §J5, commit 6): screen 3 shows the terms in force, so
-      # the last published texts go in first, then Chromium, then the journeys against the build
-      # of `pnpm check` (apps/web/playwright.config.ts: next start only under CI).
-      - name: Publish the public documents on the local stack
-        run: pnpm --filter @influx/api db:publish-terms -- --latest
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Same GoTrue version as `db` and staging (EC-57).
+      - name: Pin the GoTrue version of staging
+        run: |
+          mkdir -p supabase/.temp
+          printf 'v2.197.0' > supabase/.temp/gotrue-version
+
+      # D76: the stack takes about two minutes to start (images downloaded, no cache): it starts in
+      # the background while both fronts build and Chromium downloads, and is awaited below.
+      - name: Start the local Supabase stack in the background
+        run: |
+          nohup bash -c 'pnpm exec supabase start -x realtime,storage-api,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor > "$RUNNER_TEMP/supabase-start.log" 2>&1; echo $? > "$RUNNER_TEMP/supabase-start.exit"' > /dev/null 2>&1 &
+
+      # The journeys start both fronts without building them under CI (apps/web/playwright.config.ts).
+      - name: Build both fronts
+        run: pnpm --filter @influx/web --filter @influx/backoffice run build
 
       - name: Install the Chromium of Playwright
         # Headless shell only: the config runs devices["Desktop Chrome"] in headless mode, which
         # never launches the full Chromium; it saves its download (about 100 MB).
         run: pnpm --filter @influx/web exec playwright install --with-deps --only-shell chromium
+
+      - name: Wait for the local Supabase stack
+        timeout-minutes: 6
+        run: |
+          while [ ! -f "$RUNNER_TEMP/supabase-start.exit" ]; do sleep 2; done
+          cat "$RUNNER_TEMP/supabase-start.log"
+          exit "$(cat "$RUNNER_TEMP/supabase-start.exit")"
+
+      # The base is rebuilt from zero, as in `db`, so that both jobs test the same base.
+      - name: Rebuild the database from the migrations
+        run: pnpm exec supabase db reset
+
+      - name: Set the test passwords of the connection roles
+        run: pnpm db:role-passwords
+
+      # The four demonstration accounts of example.test (21 J3 commit 11), as on a workstation.
+      - name: Create the demonstration accounts
+        run: pnpm db:demo-accounts
+
+      # Screen 3 shows the terms in force (21 §J5, commit 6): the last published texts go in first.
+      - name: Publish the public documents on the local stack
+        run: pnpm --filter @influx/api db:publish-terms -- --latest
 
       - name: Browser journeys (Playwright)
         # About 45 s locally: a stuck journey must not consume the job.
@@ -152,13 +307,15 @@ jobs:
         run: pnpm test:e2e
 
   # C-2 (end-of-J1 security review, 21 J1-J): the relay runs on Node 24 in production (J1-B,
-  # Node >= 24.12), while the job above runs the version of .node-version. What Node's fetch does
+  # Node >= 24.12), while the other jobs run the version of .node-version. What Node's fetch does
   # to the forwarded request (sec-fetch-mode set to cors, origin and sec-fetch-site untouched) is
   # therefore checked on Node 24, against the fake server of the relay tests, together with the
   # origin check of apps/api that reads those two headers only (03 §6.4 A4). No database, no
   # secret, no network beyond the loopback.
   relay-node-24:
     name: Relay on Node 24 (C-2)
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -194,9 +351,10 @@ jobs:
       - name: Origin check of apps/api
         run: pnpm --filter @influx/api exec vitest run --project unit tests/request-guards.test.ts
 
-  # 21 §4 J4 point 1 (CI-5): after both checks, a push to main migrates staging. The migration
-  # role's URL (DIRECT_DATABASE_URL) is a secret of the GitHub environment `staging` only, never a
-  # Railway variable. Railway waits for this workflow ("Wait for CI") before deploying, so the
+  # 21 §4 J4 point 1 (CI-5): after all the checks, a push to main migrates staging (skipped with
+  # them on a documentation-only push, D76: no migration changed since the last green run). The
+  # migration role's URL (DIRECT_DATABASE_URL) is a secret of the GitHub environment `staging`
+  # only, never a Railway variable. Railway waits for this workflow ("Wait for CI") before deploying, so the
   # schema always precedes the code that reads it. Our supabase/config.toml is NOT read here: the
   # CLI runs in a work directory holding the migrations only, so that no local setting can ever
   # reach the hosted project (C5-2); its settings go by `supabase config push`, by hand
@@ -204,7 +362,7 @@ jobs:
   migrate-staging:
     name: Migrate staging
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [check, relay-node-24]
+    needs: [check, db, e2e, relay-node-24]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: staging
@@ -268,3 +426,83 @@ jobs:
           export INFLUX_STAGING_DB_CA_FILE="$(mktemp)"
           printf '%s\n' "$STAGING_DATABASE_CA_CERT" > "$INFLUX_STAGING_DB_CA_FILE"
           pnpm --filter @influx/api db:publish-terms -- --latest --target=staging
+
+  # J9 commit 11 (EC-J9-6, EC-J9-8; D71): the mirror of "Migrate staging" for the `production` branch,
+  # which only advances by `git merge --no-ff main` on the founder's explicit agreement. INERT until
+  # the founder has created the GitHub environment `production` AND set the repository variable
+  # PRODUCTION_MIGRATION_ENABLED to `true` (docs/mvp/runbooks/production.md, step 3). The condition
+  # sits on the job, not in a step, on purpose: a job that names `environment: production` CREATES
+  # that environment on GitHub when it does not exist, and an unprotected one at that. A skipped job
+  # never resolves its environment, so nothing is created, no secret is read. `vars` is the only
+  # context the `if` of a job can use for that (`secrets` cannot be read there). Same required jobs
+  # as staging; the security review markers (I-4) block in `check` on this branch (D71). Never
+  # `railway up`: Railway deploys the branch itself after "Wait for CI". The public documents are NOT
+  # published here: publishing the terms in production is the founder's action (EC-62).
+  migrate-production:
+    name: Migrate production
+    if: >-
+      github.event_name == 'push'
+      && github.ref == 'refs/heads/production'
+      && vars.PRODUCTION_MIGRATION_ENABLED == 'true'
+    needs: [check, db, e2e, relay-node-24]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    # One migration run at a time, never cancelled half-way.
+    concurrency:
+      group: migrate-production
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The URL of the migration role is a secret of the GitHub environment `production` only and is
+      # given to the steps below, never to the install (J4S-1, CI-5). Without it the job ends green
+      # and migrates nothing (second net, behind the condition of the job).
+      - name: Require the production marker and refuse the staging marker
+        env:
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
+          PGSSLMODE: require
+        run: |
+          if [ -z "$DIRECT_DATABASE_URL" ]; then
+            echo "::notice::DIRECT_DATABASE_URL is not set in the production environment: production is not migrated (runbook production, step 3)."
+            echo "MIGRATE_PRODUCTION=skip" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          # J9T-2: a positive check, not a deny list. The production base carries its own marker table
+          # (runbook production, step 1, created by hand) and never the one of staging (runbook staging,
+          # step 1): a URL of staging pasted here is refused even after a reset of staging that lost
+          # its marker. Anything else, or a base that cannot be read, is refused.
+          marker="$(psql "$DIRECT_DATABASE_URL" --no-psqlrc --tuples-only --no-align \
+            --command "select to_regclass('influx_production.environment_marker') is not null and to_regclass('influx_staging.environment_marker') is null")"
+          if [ "$marker" != "t" ]; then
+            echo "::error::The database does not carry the production marker, or carries the staging one, or could not be read: refusing to migrate it as production."
+            exit 1
+          fi
+
+      # The pending migrations are listed first (names only), so the run log says what is applied.
+      - name: Migrate production (supabase db push)
+        if: env.MIGRATE_PRODUCTION != 'skip'
+        env:
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
+        run: |
+          workdir="$(mktemp -d)"
+          mkdir -p "$workdir/supabase"
+          cp -R supabase/migrations "$workdir/supabase/migrations"
+          printf 'project_id = "influx-production-migrations"\n' > "$workdir/supabase/config.toml"
+          pnpm exec supabase db push --db-url "$DIRECT_DATABASE_URL" --workdir "$workdir" --dry-run
+          pnpm exec supabase db push --db-url "$DIRECT_DATABASE_URL" --workdir "$workdir" --yes

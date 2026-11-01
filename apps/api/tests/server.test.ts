@@ -15,9 +15,10 @@ const okSchema = z.object({ status: z.literal("ok") });
 
 let app: ApiServer | undefined;
 
-function server(): ApiServer {
+function server(isDatabaseReachable = async () => true): ApiServer {
   app = buildServer(testApiConfig(), {
     logDestination: captureLogs().destination,
+    isDatabaseReachable,
   });
   return app;
 }
@@ -34,6 +35,16 @@ describe("GET /health", () => {
     const response = await server().inject({ method: "GET", url: "/health" });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ status: "ok" });
+  });
+
+  it("answers 503 when the base is unreachable, still without detail (02 §20.10)", async () => {
+    const response = await server(async () => false).inject({
+      method: "GET",
+      url: "/health",
+    });
+    expect(response.statusCode).toBe(503);
+    expect(Object.keys(response.json().error).sort()).toEqual(ENVELOPE_KEYS);
+    expect(response.json().error.code).toBe("service_unavailable");
   });
 });
 
@@ -309,7 +320,10 @@ describe("request identifier (03 PP-7)", () => {
     "never reuses a relayed UUID %s (18 T7.11, 21 J1-J A3)",
     async (_case, url, headers) => {
       const logs = captureLogs();
-      app = buildServer(testApiConfig(), { logDestination: logs.destination });
+      app = buildServer(testApiConfig(), {
+        logDestination: logs.destination,
+        isDatabaseReachable: async () => true,
+      });
       const chosen = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
       const response = await app.inject({
         method: "GET",

@@ -81,7 +81,7 @@ moins une option** dans les sections qui suivent.
 | **C3** | Conversation à trois, commercial **visible et nommé** ; **chaque lecture par un agent est journalisée** | A3, A10 | Une politique RLS ne sait pas écrire une ligne : il faut une fonction `SECURITY DEFINER` et **retirer tout autre chemin de lecture** au rôle agent |
 | **C4** | Registre d'audit **append-only chaîné**, impossible à réécrire | M4 | `REVOKE UPDATE, DELETE` + trigger + chaînage par empreinte + **sérialisation des écritures** + vérification périodique. Rien de tout cela n'est exprimable dans un ORM |
 | **C5** | Contrat et paiement **hors application** ; le commercial saisit montant et commission | A1, A8 | **Aucun taux, aucune multiplication** nulle part. Table `commission_rates` créée et vide |
-| **C6** | Un lead non synchronisé est un lead perdu ; un échec Brevo/Apollo ne fait jamais échouer une inscription | `CLAUDE.md` §7, skill `lead-pipeline` | File **persistée et transactionnelle** : l'événement s'écrit dans la même transaction que le fait métier |
+| **C6** | Un lead non synchronisé est un lead perdu ; un échec Brevo/Apollo ne fait jamais échouer une inscription | `CLAUDE.md` §5, skill `lead-pipeline` | File **persistée et transactionnelle** : l'événement s'écrit dans la même transaction que le fait métier |
 | **C7** | Le backoffice voit **toutes les identités, toutes les conversations, toutes les affaires** | §6.3 du cadrage | Surface privilégiée : isolement d'hôte, MFA, session courte, et **aucune autorisation par masquage d'UI** |
 | **C8** | Mise en ligne progressive **dès le Lot 1** (semaine 5) | A6 | Le socle doit être livrable en 1-2 semaines et supporter un site public déjà en production pendant qu'on construit le reste |
 | **C9** | Un développeur à plein temps, des agents IA, un poste Windows | §7 du cadrage | Peu de pièces, outils standard, mêmes commandes en local et en CI. **Toute complexité doit se payer en sécurité ou en vitesse, sinon elle est refusée** |
@@ -458,7 +458,7 @@ HTTP, qui est mince par construction.**
 
 ### Contexte
 
-La base est la source de vérité (`CLAUDE.md` §7). Elle porte des politiques RLS, des `GRANT` et
+La base est la source de vérité (`CLAUDE.md` §5). Elle porte des politiques RLS, des `GRANT` et
 `REVOKE` de colonnes, des déclencheurs, des fonctions `SECURITY DEFINER`, un registre chaîné et des
 contraintes de machine à états. **Aucun de ces objets n'est exprimable dans le langage de schéma
 d'un ORM.** La question n'est donc pas « quel ORM », mais « quelle couche de requêtes typée, sans
@@ -839,12 +839,15 @@ influx/
 │   │   │                        existe déjà (Lot 0 : sortie du mode maquette, §13)
 │   │   └── src/
 │   │       ├── app/[locale]/    pages publiques et espaces membres
-│   │       ├── app/api/[...path]/route.ts   ⚠ UNIQUE route : passe-plat vers apps/api (§9.3)
-│   │       ├── server/          appel de l'API depuis les composants serveur (seul endroit où
-│   │       │                    « fetch » est autorisé)
+│   │       ├── app/api/[...path]/route.ts   ⚠ UNIQUE route : passe-plat vers apps/api (§9.3) ;
+│   │       │                    copie épinglée, identique dans les deux fronts, qui importe
+│   │       │                    @influx/web-platform/relay (arbitrage PL-07, PL-09)
+│   │       ├── server/          status-cache.ts de /health (EC-22) ; l'appel de l'API, seul endroit
+│   │       │                    où « fetch » est autorisé, est dans @influx/web-platform (PL-09)
 │   │       ├── components/      RENDU UNIQUEMENT — jamais de logique métier
 │   │       ├── i18n/ locales/   next-intl, FR + EN (D28)
-│   │       └── styles/tokens.css  FICHIER DE TOKENS UNIQUE (D4, D6)
+│   │       └── app/globals.css  importe @influx/ui/tokens.css, FICHIER DE TOKENS UNIQUE (D4, D6),
+│   │                            jusqu'ici styles/tokens.css (déplacé par PL-08, arbitrage PL-07)
 │   │       ▸ ne doit JAMAIS contenir : une clé Supabase, une clé Brevo/Apollo, une requête SQL,
 │   │         un import de @supabase/*, drizzle, pg ou postgres, un calcul de montant,
 │   │         un taux de commission, une Server Action
@@ -853,9 +856,11 @@ influx/
 │   │   │                        hôte distinct · noindex · MFA · session courte · FR seul (D36)
 │   │   └── src/
 │   │       ├── app/             files de validation, conversations, pipeline commercial, comptes
-│   │       ├── app/api/[...path]/route.ts   passe-plat, identique à celui de web
-│   │       ├── server/          appel de l'API
-│   │       └── styles/tokens.css  ré-export ou copie contrôlée des mêmes tokens
+│   │       ├── app/api/[...path]/route.ts   passe-plat, copie épinglée identique à celle de web
+│   │       ├── styles/tokens-backoffice.css   noms --*-bo-* seulement (§21.3, point 6)
+│   │       └── app/globals.css  importe @influx/ui/tokens.css puis tokens-backoffice.css
+│   │                            (PL-08) ; l'appel de l'API est dans @influx/web-platform (PL-09) ;
+│   │                            plus de styles/tokens.css copié ni de server/ (arbitrage PL-07)
 │   │       ▸ ne doit JAMAIS contenir : next-intl tant que D36 n'est pas tranchée, de contenu
 │   │         fictif, de SEO, de lecture directe de la base, une autorisation par masquage d'UI
 │   │
@@ -902,16 +907,30 @@ influx/
 │   │   ▸ ne doit JAMAIS contenir : entrée/sortie, base, réseau, horloge implicite
 │   │     (l'instant est injecté), ET SURTOUT AUCUN CALCUL DE COMMISSION — au MVP il n'en
 │   │     existe aucun (C5) ; en V2 il vivra dans apps/api/src/domains/billing, à un seul
-│   │     endroit, conformément à CLAUDE.md §6
+│   │     endroit, conformément à CLAUDE.md §2
 │   │   ▸ créé au Lot 2, parce que c'est le premier moment où deux applications ont besoin
 │   │     de la même règle (complétude affichée côté membre ET côté backoffice)
 │   │
-│   ├── ui/                      @influx/ui — primitives partagées                        ◀ Lot 2
-│   │   ▸ contient : les primitives de apps/web/src/components/ui RÉELLEMENT utilisées par
-│   │     les deux applications, et les tokens
+│   ├── ui/                      @influx/ui — charte partagée            ◀ jalon PL (PL-08)
+│   │   ▸ contient : styles/tokens.css (les deux chartes, §21.3), styles/fonts.ts et
+│   │     styles/fonts/ (§21.4) ; plus tard, les primitives de apps/web/src/components/ui
+│   │     RÉELLEMENT utilisées par les deux registres, vérifiées par expert-ux (20 §2)
 │   │   ▸ ne doit JAMAIS contenir : une page, un appel réseau, une règle métier, un libellé
 │   │     (les libellés arrivent par props — convention déjà en vigueur)
-│   │   ▸ créé quand le backoffice a besoin de la deuxième primitive, pas de la première
+│   │   ▸ créé au jalon PL pour les tokens et les polices (arbitrage PL-07), et non plus « quand
+│   │     le backoffice a besoin de la deuxième primitive » ; une primitive n'y entre qu'à la
+│   │     deuxième commune aux deux registres, avec un @source du paquet dans chaque globals.css
+│   │
+│   ├── web-platform/            @influx/web-platform — plomberie des fronts  ◀ jalon PL (PL-09)
+│   │   ▸ contient : le passe-plat (server/relay.ts, server/api-client.ts, config/server.ts,
+│   │     épinglés, 03 PP-12), son client navigateur (browser/relay-client.ts, épinglé), le
+│   │     collecteur d'erreurs (§20.5), le marqueur d'hydratation (EC-PL-01-1)
+│   │   ▸ n'exporte NI le client d'API NI la configuration : un front n'atteint le réseau que
+│   │     par sa route de passe-plat ; la configuration ne sert qu'aux deux fronts (ce n'est
+│   │     pas le paquet « config » écarté plus bas)
+│   │   ▸ ne doit JAMAIS contenir : un composant qui rend un élément, un libellé, une règle
+│   │     métier, un token, un import de @supabase/*, drizzle, pg ou postgres, une Server
+│   │     Action, une lecture de process.env hors de config/server.ts
 │   │
 │   └── i18n/                    @influx/i18n                             ◀ Lot 5, ou JAMAIS
 │       ▸ créé uniquement si D36 rend le backoffice bilingue. Sinon il n'existe pas
@@ -1207,7 +1226,7 @@ démarrage : une variable requise manquante fait **échouer le démarrage** avec
 |---|---|---|---|---|---|
 | `INFLUX_ENV` (`development` \| `staging` \| `production`, sans valeur par défaut, §12.4) | ✔ | ✔ | ✔ | ✔ | Publique |
 | `INFLUX_PUBLIC_SITE_URL` | ✔ | — | ✔ | ✔ | Publique |
-| `INFLUX_API_INTERNAL_URL` | ✔ | ✔ | — | — | Interne |
+| `INFLUX_API_INTERNAL_URL` | ✔ | ✔ | — | ✔ (J9) | Interne — côté `worker`, cible du `/health` de la sonde (§20.5), requise en environnement déployé |
 | `INFLUX_API_INTERNAL_SECRET` (valeur propre à chaque front) — *ajoutée le 2026-09-25, D64* | ✔ | ✔ | — | — | **Secrète** — en-tête `x-influx-internal` (`03` PP-8) |
 | `INFLUX_API_INTERNAL_SECRET_WEB`, `INFLUX_API_INTERNAL_SECRET_BACKOFFICE` — *ajoutées le 2026-09-25, D64* | — | — | ✔ | — | **Secrètes** — `apps/api` en déduit la surface appelante et lie `/v1/bo/…` au backoffice (`21` §4, J1-G) |
 | `DATABASE_URL` (multiplexeur, rôle de connexion `influx_app`, membre des quatre rôles métier seuls) | — | — | ✔ | — | **Secrète** |
@@ -1216,7 +1235,7 @@ démarrage : une variable requise manquante fait **échouer le démarrage** avec
 | `OPS_DATABASE_URL` (rôle de connexion `influx_ops_login`, écriture du schéma `ops`) — **au J4** | — | — | ✔ | — | **Secrète** |
 | `PRIVACY_DATABASE_URL` (rôle de connexion `influx_privacy_login`, E-5) — **au J8** | — | — | — | ✔ | **Secrète** — obligatoire en production |
 | `DIRECT_DATABASE_URL` (rôle de migration, **propriétaire des objets**) | — | — | — | — | **Secrète, CI uniquement** — jamais dans un service d'exécution |
-| `INFLUX_PUBLIC_BACKOFFICE_URL` — *ajoutée le 2026-09-27 (`21` J1-F)* | — | — | ✔ | — | Publique — origine de la surface `backoffice` pour le contrôle d'origine A4 (`03` §6.4) |
+| `INFLUX_PUBLIC_BACKOFFICE_URL` — *ajoutée le 2026-09-27 (`21` J1-F)* | — | — | ✔ | ✔ (J9) | Publique — origine de la surface `backoffice` pour le contrôle d'origine A4 (`03` §6.4) ; côté `worker`, cible de la sonde avec `INFLUX_PUBLIC_SITE_URL` (§20.5), les trois cibles ensemble |
 | `SUPABASE_URL` | — | — | ✔ | ✔ (J7) | **Serveur uniquement**, non secrète. Côté `worker`, avec `SUPABASE_SECRET_KEY` (les deux ou aucune, requises en production) |
 | `SUPABASE_SECRET_KEY` — **clé d'API HTTP**, à ne pas confondre avec le rôle Postgres `service_role`, qui n'est utilisé nulle part | — | — | ✔ (J3) | ✔ (J6) | **Secrète, jamais dans un bundle. Une clé par service** (`api`, `worker`), révocable séparément (*2026-09-27, `21` EC-46*). Usage limité à GoTrue (création d'utilisateur, code, second facteur ; côté `worker`, la seule purge E-4 des utilisateurs orphelins) et aux URL signées du Storage. **Jamais pour atteindre une table** |
 | ~~`SUPABASE_PUBLISHABLE_KEY`~~, ~~`SUPABASE_JWKS_URL`~~ | — | — | — | — | **Retirées le 2026-09-27** (`21` EC-46) : tout appel à GoTrue porte la clé secrète, et INFLUX ne vérifie aucun JWT (`21` J3-C règle 3). Sur les projets hébergés, la clé *publishable* est désactivée si la plateforme le permet (`21` G-1) |
@@ -1229,6 +1248,7 @@ démarrage : une variable requise manquante fait **échouer le démarrage** avec
 | `AUTH_THROTTLE_PEPPER` | — | — | ✔ | — | **Secrète**, ≥ 32 octets. Clé HMAC des empreintes de limitation de débit (`04` §12.10), de l'adresse pseudonyme transmise à GoTrue (`21` EC-38) et de l'anti-rejeu TOTP (`21` EC-39), chacune avec son étiquette de séparation |
 | `SYNC_MODE` (`live` \| `dry_run`) | — | — | — | ✔ | Garde-fou, §12.4 |
 | `NON_PRODUCTION_RECIPIENT_ALLOWLIST` | — | — | — | ✔ | Garde-fou, §12.4 : `development` seul, refusée en environnement déployé (comme `BREVO_TEST_RECIPIENTS`) |
+| `OPS_ALERT_RECIPIENTS` — *J9 commit 8 (§20.10, `15` RG165)* | — | — | ✔ | ✔ | Non secrète, **jamais recopiée** : adresses d'astreinte (`on_call`) des alertes techniques, séparées par des virgules, jamais en base (§20.8), seules disponibles base injoignable ; requise en environnement déployé (D70, EC-J9-7) |
 
 **Variables de base : refus de démarrage** (*ajouté le 2026-09-26, `21` EC-20, tranché par
 `expert-cybersecurite`* ; `ELEVATED_DATABASE_URL` disparaît, `03` §4 P7 fait foi) :
@@ -1305,7 +1325,7 @@ une différence de la liste fermée de D70.
    propre domaine d'envoi, jamais l'un des trois sous-domaines de production (`16` RG9) ; la CI et
    les tests n'ont aucune clé et restent sur la doublure (`16` RG148). Ce verrou est d'exploitation :
    le prédicat ne lit ni ne relâche aucune clé, et le poste n'atteint pas la production (jeton
-   Railway limité à `staging`, `jalons/d70-plan.md` P3).
+   Railway limité à `staging`, `archives/jalons/d70-plan.md` P3).
 2. **Mode explicite — `development` seul.** `BREVO_MODE=disabled` par défaut ;
    `SYNC_MODE=dry_run` par défaut : le connecteur **n'appelle rien**, marque la ligne `succeeded`
    avec `dry_run: true` et journalise ce qu'il aurait envoyé.
@@ -1376,9 +1396,9 @@ doivent être **levés chirurgicalement**, pas supprimés en bloc.
 
 | Test | Vérifie aujourd'hui | Décision | Ce qui le remplace |
 |---|---|---|---|
-| **G1** | Aucun `mailto:` ni `tel:` | **Conservé au Lot 0, resserré au Lot 1** | Interdiction maintenue **dans l'espace membres et dans tout composant affichant du contenu utilisateur** (c'est un vecteur de contournement, `CLAUDE.md` §3). Autorisé sur les pages légales et la page de contact publique |
+| **G1** | Aucun `mailto:` ni `tel:` | **Conservé au Lot 0, resserré au Lot 1** | Interdiction maintenue **dans l'espace membres et dans tout composant affichant du contenu utilisateur** (c'est un vecteur de contournement, `CLAUDE.md` §2). Autorisé sur les pages légales et la page de contact publique |
 | **G2** | Aucune URL `http(s)://` | **Levé au Lot 1** | Remplacé par : (a) une garde **resserrée** — aucune URL littérale hors de `src/config/` et `src/locales/` (les URL viennent de la configuration ou des traductions) ; (b) une **CSP `default-src 'self'`** avec `connect-src` explicite, appliquée en production et **testée**, qui rend la règle vérifiable à l'exécution plutôt qu'à la lecture |
-| **G3** | Aucune couleur ni longueur en dur hors fichiers de tokens | **Conservé définitivement, et étendu** à `apps/backoffice` et `packages/ui` | — (c'est l'invariant du design system, `CLAUDE.md` §10.3 règle 7) |
+| **G3** | Aucune couleur ni longueur en dur hors fichiers de tokens | **Conservé définitivement, et étendu** à `apps/backoffice` et `packages/ui` | — (c'est l'invariant du design system, `CLAUDE.md` §4) |
 | **G4** | Chaque photo est créditée | **Conservé tant que `src/content/placeholders/` existe**, supprimé avec lui au Lot 1 | La procédure de retrait est déjà écrite (`01-architecture.md` §6.1) |
 | **G5** | Aucun `route.ts` sous `src/app` | **Levé et remplacé par une garde plus stricte** | **Liste blanche** : le seul fichier de route autorisé est `src/app/api/[...path]/route.ts`, et son contenu **ne doit contenir aucun import de `@supabase/*`, `drizzle-orm`, `pg`, `postgres`, aucune lecture de variable d'environnement secrète, et aucun `if` métier**. C'est une garantie **meilleure** que « zéro route » : elle survit à la vraie application |
 | **G6** | `IS_MOCKUP === true` tant que le fictif existe | **Conservé jusqu'au retrait du module fictif au Lot 1**, puis supprimé | La non-indexation devient une affaire d'environnement : `staging` non indexé par en-tête, `production` indexé — réglage d'`integrateur`, plus une constante de code |
@@ -1391,14 +1411,14 @@ doivent être **levés chirurgicalement**, pas supprimés en bloc.
 
 | Règle | Décision |
 |---|---|
-| Interdiction de `fetch` et consorts | **Scindée.** `fetch` devient autorisé **dans le seul module `src/server/api-client.ts`** et interdit partout ailleurs : aucun composant n'appelle jamais le réseau directement |
+| Interdiction de `fetch` et consorts | **Scindée.** `fetch` devient autorisé **dans le seul module `src/server/api-client.ts`** et interdit partout ailleurs : aucun composant n'appelle jamais le réseau directement. *Depuis PL-09 (arbitrage PL-07) : ce module et le client navigateur `src/browser/relay-client.ts` sont dans `packages/web-platform`, seuls à y lever l'interdiction ; aucun fichier d'un front n'appelle le réseau* |
 | Interdiction de `localStorage`, `sessionStorage`, `indexedDB`, `document.cookie`, `cookieStore`, `sendBeacon` | **Conservée définitivement.** La session est un cookie `httpOnly` ; aucun jeton ne doit pouvoir être lu par du JavaScript (D37) |
 | Interdiction de `'use server'` (Server Actions) | **Conservée définitivement.** Une Server Action est un point d'accès RPC à contrat implicite ; nos contrats sont explicites et vivent dans `packages/contracts` |
 | Interdiction des attributs `style`, `action`, `formAction` | `style` **conservé** (invariant tokens) ; `action`/`formAction` **levés** au Lot 1 (les formulaires réels soumettent) |
 | Interdiction d'importer `next/link`, `next/form`, `next/script`, `next/font/google` | **Conservée** (`next/link` : on utilise le lien localisé de next-intl) |
 | Interdiction d'importer le module fictif hors de deux fichiers | **Supprimée avec le module**, au Lot 1 |
 | `react/jsx-no-literals` | **Conservée** (bilingue par construction) |
-| `@typescript-eslint/no-explicit-any` | **Conservée** (`CLAUDE.md` §6) |
+| `@typescript-eslint/no-explicit-any` | **Conservée** (`CLAUDE.md` §5) |
 | Classes Tailwind inconnues et valeurs arbitraires | **Conservées et étendues** aux nouveaux paquets |
 | **Nouvelle règle** | **Interdire l'import de `@supabase/*`, `drizzle-orm`, `pg`, `postgres` dans `apps/web` et `apps/backoffice`** — c'est la règle §2 rendue structurelle plutôt que morale |
 | **Nouvelle règle** | **Interdire `process.env` hors de `src/config/`** dans les deux fronts |
@@ -1487,10 +1507,11 @@ Elles complètent les douze conventions de `docs/landing-page/01-architecture.md
 applicables à `apps/web`.
 
 1. **Aucune logique métier dans un composant React**, dans aucune des deux applications. Un composant
-   reçoit des données et des libellés, il affiche. Règle déjà posée par `CLAUDE.md` §6, réaffirmée.
+   reçoit des données et des libellés, il affiche. Règle déjà posée par `CLAUDE.md` §5, réaffirmée.
 2. **Aucun front n'importe `@supabase/*`, `drizzle-orm`, `pg` ni `postgres`.** Vérifié par ESLint.
 3. **Aucun accès réseau hors de `src/server/api-client.ts`** dans un front. Ce module est le seul à
-   connaître l'URL de l'API.
+   connaître l'URL de l'API. *Depuis PL-09 (arbitrage PL-07), il vit dans `packages/web-platform`,
+   non exporté, avec le client navigateur du passe-plat ; un front n'appelle plus le réseau.*
 4. **Aucun accès à la base hors de `withUserTransaction` / `withElevatedTransaction`** dans
    `apps/api`. `withElevatedTransaction` n'accepte qu'une valeur de la **liste fermée** E-1 à E-5 ;
    tout le reste passe par une fonction `SECURITY DEFINER` étroite. **Aucun rôle utilisé à
@@ -1519,7 +1540,7 @@ applicables à `apps/web`.
     d'URL signée, action de masse, export. Si l'action n'est pas traçable, elle n'est pas écrite.
 12. **Aucun secret dans le code, aucune valeur de secret dans un journal.** Toute variable nouvelle
     passe par la skill `env-secrets` et est documentée dans `.env.example` avec une valeur factice.
-13. **TypeScript strict, aucun `any`** sans justification écrite en commentaire (`CLAUDE.md` §6).
+13. **TypeScript strict, aucun `any`** sans justification écrite en commentaire (`CLAUDE.md` §5).
 14. **Commits** en anglais, *Conventional Commits*, directement sur `main` tant que la dérogation du
     fondateur du 2026-09-17 n'est pas levée.
 15. **Avant d'utiliser une API d'une dépendance, lire la documentation de la version installée**,
@@ -2287,3 +2308,331 @@ ligne de code.
 
 - [Railway — Logs (conservation selon l'offre)](https://docs.railway.com/observability/logs)
 - [Railway — Observability Dashboard (métriques conservées 30 jours)](https://docs.railway.com/observability)
+
+---
+
+## 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits)
+
+> **Décision du fondateur (D73, consignée par `chef-de-projet`, fiche `docs/mvp/archives/jalons/ds-fiche.md`).**
+> La charte « KEO Emerald » (`design-proposals/keo-emerald.css`) habille les espaces membres marque
+> et créateur et le backoffice, en responsive, avec une colonne de navigation à gauche sur poste de
+> travail. La vitrine garde sa direction (D6, D59).
+>
+> **Ce que cet addendum tranche :** la mécanique — coexistence de deux chartes dans `apps/web`,
+> polices, gabarits de page, gardes. **Ce qu'il ne tranche pas :** la correspondance KEO → tokens
+> nommés par rôle et l'anatomie des gabarits (`expert-ux`), la présence des entrées de navigation des
+> Lots 2 à 5 avant leur lot (`product-owner`). Il **amende** `17` §2.2 (un seul `<nav>`, rendu une fois
+> et restylé, §21.5) ; report à faire par `expert-ux`.
+
+### 21.1 Vocabulaire
+
+- **Charte** : palette, familles de polices, rayons. Deux chartes : **vitrine** (D6, D59) et **KEO** (D73).
+- **Registre** (`20` §2) : densité et usage — vitrine, espaces membres, backoffice. Espaces membres et
+  backoffice sont **deux registres qui partagent une charte** : partager la palette n'autorise pas à
+  partager un composant (`20` §2 ; `size-bo-control` reste interdit dans `apps/web`, `17b` §6.1).
+
+### 21.2 Frontière
+
+| Surface | Charte | Raison |
+|---|---|---|
+| Landing, pages légales publiques (`cgu`, `confidentialite`, `cookies` et équivalents EN), `not-found`, `error` et `[...rest]` de niveau `[locale]`, `global-error` | Vitrine | D59 ; pages publiques, atteintes sans compte |
+| Parcours d'inscription et de connexion (`connexion`, `inscription/**`, `sign-in`, `signup/**`) | **KEO** | `17` §3 le range dans les espaces membres ; il partage ses classes avec « Mon compte » (`auth-classes.ts`) ; les polices se chargent dès la première page du parcours |
+| Accueils de rôle, « Mon compte », écrans des Lots 2 à 5, erreurs et 404 levées dans ces pages | **KEO** | D73 |
+| `apps/backoffice` entier, connexion et activation comprises | **KEO** | D73 ; aucune vitrine dans le backoffice |
+
+Le texte juridique affiché dans le parcours (fenêtre des CGU, écran bloquant de `17` §6.7) est rendu
+en KEO par le même composant neutre que les pages légales.
+
+### 21.3 Tokens : un fichier, deux chartes, un attribut
+
+| Option | Pour | Contre |
+|---|---|---|
+| **A. Re-valoriser les tokens de rôle sous `[data-theme="keo"]`, dans `tokens.css`** | Mêmes classes partout ; composants inchangés ; vitrine intacte ; G3 « un seul fichier » et la copie octet pour octet du backoffice tiennent | Piège des alias (règle 3), à fermer par une garde |
+| B. Second fichier `tokens-keo.css` | Séparation visible | Même mécanisme que A, avec une copie et une liste de G3 de plus à tenir |
+| C. Bascule globale | Le plus simple | Contraire à D73 ; rejoue la recette de la landing |
+| D. Vocabulaire parallèle (`bg-keo-surface-1`…) | Explicite | Deux langages de classes, aucun composant réutilisable entre chartes |
+
+**Décision : A.**
+
+1. Le bloc `@theme static` reste la **seule déclaration des noms de rôle** (un nom absent de `@theme`
+   n'a pas de classe) et porte les valeurs vitrine. Un rôle demandé par KEO y entre d'abord, avec une
+   valeur vitrine ou un alias.
+2. Les valeurs KEO vivent dans **un seul bloc** de `tokens.css`, après `@theme` :
+   `@layer base { [data-theme="keo"] { … } }`. Il ne déclare que des noms **déjà déclarés** (`@theme`
+   ou `:root`), des valeurs **opaques** (`#rrggbb`, `transparent`, `var()` ; seule exception bornée,
+   le `color-mix` des halos, point 3), et redéfinit **tout**
+   `--color-*`, sauf une liste nommée dans la garde (`KEO_INHERITS` : voile, rouges D72 si `expert-ux`
+   les conserve). Il redéfinit aussi familles de polices et rayons ; échelles d'espacement et de texte,
+   durées et points de rupture **ne changent pas**.
+3. **Piège vérifié sur le CSS compilé (2026-10-28).** Tailwind v4 émet les tokens dans
+   `@layer theme { :root, :host { … } }` et les classes lisent `var(--color-…)` : la redéfinition sous
+   un conteneur fonctionne. Mais un alias (`--color-action-secondary-border: var(--color-border-strong)`)
+   est **résolu sur `:root`** et hérité déjà résolu : redéfinir sa cible sous le conteneur ne le change
+   pas. Tout alias dont la cible est redéfinie est donc **redéclaré à l'identique** dans le bloc KEO
+   (fermeture vérifiée par G3c). `@theme inline` n'est pas une issue : il inscrirait aussi les valeurs
+   littérales dans les classes, et plus aucune redéfinition n'aurait d'effet.
+
+   **Second piège, vérifié sur le CSS compilé (2026-10-30, D75, constat C1 de `archives/jalons/rk-fiche.md`).**
+   Pour certains espaces de noms, Tailwind v4 **inscrit en dur la valeur `@theme`** dans l'utilitaire
+   au lieu de lire `var()` : il décompose une ombre pour y substituer `--tw-shadow-color`
+   (`.shadow-action-glow{--tw-shadow:none}`, valeur vitrine, d'où l'ombre lumineuse jamais affichée), et
+   un point de rupture ou un conteneur sert dans une requête `@media` ou `@container`, où `var()` est
+   sans effet. Le bloc KEO ne redéfinit donc **aucun nom** des espaces `--shadow-*`, `--inset-shadow-*`,
+   `--drop-shadow-*`, `--text-shadow-*`, `--breakpoint-*`, `--container-*` (G3i a). De même, **jamais de
+   modificateur d'opacité `/NN` sur une couleur** : il produit un `color-mix` translucide (K3, `20`
+   §11.6) et peut inscrire en repli la valeur `@theme` en dur. Un effet qui doit changer sous KEO passe
+   par un token **`--effect-*`**, hors de tout espace de Tailwind : déclaré dans `:root` avec une valeur
+   neutre **`0 0 transparent`** (jamais `none`, qui invaliderait la liste composée de `box-shadow` et
+   effacerait aussi les anneaux), valorisé dans le bloc KEO, lu par `shadow-(--effect-…)` ; `@utility`
+   (collision de nom) et `@theme inline` (tout en dur) sont écartés. La construction le prouve : tout
+   utilitaire d'un token redéfini sous KEO lit `var(--nom)` dans les feuilles servies (G3i b).
+
+   **Borne de `color-mix` (D75 RK-A).** `color-mix(in srgb, var(--color-brand-primary) N%,
+   transparent)` est admis dans les seuls `--effect-action-glow`, `--effect-action-glow-hover` et
+   `--background-image-header-glow` du bloc KEO (liste en données, `charter-data.ts`), N ≤ 15 pour le
+   halo d'en-tête ; jamais dans un `--color-*`. Valeurs : `20` §11.5.
+4. **Activation, à deux endroits seulement** (G8). `apps/web` : un conteneur `<div data-theme="keo">`
+   posé par `app/[locale]/(member)/layout.tsx`, avec les classes de police et
+   `min-h-dvh bg-surface-page font-base text-text-primary` ; `<html>` et `<body>` restent vitrine
+   (écart `#0a0a0a`/`#0a0b0a`, invisible au rebond). `apps/backoffice` : `<html data-theme="keo">` dans
+   `app/layout.tsx`.
+5. Aucun portail vers `document.body` sous la charte KEO (il sortirait du conteneur) ; les modales
+   restent des `<dialog>` natifs sur place, qui héritent de l'arbre.
+6. **Backoffice.** ~~`tokens.css` reste la copie octet pour octet de celui de `apps/web` (garde
+   existante).~~ *Amendé le 2026-10-31 (arbitrage PL-07, point 7)* : un seul `tokens.css`, dans
+   `packages/ui`, importé par le `globals.css` de chaque front ; la garde de copie devient une garde
+   d'absence et d'import. Les tokens `*-bo-*` (`17b` §6) naissent dans
+   `apps/backoffice/src/styles/tokens-backoffice.css`, second bloc `@theme static`, **noms `--*-bo-*`
+   seulement**, au fil de leur emploi (rail, ligne et cellules de tableau dès ce jalon) ; leurs
+   contrastes se calculent contre les surfaces KEO. Aucune occurrence de `-bo-` dans `apps/web/src`.
+7. **`packages/ui` : pas dans ce jalon.** Les deux fronts partagent aujourd'hui des **fichiers**
+   (tokens, polices), que des copies gardées tiennent déjà (comme le passe-plat et le collecteur
+   d'erreurs) ; leurs composants appartiennent à deux registres et ne se partagent pas sans
+   vérification (`20` §2). Création maintenue au Lot 2 (`21` §7) : elle reprendra `tokens.css` et
+   remplacera la garde de copie. D'ici là, les primitives sont écrites « prêtes à déménager » : pures,
+   tokens seulement, aucun import propre à l'application.
+
+   **Amendement du 2026-10-31 (arbitrage PL-07, détail : `archives/jalons/pl-fiche.md` § Arbitrage PL-07).**
+   Les fichiers communs aux deux fronts quittent les copies gardées pour **deux paquets source, sans
+   build**, consommés par `transpilePackages`, chacun avec l'arborescence `src/` des fronts :
+   - **`@influx/ui`** (PL-08) : `styles/tokens.css`, `styles/fonts.ts`, `styles/fonts/`. Chaque
+     `globals.css` importe `@influx/ui/tokens.css` ; les deux mises en page du point 4 importent
+     `@influx/ui/fonts`, où se fait le seul appel de `next/font/local` (amende §21.4 points 1, 2 et 5).
+     Aucune primitive : elle n'y entre qu'employée par les deux registres, vérifiée par `expert-ux`.
+     Repli écrit d'avance : si `next/font/local` échoue depuis le paquet, les polices restent des
+     copies gardées et seul `tokens.css` déménage.
+   - **`@influx/web-platform`** (PL-09) : passe-plat (`server/relay.ts`, `server/api-client.ts`,
+     `config/server.ts`), client navigateur du passe-plat, collecteur d'erreurs, marqueur
+     d'hydratation. Ni le client d'API ni la configuration ne sont exportés. La route
+     `app/api/[...path]/route.ts` reste une **copie nommée** dans chaque front (Next.js lit ses
+     littéraux `runtime`, `dynamic`, `revalidate` dans le fichier même), épinglée.
+   - **Gardes** (amende les lignes G3, G3b, G4f, G8 et ESLint de §21.6) : chaque garde d'identité
+     entre copies devient une garde d'absence (aucune copie dans aucun front) et d'import, à nombre de
+     cas égal au moins ; les épingles PP-12 restent, sur les octets là où ils vivent (paquet, route de
+     chaque front), déclarées dans `@influx/test-kit/guards` ; I-4 suit le passe-plat dans le paquet.
+     D64 (un secret interne par front) et la logique du passe-plat sont inchangés ; CSP inchangée.
+   - `packages/domain` reste au Lot 2 (`21` §7).
+8. Nom de l'attribut : `data-theme` (code en anglais). Un futur mode clair des espaces membres
+   (`20` Q6) serait une autre valeur, sans autre mécanisme.
+
+### 21.4 Polices
+
+| Option | Verdict |
+|---|---|
+| `next/font/google` | **Refusée.** Déjà interdite par `eslint.front-rules.mjs` (CA11, BO-9). Le build dépendrait de la disponibilité de Google, et les fichiers servis peuvent changer d'un build à l'autre : deux builds du même commit (`staging`, production) ne seraient plus identiques |
+| `@font-face` écrit à la main | Refusée : perd le repli métrique et le préchargement par segment |
+| **`next/font/local` + fichiers versionnés** | **Retenue** |
+
+1. Un seul module par front, `src/styles/fonts.ts`, **identique** dans les deux fronts *(amendé par
+   PL-07, §21.3 point 7 : un seul module, `packages/ui/src/styles/fonts.ts`, avec ses fichiers)*. Variables
+   `--typeface-manrope` et `--typeface-source-sans`, hors de l'espace `--font-*` de Tailwind (aucune
+   classe parasite). Le bloc KEO compose : `--font-display` (titres, chiffres) = Manrope puis la pile
+   système ; `--font-base` (corps) = Source Sans 3 puis la pile système — celle de la vitrine, écrite
+   une seule fois dans `tokens.css`.
+2. Fichiers : woff2 **variables** (axe `wght`), style normal, **non modifiés**, tels que Google Fonts
+   les distribue (miroir Fontsource, version épinglée) : sous-ensembles `latin` et `latin-ext` de
+   chaque famille, quatre fichiers dans `packages/ui/src/styles/fonts/`, avec le texte OFL 1.1 de chaque
+   famille et un manifeste `FONTS.md` (fichier, famille, sous-ensemble, source et version, SHA-256,
+   licence). Pas de redécoupage par nos soins : un fichier modifié perd le droit au nom réservé (OFL ;
+   Source Sans 3 réserve « Source »). Téléchargés une fois sur le poste ; la CI ne télécharge rien.
+3. `latin` couvre tous les libellés FR et EN (« œ », « € », guillemets compris) ; `latin-ext` couvre
+   les noms saisis (ł, ș, ğ, č…). Chaque fichier porte son `unicode-range` et les deux fichiers d'une
+   famille partagent un nom de famille (option `declarations`) : `latin-ext` ne se télécharge que si
+   l'un de ses caractères s'affiche. Au-delà (cyrillique, grec, vietnamien, écritures non latines),
+   repli caractère par caractère sur la pile système, accepté. **Réalisé (DS-3, DS-4) :** le repli
+   métrique de `next/font` dessine un glyphe `latin-ext` avant qu'une seconde famille puisse le
+   faire (TD3.4) ; les piles KEO (`--font-base`, `--font-display`) citent donc le seul fichier
+   `latin`, puis la pile système. Les deux fichiers `latin-ext` sont versionnés (manifeste, G4f) mais
+   non câblés : un « ł » s'affiche en repli système et aucun `latin-ext` n'est jamais téléchargé
+   (EC-DS-3-1).
+4. `display: "swap"`, repli métrique automatique (`adjustFontFallback: "Arial"`, défaut de
+   `next/font/local`), préchargement des seuls fichiers `latin`. Pas d'italique livrée (la charte n'en
+   emploie pas ; l'emphase rare d'un texte juridique reste synthétisée). L'axe variable couvre toutes
+   les graisses ; les tokens n'en emploient que quelques-unes (Manrope 600 à 800, Source Sans 3 400 à
+   600 ; liste finale : `expert-ux`). Vérifier au DS-3 la présence des chiffres tabulaires de Manrope
+   (`--font-variant-numeric-amount`).
+5. **Chargement par segment.** `@influx/ui/fonts` n'est importé que par `app/[locale]/(member)/layout.tsx`
+   (web) et `app/layout.tsx` (backoffice) : Next.js précharge une police sur les seules routes de la
+   mise en page qui l'emploie, donc **jamais sur la landing**, qui reste sur sa pile système. CSP
+   inchangée : fichiers sous `/_next/static/media/` (`font-src 'self'`), `@font-face` dans une feuille
+   externe (`style-src 'self'`).
+6. Budget : les deux fichiers `latin` préchargés pèsent 53 708 octets (24 836 + 28 872), figés par
+   la garde G4f, plafond 120 000 octets (relevé à la clôture du jalon, 2026-10-29).
+
+### 21.5 Gabarits de page
+
+```
+apps/web/src/app/[locale]/
+  layout.tsx                      racine inchangée (vitrine)
+  page.tsx, cgu/, terms/, …       vitrine
+  (member)/layout.tsx             serveur : conteneur data-theme="keo", polices
+  (member)/error.tsx, not-found.tsx
+  (member)/connexion/, sign-in/, inscription/**, signup/**      parcours, sans navigation
+  (member)/(space)/layout.tsx     serveur : messages, <MemberShell>
+  (member)/(space)/marque/, brand/, createur/, creator/, compte/**, account/**
+
+apps/backoffice/src/app/
+  layout.tsx                      <html data-theme="keo">, polices
+  (auth)/page.tsx, (auth)/activation/                            sans rail
+  (app)/layout.tsx                <Shell>
+  (app)/accueil/, inscrits/, invitations/, double-validation/, reglages/, comptes-internes/, sante-technique/
+```
+
+Les groupes ne changent aucune URL : chemins localisés, `memberPageLocale` et redirections de
+`member-paths.ts` restent tels quels.
+
+1. **La coquille vit dans la mise en page, en composant client.** La session ne se lit que par le
+   passe-plat du navigateur (le client d'API est réservé au passe-plat, G5). `MemberShell` et `Shell`
+   lisent `GET /v1/me` (`/v1/bo/me`) au montage **et à chaque changement de chemin**, sans vider
+   l'écran : l'écran bloquant des CGU (`05` RG28) et les bandeaux du backoffice (environnement, code
+   de secours, contrôle par les pairs, `15` RG107) restent lus à chaque page, comme aujourd'hui ; la
+   colonne ne se remonte plus à chaque navigation. Les pages lisent le contexte (`useMember()`,
+   `useMe()`) et n'appellent plus `readMe` elles-mêmes.
+2. **Aucune logique métier dans la coquille** (`CLAUDE.md` §5) : page d'un chemin, espace exigé,
+   entrée active, entrées par rôle, pages exemptées des CGU sont des fonctions pures de
+   `src/lib/member-paths.ts` et `src/lib/member-nav.ts`, testées seules.
+3. **Un seul `<nav>` « Navigation principale »**, rendu une fois par le serveur et **restylé par le
+   CSS** : barre fixée en bas sous `lg`, liste verticale de la colonne à partir de `lg`. Ni détection de
+   largeur en JavaScript, ni lecture de l'agent utilisateur, ni deux `<nav>` dont l'un est masqué.
+   L'objectif de `17` §2.2 (un seul `<nav>` exposé) est tenu à la lettre : un seul élément dans le DOM.
+   Le bloc d'état du compte, l'aide et la déconnexion sont hors du `<nav>`, dans la colonne seulement.
+   Un libellé par entrée, identique aux deux largeurs (≤ 11 caractères FR et EN, `17` §2.2), icône
+   `aria-hidden`. *(D74, 2026-10-29)* Les pages d'une rubrique sont une `<ul>` **imbriquée dans le
+   `<li>` de l'entrée active**, dans ce même `<nav>`, masquée sous `lg` ; **aucun second `<nav>`**
+   (les liens de section de « Mon compte » et du backoffice sont retirés). Sous `lg`, l'entrée mène à
+   une page-menu (une liste dans `<main>`). Détail : `archives/jalons/sn-fiche.md`.
+4. Grille et tokens : `lg:grid-cols-(--grid-member-shell)` ; `--size-member-rail` (16 rem, `17`
+   §2.3), `--size-nav-bottom-height` (3,5 rem) et `--z-nav-bottom` (90) de `17` §8.2 ; colonne
+   `lg:sticky lg:top-0 lg:h-dvh` ; marge basse de `main` sous `lg` ; zone de geste iOS par une règle de
+   base de `globals.css` écrite en tokens (même procédé que le bandeau des cookies).
+5. **Pas de repli de la colonne, rien de persisté.** Il n'est pas spécifié (`17` §2.3 : largeur fixe ;
+   `17b` §1.2 : rail toujours visible). S'il est demandé plus tard : un état non persisté de la
+   coquille (il survit aux navigations, se perd au rechargement). **Un cookie de préférence est
+   refusé** : `document.cookie` et `cookieStore` sont interdits pour de bon (garde CA8/CA11), un cookie
+   posé par le serveur demanderait une nouvelle route (G5) ou une route d'API pour un réglage
+   cosmétique, et un nouveau cookie rouvre la politique des cookies (Lot 6).
+6. **Icônes** : `lucide-react`, déjà épinglée dans les deux fronts, par le seul module `icons.ts` de
+   chaque front (rendu obligatoire par ESLint) ; ni seconde bibliothèque, ni police d'icônes.
+7. **Mouvement** : les durées tombent déjà à zéro sous `prefers-reduced-motion` (`tokens.css`) ;
+   sous KEO, **agrandissement au survol et soulèvement des cartes sous `motion-safe:` seulement**
+   (F6, fondateur, 2026-10-29, amende l'arbitrage `chef-de-projet` du 2026-10-28 qui les excluait) ;
+   jamais `transition-all`, aucune transformation d'état hors `motion-safe:` ; aucune navigation
+   animée. *(D75, 2026-10-30)* **Réduction à l'appui reprise** :
+   `motion-safe:not-aria-disabled:active:scale-(--scale-press)` (backoffice : `not-disabled:` en plus),
+   `--scale-press` 0,98 sous KEO, 1 en vitrine ; agrandissement `--scale-hover` 1,03 ; ni l'un ni
+   l'autre sur un petit bouton des écrans du backoffice (`20` §11.5, §11.8). Durée et courbe inchangées :
+   une durée redéfinie sur le conteneur KEO masquerait la mise à zéro de `prefers-reduced-motion`
+   portée par `:root`. **Lissage** par l'utilitaire `antialiased` posé sur le conteneur
+   `<div data-theme="keo">` de `(member)/layout.tsx` et sur `<html data-theme="keo">` du backoffice
+   (propriété héritée) ; aucune règle de lissage dans `:root`, `html` ou `body`, vitrine inchangée.
+   **Halo en fond du conteneur d'écran** : `bg-header-glow bg-no-repeat` sur `SPACE_SCREEN_CLASSES`
+   (web, donc aussi `SCREEN_CLASSES`) et `SCREEN_CLASSES` (backoffice) ; plus de calque (le `div`
+   décoratif de `PageHeader` et `AUTH_GLOW_CLASSES` disparaissent) : un fond ne crée aucun défilement,
+   ne recouvre rien et s'arrête avant la barre du bas. **Backoffice : le halo est aussi sur le
+   conteneur des pages de travail** (`MAIN_CLASSES`, le `<main>` du cadre, dont le `h1` n'est pas dans
+   un `<header>`), de hauteur minimale `--size-header-glow` (le dégradé ne s'arrête jamais net, chargement
+   compris), jamais sur l'écran « poste de travail » (`SMALL_SCREEN_CLASSES`, le cadre est masqué sous
+   `bo-small:`) ni en double avec `SCREEN_CLASSES` : un seul halo par page. **Règle du focus** :
+   `:where(h1, h2, h3, h4, main)[tabindex="-1"]:focus-visible { outline: none; }` dans les deux
+   `globals.css`, jamais un `[tabindex="-1"]` générique ; aucune règle `[data-theme="keo"]` hors du bloc
+   de `tokens.css` (elle tomberait sous `findKeoBlocksOutside`, G3c).
+8. **Backoffice** : rail à partir de `lg` (`--spacing-bo-rail-w`, 15 rem, `17b` §6.1), bande de tête de
+   `17b` §1.4 ; **entre `md` et `lg`**, le même `<nav>` devient une liste horizontale compacte et le
+   backoffice reste complet (fenêtre demi-écran d'un poste de travail), l'entrée active et ses
+   sous-entrées sur leur propre ligne, dans l'ordre du DOM (D74, SN-0) ; **sous `md`, ou sous 500 px de
+   haut** (téléphone, y compris en paysage), un écran « poste de travail » sans contenu métier, en
+   attendant la vue « deux gestes » de D58 (Lot 4, conditions de session ouvertes) — arbitrage
+   `chef-de-projet` du 2026-10-28, condition de hauteur ajoutée par le fondateur (F7, 2026-10-29). Seuls les écrans existants y figurent ; les entrées d'administration restent
+   absentes pour un `agent`, le serveur les refuse de toute façon (CA63).
+9. Les entrées des Lots 2 à 5 côté membres viennent de `member-nav.ts` ; **elles sont omises jusqu'à
+   leur lot** (arbitrage `chef-de-projet` du 2026-10-28, `expert-ux` d'accord) et leurs libellés
+   n'entrent dans les fichiers de traduction qu'avec leur écran ; une entrée apparue ne disparaît plus.
+   Les écrans autonomes (parcours, CGU à ré-accepter, déconnecté, compte supprimé) n'affichent aucune
+   navigation principale (`20` §11.8).
+
+### 21.6 Gardes et tests
+
+Les lecteurs de blocs (`@theme`, bloc KEO), la fermeture des alias et l'écart de teinte rejoignent
+`@influx/test-kit/guards`, avec leur auto-test, comme les détecteurs existants.
+
+| Garde | Statut | Ce qu'elle vérifie, depuis les fichiers |
+|---|---|---|
+| G3 | Amendée | `apps/web` : toujours un seul fichier de tokens, en-tête « D6 tranchée » et « D73 ». `apps/backoffice` : `tokens-backoffice.css` rejoint la liste des feuilles |
+| G3b | Amendée | Rouges D72 opaques, identiques entre fronts, contrastes recalculés **par charte**, contre toutes les surfaces où un message d'erreur peut paraître |
+| G3c | Nouvelle | Bloc KEO unique, dans `tokens.css` ; noms ⊆ noms déclarés ; tout `--color-*` redéfini hors `KEO_INHERITS` ; fermeture des alias ; valeurs opaques |
+| G3d | Nouvelle | Matrice de contrastes par charte (paires listées en données, relues par `expert-ux`) : textes ≥ 4,5:1 sur chaque surface permise ; bordure de champ et contour de focus ≥ 3:1 ; texte sur action principale (repos, survol, appui) ≥ 4,5:1 ; succès écarté du vert d'action d'au moins 20° de teinte (`CLAUDE.md` §4) |
+| G3e | Nouvelle | Vitrine figée : chaque valeur de l'instantané `apps/web/tests/fixtures/vitrine-tokens-d59.json` reste égale (ajouts permis) |
+| G3f | Nouvelle | Aucun `-bo-` dans `apps/web/src` ; `tokens-backoffice.css` ne déclare que des `--*-bo-*`, contrastés contre KEO |
+| G4f | Nouvelle | Fichiers de police uniquement sous `packages/ui/src/styles/fonts/`, chacun au manifeste avec SHA-256, licences OFL présentes, aucune copie dans un front (garde d'absence, PL-08), budget tenu |
+| G8 | Nouvelle | `data-theme` posé dans les deux seules mises en page ; `@influx/ui/fonts` importé par elles seules ; aucun module réservé à la landing (liste nommée) importé sous `(member)` ni par `components/{member,auth,account}` ; aucun token réservé à la vitrine (`metal-card`, halos, `phone-*`, `hero-*`, bandeau de maquette) hors de la landing ; aucun `createPortal` sous la charte KEO ; transformations au survol sous `motion-safe:` seulement |
+| ESLint | Amendée | `lucide-react` hors `icons.ts` interdit ; `next/font/local` hors `packages/ui` interdit (`next/font/google` l'est déjà) |
+| Unitaires | Nouveaux | `member-nav.ts` (≤ 5 entrées, libellés ≤ 11 caractères FR et EN lus dans les fichiers de traduction), `pageOfPath`, entrée active, espace exigé |
+| E2E | Nouveaux | Landing FR et EN : aucune police téléchargée, aucune requête tierce. Page membre : polices servies par l'origine seule, `latin-ext` non téléchargé sur un contenu FR. À 375 et 1440 px : un seul repère `navigation` « Navigation principale », `aria-current`, dernier élément de `main` jamais sous la barre. Mouvement réduit émulé : durées nulles. axe WCAG 2.1 AA sur chaque écran rhabillé des deux fronts. Aucune violation CSP en console |
+
+> *Amendé le 2026-10-31 (arbitrage PL-07, §21.3 point 7)* : G3, G3b, G4f, G8 et ESLint lisent
+> `packages/ui` (tokens, polices, seul appel de `next/font/local`) ; leurs cas « copies identiques
+> entre fronts » deviennent des cas d'absence et d'import, à nombre égal au moins.
+
+### 21.7 Découpage
+
+Quatorze commits ordonnés (DS-14 ajouté par F2), dans la fiche `docs/mvp/archives/jalons/ds-fiche.md`. Préalables : table de
+correspondance d'`expert-ux` avant DS-2 (faite le 2026-10-28, `20` §11.3) ; anatomie des gabarits
+avant DS-6 et DS-10 (faite, `17` §2.2–2.3, `17b` §1.7) ; entrées des Lots 2 à 5 omises (point 9,
+tranché) ; points F1 à F7 du fondateur (`20` §11.9 ; tous tranchés, F7 le 2026-10-29).
+
+### 21.8 Risques et réversibilité
+
+| Risque | Parade |
+|---|---|
+| Alias résolu sur `:root` qui garde sa valeur vitrine sous KEO | G3c (fermeture), complétude du bloc |
+| Succès KEO `#4ade80` (teinte 142°) à 13° du vert d'action KEO `#1dd68a` (155°) ; la sarcelle actuelle `#2dd4bf` (172°) n'en est plus qu'à 17° (27° en vitrine) ; `CLAUDE.md` §4 exige un succès distinct | `expert-ux` choisit un succès à au moins 20° (teinte ≥ 176°, par exemple `#3ccfcf` de KEO, 180°) ; sinon arbitrage du fondateur et `CLAUDE.md` §4 amendé. G3d le calcule |
+| Rouge D72 `#ec5d5e` : 5,5:1 sur la surface 1 de KEO, 4,5:1 sur la surface 3, sous le seuil au-delà ; `text-tertiary` de KEO `#8a938e` sous 4,5:1 sur les surfaces 4 et 5 | G3b et G3d recalculés ; paires interdites fixées par `expert-ux` |
+| Teintes de rôle KEO (marque `#e6d3a3`, créateur `#ff8fb1`) prises pour seul porteur du rôle, contraire à `12` RG7 et à P7 | Libellé toujours écrit ; `expert-ux` |
+| Nom de famille commun `latin`/`latin-ext` non pris en charge par Next 16.3.6 | Repli `latin` seul (§21.4, point 3) |
+| Coquille déplacée dans la mise en page qui casse un cas de session (déconnexion, compte supprimé, CGU, rôle d'une autre porte) | e2e `account`, `account-data`, `signup-nominal`, `journey-resume`, `backoffice` verts à chaque commit ; règles pures testées |
+| Portail ou `::backdrop` hors du conteneur | §21.3, point 5 ; G8 ; voile dans `KEO_INHERITS` |
+
+**Réversibilité.** Retirer la charte KEO d'un espace revient à retirer l'attribut `data-theme` : il
+retrouve la vitrine sans toucher aux composants. **Aligner plus tard la landing sur KEO** revient à
+poser l'attribut dans la mise en page racine et à y importer les polices : une poignée de lignes,
+puis une recette visuelle des effets D59 (carte métallisée, halos) sur les surfaces KEO, le budget
+de premier affichage de la landing avec deux polices de plus, axe, et la mise à jour explicite de
+G3e. Ordre de grandeur : un à deux jours, presque tout en recette et en revue `expert-ux`. Les
+valeurs KEO passeraient ensuite dans `@theme` et le bloc disparaîtrait.
+
+### 21.9 Ce que cet addendum demande aux autres agents
+
+| Agent | Demande |
+|---|---|
+| `expert-ux` | Table KEO → rôles avec `KEO_INHERITS` et les paires de contraste permises (avant DS-2) ; succès distinct du vert d'action ; anatomie des deux coquilles ; report du §21.5, point 3, dans `17` §2.2 ; skill `design-system-influx` (deux chartes, un attribut, polices) |
+| `product-owner` | *Sans objet : entrées des Lots 2 à 5 omises jusqu'à leur lot (`chef-de-projet`, 2026-10-28, §21.5 point 9)* |
+| `dev-react-node` | Commits DS-1 à DS-12 ; aucune valeur hors `tokens.css` et `tokens-backoffice.css` ; aucune lecture de session hors des coquilles |
+| `testeur` | Gardes et e2e du §21.6 ; revue groupée de fin de jalon |
+| `expert-cybersecurite` | Revue groupée de fin de jalon (D71) : CSP inchangée, aucune requête tierce, coquilles qui ne lisent la session que par le passe-plat |
+| `chef-de-projet` | D73 et fiche DS ; `CLAUDE.md` §4 (deux chartes, polices auto-hébergées) et §5 (ligne « Fronts ») ; `21` §7 (`packages/ui` maintenu au Lot 2) ; `pnpm docs:index` |
+
+### Sources (vérifiées le 2026-10-28)
+
+- [Tailwind CSS — Theme variables (`inline`, `static`, `--*: initial`)](https://tailwindcss.com/docs/theme)
+- [Next.js — Font module (`next/font/local`, `declarations`, `adjustFontFallback`, préchargement par segment)](https://nextjs.org/docs/app/api-reference/components/font)
+- CSS compilé de `apps/web` (build local, `.next/static/chunks/*.css`) : `@layer theme{:root,:host{…}}`, `.bg-surface-page{background-color:var(--color-surface-page)}`, `--color-action-secondary-border:var(--color-border-strong)`

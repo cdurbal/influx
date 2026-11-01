@@ -5,6 +5,8 @@
 // the step changes, with the step announced in it ("Step 2 of 3").
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { Notice } from "@/components/member/ui/Notice";
+import { PageHeader } from "@/components/member/ui/PageHeader";
 import { cn } from "@/components/ui/class-names";
 import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
@@ -15,8 +17,6 @@ import {
   LANGUAGE_LINK_CLASSES,
   PROGRESS_CLASSES,
   SCREEN_CLASSES,
-  TITLE_CLASSES,
-  WARNING_CLASSES,
 } from "./auth-classes";
 
 /** The journey has three screens (05 RG2): address, code, information. */
@@ -57,7 +57,9 @@ export function AuthScreen({
   return (
     <main id="main" className={SCREEN_CLASSES}>
       <div className={HEADER_CLASSES}>
-        <p className={BRAND_CLASSES}>{t("brand")}</p>
+        <Link href="/" className={BRAND_CLASSES}>
+          {t("brand")}
+        </Link>
         {languagePage === null ? null : (
           <nav aria-label={t("language.label")}>
             {otherLocales.map((other) => (
@@ -75,11 +77,7 @@ export function AuthScreen({
           </nav>
         )}
       </div>
-      {online ? null : (
-        <p role="status" className={WARNING_CLASSES}>
-          {t("offline")}
-        </p>
-      )}
+      {online ? null : <Notice tone="warning">{t("offline")}</Notice>}
       {children}
     </main>
   );
@@ -101,14 +99,19 @@ export function StepTitle({
   }, []);
 
   return (
-    <h1 ref={titleRef} tabIndex={-1} className={TITLE_CLASSES}>
-      {step === null ? null : (
-        <span className={cn("block", PROGRESS_CLASSES)}>
-          {t("progress", { current: step, total: STEP_COUNT })}
-        </span>
-      )}
-      {children}
-    </h1>
+    <PageHeader
+      titleRef={titleRef}
+      title={
+        <>
+          {step === null ? null : (
+            <span className={cn("block", PROGRESS_CLASSES)}>
+              {t("progress", { current: step, total: STEP_COUNT })}
+            </span>
+          )}
+          {children}
+        </>
+      }
+    />
   );
 }
 

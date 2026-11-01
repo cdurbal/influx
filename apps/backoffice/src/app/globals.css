@@ -1,5 +1,6 @@
 @import "tailwindcss";
-@import "../styles/tokens.css";
+@import "@influx/ui/tokens.css";
+@import "../styles/tokens-backoffice.css";
 
 /* Base styles only, written with token variables. No literal value here (CA22, G3). */
 @layer base {
@@ -11,8 +12,23 @@
     line-height: var(--leading-body);
   }
 
+  /*
+   * Tailwind v4 leaves buttons on the default cursor: every live button takes the hand, as a link
+   * does (founder, 2026-10-30). A disabled one keeps the not-allowed cursor of its own classes.
+   */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  input:is([type="submit"], [type="button"], [type="reset"]):not(:disabled) {
+    cursor: pointer;
+  }
+
   :focus-visible {
     outline: var(--focus-ring-width) solid var(--color-focus-ring);
     outline-offset: var(--focus-ring-offset);
+  }
+
+  /* Titles and main take the focus from the app, never from the keyboard: no ring (20 §11.8). */
+  :where(h1, h2, h3, h4, main)[tabindex="-1"]:focus-visible {
+    outline: none;
   }
 }

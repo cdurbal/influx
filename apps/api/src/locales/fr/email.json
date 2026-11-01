@@ -78,24 +78,17 @@
     "privacy": {
       "requestReceived": {
         "subject": {
-          "access": "Votre demande d'export de données INFLUX est bien reçue",
-          "erasure": "Votre demande de suppression de compte INFLUX est bien reçue"
+          "access": "Votre demande d'export de données INFLUX est bien reçue"
         },
         "preheader": "Une personne de l'équipe INFLUX la traite. Réponse au plus tard le {dueAt, date, long}.",
         "title": {
-          "access": "Demande d'export de vos données reçue",
-          "erasure": "Demande de suppression de votre compte reçue"
+          "access": "Demande d'export de vos données reçue"
         },
         "received": {
-          "access": "Nous avons bien reçu votre demande d'export de vos données personnelles, déposée depuis votre espace INFLUX le {receivedAt, date, long} à {receivedAt, time, short} ({timeZone}).",
-          "erasure": "Nous avons bien reçu votre demande de suppression de votre compte INFLUX, déposée depuis votre espace le {receivedAt, date, long} à {receivedAt, time, short} ({timeZone})."
+          "access": "Nous avons bien reçu votre demande d'export de vos données personnelles, déposée depuis votre espace INFLUX le {receivedAt, date, long} à {receivedAt, time, short} ({timeZone})."
         },
         "next": {
-          "access": "Rien n'est envoyé automatiquement : une personne de l'équipe INFLUX traite votre demande et prépare un fichier lisible avec les données personnelles que nous détenons sur vous. Nous vous indiquerons comment le récupérer de façon sécurisée ; il ne vous sera jamais envoyé en pièce jointe.",
-          "erasure": "Rien n'est supprimé automatiquement : une personne de l'équipe INFLUX traite votre demande. D'ici là, votre compte reste actif et vous pouvez toujours vous connecter."
-        },
-        "kept": {
-          "erasure": "Certaines informations ne sont pas effacées mais conservées sous une forme qui ne vous nomme plus, par exemple le journal d'activité et la trace de votre acceptation des conditions d'utilisation. Notre réponse vous dira précisément ce qui a été supprimé, ce qui est conservé, et pourquoi."
+          "access": "Rien n'est envoyé automatiquement : une personne de l'équipe INFLUX traite votre demande et prépare un fichier lisible avec les données personnelles que nous détenons sur vous. Nous vous indiquerons comment le récupérer de façon sécurisée ; il ne vous sera jamais envoyé en pièce jointe."
         },
         "deadline": "Nous vous répondrons à cette adresse au plus tard le {dueAt, date, long}.",
         "followUp": "Vous pouvez suivre cette demande dans votre espace INFLUX, rubrique « Mes données ».",
@@ -116,6 +109,17 @@
         "noAttachment": "Ce fichier n'est jamais envoyé par e-mail, et cet e-mail ne contient aucun lien : connectez-vous à INFLUX comme d'habitude.",
         "notYou": "Vous n'êtes pas à l'origine de cette demande d'export ? Elle a été confirmée par un code envoyé à cette adresse :",
         "reason": "vous avez demandé l'export de vos données personnelles depuis votre compte INFLUX"
+      },
+      "erasureCompleted": {
+        "subject": "Votre compte INFLUX est supprimé",
+        "preheader": "La suppression a eu lieu le {erasedAt, date, long}.",
+        "title": "Votre compte INFLUX est supprimé",
+        "done": "Votre compte INFLUX a été supprimé, à votre demande, le {erasedAt, date, long} à {erasedAt, time, short} ({timeZone}). Vous êtes déconnecté de tous vos appareils et vous ne pouvez plus vous connecter avec ce compte.",
+        "deleted": "Ce qui a été supprimé : vos informations de profil et de contact, vos sessions de connexion et vos fichiers d'export de données ont été supprimés ou rendus anonymes. Nous avons aussi demandé à nos prestataires d'e-mails et de prospection de supprimer votre contact.",
+        "kept": "Ce qui est conservé, sous une forme qui ne vous nomme plus, et pourquoi : le journal d'activité de la plateforme, pour la sécurité et pour prouver que nous respectons nos obligations ; la trace de votre acceptation des conditions d'utilisation et de votre consentement, pour pouvoir démontrer qu'ils ont été respectés ; les e-mails déjà envoyés et le journal de leurs envois, pour garder la trace de nos communications. S'il en existe, vos mises en relation, affaires et conversations avec des marques ou des créateurs sont conservées de la même façon, sans vous nommer.",
+        "newAccount": "Une nouvelle inscription avec la même adresse crée un compte entièrement nouveau : rien de votre ancien compte n'y est repris.",
+        "notYou": "Vous n'êtes pas à l'origine de cette suppression ? Elle a été confirmée par un code envoyé à cette adresse. Signalez-le à INFLUX depuis l'aide de l'écran de connexion, en indiquant la date de cet e-mail.",
+        "reason": "vous avez supprimé votre compte INFLUX"
       }
     },
     "internal": {
@@ -127,6 +131,121 @@
         "occurredAt": "Le {occurredAt, date, long} à {occurredAt, time, medium} (UTC).",
         "auditReference": "Référence d'audit : {reference}",
         "action": "Consultez le registre d'audit du backoffice. Si cette connexion n'était pas prévue, traitez-la comme un incident de sécurité."
+      },
+      "technicalAlert": {
+        "subject": {
+          "raised": "INFLUX — {code} : {title}",
+          "reminder": "INFLUX — {code} toujours en cours : {title}",
+          "resolved": "INFLUX — {code} rétabli : {title}"
+        },
+        "heading": "Alerte technique INFLUX",
+        "fact": {
+          "raised": "Alerte levée : {code} — {title}.",
+          "reminder": "L'alerte {code} — {title} dure toujours (rappel n° {sequence}).",
+          "resolved": "L'alerte {code} — {title} est terminée."
+        },
+        "openedAt": "Levée le {openedAt, date, long} à {openedAt, time, medium} (UTC).",
+        "observedAt": "Constat du {observedAt, date, long} à {observedAt, time, medium} (UTC).",
+        "screen": "Le détail est à l'écran « Santé technique » du backoffice.",
+        "notSet": "non fixé",
+        "none": "aucun",
+        "p95Within": "≤ {bound} ms",
+        "p95Beyond": "> {bound} ms",
+        "targets": {
+          "web_home_fr": "page d'accueil FR",
+          "web_home_en": "page d'accueil EN",
+          "backoffice_sign_in": "page de connexion du backoffice",
+          "api_health": "/health de l'API (réseau privé, vérifie la base)"
+        },
+        "groups": {
+          "newGroups": "Nouveaux groupes d'erreurs serveur : {count}.",
+          "regressions": "Régressions (groupes corrigés qui réapparaissent) : {count}.",
+          "digest": "Récapitulatif des nouveaux groupes d'erreurs serveur des dernières 24 h : {count}.",
+          "line": "{errorType} sur {route} — groupe {id}, le {at, date, long} à {at, time, medium} (UTC)",
+          "noRoute": "hors requête"
+        },
+        "codes": {
+          "AL48": {
+            "title": "Délivrabilité du code de connexion hors seuil",
+            "measure": "Codes envoyés sur la fenêtre : {sends}. Délai médian : {medianDeliverySeconds} s ; 9ᵉ cas sur 10 : {p90DeliverySeconds} s ; demandes sans connexion sous 10 min : {noSignInShare} ; part délivrée : {deliveredShare}.",
+            "action": "Incident : des personnes ne peuvent pas entrer dans leur compte. Vérifier Brevo et le domaine d'envoi."
+          },
+          "AL49": {
+            "title": "Site injoignable",
+            "measure": "Cible : {target}. Échecs consécutifs : {consecutiveFailures} (seuil : {threshold}). Dernier échec : {failureCode}, statut HTTP {statusCode}.",
+            "action": "Vérifier Railway et Supabase ; revenir à la version précédente si l'échec suit un déploiement."
+          },
+          "AL50": {
+            "title": "Worker arrêté",
+            "measure": "Dernier battement : {lastBeatAt} (il y a {ageSeconds} s ; seuil : {thresholdSeconds} s).",
+            "action": "Lire sa ligne « fatal » dans les journaux Railway (réglage manquant), puis redémarrer le service worker."
+          },
+          "AL51": {
+            "title": "Nouvelle erreur serveur ou régression",
+            "measure": "",
+            "action": "Classer chaque groupe : corrigé, planifié ou sans effet."
+          },
+          "AL52": {
+            "title": "Taux d'erreurs serveur",
+            "measure": "{serverErrors} réponses 5xx sur {requests} en {windowMinutes} min, soit {share} (seuil : {threshold}).",
+            "action": "Trouver la route en cause ; corriger ou revenir à la version précédente."
+          },
+          "AL53": {
+            "title": "Lenteur de l'API",
+            "measure": "p95 de l'API sur {windowMinutes} min : {p95}, sur {requests} requêtes (seuil : {thresholdMs} ms, hors demande de code).",
+            "action": "Lire le ralentissement : pic d'appels, requête lente, base ou fournisseur externe."
+          },
+          "AL54": {
+            "title": "Lenteur des pages",
+            "measure": "{target} : {durationMs} ms au dernier relevé, au-delà de {thresholdMs} ms sur {probes} relevés consécutifs.",
+            "action": "Lire le ralentissement : pic d'appels, requête lente, base ou fournisseur externe."
+          },
+          "AL55": {
+            "title": "Pic d'appels (information)",
+            "measure": "{callsPerMinute} appels par minute sur 5 min ; volume habituel : {usualCallsPerMinute} ; limite : {limit}.",
+            "action": "Rapprocher de son origine (envoi d'e-mails, campagne) ; agir seulement si une lenteur suit."
+          },
+          "AL56": {
+            "title": "Réponses 429 en hausse",
+            "measure": "{throttled} réponses 429 sur {requests} en {windowMinutes} min, soit {share} (seuil : {threshold} et au moins {minCount}).",
+            "action": "Chercher l'abus avant de relever une limite."
+          },
+          "AL57": {
+            "title": "Service saturé",
+            "measure": "Service {service} : retard moyen de la boucle d'événements {avgEventLoopDelayMs} ms sur {windowMinutes} min (seuil : {thresholdMs} ms) ; mémoire : {memoryShare}.",
+            "action": "Augmenter les ressources Railway ; chercher la boucle ou la fuite."
+          },
+          "AL58": {
+            "title": "Base saturée",
+            "measure": "Connexions à la base : {connections} sur {maxConnections} (seuil : {threshold} sur {samples} relevés consécutifs).",
+            "action": "Chercher les connexions et les requêtes longues."
+          },
+          "AL59": {
+            "title": "Code de connexion visé",
+            "measure": "{failures} échecs de code sur 24 h pour une même adresse (seuil : {threshold}). Aucun blocage n'est appliqué.",
+            "action": "Instruire : attaque ciblée ou membre en difficulté."
+          },
+          "AL60": {
+            "title": "Purge horaire en défaut",
+            "measure": "Passage {runId} terminé le {finishedAt} : {realignFailed} réalignement(s) GoTrue en échec ; disjoncteur : {breaker}.",
+            "action": "Examiner le passage et corriger avant le suivant."
+          },
+          "AL61": {
+            "title": "Webhook Brevo : appels ignorés",
+            "measure": "{ignored} appels ignorés sur {authenticated} appels authentifiés en {windowHours} h, soit {share} (seuil : {threshold}).",
+            "action": "Lire le motif dominant : un format Brevo changé fait perdre des désinscriptions."
+          },
+          "AL62": {
+            "title": "Webhook Brevo hors plages",
+            "measure": "{occurrences} appel(s) au jeton valide reçus hors des plages publiées par Brevo ; dernier : {lastAt}.",
+            "action": "Mettre à jour les plages si Brevo les a changées, sinon changer le jeton."
+          },
+          "AL63": {
+            "title": "Demande de données personnelles exécutée, non close",
+            "measure": "Exécution {executionId}, exécutée le {executedAt}, non close au-delà de {thresholdHours} h.",
+            "action": "Achever et clore : le délai légal court."
+          }
+        }
       }
     },
     "transactional": {

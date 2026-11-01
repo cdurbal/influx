@@ -10,21 +10,19 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useState } from "react";
 import {
   CARD_CLASSES,
-  ERROR_CLASSES,
   HELP_CLASSES,
   INFO_CLASSES,
   LABEL_CLASSES,
   SECONDARY_BUTTON_CLASSES,
-  TITLE_CLASSES,
 } from "@/components/auth/auth-classes";
-import {
-  LIST_CLASSES,
-  SECTION_TITLE_CLASSES,
-  SUCCESS_CLASSES,
-} from "./account-classes";
+import { CARD_TITLE } from "@/components/member/ui/heading-classes";
+import { Notice } from "@/components/member/ui/Notice";
+import { PageHeader } from "@/components/member/ui/PageHeader";
+import { LIST_CLASSES, SECTION_TITLE_CLASSES } from "./account-classes";
 import { readConsent, updateConsent } from "./account-api";
 import { consentOriginOf, formatDate } from "./account-view";
 import type { AccountContext } from "./AccountShell";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 type State =
   | { kind: "loading" }
@@ -82,16 +80,14 @@ export function PreferencesScreen({ online }: AccountContext) {
 
   return (
     <>
-      <h1 className={TITLE_CLASSES}>{t("title")}</h1>
+      <PageHeader title={t("title")} />
       {state.kind === "loading" ? (
         <p role="status" className={HELP_CLASSES}>
           {tAccount("loading")}
         </p>
       ) : null}
       {state.kind === "unavailable" ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {tAccount("unavailable")}
-        </p>
+        <ErrorNotice>{tAccount("unavailable")}</ErrorNotice>
       ) : null}
       {state.kind === "ready" ? (
         <section aria-labelledby={ids.card} className={CARD_CLASSES}>
@@ -112,15 +108,9 @@ export function PreferencesScreen({ online }: AccountContext) {
             </p>
           ) : null}
           {done !== null ? (
-            <p role="status" className={SUCCESS_CLASSES}>
-              {t(`done.${done}`)}
-            </p>
+            <Notice tone="success">{t(`done.${done}`)}</Notice>
           ) : null}
-          {failed ? (
-            <p role="alert" className={ERROR_CLASSES}>
-              {t("unavailable")}
-            </p>
-          ) : null}
+          {failed ? <ErrorNotice>{t("unavailable")}</ErrorNotice> : null}
           <button
             type="button"
             onClick={() => void change(!state.consent.granted)}
@@ -141,7 +131,7 @@ export function PreferencesScreen({ online }: AccountContext) {
         </section>
       ) : null}
       <section aria-labelledby={ids.unchanged} className={INFO_CLASSES}>
-        <h2 id={ids.unchanged} className={LABEL_CLASSES}>
+        <h2 id={ids.unchanged} className={CARD_TITLE}>
           {t("unchanged.title")}
         </h2>
         <ul className={LIST_CLASSES}>

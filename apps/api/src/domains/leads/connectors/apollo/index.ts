@@ -2,10 +2,11 @@
 // never a duplicate, never enrolled in a sequence. Its preparation, at consumption (05 RG81: the
 // settings of THIS attempt, never those of the start), in this order:
 //   1. the account state of the attempt: an account gone or not active is skipped;
-//   2. the three Apollo keys (EC-8); one that does not read is an abstention (RG84);
+//   2. the three Apollo keys (EC-8); one that does not read allows no mapping: the line FAILS
+//      apollo_settings_invalid, an incident (05 RG160, RG164 (b)), never a skip;
 //   3. the scope (RG81): out_of_apollo_scope, out_of_apollo_scope_individual;
-//   4. the prospecting countries (RG84): an empty list, or the account's country absent from it,
-//      is country_not_validated, never a send by default;
+//   4. the excluded countries (RG84, block-list since 0141, D33 overridden by the founder): the
+//      account's country in the list is country_excluded; an empty list excludes none;
 //   5. the verified address (RG82): email_not_verified;
 //   6. the legal basis of the country (RG83): consentement_requis without the commercial_prospection
 //      consent in force is no_consent;
@@ -112,14 +113,14 @@ export function createApolloConnector(
           { key: "apollo", destination: "apollo_contact" },
           "leads.settings.invalid",
         );
-        return { kind: "skip", reason: "apollo_settings_invalid" };
+        return { kind: "fail", errorCode: "apollo_settings_invalid" };
       }
       const outOfScope = scopeSkipReason(account, apollo.scope);
       if (outOfScope !== null) {
         return { kind: "skip", reason: outOfScope };
       }
-      if (!apollo.countries.has(account.countryCode)) {
-        return { kind: "skip", reason: "country_not_validated" };
+      if (apollo.excludedCountries.has(account.countryCode)) {
+        return { kind: "skip", reason: "country_excluded" };
       }
       if (!account.emailVerified) {
         return { kind: "skip", reason: "email_not_verified" };
@@ -164,6 +165,7 @@ export function createApolloConnector(
           templateCode: null,
           attributeNames: Object.keys(body).sort(),
           rejectedAttributeNames: rejected,
+          missingSettings: [],
         },
         recipientDomain: domainOf(subject.email),
         send: () => {

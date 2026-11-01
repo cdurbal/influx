@@ -207,6 +207,13 @@ describe("the change of address (05 RG58)", () => {
         code: "reauthentication_required",
       }),
     ).toBe("freshCodeRequired");
+    // A2: the new address over its RG44 ceiling
+    expect(
+      emailChangeRefusalOf({
+        kind: "failed",
+        code: "rate_limited",
+      }),
+    ).toBe("rateLimited");
     expect(
       emailChangeRefusalOf({
         kind: "failed",

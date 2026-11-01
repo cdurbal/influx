@@ -1,7 +1,8 @@
 // T14 (J8, commit 5) — the read API of the backoffice v0 on member accounts, on the local stack
 // through the pools of apps/api (docs/mvp/05 RG97 to RG100, RG105, RG107; 15 RG34, RG40, RG49,
 // RG50, CA30; 18 T14.1 to T14.4; 21 §J8 commit 5; migration 0133):
-//   GET /v1/bo/accounts, GET /v1/bo/accounts/counters, GET /v1/bo/accounts/:id.
+//   GET /v1/bo/accounts, POST /v1/bo/accounts/search (J8S-7: the term in the body, never in a
+//   URL), GET /v1/bo/accounts/counters, GET /v1/bo/accounts/:id.
 // T14 on each route: a member session and the web surface never reach them; an internal account,
 // the caller's own and an unknown id answer the same 404, with the same body. RG107: no provider
 // message, no contact id at a provider, no address in the list.
@@ -21,9 +22,11 @@ import {
 } from "../src/db/index.ts";
 import { buildServer } from "../src/server.ts";
 import {
+  BACKOFFICE_ORIGIN,
   BACKOFFICE_SECRET,
   captureLogs,
   testApiConfig,
+  WEB_ORIGIN,
   WEB_SECRET,
 } from "../tests/helpers.ts";
 import { migrationRole } from "./support.ts";
@@ -213,6 +216,28 @@ function get(
   });
 }
 
+/** POST /v1/bo/accounts/search (J8S-7): the term in the body, from `startedAt` by default. */
+function search(
+  server: Server,
+  body: Record<string, string | number>,
+  session: string | null,
+  options: { surface?: "backoffice" | "web"; cookie?: string } = {},
+): Promise<LightMyRequestResponse> {
+  const cookieName = options.cookie ?? "__Host-influx-ops-session";
+  return server.inject({
+    method: "POST",
+    url: "/v1/bo/accounts/search",
+    headers: {
+      "x-influx-internal":
+        options.surface === "web" ? WEB_SECRET : BACKOFFICE_SECRET,
+      origin: options.surface === "web" ? WEB_ORIGIN : BACKOFFICE_ORIGIN,
+      "x-request-id": randomUUID(),
+      ...(session === null ? {} : { cookie: `${cookieName}=${session}` }),
+    },
+    payload: { from: startedAt, ...body },
+  });
+}
+
 /** The body of an error envelope, without its request id (18 T14.4: the same body). */
 function errorBody(response: LightMyRequestResponse) {
   const { error } = response.json<{
@@ -348,6 +373,13 @@ describe("T14 on every route of /v1/bo/accounts (18 T14.1; 03 §6.2)", () => {
         message: expect.any(String) as string,
       });
     }
+    expect(
+      errorBody(await search(server, { q: "t14-member" }, alpha.session)),
+    ).toEqual({
+      status: 401,
+      code: "unauthenticated",
+      message: expect.any(String) as string,
+    });
   });
 
   it("the web surface never reaches a backoffice route (404), even with a member cookie", async () => {
@@ -359,6 +391,14 @@ describe("T14 on every route of /v1/bo/accounts (18 T14.1; 03 §6.2)", () => {
       });
       expect(response.statusCode, route).toBe(404);
     }
+    expect(
+      (
+        await search(server, { q: "t14-member" }, alpha.session, {
+          surface: "web",
+          cookie: "__Host-influx-session",
+        })
+      ).statusCode,
+    ).toBe(404);
   });
 
   it("no session: 401 on each route", async () => {
@@ -366,6 +406,9 @@ describe("T14 on every route of /v1/bo/accounts (18 T14.1; 03 §6.2)", () => {
     for (const route of ROUTES) {
       expect((await get(server, route, null)).statusCode, route).toBe(401);
     }
+    expect((await search(server, { q: "t14-member" }, null)).statusCode).toBe(
+      401,
+    );
   });
 
   it("an unknown id, an internal account and the caller's own answer the same 404 (T14.3, T14.4), and journal nothing", async () => {
@@ -429,6 +472,7 @@ describe("GET /v1/bo/accounts (05 RG97, RG99, RG100; 15 RG34)", () => {
         state: "skipped",
         nature: "normal_case",
         cause: "no_consent",
+        setting: null,
         retryAt: null,
         lastAttemptAt: expect.any(String) as string,
       },
@@ -436,6 +480,7 @@ describe("GET /v1/bo/accounts (05 RG97, RG99, RG100; 15 RG34)", () => {
         state: "failed",
         nature: "incident",
         cause: "access_key_refused",
+        setting: null,
         retryAt: null,
         lastAttemptAt: expect.any(String) as string,
       },
@@ -506,8 +551,9 @@ describe("GET /v1/bo/accounts (05 RG97, RG99, RG100; 15 RG34)", () => {
       { limit: 0 },
       { cursor: "bm90LWEtY3Vyc29y" },
       { unknown: "x" },
-      { email: alpha.email, q: "t14-member" },
-      { q: "t1" },
+      // J8S-7: a term never travels in a URL; refused, never ignored
+      { email: alpha.email },
+      { q: "t14-member" },
       { syncDestination: "brevo" },
       { from: startedAt, to: "2020-01-01T00:00:00.000Z" },
     ];
@@ -520,29 +566,26 @@ describe("GET /v1/bo/accounts (05 RG97, RG99, RG100; 15 RG34)", () => {
   });
 });
 
-describe("GET /v1/bo/accounts searches (05 RG98, 15 RG50, CA30)", () => {
+describe("POST /v1/bo/accounts/search (05 RG98, 15 RG50, CA30; J8S-7)", () => {
   it("the exact address search is free and journals nothing; an internal address finds nothing", async () => {
     const server = app();
-    const found = (
-      await get(
-        server,
-        `/v1/bo/accounts?email=${encodeURIComponent(alpha.email.toUpperCase())}`,
-        agent.session,
-      )
-    ).json<ListBody>();
+    const foundResponse = await search(
+      server,
+      { email: alpha.email.toUpperCase() },
+      agent.session,
+    );
+    expect(foundResponse.statusCode, foundResponse.body).toBe(200);
+    expect(foundResponse.headers["cache-control"]).toBe("no-store");
+    const found = foundResponse.json<ListBody>();
     expect(found.items.map((row) => row.id)).toEqual([alpha.accountId]);
     expect(found.search).toBe("exact");
     const internal = (
-      await get(
-        server,
-        `/v1/bo/accounts?email=${encodeURIComponent(admin.email)}`,
-        agent.session,
-      )
+      await search(server, { email: admin.email }, agent.session)
     ).json<ListBody>();
     const unknown = (
-      await get(
+      await search(
         server,
-        `/v1/bo/accounts?email=${encodeURIComponent(`t14-nobody-${randomUUID()}@example.test`)}`,
+        { email: `t14-nobody-${randomUUID()}@example.test` },
         agent.session,
       )
     ).json<ListBody>();
@@ -553,15 +596,25 @@ describe("GET /v1/bo/accounts searches (05 RG98, 15 RG50, CA30)", () => {
     ).toEqual([]);
   });
 
+  it("filters a search like the list: role, period (J8T-7 at the API)", async () => {
+    const server = app();
+    const ids = async (body: Record<string, string>) =>
+      (await search(server, body, agent.session))
+        .json<ListBody>()
+        .items.map((row) => row.id);
+    expect(await ids({ email: beta.email, role: "creator" })).toEqual([
+      beta.accountId,
+    ]);
+    expect(await ids({ email: beta.email, role: "advertiser" })).toEqual([]);
+    expect(await ids({ email: beta.email, to: startedAt })).toEqual([]);
+  });
+
   it("a partial search is journaled on the searcher, by the length of its term, never the term", async () => {
     const searcher = await newInternal("agent");
-    const fragment = alpha.accountId.slice(0, 13);
-    const response = await get(
-      app(),
-      `/v1/bo/accounts?q=${fragment}`,
-      searcher.session,
-    );
-    expect(response.statusCode).toBe(200);
+    // a fragment of the address itself: '@' and '.' reach the API in the body (EC-J8-58)
+    const fragment = `${alpha.accountId.slice(-6)}@example.`;
+    const response = await search(app(), { q: fragment }, searcher.session);
+    expect(response.statusCode, response.body).toBe(200);
     const body = response.json<ListBody>();
     expect(body.search).toBe("partial");
     expect(body.items.map((row) => row.id)).toEqual([alpha.accountId]);
@@ -578,20 +631,46 @@ describe("GET /v1/bo/accounts searches (05 RG98, 15 RG50, CA30)", () => {
     expect(JSON.stringify(lines)).not.toContain(fragment);
   });
 
+  it("without a term, it is the list (no journal line); never both terms; the filters stay checked", async () => {
+    const server = app();
+    const searcher = await newInternal("agent");
+    const listed = (
+      await search(server, { role: "creator" }, searcher.session)
+    ).json<ListBody>();
+    expect(listed.items.map((row) => row.id)).toEqual([beta.accountId]);
+    expect(listed.search).toBe("none");
+    expect(
+      await registerLines("accounts.searched_partial", searcher.accountId),
+    ).toEqual([]);
+    const refused: Record<string, string>[] = [
+      { email: alpha.email, q: "t14-member" },
+      { q: "t1" },
+      { email: "not-an-address" },
+      { q: "t14-member", syncDestination: "brevo" },
+      { q: "t14-member", unknown: "x" },
+    ];
+    for (const body of refused) {
+      expect(
+        errorBody(await search(server, body, agent.session)).code,
+        JSON.stringify(body),
+      ).toBe("validation_failed");
+    }
+  });
+
   it("beyond 20 partial searches in 15 minutes: 429 with Retry-After, the refusal journaled too", async () => {
     const searcher = await newInternal("agent");
     const server = app();
     for (let index = 0; index < 20; index += 1) {
-      const response = await get(
+      const response = await search(
         server,
-        listUrl({ q: "t14-member", limit: 1 }),
+        { q: "t14-member", limit: 1 },
         searcher.session,
       );
       expect(response.statusCode, `search ${index + 1}`).toBe(200);
     }
-    const refused = await get(
+    const refused = await search(
       server,
-      listUrl({ q: "t14-member", limit: 1 }),
+      { q: "t14-member", limit: 1 },
       searcher.session,
     );
     expect(errorBody(refused)).toMatchObject({
@@ -601,13 +680,8 @@ describe("GET /v1/bo/accounts searches (05 RG98, 15 RG50, CA30)", () => {
     expect(refused.headers["retry-after"]).toBe("900");
     // the exact search stays free (RG98)
     expect(
-      (
-        await get(
-          server,
-          `/v1/bo/accounts?email=${encodeURIComponent(alpha.email)}`,
-          searcher.session,
-        )
-      ).statusCode,
+      (await search(server, { email: alpha.email }, searcher.session))
+        .statusCode,
     ).toBe(200);
     const outcomes = (
       await registerLines("accounts.searched_partial", searcher.accountId)
@@ -616,6 +690,18 @@ describe("GET /v1/bo/accounts searches (05 RG98, 15 RG50, CA30)", () => {
       20,
     );
     expect(outcomes.at(-1)).toBe("refused");
+  });
+
+  it("J8S-7: neither a searched address nor a fragment reaches a log line", async () => {
+    const logs = captureLogs();
+    const server = buildServer(testApiConfig(), {
+      logDestination: logs.destination,
+      database,
+    });
+    const fragment = `zz${randomUUID().slice(0, 12)}`;
+    await search(server, { email: beta.email }, agent.session);
+    await search(server, { q: fragment }, agent.session);
+    expect(valuesFoundIn(logs.text(), [beta.email, fragment])).toEqual([]);
   });
 });
 
@@ -767,6 +853,34 @@ describe("GET /v1/bo/accounts/counters (05 RG105)", () => {
     ];
     expect(countries.reduce((sum, count) => sum + count, 0)).toBe(
       after.signups.total,
+    );
+  });
+});
+
+describe("GET /v1/bo/accounts/counters, configuration failure (05 RG160 point 2, CA82)", () => {
+  it("a configuration failure is a failure to handle and an eligible line not synced, never a normal case", async () => {
+    const server = app();
+    const read = async () =>
+      (await get(server, "/v1/bo/accounts/counters", agent.session)).json<{
+        brevoWithinHour: { synced: number; eligible: number };
+        unhandledFailures: { brevo: number; apollo: number };
+      }>();
+    const before = await read();
+    const member = await newMember("creator", { country: "TV" });
+    await queueLine(member.accountId, {
+      destination: "brevo_contact",
+      status: "failed",
+      errorCode: "list_not_configured",
+    });
+    const after = await read();
+    expect(after.unhandledFailures.brevo - before.unhandledFailures.brevo).toBe(
+      1,
+    );
+    expect(
+      after.brevoWithinHour.eligible - before.brevoWithinHour.eligible,
+    ).toBe(1);
+    expect(after.brevoWithinHour.synced - before.brevoWithinHour.synced).toBe(
+      0,
     );
   });
 });

@@ -5,7 +5,7 @@
 // apps/api and apps/web. The account is always the one of the session: no route takes an account
 // id, and a session id is only ever one of the member's own (18 T14).
 // Nothing here carries an amount, a rate or a commission (05 RG9).
-import * as z from "zod";
+import { z } from "./zod.ts";
 import {
   LOGIN_CODE_PATTERN,
   MAX_EMAIL_LENGTH,
@@ -384,12 +384,22 @@ export type DataRequestBody = z.infer<typeof dataRequestBodySchema>;
 /**
  * `received`: deposited now, the acknowledgement leaves by e-mail. `already_open`: a request of
  * this type is still open; it is returned, nothing else is written or sent (the fresh code is
- * consumed all the same).
+ * consumed all the same). `erasure_authorised` (D72): an erasure the member has just authorised
+ * with the fresh code, or still open; every session is closed, the front treats it as a sign-out
+ * and the account is erased at the next turn of the worker. It carries the request's id and
+ * status only.
  */
-export const dataRequestResponseSchema = z.strictObject({
-  outcome: z.enum(["received", "already_open"]),
-  request: dataRequestSchema,
-});
+export const dataRequestResponseSchema = z.discriminatedUnion("outcome", [
+  z.strictObject({
+    outcome: z.enum(["received", "already_open"]),
+    request: dataRequestSchema,
+  }),
+  z.strictObject({
+    outcome: z.literal("erasure_authorised"),
+    requestId: z.uuid(),
+    status: z.enum(DATA_REQUEST_STATUSES),
+  }),
+]);
 export type DataRequestResponse = z.infer<typeof dataRequestResponseSchema>;
 
 // --- "Mes données": the export, downloaded in the space (J8 commit 8; runbook demandes-rgpd §4) ----

@@ -145,13 +145,22 @@ export async function restoreAdmins(): Promise<void> {
 /** Every member account of the journeys, whose queue lines `removeQueueLines` deletes. */
 const members: string[] = [];
 
-/** A member who signed up today, with or without the marketing consent (05 RG33). */
+/** The address of a member seeded by `seedSignup`, from its tag and its id. */
+export function seededAddress(tag: string, accountId: string): string {
+  return `${tag}-${accountId.slice(0, 8)}@example.test`;
+}
+
+/**
+ * A member who signed up today (or `daysAgo` days ago, for the period filters of 05 RG97), with or
+ * without the marketing consent (05 RG33).
+ */
 export async function seedSignup(options: {
   tag: string;
   role: "advertiser" | "creator";
   countryCode: string;
   language: "fr" | "en";
   consent: boolean;
+  daysAgo?: number;
 }): Promise<string> {
   const accountId = randomUUID();
   await withSql((sql) =>
@@ -159,11 +168,11 @@ export async function seedSignup(options: {
       await tx`
         insert into identity.accounts
           (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
-           is_adult_attested, adult_attested_at, declared_status)
-        values (${accountId}, ${randomUUID()},
-                ${`${options.tag}-${accountId.slice(0, 8)}@example.test`}, now(),
+           is_adult_attested, adult_attested_at, declared_status, created_at)
+        values (${accountId}, ${randomUUID()}, ${seededAddress(options.tag, accountId)}, now(),
                 ${options.countryCode}, ${options.language}, true, now(),
-                ${options.role === "advertiser" ? "business" : "individual"}::identity.declared_status)`;
+                ${options.role === "advertiser" ? "business" : "individual"}::identity.declared_status,
+                now() - make_interval(days => ${options.daysAgo ?? 0}))`;
       await tx`
         insert into identity.account_roles (account_id, role)
         values (${accountId}, ${options.role}::identity.account_role)`;
@@ -313,20 +322,26 @@ export async function dualControlFacts(requestId: string): Promise<{
   });
 }
 
-/** The Apollo scope in force, and its restoration after the journey that changes it. */
-export async function apolloScope(): Promise<string> {
+/** An Apollo setting in force (0141), and its restoration after the journey that changes it. */
+export async function apolloSetting(
+  key: "apollo_scope" | "apollo_excluded_countries",
+): Promise<unknown> {
   return withSql(async (sql) => {
-    const [row] = await sql<{ value: string }[]>`
-      select value #>> '{}' as value from leads.sync_settings where key = 'apollo_scope'`;
-    return row?.value ?? "";
+    const [row] = await sql<{ value: unknown }[]>`
+      select value from leads.sync_settings where key = ${key}`;
+    return row?.value ?? null;
   });
 }
 
-export async function restoreApolloScope(value: string): Promise<void> {
+export async function restoreApolloSetting(
+  key: "apollo_scope" | "apollo_excluded_countries",
+  value: unknown,
+): Promise<void> {
   await withSql(
     (sql) => sql`
-      update leads.sync_settings set value = to_jsonb(${value}::text), updated_by_account_id = null
-       where key = 'apollo_scope'`,
+      update leads.sync_settings
+         set value = ${JSON.stringify(value)}::text::jsonb, updated_by_account_id = null
+       where key = ${key}`,
   );
 }
 

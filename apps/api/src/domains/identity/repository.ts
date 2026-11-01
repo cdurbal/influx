@@ -20,6 +20,7 @@ export type ThrottleScope =
   | "backoffice_login_email"
   | "backoffice_login_platform"
   | "backoffice_reauth_session"
+  | "backoffice_reauth_ip"
   | "delivery_report_email"
   | "delivery_report_ip"
   | "delivery_report_unknown_ip";
@@ -164,6 +165,20 @@ export async function insertCriticalAlertSend(
     throw new Error("journal line not inserted");
   }
   return reference;
+}
+
+/**
+ * AL59 (0147, J3S-8): one failed member code for an address DIGEST (emailThrottleKey, never the
+ * address), in its UTC hour; returns the failures of the last 24 hours. Nothing is blocked (A-4).
+ */
+export async function recordCodeFailure(
+  tx: Transaction,
+  addressKey: Buffer,
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select identity.record_code_failure(${addressKey})::int as count`,
+  );
+  return rows[0]?.count ?? 0;
 }
 
 /** Failures of the current window of a counter (0014), read before calling GoTrue. */
@@ -1312,6 +1327,22 @@ export async function refuseEmailChangeAddress(
   return rows[0]?.refused === true;
 }
 
+/**
+ * identity.email_change_holder_is_orphan() (0144, C5.c): whether the GoTrue user holding the new
+ * address of the caller's fully confirmed request has no account (on its id), hence may be deleted.
+ */
+export async function emailChangeHolderIsOrphan(
+  tx: Transaction,
+  requestId: string,
+  holderAuthUserId: string,
+): Promise<boolean> {
+  const rows = await tx.execute<{ orphan: boolean }>(
+    sql`select identity.email_change_holder_is_orphan(${requestId}::uuid,
+                 ${holderAuthUserId}::uuid) as orphan`,
+  );
+  return rows[0]?.orphan === true;
+}
+
 export type OwnEmailChangeRow = {
   id: string;
   newEmail: string;
@@ -1431,6 +1462,35 @@ export async function submitDataRequest(
     throw new Error("data subject request not deposited");
   }
   return { requestId: row.request_id, created: row.created };
+}
+
+/**
+ * The erasure authorised by the member (0150 identity.submit_member_erasure, D72): consumes the
+ * fresh code `account_deletion` of this session (55000 without it), opens the request in_progress
+ * with its execution, and closes EVERY session of the account, all in this transaction. `created`
+ * is false when an erasure was already open (nothing else written). The account and the session
+ * come from the transaction context, never a parameter.
+ */
+export async function submitMemberErasure(
+  tx: Transaction,
+): Promise<{ requestId: string; status: string; created: boolean }> {
+  const rows = await tx.execute<{
+    request_id: string;
+    status: string;
+    created: boolean;
+  }>(
+    sql`select request_id::text as request_id, status, created
+          from identity.submit_member_erasure()`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    throw new Error("member erasure not authorised");
+  }
+  return {
+    requestId: row.request_id,
+    status: row.status,
+    created: row.created,
+  };
 }
 
 // --- The rescue channel, under influx_auth (E-1 support.report_delivery_issue; 05 RG65, 0120) --------

@@ -6,6 +6,7 @@
 // The route half (a real sign-in, GET /v1/bo/me, GET /v1/bo/alerts) is in t8-backoffice-sign-in and
 // t14-backoffice-actions-route. Each case runs in ONE rolled-back transaction of the local superuser.
 import { inRolledBackTransaction, type DataSet } from "@influx/test-kit/db";
+import { randomUUID } from "node:crypto";
 import type postgres from "postgres";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -206,6 +207,148 @@ describe("B-7: identity.signal_new_backoffice_browser() and backoffice.new_brows
     expect(result).toEqual([
       { outcome: "error", code: INSUFFICIENT_PRIVILEGE },
       { outcome: "error", code: INSUFFICIENT_PRIVILEGE },
+      { outcome: "error", code: INVALID_PARAMETER_VALUE },
+    ]);
+  });
+});
+
+describe("J8S-4 (0142): backoffice.admin_role_grants(), the admin role grants of the last days", () => {
+  const GRANTS = "select * from backoffice.admin_role_grants($1::int)";
+
+  /**
+   * One account.role_granted line on `subject`, written through audit.append() by the superuser
+   * (a system line), then given an actor and an age (the append-only guard is lifted for the
+   * rolled-back fixture only).
+   */
+  async function grantLine(
+    tx: postgres.TransactionSql,
+    subject: string,
+    payload: Record<string, string>,
+    options: { actor?: string; ageDays?: number } = {},
+  ): Promise<void> {
+    const [row] = await tx<{ seq: string }[]>`
+      select audit.append('account.role_granted', 'account', ${subject}::uuid,
+                          ${JSON.stringify(payload)}::text::jsonb)::text as seq`;
+    await tx`alter table audit.audit_events disable trigger audit_events_no_update_delete`;
+    await tx`
+      update audit.audit_events
+         set actor_type       = case when ${options.actor ?? null}::uuid is null
+                                     then actor_type else 'admin' end,
+             actor_account_id = coalesce(${options.actor ?? null}::uuid, actor_account_id),
+             occurred_at      = occurred_at - make_interval(days => ${options.ageDays ?? 0})
+       where chain_key = 'global' and seq = ${row?.seq ?? "0"}::bigint`;
+    await tx`alter table audit.audit_events enable trigger audit_events_no_update_delete`;
+  }
+
+  it("lists the admin grants of the window, newest first: who, by whom, when; nothing else", async () => {
+    const adminB = dataSet.accounts.admin.b.id;
+    const agentB = dataSet.accounts.agent.b.id;
+    const result = await scenario(async (tx) => {
+      const byInvitation = randomUUID();
+      const old = randomUUID();
+      const notAdmin = randomUUID();
+      // grant_role (0130): the actor is the confirming admin
+      await grantLine(
+        tx,
+        agentB,
+        { role: "admin", reason_code: "test_j9", dual_control: "peer" },
+        { actor: adminB, ageDays: 1 },
+      );
+      // accept_internal_invitation (0131): the author is in the payload, the line has no actor
+      await grantLine(tx, byInvitation, {
+        role: "admin",
+        reason_code: "internal_invitation",
+        granted_by_account_id: admin,
+      });
+      await grantLine(
+        tx,
+        old,
+        { role: "admin" },
+        { actor: adminB, ageDays: 8 },
+      );
+      await grantLine(tx, notAdmin, { role: "agent" }, { actor: adminB });
+      // The function caps at 50 lines: push the grants other runs committed out of every window
+      // (rolled-back fixture only), so the assertions hold on a database that has plenty of them.
+      await tx`alter table audit.audit_events disable trigger audit_events_no_update_delete`;
+      await tx`
+        update audit.audit_events
+           set occurred_at = occurred_at - make_interval(days => 60)
+         where event_type = 'account.role_granted'
+           and subject_id not in (${agentB}::uuid, ${byInvitation}::uuid, ${old}::uuid,
+                                  ${notAdmin}::uuid)`;
+      await tx`alter table audit.audit_events enable trigger audit_events_no_update_delete`;
+      const names = await tx<{ account_id: string; first_name: string }[]>`
+        select account_id::text, first_name from identity.agent_profiles
+         where account_id in (${admin}, ${adminB}, ${agentB})`;
+      const listed = await asInternal(tx, "admin", admin, () =>
+        attempt(tx, GRANTS, [7]),
+      );
+      const month = await asInternal(tx, "admin", admin, () =>
+        attempt(tx, GRANTS, [30]),
+      );
+      return { byInvitation, old, notAdmin, names, listed, month };
+    });
+    const nameOf = (id: string) =>
+      result.names.find((row) => row.account_id === id)?.first_name ?? null;
+    const ours = (attempted: Attempt) =>
+      attempted.outcome === "rows"
+        ? attempted.rows
+            .filter((row) =>
+              [
+                agentB,
+                result.byInvitation,
+                result.old,
+                result.notAdmin,
+              ].includes(String(row.account_id)),
+            )
+            .map((row) => ({
+              ...row,
+              occurred_at: row.occurred_at instanceof Date,
+            }))
+        : attempted;
+    expect(ours(result.listed)).toEqual([
+      {
+        account_id: result.byInvitation,
+        first_name: null,
+        granted_by_account_id: admin,
+        granted_by_first_name: nameOf(admin),
+        occurred_at: true,
+      },
+      {
+        account_id: agentB,
+        first_name: nameOf(agentB),
+        granted_by_account_id: adminB,
+        granted_by_first_name: nameOf(adminB),
+        occurred_at: true,
+      },
+    ]);
+    // eight days old: outside 7 days, inside 30; a grant of another role never
+    expect(
+      (ours(result.month) as Record<string, unknown>[]).map(
+        (row) => row.account_id,
+      ),
+    ).toEqual([result.byInvitation, agentB, result.old]);
+  });
+
+  it("is an active admin's read in aal2, over 1 to 30 days", async () => {
+    const result = await scenario(async (tx) => [
+      await asInternal(tx, "agent", agent, () => attempt(tx, GRANTS, [7])),
+      await asInternal(
+        tx,
+        "admin",
+        admin,
+        () => attempt(tx, GRANTS, [7]),
+        "aal1",
+      ),
+      await asInternal(tx, "admin", admin, () => attempt(tx, GRANTS, [0])),
+      await asInternal(tx, "admin", admin, () => attempt(tx, GRANTS, [31])),
+      await asInternal(tx, "admin", admin, () => attempt(tx, GRANTS, [null])),
+    ]);
+    expect(result).toEqual([
+      { outcome: "error", code: INSUFFICIENT_PRIVILEGE },
+      { outcome: "error", code: INSUFFICIENT_PRIVILEGE },
+      { outcome: "error", code: INVALID_PARAMETER_VALUE },
+      { outcome: "error", code: INVALID_PARAMETER_VALUE },
       { outcome: "error", code: INVALID_PARAMETER_VALUE },
     ]);
   });

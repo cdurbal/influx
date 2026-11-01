@@ -35,7 +35,7 @@ qu'une panne d'un service externe n'empêche jamais quelqu'un de s'inscrire.**
 
 Trois raisons d'être, dans cet ordre :
 
-1. **Commerciale.** Un lead qui n'arrive pas dans Brevo et Apollo est un lead perdu (`CLAUDE.md` §3).
+1. **Commerciale.** Un lead qui n'arrive pas dans Brevo et Apollo est un lead perdu (`CLAUDE.md` §2).
    C'est le second pilier du modèle économique, et au Lot 1 c'est le seul qui produise de la valeur.
 2. **Produit.** Sans compte réel, aucun des lots suivants n'existe : ni profil, ni campagne, ni mise
    en relation courtée.
@@ -408,7 +408,11 @@ connexion reste l'ancienne. Une fois le changement effectif, les deux adresses s
 événement `email.changed` est émis. *(J7, 2026-10-14, `architecte` et `expert-cybersecurite` :* un
 code qui ne part pas ferme la demande. Une nouvelle adresse déjà utilisée ferme la demande et le
 membre en est informé, une fois les deux codes saisis seulement ; l'ancienne adresse reste en
-vigueur.*)*
+vigueur.*)* *(J9, commit 3 : le code envoyé à la nouvelle adresse compte sur les plafonds de RG44,
+par adresse IP puis par adresse, quel que soit le compte demandeur ; au-delà, refus avant que le code
+frais ne soit consommé (A2). Une nouvelle adresse retenue chez le fournisseur d'identité par un
+utilisateur sans compte INFLUX — un code demandé pour elle — n'est pas « déjà utilisée » : cet
+utilisateur est supprimé, puis le changement réessayé (C5.c).)*
 
 ### G — L'e-mail qui n'arrive pas
 
@@ -564,16 +568,17 @@ deux valeurs et deux comportements complets :
 
 | Valeur | Comportement |
 |---|---|
-| `consentement_requis` | **Valeur d'attente au Lot 1** (position conservatrice, `CLAUDE.md` §9). Sans consentement enregistré, aucun envoi vers Apollo ; ligne « ignorée », motif « sans consentement » |
+| `consentement_requis` | **Valeur d'attente au Lot 1** (position conservatrice, `CLAUDE.md` §6). Sans consentement enregistré, aucun envoi vers Apollo ; ligne « ignorée », motif « sans consentement » |
 | `interet_legitime_avec_opposition` | Envoi possible sans consentement pour les profils du périmètre, **à condition** que l'information renforcée ait été délivrée (mention d'inscription et politique de confidentialité citant Apollo) et qu'aucune opposition ne soit enregistrée. Une opposition vaut exclusion définitive |
 
 Le choix relève de `expert-conformite-rgpd` et du juriste (**Q1**). Les deux comportements sont
 spécifiés ici pour qu'aucun développement ne soit nécessaire au moment de l'arbitrage.
 
-**RG84** — La **liste des pays où la prospection Apollo est validée** est lue en configuration. Elle est
-**vide tant que `expert-conformite-rgpd` ne l'a pas renseignée** : dans ce cas, aucun lead ne part vers
-Apollo et chaque ligne est marquée « ignoré — pays non validé pour la prospection ». Une absence de
-liste doit produire une abstention, jamais un envoi par défaut.
+**RG84** — *(Amendée par le fondateur le 2026-10-19, D33, contre le veto RGPD.)* La prospection Apollo
+est ouverte **dans tous les pays par défaut**. La **liste des pays exclus** (`apollo_excluded_countries`)
+est lue en configuration, **vide par défaut** ; un lead d'un pays exclu n'est pas envoyé et sa ligne est
+marquée « ignoré — pays exclu de la prospection » (`country_excluded`). Une liste illisible reste une
+abstention (aucun envoi). La base légale (RG83) et le périmètre (RG81) s'appliquent toujours.
 
 **RG85** — **Aucune donnée enrichie par Apollo n'est réimportée dans INFLUX.** La réimporter
 déclencherait une obligation d'information supplémentaire à la charge d'INFLUX. Toute exception est une
@@ -849,7 +854,7 @@ marque n'est jamais le seul porteur d'un état.
 |---|---|
 | Retrait du consentement après inscription | Effet immédiat dans INFLUX, propagation prioritaire, compte intact (RG92, RG94) |
 | Changement d'adresse e-mail | Double confirmation obligatoire ; tant qu'elle n'est pas complète, l'ancienne adresse reste la bonne (RG58) |
-| Demande de suppression du compte | Re-authentification par code, puis anonymisation ; propagation prioritaire vers Brevo et Apollo (RG57, RG73) |
+| Demande de suppression du compte | Re-authentification par code, puis anonymisation **automatique** au tour suivant du worker, sans validation d'un `admin` (D72) ; toutes les sessions sont fermées au dépôt ; propagation prioritaire vers Brevo et Apollo (RG57, RG73) |
 | Changement de rôle demandé par un membre | Refusé en libre-service au MVP ; un administrateur peut le faire, avec motif et journal (RG108, Q9) |
 | Nouvelle version des CGU refusée | Déconnexion sans suppression du compte ; l'état est visible au backoffice (RG28) |
 | Nouvelle inscription après suppression | Autorisée, compte neuf (RG70) |
@@ -1041,9 +1046,9 @@ périmètre » et rien n'est envoyé.
 `tous_les_inscrits`, *alors* le changement prend effet **sans redéploiement**, il est journalisé, et les
 comptes précédemment ignorés pour ce motif sont réévalués puis synchronisés.
 
-**CA44** — *Étant donné* la liste des pays de prospection vide, *quand* un annonceur consentant
-s'inscrit, *alors* **aucun envoi vers Apollo n'a lieu** et la ligne indique « pays non validé pour la
-prospection ».
+**CA44** — *(RG84 amendée.)* *Étant donné* le pays d'un annonceur consentant dans la liste des pays
+exclus, *quand* il s'inscrit, *alors* **aucun envoi vers Apollo n'a lieu** et la ligne indique « pays exclu
+de la prospection » ; avec la liste vide, il est envoyé.
 
 **CA45** — *Étant donné* la base légale Apollo réglée sur `consentement_requis`, *quand* un annonceur
 sans consentement s'inscrit, *alors* rien ne part vers Apollo ; *et quand* la valeur passe à
@@ -1233,7 +1238,7 @@ vivre **en table**, modifiables sans redéploiement, chaque modification étant 
 | Réimport des données enrichies par Apollo | RG85 | Sur décision écrite de `expert-conformite-rgpd` |
 | Blocage des domaines d'e-mail jetables | Faux positifs, inscrits réels perdus (RG12) | Si la qualité de base le justifie |
 | Traduction en portugais | Français et anglais au lancement | Avant l'ouverture du Brésil |
-| Tout montant, taux, commission, facture | **A1**, `CLAUDE.md` §3 | V2 |
+| Tout montant, taux, commission, facture | **A1**, `CLAUDE.md` §2 | V2 |
 
 ---
 
@@ -1241,9 +1246,9 @@ vivre **en table**, modifiables sans redéploiement, chaque modification étant 
 
 | # | Question | Hypothèse retenue en attendant | Arbitre | Échéance |
 |---|---|---|---|---|
-| **Q1** | **Base légale de la synchronisation Apollo** : consentement (`CLAUDE.md` §9) ou intérêt légitime avec droit d'opposition (skill `apollo-lead-sync`) ? Les deux textes de référence divergent | **Consentement requis** (position conservatrice). Les deux comportements sont spécifiés (RG83) et la bascule est une valeur de configuration | `expert-conformite-rgpd` (**veto**) + juriste | **Avant la mise en ligne du Lot 1** |
+| **Q1** | **Base légale de la synchronisation Apollo** : consentement (`CLAUDE.md` §6) ou intérêt légitime avec droit d'opposition (skill `apollo-lead-sync`) ? Les deux textes de référence divergent | **Consentement requis** (position conservatrice). Les deux comportements sont spécifiés (RG83) et la bascule est une valeur de configuration | `expert-conformite-rgpd` (**veto**) + juriste | **Avant la mise en ligne du Lot 1** |
 | **Q2** | **D33 — périmètre Apollo** à la mise en ligne : annonceurs seuls, annonceurs + créateurs professionnels, ou tous les inscrits (A7) ? | `annonceurs_et_createurs_pro`, **position d'attente et non contre-arbitrage** ; le fondateur bascule sans redéploiement (RG81) | Fondateur + `expert-conformite-rgpd` (**veto**) + juriste | **Avant la mise en ligne du Lot 1** |
-| **Q3** | **Pays dans lesquels la prospection Apollo est validée** (CASL au Canada, lois des États américains, LGPD au Brésil, UE) | Liste **vide** : aucun envoi Apollo tant qu'elle n'est pas renseignée (RG84) | `expert-conformite-rgpd` + juriste | Avant la mise en ligne du Lot 1 |
+| **Q3** | **Pays dans lesquels la prospection Apollo est validée** (CASL au Canada, lois des États américains, LGPD au Brésil, UE) | *Tranchée par le fondateur (2026-10-19, D33)* : **tous les pays** par défaut, liste de pays **exclus** vide par défaut (RG84, 0141) ; avis juriste toujours attendu avant `production` | `expert-conformite-rgpd` + juriste | Avant la mise en ligne du Lot 1 |
 | **Q4** | **Pays bloqués à l'inscription** (sanctions internationales, embargos) : faut-il une liste, et laquelle ? | Liste **vide**, mécanisme prêt (RG8) | Fondateur + juriste, **dépend de D25** | Avant la mise en ligne du Lot 1 |
 | **Q5** | **Conservation de l'adresse IP et du navigateur** dans la preuve d'acceptation des CGU : utile comme preuve, mais ce sont des données personnelles | Enregistrées, **conservation à confirmer** | `expert-conformite-rgpd` (**veto**) | Lot 1 |
 | **Q6** | **Durées de conservation** : adresse d'un parcours abandonné (proposition : 24 h), compte créé jamais reconnecté, événements de file en succès (proposition : 30 jours) | Valeurs proposées ci-contre | `expert-conformite-rgpd` (**veto**) | Lot 1 |
@@ -1264,7 +1269,7 @@ vivre **en table**, modifiables sans redéploiement, chaque modification étant 
 
 ## Additif du 2026-09-24 — Invitation par un commercial (D54) et source d'acquisition (D55)
 
-> **Arbitrages du fondateur du 2026-09-24** (`CLAUDE.md` §13, revue `19-revue-de-coherence-2026-09-24.md`).
+> **Arbitrages du fondateur du 2026-09-24** (`decisions.md`, revue `archives/19-revue-de-coherence-2026-09-24.md`).
 > Cadre de règles ; écrans et critères d'acceptation à compléter par `product-owner` et `expert-ux`,
 > **avis obligatoire d'`expert-conformite-rgpd` (veto)** sur RG118 et RG121. Numérotation reprise
 > après RG115.
@@ -1422,7 +1427,7 @@ critères 5 à 9, par la relecture de RG134.
    objets, aliments, loisirs. Aucun nom propre. En anglais, **orthographe identique en anglais
    américain et britannique** (ni *colour*, ni *theatre* / *theater*, ni *yogurt*).
 6. **Rien d'offensant ni de connoté, en français, en anglais ni en portugais** (langue suivante,
-   `CLAUDE.md` §2) : aucune insulte ni sens argotique courant (écartés, par exemple : « pelote »,
+   `CLAUDE.md` §1) : aucune insulte ni sens argotique courant (écartés, par exemple : « pelote »,
    « bonbon », « melon », « raton », « phoque » ; *pine*, qui est vulgaire en français ; *slope*,
    *cracker*, *grape*) ; rien sur le corps, la violence, les armes, la mort, la maladie, la religion,
    la politique, une nationalité ou une couleur de peau ; aucune couleur.
@@ -1684,7 +1689,7 @@ ne part.
 | # | Question | Hypothèse retenue en attendant | Arbitre | Échéance |
 |---|---|---|---|---|
 | **Q14** | **Le navigateur n'arrive pas jusqu'à `apps/api`.** L'en-tête `user-agent` ne figure pas dans la liste blanche du passe-plat (`03` PP-5). Sans lui, ni l'e-mail du code (A-8, RG49), ni `user_agent_summary` (EC-2, RG-J3-5), ni le signal « navigateur inconnu » ne peuvent citer le navigateur | E-mail écrit **sans le navigateur** (variante de `16` RG156) ; résumé « non identifié ». Options : ajouter `user-agent` à PP-5 (la chaîne brute n'est ni conservée ni journalisée, seul le résumé l'est) — avec ré-épinglage de `relay.ts` (PP-12) | `architecte` + **`expert-cybersecurite` (veto)** | **Avant le commit 8** (e-mail) et le commit 9 (sessions) — **Tranchée par `expert-cybersecurite` le 2026-09-27 : relayé, sous conditions.** Le passe-plat retransmet l'agent du navigateur **sous le nom `client-user-agent`**, seulement s'il correspond à `^[\x20-\x7E]{1,512}$`, sans troncature ni analyse (`03` PP-5) ; `apps/api` le lit après le secret interne, le re-valide et le **résume elle-même** en une valeur d'une liste fermée « famille + système » (dont « non identifié ») ; **seul le résumé est stocké** (`identity.sessions`, contrainte de format demandée à `expert-database`) ; **ni la chaîne brute ni le résumé ne sont journalisés** ; jamais transmis à GoTrue ; l'e-mail ne reçoit que le libellé traduit, « non identifié » ⇒ `contextNoBrowser` (RG135). Commit dédié avant le commit 8, empreinte PP-12 mise à jour dans le même commit. **Reste à `architecte`** : l'emplacement de la liste fermée partagée avec les fronts ; son contenu à `product-owner` (RG-J3-5). Détail et tests : `21` §4, « Revue de sécurité des commits 1 à 4 du J3 » |
-| **Q15** | **Valeur réelle de la phrase contre un site d'hameçonnage qui relaie.** La phrase est renvoyée à celui qui fait la demande : un site contrefait qui relaie la demande à INFLUX reçoit la phrase et peut l'afficher. Elle protège contre les sites qui ne relaient pas, et aide à reconnaître le dernier e-mail reçu ; elle ne protège pas contre un relais en temps réel | RG48 maintenue telle quelle (coût nul). Complément possible : citer dans l'e-mail, en texte, le **nom de domaine officiel** où saisir le code, une fois les domaines réservés (`CLAUDE.md` §14.3) — à peser contre la transformation automatique d'un nom de domaine en lien par les messageries | **`expert-cybersecurite`** | Avant la mise en ligne du Lot 1 |
+| **Q15** | **Valeur réelle de la phrase contre un site d'hameçonnage qui relaie.** La phrase est renvoyée à celui qui fait la demande : un site contrefait qui relaie la demande à INFLUX reçoit la phrase et peut l'afficher. Elle protège contre les sites qui ne relaient pas, et aide à reconnaître le dernier e-mail reçu ; elle ne protège pas contre un relais en temps réel | RG48 maintenue telle quelle (coût nul). Complément possible : citer dans l'e-mail, en texte, le **nom de domaine officiel** où saisir le code, une fois les domaines réservés (`docs/mvp/prerequis.md` §14.3) — à peser contre la transformation automatique d'un nom de domaine en lien par les messageries | **`expert-cybersecurite`** | Avant la mise en ligne du Lot 1 |
 | **Q16** | **Relecture des listes de mots** par des locuteurs natifs (français, anglais ; portugais pour le critère 6 de RG133) | Listes de RG133 utilisables en local et sur `staging` | `expert-marketing` | Avant la mise en ligne du Lot 1 |
 | **Q17** | **Aucun lien dans les e-mails `auth.login_code` et `auth.new_device`**, y compris vers les préférences (dérogation à `16` RG102, `16` RG158) | Appliquée : zéro lien dans les deux e-mails de sécurité | `expert-cybersecurite` + `expert-conformite-rgpd` | Avant la mise en ligne du Lot 1 |
 
@@ -1770,12 +1775,13 @@ la règle, **jamais la valeur** (`18` T17.9, T17.10) — quand l'un des réglage
 inscrit** manque ou est illisible :
 
 1. `brevo_list_ids` : `advertisers` **et** `creators`, entiers positifs ;
-2. `brevo_template_ids` : `account.welcome_advertiser` **et** `account.welcome_creator`, entiers
-   positifs ;
+2. ~~`brevo_template_ids`~~ *(caduc depuis D69, aligné à la clôture du J9 : tous les e-mails de la
+   file sont rédigés par INFLUX, aucun modèle Brevo n'est contrôlé)* ;
 3. `retry_schedule` lisible ; `rate_limits` porteur d'un plafond pour chaque destination dotée d'une
    clé ;
 4. si `APOLLO_API_KEY` est présente : `apollo_scope`, `apollo_legal_basis` et
-   `apollo_prospecting_countries` lisibles — une liste de pays **vide** est valide (RG84).
+   `apollo_excluded_countries` (`0141`) lisibles — une liste de pays **vide** est valide (RG84 amendée :
+   tous les pays).
 
 C'est l'esprit de `16` RG116 et de `02` §12.4 (« une production silencieusement muette serait aussi
 grave qu'un envoi de test réel ») : **un refus, pas un avertissement**. Le contrôle **lit sans mettre
@@ -1797,8 +1803,12 @@ nomme les réglages manquants, puis RG160 et RG164 s'appliquent.
 identifiant valide, **jamais remis à `NULL` ni retiré** : contrôle en base, dans tous les
 environnements. Sans cette garde, un réglage indispensable pourrait disparaître à chaud, et le
 redémarrage suivant serait refusé (RG162). **Qui modifie, constaté le 2026-10-17** : les identifiants
-Brevo n'ont **aucun écran** ; ils se posent par SQL (rôle propriétaire), selon le runbook, avec
-confirmation du fondateur en production (`CLAUDE.md` §7 règle 4). Les trois réglages Apollo se
+Brevo n'ont **aucun écran** ; ils se posent par les variables du `worker` (D68, étape de démarrage
+`apply_brevo_ids_from_environment`) ou par SQL (rôle propriétaire), selon le runbook, avec
+confirmation du fondateur en production (`CLAUDE.md` §7 règle 4). *Implémentation (`0145`, aligné à la
+clôture du J9)* : le journal `settings.changed` est écrit par un déclencheur seul ; le contexte d'un
+changement (`reason_code`, 2V, réévaluation) passe par le réglage de transaction
+`influx.sync_setting_change`, fermé, lié à la session et effacé à l'usage (sinon `22023`). Les trois réglages Apollo se
 modifient au backoffice par un `admin` sous double validation (`0134`, RG81). Un écran pour les
 identifiants Brevo n'est pas exigé au Lot 1 (point soumis à `architecte`, D67).
 

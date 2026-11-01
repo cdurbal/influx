@@ -19,3 +19,14 @@ export function legalDocumentPath(
 ): string {
   return `/${locale}/${LEGAL_DOCUMENT_SLUGS[document][locale]}`;
 }
+
+/**
+ * The path of a document in the CURRENT language, without the prefix: for the localized `Link` of
+ * src/i18n/navigation.ts, which adds it (landing footer, J9 commit 5).
+ */
+export function legalDocumentHref(
+  document: PublicDocument,
+  locale: AppLocale,
+): string {
+  return `/${LEGAL_DOCUMENT_SLUGS[document][locale]}`;
+}

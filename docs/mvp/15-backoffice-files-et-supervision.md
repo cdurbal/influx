@@ -59,7 +59,7 @@ Trois raisons de le traiter comme un produit et non comme un écran d'administra
 
 > **Deux populations, deux fiches.** Une fiche de compte marque et une fiche de compte créateur ne
 > partagent ni les mêmes blocs, ni le même vocabulaire, ni les mêmes actions. **Elles ne sont jamais
-> fusionnées dans un écran unique** (`CLAUDE.md` §5.2, **D41** : un rôle par compte au MVP).
+> fusionnées dans un écran unique** (`CLAUDE.md` §4, **D41** : un rôle par compte au MVP).
 
 ---
 
@@ -129,7 +129,7 @@ chaque action. Le masquage d'interface n'est **jamais** un contrôle d'accès.
 leur est commun (§C), et pour tout le reste il **renvoie** au document qui fait autorité. Toute règle
 de ce document qui contredirait `05` à `13` est une erreur de ce document, à corriger ici.
 
-**RG4** — **Aucun taux, aucun calcul de commission, nulle part** (**A1**, `CLAUDE.md` §3, `03`
+**RG4** — **Aucun taux, aucun calcul de commission, nulle part** (**A1**, `CLAUDE.md` §2, `03`
 C(32)). Le backoffice **additionne et soustrait** des montants saisis par un commercial ; il ne les
 déduit jamais d'un pourcentage. **Aucun écran de ce document n'affiche un net créateur** : il n'est
 calculé nulle part au MVP.
@@ -596,7 +596,7 @@ montants. Ce sont des données internes d'INFLUX.
 > point 6) — **sans cette mention, le droit de conserver n'existe pas**.
 
 **RG71** — **Six types de demande** sont traités : **accès**, **rectification**, **effacement**,
-**portabilité**, **opposition**, **limitation** (`04` §5.10). *(`CLAUDE.md` §9 en cite cinq :
+**portabilité**, **opposition**, **limitation** (`04` §5.10). *(`CLAUDE.md` §6 en cite cinq :
 l'ajout de la limitation est à confirmer — **Q6**.)*
 
 **RG72** — **Toute demande, quelle que soit son origine, crée une entrée dans la file 14.** Une
@@ -628,13 +628,27 @@ un export sur une demande non authentifiée, c'est organiser soi-même la fuite.
 | 6 | **Exécuter** (export, rectification, anonymisation, opposition) | **`admin` uniquement**, `2V` + re-authentification (`03` §3.5) | Deux horodatages |
 | 7 | **Notifier, puis clore** avec une issue typée | `agent` ou `admin` | Date d'envoi, identifiant du message chez le prestataire |
 
+> **Exception (D72, 2026-10-27) — l'effacement déposé depuis l'espace membre.** Il n'est **pas
+> instruit** : il est exécuté **sans `admin`**, après la double validation du **membre** (mot à taper
+> puis code frais `account_deletion`, `05` RG57). Les étapes 1 à 5 sont sans objet : l'identité est
+> établie par le code frais (RG74) ; le périmètre est celui de `04` §9.2 ; l'étape 4 est la
+> notification système ; la réponse est l'e-mail `privacy.erasure_completed` (`16` RG160 bis). L'étape 6
+> est faite par le worker au tour suivant (une minute au plus) ; l'étape 7 se clôt **automatiquement**
+> `satisfaite` quand Brevo, Apollo et l'envoi de l'e-mail sont confirmés. RG72, RG73, RG74, RG79 et RG80
+> sont inchangées. L'export et un effacement reçu par un autre canal (e-mail, oral) suivent RG75 sans
+> exception.
+
 **RG76** — **Un agent n'exécute jamais un export ni une anonymisation.** Il instruit ; un
 administrateur exécute (`03` §3.5). C'est la seule séparation de rôles du MVP qui porte sur une
-obligation légale, et elle ne se contourne pas.
+obligation légale, et elle ne se contourne pas. **Seule exception (D72) :** l'effacement que le membre
+dépose lui-même depuis son espace, que le membre autorise par sa double validation ; un agent n'y
+exécute rien non plus, et la fiche du compte l'affiche en lecture seule, sans bouton d'approbation.
 
 **RG77 — Liste fermée des issues** : `satisfaite`, `satisfaite_partiellement` — **avec la liste écrite
 de ce qui n'est pas satisfait et son fondement** —, `refusée`, `sans_objet` (donnée non détenue),
-`retirée_par_le_demandeur`.
+`retirée_par_le_demandeur`. Un effacement en libre-service (D72) se clôt de lui-même `satisfaite` ;
+une demande d'export ouverte au moment de l'effacement est close `retirée_par_le_demandeur` (le membre
+ne pourra plus se connecter pour télécharger le fichier, qui est effacé).
 
 **RG78 — Liste fermée des motifs de refus**, chacun avec son message : demande **manifestement
 infondée ou excessive** (répétitive), **identité non établie**, **donnée non détenue**, **exception
@@ -679,6 +693,9 @@ par un tiers n'est pas un consentement.
 vérification d'identité, périmètre établi, exécutant, deux horodatages de la double validation,
 contenu de la réponse, date d'envoi et identifiant du message chez le prestataire. On doit pouvoir
 démontrer qu'une demande a été traitée dans le délai **sans reconstituer un enchaînement d'e-mails**.
+Pour un effacement en libre-service (D72), la preuve est : le dépôt, le code frais consommé,
+l'exécution (`authorised_by = member_fresh_code`, sans validation d'un tiers), les confirmations de
+Brevo et d'Apollo et l'identifiant du message de l'e-mail `privacy.erasure_completed`.
 
 ---
 
@@ -923,7 +940,7 @@ distincte. Contrastes **WCAG AA** au minimum.
 
 **RG120** — **Tous les tokens viennent du design system** (`design-system-influx`), dark theme par
 défaut, **aucune couleur ni espacement en dur**. Le vert de marque n'est jamais seul porteur d'un
-état (`CLAUDE.md` §5.2).
+état (`CLAUDE.md` §4).
 
 **RG121** — **L'état de tri, de filtre et de pagination d'une liste figure dans l'adresse de la
 page**, pour qu'un lien soit partageable entre collègues. **Cette adresse ne contient aucune donnée
@@ -1367,7 +1384,7 @@ des codes et des identifiants **et aucune donnée personnelle**.
    verrou pourrait devoir différer par file. À confirmer : global (position actuelle, cohérente avec
    les six documents qui écrivent tous « 30 minutes ») ou par `queue_code`.
 10. **Le type `restriction`** figure dans `data_subject_requests.request_type` (`04` §5.10) mais pas
-    dans les cinq droits cités par `CLAUDE.md` §9. À trancher (**Q6**).
+    dans les cinq droits cités par `CLAUDE.md` §6. À trancher (**Q6**).
 11. **Durées de conservation manquantes au §9.1 de `04`** pour trois catégories créées ici : notes
     internes, instances d'alerte, journal des exports. Proposition à soumettre à
     `expert-conformite-rgpd` : notes internes alignées sur la vie du compte, alertes 24 mois, journal
@@ -1419,7 +1436,7 @@ des codes et des identifiants **et aucune donnée personnelle**.
 | **Le contenu de chaque file** : critères, motifs, messages, écrans de décision | Chaque file a son document (`05` à `13`). Ce document les fédère, il ne les réécrit pas | — |
 | **Le pipeline commercial** : états d'affaire, saisie des montants, relances, rapprochement, export comptable détaillé | `01` §6, puis le document dédié du Lot 5 (`expert-paiement-facturation`). Ce document n'en affiche que les agrégats | Lot 5, en parallèle |
 | **L'envoi d'e-mails Brevo depuis le backoffice** : sources, bases légales, segments, contenus, plafonds | **A4**, **D35** (veto `expert-conformite-rgpd`), document attendu de `expert-marketing`. Ce document n'en fixe que le cadre d'action de masse (M3) et de plafond par rôle | Lot 5 |
-| **Le calcul, la facturation et l'encaissement de la commission** | **A1**, `CLAUDE.md` §3 | **V2**, avec **D9** et **D25** |
+| **Le calcul, la facturation et l'encaissement de la commission** | **A1**, `CLAUDE.md` §2 | **V2**, avec **D9** et **D25** |
 | **L'algorithme de mise en relation et tout score** | **D11** : aucune donnée pour le régler. Le pilote la produit | Après le pilote |
 | **Les portefeuilles de clients cloisonnés par commercial** | Au MVP, tous les commerciaux voient tout ; **le responsable est déjà enregistré partout** (RG10) | Dès que l'équipe le justifie : un changement de règle d'accès |
 | **Les droits fins par agent** (au-delà de `agent` / `admin`) | Confort ; deux rôles suffisent à une équipe de deux ou trois personnes | Quand l'équipe le justifie |
@@ -1442,7 +1459,7 @@ des codes et des identifiants **et aucune donnée personnelle**.
 | **Q3** | **SLA de la file « sélection par l'équipe INFLUX »** : `10` RG84 parle d'un « délai paramétré » sans jamais en fixer la valeur | **1 jour ouvré**, aligné sur les autres files. C'est un lead qualifié dont le brief est écrit : le faire attendre est le plus coûteux des retards | **Fondateur** + `chef-de-projet`, rattaché à **D39** | Lot 5 |
 | **Q4** | **SLA des files `lead_sync_failures` et `email_delivery_incidents`** : `05` fixe des objectifs de synchronisation (1 h, 24 h) mais **aucun délai de traitement d'un échec**. Or `05` RG105 pose une cible de **zéro échec non traité** | **2 jours ouvrés**. En deçà, l'objectif est irréaliste ; au-delà, « zéro échec non traité » n'a plus de sens. Depuis **D37**, une adresse injoignable est un **compte inaccessible**, pas une gêne marketing : ce délai n'est pas confortable | **Fondateur** + `expert-integrations-api` | Lot 5 |
 | **Q5** | **Harmonisation du tri par défaut.** `06`, `07`, `08`, `09` écrivent « ancienneté croissante » ; `13` RG19 écrit « échéance croissante ». Les deux donnent le même ordre **tant que le délai est uniforme dans une file** — ce qui est faux pour `campaigns` (1 j / 2 j en revue renforcée) | **Échéance croissante partout** (RG27 C5). C'est le seul tri qui reste juste quand deux délais coexistent | `product-owner` + `expert-ux` | Lot 5 |
-| **Q6** | **Le droit à la limitation du traitement est-il dans le périmètre ?** `04` §5.10 le prévoit (6 types) ; `CLAUDE.md` §9 en cite cinq | **Oui, retenu** : coût marginal nul puisque la table le prévoit, et son absence serait un manquement. `CLAUDE.md` §9 est à compléter | **`expert-conformite-rgpd` (veto)** | Lot 5 |
+| **Q6** | **Le droit à la limitation du traitement est-il dans le périmètre ?** `04` §5.10 le prévoit (6 types) ; `CLAUDE.md` §6 en cite cinq | **Oui, retenu** : coût marginal nul puisque la table le prévoit, et son absence serait un manquement. `CLAUDE.md` §6 est à compléter | **`expert-conformite-rgpd` (veto)** | Lot 5 |
 | **Q7** | **Périmètre d'un export au titre du droit d'accès** : le texte écrit par l'autre partie d'une conversation en fait-il partie ? Et les **notes internes** sont-elles communicables ? | **Hypothèse conservatrice** : messages de l'autre partie **exclus**, métadonnées incluses ; **notes internes communicables** (RG48), l'écran prévenant l'agent avant qu'il écrive | **`expert-conformite-rgpd` (veto)** + juriste | **Lot 5, avant la première demande réelle** |
 | **Q8** | **Modération en lot des visuels de portfolio** (M4) : accepter ou refuser jusqu'à 20 visuels **d'un même profil** avec un motif commun est-il compatible avec l'examen visuel par visuel exigé par `07` RG97 ? | **Oui, limité à un seul profil et à un motif commun.** C'est la file la plus répétitive du MVP ; l'examen reste individuel, seule la saisie est groupée | `product-owner` + `expert-ux` | Lot 5 |
 | **Q9** | **Durées de conservation** des notes internes, des instances d'alerte, du journal des exports et du journal des actions internes | Notes alignées sur la vie du compte ; alertes **24 mois** ; journal des exports **sans purge** (il vit dans le registre) | **`expert-conformite-rgpd` (veto)** | Lot 5 |
@@ -1457,7 +1474,7 @@ des codes et des identifiants **et aucune donnée personnelle**.
 
 **Ce document ne modifie aucun autre fichier.** Les douze écarts du modèle de données sont adressés à
 `expert-database` ; les tests attendus sont adressés à `testeur` (document `18`) ; la mise à jour de
-`CLAUDE.md` §13 relève de `chef-de-projet` ; la validation de §G relève d'`expert-conformite-rgpd`
+`decisions.md` relève de `chef-de-projet` ; la validation de §G relève d'`expert-conformite-rgpd`
 (**veto**) et celle de §I, §J et §K d'`expert-cybersecurite` (**veto**).
 
 ---
@@ -1621,3 +1638,51 @@ Ils ne sont **pas** traités ici.
 D35, la légalité de la prospection pays par pays, le suivi nominatif des ouvertures et les durées
 de conservation ; **`expert-cybersecurite` (veto)** sur l'**absence de signature des webhooks
 Brevo** et les six compensations retenues (`16` **Q3**).
+
+---
+
+## Additif du J9 (2026-10-21) — alertes techniques de D60
+
+**RG165** — Les alertes techniques de D60 (`02` §20.5, §20.6) complètent le catalogue de RG68, au même format et
+sous le même régime que RG126 (RG63 à RG70) : **aucune liste parallèle**. Chacune s'affiche à l'écran « Santé
+technique » **et** part **par e-mail** (flux transactionnel Brevo, texte rédigé par INFLUX, FR puis EN) : code, titre,
+instant UTC, valeur mesurée et seuil, **rien de `02` §20.8** (ni adresse, ni IP, ni URL complète, ni message d'erreur
+brut). RG70 reste vrai : rien ne part vers les contacts ni les listes Brevo, ni vers Apollo. **Destinataires** :
+`astreinte` = les adresses de la variable `OPS_ALERT_RECIPIENTS`, **jamais une adresse en base** ; `admin` = les
+comptes `admin` actifs, hors compte de secours. Les rôles notifiés sont en base (`alert_definitions.recipient_roles`),
+modifiables par un administrateur, jamais vides. **Déduplication** : une alerte d'état part à sa levée, puis au plus
+une fois par 30 min tant qu'elle dure, et un e-mail « rétabli » part à sa fin ; une alerte d'événement part une fois
+par fait. **En `staging`** (D70, EC-J9-7) : aucune liste blanche, les alertes partent vers les destinataires de
+`staging` ; la puce « En `staging`, les alertes ne partent que vers la liste blanche » de `02` §20.5 est caduque.
+
+| Code | Alerte | Seuil de départ (en table) | Nature | Destinataire | Action attendue | Source |
+|---|---|---|---|---|---|---|
+| **AL49** | **Site injoignable** : accueils FR et EN (adresse publique), connexion du backoffice, `/health` de l'API (réseau privé, vérifie la base) | **2 échecs consécutifs** d'une même cible, sondée toutes les **60 s** | État, par cible | `astreinte` | Vérifier Railway et Supabase ; revenir à la version précédente si l'échec suit un déploiement | `02` §20.5, §20.6 |
+| **AL50** | **Worker arrêté** | Aucun battement depuis **60 s** | État | `astreinte` seule, non modifiable | Lire sa ligne `fatal` (réglage manquant, `02` §12.5), puis redémarrer | `02` §11.3, §20.6 |
+| **AL51** | **Nouvelle erreur serveur, ou régression** (groupe `fixed` qui réapparaît) — source serveur seulement, jamais le seul navigateur | Rodage : **1re occurrence** ; hors rodage : récapitulatif **quotidien à 07:00 UTC** des **24 h** écoulées ; régression : **1re occurrence**, toujours | Événement, un par groupe ; un seul e-mail par tour, qui regroupe ses groupes | `astreinte` | Classer chaque groupe : corrigé, planifié ou sans effet | `02` §20.6, §20.7, J4S-6 |
+| **AL52** | **Taux d'erreurs serveur** | Réponses `5xx` > **1 %** des réponses de l'API sur **5 min** glissantes | État | `astreinte` | Trouver la route en cause ; corriger ou revenir à la version précédente | `02` §20.6 |
+| **AL53** | **Lenteur de l'API** | p95 > **1 s** sur **10 min** glissantes, hors `POST /v1/auth/request-code` ; seuil propre de celle-ci : p95 > **3 s** sur 10 min et au moins **20** appels (`expert-cybersecurite`, 2026-10-27 ; plancher fixe de 1 s, RG46), **évaluation à implémenter** avant production | État | `astreinte` | Lire le ralentissement (`02` §20.6, « Comment lire ») | `02` §20.6, D43 |
+| **AL54** | **Lenteur des pages** (sonde : accueils FR et EN, connexion du backoffice) | > **2 s** sur **3 relevés consécutifs** d'une même page | État, par page | `astreinte` | Comme AL53 | `02` §20.6 |
+| **AL55** | **Pic d'appels** — **information**, pas incident | Appels à l'API par minute, moyenne sur **5 min** > **3 ×** celle de la même heure UTC sur les **14 jours** précédents ; moins de 14 jours de mesures : > **300 / min** sur 5 min (proposé) | État | `astreinte` | Rapprocher de son origine (envoi `16`, campagne) ; agir seulement si AL53 ou AL54 suit | `02` §20.6 |
+| **AL56** | **Réponses `429` en hausse** | > **2 %** des réponses de l'API sur **15 min** glissantes **et** au moins **20** réponses `429` (confirmé par `expert-cybersecurite` le 2026-10-27) ; tout refus de portée `instance` d'une route publique alerte aussitôt (J9S-4, à implémenter avant production) | État | `astreinte` | Chercher l'abus avant de relever une limite | `02` §20.6, `03` A-3 |
+| **AL57** | **Service saturé** (API, worker) | Retard moyen de la boucle d'événements > **200 ms** sur **5 min** ; mémoire moyenne > **85 %** de la limite du service sur **5 min**, limite **non fixée** (`integrateur`) | État, par service | `astreinte` | Augmenter les ressources Railway ; chercher la boucle ou la fuite | `02` §20.6 |
+| **AL58** | **Base saturée** | Connexions > **80 %** du maximum de la grappe sur **3 relevés consécutifs** (worker, chaque minute) ; p95 d'une requête fréquente qui double : **non fixé** (`expert-database`, faute de lecture de `pg_stat_statements`) | État | `astreinte` | Chercher les connexions et les requêtes longues (`04` §7.3) | `02` §20.6 |
+| **AL59** | **Code de connexion visé** (`security.member_code_targeted`) | ≥ **25** échecs de code sur **24 h** glissantes pour une même adresse e-mail | Événement, au plus un par adresse et par 24 h | `astreinte` + `admin` | Instruire : attaque ciblée ou membre en difficulté. **Aucun blocage** (`03` A-4) | J3S-8 |
+| **AL60** | **Purge horaire en défaut** | `ops.periodic_runs.counts.gotrue_realign_failed` > **0**, ou disjoncteur déclenché (`breaker.orphan_ratio`, `breaker.filter_refused`) | Événement, un par passage de purge concerné | `astreinte` | Examiner le passage et corriger avant le suivant : comptes non réalignés, ou purge arrêtée | J7S-8, J7S-2 |
+| **AL61** | **Webhook Brevo : appels ignorés** (`webhook.brevo.ignored` : `invalid_payload`, `outside_window`, `duplicate`) | > **10 %** des appels authentifiés sur **24 h** glissantes **et** au moins **10** appels ignorés (confirmé par `expert-cybersecurite` le 2026-10-27) | État | `astreinte` | Lire le motif dominant ; `invalid_payload` = format Brevo changé, des désinscriptions se perdent | J7S-8 |
+| **AL62** | **Webhook Brevo hors plages** (`webhook.brevo.ip_drift`) : jeton valide reçu hors des plages publiées par Brevo, désinscriptions coupées | **1re occurrence** | Événement, un seul tant qu'il n'est pas classé | `astreinte` | Plages changées par Brevo, ou jeton divulgué : mettre à jour les plages, ou changer le jeton | J7S-8 |
+| **AL63** | **Demande de données personnelles exécutée, non close** | `privacy.request_executions` : `executed_at` sans `completed_at` **24 h** après (y compris un effacement en libre-service dont Brevo, Apollo ou l'e-mail `privacy.erasure_completed` est en échec, D72) | État, par exécution | `admin` + `astreinte` | Achever et clore : le délai légal court (AL40) | F4 |
+| **AL64** | **Effacement autorisé par un membre, non exécuté** *(D72 ; spécifiée, non encore mesurée)* | `privacy.request_executions` : `authorised_by = 'member_fresh_code'` sans `executed_at` **15 min** après `approved_at` | État, par exécution | `admin` + `astreinte` | Vérifier le worker et son pool `PRIVACY_DATABASE_URL` : le membre est déconnecté, son compte est encore actif | D72 |
+
+- **Qui envoie.** AL50 part de l'**API** (aucun service ne se surveille lui-même ; aucune lecture d'identité, E-6),
+  toutes les autres du **worker**. **Toutes** vont **directement à Brevo, jamais par `outbox_events`** (J9 commit 8) ;
+  base injoignable ⇒ `astreinte` seule, sur la dernière définition connue de l'alerte.
+- **Écran « Santé technique »** *(additif de clôture du J9, EC-J9-5)* : `admin` seul, lecture seule, poste de travail ;
+  détail en `17b` §3.15. Un `agent` est refusé et la tentative journalisée (CA63). Le **classement** d'un groupe
+  d'erreurs (`acknowledged`, `fixed`, `ignored`) n'a pas encore d'écrivain : la régression d'AL51 et le classement
+  d'AL62 attendent ce reliquat.
+- **Rodage (AL51)** : période en table, 30 jours après chaque mise en ligne, prolongée par un administrateur tant
+  qu'une erreur bloquante reste ouverte (`02` §20.7) ; sans période saisie, le régime de rodage s'applique.
+- **Non fixé, donc non évalué** : limite mémoire (AL57), requête fréquente (AL58). **Fixé, pas encore évalué** :
+  seuil de `request-code` (AL53). **Proposé, évalué dès maintenant** : AL55 sans historique. AL56 et AL61 confirmés
+  à la revue de fin de J9 (2026-10-27). Qui compose `astreinte`, et la nuit : `02` §20.11 point 2 (fondateur).

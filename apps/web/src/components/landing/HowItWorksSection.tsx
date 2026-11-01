@@ -3,11 +3,8 @@ import { AudienceDoors } from "@/components/ui/AudienceDoors";
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
 import { mutedTitleTags } from "@/components/ui/rich-text";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import type { HowItWorksStepId, LandingImage } from "@/content/landing-content";
-
-type HowItWorksSectionProps = {
-  images: Record<HowItWorksStepId, LandingImage>;
-};
+import type { HowItWorksStepId } from "@/content/landing-content";
+import { landingPhoto, type PhotoId } from "@/content/landing-images";
 
 const STEP_IDS: readonly HowItWorksStepId[] = [
   "createAccount",
@@ -15,11 +12,17 @@ const STEP_IDS: readonly HowItWorksStepId[] = [
   "receiveProposals",
 ];
 
+const PHOTO_IDS: Record<HowItWorksStepId, PhotoId> = {
+  createAccount: "step01",
+  completeProfile: "step02",
+  receiveProposals: "step03",
+};
+
 /**
  * Section 11 (02 §3.13): how to start in three steps, one sentence per audience. The "80 %"
  * overlay is an illustration (aria-hidden): the written percentage carries the meaning.
  */
-export async function HowItWorksSection({ images }: HowItWorksSectionProps) {
+export async function HowItWorksSection() {
   const t = await getTranslations("landing.howItWorks");
 
   return (
@@ -36,7 +39,7 @@ export async function HowItWorksSection({ images }: HowItWorksSectionProps) {
             <li key={id} className="flex flex-col gap-4">
               <div className="relative">
                 <ResponsiveImage
-                  image={images[id]}
+                  image={landingPhoto(PHOTO_IDS[id])}
                   sizes="thirdDesktop"
                   className="aspect-4/3 w-full rounded-lg"
                 />

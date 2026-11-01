@@ -62,7 +62,7 @@ import {
   memberInvitations,
   revokeInternalInvitation,
   revokeMemberInvitation,
-} from "./repository.ts";
+} from "./invitations/repository.ts";
 
 export type BackofficeInvitationDependencies = {
   database: ApiDatabase;

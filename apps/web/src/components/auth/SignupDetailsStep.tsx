@@ -9,6 +9,7 @@
 // - On an error: the list of the fields at the top AND a message per field, focus on the first
 //   invalid field, nothing lost (17 §3.5). The checks are those of the contract (signup-form.ts);
 //   apps/api decides. No amount, no rate, no percentage anywhere (RG9).
+import { Notice } from "@/components/member/ui/Notice";
 import type { SignupDoor } from "@influx/contracts/auth";
 import {
   CONSENT_WORDING_KEYS,
@@ -33,11 +34,9 @@ import {
   CHOICE_INPUT_CLASSES,
   CHOICE_ROW_CLASSES,
   DIVIDER_CLASSES,
-  ERROR_CLASSES,
   FIELD_CLASSES,
   FIELDSET_CLASSES,
   HELP_CLASSES,
-  INFO_CLASSES,
   inputClasses,
   LABEL_CLASSES,
   LEAD_CLASSES,
@@ -59,6 +58,7 @@ import {
   type SignupResult,
 } from "./signup-form";
 import { TermsDialog } from "./TermsDialog";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 type TermsState =
   | { kind: "loading" }
@@ -268,19 +268,17 @@ export function SignupDetailsStep({
       </div>
       <p className={HELP_CLASSES}>{t("signup.requiredLegend")}</p>
       {issues.length > 0 ? (
-        <div id={ids.summary} role="alert" className={ERROR_CLASSES}>
+        <ErrorNotice id={ids.summary}>
           <p className="font-semibold">{t("signup.errors.summary")}</p>
           <ul className="list-disc pl-5">
             {issues.map((issue) => (
               <li key={issue.field}>{fieldMessage(issue)}</li>
             ))}
           </ul>
-        </div>
+        </ErrorNotice>
       ) : null}
       {formMessage !== null ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {t(`signup.errors.${formMessage}`)}
-        </p>
+        <ErrorNotice>{t(`signup.errors.${formMessage}`)}</ErrorNotice>
       ) : null}
       <form noValidate onSubmit={submit} className="flex flex-col gap-6">
         {door === "advertiser" ? (
@@ -306,9 +304,9 @@ export function SignupDetailsStep({
               className={inputClasses(companyError !== null)}
             />
             {companyError !== null ? (
-              <p id={ids.companyError} className={ERROR_CLASSES}>
+              <ErrorNotice id={ids.companyError} announce={false}>
                 {t(`signup.company.errors.${companyError}`)}
-              </p>
+              </ErrorNotice>
             ) : null}
           </div>
         ) : null}
@@ -340,13 +338,13 @@ export function SignupDetailsStep({
               </option>
             ))}
           </select>
-          <p id={ids.countryHelp} className={INFO_CLASSES}>
+          <Notice tone="info" id={ids.countryHelp} announce={false}>
             {t("signup.country.help")}
-          </p>
+          </Notice>
           {countryError !== null ? (
-            <p id={ids.countryError} className={ERROR_CLASSES}>
+            <ErrorNotice id={ids.countryError} announce={false}>
               {t("signup.country.errors.required")}
-            </p>
+            </ErrorNotice>
           ) : null}
         </div>
 
@@ -408,9 +406,9 @@ export function SignupDetailsStep({
                 </label>
               ))}
               {statusError !== null ? (
-                <p id={ids.statusError} className={ERROR_CLASSES}>
+                <ErrorNotice id={ids.statusError} announce={false}>
                   {t("signup.status.errors.required")}
-                </p>
+                </ErrorNotice>
               ) : null}
             </fieldset>
 
@@ -441,9 +439,9 @@ export function SignupDetailsStep({
                 {t("signup.adult.help")}
               </p>
               {adultError !== null ? (
-                <p id={ids.adultError} className={ERROR_CLASSES}>
+                <ErrorNotice id={ids.adultError} announce={false}>
                   {t("signup.adult.errors.required")}
-                </p>
+                </ErrorNotice>
               ) : null}
             </div>
           </>
@@ -512,9 +510,7 @@ export function SignupDetailsStep({
             </p>
           ) : (
             <div className="flex flex-col gap-2">
-              <p role="alert" className={ERROR_CLASSES}>
-                {t("signup.terms.unavailable")}
-              </p>
+              <ErrorNotice>{t("signup.terms.unavailable")}</ErrorNotice>
               <button
                 type="button"
                 onClick={reloadTerms}
@@ -525,9 +521,9 @@ export function SignupDetailsStep({
             </div>
           )}
           {termsMessage !== null ? (
-            <p id={ids.termsError} className={ERROR_CLASSES}>
+            <ErrorNotice id={ids.termsError} announce={false}>
               {termsMessage}
-            </p>
+            </ErrorNotice>
           ) : null}
         </div>
 
@@ -557,9 +553,9 @@ export function SignupDetailsStep({
             </span>
           </label>
           {consentError !== null ? (
-            <p id={ids.consentError} className={ERROR_CLASSES}>
+            <ErrorNotice id={ids.consentError} announce={false}>
               {t("signup.consent.errors.required")}
-            </p>
+            </ErrorNotice>
           ) : null}
         </div>
 

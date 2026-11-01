@@ -59,7 +59,7 @@ export function localSuperuser(): postgres.Sql {
   return superuser;
 }
 
-export type Actor = "auth" | "worker" | "privacy";
+export type Actor = "auth" | "worker" | "privacy" | "ops";
 
 /** Constant statements: a role name is never interpolated (03 P7 rule 4). */
 const BECOME: Readonly<Record<Actor, readonly string[]>> = {
@@ -75,6 +75,11 @@ const BECOME: Readonly<Record<Actor, readonly string[]>> = {
   privacy: [
     "set local session authorization influx_privacy_login",
     "set local role influx_privacy",
+  ],
+  // J9 commit 8 (0147): E-6, the ops pool of apps/api (OPS_DATABASE_URL)
+  ops: [
+    "set local session authorization influx_ops_login",
+    "set local role influx_ops",
   ],
 };
 
@@ -144,6 +149,20 @@ export async function actAsInternal<T>(
     pg_catalog.set_config('influx.role', '', true),
     pg_catalog.set_config('influx.aal', '', true)`;
   return result;
+}
+
+/**
+ * J8S-3 (0142): inside actAsInternal() (or actAsMember()), poses the claim session_id of the
+ * request on top of the claims of the context, the way apps/api does with `context.sessionId` —
+ * which it also passes as p_session_id. R refuses any other session than this one.
+ */
+export async function bindRequestSession(
+  tx: postgres.TransactionSql,
+  session: string,
+): Promise<void> {
+  await tx`select pg_catalog.set_config('request.jwt.claims',
+    (coalesce(nullif(pg_catalog.current_setting('request.jwt.claims', true), ''), '{}')::jsonb
+       || jsonb_build_object('session_id', ${session}::text))::text, true)`;
 }
 
 afterAll(async () => {

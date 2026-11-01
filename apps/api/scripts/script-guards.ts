@@ -21,7 +21,7 @@ export function refuseOutsideTheLocalStack(what: string): void {
   refuseProduction(what);
   const supabaseUrl = process.env.SUPABASE_URL;
   if (supabaseUrl !== undefined && supabaseUrl !== "") {
-    const host = new URL(supabaseUrl).hostname;
+    const host = urlOf("SUPABASE_URL", supabaseUrl).hostname;
     if (host !== "127.0.0.1" && host !== "localhost" && host !== "[::1]") {
       throw new Error(`${what} refused outside the loopback (EC-45)`);
     }
@@ -42,6 +42,72 @@ export function requiredStagingVariable(name: string): string {
   return value;
 }
 
+/** Where the inputs of an operator script come from: .env.local (staging) or the shell (production). */
+export type VariableSource = (name: string) => string;
+
+/**
+ * The administration API of a hosted GoTrue, from SUPABASE_URL and SUPABASE_SECRET_KEY. J4S-5:
+ * the key and the database (`migrationUrlName`) belong to ONE project; a production key pasted by
+ * mistake next to the staging database would otherwise act on production, and conversely.
+ */
+export function hostedGoTrue(
+  source: VariableSource,
+  migrationUrlName: string,
+  environment: "staging" | "production",
+): { authUrl: string; secretKey: string; projectRef: string } {
+  const supabaseUrl = urlOf("SUPABASE_URL", source("SUPABASE_URL"));
+  if (
+    supabaseUrl.protocol !== "https:" ||
+    !supabaseUrl.hostname.endsWith(".supabase.co")
+  ) {
+    throw new Error(
+      `SUPABASE_URL must be the https origin of the ${environment} project`,
+    );
+  }
+  const projectRef = supabaseUrl.hostname.slice(0, -".supabase.co".length);
+  const migrationUrl = urlOf(migrationUrlName, source(migrationUrlName));
+  if (
+    migrationUrl.hostname !== `db.${projectRef}.supabase.co` &&
+    decodeURIComponent(migrationUrl.username) !== `postgres.${projectRef}`
+  ) {
+    throw new Error(
+      `SUPABASE_URL and ${migrationUrlName} name two different projects: refused`,
+    );
+  }
+  return {
+    authUrl: `${supabaseUrl.origin}/auth/v1`,
+    secretKey: source("SUPABASE_SECRET_KEY"),
+    projectRef,
+  };
+}
+
+/** hostedGoTrue() of STAGING, from apps/api/.env.local. */
+export function stagingGoTrue(): { authUrl: string; secretKey: string } {
+  const { authUrl, secretKey } = hostedGoTrue(
+    requiredStagingVariable,
+    "INFLUX_STAGING_MIGRATION_URL",
+    "staging",
+  );
+  return { authUrl, secretKey };
+}
+
+/**
+ * A URL variable parsed without ever echoing it: `new URL()` puts its input (a database password
+ * included) in the TypeError that Node prints (D70 end-of-work review, S2).
+ */
+export function urlOf(name: string, value: string): URL {
+  try {
+    return new URL(value);
+  } catch {
+    throw new Error(`${name} is not a valid URL (value not shown)`);
+  }
+}
+
+/** requiredStagingVariable() parsed as a URL by urlOf(). */
+export function requiredStagingUrl(name: string): URL {
+  return urlOf(name, requiredStagingVariable(name));
+}
+
 /** A variable that must be exported in the shell, never written to a file. */
 export function requiredShellVariable(name: string): string {
   const value = process.env[name];
@@ -52,15 +118,17 @@ export function requiredShellVariable(name: string): string {
 }
 
 /**
- * The migration role of STAGING, from INFLUX_STAGING_MIGRATION_URL, with the root certificate of
- * EC-34 when one is given (INFLUX_STAGING_DB_CA_FILE, a PEM file, or DATABASE_CA_CERT, its
- * content). Nothing is read until assertStagingMarker() has run on it.
+ * The migration role of a hosted project, from `migrationUrlName`, with the root certificate of
+ * EC-34 when one is given (`caFileName`, a PEM file, or DATABASE_CA_CERT, its content). Nothing is
+ * read until the caller has checked which database this is (marker table).
  */
-export function connectToStagingAsMigrationRole(): postgres.Sql {
-  const migrationUrl = new URL(
-    requiredStagingVariable("INFLUX_STAGING_MIGRATION_URL"),
-  );
-  const caFile = process.env.INFLUX_STAGING_DB_CA_FILE;
+export function connectAsHostedMigrationRole(
+  source: VariableSource,
+  migrationUrlName: string,
+  caFileName: string,
+): postgres.Sql {
+  const migrationUrl = urlOf(migrationUrlName, source(migrationUrlName));
+  const caFile = process.env[caFileName];
   const ca =
     caFile === undefined || caFile === ""
       ? process.env.DATABASE_CA_CERT
@@ -76,12 +144,32 @@ export function connectToStagingAsMigrationRole(): postgres.Sql {
   });
 }
 
+/** connectAsHostedMigrationRole() of STAGING (INFLUX_STAGING_MIGRATION_URL, _DB_CA_FILE). */
+export function connectToStagingAsMigrationRole(): postgres.Sql {
+  return connectAsHostedMigrationRole(
+    requiredStagingVariable,
+    "INFLUX_STAGING_MIGRATION_URL",
+    "INFLUX_STAGING_DB_CA_FILE",
+  );
+}
+
 /**
  * Hosted Supabase refuses custom parameters (ALTER DATABASE / ROLE SET), so the marker is a table
  * created by hand on staging only, outside every migration (runbook, step 2). Two queries: a
  * reference to a missing table fails at parse time, even in a branch not taken.
  */
 export async function assertStagingMarker(sql: postgres.Sql): Promise<void> {
+  if (!(await carriesStagingMarker(sql))) {
+    throw new Error(
+      "this database does not carry the influx_staging.environment_marker = staging: refused (runbook, step 2)",
+    );
+  }
+}
+
+/** True when the database carries the marker table of staging with its single `staging` row. */
+export async function carriesStagingMarker(
+  sql: postgres.Sql,
+): Promise<boolean> {
   const [table] = await sql<{ present: boolean }[]>`
     select to_regclass('influx_staging.environment_marker') is not null as present`;
   const markers =
@@ -89,9 +177,5 @@ export async function assertStagingMarker(sql: postgres.Sql): Promise<void> {
       ? await sql<{ environment: string }[]>`
           select environment from influx_staging.environment_marker`
       : [];
-  if (markers.length !== 1 || markers[0]?.environment !== "staging") {
-    throw new Error(
-      "this database does not carry the influx_staging.environment_marker = staging: refused (runbook, step 2)",
-    );
-  }
+  return markers.length === 1 && markers[0]?.environment === "staging";
 }

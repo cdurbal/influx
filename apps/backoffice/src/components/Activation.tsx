@@ -17,11 +17,10 @@ import {
 } from "react";
 import { messages } from "@/messages/fr";
 import {
-  BRAND_CLASSES,
   CARD_CLASSES,
+  CARD_TITLE,
   cn,
   CODE_TEXT_CLASSES,
-  ERROR_CLASSES,
   HELP_CLASSES,
   INFO_CLASSES,
   inputClasses,
@@ -31,9 +30,10 @@ import {
   SCREEN_CLASSES,
   SECONDARY_BUTTON_CLASSES,
   TEXT_BUTTON_CLASSES,
-  TITLE_CLASSES,
 } from "./auth-classes";
+import { AuthHeader } from "./AuthHeader";
 import { confirmEnrollment, startEnrollment } from "./backoffice-auth";
+import { ErrorNotice } from "./ErrorNotice";
 
 const t = messages.enroll;
 
@@ -226,33 +226,27 @@ export function Activation() {
     }
   }
 
-  const header = (
-    <>
-      <p className={BRAND_CLASSES}>{messages.brand}</p>
-      <p className={HELP_CLASSES}>
-        {t.step(step.kind === "identity" ? 1 : step.kind === "factor" ? 2 : 3)}
-      </p>
-    </>
+  const stepLine = t.step(
+    step.kind === "identity" ? 1 : step.kind === "factor" ? 2 : 3,
   );
 
   const failureBlock =
     failure === null ? null : (
-      <p id={ids.error} role="alert" className={ERROR_CLASSES}>
-        {failure}
-      </p>
+      <ErrorNotice id={ids.error}>{failure}</ErrorNotice>
     );
 
   if (step.kind === "codes") {
     const codes = step.codes;
     return (
       <main id="main" className={SCREEN_CLASSES}>
-        {header}
-        <h1 ref={titleRef} tabIndex={-1} className={TITLE_CLASSES}>
-          {messages.recoveryCodes.title}
-        </h1>
+        <AuthHeader
+          step={stepLine}
+          title={messages.recoveryCodes.title}
+          titleRef={titleRef}
+        />
         <p className={LEAD_CLASSES}>{messages.recoveryCodes.lead}</p>
         <section aria-labelledby={`${ids.code}-codes`} className={CARD_CLASSES}>
-          <h2 id={`${ids.code}-codes`} className={LABEL_CLASSES}>
+          <h2 id={`${ids.code}-codes`} className={CARD_TITLE}>
             {messages.recoveryCodes.listLabel}
           </h2>
           <ol className="flex list-inside list-decimal flex-col gap-2">
@@ -311,10 +305,7 @@ export function Activation() {
   if (step.kind === "factor") {
     return (
       <main id="main" className={SCREEN_CLASSES}>
-        {header}
-        <h1 ref={titleRef} tabIndex={-1} className={TITLE_CLASSES}>
-          {t.step2Title}
-        </h1>
+        <AuthHeader step={stepLine} title={t.step2Title} titleRef={titleRef} />
         {restarted ? (
           <p role="status" className={INFO_CLASSES}>
             {t.step2Restarted}
@@ -391,18 +382,13 @@ export function Activation() {
 
   return (
     <main id="main" className={SCREEN_CLASSES}>
-      {header}
-      <h1 ref={titleRef} tabIndex={-1} className={TITLE_CLASSES}>
-        {t.title}
-      </h1>
+      <AuthHeader step={stepLine} title={t.title} titleRef={titleRef} />
       <p className={LEAD_CLASSES}>{t.lead}</p>
       {token === undefined ? null : token === null ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {t.invitationInvalid}
-        </p>
+        <ErrorNotice>{t.invitationInvalid}</ErrorNotice>
       ) : (
         <form noValidate onSubmit={confirmIdentity} className={CARD_CLASSES}>
-          <h2 className={LABEL_CLASSES}>{t.step1Title}</h2>
+          <h2 className={CARD_TITLE}>{t.step1Title}</h2>
           <label htmlFor={ids.email} className={LABEL_CLASSES}>
             {messages.login.emailLabel}
           </label>

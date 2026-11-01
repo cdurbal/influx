@@ -9,24 +9,24 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useState } from "react";
 import {
   CARD_CLASSES,
-  ERROR_CLASSES,
   HELP_CLASSES,
   LABEL_CLASSES,
   LEAD_CLASSES,
   TEXT_BUTTON_CLASSES,
-  TITLE_CLASSES,
   WARNING_CLASSES,
 } from "@/components/auth/auth-classes";
+import { Notice } from "@/components/member/ui/Notice";
+import { PageHeader } from "@/components/member/ui/PageHeader";
 import {
   ACTIONS_CLASSES,
   DESTRUCTIVE_BUTTON_CLASSES,
   META_CLASSES,
-  SUCCESS_CLASSES,
   TAG_CLASSES,
 } from "./account-classes";
 import { readSessions, revokeAllSessions, revokeSession } from "./account-api";
 import { browserOf, formatDateTime } from "./account-view";
 import type { AccountContext } from "./AccountShell";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 type State =
   | { kind: "loading" }
@@ -118,7 +118,7 @@ export function SessionsScreen({ online, signedOut }: AccountContext) {
 
   return (
     <>
-      <h1 className={TITLE_CLASSES}>{t("title")}</h1>
+      <PageHeader title={t("title")} />
       <p className={LEAD_CLASSES}>{t("lead")}</p>
       <p className={HELP_CLASSES}>{t("help")}</p>
       {state.kind === "loading" ? (
@@ -127,19 +127,13 @@ export function SessionsScreen({ online, signedOut }: AccountContext) {
         </p>
       ) : null}
       {state.kind === "unavailable" ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {tAccount("unavailable")}
-        </p>
+        <ErrorNotice>{tAccount("unavailable")}</ErrorNotice>
       ) : null}
       {notice === "closed" ? (
-        <p role="status" className={SUCCESS_CLASSES}>
-          {t("closed")}
-        </p>
+        <Notice tone="success">{t("closed")}</Notice>
       ) : null}
       {notice === "unavailable" ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {t("unavailable")}
-        </p>
+        <ErrorNotice>{t("unavailable")}</ErrorNotice>
       ) : null}
       {state.kind === "ready" ? (
         <ul aria-label={t("title")} className="flex flex-col gap-4">

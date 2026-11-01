@@ -17,7 +17,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { messages } from "@/messages/fr";
 import {
-  ERROR_CLASSES,
   HELP_CLASSES,
   inputClasses,
   INFO_CLASSES,
@@ -35,18 +34,19 @@ import {
   LINK_CLASSES,
   ROW_GROUP_CLASSES,
   SECTION_CLASSES,
-  SECTION_TITLE_CLASSES,
+  SECTION_TITLE,
   SELECT_CLASSES,
   SMALL_LABEL_CLASSES,
   SMALL_PRIMARY_CLASSES,
   TABLE_CLASSES,
-  TABLE_WRAP_CLASSES,
   TD_CLASSES,
   TH_CLASSES,
 } from "./bo-classes";
+import { DenseTableRegion } from "./DenseTableRegion";
 import { LinkOnce, RevokeControl } from "./InvitationParts";
 import { useAction } from "./use-action";
 import { EMAIL_SHAPE, formatDateTime, formatDay } from "./view-model";
+import { ErrorNotice } from "./ErrorNotice";
 
 const t = messages.internalAccounts;
 const ti = messages.invitations;
@@ -111,7 +111,7 @@ function InviteForm({ onCreated }: { onCreated: () => void }) {
       aria-labelledby="invite-title"
       className={SECTION_CLASSES}
     >
-      <h2 id="invite-title" className={SECTION_TITLE_CLASSES}>
+      <h2 id="invite-title" className={SECTION_TITLE}>
         {ti.internalTitle}
       </h2>
       <p className={HELP_CLASSES}>{ti.internalLead}</p>
@@ -168,11 +168,7 @@ function InviteForm({ onCreated }: { onCreated: () => void }) {
           </select>
         </div>
       </div>
-      {formError === null ? null : (
-        <p role="alert" className={ERROR_CLASSES}>
-          {formError}
-        </p>
-      )}
+      {formError === null ? null : <ErrorNotice>{formError}</ErrorNotice>}
       <ActionFeedback action={action} />
       <button
         type="submit"
@@ -247,16 +243,14 @@ export function InternalAccountsScreen() {
         <p className={WARNING_CLASSES}>{t.breakGlass}</p>
       ) : null}
       {error !== null ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {error}
-        </p>
+        <ErrorNotice>{error}</ErrorNotice>
       ) : accounts === null || invitations === null ? (
         <p role="status" className={HELP_CLASSES}>
           {messages.common.loading}
         </p>
       ) : (
         <>
-          <div className={TABLE_WRAP_CLASSES}>
+          <DenseTableRegion label={t.title}>
             <table className={TABLE_CLASSES}>
               <caption className="sr-only">{t.title}</caption>
               <thead>
@@ -297,17 +291,17 @@ export function InternalAccountsScreen() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </DenseTableRegion>
           <p className={HELP_CLASSES}>{t.lastSignInLater}</p>
           <InviteForm onCreated={() => setReload(reload + 1)} />
           <section aria-labelledby="internal-list" className={SECTION_CLASSES}>
-            <h2 id="internal-list" className={SECTION_TITLE_CLASSES}>
+            <h2 id="internal-list" className={SECTION_TITLE}>
               {ti.listTitle}
             </h2>
             {invitations.length === 0 ? (
               <p className={HELP_CLASSES}>{ti.empty}</p>
             ) : (
-              <div className={TABLE_WRAP_CLASSES}>
+              <DenseTableRegion label={ti.listTitle}>
                 <table className={TABLE_CLASSES}>
                   <caption className="sr-only">{ti.listTitle}</caption>
                   <thead>
@@ -370,7 +364,7 @@ export function InternalAccountsScreen() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </DenseTableRegion>
             )}
           </section>
         </>

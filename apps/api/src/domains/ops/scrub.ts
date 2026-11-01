@@ -5,8 +5,11 @@
 // length. Pure, deterministic, without any I/O.
 import { createHash } from "node:crypto";
 
-// eslint-disable-next-line no-control-regex -- control characters are exactly what is removed
-const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f-\u009f]+/g;
+/**
+ * Control, format (bidirectional overrides, zero-width), private-use and lone surrogate
+ * characters: stored text is strict text, shown as received (J4S-6).
+ */
+const CONTROL_CHARACTERS = /[\p{Cc}\p{Cf}\p{Co}\p{Cs}]+/gu;
 const EMAIL = /[^\s@"'<>()[\],;:]+@[^\s@"'<>()[\],;:]+/g;
 const URL_QUERY_OR_FRAGMENT = /([?#])[^\s"'<>)]*/g;
 const UUID =
@@ -35,7 +38,7 @@ export function scrubText(value: string, maxLength: number): string {
     .trim();
   return cleaned.length <= maxLength
     ? cleaned
-    : `${cleaned.slice(0, maxLength - 1)}…`;
+    : `${cleaned.slice(0, maxLength - 1).replace(/[\uD800-\uDBFF]$/, "")}…`;
 }
 
 /**

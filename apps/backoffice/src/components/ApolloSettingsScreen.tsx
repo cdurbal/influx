@@ -3,7 +3,7 @@
 // The Apollo settings, admin only (docs/mvp/05 RG81, RG83, RG84, CA63; 03 PD1 to PD7; 17b §3.11).
 // Each key is read with its last change; a change is REQUESTED here with a typed reason, then
 // confirmed on the distinct screen of the dual control (PD2), where the value is shown again. An
-// empty list of countries is an abstention, never a send by default (RG84): the screen says so.
+// empty list of excluded countries excludes none (RG84, block-list since 0141): the screen says so.
 import {
   PROSPECTING_LEGAL_BASES,
   PROSPECTING_SCOPES,
@@ -15,19 +15,14 @@ import type { CountryCode } from "@influx/contracts/countries";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { messages } from "@/messages/fr";
-import {
-  ERROR_CLASSES,
-  HELP_CLASSES,
-  LEAD_CLASSES,
-  TITLE_CLASSES,
-} from "./auth-classes";
+import { HELP_CLASSES, LEAD_CLASSES, TITLE_CLASSES } from "./auth-classes";
 import { ActionFeedback } from "./ActionFeedback";
 import { readApolloSettings, requestDualControl } from "./backoffice-api";
 import {
   FIELD_CLASSES,
   ROW_GROUP_CLASSES,
   SECTION_CLASSES,
-  SECTION_TITLE_CLASSES,
+  SECTION_TITLE,
   SELECT_CLASSES,
   SMALL_LABEL_CLASSES,
   SMALL_PRIMARY_CLASSES,
@@ -41,6 +36,7 @@ import {
   parseByCountry,
   parseCountryList,
 } from "./view-model";
+import { ErrorNotice } from "./ErrorNotice";
 
 const t = messages.apollo;
 type Reason = (typeof PROSPECTING_SETTING_REASONS)[number];
@@ -92,9 +88,7 @@ function SettingForm({ row }: { row: Row }) {
     setting.key === "apollo_scope" ? setting.value : "",
   );
   const [countries, setCountries] = useState(
-    setting.key === "apollo_prospecting_countries"
-      ? setting.value.join(" ")
-      : "",
+    setting.key === "apollo_excluded_countries" ? setting.value.join(" ") : "",
   );
   const [basis, setBasis] = useState<string>(
     setting.key === "apollo_legal_basis" ? setting.value.default : "",
@@ -115,12 +109,12 @@ function SettingForm({ row }: { row: Row }) {
           key: "apollo_scope",
           value: scope as (typeof PROSPECTING_SCOPES)[number],
         };
-      case "apollo_prospecting_countries": {
+      case "apollo_excluded_countries": {
         const parsed = parseCountryList(countries);
         return parsed.unknown.length > 0
           ? t.countriesInvalid(parsed.unknown.join(", "))
           : {
-              key: "apollo_prospecting_countries",
+              key: "apollo_excluded_countries",
               value: parsed.codes as CountryCode[],
             };
       }
@@ -168,7 +162,7 @@ function SettingForm({ row }: { row: Row }) {
   const title =
     setting.key === "apollo_scope"
       ? t.scope
-      : setting.key === "apollo_prospecting_countries"
+      : setting.key === "apollo_excluded_countries"
         ? t.countries
         : t.legalBasis;
 
@@ -179,7 +173,7 @@ function SettingForm({ row }: { row: Row }) {
       aria-labelledby={ids.title}
       className={SECTION_CLASSES}
     >
-      <h2 id={ids.title} className={SECTION_TITLE_CLASSES}>
+      <h2 id={ids.title} className={SECTION_TITLE}>
         {title}
       </h2>
       <p>{apolloSettingWords(setting)}</p>
@@ -225,7 +219,7 @@ function SettingForm({ row }: { row: Row }) {
         ) : null}
         <ReasonSelect id={ids.reason} value={reason} onChange={setReason} />
       </div>
-      {setting.key === "apollo_prospecting_countries" ? (
+      {setting.key === "apollo_excluded_countries" ? (
         <div className={FIELD_CLASSES}>
           <label htmlFor={ids.value} className={SMALL_LABEL_CLASSES}>
             {t.countries}
@@ -261,11 +255,7 @@ function SettingForm({ row }: { row: Row }) {
           </p>
         </div>
       ) : null}
-      {formError === null ? null : (
-        <p role="alert" className={ERROR_CLASSES}>
-          {formError}
-        </p>
-      )}
+      {formError === null ? null : <ErrorNotice>{formError}</ErrorNotice>}
       <ActionFeedback action={action} />
       <button
         type="submit"
@@ -309,9 +299,7 @@ export function ApolloSettingsScreen() {
       <h1 className={TITLE_CLASSES}>{t.title}</h1>
       <p className={LEAD_CLASSES}>{t.lead}</p>
       {error !== null ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {error}
-        </p>
+        <ErrorNotice>{error}</ErrorNotice>
       ) : rows === null ? (
         <p role="status" className={HELP_CLASSES}>
           {messages.common.loading}

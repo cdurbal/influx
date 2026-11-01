@@ -29,13 +29,18 @@ import {
   type ReactNode,
 } from "react";
 import { messages } from "@/messages/fr";
-import {
-  ERROR_CLASSES,
-  HELP_CLASSES,
-  inputClasses,
-  TITLE_CLASSES,
-} from "./auth-classes";
+import { HELP_CLASSES, inputClasses, TITLE_CLASSES } from "./auth-classes";
 import { ActionFeedback, AdminOnlyNotice } from "./ActionFeedback";
+import {
+  correctionNotice,
+  correctionOutcome,
+  LEGAL_NAME_MAX,
+  NOTE_MAX,
+  roleChangeOutcome,
+  suppressionCanSubmit,
+  suppressionOutcome,
+  suppressionRefusal,
+} from "./account-record-forms";
 import {
   correctAccount,
   liftSuppression,
@@ -50,7 +55,7 @@ import {
   LINK_CLASSES,
   ROW_GROUP_CLASSES,
   SECTION_CLASSES,
-  SECTION_TITLE_CLASSES,
+  SECTION_TITLE,
   SELECT_CLASSES,
   SMALL_LABEL_CLASSES,
   SMALL_PRIMARY_CLASSES,
@@ -68,6 +73,7 @@ import {
   formatDateTime,
   formatLongDate,
 } from "./view-model";
+import { ErrorNotice } from "./ErrorNotice";
 
 type Detail = AccountDetailResponse;
 type Load =
@@ -96,7 +102,7 @@ function SyncBlock({
   const [replaying, setReplaying] = useState<SyncDestination | null>(null);
   return (
     <section aria-labelledby="sync-title" className={SECTION_CLASSES}>
-      <h2 id="sync-title" className={SECTION_TITLE_CLASSES}>
+      <h2 id="sync-title" className={SECTION_TITLE}>
         {t.sync}
       </h2>
       <dl className={DL_CLASSES}>
@@ -107,7 +113,14 @@ function SyncBlock({
               <span className="block font-semibold">
                 {messages.syncState[status.state]}
               </span>
-              <span className="block">{messages.syncCause[status.cause]}</span>
+              <span className="block">
+                {status.setting === null
+                  ? messages.syncCause[status.cause]
+                  : messages.syncCauseWithSetting(
+                      messages.syncCause[status.cause],
+                      messages.syncSetting[status.setting],
+                    )}
+              </span>
               {status.lastAttemptAt === null ? null : (
                 <span className="block text-text-secondary">
                   {t.lastAttempt(formatDateTime(status.lastAttemptAt))}
@@ -174,32 +187,22 @@ function CorrectionForm({
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setNotice(null);
-    if (declaredStatus === "" && country === "" && language === "") {
-      setFormError(t.nothingToCorrect);
-      return;
-    }
-    if (reason === "") {
-      setFormError(messages.common.reasonPlaceholder);
+    const outcome = correctionOutcome({
+      declaredStatus,
+      country,
+      language,
+      reason,
+      note,
+    });
+    if (!outcome.ok) {
+      setFormError(outcome.error);
       return;
     }
     setFormError(null);
     void action.run(
-      () =>
-        correctAccount(detail.account.id, {
-          reasonCode: reason as (typeof CORRECTION_REASONS)[number],
-          ...(declaredStatus === ""
-            ? {}
-            : { declaredStatus: declaredStatus as "individual" | "business" }),
-          ...(country === ""
-            ? {}
-            : { countryCode: country as Detail["account"]["countryCode"] }),
-          ...(language === ""
-            ? {}
-            : { preferredLanguage: language as "fr" | "en" }),
-          ...(note.trim() === "" ? {} : { comment: note.trim() }),
-        }),
+      () => correctAccount(detail.account.id, outcome.body),
       (data) => {
-        setNotice(data.changed ? t.corrected : t.nothingChanged);
+        setNotice(correctionNotice(data.changed));
         if (data.changed) {
           onCorrected();
         }
@@ -214,7 +217,7 @@ function CorrectionForm({
       aria-labelledby="correct-title"
       className={SECTION_CLASSES}
     >
-      <h2 id="correct-title" className={SECTION_TITLE_CLASSES}>
+      <h2 id="correct-title" className={SECTION_TITLE}>
         {t.corrections}
       </h2>
       <p className={HELP_CLASSES}>{t.correctionsLead}</p>
@@ -298,17 +301,13 @@ function CorrectionForm({
         </label>
         <textarea
           id={ids.note}
-          maxLength={500}
+          maxLength={NOTE_MAX}
           value={note}
           onChange={(event) => setNote(event.target.value)}
           className={TEXTAREA_CLASSES}
         />
       </div>
-      {formError === null ? null : (
-        <p role="alert" className={ERROR_CLASSES}>
-          {formError}
-        </p>
-      )}
+      {formError === null ? null : <ErrorNotice>{formError}</ErrorNotice>}
       <ActionFeedback action={action} />
       {notice === null ? null : (
         <p role="status" className={SUCCESS_CLASSES}>
@@ -336,24 +335,14 @@ function RoleChangeForm({ detail }: { detail: Detail }) {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const name = legalName.trim();
-    if (name.length < 2 || name.length > 120) {
-      setFormError(t.legalNameInvalid);
-      return;
-    }
-    if (reason === "") {
-      setFormError(messages.common.reasonPlaceholder);
+    const outcome = roleChangeOutcome(detail.account.id, { legalName, reason });
+    if (!outcome.ok) {
+      setFormError(outcome.error);
       return;
     }
     setFormError(null);
     void action.run(
-      () =>
-        requestDualControl({
-          code: "identity.change_member_role",
-          accountId: detail.account.id,
-          legalName: name,
-          reasonCode: reason as (typeof ROLE_CHANGE_REASONS)[number],
-        }),
+      () => requestDualControl(outcome.body),
       (view) => router.push(`/double-validation/${view.id}`),
     );
   }
@@ -365,7 +354,7 @@ function RoleChangeForm({ detail }: { detail: Detail }) {
       aria-labelledby="role-title"
       className={SECTION_CLASSES}
     >
-      <h2 id="role-title" className={SECTION_TITLE_CLASSES}>
+      <h2 id="role-title" className={SECTION_TITLE}>
         {t.roleChange}
       </h2>
       <p className={HELP_CLASSES}>{t.roleChangeLead}</p>
@@ -377,7 +366,7 @@ function RoleChangeForm({ detail }: { detail: Detail }) {
           <input
             id={ids.legalName}
             type="text"
-            maxLength={120}
+            maxLength={LEGAL_NAME_MAX}
             value={legalName}
             onChange={(event) => setLegalName(event.target.value)}
             className={inputClasses(false)}
@@ -402,11 +391,7 @@ function RoleChangeForm({ detail }: { detail: Detail }) {
           </select>
         </div>
       </div>
-      {formError === null ? null : (
-        <p role="alert" className={ERROR_CLASSES}>
-          {formError}
-        </p>
-      )}
+      {formError === null ? null : <ErrorNotice>{formError}</ErrorNotice>}
       <ActionFeedback action={action} />
       <button
         type="submit"
@@ -427,17 +412,15 @@ function SuppressionForm({ detail }: { detail: Detail }) {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (reason === "") {
+    const outcome = suppressionOutcome(reason);
+    if (!outcome.ok) {
       return;
     }
     setNotice(null);
     void action.run(
-      () =>
-        liftSuppression(detail.account.id, {
-          reasonCode: reason as (typeof SUPPRESSION_LIFT_REASONS)[number],
-        }),
+      () => liftSuppression(detail.account.id, outcome.body),
       (data) => setNotice(t.suppressionDone(data.resyncQueued)),
-      (code) => (code === "conflict" ? t.suppressionNone : null),
+      suppressionRefusal,
     );
   }
 
@@ -448,7 +431,7 @@ function SuppressionForm({ detail }: { detail: Detail }) {
       aria-labelledby="suppression-title"
       className={SECTION_CLASSES}
     >
-      <h2 id="suppression-title" className={SECTION_TITLE_CLASSES}>
+      <h2 id="suppression-title" className={SECTION_TITLE}>
         {t.suppression}
       </h2>
       <p className={HELP_CLASSES}>{t.suppressionLead}</p>
@@ -478,7 +461,9 @@ function SuppressionForm({ detail }: { detail: Detail }) {
       )}
       <button
         type="submit"
-        aria-disabled={reason === "" || action.busy || undefined}
+        aria-disabled={
+          !suppressionCanSubmit(reason) || action.busy || undefined
+        }
         className={`${SMALL_PRIMARY_CLASSES} self-start`}
       >
         {t.suppressionSubmit}
@@ -507,7 +492,7 @@ function DataRequests({ detail }: { detail: Detail }) {
 
   return (
     <section aria-labelledby="data-title" className={SECTION_CLASSES}>
-      <h2 id="data-title" className={SECTION_TITLE_CLASSES}>
+      <h2 id="data-title" className={SECTION_TITLE}>
         {t.dataRequests}
       </h2>
       {detail.dataRequests.length === 0 ? (
@@ -527,7 +512,21 @@ function DataRequests({ detail }: { detail: Detail }) {
                 )}
               </span>
               {request.execution === null ? null : request.execution
-                  .executedAt === null ? (
+                  .authorisedBy === "member_fresh_code" ? (
+                <span>
+                  {t.dataRequestMemberErasure(
+                    formatDateTime(request.execution.approvedAt),
+                    request.execution.executedAt === null
+                      ? null
+                      : formatDateTime(request.execution.executedAt),
+                    messages.syncState[detail.account.sync.brevo.state],
+                    messages.syncState[detail.account.sync.apollo.state],
+                    request.completedAt === null
+                      ? null
+                      : formatDateTime(request.completedAt),
+                  )}
+                </span>
+              ) : request.execution.executedAt === null ? (
                 <span>
                   {t.dataRequestApproved(
                     formatDateTime(request.execution.approvedAt),
@@ -584,7 +583,7 @@ function History({
 }) {
   return (
     <section aria-labelledby="history-title" className={SECTION_CLASSES}>
-      <h2 id="history-title" className={SECTION_TITLE_CLASSES}>
+      <h2 id="history-title" className={SECTION_TITLE}>
         {t.history}
       </h2>
       {events.length === 0 ? (
@@ -688,9 +687,7 @@ export function AccountScreen({ id }: { id: string }) {
       <>
         {back}
         <h1 className={TITLE_CLASSES}>{t.title}</h1>
-        <p role="alert" className={ERROR_CLASSES}>
-          {load.message}
-        </p>
+        <ErrorNotice>{load.message}</ErrorNotice>
       </>
     );
   }
@@ -705,7 +702,7 @@ export function AccountScreen({ id }: { id: string }) {
         {t.journaled}
       </p>
       <section aria-labelledby="identity-title" className={SECTION_CLASSES}>
-        <h2 id="identity-title" className={SECTION_TITLE_CLASSES}>
+        <h2 id="identity-title" className={SECTION_TITLE}>
           {t.identity}
         </h2>
         <dl className={DL_CLASSES}>

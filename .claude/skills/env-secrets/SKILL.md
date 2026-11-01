@@ -45,7 +45,7 @@ Agents concernés : `integrateur` (principal), `expert-cybersecurite` (**veto**)
 2. **Aucune variable `SUPABASE_*` n'atteint jamais un navigateur.** Ni `SUPABASE_URL`, ni
    `SUPABASE_PUBLISHABLE_KEY`, ni a fortiori `SUPABASE_SECRET_KEY`. **Aucune d'elles n'est jamais
    préfixée `NEXT_PUBLIC_`.** C'est la traduction en variables de la règle d'architecture n° 1
-   (`CLAUDE.md` §6, `02` §2.1) : *le front ne parle jamais à Supabase pour de la donnée métier et ne
+   (`CLAUDE.md` §5 règle 1, `02` §2.1) : *le front ne parle jamais à Supabase pour de la donnée métier et ne
    porte aucune clé Supabase, pas même `anon`.*
    **Pourquoi la clé `anon` n'est pas « inoffensive » ici :** elle ouvre PostgREST au navigateur, et
    la seule chose qui empêche alors de lire des données est la RLS table par table — or tout notre
@@ -164,7 +164,7 @@ processus HTTP n'appelle que l'envoi transactionnel unitaire (garde statique).
 |---|---|---|---|
 | `BREVO_API_KEY` | Clé d'accès | La clé de production en production seule | Rotation planifiée, **deux clés acceptées pendant la bascule**. `staging` : clé du **compte Brevo de `staging`** (D70), aussi dans `.env.local`. Tests et CI : aucune (doublure) |
 | `BREVO_API_BASE_URL` | Adresse de base | Tous | Permet de pointer la **doublure de test** hors environnement déployé (`16` RG148) |
-| `BREVO_MODE` (`disabled` \| `redirect` \| `live`) | Mode d'envoi | Tous | **Cible D70** : `live` en `staging` comme en production ; `disabled`/`redirect` réservés à la pile locale et aux tests. **Aujourd'hui, et jusqu'au commit 1 de `jalons/d70-plan.md`** : `live` refusé hors production (RG116) |
+| `BREVO_MODE` (`disabled` \| `redirect` \| `live`) | Mode d'envoi | Tous | **Cible D70** : `live` en `staging` comme en production ; `disabled`/`redirect` réservés à la pile locale et aux tests. **Aujourd'hui, et jusqu'au commit 1 de `archives/jalons/d70-plan.md`** : `live` refusé hors production (RG116) |
 | `BREVO_TEST_RECIPIENTS` | Liste **fermée** d'adresses internes | Pile locale et tests (cible D70) | **Obligatoire si `redirect`** ; substitution au dernier moment, journalisée (RG117) ; refusée en `staging` après la bascule |
 | `BREVO_WEBHOOK_SECRET_CURRENT` / `_PREVIOUS` | Jeton de l'en-tête `brevo-webhook-token` (43 à 128 car. base64url) | `api` seul ; **requis en production**, optionnels en staging (webhook fermé si absents) | **`_PREVIOUS` seulement pendant la rotation** (RG146-1). Comparaison en temps constant ; `_CURRENT` et le jeton de chemin vont ensemble ; valeurs toutes distinctes entre elles et des autres secrets |
 | `BREVO_WEBHOOK_PATH_TOKEN_CURRENT` / `_PREVIOUS` | Segment non devinable du chemin (exactement 43 car. base64url) | `api` seul, idem | Roté **avec** le jeton d'en-tête. Routage seulement (Railway journalise les chemins). Jamais publié |
@@ -217,7 +217,7 @@ processus HTTP n'appelle que l'envoi transactionnel unitaire (garde statique).
 5. **Valider au démarrage** (zod) : variable manquante → échec immédiat, message clair.
 6. **Brancher les contrôles de CI** ci-dessous.
 7. **Signaler au fondateur** toute variable qu'il doit obtenir lui-même (création de compte,
-   génération de clé, enregistrement DNS) — cf. `CLAUDE.md` §14.3.
+   génération de clé, enregistrement DNS) — cf. `docs/mvp/prerequis.md` §14.3.
 
 ### Contrôles de CI obligatoires — le build échoue, il n'avertit pas
 
@@ -300,7 +300,7 @@ pas un environnement de test, c'est la fenêtre à deux clés.**
 > et 3 levés pour `staging`**, conservés pour la pile locale, la CI et les tests ; **verrou 4
 > inchangé**. Un envoi réel depuis `staging` n'est plus un incident ; en sont un : un envoi réel
 > depuis la CI, un test ou la pile locale, et toute clé de production hors production. Le texte
-> ci-dessous décrit l'état d'avant la bascule (commit 1 de `jalons/d70-plan.md`) et reste vrai
+> ci-dessous décrit l'état d'avant la bascule (commit 1 de `archives/jalons/d70-plan.md`) et reste vrai
 > pour la pile locale et la CI.
 
 Trois verrous protègent **l'envoi** (`02` §12.4), un quatrième protège **les données**
@@ -360,7 +360,7 @@ information des personnes si nécessaire, consignation écrite.
   - [ ] Enregistrement **DMARC** publié pour chacun, politique décidée avec `expert-marketing`
   - [ ] **Aucun envoi n'est autorisé avant que les trois soient authentifiés**, et le service
         **refuse de démarrer** en `live` sans cela (RG116)
-- [ ] **L'authentification du domaine est bloquante pour le Lot 1** (`CLAUDE.md` §14.3) : depuis
+- [ ] **L'authentification du domaine est bloquante pour le Lot 1** (`docs/mvp/prerequis.md` §14.3) : depuis
       **D37**, les membres se connectent par un **code à 6 chiffres reçu par e-mail**. Un e-mail qui
       n'arrive pas n'est plus une gêne marketing, c'est **une impossibilité de se connecter** :
       **la délivrabilité est la disponibilité du produit**
@@ -406,7 +406,7 @@ Traiter comme un incident, dans cet ordre :
 - [ ] Contrôles CI-1 à CI-6 passants
 - [ ] Aucune valeur en clair dans les journaux ou le bundle front
 - [ ] `.gitignore` couvre bien `.env*`
-- [ ] Action requise du fondateur signalée explicitement (`CLAUDE.md` §14.3)
+- [ ] Action requise du fondateur signalée explicitement (`docs/mvp/prerequis.md` §14.3)
 
 ---
 

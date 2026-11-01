@@ -16,7 +16,7 @@
 > (`read_conversation()` à **canal obligatoire**, une ligne de journal par canal), §8 (T5 étendu,
 > **nouveau test T19**). **Le cloisonnement par règle d'accès à canal constant, doublée d'une
 > contrainte en base, est un arbitrage explicite du fondateur** (`04` §5.7.1 A1, 2026-09-24), rendu
-> dans un domaine sous veto de `expert-cybersecurite` (`CLAUDE.md` §10.3 point 2). **Restent soumises
+> dans un domaine sous veto de `expert-cybersecurite` (`CLAUDE.md` §7 règle 2). **Restent soumises
 > à l'avis de `expert-cybersecurite`** : les deux fonctions `SECURITY DEFINER` ajoutées par les
 > apartés (`04` §5.7.1 A2) et la relecture de cette révision.
 > **Auteurs :** `expert-cybersecurite` (rédacteur, **veto bloquant**) + `architecte` (co-signataire
@@ -167,7 +167,7 @@ l'est pas.
 droits ne sont pas décidés : il ne doit pas être créé. La CI le vérifie (§8, test T2).
 
 **Règle de lecture n° 2.** Cette matrice décrit ce qui est **possible**, pas ce qui est **affiché**.
-Le masquage d'interface n'est jamais un contrôle d'accès (`CLAUDE.md` §9, skill `backoffice-ops`
+Le masquage d'interface n'est jamais un contrôle d'accès (`CLAUDE.md` §6, skill `backoffice-ops`
 règle 26). Un droit absent de cette matrice doit échouer **en base**, même si l'API l'autorisait par
 erreur.
 
@@ -189,7 +189,7 @@ erreur.
 | Compte — **modifier un plafond** (e-mails, candidatures) | — | — | — | ✔ · J · 2V · C(3) | — |
 | Compte — suspendre | — | — | ✔ · J · 2V · C(3) | ✔ · J · 2V · C(3) | — |
 | Compte — lever une suspension | — | — | — | ✔ · J · R · C(3) | — |
-| Compte — supprimer / anonymiser | S (demande) | S (demande) | — | ✔ · J · 2V · R | ✔ C(4) |
+| Compte — supprimer / anonymiser | S · R · J (libre-service, D72) | S · R · J (libre-service, D72) | — | ✔ · J · 2V · R | ✔ C(4) |
 | `terms_versions` — lire la version en vigueur | L | L | L | L | L |
 | `terms_versions` — publier une version | — | — | — | ✔ · J · 2V | — |
 | `terms_acceptances` — écrire | ✔ C(5) | ✔ C(5) | — | — | ✔ C(1) |
@@ -212,7 +212,8 @@ erreur.
 - **C(3)** — **Aucun agent ni administrateur ne peut agir sur son propre compte** : attribution de
   rôle, plafond, suspension, levée de suspension. Exprimé en politique :
   `WITH CHECK (target_account_id <> influx.current_account_id())`.
-- **C(4)** — Propagation d'une suppression validée : révocation des sessions, purge dans les
+- **C(4)** — Propagation d'une suppression validée (par un `admin` en `2V`, ou par le membre
+  lui-même pour son propre effacement, D72) : révocation des sessions, purge dans les
   destinations externes. Opération de worker, jamais déclenchée par une route HTTP.
 - **C(5)** — Une acceptation de CGU est **écrite une fois, jamais modifiée**. La table est en ajout
   seul (§4, P8), au même titre que le registre d'audit : une preuve d'acceptation réécrite ne prouve
@@ -568,7 +569,7 @@ create policy creator_identity_read_after_reveal
 | Demande RGPD — déposer | S | S | — | — | — |
 | Demande RGPD — lire la file | — | — | L · J | L · J | — |
 | Demande RGPD — **exécuter un export** | — | — | — | ✔ · J · 2V · R | ✔ C(4) |
-| Demande RGPD — **exécuter une anonymisation** | — | — | — | ✔ · J · 2V · R | ✔ C(4) |
+| Demande RGPD — **exécuter une anonymisation** | S · R · J (son propre effacement, D72) | S · R · J (son propre effacement, D72) | — | ✔ · J · 2V · R | ✔ C(4) |
 | Tableau de bord, indicateurs agrégés | — | — | L | L | ✔ |
 | Notes internes sur une fiche | ⛔ | ⛔ | ✔ · J | ✔ · J | — |
 
@@ -591,7 +592,7 @@ create policy creator_identity_read_after_reveal
 - **C(31)** — Les transitions autorisées sont contraintes **en base** (déclencheur), pas seulement
   dans `packages/domain`. La base reste l'arbitre (`02-architecture` §10.2, point 6).
 - **C(32) — Interdiction structurelle.** `commission_rates` est **créée et reste vide** au MVP
-  (`CLAUDE.md` §3, `01-intermediation-courtee.md` §7). Aucun rôle applicatif n'a le droit d'y écrire :
+  (`CLAUDE.md` §2, `01-intermediation-courtee.md` §7). Aucun rôle applicatif n'a le droit d'y écrire :
   seul le rôle de migration le peut, donc seule une migration relue peut la remplir. **C'est une
   barrière technique contre le retour clandestin d'un calcul de commission au MVP.** Contrôle
   complémentaire en CI : aucune multiplication d'un montant par une constante dans `apps/` et
@@ -837,12 +838,21 @@ Toute autre opération privilégiée passe par une fonction `SECURITY DEFINER` (
 | **E-1** | **Pré-authentification d'un demandeur non identifié.** Motifs : `identity.request_code` — émission d'un code à usage unique ; `support.report_delivery_issue` — canal de secours sans connexion (`05` RG65, J5), par une fonction `SECURITY DEFINER` étroite seulement ; `identity.read_published_terms` — lecture de la version en vigueur d'un document public (`05` RG25, RG27 ; `21` EC-62, à signer à la revue de fin de J5), par `identity.terms_in_force()` seulement ; `leads.receive_brevo_event` — ligne brute du webhook Brevo, par `leads.record_brevo_event()` seulement, famille `leads` liée au pool d'`apps/api` (J7 décision 2, signé par `expert-cybersecurite` le 2026-10-14, revue de fin de J7). **Exception nommée « membre authentifié »** (signée par `expert-cybersecurite` le 2026-10-14, revue du commit 7 du J7) : `identity.member_email_change` — journal P1 des deux codes d'un changement d'adresse (`auth.email_change_confirm_old` avec le compte, `…_new` avec l'adresse seule) et leurs issues `queued` ⇒ `sent` ou `failed`, rien d'autre (`0123`) ; appelant unique `email-change.ts` (T6) ; le journal des envois synchrones d'`apps/api` appartient à `influx_auth` seul (`0015`, D43), et ses droits ne s'élargissent plus sans nouvelle signature : un autre journal côté membre passe par une fonction `SECURITY DEFINER` qui lit le destinataire en base | `influx_auth` | Le demandeur n'est pas encore authentifié (sauf l'exception nommée) | **Oui**, seules routes concernées avec E-2 |
 | **E-2** | **Vérification d'un facteur et écriture de ses effets.** Motifs : `identity.verify_code` — vérification du code d'un membre, compteurs, jeton d'inscription, session d'un compte existant ; `identity.complete_signup` — création du compte à la validation de l'écran 3 (`05` RG5, J5 ; `identity.provision_account`) et sa session ; `identity.backoffice_sign_in` — mot de passe et TOTP ou code de secours, session née en `aal2` ; `identity.backoffice_enroll_totp` — inscription du second facteur, codes de secours ; `identity.backoffice_reauthenticate` — ré-authentification R, fraîcheur écrite sur la ligne de session ; `identity.member_reauthenticate` — code frais d'un membre connecté, marqueur d'une finalité sur sa session (`05` RG57, J7 décision 4, signé par `expert-cybersecurite` le 2026-10-14, revue de fin de J7) | `influx_auth` | Le compte n'existe pas encore, ou la session à créer ou à rafraîchir ne peut pas l'être par le rôle de l'utilisateur sans lui donner le moyen de se forger une preuve | **Oui** |
 | **E-3** | `leads.drain_outbox` — consommation de la file, appels Brevo et Apollo, mise à jour des statuts | `influx_worker` | Aucun utilisateur ne déclenche l'opération | **Non** |
-| **E-4** | `maintenance.run_periodic` — péremption des badges, relances, purges, vérification de la chaîne, expiration des verrous et des codes | `influx_worker` | Tâches de fond | **Non** |
-| **E-5** | `privacy.execute_request` — export ou anonymisation au titre d'une demande RGPD validée | `influx_privacy` | Écritures transverses sur des lignes qui n'appartiennent pas à l'appelant | **Non** : déclenché par une tâche, après validation `2V` + `R` par un `admin` |
-| **E-6** *(signée par `expert-cybersecurite` le 2026-10-06, revue groupée de fin de J4, avec `0016`)* | `ops.record_telemetry` — surveillance interne D60 : groupes et occurrences d'erreurs, métriques par minute (`0016`), écrits **hors** de la transaction de l'utilisateur ; aucune lecture métier, aucune ligne d'audit (rien d'un sujet métier n'est écrit) | `influx_ops` | Une erreur doit pouvoir être enregistrée alors que la transaction de l'utilisateur a échoué, sans donner aux rôles métier le moindre droit sur `ops` | **Non** : vidage périodique en mémoire par `apps/api`, jamais dans une requête |
+| **E-4** | `maintenance.run_periodic` — péremption des badges, relances, purges, vérification de la chaîne, expiration des verrous et des codes ; *depuis le J9 (commit 8, `0147`, signé par `expert-cybersecurite` le 2026-10-27, revue de fin de J9)* : surveillance active de D60 — battement du worker, résultats de la sonde, relevé des connexions, lecture agrégée des mesures et états des alertes techniques (`15` RG165), par les fonctions de `ops` seulement, aucune ligne d'audit | `influx_worker` | Tâches de fond | **Non** |
+| **E-5** | `privacy.execute_request` — export ou anonymisation au titre d'une demande RGPD validée | `influx_privacy` | Écritures transverses sur des lignes qui n'appartiennent pas à l'appelant | **Non** : déclenché par une tâche, après validation `2V` + `R` par un `admin`, **ou** après la double validation du membre pour son propre effacement (D72) |
+| **E-6** *(signée par `expert-cybersecurite` le 2026-10-06, revue groupée de fin de J4, avec `0016`)* | `ops.record_telemetry` — surveillance interne D60 : groupes et occurrences d'erreurs, métriques par minute (`0016`), écrits **hors** de la transaction de l'utilisateur ; aucune lecture métier, aucune ligne d'audit (rien d'un sujet métier n'est écrit) ; *depuis le J9 (commit 8, `0147`, signé par `expert-cybersecurite` le 2026-10-27, revue de fin de J9)* : compteurs de signaux du webhook Brevo et surveillance du battement du worker (AL50, état de l'alerte sous verrou), toujours sans lecture métier | `influx_ops` | Une erreur doit pouvoir être enregistrée alors que la transaction de l'utilisateur a échoué, sans donner aux rôles métier le moindre droit sur `ops` | **Non** : vidage périodique en mémoire par `apps/api`, jamais dans une requête |
 
 **Cinq entrées, pas une de plus.** Tout ajout à cette liste est une modification de ce document,
 signée par `expert-cybersecurite`.
+
+> **Lectures de l'écran « Santé technique » (`0148`, J9 commit 9, signées par `expert-cybersecurite`
+> le 2026-10-27).** Ce ne sont **pas** des opérations élevées : cinq fonctions `STABLE SECURITY DEFINER`
+> `backoffice.ops_*` (propriétaire `influx_maintenance_definer`, `EXECUTE` à `influx_admin` seul),
+> appelées dans la session `admin` de la requête, non journalisées (état technique, aucune personne ;
+> seul l'uuid d'un compte sort, l'identification passe par la fiche journalisée). Le propriétaire reçoit
+> des lectures en colonnes sur `ops.error_groups`, `ops.error_occurrences` (message, pile, requête,
+> compte, contenus déjà nettoyés par `scrub.ts`), `ops.probe_results` et `ops.probe_results_hourly`.
+> Un commercial est refusé et journalisé (`ops.read_health`, CA63).
 
 > **Révision signée par `expert-cybersecurite` le 2026-09-27 (EC-5 de `21` §3).** E-1 et E-2
 > nommaient une seule opération chacune ; or le compte naît à l'écran 3 (`05` RG5), et le canal de
@@ -1177,7 +1187,7 @@ première chose que je vérifierai à la revue du Lot 4, et c'est un test de CI 
 
 **Ce que le journal contient — et ce qu'il ne contient pas.** Qui, quand, quelle conversation, quel
 écran, participant ou non, identifiant de requête, bornes de pagination. **Jamais le contenu d'un
-message**, jamais un extrait, jamais un aperçu. Journaliser l'accès, pas la donnée (`CLAUDE.md` §9).
+message**, jamais un extrait, jamais un aperçu. Journaliser l'accès, pas la donnée (`CLAUDE.md` §6).
 
 **Une ligne par appel**, sans regroupement ni temporisation. Au volume du pilote (quelques centaines
 de lectures par jour), l'économie de lignes ne vaut pas la perte de précision. Un `read_session_id`
@@ -1256,7 +1266,7 @@ rend l'absence de second facteur proportionnée.
 | **A-7** | **Le code n'apparaît jamais dans l'objet de l'e-mail** et l'e-mail ne contient **aucun lien de connexion** | Un objet d'e-mail s'affiche sur un écran verrouillé et dans les aperçus. Et un lien cliquable ramène tous les défauts du lien magique qu'on a écartés |
 | **A-8** | L'e-mail indique explicitement : **« INFLUX ne vous demandera jamais ce code »**, l'heure de la demande et le contexte (navigateur, pays approximatif) | Rend l'ingénierie sociale visible par la victime |
 | **A-9** | **Le cookie de session porte un identifiant opaque, jamais un JWT autoportant.** La session est une ligne en base avec `revoked_at` | **BLOQUANT (B4).** Un jeton autoportant ne se révoque pas avant expiration. Sur une plateforme où l'on suspend des comptes et où le rôle est lu en base pour cette raison même, laisser la session survivre à la suspension serait incohérent |
-| **A-10** | **Re-authentification par un nouveau code** pour trois actions : changer l'adresse e-mail, exporter ses données, supprimer son compte. *Preuve (définitive, `expert-cybersecurite`, revue de fin de J7, 2026-10-14) :* marqueur lié à la session et à la finalité, à usage unique, valable 300 s, consommé dans la transaction de l'action (`05` RG57) | Ce sont les trois actions qu'un attaquant ayant un accès temporaire à la boîte voudrait faire |
+| **A-10** | **Re-authentification par un nouveau code** pour trois actions : changer l'adresse e-mail, exporter ses données, supprimer son compte. *Preuve (définitive, `expert-cybersecurite`, revue de fin de J7, 2026-10-14) :* marqueur lié à la session **de la requête** (claim `session_id`, `influx.current_session_id()` ; *J9, J7S-1, `0144` : jamais une autre session ouverte du même compte*) et à la finalité, à usage unique, valable 300 s, consommé dans la transaction de l'action (`05` RG57) | Ce sont les trois actions qu'un attaquant ayant un accès temporaire à la boîte voudrait faire |
 | **A-11** | **Le changement d'adresse exige une confirmation depuis l'ancienne ET la nouvelle adresse** | Sans cela, dix minutes d'accès à la boîte suffisent à s'approprier le compte **définitivement** |
 | **A-12** | **Notification par e-mail de toute connexion depuis un nouvel appareil**, et écran « mes sessions actives » avec déconnexion globale | Faible (la notification part dans la boîte compromise), mais c'est la seule trace que la victime peut voir a posteriori. Coût minime |
 
@@ -1307,7 +1317,7 @@ Conditions de mise en œuvre :
 **Verdict : VALIDÉ, avec une reformulation honnête de ce que cela protège.**
 
 Je confirme l'exigence : un contrôle uniquement dans `apps/api` serait **un masquage d'interface
-déguisé**, exactement ce que `CLAUDE.md` §9 et la skill `backoffice-ops` interdisent.
+déguisé**, exactement ce que `CLAUDE.md` §6 et la skill `backoffice-ops` interdisent.
 
 Deux précisions qui font partie de ma validation.
 
@@ -1382,13 +1392,13 @@ si la cible est contrôlable.
 | **PP-3** | **Méthodes limitées** à `GET`, `POST`, `PATCH`, `PUT`, `DELETE`. `CONNECT` et `TRACE` refusés | Le détournement du passe-plat en proxy générique |
 | **PP-4** | **`redirect: 'manual'`.** Une redirection renvoyée par `apps/api` n'est jamais suivie ; elle est relayée telle quelle au navigateur | Le pivot SSRF par redirection |
 | **PP-5** | **Liste blanche d'en-têtes relayés** — `cookie`, `content-type`, `accept`, `accept-language`, `idempotency-key`, **`origin`, `sec-fetch-site`** — et **suppression explicite** de tout en-tête `x-*` non listé, en particulier **`x-middleware-subrequest`**. *`origin` et `sec-fetch-site` ajoutés le 2026-09-25 (revue de sécurité de fin de J1, A4) : le JavaScript d'un navigateur ne peut pas les forger ; `apps/api` en a besoin pour le contrôle d'origine des écritures (ci-dessous)*. ***`user-agent` ajouté le 2026-09-27 (`05` Q14), sous une forme contrôlée*** *: retransmis **sous le nom `client-user-agent`** (comme `client-request-id`, PP-7), seulement s'il correspond à `^[\x20-\x7E]{1,512}$` — sinon rien —, sans troncature ni analyse ; jamais sous son propre nom. `apps/api` le lit après le secret interne, le résume en une valeur de liste fermée, ne stocke que ce résumé et ne journalise ni l'un ni l'autre (`21` §4, « Revue de sécurité des commits 1 à 4 du J3 »)*. ***`brevo-webhook-token` ajouté le 2026-10-13 (J7, décision 1, EC-12)*** *: jeton du webhook Brevo, relayé tel quel et jamais lu par le passe-plat ; `apps/api` ne le vérifie que sur sa route unique, pour la surface `web`* | CVE-2025-29927 et ses successeurs. Ce n'est pas théorique : c'est exactement la faille citée au §3 du document `02`. Et, par le contrôle d'origine, la falsification de requête inter-sites (CSRF) |
-| **PP-6** | **L'adresse du client a une source unique : l'en-tête `x-real-ip` écrit par l'entrée de Railway — jamais `x-forwarded-for`**, qui n'est ni lu ni relayé. Une fonction unique `clientAddress()` de `src/server/relay.ts` lit `x-real-ip`, ne le garde que s'il a la forme `^[0-9A-Fa-f:.]{2,45}$`, et le retransmet à `apps/api` sous `x-real-ip` ; absent ou de forme invalide, il n'est pas transmis. Que l'entrée de Railway écrase bien une valeur fournie par le client est **constaté sur `staging` au J4** (ci-dessous). *Révisé le 2026-09-25 (revue de sécurité de fin de J1, A5, EC-21 de `21`) : remplace « réécrits par le passe-plat depuis les informations de connexion » — un gestionnaire de route Next.js n'a pas accès à la connexion* | La falsification de l'adresse IP utilisée par la limitation de débit et par les journaux |
+| **PP-6** | **L'adresse du client a une source unique : l'en-tête `x-real-ip` écrit par l'entrée de Railway — jamais `x-forwarded-for`**, qui n'est ni lu ni relayé. Une fonction unique `clientAddress()` de `src/server/relay.ts` (dans `packages/web-platform` depuis PL-09) lit `x-real-ip`, ne le garde que s'il a la forme `^[0-9A-Fa-f:.]{2,45}$`, et le retransmet à `apps/api` sous `x-real-ip` ; absent ou de forme invalide, il n'est pas transmis. Que l'entrée de Railway écrase bien une valeur fournie par le client est **constaté sur `staging` au J4** (ci-dessous). *Révisé le 2026-09-25 (revue de sécurité de fin de J1, A5, EC-21 de `21`) : remplace « réécrits par le passe-plat depuis les informations de connexion » — un gestionnaire de route Next.js n'a pas accès à la connexion* | La falsification de l'adresse IP utilisée par la limitation de débit et par les journaux |
 | **PP-7** | **`x-request-id` est généré par le passe-plat.** Si le client en fournit un, il est conservé séparément sous `client-request-id` et n'est **jamais** utilisé comme identifiant d'audit | Un client qui choisirait l'identifiant de corrélation de nos journaux : empoisonnement de piste |
 | **PP-8** | **En-tête secret interne partagé** (`x-influx-internal`), vérifié par `apps/api`, qui refuse toute requête sans lui | Défense en profondeur si le réseau privé Railway devient joignable, par erreur de configuration ou par une autre application déployée dans le projet. Coût : une variable d'environnement |
 | **PP-9** | **Taille maximale de corps : 1 Mo. Délai maximal : 10 s.** Aucun téléversement ne transite par ce chemin (E1 va directement au Storage) | Épuisement mémoire du front |
 | **PP-10** | **`Set-Cookie` relayé verbatim**, en lisant la liste brute (`getSetCookie()`), jamais re-sérialisé par une API de cookies. Le passe-plat **ne fabrique ni ne modifie jamais un cookie**. Assertion : le nom relayé commence par `__Host-`, sinon la réponse est rejetée | La perte silencieuse d'attributs (`SameSite`, `Partitioned`, `Priority`) lors d'une re-sérialisation, et une éventuelle erreur de `apps/api` |
 | **PP-11** | **`dynamic = 'force-dynamic'`, `revalidate = 0`, `Cache-Control: no-store`** sur toutes les réponses. Aucune mise en cache de route ni de données | **Le scénario catastrophe** : une réponse authentifiée servie à un autre utilisateur par un cache. C'est arrivé à d'autres, c'est instantanément massif, et c'est indétectable sans test dédié (§8, T7) |
-| **PP-12** | **Aucune logique.** Vérifié par la garde de liste blanche de G5, et par **un test d'empreinte du fichier** qui échoue à toute modification | La dérogation du fondateur supprime les Pull Requests : il faut un mécanisme qui force un geste conscient sur ce fichier. Coût : une heure |
+| **PP-12** | **Aucune logique.** Vérifié par la garde de liste blanche de G5, et par **un test d'empreinte du fichier** qui échoue à toute modification. *Depuis PL-09 (arbitrage PL-07) : empreintes sur les octets là où ils vivent, la route dans chaque front, `relay.ts`, `api-client.ts`, `config/server.ts` et `relay-client.ts` dans `packages/web-platform`, dont les `exports` figés ferment la chaîne ; aucune logique déplacée* | La dérogation du fondateur supprime les Pull Requests : il faut un mécanisme qui force un geste conscient sur ce fichier. Coût : une heure |
 
 **Compléments côté `apps/api` — revue de sécurité de fin de J1 (2026-09-25).** Le passe-plat
 transmet ; c'est `apps/api` qui décide. Mise en œuvre et jalons : `21` §4 (J1-J, J3, J4).
@@ -1408,7 +1418,11 @@ transmet ; c'est `apps/api` qui décide. Mise en œuvre et jalons : `21` §4 (J1
   `WRITE_ORIGIN_EXCEPTIONS` (`apps/api/src/platform/write-origin.ts`, test : une seule) : cette
   méthode, cette route, la surface `web`. En contrepartie, la route s'authentifie avant toute
   lecture du corps (adresse dans les plages Brevo, deux jetons en temps constant) et ne lit ni
-  cookie ni session. Une seconde entrée est une décision d'`expert-cybersecurite`.
+  cookie ni session. Une seconde entrée est une décision d'`expert-cybersecurite`. *Surface `web`
+  seule (J9, J7S-3) :* appelée sous le secret d'une autre surface (le relais du backoffice relaie
+  tout `/api/*`), la route répond **`404`, la réponse d'une route inconnue**, avant le contrôle
+  d'origine et avant toute vérification qui lui est propre, quels que soient `origin` et
+  `sec-fetch-site` ; une exception de la liste n'existe que pour sa surface.
 
 *A5 — Adresse du client dans `apps/api`, exigée au J3 (constat au J4).*
 1. **`trustProxy: false`** ; `request.ip` n'est **jamais** utilisé.
@@ -1683,10 +1697,10 @@ qui ne s'exécute pas à chaque fois n'existe pas.
 | **T10** | **En-têtes et CSP.** Jeu d'en-têtes exact par surface, en mode production. Aucun `'unsafe-inline'` dans `script-src`. `X-Robots-Tag` présent sur **toutes** les réponses du backoffice, y compris les erreurs et les redirections | L'en-tête oublié sur la page d'erreur, cas classique | 1 |
 | **T11** | **Secrets.** Analyse des artefacts de construction de `apps/web` et `apps/backoffice` : aucune occurrence de `SUPABASE_SECRET_KEY`, `BREVO_API_KEY`, `APOLLO_API_KEY`, `AUTH_TOKEN_SIGNING_SECRET`, `AUTH_THROTTLE_PEPPER` (*remplacent `SESSION_COOKIE_SECRET` le 2026-09-27, EC-24*), aucune chaîne ressemblant à un JWT. Analyse de secrets sur le dépôt et l'historique. `.env*` ignoré | La fuite par empaquetage : la variable lue au mauvais endroit se retrouve dans le bundle | 0 |
 | **T12** | **Dépendances.** Échec de la CI sur toute vulnérabilité **critique ou élevée**. **Exécution planifiée hebdomadaire**, pas seulement à chaque commit — une CVE publiée n'attend pas notre prochain commit. Dérogations dans un fichier dédié, chacune **avec une date d'expiration** ; une dérogation expirée fait échouer la CI | Une dérogation sans échéance est un mensonge différé | 0 |
-| **T13** | **Erreurs.** Aucune réponse 4xx ou 5xx ne contient de trace d'exécution, de fragment SQL, de nom d'hôte interne, de nom de table ni de version de composant. Seuls `code`, un message traduisible et `requestId` | `CLAUDE.md` §9 et la checklist de `security-rgpd-audit` | 1 |
+| **T13** | **Erreurs.** Aucune réponse 4xx ou 5xx ne contient de trace d'exécution, de fragment SQL, de nom d'hôte interne, de nom de table ni de version de composant. Seuls `code`, un message traduisible et `requestId` | `CLAUDE.md` §6 et la checklist de `security-rgpd-audit` | 1 |
 | **T14** | **IDOR.** Pour chaque type d'objet, un utilisateur de chaque rôle tente de lire et de modifier un objet d'autrui en changeant l'identifiant ⇒ refus, **avec le même code de réponse** que pour un objet inexistant | Ne pas divulguer l'existence d'une ressource par la différence entre 403 et 404 | 2→5 |
 | **T15** | **Limitation de débit.** 429 effectif sur la connexion, l'inscription, la recherche, le détail de profil et les routes coûteuses. La limite est appliquée dans `apps/api`, **jamais** dans le front, et elle porte sur le compte **et** sur l'IP. *Ajout du 2026-09-25 (revue de fin de J1, A5) :* clé /32 en IPv4, /64 en IPv6, `::ffff:` ramené en IPv4 ; adresse absente ou invalide ⇒ compteur par e-mail et compteur global « adresse inconnue » ; aucune adresse en clair dans le flux de journal capturé | Une limite posée dans le front est contournée par le premier appel qui ne passe pas par le front | 1 |
-| **T16** | **Aucun calcul de commission.** Analyse statique : aucune multiplication d'un montant par une constante numérique dans `apps/` et `packages/`. `commission_rates` est vide et aucun rôle applicatif n'a de droit d'écriture dessus | `CLAUDE.md` §3 et §6, `01-intermediation-courtee.md` §7. C'est une règle métier **et** une règle d'intégrité | 0 |
+| **T16** | **Aucun calcul de commission.** Analyse statique : aucune multiplication d'un montant par une constante numérique dans `apps/` et `packages/`. `commission_rates` est vide et aucun rôle applicatif n'a de droit d'écriture dessus | `CLAUDE.md` §2, `01-intermediation-courtee.md` §7. C'est une règle métier **et** une règle d'intégrité | 0 |
 | **T17** | **Garde-fou `staging`.** Les quatre verrous du §6.8, chacun testé séparément, plus le refus de démarrage en production avec `dry_run` | `02-architecture` §12.4 | 1 |
 | **T18** | **Le cycle de révélation, moment par moment** (C(21a) à C(21d)). **a)** `has_function_privilege` sur `matching.reveal_identity(uuid)` est **faux pour les six rôles** — `influx_app`, les quatre rôles applicatifs et `influx_worker` — et un appel direct depuis chacun d'eux **échoue**. **b)** Un agent `aal2` valide une entrée : `status = 'approved'`, `identity_revealed_at` **reste nul**, **aucune ligne** dans `conversations`. **c)** Un agent qui n'est pas titulaire du verrou ⇒ refus. **d)** Une partie accepte : son seul horodatage est posé, celui de l'autre reste nul, rien n'est révélé, la réponse ne contient **aucun élément identifiant de l'autre partie**. **e)** Un tiers, puis un agent, puis un administrateur tentent d'enregistrer l'acceptation d'une partie ⇒ refus, **même code de réponse** qu'une mise en relation inexistante. **f)** La **seconde** acceptation produit, en une transaction, `identity_revealed_at`, l'événement chaîné, la conversation, **trois** participants, l'affaire et **deux** e-mails en file ; une panne simulée sur l'un des six ⇒ **aucun des six** ne subsiste. **g)** Deux acceptations **concurrentes** (la première et la seconde jouées en parallèle) ⇒ **une seule** révélation, **un seul** événement, **une seule** conversation. **h)** Un `UPDATE` direct de `identity_revealed_at`, `advertiser_accepted_at`, `creator_accepted_at` ou `status` par chacun des quatre rôles applicatifs ⇒ échec | Que l'invariant A2 / D16 ne dépende ni de la discipline d'un développeur, ni de l'ordre des appels, ni de l'absence de concurrence. **C'est le test le plus important du Lot 4** | 4 |
 | **T19** | **Cloisonnement des apartés** (D47, `04` §5.7.1 tests TA1 à TA8). **a)** `messages.channel` et `conversation_access_log.channel` n'ont **aucune valeur par défaut**. **b)** Sous `influx_creator` participant, les lignes `advertiser_private` de `messages`, `conversation_channel_activity` et `conversation_reads` renvoient **zéro ligne** alors qu'elles existent ; miroir sous `influx_advertiser`. **c)** Une insertion du créateur dans `advertiser_private` échoue par la politique ; la même insertion, politiques désactivées dans la base de test, échoue par la contrainte `messages_party_channel`. **d)** La réponse brute de chaque route membre de la messagerie (liste, fil, compteurs) est identique, octet pour octet hors horodatage de réponse, avant et après l'écriture d'un message dans l'aparté de **l'autre** partie — **même méthode que T1 : on teste la charge utile, pas une liste de champs**. **e)** Un message d'aparté laisse l'état `open`. **f)** Sous `influx_agent`, un signalement visant un message d'agent est invisible ; sous `influx_admin`, l'auteur ne voit pas celui qui le vise (C(27)) | Qu'un aparté ne fuie ni par un message, ni par un compteur, ni par un tri, ni par un changement d'état. **Le point d) est celui qui compte** : c'est lui qui attrape la fuite qu'on n'a pas anticipée | 4 |

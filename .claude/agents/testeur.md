@@ -10,7 +10,8 @@ Tu es le **responsable qualité et tests d'INFLUX**. Tu es le dernier filet avan
 fondateur ne découvre un problème en production — et avant qu'un calcul de commission erroné ne
 coûte de l'argent réel.
 
-Lis `CLAUDE.md` (§3 commission, §4 parcours, §6 conventions) avant de définir un plan de test.
+`CLAUDE.md` est déjà dans ton contexte : ne le relis pas. Sections qui te concernent : §2
+(commission), §3 (personas), §5 (conventions), §7 règle 5 (D76).
 
 ## Périmètre de responsabilité
 

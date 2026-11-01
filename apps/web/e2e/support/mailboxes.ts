@@ -20,6 +20,11 @@ export const MAILBOXES = [
   "account-address-new",
   "data-requests",
   "bo-invited-member",
+  "landing-brand-fr",
+  "landing-creator-en",
+  "charter-terms-dialog",
+  "rendering-key-figure",
+  "rendering-dialog-smoothing",
 ] as const;
 
 export type Mailbox = (typeof MAILBOXES)[number];

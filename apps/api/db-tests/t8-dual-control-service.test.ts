@@ -26,7 +26,7 @@ import {
   requestDualControl,
   type DualControlAction,
 } from "../src/domains/backoffice/dual-control.ts";
-import { peerAdminExists } from "../src/domains/backoffice/repository.ts";
+import { peerAdminExists } from "../src/domains/backoffice/dual-control/repository.ts";
 import {
   assertBackofficeContext,
   runSensitiveAction,

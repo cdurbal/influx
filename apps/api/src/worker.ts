@@ -6,6 +6,12 @@
 // commit 8). It opens NO port.
 // Started by `node apps/api/src/worker.ts` directly, so that SIGTERM reaches it (21 §4, J1-B):
 // the turn in progress finishes, the lines not begun go back to pending (02 §11.2, TM1.10).
+// Before the first turn, the start step (D68, then 05 RG162; 0146): the Brevo list ids of the
+// environment, then the settings in force; a deployed environment refuses to start without those
+// every sign-up needs (D67), with a non-zero exit code before the loop.
+// Beside the drain, the active monitoring of D60 (02 §20.5, 15 RG165; domains/ops/
+// worker-monitor.ts, J9 commit 8): the beat the api watches, the probe of the site every minute and the
+// technical alerts, sent directly to Brevo with the worker's own key.
 import { randomUUID } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
 import {
@@ -20,6 +26,7 @@ import {
   verifyPools,
   type WorkerDatabase,
 } from "./db/index.ts";
+import { sqlStateOf } from "./db/sql-state.ts";
 import type { Connector } from "./domains/leads/connector.ts";
 import { createApolloConnector } from "./domains/leads/connectors/apollo/index.ts";
 import {
@@ -32,20 +39,28 @@ import {
   processInboundEvent,
 } from "./domains/leads/inbound/processing.ts";
 import {
-  applyBrevoIdsFromEnvironment,
   createWorkerQueue,
-  givesBrevoIds,
   readApolloSubjectOf,
   readBrevoErasureSubjectOf,
   readBrevoSubjectOf,
+  startWorker,
 } from "./domains/leads/queue.ts";
-import type { OutboxDestination } from "./domains/leads/repository.ts";
+import type {
+  OutboxDestination,
+  WorkerStart,
+} from "./domains/leads/repository.ts";
+import { checkSettingsAtStart } from "./domains/leads/start-check.ts";
 import { createAuthOrphanPurge } from "./domains/maintenance/auth-orphan-purge.ts";
+import {
+  createHeartbeat,
+  createWorkerMonitor,
+} from "./domains/ops/worker-monitor.ts";
 import { createBrevoReads } from "./domains/maintenance/brevo-reads.ts";
 import { createBrevoReconciliation } from "./domains/maintenance/brevo-reconciliation.ts";
 import {
   createBrevoInboundPurge,
   createDataExportPurge,
+  createOpsRetention,
   createPeriodicScheduler,
   createPeriodicStore,
   type PeriodicLogger,
@@ -53,7 +68,11 @@ import {
   type PeriodicTask,
   type PeriodicTaskRunner,
 } from "./domains/maintenance/periodic.ts";
-import { createPrivacyExecutor } from "./domains/privacy/execution.ts";
+import {
+  createPrivacyExecutor,
+  readErasureNotificationSubjectOf,
+} from "./domains/privacy/execution.ts";
+import { createTransactionalSender } from "./platform/brevo-transactional.ts";
 import { createLogger } from "./platform/logger.ts";
 import {
   createGoTrueUserDirectory,
@@ -62,7 +81,9 @@ import {
 
 /**
  * The connectors of this process: Brevo (J6 commit 4), with the worker's own key (EC-19), and
- * Apollo (commit 5), with APOLLO_API_KEY, the worker's only; without it, skipped_no_credentials.
+ * Apollo (commit 5), with APOLLO_API_KEY, the worker's only; without it, a qualified line fails
+ * credentials_missing in a deployed environment (05 RG160), and is skipped_no_credentials in
+ * development.
  */
 function connectorsOf(
   config: WorkerConfig,
@@ -81,6 +102,8 @@ function connectorsOf(
         readBrevoSubjectOf(database, randomUUID(), line, worker),
       readErasureSubject: (line) =>
         readBrevoErasureSubjectOf(database, randomUUID(), line, worker),
+      readErasureNotificationSubject: (requestId) =>
+        readErasureNotificationSubjectOf(database, requestId),
       logger,
     },
   );
@@ -98,8 +121,8 @@ function connectorsOf(
 
 /**
  * E-4 (decision 3 of J7): the reconciliation with the worker's Brevo key, the purge of GoTrue with
- * its own secret key; a task without its key is never claimed. The 30-day purge and the purge of
- * the exports (J8 commit 8) need neither.
+ * its own secret key; a task without its key is never claimed. The 30-day purge, the purge of the
+ * exports (J8 commit 8) and the retention of ops (J9 commit 8) need neither.
  */
 function periodicSchedulerOf(
   config: WorkerConfig,
@@ -112,6 +135,8 @@ function periodicSchedulerOf(
   const runners: Partial<Record<PeriodicTask, PeriodicTaskRunner>> = {
     brevo_inbound_purge: createBrevoInboundPurge(store),
     data_export_purge: createDataExportPurge(store),
+    // 0147: the roll-up and the purges of the monitoring of D60 (02 §20.5, §20.8)
+    ops_retention: createOpsRetention(store),
   };
   if (config.brevoTransport.apiKey !== null) {
     runners.brevo_reconciliation = createBrevoReconciliation({
@@ -173,6 +198,78 @@ async function pause(ms: number, signal?: AbortSignal): Promise<void> {
   }
 }
 
+/** The wait between two start steps while the database cannot be reached. */
+const START_RETRY_MS = 5_000;
+
+/** The codes of a connection that failed (Node, postgres.js), as opposed to an answer. */
+const CONNECTION_FAILURE_CODES = new Set([
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "ETIMEDOUT",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "CONNECT_TIMEOUT",
+  "CONNECTION_CLOSED",
+  "CONNECTION_ENDED",
+  "CONNECTION_DESTROYED",
+]);
+
+/**
+ * The database could not be reached (a connection failure, or a connection exception 08, 57P):
+ * to wait for. Any other error, an answer of the database or not, stops the worker.
+ */
+function isUnreachable(error: unknown): boolean {
+  const state = sqlStateOf(error);
+  if (state !== null) {
+    return state.startsWith("08") || state.startsWith("57P");
+  }
+  let current: unknown = error;
+  for (let depth = 0; depth < 4 && current instanceof Error; depth += 1) {
+    const code: unknown = (current as Error & { code?: unknown }).code;
+    if (typeof code === "string" && CONNECTION_FAILURE_CODES.has(code)) {
+      return true;
+    }
+    current = current.cause;
+  }
+  return false;
+}
+
+/**
+ * The start step, before the first turn. A refusal of the database (an id of the environment
+ * refused, 22023) stops the worker: it never runs against a base that contradicts its environment
+ * (D68). An unreachable base is waited for, so that a short outage does not use up the restarts of
+ * Railway. null: refused, or stopped while waiting.
+ */
+async function startStep(
+  config: WorkerConfig,
+  database: WorkerDatabase,
+  logger: ReturnType<typeof createLogger>,
+  signal: AbortSignal,
+): Promise<WorkerStart | null> {
+  while (!signal.aborted) {
+    try {
+      const start = await startWorker(database, randomUUID(), config.brevoIds);
+      if (Object.keys(config.brevoIds.listIds).length > 0) {
+        logger.info(
+          { changedKeys: start.changedKeys },
+          "leads.settings.environment_applied",
+        );
+      }
+      return start;
+    } catch (error) {
+      if (!isUnreachable(error)) {
+        logger.fatal({ err: error }, "leads.settings.environment_refused");
+        return null;
+      }
+      logger.warn({ err: error }, "database unreachable at start, waiting");
+      await pause(START_RETRY_MS, signal);
+    }
+  }
+  return null;
+}
+
 async function main(): Promise<void> {
   const config = readConfig();
   if (config === null) {
@@ -215,24 +312,6 @@ async function main(): Promise<void> {
     logger.warn({ err: error }, "database unreachable at startup");
   }
 
-  // D68: the Brevo ids of the environment, before the first turn; never run against a base that
-  // contradicts them (a refusal or an unreachable base stops the worker, Railway restarts it).
-  if (givesBrevoIds(config.brevoIds)) {
-    try {
-      const changedKeys = await applyBrevoIdsFromEnvironment(
-        database,
-        randomUUID(),
-        config.brevoIds,
-      );
-      logger.info({ changedKeys }, "leads.settings.environment_applied");
-    } catch (error) {
-      logger.fatal({ err: error }, "leads.settings.environment_refused");
-      await closeDatabase(database);
-      process.exitCode = 1;
-      return;
-    }
-  }
-
   const stop = new AbortController();
   const requestStop = (signal: NodeJS.Signals): void => {
     logger.info({ signal }, "stop requested, finishing the current turn");
@@ -241,7 +320,32 @@ async function main(): Promise<void> {
   process.once("SIGTERM", requestStop);
   process.once("SIGINT", requestStop);
 
+  // D68, then 05 RG162 (0146): the Brevo ids of the environment, then the settings in force, read
+  // now (never cached, RG81), judged for the destinations this process holds a key of.
+  const start = await startStep(config, database, logger, stop.signal);
+  if (start === null) {
+    await closeDatabase(database);
+    process.exitCode = stop.signal.aborted ? 0 : 1;
+    return;
+  }
   const worker = workerIdentifier(config.instance);
+  const connectors = connectorsOf(config, database, worker, logger);
+  const destinationsWithKey = Object.values(connectors)
+    .filter((connector) => connector.hasCredentials)
+    .map((connector) => connector.destination);
+  if (
+    !checkSettingsAtStart(
+      start.settings,
+      destinationsWithKey,
+      config.settingsRequiredAtStart,
+      logger,
+    )
+  ) {
+    await closeDatabase(database);
+    process.exitCode = 1;
+    return;
+  }
+
   const directory =
     config.supabase === null
       ? null
@@ -256,28 +360,64 @@ async function main(): Promise<void> {
     { privacyExecution: privacy !== null },
     "data subject requests execution configured",
   );
+  // 02 §11.3: the beat of this process, which the api watches (AL50).
+  const heartbeat = createHeartbeat({
+    database,
+    workerId: worker,
+    instance: config.instance,
+    version: config.version,
+    startedAt: start.startedAt,
+    logger,
+    elapsed: () => performance.now(),
+  });
+  // 02 §20.5: the probe and the technical alerts, every minute, beside the drain (a long turn never
+  // delays them), with a sender of their own on the worker's key (never the queue).
+  const monitor = createWorkerMonitor({
+    database,
+    probe: config.probe,
+    sender: createTransactionalSender(
+      {
+        mode: config.brevo.mode,
+        testRecipients: config.brevo.testRecipients,
+        apiKey: config.brevoTransport.apiKey,
+        baseUrl: config.brevoTransport.baseUrl,
+        senderEmail: config.brevoTransport.senderTransactional,
+      },
+      { logger },
+    ),
+    onCallRecipients: config.alerting.onCallRecipients,
+    instance: config.instance,
+    logger,
+    sleep: pause,
+  });
+  logger.info({ probe: config.probe !== null }, "monitoring started");
   logger.info({ worker }, "outbox drain started");
   const drain = createOutboxDrain({
     queue: createWorkerQueue(database),
-    connectors: connectorsOf(config, database, worker, logger),
+    connectors,
     inbound: createInboundProcessor({
       process: (requestId) => processInboundEvent(database, requestId),
       logger,
     }),
     periodic: {
+      // A long periodic task is no stopped worker: the beat goes on meanwhile.
       async tick(signal) {
-        await periodic.tick(signal);
-        await privacy?.tick(signal);
+        await heartbeat.during(async () => {
+          await periodic.tick(signal);
+          await privacy?.tick(signal);
+        });
       },
     },
+    heartbeat,
     worker,
+    startedAt: start.startedAt,
     sync: config.sync,
     logger,
     now: () => Date.now(),
     sleep: pause,
   });
   // A turn runs to its end even when a stop is requested meanwhile (02 §11.2).
-  await drain.run(stop.signal);
+  await Promise.all([drain.run(stop.signal), monitor.run(stop.signal)]);
   await closeDatabase(database);
   logger.info("worker stopped");
 }

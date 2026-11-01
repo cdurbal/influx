@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "../styles/tokens.css";
+@import "@influx/ui/tokens.css";
 
 /* Base styles only, written with token variables (01 §4). No literal value here (CA22). */
 @layer base {
@@ -10,6 +10,16 @@
     font-family: var(--font-base);
     font-size: var(--text-md);
     line-height: var(--leading-body);
+  }
+
+  /*
+   * Tailwind v4 leaves buttons on the default cursor: every live button takes the hand, as a link
+   * does (founder, 2026-10-30). A disabled one keeps the not-allowed cursor of its own classes.
+   */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  input:is([type="submit"], [type="button"], [type="reset"]):not(:disabled) {
+    cursor: pointer;
   }
 
   /*
@@ -36,6 +46,30 @@
     );
   }
 
+  /*
+   * The member shell below lg (17 §2.2; 02 §21.5 point 4): the bottom bar adds the iOS gesture zone
+   * to its height, the content keeps clear of the bar, and a focused element is never scrolled
+   * under it (WCAG 2.4.11). env() has no utility class, hence these base rules, written in tokens;
+   * from lg the shell's own classes cancel the first two (lg:pb-0), and the third does no harm.
+   */
+  [data-member-nav] {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  [data-member-main] {
+    padding-bottom: calc(
+      var(--size-nav-bottom-height) + var(--spacing-5) +
+        env(safe-area-inset-bottom)
+    );
+  }
+
+  html:has([data-member-nav]) {
+    scroll-padding-bottom: calc(
+      var(--size-nav-bottom-height) + var(--spacing-5) +
+        env(safe-area-inset-bottom)
+    );
+  }
+
   /* Page scroll is locked while the mobile menu is open (02 §3.2). */
   html[data-mobile-menu="open"] {
     overflow: hidden;
@@ -46,20 +80,13 @@
     outline-offset: var(--focus-ring-offset);
   }
 
+  /* Titles and main take the focus from the app, never from the keyboard: no ring (20 §11.8). */
+  :where(h1, h2, h3, h4, main)[tabindex="-1"]:focus-visible {
+    outline: none;
+  }
+
   /* Dark surfaces (section 15, footer, phone frame): inverse focus ring (03 §2.6). */
   [data-surface="inverse"] :focus-visible {
     outline-color: var(--color-focus-ring-inverse);
   }
-}
-
-/*
- * Logo marquee (section 5): paused on hover, on focus inside the block or by its button
- * (02 §2.5, WCAG 2.2.2). Deliberately outside any cascade layer: inside @layer base, the
- * animate-marquee utility (layer utilities) reset animation-play-state through the animation
- * shorthand and the pause had no effect (09 A2). Unlayered styles win over every layer.
- */
-[data-marquee]:hover [data-marquee-track],
-[data-marquee]:focus-within [data-marquee-track],
-[data-marquee][data-paused="true"] [data-marquee-track] {
-  animation-play-state: paused;
 }

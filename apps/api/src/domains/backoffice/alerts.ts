@@ -5,14 +5,18 @@
 // (0130 recipient_roles): AL24 the responsible agent and the admins, AL25 to AL27 the admins. No
 // alert leaves for Brevo or Apollo (RG70), none sanctions anything (RG65).
 import type { Alert } from "@influx/contracts/backoffice-actions";
-import type { SyncDestination } from "@influx/contracts/backoffice-accounts";
 import type {
-  ContactDestination,
+  SyncDestination,
+  SyncSetting,
+} from "@influx/contracts/backoffice-accounts";
+import type {
+  ConfigurationFailureRow,
   DestinationHealthRow,
   FailuresPastDelayRow,
   QueueDelayRow,
   ReconciliationRow,
-} from "./repository.ts";
+} from "./alerts/repository.ts";
+import type { ContactDestination } from "./sync-replay/repository.ts";
 
 const DESTINATION: Readonly<Record<ContactDestination, SyncDestination>> = {
   brevo_contact: "brevo",
@@ -104,6 +108,7 @@ export function failureAlerts(rows: readonly FailuresPastDelayRow[]): Alert[] {
       code: "AL24",
       cause: "failures_past_delay",
       destination: DESTINATION[row.destination],
+      setting: null,
       count: row.count,
       since: row.oldestAt,
     }));
@@ -124,6 +129,7 @@ export function destinationAlerts(
         code: "AL25",
         cause: "access_key_refused",
         destination: DESTINATION[row.destination],
+        setting: null,
         count: row.waiting,
         since: row.oldestKeyRefusedAt,
       });
@@ -134,12 +140,32 @@ export function destinationAlerts(
         code: "AL25",
         cause: row.quotaErrors > 0 ? "quota_exceeded" : "destination_down",
         destination: DESTINATION[row.destination],
+        setting: null,
         count: row.waiting,
         since: row.oldestRetryingAt,
       });
     }
   }
   return alerts;
+}
+
+/**
+ * AL25 for a configuration failure (05 RG160 point 3, CA82): from the first failed line, one alert
+ * per setting at fault, named, never its value. It falls by itself once RG161 re-queued the lines.
+ */
+export function configurationAlerts(
+  rows: readonly ConfigurationFailureRow[],
+): Alert[] {
+  return rows
+    .filter((row) => row.count > 0)
+    .map((row) => ({
+      code: "AL25",
+      cause: "configuration_missing",
+      destination: DESTINATION[row.destination],
+      setting: row.setting satisfies SyncSetting,
+      count: row.count,
+      since: row.oldestAt,
+    }));
 }
 
 /** AL26 (RG79): the share of lines in time over one sliding day, below the minimum share. */
@@ -157,6 +183,7 @@ export function delayAlerts(
       code: "AL26",
       cause: "queue_late",
       destination: DESTINATION[row.destination],
+      setting: null,
       count: row.eligible - row.inTime,
       since: row.oldestLateAt,
     }));
@@ -179,6 +206,7 @@ export function reconciliationAlerts(
         code: "AL27",
         cause: "reconciliation_failed",
         destination: null,
+        setting: null,
         count: 0,
         since: run.finishedAt,
       },
@@ -190,6 +218,7 @@ export function reconciliationAlerts(
           code: "AL27",
           cause: "unsubscribe_gap",
           destination: null,
+          setting: null,
           count: run.gap,
           since: run.finishedAt,
         },

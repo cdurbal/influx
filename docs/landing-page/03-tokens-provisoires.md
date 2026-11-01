@@ -1,5 +1,15 @@
 # Landing page INFLUX : tokens de design
 
+> **Portée depuis le 2026-10-28 (D73) : la vitrine seulement.** Les valeurs de ce document ne
+> régissent plus que la **vitrine** (page d'accueil publique, pages légales publiques, page 404,
+> bandeau cookies), avec sa direction D59. Les **espaces connectés** — espaces marque et créateur,
+> parcours d'inscription et de connexion, backoffice — suivent la **charte KEO Emerald** :
+> correspondance des tokens, contrastes, typographie et composants dans
+> `docs/mvp/20-direction-design.md` §11 ; mécanique (un même `tokens.css`, bloc
+> `[data-theme="keo"]`) dans `docs/mvp/02-architecture-3-espaces.md` §21. Les noms de rôle restent
+> communs, seules les valeurs diffèrent. L'alignement du vert de la vitrine sur celui des espaces
+> (`#1dd68a`) est soumis au fondateur (`20` §11.9, F2).
+
 > **Statut : D6 tranchée (fondateur, 2026-09-17).** Palette **dark theme**, recalibrée par
 > `expert-ux` le même jour suite à l'arbitrage du fondateur : le dark devient le thème par défaut
 > de toute la plateforme (pas seulement la landing), fond noir profond nuancé (jamais de noir
@@ -11,11 +21,11 @@
 > **Préparé par :** `expert-ux` (skill `design-system-influx`), étape 2 du plan validé le 2026-09-16.
 > **Sources :** `CLAUDE.md` §5.1 et §13 (D6), `00-cadrage.md` (CA22, CA25), skill `design-system-influx`.
 > **Documents liés :** `02-ux-wireframes.md` (usage des tokens par bloc), `05-images.md`.
-> **Implémentation de référence :** `apps/web/src/styles/tokens.css`.
+> **Implémentation de référence :** `packages/ui/src/styles/tokens.css`.
 
 ## 1. Règles d'emploi
 
-1. **Un seul fichier de tokens** dans le code, en variables CSS (`apps/web/src/styles/tokens.css`).
+1. **Un seul fichier de tokens** dans le code, en variables CSS (`packages/ui/src/styles/tokens.css`).
    Chaque token ci-dessous devient `--<nom-du-token>` (exemple : `--color-text-primary`).
 2. **Aucune valeur littérale ailleurs** (couleur, taille, espacement, rayon, ombre, durée) : les
    composants n'utilisent que les tokens (CA22).

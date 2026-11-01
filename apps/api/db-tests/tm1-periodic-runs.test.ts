@@ -312,6 +312,26 @@ describe("ops.filter_auth_orphans() (04 §9: on auth_user_id, never on an addres
     ]);
   });
 
+  it("refuses to name any orphan while identity.accounts reads empty (55000, J7S-2 breaker)", async () => {
+    const results = await scenario(async (tx) => {
+      const run = await claimed(tx, "auth_orphan_purge");
+      const statement =
+        "select * from ops.filter_auth_orphans($1::uuid, $2::smallint, array[gen_random_uuid()])";
+      const witness = await asWorker(tx, statement, [run.run_id, run.attempt]);
+      // A policy gone wrong: every account hidden from the owner of the function (rolled back).
+      await tx`alter policy accounts_maintenance_definer_select on identity.accounts
+                 using (false)`;
+      return [
+        witness,
+        await asWorker(tx, statement, [run.run_id, run.attempt]),
+      ];
+    });
+    expect(results).toEqual([
+      { outcome: "rows", count: 1 },
+      { outcome: "error", code: NOT_IN_PREREQUISITE_STATE },
+    ]);
+  });
+
   it.each([
     [
       "1001 ids",

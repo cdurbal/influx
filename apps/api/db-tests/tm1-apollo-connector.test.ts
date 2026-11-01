@@ -6,9 +6,12 @@
 // no restart), lead-pipeline T6 (Apollo down has no effect on Brevo), RG85 (nothing of Apollo's own
 // data in the database), the empty list of prospecting countries of staging (skipped, in dry_run as
 // in live) and the guards of the read. The connector alone is tested in tests/apollo-connector.
+// J8T-3 (J9 commit 10): CA58 end to end, the answer of a create lost after Apollo kept the contact,
+// the line failed, replayed by leads.replay_outbox_lines() as an agent, then the worker: one contact.
 // Accounts and lines are COMMITTED by the migration role; the other pending lines of the stack are
-// held while the worker claims, as in tm1-brevo-connector. The five settings touched are restored
-// after the file.
+// held while the worker claims, as in tm1-brevo-connector. The three Apollo settings touched are
+// restored after the file; brevo_list_ids is set and left as set (0145: a Brevo id never goes back
+// to null, 05 RG163 (1)); no template id is written (D69).
 import {
   startApolloDouble,
   type ApolloDouble,
@@ -52,16 +55,14 @@ import type {
   OutboxDestination,
 } from "../src/domains/leads/repository.ts";
 import { createLogger } from "../src/platform/logger.ts";
-import { migrationRole } from "./support.ts";
+import { actAsInternal, localSuperuser, migrationRole } from "./support.ts";
 
 const INVALID_PARAMETER = "22023";
 const LEGAL_NAME = "Atelier Vandenbroucke";
 const SETTING_KEYS = [
   "apollo_scope",
   "apollo_legal_basis",
-  "apollo_prospecting_countries",
-  "brevo_list_ids",
-  "brevo_template_ids",
+  "apollo_excluded_countries",
 ];
 const CONSENT_REQUIRED = { default: "consentement_requis", by_country: {} };
 const LEGITIMATE_INTEREST = {
@@ -119,15 +120,11 @@ afterAll(async () => {
 beforeEach(async () => {
   apollo.reset();
   brevo.reset();
-  // The settings of 0103, Belgium validated for prospection: each case changes what it tests.
+  // The settings of 0103, no country excluded (0141): each case changes what it tests.
   await setting("apollo_scope", "annonceurs_et_createurs_pro");
   await setting("apollo_legal_basis", CONSENT_REQUIRED);
-  await setting("apollo_prospecting_countries", ["BE"]);
+  await setting("apollo_excluded_countries", []);
   await setting("brevo_list_ids", { advertisers: 2, creators: 3 });
-  await setting("brevo_template_ids", {
-    "account.welcome_advertiser": 11,
-    "account.welcome_creator": 12,
-  });
 });
 
 afterEach(async () => {
@@ -288,6 +285,7 @@ async function turn(options: TurnOptions = {}): Promise<number> {
         readBrevoSubjectOf(database, randomUUID(), line, worker),
       readErasureSubject: (line) =>
         readBrevoErasureSubjectOf(database, randomUUID(), line, worker),
+      readErasureNotificationSubject: () => Promise.resolve(null),
       logger,
     },
   );
@@ -316,9 +314,11 @@ async function turn(options: TurnOptions = {}): Promise<number> {
       apollo_contact: apolloConnector,
     },
     worker,
+    startedAt: "2026-01-01T00:00:00.000Z",
     sync: {
       mode: options.mode ?? "live",
       recipientFilter: { kind: "allowlist", domains: ["example.test"] },
+      keyRequired: false,
     },
     logger,
     now: () => Date.now(),
@@ -393,8 +393,8 @@ describe("a qualified lead reaches Apollo through the real queue, once", () => {
 });
 
 describe("05 CA42 to CA45, TM1.6: the settings of each consumption, without a restart", () => {
-  it("CA44: an empty list of prospecting countries skips country_not_validated, nothing sent", async () => {
-    await setting("apollo_prospecting_countries", []);
+  it("RG84 (0141): an excluded country skips country_excluded, nothing sent", async () => {
+    await setting("apollo_excluded_countries", ["BE"]);
     const account = await createAccount({ role: "advertiser" });
     const { apollo_contact: line } = await insertLines(account, [
       "apollo_contact",
@@ -402,13 +402,13 @@ describe("05 CA42 to CA45, TM1.6: the settings of each consumption, without a re
     await turn();
     expect(await lineRow(line)).toMatchObject({
       status: "skipped",
-      skip_reason: "country_not_validated",
+      skip_reason: "country_excluded",
     });
     expect(apollo.requests).toEqual([]);
   });
 
-  it("staging as it is: empty countries in dry_run, the line is skipped (the dry_run marker is for a success only), never a dry success", async () => {
-    await setting("apollo_prospecting_countries", []);
+  it("an excluded country in dry_run: the line is skipped (the dry_run marker is for a success only), never a dry success", async () => {
+    await setting("apollo_excluded_countries", ["BE"]);
     const account = await createAccount({ role: "advertiser" });
     const { apollo_contact: line } = await insertLines(account, [
       "apollo_contact",
@@ -417,7 +417,7 @@ describe("05 CA42 to CA45, TM1.6: the settings of each consumption, without a re
     expect(await lineRow(line)).toMatchObject({
       status: "skipped",
       dry_run: false,
-      skip_reason: "country_not_validated",
+      skip_reason: "country_excluded",
     });
     expect(apollo.requests).toEqual([]);
     expect(await apolloState(account)).toBeUndefined();
@@ -503,6 +503,85 @@ describe("05 CA42 to CA45, TM1.6: the settings of each consumption, without a re
       skip_reason: "prospection_opposed",
     });
     expect(apollo.requests).toEqual([]);
+  });
+});
+
+describe("05 CA58 (J8T-3): a replayed line creates no duplicate at Apollo", () => {
+  /** An active agent (0132: the replay requires one, in aal2), deactivated after the case. */
+  async function newAgent(): Promise<string> {
+    const id = randomUUID();
+    await migration.begin(async (tx) => {
+      await tx`
+        insert into identity.accounts
+          (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
+           display_name, is_adult_attested, adult_attested_at, declared_status)
+        values (${id}, ${randomUUID()}, ${`tm1-apollo-agent-${id}@example.test`}, now(), 'FR',
+                'fr', 'Camille', true, now(), 'business')`;
+      await tx`
+        insert into identity.account_roles (account_id, role) values (${id}, 'agent')`;
+      await tx`
+        insert into identity.agent_profiles
+          (account_id, first_name, activated_at, mfa_enrolled_at, mfa_factor_id)
+        values (${id}, 'Camille', now(), now(), ${randomUUID()})`;
+    });
+    return id;
+  }
+
+  it("the create answered too late: the line fails, the agent replays it, the worker finds the same contact", async () => {
+    const account = await createAccount({ role: "advertiser" });
+    const { apollo_contact: line } = await insertLines(account, [
+      "apollo_contact",
+    ]);
+    // Apollo keeps the contact, its answer never reaches the worker (time-out).
+    apollo.setDefaultDelay(2_000);
+    await turn({ apolloTimeoutMs: 500 });
+    apollo.setDefaultDelay(0);
+    expect(apollo.contacts.size).toBe(1);
+    expect(await lineRow(line)).toMatchObject({
+      status: "pending",
+      provider_contact_id: null,
+    });
+    // The series of attempts exhausted (RG79), as the drain closes it.
+    await migration`
+      update leads.outbox_events
+         set status = 'failed', attempts = 10, completed_at = now()
+       where id = ${line}`;
+
+    const agent = await newAgent();
+    try {
+      const outcomes = await localSuperuser().begin((tx) =>
+        actAsInternal(
+          tx,
+          "influx_agent",
+          { accountId: agent, role: "agent", aal: "aal2" },
+          () => tx<{ outcome: string }[]>`
+            select outcome from leads.replay_outbox_lines(
+              ${[line]}::bigint[], 'provider_recovered')`,
+        ),
+      );
+      expect(outcomes.map((row) => row.outcome)).toEqual(["requeued"]);
+      expect(await turn()).toBe(1);
+    } finally {
+      await migration`
+        update identity.agent_profiles
+           set is_active = false, deactivated_at = now(), deactivated_by_account_id = account_id
+         where account_id = ${agent}`;
+    }
+
+    // Two creates, deduplicated by address (run_dedupe): one contact, its id now kept.
+    expect(
+      apollo.requests.map((request) => `${request.method} ${request.path}`),
+    ).toEqual(["POST /api/v1/contacts", "POST /api/v1/contacts"]);
+    expect(apollo.contacts.size).toBe(1);
+    const [known] = [...apollo.contacts.keys()];
+    expect(await lineRow(line)).toMatchObject({
+      status: "succeeded",
+      provider_contact_id: known,
+    });
+    expect(await apolloState(account)).toEqual({
+      last_status: "succeeded",
+      external_contact_id: known,
+    });
   });
 });
 

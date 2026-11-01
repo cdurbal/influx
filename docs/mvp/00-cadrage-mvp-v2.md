@@ -10,13 +10,13 @@
 > de mise en relation courtée et le suivi de la commission. Il contraint toutes les spécifications
 > qui suivent.
 >
-> **Mise à jour du 2026-09-24 (revue de cohérence, `19-revue-de-coherence-2026-09-24.md`).** Les
+> **Mise à jour du 2026-09-24 (revue de cohérence, `archives/19-revue-de-coherence-2026-09-24.md`).** Les
 > décisions **D2, D5, D12, D18, D37** (le 2026-09-18), **D39**, **D40**, **D41** (le 2026-09-18) et
 > **D43** (le 2026-09-19) sont tranchées : ce document les présentait encore comme ouvertes, c'est
 > corrigé ci-dessous. Le fondateur a précisé le **statut du code existant (D44)** : hors landing page,
 > c'est une **maquette jetable** ; le Lot 0 repart de zéro. Les contradictions relevées entre ce
 > document et les spécifications suivantes sont tranchées le même jour (**D42, D45 à D51**,
-> `CLAUDE.md` §13) : révélation à la **seconde acceptation** des parties (D45) ; **jamais d'e-mail ni
+> `decisions.md`) : révélation à la **seconde acceptation** des parties (D45) ; **jamais d'e-mail ni
 > de téléphone** montrés aux membres (D46) ; **apartés** privés du commercial conservés et annoncés
 > (D47) ; **aucun taux ni net estimé affiché** pendant le pilote (D48).
 
@@ -195,7 +195,7 @@ même conversation à trois, la même traçabilité.
 > **Interdiction formelle au MVP : aucun taux et aucun calcul de commission dans le code.** Le
 > commercial saisit le montant négocié et le montant de commission convenu ; l'application les
 > enregistre et les additionne, elle ne les calcule pas. Un moteur de commission écrit à moitié
-> violerait la règle « un seul endroit » de `CLAUDE.md` §6 et serait pire que rien.
+> violerait la règle « un seul endroit » de `CLAUDE.md` §2 et serait pire que rien.
 
 ---
 
@@ -362,7 +362,7 @@ Chaque lot passe la définition du « prêt à livrer » (skill `test-strategy`)
   chaîné, table des taux de commission **créée et vide**) ; droits d'accès testés ; **surveillance
   de production instrumentée, entièrement interne** — journaux, erreurs, temps de réponse (**D60**,
   `02` §20). **Départ de zéro** : le code existant, hors landing page, est une maquette jetable qui
-  n'est ni reprise ni adaptée (**D44**, `CLAUDE.md` §16).
+  n'est ni reprise ni adaptée (**D44**, `CLAUDE.md` §12).
 - **Valeur :** un compte de démonstration par rôle se connecte réellement dans les trois espaces, et
   le déploiement est automatique.
 - **Dépendances :** documents `00` (celui-ci), `01`, `02`, `03` et `04` validés ; **accord explicite
@@ -559,7 +559,7 @@ juridiquement indéfendable.
 
 ## 11. Décisions ouvertes
 
-Le suivi officiel est dans `CLAUDE.md` §13. Ce tableau reprend les décisions nées de ce cadrage.
+Le suivi officiel est dans `decisions.md`. Ce tableau reprend les décisions nées de ce cadrage.
 
 ### 11.1 Nouvelles décisions
 
@@ -573,7 +573,7 @@ Le suivi officiel est dans `CLAUDE.md` §13. Ce tableau reprend les décisions n
 | **D34** | Libellé, niveaux et péremption du badge | `product-owner` + `expert-conformite-rgpd` | Ouverte | Lot 2 |
 | **D35** | Plafonds et conditions de la saisie libre d'e-mails | `expert-conformite-rgpd` (**veto**) + Fondateur | Ouverte | Lot 5 |
 | **D36** | Langue du backoffice | Fondateur | Ouverte | Lot 5 |
-| **D37** | Méthode d'authentification (mot de passe, lien magique, connexion via un tiers) | `architecte` + `expert-cybersecurite` + `expert-ux` | **Tranchée (2026-09-18)** : code à 6 chiffres par e-mail pour les membres, mot de passe + TOTP au backoffice (`CLAUDE.md` §13) | — |
+| **D37** | Méthode d'authentification (mot de passe, lien magique, connexion via un tiers) | `architecte` + `expert-cybersecurite` + `expert-ux` | **Tranchée (2026-09-18)** : code à 6 chiffres par e-mail pour les membres, mot de passe + TOTP au backoffice (`decisions.md`) | — |
 | **D38** | Masse critique de profils avant d'ouvrir la recherche (ordre de grandeur : 30 publiés, 5 par thématique) | `chef-de-projet` + Fondateur | Ouverte | Lot 3 |
 | **D39** | **Délai maximal de traitement de la file de validation** : combien de temps au maximum, ce qui se passe au-delà, horaires couverts | **Fondateur** + `product-owner` | **Tranchée (2026-09-18)** : **1 jour ouvré** ; au-delà, voir D49 | — |
 | **D40** | **Masquage symétrique des coordonnées.** D16 masque aujourd'hui les pseudos et liens des créateurs seulement. Faut-il masquer de la même façon les coordonnées directes des marques tant que la mise en relation n'est pas ouverte ? L'identité de l'entreprise resterait publique | **Fondateur** + `expert-ux` + `expert-conformite-rgpd` | **Tranchée (2026-09-18) : oui.** Ce qui est visible après l'ouverture : **D46** | — |

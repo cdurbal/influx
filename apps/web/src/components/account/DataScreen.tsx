@@ -15,7 +15,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import {
   CARD_CLASSES,
-  ERROR_CLASSES,
   FIELD_CLASSES,
   HELP_CLASSES,
   INFO_CLASSES,
@@ -23,19 +22,23 @@ import {
   LABEL_CLASSES,
   LEAD_CLASSES,
   SECONDARY_BUTTON_CLASSES,
-  TITLE_CLASSES,
 } from "@/components/auth/auth-classes";
+import { CARD_TITLE } from "@/components/member/ui/heading-classes";
+import { Notice } from "@/components/member/ui/Notice";
+import { PageHeader } from "@/components/member/ui/PageHeader";
 import { saveTextFile } from "@/browser/save-file";
+import { cn } from "@/components/ui/class-names";
 import { Link } from "@/i18n/navigation";
+import { TriangleAlertIcon } from "@/components/ui/icons";
 import { LEGAL_DOCUMENT_SLUGS } from "@/lib/legal-documents";
 import {
   ACTIONS_CLASSES,
+  DANGER_NOTICE_CLASSES,
   DESTRUCTIVE_BUTTON_CLASSES,
   INLINE_LINK_CLASSES,
   LIST_CLASSES,
   META_CLASSES,
   SECTION_TITLE_CLASSES,
-  SUCCESS_CLASSES,
   TWO_LISTS_CLASSES,
 } from "./account-classes";
 import {
@@ -51,6 +54,7 @@ import {
 } from "./account-view";
 import type { AccountContext } from "./AccountShell";
 import { FreshCode } from "./FreshCode";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 type Phase =
   | { kind: "overview" }
@@ -74,7 +78,7 @@ const PURPOSES = {
   erasure: "account_deletion",
 } as const;
 
-export function DataScreen({ me, online }: AccountContext) {
+export function DataScreen({ me, online, accountDeleted }: AccountContext) {
   const t = useTranslations("account.data");
   const tAccount = useTranslations("account");
   const locale = useLocale();
@@ -174,7 +178,17 @@ export function DataScreen({ me, online }: AccountContext) {
         setNotice({ kind: "unavailable" });
         return;
       }
+      if (result.data.outcome === "erasure_authorised") {
+        // D72: every session is closed and the cookie cleared; the account is erased by the worker
+        accountDeleted();
+        return;
+      }
       const { request, outcome } = result.data;
+      if (request.type === "erasure") {
+        // an erasure is only ever authorised by the member's own code (D72): nothing to announce here
+        setNotice({ kind: "unavailable" });
+        return;
+      }
       setRequests([
         request,
         ...(requests ?? []).filter((item) => item.id !== request.id),
@@ -192,7 +206,7 @@ export function DataScreen({ me, online }: AccountContext) {
   if (phase.kind === "freshCode") {
     return (
       <>
-        <h1 className={TITLE_CLASSES}>{t("title")}</h1>
+        <PageHeader title={t("title")} />
         <FreshCode
           purpose={PURPOSES[phase.type]}
           email={me.email}
@@ -207,7 +221,7 @@ export function DataScreen({ me, online }: AccountContext) {
   if (phase.kind === "downloadCode") {
     return (
       <>
-        <h1 className={TITLE_CLASSES}>{t("title")}</h1>
+        <PageHeader title={t("title")} />
         <FreshCode
           purpose="data_export"
           email={me.email}
@@ -234,29 +248,25 @@ export function DataScreen({ me, online }: AccountContext) {
 
   return (
     <>
-      <h1 className={TITLE_CLASSES}>{t("title")}</h1>
+      <PageHeader title={t("title")} />
       <p className={LEAD_CLASSES}>{t("lead")}</p>
       {notice?.kind === "received" ? (
-        <p role="status" className={SUCCESS_CLASSES}>
-          {t(`done.${notice.request.type}`, {
+        <Notice tone="success">
+          {t("done.access", {
             date: formatDate(notice.request.dueAt, locale),
           })}
-        </p>
+        </Notice>
       ) : null}
       {notice?.kind === "alreadyOpen" ? (
-        <p role="status" className={INFO_CLASSES}>
-          {t("done.alreadyOpen")}
-        </p>
+        <Notice tone="info">{t("done.alreadyOpen")}</Notice>
       ) : null}
       {notice?.kind === "unavailable" ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {t("unavailable")}
-        </p>
+        <ErrorNotice>{t("unavailable")}</ErrorNotice>
       ) : null}
       {notice?.kind === "saved" ? (
-        <p role="status" className={SUCCESS_CLASSES}>
+        <Notice tone="success">
           {t("download.saved", { name: notice.name })}
-        </p>
+        </Notice>
       ) : null}
       {notice?.kind === "exportGone" ? (
         <p role="alert" className={INFO_CLASSES}>
@@ -264,15 +274,9 @@ export function DataScreen({ me, online }: AccountContext) {
         </p>
       ) : null}
       {notice?.kind === "downloadFailed" ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {t("download.failed")}
-        </p>
+        <ErrorNotice>{t("download.failed")}</ErrorNotice>
       ) : null}
-      {unreadable ? (
-        <p role="alert" className={ERROR_CLASSES}>
-          {tAccount("unavailable")}
-        </p>
-      ) : null}
+      {unreadable ? <ErrorNotice>{tAccount("unavailable")}</ErrorNotice> : null}
       {dataExport !== null && dataExport.available ? (
         <section aria-labelledby={ids.download} className={CARD_CLASSES}>
           <h2 id={ids.download} className={SECTION_TITLE_CLASSES}>
@@ -308,7 +312,9 @@ export function DataScreen({ me, online }: AccountContext) {
         <p className={HELP_CLASSES}>{t("export.text")}</p>
         <p className={HELP_CLASSES}>{t("export.how")}</p>
         {openAccess !== null ? (
-          <p className={INFO_CLASSES}>{t("export.open")}</p>
+          <Notice tone="info" announce={false}>
+            {t("export.open")}
+          </Notice>
         ) : (
           <button
             type="button"
@@ -325,11 +331,22 @@ export function DataScreen({ me, online }: AccountContext) {
       </section>
       <section aria-labelledby={ids.delete} className={CARD_CLASSES}>
         <h2 id={ids.delete} className={SECTION_TITLE_CLASSES}>
-          {t("delete.title")}
+          <TriangleAlertIcon
+            aria-hidden="true"
+            className="mr-2 inline size-(--size-icon-md) align-text-bottom text-feedback-error-icon"
+          />
+          {t("danger.title")}
         </h2>
-        <p className={HELP_CLASSES}>{t("delete.text")}</p>
+        <h3 className={CARD_TITLE}>{t("danger.deleteTitle")}</h3>
+        <DangerNotice />
+        {(dataExport !== null && dataExport.available) ||
+        openAccess !== null ? (
+          <p className={HELP_CLASSES}>{t("danger.exportFirst")}</p>
+        ) : null}
         {openErasure !== null ? (
-          <p className={INFO_CLASSES}>{t("delete.open")}</p>
+          <Notice tone="info" announce={false}>
+            {t("delete.open")}
+          </Notice>
         ) : (
           <button
             type="button"
@@ -338,13 +355,31 @@ export function DataScreen({ me, online }: AccountContext) {
               setPhase({ kind: "confirmDeletion" });
             }}
             aria-disabled={!online || undefined}
-            className={DESTRUCTIVE_BUTTON_CLASSES}
+            className={cn(DESTRUCTIVE_BUTTON_CLASSES, "self-start")}
           >
-            {t("delete.action")}
+            {t("danger.deleteTitle")}
           </button>
         )}
       </section>
     </>
+  );
+}
+
+/** The warning of the deletion: the container's own background, a red border, icon and bold text (P7). */
+function DangerNotice() {
+  const t = useTranslations("account.data");
+  return (
+    <div className={DANGER_NOTICE_CLASSES}>
+      <TriangleAlertIcon
+        aria-hidden="true"
+        className="size-(--size-icon-md) shrink-0 text-feedback-error-icon"
+      />
+      <p>
+        {t.rich("danger.warning", {
+          strong: (chunks) => <strong>{chunks}</strong>,
+        })}
+      </p>
+    </div>
   );
 }
 
@@ -425,7 +460,7 @@ function ConfirmDeletion({
 
   return (
     <>
-      <h1 className={TITLE_CLASSES}>{t("title")}</h1>
+      <PageHeader title={t("title")} />
       <div className={TWO_LISTS_CLASSES}>
         <section aria-labelledby={ids.gone} className={CARD_CLASSES}>
           <h2 id={ids.gone} className={SECTION_TITLE_CLASSES}>
@@ -455,7 +490,7 @@ function ConfirmDeletion({
         </section>
       </div>
       <p className={HELP_CLASSES}>{t("newAccount")}</p>
-      <p className={INFO_CLASSES}>{t("manual")}</p>
+      <DangerNotice />
       <form noValidate onSubmit={submit} className={CARD_CLASSES}>
         <div className={FIELD_CLASSES}>
           <label htmlFor={ids.word} className={LABEL_CLASSES}>
@@ -478,9 +513,9 @@ function ConfirmDeletion({
           />
         </div>
         {wordError ? (
-          <p id={ids.wordError} role="alert" className={ERROR_CLASSES}>
+          <ErrorNotice id={ids.wordError}>
             {t("wordError", { word })}
-          </p>
+          </ErrorNotice>
         ) : null}
         <div className={ACTIONS_CLASSES}>
           <button

@@ -2,7 +2,7 @@
 // RG32, RG110, RG120, RG121, D63). The checks are those of packages/contracts/src/signup.ts, which
 // apps/api applies again (RG10): the browser's check is a comfort, never the only one. Nothing here
 // carries an amount, a rate or a commission (05 RG9).
-import type { RelayResult } from "@/browser/relay-client";
+import type { RelayResult } from "@influx/web-platform/relay-client";
 import type { SignupDoor, UiLocale } from "@influx/contracts/auth";
 import {
   CONSENT_WORDING_KEYS,

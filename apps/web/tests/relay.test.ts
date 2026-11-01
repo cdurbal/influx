@@ -19,7 +19,8 @@ import {
   vi,
 } from "vitest";
 import * as route from "@/app/api/[...path]/route";
-import { relay } from "@/server/relay";
+import * as health from "@/app/health/route";
+import { relay } from "@influx/web-platform/relay";
 
 type Received = {
   method: string;
@@ -662,5 +663,102 @@ describe("PP-4, PP-10, PP-11: the answer", () => {
     ]) {
       expect(response.headers.get(dropped), dropped).toBeNull();
     }
+  });
+});
+
+// EC-22 (02 §20.10): the public health route of web, from GET /v1/status through the relay.
+describe("GET /health of web (EC-22)", () => {
+  // J9S-6: the route keeps the answer of /v1/status 5 s. Each case starts a clean window: the clock
+  // (Date only, the sockets keep their timers) moves a minute ahead of the previous case.
+  let clock = Date.UTC(2026, 9, 31, 12, 0, 0);
+  beforeEach(() => {
+    clock += 60_000;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(clock);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function probe(headers: Record<string, string> = {}): Promise<Response> {
+    return health.GET(
+      new Request("http://localhost:3000/health", { method: "GET", headers }),
+    );
+  }
+
+  it("is never cached, rendered at each request, on Node.js", () => {
+    expect(health.runtime).toBe("nodejs");
+    expect(health.dynamic).toBe("force-dynamic");
+    expect(health.revalidate).toBe(0);
+  });
+
+  it("answers 200 with an empty body when apps/api answers /v1/status", async () => {
+    const response = await probe({
+      "x-real-ip": "203.0.113.7",
+      cookie: "__Host-influx-session=abc",
+      authorization: "Bearer x",
+      "user-agent": "probe/1.0",
+    });
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(received).toHaveLength(1);
+    expect(received[0]?.method).toBe("GET");
+    expect(received[0]?.url).toBe("/v1/status");
+    // Only the caller's address goes along, for its rate (18 T15): never a cookie nor a header of its.
+    expect(received[0]?.headers["x-real-ip"]).toBe("203.0.113.7");
+    expect(received[0]?.headers.cookie).toBeUndefined();
+    expect(received[0]?.headers.authorization).toBeUndefined();
+    expect(received[0]?.headers["client-user-agent"]).toBeUndefined();
+  });
+
+  it.each([500, 429, 401])(
+    "answers 503 with an empty body when apps/api answers %i",
+    async (status) => {
+      handler = (_request, response) => {
+        response.writeHead(status, { "content-type": "application/json" });
+        response.end(JSON.stringify({ error: { code: "internal" } }));
+      };
+      const response = await probe();
+      expect(response.status).toBe(503);
+      expect(await response.text()).toBe("");
+    },
+  );
+
+  it("J9S-6: two probes less than 5 s apart make one call to apps/api, a later one a new call", async () => {
+    expect((await probe()).status).toBe(200);
+    vi.setSystemTime(clock + 4_900);
+    expect((await probe()).status).toBe(200);
+    expect(received).toHaveLength(1);
+    vi.setSystemTime(clock + 5_100);
+    expect((await probe()).status).toBe(200);
+    expect(received).toHaveLength(2);
+  });
+
+  it("J9S-6: a flood spends one call, and a failure is kept for the window like a success", async () => {
+    handler = (_request, response) => {
+      response.writeHead(429, { "content-type": "application/json" });
+      response.end(JSON.stringify({ error: { code: "rate_limited" } }));
+    };
+    const answers = await Promise.all(
+      Array.from({ length: 25 }, () => probe({ "x-real-ip": "203.0.113.9" })),
+    );
+    expect(answers.map((answer) => answer.status)).toEqual(
+      Array.from({ length: 25 }, () => 503),
+    );
+    handler = answerOk;
+    expect((await probe()).status).toBe(503);
+    expect(received).toHaveLength(1);
+    vi.setSystemTime(clock + 5_100);
+    expect((await probe()).status).toBe(200);
+    expect(received).toHaveLength(2);
+  });
+
+  it("answers 503 with an empty body when apps/api is unreachable", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    process.env.INFLUX_API_INTERNAL_URL = "http://127.0.0.1:1";
+    const response = await probe();
+    expect(response.status).toBe(503);
+    expect(await response.text()).toBe("");
   });
 });

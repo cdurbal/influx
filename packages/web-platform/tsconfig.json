@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "allowJs": false,
+    "jsx": "react-jsx",
+    // DOM for the relay client, the collector and the marker (base lib); Node for the one read of
+    // process.env, in src/config/server.ts.
+    "types": ["node"]
+  },
+  "include": ["src"]
+}

@@ -10,6 +10,8 @@
 //   brevo_inbound_purge    daily: the raw Brevo lines 30 days after their outcome
 //   data_export_purge      hourly: the content of an export expired or downloaded three times
 //                          (runbook demandes-rgpd §4, J8 commit 8), its digest kept
+//   ops_retention          daily: the hourly roll-up of the metrics of D60 and the purges of ops
+//                          (02 §20.5, §20.8; 0147, J9 commit 8), by bounded steps
 //
 // A task without its key in this process (no Brevo key, no GoTrue key) is never claimed. A task
 // that fails closes its run `failed` with the counts reached and a closed code in pino (D60): the
@@ -34,6 +36,7 @@ import {
   purgeBrevoInboundEvents,
   purgeDataExports,
   recordAuthOrphanPurge,
+  runOpsRetention,
   recordReconciliationEvent,
   type PeriodicCounts,
   type PeriodicRun,
@@ -65,6 +68,8 @@ export const INBOUND_PURGE_MAX_BATCHES = 20;
 /** Exports emptied per call, and calls per run at most (a handful a day at the Lot 1). */
 export const EXPORT_PURGE_BATCH = 100;
 export const EXPORT_PURGE_MAX_BATCHES = 10;
+/** Bounded steps of the retention of ops per run; beyond, the next day goes on (0147). */
+export const OPS_RETENTION_MAX_STEPS = 50;
 
 const INVALID_PARAMETER_VALUE = "22023";
 
@@ -93,6 +98,8 @@ export type PeriodicStore = {
   ): Promise<RealignmentCandidate[]>;
   purgeBrevoInbound(run: PeriodicRun, limit: number): Promise<number>;
   purgeDataExports(run: PeriodicRun, limit: number): Promise<number>;
+  /** One bounded step of ops.run_ops_retention() (0147): its counts, `more` = 1 to go on. */
+  opsRetentionStep(run: PeriodicRun): Promise<PeriodicCounts>;
 };
 
 export function createPeriodicStore(database: WorkerDatabase): PeriodicStore {
@@ -186,8 +193,20 @@ export function createPeriodicStore(database: WorkerDatabase): PeriodicStore {
         const count = await purgeDataExports(tx, run, limit);
         return { value: count, auditSubject: count > 0 ? run.runId : null };
       }),
+
+    opsRetentionStep: (run) =>
+      elevated(async (tx) => {
+        const counts = await runOpsRetention(tx, run);
+        const effect = Object.entries(counts).some(
+          ([name, value]) => name !== "more" && value > 0,
+        );
+        return { value: counts, auditSubject: effect ? run.runId : null };
+      }),
   };
 }
+
+/** The codes of the breaker of the GoTrue purge (auth-orphan-purge.ts, J7S-2). */
+const BREAKER_CODE_PREFIX = "breaker.";
 
 /** A task that stops: its closed code goes to pino, the run is closed `failed`. */
 export class PeriodicTaskError extends Error {
@@ -323,12 +342,18 @@ export function createPeriodicScheduler(dependencies: {
         return;
       }
       outcome = "failed";
+      const errorCode = failureCodeOf(error);
+      // AL60 (15 RG165): a stop by the breaker of the GoTrue purge (J7S-2) is counted on its run,
+      // the trace the base keeps of it (0117 counts are snake_case: breaker.x is breaker_x).
+      if (errorCode.startsWith(BREAKER_CODE_PREFIX)) {
+        counts[`breaker_${errorCode.slice(BREAKER_CODE_PREFIX.length)}`] = 1;
+      }
       logger.error(
         {
           task,
           runId: run.runId,
           attempt: run.attempt,
-          errorCode: failureCodeOf(error),
+          errorCode,
         },
         "maintenance.periodic.failed",
       );
@@ -381,6 +406,27 @@ export function createDataExportPurge(
       const purged = await store.purgeDataExports(run, EXPORT_PURGE_BATCH);
       counts.purged += purged;
       if (purged < EXPORT_PURGE_BATCH) {
+        return;
+      }
+    }
+  };
+}
+
+/**
+ * 0147: the retention of ops (02 §20.5, §20.8), by bounded steps, each in its own transaction, until
+ * the database says there is no more; the counts of the steps are added up.
+ */
+export function createOpsRetention(store: PeriodicStore): PeriodicTaskRunner {
+  return async (run, counts, signal) => {
+    for (let step = 0; step < OPS_RETENTION_MAX_STEPS; step += 1) {
+      checkNotStopped(signal);
+      const stepCounts = await store.opsRetentionStep(run);
+      for (const [name, value] of Object.entries(stepCounts)) {
+        if (name !== "more") {
+          counts[name] = (counts[name] ?? 0) + value;
+        }
+      }
+      if ((stepCounts.more ?? 0) === 0) {
         return;
       }
     }

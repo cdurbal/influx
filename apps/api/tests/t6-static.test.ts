@@ -106,10 +106,16 @@ describe("T6.1: A = U and U ⊆ P", () => {
       "leads.receive_brevo_event": [
         "apps/api/src/domains/leads/brevo-webhook.ts",
       ],
+      // J9 commit 8: the beat, the probe and the technical alerts of the worker (15 RG165)
       "maintenance.run_periodic": [
         "apps/api/src/domains/maintenance/periodic.ts",
+        "apps/api/src/domains/ops/worker-monitor.ts",
       ],
-      "ops.record_telemetry": ["apps/api/src/domains/ops/recorder.ts"],
+      // J9 commit 8: the api watches the worker (AL50), on the ops pool, no business read
+      "ops.record_telemetry": [
+        "apps/api/src/domains/ops/recorder.ts",
+        "apps/api/src/domains/ops/worker-watch.ts",
+      ],
       "privacy.execute_request": ["apps/api/src/domains/privacy/execution.ts"],
       "support.report_delivery_issue": [
         "apps/api/src/domains/identity/code-delivery-report.ts",

@@ -1,4 +1,4 @@
-// The browser journeys of the J5 (docs/mvp/21 §J5 "Tests"; jalons/j5-fiche.md, commit 6): the two
+// The browser journeys of the J5 (docs/mvp/21 §J5 "Tests"; archives/jalons/j5-fiche.md, commit 6): the two
 // nominal sign-ups, one per door, and the D66 rules that only a real browser shows (reload, change
 // of language, the resume that gives up); since J7 "mon compte", since J8 the backoffice v0
 // (e2e/backoffice.spec.ts). Everything runs on the loopback, against the local Supabase stack: the
@@ -11,8 +11,8 @@
 //   double: only the addresses of e2e/support/mailboxes.ts receive a code (verrou 3). No env file
 //   is ever loaded (16 RG148). The local stack's secret key is
 //   read by e2e/start-api.ts from the Supabase CLI, never from a file.
-// - apps/web and apps/backoffice, built then started (CI: started only, `pnpm check` has just
-//   built them).
+// - apps/web and apps/backoffice, built then started (CI: started only, the `e2e` job of ci.yml
+//   has just built them).
 // The secrets below are fake values for this run only, like those of apps/api/tests/helpers.ts.
 import { defineConfig, devices } from "@playwright/test";
 import { randomUUID } from "node:crypto";
@@ -45,14 +45,36 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   // Never retried: a retry would hide a flaky journey, and its address is already signed up.
   retries: 0,
+  // J8T-8: two workers, but e2e/backoffice.spec.ts is serial and the only file that seeds an admin
+  // (its degraded dual control deactivates every other admin for a while). A new file that needs
+  // an admin joins it, never a file of its own; and no other job ever shares this local stack
+  // while the journeys run (ci.yml: the `e2e` job starts a stack of its own).
   workers: 2,
   forbidOnly: process.env.CI !== undefined,
-  reporter: process.env.CI !== undefined ? "list" : "dot",
+  // J8T-6: the JSON report is read after the run by the floor of executed tests (e2e/case-floors.ts,
+  // `pnpm test:e2e`). Written at the end of the run, after Playwright emptied test-results/.
+  reporter: [
+    [process.env.CI !== undefined ? "list" : "dot"],
+    ["json", { outputFile: "test-results/e2e-report.json" }],
+  ],
   use: {
     baseURL: WEB_ORIGIN,
     trace: "retain-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  // TK3.1 (D75; 18 §12.6) reads what the axe passes of "chromium" recorded: a project of its own,
+  // run once they all passed. Its spec navigates nowhere.
+  projects: [
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      testIgnore: /charter-headings\.spec\.ts$/,
+    },
+    {
+      name: "charter-headings",
+      testMatch: /charter-headings\.spec\.ts$/,
+      dependencies: ["chromium"],
+    },
+  ],
   webServer: [
     {
       command: "node ../../packages/test-kit/scripts/brevo-double.ts",

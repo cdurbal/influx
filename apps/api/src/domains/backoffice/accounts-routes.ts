@@ -2,8 +2,12 @@
 // 15 RG34, RG40, RG49, RG50; 03 §3.1 "compte — lister et consulter" L · J; 21 §J8 commit 5).
 // Backoffice surface; the aal2 guard of server.ts runs first, then each handler reads through
 // withBackofficeSession() (agent and admin read the same thing).
-// - GET /v1/bo/accounts: the list (RG97), a page capped by the server (15 RG34), the exact search
-//   (free) and the partial one (one reservation per page, journaled, 429 beyond the limit: RG98).
+// - GET /v1/bo/accounts: the list (RG97), a page capped by the server (15 RG34), its filters and
+//   never a search term: a term in the query string is refused (J8S-7).
+// - POST /v1/bo/accounts/search (J8S-7, EC-J8-58): the same page, its filters and at most one term
+//   in the BODY, never in a URL (access logs, history, proxies): the exact search (free) and the
+//   partial one (one reservation per page, journaled by its length, 429 beyond the limit: RG98).
+//   The screen lists through it: the instants of a period are no plain query characters (EC-62).
 // - GET /v1/bo/accounts/counters: the head banner of the day (RG105).
 // - GET /v1/bo/accounts/:id: the record, its state per destination with the cause in clear (RG99,
 //   RG100), the responsible salespersons (RG49), the "mes données" requests that an admin executes
@@ -19,6 +23,7 @@ import {
   accountQuerySchema,
   accountsQuerySchema,
   accountsResponseSchema,
+  accountsSearchSchema,
   COUNTERS_TOP_COUNTRIES,
   PARTIAL_SEARCH_WINDOW_SECONDS,
   accountDataRequestSchema,
@@ -30,8 +35,10 @@ import {
   type AccountRow,
   type AccountsQuery,
   type AccountsResponse,
+  type AccountsSearch,
   type HistoryEvent,
 } from "@influx/contracts/backoffice-accounts";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import type { ApiDatabase } from "../../db/index.ts";
 import {
   ApiError,
@@ -44,15 +51,17 @@ import {
   accountHistory,
   dataRequestsOf,
   dayCounters,
+  reserveAccountSearch,
+  type AccountDataRequestRow,
+  type HistoryRow,
+} from "./account-history/repository.ts";
+import {
   listMemberAccounts,
   memberAccountDetail,
   ownershipOf,
-  reserveAccountSearch,
-  type AccountDataRequestRow,
   type AccountFilters,
-  type HistoryRow,
   type MemberAccountRow,
-} from "./repository.ts";
+} from "./accounts/repository.ts";
 import { syncStatusOf } from "./sync-causes.ts";
 
 export type BackofficeAccountsDependencies = { database: ApiDatabase };
@@ -68,9 +77,10 @@ function dataRequestOf(row: AccountDataRequestRow): AccountDataRequest {
     completedAt: row.completedAt,
     outcome: row.outcomeCode,
     execution:
-      row.approvedAt === null || row.approvedBy === null
+      row.approvedAt === null || row.authorisedBy === null
         ? null
         : {
+            authorisedBy: row.authorisedBy,
             approvedAt: row.approvedAt,
             approvedBy: row.approvedBy,
             executedAt: row.executedAt,
@@ -135,7 +145,10 @@ function rowOf(row: MemberAccountRow): AccountRow {
               AccountRow["consent"]
             >["source"],
           },
-    sync: { brevo: syncStatusOf(row.brevo), apollo: syncStatusOf(row.apollo) },
+    sync: {
+      brevo: syncStatusOf(row.brevo, row.role),
+      apollo: syncStatusOf(row.apollo, row.role),
+    },
     owner: row.owner,
     lastSeenAt: row.lastSeenAt,
   };
@@ -166,7 +179,7 @@ function historyEventOf(row: HistoryRow): HistoryEvent {
   };
 }
 
-function filtersOf(query: AccountsQuery): AccountFilters {
+function filtersOf(query: AccountsQuery | AccountsSearch): AccountFilters {
   const filters: AccountFilters = {};
   if (query.role !== undefined) filters.role = query.role;
   if (query.country !== undefined) filters.country = query.country;
@@ -181,8 +194,10 @@ function filtersOf(query: AccountsQuery): AccountFilters {
   if (query.consent !== undefined) filters.consent = query.consent;
   if (query.from !== undefined) filters.from = query.from;
   if (query.to !== undefined) filters.to = query.to;
-  if (query.email !== undefined) filters.email = query.email;
-  if (query.q !== undefined) filters.fragment = query.q;
+  if ("email" in query && query.email !== undefined) {
+    filters.email = query.email;
+  }
+  if ("q" in query && query.q !== undefined) filters.fragment = query.q;
   if (query.cursor !== undefined) {
     const after = decodeCursor(query.cursor);
     if (after === null) {
@@ -193,6 +208,51 @@ function filtersOf(query: AccountsQuery): AccountFilters {
     filters.after = after;
   }
   return filters;
+}
+
+/** One page of the list, searched or not (RG97, RG98); the same answer for both routes. */
+async function accountsPage(
+  database: ApiDatabase,
+  request: FastifyRequest,
+  reply: FastifyReply,
+  query: AccountsQuery | AccountsSearch,
+): Promise<AccountsResponse> {
+  void reply.header("cache-control", "no-store");
+  const filters = filtersOf(query);
+  const fragment = filters.fragment;
+  const page = await withBackofficeSession(
+    database,
+    request,
+    reply,
+    async (tx) => {
+      // RG98: every page of a partial search is one search; the line commits either way
+      if (
+        fragment !== undefined &&
+        !(await reserveAccountSearch(tx, fragment.length))
+      ) {
+        return null;
+      }
+      return listMemberAccounts(tx, filters, query.limit + 1);
+    },
+  );
+  if (page === null) {
+    throw new RetryLaterError("rate_limited", PARTIAL_SEARCH_WINDOW_SECONDS);
+  }
+  const items = page.slice(0, query.limit);
+  const last = items.at(-1);
+  return {
+    items: items.map(rowOf),
+    nextCursor:
+      page.length > query.limit && last !== undefined
+        ? encodeCursor(last)
+        : null,
+    search:
+      filters.email !== undefined
+        ? "exact"
+        : fragment !== undefined
+          ? "partial"
+          : "none",
+  };
 }
 
 export function registerBackofficeAccountRoutes(
@@ -209,47 +269,20 @@ export function registerBackofficeAccountRoutes(
         response: { 200: accountsResponseSchema },
       },
     },
-    async (request, reply): Promise<AccountsResponse> => {
-      void reply.header("cache-control", "no-store");
-      const query = request.query as AccountsQuery;
-      const filters = filtersOf(query);
-      const page = await withBackofficeSession(
-        database,
-        request,
-        reply,
-        async (tx) => {
-          // RG98: every page of a partial search is one search; the line commits either way
-          if (
-            query.q !== undefined &&
-            !(await reserveAccountSearch(tx, query.q.length))
-          ) {
-            return null;
-          }
-          return listMemberAccounts(tx, filters, query.limit + 1);
-        },
-      );
-      if (page === null) {
-        throw new RetryLaterError(
-          "rate_limited",
-          PARTIAL_SEARCH_WINDOW_SECONDS,
-        );
-      }
-      const items = page.slice(0, query.limit);
-      const last = items.at(-1);
-      return {
-        items: items.map(rowOf),
-        nextCursor:
-          page.length > query.limit && last !== undefined
-            ? encodeCursor(last)
-            : null,
-        search:
-          query.email !== undefined
-            ? "exact"
-            : query.q !== undefined
-              ? "partial"
-              : "none",
-      };
+    (request, reply): Promise<AccountsResponse> =>
+      accountsPage(database, request, reply, request.query as AccountsQuery),
+  );
+
+  app.post(
+    "/v1/bo/accounts/search",
+    {
+      schema: {
+        body: accountsSearchSchema,
+        response: { 200: accountsResponseSchema },
+      },
     },
+    (request, reply): Promise<AccountsResponse> =>
+      accountsPage(database, request, reply, request.body as AccountsSearch),
   );
 
   app.get(

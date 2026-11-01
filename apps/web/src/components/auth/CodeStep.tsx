@@ -6,6 +6,8 @@
 // the code; the button stays, for the keyboard and for screen readers. The matching phrase sits
 // ABOVE the field (RG48), so that a forged page is seen before typing. "Je ne reçois pas le code"
 // opens the panel of 17 §3.3 in the page, with the rescue channel of 05 RG65.
+import { CARD_TITLE } from "@/components/member/ui/heading-classes";
+import { Notice } from "@/components/member/ui/Notice";
 import { RESEND_DELAY_SECONDS, type SignupDoor } from "@influx/contracts/auth";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
@@ -14,9 +16,7 @@ import {
   CODE_BOXES_CLASSES,
   CODE_OVERLAY_INPUT_CLASSES,
   codeBoxClasses,
-  ERROR_CLASSES,
   HELP_CLASSES,
-  INFO_CLASSES,
   LABEL_CLASSES,
   LEAD_CLASSES,
   PRIMARY_SUBMIT_CLASSES,
@@ -34,6 +34,7 @@ import {
 import { RequiredMark, StepTitle } from "./AuthScreen";
 import { CodeNotReceived } from "./CodeNotReceived";
 import { requestCode, verifyCode } from "./member-auth";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 
 const CODE_LENGTH = 6;
 
@@ -174,9 +175,7 @@ export function CodeStep({
   return (
     <>
       <StepTitle step={2}>{t("step2.title")}</StepTitle>
-      <p className={INFO_CLASSES} role="status">
-        {t("code.sent")}
-      </p>
+      <Notice tone="info">{t("code.sent")}</Notice>
       <p className={LEAD_CLASSES}>
         {t("step2.sentTo", { email })}{" "}
         <button
@@ -188,12 +187,12 @@ export function CodeStep({
         </button>
       </p>
       <section aria-labelledby={ids.phrase} className={CARD_CLASSES}>
-        <h2 id={ids.phrase} className={LABEL_CLASSES}>
+        <h2 id={ids.phrase} className={CARD_TITLE}>
           {t("step2.phrase.label")}
         </h2>
         <p
           lang={locale}
-          className="text-heading-3 font-bold uppercase text-text-primary"
+          className="font-display text-title-section font-extrabold uppercase text-text-primary"
         >
           {matchingPhrase}
         </p>
@@ -240,9 +239,7 @@ export function CodeStep({
           </>
         )}
         {message !== null ? (
-          <p id={ids.codeError} role="alert" className={ERROR_CLASSES}>
-            {messageText(message)}
-          </p>
+          <ErrorNotice id={ids.codeError}>{messageText(message)}</ErrorNotice>
         ) : null}
         {closed ? null : (
           <button

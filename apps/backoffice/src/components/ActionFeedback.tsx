@@ -7,7 +7,6 @@ import Link from "next/link";
 import { useId, useState, type FormEvent } from "react";
 import { messages } from "@/messages/fr";
 import {
-  ERROR_CLASSES,
   HELP_CLASSES,
   inputClasses,
   LABEL_CLASSES,
@@ -17,11 +16,12 @@ import { reauthenticate } from "./backoffice-api";
 import {
   FIELD_CLASSES,
   SECTION_CLASSES,
-  SECTION_TITLE_CLASSES,
+  SECTION_TITLE,
   SMALL_PRIMARY_CLASSES,
   SMALL_SECONDARY_CLASSES,
 } from "./bo-classes";
 import type { Action } from "./use-action";
+import { ErrorNotice } from "./ErrorNotice";
 
 const TOTP_SHAPE = /^\d{6}$/;
 
@@ -76,7 +76,7 @@ function ReauthForm({
       aria-labelledby={ids.title}
       className={SECTION_CLASSES}
     >
-      <h2 id={ids.title} className={SECTION_TITLE_CLASSES}>
+      <h2 id={ids.title} className={SECTION_TITLE}>
         {messages.reauth.title}
       </h2>
       <p className={HELP_CLASSES}>{messages.reauth.lead}</p>
@@ -109,9 +109,7 @@ function ReauthForm({
         />
       </div>
       {failure === null ? null : (
-        <p role="alert" className={ERROR_CLASSES}>
-          {messages.reauth[failure]}
-        </p>
+        <ErrorNotice>{messages.reauth[failure]}</ErrorNotice>
       )}
       {failure === "revoked" ? (
         <Link href="/" className={SMALL_SECONDARY_CLASSES}>
@@ -149,9 +147,7 @@ export function ActionFeedback({ action }: { action: Action }) {
     );
   }
   return action.error === null ? null : (
-    <p role="alert" className={ERROR_CLASSES}>
-      {action.error}
-    </p>
+    <ErrorNotice>{action.error}</ErrorNotice>
   );
 }
 

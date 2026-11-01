@@ -31,18 +31,28 @@ export const WRITE_ORIGIN_EXCEPTIONS: readonly WriteOriginException[] = [
   { method: "POST", route: "/v1/webhooks/brevo/:pathToken", surface: "web" },
 ];
 
+/**
+ * The surface of the exception this method and route model fall under, or null. The route of an
+ * exception exists for that surface only: from any other one it is answered 404, the answer of an
+ * unknown route, before the origin is read (J7S-3).
+ */
+export function writeOriginExceptionSurface(
+  method: string,
+  routeUrl: string | undefined,
+): Surface | null {
+  const exception = WRITE_ORIGIN_EXCEPTIONS.find(
+    (entry) => entry.method === method && entry.route === routeUrl,
+  );
+  return exception?.surface ?? null;
+}
+
 /** Whether this method, on this route model, from this surface, is the closed exception. */
 export function isWriteOriginException(
   method: string,
   routeUrl: string | undefined,
   surface: Surface,
 ): boolean {
-  return WRITE_ORIGIN_EXCEPTIONS.some(
-    (exception) =>
-      exception.method === method &&
-      exception.route === routeUrl &&
-      exception.surface === surface,
-  );
+  return writeOriginExceptionSurface(method, routeUrl) === surface;
 }
 
 /**

@@ -17,7 +17,7 @@ export function storedApolloSetting(
   switch (setting.key) {
     case "apollo_scope":
       return { key: setting.key, value: setting.value };
-    case "apollo_prospecting_countries":
+    case "apollo_excluded_countries":
       return { key: setting.key, value: [...new Set(setting.value)].sort() };
     case "apollo_legal_basis":
       return {

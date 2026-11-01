@@ -15,7 +15,10 @@ import {
   createApiDatabase,
   type ApiDatabase,
 } from "../src/db/index.ts";
-import { OpsRecorder } from "../src/domains/ops/recorder.ts";
+import {
+  MAX_PENDING_OCCURRENCES,
+  OpsRecorder,
+} from "../src/domains/ops/recorder.ts";
 import { buildServer } from "../src/server.ts";
 import {
   BACKOFFICE_SECRET,
@@ -136,6 +139,46 @@ describe("cap and metrics (02 §20.5)", () => {
     expect(row).toEqual({ kept: 10, counted: "12" });
   });
 
+  // 02 §20.12 (testeur, J9 commit 10): an avalanche never saturates the base — at most
+  // MAX_PENDING_OCCURRENCES rows per flush, the rest counted where a group exists, and said.
+  it("an avalanche of 1 000 errors on 250 routes writes 200 occurrences at most, in one flush", async () => {
+    const warnings: { object: object; message: string }[] = [];
+    const ops = recorder();
+    // Letters only: a segment of digits would fold every route into one model (`:id`).
+    const segment = (index: number) =>
+      String.fromCharCode(97 + Math.floor(index / 26), 97 + (index % 26));
+    for (let index = 0; index < 1_000; index += 1) {
+      ops.recordServerError(new RangeError("out of range"), {
+        route: `/v1/opstest/${RUN}/avalanche/${segment(index % 250)}`,
+      });
+    }
+    const started = Date.now();
+    await ops.flush(database, {
+      warn: (object, message) => warnings.push({ object, message }),
+      info: () => undefined,
+    });
+    expect(Date.now() - started).toBeLessThan(10_000);
+    expect(MAX_PENDING_OCCURRENCES).toBe(200);
+    expect(warnings).toEqual([
+      {
+        object: { dropped: 800 },
+        message: "ops occurrences dropped, buffer full",
+      },
+    ]);
+    const [row] = await migration<
+      { groups: number; kept: number; counted: string }[]
+    >`
+      select count(*)::int as groups,
+             coalesce(sum((select count(*)::int from ops.error_occurrences o
+                            where o.group_fingerprint = g.fingerprint)), 0)::int as kept,
+             coalesce(sum(g.occurrence_count), 0)::text as counted
+        from ops.error_groups g
+       where g.route like ${`/v1/opstest/${RUN}/avalanche/%`}`;
+    // The first 200 errors open 200 groups; each later error of these routes is counted on its
+    // group; the 50 routes reached only past the buffer invent no group.
+    expect(row).toEqual({ groups: 200, kept: 200, counted: "800" });
+  });
+
   it("writes an ended minute once, with a histogram that adds up", async () => {
     const minute = Math.floor((Date.now() - 120_000) / 60_000) * 60_000;
     let now = new Date(minute + 5_000);
@@ -170,6 +213,31 @@ describe("cap and metrics (02 §20.5)", () => {
       },
     ]);
     await migration`delete from ops.request_metrics where instance = ${INSTANCE}`;
+  });
+
+  it("writes the signals of an ended minute once (15 RG165, AL61 and AL62; 0147)", async () => {
+    const minute = Math.floor((Date.now() - 120_000) / 60_000) * 60_000;
+    let now = new Date(minute + 5_000);
+    const ops = recorder(() => now);
+    ops.recordSignal("webhook_brevo_authenticated");
+    ops.recordSignal("webhook_brevo_authenticated");
+    ops.recordSignal("webhook_brevo_ignored");
+    await ops.flush(database, silent);
+    const before = await migration`
+      select 1 from ops.signal_counts where instance = ${INSTANCE}`;
+    expect(before).toHaveLength(0);
+
+    now = new Date(minute + 65_000);
+    await ops.flush(database, silent);
+    await ops.flush(database, silent);
+    const rows = await migration<{ signal: string; count: number }[]>`
+      select signal::text as signal, count from ops.signal_counts
+       where instance = ${INSTANCE} order by signal`;
+    expect(rows).toEqual([
+      { signal: "webhook_brevo_authenticated", count: 2 },
+      { signal: "webhook_brevo_ignored", count: 1 },
+    ]);
+    await migration`delete from ops.signal_counts where instance = ${INSTANCE}`;
   });
 });
 
@@ -298,7 +366,8 @@ describe("POST /v1/ops/client-errors (02 §20.5)", () => {
   it("drops the reports of an account over ten a minute, answering 200 to all", async () => {
     const member = dataSet.accounts.advertiser.b;
     const statuses: number[] = [];
-    for (const letter of "abcdefghijkl") {
+    // Two fingerprints: neither reaches its own cap of ten, nor the account's cap of groups.
+    for (const letter of "abababababab") {
       const response = await send(
         "web",
         report(`/fr/opstest/${RUN}/rate`, `report ${letter}`),
@@ -312,5 +381,59 @@ describe("POST /v1/ops/client-errors (02 §20.5)", () => {
       select count(*)::int as count from ops.error_occurrences
        where route = ${`/fr/opstest/${RUN}/rate`}`;
     expect(row?.count).toBe(10);
+  });
+});
+
+describe("J4S-6: new browser groups per account and hour (02 §20.5)", () => {
+  it("opens five groups per account and hour at most; a known fingerprint, another account pass", async () => {
+    const ops = recorder();
+    const page = `/fr/opstest/${RUN}/groups`;
+    const member = dataSet.accounts.creator.b.id;
+    const other = dataSet.accounts.advertiser.a.id;
+    const browser = (accountId: string, message: string) => {
+      ops.recordBrowserError({
+        surface: "web",
+        errorType: "TypeError",
+        kind: "error",
+        message,
+        stack: undefined,
+        page,
+        accountId,
+        userAgentSummary: null,
+      });
+    };
+    for (const letter of "abcdefg") {
+      browser(member, `group ${letter}`);
+    }
+    browser(member, "group a");
+    browser(other, "group f");
+    const lines: string[] = [];
+    await ops.flush(database, {
+      ...silent,
+      info: (object: object, message: string) => {
+        lines.push(`${message} ${JSON.stringify(object)}`);
+      },
+    });
+    const rows = await migration<{ account_id: string; message: string }[]>`
+      select account_id::text, message from ops.error_occurrences
+       where route = ${page} order by message, account_id`;
+    expect(rows).toEqual(
+      [
+        { account_id: member, message: "group a" },
+        { account_id: member, message: "group a" },
+        { account_id: member, message: "group b" },
+        { account_id: member, message: "group c" },
+        { account_id: member, message: "group d" },
+        { account_id: member, message: "group e" },
+        { account_id: other, message: "group f" },
+      ].sort((left, right) =>
+        `${left.message}${left.account_id}`.localeCompare(
+          `${right.message}${right.account_id}`,
+        ),
+      ),
+    );
+    expect(lines).toContain(
+      'browser reports dropped, account over its new groups per hour {"dropped":2}',
+    );
   });
 });

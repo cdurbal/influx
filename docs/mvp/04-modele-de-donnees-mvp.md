@@ -3762,7 +3762,7 @@ Les agents **n'ont toujours aucun `SELECT`** sur `messages` (`03` §5.2) : ils �
 **Deux murs, et non un.** Une partie qui tente d'écrire dans l'aparté de l'autre est arrêtée par la
 politique **et** par la contrainte `messages_party_channel`. La politique protège contre un appel
 forgé ; la contrainte protège contre une politique mal écrite ou supprimée par une migration. C'est
-la même doctrine que l'anonymisation (`CLAUDE.md` §6) : une règle en base, doublée d'un filtre de
+la même doctrine que l'anonymisation (`CLAUDE.md` §5) : une règle en base, doublée d'un filtre de
 sortie dans `apps/api`, et d'un test.
 
 **La matrice état × canal, en base.** `12` RG123, RG126 et RG127 disent qui écrit selon l'état du fil.
@@ -4061,7 +4061,7 @@ reprise. Réversibles, comme elles.
 
 | # | Question | Hypothèse retenue | Arbitre | Échéance |
 |---|---|---|---|---|
-| **A1** | **Cloisonnement par politique à canal constant plus contrainte, ou trois tables de messages séparées** (un « mur » de droits plutôt qu'un filtre de lignes) ? | **Tranchée par le fondateur le 2026-09-24 : politique à canal constant, doublée d'une contrainte en base, plus tests** (`03` T19). La marque doit de toute façon lire une partie des lignes de la table où vit son aparté : trois tables ne suppriment pas le filtre, elles multiplient les clés étrangères (détections, signalements), les index et les requêtes d'union, pour une garantie équivalente | Fondateur, dans un domaine sous veto `expert-cybersecurite` (`CLAUDE.md` §10.3 point 2) | Fait |
+| **A1** | **Cloisonnement par politique à canal constant plus contrainte, ou trois tables de messages séparées** (un « mur » de droits plutôt qu'un filtre de lignes) ? | **Tranchée par le fondateur le 2026-09-24 : politique à canal constant, doublée d'une contrainte en base, plus tests** (`03` T19). La marque doit de toute façon lire une partie des lignes de la table où vit son aparté : trois tables ne suppriment pas le filtre, elles multiplient les clés étrangères (détections, signalements), les index et les requêtes d'union, pour une garantie équivalente | Fondateur, dans un domaine sous veto `expert-cybersecurite` (`CLAUDE.md` §7 règle 2) | Fait |
 | **A2** | Deux fonctions `security definer` de plus : `assert_message_writable` (lecture seule) et `on_message_inserted` (deux écritures) | Acceptées, à revoir ligne à ligne avec les sept autres (§12.1 point 7) | **`expert-cybersecurite` (veto)** | Avant l'écriture de `0403` |
 | **A3** | Un signalement vise un message de **l'unique administrateur** : personne ne peut l'instruire (`12` RG140) | **Tranchée par le fondateur le 2026-09-24 :** le signalement reste en file, sans instructeur, et une alerte persistante l'annonce **sans aucun détail** ; il est instruit dès qu'un second administrateur existe — même bascule que PD7 (`03` §1.3). Mécanisme ci-dessous ; limite écrite en `03` C(27) | Fondateur | Fait |
 | **A4** | `03` §5.2 et la condition C(23) décrivent `read_conversation()` et la lecture des membres **sans canal** | **Fait le 2026-09-24**, à la demande du fondateur : `03` C(23) à C(25), nouvelle C(27), §5.2 et T19 | `expert-cybersecurite` (relecture) | Fait |
@@ -4467,7 +4467,7 @@ comment on table billing.commission_rates is
    saisit le montant negocie et le montant de commission convenu, l''application les
    enregistre et les controle l''un par rapport a l''autre, elle ne les calcule pas.
    Elle existe des le Lot 0 comme GARDE-FOU : elle oblige le developpeur de la V2 a lire
-   les taux en base plutot qu''a ecrire 0.35 en dur (CLAUDE.md §6, un seul endroit).
+   les taux en base plutot qu''a ecrire 0.35 en dur (CLAUDE.md §2, un seul endroit).
    AUCUN ROLE APPLICATIF N''A DE DROIT D''INSERTION : la remplir exigera une migration relue.';
 
 revoke insert, update, delete, truncate on billing.commission_rates
@@ -4619,7 +4619,7 @@ comment on column billing.deals.commission_variance_note is
 comment on column billing.deals.commission_received_total_minor is
   'SOMME DERIVEE des lignes de billing.commission_receipts, maintenue par declencheur.
    Une addition de montants en unites mineures n''est PAS un calcul de commission :
-   aucun taux, aucune multiplication, aucun arrondi (CLAUDE.md §3, controle T16).
+   aucun taux, aucune multiplication, aucun arrondi (CLAUDE.md §2, controle T16).
    Colonne de lecture : personne ne l''ecrit a la main, et REVOKE UPDATE l''interdit.';
 
 comment on column billing.deals.amount_tax_basis is
@@ -4701,7 +4701,7 @@ comment on table billing.non_monetary_reasons is
 > **C'est l'écart le plus grave signalé par `14`.** `billing.deals` portait
 > `commission_received_amount_minor` et `commission_received_at` : **une seule ligne d'encaissement**.
 > Or le **cas standard** du pilote est un règlement **en deux fois par deux payeurs** — l'annonceur
-> règle sa part, le créateur la sienne (`14` RG55, `CLAUDE.md` §3). Le second encaissement **écrasait
+> règle sa part, le créateur la sienne (`14` RG55, `CLAUDE.md` §2). Le second encaissement **écrasait
 > le premier**, en silence, sur la donnée la plus sensible du produit. S'y ajoutent les
 > remboursements et les abandons de créance, qui n'avaient nulle part où exister.
 
@@ -4740,7 +4740,7 @@ comment on table billing.commission_receipts is
    ligne de sens inverse, jamais par une modification — c''est la regle d''une ecriture comptable,
    et c''est ce qui rend l''historique opposable.
    PLUSIEURS LIGNES PAR AFFAIRE, C''EST LE CAS NOMINAL : l''annonceur regle sa part, le createur
-   la sienne (CLAUDE.md §3, 14 RG55). L''ancienne paire de colonnes sur billing.deals rendait ce
+   la sienne (CLAUDE.md §2, 14 RG55). L''ancienne paire de colonnes sur billing.deals rendait ce
    cas standard IMPOSSIBLE sans perte de donnee.
    AUCUN TAUX, AUCUNE MULTIPLICATION : le total sur l''affaire est une addition.';
 
@@ -5754,7 +5754,7 @@ colonne d'échéance ou sa règle écrite.
 | `introductions.identity_revealed_at` **write-once**, `*_country_at_intro`, `*_terms_version_id` | L'assiette de la créance V2 et le point de départ de la fenêtre D29 existent déjà, à la date des faits. **Non reconstituables** plus tard |
 | `reference.currencies.minor_unit` | Le premier contrat en yen ou en dinar ne produit pas une erreur d'un facteur 100 ou 1 000 |
 | `reference.price_bands (currency, code)` | Rend visible dès aujourd'hui la donnée manquante « taux de conversion » (D27), au lieu de la découvrir en V2 |
-| Aucune colonne calculée, aucune vue de calcul | Le calcul de la V2 naîtra **à un seul endroit** (`apps/api/src/domains/billing`), conformément à `CLAUDE.md` §6 |
+| Aucune colonne calculée, aucune vue de calcul | Le calcul de la V2 naîtra **à un seul endroit** (`apps/api/src/domains/billing`), conformément à `CLAUDE.md` §2 |
 | `billing.deal_field_changes` alimentée par déclencheur | L'historique des montants du pilote est déjà complet le jour où il devient une pièce comptable |
 
 **Ce qui restera à faire en V2, et qui n'est pas préparé ici** (volontairement, faute de décisions) :
@@ -5816,6 +5816,18 @@ les préparer serait inventer.
    `account.deleted` part dans `outbox_events` en **priorité 0** vers Brevo et Apollo — la
    propagation de la suppression aux sous-traitants est une obligation, pas une option.
 
+**Déclenchement (D72, `0150`).** Un effacement déposé depuis l'espace membre est autorisé par le
+membre seul : `identity.submit_member_erasure()` consomme le code frais `account_deletion`, crée la
+demande `in_progress` (canal `self_service`) et son exécution (`privacy.request_executions.
+authorised_by = 'member_fresh_code'`, sans double validation ni approbateur) et **révoque toutes les
+sessions du compte** (`revoked_by_holder`) dans la même transaction. L'exécution ci-dessus a lieu au
+**tour suivant du worker** (une minute au plus) ; elle ferme aussi une demande `access` ouverte du
+compte (`retiree_par_le_demandeur`), efface son export, et met en file l'e-mail
+`privacy.erasure_completed` vers l'adresse conservée (`propagation_email`, relâchée à la clôture).
+Un effacement reçu par un autre canal reste approuvé par un `admin` (`authorised_by =
+'admin_dual_control'`). **Toute table personnelle ajoutée plus tard étend cette exécution** : une
+migration qui crée une donnée identifiante doit l'ajouter à `privacy.execute_request()`.
+
 **Ce qui survit, sous forme pseudonymisée** — et qui doit figurer **dans la politique de
 confidentialité dès le Lot 1** :
 
@@ -5862,8 +5874,9 @@ un utilisateur dans le schéma `auth` de Supabase — sans jamais devenir un com
 |---|---|
 | **Quand** | **24 heures** après leur création |
 | **Comment** | Tâche périodique, opération élevée **E-4** (`maintenance.run_periodic`, `03` P7). **Par l'API d'administration de GoTrue**, jamais par un `DELETE` sur le schéma `auth` — nous ne modifions jamais un schéma qui appartient à Supabase (§5.1, `accounts.auth_user_id` n'a d'ailleurs **volontairement pas** de clé étrangère) |
-| **Garde-fou** | Le rapprochement se fait sur `identity.accounts.auth_user_id`, **jamais sur l'adresse** : un compte supprimé logiquement (`status = 'deleted'`) garde sa ligne, donc son utilisateur GoTrue n'est **pas** purgé |
+| **Garde-fou** | Le rapprochement se fait sur `identity.accounts.auth_user_id`, **jamais sur l'adresse** : un compte supprimé logiquement (`status = 'deleted'`) garde sa ligne, donc son utilisateur GoTrue n'est **pas** purgé. *Disjoncteur (J9, J7S-2) :* `ops.filter_auth_orphans()` refuse (`55000`) tant que `identity.accounts` paraît vide, et le worker abandonne le passage quand plus de la moitié d'une page de plus de 20 utilisateurs revient orpheline ; rien n'est supprimé, le passage est clos `failed` (`breaker.filter_refused`, `breaker.orphan_ratio`) |
 | **Trace** | Un résumé au registre, comme toute purge : `retention.purged`, catégorie `auth_orphan_users`, avec le nombre |
+| **Exception (J9, C5.c)** | Quand GoTrue refuse la nouvelle adresse d'un changement **dont les deux codes sont saisis**, l'utilisateur qui la détient est supprimé **sans attendre 24 heures** s'il n'a aucun compte (`identity.email_change_holder_is_orphan()`, `0144`, sur l'id), puis le changement est réessayé. Trace : une ligne `pino` sans donnée, **aucune ligne au registre** (aucun type d'événement ne convient). *À trancher par `expert-cybersecurite` à la revue groupée : l'admettre, ou créer un type d'événement sur le compte.* |
 
 > **Pourquoi 24 heures et pas moins.** Le délai doit couvrir un parcours d'inscription interrompu et
 > repris le lendemain matin : purger à une heure ferait perdre le code en cours de quelqu'un qui
@@ -6100,6 +6113,8 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | **0136** | **`privacy_roles_and_codes`** | *J8, commit 8 (E-5).* Rôles `influx_privacy`, `influx_privacy_login`, `influx_privacy_definer` (jamais liés au worker), schéma `privacy`, codes `account.anonymized`, `account.deleted`, `privacy.*` | Oui avant toute demande exécutée |
 | **0137** | **`privacy_minimal_execution`** | *J8, commit 8 (E-5).* `request_executions`, `data_exports` (7 j, 3 téléchargements, purge E-4) ; approbation 2V + R ; `execute_request()` (export depuis la base, anonymisation §9.2 sur les tables du Lot 1, `account.deleted` vers Brevo et Apollo), clôture | **Non** dès la première exécution réelle (anonymisation) |
 | **0138** | **`backoffice_screen_reads`** | *J8, commit 9.* `backoffice_session_state()` (J3S-6), `agent.new_browser` à la connexion backoffice (B-7, EC-43), `new_browser_sign_ins()` (admin) | Oui avant toute ligne réelle |
+| **0150** | **`privacy_member_authorised_erasure`** | *D72, hors jalon.* `request_executions.authorised_by` (`admin_dual_control` ou `member_fresh_code`), approbateur et double validation nullables sous CHECK ; `identity.submit_member_erasure()` ; `pending_work()`, `execute_request()`, `complete_request()` recréées (demande `access` ouverte close, e-mail `privacy.erasure_completed`) ; `read_erasure_notification_subject()` | **Non** avant la première exécution réelle |
+| **0139–0149** | *D68, D69, J9* | `0139` identifiants de listes Brevo des variables du worker (D68) ; `0140` e-mails de la file rédigés par INFLUX (D69) ; `0141` `apollo_excluded_countries` ; `0142` R liée à la session, RLS `member_invitations`, `admin_role_grants()` ; `0143` seau `backoffice_reauth_ip` ; `0144` réauthentification liée à la session, orphelin GoTrue ; `0145` garde RG163 et journal `settings.changed` par déclencheur (contexte `influx.sync_setting_change`, `05` RG163) ; `0146` configuration manquante = échec incident, rattrapage RG161 ; `0147` surveillance active (battement, sonde, alertes AL49 à AL63) ; `0148` lectures `backoffice.ops_*` de l'écran « Santé technique » ; `0149` lecture de `reference.countries` par `influx_identity_definer`. Détail : en-tête de chaque fichier | Voir l'en-tête |
 | **Lot 2** | | | |
 | 0201 | `reference_taxonomies` | `topics`, `networks`, `formats`, `sectors`, `usage_rights`, `audience_bands`, **`engagement_bands`**, **`age_bands`** (`check (min_age >= 18)`), **`audience_genders`**, **`editorial_tones`**, **`publication_frequencies`**, **`regions`**, `price_bands` **avec ses bornes nettes et son `REVOKE`** | Oui |
 | 0202 | `profiles_advertiser_full` | **Extension** de `advertiser_profiles` (colonnes du Lot 2, toutes nullables, aucune donnée à migrer) + `advertiser_contact_details` | Oui |
@@ -6152,7 +6167,7 @@ Une migration est **destructive** si elle supprime une table, une colonne, une c
 
 1. **Écrire pourquoi** : quelle donnée disparaît, combien de lignes, qui l'utilise, ce qui la remplace.
 2. **Confirmation explicite et écrite du fondateur.** Aucun agent ne l'exécute de sa propre autorité
-   (`CLAUDE.md` §10.3, règle 6).
+   (`CLAUDE.md` §7 règle 4).
 3. **Procédure en quatre temps** (« étendre puis contracter »), jamais en un seul déploiement :
    ajouter le nouveau → migrer les données et écrire dans les deux → basculer le code et vérifier →
    supprimer l'ancien, **au lot suivant au plus tôt**.
@@ -6236,7 +6251,7 @@ comporte pas de manque ; chacun peut être rouvert par son arbitre.
 
 | # | Point | Choix conservateur retenu | Arbitre |
 |---|---|---|---|
-| 1 | **Bornes nettes dans `reference.price_bands`** | Colonnes nullables, écrites **par migration relue uniquement**, `REVOKE` à tous les rôles, base du calcul écrite en clair, affichage « environ ». **C'est la seule forme qui affiche un net sans multiplier un montant par un taux** — mais ces bornes **dérivent économiquement de la commission de 35 %**, ce qui doit être vu et accepté, pas glissé dans un référentiel | `expert-paiement-facturation` + **Fondateur** (§3 de `CLAUDE.md`) ; `architecte` pour T16 |
+| 1 | **Bornes nettes dans `reference.price_bands`** | Colonnes nullables, écrites **par migration relue uniquement**, `REVOKE` à tous les rôles, base du calcul écrite en clair, affichage « environ ». **C'est la seule forme qui affiche un net sans multiplier un montant par un taux** — mais ces bornes **dérivent économiquement de la commission de 35 %**, ce qui doit être vu et accepté, pas glissé dans un référentiel | `expert-paiement-facturation` + **Fondateur** (§2 de `CLAUDE.md`) ; `architecte` pour T16 |
 | 2 | **`GRANT` élargi aux chiffres exacts après révélation** | Élargi (`07` RG45), avec `figures_source` et `figures_measured_at` **obligatoirement** dans le même `GRANT` | `expert-cybersecurite` — **veto**, §12.1 point 3 |
 | 3 | **Région de résidence et `reference.regions`** | Colonne ajoutée, **jamais une facette de recherche**, affichée au-delà d'un seuil de 5 profils lu en table. La ville reste en couche identifiante tant que **Q2 de `07`** n'est pas tranchée | `expert-conformite-rgpd` — **veto** ; `expert-ux` pour l'affichage |
 | 4 | **Suppression physique des brouillons de candidature** | Admise, **seule exception à R6** : un brouillon ne touche ni mise en relation, ni affaire, ni journal. Durée par défaut 30 jours, en table | `expert-conformite-rgpd` + `product-owner` (`11` Q12) |
@@ -6282,7 +6297,7 @@ pour que le modèle ne comporte pas de manque, et chacun peut être rouvert par 
 | 3 | **Encaissement en espèces** (`14` Q2) | Le mode `especes` **reste saisissable** — il faut pouvoir enregistrer un fait déjà survenu — mais exige une note et lève une alerte. **C'est l'exploitation qui l'interdit pendant le pilote, pas le schéma** : un schéma qui empêche d'enregistrer la réalité produit des données fausses | **Fondateur** + expert-comptable |
 | 4 | **Exemption nommée du contrôle T16 pour la conversion d'unité monétaire** (`14` E11) | Documentée au §5.9. **À porter dans `03` §8 T16 et dans le plan de test** : sans exemption nommée, l'équipe désactivera le contrôle, et un contrôle désactivé ne protège rien | `expert-cybersecurite` (`03`) + `testeur` (`18`) |
 | 5 | **Conservation du montant estimé d'un contournement** (`14` Q11) | Conservé avec l'affaire (10 ans) **en l'état**, faute de mieux : c'est une donnée personnelle indirecte **et une imputation non prouvée**. La proposition de `14` — conservation le temps de la fenêtre **D29** puis agrégation anonyme — est plus juste et **exige une purge partielle par colonne**, que je n'écris pas avant l'arbitrage | `expert-conformite-rgpd` — **veto** + Fondateur |
-| 6 | **`data_subject_requests.request_type` contient `restriction`**, absent des cinq droits cités par `CLAUDE.md` §9 | **Conservé** : la limitation du traitement est un droit du RGPD (art. 18), et retirer une valeur d'une énumération après coup est une migration destructive, alors que l'ajouter ne l'est pas | `expert-conformite-rgpd` (`15` **Q6**) |
+| 6 | **`data_subject_requests.request_type` contient `restriction`**, absent des cinq droits cités par `CLAUDE.md` §6 | **Conservé** : la limitation du traitement est un droit du RGPD (art. 18), et retirer une valeur d'une énumération après coup est une migration destructive, alors que l'ajouter ne l'est pas | `expert-conformite-rgpd` (`15` **Q6**) |
 | 7 | **`claim_expiry_minutes` global ou par file** (`15`, écart 9) | **Global**, position actuelle, cohérente avec les six documents qui écrivent tous « 30 minutes ». Le passage à une valeur par file est **une colonne sur `backoffice.queues`**, pas une refonte | `chef-de-projet` |
 | 8 | **Seuil d'abandon de créance exigeant l'accord du fondateur** (`14` Q5) et **délais de l'alerte « montant non saisi »** (`14` Q13) | Chargés comme **valeurs d'attente** dans `operational_settings` : 500,00 EUR, 14 j puis 30 j. En table, donc recalibrables sans déploiement | **Fondateur** + `chef-de-projet` |
 | 9 | **Six durées de conservation nouvelles** (notes internes, alertes, exports, encaissements, suspensions, journal d'envoi) | Proposées au §9.1, dans le sens le plus conservateur pour les pièces comptables (10 ans) et le plus court pour les données de pilotage (24 mois) | `expert-conformite-rgpd` — **veto** |
@@ -6311,7 +6326,7 @@ pour que le modèle ne comporte pas de manque, et chacun peut être rouvert par 
 
 ### 12.11 Points ouverts par les arbitrages du fondateur du 2026-09-24
 
-Ajoutés par la revue de cohérence (`19-revue-de-coherence-2026-09-24.md`). Ce sont des décisions
+Ajoutés par la revue de cohérence (`archives/19-revue-de-coherence-2026-09-24.md`). Ce sont des décisions
 **prises** ; il reste à les traduire dans le schéma.
 
 | # | Arbitrage | Conséquence à modéliser | Arbitre de la forme |

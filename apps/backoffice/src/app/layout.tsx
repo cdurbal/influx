@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { HydrationMarker } from "@influx/web-platform/hydration-marker";
 import { messages } from "@/messages/fr";
+import { FONT_VARIABLE_CLASSES } from "@influx/ui/fonts";
 import "./globals.css";
 
 // The backoffice is never indexed: robots meta here, X-Robots-Tag header on every response
@@ -14,10 +16,20 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false, noarchive: true },
 };
 
+// The whole backoffice is in the KEO charter (D73, 02 §21.3 point 4): the attribute on <html> and the
+// font variables are set here and nowhere else.
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="fr">
-      <body>{children}</body>
+    <html
+      lang="fr"
+      data-theme="keo"
+      className={`${FONT_VARIABLE_CLASSES} antialiased`}
+    >
+      <body>
+        {children}
+        {/* After the page: its effects (the focus of the h1) run before the marker's (EC-PL-01-1). */}
+        <HydrationMarker />
+      </body>
     </html>
   );
 }

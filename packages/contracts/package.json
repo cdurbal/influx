@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "./src/zod.ts"
+  ],
   "exports": {
     "./errors": "./src/errors.ts",
     "./system": "./src/system.ts",
@@ -15,6 +17,7 @@
     "./backoffice-accounts": "./src/backoffice-accounts.ts",
     "./backoffice-actions": "./src/backoffice-actions.ts",
     "./backoffice-invitations": "./src/backoffice-invitations.ts",
+    "./backoffice-ops": "./src/backoffice-ops.ts",
     "./ops": "./src/ops.ts",
     "./terms": "./src/terms.ts",
     "./countries": "./src/countries.ts",
@@ -25,7 +28,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tests.json",
     "lint": "eslint . --max-warnings 0",
-    "test": "vitest run"
+    "test": "vitest run --reporter=default --reporter=json --outputFile.json=test-results/vitest-report.json && node ../../packages/test-kit/scripts/check-case-floors.ts tests/case-floors.ts test-results/vitest-report.json"
   },
   "dependencies": {
     "zod": "4.6.5"

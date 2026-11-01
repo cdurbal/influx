@@ -25,7 +25,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type postgres from "postgres";
 import { beforeAll, describe, expect, it } from "vitest";
-import { loginRole, migrationRole, testDataSet } from "./support.ts";
+import {
+  actAsInternal,
+  localSuperuser,
+  loginRole,
+  migrationRole,
+  testDataSet,
+} from "./support.ts";
 
 const REPOSITORY_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -466,6 +472,106 @@ describe("T2.5: a role taken without context, or in aal1, sees nothing", () => {
       expect(await deviationsOf(role, "aal1")).toEqual([]);
     },
   );
+});
+
+describe("J8S-5 (0142): backoffice.member_invitations, the agent's own, every one for the admin", () => {
+  /** Ids of member invitations visible to `role` with the aal2 context of `account`. */
+  function visibleIds(
+    tx: postgres.TransactionSql,
+    role: "influx_agent" | "influx_admin",
+    account: string,
+    ids: readonly string[],
+  ): Promise<string[]> {
+    return actAsInternal(
+      tx,
+      role,
+      {
+        accountId: account,
+        role: role === "influx_agent" ? "agent" : "admin",
+        aal: "aal2",
+      },
+      async () =>
+        (
+          await tx<{ id: string }[]>`
+            select id::text from backoffice.member_invitations
+             where id = any (${ids as string[]}::uuid[]) order by created_by_account_id, id`
+        ).map((row) => row.id),
+    );
+  }
+
+  /** One invitation per author (agent A, agent B, admin A), written by the superuser. */
+  async function invitations(
+    tx: postgres.TransactionSql,
+  ): Promise<Record<"agentA" | "agentB" | "adminA", string>> {
+    const authors = {
+      agentA: dataSet.accounts.agent.a.id,
+      agentB: dataSet.accounts.agent.b.id,
+      adminA: dataSet.accounts.admin.a.id,
+    };
+    const ids: Partial<Record<keyof typeof authors, string>> = {};
+    for (const [label, author] of Object.entries(authors) as [
+      keyof typeof authors,
+      string,
+    ][]) {
+      const [row] = await tx<{ id: string }[]>`
+        insert into backoffice.member_invitations
+          (code_hash, email, proposed_role, preferred_language, created_by_account_id)
+        values (sha256(gen_random_uuid()::text::bytea),
+                ${`t2-j8s5-${label.toLowerCase()}-${author.slice(0, 8)}@example.test`},
+                'creator', 'en', ${author})
+        returning id::text`;
+      ids[label] = row?.id ?? "";
+    }
+    return ids as Record<keyof typeof authors, string>;
+  }
+
+  it("an agent sees its own invitation, never another agent's nor an admin's", async () => {
+    const outcome = await inRolledBackTransaction(
+      localSuperuser(),
+      async (tx) => {
+        const ids = await invitations(tx);
+        const all = Object.values(ids);
+        return {
+          ids,
+          agentA: await visibleIds(
+            tx,
+            "influx_agent",
+            dataSet.accounts.agent.a.id,
+            all,
+          ),
+          agentB: await visibleIds(
+            tx,
+            "influx_agent",
+            dataSet.accounts.agent.b.id,
+            all,
+          ),
+        };
+      },
+    );
+    expect(outcome.agentA).toEqual([outcome.ids.agentA]);
+    expect(outcome.agentB).toEqual([outcome.ids.agentB]);
+  });
+
+  it("an admin sees every invitation, an agent's and another admin's alike", async () => {
+    const outcome = await inRolledBackTransaction(
+      localSuperuser(),
+      async (tx) => {
+        const ids = await invitations(tx);
+        return {
+          ids,
+          adminB: await visibleIds(
+            tx,
+            "influx_admin",
+            dataSet.accounts.admin.b.id,
+            Object.values(ids),
+          ),
+        };
+      },
+    );
+    expect([...outcome.adminB].sort()).toEqual(
+      Object.values(outcome.ids).sort(),
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------------------------

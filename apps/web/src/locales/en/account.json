@@ -1,14 +1,24 @@
 {
   "meta": {
+    "hub": "My account — INFLUX",
     "details": "My details — INFLUX",
     "preferences": "My communication preferences — INFLUX",
     "sessions": "My sessions — INFLUX",
     "data": "My data — INFLUX"
   },
   "brand": "INFLUX",
+  "hub": {
+    "title": "My account",
+    "back": "My account",
+    "backPrefix": "Back to",
+    "items": {
+      "accountDetails": "Email address, country, language",
+      "accountPreferences": "The emails you receive",
+      "accountSessions": "The devices signed in to your account",
+      "accountData": "Export or delete your data"
+    }
+  },
   "nav": {
-    "label": "My account",
-    "home": "Back to my space",
     "accountDetails": "My details",
     "accountPreferences": "My preferences",
     "accountSessions": "My sessions",
@@ -81,6 +91,7 @@
       "undeliverable": "We can't send an email to this new address. Check it, then start again.",
       "unavailable": "We can't send the codes right now. Nothing has changed: start again in a few minutes.",
       "freshCodeRequired": "The check has expired. Start again: we will send you a new code.",
+      "rateLimited": "Too many codes have been requested in a short time. Nothing has changed: please try again in a few minutes.",
       "addressUnavailable": "This address can't be used for your account. Your sign-in address has not changed.",
       "tooManyAttempts": "Too many attempts with this code. The request is closed: your address has not changed. You can start again.",
       "expired": "The 24 hours have passed. The request is closed: your address has not changed. You can start again.",
@@ -192,7 +203,7 @@
   },
   "data": {
     "title": "My data",
-    "lead": "Ask for a copy of your data or for the deletion of your account. Each request is handled by a member of the INFLUX team.",
+    "lead": "Request a copy of your data, or delete your account.",
     "requests": {
       "title": "Your requests",
       "line": "{type} · {status}",
@@ -217,9 +228,6 @@
       "open": "An export request is already in progress: follow it above."
     },
     "delete": {
-      "title": "Delete my account",
-      "text": "Your request is handled by a member of the INFLUX team. Until then, your account remains active.",
-      "action": "Delete my account",
       "open": "A deletion request is already in progress: follow it above."
     },
     "confirm": {
@@ -239,7 +247,6 @@
       "durations": "How long things are kept: see the privacy policy.",
       "durationsLink": "Read the privacy policy",
       "newAccount": "Signing up again with the same address will create an entirely new account, unrelated to this one.",
-      "manual": "Nothing is deleted automatically: a member of the INFLUX team handles your request. Until then, your account remains active and you can still sign in.",
       "word": "DELETE",
       "wordLabel": "Type {word} to confirm",
       "wordError": "Type {word}, in capitals, to confirm.",
@@ -248,7 +255,6 @@
     },
     "done": {
       "access": "Export request received. We will reply by {date} at the latest. A confirmation email is on its way to your address.",
-      "erasure": "Deletion request received. We will reply by {date} at the latest. A confirmation email is on its way to your address.",
       "alreadyOpen": "A request of this type is already in progress: here it is. No new request was created."
     },
     "unavailable": "We can't record your request right now. Please try again in a few minutes.",
@@ -260,6 +266,17 @@
       "saved": "The file {name} is saved on your device.",
       "gone": "This export is no longer available: it expired or was downloaded three times. You can make a new request.",
       "failed": "The download did not complete. Try again in a few minutes."
+    },
+    "danger": {
+      "title": "Danger zone",
+      "deleteTitle": "Delete my account",
+      "warning": "<strong>Deleting your account is immediate and permanent. It can't be undone.</strong> You will be signed out on all your devices.",
+      "exportFirst": "Download your export first: it will be erased with your account."
+    },
+    "deleted": {
+      "title": "Your account has been deleted",
+      "text": "A confirmation email is on its way to your address. Signing up again with the same address will create an entirely new account.",
+      "home": "Back to home"
     }
   },
   "terms": {

@@ -1,7 +1,7 @@
 // Generates docs/mvp/INDEX.md: for each spec, its "## " sections with start line,
 // length and the business rules (RGn) they contain, so agents read only the slice they need.
 // Run: pnpm docs:index
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const DIR = import.meta.dirname;
@@ -13,10 +13,12 @@ const files = readdirSync(DIR)
   .filter((f) => /^\d{2}b?-.*\.md$/.test(f))
   .sort();
 
-// Milestone sheets (jalons/jN-fiche.md), in milestone order: the entry point of a milestone session.
-const sheets = readdirSync(join(DIR, "jalons"))
-  .filter((f) => /^j\d+-fiche\.md$/.test(f))
-  .sort((a, b) => Number.parseInt(a.slice(1), 10) - Number.parseInt(b.slice(1), 10));
+// Work sheets (jalons/*-fiche.md): numbered milestones (jN) first in milestone order, then
+// out-of-milestone sheets alphabetically. The entry point of a milestone session.
+const milestoneNumber = (f) => (/^j\d+-/.test(f) ? Number.parseInt(f.slice(1), 10) : Infinity);
+const sheets = (existsSync(join(DIR, "jalons")) ? readdirSync(join(DIR, "jalons")) : [])
+  .filter((f) => /-fiche\.md$/.test(f))
+  .sort((a, b) => milestoneNumber(a) - milestoneNumber(b) || a.localeCompare(b));
 
 const out = [
   "# Index des spécifications du MVP",
