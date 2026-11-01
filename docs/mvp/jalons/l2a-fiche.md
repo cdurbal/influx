@@ -132,6 +132,19 @@ J4S-7, SNT-3, PLS-3, PLT-6).
    L2B.
 3. EC-L2A-1 : les sept lignes déjà soldées par PL sont retirées de `21` §8 à la clôture.
 
+## Arbitrage L2A-08 (`expert-matching`, grille `product-owner`, 2026-11-01)
+
+Codes, libellés FR / EN et bornes : `jalons/l2a/referentiels.md`, seule source de 09.
+- `topics` 17, sans sous-thème (F1 sous k = 5 sinon, D38) ; ni `lifestyle` ni thématique d'opinion (A12).
+- `networks` 10 (Instagram, TikTok, YouTube, Facebook, LinkedIn, X, Snapchat, Twitch, Pinterest,
+  Threads), `supports_ownership_proof` vrai, constaté sur compte réel avant `production`.
+- `formats` 24 préfixés par réseau, dont `youtube_integration` ; `ugc_video` et `ugc_photo` sans réseau.
+- `sectors` 26, `is_sensitive` sur les sept de `09` RG84 seules ; politique, religion, tabac, armes,
+  drogues absents par construction (amender RG84, `09` Q6).
+- `usage_rights` = `09` RG38 ; tons et tranches (D79, RG114, RG115) codés ; `regions` : FR 13
+  (métropole), GB 4, US 51, CA 13, AU 8, le reste à la demande ; `label_key` = `<table>.<code>`.
+- Aucune exclusion par choix produit : listes versionnées ; six amendements pour la clôture.
+
 ## Revue
 
 (rempli par `/jalon-run` : `L2AT-n`, `L2AS-n`, `L2AU-n` pour le test du logo)
