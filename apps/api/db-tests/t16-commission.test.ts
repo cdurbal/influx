@@ -1,5 +1,6 @@
 // T16.3 to T16.5 — the commission rates table stays empty and unwritable, and no amount is a
-// float (docs/mvp/18 T16; CLAUDE.md §3, transitional regime). T16.1, T16.2, T16.7: static, in
+// float (docs/mvp/18 T16; CLAUDE.md §3, transitional regime); T16.4 and T16.5 also cover
+// reference.price_bands (04 §4.2, 0201). T16.1, T16.2, T16.7: static, in
 // packages/test-kit/tests/t16-static.test.ts.
 import {
   inRolledBackTransaction,
@@ -24,6 +25,10 @@ const ROOT = path.resolve(
 const TABLE = "billing.commission_rates";
 const INSERT = `insert into ${TABLE} (scope, advertiser_rate_bp, creator_rate_bp, effective_from, created_by_account_id)
   values ('platform_default', 2000, 1500, now(), '00000000-0000-4000-8000-0000000004a0')`;
+
+const PRICE_BANDS = "reference.price_bands";
+const PRICE_BANDS_INSERT = `insert into ${PRICE_BANDS} (currency, code, label_key, min_amount_minor)
+  values ('EUR', 't16_witness', 'price_band.t16_witness', 0)`;
 
 let migration: postgres.Sql;
 
@@ -52,7 +57,8 @@ describe("T16.3: billing.commission_rates is empty", () => {
   });
 });
 
-describe("T16.4: nobody can write it", () => {
+/** T16.4 for one table: no write right anywhere, and every insertion refused. */
+function nobodyWrites(table: string, insert: string): void {
   it("grants INSERT, UPDATE, DELETE or TRUNCATE to no role of the closed list, nor to PUBLIC or the Data API", async () => {
     const roles = [
       ...Object.keys(EXPECTED_ROLES),
@@ -65,7 +71,7 @@ describe("T16.4: nobody can write it", () => {
       select r.name || ' ' || p.privilege as holder
         from unnest(${roles}::text[]) as r(name),
              unnest(array['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE']) as p(privilege)
-       where has_table_privilege(r.name, ${TABLE}, p.privilege)`;
+       where has_table_privilege(r.name, ${table}, p.privilege)`;
     expect(rows).toEqual([]);
   });
 
@@ -78,7 +84,7 @@ describe("T16.4: nobody can write it", () => {
     "refuses an insertion by %s without a role taken",
     async (role) => {
       const result = await inRolledBackTransaction(loginRole(role), (tx) =>
-        probe(tx, INSERT),
+        probe(tx, insert),
       );
       expect(result).toEqual({ outcome: "error", code: "42501" });
     },
@@ -91,12 +97,35 @@ describe("T16.4: nobody can write it", () => {
         loginRole(TAKEN_ROLES[role]),
         async (tx) => {
           await takeRole(tx, role);
-          return probe(tx, INSERT);
+          return probe(tx, insert);
         },
       );
       expect(result).toEqual({ outcome: "error", code: "42501" });
     },
   );
+}
+
+describe("T16.4: nobody can write it", () => {
+  nobodyWrites(TABLE, INSERT);
+});
+
+// 04 §4.2: the net bounds of reference.price_bands are data written by a reviewed migration,
+// under the same regime as the rates; the table holds no row at L2A (0201, D78).
+describe("T16.4 extended to reference.price_bands (04 §4.2)", () => {
+  it("holds no row at L2A, and is named by no seed file", async () => {
+    const [row] = await migration<{ count: number }[]>`
+      select count(*)::int as count from reference.price_bands`;
+    expect(row?.count).toBe(0);
+    const seed = path.join(ROOT, "supabase/seed");
+    const files = existsSync(seed) ? readdirSync(seed) : [];
+    expect(
+      files.filter((file) =>
+        readFileSync(path.join(seed, file), "utf8").includes("price_bands"),
+      ),
+    ).toEqual([]);
+  });
+
+  nobodyWrites(PRICE_BANDS, PRICE_BANDS_INSERT);
 });
 
 /**
@@ -137,6 +166,22 @@ async function amountFindings(
 describe("T16.5: no amount stored as a float, and none without its currency", () => {
   it("has no float or money column; every amount column is a bigint beside a currency column", async () => {
     expect(await amountFindings(migration)).toEqual([]);
+  });
+
+  it("sees the four amount columns of reference.price_bands, all bigint beside its currency", async () => {
+    const rows = await migration<{ column: string }[]>`
+      select column_name || ' ' || data_type as column
+        from information_schema.columns
+       where table_schema = 'reference' and table_name = 'price_bands'
+         and (column_name ~ '(^|_)(amount|montant)(_|$)' or column_name = 'currency')
+       order by column_name`;
+    expect(rows.map((row) => row.column)).toEqual([
+      "currency character",
+      "max_amount_minor bigint",
+      "min_amount_minor bigint",
+      "net_max_amount_minor bigint",
+      "net_min_amount_minor bigint",
+    ]);
   });
 
   it("detects each infraction on witness tables, created then rolled back", async () => {

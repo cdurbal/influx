@@ -11,7 +11,8 @@
 // 2. every expectation cites its source; an absent cell means `refus_droit`: refusal is the
 //    default, never the exception;
 // 3. every table lists the templates its probes need, and the data set of test-kit places at
-//    least one row in it, except billing.commission_rates which stays EMPTY (T16.3);
+//    least one row in it, except billing.commission_rates which stays EMPTY (T16.3) and
+//    reference.price_bands, EMPTY at L2A (0201, D78);
 // 4. append-only tables carry `appendOnly` (T3.1, T3.2 apply to them);
 // 5. a table of our schemas absent from this file fails the build (T2.2), and an entry whose table
 //    no longer exists fails it too (T2.3).
@@ -42,7 +43,8 @@ export type Operation = (typeof OPERATIONS)[number];
  * Forms of 18 T2. `filtré` is not written here: it is what `propre` and `autorisé` become when
  * the role is taken without context, or in aal1 for agent and admin (T2.5), and is derived.
  * `vide` (added at J2, 21 §3 EC-35): the right exists but the table is empty BY DESIGN
- * (billing.commission_rates read by the administrator), so no row can ever be seen.
+ * (billing.commission_rates read by the administrator; reference.price_bands at L2A, 0201), so
+ * no row can be seen.
  */
 export type Form = "refus_droit" | "propre" | "autorisé" | "vide";
 
@@ -119,6 +121,32 @@ const REFERENCE_READ: Expectation = {
     "03 §3 (reference lists read by every role with a context); 0003 GRANT SELECT",
 };
 
+/**
+ * The Lot 2 reference lists loaded by 0201 (04 §4.2), price_bands apart: it is EMPTY at L2A (D78).
+ * Same rights as 0003: SELECT to the four business roles, with a context (aal2 for agent, admin).
+ */
+export const LOT2_REFERENCE_TABLES = [
+  "reference.topics",
+  "reference.networks",
+  "reference.formats",
+  "reference.sectors",
+  "reference.usage_rights",
+  "reference.audience_bands",
+  "reference.engagement_bands",
+  "reference.age_bands",
+  "reference.audience_genders",
+  "reference.editorial_tones",
+  "reference.publication_frequencies",
+  "reference.comment_bands",
+  "reference.regions",
+] as const;
+
+const LOT2_REFERENCE_READ: Expectation = {
+  form: "autorisé",
+  source:
+    "03 §3 (reference lists read by every role with a context); 0201 GRANT SELECT, as 0003",
+};
+
 export const TABLE_RIGHTS: readonly TableRights[] = [
   {
     table: "reference.countries",
@@ -137,6 +165,24 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     source: "0003",
     probeColumn: "code",
     expected: forRoles(BUSINESS, { select: REFERENCE_READ }),
+  },
+  ...LOT2_REFERENCE_TABLES.map((table): TableRights => ({
+    table,
+    source: "0201 (rights of 0003, 04 §4.2)",
+    probeColumn: "code",
+    expected: forRoles(BUSINESS, { select: LOT2_REFERENCE_READ }),
+  })),
+  {
+    table: "reference.price_bands",
+    source: "0201 (rights of 0003; 04 §4.2 REVOKE)",
+    probeColumn: "code",
+    expected: forRoles(BUSINESS, {
+      select: {
+        form: "vide",
+        source:
+          "0201: read like every reference list, EMPTY at L2A by design (D78, L2A founder answer 2)",
+      },
+    }),
   },
   {
     table: "identity.accounts",
@@ -937,7 +983,8 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * (J8 commit 2), then of 0131 and 0132 (J8 commit 3), then of 0133 and 0134 (J8 commits 5 and 6),
  * then of 0135 (J8 commit 7), then on 2026-10-16 of 0136 and 0137 (J8 commit 8, E-5), each line
  * checked against its migration; and on 2026-10-22 with those of 0147 (J9 commit 8, D60 active
- * monitoring), each line checked against its sections 19 and 20.
+ * monitoring), each line checked against its sections 19 and 20; and on 2026-11-01 with those of
+ * 0201 (L2A commit 09, the Lot 2 reference lists), checked against 0003 lines 265-308.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -2416,6 +2463,64 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator|function|identity.submit_member_erasure()|EXECUTE",
   "influx_privacy_definer|function|privacy.read_erasure_notification_subject(uuid)|EXECUTE",
   "influx_privacy|function|privacy.read_erasure_notification_subject(uuid)|EXECUTE",
+  // 0201 (L2A commit 09, 04 §4.2): the fourteen Lot 2 reference lists, SELECT to the four
+  // business roles as 0003, nothing else (price_bands included, empty at L2A, D78)
+  "influx_admin|table|reference.age_bands|SELECT",
+  "influx_admin|table|reference.audience_bands|SELECT",
+  "influx_admin|table|reference.audience_genders|SELECT",
+  "influx_admin|table|reference.comment_bands|SELECT",
+  "influx_admin|table|reference.editorial_tones|SELECT",
+  "influx_admin|table|reference.engagement_bands|SELECT",
+  "influx_admin|table|reference.formats|SELECT",
+  "influx_admin|table|reference.networks|SELECT",
+  "influx_admin|table|reference.price_bands|SELECT",
+  "influx_admin|table|reference.publication_frequencies|SELECT",
+  "influx_admin|table|reference.regions|SELECT",
+  "influx_admin|table|reference.sectors|SELECT",
+  "influx_admin|table|reference.topics|SELECT",
+  "influx_admin|table|reference.usage_rights|SELECT",
+  "influx_advertiser|table|reference.age_bands|SELECT",
+  "influx_advertiser|table|reference.audience_bands|SELECT",
+  "influx_advertiser|table|reference.audience_genders|SELECT",
+  "influx_advertiser|table|reference.comment_bands|SELECT",
+  "influx_advertiser|table|reference.editorial_tones|SELECT",
+  "influx_advertiser|table|reference.engagement_bands|SELECT",
+  "influx_advertiser|table|reference.formats|SELECT",
+  "influx_advertiser|table|reference.networks|SELECT",
+  "influx_advertiser|table|reference.price_bands|SELECT",
+  "influx_advertiser|table|reference.publication_frequencies|SELECT",
+  "influx_advertiser|table|reference.regions|SELECT",
+  "influx_advertiser|table|reference.sectors|SELECT",
+  "influx_advertiser|table|reference.topics|SELECT",
+  "influx_advertiser|table|reference.usage_rights|SELECT",
+  "influx_agent|table|reference.age_bands|SELECT",
+  "influx_agent|table|reference.audience_bands|SELECT",
+  "influx_agent|table|reference.audience_genders|SELECT",
+  "influx_agent|table|reference.comment_bands|SELECT",
+  "influx_agent|table|reference.editorial_tones|SELECT",
+  "influx_agent|table|reference.engagement_bands|SELECT",
+  "influx_agent|table|reference.formats|SELECT",
+  "influx_agent|table|reference.networks|SELECT",
+  "influx_agent|table|reference.price_bands|SELECT",
+  "influx_agent|table|reference.publication_frequencies|SELECT",
+  "influx_agent|table|reference.regions|SELECT",
+  "influx_agent|table|reference.sectors|SELECT",
+  "influx_agent|table|reference.topics|SELECT",
+  "influx_agent|table|reference.usage_rights|SELECT",
+  "influx_creator|table|reference.age_bands|SELECT",
+  "influx_creator|table|reference.audience_bands|SELECT",
+  "influx_creator|table|reference.audience_genders|SELECT",
+  "influx_creator|table|reference.comment_bands|SELECT",
+  "influx_creator|table|reference.editorial_tones|SELECT",
+  "influx_creator|table|reference.engagement_bands|SELECT",
+  "influx_creator|table|reference.formats|SELECT",
+  "influx_creator|table|reference.networks|SELECT",
+  "influx_creator|table|reference.price_bands|SELECT",
+  "influx_creator|table|reference.publication_frequencies|SELECT",
+  "influx_creator|table|reference.regions|SELECT",
+  "influx_creator|table|reference.sectors|SELECT",
+  "influx_creator|table|reference.topics|SELECT",
+  "influx_creator|table|reference.usage_rights|SELECT",
 ];
 
 /**

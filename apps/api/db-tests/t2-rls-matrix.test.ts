@@ -303,21 +303,28 @@ describe("T2.2 and T2.3: every table of our schemas is declared, protected and a
     expect(tables.length).toBeGreaterThanOrEqual(15);
   });
 
-  it("finds a row in every table for the migration role, commission_rates excepted (rule 3)", async () => {
+  it("finds a row in every table for the migration role, commission_rates and price_bands excepted (rule 3)", async () => {
+    // Empty by design: the rates (T16.3) and the price bands at L2A (0201, D78).
+    const emptyByDesign = new Set([
+      "billing.commission_rates",
+      "reference.price_bands",
+    ]);
     const empty: string[] = [];
+    const filled: string[] = [];
     for (const rights of TABLE_RIGHTS) {
       const [row] = await migration.unsafe<{ count: number }[]>(
         `select count(*)::int as count from ${rights.table}`,
       );
-      const isRates = rights.table === "billing.commission_rates";
-      if ((row?.count ?? 0) === 0 && !isRates) {
+      const count = row?.count ?? 0;
+      if (count === 0 && !emptyByDesign.has(rights.table)) {
         empty.push(rights.table);
       }
-      if (isRates) {
-        expect(row?.count).toBe(0);
+      if (count > 0 && emptyByDesign.has(rights.table)) {
+        filled.push(rights.table);
       }
     }
     expect(empty).toEqual([]);
+    expect(filled).toEqual([]);
   });
 
   it("owns no schema outside the declared list, and keeps public empty of our objects", async () => {
