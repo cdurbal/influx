@@ -365,7 +365,7 @@ livrable n'existe pas. Il n'y a donc **pas deux saisies** à tenir cohérentes.
 **RG36** — Une **ligne de livrable** est un triplet **(réseau, format, quantité)**. Le format
 appartient à `reference.formats` et doit être **compatible avec le réseau** (`formats.network_code`).
 La quantité est un **entier de 1 à 20**. Deux lignes identiques (même réseau, même format) sont
-interdites : la quantité existe pour cela.
+interdites : la quantité existe pour cela. Les formats sans réseau (`ugc_video`, `ugc_photo`, `formats.network_code` nul, `0201`) se livrent à la marque (RG18) ; leur compatibilité avec le réseau d'une ligne se tranche au Lot 3.
 
 **RG37** — Une campagne comporte **au plus 10 lignes de livrables**. Au-delà, ce n'est plus une
 campagne : c'est un contrat-cadre, hors périmètre du MVP.

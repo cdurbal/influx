@@ -358,7 +358,7 @@ majorité des recherches passe sous le seuil de k-anonymat et n'affiche rien. Le
 | F9 | Répartition de genre **de l'audience** | Tranche (majorité féminine ≥ 60 %, mixte, majorité masculine ≥ 60 %) | Standard du média-planning. **Porte sur l'audience, jamais sur le créateur** (A12) |
 | F10 | Tranche d'âge dominante **de l'audience** | Multi-choix (18-24, 25-34, 35-44, 45+) | Adéquation au produit ; même réserve qu'en F9 |
 | F13 | Contrepartie non monétaire acceptée | Oui / non | Ouvre le bas de marché, les jeunes marques et les tests |
-| F14 | Droits d'usage acceptés | Multi-choix (organique seul, whitelisting / publicité payante, réutilisation site et print) | **Première cause de désaccord** en négociation : la filtrer en amont évite des conversations perdues |
+| F14 | Droits d'usage acceptés | Multi-choix : les quatre valeurs de `reference.usage_rights` (`09` RG38 : `none`, `organic_repost`, `paid_whitelisting`, `media_buy`) | **Première cause de désaccord** en négociation : la filtrer en amont évite des conversations perdues |
 | F15 | Exclusivité sectorielle acceptée | Tranche de durée (non / ≤ 1 mois / ≤ 3 mois / négociable) | **Deuxième cause de désaccord**, même raisonnement |
 | F16 | Disponibilité déclarée + date de déclaration | Tranche (< 2 semaines / < 1 mois / complet) | Évite les demandes mortes ; futur critère de disponibilité |
 | F18 | Expérience de collaborations | Tranche (0 / 1-5 / 6-20 / 20+) | Signal de sérieux ; augmente la confiance de la marque, donc le taux de demande |

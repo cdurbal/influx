@@ -470,7 +470,7 @@ $$;
 
 Toutes ces tables ont la même forme : un **code** comme clé primaire, une clé de traduction, un
 indicateur d'activité, et des dates d'introduction et de retrait. **Aucun libellé français ou
-anglais n'est stocké** (R8) : la colonne `label_key` pointe vers les fichiers de traduction.
+anglais n'est stocké** (R8) : la colonne `label_key` pointe vers les fichiers de traduction. **Forme des codes (0201)** : `^[a-z0-9]+(_[a-z0-9]+)*$`, 63 caractères au plus (région : ISO 3166-2 complet, `FR-IDF`) ; `label_key` = `<table au singulier>.<code>` sous contrainte (`usage_right.none`, `region.FR-IDF`) ; un code servi n'est jamais renommé ni réutilisé (`retired_at`).
 
 | Table | Clé | Colonnes notables | Lot |
 |---|---|---|---|
@@ -487,7 +487,8 @@ anglais n'est stocké** (R8) : la colonne `label_key` pointe vers les fichiers d
 | `reference.age_bands` | `code text` | `min_age smallint not null`, `max_age smallint` nullable — `18_24`, `25_34`, `35_44`, `45_plus`. **`check (min_age >= 18)` : aucune tranche mineure n'est modélisable** (D15) | 2 |
 | `reference.audience_genders` | `code text` | `female_majority` (≥ 60 %), `mixed`, `male_majority` (≥ 60 %) — **tranches, jamais un pourcentage** | 2 |
 | `reference.editorial_tones` | `code text` | Les sept tons de `07` RG34, `label_key`, `introduced_at`, `retired_at` | 2 |
-| `reference.publication_frequencies` | `code text` | `daily` · `several_per_week` · `weekly` · `biweekly` · `monthly_or_less`, `sort_order` | 2 |
+| `reference.publication_frequencies` | `code text` | `daily` · `several_per_week` · `weekly` · `biweekly` · `monthly_or_less`, `sort_order`, **`min_posts_30d smallint not null`, `max_posts_30d smallint` nullable** (`07` RG114 : 25+ · 8-24 · 4-7 · 2-3 · 0-1 publications sur 30 jours) | 2 |
+| `reference.comment_bands` | `code text` | `min_comments bigint not null`, `max_comments bigint` nullable, `label_key`, `introduced_at`, `retired_at` ; `0_9` · `10_49` · `50_199` · `200_999` · `1000_plus` (`07` RG115, §12.12 point 4) | 2 |
 | `reference.regions` | `(country_code, code)` | Niveau administratif 1 (ISO 3166-2), `label_key`, `is_active`. **Chargée pays par pays**, à la demande : charger le monde entier au Lot 2 serait 4 000 lignes inutilisées | 2 |
 | `reference.price_bands` | `(currency, code)` | `min_amount_minor`, `max_amount_minor`, **`net_min_amount_minor`, `net_max_amount_minor`**, `net_basis_label`, `net_computed_at`, `introduced_at`, `retired_at` (ci-dessous) | 2 |
 | `reference.campaign_types` | `code text` | Les **sept** types de `09` RG18, **sans valeur `other`**, `label_key`, `introduced_at`, `retired_at` | 3 |

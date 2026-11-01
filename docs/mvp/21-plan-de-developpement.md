@@ -145,40 +145,36 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 
 | # | Correctif attendu | Échéance | Détail |
 |---|---|---|---|
-| RK-fin | Reste du critère de fin RK : table de traçabilité `20` §11 → TK sans ligne orpheline (R3) ; test du logo (`expert-ux`, `20` §11.7). Passages `pnpm check` + `pnpm test:e2e` et recette du fondateur attestés le 2026-10-31 | Avant le 1er commit du Lot 2 | `archives/jalons/rk-fiche.md` l. 205 à 210 |
-| RK-e2e | Marge de durée e2e d'environ 2 s sur les 60 s permis | À mesurer à chaque jalon du Lot 2 | ligne RK de l'archive §5 |
-| J9S-6 | `/health` de `apps/web` : garder 5 s en mémoire le résultat de `/v1/status` (un flot donne un `503` trompeur) | Lot 2 | `archives/jalons/j9-fiche.md` l. 36 |
-| J9S-7 | « Santé technique » : message d'erreur navigateur affiché « source navigateur, texte non vérifié », jamais cliquable | Lot 2 | idem l. 37 |
-| J9S-9 | Test de parité : toute valeur admise par `sync_settings_value_shape` (`0141`) passe `unreadableApolloKeys` | Lot 2 | idem l. 38 |
-| J9T-5 | `e2e/support/journey.ts` : barrière d'hydratation explicite dans `open()` / `reload()` ; commentaire périmé de `security-headers.spec.ts` ; intermittent `journey-resume` | Lot 2 | idem l. 39 |
-| J9T-8 | Identifiants de cas absents de neuf titres de tests | Lot 2 | idem l. 40 |
-| J9T-9 | `test:artifacts` sans plancher (web, backoffice) | Lot 2 | idem l. 41 |
-| J4S-7 | Aucun nom ni pseudo dans un chemin des espaces connectés (sinon modèle de route Next dans le collecteur d'erreurs) | Lot 2, avant les routes de profil | `archives/21-journal-lot1-archive.md` §4 |
-| SNT-1 | TD3.6 intermittent en run complet | Lot 2 | `archives/jalons/sn-fiche.md` |
-| SNT-3 | Aucun test du défilement des entrées du menu de la landing ni des liens de marque | Lot 2 | idem |
-| DS-flaky | `t14-backoffice-invitations-route` (« a retry of the same link… ») vu rouge une fois | À surveiller | ligne DS de l'archive §5 |
+| DS-flaky | `t14-backoffice-invitations-route` (« a retry of the same link… ») vu rouge une fois ; aucune occurrence sur les passages de clôture L2A (suite base, puis deux passages du fichier) ni sur 5 runs CI | À surveiller | ligne DS de l'archive §5 |
 | PLK-1 | `apps/api/src/domains/backoffice/actions-routes.ts` (833 l., routes, hors de PL-05) : découpage par sous-domaine pour tenir les 600 lignes du critère de fin PL | Lot 2 (à la première retouche) | `archives/jalons/pl-fiche.md` § Critère de fin |
-| PLS-1 | `next` ≥ 16.4.1 (16.4.2), `zod` ≥ 4.6.6, épingles de `packages/ui` comprises (`pnpm audit --prod` : deux critiques, deux élevées) ; commit de dépendance, suite complète | Ouverture du Lot 2 (avant production) | `archives/jalons/pl/revue-constats.md` |
 | PLS-2 | T12 : audit des dépendances qui échoue sur critique ou élevée (T12.1), hebdomadaire et CI, dérogations datées (T12.3, T12.4) | Avant production | idem |
 | PLT-2 | `/v1/bo/alerts` : refus délibéré 42501 `forbidden` en 401 (cookie effacé, PLS-4) au lieu de 500 ; test db qui désactive le profil entre résolution et appel | Avant production | idem |
 | PLT-5 | Fonction 2V de `0141` (EC-PL-04a-1) : migration `@.value.type() != "string"`, test db « payload 2V refusé à la création » ; avec PLS-5 et PLS-6 | Avant production | idem |
 | PLT-4 | `run-tests.ts` : ne compter comme fichier qu'un argument existant ou en `.ts` ; `shell: true` sous Windows (= PLS-9) | Plus tard | idem |
-| PLT-6 | `status-cache.ts` : échéance à la fin de l'appel, `pending` partagé, `try` autour de `load()`, deux cas | Plus tard | idem |
 | PLT-7 | `ci.yml:305` : commentaire « About 45 s locally » remplacé par la mesure de PL-12 | Plus tard | idem |
-| PLS-3 | `/health` de `apps/web` : ne jamais mettre en cache un 429 (avec PLT-6) | Plus tard | idem |
 | PLS-4 | `/v1/bo/alerts` : 42501 `forbidden` → 401, cookie effacé (côté test : `fix-1`) ; avec PLT-2 | Plus tard | idem |
 | PLS-5 | `@.value.type() != "string"` dans la prochaine migration de la fonction 2V (= PLT-5) | Plus tard | idem |
 | PLS-6 | `0151` : faille lax de `brevo_list_ids` et `brevo_template_ids`, même migration que PLT-5 | Plus tard | idem |
 | PLS-7 | « Santé technique » : mention « source navigateur, texte non vérifié » sur la pile et la page | Plus tard | idem |
 | PLS-8 | `SECURITY_FILES` : `packages/web-platform/eslint.config.mjs` et `eslint.front-rules.mjs` | Plus tard | idem |
 | PLS-9 | = PLT-4 | Plus tard | idem |
+| L2AT-2 | Deux des quatre liens soulignés de L2AU-3 (`fix-1`) n'ont aucun cas e2e | Avant production | `archives/jalons/l2a-fiche.md` § Revue |
+| L2AT-3 | Liens « retour à l'accueil » de `error.tsx` et `global-error.tsx` encore en `TEXT_BUTTON_CLASSES` (sans signe de lien, WCAG 1.4.1) | Avant production | idem |
+| L2AT-4 | Garde J4S-7 limitée à `[locale]/(member)` et `(app)` : étendre aux autres arbres avec les routes de profil | Plus tard (L2B) | idem |
+| L2AT-5 | Trois contraintes sans cas dans `reference-taxonomies.test.ts` ; contiguïté des tranches par devise (`price_bands`) à prouver au premier chargement | Plus tard (L2B) | idem |
+| L2AT-6 | Cas L2AU de `member-shell.spec.ts` : une seule combinaison rôle × langue par langue | Plus tard | idem |
+| L2AS-1 | `/health` de `apps/web` : le `503` d'un passage limité reste partagé entre requêtes concurrentes | Plus tard | idem |
+| L2AS-2 | `routeModelOf` : passer en liste d'autorisation avec les routes de profil | Plus tard (L2B) | idem |
+| L2AS-3 | `fastify` 5.12.6 et `fast-uri` (avis suivis, hors critique et élevée) | Plus tard | idem |
+| L2AS-4 | `vitest` 4.1.12 et `zod` porté par `eslint-plugin-react-hooks` (avis suivis) | Plus tard | idem |
+| L2-amend | Amendements de clôture de `referentiels.md` restants : `06` RG27 et `07` bloc 5 (`none` non cochable en multi-choix), `07` bloc 3 (domaine de l'URL de profil), `08` RG32 (« autre réseau » = de la liste). Faits : `04` §4.2, `09` RG36, `matching-spec` F14 | Avec les écrans de L2B | `archives/jalons/l2a/referentiels.md` |
 
 **Plus tard** (sans action au Lot 2) : *avant production* J9T-1, J9S-2, J9S-4, AL53, J4S-8, manques du commit J9-11 et points `expert-ux` du commit J9-5 (`archives/jalons/j9-fiche.md`) ; *Lot 3* T15.2, F3 ; *Lot 5* classement des groupes d'erreurs, J9T-3, J9T-10, J8S-8, J8S-9, RK-16, effacement Apollo, écran des identifiants Brevo (option) ; *Lot 6* F8, J7T-6 ; *Lot 6bis* reports D70 (`archives/jalons/d70-plan.md` l. 125 à 130) ; décisions DZ-1, 2, 4 à 7 (`decisions.md`).
 
 **Jalons** (D77) : le Lot 2 est découpé en L2A à L2G (`jalons/lot2-plan.md`, validé le 2026-11-01) ; suivant : `/jalon-prepare L2A`. Un jalon se suit dans `jalons/<id>/run.md` (une ligne par commit) ; ici, une ligne à son ouverture et une à sa clôture.
 
 - **PL** (préparation du Lot 2, corrections K1 et K3 à K10 de `archives/revue-pre-lot2-2026-10-31.md`) : ouvert le 2026-10-31, **clos le 2026-10-31** (critère de fin prouvé, reliquat soldé ou reporté ci-dessus, revue attestée) ; `archives/jalons/pl-fiche.md`, `archives/jalons/pl/run.md`.
-- **L2A** (reliquat RK-fin, PLS-1, PLS-3, PLT-6, SNT-3, J4S-7, listes de départ des référentiels, migration `0201`) : ouvert le 2026-11-01 ; `jalons/l2a-fiche.md`, `jalons/l2a/run.md`.
+- **L2A** (reliquat RK-fin, PLS-1, PLS-3, PLT-6, SNT-3, J4S-7, listes de départ des référentiels, migration `0201`) : ouvert le 2026-11-01, **clos le 2026-11-01** (critère de fin prouvé, reliquat soldé ou reporté ci-dessus, revue attestée) ; `archives/jalons/l2a-fiche.md`, `archives/jalons/l2a/run.md`.
 
 **Registre des décisions** (PL-11) : `decisions.md` ne garde que sujet et statut résumés de D1 à D79 ; le texte intégral (sujet, arbitre, statut, échéance, mot pour mot) est dans `decisions-detail.md` (§ Dxx), qui fait foi en cas d'écart.
 

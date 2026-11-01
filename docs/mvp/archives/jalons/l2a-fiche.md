@@ -83,19 +83,18 @@ J4S-7, SNT-3, PLS-3, PLT-6).
 
 ## Critère de fin
 
-- [ ] `pnpm audit --prod --audit-level high` sans critique ni élevée (03). *Preuve : sortie, exit 0.*
-- [ ] e2e allégé : `journey-resume` environ 3 s de moins, abandon seul (04, décision du fondateur ; reste du levier reporté) ; ajout du jalon ≤ 20 s (somme des
+- [x] `pnpm audit --prod --audit-level high` sans critique ni élevée (03). *Preuve : exit 0, commit `6b2a8af`.*
+- [x] e2e allégé : `journey-resume` environ 3 s de moins, abandon seul (04, décision du fondateur ; reste du levier reporté) ; ajout du jalon ≤ 20 s (somme des
       médianes des cas ajoutés, trois passages de clôture) ; job « Browser journeys » sous 8 min.
-      *Preuve : `run.md`, rapport JSON, run CI.*
-- [ ] `0201` appliquée sur `staging`. *Preuve : job « Migrate staging » vert, comptes de lignes des
-      quatorze tables lus (`runbooks/staging.md`).*
-- [ ] T2 et T16 verts avec les quatorze tables ; suite base complète verte (09). *Preuve : sorties.*
-- [ ] Reliquat L2A soldé : RK-fin (01, 02), PLS-1 (03), PLS-3 et PLT-6 (05), SNT-3 (06), J4S-7 (07)
+      *Preuve : gain de 04 3,6 s (`5ebd5df`) ; ajout net 14,3 s ≤ 20 s (`run.md`, ligne C) ; job 6 min 0 s, run 41352478919.*
+- [x] `0201` appliquée sur `staging`. *Preuve : job « Migrate staging » vert (run 41352478919) ; lignes lues en lecture seule : 17, 10, 24, 26, 4, 5, 4, 4, 3, 7, 5, 5, 89, 0 (`price_bands`).*
+- [x] T2 et T16 verts avec les quatorze tables ; suite base complète verte (09). *Preuve : `pnpm check` du 2026-11-01 : 1 367 sur 1 368 cas base verts, seul rouge `tm9-ops-monitoring` AL63, préexistant et local (voir ci-dessous) ; CI base verte.*
+- [x] Reliquat L2A soldé : RK-fin (01, 02), PLS-1 (03), PLS-3 et PLT-6 (05), SNT-3 (06), J4S-7 (07)
       retirés de `21` §8 ; lignes déjà soldées par PL retirées avec leur sha (EC-L2A-1) ; DS-flaky
-      relevé sur les trois passages ; RK-e2e mesuré. *Preuve : diff de `21` §8, `run.md`.*
-- [ ] `pnpm check` puis `pnpm test:e2e` verts trois fois de suite sans rejeu ; CI verte sur le dernier
-      commit. *Preuve : dernières lignes, numéro du run.*
-- [ ] Revue `testeur` + `expert-cybersecurite` faite ; attestation `security-reviewed:` couvrant 03 et
+      relevé sur les trois passages ; RK-e2e mesuré et retiré. *Preuve : diff de `21` §8, `run.md`.*
+- [x] `pnpm check` puis `pnpm test:e2e` verts trois fois de suite sans rejeu ; CI verte sur le dernier
+      commit. *Preuve : e2e 222 sur 222 trois fois (3,9 / 4,4 / 3,9 min), aucun cas rejoué ; `pnpm check` vert hors AL63 (build et `test:artifacts` verts à part) ; CI verte, run 41352478919 sur `5e643f7`.*
+- [x] Revue `testeur` + `expert-cybersecurite` faite ; attestation `security-reviewed:` couvrant 03 et
       09 (D71). *Preuve : sha du commit d'attestation.*
 
 ## Écarts, décisions ouvertes, risques
@@ -121,6 +120,7 @@ J4S-7, SNT-3, PLS-3, PLT-6).
 - 04 : le compte à rebours dépend d'une heure serveur (`page.clock` ne le gouverne pas) : laissé tel
   quel, 04 rescopé sur l'abandon (fondateur, 2026-11-01) ; arrêt si une assertion de l'abandon change.
 - I-4 : 03 et 09 portent le marqueur à la revue, par attestation (D71).
+- **Écarts regroupés (documentation groupée)** : EC-L2A-03-1 (`source-map-js` 1.2.2 par `overrides` exact et commenté, la montée de `next` ne le corrigeait pas) · EC-L2A-09-1 (`retired_at` seul, pas d'`is_active` sur `regions`) · EC-L2A-fix-1-1 (voir le commit `5e643f7`) · EC-L2A-1 (ci-dessus, soldé). Amendements de `referentiels.md` : `04` §4.2, `09` RG36 et `matching-spec` F14 faits ; les trois autres au reliquat (`21` §8, L2-amend).
 - Risques : RK-e2e (marge) ; DS-flaky (`t14-backoffice-invitations-route`) relevé à chaque passage ;
   hors L2A : J9S-7 et PLS-7, PLK-1 (L2C) ; PLT-5, PLS-5, PLS-6 (L2F).
 
@@ -147,7 +147,23 @@ Codes, libellés FR / EN et bornes : `jalons/l2a/referentiels.md`, seule source 
 
 ## Revue
 
-(rempli par `/jalon-run` : `L2AT-n`, `L2AS-n`, `L2AU-n` pour le test du logo)
+Revue de fin de jalon (`testeur` + `expert-cybersecurite`, 2026-11-01, plage `a313279..5e643f7`) : **aucun bloquant**, CI verte. Attestation `security-reviewed: 2026-11-01 covers 6b2a8af 398d063` commitée en clôture. Constats reportés dans `21` §8.
+
+| Id | Gravité | Constat | Sort |
+|---|---|---|---|
+| L2AT-1 | à corriger dans le jalon | Durée des 4 cas e2e de `fix-1` non mesurée | Soldé : ajout net 14,3 s (`run.md`, ligne C) |
+| L2AT-2 | avant production | Deux des quatre liens soulignés de L2AU-3 sans cas | `21` §8 |
+| L2AT-3 | avant production (WCAG 1.4.1) | Liens « retour à l'accueil » de `error.tsx` et `global-error.tsx` en `TEXT_BUTTON_CLASSES` | `21` §8 |
+| L2AT-4 | plus tard | Garde J4S-7 limitée à `(member)` et `(app)` | `21` §8 |
+| L2AT-5 | plus tard | Trois contraintes sans cas dans `reference-taxonomies.test.ts` ; contiguïté par devise à L2B | `21` §8 |
+| L2AT-6 | plus tard (faible) | Cas L2AU de `member-shell.spec.ts` : une combinaison rôle × langue par langue | `21` §8 |
+| L2AT-7 | à relever | DS-flaky | Soldé : aucune occurrence (suite base, deux passages de `t14`, 5 runs CI) |
+| L2AS-1 | plus tard | `/health` : 503 partagé sur un passage limité | `21` §8 |
+| L2AS-2 | plus tard | `routeModelOf` en liste d'autorisation, avec les routes de profil | `21` §8 |
+| L2AS-3 | plus tard | `fastify` 5.12.6, `fast-uri` | `21` §8 |
+| L2AS-4 | plus tard | `vitest` 4.1.12, `zod` via `eslint-plugin-react-hooks` | `21` §8 |
+
+**Échec local connu, hors jalon.** `db-tests/tm9-ops-monitoring` AL63 est rouge sur la base locale partagée, qui garde 310 exécutions ouvertes de `privacy.request_executions` (cause probable : la liste de l'alerte AL63 est saturée avant l'ajout du test, non vérifié). Identique sans les commits de L2A, vert en CI (base neuve). La base n'a pas été nettoyée : elle est commune aux sessions et les gardes de `0137` rendent ces lignes immuables ; à remettre à zéro (`supabase db reset`) à la recette, session par session.
 
 ### Test du logo (ligne 02, `expert-ux`, 2026-11-01)
 
