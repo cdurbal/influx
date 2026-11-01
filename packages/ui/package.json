@@ -12,13 +12,13 @@
     "lint": "eslint . --max-warnings 0"
   },
   "peerDependencies": {
-    "next": "16.3.6"
+    "next": "16.4.3"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
     "@types/node": "22.20.3",
     "eslint": "9.39.5",
-    "next": "16.3.6",
+    "next": "16.4.3",
     "typescript": "6.0.3",
     "typescript-eslint": "8.70.0"
   }

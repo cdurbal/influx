@@ -19,7 +19,7 @@
     "@influx/ui": "workspace:*",
     "@influx/web-platform": "workspace:*",
     "lucide-react": "1.46.0",
-    "next": "16.3.6",
+    "next": "16.4.3",
     "next-intl": "4.14.5",
     "react": "19.3.0",
     "react-dom": "19.3.0"
@@ -33,7 +33,7 @@
     "@types/react-dom": "19.3.0",
     "axe-core": "4.13.0",
     "eslint": "9.39.5",
-    "eslint-config-next": "16.3.6",
+    "eslint-config-next": "16.4.3",
     "eslint-plugin-better-tailwindcss": "4.7.0",
     "eslint-plugin-jsx-a11y": "6.10.2",
     "tailwindcss": "4.3.3",

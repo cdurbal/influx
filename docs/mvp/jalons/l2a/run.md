@@ -4,7 +4,7 @@
 |---|---|---|---|---|---|---|---|
 | 01 | 01.md | commit | sonnet | high | testeur | fait | RK-fin (R3) : 12 lignes ajoutées à `18` §12.7 (83 à 95), 73 identifiants relus, aucun manquant ; 10 captures logo masqué dans `apps/web/test-results/logo-test/` (non indexées) |
 | 02 | 02.md | ux | sonnet | high | expert-ux | fait | RK-fin, test du logo ; sans commit. 10 captures lues : Spotify en premier sur `connexion` seule (pilule lumineuse + halo, sans signature INFLUX) ; parades tenues 10/10 ; L2AU-1 à L2AU-4 dans la fiche § Revue ; renforts additifs, aucun retrait d'effet (F6) : pas d'arrêt `fondateur`. Test à deux personnes extérieures à faire à la recette |
-| 03 | 03.md | commit | sonnet | high | dev-react-node | à faire | PLS-1 ; dépendance : suite complète ; I-4 |
+| 03 | 03.md | commit | sonnet | high | dev-react-node | fait | PLS-1 : `next` 16.4.3, `zod` 4.6.6 (épinglés exacts) ; `pnpm audit --prod --audit-level high` exit 0 (sharp 0.35.5 par la montée, `source-map-js` 1.2.2 par `overrides`, EC-L2A-03-1) ; `pnpm check` rouge sur un seul cas base préexistant (`tm9-ops-monitoring` AL63, identique sans le commit), e2e 214/214 en 3,5 min ; I-4 |
 | 04 | 04.md | commit | sonnet | high | testeur | à faire | levier `page.clock` ; gain ≥ 10 s |
 | 05 | 05.md | commit | sonnet | high | dev-react-node | à faire | PLS-3, PLT-6 |
 | 06 | 06.md | commit | sonnet | high | testeur | à faire | SNT-3 ; ≤ 8 s d'e2e |
