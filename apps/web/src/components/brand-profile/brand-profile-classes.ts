@@ -37,7 +37,8 @@ export const SECTION_PLAIN_TITLE_CLASSES = cn(
 );
 
 /** The title of the accordion below lg: the whole line is the button. */
-export const SECTION_BUTTON_TITLE_CLASSES = "min-w-0 flex-1 lg:hidden";
+export const SECTION_BUTTON_TITLE_CLASSES =
+  "min-w-0 flex-1 font-display lg:hidden";
 
 export const SECTION_BUTTON_CLASSES = cn(
   SECTION_TITLE_CLASSES,
