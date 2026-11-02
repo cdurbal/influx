@@ -16,7 +16,7 @@ export const MEMBER_FIELD_HEADER_CLASSES =
 
 /** What the label adds when the field is required, written (never a mark alone). */
 export const MEMBER_FIELD_REQUIRED_CLASSES =
-  "text-sm font-normal text-text-secondary";
+  "text-sm font-regular text-text-secondary";
 
 /** The counter of a text area and the count of a capped list: read, not announced at each key. */
 export const MEMBER_FIELD_COUNTER_CLASSES =
