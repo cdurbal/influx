@@ -891,7 +891,7 @@ traitée par le worker ne peut jamais atteindre l'anonymisation transverse.
 | `influx_worker` | `NOLOGIN` | aucun | E-3, E-4 | — |
 | `influx_audit_writer` | `NOLOGIN` | **aucun, et aucun membre** | Propriétaire de `audit.append()` ; `SELECT` et `INSERT` sur `audit.audit_events`, rien d'autre (P8) | — |
 | `influx_session_resolver` | `NOLOGIN` | aucun, aucun membre | Propriétaire de `identity.resolve_session()` ; `SELECT` des seules colonnes nécessaires de `sessions`, `accounts`, `account_roles`, `agent_profiles`. **Aucune écriture** : c'est la seule fonction appelable avant la prise de rôle | — |
-| `influx_identity_definer` | `NOLOGIN` | aucun, aucun membre | Propriétaire de `identity.grant_role()` (et, plus tard, des autres fonctions `SECURITY DEFINER` du domaine `identity`) ; droits limités à ce qu'elles écrivent | — |
+| `influx_identity_definer` | `NOLOGIN` | aucun, aucun membre | Propriétaire de `identity.grant_role()` (et, plus tard, des autres fonctions `SECURITY DEFINER` du domaine `identity`, et des portes membres qui écrivent le registre : *L2B, `0203`, EC-L2B-06-1* — `profiles.submit_own_advertiser_profile()`, `EXECUTE` à `influx_advertiser` seul, lecture des obligatoires et écriture de `status`, `submitted_at` sur la ligne de l'appelant ; à signer par `expert-cybersecurite` à la revue de fin de L2B) ; droits limités à ce qu'elles écrivent | — |
 
 **Propriétaire des schémas, tables, types et séquences : le rôle de migration** (`postgres` du
 projet Supabase), joint uniquement par `DIRECT_DATABASE_URL`, en CI (CI-5). Pas de rôle

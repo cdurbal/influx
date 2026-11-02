@@ -26,6 +26,9 @@ importers:
       '@influx/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@influx/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@supabase/auth-js':
         specifier: 2.117.2
         version: 2.117.2

@@ -1128,7 +1128,8 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * monitoring), each line checked against its sections 19 and 20; and on 2026-11-01 with those of
  * 0201 (L2A commit 09, the Lot 2 reference lists), checked against 0003 lines 265-308; and on
  * 2026-11-02 with those of 0202 (L2B commit 05, the full brand profile), each line checked against
- * its sections 4 and 5.
+ * its sections 4 and 5; then with those of 0203 (L2B commit 06, the submission), each line checked
+ * against its sections 3 and 4.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -2776,6 +2777,31 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_privacy_definer|table|profiles.advertiser_topics|DELETE",
   "influx_privacy_definer|table|profiles.advertiser_usage_rights|DELETE",
   "influx_privacy_definer|table|profiles.advertiser_working_languages|DELETE",
+  // 0203 (L2B commit 06, 06 RG5): the brand submits through profiles.submit_own_advertiser_profile()
+  // only (EXECUTE for influx_advertiser); its owner influx_identity_definer reads the required
+  // fields of the caller's profile and lists, writes status and submitted_at (RLS: own row), and
+  // owns the pure helper profiles.advertiser_missing_required_fields() (no grant).
+  "influx_advertiser|function|profiles.submit_own_advertiser_profile()|EXECUTE",
+  "influx_identity_definer|column|profiles.advertiser_audience_countries.account_id|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_audience_countries.country_code|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_formats.account_id|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_formats.format_code|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_networks.account_id|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_networks.network_code|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_profiles.company_size_band|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_profiles.contact_role|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_profiles.presentation|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_profiles.primary_sector_code|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_profiles.status|SELECT,UPDATE",
+  "influx_identity_definer|column|profiles.advertiser_profiles.submitted_at|SELECT,UPDATE",
+  "influx_identity_definer|column|profiles.advertiser_target_markets.account_id|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_target_markets.country_code|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_topics.account_id|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_topics.topic_code|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_working_languages.account_id|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_working_languages.language_code|SELECT",
+  "influx_identity_definer|function|profiles.advertiser_missing_required_fields(jsonb)|EXECUTE",
+  "influx_identity_definer|function|profiles.submit_own_advertiser_profile()|EXECUTE",
 ];
 
 /**
@@ -3027,4 +3053,7 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   // 0150 (D72): the member authorisation of an erasure; the read of the address of its e-mail
   "identity.submit_member_erasure()": "influx_identity_definer",
   "privacy.read_erasure_notification_subject(uuid)": "influx_privacy_definer",
+  // 0203 (L2B commit 06): the brand's submission (EC-L2B-06-1); the helper
+  // profiles.advertiser_missing_required_fields() is SECURITY INVOKER, same owner.
+  "profiles.submit_own_advertiser_profile()": "influx_identity_definer",
 };
