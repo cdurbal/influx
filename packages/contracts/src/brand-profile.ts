@@ -391,3 +391,72 @@ export const submitBrandProfileResponseSchema =
 export type SubmitBrandProfileResponse = z.infer<
   typeof submitBrandProfileResponseSchema
 >;
+
+// The logo (06 RG15, RG18; 18 T9; D80, jalons/l2b/stockage.md §1, §3, §4; commit 09). Deposited by
+// PUT /v1/me/brand-profile/logo, the raw bytes of the file as `application/octet-stream` through
+// the relay (2 MiB): neither its declared type nor its name is ever sent. apps/api reads its type
+// from its first bytes, re-encodes it into a WebP square without any metadata and keeps that output
+// only. Read back by GET as JSON (the bytes in base64): no URL, no host of Supabase, no token.
+
+/** What the relay carries for one upload (03 PP-9 amended by D80; EC-L2B-08-2). */
+export const BRAND_LOGO_MAX_UPLOAD_BYTES = 2_097_152;
+/** The longest side of the image received must reach it (06 RG15; EC-L2B-02-2). */
+export const BRAND_LOGO_MIN_SIDE = 256;
+/** The stored square (stockage.md §1). */
+export const BRAND_LOGO_SIDE = 512;
+/** The stored WebP, at most (the limit of the bucket brand-logo, 0204). */
+export const BRAND_LOGO_MAX_STORED_BYTES = 1_048_576;
+
+/**
+ * The reasons of an `image_rejected` (path `logo`): no bytes, a type other than PNG, JPEG or WebP
+ * (PDF and SVG included, T9.4), bytes that do not decode, more than 4 096² pixels, a longest side
+ * under 256 px, an output over the limit of the bucket.
+ */
+export const BRAND_LOGO_REJECTIONS = [
+  "empty",
+  "unsupported_type",
+  "undecodable",
+  "too_many_pixels",
+  "too_small",
+  "output_too_large",
+] as const;
+export type BrandLogoRejection = (typeof BRAND_LOGO_REJECTIONS)[number];
+
+/** Base64 of the largest stored WebP. */
+const BRAND_LOGO_MAX_BASE64_LENGTH =
+  Math.ceil(BRAND_LOGO_MAX_STORED_BYTES / 3) * 4;
+
+/** The stored logo, for its owner: always a WebP square, its bytes in base64. */
+export const brandLogoSchema = z.strictObject({
+  contentType: z.literal("image/webp"),
+  width: z.number().int().min(1).max(BRAND_LOGO_SIDE),
+  height: z.number().int().min(1).max(BRAND_LOGO_SIDE),
+  byteSize: z.number().int().min(1).max(BRAND_LOGO_MAX_STORED_BYTES),
+  data: z.base64().max(BRAND_LOGO_MAX_BASE64_LENGTH),
+  updatedAt: z.iso.datetime(),
+});
+export type BrandLogo = z.infer<typeof brandLogoSchema>;
+
+/** GET /v1/me/brand-profile/logo: the logo, or null when the brand has none. */
+export const brandLogoResponseSchema = z.strictObject({
+  logo: brandLogoSchema.nullable(),
+});
+export type BrandLogoResponse = z.infer<typeof brandLogoResponseSchema>;
+
+/** PUT /v1/me/brand-profile/logo: the logo now in force, and the completeness it changed (RG58). */
+export const brandLogoUploadResponseSchema = z.strictObject({
+  logo: brandLogoSchema,
+  completeness: brandProfileCompletenessSchema,
+});
+export type BrandLogoUploadResponse = z.infer<
+  typeof brandLogoUploadResponseSchema
+>;
+
+/** DELETE /v1/me/brand-profile/logo: whether a logo was removed, and the completeness after. */
+export const brandLogoRemovalResponseSchema = z.strictObject({
+  removed: z.boolean(),
+  completeness: brandProfileCompletenessSchema,
+});
+export type BrandLogoRemovalResponse = z.infer<
+  typeof brandLogoRemovalResponseSchema
+>;

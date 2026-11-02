@@ -27,10 +27,12 @@
     "@influx/contracts": "workspace:*",
     "@influx/domain": "workspace:*",
     "@supabase/auth-js": "2.117.2",
+    "@supabase/storage-js": "2.117.2",
     "drizzle-orm": "0.45.3",
     "fastify": "5.12.5",
     "pino": "10.3.1",
     "postgres": "3.4.9",
+    "sharp": "0.35.5",
     "zod": "4.6.6"
   },
   "devDependencies": {

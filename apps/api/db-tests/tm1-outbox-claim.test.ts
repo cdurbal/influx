@@ -1700,6 +1700,9 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       "ops.begin_alert_round(text)",
       // 0117 (J7 decision 3): E-4 maintenance.run_periodic
       "ops.claim_periodic_run(ops.periodic_task,text)",
+      // 0205 (L2B commit 09): E-4, the hourly purge of Storage
+      "ops.claim_storage_purges(uuid,smallint,integer)",
+      "ops.complete_storage_purges(uuid,smallint,uuid[])",
       "ops.filter_auth_orphans(uuid,smallint,uuid[])",
       "ops.finish_periodic_run(uuid,smallint,ops.periodic_run_outcome,jsonb)",
       // 0125 (C5.b, J7 commit 7 review): the realignment of the hourly GoTrue pass
@@ -1707,6 +1710,7 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       "ops.purge_brevo_inbound_events(uuid,smallint,integer)",
       // 0137 (J8 commit 8): E-4, the purge of the exports
       "ops.purge_data_exports(uuid,smallint,integer)",
+      "ops.purge_storage_usage(uuid,smallint)",
       // 0147 (J9 commit 8, D60): the samples of the base and of the probe, the heartbeat, the
       // retention of ops, the states and the snapshot of the technical alerts
       "ops.record_database_sample()",

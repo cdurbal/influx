@@ -1012,6 +1012,7 @@ export const messages = {
           brevo_inbound_purge: "Purge des retours Brevo",
           data_export_purge: "Purge des exports de données",
           ops_retention: "Conservation et purges de la surveillance",
+          storage_purge: "Purge des fichiers déposés",
         },
         outcomes: {
           succeeded: "réussie",

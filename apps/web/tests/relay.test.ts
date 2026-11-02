@@ -482,18 +482,19 @@ describe("PP-7: request identifier", () => {
 });
 
 describe("PP-9: body size and delay", () => {
-  it("forwards a body of exactly 1 MiB", async () => {
+  // D80: 2 MiB, the raw bytes of a logo (jalons/l2b/stockage.md §3).
+  it("forwards a body of exactly 2 MiB", async () => {
     await call("/api/v1/upload", {
       method: "POST",
-      body: "x".repeat(1_048_576),
+      body: "x".repeat(2_097_152),
     });
-    expect(received[0]?.body.byteLength).toBe(1_048_576);
+    expect(received[0]?.body.byteLength).toBe(2_097_152);
   });
 
-  it("refuses a body over 1 MiB with 413, without calling apps/api", async () => {
+  it("refuses a body over 2 MiB with 413, without calling apps/api", async () => {
     const response = await call("/api/v1/upload", {
       method: "POST",
-      body: "x".repeat(1_048_577),
+      body: "x".repeat(2_097_153),
     });
     await expectRefusal(response, 413, "payload_too_large");
     expect(received).toEqual([]);

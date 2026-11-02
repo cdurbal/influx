@@ -546,8 +546,9 @@ export function relayIntegrationSuite(suite: RelayIntegrationSuite): void {
   });
 
   describe("T7.3: body size and delay (PP-9)", () => {
-    it("forwards 1 MiB, refuses 1 MiB + 1 with 413, declared or streamed", async () => {
-      const limit = 1_048_576;
+    // D80: 2 MiB, the raw bytes of a logo (jalons/l2b/stockage.md §3).
+    it("forwards 2 MiB, refuses 2 MiB + 1 with 413, declared or streamed", async () => {
+      const limit = 2_097_152;
       const exact = await relayed("/api/v1/echo", {
         method: "POST",
         headers: { "content-type": "application/json" },

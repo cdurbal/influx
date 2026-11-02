@@ -1172,7 +1172,8 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * 2026-11-02 with those of 0202 (L2B commit 05, the full brand profile), each line checked against
  * its sections 4 and 5; then with those of 0203 (L2B commit 06, the submission), each line checked
  * against its sections 3 and 4; then with those of 0204 (L2B commit 08, the brand logo), each line
- * checked against its sections 5 and 6.
+ * checked against its sections 5 and 6; then with those of 0205 (L2B commit 09, the task
+ * storage_purge), each line checked against its sections 2 and 3.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -2893,6 +2894,26 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_privacy_definer|column|profiles.brand_logo_objects.width|SELECT",
   "influx_privacy_definer|column|profiles.storage_daily_usage.account_id|SELECT",
   "influx_privacy_definer|table|profiles.storage_daily_usage|DELETE",
+  // 0205 (L2B commit 09, stockage.md §7): the hourly task storage_purge of E-4, owned by
+  // influx_maintenance_definer, executed by influx_worker: the rows to purge (never an account, a
+  // size nor an active row), the usage after 7 days.
+  "influx_maintenance_definer|column|profiles.brand_logo_objects.created_at|SELECT",
+  "influx_maintenance_definer|column|profiles.brand_logo_objects.id|SELECT",
+  "influx_maintenance_definer|column|profiles.brand_logo_objects.last_purge_attempt_at|SELECT,UPDATE",
+  "influx_maintenance_definer|column|profiles.brand_logo_objects.object_key|SELECT",
+  "influx_maintenance_definer|column|profiles.brand_logo_objects.purge_attempts|SELECT,UPDATE",
+  "influx_maintenance_definer|column|profiles.brand_logo_objects.purge_requested_at|SELECT,UPDATE",
+  "influx_maintenance_definer|column|profiles.brand_logo_objects.state|SELECT,UPDATE",
+  "influx_maintenance_definer|column|profiles.storage_daily_usage.usage_day|SELECT",
+  "influx_maintenance_definer|function|ops.claim_storage_purges(uuid,smallint,integer)|EXECUTE",
+  "influx_maintenance_definer|function|ops.complete_storage_purges(uuid,smallint,uuid[])|EXECUTE",
+  "influx_maintenance_definer|function|ops.purge_storage_usage(uuid,smallint)|EXECUTE",
+  "influx_maintenance_definer|schema|profiles|USAGE",
+  "influx_maintenance_definer|table|profiles.brand_logo_objects|DELETE",
+  "influx_maintenance_definer|table|profiles.storage_daily_usage|DELETE",
+  "influx_worker|function|ops.claim_storage_purges(uuid,smallint,integer)|EXECUTE",
+  "influx_worker|function|ops.complete_storage_purges(uuid,smallint,uuid[])|EXECUTE",
+  "influx_worker|function|ops.purge_storage_usage(uuid,smallint)|EXECUTE",
 ];
 
 /**
@@ -3154,4 +3175,11 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "profiles.activate_brand_logo(uuid,integer,integer,integer)":
     "influx_identity_definer",
   "profiles.remove_own_brand_logo()": "influx_identity_definer",
+  // 0205 (L2B commit 09): the task storage_purge (stockage.md §7); ops.claim_periodic_run() keeps
+  // its 0117 line.
+  "ops.claim_storage_purges(uuid,smallint,integer)":
+    "influx_maintenance_definer",
+  "ops.complete_storage_purges(uuid,smallint,uuid[])":
+    "influx_maintenance_definer",
+  "ops.purge_storage_usage(uuid,smallint)": "influx_maintenance_definer",
 };

@@ -85,8 +85,8 @@ function requiredInputOf(stored: StoredBrandProfile) {
 function scoreOf(stored: StoredBrandProfile) {
   return brandProfileCompleteness({
     ...requiredInputOf(stored),
-    // The logo has its own route and table (commit 09); until then nothing is attached.
-    hasLogo: false,
+    // An active row of profiles.brand_logo_objects (0204; its own routes, brand-logo.ts).
+    hasLogo: stored.hasLogo,
     usageRights: stored.lists.usageRights,
     websiteDomain: stored.websiteDomain,
     badgeRequested: false,
@@ -269,6 +269,33 @@ export async function saveBrandProfile(
     ...viewOf(stored, references),
     websiteNormalized,
   };
+}
+
+/**
+ * Locks the profile row and checks it may be edited (the same states as the autosave): no profile
+ * is "no such route" (T14), a published or suspended one waits for the review of L2C (EC-L2B-07-1).
+ */
+export async function lockEditableBrandProfile(tx: Transaction): Promise<void> {
+  const status = await lockOwnBrandProfile(tx);
+  if (status === null) {
+    throw new ApiError("not_found");
+  }
+  if (!EDITABLE_STATUSES.has(status)) {
+    throw new ApiError("conflict");
+  }
+}
+
+/** The completeness after a change of the logo, recomputed by packages/domain and stored (RG57). */
+export async function refreshStoredScore(
+  tx: Transaction,
+): Promise<BrandProfileResponse["completeness"]> {
+  const stored = await readOwnBrandProfile(tx);
+  if (stored === null) {
+    throw new ApiError("not_found");
+  }
+  const completeness = scoreOf(stored);
+  await storeScore(tx, completeness.score);
+  return brandProfileResponseSchema.shape.completeness.parse(completeness);
 }
 
 /** `legal_name` of the database, `legalName` of the contract and of packages/domain. */

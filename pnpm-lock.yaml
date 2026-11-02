@@ -32,6 +32,9 @@ importers:
       '@supabase/auth-js':
         specifier: 2.117.2
         version: 2.117.2
+      '@supabase/storage-js':
+        specifier: 2.117.2
+        version: 2.117.2
       drizzle-orm:
         specifier: 0.45.3
         version: 0.45.3(postgres@3.4.9)
@@ -44,6 +47,9 @@ importers:
       postgres:
         specifier: 3.4.9
         version: 3.4.9
+      sharp:
+        specifier: 0.35.5
+        version: 0.35.5(@types/node@22.20.3)
       zod:
         specifier: 4.6.6
         version: 4.6.6
@@ -1202,6 +1208,10 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@supabase/storage-js@2.117.2':
+    resolution: {integrity: sha512-8gAJoVaxZa/War2kFRfJMxGk4M190Q7lJ70BofwGlRxU/u9pIodd6XyTvmXkxOKXWuIYtkDaYPZrIAUt1T/7FQ==}
+    engines: {node: '>=22.0.0'}
+
   '@swc/core-darwin-arm64@1.16.2':
     resolution: {integrity: sha512-i/j0HNbnn79qnTVPicvay92Nark8fW8NQqn1e2mGERjUXNpBV0+SwQxlRpk2zBhn6laJ8PDI6Kn1nHZhnz3LCA==}
     engines: {node: '>=10'}
@@ -2353,6 +2363,10 @@ packages:
 
   hermes-parser@0.25.1:
     resolution: {integrity: sha512-6pEjquH3rqaI6cYAXYPcz9MS4rY6R4ngRgrgfDshRptUZIc3lw0MCIJIGDj9++mfySOuPTHB4nrSW99BCvOPIA==}
+
+  iceberg-js@0.8.1:
+    resolution: {integrity: sha512-1dhVQZXhcHje7798IVM+xoo/1ZdVfzOMIc8/rgVSijRK38EDqOJoGula9N/8ZI5RD8QTxNQtK/Gozpr+qUqRRA==}
+    engines: {node: '>=20.0.0'}
 
   icu-minify@4.14.5:
     resolution: {integrity: sha512-5RQ5fP5inR+VZRTR4KwYBzy217ua4E9lxBT+zFHZcJv0dTOtRs9xXECSIWMQHAfmd0Hq2RXSSP2Gmyw/oQQY6A==}
@@ -3806,8 +3820,7 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
-  '@img/colour@1.1.0':
-    optional: true
+  '@img/colour@1.1.0': {}
 
   '@img/sharp-darwin-arm64@0.35.5':
     optionalDependencies:
@@ -4140,6 +4153,11 @@ snapshots:
 
   '@supabase/cli-windows-x64@2.122.0':
     optional: true
+
+  '@supabase/storage-js@2.117.2':
+    dependencies:
+      iceberg-js: 0.8.1
+      tslib: 2.8.1
 
   '@swc/core-darwin-arm64@1.16.2':
     optional: true
@@ -5360,6 +5378,8 @@ snapshots:
     dependencies:
       hermes-estree: 0.25.1
 
+  iceberg-js@0.8.1: {}
+
   icu-minify@4.14.5:
     dependencies:
       '@formatjs/icu-messageformat-parser': 3.5.19
@@ -6104,7 +6124,6 @@ snapshots:
       '@img/sharp-win32-ia32': 0.35.5
       '@img/sharp-win32-x64': 0.35.5
       '@types/node': 22.20.3
-    optional: true
 
   shebang-command@2.0.0:
     dependencies:

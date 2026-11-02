@@ -68,12 +68,14 @@ import {
   type PeriodicTask,
   type PeriodicTaskRunner,
 } from "./domains/maintenance/periodic.ts";
+import { createStoragePurge } from "./domains/maintenance/storage-purge.ts";
 import {
   createPrivacyExecutor,
   readErasureNotificationSubjectOf,
 } from "./domains/privacy/execution.ts";
 import { createTransactionalSender } from "./platform/brevo-transactional.ts";
 import { createLogger } from "./platform/logger.ts";
+import { createObjectStore, type ObjectStore } from "./platform/storage.ts";
 import {
   createGoTrueUserDirectory,
   type GoTrueUserDirectory,
@@ -120,14 +122,16 @@ function connectorsOf(
 }
 
 /**
- * E-4 (decision 3 of J7): the reconciliation with the worker's Brevo key, the purge of GoTrue with
- * its own secret key; a task without its key is never claimed. The 30-day purge, the purge of the
+ * E-4 (decision 3 of J7): the reconciliation with the worker's Brevo key, the purge of GoTrue and
+ * the purge of Storage (0205, D80) with the secret key of the project; a task without its key is
+ * never claimed. The 30-day purge, the purge of the
  * exports (J8 commit 8) and the retention of ops (J9 commit 8) need neither.
  */
 function periodicSchedulerOf(
   config: WorkerConfig,
   database: WorkerDatabase,
   directory: GoTrueUserDirectory | null,
+  objects: ObjectStore | null,
   logger: PeriodicLogger,
 ): PeriodicScheduler {
   const store = createPeriodicStore(database);
@@ -154,6 +158,9 @@ function periodicSchedulerOf(
       store,
       now,
     });
+  }
+  if (objects !== null) {
+    runners.storage_purge = createStoragePurge({ store, objects });
   }
   logger.info(
     { periodicTasks: Object.keys(runners).sort() },
@@ -350,7 +357,15 @@ async function main(): Promise<void> {
     config.supabase === null
       ? null
       : createGoTrueUserDirectory(config.supabase);
-  const periodic = periodicSchedulerOf(config, database, directory, logger);
+  const objects =
+    config.supabase === null ? null : createObjectStore(config.supabase);
+  const periodic = periodicSchedulerOf(
+    config,
+    database,
+    directory,
+    objects,
+    logger,
+  );
   // E-5 between two turns, after the periodic tasks: an approved request waits a minute at most.
   const privacy =
     database.elevated.privacy === undefined

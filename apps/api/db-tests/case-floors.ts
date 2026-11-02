@@ -5,6 +5,7 @@
 // message says which cases disappear and why (18 §3 rule 2).
 export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/ops-schema.test.ts": 12,
+  "db-tests/profiles-brand-logo-route.test.ts": 15,
   "db-tests/profiles-brand-logo.test.ts": 84,
   "db-tests/profiles-brand-route.test.ts": 21,
   "db-tests/profiles-brand-submission.test.ts": 65,
@@ -55,6 +56,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/tm1-periodic-runs.test.ts": 33,
   "db-tests/tm1-periodic-tasks.test.ts": 16,
   "db-tests/tm1-privacy-execution.test.ts": 6,
+  "db-tests/tm1-storage-purge.test.ts": 4,
   "db-tests/tm1-sync-settings-guard-journal.test.ts": 41,
   "db-tests/tm1-worker-loop.test.ts": 6,
   "db-tests/tm10-signup-provisioning.test.ts": 48,

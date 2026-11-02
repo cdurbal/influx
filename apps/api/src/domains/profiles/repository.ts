@@ -70,6 +70,8 @@ export type StoredBrandProfile = {
   collaborationRhythm: string | null;
   offersNonMonetary: boolean | null;
   contactRole: string | null;
+  /** An active logo is attached (0204: one per brand). */
+  hasLogo: boolean;
   lists: Record<BrandProfileListName, string[]>;
   contact: {
     firstName: string | null;
@@ -137,6 +139,7 @@ type StoredRow = {
   contact_email: string | null;
   contact_phone: string | null;
   contact_url: string | null;
+  has_logo: boolean;
 } & Record<BrandProfileListName, string[]>;
 
 /** The state of the session's own brand profile, or null when the account holds none. */
@@ -153,6 +156,8 @@ export async function readOwnBrandProfile(
            p.primary_sector_code, p.company_size_band, p.website_domain, p.presentation,
            p.exclusivity_band, p.collaboration_rhythm, p.offers_non_monetary, p.contact_role,
            c.contact_first_name, c.contact_email, c.contact_phone, c.contact_url,
+           exists (select 1 from profiles.brand_logo_objects lo
+                    where lo.account_id = p.account_id and lo.state = 'active') as has_logo,
            ${listColumn("secondarySectors")} as "secondarySectors",
            ${listColumn("targetMarkets")} as "targetMarkets",
            ${listColumn("workingLanguages")} as "workingLanguages",
@@ -184,6 +189,7 @@ export async function readOwnBrandProfile(
     collaborationRhythm: row.collaboration_rhythm,
     offersNonMonetary: row.offers_non_monetary,
     contactRole: row.contact_role,
+    hasLogo: row.has_logo === true,
     lists: {
       secondarySectors: row.secondarySectors,
       targetMarkets: row.targetMarkets,
@@ -447,6 +453,125 @@ export async function submitOwnBrandProfile(
     submittedAt: row.submitted_at,
     changed: row.changed,
   };
+}
+
+// The logo of the brand (0204; jalons/l2b/stockage.md §3 to §6, commit 09): the five member doors,
+// SECURITY DEFINER, the account of the transaction context. The quota refusal is 54000, DETAIL
+// `uploads` or `bytes` (EC-L2B-08-1).
+
+/** A row of profiles.brand_logo_objects named by its id and the key the base generated. */
+export type LogoObjectRef = {
+  logoId: string;
+  objectKey: string;
+};
+
+/** (b) The quota consumed and the row pending, before any byte is decoded. */
+export async function beginBrandLogoUpload(
+  tx: Transaction,
+  receivedBytes: number,
+): Promise<LogoObjectRef> {
+  const rows = await tx.execute<{ logo_id: string; object_key: string }>(
+    sql`select logo_id::text as logo_id, object_key
+          from profiles.begin_brand_logo_upload(${receivedBytes}::integer)`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    throw new Error("profiles.begin_brand_logo_upload() returned no row");
+  }
+  return { logoId: row.logo_id, objectKey: row.object_key };
+}
+
+/** (c) Refused by the checks of its bytes: the pending row deleted (the quota stays consumed). */
+export async function discardBrandLogoUpload(
+  tx: Transaction,
+  logoId: string,
+): Promise<boolean> {
+  const rows = await tx.execute<{ done: boolean }>(
+    sql`select profiles.discard_brand_logo_upload(${logoId}::uuid) as done`,
+  );
+  return rows[0]?.done === true;
+}
+
+/** (d) The write to Storage failed: the pending row to purging (an object may exist). */
+export async function failBrandLogoUpload(
+  tx: Transaction,
+  logoId: string,
+): Promise<boolean> {
+  const rows = await tx.execute<{ done: boolean }>(
+    sql`select profiles.fail_brand_logo_upload(${logoId}::uuid) as done`,
+  );
+  return rows[0]?.done === true;
+}
+
+/** (e) The row active, the previous one to purging; the previous one, to remove at once (f). */
+export async function activateBrandLogo(
+  tx: Transaction,
+  logoId: string,
+  stored: { byteSize: number; width: number; height: number },
+): Promise<LogoObjectRef | null> {
+  const rows = await tx.execute<{
+    previous_logo_id: string;
+    previous_object_key: string;
+  }>(
+    sql`select previous_logo_id::text as previous_logo_id, previous_object_key
+          from profiles.activate_brand_logo(${logoId}::uuid, ${stored.byteSize}::integer,
+                 ${stored.width}::integer, ${stored.height}::integer)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : { logoId: row.previous_logo_id, objectKey: row.previous_object_key };
+}
+
+/** DELETE: the active logo to purging; it, to remove at once, or null when there was none. */
+export async function removeOwnBrandLogo(
+  tx: Transaction,
+): Promise<LogoObjectRef | null> {
+  const rows = await tx.execute<{ logo_id: string; object_key: string }>(
+    sql`select logo_id::text as logo_id, object_key
+          from profiles.remove_own_brand_logo()`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : { logoId: row.logo_id, objectKey: row.object_key };
+}
+
+/** The active logo of the session's own account, as its row describes it. */
+export type ActiveLogoRow = LogoObjectRef & {
+  byteSize: number;
+  width: number;
+  height: number;
+  activatedAt: string;
+};
+
+export async function readOwnActiveLogo(
+  tx: Transaction,
+): Promise<ActiveLogoRow | null> {
+  const rows = await tx.execute<{
+    logo_id: string;
+    object_key: string;
+    byte_size: number;
+    width: number;
+    height: number;
+    activated_at: string;
+  }>(
+    sql`select id::text as logo_id, object_key, byte_size, width, height,
+               to_char(activated_at at time zone 'UTC', ${ISO_UTC}) as activated_at
+          from profiles.brand_logo_objects
+         where account_id = (select influx.current_account_id()) and state = 'active'`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        logoId: row.logo_id,
+        objectKey: row.object_key,
+        byteSize: Number(row.byte_size),
+        width: Number(row.width),
+        height: Number(row.height),
+        activatedAt: row.activated_at,
+      };
 }
 
 /** The DETAIL of a database error, through the wrapping of drizzle (`cause`). */

@@ -32,8 +32,8 @@ export const BODYLESS_METHODS: readonly string[] = ["GET", "DELETE"];
  */
 export const API_PATH_PATTERN = /^\/v1\/[A-Za-z0-9/_-]{0,200}$/;
 
-/** 03 PP-9. */
-export const MAX_BODY_BYTES = 1_048_576;
+/** 03 PP-9, amended by D80: 2 MiB, the raw bytes of a logo (jalons/l2b/stockage.md §3). */
+export const MAX_BODY_BYTES = 2_097_152;
 
 /**
  * 03 PP-5: the only request headers forwarded. Every other one is dropped, x-* included.

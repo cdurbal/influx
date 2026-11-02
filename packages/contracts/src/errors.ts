@@ -29,6 +29,12 @@ export const ERROR_CODES = [
   // The export of a "mes données" request is no longer downloadable: expired, purged or downloaded
   // three times (runbook demandes-rgpd §4; J8 commit 8). A new request gives a new export.
   "export_unavailable",
+  // The daily quota of uploads of the account is spent (03 P10.7, 18 T9.8; jalons/l2b/stockage.md
+  // §6): Retry-After until the next UTC midnight.
+  "upload_quota_exceeded",
+  // The bytes of an image are refused (18 T9.4; stockage.md §1): the reason in `details`
+  // (path `logo`, issue of BRAND_LOGO_REJECTIONS), never a value of the file.
+  "image_rejected",
 ] as const;
 
 export const errorCodeSchema = z.enum(ERROR_CODES);

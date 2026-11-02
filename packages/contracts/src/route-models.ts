@@ -56,6 +56,7 @@ export const API_ROUTE_MODELS: readonly string[] = [
   "/v1/bo/settings/apollo",
   "/v1/me",
   "/v1/me/brand-profile",
+  "/v1/me/brand-profile/logo",
   "/v1/me/brand-profile/submit",
   "/v1/me/consent",
   "/v1/me/data-export",

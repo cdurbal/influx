@@ -260,7 +260,7 @@ export const RELAY_FILE_SHA256: Readonly<Record<string, string>> = {
   [RELAY_FILES.route]:
     "a79a3d1dad364cdc19058c3818a29f98a03b341469ad11c43eb2809bbe1f57d6",
   [RELAY_FILES.relay]:
-    "1002289bbc5b53bd6e590b0481db2320209ba964912efb886a3f5bbd3a22114e",
+    "8312f1838082acc89ff4b67d8dccf61ae72015de51c981c96b14f1017aa220f3",
   [RELAY_FILES.apiClient]:
     "36c772dca55144f0334ca40df0a51227264bcdcebae39626ad0534201d0c5985",
   [RELAY_FILES.config]:

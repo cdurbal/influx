@@ -12,6 +12,8 @@
 //                          (runbook demandes-rgpd §4, J8 commit 8), its digest kept
 //   ops_retention          daily: the hourly roll-up of the metrics of D60 and the purges of ops
 //                          (02 §20.5, §20.8; 0147, J9 commit 8), by bounded steps
+//   storage_purge          hourly: the objects of Storage of the logo rows to purge, then the rows
+//                          (0205, L2B commit 09; storage-purge.ts)
 //
 // A task without its key in this process (no Brevo key, no GoTrue key) is never claimed. A task
 // that fails closes its run `failed` with the counts reached and a closed code in pino (D60): the
@@ -33,8 +35,11 @@ import {
   finishPeriodicRun,
   gotrueRealignmentCandidates,
   PERIODIC_TASKS,
+  claimStoragePurges,
+  completeStoragePurges,
   purgeBrevoInboundEvents,
   purgeDataExports,
+  purgeStorageUsage,
   recordAuthOrphanPurge,
   runOpsRetention,
   recordReconciliationEvent,
@@ -43,6 +48,7 @@ import {
   type PeriodicTask,
   type RealignmentCandidate,
   type ReconciliationFinding,
+  type StoragePurgeCandidate,
 } from "./repository.ts";
 
 export {
@@ -52,6 +58,7 @@ export {
   type PeriodicTask,
   type RealignmentCandidate,
   type ReconciliationFinding,
+  type StoragePurgeCandidate,
 } from "./repository.ts";
 
 /** How often the loop looks for a due period. */
@@ -100,6 +107,18 @@ export type PeriodicStore = {
   purgeDataExports(run: PeriodicRun, limit: number): Promise<number>;
   /** One bounded step of ops.run_ops_retention() (0147): its counts, `more` = 1 to go on. */
   opsRetentionStep(run: PeriodicRun): Promise<PeriodicCounts>;
+  /** 0205: logo rows whose object is to remove (their attempt counted). */
+  claimStoragePurges(
+    run: PeriodicRun,
+    limit: number,
+  ): Promise<StoragePurgeCandidate[]>;
+  /** 0205: the rows whose object is removed, deleted; the count. */
+  completeStoragePurges(
+    run: PeriodicRun,
+    logoIds: readonly string[],
+  ): Promise<number>;
+  /** 0205: the daily usage older than 7 days, deleted; the count. */
+  purgeStorageUsage(run: PeriodicRun): Promise<number>;
 };
 
 export function createPeriodicStore(database: WorkerDatabase): PeriodicStore {
@@ -202,6 +221,27 @@ export function createPeriodicStore(database: WorkerDatabase): PeriodicStore {
         );
         return { value: counts, auditSubject: effect ? run.runId : null };
       }),
+
+    claimStoragePurges: (run, limit) =>
+      elevated(async (tx) => {
+        const claimed = await claimStoragePurges(tx, run, limit);
+        return {
+          value: claimed,
+          auditSubject: claimed.length > 0 ? run.runId : null,
+        };
+      }),
+
+    completeStoragePurges: (run, logoIds) =>
+      elevated(async (tx) => {
+        const count = await completeStoragePurges(tx, run, logoIds);
+        return { value: count, auditSubject: count > 0 ? run.runId : null };
+      }),
+
+    purgeStorageUsage: (run) =>
+      elevated(async (tx) => {
+        const count = await purgeStorageUsage(tx, run);
+        return { value: count, auditSubject: count > 0 ? run.runId : null };
+      }),
   };
 }
 
@@ -248,6 +288,7 @@ export type PeriodicTaskRunner = (
 const HOURLY_TASKS: ReadonlySet<PeriodicTask> = new Set([
   "auth_orphan_purge",
   "data_export_purge",
+  "storage_purge",
 ]);
 
 /** The UTC period of a task at `now`: YYYY-MM-DD, or YYYY-MM-DDTHH for an hourly purge (0117). */

@@ -15,6 +15,12 @@ import {
 } from "../src/domains/maintenance/brevo-reads.ts";
 import { createBrevoReconciliation } from "../src/domains/maintenance/brevo-reconciliation.ts";
 import {
+  createStoragePurge,
+  STORAGE_PURGE_BATCH,
+  STORAGE_PURGE_MAX_BATCHES,
+} from "../src/domains/maintenance/storage-purge.ts";
+import type { ObjectStore } from "../src/platform/storage.ts";
+import {
   CLAIMED_ELSEWHERE_BACKOFF_MS,
   createPeriodicScheduler,
   isDue,
@@ -77,6 +83,15 @@ function memoryStore(options: { claimedElsewhere?: boolean } = {}) {
     async opsRetentionStep() {
       return { more: 0 };
     },
+    async claimStoragePurges() {
+      return [];
+    },
+    async completeStoragePurges(_run, ids) {
+      return ids.length;
+    },
+    async purgeStorageUsage() {
+      return 0;
+    },
   };
   return { store, claims, finishes, findings };
 }
@@ -105,6 +120,7 @@ describe("periods and hours (decision 3)", () => {
     expect(periodKeyOf("auth_orphan_purge", AT_0259)).toBe("2026-10-13T02");
     // J8 commit 8: an export past its deadline is emptied within the hour (runbook §4)
     expect(periodKeyOf("data_export_purge", AT_0259)).toBe("2026-10-13T02");
+    expect(periodKeyOf("storage_purge", AT_0259)).toBe("2026-10-13T02");
   });
 
   it("starts the reconciliation at 03:00 UTC, the other tasks at any hour", () => {
@@ -670,5 +686,145 @@ describe("data_export_purge (runbook demandes-rgpd §4, J8 commit 8)", () => {
         stop.signal,
       ),
     ).rejects.toBeInstanceOf(PeriodicRunInterrupted);
+  });
+});
+
+describe("storage_purge (0205; jalons/l2b/stockage.md §7)", () => {
+  const KEY = (n: number) =>
+    `00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-${String(n).padStart(12, "0")}.webp`;
+
+  /** Objects in memory: the keys removed, and the keys whose removal fails. */
+  function memoryObjects(failing: ReadonlySet<string> = new Set()) {
+    const removed: string[] = [];
+    const objects: ObjectStore = {
+      async write() {
+        return { ok: true, value: null };
+      },
+      async read() {
+        return { ok: true, value: null };
+      },
+      async remove(_bucket, key) {
+        if (failing.has(key)) {
+          return {
+            ok: false,
+            reason: "unavailable",
+            status: 503,
+            errorCode: null,
+          };
+        }
+        removed.push(key);
+        return { ok: true, value: null };
+      },
+    };
+    return { objects, removed };
+  }
+
+  it("removes each object, then forgets the rows removed and purges the usage", async () => {
+    const { store } = memoryStore();
+    const completed: string[][] = [];
+    store.claimStoragePurges = async () => [
+      { logoId: "l1", objectKey: KEY(1) },
+      { logoId: "l2", objectKey: KEY(2) },
+    ];
+    store.completeStoragePurges = async (_run, ids) => {
+      completed.push([...ids]);
+      return ids.length;
+    };
+    store.purgeStorageUsage = async () => 4;
+    const { objects, removed } = memoryObjects();
+    const counts: PeriodicCounts = {};
+    await createStoragePurge({ store, objects })(
+      { runId: "run-1", attempt: 1 },
+      counts,
+      signal(),
+    );
+    expect(removed).toEqual([KEY(1), KEY(2)]);
+    expect(completed).toEqual([["l1", "l2"]]);
+    expect(counts).toEqual({
+      claimed: 2,
+      removed: 2,
+      remove_failed: 0,
+      purged: 2,
+      usage_purged: 4,
+    });
+  });
+
+  it("keeps the row of a failed removal and closes the run failed (retried the next hour)", async () => {
+    const { store } = memoryStore();
+    const completed: string[][] = [];
+    store.claimStoragePurges = async () => [
+      { logoId: "l1", objectKey: KEY(1) },
+      { logoId: "l2", objectKey: KEY(2) },
+    ];
+    store.completeStoragePurges = async (_run, ids) => {
+      completed.push([...ids]);
+      return ids.length;
+    };
+    const { objects } = memoryObjects(new Set([KEY(1)]));
+    const counts: PeriodicCounts = {};
+    await expect(
+      createStoragePurge({ store, objects })(
+        { runId: "run-1", attempt: 1 },
+        counts,
+        signal(),
+      ),
+    ).rejects.toMatchObject({ code: "storage.remove_failed" });
+    expect(completed).toEqual([["l2"]]);
+    expect(counts).toMatchObject({
+      claimed: 2,
+      removed: 1,
+      remove_failed: 1,
+      purged: 1,
+    });
+  });
+
+  it("takes batch after batch while they are full, within its bound per run", async () => {
+    const { store } = memoryStore();
+    let calls = 0;
+    store.claimStoragePurges = async (_run, limit) => {
+      calls += 1;
+      return Array.from({ length: limit }, (_, index) => ({
+        logoId: `l${calls}-${index}`,
+        objectKey: KEY(calls * 1000 + index),
+      }));
+    };
+    const { objects } = memoryObjects();
+    const counts: PeriodicCounts = {};
+    await createStoragePurge({ store, objects })(
+      { runId: "run-1", attempt: 1 },
+      counts,
+      signal(),
+    );
+    expect(calls).toBe(STORAGE_PURGE_MAX_BATCHES);
+    expect(counts.purged).toBe(STORAGE_PURGE_MAX_BATCHES * STORAGE_PURGE_BATCH);
+  });
+
+  it("forgets the objects already removed when a stop interrupts a batch", async () => {
+    const { store } = memoryStore();
+    const stop = new AbortController();
+    const completed: string[][] = [];
+    store.claimStoragePurges = async () => [
+      { logoId: "l1", objectKey: KEY(1) },
+      { logoId: "l2", objectKey: KEY(2) },
+    ];
+    store.completeStoragePurges = async (_run, ids) => {
+      completed.push([...ids]);
+      return ids.length;
+    };
+    const objects: ObjectStore = {
+      ...memoryObjects().objects,
+      async remove() {
+        stop.abort();
+        return { ok: true, value: null };
+      },
+    };
+    await expect(
+      createStoragePurge({ store, objects })(
+        { runId: "run-1", attempt: 1 },
+        {},
+        stop.signal,
+      ),
+    ).rejects.toBeInstanceOf(PeriodicRunInterrupted);
+    expect(completed).toEqual([["l1"]]);
   });
 });

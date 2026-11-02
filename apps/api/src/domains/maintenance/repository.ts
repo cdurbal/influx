@@ -7,7 +7,7 @@ import type { Transaction } from "../../db/index.ts";
 
 /**
  * The closed list of ops.periodic_task (0117; data_export_purge: 0136, J8 commit 8; ops_retention:
- * 0147, J9 commit 8).
+ * 0147, J9 commit 8; storage_purge: 0205, L2B commit 09).
  */
 export const PERIODIC_TASKS = [
   "brevo_reconciliation",
@@ -15,6 +15,7 @@ export const PERIODIC_TASKS = [
   "brevo_inbound_purge",
   "data_export_purge",
   "ops_retention",
+  "storage_purge",
 ] as const;
 export type PeriodicTask = (typeof PERIODIC_TASKS)[number];
 
@@ -162,6 +163,56 @@ export async function runOpsRetention(
     }
   }
   return result;
+}
+
+/** A logo row of the purge (0205): its id and the key of its object in Storage. */
+export type StoragePurgeCandidate = {
+  logoId: string;
+  objectKey: string;
+};
+
+/**
+ * 0205 (stockage.md §7): the stale pending rows to purging, then at most `limit` purging rows not
+ * tried in the last 30 minutes, their attempt counted.
+ */
+export async function claimStoragePurges(
+  tx: Transaction,
+  run: PeriodicRun,
+  limit: number,
+): Promise<StoragePurgeCandidate[]> {
+  const rows = await tx.execute<{ logo_id: string; object_key: string }>(
+    sql`select logo_id::text as logo_id, object_key
+          from ops.claim_storage_purges(${run.runId}::uuid, ${run.attempt}::smallint,
+                 ${limit}::integer)`,
+  );
+  return rows.map((row) => ({
+    logoId: row.logo_id,
+    objectKey: row.object_key,
+  }));
+}
+
+/** 0205: the rows whose object is removed, deleted; retention.purged written by the database. */
+export async function completeStoragePurges(
+  tx: Transaction,
+  run: PeriodicRun,
+  logoIds: readonly string[],
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select ops.complete_storage_purges(${run.runId}::uuid, ${run.attempt}::smallint,
+                 ${`{${logoIds.join(",")}}`}::uuid[]) as count`,
+  );
+  return Number(rows[0]?.count ?? 0);
+}
+
+/** 0205: the daily usage of the buckets older than 7 days, deleted. */
+export async function purgeStorageUsage(
+  tx: Transaction,
+  run: PeriodicRun,
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select ops.purge_storage_usage(${run.runId}::uuid, ${run.attempt}::smallint) as count`,
+  );
+  return Number(rows[0]?.count ?? 0);
 }
 
 /** C5.b (0125): an account to realign at GoTrue, with its address in force (never logged). */

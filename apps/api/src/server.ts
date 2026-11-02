@@ -36,6 +36,8 @@ import { registerOpsRoutes } from "./domains/ops/routes.ts";
 import { createAuthTokenCodec } from "./platform/auth-tokens.ts";
 import { createTransactionalSender } from "./platform/brevo-transactional.ts";
 import { createPwnedPasswordCheck } from "./platform/hibp.ts";
+import { createImageSlots } from "./platform/images.ts";
+import { createObjectStore, type ObjectStore } from "./platform/storage.ts";
 import { createSupabaseAuth } from "./platform/supabase.ts";
 import {
   ApiError,
@@ -89,7 +91,10 @@ declare module "fastify" {
  */
 export const RATE_LIMITED_RETRY_AFTER_SECONDS = 60;
 
-/** Same ceiling as the relay of the fronts (`03` PP-9). */
+/**
+ * The ceiling of every route but the deposit of the logo, which reads up to the relay's 2 MiB in a
+ * context of its own (`03` PP-9 amended by D80; domains/profiles/routes.ts).
+ */
 export const MAX_BODY_BYTES = 1_048_576;
 
 /** Bound of the database check of GET /health: the probe allows 10 s for the whole answer. */
@@ -218,6 +223,8 @@ export type BuildServerOptions = {
    * tests that run without a database.
    */
   isDatabaseReachable?: () => Promise<boolean>;
+  /** Supabase Storage (D80); the adapter of src/platform/storage.ts by default. Tests replace it. */
+  storage?: ObjectStore;
 };
 
 export function buildServer(
@@ -523,10 +530,13 @@ export function buildServer(
     now: options.identity?.now ?? (() => new Date()),
   });
 
-  // The brand profile: read, autosave, submission (docs/mvp/06; jalon L2B commit 07).
+  // The brand profile: read, autosave, submission (docs/mvp/06; jalon L2B commit 07); its logo
+  // (commit 09, D80), through Storage with the secret key of the service.
   registerBrandProfileRoutes(app, {
     database,
     now: options.identity?.now ?? (() => new Date()),
+    store: options.storage ?? createObjectStore(config.supabase),
+    slots: createImageSlots(),
   });
 
   // Authentication of the backoffice (21 §4, J3 commit 10).
