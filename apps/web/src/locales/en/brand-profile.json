@@ -39,7 +39,13 @@
     "characters": "{count, number} / {max, number} characters",
     "yes": "Yes",
     "no": "No",
-    "choose": "Choose…"
+    "choose": "Choose…",
+    "add": "Add a country…",
+    "remove": "Remove {label}",
+    "selected": "Your choices",
+    "addOne": "Add a sector…",
+    "limitFree": "Several choices possible.",
+    "chosen": "{count, plural, =0 {No choice yet} one {# choice} other {# choices}}"
   },
   "completeness": {
     "label": "Profile completeness",
@@ -167,5 +173,136 @@
   "workingLanguage": {
     "fr": "French",
     "en": "English"
+  },
+  "page": {
+    "title": "My brand profile",
+    "loading": "Loading your profile…",
+    "unavailable": "We can't display your profile right now. Try again in a few minutes.",
+    "retry": "Try again"
+  },
+  "state": {
+    "label": "Status: {state}",
+    "draft": "Draft",
+    "pending_review": "Awaiting review",
+    "published": "Published",
+    "rejected": "Rejected",
+    "suspended": "Suspended"
+  },
+  "statusText": {
+    "draft": "Not visible to creators.",
+    "pendingSince": "Submitted on {date}. Answer within 1 business day. You can still edit your profile.",
+    "published": "Your profile is published. Editing it from this page will be possible soon.",
+    "rejectedReason": "the INFLUX team will tell you why. Fix your profile, then submit it again.",
+    "suspended": "Your profile is suspended. Contact the INFLUX team to find out more."
+  },
+  "section": {
+    "identity": "1. Public identity",
+    "expectations": "2. What I am looking for",
+    "contact": "3. Your contact person"
+  },
+  "fields": {
+    "companyName": {
+      "label": "Trading name",
+      "help": "Taken from your sign-up. Changing it also updates your account."
+    },
+    "country": {
+      "label": "Country of establishment",
+      "help": "Taken from your account; change it in “My details”."
+    },
+    "primarySector": {
+      "label": "Main sector"
+    },
+    "secondarySectors": {
+      "label": "Secondary sectors"
+    },
+    "companySize": {
+      "label": "Company size"
+    },
+    "targetMarkets": {
+      "label": "Target markets"
+    },
+    "workingLanguages": {
+      "label": "Working languages"
+    },
+    "website": {
+      "label": "Website",
+      "placeholder": "example.com"
+    },
+    "presentation": {
+      "label": "Presentation",
+      "help": "Between 120 and 1,000 characters.",
+      "hint": "No address, number or link in this text: conversations with creators take place in INFLUX."
+    },
+    "topics": {
+      "label": "Topics you look for"
+    },
+    "networks": {
+      "label": "Target networks"
+    },
+    "formats": {
+      "label": "Expected formats"
+    },
+    "usageRights": {
+      "label": "Usual usage rights"
+    },
+    "exclusivityBand": {
+      "label": "Usual exclusivity"
+    },
+    "offersNonMonetary": {
+      "label": "Non-monetary compensation"
+    },
+    "audienceCountries": {
+      "label": "Target audience countries"
+    },
+    "collaborationRhythm": {
+      "label": "Collaboration rhythm"
+    },
+    "contactRole": {
+      "label": "Role"
+    },
+    "contactFirstName": {
+      "label": "First name"
+    },
+    "contactEmail": {
+      "label": "Work e-mail",
+      "help": "If left empty, your sign-in address is used."
+    },
+    "contactPhone": {
+      "label": "Phone",
+      "help": "International format, for example +33612345678."
+    },
+    "contactUrl": {
+      "label": "Contact page",
+      "help": "Full address, in https."
+    }
+  },
+  "contactBlock": {
+    "notice": "The first name is visible only to the creator concerned, once an introduction is opened. The e-mail, phone and contact page stay visible to the INFLUX team only, never to a creator."
+  },
+  "fieldErrors": {
+    "required": "Required to submit your profile.",
+    "invalid": "This value is not valid.",
+    "unknown": "This choice is no longer available: pick another one.",
+    "website": "This is not a valid domain name. Type for example example.com.",
+    "companyName": "Enter the name of your company."
+  },
+  "save": {
+    "saving": "Saving…",
+    "saved": "Saved automatically at {time}",
+    "idle": "Automatic saving",
+    "retry": "Changes not saved — trying again in 5 s."
+  },
+  "submit": {
+    "label": "Submit for review",
+    "busy": "Sending…",
+    "done": "Profile submitted. Answer within 1 business day.",
+    "unavailable": "We couldn't submit your profile. Your information is kept; try again in a moment.",
+    "unsaved": "Your latest changes are not saved yet. Try again in a few seconds.",
+    "explain": "The button stays active: if information is missing, it is named above.",
+    "locked": "Your profile can't be submitted in this state."
+  },
+  "progress": {
+    "title": "To submit",
+    "allSet": "All the required information is filled in."
   }
 }

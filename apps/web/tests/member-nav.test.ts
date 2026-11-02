@@ -21,6 +21,7 @@ import {
 } from "@/lib/member-nav";
 import {
   ACCOUNT_PAGES,
+  accountPagesOf,
   isTermsExempt,
   MEMBER_PAGE_SLUGS,
   memberPageHref,
@@ -147,6 +148,7 @@ describe("TD2.4: the active entry of each page", () => {
     creatorHome: "home",
     accountHub: "account",
     accountDetails: "account",
+    accountProfile: "account",
     accountPreferences: "account",
     accountSessions: "account",
     accountData: "account",
@@ -311,5 +313,35 @@ describe("TN1: the sub-entries of a rubric and the place of a page (D74, sn-fich
     ] as const) {
       expect(activePlaceOf(page), page).toBeNull();
     }
+  });
+});
+
+describe("L2B-11: the profile of a brand leads the pages of Compte for the brand alone (17 §4.2, EC-L2B-7)", () => {
+  it("gives a brand Mon profil de marque first, then the common pages; a creator the common pages only", () => {
+    expect(accountPagesOf("advertiser")).toEqual([
+      "accountProfile",
+      ...ACCOUNT_PAGES,
+    ]);
+    expect(accountPagesOf("creator")).toEqual([...ACCOUNT_PAGES]);
+    expect(subEntriesOf("account", "advertiser")[0]).toBe("accountProfile");
+    expect(subEntriesOf("account", "creator")).toEqual([...ACCOUNT_PAGES]);
+    // without a role: the pages common to both, as before
+    expect(subEntriesOf("account")).toEqual([...ACCOUNT_PAGES]);
+  });
+
+  it("addresses the page in both languages and places it under Compte, keeping it out of the common list", () => {
+    expect(MEMBER_PAGE_SLUGS.accountProfile).toEqual({
+      fr: "compte/profil",
+      en: "account/profile",
+    });
+    expect(memberPageOfPath("/compte/profil", "fr")).toBe("accountProfile");
+    expect(memberPageOfPath("/account/profile", "en")).toBe("accountProfile");
+    expect(memberPageOfPath("/account/profile", "fr")).toBeNull();
+    expect(activePlaceOf("accountProfile")).toEqual({
+      entry: "account",
+      sub: "accountProfile",
+    });
+    expect(ACCOUNT_PAGES).not.toContain("accountProfile");
+    expect(isTermsExempt("accountProfile")).toBe(false);
   });
 });

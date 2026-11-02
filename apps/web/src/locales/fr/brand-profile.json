@@ -39,7 +39,13 @@
     "characters": "{count, number} / {max, number} caractères",
     "yes": "Oui",
     "no": "Non",
-    "choose": "Choisir…"
+    "choose": "Choisir…",
+    "add": "Ajouter un pays…",
+    "remove": "Retirer {label}",
+    "selected": "Choix retenus",
+    "addOne": "Ajouter un secteur…",
+    "limitFree": "Plusieurs choix possibles.",
+    "chosen": "{count, plural, =0 {Aucun choix} one {# choix} other {# choix}}"
   },
   "completeness": {
     "label": "Complétude du profil",
@@ -167,5 +173,136 @@
   "workingLanguage": {
     "fr": "Français",
     "en": "Anglais"
+  },
+  "page": {
+    "title": "Mon profil de marque",
+    "loading": "Chargement de votre profil…",
+    "unavailable": "Nous ne parvenons pas à afficher votre profil pour le moment. Réessayez dans quelques minutes.",
+    "retry": "Réessayer"
+  },
+  "state": {
+    "label": "État : {state}",
+    "draft": "Brouillon",
+    "pending_review": "En attente de validation",
+    "published": "Publié",
+    "rejected": "Refusé",
+    "suspended": "Suspendu"
+  },
+  "statusText": {
+    "draft": "Non visible des créateurs.",
+    "pendingSince": "Soumis le {date}. Réponse sous 1 jour ouvré. Vous pouvez encore modifier votre profil.",
+    "published": "Votre profil est publié. Sa modification sera bientôt possible depuis cette page.",
+    "rejectedReason": "le motif vous est précisé par l'équipe INFLUX. Corrigez votre profil puis soumettez-le de nouveau.",
+    "suspended": "Votre profil est suspendu. Contactez l'équipe INFLUX pour en savoir plus."
+  },
+  "section": {
+    "identity": "1. Identité publique",
+    "expectations": "2. Ce que je cherche",
+    "contact": "3. Votre interlocuteur"
+  },
+  "fields": {
+    "companyName": {
+      "label": "Nom commercial",
+      "help": "Repris de votre inscription. Le modifier met aussi à jour votre compte."
+    },
+    "country": {
+      "label": "Pays d'établissement",
+      "help": "Repris de votre compte ; il se modifie dans « Mes informations »."
+    },
+    "primarySector": {
+      "label": "Secteur principal"
+    },
+    "secondarySectors": {
+      "label": "Secteurs secondaires"
+    },
+    "companySize": {
+      "label": "Taille d'entreprise"
+    },
+    "targetMarkets": {
+      "label": "Marchés visés"
+    },
+    "workingLanguages": {
+      "label": "Langues de travail"
+    },
+    "website": {
+      "label": "Site web",
+      "placeholder": "exemple.com"
+    },
+    "presentation": {
+      "label": "Présentation",
+      "help": "Entre 120 et 1 000 caractères.",
+      "hint": "Pas d'adresse, de numéro ni de lien dans ce texte : les échanges avec les créateurs se font dans INFLUX."
+    },
+    "topics": {
+      "label": "Thématiques recherchées"
+    },
+    "networks": {
+      "label": "Réseaux visés"
+    },
+    "formats": {
+      "label": "Formats attendus"
+    },
+    "usageRights": {
+      "label": "Droits d'usage habituels"
+    },
+    "exclusivityBand": {
+      "label": "Exclusivité habituelle"
+    },
+    "offersNonMonetary": {
+      "label": "Contrepartie non monétaire"
+    },
+    "audienceCountries": {
+      "label": "Pays d'audience visés"
+    },
+    "collaborationRhythm": {
+      "label": "Rythme de collaboration"
+    },
+    "contactRole": {
+      "label": "Fonction"
+    },
+    "contactFirstName": {
+      "label": "Prénom"
+    },
+    "contactEmail": {
+      "label": "E-mail professionnel",
+      "help": "S'il est vide, l'adresse de connexion est utilisée."
+    },
+    "contactPhone": {
+      "label": "Téléphone",
+      "help": "Format international, par exemple +33612345678."
+    },
+    "contactUrl": {
+      "label": "Page de contact",
+      "help": "Adresse complète, en https."
+    }
+  },
+  "contactBlock": {
+    "notice": "Le prénom est visible du seul créateur concerné, après l'ouverture d'une mise en relation. L'e-mail, le téléphone et la page de contact restent visibles de l'équipe INFLUX uniquement, jamais d'un créateur."
+  },
+  "fieldErrors": {
+    "required": "À renseigner pour soumettre votre profil.",
+    "invalid": "Cette valeur n'est pas valide.",
+    "unknown": "Ce choix n'est plus disponible : choisissez-en un autre.",
+    "website": "Ce site n'est pas un nom de domaine valide. Saisissez par exemple exemple.com.",
+    "companyName": "Indiquez le nom de votre entreprise."
+  },
+  "save": {
+    "saving": "Enregistrement…",
+    "saved": "Enregistré automatiquement à {time}",
+    "idle": "Enregistrement automatique",
+    "retry": "Modifications non enregistrées — nouvelle tentative dans 5 s."
+  },
+  "submit": {
+    "label": "Soumettre à la validation",
+    "busy": "Envoi en cours…",
+    "done": "Profil soumis. Réponse sous 1 jour ouvré.",
+    "unavailable": "Nous n'avons pas pu soumettre votre profil. Vos informations sont conservées ; réessayez dans quelques instants.",
+    "unsaved": "Vos dernières modifications ne sont pas encore enregistrées. Réessayez dans quelques secondes.",
+    "explain": "Le bouton reste actif : s'il manque des informations, elles sont nommées ci-dessus.",
+    "locked": "Votre profil ne peut pas être soumis dans cet état."
+  },
+  "progress": {
+    "title": "Pour soumettre",
+    "allSet": "Toutes les informations requises sont renseignées."
   }
 }

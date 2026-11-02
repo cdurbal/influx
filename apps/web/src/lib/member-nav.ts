@@ -2,7 +2,7 @@
 // which entries a role sees, in which order, and which one is active. Pure functions, tested alone
 // (tests/member-nav.test.ts); the shell (src/components/member/MemberShell.tsx) only draws them.
 import type { SignupDoor } from "@influx/contracts/auth";
-import { ACCOUNT_PAGES, type MemberPage } from "./member-paths";
+import { ACCOUNT_PAGES, accountPagesOf, type MemberPage } from "./member-paths";
 
 /** Every entry a space will have (17 §2.1); "relations" is the fourth entry of both spaces. */
 export type NavEntry =
@@ -66,9 +66,18 @@ const SUB_PAGES: Readonly<Partial<Record<NavEntry, readonly MemberPage[]>>> = {
   account: ACCOUNT_PAGES,
 };
 
-/** The sub-entries of a rubric, in order; none for a rubric of a single page. */
-export function subEntriesOf(entry: NavEntry): readonly MemberPage[] {
-  const pages = SUB_PAGES[entry] ?? [];
+/**
+ * The sub-entries of a rubric, in order; none for a rubric of a single page. `role` adds the pages
+ * only that role has (a brand's profile leads "Compte"); without it, the pages common to both.
+ */
+export function subEntriesOf(
+  entry: NavEntry,
+  role?: SignupDoor,
+): readonly MemberPage[] {
+  const pages =
+    entry === "account" && role !== undefined
+      ? accountPagesOf(role)
+      : (SUB_PAGES[entry] ?? []);
   return pages.length > 1 ? pages : [];
 }
 
@@ -87,7 +96,10 @@ export function activePlaceOf(page: MemberPage | null): ActivePlace | null {
   }
   const entries = Object.values(SPACE_ENTRIES).flat();
   for (const { entry } of entries) {
-    if (subEntriesOf(entry).includes(page)) {
+    // Every page a role may have counts (the profile of a brand included); who may see it is the shell's.
+    const pages: readonly MemberPage[] =
+      entry === "account" ? accountPagesOf("advertiser") : subEntriesOf(entry);
+    if (pages.includes(page)) {
       return { entry, sub: page };
     }
   }

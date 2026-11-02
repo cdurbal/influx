@@ -1,16 +1,18 @@
 "use client";
 
 // The page-menu of "mon compte" (docs/mvp/17 §6.0; D74; 20 page-menu): the page of the "Compte"
-// entry, at every width. One full-width row per page of the rubric, in the order of ACCOUNT_PAGES:
+// entry, at every width. One full-width row per page of the rubric, in the order of accountPagesOf(role):
 // a decorative icon, the label, one sentence, a decorative chevron; the label's link is stretched
 // over the row. A list in <main>, never a <nav>: the shell's is the one navigation landmark. It
 // shows links only, so the blocking terms screen lets it through (TERMS_EXEMPT_PAGES); a link to a
 // page that is not exempted leads, as before, to that screen.
 import { useLocale, useTranslations } from "next-intl";
 import { SPACE_SCREEN_CLASSES } from "@/components/auth/auth-classes";
+import { useMember } from "@/components/member/member-context";
 import { PageHeader } from "@/components/member/ui/PageHeader";
 import {
   ChevronRightIcon,
+  BriefcaseIcon,
   DatabaseIcon,
   MailIcon,
   MonitorSmartphoneIcon,
@@ -18,9 +20,9 @@ import {
 } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 import {
-  ACCOUNT_PAGES,
+  accountPagesOf,
   memberPageHref,
-  type AccountPage,
+  type AccountSubPage,
 } from "@/lib/member-paths";
 import {
   HUB_CHEVRON_CLASSES,
@@ -31,7 +33,8 @@ import {
   HUB_SENTENCE_CLASSES,
 } from "./account-classes";
 
-const HUB_ICONS: Readonly<Record<AccountPage, typeof UserRoundIcon>> = {
+const HUB_ICONS: Readonly<Record<AccountSubPage, typeof UserRoundIcon>> = {
+  accountProfile: BriefcaseIcon,
   accountDetails: UserRoundIcon,
   accountPreferences: MailIcon,
   accountSessions: MonitorSmartphoneIcon,
@@ -41,12 +44,13 @@ const HUB_ICONS: Readonly<Record<AccountPage, typeof UserRoundIcon>> = {
 export function AccountHub() {
   const t = useTranslations("account");
   const locale = useLocale();
+  const { me } = useMember();
 
   return (
     <div className={SPACE_SCREEN_CLASSES}>
       <PageHeader title={t("hub.title")} />
       <ul className={HUB_LIST_CLASSES}>
-        {ACCOUNT_PAGES.map((page) => {
+        {accountPagesOf(me.role).map((page) => {
           const Icon = HUB_ICONS[page];
           return (
             <li key={page} className={HUB_ROW_CLASSES}>

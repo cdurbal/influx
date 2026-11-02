@@ -49,7 +49,7 @@ import {
   memberPageHref,
   memberPageOfPath,
   spaceRedirectOf,
-  type AccountPage,
+  type AccountSubPage,
   type MemberPage,
 } from "@/lib/member-paths";
 import { installErrorCollector } from "@influx/web-platform/error-collector";
@@ -279,10 +279,10 @@ function Frame({
           entry: item.entry,
           href: memberPageHref(item.page, locale),
           label: t(`nav.entries.${item.entry as EntryWithLabel}`),
-          subEntries: subEntriesOf(item.entry).map((sub) => ({
+          subEntries: subEntriesOf(item.entry, me.role).map((sub) => ({
             page: sub,
             href: memberPageHref(sub, locale),
-            label: tAccount(`nav.${sub as AccountPage}`),
+            label: tAccount(`nav.${sub as AccountSubPage}`),
           })),
         }));
 

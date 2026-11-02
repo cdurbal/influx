@@ -14,6 +14,7 @@ export type MemberPage =
   | "creatorHome"
   | "accountHub"
   | "accountDetails"
+  | "accountProfile"
   | "accountPreferences"
   | "accountSessions"
   | "accountData";
@@ -31,6 +32,8 @@ export const MEMBER_PAGE_SLUGS: Readonly<
   // its page-menu (D74) holds the bare address, each page of the rubric a sub-path.
   accountHub: { fr: "compte", en: "account" },
   accountDetails: { fr: "compte/informations", en: "account/details" },
+  // "Mon profil de marque" (17 §4.2, M2; EC-L2B-7): the brand's alone until the creator's profile (L2D)
+  accountProfile: { fr: "compte/profil", en: "account/profile" },
   accountPreferences: { fr: "compte/preferences", en: "account/preferences" },
   accountSessions: { fr: "compte/sessions", en: "account/sessions" },
   accountData: { fr: "compte/donnees", en: "account/data" },
@@ -48,6 +51,24 @@ export const ACCOUNT_PAGES = [
 ] as const satisfies readonly MemberPage[];
 
 export type AccountPage = (typeof ACCOUNT_PAGES)[number];
+
+/**
+ * The page of "mon compte" that only a brand has (L2B: "Mon profil de marque", M2), first of its
+ * rubric. A creator reaching it finds a page that does not exist, as the API answers (18 T14.3);
+ * the creator's own profile page joins at L2D.
+ */
+export const BRAND_ONLY_ACCOUNT_PAGE =
+  "accountProfile" as const satisfies MemberPage;
+
+/** Every page of the rubric "mon compte" a member can have in its column. */
+export type AccountSubPage = AccountPage | typeof BRAND_ONLY_ACCOUNT_PAGE;
+
+/** The pages of "mon compte" a member of `role` reaches, in the order of the column and the page-menu. */
+export function accountPagesOf(role: SignupDoor): readonly AccountSubPage[] {
+  return role === "advertiser"
+    ? [BRAND_ONLY_ACCOUNT_PAGE, ...ACCOUNT_PAGES]
+    : ACCOUNT_PAGES;
+}
 
 /**
  * The pages a member reaches while a version of the terms waits for acceptance (05 RG28; 17 §6.7;

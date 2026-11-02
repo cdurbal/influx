@@ -549,9 +549,11 @@ test("TN6: at 1440 px, the four sub-entries under Compte on mes données, the cu
       exact: true,
     }),
   });
-  await expect(account.locator("ul a")).toHaveText(
-    ACCOUNT_SUB_PAGES.map(({ key }) => ACCOUNT.fr.nav[key]),
-  );
+  // The member is a brand: its profile (L2B-11) leads the four pages common to both spaces.
+  await expect(account.locator("ul a")).toHaveText([
+    ACCOUNT.fr.nav.accountProfile,
+    ...ACCOUNT_SUB_PAGES.map(({ key }) => ACCOUNT.fr.nav[key]),
+  ]);
   await expect(account.locator("ul a").first()).toBeVisible();
   await expect(nav.locator('[aria-current="page"]')).toHaveText(
     ACCOUNT.fr.nav.accountData,
@@ -566,7 +568,9 @@ test("TN6: at 1440 px, the four sub-entries under Compte on mes données, the cu
     .getByRole("link", { name: MEMBER.fr.nav.entries.account, exact: true })
     .click();
   await expect(title(page)).toHaveText(ACCOUNT.fr.hub.title);
-  await expect(account.locator("ul a")).toHaveCount(ACCOUNT_SUB_PAGES.length);
+  await expect(account.locator("ul a")).toHaveCount(
+    ACCOUNT_SUB_PAGES.length + 1,
+  );
   await expect(nav.locator('[aria-current="page"]')).toHaveText(
     MEMBER.fr.nav.entries.account,
   );
