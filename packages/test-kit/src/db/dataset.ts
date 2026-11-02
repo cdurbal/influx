@@ -242,6 +242,65 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
         values (${accountIdOf("advertiser", side)}, ${`T2 brand ${side}`})
         on conflict do nothing`;
     }
+
+    // One row per advertiser in each table of the full brand profile (0202, L2B), so that
+    // `propre` is observable against account B; the T2 insert templates add other codes to A.
+    const brandRows = {
+      a: {
+        sector: "beauty_personal_care",
+        market: "FR",
+        language: "fr",
+        topic: "beauty",
+        network: "instagram",
+        format: "instagram_reel",
+        audience: "FR",
+        right: "organic_repost",
+      },
+      b: {
+        sector: "fashion_accessories",
+        market: "GB",
+        language: "en",
+        topic: "fashion",
+        network: "tiktok",
+        format: "tiktok_video",
+        audience: "BE",
+        right: "media_buy",
+      },
+    } as const;
+    for (const side of ["a", "b"] as const) {
+      const account = accountIdOf("advertiser", side);
+      const rows = brandRows[side];
+      await tx`
+        insert into profiles.advertiser_secondary_sectors (account_id, slot, sector_code)
+        values (${account}, 1, ${rows.sector}) on conflict do nothing`;
+      await tx`
+        insert into profiles.advertiser_target_markets (account_id, slot, country_code)
+        values (${account}, 1, ${rows.market}) on conflict do nothing`;
+      await tx`
+        insert into profiles.advertiser_working_languages (account_id, language_code)
+        values (${account}, ${rows.language}) on conflict do nothing`;
+      await tx`
+        insert into profiles.advertiser_topics (account_id, slot, topic_code)
+        values (${account}, 1, ${rows.topic}) on conflict do nothing`;
+      await tx`
+        insert into profiles.advertiser_networks (account_id, network_code)
+        values (${account}, ${rows.network}) on conflict do nothing`;
+      await tx`
+        insert into profiles.advertiser_formats (account_id, format_code)
+        values (${account}, ${rows.format}) on conflict do nothing`;
+      await tx`
+        insert into profiles.advertiser_audience_countries (account_id, slot, country_code)
+        values (${account}, 1, ${rows.audience}) on conflict do nothing`;
+      await tx`
+        insert into profiles.advertiser_usage_rights (account_id, usage_right_code)
+        values (${account}, ${rows.right}) on conflict do nothing`;
+      await tx`
+        insert into profiles.advertiser_contact_details
+          (account_id, contact_first_name, contact_email, contact_phone)
+        values (${account}, ${`T2 contact ${side}`}, ${`t2-contact-${side}@example.test`},
+                '+33100000000')
+        on conflict do nothing`;
+    }
     await tx`
       insert into leads.outbox_events
         (event_id, event_type, destination, subject_key, payload, idempotency_key)

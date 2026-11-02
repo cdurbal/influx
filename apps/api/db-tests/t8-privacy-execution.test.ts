@@ -1804,6 +1804,306 @@ describe("privacy.execute_request(): erasure (04 §9.2, 21 §J8 point 6)", () =>
   });
 });
 
+/** The eight list tables of the brand profile (0202) and their code column. */
+const BRAND_LISTS = [
+  ["advertiser_secondary_sectors", "sector_code"],
+  ["advertiser_target_markets", "country_code"],
+  ["advertiser_working_languages", "language_code"],
+  ["advertiser_topics", "topic_code"],
+  ["advertiser_networks", "network_code"],
+  ["advertiser_formats", "format_code"],
+  ["advertiser_audience_countries", "country_code"],
+  ["advertiser_usage_rights", "usage_right_code"],
+] as const;
+
+/** Fills blocks 1 to 3 of an advertiser's profile (0202), as the superuser. */
+async function fillBrandProfile(
+  tx: Tx,
+  account: string,
+  label: string,
+): Promise<void> {
+  await tx`
+    update profiles.advertiser_profiles
+       set primary_sector_code = 'beauty_personal_care', company_size_band = '11_50',
+           website_domain = ${`${label}.example`},
+           presentation = ${`${label} presentation, a brand that writes its own words.`},
+           exclusivity_band = 'le_3m', collaboration_rhythm = 'recurring',
+           offers_non_monetary = true, contact_role = 'partnerships_influence',
+           completeness_percent = 88
+     where account_id = ${account}`;
+  await tx`
+    insert into profiles.advertiser_secondary_sectors (account_id, slot, sector_code)
+    values (${account}, 1, 'home_garden'), (${account}, 2, 'retail_ecommerce')`;
+  await tx`
+    insert into profiles.advertiser_target_markets (account_id, slot, country_code)
+    values (${account}, 1, 'FR'), (${account}, 2, 'BE')`;
+  await tx`
+    insert into profiles.advertiser_working_languages (account_id, language_code)
+    values (${account}, 'fr'), (${account}, 'en')`;
+  await tx`
+    insert into profiles.advertiser_topics (account_id, slot, topic_code)
+    values (${account}, 1, 'beauty'), (${account}, 2, 'wellness')`;
+  await tx`
+    insert into profiles.advertiser_networks (account_id, network_code)
+    values (${account}, 'instagram'), (${account}, 'tiktok')`;
+  await tx`
+    insert into profiles.advertiser_formats (account_id, format_code)
+    values (${account}, 'instagram_reel'), (${account}, 'tiktok_video')`;
+  await tx`
+    insert into profiles.advertiser_audience_countries (account_id, slot, country_code)
+    values (${account}, 1, 'FR'), (${account}, 2, 'CH')`;
+  await tx`
+    insert into profiles.advertiser_usage_rights (account_id, usage_right_code)
+    values (${account}, 'organic_repost')`;
+  await tx`
+    insert into profiles.advertiser_contact_details
+      (account_id, contact_first_name, contact_email, contact_phone, contact_url)
+    values (${account}, ${`${label} Camille`}, ${`${label}-contact@example.test`}, '+33612345678',
+            ${`https://${label}.example/contact`})`;
+}
+
+/** What the base holds of an advertiser's profile, its lists and its contact person. */
+async function brandProfileOf(tx: Tx, account: string): Promise<Row> {
+  const [profile] = await tx<Row[]>`
+    select legal_name, primary_sector_code, company_size_band, website_domain, presentation,
+           exclusivity_band, collaboration_rhythm, offers_non_monetary, contact_role,
+           completeness_percent
+      from profiles.advertiser_profiles where account_id = ${account}`;
+  const lists: Row = {};
+  for (const [table, column] of BRAND_LISTS) {
+    const rows = await tx.unsafe<{ code: string }[]>(
+      `select ${column}::text as code from profiles.${table}
+        where account_id = $1 order by 1`,
+      [account],
+    );
+    lists[table] = rows.map((row) => row.code);
+  }
+  const contacts = await tx<Row[]>`
+    select contact_first_name, contact_email, contact_phone, contact_url
+      from profiles.advertiser_contact_details where account_id = ${account}`;
+  return { profile, lists, contacts };
+}
+
+describe("the full brand profile of 0202 in the export and the erasure (04 §9.2, L2B)", () => {
+  it("exports the whole profile, its lists in their order and its contact person; nothing of another brand", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      await fillBrandProfile(tx, member.id, "t8-brand");
+      await fillBrandProfile(tx, stranger.id, "t8-stranger");
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      return { stored };
+    });
+    const content = String(outcome.stored?.content);
+    const file = JSON.parse(content) as { data: Record<string, unknown> };
+    expect(file.data.advertiser_profile).toEqual({
+      legal_name: "T8 Privacy Brand",
+      status: "draft",
+      primary_sector: "beauty_personal_care",
+      secondary_sectors: ["home_garden", "retail_ecommerce"],
+      company_size: "11_50",
+      target_markets: ["FR", "BE"],
+      working_languages: ["en", "fr"],
+      website_domain: "t8-brand.example",
+      presentation: "t8-brand presentation, a brand that writes its own words.",
+      topics: ["beauty", "wellness"],
+      networks: ["instagram", "tiktok"],
+      formats: ["instagram_reel", "tiktok_video"],
+      audience_countries: ["FR", "CH"],
+      usage_rights: ["organic_repost"],
+      exclusivity: "le_3m",
+      collaboration_rhythm: "recurring",
+      offers_non_monetary: true,
+      contact_role: "partnerships_influence",
+      contact: {
+        first_name: "t8-brand Camille",
+        email: "t8-brand-contact@example.test",
+        phone: "+33612345678",
+        page_url: "https://t8-brand.example/contact",
+        updated_at: expect.stringMatching(/Z$/),
+      },
+      completeness_percent: 88,
+      created_at: expect.stringMatching(/Z$/),
+      updated_at: expect.stringMatching(/Z$/),
+    });
+    // 15 RG81: the requester's data only, never another brand's
+    expect(content.includes("t8-stranger")).toBe(false);
+  });
+
+  it("exports empty lists and no contact person for a profile never filled in", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      return { stored };
+    });
+    const file = JSON.parse(String(outcome.stored?.content)) as {
+      data: { advertiser_profile: Row };
+    };
+    expect(file.data.advertiser_profile).toMatchObject({
+      legal_name: "T8 Privacy Brand",
+      primary_sector: null,
+      secondary_sectors: [],
+      target_markets: [],
+      working_languages: [],
+      topics: [],
+      networks: [],
+      formats: [],
+      audience_countries: [],
+      usage_rights: [],
+      offers_non_monetary: null,
+      contact: null,
+      completeness_percent: null,
+    });
+  });
+
+  it("empties every column the brand entered, deletes its lists and empties its contact person (row kept); another brand is untouched", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      await fillBrandProfile(tx, member.id, "t8-erased");
+      await fillBrandProfile(tx, stranger.id, "t8-kept");
+      const request = await deposit(tx, member, "erasure");
+      await approve(tx, request, "erasure");
+      rowsOf(await execute(tx, request, null));
+      return {
+        erased: await brandProfileOf(tx, member.id),
+        kept: await brandProfileOf(tx, stranger.id),
+      };
+    });
+    expect(outcome.erased).toEqual({
+      profile: {
+        legal_name: "[deleted]",
+        primary_sector_code: null,
+        company_size_band: null,
+        website_domain: null,
+        presentation: null,
+        exclusivity_band: null,
+        collaboration_rhythm: null,
+        offers_non_monetary: null,
+        contact_role: null,
+        completeness_percent: null,
+      },
+      lists: Object.fromEntries(BRAND_LISTS.map(([table]) => [table, []])),
+      contacts: [
+        {
+          contact_first_name: null,
+          contact_email: null,
+          contact_phone: null,
+          contact_url: null,
+        },
+      ],
+    });
+    expect(outcome.kept).toEqual({
+      profile: {
+        legal_name: "T8 Privacy Brand",
+        primary_sector_code: "beauty_personal_care",
+        company_size_band: "11_50",
+        website_domain: "t8-kept.example",
+        presentation:
+          "t8-kept presentation, a brand that writes its own words.",
+        exclusivity_band: "le_3m",
+        collaboration_rhythm: "recurring",
+        offers_non_monetary: true,
+        contact_role: "partnerships_influence",
+        completeness_percent: 88,
+      },
+      lists: {
+        advertiser_secondary_sectors: ["home_garden", "retail_ecommerce"],
+        advertiser_target_markets: ["BE", "FR"],
+        advertiser_working_languages: ["en", "fr"],
+        advertiser_topics: ["beauty", "wellness"],
+        advertiser_networks: ["instagram", "tiktok"],
+        advertiser_formats: ["instagram_reel", "tiktok_video"],
+        advertiser_audience_countries: ["CH", "FR"],
+        advertiser_usage_rights: ["organic_repost"],
+      },
+      contacts: [
+        {
+          contact_first_name: "t8-kept Camille",
+          contact_email: "t8-kept-contact@example.test",
+          contact_phone: "+33612345678",
+          contact_url: "https://t8-kept.example/contact",
+        },
+      ],
+    });
+  });
+
+  // EC-L2B-05-6: the owner of E-5 anonymises and does nothing else, even on an erased account
+  it.each([
+    [
+      "the name alone, a presentation left",
+      "update profiles.advertiser_profiles set legal_name = '[deleted]' where account_id = $1",
+    ],
+    [
+      "a new presentation",
+      "update profiles.advertiser_profiles set legal_name = '[deleted]', presentation = 'x', " +
+        "primary_sector_code = null, company_size_band = null, website_domain = null, " +
+        "exclusivity_band = null, collaboration_rhythm = null, offers_non_monetary = null, " +
+        "contact_role = null, completeness_percent = null where account_id = $1",
+    ],
+    [
+      "a contact person rewritten",
+      "update profiles.advertiser_contact_details set contact_phone = '+33700000000' " +
+        "where account_id = $1",
+    ],
+  ])(
+    "refuses to influx_privacy_definer %s on an erased account (42501)",
+    async (_label, statement) => {
+      const result = await scenario(async (tx) => {
+        const member = await newMember(tx, "advertiser");
+        await fillBrandProfile(tx, member.id, "t8-guard");
+        await tx`update identity.accounts set status = 'deleted', deleted_at = now()
+                where id = ${member.id}`;
+        await tx.unsafe("set local role influx_privacy_definer");
+        const attempted = await attempt(tx, statement, [member.id]);
+        await tx.unsafe("reset role");
+        return attempted;
+      });
+      expect(codeOf(result)).toBe(INSUFFICIENT_PRIVILEGE);
+    },
+  );
+
+  it("lets influx_privacy_definer touch nothing of an active account", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      await fillBrandProfile(tx, member.id, "t8-active");
+      await tx.unsafe("set local role influx_privacy_definer");
+      const results = {
+        list: await attempt(
+          tx,
+          "delete from profiles.advertiser_topics where account_id = $1 returning 1",
+          [member.id],
+        ),
+        contact: await attempt(
+          tx,
+          "update profiles.advertiser_contact_details set contact_first_name = null, " +
+            "contact_email = null, contact_phone = null, contact_url = null " +
+            "where account_id = $1 returning 1",
+          [member.id],
+        ),
+      };
+      await tx.unsafe("reset role");
+      return { results, after: await brandProfileOf(tx, member.id) };
+    });
+    expect(rowsOf(outcome.results.list)).toEqual([]);
+    expect(rowsOf(outcome.results.contact)).toEqual([]);
+    expect(outcome.after.lists).toMatchObject({
+      advertiser_topics: ["beauty", "wellness"],
+    });
+    expect(outcome.after.contacts).toEqual([
+      expect.objectContaining({ contact_first_name: "t8-active Camille" }),
+    ]);
+  });
+});
+
 describe("privacy.record_auth_user_deleted() and privacy.complete_request() (15 RG77, RG79, RG85)", () => {
   it("records the GoTrue deletion once, of an executed erasure only", async () => {
     const outcome = await scenario(async (tx) => {

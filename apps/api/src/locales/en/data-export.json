@@ -14,7 +14,7 @@
       },
       "advertiser_profile": {
         "label": "Brand profile",
-        "content": "Company name (advertisers only).",
+        "content": "Advertisers only: company name, profile status, sectors, company size, target markets, working languages, website domain, presentation, topics, networks, formats, audience countries, usage rights, exclusivity, collaboration rhythm, non-monetary consideration, completeness score, and your contact person (role, first name, professional email address, phone number, contact page).",
         "purpose": "Presenting your brand to creators in introductions.",
         "legal_basis": "Performance of the contract (terms of use), Article 6(1)(b).",
         "retention": "For the life of the account, then 3 years of inactivity; erased if the account is deleted.",

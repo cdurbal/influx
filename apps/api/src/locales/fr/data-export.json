@@ -14,7 +14,7 @@
       },
       "advertiser_profile": {
         "label": "Profil de marque",
-        "content": "Raison sociale (annonceurs seulement).",
+        "content": "Annonceurs seulement : nom de l'entreprise, état du profil, secteurs, taille de l'entreprise, marchés visés, langues de travail, domaine du site, présentation, thématiques, réseaux, formats, pays d'audience, droits d'usage, exclusivité, rythme de collaboration, contrepartie non monétaire, score de complétude, et votre interlocuteur (fonction, prénom, adresse e-mail professionnelle, téléphone, page de contact).",
         "purpose": "Présenter votre marque aux créateurs dans le cadre des mises en relation.",
         "legal_basis": "Exécution du contrat (conditions d'utilisation), article 6.1.b.",
         "retention": "Pendant la vie du compte, puis 3 ans d'inactivité ; effacée en cas de suppression du compte.",

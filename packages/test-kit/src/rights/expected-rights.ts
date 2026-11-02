@@ -147,6 +147,64 @@ const LOT2_REFERENCE_READ: Expectation = {
     "03 §3 (reference lists read by every role with a context); 0201 GRANT SELECT, as 0003",
 };
 
+/**
+ * The eight list tables of the brand profile (0202, L2B), each with the insert of its probe: a
+ * code of account A that the data set does not hold, within the cap of the list (`slot`).
+ */
+export const BRAND_PROFILE_LISTS: readonly {
+  table: string;
+  insertTemplate: string;
+}[] = [
+  {
+    table: "profiles.advertiser_secondary_sectors",
+    insertTemplate:
+      "insert into profiles.advertiser_secondary_sectors (account_id, slot, sector_code) " +
+      "values ($1, 2, 'home_garden')",
+  },
+  {
+    table: "profiles.advertiser_target_markets",
+    insertTemplate:
+      "insert into profiles.advertiser_target_markets (account_id, slot, country_code) " +
+      "values ($1, 5, 'DE')",
+  },
+  {
+    table: "profiles.advertiser_working_languages",
+    insertTemplate:
+      "insert into profiles.advertiser_working_languages (account_id, language_code) " +
+      "values ($1, 'en')",
+  },
+  {
+    table: "profiles.advertiser_topics",
+    insertTemplate:
+      "insert into profiles.advertiser_topics (account_id, slot, topic_code) " +
+      "values ($1, 3, 'travel')",
+  },
+  {
+    table: "profiles.advertiser_networks",
+    insertTemplate:
+      "insert into profiles.advertiser_networks (account_id, network_code) " +
+      "values ($1, 'youtube')",
+  },
+  {
+    table: "profiles.advertiser_formats",
+    insertTemplate:
+      "insert into profiles.advertiser_formats (account_id, format_code) " +
+      "values ($1, 'youtube_short')",
+  },
+  {
+    table: "profiles.advertiser_audience_countries",
+    insertTemplate:
+      "insert into profiles.advertiser_audience_countries (account_id, slot, country_code) " +
+      "values ($1, 5, 'DE')",
+  },
+  {
+    table: "profiles.advertiser_usage_rights",
+    insertTemplate:
+      "insert into profiles.advertiser_usage_rights (account_id, usage_right_code) " +
+      "values ($1, 'paid_whitelisting')",
+  },
+];
+
 export const TABLE_RIGHTS: readonly TableRights[] = [
   {
     table: "reference.countries",
@@ -536,9 +594,11 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
   },
   {
     table: "profiles.advertiser_profiles",
-    source: "0106 (04 §5.2, minimal form)",
+    source: "0106 (04 §5.2, minimal form); 0202 (L2B, the full profile)",
     probeColumn: "account_id",
     ownerColumn: "account_id",
+    // A column of blocks 1 to 3 the owner may update (0202); status and legal_name are not his.
+    updateSet: "presentation = presentation",
     expected: merge(
       {
         influx_advertiser: {
@@ -546,12 +606,94 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
             form: "propre",
             source: "04 §6 « S »: the advertiser reads their own profile",
           },
+          update: {
+            form: "propre",
+            source:
+              "03 §3.2 « Profil marque — modifier » S; 0202: the columns of blocks 1 to 3, " +
+              "never status (0203) nor legal_name (0122)",
+          },
         },
       },
       forRoles(INTERNAL, {
         select: {
           form: "autorisé",
           source: "04 §6 « L »: agent and admin read every advertiser profile",
+        },
+      }),
+    ),
+  },
+  ...BRAND_PROFILE_LISTS.map(({ table, insertTemplate }): TableRights => ({
+    table,
+    source: "0202 (06 RG15, RG27; L2B): a list of the brand profile",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    insertTemplate,
+    expected: merge(
+      {
+        influx_advertiser: {
+          select: {
+            form: "propre",
+            source:
+              "03 §3.2 « Profil marque — lire » S: the owner's own choices",
+          },
+          insert: {
+            form: "propre",
+            source:
+              "03 §3.2 « Profil marque — modifier » S: a choice added to his own list",
+          },
+          delete: {
+            form: "propre",
+            source:
+              "03 §3.2 « Profil marque — modifier » S: a list is replaced, never updated",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source: "03 §3.2 « Profil marque — lire » L·J: agent and admin, aal2",
+        },
+      }),
+    ),
+  })),
+  {
+    table: "profiles.advertiser_contact_details",
+    source:
+      "0202 (06 RG35, RG37; D40, D46): the contact person; NOTHING for influx_creator " +
+      "(03 C(9): the first name at Lot 4 only, never the coordinates)",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    updateSet: "contact_phone = contact_phone",
+    // The data set gives A a row: the probe of A goes through the update path of the upsert.
+    insertTemplate:
+      "insert into profiles.advertiser_contact_details (account_id, contact_first_name) " +
+      "values ($1, 'T2 probe') on conflict (account_id) " +
+      "do update set contact_first_name = excluded.contact_first_name",
+    expected: merge(
+      {
+        influx_advertiser: {
+          select: {
+            form: "propre",
+            source:
+              "03 §3.2 « Profil marque — lire les coordonnées directes » S",
+          },
+          insert: {
+            form: "propre",
+            source:
+              "03 §3.2 « Profil marque — modifier » S: his contact person",
+          },
+          update: {
+            form: "propre",
+            source:
+              "03 §3.2 « Profil marque — modifier » S: his contact person",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source:
+            "03 §3.2 « Profil marque — lire les coordonnées directes » L·J; 06 RG37: aal2",
         },
       }),
     ),
@@ -984,7 +1126,9 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * then of 0135 (J8 commit 7), then on 2026-10-16 of 0136 and 0137 (J8 commit 8, E-5), each line
  * checked against its migration; and on 2026-10-22 with those of 0147 (J9 commit 8, D60 active
  * monitoring), each line checked against its sections 19 and 20; and on 2026-11-01 with those of
- * 0201 (L2A commit 09, the Lot 2 reference lists), checked against 0003 lines 265-308.
+ * 0201 (L2A commit 09, the Lot 2 reference lists), checked against 0003 lines 265-308; and on
+ * 2026-11-02 with those of 0202 (L2B commit 05, the full brand profile), each line checked against
+ * its sections 4 and 5.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -2521,6 +2665,117 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator|table|reference.sectors|SELECT",
   "influx_creator|table|reference.topics|SELECT",
   "influx_creator|table|reference.usage_rights|SELECT",
+  // 0202 (L2B commit 05, 06 blocks 1 to 3): the owner updates the profile columns of blocks 1 to 3
+  // (never status nor legal_name), adds and removes the rows of his eight lists, reads and writes
+  // his contact person; agent and admin read the nine new tables (aal2 by policy); influx_creator
+  // NOTHING (D40, D46). influx_privacy_definer reads what the export carries and empties or deletes
+  // what the erasure clears (04 §9.2, EC-L2B-05-6).
+  "influx_admin|table|profiles.advertiser_audience_countries|SELECT",
+  "influx_admin|table|profiles.advertiser_contact_details|SELECT",
+  "influx_admin|table|profiles.advertiser_formats|SELECT",
+  "influx_admin|table|profiles.advertiser_networks|SELECT",
+  "influx_admin|table|profiles.advertiser_secondary_sectors|SELECT",
+  "influx_admin|table|profiles.advertiser_target_markets|SELECT",
+  "influx_admin|table|profiles.advertiser_topics|SELECT",
+  "influx_admin|table|profiles.advertiser_usage_rights|SELECT",
+  "influx_admin|table|profiles.advertiser_working_languages|SELECT",
+  "influx_advertiser|column|profiles.advertiser_audience_countries.account_id|INSERT",
+  "influx_advertiser|column|profiles.advertiser_audience_countries.country_code|INSERT",
+  "influx_advertiser|column|profiles.advertiser_audience_countries.slot|INSERT",
+  "influx_advertiser|column|profiles.advertiser_contact_details.account_id|INSERT",
+  "influx_advertiser|column|profiles.advertiser_contact_details.contact_email|INSERT,UPDATE",
+  "influx_advertiser|column|profiles.advertiser_contact_details.contact_first_name|INSERT,UPDATE",
+  "influx_advertiser|column|profiles.advertiser_contact_details.contact_phone|INSERT,UPDATE",
+  "influx_advertiser|column|profiles.advertiser_contact_details.contact_url|INSERT,UPDATE",
+  "influx_advertiser|column|profiles.advertiser_formats.account_id|INSERT",
+  "influx_advertiser|column|profiles.advertiser_formats.format_code|INSERT",
+  "influx_advertiser|column|profiles.advertiser_networks.account_id|INSERT",
+  "influx_advertiser|column|profiles.advertiser_networks.network_code|INSERT",
+  "influx_advertiser|column|profiles.advertiser_profiles.collaboration_rhythm|UPDATE",
+  "influx_advertiser|column|profiles.advertiser_profiles.company_size_band|UPDATE",
+  "influx_advertiser|column|profiles.advertiser_profiles.completeness_percent|UPDATE",
+  "influx_advertiser|column|profiles.advertiser_profiles.contact_role|UPDATE",
+  "influx_advertiser|column|profiles.advertiser_profiles.exclusivity_band|UPDATE",
+  "influx_advertiser|column|profiles.advertiser_profiles.offers_non_monetary|UPDATE",
+  "influx_advertiser|column|profiles.advertiser_profiles.presentation|UPDATE",
+  "influx_advertiser|column|profiles.advertiser_profiles.primary_sector_code|UPDATE",
+  "influx_advertiser|column|profiles.advertiser_profiles.website_domain|UPDATE",
+  "influx_advertiser|column|profiles.advertiser_secondary_sectors.account_id|INSERT",
+  "influx_advertiser|column|profiles.advertiser_secondary_sectors.sector_code|INSERT",
+  "influx_advertiser|column|profiles.advertiser_secondary_sectors.slot|INSERT",
+  "influx_advertiser|column|profiles.advertiser_target_markets.account_id|INSERT",
+  "influx_advertiser|column|profiles.advertiser_target_markets.country_code|INSERT",
+  "influx_advertiser|column|profiles.advertiser_target_markets.slot|INSERT",
+  "influx_advertiser|column|profiles.advertiser_topics.account_id|INSERT",
+  "influx_advertiser|column|profiles.advertiser_topics.slot|INSERT",
+  "influx_advertiser|column|profiles.advertiser_topics.topic_code|INSERT",
+  "influx_advertiser|column|profiles.advertiser_usage_rights.account_id|INSERT",
+  "influx_advertiser|column|profiles.advertiser_usage_rights.usage_right_code|INSERT",
+  "influx_advertiser|column|profiles.advertiser_working_languages.account_id|INSERT",
+  "influx_advertiser|column|profiles.advertiser_working_languages.language_code|INSERT",
+  "influx_advertiser|table|profiles.advertiser_audience_countries|DELETE,SELECT",
+  "influx_advertiser|table|profiles.advertiser_contact_details|SELECT",
+  "influx_advertiser|table|profiles.advertiser_formats|DELETE,SELECT",
+  "influx_advertiser|table|profiles.advertiser_networks|DELETE,SELECT",
+  "influx_advertiser|table|profiles.advertiser_secondary_sectors|DELETE,SELECT",
+  "influx_advertiser|table|profiles.advertiser_target_markets|DELETE,SELECT",
+  "influx_advertiser|table|profiles.advertiser_topics|DELETE,SELECT",
+  "influx_advertiser|table|profiles.advertiser_usage_rights|DELETE,SELECT",
+  "influx_advertiser|table|profiles.advertiser_working_languages|DELETE,SELECT",
+  "influx_agent|table|profiles.advertiser_audience_countries|SELECT",
+  "influx_agent|table|profiles.advertiser_contact_details|SELECT",
+  "influx_agent|table|profiles.advertiser_formats|SELECT",
+  "influx_agent|table|profiles.advertiser_networks|SELECT",
+  "influx_agent|table|profiles.advertiser_secondary_sectors|SELECT",
+  "influx_agent|table|profiles.advertiser_target_markets|SELECT",
+  "influx_agent|table|profiles.advertiser_topics|SELECT",
+  "influx_agent|table|profiles.advertiser_usage_rights|SELECT",
+  "influx_agent|table|profiles.advertiser_working_languages|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_audience_countries.account_id|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_audience_countries.country_code|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_audience_countries.slot|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_contact_details.account_id|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_contact_details.contact_email|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.advertiser_contact_details.contact_first_name|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.advertiser_contact_details.contact_phone|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.advertiser_contact_details.contact_url|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.advertiser_contact_details.updated_at|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_formats.account_id|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_formats.format_code|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_networks.account_id|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_networks.network_code|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_profiles.collaboration_rhythm|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.advertiser_profiles.company_size_band|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.advertiser_profiles.completeness_percent|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.advertiser_profiles.contact_role|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.advertiser_profiles.exclusivity_band|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.advertiser_profiles.offers_non_monetary|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.advertiser_profiles.presentation|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.advertiser_profiles.primary_sector_code|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.advertiser_profiles.status|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_profiles.updated_at|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_profiles.website_domain|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.advertiser_secondary_sectors.account_id|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_secondary_sectors.sector_code|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_secondary_sectors.slot|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_target_markets.account_id|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_target_markets.country_code|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_target_markets.slot|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_topics.account_id|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_topics.slot|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_topics.topic_code|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_usage_rights.account_id|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_usage_rights.usage_right_code|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_working_languages.account_id|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_working_languages.language_code|SELECT",
+  "influx_privacy_definer|table|profiles.advertiser_audience_countries|DELETE",
+  "influx_privacy_definer|table|profiles.advertiser_formats|DELETE",
+  "influx_privacy_definer|table|profiles.advertiser_networks|DELETE",
+  "influx_privacy_definer|table|profiles.advertiser_secondary_sectors|DELETE",
+  "influx_privacy_definer|table|profiles.advertiser_target_markets|DELETE",
+  "influx_privacy_definer|table|profiles.advertiser_topics|DELETE",
+  "influx_privacy_definer|table|profiles.advertiser_usage_rights|DELETE",
+  "influx_privacy_definer|table|profiles.advertiser_working_languages|DELETE",
 ];
 
 /**

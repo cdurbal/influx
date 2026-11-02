@@ -639,6 +639,21 @@ describe("erasure: anonymised by the worker, propagated to Brevo, closed after i
   it("anonymises, deletes the Auth user after the commit, and waits for Brevo before closing", async () => {
     const server = app();
     const member = await newMember("advertiser");
+    // the full brand profile of 0202 (L2B): a presentation, a list, a contact person
+    await migrationRole().begin(async (tx) => {
+      await tx`
+        update profiles.advertiser_profiles
+           set presentation = 'A brand of the TM1 erasure.', contact_role = 'marketing'
+         where account_id = ${member.accountId}`;
+      await tx`
+        insert into profiles.advertiser_topics (account_id, slot, topic_code)
+        values (${member.accountId}, 1, 'beauty')`;
+      await tx`
+        insert into profiles.advertiser_contact_details
+          (account_id, contact_first_name, contact_email, contact_phone)
+        values (${member.accountId}, 'Camille', ${`tm1-contact-${member.accountId}@example.test`},
+                '+33612345678')`;
+    });
     const requestId = await deposit(member, "erasure");
     await approve(server, requestId, "erasure");
 
@@ -658,6 +673,29 @@ describe("erasure: anonymised by the worker, propagated to Brevo, closed after i
       status: "deleted",
       email: `deleted+${member.accountId}@invalid`,
       anonymized: true,
+    });
+    const [brand] = await migrationRole()<
+      {
+        legal_name: string;
+        presentation: string | null;
+        contact_role: string | null;
+        topics: number;
+        contact: string | null;
+      }[]
+    >`
+      select p.legal_name, p.presentation, p.contact_role,
+             (select count(*)::int from profiles.advertiser_topics t
+               where t.account_id = p.account_id) as topics,
+             (select concat_ws(',', c.contact_first_name, c.contact_email, c.contact_phone)
+                from profiles.advertiser_contact_details c
+               where c.account_id = p.account_id) as contact
+        from profiles.advertiser_profiles p where p.account_id = ${member.accountId}`;
+    expect(brand).toEqual({
+      legal_name: "[deleted]",
+      presentation: null,
+      contact_role: null,
+      topics: 0,
+      contact: "",
     });
     const [{ sessions } = { sessions: -1 }] = await migrationRole()<
       { sessions: number }[]
