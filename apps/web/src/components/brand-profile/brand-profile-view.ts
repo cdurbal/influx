@@ -409,6 +409,43 @@ export function statusTextKeyOf(status: BrandProfileStatus): StatusTextKey {
   }
 }
 
+// --- The state of the profile outside the form (home, column) ------------------------------------
+
+/**
+ * What the home and the column of the shell need of the profile (17 §2.3, §2.4): the state, the
+ * date it was submitted, and the required fields still missing. The score is not here: the rail
+ * and the home write the state and name what is missing, they do not grade it.
+ */
+export type BrandProfileSummary = Pick<
+  BrandProfileResponse,
+  "status" | "submittedAt" | "missingRequired"
+>;
+
+export function summaryOf(profile: BrandProfileResponse): BrandProfileSummary {
+  return {
+    status: profile.status,
+    submittedAt: profile.submittedAt,
+    missingRequired: [...profile.missingRequired],
+  };
+}
+
+/** What the member is invited to do next on the profile; null when nothing is theirs to do. */
+export type NextProfileAction = "complete" | "submit";
+
+/**
+ * "Compléter mon profil" while a required field of a draft or a refused profile is missing,
+ * "Soumettre" once it is complete; nothing for a profile under review (it is written, not asked),
+ * published or suspended.
+ */
+export function nextActionOf(
+  summary: BrandProfileSummary,
+): NextProfileAction | null {
+  if (summary.status !== "draft" && summary.status !== "rejected") {
+    return null;
+  }
+  return summary.missingRequired.length > 0 ? "complete" : "submit";
+}
+
 // --- Dates and answers --------------------------------------------------------------------------
 
 /** The time of the last save as the language writes it ("14 h 07", "2:07 PM"), RG83. */

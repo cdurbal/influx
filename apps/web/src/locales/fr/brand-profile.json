@@ -336,5 +336,21 @@
       "removalFailed": "Le logo n'a pas pu être retiré. Réessayez.",
       "loadFailed": "Le logo n'a pas pu être chargé."
     }
+  },
+  "home": {
+    "action": {
+      "title": "Complétez votre profil de marque",
+      "titleReady": "Votre profil est prêt à être soumis"
+    },
+    "locked": {
+      "campaign": {
+        "title": "Publier une campagne",
+        "text": "Disponible une fois votre profil publié."
+      },
+      "search": {
+        "title": "Rechercher des créateurs"
+      },
+      "soon": "Bientôt disponible dans votre espace."
+    }
   }
 }

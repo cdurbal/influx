@@ -21,11 +21,13 @@ import {
   logoFailureOf,
   logoFileProblem,
   missingErrors,
+  nextActionOf,
   planPatch,
   sameValue,
   sectionOfRequired,
   singleFieldPatch,
   statusTextKeyOf,
+  summaryOf,
   type BrandDraft,
 } from "@/components/brand-profile/brand-profile-view";
 
@@ -282,6 +284,40 @@ describe("the states of the profile (06 RG3, EC-L2B-07-1; 17 §4.2)", () => {
     );
     expect(isRetryable({ kind: "failed", code: "conflict" })).toBe(false);
     expect(isRetryable({ kind: "unauthenticated" })).toBe(false);
+  });
+});
+
+describe("the state of the profile on the home and in the column (17 §2.3, §2.4)", () => {
+  it("keeps the state, the date and the missing fields, and nothing of the score", () => {
+    const summary = summaryOf({
+      ...PROFILE,
+      status: "pending_review",
+      submittedAt: "2026-11-02T09:00:00.000Z",
+    });
+    expect(Object.keys(summary).sort()).toEqual([
+      "missingRequired",
+      "status",
+      "submittedAt",
+    ]);
+    expect(summary.missingRequired).toEqual(PROFILE.missingRequired);
+    expect(summary.missingRequired).not.toBe(PROFILE.missingRequired);
+  });
+
+  it("asks to complete while a field is missing, to submit once complete, and asks nothing of a profile under review, published or suspended", () => {
+    const of = (status: BrandProfileResponse["status"], missing: number) =>
+      nextActionOf({
+        status,
+        submittedAt: null,
+        missingRequired: PROFILE.missingRequired.slice(0, missing),
+      });
+    expect(of("draft", 3)).toBe("complete");
+    expect(of("rejected", 1)).toBe("complete");
+    expect(of("draft", 0)).toBe("submit");
+    expect(of("rejected", 0)).toBe("submit");
+    expect(of("pending_review", 0)).toBeNull();
+    expect(of("pending_review", 2)).toBeNull();
+    expect(of("published", 2)).toBeNull();
+    expect(of("suspended", 0)).toBeNull();
   });
 });
 

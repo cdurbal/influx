@@ -23,6 +23,11 @@ import {
   type RefObject,
 } from "react";
 import { TermsGate } from "@/components/account/TermsGate";
+import { AccountStateBlock } from "@/components/brand-profile/AccountStateBlock";
+import {
+  useBrandSummary,
+  type BrandSummary,
+} from "@/components/brand-profile/use-brand-summary";
 import {
   HEADER_CLASSES as SCREEN_HEADER_CLASSES,
   HELP_CLASSES,
@@ -91,6 +96,13 @@ export function MemberShell({ children }: { children: ReactNode }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   // Signed out or deleted: the page ends there, no later read brings the space back.
   const ended = useRef(false);
+
+  // The state of a brand's profile, for the column and the home (17 §2.3, §2.4): read with the
+  // session, at each page; the profile screen tells it every save.
+  const brandProfile = useBrandSummary(
+    state.kind === "ready" && state.me.role === "advertiser",
+    pathname,
+  );
 
   // Browser errors of the connected space (D60, 02 §20.5); never on the landing.
   useEffect(() => installErrorCollector(), []);
@@ -207,6 +219,7 @@ export function MemberShell({ children }: { children: ReactNode }) {
       onSignOut={signOut}
       mainRef={mainRef}
       busy={state.kind === "loading"}
+      brandProfile={brandProfile}
     >
       {state.kind === "ready" ? (
         <SpaceContext
@@ -215,6 +228,7 @@ export function MemberShell({ children }: { children: ReactNode }) {
           signOut={signOut}
           signedOut={signedOut}
           accountDeleted={accountDeleted}
+          brandProfile={brandProfile}
         >
           {children}
         </SpaceContext>
@@ -237,10 +251,11 @@ function SpaceContext({
   children,
   ...member
 }: MemberContextValue & { children: ReactNode }) {
-  const { me, refresh, signOut, signedOut, accountDeleted } = member;
+  const { me, refresh, signOut, signedOut, accountDeleted, brandProfile } =
+    member;
   const value = useMemo(
-    () => ({ me, refresh, signOut, signedOut, accountDeleted }),
-    [me, refresh, signOut, signedOut, accountDeleted],
+    () => ({ me, refresh, signOut, signedOut, accountDeleted, brandProfile }),
+    [me, refresh, signOut, signedOut, accountDeleted, brandProfile],
   );
   return <MemberContext value={value}>{children}</MemberContext>;
 }
@@ -256,6 +271,7 @@ function Frame({
   onSignOut,
   mainRef,
   busy,
+  brandProfile,
   children,
 }: {
   me: MeResponse | null;
@@ -263,6 +279,7 @@ function Frame({
   onSignOut: () => Promise<void>;
   mainRef: RefObject<HTMLElement | null>;
   busy: boolean;
+  brandProfile: BrandSummary;
   children: ReactNode;
 }) {
   const t = useTranslations("member.shell");
@@ -342,6 +359,7 @@ function Frame({
             LinkComponent={Link}
           />
         )}
+        {me === null ? null : <AccountStateBlock state={brandProfile.state} />}
         {me === null ? null : (
           <div className={FOOTER_CLASSES}>
             {language("")}

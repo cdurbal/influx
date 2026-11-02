@@ -14,6 +14,12 @@
     },
     "footer": {
       "signOut": "Sign out"
+    },
+    "accountState": {
+      "state": "Profile: {state}",
+      "missing": "{count, plural, one {# detail missing} other {# details missing}}",
+      "complete": "Complete my profile",
+      "submit": "Submit my profile"
     }
   }
 }

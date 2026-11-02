@@ -145,3 +145,12 @@ export const MAIN_CLASSES = "flex-1 lg:pb-0";
 export const NAV_PLACEHOLDER_CLASSES = cn(NAV_CLASSES, "lg:hidden");
 
 export const NAV_PLACEHOLDER_LIST_CLASSES = "h-(--size-nav-bottom-height)";
+
+/**
+ * The state of the account in the column (17 §2.3 "Bloc d'état du compte"): under the items, above
+ * the foot, from lg only; below lg the home carries it. A rule above, as the foot has.
+ */
+export const ACCOUNT_STATE_CLASSES = cn(
+  "hidden lg:mt-4 lg:flex lg:flex-col lg:items-start lg:gap-2 lg:px-4 lg:py-4",
+  "lg:border-t-(length:--border-width-thin) lg:border-border-default",
+);

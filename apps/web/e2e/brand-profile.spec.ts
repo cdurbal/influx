@@ -10,6 +10,10 @@ import { fileURLToPath } from "node:url";
 import frErrors from "@/locales/fr/errors.json" with { type: "json" };
 import enBrandProfile from "@/locales/en/brand-profile.json" with { type: "json" };
 import frBrandProfile from "@/locales/fr/brand-profile.json" with { type: "json" };
+import enAuth from "@/locales/en/auth.json" with { type: "json" };
+import enMember from "@/locales/en/member.json" with { type: "json" };
+import frAuth from "@/locales/fr/auth.json" with { type: "json" };
+import frMember from "@/locales/fr/member.json" with { type: "json" };
 import { seedMember } from "./support/account";
 import { expectNoAxeViolation } from "./support/axe";
 import { expect, open, reload, test, title } from "./support/journey";
@@ -391,4 +395,132 @@ test("a brand on a phone in English: a refused image says why, an unavailable se
   await expect(page.getByRole("img", { name: copy.logo.alt })).toBeVisible();
   await expect(page.getByText(copy.logo.errors.unavailable)).toHaveCount(0);
   await expect(name).toHaveValue("Maison E2E Nova");
+});
+
+/** The state a review would leave the profile in: the agents' decision is L2C's, the base is written here. */
+async function submitDirectly(accountId: string): Promise<void> {
+  const sql = connectAsMigrationRole({ max: 1 });
+  try {
+    await sql`
+      update profiles.advertiser_profiles
+         set status = 'pending_review', submitted_at = now()
+       where account_id = ${accountId}`;
+  } finally {
+    await sql.end({ timeout: 1 });
+  }
+}
+
+test("the home and the column of a brand: the action card with what is missing, the locked screens told, the state written once submitted, in French at 1 440 px then in English at 375 px (17 §2.3, §2.4; L2AU-4)", async ({
+  page,
+}) => {
+  const fr = COPY.fr;
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const member = await seedMember(page, {
+    role: "advertiser",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  await open(page, "/fr/marque");
+  await expect(title(page)).toHaveText(frAuth.home.advertiser.title);
+  const main = page.locator("main");
+  const draftLine = fr.state.label.replace("{state}", fr.state.draft);
+
+  // Block 1: the action, the state written, what is missing by name; block 2: told in advance.
+  await expect(
+    main.getByRole("heading", { name: fr.home.action.title }),
+  ).toBeVisible();
+  await expect(main.getByText(draftLine)).toBeVisible();
+  await expect(main.getByText(/Il manque 10 informations/)).toBeVisible();
+  await expect(
+    main.getByRole("heading", { name: fr.home.locked.campaign.title }),
+  ).toBeVisible();
+  await expect(main.getByText(fr.home.locked.campaign.text)).toBeVisible();
+  await expect(
+    main.getByRole("heading", { name: fr.home.locked.search.title }),
+  ).toBeVisible();
+  await expect(main.getByText(fr.search.blockedUntilPublished)).toBeVisible();
+  // Block 3: how it works, three steps; nothing else (no figure, no chart).
+  await expect(main.getByRole("listitem")).toHaveCount(2 + 3);
+  // L2AU-4: the sign-in address and the sign-out button are the column's alone.
+  await expect(main.getByText(/Connecté avec/)).toHaveCount(0);
+  await expect(
+    main.getByRole("button", { name: frAuth.logout.action }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: frMember.shell.footer.signOut }),
+  ).toBeVisible();
+  // The column: the state, what is missing, the way to the profile (the home's button is the same).
+  await expect(
+    page.getByText(
+      frMember.shell.accountState.state.replace("{state}", fr.state.draft),
+    ),
+  ).toBeVisible();
+  await expect(page.getByText("10 informations manquantes")).toBeVisible();
+  const toProfile = page.getByRole("link", {
+    name: frMember.shell.accountState.complete,
+  });
+  await expect(toProfile).toHaveCount(2);
+  await expect(toProfile.first()).toBeVisible();
+  await toProfile.last().click();
+  await expect(title(page)).toHaveText(fr.page.title);
+
+  // Submitted: the state is written in place of the card, and the column stops asking.
+  await submitDirectly(member.accountId);
+  await open(page, "/fr/marque");
+  await expect(title(page)).toHaveText(frAuth.home.advertiser.title);
+  await expect(
+    main.getByText(fr.state.label.replace("{state}", fr.state.pending_review)),
+  ).toBeVisible();
+  await expect(
+    main.getByRole("heading", { name: fr.home.action.title }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText(
+      frMember.shell.accountState.state.replace(
+        "{state}",
+        fr.state.pending_review,
+      ),
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: frMember.shell.accountState.complete }),
+  ).toHaveCount(0);
+  await expectNoAxeViolation(page, "accueil marque, fr, 1440", {
+    wcag22: true,
+  });
+
+  // On a phone, in English: no column, so the state lives on the home alone; no French left.
+  const en = COPY.en;
+  await page.setViewportSize({ width: 375, height: 800 });
+  await open(page, "/en/brand");
+  await expect(title(page)).toHaveText(enAuth.home.advertiser.title);
+  await expect(
+    main.getByText(en.state.label.replace("{state}", en.state.pending_review)),
+  ).toBeVisible();
+  await expect(main.getByText(en.home.locked.campaign.text)).toBeVisible();
+  await expect(main.getByText(en.search.blockedUntilPublished)).toBeVisible();
+  await expect(
+    page
+      .getByText(
+        enMember.shell.accountState.state.replace(
+          "{state}",
+          en.state.pending_review,
+        ),
+      )
+      .filter({ visible: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: enMember.shell.footer.signOut }),
+  ).toBeHidden();
+  const shown = (await main.innerText()).toLowerCase();
+  for (const text of [
+    frBrandProfile.home.locked.campaign.title,
+    frBrandProfile.home.locked.search.title,
+    frAuth.home.howItWorks,
+    frBrandProfile.state.pending_review,
+  ]) {
+    expect(shown, text).not.toContain(text.toLowerCase());
+  }
+  await expectNoAxeViolation(page, "brand home, en, 375", { wcag22: true });
 });

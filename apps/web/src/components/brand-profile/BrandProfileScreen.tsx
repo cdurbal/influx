@@ -9,10 +9,10 @@
 // apps/api. No amount, rate, net or price (CLAUDE.md §2, D48, D78).
 import { notFound } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { useId, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useId, useMemo, useState, type ReactNode } from "react";
+import type { BrandProfileResponse } from "@influx/contracts/brand-profile";
 import { flushSync } from "react-dom";
 import { useOnline } from "@/components/auth/use-online";
-import { formatDate } from "@/components/account/account-view";
 import {
   BACK_ICON_CLASSES,
   BACK_LINK_CLASSES,
@@ -55,7 +55,7 @@ import {
   isEditable,
   labelKeyOfRequired,
   sectionOfRequired,
-  statusTextKeyOf,
+  summaryOf,
   formatSavedTime,
   type SectionId,
 } from "./brand-profile-view";
@@ -65,6 +65,7 @@ import {
   IdentityFields,
   type FieldsProps,
 } from "./ProfileFields";
+import { ProfileStateNotice } from "./ProfileStateNotice";
 import { useBrandLogo } from "./use-brand-logo";
 import {
   useBrandProfile,
@@ -86,8 +87,16 @@ function BrandProfileView() {
   const tAccount = useTranslations("account");
   const locale = useLocale();
   const online = useOnline();
-  const { signedOut } = useMember();
-  const state = useBrandProfile({ onSignedOut: () => signedOut(null) });
+  const { signedOut, brandProfile } = useMember();
+  const { adopt } = brandProfile;
+  // Each profile the API gives goes to the shell too: its column and the home write the same state.
+  const state = useBrandProfile({
+    onSignedOut: () => signedOut(null),
+    onProfile: useCallback(
+      (profile: BrandProfileResponse) => adopt(summaryOf(profile)),
+      [adopt],
+    ),
+  });
   const [openSection, setOpenSection] = useState<SectionId>("identity");
 
   const back = (
@@ -192,7 +201,11 @@ function LoadedProfile({
 
   return (
     <>
-      <StatusBanner profile={profile} locale={locale} />
+      <ProfileStateNotice
+        status={profile.status}
+        submittedAt={profile.submittedAt}
+        locale={locale}
+      />
       <SubmitFeedback submitState={state.submitState} />
       <div className={PROFILE_GRID_CLASSES}>
         <div className={PROFILE_FORM_CLASSES}>
@@ -247,43 +260,6 @@ function LoadedProfile({
         </MemberButton>
       </div>
     </>
-  );
-}
-
-/** The state of the profile, written (RG3, CA47): a word, then what it allows, never a colour alone. */
-function StatusBanner({
-  profile,
-  locale,
-}: {
-  profile: NonNullable<BrandProfileState["profile"]>;
-  locale: string;
-}) {
-  const t = useTranslations("brandProfile");
-  const key = statusTextKeyOf(profile.status);
-  const text =
-    key === "pendingSince"
-      ? `${t("status.pending")} ${t("statusText.pendingSince", {
-          date:
-            profile.submittedAt === null
-              ? ""
-              : formatDate(profile.submittedAt, locale === "en" ? "en" : "fr"),
-        })}`
-      : key === "rejectedReason"
-        ? t("status.rejected", { reason: t("statusText.rejectedReason") })
-        : t(`statusText.${key}`);
-  const tone =
-    profile.status === "published"
-      ? "success"
-      : profile.status === "rejected" || profile.status === "suspended"
-        ? "warning"
-        : "info";
-  return (
-    <Notice tone={tone} announce={false}>
-      <p className="font-semibold text-text-primary">
-        {t("state.label", { state: t(`state.${profile.status}`) })}
-      </p>
-      <p>{text}</p>
-    </Notice>
   );
 }
 

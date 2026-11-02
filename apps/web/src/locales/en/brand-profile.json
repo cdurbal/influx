@@ -336,5 +336,21 @@
       "removalFailed": "The logo could not be removed. Try again.",
       "loadFailed": "The logo could not be loaded."
     }
+  },
+  "home": {
+    "action": {
+      "title": "Complete your brand profile",
+      "titleReady": "Your profile is ready to submit"
+    },
+    "locked": {
+      "campaign": {
+        "title": "Publish a campaign",
+        "text": "Available once your profile is published."
+      },
+      "search": {
+        "title": "Search for creators"
+      },
+      "soon": "Coming soon to your space."
+    }
   }
 }

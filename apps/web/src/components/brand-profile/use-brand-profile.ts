@@ -79,6 +79,11 @@ export type BrandProfileState = {
 export function useBrandProfile(options: {
   /** The session ended while the profile was open: the shell shows "signed out". */
   onSignedOut: () => void;
+  /**
+   * Told each profile the API gives, even one that comes after the page is left (the save that
+   * flushes on leaving): the shell keeps the state of its column and of the home up to date.
+   */
+  onProfile?: (profile: BrandProfileResponse) => void;
 }): BrandProfileState {
   const [phase, setPhase] = useState<LoadPhase>("loading");
   const [profile, setProfile] = useState<BrandProfileResponse | null>(null);
@@ -98,9 +103,11 @@ export function useBrandProfile(options: {
   const running = useRef<Promise<void> | null>(null);
   const again = useRef(false);
   const signedOutRef = useRef(options.onSignedOut);
+  const profileToldRef = useRef(options.onProfile);
   useEffect(() => {
     signedOutRef.current = options.onSignedOut;
-  }, [options.onSignedOut]);
+    profileToldRef.current = options.onProfile;
+  }, [options.onSignedOut, options.onProfile]);
 
   const writeErrors: Dispatch<SetStateAction<FieldErrors>> = useCallback(
     (update) => {
@@ -122,6 +129,7 @@ export function useBrandProfile(options: {
   const adopt = useCallback((next: BrandProfileResponse) => {
     profileRef.current = next;
     setProfile(next);
+    profileToldRef.current?.(next);
   }, []);
 
   const adoptCompleteness = useCallback(
