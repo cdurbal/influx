@@ -65,6 +65,7 @@ import {
   IdentityFields,
   type FieldsProps,
 } from "./ProfileFields";
+import { useBrandLogo } from "./use-brand-logo";
 import {
   useBrandProfile,
   type BrandProfileState,
@@ -165,6 +166,11 @@ function LoadedProfile({
     [t, locale, profile.references],
   );
   const editable = isEditable(profile.status);
+  const { signedOut } = useMember();
+  const logo = useBrandLogo({
+    onSignedOut: () => signedOut(null),
+    onCompleteness: state.adoptCompleteness,
+  });
   const fields: FieldsProps = {
     profile,
     draft,
@@ -198,7 +204,7 @@ function LoadedProfile({
             onToggle={() => onOpenSection("identity")}
             disabled={!editable}
           >
-            <IdentityFields {...fields} />
+            <IdentityFields {...fields} logo={logo} />
           </ProfileSection>
           <ProfileSection
             id="expectations"

@@ -11,7 +11,7 @@ export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "e2e/backoffice-auth-screens.spec.ts": 5,
   "e2e/backoffice-ops-screens.spec.ts": 2,
   "e2e/backoffice.spec.ts": 53,
-  "e2e/brand-profile.spec.ts": 3,
+  "e2e/brand-profile.spec.ts": 5,
   "e2e/charter-cascade.spec.ts": 15,
   "e2e/charter-headings.spec.ts": 3,
   "e2e/charter-rendering.spec.ts": 29,

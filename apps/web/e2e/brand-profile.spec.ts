@@ -4,7 +4,9 @@
 // (accordion, action bar), and a creator who finds no such page (18 T14.3). A member seeded in the
 // local stack (no code, no mail); the texts are the locale files', never copies.
 import { connectAsMigrationRole } from "@influx/test-kit/db";
-import type { Page } from "@playwright/test";
+import type { Page, Route } from "@playwright/test";
+import { statSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import frErrors from "@/locales/fr/errors.json" with { type: "json" };
 import enBrandProfile from "@/locales/en/brand-profile.json" with { type: "json" };
 import frBrandProfile from "@/locales/fr/brand-profile.json" with { type: "json" };
@@ -259,4 +261,134 @@ test("a creator finds no brand profile: not in its column, not at the address (1
   await open(page, "/fr/compte/profil");
   await expect(title(page)).toHaveText(frErrors.notFound.title);
   await expect(page.getByLabel(/^Secteur principal/)).toHaveCount(0);
+});
+
+const LOGO_FIXTURE = fileURLToPath(
+  new URL("../../api/tests/fixtures/logo-geotagged.jpg", import.meta.url),
+);
+const LOGO_ROUTE = "**/api/v1/me/brand-profile/logo";
+
+function errorEnvelope(
+  code: string,
+  status: number,
+  issue?: string,
+): Parameters<Route["fulfill"]>[0] {
+  return {
+    status,
+    contentType: "application/json",
+    body: JSON.stringify({
+      error: {
+        code,
+        message: "test",
+        requestId: "00000000-0000-4000-8000-000000000000",
+        ...(issue === undefined ? {} : { details: [{ path: "logo", issue }] }),
+      },
+    }),
+  };
+}
+
+test("a brand deposits its logo in French at 1 440 px: raw bytes without a name, server preview, score, removal (06 RG15, D80)", async ({
+  page,
+}) => {
+  const copy = COPY.fr;
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await seedMember(page, {
+    role: "advertiser",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  const puts: Record<string, string>[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "PUT" && request.url().endsWith("/logo")) {
+      void request.allHeaders().then((headers) => puts.push(headers));
+    }
+  });
+  await open(page, "/fr/compte/profil");
+  await expect(page.getByText(copy.logo.none)).toBeVisible();
+  // The formats and the size are told before the choice.
+  await expect(page.getByText(/PNG, JPEG ou WebP, 2 Mo au plus/)).toBeVisible();
+  const meter = page
+    .getByRole("meter", { name: copy.completeness.label })
+    .first();
+  const scoreNow = async () =>
+    Number(await meter.getAttribute("aria-valuenow"));
+  const before = await scoreNow();
+
+  await page.locator("input[type=file]").setInputFiles(LOGO_FIXTURE);
+  const preview = page.getByRole("img", { name: copy.logo.alt });
+  await expect(preview).toBeVisible();
+  await expect(page.getByText(copy.logo.status.uploaded)).toBeVisible();
+  expect(await preview.getAttribute("src")).toMatch(
+    /^data:image\/webp;base64,/,
+  );
+  // The file leaves as raw bytes: no declared type, and its name nowhere, sent or shown.
+  expect(puts).toHaveLength(1);
+  expect(puts[0]?.["content-type"]).toBe("application/octet-stream");
+  expect(puts[0]?.["content-length"]).toBe(String(statSync(LOGO_FIXTURE).size));
+  expect(JSON.stringify(puts[0])).not.toContain("geotagged");
+  expect(await page.locator("main").innerText()).not.toContain("geotagged");
+  // RG58: the score is the API's and moved with the logo.
+  await expect.poll(scoreNow).toBeGreaterThan(before);
+  await expectNoAxeViolation(page, "mon profil de marque, logo, fr, 1440", {
+    wcag22: true,
+  });
+
+  await page.getByRole("button", { name: copy.logo.remove }).click();
+  await expect(page.getByText(copy.logo.status.removed)).toBeVisible();
+  await expect(preview).toHaveCount(0);
+  await expect(page.getByText(copy.logo.none)).toBeVisible();
+  await expect.poll(scoreNow).toBe(before);
+});
+
+test("a brand on a phone in English: a refused image says why, an unavailable service leaves the logo to upload again, the other fields stay", async ({
+  page,
+}) => {
+  const copy = COPY.en;
+  await page.setViewportSize({ width: 375, height: 800 });
+  await seedMember(page, {
+    role: "advertiser",
+    language: "en",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  await open(page, "/en/account/profile");
+  await expect(title(page)).toHaveText(copy.page.title);
+  const name = page.getByLabel(new RegExp(copy.fields.companyName.label));
+  await expect(name).toHaveValue("Maison E2E");
+  const input = page.locator("input[type=file]");
+
+  // 422 image_rejected: the typed reason of the envelope picks the message (06 cas limite 2).
+  await page.route(LOGO_ROUTE, (route) =>
+    route.request().method() === "PUT"
+      ? route.fulfill(errorEnvelope("image_rejected", 422, "too_small"))
+      : route.continue(),
+  );
+  await input.setInputFiles(LOGO_FIXTURE);
+  await expect(page.getByText(copy.logo.errors.too_small)).toBeVisible();
+  await expect(page.getByRole("button", { name: copy.logo.retry })).toHaveCount(
+    0,
+  );
+
+  // The service does not answer (CA45, cas limite 6): the fields are kept, the logo to upload again.
+  await name.fill("Maison E2E Nova");
+  await page.unroute(LOGO_ROUTE);
+  await page.route(LOGO_ROUTE, (route) =>
+    route.request().method() === "PUT"
+      ? route.fulfill(errorEnvelope("service_unavailable", 503))
+      : route.continue(),
+  );
+  await input.setInputFiles(LOGO_FIXTURE);
+  await expect(page.getByText(copy.logo.errors.unavailable)).toBeVisible();
+  await expect(name).toHaveValue("Maison E2E Nova");
+  await expectNoAxeViolation(page, "my brand profile, logo error, en, 375", {
+    wcag22: true,
+  });
+
+  // A new attempt, without choosing the file again.
+  await page.unroute(LOGO_ROUTE);
+  await page.getByRole("button", { name: copy.logo.retry }).click();
+  await expect(page.getByRole("img", { name: copy.logo.alt })).toBeVisible();
+  await expect(page.getByText(copy.logo.errors.unavailable)).toHaveCount(0);
+  await expect(name).toHaveValue("Maison E2E Nova");
 });

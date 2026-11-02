@@ -3,6 +3,8 @@
 // the browser makes with the schema of the API, what an accepted save changes in the form, the
 // states that allow editing, and the focus ids of the missing fields. Pure functions, no browser.
 import {
+  BRAND_LOGO_MAX_UPLOAD_BYTES,
+  BRAND_LOGO_REJECTIONS,
   BRAND_PROFILE_REQUIRED_FIELD_CODES,
   type BrandProfileResponse,
 } from "@influx/contracts/brand-profile";
@@ -16,6 +18,8 @@ import {
   isEditable,
   isRetryable,
   labelKeyOfRequired,
+  logoFailureOf,
+  logoFileProblem,
   missingErrors,
   planPatch,
   sameValue,
@@ -278,5 +282,37 @@ describe("the states of the profile (06 RG3, EC-L2B-07-1; 17 §4.2)", () => {
     );
     expect(isRetryable({ kind: "failed", code: "conflict" })).toBe(false);
     expect(isRetryable({ kind: "unauthenticated" })).toBe(false);
+  });
+});
+
+describe("the logo (06 RG15, cas limite 2; D80)", () => {
+  it("stops only a file the relay would refuse: empty, or over 2 MiB", () => {
+    expect(logoFileProblem(0)).toBe("empty");
+    expect(logoFileProblem(1)).toBeNull();
+    expect(logoFileProblem(BRAND_LOGO_MAX_UPLOAD_BYTES)).toBeNull();
+    expect(logoFileProblem(BRAND_LOGO_MAX_UPLOAD_BYTES + 1)).toBe("tooLarge");
+  });
+
+  it("names each typed reason of an image_rejected, from its issues", () => {
+    for (const reason of BRAND_LOGO_REJECTIONS) {
+      expect(logoFailureOf({ code: "image_rejected", issues: [reason] })).toBe(
+        reason,
+      );
+    }
+  });
+
+  it("falls back to the cannot-be-read message for an image_rejected without a known reason", () => {
+    expect(logoFailureOf({ code: "image_rejected" })).toBe("undecodable");
+    expect(logoFailureOf({ code: "image_rejected", issues: ["other"] })).toBe(
+      "undecodable",
+    );
+  });
+
+  it("maps the quota, the size, the lock and the rest to their own message", () => {
+    expect(logoFailureOf({ code: "upload_quota_exceeded" })).toBe("quota");
+    expect(logoFailureOf({ code: "payload_too_large" })).toBe("tooLarge");
+    expect(logoFailureOf({ code: "conflict" })).toBe("locked");
+    expect(logoFailureOf({})).toBe("unavailable");
+    expect(logoFailureOf({ code: "service_unavailable" })).toBe("unavailable");
   });
 });

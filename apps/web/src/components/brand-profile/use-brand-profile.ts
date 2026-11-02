@@ -6,7 +6,10 @@
 // after a failure with the entry kept in memory, and the submission. No rule is decided here: the
 // patch comes from brand-profile-view.ts, the score and the missing fields from the API.
 // Nothing is kept in the browser's storage (D37): the draft lives in memory and in the database.
-import type { BrandProfileResponse } from "@influx/contracts/brand-profile";
+import type {
+  BrandProfileCompletenessView,
+  BrandProfileResponse,
+} from "@influx/contracts/brand-profile";
 import {
   useCallback,
   useEffect,
@@ -68,6 +71,8 @@ export type BrandProfileState = {
   websiteDomain: string | null;
   change: <Key extends DraftKey>(key: Key, value: BrandDraft[Key]) => void;
   submit: () => Promise<SubmitOutcome>;
+  /** The score as the API recomputed it after the logo (RG58): the rest of the profile is kept as is. */
+  adoptCompleteness: (completeness: BrandProfileCompletenessView) => void;
   reload: () => void;
 };
 
@@ -118,6 +123,16 @@ export function useBrandProfile(options: {
     profileRef.current = next;
     setProfile(next);
   }, []);
+
+  const adoptCompleteness = useCallback(
+    (completeness: BrandProfileCompletenessView) => {
+      const current = profileRef.current;
+      if (current !== null) {
+        adopt({ ...current, completeness });
+      }
+    },
+    [adopt],
+  );
 
   /** Reads the profile again after a refusal that says it changed (409), keeping the draft. */
   const refreshProfile = useCallback(async () => {
@@ -398,6 +413,7 @@ export function useBrandProfile(options: {
     websiteDomain,
     change,
     submit,
+    adoptCompleteness,
     reload: () => void load(),
   };
 }

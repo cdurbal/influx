@@ -304,5 +304,37 @@
   "progress": {
     "title": "Pour soumettre",
     "allSet": "Toutes les informations requises sont renseignées."
+  },
+  "logo": {
+    "label": "Logo",
+    "help": "Facultatif, mais recommandé : sans logo, les créateurs voient une pastille neutre. Formats PNG, JPEG ou WebP, 2 Mo au plus, 256 px au moins sur le plus grand côté. L'image est ramenée à un carré, sans les informations cachées de la photo.",
+    "alt": "Aperçu de votre logo",
+    "none": "Aucun logo pour le moment.",
+    "choose": "Déposer un logo",
+    "replace": "Remplacer le logo",
+    "remove": "Retirer le logo",
+    "retry": "Réessayer le dépôt",
+    "reload": "Recharger le logo",
+    "status": {
+      "loading": "Chargement du logo…",
+      "uploading": "Envoi du logo…",
+      "removing": "Retrait du logo…",
+      "uploaded": "Logo enregistré.",
+      "removed": "Logo retiré."
+    },
+    "errors": {
+      "empty": "Ce fichier est vide. Choisissez une image PNG, JPEG ou WebP.",
+      "tooLarge": "Ce fichier dépasse 2 Mo. Choisissez une image plus légère, au format PNG, JPEG ou WebP.",
+      "unsupported_type": "Ce format n'est pas accepté. Choisissez une image PNG, JPEG ou WebP (pas de PDF).",
+      "undecodable": "Cette image ne peut pas être lue. Essayez un autre fichier PNG, JPEG ou WebP.",
+      "too_many_pixels": "Cette image est trop grande : 4 096 px par côté au plus.",
+      "too_small": "Cette image est trop petite : son plus grand côté doit faire 256 px au moins.",
+      "output_too_large": "Cette image reste trop lourde après traitement. Choisissez une image plus simple.",
+      "quota": "Vous avez atteint le nombre de dépôts autorisés pour aujourd'hui. Réessayez demain.",
+      "locked": "Votre profil n'est plus modifiable : le logo ne peut pas changer.",
+      "unavailable": "Le logo n'a pas pu être déposé : le service ne répond pas. Le reste de votre profil est enregistré et le logo est à redéposer.",
+      "removalFailed": "Le logo n'a pas pu être retiré. Réessayez.",
+      "loadFailed": "Le logo n'a pas pu être chargé."
+    }
   }
 }

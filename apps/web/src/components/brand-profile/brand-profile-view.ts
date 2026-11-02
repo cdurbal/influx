@@ -6,7 +6,10 @@
 // of the website to a domain are the API's (packages/domain): nothing of them is computed here.
 // Nothing here carries an amount, a rate or a price (CLAUDE.md §2, D48, D78).
 import {
+  BRAND_LOGO_MAX_UPLOAD_BYTES,
+  BRAND_LOGO_REJECTIONS,
   updateBrandProfileBodySchema,
+  type BrandLogoRejection,
   type BrandProfileResponse,
   type BrandProfileStatus,
   type UpdateBrandProfileBody,
@@ -424,4 +427,53 @@ export function isRetryable(result: RelayResult<unknown>): boolean {
     result.code === "internal_error" ||
     result.code === "rate_limited"
   );
+}
+
+// --- The logo (06 RG15, cas limites 2 et 6; D80) -----------------------------------------------
+
+/**
+ * Why a deposit did not give a logo, as the key of its message (`brandProfile.logo.errors.<key>`):
+ * the six typed reasons of the API, a file the browser saw too big or empty before sending, the
+ * daily quota, a profile no longer editable, or the service (network, Storage) that did not answer.
+ */
+export type LogoFailure =
+  BrandLogoRejection | "tooLarge" | "quota" | "locked" | "unavailable";
+
+/** Only a file the relay would refuse is stopped here (size, nothing to read); the rest is the API's. */
+export function logoFileProblem(sizeInBytes: number): LogoFailure | null {
+  if (sizeInBytes === 0) {
+    return "empty";
+  }
+  return sizeInBytes > BRAND_LOGO_MAX_UPLOAD_BYTES ? "tooLarge" : null;
+}
+
+function isLogoRejection(
+  issue: string | undefined,
+): issue is BrandLogoRejection {
+  return (BRAND_LOGO_REJECTIONS as readonly string[]).includes(issue ?? "");
+}
+
+/**
+ * Which message a refused deposit or removal calls for, from the code and the issues of the error
+ * envelope. Only `unavailable` leaves the file worth sending again (CA45, cas limite 6): every
+ * other cause needs another file, another day, or nothing at all.
+ */
+export function logoFailureOf(failure: {
+  code?: string;
+  issues?: readonly string[];
+}): LogoFailure {
+  switch (failure.code) {
+    case "image_rejected": {
+      const reason = failure.issues?.[0];
+      return isLogoRejection(reason) ? reason : "undecodable";
+    }
+    case "payload_too_large":
+      return "tooLarge";
+    case "upload_quota_exceeded":
+      return "quota";
+    case "conflict":
+      return "locked";
+    default:
+      return "unavailable";
+  }
 }

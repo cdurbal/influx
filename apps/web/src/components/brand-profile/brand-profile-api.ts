@@ -3,9 +3,15 @@
 // answer with the schema of packages/contracts. No rule lives here: apps/api decides, the screen
 // displays. The account is always the session's: no call names an account.
 import {
+  brandLogoRemovalResponseSchema,
+  brandLogoResponseSchema,
+  brandLogoUploadResponseSchema,
   brandProfileResponseSchema,
   submitBrandProfileResponseSchema,
   updateBrandProfileResponseSchema,
+  type BrandLogoRemovalResponse,
+  type BrandLogoResponse,
+  type BrandLogoUploadResponse,
   type BrandProfileResponse,
   type SubmitBrandProfileResponse,
   type UpdateBrandProfileBody,
@@ -39,4 +45,26 @@ export function submitBrandProfile(): Promise<
     `${PROFILE_PATH}/submit`,
     submitBrandProfileResponseSchema,
   );
+}
+
+const LOGO_PATH = `${PROFILE_PATH}/logo`;
+
+export function readBrandLogo(): Promise<RelayResult<BrandLogoResponse>> {
+  return callRelay("GET", LOGO_PATH, brandLogoResponseSchema);
+}
+
+/**
+ * The deposit of the logo (D80): the raw bytes of the file, as they are. Neither its declared type
+ * nor its name is sent; apps/api reads the type from the first bytes and re-encodes the image.
+ */
+export function uploadBrandLogo(
+  file: Blob,
+): Promise<RelayResult<BrandLogoUploadResponse>> {
+  return callRelay("PUT", LOGO_PATH, brandLogoUploadResponseSchema, file);
+}
+
+export function removeBrandLogo(): Promise<
+  RelayResult<BrandLogoRemovalResponse>
+> {
+  return callRelay("DELETE", LOGO_PATH, brandLogoRemovalResponseSchema);
 }

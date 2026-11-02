@@ -4,7 +4,7 @@
 // RG62, RG85): each field says it is required or not, who sees it (the layer, icon and text), what
 // it holds, and points to its error. They only display the draft and report a change: the rules
 // (caps, lists, domain, patch) are the API's and brand-profile-view.ts. Budget, logo and badge are
-// not here (D48, D78: suspended; the logo is the next commit's; the badge is L2E).
+// not here (D48, D78: suspended; the badge is L2E); the logo is LogoField.tsx (commit 12).
 import {
   BRAND_PROFILE_LIST_LIMITS,
   CONTACT_FIRST_NAME_MAX_LENGTH,
@@ -36,6 +36,8 @@ import {
   type FieldErrors,
 } from "./brand-profile-view";
 import type { ProfileOptions } from "./brand-profile-options";
+import { LogoField } from "./LogoField";
+import type { BrandLogoState } from "./use-brand-logo";
 
 export type FieldsProps = {
   profile: BrandProfileResponse;
@@ -65,7 +67,7 @@ function useFieldTexts(errors: FieldErrors) {
   });
 }
 
-/** Block 1, public identity (06 RG15). */
+/** Block 1, public identity (06 RG15). The logo has its own deposit, outside the autosave. */
 export function IdentityFields({
   profile,
   draft,
@@ -73,7 +75,8 @@ export function IdentityFields({
   options,
   change,
   websiteDomain,
-}: FieldsProps) {
+  logo,
+}: FieldsProps & { logo: BrandLogoState }) {
   const t = useTranslations("brandProfile");
   const locale = useLocale();
   const texts = useFieldTexts(errors);
@@ -83,6 +86,7 @@ export function IdentityFields({
     )?.name ?? profile.country;
   return (
     <>
+      <LogoField logo={logo} />
       <TextField
         id={controlIdOfRequired("legalName")}
         name="companyName"

@@ -304,5 +304,37 @@
   "progress": {
     "title": "To submit",
     "allSet": "All the required information is filled in."
+  },
+  "logo": {
+    "label": "Logo",
+    "help": "Optional but recommended: without a logo, creators see a neutral badge. PNG, JPEG or WebP, 2 MB at most, at least 256 px on the longest side. The image is made square, and the hidden information of the photo is removed.",
+    "alt": "Preview of your logo",
+    "none": "No logo yet.",
+    "choose": "Upload a logo",
+    "replace": "Replace the logo",
+    "remove": "Remove the logo",
+    "retry": "Try the upload again",
+    "reload": "Reload the logo",
+    "status": {
+      "loading": "Loading the logo…",
+      "uploading": "Sending the logo…",
+      "removing": "Removing the logo…",
+      "uploaded": "Logo saved.",
+      "removed": "Logo removed."
+    },
+    "errors": {
+      "empty": "This file is empty. Choose a PNG, JPEG or WebP image.",
+      "tooLarge": "This file is over 2 MB. Choose a lighter PNG, JPEG or WebP image.",
+      "unsupported_type": "This format is not accepted. Choose a PNG, JPEG or WebP image (no PDF).",
+      "undecodable": "This image cannot be read. Try another PNG, JPEG or WebP file.",
+      "too_many_pixels": "This image is too large: 4,096 px per side at most.",
+      "too_small": "This image is too small: its longest side must be at least 256 px.",
+      "output_too_large": "This image is still too heavy after processing. Choose a simpler image.",
+      "quota": "You have reached the number of uploads allowed for today. Try again tomorrow.",
+      "locked": "Your profile can no longer be edited: the logo cannot change.",
+      "unavailable": "The logo could not be uploaded: the service is not answering. The rest of your profile is saved and the logo needs to be uploaded again.",
+      "removalFailed": "The logo could not be removed. Try again.",
+      "loadFailed": "The logo could not be loaded."
+    }
   }
 }

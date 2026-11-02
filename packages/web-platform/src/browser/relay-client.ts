@@ -83,6 +83,13 @@ function errorOf(payload: unknown): { code?: string; issues?: string[] } {
   return { code, issues };
 }
 
+/**
+ * The body of a call: a JSON object (sent as `application/json`) or a `Blob`, the raw bytes of a
+ * file (the logo, D80), sent as is as `application/octet-stream`: neither the declared type nor
+ * the name of the file ever leaves the browser.
+ */
+export type RelayBody = Record<string, unknown> | Blob;
+
 /** Bound of one call, as the relay bounds its own (03 PP-9). */
 const CALL_TIMEOUT_MS = 15_000;
 
@@ -90,7 +97,7 @@ export async function callRelay<Value>(
   method: RelayMethod,
   path: string,
   schema: ResponseSchema<Value>,
-  body?: Record<string, unknown>,
+  body?: RelayBody,
   query?: Readonly<Record<string, string>>,
 ): Promise<RelayResult<Value>> {
   if (!API_PATH_PATTERN.test(path)) {
@@ -100,13 +107,20 @@ export async function callRelay<Value>(
     throw new Error("relay body on a method without one");
   }
   const search = searchOf(query);
+  const raw = body instanceof Blob;
   let response: Response;
   try {
     response = await fetch(`${RELAY_PREFIX}${path}${search}`, {
       method,
       headers:
-        body === undefined ? undefined : { "content-type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
+        body === undefined
+          ? undefined
+          : {
+              "content-type": raw
+                ? "application/octet-stream"
+                : "application/json",
+            },
+      body: body === undefined ? undefined : raw ? body : JSON.stringify(body),
       credentials: "same-origin",
       cache: "no-store",
       redirect: "error",
