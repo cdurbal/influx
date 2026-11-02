@@ -1,0 +1,171 @@
+{
+  "publish": {
+    "missing": "Il manque {count, plural, one {# information} other {# informations}} pour publier votre profil : {fields}."
+  },
+  "layer": {
+    "public": "Visible de tous les créateurs.",
+    "revealed": "Visible uniquement après l'ouverture d'une mise en relation.",
+    "internal": "Visible uniquement par l'équipe INFLUX."
+  },
+  "status": {
+    "pending": "Votre profil est en cours de validation par l'équipe INFLUX.",
+    "pendingWithPublished": "Vos modifications sont en cours de validation. Votre profil reste visible dans sa version précédente.",
+    "rejected": "Votre profil n'a pas été publié : {reason}"
+  },
+  "website": {
+    "normalized": "Nous avons conservé le domaine {domain}. Une page de contact se renseigne dans le bloc « votre interlocuteur »."
+  },
+  "budget": {
+    "notice": "Budget indicatif par collaboration, à titre d'information — il ne vaut pas engagement."
+  },
+  "contact": {
+    "revealNotice": "Les échanges se poursuivent dans INFLUX, avec votre interlocuteur et le commercial INFLUX. Ces coordonnées vous permettent d'identifier votre interlocuteur."
+  },
+  "badge": {
+    "label": "Marque vérifiée le {date} — domaine et immatriculation contrôlés.",
+    "toRefresh": "Marque vérifiée le {date} — vérification à rafraîchir."
+  },
+  "errors": {
+    "contactInPublicText": "Votre texte contient ce qui ressemble à une coordonnée directe. Retirez-la : les échanges avec les créateurs se font dans INFLUX."
+  },
+  "search": {
+    "blockedUntilPublished": "Publiez votre profil pour rechercher des créateurs."
+  },
+  "field": {
+    "required": "obligatoire",
+    "limit": "{max, plural, one {# choix au maximum} other {# choix au maximum}}",
+    "count": "{count} sur {max}",
+    "limitReached": "Maximum atteint : décochez un choix pour en prendre un autre.",
+    "characters": "{count, number} / {max, number} caractères",
+    "yes": "Oui",
+    "no": "Non",
+    "choose": "Choisir…"
+  },
+  "completeness": {
+    "label": "Complétude du profil",
+    "value": "{score, number} %"
+  },
+  "reference": {
+    "topic": {
+      "beauty": "Beauté",
+      "fashion": "Mode",
+      "food": "Cuisine et gastronomie",
+      "travel": "Voyage",
+      "sport_fitness": "Sport et fitness",
+      "wellness": "Bien-être et santé",
+      "family": "Famille et parentalité",
+      "home": "Maison, jardin et DIY",
+      "gaming": "Jeux vidéo",
+      "tech": "High-tech",
+      "entertainment": "Humour et divertissement",
+      "music": "Musique",
+      "culture": "Cinéma, séries, livres et arts",
+      "education": "Éducation et vulgarisation",
+      "business_finance": "Business et finances personnelles",
+      "automotive": "Auto et moto",
+      "pets": "Animaux"
+    },
+    "network": {
+      "instagram": "Instagram",
+      "tiktok": "TikTok",
+      "youtube": "YouTube",
+      "facebook": "Facebook",
+      "linkedin": "LinkedIn",
+      "x": "X",
+      "snapchat": "Snapchat",
+      "twitch": "Twitch",
+      "pinterest": "Pinterest",
+      "threads": "Threads"
+    },
+    "format": {
+      "instagram_post": "Publication Instagram",
+      "instagram_carousel": "Carrousel Instagram",
+      "instagram_reel": "Reel Instagram",
+      "instagram_story": "Story Instagram",
+      "instagram_live": "Live Instagram",
+      "tiktok_video": "Vidéo TikTok",
+      "tiktok_carousel": "Carrousel photo TikTok",
+      "tiktok_live": "Live TikTok",
+      "youtube_video": "Vidéo dédiée YouTube",
+      "youtube_integration": "Intégration dans une vidéo YouTube",
+      "youtube_short": "Short YouTube",
+      "youtube_live": "Live YouTube",
+      "facebook_post": "Publication Facebook",
+      "facebook_reel": "Reel Facebook",
+      "facebook_story": "Story Facebook",
+      "linkedin_post": "Publication LinkedIn",
+      "x_post": "Publication X",
+      "threads_post": "Publication Threads",
+      "snapchat_story": "Story Snapchat",
+      "snapchat_spotlight": "Spotlight Snapchat",
+      "twitch_live": "Live Twitch",
+      "pinterest_pin": "Épingle Pinterest",
+      "ugc_video": "Vidéo UGC",
+      "ugc_photo": "Photo UGC"
+    },
+    "sector": {
+      "alcohol": "Alcool",
+      "gambling": "Jeux d'argent et paris",
+      "cbd": "CBD",
+      "finance": "Finance (banque, assurance, placements)",
+      "health": "Santé (médicaments, dispositifs, compléments)",
+      "crypto": "Crypto-actifs",
+      "adult": "Contenu adulte",
+      "beauty_personal_care": "Beauté et soins",
+      "fashion_accessories": "Mode et bijoux",
+      "food_beverages": "Alimentation et boissons sans alcool",
+      "restaurants_hospitality": "Restauration et hôtellerie",
+      "travel_tourism": "Voyage et tourisme",
+      "sports_leisure": "Sport et loisirs",
+      "home_garden": "Maison et jardin",
+      "consumer_electronics": "Électronique",
+      "software_telecom": "Logiciels et télécoms",
+      "video_games": "Jeux vidéo",
+      "automotive_mobility": "Automobile et mobilité",
+      "media_entertainment": "Médias et divertissement",
+      "education_training": "Éducation et formation",
+      "baby_kids": "Puériculture",
+      "pet_care": "Animalerie",
+      "retail_ecommerce": "Distribution et e-commerce",
+      "real_estate": "Immobilier",
+      "business_services": "Services aux entreprises",
+      "nonprofit_public": "Associations et organismes publics"
+    },
+    "usage_right": {
+      "organic_repost": "Repost organique",
+      "paid_whitelisting": "Whitelisting publicitaire",
+      "media_buy": "Achat média"
+    }
+  },
+  "companySize": {
+    "1_10": "1 à 10 personnes",
+    "11_50": "11 à 50 personnes",
+    "51_250": "51 à 250 personnes",
+    "251_1000": "251 à 1 000 personnes",
+    "1001_plus": "Plus de 1 000 personnes"
+  },
+  "exclusivity": {
+    "none": "Aucune exclusivité",
+    "le_1m": "Jusqu'à 1 mois",
+    "le_3m": "Jusqu'à 3 mois",
+    "negotiable": "À discuter"
+  },
+  "rhythm": {
+    "one_off": "Collaboration ponctuelle",
+    "recurring": "Collaborations récurrentes",
+    "ambassador": "Programme ambassadeur"
+  },
+  "contactRole": {
+    "executive": "Direction générale",
+    "marketing": "Marketing",
+    "partnerships_influence": "Partenariats et influence",
+    "communication": "Communication",
+    "ecommerce": "E-commerce",
+    "procurement": "Achats",
+    "mandated_agency": "Agence mandatée"
+  },
+  "workingLanguage": {
+    "fr": "Français",
+    "en": "Anglais"
+  }
+}

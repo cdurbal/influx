@@ -1,0 +1,171 @@
+{
+  "publish": {
+    "missing": "{count, plural, one {# piece of information is} other {# pieces of information are}} missing to publish your profile: {fields}."
+  },
+  "layer": {
+    "public": "Visible to all creators.",
+    "revealed": "Visible only after an introduction is opened.",
+    "internal": "Visible only to the INFLUX team."
+  },
+  "status": {
+    "pending": "Your profile is being reviewed by the INFLUX team.",
+    "pendingWithPublished": "Your changes are being reviewed. Your profile remains visible in its previous version.",
+    "rejected": "Your profile was not published: {reason}"
+  },
+  "website": {
+    "normalized": "We kept the domain {domain}. A contact page belongs in the \"your contact\" section."
+  },
+  "budget": {
+    "notice": "Indicative budget per collaboration, for information only — it is not a commitment."
+  },
+  "contact": {
+    "revealNotice": "Conversations continue inside INFLUX, with your contact and the INFLUX account manager. These details let you identify who you are talking to."
+  },
+  "badge": {
+    "label": "Brand verified on {date} — domain and company registration checked.",
+    "toRefresh": "Brand verified on {date} — verification needs refreshing."
+  },
+  "errors": {
+    "contactInPublicText": "Your text contains what looks like direct contact details. Please remove them: conversations with creators take place in INFLUX."
+  },
+  "search": {
+    "blockedUntilPublished": "Publish your profile to search for creators."
+  },
+  "field": {
+    "required": "required",
+    "limit": "Up to {max}",
+    "count": "{count} of {max}",
+    "limitReached": "Limit reached: untick a choice to pick another.",
+    "characters": "{count, number} / {max, number} characters",
+    "yes": "Yes",
+    "no": "No",
+    "choose": "Choose…"
+  },
+  "completeness": {
+    "label": "Profile completeness",
+    "value": "{score, number}%"
+  },
+  "reference": {
+    "topic": {
+      "beauty": "Beauty",
+      "fashion": "Fashion",
+      "food": "Food and cooking",
+      "travel": "Travel",
+      "sport_fitness": "Sport and fitness",
+      "wellness": "Wellness and health",
+      "family": "Family and parenting",
+      "home": "Home, garden and DIY",
+      "gaming": "Gaming",
+      "tech": "Tech",
+      "entertainment": "Comedy and entertainment",
+      "music": "Music",
+      "culture": "Film, TV, books and arts",
+      "education": "Education and learning",
+      "business_finance": "Business and personal finance",
+      "automotive": "Cars and motorbikes",
+      "pets": "Pets"
+    },
+    "network": {
+      "instagram": "Instagram",
+      "tiktok": "TikTok",
+      "youtube": "YouTube",
+      "facebook": "Facebook",
+      "linkedin": "LinkedIn",
+      "x": "X",
+      "snapchat": "Snapchat",
+      "twitch": "Twitch",
+      "pinterest": "Pinterest",
+      "threads": "Threads"
+    },
+    "format": {
+      "instagram_post": "Instagram post",
+      "instagram_carousel": "Instagram carousel",
+      "instagram_reel": "Instagram Reel",
+      "instagram_story": "Instagram Story",
+      "instagram_live": "Instagram Live",
+      "tiktok_video": "TikTok video",
+      "tiktok_carousel": "TikTok photo carousel",
+      "tiktok_live": "TikTok Live",
+      "youtube_video": "Dedicated YouTube video",
+      "youtube_integration": "In-video integration on YouTube",
+      "youtube_short": "YouTube Short",
+      "youtube_live": "YouTube Live",
+      "facebook_post": "Facebook post",
+      "facebook_reel": "Facebook Reel",
+      "facebook_story": "Facebook Story",
+      "linkedin_post": "LinkedIn post",
+      "x_post": "X post",
+      "threads_post": "Threads post",
+      "snapchat_story": "Snapchat Story",
+      "snapchat_spotlight": "Snapchat Spotlight",
+      "twitch_live": "Twitch Live",
+      "pinterest_pin": "Pinterest Pin",
+      "ugc_video": "UGC video",
+      "ugc_photo": "UGC photo"
+    },
+    "sector": {
+      "alcohol": "Alcohol",
+      "gambling": "Gambling and betting",
+      "cbd": "CBD",
+      "finance": "Finance (banking, insurance, investing)",
+      "health": "Health (medicines, devices, supplements)",
+      "crypto": "Crypto-assets",
+      "adult": "Adult content",
+      "beauty_personal_care": "Beauty and personal care",
+      "fashion_accessories": "Fashion and jewellery",
+      "food_beverages": "Food and soft drinks",
+      "restaurants_hospitality": "Hospitality",
+      "travel_tourism": "Travel and tourism",
+      "sports_leisure": "Sports and leisure",
+      "home_garden": "Home and garden",
+      "consumer_electronics": "Consumer electronics",
+      "software_telecom": "Software and telecoms",
+      "video_games": "Video games",
+      "automotive_mobility": "Automotive and mobility",
+      "media_entertainment": "Media and entertainment",
+      "education_training": "Education and training",
+      "baby_kids": "Baby and kids",
+      "pet_care": "Pet care",
+      "retail_ecommerce": "Retail and e-commerce",
+      "real_estate": "Real estate",
+      "business_services": "Business services",
+      "nonprofit_public": "Non-profits and public bodies"
+    },
+    "usage_right": {
+      "organic_repost": "Organic repost",
+      "paid_whitelisting": "Paid whitelisting",
+      "media_buy": "Media buy"
+    }
+  },
+  "companySize": {
+    "1_10": "1 to 10 people",
+    "11_50": "11 to 50 people",
+    "51_250": "51 to 250 people",
+    "251_1000": "251 to 1,000 people",
+    "1001_plus": "More than 1,000 people"
+  },
+  "exclusivity": {
+    "none": "No exclusivity",
+    "le_1m": "Up to 1 month",
+    "le_3m": "Up to 3 months",
+    "negotiable": "To be discussed"
+  },
+  "rhythm": {
+    "one_off": "One-off collaboration",
+    "recurring": "Recurring collaborations",
+    "ambassador": "Ambassador programme"
+  },
+  "contactRole": {
+    "executive": "General management",
+    "marketing": "Marketing",
+    "partnerships_influence": "Partnerships and influence",
+    "communication": "Communication",
+    "ecommerce": "E-commerce",
+    "procurement": "Procurement",
+    "mandated_agency": "Mandated agency"
+  },
+  "workingLanguage": {
+    "fr": "French",
+    "en": "English"
+  }
+}

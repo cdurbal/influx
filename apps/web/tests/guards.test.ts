@@ -840,6 +840,7 @@ describe("Additional guards", () => {
     expect(files).toEqual([
       "account.json",
       "auth.json",
+      "brand-profile.json",
       "errors.json",
       "landing.json",
       "legal.json",

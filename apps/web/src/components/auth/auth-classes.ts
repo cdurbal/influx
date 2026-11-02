@@ -11,6 +11,8 @@ import {
   MEMBER_CLICKABLE_CARD_CLASSES,
 } from "@/components/member/ui/card-classes";
 import {
+  memberChoiceInputClasses,
+  memberChoiceRowClasses,
   MEMBER_FIELD_HELP_CLASSES,
   MEMBER_FIELD_LABEL_CLASSES,
   memberControlClasses,
@@ -96,11 +98,9 @@ export const FIELD_CLASSES = "flex flex-col gap-2";
 export const FIELDSET_CLASSES = "flex flex-col gap-2";
 
 /** A checkbox or a radio whose whole label is the click zone (17 §3.6). */
-export const CHOICE_ROW_CLASSES =
-  "flex min-h-(--size-touch-target) cursor-pointer items-start gap-3 py-2 text-md text-text-primary";
+export const CHOICE_ROW_CLASSES = memberChoiceRowClasses();
 
-export const CHOICE_INPUT_CLASSES =
-  "mt-1 size-(--size-checkbox) shrink-0 cursor-pointer accent-action-primary-bg";
+export const CHOICE_INPUT_CLASSES = memberChoiceInputClasses();
 
 /** The rule between the terms and the consent: two boxes, never stacked unseparated (17 §3.4). */
 export const DIVIDER_CLASSES =

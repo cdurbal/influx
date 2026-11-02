@@ -1,11 +1,13 @@
 import enAccount from "@/locales/en/account.json";
 import enAuth from "@/locales/en/auth.json";
+import enBrandProfile from "@/locales/en/brand-profile.json";
 import enErrors from "@/locales/en/errors.json";
 import enLanding from "@/locales/en/landing.json";
 import enLegal from "@/locales/en/legal.json";
 import enMember from "@/locales/en/member.json";
 import frAccount from "@/locales/fr/account.json";
 import frAuth from "@/locales/fr/auth.json";
+import frBrandProfile from "@/locales/fr/brand-profile.json";
 import frErrors from "@/locales/fr/errors.json";
 import frLanding from "@/locales/fr/landing.json";
 import frLegal from "@/locales/fr/legal.json";
@@ -24,6 +26,8 @@ type FrErrors = typeof frErrors;
 type EnErrors = typeof enErrors;
 type FrMember = typeof frMember;
 type EnMember = typeof enMember;
+type FrBrandProfile = typeof frBrandProfile;
+type EnBrandProfile = typeof enBrandProfile;
 
 // Compile-time parity check (CA23): each file must be assignable to the type of the other one.
 // A key missing or added on either side makes `pnpm typecheck` fail.
@@ -39,6 +43,8 @@ const enErrorsMatchesFr: FrErrors = enErrors;
 const frErrorsMatchesEn: EnErrors = frErrors;
 const enMemberMatchesFr: FrMember = enMember;
 const frMemberMatchesEn: EnMember = frMember;
+const enBrandProfileMatchesFr: FrBrandProfile = enBrandProfile;
+const frBrandProfileMatchesEn: EnBrandProfile = frBrandProfile;
 
 export type Messages = {
   landing: FrLanding;
@@ -47,6 +53,7 @@ export type Messages = {
   account: FrAccount;
   errors: FrErrors;
   member: FrMember;
+  brandProfile: FrBrandProfile;
 };
 
 export const MESSAGES: Record<AppLocale, Messages> = {
@@ -57,6 +64,7 @@ export const MESSAGES: Record<AppLocale, Messages> = {
     account: frAccountMatchesEn,
     errors: frErrorsMatchesEn,
     member: frMemberMatchesEn,
+    brandProfile: frBrandProfileMatchesEn,
   },
   en: {
     landing: enMatchesFr,
@@ -65,5 +73,6 @@ export const MESSAGES: Record<AppLocale, Messages> = {
     account: enAccountMatchesFr,
     errors: enErrorsMatchesFr,
     member: enMemberMatchesFr,
+    brandProfile: enBrandProfileMatchesFr,
   },
 };

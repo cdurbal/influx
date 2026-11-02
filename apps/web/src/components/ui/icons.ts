@@ -14,6 +14,7 @@ export {
   Clock as ClockIcon,
   Database as DatabaseIcon,
   Eye as EyeIcon,
+  EyeOff as EyeOffIcon,
   FileCheck as FileCheckIcon,
   FileQuestionMark as FileQuestionIcon,
   Globe as GlobeIcon,
