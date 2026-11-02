@@ -21,6 +21,7 @@ import {
 import { requireBackofficeSession } from "./domains/identity/backoffice-session.ts";
 import { registerBackofficeAccountRoutes } from "./domains/backoffice/accounts-routes.ts";
 import { registerDataExportRoutes } from "./domains/privacy/member/routes.ts";
+import { registerBrandProfileRoutes } from "./domains/profiles/routes.ts";
 import { registerBackofficeActionRoutes } from "./domains/backoffice/actions-routes.ts";
 import { registerBackofficeInvitationRoutes } from "./domains/backoffice/invitations-routes.ts";
 import { registerBackofficeOpsRoutes } from "./domains/backoffice/ops-routes.ts";
@@ -518,6 +519,12 @@ export function buildServer(
   });
   // "Mes données": the export downloaded in the member space (21 §J8 commit 8).
   registerDataExportRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
+  });
+
+  // The brand profile: read, autosave, submission (docs/mvp/06; jalon L2B commit 07).
+  registerBrandProfileRoutes(app, {
     database,
     now: options.identity?.now ?? (() => new Date()),
   });

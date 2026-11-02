@@ -40,6 +40,9 @@ import {
 const SESSION_ROUTES: readonly string[] = [
   "GET /v1/me",
   "PATCH /v1/me",
+  "GET /v1/me/brand-profile",
+  "PATCH /v1/me/brand-profile",
+  "POST /v1/me/brand-profile/submit",
   "GET /v1/me/consent",
   "PUT /v1/me/consent",
   "GET /v1/me/sessions",
