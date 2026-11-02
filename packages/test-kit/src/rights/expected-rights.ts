@@ -699,6 +699,48 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     ),
   },
   {
+    table: "profiles.brand_logo_objects",
+    source:
+      "0204 (04 §5.11 rule 3; jalons/l2b/stockage.md §3, §5; D80): one row per object of the " +
+      "bucket brand-logo; written by the member doors of 0204 only (influx_identity_definer)",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    expected: merge(
+      {
+        influx_advertiser: {
+          select: {
+            form: "propre",
+            source:
+              "03 §3.2 « Profil marque — lire » S: the owner's logo rows; no write (the doors)",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source:
+            "03 §3.2 « Profil marque — lire » L·J: agent and admin, aal2 (EC-L2B-08-4)",
+        },
+      }),
+    ),
+  },
+  {
+    table: "profiles.storage_quotas",
+    source:
+      "0204 (03 P10.7, 18 T9.8; stockage.md §6): no right for any execution role; read by the " +
+      "member doors of 0204 (influx_identity_definer)",
+    probeColumn: "bucket_id",
+    expected: {},
+  },
+  {
+    table: "profiles.storage_daily_usage",
+    source:
+      "0204 (03 P10.7, 18 T9.8; stockage.md §6): no right for any execution role; counted by " +
+      "the member doors of 0204, deleted by the erasure (influx_privacy_definer)",
+    probeColumn: "account_id",
+    expected: {},
+  },
+  {
     table: "ops.error_groups",
     source: "0016 (D60, 02 §20.5; E-6)",
     // The two columns influx_ops reads for the upsert of a fingerprint; the update probe is a
@@ -1129,7 +1171,8 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * 0201 (L2A commit 09, the Lot 2 reference lists), checked against 0003 lines 265-308; and on
  * 2026-11-02 with those of 0202 (L2B commit 05, the full brand profile), each line checked against
  * its sections 4 and 5; then with those of 0203 (L2B commit 06, the submission), each line checked
- * against its sections 3 and 4.
+ * against its sections 3 and 4; then with those of 0204 (L2B commit 08, the brand logo), each line
+ * checked against its sections 5 and 6.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -2802,6 +2845,54 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|column|profiles.advertiser_working_languages.language_code|SELECT",
   "influx_identity_definer|function|profiles.advertiser_missing_required_fields(jsonb)|EXECUTE",
   "influx_identity_definer|function|profiles.submit_own_advertiser_profile()|EXECUTE",
+  // 0204 (L2B commit 08, stockage.md §3 to §7): the owner reads his logo rows, agent and admin in
+  // aal2; nobody writes them but the five doors (EXECUTE for influx_advertiser), owned by
+  // influx_identity_definer, which reads and writes the caller's rows and usage and reads the
+  // quotas; influx_privacy_definer reads what the export carries, moves the rows of an erased
+  // account to purging and deletes its usage.
+  "influx_admin|table|profiles.brand_logo_objects|SELECT",
+  "influx_advertiser|function|profiles.activate_brand_logo(uuid,integer,integer,integer)|EXECUTE",
+  "influx_advertiser|function|profiles.begin_brand_logo_upload(integer)|EXECUTE",
+  "influx_advertiser|function|profiles.discard_brand_logo_upload(uuid)|EXECUTE",
+  "influx_advertiser|function|profiles.fail_brand_logo_upload(uuid)|EXECUTE",
+  "influx_advertiser|function|profiles.remove_own_brand_logo()|EXECUTE",
+  "influx_advertiser|table|profiles.brand_logo_objects|SELECT",
+  "influx_agent|table|profiles.brand_logo_objects|SELECT",
+  "influx_identity_definer|column|profiles.brand_logo_objects.account_id|INSERT,SELECT",
+  "influx_identity_definer|column|profiles.brand_logo_objects.activated_at|SELECT,UPDATE",
+  "influx_identity_definer|column|profiles.brand_logo_objects.byte_size|SELECT,UPDATE",
+  "influx_identity_definer|column|profiles.brand_logo_objects.height|SELECT,UPDATE",
+  "influx_identity_definer|column|profiles.brand_logo_objects.id|SELECT",
+  "influx_identity_definer|column|profiles.brand_logo_objects.object_key|SELECT",
+  "influx_identity_definer|column|profiles.brand_logo_objects.purge_requested_at|SELECT,UPDATE",
+  "influx_identity_definer|column|profiles.brand_logo_objects.received_bytes|INSERT,SELECT",
+  "influx_identity_definer|column|profiles.brand_logo_objects.state|SELECT,UPDATE",
+  "influx_identity_definer|column|profiles.brand_logo_objects.width|SELECT,UPDATE",
+  "influx_identity_definer|column|profiles.storage_daily_usage.account_id|INSERT,SELECT",
+  "influx_identity_definer|column|profiles.storage_daily_usage.bucket_id|INSERT,SELECT",
+  "influx_identity_definer|column|profiles.storage_daily_usage.received_bytes|SELECT,UPDATE",
+  "influx_identity_definer|column|profiles.storage_daily_usage.upload_count|SELECT,UPDATE",
+  "influx_identity_definer|column|profiles.storage_daily_usage.usage_day|INSERT,SELECT",
+  "influx_identity_definer|column|profiles.storage_quotas.bucket_id|SELECT",
+  "influx_identity_definer|column|profiles.storage_quotas.max_bytes_per_day|SELECT",
+  "influx_identity_definer|column|profiles.storage_quotas.max_uploads_per_day|SELECT",
+  "influx_identity_definer|function|profiles.activate_brand_logo(uuid,integer,integer,integer)|EXECUTE",
+  "influx_identity_definer|function|profiles.begin_brand_logo_upload(integer)|EXECUTE",
+  "influx_identity_definer|function|profiles.discard_brand_logo_upload(uuid)|EXECUTE",
+  "influx_identity_definer|function|profiles.fail_brand_logo_upload(uuid)|EXECUTE",
+  "influx_identity_definer|function|profiles.remove_own_brand_logo()|EXECUTE",
+  "influx_identity_definer|table|profiles.brand_logo_objects|DELETE",
+  "influx_privacy_definer|column|profiles.brand_logo_objects.account_id|SELECT",
+  "influx_privacy_definer|column|profiles.brand_logo_objects.activated_at|SELECT",
+  "influx_privacy_definer|column|profiles.brand_logo_objects.byte_size|SELECT",
+  "influx_privacy_definer|column|profiles.brand_logo_objects.created_at|SELECT",
+  "influx_privacy_definer|column|profiles.brand_logo_objects.height|SELECT",
+  "influx_privacy_definer|column|profiles.brand_logo_objects.id|SELECT",
+  "influx_privacy_definer|column|profiles.brand_logo_objects.purge_requested_at|UPDATE",
+  "influx_privacy_definer|column|profiles.brand_logo_objects.state|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.brand_logo_objects.width|SELECT",
+  "influx_privacy_definer|column|profiles.storage_daily_usage.account_id|SELECT",
+  "influx_privacy_definer|table|profiles.storage_daily_usage|DELETE",
 ];
 
 /**
@@ -3056,4 +3147,11 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   // 0203 (L2B commit 06): the brand's submission (EC-L2B-06-1); the helper
   // profiles.advertiser_missing_required_fields() is SECURITY INVOKER, same owner.
   "profiles.submit_own_advertiser_profile()": "influx_identity_definer",
+  // 0204 (L2B commit 08): the five doors of the brand logo (stockage.md §3)
+  "profiles.begin_brand_logo_upload(integer)": "influx_identity_definer",
+  "profiles.discard_brand_logo_upload(uuid)": "influx_identity_definer",
+  "profiles.fail_brand_logo_upload(uuid)": "influx_identity_definer",
+  "profiles.activate_brand_logo(uuid,integer,integer,integer)":
+    "influx_identity_definer",
+  "profiles.remove_own_brand_logo()": "influx_identity_definer",
 };

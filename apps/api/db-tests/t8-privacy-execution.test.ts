@@ -1927,6 +1927,7 @@ describe("the full brand profile of 0202 in the export and the erasure (04 §9.2
         updated_at: expect.stringMatching(/Z$/),
       },
       completeness_percent: 88,
+      logo_files: [],
       created_at: expect.stringMatching(/Z$/),
       updated_at: expect.stringMatching(/Z$/),
     });
@@ -2101,6 +2102,188 @@ describe("the full brand profile of 0202 in the export and the erasure (04 §9.2
     expect(outcome.after.contacts).toEqual([
       expect.objectContaining({ contact_first_name: "t8-active Camille" }),
     ]);
+  });
+});
+
+/**
+ * Gives an advertiser an active logo, an older one still to purge and a pending upload (0204), and
+ * the Storage usage of today and of yesterday, as the superuser.
+ */
+async function giveBrandLogo(tx: Tx, account: string): Promise<void> {
+  await tx`
+    insert into profiles.brand_logo_objects
+      (account_id, state, received_bytes, byte_size, width, height, activated_at,
+       purge_requested_at, created_at)
+    values (${account}, 'purging', 90000, 40000, 512, 512, now() - interval '2 days',
+            now() - interval '1 day', now() - interval '2 days'),
+           (${account}, 'active', 80000, 30000, 512, 512, now() - interval '1 day', null,
+            now() - interval '1 day'),
+           (${account}, 'pending', 70000, null, null, null, null, null, now())`;
+  await tx`
+    insert into profiles.storage_daily_usage
+      (account_id, bucket_id, usage_day, upload_count, received_bytes)
+    values (${account}, 'brand-logo', (now() at time zone 'UTC')::date, 1, 70000),
+           (${account}, 'brand-logo', (now() at time zone 'UTC')::date - 1, 2, 170000)`;
+}
+
+async function brandLogoOf(
+  tx: Tx,
+  account: string,
+): Promise<{ logos: Row[]; usage: number }> {
+  const logos = await tx<Row[]>`
+    select state::text as state, purge_requested_at is not null as to_purge
+      from profiles.brand_logo_objects where account_id = ${account}
+     order by created_at`;
+  const [usage] = await tx<{ count: number }[]>`
+    select count(*)::int as count from profiles.storage_daily_usage
+     where account_id = ${account}`;
+  return { logos, usage: usage?.count ?? 0 };
+}
+
+describe("the brand logo of 0204 in the export and the erasure (04 §9.2, stockage.md §7)", () => {
+  it("exports the metadata of each logo file, never its bytes nor its key", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      await giveBrandLogo(tx, member.id);
+      await giveBrandLogo(tx, stranger.id);
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      return { stored, member, stranger };
+    });
+    const content = String(outcome.stored?.content);
+    const file = JSON.parse(content) as {
+      data: { advertiser_profile: { logo_files: unknown } };
+    };
+    const at = expect.stringMatching(/Z$/);
+    expect(file.data.advertiser_profile.logo_files).toEqual([
+      {
+        state: "purging",
+        byte_size: 40000,
+        width: 512,
+        height: 512,
+        created_at: at,
+        activated_at: at,
+      },
+      {
+        state: "active",
+        byte_size: 30000,
+        width: 512,
+        height: 512,
+        created_at: at,
+        activated_at: at,
+      },
+      {
+        state: "pending",
+        byte_size: null,
+        width: null,
+        height: null,
+        created_at: at,
+        activated_at: null,
+      },
+    ]);
+    // no key, no other brand's file: neither account id appears beyond the account's own fields
+    expect(content.includes(".webp")).toBe(false);
+    expect(content.includes(outcome.stranger.id)).toBe(false);
+  });
+
+  it("sends every logo object of the erased brand to purge and deletes its usage; another brand is untouched", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      await giveBrandLogo(tx, member.id);
+      await giveBrandLogo(tx, stranger.id);
+      const request = await deposit(tx, member, "erasure");
+      await approve(tx, request, "erasure");
+      rowsOf(await execute(tx, request, null));
+      return {
+        erased: await brandLogoOf(tx, member.id),
+        kept: await brandLogoOf(tx, stranger.id),
+      };
+    });
+    expect(outcome.erased).toEqual({
+      logos: [
+        { state: "purging", to_purge: true },
+        { state: "purging", to_purge: true },
+        { state: "purging", to_purge: true },
+      ],
+      usage: 0,
+    });
+    expect(outcome.kept).toEqual({
+      logos: [
+        { state: "purging", to_purge: true },
+        { state: "active", to_purge: false },
+        { state: "pending", to_purge: false },
+      ],
+      usage: 2,
+    });
+  });
+
+  it.each([
+    [
+      "a logo made active again",
+      "update profiles.brand_logo_objects set state = 'active', purge_requested_at = null " +
+        "where account_id = $1 and state = 'active'",
+    ],
+    [
+      "a logo resized",
+      "update profiles.brand_logo_objects set byte_size = 1 where account_id = $1",
+    ],
+    [
+      "a logo row deleted",
+      "delete from profiles.brand_logo_objects where account_id = $1",
+    ],
+  ])(
+    "refuses to influx_privacy_definer %s on an erased account (42501)",
+    async (_label, statement) => {
+      const result = await scenario(async (tx) => {
+        const member = await newMember(tx, "advertiser");
+        await giveBrandLogo(tx, member.id);
+        await tx`update identity.accounts set status = 'deleted', deleted_at = now()
+                where id = ${member.id}`;
+        await tx.unsafe("set local role influx_privacy_definer");
+        const attempted = await attempt(tx, statement, [member.id]);
+        await tx.unsafe("reset role");
+        return attempted;
+      });
+      expect(codeOf(result)).toBe(INSUFFICIENT_PRIVILEGE);
+    },
+  );
+
+  it("lets influx_privacy_definer touch no logo nor usage of an active account", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      await giveBrandLogo(tx, member.id);
+      await tx.unsafe("set local role influx_privacy_definer");
+      const results = {
+        logo: await attempt(
+          tx,
+          "update profiles.brand_logo_objects set state = 'purging', " +
+            "purge_requested_at = now() where account_id = $1 returning 1",
+          [member.id],
+        ),
+        usage: await attempt(
+          tx,
+          "delete from profiles.storage_daily_usage where account_id = $1 returning 1",
+          [member.id],
+        ),
+      };
+      await tx.unsafe("reset role");
+      return { results, after: await brandLogoOf(tx, member.id) };
+    });
+    expect(rowsOf(outcome.results.logo)).toEqual([]);
+    expect(rowsOf(outcome.results.usage)).toEqual([]);
+    expect(outcome.after).toEqual({
+      logos: [
+        { state: "purging", to_purge: true },
+        { state: "active", to_purge: false },
+        { state: "pending", to_purge: false },
+      ],
+      usage: 2,
+    });
   });
 });
 

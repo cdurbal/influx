@@ -67,6 +67,14 @@ export const MEMBER_INVITATION_ID = "00000000-0000-4000-8000-00000000ff0a";
  */
 export const PRIVACY_DUAL_CONTROL_REQUEST_ID =
   "00000000-0000-4000-8000-00000000ff0b";
+/**
+ * The active logo rows of advertisers A and B (0204, L2B): rows only, no object in Storage (the
+ * database tests never reach Storage).
+ */
+export const BRAND_LOGO_IDS = {
+  a: "00000000-0000-4000-8000-00000000ff0c",
+  b: "00000000-0000-4000-8000-00000000ff0d",
+} as const;
 
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
@@ -299,6 +307,18 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
           (account_id, contact_first_name, contact_email, contact_phone)
         values (${account}, ${`T2 contact ${side}`}, ${`t2-contact-${side}@example.test`},
                 '+33100000000')
+        on conflict do nothing`;
+      // 0204: an active logo row per advertiser, and the Storage usage of the previous UTC day
+      // (today's quota of the tests stays whole)
+      await tx`
+        insert into profiles.brand_logo_objects
+          (id, account_id, state, received_bytes, byte_size, width, height, activated_at)
+        values (${BRAND_LOGO_IDS[side]}, ${account}, 'active', 40000, 20000, 512, 512, now())
+        on conflict do nothing`;
+      await tx`
+        insert into profiles.storage_daily_usage
+          (account_id, bucket_id, usage_day, upload_count, received_bytes)
+        values (${account}, 'brand-logo', (now() at time zone 'UTC')::date - 1, 1, 40000)
         on conflict do nothing`;
     }
     await tx`
