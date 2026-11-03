@@ -154,7 +154,6 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 | PLS-4 | `/v1/bo/alerts` : 42501 `forbidden` → 401, cookie effacé (côté test : `fix-1`) ; avec PLT-2 | Plus tard | idem |
 | PLS-5 | `@.value.type() != "string"` dans la prochaine migration de la fonction 2V (= PLT-5) | Plus tard | idem |
 | PLS-6 | `0151` : faille lax de `brevo_list_ids` et `brevo_template_ids`, même migration que PLT-5 | Plus tard | idem |
-| PLS-7 | « Santé technique » : mention « source navigateur, texte non vérifié » sur la pile et la page | Plus tard | idem |
 | PLS-8 | `SECURITY_FILES` : `packages/web-platform/eslint.config.mjs` et `eslint.front-rules.mjs` | Plus tard | idem |
 | PLS-9 | = PLT-4 | Plus tard | idem |
 | L2AT-2 | Deux des quatre liens soulignés de L2AU-3 (`fix-1`) n'ont aucun cas e2e | Avant production | `archives/jalons/l2a-fiche.md` § Revue |
