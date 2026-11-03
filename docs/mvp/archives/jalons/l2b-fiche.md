@@ -131,18 +131,18 @@ Les cas portent la règle qu'ils prouvent (`06` RGn, CAn, `18` T9.n, T14.n, `03`
 
 ## Critère de fin
 
-- [ ] Sur `staging`, un profil marque soumis (`pending_review`) par la recette du fondateur (14) ;
+- [x] Sur `staging`, un profil marque soumis (`pending_review`) par la recette du fondateur (14) ;
       ligne et journal `profile.submitted` lus en lecture seule.
-- [ ] EXIF absent du logo : T9.5 vert (octets relus) ; objet du logo de la recette relu sur `staging`
+- [x] EXIF absent du logo : T9.5 vert (octets relus) ; objet du logo de la recette relu sur `staging`
       sans métadonnée.
-- [ ] Storage actif en CI : jobs base et parcours démarrent `storage-api` ; durées dans `run.md`.
-- [ ] `packages/domain` créé ; la complétude n'existe qu'à cet endroit (garde ou `Grep`).
-- [ ] T9.1 à T9.5, T9.8, T9.9, T14, T2 verts ; suite base complète verte.
-- [ ] e2e M2 FR/EN vert ; ajout ≤ 20 s ; job « Browser journeys » < 8 min.
-- [ ] Reliquat L2AT-4, L2AS-2, L2AT-5 (contraintes), L2AU-4, L2-amend soldés ou reportés avec motif.
-- [ ] `pnpm check` puis `pnpm test:e2e` verts trois fois sans rejeu ; CI verte.
-- [ ] Revue `testeur` + `expert-cybersecurite` ; attestation `security-reviewed:` couvrant les
-      commits I-4 (D71).
+- [x] Storage actif en CI : jobs base et parcours démarrent `storage-api` ; durées dans `run.md`.
+- [x] `packages/domain` créé ; la complétude n'existe qu'à cet endroit (garde ou `Grep`).
+- [x] T9.1 à T9.5, T9.8, T9.9, T14, T2 verts ; suite base complète verte.
+- [x] e2e M2 FR/EN vert ; ajout ≤ 20 s ; job « Browser journeys » < 8 min (429 à 481 s ; 481 s à `b5053ab` au-dessus de la borne de 480 s : dérive acceptée par le fondateur le 2026-11-03, sans levier de CI ; borne sous surveillance, élargissement non décidé).
+- [x] Reliquat L2AT-4, L2AS-2, L2AT-5 (contraintes), L2AU-4, L2-amend soldés ou reportés avec motif.
+- [x] `pnpm check` puis `pnpm test:e2e` verts trois fois sans rejeu ; CI verte.
+- [x] Revue `testeur` + `expert-cybersecurite` ; attestation `security-reviewed:` couvrant les
+      commits I-4 (D71) : `c7042b7`.
 
 ## Écarts, décisions ouvertes, risques
 

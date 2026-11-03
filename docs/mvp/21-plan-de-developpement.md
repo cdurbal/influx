@@ -160,14 +160,19 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 | PLS-9 | = PLT-4 | Plus tard | idem |
 | L2AT-2 | Deux des quatre liens soulignés de L2AU-3 (`fix-1`) n'ont aucun cas e2e | Avant production | `archives/jalons/l2a-fiche.md` § Revue |
 | L2AT-3 | Liens « retour à l'accueil » de `error.tsx` et `global-error.tsx` encore en `TEXT_BUTTON_CLASSES` (sans signe de lien, WCAG 1.4.1) | Avant production | idem |
-| L2AT-4 | Garde J4S-7 limitée à `[locale]/(member)` et `(app)` : étendre aux autres arbres avec les routes de profil | Plus tard (L2B) | idem |
-| L2AT-5 | Trois contraintes sans cas dans `reference-taxonomies.test.ts` ; contiguïté des tranches par devise (`price_bands`) à prouver au premier chargement | Plus tard (L2B) | idem |
+| L2AT-5 | Contiguïté des tranches par devise (`price_bands`) à prouver au premier chargement (les trois contraintes sont couvertes depuis L2B-01) | Plus tard (L2D ou L2E, avec le chargement) | `archives/jalons/l2a-fiche.md` § Revue |
 | L2AT-6 | Cas L2AU de `member-shell.spec.ts` : une seule combinaison rôle × langue par langue | Plus tard | idem |
 | L2AS-1 | `/health` de `apps/web` : le `503` d'un passage limité reste partagé entre requêtes concurrentes | Plus tard | idem |
-| L2AS-2 | `routeModelOf` : passer en liste d'autorisation avec les routes de profil | Plus tard (L2B) | idem |
 | L2AS-3 | `fastify` 5.12.6 et `fast-uri` (avis suivis, hors critique et élevée) | Plus tard | idem |
 | L2AS-4 | `vitest` 4.1.12 et `zod` porté par `eslint-plugin-react-hooks` (avis suivis) | Plus tard | idem |
-| L2-amend | Amendements de clôture de `referentiels.md` restants : `06` RG27 et `07` bloc 5 (`none` non cochable en multi-choix), `07` bloc 3 (domaine de l'URL de profil), `08` RG32 (« autre réseau » = de la liste). Faits : `04` §4.2, `09` RG36, `matching-spec` F14 | Avec les écrans de L2B | `archives/jalons/l2a/referentiels.md` |
+| L2BT-3 | Double soumission simultanée du profil marque (deux `POST submit` concurrents) : cas db | Avant production | `archives/jalons/l2b/revue.md` |
+| L2BT-4 | Échec de l'autosave de M2 : cas e2e (entrée conservée, nouvelle tentative) | Avant production | idem |
+| L2BT-5 | Largeurs de M2 croisées, FR et EN (375, 768, 1440) | Avant production | idem |
+| L2BS-1 | Gel de `published`/`suspended` en base (L2C) | Avant production | idem |
+| L2BS-4 | Connexion S3 du Storage | Avant production | idem |
+| L2BT-6 à L2BT-8 | Horloge des tests de quota ; cas `legal_name` et `country` de la soumission ; D76 à étendre | Plus tard | idem |
+| L2BS-5 à L2BS-9 | `sharp` sans borne de temps ; 2 Mio sur tout le passe-plat ; lecture des coordonnées non journalisée (L2C) ; IDN homographes ; `fastify` ≥ 5.12.6 | Plus tard | idem |
+| L2B-CI | Job « Browser journeys » : 359 s avant Storage, 429 à 481 s après (dispersion ≈ 50 s), borne 480 s (§2.3) dépassée une fois à `b5053ab` ; dérive acceptée par le fondateur le 2026-11-03, sans levier de CI ; borne sous surveillance, élargissement non décidé | Surveillance | `archives/jalons/l2b/run.md` ligne 03 |
 
 **Plus tard** (sans action au Lot 2) : *avant production* J9T-1, J9S-2, J9S-4, AL53, J4S-8, manques du commit J9-11 et points `expert-ux` du commit J9-5 (`archives/jalons/j9-fiche.md`) ; *Lot 3* T15.2, F3 ; *Lot 5* classement des groupes d'erreurs, J9T-3, J9T-10, J8S-8, J8S-9, RK-16, effacement Apollo, écran des identifiants Brevo (option) ; *Lot 6* F8, J7T-6 ; *Lot 6bis* reports D70 (`archives/jalons/d70-plan.md` l. 125 à 130) ; décisions DZ-1, 2, 4 à 7 (`decisions.md`).
 
@@ -175,7 +180,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 
 - **PL** (préparation du Lot 2, corrections K1 et K3 à K10 de `archives/revue-pre-lot2-2026-10-31.md`) : ouvert le 2026-10-31, **clos le 2026-10-31** (critère de fin prouvé, reliquat soldé ou reporté ci-dessus, revue attestée) ; `archives/jalons/pl-fiche.md`, `archives/jalons/pl/run.md`.
 - **L2A** (reliquat RK-fin, PLS-1, PLS-3, PLT-6, SNT-3, J4S-7, listes de départ des référentiels, migration `0201`) : ouvert le 2026-11-01, **clos le 2026-11-01** (critère de fin prouvé, reliquat soldé ou reporté ci-dessus, revue attestée) ; `archives/jalons/l2a-fiche.md`, `archives/jalons/l2a/run.md`.
-- **L2B** (profil marque : saisie, logo, soumission ; `packages/domain`, Storage en CI, migrations `0202` à `0204`) : ouvert le 2026-11-01 ; `jalons/l2b-fiche.md`, `jalons/l2b/run.md`.
+- **L2B** (profil marque : saisie, logo, soumission ; `packages/domain`, Storage en CI, migrations `0202` à `0205`) : ouvert le 2026-11-01, **clos le 2026-11-03** (critère de fin prouvé, reliquat soldé ou reporté ci-dessus, revue attestée, dérive du job « Browser journeys » acceptée par le fondateur) ; `archives/jalons/l2b-fiche.md`, `archives/jalons/l2b/run.md`.
 
 **Registre des décisions** (PL-11) : `decisions.md` ne garde que sujet et statut résumés de D1 à D79 ; le texte intégral (sujet, arbitre, statut, échéance, mot pour mot) est dans `decisions-detail.md` (§ Dxx), qui fait foi en cas d'écart.
 
