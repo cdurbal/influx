@@ -316,7 +316,7 @@ l'espace interne** (`05` RG140). Messages avant et après vérification : `05` R
 
 | Espace | Chemin | Note |
 |---|---|---|
-| Marque | `/[locale]/marque`, `/campagnes`, `/campagnes/[id]`, `/createurs`, `/selections`, `/relations`, `/relations/[reference]`, `/compte/*` | `[id]` de campagne **opaque**, jamais séquentiel |
+| Marque | `/[locale]/marque`, `/campagnes`, `/campagnes/[id]`, `/createurs`, `/selections`, `/relations`, `/relations/[reference]`, `/compte/*` (dont `/compte/profil` · `/account/profile`, M2 du profil marque, EC-L2B-7) | `[id]` de campagne **opaque**, jamais séquentiel |
 | Créateur | `/[locale]/createur`, `/campagnes`, `/campagnes/[id]`, `/candidatures`, `/relations`, `/relations/[reference]`, `/compte/*` | Une carte créateur est référencée par son **alias** (`10` RG65) |
 | Commun | `/[locale]/connexion` (3 écrans), `/[locale]/compte` (page-menu, D74), `/compte/informations`, `/compte/preferences`, `/compte/sessions`, `/compte/donnees`, `/aide` | « Mes informations » a quitté `/compte` le 2026-10-29 (D74) |
 
@@ -717,10 +717,10 @@ Desktop 1440
 │ ── 3. Votre interlocuteur ──────────────────────  │                           │
 │ Fonction *                       [v]  [Publique] │                           │
 │ ┌──────────────────────────────────────────────┐ │                           │
-│ │ [i:lock] Masqué jusqu'à l'ouverture d'une    │ │                           │
-│ │ mise en relation — visible alors du seul     │ │                           │
-│ │ créateur concerné, et d'INFLUX en            │ │                           │
-│ │ permanence.                      RG35, RG37  │ │                           │
+│ │ [i:lock] Prénom : masqué jusqu'à la mise en  │ │                           │
+│ │ relation. E-mail, téléphone, page : internes,│ │                           │
+│ │ vus d'INFLUX seul, jamais d'un membre (D46). │ │                           │
+│ │                                  RG35, RG37  │ │                           │
 │ │ Prénom            [            ]             │ │                           │
 │ │ E-mail pro        [            ]             │ │                           │
 │ │ Téléphone     [+33][           ]             │ │                           │

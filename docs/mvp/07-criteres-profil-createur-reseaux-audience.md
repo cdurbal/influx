@@ -286,7 +286,7 @@ d'apposer un badge ou de publier ; *Oblig.* = obligatoire pour pouvoir publier l
 | Réseau | **A** | Liste fermée `reference.networks` | — | **Oui** (≥ 1 ligne) |
 | Compte principal | **A** | Booléen, **exactement une ligne à vrai** | — | **Oui** |
 | Handle / identifiant `@` | **I** | Texte **modéré**, ≤ 100 caractères | — | **Oui** |
-| URL du profil | **I** | URL `https://`, domaine du réseau déclaré | — | **Oui** |
+| URL du profil | **I** | URL `https://`, domaine propre au réseau déclaré (liste des domaines par réseau fixée à L2D ; domaine libre pour un réseau hors liste) | — | **Oui** |
 | **Abonnés** — *métrique prioritaire n° 1 : taille de la communauté* (RG113) | **A** tranche · **I** valeur exacte | Tranche `reference.audience_bands` (nano, micro, mid, macro, méga) / entier ≥ 0 | Capture du tableau de bord natif < 30 j pour le badge « Audience vérifiée » | **Oui, sur le compte principal** ; non sur les autres lignes (Q15) |
 | **Publications des 30 derniers jours** — *métrique prioritaire n° 2 : rythme de publication* (RG114) | **A** rythme · **I** valeur exacte | Entier ≥ 0 ; le système en dérive le **rythme**, liste fermée `reference.publication_frequencies` : quotidien · plusieurs fois par semaine · hebdomadaire · deux fois par mois · mensuel ou moins | Constat de l'agent sur le profil public pour le badge « Audience vérifiée » (`08` RG38bis) | Non (Q15) |
 | **Commentaires moyens par publication** — *métrique prioritaire n° 3* (RG115) | **A** tranche · **I** valeur exacte | Tranche `reference.comment_bands` / entier ≥ 0 | Idem | Non (Q15) |
@@ -317,7 +317,7 @@ d'apposer un badge ou de publier ; *Oblig.* = obligatoire pour pouvoir publier l
 | Tarif indicatif par format et par réseau | **A** tranche · **N** valeur exacte | Tranche `reference.price_bands` + devise `reference.currencies` | — | Non — *aucun tarif saisi au pilote (D78)* |
 | **Net créateur estimé** | **Créateur et INFLUX uniquement** (RG70) | Tranche dérivée du référentiel, avec devise | — | Automatique |
 | Délai de livraison habituel | **A** | Liste fermée : < 7 jours · 7-14 jours · 15-30 jours · > 30 jours | — | Non |
-| Droits d'usage **inclus** | **A** | Liste fermée `reference.usage_rights`, multi-choix | — | Non |
+| Droits d'usage **inclus** | **A** | Liste fermée `reference.usage_rights`, multi-choix (`none` non cochable : aucune case cochée le dit) | — | Non |
 | Droits d'usage **en option** | **A** | Liste fermée, multi-choix | — | Non |
 | Exclusivité sectorielle acceptée | **A** | Tranche : non · ≤ 1 mois · ≤ 3 mois · négociable | — | Non |
 | Contrepartie non monétaire acceptée | **A** | Booléen | — | Non |

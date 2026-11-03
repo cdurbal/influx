@@ -74,7 +74,7 @@
 
 ### 2.4 Dépendances épinglées (versions exactes, `savePrefix: ""`)
 
-Les `package.json` et `pnpm-lock.yaml` font foi pour les versions (aucune copie ici, qui se périme). Invariants : `@supabase/supabase-js` et `@supabase/postgrest-js` interdits (garde `test-witnesses/j3b`) ; `@supabase/auth-js` importé **uniquement** dans `apps/api/src/platform/supabase.ts` ; `@supabase/storage-js` admis au Lot 2 ; `postgres` avec `prepare: false` ; `apps/api` exécuté directement par Node (effacement des types, D64). Toute dépendance nouvelle : `architecte`, suite locale complète (`CLAUDE.md` §7 règle 5).
+Les `package.json` et `pnpm-lock.yaml` font foi pour les versions (aucune copie ici, qui se périme). Invariants : `@supabase/supabase-js` et `@supabase/postgrest-js` interdits (garde `test-witnesses/j3b`) ; `@supabase/auth-js` importé **uniquement** dans `apps/api/src/platform/supabase.ts` ; `@supabase/storage-js` admis au Lot 2 (2.117.2, importé par `apps/api/src/platform/storage.ts` seul) ; `sharp` 0.35.5 (`platform/images.ts` seul, ré-encodage sans métadonnée) ; `postgres` avec `prepare: false` ; `apps/api` exécuté directement par Node (effacement des types, D64). Toute dépendance nouvelle : `architecte`, suite locale complète (`CLAUDE.md` §7 règle 5).
 
 ---
 

@@ -207,8 +207,8 @@ navigateur. La validation dans le navigateur est un confort ; elle n'est jamais 
 
 | Champ | Obligatoire pour publier | Couche | Format | Pourquoi ce champ existe |
 |---|---|---|---|---|
-| Nom commercial | **Oui** | Publique | Texte modéré, ≤ 80 caractères | Conversion : un créateur ne répond pas à une marque sans nom. Pré-rempli depuis le Lot 1 |
-| Logo | Non (fortement incité) | Publique | Image PNG/JPG/WebP, ≤ 2 Mo, ≥ 256 px, carré ou recadré carré | Conversion : une campagne sans logo est lue comme un test |
+| Nom commercial | **Oui** | Publique | Texte modéré, ≤ 120 caractères (EC-L2B-2 : borne de l'inscription, `05` RG13) | Conversion : un créateur ne répond pas à une marque sans nom. Pré-rempli depuis le Lot 1 |
+| Logo | Non (fortement incité) | Publique | Image PNG/JPG/WebP, ≤ 2 Mio déposée, plus grand côté ≥ 256 px, ré-encodée en WebP carré 512 px sans métadonnée (D80, ≤ 1 Mio stocké) | Conversion : une campagne sans logo est lue comme un test |
 | Secteur d'activité principal | **Oui** | Publique | Liste fermée `reference.sectors`, 1 choix | Matching futur (rapprochement secteur ↔ thématique) + exclusion silencieuse des secteurs refusés par un créateur |
 | Secteurs secondaires | Non | Publique | Liste fermée, ≤ 2 choix | Matching futur ; évite de forcer une marque multi-produits dans une case |
 | Taille d'entreprise | **Oui** | Publique | **Tranche fermée** : 1-10 · 11-50 · 51-250 · 251-1 000 · plus de 1 000 | Conversion (le créateur juge le sérieux) + attribut Apollo. **Jamais l'effectif exact** |
@@ -275,8 +275,8 @@ la langue de l'utilisateur et proviennent des fichiers de traduction, jamais de 
 | Thématiques recherchées | **Oui** | Publique | `reference.topics`, 1 à 3 choix | Matching futur (F1, F2) ; premier critère de tri d'un commercial |
 | Réseaux visés | **Oui** | Publique | `reference.networks`, ≥ 1 | Matching futur (F3) : une campagne TikTok adressée à un profil sans TikTok est une demande morte |
 | Formats attendus | **Oui** | Publique | `reference.formats`, ≥ 1 | Matching futur (F11) ; un format non proposé est une exclusion |
-| Budget indicatif par collaboration | **Oui** | Publique | **Tranche** `reference.price_bands` + devise `reference.currencies` | Matching futur (F12) : première cause d'échec en négociation |
-| Droits d'usage habituellement demandés | Non | Publique | `reference.usage_rights`, multi-choix | Matching futur (F14) : première cause de désaccord en négociation |
+| Budget indicatif par collaboration | ~~Oui~~ **Suspendu** (D78, réponse 1 du L2B : ni saisi, ni affiché, ni obligatoire) | Publique | **Tranche** `reference.price_bands` + devise `reference.currencies` | Matching futur (F12) : première cause d'échec en négociation |
+| Droits d'usage habituellement demandés | Non | Publique | `reference.usage_rights`, multi-choix (`none` n'est pas cochable : aucune case cochée le dit) | Matching futur (F14) : première cause de désaccord en négociation |
 | Exclusivité habituellement demandée | Non | Publique | Tranche : non · ≤ 1 mois · ≤ 3 mois · négociable | Matching futur (F15) : deuxième cause de désaccord |
 | Contrepartie non monétaire proposée | Non | Publique | Oui / non | Matching futur (F13) ; ouvre le bas de marché |
 | Pays d'audience visés | **Oui** | Publique | `reference.countries`, ≤ 5 | Matching futur (F6) : la facette la plus utile de la recherche |
@@ -453,7 +453,7 @@ jamais affichée à un créateur**.
 | Bloc | Détail | Points |
 |---|---|---|
 | Identité publique | Nom commercial 5 · secteur 5 · taille 3 · pays 2 · présentation ≥ 120 caractères 10 · logo 10 · marchés visés 3 · langues 2 | **40** |
-| Attentes de collaboration | Thématiques 8 · réseaux 6 · formats 6 · budget indicatif 8 · pays d'audience visés 4 · droits d'usage 3 | **35** |
+| Attentes de collaboration | Thématiques 8 · réseaux 6 · formats 6 · budget indicatif 8 (suspendu au L2B : exclu du calcul) · pays d'audience visés 4 · droits d'usage 3 | **35** |
 | Confiance | Domaine renseigné 5 · badge « Marque vérifiée » **demandé** 10 | **15** |
 | Interlocuteur | Fonction 3 · téléphone 4 · e-mail professionnel 3 | **10** |
 
@@ -965,7 +965,7 @@ fichier) vivent **en table**, modifiables sans redéploiement, chaque modificati
 | **Brevo — contacts** | Mise à jour des attributs de RG79 à la publication et à chaque modification ; aucun envoi marketing sans consentement |
 | **Brevo — transactionnel** | Notifications de décision (publié, refusé, badge attribué, badge à rafraîchir, badge retiré), bilingues |
 | **Apollo.io** | Enrichissement limité à nom commercial, domaine, secteur, taille, pays, dans le périmètre et la base légale du Lot 1 |
-| **Supabase Storage** | Compartiment public pour les logos **modérés**, compartiment privé pour les pièces de vérification, EXIF supprimés au dépôt |
+| **Supabase Storage** | Compartiment **privé** pour les logos (`brand-logo`, WebP, `03` P10.1, EC-L2B-6), compartiment privé pour les pièces de vérification, EXIF supprimés au dépôt |
 
 ### Indicateurs à suivre
 

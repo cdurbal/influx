@@ -322,7 +322,7 @@ d'audience.** Cette règle n'a aucune exception.
 | **Instagram** | Statistiques du compte professionnel (« Insights ») | Identifiant du compte, nombre d'abonnés, couverture, **période affichée**, pays principaux |
 | **TikTok** | Espace analytique du compte | Identifiant, abonnés, vues, **période**, territoires |
 | **YouTube** | Espace créateur (« YouTube Studio ») | Nom de la chaîne, abonnés, vues, **période**, pays |
-| **Autre réseau** | Outil natif équivalent | Mêmes exigences, sans dérogation |
+| **Autre réseau** (un réseau de la liste `reference.networks`) | Outil natif équivalent | Mêmes exigences, sans dérogation |
 
 **RG33** — Sont **refusées d'office**, chacune avec son motif typé (§F) : capture issue d'un **outil
 tiers** (mesure d'audience, agence, tableur, capture d'un rapport PDF d'agence) ; **chiffres retapés**

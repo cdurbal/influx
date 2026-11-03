@@ -1388,11 +1388,11 @@ exactement la même mécanique que les réseaux d'un créateur — **deux objets
 > colonnes nullables.
 
 - `profiles.advertiser_profiles` — **public** *(forme complète au Lot 2)* : `brand_name`, `legal_name`, `sector_code`,
-  `company_size_band`, `website_domain`, `description` (modérée), `logo_path`, `budget_band`,
+  `company_size_band`, `website_domain`, `description` (modérée), `budget_band`,
   `objectives`, `completeness_percent`, `status`, `published_at`.
   *Nom, logo, site et secteur restent visibles de tous : une marque n'est pas anonyme, c'est son
-  interlocuteur qui l'est.*
-- `profiles.advertiser_contact_details` — **révélable** : `contact_first_name`, `contact_role`,
+  interlocuteur qui l'est. `contact_role` est une colonne publique de cette table (`06` RG35, EC-L2B-4) ; le logo est une ligne de `profiles.brand_logo_objects` (D80), non une colonne `logo_path`.*
+- `profiles.advertiser_contact_details` — **révélable** : `contact_first_name`,
   `contact_email`, `contact_phone`, `contact_url`. **Aucun `GRANT` au rôle créateur avant
   révélation** ; après, un `GRANT` de colonnes doublé d'une politique testant `identity_revealed_at`,
   **strictement symétrique de celle de `creator_social_accounts`** (§6.2 e).
@@ -5219,7 +5219,7 @@ responsable, **30 j** vers l'administrateur — `14` Q13, valeurs d'attente),
 
 ### 5.11 Le stockage de fichiers (Supabase Storage)
 
-Quatre compartiments, **tous privés**, sans exception.
+Cinq compartiments, **tous privés**, sans exception.
 
 | Compartiment | Contenu | Écriture | Lecture |
 |---|---|---|---|
@@ -5227,6 +5227,7 @@ Quatre compartiments, **tous privés**, sans exception.
 | `portfolio` | Visuels de portfolio | Le créateur | Agents ; annonceurs **uniquement** si `moderation_status = 'approved'` |
 | `introduction-documents` | Canal de documents (si D30/Q4 le retient) | Participants d'une mise en relation | Contrepartie **après** modération |
 | `legal-documents` | Versions publiées des CGU et politiques | Administrateur | Tout le monde, par URL signée longue |
+| `brand-logo` | Logo de marque, WebP carré 512 px ≤ 1 Mio, ré-encodé sans métadonnée (D80, EC-L2B-6) | `apps/api` seul, par le passe-plat (≤ 2 Mio), jamais d'URL signée | `apps/api` seul, octets servis par l'API |
 
 Règles communes, alignées sur les RLS des tables correspondantes :
 
@@ -6124,6 +6125,8 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0205 | `profiles_portfolio` | `portfolio_items`, compartiment `portfolio`, politiques Storage | Oui |
 | 0206 | `verification_core` | Demandes, codes, pièces (**images uniquement**), badges, contestations, motifs de refus, **`revocation_reasons`**, **état `to_reconfirm`**, **identifiant observé au constat** | Oui |
 | 0207 | `profiles_revisions` | `moderated_fields`, `profile_field_revisions`, index de file, fonction d'application d'une révision approuvée | Oui |
+
+> **Numéros réels du L2B (EC-L2B-1).** `check-migrations.ts` impose l'ordre des noms : L2B a pris `0202` `profiles_advertiser_full`, `0203` `profiles_advertiser_submission` (soumission gardée par la base), `0204` `profiles_brand_logo_storage` (compartiment `brand-logo`, quotas, politiques Storage) et `0205` `ops_storage_purge`. Les lignes `0203` à `0207` ci-dessus prennent les numéros libres suivants au jalon qui les livre.
 | **Lot 3** | | | |
 | 0301 | `campaigns_core` | `reference.campaign_types`, campagnes (**six états, quatre textes, dotation, droits d'usage, quatre dates, nature de la rémunération**), livrables, ciblage détaillé, messages clés, territoires, éléments demandés, motifs de refus, **types d'événements `campaign.*`** | Oui |
 | 0302 | `campaigns_publication` | `campaign_published_snapshots`, `campaign_price_bands`, fonction de publication (dérivation des tranches, contrôle des dates, revue renforcée à deux validateurs) | Oui |
