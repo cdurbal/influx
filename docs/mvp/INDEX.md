@@ -246,7 +246,7 @@
 | 728 | 186 | Critères d'acceptation | RG42–RG84 |
 | 914 | 71 | Impacts | RG7–RG79 |
 | 985 | 20 | Hors périmètre | RG4–RG44 |
-| 1005 | 15 | Questions ouvertes | RG8–RG100 |
+| 1005 | 16 | Questions ouvertes | RG8–RG100 |
 
 ## 07-criteres-profil-createur-reseaux-audience.md (~37k tokens)
 

@@ -12,6 +12,7 @@ import {
   EXCLUSIVITY_BANDS,
   WORKING_LANGUAGES,
 } from "@influx/contracts/brand-profile";
+import { createTranslator } from "next-intl";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -365,6 +366,70 @@ describe("labels in French and English (06 RG84, CA46)", () => {
     for (const messages of [frMessages, enMessages]) {
       expect(Object.keys(messages.reference.usage_right)).not.toContain("none");
     }
+  });
+
+  it("tie the completeness message to the submission, naming each missing field, singular and plural right (RG61, RG84, CA38)", () => {
+    const cases = [
+      {
+        locale: "fr",
+        messages: frMessages,
+        one: {
+          fields: "secteur principal",
+          expected:
+            /^Il manque 1 information pour soumettre votre profil : secteur principal\.$/,
+        },
+        two: {
+          fields: "secteur principal et pays",
+          expected:
+            /^Il manque 2 informations pour soumettre votre profil : secteur principal et pays\.$/,
+        },
+      },
+      {
+        locale: "en",
+        messages: enMessages,
+        one: {
+          fields: "primary sector",
+          expected:
+            /^1 piece of information is missing to submit your profile: primary sector\.$/,
+        },
+        two: {
+          fields: "primary sector and country",
+          expected:
+            /^2 pieces of information are missing to submit your profile: primary sector and country\.$/,
+        },
+      },
+    ] as const;
+    for (const { locale, messages, one, two } of cases) {
+      const t = createTranslator({ locale, messages });
+      const single = t("publish.missing", { count: 1, fields: one.fields });
+      const double = t("publish.missing", { count: 2, fields: two.fields });
+      expect(single).toMatch(one.expected);
+      expect(double).toMatch(two.expected);
+      // Every name given is in the text; nothing else is promised.
+      expect(single).toContain(one.fields);
+      expect(double).toContain(two.fields);
+    }
+  });
+
+  it("promise no figure in the completeness message: no percentage, no number beyond the count (CA38)", () => {
+    for (const [locale, messages] of [
+      ["fr", frMessages],
+      ["en", enMessages],
+    ] as const) {
+      const t = createTranslator({ locale, messages });
+      for (const count of [1, 2]) {
+        const text = t("publish.missing", { count, fields: "alpha and bravo" });
+        expect(text).not.toContain("%");
+        expect(text.replace(String(count), "")).not.toMatch(/\d/);
+      }
+    }
+  });
+
+  it("name the submission, not a publication, in the completeness message: INFLUX publishes, the brand submits (06 RG84, 09)", () => {
+    expect(frMessages.publish.missing).toMatch(/\bsoumettre\b/);
+    expect(frMessages.publish.missing).not.toMatch(/publi/i);
+    expect(enMessages.publish.missing).toMatch(/\bto submit\b/);
+    expect(enMessages.publish.missing).not.toMatch(/publi/i);
   });
 
   it("show no commission, rate, net or price in any label (CLAUDE.md §2, D48, D78)", () => {

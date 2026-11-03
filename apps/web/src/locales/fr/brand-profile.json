@@ -1,6 +1,6 @@
 {
   "publish": {
-    "missing": "Il manque {count, plural, one {# information} other {# informations}} pour publier votre profil : {fields}."
+    "missing": "Il manque {count, plural, one {# information} other {# informations}} pour soumettre votre profil : {fields}."
   },
   "layer": {
     "public": "Visible de tous les créateurs.",

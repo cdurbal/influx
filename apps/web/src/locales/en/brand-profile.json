@@ -1,6 +1,6 @@
 {
   "publish": {
-    "missing": "{count, plural, one {# piece of information is} other {# pieces of information are}} missing to publish your profile: {fields}."
+    "missing": "{count, plural, one {# piece of information is} other {# pieces of information are}} missing to submit your profile: {fields}."
   },
   "layer": {
     "public": "Visible to all creators.",

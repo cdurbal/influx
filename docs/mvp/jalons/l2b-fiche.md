@@ -168,6 +168,11 @@ Les cas portent la règle qu'ils prouvent (`06` RGn, CAn, `18` T9.n, T14.n, `03`
 - **EC-L2B-6** : `06` l. 968 (« compartiment public pour les logos modérés ») contredit `03` P10.1 :
   compartiment privé ; `04` §5.11 (aucun compartiment de logo) amendé.
 - **EC-L2B-7** : chemin de M2 absent de `17` §2.6 : `compte/profil` · `account/profile` ; amendé.
+- **EC-L2B-fix-1-1** : `06` RG84 (clé `brandProfile.publish.missing`) et l'exemple autorisé de RG61 disaient
+  « pour publier » alors que l'action de la marque est « soumettre » (INFLUX publie, `09` l. 808) :
+  « pour soumettre » / « to submit », `06` d'abord, puis les deux `brand-profile.json` ; nom de la clé
+  inchangé. « Effet observable » de RG61 et CA38 : question `06` Q11 (`product-owner`), aucune
+  décision ni texte d'effet ajouté.
 - **D80 (L2B-02)** : logo par le passe-plat (2 Mio, PP-9 amendé), ni E1 ni URL signée au L2B ;
   compartiment `brand-logo` en WebP ≤ 1 Mio ; T9.2 devient « aucune réponse du logo ne porte d'hôte
   Supabase ni de jeton » ; `l2b/stockage.md` prime sur les prompts 03, 08, 09, 12 et la revue.

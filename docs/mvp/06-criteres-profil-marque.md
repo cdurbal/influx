@@ -470,7 +470,7 @@ qui manque et dit ce que cela change, **sans promesse de résultat** :
 
 | Autorisé (vérifiable) | Interdit (invérifiable) |
 |---|---|
-| « Il manque 2 informations pour publier votre profil : formats attendus, budget indicatif. » | « Complétez votre profil pour recevoir plus de réponses. » |
+| « Il manque 2 informations pour soumettre votre profil : formats attendus, budget indicatif. » | « Complétez votre profil pour recevoir plus de réponses. » |
 | « Sans budget indicatif, les créateurs ne peuvent pas savoir si votre besoin correspond à leurs tarifs. » | « Un profil complet multiplie vos chances par 3. » |
 | « Votre logo n'est pas renseigné : vos campagnes s'affichent sans image. » | « Les marques vérifiées obtiennent de meilleurs créateurs. » |
 
@@ -600,7 +600,7 @@ explicite.
 
 | Clé | Français | English |
 |---|---|---|
-| `brandProfile.publish.missing` | Il manque {count, plural, one {# information} other {# informations}} pour publier votre profil : {fields}. | {count, plural, one {# piece of information is} other {# pieces of information are}} missing to publish your profile: {fields}. |
+| `brandProfile.publish.missing` | Il manque {count, plural, one {# information} other {# informations}} pour soumettre votre profil : {fields}. | {count, plural, one {# piece of information is} other {# pieces of information are}} missing to submit your profile: {fields}. |
 | `brandProfile.layer.public` | Visible de tous les créateurs. | Visible to all creators. |
 | `brandProfile.layer.revealed` | Visible uniquement après l'ouverture d'une mise en relation. | Visible only after an introduction is opened. |
 | `brandProfile.layer.internal` | Visible uniquement par l'équipe INFLUX. | Visible only to the INFLUX team. |
@@ -1016,3 +1016,4 @@ fichier) vivent **en table**, modifiables sans redéploiement, chaque modificati
 | **Q8** | ✅ ***Tranchée le 2026-11-01 (fondateur) : oui, logo fortement incité mais non bloquant (RG15).*** **Une marque peut-elle publier son profil sans logo ?** Un annuaire de campagnes sans logo est nettement moins crédible | **Oui**, logo fortement incité mais non bloquant (RG15) | `expert-ux` + `chef-de-projet` | Lot 2 |
 | **Q9** | **Faut-il conditionner la recherche de créateurs à la publication du profil** (RG8) ? C'est une protection anti-aspiration, mais aussi une friction sur le parcours annonceur | **Oui**, conditionnée | `chef-de-projet` + Fondateur | **Avant le Lot 3** |
 | **Q10** | **Libellé juridique exact du badge « Marque vérifiée »**, en français et en anglais, relu par un juriste avant tout affichage | Substance fixée par RG49 et RG50 ; rédaction à produire | `expert-conformite-rgpd` + juriste | Lot 2 |
+| **Q11** | **Que doit dire « ce que cela change » de RG61 et CA38 (« effet observable ») ?** Le message de complétude nomme les champs manquants et l'action qu'ils bloquent (la soumission) ; les phrases d'effet de RG61 (« Sans budget indicatif, les créateurs ne peuvent pas savoir… », « sans image ») ne sont portées par aucune clé de RG84 ni par aucun écran | Le message nomme les manquants et l'action qu'ils bloquent, rien d'autre ; aucun texte d'effet ajouté tant que la question n'est pas tranchée | `product-owner` | Avant le Lot 3 |
