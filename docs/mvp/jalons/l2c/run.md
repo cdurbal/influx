@@ -2,7 +2,7 @@
 
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
-| 01 | 01.md | arbitrage | opus | xhigh | architecte | à faire | |
+| 01 | 01.md | arbitrage | opus | xhigh | architecte | fait | `l2c/file.md` (noms définitifs), D81 ; RG6 tenu : seules les fonctions de `influx_moderation_definer` publient ; escalade 960 |
 | 02 | 02.md | commit | sonnet | high | dev-react-node | à faire | |
 | 03 | 03.md | commit | sonnet | medium | dev-react-node | à faire | |
 | 04 | 04.md | commit | opus | high | expert-database | à faire | I-4 |

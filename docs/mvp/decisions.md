@@ -1,4 +1,4 @@
-# INFLUX — Registre des décisions (D1 à D79)
+# INFLUX — Registre des décisions (D1 à D81)
 
 > Déplacé depuis `CLAUDE.md` §13 le 2026-10-05. Registre résumé (sujet, statut) ; le texte intégral des colonnes d'origine est dans `decisions-detail.md` (§ Dxx), qui **fait foi en cas d'écart**. `CLAUDE.md` ne liste plus que les décisions ouvertes.
 
@@ -89,6 +89,7 @@ hors de ce cadre ; mettre ce tableau et `decisions-detail.md` à jour à chaque 
 | D78 | Tarifs créateur au pilote (`07` Q1) | Tranchée 2026-11-01 (fondateur) : dans un premier temps aucun tarif saisi ni annoncé, coûts négociés avec le commercial ; prolonge D48. Portée sur les budgets de campagne à confirmer avant le Lot 3. | § D78 |
 | D79 | Arbitrages d'ouverture du Lot 2 (questions ouvertes de `03`, `06`, `07`, `08`) | Tranchée 2026-11-01 (fondateur, sur recommandation de l'agent principal) : « identité masquée » (R-4), pièces 45 j (R-5), ville jamais révélée, pas de date de naissance, visages admis au portfolio, « Compte vérifié » requis, 3 visuels minimum, bornes des tranches et paramètres de départ. Registres : tous pays, sources officielles gratuites ou LEI, socle puis à la demande. Revue `expert-conformite-rgpd` au Lot 6. | § D79 |
 | D80 | Stockage et chaîne d'images du Lot 2 (logo de marque) | Tranchée 2026-11-01 (`architecte`, à relire par le fondateur) : logo déposé par le passe-plat (2 Mio, PP-9 amendé), E1 non retenu (URL de téléversement de 2 h, E1-3 intenable) ; `sharp` 0.35.5 ré-encode en WebP 512² sans métadonnée ; `storage-js` 2.117.2 dans un seul fichier ; lecture en JSON par `apps/api`, aucune URL signée ; compartiment privé `brand-logo`, ligne écrite avant l'objet, quotas en table, purge horaire (E-4) ; Storage en CI ; `packages/domain` sans dépendance. Ouvert avant L2E : pièces et portfolio. | § D80 |
+| D81 | Patron des files de validation du backoffice (file 1, L2C) | Tranchée 2026-11-03 (`architecte`, rôle à signer par `expert-cybersecurite` en revue de fin de L2C) : une entrée par objet examiné, portant verrou, échéances figées et décision ; jeton de version = empreinte du contenu ; verrou expiré lu, journalisé par la prise suivante, sans tâche du worker (amende `03` C(20)) ; codes `queue.*` communs aux files ; fonctions internes à `influx_moderation_definer`, distinct des portes membres (`03` P7). Repris par L2G (file 2). | § D81 |
 
 > **Points ouverts de D72 (fiche de la zone de danger, close le 2026-10-28).** Défaut appliqué
 > entre parenthèses. **DZ-1** délai de grâce avant exécution (aucun ; fondateur après avis
