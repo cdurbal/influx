@@ -466,35 +466,35 @@
 | 29 | 21 | Besoin |  |
 | 50 | 16 | Acteurs |  |
 | 66 | 49 | User stories |  |
-| 115 | 867 | Règles de gestion | RG1–RG161 |
+| 115 | 871 | Règles de gestion | RG1–RG161 |
 | 117 | 71 | ↳ A — Portée, principes et vocabulaire | RG1–RG13 |
 | 188 | 68 | ↳ B — Le tableau de bord | RG5–RG108 |
-| 256 | 102 | ↳ C — Le catalogue unique des files | RG6–RG104 |
-| 358 | 71 | ↳ D — La fiche de compte | RG38–RG108 |
-| 429 | 78 | ↳ E — Suspension, réactivation, réattribution | RG26–RG95 |
-| 507 | 83 | ↳ F — Le catalogue central des alertes | RG8–RG161 |
-| 590 | 112 | ↳ G — Les demandes relatives aux données personnelles | RG57–RG160 |
-| 702 | 49 | ↳ H — Les actions de masse | RG2–RG102 |
-| 751 | 40 | ↳ I — Les exports | RG81–RG106 |
-| 791 | 66 | ↳ J — La gestion des comptes internes | RG60–RG108 |
-| 857 | 41 | ↳ K — Ce qu'un rôle interne ne peut jamais faire | RG7–RG111 |
-| 898 | 84 | ↳ L — Densité, accessibilité et langue | RG11–RG124 |
-| 982 | 44 | Cas limites | RG4–RG116 |
-| 1026 | 304 | Critères d'acceptation | RG16–RG109 |
-| 1028 | 33 | ↳ Tableau de bord | RG16–RG18 |
-| 1061 | 43 | ↳ Catalogue et règles communes des files | RG29 |
-| 1104 | 35 | ↳ Fiche de compte | RG48 |
-| 1139 | 39 | ↳ Suspension, réactivation, réattribution |  |
-| 1178 | 24 | ↳ Alertes |  |
-| 1202 | 41 | ↳ Demandes relatives aux données personnelles | RG81 |
-| 1243 | 33 | ↳ Actions de masse et exports |  |
-| 1276 | 22 | ↳ Comptes internes | RG107 |
-| 1298 | 32 | ↳ Interdits, densité et accessibilité | RG43–RG109 |
-| 1330 | 102 | Impacts | RG8–RG125 |
-| 1432 | 21 | Hors périmètre | RG10–RG100 |
-| 1453 | 29 | Questions ouvertes | RG19–RG111 |
-| 1482 | 162 | Additif du document 16 (2026-09-19) | RG9–RG131 |
-| 1644 | 46 | Additif du J9 (2026-10-21) — alertes techniques de D60 | RG46–RG165 |
+| 256 | 106 | ↳ C — Le catalogue unique des files | RG6–RG104 |
+| 362 | 71 | ↳ D — La fiche de compte | RG38–RG108 |
+| 433 | 78 | ↳ E — Suspension, réactivation, réattribution | RG26–RG95 |
+| 511 | 83 | ↳ F — Le catalogue central des alertes | RG8–RG161 |
+| 594 | 112 | ↳ G — Les demandes relatives aux données personnelles | RG57–RG160 |
+| 706 | 49 | ↳ H — Les actions de masse | RG2–RG102 |
+| 755 | 40 | ↳ I — Les exports | RG81–RG106 |
+| 795 | 66 | ↳ J — La gestion des comptes internes | RG60–RG108 |
+| 861 | 41 | ↳ K — Ce qu'un rôle interne ne peut jamais faire | RG7–RG111 |
+| 902 | 84 | ↳ L — Densité, accessibilité et langue | RG11–RG124 |
+| 986 | 44 | Cas limites | RG4–RG116 |
+| 1030 | 304 | Critères d'acceptation | RG16–RG109 |
+| 1032 | 33 | ↳ Tableau de bord | RG16–RG18 |
+| 1065 | 43 | ↳ Catalogue et règles communes des files | RG29 |
+| 1108 | 35 | ↳ Fiche de compte | RG48 |
+| 1143 | 39 | ↳ Suspension, réactivation, réattribution |  |
+| 1182 | 24 | ↳ Alertes |  |
+| 1206 | 41 | ↳ Demandes relatives aux données personnelles | RG81 |
+| 1247 | 33 | ↳ Actions de masse et exports |  |
+| 1280 | 22 | ↳ Comptes internes | RG107 |
+| 1302 | 32 | ↳ Interdits, densité et accessibilité | RG43–RG109 |
+| 1334 | 102 | Impacts | RG8–RG125 |
+| 1436 | 21 | Hors périmètre | RG10–RG100 |
+| 1457 | 29 | Questions ouvertes | RG19–RG111 |
+| 1486 | 162 | Additif du document 16 (2026-09-19) | RG9–RG131 |
+| 1648 | 46 | Additif du J9 (2026-10-21) — alertes techniques de D60 | RG46–RG165 |
 
 ## 16-backoffice-emails-brevo.md (~52k tokens)
 

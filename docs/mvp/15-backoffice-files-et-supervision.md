@@ -305,6 +305,10 @@ les motifs et les messages ; ce document-ci ne fait autorité que sur les colonn
 | 14 | `data_subject_requests` | **Demandes relatives aux données personnelles** | Demande d'un membre ou d'un tiers | **§G de ce document** | **30 j calendaires** (délai légal), **objectif interne 10 j ouvrés** | 1 j ouvré | 30 min | Instruction `agent` ; **exécution `admin`** (`03` §3.5) | Non |
 | 15 | `dual_control_pending` | **Actions en attente de seconde validation** | Toute action `2V` demandée et non encore confirmée | **§E et §J de ce document** | **24 h**, puis **expiration** (RG31) | — | Aucun | `admin` distinct du demandeur, ou le demandeur en mode dégradé | Non |
 
+**Escalade de la file 1** (L2C, `0206`) : `escalate_after_minutes = 960`, compté **après** l'échéance de
+décision ; 480 + 960 = **3 jours ouvrés d'ancienneté** (`06` RG7). Échéance et escalade sont calculées une
+seule fois, à l'entrée, par `backoffice.business_deadline()` (`04` §5.6), sans jours fériés.
+
 **RG30** — **La file `lead_sync_failures` n'a pas de verrou nominatif**, et c'est délibéré : le rejeu
 est **idempotent** (`05` RG102). Deux agents qui rejouent la même ligne ne produisent ni doublon, ni
 double e-mail. Poser un verrou là où la concurrence est inoffensive n'ajoute que de la friction.

@@ -934,6 +934,20 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     }),
   },
   {
+    table: "backoffice.operational_settings",
+    source:
+      "0206 (L2C, 04 §5.10, EC-L2C-2): the closed key/value list of the operating caps and " +
+      "delays (claim_expiry_minutes), written by the migrations only until the admin function of Lot 5",
+    probeColumn: "key",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "15 RG27 C3, RG38: the claim expiry read in aal2 by the roles that handle the queues",
+      },
+    }),
+  },
+  {
     table: "backoffice.alert_definitions",
     source:
       "0130 (J8, 15 §F RG63 to RG68): the catalogue of alerts of Lot 1, written by the migrations only",
@@ -1962,6 +1976,10 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|table|backoffice.queues|SELECT",
   "influx_agent|table|backoffice.sla_policies|SELECT",
   "influx_admin|table|backoffice.sla_policies|SELECT",
+  // 0206 (L2C commit 04): the operating settings, read by agent and admin in aal2, written by the
+  // migrations only; backoffice.business_deadline() is executed by nobody yet (0207 grants it).
+  "influx_agent|table|backoffice.operational_settings|SELECT",
+  "influx_admin|table|backoffice.operational_settings|SELECT",
   // 0130 (J8 commit 2): the catalogue of alerts (agent and admin), the dual control requests
   // (admin), the three 2V functions and grant_role() rewritten (influx_admin only); their owner
   // reads and writes the requests column by column, reads the delay of dual_control_pending, the
