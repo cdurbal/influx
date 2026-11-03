@@ -3,7 +3,7 @@
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
 | 01 | 01.md | arbitrage | opus | xhigh | architecte | fait | `l2c/file.md` (noms définitifs), D81 ; RG6 tenu : seules les fonctions de `influx_moderation_definer` publient ; escalade 960 |
-| 02 | 02.md | commit | sonnet | high | dev-react-node | à faire | |
+| 02 | 02.md | commit | sonnet | high | dev-react-node | fait | PLK-1 : 5 fichiers de routes + `action-guards.ts` (≤ 303 l.), `actions-routes.ts` reste le point d’enregistrement et ré-exporte les gardes ; comportement constant, aucun test modifié |
 | 03 | 03.md | commit | sonnet | medium | dev-react-node | à faire | |
 | 04 | 04.md | commit | opus | high | expert-database | à faire | I-4 |
 | 05 | 05.md | commit | opus | high | expert-database | à faire | I-4 |

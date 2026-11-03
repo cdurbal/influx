@@ -146,7 +146,6 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 | # | Correctif attendu | Échéance | Détail |
 |---|---|---|---|
 | DS-flaky | `t14-backoffice-invitations-route` (« a retry of the same link… ») vu rouge une fois ; aucune occurrence sur les passages de clôture L2A (suite base, puis deux passages du fichier) ni sur 5 runs CI | À surveiller | ligne DS de l'archive §5 |
-| PLK-1 | `apps/api/src/domains/backoffice/actions-routes.ts` (833 l., routes, hors de PL-05) : découpage par sous-domaine pour tenir les 600 lignes du critère de fin PL | Lot 2 (à la première retouche) | `archives/jalons/pl-fiche.md` § Critère de fin |
 | PLS-2 | T12 : audit des dépendances qui échoue sur critique ou élevée (T12.1), hebdomadaire et CI, dérogations datées (T12.3, T12.4) | Avant production | idem |
 | PLT-2 | `/v1/bo/alerts` : refus délibéré 42501 `forbidden` en 401 (cookie effacé, PLS-4) au lieu de 500 ; test db qui désactive le profil entre résolution et appel | Avant production | idem |
 | PLT-5 | Fonction 2V de `0141` (EC-PL-04a-1) : migration `@.value.type() != "string"`, test db « payload 2V refusé à la création » ; avec PLS-5 et PLS-6 | Avant production | idem |
