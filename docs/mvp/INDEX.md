@@ -6,6 +6,9 @@
 > **Ne jamais lire une spécification en entier.** Repérer ici la section utile, puis la lire avec
 > `Read` (`offset` = ligne de départ, `limit` = nombre de lignes), ou chercher une règle précise
 > avec `Grep` (exemple : `RG113` dans le fichier concerné).
+>
+> **Session de jalon : lire d'abord sa fiche**, qui cite déjà les tranches utiles :
+> `jalons/l2c-fiche.md`.
 
 ## 00-cadrage-mvp-v2.md (~16k tokens)
 
@@ -666,7 +669,7 @@
 | 860 | 56 | ↳ 11.8 Gabarits et composants |  |
 | 916 | 12 | ↳ 11.9 Points soumis au fondateur |  |
 
-## 21-plan-de-developpement.md (~6k tokens)
+## 21-plan-de-developpement.md (~7k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -678,4 +681,4 @@
 | 93 | 21 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
 | 114 | 9 | 6. Configuration des services externes |  |
 | 123 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 140 | 49 | 8. Lot 2 — entrée et jalon actif |  |
+| 140 | 50 | 8. Lot 2 — entrée et jalon actif |  |
