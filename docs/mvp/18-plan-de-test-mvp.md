@@ -652,12 +652,12 @@ s'exécutent donc aussi sur un dossier de fichiers témoins en infraction (hors 
 | Cas | Ce qu'il vérifie |
 |---|---|
 | **T9.1** | `storage.buckets.public = false` pour **tous** les compartiments, sans exception |
-| **T9.2** | URL signée expirée ⇒ refus ; durée émise ≤ 5 min |
+| **T9.2** | URL signée expirée ⇒ refus ; durée émise ≤ 5 min. *Au L2B (D80) : aucune réponse du logo ne porte d'hôte Supabase ni de jeton* |
 | **T9.3** | Clé d'objet avec traversée (`../`) ⇒ refus |
 | **T9.4** | Fichier dont les **octets d'en-tête** contredisent le type déclaré ⇒ rejet ; PDF refusé (E1-9) |
 | **T9.5** | **EXIF absent après traitement** : image de test portant une géolocalisation connue ⇒ après ré-encodage, la donnée a disparu. Le test lit les octets, il ne fait pas confiance à un booléen |
 | **T9.6** | **Une pièce de vérification n'est atteignable par aucune route ni aucun schéma du rôle annonceur, y compris en devinant un identifiant** et y compris après révélation d'identité (C(13)). Ce cas est bloquant à lui seul |
-| **T9.7** | Toute émission d'URL signée est journalisée ; la lecture d'une pièce de vérification passe par `apps/api` et non par une URL signée (E1-7) |
+| **T9.7** | Toute émission d'URL signée est journalisée *(au L2B, D80 : aucune URL signée n'est émise)* ; la lecture d'une pièce de vérification passe par `apps/api` et non par une URL signée (E1-7) |
 | **T9.8** | Quotas par compte (nombre et volume par jour) appliqués côté serveur |
 | **T9.9** | Le chemin d'objet est calculé par le serveur et **ne contient jamais le nom de fichier d'origine** |
 | **T9.10** | Contrainte de base : un visuel de portfolio dont les métadonnées n'ont pas été retirées **ne peut pas** passer en `approved` ; un remplacement de fichier repasse la modération à `pending` |
