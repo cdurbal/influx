@@ -187,3 +187,30 @@ Les cas portent la règle qu'ils prouvent (`06` RGn, CAn, `18` T9.n, T14.n, `03`
 2. Écarts EC-L2B-1 à EC-L2B-7 validés tels que tranchés.
 
 ## Revue
+
+Revue de fin de jalon (`testeur` + `expert-cybersecurite`, 2026-11-03, plage `27c4c3f..4321a6c`) :
+**aucun bloquant**. `testeur` : prêt à livrer pour `main` sous réserve de L2BT-1 et L2BT-2.
+`expert-cybersecurite` : attestation `security-reviewed: 2026-11-03 covers 662382e 5739d4a 4e75abf
+41aced0 2ac2b9d 715f2f0` (lignes 03, 05, 06, 08, 09, 12), commitée en clôture après `fix-1` et
+`fix-2` (texte dans `l2b/cloture.md`). Constats « avant production » et « plus tard » reportés dans
+`21` §8 à la clôture.
+
+| Id | Gravité | Constat (fichier:ligne) | Correctif | Sort |
+|---|---|---|---|---|
+| L2BT-1 | à corriger dans le jalon | CA38, RG61 sans test : `publish.missing` (`locales/{fr,en}/brand-profile.json:3`) vu au seul regex (`e2e/brand-profile.spec.ts:93`, `:434`) ; rien ne prouve les manquants nommés ni l'absence de promesse chiffrée ; « publier » alors que l'action est « soumettre » ; « dit ce que cela change » (RG61) non réalisé | Cas dans `tests/brand-profile-form.test.ts` (l. 329-375) : `publish.missing` formaté avec des champs, chacun nommé, aucune promesse chiffrée ; libellé « soumettre » ; écart « effet observable » remonté à `product-owner` | `fix-1` ; question `06` Q11 (`product-owner`), aucune décision prise |
+| L2BT-2 | à corriger à la clôture | Durées CI avec Storage non consignées (ligne 03). « Browser journeys » : 359 s avant Storage, 437 s (`e9c941d`), 429 s (`9f174bf`), 440 s (`5739d4a`) ; borne 480 s, marge 40 s, dispersion ≈ 80 s. « Database tests » : 307 s avant, 305 à 337 s après | Durées consignées dans `run.md` ; borne sous surveillance, jamais élargie sans arbitrage | Clôture (`cloture.md`) |
+| L2BT-3 | avant production | Double soumission simultanée non prouvée | `Promise.all` de deux `POST` de soumission : une seule ligne `profile.submitted`, un seul `changed: true` (patron `profiles-brand-route.test.ts:634`) | `21` §8 |
+| L2BT-4 | avant production | Chemin d'échec de l'autosave non testé (`use-brand-profile.ts:51`, `:156` ; `use-brand-summary.ts:38`) | `PATCH` en 503 par `page.route` | `21` §8 |
+| L2BT-5 | avant production | Largeurs de M2 non croisées | 320, 375 et 1 440 px × FR, EN : aucun défilement horizontal, CA46 sur toutes les sections | `21` §8 |
+| L2BT-6 | plus tard | Horloge UTC réelle dans les tests de quota (`profiles-brand-logo-route.test.ts:436-455`) | Cas indépendants de l'heure réelle | `21` §8 |
+| L2BT-7 | plus tard | Cas `legal_name` et `country` de `submit_own_advertiser_profile()` absents (`profiles-brand-submission.test.ts:363-418`) | Ajouter les deux cas | `21` §8 |
+| L2BT-8 | plus tard | D76 à étendre : `test:artifacts` et `charter-headings` quand un écran ou un module de classes est ajouté (trois CI rouges consécutives) | Extension de D76 à arbitrer | `21` §8 |
+| L2BS-1 | avant production (L2C) | Gel des profils `published`, `suspended` côté API seul (`EDITABLE_STATUSES`, `profiles/brand-profile.ts:48-52`) ; politiques UPDATE, INSERT, DELETE (`0202` l. 328-332, 358-369) et `begin_brand_logo_upload` (`0204` l. 314-342) ignorent l'état : modération contournable en L2C | Garde en base sur l'état ; décision liée à une version (`updated_at` ou jeton), obligatoires recontrôlés | L2C, `21` §8 |
+| L2BS-2 | à corriger dans le jalon (doc) | `03` l. 894, 900-910 : `0205` donne à `influx_maintenance_definer` des droits sur `profiles` (`select`, `update`, `delete` sur `brand_logo_objects`, `storage_daily_usage`) et trois fonctions E-4 ; rôle absent des tables de rôles (seule mention l. 850) ; `influx_identity_definer` encore « à signer » | Rôle aux « créés plus tard » (`0117`, `0148`, `0205`, avec droits) ; motif `storage_purge` à E-4 ; « signé par `expert-cybersecurite` le 2026-11-03, revue de fin de L2B » | `fix-2` |
+| L2BS-3 | à corriger dans le jalon (doc) | `03` l. 1398 (PP-9 « 1 Mo, aucun téléversement »), l. 1531, 1536 (E1-3, E1-8), l. 1068-1070 (P10.2 sans `brand-logo`) ; `18` l. 655, 660 (T9.2, T9.7) contredisent D80 et le code ; `cloture.md` l. 9-12 les omet | PP-9 (2 Mio par le passe-plat, 1 Mio ailleurs), §6.6 (E1 non retenu au L2B, ouvert avant L2E), P10.2 (`brand-logo`), T9.2 et T9.7 selon D80 ; `cloture.md` complété | `fix-2` |
+| L2BS-4 | avant production | `0204` l. 13-18 : politique restrictive sans effet sur les clés S3 du Storage | Constater qu'aucune clé S3 n'existe, désactiver la connexion S3 (`staging` par les agents, D70 ; production sur confirmation du fondateur) | `21` §8 |
+| L2BS-5 | plus tard | `platform/images.ts:83-91`, `:129-138` : `sharp` sans borne de temps | `.timeout({ seconds: 10 })` | `21` §8 |
+| L2BS-6 | plus tard | `web-platform/src/server/relay.ts:36`, `profiles/routes.ts:150-185` : 2 Mio pour toutes les routes du passe-plat, corps en mémoire avant le contrôle de session | À reprendre avec le relais généralisé (D80, ouvert avant L2E) | `21` §8 |
+| L2BS-7 | plus tard (L2C) | Lecture par agent ou admin des coordonnées de l'interlocuteur sans journalisation | Journaliser cette lecture privilégiée (CLAUDE.md §5 règle 5) | L2C, `21` §8 |
+| L2BS-8 | plus tard (L2C, Lot 3) | Homographes IDN dans le domaine du site (`domain/src/brand-profile/website.ts:24`) | À instruire | L2C ou Lot 3, `21` §8 |
+| L2BS-9 | plus tard | `fastify` 5.12.5 (GHSA-389g-gv7q-r4x8 ; `fast-uri`, modérés), hors diff | `fastify` ≥ 5.12.6 (dépendance : suite complète, D76) | `21` §8, avec L2AS-3 |
