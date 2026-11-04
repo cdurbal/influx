@@ -5,7 +5,10 @@
 # - `db`: the local Supabase stack, rebuilt from the migrations, and the database tests (never
 #   skipped when code changed);
 # - `e2e`: the J5 browser journeys (Playwright, Chromium headless shell only, 5-minute cap on the
-#   step) against their own local stack, started in the background while both fronts build;
+#   step) in two shards (L2C-14, docs/mvp/jalons/l2c/e2e.md), each against its own local stack,
+#   started in the background while both fronts build;
+# - `e2e-merge`: no stack; TK3.1 on the surveys of both shards, then the reports of the three runs
+#   merged and the floors of executed cases checked on the whole (L2C-14a);
 # - `relay-node-24`: the relay and the origin check on Node 24, the production runtime (C-2).
 # A documentation-only push to `main` runs `check`'s cheap steps alone; `production` and pull
 # requests always run everything.
@@ -235,12 +238,19 @@ jobs:
       - name: Database tests
         run: pnpm --filter @influx/api test:db
 
+  # L2C-14: two shards (`--project=chromium` is needed: without it, the `chromium` project, which the
+  # TK3.1 project depends on, is never split and every case goes to shard 1). The 5-minute cap of the
+  # Playwright step holds for each shard.
   e2e:
-    name: Browser journeys
+    name: Browser journeys (${{ matrix.shard }}/2)
     needs: [changes]
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     # Same local stack as `db`, same raised limits of its Auth (EC-38, EC-51, C5-2).
     env:
       INFLUX_LOCAL_AUTH_SIGN_IN_LIMIT: "1000"
@@ -311,9 +321,87 @@ jobs:
         run: pnpm --filter @influx/api db:publish-terms -- --latest
 
       - name: Browser journeys (Playwright)
-        # About 45 s locally: a stuck journey must not consume the job.
+        # About 45 s locally: a stuck journey must not consume the job. The blob report is merged
+        # by `e2e-merge`, which also runs TK3.1 and checks the floors of executed cases.
         timeout-minutes: 5
-        run: pnpm test:e2e
+        working-directory: apps/web
+        run: pnpm exec playwright test --project=chromium --shard=${{ matrix.shard }}/2 --reporter=list,blob
+
+      - name: Keep the blob report of the shard
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-blob-${{ matrix.shard }}
+          path: apps/web/blob-report
+          if-no-files-found: error
+          retention-days: 1
+
+      # What the axe passes recorded for TK3.1 (e2e/support/rendering.ts).
+      - name: Keep the title surveys of the shard
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-headings-${{ matrix.shard }}
+          path: apps/web/test-results/tk3-headings
+          if-no-files-found: error
+          retention-days: 1
+
+  # L2C-14a: no stack, no browser, no server. TK3.1 reads the surveys of both shards
+  # (`--no-deps`: the `chromium` project ran in the shards; E2E_HEADINGS_FROM, see
+  # apps/web/playwright.config.ts), then the blobs of the shards and of TK3.1 are merged into the
+  # report the floors of executed cases read, as in a single run (`pnpm test:e2e`).
+  e2e-merge:
+    name: Browser journeys, merged
+    needs: [e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download the title surveys of the shards
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: e2e-headings-*
+          merge-multiple: true
+          path: apps/web/shard-headings
+
+      - name: Download the blob reports of the shards
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: e2e-blob-*
+          merge-multiple: true
+          path: apps/web/shard-blobs
+
+      - name: TK3.1 on the surveys of both shards
+        working-directory: apps/web
+        env:
+          E2E_HEADINGS_FROM: shard-headings
+        run: pnpm exec playwright test --project=charter-headings --no-deps --reporter=list,blob
+
+      - name: Merge the reports and check the floors of executed cases
+        working-directory: apps/web
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/e2e-report.json
+        run: |
+          mkdir all-blobs
+          cp shard-blobs/*.zip blob-report/*.zip all-blobs/
+          pnpm exec playwright merge-reports --reporter=json all-blobs
+          node ../../packages/test-kit/scripts/check-case-floors.ts e2e/case-floors.ts test-results/e2e-report.json
 
   # C-2 (end-of-J1 security review, 21 J1-J): the relay runs on Node 24 in production (J1-B,
   # Node >= 24.12), while the other jobs run the version of .node-version. What Node's fetch does
@@ -371,7 +459,7 @@ jobs:
   migrate-staging:
     name: Migrate staging
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [check, db, e2e, relay-node-24]
+    needs: [check, db, e2e-merge, relay-node-24]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: staging
@@ -453,7 +541,7 @@ jobs:
       github.event_name == 'push'
       && github.ref == 'refs/heads/production'
       && vars.PRODUCTION_MIGRATION_ENABLED == 'true'
-    needs: [check, db, e2e, relay-node-24]
+    needs: [check, db, e2e-merge, relay-node-24]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production

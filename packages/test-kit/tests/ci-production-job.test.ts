@@ -61,7 +61,7 @@ describe("J9T-2: the Migrate production job", () => {
   });
 
   it("waits for the required jobs", () => {
-    expect(JOB).toMatch(/needs: \[check, db, e2e, relay-node-24\]/);
+    expect(JOB).toMatch(/needs: \[check, db, e2e-merge, relay-node-24\]/);
   });
 
   it("is the only job that names the production environment", () => {
@@ -136,9 +136,23 @@ describe("D76: the documentation-only skip", () => {
     }
   });
 
+  it("runs the browser journeys in two shards of the chromium project, merged by a job without stack", () => {
+    const e2e = code(JOBS.get("e2e") ?? "");
+    expect(e2e).toContain("shard: [1, 2]");
+    expect(e2e).toContain(
+      "playwright test --project=chromium --shard=${{ matrix.shard }}/2",
+    );
+    const merge = code(JOBS.get("e2e-merge") ?? "");
+    expect(merge).toContain("    needs: [e2e]\n");
+    expect(merge).toContain("--project=charter-headings --no-deps");
+    expect(merge).toContain("merge-reports");
+    expect(merge).toContain("check-case-floors.ts e2e/case-floors.ts");
+    expect(merge).not.toContain("supabase");
+  });
+
   it("migrates staging after every check", () => {
     expect(code(JOBS.get("migrate-staging") ?? "")).toMatch(
-      /needs: \[check, db, e2e, relay-node-24\]/,
+      /needs: \[check, db, e2e-merge, relay-node-24\]/,
     );
   });
 });

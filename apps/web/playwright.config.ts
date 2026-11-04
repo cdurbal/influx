@@ -37,9 +37,17 @@ process.env[E2E_RUN_VARIABLE] ??= randomUUID().slice(0, 8);
 
 const SERVER_TIMEOUT_MS = 240_000;
 
+// L2C-14a: the merge job of ci.yml runs TK3.1 alone (`--project=charter-headings --no-deps`) on the
+// surveys of both shards, which it names here: no stack and no server then, and the surveys are put
+// back by e2e/restore-headings.ts. Unset everywhere else, locally and in the shards.
+const HEADINGS_FROM = process.env.E2E_HEADINGS_FROM;
+
 export default defineConfig({
   testDir: "e2e",
-  globalSetup: "./e2e/global-setup.ts",
+  globalSetup:
+    HEADINGS_FROM === undefined
+      ? "./e2e/global-setup.ts"
+      : "./e2e/restore-headings.ts",
   // A journey waits for real servers (the code floor of 1 s, GoTrue, a 10 s countdown).
   timeout: 60_000,
   expect: { timeout: 10_000 },
@@ -75,62 +83,66 @@ export default defineConfig({
       dependencies: ["chromium"],
     },
   ],
-  webServer: [
-    {
-      command: "node ../../packages/test-kit/scripts/brevo-double.ts",
-      url: `${DOUBLE_ORIGIN}/messages`,
-      env: { BREVO_DOUBLE_PORT: String(DOUBLE_PORT) },
-      reuseExistingServer: false,
-      timeout: SERVER_TIMEOUT_MS,
-    },
-    {
-      command: "node e2e/start-api.ts",
-      url: `${API_ORIGIN}/health`,
-      env: {
-        INFLUX_ENV: "development",
-        PORT: String(API_PORT),
-        INFLUX_API_INTERNAL_SECRET_WEB: WEB_SECRET,
-        INFLUX_API_INTERNAL_SECRET_BACKOFFICE: BACKOFFICE_SECRET,
-        INFLUX_PUBLIC_SITE_URL: WEB_ORIGIN,
-        INFLUX_PUBLIC_BACKOFFICE_URL: BACKOFFICE_ORIGIN,
-        AUTH_THROTTLE_PEPPER: "e2e-throttle-pepper-0123456789abcdef0123",
-        AUTH_TOKEN_SIGNING_SECRET: "e2e-token-signing-secret-0123456789abcd",
-        BREVO_MODE: "redirect",
-        BREVO_API_BASE_URL: `${DOUBLE_ORIGIN}/v3`,
-        BREVO_API_KEY: "e2e-brevo-double-key",
-        BREVO_SENDER_TRANSACTIONAL: "codes@e2e.example.test",
-        BREVO_TEST_RECIPIENTS: mailboxAddresses().join(","),
-      },
-      reuseExistingServer: false,
-      timeout: SERVER_TIMEOUT_MS,
-    },
-    {
-      command:
-        process.env.CI !== undefined
-          ? `pnpm exec next start -H 127.0.0.1 -p ${WEB_PORT}`
-          : `pnpm exec next build && pnpm exec next start -H 127.0.0.1 -p ${WEB_PORT}`,
-      url: `${WEB_ORIGIN}/fr/connexion`,
-      env: {
-        INFLUX_ENV: "development",
-        INFLUX_API_INTERNAL_URL: API_ORIGIN,
-        INFLUX_API_INTERNAL_SECRET: WEB_SECRET,
-      },
-      reuseExistingServer: false,
-      timeout: SERVER_TIMEOUT_MS,
-    },
-    {
-      command:
-        process.env.CI !== undefined
-          ? `pnpm exec next start -H 127.0.0.1 -p ${BACKOFFICE_PORT}`
-          : `pnpm exec next build && pnpm exec next start -H 127.0.0.1 -p ${BACKOFFICE_PORT}`,
-      cwd: "../backoffice",
-      url: `${BACKOFFICE_ORIGIN}/`,
-      env: {
-        INFLUX_API_INTERNAL_URL: API_ORIGIN,
-        INFLUX_API_INTERNAL_SECRET: BACKOFFICE_SECRET,
-      },
-      reuseExistingServer: false,
-      timeout: SERVER_TIMEOUT_MS,
-    },
-  ],
+  webServer:
+    HEADINGS_FROM !== undefined
+      ? []
+      : [
+          {
+            command: "node ../../packages/test-kit/scripts/brevo-double.ts",
+            url: `${DOUBLE_ORIGIN}/messages`,
+            env: { BREVO_DOUBLE_PORT: String(DOUBLE_PORT) },
+            reuseExistingServer: false,
+            timeout: SERVER_TIMEOUT_MS,
+          },
+          {
+            command: "node e2e/start-api.ts",
+            url: `${API_ORIGIN}/health`,
+            env: {
+              INFLUX_ENV: "development",
+              PORT: String(API_PORT),
+              INFLUX_API_INTERNAL_SECRET_WEB: WEB_SECRET,
+              INFLUX_API_INTERNAL_SECRET_BACKOFFICE: BACKOFFICE_SECRET,
+              INFLUX_PUBLIC_SITE_URL: WEB_ORIGIN,
+              INFLUX_PUBLIC_BACKOFFICE_URL: BACKOFFICE_ORIGIN,
+              AUTH_THROTTLE_PEPPER: "e2e-throttle-pepper-0123456789abcdef0123",
+              AUTH_TOKEN_SIGNING_SECRET:
+                "e2e-token-signing-secret-0123456789abcd",
+              BREVO_MODE: "redirect",
+              BREVO_API_BASE_URL: `${DOUBLE_ORIGIN}/v3`,
+              BREVO_API_KEY: "e2e-brevo-double-key",
+              BREVO_SENDER_TRANSACTIONAL: "codes@e2e.example.test",
+              BREVO_TEST_RECIPIENTS: mailboxAddresses().join(","),
+            },
+            reuseExistingServer: false,
+            timeout: SERVER_TIMEOUT_MS,
+          },
+          {
+            command:
+              process.env.CI !== undefined
+                ? `pnpm exec next start -H 127.0.0.1 -p ${WEB_PORT}`
+                : `pnpm exec next build && pnpm exec next start -H 127.0.0.1 -p ${WEB_PORT}`,
+            url: `${WEB_ORIGIN}/fr/connexion`,
+            env: {
+              INFLUX_ENV: "development",
+              INFLUX_API_INTERNAL_URL: API_ORIGIN,
+              INFLUX_API_INTERNAL_SECRET: WEB_SECRET,
+            },
+            reuseExistingServer: false,
+            timeout: SERVER_TIMEOUT_MS,
+          },
+          {
+            command:
+              process.env.CI !== undefined
+                ? `pnpm exec next start -H 127.0.0.1 -p ${BACKOFFICE_PORT}`
+                : `pnpm exec next build && pnpm exec next start -H 127.0.0.1 -p ${BACKOFFICE_PORT}`,
+            cwd: "../backoffice",
+            url: `${BACKOFFICE_ORIGIN}/`,
+            env: {
+              INFLUX_API_INTERNAL_URL: API_ORIGIN,
+              INFLUX_API_INTERNAL_SECRET: BACKOFFICE_SECRET,
+            },
+            reuseExistingServer: false,
+            timeout: SERVER_TIMEOUT_MS,
+          },
+        ],
 });

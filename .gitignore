@@ -21,6 +21,7 @@ next-env.d.ts
 # --- Tests & coverage ---
 coverage/
 playwright-report/
+blob-report/
 test-results/
 
 # --- Supabase local ---
