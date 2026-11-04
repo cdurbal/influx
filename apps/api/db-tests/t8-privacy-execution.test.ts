@@ -2554,6 +2554,39 @@ describe("the examinations of 0207 in the export and the erasure (file.md A1, 04
   });
 });
 
+describe("the freeze of 0209 stops a member, never the erasure (file.md A4, 04 §9.2)", () => {
+  it.each([["published"], ["suspended"]])(
+    "erases a %s profile: its columns and lists emptied, a logo under review sent to purge",
+    async (status) => {
+      const outcome = await scenario(async (tx) => {
+        const member = await newMember(tx, "advertiser");
+        await fillBrandProfile(tx, member.id, "t8-frozen");
+        await tx`
+          insert into profiles.brand_logo_objects
+            (account_id, state, received_bytes, byte_size, width, height)
+          values (${member.id}, 'in_review', 1000, 500, 512, 512)`;
+        await tx.unsafe(
+          "update profiles.advertiser_profiles " +
+            "set status = $1::profiles.advertiser_profile_status where account_id = $2",
+          [status, member.id],
+        );
+        const request = await deposit(tx, member, "erasure");
+        await approve(tx, request, "erasure");
+        rowsOf(await execute(tx, request, null));
+        return {
+          profile: await brandProfileOf(tx, member.id),
+          logos: (await brandLogoOf(tx, member.id)).logos,
+        };
+      });
+      expect(outcome.profile).toMatchObject({
+        profile: { legal_name: "[deleted]", presentation: null },
+        lists: { advertiser_topics: [] },
+      });
+      expect(outcome.logos).toEqual([{ state: "purging", to_purge: true }]);
+    },
+  );
+});
+
 describe("privacy.record_auth_user_deleted() and privacy.complete_request() (15 RG77, RG79, RG85)", () => {
   it("records the GoTrue deletion once, of an executed erasure only", async () => {
     const outcome = await scenario(async (tx) => {

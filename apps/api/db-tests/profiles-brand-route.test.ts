@@ -9,6 +9,7 @@
 import {
   brandProfileResponseSchema,
   type BrandProfileResponse,
+  type SubmitBrandProfileResponse,
 } from "@influx/contracts/brand-profile";
 import { localRoleUrl, type LoginRole } from "@influx/test-kit/db";
 import { valuesFoundIn } from "@influx/test-kit/logs";
@@ -717,6 +718,29 @@ describe("POST /v1/me/brand-profile/submit (06 RG5, RG6, CA6, CA7, edge cases 3 
     expect((edited.json() as BrandProfileResponse).status).toBe(
       "pending_review",
     );
+  });
+
+  it("serialises two submissions at the same moment: one changed, one register line, one entry (L2BT-3)", async () => {
+    const server = app();
+    const member = await newMember("advertiser");
+    await patch(server, member, completeBody());
+    const answers = await Promise.all([
+      call(server, "POST", URL_SUBMIT, member.session),
+      call(server, "POST", URL_SUBMIT, member.session),
+    ]);
+    expect(answers.map((answer) => answer.statusCode)).toEqual([200, 200]);
+    const changed = answers.map(
+      (answer) => (answer.json() as SubmitBrandProfileResponse).changed,
+    );
+    expect(changed.filter((value) => value)).toHaveLength(1);
+    const [lines] = await migration<{ n: number }[]>`
+      select count(*)::int as n from audit.audit_events
+       where event_type = 'profile.submitted' and subject_id = ${member.accountId}`;
+    expect(lines?.n).toBe(1);
+    const [entries] = await migration<{ n: number }[]>`
+      select count(*)::int as n from profiles.advertiser_review_entries
+       where account_id = ${member.accountId}`;
+    expect(entries?.n).toBe(1);
   });
 
   it("submits again after a refusal by INFLUX (rejected), and refuses a published or suspended profile (409, edge case 5, RG6)", async () => {

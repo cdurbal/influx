@@ -3041,9 +3041,30 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|column|profiles.advertiser_review_entries.account_id|INSERT,SELECT",
   "influx_identity_definer|column|profiles.advertiser_review_entries.id|SELECT",
   "influx_identity_definer|column|profiles.advertiser_review_entries.kind|INSERT,SELECT",
-  "influx_identity_definer|column|profiles.advertiser_review_entries.state|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_review_entries.state|SELECT,UPDATE",
   "influx_identity_definer|column|backoffice.sla_policies.escalate_after_minutes|SELECT",
   "influx_identity_definer|function|backoffice.business_deadline(text,timestamp with time zone,integer)|EXECUTE",
+  // 0209 (L2C commit 06, file.md A3, A4): the member door of RG9 reads the catalogue, deposits and
+  // replaces the revisions of the caller and withdraws his open entry (the policies refuse any
+  // decision, RG6); the brand asks the guard's question and calls the door, never the catalogue.
+  "influx_identity_definer|column|profiles.advertiser_profiles.website_domain|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_review_entries.closed_at|UPDATE",
+  "influx_identity_definer|column|profiles.moderated_fields.code|SELECT",
+  "influx_identity_definer|column|profiles.moderated_fields.is_active|SELECT",
+  "influx_identity_definer|column|profiles.moderated_fields.profile_kind|SELECT",
+  "influx_identity_definer|column|profiles.profile_field_revisions.account_id|INSERT,SELECT",
+  "influx_identity_definer|column|profiles.profile_field_revisions.advertiser_review_entry_id|INSERT,SELECT",
+  "influx_identity_definer|column|profiles.profile_field_revisions.closed_at|UPDATE",
+  "influx_identity_definer|column|profiles.profile_field_revisions.field_code|INSERT,SELECT",
+  "influx_identity_definer|column|profiles.profile_field_revisions.id|SELECT",
+  "influx_identity_definer|column|profiles.profile_field_revisions.proposed_value|INSERT,SELECT",
+  "influx_identity_definer|column|profiles.profile_field_revisions.status|SELECT,UPDATE",
+  "influx_advertiser|function|profiles.moderated_field_is_active(text)|EXECUTE",
+  "influx_advertiser|function|profiles.record_own_advertiser_profile_change()|EXECUTE",
+  "influx_advertiser|function|profiles.submit_own_advertiser_revision(text,jsonb)|EXECUTE",
+  "influx_identity_definer|function|profiles.moderated_field_is_active(text)|EXECUTE",
+  "influx_identity_definer|function|profiles.record_own_advertiser_profile_change()|EXECUTE",
+  "influx_identity_definer|function|profiles.submit_own_advertiser_revision(text,jsonb)|EXECUTE",
   "influx_privacy_definer|column|profiles.advertiser_review_entries.account_id|SELECT",
   "influx_privacy_definer|column|profiles.advertiser_review_entries.closed_at|SELECT,UPDATE",
   "influx_privacy_definer|column|profiles.advertiser_review_entries.created_at|SELECT",
@@ -3323,6 +3344,12 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "profiles.activate_brand_logo(uuid,integer,integer,integer)":
     "influx_identity_definer",
   "profiles.remove_own_brand_logo()": "influx_identity_definer",
+  // 0209 (L2C commit 06, file.md A4): the member door of RG9, the lead.updated of an immediate
+  // change, and what the guard asks; the guard itself is SECURITY INVOKER.
+  "profiles.moderated_field_is_active(text)": "influx_identity_definer",
+  "profiles.submit_own_advertiser_revision(text,jsonb)":
+    "influx_identity_definer",
+  "profiles.record_own_advertiser_profile_change()": "influx_identity_definer",
   // 0205 (L2B commit 09): the task storage_purge (stockage.md §7); ops.claim_periodic_run() keeps
   // its 0117 line.
   "ops.claim_storage_purges(uuid,smallint,integer)":

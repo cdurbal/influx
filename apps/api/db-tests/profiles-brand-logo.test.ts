@@ -406,6 +406,11 @@ const CONSTRAINT_CASES: Readonly<Record<string, readonly string[]>> = {
     logoInsert("received_bytes, activated_at", "10, now()"),
   ],
   brand_logo_objects_active_complete: [logoUpdate("activated_at = null")],
+  // 0209 (L2C commit 06, file.md A4): stored, never yet activated
+  brand_logo_objects_in_review_stored: [
+    logoUpdate("state = 'in_review'"),
+    logoInsert("state, received_bytes", "'in_review', 10"),
+  ],
   brand_logo_objects_purge_dated: [
     logoUpdate("state = 'purging'"),
     logoInsert("received_bytes, purge_requested_at", "10, now()"),
