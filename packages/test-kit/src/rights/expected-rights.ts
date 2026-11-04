@@ -1028,6 +1028,20 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     }),
   },
   {
+    table: "backoffice.claim_release_reasons",
+    source:
+      "0210 (L2C, 15 RG27 C4, file.md A8): the closed list of the reasons of a forced release, " +
+      "written by the migrations only",
+    probeColumn: "code",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "15 C4: the reason of a forced release named to the admin and to the dispossessed holder, aal2",
+      },
+    }),
+  },
+  {
     table: "backoffice.alert_definitions",
     source:
       "0130 (J8, 15 §F RG63 to RG68): the catalogue of alerts of Lot 1, written by the migrations only",
@@ -3083,12 +3097,147 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_privacy_definer|column|profiles.profile_field_revisions.status|SELECT",
   "influx_privacy_definer|column|profiles.profile_field_revisions.submitted_at|SELECT",
   "influx_privacy_definer|table|profiles.profile_field_revisions|DELETE",
+  // 0210 (L2C commit 07, file.md A5, A7, A8): influx_moderation_definer owns the six decisions of
+  // queue 1 (EXECUTE to agent and admin): it reads what the version token hashes and the caller's
+  // internal account, claims, releases and decides the entries, applies or refuses the revisions,
+  // activates or purges a logo, writes the state and the moderated columns of the profile, queues
+  // profile.decision, profile.completed or lead.updated, and writes the register; never the caller's
+  // own account (its policies). Agent and admin read the forced release reasons and execute the two
+  // duplicate helpers of RG25, RG70 (invoker).
+  "influx_admin|function|profiles.advertiser_duplicate_candidates(uuid,text,text)|EXECUTE",
+  "influx_admin|function|profiles.extend_advertiser_review_claim(uuid)|EXECUTE",
+  "influx_admin|function|profiles.force_release_advertiser_review_claim(uuid,text)|EXECUTE",
+  "influx_admin|function|profiles.normalized_brand_name(text)|EXECUTE",
+  "influx_admin|function|profiles.open_advertiser_review_entry(uuid)|EXECUTE",
+  "influx_admin|function|profiles.publish_advertiser_review_entry(uuid,text,text)|EXECUTE",
+  "influx_admin|function|profiles.reject_advertiser_review_entry(uuid,text,text,text,text)|EXECUTE",
+  "influx_admin|function|profiles.release_advertiser_review_entry(uuid)|EXECUTE",
+  "influx_admin|table|backoffice.claim_release_reasons|SELECT",
+  "influx_agent|function|profiles.advertiser_duplicate_candidates(uuid,text,text)|EXECUTE",
+  "influx_agent|function|profiles.extend_advertiser_review_claim(uuid)|EXECUTE",
+  "influx_agent|function|profiles.force_release_advertiser_review_claim(uuid,text)|EXECUTE",
+  "influx_agent|function|profiles.normalized_brand_name(text)|EXECUTE",
+  "influx_agent|function|profiles.open_advertiser_review_entry(uuid)|EXECUTE",
+  "influx_agent|function|profiles.publish_advertiser_review_entry(uuid,text,text)|EXECUTE",
+  "influx_agent|function|profiles.reject_advertiser_review_entry(uuid,text,text,text,text)|EXECUTE",
+  "influx_agent|function|profiles.release_advertiser_review_entry(uuid)|EXECUTE",
+  "influx_agent|table|backoffice.claim_release_reasons|SELECT",
+  "influx_moderation_definer|column|backoffice.claim_release_reasons.code|SELECT",
+  "influx_moderation_definer|column|backoffice.claim_release_reasons.is_active|SELECT",
+  "influx_moderation_definer|column|backoffice.operational_settings.key|SELECT",
+  "influx_moderation_definer|column|backoffice.operational_settings.value|SELECT",
+  "influx_moderation_definer|column|identity.account_roles.account_id|SELECT",
+  "influx_moderation_definer|column|identity.account_roles.role|SELECT",
+  "influx_moderation_definer|column|identity.accounts.country_code|SELECT",
+  "influx_moderation_definer|column|identity.accounts.id|SELECT",
+  "influx_moderation_definer|column|identity.accounts.status|SELECT",
+  "influx_moderation_definer|column|identity.agent_profiles.account_id|SELECT",
+  "influx_moderation_definer|column|identity.agent_profiles.is_active|SELECT",
+  "influx_moderation_definer|column|leads.outbox_events.destination|INSERT",
+  "influx_moderation_definer|column|leads.outbox_events.event_id|INSERT",
+  "influx_moderation_definer|column|leads.outbox_events.event_type|INSERT",
+  "influx_moderation_definer|column|leads.outbox_events.idempotency_key|INSERT",
+  "influx_moderation_definer|column|leads.outbox_events.payload|INSERT",
+  "influx_moderation_definer|column|leads.outbox_events.priority|INSERT",
+  "influx_moderation_definer|column|leads.outbox_events.subject_key|INSERT",
+  "influx_moderation_definer|column|profiles.advertiser_audience_countries.account_id|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_audience_countries.country_code|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_audience_countries.slot|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_contact_details.account_id|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_contact_details.contact_email|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_contact_details.contact_first_name|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_contact_details.contact_phone|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_contact_details.contact_url|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_formats.account_id|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_formats.format_code|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_networks.account_id|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_networks.network_code|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_profiles.account_id|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_profiles.collaboration_rhythm|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_profiles.company_size_band|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_profiles.contact_role|SELECT,UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_profiles.exclusivity_band|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_profiles.first_published_at|SELECT,UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_profiles.legal_name|SELECT,UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_profiles.offers_non_monetary|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_profiles.presentation|SELECT,UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_profiles.primary_sector_code|SELECT,UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_profiles.status|SELECT,UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_profiles.website_domain|SELECT,UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_rejection_reasons.code|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_rejection_reasons.is_active|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_rejection_reasons.requires_member_message|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_review_entries.account_id|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_review_entries.claim_expires_at|SELECT,UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_review_entries.claimed_at|SELECT,UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_review_entries.claimed_by_account_id|SELECT,UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_review_entries.closed_at|UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_review_entries.decided_at|SELECT,UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_review_entries.decided_by_account_id|UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_review_entries.forced_release_at|UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_review_entries.forced_release_by_account_id|UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_review_entries.forced_release_holder_account_id|UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_review_entries.forced_release_reason_code|UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_review_entries.id|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_review_entries.internal_comment|UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_review_entries.kind|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_review_entries.member_message|UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_review_entries.rejection_reason_code|UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_review_entries.sla_breached|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_review_entries.state|SELECT,UPDATE",
+  "influx_moderation_definer|column|profiles.advertiser_secondary_sectors.account_id|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_secondary_sectors.sector_code|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_secondary_sectors.slot|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_target_markets.account_id|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_target_markets.country_code|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_target_markets.slot|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_topics.account_id|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_topics.slot|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_topics.topic_code|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_usage_rights.account_id|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_usage_rights.usage_right_code|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_working_languages.account_id|SELECT",
+  "influx_moderation_definer|column|profiles.advertiser_working_languages.language_code|SELECT",
+  "influx_moderation_definer|column|profiles.brand_logo_objects.account_id|SELECT",
+  "influx_moderation_definer|column|profiles.brand_logo_objects.activated_at|UPDATE",
+  "influx_moderation_definer|column|profiles.brand_logo_objects.id|SELECT",
+  "influx_moderation_definer|column|profiles.brand_logo_objects.purge_requested_at|UPDATE",
+  "influx_moderation_definer|column|profiles.brand_logo_objects.state|SELECT,UPDATE",
+  "influx_moderation_definer|column|profiles.profile_field_revisions.account_id|SELECT",
+  "influx_moderation_definer|column|profiles.profile_field_revisions.advertiser_review_entry_id|SELECT",
+  "influx_moderation_definer|column|profiles.profile_field_revisions.closed_at|UPDATE",
+  "influx_moderation_definer|column|profiles.profile_field_revisions.field_code|SELECT",
+  "influx_moderation_definer|column|profiles.profile_field_revisions.id|SELECT",
+  "influx_moderation_definer|column|profiles.profile_field_revisions.proposed_value|SELECT",
+  "influx_moderation_definer|column|profiles.profile_field_revisions.row_key|SELECT",
+  "influx_moderation_definer|column|profiles.profile_field_revisions.status|SELECT,UPDATE",
+  "influx_moderation_definer|function|audit.append(text,text,uuid,jsonb)|EXECUTE",
+  "influx_moderation_definer|function|influx.current_aal()|EXECUTE",
+  "influx_moderation_definer|function|influx.current_account_id()|EXECUTE",
+  "influx_moderation_definer|function|influx.current_account_role()|EXECUTE",
+  "influx_moderation_definer|function|influx.has_aal2()|EXECUTE",
+  "influx_moderation_definer|function|profiles.advertiser_missing_required_fields(jsonb)|EXECUTE",
+  "influx_moderation_definer|function|profiles.advertiser_review_token(uuid)|EXECUTE",
+  "influx_moderation_definer|function|profiles.extend_advertiser_review_claim(uuid)|EXECUTE",
+  "influx_moderation_definer|function|profiles.force_release_advertiser_review_claim(uuid,text)|EXECUTE",
+  "influx_moderation_definer|function|profiles.open_advertiser_review_entry(uuid)|EXECUTE",
+  "influx_moderation_definer|function|profiles.publish_advertiser_review_entry(uuid,text,text)|EXECUTE",
+  "influx_moderation_definer|function|profiles.reject_advertiser_review_entry(uuid,text,text,text,text)|EXECUTE",
+  "influx_moderation_definer|function|profiles.release_advertiser_review_entry(uuid)|EXECUTE",
+  "influx_moderation_definer|function|profiles.require_review_agent(boolean)|EXECUTE",
+  "influx_moderation_definer|schema|audit|USAGE",
+  "influx_moderation_definer|schema|backoffice|USAGE",
+  "influx_moderation_definer|schema|identity|USAGE",
+  "influx_moderation_definer|schema|influx|USAGE",
+  "influx_moderation_definer|schema|leads|USAGE",
+  "influx_moderation_definer|schema|profiles|USAGE",
 ];
 
 /**
  * T4.2, T4.3: the closed list of 03 P7 (twelve roles at J2, fourteen from J4, fifteen from J6 with
  * influx_leads_definer, 0111, sixteen from J7 with influx_maintenance_definer, 0117, nineteen from
- * J8 with influx_privacy, influx_privacy_login and influx_privacy_definer, 0136), memberships.
+ * J8 with influx_privacy, influx_privacy_login and influx_privacy_definer, 0136, twenty from L2C with
+ * influx_moderation_definer, 0210), memberships.
  */
 export const EXPECTED_ROLES: Readonly<
   Record<string, { login: boolean; memberOf: readonly string[] }>
@@ -3121,6 +3270,8 @@ export const EXPECTED_ROLES: Readonly<
   influx_leads_definer: { login: false, memberOf: [] },
   influx_maintenance_definer: { login: false, memberOf: [] },
   influx_privacy_definer: { login: false, memberOf: [] },
+  // 0210 (L2C, file.md A5): the owner of the decisions of queue 1
+  influx_moderation_definer: { login: false, memberOf: [] },
 };
 
 /** Owners of SECURITY DEFINER functions: no login, NO member (only C-9 tolerance). */
@@ -3131,6 +3282,7 @@ export const FUNCTION_OWNER_ROLES = [
   "influx_leads_definer",
   "influx_maintenance_definer",
   "influx_privacy_definer",
+  "influx_moderation_definer",
 ] as const;
 
 /** Execution roles (T4.4: own nothing). */
@@ -3357,4 +3509,15 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "ops.complete_storage_purges(uuid,smallint,uuid[])":
     "influx_maintenance_definer",
   "ops.purge_storage_usage(uuid,smallint)": "influx_maintenance_definer",
+  // 0210 (L2C commit 07, file.md A5): the six decisions of queue 1.
+  // profiles.require_review_agent() is SECURITY INVOKER, same owner.
+  "profiles.open_advertiser_review_entry(uuid)": "influx_moderation_definer",
+  "profiles.release_advertiser_review_entry(uuid)": "influx_moderation_definer",
+  "profiles.extend_advertiser_review_claim(uuid)": "influx_moderation_definer",
+  "profiles.force_release_advertiser_review_claim(uuid,text)":
+    "influx_moderation_definer",
+  "profiles.publish_advertiser_review_entry(uuid,text,text)":
+    "influx_moderation_definer",
+  "profiles.reject_advertiser_review_entry(uuid,text,text,text,text)":
+    "influx_moderation_definer",
 };

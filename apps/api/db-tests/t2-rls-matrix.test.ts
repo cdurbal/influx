@@ -712,12 +712,14 @@ describe("T2.7: exact snapshot of the privileges of the closed list", () => {
     ).map((line) => line.split("|")[0]);
     // influx_maintenance_definer (0117): retention.purged, from E-4 functions only;
     // influx_leads_definer (0132): leads.replay_requested, from leads.replay_outbox_lines() only;
-    // influx_privacy_definer (0137): the E-5 lines, from the privacy functions only
+    // influx_privacy_definer (0137): the E-5 lines, from the privacy functions only;
+    // influx_moderation_definer (0210): the claims and decisions of queue 1, from its functions only
     expect(appenders.sort()).toEqual([
       "influx_audit_writer",
       "influx_identity_definer",
       "influx_leads_definer",
       "influx_maintenance_definer",
+      "influx_moderation_definer",
       "influx_privacy_definer",
     ]);
   });

@@ -483,12 +483,16 @@ effort à la question « qui verra cette information ? ».
 **RG63** — Le backoffice expose une **file « profils marque à valider »**, distincte de la file des
 profils créateurs, triée par ancienneté croissante, avec pour chaque entrée : marque, date de
 soumission, ancienneté, champs modifiés depuis la dernière validation, alerte de doublon éventuelle,
-agent ayant pris l'entrée en charge.
+agent ayant pris l'entrée en charge. *Amendé au L2C (`l2c/file.md` A1, A3, `0210`)* : une entrée par
+examen (première soumission ou révision), une ouverte au plus par compte ; la décision porte sur la
+version dont le jeton a été rendu à l'ouverture.
 
 **RG64** — Une entrée est **prise en charge** par un agent avant d'être traitée. Un **verrou** empêche
 deux agents de traiter la même entrée : le second voit « déjà prise en charge par … », jamais une
 erreur technique. Une prise en charge expire automatiquement au bout de **30 minutes** sans décision
-et retourne dans la file.
+et retourne dans la file. *Amendé au L2C (`l2c/file.md` A9, `0210`)* : ouvrir une entrée libre la prend
+en charge ; l'expiration se calcule à la lecture, sans tâche ; la prise suivante journalise d'abord
+l'abandon ; le titulaire peut relâcher ou prolonger, un administrateur lever avec un motif typé.
 
 **RG65** — Une décision est **toujours** l'une des deux suivantes : publier, ou refuser avec un motif
 typé. Il n'existe pas de troisième voie silencieuse, ni de mise en attente indéfinie.
@@ -665,7 +669,7 @@ espacements passent par les tokens (`design-system-influx`).
 | Situation | Comportement attendu |
 |---|---|
 | Deux agents ouvrent la même entrée de validation | Un seul la prend en charge ; le second voit « déjà prise en charge par … » (RG64) |
-| Un agent valide pendant que l'annonceur modifie un champ soumis à re-validation | La décision porte sur la version examinée ; la modification postérieure repasse en file, avec la mention « modifié après examen » |
+| Un agent valide pendant que l'annonceur modifie un champ soumis à re-validation | La décision porte sur la version examinée ; la modification postérieure repasse en file, avec la mention « modifié après examen ». *Amendé au L2C (A3, `0210`)* : toute écriture change le jeton de version ; une décision au jeton périmé est refusée (55000 `stale_token`), l'agent relit, sa saisie gardée |
 | Un agent corrige un champ pendant que l'annonceur le corrige aussi | La dernière écriture gagne, les deux versions sont journalisées, et l'annonceur est informé de la correction de l'agent (RG71) |
 | Un admin suspend un profil pendant qu'un agent l'attribue au badge | La suspension prime ; l'attribution est refusée avec un message explicite |
 | Une prise en charge est abandonnée sans décision | Elle expire au bout de 30 minutes et l'entrée retourne dans la file (RG64) |

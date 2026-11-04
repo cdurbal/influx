@@ -243,7 +243,7 @@ describe("06 RG5, RG61: the required fields of the base equal those of packages/
     },
   );
 
-  it("is pure and closed: IMMUTABLE, SECURITY INVOKER, owned by its definer, executed by no role", async () => {
+  it("is pure and closed: IMMUTABLE, SECURITY INVOKER, owned by its definer, executed by the owner of the decisions only (0210)", async () => {
     const rows = await localSuperuser()<
       {
         volatility: string;
@@ -267,7 +267,8 @@ describe("06 RG5, RG61: the required fields of the base equal those of packages/
         definer: false,
         owner: "influx_identity_definer",
         config: ['search_path=""'],
-        grantees: [],
+        // 0210: the publication recontrols the required fields (fiche L2C invariant 4)
+        grantees: ["influx_moderation_definer"],
       },
     ]);
   });
