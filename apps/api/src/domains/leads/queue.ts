@@ -25,6 +25,7 @@ import {
   completeAttempt,
   isLineNotInProcessing,
   readApolloSubject,
+  readBrandProfileAttributes,
   readBrevoErasureSubject,
   readBrevoProfileDecision,
   readBrevoSubject,
@@ -33,6 +34,7 @@ import {
   type AttemptOutcome,
   type ApolloSubject,
   type AttemptState,
+  type BrandProfileAttributes,
   type BrevoErasureSubject,
   type BrevoProfileDecision,
   type BrevoSubject,
@@ -207,6 +209,41 @@ export async function readBrevoProfileDecisionOf(
           value: decision,
           auditSubject:
             decision === null ? null : line.subjectKey.slice("account:".length),
+        };
+      },
+    ),
+  );
+}
+
+/**
+ * The contact connectors' read of the brand attributes (0212, profile.completed and lead.updated):
+ * the live profile of the line's account, for a line in processing for this worker, shared by
+ * Brevo and Apollo. It reads no address; its register line is on the account all the same, as the
+ * other privileged reads of the worker. Its own short transaction, closed before the call (G4).
+ */
+export async function readBrandProfileAttributesOf(
+  database: WorkerDatabase,
+  requestId: string,
+  line: ClaimedLine,
+  worker: string,
+): Promise<BrandProfileAttributes | null> {
+  return translated(
+    withElevatedTransaction(
+      database,
+      "leads.drain_outbox",
+      requestId,
+      async (tx) => {
+        const attributes = await readBrandProfileAttributes(
+          tx,
+          line.id,
+          worker,
+        );
+        return {
+          value: attributes,
+          auditSubject:
+            attributes === null
+              ? null
+              : line.subjectKey.slice("account:".length),
         };
       },
     ),

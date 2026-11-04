@@ -1477,9 +1477,13 @@ et coûte cher à reconstituer.
 | Nom d'entreprise | `COMPANY` | texte, 120 | — | **Vide pour un créateur.** Jamais rempli avec un nom de personne (`05` RG88) |
 | Date d'inscription | `SIGNED_UP_AT` | date-heure | — | Jamais absente |
 | Source d'inscription | `SIGNUP_SOURCE` | liste fermée | `direct` | Valeur par défaut |
-| Étape de funnel | `FUNNEL_STAGE` | liste fermée : inscrit · profil complété · campagne publiée · en négociation | `registered` | Valeur par défaut |
-| Complétude du profil | `PROFILE_COMPLETENESS` | entier 0–100 | `0` | `0` |
-| Secteur ou thématique principale | `MAIN_TOPIC` | liste fermée | — | **Vide**, jamais deviné |
+| Étape de funnel | `FUNNEL_STAGE` | liste fermée : `registered` (inscrit) · `profile_completed` (profil complété) · `campaign_published` · `in_negotiation` | `registered` | Valeur par défaut. *Amendé le 2026-11-04 (L2C, `06` RG78, RG79)* : une marque est `profile_completed` dès sa première publication (`first_published_at`), et le reste ; les deux dernières valeurs arrivent aux lots 3 et 4 |
+| Complétude du profil | `PROFILE_COMPLETENESS` | entier 0–100 | `0` | `0`. Marque : le score stocké de la ligne vivante (`06` RG83), jamais recalculé par le worker |
+| Thématique principale | `MAIN_TOPIC` | code de `reference.topics` (liste fermée) | — | **Vide**, jamais deviné. Marque : la première thématique (rang 1) ; créateur : vide jusqu'au Lot 3 |
+| Secteur | `SECTOR` | code de `reference.sectors` (liste fermée) | — | **Vide**, jamais deviné. Marque seulement (`06` RG79) ; secteur principal, jamais les secteurs secondaires |
+| Taille d'entreprise | `COMPANY_SIZE` | tranche `1_10` · `11_50` · `51_250` · `251_1000` · `1001_plus` | — | **Vide.** Une tranche, jamais un effectif (`06` RG22). Marque seulement |
+| Marchés visés | `TARGET_MARKETS` | codes ISO 3166-1 alpha-2 en majuscules, dans l'ordre du profil, séparés par des virgules (5 au plus) | — | **Vide.** Marque seulement |
+| État du profil | `PROFILE_STATUS` | liste fermée `draft` · `pending_review` · `published` · `rejected` · `suspended` | — | **Vide** pour un créateur (jusqu'au Lot 3). Marque : l'état de la ligne vivante ; une révision en examen laisse `published` (`06` RG9) |
 | Niveau de badge | `VERIFIED_LEVEL` | liste fermée `none` · `n1` · `n2` | `none` | `none` |
 | Consentement marketing | `MARKETING_CONSENT` | booléen | `false` | `false` — **jamais `true` par défaut** |
 | Date du consentement | `CONSENT_AT` | date-heure | — | Vide |
@@ -1490,6 +1494,8 @@ et coûte cher à reconstituer.
 **RG142 — Un champ absent est envoyé vide, jamais rempli d'une valeur inventée** (`05` RG88,
 `13` RG115). Remplir « entreprise » avec le nom d'un créateur produirait une donnée fausse dans un
 outil qui l'exploite pour segmenter et pour écrire.
+
+*Amendé le 2026-11-04 (L2C commit 10, `06` RG79 à RG81) : `SECTOR`, `COMPANY_SIZE`, `TARGET_MARKETS` et `PROFILE_STATUS` rejoignent la liste fermée ; le budget et le badge n'y sont pas (aucun budget au pilote, `06` réponse A du L2B, D48, D78 ; badge au L2E). Les valeurs viennent de la ligne vivante du profil, lue par le worker à la consommation (`leads.read_brand_profile_attributes()`, `0212`). Ne partent jamais : la raison sociale, le numéro d'immatriculation, les pièces, les notes, l'interlocuteur (prénom, e-mail, téléphone, page), la présentation et le domaine du site (Apollo seul).*
 
 **RG143 — Ne sont jamais envoyés comme attribut de contact** : nom ou prénom d'une personne
 physique, pseudonyme, identifiant de réseau social, lien de réseau, numéro de téléphone, montant,

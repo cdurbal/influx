@@ -40,6 +40,7 @@ import { createOutboxDrain } from "../src/domains/leads/drain.ts";
 import {
   createWorkerQueue,
   LineTakenBackError,
+  readBrandProfileAttributesOf,
   readBrevoErasureSubjectOf,
   readBrevoProfileDecisionOf,
   readBrevoSubjectOf,
@@ -106,6 +107,10 @@ afterEach(async () => {
       delete from leads.outbox_events where id = any (${lineIds}::bigint[])`;
   }
   if (accountIds.length > 0) {
+    await migration`
+      delete from profiles.advertiser_topics where account_id = any (${accountIds}::uuid[])`;
+    await migration`
+      delete from profiles.advertiser_target_markets where account_id = any (${accountIds}::uuid[])`;
     await migration`
       delete from profiles.advertiser_review_entries where account_id = any (${accountIds}::uuid[])`;
     await migration`
@@ -230,6 +235,8 @@ async function turn(): Promise<number> {
       readErasureNotificationSubject: () => Promise.resolve(null),
       readProfileDecision: (line) =>
         readBrevoProfileDecisionOf(database, randomUUID(), line, worker),
+      readBrandProfile: (line) =>
+        readBrandProfileAttributesOf(database, randomUUID(), line, worker),
       logger,
     },
   );
@@ -969,6 +976,80 @@ describe("06 RG66, RG69, L2C commit 09: profile.decision, written from the decis
     expect(await lineRow(line)).toMatchObject({
       status: "failed",
       last_error_code: "decision_not_found",
+    });
+    expect(double.requests).toHaveLength(0);
+  });
+});
+
+describe("L2C commit 10, 06 RG78, RG79, CA40, CA41: profile.completed reaches Brevo through the real queue", () => {
+  async function publishedBrand(consent = true): Promise<string> {
+    const account = await createAccount({ role: "advertiser", consent });
+    await migration.begin(async (tx) => {
+      await tx`
+        update profiles.advertiser_profiles
+           set status = 'published', primary_sector_code = 'travel_tourism',
+               company_size_band = '51_250', website_domain = 'voyages-verbeke.example',
+               completeness_percent = 92, first_published_at = now()
+         where account_id = ${account}`;
+      await tx`
+        insert into profiles.advertiser_topics (account_id, slot, topic_code)
+        values (${account}, 1, 'travel'), (${account}, 2, 'food')`;
+      await tx`
+        insert into profiles.advertiser_target_markets (account_id, slot, country_code)
+        values (${account}, 1, 'FR'), (${account}, 2, 'BE')`;
+    });
+    return account;
+  }
+
+  async function completedLine(account: string): Promise<string> {
+    const event = randomUUID();
+    const [row] = await migration<{ id: string }[]>`
+      insert into leads.outbox_events
+        (event_id, event_type, destination, subject_key, priority, payload, idempotency_key)
+      values (${event}, 'profile.completed', 'brevo_contact', ${`account:${account}`}, 100,
+              ${JSON.stringify({ event_id: event, account_id: account })}::text::jsonb,
+              ${`profile.completed:${account}`})
+      returning id::text as id`;
+    if (row === undefined) {
+      throw new Error("the queue line was not inserted");
+    }
+    lines.push(row.id);
+    return row.id;
+  }
+
+  it("CA40: the contact carries the real attributes of the live profile, in the advertisers list, nothing else of the profile", async () => {
+    const account = await publishedBrand();
+    const line = await completedLine(account);
+    expect(await turn()).toBe(1);
+    expect((await lineRow(line)).status).toBe("succeeded");
+    const stored = double.contacts.get(emails[0] ?? "");
+    expect(stored?.listIds).toEqual([LISTS.advertisers]);
+    expect(stored?.attributes).toMatchObject({
+      INFLUX_ACCOUNT_ID: account,
+      PROFILE_TYPE: "advertiser",
+      COMPANY: LEGAL_NAME,
+      FUNNEL_STAGE: "profile_completed",
+      PROFILE_COMPLETENESS: 92,
+      MAIN_TOPIC: "travel",
+      SECTOR: "travel_tourism",
+      COMPANY_SIZE: "51_250",
+      TARGET_MARKETS: "FR,BE",
+      PROFILE_STATUS: "published",
+      VERIFIED_LEVEL: "none",
+      MARKETING_CONSENT: true,
+    });
+    // the website domain is an Apollo field, never a Brevo attribute (16 §M4)
+    expect(double.requests[0]?.raw).not.toContain("voyages-verbeke.example");
+  });
+
+  it("CA41: without consent the line is skipped no_consent, not a failure, nothing sent", async () => {
+    const account = await publishedBrand(false);
+    const line = await completedLine(account);
+    await turn();
+    expect(await lineRow(line)).toMatchObject({
+      status: "skipped",
+      skip_reason: "no_consent",
+      last_error_code: null,
     });
     expect(double.requests).toHaveLength(0);
   });

@@ -40,6 +40,10 @@
 // from the decision read at consumption (leads.read_brevo_profile_decision, 0211) and the address of
 // the subject read; the agent's message (reason `other`) is escaped and refused if it looks like a
 // link (RG158).
+// profile.completed (06 RG78, CA40 to CA42; L2C commit 10): the first publication of a brand rewrites the
+// contact as lead.updated does, from the live profile read at consumption (leads.read_brand_profile_attributes,
+// 0212; RG79: sector, size band, markets, state, completeness, first topic, funnel stage); without
+// marketing consent it is skipped no_consent, as lead.created is, and never counted as a failure.
 // What leaves for the drain is names and verdicts; the values stay in the closure of `send`.
 import {
   UNIDENTIFIED_USER_AGENT,
@@ -66,6 +70,7 @@ import {
 } from "../../connector.ts";
 import type {
   AttemptState,
+  BrandProfileAttributes,
   BrevoErasureSubject,
   BrevoProfileDecision,
   ClaimedLine,
@@ -145,6 +150,14 @@ export type BrevoProfileDecisionReader = (
   line: ClaimedLine,
 ) => Promise<BrevoProfileDecision | null>;
 
+/**
+ * The live brand profile of a contact line (0212; 06 RG79): read only for an advertiser, in its own
+ * short transaction; null when the account holds no brand profile.
+ */
+export type BrandProfileReader = (
+  line: ClaimedLine,
+) => Promise<BrandProfileAttributes | null>;
+
 export type BrevoErasureSubjectReader = (
   line: ClaimedLine,
 ) => Promise<BrevoErasureSubject | null>;
@@ -163,6 +176,8 @@ export type BrevoConnectorDependencies = {
   readProfileDecision: BrevoProfileDecisionReader;
   /** Reads the contact of an erased account on an account.deleted line (0136), its own transaction. */
   readErasureSubject: BrevoErasureSubjectReader;
+  /** Reads the live brand profile of a contact line (0212), its own transaction. */
+  readBrandProfile: BrandProfileReader;
   logger: BrevoClientLogger;
   fetch?: typeof fetch;
   timeoutMs?: number;
@@ -669,8 +684,14 @@ export function createBrevoConnectors(
         return changingEmail(line, account);
       }
       const unsubscribe = !account.marketingEmailConsent;
-      if (unsubscribe && line.eventType === "lead.created") {
-        // 05 RG80, CA39: no consent, no marketing contact; a skip, never a failure.
+      if (
+        unsubscribe &&
+        (line.eventType === "lead.created" ||
+          line.eventType === "profile.completed")
+      ) {
+        // 05 RG80, CA39; 06 CA41: no consent, no marketing contact; a skip, never a failure, and
+        // never counted as one (ignored, without consent). The first publication of a brand reads
+        // no profile for a member who never agreed to marketing.
         return { kind: "skip", reason: "no_consent" };
       }
       const subject = await dependencies.readSubject(line);
@@ -693,10 +714,19 @@ export function createBrevoConnectors(
       // drain fails the line, an incident (RG160), never a skip.
       const role = account.role === "advertiser" ? "advertiser" : "creator";
       const listId = brevoListIdOf(state.settings, role);
+      // 06 RG79: the live profile of a brand enriches the contact (profile.completed, lead.updated
+      // and any other event that rewrites the contact); a creator has none (RG81: sent empty).
+      const profile =
+        role === "advertiser"
+          ? await dependencies.readBrandProfile(line)
+          : null;
       const body =
         line.eventType === "consent.granted"
-          ? { ...map(account, subject, listId), emailBlacklisted: false }
-          : map(account, subject, listId);
+          ? {
+              ...map(account, subject, listId, profile),
+              emailBlacklisted: false,
+            }
+          : map(account, subject, listId, profile);
       const description: CallDescription = {
         operation: "upsert_contact",
         templateCode: null,

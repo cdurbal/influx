@@ -1690,6 +1690,8 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       // 0116 (J7 decision 2): E-3 processing of a raw Brevo line, E-4 reconciliation finding
       "leads.process_brevo_inbound_event()",
       "leads.read_apollo_subject(bigint,text)",
+      // 0212 (L2C commit 10): the brand attributes of a Brevo or Apollo contact
+      "leads.read_brand_profile_attributes(bigint,text)",
       // 0137 (J8 commit 8): Brevo operation 2, the subject of an account.deleted line
       "leads.read_brevo_erasure_subject(bigint,text)",
       // 0211 (L2C commit 09a): the decision of a brand decision e-mail

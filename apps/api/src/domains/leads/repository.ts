@@ -174,6 +174,30 @@ export type BrevoProfileDecision = {
   preferredLanguage: string;
 };
 
+/**
+ * What the contact connectors read of a brand profile (0212; 06 RG79 to RG81): the live row of the
+ * profile, never its legal name, presentation, contact person, registration number nor a note. A
+ * field the brand has not filled is null (sent empty, RG81), never a guess.
+ */
+export type BrandProfileAttributes = {
+  /** The state as stored: draft, pending_review, published, rejected or suspended. */
+  status: string;
+  /** The stored completeness (06 RG83), 0 to 100; null when never computed. */
+  completenessPercent: number | null;
+  /** Code of reference.sectors. */
+  primarySector: string | null;
+  /** 1_10, 11_50, 51_250, 251_1000 or 1001_plus: a band, never a headcount (06 RG22). */
+  companySizeBand: string | null;
+  /** A domain only, lower case (06 RG17). */
+  websiteDomain: string | null;
+  /** The first topic (slot 1), a code of reference.topics. */
+  mainTopic: string | null;
+  /** ISO 3166-1 alpha-2, in the order of the brand's slots. */
+  targetMarkets: readonly string[];
+  /** The profile was published once at least (first_published_at): the funnel stage. */
+  everPublished: boolean;
+};
+
 /** What the Apollo connector reads of a subject, besides the account state of the attempt (0113). */
 export type ApolloSubject = {
   email: string;
@@ -497,6 +521,46 @@ export async function readBrevoProfileDecision(
         reasonCode: row.reason_code,
         memberMessage: row.member_message,
         preferredLanguage: row.preferred_language,
+      };
+}
+
+/**
+ * The brand attributes of a Brevo or Apollo contact line in processing for this worker (0212): the
+ * live profile of the line's account. null: no brand profile (a creator, an account without one, or
+ * an erased account).
+ */
+export async function readBrandProfileAttributes(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<BrandProfileAttributes | null> {
+  const rows = await tx.execute<{
+    profile_status: string;
+    completeness_percent: number | null;
+    primary_sector_code: string | null;
+    company_size_band: string | null;
+    website_domain: string | null;
+    main_topic_code: string | null;
+    target_markets: string;
+    ever_published: boolean;
+  }>(
+    sql`select profile_status, completeness_percent, primary_sector_code, company_size_band,
+                website_domain, main_topic_code, target_markets, ever_published
+          from leads.read_brand_profile_attributes(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        status: row.profile_status,
+        completenessPercent: row.completeness_percent,
+        primarySector: row.primary_sector_code,
+        companySizeBand: row.company_size_band,
+        websiteDomain: row.website_domain,
+        mainTopic: row.main_topic_code,
+        targetMarkets:
+          row.target_markets === "" ? [] : row.target_markets.split(","),
+        everPublished: row.ever_published,
       };
 }
 

@@ -41,6 +41,7 @@ import {
 import {
   createWorkerQueue,
   readApolloSubjectOf,
+  readBrandProfileAttributesOf,
   readBrevoErasureSubjectOf,
   readBrevoProfileDecisionOf,
   readBrevoSubjectOf,
@@ -109,12 +110,16 @@ function connectorsOf(
         readErasureNotificationSubjectOf(database, requestId),
       readProfileDecision: (line) =>
         readBrevoProfileDecisionOf(database, randomUUID(), line, worker),
+      readBrandProfile: (line) =>
+        readBrandProfileAttributesOf(database, randomUUID(), line, worker),
       logger,
     },
   );
   const apollo = createApolloConnector(config.apollo, {
     readSubject: (line) =>
       readApolloSubjectOf(database, randomUUID(), line, worker),
+    readBrandProfile: (line) =>
+      readBrandProfileAttributesOf(database, randomUUID(), line, worker),
     logger,
   });
   return {

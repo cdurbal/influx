@@ -12,7 +12,7 @@
 | 08 | — | commit | — | — | — | ignoré | RG71 reporté au Lot 5 (réponse 1 du fondateur, 2026-11-03) ; CA22 en `21` §8 à la clôture |
 | 09a | 09a.md | commit | opus | high | expert-database | fait | I-4. `0211` : charge de `profile.decision` + `email_code` (publier, refuser recréées, clé inchangée) ; `leads.read_brevo_profile_decision()` (`influx_leads_definer`, worker seul) : décision, motif, message, langue ; jamais `internal_comment`, aucune ligne si compte effacé ; avant 09 (décision du fondateur) |
 | 09 | 09.md | commit | sonnet | high | expert-integrations-api | fait | I-10. `profile.decision` dans `WORKER_RENDERED_EMAILS`, rendu `profiles/brand-decision-email.ts`, textes `email.profileDecision` (RG66 mot pour mot) ; décision lue à la consommation (`readProfileDecision`), adresse par `read_brevo_subject` ; « Autre » échappé, refusé par RG158 s’il ressemble à un lien ; aucune migration |
-| 10 | 10.md | commit | sonnet | high | expert-integrations-api | à faire | |
+| 10 | 10.md | commit | sonnet | high | expert-integrations-api | fait | I-4. `0212` : `leads.read_brand_profile_attributes()` (`influx_leads_definer`, worker seul, ligne vivante), jamais raison sociale, interlocuteur ni note ; `profile.completed` traité comme `lead.updated`, sans consentement ignoré `no_consent` (CA41) ; Brevo + `SECTOR`, `COMPANY_SIZE`, `TARGET_MARKETS`, `PROFILE_STATUS` (16 §M4 amendé, créés sur Brevo `staging`) ; Apollo `website_url` + labels secteur, taille |
 | 11 | 11.md | commit | sonnet | high | dev-react-node | à faire | |
 | 12 | 12.md | commit | sonnet | high | dev-react-node | à faire | |
 | 13 | 13.md | commit | sonnet | high | dev-react-node | à faire | |

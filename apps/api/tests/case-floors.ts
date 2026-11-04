@@ -5,7 +5,7 @@
 // is done in a commit whose message says which cases disappear and why (18 §3 rule 2).
 export const UNIT_CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/account-consent-view.test.ts": 4,
-  "tests/apollo-connector.test.ts": 29,
+  "tests/apollo-connector.test.ts": 37,
   "tests/apollo-guard.test.ts": 2,
   "tests/auth-cookies.test.ts": 21,
   "tests/auth-tokens.test.ts": 17,
@@ -13,7 +13,7 @@ export const UNIT_CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/backoffice-auth.test.ts": 27,
   "tests/backoffice-sync-causes.test.ts": 5,
   "tests/brand-decision-email.test.ts": 23,
-  "tests/brevo-connector.test.ts": 88,
+  "tests/brevo-connector.test.ts": 97,
   "tests/brevo-guard.test.ts": 3,
   "tests/brevo-transactional.test.ts": 18,
   "tests/brevo-webhook.test.ts": 53,

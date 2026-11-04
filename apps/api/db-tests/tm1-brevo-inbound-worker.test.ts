@@ -224,6 +224,7 @@ async function turn(): Promise<number> {
         readBrevoErasureSubjectOf(worker, randomUUID(), line, name),
       readErasureNotificationSubject: () => Promise.resolve(null),
       readProfileDecision: () => Promise.resolve(null),
+      readBrandProfile: () => Promise.resolve(null),
       logger,
     },
   );

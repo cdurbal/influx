@@ -30,6 +30,7 @@ import {
 import type { ErasureNotificationSubject } from "../src/domains/privacy/erasure-notification-subject.ts";
 import type {
   AttemptState,
+  BrandProfileAttributes,
   BrevoErasureSubject,
   BrevoProfileDecision,
   ClaimedLine,
@@ -147,6 +148,8 @@ type Setup = {
   notificationSubject?: ErasureNotificationSubject | null;
   /** The decision read of a profile.decision line (0211); none by default. */
   decision?: BrevoProfileDecision | null;
+  /** The live brand profile read of a contact line (0212); none by default. */
+  brandProfile?: BrandProfileAttributes | null;
   mapContact?: typeof mapContact;
   timeoutMs?: number;
 };
@@ -198,6 +201,12 @@ function connectors(setup: Setup = {}): {
         reads.push(`decision:${claimed.id}`);
         return Promise.resolve(
           setup.decision === undefined ? null : setup.decision,
+        );
+      },
+      readBrandProfile: (claimed) => {
+        reads.push(`brand:${claimed.id}`);
+        return Promise.resolve(
+          setup.brandProfile === undefined ? null : setup.brandProfile,
         );
       },
       ...(setup.mapContact === undefined
@@ -286,6 +295,10 @@ describe("operation 1: create or update a contact (16 §M1, §M4; 05 CA38)", () 
       FUNNEL_STAGE: "registered",
       PROFILE_COMPLETENESS: 0,
       MAIN_TOPIC: "",
+      SECTOR: "",
+      COMPANY_SIZE: "",
+      TARGET_MARKETS: "",
+      PROFILE_STATUS: "",
       VERIFIED_LEVEL: "none",
       MARKETING_CONSENT: true,
       CONSENT_AT: "2026-10-09T08:15:00.000Z",
@@ -2068,5 +2081,223 @@ describe("L2C commit 09, 06 RG66, RG69: profile.decision answers the examination
       kind: "skip",
       reason: "skipped_non_production",
     });
+  });
+});
+
+const PUBLISHED_BRAND: BrandProfileAttributes = {
+  status: "published",
+  completenessPercent: 85,
+  primarySector: "food_beverages",
+  companySizeBand: "11_50",
+  websiteDomain: "maison-verbeke.example",
+  mainTopic: "cooking",
+  targetMarkets: ["BE", "FR", "NL"],
+  everPublished: true,
+};
+
+const BRAND_STATE = {
+  role: "advertiser",
+  declaredStatus: "business",
+} as const;
+
+describe("L2C commit 10, 06 RG78 to RG81, CA40 to CA43: profile.completed enriches the brand contact", () => {
+  it("CA40, RG79: profile.completed rewrites the contact like lead.updated, with the real attributes of the live profile", async () => {
+    const { contact } = connectors({
+      subject: subject({ company: LEGAL_NAME }),
+      brandProfile: PUBLISHED_BRAND,
+    });
+    const completed = line("brevo_contact", {
+      eventType: "profile.completed",
+      idempotencyKey: `profile.completed:${ACCOUNT}`,
+    });
+    expect(await run(contact, completed, state(BRAND_STATE))).toEqual({
+      kind: "succeeded",
+      providerContactId: "1",
+    });
+    const stored = double.contacts.get(EMAIL);
+    expect(stored?.listIds).toEqual([ADVERTISERS_LIST]);
+    expect(stored?.attributes).toMatchObject({
+      PROFILE_TYPE: "advertiser",
+      COMPANY: LEGAL_NAME,
+      FUNNEL_STAGE: "profile_completed",
+      PROFILE_COMPLETENESS: 85,
+      MAIN_TOPIC: "cooking",
+      SECTOR: "food_beverages",
+      COMPANY_SIZE: "11_50",
+      TARGET_MARKETS: "BE,FR,NL",
+      PROFILE_STATUS: "published",
+      VERIFIED_LEVEL: "none",
+    });
+    expect(Object.keys(stored?.attributes ?? {}).sort()).toEqual(
+      [...BREVO_CONTACT_ATTRIBUTES].sort(),
+    );
+    expect(reads).toHaveLength(2);
+    expect(reads[1]).toBe(`brand:${completed.id}`);
+  });
+
+  it("lead.updated after the publication carries the same attributes, a modification waiting in the review being left out (RG9)", async () => {
+    const { contact } = connectors({
+      subject: subject({ company: LEGAL_NAME }),
+      brandProfile: { ...PUBLISHED_BRAND, completenessPercent: 90 },
+    });
+    await run(
+      contact,
+      line("brevo_contact", { eventType: "lead.updated" }),
+      state(BRAND_STATE),
+    );
+    expect(double.contacts.get(EMAIL)?.attributes).toMatchObject({
+      FUNNEL_STAGE: "profile_completed",
+      PROFILE_COMPLETENESS: 90,
+      PROFILE_STATUS: "published",
+    });
+  });
+
+  it("RG81, 16 RG142: a draft brand is registered, and every field not filled is sent empty, never invented", async () => {
+    const { contact } = connectors({
+      subject: subject({ company: LEGAL_NAME }),
+      brandProfile: {
+        status: "draft",
+        completenessPercent: null,
+        primarySector: null,
+        companySizeBand: null,
+        websiteDomain: null,
+        mainTopic: null,
+        targetMarkets: [],
+        everPublished: false,
+      },
+    });
+    await run(contact, line("brevo_contact"), state(BRAND_STATE));
+    expect(double.contacts.get(EMAIL)?.attributes).toMatchObject({
+      FUNNEL_STAGE: "registered",
+      PROFILE_COMPLETENESS: 0,
+      MAIN_TOPIC: "",
+      SECTOR: "",
+      COMPANY_SIZE: "",
+      TARGET_MARKETS: "",
+      PROFILE_STATUS: "draft",
+    });
+  });
+
+  it("a brand without any profile row keeps the defaults of 16 §M4; a creator never reads a brand profile", async () => {
+    const { contact } = connectors({
+      subject: subject({ company: LEGAL_NAME }),
+      brandProfile: null,
+    });
+    await run(contact, line("brevo_contact"), state(BRAND_STATE));
+    expect(double.contacts.get(EMAIL)?.attributes).toMatchObject({
+      FUNNEL_STAGE: "registered",
+      PROFILE_COMPLETENESS: 0,
+      PROFILE_STATUS: "",
+    });
+    reads = [];
+    const creators = connectors({ brandProfile: PUBLISHED_BRAND });
+    await run(creators.contact, line("brevo_contact"));
+    expect(reads.filter((read) => read.startsWith("brand:"))).toEqual([]);
+    expect(double.contacts.get(EMAIL)?.attributes.SECTOR).toBe("");
+  });
+
+  it("CA41: profile.completed without marketing consent is skipped no_consent, before any read, any list and any call", async () => {
+    const { contact } = connectors({ brandProfile: PUBLISHED_BRAND });
+    expect(
+      await prepare(
+        contact,
+        line("brevo_contact", { eventType: "profile.completed" }),
+        state(
+          { ...BRAND_STATE, marketingEmailConsent: false },
+          {
+            ...SETTINGS,
+            brevo_list_ids: { advertisers: null, creators: null },
+          },
+        ),
+      ),
+    ).toEqual({ kind: "skip", reason: "no_consent" });
+    expect(reads).toEqual([]);
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("RG80, CA42: the closed list holds the four new attributes and refuses the legal name, the registration number, a note and the contact person", () => {
+    for (const name of [
+      "SECTOR",
+      "COMPANY_SIZE",
+      "TARGET_MARKETS",
+      "PROFILE_STATUS",
+    ]) {
+      expect(
+        checkContactOutput({ email: EMAIL, attributes: { [name]: "x" } }),
+      ).toEqual([]);
+    }
+    for (const name of [
+      "LEGAL_NAME",
+      "REGISTRATION_NUMBER",
+      "INTERNAL_NOTE",
+      "CONTACT_EMAIL",
+      "CONTACT_PHONE",
+      "CONTACT_FIRST_NAME",
+      "BUDGET",
+    ]) {
+      expect(
+        checkContactOutput({ email: EMAIL, attributes: { [name]: "x" } }),
+      ).toEqual([name]);
+    }
+  });
+
+  it("CA42: what leaves holds none of the values RG80 forbids, whatever the profile read", async () => {
+    const forbidden = [
+      "BE0123456789",
+      "contact-person@maison-verbeke.example",
+      "+3225550123",
+      "internal note: prefers a call",
+    ];
+    const { contact } = connectors({
+      subject: subject({ company: LEGAL_NAME }),
+      brandProfile: PUBLISHED_BRAND,
+    });
+    await run(
+      contact,
+      line("brevo_contact", { eventType: "profile.completed" }),
+      state(BRAND_STATE),
+    );
+    expect(valuesFoundIn(double.requests[0]?.raw ?? "", forbidden)).toEqual([]);
+  });
+
+  it("a mapping that adds a field outside the list is refused by name, the call never leaves (16 RG137)", async () => {
+    const { contact } = connectors({
+      subject: subject({ company: LEGAL_NAME }),
+      brandProfile: PUBLISHED_BRAND,
+      mapContact: (account, subjectRead, listId, profile) => {
+        const body = mapContact(account, subjectRead, listId, profile);
+        return {
+          ...body,
+          attributes: {
+            ...body.attributes,
+            REGISTRATION_NUMBER: "BE0123456789",
+          },
+        };
+      },
+    });
+    const prepared = await prepare(
+      contact,
+      line("brevo_contact", { eventType: "profile.completed" }),
+      state(BRAND_STATE),
+    );
+    expect(
+      prepared.kind === "mapped" && prepared.description.rejectedAttributeNames,
+    ).toEqual(["REGISTRATION_NUMBER"]);
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("CA43: Brevo unavailable on profile.completed is a retry of the line, never an error that reaches the publication", async () => {
+    double.queue({ status: 503 });
+    const { contact } = connectors({
+      subject: subject({ company: LEGAL_NAME }),
+      brandProfile: PUBLISHED_BRAND,
+    });
+    expect(
+      await run(
+        contact,
+        line("brevo_contact", { eventType: "profile.completed" }),
+        state(BRAND_STATE),
+      ),
+    ).toMatchObject({ kind: "retry", errorMessage: "Brevo answered 503" });
   });
 });

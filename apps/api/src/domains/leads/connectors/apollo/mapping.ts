@@ -9,7 +9,10 @@
 //   country, language, scope and legal basis applied at the send): Apollo creates a label by its
 //   name, where a custom field would need its Apollo id in the settings (none in EC-8).
 // - No sequence: no field of the body can enrol the contact in one (sequence disabled, J6).
-import type { SubjectAccount } from "../../repository.ts";
+import type {
+  BrandProfileAttributes,
+  SubjectAccount,
+} from "../../repository.ts";
 import type { ApolloLegalBasis, ApolloScope } from "./qualification.ts";
 
 export type { ApolloSubject } from "../../repository.ts";
@@ -18,17 +21,27 @@ export type { ApolloSubject } from "../../repository.ts";
 export const APOLLO_CONTACT_FIELDS = [
   "email",
   "organization_name",
+  "website_url",
   "label_names",
   "run_dedupe",
 ] as const;
 
 /** The closed vocabulary of the labels (the INFLUX context of the skill's mapping). */
 const LABEL =
-  /^influx(?:_profile_(?:advertiser|creator)|_status_(?:individual|business)|_country_[a-z]{2}|_language_(?:fr|en)|_scope_(?:annonceurs_seuls|annonceurs_et_createurs_pro|tous_les_inscrits)|_basis_(?:consentement_requis|interet_legitime_avec_opposition))?$/;
+  /^influx(?:_profile_(?:advertiser|creator)|_status_(?:individual|business)|_country_[a-z]{2}|_language_(?:fr|en)|_scope_(?:annonceurs_seuls|annonceurs_et_createurs_pro|tous_les_inscrits)|_basis_(?:consentement_requis|interet_legitime_avec_opposition)|_sector_[a-z][a-z0-9_]{0,39}|_size_(?:1_10|11_50|51_250|251_1000|1001_plus))?$/;
+
+/**
+ * The website of a brand: https and a bare domain, nothing else (06 RG17: a domain only, never a
+ * path, a query, credentials nor a port).
+ */
+const WEBSITE_URL =
+  /^https:\/\/[a-z0-9\u00a1-\uffff](?:[a-z0-9\u00a1-\uffff.-]*[a-z0-9\u00a1-\uffff])?$/;
 
 export type ApolloContactBody = {
   email: string;
   organization_name?: string;
+  /** The domain of the brand as an https address (06 RG79, RG17); absent when not filled. */
+  website_url?: string;
   label_names: string[];
   /** Create only: an address Apollo already knows gives back the same contact. */
   run_dedupe?: true;
@@ -45,6 +58,7 @@ export function mapContact(
   email: string,
   company: string | null,
   context: ApolloContext,
+  profile: BrandProfileAttributes | null = null,
 ): ApolloContactBody {
   const body: ApolloContactBody = {
     email,
@@ -60,6 +74,19 @@ export function mapContact(
   };
   if (account.role === "advertiser" && company !== null && company !== "") {
     body.organization_name = company;
+  }
+  // 06 RG79: the domain, the sector and the size of a brand, in the closed vocabulary; a field not
+  // filled is not sent (the Apollo rule of an absent field, RG81)
+  if (account.role === "advertiser" && profile !== null) {
+    if (profile.websiteDomain !== null && profile.websiteDomain !== "") {
+      body.website_url = `https://${profile.websiteDomain}`;
+    }
+    if (profile.primarySector !== null) {
+      body.label_names.push(`influx_sector_${profile.primarySector}`);
+    }
+    if (profile.companySizeBand !== null) {
+      body.label_names.push(`influx_size_${profile.companySizeBand}`);
+    }
   }
   return body;
 }
@@ -79,6 +106,13 @@ export function checkContactOutput(body: Record<string, unknown>): string[] {
       labels.some((label) => typeof label !== "string" || !LABEL.test(label)))
   ) {
     refused.push("label_names");
+  }
+  const website = body.website_url;
+  if (
+    website !== undefined &&
+    (typeof website !== "string" || !WEBSITE_URL.test(website))
+  ) {
+    refused.push("website_url");
   }
   return refused.sort();
 }

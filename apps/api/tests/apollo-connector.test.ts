@@ -29,6 +29,7 @@ import {
 } from "../src/domains/leads/connectors/apollo/index.ts";
 import type {
   AttemptState,
+  BrandProfileAttributes,
   ClaimedLine,
   SubjectAccount,
 } from "../src/domains/leads/repository.ts";
@@ -94,24 +95,26 @@ function subject(overrides: Partial<ApolloSubject> = {}): ApolloSubject {
 
 let nextLine = 1;
 
-function line(): ClaimedLine {
+function line(eventType = "lead.created"): ClaimedLine {
   const id = String(nextLine++);
   const event = `1b2c3d4e-0000-4000-8000-${id.padStart(12, "0")}`;
   return {
     id,
     eventId: event,
-    eventType: "lead.created",
+    eventType,
     destination: "apollo_contact",
     subjectKey: `account:${ACCOUNT}`,
     priority: 100,
     payload: { event_id: event, account_id: ACCOUNT },
-    idempotencyKey: `lead.created:${event}`,
+    idempotencyKey: `${eventType}:${event}`,
   };
 }
 
 type Setup = {
   apiKey?: string | null;
   subject?: ApolloSubject | null;
+  /** The live brand profile read of a contact line (0212); none by default. */
+  brandProfile?: BrandProfileAttributes | null;
   mapContact?: typeof mapContact;
   timeoutMs?: number;
 };
@@ -130,6 +133,12 @@ function connector(setup: Setup = {}): Connector {
           setup.subject === undefined ? subject() : setup.subject,
         );
       },
+      readBrandProfile: (claimed) => {
+        reads.push(`brand:${claimed.id}`);
+        return Promise.resolve(
+          setup.brandProfile === undefined ? null : setup.brandProfile,
+        );
+      },
       ...(setup.mapContact === undefined
         ? {}
         : { mapContact: setup.mapContact }),
@@ -141,8 +150,9 @@ function connector(setup: Setup = {}): Connector {
 async function run(
   apollo: Connector,
   attempt: AttemptState = state(),
+  claimed: ClaimedLine = line(),
 ): Promise<CallResult> {
-  const preparation = await apollo.prepare(line(), attempt);
+  const preparation = await apollo.prepare(claimed, attempt);
   if (preparation.kind !== "mapped") {
     throw new Error(`expected a mapped line, got ${preparation.kind}`);
   }
@@ -617,5 +627,170 @@ describe("15 RG79, J8 commit 8: account.deleted is noted, never propagated to Ap
     }
     expect(reads).toEqual([]);
     expect(double.requests).toHaveLength(0);
+  });
+});
+
+const PUBLISHED_BRAND: BrandProfileAttributes = {
+  status: "published",
+  completenessPercent: 85,
+  primarySector: "food_beverages",
+  companySizeBand: "11_50",
+  websiteDomain: "atelier-vandenbroucke.example",
+  mainTopic: "cooking",
+  targetMarkets: ["BE", "FR"],
+  everPublished: true,
+};
+
+describe("L2C commit 10, 06 RG78 to RG81, CA40 to CA43: profile.completed enriches the brand contact", () => {
+  it("RG79: profile.completed rewrites the contact as lead.updated does: domain, sector and size in the closed vocabulary", async () => {
+    const completed = line("profile.completed");
+    expect(
+      await run(
+        connector({ brandProfile: PUBLISHED_BRAND }),
+        state(),
+        completed,
+      ),
+    ).toMatchObject({ kind: "succeeded" });
+    expect(reads).toEqual([`${completed.id}`, `brand:${completed.id}`]);
+    expect(double.requests[0]?.body).toEqual({
+      email: EMAIL,
+      organization_name: LEGAL_NAME,
+      website_url: "https://atelier-vandenbroucke.example",
+      label_names: [
+        "influx",
+        "influx_profile_advertiser",
+        "influx_status_business",
+        "influx_country_be",
+        "influx_language_fr",
+        "influx_scope_annonceurs_et_createurs_pro",
+        "influx_basis_consentement_requis",
+        "influx_sector_food_beverages",
+        "influx_size_11_50",
+      ],
+      run_dedupe: true,
+    });
+  });
+
+  it("RG81: a field the brand has not filled is not sent; a brand without a profile row carries the context only", async () => {
+    await run(
+      connector({
+        brandProfile: {
+          ...PUBLISHED_BRAND,
+          primarySector: null,
+          companySizeBand: null,
+          websiteDomain: null,
+        },
+      }),
+      state(),
+      line("lead.updated"),
+    );
+    const sent = double.requests[0]?.body as Record<string, unknown>;
+    expect(Object.keys(sent).sort()).toEqual(
+      ["email", "label_names", "organization_name", "run_dedupe"].sort(),
+    );
+    expect(sent.label_names).toHaveLength(7);
+    double.reset();
+    await run(connector({ brandProfile: null }), state(), line("lead.updated"));
+    expect(
+      (double.requests[0]?.body as { label_names: string[] }).label_names,
+    ).toHaveLength(7);
+  });
+
+  it("a creator never reads a brand profile and carries no website, sector nor size", async () => {
+    await run(
+      connector({ brandProfile: PUBLISHED_BRAND }),
+      state({ role: "creator", declaredStatus: "business" }),
+      line("lead.updated"),
+    );
+    expect(reads.filter((read) => read.startsWith("brand:"))).toEqual([]);
+    const sent = double.requests[0]?.body as Record<string, unknown>;
+    expect(sent.website_url).toBeUndefined();
+    expect(JSON.stringify(sent)).not.toContain("influx_sector_");
+  });
+
+  it("RG83, CA41: without the consent the legal basis requires, profile.completed is skipped no_consent, nothing read of the profile", async () => {
+    const claimed = line("profile.completed");
+    expect(
+      skipOf(
+        await connector({ brandProfile: PUBLISHED_BRAND }).prepare(
+          claimed,
+          state({ commercialProspectionConsent: false }),
+        ),
+      ),
+    ).toBe("no_consent");
+    expect(reads).toEqual([]);
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("RG80, CA42: the closed list refuses the legal name, the registration number, a note and the contact person", () => {
+    for (const field of [
+      "legal_name",
+      "registration_number",
+      "notes",
+      "first_name",
+      "last_name",
+      "phone",
+      "direct_phone",
+      "typed_custom_fields",
+    ]) {
+      expect(
+        checkContactOutput({
+          email: EMAIL,
+          label_names: ["influx"],
+          [field]: "x",
+        }),
+      ).toEqual([field]);
+    }
+  });
+
+  it("the website is an https domain only: a path, a query, credentials, a port or another scheme is refused", () => {
+    const body = (website: string) => ({
+      email: EMAIL,
+      label_names: ["influx"],
+      website_url: website,
+    });
+    expect(checkContactOutput(body("https://maison-verbeke.example"))).toEqual(
+      [],
+    );
+    for (const website of [
+      "http://maison-verbeke.example",
+      "https://maison-verbeke.example/contact",
+      "https://maison-verbeke.example?ref=1",
+      "https://user@maison-verbeke.example",
+      "https://maison-verbeke.example:8443",
+      "https://",
+      "maison-verbeke.example",
+    ]) {
+      expect(checkContactOutput(body(website))).toEqual(["website_url"]);
+    }
+  });
+
+  it("the labels of sector and size stay in the closed vocabulary: a label outside it refuses label_names as a whole", () => {
+    const labels = (names: string[]) => ({ email: EMAIL, label_names: names });
+    expect(
+      checkContactOutput(
+        labels(["influx_sector_food_beverages", "influx_size_1001_plus"]),
+      ),
+    ).toEqual([]);
+    for (const label of [
+      "influx_sector_Food",
+      "influx_sector_",
+      "influx_size_12",
+      "influx_size_",
+      "influx_budget_1000",
+    ]) {
+      expect(checkContactOutput(labels([label]))).toEqual(["label_names"]);
+    }
+  });
+
+  it("CA43: Apollo unavailable on profile.completed is a retry of the line, never an error that reaches the publication", async () => {
+    double.queue({ status: 503 });
+    expect(
+      await run(
+        connector({ brandProfile: PUBLISHED_BRAND }),
+        state(),
+        line("profile.completed"),
+      ),
+    ).toMatchObject({ kind: "retry" });
   });
 });

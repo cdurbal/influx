@@ -3,7 +3,11 @@
 // a name outside the closed lists below REFUSES the call; nothing is ever cleaned silently.
 // RG142: a field absent from INFLUX is sent empty (""), never filled with an invented value; the
 // defaults are those of the §M4 table itself.
-import type { BrevoSubject, SubjectAccount } from "../../repository.ts";
+import type {
+  BrandProfileAttributes,
+  BrevoSubject,
+  SubjectAccount,
+} from "../../repository.ts";
 
 export type { BrevoSubject } from "../../repository.ts";
 
@@ -20,6 +24,10 @@ export const BREVO_CONTACT_ATTRIBUTES = [
   "FUNNEL_STAGE",
   "PROFILE_COMPLETENESS",
   "MAIN_TOPIC",
+  "SECTOR",
+  "COMPANY_SIZE",
+  "TARGET_MARKETS",
+  "PROFILE_STATUS",
   "VERIFIED_LEVEL",
   "MARKETING_CONSENT",
   "CONSENT_AT",
@@ -90,12 +98,15 @@ export function languageOf(account: SubjectAccount): "fr" | "en" {
 
 /**
  * Operation 1: the body of the contact, by the closed mapping of 16 §M4 and EC-11. A list id null
- * is a missing setting (05 RG164): the body is described, never sent.
+ * is a missing setting (05 RG164): the body is described, never sent. `profile`: the live profile
+ * of a brand (0212; 06 RG79), null for a creator or a brand without one: its attributes are then
+ * sent empty (RG81, 16 RG142), the funnel stage and the completeness at their defaults.
  */
 export function mapContact(
   account: SubjectAccount,
   subject: BrevoSubject,
   listId: number | null,
+  profile: BrandProfileAttributes | null = null,
 ): BrevoContactBody {
   const attributes: Record<BrevoContactAttribute, string | number | boolean> = {
     INFLUX_ACCOUNT_ID: account.id,
@@ -108,9 +119,16 @@ export function mapContact(
     SIGNED_UP_AT: subject.signedUpAt,
     // 05 RG120, RG122: "direct" by default (§M4), "invitation" through a member invitation (D54)
     SIGNUP_SOURCE: subject.viaInvitation ? "invitation" : "direct",
-    FUNNEL_STAGE: "registered",
-    PROFILE_COMPLETENESS: 0,
-    MAIN_TOPIC: "",
+    // 06 RG78: a brand is "profile_completed" from its first publication, "registered" before
+    FUNNEL_STAGE:
+      profile?.everPublished === true ? "profile_completed" : "registered",
+    PROFILE_COMPLETENESS: profile?.completenessPercent ?? 0,
+    MAIN_TOPIC: profile?.mainTopic ?? "",
+    SECTOR: profile?.primarySector ?? "",
+    COMPANY_SIZE: profile?.companySizeBand ?? "",
+    // ISO 3166-1 codes in the order of the brand's slots, comma-separated (16 §M4)
+    TARGET_MARKETS: profile?.targetMarkets.join(",") ?? "",
+    PROFILE_STATUS: profile?.status ?? "",
     VERIFIED_LEVEL: "none",
     MARKETING_CONSENT: account.marketingEmailConsent,
     CONSENT_AT: subject.consentAt ?? "",

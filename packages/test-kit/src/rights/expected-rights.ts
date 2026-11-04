@@ -3241,6 +3241,24 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|column|profiles.advertiser_review_entries.state|SELECT",
   "influx_leads_definer|function|leads.read_brevo_profile_decision(bigint,text)|EXECUTE",
   "influx_worker|function|leads.read_brevo_profile_decision(bigint,text)|EXECUTE",
+  // 0212 (L2C commit 10): the worker's read of the brand attributes of a Brevo or Apollo contact,
+  // leads.read_brand_profile_attributes() (E-3): the state, completeness, sector, size band, domain,
+  // first topic and target markets of the live row; never the legal name, the presentation nor the
+  // contact person.
+  "influx_leads_definer|column|profiles.advertiser_profiles.company_size_band|SELECT",
+  "influx_leads_definer|column|profiles.advertiser_profiles.completeness_percent|SELECT",
+  "influx_leads_definer|column|profiles.advertiser_profiles.first_published_at|SELECT",
+  "influx_leads_definer|column|profiles.advertiser_profiles.primary_sector_code|SELECT",
+  "influx_leads_definer|column|profiles.advertiser_profiles.status|SELECT",
+  "influx_leads_definer|column|profiles.advertiser_profiles.website_domain|SELECT",
+  "influx_leads_definer|column|profiles.advertiser_target_markets.account_id|SELECT",
+  "influx_leads_definer|column|profiles.advertiser_target_markets.country_code|SELECT",
+  "influx_leads_definer|column|profiles.advertiser_target_markets.slot|SELECT",
+  "influx_leads_definer|column|profiles.advertiser_topics.account_id|SELECT",
+  "influx_leads_definer|column|profiles.advertiser_topics.slot|SELECT",
+  "influx_leads_definer|column|profiles.advertiser_topics.topic_code|SELECT",
+  "influx_leads_definer|function|leads.read_brand_profile_attributes(bigint,text)|EXECUTE",
+  "influx_worker|function|leads.read_brand_profile_attributes(bigint,text)|EXECUTE",
 ];
 
 /**
@@ -3532,4 +3550,6 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
     "influx_moderation_definer",
   // 0211 (L2C commit 09a): the worker's read of the brand decision e-mail.
   "leads.read_brevo_profile_decision(bigint,text)": "influx_leads_definer",
+  // 0212 (L2C commit 10): the worker's read of the brand attributes of a contact.
+  "leads.read_brand_profile_attributes(bigint,text)": "influx_leads_definer",
 };

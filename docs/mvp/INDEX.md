@@ -168,7 +168,7 @@
 | 568 | 202 | ↳ 4.3 `audit` — le registre chaîné | RG1–RG109 |
 | 770 | 4484 | 5. Le schéma, domaine par domaine | RG2–RG163 |
 | 772 | 448 | ↳ 5.1 `identity` — comptes, rôles, CGU, consentement, santé de l'adresse (Lots 0 et 1) | RG18–RG106 |
-| 1220 | 277 | ↳ 5.2 `profiles` — le profil marque et le profil créateur en trois objets (Lot 2) | RG7–RG73 |
+| 1220 | 277 | ↳ 5.2 `profiles` — le profil marque et le profil créateur en trois objets (Lot 2) | RG7–RG79 |
 | 1497 | 160 | ↳ 5.3 `verification` — preuves, badge, péremption (Lot 2) | RG34–RG78 |
 | 1657 | 394 | ↳ 5.4 `campaigns` — campagnes et blocs (Lot 3) | RG3–RG85 |
 | 2051 | 126 | ↳ 5.5 `search` — journal de recherche et sélections (Lot 3) | RG2–RG88 |
@@ -183,19 +183,19 @@
 | 5741 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
 | 5779 | 125 | 9. Conservation, suppression, anonymisation | RG6–RG112 |
 | 5904 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
-| 6069 | 139 | 11. Plan de migrations | RG9–RG163 |
-| 6208 | 175 | 12. Ce qui reste ouvert | RG22–RG123 |
-| 6383 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
-| 6419 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
+| 6069 | 140 | 11. Plan de migrations | RG9–RG163 |
+| 6209 | 175 | 12. Ce qui reste ouvert | RG22–RG123 |
+| 6384 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
+| 6420 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
 
-## 05-spec-inscription-et-leads.md (~41k tokens)
+## 05-spec-inscription-et-leads.md (~42k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
 | 29 | 19 | Besoin |  |
 | 48 | 19 | Acteurs |  |
 | 67 | 58 | User stories |  |
-| 125 | 650 | Règles de gestion | RG1–RG162 |
+| 125 | 651 | Règles de gestion | RG1–RG162 |
 | 127 | 43 | ↳ A — Parcours général et portes d'entrée | RG1–RG10 |
 | 170 | 39 | ↳ B — Champs de l'inscription annonceur | RG11–RG16 |
 | 209 | 37 | ↳ C — Champs de l'inscription créateur | RG11–RG81 |
@@ -204,26 +204,26 @@
 | 322 | 95 | ↳ F — Connexion par code à 6 chiffres | RG39–RG157 |
 | 417 | 39 | ↳ G — L'e-mail qui n'arrive pas | RG59–RG65 |
 | 456 | 29 | ↳ H — Routage et rôles après vérification | RG66–RG71 |
-| 485 | 117 | ↳ I — Pipeline de leads | RG37–RG162 |
-| 602 | 33 | ↳ J — Désinscriptions dans les deux sens | RG78–RG96 |
-| 635 | 80 | ↳ K — Backoffice v0 | RG63–RG162 |
-| 715 | 60 | ↳ L — États d'écran, messages et accessibilité | RG109–RG115 |
-| 775 | 101 | Cas limites | RG1–RG113 |
-| 876 | 279 | Critères d'acceptation | RG79–RG112 |
-| 1155 | 70 | Impacts | RG6–RG108 |
-| 1225 | 20 | Hors périmètre | RG12–RG85 |
-| 1245 | 25 | Questions ouvertes | RG6–RG108 |
-| 1270 | 55 | Additif du 2026-09-24 — Invitation par un commercial (D54) et source d'acquisition (D55) | RG88–RG123 |
-| 1325 | 43 | Additif du 2026-09-25 — Consentement obligatoire à l'inscription (D63) | RG11–RG127 |
-| 1368 | 330 | Additif du 2026-09-27 — Précisions du J3 : phrase de correspondance, e-mail du code, messages, signal « navigateur inconnu » *(J3, 2026-09-27)* | RG9–RG159 |
-| 1377 | 130 | ↳ Phrase de correspondance — précise RG48 | RG46–RG156 |
-| 1507 | 17 | ↳ E-mail du code — précise RG49 | RG102–RG158 |
-| 1524 | 69 | ↳ Messages de l'écran minimal du J3 — précise RG112 et RG113 | RG44–RG140 |
-| 1593 | 35 | ↳ Signal « navigateur inconnu » — remplace « pays inhabituel » au MVP (EC-43) | RG55–RG157 |
-| 1628 | 16 | ↳ Cas limites du J3 | RG41–RG141 |
-| 1644 | 43 | ↳ Critères d'acceptation du J3 | RG133 |
-| 1687 | 11 | ↳ Questions ouvertes du J3 | RG48–RG158 |
-| 1698 | 209 | Additif du 2026-10-17 — Une configuration de synchronisation manquante est un incident, jamais un cas normal (D67) | RG37–RG164 |
+| 485 | 118 | ↳ I — Pipeline de leads | RG37–RG162 |
+| 603 | 33 | ↳ J — Désinscriptions dans les deux sens | RG78–RG96 |
+| 636 | 80 | ↳ K — Backoffice v0 | RG63–RG162 |
+| 716 | 60 | ↳ L — États d'écran, messages et accessibilité | RG109–RG115 |
+| 776 | 101 | Cas limites | RG1–RG113 |
+| 877 | 279 | Critères d'acceptation | RG79–RG112 |
+| 1156 | 70 | Impacts | RG6–RG108 |
+| 1226 | 20 | Hors périmètre | RG12–RG85 |
+| 1246 | 25 | Questions ouvertes | RG6–RG108 |
+| 1271 | 55 | Additif du 2026-09-24 — Invitation par un commercial (D54) et source d'acquisition (D55) | RG88–RG123 |
+| 1326 | 43 | Additif du 2026-09-25 — Consentement obligatoire à l'inscription (D63) | RG11–RG127 |
+| 1369 | 330 | Additif du 2026-09-27 — Précisions du J3 : phrase de correspondance, e-mail du code, messages, signal « navigateur inconnu » *(J3, 2026-09-27)* | RG9–RG159 |
+| 1378 | 130 | ↳ Phrase de correspondance — précise RG48 | RG46–RG156 |
+| 1508 | 17 | ↳ E-mail du code — précise RG49 | RG102–RG158 |
+| 1525 | 69 | ↳ Messages de l'écran minimal du J3 — précise RG112 et RG113 | RG44–RG140 |
+| 1594 | 35 | ↳ Signal « navigateur inconnu » — remplace « pays inhabituel » au MVP (EC-43) | RG55–RG157 |
+| 1629 | 16 | ↳ Cas limites du J3 | RG41–RG141 |
+| 1645 | 43 | ↳ Critères d'acceptation du J3 | RG133 |
+| 1688 | 11 | ↳ Questions ouvertes du J3 | RG48–RG158 |
+| 1699 | 209 | Additif du 2026-10-17 — Une configuration de synchronisation manquante est un incident, jamais un cas normal (D67) | RG37–RG164 |
 
 ## 06-criteres-profil-marque.md (~23k tokens)
 
@@ -496,14 +496,14 @@
 | 1486 | 162 | Additif du document 16 (2026-09-19) | RG9–RG131 |
 | 1648 | 46 | Additif du J9 (2026-10-21) — alertes techniques de D60 | RG46–RG165 |
 
-## 16-backoffice-emails-brevo.md (~52k tokens)
+## 16-backoffice-emails-brevo.md (~53k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
 | 48 | 32 | Besoin | RG9–RG78 |
 | 80 | 20 | Acteurs | RG90 |
 | 100 | 57 | User stories | RG35 |
-| 157 | 1495 | Règles de gestion | RG1–RG162 |
+| 157 | 1501 | Règles de gestion | RG1–RG162 |
 | 159 | 94 | ↳ A — Portée, vocabulaire et principes | RG1–RG93 |
 | 253 | 154 | ↳ B — Le parcours d'envoi de masse, écran par écran | RG4–RG102 |
 | 407 | 52 | ↳ C — Source 1 : les contacts de la plateforme | RG22–RG93 |
@@ -518,25 +518,25 @@
 | 1213 | 96 | ↳ J — Le garde-fou d'environnement et l'interrupteur d'urgence | RG9–RG148 |
 | 1309 | 65 | ↳ K — La supervision | RG15–RG134 |
 | 1374 | 36 | ↳ L — Ce qui ne doit jamais partir dans un e-mail | RG3–RG137 |
-| 1410 | 197 | ↳ M — Le contrat d'interface avec Brevo | RG9–RG161 |
-| 1607 | 45 | ↳ N — Messages, langue et accessibilité | RG11–RG155 |
-| 1652 | 51 | Cas limites | RG7–RG146 |
-| 1703 | 435 | Critères d'acceptation | RG85–RG160 |
-| 1705 | 68 | ↳ Le parcours d'envoi de masse |  |
-| 1773 | 36 | ↳ Source 1 — contacts de la plateforme |  |
-| 1809 | 29 | ↳ Source 2 — segment Brevo |  |
-| 1838 | 51 | ↳ Source 3 — saisie libre |  |
-| 1889 | 26 | ↳ Les modèles |  |
-| 1915 | 22 | ↳ La cadence |  |
-| 1937 | 69 | ↳ Les e-mails transactionnels | RG85–RG160 |
-| 2006 | 23 | ↳ Le suivi des résultats |  |
-| 2029 | 29 | ↳ Environnement et interrupteur d'urgence |  |
-| 2058 | 25 | ↳ La supervision |  |
-| 2083 | 39 | ↳ Les interdits et le contrat d'interface | RG135 |
-| 2122 | 16 | ↳ Langue et accessibilité | RG155 |
-| 2138 | 88 | Impacts | RG6–RG146 |
-| 2226 | 19 | Hors périmètre | RG44–RG107 |
-| 2245 | 27 | Questions ouvertes | RG9–RG160 |
+| 1410 | 203 | ↳ M — Le contrat d'interface avec Brevo | RG9–RG161 |
+| 1613 | 45 | ↳ N — Messages, langue et accessibilité | RG11–RG155 |
+| 1658 | 51 | Cas limites | RG7–RG146 |
+| 1709 | 435 | Critères d'acceptation | RG85–RG160 |
+| 1711 | 68 | ↳ Le parcours d'envoi de masse |  |
+| 1779 | 36 | ↳ Source 1 — contacts de la plateforme |  |
+| 1815 | 29 | ↳ Source 2 — segment Brevo |  |
+| 1844 | 51 | ↳ Source 3 — saisie libre |  |
+| 1895 | 26 | ↳ Les modèles |  |
+| 1921 | 22 | ↳ La cadence |  |
+| 1943 | 69 | ↳ Les e-mails transactionnels | RG85–RG160 |
+| 2012 | 23 | ↳ Le suivi des résultats |  |
+| 2035 | 29 | ↳ Environnement et interrupteur d'urgence |  |
+| 2064 | 25 | ↳ La supervision |  |
+| 2089 | 39 | ↳ Les interdits et le contrat d'interface | RG135 |
+| 2128 | 16 | ↳ Langue et accessibilité | RG155 |
+| 2144 | 88 | Impacts | RG6–RG146 |
+| 2232 | 19 | Hors périmètre | RG44–RG107 |
+| 2251 | 27 | Questions ouvertes | RG9–RG160 |
 
 ## 17-parcours-et-ecrans-espaces-membres.md (~60k tokens)
 
