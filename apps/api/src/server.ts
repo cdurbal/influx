@@ -25,6 +25,7 @@ import { registerBrandProfileRoutes } from "./domains/profiles/routes.ts";
 import { registerBackofficeActionRoutes } from "./domains/backoffice/actions-routes.ts";
 import { registerBackofficeInvitationRoutes } from "./domains/backoffice/invitations-routes.ts";
 import { registerBackofficeOpsRoutes } from "./domains/backoffice/ops-routes.ts";
+import { registerBackofficeQueueRoutes } from "./domains/backoffice/queues-routes.ts";
 import { PWNED_PASSWORDS_TIMEOUT_MS } from "./domains/identity/settings.ts";
 import {
   registerIdentityRoutes,
@@ -573,6 +574,9 @@ export function buildServer(
 
   // The "Santé technique" screen, read-only, admins only (D60, 02 §20.5; 21 §J9 commit 9).
   registerBackofficeOpsRoutes(app, { database });
+
+  // Queue 1, "profils marque à valider": counters, list, opening = claiming (L2C commit 11).
+  registerBackofficeQueueRoutes(app, { database });
 
   // Browser errors of the connected spaces (D60, 02 §20.5).
   registerOpsRoutes(app, {

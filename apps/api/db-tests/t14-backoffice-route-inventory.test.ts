@@ -30,7 +30,7 @@ import {
   WEB_ORIGIN,
   WEB_SECRET,
 } from "../tests/helpers.ts";
-import { migrationRole } from "./support.ts";
+import { localSuperuser, migrationRole } from "./support.ts";
 
 const NIL = "00000000-0000-4000-8000-000000000000";
 
@@ -71,6 +71,9 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
       reasonCode: "provider_recovered",
     },
   },
+  "GET /v1/bo/queues/counters": {},
+  "GET /v1/bo/queues/profiles-advertiser/entries": {},
+  "POST /v1/bo/queues/profiles-advertiser/entries/:id/open": {},
   "GET /v1/bo/settings/apollo": {},
   "GET /v1/bo/alerts": {},
   "GET /v1/bo/ops/status": {},
@@ -383,6 +386,12 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
       { who: admin, id: agent.accountId },
       { who: admin, id: admin.accountId },
     ],
+    // L2C 11: the entry of the caller's own account is hidden by the database (0207, C(3)): the
+    // answer of an unknown entry. (An entry of an account the caller holds answers its own 403,
+    // 17b §2.5: t14-backoffice-queue-route.)
+    "POST /v1/bo/queues/profiles-advertiser/entries/:id/open": async () => [
+      { who: agent, id: await ownBrandEntry() },
+    ],
     // An agent never reaches the "Santé technique" screen (admins only): a group that exists or not,
     // the same refusal.
     "GET /v1/bo/ops/errors/:id": async () => [
@@ -406,6 +415,39 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
       { who: otherAgent, id: await memberInvitation() },
     ],
   };
+
+  /**
+   * An entry of queue 1 on the agent's own account. One role per account (D41) makes it impossible
+   * through the doors, so the superuser writes it with the foreign keys and the trigger of the
+   * deadlines out of the way: the policy is a second line, and this is how it is tried.
+   */
+  async function ownBrandEntry(): Promise<string> {
+    const entryId = randomUUID();
+    await localSuperuser().begin(async (tx) => {
+      await tx`set local session_replication_role = replica`;
+      await tx`
+        insert into profiles.advertiser_profiles (account_id, legal_name, status, submitted_at)
+        values (${agent.accountId}, 'Own account', 'pending_review', now())
+        on conflict do nothing`;
+      await tx`
+        insert into profiles.advertiser_review_entries
+          (id, account_id, kind, created_at, sla_due_at, escalate_at)
+        values (${entryId}, ${agent.accountId}, 'submission', now(), now() + interval '1 day',
+                now() + interval '2 days')`;
+    });
+    ownEntries.push(entryId);
+    return entryId;
+  }
+
+  const ownEntries: string[] = [];
+
+  afterAll(async () => {
+    if (ownEntries.length > 0) {
+      await migrationRole()`
+        update profiles.advertiser_review_entries set state = 'withdrawn', closed_at = now()
+         where id = any(${ownEntries}::uuid[]) and state = 'open'`;
+    }
+  });
 
   let pendingRequest: Promise<string> | undefined;
 

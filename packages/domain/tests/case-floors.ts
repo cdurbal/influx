@@ -4,6 +4,7 @@
 // which cases disappear and why (18 §3 rule 2).
 export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/brand-profile-completeness.test.ts": 11,
+  "tests/brand-profile-contact-detection.test.ts": 9,
   "tests/brand-profile-required.test.ts": 7,
   "tests/brand-profile-website.test.ts": 7,
 };

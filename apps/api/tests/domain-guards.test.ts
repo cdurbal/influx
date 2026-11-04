@@ -115,7 +115,7 @@ describe("the completeness is computed in packages/domain only (stockage.md §9)
 });
 
 describe("@influx/domain at L2B", () => {
-  it("is imported by the profile domain of apps/api and nobody else (no front yet)", () => {
+  it("is imported by the profile domain of apps/api and the alerts of queue 1 (L2C 11), and nobody else (no front yet)", () => {
     const importers = sourcesOf(
       SOURCE_ROOTS.filter((root) => root !== "packages/domain/src"),
     )
@@ -126,6 +126,7 @@ describe("@influx/domain at L2B", () => {
       )
       .map(relative);
     expect(importers).toEqual([
+      "apps/api/src/domains/backoffice/queues/entry-alerts.ts",
       "apps/api/src/domains/profiles/brand-profile.ts",
     ]);
   });

@@ -108,3 +108,20 @@ export function renderBrandDecisionEmail(
   ].join("");
   return { subject: section.subject, html, text };
 }
+
+/**
+ * The text of a refusal reason as the brand receives it (06 RG66, word for word), and what the
+ * brand can do next: what the decision screen shows the agent BEFORE the decision (file.md A6, 15
+ * C6). Read from the same translation files as the e-mail, so that the preview cannot drift from
+ * the message. For `other`, the message is the lead-in; the agent's own text follows it.
+ */
+export function rejectionReasonPreview(
+  locale: UiLocale,
+  reason: RejectionReasonCode,
+): { message: string; nextStep: string } {
+  const texts = MESSAGES[locale].email.profileDecision;
+  return {
+    message: texts.reason[reason],
+    nextStep: texts.nextStep[NEXT_STEP[reason]],
+  };
+}
