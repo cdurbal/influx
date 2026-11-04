@@ -96,6 +96,7 @@ levée (Lot 5) ; correction d'un champ par un agent (RG71, CA22 : Lot 5, répons
 | 12 | `feat(api): brand review decisions` | Publier, refuser, relâcher, prolonger, lever | même fichier |
 | 13 | `feat(api): brand edits on a published profile go through review` | RG9 côté API, nom, logo, motif servi | `profiles-brand-route`, `profiles-brand-logo-route`, `tm1-member-account-route` |
 | 14 | *(arbitrage, sans titre)* | `l2c/e2e.md` : éclats chiffrés, appliqués si le gain est réel (réponse 2) ; borne de 8 min inchangée | commit `ci(e2e)` ajouté si retenu |
+| 14a | `ci(e2e): browser journeys in two shards with a merged report` | `l2c/e2e.md` : 2 éclats `--project=chromium`, fusion (TK3.1, plancher) | `--list` 131/94 ; 228 cas réunis |
 | 15 | `feat(web): brand profile published, under review and refused states` | M2, accueil marque | `brand-profile.spec.ts` (≤ 4 s) |
 | 16 | `feat(backoffice): queue template and brand profile queue` | Gabarit de liste, entrée « Files », compteurs | `backoffice-queue.spec.ts` (≤ 6 s) |
 | 17 | `feat(backoffice): brand review decision screen` | Gabarit de décision, motifs, raccourcis, enchaînement | même spec (≤ 8 s) |
