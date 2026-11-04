@@ -17,7 +17,11 @@
 //
 // Each case runs in ONE rolled-back transaction of the local superuser, which writes the fixtures
 // and acts as apps/api and the worker do (support.ts: actAsInternal, actAsMember, actAs).
-import { inRolledBackTransaction, type DataSet } from "@influx/test-kit/db";
+import {
+  accountIdOf,
+  inRolledBackTransaction,
+  type DataSet,
+} from "@influx/test-kit/db";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type postgres from "postgres";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -1928,6 +1932,8 @@ describe("the full brand profile of 0202 in the export and the erasure (04 §9.2
       },
       completeness_percent: 88,
       logo_files: [],
+      review_entries: [],
+      field_revisions: [],
       created_at: expect.stringMatching(/Z$/),
       updated_at: expect.stringMatching(/Z$/),
     });
@@ -2284,6 +2290,267 @@ describe("the brand logo of 0204 in the export and the erasure (04 §9.2, stocka
       ],
       usage: 2,
     });
+  });
+});
+
+const REVIEW_MESSAGE = "t8-review message to the brand, written by the agent.";
+const REVIEW_COMMENT = "t8-review internal comment, never to the brand.";
+const REVIEW_VALUE = "t8-review submitted presentation";
+
+/**
+ * Gives an advertiser two examinations of queue 1 (0207), as the superuser: a refused submission
+ * with its message and its internal comment, and an open revision, claimed, with a pending value.
+ */
+async function giveReviewEntries(tx: Tx, account: string): Promise<void> {
+  const agent = accountIdOf("agent", "a");
+  const [refused] = await tx<{ id: string }[]>`
+    insert into profiles.advertiser_review_entries (account_id, kind)
+    values (${account}, 'submission') returning id::text`;
+  await tx`
+    update profiles.advertiser_review_entries
+       set created_at = now() - interval '1 day', state = 'rejected',
+           decided_by_account_id = ${agent}, decided_at = now(), closed_at = now(),
+           rejection_reason_code = 'other', member_message = ${REVIEW_MESSAGE},
+           internal_comment = ${REVIEW_COMMENT}
+     where id = ${String(refused?.id)}`;
+  const [open] = await tx<{ id: string }[]>`
+    insert into profiles.advertiser_review_entries (account_id, kind)
+    values (${account}, 'revision') returning id::text`;
+  await tx`
+    update profiles.advertiser_review_entries
+       set claimed_by_account_id = ${agent}, claimed_at = now(),
+           claim_expires_at = now() + interval '30 minutes',
+           internal_comment = ${REVIEW_COMMENT}
+     where id = ${String(open?.id)}`;
+  await tx`
+    insert into profiles.profile_field_revisions
+      (account_id, field_code, proposed_value, advertiser_review_entry_id)
+    values (${account}, 'advertiser.presentation', to_jsonb(${REVIEW_VALUE}::text),
+            ${String(open?.id)})`;
+}
+
+async function reviewOf(
+  tx: Tx,
+  account: string,
+): Promise<{ entries: Row[]; revisions: number }> {
+  const entries = await tx<Row[]>`
+    select kind::text as kind, state::text as state, closed_at is not null as closed,
+           decided_by_account_id is not null as decided, rejection_reason_code as reason,
+           member_message, internal_comment
+      from profiles.advertiser_review_entries
+     where account_id = ${account}
+     order by created_at`;
+  const [revisions] = await tx<{ count: number }[]>`
+    select count(*)::int as count from profiles.profile_field_revisions
+     where account_id = ${account}`;
+  return { entries, revisions: revisions?.count ?? 0 };
+}
+
+describe("the examinations of 0207 in the export and the erasure (file.md A1, 04 §9.2)", () => {
+  it("exports each entry and each submitted value, never the internal comment, an agent nor the lock", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      await giveReviewEntries(tx, member.id);
+      await giveReviewEntries(tx, stranger.id);
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      return { stored, stranger };
+    });
+    const content = String(outcome.stored?.content);
+    const file = JSON.parse(content) as {
+      data: {
+        advertiser_profile: {
+          review_entries: unknown;
+          field_revisions: unknown;
+        };
+      };
+    };
+    const at = expect.stringMatching(/Z$/);
+    expect(file.data.advertiser_profile.review_entries).toEqual([
+      {
+        kind: "submission",
+        state: "rejected",
+        created_at: at,
+        decided_at: at,
+        rejection_reason: "other",
+        member_message: REVIEW_MESSAGE,
+        closed_at: at,
+      },
+      {
+        kind: "revision",
+        state: "open",
+        created_at: at,
+        decided_at: null,
+        rejection_reason: null,
+        member_message: null,
+        closed_at: null,
+      },
+    ]);
+    expect(file.data.advertiser_profile.field_revisions).toEqual([
+      {
+        field: "advertiser.presentation",
+        row_key: null,
+        proposed_value: REVIEW_VALUE,
+        status: "pending_review",
+        submitted_at: at,
+        closed_at: null,
+      },
+    ]);
+    expect(content.includes(REVIEW_COMMENT)).toBe(false);
+    expect(content.includes(accountIdOf("agent", "a"))).toBe(false);
+    expect(content.includes(outcome.stranger.id)).toBe(false);
+  });
+
+  it("deletes the revisions of the erased brand, empties the texts and withdraws the open entry; another brand is untouched", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      await giveReviewEntries(tx, member.id);
+      await giveReviewEntries(tx, stranger.id);
+      const request = await deposit(tx, member, "erasure");
+      await approve(tx, request, "erasure");
+      rowsOf(await execute(tx, request, null));
+      return {
+        erased: await reviewOf(tx, member.id),
+        kept: await reviewOf(tx, stranger.id),
+      };
+    });
+    expect(outcome.erased).toEqual({
+      entries: [
+        {
+          kind: "submission",
+          state: "rejected",
+          closed: true,
+          decided: true,
+          reason: "other",
+          member_message: null,
+          internal_comment: null,
+        },
+        {
+          kind: "revision",
+          state: "withdrawn",
+          closed: true,
+          decided: false,
+          reason: null,
+          member_message: null,
+          internal_comment: null,
+        },
+      ],
+      revisions: 0,
+    });
+    expect(outcome.kept).toEqual({
+      entries: [
+        {
+          kind: "submission",
+          state: "rejected",
+          closed: true,
+          decided: true,
+          reason: "other",
+          member_message: REVIEW_MESSAGE,
+          internal_comment: REVIEW_COMMENT,
+        },
+        {
+          kind: "revision",
+          state: "open",
+          closed: false,
+          decided: false,
+          reason: null,
+          member_message: null,
+          internal_comment: REVIEW_COMMENT,
+        },
+      ],
+      revisions: 1,
+    });
+  });
+
+  it.each([
+    [
+      "reading the internal comment",
+      "select internal_comment from profiles.advertiser_review_entries where account_id = $1",
+    ],
+    [
+      "reading the holder of the lock",
+      "select claimed_by_account_id from profiles.advertiser_review_entries where account_id = $1",
+    ],
+    [
+      "rewriting the author of a decision",
+      "update profiles.advertiser_review_entries set decided_by_account_id = account_id " +
+        "where account_id = $1",
+    ],
+    [
+      "rewriting the reason of a refusal",
+      "update profiles.advertiser_review_entries set rejection_reason_code = null " +
+        "where account_id = $1",
+    ],
+    [
+      "reopening an entry of an erased account",
+      "update profiles.advertiser_review_entries set state = 'open', closed_at = null " +
+        "where account_id = $1 and state = 'withdrawn'",
+    ],
+    [
+      "writing a text on an entry of an erased account",
+      "update profiles.advertiser_review_entries set internal_comment = 'written back' " +
+        "where account_id = $1 and state = 'withdrawn'",
+    ],
+    [
+      "deleting an entry",
+      "delete from profiles.advertiser_review_entries where account_id = $1",
+    ],
+    [
+      "writing back a revision",
+      "update profiles.profile_field_revisions set status = 'withdrawn' where account_id = $1",
+    ],
+  ])(
+    "refuses to influx_privacy_definer %s (42501)",
+    async (_label, statement) => {
+      const result = await scenario(async (tx) => {
+        const member = await newMember(tx, "advertiser");
+        await giveReviewEntries(tx, member.id);
+        await tx`update identity.accounts set status = 'deleted', deleted_at = now()
+                  where id = ${member.id}`;
+        await tx`
+          update profiles.advertiser_review_entries
+             set state = 'withdrawn', closed_at = now(), internal_comment = null
+           where account_id = ${member.id} and state = 'open'`;
+        await tx.unsafe("set local role influx_privacy_definer");
+        const attempted = await attempt(tx, statement, [member.id]);
+        await tx.unsafe("reset role");
+        return attempted;
+      });
+      expect(codeOf(result)).toBe(INSUFFICIENT_PRIVILEGE);
+    },
+  );
+
+  it("lets influx_privacy_definer touch no entry nor revision of an active account", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      await giveReviewEntries(tx, member.id);
+      const before = await reviewOf(tx, member.id);
+      await tx.unsafe("set local role influx_privacy_definer");
+      const results = {
+        entries: await attempt(
+          tx,
+          "update profiles.advertiser_review_entries set state = 'withdrawn', " +
+            "closed_at = now(), member_message = null, internal_comment = null " +
+            "where account_id = $1 returning 1",
+          [member.id],
+        ),
+        revisions: await attempt(
+          tx,
+          "delete from profiles.profile_field_revisions where account_id = $1 returning 1",
+          [member.id],
+        ),
+      };
+      await tx.unsafe("reset role");
+      return { results, before, after: await reviewOf(tx, member.id) };
+    });
+    expect(rowsOf(outcome.results.entries)).toEqual([]);
+    expect(rowsOf(outcome.results.revisions)).toEqual([]);
+    expect(outcome.after).toEqual(outcome.before);
   });
 });
 

@@ -313,7 +313,7 @@ C'est un choix qui se paie longtemps. La règle retenue :
 | **Taxonomie destinée à durer et à servir de critère de score demain** | Table de référence **versionnée** : on **n'écrase jamais un code utilisé**, on le désactive (`retired_at`) | Exigence explicite de `matching-spec` A1 : deux vocabulaires divergents rendraient tout rapprochement impossible |
 
 Les motifs de refus sont **une table par file** (`matching.rejection_reasons`,
-`verification.rejection_reasons`, `campaigns.rejection_reasons`, `messaging.closure_reasons`,
+`verification.rejection_reasons`, `profiles.advertiser_rejection_reasons`, `campaigns.rejection_reasons`, `messaging.closure_reasons`,
 `messaging.report_reasons`, `billing.lost_reasons`) plutôt qu'une table unique à colonne `scope`.
 Raison : cela permet une vraie clé étrangère sans artifice, et `backoffice-ops` exige des listes
 **distinctes par file** — « les motifs de refus d'une campagne n'ont rien à voir avec ceux d'une
@@ -1454,10 +1454,8 @@ et le backoffice doit pouvoir en désactiver un sans migration (§3.1).
 | `proposed_value` | `jsonb` | `not null check (pg_column_size(proposed_value) <= 8000)` | **La valeur soumise, pas la valeur publiée** |
 | `status` | `profiles.revision_status` | `not null default 'pending_review'` | `pending_review` · `approved` · `rejected` · `withdrawn` · `superseded` |
 | `submitted_at` | `timestamptz` | `not null default now()` | — |
-| `claimed_by_agent_id`, `claimed_at` | — | — | Même verrou de file qu'ailleurs (§5.6) |
-| `decided_by_agent_id`, `decided_at` | — | `check (status not in ('approved','rejected') or decided_by_agent_id is not null)` | Décision humaine obligatoire |
-| `rejection_reason_code` | `text` | FK, `check (status <> 'rejected' or rejection_reason_code is not null)` | Motif **typé**, jamais muet |
-| `sla_due_at` | `timestamptz` | `not null` | Calculé une fois, depuis `backoffice.sla_policies` (D39) |
+| `advertiser_review_entry_id` | `uuid` | `not null`, FK `(advertiser_review_entry_id, account_id)` : une entrée du même compte | Verrou, échéances, décision et motif sont ceux de l'entrée (L2C, `l2c/file.md` A1, D81) |
+| `closed_at` | `timestamptz` | `check ((status = 'pending_review') = (closed_at is null))` | Clôture par la décision, un remplacement ou un retrait |
 | `created_at`, `updated_at` | `timestamptz` | `not null` | — |
 
 ```sql
@@ -1475,9 +1473,11 @@ comment on table profiles.profile_field_revisions is
 
 **Le profil ne change pas d'état pour une re-validation partielle.** `status` reste `published` ; ce
 qui est « en attente de validation » est **la révision**, pas le profil. C'est la seule lecture
-compatible avec « la dernière version validée reste affichée » — et elle a l'avantage de rendre la
-file de validation lisible : le backoffice liste des **révisions**, avec leur champ et leur
-ancienneté, pas des profils entiers à relire.
+compatible avec « la dernière version validée reste affichée » (L2C, A2). La file liste des **entrées**,
+une ouverte au plus par compte, première soumission (sans révision) ou révision, avec les champs
+modifiés et leur ancienneté, et une décision globale (`06` RG63, RG65 ; `l2c/file.md` A1, D81).
+
+**`profiles.advertiser_review_entries` (L2C, `0207`).** `kind` (`submission`, `revision`), `state` (`open`, `published`, `rejected`, `withdrawn`), `closed_at` ; index unique partiel d'une entrée `open` par compte ; verrou (`claimed_by_account_id`, `claimed_at`, `claim_expires_at`), dernière levée forcée (`forced_release_*`), échéances figées à la création par un déclencheur (`sla_due_at`, `escalate_at`, §5.6, jamais écrites par l'appelant), décision (`decided_by_account_id`, `decided_at`, `rejection_reason_code` vers `profiles.advertiser_rejection_reasons`, huit motifs de `06` RG66 ; `member_message` de 20 à 500 caractères sur un refus ; `internal_comment` d'au plus 1 000, jamais au membre, à l'e-mail, au registre ni à l'export), `sla_breached` générée, index de file `(sla_due_at, created_at) where state = 'open'`. La marque lit ses entrées sans verrou, agent, échéances ni commentaire, et ses révisions ; `agent`, `admin` en `aal2`, jamais leur propre compte (`15` RG36) ; aucune écriture directe. Jeton de version : `profiles.advertiser_review_token(account)`, SHA-256 hexadécimal du contenu examiné (profil, pays du compte, huit listes dans leur ordre, interlocuteur, logos `active` et `in_review`, révisions en attente), jamais stocké, comparé à la décision (A3).
 
 **Les visuels de portfolio gardent leur mécanique propre** (`portfolio_items.moderation_status` et
 le déclencheur qui repasse à `pending` quand `storage_path` change) : un visuel est un objet, pas un
@@ -5812,7 +5812,7 @@ les préparer serait inventer.
    `accounts.email` remplacé par `deleted+<id>@invalid`, `display_name` par un libellé neutre ;
    `profiles.creator_identities` et `profiles.advertiser_contact_details` **vidées** (les lignes
    restent, les colonnes passent à `null`) ; `creator_social_accounts.handle` et `profile_url`
-   effacés ; portfolio et pièces supprimés du Storage.
+   effacés ; portfolio et pièces supprimés du Storage ; `profiles.profile_field_revisions` supprimées, textes de `advertiser_review_entries` vidés, entrée ouverte `withdrawn` (L2C, `0207`).
 3. `accounts.anonymized_at = now()`.
 4. Un événement `account.anonymized` est écrit **dans le registre**, et un événement
    `account.deleted` part dans `outbox_events` en **priorité 0** vers Brevo et Apollo — la
@@ -5836,6 +5836,7 @@ confidentialité dès le Lot 1** :
 | Ce qui survit | Sous quelle forme | Pourquoi |
 |---|---|---|
 | **La mise en relation** (`matching.introductions`) | Identifiants de comptes, pays au jour des faits, dates, référence `MER-…`. **Aucun nom** | Preuve d'intermédiation : elle fonde la créance éventuelle de la V2 et la défense d'INFLUX en cas de litige |
+| **L'examen du profil** (`profiles.advertiser_review_entries`) | Identifiants, type, état, dates, code du motif ; **aucun texte** (L2C, `0207`, `l2c/file.md` A1) | Trace d'une décision humaine (`06` RG6) ; à l'export : jamais le commentaire interne, un agent ni le verrou |
 | **L'affaire** (`billing.deals`) | Montants, devise, dates, commercial responsable | Obligation comptable. Un euro encaissé doit rester rattaché à un acte |
 | **Le registre** (`audit.audit_events`) | Identifiants et codes | Intégrité de la chaîne. Retirer une ligne casse toutes les suivantes |
 | **La conversation** (`messaging.*`) | Les messages restent, l'auteur devient « Compte supprimé » pour l'autre partie | `messaging-spec` règle 35 : conservation au titre de la constatation et de la défense de droits |
@@ -6124,9 +6125,9 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0204 | `profiles_creator_identity` | Objets révélable et identifiant, `avg_reach_per_post`, **`GRANT` de révélation élargi aux chiffres exacts** (§5.2), `REVOKE` au rôle annonceur sur l'objet identifiant | Oui |
 | 0205 | `profiles_portfolio` | `portfolio_items`, compartiment `portfolio`, politiques Storage | Oui |
 | 0206 | `verification_core` | Demandes, codes, pièces (**images uniquement**), badges, contestations, motifs de refus, **`revocation_reasons`**, **état `to_reconfirm`**, **identifiant observé au constat** | Oui |
-| 0207 | `profiles_revisions` | `moderated_fields`, `profile_field_revisions`, index de file, fonction d'application d'une révision approuvée | Oui |
+| 0207 | `profiles_revisions_and_review_entries` (L2C) | `moderated_fields`, `profile_field_revisions`, `advertiser_review_entries`, `advertiser_rejection_reasons`, index de file, jeton de version ; l'application d'une révision approuvée vient avec les décisions (L2C, commit 07) | Oui |
 
-> **Numéros réels du L2B (EC-L2B-1).** `check-migrations.ts` impose l'ordre des noms : L2B a pris `0202` `profiles_advertiser_full`, `0203` `profiles_advertiser_submission` (soumission gardée par la base), `0204` `profiles_brand_logo_storage` (compartiment `brand-logo`, quotas, politiques Storage) et `0205` `ops_storage_purge`. Les lignes `0203` à `0207` ci-dessus prennent les numéros libres suivants au jalon qui les livre. **L2C** prend `0206` `backoffice_profiles_advertiser_queue` : file 1 et son délai (escalade 960, `15` RG29), `backoffice.operational_settings` (EC-L2C-2), `backoffice.business_deadline()` (§5.6).
+> **Numéros réels du L2B (EC-L2B-1).** `check-migrations.ts` impose l'ordre des noms : L2B a pris `0202` `profiles_advertiser_full`, `0203` `profiles_advertiser_submission` (soumission gardée par la base), `0204` `profiles_brand_logo_storage` (compartiment `brand-logo`, quotas, politiques Storage) et `0205` `ops_storage_purge`. Les lignes `0203` à `0207` ci-dessus prennent les numéros libres suivants au jalon qui les livre. **L2C** prend `0206` `backoffice_profiles_advertiser_queue` : file 1 et son délai (escalade 960, `15` RG29), `backoffice.operational_settings` (EC-L2C-2), `backoffice.business_deadline()` (§5.6), puis `0207` ci-dessus.
 | **Lot 3** | | | |
 | 0301 | `campaigns_core` | `reference.campaign_types`, campagnes (**six états, quatre textes, dotation, droits d'usage, quatre dates, nature de la rémunération**), livrables, ciblage détaillé, messages clés, territoires, éléments demandés, motifs de refus, **types d'événements `campaign.*`** | Oui |
 | 0302 | `campaigns_publication` | `campaign_published_snapshots`, `campaign_price_bands`, fonction de publication (dérivation des tranches, contrôle des dates, revue renforcée à deux validateurs) | Oui |

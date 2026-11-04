@@ -317,7 +317,8 @@ describe("06 RG5: the brand submits a complete profile, journaled in the same tr
           actor_account_id: brandA,
           subject_type: "advertiser_profile",
           subject_id: brandA,
-          payload: { from_status: "draft" },
+          // 0207 (file.md, codes): the entry of queue 1 the submission opened
+          payload: { from_status: "draft", entry_id: expect.any(String) },
         },
       ],
       other: { status: "draft", submitted: false },
@@ -342,7 +343,7 @@ describe("06 RG5: the brand submits a complete profile, journaled in the same tr
     expect(outcome).toEqual({
       changed: true,
       state: { status: "pending_review", submitted: true },
-      payloads: [{ from_status: "rejected" }],
+      payloads: [{ from_status: "rejected", entry_id: expect.any(String) }],
     });
   });
 

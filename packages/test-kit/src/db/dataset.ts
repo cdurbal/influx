@@ -75,6 +75,19 @@ export const BRAND_LOGO_IDS = {
   a: "00000000-0000-4000-8000-00000000ff0c",
   b: "00000000-0000-4000-8000-00000000ff0d",
 } as const;
+/**
+ * A CLOSED entry of queue 1 per advertiser (0207, L2C): a revision withdrawn, so that no case
+ * finds an open entry it did not open (the unique open entry per account).
+ */
+export const REVIEW_ENTRY_IDS = {
+  a: "00000000-0000-4000-8000-00000000ff0e",
+  b: "00000000-0000-4000-8000-00000000ff0f",
+} as const;
+/** The withdrawn revision of each entry above (0207). */
+export const FIELD_REVISION_IDS = {
+  a: "00000000-0000-4000-8000-00000000ff10",
+  b: "00000000-0000-4000-8000-00000000ff11",
+} as const;
 
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
@@ -319,6 +332,18 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
         insert into profiles.storage_daily_usage
           (account_id, bucket_id, usage_day, upload_count, received_bytes)
         values (${account}, 'brand-logo', (now() at time zone 'UTC')::date - 1, 1, 40000)
+        on conflict do nothing`;
+      // 0207: a closed entry of queue 1 and its withdrawn revision per advertiser
+      await tx`
+        insert into profiles.advertiser_review_entries (id, account_id, kind, state, closed_at)
+        values (${REVIEW_ENTRY_IDS[side]}, ${account}, 'revision', 'withdrawn', now())
+        on conflict do nothing`;
+      await tx`
+        insert into profiles.profile_field_revisions
+          (id, account_id, field_code, proposed_value, status, advertiser_review_entry_id,
+           closed_at)
+        values (${FIELD_REVISION_IDS[side]}, ${account}, 'advertiser.presentation',
+                '"T2 presentation"'::jsonb, 'withdrawn', ${REVIEW_ENTRY_IDS[side]}, now())
         on conflict do nothing`;
     }
     await tx`

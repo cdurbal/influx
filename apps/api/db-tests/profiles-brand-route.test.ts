@@ -707,8 +707,9 @@ describe("POST /v1/me/brand-profile/submit (06 RG5, RG6, CA6, CA7, edge cases 3 
     const lines = await migration<{ payload: unknown }[]>`
       select payload from audit.audit_events
        where event_type = 'profile.submitted' and subject_id = ${member.accountId}`;
+    // 0207 (file.md, codes): the line names the entry of queue 1 the submission opened
     expect(lines.map((line) => line.payload)).toEqual([
-      { from_status: "draft" },
+      { from_status: "draft", entry_id: expect.any(String) },
     ]);
     // waiting for INFLUX, the brand may still correct: the state does not move
     const edited = await patch(server, member, { companySize: "1_10" });
@@ -735,7 +736,10 @@ describe("POST /v1/me/brand-profile/submit (06 RG5, RG6, CA6, CA7, edge cases 3 
     const [line] = await migration<{ payload: unknown }[]>`
       select payload from audit.audit_events
        where event_type = 'profile.submitted' and subject_id = ${member.accountId}`;
-    expect(line?.payload).toEqual({ from_status: "rejected" });
+    expect(line?.payload).toEqual({
+      from_status: "rejected",
+      entry_id: expect.any(String),
+    });
 
     for (const state of ["published", "suspended"]) {
       await migration`

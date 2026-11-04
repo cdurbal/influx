@@ -541,13 +541,13 @@ describe("backoffice.business_deadline(): the deadline in business hours, comput
     ]);
   });
 
-  it("is executed by no influx role yet: its first caller receives it (0207)", async () => {
+  it("is executed by its first caller only: influx_identity_definer, the writer of the entries of queue 1 (0207)", async () => {
     const rows = await migration<{ rolname: string }[]>`
       select rolname from pg_catalog.pg_roles
        where rolname like 'influx\\_%'
          and pg_catalog.has_function_privilege(
                oid, 'backoffice.business_deadline(text, timestamptz, integer)', 'EXECUTE')`;
-    expect(rows).toEqual([]);
+    expect(rows).toEqual([{ rolname: "influx_identity_definer" }]);
   });
 });
 

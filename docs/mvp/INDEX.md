@@ -154,7 +154,7 @@
 | 1784 | 41 | 10. Ce qui sort de mon périmètre |  |
 | 1825 | 17 | 11. Mises à jour attendues dans les autres documents |  |
 
-## 04-modele-de-donnees-mvp.md (~143k tokens)
+## 04-modele-de-donnees-mvp.md (~144k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -181,12 +181,12 @@
 | 5244 | 207 | 6. Les politiques RLS — principes et exemples | RG122 |
 | 5451 | 280 | 7. Réponse aux six points du §14.2 du document `02` |  |
 | 5731 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
-| 5769 | 124 | 9. Conservation, suppression, anonymisation | RG44–RG112 |
-| 5893 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
-| 6058 | 135 | 11. Plan de migrations | RG15–RG163 |
-| 6193 | 175 | 12. Ce qui reste ouvert | RG22–RG123 |
-| 6368 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
-| 6404 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
+| 5769 | 125 | 9. Conservation, suppression, anonymisation | RG6–RG112 |
+| 5894 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
+| 6059 | 135 | 11. Plan de migrations | RG15–RG163 |
+| 6194 | 175 | 12. Ce qui reste ouvert | RG22–RG123 |
+| 6369 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
+| 6405 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
 
 ## 05-spec-inscription-et-leads.md (~41k tokens)
 

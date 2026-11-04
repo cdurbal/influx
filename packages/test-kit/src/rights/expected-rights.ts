@@ -741,6 +741,86 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     expected: {},
   },
   {
+    table: "profiles.moderated_fields",
+    source:
+      "0207 (L2C, 04 §5.2, 06 RG9, jalons/l2c/file.md A4): the closed list of the re-validated " +
+      "fields, written by the migrations only",
+    probeColumn: "code",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "15 RG26: the fields of a revision named on the decision screen, aal2",
+      },
+    }),
+  },
+  {
+    table: "profiles.advertiser_rejection_reasons",
+    source:
+      "0207 (L2C, 04 §3.1, 06 RG66, file.md A6): the closed list of the refusal reasons of " +
+      "queue 1, written by the migrations only",
+    probeColumn: "code",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "06 RG65, RG66: the reasons offered to the agent who decides, aal2",
+      },
+    }),
+  },
+  {
+    table: "profiles.advertiser_review_entries",
+    source:
+      "0207 (L2C, file.md A1, D81): the entries of queue 1, opened by the member doors " +
+      "(influx_identity_definer), decided by the functions of 07 only",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    expected: merge(
+      {
+        influx_advertiser: {
+          select: {
+            form: "propre",
+            source:
+              "file.md A1: the brand reads its own entries, never the lock, an agent, the " +
+              "deadlines nor the internal comment (column grants)",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source:
+            "15 RG26, RG36 C(3): agent and admin read the queue in aal2, never their own account",
+        },
+      }),
+    ),
+  },
+  {
+    table: "profiles.profile_field_revisions",
+    source:
+      "0207 (L2C, 04 §5.2, file.md A1): the submitted values of moderated fields, written by the " +
+      "member door of 06 only, deleted by the erasure (influx_privacy_definer)",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    expected: merge(
+      {
+        influx_advertiser: {
+          select: {
+            form: "propre",
+            source: "06 RG9: the brand reads its own submitted values",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source:
+            "15 RG26, RG36 C(3): agent and admin read the revisions in aal2, never their own account",
+        },
+      }),
+    ),
+  },
+  {
     table: "ops.error_groups",
     source: "0016 (D60, 02 §20.5; E-6)",
     // The two columns influx_ops reads for the upsert of a fingerprint; the update probe is a
@@ -2932,6 +3012,56 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_worker|function|ops.claim_storage_purges(uuid,smallint,integer)|EXECUTE",
   "influx_worker|function|ops.complete_storage_purges(uuid,smallint,uuid[])|EXECUTE",
   "influx_worker|function|ops.purge_storage_usage(uuid,smallint)|EXECUTE",
+  // 0207 (L2C commit 05, file.md A1, A4, A6): the two catalogues and the entries of queue 1 read
+  // by agent and admin in aal2; the brand reads its own entries without the lock, the agents, the
+  // deadlines nor the internal comment, and its own revisions; nobody writes them directly. The
+  // owner of the member doors opens an entry (account, kind) of the caller's row, reads the delay
+  // of queue 1 and executes business_deadline() through the trigger of the entries;
+  // influx_privacy_definer reads what the export carries, deletes the revisions and empties the
+  // entries of an erased account.
+  "influx_admin|table|profiles.advertiser_rejection_reasons|SELECT",
+  "influx_admin|table|profiles.advertiser_review_entries|SELECT",
+  "influx_admin|table|profiles.moderated_fields|SELECT",
+  "influx_admin|table|profiles.profile_field_revisions|SELECT",
+  "influx_agent|table|profiles.advertiser_rejection_reasons|SELECT",
+  "influx_agent|table|profiles.advertiser_review_entries|SELECT",
+  "influx_agent|table|profiles.moderated_fields|SELECT",
+  "influx_agent|table|profiles.profile_field_revisions|SELECT",
+  "influx_advertiser|table|profiles.profile_field_revisions|SELECT",
+  "influx_advertiser|column|profiles.advertiser_review_entries.account_id|SELECT",
+  "influx_advertiser|column|profiles.advertiser_review_entries.closed_at|SELECT",
+  "influx_advertiser|column|profiles.advertiser_review_entries.created_at|SELECT",
+  "influx_advertiser|column|profiles.advertiser_review_entries.decided_at|SELECT",
+  "influx_advertiser|column|profiles.advertiser_review_entries.id|SELECT",
+  "influx_advertiser|column|profiles.advertiser_review_entries.kind|SELECT",
+  "influx_advertiser|column|profiles.advertiser_review_entries.member_message|SELECT",
+  "influx_advertiser|column|profiles.advertiser_review_entries.rejection_reason_code|SELECT",
+  "influx_advertiser|column|profiles.advertiser_review_entries.state|SELECT",
+  "influx_advertiser|column|profiles.advertiser_review_entries.updated_at|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_review_entries.account_id|INSERT,SELECT",
+  "influx_identity_definer|column|profiles.advertiser_review_entries.id|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_review_entries.kind|INSERT,SELECT",
+  "influx_identity_definer|column|profiles.advertiser_review_entries.state|SELECT",
+  "influx_identity_definer|column|backoffice.sla_policies.escalate_after_minutes|SELECT",
+  "influx_identity_definer|function|backoffice.business_deadline(text,timestamp with time zone,integer)|EXECUTE",
+  "influx_privacy_definer|column|profiles.advertiser_review_entries.account_id|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_review_entries.closed_at|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.advertiser_review_entries.created_at|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_review_entries.decided_at|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_review_entries.id|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_review_entries.internal_comment|UPDATE",
+  "influx_privacy_definer|column|profiles.advertiser_review_entries.kind|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_review_entries.member_message|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.advertiser_review_entries.rejection_reason_code|SELECT",
+  "influx_privacy_definer|column|profiles.advertiser_review_entries.state|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.profile_field_revisions.account_id|SELECT",
+  "influx_privacy_definer|column|profiles.profile_field_revisions.closed_at|SELECT",
+  "influx_privacy_definer|column|profiles.profile_field_revisions.field_code|SELECT",
+  "influx_privacy_definer|column|profiles.profile_field_revisions.proposed_value|SELECT",
+  "influx_privacy_definer|column|profiles.profile_field_revisions.row_key|SELECT",
+  "influx_privacy_definer|column|profiles.profile_field_revisions.status|SELECT",
+  "influx_privacy_definer|column|profiles.profile_field_revisions.submitted_at|SELECT",
+  "influx_privacy_definer|table|profiles.profile_field_revisions|DELETE",
 ];
 
 /**
