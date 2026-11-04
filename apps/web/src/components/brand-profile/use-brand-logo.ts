@@ -30,12 +30,17 @@ export type LogoActivity =
   | { kind: "uploading" }
   | { kind: "removing" }
   | { kind: "uploaded" }
+  /** On a published profile the deposit waits for the review (06 RG9); the logo in force stays. */
+  | { kind: "uploadedInReview" }
   | { kind: "removed" }
+  | { kind: "removedInReview" }
   | { kind: "failed"; failure: LogoFailure; during: "upload" | "removal" };
 
 export type BrandLogoState = {
   phase: LogoPhase;
   logo: BrandLogo | null;
+  /** A replacement waiting for review on a published profile, shown beside the logo in force. */
+  pendingLogo: BrandLogo | null;
   activity: LogoActivity;
   /** A file waits in memory to be sent again: the service did not answer (cas limite 6). */
   canRetry: boolean;
@@ -53,9 +58,12 @@ export function useBrandLogo(options: {
   onSignedOut: () => void;
   /** The score as the API recomputed it after a deposit or a removal (RG58). */
   onCompleteness: (completeness: BrandProfileCompletenessView) => void;
+  /** A deposit or a removal went to review: the profile says what waits (`pendingChanges`), read it again. */
+  onReview: () => void;
 }): BrandLogoState {
   const [phase, setPhase] = useState<LogoPhase>("loading");
   const [logo, setLogo] = useState<BrandLogo | null>(null);
+  const [pendingLogo, setPendingLogo] = useState<BrandLogo | null>(null);
   const [activity, setActivity] = useState<LogoActivity>({ kind: "idle" });
   const [canRetry, setCanRetry] = useState(false);
 
@@ -82,8 +90,15 @@ export function useBrandLogo(options: {
       busyRef.current = false;
       if (result.kind === "ok") {
         forget();
-        setLogo(result.data.logo);
         callbacks.current.onCompleteness(result.data.completeness);
+        if (result.data.state === "in_review") {
+          setPendingLogo(result.data.logo);
+          setActivity({ kind: "uploadedInReview" });
+          callbacks.current.onReview();
+          return;
+        }
+        setLogo(result.data.logo);
+        setPendingLogo(null);
         setActivity({ kind: "uploaded" });
         return;
       }
@@ -138,9 +153,20 @@ export function useBrandLogo(options: {
     busyRef.current = false;
     if (result.kind === "ok") {
       forget();
-      setLogo(null);
       callbacks.current.onCompleteness(result.data.completeness);
-      setActivity({ kind: "removed" });
+      if (result.data.inReview) {
+        // The logo in force stays served until the decision; a proposed replacement may be gone.
+        setActivity({ kind: "removedInReview" });
+        callbacks.current.onReview();
+        const read = await readBrandLogo();
+        if (read.kind === "ok") {
+          setPendingLogo(read.data.pendingLogo ?? null);
+        }
+      } else {
+        setLogo(null);
+        setPendingLogo(null);
+        setActivity({ kind: "removed" });
+      }
     } else if (result.kind === "unauthenticated") {
       callbacks.current.onSignedOut();
     } else {
@@ -157,6 +183,7 @@ export function useBrandLogo(options: {
     const result = await readBrandLogo();
     if (result.kind === "ok") {
       setLogo(result.data.logo);
+      setPendingLogo(result.data.pendingLogo ?? null);
       setPhase("ready");
     } else if (result.kind === "unauthenticated") {
       callbacks.current.onSignedOut();
@@ -174,6 +201,7 @@ export function useBrandLogo(options: {
   return {
     phase,
     logo,
+    pendingLogo,
     activity,
     canRetry,
     busy: activity.kind === "uploading" || activity.kind === "removing",

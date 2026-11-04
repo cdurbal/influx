@@ -10,7 +10,8 @@
   "status": {
     "pending": "Votre profil est en cours de validation par l'équipe INFLUX.",
     "pendingWithPublished": "Vos modifications sont en cours de validation. Votre profil reste visible dans sa version précédente.",
-    "rejected": "Votre profil n'a pas été publié : {reason}"
+    "rejected": "Votre profil n'a pas été publié : {reason}",
+    "revisionRefused": "Vos modifications n'ont pas été publiées : {reason} Votre profil reste visible dans sa version précédente."
   },
   "website": {
     "normalized": "Nous avons conservé le domaine {domain}. Une page de contact se renseigne dans le bloc « votre interlocuteur »."
@@ -191,9 +192,10 @@
   "statusText": {
     "draft": "Non visible des créateurs.",
     "pendingSince": "Soumis le {date}. Réponse sous 1 jour ouvré. Vous pouvez encore modifier votre profil.",
-    "published": "Votre profil est publié. Sa modification sera bientôt possible depuis cette page.",
+    "published": "Votre profil est publié. Vous pouvez le modifier ici : le nom, le logo, la présentation, le site, la fonction de l'interlocuteur et le secteur principal sont examinés par l'équipe INFLUX avant d'être visibles ; le reste s'applique tout de suite.",
     "rejectedReason": "le motif vous est précisé par l'équipe INFLUX. Corrigez votre profil puis soumettez-le de nouveau.",
-    "suspended": "Votre profil est suspendu. Contactez l'équipe INFLUX pour en savoir plus."
+    "suspended": "Votre profil est suspendu : il ne peut plus être modifié. Contactez l'équipe INFLUX pour en savoir plus.",
+    "rejectedNext": "Corrigez votre profil puis soumettez-le de nouveau."
   },
   "section": {
     "identity": "1. Identité publique",
@@ -284,7 +286,8 @@
     "invalid": "Cette valeur n'est pas valide.",
     "unknown": "Ce choix n'est plus disponible : choisissez-en un autre.",
     "website": "Ce site n'est pas un nom de domaine valide. Saisissez par exemple exemple.com.",
-    "companyName": "Indiquez le nom de votre entreprise."
+    "companyName": "Indiquez le nom de votre entreprise.",
+    "emptied": "Ce champ est obligatoire : il ne peut pas être vidé sur un profil publié."
   },
   "save": {
     "saving": "Enregistrement…",
@@ -320,7 +323,9 @@
       "uploading": "Envoi du logo…",
       "removing": "Retrait du logo…",
       "uploaded": "Logo enregistré.",
-      "removed": "Logo retiré."
+      "removed": "Logo retiré.",
+      "uploadedInReview": "Logo envoyé : il sera visible après validation par l'équipe INFLUX.",
+      "removedInReview": "Retrait du logo envoyé : il sera effectif après validation par l'équipe INFLUX."
     },
     "errors": {
       "empty": "Ce fichier est vide. Choisissez une image PNG, JPEG ou WebP.",
@@ -335,7 +340,14 @@
       "unavailable": "Le logo n'a pas pu être déposé : le service ne répond pas. Le reste de votre profil est enregistré et le logo est à redéposer.",
       "removalFailed": "Le logo n'a pas pu être retiré. Réessayez.",
       "loadFailed": "Le logo n'a pas pu être chargé."
-    }
+    },
+    "review": {
+      "regime": "Un nouveau logo est examiné par l'équipe INFLUX avant d'être visible ; le logo actuel reste affiché d'ici là.",
+      "set": "Votre nouveau logo est en cours de validation. Le logo actuel reste affiché.",
+      "clear": "Le retrait de votre logo est en cours de validation. Le logo actuel reste affiché."
+    },
+    "pendingAlt": "Aperçu du logo proposé, en cours de validation",
+    "pendingCaption": "En cours de validation"
   },
   "home": {
     "action": {
@@ -352,5 +364,9 @@
       },
       "soon": "Bientôt disponible dans votre espace."
     }
+  },
+  "review": {
+    "regime": "Une modification est examinée par l'équipe INFLUX avant d'être visible ; la version actuelle reste affichée d'ici là.",
+    "pending": "En cours de validation : votre version n'est pas encore visible, la version précédente reste affichée."
   }
 }

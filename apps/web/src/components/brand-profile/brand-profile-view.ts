@@ -12,6 +12,8 @@ import {
   type BrandLogoRejection,
   type BrandProfileResponse,
   type BrandProfileStatus,
+  type BrandRefusal,
+  type PendingChangeField,
   type UpdateBrandProfileBody,
 } from "@influx/contracts/brand-profile";
 import type { RelayResult } from "@influx/web-platform/relay-client";
@@ -70,7 +72,39 @@ export const DRAFT_KEYS: readonly DraftKey[] = [
   "contactUrl",
 ];
 
+/**
+ * What the form holds for a profile. On a published one, a field waiting for review shows the value
+ * the member sent (`pendingChanges`, 06 RG9), not the validated one the answer carries. The logo is
+ * not a field of the draft: its object is read apart.
+ */
 export function draftOf(profile: BrandProfileResponse): BrandDraft {
+  const draft = validatedDraftOf(profile);
+  for (const change of profile.pendingChanges) {
+    const value = change.change === "clear" ? null : change.value;
+    switch (change.field) {
+      case "companyName":
+        draft.companyName = value ?? draft.companyName;
+        break;
+      case "presentation":
+        draft.presentation = value ?? "";
+        break;
+      case "website":
+        draft.website = value ?? "";
+        break;
+      case "contactRole":
+        draft.contactRole = value;
+        break;
+      case "primarySector":
+        draft.primarySector = value;
+        break;
+      case "logo":
+        break;
+    }
+  }
+  return draft;
+}
+
+function validatedDraftOf(profile: BrandProfileResponse): BrandDraft {
   return {
     companyName: profile.companyName,
     primarySector: profile.primarySector,
@@ -113,7 +147,7 @@ export function sameValue(first: DraftValue, second: DraftValue): boolean {
 
 /** Why a field is not accepted, as a key of `brandProfile.fieldErrors`. */
 export type FieldError =
-  "required" | "invalid" | "unknown" | "website" | "companyName";
+  "required" | "emptied" | "invalid" | "unknown" | "website" | "companyName";
 
 export type FieldErrors = Partial<Record<DraftKey, FieldError>>;
 
@@ -248,6 +282,10 @@ export function fieldErrorOf(
   if (issues.includes("unknown")) {
     return "unknown";
   }
+  // A required list emptied on a published profile: the API keeps it filled (400 `required`).
+  if (issues.includes("required")) {
+    return "emptied";
+  }
   return key === "companyName" ? "companyName" : "invalid";
 }
 
@@ -380,52 +418,134 @@ export function missingErrors(missing: readonly RequiredCode[]): FieldErrors {
   return errors;
 }
 
-// --- The states of the profile (06 RG3; 17 §4.2) -------------------------------------------------
+// --- The states of the profile (06 RG3, RG9, RG10; 17 §4.2) ----------------------------------------
 
 /**
- * The states the brand may still edit and submit from: the API answers 409 to a write on a
- * published or a suspended profile until the review of L2C (EC-L2B-07-1).
+ * The states the brand may edit: every one but suspended, which is read-only (17 §4.2). On a
+ * published profile a write is accepted too: a moderated field goes to review, the others apply at
+ * once (06 RG9; the API, jalons/l2c commit 13).
  */
 export function isEditable(status: BrandProfileStatus): boolean {
+  return status !== "suspended";
+}
+
+/** The states the brand submits from: a published profile has nothing to submit, its edits go by themselves. */
+export function canSubmit(status: BrandProfileStatus): boolean {
   return status !== "published" && status !== "suspended";
 }
 
-/** The sentence under "État : …" for a status; the draft, the pending and the rejected have theirs. */
-export type StatusTextKey =
-  "draft" | "pendingSince" | "published" | "rejectedReason" | "suspended";
+/** What the notice of a state needs: the state, what waits for review, the last refusal. */
+export type ProfileNoticeSource = Pick<
+  BrandProfileSummary,
+  "status" | "submittedAt" | "underReview" | "refusal"
+>;
 
-export function statusTextKeyOf(status: BrandProfileStatus): StatusTextKey {
-  switch (status) {
+/**
+ * Which sentence the notice under "État : …" writes (06 RG84, 17 §4.2): the draft, the profile
+ * under review (with its date), the published one with its changes waiting (its previous version stays
+ * visible), the published one whose changes were refused, the refused one with the typed reason of the
+ * API, the suspended one. `reason`: the message of the reason in the account's language, then the text
+ * the agent wrote for "other" if there is one; never the internal comment (D46).
+ */
+export type ProfileNotice =
+  | { kind: "draft" }
+  | { kind: "pendingSince" }
+  | { kind: "published" }
+  | { kind: "pendingWithPublished" }
+  | { kind: "revisionRefused"; reason: string }
+  | { kind: "rejected"; reason: string }
+  | { kind: "rejectedUnexplained" }
+  | { kind: "suspended" };
+
+export function refusalReasonOf(refusal: BrandRefusal): string {
+  return refusal.memberMessage === null || refusal.memberMessage.trim() === ""
+    ? refusal.message
+    : `${refusal.message} ${refusal.memberMessage.trim()}`;
+}
+
+export function noticeOf(source: ProfileNoticeSource): ProfileNotice {
+  switch (source.status) {
     case "draft":
-      return "draft";
+      return { kind: "draft" };
     case "pending_review":
-      return "pendingSince";
-    case "published":
-      return "published";
-    case "rejected":
-      return "rejectedReason";
+      return { kind: "pendingSince" };
     case "suspended":
-      return "suspended";
+      return { kind: "suspended" };
+    case "rejected":
+      return source.refusal === null
+        ? { kind: "rejectedUnexplained" }
+        : { kind: "rejected", reason: refusalReasonOf(source.refusal) };
+    case "published":
+      if (source.underReview) {
+        return { kind: "pendingWithPublished" };
+      }
+      return source.refusal !== null && source.refusal.kind === "revision"
+        ? { kind: "revisionRefused", reason: refusalReasonOf(source.refusal) }
+        : { kind: "published" };
   }
+}
+
+/**
+ * How a field of a published profile stands under RG9: `regime` a field whose change waits for the
+ * review (said before it is saved), `set` or `clear` a change of it waiting now, `none` a field of
+ * immediate effect or any state but published.
+ */
+export type FieldReview = "none" | "regime" | "set" | "clear";
+
+export const MODERATED_FIELDS: readonly PendingChangeField[] = [
+  "companyName",
+  "logo",
+  "presentation",
+  "website",
+  "contactRole",
+  "primarySector",
+];
+
+/** The field of the review a field of the form is, when its change waits for it (RG9). */
+export function moderatedFieldOf(key: DraftKey): PendingChangeField | null {
+  switch (key) {
+    case "companyName":
+    case "presentation":
+    case "website":
+    case "contactRole":
+    case "primarySector":
+      return key;
+    default:
+      return null;
+  }
+}
+
+export function fieldReviewOf(
+  field: PendingChangeField,
+  profile: Pick<BrandProfileResponse, "status" | "pendingChanges">,
+): FieldReview {
+  if (profile.status !== "published") {
+    return "none";
+  }
+  const waiting = profile.pendingChanges.find((item) => item.field === field);
+  return waiting === undefined ? "regime" : waiting.change;
 }
 
 // --- The state of the profile outside the form (home, column) ------------------------------------
 
 /**
  * What the home and the column of the shell need of the profile (17 §2.3, §2.4): the state, the
- * date it was submitted, and the required fields still missing. The score is not here: the rail
- * and the home write the state and name what is missing, they do not grade it.
+ * date it was submitted, the required fields still missing, whether changes of a published profile
+ * wait for review, and the last refusal. The score is not here: the rail and the home write the
+ * state and name what is missing, they do not grade it.
  */
 export type BrandProfileSummary = Pick<
   BrandProfileResponse,
-  "status" | "submittedAt" | "missingRequired"
->;
+  "status" | "submittedAt" | "missingRequired" | "refusal"
+> & { underReview: boolean };
 
 export function summaryOf(profile: BrandProfileResponse): BrandProfileSummary {
   return {
     status: profile.status,
     submittedAt: profile.submittedAt,
     missingRequired: [...profile.missingRequired],
+    underReview: profile.pendingChanges.length > 0,
+    refusal: profile.refusal,
   };
 }
 

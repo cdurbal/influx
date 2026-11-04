@@ -107,13 +107,7 @@ function ProfileCard({ summary }: { summary: BrandProfileSummary }) {
   const action = nextActionOf(summary);
   const written = summary.status !== "draft" && summary.status !== "rejected";
   if (written) {
-    return (
-      <ProfileStateNotice
-        status={summary.status}
-        submittedAt={summary.submittedAt}
-        locale={locale}
-      />
-    );
+    return <ProfileStateNotice source={summary} locale={locale} />;
   }
   const missing = summary.missingRequired;
   const names = new Intl.ListFormat(locale, {
@@ -131,11 +125,7 @@ function ProfileCard({ summary }: { summary: BrandProfileSummary }) {
           ? t("home.action.titleReady")
           : t("home.action.title")}
       </h2>
-      <ProfileStateNotice
-        status={summary.status}
-        submittedAt={summary.submittedAt}
-        locale={locale}
-      />
+      <ProfileStateNotice source={summary} locale={locale} />
       <p className="text-md text-text-secondary">
         {missing.length === 0
           ? t("progress.allSet")

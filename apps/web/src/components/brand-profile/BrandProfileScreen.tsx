@@ -51,6 +51,7 @@ import {
   sectionBodyClasses,
 } from "./brand-profile-classes";
 import {
+  canSubmit,
   controlIdOfRequired,
   isEditable,
   labelKeyOfRequired,
@@ -175,10 +176,13 @@ function LoadedProfile({
     [t, locale, profile.references],
   );
   const editable = isEditable(profile.status);
+  // A published profile has nothing to submit: its edits go by themselves (06 RG9).
+  const submittable = canSubmit(profile.status);
   const { signedOut } = useMember();
   const logo = useBrandLogo({
     onSignedOut: () => signedOut(null),
     onCompleteness: state.adoptCompleteness,
+    onReview: state.refresh,
   });
   const fields: FieldsProps = {
     profile,
@@ -201,11 +205,7 @@ function LoadedProfile({
 
   return (
     <>
-      <ProfileStateNotice
-        status={profile.status}
-        submittedAt={profile.submittedAt}
-        locale={locale}
-      />
+      <ProfileStateNotice source={summaryOf(profile)} locale={locale} />
       <SubmitFeedback submitState={state.submitState} />
       <div className={PROFILE_GRID_CLASSES}>
         <div className={PROFILE_FORM_CLASSES}>
@@ -245,19 +245,26 @@ function LoadedProfile({
           />
         </div>
         <aside className={PROFILE_ASIDE_CLASSES}>
-          <ProfileProgress profile={profile} onSubmit={submit} state={state} />
+          <ProfileProgress
+            profile={profile}
+            onSubmit={submit}
+            state={state}
+            submittable={submittable}
+          />
         </aside>
       </div>
       <div data-action-bar="" className={ACTION_BAR_CLASSES}>
         <SaveStatus save={state.save} locale={locale} />
-        <MemberButton
-          aria-disabled={state.submitState === "submitting" || undefined}
-          onClick={() => void submit()}
-        >
-          {state.submitState === "submitting"
-            ? t("submit.busy")
-            : t("submit.label")}
-        </MemberButton>
+        {submittable ? (
+          <MemberButton
+            aria-disabled={state.submitState === "submitting" || undefined}
+            onClick={() => void submit()}
+          >
+            {state.submitState === "submitting"
+              ? t("submit.busy")
+              : t("submit.label")}
+          </MemberButton>
+        ) : null}
       </div>
     </>
   );
@@ -327,10 +334,12 @@ function ProfileProgress({
   profile,
   state,
   onSubmit,
+  submittable,
 }: {
   profile: NonNullable<BrandProfileState["profile"]>;
   state: BrandProfileState;
   onSubmit: () => Promise<void>;
+  submittable: boolean;
 }) {
   const t = useTranslations("brandProfile");
   const locale = useLocale();
@@ -357,18 +366,20 @@ function ProfileProgress({
           ? t("progress.allSet")
           : t("publish.missing", { count: missing.length, fields: names })}
       </p>
-      <div className="flex flex-col gap-2 max-lg:hidden">
-        <MemberButton
-          fullWidth
-          aria-disabled={state.submitState === "submitting" || undefined}
-          onClick={() => void onSubmit()}
-        >
-          {state.submitState === "submitting"
-            ? t("submit.busy")
-            : t("submit.label")}
-        </MemberButton>
-        <p className="text-sm text-text-secondary">{t("submit.explain")}</p>
-      </div>
+      {submittable ? (
+        <div className="flex flex-col gap-2 max-lg:hidden">
+          <MemberButton
+            fullWidth
+            aria-disabled={state.submitState === "submitting" || undefined}
+            onClick={() => void onSubmit()}
+          >
+            {state.submitState === "submitting"
+              ? t("submit.busy")
+              : t("submit.label")}
+          </MemberButton>
+          <p className="text-sm text-text-secondary">{t("submit.explain")}</p>
+        </div>
+      ) : null}
     </div>
   );
 }

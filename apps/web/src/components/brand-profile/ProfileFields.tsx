@@ -30,6 +30,8 @@ import { getLocalizedCountryOptions } from "@/content/country-codes";
 import {
   controlIdOf,
   controlIdOfRequired,
+  fieldReviewOf,
+  moderatedFieldOf,
   REQUIRED_KEYS,
   type BrandDraft,
   type DraftKey,
@@ -50,21 +52,33 @@ export type FieldsProps = {
 };
 
 /** The texts every field shares, from its key: label, required, layer, error (RG85). */
-function useFieldTexts(errors: FieldErrors) {
+function useFieldTexts(errors: FieldErrors, profile: BrandProfileResponse) {
   const t = useTranslations("brandProfile");
-  return (
-    key: DraftKey,
-    layer: ProfileLayer,
-    label: string,
-    help?: string,
-  ) => ({
-    label,
-    requiredLabel: REQUIRED_KEYS.has(key) ? t("field.required") : undefined,
-    layer: { layer, label: t(`layer.${layer}`) },
-    help,
-    error:
-      errors[key] === undefined ? undefined : t(`fieldErrors.${errors[key]}`),
-  });
+  return (key: DraftKey, layer: ProfileLayer, label: string, help?: string) => {
+    // On a published profile a field whose change waits for review says so, before and after (RG9).
+    const moderated = moderatedFieldOf(key);
+    const review =
+      moderated === null ? "none" : fieldReviewOf(moderated, profile);
+    const reviewText =
+      review === "regime"
+        ? t("review.regime")
+        : review === "none"
+          ? undefined
+          : t("review.pending");
+    return {
+      label,
+      requiredLabel: REQUIRED_KEYS.has(key) ? t("field.required") : undefined,
+      layer: { layer, label: t(`layer.${layer}`) },
+      help:
+        reviewText === undefined
+          ? help
+          : help === undefined
+            ? reviewText
+            : `${help} ${reviewText}`,
+      error:
+        errors[key] === undefined ? undefined : t(`fieldErrors.${errors[key]}`),
+    };
+  };
 }
 
 /** Block 1, public identity (06 RG15). The logo has its own deposit, outside the autosave. */
@@ -79,14 +93,14 @@ export function IdentityFields({
 }: FieldsProps & { logo: BrandLogoState }) {
   const t = useTranslations("brandProfile");
   const locale = useLocale();
-  const texts = useFieldTexts(errors);
+  const texts = useFieldTexts(errors, profile);
   const country =
     getLocalizedCountryOptions(locale).find(
       (option) => option.code === profile.country,
     )?.name ?? profile.country;
   return (
     <>
-      <LogoField logo={logo} />
+      <LogoField logo={logo} review={fieldReviewOf("logo", profile)} />
       <TextField
         id={controlIdOfRequired("legalName")}
         name="companyName"
@@ -229,13 +243,14 @@ export function IdentityFields({
 
 /** Block 2, what the brand looks for (06 RG27). The indicative budget is not asked (D48, D78). */
 export function ExpectationFields({
+  profile,
   draft,
   errors,
   options,
   change,
 }: FieldsProps) {
   const t = useTranslations("brandProfile");
-  const texts = useFieldTexts(errors);
+  const texts = useFieldTexts(errors, profile);
   const limits = BRAND_PROFILE_LIST_LIMITS;
   return (
     <>
@@ -360,7 +375,7 @@ export function ContactFields({
   change,
 }: FieldsProps) {
   const t = useTranslations("brandProfile");
-  const texts = useFieldTexts(errors);
+  const texts = useFieldTexts(errors, profile);
   return (
     <>
       <SingleChoiceField

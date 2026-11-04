@@ -11,22 +11,26 @@ import {
 import { describe, expect, it } from "vitest";
 import {
   afterSave,
+  canSubmit,
   controlIdOf,
   controlIdOfRequired,
   draftOf,
   fieldErrorOf,
+  fieldReviewOf,
   isEditable,
   isRetryable,
   labelKeyOfRequired,
   logoFailureOf,
   logoFileProblem,
   missingErrors,
+  moderatedFieldOf,
   nextActionOf,
+  noticeOf,
   planPatch,
+  refusalReasonOf,
   sameValue,
   sectionOfRequired,
   singleFieldPatch,
-  statusTextKeyOf,
   summaryOf,
   type BrandDraft,
 } from "@/components/brand-profile/brand-profile-view";
@@ -71,6 +75,15 @@ const PROFILE: BrandProfileResponse = {
 };
 
 const SAVED: BrandDraft = draftOf(PROFILE);
+const SUBMITTED = "2026-11-04T09:00:00.000Z";
+const REFUSAL: NonNullable<BrandProfileResponse["refusal"]> = {
+  kind: "submission",
+  reasonCode: "presentation_insufficient",
+  message: "Votre présentation est trop courte.",
+  memberMessage: null,
+  fields: [],
+  decidedAt: SUBMITTED,
+};
 
 describe("draftOf and sameValue (06 RG83)", () => {
   it("turns an empty profile into empty texts and empty lists, never into invented values (RG34, RG81)", () => {
@@ -80,6 +93,61 @@ describe("draftOf and sameValue (06 RG83)", () => {
     expect(SAVED.topics).toEqual([]);
     expect(SAVED.primarySector).toBeNull();
     expect(SAVED.offersNonMonetary).toBeNull();
+  });
+
+  it("shows, on a published profile, the value waiting for review and not the validated one (06 RG9)", () => {
+    const published: BrandProfileResponse = {
+      ...PROFILE,
+      status: "published",
+      companyName: "Maison Validée",
+      presentation: "Texte validé.",
+      website: "ancien.com",
+      contactRole: "marketing",
+      primarySector: "fashion",
+      pendingChanges: [
+        {
+          field: "companyName",
+          change: "set",
+          value: "Maison Nouvelle",
+          submittedAt: SUBMITTED,
+        },
+        {
+          field: "presentation",
+          change: "set",
+          value: "Texte proposé.",
+          submittedAt: SUBMITTED,
+        },
+        {
+          field: "website",
+          change: "clear",
+          value: null,
+          submittedAt: SUBMITTED,
+        },
+        {
+          field: "contactRole",
+          change: "set",
+          value: "executive",
+          submittedAt: SUBMITTED,
+        },
+        {
+          field: "primarySector",
+          change: "set",
+          value: "beauty_personal_care",
+          submittedAt: SUBMITTED,
+        },
+        { field: "logo", change: "clear", value: null, submittedAt: SUBMITTED },
+      ],
+    };
+    const draft = draftOf(published);
+    expect(draft.companyName).toBe("Maison Nouvelle");
+    expect(draft.presentation).toBe("Texte proposé.");
+    expect(draft.website).toBe("");
+    expect(draft.contactRole).toBe("executive");
+    expect(draft.primarySector).toBe("beauty_personal_care");
+    // nothing waits: the validated values are the form's
+    const quiet = draftOf({ ...published, pendingChanges: [] });
+    expect(quiet.companyName).toBe("Maison Validée");
+    expect(quiet.website).toBe("ancien.com");
   });
 
   it("compares a list in order, element by element, and a value by identity", () => {
@@ -207,6 +275,10 @@ describe("fieldErrorOf: which message an answer of the API calls for (RG85)", ()
       fieldErrorOf("topics", { kind: "failed", issues: ["invalid"] }),
     ).toBe("invalid");
     expect(fieldErrorOf("companyName", { kind: "failed" })).toBe("companyName");
+    // a required list emptied on a published profile: 400 `required`
+    expect(
+      fieldErrorOf("topics", { kind: "failed", issues: ["required"] }),
+    ).toBe("emptied");
   });
 });
 
@@ -264,16 +336,128 @@ describe("the required fields on the form (06 RG5, RG61, RG85)", () => {
   });
 });
 
-describe("the states of the profile (06 RG3, EC-L2B-07-1; 17 §4.2)", () => {
-  it("allows editing until the profile is published or suspended, and gives each state its sentence", () => {
+describe("the states of the profile (06 RG3, RG9, RG10, RG84; 17 §4.2)", () => {
+  it("allows editing in every state but suspended, and submitting in neither the published nor the suspended", () => {
     expect(
-      (["draft", "pending_review", "rejected"] as const).map(isEditable),
-    ).toEqual([true, true, true]);
-    expect(isEditable("published")).toBe(false);
+      (["draft", "pending_review", "rejected", "published"] as const).map(
+        isEditable,
+      ),
+    ).toEqual([true, true, true, true]);
     expect(isEditable("suspended")).toBe(false);
-    expect(statusTextKeyOf("draft")).toBe("draft");
-    expect(statusTextKeyOf("pending_review")).toBe("pendingSince");
-    expect(statusTextKeyOf("rejected")).toBe("rejectedReason");
+    expect(
+      (
+        [
+          "draft",
+          "pending_review",
+          "rejected",
+          "published",
+          "suspended",
+        ] as const
+      ).map(canSubmit),
+    ).toEqual([true, true, true, false, false]);
+  });
+
+  it("gives each state its sentence, and a published profile whose changes wait its own (06 RG84)", () => {
+    const of = (
+      status: BrandProfileResponse["status"],
+      underReview = false,
+      refusal: BrandProfileResponse["refusal"] = null,
+    ) => noticeOf({ status, submittedAt: null, underReview, refusal });
+    expect(of("draft")).toEqual({ kind: "draft" });
+    expect(of("pending_review")).toEqual({ kind: "pendingSince" });
+    expect(of("published")).toEqual({ kind: "published" });
+    expect(of("published", true)).toEqual({ kind: "pendingWithPublished" });
+    expect(of("suspended", false, REFUSAL)).toEqual({ kind: "suspended" });
+  });
+
+  it('writes the typed reason of a refusal, then the text the agent wrote for "other" only (D46)', () => {
+    expect(
+      noticeOf({
+        status: "rejected",
+        submittedAt: null,
+        underReview: false,
+        refusal: REFUSAL,
+      }),
+    ).toEqual({
+      kind: "rejected",
+      reason: "Votre présentation est trop courte.",
+    });
+    const other = {
+      ...REFUSAL,
+      reasonCode: "other" as const,
+      message: "Votre profil ne peut pas être publié.",
+      memberMessage: "  Précisez votre activité.  ",
+    };
+    expect(refusalReasonOf(other)).toBe(
+      "Votre profil ne peut pas être publié. Précisez votre activité.",
+    );
+    // a refused profile without a reason in the answer is told as such, never invented
+    expect(
+      noticeOf({
+        status: "rejected",
+        submittedAt: null,
+        underReview: false,
+        refusal: null,
+      }),
+    ).toEqual({ kind: "rejectedUnexplained" });
+  });
+
+  it("tells a refused revision of a published profile apart, and writes a newer request first", () => {
+    const revision = { ...REFUSAL, kind: "revision" as const };
+    expect(
+      noticeOf({
+        status: "published",
+        submittedAt: null,
+        underReview: false,
+        refusal: revision,
+      }),
+    ).toEqual({
+      kind: "revisionRefused",
+      reason: "Votre présentation est trop courte.",
+    });
+    expect(
+      noticeOf({
+        status: "published",
+        submittedAt: null,
+        underReview: true,
+        refusal: null,
+      }),
+    ).toEqual({ kind: "pendingWithPublished" });
+  });
+
+  it("says, field by field on a published profile only, which waits for review and which applies at once (06 RG9)", () => {
+    const waiting = {
+      status: "published" as const,
+      pendingChanges: [
+        {
+          field: "presentation" as const,
+          change: "set" as const,
+          value: "x",
+          submittedAt: SUBMITTED,
+        },
+        {
+          field: "logo" as const,
+          change: "clear" as const,
+          value: null,
+          submittedAt: SUBMITTED,
+        },
+      ],
+    };
+    expect(fieldReviewOf("presentation", waiting)).toBe("set");
+    expect(fieldReviewOf("logo", waiting)).toBe("clear");
+    expect(fieldReviewOf("website", waiting)).toBe("regime");
+    expect(fieldReviewOf("website", { ...waiting, status: "draft" })).toBe(
+      "none",
+    );
+    expect(
+      fieldReviewOf("presentation", { ...waiting, status: "rejected" }),
+    ).toBe("none");
+    // the fields of the form that RG9 sends to review; the lists of immediate effect are not
+    expect(moderatedFieldOf("companyName")).toBe("companyName");
+    expect(moderatedFieldOf("primarySector")).toBe("primarySector");
+    expect(moderatedFieldOf("topics")).toBeNull();
+    expect(moderatedFieldOf("companySize")).toBeNull();
+    expect(moderatedFieldOf("contactEmail")).toBeNull();
   });
 
   it("tries again after a network failure or a busy service, never after a refusal", () => {
@@ -298,9 +482,21 @@ describe("the state of the profile on the home and in the column (17 §2.3, §2.
     });
     expect(Object.keys(summary).sort()).toEqual([
       "missingRequired",
+      "refusal",
       "status",
       "submittedAt",
+      "underReview",
     ]);
+    expect(summary.underReview).toBe(false);
+    expect(
+      summaryOf({
+        ...PROFILE,
+        status: "published",
+        pendingChanges: [
+          { field: "logo", change: "set", value: null, submittedAt: SUBMITTED },
+        ],
+      }).underReview,
+    ).toBe(true);
     expect(summary.missingRequired).toEqual(PROFILE.missingRequired);
     expect(summary.missingRequired).not.toBe(PROFILE.missingRequired);
   });
@@ -311,6 +507,8 @@ describe("the state of the profile on the home and in the column (17 §2.3, §2.
         status,
         submittedAt: null,
         missingRequired: PROFILE.missingRequired.slice(0, missing),
+        underReview: false,
+        refusal: null,
       });
     expect(of("draft", 3)).toBe("complete");
     expect(of("rejected", 1)).toBe("complete");

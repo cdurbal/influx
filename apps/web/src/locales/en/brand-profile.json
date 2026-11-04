@@ -10,7 +10,8 @@
   "status": {
     "pending": "Your profile is being reviewed by the INFLUX team.",
     "pendingWithPublished": "Your changes are being reviewed. Your profile remains visible in its previous version.",
-    "rejected": "Your profile was not published: {reason}"
+    "rejected": "Your profile was not published: {reason}",
+    "revisionRefused": "Your changes were not published: {reason} Your profile remains visible in its previous version."
   },
   "website": {
     "normalized": "We kept the domain {domain}. A contact page belongs in the \"your contact\" section."
@@ -191,9 +192,10 @@
   "statusText": {
     "draft": "Not visible to creators.",
     "pendingSince": "Submitted on {date}. Answer within 1 business day. You can still edit your profile.",
-    "published": "Your profile is published. Editing it from this page will be possible soon.",
+    "published": "Your profile is published. You can edit it here: the name, logo, presentation, website, contact role and main sector are reviewed by the INFLUX team before they are visible; everything else applies at once.",
     "rejectedReason": "the INFLUX team will tell you why. Fix your profile, then submit it again.",
-    "suspended": "Your profile is suspended. Contact the INFLUX team to find out more."
+    "suspended": "Your profile is suspended: it can no longer be edited. Contact the INFLUX team to find out more.",
+    "rejectedNext": "Fix your profile, then submit it again."
   },
   "section": {
     "identity": "1. Public identity",
@@ -284,7 +286,8 @@
     "invalid": "This value is not valid.",
     "unknown": "This choice is no longer available: pick another one.",
     "website": "This is not a valid domain name. Type for example example.com.",
-    "companyName": "Enter the name of your company."
+    "companyName": "Enter the name of your company.",
+    "emptied": "This field is required: it cannot be emptied on a published profile."
   },
   "save": {
     "saving": "Saving…",
@@ -320,7 +323,9 @@
       "uploading": "Sending the logo…",
       "removing": "Removing the logo…",
       "uploaded": "Logo saved.",
-      "removed": "Logo removed."
+      "removed": "Logo removed.",
+      "uploadedInReview": "Logo sent: it will be visible once the INFLUX team has reviewed it.",
+      "removedInReview": "Logo removal sent: it will apply once the INFLUX team has reviewed it."
     },
     "errors": {
       "empty": "This file is empty. Choose a PNG, JPEG or WebP image.",
@@ -335,7 +340,14 @@
       "unavailable": "The logo could not be uploaded: the service is not answering. The rest of your profile is saved and the logo needs to be uploaded again.",
       "removalFailed": "The logo could not be removed. Try again.",
       "loadFailed": "The logo could not be loaded."
-    }
+    },
+    "review": {
+      "regime": "A new logo is reviewed by the INFLUX team before it is visible; the current logo stays displayed until then.",
+      "set": "Your new logo is being reviewed. The current logo stays displayed.",
+      "clear": "The removal of your logo is being reviewed. The current logo stays displayed."
+    },
+    "pendingAlt": "Preview of the proposed logo, being reviewed",
+    "pendingCaption": "Being reviewed"
   },
   "home": {
     "action": {
@@ -352,5 +364,9 @@
       },
       "soon": "Coming soon to your space."
     }
+  },
+  "review": {
+    "regime": "A change is reviewed by the INFLUX team before it is visible; the current version stays displayed until then.",
+    "pending": "Being reviewed: your version is not visible yet, the previous version stays displayed."
   }
 }

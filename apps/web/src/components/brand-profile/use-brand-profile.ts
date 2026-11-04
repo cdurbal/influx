@@ -73,6 +73,8 @@ export type BrandProfileState = {
   submit: () => Promise<SubmitOutcome>;
   /** The score as the API recomputed it after the logo (RG58): the rest of the profile is kept as is. */
   adoptCompleteness: (completeness: BrandProfileCompletenessView) => void;
+  /** Reads the profile again, keeping the draft: what waits for review changed (the logo). */
+  refresh: () => void;
   reload: () => void;
 };
 
@@ -177,17 +179,15 @@ export function useBrandProfile(options: {
       if (current === null || saved === null) {
         return;
       }
-      const next = afterSave(current, saved, sent, keys, answer.website ?? "");
+      // The website kept is the one the form shows for this answer: on a published profile, the
+      // one waiting for review (06 RG9), not the validated one the answer carries.
+      const kept = draftOf(answer).website;
+      const next = afterSave(current, saved, sent, keys, kept);
       savedRef.current = next.saved;
       draftRef.current = next.draft;
       setDraft(next.draft);
-      if (
-        keys.includes("website") &&
-        next.draft.website === (answer.website ?? "")
-      ) {
-        setWebsiteDomain(
-          answer.websiteNormalized === true ? (answer.website ?? null) : null,
-        );
+      if (keys.includes("website") && next.draft.website === kept) {
+        setWebsiteDomain(answer.websiteNormalized === true ? kept : null);
       }
       setSave({ kind: "saved", at: new Date() });
     },
@@ -422,6 +422,7 @@ export function useBrandProfile(options: {
     change,
     submit,
     adoptCompleteness,
+    refresh: () => void refreshProfile(),
     reload: () => void load(),
   };
 }

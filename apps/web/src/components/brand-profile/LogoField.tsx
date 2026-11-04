@@ -18,6 +18,7 @@ import {
   MEMBER_FIELD_LABEL_CLASSES,
 } from "@/components/member/ui/field-classes";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
+import type { FieldReview } from "./brand-profile-view";
 import type { BrandLogoState } from "./use-brand-logo";
 
 /** The formats the picker offers; the API reads the real type from the bytes and decides. */
@@ -26,7 +27,14 @@ const ACCEPTED_FORMATS = "image/png,image/jpeg,image/webp";
 const PREVIEW_CLASSES =
   "size-11 shrink-0 rounded-md border-(length:--border-width-thin) border-border-default bg-surface-raised object-contain";
 
-export function LogoField({ logo }: { logo: BrandLogoState }) {
+/** `review`: how the logo stands under RG9 on a published profile (told before, and while it waits). */
+export function LogoField({
+  logo,
+  review,
+}: {
+  logo: BrandLogoState;
+  review: FieldReview;
+}) {
   const t = useTranslations("brandProfile");
   const ids = useId();
   const labelId = `${ids}-label`;
@@ -43,20 +51,16 @@ export function LogoField({ logo }: { logo: BrandLogoState }) {
     }
   }
 
-  const state =
+  const statusKey =
     activity.kind === "failed"
       ? null
-      : activity.kind === "uploading"
-        ? t("logo.status.uploading")
-        : activity.kind === "removing"
-          ? t("logo.status.removing")
-          : activity.kind === "uploaded"
-            ? t("logo.status.uploaded")
-            : activity.kind === "removed"
-              ? t("logo.status.removed")
-              : logo.phase === "loading"
-                ? t("logo.status.loading")
-                : null;
+      : activity.kind === "idle"
+        ? logo.phase === "loading"
+          ? "loading"
+          : null
+        : activity.kind;
+  const state = statusKey === null ? null : t(`logo.status.${statusKey}`);
+  const hasLogo = logo.logo !== null || logo.pendingLogo !== null;
 
   return (
     <div
@@ -73,7 +77,13 @@ export function LogoField({ logo }: { logo: BrandLogoState }) {
       </div>
       <p id={helpId} className={MEMBER_FIELD_HELP_CLASSES}>
         {t("logo.help")}
+        {review === "regime" ? ` ${t("logo.review.regime")}` : ""}
       </p>
+      {review === "set" || review === "clear" ? (
+        <Notice tone="info" announce={false} className="self-start">
+          {t(review === "set" ? "logo.review.set" : "logo.review.clear")}
+        </Notice>
+      ) : null}
       <div className="flex flex-wrap items-center gap-4">
         {logo.logo === null ? null : (
           // eslint-disable-next-line @next/next/no-img-element -- a data: source built by the API
@@ -84,6 +94,21 @@ export function LogoField({ logo }: { logo: BrandLogoState }) {
             height={logo.logo.height}
             className={PREVIEW_CLASSES}
           />
+        )}
+        {logo.pendingLogo === null ? null : (
+          <figure className="flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element -- a data: source built by the API */}
+            <img
+              src={`data:${logo.pendingLogo.contentType};base64,${logo.pendingLogo.data}`}
+              alt={t("logo.pendingAlt")}
+              width={logo.pendingLogo.width}
+              height={logo.pendingLogo.height}
+              className={PREVIEW_CLASSES}
+            />
+            <figcaption className={MEMBER_FIELD_HELP_CLASSES}>
+              {t("logo.pendingCaption")}
+            </figcaption>
+          </figure>
         )}
         <div className="flex flex-wrap items-center gap-3">
           <input
@@ -98,9 +123,9 @@ export function LogoField({ logo }: { logo: BrandLogoState }) {
             aria-disabled={logo.busy || undefined}
             onClick={() => picker.current?.click()}
           >
-            {logo.logo === null ? t("logo.choose") : t("logo.replace")}
+            {hasLogo ? t("logo.replace") : t("logo.choose")}
           </MemberButton>
-          {logo.logo === null ? null : (
+          {hasLogo ? (
             <MemberButton
               variant="secondary"
               aria-disabled={logo.busy || undefined}
@@ -108,10 +133,10 @@ export function LogoField({ logo }: { logo: BrandLogoState }) {
             >
               {t("logo.remove")}
             </MemberButton>
-          )}
+          ) : null}
         </div>
       </div>
-      {logo.logo === null && logo.phase === "ready" ? (
+      {!hasLogo && logo.phase === "ready" ? (
         <p className={MEMBER_FIELD_HELP_CLASSES}>{t("logo.none")}</p>
       ) : null}
       {state === null ? null : (

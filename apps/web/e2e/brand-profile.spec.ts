@@ -524,3 +524,175 @@ test("the home and the column of a brand: the action card with what is missing, 
   }
   await expectNoAxeViolation(page, "brand home, en, 375", { wcag22: true });
 });
+
+// L2C-15: the profile as the review leaves it. The profile and the logo of a seeded member are read
+// from the real API and given the fields the review adds (06 RG9, RG10; `pendingChanges`, `refusal`,
+// `pendingLogo`), so that no fixture drifts from the contract; the screens are what is under test.
+const PROFILE_ROUTE = "**/api/v1/me/brand-profile";
+const LOGO_PATH = "**/api/v1/me/brand-profile/logo";
+const TINY_WEBP = "UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==";
+const DECIDED = "2026-11-04T09:00:00.000Z";
+
+type Overrides = Record<string, unknown>;
+
+async function stubProfile(page: Page, now: () => Overrides): Promise<void> {
+  await page.route(PROFILE_ROUTE, async (route) => {
+    if (route.request().method() !== "GET") {
+      await route.continue();
+      return;
+    }
+    const real = (await (await route.fetch()).json()) as Overrides;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ...real, ...now() }),
+    });
+  });
+}
+
+async function stubLogo(page: Page): Promise<void> {
+  const logo = {
+    contentType: "image/webp",
+    width: 1,
+    height: 1,
+    byteSize: 36,
+    data: TINY_WEBP,
+    updatedAt: DECIDED,
+  };
+  await page.route(LOGO_PATH, async (route) => {
+    if (route.request().method() !== "GET") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ logo, pendingLogo: logo }),
+    });
+  });
+}
+
+const refusalOf = (kind: "submission" | "revision", message: string) => ({
+  kind,
+  reasonCode: "presentation_insufficient",
+  message,
+  memberMessage: null,
+  fields: [],
+  decidedAt: DECIDED,
+});
+
+test("a published brand in French at 1 440 px: changes waiting for review shown as sent, the regime told on each moderated field, the logo beside the one in force, then a refused revision (06 RG9, RG10, RG84)", async ({
+  page,
+}) => {
+  const copy = COPY.fr;
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await seedMember(page, {
+    role: "advertiser",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  const refused = "Votre présentation est trop courte.";
+  let scenario: Overrides = {
+    status: "published",
+    submittedAt: DECIDED,
+    missingRequired: [],
+    refusal: null,
+    pendingChanges: [
+      {
+        field: "presentation",
+        change: "set",
+        value: "Une présentation plus détaillée, proposée à l'examen.",
+        submittedAt: DECIDED,
+      },
+      { field: "logo", change: "set", value: null, submittedAt: DECIDED },
+    ],
+  };
+  await stubProfile(page, () => scenario);
+  await stubLogo(page);
+  await open(page, "/fr/compte/profil");
+  await expect(title(page)).toHaveText(copy.page.title);
+
+  // Published, its changes waiting: the previous version stays visible, said so.
+  await expect(
+    page.getByText(copy.state.label.replace("{state}", copy.state.published)),
+  ).toBeVisible();
+  await expect(page.getByText(copy.status.pendingWithPublished)).toBeVisible();
+  // The field waiting for review shows the value sent and says it is being reviewed; the others of
+  // the regime say it beforehand; nothing is left to submit.
+  await expect(
+    page.getByLabel(new RegExp(`^${copy.fields.presentation.label}`)),
+  ).toHaveValue("Une présentation plus détaillée, proposée à l'examen.");
+  await expect(page.getByText(copy.review.pending).first()).toBeVisible();
+  await expect(page.getByText(copy.review.regime).first()).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: copy.submit.label }),
+  ).toHaveCount(0);
+  // The logo waiting sits beside the one in force, told with words.
+  await expect(
+    page.getByRole("img", { name: copy.logo.alt, exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: copy.logo.pendingAlt }),
+  ).toBeVisible();
+  await expect(page.getByText(copy.logo.review.set)).toBeVisible();
+  await expectNoAxeViolation(page, "mon profil publié, révision, fr, 1440", {
+    wcag22: true,
+  });
+
+  // The review refused them: the profile stays published, the reason is written, nothing waits.
+  scenario = {
+    ...scenario,
+    pendingChanges: [],
+    refusal: refusalOf("revision", refused),
+  };
+  await reload(page);
+  await expect(
+    page.getByText(copy.status.revisionRefused.replace("{reason}", refused)),
+  ).toBeVisible();
+  await expect(page.getByText(copy.status.pendingWithPublished)).toHaveCount(0);
+  await expect(page.getByText(copy.logo.review.set)).toHaveCount(0);
+});
+
+test("a refused then a suspended brand in English at 375 px: the typed reason and the agent's text, the same words on the home, a suspended profile read-only (06 RG10, RG84)", async ({
+  page,
+}) => {
+  const copy = COPY.en;
+  await page.setViewportSize({ width: 375, height: 800 });
+  await seedMember(page, {
+    role: "advertiser",
+    language: "en",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  const reason =
+    "Your profile can't be published. Please describe your activity.";
+  let scenario: Overrides = {
+    status: "rejected",
+    refusal: {
+      ...refusalOf("submission", "Your profile can't be published."),
+      reasonCode: "other",
+      memberMessage: "Please describe your activity.",
+    },
+  };
+  await stubProfile(page, () => scenario);
+  const refusedText = copy.status.rejected.replace("{reason}", reason);
+
+  // Refused: the reason in clear and what to do, on the page and on the home alike.
+  await open(page, "/en/account/profile");
+  await expect(title(page)).toHaveText(copy.page.title);
+  await expect(page.getByText(refusedText)).toBeVisible();
+  await expect(page.getByText(copy.statusText.rejectedNext)).toBeVisible();
+  await open(page, "/en/brand");
+  await expect(page.getByText(refusedText)).toBeVisible();
+  await expectNoAxeViolation(page, "brand home, refused, en, 375", {
+    wcag22: true,
+  });
+
+  // Suspended: said, and read-only.
+  scenario = { status: "suspended", refusal: null };
+  await open(page, "/en/account/profile");
+  await expect(page.getByText(copy.statusText.suspended)).toBeVisible();
+  await expect(page.getByLabel(/^Main sector/)).toBeDisabled();
+  await expect(page.getByText(refusedText)).toHaveCount(0);
+});
