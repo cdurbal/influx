@@ -74,6 +74,20 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
   "GET /v1/bo/queues/counters": {},
   "GET /v1/bo/queues/profiles-advertiser/entries": {},
   "POST /v1/bo/queues/profiles-advertiser/entries/:id/open": {},
+  "POST /v1/bo/queues/profiles-advertiser/entries/:id/publish": {
+    body: { reviewToken: "0".repeat(64) },
+  },
+  "POST /v1/bo/queues/profiles-advertiser/entries/:id/reject": {
+    body: {
+      reviewToken: "0".repeat(64),
+      reasonCode: "presentation_insufficient",
+    },
+  },
+  "POST /v1/bo/queues/profiles-advertiser/entries/:id/release": {},
+  "POST /v1/bo/queues/profiles-advertiser/entries/:id/extend": {},
+  "POST /v1/bo/queues/profiles-advertiser/entries/:id/force-release": {
+    body: { reasonCode: "holder_absent" },
+  },
   "GET /v1/bo/settings/apollo": {},
   "GET /v1/bo/alerts": {},
   "GET /v1/bo/ops/status": {},
@@ -392,6 +406,22 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
     "POST /v1/bo/queues/profiles-advertiser/entries/:id/open": async () => [
       { who: agent, id: await ownBrandEntry() },
     ],
+    // L2C 12: the same for every act on an entry; the force release is an admin's, an agent's attempt
+    // is refused whatever the entry (the answer of an agent never depends on the identifier).
+    "POST /v1/bo/queues/profiles-advertiser/entries/:id/publish": async () => [
+      { who: agent, id: await ownBrandEntry() },
+    ],
+    "POST /v1/bo/queues/profiles-advertiser/entries/:id/reject": async () => [
+      { who: agent, id: await ownBrandEntry() },
+    ],
+    "POST /v1/bo/queues/profiles-advertiser/entries/:id/release": async () => [
+      { who: agent, id: await ownBrandEntry() },
+    ],
+    "POST /v1/bo/queues/profiles-advertiser/entries/:id/extend": async () => [
+      { who: agent, id: await ownBrandEntry() },
+    ],
+    "POST /v1/bo/queues/profiles-advertiser/entries/:id/force-release":
+      async () => [{ who: agent, id: await ownBrandEntry() }],
     // An agent never reaches the "Santé technique" screen (admins only): a group that exists or not,
     // the same refusal.
     "GET /v1/bo/ops/errors/:id": async () => [
@@ -421,7 +451,15 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
    * through the doors, so the superuser writes it with the foreign keys and the trigger of the
    * deadlines out of the way: the policy is a second line, and this is how it is tried.
    */
-  async function ownBrandEntry(): Promise<string> {
+  let ownEntry: Promise<string> | undefined;
+
+  /** One open entry per account (the unique index): shared by every route that tries it. */
+  function ownBrandEntry(): Promise<string> {
+    ownEntry ??= writeOwnBrandEntry();
+    return ownEntry;
+  }
+
+  async function writeOwnBrandEntry(): Promise<string> {
     const entryId = randomUUID();
     await localSuperuser().begin(async (tx) => {
       await tx`set local session_replication_role = replica`;

@@ -3,7 +3,9 @@
 // CA17, CA19, CA21; 15 RG28, RG33, RG34, RG36, C1 to C8, CA18, CA19; 18 T14.1 to T14.4;
 // jalons/l2c/file.md A1 to A10; l2c-fiche invariants 2, 7, 9, 11 to 14; migrations 0206, 0207, 0210):
 //   GET /v1/bo/queues/counters, GET /v1/bo/queues/profiles-advertiser/entries,
-//   POST /v1/bo/queues/profiles-advertiser/entries/:id/open.
+//   POST /v1/bo/queues/profiles-advertiser/entries/:id/open;
+// commit 12: POST …/entries/:id/{publish, reject, release, extend, force-release} (06 RG6, RG65, RG66,
+// CA17, CA18, CA20; 15 C2 to C4, C6, C8, RG36, CA63).
 // T14 on each route: the web surface, no session and a member session never reach them; an entry that
 // does not exist and the one of the caller's own account answer the same 404, with the same body.
 // The fixtures (agents, an admin, brands with their entries) are COMMITTED by the migration role
@@ -33,6 +35,18 @@ import { localSuperuser, migrationRole } from "./support.ts";
 const NIL = "00000000-0000-4000-8000-000000000000";
 const ENTRIES = "/v1/bo/queues/profiles-advertiser/entries";
 const COUNTERS = "/v1/bo/queues/counters";
+const ANY_TOKEN = "0".repeat(64);
+/** The five acts of commit 12, each with a body that passes its schema (T14.1, T14.2, T14.3). */
+const ACTIONS = [
+  ["publish", { reviewToken: ANY_TOKEN }],
+  [
+    "reject",
+    { reviewToken: ANY_TOKEN, reasonCode: "presentation_insufficient" },
+  ],
+  ["release", undefined],
+  ["extend", undefined],
+  ["force-release", { reasonCode: "holder_absent" }],
+] as const;
 
 let database: ApiDatabase;
 /** The instant (database clock) before any fixture of this file. */
@@ -142,7 +156,9 @@ const PRESENTATION =
 /** A committed brand profile with its open entry (a first submission unless said otherwise). */
 async function newBrand(options: BrandOptions = {}): Promise<Brand> {
   const accountId = randomUUID();
-  const name = options.name ?? `Maison ${accountId.slice(0, 8)}`;
+  // no run of eight digits: a name that looks like a phone number would raise RG19 on the fixture
+  const name =
+    options.name ?? `Maison ${accountId.slice(0, 8).replace(/d/g, "x")}`;
   const contact = options.contact ?? {
     firstName: `Prénom${accountId.slice(0, 6)}`,
     email: `contact-${accountId}@brand.example.test`,
@@ -220,7 +236,11 @@ function call(
   method: "GET" | "POST",
   url: string,
   session: string | null,
-  options: { surface?: "backoffice" | "web"; cookie?: string } = {},
+  options: {
+    surface?: "backoffice" | "web";
+    cookie?: string;
+    body?: object;
+  } = {},
 ): Promise<LightMyRequestResponse> {
   const cookieName = options.cookie ?? "__Host-influx-ops-session";
   return server.inject({
@@ -233,6 +253,7 @@ function call(
       "x-request-id": randomUUID(),
       ...(session === null ? {} : { cookie: `${cookieName}=${session}` }),
     },
+    ...(options.body === undefined ? {} : { payload: options.body }),
   });
 }
 
@@ -512,12 +533,20 @@ afterAll(async () => {
 
 // ---------------------------------------------------------------------------------------------
 
-describe("T14.1, T14.2: the three routes are the backoffice's, behind a session of an internal account", () => {
-  const routes = [
-    ["GET", COUNTERS],
-    ["GET", ENTRIES],
-    ["POST", `${ENTRIES}/${NIL}/open`],
-  ] as const;
+describe("T14.1, T14.2: the routes of queue 1 are the backoffice's, behind a session of an internal account", () => {
+  const routes: readonly (readonly [
+    "GET" | "POST",
+    string,
+    object | undefined,
+  ])[] = [
+    ["GET", COUNTERS, undefined],
+    ["GET", ENTRIES, undefined],
+    ["POST", `${ENTRIES}/${NIL}/open`, undefined],
+    ...ACTIONS.map(
+      ([action, body]) =>
+        ["POST", `${ENTRIES}/${NIL}/${action}`, body] as const,
+    ),
+  ];
 
   it("the web surface never reaches them: the 404 of an unknown route, even with a member cookie", async () => {
     const server = app();
@@ -529,12 +558,13 @@ describe("T14.1, T14.2: the three routes are the backoffice's, behind a session 
       }),
     );
     expect(unknown.status).toBe(404);
-    for (const [method, url] of routes) {
+    for (const [method, url, body] of routes) {
       expect(
         answer(
           await call(server, method, url, member, {
             surface: "web",
             cookie: "__Host-influx-session",
+            ...(body === undefined ? {} : { body }),
           }),
         ),
         url,
@@ -545,9 +575,17 @@ describe("T14.1, T14.2: the three routes are the backoffice's, behind a session 
   it("answers 401 without a session and with a member session (a creator or a brand has no route here)", async () => {
     const server = app();
     const member = await newMemberSession();
-    for (const [method, url] of routes) {
+    for (const [method, url, body] of routes) {
       for (const session of [null, member]) {
-        const got = answer(await call(server, method, url, session));
+        const got = answer(
+          await call(
+            server,
+            method,
+            url,
+            session,
+            body === undefined ? {} : { body },
+          ),
+        );
         expect(got.status, url).toBe(401);
         expect(got.error.code, url).toBe("unauthenticated");
       }
@@ -1095,5 +1133,657 @@ describe("a conflict of interest (15 RG36, 13 RG35, 17b §2.5)", () => {
     expect((await opened(server, held.entryId, admin)).outcome).toBe(
       "read_only",
     );
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Commit 12: the decisions, the release, the extension and the forced release
+// ---------------------------------------------------------------------------------------------
+
+/** The lists the required fields of 06 RG15 ask for, so that an entry of this file can be published. */
+async function completeBrand(brand: Brand): Promise<void> {
+  const id = brand.accountId;
+  await migrationRole().begin(async (tx) => {
+    await tx`insert into profiles.advertiser_target_markets (account_id, slot, country_code) values (${id}, 1, 'FR')`;
+    await tx`insert into profiles.advertiser_working_languages (account_id, language_code) values (${id}, 'fr')`;
+    await tx`insert into profiles.advertiser_topics (account_id, slot, topic_code) values (${id}, 1, 'travel')`;
+    await tx`insert into profiles.advertiser_networks (account_id, network_code) values (${id}, 'instagram')`;
+    await tx`insert into profiles.advertiser_formats (account_id, format_code) values (${id}, 'instagram_post')`;
+    await tx`insert into profiles.advertiser_audience_countries (account_id, slot, country_code) values (${id}, 1, 'FR')`;
+  });
+}
+
+/** A complete brand, opened (claimed) by `who`: its entry and the token of the opening. */
+async function claimedBrand(
+  who: Internal,
+  options: BrandOptions = {},
+): Promise<{ brand: Brand; token: string }> {
+  const brand = await newBrand(options);
+  await completeBrand(brand);
+  const view = await opened(app(), brand.entryId, who);
+  expect(view.outcome).toBe("claimed");
+  return { brand, token: view.reviewToken ?? "" };
+}
+
+type Action = "publish" | "reject" | "release" | "extend" | "force-release";
+
+function act(
+  server: Server,
+  who: Internal,
+  entryId: string,
+  action: Action,
+  body?: object,
+): Promise<LightMyRequestResponse> {
+  return call(server, "POST", `${ENTRIES}/${entryId}/${action}`, who.session, {
+    ...(body === undefined ? {} : { body }),
+  });
+}
+
+type ErrorBody = {
+  error: { code: string; details?: { path: string; issue: string }[] };
+};
+
+/** The register lines about an account, by event code (the decisions are written on the profile). */
+async function profileLines(
+  accountId: string,
+  codes: string[],
+): Promise<
+  { event: string; actor: string | null; payload: Record<string, unknown> }[]
+> {
+  return migrationRole()<
+    {
+      event: string;
+      actor: string | null;
+      payload: Record<string, unknown>;
+    }[]
+  >`
+    select event_type as event, actor_account_id::text as actor, payload
+      from audit.audit_events
+     where subject_id = ${accountId} and event_type = any(${codes}::text[])
+     order by seq`;
+}
+
+async function profileStatusOf(accountId: string): Promise<string> {
+  const [row] = await migrationRole()<{ status: string }[]>`
+    select status::text as status from profiles.advertiser_profiles where account_id = ${accountId}`;
+  return row?.status ?? "";
+}
+
+describe("publish (06 RG6, RG65, RG78; 15 C8; file.md A3; 17b §2.6)", () => {
+  it("publishes with the token of the opening: the entry and the profile close together, the journal names the agent, the next entry comes back", async () => {
+    const server = app();
+    const { brand, token } = await claimedBrand(agent, { dueIn: "30 hours" });
+    const response = await act(server, agent, brand.entryId, "publish", {
+      reviewToken: token,
+      internalComment: "checked by hand",
+    });
+    expect(response.statusCode, response.body).toBe(200);
+    expect(response.headers["cache-control"]).toBe("no-store");
+    const body = response.json<{
+      decidedAt: string;
+      late: boolean;
+      firstPublication: boolean;
+      next: { entryId: string } | null;
+    }>();
+    expect(body).toMatchObject({ late: false, firstPublication: true });
+    expect(await entryState(brand.entryId)).toMatchObject({
+      state: "published",
+    });
+    expect(await profileStatusOf(brand.accountId)).toBe("published");
+    const [line] = await profileLines(brand.accountId, ["profile.published"]);
+    expect(line).toMatchObject({
+      actor: agent.accountId,
+      payload: { entry_id: brand.entryId, kind: "submission", late: false },
+    });
+    // the register carries no free text: not the internal comment
+    expect(JSON.stringify(line)).not.toContain("checked by hand");
+    // the entry to open next: the oldest deadline that nobody holds and the caller may treat
+    const [expected] = await migrationRole()<{ id: string }[]>`
+      select e.id::text as id
+        from profiles.advertiser_review_entries e
+        join identity.accounts a on a.id = e.account_id
+       where e.state = 'open' and e.account_id <> ${agent.accountId}
+         and a.owner_agent_id is distinct from ${agent.accountId}::uuid
+         and not (e.claimed_by_account_id is not null and e.claim_expires_at > now())
+       order by e.sla_due_at, e.created_at, e.id
+       limit 1`;
+    expect(body.next?.entryId ?? null).toBe(expected?.id ?? null);
+    expect(body.next?.entryId).not.toBe(brand.entryId);
+  });
+
+  it("answers 409 `entry_closed` to a second decision on the same entry", async () => {
+    const server = app();
+    const { brand, token } = await claimedBrand(agent, { dueIn: "31 hours" });
+    await act(server, agent, brand.entryId, "publish", { reviewToken: token });
+    const again = await act(server, agent, brand.entryId, "publish", {
+      reviewToken: token,
+    });
+    expect(again.statusCode).toBe(409);
+    expect(again.json<ErrorBody>().error).toMatchObject({
+      code: "conflict",
+      details: [{ path: "entry", issue: "entry_closed" }],
+    });
+    expect(
+      await profileLines(brand.accountId, ["profile.published"]),
+    ).toHaveLength(1);
+  });
+
+  it("marks a decision made after its deadline, and does not block it (15 C8)", async () => {
+    const { brand, token } = await claimedBrand(agent, { dueIn: "-5 hours" });
+    const response = await act(app(), agent, brand.entryId, "publish", {
+      reviewToken: token,
+    });
+    expect(response.statusCode, response.body).toBe(200);
+    expect(response.json<{ late: boolean }>().late).toBe(true);
+    const [line] = await profileLines(brand.accountId, ["profile.published"]);
+    expect(line?.payload).toMatchObject({ late: true });
+  });
+
+  it("refuses a stale token (L2BS-1): the profile changed after the opening; the agent reads again, then publishes", async () => {
+    const server = app();
+    const { brand, token } = await claimedBrand(agent, { dueIn: "32 hours" });
+    await migrationRole()`
+      update profiles.advertiser_profiles
+         set presentation = ${`${PRESENTATION} One sentence more, written after the opening.`}
+       where account_id = ${brand.accountId}`;
+    const stale = await act(server, agent, brand.entryId, "publish", {
+      reviewToken: token,
+    });
+    expect(stale.statusCode).toBe(409);
+    expect(stale.json<ErrorBody>().error.details).toEqual([
+      { path: "entry", issue: "stale_token" },
+    ]);
+    expect(await entryState(brand.entryId)).toMatchObject({ state: "open" });
+    const fresh = await opened(server, brand.entryId, agent);
+    expect(fresh.outcome).toBe("held");
+    expect(fresh.reviewToken).not.toBe(token);
+    const done = await act(server, agent, brand.entryId, "publish", {
+      reviewToken: fresh.reviewToken,
+    });
+    expect(done.statusCode, done.body).toBe(200);
+  });
+
+  it("refuses a profile whose required field is missing, naming the field, and changes nothing", async () => {
+    const server = app();
+    // no list at all: the first missing required field of the form is the target markets
+    const brand = await newBrand({ dueIn: "33 hours" });
+    const view = await opened(server, brand.entryId, agent);
+    const response = await act(server, agent, brand.entryId, "publish", {
+      reviewToken: view.reviewToken,
+    });
+    expect(response.statusCode).toBe(409);
+    expect(response.json<ErrorBody>().error.details).toEqual([
+      { path: "target_markets", issue: "required_field_missing" },
+    ]);
+    expect(await entryState(brand.entryId)).toMatchObject({ state: "open" });
+    expect(await profileStatusOf(brand.accountId)).toBe("pending_review");
+    expect(await profileLines(brand.accountId, ["profile.published"])).toEqual(
+      [],
+    );
+  });
+
+  it("refuses a token that is not 64 hexadecimal characters, an unknown field and an over-long comment before any lookup", async () => {
+    const server = app();
+    const { brand } = await claimedBrand(agent, { dueIn: "34 hours" });
+    for (const body of [
+      {},
+      { reviewToken: "abc" },
+      { reviewToken: ANY_TOKEN, internalComment: "x".repeat(1001) },
+      { reviewToken: ANY_TOKEN, internalComment: "" },
+      { reviewToken: ANY_TOKEN, decidedBy: agent.accountId },
+    ]) {
+      const response = await act(server, agent, brand.entryId, "publish", body);
+      expect(response.statusCode, JSON.stringify(body)).toBe(400);
+    }
+    expect(await entryState(brand.entryId)).toMatchObject({ state: "open" });
+  });
+});
+
+describe("reject (06 RG65, RG66; 15 C6; CA19, CA20)", () => {
+  it("refuses with a typed reason: the entry and the profile are refused, the register carries the code and no text", async () => {
+    const server = app();
+    const { brand, token } = await claimedBrand(agent, { dueIn: "35 hours" });
+    const response = await act(server, agent, brand.entryId, "reject", {
+      reviewToken: token,
+      reasonCode: "presentation_insufficient",
+      internalComment: "too short for what it sells",
+    });
+    expect(response.statusCode, response.body).toBe(200);
+    const body = response.json<{ late: boolean; next: unknown }>();
+    expect(body.late).toBe(false);
+    expect(body).toHaveProperty("next");
+    expect(await entryState(brand.entryId)).toMatchObject({
+      state: "rejected",
+    });
+    expect(await profileStatusOf(brand.accountId)).toBe("rejected");
+    const [line] = await profileLines(brand.accountId, ["profile.rejected"]);
+    expect(line).toMatchObject({
+      actor: agent.accountId,
+      payload: {
+        entry_id: brand.entryId,
+        reason_code: "presentation_insufficient",
+      },
+    });
+    expect(JSON.stringify(line)).not.toContain("too short");
+    // the entry keeps what the agent wrote: the internal comment is theirs alone
+    const [row] = await migrationRole()<
+      { member_message: string | null; internal_comment: string | null }[]
+    >`select member_message, internal_comment from profiles.advertiser_review_entries
+       where id = ${brand.entryId}`;
+    expect(row).toEqual({
+      member_message: null,
+      internal_comment: "too short for what it sells",
+    });
+  });
+
+  it("refuses a refusal without a typed reason: absent, outside the closed list, or a message where the reason takes none", async () => {
+    const server = app();
+    const { brand, token } = await claimedBrand(agent, { dueIn: "36 hours" });
+    const cases: [object, string, string | null][] = [
+      [{ reviewToken: token }, "reasonCode", null],
+      [{ reviewToken: token, reasonCode: "because" }, "reasonCode", null],
+      [
+        {
+          reviewToken: token,
+          reasonCode: "presentation_insufficient",
+          memberMessage: "A message that this reason does not take at all.",
+        },
+        "memberMessage",
+        "invalid_member_message",
+      ],
+      // "Autre" asks for its text (06 RG66)
+      [
+        { reviewToken: token, reasonCode: "other" },
+        "memberMessage",
+        "invalid_member_message",
+      ],
+    ];
+    for (const [body, path, issue] of cases) {
+      const response = await act(server, agent, brand.entryId, "reject", body);
+      expect(response.statusCode, JSON.stringify(body)).toBe(400);
+      const details = response.json<ErrorBody>().error.details ?? [];
+      expect(
+        details.some((detail) => detail.path === path),
+        JSON.stringify(body),
+      ).toBe(true);
+      if (issue !== null) {
+        expect(details).toContainEqual({ path, issue });
+      }
+    }
+    expect(await entryState(brand.entryId)).toMatchObject({ state: "open" });
+    expect(await registerLines(brand.entryId)).toHaveLength(1);
+  });
+
+  it("takes the agent's own message for `other`, and refuses one that holds a direct contact (RG19, RG158)", async () => {
+    const server = app();
+    const { brand, token } = await claimedBrand(agent, { dueIn: "37 hours" });
+    for (const message of [
+      "Please write to us at secret.contact@exemple.test to discuss it.",
+      "Your offer lives on another site: https://exemple.test/shop today.",
+      "Merci de nous appeler au 06 12 34 56 78 pour en discuter aujourd'hui.",
+    ]) {
+      const refused = await act(server, agent, brand.entryId, "reject", {
+        reviewToken: token,
+        reasonCode: "other",
+        memberMessage: message,
+      });
+      expect(refused.statusCode, message).toBe(400);
+      expect(refused.json<ErrorBody>().error.details).toEqual([
+        { path: "memberMessage", issue: "direct_contact" },
+      ]);
+      // never echoed back
+      expect(refused.body).not.toContain("exemple.test");
+    }
+    expect(await entryState(brand.entryId)).toMatchObject({ state: "open" });
+    const accepted = await act(server, agent, brand.entryId, "reject", {
+      reviewToken: token,
+      reasonCode: "other",
+      memberMessage:
+        "Please describe what your brand sells, in your own words.",
+    });
+    expect(accepted.statusCode, accepted.body).toBe(200);
+    const [row] = await migrationRole()<{ member_message: string | null }[]>`
+      select member_message from profiles.advertiser_review_entries where id = ${brand.entryId}`;
+    expect(row?.member_message).toBe(
+      "Please describe what your brand sells, in your own words.",
+    );
+  });
+
+  it("refuses a stale token on a refusal too, and keeps the entry open (L2BS-1)", async () => {
+    const server = app();
+    const { brand, token } = await claimedBrand(agent, { dueIn: "38 hours" });
+    await migrationRole()`
+      update profiles.advertiser_profiles set contact_role = 'executive'
+       where account_id = ${brand.accountId}`;
+    const stale = await act(server, agent, brand.entryId, "reject", {
+      reviewToken: token,
+      reasonCode: "sector_inconsistent",
+    });
+    expect(stale.statusCode).toBe(409);
+    expect(stale.json<ErrorBody>().error.details).toEqual([
+      { path: "entry", issue: "stale_token" },
+    ]);
+    expect(await entryState(brand.entryId)).toMatchObject({ state: "open" });
+  });
+});
+
+describe("the lock on a decision (15 C2, C3; CA17, CA18, RG6)", () => {
+  it("CA17: a second agent reads, and cannot decide: 409 with the name of the holder, nothing changed", async () => {
+    const server = app();
+    const { brand, token } = await claimedBrand(agent, { dueIn: "39 hours" });
+    // the colleague reads the entry: read only, no token (C2)
+    const view = await opened(server, brand.entryId, colleague);
+    expect(view.outcome).toBe("read_only");
+    expect(view.reviewToken).toBeNull();
+    for (const [action, body] of [
+      ["publish", { reviewToken: token }],
+      ["reject", { reviewToken: token, reasonCode: "illicit_content" }],
+      ["extend", undefined],
+      ["release", undefined],
+    ] as const) {
+      const response = await act(
+        server,
+        colleague,
+        brand.entryId,
+        action,
+        body,
+      );
+      expect(response.statusCode, action).toBe(409);
+      expect(response.json<ErrorBody>().error.details, action).toEqual([
+        { path: "claim", issue: "held_by_other" },
+        { path: "claim.holder", issue: agent.name },
+      ]);
+    }
+    expect(await entryState(brand.entryId)).toEqual({
+      claimedBy: agent.accountId,
+      state: "open",
+    });
+    // an administrator is no exception: the decision belongs to the holder
+    expect(
+      (
+        await act(server, admin, brand.entryId, "publish", {
+          reviewToken: token,
+        })
+      ).statusCode,
+    ).toBe(409);
+  });
+
+  it("CA18: an expired claim decides no more: 409 `claim_not_held`; the entry is free again and another agent takes it", async () => {
+    const server = app();
+    const { brand, token } = await claimedBrand(agent, { dueIn: "40 hours" });
+    // the test clock: the claim expired ten minutes ago
+    await migrationRole()`
+      update profiles.advertiser_review_entries
+         set claimed_at = now() - interval '40 minutes',
+             claim_expires_at = now() - interval '10 minutes'
+       where id = ${brand.entryId}`;
+    for (const [action, body] of [
+      ["publish", { reviewToken: token }],
+      ["reject", { reviewToken: token, reasonCode: "illicit_content" }],
+      ["extend", undefined],
+      ["release", undefined],
+    ] as const) {
+      const response = await act(server, agent, brand.entryId, action, body);
+      expect(response.statusCode, action).toBe(409);
+      expect(response.json<ErrorBody>().error.details, action).toEqual([
+        { path: "claim", issue: "claim_not_held" },
+      ]);
+    }
+    expect(await profileStatusOf(brand.accountId)).toBe("pending_review");
+    expect((await opened(server, brand.entryId, colleague)).outcome).toBe(
+      "claimed",
+    );
+  });
+
+  it("a released entry answers `claim_not_held`, a closed one `entry_closed`, to every act", async () => {
+    const server = app();
+    const { brand } = await claimedBrand(agent, { dueIn: "41 hours" });
+    expect(
+      (await act(server, agent, brand.entryId, "release")).statusCode,
+    ).toBe(200);
+    const released = await act(server, agent, brand.entryId, "extend");
+    expect(released.statusCode).toBe(409);
+    expect(released.json<ErrorBody>().error.details).toEqual([
+      { path: "claim", issue: "claim_not_held" },
+    ]);
+    await migrationRole()`
+      update profiles.advertiser_review_entries set state = 'withdrawn', closed_at = now()
+       where id = ${brand.entryId}`;
+    for (const [action, body] of [
+      ["publish", { reviewToken: ANY_TOKEN }],
+      ["release", undefined],
+      ["extend", undefined],
+    ] as const) {
+      const response = await act(server, agent, brand.entryId, action, body);
+      expect(response.statusCode, action).toBe(409);
+      expect(response.json<ErrorBody>().error.details, action).toEqual([
+        { path: "entry", issue: "entry_closed" },
+      ]);
+    }
+  });
+});
+
+describe("release and extension (15 C3; file.md A9)", () => {
+  it("the holder gives the entry back: free in the queue, journaled without text, and a colleague takes it", async () => {
+    const server = app();
+    const { brand } = await claimedBrand(agent, { dueIn: "42 hours" });
+    const response = await act(server, agent, brand.entryId, "release");
+    expect(response.statusCode, response.body).toBe(200);
+    expect(response.json()).toEqual({ released: true });
+    expect(await entryState(brand.entryId)).toEqual({
+      claimedBy: null,
+      state: "open",
+    });
+    const lines = await registerLines(brand.entryId);
+    expect(lines.map((line) => line.event)).toEqual([
+      "queue.entry_opened",
+      "queue.claim_released",
+    ]);
+    expect(lines[1]).toMatchObject({
+      actor: agent.accountId,
+      payload: { queue_code: "profiles_advertiser" },
+    });
+    expect((await opened(server, brand.entryId, colleague)).outcome).toBe(
+      "claimed",
+    );
+  });
+
+  it("the holder takes the delay again: a later expiry, journaled", async () => {
+    const server = app();
+    const { brand } = await claimedBrand(agent, { dueIn: "43 hours" });
+    await migrationRole()`
+      update profiles.advertiser_review_entries
+         set claim_expires_at = now() + interval '2 minutes'
+       where id = ${brand.entryId}`;
+    const response = await act(server, agent, brand.entryId, "extend");
+    expect(response.statusCode, response.body).toBe(200);
+    const { claimExpiresAt } = response.json<{ claimExpiresAt: string }>();
+    expect(Date.parse(claimExpiresAt) - Date.now()).toBeGreaterThan(
+      10 * 60 * 1000,
+    );
+    const view = await opened(server, brand.entryId, agent);
+    expect(view.outcome).toBe("held");
+    expect(view.entry.claim.heldByCaller).toBe(true);
+    expect(
+      (await registerLines(brand.entryId)).map((line) => line.event),
+    ).toContain("queue.claim_extended");
+  });
+});
+
+describe("the forced release (15 C4, CA63; file.md A8)", () => {
+  it("an administrator lifts a live claim with a typed reason: journaled, the holder named; his next act is told it was lifted", async () => {
+    const server = app();
+    const { brand, token } = await claimedBrand(colleague, {
+      dueIn: "44 hours",
+    });
+    const response = await act(server, admin, brand.entryId, "force-release", {
+      reasonCode: "holder_absent",
+    });
+    expect(response.statusCode, response.body).toBe(200);
+    expect(response.json()).toEqual({
+      released: true,
+      holder: { accountId: colleague.accountId, displayName: colleague.name },
+    });
+    expect(await entryState(brand.entryId)).toEqual({
+      claimedBy: null,
+      state: "open",
+    });
+    const lines = await registerLines(brand.entryId);
+    expect(lines.at(-1)).toMatchObject({
+      event: "queue.claim_forced_release",
+      actor: admin.accountId,
+      payload: {
+        queue_code: "profiles_advertiser",
+        holder_account_id: colleague.accountId,
+        reason_code: "holder_absent",
+      },
+    });
+    // the dispossessed holder: his decision is refused with the notice, the opening shows it (A8)
+    const late = await act(server, colleague, brand.entryId, "publish", {
+      reviewToken: token,
+    });
+    expect(late.statusCode).toBe(409);
+    expect(late.json<ErrorBody>().error.details).toEqual([
+      { path: "claim", issue: "claim_lifted" },
+    ]);
+    expect(
+      (await opened(server, brand.entryId, colleague)).entry.lastForcedRelease,
+    ).toMatchObject({ holderIsCaller: true, reasonCode: "holder_absent" });
+  });
+
+  it("an agent who tries is refused 403 and the attempt is journaled; the claim stands (CA63)", async () => {
+    const server = app();
+    const { brand } = await claimedBrand(colleague, { dueIn: "45 hours" });
+    const response = await act(server, agent, brand.entryId, "force-release", {
+      reasonCode: "holder_absent",
+    });
+    expect(response.statusCode).toBe(403);
+    expect(response.json<ErrorBody>().error.code).toBe("forbidden");
+    expect((await entryState(brand.entryId)).claimedBy).toBe(
+      colleague.accountId,
+    );
+    const attempts = await migrationRole()<
+      { payload: Record<string, unknown>; actor: string | null }[]
+    >`
+      select payload, actor_account_id::text as actor from audit.audit_events
+       where event_type = 'backoffice.action_refused' and subject_id = ${agent.accountId}
+         and payload ->> 'action_code' = 'queue.force_release_claim'`;
+    expect(attempts.length).toBeGreaterThanOrEqual(1);
+    expect(attempts[0]).toMatchObject({
+      actor: agent.accountId,
+      payload: { required_role: "admin" },
+    });
+    // the same refusal whatever the entry: no probe through the identifier (T14.3)
+    expect(
+      answer(
+        await act(server, agent, randomUUID(), "force-release", {
+          reasonCode: "holder_absent",
+        }),
+      ),
+    ).toEqual(answer(response));
+  });
+
+  it("asks for a reason of the closed list, and lifts nothing that is not held", async () => {
+    const server = app();
+    const brand = await newBrand({ dueIn: "46 hours" });
+    for (const body of [
+      {},
+      { reasonCode: "because" },
+      { reasonCode: "holder_absent", comment: "x" },
+    ]) {
+      expect(
+        (await act(server, admin, brand.entryId, "force-release", body))
+          .statusCode,
+        JSON.stringify(body),
+      ).toBe(400);
+    }
+    const free = await act(server, admin, brand.entryId, "force-release", {
+      reasonCode: "wrong_claim",
+    });
+    expect(free.statusCode).toBe(409);
+    expect(free.json<ErrorBody>().error.details).toEqual([
+      { path: "claim", issue: "claim_not_held" },
+    ]);
+  });
+});
+
+describe("a conflict of interest on a decision (15 RG36, CA19; 13 RG35)", () => {
+  it("refuses to decide or extend an entry of an account the caller holds: 403 `conflict_of_interest`, nothing written; a colleague decides it", async () => {
+    const server = app();
+    const brand = await newBrand({
+      owner: agent.accountId,
+      dueIn: "47 hours",
+    });
+    await completeBrand(brand);
+    const colleagueView = await opened(server, brand.entryId, colleague);
+    for (const [action, body] of [
+      ["publish", { reviewToken: colleagueView.reviewToken }],
+      [
+        "reject",
+        {
+          reviewToken: colleagueView.reviewToken,
+          reasonCode: "illicit_content",
+        },
+      ],
+      ["extend", undefined],
+    ] as const) {
+      const response = await act(server, agent, brand.entryId, action, body);
+      expect(response.statusCode, action).toBe(403);
+      expect(response.json<ErrorBody>().error).toMatchObject({
+        code: "forbidden",
+        details: [{ path: "entry", issue: "conflict_of_interest" }],
+      });
+    }
+    expect(await entryState(brand.entryId)).toEqual({
+      claimedBy: colleague.accountId,
+      state: "open",
+    });
+    // not a refusal of the entry: the colleague who holds the claim publishes it
+    const done = await act(server, colleague, brand.entryId, "publish", {
+      reviewToken: colleagueView.reviewToken,
+    });
+    expect(done.statusCode, done.body).toBe(200);
+  });
+
+  it("an unknown entry and the one of the caller's own account answer the same 404 on every act", async () => {
+    const server = app();
+    for (const [action, body] of ACTIONS) {
+      if (action === "force-release") continue;
+      const unknown = await act(server, agent, randomUUID(), action, body);
+      expect(unknown.statusCode, action).toBe(404);
+      expect(
+        answer(await act(server, agent, ownEntryId, action, body)),
+        action,
+      ).toEqual(answer(unknown));
+    }
+    expect((await entryState(ownEntryId)).claimedBy).toBeNull();
+  });
+});
+
+describe("only a human decision publishes (06 RG6)", () => {
+  it("a member session reaches none of the acts, and a token is no capability for a colleague", async () => {
+    const server = app();
+    const member = await newMemberSession();
+    const { brand, token } = await claimedBrand(agent, { dueIn: "48 hours" });
+    for (const [action, body] of ACTIONS) {
+      const response = await call(
+        server,
+        "POST",
+        `${ENTRIES}/${brand.entryId}/${action}`,
+        member,
+        body === undefined ? {} : { body },
+      );
+      expect(response.statusCode, action).toBe(401);
+    }
+    expect(await entryState(brand.entryId)).toMatchObject({ state: "open" });
+    expect(await profileStatusOf(brand.accountId)).toBe("pending_review");
+    // the token is no capability: a colleague holding the right token still cannot decide
+    expect(
+      (
+        await act(server, colleague, brand.entryId, "publish", {
+          reviewToken: token,
+        })
+      ).statusCode,
+    ).toBe(409);
   });
 });

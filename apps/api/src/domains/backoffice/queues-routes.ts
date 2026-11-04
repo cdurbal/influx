@@ -10,7 +10,8 @@
 //   taken, or read in read-only mode with the name of its holder (C2); the decision view comes back
 //   with the version token (L2BS-1), the alerts (RG19, RG25, RG70, L2BS-8) and the refusal reasons
 //   with the message the brand will receive. A POST: it has an effect (the claim, the register line).
-// Decisions, release, extension and forced release are the next commit's.
+// Decisions, release, extension and forced release: queues-decision-routes.ts (commit 12), registered
+// from here: one registration point for queue 1.
 // - An unknown entry, the one of the caller's own account and a closed one that the caller cannot see
 //   answer exactly alike (404, T14.3, T14.4); an entry of an account the caller HOLDS answers 403
 //   with the issue `conflict_of_interest` (17b §2.5, RG36) and is absent from the list and the counters.
@@ -38,6 +39,7 @@ import type { ApiDatabase } from "../../db/index.ts";
 import { ApiError, RequestValidationError } from "../../platform/errors.ts";
 import { withBackofficeSession } from "../identity/backoffice-session.ts";
 import type { IdentityApp } from "../identity/routes.ts";
+import { registerBackofficeQueueDecisionRoutes } from "./queues-decision-routes.ts";
 import {
   rejectionReasonOf,
   rejectionReasonPreview,
@@ -205,6 +207,7 @@ export function registerBackofficeQueueRoutes(
   dependencies: BackofficeQueuesDependencies,
 ): void {
   const { database } = dependencies;
+  registerBackofficeQueueDecisionRoutes(app, dependencies);
 
   app.get(
     "/v1/bo/queues/counters",

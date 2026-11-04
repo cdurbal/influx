@@ -384,3 +384,125 @@ export const openEntryResponseSchema = z.strictObject({
   reasons: z.array(reviewReasonSchema),
 });
 export type OpenEntryResponse = z.infer<typeof openEntryResponseSchema>;
+
+// ---------------------------------------------------------------------------------------------
+// The decisions on an entry (commit 12): publish, reject, release, extend, force-release
+// (06 RG6, RG65, RG66; 15 RG27 C3, C4, C6, C8; file.md A3, A6, A8, A9, A10; 17b §2.4, §2.6)
+// ---------------------------------------------------------------------------------------------
+
+/** `backoffice.claim_release_reasons` (0210, file.md A8): why an administrator lifts a claim. */
+export const CLAIM_RELEASE_REASON_CODES = [
+  "holder_absent",
+  "overdue_entry",
+  "wrong_claim",
+] as const;
+export const claimReleaseReasonCodeSchema = z.enum(CLAIM_RELEASE_REASON_CODES);
+export type ClaimReleaseReasonCode = z.infer<
+  typeof claimReleaseReasonCodeSchema
+>;
+
+/** The bounds the database holds (0210): a refusal message to the brand, an internal comment. */
+export const MEMBER_MESSAGE_MIN_LENGTH = 20;
+export const MEMBER_MESSAGE_MAX_LENGTH = 500;
+export const INTERNAL_COMMENT_MAX_LENGTH = 1000;
+
+/** The version of the profile the agent examined (L2BS-1): the one the opening returned, as is. */
+const reviewTokenSchema = z.string().regex(/^[0-9a-f]{64}$/);
+/** Facultative, for agents only: never shown to the brand, never in an e-mail or the register. */
+const internalCommentSchema = z
+  .string()
+  .min(1)
+  .max(INTERNAL_COMMENT_MAX_LENGTH);
+
+/** `POST …/entries/:id/publish` (06 RG6, RG65): a human decision, bound to the version examined. */
+export const publishEntryRequestSchema = z.strictObject({
+  reviewToken: reviewTokenSchema,
+  internalComment: internalCommentSchema.optional(),
+});
+export type PublishEntryRequest = z.infer<typeof publishEntryRequestSchema>;
+
+/**
+ * `POST …/entries/:id/reject` (06 RG65, RG66; 15 C6): a typed reason of the closed list, never a
+ * refusal without one. `memberMessage` is the agent's own text, for the reason `other` only
+ * (20 to 500 characters): the database says which reasons ask for it, and refuses the others.
+ */
+export const rejectEntryRequestSchema = z.strictObject({
+  reviewToken: reviewTokenSchema,
+  reasonCode: rejectionReasonCodeSchema,
+  memberMessage: z
+    .string()
+    .min(MEMBER_MESSAGE_MIN_LENGTH)
+    .max(MEMBER_MESSAGE_MAX_LENGTH)
+    .optional(),
+  internalComment: internalCommentSchema.optional(),
+});
+export type RejectEntryRequest = z.infer<typeof rejectEntryRequestSchema>;
+
+/** `POST …/entries/:id/force-release` (15 C4, admin only): a typed reason, no free text. */
+export const forceReleaseRequestSchema = z.strictObject({
+  reasonCode: claimReleaseReasonCodeSchema,
+});
+export type ForceReleaseRequest = z.infer<typeof forceReleaseRequestSchema>;
+
+/**
+ * The entry to open next (17b §2.6): the one with the oldest deadline that nobody holds, among the
+ * ones the caller may treat (RG36). Only an identifier: the screen opens it by the opening route,
+ * which claims it and is journaled; null when the queue holds nothing to open.
+ */
+export const nextEntrySchema = z.strictObject({ entryId: z.uuid() }).nullable();
+
+/** 15 C8: `late` marks a decision made after its deadline, which is never blocked. */
+export const publishEntryResponseSchema = z.strictObject({
+  decidedAt: instantSchema,
+  late: z.boolean(),
+  /** The first publication of this account (06 RG78): `profile.completed` goes to the leads. */
+  firstPublication: z.boolean(),
+  next: nextEntrySchema,
+});
+export type PublishEntryResponse = z.infer<typeof publishEntryResponseSchema>;
+
+export const rejectEntryResponseSchema = z.strictObject({
+  decidedAt: instantSchema,
+  late: z.boolean(),
+  next: nextEntrySchema,
+});
+export type RejectEntryResponse = z.infer<typeof rejectEntryResponseSchema>;
+
+/** `POST …/entries/:id/release` (15 C3, "je rends la main"). */
+export const releaseEntryResponseSchema = z.strictObject({
+  released: z.literal(true),
+});
+export type ReleaseEntryResponse = z.infer<typeof releaseEntryResponseSchema>;
+
+/** `POST …/entries/:id/extend` (file.md A9): the new expiry of the caller's claim. */
+export const extendEntryResponseSchema = z.strictObject({
+  claimExpiresAt: instantSchema,
+});
+export type ExtendEntryResponse = z.infer<typeof extendEntryResponseSchema>;
+
+/** `POST …/entries/:id/force-release`: the claim is lifted; the dispossessed holder is named. */
+export const forceReleaseResponseSchema = z.strictObject({
+  released: z.literal(true),
+  holder: accountOwnerSchema.nullable(),
+});
+export type ForceReleaseResponse = z.infer<typeof forceReleaseResponseSchema>;
+
+/**
+ * The refusals of a decision, as the `issue` of the details of the error envelope (409 unless
+ * said): the claim is held by someone else (`claim` / `held_by_other`, the name in the detail
+ * `claim.holder`), the caller holds no live claim (`claim_not_held`: expired, given back, never
+ * taken), his claim was lifted by an administrator (`claim_lifted`: open the entry again, the
+ * notice is there, A8), the entry is closed, the profile changed since it was opened (`stale_token`:
+ * read again, L2BS-1), the profile is not in a state this entry decides (`profile_state`), a
+ * required field is missing (path = the field, 06 RG15). A 400 for a value the database refuses
+ * (`reasonCode`, `memberMessage`, `internalComment`).
+ */
+export const DECISION_CONFLICT_ISSUES = [
+  "held_by_other",
+  "claim_not_held",
+  "claim_lifted",
+  "entry_closed",
+  "stale_token",
+  "profile_state",
+  "required_field_missing",
+] as const;

@@ -13,3 +13,16 @@ export function sqlStateOf(error: unknown): string | null {
   }
   return null;
 }
+
+/** The DETAIL of a database error (`RAISE … USING DETAIL`), through the wrapping of drizzle. */
+export function sqlDetailOf(error: unknown): string | null {
+  let current: unknown = error;
+  for (let depth = 0; depth < 4 && current instanceof Error; depth += 1) {
+    const detail: unknown = (current as Error & { detail?: unknown }).detail;
+    if (typeof detail === "string" && detail !== "") {
+      return detail;
+    }
+    current = current.cause;
+  }
+  return null;
+}

@@ -8,6 +8,7 @@ import type {
 } from "@influx/contracts/backoffice-queues";
 import {
   detectDirectContact,
+  type ContactSignal,
   isUnusualWebsiteDomain,
 } from "@influx/domain/brand-profile";
 
@@ -32,6 +33,14 @@ export function contactAlerts(examined: ExaminedValues): ReviewAlert[] {
     }
   }
   return alerts;
+}
+
+/**
+ * RG19 on the message the agent writes to the brand (reason `other`, file.md A6): the kinds of
+ * direct contact it holds. The text goes into an e-mail with no link (RG158), so one refuses it.
+ */
+export function memberMessageSignals(message: string): ContactSignal[] {
+  return [...detectDirectContact(message)];
 }
 
 /** L2BS-8: a domain that is not plain ASCII, or written as punycode. */

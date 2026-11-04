@@ -156,7 +156,8 @@ export type RefusedActionCode =
   | "backoffice.dual_control"
   | "identity.change_member_role"
   | "identity.internal_invitation"
-  | "ops.read_health";
+  | "ops.read_health"
+  | "queue.force_release_claim";
 
 /** 0134: backoffice.action_refused on the agent's own account (influx_agent only). */
 export async function recordRefusedAction(

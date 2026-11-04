@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   entriesQuerySchema,
+  forceReleaseRequestSchema,
+  publishEntryRequestSchema,
+  publishEntryResponseSchema,
+  rejectEntryRequestSchema,
   entriesResponseSchema,
   openEntryResponseSchema,
   queueEntryRowSchema,
@@ -137,5 +141,83 @@ describe("the answers are closed (06 RG80, RG81; 15 RG34)", () => {
     expect(shape.safeParse(null).success).toBe(true);
     expect(shape.safeParse("A".repeat(64)).success).toBe(false);
     expect(shape.safeParse("a".repeat(63)).success).toBe(false);
+  });
+});
+
+describe("the decision requests (06 RG65, RG66; 15 C4, C6; file.md A6, A8)", () => {
+  const token = "a".repeat(64);
+
+  it("binds a decision to the version examined: the token is required, the comment is bounded, nothing else passes", () => {
+    expect(
+      publishEntryRequestSchema.safeParse({ reviewToken: token }).success,
+    ).toBe(true);
+    for (const body of [
+      {},
+      { reviewToken: "A".repeat(64) },
+      { reviewToken: token, internalComment: "" },
+      { reviewToken: token, internalComment: "x".repeat(1001) },
+      { reviewToken: token, decidedBy: ID },
+    ]) {
+      expect(
+        publishEntryRequestSchema.safeParse(body).success,
+        JSON.stringify(body),
+      ).toBe(false);
+    }
+  });
+
+  it("asks a refusal for a reason of the closed list, and bounds the message the agent writes", () => {
+    const ok = {
+      reviewToken: token,
+      reasonCode: "other",
+      memberMessage: "x".repeat(20),
+    };
+    expect(rejectEntryRequestSchema.safeParse(ok).success).toBe(true);
+    for (const body of [
+      { reviewToken: token },
+      { reviewToken: token, reasonCode: "because" },
+      { ...ok, memberMessage: "x".repeat(19) },
+      { ...ok, memberMessage: "x".repeat(501) },
+    ]) {
+      expect(
+        rejectEntryRequestSchema.safeParse(body).success,
+        JSON.stringify(body),
+      ).toBe(false);
+    }
+  });
+
+  it("lifts a claim for a typed reason only, and answers the next entry as an identifier alone", () => {
+    expect(
+      forceReleaseRequestSchema.safeParse({ reasonCode: "holder_absent" })
+        .success,
+    ).toBe(true);
+    expect(
+      forceReleaseRequestSchema.safeParse({
+        reasonCode: "holder_absent",
+        comment: "free text",
+      }).success,
+    ).toBe(false);
+    expect(
+      forceReleaseRequestSchema.safeParse({ reasonCode: "other" }).success,
+    ).toBe(false);
+    const decided = {
+      decidedAt: "2026-11-04T10:00:00.000Z",
+      late: false,
+      firstPublication: true,
+    };
+    expect(
+      publishEntryResponseSchema.safeParse({
+        ...decided,
+        next: { entryId: ID },
+      }).success,
+    ).toBe(true);
+    expect(
+      publishEntryResponseSchema.safeParse({ ...decided, next: null }).success,
+    ).toBe(true);
+    expect(
+      publishEntryResponseSchema.safeParse({
+        ...decided,
+        next: { entryId: ID, brandName: "x" },
+      }).success,
+    ).toBe(false);
   });
 });

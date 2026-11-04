@@ -239,7 +239,7 @@ type ListRow = {
   duplicate_domain: boolean;
 };
 
-function conditionsOf(filters: EntryFilters, caller: string): SQL[] {
+export function conditionsOf(filters: EntryFilters, caller: string): SQL[] {
   const live = sql`e.claimed_by_account_id is not null and e.claim_expires_at > now()`;
   const conditions: SQL[] = [
     sql`e.state = 'open'`,
