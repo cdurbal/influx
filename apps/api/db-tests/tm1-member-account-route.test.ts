@@ -294,6 +294,84 @@ describe("PATCH /v1/me (05 RG15, RG71, RG73; 17 §6.1)", () => {
     expect(await queueLinesOf(member.accountId)).toHaveLength(2);
   });
 
+  it("proposes the new company name of a PUBLISHED brand: the validated name stays, the new one is announced, no lead.updated for it (06 RG9, CA15; L2C-13)", async () => {
+    const server = app();
+    const member = await newMember("advertiser");
+    const session = member.sessions[0] ?? null;
+    const validated = `Maison ${member.accountId.slice(0, 8)}`;
+    watchedValues.push("Maison Révisée TM1");
+    await migration`
+      update profiles.advertiser_profiles set status = 'published'
+       where account_id = ${member.accountId}`;
+
+    const proposed = await call(server, "PATCH", "/v1/me", session, {
+      companyName: "Maison Révisée TM1",
+    });
+    expect(proposed.statusCode).toBe(200);
+    // honest: the answer shows the validated name, and the one that waits apart
+    expect(proposed.json()).toMatchObject({
+      companyName: validated,
+      companyNamePending: "Maison Révisée TM1",
+    });
+    expect((await call(server, "GET", "/v1/me", session)).json()).toMatchObject(
+      {
+        companyName: validated,
+        companyNamePending: "Maison Révisée TM1",
+      },
+    );
+    const [live] = await migration<{ legal_name: string }[]>`
+      select legal_name from profiles.advertiser_profiles where account_id = ${member.accountId}`;
+    expect(live?.legal_name).toBe(validated);
+    const revisions = await migration<{ status: string; value: string }[]>`
+      select status::text as status, proposed_value #>> '{}' as value
+        from profiles.profile_field_revisions
+       where account_id = ${member.accountId} and field_code = 'advertiser.brand_name'`;
+    expect(revisions).toEqual([
+      { status: "pending_review", value: "Maison Révisée TM1" },
+    ]);
+    expect(await queueLinesOf(member.accountId)).toHaveLength(0);
+
+    // the same name again: nothing new; a language with it: ONE lead.updated for the language only
+    await call(server, "PATCH", "/v1/me", session, {
+      companyName: "Maison Révisée TM1",
+    });
+    await call(server, "PATCH", "/v1/me", session, {
+      companyName: "Maison Révisée TM1",
+      preferredLanguage: "en",
+    });
+    expect(await queueLinesOf(member.accountId)).toHaveLength(2);
+
+    // back to the validated name: nothing waits, the key is absent from the answer
+    const back = await call(server, "PATCH", "/v1/me", session, {
+      companyName: validated,
+    });
+    expect(back.statusCode).toBe(200);
+    expect(Object.keys(back.json())).not.toContain("companyNamePending");
+    expect(back.json().companyName).toBe(validated);
+    const [entry] = await migration<{ state: string }[]>`
+      select state::text as state from profiles.advertiser_review_entries
+       where account_id = ${member.accountId}`;
+    expect(entry?.state).toBe("withdrawn");
+  });
+
+  it("refuses the company name of a suspended brand (409), changing nothing", async () => {
+    const server = app();
+    const member = await newMember("advertiser");
+    await migration`
+      update profiles.advertiser_profiles set status = 'suspended'
+       where account_id = ${member.accountId}`;
+    const response = await call(
+      server,
+      "PATCH",
+      "/v1/me",
+      member.sessions[0] ?? null,
+      { companyName: "Maison Suspendue TM1" },
+    );
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error.code).toBe("conflict");
+    expect(await queueLinesOf(member.accountId)).toHaveLength(0);
+  });
+
   it("changes a creator's declared status and country together: one lead.updated, one register line", async () => {
     const server = app();
     const member = await newMember("creator");

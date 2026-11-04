@@ -21,6 +21,20 @@ export const BRAND_PROFILE_STATUSES = [
 export const brandProfileStatusSchema = z.enum(BRAND_PROFILE_STATUSES);
 export type BrandProfileStatus = z.infer<typeof brandProfileStatusSchema>;
 
+/** `profiles.advertiser_rejection_reasons` (0207, 06 RG66, file.md A6): the closed list of refusal reasons. */
+export const REJECTION_REASON_CODES = [
+  "contact_in_public_field",
+  "presentation_insufficient",
+  "logo_non_compliant",
+  "misleading_brand_name",
+  "sector_inconsistent",
+  "illicit_content",
+  "duplicate_brand",
+  "other",
+] as const;
+export const rejectionReasonCodeSchema = z.enum(REJECTION_REASON_CODES);
+export type RejectionReasonCode = z.infer<typeof rejectionReasonCodeSchema>;
+
 /** Bands of company size, never a headcount (06 RG15, RG22, CA5; 0202). */
 export const COMPANY_SIZE_BANDS = [
   "1_10",
@@ -332,6 +346,50 @@ export type BrandProfileReferences = z.infer<
 >;
 
 /**
+ * The fields of a PUBLISHED profile whose change waits for the review of INFLUX (06 RG9, file.md
+ * A4): the contract names them as the form does; the live value stays the validated one.
+ */
+export const PENDING_CHANGE_FIELDS = [
+  "companyName",
+  "logo",
+  "presentation",
+  "website",
+  "contactRole",
+  "primarySector",
+] as const;
+export const pendingChangeFieldSchema = z.enum(PENDING_CHANGE_FIELDS);
+export type PendingChangeField = z.infer<typeof pendingChangeFieldSchema>;
+
+/**
+ * A change of a published profile waiting for review, for its owner only (06 RG9, CA15). `clear`:
+ * the value is to be emptied (the logo: removed). `value` is the proposed text; null for `clear`
+ * and for the logo (its object is read by GET .../logo, never named here).
+ */
+export const pendingChangeSchema = z.strictObject({
+  field: pendingChangeFieldSchema,
+  change: z.enum(["set", "clear"]),
+  value: z.string().nullable(),
+  submittedAt: z.iso.datetime(),
+});
+export type PendingChange = z.infer<typeof pendingChangeSchema>;
+
+/**
+ * The last refusal by INFLUX, until the next submission or revision (06 RG10, RG66, CA20): its
+ * typed reason, the message of the reason in the account's language, and the text the agent wrote
+ * for `other` only. `kind` `revision`: the validated profile stays in place; `fields` names what was
+ * refused. The internal comment of the agent is never part of it (D46).
+ */
+export const brandRefusalSchema = z.strictObject({
+  kind: z.enum(["submission", "revision"]),
+  reasonCode: rejectionReasonCodeSchema,
+  message: z.string(),
+  memberMessage: z.string().nullable(),
+  fields: z.array(pendingChangeFieldSchema),
+  decidedAt: z.iso.datetime(),
+});
+export type BrandRefusal = z.infer<typeof brandRefusalSchema>;
+
+/**
  * GET /v1/me/brand-profile: the profile of the session's own account. `country` and
  * `preferredLanguage` are read from the account (CA2), `companyName` is the account's trading name
  * (RG2); `signInEmail` is the default of the professional address (RG35), shown to its owner only.
@@ -365,6 +423,13 @@ export const brandProfileResponseSchema = z.strictObject({
   /** Required fields still missing, in the order of the form (RG5, RG61); empty: may be submitted. */
   missingRequired: z.array(brandProfileRequiredFieldSchema),
   references: brandProfileReferencesSchema,
+  /**
+   * Published profile: every field above is the VALIDATED value; what waits for review is here, one
+   * per field (06 RG9). Empty outside a revision: `status` stays `published` meanwhile (file.md A2).
+   */
+  pendingChanges: z.array(pendingChangeSchema),
+  /** The last refusal, null when there is none or a newer request is under examination. */
+  refusal: brandRefusalSchema.nullable(),
 });
 export type BrandProfileResponse = z.infer<typeof brandProfileResponseSchema>;
 
@@ -437,24 +502,38 @@ export const brandLogoSchema = z.strictObject({
 });
 export type BrandLogo = z.infer<typeof brandLogoSchema>;
 
-/** GET /v1/me/brand-profile/logo: the logo, or null when the brand has none. */
+/**
+ * GET /v1/me/brand-profile/logo: the logo in force, or null when the brand has none. On a published
+ * profile a replacement waits for review (file.md A4): it is `pendingLogo`, absent otherwise, while
+ * `logo` stays the validated one.
+ */
 export const brandLogoResponseSchema = z.strictObject({
   logo: brandLogoSchema.nullable(),
+  pendingLogo: brandLogoSchema.optional(),
 });
 export type BrandLogoResponse = z.infer<typeof brandLogoResponseSchema>;
 
-/** PUT /v1/me/brand-profile/logo: the logo now in force, and the completeness it changed (RG58). */
+/**
+ * PUT /v1/me/brand-profile/logo: the logo deposited and the completeness (RG58). `state` `active`:
+ * it is the logo in force; `in_review`: the profile is published, the previous logo stays served until
+ * the decision (file.md A4) and the completeness is that of the validated profile.
+ */
 export const brandLogoUploadResponseSchema = z.strictObject({
   logo: brandLogoSchema,
+  state: z.enum(["active", "in_review"]),
   completeness: brandProfileCompletenessSchema,
 });
 export type BrandLogoUploadResponse = z.infer<
   typeof brandLogoUploadResponseSchema
 >;
 
-/** DELETE /v1/me/brand-profile/logo: whether a logo was removed, and the completeness after. */
+/**
+ * DELETE /v1/me/brand-profile/logo: whether a logo was removed now, and the completeness after.
+ * `inReview`: on a published profile the removal waits for review, the logo stays served (A4).
+ */
 export const brandLogoRemovalResponseSchema = z.strictObject({
   removed: z.boolean(),
+  inReview: z.boolean(),
   completeness: brandProfileCompletenessSchema,
 });
 export type BrandLogoRemovalResponse = z.infer<

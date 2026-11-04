@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  brandLogoRemovalResponseSchema,
+  brandLogoResponseSchema,
+  brandLogoUploadResponseSchema,
   brandProfileResponseSchema,
+  brandRefusalSchema,
+  pendingChangeSchema,
+  REJECTION_REASON_CODES,
   submitBrandProfileResponseSchema,
   updateBrandProfileBodySchema,
   updateBrandProfileResponseSchema,
@@ -137,6 +143,8 @@ describe("the answers of the brand profile (06 RG57, RG61, D46)", () => {
     signInEmail: "marque@example.test",
     completeness,
     missingRequired: ["primarySector", "contactRole"],
+    pendingChanges: [],
+    refusal: null,
     references: {
       sectors: [],
       topics: [],
@@ -190,6 +198,93 @@ describe("the answers of the brand profile (06 RG57, RG61, D46)", () => {
     expect(updateBrandProfileResponseSchema.safeParse(profile).success).toBe(
       false,
     );
+  });
+
+  it("names the changes waiting for review and the last refusal, closed: no internal comment, no agent, no object identifier (06 RG9, RG10, D46)", () => {
+    const change = {
+      field: "presentation",
+      change: "set",
+      value: "Une présentation proposée.",
+      submittedAt: "2026-11-04T10:00:00.000Z",
+    };
+    expect(pendingChangeSchema.safeParse(change).success).toBe(true);
+    expect(
+      pendingChangeSchema.safeParse({ ...change, field: "budgetBand" }).success,
+    ).toBe(false);
+    expect(
+      pendingChangeSchema.safeParse({ ...change, logoObjectId: "x" }).success,
+    ).toBe(false);
+    const refusal = {
+      kind: "revision",
+      reasonCode: "other",
+      message: "Votre profil n'a pas pu être publié en l'état.",
+      memberMessage: "Merci de préciser votre activité.",
+      fields: ["presentation", "logo"],
+      decidedAt: "2026-11-04T10:00:00.000Z",
+    };
+    expect(brandRefusalSchema.safeParse(refusal).success).toBe(true);
+    for (const reasonCode of REJECTION_REASON_CODES) {
+      expect(
+        brandRefusalSchema.safeParse({ ...refusal, reasonCode }).success,
+      ).toBe(true);
+    }
+    for (const extra of [
+      { internalComment: "x" },
+      { decidedBy: "agent" },
+      { reasonCode: "free_text" },
+    ]) {
+      expect(
+        brandRefusalSchema.safeParse({ ...refusal, ...extra }).success,
+      ).toBe(false);
+    }
+    expect(
+      brandProfileResponseSchema.safeParse({
+        ...profile,
+        pendingChanges: [change],
+        refusal,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("says whether a logo is in force or waiting for review, and shows the waiting one apart (A4)", () => {
+    const completenessOf = profile.completeness;
+    const logo = {
+      contentType: "image/webp",
+      width: 512,
+      height: 512,
+      byteSize: 1000,
+      data: "AAAA",
+      updatedAt: "2026-11-04T10:00:00.000Z",
+    };
+    expect(brandLogoResponseSchema.safeParse({ logo: null }).success).toBe(
+      true,
+    );
+    expect(
+      brandLogoResponseSchema.safeParse({ logo, pendingLogo: logo }).success,
+    ).toBe(true);
+    for (const state of ["active", "in_review"]) {
+      expect(
+        brandLogoUploadResponseSchema.safeParse({
+          logo,
+          state,
+          completeness: completenessOf,
+        }).success,
+      ).toBe(true);
+    }
+    expect(
+      brandLogoUploadResponseSchema.safeParse({
+        logo,
+        state: "purging",
+        completeness: completenessOf,
+      }).success,
+    ).toBe(false);
+    expect(
+      brandLogoRemovalResponseSchema.safeParse({
+        removed: false,
+        inReview: true,
+        completeness: completenessOf,
+      }).success,
+    ).toBe(true);
   });
 
   it("carries no amount, rate, net or price field (CLAUDE.md §2, D48, D78)", () => {

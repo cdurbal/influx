@@ -47,6 +47,11 @@ export const meResponseSchema = z.strictObject({
   countryCode: countryCodeSchema,
   declaredStatus: declaredStatusSchema,
   companyName: z.string().nullable(),
+  /**
+   * A published brand's new trading name waiting for review (06 RG9): `companyName` stays the
+   * validated one. Absent when none waits, and for a creator.
+   */
+  companyNamePending: z.string().optional(),
   termsToAccept: termsToAcceptSchema.nullable(),
 });
 export type MeResponse = z.infer<typeof meResponseSchema>;

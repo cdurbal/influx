@@ -537,16 +537,43 @@ export async function removeOwnBrandLogo(
     : { logoId: row.logo_id, objectKey: row.object_key };
 }
 
-/** The active logo of the session's own account, as its row describes it. */
+/** A stored logo of the session's own account (active, or in review), as its row describes it. */
 export type ActiveLogoRow = LogoObjectRef & {
   byteSize: number;
   width: number;
   height: number;
+  /** When it was activated; an `in_review` row has none yet: the instant it was stored. */
   activatedAt: string;
 };
 
-export async function readOwnActiveLogo(
+/** The state of a logo row of the account (a row of another account is none), or null. */
+export async function readOwnLogoState(
   tx: Transaction,
+  logoId: string,
+): Promise<string | null> {
+  const rows = await tx.execute<{ state: string }>(
+    sql`select state::text as state from profiles.brand_logo_objects
+         where id = ${logoId}::uuid and account_id = (select influx.current_account_id())`,
+  );
+  return rows[0]?.state ?? null;
+}
+
+export function readOwnActiveLogo(
+  tx: Transaction,
+): Promise<ActiveLogoRow | null> {
+  return readOwnStoredLogo(tx, "active");
+}
+
+/** The logo waiting for the review of INFLUX on a published profile (file.md A4), if any. */
+export function readOwnInReviewLogo(
+  tx: Transaction,
+): Promise<ActiveLogoRow | null> {
+  return readOwnStoredLogo(tx, "in_review");
+}
+
+async function readOwnStoredLogo(
+  tx: Transaction,
+  state: "active" | "in_review",
 ): Promise<ActiveLogoRow | null> {
   const rows = await tx.execute<{
     logo_id: string;
@@ -557,9 +584,9 @@ export async function readOwnActiveLogo(
     activated_at: string;
   }>(
     sql`select id::text as logo_id, object_key, byte_size, width, height,
-               to_char(activated_at at time zone 'UTC', ${ISO_UTC}) as activated_at
+               to_char(coalesce(activated_at, created_at) at time zone 'UTC', ${ISO_UTC}) as activated_at
           from profiles.brand_logo_objects
-         where account_id = (select influx.current_account_id()) and state = 'active'`,
+         where account_id = (select influx.current_account_id()) and state = ${state}::profiles.brand_logo_state`,
   );
   const row = rows[0];
   return row === undefined

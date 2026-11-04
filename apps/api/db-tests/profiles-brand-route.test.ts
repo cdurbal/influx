@@ -3,15 +3,16 @@
 // /v1/me/brand-profile, through the pools of apps/api (member under influx_app, migrations 0202
 // and 0203). The route accounts are COMMITTED by the migration role (random identifiers,
 // disposable local stack, like TM1) with their sessions; their queue lines are removed after the
-// file. The decisions of an agent (rejected, published) do not exist yet (L2C): those states are
-// written by the migration role, as a decision would. Every log stream is searched BY VALUE
+// file. The decisions of an agent are the business of the queue routes (t14-backoffice-queue-route,
+// profiles-brand-decision): the states they give are written here by the migration role, as a
+// decision would, to prove what the brand then reads and may write (L2C commit 13). Every log stream is searched BY VALUE
 // (C-1, D60): no company name, presentation nor contact detail.
 import {
   brandProfileResponseSchema,
   type BrandProfileResponse,
   type SubmitBrandProfileResponse,
 } from "@influx/contracts/brand-profile";
-import { localRoleUrl, type LoginRole } from "@influx/test-kit/db";
+import { accountIdOf, localRoleUrl, type LoginRole } from "@influx/test-kit/db";
 import { valuesFoundIn } from "@influx/test-kit/logs";
 import type { LightMyRequestResponse } from "fastify";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
@@ -28,7 +29,9 @@ import {
 } from "../scripts/terms-publication.ts";
 import { buildServer } from "../src/server.ts";
 import { captureLogs, testApiConfig, WEB_SECRET } from "../tests/helpers.ts";
-import { migrationRole } from "./support.ts";
+import english from "../src/locales/en/email.json" with { type: "json" };
+import french from "../src/locales/fr/email.json" with { type: "json" };
+import { migrationRole, testDataSet } from "./support.ts";
 
 let database: ApiDatabase;
 let migration: postgres.Sql;
@@ -45,6 +48,9 @@ let codes: {
   formats: string[];
   usageRights: string[];
 };
+
+/** What an agent writes to the team only: it must never reach the brand (D46, file.md A6). */
+const INTERNAL_COMMENT = "NOTE-INTERNE-L2C13-JAMAIS-AU-MEMBRE";
 
 const PRESENTATION = `${"Une marque de cosmétiques engagée, qui cherche des créateurs sincères. ".repeat(3)}Contact par la plateforme.`;
 
@@ -199,6 +205,7 @@ async function statusOf(accountId: string): Promise<string> {
 
 beforeAll(async () => {
   migration = migrationRole();
+  await testDataSet();
   for (const draft of LOCAL_SEED_DRAFTS) {
     await ensureInForce(migration, draft);
   }
@@ -775,14 +782,375 @@ describe("POST /v1/me/brand-profile/submit (06 RG5, RG6, CA6, CA7, edge cases 3 
         code: "conflict",
         message: "Conflict",
       });
-      // the profile is not edited either until INFLUX re-validates a change (EC-L2B-07-1)
+      // a published profile is edited under the regime of RG9 (below); a suspended one is frozen
       const edit = await patch(server, member, { companySize: "1_10" });
-      expect(errorBody(edit), state).toMatchObject({
-        status: 409,
-        code: "conflict",
-      });
+      if (state === "suspended") {
+        expect(errorBody(edit), state).toMatchObject({
+          status: 409,
+          code: "conflict",
+        });
+      } else {
+        expect(edit.statusCode, state).toBe(200);
+      }
       expect(await statusOf(member.accountId)).toBe(state);
     }
+  });
+});
+
+/** The brand published by a decision: complete, then the state INFLUX would give it (no decision exists in this file). */
+async function newPublishedMember(server: Server): Promise<Member> {
+  const member = await newMember("advertiser");
+  expect((await patch(server, member, completeBody())).statusCode).toBe(200);
+  await migration`
+    update profiles.advertiser_profiles set status = 'published'
+     where account_id = ${member.accountId}`;
+  return member;
+}
+
+async function leadUpdatedCount(accountId: string): Promise<number> {
+  const [row] = await migration<{ n: number }[]>`
+    select count(*)::int as n from leads.outbox_events
+     where subject_key = ${`account:${accountId}`} and event_type = 'lead.updated'`;
+  return row?.n ?? 0;
+}
+
+type RevisionRow = {
+  field_code: string;
+  status: string;
+  proposed_value: unknown;
+};
+
+async function revisionsOf(accountId: string): Promise<RevisionRow[]> {
+  return migration<RevisionRow[]>`
+    select field_code, status::text as status, proposed_value
+      from profiles.profile_field_revisions
+     where account_id = ${accountId} order by submitted_at, field_code`;
+}
+
+async function entriesOf(
+  accountId: string,
+): Promise<{ kind: string; state: string }[]> {
+  return migration<{ kind: string; state: string }[]>`
+    select kind::text as kind, state::text as state
+      from profiles.advertiser_review_entries
+     where account_id = ${accountId} order by created_at`;
+}
+
+describe("PATCH on a published profile: the regime of 06 RG9 (CA15, CA16, RG78; jalons/l2c/file.md A2 to A4)", () => {
+  it("proposes a moderated change: the validated version stays, the change waits, ONE entry, no lead.updated (CA15)", async () => {
+    const server = app();
+    const member = await newPublishedMember(server);
+    const validated = PRESENTATION;
+    const first = `${"Nouvelle présentation de la marque, plus précise et plus engageante. ".repeat(3)}Fin.`;
+    const proposed = await patch(server, member, { presentation: first });
+    expect(proposed.statusCode).toBe(200);
+    const body = proposed.json() as BrandProfileResponse;
+    // the status stays published (A2) and every field is the validated value
+    expect(body.status).toBe("published");
+    expect(body.presentation).toBe(validated);
+    expect(body.pendingChanges).toEqual([
+      {
+        field: "presentation",
+        change: "set",
+        value: first,
+        submittedAt: expect.any(String),
+      },
+    ]);
+    expect(body.refusal).toBeNull();
+    const [live] = await migration<{ presentation: string }[]>`
+      select presentation from profiles.advertiser_profiles
+       where account_id = ${member.accountId}`;
+    expect(live?.presentation).toBe(validated);
+    expect(await entriesOf(member.accountId)).toEqual([
+      { kind: "revision", state: "open" },
+    ]);
+    expect(await leadUpdatedCount(member.accountId)).toBe(0);
+    // the read says the same (CA15)
+    const read1 = await read(server, member);
+    expect(read1.presentation).toBe(validated);
+    expect(read1.pendingChanges).toHaveLength(1);
+
+    // a second value replaces the first: one pending revision per field, the first superseded
+    const second = `${"Une autre présentation, relue et corrigée par la marque elle-même. ".repeat(3)}Fin.`;
+    await patch(server, member, { presentation: second });
+    expect((await read(server, member)).pendingChanges[0]?.value).toBe(second);
+    expect(
+      (await revisionsOf(member.accountId)).map((row) => row.status),
+    ).toEqual(["superseded", "pending_review"]);
+    expect(await entriesOf(member.accountId)).toHaveLength(1);
+
+    // back to the validated value: nothing waits, the entry is withdrawn, no forced reading
+    const back = await patch(server, member, { presentation: validated });
+    expect((back.json() as BrandProfileResponse).pendingChanges).toEqual([]);
+    expect(await entriesOf(member.accountId)).toEqual([
+      { kind: "revision", state: "withdrawn" },
+    ]);
+    expect(await leadUpdatedCount(member.accountId)).toBe(0);
+  });
+
+  it("proposes each moderated field, trading name included, and keeps the validated values in every field", async () => {
+    const server = app();
+    const member = await newPublishedMember(server);
+    const before = await read(server, member);
+    const otherSector = codes.sectors.find(
+      (code) => code !== before.primarySector,
+    );
+    watchedValues.push("Maison Révisée L2C13");
+    const response = await patch(server, member, {
+      companyName: "Maison Révisée L2C13",
+      primarySector: otherSector,
+      website: "https://www.maison-revisee.example/boutique",
+      contactRole: "executive",
+    });
+    expect(response.statusCode).toBe(200);
+    const body = response.json() as BrandProfileResponse & {
+      websiteNormalized: boolean;
+    };
+    expect(body.websiteNormalized).toBe(true);
+    expect(body.companyName).toBe(before.companyName);
+    expect(body.primarySector).toBe(before.primarySector);
+    expect(body.website).toBe(before.website);
+    expect(body.contactRole).toBe("marketing");
+    expect(
+      body.pendingChanges
+        .map((change) => [change.field, change.change, change.value])
+        .sort(),
+    ).toEqual(
+      [
+        ["companyName", "set", "Maison Révisée L2C13"],
+        ["primarySector", "set", otherSector],
+        ["website", "set", "www.maison-revisee.example"],
+        ["contactRole", "set", "executive"],
+      ].sort(),
+    );
+    // emptying an optional moderated field is a proposal too (the website is not required)
+    await migration`
+      update profiles.advertiser_profiles set website_domain = 'maison-validee.example'
+       where account_id = ${member.accountId}`;
+    const cleared = await patch(server, member, { website: null });
+    expect(
+      (cleared.json() as BrandProfileResponse).pendingChanges.find(
+        (change) => change.field === "website",
+      ),
+    ).toMatchObject({ change: "clear", value: null });
+    expect(await entriesOf(member.accountId)).toEqual([
+      { kind: "revision", state: "open" },
+    ]);
+    expect(await leadUpdatedCount(member.accountId)).toBe(0);
+  });
+
+  it("applies a field with immediate effect at once: ONE lead.updated per save that changed something, none otherwise (CA16, RG78)", async () => {
+    const server = app();
+    const member = await newPublishedMember(server);
+    const first = await patch(server, member, { companySize: "251_1000" });
+    expect(first.statusCode).toBe(200);
+    // no re-validation: applied, visible at once, nothing waits, no entry (CA16)
+    expect((first.json() as BrandProfileResponse).companySize).toBe("251_1000");
+    expect((first.json() as BrandProfileResponse).pendingChanges).toEqual([]);
+    expect(await entriesOf(member.accountId)).toEqual([]);
+    expect(await leadUpdatedCount(member.accountId)).toBe(2);
+    const lines = await migration<{ destination: string; payload: unknown }[]>`
+      select destination::text as destination, payload from leads.outbox_events
+       where subject_key = ${`account:${member.accountId}`} and event_type = 'lead.updated'
+       order by id`;
+    expect(lines.map((line) => line.destination)).toEqual([
+      "brevo_contact",
+      "apollo_contact",
+    ]);
+    expect(lines[0]?.payload).toEqual({
+      event_id: expect.any(String),
+      account_id: member.accountId,
+    });
+
+    // the same value again: nothing; a list and the contact in ONE save: exactly one more
+    await patch(server, member, { companySize: "251_1000" });
+    expect(await leadUpdatedCount(member.accountId)).toBe(2);
+    await patch(server, member, {
+      targetMarkets: ["FR", "DE"],
+      topics: codes.topics.slice(1, 3),
+      contact: { firstName: "Camille" },
+    });
+    expect(await leadUpdatedCount(member.accountId)).toBe(4);
+    expect((await read(server, member)).targetMarkets).toEqual(["FR", "DE"]);
+
+    // a save of both regimes: the moderated field waits, the other applies, ONE lead.updated
+    const mixed = await patch(server, member, {
+      presentation: `${"Présentation proposée en même temps qu'une taille d'entreprise. ".repeat(3)}Fin.`,
+      companySize: "1_10",
+    });
+    const mixedBody = mixed.json() as BrandProfileResponse;
+    expect(mixedBody.companySize).toBe("1_10");
+    expect(mixedBody.presentation).toBe(PRESENTATION);
+    expect(mixedBody.pendingChanges.map((change) => change.field)).toEqual([
+      "presentation",
+    ]);
+    expect(await leadUpdatedCount(member.accountId)).toBe(6);
+  });
+
+  it("refuses to empty a required field of a published profile, naming it and writing nothing (EC-L2C-01-2)", async () => {
+    const server = app();
+    const member = await newPublishedMember(server);
+    for (const [body, path] of [
+      [{ presentation: "   " }, "presentation"],
+      [{ presentation: "Trop court." }, "presentation"],
+      [{ primarySector: null }, "primarySector"],
+      [{ contactRole: null }, "contactRole"],
+      [{ companySize: null }, "companySize"],
+      [{ targetMarkets: [] }, "targetMarkets"],
+      [{ topics: [] }, "topics"],
+    ] as const) {
+      const response = await patch(server, member, body);
+      expect(response.statusCode, JSON.stringify(body)).toBe(400);
+      expect(issuesOf(response), JSON.stringify(body)).toEqual([
+        { path, issue: "required" },
+      ]);
+    }
+    const after = await read(server, member);
+    expect(after.pendingChanges).toEqual([]);
+    expect(after.targetMarkets).toEqual(["FR", "BE"]);
+    expect(await revisionsOf(member.accountId)).toEqual([]);
+    expect(await leadUpdatedCount(member.accountId)).toBe(0);
+    // what is not required can be emptied at once (06 RG15)
+    expect(
+      (await patch(server, member, { secondarySectors: [] })).statusCode,
+    ).toBe(200);
+  });
+
+  it("refuses every edit of a suspended profile (409), and the base refuses it around the API too (L2BS-1)", async () => {
+    const server = app();
+    const member = await newPublishedMember(server);
+    await migration`
+      update profiles.advertiser_profiles set status = 'suspended'
+       where account_id = ${member.accountId}`;
+    for (const body of [
+      { companySize: "1_10" },
+      { presentation: PRESENTATION },
+      { companyName: "Maison Suspendue" },
+      { targetMarkets: ["FR"] },
+      { contact: { firstName: "Camille" } },
+    ]) {
+      expect(
+        errorBody(await patch(server, member, body)),
+        JSON.stringify(body),
+      ).toEqual({
+        status: 409,
+        code: "conflict",
+        message: "Conflict",
+      });
+    }
+    expect(await revisionsOf(member.accountId)).toEqual([]);
+    const me = await call(server, "PATCH", "/v1/me", member.session, {
+      companyName: "Maison Suspendue",
+    });
+    expect(me.statusCode).toBe(409);
+  });
+});
+
+describe("GET /v1/me/brand-profile: the refusal of INFLUX, typed, in the language of the account (06 RG10, RG66, CA20)", () => {
+  async function decide(
+    accountId: string,
+    entryKind: "submission" | "revision",
+    reason: string,
+    memberMessage: string | null,
+  ): Promise<void> {
+    const [entry] = await migration<{ id: string }[]>`
+      select id::text as id from profiles.advertiser_review_entries
+       where account_id = ${accountId} and kind = ${entryKind}::profiles.review_entry_kind
+         and state = 'open'`;
+    if (entry === undefined) {
+      throw new Error("no open entry to decide");
+    }
+    await migration`
+      update profiles.advertiser_review_entries
+         set state = 'rejected', decided_by_account_id = ${accountIdOf("agent", "a")},
+             decided_at = now(), closed_at = now(), rejection_reason_code = ${reason},
+             member_message = ${memberMessage}, internal_comment = ${INTERNAL_COMMENT}
+       where id = ${entry.id}`;
+    await migration`
+      update profiles.profile_field_revisions set status = 'rejected', closed_at = now()
+       where advertiser_review_entry_id = ${entry.id} and status = 'pending_review'`;
+  }
+
+  it("serves a refused submission with its reason and the text of the agent for `other` only, FR then EN, never the internal comment", async () => {
+    const server = app();
+    const member = await newMember("advertiser");
+    await patch(server, member, completeBody());
+    expect(
+      (await call(server, "POST", URL_SUBMIT, member.session)).statusCode,
+    ).toBe(200);
+    expect((await read(server, member)).refusal).toBeNull();
+
+    const written =
+      "Merci de préciser votre activité principale et vos produits.";
+    await decide(member.accountId, "submission", "other", written);
+    await migration`
+      update profiles.advertiser_profiles set status = 'rejected'
+       where account_id = ${member.accountId}`;
+    const response = await call(server, "GET", URL_PROFILE, member.session);
+    const refused = brandProfileResponseSchema.parse(response.json());
+    expect(response.body).not.toContain(INTERNAL_COMMENT);
+    expect(refused.status).toBe("rejected");
+    expect(refused.refusal).toEqual({
+      kind: "submission",
+      reasonCode: "other",
+      message: french.email.profileDecision.reason.other,
+      memberMessage: written,
+      fields: [],
+      decidedAt: expect.any(String),
+    });
+    // the language of the account
+    await migration`
+      update identity.accounts set preferred_language = 'en' where id = ${member.accountId}`;
+    expect((await read(server, member)).refusal?.message).toBe(
+      english.email.profileDecision.reason.other,
+    );
+    // a typed reason carries its message, and no text of the agent even when one is stored
+    await migration`
+      update profiles.advertiser_review_entries
+         set rejection_reason_code = 'logo_non_compliant'
+       where account_id = ${member.accountId}`;
+    expect((await read(server, member)).refusal).toMatchObject({
+      reasonCode: "logo_non_compliant",
+      message: english.email.profileDecision.reason.logo_non_compliant,
+      memberMessage: null,
+    });
+    // the profile stays editable and a new submission gives way to the examination (RG10)
+    expect(
+      (await patch(server, member, { companySize: "1_10" })).statusCode,
+    ).toBe(200);
+    expect(
+      (await call(server, "POST", URL_SUBMIT, member.session)).statusCode,
+    ).toBe(200);
+    expect((await read(server, member)).refusal).toBeNull();
+  });
+
+  it("serves the refusal of a revision: the profile stays published, the fields refused are named", async () => {
+    const server = app();
+    const member = await newPublishedMember(server);
+    await patch(server, member, {
+      presentation: `${"Présentation corrigée, contact par la plateforme uniquement. ".repeat(3)}Fin.`,
+      primarySector: codes.sectors.at(-1),
+    });
+    await decide(
+      member.accountId,
+      "revision",
+      "presentation_insufficient",
+      null,
+    );
+    const refused = await read(server, member);
+    expect(refused.status).toBe("published");
+    expect(refused.presentation).toBe(PRESENTATION);
+    expect(refused.pendingChanges).toEqual([]);
+    expect(refused.refusal).toMatchObject({
+      kind: "revision",
+      reasonCode: "presentation_insufficient",
+      message: french.email.profileDecision.reason.presentation_insufficient,
+      memberMessage: null,
+      fields: ["presentation", "primarySector"],
+    });
+    // a new proposal gives way to the examination
+    await patch(server, member, { contactRole: "executive" });
+    expect((await read(server, member)).refusal).toBeNull();
   });
 });
 

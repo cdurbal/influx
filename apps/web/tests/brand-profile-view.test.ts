@@ -57,6 +57,8 @@ const PROFILE: BrandProfileResponse = {
   signInEmail: "marque@example.test",
   completeness: { score: 0, earnedPoints: 0, attainablePoints: 82, blocks: [] },
   missingRequired: [...BRAND_PROFILE_REQUIRED_FIELD_CODES],
+  pendingChanges: [],
+  refusal: null,
   references: {
     sectors: [],
     topics: [],

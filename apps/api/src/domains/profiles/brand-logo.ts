@@ -1,15 +1,17 @@
 // The logo of the brand of the member's own account: deposit, read, removal (docs/mvp/06 RG15,
 // RG18, edge cases 3 and 6; 18 T9.2 to T9.5, T9.8, T9.9, T14; D80, jalons/l2b/stockage.md §1 to §7;
 // commit 09). The row is written BEFORE the object, in this order (stockage.md §3):
-//   (a) the advertiser owning the profile, in an editable state; otherwise the answer of a route
-//       that does not exist (T14) or a conflict, as the autosave;
+//   (a) the advertiser owning the profile, not suspended; otherwise the answer of a route that does
+//       not exist (T14) or a conflict, as the autosave;
 //   (b) one transaction: a slot of re-encoding taken (503 when both are), the quota consumed, the
 //       row pending (54000 = 429 upload_quota_exceeded, Retry-After until the next UTC midnight);
 //   (c) the bytes checked and re-encoded in memory (platform/images.ts); refused = row deleted,
 //       422 image_rejected with its typed reason;
 //   (d) the WebP written to Storage under the key the base generated; failed = row purging, 503,
 //       "deposit again" (06 edge case 6);
-//   (e) one transaction: the row active, the previous one purging, the completeness stored;
+//   (e) one transaction: the row active, the previous one purging, the completeness stored; on a
+//       PUBLISHED profile (06 RG9, file.md A4) the row goes `in_review` instead and the active logo
+//       stays served until the decision: the answer says so (`state`);
 //   (f) the previous object removed at once, at best (the hourly task storage_purge otherwise).
 // The read relays the object as JSON, its bytes in base64: no URL, no host of Supabase, no token
 // (T9.2 as D80 amends it). One log line per gesture: outcome, sizes, duration; never a name, a key
@@ -23,6 +25,7 @@ import type {
 import type { Transaction } from "../../db/index.ts";
 import { sqlStateOf } from "../../db/sql-state.ts";
 import { ApiError, RetryLaterError } from "../../platform/errors.ts";
+import { readPendingChanges } from "./revisions/repository.ts";
 import { reencodeLogo, type ImageSlots } from "../../platform/images.ts";
 import type { ObjectStore } from "../../platform/storage.ts";
 import {
@@ -35,6 +38,8 @@ import {
   discardBrandLogoUpload,
   failBrandLogoUpload,
   readOwnActiveLogo,
+  readOwnInReviewLogo,
+  readOwnLogoState,
   removeOwnBrandLogo,
   type LogoObjectRef,
 } from "./repository.ts";
@@ -201,6 +206,7 @@ export async function uploadBrandLogo(
     let attached: {
       previous: LogoObjectRef | null;
       completeness: BrandLogoUploadResponse["completeness"];
+      state: BrandLogoUploadResponse["state"];
       activatedAt: string;
     };
     try {
@@ -211,11 +217,19 @@ export async function uploadBrandLogo(
           height: output.height,
         });
         const completeness = await refreshStoredScore(tx);
-        const active = await readOwnActiveLogo(tx);
+        const state =
+          (await readOwnLogoState(tx, upload.logoId)) === "in_review"
+            ? "in_review"
+            : "active";
+        const stored =
+          state === "active"
+            ? await readOwnActiveLogo(tx)
+            : await readOwnInReviewLogo(tx);
         return {
           previous,
           completeness,
-          activatedAt: active?.activatedAt ?? now().toISOString(),
+          state,
+          activatedAt: stored?.activatedAt ?? now().toISOString(),
         };
       });
     } catch (error) {
@@ -235,6 +249,7 @@ export async function uploadBrandLogo(
     outcomeLine("stored", {
       storedBytes: output.bytes.length,
       replaced: attached.previous !== null,
+      state: attached.state,
     });
     return {
       logo: logoOf(output.bytes, {
@@ -242,6 +257,7 @@ export async function uploadBrandLogo(
         height: output.height,
         updatedAt: attached.activatedAt,
       }),
+      state: attached.state,
       completeness: attached.completeness,
     };
   } finally {
@@ -250,14 +266,49 @@ export async function uploadBrandLogo(
   }
 }
 
-/** GET: the active logo, relayed from Storage as JSON; null when the brand has none. */
+/**
+ * The logo waiting for review, relayed like the active one; absent when none waits, and when its
+ * object cannot be read (the logo in force is the answer: a pending preview never fails the read).
+ */
+async function readPendingLogo(
+  dependencies: BrandLogoDependencies,
+  pending: Awaited<ReturnType<typeof readOwnInReviewLogo>>,
+): Promise<BrandLogo | null> {
+  if (pending === null) {
+    return null;
+  }
+  const read = await dependencies.store.read(BUCKET, pending.objectKey);
+  if (!read.ok || read.value === null) {
+    dependencies.log.warn(
+      { reason: read.ok ? "missing" : read.reason },
+      "profiles.logo.pending_unreadable",
+    );
+    return null;
+  }
+  return logoOf(read.value, {
+    width: pending.width,
+    height: pending.height,
+    updatedAt: pending.activatedAt,
+  });
+}
+
+/**
+ * GET: the logo in force, relayed from Storage as JSON; null when the brand has none. On a published
+ * profile a replacement waiting for review comes as `pendingLogo` (file.md A4).
+ */
 export async function readBrandLogo(
   dependencies: BrandLogoDependencies,
 ): Promise<BrandLogoResponse> {
   const { inTransaction, store, log } = dependencies;
-  const active = await inTransaction(async (tx) => readOwnActiveLogo(tx));
+  const { active, pending } = await inTransaction(async (tx) => ({
+    active: await readOwnActiveLogo(tx),
+    pending: await readOwnInReviewLogo(tx),
+  }));
+  const pendingLogo = await readPendingLogo(dependencies, pending);
+  const withPending = (logo: BrandLogo | null): BrandLogoResponse =>
+    pendingLogo === null ? { logo } : { logo, pendingLogo };
   if (active === null) {
-    return { logo: null };
+    return withPending(null);
   }
   const read = await store.read(BUCKET, active.objectKey);
   if (!read.ok) {
@@ -270,34 +321,45 @@ export async function readBrandLogo(
   if (read.value === null) {
     // A row without its object: never shown as a broken image; a person looks (D60 error line).
     log.error({}, "profiles.logo.object_missing");
-    return { logo: null };
+    return withPending(null);
   }
-  return {
-    logo: logoOf(read.value, {
+  return withPending(
+    logoOf(read.value, {
       width: active.width,
       height: active.height,
       updatedAt: active.activatedAt,
     }),
-  };
+  );
 }
 
-/** DELETE: the active logo to purge, its object removed at once at best. */
+/**
+ * DELETE: the active logo to purge, its object removed at once at best. On a PUBLISHED profile the
+ * removal is proposed instead (file.md A4): the logo stays served, `removed` is false and `inReview`
+ * true; only an object that was waiting for review (a replacement now withdrawn) is purged.
+ */
 export async function removeBrandLogo(
   dependencies: BrandLogoDependencies,
 ): Promise<BrandLogoRemovalResponse> {
   const { inTransaction, log } = dependencies;
   const removal = await inTransaction(async (tx) => {
-    await lockEditableBrandProfile(tx);
-    const removed = await removeOwnBrandLogo(tx);
+    const regime = await lockEditableBrandProfile(tx);
+    const purged = await removeOwnBrandLogo(tx);
     const completeness = await refreshStoredScore(tx);
-    return { removed, completeness };
+    const inReview =
+      regime === "published" &&
+      (await readPendingChanges(tx)).some(
+        (change) => change.field === "logo" && change.change === "clear",
+      );
+    return { purged, regime, inReview, completeness };
   });
-  if (removal.removed !== null) {
-    await removeAtBest(dependencies, removal.removed, "removed");
+  if (removal.purged !== null) {
+    await removeAtBest(dependencies, removal.purged, "removed");
   }
-  log.info({ removed: removal.removed !== null }, "profiles.logo.remove");
+  const removed = removal.regime !== "published" && removal.purged !== null;
+  log.info({ removed, inReview: removal.inReview }, "profiles.logo.remove");
   return {
-    removed: removal.removed !== null,
+    removed,
+    inReview: removal.inReview,
     completeness: removal.completeness,
   };
 }

@@ -1,10 +1,14 @@
 // The brand profile of the member's own account: read, autosave, submit (docs/mvp/06 RG2, RG5,
-// RG14, RG17, RG57 to RG61, CA1 to CA7; jalons/l2b, commit 07). The rules live elsewhere and are
-// only called here:
+// RG14, RG17, RG57 to RG61, CA1 to CA7; jalons/l2b, commit 07; the regime of a published profile,
+// 06 RG9, CA15, CA16, jalons/l2c commit 13). The rules live elsewhere and are only called here:
 // - completeness, required fields and the reduction of the website to a domain: packages/domain
 //   (a `*Completeness*` function outside it fails a guard, stockage.md §9);
 // - closed lists, caps, `none`, domain shape, state transitions: the database (0202, 0203), which
-//   arbitrates; this file checks first only to say WHICH field is wrong.
+//   arbitrates; this file checks first only to say WHICH field is wrong;
+// - the regime of a PUBLISHED profile (06 RG9): a moderated field is proposed through the door of the
+//   database (0209) and waits for review, the live row keeps the validated value; a field with
+//   immediate effect is written at once and emits ONE lead.updated (RG78). The guard of the database
+//   refuses the same writes around the API (L2BS-1).
 // No amount, rate or price appears here (CLAUDE.md §2, D48, D78): the indicative budget and the
 // badge are not offered (answer A of jalon L2B), the logo has its own route (commit 09).
 import {
@@ -25,6 +29,17 @@ import {
 import type { Transaction } from "../../db/index.ts";
 import { sqlStateOf } from "../../db/sql-state.ts";
 import { ApiError, RequestValidationError } from "../../platform/errors.ts";
+import { uiLocaleSchema } from "@influx/contracts/auth";
+import {
+  rejectionReasonOf,
+  rejectionReasonPreview,
+} from "./brand-decision-email.ts";
+import {
+  proposeRevision,
+  readLastRefusal,
+  readPendingChanges,
+  recordImmediateChange,
+} from "./revisions/repository.ts";
 import {
   BRAND_PROFILE_LISTS,
   detailOf,
@@ -44,12 +59,26 @@ import {
   type StoredBrandProfile,
 } from "./repository.ts";
 
-/** Written only while the profile is waiting for the brand or for INFLUX; see `saveBrandProfile`. */
-const EDITABLE_STATUSES: ReadonlySet<string> = new Set([
-  "draft",
-  "pending_review",
-  "rejected",
-]);
+/**
+ * How a write to the profile of each state goes (jalons/l2c/file.md A3, A4; 06 RG9):
+ * - `direct`: draft, under review (the token of the review changes, the agent reads again), refused;
+ * - `revision`: published, a moderated field waits for review, the others apply at once;
+ * - `frozen`: suspended (and any state this code does not know): refused, the guard of the base too.
+ */
+type WriteRegime = "direct" | "revision" | "frozen";
+
+function regimeOf(status: string): WriteRegime {
+  switch (status) {
+    case "draft":
+    case "pending_review":
+    case "rejected":
+      return "direct";
+    case "published":
+      return "revision";
+    default:
+      return "frozen";
+  }
+}
 
 /** The reference list each list of the profile draws its codes from. */
 const REFERENCE_OF_LIST: Record<BrandProfileListName, keyof ActiveReferences> =
@@ -95,10 +124,46 @@ function scoreOf(stored: StoredBrandProfile) {
   });
 }
 
+/** What a published profile holds besides its validated values (06 RG9, RG10). */
+type ReviewState = Pick<BrandProfileResponse, "pendingChanges" | "refusal">;
+
+/**
+ * The changes waiting for review and the last refusal, the message of the reason in the language of
+ * the account (06 RG66, CA20; the same translation files as the e-mail of the decision).
+ */
+async function readReviewState(
+  tx: Transaction,
+  stored: StoredBrandProfile,
+): Promise<ReviewState> {
+  const pendingChanges = await readPendingChanges(tx);
+  const last = await readLastRefusal(tx);
+  const reason = last === null ? null : rejectionReasonOf(last.reasonCode);
+  if (last === null || reason === null) {
+    return { pendingChanges, refusal: null };
+  }
+  const preview = rejectionReasonPreview(
+    uiLocaleSchema.parse(stored.preferredLanguage),
+    reason,
+  );
+  return {
+    pendingChanges,
+    refusal: {
+      kind: last.kind,
+      reasonCode: reason,
+      message: preview.message,
+      // only `other` carries a text of the agent (06 RG66); never the internal comment (D46)
+      memberMessage: reason === "other" ? last.memberMessage : null,
+      fields: last.fields,
+      decidedAt: last.decidedAt,
+    },
+  };
+}
+
 /** The answer of the three routes, from the stored profile and the active reference codes. */
 function viewOf(
   stored: StoredBrandProfile,
   references: ActiveReferences,
+  review: ReviewState,
 ): BrandProfileResponse {
   return brandProfileResponseSchema.parse({
     status: stored.status,
@@ -127,6 +192,8 @@ function viewOf(
     completeness: scoreOf(stored),
     missingRequired: missingRequiredFields(requiredInputOf(stored)),
     references,
+    pendingChanges: review.pendingChanges,
+    refusal: review.refusal,
   });
 }
 
@@ -143,7 +210,11 @@ export async function readBrandProfile(
   if (stored === null) {
     return null;
   }
-  return viewOf(stored, await readActiveReferences(tx));
+  return viewOf(
+    stored,
+    await readActiveReferences(tx),
+    await readReviewState(tx, stored),
+  );
 }
 
 /** Codes outside the active reference lists, one issue per list (never the value, RG14). */
@@ -173,11 +244,67 @@ function unknownCodeIssues(
 }
 
 /**
+ * The required fields a save on a PUBLISHED profile would empty (EC-L2C-01-2): a published profile
+ * never goes back below what a submission requires, so the API refuses it, naming the key of the
+ * body; the database rechecks at every publication. Only fields this body touches are named.
+ */
+function emptiedRequiredIssues(
+  stored: StoredBrandProfile,
+  body: UpdateBrandProfileBody,
+): ValidationIssue[] {
+  const current = requiredInputOf(stored);
+  const merged = {
+    ...current,
+    legalName: body.companyName ?? current.legalName,
+    primarySector:
+      body.primarySector === undefined
+        ? current.primarySector
+        : body.primarySector,
+    companySize:
+      body.companySize === undefined ? current.companySize : body.companySize,
+    targetMarkets: body.targetMarkets ?? current.targetMarkets,
+    workingLanguages: body.workingLanguages ?? current.workingLanguages,
+    presentation:
+      body.presentation === undefined
+        ? current.presentation
+        : nullIfBlank(body.presentation),
+    topics: body.topics ?? current.topics,
+    networks: body.networks ?? current.networks,
+    formats: body.formats ?? current.formats,
+    audienceCountries: body.audienceCountries ?? current.audienceCountries,
+    contactRole:
+      body.contactRole === undefined ? current.contactRole : body.contactRole,
+  };
+  return missingRequiredFields(merged)
+    .filter((field) =>
+      Object.hasOwn(body, field === "legalName" ? "companyName" : field),
+    )
+    .map((field) => ({
+      path: field === "legalName" ? "companyName" : field,
+      issue: "required",
+    }));
+}
+
+/** What a save changes at once on a published profile: the fields with immediate effect (06 RG9). */
+function immediateSnapshotOf(stored: StoredBrandProfile): string {
+  return JSON.stringify([
+    stored.companySize,
+    stored.exclusivityBand,
+    stored.collaborationRhythm,
+    stored.offersNonMonetary,
+    stored.lists,
+    stored.contact,
+  ]);
+}
+
+/**
  * PATCH: autosave of what changed, in ONE transaction (the row locked first). The trading name goes
  * through the door of the account (CA3), the website is reduced to its domain (RG17, CA4), lists
  * are replaced as a whole, the completeness is recomputed by packages/domain and stored (RG57).
- * Edits stop at `published` and `suspended`: a change to a published profile needs the review of
- * L2C (06 RG9), which does not exist yet (EC-L2B-07-1).
+ * By state (06 RG9; file.md A3): written at once before publication and while it is examined (the
+ * agent reads again); on a PUBLISHED profile a moderated field is proposed, the validated value stays
+ * and the answer shows it with the change waiting (CA15), a field with immediate effect applies at
+ * once with ONE lead.updated (CA16, RG78); suspended is refused (conflict).
  */
 export async function saveBrandProfile(
   tx: Transaction,
@@ -187,8 +314,13 @@ export async function saveBrandProfile(
   if (status === null) {
     throw new ApiError("not_found");
   }
-  if (!EDITABLE_STATUSES.has(status)) {
+  const regime = regimeOf(status);
+  if (regime === "frozen") {
     throw new ApiError("conflict");
+  }
+  const before = await readOwnBrandProfile(tx);
+  if (before === null) {
+    throw new ApiError("not_found");
   }
   const references = await readActiveReferences(tx);
   const issues = unknownCodeIssues(body, references);
@@ -209,26 +341,49 @@ export async function saveBrandProfile(
       }
     }
   }
+  if (regime === "revision") {
+    issues.push(...emptiedRequiredIssues(before, body));
+  }
   if (issues.length > 0) {
     throw new RequestValidationError(issues);
   }
 
+  const presentation =
+    body.presentation === undefined
+      ? undefined
+      : nullIfBlank(body.presentation);
   try {
     if (body.companyName !== undefined) {
+      // the same door in both regimes: published, it proposes the name and keeps the validated one
       await renameCompany(tx, body.companyName);
     }
+    if (regime === "revision") {
+      if (body.primarySector !== undefined) {
+        await proposeRevision(tx, "primarySector", body.primarySector);
+      }
+      if (presentation !== undefined) {
+        await proposeRevision(tx, "presentation", presentation);
+      }
+      if (websiteDomain !== undefined) {
+        await proposeRevision(tx, "website", websiteDomain);
+      }
+      if (body.contactRole !== undefined) {
+        await proposeRevision(tx, "contactRole", body.contactRole);
+      }
+    }
     const columns: BrandProfileColumns = {
-      primarySector: body.primarySector,
       companySize: body.companySize,
-      websiteDomain,
-      presentation:
-        body.presentation === undefined
-          ? undefined
-          : nullIfBlank(body.presentation),
       exclusivityBand: body.exclusivityBand,
       collaborationRhythm: body.collaborationRhythm,
       offersNonMonetary: body.offersNonMonetary,
-      contactRole: body.contactRole,
+      ...(regime === "direct"
+        ? {
+            primarySector: body.primarySector,
+            websiteDomain,
+            presentation,
+            contactRole: body.contactRole,
+          }
+        : {}),
     };
     await updateBrandProfileColumns(tx, columns);
     for (const name of Object.keys(
@@ -252,10 +407,13 @@ export async function saveBrandProfile(
       await upsertContact(tx, contact);
     }
   } catch (error) {
-    // What the checks above cannot know: a constraint the database holds (0106, 0202).
+    // What the checks above cannot know: a constraint the database holds (0106, 0202), or the guard.
     const state = sqlStateOf(error);
     if (state === "23514" || state === "23503" || state === "22023") {
       throw new RequestValidationError([{ path: "", issue: "invalid" }]);
+    }
+    if (state === "55000") {
+      throw new ApiError("conflict");
     }
     throw error;
   }
@@ -265,24 +423,35 @@ export async function saveBrandProfile(
     throw new ApiError("not_found");
   }
   await storeScore(tx, scoreOf(stored).score);
+  // RG78: ONE lead.updated per save that changed a validated value; none for a proposal alone
+  if (
+    regime === "revision" &&
+    immediateSnapshotOf(before) !== immediateSnapshotOf(stored)
+  ) {
+    await recordImmediateChange(tx);
+  }
   return {
-    ...viewOf(stored, references),
+    ...viewOf(stored, references, await readReviewState(tx, stored)),
     websiteNormalized,
   };
 }
 
 /**
- * Locks the profile row and checks it may be edited (the same states as the autosave): no profile
- * is "no such route" (T14), a published or suspended one waits for the review of L2C (EC-L2B-07-1).
+ * Locks the profile row and checks it may be written, returning whether it is published: no profile
+ * is "no such route" (T14); a suspended one (or an unknown state) is a conflict. A published profile
+ * is writable: the doors of the database decide what applies at once and what waits (06 RG9).
  */
-export async function lockEditableBrandProfile(tx: Transaction): Promise<void> {
+export async function lockEditableBrandProfile(
+  tx: Transaction,
+): Promise<"published" | "other"> {
   const status = await lockOwnBrandProfile(tx);
   if (status === null) {
     throw new ApiError("not_found");
   }
-  if (!EDITABLE_STATUSES.has(status)) {
+  if (regimeOf(status) === "frozen") {
     throw new ApiError("conflict");
   }
+  return status === "published" ? "published" : "other";
 }
 
 /** The completeness after a change of the logo, recomputed by packages/domain and stored (RG57). */
@@ -355,7 +524,11 @@ export async function submitBrandProfile(
     throw new ApiError("not_found");
   }
   return {
-    ...viewOf(stored, await readActiveReferences(tx)),
+    ...viewOf(
+      stored,
+      await readActiveReferences(tx),
+      await readReviewState(tx, stored),
+    ),
     changed: outcome.changed,
   };
 }

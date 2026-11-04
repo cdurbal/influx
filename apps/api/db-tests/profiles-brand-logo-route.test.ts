@@ -408,17 +408,201 @@ describe("PUT /v1/me/brand-profile/logo: the deposit (stockage.md §3; T9.5, T9.
     ]);
   });
 
-  it("refuses a change of the logo of a published profile until the review of L2C (409)", async () => {
+  it("refuses a change of the logo of a suspended profile (409): nothing stored, nothing counted", async () => {
     const server = app();
     const member = await newMember("advertiser");
     await migration`
-      update profiles.advertiser_profiles set status = 'published'
+      update profiles.advertiser_profiles set status = 'suspended'
        where account_id = ${member.accountId}`;
     expect(errorOf(await put(server, member, GEOTAGGED)).status).toBe(409);
     expect(
       errorOf(await call(server, "DELETE", URL_LOGO, member.session)).status,
     ).toBe(409);
     expect(await rowsOf(member.accountId)).toEqual([]);
+    expect(await usageOf(member.accountId)).toBeUndefined();
+  });
+});
+
+async function publish(accountId: string): Promise<void> {
+  await migration`
+    update profiles.advertiser_profiles set status = 'published'
+     where account_id = ${accountId}`;
+}
+
+async function logoRevisions(
+  accountId: string,
+): Promise<{ status: string; proposed: unknown }[]> {
+  return migration<{ status: string; proposed: unknown }[]>`
+    select status::text as status, proposed_value as proposed
+      from profiles.profile_field_revisions
+     where account_id = ${accountId} and field_code = 'advertiser.logo'
+     order by submitted_at`;
+}
+
+async function pendingChangesOf(
+  server: Server,
+  member: Member,
+): Promise<{ field: string; change: string; value: string | null }[]> {
+  const response = await call(
+    server,
+    "GET",
+    "/v1/me/brand-profile",
+    member.session,
+  );
+  expect(response.statusCode).toBe(200);
+  return (
+    response.json() as {
+      pendingChanges: { field: string; change: string; value: string | null }[];
+    }
+  ).pendingChanges;
+}
+
+describe("the logo of a PUBLISHED profile goes through review (06 RG9, CA15; jalons/l2c/file.md A4)", () => {
+  it("keeps the logo in force served while the new one waits, replaces a waiting one and purges its object (never before the decision)", async () => {
+    const server = app();
+    const member = await newMember("advertiser");
+    const validated = brandLogoUploadResponseSchema.parse(
+      (await put(server, member, GEOTAGGED)).json(),
+    );
+    expect(validated.state).toBe("active");
+    await publish(member.accountId);
+    const [activeRow] = await rowsOf(member.accountId);
+
+    const proposed = brandLogoUploadResponseSchema.parse(
+      (await put(server, member, PNG)).json(),
+    );
+    expect(proposed.state).toBe("in_review");
+    expect(proposed.logo.data).not.toBe(validated.logo.data);
+    const rows = await rowsOf(member.accountId);
+    expect(rows.map((row) => row.state)).toEqual(["active", "in_review"]);
+    // the active object is untouched: not purged before the decision
+    expect(rows[0]?.id).toBe(activeRow?.id);
+    expect((await store.read("brand-logo", rows[0]?.object_key ?? "")).ok).toBe(
+      true,
+    );
+
+    // the read serves the validated logo, and the waiting one apart
+    const read = brandLogoResponseSchema.parse(
+      (await call(server, "GET", URL_LOGO, member.session)).json(),
+    );
+    expect(read.logo?.data).toBe(validated.logo.data);
+    expect(read.pendingLogo?.data).toBe(proposed.logo.data);
+    expect(await pendingChangesOf(server, member)).toEqual([
+      {
+        field: "logo",
+        change: "set",
+        value: null,
+        submittedAt: expect.any(String),
+      },
+    ]);
+    expect(await logoRevisions(member.accountId)).toEqual([
+      { status: "pending_review", proposed: { logo_object_id: rows[1]?.id } },
+    ]);
+    // the completeness is the one of the validated profile (the logo in force counts)
+    const earned = proposed.completeness.blocks
+      .flatMap((block) => block.criteria)
+      .find((criterion) => criterion.code === "logo");
+    expect(earned?.earned).toBe(true);
+
+    // a second deposit replaces the waiting one: its row purging, its object removed at once
+    const replaced = brandLogoUploadResponseSchema.parse(
+      (await put(server, member, WEBP)).json(),
+    );
+    expect(replaced.state).toBe("in_review");
+    const after = await rowsOf(member.accountId);
+    expect(after.map((row) => row.state)).toEqual([
+      "active",
+      "purging",
+      "in_review",
+    ]);
+    const gone = await store.read("brand-logo", after[1]?.object_key ?? "");
+    expect(gone.ok ? gone.value : "storage error").toBeNull();
+    expect(
+      (await logoRevisions(member.accountId)).map((row) => row.status),
+    ).toEqual(["superseded", "pending_review"]);
+    const entries = await migration<{ kind: string; state: string }[]>`
+      select kind::text as kind, state::text as state
+        from profiles.advertiser_review_entries where account_id = ${member.accountId}`;
+    expect(entries).toEqual([{ kind: "revision", state: "open" }]);
+    // no lead.updated: nothing validated changed
+    const [leads] = await migration<{ n: number }[]>`
+      select count(*)::int as n from leads.outbox_events
+       where subject_key = ${`account:${member.accountId}`} and event_type = 'lead.updated'`;
+    expect(leads?.n).toBe(0);
+  });
+
+  it("proposes the removal of the logo in force without removing it; a waiting replacement is purged, and a return to the validated state withdraws the proposal", async () => {
+    const server = app();
+    const member = await newMember("advertiser");
+    await put(server, member, GEOTAGGED);
+    await publish(member.accountId);
+    const [activeRow] = await rowsOf(member.accountId);
+
+    const removal = await call(server, "DELETE", URL_LOGO, member.session);
+    expect(removal.statusCode).toBe(200);
+    expect(removal.json()).toMatchObject({ removed: false, inReview: true });
+    // the logo stays served, its row active and its object in place
+    expect((await rowsOf(member.accountId)).map((row) => row.state)).toEqual([
+      "active",
+    ]);
+    expect(
+      (await store.read("brand-logo", activeRow?.object_key ?? "")).ok,
+    ).toBe(true);
+    expect(
+      brandLogoResponseSchema.parse(
+        (await call(server, "GET", URL_LOGO, member.session)).json(),
+      ).logo,
+    ).not.toBeNull();
+    expect(await pendingChangesOf(server, member)).toEqual([
+      {
+        field: "logo",
+        change: "clear",
+        value: null,
+        submittedAt: expect.any(String),
+      },
+    ]);
+    expect(await logoRevisions(member.accountId)).toEqual([
+      { status: "pending_review", proposed: { logo_object_id: null } },
+    ]);
+
+    // a replacement replaces the proposed removal; withdrawing the replacement proposes the removal
+    // of the same logo, so deposit then remove leaves the removal pending
+    await put(server, member, PNG);
+    expect((await pendingChangesOf(server, member))[0]).toMatchObject({
+      field: "logo",
+      change: "set",
+    });
+    const again = await call(server, "DELETE", URL_LOGO, member.session);
+    expect(again.json()).toMatchObject({ removed: false, inReview: true });
+    expect((await rowsOf(member.accountId)).map((row) => row.state)).toEqual([
+      "active",
+      "purging",
+    ]);
+  });
+
+  it("proposes a first logo on a published profile that has none, and the removal of that proposal leaves nothing waiting", async () => {
+    const server = app();
+    const member = await newMember("advertiser");
+    await publish(member.accountId);
+    const proposed = brandLogoUploadResponseSchema.parse(
+      (await put(server, member, GEOTAGGED)).json(),
+    );
+    expect(proposed.state).toBe("in_review");
+    // nothing is served yet: the validated profile has no logo
+    const read = brandLogoResponseSchema.parse(
+      (await call(server, "GET", URL_LOGO, member.session)).json(),
+    );
+    expect(read.logo).toBeNull();
+    expect(read.pendingLogo?.data).toBe(proposed.logo.data);
+    const removal = await call(server, "DELETE", URL_LOGO, member.session);
+    expect(removal.json()).toMatchObject({ removed: false, inReview: false });
+    expect(await pendingChangesOf(server, member)).toEqual([]);
+    expect((await rowsOf(member.accountId)).map((row) => row.state)).toEqual([
+      "purging",
+    ]);
+    expect(
+      (await logoRevisions(member.accountId)).map((row) => row.status),
+    ).toEqual(["withdrawn"]);
   });
 });
 

@@ -12,7 +12,12 @@
 import { z } from "./zod.ts";
 import { accountOwnerSchema } from "./backoffice-accounts.ts";
 import { uiLocaleSchema } from "./auth.ts";
-import { brandProfileStatusSchema } from "./brand-profile.ts";
+import {
+  brandProfileStatusSchema,
+  REJECTION_REASON_CODES,
+  rejectionReasonCodeSchema,
+  type RejectionReasonCode,
+} from "./brand-profile.ts";
 import { countryCodeSchema } from "./signup.ts";
 
 /** The code of the queue in `backoffice.queues` (0206) and in the register payloads. */
@@ -47,19 +52,9 @@ export const MODERATED_FIELD_CODES = [
 export const moderatedFieldCodeSchema = z.enum(MODERATED_FIELD_CODES);
 export type ModeratedFieldCode = z.infer<typeof moderatedFieldCodeSchema>;
 
-/** `profiles.advertiser_rejection_reasons` (0207, 06 RG66, file.md A6): the closed list. */
-export const REJECTION_REASON_CODES = [
-  "contact_in_public_field",
-  "presentation_insufficient",
-  "logo_non_compliant",
-  "misleading_brand_name",
-  "sector_inconsistent",
-  "illicit_content",
-  "duplicate_brand",
-  "other",
-] as const;
-export const rejectionReasonCodeSchema = z.enum(REJECTION_REASON_CODES);
-export type RejectionReasonCode = z.infer<typeof rejectionReasonCodeSchema>;
+/** `profiles.advertiser_rejection_reasons` (0207, 06 RG66, file.md A6): the closed list, defined with the profile contract it also serves. */
+export { REJECTION_REASON_CODES, rejectionReasonCodeSchema };
+export type { RejectionReasonCode };
 
 /** What a public text may hold that 06 RG19 forbids; the twin of packages/domain (parity tested). */
 export const CONTACT_SIGNAL_CODES = [
