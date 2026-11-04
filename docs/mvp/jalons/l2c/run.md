@@ -10,7 +10,8 @@
 | 06 | 06.md | commit | opus | high | expert-database | fait | I-4. `0208` (`in_review`), `0209` : déclencheur `guard_advertiser_member_write()` sur 11 tables (L2C-G1 à G5 vus rouges sans lui), porte RG9 `submit_own_advertiser_revision()`, jamais une décision (politiques), logo en examen, actif servi, aucune purge ; L2BS-1 côté membre soldé, L2BT-3, L2BT-7 |
 | 07 | 07.md | commit | opus | high | expert-database | fait | I-4. `0210` : `influx_moderation_definer` (A5), prise par transition conditionnelle (L2C-V1 vu rouge par mutation), relâche, prolongation, levée forcée (motif, admin) ; publier et refuser au titulaire d’un verrou vivant, profil verrouillé avant le jeton, révisions appliquées, `profile.decision`, `profile.completed` une fois puis `lead.updated` ; doublons RG25, RG70 |
 | 08 | — | commit | — | — | — | ignoré | RG71 reporté au Lot 5 (réponse 1 du fondateur, 2026-11-03) ; CA22 en `21` §8 à la clôture |
-| 09 | 09.md | commit | sonnet | high | expert-integrations-api | à faire | |
+| 09a | 09a.md | commit | opus | high | expert-database | fait | I-4. `0211` : charge de `profile.decision` + `email_code` (publier, refuser recréées, clé inchangée) ; `leads.read_brevo_profile_decision()` (`influx_leads_definer`, worker seul) : décision, motif, message, langue ; jamais `internal_comment`, aucune ligne si compte effacé ; avant 09 (décision du fondateur) |
+| 09 | 09.md | commit | sonnet | high | expert-integrations-api | à faire | Reprend après 09a ; `email_code` et lecture du worker fournis par 0211 |
 | 10 | 10.md | commit | sonnet | high | expert-integrations-api | à faire | |
 | 11 | 11.md | commit | sonnet | high | dev-react-node | à faire | |
 | 12 | 12.md | commit | sonnet | high | dev-react-node | à faire | |

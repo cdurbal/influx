@@ -2,7 +2,8 @@
 // jalons/l2c/file.md A2, A3, A5 to A9, "Fonctions", "Codes", D81; 04 l. 2465-2480; 06 RG6, RG9,
 // RG10, RG63 to RG69, RG78; 15 RG27 C1 to C8, RG35, RG36). L2C-V1 to V4 (the lock), L2C-D1 to D6
 // (the decisions), the one profile.completed of RG78, the refusals role by role (RG6) and the codes
-// of the register (T3). Each case runs in a rolled-back transaction of the local superuser, which
+// of the register (T3); L2C commit 09a (0211): the code of the decision e-mail in its payload and the
+// worker's read leads.read_brevo_profile_decision(). Each case runs in a rolled-back transaction of the local superuser, which
 // acts as apps/api does (support.ts); L2C-V1 alone commits its fixture: two real concurrent
 // transactions need rows both of them see.
 import {
@@ -908,6 +909,8 @@ describe("L2C-D1, 06 RG6, RG69, RG78: publishing a submission", () => {
         event_id: expect.any(String),
         account_id: brandA,
         entry_id: outcome.entry,
+        // 0211: the code 0111 requires on the success of a transactional line
+        email_code: "profile.decision",
       },
     });
     expect(
@@ -1479,5 +1482,214 @@ describe("06 RG25, RG70, file.md A7: duplicate brand candidates", () => {
     ]);
     expect(outcome.self).toEqual([]);
     expect(outcome.member.code).toBe(INSUFFICIENT_PRIVILEGE);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// 0211 (L2C commit 09a): the code of the decision e-mail and the worker's read of the decision
+// ---------------------------------------------------------------------------------------------
+
+const READ_DECISION =
+  "select decision, reason_code, member_message, preferred_language " +
+  "from leads.read_brevo_profile_decision($1::bigint, $2)";
+
+/** The profile.decision line of the account, put in processing for the worker w1. */
+async function decisionLineInProcessing(
+  tx: Tx,
+  account: string,
+): Promise<{ id: string; payload: Row }> {
+  const [line] = await tx<{ id: string; payload: Row }[]>`
+    update leads.outbox_events
+       set status = 'processing', locked_by = 'w1', locked_at = now()
+     where subject_key = ${`account:${account}`} and event_type = 'profile.decision'
+       and created_at = now()
+    returning id::text, payload`;
+  if (line === undefined) {
+    throw new Error("no profile.decision line");
+  }
+  return line;
+}
+
+/** Brand A refused with `other`, its message and an internal comment; its line in processing. */
+async function refusedBrandALine(
+  tx: Tx,
+): Promise<{ entry: string; id: string; payload: Row }> {
+  const entry = await submittedBrandA(tx);
+  const opening = await opened(tx, AGENT_A, entry);
+  rowsOf(
+    await rejectAs(
+      tx,
+      AGENT_A,
+      entry,
+      opening.review_token,
+      "other",
+      OTHER_MESSAGE,
+      "Internal: the same brand as last week.",
+    ),
+  );
+  return { entry, ...(await decisionLineInProcessing(tx, brandA)) };
+}
+
+function readAsWorker(tx: Tx, line: string, worker = "w1"): Promise<Attempt> {
+  return actAs(tx, "worker", () => attempt(tx, READ_DECISION, [line, worker]));
+}
+
+async function languageOf(tx: Tx, account: string): Promise<string> {
+  const [row] = await tx<{ language: string }[]>`
+    select preferred_language::text as language from identity.accounts where id = ${account}`;
+  if (row === undefined) {
+    throw new Error("no account");
+  }
+  return row.language;
+}
+
+describe("0211, invariants 8, 10: the decision e-mail names its code, the worker reads its decision", () => {
+  it("queues the refusal with email_code and serves its reason, the agent's message and the brand's language", async () => {
+    const outcome = await scenario(async (tx) => {
+      const line = await refusedBrandALine(tx);
+      return {
+        line,
+        language: await languageOf(tx, brandA),
+        read: rowsOf(await readAsWorker(tx, line.id)),
+      };
+    });
+    expect(outcome.line.payload).toEqual({
+      event_id: expect.any(String),
+      account_id: brandA,
+      entry_id: outcome.line.entry,
+      email_code: "profile.decision",
+    });
+    expect(outcome.read).toEqual([
+      {
+        decision: "rejected",
+        reason_code: "other",
+        member_message: OTHER_MESSAGE,
+        preferred_language: outcome.language,
+      },
+    ]);
+  });
+
+  it("serves a publication without reason nor message", async () => {
+    const outcome = await scenario(async (tx) => {
+      const entry = await submittedBrandA(tx);
+      await claimAndPublish(tx, AGENT_A, entry);
+      const line = await decisionLineInProcessing(tx, brandA);
+      return {
+        language: await languageOf(tx, brandA),
+        read: rowsOf(await readAsWorker(tx, line.id)),
+      };
+    });
+    expect(outcome.read).toEqual([
+      {
+        decision: "published",
+        reason_code: null,
+        member_message: null,
+        preferred_language: outcome.language,
+      },
+    ]);
+  });
+
+  it("never serves the internal comment: no column of the read, no right of its owner nor of the worker", async () => {
+    const migration = migrationRole();
+    const [columns] = await migration<{ names: string[] }[]>`
+      select array(select n from unnest(p.proargnames, p.proargmodes) as a (n, m)
+                    where m = 't') as names
+        from pg_catalog.pg_proc p
+       where p.oid = 'leads.read_brevo_profile_decision(bigint, text)'::regprocedure`;
+    const rights = await migration<{ role: string; name: string }[]>`
+      select r.role, c.attname::text as name
+        from unnest(array['influx_leads_definer', 'influx_worker']) as r (role),
+             pg_catalog.pg_attribute c
+       where c.attrelid = 'profiles.advertiser_review_entries'::regclass
+         and c.attnum > 0 and not c.attisdropped
+         and pg_catalog.has_column_privilege(r.role, c.attrelid, c.attname, 'SELECT')
+       order by 1, 2`;
+    expect(columns?.names).toEqual([
+      "decision",
+      "reason_code",
+      "member_message",
+      "preferred_language",
+    ]);
+    expect(rights).toEqual([
+      { role: "influx_leads_definer", name: "account_id" },
+      { role: "influx_leads_definer", name: "id" },
+      { role: "influx_leads_definer", name: "member_message" },
+      { role: "influx_leads_definer", name: "rejection_reason_code" },
+      { role: "influx_leads_definer", name: "state" },
+    ]);
+  });
+
+  it("refuses every role but the worker (42501), another worker (55000) and another line (22023)", async () => {
+    const outcome = await scenario(async (tx) => {
+      const line = await refusedBrandALine(tx);
+      const call = (fn: () => Promise<Attempt>) => fn().then(refusal);
+      const roles = {
+        brand: await call(() =>
+          asBrand(tx, brandA, () =>
+            attempt(tx, READ_DECISION, [line.id, "w1"]),
+          ),
+        ),
+        agent: await call(() =>
+          asInternal(tx, AGENT_A, () =>
+            attempt(tx, READ_DECISION, [line.id, "w1"]),
+          ),
+        ),
+        admin: await call(() =>
+          asInternal(tx, ADMIN_A, () =>
+            attempt(tx, READ_DECISION, [line.id, "w1"]),
+          ),
+        ),
+        auth: await call(() =>
+          actAs(tx, "auth", () => attempt(tx, READ_DECISION, [line.id, "w1"])),
+        ),
+        privacy: await call(() =>
+          actAs(tx, "privacy", () =>
+            attempt(tx, READ_DECISION, [line.id, "w1"]),
+          ),
+        ),
+        ops: await call(() =>
+          actAs(tx, "ops", () => attempt(tx, READ_DECISION, [line.id, "w1"])),
+        ),
+      };
+      const otherWorker = refusal(await readAsWorker(tx, line.id, "w2"));
+      const [contact] = await tx<{ id: string }[]>`
+        insert into leads.outbox_events
+          (event_id, event_type, destination, subject_key, payload, idempotency_key, status,
+           locked_by, locked_at)
+        values (gen_random_uuid(), 'lead.updated', 'brevo_contact', ${`account:${brandA}`},
+                jsonb_build_object('account_id', ${brandA}::uuid, 'entry_id', ${line.entry}::uuid),
+                ${`lead.updated:${randomUUID()}`}, 'processing', 'w1', now())
+        returning id::text`;
+      const otherLine = refusal(await readAsWorker(tx, contact?.id ?? "0"));
+      return { roles, otherWorker, otherLine };
+    });
+    for (const result of Object.values(outcome.roles)) {
+      expect(result.code).toBe(INSUFFICIENT_PRIVILEGE);
+    }
+    expect(outcome.otherWorker.code).toBe(OBJECT_NOT_IN_PREREQUISITE_STATE);
+    expect(outcome.otherLine.code).toBe(INVALID_PARAMETER_VALUE);
+  });
+
+  it("serves no row once the account is erased, nor for an entry the line's account does not hold", async () => {
+    const outcome = await scenario(async (tx) => {
+      const line = await refusedBrandALine(tx);
+      const [foreign] = await tx<{ id: string }[]>`
+        insert into leads.outbox_events
+          (event_id, event_type, destination, subject_key, payload, idempotency_key, status,
+           locked_by, locked_at)
+        values (gen_random_uuid(), 'profile.decision', 'brevo_transactional',
+                ${`account:${brandB}`},
+                jsonb_build_object('account_id', ${brandB}::uuid, 'entry_id', ${line.entry}::uuid,
+                                   'email_code', 'profile.decision'),
+                ${`profile.decision:${randomUUID()}`}, 'processing', 'w1', now())
+        returning id::text`;
+      const other = rowsOf(await readAsWorker(tx, foreign?.id ?? "0"));
+      await tx`update identity.accounts set status = 'deleted', deleted_at = now()
+                where id = ${brandA}`;
+      const erased = rowsOf(await readAsWorker(tx, line.id));
+      return { other, erased };
+    });
+    expect(outcome.other).toEqual([]);
+    expect(outcome.erased).toEqual([]);
   });
 });

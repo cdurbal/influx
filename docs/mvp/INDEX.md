@@ -183,10 +183,10 @@
 | 5741 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
 | 5779 | 125 | 9. Conservation, suppression, anonymisation | RG6–RG112 |
 | 5904 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
-| 6069 | 138 | 11. Plan de migrations | RG9–RG163 |
-| 6207 | 175 | 12. Ce qui reste ouvert | RG22–RG123 |
-| 6382 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
-| 6418 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
+| 6069 | 139 | 11. Plan de migrations | RG9–RG163 |
+| 6208 | 175 | 12. Ce qui reste ouvert | RG22–RG123 |
+| 6383 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
+| 6419 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
 
 ## 05-spec-inscription-et-leads.md (~41k tokens)
 

@@ -3231,6 +3231,16 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_moderation_definer|schema|influx|USAGE",
   "influx_moderation_definer|schema|leads|USAGE",
   "influx_moderation_definer|schema|profiles|USAGE",
+  // 0211 (L2C commit 09a): the worker's read of the brand decision e-mail,
+  // leads.read_brevo_profile_decision() (E-3): the decision, its reason and the agent's message of
+  // a decided entry, never the internal comment, the agent nor the claim.
+  "influx_leads_definer|column|profiles.advertiser_review_entries.account_id|SELECT",
+  "influx_leads_definer|column|profiles.advertiser_review_entries.id|SELECT",
+  "influx_leads_definer|column|profiles.advertiser_review_entries.member_message|SELECT",
+  "influx_leads_definer|column|profiles.advertiser_review_entries.rejection_reason_code|SELECT",
+  "influx_leads_definer|column|profiles.advertiser_review_entries.state|SELECT",
+  "influx_leads_definer|function|leads.read_brevo_profile_decision(bigint,text)|EXECUTE",
+  "influx_worker|function|leads.read_brevo_profile_decision(bigint,text)|EXECUTE",
 ];
 
 /**
@@ -3520,4 +3530,6 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
     "influx_moderation_definer",
   "profiles.reject_advertiser_review_entry(uuid,text,text,text,text)":
     "influx_moderation_definer",
+  // 0211 (L2C commit 09a): the worker's read of the brand decision e-mail.
+  "leads.read_brevo_profile_decision(bigint,text)": "influx_leads_definer",
 };

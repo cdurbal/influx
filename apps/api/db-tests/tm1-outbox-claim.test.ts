@@ -1692,6 +1692,8 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       "leads.read_apollo_subject(bigint,text)",
       // 0137 (J8 commit 8): Brevo operation 2, the subject of an account.deleted line
       "leads.read_brevo_erasure_subject(bigint,text)",
+      // 0211 (L2C commit 09a): the decision of a brand decision e-mail
+      "leads.read_brevo_profile_decision(bigint,text)",
       "leads.read_brevo_subject(bigint,text)",
       "leads.record_brevo_reconciliation_event(text,timestamp with time zone,text,text,uuid,bigint,bigint,text)",
       "leads.recover_stale_outbox_lines(integer)",
