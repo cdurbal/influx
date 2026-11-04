@@ -19,6 +19,7 @@ export type RailKey =
 /** The screens that exist today, each a sub-entry of one entry (17b §1.7, D74). */
 export type SectionKey =
   | "home"
+  | "brandReviewQueue"
   | "signups"
   | "memberInvitations"
   | "dualControl"
@@ -40,7 +41,16 @@ export const RAIL_ENTRIES: readonly RailEntry[] = [
     key: "dashboard",
     sections: [{ key: "home", href: "/accueil", adminOnly: false }],
   },
-  { key: "queues", sections: [] },
+  {
+    key: "queues",
+    sections: [
+      {
+        key: "brandReviewQueue",
+        href: "/files/profils-marque",
+        adminOnly: false,
+      },
+    ],
+  },
   {
     key: "accounts",
     sections: [

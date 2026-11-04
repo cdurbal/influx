@@ -68,6 +68,12 @@ import {
   type OpsTrafficResponse,
   type OpsTrafficWindow,
 } from "@influx/contracts/backoffice-ops";
+import {
+  entriesResponseSchema,
+  queueCountersResponseSchema,
+  type EntriesResponse,
+  type QueueCountersResponse,
+} from "@influx/contracts/backoffice-queues";
 import { callRelay, type RelayResult } from "@influx/web-platform/relay-client";
 
 /** A path segment from a server-issued id: a UUID, or nothing is called. */
@@ -347,4 +353,33 @@ export function readOpsTraffic(
 
 export function readOpsProcesses(): Promise<RelayResult<OpsProcessesResponse>> {
   return callRelay("GET", "/v1/bo/ops/processes", opsProcessesResponseSchema);
+}
+
+// --- Queues (15 RG26 to RG28, RG33, RG34; 17b §2.2; L2C-16) -------------------------------------
+
+/** The counters of every queue (15 RG28), as the caller may see them (RG36). */
+export function readQueueCounters(): Promise<
+  RelayResult<QueueCountersResponse>
+> {
+  return callRelay(
+    "GET",
+    "/v1/bo/queues/counters",
+    queueCountersResponseSchema,
+  );
+}
+
+/**
+ * The entries of queue 1, first page. The query holds codes of the plain characters the relay
+ * carries: neither the period nor the cursor of the next page can cross it yet (EC-L2C-16-1).
+ */
+export function readBrandReviewEntries(
+  query: Readonly<Record<string, string>>,
+): Promise<RelayResult<EntriesResponse>> {
+  return callRelay(
+    "GET",
+    "/v1/bo/queues/profiles-advertiser/entries",
+    entriesResponseSchema,
+    undefined,
+    query,
+  );
 }

@@ -130,6 +130,7 @@ export const BACKOFFICE_PAGE_MODELS: readonly string[] = [
   "/comptes-internes",
   "/double-validation",
   "/double-validation/:id",
+  "/files/profils-marque",
   "/inscrits",
   "/inscrits/:id",
   "/invitations",

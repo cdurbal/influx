@@ -105,6 +105,7 @@ export const messages = {
     skip: "Aller au contenu",
     dashboard: "Tableau de bord",
     queues: "Files",
+    brandReviewQueue: "Profils marque à valider",
     accounts: "Comptes",
     creatorSearch: "Créateurs",
     deals: "Affaires",
@@ -1189,6 +1190,131 @@ export const messages = {
           `Connexions, dernière heure : dernier point ${last}, maximum ${peak}`,
       },
     },
+  },
+  /**
+   * L2C-16 (17b §2.2, §2.3, §2.8, §4.1, §4.2; 15 RG27, RG28, RG32, RG33, RG34, RG119, RG121): the list
+   * template of the queues and queue 1. A state is always a written label, never a colour alone.
+   */
+  queueList: {
+    lead: "Première soumission, ou modification d’un champ d’un profil publié : prenez l’entrée en charge, lisez-la, puis publiez ou refusez.",
+    countersTitle: "Compteurs de la file",
+    pending: (count: number) =>
+      `${count} ${count > 1 ? "entrées" : "entrée"} en attente`,
+    oldest: (age: string | null) =>
+      `plus ancienne : ${age === null ? "—" : age}`,
+    overdue: (count: number) => `hors délai : ${count}`,
+    unclaimed: (count: number) => `sans preneur : ${count}`,
+    policy: (decision: string, claim: string | null) =>
+      `Délai de décision : ${decision}${claim === null ? "" : ` · Objectif de prise en charge : ${claim}`}`,
+    businessMinutes: (words: string) => `${words} ouvrées`,
+    calendarMinutes: (words: string) => `${words} en continu`,
+    filters: "Filtres de la file",
+    all: "Tous",
+    overdueOnly: "Hors délai seuls",
+    holder: "Verrou",
+    holderOptions: { free: "Libre", me: "Pris par moi" },
+    holderOther: "un autre commercial",
+    owner: "Responsable",
+    ownerOptions: { none: "Sans responsable" },
+    ownerOther: "un commercial précis",
+    alert: "Alerte",
+    alertOptions: { true: "Avec alerte seulement" },
+    kind: "Origine",
+    country: "Pays",
+    chipRemove: (label: string) => `Retirer le filtre : ${label}`,
+    chip: (name: string, value: string) => `${name} : ${value}`,
+    chipsLabel: "Filtres actifs",
+    reset: "Réinitialiser",
+    /** The cap of a page is the server's (RG34); the cursor of the next one cannot cross the relay yet (EC-L2C-16-1). */
+    capped: (limit: number) =>
+      `La liste est plafonnée à ${limit} entrées. Affinez par un filtre pour voir les suivantes.`,
+    tableLabel: "Entrées de la file Profils marque à valider",
+    columns: {
+      state: "État",
+      due: "Échéance",
+      kind: "Origine",
+      brand: "Marque",
+      country: "Pays",
+      completeness: "Complétude",
+      modified: "Champs modifiés",
+      owner: "Responsable",
+      holder: "Verrou",
+      open: "Entrée",
+    },
+    resultsSorted: (count: number) =>
+      `${count} ${count > 1 ? "résultats" : "résultat"} · triée par échéance croissante`,
+    sortMark: " ▲",
+    chipMark: "×",
+    state: {
+      overdue: "Hors délai",
+      held: "Verrou tenu",
+      free: "Libre",
+    },
+    dueOverdue: (since: string) => `HORS DÉLAI depuis ${since}`,
+    dueIn: (left: string) => `dans ${left}`,
+    dueAt: (at: string) => `échéance ${at}`,
+    lockFree: "libre",
+    lockSince: (name: string, time: string) => `${name} depuis ${time}`,
+    lockMe: "Vous",
+    lockUnknown: "Un collègue",
+    escalated: "Ancienneté au-delà du seuil d’alerte",
+    alertLine: (words: string) => `Alerte : ${words}`,
+    kinds: { submission: "Première soumission", revision: "Modification" },
+    wholeProfile: "Tout le profil",
+    unset: "non renseigné",
+    completeness: (percent: number | null) =>
+      percent === null ? "non renseigné" : `${percent} %`,
+    fields: {
+      "advertiser.brand_name": "Nom de la marque",
+      "advertiser.logo": "Logo",
+      "advertiser.presentation": "Présentation",
+      "advertiser.website_domain": "Site web",
+      "advertiser.contact_role": "Fonction de l’interlocuteur",
+      "advertiser.primary_sector": "Secteur principal",
+    },
+    alerts: {
+      direct_contact: "Coordonnée possible dans un champ public",
+      duplicate_brand: "Marque semblable déjà publiée",
+      duplicate_domain: "Site web déjà utilisé par une marque publiée",
+      unusual_website_domain: "Domaine du site inhabituel",
+    },
+    openEntry: "Ouvrir",
+    openEntryOf: (brand: string) => `Ouvrir l’entrée de ${brand}`,
+    loading: "Chargement de la file…",
+    /** bo.queue.empty (15 RG32): a normal state, in the success tone. */
+    empty: "Aucune entrée en attente.",
+    emptySince: (age: string) =>
+      `Aucune entrée en attente — la dernière a été traitée il y a ${age}.`,
+    noMatch: "Aucune entrée ne correspond à ces filtres.",
+    error: "La file n’a pas pu être chargée.",
+    forbidden:
+      "Vous n’avez pas le droit d’effectuer cette action. La tentative a été enregistrée. Rôle requis : commercial ou administrateur.",
+    keys: "‹j›/‹k› ligne suivante/précédente · ‹Entrée› ouvrir (prend en charge) · ‹?› raccourcis",
+    shortcutsButton: "Raccourcis",
+    shortcutsTitle: "Raccourcis clavier de la file",
+    shortcuts: {
+      next: "ligne suivante",
+      previous: "ligne précédente",
+      open: "ouvrir l’entrée de la ligne (la prend en charge)",
+      help: "afficher ou masquer ce rappel",
+    },
+  },
+  /** L2C-16 (06 RG72, RG7; 15 RG28): the queue counters on the dashboard. */
+  queueSummary: {
+    title: "Files de validation",
+    line: (
+      name: string,
+      pending: number,
+      age: string | null,
+      overdue: number,
+      unclaimed: number,
+    ) =>
+      `${name} : ${pending} en attente · plus ancienne : ${age === null ? "—" : age} · hors délai : ${overdue} · sans preneur : ${unclaimed}`,
+    open: "Ouvrir la file",
+    escalated: (count: number, atLeast: boolean) =>
+      `${atLeast ? "Au moins " : ""}${count} ${count > 1 ? "entrées ont" : "entrée a"} dépassé le seuil d’alerte d’ancienneté.`,
+    seeEscalated: "Voir les entrées hors délai",
+    error: "Les compteurs de la file n’ont pas pu être chargés.",
   },
   /** The link of the queues to the "Santé technique" screen (15 §C, "file bloquée"): admins only. */
   servicesLink: {

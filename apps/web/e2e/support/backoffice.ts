@@ -46,12 +46,11 @@ export type SeededInternal = {
 /** Every internal account of the journeys, deactivated by `retireInternals`. */
 const internals: string[] = [];
 
-/** An active agent or admin, signed in on this page's backoffice origin. */
-export async function seedInternal(
-  page: Page,
+/** An active agent or admin with a session proven now, signed in nowhere: its token is the cookie. */
+async function insertInternal(
   role: "agent" | "admin",
   firstName: string,
-): Promise<SeededInternal> {
+): Promise<SeededInternal & { token: Buffer }> {
   const accountId = randomUUID();
   const token = randomBytes(32);
   const sessionId = await withSql((sql) =>
@@ -79,6 +78,25 @@ export async function seedInternal(
     }),
   );
   internals.push(accountId);
+  return { accountId, firstName, sessionId, token };
+}
+
+/** An active agent or admin who signs in nowhere: a colleague who holds locks and owns accounts (L2C-16). */
+export async function seedColleague(
+  role: "agent" | "admin",
+  firstName: string,
+): Promise<SeededInternal> {
+  const { accountId, sessionId } = await insertInternal(role, firstName);
+  return { accountId, firstName, sessionId };
+}
+
+/** An active agent or admin, signed in on this page's backoffice origin. */
+export async function seedInternal(
+  page: Page,
+  role: "agent" | "admin",
+  firstName: string,
+): Promise<SeededInternal> {
+  const { token, ...person } = await insertInternal(role, firstName);
   const url = `${BACKOFFICE_ORIGIN}${SEED_PATH}`;
   await page.route(url, (route) =>
     route.fulfill({
@@ -92,7 +110,7 @@ export async function seedInternal(
   );
   await page.goto(url);
   await page.unroute(url);
-  return { accountId, firstName, sessionId };
+  return person;
 }
 
 /** After the journeys: the internal accounts never stay active peers of other runs. */

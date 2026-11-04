@@ -121,6 +121,22 @@ describe("TN5: the sub-entries of the active entry, in the one <nav> of the rail
     expect(currentLinks(render("admin", "/absente"))).toEqual([]);
   });
 
+  it("makes Files current on the list of the brand profiles and on an entry of it, with no sub-menu, for an agent too (L2C-16)", () => {
+    for (const pathname of [
+      "/files/profils-marque",
+      "/files/profils-marque/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
+    ]) {
+      for (const role of ["agent", "admin"] as const) {
+        const markup = render(role, pathname);
+        expect(markup.match(/<ul[ >]/g), pathname).toHaveLength(1);
+        expect(currentLinks(markup), pathname).toEqual([messages.nav.queues]);
+        expect(itemOf(markup, "/files/profils-marque")).toContain(
+          `>${messages.nav.queues}</a>`,
+        );
+      }
+    }
+  });
+
   it("gives an agent no Administration, nor any of its screens (CA63)", () => {
     const markup = render("agent", "/inscrits");
     for (const adminOnly of [

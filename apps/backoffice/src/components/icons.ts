@@ -2,8 +2,12 @@
 export {
   Bell as BellIcon,
   BriefcaseBusiness as BriefcaseIcon,
+  Circle as CircleIcon,
+  CircleCheck as CircleCheckIcon,
+  Flag as FlagIcon,
   Inbox as InboxIcon,
   LayoutDashboard as LayoutDashboardIcon,
+  Lock as LockIcon,
   LogOut as LogOutIcon,
   Search as SearchIcon,
   Settings as SettingsIcon,

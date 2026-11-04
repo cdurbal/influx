@@ -44,6 +44,7 @@ describe("TD2.7: the entries of a role (17b §1.2, CA63)", () => {
   it("gives an agent no administration entry, today and with every screen shipped", () => {
     expect(navItemsOf("agent").map((item) => item.key)).toEqual([
       "dashboard",
+      "queues",
       "accounts",
     ]);
     expect(navItemsOf("agent", SEVEN).map((item) => item.key)).not.toContain(
@@ -57,6 +58,7 @@ describe("TD2.7: the entries of a role (17b §1.2, CA63)", () => {
   it("gives an admin every entry that holds a screen, in order: seven once all are shipped", () => {
     expect(navItemsOf("admin").map((item) => item.key)).toEqual([
       "dashboard",
+      "queues",
       "accounts",
       "admin",
     ]);
@@ -67,10 +69,11 @@ describe("TD2.7: the entries of a role (17b §1.2, CA63)", () => {
     const admin = navItemsOf("admin");
     expect(admin.map((item) => item.href)).toEqual([
       "/accueil",
+      "/files/profils-marque",
       "/inscrits",
       "/double-validation",
     ]);
-    expect(admin[2]?.sections.map((section) => section.key)).toEqual([
+    expect(admin[3]?.sections.map((section) => section.key)).toEqual([
       "dualControl",
       "internalAccounts",
       "apollo",
@@ -91,6 +94,12 @@ describe("TD2.7: the entries of a role (17b §1.2, CA63)", () => {
 describe("TD2.8: the active entry of each address (17b §1.7)", () => {
   const cases: readonly [string, RailKey, string][] = [
     ["/accueil", "dashboard", "home"],
+    ["/files/profils-marque", "queues", "brandReviewQueue"],
+    [
+      "/files/profils-marque/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
+      "queues",
+      "brandReviewQueue",
+    ],
     ["/inscrits", "accounts", "signups"],
     ["/inscrits/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22", "accounts", "signups"],
     ["/invitations", "accounts", "memberInvitations"],
@@ -112,6 +121,8 @@ describe("TD2.8: the active entry of each address (17b §1.7)", () => {
   }
 
   it("finds no entry for an unknown path nor for a mere prefix", () => {
+    expect(activePlaceOf("/files")).toBeNull();
+    expect(activePlaceOf("/files/profils-marquex")).toBeNull();
     expect(activePlaceOf("/")).toBeNull();
     expect(activePlaceOf("/absente")).toBeNull();
     expect(activePlaceOf("/inscritsx")).toBeNull();
@@ -130,6 +141,9 @@ describe("TN3: the screens of an entry as its sub-entries in the rail (D74)", ()
 
   it("exposes no sub-menu for an entry of a single screen", () => {
     expect(subEntriesOf(itemOf("dashboard"))).toEqual([]);
+    // one queue so far: Files opens its list, a sub-menu comes with a second one
+    expect(subEntriesOf(itemOf("queues"))).toEqual([]);
+    expect(itemOf("queues").href).toBe("/files/profils-marque");
     for (const item of navItemsOf("admin", SEVEN)) {
       expect(subEntriesOf(item), item.key).toEqual([]);
     }

@@ -5,7 +5,7 @@
 // colour alone (15 RG66). The "new browser" sign-ins (B-7, RG145) and the `admin` roles granted
 // (J8S-4, RG101) reach the admins only: apps/api returns empty lists to an agent. For the admins,
 // the weekly review of the confirmations made alone (PD6, J8S-1); apps/api refuses it to an agent,
-// so the screen does not ask.
+// so the screen does not ask. The queue counters (15 RG28, 06 RG72) come from QueueSummary.
 import type { AccountCountersResponse } from "@influx/contracts/backoffice-accounts";
 import type {
   AlertsResponse,
@@ -29,6 +29,7 @@ import {
   TABULAR_CLASSES,
 } from "./bo-classes";
 import { useTeamNames } from "./DualControlScreens";
+import { QueueSummary } from "./QueueSummary";
 import { ServicesLink } from "./ServicesLink";
 import { useMe } from "./Shell";
 import {
@@ -307,6 +308,7 @@ export function HomeScreen() {
           <Counters counters={counters.data} />
         )}
       </section>
+      <QueueSummary />
       <section aria-labelledby="alerts-title" className={SECTION_CLASSES}>
         <h2 id="alerts-title" className={SECTION_TITLE}>
           {messages.home.alertsTitle}
