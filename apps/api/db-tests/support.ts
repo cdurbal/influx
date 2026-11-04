@@ -21,6 +21,21 @@ export function migrationRole(): postgres.Sql {
   return sql;
 }
 
+let sharedMigration: postgres.Sql | undefined;
+
+/**
+ * The migration role over ONE pool per file, for a file that reads and writes fixtures many times:
+ * migrationRole() opens a new connection at every call and keeps it until the end of the file, so a
+ * long file holds dozens of slots and starves the parallel files of the full suite (EC-33).
+ */
+export function sharedMigrationRole(): postgres.Sql {
+  if (sharedMigration === undefined) {
+    sharedMigration = connectAsMigrationRole({ max: 3 });
+    opened.push(sharedMigration);
+  }
+  return sharedMigration;
+}
+
 const byRole = new Map<LoginRole, postgres.Sql>();
 
 /**
@@ -170,4 +185,5 @@ afterAll(async () => {
   opened.length = 0;
   byRole.clear();
   superuser = undefined;
+  sharedMigration = undefined;
 });

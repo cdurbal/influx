@@ -30,7 +30,7 @@ import {
   WEB_ORIGIN,
   WEB_SECRET,
 } from "../tests/helpers.ts";
-import { localSuperuser, migrationRole } from "./support.ts";
+import { localSuperuser, sharedMigrationRole } from "./support.ts";
 
 const NIL = "00000000-0000-4000-8000-000000000000";
 const ENTRIES = "/v1/bo/queues/profiles-advertiser/entries";
@@ -80,7 +80,7 @@ async function newInternal(
 ): Promise<Internal> {
   const accountId = randomUUID();
   const token = randomBytes(32);
-  await migrationRole().begin(async (tx) => {
+  await sharedMigrationRole().begin(async (tx) => {
     await tx`
       insert into identity.accounts
         (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
@@ -107,7 +107,7 @@ async function newInternal(
 async function newMemberSession(): Promise<string> {
   const accountId = randomUUID();
   const token = randomBytes(32);
-  await migrationRole().begin(async (tx) => {
+  await sharedMigrationRole().begin(async (tx) => {
     await tx`
       insert into identity.accounts
         (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
@@ -157,15 +157,16 @@ const PRESENTATION =
 async function newBrand(options: BrandOptions = {}): Promise<Brand> {
   const accountId = randomUUID();
   // no run of eight digits: a name that looks like a phone number would raise RG19 on the fixture
+  // (an all-digit id prefix is 2 % of the names: every digit is replaced)
   const name =
-    options.name ?? `Maison ${accountId.slice(0, 8).replace(/d/g, "x")}`;
+    options.name ?? `Maison ${accountId.slice(0, 8).replace(/\d/g, "x")}`;
   const contact = options.contact ?? {
     firstName: `Prénom${accountId.slice(0, 6)}`,
     email: `contact-${accountId}@brand.example.test`,
     phone: "+33612345678",
   };
   const entryId = randomUUID();
-  await migrationRole().begin(async (tx) => {
+  await sharedMigrationRole().begin(async (tx) => {
     await tx`
       insert into identity.accounts
         (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
@@ -214,7 +215,7 @@ async function addRevision(
   fieldCode: string,
   proposed: string | null,
 ): Promise<string> {
-  const [row] = await migrationRole()<{ id: string }[]>`
+  const [row] = await sharedMigrationRole()<{ id: string }[]>`
     insert into profiles.profile_field_revisions
       (account_id, field_code, proposed_value, advertiser_review_entry_id)
     values (${brand.accountId}, ${fieldCode}, ${proposed}::jsonb, ${brand.entryId})
@@ -375,7 +376,7 @@ async function entryState(entryId: string): Promise<{
   claimedBy: string | null;
   state: string;
 }> {
-  const [row] = await migrationRole()<
+  const [row] = await sharedMigrationRole()<
     { claimed_by: string | null; state: string }[]
   >`
     select claimed_by_account_id::text as claimed_by, state::text as state
@@ -388,7 +389,7 @@ async function registerLines(
 ): Promise<
   { event: string; actor: string | null; payload: Record<string, unknown> }[]
 > {
-  return migrationRole()<
+  return sharedMigrationRole()<
     {
       event: string;
       actor: string | null;
@@ -434,10 +435,10 @@ beforeAll(async () => {
     },
     { info: () => undefined, warn: () => undefined, error: () => undefined },
   );
-  const [clock] = await migrationRole()<{ now: string }[]>`
+  const [clock] = await sharedMigrationRole()<{ now: string }[]>`
     select to_char(now() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as now`;
   startedAt = clock?.now ?? "";
-  const [window] = await migrationRole()<
+  const [window] = await sharedMigrationRole()<
     { base: string; from: string; to: string }[]
   >`
     select to_char(t at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as base,
@@ -470,7 +471,7 @@ beforeAll(async () => {
     status: "published",
   });
   // a published brand holds no open entry: its own is withdrawn
-  await migrationRole()`
+  await sharedMigrationRole()`
     update profiles.advertiser_review_entries set state = 'withdrawn', closed_at = now()
      where id = ${published.entryId}`;
   dupDomain = await newBrand({ website: sharedDomain, dueIn: "6 hours" });
@@ -491,7 +492,7 @@ beforeAll(async () => {
     "New text, reach us at new.contact@exemple.test",
   );
   claimed = await newBrand({ country: "BE", dueIn: "9 hours" });
-  await migrationRole()`
+  await sharedMigrationRole()`
     update profiles.advertiser_review_entries
        set claimed_by_account_id = ${colleague.accountId}, claimed_at = now(),
            claim_expires_at = now() + interval '20 minutes'
@@ -517,7 +518,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await closeDatabase(database);
-  await migrationRole().begin(async (tx) => {
+  await sharedMigrationRole().begin(async (tx) => {
     await tx`
       update profiles.advertiser_review_entries
          set state = 'withdrawn', closed_at = now()
@@ -912,7 +913,7 @@ describe("the opening is the claim (15 C1, C2; CA17; file.md A9, A10)", () => {
 
   it("takes an entry whose claim has expired, and writes the abandonment first (A9)", async () => {
     const stale = await newBrand({ dueIn: "11 hours" });
-    await migrationRole()`
+    await sharedMigrationRole()`
       update profiles.advertiser_review_entries
          set claimed_by_account_id = ${colleague.accountId}, claimed_at = now() - interval '40 minutes',
              claim_expires_at = now() - interval '10 minutes'
@@ -938,7 +939,7 @@ describe("the opening is the claim (15 C1, C2; CA17; file.md A9, A10)", () => {
 
   it("answers `closed` for an entry that is no longer open, with no token and no holder (C7)", async () => {
     const done = await newBrand({ dueIn: "12 hours" });
-    await migrationRole()`
+    await sharedMigrationRole()`
       update profiles.advertiser_review_entries set state = 'withdrawn', closed_at = now()
        where id = ${done.entryId}`;
     const view = await opened(app(), done.entryId, agent);
@@ -953,7 +954,7 @@ describe("the opening is the claim (15 C1, C2; CA17; file.md A9, A10)", () => {
 
   it("tells the dispossessed holder, at his next opening, that his claim was lifted (C4, A8)", async () => {
     const lifted = await newBrand({ dueIn: "13 hours" });
-    await migrationRole()`
+    await sharedMigrationRole()`
       update profiles.advertiser_review_entries
          set forced_release_at = now(), forced_release_by_account_id = ${admin.accountId},
              forced_release_holder_account_id = ${agent.accountId},
@@ -1143,7 +1144,7 @@ describe("a conflict of interest (15 RG36, 13 RG35, 17b §2.5)", () => {
 /** The lists the required fields of 06 RG15 ask for, so that an entry of this file can be published. */
 async function completeBrand(brand: Brand): Promise<void> {
   const id = brand.accountId;
-  await migrationRole().begin(async (tx) => {
+  await sharedMigrationRole().begin(async (tx) => {
     await tx`insert into profiles.advertiser_target_markets (account_id, slot, country_code) values (${id}, 1, 'FR')`;
     await tx`insert into profiles.advertiser_working_languages (account_id, language_code) values (${id}, 'fr')`;
     await tx`insert into profiles.advertiser_topics (account_id, slot, topic_code) values (${id}, 1, 'travel')`;
@@ -1190,7 +1191,7 @@ async function profileLines(
 ): Promise<
   { event: string; actor: string | null; payload: Record<string, unknown> }[]
 > {
-  return migrationRole()<
+  return sharedMigrationRole()<
     {
       event: string;
       actor: string | null;
@@ -1204,7 +1205,7 @@ async function profileLines(
 }
 
 async function profileStatusOf(accountId: string): Promise<string> {
-  const [row] = await migrationRole()<{ status: string }[]>`
+  const [row] = await sharedMigrationRole()<{ status: string }[]>`
     select status::text as status from profiles.advertiser_profiles where account_id = ${accountId}`;
   return row?.status ?? "";
 }
@@ -1238,7 +1239,7 @@ describe("publish (06 RG6, RG65, RG78; 15 C8; file.md A3; 17b §2.6)", () => {
     // the register carries no free text: not the internal comment
     expect(JSON.stringify(line)).not.toContain("checked by hand");
     // the entry to open next: the oldest deadline that nobody holds and the caller may treat
-    const [expected] = await migrationRole()<{ id: string }[]>`
+    const [expected] = await sharedMigrationRole()<{ id: string }[]>`
       select e.id::text as id
         from profiles.advertiser_review_entries e
         join identity.accounts a on a.id = e.account_id
@@ -1282,7 +1283,7 @@ describe("publish (06 RG6, RG65, RG78; 15 C8; file.md A3; 17b §2.6)", () => {
   it("refuses a stale token (L2BS-1): the profile changed after the opening; the agent reads again, then publishes", async () => {
     const server = app();
     const { brand, token } = await claimedBrand(agent, { dueIn: "32 hours" });
-    await migrationRole()`
+    await sharedMigrationRole()`
       update profiles.advertiser_profiles
          set presentation = ${`${PRESENTATION} One sentence more, written after the opening.`}
        where account_id = ${brand.accountId}`;
@@ -1366,7 +1367,7 @@ describe("reject (06 RG65, RG66; 15 C6; CA19, CA20)", () => {
     });
     expect(JSON.stringify(line)).not.toContain("too short");
     // the entry keeps what the agent wrote: the internal comment is theirs alone
-    const [row] = await migrationRole()<
+    const [row] = await sharedMigrationRole()<
       { member_message: string | null; internal_comment: string | null }[]
     >`select member_message, internal_comment from profiles.advertiser_review_entries
        where id = ${brand.entryId}`;
@@ -1442,7 +1443,9 @@ describe("reject (06 RG65, RG66; 15 C6; CA19, CA20)", () => {
         "Please describe what your brand sells, in your own words.",
     });
     expect(accepted.statusCode, accepted.body).toBe(200);
-    const [row] = await migrationRole()<{ member_message: string | null }[]>`
+    const [row] = await sharedMigrationRole()<
+      { member_message: string | null }[]
+    >`
       select member_message from profiles.advertiser_review_entries where id = ${brand.entryId}`;
     expect(row?.member_message).toBe(
       "Please describe what your brand sells, in your own words.",
@@ -1452,7 +1455,7 @@ describe("reject (06 RG65, RG66; 15 C6; CA19, CA20)", () => {
   it("refuses a stale token on a refusal too, and keeps the entry open (L2BS-1)", async () => {
     const server = app();
     const { brand, token } = await claimedBrand(agent, { dueIn: "38 hours" });
-    await migrationRole()`
+    await sharedMigrationRole()`
       update profiles.advertiser_profiles set contact_role = 'executive'
        where account_id = ${brand.accountId}`;
     const stale = await act(server, agent, brand.entryId, "reject", {
@@ -1512,7 +1515,7 @@ describe("the lock on a decision (15 C2, C3; CA17, CA18, RG6)", () => {
     const server = app();
     const { brand, token } = await claimedBrand(agent, { dueIn: "40 hours" });
     // the test clock: the claim expired ten minutes ago
-    await migrationRole()`
+    await sharedMigrationRole()`
       update profiles.advertiser_review_entries
          set claimed_at = now() - interval '40 minutes',
              claim_expires_at = now() - interval '10 minutes'
@@ -1546,7 +1549,7 @@ describe("the lock on a decision (15 C2, C3; CA17, CA18, RG6)", () => {
     expect(released.json<ErrorBody>().error.details).toEqual([
       { path: "claim", issue: "claim_not_held" },
     ]);
-    await migrationRole()`
+    await sharedMigrationRole()`
       update profiles.advertiser_review_entries set state = 'withdrawn', closed_at = now()
        where id = ${brand.entryId}`;
     for (const [action, body] of [
@@ -1591,7 +1594,7 @@ describe("release and extension (15 C3; file.md A9)", () => {
   it("the holder takes the delay again: a later expiry, journaled", async () => {
     const server = app();
     const { brand } = await claimedBrand(agent, { dueIn: "43 hours" });
-    await migrationRole()`
+    await sharedMigrationRole()`
       update profiles.advertiser_review_entries
          set claim_expires_at = now() + interval '2 minutes'
        where id = ${brand.entryId}`;
@@ -1662,7 +1665,7 @@ describe("the forced release (15 C4, CA63; file.md A8)", () => {
     expect((await entryState(brand.entryId)).claimedBy).toBe(
       colleague.accountId,
     );
-    const attempts = await migrationRole()<
+    const attempts = await sharedMigrationRole()<
       { payload: Record<string, unknown>; actor: string | null }[]
     >`
       select payload, actor_account_id::text as actor from audit.audit_events
