@@ -122,6 +122,37 @@
         "reason": "you deleted your INFLUX account"
       }
     },
+    "profileDecision": {
+      "published": {
+        "subject": "Your INFLUX brand profile is published",
+        "preheader": "An INFLUX sales representative has reviewed and published your brand profile.",
+        "title": "Your brand profile is published",
+        "body": "An INFLUX sales representative has reviewed your brand profile and published it.",
+        "edit": "You can view it from your INFLUX space. If you later change the name, logo, presentation, website, contact role or main sector, the change will be reviewed before it is published; until then, the published version stays in place.",
+        "why": "your brand profile was reviewed by an INFLUX sales representative"
+      },
+      "rejected": {
+        "subject": "Your INFLUX brand profile was not published",
+        "preheader": "An INFLUX sales representative has reviewed your brand profile: here is why it is not published.",
+        "title": "Your brand profile was not published",
+        "body": "An INFLUX sales representative has reviewed your brand profile and has not published it as it stands.",
+        "why": "your brand profile was reviewed by an INFLUX sales representative"
+      },
+      "reason": {
+        "contact_in_public_field": "Your presentation contains a contact address, number or link. Contact details only become visible once a connection is opened.",
+        "presentation_insufficient": "Your presentation does not allow a creator to understand what your business does.",
+        "logo_non_compliant": "Your logo contains contact details or is not legible.",
+        "misleading_brand_name": "The declared name matches a brand that you do not appear to represent.",
+        "sector_inconsistent": "The declared sector does not match your business.",
+        "illicit_content": "The content of your profile cannot be published: it goes against the law or INFLUX's terms of use.",
+        "duplicate_brand": "This brand already has an INFLUX account.",
+        "other": "Your profile could not be published as it stands. The message from the INFLUX team:"
+      },
+      "nextStep": {
+        "fix": "Correct your profile from your INFLUX space, then submit it again.",
+        "contact": "To discuss it, contact INFLUX from the help on the sign-in screen."
+      }
+    },
     "internal": {
       "criticalAlert": {
         "subject": "INFLUX — Alerte critique / Critical alert",

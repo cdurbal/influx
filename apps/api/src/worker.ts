@@ -42,6 +42,7 @@ import {
   createWorkerQueue,
   readApolloSubjectOf,
   readBrevoErasureSubjectOf,
+  readBrevoProfileDecisionOf,
   readBrevoSubjectOf,
   startWorker,
 } from "./domains/leads/queue.ts";
@@ -106,6 +107,8 @@ function connectorsOf(
         readBrevoErasureSubjectOf(database, randomUUID(), line, worker),
       readErasureNotificationSubject: (requestId) =>
         readErasureNotificationSubjectOf(database, requestId),
+      readProfileDecision: (line) =>
+        readBrevoProfileDecisionOf(database, randomUUID(), line, worker),
       logger,
     },
   );

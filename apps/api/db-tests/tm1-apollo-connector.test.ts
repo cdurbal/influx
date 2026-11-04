@@ -286,6 +286,7 @@ async function turn(options: TurnOptions = {}): Promise<number> {
       readErasureSubject: (line) =>
         readBrevoErasureSubjectOf(database, randomUUID(), line, worker),
       readErasureNotificationSubject: () => Promise.resolve(null),
+      readProfileDecision: () => Promise.resolve(null),
       logger,
     },
   );

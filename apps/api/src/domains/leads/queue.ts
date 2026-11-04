@@ -26,6 +26,7 @@ import {
   isLineNotInProcessing,
   readApolloSubject,
   readBrevoErasureSubject,
+  readBrevoProfileDecision,
   readBrevoSubject,
   recoverStaleLines,
   startWorkerStep,
@@ -33,6 +34,7 @@ import {
   type ApolloSubject,
   type AttemptState,
   type BrevoErasureSubject,
+  type BrevoProfileDecision,
   type BrevoSubject,
   type ClaimedLine,
   type RecoveredLine,
@@ -175,6 +177,36 @@ export async function readBrevoErasureSubjectOf(
           value: subject,
           auditSubject:
             subject === null ? null : line.subjectKey.slice("account:".length),
+        };
+      },
+    ),
+  );
+}
+
+/**
+ * The Brevo connector's read of a brand decision (0211, profile.decision): the decision, its reason,
+ * the message of the agent and the account's language, for a line in processing for this worker.
+ * It reads no address (that comes from readBrevoSubjectOf); its register line is on the account all
+ * the same, as the other privileged reads of the worker. Its own short transaction, closed before
+ * the call (G4).
+ */
+export async function readBrevoProfileDecisionOf(
+  database: WorkerDatabase,
+  requestId: string,
+  line: ClaimedLine,
+  worker: string,
+): Promise<BrevoProfileDecision | null> {
+  return translated(
+    withElevatedTransaction(
+      database,
+      "leads.drain_outbox",
+      requestId,
+      async (tx) => {
+        const decision = await readBrevoProfileDecision(tx, line.id, worker);
+        return {
+          value: decision,
+          auditSubject:
+            decision === null ? null : line.subjectKey.slice("account:".length),
         };
       },
     ),

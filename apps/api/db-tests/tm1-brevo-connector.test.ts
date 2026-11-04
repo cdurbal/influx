@@ -41,9 +41,12 @@ import {
   createWorkerQueue,
   LineTakenBackError,
   readBrevoErasureSubjectOf,
+  readBrevoProfileDecisionOf,
   readBrevoSubjectOf,
 } from "../src/domains/leads/queue.ts";
 import type { ClaimedLine } from "../src/domains/leads/repository.ts";
+import english from "../src/locales/en/email.json" with { type: "json" };
+import french from "../src/locales/fr/email.json" with { type: "json" };
 import { createLogger } from "../src/platform/logger.ts";
 import { localSuperuser, migrationRole } from "./support.ts";
 
@@ -103,6 +106,8 @@ afterEach(async () => {
       delete from leads.outbox_events where id = any (${lineIds}::bigint[])`;
   }
   if (accountIds.length > 0) {
+    await migration`
+      delete from profiles.advertiser_review_entries where account_id = any (${accountIds}::uuid[])`;
     await migration`
       delete from leads.contact_sync_states where account_id = any (${accountIds}::uuid[])`;
   }
@@ -223,6 +228,8 @@ async function turn(): Promise<number> {
       readErasureSubject: (line) =>
         readBrevoErasureSubjectOf(database, randomUUID(), line, worker),
       readErasureNotificationSubject: () => Promise.resolve(null),
+      readProfileDecision: (line) =>
+        readBrevoProfileDecisionOf(database, randomUUID(), line, worker),
       logger,
     },
   );
@@ -763,6 +770,205 @@ describe("16 RG160, CA117: privacy.request_received, written from the request of
     expect(await lineRow(line)).toMatchObject({
       status: "failed",
       last_error_code: "request_not_found",
+    });
+    expect(double.requests).toHaveLength(0);
+  });
+});
+
+describe("06 RG66, RG69, L2C commit 09: profile.decision, written from the decision read at consumption (0211)", () => {
+  const REASONS = [
+    "contact_in_public_field",
+    "presentation_insufficient",
+    "logo_non_compliant",
+    "misleading_brand_name",
+    "sector_inconsistent",
+    "illicit_content",
+    "duplicate_brand",
+    "other",
+  ] as const;
+  const OTHER_MESSAGE =
+    "Votre numéro de TVA ne correspond à aucune entreprise connue de nos équipes.";
+
+  /** A committed decided entry of `account`, as the decision of 0210 leaves it; its id. */
+  async function decidedEntry(
+    account: string,
+    decider: string,
+    outcome:
+      | { state: "published" }
+      | { state: "rejected"; reason: string; message?: string },
+  ): Promise<string> {
+    const [row] = await migration<{ id: string }[]>`
+      insert into profiles.advertiser_review_entries
+        (account_id, kind, state, decided_by_account_id, decided_at, closed_at,
+         rejection_reason_code, member_message, internal_comment)
+      values (${account}, 'submission', ${outcome.state}::profiles.review_entry_state, ${decider},
+              now(), now(),
+              ${outcome.state === "rejected" ? outcome.reason : null},
+              ${outcome.state === "rejected" ? (outcome.message ?? null) : null},
+              ${outcome.state === "rejected" ? "Internal: never in an e-mail." : null})
+      returning id::text as id`;
+    return row?.id ?? "";
+  }
+
+  /** The profile.decision line of an entry, shaped as the decision functions queue it (0211). */
+  async function decisionLine(account: string, entry: string): Promise<string> {
+    const event = randomUUID();
+    const [row] = await migration<{ id: string }[]>`
+      insert into leads.outbox_events
+        (event_id, event_type, destination, subject_key, priority, payload, idempotency_key)
+      values (${event}, 'profile.decision', 'brevo_transactional', ${`account:${account}`}, 100,
+              jsonb_build_object('event_id', ${event}::text, 'account_id', ${account}::text,
+                                 'entry_id', ${entry}::text, 'email_code', 'profile.decision'),
+              ${`profile.decision:${entry}`})
+      returning id::text as id`;
+    lines.push(row?.id ?? "");
+    return row?.id ?? "";
+  }
+
+  /** An advertiser account and the agent-like account that decided its entry. */
+  async function brandWithDecider(language: "fr" | "en"): Promise<{
+    brand: string;
+    address: string;
+    decider: string;
+  }> {
+    const brand = await createAccount({ role: "advertiser", language });
+    const address = emails[emails.length - 1] ?? "";
+    const decider = await createAccount({ role: "creator" });
+    return { brand, address, decider };
+  }
+
+  function messageTo(address: string | undefined) {
+    return double.delivered.find((sent) =>
+      JSON.stringify(sent.body.to).includes(address ?? "-"),
+    );
+  }
+
+  for (const language of ["fr", "en"] as const) {
+    it(`${language}: a publication, and a refusal for each of the eight reasons, each e-mail with its code, written by INFLUX, journaled P1`, async () => {
+      const texts = (language === "fr" ? french : english).email
+        .profileDecision;
+      const cases: {
+        outcome:
+          | { state: "published" }
+          | { state: "rejected"; reason: string; message?: string };
+        subject: string;
+        body: string;
+      }[] = [
+        {
+          outcome: { state: "published" },
+          subject: texts.published.subject,
+          body: texts.published.body,
+        },
+        ...REASONS.map((reason) => ({
+          outcome:
+            reason === "other"
+              ? { state: "rejected" as const, reason, message: OTHER_MESSAGE }
+              : { state: "rejected" as const, reason },
+          subject: texts.rejected.subject,
+          body: reason === "other" ? OTHER_MESSAGE : texts.reason[reason],
+        })),
+      ];
+      const sentLines: string[] = [];
+      for (const item of cases) {
+        // one line per turn: the client of the connector paces its calls (16 RG, rate_limited)
+        const { brand, address, decider } = await brandWithDecider(language);
+        const entry = await decidedEntry(brand, decider, item.outcome);
+        const line = await decisionLine(brand, entry);
+        sentLines.push(line);
+
+        expect(await turn()).toBe(1);
+
+        expect(await lineRow(line)).toMatchObject({ status: "succeeded" });
+        const sent = messageTo(address);
+        expect(sent?.body.subject).toBe(item.subject);
+        expect(sent?.body.templateId).toBeUndefined();
+        expect(sent?.body.tags).toEqual(["profile.decision"]);
+        expect(sent?.body.textContent).toContain(item.body);
+        const written = `${String(sent?.body.htmlContent)}${String(sent?.body.textContent)}`;
+        // the internal comment of the agent never leaves (0211); no link, no domain, no address
+        expect(written).not.toContain("Internal");
+        expect(written).not.toMatch(/href|https?:|www\.|@/i);
+      }
+      expect(double.delivered).toHaveLength(cases.length);
+      const journal = await migration<
+        { email_code: string; priority: string; locale: string }[]
+      >`
+        select distinct email_code, priority::text as priority, locale
+          from leads.transactional_sends
+         where outbox_event_id = any (${sentLines}::bigint[])`;
+      expect(journal).toEqual([
+        { email_code: "profile.decision", priority: "p1", locale: language },
+      ]);
+    });
+  }
+
+  it("a message of the agent that looks like a link is refused by the output check: failed, nothing sent", async () => {
+    const { brand, decider } = await brandWithDecider("fr");
+    const entry = await decidedEntry(brand, decider, {
+      state: "rejected",
+      reason: "other",
+      message: "Écrivez-nous à contact@exemple.invalid pour en discuter ici.",
+    });
+    const line = await decisionLine(brand, entry);
+
+    expect(await turn()).toBe(1);
+
+    expect(await lineRow(line)).toMatchObject({
+      status: "failed",
+      last_error_code: "output_check_rejected",
+    });
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("a replay sends no second e-mail: the key of the decision is the entry's", async () => {
+    const { brand, decider } = await brandWithDecider("en");
+    const entry = await decidedEntry(brand, decider, { state: "published" });
+    const line = await decisionLine(brand, entry);
+    await turn();
+    expect(double.delivered).toHaveLength(1);
+    const [first] = double.messages;
+    expect(first?.headers["idempotency-key"]).toBe(`profile.decision:${entry}`);
+
+    await replay(line);
+    await turn();
+
+    // Brevo answers the same message for the same key: delivered once, the journal holds one line
+    expect(double.delivered).toHaveLength(1);
+    expect(
+      double.messages.map((sent) => sent.headers["idempotency-key"]),
+    ).toEqual([`profile.decision:${entry}`, `profile.decision:${entry}`]);
+    const [{ count } = { count: -1 }] = await migration<{ count: number }[]>`
+      select count(*)::int as count from leads.transactional_sends where account_id = ${brand}`;
+    expect(count).toBe(1);
+  });
+
+  it("an account erased since the decision gets nothing: skipped, the decision is not read", async () => {
+    const { brand, decider } = await brandWithDecider("fr");
+    const entry = await decidedEntry(brand, decider, {
+      state: "rejected",
+      reason: "duplicate_brand",
+    });
+    const line = await decisionLine(brand, entry);
+    await migration`
+      update identity.accounts set status = 'deleted', deleted_at = now() where id = ${brand}`;
+
+    expect(await turn()).toBe(1);
+
+    expect((await lineRow(line)).status).toBe("skipped");
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("an entry of ANOTHER account named by the line is never read: failed decision_not_found, nothing sent", async () => {
+    const { brand, decider } = await brandWithDecider("fr");
+    const other = await createAccount({ role: "advertiser" });
+    const foreign = await decidedEntry(other, decider, { state: "published" });
+    const line = await decisionLine(brand, foreign);
+
+    expect(await turn()).toBe(1);
+
+    expect(await lineRow(line)).toMatchObject({
+      status: "failed",
+      last_error_code: "decision_not_found",
     });
     expect(double.requests).toHaveLength(0);
   });

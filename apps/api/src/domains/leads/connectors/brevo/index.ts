@@ -36,6 +36,10 @@
 // account.deleted (04 §9.2, 15 RG79, J8 commit 8): operation 2 deletes the contact of an ERASED
 // account, by its Brevo id, else by the address the request holds until Brevo confirms (0136); it
 // comes before the account step, since the account is no longer active by construction.
+// profile.decision (06 RG66, RG69; L2C commit 09): the answer to the examination of a brand profile,
+// from the decision read at consumption (leads.read_brevo_profile_decision, 0211) and the address of
+// the subject read; the agent's message (reason `other`) is escaped and refused if it looks like a
+// link (RG158).
 // What leaves for the drain is names and verdicts; the values stay in the closure of `send`.
 import {
   UNIDENTIFIED_USER_AGENT,
@@ -51,6 +55,10 @@ import { renderErasureCompletedEmail } from "../../../privacy/erasure-completed-
 import type { ErasureNotificationSubject } from "../../../privacy/erasure-notification-subject.ts";
 import { renderExportReadyEmail } from "../../../privacy/export-ready-email.ts";
 import {
+  renderBrandDecisionEmail,
+  rejectionReasonOf,
+} from "../../../profiles/brand-decision-email.ts";
+import {
   accountSkip,
   type CallDescription,
   type Connector,
@@ -59,6 +67,7 @@ import {
 import type {
   AttemptState,
   BrevoErasureSubject,
+  BrevoProfileDecision,
   ClaimedLine,
 } from "../../repository.ts";
 import {
@@ -104,6 +113,7 @@ export const WORKER_RENDERED_EMAILS = [
   "privacy.request_received",
   "privacy.export_ready",
   "privacy.erasure_completed",
+  "profile.decision",
 ] as const;
 
 type RenderedEmailCode = (typeof WORKER_RENDERED_EMAILS)[number];
@@ -130,6 +140,11 @@ export type BrevoSubjectReader = (
   line: ClaimedLine,
 ) => Promise<BrevoSubject | null>;
 
+/** The decision of a profile.decision line (0211), without any address nor internal comment. */
+export type BrevoProfileDecisionReader = (
+  line: ClaimedLine,
+) => Promise<BrevoProfileDecision | null>;
+
 export type BrevoErasureSubjectReader = (
   line: ClaimedLine,
 ) => Promise<BrevoErasureSubject | null>;
@@ -144,6 +159,8 @@ export type BrevoConnectorDependencies = {
   readSubject: BrevoSubjectReader;
   /** Reads the held address of an executed erasure (0150, E-5 pool), its own transaction. */
   readErasureNotificationSubject: ErasureNotificationSubjectReader;
+  /** Reads the decision of a profile.decision line (0211), its own transaction. */
+  readProfileDecision: BrevoProfileDecisionReader;
   /** Reads the contact of an erased account on an account.deleted line (0136), its own transaction. */
   readErasureSubject: BrevoErasureSubjectReader;
   logger: BrevoClientLogger;
@@ -535,6 +552,59 @@ export function createBrevoConnectors(
   }
 
   /**
+   * profile.decision (06 RG66, RG69; L2C commit 09): the answer to the examination of a brand
+   * profile. The address and the account checks come from the subject (as every e-mail of an active
+   * account); the decision, its reason, the agent's message and the language from the decision read
+   * at consumption (0211), never from the payload. One decision, one e-mail: the idempotency key
+   * is the entry's. A reason outside the closed list, or `other` without its message, is a visible
+   * failure, never guessed.
+   */
+  async function profileDecision(
+    line: ClaimedLine,
+    _account: NonNullable<AttemptState["account"]>,
+    subject: BrevoSubject,
+  ): Promise<Preparation> {
+    const read = await dependencies.readProfileDecision(line);
+    if (read === null) {
+      // No decided entry of this account behind the line: nothing to announce, visible.
+      return { kind: "fail", errorCode: "decision_not_found" };
+    }
+    const locale = read.preferredLanguage === "fr" ? "fr" : "en";
+    if (read.decision === "published") {
+      return rendered(
+        line,
+        "profile.decision",
+        subject.email,
+        renderBrandDecisionEmail({ locale, decision: "published" }),
+        locale,
+      );
+    }
+    if (read.decision !== "rejected") {
+      return { kind: "fail", errorCode: "decision_unknown" };
+    }
+    const reason =
+      read.reasonCode === null ? null : rejectionReasonOf(read.reasonCode);
+    if (reason === null) {
+      return { kind: "fail", errorCode: "rejection_reason_unknown" };
+    }
+    if (reason === "other" && read.memberMessage === null) {
+      return { kind: "fail", errorCode: "member_message_missing" };
+    }
+    return rendered(
+      line,
+      "profile.decision",
+      subject.email,
+      renderBrandDecisionEmail({
+        locale,
+        decision: "rejected",
+        reason,
+        memberMessage: read.memberMessage,
+      }),
+      locale,
+    );
+  }
+
+  /**
    * privacy.erasure_completed (D72, 16 RG160 bis): the account is erased, so the address, language
    * and time zone come from the execution that holds them; nothing but the date is written.
    */
@@ -571,7 +641,7 @@ export function createBrevoConnectors(
         line: ClaimedLine,
         account: NonNullable<AttemptState["account"]>,
         subject: BrevoSubject,
-      ) => Preparation
+      ) => Preparation | Promise<Preparation>
     >
   > = {
     "account.welcome_advertiser": welcome("advertiser"),
@@ -580,6 +650,7 @@ export function createBrevoConnectors(
     "auth.new_device": newDevice,
     "privacy.request_received": dataRequestReceived,
     "privacy.export_ready": exportReady,
+    "profile.decision": profileDecision,
   };
 
   const contact: Connector = {

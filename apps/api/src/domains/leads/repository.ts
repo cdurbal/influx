@@ -162,6 +162,18 @@ export type BrevoErasureSubject = {
   email: string | null;
 };
 
+/**
+ * What the worker reads of a profile.decision line (0211): the decision of the entry, its reason, the
+ * message of the agent to the brand (reason `other` only) and the account's language. Never the
+ * internal comment (06 RG68).
+ */
+export type BrevoProfileDecision = {
+  decision: string;
+  reasonCode: string | null;
+  memberMessage: string | null;
+  preferredLanguage: string;
+};
+
 /** What the Apollo connector reads of a subject, besides the account state of the attempt (0113). */
 export type ApolloSubject = {
   email: string;
@@ -456,6 +468,36 @@ export async function readBrevoErasureSubject(
   return row === undefined
     ? null
     : { externalContactId: row.external_contact_id, email: row.email };
+}
+
+/**
+ * The decision of a profile.decision line to brevo_transactional in processing for this worker
+ * (0211): published or rejected, the reason code, the message of the agent (`other` only) and the
+ * account's language. null: no decided entry of the line's account, or the account is erased.
+ */
+export async function readBrevoProfileDecision(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<BrevoProfileDecision | null> {
+  const rows = await tx.execute<{
+    decision: string;
+    reason_code: string | null;
+    member_message: string | null;
+    preferred_language: string;
+  }>(
+    sql`select decision, reason_code, member_message, preferred_language
+          from leads.read_brevo_profile_decision(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        decision: row.decision,
+        reasonCode: row.reason_code,
+        memberMessage: row.member_message,
+        preferredLanguage: row.preferred_language,
+      };
 }
 
 /**

@@ -31,6 +31,7 @@ import type { ErasureNotificationSubject } from "../src/domains/privacy/erasure-
 import type {
   AttemptState,
   BrevoErasureSubject,
+  BrevoProfileDecision,
   ClaimedLine,
   OutboxDestination,
   SubjectAccount,
@@ -144,6 +145,8 @@ type Setup = {
   subject?: BrevoSubject | null;
   erasureSubject?: BrevoErasureSubject | null;
   notificationSubject?: ErasureNotificationSubject | null;
+  /** The decision read of a profile.decision line (0211); none by default. */
+  decision?: BrevoProfileDecision | null;
   mapContact?: typeof mapContact;
   timeoutMs?: number;
 };
@@ -189,6 +192,12 @@ function connectors(setup: Setup = {}): {
                 erasedAt: "2026-10-28T09:30:00.000Z",
               }
             : setup.notificationSubject,
+        );
+      },
+      readProfileDecision: (claimed) => {
+        reads.push(`decision:${claimed.id}`);
+        return Promise.resolve(
+          setup.decision === undefined ? null : setup.decision,
         );
       },
       ...(setup.mapContact === undefined
@@ -1900,6 +1909,164 @@ describe("D72, 16 RG160 bis: privacy.erasure_completed answers an erasure after 
       attributeNames: [],
       rejectedAttributeNames: [],
       missingSettings: [],
+    });
+  });
+});
+
+describe("L2C commit 09, 06 RG66, RG69: profile.decision answers the examination of a brand profile", () => {
+  const ENTRY = "5c0d1e2f-3a4b-4c5d-8e6f-7a8b9c0d1e2f";
+
+  function decided(): ClaimedLine {
+    return line("brevo_transactional", {
+      eventType: "profile.decision",
+      payload: {
+        event_id: "0a1b2c3d-0000-4000-8000-00000000d801",
+        account_id: ACCOUNT,
+        entry_id: ENTRY,
+        email_code: "profile.decision",
+      },
+      idempotencyKey: `profile.decision:${ENTRY}`,
+    });
+  }
+
+  const PUBLISHED: BrevoProfileDecision = {
+    decision: "published",
+    reasonCode: null,
+    memberMessage: null,
+    preferredLanguage: "fr",
+  };
+
+  const OTHER: BrevoProfileDecision = {
+    decision: "rejected",
+    reasonCode: "other",
+    memberMessage:
+      "Votre numéro de TVA ne correspond à aucune entreprise connue de nos équipes.",
+    preferredLanguage: "fr",
+  };
+
+  it("a publication leaves in the language read with its code and the key of the decision, without any template", async () => {
+    const { transactional } = connectors({
+      decision: { ...PUBLISHED, preferredLanguage: "en" },
+    });
+    const claimed = decided();
+    const result = await run(transactional, claimed);
+    expect(result).toMatchObject({ kind: "succeeded", locale: "en" });
+    const [message] = double.delivered;
+    expect(message?.body).toMatchObject({
+      to: [{ email: EMAIL }],
+      subject: "Your INFLUX brand profile is published",
+      tags: ["profile.decision"],
+    });
+    expect(message?.body.templateId).toBeUndefined();
+    expect(message?.headers["idempotency-key"]).toBe(
+      `profile.decision:${ENTRY}`,
+    );
+    // the address comes from the subject read, the decision from its own read
+    expect(reads).toEqual([claimed.id, `decision:${claimed.id}`]);
+  });
+
+  it("a refusal carries the message of its reason, in French for fr", async () => {
+    const { transactional } = connectors({
+      decision: {
+        decision: "rejected",
+        reasonCode: "duplicate_brand",
+        memberMessage: null,
+        preferredLanguage: "fr",
+      },
+    });
+    expect(await run(transactional, decided())).toMatchObject({
+      kind: "succeeded",
+      locale: "fr",
+    });
+    const [message] = double.delivered;
+    expect(message?.body.subject).toBe(
+      "Votre profil marque INFLUX n'a pas été publié",
+    );
+    expect(message?.body.textContent).toContain(
+      "Cette marque dispose déjà d'un compte INFLUX.",
+    );
+  });
+
+  it("the message of the agent (other) is escaped in the HTML part", async () => {
+    const { transactional } = connectors({
+      decision: {
+        ...OTHER,
+        memberMessage:
+          "Votre profil <b>mélange</b> deux marques & deux activités différentes.",
+      },
+    });
+    await run(transactional, decided());
+    const [message] = double.delivered;
+    expect(message?.body.htmlContent).toContain(
+      "Votre profil &lt;b&gt;mélange&lt;/b&gt; deux marques &amp; deux activités différentes.",
+    );
+    expect(message?.body.htmlContent).not.toContain("<b>");
+  });
+
+  it("a message of the agent that looks like a link is refused by the output check, nothing sent", async () => {
+    for (const message of [
+      "Voyez notre page sur https://exemple.invalid/marque pour comprendre.",
+      "Écrivez-nous à contact@exemple.invalid pour en discuter ensemble.",
+      "Passez par exemple.com pour corriger votre présentation de marque.",
+    ]) {
+      const { transactional } = connectors({
+        decision: { ...OTHER, memberMessage: message },
+      });
+      const prepared = await prepare(transactional, decided(), state());
+      expect(prepared.kind === "mapped" && prepared.description).toMatchObject({
+        operation: "send_transactional",
+        rejectedAttributeNames: ["htmlContent", "textContent"],
+      });
+      expect(await run(transactional, decided())).toEqual({
+        kind: "failed",
+        errorCode: "output_check_rejected",
+      });
+    }
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("fails visibly, nothing sent: no decided entry, a reason outside the list, other without its message", async () => {
+    const failure = (decision: BrevoProfileDecision | null) =>
+      prepare(connectors({ decision }).transactional, decided(), state());
+    expect(await failure(null)).toEqual({
+      kind: "fail",
+      errorCode: "decision_not_found",
+    });
+    expect(await failure({ ...PUBLISHED, decision: "withdrawn" })).toEqual({
+      kind: "fail",
+      errorCode: "decision_unknown",
+    });
+    expect(
+      await failure({ ...OTHER, reasonCode: "made_up", memberMessage: null }),
+    ).toEqual({ kind: "fail", errorCode: "rejection_reason_unknown" });
+    expect(await failure({ ...OTHER, reasonCode: null })).toEqual({
+      kind: "fail",
+      errorCode: "rejection_reason_unknown",
+    });
+    expect(await failure({ ...OTHER, memberMessage: null })).toEqual({
+      kind: "fail",
+      errorCode: "member_message_missing",
+    });
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("an account that is not active gets nothing and its decision is not read", async () => {
+    const { transactional } = connectors({ decision: PUBLISHED });
+    expect(
+      (await prepare(transactional, decided(), state({ status: "deleted" })))
+        .kind,
+    ).toBe("skip");
+    expect(reads.filter((read) => read.startsWith("decision:"))).toEqual([]);
+  });
+
+  it("redirect: an address outside BREVO_TEST_RECIPIENTS is skipped_non_production", async () => {
+    const { transactional } = connectors({
+      decision: PUBLISHED,
+      settings: { testRecipients: ["someone-else@example.test"] },
+    });
+    expect(await prepare(transactional, decided(), state())).toEqual({
+      kind: "skip",
+      reason: "skipped_non_production",
     });
   });
 });

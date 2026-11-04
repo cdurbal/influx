@@ -122,6 +122,37 @@
         "reason": "vous avez supprimé votre compte INFLUX"
       }
     },
+    "profileDecision": {
+      "published": {
+        "subject": "Votre profil marque INFLUX est publié",
+        "preheader": "Un commercial INFLUX a relu et publié le profil de votre marque.",
+        "title": "Votre profil marque est publié",
+        "body": "Un commercial INFLUX a relu le profil de votre marque et l'a publié.",
+        "edit": "Vous pouvez le consulter depuis votre espace INFLUX. Si vous modifiez ensuite le nom, le logo, la présentation, le site, la fonction du contact ou le secteur principal, la modification sera relue avant d'être publiée ; en attendant, la version publiée reste en place.",
+        "why": "le profil de votre marque a été relu par un commercial INFLUX"
+      },
+      "rejected": {
+        "subject": "Votre profil marque INFLUX n'a pas été publié",
+        "preheader": "Un commercial INFLUX a relu le profil de votre marque : voici pourquoi il n'est pas publié.",
+        "title": "Votre profil marque n'a pas été publié",
+        "body": "Un commercial INFLUX a relu le profil de votre marque et ne l'a pas publié en l'état.",
+        "why": "le profil de votre marque a été relu par un commercial INFLUX"
+      },
+      "reason": {
+        "contact_in_public_field": "Votre présentation contient une adresse, un numéro ou un lien de contact. Les coordonnées ne sont visibles qu'une fois la mise en relation ouverte.",
+        "presentation_insufficient": "Votre présentation ne permet pas à un créateur de comprendre votre activité.",
+        "logo_non_compliant": "Votre logo comporte des coordonnées ou n'est pas lisible.",
+        "misleading_brand_name": "Le nom déclaré correspond à une marque que vous ne semblez pas représenter.",
+        "sector_inconsistent": "Le secteur déclaré ne correspond pas à votre activité.",
+        "illicit_content": "Le contenu de votre profil ne peut pas être publié : il est contraire à la loi ou aux conditions d'utilisation d'INFLUX.",
+        "duplicate_brand": "Cette marque dispose déjà d'un compte INFLUX.",
+        "other": "Votre profil n'a pas pu être publié en l'état. Le message de l'équipe INFLUX :"
+      },
+      "nextStep": {
+        "fix": "Corrigez votre profil depuis votre espace INFLUX, puis soumettez-le de nouveau.",
+        "contact": "Pour en discuter, contactez INFLUX depuis l'aide de l'écran de connexion."
+      }
+    },
     "internal": {
       "criticalAlert": {
         "subject": "INFLUX — Alerte critique / Critical alert",
