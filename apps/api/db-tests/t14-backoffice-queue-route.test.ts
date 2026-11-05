@@ -2062,17 +2062,34 @@ describe("the logo of an entry (06 RG9, RG15; 15 RG36, C2; invariants 7, 11, 13;
       ).toBe(true);
       // the closed answer: no key, no account, no address of Storage, no token (T9.2 as D80 amends it)
       expect(Object.keys(body).sort()).toEqual(["logo", "state"]);
+      expect(Object.keys(body.logo).sort()).toEqual([
+        "byteSize",
+        "contentType",
+        "data",
+        "height",
+        "updatedAt",
+        "width",
+      ]);
+      // the logo bytes are random base64, which can hold "http" by chance: every other field is checked,
+      // and the base64 is only checked for what a key or an id would look like
+      const { data: _bytes, ...logoFields } = body.logo;
+      const withoutBytes = JSON.stringify({ ...body, logo: logoFields });
       for (const forbidden of [
         logo.key,
         brand.accountId,
         "supabase",
         "token",
         "http",
+        "://",
       ]) {
-        expect(response.body.toLowerCase(), forbidden).not.toContain(
+        expect(withoutBytes.toLowerCase(), forbidden).not.toContain(
           forbidden.toLowerCase(),
         );
       }
+      for (const forbidden of [logo.key, brand.accountId]) {
+        expect(body.logo.data, forbidden).not.toContain(forbidden);
+      }
+      expect(body.logo.data).toMatch(/^[A-Za-z0-9+/]+={0,2}$/);
     }
     // the object is asked for by the key of the database, nothing else
     expect(store.asked).toEqual([active.key, proposed.key, active.key]);
