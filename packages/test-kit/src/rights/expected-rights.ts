@@ -205,6 +205,46 @@ export const BRAND_PROFILE_LISTS: readonly {
   },
 ];
 
+/**
+ * The five list tables of the creator storefront (0216, L2D), each with the insert of its probe:
+ * a code of account A that the data set does not hold, within the cap of the list (`slot`).
+ */
+export const CREATOR_PROFILE_LISTS: readonly {
+  table: string;
+  insertTemplate: string;
+}[] = [
+  {
+    table: "profiles.creator_topics",
+    insertTemplate:
+      "insert into profiles.creator_topics (account_id, slot, topic_code) " +
+      "values ($1, 3, 'travel')",
+  },
+  {
+    table: "profiles.creator_publication_languages",
+    insertTemplate:
+      "insert into profiles.creator_publication_languages (account_id, slot, language_code) " +
+      "values ($1, 5, 'de')",
+  },
+  {
+    table: "profiles.creator_tones",
+    insertTemplate:
+      "insert into profiles.creator_tones (account_id, slot, tone_code) " +
+      "values ($1, 2, 'expert')",
+  },
+  {
+    table: "profiles.creator_formats",
+    insertTemplate:
+      "insert into profiles.creator_formats (account_id, format_code) " +
+      "values ($1, 'ugc_photo')",
+  },
+  {
+    table: "profiles.creator_usage_rights",
+    insertTemplate:
+      "insert into profiles.creator_usage_rights (account_id, usage_right_code, inclusion) " +
+      "values ($1, 'paid_whitelisting', 'optional')",
+  },
+];
+
 export const TABLE_RIGHTS: readonly TableRights[] = [
   {
     table: "reference.countries",
@@ -821,6 +861,74 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     ),
   },
   {
+    table: "profiles.creator_public_profiles",
+    source:
+      "0216 (L2D, 04 §5.2, 07 RG16 layer A; l2d/modele.md « Droits »): NOTHING for " +
+      "influx_advertiser at Lot 2 (EC-L2D-1, P5); inserted by identity.provision_account() " +
+      "(influx_identity_definer)",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    // One of the ten entered columns; status, alias, public_ref and the derived bands are not his.
+    updateSet: "headline = headline",
+    expected: merge(
+      {
+        influx_creator: {
+          select: {
+            form: "propre",
+            source:
+              "modele.md « Droits »: the creator reads his own storefront",
+          },
+          update: {
+            form: "propre",
+            source:
+              "modele.md « Droits »: the ten entered columns of his storefront, never status, " +
+              "alias, public_ref nor a derived band (fiche invariant 7)",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source:
+            "modele.md « Droits »: agent and admin read every storefront, aal2",
+        },
+      }),
+    ),
+  },
+  ...CREATOR_PROFILE_LISTS.map(({ table, insertTemplate }): TableRights => ({
+    table,
+    source:
+      "0216 (L2D, 07 RG26, RG33, RG34, RG64, RG73): a list of the creator storefront; NOTHING " +
+      "for influx_advertiser (EC-L2D-1)",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    insertTemplate,
+    expected: merge(
+      {
+        influx_creator: {
+          select: {
+            form: "propre",
+            source: "modele.md « Droits »: the creator's own choices",
+          },
+          insert: {
+            form: "propre",
+            source: "modele.md « Droits »: a choice added to his own list",
+          },
+          delete: {
+            form: "propre",
+            source: "modele.md « Droits »: a list is replaced, never updated",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source: "modele.md « Droits »: agent and admin, aal2",
+        },
+      }),
+    ),
+  })),
+  {
     table: "ops.error_groups",
     source: "0016 (D60, 02 §20.5; E-6)",
     // The two columns influx_ops reads for the upsert of a fingerprint; the update probe is a
@@ -1281,7 +1389,9 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * its sections 4 and 5; then with those of 0203 (L2B commit 06, the submission), each line checked
  * against its sections 3 and 4; then with those of 0204 (L2B commit 08, the brand logo), each line
  * checked against its sections 5 and 6; then with those of 0205 (L2B commit 09, the task
- * storage_purge), each line checked against its sections 2 and 3.
+ * storage_purge), each line checked against its sections 2 and 3; and on 2026-11-05 with those of
+ * 0216 (L2D commit 03, the creator storefront), each line checked against its section 5 and the
+ * table « Droits » of jalons/l2d/modele.md.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -3272,6 +3382,57 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_moderation_definer|column|profiles.brand_logo_objects.object_key|SELECT",
   "influx_moderation_definer|column|profiles.brand_logo_objects.width|SELECT",
   "influx_moderation_definer|function|profiles.read_advertiser_review_logo(uuid,uuid)|EXECUTE",
+  // 0216 (L2D commit 03, l2d/modele.md « Droits »): the creator storefront and its five lists. The
+  // creator reads his own rows, writes the ten entered columns of the storefront and adds or removes
+  // his list rows; agent and admin read in aal2; influx_identity_definer inserts the row of a creator
+  // at sign-up and draws its alias; NOTHING for influx_advertiser (EC-L2D-1, P5).
+  "influx_admin|table|profiles.creator_formats|SELECT",
+  "influx_admin|table|profiles.creator_public_profiles|SELECT",
+  "influx_admin|table|profiles.creator_publication_languages|SELECT",
+  "influx_admin|table|profiles.creator_tones|SELECT",
+  "influx_admin|table|profiles.creator_topics|SELECT",
+  "influx_admin|table|profiles.creator_usage_rights|SELECT",
+  "influx_agent|table|profiles.creator_formats|SELECT",
+  "influx_agent|table|profiles.creator_public_profiles|SELECT",
+  "influx_agent|table|profiles.creator_publication_languages|SELECT",
+  "influx_agent|table|profiles.creator_tones|SELECT",
+  "influx_agent|table|profiles.creator_topics|SELECT",
+  "influx_agent|table|profiles.creator_usage_rights|SELECT",
+  "influx_creator|column|profiles.creator_formats.account_id|INSERT",
+  "influx_creator|column|profiles.creator_formats.format_code|INSERT",
+  "influx_creator|column|profiles.creator_public_profiles.accepts_non_monetary|UPDATE",
+  "influx_creator|column|profiles.creator_public_profiles.availability_band|UPDATE",
+  "influx_creator|column|profiles.creator_public_profiles.bio|UPDATE",
+  "influx_creator|column|profiles.creator_public_profiles.collaboration_experience_band|UPDATE",
+  "influx_creator|column|profiles.creator_public_profiles.delivery_lead_band|UPDATE",
+  "influx_creator|column|profiles.creator_public_profiles.headline|UPDATE",
+  "influx_creator|column|profiles.creator_public_profiles.max_exclusivity_band|UPDATE",
+  "influx_creator|column|profiles.creator_public_profiles.primary_topic_code|UPDATE",
+  "influx_creator|column|profiles.creator_public_profiles.residence_region_code|UPDATE",
+  "influx_creator|column|profiles.creator_public_profiles.travel_scope|UPDATE",
+  "influx_creator|column|profiles.creator_publication_languages.account_id|INSERT",
+  "influx_creator|column|profiles.creator_publication_languages.language_code|INSERT",
+  "influx_creator|column|profiles.creator_publication_languages.slot|INSERT",
+  "influx_creator|column|profiles.creator_tones.account_id|INSERT",
+  "influx_creator|column|profiles.creator_tones.slot|INSERT",
+  "influx_creator|column|profiles.creator_tones.tone_code|INSERT",
+  "influx_creator|column|profiles.creator_topics.account_id|INSERT",
+  "influx_creator|column|profiles.creator_topics.slot|INSERT",
+  "influx_creator|column|profiles.creator_topics.topic_code|INSERT",
+  "influx_creator|column|profiles.creator_usage_rights.account_id|INSERT",
+  "influx_creator|column|profiles.creator_usage_rights.inclusion|INSERT",
+  "influx_creator|column|profiles.creator_usage_rights.usage_right_code|INSERT",
+  "influx_creator|schema|profiles|USAGE",
+  "influx_creator|table|profiles.creator_formats|DELETE,SELECT",
+  "influx_creator|table|profiles.creator_public_profiles|SELECT",
+  "influx_creator|table|profiles.creator_publication_languages|DELETE,SELECT",
+  "influx_creator|table|profiles.creator_tones|DELETE,SELECT",
+  "influx_creator|table|profiles.creator_topics|DELETE,SELECT",
+  "influx_creator|table|profiles.creator_usage_rights|DELETE,SELECT",
+  "influx_identity_definer|column|profiles.creator_public_profiles.account_id|INSERT",
+  "influx_identity_definer|column|profiles.creator_public_profiles.alias|INSERT",
+  "influx_identity_definer|column|profiles.creator_public_profiles.residence_country_code|INSERT",
+  "influx_identity_definer|function|profiles.new_creator_alias()|EXECUTE",
 ];
 
 /**

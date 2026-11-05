@@ -346,6 +346,52 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
                 '"T2 presentation"'::jsonb, 'withdrawn', ${REVIEW_ENTRY_IDS[side]}, now())
         on conflict do nothing`;
     }
+    // 0216 (L2D): the storefront of each creator and one row in each of its lists, so that
+    // `propre` is observable against account B; the T2 insert templates add other codes to A.
+    // Fixed aliases, in the alphabet of profiles.new_creator_alias() (a stack that ran the reprise
+    // of 0216 after the data set keeps the drawn ones).
+    const creatorRows = {
+      a: {
+        alias: "ZZZZ22",
+        topic: "beauty",
+        language: "fr",
+        tone: "educational",
+        format: "instagram_reel",
+        right: "organic_repost",
+      },
+      b: {
+        alias: "ZZZZ23",
+        topic: "fashion",
+        language: "en",
+        tone: "humorous",
+        format: "tiktok_video",
+        right: "media_buy",
+      },
+    } as const;
+    for (const side of ["a", "b"] as const) {
+      const account = accountIdOf("creator", side);
+      const rows = creatorRows[side];
+      await tx`
+        insert into profiles.creator_public_profiles
+          (account_id, alias, residence_country_code, headline)
+        values (${account}, ${rows.alias}, 'FR', ${`T2 headline ${side}`})
+        on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_topics (account_id, slot, topic_code)
+        values (${account}, 1, ${rows.topic}) on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_publication_languages (account_id, slot, language_code)
+        values (${account}, 1, ${rows.language}) on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_tones (account_id, slot, tone_code)
+        values (${account}, 1, ${rows.tone}) on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_formats (account_id, format_code)
+        values (${account}, ${rows.format}) on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_usage_rights (account_id, usage_right_code, inclusion)
+        values (${account}, ${rows.right}, 'included') on conflict do nothing`;
+    }
     await tx`
       insert into leads.outbox_events
         (event_id, event_type, destination, subject_key, payload, idempotency_key)
