@@ -88,6 +88,14 @@ export const FIELD_REVISION_IDS = {
   a: "00000000-0000-4000-8000-00000000ff10",
   b: "00000000-0000-4000-8000-00000000ff11",
 } as const;
+/**
+ * The primary network line of creators A and B (0217, L2D): fixed, so that the exact audience of
+ * the data set and the insert templates of T2 can name the line they belong to.
+ */
+export const CREATOR_SOCIAL_ACCOUNT_IDS = {
+  a: "00000000-0000-4000-8000-00000000ff12",
+  b: "00000000-0000-4000-8000-00000000ff13",
+} as const;
 
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
@@ -391,6 +399,68 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
       await tx`
         insert into profiles.creator_usage_rights (account_id, usage_right_code, inclusion)
         values (${account}, ${rows.right}, 'included') on conflict do nothing`;
+    }
+    // 0217 (L2D): the identifying objects of each creator. The identity row comes with the
+    // storefront (trigger, or the reprise of 0217 on an older stack); one primary network line with
+    // its exact figures and one row per audience dimension; one refused sector; one history row
+    // (append-only: inserted once, never updated).
+    const identityRows = {
+      a: {
+        network: "instagram",
+        handle: "t2_creator_a",
+        followers: 47312,
+        country: "FR",
+        age: "18_24",
+        gender: "female",
+        sector: "gambling",
+      },
+      b: {
+        network: "tiktok",
+        handle: "t2_creator_b",
+        followers: 1200,
+        country: "GB",
+        age: "25_34",
+        gender: "male",
+        sector: "alcohol",
+      },
+    } as const;
+    for (const side of ["a", "b"] as const) {
+      const account = accountIdOf("creator", side);
+      const rows = identityRows[side];
+      const line = CREATOR_SOCIAL_ACCOUNT_IDS[side];
+      await tx`
+        insert into profiles.creator_identities (account_id) values (${account})
+        on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_social_accounts
+          (id, account_id, network_code, is_primary, handle, followers_count, posts_last_30_days,
+           avg_comments_per_post)
+        values (${line}, ${account}, ${rows.network}, true, ${rows.handle}, ${rows.followers},
+                14, 35)
+        on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_audience_countries
+          (social_account_id, account_id, slot, country_code, share_percent)
+        values (${line}, ${account}, 0, ${rows.country}, 72) on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_audience_ages
+          (social_account_id, account_id, age_band_code, share_percent)
+        values (${line}, ${account}, ${rows.age}, 40) on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_audience_genders
+          (social_account_id, account_id, gender_code, share_percent)
+        values (${line}, ${account}, ${rows.gender}, 61) on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_refused_sectors (account_id, sector_code)
+        values (${account}, ${rows.sector}) on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_network_metrics_history
+          (account_id, social_account_id, network_code, followers_count, posts_last_30_days,
+           avg_comments_per_post, figures_source, confirmed, recorded_by_account_id)
+        select ${account}, ${line}, ${rows.network}, ${rows.followers}, 14, 35, 'declared', true,
+               ${account}
+         where not exists (select 1 from profiles.creator_network_metrics_history
+                            where account_id = ${account})`;
     }
     await tx`
       insert into leads.outbox_events

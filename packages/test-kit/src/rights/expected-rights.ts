@@ -19,6 +19,7 @@
 //
 // ANY CHANGE TO THIS FILE IS A CHANGE OF RIGHTS: the commit carries `security-reviewed: <date>`
 // (03 I-4, 18 C-8), checked by the CI like a migration.
+import { CREATOR_SOCIAL_ACCOUNT_IDS } from "../db/dataset.ts";
 
 /**
  * Postgres roles taken at execution time (18 T2.1): J2, plus influx_ops at J4 (0016), plus
@@ -245,6 +246,38 @@ export const CREATOR_PROFILE_LISTS: readonly {
   },
 ];
 
+/**
+ * The three exact audience tables of a network line (0217, L2D), each with the insert of its probe:
+ * a row of the primary line of creator A that the data set does not hold. For account B the policy
+ * refuses it (42501) before the composite foreign key is checked.
+ */
+export const CREATOR_AUDIENCE_TABLES: readonly {
+  table: string;
+  insertTemplate: string;
+}[] = [
+  {
+    table: "profiles.creator_audience_countries",
+    insertTemplate:
+      "insert into profiles.creator_audience_countries " +
+      "(social_account_id, account_id, slot, country_code, share_percent) " +
+      `values ('${CREATOR_SOCIAL_ACCOUNT_IDS.a}', $1, 1, 'BE', 15)`,
+  },
+  {
+    table: "profiles.creator_audience_ages",
+    insertTemplate:
+      "insert into profiles.creator_audience_ages " +
+      "(social_account_id, account_id, age_band_code, share_percent) " +
+      `values ('${CREATOR_SOCIAL_ACCOUNT_IDS.a}', $1, '35_44', 20)`,
+  },
+  {
+    table: "profiles.creator_audience_genders",
+    insertTemplate:
+      "insert into profiles.creator_audience_genders " +
+      "(social_account_id, account_id, gender_code, share_percent) " +
+      `values ('${CREATOR_SOCIAL_ACCOUNT_IDS.a}', $1, 'other', 5)`,
+  },
+];
+
 export const TABLE_RIGHTS: readonly TableRights[] = [
   {
     table: "reference.countries",
@@ -281,6 +314,13 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
           "0201: read like every reference list, EMPTY at L2A by design (D78, L2A founder answer 2)",
       },
     }),
+  },
+  {
+    table: "reference.network_url_hosts",
+    source:
+      "0217 (L2D, l2d/modele.md point 5): the hosts of the ten networks, rights of 0201",
+    probeColumn: "network_code",
+    expected: forRoles(BUSINESS, { select: LOT2_REFERENCE_READ }),
   },
   {
     table: "identity.accounts",
@@ -929,6 +969,172 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     ),
   })),
   {
+    table: "profiles.creator_identities",
+    source:
+      "0217 (L2D, 04 §5.2 and §6.2 (c), 07 RG16 layer N; l2d/modele.md « Droits »): NOTHING for " +
+      "influx_advertiser, ever (P5, 04 §11.3, non reversible); the row is inserted with the " +
+      "storefront (influx_identity_definer)",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    updateSet: "legal_first_name = legal_first_name",
+    expected: merge(
+      {
+        influx_creator: {
+          select: {
+            form: "propre",
+            source:
+              "04 §6.2 (c), modele.md « Droits »: the creator reads his own identity",
+          },
+          update: {
+            form: "propre",
+            source:
+              "modele.md « Droits »: the nine entered columns of his own identity, never inserted " +
+              "nor deleted by him",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source: "04 §6.2 (c), modele.md « Droits »: agent and admin, aal2",
+        },
+      }),
+    ),
+  },
+  // The three exact audience tables BEFORE the network lines: the delete probe of a line takes its
+  // audience with it (on delete cascade), and their own probes need the rows of the data set.
+  ...CREATOR_AUDIENCE_TABLES.map(({ table, insertTemplate }): TableRights => ({
+    table,
+    source:
+      "0217 (L2D, 07 RG57, RG59 layer I; l2d/modele.md « Droits », EC-02-6): the exact audience " +
+      "of a network line; NOTHING for influx_advertiser before the reveal (0401)",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    insertTemplate,
+    expected: merge(
+      {
+        influx_creator: {
+          select: {
+            form: "propre",
+            source: "modele.md « Droits »: the audience of his own lines",
+          },
+          insert: {
+            form: "propre",
+            source:
+              "modele.md « Droits »: a row added to his own line (composite foreign key)",
+          },
+          delete: {
+            form: "propre",
+            source:
+              "modele.md « Droits »: a breakdown is replaced, never updated",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source: "modele.md « Droits »: agent and admin, aal2",
+        },
+      }),
+    ),
+  })),
+  {
+    table: "profiles.creator_refused_sectors",
+    source:
+      "0217 (L2D, 07 RG75 layer N; l2d/modele.md « Droits »): never exposed, NOTHING for " +
+      "influx_advertiser, ever",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    insertTemplate:
+      "insert into profiles.creator_refused_sectors (account_id, sector_code) " +
+      "values ($1, 'crypto')",
+    expected: merge(
+      {
+        influx_creator: {
+          select: {
+            form: "propre",
+            source: "modele.md « Droits »: his own refused sectors",
+          },
+          insert: {
+            form: "propre",
+            source: "modele.md « Droits »: a sector added to his own list",
+          },
+          delete: {
+            form: "propre",
+            source: "modele.md « Droits »: a list is replaced, never updated",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source: "modele.md « Droits »: agent and admin, aal2",
+        },
+      }),
+    ),
+  },
+  {
+    table: "profiles.creator_social_accounts",
+    source:
+      "0217 (L2D, 04 §5.2, 07 RG41 to RG47 layer I; l2d/modele.md « Droits »): NOTHING for " +
+      "influx_advertiser before the reveal of Lot 4 (0401)",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    // One entered column; figures_source, figures_measured_at and network_code are not his.
+    updateSet: "handle = handle",
+    insertTemplate:
+      "insert into profiles.creator_social_accounts (account_id, network_code, handle) " +
+      "values ($1, 'youtube', 't2_probe_line')",
+    expected: merge(
+      {
+        influx_creator: {
+          select: {
+            form: "propre",
+            source: "modele.md « Droits »: his own network lines",
+          },
+          insert: {
+            form: "propre",
+            source:
+              "modele.md « Droits »: a line declared with its entered columns, never its source " +
+              "nor its date",
+          },
+          update: {
+            form: "propre",
+            source:
+              "modele.md « Droits »: the entered columns of his own line (EC-L2D-04-1: never its " +
+              "network)",
+          },
+          delete: {
+            form: "propre",
+            source:
+              "modele.md « Droits »: a line removed, its audience with it",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source: "modele.md « Droits »: agent and admin, aal2",
+        },
+      }),
+    ),
+  },
+  {
+    table: "profiles.creator_network_metrics_history",
+    source:
+      "0217 (L2D, 07 RG119 layer N, 04 §12.12 point 6): append-only, read by agent and admin " +
+      "only; written by 0218, deleted with the account only (0219, Q18)",
+    appendOnly: true,
+    probeColumn: "account_id",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "04 §12.12 point 6, 07 RG119: the commercial and the administrator see the evolution, aal2",
+      },
+    }),
+  },
+  {
     table: "ops.error_groups",
     source: "0016 (D60, 02 §20.5; E-6)",
     // The two columns influx_ops reads for the upsert of a fingerprint; the update probe is a
@@ -1391,7 +1597,8 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * checked against its sections 5 and 6; then with those of 0205 (L2B commit 09, the task
  * storage_purge), each line checked against its sections 2 and 3; and on 2026-11-05 with those of
  * 0216 (L2D commit 03, the creator storefront), each line checked against its section 5 and the
- * table « Droits » of jalons/l2d/modele.md.
+ * table « Droits » of jalons/l2d/modele.md; then with those of 0217 (L2D commit 04, the identifying
+ * objects), each line checked against its section 8 and the same table.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -3433,6 +3640,73 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|column|profiles.creator_public_profiles.alias|INSERT",
   "influx_identity_definer|column|profiles.creator_public_profiles.residence_country_code|INSERT",
   "influx_identity_definer|function|profiles.new_creator_alias()|EXECUTE",
+  // 0217 (L2D commit 04, l2d/modele.md « Droits »): the identifying objects of a creator. The creator
+  // reads his own rows, writes the nine entered columns of his identity, declares and corrects his
+  // network lines (never their source, date nor network), adds and removes his exact audience and
+  // refused sectors; agent and admin read every table in aal2, the history included; nobody writes
+  // the history yet (0218); influx_identity_definer inserts the identity row with the storefront;
+  // the four business roles read the hosts of the networks; NOTHING for influx_advertiser on any
+  // creator object (P5, 04 §11.3, non reversible).
+  "influx_admin|table|profiles.creator_audience_ages|SELECT",
+  "influx_admin|table|profiles.creator_audience_countries|SELECT",
+  "influx_admin|table|profiles.creator_audience_genders|SELECT",
+  "influx_admin|table|profiles.creator_identities|SELECT",
+  "influx_admin|table|profiles.creator_network_metrics_history|SELECT",
+  "influx_admin|table|profiles.creator_refused_sectors|SELECT",
+  "influx_admin|table|profiles.creator_social_accounts|SELECT",
+  "influx_admin|table|reference.network_url_hosts|SELECT",
+  "influx_advertiser|table|reference.network_url_hosts|SELECT",
+  "influx_agent|table|profiles.creator_audience_ages|SELECT",
+  "influx_agent|table|profiles.creator_audience_countries|SELECT",
+  "influx_agent|table|profiles.creator_audience_genders|SELECT",
+  "influx_agent|table|profiles.creator_identities|SELECT",
+  "influx_agent|table|profiles.creator_network_metrics_history|SELECT",
+  "influx_agent|table|profiles.creator_refused_sectors|SELECT",
+  "influx_agent|table|profiles.creator_social_accounts|SELECT",
+  "influx_agent|table|reference.network_url_hosts|SELECT",
+  "influx_creator|column|profiles.creator_audience_ages.account_id|INSERT",
+  "influx_creator|column|profiles.creator_audience_ages.age_band_code|INSERT",
+  "influx_creator|column|profiles.creator_audience_ages.share_percent|INSERT",
+  "influx_creator|column|profiles.creator_audience_ages.social_account_id|INSERT",
+  "influx_creator|column|profiles.creator_audience_countries.account_id|INSERT",
+  "influx_creator|column|profiles.creator_audience_countries.country_code|INSERT",
+  "influx_creator|column|profiles.creator_audience_countries.share_percent|INSERT",
+  "influx_creator|column|profiles.creator_audience_countries.slot|INSERT",
+  "influx_creator|column|profiles.creator_audience_countries.social_account_id|INSERT",
+  "influx_creator|column|profiles.creator_audience_genders.account_id|INSERT",
+  "influx_creator|column|profiles.creator_audience_genders.gender_code|INSERT",
+  "influx_creator|column|profiles.creator_audience_genders.share_percent|INSERT",
+  "influx_creator|column|profiles.creator_audience_genders.social_account_id|INSERT",
+  "influx_creator|column|profiles.creator_identities.address_line|UPDATE",
+  "influx_creator|column|profiles.creator_identities.city|UPDATE",
+  "influx_creator|column|profiles.creator_identities.completeness_percent|UPDATE",
+  "influx_creator|column|profiles.creator_identities.contact_email|UPDATE",
+  "influx_creator|column|profiles.creator_identities.contact_phone|UPDATE",
+  "influx_creator|column|profiles.creator_identities.country_code|UPDATE",
+  "influx_creator|column|profiles.creator_identities.legal_first_name|UPDATE",
+  "influx_creator|column|profiles.creator_identities.legal_last_name|UPDATE",
+  "influx_creator|column|profiles.creator_identities.postal_code|UPDATE",
+  "influx_creator|column|profiles.creator_refused_sectors.account_id|INSERT",
+  "influx_creator|column|profiles.creator_refused_sectors.sector_code|INSERT",
+  "influx_creator|column|profiles.creator_social_accounts.account_id|INSERT",
+  "influx_creator|column|profiles.creator_social_accounts.avg_comments_per_post|INSERT,UPDATE",
+  "influx_creator|column|profiles.creator_social_accounts.avg_reach_per_post|INSERT,UPDATE",
+  "influx_creator|column|profiles.creator_social_accounts.engagement_rate_bp|INSERT,UPDATE",
+  "influx_creator|column|profiles.creator_social_accounts.followers_count|INSERT,UPDATE",
+  "influx_creator|column|profiles.creator_social_accounts.handle|INSERT,UPDATE",
+  "influx_creator|column|profiles.creator_social_accounts.is_primary|INSERT,UPDATE",
+  "influx_creator|column|profiles.creator_social_accounts.network_code|INSERT",
+  "influx_creator|column|profiles.creator_social_accounts.posts_last_30_days|INSERT,UPDATE",
+  "influx_creator|column|profiles.creator_social_accounts.profile_url|INSERT,UPDATE",
+  "influx_creator|column|profiles.creator_social_accounts.pseudonym|INSERT,UPDATE",
+  "influx_creator|table|profiles.creator_audience_ages|DELETE,SELECT",
+  "influx_creator|table|profiles.creator_audience_countries|DELETE,SELECT",
+  "influx_creator|table|profiles.creator_audience_genders|DELETE,SELECT",
+  "influx_creator|table|profiles.creator_identities|SELECT",
+  "influx_creator|table|profiles.creator_refused_sectors|DELETE,SELECT",
+  "influx_creator|table|profiles.creator_social_accounts|DELETE,SELECT",
+  "influx_creator|table|reference.network_url_hosts|SELECT",
+  "influx_identity_definer|column|profiles.creator_identities.account_id|INSERT",
 ];
 
 /**
