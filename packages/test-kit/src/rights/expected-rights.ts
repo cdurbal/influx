@@ -3199,7 +3199,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_moderation_definer|column|profiles.advertiser_working_languages.account_id|SELECT",
   "influx_moderation_definer|column|profiles.advertiser_working_languages.language_code|SELECT",
   "influx_moderation_definer|column|profiles.brand_logo_objects.account_id|SELECT",
-  "influx_moderation_definer|column|profiles.brand_logo_objects.activated_at|UPDATE",
+  "influx_moderation_definer|column|profiles.brand_logo_objects.activated_at|SELECT,UPDATE",
   "influx_moderation_definer|column|profiles.brand_logo_objects.id|SELECT",
   "influx_moderation_definer|column|profiles.brand_logo_objects.purge_requested_at|UPDATE",
   "influx_moderation_definer|column|profiles.brand_logo_objects.state|SELECT,UPDATE",
@@ -3259,6 +3259,17 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|column|profiles.advertiser_topics.topic_code|SELECT",
   "influx_leads_definer|function|leads.read_brand_profile_attributes(bigint,text)|EXECUTE",
   "influx_worker|function|leads.read_brand_profile_attributes(bigint,text)|EXECUTE",
+  // 0213 (L2C commit 18a): the journaled read of a brand logo by an internal reader of queue 1,
+  // profiles.read_advertiser_review_logo(): the object key and the metadata of a logo; no right on
+  // Storage for any role (apps/api relays the object).
+  "influx_admin|function|profiles.read_advertiser_review_logo(uuid,uuid)|EXECUTE",
+  "influx_agent|function|profiles.read_advertiser_review_logo(uuid,uuid)|EXECUTE",
+  "influx_moderation_definer|column|profiles.brand_logo_objects.byte_size|SELECT",
+  "influx_moderation_definer|column|profiles.brand_logo_objects.created_at|SELECT",
+  "influx_moderation_definer|column|profiles.brand_logo_objects.height|SELECT",
+  "influx_moderation_definer|column|profiles.brand_logo_objects.object_key|SELECT",
+  "influx_moderation_definer|column|profiles.brand_logo_objects.width|SELECT",
+  "influx_moderation_definer|function|profiles.read_advertiser_review_logo(uuid,uuid)|EXECUTE",
 ];
 
 /**
@@ -3552,4 +3563,7 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "leads.read_brevo_profile_decision(bigint,text)": "influx_leads_definer",
   // 0212 (L2C commit 10): the worker's read of the brand attributes of a contact.
   "leads.read_brand_profile_attributes(bigint,text)": "influx_leads_definer",
+  // 0213 (L2C commit 18a): the journaled read of a brand logo by an internal reader of queue 1.
+  "profiles.read_advertiser_review_logo(uuid,uuid)":
+    "influx_moderation_definer",
 };

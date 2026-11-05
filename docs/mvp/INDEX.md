@@ -154,7 +154,7 @@
 | 1787 | 41 | 10. Ce qui sort de mon périmètre |  |
 | 1828 | 17 | 11. Mises à jour attendues dans les autres documents |  |
 
-## 04-modele-de-donnees-mvp.md (~145k tokens)
+## 04-modele-de-donnees-mvp.md (~146k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -162,31 +162,31 @@
 | 212 | 17 | 1. Les dix règles qui gouvernent ce modèle |  |
 | 229 | 57 | 2. Vue d'ensemble |  |
 | 286 | 116 | 3. Conventions communes |  |
-| 402 | 368 | 4. Le socle transverse — `influx`, `reference`, `audit` | RG1–RG115 |
+| 402 | 369 | 4. Le socle transverse — `influx`, `reference`, `audit` | RG1–RG115 |
 | 404 | 65 | ↳ 4.1 `influx` — fonctions de contexte |  |
 | 469 | 99 | ↳ 4.2 `reference` — les listes fermées partagées | RG18–RG115 |
-| 568 | 202 | ↳ 4.3 `audit` — le registre chaîné | RG1–RG109 |
-| 770 | 4484 | 5. Le schéma, domaine par domaine | RG2–RG163 |
-| 772 | 448 | ↳ 5.1 `identity` — comptes, rôles, CGU, consentement, santé de l'adresse (Lots 0 et 1) | RG18–RG106 |
-| 1220 | 277 | ↳ 5.2 `profiles` — le profil marque et le profil créateur en trois objets (Lot 2) | RG7–RG79 |
-| 1497 | 160 | ↳ 5.3 `verification` — preuves, badge, péremption (Lot 2) | RG34–RG78 |
-| 1657 | 394 | ↳ 5.4 `campaigns` — campagnes et blocs (Lot 3) | RG3–RG85 |
-| 2051 | 126 | ↳ 5.5 `search` — journal de recherche et sélections (Lot 3) | RG2–RG88 |
-| 2177 | 914 | ↳ 5.6 `matching` — l'objet pivot (Lot 4) | RG28–RG119 |
-| 3091 | 999 | ↳ 5.7 `messaging` — la conversation à trois (Lot 4) | RG13–RG146 |
-| 4090 | 365 | ↳ 5.8 `leads` — la file de synchronisation (Lot 1) | RG35–RG163 |
-| 4455 | 381 | ↳ 5.9 `billing` — les taux (vides) et les affaires | RG33–RG95 |
-| 4836 | 394 | ↳ 5.10 `backoffice` — pilotage interne | RG6–RG131 |
-| 5230 | 24 | ↳ 5.11 Le stockage de fichiers (Supabase Storage) |  |
-| 5254 | 207 | 6. Les politiques RLS — principes et exemples | RG122 |
-| 5461 | 280 | 7. Réponse aux six points du §14.2 du document `02` |  |
-| 5741 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
-| 5779 | 125 | 9. Conservation, suppression, anonymisation | RG6–RG112 |
-| 5904 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
-| 6069 | 140 | 11. Plan de migrations | RG9–RG163 |
-| 6209 | 175 | 12. Ce qui reste ouvert | RG22–RG123 |
-| 6384 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
-| 6420 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
+| 568 | 203 | ↳ 4.3 `audit` — le registre chaîné | RG1–RG109 |
+| 771 | 4484 | 5. Le schéma, domaine par domaine | RG2–RG163 |
+| 773 | 448 | ↳ 5.1 `identity` — comptes, rôles, CGU, consentement, santé de l'adresse (Lots 0 et 1) | RG18–RG106 |
+| 1221 | 277 | ↳ 5.2 `profiles` — le profil marque et le profil créateur en trois objets (Lot 2) | RG7–RG79 |
+| 1498 | 160 | ↳ 5.3 `verification` — preuves, badge, péremption (Lot 2) | RG34–RG78 |
+| 1658 | 394 | ↳ 5.4 `campaigns` — campagnes et blocs (Lot 3) | RG3–RG85 |
+| 2052 | 126 | ↳ 5.5 `search` — journal de recherche et sélections (Lot 3) | RG2–RG88 |
+| 2178 | 914 | ↳ 5.6 `matching` — l'objet pivot (Lot 4) | RG28–RG119 |
+| 3092 | 999 | ↳ 5.7 `messaging` — la conversation à trois (Lot 4) | RG13–RG146 |
+| 4091 | 365 | ↳ 5.8 `leads` — la file de synchronisation (Lot 1) | RG35–RG163 |
+| 4456 | 381 | ↳ 5.9 `billing` — les taux (vides) et les affaires | RG33–RG95 |
+| 4837 | 394 | ↳ 5.10 `backoffice` — pilotage interne | RG6–RG131 |
+| 5231 | 24 | ↳ 5.11 Le stockage de fichiers (Supabase Storage) |  |
+| 5255 | 207 | 6. Les politiques RLS — principes et exemples | RG122 |
+| 5462 | 280 | 7. Réponse aux six points du §14.2 du document `02` |  |
+| 5742 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
+| 5780 | 125 | 9. Conservation, suppression, anonymisation | RG6–RG112 |
+| 5905 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
+| 6070 | 141 | 11. Plan de migrations | RG9–RG163 |
+| 6211 | 175 | 12. Ce qui reste ouvert | RG22–RG123 |
+| 6386 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
+| 6422 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
 
 ## 05-spec-inscription-et-leads.md (~42k tokens)
 

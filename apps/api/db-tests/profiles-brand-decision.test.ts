@@ -3,7 +3,8 @@
 // RG10, RG63 to RG69, RG78; 15 RG27 C1 to C8, RG35, RG36). L2C-V1 to V4 (the lock), L2C-D1 to D6
 // (the decisions), the one profile.completed of RG78, the refusals role by role (RG6) and the codes
 // of the register (T3); L2C commit 09a (0211): the code of the decision e-mail in its payload and the
-// worker's read leads.read_brevo_profile_decision(). Each case runs in a rolled-back transaction of the local superuser, which
+// worker's read leads.read_brevo_profile_decision(); L2C commit 18a (0213): the journaled read of a
+// brand logo by an internal reader. Each case runs in a rolled-back transaction of the local superuser, which
 // acts as apps/api does (support.ts); L2C-V1 alone commits its fixture: two real concurrent
 // transactions need rows both of them see.
 import {
@@ -1691,5 +1692,278 @@ describe("0211, invariants 8, 10: the decision e-mail names its code, the worker
     });
     expect(outcome.other).toEqual([]);
     expect(outcome.erased).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// 0213 (L2C commit 18a): the journaled read of a brand logo by an internal reader of queue 1
+// ---------------------------------------------------------------------------------------------
+
+async function readLogoAs(
+  tx: Tx,
+  who: Internal,
+  entry: string,
+  logo: string,
+  aal: "aal1" | "aal2" = "aal2",
+): Promise<Attempt> {
+  return asInternal(
+    tx,
+    who,
+    () =>
+      attempt(
+        tx,
+        "select * from profiles.read_advertiser_review_logo($1, $2)",
+        [entry, logo],
+      ),
+    aal,
+  );
+}
+
+async function logoReadLines(tx: Tx, entry: string): Promise<Line[]> {
+  return (await linesOf(tx, entry)).filter(
+    (line) => line.event_type === "queue.logo_read",
+  );
+}
+
+function logoReadLine(
+  actor: string,
+  logo: string,
+  state: "active" | "in_review",
+): Line {
+  return {
+    event_type: "queue.logo_read",
+    actor,
+    payload: { queue_code: "profiles_advertiser", logo_id: logo, state },
+  };
+}
+
+describe("0213, invariants 7, 11, founder's decision: an internal reader's read of a brand logo", () => {
+  it("knows queue.logo_read: backoffice, queue_entry, sensitive (T3)", async () => {
+    const rows = await localSuperuser()<Row[]>`
+      select domain, subject_type, severity from audit.event_types
+       where code = 'queue.logo_read' and is_active`;
+    expect(rows).toEqual([
+      {
+        domain: "backoffice",
+        subject_type: "queue_entry",
+        severity: "sensitive",
+      },
+    ]);
+  });
+
+  it("returns the key and the metadata of the active logo, nothing else, and writes one nominative line per read", async () => {
+    const outcome = await scenario(async (tx) => {
+      const entry = await revisedBrandA(tx);
+      const first = rowsOf(
+        await readLogoAs(tx, AGENT_A, entry, BRAND_LOGO_IDS.a),
+      );
+      rowsOf(await readLogoAs(tx, AGENT_A, entry, BRAND_LOGO_IDS.a));
+      return { first, lines: await logoReadLines(tx, entry) };
+    });
+    expect(outcome.first).toEqual([
+      {
+        state: "active",
+        object_key: `${brandA}/${BRAND_LOGO_IDS.a}.webp`,
+        byte_size: 20000,
+        width: 512,
+        height: 512,
+        updated_at: expect.any(Date),
+      },
+    ]);
+    const line = logoReadLine(agentA, BRAND_LOGO_IDS.a, "active");
+    expect(outcome.lines).toEqual([line, line]);
+  });
+
+  it("returns the logo under review, dated by its creation (no activated_at, EC-L2C-18a-4)", async () => {
+    const outcome = await scenario(async (tx) => {
+      const entry = await revisedBrandA(tx);
+      const rows = rowsOf(await readLogoAs(tx, AGENT_A, entry, IN_REVIEW_LOGO));
+      return { rows, lines: await logoReadLines(tx, entry) };
+    });
+    expect(outcome.rows).toEqual([
+      {
+        state: "in_review",
+        object_key: `${brandA}/${IN_REVIEW_LOGO}.webp`,
+        byte_size: 15000,
+        width: 256,
+        height: 256,
+        updated_at: expect.any(Date),
+      },
+    ]);
+    expect(outcome.lines).toEqual([
+      logoReadLine(agentA, IN_REVIEW_LOGO, "in_review"),
+    ]);
+  });
+
+  it("serves a colleague reading without the claim, and an admin: the claim is unchanged (15 C2)", async () => {
+    const outcome = await scenario(async (tx) => {
+      const entry = await revisedBrandA(tx);
+      const opening = await opened(tx, AGENT_A, entry);
+      const colleague = rowsOf(
+        await readLogoAs(tx, AGENT_B, entry, IN_REVIEW_LOGO),
+      );
+      const admin = rowsOf(
+        await readLogoAs(tx, ADMIN_A, entry, BRAND_LOGO_IDS.a),
+      );
+      const [row] = await tx<Row[]>`
+        select claimed_by_account_id::text as holder
+          from profiles.advertiser_review_entries where id = ${entry}`;
+      return {
+        opening,
+        colleague,
+        admin,
+        row,
+        lines: await logoReadLines(tx, entry),
+      };
+    });
+    expect(outcome.opening.outcome).toBe("claimed");
+    expect(outcome.colleague).toHaveLength(1);
+    expect(outcome.admin).toHaveLength(1);
+    expect(outcome.row).toEqual({ holder: agentA });
+    expect(outcome.lines).toEqual([
+      logoReadLine(agentB, IN_REVIEW_LOGO, "in_review"),
+      logoReadLine(adminA, BRAND_LOGO_IDS.a, "active"),
+    ]);
+  });
+
+  it("serves the logo in force on a closed entry (EC-L2C-18a-3)", async () => {
+    const outcome = await scenario(async (tx) => {
+      const entry = await submittedBrandA(tx);
+      await claimAndPublish(tx, AGENT_A, entry);
+      const rows = rowsOf(
+        await readLogoAs(tx, AGENT_B, entry, BRAND_LOGO_IDS.a),
+      );
+      return { rows, lines: await logoReadLines(tx, entry) };
+    });
+    expect(outcome.rows).toHaveLength(1);
+    expect(outcome.lines).toEqual([
+      logoReadLine(agentB, BRAND_LOGO_IDS.a, "active"),
+    ]);
+  });
+
+  it("refuses the brand itself, a creator, an internal reader in aal1 and the elevated roles (42501), without a line", async () => {
+    const outcome = await scenario(async (tx) => {
+      const entry = await revisedBrandA(tx);
+      const call = () =>
+        attempt(
+          tx,
+          "select * from profiles.read_advertiser_review_logo($1, $2)",
+          [entry, BRAND_LOGO_IDS.a],
+        );
+      const codes = [
+        refusal(await asBrand(tx, brandA, call)).code,
+        refusal(
+          await actAsMember(
+            tx,
+            "influx_creator",
+            { accountId: creatorA, role: "creator", aal: "aal1" },
+            call,
+          ),
+        ).code,
+        refusal(await readLogoAs(tx, AGENT_A, entry, BRAND_LOGO_IDS.a, "aal1"))
+          .code,
+        refusal(await readLogoAs(tx, ADMIN_A, entry, BRAND_LOGO_IDS.a, "aal1"))
+          .code,
+      ];
+      for (const actor of ["worker", "auth", "privacy", "ops"] as const) {
+        codes.push(refusal(await actAs(tx, actor, call)).code);
+      }
+      return { codes, lines: await logoReadLines(tx, entry) };
+    });
+    expect(outcome.codes).toEqual(
+      Array.from({ length: 8 }, () => INSUFFICIENT_PRIVILEGE),
+    );
+    expect(outcome.lines).toEqual([]);
+  });
+
+  it("answers the logo of another account and an unknown entry or logo the same 42501, without a line", async () => {
+    const outcome = await scenario(async (tx) => {
+      const entry = await revisedBrandA(tx);
+      const other = refusal(
+        await readLogoAs(tx, AGENT_A, entry, BRAND_LOGO_IDS.b),
+      );
+      const unknownLogo = refusal(
+        await readLogoAs(tx, AGENT_A, entry, randomUUID()),
+      );
+      const unknownEntry = refusal(
+        await readLogoAs(tx, AGENT_A, randomUUID(), BRAND_LOGO_IDS.a),
+      );
+      return {
+        other,
+        unknownLogo,
+        unknownEntry,
+        lines: await logoReadLines(tx, entry),
+      };
+    });
+    const forbidden = { code: INSUFFICIENT_PRIVILEGE, detail: undefined };
+    expect(outcome).toEqual({
+      other: forbidden,
+      unknownLogo: forbidden,
+      unknownEntry: forbidden,
+      lines: [],
+    });
+  });
+
+  it("refuses a logo of the caller's own account (C(3)), without a line", async () => {
+    const outcome = await scenario(async (tx) => {
+      const entry = await revisedBrandA(tx);
+      // D41 keeps one role per account: lifted in this rolled-back transaction only (as for the
+      // opening above)
+      await tx.unsafe(
+        "alter table identity.account_roles drop constraint account_roles_single_role_mvp",
+      );
+      await tx`insert into identity.account_roles (account_id, role) values (${brandA}, 'agent')`;
+      await tx`
+        insert into identity.agent_profiles (account_id, first_name, activated_at, mfa_enrolled_at)
+        values (${brandA}, 'Self', now(), now())`;
+      const own = refusal(
+        await readLogoAs(
+          tx,
+          { account: brandA, role: "agent" },
+          entry,
+          BRAND_LOGO_IDS.a,
+        ),
+      );
+      return { own, lines: await logoReadLines(tx, entry) };
+    });
+    expect(outcome).toEqual({
+      own: { code: INSUFFICIENT_PRIVILEGE, detail: undefined },
+      lines: [],
+    });
+  });
+
+  it("refuses a logo pending, purging or purged, without a line", async () => {
+    const outcome = await scenario(async (tx) => {
+      const entry = await revisedBrandA(tx);
+      const pendingId = randomUUID();
+      await tx`
+        insert into profiles.brand_logo_objects (id, account_id, state, received_bytes)
+        values (${pendingId}, ${brandA}, 'pending', 30000)`;
+      const pending = refusal(await readLogoAs(tx, AGENT_A, entry, pendingId));
+      await tx`
+        update profiles.brand_logo_objects
+           set state = 'purging', purge_requested_at = now()
+         where id = ${BRAND_LOGO_IDS.a}`;
+      const purging = refusal(
+        await readLogoAs(tx, AGENT_A, entry, BRAND_LOGO_IDS.a),
+      );
+      await tx`delete from profiles.brand_logo_objects where id = ${BRAND_LOGO_IDS.a}`;
+      const purged = refusal(
+        await readLogoAs(tx, AGENT_A, entry, BRAND_LOGO_IDS.a),
+      );
+      return {
+        pending,
+        purging,
+        purged,
+        lines: await logoReadLines(tx, entry),
+      };
+    });
+    const forbidden = { code: INSUFFICIENT_PRIVILEGE, detail: undefined };
+    expect(outcome).toEqual({
+      pending: forbidden,
+      purging: forbidden,
+      purged: forbidden,
+      lines: [],
+    });
   });
 });

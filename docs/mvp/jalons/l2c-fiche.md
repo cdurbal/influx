@@ -101,6 +101,9 @@ levée (Lot 5) ; correction d'un champ par un agent (RG71, CA22 : Lot 5, répons
 | 16 | `feat(backoffice): queue template and brand profile queue` | Gabarit de liste, entrée « Files », compteurs | `backoffice-queue.spec.ts` (≤ 6 s) |
 | 17 | `feat(backoffice): brand review decision screen` | Gabarit de décision, motifs, raccourcis, enchaînement | même spec (≤ 8 s) |
 | 18 | `feat(backoffice): brand blocks on the account record` | Blocs ②, ③, sans correction | même spec (≤ 2 s) |
+| 18a | `feat(db): journaled agent read of a brand logo` | I-4. `queue.logo_read` (décision du fondateur) | `profiles-brand-decision`, T2, T3 |
+| 18b | `feat(backoffice): brand logo shown on the decision screen` | Route de lecture, image en `blob:` | `t14-backoffice-queue-route`, `backoffice-queue.spec.ts` (≤ 2 s) |
+| 18c | `feat(backoffice): queue paging and period filter through a POST search` | Page 2, « Période » (décision du fondateur) | mêmes fichiers (≤ 2 s) |
 | 19 | *(fondateur, sans titre)* | Recette `staging` | — |
 
 ## Tests
@@ -131,7 +134,7 @@ module de classes neuf : aussi `test:artifacts` et `charter-headings` (L2BT-8, t
 - [ ] E-mail de décision reçu en FR et en EN. *Preuve : ligne 19.*
 - [ ] PLK-1, PLS-7, L2BS-7, L2BS-8, L2BT-3, L2BT-7 soldés ou reportés nommément dans `21` §8.
 - [ ] `pnpm check` puis `pnpm test:e2e` verts trois fois, CI verte, durée e2e ajoutée ≤ 20 s (`run.md`) ; « Browser journeys » selon `l2c/e2e.md`.
-- [ ] Revue `testeur` et `expert-cybersecurite` soldée, attestation pour 04 à 07.
+- [ ] Revue `testeur` et `expert-cybersecurite` soldée, attestation pour 04 à 07, 09a, 10, 18a.
 
 ## Écarts, décisions ouvertes, risques
 
@@ -186,5 +189,6 @@ parallèle sur les numéros de migration ; `AccountScreen.tsx` à 815 lignes, ne
 
 1. RG71 reporté au Lot 5 : ligne 08 retirée, CA22 en `21` §8.
 2. La ligne 14 peut proposer et appliquer des éclats, sans élargir la borne de 8 min.
+3. 2026-11-05 : lecture du logo côté agent journalisée (`queue.logo_read`, lignes 18a, 18b) ; page 2 et filtre « Période » par une recherche en `POST` (ligne 18c). Écart de budget e2e : ces lignes s'ajoutent aux 20 s, mesurées à la clôture.
 
 ## Revue

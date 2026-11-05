@@ -4,7 +4,7 @@ Après un déploiement vert de `staging`, avec un compte marque soumis et un com
 
 1. Compte marque : soumettre le profil, l'état affiché est « en cours de validation ».
 2. Backoffice : « Files », « Profils marque à valider ». L'entrée est là, avec son échéance.
-3. L'ouvrir : le bandeau dit « Vous avez pris cette entrée en charge ». Vérifier qu'on peut décider sans autre onglet.
+3. L'ouvrir : le bandeau dit « Vous avez pris cette entrée en charge ». Le logo s'affiche. Vérifier qu'on peut décider sans autre onglet.
 4. Refuser avec un motif, lire le message avant de valider. E-mail reçu dans la langue du compte, sans lien ni montant.
 5. Marque : le motif s'affiche, corriger, resoumettre. Backoffice : publier. E-mail reçu.
 6. Marque : modifier la présentation. L'ancienne version reste la version publiée, la nouvelle est en attente. Changer la taille d'entreprise : effet immédiat.
