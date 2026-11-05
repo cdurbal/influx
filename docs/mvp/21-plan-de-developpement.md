@@ -163,14 +163,25 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 | L2AS-1 | `/health` de `apps/web` : le `503` d'un passage limité reste partagé entre requêtes concurrentes | Plus tard | idem |
 | L2AS-3 | `fastify` 5.12.6 et `fast-uri` (avis suivis, hors critique et élevée) | Plus tard | idem |
 | L2AS-4 | `vitest` 4.1.12 et `zod` porté par `eslint-plugin-react-hooks` (avis suivis) | Plus tard | idem |
-| L2BT-3 | Double soumission simultanée du profil marque (deux `POST submit` concurrents) : cas db | Avant production | `archives/jalons/l2b/revue.md` |
 | L2BT-4 | Échec de l'autosave de M2 : cas e2e (entrée conservée, nouvelle tentative) | Avant production | idem |
 | L2BT-5 | Largeurs de M2 croisées, FR et EN (375, 768, 1440) | Avant production | idem |
-| L2BS-1 | Gel de `published`/`suspended` en base (L2C) | Avant production | idem |
 | L2BS-4 | Connexion S3 du Storage | Avant production | idem |
-| L2BT-6 à L2BT-8 | Horloge des tests de quota ; cas `legal_name` et `country` de la soumission ; D76 à étendre | Plus tard | idem |
-| L2BS-5 à L2BS-9 | `sharp` sans borne de temps ; 2 Mio sur tout le passe-plat ; lecture des coordonnées non journalisée (L2C) ; IDN homographes ; `fastify` ≥ 5.12.6 | Plus tard | idem |
-| L2B-CI | Job « Browser journeys » : 359 s avant Storage, 429 à 481 s après (dispersion ≈ 50 s), borne 480 s (§2.3) dépassée une fois à `b5053ab` ; dérive acceptée par le fondateur le 2026-11-03, sans levier de CI ; borne sous surveillance, élargissement non décidé | Surveillance | `archives/jalons/l2b/run.md` ligne 03 |
+| L2BT-6, L2BT-8 | Horloge des tests de quota ; D76 à étendre | Plus tard | idem |
+| L2BS-5, L2BS-6, L2BS-9 | `sharp` sans borne de temps ; 2 Mio sur tout le passe-plat ; `fastify` ≥ 5.12.6 | Plus tard | idem |
+| L2C-fix2 | Relecture courte de la migration `0215` (L2CS-1 à L2CS-3, L2CT-4) par `expert-cybersecurite` : son sha rejoint l'attestation sans avoir été relu à la revue (demande du fondateur, 2026-11-05) | Avant production | `archives/jalons/l2c/revue-constats-securite.md` |
+| L2CT-5 | « Browser journeys » : éclat 1/2 à 406-440 s pour un arrêt à 450 s (≈ 20 s par ligne d'écran) ; rééquilibrer (trois éclats, ou `backoffice.spec.ts` à part) | Avant L2D | `archives/jalons/l2c/revue-constats-testeur.md` |
+| L2C-E2E | Budget e2e de L2C constaté par le fondateur (2026-11-05, aucune fusion, aucun plancher baissé) : somme des médianes 40,6 s (`fix-3`), 31,3 s (passages de clôture) pour 20 s prévus (24 s avec 18b et 18c) ; levier au jalon suivant : cas des filtres (6 à 10 s) ou éclats | Jalon suivant | `archives/jalons/l2c/run.md` lignes fix-3, B, C |
+| L2C-HARNAIS | Deux exécutions superposées de la suite base échouent parfois en 401 : `db-tests/stale-fixtures.ts` désactive tous les agents actifs ; `setLocalRolePasswords` : « tuple concurrently updated » en lancement simultané. Décision à prendre : corriger ou inscrire ici | Décision à prendre | `archives/jalons/l2c/run.md` ligne fix-1 |
+| EC-L2C-fix-2-2 | Refus RG36 d'un admin titulaire non journalisé (`record_refused_action` : `EXECUTE` agent seul) | Avant production | `archives/jalons/l2c/run.md` ligne fix-2 |
+| EC-L2C-15-1 | Libellés membres tirés de RG9, RG10, absents de RG84 (`status.revisionRefused`, `review.*`, `logo.review.*`, `fieldErrors.emptied`, `statusText.published`, `suspended`) : relus avec les textes D48 (`21` §5.8) | Avant production | `archives/jalons/l2c/run.md` ligne 15 |
+| L2C-09 | Rejeu d'une ligne transactionnelle déjà envoyée en défaut : journal `leads.transactional_sends`, `provider_message_id` unique (`0015` l. 83) | Avant production | `archives/jalons/l2c/run.md` ligne 09 |
+| CA22 | RG71 (e-mail de correction, `15` RG44, `03` C(7)) reporté au Lot 5 (réponse 1 du fondateur, 2026-11-03) | Avant production | `archives/jalons/l2c-fiche.md` |
+| L2CT-8, L2CS-8 | CA42 (`tests/brevo-connector.test.ts:2244-2261`) tautologique : valeurs dans le doublé ou test retiré ; au L2E, nom commercial dans sa colonne, `organization_name` d'Apollo lu de là, test RG80 | L2E | `archives/jalons/l2c/revue-constats-testeur.md`, `…-securite.md` |
+| L2CS-4 | `submit_own_advertiser_revision` aux contraintes de la colonne cible (domaine RG17, bornes, secteur actif), 22023 | Plus tard | `archives/jalons/l2c/revue-constats-securite.md` |
+| L2CS-5 | Message « Autre » refusé en 400 par le `LINK_PATTERN` de RG158, partagé | Plus tard | idem |
+| L2CS-6 | Index d'expression `normalized_brand_name(legal_name)`, `lower(website_domain)` sur `published` | Avant le Lot 3 | idem |
+| L2CS-7 | `lead.updated` : dernière ligne en attente par `(subject_key, destination)`, ou plafond par compte | Plus tard | idem |
+| EC-L2C-18c-1 | « Page précédente » perdue après rechargement d'une page ≥ 3 (seule « Première page ») | Plus tard | `archives/jalons/l2c/run.md` ligne 18c |
 
 **Plus tard** (sans action au Lot 2) : *avant production* J9T-1, J9S-2, J9S-4, AL53, J4S-8, manques du commit J9-11 et points `expert-ux` du commit J9-5 (`archives/jalons/j9-fiche.md`) ; *Lot 3* T15.2, F3 ; *Lot 5* classement des groupes d'erreurs, J9T-3, J9T-10, J8S-8, J8S-9, RK-16, effacement Apollo, écran des identifiants Brevo (option) ; *Lot 6* F8, J7T-6 ; *Lot 6bis* reports D70 (`archives/jalons/d70-plan.md` l. 125 à 130) ; décisions DZ-1, 2, 4 à 7 (`decisions.md`).
 
@@ -179,7 +190,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 - **PL** (préparation du Lot 2, corrections K1 et K3 à K10 de `archives/revue-pre-lot2-2026-10-31.md`) : ouvert le 2026-10-31, **clos le 2026-10-31** (critère de fin prouvé, reliquat soldé ou reporté ci-dessus, revue attestée) ; `archives/jalons/pl-fiche.md`, `archives/jalons/pl/run.md`.
 - **L2A** (reliquat RK-fin, PLS-1, PLS-3, PLT-6, SNT-3, J4S-7, listes de départ des référentiels, migration `0201`) : ouvert le 2026-11-01, **clos le 2026-11-01** (critère de fin prouvé, reliquat soldé ou reporté ci-dessus, revue attestée) ; `archives/jalons/l2a-fiche.md`, `archives/jalons/l2a/run.md`.
 - **L2B** (profil marque : saisie, logo, soumission ; `packages/domain`, Storage en CI, migrations `0202` à `0205`) : ouvert le 2026-11-01, **clos le 2026-11-03** (critère de fin prouvé, reliquat soldé ou reporté ci-dessus, revue attestée, dérive du job « Browser journeys » acceptée par le fondateur) ; `archives/jalons/l2b-fiche.md`, `archives/jalons/l2b/run.md`.
-- **L2C** (file 1 : un commercial valide ou refuse un profil marque ; reliquat PLK-1, PLS-7, L2BS-1, L2BS-7, L2BS-8, L2BT-3, L2BT-7) : ouvert le 2026-11-03 ; `jalons/l2c-fiche.md`, `jalons/l2c/run.md`.
+- **L2C** (file 1, modération du profil marque, migrations `0206` à `0214` et `0215`) : ouvert le 2026-11-03, **clos le 2026-11-05** ; `archives/jalons/l2c-fiche.md`, `archives/jalons/l2c/run.md`.
 
 **Registre des décisions** (PL-11) : `decisions.md` ne garde que sujet et statut résumés de D1 à D79 ; le texte intégral (sujet, arbitre, statut, échéance, mot pour mot) est dans `decisions-detail.md` (§ Dxx), qui fait foi en cas d'écart.
 

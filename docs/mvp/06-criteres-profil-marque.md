@@ -180,6 +180,8 @@ peut pas** : publier une campagne, lancer une recherche de créateurs, demander 
 
 Un profil ne devient jamais invisible parce que son propriétaire a corrigé une faute de frappe.
 
+*Amendé au L2C (`l2c/file.md` A2, A4, `0207`, `0209`)* : le profil reste `published` pendant l'examen (`brandProfile.status.pendingWithPublished` servi d'après la révision en attente) ; le régime « re-validation » porte six champs (`moderated_fields`), le secteur étant le seul secteur principal ; le logo proposé passe par l'état `in_review`, l'ancien logo restant actif jusqu'à la décision.
+
 **RG10** — Un profil `refusé` porte **un motif typé** choisi dans la liste fermée de RG66, reste
 intégralement modifiable et peut être resoumis sans délai. **Aucun refus muet, aucun dossier laissé
 en attente sans décision.**
@@ -507,7 +509,7 @@ marque, dans sa langue :
 | Logo non conforme | « Votre logo comporte des coordonnées ou n'est pas lisible. » | Remplacer |
 | Nom commercial trompeur | « Le nom déclaré correspond à une marque que vous ne semblez pas représenter. » | Contacter INFLUX |
 | Secteur manifestement incohérent | « Le secteur déclaré ne correspond pas à votre activité. » | Corriger |
-| Contenu illicite ou contraire aux CGU | Message dédié selon le cas | Selon le cas |
+| Contenu illicite ou contraire aux CGU | « Votre profil contient un élément contraire aux conditions d'utilisation d'INFLUX. » / « Your profile contains content that breaches the INFLUX terms of use. » *(message unique au L2C, `l2c/file.md` A6 ; relu en porte de production, `21` §5.8)* | Corriger |
 | Doublon d'une marque déjà inscrite | « Cette marque dispose déjà d'un compte INFLUX. » | Contacter INFLUX |
 | Autre | Message rédigé par l'agent, en complément d'une explication | Contacter INFLUX |
 
@@ -792,7 +794,7 @@ ne permet de renseigner un compte de réseau social de la marque.
 
 **CA15** — *Étant donné* un profil publié, *quand* l'annonceur corrige sa présentation, *alors* le
 profil repasse en `en attente de validation` **et la version précédente reste affichée** aux
-créateurs pendant l'examen.
+créateurs pendant l'examen. *Amendé au L2C (A2)* : l'état reste `published`, la révision est portée par `pendingChanges`.
 
 **CA16** — *Étant donné* un profil publié, *quand* l'annonceur change sa tranche de budget, *alors*
 la modification est visible immédiatement, **sans re-validation**.

@@ -337,7 +337,7 @@ anti-aspiration (`03` C(17)). Une liste qui se déroule sans fin est un export d
 
 **RG35** — **L'ouverture d'une entrée qui expose une identité non encore révélée, une pièce de
 vérification ou une conversation est journalisée** (`03` C(14), C(24) ; `13` RG34). Ce n'est pas une
-consultation anodine : c'est un acte.
+consultation anodine : c'est un acte. *Amendé au L2C (`l2c/file.md`)* : ouvrir une entrée de la file 1 écrit `queue.entry_opened` ; lire un logo, `queue.logo_read` (`0213`) ; sur la fiche, `history.account_read` (RG40).
 
 **RG36** — **Un rôle interne ne traite jamais une entrée impliquant un compte qu'il détient ou
 représente** (`13` RG35, `03` C(3)). L'entrée lui est masquée ; si le conflit apparaît en cours de

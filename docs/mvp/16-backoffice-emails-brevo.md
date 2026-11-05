@@ -791,7 +791,7 @@ files (`15` RG26), qui a déjà évité onze files orphelines.
 | `account.welcome_creator` | Bienvenue créateur | Compte créé | Le membre | P1 | **compte** | `05` RG86 |
 | `account.suspended` | Compte suspendu, avec le message du motif typé | Suspension | Le membre | P1 | identifiant de suspension | `15` §E |
 | `account.reactivated` | Compte réactivé | Levée de suspension | Le membre | P1 | identifiant de suspension | `15` §E |
-| `profile.decision` | Profil validé ou refusé, avec le message du motif | Décision de la file `profiles_*` | Le membre | P1 | identifiant de décision | `06`, `07` |
+| `profile.decision` | Profil validé ou refusé, avec le message du motif | Décision de la file `profiles_*` | Le membre | P1 | identifiant de décision (L2C : `profile.decision:<entry_id>`, rendu par le worker depuis `email.json`, D69) | `06`, `07` |
 | `portfolio.decision` | Visuel refusé, avec motif | Modération d'un visuel | Le créateur | P2 | identifiant de décision | `07` RG97 |
 | `badge.granted` | Badge attribué, avec son niveau et **sa date de péremption** | Décision | Le créateur | P1 | identifiant de décision | `08` |
 | `badge.refused` | Badge refusé, avec le motif | Décision | Le créateur | P1 | identifiant de décision | `08` |

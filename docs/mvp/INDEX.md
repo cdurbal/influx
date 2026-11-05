@@ -6,9 +6,6 @@
 > **Ne jamais lire une spécification en entier.** Repérer ici la section utile, puis la lire avec
 > `Read` (`offset` = ligne de départ, `limit` = nombre de lignes), ou chercher une règle précise
 > avec `Grep` (exemple : `RG113` dans le fichier concerné).
->
-> **Session de jalon : lire d'abord sa fiche**, qui cite déjà les tranches utiles :
-> `jalons/l2c-fiche.md`.
 
 ## 00-cadrage-mvp-v2.md (~16k tokens)
 
@@ -232,21 +229,21 @@
 | 37 | 20 | Besoin |  |
 | 57 | 17 | Acteurs |  |
 | 74 | 48 | User stories |  |
-| 122 | 508 | Règles de gestion | RG1–RG101 |
-| 124 | 80 | ↳ A — Portée, états et publication | RG1–RG73 |
-| 204 | 65 | ↳ B — Bloc 1 : identité publique | RG13–RG70 |
-| 269 | 45 | ↳ C — Bloc 2 : attentes de collaboration | RG5–RG34 |
-| 314 | 71 | ↳ D — Bloc 3 : interlocuteur, et masquage symétrique (D40) | RG29–RG80 |
-| 385 | 60 | ↳ E — Bloc 4 : champs internes et badge « Marque vérifiée » | RG46–RG101 |
-| 445 | 36 | ↳ F — Indicateur de complétude | RG5–RG62 |
-| 481 | 56 | ↳ G — Backoffice : validation, correction, supervision | RG63–RG72 |
-| 537 | 38 | ↳ H — Ce qu'un créateur voit d'une marque, avant et après | RG73–RG77 |
-| 575 | 55 | ↳ I — Leads, messages et accessibilité | RG78–RG85 |
-| 630 | 102 | Cas limites | RG4–RG83 |
-| 732 | 186 | Critères d'acceptation | RG42–RG84 |
-| 918 | 71 | Impacts | RG7–RG79 |
-| 989 | 20 | Hors périmètre | RG4–RG44 |
-| 1009 | 16 | Questions ouvertes | RG8–RG100 |
+| 122 | 510 | Règles de gestion | RG1–RG101 |
+| 124 | 82 | ↳ A — Portée, états et publication | RG1–RG73 |
+| 206 | 65 | ↳ B — Bloc 1 : identité publique | RG13–RG70 |
+| 271 | 45 | ↳ C — Bloc 2 : attentes de collaboration | RG5–RG34 |
+| 316 | 71 | ↳ D — Bloc 3 : interlocuteur, et masquage symétrique (D40) | RG29–RG80 |
+| 387 | 60 | ↳ E — Bloc 4 : champs internes et badge « Marque vérifiée » | RG46–RG101 |
+| 447 | 36 | ↳ F — Indicateur de complétude | RG5–RG62 |
+| 483 | 56 | ↳ G — Backoffice : validation, correction, supervision | RG63–RG72 |
+| 539 | 38 | ↳ H — Ce qu'un créateur voit d'une marque, avant et après | RG73–RG77 |
+| 577 | 55 | ↳ I — Leads, messages et accessibilité | RG78–RG85 |
+| 632 | 102 | Cas limites | RG4–RG83 |
+| 734 | 186 | Critères d'acceptation | RG42–RG84 |
+| 920 | 71 | Impacts | RG7–RG79 |
+| 991 | 20 | Hors périmètre | RG4–RG44 |
+| 1011 | 16 | Questions ouvertes | RG8–RG100 |
 
 ## 07-criteres-profil-createur-reseaux-audience.md (~37k tokens)
 
@@ -669,7 +666,7 @@
 | 860 | 56 | ↳ 11.8 Gabarits et composants |  |
 | 916 | 12 | ↳ 11.9 Points soumis au fondateur |  |
 
-## 21-plan-de-developpement.md (~6k tokens)
+## 21-plan-de-developpement.md (~7k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -681,4 +678,4 @@
 | 93 | 21 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
 | 114 | 9 | 6. Configuration des services externes |  |
 | 123 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 140 | 48 | 8. Lot 2 — entrée et jalon actif |  |
+| 140 | 59 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
