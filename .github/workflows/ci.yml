@@ -5,9 +5,9 @@
 # - `db`: the local Supabase stack, rebuilt from the migrations, and the database tests (never
 #   skipped when code changed);
 # - `e2e`: the J5 browser journeys (Playwright, Chromium headless shell only, 5-minute cap on the
-#   step) in two shards (L2C-14, docs/mvp/jalons/l2c/e2e.md), each against its own local stack,
+#   step) in three shards (L2C-14, docs/mvp/jalons/l2c/e2e.md; L2D-01), each against its own local stack,
 #   started in the background while both fronts build;
-# - `e2e-merge`: no stack; TK3.1 on the surveys of both shards, then the reports of the three runs
+# - `e2e-merge`: no stack; TK3.1 on the surveys of the shards, then the reports of the three runs
 #   merged and the floors of executed cases checked on the whole (L2C-14a);
 # - `relay-node-24`: the relay and the origin check on Node 24, the production runtime (C-2).
 # A documentation-only push to `main` runs `check`'s cheap steps alone; `production` and pull
@@ -238,11 +238,14 @@ jobs:
       - name: Database tests
         run: pnpm --filter @influx/api test:db
 
-  # L2C-14: two shards (`--project=chromium` is needed: without it, the `chromium` project, which the
+  # L2C-14, L2D-01: three shards (`--project=chromium` is needed: without it, the `chromium` project, which the
   # TK3.1 project depends on, is never split and every case goes to shard 1). The 5-minute cap of the
-  # Playwright step holds for each shard.
+  # Playwright step holds for each shard. Playwright cuts the list of cases in consecutive runs of
+  # files: with two shards, 1/2 took backoffice.spec.ts (serial, 55 cases) with six other files and
+  # ran 396 to 424 s of the job against 300 s for 2/2 (L2CT-5); with three, backoffice.spec.ts
+  # ends shard 1 with the five short files before it, the other files fill shards 2 and 3.
   e2e:
-    name: Browser journeys (${{ matrix.shard }}/2)
+    name: Browser journeys (${{ matrix.shard }}/3)
     needs: [changes]
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
@@ -250,7 +253,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3]
     # Same local stack as `db`, same raised limits of its Auth (EC-38, EC-51, C5-2).
     env:
       INFLUX_LOCAL_AUTH_SIGN_IN_LIMIT: "1000"
@@ -325,7 +328,7 @@ jobs:
         # by `e2e-merge`, which also runs TK3.1 and checks the floors of executed cases.
         timeout-minutes: 5
         working-directory: apps/web
-        run: pnpm exec playwright test --project=chromium --shard=${{ matrix.shard }}/2 --reporter=list,blob
+        run: pnpm exec playwright test --project=chromium --shard=${{ matrix.shard }}/3 --reporter=list,blob
 
       - name: Keep the blob report of the shard
         if: ${{ !cancelled() }}
@@ -346,7 +349,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # L2C-14a: no stack, no browser, no server. TK3.1 reads the surveys of both shards
+  # L2C-14a: no stack, no browser, no server. TK3.1 reads the surveys of the shards
   # (`--no-deps`: the `chromium` project ran in the shards; E2E_HEADINGS_FROM, see
   # apps/web/playwright.config.ts), then the blobs of the shards and of TK3.1 are merged into the
   # report the floors of executed cases read, as in a single run (`pnpm test:e2e`).
@@ -387,7 +390,7 @@ jobs:
           merge-multiple: true
           path: apps/web/shard-blobs
 
-      - name: TK3.1 on the surveys of both shards
+      - name: TK3.1 on the surveys of the shards
         working-directory: apps/web
         env:
           E2E_HEADINGS_FROM: shard-headings

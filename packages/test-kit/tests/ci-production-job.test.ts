@@ -136,11 +136,11 @@ describe("D76: the documentation-only skip", () => {
     }
   });
 
-  it("runs the browser journeys in two shards of the chromium project, merged by a job without stack", () => {
+  it("runs the browser journeys in three shards of the chromium project, merged by a job without stack", () => {
     const e2e = code(JOBS.get("e2e") ?? "");
-    expect(e2e).toContain("shard: [1, 2]");
+    expect(e2e).toContain("shard: [1, 2, 3]");
     expect(e2e).toContain(
-      "playwright test --project=chromium --shard=${{ matrix.shard }}/2",
+      "playwright test --project=chromium --shard=${{ matrix.shard }}/3",
     );
     const merge = code(JOBS.get("e2e-merge") ?? "");
     expect(merge).toContain("    needs: [e2e]\n");
