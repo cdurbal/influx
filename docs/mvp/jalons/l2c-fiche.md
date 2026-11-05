@@ -102,6 +102,7 @@ levée (Lot 5) ; correction d'un champ par un agent (RG71, CA22 : Lot 5, répons
 | 17 | `feat(backoffice): brand review decision screen` | Gabarit de décision, motifs, raccourcis, enchaînement | même spec (≤ 8 s) |
 | 18 | `feat(backoffice): brand blocks on the account record` | Blocs ②, ③, sans correction | même spec (≤ 2 s) |
 | 18a | `feat(db): journaled agent read of a brand logo` | I-4. `queue.logo_read` (décision du fondateur) | `profiles-brand-decision`, T2, T3 |
+| 18a2 | `fix(db): review entries for profiles submitted before the queue` | I-4. `0214` : entrées absentes des profils soumis avant `0207` (défaut de recette) | `profiles-brand-review`, toute la suite base |
 | 18b | `feat(backoffice): brand logo shown on the decision screen` | Route de lecture, image en `blob:` | `t14-backoffice-queue-route`, `backoffice-queue.spec.ts` (≤ 2 s) |
 | 18c | `feat(backoffice): queue paging and period filter through a POST search` | Page 2, « Période » (décision du fondateur) | mêmes fichiers (≤ 2 s) |
 | 19 | *(fondateur, sans titre)* | Recette `staging` | — |
@@ -134,7 +135,7 @@ module de classes neuf : aussi `test:artifacts` et `charter-headings` (L2BT-8, t
 - [ ] E-mail de décision reçu en FR et en EN. *Preuve : ligne 19.*
 - [ ] PLK-1, PLS-7, L2BS-7, L2BS-8, L2BT-3, L2BT-7 soldés ou reportés nommément dans `21` §8.
 - [ ] `pnpm check` puis `pnpm test:e2e` verts trois fois, CI verte, durée e2e ajoutée ≤ 20 s (`run.md`) ; « Browser journeys » selon `l2c/e2e.md`.
-- [ ] Revue `testeur` et `expert-cybersecurite` soldée, attestation pour 04 à 07, 09a, 10, 18a.
+- [ ] Revue `testeur` et `expert-cybersecurite` soldée, attestation pour 04 à 07, 09a, 10, 18a, 18a2.
 
 ## Écarts, décisions ouvertes, risques
 

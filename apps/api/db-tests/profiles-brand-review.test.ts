@@ -15,6 +15,8 @@ import {
   inRolledBackTransaction,
 } from "@influx/test-kit/db";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import type postgres from "postgres";
 import { describe, expect, it } from "vitest";
 import { actAsInternal, actAsMember, localSuperuser } from "./support.ts";
@@ -1998,6 +2000,122 @@ describe("file.md A3: a write during the examination changes the token", () => {
       [outcome.logo]: "active",
     });
     expect(outcome.changed).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// L2C commit 18a2: the entries of the profiles submitted before the queue (0214)
+// ---------------------------------------------------------------------------------------------
+
+const BACKFILL_SQL = readFileSync(
+  fileURLToPath(
+    new URL(
+      "../../../supabase/migrations/0214_profiles_brand_review_entries_backfill.sql",
+      import.meta.url,
+    ),
+  ),
+  "utf8",
+);
+
+describe("0214: a profile submitted before 0207 gets its entry of queue 1 (18a2.md)", () => {
+  type Facts = { status: string; submitted_at: Date | null };
+
+  async function factsOf(tx: Tx, account: string): Promise<Facts> {
+    const [row] = await tx<Facts[]>`
+      select status::text, submitted_at
+        from profiles.advertiser_profiles where account_id = ${account}`;
+    if (row === undefined) {
+      throw new Error("no profile");
+    }
+    return row;
+  }
+
+  async function countsOf(tx: Tx): Promise<{ outbox: number; audit: number }> {
+    const [row] = await tx<{ outbox: number; audit: number }[]>`
+      select (select count(*)::int from leads.outbox_events) as outbox,
+             (select count(*)::int from audit.audit_events) as audit`;
+    if (row === undefined) {
+      throw new Error("no counts");
+    }
+    return row;
+  }
+
+  it("opens one `submission` entry, its deadlines by the trigger, and writes nothing else", async () => {
+    const outcome = await scenario(async (tx) => {
+      await brandAIn(tx, "pending_review");
+      const facts = await factsOf(tx, brandA);
+      const counts = await countsOf(tx);
+      const before = await openedEntries(tx, brandA);
+      await tx.unsafe(BACKFILL_SQL);
+      const [expected] = await tx<{ sla: Date; escalate: Date }[]>`
+        select backoffice.business_deadline('profiles_advertiser', now(), p.target_decision_minutes) as sla,
+               backoffice.business_deadline(
+                 'profiles_advertiser',
+                 backoffice.business_deadline('profiles_advertiser', now(), p.target_decision_minutes),
+                 p.escalate_after_minutes) as escalate
+          from backoffice.sla_policies p
+         where p.queue_code = 'profiles_advertiser' and p.is_active`;
+      return {
+        before,
+        expected,
+        facts,
+        factsAfter: await factsOf(tx, brandA),
+        counts,
+        countsAfter: await countsOf(tx),
+        entries: await openedEntries(tx, brandA),
+      };
+    });
+    expect(outcome.before).toEqual([]);
+    expect(outcome.entries).toHaveLength(1);
+    expect(outcome.entries[0]).toMatchObject({
+      kind: "submission",
+      state: "open",
+      sla_due_at: outcome.expected?.sla,
+      escalate_at: outcome.expected?.escalate,
+    });
+    expect(outcome.factsAfter).toEqual(outcome.facts);
+    expect(outcome.countsAfter).toEqual(outcome.counts);
+  });
+
+  it("opens only one entry over two runs", async () => {
+    const entries = await scenario(async (tx) => {
+      await brandAIn(tx, "pending_review");
+      await tx.unsafe(BACKFILL_SQL);
+      await tx.unsafe(BACKFILL_SQL);
+      return openedEntries(tx, brandA);
+    });
+    expect(entries).toHaveLength(1);
+  });
+
+  it("gives a draft profile no entry, and keeps an entry already open", async () => {
+    const outcome = await scenario(async (tx) => {
+      await completeBrandA(tx);
+      await setStatus(tx, "draft");
+      await setStatus(tx, "pending_review", brandB);
+      const kept = await openEntry(tx, brandB);
+      await tx.unsafe(BACKFILL_SQL);
+      return {
+        draft: await openedEntries(tx, brandA),
+        kept,
+        other: await openedEntries(tx, brandB),
+      };
+    });
+    expect(outcome.draft).toEqual([]);
+    expect(outcome.other.map((entry) => entry.id)).toEqual([outcome.kept]);
+  });
+
+  it("gives a deleted account no entry: the queue would show an erased brand (EC-L2C-18a2-1)", async () => {
+    const entries = await scenario(async (tx) => {
+      await brandAIn(tx, "pending_review");
+      await tx`
+        update identity.accounts
+           set status = 'deleted', deleted_at = now(), anonymized_at = now(),
+               email = ${`deleted+${brandA}@invalid`}, display_name = null
+         where id = ${brandA}`;
+      await tx.unsafe(BACKFILL_SQL);
+      return openedEntries(tx, brandA);
+    });
+    expect(entries).toEqual([]);
   });
 });
 

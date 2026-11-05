@@ -16,7 +16,7 @@ fichier:ligne, correctif en une phrase ; table courte en fiche § Revue, détail
 
 ## Pour `expert-cybersecurite`
 
-- 04 à 07, 09a, 10, 18a : RLS activée et forcée ; rien à `public`, `anon`, `authenticated`, `service_role` ; `SECURITY DEFINER` inscrit en
+- 04 à 07, 09a, 10, 18a, 18a2 : RLS activée et forcée ; rien à `public`, `anon`, `authenticated`, `service_role` ; `SECURITY DEFINER` inscrit en
   `03` P7, `search_path` vide ; décisions réservées à `agent`, `admin` en `aal2`, titulaire seul.
 - L2BS-1 : gel non contournable, en direct, colonnes, listes, logo, nom, sur `published` et `suspended` ; jeton de version
   incontournable ; obligatoires recontrôlés.
@@ -25,5 +25,5 @@ fichier:ligne, correctif en une phrase ; table courte en fiche § Revue, détail
 - 10 : RG80, `07` RG108 : charge sortante fermée ; aucune raison sociale, immatriculation, note ni coordonnée.
 - 09 : message libre de l'agent échappé, sans lien ; aucune injection dans le HTML. 11, 12 : schémas fermés, IDOR, levée
   forcée refusée et journalisée pour un agent, pagination plafonnée, adresse sans donnée personnelle ; L2BS-8.
-- Puis le texte de l'attestation `security-reviewed: <date> covers <sha des commits 04 à 07, 09a, 10, 18a, et de tout commit I-4 ajouté>`
+- Puis le texte de l'attestation `security-reviewed: <date> covers <sha des commits 04 à 07, 09a, 10, 18a, 18a2, et de tout commit I-4 ajouté>`
   (D71), à commiter en clôture si rien de bloquant ne reste.
