@@ -21,6 +21,7 @@ import {
   createApiDatabase,
   type ApiDatabase,
 } from "../src/db/index.ts";
+import type { ObjectStore } from "../src/platform/storage.ts";
 import { buildServer } from "../src/server.ts";
 import {
   BACKOFFICE_ORIGIN,
@@ -223,10 +224,11 @@ async function addRevision(
   return row?.id ?? "";
 }
 
-function app() {
+function app(storage?: ObjectStore) {
   return buildServer(testApiConfig(), {
     logDestination: captureLogs().destination,
     database,
+    ...(storage === undefined ? {} : { storage }),
   });
 }
 
@@ -543,6 +545,7 @@ describe("T14.1, T14.2: the routes of queue 1 are the backoffice's, behind a ses
     ["GET", COUNTERS, undefined],
     ["GET", ENTRIES, undefined],
     ["POST", `${ENTRIES}/${NIL}/open`, undefined],
+    ["GET", `${ENTRIES}/${NIL}/logo?logo=${NIL}`, undefined],
     ...ACTIONS.map(
       ([action, body]) =>
         ["POST", `${ENTRIES}/${NIL}/${action}`, body] as const,
@@ -1788,5 +1791,266 @@ describe("only a human decision publishes (06 RG6)", () => {
         })
       ).statusCode,
     ).toBe(409);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Commit 18b: the logo of an entry (founder's decision of 2026-11-05; 0213; stockage.md §4)
+// ---------------------------------------------------------------------------------------------
+
+/** Storage in memory: what the route reads by the key of the database, and what it was asked for. */
+function memoryStore(
+  objects: Map<string, Uint8Array>,
+  mode: { unavailable: boolean } = { unavailable: false },
+): ObjectStore & { asked: string[] } {
+  const asked: string[] = [];
+  return {
+    asked,
+    write: async () => ({ ok: true, value: null }),
+    remove: async () => ({ ok: true, value: null }),
+    read: async (_bucket, key) => {
+      asked.push(key);
+      return mode.unavailable
+        ? { ok: false, reason: "unavailable", status: 503, errorCode: null }
+        : { ok: true, value: objects.get(key) ?? null };
+    },
+  };
+}
+
+/** A logo of the brand, its object stored in `objects` under the key the database generated. */
+async function newLogo(
+  brand: Brand,
+  state: "active" | "in_review",
+  objects: Map<string, Uint8Array> | null,
+): Promise<{ id: string; key: string; bytes: Uint8Array }> {
+  const bytes = randomBytes(1500);
+  const [row] = await sharedMigrationRole()<
+    { id: string; object_key: string }[]
+  >`
+    insert into profiles.brand_logo_objects
+      (account_id, state, received_bytes, byte_size, width, height, activated_at)
+    values (${brand.accountId}, ${state}::profiles.brand_logo_state, 4000, ${bytes.length},
+            512, 480, ${state === "active" ? new Date() : null})
+    returning id::text, object_key`;
+  const id = row?.id ?? "";
+  const key = row?.object_key ?? "";
+  objects?.set(key, bytes);
+  return { id, key, bytes };
+}
+
+type LogoBody = {
+  state: string;
+  logo: {
+    contentType: string;
+    width: number;
+    height: number;
+    byteSize: number;
+    data: string;
+    updatedAt: string;
+  };
+};
+
+function readLogo(
+  server: Server,
+  entryId: string,
+  logoId: string,
+  who: Internal,
+): Promise<LightMyRequestResponse> {
+  return call(
+    server,
+    "GET",
+    `${ENTRIES}/${entryId}/logo?logo=${logoId}`,
+    who.session,
+  );
+}
+
+async function logoLines(entryId: string) {
+  return (await registerLines(entryId)).filter(
+    (line) => line.event === "queue.logo_read",
+  );
+}
+
+describe("the logo of an entry (06 RG9, RG15; 15 RG36, C2; invariants 7, 11, 13; stockage.md §4)", () => {
+  it("serves the logo the view named, as the member route does, to the holder, a colleague and an admin, and writes one nominative line per read, never the key", async () => {
+    const objects = new Map<string, Uint8Array>();
+    const store = memoryStore(objects);
+    const server = app(store);
+    const brand = await newBrand({ dueIn: "30 hours" });
+    const active = await newLogo(brand, "active", objects);
+    const proposed = await newLogo(brand, "in_review", objects);
+
+    // the ids come from the decision view (the holder opens it), the images from this route
+    const view = await opened(server, brand.entryId, agent);
+    const shown = view.profile.logos as {
+      active: { id: string } | null;
+      inReview: { id: string } | null;
+    };
+    expect(shown.active?.id).toBe(active.id);
+    expect(shown.inReview?.id).toBe(proposed.id);
+
+    const reads: [Internal, typeof active, string][] = [
+      [agent, active, "active"],
+      [colleague, proposed, "in_review"],
+      [admin, active, "active"],
+    ];
+    for (const [who, logo, state] of reads) {
+      const response = await readLogo(server, brand.entryId, logo.id, who);
+      expect(response.statusCode, response.body).toBe(200);
+      expect(response.headers["cache-control"]).toBe("no-store");
+      const body = response.json<LogoBody>();
+      expect(body.state).toBe(state);
+      expect(body.logo).toMatchObject({
+        contentType: "image/webp",
+        width: 512,
+        height: 480,
+        byteSize: logo.bytes.length,
+      });
+      expect(
+        Buffer.from(body.logo.data, "base64").equals(Buffer.from(logo.bytes)),
+      ).toBe(true);
+      // the closed answer: no key, no account, no address of Storage, no token (T9.2 as D80 amends it)
+      expect(Object.keys(body).sort()).toEqual(["logo", "state"]);
+      for (const forbidden of [
+        logo.key,
+        brand.accountId,
+        "supabase",
+        "token",
+        "http",
+      ]) {
+        expect(response.body.toLowerCase(), forbidden).not.toContain(
+          forbidden.toLowerCase(),
+        );
+      }
+    }
+    // the object is asked for by the key of the database, nothing else
+    expect(store.asked).toEqual([active.key, proposed.key, active.key]);
+
+    // one line per read, the opening's line apart
+    const lines = await logoLines(brand.entryId);
+    const payload = (logo: { id: string }, state: string) => ({
+      queue_code: "profiles_advertiser",
+      logo_id: logo.id,
+      state,
+    });
+    expect(lines.map((line) => [line.actor, line.payload])).toEqual([
+      [agent.accountId, payload(active, "active")],
+      [colleague.accountId, payload(proposed, "in_review")],
+      [admin.accountId, payload(active, "active")],
+    ]);
+    expect(JSON.stringify(lines)).not.toContain(active.key);
+  });
+
+  it("T14.3, T14.4: an unknown entry, the caller's own account, an unknown logo and another account's logo answer alike, and leave no line", async () => {
+    const objects = new Map<string, Uint8Array>();
+    const server = app(memoryStore(objects));
+    const brand = await newBrand({ dueIn: "31 hours" });
+    const other = await newBrand({ dueIn: "32 hours" });
+    const mine = await newLogo(brand, "active", objects);
+    const foreign = await newLogo(other, "active", objects);
+    const purging = await newLogo(brand, "in_review", objects);
+    await sharedMigrationRole()`
+      update profiles.brand_logo_objects
+         set state = 'purging', purge_requested_at = now() where id = ${purging.id}`;
+
+    const unknown = await readLogo(server, randomUUID(), mine.id, agent);
+    expect(unknown.statusCode).toBe(404);
+    const cases: [string, LightMyRequestResponse][] = [
+      ["own account", await readLogo(server, ownEntryId, mine.id, agent)],
+      [
+        "unknown logo",
+        await readLogo(server, brand.entryId, randomUUID(), agent),
+      ],
+      [
+        "logo of another account",
+        await readLogo(server, brand.entryId, foreign.id, agent),
+      ],
+      [
+        "entry of another account",
+        await readLogo(server, other.entryId, mine.id, agent),
+      ],
+      [
+        "logo that is neither active nor in review",
+        await readLogo(server, brand.entryId, purging.id, agent),
+      ],
+    ];
+    for (const [name, response] of cases) {
+      expect(answer(response), name).toEqual(answer(unknown));
+    }
+    for (const entryId of [brand.entryId, other.entryId, ownEntryId]) {
+      expect(await logoLines(entryId)).toEqual([]);
+    }
+  });
+
+  it("refuses a logo that is not named, not an identifier, or a query that is not the route's, before any lookup", async () => {
+    const server = app(memoryStore(new Map()));
+    const brand = await newBrand({ dueIn: "33 hours" });
+    for (const query of [
+      "",
+      "?logo=not-an-id",
+      `?logo=${NIL}&key=a`,
+      `?other=${NIL}`,
+    ]) {
+      const response = await call(
+        server,
+        "GET",
+        `${ENTRIES}/${brand.entryId}/logo${query}`,
+        agent.session,
+      );
+      expect(response.statusCode, query).toBe(400);
+    }
+    const badEntry = await call(
+      server,
+      "GET",
+      `${ENTRIES}/not-an-id/logo?logo=${NIL}`,
+      agent.session,
+    );
+    expect(badEntry.statusCode).toBe(400);
+    expect(await registerLines(brand.entryId)).toEqual([]);
+  });
+
+  it("RG36: the logo of an entry of an account the caller holds answers 403 `conflict_of_interest`, with no line and no read of Storage; a colleague reads it", async () => {
+    const objects = new Map<string, Uint8Array>();
+    const store = memoryStore(objects);
+    const server = app(store);
+    const mine = await newBrand({ owner: agent.accountId, dueIn: "34 hours" });
+    const logo = await newLogo(mine, "active", objects);
+
+    const refused = await readLogo(server, mine.entryId, logo.id, agent);
+    expect(refused.statusCode).toBe(403);
+    expect(
+      refused.json<{ error: { code: string; details: unknown } }>().error,
+    ).toMatchObject({
+      code: "forbidden",
+      details: [{ path: "entry", issue: "conflict_of_interest" }],
+    });
+    expect(store.asked).toEqual([]);
+    expect(await registerLines(mine.entryId)).toEqual([]);
+    const allowed = await readLogo(server, mine.entryId, logo.id, colleague);
+    expect(allowed.statusCode).toBe(200);
+    expect(store.asked).toEqual([logo.key]);
+  });
+
+  it("says Storage is unavailable (503) and that an object it does not hold is not there (404), never a key or a byte", async () => {
+    const brand = await newBrand({ dueIn: "35 hours" });
+    const missing = await newLogo(brand, "active", null);
+    const gone = await readLogo(
+      app(memoryStore(new Map())),
+      brand.entryId,
+      missing.id,
+      agent,
+    );
+    expect(gone.statusCode).toBe(404);
+    expect(gone.body).not.toContain(missing.key);
+
+    const objects = new Map<string, Uint8Array>();
+    const stored = await newLogo(brand, "in_review", objects);
+    const down = await readLogo(
+      app(memoryStore(objects, { unavailable: true })),
+      brand.entryId,
+      stored.id,
+      agent,
+    );
+    expect(down.statusCode).toBe(503);
+    expect(down.body).not.toContain(stored.key);
   });
 });

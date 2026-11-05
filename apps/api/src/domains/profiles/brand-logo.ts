@@ -44,7 +44,7 @@ import {
   type LogoObjectRef,
 } from "./repository.ts";
 
-const BUCKET = "brand-logo";
+export const BRAND_LOGO_BUCKET = "brand-logo";
 
 /** Retry-After of a process whose two slots of re-encoding are taken. */
 export const IMAGE_BUSY_RETRY_AFTER_SECONDS = 5;
@@ -82,7 +82,8 @@ export function secondsUntilNextUtcMidnight(now: Date): number {
   return Math.max(1, Math.ceil((next - now.getTime()) / 1000));
 }
 
-function logoOf(
+/** The logo as the routes serve it: a WebP square, its bytes in base64 (member and agent reads alike). */
+export function brandLogoOf(
   bytes: Uint8Array,
   described: { width: number; height: number; updatedAt: string },
 ): BrandLogo {
@@ -106,7 +107,10 @@ async function removeAtBest(
   previous: LogoObjectRef,
   gesture: "replaced" | "removed",
 ): Promise<boolean> {
-  const removed = await dependencies.store.remove(BUCKET, previous.objectKey);
+  const removed = await dependencies.store.remove(
+    BRAND_LOGO_BUCKET,
+    previous.objectKey,
+  );
   if (!removed.ok) {
     dependencies.log.warn(
       {
@@ -187,7 +191,7 @@ export async function uploadBrandLogo(
 
     // (d) the object, under the key of the base.
     const written = await store.write(
-      BUCKET,
+      BRAND_LOGO_BUCKET,
       upload.objectKey,
       output.bytes,
       "image/webp",
@@ -237,7 +241,7 @@ export async function uploadBrandLogo(
         throw error;
       }
       // The pending row was taken by the purge meanwhile (over 15 minutes): its object goes too.
-      await store.remove(BUCKET, upload.objectKey);
+      await store.remove(BRAND_LOGO_BUCKET, upload.objectKey);
       outcomeLine("expired");
       throw new ApiError("service_unavailable");
     }
@@ -252,7 +256,7 @@ export async function uploadBrandLogo(
       state: attached.state,
     });
     return {
-      logo: logoOf(output.bytes, {
+      logo: brandLogoOf(output.bytes, {
         width: output.width,
         height: output.height,
         updatedAt: attached.activatedAt,
@@ -277,7 +281,10 @@ async function readPendingLogo(
   if (pending === null) {
     return null;
   }
-  const read = await dependencies.store.read(BUCKET, pending.objectKey);
+  const read = await dependencies.store.read(
+    BRAND_LOGO_BUCKET,
+    pending.objectKey,
+  );
   if (!read.ok || read.value === null) {
     dependencies.log.warn(
       { reason: read.ok ? "missing" : read.reason },
@@ -285,7 +292,7 @@ async function readPendingLogo(
     );
     return null;
   }
-  return logoOf(read.value, {
+  return brandLogoOf(read.value, {
     width: pending.width,
     height: pending.height,
     updatedAt: pending.activatedAt,
@@ -310,7 +317,7 @@ export async function readBrandLogo(
   if (active === null) {
     return withPending(null);
   }
-  const read = await store.read(BUCKET, active.objectKey);
+  const read = await store.read(BRAND_LOGO_BUCKET, active.objectKey);
   if (!read.ok) {
     log.error(
       { reason: read.reason, status: read.status, errorCode: read.errorCode },
@@ -324,7 +331,7 @@ export async function readBrandLogo(
     return withPending(null);
   }
   return withPending(
-    logoOf(read.value, {
+    brandLogoOf(read.value, {
       width: active.width,
       height: active.height,
       updatedAt: active.activatedAt,

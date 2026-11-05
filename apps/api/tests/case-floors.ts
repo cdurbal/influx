@@ -51,7 +51,7 @@ export const UNIT_CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/privacy-export-texts.test.ts": 8,
   "tests/probe.test.ts": 9,
   "tests/provider-recording.test.ts": 17,
-  "tests/public-rate.test.ts": 84,
+  "tests/public-rate.test.ts": 85,
   "tests/route-models.test.ts": 2,
   "tests/queue-emails-written-by-influx.test.ts": 10,
   "tests/reconciliation-reads.test.ts": 2,

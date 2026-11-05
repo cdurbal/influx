@@ -334,6 +334,47 @@ function entryPage(entryId: string): string {
   return bo(`${LIST}/${entryId}`);
 }
 
+// L2C-18b: the image of a logo is read on demand, through the relay, by the id the view served. The
+// journey answers that read with a one-pixel WebP (the route and its register line are T14's): what
+// it proves is the screen, its `blob:` source under the CSP, its text, and one read per logo.
+const PIXEL = "UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==";
+
+async function serveLogo(page: Page): Promise<{ reads: () => number }> {
+  let reads = 0;
+  await page.route(
+    "**/api/v1/bo/queues/profiles-advertiser/entries/*/logo**",
+    (route) => {
+      reads += 1;
+      return route.fulfill({
+        json: {
+          state: "active",
+          logo: {
+            contentType: "image/webp",
+            width: 1,
+            height: 1,
+            byteSize: Buffer.from(PIXEL, "base64").length,
+            data: PIXEL,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      });
+    },
+  );
+  return { reads: () => reads };
+}
+
+/** The image is drawn: visible, from a `blob:` source, decoded (a broken image has no width). */
+async function expectLogoDrawn(page: Page, brandName: string): Promise<void> {
+  const image = page.getByRole("img", {
+    name: r.logo.alt(r.logo.active, brandName),
+  });
+  await expect(image).toBeVisible();
+  await expect(image).toHaveAttribute("src", /^blob:/);
+  await expect
+    .poll(() => image.evaluate((img: HTMLImageElement) => img.naturalWidth))
+    .toBeGreaterThan(0);
+}
+
 test("L2C-17: opening takes the entry, publishing needs the recap, and the next entry opens with its confirmation", async ({
   page,
 }) => {
@@ -345,12 +386,14 @@ test("L2C-17: opening takes the entry, publishing needs the recap, and the next 
     ownerAgentId: owner.accountId,
     name: `Maison ${tag}A`,
     dueInMinutes: EARLY,
+    logo: "active",
   });
   const second = await seedReviewEntry({
     ownerAgentId: owner.accountId,
     name: `Maison ${tag}B`,
     dueInMinutes: EARLY + 1000,
   });
+  const logoRead = await serveLogo(page);
 
   // from the list: the link opens the entry, which takes it in charge and says so
   await page.goto(bo(`${LIST}?owner=${owner.accountId}`));
@@ -381,7 +424,9 @@ test("L2C-17: opening takes the entry, publishing needs the recap, and the next 
   await expect(
     page.getByText(/^contact-.+@brand\.example\.test$/),
   ).toBeVisible();
-  await expect(page.getByText(r.logo.notShown)).toBeVisible();
+  // the logo is drawn, read once, and the old sentence "characteristics only" is gone
+  await expectLogoDrawn(page, `Maison ${tag}A`);
+  expect(logoRead.reads()).toBe(1);
 
   // ‹v› opens the recap and publishes nothing; ‹Échap› closes it; the button opens it again
   await page.locator("main").click({ position: { x: 4, y: 4 } });
@@ -554,9 +599,13 @@ test("L2C-17: a colleague's entry is read, not decided, in a sentence and withou
     name: `Maison ${tag}D`,
     dueInMinutes: -200,
     heldByAgentId: holder.accountId,
+    logo: "active",
   });
+  await serveLogo(page);
   await page.goto(entryPage(held.entryId));
   await expect(page.getByText(/^En cours — Marie, depuis /)).toBeVisible();
+  // a colleague's entry shows the image too (15 C2)
+  await expectLogoDrawn(page, `Maison ${tag}D`);
   await expect(page.getByText(r.banner.readOnly)).toBeVisible();
   await expect(page.getByText(/^Hors délai depuis /)).toBeVisible();
   await expect(

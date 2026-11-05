@@ -13,6 +13,7 @@ import { z } from "./zod.ts";
 import { accountOwnerSchema } from "./backoffice-accounts.ts";
 import { uiLocaleSchema } from "./auth.ts";
 import {
+  brandLogoSchema,
   brandProfileStatusSchema,
   MODERATED_FIELD_CODES,
   moderatedFieldCodeSchema,
@@ -374,6 +375,26 @@ export const openEntryResponseSchema = z.strictObject({
   reasons: z.array(reviewReasonSchema),
 });
 export type OpenEntryResponse = z.infer<typeof openEntryResponseSchema>;
+
+/**
+ * GET …/entries/:id/logo?logo=<id> (commit 18b; founder's decision of 2026-11-05; 0213;
+ * stockage.md §4): the logo is named by the id the decision view served (`profile.logos`), so that
+ * the reader gets the object he was shown, never another one that became active meanwhile
+ * (EC-L2C-18a-2). A query, not a second path identifier: a route model keeps one `:id`
+ * (route-models.ts).
+ */
+export const entryLogoQuerySchema = z.strictObject({ logo: z.uuid() });
+export type EntryLogoQuery = z.infer<typeof entryLogoQuerySchema>;
+
+/**
+ * The logo as the member route serves it (type, sides, base64 bounded), with its state. Never a key,
+ * an address of Storage or a token (stockage.md §4).
+ */
+export const entryLogoResponseSchema = z.strictObject({
+  state: z.enum(["active", "in_review"]),
+  logo: brandLogoSchema,
+});
+export type EntryLogoResponse = z.infer<typeof entryLogoResponseSchema>;
 
 // ---------------------------------------------------------------------------------------------
 // The decisions on an entry (commit 12): publish, reject, release, extend, force-release

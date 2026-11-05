@@ -162,7 +162,7 @@ export function profileFacts(view: OpenEntryResponse): Fact[] {
   ];
 }
 
-/** The characteristics of a logo, never its bytes (no route serves them yet): size, weight, date. */
+/** The characteristics of a logo, written beside its image (ReviewLogo): size, weight, date. */
 export function logoLine(logo: {
   byteSize: number | null;
   width: number | null;

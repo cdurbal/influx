@@ -85,6 +85,7 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
   },
   "POST /v1/bo/queues/profiles-advertiser/entries/:id/release": {},
   "POST /v1/bo/queues/profiles-advertiser/entries/:id/extend": {},
+  "GET /v1/bo/queues/profiles-advertiser/entries/:id/logo": {},
   "POST /v1/bo/queues/profiles-advertiser/entries/:id/force-release": {
     body: { reasonCode: "holder_absent" },
   },
@@ -238,7 +239,12 @@ function answer(response: LightMyRequestResponse) {
 /** "GET /v1/bo/accounts/:id" ⇒ its method and the path with `id` in place of the parameter. */
 function concrete(route: string, id: string): { method: Method; url: string } {
   const [method = "", path = ""] = route.split(" ");
-  return { method: method as Method, url: path.replace(":id", id) };
+  // L2C 18b: the logo of an entry is named by a query (the route model keeps one `:id`)
+  const query = path.endsWith("/logo") ? `?logo=${NIL}` : "";
+  return {
+    method: method as Method,
+    url: `${path.replace(":id", id)}${query}`,
+  };
 }
 
 /**
@@ -408,6 +414,9 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
     ],
     // L2C 12: the same for every act on an entry; the force release is an admin's, an agent's attempt
     // is refused whatever the entry (the answer of an agent never depends on the identifier).
+    "GET /v1/bo/queues/profiles-advertiser/entries/:id/logo": async () => [
+      { who: agent, id: await ownBrandEntry() },
+    ],
     "POST /v1/bo/queues/profiles-advertiser/entries/:id/publish": async () => [
       { who: agent, id: await ownBrandEntry() },
     ],

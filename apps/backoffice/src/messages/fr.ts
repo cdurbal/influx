@@ -1481,8 +1481,11 @@ export const messages = {
           .join(" · ") || "caractéristiques indisponibles",
       dimensions: (width: number, height: number) => `${width} × ${height} px`,
       kilobytes: (kilobytes: number) => `${kilobytes} Ko`,
-      notShown:
-        "L’image elle-même n’est pas affichée dans le backoffice pour l’instant : seules ses caractéristiques le sont.",
+      alt: (label: string, brandName: string) =>
+        `${label} de la marque ${brandName}`,
+      loading: "Chargement de l’image…",
+      failed:
+        "L’image n’a pas pu être lue pour l’instant : ses caractéristiques restent indiquées et la décision n’en dépend pas. Rechargez la page pour réessayer.",
     },
     written: {
       submission:

@@ -39,6 +39,11 @@ export type ReviewEntryOptions = {
   presentation?: string;
   /** The moderated field a revision changes. */
   revisedField?: string;
+  /**
+   * A logo of the brand, as a row only (stored whole: 512 px, 1 500 bytes): the decision screen asks
+   * for its image by the id it was served (L2C-18b); a journey answers that read itself.
+   */
+  logo?: "active" | "in_review";
 };
 
 /** Every account whose entry a journey opened, closed by `withdrawReviewEntries`. */
@@ -118,6 +123,13 @@ export async function seedReviewEntry(
       await tx`
         insert into profiles.advertiser_audience_countries (account_id, slot, country_code)
         values (${accountId}, 1, 'FR')`;
+      if (options.logo !== undefined) {
+        await tx`
+          insert into profiles.brand_logo_objects
+            (account_id, state, received_bytes, byte_size, width, height, activated_at)
+          values (${accountId}, ${options.logo}::profiles.brand_logo_state, 4000, 1500, 512, 512,
+                  ${options.logo === "active" ? new Date() : null})`;
+      }
       if (kind === "revision") {
         await tx`
           insert into profiles.profile_field_revisions

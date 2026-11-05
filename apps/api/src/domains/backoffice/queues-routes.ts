@@ -10,7 +10,8 @@
 //   taken, or read in read-only mode with the name of its holder (C2); the decision view comes back
 //   with the version token (L2BS-1), the alerts (RG19, RG25, RG70, L2BS-8) and the refusal reasons
 //   with the message the brand will receive. A POST: it has an effect (the claim, the register line).
-// Decisions, release, extension and forced release: queues-decision-routes.ts (commit 12), registered
+// Decisions, release, extension and forced release: queues-decision-routes.ts (commit 12); the logo of an
+// entry: queues-logo-routes.ts (commit 18b); both registered
 // from here: one registration point for queue 1.
 // - An unknown entry, the one of the caller's own account and a closed one that the caller cannot see
 //   answer exactly alike (404, T14.3, T14.4); an entry of an account the caller HOLDS answers 403
@@ -37,9 +38,11 @@ import type { UiLocale } from "@influx/contracts/auth";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { ApiDatabase } from "../../db/index.ts";
 import { ApiError, RequestValidationError } from "../../platform/errors.ts";
+import type { ObjectStore } from "../../platform/storage.ts";
 import { withBackofficeSession } from "../identity/backoffice-session.ts";
 import type { IdentityApp } from "../identity/routes.ts";
 import { registerBackofficeQueueDecisionRoutes } from "./queues-decision-routes.ts";
+import { registerBackofficeQueueLogoRoutes } from "./queues-logo-routes.ts";
 import {
   rejectionReasonOf,
   rejectionReasonPreview,
@@ -66,7 +69,11 @@ import {
   type LogoRow,
 } from "./queues/repository.ts";
 
-export type BackofficeQueuesDependencies = { database: ApiDatabase };
+export type BackofficeQueuesDependencies = {
+  database: ApiDatabase;
+  /** Storage, for the logo of an entry (queues-logo-routes.ts): the one of the brand-profile routes. */
+  store: ObjectStore;
+};
 
 const INSTANT_MICRO = "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z";
 const CURSOR_PATTERN = new RegExp(
@@ -208,6 +215,7 @@ export function registerBackofficeQueueRoutes(
 ): void {
   const { database } = dependencies;
   registerBackofficeQueueDecisionRoutes(app, dependencies);
+  registerBackofficeQueueLogoRoutes(app, dependencies);
 
   app.get(
     "/v1/bo/queues/counters",

@@ -70,6 +70,7 @@ import {
 } from "@influx/contracts/backoffice-ops";
 import {
   entriesResponseSchema,
+  entryLogoResponseSchema,
   extendEntryResponseSchema,
   forceReleaseResponseSchema,
   openEntryResponseSchema,
@@ -78,6 +79,7 @@ import {
   rejectEntryResponseSchema,
   releaseEntryResponseSchema,
   type EntriesResponse,
+  type EntryLogoResponse,
   type ExtendEntryResponse,
   type ForceReleaseRequest,
   type ForceReleaseResponse,
@@ -470,5 +472,22 @@ export function forceReleaseBrandReviewClaim(
     `${ENTRIES}/${idSegment(id)}/force-release`,
     forceReleaseResponseSchema,
     body,
+  );
+}
+
+/**
+ * The image of a logo of an entry, by the id the decision view served (0213, stockage.md §4). Each
+ * call is one line of the register, nominative: the screen asks once per logo, when it is shown.
+ */
+export function readBrandReviewLogo(
+  id: string,
+  logoId: string,
+): Promise<RelayResult<EntryLogoResponse>> {
+  return callRelay(
+    "GET",
+    `${ENTRIES}/${idSegment(id)}/logo`,
+    entryLogoResponseSchema,
+    undefined,
+    { logo: idSegment(logoId) },
   );
 }

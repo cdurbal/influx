@@ -1,9 +1,9 @@
 "use client";
 
 // The blocks of the decision screen of queue 1 that only read (docs/mvp/17b §2.5, §4.8, §4.9; 06 RG9,
-// RG19, RG25, RG70; 15 RG123; jalons/l2c/file.md A3, A4, A7; L2C-17): the brand as validated, the logo
-// (its characteristics: no route serves its bytes yet), the validated version against the proposed
-// one, the alerts in words, the contact person behind a logged opening, how a closed entry ended.
+// RG19, RG25, RG70; 15 RG123; jalons/l2c/file.md A3, A4, A7; L2C-17, L2C-18b): the brand as
+// validated, the logo (its image, read on demand through the journaled door of 0213, and its
+// characteristics), the validated version against the proposed one, the alerts in words, the contact person behind a logged opening, how a closed entry ended.
 // Everything an agent needs to decide is here, without another screen (invariant 1 of the template).
 import type { OpenEntryResponse } from "@influx/contracts/backoffice-queues";
 import { messages } from "@/messages/fr";
@@ -20,6 +20,7 @@ import {
   TH_CLASSES,
 } from "./bo-classes";
 import { DenseTableRegion } from "./DenseTableRegion";
+import { ReviewLogo } from "./ReviewLogo";
 import {
   alertLine,
   contactFacts,
@@ -87,11 +88,20 @@ export function BrandBlock({
               <ChangedMark
                 shown={changes?.keys.has(`logo.${logo.key}`) === true}
               />
+              {view.profile.logos[logo.key] === null ? null : (
+                <div className="mt-2">
+                  <ReviewLogo
+                    entryId={view.entry.id}
+                    logoId={view.profile.logos[logo.key]?.id ?? ""}
+                    label={logo.label}
+                    brandName={view.profile.brandName}
+                  />
+                </div>
+              )}
             </dd>
           </div>
         ))}
       </dl>
-      <p className={HELP_CLASSES}>{t.logo.notShown}</p>
     </section>
   );
 }

@@ -531,12 +531,15 @@ export function buildServer(
     now: options.identity?.now ?? (() => new Date()),
   });
 
+  // Storage, with the secret key of the service: the logo of the brand profile and its read by an agent.
+  const objectStore = options.storage ?? createObjectStore(config.supabase);
+
   // The brand profile: read, autosave, submission (docs/mvp/06; jalon L2B commit 07); its logo
   // (commit 09, D80), through Storage with the secret key of the service.
   registerBrandProfileRoutes(app, {
     database,
     now: options.identity?.now ?? (() => new Date()),
-    store: options.storage ?? createObjectStore(config.supabase),
+    store: objectStore,
     slots: createImageSlots(),
   });
 
@@ -576,7 +579,7 @@ export function buildServer(
   registerBackofficeOpsRoutes(app, { database });
 
   // Queue 1, "profils marque à valider": counters, list, opening = claiming (L2C commit 11).
-  registerBackofficeQueueRoutes(app, { database });
+  registerBackofficeQueueRoutes(app, { database, store: objectStore });
 
   // Browser errors of the connected spaces (D60, 02 §20.5).
   registerOpsRoutes(app, {

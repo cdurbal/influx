@@ -869,3 +869,50 @@ export async function readRejectionReasons(
     requiresMemberMessage: row.requires_member_message,
   }));
 }
+
+/** What the journaled read of a logo gives apps/api to relay the object (0213). Never sent as is. */
+export type ReviewLogoObject = {
+  state: "active" | "in_review";
+  /** The key in Storage: relayed from here to the store, never written to a response or a log. */
+  objectKey: string;
+  byteSize: number | null;
+  width: number | null;
+  height: number | null;
+  updatedAt: string;
+};
+
+/**
+ * The logo of an entry, by the journaled door of 0213: profiles.read_advertiser_review_logo() writes
+ * one `queue.logo_read` line {queue_code, logo_id, state} in this transaction and returns the key of
+ * the object to relay. 42501, one answer, for an unknown entry, the caller's own account, a logo that
+ * is not an `active` or `in_review` one of the account of the entry; no line is written then.
+ */
+export async function readReviewLogo(
+  tx: Transaction,
+  entryId: string,
+  logoId: string,
+): Promise<ReviewLogoObject | null> {
+  const rows = await tx.execute<{
+    state: "active" | "in_review";
+    object_key: string;
+    byte_size: number | null;
+    width: number | null;
+    height: number | null;
+    updated_at: string;
+  }>(sql`
+    select r.state, r.object_key, r.byte_size, r.width::integer as width,
+           r.height::integer as height,
+           to_char(r.updated_at at time zone 'UTC', ${ISO_UTC}) as updated_at
+      from profiles.read_advertiser_review_logo(${entryId}::uuid, ${logoId}::uuid) r`);
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        state: row.state,
+        objectKey: row.object_key,
+        byteSize: row.byte_size,
+        width: row.width,
+        height: row.height,
+        updatedAt: row.updated_at,
+      };
+}

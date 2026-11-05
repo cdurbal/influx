@@ -57,6 +57,7 @@ export const API_ROUTE_MODELS: readonly string[] = [
   "/v1/bo/queues/profiles-advertiser/entries",
   "/v1/bo/queues/profiles-advertiser/entries/:id/extend",
   "/v1/bo/queues/profiles-advertiser/entries/:id/force-release",
+  "/v1/bo/queues/profiles-advertiser/entries/:id/logo",
   "/v1/bo/queues/profiles-advertiser/entries/:id/open",
   "/v1/bo/queues/profiles-advertiser/entries/:id/publish",
   "/v1/bo/queues/profiles-advertiser/entries/:id/reject",
