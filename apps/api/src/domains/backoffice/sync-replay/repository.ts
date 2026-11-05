@@ -157,7 +157,9 @@ export type RefusedActionCode =
   | "identity.change_member_role"
   | "identity.internal_invitation"
   | "ops.read_health"
-  | "queue.force_release_claim";
+  | "queue.force_release_claim"
+  // 0215: not an admin action, the act of an agent on an entry of an account he holds (15 RG36, CA19)
+  | "queue.conflict_of_interest";
 
 /** 0134: backoffice.action_refused on the agent's own account (influx_agent only). */
 export async function recordRefusedAction(

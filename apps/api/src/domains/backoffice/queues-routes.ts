@@ -17,7 +17,8 @@
 // from here: one registration point for queue 1.
 // - An unknown entry, the one of the caller's own account and a closed one that the caller cannot see
 //   answer exactly alike (404, T14.3, T14.4); an entry of an account the caller HOLDS answers 403
-//   with the issue `conflict_of_interest` (17b §2.5, RG36) and is absent from the list and the counters.
+//   with the issue `conflict_of_interest` (17b §2.5, RG36), the attempt journaled first (CA19,
+//   backoffice.action_refused, 0215), and is absent from the list and the counters.
 // - Every answer is `Cache-Control: no-store`: it carries internal data.
 import {
   BRAND_REVIEW_QUEUE,
@@ -51,7 +52,12 @@ import {
   rejectionReasonOf,
   rejectionReasonPreview,
 } from "../profiles/brand-decision-email.ts";
-import { isForbidden } from "./action-guards.ts";
+import {
+  CONFLICT_OF_INTEREST,
+  conflictOfInterest,
+  isForbidden,
+  unlessConflict,
+} from "./action-guards.ts";
 import {
   alertCodesOf,
   contactAlerts,
@@ -336,7 +342,7 @@ export function registerBackofficeQueueRoutes(
       void reply.header("cache-control", "no-store");
       const entryId = (request.params as EntryParams).id.toLowerCase();
       try {
-        return await openedEntry(request, reply, entryId);
+        return unlessConflict(await openedEntry(request, reply, entryId));
       } catch (error) {
         // 42501 of the database: an unknown entry, or the caller's own account (C(3)): one answer
         if (isForbidden(error)) {
@@ -351,7 +357,7 @@ export function registerBackofficeQueueRoutes(
     request: FastifyRequest,
     reply: FastifyReply,
     entryId: string,
-  ): Promise<OpenEntryResponse> {
+  ): Promise<OpenEntryResponse | typeof CONFLICT_OF_INTEREST> {
     return withBackofficeSession(
       database,
       request,
@@ -361,11 +367,10 @@ export function registerBackofficeQueueRoutes(
         if (target === null) {
           throw new ApiError("not_found");
         }
-        // 15 RG36, 13 RG35, 17b §2.5: the account is the caller's to hold, not to examine
+        // 15 RG36, 13 RG35, 17b §2.5: the account is the caller's to hold, not to examine; the
+        // refusal is journaled (CA19) and the database refuses it too (0215)
         if (target.ownerAgentId === context.accountId) {
-          throw new ApiError("forbidden", [
-            { path: "entry", issue: "conflict_of_interest" },
-          ]);
+          return conflictOfInterest(tx, context);
         }
         const opening = await openEntry(tx, entryId);
         // After the opening, never before: the view is no older than the version of the token

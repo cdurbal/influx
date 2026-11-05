@@ -3130,6 +3130,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_moderation_definer|column|identity.account_roles.role|SELECT",
   "influx_moderation_definer|column|identity.accounts.country_code|SELECT",
   "influx_moderation_definer|column|identity.accounts.id|SELECT",
+  // 0215 (L2C fix-2, L2CS-2): the responsible agent, read to refuse an account the caller holds
+  "influx_moderation_definer|column|identity.accounts.owner_agent_id|SELECT",
   "influx_moderation_definer|column|identity.accounts.status|SELECT",
   "influx_moderation_definer|column|identity.agent_profiles.account_id|SELECT",
   "influx_moderation_definer|column|identity.agent_profiles.is_active|SELECT",

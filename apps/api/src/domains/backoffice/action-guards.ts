@@ -50,3 +50,32 @@ export function unlessRefused<T>(value: T | typeof REFUSED): T {
   }
   return value;
 }
+
+/** The answer of an act on an entry of an account the caller holds, after the COMMIT of its trace. */
+export const CONFLICT_OF_INTEREST = Symbol("conflict_of_interest");
+
+/**
+ * 15 RG36, CA19, RG110 (0215): an act of an internal on an entry of an account he holds is refused
+ * by the server (and by the database) and journaled in the transaction, which commits: the route
+ * answers 403 `conflict_of_interest` afterwards (unlessConflict). The trace is an agent's
+ * (record_refused_action is influx_agent's only, EC-L2C-fix-2-2): an admin who holds the account is
+ * refused all the same.
+ */
+export async function conflictOfInterest(
+  tx: Transaction,
+  context: BackofficeContext,
+): Promise<typeof CONFLICT_OF_INTEREST> {
+  if (context.role === "agent") {
+    await recordRefusedAction(tx, "queue.conflict_of_interest");
+  }
+  return CONFLICT_OF_INTEREST;
+}
+
+export function unlessConflict<T>(value: T | typeof CONFLICT_OF_INTEREST): T {
+  if (value === CONFLICT_OF_INTEREST) {
+    throw new ApiError("forbidden", [
+      { path: "entry", issue: "conflict_of_interest" },
+    ]);
+  }
+  return value;
+}

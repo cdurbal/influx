@@ -21,7 +21,10 @@ import {
   actAs,
   actAsInternal,
   actAsMember,
+  backendPid,
+  letterName,
   localSuperuser,
+  lockWaitersBehind,
   migrationRole,
   type Actor,
 } from "./support.ts";
@@ -531,46 +534,101 @@ describe("15 C1, C2, RG35: opening an entry claims it, or shows its holder", () 
 });
 
 // ---------------------------------------------------------------------------------------------
-// L2C-V1: two claims at the same moment, one winner (committed fixture, two connections)
+// L2C-V1: two claims at the same moment, one winner (committed fixture, two connections); L2CT-2:
+// the claims are interleaved for sure, both waiting behind a third transaction that holds the
+// entry row, seen waiting by a bounded probe before it lets them go
 // ---------------------------------------------------------------------------------------------
 
 const second = connectAsLocalSuperuser({ max: 1 });
+const third = connectAsLocalSuperuser({ max: 1 });
+const probe = connectAsLocalSuperuser({ max: 1 });
 afterAll(async () => {
-  await second.end({ timeout: 1 });
+  await Promise.all(
+    [second, third, probe].map((sql) => sql.end({ timeout: 1 })),
+  );
 });
 
+/** A brand profile `pending_review` and its open submission entry, COMMITTED: two transactions see it. */
+async function committedEntry(
+  label: string,
+): Promise<{ account: string; entry: string }> {
+  const migration = migrationRole();
+  const account = randomUUID();
+  await migration.begin(async (tx) => {
+    await tx`
+      insert into identity.accounts
+        (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
+         is_adult_attested, adult_attested_at, declared_status)
+      values (${account}, ${randomUUID()}, ${`l2c-${label}-${account}@example.test`}, now(), 'FR', 'fr',
+              true, now(), 'business')`;
+    await tx`
+      insert into identity.account_roles (account_id, role) values (${account}, 'advertiser')`;
+    await tx`
+      insert into profiles.advertiser_profiles (account_id, legal_name, status)
+      values (${account}, ${`L2C ${label} ${letterName(account.slice(0, 8))}`}, 'pending_review')`;
+  });
+  const [created] = await migration<{ id: string }[]>`
+    insert into profiles.advertiser_review_entries (account_id, kind)
+    values (${account}, 'submission') returning id::text`;
+  return { account, entry: created?.id ?? "" };
+}
+
+/** The fixture of committedEntry() leaves the queue (L2CT-1). */
+async function retireEntry(entry: string): Promise<void> {
+  await migrationRole()`
+    update profiles.advertiser_review_entries set state = 'withdrawn', closed_at = now()
+     where id = ${entry} and state = 'open'`;
+}
+
+type Gate = {
+  held: Promise<void>;
+  hold: () => void;
+  released: Promise<void>;
+  release: () => void;
+};
+
+/** `held` resolves once a transaction holds what it must, `release()` lets it end. */
+function gate(): Gate {
+  let hold: () => void = () => undefined;
+  let release: () => void = () => undefined;
+  const held = new Promise<void>((resolve) => {
+    hold = resolve;
+  });
+  const released = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  return { held, hold, released, release };
+}
+
 describe("L2C-V1, 04 l. 2465-2480, 15 C2: two simultaneous claims, one winner", () => {
-  it("gives the entry to one agent; the other reads the winner's name, never an error", async () => {
-    const migration = migrationRole();
-    const account = randomUUID();
-    await migration.begin(async (tx) => {
-      await tx`
-        insert into identity.accounts
-          (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
-           is_adult_attested, adult_attested_at, declared_status)
-        values (${account}, ${randomUUID()}, ${`l2c-v1-${account}@example.test`}, now(), 'FR', 'fr',
-                true, now(), 'business')`;
-      await tx`
-        insert into identity.account_roles (account_id, role) values (${account}, 'advertiser')`;
-      await tx`
-        insert into profiles.advertiser_profiles (account_id, legal_name, status)
-        values (${account}, ${`L2C V1 ${account.slice(0, 8)}`}, 'pending_review')`;
-    });
-    const [created] = await migration<{ id: string }[]>`
-      insert into profiles.advertiser_review_entries (account_id, kind)
-      values (${account}, 'submission') returning id::text`;
-    const entry = created?.id ?? "";
+  it("gives the entry to one agent; the other reads the winner's name, never an error (claims interleaved, L2CT-2)", async () => {
+    const { entry } = await committedEntry("v1");
     const claim = (sql: postgres.Sql, who: Internal) =>
       sql.begin(async (tx) => {
         const [row] = rowsOf(await openAs(tx, who, entry));
         return row as Opening;
       });
+    const door = gate();
+    let holderPid = 0;
+    // a third transaction holds the entry row: both claims start before either can end
+    const holder = third.begin(async (tx) => {
+      holderPid = await backendPid(tx);
+      await tx`select 1 from profiles.advertiser_review_entries where id = ${entry} for update`;
+      door.hold();
+      await door.released;
+    });
     try {
-      const results = await Promise.all([
+      await door.held;
+      const claims = Promise.all([
         claim(localSuperuser(), AGENT_A),
         claim(second, AGENT_B),
       ]);
-      const [row] = await migration<{ holder: string }[]>`
+      const waiting = await lockWaitersBehind(probe, holderPid, 2);
+      door.release();
+      await holder;
+      const results = await claims;
+      expect(waiting).toBe(2);
+      const [row] = await migrationRole()<{ holder: string }[]>`
         select claimed_by_account_id::text as holder
           from profiles.advertiser_review_entries where id = ${entry}`;
       const winner = row?.holder;
@@ -580,15 +638,183 @@ describe("L2C-V1, 04 l. 2465-2480, 15 C2: two simultaneous claims, one winner", 
         "read_only",
       ]);
       expect(results.map((result) => result.holder)).toEqual([winner, winner]);
-      const [lines] = await migration<{ n: number }[]>`
+      const [lines] = await migrationRole()<{ n: number }[]>`
         select count(*)::int as n from audit.audit_events
          where event_type = 'queue.entry_opened' and subject_id = ${entry}`;
       expect(lines?.n).toBe(2);
     } finally {
-      await migration`
-        update profiles.advertiser_review_entries set state = 'withdrawn', closed_at = now()
-         where id = ${entry}`;
+      door.release();
+      await holder.catch(() => undefined);
+      await retireEntry(entry);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// L2CS-1: the opening locks the profile row before the entry (0215): no member write between the
+// token it renders and the view apps/api reads after it, in the same transaction
+// ---------------------------------------------------------------------------------------------
+
+describe("L2CS-1, invariant 4: the opening holds the profile until its transaction ends", () => {
+  it("makes a member's write of the profile wait for the opening's commit: the token stays the version read after it", async () => {
+    const { account, entry } = await committedEntry("cs1");
+    const door = gate();
+    let agentPid = 0;
+    const opening = localSuperuser().begin(async (tx) => {
+      agentPid = await backendPid(tx);
+      const [row] = rowsOf(await openAs(tx, AGENT_A, entry));
+      door.hold();
+      await door.released;
+      // what apps/api reads next in the transaction of the opening: the version of the token
+      const [now] = await tx<{ token: string }[]>`
+        select profiles.advertiser_review_token(${account}) as token`;
+      return { opened: row as Opening, token: now?.token };
+    });
+    try {
+      await door.held;
+      const write = second.begin((tx) =>
+        actAsMember(
+          tx,
+          "influx_advertiser",
+          { accountId: account, role: "advertiser", aal: "aal1" },
+          async () =>
+            (
+              await tx.unsafe(
+                "update profiles.advertiser_profiles set presentation = $1 where account_id = $2",
+                [PRESENTATION, account],
+              )
+            ).count,
+        ),
+      );
+      const waiting = await lockWaitersBehind(probe, agentPid, 1, 3_000);
+      door.release();
+      const { opened: claim, token } = await opening;
+      const written = await write;
+      expect(waiting).toBe(1);
+      expect(claim.outcome).toBe("claimed");
+      expect(token).toBe(claim.review_token);
+      // the member's write went through after the opening: the token of the opening is now stale
+      expect(written).toBe(1);
+      const [after] = await localSuperuser()<{ token: string }[]>`
+        select profiles.advertiser_review_token(${account}) as token`;
+      expect(after?.token).not.toBe(claim.review_token);
+    } finally {
+      door.release();
+      await opening.catch(() => undefined);
+      await retireEntry(entry);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// L2CS-2, 15 RG36: the database refuses the internal who HOLDS the account (0215)
+// ---------------------------------------------------------------------------------------------
+
+describe("L2CS-2, 15 RG36: an account the caller holds is his to hold, never to examine", () => {
+  it("refuses him the opening, both decisions, the extension and the logo (42501, the answer of an unknown entry); he still gives his claim back", async () => {
+    const outcome = await scenario(async (tx) => {
+      const entry = await submittedBrandA(tx);
+      const opening = await opened(tx, AGENT_A, entry);
+      // he becomes the responsible agent of brand A while he holds the claim
+      await tx`update identity.accounts set owner_agent_id = ${agentA} where id = ${brandA}`;
+      const refused = {
+        open: refusal(await openAs(tx, AGENT_A, entry)),
+        publish: refusal(
+          await publishAs(tx, AGENT_A, entry, opening.review_token),
+        ),
+        reject: refusal(
+          await rejectAs(
+            tx,
+            AGENT_A,
+            entry,
+            opening.review_token,
+            "illicit_content",
+          ),
+        ),
+        extend: refusal(
+          await asInternal(tx, AGENT_A, () =>
+            attempt(tx, "select profiles.extend_advertiser_review_claim($1)", [
+              entry,
+            ]),
+          ),
+        ),
+        logo: refusal(await readLogoAs(tx, AGENT_A, entry, BRAND_LOGO_IDS.a)),
+      };
+      const released = await asInternal(tx, AGENT_A, () =>
+        attempt(tx, "select profiles.release_advertiser_review_entry($1)", [
+          entry,
+        ]),
+      );
+      // a colleague is not concerned: he claims and publishes
+      const colleague = await opened(tx, AGENT_B, entry);
+      const published = await publishAs(
+        tx,
+        AGENT_B,
+        entry,
+        colleague.review_token,
+      );
+      return {
+        refused,
+        released: released.outcome,
+        colleague: colleague.outcome,
+        published: published.outcome,
+        lines: (await linesOf(tx, entry)).map((line) => [
+          line.event_type,
+          line.actor,
+        ]),
+      };
+    });
+    const forbidden = { code: INSUFFICIENT_PRIVILEGE, detail: undefined };
+    expect(outcome.refused).toEqual({
+      open: forbidden,
+      publish: forbidden,
+      reject: forbidden,
+      extend: forbidden,
+      logo: forbidden,
+    });
+    expect(outcome).toMatchObject({
+      released: "rows",
+      colleague: "claimed",
+      published: "rows",
+    });
+    // a refusal writes nothing on the entry (apps/api journals the attempt on the agent, CA19)
+    expect(outcome.lines).toEqual([
+      ["queue.entry_opened", agentA],
+      ["queue.claim_released", agentA],
+      ["queue.entry_opened", agentB],
+    ]);
+  });
+
+  it("answers a closed entry of an account he holds `closed`, as to anybody (EC-L2C-07-3)", async () => {
+    const outcome = await scenario(async (tx) => {
+      await tx`update identity.accounts set owner_agent_id = ${agentA} where id = ${brandA}`;
+      return opened(tx, AGENT_A, REVIEW_ENTRY_IDS.a);
+    });
+    expect(outcome.outcome).toBe("closed");
+  });
+
+  it("journals an agent's refused act as backoffice.action_refused, queue.conflict_of_interest, with its reason (15 CA19, RG110)", async () => {
+    const outcome = await scenario(async (tx) => {
+      rowsOf(
+        await asInternal(tx, AGENT_A, () =>
+          attempt(
+            tx,
+            "select backoffice.record_refused_action('queue.conflict_of_interest')",
+          ),
+        ),
+      );
+      return linesOf(tx, agentA);
+    });
+    expect(outcome).toEqual([
+      {
+        event_type: "backoffice.action_refused",
+        actor: agentA,
+        payload: {
+          action_code: "queue.conflict_of_interest",
+          reason: "conflict_of_interest",
+        },
+      },
+    ]);
   });
 });
 

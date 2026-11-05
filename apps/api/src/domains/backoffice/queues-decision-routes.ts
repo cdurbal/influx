@@ -19,9 +19,11 @@
 //   55000 (`entry_closed`, `stale_token`, `profile_state`)  -> 409 on the path `entry`
 //   23514 (a required field is missing)  -> 409, the path is the field, issue `required_field_missing`
 //   22023 (`reason`, `member_message`, `internal_comment`)  -> 400 on the body field
-// - RG36 (15, 13 RG35): the database does not refuse the caller who HOLDS the account (11): a
-//   decision or an extension on such an entry answers 403 with the issue `conflict_of_interest`, as
-//   the opening does. Giving a claim back stays open to him (he gets rid of it, never decides).
+// - RG36 (15, 13 RG35, CA19): a decision or an extension on an entry of an account the caller HOLDS
+//   answers 403 with the issue `conflict_of_interest`, as the opening does, after the trace of the
+//   attempt (backoffice.action_refused, queue.conflict_of_interest) is committed; the database
+//   refuses it too since 0215 (42501). Giving a claim back stays open to him (he gets rid of it,
+//   never decides).
 // - A decision answers with the entry to open next (17b §2.6), never opened for the caller here.
 // - Every answer is `Cache-Control: no-store`.
 import {
@@ -55,7 +57,14 @@ import {
   type BackofficeContext,
 } from "../identity/backoffice-session.ts";
 import type { IdentityApp } from "../identity/routes.ts";
-import { adminOnly, isForbidden, unlessRefused } from "./action-guards.ts";
+import {
+  adminOnly,
+  CONFLICT_OF_INTEREST,
+  conflictOfInterest,
+  isForbidden,
+  unlessConflict,
+  unlessRefused,
+} from "./action-guards.ts";
 import {
   displayNameOf,
   extendClaim,
@@ -164,32 +173,49 @@ export function registerBackofficeQueueDecisionRoutes(
 
   /**
    * One act on an entry, in the transaction of the request. An unknown entry, and the one of the
-   * caller's own account (hidden by the database), answer 404; with `conflictChecked`, an entry of
-   * an account the caller holds answers 403 (RG36). The act runs in a savepoint: its refusal leaves
-   * the transaction readable, for the name of the holder or the notice of a lifted claim.
+   * caller's own account (hidden by the database), answer 404. The act runs in a savepoint: its
+   * refusal leaves the transaction readable, for the name of the holder or the notice of a lifted
+   * claim.
    */
   async function treated<T>(
-    request: FastifyRequest,
     tx: Transaction,
     context: BackofficeContext,
     entryId: string,
-    conflictChecked: boolean,
     act: (savepoint: Transaction) => Promise<T>,
   ): Promise<T> {
+    if ((await entryAccountOf(tx, entryId)) === null) {
+      throw new ApiError("not_found");
+    }
+    return run(tx, context, entryId, act);
+  }
+
+  /**
+   * As `treated`, for an act an account holder may not take (RG36): an entry of an account the
+   * caller holds is refused, the attempt journaled in the transaction, which commits (CA19, 0215);
+   * the route answers 403 `conflict_of_interest` afterwards (unlessConflict).
+   */
+  async function decided<T>(
+    tx: Transaction,
+    context: BackofficeContext,
+    entryId: string,
+    act: (savepoint: Transaction) => Promise<T>,
+  ): Promise<T | typeof CONFLICT_OF_INTEREST> {
     const target = await entryAccountOf(tx, entryId);
     if (target === null) {
       throw new ApiError("not_found");
     }
-    if (conflictChecked && target.ownerAgentId === context.accountId) {
-      // No line of the register without a migration: the identifiers only, to the process log (D60)
-      request.log.warn(
-        { queue: "profiles_advertiser", entryId },
-        "queue.conflict_of_interest_refused",
-      );
-      throw new ApiError("forbidden", [
-        { path: "entry", issue: "conflict_of_interest" },
-      ]);
+    if (target.ownerAgentId === context.accountId) {
+      return conflictOfInterest(tx, context);
     }
+    return run(tx, context, entryId, act);
+  }
+
+  async function run<T>(
+    tx: Transaction,
+    context: BackofficeContext,
+    entryId: string,
+    act: (savepoint: Transaction) => Promise<T>,
+  ): Promise<T> {
     try {
       return await tx.transaction(act);
     } catch (error) {
@@ -227,23 +253,21 @@ export function registerBackofficeQueueDecisionRoutes(
     async (request, reply): Promise<PublishEntryResponse> => {
       const entryId = (request.params as EntryParams).id.toLowerCase();
       const body = request.body as PublishEntryRequest;
-      return inSession(request, reply, async (tx, context) => {
-        const decided = await treated(
-          request,
-          tx,
-          context,
-          entryId,
-          true,
-          (savepoint) =>
+      return unlessConflict(
+        await inSession(request, reply, async (tx, context) => {
+          const published = await decided(tx, context, entryId, (savepoint) =>
             publishEntry(
               savepoint,
               entryId,
               body.reviewToken,
               body.internalComment ?? null,
             ),
-        );
-        return { ...decided, next: await next(tx, context) };
-      });
+          );
+          return published === CONFLICT_OF_INTEREST
+            ? published
+            : { ...published, next: await next(tx, context) };
+        }),
+      );
     },
   );
 
@@ -268,14 +292,9 @@ export function registerBackofficeQueueDecisionRoutes(
           { path: "memberMessage", issue: "direct_contact" },
         ]);
       }
-      return inSession(request, reply, async (tx, context) => {
-        const decided = await treated(
-          request,
-          tx,
-          context,
-          entryId,
-          true,
-          (savepoint) =>
+      return unlessConflict(
+        await inSession(request, reply, async (tx, context) => {
+          const rejected = await decided(tx, context, entryId, (savepoint) =>
             rejectEntry(
               savepoint,
               entryId,
@@ -284,9 +303,12 @@ export function registerBackofficeQueueDecisionRoutes(
               body.memberMessage ?? null,
               body.internalComment ?? null,
             ),
-        );
-        return { ...decided, next: await next(tx, context) };
-      });
+          );
+          return rejected === CONFLICT_OF_INTEREST
+            ? rejected
+            : { ...rejected, next: await next(tx, context) };
+        }),
+      );
     },
   );
 
@@ -301,7 +323,7 @@ export function registerBackofficeQueueDecisionRoutes(
     async (request, reply): Promise<ReleaseEntryResponse> => {
       const entryId = (request.params as EntryParams).id.toLowerCase();
       return inSession(request, reply, async (tx, context) => {
-        await treated(request, tx, context, entryId, false, (savepoint) =>
+        await treated(tx, context, entryId, (savepoint) =>
           releaseEntry(savepoint, entryId),
         );
         return { released: true };
@@ -319,16 +341,14 @@ export function registerBackofficeQueueDecisionRoutes(
     },
     async (request, reply): Promise<ExtendEntryResponse> => {
       const entryId = (request.params as EntryParams).id.toLowerCase();
-      return inSession(request, reply, async (tx, context) => ({
-        claimExpiresAt: await treated(
-          request,
-          tx,
-          context,
-          entryId,
-          true,
-          (savepoint) => extendClaim(savepoint, entryId),
+      const claimExpiresAt = unlessConflict(
+        await inSession(request, reply, (tx, context) =>
+          decided(tx, context, entryId, (savepoint) =>
+            extendClaim(savepoint, entryId),
+          ),
         ),
-      }));
+      );
+      return { claimExpiresAt };
     },
   );
 
@@ -353,14 +373,8 @@ export function registerBackofficeQueueDecisionRoutes(
             context,
             "queue.force_release_claim",
             async (): Promise<ForceReleaseResponse> => {
-              const holder = await treated(
-                request,
-                tx,
-                context,
-                entryId,
-                false,
-                (savepoint) =>
-                  forceRelease(savepoint, entryId, body.reasonCode),
+              const holder = await treated(tx, context, entryId, (savepoint) =>
+                forceRelease(savepoint, entryId, body.reasonCode),
               );
               return {
                 released: true,

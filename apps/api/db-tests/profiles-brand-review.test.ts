@@ -1386,6 +1386,61 @@ describe("L2C-G5: every other write of a suspended profile, by influx_advertiser
   });
 });
 
+describe("L2CS-3, 06 RG6, invariant 1: a member moves his profile to pending_review only (0215)", () => {
+  it.each([
+    ["draft", "published"],
+    ["draft", "rejected"],
+    ["draft", "suspended"],
+    ["pending_review", "published"],
+    ["pending_review", "draft"],
+    ["rejected", "published"],
+  ])(
+    "refuses the owner of the doors moving a %s profile to %s (55000, DETAIL status); the state stays",
+    async (from, to) => {
+      const outcome = await scenario(async (tx) => {
+        await brandAIn(tx, from);
+        const write = await asDoorOwner(tx, () =>
+          attempt(
+            tx,
+            "update profiles.advertiser_profiles set status = $1::profiles.advertiser_profile_status " +
+              "where account_id = $2",
+            [to, brandA],
+          ),
+        );
+        const [row] = await tx<{ status: string }[]>`
+          select status::text as status from profiles.advertiser_profiles
+           where account_id = ${brandA}`;
+        return { write, status: row?.status };
+      });
+      expect(outcome.write).toMatchObject({ code: FROZEN, detail: "status" });
+      expect(outcome.status).toBe(from);
+    },
+  );
+
+  it("lets the owner of the doors move a draft or rejected profile to pending_review, as the submission does", async () => {
+    const outcome = await scenario(async (tx) => {
+      const results: string[] = [];
+      for (const from of ["draft", "rejected"]) {
+        await brandAIn(tx, from);
+        results.push(
+          codeOf(
+            await asDoorOwner(tx, () =>
+              attempt(
+                tx,
+                "update profiles.advertiser_profiles set status = 'pending_review' " +
+                  "where account_id = $1",
+                [brandA],
+              ),
+            ),
+          ),
+        );
+      }
+      return results;
+    });
+    expect(outcome).toEqual(["rows", "rows"]);
+  });
+});
+
 describe("CA15: the member door of RG9 on a published profile (file.md A3, A4)", () => {
   const PRESENTATION_FIELD = "advertiser.presentation";
   const proposed = JSON.stringify(OTHER_TEXT);

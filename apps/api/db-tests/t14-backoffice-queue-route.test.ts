@@ -12,9 +12,14 @@
 // (random identifiers, disposable local stack, like T14 of J8); the entries are withdrawn and the
 // internal profiles deactivated after the file. Every list is read from the instant this file
 // started (`from`): entries of earlier runs and of other files never enter the expectations.
-import { localRoleUrl, type LoginRole } from "@influx/test-kit/db";
+import {
+  connectAsLocalSuperuser,
+  localRoleUrl,
+  type LoginRole,
+} from "@influx/test-kit/db";
 import type { LightMyRequestResponse } from "fastify";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
+import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   closeDatabase,
@@ -32,8 +37,10 @@ import {
   WEB_SECRET,
 } from "../tests/helpers.ts";
 import {
+  backendPid,
   letterName,
   localSuperuser,
+  lockWaitersBehind,
   retireBrandFixtures,
   sharedMigrationRole,
 } from "./support.ts";
@@ -70,6 +77,14 @@ let windowFrom: string;
 let windowTo: string;
 const internals: string[] = [];
 const brands: string[] = [];
+
+let probe: postgres.Sql | undefined;
+
+/** L2CT-2: a connection of the local superuser that watches the locks of the others. */
+function probeConnection(): postgres.Sql {
+  probe ??= connectAsLocalSuperuser({ max: 1 });
+  return probe;
+}
 
 function localConnection(role: LoginRole) {
   return { url: localRoleUrl(role), role, tls: false };
@@ -551,6 +566,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await closeDatabase(database);
+  await probe?.end({ timeout: 1 });
   // L2CT-1: the published brands of the fixture leave `published` (RG25 reads them) and hold no entry
   await retireBrandFixtures(sharedMigrationRole(), brands);
   await sharedMigrationRole().begin(async (tx) => {
@@ -1065,10 +1081,41 @@ describe("the opening is the claim (15 C1, C2; CA17; file.md A9, A10)", () => {
   it("two simultaneous openings of a free entry: one wins, the other reads (invariant 2)", async () => {
     const fresh = await newBrand({ dueIn: "10 hours" });
     const server = app();
-    const [first, second] = await Promise.all([
-      open(server, fresh.entryId, agent),
-      open(server, fresh.entryId, colleague),
-    ]);
+    // L2CT-2: interleaved for sure. A transaction of the test holds the entry row; both openings
+    // start and wait (seen by a bounded probe), then it lets them go
+    let release: () => void = () => undefined;
+    const released = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let held: () => void = () => undefined;
+    const holding = new Promise<void>((resolve) => {
+      held = resolve;
+    });
+    let holderPid = 0;
+    const holder = localSuperuser().begin(async (tx) => {
+      holderPid = await backendPid(tx);
+      await tx`select 1 from profiles.advertiser_review_entries where id = ${fresh.entryId} for update`;
+      held();
+      await released;
+    });
+    let first: LightMyRequestResponse;
+    let second: LightMyRequestResponse;
+    let waiting: number;
+    try {
+      await holding;
+      const both = Promise.all([
+        open(server, fresh.entryId, agent),
+        open(server, fresh.entryId, colleague),
+      ]);
+      waiting = await lockWaitersBehind(probeConnection(), holderPid, 2);
+      release();
+      await holder;
+      [first, second] = await both;
+    } finally {
+      release();
+      await holder.catch(() => undefined);
+    }
+    expect(waiting).toBe(2);
     expect([first.statusCode, second.statusCode]).toEqual([200, 200]);
     const outcomes = [first, second]
       .map((response) => response.json<Opened>().outcome)
@@ -1283,11 +1330,34 @@ describe("the decision view (06 RG9, RG19, RG25, RG66, RG70, L2BS-7, L2BS-8; 15 
   });
 });
 
+/** 15 CA19, RG110 (0215): the refused acts of an agent on the accounts he holds, journaled on him. */
+async function conflictAttempts(
+  who: Internal,
+): Promise<{ actor: string | null; payload: Record<string, unknown> }[]> {
+  return sharedMigrationRole()<
+    { actor: string | null; payload: Record<string, unknown> }[]
+  >`
+    select actor_account_id::text as actor, payload from audit.audit_events
+     where event_type = 'backoffice.action_refused' and subject_id = ${who.accountId}
+       and payload ->> 'action_code' = 'queue.conflict_of_interest'
+     order by seq`;
+}
+
+const CONFLICT_ATTEMPT = {
+  action_code: "queue.conflict_of_interest",
+  reason: "conflict_of_interest",
+};
+
 describe("a conflict of interest (15 RG36, 13 RG35, 17b §2.5)", () => {
-  it("refuses the opening of an entry of an account the caller holds, by its identifier, and does not claim it", async () => {
+  it("refuses the opening of an entry of an account the caller holds, by its identifier, and does not claim it; the attempt is journaled (CA19)", async () => {
     const server = app();
+    const before = (await conflictAttempts(agent)).length;
     const refused = await open(server, held.entryId, agent);
     expect(refused.statusCode).toBe(403);
+    const attempts = await conflictAttempts(agent);
+    expect(attempts.slice(before)).toEqual([
+      { actor: agent.accountId, payload: CONFLICT_ATTEMPT },
+    ]);
     expect(
       refused.json<{ error: { code: string; details: unknown } }>().error,
     ).toMatchObject({
@@ -1879,7 +1949,7 @@ describe("the forced release (15 C4, CA63; file.md A8)", () => {
 });
 
 describe("a conflict of interest on a decision (15 RG36, CA19; 13 RG35)", () => {
-  it("refuses to decide or extend an entry of an account the caller holds: 403 `conflict_of_interest`, nothing written; a colleague decides it", async () => {
+  it("refuses to decide or extend an entry of an account the caller holds: 403 `conflict_of_interest`, nothing written but the attempt (CA19); a colleague decides it", async () => {
     const server = app();
     const brand = await newBrand({
       owner: agent.accountId,
@@ -1887,6 +1957,7 @@ describe("a conflict of interest on a decision (15 RG36, CA19; 13 RG35)", () => 
     });
     await completeBrand(brand);
     const colleagueView = await opened(server, brand.entryId, colleague);
+    const before = (await conflictAttempts(agent)).length;
     for (const [action, body] of [
       ["publish", { reviewToken: colleagueView.reviewToken }],
       [
@@ -1909,6 +1980,16 @@ describe("a conflict of interest on a decision (15 RG36, CA19; 13 RG35)", () => 
       claimedBy: colleague.accountId,
       state: "open",
     });
+    // one line per refused act, on the agent, never on the entry (15 CA19, RG110)
+    expect((await conflictAttempts(agent)).slice(before)).toEqual(
+      ["publish", "reject", "extend"].map(() => ({
+        actor: agent.accountId,
+        payload: CONFLICT_ATTEMPT,
+      })),
+    );
+    expect(
+      (await registerLines(brand.entryId)).map((line) => line.event),
+    ).toEqual(["queue.entry_opened"]);
     // not a refusal of the entry: the colleague who holds the claim publishes it
     const done = await act(server, colleague, brand.entryId, "publish", {
       reviewToken: colleagueView.reviewToken,
@@ -2192,14 +2273,18 @@ describe("the logo of an entry (06 RG9, RG15; 15 RG36, C2; invariants 7, 11, 13;
     expect(await registerLines(brand.entryId)).toEqual([]);
   });
 
-  it("RG36: the logo of an entry of an account the caller holds answers 403 `conflict_of_interest`, with no line and no read of Storage; a colleague reads it", async () => {
+  it("RG36: the logo of an entry of an account the caller holds answers 403 `conflict_of_interest`, with no read of Storage and no line but the attempt (CA19); a colleague reads it", async () => {
     const objects = new Map<string, Uint8Array>();
     const store = memoryStore(objects);
     const server = app(store);
     const mine = await newBrand({ owner: agent.accountId, dueIn: "34 hours" });
     const logo = await newLogo(mine, "active", objects);
+    const before = (await conflictAttempts(agent)).length;
 
     const refused = await readLogo(server, mine.entryId, logo.id, agent);
+    expect((await conflictAttempts(agent)).slice(before)).toEqual([
+      { actor: agent.accountId, payload: CONFLICT_ATTEMPT },
+    ]);
     expect(refused.statusCode).toBe(403);
     expect(
       refused.json<{ error: { code: string; details: unknown } }>().error,

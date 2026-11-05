@@ -220,6 +220,48 @@ export async function retireBrandFixtures(
   });
 }
 
+/**
+ * L2CT-2, L2CS-1: a bounded probe, never a sleep alone. Polls `pg_stat_activity` (from `probe`, a
+ * connection of the local superuser outside the transactions it watches) until `count` backends wait
+ * on a lock behind the backend `holderPid`, directly or through one another, or until `timeoutMs`
+ * has passed. Returns the number of waiting backends seen last.
+ */
+export async function lockWaitersBehind(
+  probe: postgres.Sql,
+  holderPid: number,
+  count: number,
+  timeoutMs = 5_000,
+): Promise<number> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const [row] = await probe<{ n: number }[]>`
+      with recursive chain (pid) as (
+        select a.pid from pg_catalog.pg_stat_activity a
+         where a.wait_event_type = 'Lock'
+           and ${holderPid}::int = any (pg_catalog.pg_blocking_pids(a.pid))
+        union
+        select a.pid from pg_catalog.pg_stat_activity a
+          join chain c on c.pid = any (pg_catalog.pg_blocking_pids(a.pid))
+         where a.wait_event_type = 'Lock'
+      )
+      select count(*)::int as n from chain`;
+    const seen = row?.n ?? 0;
+    if (seen >= count || Date.now() >= deadline) {
+      return seen;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+}
+
+/** The backend of a transaction, for lockWaitersBehind(). */
+export async function backendPid(tx: postgres.TransactionSql): Promise<number> {
+  const [row] = await tx<{ pid: number }[]>`select pg_backend_pid() as pid`;
+  if (row === undefined) {
+    throw new Error("no backend pid");
+  }
+  return row.pid;
+}
+
 afterAll(async () => {
   await Promise.all(opened.map((sql) => sql.end({ timeout: 1 })));
   opened.length = 0;

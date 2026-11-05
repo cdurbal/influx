@@ -12,7 +12,8 @@
 //   the key the function gave, which is never written to a response or a log.
 // - An unknown entry, the one of the caller's own account, an unknown logo or the logo of another
 //   account answer exactly alike (404, T14.3, T14.4); an entry of an account the caller HOLDS answers
-//   403 with the issue `conflict_of_interest` (RG36), before any line of the register.
+//   403 with the issue `conflict_of_interest` (RG36), before any read: its only line is the refused
+//   attempt on the caller's own account (CA19, backoffice.action_refused, 0215).
 // - A holder of the claim or not: a colleague's read-only view must see the image (15 C2).
 // - The answer carries no address of Storage and no token (T9.2 as D80 amends it), and is
 //   `Cache-Control: no-store`: it is an internal read of a brand's file.
@@ -30,7 +31,11 @@ import type { ObjectStore } from "../../platform/storage.ts";
 import { withBackofficeSession } from "../identity/backoffice-session.ts";
 import type { IdentityApp } from "../identity/routes.ts";
 import { BRAND_LOGO_BUCKET, brandLogoOf } from "../profiles/brand-logo.ts";
-import { isForbidden } from "./action-guards.ts";
+import {
+  conflictOfInterest,
+  isForbidden,
+  unlessConflict,
+} from "./action-guards.ts";
 import { entryAccountOf, readReviewLogo } from "./queues/repository.ts";
 
 export type BackofficeQueueLogoDependencies = {
@@ -63,23 +68,24 @@ export function registerBackofficeQueueLogoRoutes(
       // (a) the door of the database, its register line in the same transaction
       let object: Awaited<ReturnType<typeof readReviewLogo>>;
       try {
-        object = await withBackofficeSession(
-          database,
-          request,
-          reply,
-          async (tx, context) => {
-            const target = await entryAccountOf(tx, entryId);
-            if (target === null) {
-              throw new ApiError("not_found");
-            }
-            // 15 RG36, 13 RG35: the account is the caller's to hold, not to examine
-            if (target.ownerAgentId === context.accountId) {
-              throw new ApiError("forbidden", [
-                { path: "entry", issue: "conflict_of_interest" },
-              ]);
-            }
-            return readReviewLogo(tx, entryId, logoId);
-          },
+        object = unlessConflict(
+          await withBackofficeSession(
+            database,
+            request,
+            reply,
+            async (tx, context) => {
+              const target = await entryAccountOf(tx, entryId);
+              if (target === null) {
+                throw new ApiError("not_found");
+              }
+              // 15 RG36, 13 RG35: the account is the caller's to hold, not to examine; the refusal
+              // is journaled (CA19) and the database refuses it too (0215)
+              if (target.ownerAgentId === context.accountId) {
+                return conflictOfInterest(tx, context);
+              }
+              return readReviewLogo(tx, entryId, logoId);
+            },
+          ),
         );
       } catch (error) {
         // 42501: unknown entry, own account, unknown logo or another account's: one answer
