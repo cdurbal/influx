@@ -1,0 +1,14 @@
+[
+  { "file": "backoffice-queue.spec.ts", "title": "L2C-16: the list says each entry" },
+  { "file": "backoffice-queue.spec.ts", "title": "L2C-16: the filters, the origin" },
+  { "file": "backoffice-queue.spec.ts", "title": "L2C-16: ‹j›, ‹k› and ‹?›" },
+  { "file": "backoffice-queue.spec.ts", "title": "L2C-16: a refused read" },
+  { "file": "backoffice-queue.spec.ts", "title": "L2C-17: opening takes the entry" },
+  { "file": "backoffice-queue.spec.ts", "title": "L2C-17, L2C-18: a refusal names" },
+  { "file": "backoffice-queue.spec.ts", "title": "L2C-17: a colleague's entry" },
+  { "file": "backoffice-queue.spec.ts", "title": "L2C-17: a profile that changed" },
+  { "file": "brand-profile.spec.ts", "title": "a published brand in French at 1 440 px" },
+  { "file": "brand-profile.spec.ts", "title": "a refused then a suspended brand" },
+  { "file": "backoffice.spec.ts", "title": "L2C-16: an admin reaches the brand profile queue" },
+  { "file": "backoffice.spec.ts", "title": "L2C-17: an admin lifts a colleague's claim" }
+]
