@@ -47,12 +47,11 @@ security-reviewed: 2026-11-05 covers 4196b56777f94611d23904938cc1e52921a6fe5e 2c
 
 Lignes à ajouter à `21` §8 (`| # | Correctif attendu | Échéance | Détail |`). Détail : `archives/jalons/l2c/`
 (`-T` = `revue-constats-testeur.md`, `-S` = `revue-constats-securite.md`). Soldés dans le jalon : L2CT-1 à L2CT-3,
-L2CT-6, L2CT-7 (`fix-1` à `fix-3`), L2CS-1 (`fix-2`) ; L2CT-9 : rappel, sans ligne.
+L2CT-6, L2CT-7 (`fix-1` à `fix-3`), L2CS-1, L2CS-2, L2CS-3, L2CT-4 (`fix-2`) ; L2CT-9 : rappel, sans ligne.
 
 *Avant production :*
 
-| L2CT-4, L2CS-2 | RG36 en base : 42501 dans `open` (hors `closed`), `publish`, `reject`, `extend`, `read_advertiser_review_logo` quand `owner_agent_id` = l'appelant ; refus journalisé par un code dédié (`15` CA19, `backoffice.record_refused_action`), écrit et asserté dans les trois routes (`queues-routes.ts:365`, `queues-decision-routes.ts:183`, `queues-logo-routes.ts:76`) | Avant production | `-S`, `-T` |
-| L2CS-3 | RG6 en base : `guard_advertiser_member_write()` refuse (55000) tout `status` écrit par un membre hors `pending_review` ; test « membre vers `published` refusé » | Avant production | `-S` |
+| fix-2 | Relecture courte de la migration de `fix-2` (L2CS-1 à L2CS-3, L2CT-4) par `expert-cybersecurite` : son sha rejoint l'attestation sans avoir été relu à la revue | Avant production | `-S` |
 | L2CT-5 | « Browser journeys » : éclat 1/2 à 406-440 s pour un arrêt à 450 s (≈ 20 s par ligne d'écran) ; rééquilibrer (trois éclats, ou `backoffice.spec.ts` à part) | Avant L2D | `-T` |
 | EC-L2C-15-1 | Libellés membres tirés de RG9, RG10, absents de RG84 (`status.revisionRefused`, `review.*`, `logo.review.*`, `fieldErrors.emptied`, `statusText.published`, `suspended`) : relus avec les textes D48 (`21` §5.8) | Avant production | `run.md` ligne 15 |
 | L2C-09 | Rejeu d'une ligne transactionnelle déjà envoyée en défaut : journal `leads.transactional_sends`, `provider_message_id` unique (`0015` l. 83) | Avant production | compte rendu de L2C-09 |

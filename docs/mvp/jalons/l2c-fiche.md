@@ -205,20 +205,20 @@ attestation prêtes (`l2c/cloture.md`). Détail (scénario, mesure, correctif) :
 | L2CT-1 | dans le jalon | `db-tests/t14-backoffice-queue-route.test.ts:163, 491` | Noms de fixture à alphabet large, profils publiés retirés en `afterAll` (RG25 lit toute la base : 3 rouges sur 9) | `fix-1` |
 | L2CT-2 | dans le jalon | `db-tests/profiles-brand-decision.test.ts:542-593` ; `t14-…:1052` | Prises entrelacées de façon déterministe ; mutant « `SELECT` puis `UPDATE` » rouge | `fix-2`, avec L2CS-1 (même fonction) |
 | L2CT-3 | dans le jalon | `e2e/backoffice-queue.spec.ts`, `brand-profile.spec.ts`, `backoffice.spec.ts` | Somme mesurée (44,1 s en revue pour 20 s), script sur `e2e-report.json` ; réduire sans plancher baissé, sinon le fondateur constate | `fix-3` |
-| L2CT-4 | avant production | `queues-decision-routes.ts:183-190`, `queues-routes.ts:365-368`, `queues-logo-routes.ts:75-79` | `15` CA19 : refus RG36 journalisé, asserté | `21` §8, avec L2CS-2 |
+| L2CT-4 | à corriger dans le jalon (fondateur, 2026-11-05) | `queues-decision-routes.ts:183-190`, `queues-routes.ts:365-368`, `queues-logo-routes.ts:75-79` | `15` CA19 : refus RG36 journalisé, asserté | `fix-2` |
 | L2CT-5 | avant production | `.github/workflows/ci.yml`, éclat 1/2 | 406 à 440 s pour un arrêt à 450 s : rééquilibrer avant L2D | `21` §8 |
 | L2CT-6 | avant production | `t14-…:56-60, 473` | Fenêtre « période » décalée au hasard, ± 1 s | `fix-1` |
 | L2CT-7 | avant production | `profiles-brand-route`, `profiles-brand-logo-route`, `tm1-member-account-route` (`afterAll`) | Entrées ouvertes par le fichier passées en `withdrawn` | `fix-1` |
 | L2CT-8 | plus tard | `tests/brevo-connector.test.ts:2244-2261` | CA42 tautologique : valeurs dans le doublé ou test retiré | `21` §8, avec L2CS-8 |
 | L2CT-9 | plus tard | commit `e68df1d` | `pnpm check:fast` avant chaque commit (D76) | rien (rappel) |
 | L2CS-1 | dans le jalon | `0210…:541-546, 600` ; `queues-routes.ts:370-372` | Profil `FOR UPDATE` avant l'entrée dans `open_advertiser_review_entry` (ABA : jeton P1, vue P2) ; test db | `fix-2` (I-4) |
-| L2CS-2 | avant production | `0210…:547, 847, 1091` ; `0213…:91` ; les trois routes | RG36 refusé en base (42501 sur `owner_agent_id`), refus journalisé | `21` §8, avec L2CT-4 |
-| L2CS-3 | avant production | `0203…:90` ; `0122…:213-217` ; `0209…:708-754` | `guard_advertiser_member_write()` : statut membre vers `pending_review` seul | `21` §8 |
+| L2CS-2 | à corriger dans le jalon (fondateur, 2026-11-05) | `0210…:547, 847, 1091` ; `0213…:91` ; les trois routes | RG36 refusé en base (42501 sur `owner_agent_id`), refus journalisé | `fix-2` |
+| L2CS-3 | à corriger dans le jalon (fondateur, 2026-11-05) | `0203…:90` ; `0122…:213-217` ; `0209…:708-754` | `guard_advertiser_member_write()` : statut membre vers `pending_review` seul | `fix-2` |
 | L2CS-4 | plus tard | `0209…:250-292` | Porte de révision aux contraintes de la colonne cible (22023) | `21` §8 |
 | L2CS-5 | plus tard | `queues-decision-routes.ts:263-270` ; `brevo/mapping.ts:84-85` | « Autre » refusé en 400 par le `LINK_PATTERN` partagé | `21` §8 |
 | L2CS-6 | plus tard | `queues/repository.ts:83, 341-346` ; `0210…:420-452` | Index d'expression des doublons, avant le Lot 3 | `21` §8 |
 | L2CS-7 | plus tard | `0209…:375-404` ; `brand-profile.ts:431` | `lead.updated` regroupé par sujet ou plafonné | `21` §8 |
 | L2CS-8 | plus tard (L2E) | `0212…:14-16` ; `apollo/mapping.ts:75-77` | `organization_name` lu du nom commercial, test RG80 | `21` §8, L2E |
 
-La sécurité rattache L2CS-2 et L2CS-3 à la migration de L2CS-1 (+0,75 j) et conditionne `production` aux
-trois ; `fix-2` s'en tient à L2CS-1 : les y joindre relève du fondateur.
+Fondateur, 2026-11-05 : L2CS-2, L2CS-3 et L2CT-4 rejoignent `fix-2` (+0,75 j) ; relecture courte de cette migration par
+`expert-cybersecurite` avant `production` (`21` §8), le sha de `fix-2` n'ayant pas été relu à la revue.
