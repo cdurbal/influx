@@ -39,7 +39,7 @@ import {
   type ObjectStore,
 } from "../src/platform/storage.ts";
 import { captureLogs, testApiConfig, WEB_SECRET } from "../tests/helpers.ts";
-import { migrationRole } from "./support.ts";
+import { migrationRole, retireBrandFixtures } from "./support.ts";
 
 const FIXTURES = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -248,6 +248,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await closeDatabase(database);
+  // L2CT-7: no open entry and no published profile of this file stays in the shared stack
+  await retireBrandFixtures(migration, accounts);
   if (accounts.length > 0) {
     const rows = await migration<{ object_key: string }[]>`
       select object_key from profiles.brand_logo_objects where account_id = any (${accounts}::uuid[])`;

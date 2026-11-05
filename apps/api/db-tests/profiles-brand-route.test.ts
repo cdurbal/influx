@@ -31,7 +31,7 @@ import { buildServer } from "../src/server.ts";
 import { captureLogs, testApiConfig, WEB_SECRET } from "../tests/helpers.ts";
 import english from "../src/locales/en/email.json" with { type: "json" };
 import french from "../src/locales/fr/email.json" with { type: "json" };
-import { migrationRole, testDataSet } from "./support.ts";
+import { migrationRole, retireBrandFixtures, testDataSet } from "./support.ts";
 
 let database: ApiDatabase;
 let migration: postgres.Sql;
@@ -263,6 +263,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await closeDatabase(database);
+  // L2CT-7: no open entry and no published profile of this file stays in the shared stack
+  await retireBrandFixtures(migration, accounts);
   if (accounts.length > 0) {
     await migration`
       delete from leads.outbox_events

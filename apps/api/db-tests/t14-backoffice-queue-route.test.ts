@@ -31,7 +31,12 @@ import {
   WEB_ORIGIN,
   WEB_SECRET,
 } from "../tests/helpers.ts";
-import { localSuperuser, sharedMigrationRole } from "./support.ts";
+import {
+  letterName,
+  localSuperuser,
+  retireBrandFixtures,
+  sharedMigrationRole,
+} from "./support.ts";
 
 const NIL = "00000000-0000-4000-8000-000000000000";
 const ENTRIES = "/v1/bo/queues/profiles-advertiser/entries";
@@ -53,9 +58,11 @@ let database: ApiDatabase;
 /** The instant (database clock) before any fixture of this file. */
 let startedAt: string;
 /**
- * The creation instant of every entry of this file: 400 days back, to the microsecond. The period
- * filter (15 RG33) reads exactly this window, so the entries of other files and of earlier runs
- * never enter the expectations; the deadlines (sla_due_at) stay relative to now.
+ * The creation instant of every entry of this file: 400 days back and a random number of seconds
+ * further (L2CT-6), to the microsecond. The period filter (15 RG33) reads exactly this window
+ * (plus or minus one second), so the entries of other files, of earlier runs and of a run
+ * superposed on this one never enter the expectations; the deadlines (sla_due_at) stay relative
+ * to now.
  */
 let base: string;
 /** The window of the period filter around `base`. */
@@ -157,10 +164,9 @@ const PRESENTATION =
 /** A committed brand profile with its open entry (a first submission unless said otherwise). */
 async function newBrand(options: BrandOptions = {}): Promise<Brand> {
   const accountId = randomUUID();
-  // no run of eight digits: a name that looks like a phone number would raise RG19 on the fixture
-  // (an all-digit id prefix is 2 % of the names: every digit is replaced)
-  const name =
-    options.name ?? `Maison ${accountId.slice(0, 8).replace(/\d/g, "x")}`;
+  // letters only (L2CT-1): no run of eight digits (RG19 would read a phone number), and a name no
+  // earlier run or other file holds once normalised (RG25 compares every published profile)
+  const name = options.name ?? `Maison ${letterName(accountId.slice(0, 8))}`;
   const contact = options.contact ?? {
     firstName: `Prénom${accountId.slice(0, 6)}`,
     email: `contact-${accountId}@brand.example.test`,
@@ -466,11 +472,12 @@ beforeAll(async () => {
     { base: string; from: string; to: string }[]
   >`
     select to_char(t at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as base,
-           to_char((t - interval '1 minute') at time zone 'UTC',
+           to_char((t - interval '1 second') at time zone 'UTC',
                    'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as from,
-           to_char((t + interval '1 minute') at time zone 'UTC',
+           to_char((t + interval '1 second') at time zone 'UTC',
                    'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as to
-      from (select now() - interval '400 days' as t) x`;
+      from (select now() - interval '400 days'
+                   - make_interval(secs => ${Math.floor(Math.random() * 2_000_000)}) as t) x`;
   base = window?.base ?? "";
   windowFrom = window?.from ?? "";
   windowTo = window?.to ?? "";
@@ -482,13 +489,13 @@ beforeAll(async () => {
   plain = await newBrand({ dueIn: "3 hours" });
   late = await newBrand({ dueIn: "-3 hours", country: "DE" });
   flagged = await newBrand({
-    name: `Atelier ${randomUUID().slice(0, 6)}`,
+    name: `Atelier ${letterName(randomUUID().slice(0, 6))}`,
     presentation: `${PRESENTATION} Écrivez à secret.contact@exemple.test ou appelez le 06 12 34 56 78, ou suivez @atelier_trail.`,
     website: "xn--atelier-trail-jhb.example.test",
     dueIn: "5 hours",
   });
-  const sharedDomain = `${randomUUID().slice(0, 8)}.example.test`;
-  const uniqueName = `Éclat Maison ${randomUUID().slice(0, 8).replace(/\d/g, "x")}`;
+  const sharedDomain = `${letterName(randomUUID().slice(0, 8))}.example.test`;
+  const uniqueName = `Éclat Maison ${letterName(randomUUID().slice(0, 8))}`;
   published = await newBrand({
     name: uniqueName,
     website: sharedDomain,
@@ -508,7 +515,7 @@ beforeAll(async () => {
     kind: "revision",
     language: "en",
     dueIn: "8 hours",
-    name: `Revised ${randomUUID().slice(0, 6)}`,
+    name: `Revised ${letterName(randomUUID().slice(0, 6))}`,
   });
   await addRevision(
     revised,
@@ -526,7 +533,8 @@ beforeAll(async () => {
   ownEntryId = randomUUID();
   // One role per account (D41): no internal account has a brand profile. The policy that hides such
   // an entry (0207, C(3)) is a second line, tried here with the foreign keys and the trigger of the
-  // deadlines out of the way, as the superuser writes it.
+  // deadlines out of the way, as the superuser writes it. Its creation instant is an hour before the
+  // window of the period: another run of this file never lists it (L2CT-6).
   await localSuperuser().begin(async (tx) => {
     await tx`set local session_replication_role = replica`;
     await tx`
@@ -535,13 +543,16 @@ beforeAll(async () => {
     await tx`
       insert into profiles.advertiser_review_entries
         (id, account_id, kind, created_at, sla_due_at, escalate_at)
-      values (${ownEntryId}, ${agent.accountId}, 'submission', now(), now() + interval '1 day',
+      values (${ownEntryId}, ${agent.accountId}, 'submission', ${base}::timestamptz - interval '1 hour',
+              now() + interval '1 day',
               now() + interval '2 days')`;
   });
 });
 
 afterAll(async () => {
   await closeDatabase(database);
+  // L2CT-1: the published brands of the fixture leave `published` (RG25 reads them) and hold no entry
+  await retireBrandFixtures(sharedMigrationRole(), brands);
   await sharedMigrationRole().begin(async (tx) => {
     await tx`
       update profiles.advertiser_review_entries
@@ -905,7 +916,8 @@ describe("the list (15 RG26, RG27 C5, RG33, RG34)", () => {
                  and subject_type = 'queue_entry'
                  and occurred_at >= ${startedAt}::timestamptz) as lines,
              (select count(*)::int from profiles.advertiser_review_entries
-               where claimed_by_account_id is not null) as claims`;
+               where claimed_by_account_id is not null
+                 and account_id = any(${brands}::uuid[])) as claims`;
     const again = await search(server, agent, { limit: 3 });
     expect(again.status).toBe(200);
     const [unchanged] = await sharedMigrationRole()<
@@ -916,7 +928,8 @@ describe("the list (15 RG26, RG27 C5, RG33, RG34)", () => {
                  and subject_type = 'queue_entry'
                  and occurred_at >= ${startedAt}::timestamptz) as lines,
              (select count(*)::int from profiles.advertiser_review_entries
-               where claimed_by_account_id is not null) as claims`;
+               where claimed_by_account_id is not null
+                 and account_id = any(${brands}::uuid[])) as claims`;
     expect(unchanged).toEqual(after);
   });
 

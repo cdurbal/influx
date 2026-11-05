@@ -180,6 +180,46 @@ export async function bindRequestSession(
        || jsonb_build_object('session_id', ${session}::text))::text, true)`;
 }
 
+/**
+ * A fixture name drawn from a hexadecimal identifier, with an alphabet of letters only (L2CT-1):
+ * each hexadecimal character becomes one of `g` to `v`, so the name holds no run of digits (RG19
+ * would read it as a phone number) and cannot collide, once normalised (RG25), with the names of
+ * earlier runs or of other files (`x` and `a` to `f` only).
+ */
+export function letterName(hex: string): string {
+  return hex
+    .replace(/-/g, "")
+    .replace(/[0-9a-f]/gi, (character) =>
+      String.fromCharCode("g".charCodeAt(0) + Number.parseInt(character, 16)),
+    );
+}
+
+/**
+ * L2CT-1, L2CT-7: leaves nothing of the brand fixtures of a file in the shared stack. The open
+ * entries of the accounts are withdrawn (they would crowd the queue of the agents and its
+ * counters), and their published profiles leave `published` for `draft`: RG25 reads every
+ * published profile of the database, and a name left there makes duplicates for the runs to come.
+ */
+export async function retireBrandFixtures(
+  sql: postgres.Sql,
+  accountIds: readonly string[],
+): Promise<void> {
+  if (accountIds.length === 0) {
+    return;
+  }
+  const ids = [...accountIds];
+  await sql.begin(async (tx) => {
+    await tx`
+      update profiles.advertiser_review_entries
+         set state = 'withdrawn', closed_at = now()
+       where state = 'open' and account_id = any(${ids}::uuid[])`;
+    await tx`
+      update profiles.advertiser_profiles
+         set status = 'draft'
+       where status = 'published' and account_id = any(${ids}::uuid[])`;
+  });
+}
+
 afterAll(async () => {
   await Promise.all(opened.map((sql) => sql.end({ timeout: 1 })));
   opened.length = 0;
