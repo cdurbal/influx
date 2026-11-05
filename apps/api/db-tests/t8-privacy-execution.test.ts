@@ -44,10 +44,11 @@ const CHECK_VIOLATION = "23514";
 /** The Brevo messageId of the e-mail privacy.erasure_completed (D72, 0150). */
 const ERASURE_MESSAGE_ID = "<t8-erasure@smtp-relay.brevo.com>";
 
-/** The 14 category keys of the export, in the order of the notice (EC-J8-48). */
+/** The 15 category keys of the export, in the order of the notice (EC-J8-48; 0219). */
 const CATEGORIES = [
   "account",
   "advertiser_profile",
+  "creator_profile",
   "consents",
   "terms_acceptances",
   "sessions",
@@ -62,7 +63,7 @@ const CATEGORIES = [
   "recipients",
 ] as const;
 
-/** A notice of the shape apps/api renders (an object with the same 14 keys). */
+/** A notice of the shape apps/api renders (an object with the same 15 keys). */
 const NOTICE = {
   language: "en",
   title: "Your data held by INFLUX",
@@ -1068,7 +1069,7 @@ type ExportFile = {
 };
 
 describe("privacy.execute_request(): access (runbook §4)", () => {
-  it("builds the export from the base: 14 categories, the notice verbatim, the requester's data only, never a digest", async () => {
+  it("builds the export from the base: 15 categories, the notice verbatim, the requester's data only, never a digest", async () => {
     const outcome = await scenario(async (tx) => {
       const member = await newMember(tx, "advertiser");
       const stranger = await newMember(tx);

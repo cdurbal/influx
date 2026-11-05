@@ -20,6 +20,14 @@
         "retention": "For the life of the account, then 3 years of inactivity; erased if the account is deleted.",
         "source": "You."
       },
+      "creator_profile": {
+        "label": "Creator profile",
+        "content": "Creators only: alias, profile status, headline, presentation, topics, publication languages, tones, formats, usage rights, country and region of residence, travel, collaboration experience, delivery time, exclusivity, non-monetary consideration, availability and audience bands; your identity (first name, last name, contact email address and phone number, postal address, city, country, completeness score); your network accounts (network, handle, pseudonym, profile address, declared figures and their date, computed bands, detailed audience); the sectors you refuse; the history of your figures.",
+        "purpose": "Presenting your profile to brands, under an alias with your identity hidden, in introductions.",
+        "legal_basis": "Performance of the contract (terms of use), Article 6(1)(b).",
+        "retention": "For the life of the account, then 3 years of inactivity; erased if the account is deleted, only the alias and the country of residence being kept.",
+        "source": "You; the bands are computed by INFLUX from your figures."
+      },
       "consents": {
         "label": "Consents",
         "content": "For each purpose: granted or withdrawn, date, origin and evidence.",

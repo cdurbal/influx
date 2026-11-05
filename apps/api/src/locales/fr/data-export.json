@@ -20,6 +20,14 @@
         "retention": "Pendant la vie du compte, puis 3 ans d'inactivité ; effacée en cas de suppression du compte.",
         "source": "Vous-même."
       },
+      "creator_profile": {
+        "label": "Profil créateur",
+        "content": "Créateurs seulement : alias, état du profil, accroche, présentation, thématiques, langues de publication, tons, formats, droits d'usage, pays et région de résidence, déplacements, expérience des collaborations, délai de livraison, exclusivité, contrepartie non monétaire, disponibilité et tranches d'audience ; votre identité (prénom, nom, adresse e-mail et téléphone de contact, adresse postale, ville, pays, score de complétude) ; vos comptes de réseaux (réseau, identifiant, pseudonyme, adresse du profil, chiffres déclarés et leur date, tranches calculées, audience détaillée) ; les secteurs que vous refusez ; l'historique de vos chiffres.",
+        "purpose": "Présenter votre profil aux marques, sous un alias et identité masquée, dans le cadre des mises en relation.",
+        "legal_basis": "Exécution du contrat (conditions d'utilisation), article 6.1.b.",
+        "retention": "Pendant la vie du compte, puis 3 ans d'inactivité ; effacé en cas de suppression du compte, seuls l'alias et le pays de résidence étant conservés.",
+        "source": "Vous-même ; les tranches sont calculées par INFLUX à partir de vos chiffres."
+      },
       "consents": {
         "label": "Consentements",
         "content": "Pour chaque finalité : accordé ou retiré, date, origine et éléments de preuve.",

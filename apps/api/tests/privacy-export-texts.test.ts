@@ -1,5 +1,5 @@
 // The texts of an export (J8 commit 8; runbook demandes-rgpd §4): the notice stored in the file
-// (both languages, the same 14 categories as the database's file, each with its purpose, legal
+// (both languages, the same 15 categories as the database's file, each with its purpose, legal
 // basis, retention and source; small enough for privacy.execute_request) and the e-mail
 // privacy.export_ready (where and until when, in the account's time zone; no link, no attachment,
 // no domain, no address).
@@ -34,7 +34,7 @@ describe("the notice of an export (art. 15(1) a-h and 15(2))", () => {
     expect(en.language).toBe("en");
   });
 
-  it("describes exactly the 14 categories of the file, each with its five answers", () => {
+  it("describes exactly the 15 categories of the file, each with its five answers", () => {
     for (const locale of ["fr", "en"] as const) {
       const categories = exportNotice(locale).categories as Record<
         string,

@@ -22,6 +22,8 @@ const MESSAGES: Readonly<Record<UiLocale, NoticeMessages>> = {
 export const DATA_EXPORT_CATEGORIES = [
   "account",
   "advertiser_profile",
+  // 0219 (L2D): the creator storefront, its identity, its network lines and their history
+  "creator_profile",
   "consents",
   "terms_acceptances",
   "sessions",

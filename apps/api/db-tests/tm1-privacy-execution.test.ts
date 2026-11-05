@@ -548,7 +548,7 @@ describe("access: approved under 2V + R, exported by the worker, downloaded in t
       [...DATA_EXPORT_CATEGORIES].sort(),
     );
     expect(document.notice.language).toBe("fr");
-    // jsonb orders the keys of the stored notice its own way (EC-J8-48): the same 14 categories
+    // jsonb orders the keys of the stored notice its own way (EC-J8-48): the same 15 categories
     expect(Object.keys(document.notice.categories).sort()).toEqual(
       [...DATA_EXPORT_CATEGORIES].sort(),
     );

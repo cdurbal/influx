@@ -72,6 +72,7 @@ complétée par `expert-conformite-rgpd` le 2026-10-14 (un accès incomplet manq
 |---|---|
 | Compte | `identity.accounts`, `identity.account_roles` : rôle, adresse, vérification et état de délivrabilité de l'adresse, pays, langue, fuseau, nom affiché, statut du compte, attestation 18+ et sa date, statut déclaré, source d'acquisition déclarée, dates de création et de dernière activité, commercial référent (prénom) |
 | Profil de marque | `profiles.advertiser_profiles` : raison sociale (annonceur seulement) |
+| Profil créateur | `profiles.creator_*` (L2D, `0219`) : vitrine saisie et dérivée, listes, identité (couche N), lignes de réseau avec chiffres exacts, tranches et audience détaillée, secteurs refusés, historique des chiffres (un agent apparaît comme « INFLUX ») ; jamais `public_ref` ni l'identifiant d'une ligne. À l'effacement : vitrine gardée (alias, pays) `suspended`, le reste vidé ou supprimé |
 | Consentements | `identity.consent_events` : finalité, accordé ou retiré, date, origine, éléments de preuve (`evidence`) |
 | Conditions acceptées | `identity.terms_acceptances` : version, date, nature, canal, langue, **adresse IP et navigateur enregistrés** |
 | Sessions | `identity.sessions` : création, dernière activité, navigateur (« famille sur système ») ; **jamais** l'empreinte du jeton |
