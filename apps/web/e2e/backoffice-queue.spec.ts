@@ -425,7 +425,7 @@ test("L2C-17: opening takes the entry, publishing needs the recap, and the next 
     .toBeNull();
 });
 
-test("L2C-17: a refusal names a closed reason, shows the message the brand will read, and keeps what was typed", async ({
+test("L2C-17, L2C-18: a refusal names a closed reason, shows the message the brand will read, keeps what was typed, and the record of the account then shows the contact person, the profile and the decision", async ({
   page,
 }) => {
   const tag = runTag("q1r");
@@ -508,6 +508,38 @@ test("L2C-17: a refusal names a closed reason, shows the message the brand will 
     memberMessage: clean,
     internalComment: "Appelé, sans réponse.",
   });
+
+  // L2C-18: the record of the account reads what the decision left (blocks 2 and 3, no correction);
+  // the entry was seeded far overdue, so the decision is marked late
+  const b = m.accountBrand;
+  await page.goto(bo(`/inscrits/${only.accountId}`));
+  await expect(
+    page.getByRole("heading", {
+      level: 2,
+      name: new RegExp(`^${b.contactTitle}`),
+    }),
+  ).toBeVisible();
+  await expect(page.getByText(b.contactLead)).toBeVisible();
+  await expect(page.getByText(/^contact-.+@brand.example.test$/)).toBeVisible();
+  await expect(page.getByText("+33612345678", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 2, name: b.profileTitle }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(r.statuses.rejected, { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("80 %", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(
+      new RegExp(
+        `^Refusé le .+ par Lou — motif : ${r.decision.reasonLabels.other} \\(décision après l’échéance\\)$`,
+      ),
+    ),
+  ).toBeVisible();
+  // RG123: said, and the message the brand received is not repeated there
+  await expect(page.getByText(b.masked)).toBeVisible();
+  await expect(page.getByText(clean)).toHaveCount(0);
+  await expect(page.getByText("Appelé, sans réponse.")).toHaveCount(0);
 });
 
 test("L2C-17: a colleague's entry is read, not decided, in a sentence and without an error screen; the screen passes axe", async ({

@@ -35,6 +35,18 @@ export const REJECTION_REASON_CODES = [
 export const rejectionReasonCodeSchema = z.enum(REJECTION_REASON_CODES);
 export type RejectionReasonCode = z.infer<typeof rejectionReasonCodeSchema>;
 
+/** `profiles.moderated_fields` (0207, file.md A4): what a change re-validates. */
+export const MODERATED_FIELD_CODES = [
+  "advertiser.brand_name",
+  "advertiser.logo",
+  "advertiser.presentation",
+  "advertiser.website_domain",
+  "advertiser.contact_role",
+  "advertiser.primary_sector",
+] as const;
+export const moderatedFieldCodeSchema = z.enum(MODERATED_FIELD_CODES);
+export type ModeratedFieldCode = z.infer<typeof moderatedFieldCodeSchema>;
+
 /** Bands of company size, never a headcount (06 RG15, RG22, CA5; 0202). */
 export const COMPANY_SIZE_BANDS = [
   "1_10",

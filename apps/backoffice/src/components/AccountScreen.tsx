@@ -30,6 +30,7 @@ import {
 } from "react";
 import { messages } from "@/messages/fr";
 import { HELP_CLASSES, inputClasses, TITLE_CLASSES } from "./auth-classes";
+import { AccountBrandBlocks } from "./AccountBrandBlocks";
 import { ActionFeedback, AdminOnlyNotice } from "./ActionFeedback";
 import {
   correctionNotice,
@@ -788,6 +789,7 @@ export function AccountScreen({ id }: { id: string }) {
           </Field>
         </dl>
       </section>
+      <AccountBrandBlocks brand={detail.brand} />
       <SyncBlock detail={detail} onReplayed={() => setReload(reload + 1)} />
       <CorrectionForm
         detail={detail}

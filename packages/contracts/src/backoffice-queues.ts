@@ -14,8 +14,11 @@ import { accountOwnerSchema } from "./backoffice-accounts.ts";
 import { uiLocaleSchema } from "./auth.ts";
 import {
   brandProfileStatusSchema,
+  MODERATED_FIELD_CODES,
+  moderatedFieldCodeSchema,
   REJECTION_REASON_CODES,
   rejectionReasonCodeSchema,
+  type ModeratedFieldCode,
   type RejectionReasonCode,
 } from "./brand-profile.ts";
 import { countryCodeSchema } from "./signup.ts";
@@ -40,17 +43,9 @@ export const REVIEW_ENTRY_STATES = [
 ] as const;
 export const reviewEntryStateSchema = z.enum(REVIEW_ENTRY_STATES);
 
-/** `profiles.moderated_fields` (0207, file.md A4): what a change re-validates. */
-export const MODERATED_FIELD_CODES = [
-  "advertiser.brand_name",
-  "advertiser.logo",
-  "advertiser.presentation",
-  "advertiser.website_domain",
-  "advertiser.contact_role",
-  "advertiser.primary_sector",
-] as const;
-export const moderatedFieldCodeSchema = z.enum(MODERATED_FIELD_CODES);
-export type ModeratedFieldCode = z.infer<typeof moderatedFieldCodeSchema>;
+/** `profiles.moderated_fields` (0207, file.md A4): defined with the brand profile contract, which the record of an account also reads. */
+export { MODERATED_FIELD_CODES, moderatedFieldCodeSchema };
+export type { ModeratedFieldCode };
 
 /** `profiles.advertiser_rejection_reasons` (0207, 06 RG66, file.md A6): the closed list, defined with the profile contract it also serves. */
 export { REJECTION_REASON_CODES, rejectionReasonCodeSchema };

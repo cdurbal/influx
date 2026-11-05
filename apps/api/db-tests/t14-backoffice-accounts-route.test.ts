@@ -783,6 +783,184 @@ describe("GET /v1/bo/accounts/:id (15 RG40, RG41, RG49; 05 RG99, RG107; EC-31)",
   });
 });
 
+describe("GET /v1/bo/accounts/:id, the brand blocks (15 RG41 blocks 2 and 3, RG123; L2BS-7; L2C-18)", () => {
+  type Brand = {
+    contact: Record<
+      "firstName" | "role" | "email" | "phone" | "url",
+      string | null
+    >;
+    profile: {
+      status: string;
+      completenessPercent: number | null;
+      changedFields: string[];
+      decisions: {
+        outcome: string;
+        decidedAt: string;
+        decidedBy: { accountId: string; displayName: string | null } | null;
+        late: boolean;
+        reasonCode: string | null;
+      }[];
+      hasMoreDecisions: boolean;
+    };
+  };
+  type BrandDetail = { brand: Brand | null };
+
+  /** A published brand: a contact person, two closed decisions (one late), a revision waiting. */
+  async function brandWithHistory(): Promise<{
+    member: Member;
+    entryIds: string[];
+  }> {
+    const member = await newMember("advertiser");
+    const refused = randomUUID();
+    const published = randomUUID();
+    const open = randomUUID();
+    await migrationRole().begin(async (tx) => {
+      await tx`
+        update profiles.advertiser_profiles
+           set status = 'published', submitted_at = now() - interval '3 days',
+               first_published_at = now() - interval '1 day', completeness_percent = 82,
+               contact_role = 'marketing', primary_sector_code = 'sports_leisure',
+               company_size_band = '11_50', presentation = 'Outdoor gear for the weekend.'
+         where account_id = ${member.accountId}`;
+      await tx`
+        insert into profiles.advertiser_contact_details
+          (account_id, contact_first_name, contact_email, contact_phone, contact_url)
+        values (${member.accountId}, 'Camille', ${`contact-${member.accountId}@brand.example.test`},
+                '+33612345678', 'https://brand.example.test/contact')`;
+      // the trigger of the table writes created_at and the deadlines at the insert (EC-L2C-05-3):
+      // an entry is opened, then closed in ONE statement that moves its instants back
+      // the first submission was refused, in time; the next one was published after its deadline
+      await tx`insert into profiles.advertiser_review_entries (id, account_id, kind)
+               values (${refused}, ${member.accountId}, 'submission')`;
+      await tx`
+        update profiles.advertiser_review_entries
+           set created_at = now() - interval '4 days', sla_due_at = now() - interval '3 days',
+               escalate_at = now() - interval '2 days', state = 'rejected',
+               decided_by_account_id = ${agent.accountId},
+               decided_at = now() - interval '3 days 2 hours', rejection_reason_code = 'other',
+               member_message = 't14-secret-message-to-brand',
+               internal_comment = 't14-secret-internal-comment',
+               closed_at = now() - interval '3 days 2 hours'
+         where id = ${refused}`;
+      await tx`insert into profiles.advertiser_review_entries (id, account_id, kind)
+               values (${published}, ${member.accountId}, 'submission')`;
+      await tx`
+        update profiles.advertiser_review_entries
+           set created_at = now() - interval '2 days', sla_due_at = now() - interval '36 hours',
+               escalate_at = now() - interval '12 hours', state = 'published',
+               decided_by_account_id = ${admin.accountId}, decided_at = now() - interval '1 day',
+               closed_at = now() - interval '1 day'
+         where id = ${published}`;
+      await tx`insert into profiles.advertiser_review_entries (id, account_id, kind)
+               values (${open}, ${member.accountId}, 'revision')`;
+      await tx`
+        insert into profiles.profile_field_revisions
+          (account_id, field_code, proposed_value, advertiser_review_entry_id)
+        values (${member.accountId}, 'advertiser.presentation',
+                ${"A longer presentation of the brand."}::jsonb, ${open})`;
+    });
+    return { member, entryIds: [refused, published, open] };
+  }
+
+  it("a brand record carries the contact person and the profile: state, completeness, fields waiting, decisions most recent first, the same for an agent and an admin", async () => {
+    const { member } = await brandWithHistory();
+    const url = `/v1/bo/accounts/${member.accountId}`;
+    const asAgent = await get(app(), url, agent.session);
+    const asAdmin = await get(app(), url, admin.session);
+    expect(asAgent.statusCode).toBe(200);
+    const brand = asAgent.json<BrandDetail>().brand;
+    expect(brand).toEqual({
+      contact: {
+        firstName: "Camille",
+        role: "marketing",
+        email: `contact-${member.accountId}@brand.example.test`,
+        phone: "+33612345678",
+        url: "https://brand.example.test/contact",
+      },
+      profile: {
+        status: "published",
+        completenessPercent: 82,
+        changedFields: ["advertiser.presentation"],
+        decisions: [
+          {
+            outcome: "published",
+            decidedAt: expect.any(String) as string,
+            decidedBy: { accountId: admin.accountId, displayName: "Camille" },
+            late: true,
+            reasonCode: null,
+          },
+          {
+            outcome: "rejected",
+            decidedAt: expect.any(String) as string,
+            decidedBy: { accountId: agent.accountId, displayName: "Camille" },
+            late: false,
+            reasonCode: "other",
+          },
+        ],
+        hasMoreDecisions: false,
+      },
+    });
+    expect(asAdmin.json<BrandDetail>().brand).toEqual(brand);
+    // RG123: neither the message the brand received nor the internal comment is on the record
+    expect(asAgent.body).not.toContain("t14-secret-message-to-brand");
+    expect(asAgent.body).not.toContain("t14-secret-internal-comment");
+  });
+
+  it("a creator record has no brand block, and a brand with no contact person and no decision says so by empty values", async () => {
+    const creator = await get(
+      app(),
+      `/v1/bo/accounts/${beta.accountId}`,
+      agent.session,
+    );
+    expect(creator.json<BrandDetail>().brand).toBeNull();
+    const bare = await get(
+      app(),
+      `/v1/bo/accounts/${alpha.accountId}`,
+      agent.session,
+    );
+    expect(bare.json<BrandDetail>().brand).toEqual({
+      contact: {
+        firstName: null,
+        role: null,
+        email: null,
+        phone: null,
+        url: null,
+      },
+      profile: {
+        status: "draft",
+        completenessPercent: null,
+        changedFields: [],
+        decisions: [],
+        hasMoreDecisions: false,
+      },
+    });
+  });
+
+  it("L2BS-7: reading the contact person journals nothing of its own: the one line of the opening, named, covers the record", async () => {
+    const { member, entryIds } = await brandWithHistory();
+    const linesOf = () =>
+      migrationRole()<{ event_type: string; actor: string | null }[]>`
+        select event_type, actor_account_id::text as actor
+          from audit.audit_events
+         where subject_id = ${member.accountId}
+            or subject_id = any(${entryIds}::uuid[])
+         order by seq`;
+    const before = await linesOf();
+    const response = await get(
+      app(),
+      `/v1/bo/accounts/${member.accountId}`,
+      agent.session,
+    );
+    expect(response.json<BrandDetail>().brand?.contact.email).toContain(
+      "@brand.example.test",
+    );
+    const after = await linesOf();
+    expect(after.slice(before.length)).toEqual([
+      { event_type: "history.account_read", actor: agent.accountId },
+    ]);
+  });
+});
+
 describe("GET /v1/bo/accounts/counters (05 RG105)", () => {
   type Counters = {
     day: string;

@@ -640,6 +640,33 @@ export const messages = {
     },
     error: "La fiche n’a pas pu être chargée.",
   },
+  /** L2C-18 (15 RG41 blocks 2 and 3, RG123; 17b §3.5): what the record of a brand adds. */
+  accountBrand: {
+    contactTitle: "Interlocuteur de la marque",
+    contactMark: "▮",
+    contactMarkLabel: "visible des seuls rôles internes",
+    contactLead:
+      "Visible des rôles internes seuls. L’e-mail, le téléphone et le lien ne sont jamais montrés à un créateur ni à une marque (D46) : seuls le prénom et la fonction le sont, à l’ouverture d’une mise en relation. L’ouverture de cette fiche est enregistrée.",
+    role: "Fonction",
+    profileTitle: "Profil de la marque",
+    status: "État du profil",
+    completeness: "Complétude",
+    changed: "Champs modifiés depuis la validation",
+    changedNone: "aucun",
+    decisionsTitle: "Historique des décisions",
+    decisionsEmpty: "Aucune décision n’a été prise sur ce profil.",
+    decision: {
+      published: (at: string, by: string) => `Publié le ${at} par ${by}`,
+      rejected: (at: string, by: string, reason: string) =>
+        `Refusé le ${at} par ${by} — motif : ${reason}`,
+      late: " (décision après l’échéance)",
+      unknownAgent: "un agent",
+    },
+    more: (count: number) =>
+      `Seules les ${count} décisions les plus récentes sont affichées.`,
+    masked:
+      "Les messages envoyés à la marque et les commentaires internes des décisions ne sont pas repris sur cette fiche.",
+  },
   apollo: {
     title: "Réglages Apollo",
     lead: "Chaque changement passe par une double validation, sur un écran distinct. Un changement réévalue les inscrits écartés.",
