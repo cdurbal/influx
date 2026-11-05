@@ -3,7 +3,7 @@
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
 | 01 | 01.md | commit | sonnet | high | integrateur | fait | L2CT-5, L2C-E2E : 3 éclats `--shard=n/3`, 91/77/69 cas = 237, plancher et fusion intacts. Mesure (job, s) 1/2 : 424, 420, 406 (runs 42042787768, 42012111194, 42001124234) ; 2/2 : 300 environ (890 une fois : installation de Chromium de 11 min, aléa) ; `backoffice.spec.ts` = 39 % des durées de cas de l'éclat 1/2 (147, 152, 137 s sur 380, 391, 352), série : plancher ≈ 150 s d'étape. Option : contiguë à 3 éclats, `backoffice.spec.ts` à part ne fait pas mieux (même plancher série) ; filtres non touchés. Durée des 3 éclats : à noter après la CI du prochain push |
-| 02 | 02.md | arbitrage | opus | xhigh | architecte | à faire | `l2d/modele.md` ; huit points de la fiche § Écarts, EC-L2D-1 à 9 signés |
+| 02 | 02.md | arbitrage | opus | xhigh | architecte | fait | `l2d/modele.md` (≤ 10 Ko), sans D82 ; aucun droit annonceur sur aucun objet `creator_%` (P5), dérivations et porte « Confirmer mes chiffres » à `influx_identity_definer` (aucun rôle neuf), complétude hors vitrine ; EC-L2D-2 corrigé (`creator_formats`), EC-02-1 à 8 |
 | 03 | 03.md | commit | opus | high | expert-database | à faire | I-4. `0216` ; TM12.6 |
 | 04 | 04.md | commit | opus | xhigh | expert-database | à faire | I-4. `0217`, non réversible (D46, P5) |
 | 05 | 05.md | commit | opus | high | expert-database | à faire | I-4. `0218` |
