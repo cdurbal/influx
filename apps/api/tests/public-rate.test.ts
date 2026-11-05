@@ -81,6 +81,7 @@ const SESSION_ROUTES: readonly string[] = [
   "GET /v1/bo/ops/processes",
   "GET /v1/bo/queues/counters",
   "GET /v1/bo/queues/profiles-advertiser/entries",
+  "POST /v1/bo/queues/profiles-advertiser/entries/search",
   "POST /v1/bo/queues/profiles-advertiser/entries/:id/open",
   "POST /v1/bo/queues/profiles-advertiser/entries/:id/publish",
   "POST /v1/bo/queues/profiles-advertiser/entries/:id/reject",

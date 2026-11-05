@@ -6,6 +6,8 @@
 // - GET  /v1/bo/queues/profiles-advertiser/entries: the list, oldest deadline first, the ones past
 //   their deadline in front (C5), its filters (RG33), a page capped by the server (RG34); no
 //   coordinate, never the contact person.
+// - POST /v1/bo/queues/profiles-advertiser/entries/search (L2C 18c): the same page, filters, period
+//   and cursor in the body (the relay refuses instants and a long cursor in a query); reads only.
 // - POST /v1/bo/queues/profiles-advertiser/entries/:id/open: opening is claiming (C1): the entry is
 //   taken, or read in read-only mode with the name of its holder (C2); the decision view comes back
 //   with the version token (L2BS-1), the alerts (RG19, RG25, RG70, L2BS-8) and the refusal reasons
@@ -21,11 +23,13 @@ import {
   BRAND_REVIEW_QUEUE,
   entriesQuerySchema,
   entriesResponseSchema,
+  entriesSearchSchema,
   entryParamsSchema,
   openEntryResponseSchema,
   queueCountersResponseSchema,
   type EntriesQuery,
   type EntriesResponse,
+  type EntriesSearch,
   type EntryParams,
   type OpenEntryResponse,
   type QueueCountersResponse,
@@ -105,7 +109,7 @@ export function decodeEntryCursor(
   return { dueAt: match[1], createdAt: match[2], id: match[3] };
 }
 
-function filtersOf(query: EntriesQuery): EntryFilters {
+function filtersOf(query: EntriesQuery | EntriesSearch): EntryFilters {
   const filters: EntryFilters = {};
   if (query.kind !== undefined) filters.kind = query.kind;
   if (query.country !== undefined) filters.country = query.country;
@@ -253,6 +257,47 @@ export function registerBackofficeQueueRoutes(
     },
   );
 
+  /** One page of the list, whether the filters came in the query string or in the body. */
+  function entriesPage(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    query: EntriesQuery | EntriesSearch,
+  ): Promise<EntriesResponse> {
+    void reply.header("cache-control", "no-store");
+    const filters = filtersOf(query);
+    const withAlert =
+      query.alert === undefined
+        ? null
+        : (entry: ListedEntry): boolean =>
+            alertCodesOf(entry.examined, {
+              brandName: entry.duplicateBrand,
+              domain: entry.duplicateDomain,
+            }).length > 0;
+    return withBackofficeSession(
+      database,
+      request,
+      reply,
+      async (tx, context) => {
+        const page = await listEntriesPage(
+          tx,
+          context.accountId,
+          filters,
+          query.limit,
+          withAlert,
+        );
+        const counters = await readCounters(tx, context.accountId);
+        return {
+          asOf: counters?.asOf ?? new Date().toISOString(),
+          items: page.items.map((entry) => rowOf(entry, context.accountId)),
+          nextCursor:
+            page.resumeAfter === null
+              ? null
+              : encodeEntryCursor(page.resumeAfter),
+        };
+      },
+    );
+  }
+
   app.get(
     "/v1/bo/queues/profiles-advertiser/entries",
     {
@@ -261,42 +306,22 @@ export function registerBackofficeQueueRoutes(
         response: { 200: entriesResponseSchema },
       },
     },
-    async (request, reply): Promise<EntriesResponse> => {
-      void reply.header("cache-control", "no-store");
-      const query = request.query as EntriesQuery;
-      const filters = filtersOf(query);
-      const withAlert =
-        query.alert === undefined
-          ? null
-          : (entry: ListedEntry): boolean =>
-              alertCodesOf(entry.examined, {
-                brandName: entry.duplicateBrand,
-                domain: entry.duplicateDomain,
-              }).length > 0;
-      return withBackofficeSession(
-        database,
-        request,
-        reply,
-        async (tx, context) => {
-          const page = await listEntriesPage(
-            tx,
-            context.accountId,
-            filters,
-            query.limit,
-            withAlert,
-          );
-          const counters = await readCounters(tx, context.accountId);
-          return {
-            asOf: counters?.asOf ?? new Date().toISOString(),
-            items: page.items.map((entry) => rowOf(entry, context.accountId)),
-            nextCursor:
-              page.resumeAfter === null
-                ? null
-                : encodeEntryCursor(page.resumeAfter),
-          };
-        },
-      );
+    (request, reply): Promise<EntriesResponse> =>
+      entriesPage(request, reply, request.query as EntriesQuery),
+  );
+
+  // L2C 18c (EC-L2C-16-1): the same page, the period and the cursor in the body, which the relay
+  // carries where it refuses them in a query. A POST that writes nothing: no claim, no register line.
+  app.post(
+    "/v1/bo/queues/profiles-advertiser/entries/search",
+    {
+      schema: {
+        body: entriesSearchSchema,
+        response: { 200: entriesResponseSchema },
+      },
     },
+    (request, reply): Promise<EntriesResponse> =>
+      entriesPage(request, reply, request.body as EntriesSearch),
   );
 
   app.post(

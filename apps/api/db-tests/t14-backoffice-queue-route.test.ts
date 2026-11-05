@@ -318,6 +318,28 @@ async function list(
   };
 }
 
+/** L2C 18c: the same page as `list`, the filters, the period and the cursor in the body. */
+async function search(
+  server: Server,
+  who: Internal,
+  body: Record<string, unknown> = {},
+): Promise<{ status: number; body: ListBody; raw: string }> {
+  const response = await call(
+    server,
+    "POST",
+    `${ENTRIES}/search`,
+    who.session,
+    {
+      body: { from: windowFrom, to: windowTo, ...body },
+    },
+  );
+  return {
+    status: response.statusCode,
+    body: response.json<ListBody>(),
+    raw: response.body,
+  };
+}
+
 type Opened = {
   outcome: string;
   reviewToken: string | null;
@@ -544,6 +566,7 @@ describe("T14.1, T14.2: the routes of queue 1 are the backoffice's, behind a ses
   ])[] = [
     ["GET", COUNTERS, undefined],
     ["GET", ENTRIES, undefined],
+    ["POST", `${ENTRIES}/search`, {}],
     ["POST", `${ENTRIES}/${NIL}/open`, undefined],
     ["GET", `${ENTRIES}/${NIL}/logo?logo=${NIL}`, undefined],
     ...ACTIONS.map(
@@ -790,6 +813,135 @@ describe("the list (15 RG26, RG27 C5, RG33, RG34)", () => {
     expect(next.body.nextCursor).toBeNull();
     expect((await list(server, agent, { sort: "name" })).status).toBe(400);
     expect((await list(server, agent, { export: "csv" })).status).toBe(400);
+  });
+
+  it("POST search: the same page as the GET, page 2 without a duplicate or a gap, the period and the filters in the body, and no line written (L2C 18c)", async () => {
+    const server = app();
+    const whole = await list(server, agent);
+    const first = await search(server, agent, { limit: 3 });
+    expect(first.status).toBe(200);
+    // the first page is the GET's, row for row, and the cursor is the GET's too
+    expect(first.body.items).toEqual(whole.body.items.slice(0, 3));
+    expect(first.body.nextCursor).toBe(
+      (await list(server, agent, { limit: 3 })).body.nextCursor,
+    );
+    const second = await search(server, agent, {
+      limit: 3,
+      cursor: first.body.nextCursor,
+    });
+    const third = await search(server, agent, {
+      limit: 3,
+      cursor: second.body.nextCursor,
+    });
+    const paged = [
+      ...first.body.items,
+      ...second.body.items,
+      ...third.body.items,
+    ];
+    expect(paged.map((row) => row.id)).toEqual(
+      whole.body.items.map((row) => row.id),
+    );
+    expect(new Set(paged.map((row) => row.id)).size).toBe(paged.length);
+    expect(second.body.items).toHaveLength(3);
+    expect(third.body.nextCursor).toBeNull();
+
+    // the period bounds the page, a cursor carried inside it too; outside it nothing is listed
+    const inside = await search(server, agent, {
+      limit: 3,
+      cursor: first.body.nextCursor,
+    });
+    expect(inside.body.items.map((row) => row.id)).toEqual(
+      second.body.items.map((row) => row.id),
+    );
+    for (const outside of [
+      {
+        from: startedAt,
+        to: new Date(Date.parse(startedAt) + 60_000).toISOString(),
+      },
+      {
+        from: new Date(Date.parse(windowFrom) - 60_000).toISOString(),
+        to: new Date(Date.parse(windowFrom) - 1_000).toISOString(),
+      },
+    ]) {
+      expect((await search(server, agent, outside)).body.items).toEqual([]);
+    }
+    // the filters are the GET's, and the alert filter pages as well
+    expect(
+      (await search(server, agent, { kind: "revision" })).body.items.map(
+        (row) => row.id,
+      ),
+    ).toEqual([revised.entryId]);
+    const flaggedFirst = await search(server, agent, {
+      alert: "true",
+      limit: 2,
+    });
+    const flaggedNext = await search(server, agent, {
+      alert: "true",
+      limit: 2,
+      cursor: flaggedFirst.body.nextCursor,
+    });
+    expect(
+      [...flaggedFirst.body.items, ...flaggedNext.body.items].map(
+        (row) => row.id,
+      ),
+    ).toEqual([
+      flagged.entryId,
+      dupDomain.entryId,
+      dupName.entryId,
+      revised.entryId,
+    ]);
+    // the cap is the server's, and the entries of a held account stay hidden (RG36)
+    expect(whole.body.items.map((row) => row.id)).not.toContain(held.entryId);
+    expect(
+      (await search(server, colleague)).body.items.map((row) => row.id),
+    ).toContain(held.entryId);
+
+    // it reads: neither a claim nor a register line, for any of the callers
+    const [after] = await sharedMigrationRole()<
+      { lines: number; claims: number }[]
+    >`
+      select (select count(*)::int from audit.audit_events
+               where actor_account_id in (${agent.accountId}, ${colleague.accountId})
+                 and subject_type = 'queue_entry'
+                 and occurred_at >= ${startedAt}::timestamptz) as lines,
+             (select count(*)::int from profiles.advertiser_review_entries
+               where claimed_by_account_id is not null) as claims`;
+    const again = await search(server, agent, { limit: 3 });
+    expect(again.status).toBe(200);
+    const [unchanged] = await sharedMigrationRole()<
+      { lines: number; claims: number }[]
+    >`
+      select (select count(*)::int from audit.audit_events
+               where actor_account_id in (${agent.accountId}, ${colleague.accountId})
+                 and subject_type = 'queue_entry'
+                 and occurred_at >= ${startedAt}::timestamptz) as lines,
+             (select count(*)::int from profiles.advertiser_review_entries
+               where claimed_by_account_id is not null) as claims`;
+    expect(unchanged).toEqual(after);
+  });
+
+  it("POST search: a closed body; a cap above the server's, a period that ends before it starts, a cursor that is none and a filter outside the list are 400 (RG33, RG34)", async () => {
+    const server = app();
+    const refused: Record<string, unknown>[] = [
+      { sort: "name" },
+      { export: "csv" },
+      { limit: 51 },
+      { limit: 0 },
+      { limit: "3" },
+      { from: windowTo, to: windowFrom },
+      { from: "2026-11-05" },
+      { cursor: "not a cursor!" },
+      { cursor: Buffer.from("x").toString("base64url") },
+      { holder: "everyone" },
+      { overdue: "yes" },
+      { kind: "other" },
+    ];
+    for (const body of refused) {
+      expect(
+        (await search(server, agent, body)).status,
+        JSON.stringify(body),
+      ).toBe(400);
+    }
   });
 
   it("hides the entries of the accounts the caller holds, and shows them to a colleague (15 RG36, CA19)", async () => {

@@ -17,8 +17,9 @@ import {
   escalatedCount,
   filtersOf,
   lockWords,
+  pagingOf,
   policyLine,
-  queryOf,
+  searchBodyOf,
   rowStateOf,
   shortcutOf,
   steppedIndex,
@@ -120,9 +121,68 @@ describe("RG121: the filters the address bar may carry", () => {
     expect(
       addressOf("/files/profils-marque", { overdue: "true", kind: "revision" }),
     ).toBe("/files/profils-marque?overdue=true&kind=revision");
-    expect(queryOf({ overdue: "true" }, 50)).toEqual({
+  });
+
+  it("carries the period as days and the page as a number and a cursor, in the address (L2C 18c)", () => {
+    expect(
+      filtersOf(reader("from=2026-11-01&to=2026-11-05&kind=revision"), OWN),
+    ).toEqual({ from: "2026-11-01", to: "2026-11-05", kind: "revision" });
+    expect(filtersOf(reader("from=yesterday&to=2026-11-5"), OWN)).toEqual({});
+    expect(chipWords("to", "2026-11-05", OWN)).toEqual({
+      name: messages.queueList.periodTo,
+      value: "05/11/2026",
+    });
+    expect(pagingOf(reader("page=3&cursor=AbC_-9"))).toEqual({
+      page: 3,
+      cursor: "AbC_-9",
+    });
+    expect(pagingOf(reader("page=12&cursor=x"))).toEqual({
+      page: 12,
+      cursor: "x",
+    });
+    // a number alone, a cursor alone, page 1 or 0, a malformed value: the first page
+    for (const query of [
+      "page=3",
+      "cursor=abc",
+      "page=1&cursor=abc",
+      "page=0&cursor=abc",
+      "page=2x&cursor=abc",
+      "page=2&cursor=a%3Ab",
+      `page=2&cursor=${"a".repeat(301)}`,
+    ]) {
+      expect(pagingOf(reader(query)), query).toEqual({
+        page: 1,
+        cursor: null,
+      });
+    }
+    expect(
+      addressOf(
+        "/files/profils-marque",
+        { kind: "revision", from: "2026-11-01" },
+        { page: 2, cursor: "AbC" },
+      ),
+    ).toBe(
+      "/files/profils-marque?kind=revision&from=2026-11-01&page=2&cursor=AbC",
+    );
+  });
+
+  it("sends the filters, the period as instants and the cursor in a body, never the days (L2C 18c)", () => {
+    expect(
+      searchBodyOf(
+        { overdue: "true", from: "2026-11-01", to: "2026-11-05" },
+        { from: "2026-10-31T23:00:00.000Z", to: "2026-11-05T22:59:59.999Z" },
+        { page: 2, cursor: "AbC" },
+        50,
+      ),
+    ).toEqual({
       overdue: "true",
-      limit: "50",
+      from: "2026-10-31T23:00:00.000Z",
+      to: "2026-11-05T22:59:59.999Z",
+      cursor: "AbC",
+      limit: 50,
+    });
+    expect(searchBodyOf({}, {}, { page: 1, cursor: null }, 50)).toEqual({
+      limit: 50,
     });
   });
 

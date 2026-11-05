@@ -73,6 +73,7 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
   },
   "GET /v1/bo/queues/counters": {},
   "GET /v1/bo/queues/profiles-advertiser/entries": {},
+  "POST /v1/bo/queues/profiles-advertiser/entries/search": { body: {} },
   "POST /v1/bo/queues/profiles-advertiser/entries/:id/open": {},
   "POST /v1/bo/queues/profiles-advertiser/entries/:id/publish": {
     body: { reviewToken: "0".repeat(64) },

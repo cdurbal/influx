@@ -2,7 +2,9 @@
 // the order of 15 RG33, a separator, then those of the queue; each active filter is a removable
 // chip, "Réinitialiser" appears as soon as one is active. The state is the address's: a change
 // goes up to the screen, which writes it in the address bar (codes only, no personal data).
+import { useId } from "react";
 import { messages } from "@/messages/fr";
+import { HELP_CLASSES, inputClasses } from "./auth-classes";
 import {
   FIELD_CLASSES,
   ROW_GROUP_CLASSES,
@@ -13,6 +15,7 @@ import {
 import {
   chipText,
   chipWords,
+  PERIOD_KEYS,
   type OwnFilter,
   type QueueFilters,
 } from "./queue-view-model";
@@ -69,6 +72,7 @@ export function QueueFilterBar({
   onReset: () => void;
 }) {
   const active = Object.entries(filters);
+  const periodHelp = useId();
   return (
     <section aria-label={t.filters} className="flex flex-col gap-3">
       <div className={`${ROW_GROUP_CLASSES} items-end`}>
@@ -125,6 +129,29 @@ export function QueueFilterBar({
           />
         ))}
       </div>
+      <fieldset aria-describedby={periodHelp} className={ROW_GROUP_CLASSES}>
+        <legend className={SMALL_LABEL_CLASSES}>{t.period}</legend>
+        {PERIOD_KEYS.map((key) => (
+          <div key={key} className={FIELD_CLASSES}>
+            <label
+              htmlFor={`queue-period-${key}`}
+              className={SMALL_LABEL_CLASSES}
+            >
+              {key === "from" ? t.periodFrom : t.periodTo}
+            </label>
+            <input
+              id={`queue-period-${key}`}
+              type="date"
+              value={filters[key] ?? ""}
+              onChange={(event) => onChange(key, event.target.value || null)}
+              className={inputClasses(false)}
+            />
+          </div>
+        ))}
+      </fieldset>
+      <p id={periodHelp} className={HELP_CLASSES}>
+        {t.periodHelp}
+      </p>
       {active.length === 0 ? null : (
         <div className={`${ROW_GROUP_CLASSES} items-center`}>
           <ul aria-label={t.chipsLabel} className="flex flex-wrap gap-2">

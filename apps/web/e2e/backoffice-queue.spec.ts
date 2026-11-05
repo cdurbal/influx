@@ -164,6 +164,46 @@ test("L2C-16: the filters, the origin and the country are in the address, and a 
   const rows = entryRows(page);
   await expect(rows).toHaveCount(3);
 
+  // the period is two days in the address, sent as instants in a body (L2C 18c): a period that
+  // starting tomorrow holds none of the entries, a period starting two days ago holds the three
+  const day = (offset: number) => {
+    const at = new Date();
+    at.setDate(at.getDate() + offset);
+    return [at.getFullYear(), at.getMonth() + 1, at.getDate()]
+      .map((part) => String(part).padStart(2, "0"))
+      .join("-");
+  };
+  const periodStart = page.getByLabel(t.periodFrom, { exact: true });
+  await periodStart.fill(day(1));
+  await expect(page).toHaveURL(new RegExp(`from=${day(1)}`));
+  await expect(page.getByText(t.noMatch)).toBeVisible();
+  // pages of two entries (the cap of the server is 50): next, previous, and a reload keeps the page
+  await page.route(
+    "**/api/v1/bo/queues/profiles-advertiser/entries/search",
+    (route) =>
+      route.continue({
+        postData: JSON.stringify({
+          ...(route.request().postDataJSON() as object),
+          limit: 2,
+        }),
+      }),
+  );
+  await periodStart.fill(day(-2));
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0)).toContainText(`Maison ${tag}A`);
+  await expect(page.getByText(t.page(1))).toBeVisible();
+  await page.getByRole("button", { name: t.pageNext }).click();
+  await expect(page).toHaveURL(/page=2&cursor=/);
+  await expect(page).toHaveURL(new RegExp(`from=${day(-2)}`));
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText(`Maison ${tag}C`);
+  await page.reload();
+  await expect(rows.first()).toContainText(`Maison ${tag}C`);
+  await page.getByRole("button", { name: t.pagePrevious }).click();
+  await expect(page).not.toHaveURL(/page=/);
+  await expect(rows).toHaveCount(2);
+  // the filters below read the same pages of two, with the period still in the address
+
   // "Verrou : libre": two of the three, the address says it, the chip too
   await page.getByLabel(t.holder, { exact: true }).selectOption("free");
   await expect(page).toHaveURL(/holder=free/);

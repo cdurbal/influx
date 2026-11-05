@@ -124,18 +124,32 @@ export type QueueCountersResponse = z.infer<typeof queueCountersResponseSchema>;
  * the holder (free, me, one named agent), the responsible salesperson, the period (the day of the
  * submission), the overdue ones and the presence of an alert; plus the filters of 17b §1.7: the
  * country and the kind (first submission, or modification). Codes, identifiers and instants only.
+ * The same filters travel in the query string (GET) or in the body (POST .../search, L2C 18c).
  */
+const entriesFilterShape = {
+  kind: reviewEntryKindSchema.optional(),
+  country: countryCodeSchema.optional(),
+  overdue: z.literal("true").optional(),
+  holder: z.union([z.enum(["free", "me"]), z.uuid()]).optional(),
+  owner: z.union([z.literal("none"), z.uuid()]).optional(),
+  from: instantSchema.optional(),
+  to: instantSchema.optional(),
+  alert: z.literal("true").optional(),
+  cursor: queueCursorSchema.optional(),
+};
+
+/** A period that ends before it starts is refused, never read as an empty list. */
+function periodIsOrdered(filters: { from?: string; to?: string }): boolean {
+  return (
+    filters.from === undefined ||
+    filters.to === undefined ||
+    Date.parse(filters.from) <= Date.parse(filters.to)
+  );
+}
+
 export const entriesQuerySchema = z
   .strictObject({
-    kind: reviewEntryKindSchema.optional(),
-    country: countryCodeSchema.optional(),
-    overdue: z.literal("true").optional(),
-    holder: z.union([z.enum(["free", "me"]), z.uuid()]).optional(),
-    owner: z.union([z.literal("none"), z.uuid()]).optional(),
-    from: instantSchema.optional(),
-    to: instantSchema.optional(),
-    alert: z.literal("true").optional(),
-    cursor: queueCursorSchema.optional(),
+    ...entriesFilterShape,
     limit: z.coerce
       .number()
       .int()
@@ -143,14 +157,29 @@ export const entriesQuerySchema = z
       .max(QUEUE_PAGE_SIZE_MAX)
       .default(QUEUE_PAGE_SIZE_DEFAULT),
   })
-  .refine(
-    (query) =>
-      query.from === undefined ||
-      query.to === undefined ||
-      Date.parse(query.from) <= Date.parse(query.to),
-    { message: "period_order" },
-  );
+  .refine(periodIsOrdered, { message: "period_order" });
 export type EntriesQuery = z.infer<typeof entriesQuerySchema>;
+
+/**
+ * POST .../entries/search (L2C 18c, EC-L2C-16-1): the same page, the same filters, the same cap, in
+ * the BODY. The relay carries query values of 64 plain characters only, which neither the period
+ * (instants) nor the cursor (about 120 characters) are; a body has no such limit. Nothing is
+ * written: it reads, like the GET, and a closed schema refuses any other key.
+ */
+export const entriesSearchSchema = z
+  .strictObject({
+    ...entriesFilterShape,
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(QUEUE_PAGE_SIZE_MAX)
+      .default(QUEUE_PAGE_SIZE_DEFAULT),
+  })
+  .refine(periodIsOrdered, { message: "period_order" });
+export type EntriesSearch = z.infer<typeof entriesSearchSchema>;
+/** What a caller sends (the page size may be left to its default). */
+export type EntriesSearchBody = z.input<typeof entriesSearchSchema>;
 
 /** The lock of an entry (15 RG27 C2): a name, never a technical identifier alone. */
 export const entryClaimSchema = z.strictObject({

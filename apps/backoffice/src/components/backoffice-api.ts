@@ -79,6 +79,7 @@ import {
   rejectEntryResponseSchema,
   releaseEntryResponseSchema,
   type EntriesResponse,
+  type EntriesSearchBody,
   type EntryLogoResponse,
   type ExtendEntryResponse,
   type ForceReleaseRequest,
@@ -372,6 +373,8 @@ export function readOpsProcesses(): Promise<RelayResult<OpsProcessesResponse>> {
   return callRelay("GET", "/v1/bo/ops/processes", opsProcessesResponseSchema);
 }
 
+const ENTRIES = "/v1/bo/queues/profiles-advertiser/entries";
+
 // --- Queues (15 RG26 to RG28, RG33, RG34; 17b §2.2; L2C-16) -------------------------------------
 
 /** The counters of every queue (15 RG28), as the caller may see them (RG36). */
@@ -386,24 +389,27 @@ export function readQueueCounters(): Promise<
 }
 
 /**
- * The entries of queue 1, first page. The query holds codes of the plain characters the relay
- * carries: neither the period nor the cursor of the next page can cross it yet (EC-L2C-16-1).
+ * One page of the entries of queue 1 (L2C 18c, EC-L2C-16-1): the filters, the period and the cursor
+ * travel in the BODY of a POST that writes nothing, because the relay carries query values of 64
+ * plain characters only, which an instant and a cursor are not.
+ */
+export function searchBrandReviewEntries(
+  body: EntriesSearchBody,
+): Promise<RelayResult<EntriesResponse>> {
+  return callRelay("POST", `${ENTRIES}/search`, entriesResponseSchema, body);
+}
+
+/**
+ * The entries of queue 1, first page, from a query of plain characters: the dashboard only asks for
+ * the overdue ones.
  */
 export function readBrandReviewEntries(
   query: Readonly<Record<string, string>>,
 ): Promise<RelayResult<EntriesResponse>> {
-  return callRelay(
-    "GET",
-    "/v1/bo/queues/profiles-advertiser/entries",
-    entriesResponseSchema,
-    undefined,
-    query,
-  );
+  return callRelay("GET", ENTRIES, entriesResponseSchema, undefined, query);
 }
 
 // --- Queue 1, one entry (06 RG6, RG65; 15 C1 to C4, C6; L2C-17) -----------------------------------
-
-const ENTRIES = "/v1/bo/queues/profiles-advertiser/entries";
 
 /** Opening is claiming (15 C1): the decision view, its version token, and the register line. */
 export function openBrandReviewEntry(

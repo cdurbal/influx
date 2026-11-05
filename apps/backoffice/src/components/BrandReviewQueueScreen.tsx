@@ -10,7 +10,7 @@ import {
   type QueueEntryRow,
 } from "@influx/contracts/backoffice-queues";
 import { messages } from "@/messages/fr";
-import { readBrandReviewEntries, readQueueCounters } from "./backoffice-api";
+import { readQueueCounters, searchBrandReviewEntries } from "./backoffice-api";
 import { DueCell, LockCell, StateCell } from "./QueueCells";
 import { QueueTemplate, type QueueColumn } from "./QueueTemplate";
 import { type OwnFilter } from "./queue-view-model";
@@ -108,7 +108,7 @@ export function BrandReviewQueueScreen() {
         href: `/files/profils-marque/${row.id}`,
         label: t.openEntryOf(row.brandName),
       })}
-      loadEntries={readBrandReviewEntries}
+      loadEntries={searchBrandReviewEntries}
       loadCounters={readQueueCounters}
     />
   );

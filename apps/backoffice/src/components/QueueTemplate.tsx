@@ -4,12 +4,15 @@
 // 17b §2.2, §2.3, §2.8, §4.1; skill backoffice-ops; L2C-16), the same for queues 2 to 15: the
 // counters and the delay in clear, the common filters then the queue's own, a dense table sorted by
 // deadline, its states (loading, empty, no match, error, refused), the keyboard. The address bar
-// carries the filters (codes only, 15 RG121). Nothing here decides: apps/api says what is overdue,
-// who holds what and which entries the caller may see; the queue gives its columns and its calls.
-// Page 1 only, capped by the server (RG34, never an infinite scroll): the cursor of the next page
-// does not cross the relay yet, so a capped list says so and asks for a filter (EC-L2C-16-1).
+// carries the filters, the period (two days), the number of the page and its cursor (codes only,
+// 15 RG121). Nothing here decides: apps/api says what is overdue, who holds what and which entries
+// the caller may see; the queue gives its columns and its calls.
+// Pages of at most 50 entries (RG34, never an infinite scroll), next and previous: the filters,
+// the period and the cursor travel in the body of a POST that writes nothing (L2C 18c,
+// EC-L2C-16-1), not in a query the relay refuses. The server keeps no cursor: the address does.
 import {
   QUEUE_PAGE_SIZE_MAX,
+  type EntriesSearchBody,
   type QueueCountersResponse,
   type QueueEntryRow,
 } from "@influx/contracts/backoffice-queues";
@@ -50,13 +53,17 @@ import {
   counterWords,
   emptyWords,
   filtersOf,
+  FIRST_PAGE,
+  pagingOf,
   policyLine,
-  queryOf,
+  searchBodyOf,
   shortcutOf,
   steppedIndex,
   type OwnFilter,
   type QueueFilters,
+  type QueuePaging,
 } from "./queue-view-model";
+import { periodOf } from "./view-model";
 
 const t = messages.queueList;
 
@@ -87,7 +94,7 @@ export type QueueTemplateProps<Row extends QueueRowFacts> = {
   /** The entry of a row: its address and the name that labels its link. */
   entryOf: (row: Row) => { href: string; label: string };
   loadEntries: (
-    query: Readonly<Record<string, string>>,
+    body: EntriesSearchBody,
   ) => Promise<
     RelayResult<{ asOf: string; items: Row[]; nextCursor: string | null }>
   >;
@@ -153,8 +160,20 @@ export function QueueTemplate<Row extends QueueRowFacts>(
     () => filtersOf((name) => search.get(name), ownFilters),
     [search, ownFilters],
   );
+  const paging = useMemo(() => pagingOf((name) => search.get(name)), [search]);
+  // 05 RG97: a period that ends before it starts is said, never sent.
+  const period = useMemo(
+    () => periodOf(filters.from, filters.to),
+    [filters.from, filters.to],
+  );
   const [reload, setReload] = useState(0);
-  const loadKey = `${JSON.stringify(filters)}#${reload}`;
+  const loadKey = `${JSON.stringify(filters)}#${paging.cursor ?? ""}#${reload}`;
+  // The cursor of each page seen, in memory only: it is what "Page précédente" goes back to.
+  // A reload keeps the page (the address holds its cursor) but not the pages before it.
+  const [seen, setSeen] = useState<{
+    scope: string;
+    cursors: Readonly<Record<number, string | null>>;
+  }>({ scope: "", cursors: {} });
   const [entries, setEntries] = useState<{
     key: string;
     load: Load<{ asOf: string; items: Row[]; nextCursor: string | null }>;
@@ -166,8 +185,12 @@ export function QueueTemplate<Row extends QueueRowFacts>(
 
   // The caller leaves when the session has ended; the lists stay as they are until the answer.
   useEffect(() => {
+    if (period === "invalid") {
+      return undefined;
+    }
     let active = true;
-    void loadEntries(queryOf(filters, QUEUE_PAGE_SIZE_MAX)).then((result) => {
+    const body = searchBodyOf(filters, period, paging, QUEUE_PAGE_SIZE_MAX);
+    void loadEntries(body).then((result) => {
       if (!active) {
         return;
       }
@@ -176,12 +199,24 @@ export function QueueTemplate<Row extends QueueRowFacts>(
         router.replace("/");
         return;
       }
+      if (load.kind === "ok") {
+        const scope = JSON.stringify(filters);
+        const { nextCursor } = load.data;
+        setSeen((current) => ({
+          scope,
+          cursors: {
+            ...(current.scope === scope ? current.cursors : {}),
+            [paging.page]: paging.cursor,
+            ...(nextCursor === null ? {} : { [paging.page + 1]: nextCursor }),
+          },
+        }));
+      }
       setEntries({ key: loadKey, load });
     });
     return () => {
       active = false;
     };
-  }, [filters, loadKey, loadEntries, router]);
+  }, [filters, period, paging, loadKey, loadEntries, router]);
 
   useEffect(() => {
     let active = true;
@@ -201,11 +236,15 @@ export function QueueTemplate<Row extends QueueRowFacts>(
     };
   }, [loadKey, loadCounters, router]);
 
-  const entriesLoad: Load<{
-    asOf: string;
-    items: Row[];
-    nextCursor: string | null;
-  }> = entries?.key === loadKey ? entries.load : { kind: "loading" };
+  // A period that ends before it starts is said, and nothing is asked.
+  const entriesLoad:
+    | Load<{ asOf: string; items: Row[]; nextCursor: string | null }>
+    | { kind: "invalid" } =
+    period === "invalid"
+      ? { kind: "invalid" }
+      : entries?.key === loadKey
+        ? entries.load
+        : { kind: "loading" };
   const countersLoad: Load<QueueCountersResponse> =
     counters?.key === loadKey ? counters.load : { kind: "loading" };
 
@@ -216,6 +255,20 @@ export function QueueTemplate<Row extends QueueRowFacts>(
     },
     [pathname, router],
   );
+  /** Another page of the same list: a step in the history, so that the browser's back returns too. */
+  function goToPage(next: QueuePaging) {
+    router.push(addressOf(pathname, filters, next));
+  }
+  // The page before is offered when this session has seen it; the first page always is.
+  const before = paging.page - 1;
+  const previous: QueuePaging | null =
+    paging.page === 1
+      ? null
+      : before === 1
+        ? FIRST_PAGE
+        : seen.scope === JSON.stringify(filters) && before in seen.cursors
+          ? { page: before, cursor: seen.cursors[before] ?? null }
+          : null;
   function change(key: string, value: string | null) {
     const next: Record<string, string> = { ...filters };
     if (value === null) {
@@ -308,23 +361,49 @@ export function QueueTemplate<Row extends QueueRowFacts>(
           </p>
           <SkeletonRows columns={columns.length + 1} />
         </>
+      ) : entriesLoad.kind === "invalid" ? (
+        <ErrorNotice>{t.periodInvalid}</ErrorNotice>
       ) : entriesLoad.kind === "failed" ? (
         <div className="flex flex-col gap-3">
           <ErrorNotice>
             {entriesLoad.forbidden ? t.forbidden : t.error}
           </ErrorNotice>
-          {entriesLoad.forbidden ? null : (
-            <button
-              type="button"
-              onClick={() => setReload(reload + 1)}
-              className={`${SMALL_SECONDARY_CLASSES} self-start`}
-            >
-              {messages.common.retry}
-            </button>
-          )}
+          <div className="flex flex-wrap items-center gap-3">
+            {entriesLoad.forbidden ? null : (
+              <button
+                type="button"
+                onClick={() => setReload(reload + 1)}
+                className={SMALL_SECONDARY_CLASSES}
+              >
+                {messages.common.retry}
+              </button>
+            )}
+            {paging.page === 1 ? null : (
+              <button
+                type="button"
+                onClick={() => goToPage(FIRST_PAGE)}
+                className={SMALL_SECONDARY_CLASSES}
+              >
+                {t.pageFirst}
+              </button>
+            )}
+          </div>
         </div>
       ) : entriesLoad.data.items.length === 0 ? (
-        filtered ? (
+        paging.page > 1 ? (
+          <div className="flex flex-col gap-3">
+            <p role="status" className={HELP_CLASSES}>
+              {t.pageEmpty}
+            </p>
+            <button
+              type="button"
+              onClick={() => goToPage(FIRST_PAGE)}
+              className={`${SMALL_SECONDARY_CLASSES} self-start`}
+            >
+              {t.pageFirst}
+            </button>
+          </div>
+        ) : filtered ? (
           <p role="status" className={HELP_CLASSES}>
             {t.noMatch}
           </p>
@@ -412,10 +491,47 @@ export function QueueTemplate<Row extends QueueRowFacts>(
               </table>
             </DenseTableRegion>
           </div>
-          {entriesLoad.data.nextCursor === null ? null : (
-            <p role="status" className={HELP_CLASSES}>
-              {t.capped(QUEUE_PAGE_SIZE_MAX)}
-            </p>
+          {paging.page === 1 && entriesLoad.data.nextCursor === null ? null : (
+            <nav
+              aria-label={t.pagination}
+              className="flex flex-wrap items-center gap-3"
+            >
+              <p className={`${HELP_CLASSES} tabular-nums`}>
+                {t.page(paging.page)}
+              </p>
+              {paging.page < 3 ? null : (
+                <button
+                  type="button"
+                  onClick={() => goToPage(FIRST_PAGE)}
+                  className={SMALL_SECONDARY_CLASSES}
+                >
+                  {t.pageFirst}
+                </button>
+              )}
+              {previous === null ? null : (
+                <button
+                  type="button"
+                  onClick={() => goToPage(previous)}
+                  className={SMALL_SECONDARY_CLASSES}
+                >
+                  {t.pagePrevious}
+                </button>
+              )}
+              {entriesLoad.data.nextCursor === null ? null : (
+                <button
+                  type="button"
+                  onClick={() =>
+                    goToPage({
+                      page: paging.page + 1,
+                      cursor: entriesLoad.data.nextCursor,
+                    })
+                  }
+                  className={SMALL_SECONDARY_CLASSES}
+                >
+                  {t.pageNext}
+                </button>
+              )}
+            </nav>
           )}
         </>
       )}

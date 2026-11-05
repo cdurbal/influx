@@ -5,6 +5,7 @@
 // what a caller may see); this module only words and gathers. Durations are computed from the
 // instant of the database (`asOf`), never from the clock of the browser.
 import type {
+  EntriesSearchBody,
   QueueCounters,
   QueueEntryRow,
 } from "@influx/contracts/backoffice-queues";
@@ -21,6 +22,10 @@ export const COMMON_FILTER_KEYS = [
   "alert",
 ] as const;
 export type CommonFilterKey = (typeof COMMON_FILTER_KEYS)[number];
+
+/** The period (15 RG33), two days "YYYY-MM-DD" in the address bar; the call sends their instants. */
+export const PERIOD_KEYS = ["from", "to"] as const;
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 /** A filter of the address bar: a name and a code, plain characters only (15 RG121). */
 export type QueueFilters = Readonly<Record<string, string>>;
@@ -64,6 +69,12 @@ export function filtersOf(
       found[key] = value;
     }
   }
+  for (const key of PERIOD_KEYS) {
+    const raw = read(key);
+    if (raw !== null && DAY.test(raw)) {
+      found[key] = raw;
+    }
+  }
   for (const filter of own) {
     const raw = read(filter.key);
     if (raw !== null && filter.options.some((option) => option.value === raw)) {
@@ -73,20 +84,67 @@ export function filtersOf(
   return found;
 }
 
-/** The query of the call: the filters as they are, and the cap of the page (15 RG34). */
-export function queryOf(
-  filters: QueueFilters,
-  limit: number,
-): Record<string, string> {
-  return { ...filters, limit: String(limit) };
+/**
+ * The page of the list (15 RG34, RG121): the first one, or a later one named by its number and by
+ * the opaque cursor that apps/api gave with the page before (nothing is kept on the server). A
+ * number without a cursor, a cursor without a number or a malformed one is the first page.
+ */
+export type QueuePaging = { page: number; cursor: string | null };
+export const FIRST_PAGE: QueuePaging = { page: 1, cursor: null };
+const CURSOR = /^[A-Za-z0-9_-]{1,300}$/;
+const PAGE_NUMBER = /^(?:[2-9]|[1-9]\d{1,3})$/;
+
+export function pagingOf(read: (name: string) => string | null): QueuePaging {
+  const page = read("page");
+  const cursor = read("cursor");
+  return page !== null &&
+    PAGE_NUMBER.test(page) &&
+    cursor !== null &&
+    CURSOR.test(cursor)
+    ? { page: Number(page), cursor }
+    : FIRST_PAGE;
 }
 
-/** The address of the list with `filters`; the bare path when none is active. */
-export function addressOf(path: string, filters: QueueFilters): string {
-  const search = new URLSearchParams(
-    Object.entries(filters).filter(([, value]) => value !== ""),
-  ).toString();
+/**
+ * The body of the call (POST .../entries/search): the filters, the period as instants, the cursor
+ * of the page and its cap (15 RG34). Neither the instants nor the cursor can cross the relay in a
+ * query; apps/api checks every key again against its closed schema.
+ */
+export function searchBodyOf(
+  filters: QueueFilters,
+  period: { from?: string; to?: string },
+  paging: QueuePaging,
+  limit: number,
+): EntriesSearchBody {
+  const codes = Object.entries(filters).filter(
+    ([key]) => !(PERIOD_KEYS as readonly string[]).includes(key),
+  );
+  return {
+    ...Object.fromEntries(codes),
+    ...period,
+    ...(paging.cursor === null ? {} : { cursor: paging.cursor }),
+    limit,
+  } as EntriesSearchBody;
+}
+
+/** The address of the list with `filters` and its page; the bare path when none is active. */
+export function addressOf(
+  path: string,
+  filters: QueueFilters,
+  paging: QueuePaging = FIRST_PAGE,
+): string {
+  const entries = Object.entries(filters).filter(([, value]) => value !== "");
+  if (paging.cursor !== null) {
+    entries.push(["page", String(paging.page)], ["cursor", paging.cursor]);
+  }
+  const search = new URLSearchParams(entries).toString();
   return search === "" ? path : `${path}?${search}`;
+}
+
+/** A day "YYYY-MM-DD" as the reader writes it: "05/11/2026". */
+export function dayWords(day: string): string {
+  const [year, month, date] = day.split("-");
+  return `${date ?? ""}/${month ?? ""}/${year ?? ""}`;
 }
 
 /** A filter in words, for its removable chip (17b §4.2). */
@@ -96,6 +154,12 @@ export function chipWords(
   own: readonly OwnFilter[],
 ): { name: string; value: string } {
   switch (key) {
+    case "from":
+    case "to":
+      return {
+        name: key === "from" ? t.periodFrom : t.periodTo,
+        value: dayWords(value),
+      };
     case "overdue":
       return { name: t.overdueOnly, value: "" };
     case "alert":

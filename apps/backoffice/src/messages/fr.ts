@@ -1252,9 +1252,18 @@ export const messages = {
     chip: (name: string, value: string) => `${name} : ${value}`,
     chipsLabel: "Filtres actifs",
     reset: "Réinitialiser",
-    /** The cap of a page is the server's (RG34); the cursor of the next one cannot cross the relay yet (EC-L2C-16-1). */
-    capped: (limit: number) =>
-      `La liste est plafonnée à ${limit} entrées. Affinez par un filtre pour voir les suivantes.`,
+    period: "Période de dépôt",
+    periodFrom: "Du",
+    periodTo: "Au",
+    periodHelp: "Bornes incluses, dans votre fuseau horaire.",
+    periodInvalid: "La période doit commencer avant de finir.",
+    /** The pages of the list: capped by the server (RG34), one at a time, never an infinite scroll. */
+    pagination: "Pages de la file",
+    page: (number: number) => `Page ${number}`,
+    pagePrevious: "Page précédente",
+    pageNext: "Page suivante",
+    pageFirst: "Première page",
+    pageEmpty: "Cette page ne contient plus d’entrée.",
     tableLabel: "Entrées de la file Profils marque à valider",
     columns: {
       state: "État",
