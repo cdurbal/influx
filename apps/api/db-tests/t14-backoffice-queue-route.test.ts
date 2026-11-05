@@ -2072,7 +2072,9 @@ describe("the logo of an entry (06 RG9, RG15; 15 RG36, C2; invariants 7, 11, 13;
       ]);
       // the logo bytes are random base64, which can hold "http" by chance: every other field is checked,
       // and the base64 is only checked for what a key or an id would look like
-      const { data: _bytes, ...logoFields } = body.logo;
+      const logoFields = Object.fromEntries(
+        Object.entries(body.logo).filter(([field]) => field !== "data"),
+      );
       const withoutBytes = JSON.stringify({ ...body, logo: logoFields });
       for (const forbidden of [
         logo.key,
