@@ -1001,6 +1001,43 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
       }),
     ),
   },
+  // The two derived tables BEFORE the exact audience and the network lines: their delete probes
+  // take the derived rows of account A with them (on delete cascade, the refresh of 0218).
+  ...[
+    {
+      table: "profiles.creator_public_networks",
+      what: "the bands of each network line (07 RG22, RG45, RG114, RG115; modele.md point 1)",
+    },
+    {
+      table: "profiles.creator_public_audience",
+      what: "the share bands of the primary line (07 RG58, EC-L2D-9)",
+    },
+  ].map(({ table, what }): TableRights => ({
+    table,
+    source:
+      `0218 (L2D, 04 §5.2, 07 RG16 layer A; l2d/modele.md « Droits »): ${what}, derived by ` +
+      "influx_identity_definer, written by no member; NOTHING for influx_advertiser at Lot 2 " +
+      "(EC-L2D-1, P5)",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    expected: merge(
+      {
+        influx_creator: {
+          select: {
+            form: "propre",
+            source:
+              "modele.md « Droits »: the creator reads his own derived rows",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source: "modele.md « Droits »: agent and admin, aal2",
+        },
+      }),
+    ),
+  })),
   // The three exact audience tables BEFORE the network lines: the delete probe of a line takes its
   // audience with it (on delete cascade), and their own probes need the rows of the data set.
   ...CREATOR_AUDIENCE_TABLES.map(({ table, insertTemplate }): TableRights => ({
@@ -1598,7 +1635,9 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * storage_purge), each line checked against its sections 2 and 3; and on 2026-11-05 with those of
  * 0216 (L2D commit 03, the creator storefront), each line checked against its section 5 and the
  * table « Droits » of jalons/l2d/modele.md; then with those of 0217 (L2D commit 04, the identifying
- * objects), each line checked against its section 8 and the same table.
+ * objects), each line checked against its section 8 and the same table; then with those of 0218
+ * (L2D commit 05, the derived bands and the history), each line checked against its sections 2, 3
+ * and 6 and the same table.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -3636,9 +3675,9 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator|table|profiles.creator_tones|DELETE,SELECT",
   "influx_creator|table|profiles.creator_topics|DELETE,SELECT",
   "influx_creator|table|profiles.creator_usage_rights|DELETE,SELECT",
-  "influx_identity_definer|column|profiles.creator_public_profiles.account_id|INSERT",
+  "influx_identity_definer|column|profiles.creator_public_profiles.account_id|INSERT,SELECT",
   "influx_identity_definer|column|profiles.creator_public_profiles.alias|INSERT",
-  "influx_identity_definer|column|profiles.creator_public_profiles.residence_country_code|INSERT",
+  "influx_identity_definer|column|profiles.creator_public_profiles.residence_country_code|INSERT,UPDATE",
   "influx_identity_definer|function|profiles.new_creator_alias()|EXECUTE",
   // 0217 (L2D commit 04, l2d/modele.md « Droits »): the identifying objects of a creator. The creator
   // reads his own rows, writes the nine entered columns of his identity, declares and corrects his
@@ -3707,6 +3746,81 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator|table|profiles.creator_social_accounts|DELETE,SELECT",
   "influx_creator|table|reference.network_url_hosts|SELECT",
   "influx_identity_definer|column|profiles.creator_identities.account_id|INSERT",
+  // 0218 (L2D commit 05, l2d/modele.md « Droits »): the bands derived from the exact figures. The
+  // creator, agent and admin read the two derived tables; the creator executes the door « Confirmer
+  // mes chiffres »; influx_identity_definer owns the derivations and the door: it reads the bounds
+  // of three reference lists, the figures of a line (never its handle, pseudonym, URL nor
+  // engagement) and its exact audience, writes the derived rows (EC-L2D-05-5), the derived and
+  // residence columns of the storefront, the three metrics, source and date of a line, and appends
+  // the history. Two lines of 0216 above gained SELECT (account_id) and UPDATE
+  // (residence_country_code) here. NOTHING for influx_advertiser (P5, EC-L2D-1).
+  "influx_admin|table|profiles.creator_public_audience|SELECT",
+  "influx_admin|table|profiles.creator_public_networks|SELECT",
+  "influx_agent|table|profiles.creator_public_audience|SELECT",
+  "influx_agent|table|profiles.creator_public_networks|SELECT",
+  "influx_creator|function|profiles.confirm_own_creator_figures(uuid,bigint,integer,bigint)|EXECUTE",
+  "influx_creator|table|profiles.creator_public_audience|SELECT",
+  "influx_creator|table|profiles.creator_public_networks|SELECT",
+  "influx_identity_definer|column|profiles.creator_audience_ages.account_id|SELECT",
+  "influx_identity_definer|column|profiles.creator_audience_ages.age_band_code|SELECT",
+  "influx_identity_definer|column|profiles.creator_audience_ages.share_percent|SELECT",
+  "influx_identity_definer|column|profiles.creator_audience_ages.social_account_id|SELECT",
+  "influx_identity_definer|column|profiles.creator_audience_countries.account_id|SELECT",
+  "influx_identity_definer|column|profiles.creator_audience_countries.country_code|SELECT",
+  "influx_identity_definer|column|profiles.creator_audience_countries.share_percent|SELECT",
+  "influx_identity_definer|column|profiles.creator_audience_countries.slot|SELECT",
+  "influx_identity_definer|column|profiles.creator_audience_countries.social_account_id|SELECT",
+  "influx_identity_definer|column|profiles.creator_audience_genders.account_id|SELECT",
+  "influx_identity_definer|column|profiles.creator_audience_genders.gender_code|SELECT",
+  "influx_identity_definer|column|profiles.creator_audience_genders.share_percent|SELECT",
+  "influx_identity_definer|column|profiles.creator_audience_genders.social_account_id|SELECT",
+  "influx_identity_definer|column|profiles.creator_network_metrics_history.account_id|INSERT",
+  "influx_identity_definer|column|profiles.creator_network_metrics_history.avg_comments_per_post|INSERT",
+  "influx_identity_definer|column|profiles.creator_network_metrics_history.confirmed|INSERT",
+  "influx_identity_definer|column|profiles.creator_network_metrics_history.figures_source|INSERT",
+  "influx_identity_definer|column|profiles.creator_network_metrics_history.followers_count|INSERT",
+  "influx_identity_definer|column|profiles.creator_network_metrics_history.network_code|INSERT",
+  "influx_identity_definer|column|profiles.creator_network_metrics_history.posts_last_30_days|INSERT",
+  "influx_identity_definer|column|profiles.creator_network_metrics_history.recorded_by_account_id|INSERT",
+  "influx_identity_definer|column|profiles.creator_network_metrics_history.social_account_id|INSERT",
+  "influx_identity_definer|column|profiles.creator_public_profiles.audience_gender_band|UPDATE",
+  "influx_identity_definer|column|profiles.creator_public_profiles.main_audience_country|UPDATE",
+  "influx_identity_definer|column|profiles.creator_public_profiles.main_audience_share_band|UPDATE",
+  "influx_identity_definer|column|profiles.creator_public_profiles.residence_region_code|UPDATE",
+  "influx_identity_definer|column|profiles.creator_social_accounts.account_id|SELECT",
+  "influx_identity_definer|column|profiles.creator_social_accounts.avg_comments_per_post|SELECT,UPDATE",
+  "influx_identity_definer|column|profiles.creator_social_accounts.avg_reach_per_post|SELECT",
+  "influx_identity_definer|column|profiles.creator_social_accounts.figures_measured_at|SELECT,UPDATE",
+  "influx_identity_definer|column|profiles.creator_social_accounts.figures_source|SELECT,UPDATE",
+  "influx_identity_definer|column|profiles.creator_social_accounts.followers_count|SELECT,UPDATE",
+  "influx_identity_definer|column|profiles.creator_social_accounts.id|SELECT",
+  "influx_identity_definer|column|profiles.creator_social_accounts.is_primary|SELECT",
+  "influx_identity_definer|column|profiles.creator_social_accounts.network_code|SELECT",
+  "influx_identity_definer|column|profiles.creator_social_accounts.posts_last_30_days|SELECT,UPDATE",
+  "influx_identity_definer|column|reference.audience_bands.code|SELECT",
+  "influx_identity_definer|column|reference.audience_bands.max_followers|SELECT",
+  "influx_identity_definer|column|reference.audience_bands.min_followers|SELECT",
+  "influx_identity_definer|column|reference.audience_bands.retired_at|SELECT",
+  "influx_identity_definer|column|reference.comment_bands.code|SELECT",
+  "influx_identity_definer|column|reference.comment_bands.max_comments|SELECT",
+  "influx_identity_definer|column|reference.comment_bands.min_comments|SELECT",
+  "influx_identity_definer|column|reference.comment_bands.retired_at|SELECT",
+  "influx_identity_definer|column|reference.publication_frequencies.code|SELECT",
+  "influx_identity_definer|column|reference.publication_frequencies.max_posts_30d|SELECT",
+  "influx_identity_definer|column|reference.publication_frequencies.min_posts_30d|SELECT",
+  "influx_identity_definer|column|reference.publication_frequencies.retired_at|SELECT",
+  "influx_identity_definer|function|profiles.audience_gender_band(integer,integer)|EXECUTE",
+  "influx_identity_definer|function|profiles.audience_share_band(integer)|EXECUTE",
+  "influx_identity_definer|function|profiles.confirm_own_creator_figures(uuid,bigint,integer,bigint)|EXECUTE",
+  "influx_identity_definer|function|profiles.copy_creator_residence_country()|EXECUTE",
+  "influx_identity_definer|function|profiles.derive_creator_public_audience()|EXECUTE",
+  "influx_identity_definer|function|profiles.derive_creator_public_network()|EXECUTE",
+  "influx_identity_definer|function|profiles.main_audience_share_band(integer)|EXECUTE",
+  "influx_identity_definer|function|profiles.record_creator_metrics_history()|EXECUTE",
+  "influx_identity_definer|function|profiles.refresh_creator_public_audience(uuid)|EXECUTE",
+  "influx_identity_definer|function|profiles.refresh_creator_public_network(uuid)|EXECUTE",
+  "influx_identity_definer|table|profiles.creator_public_audience|DELETE,INSERT,SELECT",
+  "influx_identity_definer|table|profiles.creator_public_networks|INSERT,SELECT,UPDATE",
 ];
 
 /**
@@ -4003,4 +4117,14 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   // 0213 (L2C commit 18a): the journaled read of a brand logo by an internal reader of queue 1.
   "profiles.read_advertiser_review_logo(uuid,uuid)":
     "influx_moderation_definer",
+  // 0218 (L2D commit 05): the derivations of the creator storefront and the door « Confirmer mes
+  // chiffres »; the bound functions and the two guards are SECURITY INVOKER.
+  "profiles.refresh_creator_public_network(uuid)": "influx_identity_definer",
+  "profiles.refresh_creator_public_audience(uuid)": "influx_identity_definer",
+  "profiles.derive_creator_public_network()": "influx_identity_definer",
+  "profiles.derive_creator_public_audience()": "influx_identity_definer",
+  "profiles.record_creator_metrics_history()": "influx_identity_definer",
+  "profiles.copy_creator_residence_country()": "influx_identity_definer",
+  "profiles.confirm_own_creator_figures(uuid,bigint,integer,bigint)":
+    "influx_identity_definer",
 };

@@ -112,7 +112,7 @@
 | 2625 | 11 | ↳ 21.9 Ce que cet addendum demande aux autres agents |  |
 | 2636 | 6 | ↳ Sources (vérifiées le 2026-10-28) |  |
 
-## 03-matrice-des-droits-et-rls.md (~53k tokens)
+## 03-matrice-des-droits-et-rls.md (~54k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
