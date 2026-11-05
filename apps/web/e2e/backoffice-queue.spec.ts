@@ -19,7 +19,12 @@ import {
   seedInternal,
 } from "./support/backoffice";
 import { expect, test } from "./support/journey";
-import { seedReviewEntry, withdrawReviewEntries } from "./support/review-queue";
+import {
+  changePresentation,
+  reviewEntryFacts,
+  seedReviewEntry,
+  withdrawReviewEntries,
+} from "./support/review-queue";
 import { BACKOFFICE_ORIGIN } from "./support/servers";
 
 const m = messages;
@@ -317,4 +322,286 @@ test("L2C-16: a refused read, a failed read then its retry, and an empty queue e
     page.getByRole("status").filter({ hasText: t.emptySince("12 min") }),
   ).toBeVisible();
   await expect(page.getByRole("table")).toHaveCount(0);
+});
+
+// --- L2C-17: the decision screen --------------------------------------------------------------
+// The entries a decision journey wants first are due long before any other of the shared stack, so
+// that "the next entry" of the chain (17b §2.6) is the one the journey seeded.
+const EARLY = -100_000;
+const r = m.queueReview;
+
+function entryPage(entryId: string): string {
+  return bo(`${LIST}/${entryId}`);
+}
+
+test("L2C-17: opening takes the entry, publishing needs the recap, and the next entry opens with its confirmation", async ({
+  page,
+}) => {
+  const tag = runTag("q1p");
+  const lou = await seedInternal(page, "agent", "Lou");
+  await withdrawReviewEntries();
+  const owner = await seedColleague("agent", "Noa");
+  const first = await seedReviewEntry({
+    ownerAgentId: owner.accountId,
+    name: `Maison ${tag}A`,
+    dueInMinutes: EARLY,
+  });
+  const second = await seedReviewEntry({
+    ownerAgentId: owner.accountId,
+    name: `Maison ${tag}B`,
+    dueInMinutes: EARLY + 1000,
+  });
+
+  // from the list: the link opens the entry, which takes it in charge and says so
+  await page.goto(bo(`${LIST}?owner=${owner.accountId}`));
+  await page
+    .getByRole("link", { name: t.openEntryOf(`Maison ${tag}A`) })
+    .click();
+  await expect(page).toHaveURL(entryPage(first.entryId));
+  await expect(
+    page.getByRole("heading", { level: 1, name: new RegExp(`Maison ${tag}A`) }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/^Vous avez pris cette entrée en charge à /),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/^Consultation enregistrée : Lou, /),
+  ).toBeVisible();
+  expect((await reviewEntryFacts(first.entryId)).claimedBy).toBe(lou.accountId);
+  // everything needed to decide is on the screen: the brand, the alerts, the contact behind the marker
+  await expect(
+    page.getByRole("heading", {
+      level: 2,
+      name: r.sections.brand,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByText(r.written.submission)).toBeVisible();
+  await expect(page.getByText(r.alerts.none)).toBeVisible();
+  await expect(
+    page.getByText(/^contact-.+@brand\.example\.test$/),
+  ).toBeVisible();
+  await expect(page.getByText(r.logo.notShown)).toBeVisible();
+
+  // ‹v› opens the recap and publishes nothing; ‹Échap› closes it; the button opens it again
+  await page.locator("main").click({ position: { x: 4, y: 4 } });
+  await page.keyboard.press("v");
+  await expect(
+    page.getByRole("heading", { name: r.decision.publishTitle }),
+  ).toBeVisible();
+  expect((await reviewEntryFacts(first.entryId)).state).toBe("open");
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("heading", { name: r.decision.publishTitle }),
+  ).toHaveCount(0);
+  await page.getByLabel(r.decision.comment).fill("Vu, rien à signaler.");
+  await page
+    .getByRole("button", { name: new RegExp(`^${r.decision.publish}`) })
+    .click();
+  await page.getByRole("button", { name: r.decision.publishConfirm }).click();
+
+  // the next entry opens, taken in charge, under the confirmation
+  await expect(page).toHaveURL(entryPage(second.entryId));
+  await expect(
+    page.getByText(r.decision.publishedNotice(`Maison ${tag}A`)),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 1, name: new RegExp(`Maison ${tag}B`) }),
+  ).toBeVisible();
+  expect(await reviewEntryFacts(first.entryId)).toMatchObject({
+    state: "published",
+    decidedBy: lou.accountId,
+    internalComment: "Vu, rien à signaler.",
+  });
+  expect((await reviewEntryFacts(second.entryId)).claimedBy).toBe(
+    lou.accountId,
+  );
+
+  // cancelling the chain gives the entry just taken back and shows the list
+  await page.getByRole("button", { name: r.chain.cancel }).click();
+  await expect(page).toHaveURL(bo(LIST));
+  await expect
+    .poll(async () => (await reviewEntryFacts(second.entryId)).claimedBy)
+    .toBeNull();
+});
+
+test("L2C-17: a refusal names a closed reason, shows the message the brand will read, and keeps what was typed", async ({
+  page,
+}) => {
+  const tag = runTag("q1r");
+  const lou = await seedInternal(page, "agent", "Lou");
+  await withdrawReviewEntries();
+  const owner = await seedColleague("agent", "Noa");
+  const only = await seedReviewEntry({
+    ownerAgentId: owner.accountId,
+    name: `Maison ${tag}C`,
+    dueInMinutes: EARLY,
+  });
+  await page.goto(entryPage(only.entryId));
+  await expect(
+    page.getByText(/^Vous avez pris cette entrée en charge à /),
+  ).toBeVisible();
+
+  // ‹r› opens the picker and never refuses; the eight reasons are seen as radio buttons
+  await page.locator("main").click({ position: { x: 4, y: 4 } });
+  await page.keyboard.press("r");
+  const picker = page.getByRole("group", { name: r.decision.reasonLegend });
+  await expect(picker.getByRole("radio")).toHaveCount(8);
+  expect((await reviewEntryFacts(only.entryId)).state).toBe("open");
+  await page
+    .getByRole("button", { name: r.decision.reasonConfirm, exact: true })
+    .click();
+  await expect(page.getByText(r.decision.reasonRequired)).toBeVisible();
+
+  // the sentence the brand receives is written under the reason picked, before the decision
+  await picker
+    .getByRole("radio", {
+      name: r.decision.reasonLabels.presentation_insufficient,
+    })
+    .check();
+  await expect(page.getByText(r.decision.messageToBrand)).toBeVisible();
+  await expect(
+    page.getByText(/ne permet pas à un créateur de comprendre votre activité/),
+  ).toBeVisible();
+
+  // « Autre »: the agent's own text, which the server refuses if it carries a contact; nothing is lost
+  await picker
+    .getByRole("radio", { name: r.decision.reasonLabels.other })
+    .check();
+  await page.getByLabel(r.decision.comment).fill("Appelé, sans réponse.");
+  const message = page.getByLabel(r.decision.otherMessage);
+  await message.fill("Trop court");
+  await page
+    .getByRole("button", { name: r.decision.reasonConfirm, exact: true })
+    .click();
+  await expect(page.getByText(r.decision.otherTooShort)).toBeVisible();
+  const contact = "Merci de nous écrire à marque@exemple.com pour la suite.";
+  await message.fill(contact);
+  await page
+    .getByRole("button", { name: r.decision.reasonConfirm, exact: true })
+    .click();
+  await expect(page.getByText(r.decision.otherDirectContact)).toBeVisible();
+  await expect(message).toHaveValue(contact);
+  await expect(page.getByLabel(r.decision.comment)).toHaveValue(
+    "Appelé, sans réponse.",
+  );
+  expect((await reviewEntryFacts(only.entryId)).state).toBe("open");
+
+  const clean = "Décrivez ce que vend votre marque dans la présentation.";
+  await message.fill(clean);
+  await page
+    .getByRole("button", { name: r.decision.reasonConfirm, exact: true })
+    .click();
+  // nothing else waits for this journey: it ends on the empty state, with the decision said
+  await expect(
+    page.getByText(
+      r.decision.rejectedNotice(
+        `Maison ${tag}C`,
+        r.decision.reasonLabels.other.toLowerCase(),
+      ),
+    ),
+  ).toBeVisible();
+  expect(await reviewEntryFacts(only.entryId)).toMatchObject({
+    state: "rejected",
+    decidedBy: lou.accountId,
+    reasonCode: "other",
+    memberMessage: clean,
+    internalComment: "Appelé, sans réponse.",
+  });
+});
+
+test("L2C-17: a colleague's entry is read, not decided, in a sentence and without an error screen; the screen passes axe", async ({
+  page,
+}) => {
+  const tag = runTag("q1o");
+  await seedInternal(page, "agent", "Lou");
+  const owner = await seedColleague("agent", "Noa");
+  const holder = await seedColleague("agent", "Marie");
+  const held = await seedReviewEntry({
+    ownerAgentId: owner.accountId,
+    name: `Maison ${tag}D`,
+    dueInMinutes: -200,
+    heldByAgentId: holder.accountId,
+  });
+  await page.goto(entryPage(held.entryId));
+  await expect(page.getByText(/^En cours — Marie, depuis /)).toBeVisible();
+  await expect(page.getByText(r.banner.readOnly)).toBeVisible();
+  await expect(page.getByText(/^Hors délai depuis /)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: new RegExp(`^${r.decision.publish}`) }),
+  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: r.force.button })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole("alert").filter({ hasText: /[^ ]/ })).toHaveCount(
+    0,
+  );
+  // the reader did not take it
+  expect((await reviewEntryFacts(held.entryId)).claimedBy).toBe(
+    holder.accountId,
+  );
+  for (const width of [1280, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expectNoAxeViolation(
+      page,
+      `décision profil marque à ${String(width)} px`,
+      { wcag22: true },
+    );
+  }
+});
+
+test("L2C-17: a profile that changed after the reading refuses the decision, rereads the entry and keeps the typed text; the claim can be extended", async ({
+  page,
+}) => {
+  const tag = runTag("q1s");
+  const lou = await seedInternal(page, "agent", "Lou");
+  const owner = await seedColleague("agent", "Noa");
+  const mine = await seedReviewEntry({
+    ownerAgentId: owner.accountId,
+    name: `Maison ${tag}E`,
+    dueInMinutes: 300,
+    heldByAgentId: lou.accountId,
+    claimExpiresInMinutes: 2,
+  });
+  await page.goto(entryPage(mine.entryId));
+
+  // three minutes before the claim falls, the reminder is there, and extending says so
+  await expect(
+    page.getByText(/^Votre prise en charge expire dans [12] min\.$/),
+  ).toBeVisible();
+  await page.getByRole("button", { name: r.banner.extend }).click();
+  await expect(
+    page.getByText(/^Prise en charge prolongée jusqu’à /),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/^Votre prise en charge expire dans/),
+  ).toHaveCount(0);
+
+  await page
+    .getByLabel(r.decision.comment)
+    .fill("À relire avec le responsable.");
+  await changePresentation(
+    mine.accountId,
+    "A completely different presentation of the brand, rewritten after the agent started reading it.",
+  );
+  await page
+    .getByRole("button", { name: new RegExp(`^${r.decision.publish}`) })
+    .click();
+  await page.getByRole("button", { name: r.decision.publishConfirm }).click();
+
+  // refused, read again, said; the draft and the claim stay, the entry is still open
+  await expect(page.getByText(r.notices.stale)).toBeVisible();
+  await expect(
+    page.getByText(r.modifiedAfterLine(r.facts.presentation)),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/rewritten after the agent started reading it\./),
+  ).toBeVisible();
+  await expect(page.getByLabel(r.decision.comment)).toHaveValue(
+    "À relire avec le responsable.",
+  );
+  expect(await reviewEntryFacts(mine.entryId)).toMatchObject({
+    state: "open",
+    claimedBy: lou.accountId,
+  });
 });

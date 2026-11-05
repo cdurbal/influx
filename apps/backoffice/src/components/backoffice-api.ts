@@ -70,9 +70,24 @@ import {
 } from "@influx/contracts/backoffice-ops";
 import {
   entriesResponseSchema,
+  extendEntryResponseSchema,
+  forceReleaseResponseSchema,
+  openEntryResponseSchema,
+  publishEntryResponseSchema,
   queueCountersResponseSchema,
+  rejectEntryResponseSchema,
+  releaseEntryResponseSchema,
   type EntriesResponse,
+  type ExtendEntryResponse,
+  type ForceReleaseRequest,
+  type ForceReleaseResponse,
+  type OpenEntryResponse,
+  type PublishEntryRequest,
+  type PublishEntryResponse,
   type QueueCountersResponse,
+  type RejectEntryRequest,
+  type RejectEntryResponse,
+  type ReleaseEntryResponse,
 } from "@influx/contracts/backoffice-queues";
 import { callRelay, type RelayResult } from "@influx/web-platform/relay-client";
 
@@ -381,5 +396,79 @@ export function readBrandReviewEntries(
     entriesResponseSchema,
     undefined,
     query,
+  );
+}
+
+// --- Queue 1, one entry (06 RG6, RG65; 15 C1 to C4, C6; L2C-17) -----------------------------------
+
+const ENTRIES = "/v1/bo/queues/profiles-advertiser/entries";
+
+/** Opening is claiming (15 C1): the decision view, its version token, and the register line. */
+export function openBrandReviewEntry(
+  id: string,
+): Promise<RelayResult<OpenEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${ENTRIES}/${idSegment(id)}/open`,
+    openEntryResponseSchema,
+  );
+}
+
+export function publishBrandReviewEntry(
+  id: string,
+  body: PublishEntryRequest,
+): Promise<RelayResult<PublishEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${ENTRIES}/${idSegment(id)}/publish`,
+    publishEntryResponseSchema,
+    body,
+  );
+}
+
+export function rejectBrandReviewEntry(
+  id: string,
+  body: RejectEntryRequest,
+): Promise<RelayResult<RejectEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${ENTRIES}/${idSegment(id)}/reject`,
+    rejectEntryResponseSchema,
+    body,
+  );
+}
+
+/** 15 C3, "je rends la main". */
+export function releaseBrandReviewEntry(
+  id: string,
+): Promise<RelayResult<ReleaseEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${ENTRIES}/${idSegment(id)}/release`,
+    releaseEntryResponseSchema,
+  );
+}
+
+/** File.md A9: the claim of the caller takes its delay again. */
+export function extendBrandReviewClaim(
+  id: string,
+): Promise<RelayResult<ExtendEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${ENTRIES}/${idSegment(id)}/extend`,
+    extendEntryResponseSchema,
+  );
+}
+
+/** 15 C4: an administrator lifts a live claim, with a typed reason. */
+export function forceReleaseBrandReviewClaim(
+  id: string,
+  body: ForceReleaseRequest,
+): Promise<RelayResult<ForceReleaseResponse>> {
+  return callRelay(
+    "POST",
+    `${ENTRIES}/${idSegment(id)}/force-release`,
+    forceReleaseResponseSchema,
+    body,
   );
 }

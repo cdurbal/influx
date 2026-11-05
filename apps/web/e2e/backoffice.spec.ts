@@ -36,6 +36,7 @@ import {
   retireInternals,
   runTag,
   seededAddress,
+  seedColleague,
   seedInternal,
   seedSignup,
 } from "./support/backoffice";
@@ -48,6 +49,11 @@ import {
   test,
 } from "./support/journey";
 import { focusedElement } from "./support/focus";
+import {
+  reviewEntryFacts,
+  seedReviewEntry,
+  withdrawReviewEntries,
+} from "./support/review-queue";
 import {
   brandGreen,
   computed,
@@ -83,6 +89,7 @@ test.use({ viewport: { width: 1440, height: 900 } });
 test.afterAll(async () => {
   await restoreAdmins();
   await removeQueueLines();
+  await withdrawReviewEntries();
   await retireInternals();
 });
 
@@ -939,6 +946,49 @@ test("L2C-16: an admin reaches the brand profile queue through Files, one entry 
       .or(page.getByText(/^Aucune entrée en attente/)),
   ).toBeVisible();
   await expect(page.getByText(m.queueList.error)).toHaveCount(0);
+});
+
+test("L2C-17: an admin lifts a colleague's claim with a typed reason and takes the entry; the holder is told at the next opening", async ({
+  page,
+}) => {
+  const admin = await seedInternal(page, "admin", "Alix");
+  const owner = await seedColleague("agent", "Noa");
+  const holder = await seedColleague("agent", "Marie");
+  const held = await seedReviewEntry({
+    ownerAgentId: owner.accountId,
+    name: `Maison ${runTag("lift")}`,
+    dueInMinutes: 200,
+    heldByAgentId: holder.accountId,
+  });
+  const r = m.queueReview;
+  await page.goto(bo(`/files/profils-marque/${held.entryId}`));
+  await expect(page.getByText(/^En cours — Marie, depuis /)).toBeVisible();
+  await page.getByRole("button", { name: r.force.button }).click();
+  // a typed reason is asked for; the lifting is the administrator's, then the entry is his to decide
+  await page.getByRole("button", { name: r.force.confirm }).click();
+  await expect(page.getByText(r.force.required)).toBeVisible();
+  await page
+    .getByRole("radio", { name: r.force.reasons.holder_absent })
+    .check();
+  await page.getByRole("button", { name: r.force.confirm }).click();
+  await expect(page.getByText(r.notices.lifted_by_you("Marie"))).toBeVisible();
+  await expect(
+    page.getByText(/^Vous avez pris cette entrée en charge à /),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: new RegExp(`^${r.decision.publish}`) }),
+  ).toBeVisible();
+  expect((await reviewEntryFacts(held.entryId)).claimedBy).toBe(
+    admin.accountId,
+  );
+  const lines = await registerLinesBy(
+    "queue.claim_forced_release",
+    admin.accountId,
+  );
+  expect(lines.at(-1)?.payload).toMatchObject({
+    reason_code: "holder_absent",
+    holder_account_id: holder.accountId,
+  });
 });
 
 test("TD6.2: the rail from lg, the compact list from md, the workstation screen below md or below 500 px high", async ({

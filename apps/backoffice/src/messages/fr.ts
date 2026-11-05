@@ -1316,6 +1316,306 @@ export const messages = {
     seeEscalated: "Voir les entrées hors délai",
     error: "Les compteurs de la file n’ont pas pu être chargés.",
   },
+  /**
+   * L2C-17 (17b §2.4 to §2.6, §4.3, §4.8, §4.11; 15 RG27 C1 to C8, RG114 to RG117; 06 RG6, RG9, RG19,
+   * RG65, RG66; jalons/l2c/file.md A3, A6, A8, A9): the decision screen of queue 1. The messages to the
+   * brand are never written here: they come from apps/api with the reasons (what the agent reads is
+   * what the brand receives, RG66).
+   */
+  queueReview: {
+    title: (brand: string) => `Profil marque — ${brand}`,
+    markerLabel: "consultation enregistrée",
+    mark: "▮",
+    separator: " · ",
+    keyReleaseHint: "‹l›",
+    parenthesized: (words: string) => `(${words})`,
+    loggedLine: (name: string, at: string) =>
+      `Consultation enregistrée : ${name}, ${at}.`,
+    back: "Retour à la file",
+    subtitle: (kind: string, createdAt: string) =>
+      `${kind} · créée le ${createdAt}`,
+    loading: "Ouverture de l’entrée…",
+    errors: {
+      forbidden:
+        "Vous n’avez pas le droit d’ouvrir cette entrée. La tentative a été enregistrée. Rôle requis : commercial ou administrateur.",
+      conflictOfInterest:
+        "Cette entrée est celle d’une marque dont vous êtes le responsable : vous ne pouvez ni la lire ni la décider. Un autre commercial la traitera.",
+      notFound: "Cette entrée n’existe pas ou n’est plus disponible.",
+      unavailable:
+        "L’entrée n’a pas pu être ouverte. Rien n’a été modifié. Réessayez dans quelques minutes.",
+    },
+    banner: {
+      byMe: (time: string) =>
+        `Vous avez pris cette entrée en charge à ${time}.`,
+      byOther: (name: string, time: string) =>
+        `En cours — ${name}, depuis ${time}.`,
+      byOtherUnknown: "En cours — un collègue la traite.",
+      readOnly: "Vous pouvez lire, vous ne pouvez pas décider.",
+      overdue: (since: string) =>
+        `Hors délai depuis ${since}. Une décision reste possible.`,
+      overdueRead: (since: string) => `Hors délai depuis ${since}.`,
+      expiresSoon: (minutes: number) =>
+        `Votre prise en charge expire dans ${minutes} min.`,
+      extend: "Prolonger",
+      extended: (time: string) => `Prise en charge prolongée jusqu’à ${time}.`,
+      expired:
+        "Votre prise en charge a expiré : vous ne pouvez plus décider. Reprenez l’entrée.",
+      resume: "Reprendre l’entrée",
+      forcedRelease: (admin: string, time: string, reason: string) =>
+        `Votre prise en charge a été levée par ${admin} à ${time} : ${reason}.`,
+      forcedReleaseUnknown: "un administrateur",
+    },
+    notices: {
+      heldByOther:
+        "Un collègue vient de prendre cette entrée en charge : elle est maintenant en lecture seule. Votre saisie est conservée.",
+      lifted:
+        "Votre prise en charge a été levée par un administrateur. L’entrée est rouverte, relisez-la avant de décider. Votre saisie est conservée.",
+      notHeld:
+        "Votre prise en charge n’était plus valable. L’entrée est rouverte, relisez-la avant de décider. Votre saisie est conservée.",
+      stale:
+        "Le profil a changé depuis votre lecture : il est relu ci-dessous et rien n’a été enregistré. Relisez-le, puis décidez de nouveau. Votre saisie est conservée.",
+      closed:
+        "Cette entrée a été clôturée entre-temps : rien n’a été enregistré.",
+      profileState:
+        "Le profil n’est plus dans un état que cette entrée peut décider : rien n’a été enregistré.",
+      lifted_by_you: (holder: string) =>
+        `Le verrou de ${holder} est levé et vous avez pris l’entrée en charge.`,
+      liftedNoName: "Le verrou est levé et vous avez pris l’entrée en charge.",
+    },
+    modifiedAfter: "modifié après examen",
+    modifiedAfterLine: (fields: string) =>
+      `Modifié après votre première lecture : ${fields}.`,
+    sections: {
+      brand: "La marque",
+      written: "Ce qui a été écrit",
+      alerts: "Alertes",
+      contact: "Interlocuteur de la marque",
+      decision: "Décision",
+      logos: "Logo",
+    },
+    facts: {
+      brandName: "Nom de la marque",
+      country: "Pays",
+      language: "Langue du compte",
+      owner: "Responsable",
+      primarySector: "Secteur principal",
+      secondarySectors: "Secteurs secondaires",
+      companySize: "Taille de l’entreprise",
+      websiteDomain: "Site web",
+      presentation: "Présentation",
+      targetMarkets: "Marchés visés",
+      workingLanguages: "Langues de travail",
+      topics: "Thèmes recherchés",
+      networks: "Réseaux",
+      formats: "Formats",
+      audienceCountries: "Pays d’audience visés",
+      usageRights: "Droits d’usage",
+      exclusivity: "Exclusivité",
+      rhythm: "Rythme de collaboration",
+      nonMonetary: "Contreparties non monétaires",
+      contactRole: "Fonction de l’interlocuteur",
+      completeness: "Complétude",
+      status: "État du profil",
+    },
+    companySizes: {
+      "1_10": "1 à 10 personnes",
+      "11_50": "11 à 50 personnes",
+      "51_250": "51 à 250 personnes",
+      "251_1000": "251 à 1 000 personnes",
+      "1001_plus": "Plus de 1 000 personnes",
+    },
+    statuses: {
+      draft: "Brouillon",
+      pending_review: "En attente de validation",
+      published: "Publié",
+      rejected: "Refusé",
+      suspended: "Suspendu",
+    },
+    yes: "oui",
+    no: "non",
+    unset: "non renseigné",
+    none: "aucun",
+    pendingChange: "modification proposée, voir « Ce qui a été écrit »",
+    logo: {
+      active: "Logo actif",
+      inReview: "Logo en examen",
+      none: "Aucun logo",
+      line: (
+        dimensions: string | null,
+        size: string | null,
+        activatedAt: string | null,
+      ) =>
+        [
+          dimensions,
+          size,
+          activatedAt === null ? null : `déposé le ${activatedAt}`,
+        ]
+          .filter((part): part is string => part !== null)
+          .join(" · ") || "caractéristiques indisponibles",
+      dimensions: (width: number, height: number) => `${width} × ${height} px`,
+      kilobytes: (kilobytes: number) => `${kilobytes} Ko`,
+      notShown:
+        "L’image elle-même n’est pas affichée dans le backoffice pour l’instant : seules ses caractéristiques le sont.",
+    },
+    written: {
+      submission:
+        "Première soumission : tout le profil ci-dessus est à examiner, aucune version validée n’existe encore.",
+      columns: {
+        field: "Champ",
+        validated: "Version validée",
+        proposed: "Version proposée",
+      },
+      tableLabel: "Modifications proposées en regard de la version validée",
+      emptyValue: "(vide)",
+      removed: "(retiré)",
+      logoNew: "Nouveau logo (voir « Logo en examen »)",
+      logoRemoved: "Retrait du logo",
+      logoCurrent: "Logo actif",
+      logoNoneYet: "Aucun logo",
+      noRevision: "Aucune modification n’est en attente sur cette entrée.",
+    },
+    alerts: {
+      none: "Aucune alerte sur cette entrée.",
+      intro: "Les alertes informent : aucune ne bloque la décision.",
+      direct_contact: (field: string, signals: string) =>
+        `Coordonnée possible dans « ${field} » (${signals}).`,
+      unusual_website_domain:
+        "Le domaine du site web est inhabituel (caractères non latins ou domaine codé) : vérifiez qu’il s’agit bien de la marque.",
+      duplicate_brand: (names: string) =>
+        `Une marque publiée porte un nom semblable : ${names}.`,
+      duplicate_domain: (names: string) =>
+        `Une marque publiée utilise déjà ce site web : ${names}.`,
+      signals: {
+        email: "adresse e-mail",
+        url: "lien",
+        domain: "nom de domaine",
+        phone: "numéro de téléphone",
+        handle: "pseudo",
+        messenger: "messagerie",
+      },
+      fields: {
+        "advertiser.brand_name": "Nom de la marque",
+        "advertiser.presentation": "Présentation",
+        "advertiser.website_domain": "Site web",
+      },
+    },
+    contact: {
+      lead: "Visible des agents INFLUX seuls, jamais d’une marque ni d’un créateur (D45, D46) : l’ouverture de cet écran est enregistrée.",
+      firstName: "Prénom",
+      email: "Adresse e-mail",
+      phone: "Téléphone",
+      url: "Lien",
+    },
+    decision: {
+      lead: "Deux issues : publier, ou refuser avec un motif. La décision porte sur la version affichée ici.",
+      readOnly:
+        "Lecture seule : la décision appartient à la personne qui a pris l’entrée en charge.",
+      publish: "Valider",
+      reject: "Refuser avec motif",
+      release: "Je rends la main",
+      comment: "Commentaire interne (facultatif, 1 000 caractères au plus)",
+      commentHelp:
+        "Visible des seuls agents INFLUX : jamais de la marque, ni dans l’e-mail.",
+      commentTooLong: "Le commentaire dépasse 1 000 caractères.",
+      busy: "Enregistrement…",
+      publishTitle: "Publier ce profil ?",
+      publishRecap: (brand: string, language: string) =>
+        `Le profil de ${brand} sera publié tel qu’affiché ici, et la marque en sera informée par e-mail, en ${language}.`,
+      publishRevisions: (count: number) =>
+        count === 1
+          ? "Une modification en attente sera appliquée."
+          : `${count} modifications en attente seront appliquées.`,
+      publishConfirm: "Confirmer la publication",
+      publishCommentRecap: "Commentaire interne joint :",
+      cancel: "Annuler",
+      reasonTitle: "Refuser ce profil",
+      reasonLegend: "Motif du refus (liste fermée)",
+      reasonRequired: "Choisissez un motif avant de refuser.",
+      reasonConfirm: "Refuser",
+      messageToBrand: "Message envoyé à la marque :",
+      nextStep: "Ce que la marque pourra faire :",
+      otherMessage:
+        "Message à la marque (20 à 500 caractères, sans coordonnée)",
+      otherCount: (length: number, max: number, min: number) =>
+        `${length} / ${max} caractères (${min} au moins).`,
+      otherMessageHelp:
+        "Ce texte est envoyé tel quel à la marque, à la suite de la phrase ci-dessus.",
+      otherTooShort:
+        "Le message à la marque doit compter au moins 20 caractères.",
+      otherTooLong: "Le message à la marque dépasse 500 caractères.",
+      otherDirectContact:
+        "Le message contient une adresse, un numéro ou un lien : retirez-le, les coordonnées ne passent pas par ce message.",
+      reasonLabels: {
+        contact_in_public_field: "Coordonnée directe dans un champ public",
+        presentation_insufficient:
+          "Présentation trop courte ou incompréhensible",
+        logo_non_compliant: "Logo non conforme",
+        misleading_brand_name: "Nom commercial trompeur",
+        sector_inconsistent: "Secteur manifestement incohérent",
+        illicit_content: "Contenu illicite ou contraire aux CGU",
+        duplicate_brand: "Doublon d’une marque déjà inscrite",
+        other: "Autre — message rédigé par vous",
+      },
+      requiredMissing:
+        "Un champ obligatoire manque au profil : la publication est impossible. Vous pouvez refuser avec un motif.",
+      invalidReason:
+        "Le motif choisi n’est pas valide. Choisissez-en un autre.",
+      invalidMessage:
+        "Le message à la marque est refusé : longueur ou contenu invalide.",
+      invalidComment:
+        "Le commentaire interne est refusé : 1 000 caractères au plus.",
+      rejectedNotice: (brand: string, reason: string) =>
+        `Profil de ${brand} refusé — ${reason}. La marque en est informée par e-mail.`,
+      publishedNotice: (brand: string) =>
+        `Profil de ${brand} publié. La marque en est informée par e-mail.`,
+      lateMark:
+        "Décision prise après l’échéance : elle est marquée comme telle.",
+    },
+    chain: {
+      seeEntry: "Voir l’entrée",
+      cancel: "Annuler l’enchaînement et revenir à la liste",
+      close: "Fermer ce message",
+      empty:
+        "La file est vide : aucune autre entrée ne vous attend pour l’instant.",
+      emptyBack: "Revenir à la file",
+    },
+    force: {
+      button: "Lever le verrou",
+      title: "Lever le verrou de cette entrée",
+      lead: "Réservé aux administrateurs. Le titulaire en est informé à sa prochaine action, et la levée est enregistrée.",
+      legend: "Motif de la levée (liste fermée)",
+      reasons: {
+        holder_absent: "Le titulaire est absent",
+        overdue_entry: "L’entrée est hors délai",
+        wrong_claim: "Prise en charge par erreur",
+      },
+      required: "Choisissez un motif avant de lever le verrou.",
+      confirm: "Lever le verrou et prendre l’entrée",
+    },
+    closed: {
+      published: "Cette entrée est close : le profil a été publié.",
+      rejected: "Cette entrée est close : le profil a été refusé.",
+      withdrawn: "Cette entrée est close : elle a été retirée de la file.",
+      open: "Cette entrée est close.",
+      decidedBy: (name: string, at: string) => `Décidée par ${name}, le ${at}.`,
+      decidedAt: (at: string) => `Décidée le ${at}.`,
+      late: "Décision prise après l’échéance.",
+      reason: (reason: string) => `Motif : ${reason}.`,
+      message: "Message reçu par la marque :",
+      comment: "Commentaire interne :",
+    },
+    shortcuts: {
+      title: "Raccourcis de l’écran de décision",
+      button: "Raccourcis",
+      keys: "‹v› valider (récapitulatif) · ‹r› refuser avec motif · ‹l› rendre la main · ‹Échap› fermer sans perdre la saisie · ‹?› raccourcis",
+      publish:
+        "ouvrir le récapitulatif de la publication (ne publie jamais seul)",
+      reject: "ouvrir le choix du motif (ne refuse jamais seul)",
+      release: "rendre la main et revenir à la file",
+      escape: "fermer le panneau en cours, sans perdre la saisie",
+      help: "afficher ou masquer ce rappel",
+    },
+  },
   /** The link of the queues to the "Santé technique" screen (15 §C, "file bloquée"): admins only. */
   servicesLink: {
     label: "État des services",

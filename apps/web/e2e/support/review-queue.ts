@@ -33,6 +33,8 @@ export type ReviewEntryOptions = {
   escalated?: boolean;
   /** The colleague who holds the lock, taken ten minutes ago. */
   heldByAgentId?: string;
+  /** Minutes from now to the end of that lock (default 20; 2: the reminder of L2C-17 shows). */
+  claimExpiresInMinutes?: number;
   /** A presentation with an e-mail address raises the alert of a direct contact (06 RG19). */
   presentation?: string;
   /** The moderated field a revision changes. */
@@ -94,9 +96,28 @@ export async function seedReviewEntry(
           update profiles.advertiser_review_entries
              set claimed_by_account_id = ${options.heldByAgentId},
                  claimed_at = now() - interval '10 minutes',
-                 claim_expires_at = now() + interval '20 minutes'
+                 claim_expires_at = now() + make_interval(mins => ${options.claimExpiresInMinutes ?? 20})
            where id = ${entryId}`;
       }
+      // the lists of the required fields (06 RG15, 0203): the brand can be published as it is
+      await tx`
+        insert into profiles.advertiser_target_markets (account_id, slot, country_code)
+        values (${accountId}, 1, 'FR')`;
+      await tx`
+        insert into profiles.advertiser_working_languages (account_id, language_code)
+        values (${accountId}, 'fr')`;
+      await tx`
+        insert into profiles.advertiser_topics (account_id, slot, topic_code)
+        values (${accountId}, 1, 'fashion')`;
+      await tx`
+        insert into profiles.advertiser_networks (account_id, network_code)
+        values (${accountId}, 'instagram')`;
+      await tx`
+        insert into profiles.advertiser_formats (account_id, format_code)
+        values (${accountId}, 'instagram_post')`;
+      await tx`
+        insert into profiles.advertiser_audience_countries (account_id, slot, country_code)
+        values (${accountId}, 1, 'FR')`;
       if (kind === "revision") {
         await tx`
           insert into profiles.profile_field_revisions
@@ -120,5 +141,48 @@ export async function withdrawReviewEntries(): Promise<void> {
       update profiles.advertiser_review_entries
          set state = 'withdrawn', closed_at = now()
        where state = 'open' and account_id = any(${brands}::uuid[])`,
+  );
+}
+
+/** What a decision left on an entry, read straight from the database. */
+export async function reviewEntryFacts(entryId: string): Promise<{
+  state: string;
+  claimedBy: string | null;
+  decidedBy: string | null;
+  reasonCode: string | null;
+  memberMessage: string | null;
+  internalComment: string | null;
+}> {
+  return withSql(async (sql) => {
+    const [row] = await sql<
+      {
+        state: string;
+        claimedBy: string | null;
+        decidedBy: string | null;
+        reasonCode: string | null;
+        memberMessage: string | null;
+        internalComment: string | null;
+      }[]
+    >`
+      select state::text as state, claimed_by_account_id::text as "claimedBy",
+             decided_by_account_id::text as "decidedBy", rejection_reason_code as "reasonCode",
+             member_message as "memberMessage", internal_comment as "internalComment"
+        from profiles.advertiser_review_entries where id = ${entryId}`;
+    if (row === undefined) {
+      throw new Error("no such entry");
+    }
+    return row;
+  });
+}
+
+/** The brand writes on while an agent reads (L2BS-1): the profile moves, so does its token. */
+export async function changePresentation(
+  accountId: string,
+  presentation: string,
+): Promise<void> {
+  await withSql(
+    (sql) => sql`
+      update profiles.advertiser_profiles set presentation = ${presentation}
+       where account_id = ${accountId}`,
   );
 }
