@@ -191,6 +191,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 - **L2A** (reliquat RK-fin, PLS-1, PLS-3, PLT-6, SNT-3, J4S-7, listes de départ des référentiels, migration `0201`) : ouvert le 2026-11-01, **clos le 2026-11-01** (critère de fin prouvé, reliquat soldé ou reporté ci-dessus, revue attestée) ; `archives/jalons/l2a-fiche.md`, `archives/jalons/l2a/run.md`.
 - **L2B** (profil marque : saisie, logo, soumission ; `packages/domain`, Storage en CI, migrations `0202` à `0205`) : ouvert le 2026-11-01, **clos le 2026-11-03** (critère de fin prouvé, reliquat soldé ou reporté ci-dessus, revue attestée, dérive du job « Browser journeys » acceptée par le fondateur) ; `archives/jalons/l2b-fiche.md`, `archives/jalons/l2b/run.md`.
 - **L2C** (file 1, modération du profil marque, migrations `0206` à `0214` et `0215`) : ouvert le 2026-11-03, **clos le 2026-11-05** ; `archives/jalons/l2c-fiche.md`, `archives/jalons/l2c/run.md`.
+- **L2D** (profil créateur : blocs 1 à 5 en trois couches, anonymisation prouvée, migrations `0216` à `0219`) : ouvert le 2026-11-05 ; `jalons/l2d-fiche.md`, `jalons/l2d/run.md`.
 
 **Registre des décisions** (PL-11) : `decisions.md` ne garde que sujet et statut résumés de D1 à D79 ; le texte intégral (sujet, arbitre, statut, échéance, mot pour mot) est dans `decisions-detail.md` (§ Dxx), qui fait foi en cas d'écart.
 
