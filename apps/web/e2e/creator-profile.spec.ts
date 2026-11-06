@@ -5,7 +5,9 @@
 // detection, in French and in English, at 375 and 1 440 px (the widths in a loop, one entry per
 // language to keep the added time short), then block 3 (commit 13): the networks, the three metrics in
 // order, the source and date of the figures, the confirmation, the bands, the link of another network,
-// the main account. A creator seeded in the local stack with its storefront
+// the main account, then blocks 4 and 5 (commit 14): the audience, always about the audience, a sum
+// over 100 refused, the others left as they are; the offer, with no tariff, two lists of usage rights,
+// the availability with its date. A creator seeded in the local stack with its storefront
 // (no code, no mail); the texts are the locale files', never copies.
 import { connectAsMigrationRole } from "@influx/test-kit/db";
 import type { Page } from "@playwright/test";
@@ -104,6 +106,77 @@ async function seedYoutubeLine(accountId: string): Promise<void> {
   }
 }
 
+/** What the database holds of the audience of the creator (main country and share, age bands). */
+async function audienceOf(accountId: string): Promise<{
+  main: string | null;
+  share: number | null;
+  ages: Record<string, number>;
+}> {
+  const sql = connectAsMigrationRole({ max: 1 });
+  try {
+    const [row] = await sql<
+      {
+        main: string | null;
+        share: number | null;
+        ages: Record<string, number>;
+      }[]
+    >`
+      select (select country_code::text from profiles.creator_audience_countries
+               where account_id = ${accountId} and slot = 0) as main,
+             (select share_percent::int from profiles.creator_audience_countries
+               where account_id = ${accountId} and slot = 0) as share,
+             coalesce((select jsonb_object_agg(age_band_code, share_percent)
+                         from profiles.creator_audience_ages
+                        where account_id = ${accountId}), '{}'::jsonb) as ages`;
+    return row ?? { main: null, share: null, ages: {} };
+  } finally {
+    await sql.end({ timeout: 1 });
+  }
+}
+
+/** What the database holds of the offer of the creator: no tariff exists to read. */
+async function offerOf(accountId: string): Promise<{
+  formats: string[];
+  rights: Record<string, string>;
+  availability: string | null;
+  declared: boolean;
+  nonMonetary: boolean;
+  sectors: string[];
+}> {
+  const sql = connectAsMigrationRole({ max: 1 });
+  try {
+    const [row] = await sql<
+      {
+        formats: string[];
+        rights: Record<string, string>;
+        availability: string | null;
+        declared: boolean;
+        nonMonetary: boolean;
+        sectors: string[];
+      }[]
+    >`
+      select coalesce((select array_agg(format_code order by format_code)
+                         from profiles.creator_formats where account_id = p.account_id), '{}') as formats,
+             coalesce((select jsonb_object_agg(usage_right_code, inclusion)
+                         from profiles.creator_usage_rights
+                        where account_id = p.account_id), '{}'::jsonb) as rights,
+             p.availability_band as availability,
+             p.availability_declared_at is not null as declared,
+             p.accepts_non_monetary as "nonMonetary",
+             coalesce((select array_agg(sector_code order by sector_code)
+                         from profiles.creator_refused_sectors
+                        where account_id = p.account_id), '{}') as sectors
+        from profiles.creator_public_profiles p
+       where p.account_id = ${accountId}`;
+    if (row === undefined) {
+      throw new Error("the seeded creator has no storefront");
+    }
+    return row;
+  } finally {
+    await sql.end({ timeout: 1 });
+  }
+}
+
 /** The status line that tells the draft is saved (RG111); the bar of a phone holds its own twin. */
 function savedLine(page: Page, locale: Locale) {
   return page.locator("p[role=status]:visible", {
@@ -137,42 +210,52 @@ async function expectScreen(
   ).toBeVisible();
   await expect(page.getByText(copy.alias.forLife)).toBeVisible();
 
-  // CA3: nine fields (and the network to add) are visible to every brand, six only to the creator
-  // and the team.
+  // CA3: seventeen fields (and the network to add) are visible to every brand, seven only to the
+  // creator and the team: ten from blocks 1 to 3, then seven public ones and the refused sectors of
+  // block 5 (block 4 shows nothing of its own until a network line exists).
   const internal = page.getByText(copy.layer.internal, { exact: true });
   if (!seeded) {
     await expect(
       page.getByText(copy.layer.public, { exact: true }),
-    ).toHaveCount(10);
+    ).toHaveCount(17);
     await expect(
       page.getByText(copy.layer.revealed, { exact: true }),
     ).toHaveCount(0);
-    await expect(internal).toHaveCount(6);
-    await expect(internal.locator("svg")).toHaveCount(6);
+    await expect(internal).toHaveCount(7);
+    await expect(internal.locator("svg")).toHaveCount(7);
   }
 
-  // CA6, CA29: no photo, no avatar, no age nor gender of the creator; D78: no tariff.
+  // CA6, CA29: no photo, no avatar, no age nor gender of the creator; D78: no tariff. (The formats of
+  // block 5 name "photo" content, a format and not a picture of the creator: they are looked at apart.)
   await expect(page.locator("input[type=file]")).toHaveCount(0);
   await expect(
-    page.getByLabel(/\b(photo|avatar|age|gender|âge|genre)\b/i),
+    page
+      .locator("[data-section]:not([data-section=offer])")
+      .getByLabel(/\b(photo|avatar|age|gender|âge|genre)\b/i),
+  ).toHaveCount(0);
+  await expect(
+    page
+      .locator("[data-section=offer]")
+      .getByLabel(/\b(avatar|age|gender|âge|genre)\b/i),
   ).toHaveCount(0);
   if (!seeded) {
     const shown = await page.locator("main").innerText();
     expect(shown).not.toMatch(/\b(tarifs?|prix|price|rates?|net|fee)\b|[€$]/i);
   }
 
-  // The summary: three sections to go to, two coming soon, none of them a link.
-  for (const id of ["presentation", "editorial", "networks"] as const) {
+  // The summary: the five sections to go to, none of them told "coming soon" any more.
+  for (const id of [
+    "presentation",
+    "editorial",
+    "networks",
+    "audience",
+    "offer",
+  ] as const) {
     await expect(
       page.getByRole("link", { name: new RegExp(copy.sections[id]) }),
     ).toBeVisible();
   }
-  for (const id of ["audience", "offer"] as const) {
-    await expect(
-      page.getByRole("link", { name: new RegExp(copy.sections[id]) }),
-    ).toHaveCount(0);
-  }
-  await expect(page.getByText(copy.summary.soon)).toHaveCount(2);
+  await expect(page.getByText(copy.summary.soon)).toHaveCount(0);
   // Block 3 starts empty: it says so, and offers the closed list of networks.
   if (!seeded) {
     await expect(page.getByText(copy.networks.empty)).toBeVisible();
@@ -355,12 +438,88 @@ test("a creator in French: alias, layers, anchors, the warning of the detection,
   expect((await linesOf(accountId))[0]?.url).toBe(
     "https://www.instagram.com/camille",
   );
+
+  // Block 4 (CA26 to CA28): every label is about the audience; 140 in a dimension is refused and told,
+  // nothing of the audience is saved meanwhile; 70 is accepted and the 30 left read "others", which
+  // the API says and the screen never completes.
+  const aud = copy.audience;
+  const audience = page.locator('[data-audience-line="instagram"]');
+  const share = (label: string) => audience.getByLabel(label);
+  await share(aud.countries.main).selectOption("FR");
+  await share(aud.countries.mainShare).fill("72");
+  await share(aud.ages.band["18_24"]).fill("60");
+  await share(aud.ages.band["25_34"]).fill("80");
+  await expect(audience.getByText(copy.issues.sum_exceeds_100)).toBeVisible();
+  expect((await audienceOf(accountId)).main).toBeNull();
+  await share(aud.ages.band["25_34"]).fill("10");
+
+  // Block 5: no tariff, costs said to be negotiated; a usage right is in one list only (RG73).
+  const offer = page.locator('[data-section="offer"]');
+  const group = (name: string) => offer.getByRole("group", { name });
+  const reference = COPY.fr.brand.reference;
+  await expect(offer.getByText(copy.offer.negotiation)).toBeVisible();
+  await offer.getByLabel(reference.format.instagram_reel).check();
+  await offer.getByLabel(reference.format.ugc_video).check();
+  await group(copy.fields.usageIncluded.label)
+    .getByLabel(reference.usage_right.organic_repost)
+    .check();
+  await group(copy.fields.usageOptional.label)
+    .getByLabel(reference.usage_right.media_buy)
+    .check();
+  await group(copy.fields.usageIncluded.label)
+    .getByLabel(reference.usage_right.media_buy)
+    .check();
+  await expect(
+    group(copy.fields.usageOptional.label).getByLabel(
+      reference.usage_right.media_buy,
+    ),
+  ).not.toBeChecked();
+  await offer.getByLabel(copy.offer.delivery["7_14d"]).check();
+  await offer
+    .getByRole("radiogroup", { name: copy.fields.acceptsNonMonetary.label })
+    .getByLabel(copy.field.yes)
+    .check();
+  await offer.getByLabel(copy.offer.availability.lt_2w).check();
+  await group(copy.fields.refusedSectors.label)
+    .getByLabel(reference.sector.gambling)
+    .check();
+
+  await expect
+    .poll(async () => await audienceOf(accountId))
+    .toEqual({ main: "FR", share: 72, ages: { "18_24": 60, "25_34": 10 } });
+  await expect(
+    audience.getByText(aud.remainder.replace("{share, number}", "28")),
+  ).toBeVisible();
+  await expect(
+    audience.getByText(aud.remainder.replace("{share, number}", "30")),
+  ).toBeVisible();
+  await expect
+    .poll(async () => await offerOf(accountId))
+    .toEqual({
+      formats: ["instagram_reel", "ugc_video"],
+      rights: { organic_repost: "included", media_buy: "included" },
+      availability: "lt_2w",
+      declared: true,
+      nonMonetary: true,
+      sectors: ["gambling"],
+    });
+  await expect(
+    offer.getByText(copy.offer.availabilityDeclared.split("{")[0]!.trim()),
+  ).toBeVisible();
+  await expect(page.getByText(copy.summary.complete)).toHaveCount(5);
+
+  // D78, D48: not one amount, tariff, net or currency on the screen, nor an attribute of the old mock-up.
   expect(await page.locator("main").innerText()).not.toMatch(
-    /\b(tarifs?|prix)\b|[€$]/i,
+    /\b(tarifs?|prix|montants?|net)\b|[€$£]/i,
   );
-  await expectNoAxeViolation(page, "my creator networks, fr, 1440", {
-    wcag22: true,
-  });
+  await expect(
+    page.locator("[data-net-creator], [data-advertiser-share]"),
+  ).toHaveCount(0);
+  await expectNoAxeViolation(
+    page,
+    "my creator profile, five blocks, fr, 1440",
+    { wcag22: true },
+  );
 
   // CA11: choosing the main account on a second line unchecks the first, and the screen says so.
   await page
@@ -435,6 +594,24 @@ test("a creator in English: the same screen at 375 then 1 440 px, no French left
     youtube.getByRole("button", { name: copy.figures.confirm }),
   ).toBeVisible();
 
+  // Blocks 4 and 5 in English: the audience labels about the audience, the offer without a tariff.
+  const audienceLine = page.locator('[data-audience-line="youtube"]');
+  await expect(
+    audienceLine.getByLabel(copy.audience.ages.band["25_34"]),
+  ).toBeVisible();
+  await expect(
+    audienceLine.getByLabel(copy.audience.genders.share.female),
+  ).toBeVisible();
+  await expect(page.getByText(copy.audience.intro)).toBeVisible();
+  const offer = page.locator('[data-section="offer"]');
+  await expect(offer.getByText(copy.offer.negotiation)).toBeVisible();
+  await expect(
+    offer.getByLabel(COPY.en.brand.reference.format.tiktok_video),
+  ).toBeVisible();
+  await expect(
+    offer.getByRole("radiogroup", { name: copy.fields.availability.label }),
+  ).toBeVisible();
+
   // Not a word of French among the texts of the screen.
   const shown = (await page.locator("main").innerText()).toLowerCase();
   for (const text of [
@@ -448,6 +625,9 @@ test("a creator in English: the same screen at 375 then 1 440 px, no French left
     frCreatorProfile.networks.primary.label,
     frCreatorProfile.figures.confirm,
     frCreatorProfile.networks.bands.title,
+    frCreatorProfile.offer.negotiation,
+    frCreatorProfile.audience.intro,
+    frCreatorProfile.fields.formats.label,
   ]) {
     expect(shown, text).not.toContain(text.toLowerCase());
   }

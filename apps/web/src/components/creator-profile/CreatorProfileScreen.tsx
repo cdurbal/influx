@@ -8,6 +8,7 @@
 // with the next commits and are told "coming soon" in the summary. This file draws; the state is
 // use-creator-profile.ts, the rules creator-profile-view.ts and apps/api. The page of a creator: a
 // brand reaches its own screen, whatever the address. No amount, rate, net or price (D78, D48).
+// Blocks 4 (audience) and 5 (offer, with no tariff) came with commit 14: all five sections are built.
 import { notFound } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, type ReactNode } from "react";
@@ -40,7 +41,9 @@ import {
 } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 import { memberPageHref } from "@/lib/member-paths";
+import { AudienceFields } from "./CreatorAudienceFields";
 import { NetworksFields } from "./CreatorNetworksFields";
+import { OfferFields } from "./CreatorOfferFields";
 import {
   EditorialFields,
   PresentationFields,
@@ -60,6 +63,7 @@ import {
   type RequiredCode,
   type SectionId,
 } from "./creator-profile-view";
+import { useCreatorAudience } from "./use-creator-audience";
 import { useCreatorNetworks } from "./use-creator-networks";
 import {
   useCreatorProfile,
@@ -178,7 +182,14 @@ function LoadedProfile({
     report: state.reportSave,
     onProgress: state.applyProgress,
   });
+  const audience = useCreatorAudience({
+    networks,
+    onSignedOut: () => signedOut(null),
+    report: state.reportSave,
+  });
   const editable = isEditable(profile);
+  const labelOf = (code: string) =>
+    networkOptions.find((option) => option.code === code)?.label ?? code;
   const fields: CreatorFieldsProps = {
     profile,
     draft,
@@ -212,12 +223,19 @@ function LoadedProfile({
             <NetworksFields
               state={networks}
               networks={networkOptions}
-              labelOf={(code) =>
-                networkOptions.find((option) => option.code === code)?.label ??
-                code
-              }
+              labelOf={labelOf}
               bandLabelOf={(group, code) => bandLabelOf(t, group, code)}
             />
+          </ProfileSection>
+          <ProfileSection id="audience" disabled={!editable}>
+            <AudienceFields
+              networks={networks}
+              audience={audience}
+              labelOf={labelOf}
+            />
+          </ProfileSection>
+          <ProfileSection id="offer" disabled={!editable}>
+            <OfferFields {...fields} />
           </ProfileSection>
         </div>
       </div>

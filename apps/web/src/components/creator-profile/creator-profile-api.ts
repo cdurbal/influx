@@ -8,6 +8,7 @@ import {
   updateCreatorProfileResponseSchema,
   type ConfirmCreatorFiguresBody,
   type CreateCreatorNetworkBody,
+  type PutCreatorNetworkAudienceBody,
   type CreatorNetworksResponse,
   type CreatorProfileResponse,
   type UpdateCreatorNetworkBody,
@@ -83,6 +84,21 @@ export function confirmCreatorNetworkFigures(
   return callRelay(
     "POST",
     `${NETWORKS_PATH}/${lineId}/figures`,
+    creatorNetworksResponseSchema,
+    body,
+  );
+}
+
+// --- Block 4: the exact audience of a line (commit 14). The whole audience is replaced in one call
+// (07 RG56 to RG61): what the creator typed, by country, age band and gender.
+
+export function saveCreatorNetworkAudience(
+  lineId: string,
+  body: PutCreatorNetworkAudienceBody,
+): Promise<RelayResult<CreatorNetworksResponse>> {
+  return callRelay(
+    "PUT",
+    `${NETWORKS_PATH}/${lineId}/audience`,
     creatorNetworksResponseSchema,
     body,
   );

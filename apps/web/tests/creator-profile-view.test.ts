@@ -92,6 +92,14 @@ describe("L2D-12: the draft of the creator profile", () => {
       tones: [],
       publicationLanguages: [],
       travelScope: null,
+      formats: [],
+      usageIncluded: [],
+      usageOptional: [],
+      deliveryLead: null,
+      maxExclusivity: null,
+      acceptsNonMonetary: false,
+      availability: null,
+      refusedSectors: [],
     });
     const filled = draftOf({
       ...PROFILE,
@@ -237,6 +245,106 @@ describe("L2D-12: the patch of the autosave (07 RG111, RG14)", () => {
   });
 });
 
+describe("L2D-14: block 5, the offer, in the draft and the patch (07 RG73, RG74, RG76)", () => {
+  const WITH_RIGHTS: CreatorProfileResponse = {
+    ...PROFILE,
+    formats: ["instagram_reel"],
+    usageRights: [
+      { code: "organic_repost", inclusion: "included" },
+      { code: "paid_whitelisting", inclusion: "optional" },
+      { code: "media_buy", inclusion: "optional" },
+    ],
+    deliveryLead: "7_14d",
+    acceptsNonMonetary: true,
+    availability: "lt_2w",
+    refusedSectors: ["alcohol"],
+  };
+
+  it("holds the usage rights in two lists, as stored, and the rest as it is", () => {
+    const draft = draftOf(WITH_RIGHTS);
+    expect(draft.usageIncluded).toEqual(["organic_repost"]);
+    expect(draft.usageOptional).toEqual(["paid_whitelisting", "media_buy"]);
+    expect(draft.formats).toEqual(["instagram_reel"]);
+    expect(draft.deliveryLead).toBe("7_14d");
+    expect(draft.acceptsNonMonetary).toBe(true);
+    expect(draft.availability).toBe("lt_2w");
+    expect(draft.refusedSectors).toEqual(["alcohol"]);
+  });
+
+  it("sends both lists of rights together, a right once, when either changes", () => {
+    const stored = draftOf(WITH_RIGHTS);
+    const plan = planPatch(
+      {
+        ...stored,
+        usageIncluded: ["organic_repost", "media_buy"],
+        usageOptional: ["paid_whitelisting"],
+      },
+      stored,
+    );
+    expect(plan.keys).toEqual(["usageIncluded", "usageOptional"]);
+    expect(plan.body).toEqual({
+      usageRights: [
+        { code: "organic_repost", inclusion: "included" },
+        { code: "media_buy", inclusion: "included" },
+        { code: "paid_whitelisting", inclusion: "optional" },
+      ],
+    });
+    // a right in both lists is offered as included, never twice
+    expect(
+      planPatch(
+        { ...stored, usageOptional: ["organic_repost", "media_buy"] },
+        stored,
+      ).body,
+    ).toEqual({
+      usageRights: [
+        { code: "organic_repost", inclusion: "included" },
+        { code: "media_buy", inclusion: "optional" },
+      ],
+    });
+  });
+
+  it("sends the lists, the bands and the boolean as chosen, and refuses a band the API would", () => {
+    const plan = planPatch(
+      {
+        ...EMPTY,
+        formats: ["instagram_reel", "ugc_video"],
+        deliveryLead: "lt_7d",
+        maxExclusivity: "le_3m",
+        acceptsNonMonetary: true,
+        availability: "full",
+        refusedSectors: ["gambling"],
+      },
+      EMPTY,
+    );
+    expect(plan.body).toEqual({
+      formats: ["instagram_reel", "ugc_video"],
+      deliveryLead: "lt_7d",
+      maxExclusivity: "le_3m",
+      acceptsNonMonetary: true,
+      availability: "full",
+      refusedSectors: ["gambling"],
+    });
+    expect(
+      planPatch({ ...EMPTY, availability: "next_year" }, EMPTY).refused,
+    ).toEqual({ availability: "invalid" });
+    expect(planPatch({ ...EMPTY, availability: "lt_1m" }, EMPTY).body).toEqual({
+      availability: "lt_1m",
+    });
+  });
+
+  it("places the required offer fields in the offer, and carries no field of a tariff", () => {
+    expect(sectionOfRequired("formats")).toBe("offer");
+    expect(sectionOfRequired("availability")).toBe("offer");
+    expect(sectionOfRequired("mainAudienceShare")).toBe("audience");
+    const forbidden = ["price", "rate", "net", "currency", "amount", "tariff"];
+    for (const key of Object.keys(EMPTY)) {
+      for (const word of key.split(/(?=[A-Z])/u)) {
+        expect(forbidden, key).not.toContain(word.toLowerCase());
+      }
+    }
+  });
+});
+
 describe("L2D-12: after an accepted save", () => {
   it("makes the fields sent the new reference, and takes the secondary topics the API kept (RG33)", () => {
     const sent: CreatorDraft = {
@@ -291,12 +399,8 @@ describe("L2D-12: sections, anchors and required fields", () => {
     for (const code of CREATOR_PROFILE_REQUIRED_FIELD_CODES) {
       expect(SECTION_IDS, code).toContain(sectionOfRequired(code));
     }
-    // blocks 4 and 5 arrive with commit 14: the summary tells them "coming soon"
-    expect([...BUILT_SECTIONS]).toEqual([
-      "presentation",
-      "editorial",
-      "networks",
-    ]);
+    // blocks 4 and 5 came with commit 14: no section is told "coming soon" any more
+    expect([...BUILT_SECTIONS]).toEqual([...SECTION_IDS]);
   });
 
   it("calls a section complete when none of its required fields is missing", () => {

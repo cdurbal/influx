@@ -61,6 +61,12 @@ export type CreatorNetworksState = {
   makePrimary: (lineId: string) => void;
   confirm: (lineId: string) => void;
   reload: () => void;
+  // What the audience of block 4 shares with the lines (commit 14): the lines as the last answer said
+  // them, the one-call-at-a-time queue, the adoption of an answer, a new read.
+  currentLines: () => readonly CreatorNetworkLine[];
+  queue: (task: () => Promise<void>) => Promise<void>;
+  takeAnswer: (answer: CreatorNetworksResponse) => void;
+  refresh: () => Promise<void>;
 };
 
 export function useCreatorNetworks(options: {
@@ -493,5 +499,9 @@ export function useCreatorNetworks(options: {
     makePrimary,
     confirm,
     reload: () => void load(),
+    currentLines: () => linesRef.current,
+    queue: enqueue,
+    takeAnswer: adopt,
+    refresh: reloadLines,
   };
 }

@@ -66,7 +66,9 @@
     "addLanguage": "Ajouter une langue…",
     "addTopic": "Ajouter une thématique…",
     "remove": "Retirer {label}",
-    "selected": "Choix retenus"
+    "selected": "Choix retenus",
+    "yes": "Oui",
+    "no": "Non"
   },
   "fields": {
     "headline": {
@@ -121,6 +123,37 @@
     },
     "travelScope": {
       "label": "Déplacements possibles"
+    },
+    "formats": {
+      "label": "Formats proposés",
+      "help": "Cochez les formats que vous proposez, réseau par réseau."
+    },
+    "usageIncluded": {
+      "label": "Droits d'usage inclus",
+      "help": "Les droits que vous accordez d'emblée. Aucune case cochée : aucun droit n'est accordé d'emblée."
+    },
+    "usageOptional": {
+      "label": "Droits d'usage en option",
+      "help": "Les droits que vous pouvez accorder en plus, à discuter avec votre commercial. Un droit ne figure que dans une des deux listes."
+    },
+    "deliveryLead": {
+      "label": "Délai de livraison habituel"
+    },
+    "maxExclusivity": {
+      "label": "Exclusivité sectorielle acceptée",
+      "help": "La durée maximale pendant laquelle vous acceptez de ne pas travailler avec une marque concurrente."
+    },
+    "acceptsNonMonetary": {
+      "label": "Contrepartie non monétaire acceptée",
+      "help": "Produits, services ou invitations en échange de contenus. Cela n'évite pas la discussion avec votre commercial."
+    },
+    "availability": {
+      "label": "Disponibilité",
+      "help": "Elle est toujours affichée avec sa date de déclaration."
+    },
+    "refusedSectors": {
+      "label": "Secteurs refusés",
+      "help": "Aucune marque ni aucun message n'en est informé, et rien n'est compté : ce choix reste entre vous et l'équipe INFLUX."
     }
   },
   "experience": {
@@ -186,7 +219,9 @@
     "sum_exceeds_100": "Le total dépasse 100 %. Réduisez l'une des parts.",
     "count": "Saisissez un nombre entier, zéro ou plus.",
     "percentage": "Saisissez un pourcentage entre 0 et 100, avec deux décimales au plus.",
-    "url_shape": "Le lien doit commencer par https:// et ne contenir ni espace ni identifiant."
+    "url_shape": "Le lien doit commencer par https:// et ne contenir ni espace ni identifiant.",
+    "share": "Saisissez un pourcentage entier de 0 à 100.",
+    "share_min": "Un autre pays pèse 10 % de votre audience au minimum."
   },
   "errors": {
     "identifierInText": "Votre texte contient ce qui ressemble à un pseudo, un lien ou un identifiant. Retirez-le : il sera partagé une fois la mise en relation ouverte."
@@ -269,5 +304,55 @@
   },
   "engagement": {
     "unverified": "Votre taux d'engagement n'est pas affiché aux marques tant qu'il n'a pas été constaté par INFLUX."
+  },
+  "offer": {
+    "negotiation": "Les coûts se négocient avec votre commercial.",
+    "ugcGroup": "UGC (contenu livré à la marque)",
+    "noList": "Aucun choix disponible pour le moment.",
+    "availabilityDeclared": "Déclarée le {date}. Mettez-la à jour quand elle change.",
+    "delivery": {
+      "lt_7d": "Moins de 7 jours",
+      "7_14d": "De 7 à 14 jours",
+      "15_30d": "De 15 à 30 jours",
+      "gt_30d": "Plus de 30 jours"
+    },
+    "availability": {
+      "lt_2w": "Disponible sous moins de 2 semaines",
+      "lt_1m": "Disponible sous moins d'un mois",
+      "full": "Agenda plein"
+    }
+  },
+  "audience": {
+    "intro": "Ces pourcentages décrivent votre audience, pas vous. Avant toute mise en relation, les marques n'en voient que des tranches ; vos pourcentages exacts ne leur sont communiqués qu'ensuite. Ce qui manque pour atteindre 100 % s'affiche comme « autres » : INFLUX ne complète jamais à votre place.",
+    "noLines": "Ajoutez d'abord un réseau dans le bloc « Réseaux sociaux » : l'audience se renseigne réseau par réseau.",
+    "remainder": "Autres : {share, number} %",
+    "countries": {
+      "legend": "Pays de votre audience",
+      "main": "Pays principal de votre audience",
+      "mainShare": "Part de votre audience dans ce pays (%)",
+      "other": "Autre pays de votre audience",
+      "otherShare": "Part de votre audience dans cet autre pays (%)",
+      "otherHelp": "10 % au minimum.",
+      "add": "Ajouter un pays",
+      "full": "Quatre autres pays au plus.",
+      "removeOther": "Retirer l'autre pays {index}"
+    },
+    "ages": {
+      "legend": "Âges de votre audience",
+      "band": {
+        "18_24": "Part de votre audience âgée de 18 à 24 ans (%)",
+        "25_34": "Part de votre audience âgée de 25 à 34 ans (%)",
+        "35_44": "Part de votre audience âgée de 35 à 44 ans (%)",
+        "45_plus": "Part de votre audience âgée de 45 ans et plus (%)"
+      }
+    },
+    "genders": {
+      "legend": "Femmes, hommes et autres dans votre audience",
+      "share": {
+        "female": "Part de votre audience : femmes (%)",
+        "male": "Part de votre audience : hommes (%)",
+        "other": "Part de votre audience : autres ou non déclaré (%)"
+      }
+    }
   }
 }

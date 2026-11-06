@@ -66,7 +66,9 @@
     "addLanguage": "Add a language…",
     "addTopic": "Add a topic…",
     "remove": "Remove {label}",
-    "selected": "Your choices"
+    "selected": "Your choices",
+    "yes": "Yes",
+    "no": "No"
   },
   "fields": {
     "headline": {
@@ -121,6 +123,37 @@
     },
     "travelScope": {
       "label": "Travel possible"
+    },
+    "formats": {
+      "label": "Formats offered",
+      "help": "Tick the formats you offer, network by network."
+    },
+    "usageIncluded": {
+      "label": "Usage rights included",
+      "help": "The rights you grant from the start. No box ticked: no right is granted from the start."
+    },
+    "usageOptional": {
+      "label": "Usage rights as an option",
+      "help": "The rights you can grant on top, to discuss with your sales contact. A right is in one of the two lists only."
+    },
+    "deliveryLead": {
+      "label": "Usual delivery time"
+    },
+    "maxExclusivity": {
+      "label": "Sector exclusivity accepted",
+      "help": "The longest period during which you agree not to work with a competing brand."
+    },
+    "acceptsNonMonetary": {
+      "label": "Non-monetary counterpart accepted",
+      "help": "Products, services or invitations in exchange for content. It does not replace the discussion with your sales contact."
+    },
+    "availability": {
+      "label": "Availability",
+      "help": "It is always shown with the date it was declared."
+    },
+    "refusedSectors": {
+      "label": "Sectors you refuse",
+      "help": "No brand and no message is told of it, and nothing is counted: this choice stays between you and the INFLUX team."
     }
   },
   "experience": {
@@ -186,7 +219,9 @@
     "sum_exceeds_100": "The total is over 100%. Please lower one of the shares.",
     "count": "Enter a whole number, zero or more.",
     "percentage": "Enter a percentage between 0 and 100, with two decimals at most.",
-    "url_shape": "The link must start with https:// and contain no space or credentials."
+    "url_shape": "The link must start with https:// and contain no space or credentials.",
+    "share": "Enter a whole percentage from 0 to 100.",
+    "share_min": "Another country weighs 10 % of your audience at least."
   },
   "errors": {
     "identifierInText": "Your text contains what looks like a handle, a link or an identifier. Please remove it: it will be shared once the introduction is opened."
@@ -269,5 +304,55 @@
   },
   "engagement": {
     "unverified": "Your engagement rate is not shown to brands until INFLUX has verified it."
+  },
+  "offer": {
+    "negotiation": "Costs are negotiated with your sales contact.",
+    "ugcGroup": "UGC (content delivered to the brand)",
+    "noList": "No choice available for now.",
+    "availabilityDeclared": "Declared on {date}. Update it when it changes.",
+    "delivery": {
+      "lt_7d": "Under 7 days",
+      "7_14d": "7 to 14 days",
+      "15_30d": "15 to 30 days",
+      "gt_30d": "Over 30 days"
+    },
+    "availability": {
+      "lt_2w": "Available within 2 weeks",
+      "lt_1m": "Available within a month",
+      "full": "Fully booked"
+    }
+  },
+  "audience": {
+    "intro": "These percentages describe your audience, not you. Before any introduction, brands only see bands; your exact percentages are shared with them afterwards. What is missing to reach 100 % shows as \"others\": INFLUX never fills it in for you.",
+    "noLines": "First add a network in the \"Social networks\" block: the audience is filled in network by network.",
+    "remainder": "Others: {share, number} %",
+    "countries": {
+      "legend": "Countries of your audience",
+      "main": "Main country of your audience",
+      "mainShare": "Share of your audience in this country (%)",
+      "other": "Another country of your audience",
+      "otherShare": "Share of your audience in this other country (%)",
+      "otherHelp": "10 % at least.",
+      "add": "Add a country",
+      "full": "Four other countries at most.",
+      "removeOther": "Remove other country {index}"
+    },
+    "ages": {
+      "legend": "Ages of your audience",
+      "band": {
+        "18_24": "Share of your audience aged 18 to 24 (%)",
+        "25_34": "Share of your audience aged 25 to 34 (%)",
+        "35_44": "Share of your audience aged 35 to 44 (%)",
+        "45_plus": "Share of your audience aged 45 and over (%)"
+      }
+    },
+    "genders": {
+      "legend": "Women, men and others in your audience",
+      "share": {
+        "female": "Share of your audience: women (%)",
+        "male": "Share of your audience: men (%)",
+        "other": "Share of your audience: others or not declared (%)"
+      }
+    }
   }
 }

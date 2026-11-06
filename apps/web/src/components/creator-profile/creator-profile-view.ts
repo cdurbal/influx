@@ -31,6 +31,17 @@ export type CreatorDraft = {
   tones: string[];
   publicationLanguages: string[];
   travelScope: string | null;
+  // Block 5, "Mon offre" (commit 14): the formats, the two lists of usage rights (a right is in one
+  // only, 07 RG73), the delivery, the exclusivity, the non-monetary counterpart, the availability and
+  // the refused sectors. No tariff exists (D78).
+  formats: string[];
+  usageIncluded: string[];
+  usageOptional: string[];
+  deliveryLead: string | null;
+  maxExclusivity: string | null;
+  acceptsNonMonetary: boolean;
+  availability: string | null;
+  refusedSectors: string[];
 };
 
 export type DraftKey = keyof CreatorDraft;
@@ -50,6 +61,14 @@ export const DRAFT_KEYS: readonly DraftKey[] = [
   "tones",
   "publicationLanguages",
   "travelScope",
+  "formats",
+  "usageIncluded",
+  "usageOptional",
+  "deliveryLead",
+  "maxExclusivity",
+  "acceptsNonMonetary",
+  "availability",
+  "refusedSectors",
 ];
 
 export function draftOf(profile: CreatorProfileResponse): CreatorDraft {
@@ -67,7 +86,25 @@ export function draftOf(profile: CreatorProfileResponse): CreatorDraft {
     tones: [...profile.tones],
     publicationLanguages: [...profile.publicationLanguages],
     travelScope: profile.travelScope,
+    formats: [...profile.formats],
+    usageIncluded: usageCodesOf(profile, "included"),
+    usageOptional: usageCodesOf(profile, "optional"),
+    deliveryLead: profile.deliveryLead,
+    maxExclusivity: profile.maxExclusivity,
+    acceptsNonMonetary: profile.acceptsNonMonetary,
+    availability: profile.availability,
+    refusedSectors: [...profile.refusedSectors],
   };
+}
+
+/** The codes of the usage rights offered one way, in the order stored (07 RG73: two lists, never one). */
+function usageCodesOf(
+  profile: Pick<CreatorProfileResponse, "usageRights">,
+  inclusion: "included" | "optional",
+): string[] {
+  return profile.usageRights
+    .filter((right) => right.inclusion === inclusion)
+    .map((right) => right.code);
 }
 
 type DraftValue = CreatorDraft[DraftKey];
@@ -120,6 +157,20 @@ function fragmentOf(
     case "contactEmail":
     case "city":
       return { identity: { [IDENTITY_KEYS[key]]: textOrNull(draft[key]) } };
+    case "usageIncluded":
+    case "usageOptional":
+      // The API replaces the whole list of rights: both lists travel together, a right once (RG73).
+      return {
+        usageRights: [
+          ...draft.usageIncluded.map((code) => ({
+            code,
+            inclusion: "included" as const,
+          })),
+          ...draft.usageOptional
+            .filter((code) => !draft.usageIncluded.includes(code))
+            .map((code) => ({ code, inclusion: "optional" as const })),
+        ],
+      };
     default:
       return { [key]: draft[key] };
   }
@@ -239,11 +290,13 @@ export const SECTION_IDS: readonly SectionId[] = [
   "offer",
 ];
 
-/** The sections the screen holds so far: the others are told "coming soon" (commit 14: audience and offer). */
+/** The sections the screen holds: all five since commit 14; a section not in this set would be told "coming soon". */
 export const BUILT_SECTIONS: ReadonlySet<SectionId> = new Set<SectionId>([
   "presentation",
   "editorial",
   "networks",
+  "audience",
+  "offer",
 ]);
 
 export type RequiredCode = CreatorProfileResponse["missingRequired"][number];
