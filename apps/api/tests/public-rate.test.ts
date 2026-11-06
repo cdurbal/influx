@@ -46,6 +46,8 @@ const SESSION_ROUTES: readonly string[] = [
   "GET /v1/me/brand-profile/logo",
   "PUT /v1/me/brand-profile/logo",
   "DELETE /v1/me/brand-profile/logo",
+  "GET /v1/me/creator-profile",
+  "PATCH /v1/me/creator-profile",
   "GET /v1/me/consent",
   "PUT /v1/me/consent",
   "GET /v1/me/sessions",

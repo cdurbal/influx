@@ -12,9 +12,22 @@ import {
   COMPLETENESS_CRITERION_CODES,
 } from "@influx/contracts/brand-profile";
 import {
+  CREATOR_BIO_MAX_LENGTH,
+  CREATOR_COMPLETENESS_BLOCK_IDS,
+  CREATOR_COMPLETENESS_CRITERION_CODES,
+  CREATOR_HEADLINE_MAX_LENGTH,
+  CREATOR_PROFILE_REQUIRED_FIELD_CODES,
+} from "@influx/contracts/creator-profile";
+import {
   BRAND_PROFILE_REQUIRED_FIELDS,
   BRAND_PROFILE_WEIGHTS,
 } from "@influx/domain/brand-profile";
+import {
+  BIO_MAX_LENGTH,
+  CREATOR_PROFILE_REQUIRED_FIELDS,
+  CREATOR_PROFILE_WEIGHTS,
+  HEADLINE_MAX_LENGTH,
+} from "@influx/domain/creator-profile";
 import { importSpecifiers } from "@influx/test-kit/guards";
 import { listSourceFiles, SCRIPT_EXTENSIONS } from "@influx/test-kit/static";
 import { describe, expect, it } from "vitest";
@@ -131,6 +144,7 @@ describe("@influx/domain at L2B", () => {
     expect(importers).toEqual([
       "apps/api/src/domains/backoffice/queues/entry-alerts.ts",
       "apps/api/src/domains/profiles/brand-profile.ts",
+      "apps/api/src/domains/profiles/creator/profile.ts",
     ]);
   });
 
@@ -143,6 +157,19 @@ describe("@influx/domain at L2B", () => {
       )
       .map(relative);
     expect(callers).toEqual(["apps/api/src/domains/profiles/brand-profile.ts"]);
+  });
+
+  it("is the ONE call site of creatorProfileCompleteness in the repository's sources (L2D 08)", () => {
+    const callers = sourcesOf(
+      SOURCE_ROOTS.filter((root) => root !== "packages/domain/src"),
+    )
+      .filter((file) =>
+        /\bcreatorProfileCompleteness\s*\(/.test(readFileSync(file, "utf8")),
+      )
+      .map(relative);
+    expect(callers).toEqual([
+      "apps/api/src/domains/profiles/creator/profile.ts",
+    ]);
   });
 });
 
@@ -160,5 +187,25 @@ describe("the contract repeats the code lists of the domain, equal (it has no de
     expect([...COMPLETENESS_BLOCK_IDS]).toEqual([
       ...new Set(BRAND_PROFILE_WEIGHTS.map((weight) => weight.block)),
     ]);
+  });
+
+  it("lists the required fields of the creator profile in the same order (L2D 08)", () => {
+    expect([...CREATOR_PROFILE_REQUIRED_FIELD_CODES]).toEqual([
+      ...CREATOR_PROFILE_REQUIRED_FIELDS,
+    ]);
+  });
+
+  it("lists the criteria and the blocks of the creator score in the same order (L2D 08)", () => {
+    expect([...CREATOR_COMPLETENESS_CRITERION_CODES]).toEqual(
+      CREATOR_PROFILE_WEIGHTS.map((weight) => weight.code),
+    );
+    expect([...CREATOR_COMPLETENESS_BLOCK_IDS]).toEqual([
+      ...new Set(CREATOR_PROFILE_WEIGHTS.map((weight) => weight.block)),
+    ]);
+  });
+
+  it("repeats the ceilings of the short title and the bio, equal (L2D 08)", () => {
+    expect(CREATOR_HEADLINE_MAX_LENGTH).toBe(HEADLINE_MAX_LENGTH);
+    expect(CREATOR_BIO_MAX_LENGTH).toBe(BIO_MAX_LENGTH);
   });
 });

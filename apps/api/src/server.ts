@@ -21,6 +21,7 @@ import {
 import { requireBackofficeSession } from "./domains/identity/backoffice-session.ts";
 import { registerBackofficeAccountRoutes } from "./domains/backoffice/accounts-routes.ts";
 import { registerDataExportRoutes } from "./domains/privacy/member/routes.ts";
+import { registerCreatorProfileRoutes } from "./domains/profiles/creator/routes.ts";
 import { registerBrandProfileRoutes } from "./domains/profiles/routes.ts";
 import { registerBackofficeActionRoutes } from "./domains/backoffice/actions-routes.ts";
 import { registerBackofficeInvitationRoutes } from "./domains/backoffice/invitations-routes.ts";
@@ -541,6 +542,12 @@ export function buildServer(
     now: options.identity?.now ?? (() => new Date()),
     store: objectStore,
     slots: createImageSlots(),
+  });
+
+  // The creator profile: read and autosave of blocks 1, 2 and 5 (docs/mvp/07; jalon L2D commit 08).
+  registerCreatorProfileRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
   });
 
   // Authentication of the backoffice (21 §4, J3 commit 10).

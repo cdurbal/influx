@@ -69,6 +69,7 @@ export const API_ROUTE_MODELS: readonly string[] = [
   "/v1/me/brand-profile/logo",
   "/v1/me/brand-profile/submit",
   "/v1/me/consent",
+  "/v1/me/creator-profile",
   "/v1/me/data-export",
   "/v1/me/data-export/:id/download",
   "/v1/me/data-requests",
