@@ -110,7 +110,10 @@ describe("the completeness is computed in packages/domain only (stockage.md §9)
     const inside = sourcesOf(["packages/domain/src"]).flatMap((file) =>
       completenessFunctionsIn(readFileSync(file, "utf8")),
     );
-    expect(inside).toEqual(["brandProfileCompleteness"]);
+    expect(inside).toEqual([
+      "brandProfileCompleteness",
+      "creatorProfileCompleteness",
+    ]);
   });
 });
 

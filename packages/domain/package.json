@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./brand-profile": "./src/brand-profile/index.ts"
+    "./brand-profile": "./src/brand-profile/index.ts",
+    "./creator-profile": "./src/creator-profile/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tests.json",
