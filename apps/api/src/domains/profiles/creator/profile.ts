@@ -8,7 +8,7 @@
 // - the alias, the status, the bands derived from exact figures and the date of the availability: the
 //   system's, written by no member and by no route of this file (invariant 7 of the fiche).
 // There is no submission and no publication at L2D (the status stays `draft`), no tariff (D78, D48),
-// and no network line or audience here (commit 09: read for the completeness only).
+// and no network line or audience here (commit 09: networks.ts; read here for the completeness).
 import {
   creatorProfileResponseSchema,
   type CreatorProfileResponse,
@@ -51,6 +51,20 @@ const WRITABLE_STATUSES: ReadonlySet<string> = new Set([
   "pending_review",
   "rejected",
 ]);
+
+/**
+ * Locks the storefront for the rest of the transaction (two saves at the same moment are serialised)
+ * and refuses a write when the profile is not in a state a creator writes in, or does not exist: an
+ * empty draft the member cannot create (0216 §5.3). Shared by the autosave and the network routes.
+ */
+export async function lockWritableCreatorProfile(
+  tx: Transaction,
+): Promise<void> {
+  const status = await lockOwnCreatorStorefront(tx);
+  if (status === null || !WRITABLE_STATUSES.has(status)) {
+    throw new ApiError("conflict");
+  }
+}
 
 /** The profile as packages/domain reads it: the entered values, never a decision of INFLUX (RG88). */
 function profileInputOf(stored: StoredCreatorProfile): CreatorProfileInput {
@@ -249,14 +263,7 @@ export async function saveCreatorProfile(
   tx: Transaction,
   body: UpdateCreatorProfileBody,
 ): Promise<UpdateCreatorProfileResponse> {
-  const status = await lockOwnCreatorStorefront(tx);
-  if (status === null) {
-    // No storefront: an empty draft the member cannot create (0216 §5.3), nothing to write into
-    throw new ApiError("conflict");
-  }
-  if (!WRITABLE_STATUSES.has(status)) {
-    throw new ApiError("conflict");
-  }
+  await lockWritableCreatorProfile(tx);
   const before = await readOwnCreatorProfile(tx);
   if (before === null) {
     throw new ApiError("not_found");
@@ -339,16 +346,45 @@ export async function saveCreatorProfile(
 
 /**
  * The completeness after a change of a network line or of the audience (commit 09), recomputed by
- * packages/domain and stored (RG86); the one door to the score besides the autosave.
+ * packages/domain and stored (RG86); the one door to the score besides the autosave. With it, the
+ * required fields still missing, in the order of the form (RG90).
  */
 export async function refreshStoredCreatorScore(
   tx: Transaction,
-): Promise<CreatorProfileResponse["completeness"]> {
+): Promise<CreatorProfileProgress> {
   const stored = await readOwnCreatorProfile(tx);
   if (stored === null) {
     throw new ApiError("not_found");
   }
-  const completeness = scoreOf(stored);
-  await storeCreatorScore(tx, completeness.score);
-  return creatorProfileResponseSchema.shape.completeness.parse(completeness);
+  const progress = progressOf(stored);
+  await storeCreatorScore(tx, progress.completeness.score);
+  return progress;
+}
+
+/** The same, read only: what a GET of the lines answers, nothing stored. */
+export async function readCreatorProgress(
+  tx: Transaction,
+): Promise<CreatorProfileProgress> {
+  const stored = await readOwnCreatorProfile(tx);
+  if (stored === null) {
+    throw new ApiError("not_found");
+  }
+  return progressOf(stored);
+}
+
+/** The completeness and the required fields still missing (07 RG86 to RG90). */
+export type CreatorProfileProgress = {
+  completeness: CreatorProfileResponse["completeness"];
+  missingRequired: CreatorProfileResponse["missingRequired"];
+};
+
+function progressOf(stored: StoredCreatorProfile): CreatorProfileProgress {
+  return {
+    completeness: creatorProfileResponseSchema.shape.completeness.parse(
+      scoreOf(stored),
+    ),
+    missingRequired: creatorProfileResponseSchema.shape.missingRequired.parse(
+      missingCreatorRequiredFields(profileInputOf(stored)),
+    ),
+  };
 }

@@ -144,6 +144,7 @@ describe("@influx/domain at L2B", () => {
     expect(importers).toEqual([
       "apps/api/src/domains/backoffice/queues/entry-alerts.ts",
       "apps/api/src/domains/profiles/brand-profile.ts",
+      "apps/api/src/domains/profiles/creator/networks.ts",
       "apps/api/src/domains/profiles/creator/profile.ts",
     ]);
   });

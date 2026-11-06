@@ -14,6 +14,20 @@ export function sqlStateOf(error: unknown): string | null {
   return null;
 }
 
+/** The constraint a database error names (`constraint_name`), through the wrapping of drizzle. */
+export function sqlConstraintOf(error: unknown): string | null {
+  let current: unknown = error;
+  for (let depth = 0; depth < 4 && current instanceof Error; depth += 1) {
+    const name: unknown = (current as Error & { constraint_name?: unknown })
+      .constraint_name;
+    if (typeof name === "string" && name !== "") {
+      return name;
+    }
+    current = current.cause;
+  }
+  return null;
+}
+
 /** The DETAIL of a database error (`RAISE … USING DETAIL`), through the wrapping of drizzle. */
 export function sqlDetailOf(error: unknown): string | null {
   let current: unknown = error;

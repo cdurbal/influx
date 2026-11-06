@@ -8,7 +8,7 @@
 // `account_id`, no status field INFLUX alone writes. Three layers meet in it (07 RG16): the public
 // storefront (A), and the identifying fields of the creator (N), returned to their OWNER only.
 // No price, rate, net or currency exists in it (CLAUDE.md §2, D48, D78: no tariff at the pilot).
-// Networks (block 3) and audience (block 4) have their own routes (commit 09).
+// Networks (block 3) and audience (block 4) have their own routes, at the end of this file (commit 09).
 import { z } from "./zod.ts";
 import { uiLocaleSchema } from "./auth.ts";
 import { countryCodeSchema } from "./signup.ts";
@@ -455,3 +455,215 @@ export type CreatorProfileResponse = z.infer<
 /** The answer of PATCH: the profile as saved. */
 export const updateCreatorProfileResponseSchema = creatorProfileResponseSchema;
 export type UpdateCreatorProfileResponse = CreatorProfileResponse;
+
+// --- Network lines, figures and audience (07 RG41 to RG61, RG113 to RG116; commit 09) -------------
+// Layer I, returned to the OWNER only: exact figures, handle, URL, audience. A brand never reaches
+// them (03 P5, EC-L2D-1). Every route of this family takes the line's identifier in its path and
+// the account from the session, so another creator's line answers as an unknown one (18 T14.1).
+
+/** Bounds of a typed handle, pseudonym and profile URL (07 RG30, RG43, RG44; 0217): twin of packages/domain. */
+export const CREATOR_HANDLE_MAX_LENGTH = 100;
+export const CREATOR_PSEUDONYM_MAX_LENGTH = 60;
+export const CREATOR_PROFILE_URL_MAX_LENGTH = 500;
+
+/** The sources of a figure (07 RG49): typed by the creator, or seen by an agent (L2E). */
+export const CREATOR_FIGURES_SOURCES = ["declared", "agent_observed"] as const;
+/** The genders of an audience (07 RG61): about the AUDIENCE, never the creator (RG55). */
+export const CREATOR_AUDIENCE_GENDER_CODES = [
+  "female",
+  "male",
+  "other",
+] as const;
+/** The message asked of the screen when a figure changed alone (07 RG116, CA18, EC-L2D-6). */
+export const CREATOR_FIGURES_CONFIRM_NOTICE =
+  "creatorProfile.figures.confirmAll" as const;
+/** Other countries of an audience, besides the main one (07 RG56). */
+export const CREATOR_AUDIENCE_OTHER_COUNTRIES_MAX = 4;
+/** Smallest share an "other" country may weigh (07 RG56). */
+export const CREATOR_AUDIENCE_OTHER_COUNTRY_MIN_SHARE = 10;
+/** Most age bands a form can hold (the reference list is short; the database arbitrates the codes). */
+const CREATOR_AUDIENCE_AGE_BANDS_MAX = 20;
+
+/** Whole numbers from zero: a count of followers or comments is never negative nor fractional (RG46). */
+const figureCountSchema = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
+/** Publications of the last 30 days, a PostgreSQL integer (RG114, RG116). */
+const figurePostsSchema = z.number().int().min(0).max(2_147_483_647);
+/** An engagement rate in basis points (EC-L2D-8): 0 to 100 %, two decimals, converted by the chain. */
+const engagementBasisPointsSchema = z.number().int().min(0).max(10_000);
+/** A whole percentage (07 RG57). */
+const audienceShareSchema = z.number().int().min(0).max(100);
+
+/** A typed text of the line; the API trims it with packages/domain and a blank one empties the field. */
+const lineTextSchema = (maxLength: number) => z.string().max(maxLength * 4 + 8);
+
+export const creatorNetworkParamsSchema = z.strictObject({ id: z.uuid() });
+export type CreatorNetworkParams = z.infer<typeof creatorNetworkParamsSchema>;
+
+const networkLineFields = {
+  isPrimary: z.boolean().optional(),
+  handle: lineTextSchema(CREATOR_HANDLE_MAX_LENGTH).nullable().optional(),
+  pseudonym: lineTextSchema(CREATOR_PSEUDONYM_MAX_LENGTH).nullable().optional(),
+  profileUrl: lineTextSchema(CREATOR_PROFILE_URL_MAX_LENGTH)
+    .nullable()
+    .optional(),
+  followersCount: figureCountSchema.nullable().optional(),
+  postsLast30Days: figurePostsSchema.nullable().optional(),
+  avgCommentsPerPost: figureCountSchema.nullable().optional(),
+  avgReachPerPost: figureCountSchema.nullable().optional(),
+  engagementRateBp: engagementBasisPointsSchema.nullable().optional(),
+};
+
+/**
+ * POST /v1/me/creator-profile/networks: a new line. The network is chosen once: changing it later is
+ * a deletion, then a new line. `isPrimary` true unchecks the current main line, in the same save
+ * (07 RG41, CA11). The date of the figures is never sent (07 RG50, CA18): only the confirmation sets it.
+ */
+export const createCreatorNetworkBodySchema = z.strictObject({
+  networkCode: referenceCodeSchema,
+  ...networkLineFields,
+});
+export type CreateCreatorNetworkBody = z.infer<
+  typeof createCreatorNetworkBodySchema
+>;
+
+/** PATCH /v1/me/creator-profile/networks/:id: what changed on the line, at least one field. */
+export const updateCreatorNetworkBodySchema = z
+  .strictObject(networkLineFields)
+  .refine((body) => Object.keys(body).length > 0, { message: "empty" });
+export type UpdateCreatorNetworkBody = z.infer<
+  typeof updateCreatorNetworkBodySchema
+>;
+
+/**
+ * POST /v1/me/creator-profile/networks/:id/figures: "Confirmer mes chiffres" (07 RG50, RG116,
+ * EC-L2D-6). The three priority metrics travel together; `null` is a metric not declared. This is
+ * the one action that renews the date of the figures.
+ */
+export const confirmCreatorFiguresBodySchema = z.strictObject({
+  followersCount: figureCountSchema.nullable(),
+  postsLast30Days: figurePostsSchema.nullable(),
+  avgCommentsPerPost: figureCountSchema.nullable(),
+});
+export type ConfirmCreatorFiguresBody = z.infer<
+  typeof confirmCreatorFiguresBodySchema
+>;
+
+/**
+ * PUT /v1/me/creator-profile/networks/:id/audience: the whole exact audience of the line (07 RG56
+ * to RG61), by country, age band and gender, whole percentages. A dimension adds up to 100 at most
+ * (CA26); under 100 is accepted and the rest reads "others", never completed (CA27). The main
+ * country may wait for its share; every other country weighs 10 % or more.
+ */
+export const putCreatorNetworkAudienceBodySchema = z.strictObject({
+  mainCountry: z
+    .strictObject({
+      code: countryCodeSchema,
+      share: audienceShareSchema.nullable(),
+    })
+    .nullable(),
+  otherCountries: z
+    .array(
+      z.strictObject({
+        code: countryCodeSchema,
+        share: audienceShareSchema.min(
+          CREATOR_AUDIENCE_OTHER_COUNTRY_MIN_SHARE,
+        ),
+      }),
+    )
+    .max(CREATOR_AUDIENCE_OTHER_COUNTRIES_MAX),
+  ages: z
+    .array(
+      z.strictObject({ code: referenceCodeSchema, share: audienceShareSchema }),
+    )
+    .max(CREATOR_AUDIENCE_AGE_BANDS_MAX),
+  genders: z
+    .array(
+      z.strictObject({
+        code: z.enum(CREATOR_AUDIENCE_GENDER_CODES),
+        share: audienceShareSchema,
+      }),
+    )
+    .max(CREATOR_AUDIENCE_GENDER_CODES.length),
+});
+export type PutCreatorNetworkAudienceBody = z.infer<
+  typeof putCreatorNetworkAudienceBodySchema
+>;
+
+/** The exact audience of a line as stored, for its owner. */
+export const creatorNetworkAudienceSchema = z.strictObject({
+  mainCountry: z
+    .strictObject({
+      code: countryCodeSchema,
+      share: z.number().int().nullable(),
+    })
+    .nullable(),
+  otherCountries: z.array(
+    z.strictObject({ code: countryCodeSchema, share: z.number().int() }),
+  ),
+  ages: z.array(z.strictObject({ code: z.string(), share: z.number().int() })),
+  genders: z.array(
+    z.strictObject({
+      code: z.enum(CREATOR_AUDIENCE_GENDER_CODES),
+      share: z.number().int(),
+    }),
+  ),
+});
+
+/** What is left to "others" in each dimension (07 RG57): shown as such, never added. */
+export const creatorNetworkRemaindersSchema = z.strictObject({
+  countries: z.number().int().min(0).max(100),
+  ages: z.number().int().min(0).max(100),
+  genders: z.number().int().min(0).max(100),
+});
+
+/**
+ * The bands the system derived from the figures of the MAIN line (07 RG22, RG45, RG114 to RG116),
+ * returned to the creator alone: codes of the reference lists, never a figure. The engagement band
+ * is absent until an agent has seen the figure (RG48).
+ */
+export const creatorNetworkBandsSchema = z.strictObject({
+  audienceBand: z.string().nullable(),
+  reachBand: z.string().nullable(),
+  publicationFrequency: z.string().nullable(),
+  commentBand: z.string().nullable(),
+});
+
+/** One network line, layer I, for its owner. Figures are never shown without their source and date (RG49). */
+export const creatorNetworkLineSchema = z.strictObject({
+  id: z.uuid(),
+  networkCode: z.string(),
+  isPrimary: z.boolean(),
+  handle: z.string().nullable(),
+  pseudonym: z.string().nullable(),
+  profileUrl: z.string().nullable(),
+  followersCount: z.number().int().nullable(),
+  postsLast30Days: z.number().int().nullable(),
+  avgCommentsPerPost: z.number().int().nullable(),
+  avgReachPerPost: z.number().int().nullable(),
+  engagementRateBp: z.number().int().nullable(),
+  figuresSource: z.enum(CREATOR_FIGURES_SOURCES),
+  /** Set by the confirmation alone, never typed (07 RG50, CA18); null until the first one. */
+  figuresMeasuredAt: z.iso.datetime().nullable(),
+  audience: creatorNetworkAudienceSchema,
+  remainders: creatorNetworkRemaindersSchema,
+  /** Present on the main line only (07 RG22). */
+  bands: creatorNetworkBandsSchema.nullable(),
+});
+export type CreatorNetworkLine = z.infer<typeof creatorNetworkLineSchema>;
+
+/**
+ * The answer of every route of the family: the lines as saved (the main one unchecked by a new main
+ * one reads here), the completeness and the required fields still missing, recomputed. `lineId` is
+ * the line the call touched (null for a read and a deletion). `notices` asks the screen for a
+ * message: a figure changed alone, so the date has not been renewed (07 RG116).
+ */
+export const creatorNetworksResponseSchema = z.strictObject({
+  lines: z.array(creatorNetworkLineSchema),
+  lineId: z.uuid().nullable(),
+  completeness: creatorProfileCompletenessSchema,
+  missingRequired: z.array(creatorProfileRequiredFieldSchema),
+  notices: z.array(z.literal(CREATOR_FIGURES_CONFIRM_NOTICE)),
+});
+export type CreatorNetworksResponse = z.infer<
+  typeof creatorNetworksResponseSchema
+>;

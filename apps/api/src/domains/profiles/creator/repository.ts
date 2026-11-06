@@ -9,8 +9,10 @@
 // - The lists are replaced as a whole: delete, then insert with a `slot` where the list is ordered.
 // - The identifying fields (layer N) live in creator_identities, which also holds the stored score
 //   (EC-02-2): never on the storefront, never served to a brand.
-// - The network lines and their exact audience are READ here only, to compute the completeness
-//   (their own routes: commit 09). A creator reads them as their owner (layer I, 0217).
+// - The network lines and their exact audience are read here to compute the completeness, and
+//   written by the routes of commit 09 (the second half of this file). A creator reads and writes
+//   them as their owner (layer I, 0217); the bands, the date of the figures and their history are
+//   the database's (0218), never written from here.
 // An account promoted to creator after the sign-up has no storefront (`grant_role()` provisions none):
 // the absence of a row reads as an empty draft, and nothing can be written (the member holds no
 // INSERT on the storefront, 0216 §5.3).
@@ -47,7 +49,7 @@ export type CreatorProfileListName = keyof typeof CREATOR_PROFILE_LISTS;
 /** A share of the exact audience as the creator typed it (layer I): a code and a whole percentage. */
 export type StoredAudienceShare = { code: string; share: number | null };
 
-/** A network line as stored, read for the completeness only (commit 09 writes it). */
+/** A network line as stored, read for the completeness (commit 09 reads and writes the whole line). */
 export type StoredCreatorLine = {
   networkCode: string;
   isPrimary: boolean;
@@ -120,6 +122,8 @@ const CAST = {
   text: sql`text`,
   boolean: sql`boolean`,
   char2: sql`char(2)`,
+  bigint: sql`bigint`,
+  integer: sql`integer`,
 } as const;
 
 const ISO_UTC = 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"';
@@ -531,4 +535,331 @@ export async function storeCreatorScore(
          where account_id = (select influx.current_account_id())
            and completeness_percent is distinct from ${percent}::smallint`,
   );
+}
+
+// --- Network lines, figures and audience (07 RG41 to RG61; 0217, 0218; commit 09) -----------------
+
+/** The bands the database derived for the main line (0218); codes of the reference lists. */
+export type StoredNetworkBands = {
+  audienceBand: string | null;
+  reachBand: string | null;
+  publicationFrequency: string | null;
+  commentBand: string | null;
+};
+
+/** A network line with everything its owner reads (layer I) and its exact audience. */
+export type StoredNetworkLine = {
+  id: string;
+  networkCode: string;
+  isPrimary: boolean;
+  handle: string | null;
+  pseudonym: string | null;
+  profileUrl: string | null;
+  followersCount: number | null;
+  postsLast30Days: number | null;
+  avgCommentsPerPost: number | null;
+  avgReachPerPost: number | null;
+  engagementRateBp: number | null;
+  figuresSource: string;
+  figuresMeasuredAt: string | null;
+  /** Slot 0 is the main country, whose share may wait; slots 1 to 4 weigh 10 % or more. */
+  countries: { slot: number; code: string; share: number | null }[];
+  ages: { code: string; share: number }[];
+  genders: { code: string; share: number }[];
+  /** Null off the main line (07 RG22). */
+  bands: StoredNetworkBands | null;
+};
+
+/** The lines of the session's own account, oldest first; one line when `lineId` is given (none: unknown). */
+export async function readOwnNetworkLines(
+  tx: Transaction,
+  lineId: string | null = null,
+): Promise<StoredNetworkLine[]> {
+  const rows = await tx.execute<{ line: StoredNetworkLine }>(sql`
+    select jsonb_build_object(
+             'id', n.id,
+             'networkCode', n.network_code::text,
+             'isPrimary', n.is_primary,
+             'handle', n.handle,
+             'pseudonym', n.pseudonym,
+             'profileUrl', n.profile_url,
+             'followersCount', n.followers_count,
+             'postsLast30Days', n.posts_last_30_days,
+             'avgCommentsPerPost', n.avg_comments_per_post,
+             'avgReachPerPost', n.avg_reach_per_post,
+             'engagementRateBp', n.engagement_rate_bp,
+             'figuresSource', n.figures_source,
+             'figuresMeasuredAt', to_char(n.figures_measured_at at time zone 'UTC', ${ISO_UTC}),
+             'countries', coalesce((select jsonb_agg(jsonb_build_object(
+                             'slot', c.slot, 'code', c.country_code::text,
+                             'share', c.share_percent) order by c.slot)
+                           from profiles.creator_audience_countries c
+                          where c.social_account_id = n.id), '[]'::jsonb),
+             'ages', coalesce((select jsonb_agg(jsonb_build_object(
+                             'code', g.age_band_code::text, 'share', g.share_percent)
+                             order by g.age_band_code)
+                           from profiles.creator_audience_ages g
+                          where g.social_account_id = n.id), '[]'::jsonb),
+             'genders', coalesce((select jsonb_agg(jsonb_build_object(
+                             'code', x.gender_code::text, 'share', x.share_percent)
+                             order by x.gender_code)
+                           from profiles.creator_audience_genders x
+                          where x.social_account_id = n.id), '[]'::jsonb),
+             'bands', case when n.is_primary then
+                         (select jsonb_build_object(
+                                   'audienceBand', b.audience_band,
+                                   'reachBand', b.reach_band,
+                                   'publicationFrequency', b.publication_frequency_code,
+                                   'commentBand', b.comment_band)
+                            from profiles.creator_public_networks b
+                           where b.social_account_id = n.id)
+                       end) as line
+      from profiles.creator_social_accounts n
+     where n.account_id = (select influx.current_account_id())
+       and (${lineId}::uuid is null or n.id = ${lineId}::uuid)
+     order by n.created_at, n.id`);
+  return rows.map((row) => row.line);
+}
+
+/** An open network: the hosts a profile URL may point to (empty: the network lists none, any host does). */
+export type ActiveNetwork = { hosts: string[] };
+
+/**
+ * A network with its hosts (07 RG43); null: unknown, or retired when `activeOnly` (a new line takes
+ * an offered network only; an existing line keeps the hosts of its own, retired or not).
+ */
+export async function readNetworkHosts(
+  tx: Transaction,
+  networkCode: string,
+  activeOnly: boolean,
+): Promise<ActiveNetwork | null> {
+  const rows = await tx.execute<{ hosts: string[] }>(sql`
+    select coalesce((select jsonb_agg(h.host order by h.host)
+                       from reference.network_url_hosts h
+                      where h.network_code = n.code), '[]'::jsonb) as hosts
+      from reference.networks n
+     where n.code = ${networkCode}::text
+       and (not ${activeOnly}::boolean or n.retired_at is null)`);
+  const row = rows[0];
+  return row === undefined ? null : { hosts: row.hosts };
+}
+
+/** The age bands still offered to the audience (07 RG60). */
+export async function readActiveAgeBandCodes(
+  tx: Transaction,
+): Promise<string[]> {
+  const rows = await tx.execute<{ code: string }>(
+    sql`select code::text as code from reference.age_bands where retired_at is null`,
+  );
+  return rows.map((row) => row.code);
+}
+
+/** The columns of a network line a save may set; an absent key is left as it is, `null` empties one. */
+export type NetworkLineColumns = {
+  isPrimary?: boolean | undefined;
+  handle?: string | null | undefined;
+  pseudonym?: string | null | undefined;
+  profileUrl?: string | null | undefined;
+  followersCount?: number | null | undefined;
+  postsLast30Days?: number | null | undefined;
+  avgCommentsPerPost?: number | null | undefined;
+  avgReachPerPost?: number | null | undefined;
+  engagementRateBp?: number | null | undefined;
+};
+
+/** The entered columns (the nine of the insert and update grants of 0217 §8), with the type each is cast to. */
+function networkLineAssignments(columns: NetworkLineColumns) {
+  return [
+    ["is_primary", columns.isPrimary, "boolean"],
+    ["handle", columns.handle, "text"],
+    ["pseudonym", columns.pseudonym, "text"],
+    ["profile_url", columns.profileUrl, "text"],
+    ["followers_count", columns.followersCount, "bigint"],
+    ["posts_last_30_days", columns.postsLast30Days, "integer"],
+    ["avg_comments_per_post", columns.avgCommentsPerPost, "bigint"],
+    ["avg_reach_per_post", columns.avgReachPerPost, "bigint"],
+    ["engagement_rate_bp", columns.engagementRateBp, "integer"],
+  ] as const;
+}
+
+/** Unchecks the main line of the account but one: the explicit half of "check this one" (07 RG41, CA11). */
+export async function uncheckPrimaryNetworkLines(
+  tx: Transaction,
+  exceptLineId: string | null,
+): Promise<void> {
+  await tx.execute(
+    sql`update profiles.creator_social_accounts
+           set is_primary = false
+         where account_id = (select influx.current_account_id())
+           and is_primary
+           and (${exceptLineId}::uuid is null or id <> ${exceptLineId}::uuid)`,
+  );
+}
+
+/** Inserts a line of the session's account and returns its identifier. Never the source nor the date (0217). */
+export async function insertNetworkLine(
+  tx: Transaction,
+  networkCode: string,
+  columns: NetworkLineColumns,
+): Promise<string> {
+  const entered = networkLineAssignments(columns).filter(
+    ([, value]) => value !== undefined,
+  );
+  const names = [
+    sql.identifier("account_id"),
+    sql.identifier("network_code"),
+    ...entered.map(([column]) => sql.identifier(column)),
+  ];
+  const values = [
+    sql`(select influx.current_account_id())`,
+    sql`${networkCode}::text`,
+    ...entered.map(([, value, type]) => sql`${value}::${CAST[type]}`),
+  ];
+  const rows = await tx.execute<{ id: string }>(
+    sql`insert into profiles.creator_social_accounts (${sql.join(names, sql`, `)})
+        values (${sql.join(values, sql`, `)})
+        returning id::text as id`,
+  );
+  const id = rows[0]?.id;
+  if (id === undefined) {
+    throw new Error("a network line was inserted without an identifier");
+  }
+  return id;
+}
+
+/** Sets the given columns of one of the account's lines (another account's line is out of reach by policy). */
+export async function updateNetworkLineColumns(
+  tx: Transaction,
+  lineId: string,
+  columns: NetworkLineColumns,
+): Promise<void> {
+  const set = networkLineAssignments(columns)
+    .filter(([, value]) => value !== undefined)
+    .map(
+      ([column, value, type]) =>
+        sql`${sql.identifier(column)} = ${value}::${CAST[type]}`,
+    );
+  if (set.length === 0) {
+    return;
+  }
+  await tx.execute(
+    sql`update profiles.creator_social_accounts
+           set ${sql.join(set, sql`, `)}
+         where id = ${lineId}::uuid
+           and account_id = (select influx.current_account_id())`,
+  );
+}
+
+/** Removes one of the account's lines with its audience; false when the account holds no such line. */
+export async function deleteNetworkLine(
+  tx: Transaction,
+  lineId: string,
+): Promise<boolean> {
+  const rows = await tx.execute<{ id: string }>(
+    sql`delete from profiles.creator_social_accounts
+         where id = ${lineId}::uuid
+           and account_id = (select influx.current_account_id())
+        returning id::text as id`,
+  );
+  return rows.length > 0;
+}
+
+/**
+ * "Confirmer mes chiffres" (07 RG50, RG116, EC-L2D-6): the three metrics written together by the
+ * database's door, which sets the source and the date. The door answers 42501 for a line that is
+ * not the caller's, as for an unknown one.
+ */
+export async function confirmOwnNetworkFigures(
+  tx: Transaction,
+  lineId: string,
+  figures: {
+    followersCount: number | null;
+    postsLast30Days: number | null;
+    avgCommentsPerPost: number | null;
+  },
+): Promise<void> {
+  await tx.execute(
+    sql`select profiles.confirm_own_creator_figures(
+               ${lineId}::uuid,
+               ${figures.followersCount}::bigint,
+               ${figures.postsLast30Days}::integer,
+               ${figures.avgCommentsPerPost}::bigint)`,
+  );
+}
+
+/** The exact audience to store for one line: the main country is slot 0, the others slots 1 to 4. */
+export type NetworkAudienceRows = {
+  countries: { slot: number; code: string; share: number | null }[];
+  ages: { code: string; share: number }[];
+  genders: { code: string; share: number }[];
+};
+
+/** A Postgres array literal of whole numbers, `null` standing for NULL. */
+function numberArray(values: readonly (number | null)[]): string {
+  return `{${values
+    .map((value) => (value === null ? "NULL" : String(value)))
+    .join(",")}}`;
+}
+
+/** Replaces the three dimensions of a line as a whole: deletion, then insertion (0217: no update right). */
+export async function replaceNetworkAudience(
+  tx: Transaction,
+  lineId: string,
+  audience: NetworkAudienceRows,
+): Promise<void> {
+  await tx.execute(
+    sql`delete from profiles.creator_audience_countries
+         where social_account_id = ${lineId}::uuid
+           and account_id = (select influx.current_account_id())`,
+  );
+  await tx.execute(
+    sql`delete from profiles.creator_audience_ages
+         where social_account_id = ${lineId}::uuid
+           and account_id = (select influx.current_account_id())`,
+  );
+  await tx.execute(
+    sql`delete from profiles.creator_audience_genders
+         where social_account_id = ${lineId}::uuid
+           and account_id = (select influx.current_account_id())`,
+  );
+  if (audience.countries.length > 0) {
+    await tx.execute(
+      sql`insert into profiles.creator_audience_countries
+            (social_account_id, account_id, slot, country_code, share_percent)
+          select ${lineId}::uuid, (select influx.current_account_id()),
+                 v.slot, v.code::char(2), v.share
+            from unnest(${numberArray(audience.countries.map((c) => c.slot))}::smallint[],
+                        ${textArray(audience.countries.map((c) => c.code))}::text[],
+                        ${numberArray(audience.countries.map((c) => c.share))}::smallint[])
+                 as v (slot, code, share)`,
+    );
+  }
+  if (audience.ages.length > 0) {
+    await tx.execute(
+      sql`insert into profiles.creator_audience_ages
+            (social_account_id, account_id, age_band_code, share_percent)
+          select ${lineId}::uuid, (select influx.current_account_id()), v.code, v.share
+            from unnest(${textArray(audience.ages.map((a) => a.code))}::text[],
+                        ${numberArray(audience.ages.map((a) => a.share))}::smallint[])
+                 as v (code, share)`,
+    );
+  }
+  if (audience.genders.length > 0) {
+    await tx.execute(
+      sql`insert into profiles.creator_audience_genders
+            (social_account_id, account_id, gender_code, share_percent)
+          select ${lineId}::uuid, (select influx.current_account_id()), v.code, v.share
+            from unnest(${textArray(audience.genders.map((g) => g.code))}::text[],
+                        ${numberArray(audience.genders.map((g) => g.share))}::smallint[])
+                 as v (code, share)`,
+    );
+  }
+}
+
+/**
+ * Runs the deferred sum checks of the audience now (0218 holds them to the commit), so that a sum
+ * over 100 is answered here, as the request's fault, and not as an error of the commit.
+ */
+export async function settleAudienceSums(tx: Transaction): Promise<void> {
+  await tx.execute(sql`set constraints all immediate`);
 }
