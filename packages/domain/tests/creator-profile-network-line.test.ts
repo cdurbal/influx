@@ -42,6 +42,26 @@ describe("L2D-U3 profile URL of a network line (RG43, CA12)", () => {
     ).toEqual({ ok: false, reason: "wrong_network" });
   });
 
+  it("refuses an authority that is not a plain host name, as a browser would read it (L2DS-1)", () => {
+    for (const url of [
+      "https://evil.example\\.instagram.com/x",
+      "https://evil.example%5C.instagram.com/x",
+      "https://evil.example%5c.instagram.com/x",
+      "https://[::1]/x",
+      "https://instagram.com:/x",
+      "https://instagram.com:123456/x",
+    ]) {
+      expect(checkProfileUrl(url, INSTAGRAM)).toEqual({
+        ok: false,
+        reason: "invalid_shape",
+      });
+      expect(checkProfileUrl(url, []).ok).toBe(false);
+    }
+    expect(
+      checkProfileUrl("https://www.instagram.com:8443/maison", INSTAGRAM),
+    ).toEqual({ ok: true, url: "https://www.instagram.com:8443/maison" });
+  });
+
   it("leaves a network without any listed host free (07 l. 289)", () => {
     expect(checkProfileUrl("https://exemple.org/moi", []).ok).toBe(true);
   });

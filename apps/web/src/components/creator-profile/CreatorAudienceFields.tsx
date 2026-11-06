@@ -43,7 +43,8 @@ const LINE_CLASSES =
   "flex flex-col gap-5 rounded-card border-(length:--border-width-thin) border-border-default bg-surface-raised p-inset-card";
 const GROUP_CLASSES =
   "flex flex-col gap-4 rounded-md border-(length:--border-width-thin) border-border-strong p-4";
-const SHARE_GRID_CLASSES = "grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2";
+const SHARE_GRID_CLASSES =
+  "grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2";
 const ROW_CLASSES = "flex flex-col gap-3 md:flex-row md:items-end";
 // A row of an "other country" (L2DU-5): a rule above it, so that the rows read one by one on a phone.
 const OTHER_ROW_CLASSES = cn(

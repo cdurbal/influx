@@ -876,6 +876,26 @@ describe("RG43: the guard holds the host of the URL to the network of the line",
     );
   });
 
+  it.each([
+    ["a backslash in the authority", "https://evil.example\\.instagram.com/x"],
+    ["a percent-encoded backslash", "https://evil.example%5C.instagram.com/x"],
+    ["brackets in the authority", "https://[::1]/x"],
+    ["an empty port", "https://instagram.com:/x"],
+  ])(
+    "refuses %s as a shape before any host comparison (L2DS-1, 0220, 23514)",
+    async (_label, url) => {
+      expect(await attempt(urlOnLineA(url))).toEqual(
+        refusedBy(CHECK_VIOLATION, "creator_social_accounts_profile_url_shape"),
+      );
+    },
+  );
+
+  it("still accepts a legitimate host with a port after 0220 (L2DS-1)", async () => {
+    expect(
+      await attempt(urlOnLineA("https://www.instagram.com:8443/t2_creator_a")),
+    ).toEqual(ACCEPTED_ONE);
+  });
+
   it("accepts the second host of a network (fb.com, twitter.com)", async () => {
     const outcomes = await inRolledBackTransaction(
       localSuperuser(),

@@ -431,7 +431,7 @@ function NetworkLine({
         ) : null}
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {SECONDARY_FIELD_KEYS.map((key) => (
           <div key={key} className="flex min-w-0 flex-col gap-2">
             {field(key, key === "engagement" ? 6 : 15)}

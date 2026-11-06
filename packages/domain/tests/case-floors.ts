@@ -11,6 +11,6 @@ export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/creator-profile-completeness.test.ts": 12,
   "tests/creator-profile-contact-detection.test.ts": 6,
   "tests/creator-profile-limits.test.ts": 7,
-  "tests/creator-profile-network-line.test.ts": 11,
+  "tests/creator-profile-network-line.test.ts": 12,
   "tests/creator-profile-required.test.ts": 9,
 };

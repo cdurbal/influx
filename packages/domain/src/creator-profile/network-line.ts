@@ -55,10 +55,14 @@ export type ProfileUrlResult =
   | { readonly ok: false; readonly reason: ProfileUrlRefusal };
 
 const HTTPS_URL = /^https:\/\/[^\s\p{Cc}]+$/u;
+// L2DS-1: a plain host name and an optional port. `[^/?#]*` alone lets a backslash through, which a
+// browser reads as a path separator (`https://evil.example\.instagram.com` opens evil.example).
+const PLAIN_AUTHORITY = /^[A-Za-z0-9.-]+(:[0-9]{1,5})?$/u;
 
 /**
  * Checks a profile URL against the hosts of its network (RG43, CA12): `https://` with no space,
- * a host and no credentials, and, when the network lists hosts, that host or one of its
+ * a host and no credentials, an authority made of a plain host name and an optional port
+ * (`invalid_shape` otherwise, L2DS-1), and, when the network lists hosts, that host or one of its
  * subdomains (an Instagram line pointing to TikTok is refused with `wrong_network`, the message
  * of its own). A network without any listed host is free. The same decision as the database's.
  */
@@ -75,6 +79,9 @@ export function checkProfileUrl(
   const authority = /^https:\/\/([^/?#]*)/u.exec(url)?.[1] ?? "";
   if (authority === "") return { ok: false, reason: "no_host" };
   if (authority.includes("@")) return { ok: false, reason: "credentials" };
+  if (!PLAIN_AUTHORITY.test(authority)) {
+    return { ok: false, reason: "invalid_shape" };
+  }
   const host = authority.replace(/:\d*$/u, "").toLowerCase();
   const listed = networkHosts.map((entry) => entry.toLowerCase());
   const pointsToNetwork = listed.some(

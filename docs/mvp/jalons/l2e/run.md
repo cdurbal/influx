@@ -2,7 +2,7 @@
 
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
-| 01 | 01.md | commit | opus | high | expert-database | à faire | I-4. L2DS-1 |
+| 01 | 01.md | commit | opus | high | expert-database | fait | I-4. L2DS-1 : autorité `^[A-Za-z0-9.-]+(:[0-9]{1,5})?$` avant la comparaison d'hôte, base (`0220`, 23514 `_profile_url_shape`) et domaine ; `staging` : 0 ligne fautive |
 | 02 | 02.md | commit | sonnet | high | testeur | à faire | L2D-E2E |
 | 03 | 03.md | arbitrage | opus | xhigh | architecte | à faire | D82 (volet D80 avant L2E), `l2e/modele.md` |
 | 04 | 04.md | arbitrage | sonnet | high | expert-integrations-api | à faire | `l2e/registres.md` |
