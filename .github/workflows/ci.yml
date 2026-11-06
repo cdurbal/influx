@@ -14,7 +14,12 @@
 # requests always run everything.
 # Plan: docs/mvp/21-plan-de-developpement.md §4, J0, J2 point 7, J3-F commit 4 and J5 commit 6.
 # Duration budget: 10 minutes for the whole run, journeys included (`18` A-4); no cache, on
-# purpose (no cache-poisoning surface): the browser and the images are downloaded at each run.
+# purpose (no cache-poisoning surface): the browser (5 to 7 s) and the images are downloaded at
+# each run. L2D-fix-1 (L2DT-2): the slow part of the browser step was never that download but
+# `--with-deps`, nine font packages from the Ubuntu mirror (7 to 9 minutes at 45 kB/s in runs
+# 42228919569 and 42243018278, 2 s in a fast one); the runner image already holds every library
+# of the headless shell, and the fonts of the journeys are self-hosted. So no `--with-deps`, no
+# cache to fill.
 name: CI
 
 # D71: `production` runs the same checks, and only there do the security review markers block.
@@ -293,9 +298,15 @@ jobs:
         run: pnpm --filter @influx/web --filter @influx/backoffice run build
 
       - name: Install the Chromium of Playwright
+        # A stuck download fails fast and is re-run (`gh run rerun --failed`), instead of eating
+        # the job (L2DT-2: 464 and 524 s once).
+        timeout-minutes: 3
         # Headless shell only: the config runs devices["Desktop Chrome"] in headless mode, which
-        # never launches the full Chromium; it saves its download (about 100 MB).
-        run: pnpm --filter @influx/web exec playwright install --with-deps --only-shell chromium
+        # never launches the full Chromium; it saves its download (about 100 MB). No
+        # `--with-deps`: it only added fonts here, from a mirror that took up to 9 minutes (see the
+        # header). If a later runner image lacks a library, the journeys fail at launch: then add
+        # `playwright install-deps chromium` for the missing packages, not `--with-deps` blindly.
+        run: pnpm --filter @influx/web exec playwright install --only-shell chromium
 
       - name: Wait for the local Supabase stack
         timeout-minutes: 6
