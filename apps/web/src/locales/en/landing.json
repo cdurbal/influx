@@ -59,7 +59,7 @@
     "steps": {
       "brief": {
         "title": "You publish your brief",
-        "body": "Product, goals, formats, budget, timing and target audience: you describe your campaign, and our team reviews it before it goes live. You can also browse verified profiles, shown anonymously."
+        "body": "Product, goals, formats, budget, timing and target audience: you describe your campaign, and our team reviews it before it goes live. You can also browse verified profiles, shown with their identity hidden."
       },
       "introduction": {
         "title": "INFLUX approves every introduction",
@@ -197,7 +197,7 @@
         "answer": "Yes. Sign-up and introductions are open worldwide, and the platform is available in French and English."
       },
       "hiddenHandles": {
-        "question": "Why are creator profiles anonymous?",
+        "question": "Why is creators’ identity hidden?",
         "answer": "So that choices rest on verified information and the collaboration is built on INFLUX. Before the introduction, the brand sees topics, audience, verified stats, portfolio and the “verified” badge. Usernames and social links are shared once the brand and the creator have both accepted the introduction. Email addresses and phone numbers are never shared, on either side."
       },
       "messaging": {
