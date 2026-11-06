@@ -4,6 +4,7 @@
 import type { MeResponse } from "@influx/contracts/account";
 import { createContext, useContext } from "react";
 import type { BrandSummary } from "@/components/brand-profile/use-brand-summary";
+import type { CreatorSummary } from "@/components/creator-profile/use-creator-summary";
 
 export type MemberContextValue = {
   me: MeResponse;
@@ -20,6 +21,8 @@ export type MemberContextValue = {
    * `none` for a creator. The profile screen gives it each answer it gets (`adopt`).
    */
   brandProfile: BrandSummary;
+  /** The same for a creator's profile (L2D, commit 15): alias, state, score, what is missing; `none` for a brand. */
+  creatorProfile: CreatorSummary;
 };
 
 export const MemberContext = createContext<MemberContextValue | null>(null);

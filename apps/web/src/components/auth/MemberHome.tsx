@@ -4,8 +4,8 @@
 // (src/components/member/MemberShell.tsx), which reads the session, sends a member without one to
 // sign-in and a member of the other role to their own space, and shows the blocking terms screen
 // first (17 §6.7). A brand has its own home (BrandHome, Lot 2: the state of its profile, commit 13);
-// the creator's still announces what comes next (the profile, a later lot) and how INFLUX works,
-// without any figure (05 RG9); "mon compte" is one link away, and signing out ends on the shell's
+// the creator's leads with the card of its profile (CreatorHomeCard, L2D commit 15), then says how
+// INFLUX works, without any figure (05 RG9); "mon compte" is one link away, and signing out ends on the shell's
 // "signed out" page.
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import { Notice } from "@/components/member/ui/Notice";
@@ -14,6 +14,7 @@ import type { SignupDoor } from "@influx/contracts/auth";
 import { useLocale, useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import { BrandHome } from "@/components/brand-profile/BrandHome";
+import { CreatorHomeCard } from "@/components/creator-profile/CreatorHomeCard";
 import { useMember } from "@/components/member/member-context";
 import { Link } from "@/i18n/navigation";
 import {
@@ -57,6 +58,7 @@ function CreatorHome() {
     <div className={SPACE_SCREEN_CLASSES}>
       <PageHeader title={t("home.creator.title")} />
       <p className={LEAD_CLASSES}>{t("home.creator.lead")}</p>
+      <CreatorHomeCard />
       <section aria-labelledby={stepsTitleId} className={CARD_CLASSES}>
         <h2 id={stepsTitleId} className={CARD_TITLE}>
           {t("home.howItWorks")}

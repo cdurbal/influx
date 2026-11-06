@@ -11,7 +11,7 @@
 // Blocks 4 (audience) and 5 (offer, with no tariff) came with commit 14: all five sections are built.
 import { notFound } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { useOnline } from "@/components/auth/use-online";
 import {
   BACK_ICON_CLASSES,
@@ -56,6 +56,7 @@ import {
 } from "./creator-profile-options";
 import {
   BUILT_SECTIONS,
+  creatorSummaryOf,
   SECTION_IDS,
   isEditable,
   isSectionComplete,
@@ -99,8 +100,16 @@ function CreatorProfileView() {
   const tAccount = useTranslations("account");
   const locale = useLocale();
   const online = useOnline();
-  const { signedOut } = useMember();
+  const { signedOut, creatorProfile } = useMember();
+  const { adopt } = creatorProfile;
   const state = useCreatorProfile({ onSignedOut: () => signedOut(null) });
+  // Each profile the API gives goes to the shell too: its column and the home write the same state.
+  const held = state.profile;
+  useEffect(() => {
+    if (held !== null) {
+      adopt(creatorSummaryOf(held));
+    }
+  }, [held, adopt]);
 
   const back = (
     <Link

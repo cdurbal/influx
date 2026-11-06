@@ -12,7 +12,7 @@ export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/cookie-consent.test.ts": 5,
   "tests/creator-audience-view.test.ts": 14,
   "tests/creator-networks-view.test.ts": 26,
-  "tests/creator-profile-view.test.ts": 24,
+  "tests/creator-profile-view.test.ts": 27,
   "tests/error-notice.test.ts": 3,
   "tests/guards.test.ts": 74,
   "tests/journey-memory.test.ts": 18,

@@ -35,6 +35,18 @@
     "missing": "To complete: {fields}.",
     "allSet": "All the information asked for is filled in."
   },
+  "state": {
+    "draft": "Draft",
+    "pending_review": "Awaiting review",
+    "published": "Published",
+    "rejected": "Refused",
+    "suspended": "Suspended"
+  },
+  "home": {
+    "state": "State: {state}",
+    "complete": "Complete my profile",
+    "review": "View my profile"
+  },
   "completeness": {
     "label": "Profile completeness",
     "value": "{score, number}%"

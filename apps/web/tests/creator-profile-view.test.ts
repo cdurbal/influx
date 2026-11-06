@@ -7,11 +7,14 @@ import {
   CREATOR_PROFILE_REQUIRED_FIELD_CODES,
   type CreatorProfileResponse,
 } from "@influx/contracts/creator-profile";
+import { CREATOR_PROFILE_STATUSES } from "@influx/contracts/creator-profile";
 import { describe, expect, it } from "vitest";
 import {
   afterSave,
   BUILT_SECTIONS,
   controlIdOf,
+  creatorNextActionOf,
+  creatorSummaryOf,
   draftOf,
   fieldErrorOf,
   hasTextWarning,
@@ -433,6 +436,41 @@ describe("L2D-12: what can be edited and warned", () => {
     expect(hasTextWarning("bio", warnings)).toBe(true);
     expect(hasTextWarning("headline", warnings)).toBe(false);
     expect(hasTextWarning("bio", [])).toBe(false);
+  });
+});
+
+describe("L2D-15: the summary of the home and of the column", () => {
+  it("keeps the alias, the state, the score and what is missing, and nothing of the profile itself", () => {
+    const summary = creatorSummaryOf({
+      ...PROFILE,
+      headline: "Cuisine végétale du quotidien",
+      completeness: { ...PROFILE.completeness, score: 42 },
+      missingRequired: ["bio", "handle"],
+    });
+    expect(summary).toEqual({
+      status: "draft",
+      alias: "7K3M9X",
+      score: 42,
+      missingRequired: ["bio", "handle"],
+    });
+  });
+
+  it("proposes to complete while a required field is missing, to view once none is, and never to submit", () => {
+    expect(creatorNextActionOf({ missingRequired: ["bio"] })).toBe("complete");
+    expect(creatorNextActionOf({ missingRequired: [] })).toBe("review");
+  });
+
+  it("writes every state of the profile and both actions, in both languages", () => {
+    for (const messages of [frCreatorProfile, enCreatorProfile]) {
+      expect(Object.keys(messages.state).sort()).toEqual(
+        [...CREATOR_PROFILE_STATUSES].sort(),
+      );
+      expect(Object.keys(messages.home).sort()).toEqual([
+        "complete",
+        "review",
+        "state",
+      ]);
+    }
   });
 });
 

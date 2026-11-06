@@ -35,6 +35,18 @@
     "missing": "À compléter : {fields}.",
     "allSet": "Toutes les informations demandées sont renseignées."
   },
+  "state": {
+    "draft": "Brouillon",
+    "pending_review": "En attente de validation",
+    "published": "Publié",
+    "rejected": "Refusé",
+    "suspended": "Suspendu"
+  },
+  "home": {
+    "state": "État : {state}",
+    "complete": "Compléter mon profil",
+    "review": "Voir mon profil"
+  },
   "completeness": {
     "label": "Complétude du profil",
     "value": "{score, number} %"

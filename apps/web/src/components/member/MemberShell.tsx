@@ -28,6 +28,11 @@ import {
   useBrandSummary,
   type BrandSummary,
 } from "@/components/brand-profile/use-brand-summary";
+import { CreatorAccountStateBlock } from "@/components/creator-profile/CreatorAccountStateBlock";
+import {
+  useCreatorSummary,
+  type CreatorSummary,
+} from "@/components/creator-profile/use-creator-summary";
 import {
   HEADER_CLASSES as SCREEN_HEADER_CLASSES,
   HELP_CLASSES,
@@ -102,6 +107,11 @@ export function MemberShell({ children }: { children: ReactNode }) {
   // session, at each page; the profile screen tells it every save.
   const brandProfile = useBrandSummary(
     state.kind === "ready" && state.me.role === "advertiser",
+    pathname,
+  );
+  // The same for a creator (L2D, commit 15): the alias, the state and what is missing.
+  const creatorProfile = useCreatorSummary(
+    state.kind === "ready" && state.me.role === "creator",
     pathname,
   );
 
@@ -221,6 +231,7 @@ export function MemberShell({ children }: { children: ReactNode }) {
       mainRef={mainRef}
       busy={state.kind === "loading"}
       brandProfile={brandProfile}
+      creatorProfile={creatorProfile}
     >
       {state.kind === "ready" ? (
         <SpaceContext
@@ -230,6 +241,7 @@ export function MemberShell({ children }: { children: ReactNode }) {
           signedOut={signedOut}
           accountDeleted={accountDeleted}
           brandProfile={brandProfile}
+          creatorProfile={creatorProfile}
         >
           {children}
         </SpaceContext>
@@ -252,11 +264,34 @@ function SpaceContext({
   children,
   ...member
 }: MemberContextValue & { children: ReactNode }) {
-  const { me, refresh, signOut, signedOut, accountDeleted, brandProfile } =
-    member;
+  const {
+    me,
+    refresh,
+    signOut,
+    signedOut,
+    accountDeleted,
+    brandProfile,
+    creatorProfile,
+  } = member;
   const value = useMemo(
-    () => ({ me, refresh, signOut, signedOut, accountDeleted, brandProfile }),
-    [me, refresh, signOut, signedOut, accountDeleted, brandProfile],
+    () => ({
+      me,
+      refresh,
+      signOut,
+      signedOut,
+      accountDeleted,
+      brandProfile,
+      creatorProfile,
+    }),
+    [
+      me,
+      refresh,
+      signOut,
+      signedOut,
+      accountDeleted,
+      brandProfile,
+      creatorProfile,
+    ],
   );
   return <MemberContext value={value}>{children}</MemberContext>;
 }
@@ -273,6 +308,7 @@ function Frame({
   mainRef,
   busy,
   brandProfile,
+  creatorProfile,
   children,
 }: {
   me: MeResponse | null;
@@ -281,6 +317,7 @@ function Frame({
   mainRef: RefObject<HTMLElement | null>;
   busy: boolean;
   brandProfile: BrandSummary;
+  creatorProfile: CreatorSummary;
   children: ReactNode;
 }) {
   const t = useTranslations("member.shell");
@@ -363,6 +400,9 @@ function Frame({
           />
         )}
         {me === null ? null : <AccountStateBlock state={brandProfile.state} />}
+        {me === null ? null : (
+          <CreatorAccountStateBlock state={creatorProfile.state} />
+        )}
         {me === null ? null : (
           <div className={FOOTER_CLASSES}>
             {language("")}

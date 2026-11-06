@@ -349,6 +349,41 @@ export function isEditable(
   return profile.alias !== null && profile.status === "draft";
 }
 
+// --- The summary of the home and of the column (commit 15) --------------------------------------
+
+/**
+ * What the home and the column of the space say of the profile: the alias, the state, the score and
+ * what is missing. The completeness is the creator's own, never shown to a brand (07 RG90); no tariff
+ * exists to be summarised (D78).
+ */
+export type CreatorProfileSummary = Pick<
+  CreatorProfileResponse,
+  "status" | "alias" | "missingRequired"
+> & { score: number };
+
+export function creatorSummaryOf(
+  profile: CreatorProfileResponse,
+): CreatorProfileSummary {
+  return {
+    status: profile.status,
+    alias: profile.alias,
+    missingRequired: [...profile.missingRequired],
+    score: profile.completeness.score,
+  };
+}
+
+/**
+ * The way to the profile: "Compléter" while a required field is missing, "Voir" once none is. There
+ * is no submission at L2D (L2G), so nothing else is ever proposed.
+ */
+export type CreatorNextAction = "complete" | "review";
+
+export function creatorNextActionOf(
+  summary: Pick<CreatorProfileSummary, "missingRequired">,
+): CreatorNextAction {
+  return summary.missingRequired.length > 0 ? "complete" : "review";
+}
+
 /** Whether the detection saw an identifying element in a public text (07 RG27): a warning, never an error. */
 export function hasTextWarning(
   field: CreatorTextWarning["field"],

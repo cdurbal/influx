@@ -187,9 +187,10 @@ test("TD5.2: the bar at the bottom at lg − 1, the column on the left at lg, no
   expect(column).toMatchObject({ x: 0, y: 0, height: 800 });
   expect(list?.x).toBe(0);
   expect((list?.x ?? 0) + (list?.width ?? 0)).toBeLessThanOrEqual(main?.x ?? 0);
-  // The column stays in place while the content scrolls.
+  // The column stays in place while the content scrolls (the creator home, now taller than the
+  // window, really scrolls: a sticky box then sits within a sixty-fourth of a pixel of the top).
   await page.mouse.wheel(0, 600);
-  expect((await nav.locator("..").boundingBox())?.y).toBe(0);
+  expect((await nav.locator("..").boundingBox())?.y).toBeCloseTo(0, 0);
 
   for (const width of [375, 768]) {
     await page.setViewportSize({ width, height: 600 });
@@ -257,6 +258,12 @@ for (const [width, expected] of [
 
     await page.reload();
     await expect(title(page)).toHaveText(AUTH_LABELS.fr.home.creator.title);
+    // The card of the profile arrives with its own read: the order is taken once it is in place.
+    await expect(
+      page
+        .getByRole("main")
+        .getByRole("link", { name: frCreatorProfile.home.complete }),
+    ).toBeVisible();
     expect(await tabOrder(page)).toEqual(expected);
     await page.keyboard.press("Shift+Tab");
     expect(await focusRegion(page)).toBe(expected.at(-2));
@@ -656,16 +663,60 @@ test("TN6: one navigation landmark and one aria-current on the page-menu and a s
   }
 });
 
-test("axe finds nothing on the creator home at 375, 768, 1024 and 1440 px (WCAG 2.2 AA)", async ({
+test("the creator home leads with the card of the profile, the column repeats its state, and axe finds nothing at 375, 768, 1024 and 1440 px (WCAG 2.2 AA)", async ({
   page,
 }) => {
   await openHome(page, "fr", "creator");
+  // L2D, commit 15: the alias, the state, the score and what is missing by name, one way to the
+  // profile; no word of publication, no amount (EC-L2D-5, D78).
+  await expect(
+    page.getByRole("main").getByRole("heading", {
+      name: frCreatorProfile.page.title,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("main").getByText(/^Profil [A-Z0-9]{6}$/),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole("main")
+      .getByText(
+        frCreatorProfile.home.state.replace(
+          "{state}",
+          frCreatorProfile.state.draft,
+        ),
+      ),
+  ).toBeVisible();
+  await expect(page.getByRole("main").getByRole("meter")).toHaveCount(1);
+  await expect(
+    page.getByRole("main").getByText(/^À compléter : .+./),
+  ).toBeVisible();
+  const way = page
+    .getByRole("main")
+    .getByRole("link", { name: frCreatorProfile.home.complete });
+  await expect(way).toHaveAttribute("href", "/fr/compte/profil");
+  await expect(page.getByRole("main")).not.toContainText(/publier|€/i);
+  const stateInColumn = page.getByText(
+    frMember.shell.accountState.state.replace(
+      "{state}",
+      frCreatorProfile.state.draft,
+    ),
+    { exact: true },
+  );
+  await page.setViewportSize({ width: 375, height: 900 });
+  await expect(stateInColumn).toBeHidden();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(stateInColumn).toBeVisible();
   for (const width of [375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await expectNoAxeViolation(page, `accueil créateur à ${width} px`, {
       wcag22: true,
     });
   }
+  // The way the card shows really opens the profile (17 §2.4): its page and its title.
+  await way.click();
+  await expect(title(page)).toHaveText(frCreatorProfile.page.title);
+  await expect(page).toHaveURL(/\/fr\/compte\/profil$/);
 });
 
 // L2AU-2 and L2AU-3 (logo test of L2A; 20 §11.3, §11.8; 17 §2.2, §2.3): the space's role pill in
