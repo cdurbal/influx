@@ -40,6 +40,39 @@ async function profileStatus(accountId: string): Promise<string> {
   }
 }
 
+/** What the autosave has stored of the draft (06 RG83): the base, not the status line, tells it is there. */
+async function storedBrandOf(accountId: string): Promise<{
+  sector: string | null;
+  website: string | null;
+  topics: string[];
+  role: string | null;
+}> {
+  const sql = connectAsMigrationRole({ max: 1 });
+  try {
+    const [row] = await sql<
+      {
+        sector: string | null;
+        website: string | null;
+        topics: string[];
+        role: string | null;
+      }[]
+    >`
+      select p.primary_sector_code as sector, p.website_domain as website,
+             coalesce((select array_agg(t.topic_code order by t.topic_code)
+                         from profiles.advertiser_topics t
+                        where t.account_id = p.account_id), '{}') as topics,
+             p.contact_role as role
+        from profiles.advertiser_profiles p
+       where p.account_id = ${accountId}`;
+    if (row === undefined) {
+      throw new Error("the seeded brand has no profile");
+    }
+    return row;
+  } finally {
+    await sql.end({ timeout: 1 });
+  }
+}
+
 test("a brand fills its profile in French at 1 440 px: layers, caps, missing fields, autosave, reload, submission", async ({
   page,
 }) => {
@@ -166,7 +199,17 @@ test("a brand fills its profile in French at 1 440 px: layers, caps, missing fie
     .selectOption({ label: copy.contactRole.marketing });
 
   // RG83: it saves by itself; CA44: closed and reopened, the draft is there.
+  // The line stays shown from an earlier save while the last field waits for its own (SAVE_DELAY_MS),
+  // so the stored state is what is awaited before the reload (L2DT-1).
   await expect(savedLine(page, "fr")).toBeVisible();
+  await expect
+    .poll(async () => await storedBrandOf(member.accountId))
+    .toEqual({
+      sector: "beauty_personal_care",
+      website: "exemple.com",
+      topics: ["beauty", "fashion"],
+      role: "marketing",
+    });
   await reload(page);
   await expect(page.getByLabel(/^Secteur principal/)).toHaveValue(
     "beauty_personal_care",
