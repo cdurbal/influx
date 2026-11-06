@@ -47,6 +47,12 @@ export type CreatorProfileState = {
   save: SaveState;
   change: <Key extends DraftKey>(key: Key, value: CreatorDraft[Key]) => void;
   reload: () => void;
+  /** Block 3 saves its own calls: the one status line of the page shows their state (commit 13). */
+  reportSave: (save: SaveState) => void;
+  /** Block 3 answers with the completeness and the missing fields, recomputed: the summary follows. */
+  applyProgress: (
+    progress: Pick<CreatorProfileResponse, "completeness" | "missingRequired">,
+  ) => void;
 };
 
 export function useCreatorProfile(options: {
@@ -290,6 +296,25 @@ export function useCreatorProfile(options: {
     [clearTimer, writeErrors],
   );
 
+  const applyProgress = useCallback(
+    (
+      progress: Pick<
+        CreatorProfileResponse,
+        "completeness" | "missingRequired"
+      >,
+    ) => {
+      const held = profileRef.current;
+      if (held !== null) {
+        adopt({
+          ...held,
+          completeness: progress.completeness,
+          missingRequired: progress.missingRequired,
+        });
+      }
+    },
+    [adopt],
+  );
+
   return {
     phase,
     profile,
@@ -298,5 +323,7 @@ export function useCreatorProfile(options: {
     save,
     change,
     reload: () => void load(),
+    reportSave: setSave,
+    applyProgress,
   };
 }

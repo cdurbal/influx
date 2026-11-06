@@ -126,3 +126,40 @@ describe("labels of the reference lists of the creator profile (04 §4.2 R8; L2D
     });
   }
 });
+
+// The bands the system derives from the figures of a network line (L2D, commit 13; 07 RG22, RG114,
+// RG115): the creator reads them under "what brands see", labelled in the creator file.
+const BAND_LISTS = [
+  { table: "audience_bands", prefix: "audience_band" },
+  { table: "publication_frequencies", prefix: "publication_frequency" },
+  { table: "comment_bands", prefix: "comment_band" },
+] as const;
+
+describe("labels of the derived bands of the creator profile (04 §4.2 R8; L2D commit 13)", () => {
+  for (const locale of LOCALES) {
+    for (const { table, prefix } of BAND_LISTS) {
+      it(`${locale}: every active code of reference.${table} has its label under its label_key`, async () => {
+        const labels = creatorReferenceLabels(locale)[prefix] ?? {};
+        const missing: string[] = [];
+        for (const row of await rowsOf(table)) {
+          if (!row.active) {
+            continue;
+          }
+          expect(row.label_key, row.code).toBe(`${prefix}.${row.code}`);
+          if ((labels[row.code] ?? "").trim() === "") {
+            missing.push(row.code);
+          }
+        }
+        expect(missing).toEqual([]);
+      });
+
+      it(`${locale}: every label of ${prefix} belongs to a code of reference.${table}`, async () => {
+        const known = new Set((await rowsOf(table)).map((row) => row.code));
+        const labels = Object.keys(
+          creatorReferenceLabels(locale)[prefix] ?? {},
+        );
+        expect(labels.filter((code) => !known.has(code))).toEqual([]);
+      });
+    }
+  }
+});

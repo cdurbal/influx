@@ -11,6 +11,8 @@ type TextFieldProps = FieldTexts & {
   maxLength: number;
   /** The keyboard of the value: a name, an address, a number (phone), a web address. */
   type?: "text" | "email" | "tel" | "url";
+  /** The virtual keyboard of a typed number ("numeric": a count, "decimal": with decimals). */
+  inputMode?: "numeric" | "decimal";
   placeholder?: string;
   autoComplete?: string;
   disabled?: boolean;
@@ -25,6 +27,7 @@ export function TextField({
   onChange,
   maxLength,
   type = "text",
+  inputMode,
   placeholder,
   autoComplete = "off",
   disabled,
@@ -44,6 +47,7 @@ export function TextField({
         id={ids.control}
         name={name}
         type={type}
+        inputMode={inputMode}
         maxLength={maxLength}
         placeholder={placeholder}
         autoComplete={autoComplete}

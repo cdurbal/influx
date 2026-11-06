@@ -239,10 +239,11 @@ export const SECTION_IDS: readonly SectionId[] = [
   "offer",
 ];
 
-/** The sections the screen holds so far: the others are told "coming soon" (commits 13 and 14). */
+/** The sections the screen holds so far: the others are told "coming soon" (commit 14: audience and offer). */
 export const BUILT_SECTIONS: ReadonlySet<SectionId> = new Set<SectionId>([
   "presentation",
   "editorial",
+  "networks",
 ]);
 
 export type RequiredCode = CreatorProfileResponse["missingRequired"][number];

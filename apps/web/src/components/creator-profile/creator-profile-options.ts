@@ -11,6 +11,7 @@ import {
 } from "@influx/contracts/creator-profile";
 import type { useTranslations } from "next-intl";
 import type { ChoiceOption } from "@/components/member/ui/choice-option";
+import { networkCodesOf } from "./creator-networks-view";
 
 type CreatorTranslator = ReturnType<typeof useTranslations<"creatorProfile">>;
 type BrandTranslator = ReturnType<typeof useTranslations<"brandProfile">>;
@@ -41,6 +42,31 @@ export function languageOptionsOf(
   return codes
     .map((code) => ({ code, label: names?.of(code) ?? code }))
     .sort((a, b) => a.label.localeCompare(b.label, locale));
+}
+
+/** The networks a creator may add: the networks of the formats of the reference lists, labelled as the brand side does. */
+export function networkOptionsOf(
+  tBrand: BrandTranslator,
+  references: CreatorProfileReferences,
+): ChoiceOption[] {
+  return labelled(
+    (key) => tBrand.has(key as Parameters<BrandTranslator>[0]),
+    (key) => tBrand(key as Parameters<BrandTranslator>[0]),
+    "reference.network",
+    networkCodesOf(references.formats),
+  );
+}
+
+/** The label of a band derived by the system (audience, rhythm, comments), or its code when none is written. */
+export function bandLabelOf(
+  t: CreatorTranslator,
+  group: string,
+  code: string,
+): string {
+  const key = `reference.${group}.${code}`;
+  return t.has(key as Parameters<CreatorTranslator>[0])
+    ? t(key as Parameters<CreatorTranslator>[0])
+    : code;
 }
 
 export type CreatorProfileOptions = {

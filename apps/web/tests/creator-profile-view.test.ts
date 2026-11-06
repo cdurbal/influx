@@ -291,8 +291,12 @@ describe("L2D-12: sections, anchors and required fields", () => {
     for (const code of CREATOR_PROFILE_REQUIRED_FIELD_CODES) {
       expect(SECTION_IDS, code).toContain(sectionOfRequired(code));
     }
-    // blocks 3 to 5 arrive with commits 13 and 14: the summary tells them "coming soon"
-    expect([...BUILT_SECTIONS]).toEqual(["presentation", "editorial"]);
+    // blocks 4 and 5 arrive with commit 14: the summary tells them "coming soon"
+    expect([...BUILT_SECTIONS]).toEqual([
+      "presentation",
+      "editorial",
+      "networks",
+    ]);
   });
 
   it("calls a section complete when none of its required fields is missing", () => {

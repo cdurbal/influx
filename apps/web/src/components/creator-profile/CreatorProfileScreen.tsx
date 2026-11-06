@@ -40,12 +40,17 @@ import {
 } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 import { memberPageHref } from "@/lib/member-paths";
+import { NetworksFields } from "./CreatorNetworksFields";
 import {
   EditorialFields,
   PresentationFields,
   type CreatorFieldsProps,
 } from "./CreatorProfileFields";
-import { creatorOptionsOf } from "./creator-profile-options";
+import {
+  bandLabelOf,
+  creatorOptionsOf,
+  networkOptionsOf,
+} from "./creator-profile-options";
 import {
   BUILT_SECTIONS,
   SECTION_IDS,
@@ -55,6 +60,7 @@ import {
   type RequiredCode,
   type SectionId,
 } from "./creator-profile-view";
+import { useCreatorNetworks } from "./use-creator-networks";
 import {
   useCreatorProfile,
   type CreatorProfileState,
@@ -162,6 +168,16 @@ function LoadedProfile({
     () => creatorOptionsOf(t, tBrand, locale, profile.references),
     [t, tBrand, locale, profile.references],
   );
+  const { signedOut } = useMember();
+  const networkOptions = useMemo(
+    () => networkOptionsOf(tBrand, profile.references),
+    [tBrand, profile.references],
+  );
+  const networks = useCreatorNetworks({
+    onSignedOut: () => signedOut(null),
+    report: state.reportSave,
+    onProgress: state.applyProgress,
+  });
   const editable = isEditable(profile);
   const fields: CreatorFieldsProps = {
     profile,
@@ -191,6 +207,17 @@ function LoadedProfile({
           </ProfileSection>
           <ProfileSection id="editorial" disabled={!editable}>
             <EditorialFields {...fields} />
+          </ProfileSection>
+          <ProfileSection id="networks" disabled={!editable}>
+            <NetworksFields
+              state={networks}
+              networks={networkOptions}
+              labelOf={(code) =>
+                networkOptions.find((option) => option.code === code)?.label ??
+                code
+              }
+              bandLabelOf={(group, code) => bandLabelOf(t, group, code)}
+            />
           </ProfileSection>
         </div>
       </div>

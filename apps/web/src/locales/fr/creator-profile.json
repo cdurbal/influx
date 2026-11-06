@@ -143,10 +143,39 @@
       "straightforward": "Direct et sans détour",
       "family_friendly": "Familial",
       "expert": "Expert et technique"
+    },
+    "audience_band": {
+      "nano": "Nano (moins de 10 000 abonnés)",
+      "micro": "Micro (de 10 000 à 49 999)",
+      "mid": "Intermédiaire (de 50 000 à 499 999)",
+      "macro": "Macro (de 500 000 à 999 999)",
+      "mega": "Méga (1 million et plus)"
+    },
+    "publication_frequency": {
+      "daily": "Quotidien",
+      "several_per_week": "Plusieurs fois par semaine",
+      "weekly": "Hebdomadaire",
+      "biweekly": "Deux fois par mois",
+      "monthly_or_less": "Mensuel ou moins"
+    },
+    "comment_band": {
+      "0_9": "De 0 à 9",
+      "10_49": "De 10 à 49",
+      "50_199": "De 50 à 199",
+      "200_999": "De 200 à 999",
+      "1000_plus": "1 000 et plus"
     }
   },
   "figures": {
-    "confirmAll": "Pour mettre à jour la date de vos chiffres, confirmez aussi votre rythme de publication et vos commentaires moyens."
+    "confirmAll": "Pour mettre à jour la date de vos chiffres, confirmez aussi votre rythme de publication et vos commentaires moyens.",
+    "confirm": "Confirmer mes chiffres",
+    "source": {
+      "declared": "Source : déclaré par vous",
+      "agent_observed": "Source : constaté par INFLUX"
+    },
+    "dated": "{source} · chiffres au {date}",
+    "undated": "{source} · chiffres à confirmer",
+    "stale": "Vos chiffres datent du {date}. Au-delà de 90 jours, votre profil est affiché plus bas dans les résultats."
   },
   "issues": {
     "required": "Ce champ est obligatoire.",
@@ -154,7 +183,10 @@
     "unknown": "Ce choix n'est plus disponible : choisissez-en un autre.",
     "duplicate": "Cette valeur existe déjà : retirez le doublon.",
     "wrong_network": "Ce lien ne correspond pas au réseau choisi.",
-    "sum_exceeds_100": "Le total dépasse 100 %. Réduisez l'une des parts."
+    "sum_exceeds_100": "Le total dépasse 100 %. Réduisez l'une des parts.",
+    "count": "Saisissez un nombre entier, zéro ou plus.",
+    "percentage": "Saisissez un pourcentage entre 0 et 100, avec deux décimales au plus.",
+    "url_shape": "Le lien doit commencer par https:// et ne contenir ni espace ni identifiant."
   },
   "errors": {
     "identifierInText": "Votre texte contient ce qui ressemble à un pseudo, un lien ou un identifiant. Retirez-le : il sera partagé une fois la mise en relation ouverte."
@@ -164,5 +196,78 @@
     "saved": "Enregistré automatiquement à {time}",
     "idle": "Enregistrement automatique",
     "retry": "Modifications non enregistrées — nouvelle tentative dans 5 s."
+  },
+  "networks": {
+    "loading": "Chargement de vos réseaux…",
+    "unavailable": "Nous ne parvenons pas à afficher vos réseaux pour le moment. Réessayez dans quelques minutes.",
+    "intro": "Une ligne par réseau. Votre pseudo, vos liens et vos chiffres exacts ne sont communiqués qu'une fois la mise en relation ouverte ; avant, les marques n'en voient que des tranches.",
+    "empty": "Aucun réseau pour l'instant. Ajoutez d'abord votre réseau principal : c'est là que vos abonnés sont comptés.",
+    "failed": "Cette action n'a pas abouti. Réessayez dans un instant.",
+    "remove": "Retirer",
+    "removeNamed": "Retirer le réseau {network}",
+    "add": {
+      "label": "Ajouter un réseau",
+      "placeholder": "Choisir un réseau…",
+      "help": "Une ligne par compte : deux comptes sur le même réseau sont possibles, jamais deux fois le même pseudo."
+    },
+    "primary": {
+      "label": "Compte principal",
+      "help": "Un seul compte est principal : c'est le premier que lisent les marques.",
+      "moved": "{to} est maintenant votre compte principal ; {from} ne l'est plus."
+    },
+    "metrics": {
+      "title": "Vos trois chiffres clés"
+    },
+    "bands": {
+      "title": "Ce que les marques voient avant toute mise en relation",
+      "none": "Aucune tranche pour l'instant : renseignez vos abonnés et vos autres chiffres.",
+      "audience": "Taille de la communauté : {band}",
+      "frequency": "Rythme de publication : {band}",
+      "comments": "Commentaires par publication : {band}"
+    },
+    "fields": {
+      "handle": {
+        "label": "Pseudo sur le réseau",
+        "help": "Votre identifiant public sur ce réseau."
+      },
+      "profileUrl": {
+        "label": "Lien de votre profil",
+        "help": "Il commence par https:// et mène au réseau choisi."
+      },
+      "pseudonym": {
+        "label": "Pseudonyme",
+        "help": "Votre nom de scène, s'il diffère de votre pseudo."
+      },
+      "followers": {
+        "label": "Abonnés",
+        "help": "Le nombre d'abonnés de ce compte aujourd'hui."
+      },
+      "posts": {
+        "label": "Publications des 30 derniers jours"
+      },
+      "comments": {
+        "label": "Commentaires moyens par publication"
+      },
+      "reach": {
+        "label": "Portée moyenne par publication",
+        "help": "Le nombre moyen de personnes touchées par publication."
+      },
+      "engagement": {
+        "label": "Taux d'engagement (%)",
+        "help": "Entre 0 et 100, jusqu'à deux décimales."
+      }
+    }
+  },
+  "priorityMetrics": {
+    "explain": "Ces trois chiffres sont les premiers que lisent les marques : la taille de votre communauté, votre rythme de publication et vos commentaires moyens."
+  },
+  "posts30d": {
+    "hint": "Comptez vos publications des 30 derniers jours : publications, Reels, vidéos, Shorts. Ne comptez ni les stories ni les directs."
+  },
+  "comments": {
+    "hint": "Faites la moyenne des commentaires sur vos 12 dernières publications, sans compter les jeux-concours."
+  },
+  "engagement": {
+    "unverified": "Votre taux d'engagement n'est pas affiché aux marques tant qu'il n'a pas été constaté par INFLUX."
   }
 }

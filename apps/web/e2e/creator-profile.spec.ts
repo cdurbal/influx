@@ -3,7 +3,9 @@
 // five sections of the summary with working anchors, the layer of each field told by an icon AND a
 // text, no photo and no age or gender of the creator, no tariff, the autosave and the warning of the
 // detection, in French and in English, at 375 and 1 440 px (the widths in a loop, one entry per
-// language to keep the added time short). A creator seeded in the local stack with its storefront
+// language to keep the added time short), then block 3 (commit 13): the networks, the three metrics in
+// order, the source and date of the figures, the confirmation, the bands, the link of another network,
+// the main account. A creator seeded in the local stack with its storefront
 // (no code, no mail); the texts are the locale files', never copies.
 import { connectAsMigrationRole } from "@influx/test-kit/db";
 import type { Page } from "@playwright/test";
@@ -60,6 +62,48 @@ async function storedOf(accountId: string): Promise<{
   }
 }
 
+/** What the database holds of the network lines of a creator, and of the date of their figures. */
+async function linesOf(accountId: string): Promise<
+  {
+    network: string;
+    handle: string | null;
+    url: string | null;
+    followers: number | null;
+    posts: number | null;
+    comments: number | null;
+    primary: boolean;
+    dated: boolean;
+  }[]
+> {
+  const sql = connectAsMigrationRole({ max: 1 });
+  try {
+    return await sql`
+      select network_code::text as network, handle, profile_url as url, followers_count::int as followers,
+             posts_last_30_days as posts, avg_comments_per_post::int as comments,
+             is_primary as primary, figures_measured_at is not null as dated
+        from profiles.creator_social_accounts
+       where account_id = ${accountId}
+       order by created_at, id`;
+  } finally {
+    await sql.end({ timeout: 1 });
+  }
+}
+
+/** A main YouTube line whose figures were confirmed 100 days ago, as if the creator had typed them then. */
+async function seedYoutubeLine(accountId: string): Promise<void> {
+  const sql = connectAsMigrationRole({ max: 1 });
+  try {
+    await sql`
+      insert into profiles.creator_social_accounts
+        (account_id, network_code, is_primary, handle, profile_url, followers_count,
+         posts_last_30_days, avg_comments_per_post, figures_measured_at)
+      values (${accountId}, 'youtube', true, 'camille_cuisine',
+              'https://www.youtube.com/@camille', 1500, 30, 3, now() - interval '100 days')`;
+  } finally {
+    await sql.end({ timeout: 1 });
+  }
+}
+
 /** The status line that tells the draft is saved (RG111); the bar of a phone holds its own twin. */
 function savedLine(page: Page, locale: Locale) {
   return page.locator("p[role=status]:visible", {
@@ -70,7 +114,8 @@ function savedLine(page: Page, locale: Locale) {
 /**
  * What the screen shows whatever the width: the alias explained first (RG23), the layer of every
  * field as icon AND text (CA3), no photo, no age nor gender of the creator (CA6, CA29, RG29, RG40),
- * no tariff (D78), the five sections of the summary, the three still to come told as such.
+ * no tariff (D78), the five sections of the summary, the two still to come told as such. `seeded`: a
+ * network line is already there, so the counts of the empty page and its words do not apply.
  */
 async function expectScreen(
   page: Page,
@@ -78,6 +123,7 @@ async function expectScreen(
   alias: string,
   width: number,
   axe: boolean,
+  seeded = false,
 ): Promise<void> {
   const copy = COPY[locale].own;
   await expect(title(page)).toHaveText(copy.page.title);
@@ -91,37 +137,49 @@ async function expectScreen(
   ).toBeVisible();
   await expect(page.getByText(copy.alias.forLife)).toBeVisible();
 
-  // CA3: nine fields are visible to every brand, six only to the creator and the team.
-  await expect(page.getByText(copy.layer.public, { exact: true })).toHaveCount(
-    9,
-  );
-  await expect(
-    page.getByText(copy.layer.revealed, { exact: true }),
-  ).toHaveCount(0);
+  // CA3: nine fields (and the network to add) are visible to every brand, six only to the creator
+  // and the team.
   const internal = page.getByText(copy.layer.internal, { exact: true });
-  await expect(internal).toHaveCount(6);
-  await expect(internal.locator("svg")).toHaveCount(6);
+  if (!seeded) {
+    await expect(
+      page.getByText(copy.layer.public, { exact: true }),
+    ).toHaveCount(10);
+    await expect(
+      page.getByText(copy.layer.revealed, { exact: true }),
+    ).toHaveCount(0);
+    await expect(internal).toHaveCount(6);
+    await expect(internal.locator("svg")).toHaveCount(6);
+  }
 
   // CA6, CA29: no photo, no avatar, no age nor gender of the creator; D78: no tariff.
   await expect(page.locator("input[type=file]")).toHaveCount(0);
   await expect(
     page.getByLabel(/\b(photo|avatar|age|gender|âge|genre)\b/i),
   ).toHaveCount(0);
-  const shown = await page.locator("main").innerText();
-  expect(shown).not.toMatch(/\b(tarifs?|prix|price|rates?|net|fee)\b|[€$]/i);
+  if (!seeded) {
+    const shown = await page.locator("main").innerText();
+    expect(shown).not.toMatch(/\b(tarifs?|prix|price|rates?|net|fee)\b|[€$]/i);
+  }
 
-  // The summary: two sections to go to, three coming soon, none of them a link.
-  for (const id of ["presentation", "editorial"] as const) {
+  // The summary: three sections to go to, two coming soon, none of them a link.
+  for (const id of ["presentation", "editorial", "networks"] as const) {
     await expect(
       page.getByRole("link", { name: new RegExp(copy.sections[id]) }),
     ).toBeVisible();
   }
-  for (const id of ["networks", "audience", "offer"] as const) {
+  for (const id of ["audience", "offer"] as const) {
     await expect(
       page.getByRole("link", { name: new RegExp(copy.sections[id]) }),
     ).toHaveCount(0);
   }
-  await expect(page.getByText(copy.summary.soon)).toHaveCount(3);
+  await expect(page.getByText(copy.summary.soon)).toHaveCount(2);
+  // Block 3 starts empty: it says so, and offers the closed list of networks.
+  if (!seeded) {
+    await expect(page.getByText(copy.networks.empty)).toBeVisible();
+  }
+  await expect(
+    page.getByLabel(new RegExp(`^${copy.networks.add.label}`)),
+  ).toBeVisible();
   await expect(page.getByText(copy.field.required).first()).toBeVisible();
   if (axe) {
     await expectNoAxeViolation(
@@ -148,7 +206,7 @@ test("a creator in French: alias, layers, anchors, the warning of the detection,
   for (const width of WIDTHS) {
     await page.setViewportSize({ width, height: 900 });
     await open(page, PATHS.fr);
-    await expectScreen(page, "fr", alias, width, width === 1440);
+    await expectScreen(page, "fr", alias, width, false);
   }
 
   // Nothing is complete yet, and what is missing is named (RG90).
@@ -210,6 +268,124 @@ test("a creator in French: alias, layers, anchors, the warning of the detection,
   await expect(
     page.getByText(copy.blocks.missing.split("{")[0]!.trim()),
   ).not.toContainText(copy.required.headline);
+
+  // Block 3 (CA10 to CA12, CA18). The first line is the main account; the three metrics come first and
+  // in order, the secondary indicators after them (RG113).
+  await page
+    .getByLabel(new RegExp(`^${copy.networks.add.label}`))
+    .selectOption({ label: COPY.fr.brand.reference.network.instagram });
+  const instagram = page.locator('[data-network-line="instagram"]');
+  await expect(
+    instagram.getByRole("radio", { name: copy.networks.primary.label }),
+  ).toBeChecked();
+  const fieldNames = await instagram
+    .locator("input:not([type=radio])")
+    .evaluateAll((inputs) =>
+      inputs.map((input) => (input as HTMLInputElement).name.slice(37)),
+    );
+  expect(fieldNames).toEqual([
+    "handle",
+    "profileUrl",
+    "pseudonym",
+    "followers",
+    "posts",
+    "comments",
+    "reach",
+    "engagement",
+  ]);
+  await expect(page.getByText(copy.priorityMetrics.explain)).toBeVisible();
+  await expect(page.getByText(copy.posts30d.hint)).toBeVisible();
+  await expect(page.getByText(copy.comments.hint)).toBeVisible();
+  await expect(page.getByText(copy.engagement.unverified)).toBeVisible();
+  const typeIn = (label: string, value: string) =>
+    instagram.getByLabel(new RegExp(`^${label}`)).fill(value);
+  const names = copy.networks.fields;
+
+  // CA12: a link to another network is refused with its own message, and holds back no other field.
+  await typeIn(names.handle.label, "camille_cuisine");
+  await typeIn(names.profileUrl.label, "https://www.tiktok.com/@camille");
+  await typeIn(names.followers.label, "47312");
+  await typeIn(names.posts.label, "12");
+  await typeIn(names.comments.label, "85");
+  await expect(instagram.getByText(copy.issues.wrong_network)).toBeVisible();
+  await expect
+    .poll(async () => (await linesOf(accountId))[0])
+    .toMatchObject({
+      network: "instagram",
+      handle: "camille_cuisine",
+      followers: 47312,
+      posts: 12,
+      comments: 85,
+      primary: true,
+      dated: false,
+    });
+  await typeIn(names.profileUrl.label, "https://www.instagram.com/camille");
+
+  // CA18: figures typed alone keep no date; the message asks for the confirmation, source said.
+  const source = copy.figures.source.declared;
+  await expect(
+    instagram.getByText(copy.figures.undated.replace("{source}", source)),
+  ).toBeVisible();
+  await expect(instagram.getByText(copy.figures.confirmAll)).toBeVisible();
+  await expect(instagram.getByText(copy.issues.wrong_network)).toHaveCount(0);
+  await instagram.getByRole("button", { name: copy.figures.confirm }).click();
+  await expect(instagram.getByText(copy.figures.confirmAll)).toHaveCount(0);
+  await expect(
+    instagram.getByText(
+      new RegExp(
+        `^${copy.figures.dated.replace("{source}", source).split("{")[0]}`,
+      ),
+    ),
+  ).toBeVisible();
+  await expect
+    .poll(async () => (await linesOf(accountId))[0]?.dated)
+    .toBe(true);
+
+  // The bands the brands will see, derived by the system from the exact figures (RG22, RG114, RG115).
+  await expect(
+    instagram.getByText(copy.reference.audience_band.micro),
+  ).toBeVisible();
+  await expect(
+    instagram.getByText(copy.reference.publication_frequency.several_per_week),
+  ).toBeVisible();
+  await expect(
+    instagram.getByText(copy.reference.comment_band["50_199"]),
+  ).toBeVisible();
+  await expect(page.getByText(copy.summary.complete)).toHaveCount(3);
+  expect((await linesOf(accountId))[0]?.url).toBe(
+    "https://www.instagram.com/camille",
+  );
+  expect(await page.locator("main").innerText()).not.toMatch(
+    /\b(tarifs?|prix)\b|[€$]/i,
+  );
+  await expectNoAxeViolation(page, "my creator networks, fr, 1440", {
+    wcag22: true,
+  });
+
+  // CA11: choosing the main account on a second line unchecks the first, and the screen says so.
+  await page
+    .getByLabel(new RegExp(`^${copy.networks.add.label}`))
+    .selectOption({ label: COPY.fr.brand.reference.network.tiktok });
+  const tiktok = page.locator('[data-network-line="tiktok"]');
+  await expect(
+    tiktok.getByRole("radio", { name: copy.networks.primary.label }),
+  ).not.toBeChecked();
+  await tiktok
+    .getByRole("radio", { name: copy.networks.primary.label })
+    .click();
+  await expect(
+    page.getByText(
+      copy.networks.primary.moved
+        .replace("{to}", COPY.fr.brand.reference.network.tiktok)
+        .replace("{from}", COPY.fr.brand.reference.network.instagram),
+    ),
+  ).toBeVisible();
+  await expect(
+    instagram.getByRole("radio", { name: copy.networks.primary.label }),
+  ).not.toBeChecked();
+  await expect
+    .poll(async () => (await linesOf(accountId)).map((l) => l.primary))
+    .toEqual([false, true]);
 });
 
 test("a creator in English: the same screen at 375 then 1 440 px, no French left (07 RG112)", async ({
@@ -224,9 +400,40 @@ test("a creator in English: the same screen at 375 then 1 440 px, no French left
   const { alias } = await storedOf(accountId);
   for (const width of WIDTHS) {
     await page.setViewportSize({ width, height: 900 });
+    if (width === 1440) {
+      await seedYoutubeLine(accountId);
+    }
     await open(page, PATHS.en);
-    await expectScreen(page, "en", alias, width, width === 375);
+    await expectScreen(page, "en", alias, width, false, width === 1440);
   }
+
+  // Block 3 in English (a line seeded with figures dated 100 days ago, none of it typed): the source
+  // and the date of the figures (RG49), the past 90 days said and nothing hidden (RG50), the bands
+  // in English.
+  const copy = COPY.en.own;
+  const youtube = page.locator('[data-network-line="youtube"]');
+  await expect(
+    youtube.getByText(copy.reference.audience_band.nano),
+  ).toBeVisible();
+  await expect(
+    youtube.getByText(copy.reference.publication_frequency.daily),
+  ).toBeVisible();
+  await expect(
+    youtube.getByText(copy.reference.comment_band["0_9"]),
+  ).toBeVisible();
+  await expect(
+    youtube.getByText(
+      new RegExp(
+        `^${copy.figures.dated.replace("{source}", copy.figures.source.declared).split("{")[0]}`,
+      ),
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText(copy.figures.stale.split("{")[0]!.trim()),
+  ).toBeVisible();
+  await expect(
+    youtube.getByRole("button", { name: copy.figures.confirm }),
+  ).toBeVisible();
 
   // Not a word of French among the texts of the screen.
   const shown = (await page.locator("main").innerText()).toLowerCase();
@@ -238,6 +445,9 @@ test("a creator in English: the same screen at 375 then 1 440 px, no French left
     frCreatorProfile.summary.soon,
     frCreatorProfile.save.idle,
     frCreatorProfile.fields.headline.label,
+    frCreatorProfile.networks.primary.label,
+    frCreatorProfile.figures.confirm,
+    frCreatorProfile.networks.bands.title,
   ]) {
     expect(shown, text).not.toContain(text.toLowerCase());
   }

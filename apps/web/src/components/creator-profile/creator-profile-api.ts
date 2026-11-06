@@ -3,9 +3,14 @@
 // with the schema of packages/contracts. No rule lives here: apps/api decides, the screen displays.
 // The account is always the session's: no call names an account.
 import {
+  creatorNetworksResponseSchema,
   creatorProfileResponseSchema,
   updateCreatorProfileResponseSchema,
+  type ConfirmCreatorFiguresBody,
+  type CreateCreatorNetworkBody,
+  type CreatorNetworksResponse,
   type CreatorProfileResponse,
+  type UpdateCreatorNetworkBody,
   type UpdateCreatorProfileBody,
   type UpdateCreatorProfileResponse,
 } from "@influx/contracts/creator-profile";
@@ -27,6 +32,58 @@ export function saveCreatorProfileFields(
     "PATCH",
     PROFILE_PATH,
     updateCreatorProfileResponseSchema,
+    body,
+  );
+}
+
+// --- Block 3: the network lines (commit 13). The line is named by its identifier in the path; the
+// account is the session's, never a parameter. Every call answers the whole list of lines.
+
+const NETWORKS_PATH = `${PROFILE_PATH}/networks`;
+
+export function readCreatorNetworks(): Promise<
+  RelayResult<CreatorNetworksResponse>
+> {
+  return callRelay("GET", NETWORKS_PATH, creatorNetworksResponseSchema);
+}
+
+export function addCreatorNetwork(
+  body: CreateCreatorNetworkBody,
+): Promise<RelayResult<CreatorNetworksResponse>> {
+  return callRelay("POST", NETWORKS_PATH, creatorNetworksResponseSchema, body);
+}
+
+export function saveCreatorNetworkFields(
+  lineId: string,
+  body: UpdateCreatorNetworkBody,
+): Promise<RelayResult<CreatorNetworksResponse>> {
+  return callRelay(
+    "PATCH",
+    `${NETWORKS_PATH}/${lineId}`,
+    creatorNetworksResponseSchema,
+    body,
+  );
+}
+
+export function removeCreatorNetwork(
+  lineId: string,
+): Promise<RelayResult<CreatorNetworksResponse>> {
+  return callRelay(
+    "DELETE",
+    `${NETWORKS_PATH}/${lineId}`,
+    creatorNetworksResponseSchema,
+  );
+}
+
+/** "Confirmer mes chiffres": the one call that renews the date of the figures (07 RG50, EC-L2D-6). */
+export function confirmCreatorNetworkFigures(
+  lineId: string,
+  body: ConfirmCreatorFiguresBody,
+): Promise<RelayResult<CreatorNetworksResponse>> {
+  return callRelay(
+    "POST",
+    `${NETWORKS_PATH}/${lineId}/figures`,
+    creatorNetworksResponseSchema,
     body,
   );
 }
