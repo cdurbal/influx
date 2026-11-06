@@ -95,14 +95,14 @@ Numéro 16 réservé à un `fix` issu de U ; sinon `ignoré`.
 
 ## Critère de fin
 
-- [ ] T1 et TM11 verts trois fois de suite (`18` §1.3) : trois sorties notées dans `run.md`.
-- [ ] TM12.6, T14, T16, T2 verts ; **toute** la suite base verte : sorties.
-- [ ] Ni tarif, ni net, ni taux saisi ou affiché : T16-L2D et lecture du DOM dans la spec e2e.
-- [ ] Blocs 1 à 5 enregistrés sur `staging` : ligne F de `run.md`.
-- [ ] Vocabulaire R-4 remplacé : `Grep -i anonym` sur `locales/`, seuls restent les emplois légitimes listés en § Écarts.
-- [ ] e2e ajouté ≤ 20 s (`sum-e2e-durations.ts`, trois passages) ; chaque éclat sous 7 min 30 en CI : ids de run.
-- [ ] `pnpm check` et `pnpm test:e2e` verts : sorties ; CI verte : id de run.
-- [ ] Revue soldée, attestation `security-reviewed:` : sha.
+- [x] T1 et TM11 verts trois fois de suite (`18` §1.3). *Preuve : T1 7/7 x3, TM11 14/14 x3 (lignes 10, 11 de `run.md`, passages de clôture).*
+- [x] TM12.6, T14, T16, T2 verts ; toute la suite base verte. *Preuve : `pnpm check` vert à la clôture, lignes 03 à 11 et R de `run.md`.*
+- [x] Ni tarif, ni net, ni taux saisi ou affiché. *Preuve : T16-L2D et lecture du DOM de la spec e2e (lignes 08, 15, 16 de `run.md`).*
+- [x] Blocs 1 à 5 enregistrés sur `staging`. *Preuve : ligne F, recette validée par le fondateur le 2026-11-06.*
+- [x] Vocabulaire R-4 remplacé. *Preuve : ligne 17 de `run.md` (`Grep -i anonym` sur `locales/`).*
+- [x] e2e ajouté ≤ 20 s ; chaque éclat sous 7 min 30 en CI. *Preuve : **dépassement du budget accepté par le fondateur (option a), comme à L2C** : cas neufs 19,5 s (≤ 20 s), 24,6 s en borne haute avec les trois cas allongés (`account.spec.ts` 1,5 s, `brand-profile.spec.ts` 1,4 s, `member-shell.spec.ts` 2,2 s) ; levier au jalon suivant, surcoût réel non mesuré (`21` §8, L2D-E2E). Éclats 311, 286 et 263 s, run 42267290152.*
+- [x] `pnpm check` et `pnpm test:e2e` verts ; CI verte. *Preuve : 242 cas verts x3 (4,1 / 4,4 / 4,4 min) ; run 42269804425 vert après rejeu `--failed` d'un `EPIPE` intermittent.*
+- [x] Revue soldée, attestation `security-reviewed:`. *Preuve : ligne R, `revue-constats-securite.md` ; commit d'attestation séparé suivant la clôture.*
 
 ## Écarts, décisions ouvertes, risques
 

@@ -1296,6 +1296,8 @@ exacte ajoutée ici par inadvertance détruit l'anonymisation **sans erreur visi
 revue : *toute colonne ajoutée à `creator_public_*` doit être une tranche, un code de liste fermée,
 une date ou un booléen. Jamais un nombre brut, jamais un texte non modéré.*
 
+> **Amendé à la clôture de L2D (`0216` à `0219`, `jalons/l2d/modele.md`).** Vitrine : `alias` sur 6 signes `^[2-9BCDFGHJKLMNPQRSTVWXZ]{6}$` tiré de `gen_random_uuid()` sans entrée ; `headline` ≤ 120 ; colonnes ajoutées `bio` (≤ 800), `public_ref` (uuid, jamais servi) ; `primary_topic_code` nullable (brouillon, effacement) ; `figures_updated_at` et `completeness_percent` retirées de la vitrine (la complétude vit sur `creator_identities`, hors vitrine, RG86). `creator_public_networks` : clé `social_account_id` (RG42 permet deux comptes sur un réseau), jamais servi, plus `comment_band`, `figures_source`, `figures_measured_at` ; `engagement_band` nul au L2D (RG48). `creator_public_audience` : `(account_id, dimension 'country'|'age', bucket, share_band)` de la seule ligne principale, part < 10 % non servie. `creator_public_rates` et `creator_rate_cards` non créées (D78, EC-L2D-2) ; `creator_formats` garde son nom, le format porte son réseau. `creator_social_accounts` : `account_id` (non `creator_account_id`), `handle` nullable, `engagement_rate_bp` entier 0-10000 (EC-L2D-8), `posts_last_30_days`, `avg_comments_per_post`, `pseudonym` ; `creator_audience_breakdowns` remplacée par trois tables `creator_audience_countries`, `_ages`, `_genders` ; `date_of_birth` non créée (EC-L2D-7). Aucun droit de `influx_advertiser` sur aucun objet `creator_%` au Lot 2.
+
 #### `profiles.creator_social_accounts` — l'objet révélable
 
 | Colonne | Type | Contrainte |
@@ -5292,7 +5294,7 @@ create policy social_accounts_revealed_to_advertiser
 Adossée à l'index du §10.5. C'est la formulation annoncée par `architecte` au §2.5 du document `02`,
 appliquée à l'**objet révélable** et non à l'objet identifiant.
 
-**(b) La vitrine anonymisée.**
+**(b) La vitrine anonymisée.** *(Lot 3 : au Lot 2 (`0216`) `influx_advertiser` n'a aucun droit sur la vitrine ni sur ses listes, EC-L2D-1 ; la politique ci-dessous et le droit de colonnes, sans `account_id`, `completeness_percent` ni `status`, arrivent au Lot 3 avec C(10).)*
 
 ```sql
 create policy public_profiles_visible_to_advertisers
@@ -5823,7 +5825,7 @@ les préparer serait inventer.
    `accounts.email` remplacé par `deleted+<id>@invalid`, `display_name` par un libellé neutre ;
    `profiles.creator_identities` et `profiles.advertiser_contact_details` **vidées** (les lignes
    restent, les colonnes passent à `null`) ; `creator_social_accounts.handle` et `profile_url`
-   effacés ; portfolio et pièces supprimés du Storage ; `profiles.profile_field_revisions` supprimées, textes de `advertiser_review_entries` vidés, entrée ouverte `withdrawn` (L2C, `0207`).
+   effacés (L2D, `0219` : vitrine gardée `suspended` et non cherchable, textes vidés ; listes, publics, audience, secteurs refusés et historique des métriques supprimés ; identités vidées ; lignes de réseau gardées, handle, pseudo, URL, chiffres et date vidés) ; portfolio et pièces supprimés du Storage ; `profiles.profile_field_revisions` supprimées, textes de `advertiser_review_entries` vidés, entrée ouverte `withdrawn` (L2C, `0207`).
 3. `accounts.anonymized_at = now()`.
 4. Un événement `account.anonymized` est écrit **dans le registre**, et un événement
    `account.deleted` part dans `outbox_events` en **priorité 0** vers Brevo et Apollo — la
@@ -6146,6 +6148,11 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0214 | `profiles_brand_review_entries_backfill` (L2C) | Une entrée `submission` de la file 1 pour chaque profil `pending_review` soumis avant `0207` et resté sans entrée ouverte, échéances par le déclencheur ; compte supprimé exclu ; ni droit, ni fonction, ni changement d'état | Oui |
 | 0215 | `profiles_brand_review_owner_and_lock` (L2C fix-2) | L2CS-1 : l'ouverture verrouille le profil avant l'entrée ; L2CS-2 : compte détenu refusé en base (42501) par ouvrir, publier, refuser, prolonger, lire un logo, `owner_agent_id` lu par `influx_moderation_definer`, code `queue.conflict_of_interest` de `record_refused_action()` ; L2CS-3 : un membre ne change `status` que vers `pending_review` (§5.2) | Oui |
 
+| 0216 | `profiles_creator_public` (L2D) | Vitrine `creator_public_profiles` et ses cinq listes, alias tiré sans entrée, `provision_account()` recréée, reprise des comptes créateur ; aucun droit annonceur | Oui |
+| 0217 | `profiles_creator_identity` (L2D) | `creator_identities`, `creator_social_accounts`, audience exacte (trois tables), secteurs refusés, historique des métriques en ajout seul, `reference.network_url_hosts` et sa garde ; `REVOKE` explicite de `influx_advertiser` | Non |
+| 0218 | `profiles_creator_bands_and_history` (L2D) | `creator_public_networks`, `creator_public_audience`, dérivations en tranches (`SECURITY DEFINER`, `influx_identity_definer`), porte `confirm_own_creator_figures()` | Non |
+| 0219 | `privacy_creator_profile` (L2D) | Catégorie `creator_profile` de l'export et effacement dans la même transaction | Non |
+
 > **Numéros réels du L2B (EC-L2B-1).** `check-migrations.ts` impose l'ordre des noms : L2B a pris `0202` `profiles_advertiser_full`, `0203` `profiles_advertiser_submission` (soumission gardée par la base), `0204` `profiles_brand_logo_storage` (compartiment `brand-logo`, quotas, politiques Storage) et `0205` `ops_storage_purge`. Les lignes `0203` à `0207` ci-dessus prennent les numéros libres suivants au jalon qui les livre. **L2C** prend `0206` `backoffice_profiles_advertiser_queue` : file 1 et son délai (escalade 960, `15` RG29), `backoffice.operational_settings` (EC-L2C-2), `backoffice.business_deadline()` (§5.6), puis `0207` ci-dessus.
 | **Lot 3** | | | |
 | 0301 | `campaigns_core` | `reference.campaign_types`, campagnes (**six états, quatre textes, dotation, droits d'usage, quatre dates, nature de la rémunération**), livrables, ciblage détaillé, messages clés, territoires, éléments demandés, motifs de refus, **types d'événements `campaign.*`** | Oui |
@@ -6367,6 +6374,8 @@ Ajoutés par la revue de cohérence (`archives/19-revue-de-coherence-2026-09-24.
 | 10 | **D55** — source d'acquisition (`05` RG120 à RG122) | Colonnes figées à la création du compte : `utm_source`, `utm_medium`, `utm_campaign`, domaine d'origine, code d'invitation, réponse déclarative (liste fermée en référentiel) ; jamais modifiées | `expert-database` + `expert-conformite-rgpd` |
 
 ### 12.12 Points ouverts par l'arbitrage du fondateur du 2026-09-25 — D61, métriques prioritaires des créateurs
+
+> **Réalisé au L2D (`0217`, `0218`) :** les points 1, 2, 6 et 7 sont en base (colonnes nullables en brouillon sous Q15, `comment_band` nullable, historique `creator_network_metrics_history`, date posée par la seule porte `confirm_own_creator_figures()`, non par `packages/domain`) ; les points 3 et 4 sont en référentiel depuis `0201` ; le point 5 vient avec L2E.
 
 Décision **prise** : pour chaque réseau, INFLUX suit en priorité la **taille de la communauté**, le
 **rythme de publication** et le **nombre moyen de commentaires par publication** (`07` §E bis, RG113

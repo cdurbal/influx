@@ -322,7 +322,7 @@ for (const route of inventaireDesRoutesDuRôleAnnonceur()) {   // dérivé du ro
 | Cas | Ce qu'il vérifie |
 |---|---|
 | **T1.1** | Balayage de **toutes** les routes accessibles au rôle `advertiser`, base peuplée de marqueurs : aucun marqueur dans le corps, les en-têtes, ni une URL renvoyée |
-| **T1.2** | **L'inventaire des routes est dérivé du routeur Fastify**, jamais écrit à la main. Une route ajoutée au Lot 5 est balayée d'office. Un inventaire manuel pourrit en trois semaines et donne un faux sentiment de sécurité |
+| **T1.2** | **L'inventaire des routes est dérivé du routeur Fastify**, jamais écrit à la main. Une route ajoutée au Lot 5 est balayée d'office. Un inventaire manuel pourrit en trois semaines et donne un faux sentiment de sécurité. *Emplacement réel (L2D-10) : `apps/api/db-tests/t1-anonymisation.test.ts`, inventaire lu du crochet `onRoute` (`routeInventoryOf`), `/health` seul exclu.* |
 | **T1.3** | **Le contre-test** : après création d'une mise en relation avec `identity_revealed_at` non nul, le champ attendu **apparaît**. Sans lui, un test qui passe pourrait simplement signifier que la route est cassée |
 | **T1.4** | Les réponses **d'erreur** (403, 404, 409, 422, 500 provoquée) ne contiennent aucun marqueur. C'est le chemin qu'on oublie de regarder |
 | **T1.5** | Aucun marqueur dans une **URL signée** émise pour un annonceur (portfolio), ni dans le chemin d'objet du Storage |
@@ -734,7 +734,7 @@ l'enveloppe `404` / `500` et T13.5 à T13.7 ; Lot 1 pour le reste. À chaque ex�
 |---|---|
 | **T14.1** | Pour chaque type d'objet exposé, un utilisateur de chaque rôle tente de **lire** un objet d'autrui en changeant l'identifiant ⇒ refus |
 | **T14.2** | Idem en **modification** |
-| **T14.3** | **Le code de réponse est identique** à celui d'un objet inexistant : ne pas divulguer l'existence d'une ressource par l'écart entre 403 et 404 |
+| **T14.3** | **Le code de réponse est identique** à celui d'un objet inexistant : ne pas divulguer l'existence d'une ressource par l'écart entre 403 et 404. *Précisé à la clôture de L2D (L2DT-4, EC-L2D-10-1) : un corps refusé par le schéma répond 400 avant la session, pour tout rôle et toute route ; « code identique à l'inconnu » vaut pour l'objet visé, que le schéma ne lit pas (T1 : rien ne sort, seule l'existence de la route se devine).* |
 | **T14.4** | Le corps de la réponse est identique lui aussi (même `code`, même message) |
 | **T14.5** | Cas particulier C(18) : un créateur interrogeant l'identifiant d'une demande de contact **refusée** obtient la même réponse que pour une demande inexistante. Il ne doit jamais apprendre qu'une marque s'est intéressée à lui |
 

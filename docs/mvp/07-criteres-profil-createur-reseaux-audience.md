@@ -314,7 +314,7 @@ d'apposer un badge ou de publier ; *Oblig.* = obligatoire pour pouvoir publier l
 | Champ | Couche | Format | Preuve exigée | Oblig. |
 |---|---|---|---|---|
 | Formats proposés | **A** | Liste fermée `reference.formats`, ≥ 1 | — | **Oui** |
-| Tarif indicatif par format et par réseau | **A** tranche · **N** valeur exacte | Tranche `reference.price_bands` + devise `reference.currencies` | — | Non — *aucun tarif saisi au pilote (D78)* |
+| Tarif indicatif par format et par réseau | **A** tranche · **N** valeur exacte | Tranche `reference.price_bands` + devise `reference.currencies` | — | Non — *aucun tarif saisi au pilote (D78) ; `creator_rate_cards` et `creator_public_rates` non créées au L2D (EC-L2D-2)* |
 | **Net créateur estimé** | **Créateur et INFLUX uniquement** (RG70) | Tranche dérivée du référentiel, avec devise | — | Automatique |
 | Délai de livraison habituel | **A** | Liste fermée : < 7 jours · 7-14 jours · 15-30 jours · > 30 jours | — | Non |
 | Droits d'usage **inclus** | **A** | Liste fermée `reference.usage_rights`, multi-choix (`none` non cochable : aucune case cochée le dit) | — | Non |
@@ -738,7 +738,7 @@ profil absent, aucun message, aucun emplacement grisé, aucun décompte.
 
 **RG76** — Un créateur peut déclarer **accepter une contrepartie non monétaire** (booléen). Ce champ
 ouvre le bas de marché et les jeunes marques ; il n'autorise **aucun** parcours sans tarif : un
-profil publié comporte toujours au moins une ligne de tarif indicatif (RG4).
+profil publié comporte toujours au moins une ligne d'offre (RG4). *Amendé à la clôture de L2D (D78, EC-L2D-2) : au pilote aucun tarif n'est saisi ni exigé ; la ligne d'offre est un format (`profiles.creator_formats`), jamais un montant.*
 
 ### H — Bloc 6 : portfolio
 
@@ -804,7 +804,7 @@ facette exposée).
 | Ligne éditoriale | Thématique principale 5 · thématiques secondaires 2 · ton 2 · langues 3 · pays 1 · déplacements 1 | **14** |
 | Réseaux | 1re ligne complète (réseau, handle, URL, **les trois métriques prioritaires** — abonnés, publications des 30 derniers jours, commentaires moyens —, date) 16 · 2e ligne complète 5 · portée moyenne 1 *(pondération révisée le 2026-09-25, D61 : le rythme et les commentaires, désormais obligatoires, entrent dans la « ligne complète »)* | **22** |
 | Audience | Pays principal et sa part 10 · autres pays 3 · tranches d'âge 4 · genre 3 | **20** |
-| Offre | 1re ligne de tarif 8 · 2e ligne 3 · formats 3 · droits d'usage 2 · exclusivité 1 · disponibilité 2 | **19** |
+| Offre | 1re ligne d'offre 8 · 2e ligne 3 *(D78, EC-L2D-4 : les 11 points vont aux lignes d'offre, même poids ; aucun tarif)* · formats 3 · droits d'usage 2 · exclusivité 1 · disponibilité 2 | **19** |
 | Portfolio | 3 éléments déposés 6 · 5 éléments ou plus 2 | **8** |
 | Confiance | Demande de badge « Compte vérifié » **déposée** 2 | **2** |
 
@@ -1007,7 +1007,7 @@ et espacements passent par les tokens (`design-system-influx`).
 | Aucun visuel de portfolio approuvé après modération | Le profil reste publié, la carte s'affiche **sans image** (RG84), le créateur est notifié du refus avec son motif |
 | Taux d'engagement saisi mais jamais vérifié | **Absent de la couche A** (RG48) ; le créateur voit le message `creatorProfile.engagement.unverified` |
 | Répartition d'audience non renseignée | Publication possible ; le profil n'apparaît pas dans les recherches filtrant sur un pays, et le message de complétude le dit (RG90) |
-| Un réseau déclaré sans chiffres | Refus de la ligne à la saisie : les abonnés sont obligatoires par ligne (RG41, tableau central) |
+| Un réseau déclaré sans chiffres | Ligne enregistrée en brouillon, chiffres nuls admis (Q15, EC-L2D-6) ; à la demande de publication (L2G), seuls les abonnés du compte principal et la date des chiffres sont obligatoires (RG56) |
 | Une thématique a été retirée du référentiel | Le profil reste publié avec sa valeur, une alerte de cohérence remonte au backoffice, le créateur est invité à choisir une thématique active |
 | La marque consulte un profil repassé en validation | Elle voit la **dernière version validée** (RG9), jamais un profil vide |
 | Moins de 5 profils publiés dans la région déclarée | Le pays seul s'affiche, **sans message ni compteur** (RG37) |
@@ -1383,8 +1383,9 @@ l'anglais, *alors* la version anglaise s'affiche, sans aucun texte français ré
 ### Métriques prioritaires (D61, additif du 2026-09-25)
 
 **CA68** — *Étant donné* une ligne de réseau sans nombre de publications des 30 derniers jours ou sans
-commentaires moyens, *quand* le créateur demande la publication, *alors* elle est refusée et la liste
-nominative de ce qui manque nomme le réseau et le chiffre manquant (RG4, RG113).
+commentaires moyens, *quand* le créateur demande la publication, *alors* elle est acceptée : sous Q15
+seuls les abonnés du compte principal et la date des chiffres sont obligatoires (RG4, RG113), la métrique
+non déclarée reste nulle et n'est pas servie sous forme de tranche. *(Amendé à la clôture de L2D.)*
 
 **CA69** — *Étant donné* un créateur qui saisit 14 publications sur 30 jours, *quand* une marque
 consulte la carte anonyme, *alors* elle lit **« plusieurs fois par semaine »**, et la valeur 14
