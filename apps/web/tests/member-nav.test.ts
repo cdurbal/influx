@@ -21,6 +21,7 @@ import {
 } from "@/lib/member-nav";
 import {
   ACCOUNT_PAGES,
+  accountLabelKeyOf,
   accountPagesOf,
   isTermsExempt,
   MEMBER_PAGE_SLUGS,
@@ -316,17 +317,29 @@ describe("TN1: the sub-entries of a rubric and the place of a page (D74, sn-fich
   });
 });
 
-describe("L2B-11: the profile of a brand leads the pages of Compte for the brand alone (17 §4.2, EC-L2B-7)", () => {
-  it("gives a brand Mon profil de marque first, then the common pages; a creator the common pages only", () => {
-    expect(accountPagesOf("advertiser")).toEqual([
+describe("L2B-11, L2D-12: the profile leads the pages of Compte, a brand's or a creator's (17 §4.2, §5.2, EC-L2B-7)", () => {
+  it("gives both roles their profile first, then the common pages (inverted at L2D: a creator used to have the common pages only)", () => {
+    expect(accountPagesOf()).toEqual(["accountProfile", ...ACCOUNT_PAGES]);
+    expect(subEntriesOf("account", "advertiser")[0]).toBe("accountProfile");
+    expect(subEntriesOf("account", "creator")).toEqual([
       "accountProfile",
       ...ACCOUNT_PAGES,
     ]);
-    expect(accountPagesOf("creator")).toEqual([...ACCOUNT_PAGES]);
-    expect(subEntriesOf("account", "advertiser")[0]).toBe("accountProfile");
-    expect(subEntriesOf("account", "creator")).toEqual([...ACCOUNT_PAGES]);
     // without a role: the pages common to both, as before
     expect(subEntriesOf("account")).toEqual([...ACCOUNT_PAGES]);
+  });
+
+  it("labels the profile page by role: Profil de marque for a brand, Mon profil for a creator; the others alike", () => {
+    expect(accountLabelKeyOf("accountProfile", "advertiser")).toBe(
+      "accountProfile",
+    );
+    expect(accountLabelKeyOf("accountProfile", "creator")).toBe(
+      "accountProfileCreator",
+    );
+    for (const page of ACCOUNT_PAGES) {
+      expect(accountLabelKeyOf(page, "creator"), page).toBe(page);
+      expect(accountLabelKeyOf(page, "advertiser"), page).toBe(page);
+    }
   });
 
   it("addresses the page in both languages and places it under Compte, keeping it out of the common list", () => {

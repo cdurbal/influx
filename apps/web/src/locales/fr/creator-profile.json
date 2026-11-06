@@ -1,0 +1,168 @@
+{
+  "page": {
+    "title": "Mon profil",
+    "loading": "Chargement de votre profil…",
+    "unavailable": "Nous ne parvenons pas à afficher votre profil pour le moment. Réessayez dans quelques minutes.",
+    "retry": "Réessayer",
+    "noStorefront": "Votre profil n'est pas encore ouvert à la saisie. Revenez plus tard : rien ne vous est demandé pour l'instant."
+  },
+  "alias": {
+    "name": "Profil {alias}",
+    "explain": "Les marques vous voient sous le nom {alias} tant qu'aucune mise en relation n'est ouverte.",
+    "reveal": "Votre pseudo, vos liens et vos chiffres exacts ne leur sont communiqués qu'à ce moment-là, et à elles seules.",
+    "forLife": "L'alias est attribué à vie : ni vous, ni INFLUX ne pouvez le changer.",
+    "none": "Votre alias vous sera attribué avec l'ouverture de votre profil."
+  },
+  "layer": {
+    "public": "Visible de toutes les marques inscrites.",
+    "revealed": "Visible uniquement après l'ouverture d'une mise en relation.",
+    "internal": "Visible uniquement par vous et l'équipe INFLUX."
+  },
+  "summary": {
+    "title": "Sommaire de votre profil",
+    "complete": "Complet",
+    "incomplete": "À compléter",
+    "soon": "Bientôt disponible"
+  },
+  "sections": {
+    "presentation": "Présentation",
+    "editorial": "Ligne éditoriale",
+    "networks": "Réseaux sociaux",
+    "audience": "Audience",
+    "offer": "Mon offre"
+  },
+  "blocks": {
+    "missing": "À compléter : {fields}.",
+    "allSet": "Toutes les informations demandées sont renseignées."
+  },
+  "completeness": {
+    "label": "Complétude du profil",
+    "value": "{score, number} %"
+  },
+  "required": {
+    "headline": "titre court",
+    "bio": "bio",
+    "primaryTopic": "thématique principale",
+    "publicationLanguages": "langues de publication",
+    "residenceCountry": "pays de résidence",
+    "networkLines": "au moins un réseau social",
+    "primaryAccount": "réseau principal",
+    "handle": "pseudo du réseau principal",
+    "profileUrl": "lien du profil du réseau principal",
+    "followers": "nombre d'abonnés du réseau principal",
+    "figuresDate": "confirmation de vos chiffres",
+    "mainAudienceCountry": "pays principal de votre audience",
+    "mainAudienceShare": "part de ce pays dans votre audience",
+    "formats": "formats proposés",
+    "availability": "disponibilité"
+  },
+  "field": {
+    "required": "obligatoire",
+    "limit": "{max, plural, one {# choix au maximum} other {# choix au maximum}}",
+    "count": "{count} sur {max}",
+    "limitReached": "Maximum atteint : décochez un choix pour en prendre un autre.",
+    "characters": "{count, number} / {max, number} caractères",
+    "choose": "Choisir…",
+    "addLanguage": "Ajouter une langue…",
+    "addTopic": "Ajouter une thématique…",
+    "remove": "Retirer {label}",
+    "selected": "Choix retenus"
+  },
+  "fields": {
+    "headline": {
+      "label": "Titre court",
+      "help": "Votre activité en une ligne, de 20 à 120 caractères. Sans pseudo, sans @, sans lien, sans nom de marque."
+    },
+    "bio": {
+      "label": "Bio",
+      "help": "De 150 à 800 caractères. Elle est lue par toutes les marques inscrites : ni pseudo, ni lien, ni coordonnées."
+    },
+    "collaborationExperience": {
+      "label": "Expérience de collaborations avec des marques",
+      "help": "Une tranche suffit : ne citez aucune marque."
+    },
+    "legalFirstName": {
+      "label": "Prénom légal"
+    },
+    "legalLastName": {
+      "label": "Nom légal"
+    },
+    "contactPhone": {
+      "label": "Téléphone",
+      "help": "Au format international, par exemple +33612345678."
+    },
+    "contactEmail": {
+      "label": "E-mail de contact",
+      "help": "Facultatif : votre adresse de connexion reste utilisée sinon."
+    },
+    "city": {
+      "label": "Ville de résidence",
+      "help": "Elle n'est jamais communiquée aux marques."
+    },
+    "primaryTopic": {
+      "label": "Thématique principale"
+    },
+    "secondaryTopics": {
+      "label": "Thématiques secondaires"
+    },
+    "tones": {
+      "label": "Ton éditorial"
+    },
+    "publicationLanguages": {
+      "label": "Langues de publication"
+    },
+    "residenceCountry": {
+      "label": "Pays de résidence",
+      "help": "Repris de votre compte.",
+      "change": "Modifier dans Mon compte"
+    },
+    "accountLanguage": {
+      "label": "Langue de votre espace"
+    },
+    "travelScope": {
+      "label": "Déplacements possibles"
+    }
+  },
+  "experience": {
+    "none": "Aucune",
+    "1_5": "De 1 à 5",
+    "6_20": "De 6 à 20",
+    "gt_20": "Plus de 20"
+  },
+  "travel": {
+    "none": "Non",
+    "domestic": "Dans mon pays",
+    "international": "À l'international"
+  },
+  "reference": {
+    "tone": {
+      "educational": "Pédagogique",
+      "humorous": "Humoristique",
+      "inspiring": "Inspirant",
+      "premium": "Premium et élégant",
+      "straightforward": "Direct et sans détour",
+      "family_friendly": "Familial",
+      "expert": "Expert et technique"
+    }
+  },
+  "figures": {
+    "confirmAll": "Pour mettre à jour la date de vos chiffres, confirmez aussi votre rythme de publication et vos commentaires moyens."
+  },
+  "issues": {
+    "required": "Ce champ est obligatoire.",
+    "invalid": "Cette valeur n'est pas valide.",
+    "unknown": "Ce choix n'est plus disponible : choisissez-en un autre.",
+    "duplicate": "Cette valeur existe déjà : retirez le doublon.",
+    "wrong_network": "Ce lien ne correspond pas au réseau choisi.",
+    "sum_exceeds_100": "Le total dépasse 100 %. Réduisez l'une des parts."
+  },
+  "errors": {
+    "identifierInText": "Votre texte contient ce qui ressemble à un pseudo, un lien ou un identifiant. Retirez-le : il sera partagé une fois la mise en relation ouverte."
+  },
+  "save": {
+    "saving": "Enregistrement…",
+    "saved": "Enregistré automatiquement à {time}",
+    "idle": "Enregistrement automatique",
+    "retry": "Modifications non enregistrées — nouvelle tentative dans 5 s."
+  }
+}

@@ -84,7 +84,8 @@ export function AuthMessages({
 /**
  * The texts of the spaces, given once by (space)/layout.tsx: `auth` and `account` for the homes and
  * "mon compte" (the blocking terms screen, 17 §6.7, can show on any page), `member` for the shell,
- * `brandProfile` for the brand's profile (17 §4.2) and its labels of lists.
+ * `brandProfile` for the brand's profile (17 §4.2) and its labels of lists, `creatorProfile` for the
+ * creator's (17 §5.2).
  */
 export function SpaceMessages({
   locale,
@@ -93,9 +94,12 @@ export function SpaceMessages({
   locale: AppLocale;
   children: ReactNode;
 }) {
-  const { auth, account, member, brandProfile } = MESSAGES[locale];
+  const { auth, account, member, brandProfile, creatorProfile } =
+    MESSAGES[locale];
   return (
-    <NextIntlClientProvider messages={{ auth, account, member, brandProfile }}>
+    <NextIntlClientProvider
+      messages={{ auth, account, member, brandProfile, creatorProfile }}
+    >
       {children}
     </NextIntlClientProvider>
   );

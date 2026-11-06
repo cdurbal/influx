@@ -2,7 +2,7 @@
   "meta": {
     "hub": "My account — INFLUX",
     "details": "My details — INFLUX",
-    "profile": "My brand profile — INFLUX",
+    "profile": "My profile — INFLUX",
     "preferences": "My communication preferences — INFLUX",
     "sessions": "My sessions — INFLUX",
     "data": "My data — INFLUX"
@@ -14,6 +14,7 @@
     "backPrefix": "Back to",
     "items": {
       "accountProfile": "Your brand, what you look for, your contact person",
+      "accountProfileCreator": "Your alias, your presentation, your editorial line",
       "accountDetails": "Email address, country, language",
       "accountPreferences": "The emails you receive",
       "accountSessions": "The devices signed in to your account",
@@ -23,6 +24,7 @@
   "nav": {
     "accountDetails": "My details",
     "accountProfile": "Brand profile",
+    "accountProfileCreator": "My profile",
     "accountPreferences": "My preferences",
     "accountSessions": "My sessions",
     "accountData": "My data"

@@ -1,7 +1,7 @@
 "use client";
 
 // The page-menu of "mon compte" (docs/mvp/17 §6.0; D74; 20 page-menu): the page of the "Compte"
-// entry, at every width. One full-width row per page of the rubric, in the order of accountPagesOf(role):
+// entry, at every width. One full-width row per page of the rubric, in the order of accountPagesOf():
 // a decorative icon, the label, one sentence, a decorative chevron; the label's link is stretched
 // over the row. A list in <main>, never a <nav>: the shell's is the one navigation landmark. It
 // shows links only, so the blocking terms screen lets it through (TERMS_EXEMPT_PAGES); a link to a
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 import {
+  accountLabelKeyOf,
   accountPagesOf,
   memberPageHref,
   type AccountSubPage,
@@ -50,7 +51,7 @@ export function AccountHub() {
     <div className={SPACE_SCREEN_CLASSES}>
       <PageHeader title={t("hub.title")} />
       <ul className={HUB_LIST_CLASSES}>
-        {accountPagesOf(me.role).map((page) => {
+        {accountPagesOf().map((page) => {
           const Icon = HUB_ICONS[page];
           return (
             <li key={page} className={HUB_ROW_CLASSES}>
@@ -60,9 +61,11 @@ export function AccountHub() {
                   href={memberPageHref(page, locale)}
                   className={HUB_LINK_CLASSES}
                 >
-                  {t(`nav.${page}`)}
+                  {t(`nav.${accountLabelKeyOf(page, me.role)}`)}
                 </Link>
-                <p className={HUB_SENTENCE_CLASSES}>{t(`hub.items.${page}`)}</p>
+                <p className={HUB_SENTENCE_CLASSES}>
+                  {t(`hub.items.${accountLabelKeyOf(page, me.role)}`)}
+                </p>
               </div>
               <ChevronRightIcon
                 aria-hidden="true"

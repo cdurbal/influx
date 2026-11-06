@@ -67,8 +67,8 @@ const SUB_PAGES: Readonly<Partial<Record<NavEntry, readonly MemberPage[]>>> = {
 };
 
 /**
- * The sub-entries of a rubric, in order; none for a rubric of a single page. `role` adds the pages
- * only that role has (a brand's profile leads "Compte"); without it, the pages common to both.
+ * The sub-entries of a rubric, in order; none for a rubric of a single page. `role` adds the profile
+ * page that leads "Compte" (a brand's or a creator's, L2D); without it, the pages common to both.
  */
 export function subEntriesOf(
   entry: NavEntry,
@@ -76,7 +76,7 @@ export function subEntriesOf(
 ): readonly MemberPage[] {
   const pages =
     entry === "account" && role !== undefined
-      ? accountPagesOf(role)
+      ? accountPagesOf()
       : (SUB_PAGES[entry] ?? []);
   return pages.length > 1 ? pages : [];
 }
@@ -96,9 +96,9 @@ export function activePlaceOf(page: MemberPage | null): ActivePlace | null {
   }
   const entries = Object.values(SPACE_ENTRIES).flat();
   for (const { entry } of entries) {
-    // Every page a role may have counts (the profile of a brand included); who may see it is the shell's.
+    // Every page a role may have counts (the profile included).
     const pages: readonly MemberPage[] =
-      entry === "account" ? accountPagesOf("advertiser") : subEntriesOf(entry);
+      entry === "account" ? accountPagesOf() : subEntriesOf(entry);
     if (pages.includes(page)) {
       return { entry, sub: page };
     }

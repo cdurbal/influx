@@ -3,9 +3,9 @@ import {
   memberPageLocale,
   memberPageMetadata,
 } from "@/components/auth/AuthPage";
-import { BrandProfileScreen } from "@/components/brand-profile/BrandProfileScreen";
+import { AccountProfileScreen } from "@/components/account/AccountProfileScreen";
 
-// "Mon profil de marque" (docs/mvp/17 §4.2, M2; §2.6), French path, behind the session.
+// "Mon profil de marque" (17 §4.2, M2) or "Mon profil" (17 §5.2, C2; §2.6), by role, French path, behind the session.
 export async function generateMetadata({
   params,
 }: PageProps<"/[locale]/compte/profil">): Promise<Metadata> {
@@ -18,5 +18,5 @@ export default async function AccountProfilePage({
 }: PageProps<"/[locale]/compte/profil">) {
   const { locale } = await params;
   memberPageLocale(locale, "accountProfile", "compte/profil");
-  return <BrandProfileScreen />;
+  return <AccountProfileScreen />;
 }

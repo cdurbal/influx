@@ -1,0 +1,168 @@
+{
+  "page": {
+    "title": "My profile",
+    "loading": "Loading your profile…",
+    "unavailable": "We can't display your profile right now. Please try again in a few minutes.",
+    "retry": "Try again",
+    "noStorefront": "Your profile isn't open for editing yet. Please come back later: nothing is asked of you for now."
+  },
+  "alias": {
+    "name": "Profile {alias}",
+    "explain": "Brands see you as {alias} until an introduction is opened.",
+    "reveal": "Your handle, your links and your exact figures are only shared with them at that point, and with them alone.",
+    "forLife": "Your alias is assigned for life: neither you nor INFLUX can change it.",
+    "none": "Your alias will be assigned when your profile opens."
+  },
+  "layer": {
+    "public": "Visible to every registered brand.",
+    "revealed": "Visible only after an introduction is opened.",
+    "internal": "Visible only to you and the INFLUX team."
+  },
+  "summary": {
+    "title": "Your profile at a glance",
+    "complete": "Complete",
+    "incomplete": "To complete",
+    "soon": "Coming soon"
+  },
+  "sections": {
+    "presentation": "Presentation",
+    "editorial": "Editorial line",
+    "networks": "Social networks",
+    "audience": "Audience",
+    "offer": "My offer"
+  },
+  "blocks": {
+    "missing": "To complete: {fields}.",
+    "allSet": "All the information asked for is filled in."
+  },
+  "completeness": {
+    "label": "Profile completeness",
+    "value": "{score, number}%"
+  },
+  "required": {
+    "headline": "short title",
+    "bio": "bio",
+    "primaryTopic": "main topic",
+    "publicationLanguages": "publication languages",
+    "residenceCountry": "country of residence",
+    "networkLines": "at least one social network",
+    "primaryAccount": "main network",
+    "handle": "handle on the main network",
+    "profileUrl": "profile link on the main network",
+    "followers": "follower count on the main network",
+    "figuresDate": "confirmation of your figures",
+    "mainAudienceCountry": "main country of your audience",
+    "mainAudienceShare": "share of that country in your audience",
+    "formats": "formats offered",
+    "availability": "availability"
+  },
+  "field": {
+    "required": "required",
+    "limit": "Up to {max}",
+    "count": "{count} of {max}",
+    "limitReached": "Limit reached: untick a choice to pick another.",
+    "characters": "{count, number} / {max, number} characters",
+    "choose": "Choose…",
+    "addLanguage": "Add a language…",
+    "addTopic": "Add a topic…",
+    "remove": "Remove {label}",
+    "selected": "Your choices"
+  },
+  "fields": {
+    "headline": {
+      "label": "Short title",
+      "help": "Your activity in one line, 20 to 120 characters. No handle, no @, no link, no brand name."
+    },
+    "bio": {
+      "label": "Bio",
+      "help": "150 to 800 characters. Every registered brand reads it: no handle, no link, no contact details."
+    },
+    "collaborationExperience": {
+      "label": "Experience of brand collaborations",
+      "help": "A range is enough: don't name any brand."
+    },
+    "legalFirstName": {
+      "label": "Legal first name"
+    },
+    "legalLastName": {
+      "label": "Legal last name"
+    },
+    "contactPhone": {
+      "label": "Phone",
+      "help": "In international format, for example +33612345678."
+    },
+    "contactEmail": {
+      "label": "Contact e-mail",
+      "help": "Optional: your sign-in address is used otherwise."
+    },
+    "city": {
+      "label": "City of residence",
+      "help": "It is never shared with brands."
+    },
+    "primaryTopic": {
+      "label": "Main topic"
+    },
+    "secondaryTopics": {
+      "label": "Secondary topics"
+    },
+    "tones": {
+      "label": "Editorial tone"
+    },
+    "publicationLanguages": {
+      "label": "Publication languages"
+    },
+    "residenceCountry": {
+      "label": "Country of residence",
+      "help": "Taken from your account.",
+      "change": "Change it in My account"
+    },
+    "accountLanguage": {
+      "label": "Language of your space"
+    },
+    "travelScope": {
+      "label": "Travel possible"
+    }
+  },
+  "experience": {
+    "none": "None",
+    "1_5": "1 to 5",
+    "6_20": "6 to 20",
+    "gt_20": "More than 20"
+  },
+  "travel": {
+    "none": "No",
+    "domestic": "Within my country",
+    "international": "Internationally"
+  },
+  "reference": {
+    "tone": {
+      "educational": "Educational",
+      "humorous": "Humorous",
+      "inspiring": "Inspiring",
+      "premium": "Premium and elegant",
+      "straightforward": "Direct and straightforward",
+      "family_friendly": "Family-friendly",
+      "expert": "Expert and technical"
+    }
+  },
+  "figures": {
+    "confirmAll": "To update the date of your figures, please also confirm how often you post and your average comments."
+  },
+  "issues": {
+    "required": "This field is required.",
+    "invalid": "This value isn't valid.",
+    "unknown": "This choice is no longer available: please pick another.",
+    "duplicate": "This value already exists: please remove the duplicate.",
+    "wrong_network": "This link doesn't match the chosen network.",
+    "sum_exceeds_100": "The total is over 100%. Please lower one of the shares."
+  },
+  "errors": {
+    "identifierInText": "Your text contains what looks like a handle, a link or an identifier. Please remove it: it will be shared once the introduction is opened."
+  },
+  "save": {
+    "saving": "Saving…",
+    "saved": "Saved automatically at {time}",
+    "idle": "Automatic saving",
+    "retry": "Changes not saved — trying again in 5 s."
+  }
+}

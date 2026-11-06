@@ -12,6 +12,7 @@ import { effectiveTokens } from "@influx/test-kit/guards";
 import enAccount from "@/locales/en/account.json" with { type: "json" };
 import enMember from "@/locales/en/member.json" with { type: "json" };
 import frAccount from "@/locales/fr/account.json" with { type: "json" };
+import frCreatorProfile from "@/locales/fr/creator-profile.json" with { type: "json" };
 import frMember from "@/locales/fr/member.json" with { type: "json" };
 import { revokeSessions, seedMember } from "./support/account";
 import { expectNoAxeViolation } from "./support/axe";
@@ -604,16 +605,23 @@ for (const width of [375, 768]) {
     await expect(title(page)).toHaveText(ACCOUNT.fr.hub.title);
     await expect(title(page)).toBeFocused();
     expect(await visibleLinks()).toBe(2);
+    // The creator's profile leads the four pages common to both spaces (L2D, commit 12).
     await expect(page.getByRole("main").getByRole("listitem")).toHaveCount(
-      ACCOUNT_SUB_PAGES.length,
+      ACCOUNT_SUB_PAGES.length + 1,
     );
 
-    for (const { key, screen } of ACCOUNT_SUB_PAGES) {
+    for (const { key, heading } of [
+      { key: "accountProfileCreator", heading: frCreatorProfile.page.title },
+      ...ACCOUNT_SUB_PAGES.map(({ key, screen }) => ({
+        key,
+        heading: ACCOUNT.fr[screen].title,
+      })),
+    ] as const) {
       await page
         .getByRole("main")
         .getByRole("link", { name: ACCOUNT.fr.nav[key], exact: true })
         .click();
-      await expect(title(page), key).toHaveText(ACCOUNT.fr[screen].title);
+      await expect(title(page), key).toHaveText(heading);
       await expect(title(page), key).toBeFocused();
       expect(await visibleLinks(), key).toBe(2);
       await expect(

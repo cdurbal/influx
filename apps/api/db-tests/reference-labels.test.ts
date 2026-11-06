@@ -85,3 +85,44 @@ describe("labels of the reference lists of the brand profile (04 §4.2 R8)", () 
     }
   });
 });
+
+/** The `reference` part of `apps/web/src/locales/<locale>/creator-profile.json` (L2D, commit 12). */
+function creatorReferenceLabels(locale: (typeof LOCALES)[number]): Labels {
+  const file = new URL(
+    `../../web/src/locales/${locale}/creator-profile.json`,
+    import.meta.url,
+  );
+  const messages = JSON.parse(readFileSync(file, "utf8")) as {
+    reference: Labels;
+  };
+  return messages.reference;
+}
+
+describe("labels of the reference lists of the creator profile (04 §4.2 R8; L2D commit 12)", () => {
+  // The topics are the brands' (07 RG33: one vocabulary): their labels are the brand file's, held above.
+  // The editorial tones are the creator's own.
+  for (const locale of LOCALES) {
+    it(`${locale}: every active code of reference.editorial_tones has its label under its label_key`, async () => {
+      const labels = creatorReferenceLabels(locale).tone ?? {};
+      const missing: string[] = [];
+      for (const row of await rowsOf("editorial_tones")) {
+        if (!row.active) {
+          continue;
+        }
+        expect(row.label_key, row.code).toBe(`editorial_tone.${row.code}`);
+        if ((labels[row.code] ?? "").trim() === "") {
+          missing.push(row.code);
+        }
+      }
+      expect(missing).toEqual([]);
+    });
+
+    it(`${locale}: every label of tone belongs to a code of reference.editorial_tones`, async () => {
+      const known = new Set(
+        (await rowsOf("editorial_tones")).map((row) => row.code),
+      );
+      const labels = Object.keys(creatorReferenceLabels(locale).tone ?? {});
+      expect(labels.filter((code) => !known.has(code))).toEqual([]);
+    });
+  }
+});

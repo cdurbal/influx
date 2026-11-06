@@ -1,13 +1,13 @@
 // "Mon profil de marque" (docs/mvp/17 §4.2, M2; 06 RG3, RG5, RG17, RG83 to RG85, CA1, CA2, CA4, CA6,
 // CA7, CA39, CA44, CA46, CA47; jalons/l2b, commit 11): blocks 1 to 3 saved by themselves, the score
 // and the missing fields by name, the submission, in French at 1 440 px and in English at 375 px
-// (accordion, action bar), and a creator who finds no such page (18 T14.3). A member seeded in the
+// (accordion, action bar), and a creator who finds its own profile, never the brand's (18 T14.3; inverted at L2D). A member seeded in the
 // local stack (no code, no mail); the texts are the locale files', never copies.
 import { connectAsMigrationRole } from "@influx/test-kit/db";
 import type { Page, Route } from "@playwright/test";
 import { statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import frErrors from "@/locales/fr/errors.json" with { type: "json" };
+import frCreatorProfile from "@/locales/fr/creator-profile.json" with { type: "json" };
 import enBrandProfile from "@/locales/en/brand-profile.json" with { type: "json" };
 import frBrandProfile from "@/locales/fr/brand-profile.json" with { type: "json" };
 import enAuth from "@/locales/en/auth.json" with { type: "json" };
@@ -248,7 +248,9 @@ test("a brand on a phone in English: accordion, action bar, first missing field 
   }
 });
 
-test("a creator finds no brand profile: not in its column, not at the address (18 T14.3)", async ({
+// Inverted at L2D (commit 12): a creator used to find a page that does not exist at this address
+// (18 T14.3); the address now holds its own profile, and still nothing of the brand's.
+test("a creator finds its own profile, never the brand's: in its column, at the same address (18 T14.3, 17 §5.2)", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -262,8 +264,11 @@ test("a creator finds no brand profile: not in its column, not at the address (1
   await expect(
     page.getByRole("link", { name: "Profil de marque" }),
   ).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: frCreatorProfile.page.title }).first(),
+  ).toBeVisible();
   await open(page, "/fr/compte/profil");
-  await expect(title(page)).toHaveText(frErrors.notFound.title);
+  await expect(title(page)).toHaveText(frCreatorProfile.page.title);
   await expect(page.getByLabel(/^Secteur principal/)).toHaveCount(0);
 });
 

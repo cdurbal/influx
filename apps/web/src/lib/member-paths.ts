@@ -32,7 +32,7 @@ export const MEMBER_PAGE_SLUGS: Readonly<
   // its page-menu (D74) holds the bare address, each page of the rubric a sub-path.
   accountHub: { fr: "compte", en: "account" },
   accountDetails: { fr: "compte/informations", en: "account/details" },
-  // "Mon profil de marque" (17 §4.2, M2; EC-L2B-7): the brand's alone until the creator's profile (L2D)
+  // "Mon profil de marque" (17 §4.2, M2; EC-L2B-7) for a brand, "Mon profil" (17 §5.2, C2; L2D) for a creator
   accountProfile: { fr: "compte/profil", en: "account/profile" },
   accountPreferences: { fr: "compte/preferences", en: "account/preferences" },
   accountSessions: { fr: "compte/sessions", en: "account/sessions" },
@@ -53,21 +53,35 @@ export const ACCOUNT_PAGES = [
 export type AccountPage = (typeof ACCOUNT_PAGES)[number];
 
 /**
- * The page of "mon compte" that only a brand has (L2B: "Mon profil de marque", M2), first of its
- * rubric. A creator reaching it finds a page that does not exist, as the API answers (18 T14.3);
- * the creator's own profile page joins at L2D.
+ * The profile page of "mon compte", first of its rubric for both roles (L2B "Mon profil de marque",
+ * M2; L2D "Mon profil", C2): the same address, the screen follows the real role (17 §2.6).
  */
-export const BRAND_ONLY_ACCOUNT_PAGE =
+export const PROFILE_ACCOUNT_PAGE =
   "accountProfile" as const satisfies MemberPage;
 
 /** Every page of the rubric "mon compte" a member can have in its column. */
-export type AccountSubPage = AccountPage | typeof BRAND_ONLY_ACCOUNT_PAGE;
+export type AccountSubPage = AccountPage | typeof PROFILE_ACCOUNT_PAGE;
 
-/** The pages of "mon compte" a member of `role` reaches, in the order of the column and the page-menu. */
-export function accountPagesOf(role: SignupDoor): readonly AccountSubPage[] {
-  return role === "advertiser"
-    ? [BRAND_ONLY_ACCOUNT_PAGE, ...ACCOUNT_PAGES]
-    : ACCOUNT_PAGES;
+/**
+ * The pages of "mon compte" a member reaches, in the order of the column and the page-menu: the
+ * same for both roles since L2D (the role only decides which screen the profile page holds).
+ */
+export function accountPagesOf(): readonly AccountSubPage[] {
+  return [PROFILE_ACCOUNT_PAGE, ...ACCOUNT_PAGES];
+}
+
+/**
+ * The key of the label of a page of "mon compte" in the translation files (`account.nav.*`,
+ * `account.hub.items.*`): the profile page is "Profil de marque" for a brand, "Mon profil" for a
+ * creator, the others are the same for both.
+ */
+export function accountLabelKeyOf(
+  page: AccountSubPage,
+  role: SignupDoor,
+): AccountSubPage | "accountProfileCreator" {
+  return page === PROFILE_ACCOUNT_PAGE && role === "creator"
+    ? "accountProfileCreator"
+    : page;
 }
 
 /**

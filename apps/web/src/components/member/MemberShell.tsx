@@ -49,6 +49,7 @@ import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { activePlaceOf, navItemsOf, subEntriesOf } from "@/lib/member-nav";
 import {
+  accountLabelKeyOf,
   homePageOf,
   isTermsExempt,
   memberPageHref,
@@ -299,7 +300,9 @@ function Frame({
           subEntries: subEntriesOf(item.entry, me.role).map((sub) => ({
             page: sub,
             href: memberPageHref(sub, locale),
-            label: tAccount(`nav.${sub as AccountSubPage}`),
+            label: tAccount(
+              `nav.${accountLabelKeyOf(sub as AccountSubPage, me.role)}`,
+            ),
           })),
         }));
 

@@ -841,6 +841,7 @@ describe("Additional guards", () => {
       "account.json",
       "auth.json",
       "brand-profile.json",
+      "creator-profile.json",
       "errors.json",
       "landing.json",
       "legal.json",
