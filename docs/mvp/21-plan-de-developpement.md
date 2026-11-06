@@ -182,6 +182,9 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 | L2CS-6 | Index d'expression `normalized_brand_name(legal_name)`, `lower(website_domain)` sur `published` | Avant le Lot 3 | idem |
 | L2CS-7 | `lead.updated` : dernière ligne en attente par `(subject_key, destination)`, ou plafond par compte | Plus tard | idem |
 | EC-L2C-18c-1 | « Page précédente » perdue après rechargement d'une page ≥ 3 (seule « Première page ») | Plus tard | `archives/jalons/l2c/run.md` ligne 18c |
+| L2DU-12 à L2DU-15 | Profil créateur, textes : reliquat « Autres » des genres ambigu, « Non renseigné » proposé, amende RG57 (`product-owner`) ; sans vitrine, message contradictoire, n'afficher que titre, notice et retour, aucune promesse de notification tant que rien ne l'envoie (`product-owner`) ; disponibilité : pléonasme « sous moins de 2 semaines » et tranches qui se recouvrent, correction de texte ; « Brouillon » avant L2G, « en cours de saisie » proposé (`product-owner`) | Avant production | `jalons/l2d/ux-constats.md` |
+| L2DU-16 | Profil créateur : passages axe `wcag22` à 375 en EN avec lignes et sur l'écran sans vitrine | Avant production | idem |
+| L2DU-17, L2DU-18 | Blocs du profil créateur repliables sous lg (ou « Haut de page ») ; cible tactile de 44 px du lien « Modifier dans Mon compte » | Plus tard | idem |
 
 **Plus tard** (sans action au Lot 2) : *avant production* J9T-1, J9S-2, J9S-4, AL53, J4S-8, manques du commit J9-11 et points `expert-ux` du commit J9-5 (`archives/jalons/j9-fiche.md`) ; *Lot 3* T15.2, F3 ; *Lot 5* classement des groupes d'erreurs, J9T-3, J9T-10, J8S-8, J8S-9, RK-16, effacement Apollo, écran des identifiants Brevo (option) ; *Lot 6* F8, J7T-6 ; *Lot 6bis* reports D70 (`archives/jalons/d70-plan.md` l. 125 à 130) ; décisions DZ-1, 2, 4 à 7 (`decisions.md`).
 
