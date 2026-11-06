@@ -20,6 +20,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/profiles-creator-public.test.ts": 54,
   "db-tests/reference-labels.test.ts": 21,
   "db-tests/reference-taxonomies.test.ts": 177,
+  "db-tests/t1-anonymisation.test.ts": 7,
   "db-tests/t13-ops-recording.test.ts": 10,
   "db-tests/t14-backoffice-accounts-route.test.ts": 23,
   "db-tests/t14-backoffice-actions-route.test.ts": 36,

@@ -5,7 +5,12 @@ import type { IncomingHttpHeaders, IncomingMessage } from "node:http";
 import fastifyCookie from "@fastify/cookie";
 import { systemStatusSchema } from "@influx/contracts/system";
 import Fastify, { LogController } from "fastify";
-import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
+import type {
+  FastifyError,
+  FastifyReply,
+  FastifyRequest,
+  FastifySchema,
+} from "fastify";
 import type { DestinationStream } from "pino";
 import type { ApiConfig } from "./config/schema.ts";
 import {
@@ -147,6 +152,23 @@ const ROUTE_HOOKS_REFUSED = ["onSend", "preSerialization"] as const;
 /** A route option holding one hook or a list of hooks; an empty list declares none. */
 function hasHook(value: unknown): boolean {
   return Array.isArray(value) ? value.length > 0 : value !== undefined;
+}
+
+/** A route as the onRoute hook saw it, with its schemas once the envelope fallback is added. */
+export type InventoriedRoute = {
+  method: string;
+  url: string;
+  schema: FastifySchema;
+};
+
+const routeInventories = new WeakMap<object, InventoriedRoute[]>();
+
+/**
+ * Every route a server registered, read from its own onRoute hook, never from a list kept by hand
+ * (18 T1.2): the anonymisation sweep calls each one, and a route added later is swept by itself.
+ */
+export function routeInventoryOf(server: object): readonly InventoriedRoute[] {
+  return routeInventories.get(server) ?? [];
 }
 
 /** One log line per request, written on completion: method, route model, status, duration. */
@@ -291,6 +313,9 @@ export function buildServer(
   // No secret here: the short tokens are signed by src/platform/auth-tokens.ts alone.
   void app.register(fastifyCookie, { hook: false });
 
+  const inventory: InventoriedRoute[] = [];
+  routeInventories.set(app, inventory);
+
   // Structural rules on every route, checked when the route is registered: a violation stops
   // the server before it listens (02 §4 rule 1, 21 J1-E).
   app.addHook("onRoute", (route) => {
@@ -329,6 +354,9 @@ export function buildServer(
     // Surface bound to the prefix (21 J1-G, J1-J A2). /health belongs to no surface.
     if (url !== HEALTH_ROUTE) {
       checkRouteSurface(url, route.config?.surface);
+    }
+    for (const method of methods) {
+      inventory.push({ method: String(method), url, schema: route.schema });
     }
   });
 
