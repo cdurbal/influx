@@ -12,4 +12,4 @@ Réponse attendue : OK, ou la liste des écarts, écrite ici. Ce qui est absent 
 
 ## Écarts
 
-- **F-1 (2026-11-06), corrigé, à revoir sur `staging`** : un badge de couche sur deux lignes prend trop de place. Icône seule quand le texte ne tient pas sur une ligne, texte au survol, au focus et au toucher (`17` §4.2).
+- **F-1 (2026-11-06), corrigé par `fe380b6`, clos** (CI verte à 16 h 47 ; recette validée ensuite par le fondateur, ligne F de `run.md`, commit de 17 h 22 ; L2DT-3) : un badge de couche sur deux lignes prend trop de place. Icône seule quand le texte ne tient pas sur une ligne, texte au survol, au focus et au toucher (`17` §4.2).

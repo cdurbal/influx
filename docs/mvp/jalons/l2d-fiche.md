@@ -139,4 +139,26 @@ Choix prudents, à signer par `architecte` en ligne 02 ou par le fondateur à la
 
 ## Revue
 
-*Rempli par `/jalon-run` : L2DT-n, L2DS-n.*
+2026-11-06, `547cecf^..7e0acc3` (21 commits, `fe380b6` d'une autre session compris) : **aucun bloquant**. `testeur` : 4 dans le jalon, 2 avant production, 4 plus tard ; `expert-cybersecurite` : rien dans le jalon, 1 avant production, 6 plus tard, `0215` relue (L2C-fix2 soldée), signatures `03` P7 et attestation prêtes. Détail : `l2d/revue-constats-testeur.md`, `l2d/revue-constats-securite.md` ; échéances : `l2d/cloture.md` § Reliquat.
+
+| Id | Gravité | Fichier:ligne | Correctif → sort |
+|---|---|---|---|
+| L2DT-1 | dans le jalon | `e2e/brand-profile.spec.ts:169-170` | Instable (run 42243018278) : `expect.poll` sur l'état stocké avant `reload` → `fix-2` |
+| L2DT-2 | dans le jalon | `ci.yml:295-298` | Éclats à 701-803 s, dont 464-524 s de `playwright install --with-deps` : navigateur en cache sur `main`, `--with-deps` selon la mesure → `fix-1` (I-4) |
+| L2DT-3 | dans le jalon | `run.md` ; `recette.md:15` | `fe380b6` sans ligne, F-1 « à revoir » → ligne `fix-F1` et F-1 clos, écrits avec la revue |
+| L2DT-4 | dans le jalon | `l2d/10.md` (EC-L2D-10-1) | Corps refusé : 400 avant la session, non 404 → `18` T14.3 amendé en clôture, sans code |
+| L2DT-5 | avant production | `db-tests/t1-anonymisation.test.ts:585-600, 624-636` | Ville, publications, commentaires, parts exactes en marqueurs distinctifs → `21` §8 |
+| L2DT-6 | avant production | `t1-anonymisation.test.ts:744-757` | Balayage du routeur sans session → `21` §8 |
+| L2DT-7 | plus tard | `member/ui/LayerBadge.tsx:231` | Ordre de tabulation à `expert-ux`, dépassement en fonction pure testée → `21` §8 |
+| L2DT-8 | plus tard | `tests/tm11-identifying-fields.test.ts:299-312` | Exemption prouvée par le nom des cas T14, non par la chaîne `T14.3` → `21` §8 |
+| L2DT-9 | plus tard | `profiles-creator-*.test.ts` ; `use-creator-profile.ts:215-234` | Concurrence (`Promise.all` par invariant), crochet « un à la fois » → `21` §8 |
+| L2DT-10 | plus tard | `profiles-creator-bands.test.ts:293-301` | Bornes 499 999 et 999 999 (abonnés, portée) → `21` §8 |
+| L2DS-1 | avant production (avant tout `profile_url` cliquable : L2E, Lot 4) | `creator-profile/network-line.ts:57,75` ; `0217:205,269,277` | `https://evil.example\.instagram.com` accepté : autorité `^[A-Za-z0-9.-]+(:[0-9]{1,5})?$` au domaine et en base, témoins `\` et `%5C` → `21` §8 |
+| L2DS-2 | plus tard (L2E) | `0217:516-518` ; `0218:530, 689-698` | Métrique écrite par le créateur : `figures_source = 'declared'` forcé → `21` §8 |
+| L2DS-3 | plus tard (avant Lot 3) | `profiles-creator-identity.test.ts:197-221` ; `0217:600-629` | T1-R par dépendances, tous schémas → `21` §8 |
+| L2DS-4 | plus tard (L2G) | `0216:318-322` ; `creator/profile.ts:49-53` | Vitrine modérée comme L2C, complétude recalculée à la soumission → `21` §8 |
+| L2DS-5 | plus tard (avant Lot 3) | `0218:271-376` ; `03` l. 896 | Aucun `execute` dynamique chez `influx_identity_definer` → `21` §8 |
+| L2DS-6 | plus tard | `0218:509-528, 730-733, 356-362` | Reprise de `0218` §8 à tout changement de bornes ; rôle figé hors `draft` (L2G) → `21` §8 |
+| L2DS-7 | plus tard (Lot 6) | `0218:825-831` ; `creator/routes.ts:149-165` | Limite de débit des écritures membres → `21` §8 |
+
+Hors table : `member-shell.spec.ts:193` assoupli (`toBeCloseTo(0, 0)`, EC-L2D-15-1), accepté par `testeur`, dit en clôture (invariant 17).
