@@ -200,3 +200,74 @@ describe("T16.5: no amount stored as a float, and none without its currency", ()
     ]);
   });
 });
+
+// T16-L2D (jalons/l2d commit 11; D78, D48, EC-L2D-2): no creator price is stored. The two tables of
+// 04 (rate cards, public rates) are not created, the net bounds of the price bands stay empty and
+// the commission rates stay empty; no column of a creator table is named after a price word.
+const PRICE_WORDS = ["price", "rate", "net", "currency", "amount"];
+
+/** Tables the creator profile must not have, wherever they would be created. */
+async function absentTables(
+  sql: postgres.Sql | postgres.TransactionSql,
+): Promise<string[]> {
+  const rows = await sql<{ name: string }[]>`
+    select table_schema || '.' || table_name as name
+      from information_schema.tables
+     where table_name in ('creator_rate_cards', 'creator_public_rates')
+     order by 1`;
+  return rows.map((row) => row.name);
+}
+
+/** Columns of a `creator_%` table whose whole name is a price word. */
+async function priceColumns(
+  sql: postgres.Sql | postgres.TransactionSql,
+): Promise<string[]> {
+  const rows = await sql<{ name: string }[]>`
+    select table_schema || '.' || table_name || '.' || column_name as name
+      from information_schema.columns
+     where table_schema = any (${OUR_SCHEMAS as unknown as string[]})
+       and table_name like 'creator\_%'
+       and column_name = any (${PRICE_WORDS})
+     order by 1`;
+  return rows.map((row) => row.name);
+}
+
+describe("T16-L2D: no creator price, no net, no rate stored", () => {
+  it("has neither creator_rate_cards nor creator_public_rates, in any schema", async () => {
+    expect(await absentTables(migration)).toEqual([]);
+  });
+
+  it("holds no net bound in reference.price_bands, and no row in billing.commission_rates", async () => {
+    const [bands] = await migration<{ count: number }[]>`
+      select count(*)::int as count from reference.price_bands
+       where net_min_amount_minor is not null or net_max_amount_minor is not null
+          or net_basis_label is not null or net_computed_at is not null`;
+    expect(bands?.count).toBe(0);
+    const [rates] = await migration<{ count: number }[]>`
+      select count(*)::int as count from billing.commission_rates`;
+    expect(rates?.count).toBe(0);
+  });
+
+  it("names no column of a creator table price, rate, net, currency or amount", async () => {
+    expect(await priceColumns(migration)).toEqual([]);
+  });
+
+  it("sees a rate table and a price column when one is created, then rolled back", async () => {
+    const found = await inRolledBackTransaction(migration, async (tx) => {
+      await tx`create table profiles.creator_rate_cards (account_id uuid, price bigint)`;
+      await tx`create table profiles.creator_public_rates (account_id uuid, rate smallint)`;
+      return {
+        tables: await absentTables(tx),
+        columns: await priceColumns(tx),
+      };
+    });
+    expect(found.tables).toEqual([
+      "profiles.creator_public_rates",
+      "profiles.creator_rate_cards",
+    ]);
+    expect(found.columns).toEqual([
+      "profiles.creator_public_rates.rate",
+      "profiles.creator_rate_cards.price",
+    ]);
+  });
+});
