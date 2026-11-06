@@ -546,31 +546,31 @@
 | 67 | 54 | 1. Cadrage : populations, tâches, enseignements du benchmark | RG2–RG117 |
 | 121 | 208 | 2. Architecture de l'information des deux espaces | RG1–RG140 |
 | 329 | 292 | 3. Le parcours d'inscription et de connexion | RG2–RG140 |
-| 621 | 599 | 4. Espace marque | RG1–RG116 |
+| 621 | 607 | 4. Espace marque | RG1–RG116 |
 | 628 | 44 | ↳ 4.1 M1 — Accueil marque | RG57–RG101 |
-| 672 | 108 | ↳ 4.2 M2 — Profil marque : complétion progressive et couches visibles | RG2–RG102 |
-| 780 | 80 | ↳ 4.3 M3 — Créer une campagne : 8 blocs, 5 étapes, un brouillon permanent | RG4–RG79 |
-| 860 | 105 | ↳ 4.4 M4 — Recherche de créateurs anonymisée | RG1–RG64 |
-| 965 | 57 | ↳ 4.5 M5 — Demander une mise en relation | RG15–RG116 |
-| 1022 | 56 | ↳ 4.6 M6 — Suivi des demandes et des mises en relation | RG73–RG111 |
-| 1078 | 95 | ↳ 4.7 M7 — La conversation à trois (spécification commune, vocabulaire par rôle) | RG7–RG104 |
-| 1173 | 34 | ↳ 4.8 M8 — Le canal de documents | RG65–RG74 |
-| 1207 | 13 | ↳ 4.9 Les autres écrans de l'espace marque | RG3–RG102 |
-| 1220 | 542 | 5. Espace créateur | RG1–RG117 |
-| 1231 | 50 | ↳ 5.1 C1 — Accueil créateur | RG13–RG99 |
-| 1281 | 105 | ↳ 5.2 C2 — Profil créateur : sept blocs, trois couches, une complétude honnête | RG8–RG112 |
-| 1386 | 76 | ↳ 5.3 C3 — Réseaux, preuves et badges | RG1–RG117 |
-| 1462 | 70 | ↳ 5.4 C4 — Mon offre et mes tarifs : l'écran de la transparence financière | RG22–RG73 |
-| 1532 | 55 | ↳ 5.5 C5 — Le fil des campagnes | RG15–RG60 |
-| 1587 | 96 | ↳ 5.6 C6 et C7 — Fiche de campagne et candidature | RG16–RG81 |
-| 1683 | 56 | ↳ 5.7 C8 — Mes candidatures : les huit états | RG67–RG78 |
-| 1739 | 23 | ↳ 5.8 C9 — Conversation, et les autres écrans créateur | RG5–RG102 |
-| 1762 | 172 | 6. Écrans transverses | RG14–RG143 |
-| 1934 | 271 | 7. Les deux écrans qui portent la valeur et le risque | RG4–RG113 |
-| 2205 | 105 | 8. Tokens |  |
-| 2310 | 36 | 9. Écarts et manques constatés | RG2–RG112 |
-| 2346 | 46 | 10. Ce qui reste à valider | RG6–RG109 |
-| 2392 | 51 | 11. Récapitulatif des écrans spécifiés |  |
+| 672 | 116 | ↳ 4.2 M2 — Profil marque : complétion progressive et couches visibles | RG2–RG102 |
+| 788 | 80 | ↳ 4.3 M3 — Créer une campagne : 8 blocs, 5 étapes, un brouillon permanent | RG4–RG79 |
+| 868 | 105 | ↳ 4.4 M4 — Recherche de créateurs anonymisée | RG1–RG64 |
+| 973 | 57 | ↳ 4.5 M5 — Demander une mise en relation | RG15–RG116 |
+| 1030 | 56 | ↳ 4.6 M6 — Suivi des demandes et des mises en relation | RG73–RG111 |
+| 1086 | 95 | ↳ 4.7 M7 — La conversation à trois (spécification commune, vocabulaire par rôle) | RG7–RG104 |
+| 1181 | 34 | ↳ 4.8 M8 — Le canal de documents | RG65–RG74 |
+| 1215 | 13 | ↳ 4.9 Les autres écrans de l'espace marque | RG3–RG102 |
+| 1228 | 544 | 5. Espace créateur | RG1–RG117 |
+| 1239 | 50 | ↳ 5.1 C1 — Accueil créateur | RG13–RG99 |
+| 1289 | 107 | ↳ 5.2 C2 — Profil créateur : sept blocs, trois couches, une complétude honnête | RG8–RG112 |
+| 1396 | 76 | ↳ 5.3 C3 — Réseaux, preuves et badges | RG1–RG117 |
+| 1472 | 70 | ↳ 5.4 C4 — Mon offre et mes tarifs : l'écran de la transparence financière | RG22–RG73 |
+| 1542 | 55 | ↳ 5.5 C5 — Le fil des campagnes | RG15–RG60 |
+| 1597 | 96 | ↳ 5.6 C6 et C7 — Fiche de campagne et candidature | RG16–RG81 |
+| 1693 | 56 | ↳ 5.7 C8 — Mes candidatures : les huit états | RG67–RG78 |
+| 1749 | 23 | ↳ 5.8 C9 — Conversation, et les autres écrans créateur | RG5–RG102 |
+| 1772 | 172 | 6. Écrans transverses | RG14–RG143 |
+| 1944 | 271 | 7. Les deux écrans qui portent la valeur et le risque | RG4–RG113 |
+| 2215 | 105 | 8. Tokens |  |
+| 2320 | 36 | 9. Écarts et manques constatés | RG2–RG112 |
+| 2356 | 46 | 10. Ce qui reste à valider | RG6–RG109 |
+| 2402 | 51 | 11. Récapitulatif des écrans spécifiés |  |
 
 ## 17b-parcours-et-ecrans-backoffice.md (~61k tokens)
 

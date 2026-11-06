@@ -3,16 +3,19 @@
 // focus is the ring of globals.css (never a green border, K18).
 import { cn } from "@/components/ui/class-names";
 
-/** One field and its texts: label, control, help, error. */
-export const MEMBER_FIELD_CLASSES = "flex flex-col gap-2";
+/** One field and its texts: label, control, help, error. Its width never depends on its layer badge. */
+export const MEMBER_FIELD_CLASSES = "flex min-w-0 flex-col gap-2";
 
 export const MEMBER_FIELD_LABEL_CLASSES = "font-semibold text-text-primary";
 
 export const MEMBER_FIELD_HELP_CLASSES = "text-sm text-text-secondary";
 
-/** The label line of a field: the label, what it asks, and the layer badge beside it (06 RG62). */
+/**
+ * The label line of a field: the label, what it asks, and the layer badge beside it (06 RG62). A badge
+ * reduced to its icon stays on the first line of the label, whatever the lines the label takes.
+ */
 export const MEMBER_FIELD_HEADER_CLASSES =
-  "flex flex-wrap items-center gap-x-3 gap-y-1";
+  "flex flex-wrap items-center gap-x-3 gap-y-1 has-[>[data-layer-icon-only]]:flex-nowrap has-[>[data-layer-icon-only]]:items-start";
 
 /** What the label adds when the field is required, written (never a mark alone). */
 export const MEMBER_FIELD_REQUIRED_CLASSES =

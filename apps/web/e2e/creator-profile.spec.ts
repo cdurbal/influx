@@ -256,6 +256,31 @@ async function expectScreen(
     ).toBeVisible();
   }
   await expect(page.getByText(copy.summary.soon)).toHaveCount(0);
+  // From lg, the state of a section sits under its title, whatever the width of the screen.
+  if (width >= 1024) {
+    const parts = page
+      .getByRole("link", { name: new RegExp(copy.sections.presentation) })
+      .locator(":scope > span");
+    const name = await parts.nth(0).boundingBox();
+    const state = await parts.nth(1).boundingBox();
+    expect(state!.y).toBeGreaterThanOrEqual(name!.y + name!.height);
+  }
+  // The percentage of the completeness stays in one piece, inside its card.
+  const gaugeValue = await page
+    .getByRole("main")
+    .getByRole("meter")
+    .locator("xpath=preceding-sibling::div/span[last()]")
+    .evaluate((value) => {
+      const box = value.getBoundingClientRect();
+      return {
+        height: box.height,
+        lineHeight: parseFloat(getComputedStyle(value).lineHeight),
+        overflow:
+          box.right - value.parentElement!.getBoundingClientRect().right,
+      };
+    });
+  expect(gaugeValue.height).toBeLessThanOrEqual(gaugeValue.lineHeight + 1);
+  expect(gaugeValue.overflow).toBeLessThanOrEqual(0);
   // Block 3 starts empty: it says so, and offers the closed list of networks.
   if (!seeded) {
     await expect(page.getByText(copy.networks.empty)).toBeVisible();
@@ -476,6 +501,51 @@ test("a creator in French: alias, layers, anchors, the warning of the detection,
   const aud = copy.audience;
   const audience = page.locator('[data-audience-line="instagram"]');
   const share = (label: string) => audience.getByLabel(label);
+
+  // 17 §4.2: a text too long for one line leaves its icon alone, which says it when asked; the field
+  // keeps it as its description. A line opened at 1 440 px too: the two fields of its first row share
+  // the width, and a whole badge must not widen its own field to fit in it.
+  const revealed = audience
+    .locator("[data-layer-icon-only]", { hasText: copy.layer.revealed })
+    .first();
+  await expect(revealed).toBeVisible();
+  await page.setViewportSize({ width: 375, height: 900 });
+  const icon = revealed.getByRole("button", { name: copy.layer.revealed });
+  const message = revealed.locator(":scope > [aria-hidden=true]");
+  await expect(icon).toBeVisible();
+  await expect(share(aud.countries.mainShare)).toHaveAccessibleDescription(
+    new RegExp(copy.layer.revealed.replace(".", "\\.")),
+  );
+  await expect(message).toHaveCount(0);
+  await icon.hover();
+  await expect(message).toHaveText(copy.layer.revealed);
+  const messageBox = await message.boundingBox();
+  expect(messageBox!.x + messageBox!.width).toBeLessThanOrEqual(375);
+  await page.keyboard.press("Escape");
+  await expect(message).toHaveCount(0);
+  await page.mouse.move(0, 0);
+  await share(aud.countries.mainShare).focus();
+  await page.keyboard.press("Shift+Tab");
+  await expect(icon).toBeFocused();
+  await expect(message).toHaveText(copy.layer.revealed);
+  await page.keyboard.press("Enter");
+  await expect(message).toHaveCount(0);
+  await page.keyboard.press("Enter");
+  await expect(message).toHaveText(copy.layer.revealed);
+  await page.keyboard.press("Tab");
+  await expect(message).toHaveCount(0);
+  // A click beside what the icon draws still reaches it: its hit area is that of a finger.
+  await icon.click({ position: { x: -6, y: 13 } });
+  await expect(message).toHaveText(copy.layer.revealed);
+  await page.mouse.click(0, 0);
+  await expect(message).toHaveCount(0);
+  // A tap: a click with no pointer over the icon before it.
+  await icon.dispatchEvent("click");
+  await expect(message).toHaveText(copy.layer.revealed);
+  await page.mouse.click(0, 0);
+  await expect(message).toHaveCount(0);
+  await page.setViewportSize({ width: 1440, height: 900 });
+
   await share(aud.countries.main).selectOption("FR");
   await share(aud.countries.mainShare).fill("72");
   await share(aud.ages.band["18_24"]).fill("60");

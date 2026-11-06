@@ -22,7 +22,10 @@ import { PickListField } from "@/components/member/ui/PickListField";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
 import { TextAreaField } from "@/components/member/ui/TextAreaField";
 import { TextField } from "@/components/member/ui/TextField";
-import { MEMBER_FIELD_HELP_CLASSES } from "@/components/member/ui/field-classes";
+import {
+  MEMBER_FIELD_HEADER_CLASSES,
+  MEMBER_FIELD_HELP_CLASSES,
+} from "@/components/member/ui/field-classes";
 import type { ProfileLayer } from "@/components/member/ui/layer-badge-classes";
 import { countCharacters } from "@/components/member/ui/text-limits";
 import { getLocalizedCountryOptions } from "@/content/country-codes";
@@ -244,7 +247,7 @@ function AccountValue({
   const t = useTranslations("creatorProfile");
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <div className={MEMBER_FIELD_HEADER_CLASSES}>
         <span className="font-semibold text-text-primary">{label}</span>
         <LayerBadge layer={layer} label={t(`layer.${layer}`)} />
       </div>

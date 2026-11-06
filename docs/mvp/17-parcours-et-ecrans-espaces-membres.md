@@ -753,6 +753,14 @@ ET répétée sur chaque champ masqué : sur mobile, le titre de section sort de
 L'icône **et** le texte sont présents dans les trois cas : le vert du badge « révélé » ne porte
 jamais l'information seul.
 
+**Quand le texte ne tient pas sur une ligne** (recette L2D, décision du fondateur, 2026-11-06), le
+badge se réduit à son icône, dans sa teinte, à côté du libellé du champ ; jamais de badge sur deux
+lignes. La largeur est mesurée, pas présumée : le badge reste entier dès que la place le permet. Le
+texte s'affiche au survol, au focus clavier et au toucher ; Échap ou un toucher ailleurs le referme,
+et il reste lisible dans un formulaire en lecture seule. Il demeure le nom de l'icône et la
+description du champ pour un lecteur d'écran (`06` RG85, CA39). Vaut aussi pour les étiquettes du
+créateur (§5.2).
+
 **Les cinq états du profil** (`06` RG3), chacun avec son libellé écrit et son bandeau :
 
 | État | Bandeau en tête d'écran | Ce qui reste possible |
@@ -1356,6 +1364,8 @@ colonne de complétude collante à droite. Trois colonnes, pas deux.
 | Visible de toutes les marques inscrites. | `creatorProfile.layer.public` | `[i:globe]` + texte, `color-surface-raised` |
 | Visible uniquement après l'ouverture d'une mise en relation. | `creatorProfile.layer.revealed` | `[i:lock]` + texte, `color-brand-subtle-bg` |
 | Visible uniquement par vous et l'équipe INFLUX. | `creatorProfile.layer.internal` | `[i:eye-off]` + texte, `color-text-tertiary` |
+
+Un texte qui ne tient pas sur une ligne laisse l'icône seule, et s'affiche à la demande (§4.2).
 
 > **Écart relevé dans l'implémentation en cours** (§10, E2) : les libellés codés aujourd'hui
 > (« Couche A · Public Anonyme », « Couche I · Révélé sur accord », « Couche N · Interne INFLUX »)

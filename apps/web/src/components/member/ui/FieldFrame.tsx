@@ -98,7 +98,7 @@ export function FieldFrame({
         role={radioGroup === undefined ? undefined : "radiogroup"}
         aria-invalid={radioGroup?.invalid ? true : undefined}
         aria-describedby={describedBy}
-        className={cn(MEMBER_FIELD_CLASSES, "min-w-0", className)}
+        className={cn(MEMBER_FIELD_CLASSES, className)}
       >
         <legend className={cn(MEMBER_FIELD_LABEL_CLASSES, "mb-2 p-0")}>
           {labelText}

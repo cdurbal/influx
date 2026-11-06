@@ -9,3 +9,7 @@ Prérequis : lignes 01 à 15, 17 à `fait`, CI verte, déploiement de `staging` 
 5. Changer d'avis sur un chiffre sans confirmer : la date ne bouge pas, le message s'affiche.
 
 Réponse attendue : OK, ou la liste des écarts, écrite ici. Ce qui est absent par construction : portfolio et publication (L2G), badges (L2E).
+
+## Écarts
+
+- **F-1 (2026-11-06), corrigé, à revoir sur `staging`** : un badge de couche sur deux lignes prend trop de place. Icône seule quand le texte ne tient pas sur une ligne, texte au survol, au focus et au toucher (`17` §4.2).

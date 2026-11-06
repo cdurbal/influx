@@ -473,6 +473,12 @@
   --size-icon-sm: 1rem;
   --size-icon-md: 1.25rem;
   --size-icon-lg: 1.5rem;
+  /* Derived, no new visual value: the layer badge reduced to its icon (17 §4.2) */
+  --size-layer-badge-icon-only: calc(
+    var(--size-icon-sm) + 2 * var(--spacing-1) + 2 * var(--border-width-thin)
+  );
+  /* Maximum width of its message: fits a 320 px screen and its gutters (17 §4.2) */
+  --size-layer-badge-message: 18rem;
   --size-phone-mockup: 20rem;
   /* Maximum width of the desktop cookie banner card (11 §5.1) */
   --size-cookie-banner: 26rem;
@@ -514,6 +520,11 @@
   --size-nav-bottom-height: 3.5rem;
   --z-nav-bottom: 90;
   --grid-member-shell: var(--size-member-rail) minmax(0, 1fr);
+  /* Creator profile from lg (17 §5.2): summary sized to its titles, the form takes what is left. */
+  --size-profile-summary: 9.5rem;
+  --size-profile-progress-min: 9rem;
+  --grid-creator-profile: var(--size-profile-summary) minmax(0, 3fr)
+    minmax(var(--size-profile-progress-min), 1fr);
   /* Derived, no new visual value: a sub-entry's label aligned on its rubric's (inset, icon, gap; D74) */
   --spacing-nav-sub-indent: calc(
     var(--spacing-3) + var(--size-icon-md) + var(--spacing-3)

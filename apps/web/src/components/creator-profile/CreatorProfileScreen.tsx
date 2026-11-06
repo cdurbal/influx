@@ -75,16 +75,16 @@ import {
 
 /** The three columns of a wide screen: the summary, the form, the completeness (17 §5.2). */
 const GRID_CLASSES =
-  "flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8";
+  "flex flex-col gap-6 lg:grid lg:grid-cols-(--grid-creator-profile) lg:items-start lg:gap-6 xl:gap-8";
 const SUMMARY_CLASSES =
-  "flex flex-col gap-3 lg:col-span-3 lg:col-start-1 lg:row-start-1 lg:sticky lg:top-(--spacing-6)";
-const FORM_CLASSES =
-  "flex flex-col gap-6 lg:col-span-6 lg:col-start-4 lg:row-start-1";
+  "flex flex-col gap-3 lg:col-start-1 lg:row-start-1 lg:sticky lg:top-(--spacing-6)";
+const FORM_CLASSES = "flex flex-col gap-6 lg:col-start-2 lg:row-start-1";
 const PROGRESS_CLASSES =
-  "flex flex-col gap-4 lg:col-span-3 lg:col-start-10 lg:row-start-1 lg:sticky lg:top-(--spacing-6)";
+  "flex flex-col gap-4 lg:col-start-3 lg:row-start-1 lg:sticky lg:top-(--spacing-6)";
 const SECTION_CLASSES = cn(PROFILE_CARD_CLASSES, "scroll-mt-(--spacing-6)");
+/** From lg the state always sits under the title, so that the summary column can stay narrow. */
 const SUMMARY_LINK_CLASSES =
-  "flex min-h-(--size-touch-target) flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md px-3 py-2 text-text-primary hover:bg-surface-raised";
+  "flex min-h-(--size-touch-target) flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md px-3 py-2 text-text-primary hover:bg-surface-raised lg:flex-col lg:flex-nowrap lg:items-start lg:justify-start";
 const SUMMARY_STATE_CLASSES =
   "inline-flex items-center gap-1 text-sm text-text-secondary";
 

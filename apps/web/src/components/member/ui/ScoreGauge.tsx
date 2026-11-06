@@ -22,9 +22,10 @@ export function ScoreGauge({
 }: ScoreGaugeProps) {
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <div className="flex items-baseline justify-between gap-3">
+      {/* The value stays in one piece; in a narrow card it goes under the label. */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
         <span className="font-semibold text-text-primary">{label}</span>
-        <span className="font-display text-title-section font-bold tabular-nums text-text-primary">
+        <span className="font-display text-title-section font-bold whitespace-nowrap tabular-nums text-text-primary">
           {valueText}
         </span>
       </div>

@@ -24,7 +24,10 @@ import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
 import { TextAreaField } from "@/components/member/ui/TextAreaField";
 import { TextField } from "@/components/member/ui/TextField";
 import { YesNoField } from "@/components/member/ui/YesNoField";
-import { MEMBER_FIELD_HELP_CLASSES } from "@/components/member/ui/field-classes";
+import {
+  MEMBER_FIELD_HEADER_CLASSES,
+  MEMBER_FIELD_HELP_CLASSES,
+} from "@/components/member/ui/field-classes";
 import type { ProfileLayer } from "@/components/member/ui/layer-badge-classes";
 import { getLocalizedCountryOptions } from "@/content/country-codes";
 import {
@@ -116,7 +119,7 @@ export function IdentityFields({
         )}
       />
       <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <div className={MEMBER_FIELD_HEADER_CLASSES}>
           <span className="font-semibold text-text-primary">
             {t("fields.country.label")}
           </span>

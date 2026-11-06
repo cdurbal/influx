@@ -22,6 +22,7 @@ import { Notice } from "@/components/member/ui/Notice";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
 import { TextField } from "@/components/member/ui/TextField";
 import {
+  MEMBER_FIELD_HEADER_CLASSES,
   MEMBER_FIELD_HELP_CLASSES,
   memberChoiceInputClasses,
   memberChoiceRowClasses,
@@ -355,7 +356,7 @@ function NetworkLine({
           />
           <span>{t("networks.primary.label")}</span>
         </label>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <div className={MEMBER_FIELD_HEADER_CLASSES}>
           <LayerBadge layer="public" label={t("layer.public")} />
           <span className={MEMBER_FIELD_HELP_CLASSES}>
             {t("networks.primary.help")}
