@@ -33,6 +33,7 @@
   },
   "blocks": {
     "missing": "À compléter : {fields}.",
+    "missingCount": "{count, plural, one {# information à compléter} other {# informations à compléter}}",
     "allSet": "Toutes les informations demandées sont renseignées."
   },
   "state": {
@@ -45,7 +46,9 @@
   "home": {
     "state": "État : {state}",
     "complete": "Compléter mon profil",
-    "review": "Voir mon profil"
+    "review": "Voir mon profil",
+    "leftIn": "{section} ({count})",
+    "remaining": "{count, plural, one {Il reste # information à compléter :} other {Il reste # informations à compléter :}}"
   },
   "completeness": {
     "label": "Complétude du profil",
@@ -212,7 +215,8 @@
     }
   },
   "figures": {
-    "confirmAll": "Pour mettre à jour la date de vos chiffres, confirmez aussi votre rythme de publication et vos commentaires moyens.",
+    "confirmAll": "Vos trois chiffres sont renseignés : appuyez sur « Confirmer mes chiffres » pour les dater d'aujourd'hui.",
+    "confirmSome": "Renseignez aussi votre rythme de publication et vos commentaires moyens, puis appuyez sur « Confirmer mes chiffres » pour dater vos chiffres d'aujourd'hui.",
     "confirm": "Confirmer mes chiffres",
     "source": {
       "declared": "Source : déclaré par vous",
@@ -220,7 +224,7 @@
     },
     "dated": "{source} · chiffres au {date}",
     "undated": "{source} · chiffres à confirmer",
-    "stale": "Vos chiffres datent du {date}. Au-delà de 90 jours, votre profil est affiché plus bas dans les résultats."
+    "stale": "Vérifiez vos chiffres puis confirmez-les : ils datent du {date}. Au-delà de 90 jours, votre profil est affiché plus bas dans les résultats."
   },
   "issues": {
     "required": "Ce champ est obligatoire.",
@@ -228,7 +232,7 @@
     "unknown": "Ce choix n'est plus disponible : choisissez-en un autre.",
     "duplicate": "Cette valeur existe déjà : retirez le doublon.",
     "wrong_network": "Ce lien ne correspond pas au réseau choisi.",
-    "sum_exceeds_100": "Le total dépasse 100 %. Réduisez l'une des parts.",
+    "sum_exceeds_100": "Le total est de {sum} %, au plus 100. Rien n'est enregistré pour ce réseau tant que ce total n'est pas corrigé.",
     "count": "Saisissez un nombre entier, zéro ou plus.",
     "percentage": "Saisissez un pourcentage entre 0 et 100, avec deux décimales au plus.",
     "url_shape": "Le lien doit commencer par https:// et ne contenir ni espace ni identifiant.",
@@ -252,6 +256,10 @@
     "failed": "Cette action n'a pas abouti. Réessayez dans un instant.",
     "remove": "Retirer",
     "removeNamed": "Retirer le réseau {network}",
+    "removeConfirm": "Retirer {network} et son audience ?",
+    "removeKeep": "Garder",
+    "removeKeepNamed": "Garder le réseau {network}",
+    "removeNow": "Retirer {network} maintenant",
     "add": {
       "label": "Ajouter un réseau",
       "placeholder": "Choisir un réseau…",
@@ -266,11 +274,8 @@
       "title": "Vos trois chiffres clés"
     },
     "bands": {
-      "title": "Ce que les marques voient avant toute mise en relation",
-      "none": "Aucune tranche pour l'instant : renseignez vos abonnés et vos autres chiffres.",
-      "audience": "Taille de la communauté : {band}",
-      "frequency": "Rythme de publication : {band}",
-      "comments": "Commentaires par publication : {band}"
+      "seen": "Les marques voient : {band}",
+      "notYet": "Les marques ne voient encore aucune tranche : renseignez ce chiffre."
     },
     "fields": {
       "handle": {
@@ -306,7 +311,7 @@
     }
   },
   "priorityMetrics": {
-    "explain": "Ces trois chiffres sont les premiers que lisent les marques : la taille de votre communauté, votre rythme de publication et vos commentaires moyens."
+    "explain": "Les marques voient d'abord la tranche de ces trois chiffres ; le chiffre exact vient ensuite."
   },
   "posts30d": {
     "hint": "Comptez vos publications des 30 derniers jours : publications, Reels, vidéos, Shorts. Ne comptez ni les stories ni les directs."
@@ -321,6 +326,8 @@
     "negotiation": "Les coûts se négocient avec votre commercial.",
     "ugcGroup": "UGC (contenu livré à la marque)",
     "noList": "Aucun choix disponible pour le moment.",
+    "otherNetworks": "Autres réseaux ({count, plural, =0 {aucun format coché} one {# format coché} other {# formats cochés}})",
+    "sectorsFold": "Choisir les secteurs refusés ({count, plural, =0 {aucun choix} one {# choix} other {# choix}})",
     "availabilityDeclared": "Déclarée le {date}. Mettez-la à jour quand elle change.",
     "delivery": {
       "lt_7d": "Moins de 7 jours",
@@ -342,9 +349,8 @@
       "legend": "Pays de votre audience",
       "main": "Pays principal de votre audience",
       "mainShare": "Part de votre audience dans ce pays (%)",
-      "other": "Autre pays de votre audience",
-      "otherShare": "Part de votre audience dans cet autre pays (%)",
-      "otherHelp": "10 % au minimum.",
+      "other": "Autre pays {index} de votre audience",
+      "otherShare": "Part de votre audience dans l'autre pays {index} (%, 10 au minimum)",
       "add": "Ajouter un pays",
       "full": "Quatre autres pays au plus.",
       "removeOther": "Retirer l'autre pays {index}"

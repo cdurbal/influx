@@ -20,6 +20,7 @@ import {
   hasTextWarning,
   isEditable,
   isSectionComplete,
+  missingBySectionOf,
   planPatch,
   sameValue,
   sectionAnchorOf,
@@ -28,6 +29,7 @@ import {
   singleFieldPatch,
   type CreatorDraft,
 } from "@/components/creator-profile/creator-profile-view";
+import { splitFormatGroups } from "@/components/creator-profile/creator-profile-options";
 import enCreatorProfile from "@/locales/en/creator-profile.json";
 import frCreatorProfile from "@/locales/fr/creator-profile.json";
 
@@ -419,6 +421,64 @@ describe("L2D-12: sections, anchors and required fields", () => {
   });
 });
 
+describe("L2DU-3: what is left, by section", () => {
+  it("counts the required fields still missing in each section, in the order of the form, and leaves the complete ones out", () => {
+    expect(missingBySectionOf([])).toEqual([]);
+    expect(
+      missingBySectionOf([
+        "formats",
+        "handle",
+        "headline",
+        "followers",
+        "bio",
+        "mainAudienceShare",
+        "primaryAccount",
+      ]),
+    ).toEqual([
+      { section: "presentation", count: 2 },
+      { section: "networks", count: 3 },
+      { section: "audience", count: 1 },
+      { section: "offer", count: 1 },
+    ]);
+  });
+
+  it("counts every required field of the contract exactly once", () => {
+    const every = [...CREATOR_PROFILE_REQUIRED_FIELD_CODES];
+    const total = missingBySectionOf(every).reduce(
+      (sum, entry) => sum + entry.count,
+      0,
+    );
+    expect(total).toBe(every.length);
+  });
+});
+
+describe("L2DU-4: the formats of the networks the creator has come first", () => {
+  const groups = [
+    { networkCode: "instagram", label: "Instagram", options: [] },
+    { networkCode: "tiktok", label: "TikTok", options: [] },
+    { networkCode: "youtube", label: "YouTube", options: [] },
+    { networkCode: null, label: "UGC", options: [] },
+  ];
+
+  it("shows the networks of the lines and UGC, and folds the others", () => {
+    const { shown, folded } = splitFormatGroups(groups, new Set(["tiktok"]));
+    expect(shown.map((group) => group.label)).toEqual(["TikTok", "UGC"]);
+    expect(folded.map((group) => group.label)).toEqual([
+      "Instagram",
+      "YouTube",
+    ]);
+  });
+
+  it("folds every network but UGC when the creator has no line yet, and nothing while the lines are read", () => {
+    expect(
+      splitFormatGroups(groups, new Set()).shown.map((group) => group.label),
+    ).toEqual(["UGC"]);
+    const unread = splitFormatGroups(groups, null);
+    expect(unread.shown).toHaveLength(4);
+    expect(unread.folded).toEqual([]);
+  });
+});
+
 describe("L2D-12: what can be edited and warned", () => {
   it("edits a draft that has its storefront, nothing else at L2D (EC-L2D-08-2)", () => {
     expect(isEditable({ alias: "7K3M9X", status: "draft" })).toBe(true);
@@ -465,8 +525,11 @@ describe("L2D-15: the summary of the home and of the column", () => {
       expect(Object.keys(messages.state).sort()).toEqual(
         [...CREATOR_PROFILE_STATUSES].sort(),
       );
+      // L2DU-3: the home also says what is left, by section (a count and a link each).
       expect(Object.keys(messages.home).sort()).toEqual([
         "complete",
+        "leftIn",
+        "remaining",
         "review",
         "state",
       ]);
@@ -514,6 +577,7 @@ describe("L2D-12: the translations of the screen (T16-L2D, 07 RG112)", () => {
         expect(Object.keys(messages.issues), issue).toContain(issue);
       }
       expect(Object.keys(messages.figures)).toContain("confirmAll");
+      expect(Object.keys(messages.figures)).toContain("confirmSome");
     }
   });
 

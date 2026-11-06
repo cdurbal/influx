@@ -388,6 +388,15 @@ export function holdsPriorityFigure(line: CreatorNetworkLine): boolean {
   );
 }
 
+/** Whether the line holds all three priority figures: "Confirmer mes chiffres" then only dates them (L2DU-8). */
+export function holdsEveryPriorityFigure(line: CreatorNetworkLine): boolean {
+  return (
+    line.followersCount !== null &&
+    line.postsLast30Days !== null &&
+    line.avgCommentsPerPost !== null
+  );
+}
+
 // --- The lines, as a list -------------------------------------------------------------------
 
 /** The network codes the creator may still add: the reference list, each code once, in its order. */

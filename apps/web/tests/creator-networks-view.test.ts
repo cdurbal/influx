@@ -16,6 +16,7 @@ import {
   engagementBasisPointsOf,
   engagementTextOf,
   formatFiguresDate,
+  holdsEveryPriorityFigure,
   holdsPriorityFigure,
   isProfileUrlShape,
   lineControlIdOf,
@@ -308,6 +309,43 @@ describe("L2D-13: the date of the figures (07 RG49, RG50)", () => {
         avgReachPerPost: 900,
       }),
     ).toBe(false);
+  });
+});
+
+describe("L2DU-8: when the confirmation only dates the figures", () => {
+  it("holds every priority figure only when the three are there, zero included", () => {
+    expect(holdsEveryPriorityFigure(LINE)).toBe(true);
+    expect(holdsEveryPriorityFigure({ ...LINE, postsLast30Days: 0 })).toBe(
+      true,
+    );
+    expect(
+      holdsEveryPriorityFigure({ ...LINE, avgCommentsPerPost: null }),
+    ).toBe(false);
+    expect(holdsEveryPriorityFigure({ ...LINE, followersCount: null })).toBe(
+      false,
+    );
+  });
+
+  it("tells, in both languages, the action to take: date the three figures, or fill in what is missing first", () => {
+    for (const messages of [frCreatorProfile, enCreatorProfile]) {
+      expect(messages.figures.confirmAll).not.toBe(
+        messages.figures.confirmSome,
+      );
+      expect(messages.figures.stale.indexOf("{date}")).toBeGreaterThan(0);
+      expect(messages.figures.stale).not.toMatch(
+        /^(Vos chiffres|Your figures)/,
+      );
+    }
+  });
+
+  it("says what a brand sees under each metric, and no longer holds a block apart for it", () => {
+    for (const messages of [frCreatorProfile, enCreatorProfile]) {
+      expect(messages.networks.bands.seen).toContain("{band}");
+      expect(Object.keys(messages.networks.bands).sort()).toEqual([
+        "notYet",
+        "seen",
+      ]);
+    }
   });
 });
 

@@ -264,6 +264,27 @@ async function expectScreen(
     page.getByLabel(new RegExp(`^${copy.networks.add.label}`)),
   ).toBeVisible();
   await expect(page.getByText(copy.field.required).first()).toBeVisible();
+  if (!seeded) {
+    // L2DU-2: below lg the missing fields are a count with their names behind it, from lg the names
+    // are in the column; L2DU-4: the networks the creator has no line on wait in a closed fold.
+    const missingFold = page.locator("[data-missing-fold]");
+    if (width < 1024) {
+      await expect(missingFold).toBeVisible();
+      await expect(missingFold).not.toHaveAttribute("open", "");
+      await expect(missingFold.locator("summary")).toHaveText(
+        locale === "fr"
+          ? /^\d+ informations à compléter$/
+          : /^\d+ items to complete$/,
+      );
+    } else {
+      await expect(missingFold).toBeHidden();
+    }
+    const folded = page
+      .locator('[data-section="offer"] details[data-fold]')
+      .first();
+    await expect(folded.locator("summary")).toBeVisible();
+    await expect(folded).not.toHaveAttribute("open", "");
+  }
   if (axe) {
     await expectNoAxeViolation(
       page,
@@ -424,7 +445,17 @@ test("a creator in French: alias, layers, anchors, the warning of the detection,
     .poll(async () => (await linesOf(accountId))[0]?.dated)
     .toBe(true);
 
-  // The bands the brands will see, derived by the system from the exact figures (RG22, RG114, RG115).
+  // The bands the brands will see, derived by the system from the exact figures (RG22, RG114, RG115),
+  // under each of the three metrics (L2DU-7), in one column whatever the width (L2DU-6).
+  await expect(instagram.locator("[data-band-of=followers]")).toContainText(
+    copy.reference.audience_band.micro,
+  );
+  await expect(instagram.locator("[data-band-of=posts]")).toContainText(
+    copy.reference.publication_frequency.several_per_week,
+  );
+  await expect(instagram.locator("[data-band-of=comments]")).toContainText(
+    copy.reference.comment_band["50_199"],
+  );
   await expect(
     instagram.getByText(copy.reference.audience_band.micro),
   ).toBeVisible();
@@ -449,9 +480,26 @@ test("a creator in French: alias, layers, anchors, the warning of the detection,
   await share(aud.countries.mainShare).fill("72");
   await share(aud.ages.band["18_24"]).fill("60");
   await share(aud.ages.band["25_34"]).fill("80");
-  await expect(audience.getByText(copy.issues.sum_exceeds_100)).toBeVisible();
+  await expect(
+    audience.getByText(copy.issues.sum_exceeds_100.replace("{sum}", "140")),
+  ).toBeVisible();
   expect((await audienceOf(accountId)).main).toBeNull();
   await share(aud.ages.band["25_34"]).fill("10");
+
+  // L2DU-5: each other country is numbered, the focus follows the row added then the row removed.
+  const addCountry = audience.getByRole("button", {
+    name: aud.countries.add,
+  });
+  await addCountry.click();
+  await expect(
+    audience.getByLabel(aud.countries.other.replace("{index}", "1")),
+  ).toBeFocused();
+  await audience
+    .getByRole("button", {
+      name: aud.countries.removeOther.replace("{index}", "1"),
+    })
+    .click();
+  await expect(addCountry).toBeFocused();
 
   // Block 5: no tariff, costs said to be negotiated; a usage right is in one list only (RG73).
   const offer = page.locator('[data-section="offer"]');
@@ -480,9 +528,20 @@ test("a creator in French: alias, layers, anchors, the warning of the detection,
     .getByLabel(copy.field.yes)
     .check();
   await offer.getByLabel(copy.offer.availability.lt_2w).check();
-  await group(copy.fields.refusedSectors.label)
-    .getByLabel(reference.sector.gambling)
-    .check();
+  // L2DU-4: the formats of the networks without a line are folded, the refused sectors too, each
+  // fold saying how many boxes are checked.
+  await expect(
+    offer.getByText(copy.offer.otherNetworks.split("(")[0]!.trim(), {
+      exact: false,
+    }),
+  ).toContainText("(");
+  const sectors = group(copy.fields.refusedSectors.label);
+  await expect(sectors.getByLabel(reference.sector.gambling)).toBeHidden();
+  await sectors.getByText(copy.offer.sectorsFold.split("(")[0]!.trim()).click();
+  await sectors.getByLabel(reference.sector.gambling).check();
+  await expect(
+    sectors.getByText(copy.offer.sectorsFold.split("(")[0]!.trim()),
+  ).toContainText("1 choix");
 
   await expect
     .poll(async () => await audienceOf(accountId))
@@ -532,8 +591,9 @@ test("a creator in French: alias, layers, anchors, the warning of the detection,
   await tiktok
     .getByRole("radio", { name: copy.networks.primary.label })
     .click();
+  // L2DU-9: the notice is in the line that became the main one, under its button, not above the lines.
   await expect(
-    page.getByText(
+    tiktok.getByText(
       copy.networks.primary.moved
         .replace("{to}", COPY.fr.brand.reference.network.tiktok)
         .replace("{from}", COPY.fr.brand.reference.network.instagram),
@@ -545,6 +605,28 @@ test("a creator in French: alias, layers, anchors, the warning of the detection,
   await expect
     .poll(async () => (await linesOf(accountId)).map((l) => l.primary))
     .toEqual([false, true]);
+
+  // L2DU-10: a removal is asked in the line, before the call: "Garder" gives it up and the focus
+  // goes back to "Retirer" (the removal itself is the call of 09, proved by the API).
+  const removeOf = (network: string) =>
+    instagram.getByRole("button", {
+      name: copy.networks.removeNamed.replace("{network}", network),
+    });
+  const instagramName = COPY.fr.brand.reference.network.instagram;
+  await removeOf(instagramName).click();
+  await expect(
+    instagram.getByText(
+      copy.networks.removeConfirm.replace("{network}", instagramName),
+    ),
+  ).toBeVisible();
+  await expect(page.locator("[data-network-line]")).toHaveCount(2);
+  await instagram
+    .getByRole("button", {
+      name: copy.networks.removeKeepNamed.replace("{network}", instagramName),
+    })
+    .click();
+  await expect(removeOf(instagramName)).toBeFocused();
+  await expect(page.locator("[data-network-line]")).toHaveCount(2);
 });
 
 test("a creator in English: the same screen at 375 then 1 440 px, no French left (07 RG112)", async ({
@@ -605,6 +687,14 @@ test("a creator in English: the same screen at 375 then 1 440 px, no French left
   await expect(page.getByText(copy.audience.intro)).toBeVisible();
   const offer = page.locator('[data-section="offer"]');
   await expect(offer.getByText(copy.offer.negotiation)).toBeVisible();
+  // L2DU-4: the formats of the YouTube line come first, the other networks wait in a fold.
+  await expect(
+    offer.getByLabel(COPY.en.brand.reference.format.youtube_video),
+  ).toBeVisible();
+  await expect(
+    offer.getByLabel(COPY.en.brand.reference.format.tiktok_video),
+  ).toBeHidden();
+  await offer.getByText(copy.offer.otherNetworks.split("(")[0]!.trim()).click();
   await expect(
     offer.getByLabel(COPY.en.brand.reference.format.tiktok_video),
   ).toBeVisible();
@@ -624,7 +714,7 @@ test("a creator in English: the same screen at 375 then 1 440 px, no French left
     frCreatorProfile.fields.headline.label,
     frCreatorProfile.networks.primary.label,
     frCreatorProfile.figures.confirm,
-    frCreatorProfile.networks.bands.title,
+    frCreatorProfile.networks.bands.seen,
     frCreatorProfile.offer.negotiation,
     frCreatorProfile.audience.intro,
     frCreatorProfile.fields.formats.label,

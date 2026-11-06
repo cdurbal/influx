@@ -79,6 +79,26 @@ export type FormatGroup = {
   options: ChoiceOption[];
 };
 
+/**
+ * The groups of formats shown at once and the ones folded away (L2DU-4): the networks the creator
+ * already added in block 3, and UGC (published by no network), come first; every other network waits
+ * in a fold. `networkCodes` is `null` while block 3 is not read yet: nothing is folded then.
+ */
+export function splitFormatGroups(
+  groups: readonly FormatGroup[],
+  networkCodes: ReadonlySet<string> | null,
+): { shown: FormatGroup[]; folded: FormatGroup[] } {
+  if (networkCodes === null) {
+    return { shown: [...groups], folded: [] };
+  }
+  const isShown = (group: FormatGroup) =>
+    group.networkCode === null || networkCodes.has(group.networkCode);
+  return {
+    shown: groups.filter(isShown),
+    folded: groups.filter((group) => !isShown(group)),
+  };
+}
+
 export type CreatorProfileOptions = {
   topics: ChoiceOption[];
   tones: ChoiceOption[];

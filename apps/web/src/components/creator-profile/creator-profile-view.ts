@@ -324,6 +324,24 @@ export function sectionOfRequired(code: RequiredCode): SectionId {
   return SECTION_OF_REQUIRED[code];
 }
 
+/** How many required fields a section still lacks (the home card names the sections, not the fields). */
+export type SectionCount = { section: SectionId; count: number };
+
+/**
+ * What is missing, counted by section in the order of the form; a section with nothing missing is
+ * left out (L2DU-3). The sections are those of `SECTION_OF_REQUIRED`: the front never decides what
+ * is required, the API does.
+ */
+export function missingBySectionOf(
+  missing: readonly RequiredCode[],
+): SectionCount[] {
+  return SECTION_IDS.map((section) => ({
+    section,
+    count: missing.filter((code) => SECTION_OF_REQUIRED[code] === section)
+      .length,
+  })).filter((entry) => entry.count > 0);
+}
+
 /** A section is complete when none of its required fields is missing. */
 export function isSectionComplete(
   section: SectionId,

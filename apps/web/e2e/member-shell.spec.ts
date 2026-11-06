@@ -688,9 +688,20 @@ test("the creator home leads with the card of the profile, the column repeats it
       ),
   ).toBeVisible();
   await expect(page.getByRole("main").getByRole("meter")).toHaveCount(1);
+  // L2DU-3: the way to the profile first, then a count by section, each one a link to its anchor.
   await expect(
-    page.getByRole("main").getByText(/^À compléter : .+./),
+    page
+      .getByRole("main")
+      .getByText(/^Il reste \d+ informations à compléter :$/),
   ).toBeVisible();
+  await expect(
+    page
+      .getByRole("main")
+      .getByRole("link", { name: /^Présentation \(\d+\)$/ }),
+  ).toHaveAttribute("href", "/fr/compte/profil#creator-section-presentation");
+  await expect(page.getByRole("main").getByText(/^À compléter : /)).toHaveCount(
+    0,
+  );
   const way = page
     .getByRole("main")
     .getByRole("link", { name: frCreatorProfile.home.complete });

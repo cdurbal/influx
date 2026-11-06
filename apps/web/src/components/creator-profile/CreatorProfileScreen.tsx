@@ -35,12 +35,14 @@ import { ScoreGauge } from "@/components/member/ui/ScoreGauge";
 import { cn } from "@/components/ui/class-names";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import {
+  ChevronDownIcon,
   ChevronLeftIcon,
   CheckIcon,
   CircleAlertIcon,
 } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 import { memberPageHref } from "@/lib/member-paths";
+import { FOLD_SUMMARY_CLASSES } from "./creator-profile-classes";
 import { AudienceFields } from "./CreatorAudienceFields";
 import { NetworksFields } from "./CreatorNetworksFields";
 import { OfferFields } from "./CreatorOfferFields";
@@ -244,7 +246,14 @@ function LoadedProfile({
             />
           </ProfileSection>
           <ProfileSection id="offer" disabled={!editable}>
-            <OfferFields {...fields} />
+            <OfferFields
+              {...fields}
+              networkCodes={
+                networks.phase === "ready"
+                  ? new Set(networks.lines.map((line) => line.networkCode))
+                  : null
+              }
+            />
           </ProfileSection>
         </div>
       </div>
@@ -356,11 +365,27 @@ function ProfileProgress({
           score: profile.completeness.score,
         })}
       />
-      <p className="text-sm text-text-primary">
-        {missing.length === 0
-          ? t("blocks.allSet")
-          : t("blocks.missing", { fields: names })}
-      </p>
+      {missing.length === 0 ? (
+        <p className="text-sm text-text-primary">{t("blocks.allSet")}</p>
+      ) : (
+        <>
+          {/* From lg: the column has the room to name every field (RG90). */}
+          <p className="text-sm text-text-primary max-lg:hidden">
+            {t("blocks.missing", { fields: names })}
+          </p>
+          {/* Below lg (L2DU-2): the count, the names behind it, so that the summary and the alias stay in the first screen. */}
+          <details className="lg:hidden" data-missing-fold="">
+            <summary className={FOLD_SUMMARY_CLASSES}>
+              <ChevronDownIcon
+                aria-hidden="true"
+                className="size-(--size-icon-md) shrink-0 text-text-secondary"
+              />
+              {t("blocks.missingCount", { count: missing.length })}
+            </summary>
+            <p className="text-sm text-text-primary">{names}</p>
+          </details>
+        </>
+      )}
       <SaveStatus save={save} locale={locale} className="max-lg:hidden" />
     </div>
   );

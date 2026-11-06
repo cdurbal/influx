@@ -255,6 +255,15 @@ describe("L2D-14: the words of blocks 4 and 5 (07 RG55, CA28; D78, D48)", () => 
     }
   });
 
+  it("numbers each other country and tells the total of a dimension over 100 with its consequence (L2DU-5, L2DU-11)", () => {
+    for (const messages of [frCreatorProfile, enCreatorProfile]) {
+      expect(messages.audience.countries.other).toContain("{index}");
+      expect(messages.audience.countries.otherShare).toContain("{index}");
+      expect(messages.issues.sum_exceeds_100).toContain("{sum}");
+      expect(messages.issues.sum_exceeds_100).toMatch(/100/);
+    }
+  });
+
   it("names each age band by the age of the audience, and the three genders RG61 allows", () => {
     expect(Object.keys(frCreatorProfile.audience.ages.band)).toEqual([
       ...AUDIENCE_AGE_CODES,

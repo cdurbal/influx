@@ -10,20 +10,26 @@
 // and the sums are creator-audience-view.ts and apps/api. No amount, rate, net or price (D78).
 import type { CreatorNetworkLine } from "@influx/contracts/creator-profile";
 import { useLocale, useTranslations } from "next-intl";
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { MemberButton } from "@/components/member/ui/MemberButton";
 import { Notice } from "@/components/member/ui/Notice";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
 import { TextField } from "@/components/member/ui/TextField";
 import { MEMBER_FIELD_HELP_CLASSES } from "@/components/member/ui/field-classes";
 import type { ChoiceOption } from "@/components/member/ui/choice-option";
+import { cn } from "@/components/ui/class-names";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import { getLocalizedCountryOptions } from "@/content/country-codes";
+import {
+  GROUP_TITLE_CLASSES,
+  LINE_TITLE_CLASSES,
+} from "./creator-profile-classes";
 import {
   AUDIENCE_AGE_CODES,
   AUDIENCE_GENDER_CODES,
   OTHER_COUNTRIES_MAX,
   audienceControlIdOf,
+  audienceSumOf,
   remainderOf,
   type AudienceDimension,
   type AudienceDraft,
@@ -39,6 +45,11 @@ const GROUP_CLASSES =
   "flex flex-col gap-4 rounded-md border-(length:--border-width-thin) border-border-strong p-4";
 const SHARE_GRID_CLASSES = "grid gap-4 md:grid-cols-2";
 const ROW_CLASSES = "flex flex-col gap-3 md:flex-row md:items-end";
+// A row of an "other country" (L2DU-5): a rule above it, so that the rows read one by one on a phone.
+const OTHER_ROW_CLASSES = cn(
+  ROW_CLASSES,
+  "border-t-(length:--border-width-thin) border-border-default pt-4",
+);
 
 type BlockProps = {
   networks: CreatorNetworksState;
@@ -130,13 +141,56 @@ function AudienceLine({
   const errors: AudienceErrors = audience.errorsOf(line.id);
   const update = (change: (current: AudienceDraft) => AudienceDraft) =>
     audience.change(line, change);
-  const issue = (key: keyof AudienceErrors) =>
-    errors[key] === undefined ? undefined : t(`issues.${errors[key]}`);
+  // The total of each dimension is told when it is over 100 (L2DU-11): the same sum the plan refuses on.
+  const sums = {
+    countries: audienceSumOf([
+      draft.main.share,
+      ...draft.others.map((row) => row.share),
+    ]),
+    ages: audienceSumOf(Object.values(draft.ages)),
+    genders: audienceSumOf(Object.values(draft.genders)),
+  };
+  const issue = (key: keyof AudienceErrors) => {
+    const found = errors[key];
+    if (found === undefined) {
+      return undefined;
+    }
+    const sum =
+      key === "form"
+        ? Math.max(sums.countries, sums.ages, sums.genders)
+        : key === "ages" || key === "genders" || key === "countries"
+          ? sums[key]
+          : 0;
+    return t(`issues.${found}`, { sum });
+  };
   const id = (field: string) => audienceControlIdOf(line.id, field);
   const exact = { layer: "revealed", label: t("layer.revealed") } as const;
   const named = { layer: "public", label: t("layer.public") } as const;
   const required = (needed: boolean) =>
     needed ? t("field.required") : undefined;
+
+  // L2DU-5: the focus follows the row added (its country) or the row removed (the button to add one).
+  const pendingFocus = useRef<{
+    kind: "added" | "removed";
+    index: number;
+  } | null>(null);
+  const addButton = useRef<HTMLButtonElement>(null);
+  const othersCount = draft.others.length;
+  const lineId = line.id;
+  useEffect(() => {
+    const wanted = pendingFocus.current;
+    pendingFocus.current = null;
+    if (wanted === null) {
+      return;
+    }
+    if (wanted.kind === "added") {
+      document
+        .getElementById(audienceControlIdOf(lineId, `otherCode${wanted.index}`))
+        ?.focus();
+    } else {
+      addButton.current?.focus();
+    }
+  }, [othersCount, lineId]);
 
   const setOther = (index: number, row: Partial<AudienceRow>) =>
     update((current) => ({
@@ -152,7 +206,7 @@ function AudienceLine({
       aria-labelledby={id("title")}
       data-audience-line={line.networkCode}
     >
-      <h3 id={id("title")} className="font-display text-md text-text-primary">
+      <h3 id={id("title")} className={LINE_TITLE_CLASSES}>
         {network}
       </h3>
 
@@ -161,7 +215,7 @@ function AudienceLine({
         aria-labelledby={id("countries")}
         className={GROUP_CLASSES}
       >
-        <h4 id={id("countries")} className="font-display text-text-primary">
+        <h4 id={id("countries")} className={GROUP_TITLE_CLASSES}>
           {t("audience.countries.legend")}
         </h4>
         <div className={ROW_CLASSES}>
@@ -203,7 +257,7 @@ function AudienceLine({
           />
         </div>
         {draft.others.map((row, index) => (
-          <div key={index} className={ROW_CLASSES}>
+          <div key={index} className={OTHER_ROW_CLASSES}>
             <SingleChoiceField
               id={id(`otherCode${index}`)}
               name={id(`otherCode${index}`)}
@@ -211,7 +265,7 @@ function AudienceLine({
               value={row.code === "" ? null : row.code}
               placeholder={t("field.choose")}
               onChange={(code) => setOther(index, { code })}
-              label={t("audience.countries.other")}
+              label={t("audience.countries.other", { index: index + 1 })}
               layer={named}
               className="md:flex-1"
             />
@@ -222,21 +276,21 @@ function AudienceLine({
               maxLength={3}
               inputMode="numeric"
               onChange={(share) => setOther(index, { share })}
-              label={t("audience.countries.otherShare")}
+              label={t("audience.countries.otherShare", { index: index + 1 })}
               layer={exact}
-              help={t("audience.countries.otherHelp")}
               className="md:flex-1"
             />
             <MemberButton
               variant="text"
-              onClick={() =>
+              onClick={() => {
+                pendingFocus.current = { kind: "removed", index };
                 update((current) => ({
                   ...current,
                   others: current.others.filter(
                     (_, position) => position !== index,
                   ),
-                }))
-              }
+                }));
+              }}
               aria-label={t("audience.countries.removeOther", {
                 index: index + 1,
               })}
@@ -254,13 +308,15 @@ function AudienceLine({
         {draft.others.length < OTHER_COUNTRIES_MAX ? (
           <div>
             <MemberButton
+              ref={addButton}
               variant="secondary"
-              onClick={() =>
+              onClick={() => {
+                pendingFocus.current = { kind: "added", index: othersCount };
                 update((current) => ({
                   ...current,
                   others: [...current.others, { code: "", share: "" }],
-                }))
-              }
+                }));
+              }}
             >
               {t("audience.countries.add")}
             </MemberButton>
@@ -326,7 +382,7 @@ function AudienceLine({
       </ShareGroup>
 
       {errors.form === undefined ? null : (
-        <ErrorNotice>{t(`issues.${errors.form}`)}</ErrorNotice>
+        <ErrorNotice>{issue("form")}</ErrorNotice>
       )}
     </article>
   );
@@ -347,7 +403,7 @@ function ShareGroup({
 }) {
   return (
     <div role="group" aria-labelledby={legendId} className={GROUP_CLASSES}>
-      <h4 id={legendId} className="font-display text-text-primary">
+      <h4 id={legendId} className={GROUP_TITLE_CLASSES}>
         {legend}
       </h4>
       <div className={SHARE_GRID_CLASSES}>{children}</div>

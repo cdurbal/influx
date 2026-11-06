@@ -20,15 +20,28 @@ import {
 } from "@/components/member/ui/field-classes";
 import { describedByOf, useFieldIds } from "@/components/member/ui/field-ids";
 import { FieldFrame, type FieldTexts } from "@/components/member/ui/FieldFrame";
+import { ChevronDownIcon } from "@/components/ui/icons";
 import type { CreatorFieldsProps } from "./CreatorProfileFields";
+import { FOLD_SUMMARY_CLASSES } from "./creator-profile-classes";
 import { formatFiguresDate } from "./creator-networks-view";
-import type { FormatGroup } from "./creator-profile-options";
+import { splitFormatGroups, type FormatGroup } from "./creator-profile-options";
 import { controlIdOf, type DraftKey } from "./creator-profile-view";
+
+type BoxGroup = { label: string | null; options: readonly ChoiceOption[] };
 
 type CheckGroupProps = Omit<FieldTexts, "help"> & {
   id: string;
   /** Boxes, in groups with a heading each, or in one group without heading. */
-  groups: readonly { label: string | null; options: readonly ChoiceOption[] }[];
+  groups: readonly BoxGroup[];
+  /**
+   * Boxes folded away in a native details element, closed, whose text says how many are checked
+   * (L2DU-4): the long lists a creator rarely needs (the networks it has no account on, the refused
+   * sectors).
+   */
+  folded?: {
+    groups: readonly BoxGroup[];
+    summary: (checked: number) => string;
+  };
   value: readonly string[];
   onToggle: (code: string) => void;
   help?: string;
@@ -40,6 +53,7 @@ type CheckGroupProps = Omit<FieldTexts, "help"> & {
 function CheckGroup({
   id,
   groups,
+  folded,
   value,
   onToggle,
   help,
@@ -53,7 +67,40 @@ function CheckGroup({
     help !== undefined && ids.help,
     hasError && ids.error,
   );
-  const firstCode = groups.flatMap((group) => group.options)[0]?.code;
+  const everyGroup = [...groups, ...(folded?.groups ?? [])];
+  const firstCode = everyGroup.flatMap((group) => group.options)[0]?.code;
+  const foldedCodes = new Set(
+    (folded?.groups ?? []).flatMap((group) =>
+      group.options.map((option) => option.code),
+    ),
+  );
+  const boxes = (list: readonly BoxGroup[]) =>
+    list.map((group) => (
+      <div key={group.label ?? "-"} className="flex flex-col gap-1">
+        {group.label === null ? null : (
+          <p className="mt-2 text-sm font-semibold text-text-secondary">
+            {group.label}
+          </p>
+        )}
+        {group.options.map((option) => {
+          const controlId = option.code === firstCode ? ids.control : undefined;
+          return (
+            <label key={option.code} className={memberChoiceRowClasses()}>
+              <input
+                id={controlId}
+                type="checkbox"
+                value={option.code}
+                checked={value.includes(option.code)}
+                aria-invalid={hasError ? true : undefined}
+                onChange={() => onToggle(option.code)}
+                className={memberChoiceInputClasses()}
+              />
+              <span>{option.label}</span>
+            </label>
+          );
+        })}
+      </div>
+    ));
   return (
     <FieldFrame
       {...texts}
@@ -62,36 +109,25 @@ function CheckGroup({
       kind="group"
       describedBy={describedBy}
     >
-      {groups.every((group) => group.options.length === 0) ? (
+      {everyGroup.every((group) => group.options.length === 0) ? (
         <p className={MEMBER_FIELD_HELP_CLASSES}>{emptyText}</p>
       ) : null}
-      {groups.map((group) => (
-        <div key={group.label ?? "-"} className="flex flex-col gap-1">
-          {group.label === null ? null : (
-            <p className="mt-2 text-sm font-semibold text-text-secondary">
-              {group.label}
-            </p>
-          )}
-          {group.options.map((option) => {
-            const controlId =
-              option.code === firstCode ? ids.control : undefined;
-            return (
-              <label key={option.code} className={memberChoiceRowClasses()}>
-                <input
-                  id={controlId}
-                  type="checkbox"
-                  value={option.code}
-                  checked={value.includes(option.code)}
-                  aria-invalid={hasError ? true : undefined}
-                  onChange={() => onToggle(option.code)}
-                  className={memberChoiceInputClasses()}
-                />
-                <span>{option.label}</span>
-              </label>
-            );
-          })}
-        </div>
-      ))}
+      {boxes(groups)}
+      {folded === undefined ||
+      folded.groups.every((group) => group.options.length === 0) ? null : (
+        <details data-fold="">
+          <summary className={FOLD_SUMMARY_CLASSES}>
+            <ChevronDownIcon
+              aria-hidden="true"
+              className="size-(--size-icon-md) shrink-0 text-text-secondary"
+            />
+            {folded.summary(
+              value.filter((code) => foldedCodes.has(code)).length,
+            )}
+          </summary>
+          {boxes(folded.groups)}
+        </details>
+      )}
     </FieldFrame>
   );
 }
@@ -110,14 +146,18 @@ function formatGroupsOf(groups: readonly FormatGroup[]) {
   }));
 }
 
-/** Block 5, "Mon offre": what the creator offers, never what it costs (D78). */
+/**
+ * Block 5, "Mon offre": what the creator offers, never what it costs (D78). `networkCodes`: the
+ * networks of the lines of block 3, whose formats come first (L2DU-4); `null` while block 3 is read.
+ */
 export function OfferFields({
   profile,
   draft,
   errors,
   options,
   change,
-}: CreatorFieldsProps) {
+  networkCodes,
+}: CreatorFieldsProps & { networkCodes: ReadonlySet<string> | null }) {
   const t = useTranslations("creatorProfile");
   const locale = useLocale();
   const field = (
@@ -132,6 +172,7 @@ export function OfferFields({
     error: errors[key] === undefined ? undefined : t(`issues.${errors[key]}`),
   });
   const declaredAt = profile.availabilityDeclaredAt;
+  const formats = splitFormatGroups(options.formatGroups, networkCodes);
   return (
     <>
       <Notice tone="info" announce={false}>
@@ -141,7 +182,11 @@ export function OfferFields({
         id={controlIdOf("formats")}
         {...field("formats", "public", t("fields.formats.label"), true)}
         help={t("fields.formats.help")}
-        groups={formatGroupsOf(options.formatGroups)}
+        groups={formatGroupsOf(formats.shown)}
+        folded={{
+          groups: formatGroupsOf(formats.folded),
+          summary: (checked) => t("offer.otherNetworks", { count: checked }),
+        }}
         value={draft.formats}
         onToggle={(code) => change("formats", toggled(draft.formats, code))}
         emptyText={t("offer.noList")}
@@ -243,7 +288,11 @@ export function OfferFields({
           t("fields.refusedSectors.label"),
         )}
         help={t("fields.refusedSectors.help")}
-        groups={[{ label: null, options: options.sectors }]}
+        groups={[]}
+        folded={{
+          groups: [{ label: null, options: options.sectors }],
+          summary: (checked) => t("offer.sectorsFold", { count: checked }),
+        }}
         value={draft.refusedSectors}
         onToggle={(code) =>
           change("refusedSectors", toggled(draft.refusedSectors, code))

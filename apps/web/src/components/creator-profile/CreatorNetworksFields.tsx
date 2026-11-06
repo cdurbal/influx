@@ -32,9 +32,14 @@ import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import { ClockIcon } from "@/components/ui/icons";
 import type { ChoiceOption } from "@/components/member/ui/choice-option";
 import {
+  GROUP_TITLE_CLASSES,
+  LINE_TITLE_CLASSES,
+} from "./creator-profile-classes";
+import {
   SECONDARY_FIELD_KEYS,
   areFiguresStale,
   formatFiguresDate,
+  holdsEveryPriorityFigure,
   holdsPriorityFigure,
   lineControlIdOf,
   type LineFieldKey,
@@ -44,13 +49,13 @@ import type { CreatorNetworksState } from "./use-creator-networks";
 const LINE_CLASSES =
   "flex flex-col gap-5 rounded-card border-(length:--border-width-thin) border-border-default bg-surface-raised p-inset-card";
 const LINE_HEADER_CLASSES = "flex flex-wrap items-center justify-between gap-3";
-const LINE_TITLE_CLASSES = "font-display text-lg text-text-primary";
 const METRICS_CLASSES =
   "flex flex-col gap-4 rounded-md border-(length:--border-width-thin) border-border-strong p-4";
-const METRIC_GRID_CLASSES = "grid gap-4 md:grid-cols-3";
+// One column at every width (L2DU-6): the three metrics read one, two, three, whatever the help of each.
+const METRIC_LIST_CLASSES = "flex flex-col gap-5";
 const FIGURES_CAPTION_CLASSES =
   "flex items-center gap-2 text-sm text-text-secondary";
-const BANDS_CLASSES = "flex flex-col gap-2 text-sm text-text-primary";
+const BAND_SEEN_CLASSES = "text-sm font-semibold text-text-primary";
 
 /** The keyboard of each field: digits for a count, a decimal pad for the engagement, the default for a text. */
 const INPUT_MODES: Readonly<
@@ -64,6 +69,24 @@ const INPUT_MODES: Readonly<
   comments: "numeric",
   reach: "numeric",
   engagement: "decimal",
+};
+
+/** The band a brand sees for each of the three metrics, as a group of the reference lists (07 RG22, RG114, RG115). */
+const METRIC_BAND: Readonly<
+  Record<
+    "followers" | "posts" | "comments",
+    {
+      group: "audience_band" | "publication_frequency" | "comment_band";
+      of: (bands: NonNullable<CreatorNetworkLine["bands"]>) => string | null;
+    }
+  >
+> = {
+  followers: { group: "audience_band", of: (bands) => bands.audienceBand },
+  posts: {
+    group: "publication_frequency",
+    of: (bands) => bands.publicationFrequency,
+  },
+  comments: { group: "comment_band", of: (bands) => bands.commentBand },
 };
 
 /** Who sees each field (07 RG30, RG43, RG45, RG112): every exact figure and every identifier waits for an introduction. */
@@ -119,14 +142,6 @@ export function NetworksFields({
           {t("networks.empty")}
         </Notice>
       ) : null}
-      {state.primaryMove === null ? null : (
-        <Notice tone="info">
-          {t("networks.primary.moved", {
-            to: labelOf(state.primaryMove.to),
-            from: labelOf(state.primaryMove.from),
-          })}
-        </Notice>
-      )}
       {state.lines.map((line) => (
         <NetworkLine
           key={line.id}
@@ -174,12 +189,26 @@ function NetworkLine({
   const network = labelOf(line.networkCode);
   const firstField = useRef<HTMLDivElement>(null);
   const added = state.addedLineId === line.id;
+  // L2DU-10: a removal is asked in the line itself, before the call; the focus follows the choice.
+  const [confirming, setConfirming] = useState(false);
+  const removeButton = useRef<HTMLButtonElement>(null);
+  const keepButton = useRef<HTMLButtonElement>(null);
+  const answered = useRef(false);
   useEffect(() => {
     // A line just added takes the focus on its first field, so the next gesture is typing.
     if (added) {
       firstField.current?.querySelector("input")?.focus();
     }
   }, [added]);
+  useEffect(() => {
+    // The button that was pressed is gone: the focus goes to "Garder" (the safe answer), or back to
+    // "Retirer" once the removal is given up.
+    if (confirming) {
+      keepButton.current?.focus();
+    } else if (answered.current) {
+      removeButton.current?.focus();
+    }
+  }, [confirming]);
   if (draft === undefined) {
     return null;
   }
@@ -223,6 +252,31 @@ function NetworkLine({
     );
   };
 
+  /**
+   * A priority metric and, under it, what a brand sees of it (L2DU-7, 17 §5.2): the band the system
+   * derived from the main line, read as the API says it; the other lines give none (RG22).
+   */
+  const metric = (key: "followers" | "posts" | "comments", limit: number) => {
+    const bands = line.bands;
+    const band = bands === null ? null : METRIC_BAND[key].of(bands);
+    return (
+      <div key={key} className="flex flex-col gap-2">
+        {field(key, limit)}
+        {!line.isPrimary ? null : band === null ? (
+          <p className={MEMBER_FIELD_HELP_CLASSES} data-band-of={key}>
+            {t("networks.bands.notYet")}
+          </p>
+        ) : (
+          <p className={BAND_SEEN_CLASSES} data-band-of={key}>
+            {t("networks.bands.seen", {
+              band: bandLabelOf(METRIC_BAND[key].group, band),
+            })}
+          </p>
+        )}
+      </div>
+    );
+  };
+
   const stale = areFiguresStale(line.figuresMeasuredAt, now);
   const source =
     line.figuresSource === "agent_observed"
@@ -235,28 +289,59 @@ function NetworkLine({
           source,
           date: formatFiguresDate(line.figuresMeasuredAt, locale),
         });
-  const bands = line.bands;
+  const titleId = `${lineControlIdOf(line.id, "handle")}-title`;
 
   return (
     <article
       className={LINE_CLASSES}
-      aria-labelledby={`${lineControlIdOf(line.id, "handle")}-title`}
+      aria-labelledby={titleId}
       data-network-line={line.networkCode}
     >
       <div className={LINE_HEADER_CLASSES}>
-        <h3
-          id={`${lineControlIdOf(line.id, "handle")}-title`}
-          className={LINE_TITLE_CLASSES}
-        >
+        <h3 id={titleId} className={LINE_TITLE_CLASSES}>
           {network}
         </h3>
-        <MemberButton
-          variant="text"
-          onClick={() => state.remove(line.id)}
-          aria-label={t("networks.removeNamed", { network })}
-        >
-          {t("networks.remove")}
-        </MemberButton>
+        {confirming ? (
+          <div
+            role="group"
+            aria-labelledby={`${titleId}-confirm`}
+            className="flex flex-wrap items-center gap-x-3 gap-y-1"
+          >
+            <p
+              id={`${titleId}-confirm`}
+              className="text-md font-semibold text-text-primary"
+            >
+              {t("networks.removeConfirm", { network })}
+            </p>
+            <MemberButton
+              variant="danger"
+              onClick={() => state.remove(line.id)}
+              aria-label={t("networks.removeNow", { network })}
+            >
+              {t("networks.remove")}
+            </MemberButton>
+            <MemberButton
+              ref={keepButton}
+              variant="secondary"
+              onClick={() => {
+                answered.current = true;
+                setConfirming(false);
+              }}
+              aria-label={t("networks.removeKeepNamed", { network })}
+            >
+              {t("networks.removeKeep")}
+            </MemberButton>
+          </div>
+        ) : (
+          <MemberButton
+            ref={removeButton}
+            variant="text"
+            onClick={() => setConfirming(true)}
+            aria-label={t("networks.removeNamed", { network })}
+          >
+            {t("networks.remove")}
+          </MemberButton>
+        )}
       </div>
 
       <div className="flex flex-col gap-1">
@@ -276,6 +361,15 @@ function NetworkLine({
             {t("networks.primary.help")}
           </span>
         </div>
+        {/* L2DU-9: said where the finger is, in the line that became the main one (no jump above it). */}
+        {line.isPrimary && state.primaryMove !== null ? (
+          <Notice tone="info">
+            {t("networks.primary.moved", {
+              to: labelOf(state.primaryMove.to),
+              from: labelOf(state.primaryMove.from),
+            })}
+          </Notice>
+        ) : null}
       </div>
 
       <div ref={firstField} className="flex flex-col gap-5">
@@ -291,17 +385,17 @@ function NetworkLine({
       >
         <h4
           id={`${lineControlIdOf(line.id, "followers")}-group`}
-          className="font-display text-text-primary"
+          className={GROUP_TITLE_CLASSES}
         >
           {t("networks.metrics.title")}
         </h4>
         <p className={MEMBER_FIELD_HELP_CLASSES}>
           {t("priorityMetrics.explain")}
         </p>
-        <div className={METRIC_GRID_CLASSES}>
-          {field("followers", 15)}
-          {field("posts", 10)}
-          {field("comments", 15)}
+        <div className={METRIC_LIST_CLASSES}>
+          {metric("followers", 15)}
+          {metric("posts", 10)}
+          {metric("comments", 15)}
         </div>
         <p className={FIGURES_CAPTION_CLASSES}>
           <ClockIcon
@@ -318,7 +412,11 @@ function NetworkLine({
           </Notice>
         ) : null}
         {state.toConfirm.has(line.id) ? (
-          <Notice tone="info">{t("figures.confirmAll")}</Notice>
+          <Notice tone="info">
+            {holdsEveryPriorityFigure(line)
+              ? t("figures.confirmAll")
+              : t("figures.confirmSome")}
+          </Notice>
         ) : null}
         {holdsPriorityFigure(line) || state.toConfirm.has(line.id) ? (
           <div>
@@ -344,50 +442,6 @@ function NetworkLine({
           </div>
         ))}
       </div>
-
-      {line.isPrimary ? (
-        <div className={BANDS_CLASSES} data-bands="">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <p className="font-semibold">{t("networks.bands.title")}</p>
-            <LayerBadge layer="public" label={t("layer.public")} />
-          </div>
-          {bands === null ||
-          (bands.audienceBand === null &&
-            bands.publicationFrequency === null &&
-            bands.commentBand === null) ? (
-            <p className={MEMBER_FIELD_HELP_CLASSES}>
-              {t("networks.bands.none")}
-            </p>
-          ) : (
-            <ul className="flex flex-col gap-1">
-              {bands.audienceBand === null ? null : (
-                <li>
-                  {t("networks.bands.audience", {
-                    band: bandLabelOf("audience_band", bands.audienceBand),
-                  })}
-                </li>
-              )}
-              {bands.publicationFrequency === null ? null : (
-                <li>
-                  {t("networks.bands.frequency", {
-                    band: bandLabelOf(
-                      "publication_frequency",
-                      bands.publicationFrequency,
-                    ),
-                  })}
-                </li>
-              )}
-              {bands.commentBand === null ? null : (
-                <li>
-                  {t("networks.bands.comments", {
-                    band: bandLabelOf("comment_band", bands.commentBand),
-                  })}
-                </li>
-              )}
-            </ul>
-          )}
-        </div>
-      ) : null}
     </article>
   );
 }

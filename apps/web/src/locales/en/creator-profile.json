@@ -33,6 +33,7 @@
   },
   "blocks": {
     "missing": "To complete: {fields}.",
+    "missingCount": "{count, plural, one {# item to complete} other {# items to complete}}",
     "allSet": "All the information asked for is filled in."
   },
   "state": {
@@ -45,7 +46,9 @@
   "home": {
     "state": "State: {state}",
     "complete": "Complete my profile",
-    "review": "View my profile"
+    "review": "View my profile",
+    "leftIn": "{section} ({count})",
+    "remaining": "{count, plural, one {# item left to complete:} other {# items left to complete:}}"
   },
   "completeness": {
     "label": "Profile completeness",
@@ -212,7 +215,8 @@
     }
   },
   "figures": {
-    "confirmAll": "To update the date of your figures, please also confirm how often you post and your average comments.",
+    "confirmAll": "All three figures are filled in: press “Confirm my figures” to date them today.",
+    "confirmSome": "Please also fill in how often you post and your average comments, then press “Confirm my figures” to date your figures today.",
     "confirm": "Confirm my figures",
     "source": {
       "declared": "Source: declared by you",
@@ -220,7 +224,7 @@
     },
     "dated": "{source} · figures as of {date}",
     "undated": "{source} · figures to confirm",
-    "stale": "Your figures date from {date}. After 90 days, your profile is shown lower in results."
+    "stale": "Check your figures then confirm them: they date from {date}. After 90 days, your profile is shown lower in results."
   },
   "issues": {
     "required": "This field is required.",
@@ -228,7 +232,7 @@
     "unknown": "This choice is no longer available: please pick another.",
     "duplicate": "This value already exists: please remove the duplicate.",
     "wrong_network": "This link doesn't match the chosen network.",
-    "sum_exceeds_100": "The total is over 100%. Please lower one of the shares.",
+    "sum_exceeds_100": "The total is {sum}%, 100 at most. Nothing is saved for this network until the total is corrected.",
     "count": "Enter a whole number, zero or more.",
     "percentage": "Enter a percentage between 0 and 100, with two decimals at most.",
     "url_shape": "The link must start with https:// and contain no space or credentials.",
@@ -252,6 +256,10 @@
     "failed": "This action did not go through. Please try again in a moment.",
     "remove": "Remove",
     "removeNamed": "Remove the {network} network",
+    "removeConfirm": "Remove {network} and its audience?",
+    "removeKeep": "Keep",
+    "removeKeepNamed": "Keep the {network} network",
+    "removeNow": "Remove {network} now",
     "add": {
       "label": "Add a network",
       "placeholder": "Choose a network…",
@@ -266,11 +274,8 @@
       "title": "Your three key figures"
     },
     "bands": {
-      "title": "What brands see before any introduction",
-      "none": "No band yet: enter your followers and your other figures.",
-      "audience": "Community size: {band}",
-      "frequency": "Posting rhythm: {band}",
-      "comments": "Comments per post: {band}"
+      "seen": "Brands see: {band}",
+      "notYet": "Brands don't see a band yet: fill in this figure."
     },
     "fields": {
       "handle": {
@@ -306,7 +311,7 @@
     }
   },
   "priorityMetrics": {
-    "explain": "These three figures are the first ones brands read: your community size, how often you post and your average comments."
+    "explain": "Brands first see the band of these three figures; the exact figure comes later."
   },
   "posts30d": {
     "hint": "Count your posts from the last 30 days: posts, Reels, videos, Shorts. Do not count stories or live streams."
@@ -321,6 +326,8 @@
     "negotiation": "Costs are negotiated with your sales contact.",
     "ugcGroup": "UGC (content delivered to the brand)",
     "noList": "No choice available for now.",
+    "otherNetworks": "Other networks ({count, plural, =0 {no format ticked} one {# format ticked} other {# formats ticked}})",
+    "sectorsFold": "Choose the refused sectors ({count, plural, =0 {none chosen} one {# chosen} other {# chosen}})",
     "availabilityDeclared": "Declared on {date}. Update it when it changes.",
     "delivery": {
       "lt_7d": "Under 7 days",
@@ -342,9 +349,8 @@
       "legend": "Countries of your audience",
       "main": "Main country of your audience",
       "mainShare": "Share of your audience in this country (%)",
-      "other": "Another country of your audience",
-      "otherShare": "Share of your audience in this other country (%)",
-      "otherHelp": "10 % at least.",
+      "other": "Other country {index} of your audience",
+      "otherShare": "Share of your audience in other country {index} (%, 10 at least)",
       "add": "Add a country",
       "full": "Four other countries at most.",
       "removeOther": "Remove other country {index}"
