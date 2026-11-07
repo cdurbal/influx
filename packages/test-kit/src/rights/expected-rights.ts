@@ -1171,6 +1171,154 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
       },
     }),
   },
+  // 0221 (L2E commit 05, jalons/l2e/modele.md §3): the schema verification. influx_advertiser holds
+  // nothing on it, USAGE included (fiche invariant 1, EC-L2E-18, 04 §7.5): every cell of his is
+  // refus_droit. Nobody writes directly: the doors (0222, 0223) and the decisions (0224).
+  {
+    table: "verification.rejection_reasons",
+    source:
+      "0221 (08 RG57, 06 RG51-RG52, EC-L2E-11): the two closed lists of the refusal, written by " +
+      "the migrations only",
+    probeColumn: "code",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "08 RG56, RG57: the agent chooses a typed reason; agent and admin, aal2",
+      },
+    }),
+  },
+  {
+    table: "verification.revocation_reasons",
+    source:
+      "0221 (08 RG73, 04 l. 1627): the five reasons of a withdrawal, written by the migrations only",
+    probeColumn: "code",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source: "08 RG73, RG74: agent and admin, aal2",
+      },
+    }),
+  },
+  {
+    table: "verification.registry_sources",
+    source:
+      "0221 (06 RG52, D79 (12), l2e/registres.md): the free public registers, written by the " +
+      "migrations, then by the admin function of 0224 (influx_verification_definer)",
+    probeColumn: "id",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "06 RG52: the agent consults the source of the country; agent and admin, aal2",
+      },
+    }),
+  },
+  {
+    table: "verification.verification_requests",
+    source:
+      "0221 (D81, l2e/modele.md §3): queue 4, opened by the member doors (0222), decided by the " +
+      "functions of 0224 only",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    expected: merge(
+      {
+        influx_creator: {
+          select: {
+            form: "propre",
+            source:
+              "03 §3.3, modele §3: the creator reads his own requests, never the lock, an agent, " +
+              "the deadlines, the internal comment, the re-examination nor the escalation (column grants)",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source:
+            "08 RG61, 15 RG26, RG36 C(3): agent and admin read queue 4 in aal2, never their own account",
+        },
+      }),
+    ),
+  },
+  {
+    table: "verification.ownership_codes",
+    source:
+      "0221 (08 RG21-RG25, 04 l. 1532): the code of a request and the finding of the agent; " +
+      "issued by the doors (0222), observed by the decisions (0224)",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    expected: merge(
+      {
+        influx_creator: {
+          select: {
+            form: "propre",
+            source:
+              "08 RG22, RG23: the creator reads his codes, never the finding (column grants)",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source:
+            "08 RG25: the agent compares the code he reads on line; aal2, never his own account",
+        },
+      }),
+    ),
+  },
+  {
+    table: "verification.evidence_files",
+    source:
+      "0221 (D82, 04 l. 1561, C(13)): the rows of the evidence, never the key (read through " +
+      "verification.read_evidence(), 0224, journalled); life by the doors and the task of 0223",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    expected: merge(
+      {
+        influx_creator: {
+          select: {
+            form: "propre",
+            source:
+              "EC-L2E-7: the creator reads the metadata of his evidence, never the key nor the checksum",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source:
+            "08 RG83, RG84: agent and admin read the metadata in aal2, never the key, never their own account",
+        },
+      }),
+    ),
+  },
+  {
+    table: "verification.badges",
+    source:
+      "0221 (04 l. 1586, l. 6391): what the badge asserts, written by the decisions of 0224 only",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    expected: merge(
+      {
+        influx_creator: {
+          select: {
+            form: "propre",
+            source:
+              "08 RG4, RG96: the creator reads his badges, their date, source and period, never " +
+              "the agent, the figures nor the observed handle (column grants)",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source:
+            "08 RG41: agent and admin read the finding and the declared values in aal2, never their own account",
+        },
+      }),
+    ),
+  },
   {
     table: "ops.error_groups",
     source: "0016 (D60, 02 §20.5; E-6)",
@@ -1638,7 +1786,8 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * objects), each line checked against its section 8 and the same table; then with those of 0218
  * (L2D commit 05, the derived bands and the history), each line checked against its sections 2, 3
  * and 6 and the same table; then with those of 0219 (L2D commit 06, the export and the erasure),
- * each line checked against its section 1.
+ * each line checked against its section 1; and on 2026-11-07 with those of 0221 (L2E commit 05,
+ * the verification core), each line checked against its section 12 and l2e/modele.md §3.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -3938,6 +4087,106 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_privacy_definer|table|profiles.creator_tones|DELETE",
   "influx_privacy_definer|table|profiles.creator_topics|DELETE",
   "influx_privacy_definer|table|profiles.creator_usage_rights|DELETE",
+  // 0221 (L2E commit 05): the schema verification. Creator: his own rows, column by column (never
+  // the lock, an agent, the internal comment, the finding, the key nor the checksum); agent and
+  // admin: every column but the object key; NO line of influx_advertiser (EC-L2E-18), no write.
+  "influx_admin|column|verification.evidence_files.account_id|SELECT",
+  "influx_admin|column|verification.evidence_files.activated_at|SELECT",
+  "influx_admin|column|verification.evidence_files.byte_size|SELECT",
+  "influx_admin|column|verification.evidence_files.checksum|SELECT",
+  "influx_admin|column|verification.evidence_files.created_at|SELECT",
+  "influx_admin|column|verification.evidence_files.deleted_at|SELECT",
+  "influx_admin|column|verification.evidence_files.height|SELECT",
+  "influx_admin|column|verification.evidence_files.id|SELECT",
+  "influx_admin|column|verification.evidence_files.last_purge_attempt_at|SELECT",
+  "influx_admin|column|verification.evidence_files.purge_attempts|SELECT",
+  "influx_admin|column|verification.evidence_files.purge_requested_at|SELECT",
+  "influx_admin|column|verification.evidence_files.received_bytes|SELECT",
+  "influx_admin|column|verification.evidence_files.request_id|SELECT",
+  "influx_admin|column|verification.evidence_files.retention_due_at|SELECT",
+  "influx_admin|column|verification.evidence_files.state|SELECT",
+  "influx_admin|column|verification.evidence_files.width|SELECT",
+  "influx_admin|schema|verification|USAGE",
+  "influx_admin|table|verification.badges|SELECT",
+  "influx_admin|table|verification.ownership_codes|SELECT",
+  "influx_admin|table|verification.registry_sources|SELECT",
+  "influx_admin|table|verification.rejection_reasons|SELECT",
+  "influx_admin|table|verification.revocation_reasons|SELECT",
+  "influx_admin|table|verification.verification_requests|SELECT",
+  "influx_agent|column|verification.evidence_files.account_id|SELECT",
+  "influx_agent|column|verification.evidence_files.activated_at|SELECT",
+  "influx_agent|column|verification.evidence_files.byte_size|SELECT",
+  "influx_agent|column|verification.evidence_files.checksum|SELECT",
+  "influx_agent|column|verification.evidence_files.created_at|SELECT",
+  "influx_agent|column|verification.evidence_files.deleted_at|SELECT",
+  "influx_agent|column|verification.evidence_files.height|SELECT",
+  "influx_agent|column|verification.evidence_files.id|SELECT",
+  "influx_agent|column|verification.evidence_files.last_purge_attempt_at|SELECT",
+  "influx_agent|column|verification.evidence_files.purge_attempts|SELECT",
+  "influx_agent|column|verification.evidence_files.purge_requested_at|SELECT",
+  "influx_agent|column|verification.evidence_files.received_bytes|SELECT",
+  "influx_agent|column|verification.evidence_files.request_id|SELECT",
+  "influx_agent|column|verification.evidence_files.retention_due_at|SELECT",
+  "influx_agent|column|verification.evidence_files.state|SELECT",
+  "influx_agent|column|verification.evidence_files.width|SELECT",
+  "influx_agent|schema|verification|USAGE",
+  "influx_agent|table|verification.badges|SELECT",
+  "influx_agent|table|verification.ownership_codes|SELECT",
+  "influx_agent|table|verification.registry_sources|SELECT",
+  "influx_agent|table|verification.rejection_reasons|SELECT",
+  "influx_agent|table|verification.revocation_reasons|SELECT",
+  "influx_agent|table|verification.verification_requests|SELECT",
+  "influx_creator|column|verification.badges.account_id|SELECT",
+  "influx_creator|column|verification.badges.created_at|SELECT",
+  "influx_creator|column|verification.badges.evidence_source|SELECT",
+  "influx_creator|column|verification.badges.expires_at|SELECT",
+  "influx_creator|column|verification.badges.granted_at|SELECT",
+  "influx_creator|column|verification.badges.id|SELECT",
+  "influx_creator|column|verification.badges.level|SELECT",
+  "influx_creator|column|verification.badges.network_code|SELECT",
+  "influx_creator|column|verification.badges.observed_period_end|SELECT",
+  "influx_creator|column|verification.badges.observed_period_start|SELECT",
+  "influx_creator|column|verification.badges.request_id|SELECT",
+  "influx_creator|column|verification.badges.revocation_reason_code|SELECT",
+  "influx_creator|column|verification.badges.revoked_at|SELECT",
+  "influx_creator|column|verification.badges.social_account_id|SELECT",
+  "influx_creator|column|verification.badges.state|SELECT",
+  "influx_creator|column|verification.badges.updated_at|SELECT",
+  "influx_creator|column|verification.evidence_files.account_id|SELECT",
+  "influx_creator|column|verification.evidence_files.activated_at|SELECT",
+  "influx_creator|column|verification.evidence_files.byte_size|SELECT",
+  "influx_creator|column|verification.evidence_files.created_at|SELECT",
+  "influx_creator|column|verification.evidence_files.deleted_at|SELECT",
+  "influx_creator|column|verification.evidence_files.height|SELECT",
+  "influx_creator|column|verification.evidence_files.id|SELECT",
+  "influx_creator|column|verification.evidence_files.request_id|SELECT",
+  "influx_creator|column|verification.evidence_files.retention_due_at|SELECT",
+  "influx_creator|column|verification.evidence_files.state|SELECT",
+  "influx_creator|column|verification.evidence_files.width|SELECT",
+  "influx_creator|column|verification.ownership_codes.account_id|SELECT",
+  "influx_creator|column|verification.ownership_codes.code|SELECT",
+  "influx_creator|column|verification.ownership_codes.created_at|SELECT",
+  "influx_creator|column|verification.ownership_codes.expires_at|SELECT",
+  "influx_creator|column|verification.ownership_codes.id|SELECT",
+  "influx_creator|column|verification.ownership_codes.kind|SELECT",
+  "influx_creator|column|verification.ownership_codes.request_id|SELECT",
+  "influx_creator|column|verification.ownership_codes.revoked_at|SELECT",
+  "influx_creator|column|verification.verification_requests.account_id|SELECT",
+  "influx_creator|column|verification.verification_requests.cancelled_at|SELECT",
+  "influx_creator|column|verification.verification_requests.closed_at|SELECT",
+  "influx_creator|column|verification.verification_requests.created_at|SELECT",
+  "influx_creator|column|verification.verification_requests.decided_at|SELECT",
+  "influx_creator|column|verification.verification_requests.id|SELECT",
+  "influx_creator|column|verification.verification_requests.level|SELECT",
+  "influx_creator|column|verification.verification_requests.member_message|SELECT",
+  "influx_creator|column|verification.verification_requests.network_code|SELECT",
+  "influx_creator|column|verification.verification_requests.population|SELECT",
+  "influx_creator|column|verification.verification_requests.rejection_reason_code|SELECT",
+  "influx_creator|column|verification.verification_requests.social_account_id|SELECT",
+  "influx_creator|column|verification.verification_requests.status|SELECT",
+  "influx_creator|column|verification.verification_requests.submitted_at|SELECT",
+  "influx_creator|column|verification.verification_requests.updated_at|SELECT",
+  "influx_creator|schema|verification|USAGE",
 ];
 
 /**

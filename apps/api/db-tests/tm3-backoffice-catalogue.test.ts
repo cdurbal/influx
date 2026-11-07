@@ -111,6 +111,16 @@ describe("backoffice.queues: the closed catalogue of the J8 queues (15 RG26, RG2
         is_active: true,
         retired_at: null,
       },
+      // 0221 (L2E): queue 4, 08 RG61-RG67 and 06 RG51-RG52, a lock, no bulk action
+      {
+        code: "verification",
+        label_key: "queue.verification",
+        roles: ["agent", "admin"],
+        bulk: false,
+        lock: true,
+        is_active: true,
+        retired_at: null,
+      },
     ]);
   });
 
@@ -203,6 +213,16 @@ describe("backoffice.sla_policies: one delay per queue, as data (D39, 15 RG29, R
       // 06 RG7: 1 business day, escalated at 3 business days of age (480 + 960), decided
       {
         queue_code: "profiles_advertiser",
+        claim: 240,
+        decision: 480,
+        business_hours: D39_BUSINESS_HOURS,
+        escalate: 960,
+        is_provisional: false,
+        is_active: true,
+      },
+      // 0221 (L2E): queue 4, the delay of queue 1 (08 RG61, RG100)
+      {
+        queue_code: "verification",
         claim: 240,
         decision: 480,
         business_hours: D39_BUSINESS_HOURS,
@@ -326,9 +346,12 @@ describe("backoffice.sla_policies: one delay per queue, as data (D39, 15 RG29, R
 });
 
 describe("backoffice.operational_settings: a closed key/value list (04 §5.10, 15 RG38, EC-L2C-2)", () => {
+  // 0221 adds the parameters of 08 RG100 to the list: they are asserted by
+  // db-tests/verification-core.test.ts (EC-L2E-05-12).
   it("holds claim_expiry_minutes = 30 (15 RG27 C3), loaded by the migration", async () => {
     const rows = await migration`
-      select key, value, updated_by_account_id from backoffice.operational_settings order by key`;
+      select key, value, updated_by_account_id from backoffice.operational_settings
+       where key = 'claim_expiry_minutes'`;
     expect(rows).toEqual([
       { key: "claim_expiry_minutes", value: 30, updated_by_account_id: null },
     ]);

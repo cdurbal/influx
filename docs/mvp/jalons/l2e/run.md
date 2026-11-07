@@ -6,7 +6,7 @@
 | 02 | 02.md | commit | sonnet | high | testeur | ignoré | L2D-E2E : < 20 s regagnables sans perte de couverture (10 à 13 s, `journey-resume` non simulable) ; dépassement accepté par le fondateur (option a, comme L2C et L2D), aucun plancher baissé ; référence 366,9 s médiane (3 passages, 242 cas) |
 | 03 | 03.md | arbitrage | opus | xhigh | architecte | fait | D82 : relais généralisé, 8 Mio sur la seule route de dépôt, aucune URL signée, lecture journalisée par la base ; `modele.md` : trois propriétaires, l'annonceur sans droit sur le schéma `verification` (EC-L2E-18, T9.6 précisé) |
 | 04 | 04.md | arbitrage | sonnet | high | expert-integrations-api | fait | `registres.md` : UE (27) par e-Justice, AU et SG admises, 8 pays « à confirmer » inactives, GLEIF en repli ; US : GLEIF puis liste d'États vide ; KR, MX, AE, MA, ZA : GLEIF seul |
-| 05 | 05.md | commit | opus | high | expert-database | à faire | I-4. `0221` |
+| 05 | 05.md | commit | opus | high | expert-database | fait | I-4. `0221` : 7 tables RLS forcée, aucune écriture directe, `influx_advertiser` sans aucun droit sur `verification` (`USAGE` et privilèges par défaut compris, assertion de fin) ; file 4, 15 paramètres RG100, 41 sources (8 « à confirmer » inactives) ; badge de compte sans échéance |
 | 06 | 06.md | commit | opus | high | expert-database | à faire | I-4. `0222` |
 | 07 | 07.md | commit | opus | high | expert-database | à faire | I-4. `0223` |
 | 08 | 08.md | commit | opus | high | expert-database | à faire | I-4. `0224` |

@@ -8,3 +8,4 @@ export * as identitySchema from "./identity.ts";
 export * as profilesSchema from "./profiles.ts";
 export * as profilesCreatorIdentitySchema from "./profiles-creator-identity.ts";
 export * as referenceSchema from "./reference.ts";
+export * as verificationSchema from "./verification.ts";

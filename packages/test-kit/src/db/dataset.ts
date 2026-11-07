@@ -97,6 +97,31 @@ export const CREATOR_SOCIAL_ACCOUNT_IDS = {
   b: "00000000-0000-4000-8000-00000000ff13",
 } as const;
 
+/**
+ * The verification rows of creators A and B (0221, L2E commit 05): an APPROVED account request on
+ * the primary line, its observed code, a purged evidence row and a revoked badge, all inert (no
+ * open request, no holding badge, nothing for the purge task), so that `propre` is observable
+ * against account B and no case finds a request or a badge it did not open.
+ */
+export const VERIFICATION_IDS = {
+  request: {
+    a: "00000000-0000-4000-8000-00000000ff14",
+    b: "00000000-0000-4000-8000-00000000ff15",
+  },
+  code: {
+    a: "00000000-0000-4000-8000-00000000ff16",
+    b: "00000000-0000-4000-8000-00000000ff17",
+  },
+  evidence: {
+    a: "00000000-0000-4000-8000-00000000ff18",
+    b: "00000000-0000-4000-8000-00000000ff19",
+  },
+  badge: {
+    a: "00000000-0000-4000-8000-00000000ff1a",
+    b: "00000000-0000-4000-8000-00000000ff1b",
+  },
+} as const;
+
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
 }
@@ -461,6 +486,51 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
                ${account}
          where not exists (select 1 from profiles.creator_network_metrics_history
                             where account_id = ${account})`;
+    }
+    // 0221 (L2E): one inert verification trail per creator (VERIFICATION_IDS), decided by agent A
+    for (const side of ["a", "b"] as const) {
+      const account = accountIdOf("creator", side);
+      const rows = identityRows[side];
+      const agent = accountIdOf("agent", "a");
+      const ids = {
+        request: VERIFICATION_IDS.request[side],
+        code: VERIFICATION_IDS.code[side],
+        evidence: VERIFICATION_IDS.evidence[side],
+        badge: VERIFICATION_IDS.badge[side],
+      };
+      await tx`
+        insert into verification.verification_requests
+          (id, account_id, social_account_id, network_code, level, status, submitted_at,
+           sla_due_at, escalate_at, decided_by_account_id, decided_at, closed_at)
+        values (${ids.request}, ${account}, ${CREATOR_SOCIAL_ACCOUNT_IDS[side]}, ${rows.network},
+                'account_verified', 'approved', now(), now() + interval '1 day',
+                now() + interval '3 days', ${agent}, now(), now())
+        on conflict do nothing`;
+      await tx`
+        insert into verification.ownership_codes
+          (id, request_id, account_id, kind, code, expires_at, observed_by_account_id,
+           observed_at, observed_handle)
+        values (${ids.code}, ${ids.request}, ${account}, 'network',
+                ${`INFLUX-T2DATAS${side.toUpperCase()}`}, now() + interval '7 days', ${agent},
+                now(), ${rows.handle})
+        on conflict do nothing`;
+      await tx`
+        insert into verification.evidence_files
+          (id, request_id, account_id, state, received_bytes, byte_size, width, height, checksum,
+           activated_at, retention_due_at, purge_requested_at, deleted_at)
+        values (${ids.evidence}, ${ids.request}, ${account}, 'purged', 40000, 20000, 1290, 2796,
+                sha256(${`t2-evidence-${side}`}::bytea), now(), now() + interval '45 days',
+                now(), now())
+        on conflict do nothing`;
+      await tx`
+        insert into verification.badges
+          (id, account_id, social_account_id, network_code, request_id, level,
+           granted_by_account_id, granted_at, evidence_source, observed_handle_at_decision, state,
+           revoked_at, revocation_reason_code)
+        values (${ids.badge}, ${account}, ${CREATOR_SOCIAL_ACCOUNT_IDS[side]}, ${rows.network},
+                ${ids.request}, 'account_verified', ${agent}, now(), 'public_profile',
+                ${rows.handle}, 'revoked', now(), 'influx_error')
+        on conflict do nothing`;
     }
     await tx`
       insert into leads.outbox_events
