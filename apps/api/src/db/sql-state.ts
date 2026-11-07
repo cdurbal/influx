@@ -40,3 +40,16 @@ export function sqlDetailOf(error: unknown): string | null {
   }
   return null;
 }
+
+/** The MESSAGE of a database error (`RAISE EXCEPTION 'message'`), through the wrapping of drizzle. */
+export function sqlMessageOf(error: unknown): string | null {
+  let current: unknown = error;
+  for (let depth = 0; depth < 4 && current instanceof Error; depth += 1) {
+    const code: unknown = (current as Error & { code?: unknown }).code;
+    if (typeof code === "string" && /^[0-9A-Z]{5}$/.test(code)) {
+      return current.message;
+    }
+    current = current.cause;
+  }
+  return null;
+}

@@ -63,12 +63,20 @@ export class ApiError extends Error {
   }
 }
 
-/** An ApiError answered with a Retry-After header: a 503 the client may try again (21 EC-62 (D)). */
+/**
+ * An ApiError answered with a Retry-After header: a 503 the client may try again (21 EC-62 (D)), or
+ * a refusal that names the delay left (L2E 12, 08 RG60: a request again less than 24 hours after a
+ * refusal). The seconds travel in the header only, never in the body.
+ */
 export class RetryLaterError extends ApiError {
   readonly retryAfterSeconds: number;
 
-  constructor(code: ErrorCode, retryAfterSeconds: number) {
-    super(code);
+  constructor(
+    code: ErrorCode,
+    retryAfterSeconds: number,
+    details?: readonly ValidationIssue[],
+  ) {
+    super(code, details);
     this.name = "RetryLaterError";
     this.retryAfterSeconds = retryAfterSeconds;
   }

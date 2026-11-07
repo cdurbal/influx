@@ -71,6 +71,15 @@ const OWN_CONTACT_BY_ROUTE: Readonly<Record<string, readonly string[]>> = {
   "/v1/me": ["email", "companyName"],
   "/v1/me/brand-profile": ["companyName", "firstName", "email", "phone"],
   "/v1/me/brand-profile/submit": ["companyName", "firstName", "email", "phone"],
+  // The creator's own verification (L2E 12): the network of HIS line, which a request and a badge
+  // name. A brand never reaches these routes (T14, db-tests/verification-route.test.ts); the public
+  // badge an advertiser will read names a network by design (08 RG89) and is held free of handle, URL,
+  // agent and gap by packages/contracts/tests/verification.test.ts.
+  "/v1/me/verification": ["networkCode"],
+  "/v1/me/verification/requests": ["networkCode"],
+  "/v1/me/verification/requests/:id/code": ["networkCode"],
+  "/v1/me/verification/requests/:id/submit": ["networkCode"],
+  "/v1/me/verification/requests/:id/cancel": ["networkCode"],
 };
 
 type ContractModule = { name: string; schemas: [string, z.ZodType][] };

@@ -98,6 +98,7 @@ function profileInputOf(stored: StoredCreatorProfile): CreatorProfileInput {
     usageRights: stored.lists.usageRights,
     maxExclusivityBand: stored.maxExclusivity,
     availabilityBand: stored.availability,
+    badgeRequested: stored.badgeRequested,
   };
 }
 

@@ -181,7 +181,8 @@ export const brandObservedChannelSchema = z.enum(BRAND_OBSERVED_CHANNELS);
  * (the database says them by MESSAGE, 0222, 0224; a value in DETAIL for `duplicate_request`, a date,
  * and `retry_after`, seconds, which travel as `Retry-After`, never in the body). 409 unless said.
  * `ownership_prerequisite` is written before the button (08 RG12), `handle_already_verified` is an
- * outcome of a decision, not an error.
+ * outcome of a decision, not an error. `code_expired` (0222, EC-L2E-06-3): an account request is
+ * submitted with a live code only.
  */
 export const VERIFICATION_REFUSAL_ISSUES = [
   "duplicate_request",
@@ -194,6 +195,7 @@ export const VERIFICATION_REFUSAL_ISSUES = [
   "stale_token",
   "entry_closed",
   "no_registry_source",
+  "code_expired",
 ] as const;
 export const verificationRefusalIssueSchema = z.enum(
   VERIFICATION_REFUSAL_ISSUES,

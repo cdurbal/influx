@@ -27,6 +27,7 @@ import { requireBackofficeSession } from "./domains/identity/backoffice-session.
 import { registerBackofficeAccountRoutes } from "./domains/backoffice/accounts-routes.ts";
 import { registerDataExportRoutes } from "./domains/privacy/member/routes.ts";
 import { registerCreatorProfileRoutes } from "./domains/profiles/creator/routes.ts";
+import { registerVerificationRoutes } from "./domains/verification/routes.ts";
 import { registerBrandProfileRoutes } from "./domains/profiles/routes.ts";
 import { registerBackofficeActionRoutes } from "./domains/backoffice/actions-routes.ts";
 import { registerBackofficeInvitationRoutes } from "./domains/backoffice/invitations-routes.ts";
@@ -574,6 +575,13 @@ export function buildServer(
 
   // The creator profile: read and autosave of blocks 1, 2 and 5 (docs/mvp/07; jalon L2D commit 08).
   registerCreatorProfileRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
+  });
+
+  // The creator's own verification requests: state by network line, open, code, submit, cancel (docs/mvp/08;
+  // jalon L2E commit 12).
+  registerVerificationRoutes(app, {
     database,
     now: options.identity?.now ?? (() => new Date()),
   });

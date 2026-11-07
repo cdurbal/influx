@@ -104,6 +104,11 @@ export type StoredCreatorProfile = {
     addressCountry: string | null;
   };
   lines: StoredCreatorLine[];
+  /**
+   * A request for « Compte vérifié » or « Audience vérifiée » FILED on one of his lines: submitted,
+   * pending or decided, never withdrawn (07 RG87, RG88; counted as filed, never as obtained).
+   */
+  badgeRequested: boolean;
 };
 
 /** Codes still active in each reference list the form draws from. */
@@ -160,6 +165,7 @@ type StoredRow = {
   postal_code: string | null;
   city: string | null;
   identity_country: string | null;
+  badge_requested: boolean;
   secondary_topics: string[];
   tones: string[];
   publication_languages: string[];
@@ -214,6 +220,10 @@ export async function readOwnCreatorProfile(
            to_char(p.availability_declared_at at time zone 'UTC', ${ISO_UTC}) as availability_declared_at,
            i.legal_first_name, i.legal_last_name, i.contact_email, i.contact_phone, i.address_line,
            i.postal_code, i.city, i.country_code::text as identity_country,
+           exists (select 1 from verification.verification_requests v
+                    where v.account_id = a.id and v.population = 'creator'
+                      and v.submitted_at is not null and v.status <> 'cancelled')
+             as badge_requested,
            ${slottedList("secondaryTopics")} as secondary_topics,
            ${slottedList("tones")} as tones,
            ${slottedList("publicationLanguages")} as publication_languages,
@@ -320,6 +330,7 @@ export async function readOwnCreatorProfile(
       audienceAges: line.ages,
       audienceGenders: line.genders,
     })),
+    badgeRequested: row.badge_requested === true,
   };
 }
 
