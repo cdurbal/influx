@@ -1,7 +1,8 @@
-// Schema `verification`, migration 0221 (L2E commit 05, jalons/l2e/modele.md §3). The SQL is the
-// source of truth: this file is aligned by hand, never generated. Declaring a column grants
-// nothing: influx_advertiser holds no right on this schema, USAGE included (fiche invariant 1,
-// EC-L2E-18, 04 §7.5); nobody writes these tables directly, only the functions of 0222 to 0224.
+// Schema `verification`, migrations 0221 and 0222 (L2E commits 05 and 06, jalons/l2e/modele.md
+// §3). The SQL is the source of truth: this file is aligned by hand, never generated. Declaring a
+// column grants nothing: influx_advertiser holds no right on this schema, USAGE included (fiche
+// invariant 1, EC-L2E-18, 04 §7.5); nobody writes these tables directly, only the functions of
+// 0222 to 0224.
 import { sql } from "drizzle-orm";
 import {
   bigint,
@@ -17,6 +18,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { bytea } from "./column-types.ts";
+import { profiles } from "./profiles.ts";
 
 export const verification = pgSchema("verification");
 
@@ -220,3 +222,22 @@ export const badges = verification.table("badges", {
   createdAt: timestamptz("created_at").notNull().defaultNow(),
   updatedAt: timestamptz("updated_at").notNull().defaultNow(),
 });
+
+/**
+ * 0222 (L2E commit 06, 06 RG46 to RG48): the internal block of a brand, in the schema `profiles`
+ * but declared here, with the verification it serves (TM11 keeps its fields in this module). Never
+ * read by a creator, Brevo, Apollo nor influx_leads_definer; written by the brand door only.
+ */
+export const advertiserInternalDetails = profiles.table(
+  "advertiser_internal_details",
+  {
+    accountId: uuid("account_id").primaryKey(),
+    legalName: text("legal_name").notNull(),
+    registrationCountryCode: char("registration_country_code", {
+      length: 2,
+    }).notNull(),
+    registrationNumber: text("registration_number").notNull(),
+    createdAt: timestamptz("created_at").notNull().defaultNow(),
+    updatedAt: timestamptz("updated_at").notNull().defaultNow(),
+  },
+);

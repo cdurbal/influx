@@ -487,6 +487,15 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
          where not exists (select 1 from profiles.creator_network_metrics_history
                             where account_id = ${account})`;
     }
+    // 0222 (L2E): the internal block of each advertiser, so that agent and admin read both (T2)
+    for (const side of ["a", "b"] as const) {
+      await tx`
+        insert into profiles.advertiser_internal_details
+          (account_id, legal_name, registration_country_code, registration_number)
+        values (${accountIdOf("advertiser", side)}, ${`T2 Brand ${side.toUpperCase()} SAS`}, 'FR',
+                ${`T2-REG-${side.toUpperCase()}`})
+        on conflict do nothing`;
+    }
     // 0221 (L2E): one inert verification trail per creator (VERIFICATION_IDS), decided by agent A
     for (const side of ["a", "b"] as const) {
       const account = accountIdOf("creator", side);

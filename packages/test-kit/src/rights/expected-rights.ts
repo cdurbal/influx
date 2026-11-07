@@ -1319,6 +1319,22 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
       }),
     ),
   },
+  // 0222 (L2E commit 06, modele §3): the internal block of a brand. The brand reads and writes it
+  // through its doors only (profiles.read_own_brand_verification(), save_own_brand_internal_details()):
+  // no direct right for any member; never a creator, Brevo nor Apollo (06 RG46, RG48).
+  {
+    table: "profiles.advertiser_internal_details",
+    source:
+      "0222 (06 RG46-RG48): legal name and registration of a brand, written by its door only",
+    probeColumn: "account_id",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "06 RG52: the agent checks the registration in a public register; aal2, never his own account",
+      },
+    }),
+  },
   {
     table: "ops.error_groups",
     source: "0016 (D60, 02 §20.5; E-6)",
@@ -1787,7 +1803,9 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * (L2D commit 05, the derived bands and the history), each line checked against its sections 2, 3
  * and 6 and the same table; then with those of 0219 (L2D commit 06, the export and the erasure),
  * each line checked against its section 1; and on 2026-11-07 with those of 0221 (L2E commit 05,
- * the verification core), each line checked against its section 12 and l2e/modele.md §3.
+ * the verification core), each line checked against its section 12 and l2e/modele.md §3; then
+ * with those of 0222 (L2E commit 06, the member doors), each line checked against its sections 2
+ * to 4 and 8.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -4187,13 +4205,149 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator|column|verification.verification_requests.submitted_at|SELECT",
   "influx_creator|column|verification.verification_requests.updated_at|SELECT",
   "influx_creator|schema|verification|USAGE",
+  // 0222 (L2E commit 06): the member doors. influx_creator_verification_definer (new owner of the
+  // creator doors, the code generator and the helpers) reads and writes the caller's own creator
+  // rows, column by column; influx_identity_definer the same for the brand, plus the internal
+  // block, never the evidence (EC-L2E-18); EXECUTE of the doors to influx_creator and
+  // influx_advertiser only (the advertiser still holds nothing on the schema verification).
+  "influx_admin|table|profiles.advertiser_internal_details|SELECT",
+  "influx_advertiser|function|profiles.cancel_own_brand_verification()|EXECUTE",
+  "influx_advertiser|function|profiles.open_own_brand_verification()|EXECUTE",
+  "influx_advertiser|function|profiles.read_own_brand_verification()|EXECUTE",
+  "influx_advertiser|function|profiles.renew_own_brand_verification_code()|EXECUTE",
+  "influx_advertiser|function|profiles.save_own_brand_internal_details(text,text,text)|EXECUTE",
+  "influx_advertiser|function|profiles.submit_own_brand_verification()|EXECUTE",
+  "influx_agent|table|profiles.advertiser_internal_details|SELECT",
+  "influx_creator_verification_definer|column|backoffice.operational_settings.key|SELECT",
+  "influx_creator_verification_definer|column|backoffice.operational_settings.value|SELECT",
+  "influx_creator_verification_definer|column|backoffice.sla_policies.business_hours|SELECT",
+  "influx_creator_verification_definer|column|backoffice.sla_policies.escalate_after_minutes|SELECT",
+  "influx_creator_verification_definer|column|backoffice.sla_policies.is_active|SELECT",
+  "influx_creator_verification_definer|column|backoffice.sla_policies.queue_code|SELECT",
+  "influx_creator_verification_definer|column|backoffice.sla_policies.target_decision_minutes|SELECT",
+  "influx_creator_verification_definer|column|identity.account_roles.account_id|SELECT",
+  "influx_creator_verification_definer|column|identity.account_roles.role|SELECT",
+  "influx_creator_verification_definer|column|identity.accounts.id|SELECT",
+  "influx_creator_verification_definer|column|identity.accounts.status|SELECT",
+  "influx_creator_verification_definer|column|leads.outbox_events.destination|INSERT",
+  "influx_creator_verification_definer|column|leads.outbox_events.event_id|INSERT",
+  "influx_creator_verification_definer|column|leads.outbox_events.event_type|INSERT",
+  "influx_creator_verification_definer|column|leads.outbox_events.idempotency_key|INSERT",
+  "influx_creator_verification_definer|column|leads.outbox_events.payload|INSERT",
+  "influx_creator_verification_definer|column|leads.outbox_events.priority|INSERT",
+  "influx_creator_verification_definer|column|leads.outbox_events.subject_key|INSERT",
+  "influx_creator_verification_definer|column|profiles.creator_social_accounts.account_id|SELECT",
+  "influx_creator_verification_definer|column|profiles.creator_social_accounts.id|SELECT",
+  "influx_creator_verification_definer|column|profiles.creator_social_accounts.network_code|SELECT",
+  "influx_creator_verification_definer|column|verification.badges.account_id|SELECT",
+  "influx_creator_verification_definer|column|verification.badges.level|SELECT",
+  "influx_creator_verification_definer|column|verification.badges.social_account_id|SELECT",
+  "influx_creator_verification_definer|column|verification.badges.state|SELECT",
+  "influx_creator_verification_definer|column|verification.evidence_files.account_id|SELECT",
+  "influx_creator_verification_definer|column|verification.evidence_files.request_id|SELECT",
+  "influx_creator_verification_definer|column|verification.evidence_files.state|SELECT",
+  "influx_creator_verification_definer|column|verification.ownership_codes.account_id|INSERT,SELECT",
+  "influx_creator_verification_definer|column|verification.ownership_codes.code|INSERT,SELECT",
+  "influx_creator_verification_definer|column|verification.ownership_codes.created_at|SELECT",
+  "influx_creator_verification_definer|column|verification.ownership_codes.expires_at|INSERT,SELECT",
+  "influx_creator_verification_definer|column|verification.ownership_codes.id|SELECT",
+  "influx_creator_verification_definer|column|verification.ownership_codes.kind|INSERT,SELECT",
+  "influx_creator_verification_definer|column|verification.ownership_codes.request_id|INSERT,SELECT",
+  "influx_creator_verification_definer|column|verification.ownership_codes.revoked_at|SELECT,UPDATE",
+  "influx_creator_verification_definer|column|verification.verification_requests.account_id|INSERT,SELECT",
+  "influx_creator_verification_definer|column|verification.verification_requests.cancelled_at|SELECT,UPDATE",
+  "influx_creator_verification_definer|column|verification.verification_requests.closed_at|SELECT,UPDATE",
+  "influx_creator_verification_definer|column|verification.verification_requests.created_at|SELECT",
+  "influx_creator_verification_definer|column|verification.verification_requests.decided_at|SELECT",
+  "influx_creator_verification_definer|column|verification.verification_requests.id|SELECT",
+  "influx_creator_verification_definer|column|verification.verification_requests.level|INSERT,SELECT",
+  "influx_creator_verification_definer|column|verification.verification_requests.network_code|INSERT,SELECT",
+  "influx_creator_verification_definer|column|verification.verification_requests.population|SELECT",
+  "influx_creator_verification_definer|column|verification.verification_requests.rejection_reason_code|SELECT",
+  "influx_creator_verification_definer|column|verification.verification_requests.social_account_id|INSERT,SELECT",
+  "influx_creator_verification_definer|column|verification.verification_requests.status|SELECT,UPDATE",
+  "influx_creator_verification_definer|column|verification.verification_requests.submitted_at|SELECT",
+  "influx_creator_verification_definer|function|audit.append(text,text,uuid,jsonb)|EXECUTE",
+  "influx_creator_verification_definer|function|backoffice.business_deadline(text,timestamp with time zone,integer)|EXECUTE",
+  "influx_creator_verification_definer|function|influx.current_account_id()|EXECUTE",
+  "influx_creator_verification_definer|function|influx.current_account_role()|EXECUTE",
+  "influx_creator_verification_definer|function|verification.cancel_open_requests_of_line()|EXECUTE",
+  "influx_creator_verification_definer|function|verification.cancel_own_request(uuid)|EXECUTE",
+  "influx_creator_verification_definer|function|verification.cancel_request_of(uuid,uuid,text)|EXECUTE",
+  "influx_creator_verification_definer|function|verification.issue_ownership_code(uuid,uuid,text)|EXECUTE",
+  "influx_creator_verification_definer|function|verification.new_ownership_code()|EXECUTE",
+  "influx_creator_verification_definer|function|verification.open_own_request(uuid,verification.badge_level)|EXECUTE",
+  "influx_creator_verification_definer|function|verification.open_request_of(uuid,uuid,text,verification.badge_level)|EXECUTE",
+  "influx_creator_verification_definer|function|verification.renew_own_code(uuid)|EXECUTE",
+  "influx_creator_verification_definer|function|verification.submit_own_request(uuid)|EXECUTE",
+  "influx_creator_verification_definer|function|verification.submit_request_of(uuid,uuid)|EXECUTE",
+  "influx_creator_verification_definer|schema|audit|USAGE",
+  "influx_creator_verification_definer|schema|backoffice|USAGE",
+  "influx_creator_verification_definer|schema|identity|USAGE",
+  "influx_creator_verification_definer|schema|influx|USAGE",
+  "influx_creator_verification_definer|schema|leads|USAGE",
+  "influx_creator_verification_definer|schema|profiles|USAGE",
+  "influx_creator_verification_definer|schema|verification|USAGE",
+  "influx_creator|function|verification.cancel_own_request(uuid)|EXECUTE",
+  "influx_creator|function|verification.open_own_request(uuid,verification.badge_level)|EXECUTE",
+  "influx_creator|function|verification.renew_own_code(uuid)|EXECUTE",
+  "influx_creator|function|verification.submit_own_request(uuid)|EXECUTE",
+  "influx_identity_definer|column|backoffice.operational_settings.key|SELECT",
+  "influx_identity_definer|column|backoffice.operational_settings.value|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_internal_details.account_id|INSERT,SELECT",
+  "influx_identity_definer|column|profiles.advertiser_internal_details.created_at|SELECT",
+  "influx_identity_definer|column|profiles.advertiser_internal_details.legal_name|INSERT,SELECT,UPDATE",
+  "influx_identity_definer|column|profiles.advertiser_internal_details.registration_country_code|INSERT,SELECT,UPDATE",
+  "influx_identity_definer|column|profiles.advertiser_internal_details.registration_number|INSERT,SELECT,UPDATE",
+  "influx_identity_definer|column|profiles.advertiser_internal_details.updated_at|SELECT",
+  "influx_identity_definer|column|verification.badges.account_id|SELECT",
+  "influx_identity_definer|column|verification.badges.expires_at|SELECT",
+  "influx_identity_definer|column|verification.badges.granted_at|SELECT",
+  "influx_identity_definer|column|verification.badges.level|SELECT",
+  "influx_identity_definer|column|verification.badges.social_account_id|SELECT",
+  "influx_identity_definer|column|verification.badges.state|SELECT",
+  "influx_identity_definer|column|verification.ownership_codes.account_id|INSERT,SELECT",
+  "influx_identity_definer|column|verification.ownership_codes.code|INSERT,SELECT",
+  "influx_identity_definer|column|verification.ownership_codes.created_at|SELECT",
+  "influx_identity_definer|column|verification.ownership_codes.expires_at|INSERT,SELECT",
+  "influx_identity_definer|column|verification.ownership_codes.id|SELECT",
+  "influx_identity_definer|column|verification.ownership_codes.kind|INSERT,SELECT",
+  "influx_identity_definer|column|verification.ownership_codes.request_id|INSERT,SELECT",
+  "influx_identity_definer|column|verification.ownership_codes.revoked_at|SELECT,UPDATE",
+  "influx_identity_definer|column|verification.verification_requests.account_id|INSERT,SELECT",
+  "influx_identity_definer|column|verification.verification_requests.cancelled_at|SELECT,UPDATE",
+  "influx_identity_definer|column|verification.verification_requests.closed_at|SELECT,UPDATE",
+  "influx_identity_definer|column|verification.verification_requests.created_at|SELECT",
+  "influx_identity_definer|column|verification.verification_requests.decided_at|SELECT",
+  "influx_identity_definer|column|verification.verification_requests.id|SELECT",
+  "influx_identity_definer|column|verification.verification_requests.level|INSERT,SELECT",
+  "influx_identity_definer|column|verification.verification_requests.member_message|SELECT",
+  "influx_identity_definer|column|verification.verification_requests.network_code|INSERT,SELECT",
+  "influx_identity_definer|column|verification.verification_requests.population|SELECT",
+  "influx_identity_definer|column|verification.verification_requests.rejection_reason_code|SELECT",
+  "influx_identity_definer|column|verification.verification_requests.social_account_id|INSERT,SELECT",
+  "influx_identity_definer|column|verification.verification_requests.status|SELECT,UPDATE",
+  "influx_identity_definer|column|verification.verification_requests.submitted_at|SELECT",
+  "influx_identity_definer|function|profiles.cancel_own_brand_verification()|EXECUTE",
+  "influx_identity_definer|function|profiles.open_own_brand_verification()|EXECUTE",
+  "influx_identity_definer|function|profiles.read_own_brand_verification()|EXECUTE",
+  "influx_identity_definer|function|profiles.renew_own_brand_verification_code()|EXECUTE",
+  "influx_identity_definer|function|profiles.save_own_brand_internal_details(text,text,text)|EXECUTE",
+  "influx_identity_definer|function|profiles.submit_own_brand_verification()|EXECUTE",
+  "influx_identity_definer|function|verification.cancel_request_of(uuid,uuid,text)|EXECUTE",
+  "influx_identity_definer|function|verification.issue_ownership_code(uuid,uuid,text)|EXECUTE",
+  "influx_identity_definer|function|verification.new_ownership_code()|EXECUTE",
+  "influx_identity_definer|function|verification.open_request_of(uuid,uuid,text,verification.badge_level)|EXECUTE",
+  "influx_identity_definer|function|verification.submit_request_of(uuid,uuid)|EXECUTE",
+  "influx_identity_definer|schema|verification|USAGE",
 ];
 
 /**
  * T4.2, T4.3: the closed list of 03 P7 (twelve roles at J2, fourteen from J4, fifteen from J6 with
  * influx_leads_definer, 0111, sixteen from J7 with influx_maintenance_definer, 0117, nineteen from
  * J8 with influx_privacy, influx_privacy_login and influx_privacy_definer, 0136, twenty from L2C with
- * influx_moderation_definer, 0210), memberships.
+ * influx_moderation_definer, 0210, twenty-one from L2E with influx_creator_verification_definer,
+ * 0222), memberships.
  */
 export const EXPECTED_ROLES: Readonly<
   Record<string, { login: boolean; memberOf: readonly string[] }>
@@ -4228,6 +4382,8 @@ export const EXPECTED_ROLES: Readonly<
   influx_privacy_definer: { login: false, memberOf: [] },
   // 0210 (L2C, file.md A5): the owner of the decisions of queue 1
   influx_moderation_definer: { login: false, memberOf: [] },
+  // 0222 (L2E, modele §1 point 3): the owner of the creator doors of the verification
+  influx_creator_verification_definer: { login: false, memberOf: [] },
 };
 
 /** Owners of SECURITY DEFINER functions: no login, NO member (only C-9 tolerance). */
@@ -4239,6 +4395,7 @@ export const FUNCTION_OWNER_ROLES = [
   "influx_maintenance_definer",
   "influx_privacy_definer",
   "influx_moderation_definer",
+  "influx_creator_verification_definer",
 ] as const;
 
 /** Execution roles (T4.4: own nothing). */
@@ -4493,4 +4650,23 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "profiles.copy_creator_residence_country()": "influx_identity_definer",
   "profiles.confirm_own_creator_figures(uuid,bigint,integer,bigint)":
     "influx_identity_definer",
+  // 0222 (L2E commit 06): the creator doors and the trigger of a deleted line; the generator
+  // verification.new_ownership_code() and the four helpers (open_request_of, issue_ownership_code,
+  // submit_request_of, cancel_request_of) are SECURITY INVOKER, same owner. The brand doors.
+  "verification.open_own_request(uuid,verification.badge_level)":
+    "influx_creator_verification_definer",
+  "verification.renew_own_code(uuid)": "influx_creator_verification_definer",
+  "verification.submit_own_request(uuid)":
+    "influx_creator_verification_definer",
+  "verification.cancel_own_request(uuid)":
+    "influx_creator_verification_definer",
+  "verification.cancel_open_requests_of_line()":
+    "influx_creator_verification_definer",
+  "profiles.open_own_brand_verification()": "influx_identity_definer",
+  "profiles.save_own_brand_internal_details(text,text,text)":
+    "influx_identity_definer",
+  "profiles.renew_own_brand_verification_code()": "influx_identity_definer",
+  "profiles.submit_own_brand_verification()": "influx_identity_definer",
+  "profiles.cancel_own_brand_verification()": "influx_identity_definer",
+  "profiles.read_own_brand_verification()": "influx_identity_definer",
 };

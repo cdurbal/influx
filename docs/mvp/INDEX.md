@@ -112,7 +112,7 @@
 | 2625 | 11 | ↳ 21.9 Ce que cet addendum demande aux autres agents |  |
 | 2636 | 6 | ↳ Sources (vérifiées le 2026-10-28) |  |
 
-## 03-matrice-des-droits-et-rls.md (~54k tokens)
+## 03-matrice-des-droits-et-rls.md (~55k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -126,33 +126,33 @@
 | 339 | 202 | ↳ 3.4 Domaine `matching` et `messaging` | RG5–RG146 |
 | 541 | 76 | ↳ 3.5 Domaines `billing` (pipeline commercial), `leads` et `backoffice` | RG1–RG39 |
 | 617 | 30 | ↳ 3.6 Domaine `audit` — le registre |  |
-| 647 | 447 | 4. Les principes de Row Level Security | RG5–RG165 |
+| 647 | 448 | 4. Les principes de Row Level Security | RG5–RG165 |
 | 652 | 15 | ↳ P1 — Refus par défaut, sur toutes les tables, sans exception |  |
 | 667 | 53 | ↳ P2 — L'API se connecte avec le rôle de l'utilisateur, jamais avec un rôle qui contourne la RLS |  |
 | 720 | 22 | ↳ P3 — Le rôle métier est lu en base, jamais dans le jeton |  |
 | 742 | 16 | ↳ P4 — Toute condition d'accès est **positive** et échoue en refus |  |
 | 758 | 34 | ↳ P5 — L'anonymisation est une séparation d'objets, doublée d'une absence de droit |  |
 | 792 | 22 | ↳ P6 — Aucune table métier dans le schéma `public` |  |
-| 814 | 191 | ↳ P7 — La liste **nommée et fermée** des opérations autorisées à s'élever | RG5–RG165 |
-| 1005 | 52 | ↳ P8 — L'append-only est réel, pas conventionnel |  |
-| 1057 | 11 | ↳ P9 — Ce que la RLS ne sait pas faire, et qui le fait à sa place |  |
-| 1068 | 26 | ↳ P10 — Les politiques du Storage |  |
-| 1094 | 140 | 5. La lecture d'une conversation par un agent non participant | RG132–RG134 |
-| 1234 | 420 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` | RG57 |
-| 1236 | 83 | ↳ 6.1 — Point 1 : D37 dans son ensemble | RG57 |
-| 1319 | 35 | ↳ 6.2 — Point 2 : `aal2` vérifié dans les politiques RLS |  |
-| 1354 | 20 | ↳ 6.3 — Point 3 : le rôle métier lu en base plutôt que dans le jeton |  |
-| 1374 | 76 | ↳ 6.4 — Point 4 : le passe-plat |  |
-| 1450 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
-| 1524 | 23 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
-| 1547 | 27 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
-| 1574 | 37 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
-| 1611 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
-| 1654 | 32 | 7. L'isolement du backoffice |  |
-| 1686 | 39 | 8. Les tests de sécurité exigés |  |
-| 1725 | 62 | 9. Verdict d'étape | RG49–RG55 |
-| 1787 | 41 | 10. Ce qui sort de mon périmètre |  |
-| 1828 | 17 | 11. Mises à jour attendues dans les autres documents |  |
+| 814 | 192 | ↳ P7 — La liste **nommée et fermée** des opérations autorisées à s'élever | RG5–RG165 |
+| 1006 | 52 | ↳ P8 — L'append-only est réel, pas conventionnel |  |
+| 1058 | 11 | ↳ P9 — Ce que la RLS ne sait pas faire, et qui le fait à sa place |  |
+| 1069 | 26 | ↳ P10 — Les politiques du Storage |  |
+| 1095 | 140 | 5. La lecture d'une conversation par un agent non participant | RG132–RG134 |
+| 1235 | 420 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` | RG57 |
+| 1237 | 83 | ↳ 6.1 — Point 1 : D37 dans son ensemble | RG57 |
+| 1320 | 35 | ↳ 6.2 — Point 2 : `aal2` vérifié dans les politiques RLS |  |
+| 1355 | 20 | ↳ 6.3 — Point 3 : le rôle métier lu en base plutôt que dans le jeton |  |
+| 1375 | 76 | ↳ 6.4 — Point 4 : le passe-plat |  |
+| 1451 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
+| 1525 | 23 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
+| 1548 | 27 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
+| 1575 | 37 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
+| 1612 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
+| 1655 | 32 | 7. L'isolement du backoffice |  |
+| 1687 | 39 | 8. Les tests de sécurité exigés |  |
+| 1726 | 62 | 9. Verdict d'étape | RG49–RG55 |
+| 1788 | 41 | 10. Ce qui sort de mon périmètre |  |
+| 1829 | 17 | 11. Mises à jour attendues dans les autres documents |  |
 
 ## 04-modele-de-donnees-mvp.md (~147k tokens)
 
