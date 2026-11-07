@@ -89,7 +89,7 @@ Numéro 24 réservé à un `fix` issu de U (`fix(web): verification, ux findings
 
 | Identifiant | Niveau | Ce qu'il prouve | Plancher |
 |---|---|---|---|
-| **T9.6** | Base + routeur (`db-tests/t9-evidence-unreachable.test.ts`) | `has_table_privilege` faux et 42501 sur tout `verification.*` et le compartiment ; toute fonction exécutable par l'annonceur, tous schémas, ne nomme aucune table `verification.` (`prosrc`, `pg_depend`) ; identifiant réel de pièce deviné sur chaque route de l'inventaire : rien ; témoin rouge | Bloquant, vert ×3 |
+| **T9.6** | Base + routeur (`db-tests/t9-evidence-unreachable.test.ts`) | `has_table_privilege` faux et 42501 sur tout `verification.*` et le compartiment ; toute fonction exécutable par l'annonceur, tous schémas, ne nomme aucune table `verification.` (`prosrc`, `pg_depend`) *(note L2E-03, EC-L2E-18 de `l2e/modele.md` : ni `verification.evidence_files` ni `storage.`, propriétaire sans droit sur `evidence_files`, aucun droit de l'annonceur sur le schéma `verification`, `USAGE` compris ; les portes marque nomment demandes, codes et badges, RG61)* ; identifiant réel de pièce deviné sur chaque route de l'inventaire : rien ; témoin rouge | Bloquant, vert ×3 |
 | **T9.7** | Base + routeur | Lecture par l'API, aucune réponse ne porte d'hôte Supabase ni de jeton ; journal `verification.evidence_viewed` à chaque ouverture | 2 |
 | **T9.1, T9.3, T9.4, T9.5, T9.8, T9.9** | Base, unitaire | Compartiment privé et ses limites ; traversée ; PDF et faux en-tête ; GPS relu dans les octets ; quota à la frontière ; clé sans nom d'origine | 1 par identifiant |
 | **T9.2** | Selon D82 | Aucune URL émise, ou ≤ durée arbitrée, journalisée | 1 |

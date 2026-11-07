@@ -4,7 +4,7 @@
 |---|---|---|---|---|---|---|---|
 | 01 | 01.md | commit | opus | high | expert-database | fait | I-4. L2DS-1 : autorité `^[A-Za-z0-9.-]+(:[0-9]{1,5})?$` avant la comparaison d'hôte, base (`0220`, 23514 `_profile_url_shape`) et domaine ; `staging` : 0 ligne fautive |
 | 02 | 02.md | commit | sonnet | high | testeur | ignoré | L2D-E2E : < 20 s regagnables sans perte de couverture (10 à 13 s, `journey-resume` non simulable) ; dépassement accepté par le fondateur (option a, comme L2C et L2D), aucun plancher baissé ; référence 366,9 s médiane (3 passages, 242 cas) |
-| 03 | 03.md | arbitrage | opus | xhigh | architecte | à faire | D82 (volet D80 avant L2E), `l2e/modele.md` |
+| 03 | 03.md | arbitrage | opus | xhigh | architecte | fait | D82 : relais généralisé, 8 Mio sur la seule route de dépôt, aucune URL signée, lecture journalisée par la base ; `modele.md` : trois propriétaires, l'annonceur sans droit sur le schéma `verification` (EC-L2E-18, T9.6 précisé) |
 | 04 | 04.md | arbitrage | sonnet | high | expert-integrations-api | à faire | `l2e/registres.md` |
 | 05 | 05.md | commit | opus | high | expert-database | à faire | I-4. `0221` |
 | 06 | 06.md | commit | opus | high | expert-database | à faire | I-4. `0222` |
