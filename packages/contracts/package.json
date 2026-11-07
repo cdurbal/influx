@@ -15,6 +15,7 @@
     "./account": "./src/account.ts",
     "./brand-profile": "./src/brand-profile.ts",
     "./creator-profile": "./src/creator-profile.ts",
+    "./verification": "./src/verification.ts",
     "./backoffice-auth": "./src/backoffice-auth.ts",
     "./backoffice-accounts": "./src/backoffice-accounts.ts",
     "./backoffice-actions": "./src/backoffice-actions.ts",

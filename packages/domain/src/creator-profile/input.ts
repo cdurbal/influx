@@ -63,6 +63,8 @@ export type CreatorProfileInput = {
   readonly usageRights?: readonly CreatorUsageRightInput[] | null;
   readonly maxExclusivityBand?: string | null;
   readonly availabilityBand?: string | null;
+  // Block 7, trust (RG87, RG88): a badge request FILED on one of his lines, never a badge obtained.
+  readonly badgeRequested?: boolean;
 };
 
 export function textEntered(value: string | null | undefined): boolean {

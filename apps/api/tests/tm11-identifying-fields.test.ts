@@ -40,9 +40,19 @@ const CONTRACTS = path.resolve(HERE, "../../../packages/contracts");
 const WEB_CREATOR_PREFIX = "/v1/me/creator-profile";
 const BACKOFFICE_PREFIX = "/v1/bo/";
 
-/** Modules left out of TM11.1: served to the creator alone, or to the agents of the backoffice. */
+/**
+ * Modules left out of TM11.1: served to the creator alone, or to the agents of the backoffice.
+ * `verification` (L2E): the creator's own requests, the agent's decisions (the handle and the three
+ * figures are typed by the agent) and the brand's own internal block; the public badge it holds
+ * names a network by design (08 RG89) and is held free of handle, URL, agent and gap by
+ * packages/contracts/tests/verification.test.ts, which walks every member answer.
+ */
 function isExcludedModule(name: string): boolean {
-  return name === "creator-profile" || name.startsWith("backoffice-");
+  return (
+    name === "creator-profile" ||
+    name === "verification" ||
+    name.startsWith("backoffice-")
+  );
 }
 
 /** Contact details a member's own contract may carry, by module (name of the export). */

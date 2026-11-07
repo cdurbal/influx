@@ -130,13 +130,35 @@ describe("the score of a creator profile (RG86, RG88)", () => {
     expect(creatorProfileCompleteness({ networkLines: [] }).score).toBe(0);
   });
 
-  it("caps at 90 at L2D: the portfolio and the badge request cannot be earned", () => {
+  it("offers the badge request in block 7, and nothing else of that block is out of reach", () => {
+    const notOffered = creatorProfileCompleteness({}).blocks.map((block) => [
+      block.id,
+      block.criteria.filter((c) => !c.offered).map((c) => c.code),
+    ]);
+    expect(notOffered).toEqual([
+      ["presentation", []],
+      ["editorial", []],
+      ["networks", []],
+      ["audience", []],
+      ["offer", []],
+      ["portfolio", ["portfolioThree", "portfolioFive"]],
+      ["trust", []],
+    ]);
+    expect(CREATOR_PROFILE_WEIGHTS.reduce((sum, w) => sum + w.points, 0)).toBe(
+      100,
+    );
+  });
+
+  it("caps at 92 from L2E: the portfolio cannot be earned yet, the badge request can", () => {
     const full = creatorProfileCompleteness(FULL);
-    expect(full.attainablePoints).toBe(90);
+    expect(full.attainablePoints).toBe(92);
     expect(full.score).toBe(90);
+    const filed = creatorProfileCompleteness({ ...FULL, badgeRequested: true });
+    expect(filed.score).toBe(92);
+    expect(filed.score).toBe(filed.attainablePoints);
     expect(
       full.blocks.flatMap((block) => block.criteria).filter((c) => !c.offered),
-    ).toHaveLength(3);
+    ).toHaveLength(2);
     expect(
       full.blocks
         .find((block) => block.id === "portfolio")
@@ -236,15 +258,23 @@ describe("the score of a creator profile (RG86, RG88)", () => {
     ).toBe(0);
   });
 
-  it("depends on no action of INFLUX: a moderation or badge input changes nothing (RG88)", () => {
+  it("counts a request FILED, never a badge obtained: no decision or moderation input changes it (RG88)", () => {
     const withDecisions = {
       ...FULL,
-      badgeRequested: true,
       portfolioItems: 8,
       status: "published",
+      badge: "granted",
+      badgeObtained: true,
     } as CreatorProfileInput;
     expect(creatorProfileCompleteness(withDecisions)).toEqual(
       creatorProfileCompleteness(FULL),
     );
+    const trust = (input: CreatorProfileInput) =>
+      creatorProfileCompleteness(input).blocks.find(
+        (block) => block.id === "trust",
+      )?.earnedPoints;
+    expect(trust(FULL)).toBe(0);
+    expect(trust({ ...FULL, badgeRequested: true })).toBe(2);
+    expect(trust({ ...FULL, badgeRequested: false })).toBe(0);
   });
 });

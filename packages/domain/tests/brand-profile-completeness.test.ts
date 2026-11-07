@@ -7,7 +7,7 @@ import {
 
 const PRESENTATION = "x".repeat(120);
 
-/** Every offered criterion entered; the budget and the badge request left out (answer A). */
+/** Every offered criterion entered but the badge request; the budget is suspended (answer A). */
 const COMPLETE: BrandProfileCompletenessInput = {
   legalName: "Maison Aube",
   primarySector: "fashion",
@@ -72,12 +72,12 @@ describe("weights of 06 RG58", () => {
     });
   });
 
-  it("offers everything but the budget (D78) and the badge request (L2E)", () => {
+  it("offers everything but the budget (D78): the badge request is offered from L2E", () => {
     expect(
       BRAND_PROFILE_WEIGHTS.filter((weight) => !weight.offered).map(
         (weight) => weight.code,
       ),
-    ).toEqual(["budgetBand", "badgeRequested"]);
+    ).toEqual(["budgetBand"]);
   });
 });
 
@@ -90,35 +90,41 @@ describe("CA35 score and detail by block", () => {
       country: "FR",
       presentation: PRESENTATION,
     });
-    // 5 + 5 + 3 + 2 + 10 = 25 points out of the 82 that can be reached today
+    // 5 + 5 + 3 + 2 + 10 = 25 points out of the 92 that can be reached today
     expect(result.earnedPoints).toBe(25);
-    expect(result.attainablePoints).toBe(82);
-    expect(result.score).toBe(30);
+    expect(result.attainablePoints).toBe(92);
+    expect(result.score).toBe(27);
     expect(
       result.blocks.map((b) => [b.id, b.earnedPoints, b.attainablePoints]),
     ).toEqual([
       ["identity", 25, 40],
       ["expectations", 0, 27],
-      ["trust", 0, 5],
+      ["trust", 0, 15],
       ["contact", 0, 10],
     ]);
   });
 
   it("scores an empty profile 0 and a complete one 100, whole numbers both", () => {
     expect(brandProfileCompleteness({}).score).toBe(0);
-    const complete = brandProfileCompleteness(COMPLETE);
+    const complete = brandProfileCompleteness({
+      ...COMPLETE,
+      badgeRequested: true,
+    });
     expect(complete.score).toBe(100);
-    expect(complete.earnedPoints).toBe(82);
+    expect(complete.earnedPoints).toBe(92);
     expect(Number.isInteger(complete.score)).toBe(true);
+    // without the request, the 10 points of the badge are the only ones missing
+    expect(brandProfileCompleteness(COMPLETE).score).toBe(89);
   });
 
   it("never shows 100 while one reachable point is missing", () => {
     const result = brandProfileCompleteness({
       ...COMPLETE,
+      badgeRequested: true,
       contactEmail: null,
     });
-    expect(result.earnedPoints).toBe(79);
-    expect(result.score).toBe(96);
+    expect(result.earnedPoints).toBe(89);
+    expect(result.score).toBe(97);
     expect(
       brandProfileCompleteness({ ...COMPLETE, contactEmail: null }).score,
     ).toBeLessThan(100);
@@ -144,19 +150,32 @@ describe("CA35 score and detail by block", () => {
 });
 
 describe("CA36 nothing depends on an action of INFLUX (RG59)", () => {
-  it("scores a complete profile with a pending badge request exactly like one without", () => {
+  it("counts a request filed, never a badge obtained: a decision input changes nothing", () => {
+    const filed = brandProfileCompleteness({
+      ...COMPLETE,
+      badgeRequested: true,
+    });
+    expect(filed.earnedPoints).toBe(92);
     expect(
-      brandProfileCompleteness({ ...COMPLETE, badgeRequested: true }),
-    ).toEqual(brandProfileCompleteness(COMPLETE));
+      brandProfileCompleteness({
+        ...COMPLETE,
+        badgeRequested: true,
+        badgeObtained: true,
+        status: "published",
+      } as BrandProfileCompletenessInput),
+    ).toEqual(filed);
+    expect(
+      filed.blocks.find((block) => block.id === "trust")?.earnedPoints,
+    ).toBe(15);
   });
 
-  it("ignores the budget while it is suspended: the reachable points stay 82", () => {
+  it("ignores the budget while it is suspended: the reachable points stay 92", () => {
     const withBudget = brandProfileCompleteness({
       ...COMPLETE,
       budgetBand: "band-2",
     });
     expect(withBudget.earnedPoints).toBe(82);
-    expect(withBudget.attainablePoints).toBe(82);
+    expect(withBudget.attainablePoints).toBe(92);
     const criterion = withBudget.blocks
       .flatMap((block) => block.criteria)
       .find((c) => c.code === "budgetBand");
@@ -180,9 +199,9 @@ describe("CA37 the score is not a threshold", () => {
       audienceCountries: ["FR"],
       contactRole: "marketing",
     });
-    // 5+5+3+2+3+2+10 + 8+6+6+4 + 3 = 57 of 82: the result only reports; the submission reads the
+    // 5+5+3+2+3+2+10 + 8+6+6+4 + 3 = 57 of 92: the result only reports; the submission reads the
     // required list (required.test.ts), and no export of this package offers a pass mark.
-    expect(result.score).toBe(70);
+    expect(result.score).toBe(62);
     expect(Object.keys(result).sort()).toEqual([
       "attainablePoints",
       "blocks",

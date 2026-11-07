@@ -312,7 +312,7 @@ export const COMPLETENESS_BLOCK_IDS = [
 export const completenessCriterionSchema = z.strictObject({
   code: z.enum(COMPLETENESS_CRITERION_CODES),
   points: z.number().int().min(0).max(100),
-  /** False: the brand cannot earn it today (budget D78, badge L2E); left out of the reachable points. */
+  /** False: the brand cannot earn it today (budget D78); left out of the reachable points. */
   offered: z.boolean(),
   earned: z.boolean(),
 });

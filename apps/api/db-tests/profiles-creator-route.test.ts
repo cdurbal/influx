@@ -295,11 +295,11 @@ describe("L2D-A1 GET /v1/me/creator-profile (07 RG1, RG2, RG86, RG90, CA2)", () 
       "formats",
       "availability",
     ]);
-    // the country of residence is the only point earned: 1 of the 90 reachable today (RG87, EC-L2D-5)
+    // the country of residence is the only point earned: 1 of the 92 reachable today (RG87, EC-L2D-5, L2E-11: the badge request is offered)
     expect(profile.completeness).toMatchObject({
       score: 1,
       earnedPoints: 1,
-      attainablePoints: 90,
+      attainablePoints: 92,
     });
     expect(profile.identity).toEqual({
       legalFirstName: null,
@@ -415,7 +415,7 @@ describe("L2D-A2 PATCH /v1/me/creator-profile: partial autosave, merged, with th
     const saved = await save(server, member, completeBody());
     // blocks 1 and 2: 5+10+5+2+2+3+1+1 = 29 · block 5: 8+3+3+2+1+2 = 19 · no network line yet
     expect(saved.completeness.score).toBe(48);
-    expect(saved.completeness.attainablePoints).toBe(90);
+    expect(saved.completeness.attainablePoints).toBe(92);
     expect(saved.missingRequired).toEqual([
       "networkLines",
       "primaryAccount",

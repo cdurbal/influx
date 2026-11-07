@@ -64,8 +64,9 @@ export const BRAND_PROFILE_WEIGHTS: readonly CriterionWeight[] = [
   },
   { code: "usageRights", block: "expectations", points: 3, offered: true },
   { code: "websiteDomain", block: "trust", points: 5, offered: true },
-  // Not possible before the badge request of L2E: counted then, as "requested", never "obtained".
-  { code: "badgeRequested", block: "trust", points: 10, offered: false },
+  // L2E: counted as "requested", never "obtained" (RG59). Only this criterion of block "trust" is offered
+  // from L2E; the budget stays suspended (D78).
+  { code: "badgeRequested", block: "trust", points: 10, offered: true },
   { code: "contactRole", block: "contact", points: 3, offered: true },
   { code: "contactPhone", block: "contact", points: 4, offered: true },
   { code: "contactEmail", block: "contact", points: 3, offered: true },

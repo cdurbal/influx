@@ -328,7 +328,7 @@ export const CREATOR_COMPLETENESS_BLOCK_IDS = [
 export const creatorCompletenessCriterionSchema = z.strictObject({
   code: z.enum(CREATOR_COMPLETENESS_CRITERION_CODES),
   points: z.number().int().min(0).max(100),
-  /** False: the creator cannot earn it today (portfolio L2G, badge L2E); left out of the reachable points. */
+  /** False: the creator cannot earn it today (portfolio L2G); left out of the reachable points. */
   offered: z.boolean(),
   earned: z.boolean(),
 });
@@ -340,7 +340,7 @@ export const creatorCompletenessBlockSchema = z.strictObject({
   criteria: z.array(creatorCompletenessCriterionSchema),
 });
 
-/** Score of 0 to 100 (07 RG86), 90 at most while the portfolio and the badge request do not exist. It opens no right (RG89). */
+/** Score of 0 to 100 (07 RG86), 92 at most while the portfolio does not exist (L2G); the badge request counts once filed (RG88, L2E). It opens no right (RG89). */
 export const creatorProfileCompletenessSchema = z.strictObject({
   score: z.number().int().min(0).max(100),
   earnedPoints: z.number().int().min(0).max(100),

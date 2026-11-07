@@ -298,11 +298,11 @@ describe("GET /v1/me/brand-profile (06 RG2, RG57, RG61, CA1, CA2, CA14)", () => 
       "audienceCountries",
       "contactRole",
     ]);
-    // the name and the country are the only points earned: 7 of the 82 reachable today
+    // the name and the country are the only points earned: 7 of the 92 reachable today (L2E-11: the badge request is offered)
     expect(profile.completeness).toMatchObject({
-      score: 9,
+      score: 8,
       earnedPoints: 7,
-      attainablePoints: 82,
+      attainablePoints: 92,
     });
     expect(profile.contact).toEqual({
       firstName: null,
