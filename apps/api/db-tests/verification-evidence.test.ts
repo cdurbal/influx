@@ -900,6 +900,7 @@ describe("the tasks of E-4 (L2E-D10 to D12; modele §4 « E-4 »)", () => {
     );
     expect(Object.keys(queuedMails[0]?.payload ?? {}).sort()).toEqual([
       "account_id",
+      "email_code",
       "event_id",
       "request_id",
     ]);

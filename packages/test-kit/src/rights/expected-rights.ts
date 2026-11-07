@@ -4670,6 +4670,38 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_privacy_definer|schema|verification|USAGE",
   "influx_privacy_definer|table|profiles.advertiser_internal_details|DELETE",
   "influx_privacy_definer|table|verification.ownership_codes|DELETE",
+  // 0227 (L2E commit 16, fiche invariants 14 and 17, modele §4 "Outbox"): the worker's reads of the
+  // verification e-mails and of the badge level of a Brevo contact. influx_leads_definer reads named
+  // columns of the requests, the codes (never the code) and the badges (never a figure, a handle nor
+  // an agent), its policies limited to an account not erased; nothing on the evidence, the registry
+  // sources, the reasons nor the internal block of a brand (06 RG48).
+  "influx_leads_definer|column|verification.badges.account_id|SELECT",
+  "influx_leads_definer|column|verification.badges.evidence_source|SELECT",
+  "influx_leads_definer|column|verification.badges.expires_at|SELECT",
+  "influx_leads_definer|column|verification.badges.granted_at|SELECT",
+  "influx_leads_definer|column|verification.badges.level|SELECT",
+  "influx_leads_definer|column|verification.badges.network_code|SELECT",
+  "influx_leads_definer|column|verification.badges.request_id|SELECT",
+  "influx_leads_definer|column|verification.badges.state|SELECT",
+  "influx_leads_definer|column|verification.ownership_codes.account_id|SELECT",
+  "influx_leads_definer|column|verification.ownership_codes.expires_at|SELECT",
+  "influx_leads_definer|column|verification.ownership_codes.id|SELECT",
+  "influx_leads_definer|column|verification.ownership_codes.kind|SELECT",
+  "influx_leads_definer|column|verification.ownership_codes.request_id|SELECT",
+  "influx_leads_definer|column|verification.ownership_codes.revoked_at|SELECT",
+  "influx_leads_definer|column|verification.verification_requests.account_id|SELECT",
+  "influx_leads_definer|column|verification.verification_requests.id|SELECT",
+  "influx_leads_definer|column|verification.verification_requests.level|SELECT",
+  "influx_leads_definer|column|verification.verification_requests.member_message|SELECT",
+  "influx_leads_definer|column|verification.verification_requests.network_code|SELECT",
+  "influx_leads_definer|column|verification.verification_requests.population|SELECT",
+  "influx_leads_definer|column|verification.verification_requests.rejection_reason_code|SELECT",
+  "influx_leads_definer|column|verification.verification_requests.status|SELECT",
+  "influx_leads_definer|function|leads.read_brevo_verification_email(bigint,text)|EXECUTE",
+  "influx_leads_definer|function|leads.read_verified_badge(bigint,text)|EXECUTE",
+  "influx_leads_definer|schema|verification|USAGE",
+  "influx_worker|function|leads.read_brevo_verification_email(bigint,text)|EXECUTE",
+  "influx_worker|function|leads.read_verified_badge(bigint,text)|EXECUTE",
 ];
 
 /**
@@ -5043,4 +5075,7 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
     "influx_verification_definer",
   "verification.set_registry_source(uuid,text,text,date,boolean)":
     "influx_verification_definer",
+  // 0227 (L2E commit 16): the worker's reads of the verification e-mails and of the badge level.
+  "leads.read_brevo_verification_email(bigint,text)": "influx_leads_definer",
+  "leads.read_verified_badge(bigint,text)": "influx_leads_definer",
 };

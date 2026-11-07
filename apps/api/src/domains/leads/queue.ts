@@ -29,6 +29,8 @@ import {
   readBrevoErasureSubject,
   readBrevoProfileDecision,
   readBrevoSubject,
+  readBrevoVerificationEmail,
+  readVerifiedBadge,
   recoverStaleLines,
   startWorkerStep,
   type AttemptOutcome,
@@ -38,8 +40,10 @@ import {
   type BrevoErasureSubject,
   type BrevoProfileDecision,
   type BrevoSubject,
+  type BrevoVerificationEmail,
   type ClaimedLine,
   type RecoveredLine,
+  type VerifiedBadge,
   type WorkerStart,
   type WrittenStatus,
 } from "./repository.ts";
@@ -209,6 +213,65 @@ export async function readBrevoProfileDecisionOf(
           value: decision,
           auditSubject:
             decision === null ? null : line.subjectKey.slice("account:".length),
+        };
+      },
+    ),
+  );
+}
+
+/**
+ * The Brevo connector's read of the facts of a verification e-mail (0227, verification.received,
+ * .code_issued, .decision, .request_expired): the level, the reason, the date of the badge or the
+ * kind and expiry of the code, and the account's language, for a line in processing for this
+ * worker. It reads no address (that comes from readBrevoSubjectOf) and never the code; its
+ * register line is on the account all the same, as the other privileged reads of the worker. Its
+ * own short transaction, closed before the call (G4).
+ */
+export async function readBrevoVerificationEmailOf(
+  database: WorkerDatabase,
+  requestId: string,
+  line: ClaimedLine,
+  worker: string,
+): Promise<BrevoVerificationEmail | null> {
+  return translated(
+    withElevatedTransaction(
+      database,
+      "leads.drain_outbox",
+      requestId,
+      async (tx) => {
+        const facts = await readBrevoVerificationEmail(tx, line.id, worker);
+        return {
+          value: facts,
+          auditSubject:
+            facts === null ? null : line.subjectKey.slice("account:".length),
+        };
+      },
+    ),
+  );
+}
+
+/**
+ * The Brevo contact connector's read of the badge level of the account (0227, VERIFIED_LEVEL and
+ * VERIFIED_AT): for a brevo_contact line in processing for this worker, never Apollo. Its own
+ * short transaction, closed before the call (G4).
+ */
+export async function readVerifiedBadgeOf(
+  database: WorkerDatabase,
+  requestId: string,
+  line: ClaimedLine,
+  worker: string,
+): Promise<VerifiedBadge | null> {
+  return translated(
+    withElevatedTransaction(
+      database,
+      "leads.drain_outbox",
+      requestId,
+      async (tx) => {
+        const badge = await readVerifiedBadge(tx, line.id, worker);
+        return {
+          value: badge,
+          auditSubject:
+            badge === null ? null : line.subjectKey.slice("account:".length),
         };
       },
     ),

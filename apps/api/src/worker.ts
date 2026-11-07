@@ -42,6 +42,8 @@ import {
   createWorkerQueue,
   readApolloSubjectOf,
   readBrandProfileAttributesOf,
+  readBrevoVerificationEmailOf,
+  readVerifiedBadgeOf,
   readBrevoErasureSubjectOf,
   readBrevoProfileDecisionOf,
   readBrevoSubjectOf,
@@ -113,6 +115,10 @@ function connectorsOf(
         readBrevoProfileDecisionOf(database, randomUUID(), line, worker),
       readBrandProfile: (line) =>
         readBrandProfileAttributesOf(database, randomUUID(), line, worker),
+      readVerificationEmail: (line) =>
+        readBrevoVerificationEmailOf(database, randomUUID(), line, worker),
+      readVerifiedBadge: (line) =>
+        readVerifiedBadgeOf(database, randomUUID(), line, worker),
       logger,
     },
   );

@@ -50,6 +50,7 @@ import {
   readBrandProfileAttributesOf,
   readBrevoErasureSubjectOf,
   readBrevoSubjectOf,
+  readVerifiedBadgeOf,
 } from "../src/domains/leads/queue.ts";
 import type {
   ClaimedLine,
@@ -296,6 +297,9 @@ async function turn(options: TurnOptions = {}): Promise<number> {
       readProfileDecision: () => Promise.resolve(null),
       readBrandProfile: (line) =>
         readBrandProfileAttributesOf(database, randomUUID(), line, worker),
+      readVerificationEmail: () => Promise.resolve(null),
+      readVerifiedBadge: (line) =>
+        readVerifiedBadgeOf(database, randomUUID(), line, worker),
       logger,
     },
   );
@@ -915,6 +919,47 @@ describe("L2C commit 10, 06 RG78 to RG81, CA40 to CA43: profile.completed on the
         "BE0123456789",
       ]),
     ).toEqual([]);
+  });
+
+  it("L2CS-8, RG80: with the REAL raison sociale and number of the internal block in the base, organization_name is the trading name and neither value reaches Brevo nor Apollo", async () => {
+    const account = await createAccount({ role: "advertiser" });
+    await fillPublishedProfile(account);
+    const raison = "Vandenbroucke Holding Belgium SA";
+    const number = "BE0987654321";
+    await migration`
+      insert into profiles.advertiser_internal_details
+        (account_id, legal_name, registration_country_code, registration_number)
+      values (${account}, ${raison}, 'BE', ${number})`;
+    try {
+      await insertLines(
+        account,
+        ["brevo_contact", "apollo_contact"],
+        "advertiser",
+        "profile.completed",
+      );
+      expect(await turn()).toBe(2);
+      expect(
+        (apollo.requests[0]?.body as { organization_name?: string })
+          .organization_name,
+      ).toBe(LEGAL_NAME);
+      expect(brevo.contacts.get(emails[0] ?? "")?.attributes.COMPANY).toBe(
+        LEGAL_NAME,
+      );
+      const raw = [
+        ...brevo.requests.map((request) => request.raw),
+        ...apollo.requests.map((request) => JSON.stringify(request.body)),
+      ].join("\n");
+      expect(valuesFoundIn(raw, [raison, number])).toEqual([]);
+      // the worker's reads cannot reach the block at all (06 RG48): the owner has no right on it
+      const [reach] = await migration<{ reached: boolean }[]>`
+        select has_any_column_privilege('influx_leads_definer',
+                                        'profiles.advertiser_internal_details',
+                                        'SELECT') as reached`;
+      expect(reach?.reached).toBe(false);
+    } finally {
+      await migration`
+        delete from profiles.advertiser_internal_details where account_id = ${account}`;
+    }
   });
 
   it("RG81: a draft brand is registered with its real completeness, the fields not filled sent empty", async () => {

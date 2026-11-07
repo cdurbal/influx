@@ -1697,6 +1697,9 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       // 0211 (L2C commit 09a): the decision of a brand decision e-mail
       "leads.read_brevo_profile_decision(bigint,text)",
       "leads.read_brevo_subject(bigint,text)",
+      // 0227 (L2E commit 16): the facts of a verification e-mail, the badge level of a contact
+      "leads.read_brevo_verification_email(bigint,text)",
+      "leads.read_verified_badge(bigint,text)",
       "leads.record_brevo_reconciliation_event(text,timestamp with time zone,text,text,uuid,bigint,bigint,text)",
       "leads.recover_stale_outbox_lines(integer)",
       // 0147 (J9 commit 8, D60): the admin recipients of the technical alerts, the round of the scope worker

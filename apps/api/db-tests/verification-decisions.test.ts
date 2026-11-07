@@ -741,7 +741,8 @@ describe("CA13, CA30: the agent reads the code on line and types the handle; the
       [
         "verification.decision",
         "brevo_transactional",
-        ["account_id", "event_id", "request_id"],
+        // EC-L2E-16-1 (0227): the e-mail code is a constant of the line, not a datum
+        ["account_id", "email_code", "event_id", "request_id"],
       ],
       ["lead.updated", "brevo_contact", ["account_id", "event_id"]],
     ]);

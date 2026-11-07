@@ -96,6 +96,7 @@ const CONTACT_ATTRIBUTES = {
   SIGNUP_SOURCE: "enum",
   FUNNEL_STAGE: "enum",
   VERIFIED_LEVEL: "enum",
+  VERIFIED_AT: "date",
   CONSENT_AT: "date",
   CONSENT_SOURCE: "enum",
   LAST_MARKETING_SENT_AT: "date",

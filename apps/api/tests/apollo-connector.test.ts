@@ -743,6 +743,56 @@ describe("L2C commit 10, 06 RG78 to RG81, CA40 to CA43: profile.completed enrich
     }
   });
 
+  it("L2CS-8, RG80: organization_name is the TRADING name read from its own column; the raison sociale and the number of the internal block never leave, whatever the reads hold", async () => {
+    const forbidden = [
+      "Vandenbroucke Holding Belgium SA",
+      "BE0987654321",
+      "+3225550199",
+      "internal note: do not call before 10",
+    ];
+    // the readers' types do not name these fields: the doubles hold them all the same
+    const enrichedSubject = {
+      ...subject({ company: LEGAL_NAME }),
+      legalName: forbidden[0],
+      registrationNumber: forbidden[1],
+      contactPhone: forbidden[2],
+      internalNote: forbidden[3],
+    };
+    const enrichedProfile = {
+      ...PUBLISHED_BRAND,
+      legalName: forbidden[0],
+      registrationNumber: forbidden[1],
+    };
+    for (const eventType of [
+      "lead.created",
+      "lead.updated",
+      "profile.completed",
+    ]) {
+      double.reset();
+      await run(
+        connector({ subject: enrichedSubject, brandProfile: enrichedProfile }),
+        state(),
+        line(eventType),
+      );
+      const raw = double.requests[0]?.raw ?? "";
+      expect(
+        (double.requests[0]?.body as { organization_name?: string })
+          .organization_name,
+      ).toBe(LEGAL_NAME);
+      expect(valuesFoundIn(raw, forbidden)).toEqual([]);
+    }
+  });
+
+  it("08 RG92: Apollo carries no badge, whatever the level of the account (nothing of it is read for Apollo)", async () => {
+    await run(
+      connector({ brandProfile: PUBLISHED_BRAND }),
+      state(),
+      line("lead.updated"),
+    );
+    const raw = double.requests[0]?.raw ?? "";
+    expect(raw).not.toMatch(/verified|badge/i);
+  });
+
   it("the website is an https domain only: a path, a query, credentials, a port or another scheme is refused", () => {
     const body = (website: string) => ({
       email: EMAIL,

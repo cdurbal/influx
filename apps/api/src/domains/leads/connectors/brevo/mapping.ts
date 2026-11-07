@@ -7,6 +7,7 @@ import type {
   BrandProfileAttributes,
   BrevoSubject,
   SubjectAccount,
+  VerifiedBadge,
 } from "../../repository.ts";
 
 export type { BrevoSubject } from "../../repository.ts";
@@ -29,6 +30,7 @@ export const BREVO_CONTACT_ATTRIBUTES = [
   "TARGET_MARKETS",
   "PROFILE_STATUS",
   "VERIFIED_LEVEL",
+  "VERIFIED_AT",
   "MARKETING_CONSENT",
   "CONSENT_AT",
   "CONSENT_SOURCE",
@@ -100,13 +102,16 @@ export function languageOf(account: SubjectAccount): "fr" | "en" {
  * Operation 1: the body of the contact, by the closed mapping of 16 §M4 and EC-11. A list id null
  * is a missing setting (05 RG164): the body is described, never sent. `profile`: the live profile
  * of a brand (0212; 06 RG79), null for a creator or a brand without one: its attributes are then
- * sent empty (RG81, 16 RG142), the funnel stage and the completeness at their defaults.
+ * sent empty (RG81, 16 RG142), the funnel stage and the completeness at their defaults. `badge`: the
+ * level the account holds and its date (0227; 16 §M4, 08 RG92: a level and a date, nothing else);
+ * none, and an empty date, without one.
  */
 export function mapContact(
   account: SubjectAccount,
   subject: BrevoSubject,
   listId: number | null,
   profile: BrandProfileAttributes | null = null,
+  badge: VerifiedBadge | null = null,
 ): BrevoContactBody {
   const attributes: Record<BrevoContactAttribute, string | number | boolean> = {
     INFLUX_ACCOUNT_ID: account.id,
@@ -129,7 +134,8 @@ export function mapContact(
     // ISO 3166-1 codes in the order of the brand's slots, comma-separated (16 §M4)
     TARGET_MARKETS: profile?.targetMarkets.join(",") ?? "",
     PROFILE_STATUS: profile?.status ?? "",
-    VERIFIED_LEVEL: "none",
+    VERIFIED_LEVEL: badge?.level ?? "none",
+    VERIFIED_AT: badge?.at ?? "",
     MARKETING_CONSENT: account.marketingEmailConsent,
     CONSENT_AT: subject.consentAt ?? "",
     CONSENT_SOURCE: subject.consentSource ?? "",

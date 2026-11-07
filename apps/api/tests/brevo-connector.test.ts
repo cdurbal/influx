@@ -23,6 +23,7 @@ import {
   checkEmailChangeOutput,
   checkRenderedTransactionalOutput,
   createBrevoConnectors,
+  WORKER_RENDERED_EMAILS,
   mapContact,
   type BrevoConnectorSettings,
   type BrevoSubject,
@@ -33,9 +34,11 @@ import type {
   BrandProfileAttributes,
   BrevoErasureSubject,
   BrevoProfileDecision,
+  BrevoVerificationEmail,
   ClaimedLine,
   OutboxDestination,
   SubjectAccount,
+  VerifiedBadge,
 } from "../src/domains/leads/repository.ts";
 
 const ACCOUNT = "4f6c2a51-93d7-4b8e-a1c0-7e2d9b3f5a68";
@@ -54,6 +57,9 @@ const SETTINGS: Record<string, unknown> = {
 let double: BrevoDouble;
 let logLines: string[];
 let reads: string[];
+/** The reads of 0227, kept apart so that the order of `reads` stays the one of the older cases. */
+let verificationReads: string[];
+let badgeReads: string[];
 
 function logger() {
   const write = (level: string) => (object: object, message: string) => {
@@ -150,6 +156,10 @@ type Setup = {
   decision?: BrevoProfileDecision | null;
   /** The live brand profile read of a contact line (0212); none by default. */
   brandProfile?: BrandProfileAttributes | null;
+  /** The facts of a verification e-mail line (0227); none by default. */
+  verification?: BrevoVerificationEmail | null;
+  /** The badge level of a contact line (0227); none by default. */
+  badge?: VerifiedBadge | null;
   mapContact?: typeof mapContact;
   timeoutMs?: number;
 };
@@ -208,6 +218,16 @@ function connectors(setup: Setup = {}): {
         return Promise.resolve(
           setup.brandProfile === undefined ? null : setup.brandProfile,
         );
+      },
+      readVerificationEmail: (claimed) => {
+        verificationReads.push(claimed.id);
+        return Promise.resolve(
+          setup.verification === undefined ? null : setup.verification,
+        );
+      },
+      readVerifiedBadge: (claimed) => {
+        badgeReads.push(claimed.id);
+        return Promise.resolve(setup.badge === undefined ? null : setup.badge);
       },
       ...(setup.mapContact === undefined
         ? {}
@@ -269,6 +289,8 @@ beforeEach(() => {
   double.reset();
   logLines = [];
   reads = [];
+  verificationReads = [];
+  badgeReads = [];
 });
 
 describe("operation 1: create or update a contact (16 §M1, §M4; 05 CA38)", () => {
@@ -300,6 +322,7 @@ describe("operation 1: create or update a contact (16 §M1, §M4; 05 CA38)", () 
       TARGET_MARKETS: "",
       PROFILE_STATUS: "",
       VERIFIED_LEVEL: "none",
+      VERIFIED_AT: "",
       MARKETING_CONSENT: true,
       CONSENT_AT: "2026-10-09T08:15:00.000Z",
       CONSENT_SOURCE: "signup_form",
@@ -2241,23 +2264,63 @@ describe("L2C commit 10, 06 RG78 to RG81, CA40 to CA43: profile.completed enrich
     }
   });
 
-  it("CA42: what leaves holds none of the values RG80 forbids, whatever the profile read", async () => {
+  it("CA42, L2CT-8: what leaves holds none of the values RG80 forbids, even when the reads hold them", async () => {
+    // The doubles hold the REAL raison sociale, number, contact and note next to the trading name:
+    // a mapping that copied a read as a whole (a spread, a lookup by name) would send them. The
+    // readers' types do not name these fields, so the object is built outside any literal check.
     const forbidden = [
+      "Verbeke-Lambrecht Holding SA",
       "BE0123456789",
       "contact-person@maison-verbeke.example",
       "+3225550123",
       "internal note: prefers a call",
     ];
+    const enrichedSubject = {
+      ...subject({ company: LEGAL_NAME }),
+      legalName: forbidden[0],
+      raisonSociale: forbidden[0],
+      registrationNumber: forbidden[1],
+      contactEmail: forbidden[2],
+      contactPhone: forbidden[3],
+      internalNote: forbidden[4],
+    };
+    const enrichedProfile = {
+      ...PUBLISHED_BRAND,
+      legalName: forbidden[0],
+      registrationNumber: forbidden[1],
+      contactPerson: forbidden[2],
+      note: forbidden[4],
+    };
+    const enrichedBadge = {
+      level: "n1" as const,
+      at: "2026-11-03T10:00:00.000Z",
+      handle: "@maison_verbeke",
+      followers: 4730012,
+      reason: forbidden[4],
+    };
     const { contact } = connectors({
-      subject: subject({ company: LEGAL_NAME }),
-      brandProfile: PUBLISHED_BRAND,
+      subject: enrichedSubject,
+      brandProfile: enrichedProfile,
+      badge: enrichedBadge,
     });
-    await run(
-      contact,
-      line("brevo_contact", { eventType: "profile.completed" }),
-      state(BRAND_STATE),
-    );
-    expect(valuesFoundIn(double.requests[0]?.raw ?? "", forbidden)).toEqual([]);
+    for (const eventType of ["profile.completed", "lead.updated"]) {
+      double.reset();
+      await run(
+        contact,
+        line("brevo_contact", { eventType }),
+        state(BRAND_STATE),
+      );
+      const raw = double.requests[0]?.raw ?? "";
+      expect(raw).toContain(LEGAL_NAME);
+      expect(
+        valuesFoundIn(raw, [...forbidden, "maison_verbeke", "4730012"]),
+      ).toEqual([]);
+      // the badge leaves as a level and a date, and nothing else of it
+      expect(double.contacts.get(EMAIL)?.attributes).toMatchObject({
+        VERIFIED_LEVEL: "n1",
+        VERIFIED_AT: "2026-11-03T10:00:00.000Z",
+      });
+    }
   });
 
   it("a mapping that adds a field outside the list is refused by name, the call never leaves (16 RG137)", async () => {
@@ -2299,5 +2362,411 @@ describe("L2C commit 10, 06 RG78 to RG81, CA40 to CA43: profile.completed enrich
         state(BRAND_STATE),
       ),
     ).toMatchObject({ kind: "retry", errorMessage: "Brevo answered 503" });
+  });
+});
+
+describe("L2E commit 16, 08 RG92, RG94: the badge level of a contact, the verification e-mails of its worker", () => {
+  const REQUEST = "7d3e9a10-5b2c-4f68-9a41-c0b2d8e6f713";
+  const CODE = "9e1f4c72-0a3b-4d85-b6c9-2f7a8d1e5b30";
+  const HOLDS: VerifiedBadge = { level: "n2", at: "2026-11-03T10:00:00.000Z" };
+
+  function verificationLine(
+    eventType:
+      | "verification.received"
+      | "verification.code_issued"
+      | "verification.decision"
+      | "verification.request_expired",
+  ): ClaimedLine {
+    const key =
+      eventType === "verification.code_issued"
+        ? `${eventType}:${CODE}`
+        : `${eventType}:${REQUEST}`;
+    return line("brevo_transactional", {
+      eventType,
+      payload: {
+        event_id: "0a1b2c3d-0000-4000-8000-00000000e160",
+        account_id: ACCOUNT,
+        request_id: REQUEST,
+        email_code: eventType,
+      },
+      idempotencyKey: key,
+    });
+  }
+
+  function facts(
+    overrides: Partial<BrevoVerificationEmail> = {},
+  ): BrevoVerificationEmail {
+    return {
+      level: "audience_verified",
+      networkCode: "instagram",
+      requestStatus: "approved",
+      reasonCode: null,
+      memberMessage: null,
+      grantedAt: "2026-11-03T10:00:00.000Z",
+      badgeExpiresAt: "2027-02-01T10:00:00.000Z",
+      codeKind: null,
+      codeExpiresAt: null,
+      codeRevoked: false,
+      preferredLanguage: "fr",
+      ...overrides,
+    };
+  }
+
+  function textOfFirstMessage(): string {
+    return String(double.delivered[0]?.body.textContent);
+  }
+
+  describe("VERIFIED_LEVEL and VERIFIED_AT (16 §M4; modele §1 point 7)", () => {
+    it("a contact carries the level of its badge and the date of the badge that fixes it", async () => {
+      const { contact } = connectors({ badge: HOLDS });
+      await run(contact, line("brevo_contact", { eventType: "lead.updated" }));
+      expect(double.contacts.get(EMAIL)?.attributes).toMatchObject({
+        VERIFIED_LEVEL: "n2",
+        VERIFIED_AT: "2026-11-03T10:00:00.000Z",
+      });
+    });
+
+    it("without a badge, none and an empty date: never a guess from the event", async () => {
+      for (const badge of [null, { level: "none" as const, at: null }]) {
+        double.reset();
+        const { contact } = connectors({ badge });
+        await run(contact, line("brevo_contact"));
+        expect(double.contacts.get(EMAIL)?.attributes).toMatchObject({
+          VERIFIED_LEVEL: "none",
+          VERIFIED_AT: "",
+        });
+      }
+    });
+
+    it("the level is read at every rewrite of the contact, a replayed lead.created and a consent given again included", async () => {
+      for (const eventType of [
+        "lead.created",
+        "lead.updated",
+        "consent.granted",
+        "profile.completed",
+      ]) {
+        badgeReads = [];
+        double.reset();
+        const { contact } = connectors({ badge: HOLDS });
+        const claimed = line("brevo_contact", { eventType });
+        await run(contact, claimed, state(BRAND_STATE));
+        expect(badgeReads).toEqual([claimed.id]);
+        expect(double.contacts.get(EMAIL)?.attributes.VERIFIED_LEVEL).toBe(
+          "n2",
+        );
+      }
+    });
+
+    it("nothing is read for a contact that is unsubscribed, nor for one without consent at sign-up", async () => {
+      const { contact } = connectors({ badge: HOLDS });
+      await prepare(
+        contact,
+        line("brevo_contact"),
+        state({ marketingEmailConsent: false }),
+      );
+      await prepare(
+        contact,
+        line("brevo_contact", { eventType: "lead.created" }),
+        state({ marketingEmailConsent: false }),
+      );
+      expect(badgeReads).toEqual([]);
+    });
+  });
+
+  describe("the five e-mails, written by INFLUX from the facts read at consumption", () => {
+    it("the four queue codes are worker-rendered e-mails", () => {
+      for (const code of [
+        "verification.received",
+        "verification.code_issued",
+        "verification.decision",
+        "verification.request_expired",
+      ]) {
+        expect(WORKER_RENDERED_EMAILS).toContain(code);
+      }
+    });
+
+    it("a granted audience badge leaves in the language read, with its code as tag, its key, no template, no figure", async () => {
+      const { transactional } = connectors({
+        verification: facts({ preferredLanguage: "en" }),
+      });
+      const claimed = verificationLine("verification.decision");
+      expect(await run(transactional, claimed)).toMatchObject({
+        kind: "succeeded",
+        locale: "en",
+      });
+      const [message] = double.delivered;
+      expect(message?.body).toMatchObject({
+        to: [{ email: EMAIL }],
+        subject: "Your INFLUX badge is granted",
+        tags: ["verification.decision"],
+      });
+      expect(message?.body.templateId).toBeUndefined();
+      expect(message?.headers["idempotency-key"]).toBe(
+        `verification.decision:${REQUEST}`,
+      );
+      const text = textOfFirstMessage();
+      expect(text).toContain("Audience verified — Instagram");
+      expect(text).toContain("November 3, 2026");
+      expect(text).toContain("makes no claim about follower authenticity");
+      expect(verificationReads).toEqual([claimed.id]);
+      expect(reads).toEqual([claimed.id]);
+    });
+
+    it("a refusal carries the text of its reason in the language read, and what to do next", async () => {
+      const { transactional } = connectors({
+        verification: facts({
+          requestStatus: "rejected",
+          reasonCode: "evidence_too_wide",
+          grantedAt: null,
+          badgeExpiresAt: null,
+        }),
+      });
+      await run(transactional, verificationLine("verification.decision"));
+      const text = textOfFirstMessage();
+      expect(text).toContain(
+        "Votre capture montre des informations concernant d'autres personnes.",
+      );
+      expect(text).toContain("redemander la vérification");
+    });
+
+    it("a brand refusal uses the brand list: a creator reason is a visible failure, never the wrong text", async () => {
+      const brand = {
+        level: "brand_verified",
+        networkCode: null,
+        requestStatus: "rejected",
+        grantedAt: null,
+        badgeExpiresAt: null,
+      } as const;
+      const ok = connectors({
+        verification: facts({ ...brand, reasonCode: "name_mismatch" }),
+      });
+      await run(ok.transactional, verificationLine("verification.decision"));
+      expect(textOfFirstMessage()).toContain(
+        "La raison sociale saisie ne correspond pas à celle du registre.",
+      );
+      const wrong = connectors({
+        verification: facts({ ...brand, reasonCode: "evidence_too_wide" }),
+      });
+      expect(
+        await prepare(
+          wrong.transactional,
+          verificationLine("verification.decision"),
+          state(),
+        ),
+      ).toEqual({ kind: "fail", errorCode: "rejection_reason_unknown" });
+    });
+
+    it("the agent's message is added for other and terms_breach only, and refused when it looks like a link", async () => {
+      const refused = (reasonCode: string, memberMessage: string | null) =>
+        connectors({
+          verification: facts({
+            requestStatus: "rejected",
+            reasonCode,
+            memberMessage,
+            grantedAt: null,
+            badgeExpiresAt: null,
+          }),
+        });
+      for (const code of ["other", "terms_breach"]) {
+        double.reset();
+        await run(
+          refused(code, "Merci de préciser votre activité.").transactional,
+          verificationLine("verification.decision"),
+        );
+        expect(textOfFirstMessage()).toContain(
+          "Merci de préciser votre activité.",
+        );
+      }
+      double.reset();
+      await run(
+        refused("minor", "never shown").transactional,
+        verificationLine("verification.decision"),
+      );
+      expect(textOfFirstMessage()).not.toContain("never shown");
+      expect(
+        await prepare(
+          refused("other", null).transactional,
+          verificationLine("verification.decision"),
+          state(),
+        ),
+      ).toEqual({ kind: "fail", errorCode: "member_message_missing" });
+      const linked = await prepare(
+        refused("other", "Écrivez à contact@exemple.invalid").transactional,
+        verificationLine("verification.decision"),
+        state(),
+      );
+      expect(
+        linked.kind === "mapped" && linked.description.rejectedAttributeNames,
+      ).toEqual(["htmlContent", "textContent"]);
+    });
+
+    it("a closed request is answered with account_unavailable", async () => {
+      const { transactional } = connectors({
+        verification: facts({
+          requestStatus: "closed",
+          reasonCode: "account_unavailable",
+          grantedAt: null,
+          badgeExpiresAt: null,
+        }),
+      });
+      await run(transactional, verificationLine("verification.decision"));
+      expect(textOfFirstMessage()).toContain(
+        "tant que votre compte est suspendu",
+      );
+    });
+
+    it("received is sent once the request is pending or decided, never for a cancelled one, and tells RG29", async () => {
+      const cancelled = connectors({
+        verification: facts({ requestStatus: "cancelled" }),
+      });
+      expect(
+        await prepare(
+          cancelled.transactional,
+          verificationLine("verification.received"),
+          state(),
+        ),
+      ).toEqual({ kind: "skip", reason: "request_closed" });
+      const pending = connectors({
+        verification: facts({ requestStatus: "pending" }),
+      });
+      await run(
+        pending.transactional,
+        verificationLine("verification.received"),
+      );
+      const text = textOfFirstMessage();
+      expect(text).toContain("Audience vérifiée — Instagram");
+      expect(text).toContain(
+        "INFLUX ne vous demandera jamais votre mot de passe",
+      );
+    });
+
+    it("code_issued names its own code's kind and date, never the code, and skips a revoked, expired or closed one", async () => {
+      const open = {
+        requestStatus: "draft",
+        codeKind: "network",
+        codeExpiresAt: "2999-01-01T00:00:00.000Z",
+        grantedAt: null,
+        badgeExpiresAt: null,
+      } as const;
+      const { transactional } = connectors({ verification: facts(open) });
+      await run(transactional, verificationLine("verification.code_issued"));
+      const text = textOfFirstMessage();
+      expect(text).toContain("Instagram");
+      expect(text).toContain(
+        "INFLUX ne vous demandera jamais votre mot de passe",
+      );
+      expect(text).not.toMatch(/INFLUX-[A-Z0-9]{8}/);
+      for (const override of [
+        { codeRevoked: true },
+        { codeExpiresAt: "2020-01-01T00:00:00.000Z" },
+        { requestStatus: "approved" },
+        { requestStatus: "cancelled" },
+      ]) {
+        const skipped = connectors({
+          verification: facts({ ...open, ...override }),
+        });
+        expect(
+          await prepare(
+            skipped.transactional,
+            verificationLine("verification.code_issued"),
+            state(),
+          ),
+        ).toEqual({ kind: "skip", reason: "code_obsolete" });
+      }
+      const missing = connectors({
+        verification: facts({ ...open, codeKind: null }),
+      });
+      expect(
+        await prepare(
+          missing.transactional,
+          verificationLine("verification.code_issued"),
+          state(),
+        ),
+      ).toEqual({ kind: "fail", errorCode: "code_not_found" });
+    });
+
+    it("a brand's domain code speaks of the domain, and of no network", async () => {
+      const { transactional } = connectors({
+        verification: facts({
+          level: "brand_verified",
+          networkCode: null,
+          requestStatus: "draft",
+          codeKind: "domain",
+          codeExpiresAt: "2999-01-01T00:00:00.000Z",
+          grantedAt: null,
+          badgeExpiresAt: null,
+        }),
+      });
+      await run(transactional, verificationLine("verification.code_issued"));
+      expect(textOfFirstMessage()).toContain("enregistrement DNS");
+    });
+
+    it("request_expired is sent for an expired request and fails visibly for any other", async () => {
+      const expired = connectors({
+        verification: facts({
+          requestStatus: "expired",
+          grantedAt: null,
+          badgeExpiresAt: null,
+        }),
+      });
+      await run(
+        expired.transactional,
+        verificationLine("verification.request_expired"),
+      );
+      expect(textOfFirstMessage()).toContain(
+        "Vous pouvez en générer un nouveau.",
+      );
+      const live = connectors({
+        verification: facts({ requestStatus: "draft" }),
+      });
+      expect(
+        await prepare(
+          live.transactional,
+          verificationLine("verification.request_expired"),
+          state(),
+        ),
+      ).toEqual({ kind: "fail", errorCode: "request_not_expired" });
+    });
+
+    it("nothing to read, an unknown level, an unknown network or a granted badge without its date: failed, visible, never guessed", async () => {
+      const failing = (verification: BrevoVerificationEmail | null) =>
+        prepare(
+          connectors({ verification }).transactional,
+          verificationLine("verification.decision"),
+          state(),
+        );
+      expect(await failing(null)).toEqual({
+        kind: "fail",
+        errorCode: "verification_not_found",
+      });
+      expect(await failing(facts({ level: "gold" }))).toEqual({
+        kind: "fail",
+        errorCode: "verification_level_unknown",
+      });
+      expect(await failing(facts({ networkCode: "myspace" }))).toEqual({
+        kind: "fail",
+        errorCode: "network_unknown",
+      });
+      expect(await failing(facts({ grantedAt: null }))).toEqual({
+        kind: "fail",
+        errorCode: "badge_not_found",
+      });
+      expect(await failing(facts({ requestStatus: "pending" }))).toEqual({
+        kind: "fail",
+        errorCode: "decision_unknown",
+      });
+    });
+
+    it("an account that is not active is skipped before any read of the facts", async () => {
+      const { transactional } = connectors({ verification: facts() });
+      expect(
+        await prepare(
+          transactional,
+          verificationLine("verification.decision"),
+          state({ status: "suspended" }),
+        ),
+      ).toMatchObject({ kind: "skip" });
+      expect(verificationReads).toEqual([]);
+    });
   });
 });

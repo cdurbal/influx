@@ -175,6 +175,42 @@ export type BrevoProfileDecision = {
 };
 
 /**
+ * What the worker reads of a verification e-mail line (0227; 08 RG94; modele §4 "Outbox"): the
+ * request the line names and the facts of its e-mail. Never the code, the handle, a figure, the
+ * period, the agent nor the internal comment. `memberMessage` is the text written by the agent
+ * (a refusal for `other` or `terms_breach`); the text of any other reason comes from the
+ * translation files by the reason code.
+ */
+export type BrevoVerificationEmail = {
+  /** account_verified, audience_verified or brand_verified. */
+  level: string;
+  /** The network line (reference.networks), null for a brand. */
+  networkCode: string | null;
+  /** draft, pending, approved, rejected, cancelled, expired or closed. */
+  requestStatus: string;
+  reasonCode: string | null;
+  memberMessage: string | null;
+  /** A decision that granted a badge: its date (ISO 8601) and expiry (null: none). */
+  grantedAt: string | null;
+  badgeExpiresAt: string | null;
+  /** A code_issued line: the kind (network or domain), expiry (ISO 8601) and revocation of ITS code. */
+  codeKind: string | null;
+  codeExpiresAt: string | null;
+  codeRevoked: boolean;
+  preferredLanguage: string;
+};
+
+/**
+ * What the Brevo contact connector reads of the badges of an account (0227; 16 §M4, 08 RG92): the
+ * level it holds (none, n1 account or brand, n2 audience) and the date of the badge that fixes it.
+ */
+export type VerifiedBadge = {
+  level: "none" | "n1" | "n2";
+  /** ISO 8601; null for none. */
+  at: string | null;
+};
+
+/**
  * What the contact connectors read of a brand profile (0212; 06 RG79 to RG81): the live row of the
  * profile, never its legal name, presentation, contact person, registration number nor a note. A
  * field the brand has not filled is null (sent empty, RG81), never a guess.
@@ -522,6 +558,89 @@ export async function readBrevoProfileDecision(
         memberMessage: row.member_message,
         preferredLanguage: row.preferred_language,
       };
+}
+
+/**
+ * The facts of a verification e-mail line to brevo_transactional in processing for this worker
+ * (0227): null when the request is not the line's account's, the code not the request's, or the
+ * account is erased.
+ */
+export async function readBrevoVerificationEmail(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<BrevoVerificationEmail | null> {
+  const rows = await tx.execute<{
+    level: string;
+    network_code: string | null;
+    request_status: string;
+    reason_code: string | null;
+    member_message: string | null;
+    granted_at: string | null;
+    badge_expires_at: string | null;
+    code_kind: string | null;
+    code_expires_at: string | null;
+    code_revoked: boolean;
+    preferred_language: string;
+  }>(
+    sql`select level, network_code, request_status, reason_code, member_message,
+               to_char(granted_at at time zone 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as granted_at,
+               to_char(badge_expires_at at time zone 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as badge_expires_at,
+               code_kind,
+               to_char(code_expires_at at time zone 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as code_expires_at,
+               code_revoked, preferred_language
+          from leads.read_brevo_verification_email(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        level: row.level,
+        networkCode: row.network_code,
+        requestStatus: row.request_status,
+        reasonCode: row.reason_code,
+        memberMessage: row.member_message,
+        grantedAt: row.granted_at,
+        badgeExpiresAt: row.badge_expires_at,
+        codeKind: row.code_kind,
+        codeExpiresAt: row.code_expires_at,
+        codeRevoked: row.code_revoked,
+        preferredLanguage: row.preferred_language,
+      };
+}
+
+/**
+ * The badge level of a Brevo contact line in processing for this worker (0227): never Apollo.
+ * null: no such account (unknown or erased).
+ */
+export async function readVerifiedBadge(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<VerifiedBadge | null> {
+  const rows = await tx.execute<{
+    verified_level: string;
+    verified_at: string | null;
+  }>(
+    sql`select verified_level,
+               to_char(verified_at at time zone 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as verified_at
+          from leads.read_verified_badge(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    return null;
+  }
+  return {
+    level:
+      row.verified_level === "n1" || row.verified_level === "n2"
+        ? row.verified_level
+        : "none",
+    at: row.verified_at,
+  };
 }
 
 /**

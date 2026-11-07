@@ -153,6 +153,112 @@
         "contact": "Pour en discuter, contactez INFLUX depuis l'aide de l'écran de connexion."
       }
     },
+    "verificationNotice": {
+      "network": {
+        "instagram": "Instagram",
+        "tiktok": "TikTok",
+        "youtube": "YouTube",
+        "facebook": "Facebook",
+        "linkedin": "LinkedIn",
+        "x": "X",
+        "snapchat": "Snapchat",
+        "twitch": "Twitch",
+        "pinterest": "Pinterest",
+        "threads": "Threads"
+      },
+      "badge": {
+        "account_verified": "Compte vérifié — {network}",
+        "audience_verified": "Audience vérifiée — {network}",
+        "brand_verified": "Marque vérifiée"
+      },
+      "neverAsk": "INFLUX ne vous demandera jamais votre mot de passe, ni un accès à votre compte, ni un code reçu par message.",
+      "received": {
+        "subject": "Votre demande de vérification INFLUX est reçue",
+        "preheader": "Un commercial INFLUX l'examine : réponse sous 1 jour ouvré.",
+        "title": "Votre demande de vérification est reçue",
+        "body": "Nous avons bien reçu votre demande du badge « {badge} ».",
+        "pending": "Votre demande est en cours d'examen. Nous répondons sous 1 jour ouvré.",
+        "why": "vous avez déposé une demande de vérification depuis votre compte INFLUX"
+      },
+      "codeIssued": {
+        "subject": "Votre code de vérification INFLUX est généré",
+        "preheader": "Il est valable jusqu'au {expiresAt, date, long}.",
+        "title": "Votre code de vérification est généré",
+        "network": "Un code de vérification a été généré pour votre compte {network}. Retrouvez-le dans votre espace INFLUX, à l'écran de votre demande : il n'est jamais envoyé par e-mail.",
+        "domain": "Un code de vérification a été généré pour le domaine de votre site. Retrouvez-le dans votre espace INFLUX, à l'écran de votre demande : il n'est jamais envoyé par e-mail.",
+        "instructionsNetwork": "Collez ce code dans la biographie de votre compte {network}. Nous le constatons nous-mêmes en ligne. Vous pourrez le retirer dès que le constat est enregistré.",
+        "instructionsDomain": "Publiez ce code dans un enregistrement DNS de type TXT de votre domaine, ou sur une page de votre site. Nous le constatons nous-mêmes en ligne.",
+        "validity": "Ce code est valable jusqu'au {expiresAt, date, long}.",
+        "why": "vous avez demandé un code de vérification depuis votre compte INFLUX"
+      },
+      "expired": {
+        "subject": "Votre demande de vérification INFLUX a expiré",
+        "preheader": "Le code n'a pas été utilisé à temps.",
+        "title": "Votre demande de vérification a expiré",
+        "body": "Le code de votre demande du badge « {badge} » a expiré avant l'envoi de votre demande, qui a été fermée.",
+        "next": "Votre code a expiré. Vous pouvez en générer un nouveau.",
+        "why": "une demande de vérification déposée depuis votre compte INFLUX a expiré"
+      }
+    },
+    "verificationDecision": {
+      "granted": {
+        "subject": "Votre badge INFLUX est accordé",
+        "preheader": "{badge}, le {grantedAt, date, long}.",
+        "title": "Votre badge est accordé",
+        "body": "Un commercial INFLUX vous a accordé le badge « {badge} », le {grantedAt, date, long}.",
+        "source": {
+          "account_verified": "INFLUX a constaté que ce compte appartient au créateur inscrit.",
+          "audience_verified": "Chiffres constatés par INFLUX sur le tableau de bord {network}. INFLUX ne se prononce pas sur l'authenticité des abonnés.",
+          "brand_verified": "Domaine et immatriculation contrôlés par INFLUX auprès d'un registre public."
+        },
+        "validUntil": "Ce badge est valable jusqu'au {expiresAt, date, long}.",
+        "why": "votre demande de vérification a été examinée par un commercial INFLUX"
+      },
+      "rejected": {
+        "subject": "Votre demande de vérification INFLUX n'a pas abouti",
+        "preheader": "Un commercial INFLUX a examiné votre demande : voici pourquoi.",
+        "title": "Votre demande de vérification n'a pas abouti",
+        "body": "Un commercial INFLUX a examiné votre demande du badge « {badge} » et ne l'a pas accordée.",
+        "why": "votre demande de vérification a été examinée par un commercial INFLUX"
+      },
+      "reason": {
+        "creator": {
+          "missing_evidence": "Aucune pièce n'a été jointe à votre demande.",
+          "evidence_too_old": "La période affichée sur votre capture se termine il y a plus de 30 jours.",
+          "evidence_unreadable": "Le compte ou la période ne sont pas lisibles sur votre capture.",
+          "evidence_wrong_source": "Seules les statistiques officielles du réseau sont acceptées. Une capture issue d'un outil de mesure tiers ne peut pas être retenue.",
+          "evidence_too_wide": "Votre capture montre des informations concernant d'autres personnes. Recadrez-la en suivant nos instructions.",
+          "ownership_not_proven": "Le code de vérification n'a pas été trouvé sur votre profil.",
+          "account_not_public": "Nous n'avons pas pu consulter votre profil sans être connectés. Rendez-le public le temps du constat, ou renoncez à la vérification de ce réseau.",
+          "ownership_prerequisite": "Nous vérifions d'abord que ce compte vous appartient, avant de constater vos chiffres.",
+          "evidence_inconsistent": "Les informations fournies ne concordent pas.",
+          "evidence_suspected_forgery": "Nous ne pouvons pas retenir cette pièce.",
+          "shared_account": "Ce compte semble géré par plusieurs personnes. Nous ne pouvons pas établir sa propriété pour une personne identifiée.",
+          "agency_managed": "Les comptes gérés par une agence ne sont pas pris en charge pour le moment.",
+          "terms_breach": "Votre profil ne respecte pas les conditions d'utilisation d'INFLUX.",
+          "minor": "INFLUX est réservé aux personnes majeures : nous ne pouvons pas traiter votre demande.",
+          "account_unavailable": "Votre demande ne peut pas être traitée tant que votre compte est suspendu.",
+          "other": "Votre demande n'a pas pu être acceptée en l'état. Le message de l'équipe INFLUX :"
+        },
+        "brand": {
+          "domain_code_not_found": "Nous n'avons trouvé le code ni dans les enregistrements DNS de votre domaine, ni sur une page de votre site.",
+          "registration_not_found": "Cette immatriculation est introuvable dans le registre public de votre pays.",
+          "registration_unverifiable_country": "Immatriculation non vérifiable dans ce pays : INFLUX n'y consulte encore aucun registre public gratuit. Vous pourrez redemander le badge dès qu'une source sera ajoutée.",
+          "name_mismatch": "La raison sociale saisie ne correspond pas à celle du registre.",
+          "account_unavailable": "Votre demande ne peut pas être traitée tant que votre compte est suspendu.",
+          "other": "Votre demande n'a pas pu être acceptée en l'état. Le message de l'équipe INFLUX :"
+        }
+      },
+      "nextStep": {
+        "redeposit": "Vous pouvez déposer une nouvelle pièce, puis redemander la vérification depuis votre espace INFLUX.",
+        "restartOwnership": "Vous pouvez recommencer la preuve de propriété depuis votre espace INFLUX.",
+        "makePublic": "Rendez votre compte public, puis redemandez la vérification depuis votre espace INFLUX.",
+        "askOwnershipFirst": "Demandez d'abord le badge « Compte vérifié » pour ce réseau depuis votre espace INFLUX.",
+        "retryBrand": "Vous pouvez corriger les informations de votre marque, puis redemander la vérification depuis votre espace INFLUX.",
+        "contact": "Pour en discuter, contactez INFLUX depuis l'aide de l'écran de connexion.",
+        "none": "Aucune nouvelle demande n'est possible pour le moment."
+      }
+    },
     "internal": {
       "criticalAlert": {
         "subject": "INFLUX — Alerte critique / Critical alert",

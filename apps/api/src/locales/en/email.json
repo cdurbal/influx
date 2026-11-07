@@ -153,6 +153,112 @@
         "contact": "To discuss it, contact INFLUX from the help on the sign-in screen."
       }
     },
+    "verificationNotice": {
+      "network": {
+        "instagram": "Instagram",
+        "tiktok": "TikTok",
+        "youtube": "YouTube",
+        "facebook": "Facebook",
+        "linkedin": "LinkedIn",
+        "x": "X",
+        "snapchat": "Snapchat",
+        "twitch": "Twitch",
+        "pinterest": "Pinterest",
+        "threads": "Threads"
+      },
+      "badge": {
+        "account_verified": "Account verified — {network}",
+        "audience_verified": "Audience verified — {network}",
+        "brand_verified": "Brand verified"
+      },
+      "neverAsk": "INFLUX will never ask for your password, access to your account, or a code you received by message.",
+      "received": {
+        "subject": "Your INFLUX verification request is received",
+        "preheader": "An INFLUX salesperson is reviewing it: reply within 1 business day.",
+        "title": "Your verification request is received",
+        "body": "We have received your request for the \"{badge}\" badge.",
+        "pending": "Your request is being reviewed. We answer within 1 business day.",
+        "why": "you submitted a verification request from your INFLUX account"
+      },
+      "codeIssued": {
+        "subject": "Your INFLUX verification code is ready",
+        "preheader": "It is valid until {expiresAt, date, long}.",
+        "title": "Your verification code is ready",
+        "network": "A verification code was generated for your {network} account. You will find it in your INFLUX space, on the screen of your request: it is never sent by email.",
+        "domain": "A verification code was generated for your website's domain. You will find it in your INFLUX space, on the screen of your request: it is never sent by email.",
+        "instructionsNetwork": "Paste this code into your {network} bio. We check it online ourselves. You can remove it as soon as the check is recorded.",
+        "instructionsDomain": "Publish this code in a TXT DNS record of your domain, or on a page of your website. We check it online ourselves.",
+        "validity": "This code is valid until {expiresAt, date, long}.",
+        "why": "you asked for a verification code from your INFLUX account"
+      },
+      "expired": {
+        "subject": "Your INFLUX verification request has expired",
+        "preheader": "The code was not used in time.",
+        "title": "Your verification request has expired",
+        "body": "The code of your request for the \"{badge}\" badge expired before you submitted it, and the request was closed.",
+        "next": "Your code has expired. You can generate a new one.",
+        "why": "a verification request submitted from your INFLUX account has expired"
+      }
+    },
+    "verificationDecision": {
+      "granted": {
+        "subject": "Your INFLUX badge is granted",
+        "preheader": "{badge}, on {grantedAt, date, long}.",
+        "title": "Your badge is granted",
+        "body": "An INFLUX salesperson granted you the \"{badge}\" badge, on {grantedAt, date, long}.",
+        "source": {
+          "account_verified": "INFLUX confirmed this account belongs to the registered creator.",
+          "audience_verified": "Figures observed by INFLUX in the {network} native dashboard. INFLUX makes no claim about follower authenticity.",
+          "brand_verified": "Domain and registration checked by INFLUX against a public register."
+        },
+        "validUntil": "This badge is valid until {expiresAt, date, long}.",
+        "why": "your verification request was reviewed by an INFLUX salesperson"
+      },
+      "rejected": {
+        "subject": "Your INFLUX verification request was not successful",
+        "preheader": "An INFLUX salesperson reviewed your request: here is why.",
+        "title": "Your verification request was not successful",
+        "body": "An INFLUX salesperson reviewed your request for the \"{badge}\" badge and did not grant it.",
+        "why": "your verification request was reviewed by an INFLUX salesperson"
+      },
+      "reason": {
+        "creator": {
+          "missing_evidence": "No evidence was attached to your request.",
+          "evidence_too_old": "The period shown on your screenshot ended more than 30 days ago.",
+          "evidence_unreadable": "The account or the period cannot be read on your screenshot.",
+          "evidence_wrong_source": "Only the network's official statistics are accepted. A screenshot from a third-party measurement tool cannot be used.",
+          "evidence_too_wide": "Your screenshot shows information about other people. Crop it following our instructions.",
+          "ownership_not_proven": "The verification code was not found on your profile.",
+          "account_not_public": "We could not view your profile without being logged in. Make it public for the time of the check, or give up verifying this network.",
+          "ownership_prerequisite": "We first check that this account belongs to you, before observing your figures.",
+          "evidence_inconsistent": "The information provided does not match.",
+          "evidence_suspected_forgery": "We cannot accept this document.",
+          "shared_account": "This account seems to be run by several people. We cannot establish its ownership for an identified person.",
+          "agency_managed": "Accounts managed by an agency are not supported for the moment.",
+          "terms_breach": "Your profile does not comply with the INFLUX terms of use.",
+          "minor": "INFLUX is for adults only: we cannot process your request.",
+          "account_unavailable": "Your request cannot be processed while your account is suspended.",
+          "other": "Your request could not be accepted as it stands. The message from the INFLUX team:"
+        },
+        "brand": {
+          "domain_code_not_found": "We found the code neither in your domain's DNS records nor on a page of your website.",
+          "registration_not_found": "This registration could not be found in your country's public register.",
+          "registration_unverifiable_country": "Registration cannot be checked in this country: INFLUX does not yet consult a free public register there. You can request the badge again once a source is added.",
+          "name_mismatch": "The legal name you entered does not match the register.",
+          "account_unavailable": "Your request cannot be processed while your account is suspended.",
+          "other": "Your request could not be accepted as it stands. The message from the INFLUX team:"
+        }
+      },
+      "nextStep": {
+        "redeposit": "You can upload new evidence, then ask for the verification again from your INFLUX space.",
+        "restartOwnership": "You can start the proof of ownership again from your INFLUX space.",
+        "makePublic": "Make your account public, then ask for the verification again from your INFLUX space.",
+        "askOwnershipFirst": "First ask for the \"Account verified\" badge for this network from your INFLUX space.",
+        "retryBrand": "You can correct your brand's information, then ask for the verification again from your INFLUX space.",
+        "contact": "To discuss it, contact INFLUX from the help on the sign-in screen.",
+        "none": "No new request is possible for the moment."
+      }
+    },
     "internal": {
       "criticalAlert": {
         "subject": "INFLUX — Alerte critique / Critical alert",

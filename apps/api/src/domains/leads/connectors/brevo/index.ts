@@ -44,6 +44,13 @@
 // contact as lead.updated does, from the live profile read at consumption (leads.read_brand_profile_attributes,
 // 0212; RG79: sector, size band, markets, state, completeness, first topic, funnel stage); without
 // marketing consent it is skipped no_consent, as lead.created is, and never counted as a failure.
+// verification.received, .code_issued, .decision and .request_expired (08 RG94, EC-L2E-3; L2E commit 16):
+// the five e-mails of the verification, written like profile.decision from the facts read at
+// consumption (leads.read_brevo_verification_email, 0227) and the address of the subject read: a
+// request cancelled, a code revoked or past its date is skipped (never announced), a reason outside
+// the closed list, a granted badge without its date or an `other` refusal without its message is a
+// visible failure. Every contact upsert carries the level of the account's badge and its date
+// (VERIFIED_LEVEL, VERIFIED_AT; leads.read_verified_badge, 0227; Brevo only, 08 RG92).
 // What leaves for the drain is names and verdicts; the values stay in the closure of `send`.
 import {
   UNIDENTIFIED_USER_AGENT,
@@ -63,6 +70,12 @@ import {
   rejectionReasonOf,
 } from "../../../profiles/brand-decision-email.ts";
 import {
+  renderVerificationEmail,
+  verificationLevelOf,
+  verificationNetworkOf,
+  verificationReasonOf,
+} from "../../../verification/verification-email.ts";
+import {
   accountSkip,
   type CallDescription,
   type Connector,
@@ -73,7 +86,9 @@ import type {
   BrandProfileAttributes,
   BrevoErasureSubject,
   BrevoProfileDecision,
+  BrevoVerificationEmail,
   ClaimedLine,
+  VerifiedBadge,
 } from "../../repository.ts";
 import {
   brevoListIdOf,
@@ -119,6 +134,10 @@ export const WORKER_RENDERED_EMAILS = [
   "privacy.export_ready",
   "privacy.erasure_completed",
   "profile.decision",
+  "verification.received",
+  "verification.code_issued",
+  "verification.decision",
+  "verification.request_expired",
 ] as const;
 
 type RenderedEmailCode = (typeof WORKER_RENDERED_EMAILS)[number];
@@ -158,6 +177,19 @@ export type BrandProfileReader = (
   line: ClaimedLine,
 ) => Promise<BrandProfileAttributes | null>;
 
+/**
+ * The facts of a verification e-mail line (0227): the request, its reason or badge date, the line's
+ * code and the account's language; never the code, a handle nor a figure.
+ */
+export type BrevoVerificationEmailReader = (
+  line: ClaimedLine,
+) => Promise<BrevoVerificationEmail | null>;
+
+/** The level of the badges an account holds and its date (0227): a contact line of Brevo only. */
+export type VerifiedBadgeReader = (
+  line: ClaimedLine,
+) => Promise<VerifiedBadge | null>;
+
 export type BrevoErasureSubjectReader = (
   line: ClaimedLine,
 ) => Promise<BrevoErasureSubject | null>;
@@ -174,6 +206,10 @@ export type BrevoConnectorDependencies = {
   readErasureNotificationSubject: ErasureNotificationSubjectReader;
   /** Reads the decision of a profile.decision line (0211), its own transaction. */
   readProfileDecision: BrevoProfileDecisionReader;
+  /** Reads the facts of a verification e-mail line (0227), its own transaction. */
+  readVerificationEmail: BrevoVerificationEmailReader;
+  /** Reads the badge level of the account of a contact line (0227), its own transaction. */
+  readVerifiedBadge: VerifiedBadgeReader;
   /** Reads the contact of an erased account on an account.deleted line (0136), its own transaction. */
   readErasureSubject: BrevoErasureSubjectReader;
   /** Reads the live brand profile of a contact line (0212), its own transaction. */
@@ -620,6 +656,132 @@ export function createBrevoConnectors(
   }
 
   /**
+   * The five e-mails of the verification (08 RG94, EC-L2E-3). The address and the account checks
+   * come from the subject; the level, network line, reason, badge date, code and language from the
+   * facts read at consumption (0227), never from the payload. A refusal speaks with the text of its
+   * reason (modele §5), the agent's own text only for the two reasons that require one.
+   */
+  function verificationEmail(code: RenderedEmailCode) {
+    return async (
+      line: ClaimedLine,
+      _account: NonNullable<AttemptState["account"]>,
+      subject: BrevoSubject,
+    ): Promise<Preparation> => {
+      const read = await dependencies.readVerificationEmail(line);
+      if (read === null) {
+        // No such request of this account behind the line: nothing to announce, visible.
+        return { kind: "fail", errorCode: "verification_not_found" };
+      }
+      const locale = read.preferredLanguage === "fr" ? "fr" : "en";
+      const level = verificationLevelOf(read.level);
+      if (level === null) {
+        return { kind: "fail", errorCode: "verification_level_unknown" };
+      }
+      const networkName =
+        level === "brand_verified"
+          ? null
+          : verificationNetworkOf(locale, read.networkCode);
+      if (level !== "brand_verified" && networkName === null) {
+        return { kind: "fail", errorCode: "network_unknown" };
+      }
+      const common = {
+        locale,
+        timeZone: subject.timeZone,
+        level,
+        networkName,
+      } as const;
+      const send = (email: RenderedEmail) =>
+        rendered(line, code, subject.email, email, locale);
+
+      if (code === "verification.received") {
+        if (
+          !["pending", "approved", "rejected", "closed"].includes(
+            read.requestStatus,
+          )
+        ) {
+          // cancelled before the e-mail left: never announced
+          return { kind: "skip", reason: "request_closed" };
+        }
+        return send(renderVerificationEmail({ ...common, kind: "received" }));
+      }
+      if (code === "verification.code_issued") {
+        if (
+          (read.codeKind !== "network" && read.codeKind !== "domain") ||
+          read.codeExpiresAt === null
+        ) {
+          return { kind: "fail", errorCode: "code_not_found" };
+        }
+        const expiresAt = new Date(read.codeExpiresAt);
+        if (
+          read.codeRevoked ||
+          !["draft", "pending"].includes(read.requestStatus) ||
+          expiresAt.getTime() <= Date.now()
+        ) {
+          // a newer code, a request closed or a date past: the e-mail would mislead, never sent
+          return { kind: "skip", reason: "code_obsolete" };
+        }
+        return send(
+          renderVerificationEmail({
+            ...common,
+            kind: "code_issued",
+            codeKind: read.codeKind,
+            expiresAt,
+          }),
+        );
+      }
+      if (code === "verification.request_expired") {
+        if (read.requestStatus !== "expired") {
+          return { kind: "fail", errorCode: "request_not_expired" };
+        }
+        return send(renderVerificationEmail({ ...common, kind: "expired" }));
+      }
+      // verification.decision
+      if (read.requestStatus === "approved") {
+        if (read.grantedAt === null) {
+          return { kind: "fail", errorCode: "badge_not_found" };
+        }
+        return send(
+          renderVerificationEmail({
+            ...common,
+            kind: "granted",
+            grantedAt: new Date(read.grantedAt),
+            expiresAt:
+              read.badgeExpiresAt === null
+                ? null
+                : new Date(read.badgeExpiresAt),
+          }),
+        );
+      }
+      if (
+        read.requestStatus !== "rejected" &&
+        read.requestStatus !== "closed"
+      ) {
+        return { kind: "fail", errorCode: "decision_unknown" };
+      }
+      const reason =
+        read.reasonCode === null
+          ? null
+          : verificationReasonOf(level, read.reasonCode);
+      if (reason === null) {
+        return { kind: "fail", errorCode: "rejection_reason_unknown" };
+      }
+      const needsMessage =
+        reason.code === "other" || reason.code === "terms_breach";
+      if (needsMessage && read.memberMessage === null) {
+        return { kind: "fail", errorCode: "member_message_missing" };
+      }
+      return send(
+        renderVerificationEmail({
+          ...common,
+          kind: "rejected",
+          reason,
+          memberMessage: needsMessage ? read.memberMessage : null,
+        }),
+      );
+    };
+  }
+
+  /**
    * privacy.erasure_completed (D72, 16 RG160 bis): the account is erased, so the address, language
    * and time zone come from the execution that holds them; nothing but the date is written.
    */
@@ -666,6 +828,12 @@ export function createBrevoConnectors(
     "privacy.request_received": dataRequestReceived,
     "privacy.export_ready": exportReady,
     "profile.decision": profileDecision,
+    "verification.received": verificationEmail("verification.received"),
+    "verification.code_issued": verificationEmail("verification.code_issued"),
+    "verification.decision": verificationEmail("verification.decision"),
+    "verification.request_expired": verificationEmail(
+      "verification.request_expired",
+    ),
   };
 
   const contact: Connector = {
@@ -720,13 +888,16 @@ export function createBrevoConnectors(
         role === "advertiser"
           ? await dependencies.readBrandProfile(line)
           : null;
+      // 0227, 08 RG92: the level of the badge and its date, read from the base at every rewrite of
+      // the contact, never guessed from the event (a replayed lead.created must not erase a badge)
+      const badge = await dependencies.readVerifiedBadge(line);
       const body =
         line.eventType === "consent.granted"
           ? {
-              ...map(account, subject, listId, profile),
+              ...map(account, subject, listId, profile, badge),
               emailBlacklisted: false,
             }
-          : map(account, subject, listId, profile);
+          : map(account, subject, listId, profile, badge);
       const description: CallDescription = {
         operation: "upsert_contact",
         templateCode: null,

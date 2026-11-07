@@ -261,6 +261,12 @@ describe("L2E-D6: a renewed code invalidates the former one in the same transact
       "verification.code_issued",
       "verification.code_issued",
     ]);
+    // EC-L2E-16-1 (0227): each line names the e-mail the worker writes, never the code
+    for (const line of found.queued) {
+      expect(JSON.parse(line.payload).email_code).toBe(
+        "verification.code_issued",
+      );
+    }
     const codes = found.after.map((code) => code.code);
     for (const line of [...found.queued, ...found.register]) {
       for (const code of codes) expect(line.payload).not.toContain(code);
@@ -502,9 +508,10 @@ describe("the submission of a creator request (RG12, -13, EC-L2E-06-3)", () => {
         ]),
       );
       const queued = await tx<
-        { type: string; destination: string; key: string }[]
+        { type: string; destination: string; key: string; email_code: string }[]
       >`
-        select event_type as type, destination::text, idempotency_key as key
+        select event_type as type, destination::text, idempotency_key as key,
+               payload ->> 'email_code' as email_code
           from leads.outbox_events where payload ->> 'request_id' = ${audience.request_id}`;
       const alreadyProven = await asCreator(tx, creatorA, () =>
         run(tx, OPEN, [lineA, "account_verified"]),
@@ -541,6 +548,7 @@ describe("the submission of a creator request (RG12, -13, EC-L2E-06-3)", () => {
         type: "verification.received",
         destination: "brevo_transactional",
         key: `verification.received:${found.audience.request_id}`,
+        email_code: "verification.received",
       },
     ]);
     // the ownership of an account is proven once (RG30)
