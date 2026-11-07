@@ -100,8 +100,9 @@ declare module "fastify" {
 export const RATE_LIMITED_RETRY_AFTER_SECONDS = 60;
 
 /**
- * The ceiling of every route but the deposit of the logo, which reads up to the relay's 2 MiB in a
- * context of its own (`03` PP-9 amended by D80; domains/profiles/routes.ts).
+ * The ceiling of every route but two deposits, each in a context of its own: the logo, up to the
+ * relay's 2 MiB (`03` PP-9 amended by D80; domains/profiles/routes.ts), and a piece of verification,
+ * up to the relay's 8 MiB exception for that path (D82 (1); domains/verification/routes.ts).
  */
 export const MAX_BODY_BYTES = 1_048_576;
 
@@ -563,6 +564,8 @@ export function buildServer(
 
   // Storage, with the secret key of the service: the logo of the brand profile and its read by an agent.
   const objectStore = options.storage ?? createObjectStore(config.supabase);
+  // The two slots of re-encoding of the process, shared by the logo and the pieces (D82 (2)).
+  const imageSlots = createImageSlots();
 
   // The brand profile: read, autosave, submission (docs/mvp/06; jalon L2B commit 07); its logo
   // (commit 09, D80), through Storage with the secret key of the service.
@@ -570,7 +573,7 @@ export function buildServer(
     database,
     now: options.identity?.now ?? (() => new Date()),
     store: objectStore,
-    slots: createImageSlots(),
+    slots: imageSlots,
   });
 
   // The creator profile: read and autosave of blocks 1, 2 and 5 (docs/mvp/07; jalon L2D commit 08).
@@ -580,10 +583,12 @@ export function buildServer(
   });
 
   // The creator's own verification requests: state by network line, open, code, submit, cancel (docs/mvp/08;
-  // jalon L2E commit 12).
+  // jalon L2E commit 12); the deposit and removal of a piece (commit 13, D82).
   registerVerificationRoutes(app, {
     database,
     now: options.identity?.now ?? (() => new Date()),
+    store: objectStore,
+    slots: imageSlots,
   });
 
   // Authentication of the backoffice (21 §4, J3 commit 10).

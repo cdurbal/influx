@@ -7,6 +7,7 @@
 // - The writes are the four doors of 0222 (`verification.open_own_request()`, `renew_own_code()`,
 //   `submit_own_request()`, `cancel_own_request()`): RG14, RG60 and RG23 live there, once. A refusal
 //   of a door is a database error, said by its SQLSTATE, message and DETAIL (service.ts reads it).
+//   The deposit of a piece goes through the five doors of 0223 (commit 13, evidence.ts).
 // Nothing is logged here, and nothing typed by an agent is read.
 import { sql } from "drizzle-orm";
 import type { Transaction } from "../../db/index.ts";
@@ -302,4 +303,110 @@ export async function cancelOwnRequest(
   await tx.execute(
     sql`select status from verification.cancel_own_request(${requestId}::uuid)`,
   );
+}
+
+// --- The deposit of a piece (0223) ---------------------------------------------------------------
+// The key a door hands back names the object apps/api writes or removes in the bucket
+// `verification-evidence`, and nothing else: it never reaches an answer nor a log (EC-L2E-07-6).
+
+/** A piece and the key of its object, as a door of 0223 hands it to apps/api. */
+export type EvidenceObjectRef = { evidenceId: string; objectKey: string };
+
+/** The request a piece of the creator belongs to, whatever its state; null: not his, or unknown. */
+export async function readOwnEvidenceRequestId(
+  tx: Transaction,
+  evidenceId: string,
+): Promise<string | null> {
+  const rows = await tx.execute<{ request_id: string }>(
+    sql`select e.request_id::text as request_id
+          from verification.evidence_files e
+         where e.id = ${evidenceId}::uuid
+           and e.account_id = (select influx.current_account_id())`,
+  );
+  return rows[0]?.request_id ?? null;
+}
+
+/** (b) `verification.begin_evidence_upload()`: the quotas consumed, the row pending, its key. */
+export async function beginEvidenceUpload(
+  tx: Transaction,
+  requestId: string,
+  receivedBytes: number,
+): Promise<EvidenceObjectRef> {
+  const rows = await tx.execute<{ evidence_id: string; object_key: string }>(
+    sql`select evidence_id::text as evidence_id, object_key
+          from verification.begin_evidence_upload(${requestId}::uuid, ${receivedBytes}::integer)`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    throw new Error("begin_evidence_upload answered no row");
+  }
+  return { evidenceId: row.evidence_id, objectKey: row.object_key };
+}
+
+/** (c) `verification.discard_evidence_upload()`: refused by the checks, the pending row deleted. */
+export async function discardEvidenceUpload(
+  tx: Transaction,
+  evidenceId: string,
+): Promise<void> {
+  await tx.execute(
+    sql`select verification.discard_evidence_upload(${evidenceId}::uuid)`,
+  );
+}
+
+/** (d) `verification.fail_evidence_upload()`: the object may exist, the pending row to purging. */
+export async function failEvidenceUpload(
+  tx: Transaction,
+  evidenceId: string,
+): Promise<void> {
+  await tx.execute(
+    sql`select verification.fail_evidence_upload(${evidenceId}::uuid)`,
+  );
+}
+
+/**
+ * (e) `verification.activate_evidence()`: the row active; the piece of the same request with the same
+ * checksum, deposited before, to purging and handed back for its removal (null: none).
+ */
+export async function activateEvidence(
+  tx: Transaction,
+  evidenceId: string,
+  stored: {
+    byteSize: number;
+    width: number;
+    height: number;
+    /** SHA-256 of the stored WebP, 64 hexadecimal characters. */
+    checksumHex: string;
+  },
+): Promise<EvidenceObjectRef | null> {
+  const rows = await tx.execute<{
+    previous_evidence_id: string;
+    previous_object_key: string;
+  }>(
+    sql`select previous_evidence_id::text as previous_evidence_id, previous_object_key
+          from verification.activate_evidence(
+                 ${evidenceId}::uuid, ${stored.byteSize}::integer, ${stored.width}::integer,
+                 ${stored.height}::integer, decode(${stored.checksumHex}, 'hex'))`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        evidenceId: row.previous_evidence_id,
+        objectKey: row.previous_object_key,
+      };
+}
+
+/** DELETE `verification.remove_own_evidence()`: the active piece to purging, handed back (null: none). */
+export async function removeOwnEvidence(
+  tx: Transaction,
+  evidenceId: string,
+): Promise<EvidenceObjectRef | null> {
+  const rows = await tx.execute<{ evidence_id: string; object_key: string }>(
+    sql`select evidence_id::text as evidence_id, object_key
+          from verification.remove_own_evidence(${evidenceId}::uuid)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : { evidenceId: row.evidence_id, objectKey: row.object_key };
 }

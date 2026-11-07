@@ -13,6 +13,7 @@ import { describe, expect, it } from "vitest";
 import {
   createImageSlots,
   IMAGE_MAX_CONCURRENT,
+  reencodeEvidence,
   reencodeLogo,
   sniffImageType,
 } from "../src/platform/images.ts";
@@ -289,6 +290,119 @@ describe("the sizes of stockage.md §1 (06 RG15; EC-L2B-02-2, -3)", () => {
 
   it("refuses more than 4 096² pixels before decoding them", async () => {
     expect(await reencodeLogo(await png(4097, 4096))).toEqual({
+      ok: false,
+      reason: "too_many_pixels",
+    });
+  });
+});
+
+describe("a piece of verification: the same pixels, no metadata (D82 (2); 08 CA21, CA22; T9.4, T9.5)", () => {
+  it.each(["logo-geotagged.jpg", "logo-metadata.webp"] as const)(
+    "%s: a WebP without EXIF, GPS, XMP, ICC nor text, read in its bytes (T9.5, CA22)",
+    async (name) => {
+      const outcome = await reencodeEvidence(fixture(name));
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) {
+        return;
+      }
+      expectNoMetadata(outcome.value.bytes);
+      const metadata = await sharp(outcome.value.bytes).metadata();
+      expect(metadata.format).toBe("webp");
+      expect(metadata.exif).toBeUndefined();
+      expect(metadata.xmp).toBeUndefined();
+      expect(metadata.icc).toBeUndefined();
+      expect(metadata.orientation).toBeUndefined();
+    },
+  );
+
+  it("drops an ICC profile and the bytes after the end of the image", async () => {
+    const withProfile = await sharp({
+      create: { width: 640, height: 400, channels: 3, background: "#204060" },
+    })
+      .withIccProfile("p3")
+      .png()
+      .toBuffer();
+    expect((await sharp(withProfile).metadata()).icc).toBeDefined();
+    const trailer = Buffer.from("INFLUX-TEST-TRAILER geo 48.858233", "latin1");
+    for (const bytes of [
+      withProfile,
+      Buffer.concat([fixture("logo-geotagged.jpg"), trailer]),
+    ]) {
+      const outcome = await reencodeEvidence(bytes);
+      expect(outcome.ok).toBe(true);
+      if (outcome.ok) {
+        expectNoMetadata(outcome.value.bytes);
+      }
+    }
+  });
+
+  it("applies the orientation and keeps every pixel: never resized, never cropped, no margin", async () => {
+    // 600 × 300 stored, orientation 6: a 300 × 600 portrait, as is
+    const oriented = await reencodeEvidence(fixture("logo-geotagged.jpg"));
+    expect(
+      oriented.ok && [oriented.value.width, oriented.value.height],
+    ).toEqual([300, 600]);
+    // a long capture of a phone keeps its sides
+    const capture = await reencodeEvidence(await png(1290, 2796));
+    expect(capture.ok && [capture.value.width, capture.value.height]).toEqual([
+      1290, 2796,
+    ]);
+    if (capture.ok) {
+      const { info } = await sharp(capture.value.bytes)
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      expect([info.width, info.height]).toEqual([1290, 2796]);
+    }
+  });
+
+  it("refuses a PDF, an SVG and contrary bytes, whatever their name (T9.4, CA21)", async () => {
+    const pdf = Buffer.from(
+      "%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF",
+      "latin1",
+    );
+    const svg = Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800"/>',
+    );
+    for (const bytes of [pdf, svg]) {
+      expect(await reencodeEvidence(bytes)).toEqual({
+        ok: false,
+        reason: "unsupported_type",
+      });
+    }
+    const pngHeaded = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      fixture("logo-geotagged.jpg"),
+    ]);
+    const outcome = await reencodeEvidence(pngHeaded);
+    expect(outcome.ok).toBe(false);
+    expect(await reencodeEvidence(Buffer.alloc(0))).toEqual({
+      ok: false,
+      reason: "empty",
+    });
+  });
+
+  it("accepts a longest side of exactly 320 px, refuses 319 (D82 (2))", async () => {
+    const accepted = await reencodeEvidence(await png(320, 40));
+    expect(
+      accepted.ok && [accepted.value.width, accepted.value.height],
+    ).toEqual([320, 40]);
+    expect(await reencodeEvidence(await png(319, 319))).toEqual({
+      ok: false,
+      reason: "too_small",
+    });
+    // the logo fixture of 300 × 200 is too small for a piece
+    expect(await reencodeEvidence(fixture("logo-metadata.png"))).toEqual({
+      ok: false,
+      reason: "too_small",
+    });
+  });
+
+  it("refuses more than 4 096² pixels, and a side over 16 383 (the limit of WebP)", async () => {
+    expect(await reencodeEvidence(await png(4097, 4096))).toEqual({
+      ok: false,
+      reason: "too_many_pixels",
+    });
+    expect(await reencodeEvidence(await png(16_384, 64))).toEqual({
       ok: false,
       reason: "too_many_pixels",
     });

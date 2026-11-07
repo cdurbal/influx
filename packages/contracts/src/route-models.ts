@@ -89,6 +89,8 @@ export const API_ROUTE_MODELS: readonly string[] = [
   "/v1/me/verification/requests",
   "/v1/me/verification/requests/:id/cancel",
   "/v1/me/verification/requests/:id/code",
+  "/v1/me/verification/requests/:id/evidence",
+  "/v1/me/verification/requests/:id/evidence/:evidenceId",
   "/v1/me/verification/requests/:id/submit",
   "/v1/ops/client-errors",
   "/v1/signup",

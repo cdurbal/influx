@@ -1,8 +1,9 @@
 // Adapter of Supabase Storage: the ONLY importer of @supabase/storage-js in apps/api (D80,
 // jalons/l2b/stockage.md §2; ESLint and tests/supabase-guards.test.ts).
 // - Three gestures, nothing else: write an object (`upload`, never `upsert`), read it (`download`,
-//   1 MiB at most), remove it (`remove`, an absent object is a success). No signed URL, no public
-//   URL, no listing: no address of Storage ever leaves apps/api (T9.2 as amended by D80).
+//   at most the limit of its bucket: 1 MiB the logo, 8 MiB a piece, D82 (3)), remove it (`remove`,
+//   an absent object is a success). No signed URL, no public URL, no listing: no address of Storage
+//   ever leaves apps/api (T9.2 as amended by D80 and D82).
 // - The secret key of the service (SUPABASE_SECRET_KEY, already in api and worker, 03 §6.7 point 4),
 //   as `apikey` and `Authorization: Bearer`, and our fixed User-Agent; 10 s per call.
 // - Every key is checked before any call against the shape the base generates for its bucket

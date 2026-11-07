@@ -74,7 +74,7 @@ function conflict(
  *   triplet was opened in the meantime by another request.
  * - 22023: `level`, a renewal asked on an audience request.
  */
-function refusalOf(error: unknown): unknown {
+export function refusalOf(error: unknown): unknown {
   switch (sqlStateOf(error)) {
     case "42501":
       return new ApiError("not_found");
@@ -201,7 +201,7 @@ export async function readCreatorVerification(
 }
 
 /** What a write answers: the request as it now stands, and whether this call created it. */
-async function answerOf(
+export async function answerOf(
   tx: Transaction,
   requestId: string,
   created: boolean,

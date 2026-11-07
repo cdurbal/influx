@@ -182,7 +182,8 @@ export const brandObservedChannelSchema = z.enum(BRAND_OBSERVED_CHANNELS);
  * and `retry_after`, seconds, which travel as `Retry-After`, never in the body). 409 unless said.
  * `ownership_prerequisite` is written before the button (08 RG12), `handle_already_verified` is an
  * outcome of a decision, not an error. `code_expired` (0222, EC-L2E-06-3): an account request is
- * submitted with a live code only.
+ * submitted with a live code only. `evidence_cap` (0223, 08 RG34): the request already holds its six
+ * pieces; one must be removed before another is deposited (not a daily quota: no Retry-After).
  */
 export const VERIFICATION_REFUSAL_ISSUES = [
   "duplicate_request",
@@ -196,6 +197,7 @@ export const VERIFICATION_REFUSAL_ISSUES = [
   "entry_closed",
   "no_registry_source",
   "code_expired",
+  "evidence_cap",
 ] as const;
 export const verificationRefusalIssueSchema = z.enum(
   VERIFICATION_REFUSAL_ISSUES,
@@ -216,6 +218,34 @@ export const VERIFICATION_LEGAL_NAME_MAX_LENGTH = 160;
 export const VERIFICATION_REGISTRATION_NUMBER_MAX_LENGTH = 40;
 export const VERIFICATION_POSTS_LAST_30_DAYS_MAX = 2_147_483_647;
 export const VERIFICATION_ENGAGEMENT_BP_MAX = 10_000;
+
+/**
+ * The deposit of a piece (D82 (1) to (3), 08 RG34; 0221, 0223): the raw bytes of ONE image, 8 MiB at
+ * most (the only exception to the 2 MiB of the relay), re-encoded into a WebP of the same pixels.
+ */
+export const VERIFICATION_EVIDENCE_MAX_UPLOAD_BYTES = 8_388_608;
+/** The stored WebP, at most (the limit of the bucket verification-evidence, 0223). */
+export const VERIFICATION_EVIDENCE_MAX_STORED_BYTES = 8_388_608;
+/** The longest side of the image must reach it (D82 (2), `evidence_files_sides`). */
+export const VERIFICATION_EVIDENCE_MIN_SIDE = 320;
+/** The longest side WebP can hold (D82 (2), `evidence_files_sides`). */
+export const VERIFICATION_EVIDENCE_MAX_SIDE = 16_383;
+
+/**
+ * The reasons of an `image_rejected` (path `evidence`) of a piece (CA21: images only): no bytes, a
+ * type other than PNG, JPEG or WebP (PDF and SVG included, T9.4), bytes that do not decode, more than
+ * 4 096² pixels or a side over 16 383, a longest side under 320 px, an output over 8 MiB.
+ */
+export const VERIFICATION_EVIDENCE_REJECTIONS = [
+  "empty",
+  "unsupported_type",
+  "undecodable",
+  "too_many_pixels",
+  "too_small",
+  "output_too_large",
+] as const;
+export type VerificationEvidenceRejection =
+  (typeof VERIFICATION_EVIDENCE_REJECTIONS)[number];
 
 /** `INFLUX-` and eight signs of 31 (0222): no link, no coordinate, nothing that reads as another sign. */
 export const ownershipCodeSchema = z
@@ -360,7 +390,10 @@ export type VerificationRequestResponse = z.infer<
   typeof verificationRequestResponseSchema
 >;
 
-/** `PUT …/requests/:id/evidence` and its answer (commit 13): the piece, as metadata. */
+/**
+ * `PUT …/requests/:id/evidence` (commit 13): the piece stored, as metadata. `DELETE
+ * …/evidence/:evidenceId` answers the request as it now stands (`verificationRequestResponseSchema`).
+ */
 export const verificationEvidenceResponseSchema = z.strictObject({
   evidence: ownEvidenceSchema,
 });

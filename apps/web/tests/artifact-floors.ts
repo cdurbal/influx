@@ -7,5 +7,5 @@
 export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/build.artifacts.ts": 12,
   "tests/keo-tokens.artifacts.ts": 4,
-  "tests/relay-integration.artifacts.ts": 35,
+  "tests/relay-integration.artifacts.ts": 36,
 };

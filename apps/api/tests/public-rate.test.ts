@@ -59,6 +59,8 @@ const SESSION_ROUTES: readonly string[] = [
   "POST /v1/me/verification/requests/:id/code",
   "POST /v1/me/verification/requests/:id/submit",
   "POST /v1/me/verification/requests/:id/cancel",
+  "PUT /v1/me/verification/requests/:id/evidence",
+  "DELETE /v1/me/verification/requests/:id/evidence/:evidenceId",
   "GET /v1/me/consent",
   "PUT /v1/me/consent",
   "GET /v1/me/sessions",

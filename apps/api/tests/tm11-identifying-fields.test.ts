@@ -80,6 +80,9 @@ const OWN_CONTACT_BY_ROUTE: Readonly<Record<string, readonly string[]>> = {
   "/v1/me/verification/requests/:id/code": ["networkCode"],
   "/v1/me/verification/requests/:id/submit": ["networkCode"],
   "/v1/me/verification/requests/:id/cancel": ["networkCode"],
+  // L2E 13: the removal of a piece answers the request as it now stands; the deposit answers the
+  // piece alone (metadata, no network).
+  "/v1/me/verification/requests/:id/evidence/:evidenceId": ["networkCode"],
 };
 
 type ContractModule = { name: string; schemas: [string, z.ZodType][] };

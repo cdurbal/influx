@@ -568,6 +568,37 @@ export function relayIntegrationSuite(suite: RelayIntegrationSuite): void {
       expect(api.requests).toHaveLength(1);
     });
 
+    // D82 (1): 8 MiB on the deposit of a piece of verification, and on that path only.
+    it("forwards 8 MiB on the deposit of a piece, refuses 8 MiB + 1 there and 2 MiB + 1 elsewhere", async () => {
+      const limit = 8_388_608;
+      const evidence =
+        "/api/v1/me/verification/requests/0d6c1b9e-3f7a-4c52-9a1e-6b2f8d4c7e10/evidence";
+      const octets = { "content-type": "application/octet-stream" };
+      const exact = await relayed(evidence, {
+        method: "PUT",
+        headers: octets,
+        body: Buffer.alloc(limit, 0x61),
+      });
+      expect(exact.status).toBe(200);
+      expect(api.requests[0]?.bodyBytes).toBe(limit);
+      for (const chunked of [false, true]) {
+        const over = await relayed(evidence, {
+          method: "PUT",
+          headers: octets,
+          body: Buffer.alloc(limit + 1, 0x61),
+          chunked,
+        });
+        expectRelayRefusal(expect, over, 413, "payload_too_large");
+      }
+      const elsewhere = await relayed(evidence, {
+        method: "POST",
+        headers: octets,
+        body: Buffer.alloc(2_097_153, 0x61),
+      });
+      expectRelayRefusal(expect, elsewhere, 413, "payload_too_large");
+      expect(api.requests).toHaveLength(1);
+    });
+
     it("gives up after 10 s with a 502 envelope, and nothing else (T13)", async () => {
       const started = Date.now();
       const response = await relayed("/api/v1/slow");

@@ -500,6 +500,41 @@ describe("PP-9: body size and delay", () => {
     expect(received).toEqual([]);
   });
 
+  // D82 (1): 8 MiB on the deposit of a piece of verification, and there only.
+  const evidencePath =
+    "/api/v1/me/verification/requests/0d6c1b9e-3f7a-4c52-9a1e-6b2f8d4c7e10/evidence";
+
+  it("forwards 8 MiB exactly on the deposit of a piece, refuses one byte more", async () => {
+    await call(evidencePath, {
+      method: "PUT",
+      body: "x".repeat(8_388_608),
+    });
+    expect(received[0]?.body.byteLength).toBe(8_388_608);
+    const over = await call(evidencePath, {
+      method: "PUT",
+      body: "x".repeat(8_388_609),
+    });
+    await expectRefusal(over, 413, "payload_too_large");
+    expect(received).toHaveLength(1);
+  });
+
+  it("keeps 2 MiB for any other method or path, an uppercase identifier included", async () => {
+    for (const [method, path] of [
+      ["POST", evidencePath],
+      ["PATCH", evidencePath],
+      ["PUT", `${evidencePath}/0d6c1b9e-3f7a-4c52-9a1e-6b2f8d4c7e10`],
+      ["PUT", "/api/v1/me/brand-profile/logo"],
+      ["PUT", evidencePath.toUpperCase().replace("/API/V1/", "/api/v1/")],
+    ] as const) {
+      const response = await call(path, {
+        method,
+        body: "x".repeat(2_097_153),
+      });
+      await expectRefusal(response, 413, "payload_too_large");
+    }
+    expect(received).toEqual([]);
+  });
+
   it("waits 10 s at most for apps/api, then answers 502 (T-1, no real wait)", async () => {
     const logged = vi.spyOn(console, "error").mockImplementation(() => {});
     // The 10 s timer is replaced by a signal that the fake apps/api aborts once it holds the
