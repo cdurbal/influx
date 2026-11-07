@@ -83,6 +83,15 @@ const OWN_CONTACT_BY_ROUTE: Readonly<Record<string, readonly string[]>> = {
   // L2E 13: the removal of a piece answers the request as it now stands; the deposit answers the
   // piece alone (metadata, no network).
   "/v1/me/verification/requests/:id/evidence/:evidenceId": ["networkCode"],
+  // The brand's own verification (L2E 15): the registered name of HIS internal block (06 RG46), to him
+  // alone (no creator, no Brevo, no Apollo, no log); `networkCode` is the shared schema of a request,
+  // always null for a brand. The agent's constat (domain observed, comment) is in no answer.
+  "/v1/me/brand-verification": ["networkCode", "legalName"],
+  "/v1/me/brand-verification/internal-details": ["networkCode", "legalName"],
+  "/v1/me/brand-verification/request": ["networkCode"],
+  "/v1/me/brand-verification/request/code": ["networkCode"],
+  "/v1/me/brand-verification/request/submit": ["networkCode"],
+  "/v1/me/brand-verification/request/cancel": ["networkCode"],
 };
 
 type ContractModule = { name: string; schemas: [string, z.ZodType][] };

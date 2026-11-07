@@ -34,7 +34,7 @@ import { localSuperuser, migrationRole } from "./support.ts";
 
 const NIL = "00000000-0000-4000-8000-000000000000";
 
-type Method = "GET" | "POST";
+type Method = "GET" | "POST" | "PUT";
 
 /**
  * Every route of /v1/bo/*, as the server registers it (`:id` for an identifier), with a body that
@@ -166,6 +166,16 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
     },
   },
   "GET /v1/bo/settings/apollo": {},
+  // L2E 15: the registry sources of the brand's registration, read by agent and admin, written by admin
+  "GET /v1/bo/verification/registry-sources": {},
+  "PUT /v1/bo/verification/registry-sources/:id": {
+    body: {
+      name: "Registry of the inventory",
+      url: "https://registry.example.test/",
+      checkedOn: "2026-01-01",
+      isActive: false,
+    },
+  },
   "GET /v1/bo/alerts": {},
   "GET /v1/bo/ops/status": {},
   "GET /v1/bo/ops/errors": {},
@@ -552,6 +562,10 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
     "POST /v1/bo/queues/verification-brands/entries/:id/grant": async () => [
       { who: agent, id: await ownVerificationRequest("brand") },
     ],
+    // An agent never writes a registry source (admin only, 0224): one that exists or not, the same 403.
+    "PUT /v1/bo/verification/registry-sources/:id": async () => [
+      { who: agent, id: await anyRegistrySource() },
+    ],
     // An agent never reaches the "Santé technique" screen (admins only): a group that exists or not,
     // the same refusal.
     "GET /v1/bo/ops/errors/:id": async () => [
@@ -679,6 +693,12 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
       );
     }
   });
+
+  async function anyRegistrySource(): Promise<string> {
+    const [row] = await migrationRole()<{ id: string }[]>`
+      select id::text as id from verification.registry_sources order by id limit 1`;
+    return row?.id ?? "";
+  }
 
   /** One error group, committed by the migration role and removed with the file. */
   let groupFingerprint: Buffer | undefined;

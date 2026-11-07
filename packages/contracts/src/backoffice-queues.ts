@@ -213,8 +213,14 @@ export const queueEntryRowSchema = z.strictObject({
   escalateAt: instantSchema.nullable(),
   /** 15 RG27 C5: past its deadline; written in clear by the screen, never by colour alone. */
   overdue: z.boolean(),
-  /** The trading name, until the legal name of L2E (EC-L2C-3); never the legal name. */
+  /** The trading name of the profile; the registered name has its own field (EC-L2C-3). */
   brandName: z.string(),
+  /**
+   * The registered name of the internal block (06 RG46), read by agent and admin only (the column
+   * « Raison sociale » of 17b §2.1); null until the brand asked for its badge, which is when the block is
+   * asked (RG47). Never the trading name, never served to a member (EC-L2C-3, L2E commit 15).
+   */
+  legalName: z.string().nullable(),
   countryCode: countryCodeSchema,
   completenessPercent: z.number().int().min(0).max(100).nullable(),
   /** The fields a revision changes (06 RG63); empty for a first submission. */

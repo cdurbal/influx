@@ -71,6 +71,7 @@ const ROW = {
   escalateAt: null,
   overdue: false,
   brandName: "Maison Aube",
+  legalName: null,
   countryCode: "FR",
   completenessPercent: 80,
   modifiedFields: [],
@@ -84,13 +85,32 @@ const ROW = {
   alerts: [],
 };
 
+describe("the registered name has its own field on a line (06 RG46; EC-L2C-3)", () => {
+  it("carries the legal name of the internal block or null, beside the trading name, never instead of it", () => {
+    const named = queueEntryRowSchema.parse({
+      ...ROW,
+      legalName: "Maison Aube SAS",
+    });
+    expect(named).toMatchObject({
+      brandName: "Maison Aube",
+      legalName: "Maison Aube SAS",
+    });
+    expect(queueEntryRowSchema.parse(ROW).legalName).toBeNull();
+    // the field is written down, null or not: a line without it is not a line of this contract
+    const without: Record<string, unknown> = { ...ROW };
+    delete without.legalName;
+    expect(queueEntryRowSchema.safeParse(without).success).toBe(false);
+  });
+});
+
 describe("the answers are closed (06 RG80, RG81; 15 RG34)", () => {
   it("refuses a field outside the list on a line, so that no coordinate slips in", () => {
     expect(queueEntryRowSchema.safeParse(ROW).success).toBe(true);
     for (const extra of [
       { email: "contact@brand.example" },
       { contactPhone: "+33612345678" },
-      { legalName: "Maison Aube SAS" },
+      { registrationNumber: "RCS Paris 123 456 789" },
+      { registrationCountryCode: "FR" },
     ]) {
       expect(queueEntryRowSchema.safeParse({ ...ROW, ...extra }).success).toBe(
         false,

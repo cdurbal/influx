@@ -9,8 +9,9 @@
 //   database (0209) and waits for review, the live row keeps the validated value; a field with
 //   immediate effect is written at once and emits ONE lead.updated (RG78). The guard of the database
 //   refuses the same writes around the API (L2BS-1).
-// No amount, rate or price appears here (CLAUDE.md §2, D48, D78): the indicative budget and the
-// badge are not offered (answer A of jalon L2B), the logo has its own route (commit 09).
+// No amount, rate or price appears here (CLAUDE.md §2, D48, D78): the indicative budget is not
+// offered, the logo has its own route (commit 09), and a badge request FILED counts in the completeness
+// (06 RG59; L2E commit 15), never a badge obtained.
 import {
   brandProfileResponseSchema,
   type BrandProfileResponse,
@@ -118,7 +119,8 @@ function scoreOf(stored: StoredBrandProfile) {
     hasLogo: stored.hasLogo,
     usageRights: stored.lists.usageRights,
     websiteDomain: stored.websiteDomain,
-    badgeRequested: false,
+    // a request filed counts, never a badge obtained (06 RG59, CA36)
+    badgeRequested: stored.badgeRequested,
     contactPhone: stored.contact.phone,
     contactEmail: stored.contact.email,
   });

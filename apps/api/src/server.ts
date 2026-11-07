@@ -28,6 +28,8 @@ import { registerBackofficeAccountRoutes } from "./domains/backoffice/accounts-r
 import { registerDataExportRoutes } from "./domains/privacy/member/routes.ts";
 import { registerCreatorProfileRoutes } from "./domains/profiles/creator/routes.ts";
 import { registerVerificationRoutes } from "./domains/verification/routes.ts";
+import { registerBrandVerificationRoutes } from "./domains/verification/brand-routes.ts";
+import { registerVerificationRegistryRoutes } from "./domains/backoffice/verification-registry-routes.ts";
 import { registerBrandProfileRoutes } from "./domains/profiles/routes.ts";
 import { registerBackofficeActionRoutes } from "./domains/backoffice/actions-routes.ts";
 import { registerBackofficeInvitationRoutes } from "./domains/backoffice/invitations-routes.ts";
@@ -591,6 +593,13 @@ export function buildServer(
     slots: imageSlots,
   });
 
+  // The brand's own verification request, « Marque vérifiée »: internal block, open, domain code, submit,
+  // cancel (docs/mvp/06; jalon L2E commit 15).
+  registerBrandVerificationRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
+  });
+
   // Authentication of the backoffice (21 §4, J3 commit 10).
   registerBackofficeAuthRoutes(app, {
     environment: { name: config.environment, brevoMode: config.brevo.mode },
@@ -628,6 +637,10 @@ export function buildServer(
 
   // Queue 1, "profils marque à valider": counters, list, opening = claiming (L2C commit 11).
   registerBackofficeQueueRoutes(app, { database, store: objectStore });
+
+  // The registry sources of the brand's registration: read by agent and admin, written by an admin
+  // (docs/mvp/06 RG52, RG101; jalon L2E commit 15).
+  registerVerificationRegistryRoutes(app, { database });
 
   // Browser errors of the connected spaces (D60, 02 §20.5).
   registerOpsRoutes(app, {

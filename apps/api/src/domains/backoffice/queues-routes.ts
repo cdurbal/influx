@@ -153,6 +153,7 @@ function rowOf(entry: ListedEntry, caller: string): QueueEntryRow {
     escalateAt: entry.escalateAt,
     overdue: entry.overdue,
     brandName: entry.brandName,
+    legalName: entry.legalName,
     countryCode: entry.countryCode as QueueEntryRow["countryCode"],
     completenessPercent: entry.completenessPercent,
     modifiedFields: entry.modifiedFields,

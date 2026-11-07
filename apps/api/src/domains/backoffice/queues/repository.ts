@@ -191,6 +191,8 @@ export type ListedEntry = {
   escalateAt: Instant;
   overdue: boolean;
   brandName: string;
+  /** The registered name of the brand's internal block (06 RG46), null until it asked for the badge (EC-L2C-3). */
+  legalName: string | null;
   countryCode: string;
   completenessPercent: number | null;
   modifiedFields: ModeratedFieldCode[];
@@ -222,6 +224,7 @@ type ListRow = {
   cursor_due: string;
   cursor_created: string;
   brand_name: string;
+  legal_name: string | null;
   country_code: string;
   completeness_percent: number | null;
   modified_fields: ModeratedFieldCode[] | null;
@@ -302,8 +305,8 @@ export async function listEntries(
            (e.sla_due_at < now()) as overdue,
            to_char(e.sla_due_at at time zone 'UTC', ${ISO_UTC_MICRO}) as cursor_due,
            to_char(e.created_at at time zone 'UTC', ${ISO_UTC_MICRO}) as cursor_created,
-           p.legal_name as brand_name, a.country_code::text as country_code,
-           p.completeness_percent,
+           p.legal_name as brand_name, i.legal_name as legal_name,
+           a.country_code::text as country_code, p.completeness_percent,
            coalesce(x.modified_fields, '[]'::jsonb) as modified_fields,
            a.owner_agent_id::text as owner_id, o.display_name as owner_name,
            (e.claimed_by_account_id is not null and e.claim_expires_at > now()) as held,
@@ -316,6 +319,7 @@ export async function listEntries(
       from profiles.advertiser_review_entries e
       join profiles.advertiser_profiles p on p.account_id = e.account_id
       join identity.accounts a on a.id = e.account_id
+      left join profiles.advertiser_internal_details i on i.account_id = e.account_id
       left join identity.accounts o on o.id = a.owner_agent_id
       left join identity.accounts h on h.id = e.claimed_by_account_id
       cross join lateral (
@@ -356,6 +360,7 @@ export async function listEntries(
     escalateAt: row.escalate_at,
     overdue: row.overdue,
     brandName: row.brand_name,
+    legalName: row.legal_name,
     countryCode: row.country_code,
     completenessPercent: row.completeness_percent,
     modifiedFields: row.modified_fields ?? [],

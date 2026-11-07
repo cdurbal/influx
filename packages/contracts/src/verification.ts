@@ -198,7 +198,8 @@ export const brandObservedChannelSchema = z.enum(BRAND_OBSERVED_CHANNELS);
  * the request with that reason, EC-L2E-08-5), `website_domain_required`, `internal_details_required`
  * and `declared_figures_required` (a block the decision reads is missing, 23514), and
  * `decision_blocked` (503, path `evidence`: Storage does not answer, the audience decision waits,
- * D82 (5)).
+ * D82 (5)). Commit 15: `active_source_exists` (a second active registry source for one country: the
+ * administrator deactivates the first one before, 06 RG52).
  */
 export const VERIFICATION_REFUSAL_ISSUES = [
   "duplicate_request",
@@ -218,6 +219,7 @@ export const VERIFICATION_REFUSAL_ISSUES = [
   "internal_details_required",
   "declared_figures_required",
   "decision_blocked",
+  "active_source_exists",
 ] as const;
 export const verificationRefusalIssueSchema = z.enum(
   VERIFICATION_REFUSAL_ISSUES,
@@ -979,4 +981,80 @@ export const verificationEntryEvidenceParamsSchema = z.strictObject({
 });
 export type VerificationEntryEvidenceParams = z.infer<
   typeof verificationEntryEvidenceParamsSchema
+>;
+
+// ---------------------------------------------------------------------------------------------
+// AGENT and ADMIN side: the registry sources of the brand's registration (06 RG52, RG101; D79 (12);
+// jalons/l2e/registres.md; commit 15). Read by agent and admin, written by an administrator only;
+// every change is journaled with the former and the new value by the database. A source is a public
+// page the agent opens by hand: nothing here is a credential, nothing is ever fetched by INFLUX.
+// ---------------------------------------------------------------------------------------------
+
+/** A source of `GET /v1/bo/verification/registry-sources`: all of them, the inactive ones too (RG101). */
+export const verificationRegistrySourceAdminRowSchema = z.strictObject({
+  id: z.uuid(),
+  sourceType: z.enum(["national", "e_justice", "gleif"]),
+  /** Null for GLEIF alone, which answers for every country (0221). */
+  countryCode: countryCodeSchema.nullable(),
+  name: z.string(),
+  url: z.string(),
+  checkedOn: calendarDaySchema,
+  /** One active source per country; a source whose gratuity is "à confirmer" loads inactive. */
+  isActive: z.boolean(),
+  updatedAt: instantSchema,
+});
+export type VerificationRegistrySourceAdminRow = z.infer<
+  typeof verificationRegistrySourceAdminRowSchema
+>;
+
+export const verificationRegistrySourcesResponseSchema = z.strictObject({
+  sources: z.array(verificationRegistrySourceAdminRowSchema),
+});
+export type VerificationRegistrySourcesResponse = z.infer<
+  typeof verificationRegistrySourcesResponseSchema
+>;
+
+export const VERIFICATION_REGISTRY_SOURCE_NAME_MIN_LENGTH = 2;
+export const VERIFICATION_REGISTRY_SOURCE_NAME_MAX_LENGTH = 160;
+export const VERIFICATION_REGISTRY_SOURCE_URL_MAX_LENGTH = 500;
+
+export const verificationRegistrySourceParamsSchema = z.strictObject({
+  id: z.uuid(),
+});
+export type VerificationRegistrySourceParams = z.infer<
+  typeof verificationRegistrySourceParamsSchema
+>;
+
+/**
+ * `PUT /v1/bo/verification/registry-sources/:id` (an administrator): name, page, day of the check by
+ * hand and activation; never the country nor the type (a source belongs to its country). The page is
+ * `https` and nothing else (0221 `registry_sources_url`); the day of the check is not in the future
+ * (the database says so, 22023).
+ */
+export const updateVerificationRegistrySourceBodySchema = z.strictObject({
+  name: z
+    .string()
+    .trim()
+    .min(VERIFICATION_REGISTRY_SOURCE_NAME_MIN_LENGTH)
+    .max(VERIFICATION_REGISTRY_SOURCE_NAME_MAX_LENGTH)
+    // eslint-disable-next-line no-control-regex -- a control character in a name is what this refuses
+    .regex(/^[^\u0000-\u001f\u007f]+$/),
+  url: z
+    .string()
+    .trim()
+    .max(VERIFICATION_REGISTRY_SOURCE_URL_MAX_LENGTH)
+    // eslint-disable-next-line no-control-regex -- no space, no control character in an address
+    .regex(/^https:\/\/[^\s\u0000-\u001f\u007f]+$/),
+  checkedOn: calendarDaySchema,
+  isActive: z.boolean(),
+});
+export type UpdateVerificationRegistrySourceBody = z.infer<
+  typeof updateVerificationRegistrySourceBodySchema
+>;
+
+export const updateVerificationRegistrySourceResponseSchema = z.strictObject({
+  source: verificationRegistrySourceAdminRowSchema,
+});
+export type UpdateVerificationRegistrySourceResponse = z.infer<
+  typeof updateVerificationRegistrySourceResponseSchema
 >;

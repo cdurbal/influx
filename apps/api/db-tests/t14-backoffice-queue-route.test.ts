@@ -303,6 +303,7 @@ type Row = {
   kind: string;
   overdue: boolean;
   brandName: string;
+  legalName: string | null;
   countryCode: string;
   modifiedFields: string[];
   owner: { accountId: string; displayName: string | null } | null;
@@ -729,12 +730,36 @@ describe("the list (15 RG26, RG27 C5, RG33, RG34)", () => {
           "escalateAt",
           "id",
           "kind",
+          "legalName",
           "modifiedFields",
           "overdue",
           "owner",
           "slaDueAt",
         ].sort(),
       );
+    }
+  });
+
+  it("gives the registered name of the internal block its own field, null until the brand asked for its badge, the trading name keeping its own (EC-L2C-3, 06 RG46)", async () => {
+    const legalName = `Registered ${letterName(randomUUID().slice(0, 8))} SAS`;
+    await sharedMigrationRole()`
+      insert into profiles.advertiser_internal_details
+        (account_id, legal_name, registration_country_code, registration_number)
+      values (${plain.accountId}, ${legalName}, 'FR', 'RCS L2E15')`;
+    try {
+      const { body } = await list(app(), agent);
+      const byId = new Map(body.items.map((row) => [row.id, row]));
+      expect(byId.get(plain.entryId)).toMatchObject({
+        legalName,
+        brandName: plain.name,
+      });
+      expect(byId.get(flagged.entryId)?.legalName).toBeNull();
+      // the number of the register is no column of a list
+      expect(JSON.stringify(body)).not.toContain("RCS L2E15");
+    } finally {
+      await sharedMigrationRole()`
+        delete from profiles.advertiser_internal_details
+         where account_id = ${plain.accountId}`;
     }
   });
 

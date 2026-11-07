@@ -72,6 +72,12 @@ export type StoredBrandProfile = {
   contactRole: string | null;
   /** An active logo is attached (0204: one per brand). */
   hasLogo: boolean;
+  /**
+   * A badge request is filed (06 RG59, CA36): the latest brand request was submitted and not withdrawn,
+   * or a badge holds. Read through the door of 0222, the advertiser having no right on `verification`
+   * (EC-L2E-15-1).
+   */
+  badgeRequested: boolean;
   lists: Record<BrandProfileListName, string[]>;
   contact: {
     firstName: string | null;
@@ -140,6 +146,7 @@ type StoredRow = {
   contact_phone: string | null;
   contact_url: string | null;
   has_logo: boolean;
+  badge_requested: boolean;
 } & Record<BrandProfileListName, string[]>;
 
 /** The state of the session's own brand profile, or null when the account holds none. */
@@ -158,6 +165,9 @@ export async function readOwnBrandProfile(
            c.contact_first_name, c.contact_email, c.contact_phone, c.contact_url,
            exists (select 1 from profiles.brand_logo_objects lo
                     where lo.account_id = p.account_id and lo.state = 'active') as has_logo,
+           coalesce((select (v.submitted_at is not null and v.request_status <> 'cancelled')
+                            or v.badge_state is not null
+                       from profiles.read_own_brand_verification() v), false) as badge_requested,
            ${listColumn("secondarySectors")} as "secondarySectors",
            ${listColumn("targetMarkets")} as "targetMarkets",
            ${listColumn("workingLanguages")} as "workingLanguages",
@@ -190,6 +200,7 @@ export async function readOwnBrandProfile(
     offersNonMonetary: row.offers_non_monetary,
     contactRole: row.contact_role,
     hasLogo: row.has_logo === true,
+    badgeRequested: row.badge_requested === true,
     lists: {
       secondarySectors: row.secondarySectors,
       targetMarkets: row.targetMarkets,
