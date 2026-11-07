@@ -208,7 +208,7 @@ describe("18 T9.1, 03 P10.1 and P10.3: the buckets", () => {
   it("holds the quota of brand-logo: 10 uploads and 20 MiB received per account and per day", async () => {
     const rows = await migration<Row[]>`
       select bucket_id, max_uploads_per_day, max_bytes_per_day::text as max_bytes
-        from profiles.storage_quotas order by bucket_id`;
+        from profiles.storage_quotas where bucket_id = 'brand-logo'`;
     expect(rows).toEqual([
       {
         bucket_id: "brand-logo",

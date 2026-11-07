@@ -26,6 +26,7 @@ import {
   isDue,
   createDataExportPurge,
   createOpsRetention,
+  createVerificationExpiry,
   EXPORT_PURGE_BATCH,
   OPS_RETENTION_MAX_STEPS,
   periodKeyOf,
@@ -36,6 +37,8 @@ import {
   type PeriodicStore,
   type PeriodicTask,
   type ReconciliationFinding,
+  VERIFICATION_EXPIRY_BATCH,
+  VERIFICATION_EXPIRY_MAX_BATCHES,
 } from "../src/domains/maintenance/periodic.ts";
 
 const AT_0259 = Date.parse("2026-10-13T02:59:59.000Z");
@@ -92,6 +95,9 @@ function memoryStore(options: { claimedElsewhere?: boolean } = {}) {
     async purgeStorageUsage() {
       return 0;
     },
+    async expireVerificationRequests() {
+      return 0;
+    },
   };
   return { store, claims, finishes, findings };
 }
@@ -121,6 +127,8 @@ describe("periods and hours (decision 3)", () => {
     // J8 commit 8: an export past its deadline is emptied within the hour (runbook §4)
     expect(periodKeyOf("data_export_purge", AT_0259)).toBe("2026-10-13T02");
     expect(periodKeyOf("storage_purge", AT_0259)).toBe("2026-10-13T02");
+    // L2E commit 07: a code past its date expires its request within the hour (0223)
+    expect(periodKeyOf("verification_expiry", AT_0259)).toBe("2026-10-13T02");
   });
 
   it("starts the reconciliation at 03:00 UTC, the other tasks at any hour", () => {
@@ -723,8 +731,8 @@ describe("storage_purge (0205; jalons/l2b/stockage.md §7)", () => {
     const { store } = memoryStore();
     const completed: string[][] = [];
     store.claimStoragePurges = async () => [
-      { logoId: "l1", objectKey: KEY(1) },
-      { logoId: "l2", objectKey: KEY(2) },
+      { objectId: "l1", bucket: "brand-logo", objectKey: KEY(1) },
+      { objectId: "l2", bucket: "brand-logo", objectKey: KEY(2) },
     ];
     store.completeStoragePurges = async (_run, ids) => {
       completed.push([...ids]);
@@ -753,8 +761,8 @@ describe("storage_purge (0205; jalons/l2b/stockage.md §7)", () => {
     const { store } = memoryStore();
     const completed: string[][] = [];
     store.claimStoragePurges = async () => [
-      { logoId: "l1", objectKey: KEY(1) },
-      { logoId: "l2", objectKey: KEY(2) },
+      { objectId: "l1", bucket: "brand-logo", objectKey: KEY(1) },
+      { objectId: "l2", bucket: "brand-logo", objectKey: KEY(2) },
     ];
     store.completeStoragePurges = async (_run, ids) => {
       completed.push([...ids]);
@@ -784,7 +792,8 @@ describe("storage_purge (0205; jalons/l2b/stockage.md §7)", () => {
     store.claimStoragePurges = async (_run, limit) => {
       calls += 1;
       return Array.from({ length: limit }, (_, index) => ({
-        logoId: `l${calls}-${index}`,
+        objectId: `l${calls}-${index}`,
+        bucket: "brand-logo" as const,
         objectKey: KEY(calls * 1000 + index),
       }));
     };
@@ -804,8 +813,8 @@ describe("storage_purge (0205; jalons/l2b/stockage.md §7)", () => {
     const stop = new AbortController();
     const completed: string[][] = [];
     store.claimStoragePurges = async () => [
-      { logoId: "l1", objectKey: KEY(1) },
-      { logoId: "l2", objectKey: KEY(2) },
+      { objectId: "l1", bucket: "brand-logo", objectKey: KEY(1) },
+      { objectId: "l2", bucket: "brand-logo", objectKey: KEY(2) },
     ];
     store.completeStoragePurges = async (_run, ids) => {
       completed.push([...ids]);
@@ -826,5 +835,35 @@ describe("storage_purge (0205; jalons/l2b/stockage.md §7)", () => {
       ),
     ).rejects.toBeInstanceOf(PeriodicRunInterrupted);
     expect(completed).toEqual([["l1"]]);
+  });
+});
+
+describe("verification_expiry (0223; 08 edge case 1)", () => {
+  it("calls again while a batch is full, within its bound per run, and adds up the expired", async () => {
+    const { store } = memoryStore();
+    const answers = [VERIFICATION_EXPIRY_BATCH, 3];
+    let calls = 0;
+    store.expireVerificationRequests = async () => answers[calls++] ?? 0;
+    const counts: PeriodicCounts = {};
+    await createVerificationExpiry(store)(
+      { runId: "run-1", attempt: 1 },
+      counts,
+      signal(),
+    );
+    expect(calls).toBe(2);
+    expect(counts).toEqual({ expired: VERIFICATION_EXPIRY_BATCH + 3 });
+
+    calls = 0;
+    store.expireVerificationRequests = async () => {
+      calls += 1;
+      return VERIFICATION_EXPIRY_BATCH;
+    };
+    const bounded: PeriodicCounts = {};
+    await createVerificationExpiry(store)(
+      { runId: "run-2", attempt: 1 },
+      bounded,
+      signal(),
+    );
+    expect(calls).toBe(VERIFICATION_EXPIRY_MAX_BATCHES);
   });
 });

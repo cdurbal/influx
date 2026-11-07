@@ -4243,9 +4243,6 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator_verification_definer|column|verification.badges.level|SELECT",
   "influx_creator_verification_definer|column|verification.badges.social_account_id|SELECT",
   "influx_creator_verification_definer|column|verification.badges.state|SELECT",
-  "influx_creator_verification_definer|column|verification.evidence_files.account_id|SELECT",
-  "influx_creator_verification_definer|column|verification.evidence_files.request_id|SELECT",
-  "influx_creator_verification_definer|column|verification.evidence_files.state|SELECT",
   "influx_creator_verification_definer|column|verification.ownership_codes.account_id|INSERT,SELECT",
   "influx_creator_verification_definer|column|verification.ownership_codes.code|INSERT,SELECT",
   "influx_creator_verification_definer|column|verification.ownership_codes.created_at|SELECT",
@@ -4340,6 +4337,77 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|function|verification.open_request_of(uuid,uuid,text,verification.badge_level)|EXECUTE",
   "influx_identity_definer|function|verification.submit_request_of(uuid,uuid)|EXECUTE",
   "influx_identity_definer|schema|verification|USAGE",
+  // 0223 (L2E commit 07, D82): the deposit doors of influx_creator_verification_definer (the
+  // caller's own evidence, quotas and usage of the bucket verification-evidence; the key handed to
+  // apps/api, EC-L2E-07-6), EXECUTE to influx_creator; influx_maintenance_definer: the retention of
+  // the evidence (never an account, a size nor a checksum), the expiry of the draft requests and its
+  // e-mail, the trigger that follows a request; ops.expire_verification_requests() to influx_worker.
+  "influx_creator_verification_definer|column|profiles.storage_daily_usage.account_id|INSERT,SELECT",
+  "influx_creator_verification_definer|column|profiles.storage_daily_usage.bucket_id|INSERT,SELECT",
+  "influx_creator_verification_definer|column|profiles.storage_daily_usage.received_bytes|SELECT,UPDATE",
+  "influx_creator_verification_definer|column|profiles.storage_daily_usage.upload_count|SELECT,UPDATE",
+  "influx_creator_verification_definer|column|profiles.storage_daily_usage.usage_day|INSERT,SELECT",
+  "influx_creator_verification_definer|column|profiles.storage_quotas.bucket_id|SELECT",
+  "influx_creator_verification_definer|column|profiles.storage_quotas.max_bytes_per_day|SELECT",
+  "influx_creator_verification_definer|column|profiles.storage_quotas.max_uploads_per_day|SELECT",
+  "influx_creator_verification_definer|column|verification.evidence_files.account_id|INSERT,SELECT",
+  "influx_creator_verification_definer|column|verification.evidence_files.activated_at|UPDATE",
+  "influx_creator_verification_definer|column|verification.evidence_files.byte_size|UPDATE",
+  "influx_creator_verification_definer|column|verification.evidence_files.checksum|SELECT,UPDATE",
+  "influx_creator_verification_definer|column|verification.evidence_files.height|UPDATE",
+  "influx_creator_verification_definer|column|verification.evidence_files.id|SELECT",
+  "influx_creator_verification_definer|column|verification.evidence_files.object_key|SELECT",
+  "influx_creator_verification_definer|column|verification.evidence_files.purge_requested_at|UPDATE",
+  "influx_creator_verification_definer|column|verification.evidence_files.received_bytes|INSERT",
+  "influx_creator_verification_definer|column|verification.evidence_files.request_id|INSERT,SELECT",
+  "influx_creator_verification_definer|column|verification.evidence_files.retention_due_at|INSERT",
+  "influx_creator_verification_definer|column|verification.evidence_files.state|SELECT,UPDATE",
+  "influx_creator_verification_definer|column|verification.evidence_files.width|UPDATE",
+  "influx_creator_verification_definer|function|verification.activate_evidence(uuid,integer,integer,integer,bytea)|EXECUTE",
+  "influx_creator_verification_definer|function|verification.begin_evidence_upload(uuid,integer)|EXECUTE",
+  "influx_creator_verification_definer|function|verification.discard_evidence_upload(uuid)|EXECUTE",
+  "influx_creator_verification_definer|function|verification.fail_evidence_upload(uuid)|EXECUTE",
+  "influx_creator_verification_definer|function|verification.remove_own_evidence(uuid)|EXECUTE",
+  "influx_creator_verification_definer|table|verification.evidence_files|DELETE",
+  "influx_creator|function|verification.activate_evidence(uuid,integer,integer,integer,bytea)|EXECUTE",
+  "influx_creator|function|verification.begin_evidence_upload(uuid,integer)|EXECUTE",
+  "influx_creator|function|verification.discard_evidence_upload(uuid)|EXECUTE",
+  "influx_creator|function|verification.fail_evidence_upload(uuid)|EXECUTE",
+  "influx_creator|function|verification.remove_own_evidence(uuid)|EXECUTE",
+  "influx_maintenance_definer|column|backoffice.operational_settings.key|SELECT",
+  "influx_maintenance_definer|column|backoffice.operational_settings.value|SELECT",
+  "influx_maintenance_definer|column|leads.outbox_events.destination|INSERT",
+  "influx_maintenance_definer|column|leads.outbox_events.event_id|INSERT",
+  "influx_maintenance_definer|column|leads.outbox_events.event_type|INSERT",
+  "influx_maintenance_definer|column|leads.outbox_events.idempotency_key|INSERT",
+  "influx_maintenance_definer|column|leads.outbox_events.payload|INSERT",
+  "influx_maintenance_definer|column|leads.outbox_events.priority|INSERT",
+  "influx_maintenance_definer|column|leads.outbox_events.subject_key|INSERT",
+  "influx_maintenance_definer|column|verification.evidence_files.created_at|SELECT",
+  "influx_maintenance_definer|column|verification.evidence_files.deleted_at|UPDATE",
+  "influx_maintenance_definer|column|verification.evidence_files.id|SELECT",
+  "influx_maintenance_definer|column|verification.evidence_files.last_purge_attempt_at|SELECT,UPDATE",
+  "influx_maintenance_definer|column|verification.evidence_files.object_key|SELECT",
+  "influx_maintenance_definer|column|verification.evidence_files.purge_attempts|SELECT,UPDATE",
+  "influx_maintenance_definer|column|verification.evidence_files.purge_requested_at|SELECT,UPDATE",
+  "influx_maintenance_definer|column|verification.evidence_files.request_id|SELECT",
+  "influx_maintenance_definer|column|verification.evidence_files.retention_due_at|SELECT,UPDATE",
+  "influx_maintenance_definer|column|verification.evidence_files.state|SELECT,UPDATE",
+  "influx_maintenance_definer|column|verification.ownership_codes.expires_at|SELECT",
+  "influx_maintenance_definer|column|verification.ownership_codes.request_id|SELECT",
+  "influx_maintenance_definer|column|verification.ownership_codes.revoked_at|SELECT",
+  "influx_maintenance_definer|column|verification.rejection_reasons.code|SELECT",
+  "influx_maintenance_definer|column|verification.rejection_reasons.population|SELECT",
+  "influx_maintenance_definer|column|verification.rejection_reasons.purges_evidence|SELECT",
+  "influx_maintenance_definer|column|verification.verification_requests.account_id|SELECT",
+  "influx_maintenance_definer|column|verification.verification_requests.closed_at|UPDATE",
+  "influx_maintenance_definer|column|verification.verification_requests.id|SELECT",
+  "influx_maintenance_definer|column|verification.verification_requests.level|SELECT",
+  "influx_maintenance_definer|column|verification.verification_requests.status|SELECT,UPDATE",
+  "influx_maintenance_definer|function|ops.expire_verification_requests(uuid,smallint)|EXECUTE",
+  "influx_maintenance_definer|function|verification.follow_request_evidence()|EXECUTE",
+  "influx_maintenance_definer|schema|verification|USAGE",
+  "influx_worker|function|ops.expire_verification_requests(uuid,smallint)|EXECUTE",
 ];
 
 /**
@@ -4669,4 +4737,20 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "profiles.submit_own_brand_verification()": "influx_identity_definer",
   "profiles.cancel_own_brand_verification()": "influx_identity_definer",
   "profiles.read_own_brand_verification()": "influx_identity_definer",
+  // 0223 (L2E commit 07): the five deposit doors; the trigger that follows a request and the expiry
+  // of the codes (E-4); ops.claim_storage_purges() and complete_storage_purges() keep their 0205
+  // lines (recreated, same signatures).
+  "verification.begin_evidence_upload(uuid,integer)":
+    "influx_creator_verification_definer",
+  "verification.discard_evidence_upload(uuid)":
+    "influx_creator_verification_definer",
+  "verification.fail_evidence_upload(uuid)":
+    "influx_creator_verification_definer",
+  "verification.activate_evidence(uuid,integer,integer,integer,bytea)":
+    "influx_creator_verification_definer",
+  "verification.remove_own_evidence(uuid)":
+    "influx_creator_verification_definer",
+  "verification.follow_request_evidence()": "influx_maintenance_definer",
+  "ops.expire_verification_requests(uuid,smallint)":
+    "influx_maintenance_definer",
 };

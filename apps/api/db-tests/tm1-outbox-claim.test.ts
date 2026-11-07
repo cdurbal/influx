@@ -1707,6 +1707,8 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       // 0205 (L2B commit 09): E-4, the hourly purge of Storage
       "ops.claim_storage_purges(uuid,smallint,integer)",
       "ops.complete_storage_purges(uuid,smallint,uuid[])",
+      // 0223 (L2E commit 07): E-4, the expiry of the draft verification requests
+      "ops.expire_verification_requests(uuid,smallint)",
       "ops.filter_auth_orphans(uuid,smallint,uuid[])",
       "ops.finish_periodic_run(uuid,smallint,ops.periodic_run_outcome,jsonb)",
       // 0125 (C5.b, J7 commit 7 review): the realignment of the hourly GoTrue pass

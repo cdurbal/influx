@@ -53,7 +53,7 @@ export type OpsErrorFilter = (typeof OPS_ERROR_FILTERS)[number];
 export const OPS_ERROR_SOURCES = ["server", "browser"] as const;
 export const OPS_SERVICES = ["api", "worker", "web", "backoffice"] as const;
 
-/** The E-4 periodic tasks (ops.periodic_task, 0117, 0136, 0147, 0205). */
+/** The E-4 periodic tasks (ops.periodic_task, 0117, 0136, 0147, 0205, 0223). */
 export const OPS_PERIODIC_TASKS = [
   "brevo_reconciliation",
   "auth_orphan_purge",
@@ -61,6 +61,7 @@ export const OPS_PERIODIC_TASKS = [
   "data_export_purge",
   "ops_retention",
   "storage_purge",
+  "verification_expiry",
 ] as const;
 export type OpsPeriodicTask = (typeof OPS_PERIODIC_TASKS)[number];
 

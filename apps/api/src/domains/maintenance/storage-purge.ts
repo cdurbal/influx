@@ -1,11 +1,14 @@
-// The hourly purge of Supabase Storage (D80, jalons/l2b/stockage.md §7; 04 §5.11 rule 3; 0205):
-// the objects of the logo rows to purge are removed through the API of Storage (a SQL DELETE on
-// storage.objects is refused), then their rows deleted. Model: auth_orphan_purge.
-//   1. ops.claim_storage_purges(): the pending rows left over 15 minutes pass to purging; a batch of
-//      purging rows not tried in the last 30 minutes is taken, its attempts counted.
-//   2. Each object removed (an absent object is a success: removed earlier, or never written).
-//   3. ops.complete_storage_purges(): the rows of the removed objects deleted, retention.purged
-//      written by the database in the same transaction.
+// The hourly purge of Supabase Storage (D80, jalons/l2b/stockage.md §7; 04 §5.11 rule 3; 0205;
+// D82 (6), 0223): the objects of the logo and evidence rows to purge are removed through the API of
+// Storage (a SQL DELETE on storage.objects is refused), then their rows forgotten. Model:
+// auth_orphan_purge.
+//   1. ops.claim_storage_purges(): the pending rows left over 15 minutes and the evidence past its
+//      date pass to purging; a batch of purging rows not tried in the last 30 minutes is taken, its
+//      attempts counted, each with its bucket.
+//   2. Each object removed from its bucket (an absent object is a success: removed earlier, or never
+//      written).
+//   3. ops.complete_storage_purges(): a logo row deleted, an evidence row purged (its checksum and
+//      findings kept), retention.purged written by the database in the same transaction.
 //   4. ops.purge_storage_usage(): the daily usage older than 7 days deleted.
 // A removal that fails leaves its row purging: the run is closed `failed` (code
 // storage.remove_failed, alerted through the line of the scheduler), the next hour tries again. A
@@ -44,11 +47,11 @@ export function createStoragePurge(dependencies: {
         for (const candidate of claimed) {
           checkNotStopped(signal);
           const outcome = await objects.remove(
-            "brand-logo",
+            candidate.bucket,
             candidate.objectKey,
           );
           if (outcome.ok) {
-            removed.push(candidate.logoId);
+            removed.push(candidate.objectId);
           } else {
             counts.remove_failed += 1;
           }

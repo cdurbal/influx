@@ -65,6 +65,7 @@ import {
   createOpsRetention,
   createPeriodicScheduler,
   createPeriodicStore,
+  createVerificationExpiry,
   type PeriodicLogger,
   type PeriodicScheduler,
   type PeriodicTask,
@@ -133,7 +134,8 @@ function connectorsOf(
  * E-4 (decision 3 of J7): the reconciliation with the worker's Brevo key, the purge of GoTrue and
  * the purge of Storage (0205, D80) with the secret key of the project; a task without its key is
  * never claimed. The 30-day purge, the purge of the
- * exports (J8 commit 8) and the retention of ops (J9 commit 8) need neither.
+ * exports (J8 commit 8), the retention of ops (J9 commit 8) and the expiry of the verification
+ * codes (L2E commit 07) need neither.
  */
 function periodicSchedulerOf(
   config: WorkerConfig,
@@ -149,6 +151,8 @@ function periodicSchedulerOf(
     data_export_purge: createDataExportPurge(store),
     // 0147: the roll-up and the purges of the monitoring of D60 (02 §20.5, §20.8)
     ops_retention: createOpsRetention(store),
+    // 0223: the draft verification requests whose code expired (08 edge case 1)
+    verification_expiry: createVerificationExpiry(store),
   };
   if (config.brevoTransport.apiKey !== null) {
     runners.brevo_reconciliation = createBrevoReconciliation({

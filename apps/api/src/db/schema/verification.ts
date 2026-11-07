@@ -162,7 +162,10 @@ export const ownershipCodes = verification.table("ownership_codes", {
   observedChannel: text("observed_channel"),
 });
 
-/** D82: the rows of the evidence, written before the object; the key is never read directly. */
+/**
+ * D82: the rows of the evidence, written before the object (the doors of 0223); the key is never
+ * read directly; `purged` once the task storage_purge removed the object, the row kept (RG86).
+ */
 export const evidenceFiles = verification.table("evidence_files", {
   id: uuid("id").primaryKey().defaultRandom(),
   requestId: uuid("request_id").notNull(),

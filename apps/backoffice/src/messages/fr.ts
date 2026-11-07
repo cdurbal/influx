@@ -1045,6 +1045,7 @@ export const messages = {
           data_export_purge: "Purge des exports de données",
           ops_retention: "Conservation et purges de la surveillance",
           storage_purge: "Purge des fichiers déposés",
+          verification_expiry: "Expiration des codes de vérification",
         },
         outcomes: {
           succeeded: "réussie",

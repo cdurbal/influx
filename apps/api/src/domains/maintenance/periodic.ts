@@ -12,8 +12,9 @@
 //                          (runbook demandes-rgpd §4, J8 commit 8), its digest kept
 //   ops_retention          daily: the hourly roll-up of the metrics of D60 and the purges of ops
 //                          (02 §20.5, §20.8; 0147, J9 commit 8), by bounded steps
-//   storage_purge          hourly: the objects of Storage of the logo rows to purge, then the rows
-//                          (0205, L2B commit 09; storage-purge.ts)
+//   storage_purge          hourly: the objects of Storage of the logo and evidence rows to purge,
+//                          then the rows (0205, L2B commit 09; 0223, L2E commit 07; storage-purge.ts)
+//   verification_expiry    hourly: the draft verification requests whose code expired (0223)
 //
 // A task without its key in this process (no Brevo key, no GoTrue key) is never claimed. A task
 // that fails closes its run `failed` with the counts reached and a closed code in pino (D60): the
@@ -37,6 +38,7 @@ import {
   PERIODIC_TASKS,
   claimStoragePurges,
   completeStoragePurges,
+  expireVerificationRequests,
   purgeBrevoInboundEvents,
   purgeDataExports,
   purgeStorageUsage,
@@ -49,6 +51,7 @@ import {
   type RealignmentCandidate,
   type ReconciliationFinding,
   type StoragePurgeCandidate,
+  VERIFICATION_EXPIRY_BATCH,
 } from "./repository.ts";
 
 export {
@@ -59,6 +62,7 @@ export {
   type RealignmentCandidate,
   type ReconciliationFinding,
   type StoragePurgeCandidate,
+  VERIFICATION_EXPIRY_BATCH,
 } from "./repository.ts";
 
 /** How often the loop looks for a due period. */
@@ -77,6 +81,8 @@ export const EXPORT_PURGE_BATCH = 100;
 export const EXPORT_PURGE_MAX_BATCHES = 10;
 /** Bounded steps of the retention of ops per run; beyond, the next day goes on (0147). */
 export const OPS_RETENTION_MAX_STEPS = 50;
+/** Calls of ops.expire_verification_requests() per run at most; beyond, the next hour goes on. */
+export const VERIFICATION_EXPIRY_MAX_BATCHES = 10;
 
 const INVALID_PARAMETER_VALUE = "22023";
 
@@ -107,18 +113,20 @@ export type PeriodicStore = {
   purgeDataExports(run: PeriodicRun, limit: number): Promise<number>;
   /** One bounded step of ops.run_ops_retention() (0147): its counts, `more` = 1 to go on. */
   opsRetentionStep(run: PeriodicRun): Promise<PeriodicCounts>;
-  /** 0205: logo rows whose object is to remove (their attempt counted). */
+  /** 0205, 0223: logo and evidence rows whose object is to remove (their attempt counted). */
   claimStoragePurges(
     run: PeriodicRun,
     limit: number,
   ): Promise<StoragePurgeCandidate[]>;
-  /** 0205: the rows whose object is removed, deleted; the count. */
+  /** 0205, 0223: the rows whose object is removed, forgotten (logo) or purged (evidence). */
   completeStoragePurges(
     run: PeriodicRun,
-    logoIds: readonly string[],
+    objectIds: readonly string[],
   ): Promise<number>;
   /** 0205: the daily usage older than 7 days, deleted; the count. */
   purgeStorageUsage(run: PeriodicRun): Promise<number>;
+  /** 0223: the draft requests whose code expired, expired; the count (one call). */
+  expireVerificationRequests(run: PeriodicRun): Promise<number>;
 };
 
 export function createPeriodicStore(database: WorkerDatabase): PeriodicStore {
@@ -231,15 +239,21 @@ export function createPeriodicStore(database: WorkerDatabase): PeriodicStore {
         };
       }),
 
-    completeStoragePurges: (run, logoIds) =>
+    completeStoragePurges: (run, objectIds) =>
       elevated(async (tx) => {
-        const count = await completeStoragePurges(tx, run, logoIds);
+        const count = await completeStoragePurges(tx, run, objectIds);
         return { value: count, auditSubject: count > 0 ? run.runId : null };
       }),
 
     purgeStorageUsage: (run) =>
       elevated(async (tx) => {
         const count = await purgeStorageUsage(tx, run);
+        return { value: count, auditSubject: count > 0 ? run.runId : null };
+      }),
+
+    expireVerificationRequests: (run) =>
+      elevated(async (tx) => {
+        const count = await expireVerificationRequests(tx, run);
         return { value: count, auditSubject: count > 0 ? run.runId : null };
       }),
   };
@@ -289,6 +303,7 @@ const HOURLY_TASKS: ReadonlySet<PeriodicTask> = new Set([
   "auth_orphan_purge",
   "data_export_purge",
   "storage_purge",
+  "verification_expiry",
 ]);
 
 /** The UTC period of a task at `now`: YYYY-MM-DD, or YYYY-MM-DDTHH for an hourly purge (0117). */
@@ -485,6 +500,26 @@ export function createBrevoInboundPurge(
       const purged = await store.purgeBrevoInbound(run, INBOUND_PURGE_BATCH);
       counts.purged += purged;
       if (purged < INBOUND_PURGE_BATCH) {
+        return;
+      }
+    }
+  };
+}
+
+/**
+ * 0223 (08 edge case 1): the draft verification requests whose code expired, by batches, each in
+ * its own transaction; their e-mail and register line written by the database.
+ */
+export function createVerificationExpiry(
+  store: PeriodicStore,
+): PeriodicTaskRunner {
+  return async (run, counts, signal) => {
+    counts.expired = 0;
+    for (let batch = 0; batch < VERIFICATION_EXPIRY_MAX_BATCHES; batch += 1) {
+      checkNotStopped(signal);
+      const expired = await store.expireVerificationRequests(run);
+      counts.expired += expired;
+      if (expired < VERIFICATION_EXPIRY_BATCH) {
         return;
       }
     }

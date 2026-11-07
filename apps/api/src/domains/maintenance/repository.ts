@@ -4,10 +4,11 @@
 // the elevated transaction (periodic.ts).
 import { sql } from "drizzle-orm";
 import type { Transaction } from "../../db/index.ts";
+import { STORAGE_BUCKETS, type StorageBucket } from "../../platform/storage.ts";
 
 /**
  * The closed list of ops.periodic_task (0117; data_export_purge: 0136, J8 commit 8; ops_retention:
- * 0147, J9 commit 8; storage_purge: 0205, L2B commit 09).
+ * 0147, J9 commit 8; storage_purge: 0205, L2B commit 09; verification_expiry: 0223, L2E commit 07).
  */
 export const PERIODIC_TASKS = [
   "brevo_reconciliation",
@@ -16,6 +17,7 @@ export const PERIODIC_TASKS = [
   "data_export_purge",
   "ops_retention",
   "storage_purge",
+  "verification_expiry",
 ] as const;
 export type PeriodicTask = (typeof PERIODIC_TASKS)[number];
 
@@ -165,41 +167,75 @@ export async function runOpsRetention(
   return result;
 }
 
-/** A logo row of the purge (0205): its id and the key of its object in Storage. */
+/**
+ * A row of the purge (0205, 0223): its id, its bucket (a logo or an evidence) and the key of its
+ * object in Storage.
+ */
 export type StoragePurgeCandidate = {
-  logoId: string;
+  objectId: string;
+  bucket: StorageBucket;
   objectKey: string;
 };
 
 /**
- * 0205 (stockage.md §7): the stale pending rows to purging, then at most `limit` purging rows not
- * tried in the last 30 minutes, their attempt counted.
+ * 0205, 0223 (stockage.md §7; modele §4): the stale pending rows and the evidence past its date to
+ * purging, then at most `limit` purging rows not tried in the last 30 minutes, their attempt
+ * counted. A bucket outside the closed list of storage.ts is an error (never removed blindly).
  */
 export async function claimStoragePurges(
   tx: Transaction,
   run: PeriodicRun,
   limit: number,
 ): Promise<StoragePurgeCandidate[]> {
-  const rows = await tx.execute<{ logo_id: string; object_key: string }>(
-    sql`select logo_id::text as logo_id, object_key
+  const rows = await tx.execute<{
+    object_id: string;
+    bucket_id: string;
+    object_key: string;
+  }>(
+    sql`select object_id::text as object_id, bucket_id, object_key
           from ops.claim_storage_purges(${run.runId}::uuid, ${run.attempt}::smallint,
                  ${limit}::integer)`,
   );
-  return rows.map((row) => ({
-    logoId: row.logo_id,
-    objectKey: row.object_key,
-  }));
+  return rows.map((row) => {
+    const bucket = STORAGE_BUCKETS.find((known) => known === row.bucket_id);
+    if (bucket === undefined) {
+      throw new Error("ops.claim_storage_purges answered an unknown bucket");
+    }
+    return { objectId: row.object_id, bucket, objectKey: row.object_key };
+  });
 }
 
-/** 0205: the rows whose object is removed, deleted; retention.purged written by the database. */
+/**
+ * 0205, 0223: the rows whose object is removed — a logo row deleted, an evidence row purged and
+ * kept; retention.purged written by the database.
+ */
 export async function completeStoragePurges(
   tx: Transaction,
   run: PeriodicRun,
-  logoIds: readonly string[],
+  objectIds: readonly string[],
 ): Promise<number> {
   const rows = await tx.execute<{ count: number }>(
     sql`select ops.complete_storage_purges(${run.runId}::uuid, ${run.attempt}::smallint,
-                 ${`{${logoIds.join(",")}}`}::uuid[]) as count`,
+                 ${`{${objectIds.join(",")}}`}::uuid[]) as count`,
+  );
+  return Number(rows[0]?.count ?? 0);
+}
+
+/** 0223: draft requests expired per call of ops.expire_verification_requests() at most. */
+export const VERIFICATION_EXPIRY_BATCH = 500;
+
+/**
+ * 0223 (08 edge case 1): the draft requests whose live code has expired become expired, their
+ * e-mail queued and their register line written by the database; the count (at most
+ * VERIFICATION_EXPIRY_BATCH: call again).
+ */
+export async function expireVerificationRequests(
+  tx: Transaction,
+  run: PeriodicRun,
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select ops.expire_verification_requests(${run.runId}::uuid, ${run.attempt}::smallint)
+                 as count`,
   );
   return Number(rows[0]?.count ?? 0);
 }
