@@ -80,6 +80,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/tm9-ops-health-reads.test.ts": 14,
   "db-tests/tm9-ops-monitoring.test.ts": 66,
   "db-tests/verification-core.test.ts": 28,
+  "db-tests/verification-decisions.test.ts": 18,
   "db-tests/verification-evidence.test.ts": 13,
   "db-tests/verification-requests.test.ts": 14,
 };

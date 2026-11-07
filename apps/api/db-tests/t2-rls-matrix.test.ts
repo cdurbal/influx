@@ -715,6 +715,7 @@ describe("T2.7: exact snapshot of the privileges of the closed list", () => {
     // influx_privacy_definer (0137): the E-5 lines, from the privacy functions only;
     // influx_moderation_definer (0210): the claims and decisions of queue 1, from its functions only;
     // influx_creator_verification_definer (0222): the creator's verification requests, from its doors
+    // influx_verification_definer (0224): the claims and decisions of queue 4, from its functions only
     expect(appenders.sort()).toEqual([
       "influx_audit_writer",
       "influx_creator_verification_definer",
@@ -723,6 +724,7 @@ describe("T2.7: exact snapshot of the privileges of the closed list", () => {
       "influx_maintenance_definer",
       "influx_moderation_definer",
       "influx_privacy_definer",
+      "influx_verification_definer",
     ]);
   });
 });
