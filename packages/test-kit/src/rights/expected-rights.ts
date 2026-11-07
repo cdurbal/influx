@@ -4596,6 +4596,27 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_verification_definer|schema|leads|USAGE",
   "influx_verification_definer|schema|profiles|USAGE",
   "influx_verification_definer|schema|verification|USAGE",
+  // 0225 (L2E commit 09, modele §1 point 4, §4 "Dérivation"): the derivation reads the observed
+  // figures of an audience badge (never its handle nor the declared values) and the engagement
+  // bounds; the audience grant historises the observed figures and calls the derivation.
+  "influx_identity_definer|column|reference.engagement_bands.code|SELECT",
+  "influx_identity_definer|column|reference.engagement_bands.max_rate_bp|SELECT",
+  "influx_identity_definer|column|reference.engagement_bands.min_rate_bp|SELECT",
+  "influx_identity_definer|column|reference.engagement_bands.retired_at|SELECT",
+  "influx_identity_definer|column|verification.badges.observed_avg_comments|SELECT",
+  "influx_identity_definer|column|verification.badges.observed_engagement_bp|SELECT",
+  "influx_identity_definer|column|verification.badges.observed_followers|SELECT",
+  "influx_identity_definer|column|verification.badges.observed_posts_last_30_days|SELECT",
+  "influx_verification_definer|column|profiles.creator_network_metrics_history.account_id|INSERT",
+  "influx_verification_definer|column|profiles.creator_network_metrics_history.avg_comments_per_post|INSERT",
+  "influx_verification_definer|column|profiles.creator_network_metrics_history.confirmed|INSERT",
+  "influx_verification_definer|column|profiles.creator_network_metrics_history.figures_source|INSERT",
+  "influx_verification_definer|column|profiles.creator_network_metrics_history.followers_count|INSERT",
+  "influx_verification_definer|column|profiles.creator_network_metrics_history.network_code|INSERT",
+  "influx_verification_definer|column|profiles.creator_network_metrics_history.posts_last_30_days|INSERT",
+  "influx_verification_definer|column|profiles.creator_network_metrics_history.recorded_by_account_id|INSERT",
+  "influx_verification_definer|column|profiles.creator_network_metrics_history.social_account_id|INSERT",
+  "influx_verification_definer|function|profiles.refresh_creator_public_network(uuid)|EXECUTE",
 ];
 
 /**
