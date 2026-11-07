@@ -14,19 +14,19 @@
       },
       "advertiser_profile": {
         "label": "Profil de marque",
-        "content": "Annonceurs seulement : nom de l'entreprise, état du profil, secteurs, taille de l'entreprise, marchés visés, langues de travail, domaine du site, présentation, thématiques, réseaux, formats, pays d'audience, droits d'usage, exclusivité, rythme de collaboration, contrepartie non monétaire, score de complétude, et votre interlocuteur (fonction, prénom, adresse e-mail professionnelle, téléphone, page de contact).",
+        "content": "Annonceurs seulement : nom de l'entreprise, état du profil, secteurs, taille de l'entreprise, marchés visés, langues de travail, domaine du site, présentation, thématiques, réseaux, formats, pays d'audience, droits d'usage, exclusivité, rythme de collaboration, contrepartie non monétaire, score de complétude, et votre interlocuteur (fonction, prénom, adresse e-mail professionnelle, téléphone, page de contact) ; votre demande de badge « Marque vérifiée » : raison sociale, pays et numéro d'immatriculation, demandes (état, dates, motif et message d'un refus) et badges (état, date, source, échéance, retrait).",
         "purpose": "Présenter votre marque aux créateurs dans le cadre des mises en relation.",
         "legal_basis": "Exécution du contrat (conditions d'utilisation), article 6.1.b.",
-        "retention": "Pendant la vie du compte, puis 3 ans d'inactivité ; effacée en cas de suppression du compte.",
-        "source": "Vous-même."
+        "retention": "Pendant la vie du compte, puis 3 ans d'inactivité ; effacée en cas de suppression du compte ; les décisions de vérification et les badges sont conservés 3 ans sous forme pseudonyme.",
+        "source": "Vous-même ; les décisions de vérification par un agent INFLUX."
       },
       "creator_profile": {
         "label": "Profil créateur",
-        "content": "Créateurs seulement : alias, état du profil, accroche, présentation, thématiques, langues de publication, tons, formats, droits d'usage, pays et région de résidence, déplacements, expérience des collaborations, délai de livraison, exclusivité, contrepartie non monétaire, disponibilité et tranches d'audience ; votre identité (prénom, nom, adresse e-mail et téléphone de contact, adresse postale, ville, pays, score de complétude) ; vos comptes de réseaux (réseau, identifiant, pseudonyme, adresse du profil, chiffres déclarés et leur date, tranches calculées, audience détaillée) ; les secteurs que vous refusez ; l'historique de vos chiffres.",
+        "content": "Créateurs seulement : alias, état du profil, accroche, présentation, thématiques, langues de publication, tons, formats, droits d'usage, pays et région de résidence, déplacements, expérience des collaborations, délai de livraison, exclusivité, contrepartie non monétaire, disponibilité et tranches d'audience ; votre identité (prénom, nom, adresse e-mail et téléphone de contact, adresse postale, ville, pays, score de complétude) ; vos comptes de réseaux (réseau, identifiant, pseudonyme, adresse du profil, chiffres déclarés et leur date, tranches calculées, audience détaillée) ; les secteurs que vous refusez ; l'historique de vos chiffres ; vos demandes de vérification (réseau, niveau, état, dates, motif et message d'un refus) et vos badges (réseau, niveau, état, date, source, période et chiffres constatés, échéance, retrait).",
         "purpose": "Présenter votre profil aux marques, sous un alias et identité masquée, dans le cadre des mises en relation.",
         "legal_basis": "Exécution du contrat (conditions d'utilisation), article 6.1.b.",
-        "retention": "Pendant la vie du compte, puis 3 ans d'inactivité ; effacé en cas de suppression du compte, seuls l'alias et le pays de résidence étant conservés.",
-        "source": "Vous-même ; les tranches sont calculées par INFLUX à partir de vos chiffres."
+        "retention": "Pendant la vie du compte, puis 3 ans d'inactivité ; effacé en cas de suppression du compte, seuls l'alias et le pays de résidence étant conservés ; les décisions de vérification et les badges sont conservés 3 ans sous forme pseudonyme, les captures sont supprimées.",
+        "source": "Vous-même ; les tranches sont calculées par INFLUX à partir de vos chiffres ; les chiffres constatés sont saisis par un agent INFLUX."
       },
       "consents": {
         "label": "Consentements",

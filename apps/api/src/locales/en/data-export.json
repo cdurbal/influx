@@ -14,19 +14,19 @@
       },
       "advertiser_profile": {
         "label": "Brand profile",
-        "content": "Advertisers only: company name, profile status, sectors, company size, target markets, working languages, website domain, presentation, topics, networks, formats, audience countries, usage rights, exclusivity, collaboration rhythm, non-monetary consideration, completeness score, and your contact person (role, first name, professional email address, phone number, contact page).",
+        "content": "Advertisers only: company name, profile status, sectors, company size, target markets, working languages, website domain, presentation, topics, networks, formats, audience countries, usage rights, exclusivity, collaboration rhythm, non-monetary consideration, completeness score, and your contact person (role, first name, professional email address, phone number, contact page); your \"Verified brand\" request: legal name, country and number of registration, requests (status, dates, reason and message of a refusal) and badges (state, date, source, expiry, withdrawal).",
         "purpose": "Presenting your brand to creators in introductions.",
         "legal_basis": "Performance of the contract (terms of use), Article 6(1)(b).",
-        "retention": "For the life of the account, then 3 years of inactivity; erased if the account is deleted.",
-        "source": "You."
+        "retention": "For the life of the account, then 3 years of inactivity; erased if the account is deleted; verification decisions and badges are kept for 3 years in pseudonymised form.",
+        "source": "You; verification decisions by an INFLUX agent."
       },
       "creator_profile": {
         "label": "Creator profile",
-        "content": "Creators only: alias, profile status, headline, presentation, topics, publication languages, tones, formats, usage rights, country and region of residence, travel, collaboration experience, delivery time, exclusivity, non-monetary consideration, availability and audience bands; your identity (first name, last name, contact email address and phone number, postal address, city, country, completeness score); your network accounts (network, handle, pseudonym, profile address, declared figures and their date, computed bands, detailed audience); the sectors you refuse; the history of your figures.",
+        "content": "Creators only: alias, profile status, headline, presentation, topics, publication languages, tones, formats, usage rights, country and region of residence, travel, collaboration experience, delivery time, exclusivity, non-monetary consideration, availability and audience bands; your identity (first name, last name, contact email address and phone number, postal address, city, country, completeness score); your network accounts (network, handle, pseudonym, profile address, declared figures and their date, computed bands, detailed audience); the sectors you refuse; the history of your figures; your verification requests (network, level, status, dates, reason and message of a refusal) and your badges (network, level, state, date, source, observed period and figures, expiry, withdrawal).",
         "purpose": "Presenting your profile to brands, under an alias with your identity hidden, in introductions.",
         "legal_basis": "Performance of the contract (terms of use), Article 6(1)(b).",
-        "retention": "For the life of the account, then 3 years of inactivity; erased if the account is deleted, only the alias and the country of residence being kept.",
-        "source": "You; the bands are computed by INFLUX from your figures."
+        "retention": "For the life of the account, then 3 years of inactivity; erased if the account is deleted, only the alias and the country of residence being kept; verification decisions and badges are kept for 3 years in pseudonymised form, the captures are deleted.",
+        "source": "You; the bands are computed by INFLUX from your figures; the observed figures are entered by an INFLUX agent."
       },
       "consents": {
         "label": "Consents",

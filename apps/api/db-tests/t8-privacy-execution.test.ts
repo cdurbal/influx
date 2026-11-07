@@ -1935,6 +1935,8 @@ describe("the full brand profile of 0202 in the export and the erasure (04 §9.2
       logo_files: [],
       review_entries: [],
       field_revisions: [],
+      // 0226 (L2E): no internal block, request nor badge for this brand
+      verification: { internal_details: null, requests: [], badges: [] },
       created_at: expect.stringMatching(/Z$/),
       updated_at: expect.stringMatching(/Z$/),
     });
