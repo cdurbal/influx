@@ -122,6 +122,8 @@ export const messages = {
   /** Names of the queues, key `queue.<code>` of backoffice.queues (15 RG29); L2C: queue 1. */
   queue: {
     profiles_advertiser: "Profils marque à valider",
+    verification_creators: "Vérifications des créateurs",
+    verification_brands: "Vérifications des marques",
   },
   /** 17b §1.4 and §1.7: the head band, the rail, and the screen of a window too small. */
   shell: {

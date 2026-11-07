@@ -90,6 +90,81 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
   "POST /v1/bo/queues/profiles-advertiser/entries/:id/force-release": {
     body: { reasonCode: "holder_absent" },
   },
+  "GET /v1/bo/queues/verification-creators/entries": {},
+  "POST /v1/bo/queues/verification-creators/entries/search": { body: {} },
+  "POST /v1/bo/queues/verification-creators/entries/:id/open": {},
+  "POST /v1/bo/queues/verification-creators/entries/:id/reexamine": {
+    body: { reviewToken: "0".repeat(64), reasonCode: "network_unreachable" },
+  },
+  "POST /v1/bo/queues/verification-creators/entries/:id/reject": {
+    body: {
+      reviewToken: "0".repeat(64),
+      reasonCode: "other",
+      memberMessage: "A message of at least twenty characters.",
+    },
+  },
+  "POST /v1/bo/queues/verification-creators/entries/:id/release": {},
+  "POST /v1/bo/queues/verification-creators/entries/:id/extend": {},
+  "POST /v1/bo/queues/verification-creators/entries/:id/force-release": {
+    body: { reasonCode: "holder_absent" },
+  },
+  "POST /v1/bo/queues/verification-creators/entries/:id/compare": {
+    body: {
+      reviewToken: "0".repeat(64),
+      followers: 1,
+      postsLast30Days: 1,
+      avgComments: 1,
+      engagementBp: null,
+    },
+  },
+  "POST /v1/bo/queues/verification-creators/entries/:id/grant-account": {
+    body: {
+      reviewToken: "0".repeat(64),
+      observedCode: "INFLUX-ABCDEFGH",
+      observedHandle: "t14_inventory",
+    },
+  },
+  "POST /v1/bo/queues/verification-creators/entries/:id/grant-audience": {
+    body: {
+      reviewToken: "0".repeat(64),
+      followers: 1,
+      postsLast30Days: 1,
+      avgComments: 1,
+      engagementBp: null,
+      periodStart: "2026-01-01",
+      periodEnd: "2026-01-02",
+      observedHandle: "t14_inventory",
+    },
+  },
+  "GET /v1/bo/queues/verification-creators/entries/:id/evidence/:evidenceId":
+    {},
+  "GET /v1/bo/queues/verification-brands/entries": {},
+  "POST /v1/bo/queues/verification-brands/entries/search": { body: {} },
+  "POST /v1/bo/queues/verification-brands/entries/:id/open": {},
+  "POST /v1/bo/queues/verification-brands/entries/:id/reexamine": {
+    body: { reviewToken: "0".repeat(64), reasonCode: "network_unreachable" },
+  },
+  "POST /v1/bo/queues/verification-brands/entries/:id/reject": {
+    body: {
+      reviewToken: "0".repeat(64),
+      reasonCode: "other",
+      memberMessage: "A message of at least twenty characters.",
+    },
+  },
+  "POST /v1/bo/queues/verification-brands/entries/:id/release": {},
+  "POST /v1/bo/queues/verification-brands/entries/:id/extend": {},
+  "POST /v1/bo/queues/verification-brands/entries/:id/force-release": {
+    body: { reasonCode: "holder_absent" },
+  },
+  "POST /v1/bo/queues/verification-brands/entries/:id/grant": {
+    body: {
+      reviewToken: "0".repeat(64),
+      observedCode: "INFLUX-ABCDEFGH",
+      observedDomain: "t14-inventory.example.test",
+      observedChannel: "dns_txt",
+      registrySourceId: NIL,
+    },
+  },
   "GET /v1/bo/settings/apollo": {},
   "GET /v1/bo/alerts": {},
   "GET /v1/bo/ops/status": {},
@@ -244,7 +319,7 @@ function concrete(route: string, id: string): { method: Method; url: string } {
   const query = path.endsWith("/logo") ? `?logo=${NIL}` : "";
   return {
     method: method as Method,
-    url: `${path.replace(":id", id)}${query}`,
+    url: `${path.replace(":id", id).replace(":evidenceId", NIL)}${query}`,
   };
 }
 
@@ -432,6 +507,51 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
     ],
     "POST /v1/bo/queues/profiles-advertiser/entries/:id/force-release":
       async () => [{ who: agent, id: await ownBrandEntry() }],
+    // L2E 14: a verification request of the caller's own account is hidden by the database (0221,
+    // C(3)): the answer of an unknown request, on every route of both views (an own request of the
+    // creator view on the creator routes, of the brand view on the brand routes).
+    "POST /v1/bo/queues/verification-creators/entries/:id/open": async () => [
+      { who: agent, id: await ownVerificationRequest("creator") },
+    ],
+    "POST /v1/bo/queues/verification-creators/entries/:id/reexamine":
+      async () => [{ who: agent, id: await ownVerificationRequest("creator") }],
+    "POST /v1/bo/queues/verification-creators/entries/:id/reject": async () => [
+      { who: agent, id: await ownVerificationRequest("creator") },
+    ],
+    "POST /v1/bo/queues/verification-creators/entries/:id/release":
+      async () => [{ who: agent, id: await ownVerificationRequest("creator") }],
+    "POST /v1/bo/queues/verification-creators/entries/:id/extend": async () => [
+      { who: agent, id: await ownVerificationRequest("creator") },
+    ],
+    "POST /v1/bo/queues/verification-creators/entries/:id/force-release":
+      async () => [{ who: agent, id: await ownVerificationRequest("creator") }],
+    "POST /v1/bo/queues/verification-creators/entries/:id/compare":
+      async () => [{ who: agent, id: await ownVerificationRequest("creator") }],
+    "POST /v1/bo/queues/verification-creators/entries/:id/grant-account":
+      async () => [{ who: agent, id: await ownVerificationRequest("creator") }],
+    "POST /v1/bo/queues/verification-creators/entries/:id/grant-audience":
+      async () => [{ who: agent, id: await ownVerificationRequest("creator") }],
+    "GET /v1/bo/queues/verification-creators/entries/:id/evidence/:evidenceId":
+      async () => [{ who: agent, id: await ownVerificationRequest("creator") }],
+    "POST /v1/bo/queues/verification-brands/entries/:id/open": async () => [
+      { who: agent, id: await ownVerificationRequest("brand") },
+    ],
+    "POST /v1/bo/queues/verification-brands/entries/:id/reexamine":
+      async () => [{ who: agent, id: await ownVerificationRequest("brand") }],
+    "POST /v1/bo/queues/verification-brands/entries/:id/reject": async () => [
+      { who: agent, id: await ownVerificationRequest("brand") },
+    ],
+    "POST /v1/bo/queues/verification-brands/entries/:id/release": async () => [
+      { who: agent, id: await ownVerificationRequest("brand") },
+    ],
+    "POST /v1/bo/queues/verification-brands/entries/:id/extend": async () => [
+      { who: agent, id: await ownVerificationRequest("brand") },
+    ],
+    "POST /v1/bo/queues/verification-brands/entries/:id/force-release":
+      async () => [{ who: agent, id: await ownVerificationRequest("brand") }],
+    "POST /v1/bo/queues/verification-brands/entries/:id/grant": async () => [
+      { who: agent, id: await ownVerificationRequest("brand") },
+    ],
     // An agent never reaches the "Santé technique" screen (admins only): a group that exists or not,
     // the same refusal.
     "GET /v1/bo/ops/errors/:id": async () => [
@@ -488,6 +608,49 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
   }
 
   const ownEntries: string[] = [];
+
+  const ownRequests: Partial<Record<"creator" | "brand", Promise<string>>> = {};
+  const ownRequestIds: string[] = [];
+
+  /**
+   * A pending verification request on the agent's own account, of the population asked: the doors never
+   * write one (one role per account, D41), so the superuser writes it with the foreign keys and the
+   * triggers out of the way; the policy of 0221 is a second line, and this is how it is tried.
+   */
+  function ownVerificationRequest(
+    population: "creator" | "brand",
+  ): Promise<string> {
+    ownRequests[population] ??= writeOwnVerificationRequest(population);
+    return ownRequests[population];
+  }
+
+  async function writeOwnVerificationRequest(
+    population: "creator" | "brand",
+  ): Promise<string> {
+    const requestId = randomUUID();
+    await localSuperuser().begin(async (tx) => {
+      await tx`set local session_replication_role = replica`;
+      await tx`
+        insert into verification.verification_requests
+          (id, account_id, social_account_id, network_code, level, status, created_at,
+           submitted_at, sla_due_at, escalate_at)
+        values (${requestId}, ${agent.accountId},
+                ${population === "creator" ? randomUUID() : null},
+                ${population === "creator" ? "instagram" : null},
+                ${population === "creator" ? "audience_verified" : "brand_verified"}::verification.badge_level,
+                'pending', now(), now(), now() + interval '1 day', now() + interval '2 days')`;
+    });
+    ownRequestIds.push(requestId);
+    return requestId;
+  }
+
+  afterAll(async () => {
+    if (ownRequestIds.length > 0) {
+      await migrationRole()`
+        update verification.verification_requests set status = 'cancelled', cancelled_at = now(), closed_at = now()
+         where id = any(${ownRequestIds}::uuid[]) and status = 'pending'`;
+    }
+  });
 
   afterAll(async () => {
     if (ownEntries.length > 0) {

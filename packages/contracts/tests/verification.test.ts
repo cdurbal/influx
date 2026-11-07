@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { queueCodeSchema } from "../src/backoffice-queues.ts";
 import { z } from "../src/zod.ts";
 import {
   brandVerificationResponseSchema,
@@ -12,6 +13,11 @@ import {
   publicBadgeSchema,
   rejectVerificationRequestSchema,
   saveBrandInternalDetailsBodySchema,
+  verificationEntriesQuerySchema,
+  verificationEntriesSearchSchema,
+  verificationEvidenceReadResponseSchema,
+  verificationOpenResponseSchema,
+  verificationQueueEntryRowSchema,
   verificationRequestResponseSchema,
 } from "../src/verification.ts";
 
@@ -349,5 +355,60 @@ describe("T16 no amount, rate or price in the contract (CLAUDE.md §2, D48, D78,
         ),
       ),
     ).toEqual([]);
+  });
+});
+
+describe("queue 4, the list and the decision view (08 RG47, RG55, RG62, RG63, RG84; modele -19; commit 14)", () => {
+  it("declares no declared figure, no code and no key in a line of the list or in the decision view, however deep", () => {
+    const names = [
+      ...propertyNames(
+        z.toJSONSchema(verificationQueueEntryRowSchema, { io: "output" }),
+      ),
+      ...propertyNames(
+        z.toJSONSchema(verificationOpenResponseSchema, { io: "output" }),
+      ),
+    ];
+    expect(names.length).toBeGreaterThan(40);
+    expect(
+      names.filter((name) =>
+        /declared|followers|postsLast30Days|avgComments|engagementBp|objectKey|object_key|checksum|^observed|ownershipCode|signed/iu.test(
+          name,
+        ),
+      ),
+    ).toEqual([]);
+    // what an agent reads of a piece is its sides and its size, and the bytes by the journalled route only
+    expect(
+      Object.keys(verificationEvidenceReadResponseSchema.shape).sort(),
+    ).toEqual(["byteSize", "contentType", "data", "height", "width"]);
+  });
+
+  it("orders the oldest first by default, names its sorts, refuses a period backwards, a key outside the list and an unbounded page (RG34, RG62)", () => {
+    expect(verificationEntriesQuerySchema.parse({})).toMatchObject({
+      sort: "age",
+      limit: 20,
+    });
+    expect(
+      verificationEntriesSearchSchema.parse({ sort: "sla", limit: 50 }),
+    ).toMatchObject({ sort: "sla", limit: 50 });
+    for (const refused of [
+      { sort: "name" },
+      { limit: "51" },
+      { from: "2026-11-02T00:00:00Z", to: "2026-11-01T00:00:00Z" },
+      { handle: "someone" },
+      { overdue: "false" },
+    ]) {
+      expect(
+        verificationEntriesQuerySchema.safeParse(refused).success,
+        JSON.stringify(refused),
+      ).toBe(false);
+    }
+  });
+
+  it("counts the two views of the queue under their own codes, beside queue 1 (modele §6)", () => {
+    expect(queueCodeSchema.options).toEqual([
+      "profiles_advertiser",
+      "verification_creators",
+      "verification_brands",
+    ]);
   });
 });

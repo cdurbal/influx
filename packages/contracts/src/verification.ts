@@ -10,9 +10,19 @@
 //   handle an agent types is a body field only, never a field of any answer a member reads.
 // Nothing here carries an amount, a rate, a commission or a tariff (D48, D78, 08 RG8). The code lists
 // repeat packages/domain's (this package carries no dependency on it); a test holds them equal.
-// The queue entries and the decision view are the contract of commit 14, the registry sources that of
-// commit 15.
+// The queue entries and the decision view are the contract of commit 14 (last section), the registry
+// sources that of commit 15.
 import { z } from "./zod.ts";
+import { accountOwnerSchema } from "./backoffice-accounts.ts";
+import { uiLocaleSchema } from "./auth.ts";
+import {
+  entryClaimSchema,
+  forcedReleaseSchema,
+  openOutcomeSchema,
+  QUEUE_PAGE_SIZE_DEFAULT,
+  QUEUE_PAGE_SIZE_MAX,
+  queueCursorSchema,
+} from "./backoffice-queues.ts";
 import { countryCodeSchema } from "./signup.ts";
 
 const instantSchema = z.iso.datetime();
@@ -184,6 +194,11 @@ export const brandObservedChannelSchema = z.enum(BRAND_OBSERVED_CHANNELS);
  * outcome of a decision, not an error. `code_expired` (0222, EC-L2E-06-3): an account request is
  * submitted with a live code only. `evidence_cap` (0223, 08 RG34): the request already holds its six
  * pieces; one must be removed before another is deposited (not a daily quota: no Retry-After).
+ * Commit 14, the agent's side: `account_unavailable` (the account is no longer active: the agent closes
+ * the request with that reason, EC-L2E-08-5), `website_domain_required`, `internal_details_required`
+ * and `declared_figures_required` (a block the decision reads is missing, 23514), and
+ * `decision_blocked` (503, path `evidence`: Storage does not answer, the audience decision waits,
+ * D82 (5)).
  */
 export const VERIFICATION_REFUSAL_ISSUES = [
   "duplicate_request",
@@ -198,6 +213,11 @@ export const VERIFICATION_REFUSAL_ISSUES = [
   "no_registry_source",
   "code_expired",
   "evidence_cap",
+  "account_unavailable",
+  "website_domain_required",
+  "internal_details_required",
+  "declared_figures_required",
+  "decision_blocked",
 ] as const;
 export const verificationRefusalIssueSchema = z.enum(
   VERIFICATION_REFUSAL_ISSUES,
@@ -496,6 +516,11 @@ export const compareFiguresResponseSchema = z.strictObject({
       .nullable(),
   }),
   gapAlertPercent: z.number().int().min(0).max(1000),
+  /**
+   * An observed figure is farther from its declared value than the threshold (08 RG42): an internal
+   * alert computed here at the read, once, by packages/domain; it informs, never refuses.
+   */
+  alert: z.boolean(),
 });
 export type CompareFiguresResponse = z.infer<
   typeof compareFiguresResponseSchema
@@ -550,12 +575,22 @@ export const verificationGrantOutcomeSchema = z.enum(
   VERIFICATION_GRANT_OUTCOMES,
 );
 
+/**
+ * The entry to open next (17b §2.6): the oldest one nobody holds in the same view, among the ones the
+ * caller may treat (08 RG53). Only an identifier: the screen opens it by the opening route, which
+ * claims it and is journaled; null when the view holds nothing to open.
+ */
+export const nextVerificationEntrySchema = z
+  .strictObject({ entryId: z.uuid() })
+  .nullable();
+
 /** What a grant answers: the outcome, the badge when there is one, whether the deadline was missed (marked, never blocked). */
 export const grantVerificationResponseSchema = z.strictObject({
   outcome: verificationGrantOutcomeSchema,
   badgeId: z.uuid().nullable(),
   decidedAt: instantSchema,
   late: z.boolean(),
+  next: nextVerificationEntrySchema,
 });
 export type GrantVerificationResponse = z.infer<
   typeof grantVerificationResponseSchema
@@ -586,6 +621,7 @@ export const rejectVerificationResponseSchema = z.strictObject({
   decidedAt: instantSchema,
   late: z.boolean(),
   escalated: z.boolean(),
+  next: nextVerificationEntrySchema,
 });
 export type RejectVerificationResponse = z.infer<
   typeof rejectVerificationResponseSchema
@@ -602,6 +638,7 @@ export type ReexamineVerificationRequest = z.infer<
 
 export const reexamineVerificationResponseSchema = z.strictObject({
   reexaminedAt: instantSchema,
+  next: nextVerificationEntrySchema,
 });
 export type ReexamineVerificationResponse = z.infer<
   typeof reexamineVerificationResponseSchema
@@ -615,3 +652,331 @@ export const MEMBER_VERIFICATION_RESPONSE_SCHEMAS = {
   verificationEvidence: verificationEvidenceResponseSchema,
   brandVerification: brandVerificationResponseSchema,
 } as const;
+
+// ---------------------------------------------------------------------------------------------
+// AGENT side: queue 4, the entries, the decision view and the pieces (08 RG55, RG61 to RG67, RG84;
+// jalons/l2e/modele.md §4, §6; commit 14). Every object is closed. A list line and the decision
+// view carry NO declared figure (RG47, modele -19): the gap is read in the answer of the typing,
+// `compareFiguresResponseSchema`, and nowhere before. Nothing here is served to a member.
+// ---------------------------------------------------------------------------------------------
+
+/** The two views of the queue (08 RG61: one table, two views, never a mixed screen), by path segment. */
+export const VERIFICATION_QUEUE_VIEWS = ["creators", "brands"] as const;
+export const verificationQueueViewSchema = z.enum(VERIFICATION_QUEUE_VIEWS);
+export type VerificationQueueView = z.infer<typeof verificationQueueViewSchema>;
+
+/** 08 RG62: oldest first by default; the others, the remaining SLA, the level asked and the network. */
+export const VERIFICATION_QUEUE_SORTS = [
+  "age",
+  "sla",
+  "level",
+  "network",
+] as const;
+export const verificationQueueSortSchema = z.enum(VERIFICATION_QUEUE_SORTS);
+export type VerificationQueueSort = z.infer<typeof verificationQueueSortSchema>;
+
+/**
+ * The alerts of a line (08 RG63, RG55), informative, never a refusal: refusals of the same triplet
+ * within the window of the cap, another account declaring the same handle on the network, a holding
+ * badge of another account on that handle. The gap between declared and observed is not here: it
+ * exists only after the agent typed (RG48).
+ */
+export const VERIFICATION_QUEUE_ALERT_CODES = [
+  "prior_rejections",
+  "same_handle_elsewhere",
+  "handle_verified_elsewhere",
+] as const;
+export const verificationQueueAlertCodeSchema = z.enum(
+  VERIFICATION_QUEUE_ALERT_CODES,
+);
+export type VerificationQueueAlertCode = z.infer<
+  typeof verificationQueueAlertCodeSchema
+>;
+
+/**
+ * 08 RG62 filters: the level, the network, the holder (free, me, one agent), the responsible
+ * salesperson, the period of the submission, the ones past their deadline, an alert, the ones
+ * marked « à réexaminer ». Population is the view itself. The same filters travel in the query
+ * string (GET) or in the body (POST …/search, as queue 1: the relay refuses an instant or a long
+ * cursor in a query).
+ */
+const verificationEntriesFilterShape = {
+  level: verificationLevelSchema.optional(),
+  network: referenceCodeSchema.optional(),
+  sort: verificationQueueSortSchema.default("age"),
+  overdue: z.literal("true").optional(),
+  holder: z.union([z.enum(["free", "me"]), z.uuid()]).optional(),
+  owner: z.union([z.literal("none"), z.uuid()]).optional(),
+  from: instantSchema.optional(),
+  to: instantSchema.optional(),
+  alert: z.literal("true").optional(),
+  reexamine: z.literal("true").optional(),
+  cursor: queueCursorSchema.optional(),
+};
+
+function verificationPeriodIsOrdered(filters: {
+  from?: string | undefined;
+  to?: string | undefined;
+}): boolean {
+  return (
+    filters.from === undefined ||
+    filters.to === undefined ||
+    Date.parse(filters.from) <= Date.parse(filters.to)
+  );
+}
+
+export const verificationEntriesQuerySchema = z
+  .strictObject({
+    ...verificationEntriesFilterShape,
+    limit: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(QUEUE_PAGE_SIZE_MAX)
+      .default(QUEUE_PAGE_SIZE_DEFAULT),
+  })
+  .refine(verificationPeriodIsOrdered, { message: "period_order" });
+export type VerificationEntriesQuery = z.infer<
+  typeof verificationEntriesQuerySchema
+>;
+
+export const verificationEntriesSearchSchema = z
+  .strictObject({
+    ...verificationEntriesFilterShape,
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(QUEUE_PAGE_SIZE_MAX)
+      .default(QUEUE_PAGE_SIZE_DEFAULT),
+  })
+  .refine(verificationPeriodIsOrdered, { message: "period_order" });
+export type VerificationEntriesSearch = z.infer<
+  typeof verificationEntriesSearchSchema
+>;
+export type VerificationEntriesSearchBody = z.input<
+  typeof verificationEntriesSearchSchema
+>;
+
+/** « À réexaminer »: the internal reason and when it was set; the entry stays in the queue (RG50). */
+export const verificationReexamineMarkSchema = z.strictObject({
+  reasonCode: verificationReexamineReasonCodeSchema,
+  reexaminedAt: instantSchema,
+});
+
+/**
+ * One line of the list (08 RG63), without opening anything: population is the view, then the level,
+ * the network, the date of the submission, the deadlines, the alerts and the responsible agent.
+ * `displayName` is the alias of a creator (never his handle: that is in the decision view) or the
+ * trading name of a brand.
+ */
+export const verificationQueueEntryRowSchema = z.strictObject({
+  id: z.uuid(),
+  accountId: z.uuid(),
+  level: verificationLevelSchema,
+  networkCode: referenceCodeSchema.nullable(),
+  displayName: z.string().nullable(),
+  countryCode: countryCodeSchema,
+  submittedAt: instantSchema,
+  slaDueAt: instantSchema,
+  escalateAt: instantSchema,
+  /** Past its deadline: written in clear by the screen, still decidable and marked (RG65, C8). */
+  overdue: z.boolean(),
+  owner: accountOwnerSchema.nullable(),
+  claim: entryClaimSchema,
+  reexamine: verificationReexamineMarkSchema.nullable(),
+  alerts: z.array(verificationQueueAlertCodeSchema),
+});
+export type VerificationQueueEntryRow = z.infer<
+  typeof verificationQueueEntryRowSchema
+>;
+
+export const verificationEntriesResponseSchema = z.strictObject({
+  asOf: instantSchema,
+  items: z.array(verificationQueueEntryRowSchema),
+  /** Null at the last page: no infinite scroll (15 RG34). */
+  nextCursor: queueCursorSchema.nullable(),
+});
+export type VerificationEntriesResponse = z.infer<
+  typeof verificationEntriesResponseSchema
+>;
+
+/** A piece of the request, metadata only: the bytes come by the journalled route (RG84). */
+export const verificationDossierEvidenceSchema = z.strictObject({
+  id: z.uuid(),
+  byteSize: z.number().int().positive().nullable(),
+  width: z.number().int().positive().nullable(),
+  height: z.number().int().positive().nullable(),
+  activatedAt: instantSchema.nullable(),
+});
+
+/** An earlier request of the same triplet, refusals included (08 RG55, RG60). */
+export const verificationDossierHistorySchema = z.strictObject({
+  id: z.uuid(),
+  level: verificationLevelSchema,
+  status: verificationRequestStatusSchema,
+  submittedAt: instantSchema.nullable(),
+  decidedAt: instantSchema.nullable(),
+  reasonCode: verificationRejectionReasonCodeSchema.nullable(),
+});
+
+/** A badge of the same line or account, whatever its state (08 RG55). */
+export const verificationDossierBadgeSchema = z.strictObject({
+  id: z.uuid(),
+  level: verificationLevelSchema,
+  state: verificationBadgeStateSchema,
+  grantedAt: instantSchema,
+  expiresAt: instantSchema.nullable(),
+});
+
+export const verificationDossierAlertSchema = z.discriminatedUnion("code", [
+  z.strictObject({
+    code: z.literal("prior_rejections"),
+    count: z.number().int().positive(),
+  }),
+  z.strictObject({
+    code: z.literal("same_handle_elsewhere"),
+    accounts: z.number().int().positive(),
+  }),
+  z.strictObject({ code: z.literal("handle_verified_elsewhere") }),
+]);
+export type VerificationDossierAlert = z.infer<
+  typeof verificationDossierAlertSchema
+>;
+
+/** A register an agent may consult for a brand (06 RG52): the one of its country, or GLEIF. */
+export const verificationRegistrySourceRowSchema = z.strictObject({
+  id: z.uuid(),
+  sourceType: z.enum(["national", "e_justice", "gleif"]),
+  countryCode: countryCodeSchema.nullable(),
+  name: z.string(),
+  url: z.string(),
+  checkedOn: calendarDaySchema,
+});
+export type VerificationRegistrySourceRow = z.infer<
+  typeof verificationRegistrySourceRowSchema
+>;
+
+/**
+ * The dossier an agent holding the live claim reads, everything of RG55 on one answer: the line as
+ * the creator declared it (handle, pseudonym, address: to find the account, never a value to copy,
+ * RG47), or the brand and its internal block; the pieces as metadata; the history; the alerts. No
+ * figure the creator declared, no code (EC-L2E-08-3: the agent types what he reads), no key.
+ */
+export const verificationDossierSchema = z.strictObject({
+  /** The code to look for expires then; the code itself never leaves the database (CA13, CA14). */
+  codeExpiresAt: instantSchema.nullable(),
+  creator: z
+    .strictObject({
+      handle: z.string().nullable(),
+      pseudonym: z.string().nullable(),
+      profileUrl: z.string().nullable(),
+    })
+    .nullable(),
+  brand: z
+    .strictObject({
+      tradeName: z.string().nullable(),
+      websiteDomain: z.string().nullable(),
+      internalDetails: brandInternalDetailsSchema.nullable(),
+      /** The registers this brand may be checked against; empty when none is active (RG52). */
+      registrySources: z.array(verificationRegistrySourceRowSchema),
+    })
+    .nullable(),
+  evidence: z.array(verificationDossierEvidenceSchema),
+  history: z.array(verificationDossierHistorySchema),
+  badges: z.array(verificationDossierBadgeSchema),
+  alerts: z.array(verificationDossierAlertSchema),
+});
+export type VerificationDossier = z.infer<typeof verificationDossierSchema>;
+
+/** A refusal reason of the population, with what the decision does with it (0221, RG56, RG59). */
+export const verificationReasonRowSchema = z.strictObject({
+  code: verificationRejectionReasonCodeSchema,
+  position: z.number().int().positive(),
+  requiresMemberMessage: z.boolean(),
+  escalatesToAdmin: z.boolean(),
+  purgesEvidence: z.boolean(),
+});
+export type VerificationReasonRow = z.infer<typeof verificationReasonRowSchema>;
+
+/** The decision of a closed entry (08 RG61, C8); the internal comment is for agents only. */
+export const verificationEntryDecisionSchema = z.strictObject({
+  decidedAt: instantSchema,
+  decidedBy: accountOwnerSchema.nullable(),
+  /** Decided after its deadline: marked, never blocked. */
+  late: z.boolean(),
+  status: z.enum(["approved", "rejected", "closed"]),
+  reasonCode: verificationRejectionReasonCodeSchema.nullable(),
+  memberMessage: z.string().nullable(),
+  internalComment: z.string().nullable(),
+});
+
+export const verificationOpenedEntrySchema = z.strictObject({
+  id: z.uuid(),
+  level: verificationLevelSchema,
+  networkCode: referenceCodeSchema.nullable(),
+  status: verificationRequestStatusSchema,
+  submittedAt: instantSchema,
+  slaDueAt: instantSchema,
+  escalateAt: instantSchema,
+  overdue: z.boolean(),
+  claim: entryClaimSchema,
+  lastForcedRelease: forcedReleaseSchema.nullable(),
+  reexamine: verificationReexamineMarkSchema.nullable(),
+  decision: verificationEntryDecisionSchema.nullable(),
+});
+
+/**
+ * `POST …/entries/:id/open` (08 RG43, RG64): opening is claiming. `claimed` and `held` carry the
+ * dossier and the review token of the snapshot it was read in; `read_only` (a colleague's, named)
+ * and `closed` carry neither, and an agent who does not hold the claim reads nothing of the dossier.
+ */
+export const verificationOpenResponseSchema = z.strictObject({
+  asOf: instantSchema,
+  outcome: openOutcomeSchema,
+  reviewToken: reviewTokenSchema.nullable(),
+  entry: verificationOpenedEntrySchema,
+  account: z.strictObject({
+    id: z.uuid(),
+    countryCode: countryCodeSchema,
+    preferredLanguage: uiLocaleSchema,
+    owner: accountOwnerSchema.nullable(),
+  }),
+  dossier: verificationDossierSchema.nullable(),
+  reasons: z.array(verificationReasonRowSchema),
+});
+export type VerificationOpenResponse = z.infer<
+  typeof verificationOpenResponseSchema
+>;
+
+/** The longest base64 of a piece (8 MiB of bytes, the limit of the bucket, D82 (5)). */
+export const VERIFICATION_EVIDENCE_MAX_BASE64_LENGTH =
+  Math.ceil(VERIFICATION_EVIDENCE_MAX_STORED_BYTES / 3) * 4;
+
+/**
+ * `GET …/entries/:id/evidence/:evidenceId` (D82 (5)): the piece the dossier named, relayed as JSON like
+ * the logo (type, sides, base64 bounded), for the screen to draw from a `blob:`. Never a key, an
+ * address of Storage or a token (T9.2); each opening is one line of the register (RG84).
+ */
+export const verificationEvidenceReadResponseSchema = z.strictObject({
+  contentType: z.literal("image/webp"),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+  byteSize: z.number().int().positive(),
+  data: z.base64().max(VERIFICATION_EVIDENCE_MAX_BASE64_LENGTH),
+});
+export type VerificationEvidenceReadResponse = z.infer<
+  typeof verificationEvidenceReadResponseSchema
+>;
+
+export const verificationEntryParamsSchema = z.strictObject({ id: z.uuid() });
+export type VerificationEntryParams = z.infer<
+  typeof verificationEntryParamsSchema
+>;
+export const verificationEntryEvidenceParamsSchema = z.strictObject({
+  id: z.uuid(),
+  evidenceId: z.uuid(),
+});
+export type VerificationEntryEvidenceParams = z.infer<
+  typeof verificationEntryEvidenceParamsSchema
+>;

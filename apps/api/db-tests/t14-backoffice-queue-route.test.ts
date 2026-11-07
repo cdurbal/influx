@@ -1006,7 +1006,12 @@ describe("the counters (15 RG28, RG32, RG38)", () => {
         policy: Record<string, unknown>;
       }[];
     }>();
-    expect(body.queues).toHaveLength(1);
+    // L2E 14: the two views of queue 4 join the counters of queue 1, which keeps its line
+    expect(body.queues.map((line) => line.queue)).toEqual([
+      "profiles_advertiser",
+      "verification_creators",
+      "verification_brands",
+    ]);
     const [counters] = body.queues;
     expect(counters?.queue).toBe("profiles_advertiser");
     // seven entries of this file wait for the agent: the rest of the queue only adds to it

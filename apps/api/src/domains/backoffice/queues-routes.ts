@@ -14,7 +14,9 @@
 //   with the message the brand will receive. A POST: it has an effect (the claim, the register line).
 // Decisions, release, extension and forced release: queues-decision-routes.ts (commit 12); the logo of an
 // entry: queues-logo-routes.ts (commit 18b); both registered
-// from here: one registration point for queue 1.
+// from here: one registration point for queue 1. Queue 4, "vérifications" (L2E commit 14), has its own
+// files (verification-queues-routes.ts, verification-queues-decision-routes.ts), registered from here
+// too, and its two counters join the answer of GET /v1/bo/queues/counters.
 // - An unknown entry, the one of the caller's own account and a closed one that the caller cannot see
 //   answer exactly alike (404, T14.3, T14.4); an entry of an account the caller HOLDS answers 403
 //   with the issue `conflict_of_interest` (17b §2.5, RG36), the attempt journaled first (CA19,
@@ -33,6 +35,7 @@ import {
   type EntriesSearch,
   type EntryParams,
   type OpenEntryResponse,
+  type QueueCounters,
   type QueueCountersResponse,
   type QueueEntryRow,
   type ReviewAlert,
@@ -48,6 +51,10 @@ import { withBackofficeSession } from "../identity/backoffice-session.ts";
 import type { IdentityApp } from "../identity/routes.ts";
 import { registerBackofficeQueueDecisionRoutes } from "./queues-decision-routes.ts";
 import { registerBackofficeQueueLogoRoutes } from "./queues-logo-routes.ts";
+import {
+  registerVerificationQueueRoutes,
+  verificationCounters,
+} from "./verification-queues-routes.ts";
 import {
   rejectionReasonOf,
   rejectionReasonPreview,
@@ -226,40 +233,47 @@ export function registerBackofficeQueueRoutes(
   const { database } = dependencies;
   registerBackofficeQueueDecisionRoutes(app, dependencies);
   registerBackofficeQueueLogoRoutes(app, dependencies);
+  registerVerificationQueueRoutes(app, dependencies);
 
   app.get(
     "/v1/bo/queues/counters",
     { schema: { response: { 200: queueCountersResponseSchema } } },
     async (request, reply): Promise<QueueCountersResponse> => {
       void reply.header("cache-control", "no-store");
-      const counters = await withBackofficeSession(
+      return withBackofficeSession(
         database,
         request,
         reply,
-        (tx, context) => readCounters(tx, context.accountId),
+        async (tx, context) => {
+          const counters = await readCounters(tx, context.accountId);
+          const verification = await verificationCounters(
+            tx,
+            context.accountId,
+          );
+          const queues: QueueCounters[] = [];
+          if (counters !== null) {
+            queues.push({
+              queue: BRAND_REVIEW_QUEUE,
+              pending: counters.pending,
+              oldestCreatedAt: counters.oldestCreatedAt,
+              overdue: counters.overdue,
+              unclaimed: counters.unclaimed,
+              lastDecidedAt: counters.lastDecidedAt,
+              policy: {
+                decisionMinutes: counters.decisionMinutes,
+                claimTargetMinutes: counters.claimTargetMinutes,
+                escalateAfterMinutes: counters.escalateAfterMinutes,
+                businessHours: counters.businessHours,
+              },
+            });
+          }
+          return {
+            asOf:
+              counters?.asOf ?? verification.asOf ?? new Date().toISOString(),
+            queues: [...queues, ...verification.queues],
+          };
+        },
       );
-      return {
-        asOf: counters?.asOf ?? new Date().toISOString(),
-        queues:
-          counters === null
-            ? []
-            : [
-                {
-                  queue: BRAND_REVIEW_QUEUE,
-                  pending: counters.pending,
-                  oldestCreatedAt: counters.oldestCreatedAt,
-                  overdue: counters.overdue,
-                  unclaimed: counters.unclaimed,
-                  lastDecidedAt: counters.lastDecidedAt,
-                  policy: {
-                    decisionMinutes: counters.decisionMinutes,
-                    claimTargetMinutes: counters.claimTargetMinutes,
-                    escalateAfterMinutes: counters.escalateAfterMinutes,
-                    businessHours: counters.businessHours,
-                  },
-                },
-              ],
-      };
     },
   );
 

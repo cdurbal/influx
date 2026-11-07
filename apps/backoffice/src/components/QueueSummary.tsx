@@ -6,7 +6,10 @@
 // and the refusals by reason only when apps/api serves them (EC-L2C-16-3); the badges are L2E's
 // (EC-L2C-6). The entries past the threshold are counted from the first page of the overdue ones,
 // the only ones that can be (the threshold lies beyond the deadline): "at least" when it is capped.
-import { QUEUE_PAGE_SIZE_MAX } from "@influx/contracts/backoffice-queues";
+import {
+  BRAND_REVIEW_QUEUE,
+  QUEUE_PAGE_SIZE_MAX,
+} from "@influx/contracts/backoffice-queues";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { messages } from "@/messages/fr";
@@ -52,7 +55,11 @@ export function QueueSummary() {
       }
       // Entries past their deadline, to find those past the threshold of age (RG7): only when
       // some are overdue, and an answer that fails leaves the counters, not the threshold line.
-      const waiting = counters.data.queues.some((queue) => queue.overdue > 0);
+      // Queue 1 only until the screens of queue 4 (L2E commit 21) carry their own lines.
+      const queues = counters.data.queues.filter(
+        (queue) => queue.queue === BRAND_REVIEW_QUEUE,
+      );
+      const waiting = queues.some((queue) => queue.overdue > 0);
       const overdue = waiting
         ? await readBrandReviewEntries({
             overdue: "true",
@@ -62,7 +69,7 @@ export function QueueSummary() {
       if (active) {
         setSummary({
           kind: "ok",
-          counters: counters.data,
+          counters: { ...counters.data, queues },
           overdue: overdue?.kind === "ok" ? overdue.data : null,
         });
       }

@@ -26,7 +26,19 @@ import { countryCodeSchema } from "./signup.ts";
 
 /** The code of the queue in `backoffice.queues` (0206) and in the register payloads. */
 export const BRAND_REVIEW_QUEUE = "profiles_advertiser";
-export const queueCodeSchema = z.literal(BRAND_REVIEW_QUEUE);
+/**
+ * Queue 4, « vérifications », is one queue of the database (`verification`, 0221) seen as two
+ * views, never a mixed screen (08 RG61, D81): its counters carry the code of each view
+ * (l2e/modele.md §6).
+ */
+export const VERIFICATION_CREATORS_QUEUE = "verification_creators";
+export const VERIFICATION_BRANDS_QUEUE = "verification_brands";
+export const queueCodeSchema = z.enum([
+  BRAND_REVIEW_QUEUE,
+  VERIFICATION_CREATORS_QUEUE,
+  VERIFICATION_BRANDS_QUEUE,
+]);
+export type QueueCode = z.infer<typeof queueCodeSchema>;
 
 /** 15 RG34: the cap of a page, set by the server. */
 export const QUEUE_PAGE_SIZE_DEFAULT = 20;
