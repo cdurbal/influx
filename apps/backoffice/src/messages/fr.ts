@@ -106,6 +106,8 @@ export const messages = {
     dashboard: "Tableau de bord",
     queues: "Files",
     brandReviewQueue: "Profils marque à valider",
+    verificationCreators: "Vérifications créateurs",
+    verificationBrands: "Vérifications marques",
     accounts: "Comptes",
     creatorSearch: "Créateurs",
     deals: "Affaires",
@@ -1353,7 +1355,119 @@ export const messages = {
     escalated: (count: number, atLeast: boolean) =>
       `${atLeast ? "Au moins " : ""}${count} ${count > 1 ? "entrées ont" : "entrée a"} dépassé le seuil d’alerte d’ancienneté.`,
     seeEscalated: "Voir les entrées hors délai",
+    /** Queue 4 joins the dashboard (L2E-21): each warning names its queue. */
+    escalatedOf: (name: string, words: string) => `${name} : ${words}`,
+    seeEscalatedOf: (name: string) => `Voir les entrées hors délai — ${name}`,
+    openOf: (name: string) => `Ouvrir la file ${name}`,
     error: "Les compteurs de la file n’ont pas pu être chargés.",
+  },
+  /**
+   * L2E-21 (08 RG61 to RG66, RG98, CA42 to CA44; 17b §3.7; l2e-fiche invariant 10): queue 4, one table
+   * seen as two lists, creators and brands, never a mixed screen. A state is written, the colour only
+   * underlines it. The list carries no handle, no figure, no code (the dossier of the opening has them).
+   */
+  verificationQueue: {
+    creators: {
+      lead: "Demandes de badge des créateurs, réseau par réseau : propriété du compte, puis audience. Ouvrir une demande la prend en charge ; vous constatez vous-même, puis vous accordez ou vous refusez avec un motif.",
+      tableLabel: "Demandes de la file Vérifications des créateurs",
+      overdueTableLabel:
+        "Demandes de la file Vérifications des créateurs dont le SLA est dépassé",
+      openEntryOf: (name: string) => `Ouvrir la demande de ${name}`,
+      unnamed: "Créateur sans alias",
+    },
+    brands: {
+      lead: "Demandes de badge des marques : domaine du site, puis immatriculation au registre public. Ouvrir une demande la prend en charge ; vous constatez vous-même, puis vous accordez ou vous refusez avec un motif.",
+      tableLabel: "Demandes de la file Vérifications des marques",
+      overdueTableLabel:
+        "Demandes de la file Vérifications des marques dont le SLA est dépassé",
+      openEntryOf: (name: string) => `Ouvrir la demande de ${name}`,
+      unnamed: "Marque sans nom",
+    },
+    columns: {
+      state: "État",
+      due: "SLA",
+      level: "Niveau",
+      network: "Réseau",
+      creator: "Créateur",
+      brand: "Marque",
+      country: "Pays",
+      submitted: "Déposée le",
+      age: "Ancienneté",
+      owner: "Responsable",
+      holder: "Verrou",
+    },
+    levels: {
+      account_verified: "Compte vérifié",
+      audience_verified: "Audience vérifiée",
+      brand_verified: "Marque vérifiée",
+    },
+    networks: {
+      instagram: "Instagram",
+      tiktok: "TikTok",
+      youtube: "YouTube",
+      facebook: "Facebook",
+      linkedin: "LinkedIn",
+      x: "X",
+      snapchat: "Snapchat",
+      twitch: "Twitch",
+      pinterest: "Pinterest",
+      threads: "Threads",
+    } as Readonly<Record<string, string>>,
+    noNetwork: "—",
+    /** The filters of 08 RG62 that the common bar does not carry. */
+    filters: {
+      sort: "Tri",
+      level: "Niveau",
+      network: "Réseau",
+      reexamine: "À réexaminer",
+      reexamineOnly: "À réexaminer seulement",
+    },
+    sorts: {
+      age: "Ancienneté, la plus ancienne d’abord",
+      sla: "SLA restant",
+      level: "Niveau demandé",
+      network: "Réseau",
+    },
+    /** The reading of the sort in force, over the table (RG62). */
+    sortedBy: {
+      age: "triée par ancienneté, la plus ancienne d’abord",
+      sla: "triée par SLA restant",
+      level: "triée par niveau demandé",
+      network: "triée par réseau",
+    },
+    resultsSorted: (count: number, sort: string) =>
+      `${count} ${count > 1 ? "demandes" : "demande"} · ${sort}`,
+    /** RG63, RG55: informative, never a refusal; the gap between declared and observed exists after the typing only. */
+    alerts: {
+      prior_rejections: "Refus antérieurs sur ce réseau et ce niveau",
+      same_handle_elsewhere: "Un autre compte déclare le même identifiant",
+      handle_verified_elsewhere:
+        "Cet identifiant porte déjà un badge sur un autre compte",
+    },
+    reexamine: (reason: string, since: string) =>
+      `À réexaminer : ${reason}, depuis ${since}`,
+    reexamineReasons: {
+      network_unreachable: "réseau injoignable",
+      evidence_technical: "pièce inexploitable techniquement",
+      registry_unavailable: "registre indisponible",
+      storage_unavailable: "stockage indisponible",
+    },
+    /** RG64: a second agent reads « En cours — {prénom} » and cannot decide; never a technical error. */
+    lock: {
+      free: "libre",
+      held: (name: string) => `En cours — ${name}`,
+      heldByMe: "En cours — vous",
+      unknown: "En cours — un collègue",
+    },
+    /** CA42: the entries past their deadline, in a list of their own, still decidable and marked. */
+    overdueTitle: "SLA dépassé",
+    overdueNote:
+      "Ces demandes ont dépassé leur échéance. Elles restent décidables : la décision est alors marquée tardive.",
+    otherTitle: "Dans les délais",
+    /** CA44: an empty queue says when the last request was handled, and differs from a queue in error. */
+    empty: "Aucune demande en attente.",
+    emptySince: (age: string) =>
+      `Aucune demande en attente — la dernière a été traitée il y a ${age}.`,
   },
   /**
    * L2C-17 (17b §2.4 to §2.6, §4.3, §4.8, §4.11; 15 RG27 C1 to C8, RG114 to RG117; 06 RG6, RG9, RG19,

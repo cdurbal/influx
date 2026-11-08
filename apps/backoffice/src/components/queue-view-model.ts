@@ -6,6 +6,7 @@
 // instant of the database (`asOf`), never from the clock of the browser.
 import type {
   EntriesSearchBody,
+  QueueCode,
   QueueCounters,
   QueueEntryRow,
 } from "@influx/contracts/backoffice-queues";
@@ -13,6 +14,13 @@ import { messages } from "@/messages/fr";
 import { formatDateTime, formatTime } from "./view-model";
 
 const t = messages.queueList;
+
+/** The screen of each queue (the rail, the dashboard): queue 4 is two views, never a mixed screen. */
+export const QUEUE_ADDRESS: Readonly<Record<QueueCode, string>> = {
+  profiles_advertiser: "/files/profils-marque",
+  verification_creators: "/files/verifications-createurs",
+  verification_brands: "/files/verifications-marques",
+};
 
 /** The common filters of every queue, in the order of 15 RG33 (the state is always `open`). */
 export const COMMON_FILTER_KEYS = [
@@ -35,6 +43,8 @@ export type OwnFilter = {
   key: string;
   label: string;
   options: readonly { value: string; label: string }[];
+  /** What the empty choice says when it is not "Tous" (a sort's default: "Ancienneté"). */
+  emptyLabel?: string;
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -110,12 +120,12 @@ export function pagingOf(read: (name: string) => string | null): QueuePaging {
  * of the page and its cap (15 RG34). Neither the instants nor the cursor can cross the relay in a
  * query; apps/api checks every key again against its closed schema.
  */
-export function searchBodyOf(
+export function searchBodyOf<Body extends object = EntriesSearchBody>(
   filters: QueueFilters,
   period: { from?: string; to?: string },
   paging: QueuePaging,
   limit: number,
-): EntriesSearchBody {
+): Body {
   const codes = Object.entries(filters).filter(
     ([key]) => !(PERIOD_KEYS as readonly string[]).includes(key),
   );
@@ -124,7 +134,7 @@ export function searchBodyOf(
     ...period,
     ...(paging.cursor === null ? {} : { cursor: paging.cursor }),
     limit,
-  } as EntriesSearchBody;
+  } as Body;
 }
 
 /** The address of the list with `filters` and its page; the bare path when none is active. */
@@ -317,6 +327,19 @@ export function lockWords(row: Pick<QueueEntryRow, "claim">): string {
   return claim.claimedAt === null
     ? name
     : t.lockSince(name, formatTime(claim.claimedAt));
+}
+
+/**
+ * CA42 (08 RG66): the entries past their deadline, then the others, each in the server's order. An
+ * entry past its deadline is still decidable; it only lives in a list of its own.
+ */
+export function splitByDeadline<Row extends { overdue: boolean }>(
+  rows: readonly Row[],
+): { overdue: Row[]; inTime: Row[] } {
+  return {
+    overdue: rows.filter((row) => row.overdue),
+    inTime: rows.filter((row) => !row.overdue),
+  };
 }
 
 /** The keys of the list (17b §2.2): moving, and the reminder; ‹Entrée› is the link's own. */

@@ -121,18 +121,29 @@ describe("TN5: the sub-entries of the active entry, in the one <nav> of the rail
     expect(currentLinks(render("admin", "/absente"))).toEqual([]);
   });
 
-  it("makes Files current on the list of the brand profiles and on an entry of it, with no sub-menu, for an agent too (L2C-16)", () => {
-    for (const pathname of [
-      "/files/profils-marque",
-      "/files/profils-marque/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
-    ]) {
+  it("opens the three screens of Files under the entry on each of them and on an entry of queue 1, one aria-current, for an agent too (L2C-16, L2E-21)", () => {
+    const places = [
+      ["/files/profils-marque", messages.nav.brandReviewQueue],
+      [
+        "/files/profils-marque/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
+        messages.nav.brandReviewQueue,
+      ],
+      ["/files/verifications-createurs", messages.nav.verificationCreators],
+      ["/files/verifications-marques", messages.nav.verificationBrands],
+    ] as const;
+    for (const [pathname, current] of places) {
       for (const role of ["agent", "admin"] as const) {
         const markup = render(role, pathname);
-        expect(markup.match(/<ul[ >]/g), pathname).toHaveLength(1);
-        expect(currentLinks(markup), pathname).toEqual([messages.nav.queues]);
-        expect(itemOf(markup, "/files/profils-marque")).toContain(
-          `>${messages.nav.queues}</a>`,
-        );
+        const files = itemOf(markup, "/files/profils-marque");
+        // Files is an ancestor, its three screens nested in order, the page's own the only current one
+        expect(currentLinks(markup), pathname).toEqual([current]);
+        const positions = [
+          messages.nav.brandReviewQueue,
+          messages.nav.verificationCreators,
+          messages.nav.verificationBrands,
+        ].map((label) => files.indexOf(`>${label}</a>`));
+        expect(positions.every((position) => position > -1)).toBe(true);
+        expect([...positions].sort((x, y) => x - y)).toEqual(positions);
       }
     }
   });

@@ -28,12 +28,14 @@ function FilterSelect({
   filterKey,
   label,
   options,
+  emptyLabel,
   value,
   onChange,
 }: {
   filterKey: string;
   label: string;
   options: readonly Option[];
+  emptyLabel?: string;
   value: string | undefined;
   onChange: (value: string | null) => void;
 }) {
@@ -49,7 +51,7 @@ function FilterSelect({
         onChange={(event) => onChange(event.target.value || null)}
         className={SELECT_CLASSES}
       >
-        <option value="">{t.all}</option>
+        <option value="">{emptyLabel ?? t.all}</option>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -124,6 +126,9 @@ export function QueueFilterBar({
             filterKey={filter.key}
             label={filter.label}
             options={filter.options}
+            {...(filter.emptyLabel === undefined
+              ? {}
+              : { emptyLabel: filter.emptyLabel })}
             value={filters[filter.key]}
             onChange={(value) => onChange(filter.key, value)}
           />

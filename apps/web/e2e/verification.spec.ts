@@ -13,8 +13,12 @@
 // real image sent as raw bytes and a PDF refused without costing the rest, the follow-up, a refusal and
 // the badge with its period and its source. No agent screen is run here (commits 21 to 23), no amount,
 // rate or price anywhere (D78).
+import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { connectAsMigrationRole } from "@influx/test-kit/db";
+import {
+  connectAsLocalSuperuser,
+  connectAsMigrationRole,
+} from "@influx/test-kit/db";
 import type { Page } from "@playwright/test";
 import enBrandProfile from "@/locales/en/brand-profile.json" with { type: "json" };
 import enCreatorProfile from "@/locales/en/creator-profile.json" with { type: "json" };
@@ -24,9 +28,15 @@ import frCreatorProfile from "@/locales/fr/creator-profile.json" with { type: "j
 import frVerification from "@/locales/fr/verification.json" with { type: "json" };
 import { seedMember } from "./support/account";
 import { expectNoAxeViolation } from "./support/axe";
-import { retireInternals, seedColleague } from "./support/backoffice";
+import { messages as bo } from "../../backoffice/src/messages/fr";
+import {
+  retireInternals,
+  runTag,
+  seedColleague,
+  seedInternal,
+} from "./support/backoffice";
 import { expect, open, reload, test, title } from "./support/journey";
-import { WEB_ORIGIN } from "./support/servers";
+import { BACKOFFICE_ORIGIN, WEB_ORIGIN } from "./support/servers";
 
 const COPY = {
   fr: { own: frVerification, brand: frBrandProfile },
@@ -40,6 +50,7 @@ const JOURNEY = {
 const WIDTHS = [375, 1440] as const;
 
 test.afterAll(async () => {
+  await withdrawQueueRequests();
   await retireInternals();
 });
 
@@ -1021,4 +1032,269 @@ test("a brand asks for the badge in English at 375 px: the accordion, the domain
   await expect(
     page.getByRole("main").getByText(copy.brand.affirm.refresh),
   ).toBeVisible();
+});
+
+// L2E-21 (08 RG61 à RG66, RG98, CA42 à CA44; 17b §3.7): the two views of queue 4 in the backoffice, one
+// case, in French only (the backoffice has no English before D36). Requests owned by a colleague, so that
+// the journey reads them alone by `?owner=`; they are cancelled afterwards, as no journey decides one.
+
+/** Every account whose request a journey of the queue wrote, its pending requests cancelled after the run. */
+const queueAccounts: string[] = [];
+
+type QueueRequestOptions = {
+  kind: "creator" | "brand";
+  owner: string;
+  /** The deadline as a gap from now, in minutes: negative, the request is past it. */
+  dueInMinutes: number;
+  network?: string;
+  /** The colleague who holds the lock, taken ten minutes ago. */
+  heldBy?: string;
+  reexamine?: boolean;
+  /** The trading name of a brand. */
+  name?: string;
+};
+
+type QueueAccount = { accountId: string; displayName: string };
+
+/**
+ * Creators (one network line) and brands with one pending request each, as the doors of 0222 leave them, in
+ * one transaction. The deadlines are written by a trigger from now() (0221): each request goes in with the
+ * triggers aside, as the T14 file of apps/api writes its fixtures, so that the journey owns its instants.
+ */
+async function seedQueueRequests(
+  list: readonly QueueRequestOptions[],
+): Promise<QueueAccount[]> {
+  const sql = connectAsLocalSuperuser({ max: 1 });
+  return sql
+    .begin(async (tx) => {
+      const seeded: QueueAccount[] = [];
+      for (const options of list) {
+        const accountId = randomUUID();
+        const creator = options.kind === "creator";
+        const network = options.network ?? "instagram";
+        await tx`set local session_replication_role = origin`;
+        await tx`
+        insert into identity.accounts
+          (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
+           is_adult_attested, adult_attested_at, declared_status, owner_agent_id)
+        values (${accountId}, ${randomUUID()}, ${`e2e-vq-${accountId}@example.test`}, now(),
+                ${creator ? "FR" : "BE"}, 'fr', true, now(),
+                ${creator ? "individual" : "business"}, ${options.owner})`;
+        await tx`
+        insert into identity.account_roles (account_id, role)
+        values (${accountId}, ${creator ? "creator" : "advertiser"}::identity.account_role)`;
+        let name = options.name ?? "";
+        let socialAccountId: string | null = null;
+        if (creator) {
+          const [profile] = await tx<{ alias: string }[]>`
+          insert into profiles.creator_public_profiles (account_id, alias, residence_country_code)
+          values (${accountId}, profiles.new_creator_alias(), 'FR')
+          returning alias`;
+          name = profile?.alias ?? "";
+          const [line] = await tx<{ id: string }[]>`
+          insert into profiles.creator_social_accounts
+            (account_id, network_code, is_primary, handle)
+          values (${accountId}, ${network}, true, ${`vq_${accountId.slice(0, 8)}`})
+          returning id::text as id`;
+          socialAccountId = line?.id ?? null;
+        } else {
+          await tx`
+          insert into profiles.advertiser_profiles (account_id, legal_name, website_domain)
+          values (${accountId}, ${name}, ${`vq-${accountId.slice(0, 8)}.example.test`})`;
+        }
+        await tx`set local session_replication_role = replica`;
+        const [request] = await tx<{ id: string }[]>`
+        insert into verification.verification_requests
+          (account_id, social_account_id, network_code, level, status, created_at, submitted_at,
+           sla_due_at, escalate_at)
+        values (${accountId}, ${socialAccountId}, ${creator ? network : null},
+                ${creator ? "account_verified" : "brand_verified"}::verification.badge_level,
+                'pending',
+                now() + make_interval(mins => ${options.dueInMinutes}) - interval '8 hours',
+                now() + make_interval(mins => ${options.dueInMinutes}) - interval '8 hours',
+                now() + make_interval(mins => ${options.dueInMinutes}),
+                now() + make_interval(mins => ${options.dueInMinutes}) + interval '3 days')
+        returning id::text as id`;
+        if (options.heldBy !== undefined) {
+          await tx`
+          update verification.verification_requests
+             set claimed_by_account_id = ${options.heldBy},
+                 claimed_at = now() - interval '10 minutes',
+                 claim_expires_at = now() + interval '20 minutes'
+           where id = ${request?.id ?? ""}`;
+        }
+        if (options.reexamine === true) {
+          await tx`
+          update verification.verification_requests
+             set reexamine_reason_code = 'network_unreachable', reexamined_at = now()
+           where id = ${request?.id ?? ""}`;
+        }
+        seeded.push({ accountId, displayName: name });
+        queueAccounts.push(accountId);
+      }
+      return seeded;
+    })
+    .finally(() => sql.end({ timeout: 1 }));
+}
+
+/** The requests the queue journey left pending are cancelled: the counters of the next run stay true (15 RG28). */
+async function withdrawQueueRequests(): Promise<void> {
+  if (queueAccounts.length === 0) {
+    return;
+  }
+  await withSql(
+    (sql) => sql`
+      update verification.verification_requests
+         set status = 'cancelled', cancelled_at = now(), closed_at = now(),
+             claimed_by_account_id = null, claimed_at = null, claim_expires_at = null
+       where account_id = any(${queueAccounts}::uuid[]) and status = 'pending'`,
+  );
+}
+
+test("an agent reads queue 4 as two lists, creators then brands: the overdue ones apart, the lock named, the states told (08 RG61 à RG66, RG98, CA42 à CA44)", async ({
+  page,
+}) => {
+  const tag = runTag("vq");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await seedInternal(page, "agent", "Lou");
+  const owner = await seedColleague("agent", "Noa");
+  const holder = await seedColleague("agent", "Marie");
+  const [late, held] = await seedQueueRequests([
+    { kind: "creator", owner: owner.accountId, dueInMinutes: -300 },
+    {
+      kind: "creator",
+      owner: owner.accountId,
+      dueInMinutes: 200,
+      network: "tiktok",
+      heldBy: holder.accountId,
+      reexamine: true,
+    },
+    {
+      kind: "brand",
+      owner: owner.accountId,
+      dueInMinutes: 90,
+      name: `Maison ${tag}`,
+    },
+  ]);
+  if (late === undefined || held === undefined) {
+    throw new Error("the requests were not seeded");
+  }
+  const T = bo.verificationQueue;
+  const list = (address: string) =>
+    `${BACKOFFICE_ORIGIN}${address}?owner=${owner.accountId}`;
+
+  // the creators: their own screen and heading, the overdue ones in a list of their own, still openable
+  await page.goto(list("/files/verifications-createurs"));
+  await expect(
+    page.getByRole("heading", {
+      level: 1,
+      name: bo.queue.verification_creators,
+    }),
+  ).toBeVisible();
+  const overdue = page.getByRole("region", {
+    name: T.creators.overdueTableLabel,
+  });
+  await expect(
+    page.getByRole("heading", { level: 2, name: T.overdueTitle }),
+  ).toBeVisible();
+  await expect(overdue.locator("tbody tr")).toHaveCount(1);
+  await expect(overdue).toContainText(late.displayName);
+  await expect(overdue).toContainText(/HORS DÉLAI depuis 5 h/);
+  await expect(overdue).toContainText(bo.queueList.state.overdue);
+  await expect(overdue).toContainText(T.levels.account_verified);
+  await expect(overdue).toContainText("Instagram");
+  await expect(overdue.getByRole("link")).toHaveAttribute(
+    "href",
+    /^\/files\/verifications-createurs\/[0-9a-f-]{36}$/,
+  );
+  // in time: the lock names its holder (RG64), « à réexaminer » and its reason are written under the line
+  const inTime = page.getByRole("region", {
+    name: T.creators.tableLabel,
+    exact: true,
+  });
+  await expect(
+    page.getByRole("heading", { level: 2, name: T.otherTitle }),
+  ).toBeVisible();
+  await expect(inTime).toContainText(held.displayName);
+  await expect(inTime).toContainText("En cours — Marie");
+  await expect(inTime).toContainText("TikTok");
+  await expect(inTime).toContainText(
+    /À réexaminer : réseau injoignable, depuis /,
+  );
+  await expect(page.locator("main")).not.toContainText(`Maison ${tag}`);
+  // the counters and the delay of the queue, in clear; the sort is said (RG62, RG63)
+  await expect(
+    page.getByText(
+      /\d+ entrées? en attente · plus ancienne : .+ · hors délai : \d+ · sans preneur : \d+/,
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      /2 demandes · triée par ancienneté, la plus ancienne d’abord/,
+    ),
+  ).toBeVisible();
+  await expect(page.locator("th[aria-sort=ascending]").first()).toContainText(
+    T.columns.submitted,
+  );
+  // a sort chosen: carried by the address, the column it follows marked
+  await page
+    .getByLabel(T.filters.sort, { exact: true })
+    .selectOption("network");
+  await expect(page).toHaveURL(/sort=network/);
+  await expect(page.locator("th[aria-sort=ascending]").first()).toContainText(
+    T.columns.network,
+  );
+  // no handle, no figure, no code in a list (RG47)
+  const shown = (await page.locator("main").innerText()).toLowerCase();
+  expect(shown).not.toMatch(/@|vq_[0-9a-f]{8}|influx-[2-9a-z]{8}/);
+  await expectNoAxeViolation(page, "verification queue, creators", {
+    wcag22: true,
+  });
+
+  // the brands: another screen, another table, nothing of the creators in it, nor their columns
+  await page.goto(list("/files/verifications-marques"));
+  await expect(
+    page.getByRole("heading", { level: 1, name: bo.queue.verification_brands }),
+  ).toBeVisible();
+  const brands = page.getByRole("region", {
+    name: T.brands.tableLabel,
+    exact: true,
+  });
+  await expect(brands).toContainText(`Maison ${tag}`);
+  await expect(brands).toContainText("Belgique");
+  await expect(
+    brands.getByRole("columnheader", { name: T.columns.network }),
+  ).toHaveCount(0);
+  await expect(page.locator("main")).not.toContainText(late.displayName);
+  await expect(
+    page.getByRole("heading", { level: 2, name: T.overdueTitle }),
+  ).toHaveCount(0);
+  await expectNoAxeViolation(page, "verification queue, brands", {
+    wcag22: true,
+  });
+
+  // a queue in error says so, and an empty one tells when the last request was handled: two states (CA44);
+  // « Réessayer » asks again, and the second answer is an empty queue
+  const search = "**/api/v1/bo/queues/verification-brands/entries/search";
+  await page.route(search, (route) =>
+    route.fulfill({ status: 500, contentType: "application/json", body: "{}" }),
+  );
+  await page.goto(`${BACKOFFICE_ORIGIN}/files/verifications-marques`);
+  await expect(page.getByText(bo.queueList.error)).toBeVisible();
+  await expect(page.getByText(/^Aucune demande en attente/)).toHaveCount(0);
+  await page.unroute(search);
+  await page.route(search, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        asOf: new Date().toISOString(),
+        items: [],
+        nextCursor: null,
+      }),
+    }),
+  );
+  await page.getByRole("button", { name: bo.common.retry }).click();
+  await expect(page.getByText(/^Aucune demande en attente/)).toBeVisible();
+  await expect(page.getByText(bo.queueList.error)).toHaveCount(0);
 });

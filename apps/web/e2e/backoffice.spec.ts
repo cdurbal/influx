@@ -923,7 +923,7 @@ test("TD6.1: one main navigation, no admin entry for an agent, the skip link fir
   ]);
 });
 
-test("L2C-16: an admin reaches the brand profile queue through Files, one entry of a single screen, as an agent does", async ({
+test("L2C-16: an admin reaches the brand profile queue through Files, the first of its screens, as an agent does", async ({
   page,
 }) => {
   await seedInternal(page, "admin", "Alix");
@@ -934,11 +934,16 @@ test("L2C-16: an admin reaches the brand profile queue through Files, one entry 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     m.queue.profiles_advertiser,
   );
-  // a single screen: the entry itself is current, no sub-menu yet (D74)
-  await expect(nav.locator("[aria-current=page]")).toHaveText(m.nav.queues);
+  // Files opens its first screen and shows its three as sub-entries, that one current (D74, L2E-21)
+  await expect(nav.locator("[aria-current=page]")).toHaveText(
+    m.nav.brandReviewQueue,
+  );
   await expect(
-    nav.getByRole("link", { name: m.nav.brandReviewQueue }),
-  ).toHaveCount(0);
+    nav.getByRole("link", { name: m.nav.verificationCreators }),
+  ).toBeVisible();
+  await expect(
+    nav.getByRole("link", { name: m.nav.verificationBrands }),
+  ).toBeVisible();
   // the list answers an admin: a table or the empty queue, never an error
   await expect(
     page

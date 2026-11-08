@@ -149,8 +149,12 @@ test("L2C-16: the list says each entry in words, overdue first, with no coordina
     /Profils marque à valider : \d+ en attente · plus ancienne : .+ · hors délai : \d+ · sans preneur : \d+/,
   );
   await expect(summary).toContainText(/dépassé le seuil d’alerte d’ancienneté/);
+  // the two views of queue 4 are counted beside it (L2E-21): each line has its own link
   await expect(
-    summary.getByRole("link", { name: m.queueSummary.open }),
+    summary
+      .getByRole("listitem")
+      .filter({ hasText: m.queue.profiles_advertiser })
+      .getByRole("link", { name: m.queueSummary.open }),
   ).toHaveAttribute("href", LIST);
 });
 

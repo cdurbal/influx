@@ -92,6 +92,12 @@ import {
   type RejectEntryResponse,
   type ReleaseEntryResponse,
 } from "@influx/contracts/backoffice-queues";
+import {
+  verificationEntriesResponseSchema,
+  type VerificationEntriesResponse,
+  type VerificationEntriesSearchBody,
+  type VerificationQueueView,
+} from "@influx/contracts/verification";
 import { callRelay, type RelayResult } from "@influx/web-platform/relay-client";
 
 /** A path segment from a server-issued id: a UUID, or nothing is called. */
@@ -407,6 +413,50 @@ export function readBrandReviewEntries(
   query: Readonly<Record<string, string>>,
 ): Promise<RelayResult<EntriesResponse>> {
   return callRelay("GET", ENTRIES, entriesResponseSchema, undefined, query);
+}
+
+// --- Queue 4, two views of one table (08 RG61 to RG67; l2e/modele.md §6; L2E-21) ---------------------
+
+const VERIFICATION_ENTRIES = {
+  creators: "/v1/bo/queues/verification-creators/entries",
+  brands: "/v1/bo/queues/verification-brands/entries",
+} as const satisfies Record<VerificationQueueView, string>;
+
+/** One page of a view, filters, period, sort and cursor in the BODY, as queue 1 (the relay refuses an instant in a query). */
+export function searchVerificationCreators(
+  body: VerificationEntriesSearchBody,
+): Promise<RelayResult<VerificationEntriesResponse>> {
+  return callRelay(
+    "POST",
+    `${VERIFICATION_ENTRIES.creators}/search`,
+    verificationEntriesResponseSchema,
+    body,
+  );
+}
+
+export function searchVerificationBrands(
+  body: VerificationEntriesSearchBody,
+): Promise<RelayResult<VerificationEntriesResponse>> {
+  return callRelay(
+    "POST",
+    `${VERIFICATION_ENTRIES.brands}/search`,
+    verificationEntriesResponseSchema,
+    body,
+  );
+}
+
+/** The first page of a view from a query of plain characters: the dashboard only asks for the overdue ones. */
+export function readVerificationEntries(
+  view: VerificationQueueView,
+  query: Readonly<Record<string, string>>,
+): Promise<RelayResult<VerificationEntriesResponse>> {
+  return callRelay(
+    "GET",
+    VERIFICATION_ENTRIES[view],
+    verificationEntriesResponseSchema,
+    undefined,
+    query,
+  );
 }
 
 // --- Queue 1, one entry (06 RG6, RG65; 15 C1 to C4, C6; L2C-17) -----------------------------------

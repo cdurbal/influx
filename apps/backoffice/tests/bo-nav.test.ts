@@ -100,6 +100,13 @@ describe("TD2.8: the active entry of each address (17b §1.7)", () => {
       "queues",
       "brandReviewQueue",
     ],
+    ["/files/verifications-createurs", "queues", "verificationCreators"],
+    [
+      "/files/verifications-createurs/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
+      "queues",
+      "verificationCreators",
+    ],
+    ["/files/verifications-marques", "queues", "verificationBrands"],
     ["/inscrits", "accounts", "signups"],
     ["/inscrits/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22", "accounts", "signups"],
     ["/invitations", "accounts", "memberInvitations"],
@@ -141,12 +148,24 @@ describe("TN3: the screens of an entry as its sub-entries in the rail (D74)", ()
 
   it("exposes no sub-menu for an entry of a single screen", () => {
     expect(subEntriesOf(itemOf("dashboard"))).toEqual([]);
-    // one queue so far: Files opens its list, a sub-menu comes with a second one
-    expect(subEntriesOf(itemOf("queues"))).toEqual([]);
-    expect(itemOf("queues").href).toBe("/files/profils-marque");
     for (const item of navItemsOf("admin", SEVEN)) {
       expect(subEntriesOf(item), item.key).toEqual([]);
     }
+  });
+
+  it("gives Files its three screens in order, queue 1 then the two views of queue 4, the entry opening the first (L2E-21)", () => {
+    const queues = itemOf("queues");
+    expect(subEntriesOf(queues).map((section) => section.key)).toEqual([
+      "brandReviewQueue",
+      "verificationCreators",
+      "verificationBrands",
+    ]);
+    expect(queues.href).toBe("/files/profils-marque");
+    expect(subEntriesOf(queues).map((section) => section.href)).toEqual([
+      "/files/profils-marque",
+      "/files/verifications-createurs",
+      "/files/verifications-marques",
+    ]);
   });
 
   it("gives Comptes and Administration their screens in order, the entry opening the first", () => {
@@ -188,6 +207,9 @@ describe("TN3: the screens of an entry as its sub-entries in the rail (D74)", ()
     const agent = navItemsOf("agent");
     expect(agent.map((item) => item.key)).not.toContain("admin");
     expect(agent.flatMap(subEntriesOf).map((section) => section.key)).toEqual([
+      "brandReviewQueue",
+      "verificationCreators",
+      "verificationBrands",
       "signups",
       "memberInvitations",
     ]);

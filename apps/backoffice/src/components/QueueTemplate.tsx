@@ -13,6 +13,7 @@
 import {
   QUEUE_PAGE_SIZE_MAX,
   type EntriesSearchBody,
+  type QueueCounters,
   type QueueCountersResponse,
   type QueueEntryRow,
 } from "@influx/contracts/backoffice-queues";
@@ -35,6 +36,7 @@ import {
   DL_CLASSES,
   DT_CLASSES,
   LINK_CLASSES,
+  OVERDUE_LIST_CLASSES,
   SECTION_CLASSES,
   SECTION_TITLE,
   SMALL_SECONDARY_CLASSES,
@@ -46,7 +48,7 @@ import {
 } from "./bo-classes";
 import { DenseTableRegion } from "./DenseTableRegion";
 import { ErrorNotice } from "./ErrorNotice";
-import { CircleCheckIcon } from "./icons";
+import { CircleCheckIcon, FlagIcon } from "./icons";
 import { QueueFilterBar } from "./QueueFilterBar";
 import {
   addressOf,
@@ -58,6 +60,7 @@ import {
   policyLine,
   searchBodyOf,
   shortcutOf,
+  splitByDeadline,
   steppedIndex,
   type OwnFilter,
   type QueueFilters,
@@ -81,24 +84,47 @@ export type QueueColumn<Row> = {
   cell: (row: Row, asOf: string) => ReactNode;
 };
 
-export type QueueTemplateProps<Row extends QueueRowFacts> = {
+/**
+ * Queue 4 (08 RG66, CA42): the entries past their deadline in a list of their own, above the others,
+ * visibly distinct (a heading with its flag, a thick border, a sentence), never drowned in the general
+ * list. The split is the page's: the server's order puts the oldest, hence the overdue, first.
+ */
+export type OverdueSplit = {
+  overdueTitle: string;
+  overdueNote: string;
+  overdueTableLabel: string;
+  otherTitle: string;
+};
+
+export type QueueTemplateProps<
+  Row extends QueueRowFacts,
+  Body extends object = EntriesSearchBody,
+> = {
   title: string;
   lead: string;
   /** The code of the queue in the counters answer. */
   queueCode: QueueCountersResponse["queues"][number]["queue"];
   tableLabel: string;
   ownFilters: readonly OwnFilter[];
-  columns: readonly QueueColumn<Row>[];
+  /** The columns, or a function of the filters in force (queue 4 marks the column its sort follows). */
+  columns:
+    | readonly QueueColumn<Row>[]
+    | ((filters: QueueFilters) => readonly QueueColumn<Row>[]);
   /** The line under a row, in clear (the alerts of the row): null when it has none. */
   rowNote?: (row: Row) => ReactNode;
   /** The entry of a row: its address and the name that labels its link. */
   entryOf: (row: Row) => { href: string; label: string };
   loadEntries: (
-    body: EntriesSearchBody,
+    body: Body,
   ) => Promise<
     RelayResult<{ asOf: string; items: Row[]; nextCursor: string | null }>
   >;
   loadCounters: () => Promise<RelayResult<QueueCountersResponse>>;
+  /** The sentence over the table: the count and the sort in force (default: by deadline). */
+  resultsLine?: (count: number, filters: QueueFilters) => string;
+  /** The empty state (15 RG32): "Aucune entrée en attente" by default, queue 4 says "demande". */
+  emptyLine?: (counters: QueueCounters | null, asOf: string) => string;
+  splitOverdue?: OverdueSplit;
 };
 
 type Load<Value> =
@@ -138,20 +164,23 @@ function SkeletonRows({ columns }: { columns: number }) {
   );
 }
 
-export function QueueTemplate<Row extends QueueRowFacts>(
-  props: QueueTemplateProps<Row>,
-) {
+export function QueueTemplate<
+  Row extends QueueRowFacts,
+  Body extends object = EntriesSearchBody,
+>(props: QueueTemplateProps<Row, Body>) {
   const {
     title,
     lead,
     queueCode,
     tableLabel,
     ownFilters,
-    columns,
     rowNote,
     entryOf,
     loadEntries,
     loadCounters,
+    resultsLine,
+    emptyLine,
+    splitOverdue,
   } = props;
   const router = useRouter();
   const pathname = usePathname();
@@ -189,7 +218,12 @@ export function QueueTemplate<Row extends QueueRowFacts>(
       return undefined;
     }
     let active = true;
-    const body = searchBodyOf(filters, period, paging, QUEUE_PAGE_SIZE_MAX);
+    const body = searchBodyOf<Body>(
+      filters,
+      period,
+      paging,
+      QUEUE_PAGE_SIZE_MAX,
+    );
     void loadEntries(body).then((result) => {
       if (!active) {
         return;
@@ -320,6 +354,12 @@ export function QueueTemplate<Row extends QueueRowFacts>(
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  const split =
+    entriesLoad.kind === "ok" ? splitByDeadline(entriesLoad.data.items) : null;
+  const columns =
+    typeof props.columns === "function"
+      ? props.columns(filters)
+      : props.columns;
   const asOf = entriesLoad.kind === "ok" ? entriesLoad.data.asOf : "";
   const queueCounters =
     countersLoad.kind === "ok"
@@ -327,6 +367,75 @@ export function QueueTemplate<Row extends QueueRowFacts>(
         null)
       : null;
   const filtered = Object.keys(filters).length > 0;
+
+  /** One dense table of `rows`: the columns of the queue, then the link that opens the entry. */
+  function entriesTable(rows: readonly Row[], label: string) {
+    return (
+      <DenseTableRegion label={label}>
+        <table className={TABLE_CLASSES}>
+          <caption className="sr-only">{label}</caption>
+          <thead>
+            <tr>
+              {columns.map((column) => (
+                <th
+                  key={column.key}
+                  scope="col"
+                  aria-sort={column.sorted === true ? "ascending" : undefined}
+                  className={TH_CLASSES}
+                >
+                  {column.header}
+                  {column.sorted === true ? (
+                    <span aria-hidden="true">{t.sortMark}</span>
+                  ) : null}
+                </th>
+              ))}
+              <th scope="col" className={TH_CLASSES}>
+                {t.columns.open}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => {
+              const note = rowNote?.(row) ?? null;
+              const entry = entryOf(row);
+              return (
+                <Fragment key={row.id}>
+                  <tr className={rowClasses(false)}>
+                    {columns.map((column) => (
+                      <td key={column.key} className={TD_CLASSES}>
+                        {column.cell(row, asOf)}
+                      </td>
+                    ))}
+                    <td className={TD_CLASSES}>
+                      <Link
+                        data-entry-link=""
+                        href={entry.href}
+                        aria-label={entry.label}
+                        className={LINK_CLASSES}
+                      >
+                        {t.openEntry}
+                      </Link>
+                    </td>
+                  </tr>
+                  {note === null ? null : (
+                    <tr>
+                      <td />
+                      <td
+                        colSpan={columns.length}
+                        className={`${TD_CLASSES} text-text-secondary`}
+                      >
+                        {note}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </DenseTableRegion>
+    );
+  }
 
   return (
     <>
@@ -416,80 +525,56 @@ export function QueueTemplate<Row extends QueueRowFacts>(
               aria-hidden="true"
               className="size-(--size-icon-md) shrink-0"
             />
-            {emptyWords(queueCounters, entriesLoad.data.asOf)}
+            {(emptyLine ?? emptyWords)(queueCounters, entriesLoad.data.asOf)}
           </p>
         )
       ) : (
         <>
           <p role="status" className={`${HELP_CLASSES} tabular-nums`}>
-            {t.resultsSorted(entriesLoad.data.items.length)}
+            {resultsLine === undefined
+              ? t.resultsSorted(entriesLoad.data.items.length)
+              : resultsLine(entriesLoad.data.items.length, filters)}
           </p>
-          <div ref={tableRef}>
-            <DenseTableRegion label={tableLabel}>
-              <table className={TABLE_CLASSES}>
-                <caption className="sr-only">{tableLabel}</caption>
-                <thead>
-                  <tr>
-                    {columns.map((column) => (
-                      <th
-                        key={column.key}
-                        scope="col"
-                        aria-sort={
-                          column.sorted === true ? "ascending" : undefined
-                        }
-                        className={TH_CLASSES}
-                      >
-                        {column.header}
-                        {column.sorted === true ? (
-                          <span aria-hidden="true">{t.sortMark}</span>
-                        ) : null}
-                      </th>
-                    ))}
-                    <th scope="col" className={TH_CLASSES}>
-                      {t.columns.open}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {entriesLoad.data.items.map((row) => {
-                    const note = rowNote?.(row) ?? null;
-                    const entry = entryOf(row);
-                    return (
-                      <Fragment key={row.id}>
-                        <tr className={rowClasses(false)}>
-                          {columns.map((column) => (
-                            <td key={column.key} className={TD_CLASSES}>
-                              {column.cell(row, asOf)}
-                            </td>
-                          ))}
-                          <td className={TD_CLASSES}>
-                            <Link
-                              data-entry-link=""
-                              href={entry.href}
-                              aria-label={entry.label}
-                              className={LINK_CLASSES}
-                            >
-                              {t.openEntry}
-                            </Link>
-                          </td>
-                        </tr>
-                        {note === null ? null : (
-                          <tr>
-                            <td />
-                            <td
-                              colSpan={columns.length}
-                              className={`${TD_CLASSES} text-text-secondary`}
-                            >
-                              {note}
-                            </td>
-                          </tr>
-                        )}
-                      </Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </DenseTableRegion>
+          <div ref={tableRef} className="flex flex-col gap-4">
+            {splitOverdue === undefined ? (
+              entriesTable(entriesLoad.data.items, tableLabel)
+            ) : (
+              <>
+                {split !== null && split.overdue.length > 0 ? (
+                  <section
+                    aria-labelledby="queue-overdue-title"
+                    className={OVERDUE_LIST_CLASSES}
+                  >
+                    <h2
+                      id="queue-overdue-title"
+                      className={`${SECTION_TITLE} flex items-center gap-2`}
+                    >
+                      <FlagIcon
+                        aria-hidden="true"
+                        className="size-(--size-icon-md) shrink-0 text-feedback-error-icon"
+                      />
+                      {splitOverdue.overdueTitle}
+                    </h2>
+                    <p className={HELP_CLASSES}>{splitOverdue.overdueNote}</p>
+                    {entriesTable(
+                      split.overdue,
+                      splitOverdue.overdueTableLabel,
+                    )}
+                  </section>
+                ) : null}
+                {split !== null && split.inTime.length > 0 ? (
+                  <section
+                    aria-labelledby="queue-in-time-title"
+                    className="flex flex-col gap-3"
+                  >
+                    <h2 id="queue-in-time-title" className={SECTION_TITLE}>
+                      {splitOverdue.otherTitle}
+                    </h2>
+                    {entriesTable(split.inTime, tableLabel)}
+                  </section>
+                ) : null}
+              </>
+            )}
           </div>
           {paging.page === 1 && entriesLoad.data.nextCursor === null ? null : (
             <nav
