@@ -3,7 +3,10 @@
 // The walk reads zod's own definition and follows every wrapper, so that a field hidden in an
 // array, a union, a lazy schema or a pipe is found as well; it never parses a value.
 import type * as z from "zod";
-import { creatorIdentityColumns } from "../src/db/schema/introspection.ts";
+import {
+  creatorIdentityColumns,
+  verificationColumns,
+} from "../src/db/schema/introspection.ts";
 
 type ZodDefinition = {
   type: string;
@@ -200,6 +203,61 @@ export function forbiddenFieldsOf(
       ? []
       : [`${path} (${origin})`];
   });
+}
+
+/**
+ * Normalised names of every column of the schema `verification` and of the brand's internal block,
+ * read from their Drizzle declaration (src/db/schema/verification.ts, aligned by hand on 0221 to
+ * 0227): 18 TM11 as L2E commit 17 extends it. A column added there joins the list by itself.
+ */
+export function derivedVerificationColumnNames(): Map<string, string> {
+  const names = new Map<string, string>();
+  for (const [tableName, columns] of Object.entries(verificationColumns())) {
+    for (const column of columns) {
+      names.set(normalisedName(column), `verification ${tableName}.${column}`);
+    }
+  }
+  return names;
+}
+
+/**
+ * Columns of `verification.*` whose NAME identifies nothing and that other contracts already carry
+ * for their own object (an error code, a logo's width, a brand refusal's message, a status): the
+ * value-level proof that no code, piece or finding leaks is T1 (markers) and T9.6. Each is checked
+ * to exist in the derived list, so the exemption cannot outlive its column.
+ */
+export const VERIFICATION_GENERIC_COLUMNS: readonly string[] = [
+  ...STRUCTURAL_COLUMNS,
+  "byte_size",
+  "code",
+  "decided_at",
+  "expires_at",
+  "height",
+  "is_active",
+  "kind",
+  "level",
+  "member_message",
+  "name",
+  "network_code",
+  "position",
+  "request_id",
+  "state",
+  "status",
+  "submitted_at",
+  "url",
+  "width",
+];
+
+/** The names of `verification.*` no schema outside the verification modules may declare. */
+export function forbiddenVerificationNames(): Map<string, string> {
+  const generic = new Set(VERIFICATION_GENERIC_COLUMNS.map(normalisedName));
+  const forbidden = new Map<string, string>();
+  for (const [name, origin] of derivedVerificationColumnNames()) {
+    if (!generic.has(name)) {
+      forbidden.set(name, origin);
+    }
+  }
+  return forbidden;
 }
 
 /** True when the schema declares a field of that name, at any depth. */

@@ -9,6 +9,11 @@
 //           but /v1/me/creator-profile*, which T14 (db-tests/profiles-creator-*) proves unreachable
 //           by a brand, and T1 (db-tests/t1-anonymisation) sweeps by value;
 //   witnesses: a `handle` added to a schema fails the check, whatever its depth.
+//   TM11.3  (L2E 17, T9.6) the columns of `verification.*` and of the brand's internal block, DERIVED
+//           from their Drizzle declaration (an object key, a checksum, a handle or a figure observed
+//           by the agent, an internal comment, a registration number…), are declared by no contract
+//           but the verification module and the backoffice's, and by no response schema of the web
+//           surface but the verification routes; generic names (status, code, width…) apart.
 // The allowances below are the member's OWN contact details in their own contracts (a brand's
 // e-mail on its account, a visitor's address on the support form). Each is checked to still be
 // declared, so that none outlives its field.
@@ -28,17 +33,35 @@ import {
   declaresField,
   declaredFields,
   derivedColumnNames,
+  derivedVerificationColumnNames,
   forbiddenFieldsOf,
   forbiddenNames,
+  forbiddenVerificationNames,
   isZodSchema,
   normalisedName,
   STRUCTURAL_COLUMNS,
+  VERIFICATION_GENERIC_COLUMNS,
 } from "./zod-fields.ts";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CONTRACTS = path.resolve(HERE, "../../../packages/contracts");
 const WEB_CREATOR_PREFIX = "/v1/me/creator-profile";
 const BACKOFFICE_PREFIX = "/v1/bo/";
+/** The member's own verification routes (L2E 12, 13, 15): T14 keeps every other role off them. */
+const WEB_VERIFICATION_PREFIXES = [
+  "/v1/me/verification",
+  "/v1/me/brand-verification",
+] as const;
+
+function isVerificationModule(name: string): boolean {
+  return name === "verification" || name.startsWith("backoffice-");
+}
+
+function isWebVerificationRoute(url: string): boolean {
+  return WEB_VERIFICATION_PREFIXES.some(
+    (prefix) => url === prefix || url.startsWith(`${prefix}/`),
+  );
+}
 
 /**
  * Modules left out of TM11.1: served to the creator alone, or to the agents of the backoffice.
@@ -356,6 +379,126 @@ describe("TM11.2: no response schema of the web routes declares an identifying f
           `${url} ${field}`,
         ).toBe(true);
       }
+    }
+  });
+});
+
+/** TM11.3 over a server's inventory: web responses but the verification routes, /v1/bo/ apart. */
+function verificationResponseFindings(server: ApiServer): string[] {
+  const forbidden = forbiddenVerificationNames();
+  return webResponses(server)
+    .filter((entry) => !isWebVerificationRoute(entry.url))
+    .flatMap((entry) =>
+      entry.schemas.flatMap((schema) =>
+        forbiddenFieldsOf(schema, [], forbidden).map(
+          (found) => `${entry.route} ${found}`,
+        ),
+      ),
+    );
+}
+
+describe("TM11.3 (L2E 17): no field of verification.* outside the verification modules and /v1/bo/", () => {
+  it("derives the list from Drizzle: the piece, the finding, the internal block, beyond the generic names", () => {
+    const derived = derivedVerificationColumnNames();
+    for (const column of VERIFICATION_GENERIC_COLUMNS) {
+      expect(derived.has(normalisedName(column)), column).toBe(true);
+    }
+    const forbidden = forbiddenVerificationNames();
+    for (const name of [
+      "object_key",
+      "checksum",
+      "retention_due_at",
+      "observed_handle",
+      "observed_platform_account_ref",
+      "observed_domain",
+      "observed_followers",
+      "observed_avg_comments",
+      "internal_comment",
+      "claimed_by_account_id",
+      "granted_by_account_id",
+      "registration_number",
+      "legal_name",
+    ]) {
+      expect(forbidden.has(normalisedName(name)), name).toBe(true);
+    }
+    expect(forbidden.size).toBeGreaterThan(50);
+  });
+
+  it("finds none in the contracts but the verification module and the backoffice's", async () => {
+    const forbidden = forbiddenVerificationNames();
+    const modules = await contractModules();
+    const covered = modules.filter(({ name }) => !isVerificationModule(name));
+    expect(covered.map(({ name }) => name)).toContain("creator-profile");
+    expect(covered.map(({ name }) => name)).toContain("brand-profile");
+    const findings = covered.flatMap(({ name, schemas }) =>
+      schemas.flatMap(([exported, schema]) =>
+        forbiddenFieldsOf(schema, [], forbidden).map(
+          (found) => `${name}/${exported} ${found}`,
+        ),
+      ),
+    );
+    expect(findings).toEqual([]);
+    // the exclusion is real: the verification modules do declare names of the list
+    const held = modules
+      .filter(({ name }) => isVerificationModule(name))
+      .flatMap(({ schemas }) =>
+        schemas.flatMap(([, schema]) =>
+          forbiddenFieldsOf(schema, [], forbidden),
+        ),
+      );
+    expect(held.length).toBeGreaterThan(0);
+  });
+
+  it("finds none in the response schemas of the web surface but the member's own verification routes", async () => {
+    const server = await readyServer();
+    expect(verificationResponseFindings(server)).toEqual([]);
+    const verificationRoutes = webResponses(server).filter((entry) =>
+      isWebVerificationRoute(entry.url),
+    );
+    expect(verificationRoutes.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it("fails on a response or a contract that declares an object key or an observed handle", async () => {
+    const forbidden = forbiddenVerificationNames();
+    expect(
+      forbiddenFieldsOf(
+        z.strictObject({
+          evidence: z.array(z.strictObject({ objectKey: z.string() })),
+        }),
+        [],
+        forbidden,
+      ),
+    ).toEqual([expect.stringContaining(".evidence.objectKey")]);
+    expect(
+      forbiddenFieldsOf(
+        z.strictObject({ observed_handle: z.string() }),
+        [],
+        forbidden,
+      ),
+    ).toHaveLength(1);
+    const witness = buildServer(testApiConfig(), {
+      logDestination: captureLogs().destination,
+    });
+    witness.get(
+      "/v1/me/tm11-verification-witness",
+      {
+        schema: {
+          response: {
+            200: z.strictObject({ checksum: z.string() }),
+          },
+        },
+      },
+      async () => ({ checksum: "" }),
+    );
+    await witness.ready();
+    try {
+      expect(verificationResponseFindings(witness)).toEqual([
+        expect.stringContaining(
+          "GET /v1/me/tm11-verification-witness .checksum",
+        ),
+      ]);
+    } finally {
+      await witness.close();
     }
   });
 });

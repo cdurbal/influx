@@ -15,6 +15,12 @@
 //         the base holds them), but the account identifier.
 //   T1-W  witness: a route added to the server that leaks makes the sweep fail.
 //   C-1   every log stream of the file, the provoked failures included, holds no marker (D60).
+//   L2E   (commit 17) the markers of the verification join every sweep: the handle the agent typed,
+//         the figures he observed, the code of the creator; the registered name, the registration
+//         number and the domain code of the brand (fiche L2E invariants 13, 14, 17). Requests and
+//         codes go through the members' routes, the decisions through the agent's functions of 0224
+//         (a committed transaction of the local superuser, as apps/api calls them), the piece is a row
+//         (its bytes are T9.6's, db-tests/t9-evidence-unreachable).
 // Deferred: T1.5 (signed URL of the portfolio) and the agent's identified view at L2G, which replays
 // this file; T1.3 and the "after" of T1.6 (a revealed introduction) at Lot 4. The rights side of the
 // same rule (influx_advertiser reaches no `creator_%` object, non reversible) is T1-R, in
@@ -22,7 +28,7 @@
 // Fixtures are COMMITTED by the migration role or through the routes (random identifiers,
 // disposable local stack, like the profile routes' files); the brands leave the queue after the
 // file. GoTrue, Brevo and Storage are doubles that answer "unavailable": nothing leaves the process.
-import { localRoleUrl, type LoginRole } from "@influx/test-kit/db";
+import { accountIdOf, localRoleUrl, type LoginRole } from "@influx/test-kit/db";
 import { valuesFoundIn } from "@influx/test-kit/logs";
 import type { LightMyRequestResponse } from "fastify";
 import { createHash, randomBytes, randomInt, randomUUID } from "node:crypto";
@@ -55,15 +61,21 @@ import {
   WEB_SECRET,
 } from "../tests/helpers.ts";
 import {
+  actAsInternal,
   letterName,
+  localSuperuser,
   retireBrandFixtures,
   sharedMigrationRole,
   testDataSet,
 } from "./support.ts";
+import { requestsOf, type Method } from "./route-requests.ts";
 
 const PROFILE = "/v1/me/creator-profile";
 const NETWORKS = "/v1/me/creator-profile/networks";
+const VERIFICATION = "/v1/me/verification";
+const BRAND_VERIFICATION = "/v1/me/brand-verification";
 const HEALTH = "GET /health";
+const agentA = accountIdOf("agent", "a");
 
 let database: ApiDatabase;
 let migration: postgres.Sql;
@@ -80,6 +92,22 @@ let creator: Member & {
 };
 /** Brand M: a contact person filled (06 RG35), never served to a creator (D46). */
 let brand: Member & { markers: Marker[] };
+/**
+ * L2E: what the verification wrote of creator A and brand M. Never served to another member; the
+ * brand reads its own internal block and live code (positive control), the creator read its code
+ * once, at the opening of its request; the finding of the agent is served to no member at all.
+ */
+let verificationMarkers: { creator: Marker[]; brand: Marker[] };
+
+/** Every marker of both parties, the verification's included. */
+function allMarkers(): Marker[] {
+  return [
+    ...creator.markers,
+    ...brand.markers,
+    ...verificationMarkers.creator,
+    ...verificationMarkers.brand,
+  ];
+}
 /** The brand that sweeps (T1.1), and the creator that sweeps (T1.6). */
 let sweepingBrand: Member;
 let sweepingCreator: Member;
@@ -181,8 +209,6 @@ function app(over: ApiDatabase = database) {
 }
 
 type Server = ReturnType<typeof app>;
-type Method = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
-
 async function call(
   server: Server,
   method: Method,
@@ -224,260 +250,6 @@ async function through(
   );
   expect(response.statusCode, `${method} ${url}: ${response.body}`).toBe(200);
   return response.json();
-}
-
-// ---------------------------------------------------------------------------------------------
-// Synthesis of the requests of a route: parameters, query and body from its own schemas
-// ---------------------------------------------------------------------------------------------
-
-type JsonSchema = Readonly<Record<string, unknown>>;
-
-function isZodSchema(value: unknown): value is z.ZodType {
-  return typeof value === "object" && value !== null && "_zod" in value;
-}
-
-/** The JSON Schema of a zod input, or null when it has none (a raw body, no schema). */
-function jsonSchemaOf(schema: unknown): JsonSchema | null {
-  if (!isZodSchema(schema)) {
-    return null;
-  }
-  try {
-    return z.toJSONSchema(schema, {
-      io: "input",
-      unrepresentable: "any",
-    }) as JsonSchema;
-  } catch {
-    return {};
-  }
-}
-
-function asSchema(value: unknown): JsonSchema | null {
-  return typeof value === "object" && value !== null
-    ? (value as JsonSchema)
-    : null;
-}
-
-/** Follows a local `$ref` (`#` or `#/$defs/name`). */
-function resolved(schema: JsonSchema, root: JsonSchema): JsonSchema {
-  const ref = schema.$ref;
-  if (typeof ref !== "string") {
-    return schema;
-  }
-  if (ref === "#") {
-    return root;
-  }
-  const name = ref.replace(/^#\/(\$defs|definitions)\//, "");
-  const defs = asSchema(root.$defs) ?? asSchema(root.definitions) ?? {};
-  return asSchema(defs[name]) ?? {};
-}
-
-/** Strings likely to satisfy the shapes of the contracts: tried in order against each pattern. */
-function stringCandidates(uuid: string): string[] {
-  return [
-    "t1-sweep@example.test",
-    "https://www.example.test/t1-sweep",
-    "+33600000001",
-    "123456",
-    "FR",
-    "fr",
-    "instagram",
-    "x",
-    uuid,
-    "2026-01-01",
-    "2026-01-01T00:00:00.000Z",
-    "0".repeat(64),
-    "sweep_value",
-    "Valeur de balayage",
-  ];
-}
-
-function matchesPattern(value: string, pattern: string): boolean {
-  try {
-    return new RegExp(pattern, "u").test(value);
-  } catch {
-    try {
-      return new RegExp(pattern).test(value);
-    } catch {
-      return true;
-    }
-  }
-}
-
-function sampleString(schema: JsonSchema, uuid: string): string {
-  const format = schema.format;
-  if (format === "email") {
-    return "t1-sweep@example.test";
-  }
-  if (format === "uuid" || format === "guid") {
-    return uuid;
-  }
-  if (format === "date-time") {
-    return new Date().toISOString();
-  }
-  if (format === "date") {
-    return "2026-01-01";
-  }
-  if (format === "uri" || format === "url") {
-    return "https://www.example.test/t1-sweep";
-  }
-  const min = typeof schema.minLength === "number" ? schema.minLength : 0;
-  const max =
-    typeof schema.maxLength === "number"
-      ? schema.maxLength
-      : Number.POSITIVE_INFINITY;
-  const pattern = typeof schema.pattern === "string" ? schema.pattern : null;
-  const fit = stringCandidates(uuid).find(
-    (candidate) =>
-      candidate.length >= min &&
-      candidate.length <= max &&
-      (pattern === null || matchesPattern(candidate, pattern)),
-  );
-  return fit ?? "x".repeat(Math.max(1, Math.min(min, 4096)));
-}
-
-/** A value of the schema, best effort: a body that fails its schema is a case of T1.4. */
-function sample(
-  value: unknown,
-  root: JsonSchema,
-  uuid: string,
-  depth = 0,
-): unknown {
-  const raw = asSchema(value);
-  if (raw === null || depth > 10) {
-    return null;
-  }
-  const schema = resolved(raw, root);
-  if ("const" in schema) {
-    return schema.const;
-  }
-  if (Array.isArray(schema.enum)) {
-    return schema.enum[0] ?? null;
-  }
-  for (const key of ["anyOf", "oneOf"] as const) {
-    const options = schema[key];
-    if (Array.isArray(options)) {
-      const chosen =
-        options.find((option) => asSchema(option)?.type !== "null") ??
-        options[0];
-      return sample(chosen, root, uuid, depth + 1);
-    }
-  }
-  if (Array.isArray(schema.allOf)) {
-    return sample(schema.allOf[0], root, uuid, depth + 1);
-  }
-  const type = Array.isArray(schema.type)
-    ? (schema.type as unknown[]).find((candidate) => candidate !== "null")
-    : schema.type;
-  if (type === "object" || asSchema(schema.properties) !== null) {
-    const properties = asSchema(schema.properties) ?? {};
-    return Object.fromEntries(
-      Object.entries(properties).map(([key, property]) => [
-        key,
-        sample(property, root, uuid, depth + 1),
-      ]),
-    );
-  }
-  if (type === "array") {
-    const count = typeof schema.minItems === "number" ? schema.minItems : 0;
-    const prefix = Array.isArray(schema.prefixItems) ? schema.prefixItems : [];
-    const items = Array.from(
-      { length: Math.max(count, prefix.length) },
-      (_unused, index) =>
-        sample(prefix[index] ?? schema.items, root, uuid, depth + 1),
-    );
-    return items;
-  }
-  if (type === "string") {
-    return sampleString(schema, uuid);
-  }
-  if (type === "integer" || type === "number") {
-    if (typeof schema.minimum === "number") {
-      return Math.ceil(schema.minimum);
-    }
-    if (typeof schema.exclusiveMinimum === "number") {
-      return Math.floor(schema.exclusiveMinimum) + 1;
-    }
-    return 0;
-  }
-  if (type === "boolean") {
-    return false;
-  }
-  return null;
-}
-
-/**
- * The bodies tried on a route: the whole sample, its required fields alone, an empty object, and
- * each field alone with the required ones; none for a route without a body schema.
- */
-function bodiesOf(route: InventoriedRoute, uuid: string): unknown[] {
-  const root = jsonSchemaOf(route.schema.body);
-  if (root === null) {
-    return [undefined];
-  }
-  const whole = sample(root, root, uuid);
-  if (typeof whole !== "object" || whole === null || Array.isArray(whole)) {
-    return [whole, {}];
-  }
-  const object = resolved(root, root);
-  const required = new Set(
-    Array.isArray(object.required) ? (object.required as string[]) : [],
-  );
-  const entries = Object.entries(whole);
-  const base = Object.fromEntries(entries.filter(([key]) => required.has(key)));
-  const bodies: unknown[] = [whole, base, {}];
-  for (const [key, field] of entries) {
-    if (!required.has(key)) {
-      bodies.push({ ...base, [key]: field });
-    }
-  }
-  const seen = new Set<string>();
-  return bodies.filter((body) => {
-    const text = JSON.stringify(body);
-    return seen.has(text) ? false : (seen.add(text), true);
-  });
-}
-
-function queryOf(route: InventoriedRoute, uuid: string): string {
-  const root = jsonSchemaOf(route.schema.querystring);
-  if (root === null) {
-    return "";
-  }
-  const values = sample(root, root, uuid);
-  if (typeof values !== "object" || values === null) {
-    return "";
-  }
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(values)) {
-    if (value !== null && typeof value !== "object") {
-      query.set(key, String(value));
-    }
-  }
-  const text = query.toString();
-  return text === "" ? "" : `?${text}`;
-}
-
-type Request = { method: Method; url: string; body: unknown };
-
-/**
- * The requests of one route: each identifier of the path takes each of `ids` (the other party's
- * among them), the first one with every body, the others with the whole sample.
- */
-function requestsOf(
-  route: InventoriedRoute,
-  ids: readonly string[],
-): Request[] {
-  const method = route.method as Method;
-  const hasParameter = /:[A-Za-z]+/.test(route.url);
-  const values = hasParameter ? ids : [randomUUID()];
-  const requests: Request[] = [];
-  values.forEach((id, index) => {
-    const url = `${route.url.replace(/:[A-Za-z]+/g, encodeURIComponent(id))}${queryOf(route, id)}`;
-    const bodies = bodiesOf(route, id);
-    for (const body of index === 0 ? bodies : bodies.slice(0, 1)) {
-      requests.push({ method, url, body });
-    }
-  });
-  return requests;
 }
 
 function routeName(route: InventoriedRoute): string {
@@ -661,9 +433,191 @@ beforeAll(async () => {
     ],
   };
 
+  verificationMarkers = await verificationFixtures(server, tag);
+
   sweepingBrand = await newMember("advertiser");
   sweepingCreator = await newMember("creator");
 });
+
+type OwnRequest = {
+  request: { id: string; code: { code: string } | null };
+};
+
+/** The UTC date `days` days from today, as the agent types it. */
+function utcDay(days: number): string {
+  return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+}
+
+/**
+ * Agent A claims `request` and decides it through the functions of 0224, in a COMMITTED transaction
+ * of the local superuser taking the agent's role the way apps/api does (aal2).
+ */
+async function agentDecides(
+  request: string,
+  decision: string,
+  parameters: (token: string) => (string | number | null)[],
+): Promise<void> {
+  await localSuperuser().begin((tx) =>
+    actAsInternal(
+      tx,
+      "influx_agent",
+      { accountId: agentA, role: "agent", aal: "aal2" },
+      async () => {
+        const [opened] = await tx<{ review_token: string | null }[]>`
+          select review_token from verification.open_request(${request}::uuid)`;
+        const token = opened?.review_token ?? null;
+        if (token === null) {
+          throw new Error(`request ${request} not claimed`);
+        }
+        await tx.unsafe(
+          decision,
+          parameters(token) as postgres.ParameterOrJSON<never>[],
+        );
+      },
+    ),
+  );
+}
+
+/**
+ * L2E: creator A gets « Compte vérifié » then « Audience vérifiée » on its line (the agent typing a
+ * handle and figures of his own), brand M fills its internal block and opens its request (a live
+ * domain code). Returns the markers, each checked to be held by the base or served to its owner.
+ */
+async function verificationFixtures(
+  server: Server,
+  tag: string,
+): Promise<{ creator: Marker[]; brand: Marker[] }> {
+  const observedHandle = `observed_t1_${tag}`;
+  const observedFollowers = randomInt(51_000_000, 59_999_999);
+  const observedComments = randomInt(1_000_000, 9_999_999);
+
+  const account = (await through(
+    server,
+    creator,
+    "POST",
+    `${VERIFICATION}/requests`,
+    {
+      networkCode: "instagram",
+      level: "account_verified",
+    },
+  )) as OwnRequest;
+  const creatorCode = account.request.code?.code ?? "";
+  expect(creatorCode).toMatch(/^INFLUX-[2-9A-HJKMNP-Z]{8}$/);
+  await through(
+    server,
+    creator,
+    "POST",
+    `${VERIFICATION}/requests/${account.request.id}/submit`,
+  );
+  await agentDecides(
+    account.request.id,
+    "select * from verification.grant_account_verified($1::uuid, $2::text, $3::text, $4::text, null, null)",
+    (token) => [account.request.id, token, creatorCode, observedHandle],
+  );
+
+  const audience = (await through(
+    server,
+    creator,
+    "POST",
+    `${VERIFICATION}/requests`,
+    {
+      networkCode: "instagram",
+      level: "audience_verified",
+    },
+  )) as OwnRequest;
+  // the piece as a row (its bytes are T9.6's): the deposit doors are tested by verification-evidence*
+  await localSuperuser()`
+    insert into verification.evidence_files
+      (request_id, account_id, state, received_bytes, byte_size, width, height, checksum,
+       activated_at, retention_due_at)
+    values (${audience.request.id}, ${creator.accountId}, 'active', 500000, 400000, 1290, 2796,
+            sha256(${randomUUID()}::bytea), now(), now() + interval '45 days')`;
+  await through(
+    server,
+    creator,
+    "POST",
+    `${VERIFICATION}/requests/${audience.request.id}/submit`,
+  );
+  await agentDecides(
+    audience.request.id,
+    `select * from verification.grant_audience_verified($1::uuid, $2::text, $3::bigint, $4::integer,
+       $5::bigint, $6::integer, $7::date, $8::date, $9::text, null)`,
+    (token) => [
+      audience.request.id,
+      token,
+      observedFollowers,
+      23,
+      observedComments,
+      412,
+      utcDay(-12),
+      utcDay(-2),
+      observedHandle,
+    ],
+  );
+  const [held] = await localSuperuser()<
+    { followers: number; comments: number; handle: string }[]
+  >`
+    select b.observed_followers::int as followers, b.observed_avg_comments::int as comments,
+           b.observed_handle_at_decision as handle
+      from verification.badges b
+     where b.request_id = ${audience.request.id} and b.state = 'active'`;
+  expect(held).toEqual({
+    followers: observedFollowers,
+    comments: observedComments,
+    handle: observedHandle,
+  });
+
+  const legalName = `Societe ${letterName(hex(5))} Holding`;
+  const registrationNumber = `RCS ${String(randomInt(100_000_000, 999_999_999))}`;
+  await migration`
+    update profiles.advertiser_profiles set website_domain = ${`t1-${hex(5)}.example.test`}
+     where account_id = ${brand.accountId}`;
+  await through(
+    server,
+    brand,
+    "PUT",
+    `${BRAND_VERIFICATION}/internal-details`,
+    {
+      legalName,
+      registrationCountryCode: "FR",
+      registrationNumber,
+    },
+  );
+  const opened = (await through(
+    server,
+    brand,
+    "POST",
+    `${BRAND_VERIFICATION}/request`,
+  )) as OwnRequest;
+  const domainCode = opened.request.code?.code ?? "";
+  expect(domainCode).toMatch(/^INFLUX-[2-9A-HJKMNP-Z]{8}$/);
+  const brandMarkers: Marker[] = [
+    { name: "brand registered name", value: legalName },
+    { name: "brand registration number", value: registrationNumber },
+    { name: "brand domain code", value: domainCode },
+  ];
+  // positive control: the brand reads its own block and live code
+  const own = await call(
+    server,
+    "GET",
+    BRAND_VERIFICATION,
+    await newSession(brand.accountId),
+  );
+  expect(own.statusCode).toBe(200);
+  expect(markersIn(own.body, brandMarkers)).toEqual(
+    brandMarkers.map((marker) => marker.name),
+  );
+
+  return {
+    creator: [
+      { name: "observed handle", value: observedHandle },
+      { name: "observed follower count", value: String(observedFollowers) },
+      { name: "observed average comments", value: String(observedComments) },
+      { name: "creator ownership code", value: creatorCode },
+    ],
+    brand: brandMarkers,
+  };
+}
 
 afterAll(async () => {
   await closeDatabase(database);
@@ -730,6 +684,19 @@ describe("T1.2 the inventory is the server's own, never a list kept by hand (18 
         `PUT ${NETWORKS}/:id/audience`,
       ].sort(),
     );
+    // and the routes of L2E: the member's verification, the brand's, queue 4 and the registers
+    for (const prefix of [
+      `${VERIFICATION}`,
+      `${BRAND_VERIFICATION}`,
+      "/v1/bo/queues/verification-creators",
+      "/v1/bo/queues/verification-brands",
+      "/v1/bo/verification/registry-sources",
+    ]) {
+      expect(
+        swept.filter((route) => route.split(" ")[1]?.startsWith(prefix)).length,
+        prefix,
+      ).toBeGreaterThan(0);
+    }
   });
 });
 
@@ -737,7 +704,25 @@ describe("T1.3 adapted (EC-L2D-3): the creator's own reads carry the markers", (
   it("serves the creator its handle, URL, names, addresses, phone, exact figure and line, never its account identifier, and no contact of a brand", async () => {
     const own = await creatorOwnReads(app());
     await expectMarkersStillServedToTheCreator();
-    expect(markersIn(own, brand.markers)).toEqual([]);
+    expect(
+      markersIn(own, [...brand.markers, ...verificationMarkers.brand]),
+    ).toEqual([]);
+  });
+
+  it("never serves the creator the finding of the agent, nor the code of a decided request (L2E)", async () => {
+    const server = app();
+    const texts: string[] = [await creatorOwnReads(server)];
+    const response = await call(
+      server,
+      "GET",
+      VERIFICATION,
+      await newSession(creator.accountId),
+    );
+    expect(response.statusCode).toBe(200);
+    texts.push(response.body);
+    expect(markersIn(texts.join("\n"), verificationMarkers.creator)).toEqual(
+      [],
+    );
   });
 });
 
@@ -751,10 +736,7 @@ describe("T1.1, T1.4 every route, called as a brand on the web surface: no marke
       randomUUID(),
       "x",
     ];
-    const result = await sweep(server, sweepingBrand, ids, [
-      ...creator.markers,
-      ...brand.markers,
-    ]);
+    const result = await sweep(server, sweepingBrand, ids, allMarkers());
     expect(result.findings).toEqual([]);
     // the sweep reached the handlers: successes, refused bodies and unknown objects were all seen
     const statuses = statusesOf(result);
@@ -779,7 +761,7 @@ describe("T1.1, T1.4 every route, called as a brand on the web surface: no marke
   });
 
   it("answers a 500 provoked on every route, by an error carrying every marker, without any of them", async () => {
-    const markers = [...creator.markers, ...brand.markers];
+    const markers = allMarkers();
     const text = markers.map((marker) => marker.value).join(" ");
     // as a driver error would: the values in the message, the detail and the hint
     const failure = Object.assign(new Error(`database failure near ${text}`), {
@@ -829,10 +811,7 @@ describe("T1.6 before the reveal: no contact of the other party, no data of anot
       randomUUID(),
       "x",
     ];
-    const result = await sweep(server, sweepingCreator, ids, [
-      ...creator.markers,
-      ...brand.markers,
-    ]);
+    const result = await sweep(server, sweepingCreator, ids, allMarkers());
     expect(result.findings).toEqual([]);
     const statuses = statusesOf(result);
     expect(statuses).toContain(200);
@@ -882,9 +861,7 @@ describe("C-1 (D60): nothing of either party in the logs, the provoked failures 
   it("finds no marker in any captured stream", () => {
     expect(logStreams.length).toBeGreaterThanOrEqual(6);
     expect(
-      logStreams.flatMap((text) =>
-        markersIn(text(), [...creator.markers, ...brand.markers]),
-      ),
+      logStreams.flatMap((text) => markersIn(text(), allMarkers())),
     ).toEqual([]);
   });
 });
