@@ -82,6 +82,7 @@ Un créateur fait constater, réseau par réseau, la propriété de son compte (
 | 23 | `feat(backoffice): brand verification decision and registry sources` | Décision marque, écran admin des sources (≤ 2 s) | e2e |
 | U | *(constats `expert-ux`, sans commit)* | C3, dépôt, décision, 375, 768, 1440, FR, EN | `ux-constats.md` |
 | 24 | `fix(web): verification, ux findings` | L2EU-1 à 8, hors parts écartées (§ Revue) | Unitaires, e2e existants |
+| 25 | `fix(web): verification, restart after a refusal` | Reprise après refus (recette F) | Unitaires, e2e existant |
 | F | *(recette du fondateur)* | Premier badge d'audience daté sur `staging` | `recette.md` |
 
 ## Tests
@@ -159,5 +160,7 @@ Choix prudents, à signer par `architecte` en ligne 03 ou par le fondateur à la
 
 - **avant production** : L2EU-9 « Exemple » porté par le badge d'aperçu (D34) · 10 récapitulatif marque sans les problèmes de champ · 11 « Ouvrir et prendre en charge » · 12 « (nouvel onglet) » au lien des sources · 13 pièce en colonne collante dès 1024 px · 14 « Annuler la demande » confirmé · 15 marque d'un pays sans source prévenue ou non (`product-owner`) ; écartés de 24 : L2EU-4 (date de nouvelle demande : contrat et route), date de levée du plafond de 5 (migration), page de 6 (`06` RG51, `product-owner`) ;
 - **plus tard** : L2EU-16 backoffice en anglais (D36) · 17 aide dans l'espace membre · 18 sources : filtre par pays, confirmation près de la ligne, listes fusionnées.
+
+**Ligne F** (`recette.md` § Écarts) : C1 à C4 → ligne 25. Avant production : C5 (fondateur), L2EU-4 et plafond (ci-dessus), suite de l'e-mail au seul motif (`verification-email.ts`). Écart RG57 signé : `other` rouvre, contact gardé.
 
 **États américains** (colonne de subdivision et porte d'insertion de `verification.registry_sources`, EC-L2E-23-1) : reportés à L2F, décision du fondateur.

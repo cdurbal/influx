@@ -47,7 +47,7 @@ Marque : `domain_code_not_found` « Nous n'avons trouvé le code ni dans les enr
 - `/fr/compte/profil/verification/propriete?network=<réseau>` · `/en/account/profile/verification/ownership?network=<network>`, `…/audience` (EC-L2E-18-1 : le réseau est le paramètre `network` de la requête, jamais un segment : les gardes J4S-7 et G8 refusent un segment dynamique hors liste fermée ; le collecteur n'envoie que le chemin) ; `/fr/compte/profil/marque-verifiee` · `/en/account/profile/verified-brand` ; `/files/verifications-createurs[/[id]]`, `…-marques[/[id]]`, `/reglages/sources-registre`.
 
 ## 7. Amendements (clôture ; commit qui les fonde)
-05 : `04` §5.3, §7.5 ; `08` RG81. 06 : `03` P7 ; `06` RG66, écarts 1 et 3. 07 : `03` §6.6, P10.2, E-4 ; `04` §5.11 ; `08` RG34, RG85. 08 : `03` P7 ; `17b` l. 516, 1216. 09 : `04` §12 point 5. 13 : `03` PP-9 ; `18` T9.2. 14 : `18` T9.7. 16 : `16` l. 796-801, 1487. 17 : `18` T9.6.
+05 : `04` §5.3, §7.5 ; `08` RG81. 06 : `03` P7 ; `06` RG66, écarts 1 et 3. 07 : `03` §6.6, P10.2, E-4 ; `04` §5.11 ; `08` RG34, RG85. 08 : `03` P7 ; `17b` l. 516, 1216. 09 : `04` §12 point 5. 13 : `03` PP-9 ; `18` T9.2. 14 : `18` T9.7. 16 : `16` l. 796-801, 1487. 17 : `18` T9.6. 25 : `08` RG57, dernière colonne lue par niveau (C1, C3, C4 de `recette.md` : la suite écrite y est impossible) ; `other` : la reprise du niveau, puis « Contacter INFLUX » (écart signé par le fondateur le 2026-11-08).
 
 ## 8. Invariants relus
 1 à 19 sans contradiction ; 1 resserré (-18), 3 par D82, 4 (`purging` aussitôt si `too_wide` ou annulée ; `active` jamais avant échéance), 8 (point 4), 9 (-19), 11 (FK par population) précisés. Aucun invariant changé, aucune pièce hors relais, E1-7 intact.
