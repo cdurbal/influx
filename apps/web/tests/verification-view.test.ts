@@ -41,6 +41,7 @@ import {
   isOwnershipEstablished,
   levelRowOf,
   lineOfNetwork,
+  missingIdentifierOf,
   ownershipActionOf,
   ownershipJourneyOf,
   refusalViewOf,
@@ -629,7 +630,7 @@ describe("the button of the audience row (08 RG12, RG57)", () => {
     ).toBeNull();
   });
 
-  it("offers a new deposit only after a refusal that points at the evidence, never after one that points elsewhere", () => {
+  it("offers a new deposit after a refusal that points at the evidence or at the account to make public, never after one that points elsewhere", () => {
     const after = (reason: OwnRefusal["reasonCode"]) =>
       audienceActionOf(rowOf(line([OWNED], [audienceRefused(reason)])), true);
     for (const reason of [
@@ -638,6 +639,7 @@ describe("the button of the audience row (08 RG12, RG57)", () => {
       "evidence_unreadable",
       "evidence_wrong_source",
       "evidence_too_wide",
+      "account_not_public",
     ] as const) {
       expect(after(reason), reason).toBe("restart");
     }
@@ -657,6 +659,33 @@ describe("the button of the audience row (08 RG12, RG57)", () => {
       expect(frVerification.line.cta).toHaveProperty(name);
       expect(enVerification.line.cta).toHaveProperty(name);
     }
+  });
+});
+
+describe("the identifier a network line still lacks (L2EU-3)", () => {
+  it("names the handle first, then the link, and nothing once both are written", () => {
+    expect(missingIdentifierOf({ handle: null, profileUrl: null })).toBe(
+      "handle",
+    );
+    expect(
+      missingIdentifierOf({ handle: "  ", profileUrl: "https://x.y/z" }),
+    ).toBe("handle");
+    expect(missingIdentifierOf({ handle: "camille", profileUrl: null })).toBe(
+      "profileUrl",
+    );
+    expect(missingIdentifierOf({ handle: "camille", profileUrl: " " })).toBe(
+      "profileUrl",
+    );
+    expect(
+      missingIdentifierOf({ handle: "camille", profileUrl: "https://x.y/z" }),
+    ).toBeNull();
+  });
+
+  it("writes the link to the field in both languages", () => {
+    expect(frVerification.line.cta.fillIdentifier).toBe(
+      "Renseigner le pseudo et le lien",
+    );
+    expect(enVerification.line.cta.fillIdentifier).toBeTruthy();
   });
 });
 

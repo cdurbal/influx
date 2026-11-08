@@ -2282,9 +2282,16 @@ export const messages = {
       keys: "‹v› accorder (récapitulatif) · ‹r› refuser avec motif · ‹l› rendre la main · ‹Échap› fermer sans perdre la saisie · ‹?› raccourcis",
       grant: "ouvrir le récapitulatif de l’octroi (n’accorde jamais seul)",
       reject: "ouvrir le choix du motif (ne refuse jamais seul)",
-      release: "rendre la main et revenir à la file",
+      release:
+        "rendre la main et revenir à la file (une confirmation d’abord si une saisie est en cours)",
       escape: "fermer le panneau en cours, sans perdre la saisie",
       help: "afficher ou masquer ce rappel",
+    },
+    release: {
+      title: "Rendre la main ?",
+      lead: "Ce que vous avez saisi sur cet écran (identifiant, chiffres, période, code, commentaire) sera perdu : rien n’en est gardé. La demande revient à la file.",
+      confirm: "Rendre la main et perdre la saisie",
+      keep: "Garder la demande",
     },
   },
   /**
@@ -2300,7 +2307,7 @@ export const messages = {
     leadAgent:
       "Lecture seule : seul un administrateur modifie une source. Une source manquante pour un pays se signale à un administrateur.",
     addLimit:
-      "L’ajout d’une source pour un pays qui n’en a pas encore, ou pour un État américain, n’est pas encore possible depuis cet écran : la base ne porte qu’une source par pays, sans État (EC-L2E-23-1).",
+      "L’ajout d’une source pour un pays qui n’en a pas encore, ou pour un État américain, n’est pas encore possible depuis cet écran : la base ne porte qu’une source par pays, sans État.",
     error: "Les sources n’ont pas pu être chargées.",
     retry: "Réessayer",
     inactiveTitle: "À confirmer ou désactivées",

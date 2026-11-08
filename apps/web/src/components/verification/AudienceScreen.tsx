@@ -357,6 +357,7 @@ function AffirmStep({
         <RequestState state={journey.previous} />
       )}
       {journey.refresh ? <p>{t("audience.affirm.refresh")}</p> : null}
+      <p>{t("audience.affirm.todo", { network })}</p>
       <p>{t("audience.affirm.intro", { network })}</p>
       <ul className={LIST_CLASSES}>
         <li>{t("audience.affirm.items.fact")}</li>
@@ -418,7 +419,6 @@ function AffirmStep({
           </section>
         </div>
       </div>
-      <p>{t("audience.affirm.todo", { network })}</p>
       <p className={MEMBER_FIELD_HELP_CLASSES}>
         {t("verif.evidence.freshness")}
       </p>

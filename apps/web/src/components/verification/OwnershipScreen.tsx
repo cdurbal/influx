@@ -283,6 +283,7 @@ function AffirmStep({
       {journey.previous === null ? null : (
         <RequestState state={journey.previous} />
       )}
+      <p>{t("ownership.affirm.todo", { network })}</p>
       <p>{t("ownership.affirm.intro")}</p>
       <ul className={LIST_CLASSES}>
         <li>{t("ownership.affirm.items.fact")}</li>
@@ -318,7 +319,6 @@ function AffirmStep({
           {t("ownership.affirm.preview.never")}
         </p>
       </div>
-      <p>{t("ownership.affirm.todo", { network })}</p>
       <div className={ACTIONS_CLASSES}>
         <MemberButton
           onClick={gestures.start}

@@ -57,6 +57,7 @@ import { ClosedBlock, RequestBlock } from "./VerificationDossierBlocks";
 import { EvidenceBlock, ProcedureBlock } from "./VerificationEvidenceBlocks";
 import { VERIFICATION_VIEW_ADDRESS } from "./verification-queue-view";
 import { RecordBlock } from "./VerificationRecordBlock";
+import { VerificationReleasePanel } from "./VerificationReleasePanel";
 import { formatDateTime } from "./view-model";
 
 const t = messages.verificationReview;
@@ -244,7 +245,7 @@ export function VerificationEntryScreen({
             aria-disabled={busyNow || undefined}
             onClick={() => {
               if (!busyNow) {
-                entry.release(view);
+                entry.askRelease(view);
               }
             }}
             className={SMALL_SECONDARY_CLASSES}
@@ -293,6 +294,14 @@ export function VerificationEntryScreen({
           onReason={entry.setForceReason}
           onConfirm={() => entry.forceRelease(view)}
           onCancel={() => entry.setPanel(null)}
+        />
+      ) : null}
+
+      {panel === "release" && mode === "deciding" ? (
+        <VerificationReleasePanel
+          busy={busy === "release"}
+          onConfirm={() => entry.release(view)}
+          onKeep={() => entry.setPanel(null)}
         />
       ) : null}
 

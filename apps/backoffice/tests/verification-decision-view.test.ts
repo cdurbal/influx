@@ -36,6 +36,7 @@ import {
   reexamineCheck,
   reexaminedNotice,
   refusalOf,
+  releaseStepOf,
   rejectCheck,
   rejectedNotice,
   stopsEverything,
@@ -631,5 +632,32 @@ describe("L2E-22: the profile link and the exit of a decision (L2DS-1; 17b §2.6
     expect(lines).toContain(
       t.closed.reason("Pièce illisible, rognée ou incomplète"),
     );
+  });
+});
+
+describe("giving the request back with work typed on the screen (L2EU-7)", () => {
+  it("gives it back at once when nothing was typed, and asks first as soon as one field holds something", () => {
+    expect(releaseStepOf(EMPTY_DRAFT)).toBe("release");
+    const typed: Partial<Draft>[] = [
+      { handle: "camille_cuisine" },
+      { code: "INFLUX-" },
+      { followers: "47300" },
+      { internalComment: "x" },
+      { channel: "dns_txt" },
+      { registrySourceId: "11111111-2222-4333-8444-555555555555" },
+      { stopConfirmed: true },
+    ];
+    for (const change of typed) {
+      expect(
+        releaseStepOf({ ...EMPTY_DRAFT, ...change }),
+        JSON.stringify(change),
+      ).toBe("confirm");
+    }
+  });
+
+  it("words the panel, with a way to keep the request that loses nothing", () => {
+    expect(t.release.keep).toBe("Garder la demande");
+    expect(t.release.lead).toMatch(/perdu/);
+    expect(t.shortcuts.release).toMatch(/confirmation/);
   });
 });

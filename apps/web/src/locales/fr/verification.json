@@ -77,7 +77,8 @@
       "audienceStart": "Faire vérifier mon audience",
       "audienceResume": "Reprendre le dépôt",
       "audienceRestart": "Redéposer une capture",
-      "audienceRefresh": "Rafraîchir mon audience"
+      "audienceRefresh": "Rafraîchir mon audience",
+      "fillIdentifier": "Renseigner le pseudo et le lien"
     }
   },
   "state": {
@@ -382,7 +383,7 @@
         "title": "Choisissez l'une des deux façons",
         "dns": {
           "title": "Un enregistrement DNS",
-          "text": "Chez le gestionnaire de votre domaine, ajoutez un enregistrement de type TXT qui contient le code. Il peut mettre un moment à devenir visible."
+          "text": "Chez le gestionnaire de votre domaine, ajoutez, à la racine de votre domaine, un enregistrement de type TXT qui contient le code. Il peut mettre un moment à devenir visible."
         },
         "page": {
           "title": "Une page de votre site",

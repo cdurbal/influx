@@ -22,14 +22,18 @@ export function FailureNotice({
   const t = useTranslations("verification");
   const locale = useLocale();
   let message: string;
+  // After the cap the creator is told where to go: no date is promised, the team can be reached (L2EU-5).
+  let next: string | null = null;
   switch (failure.key) {
     case "retryLater":
-      message =
-        failure.retryAfterSeconds === null
-          ? t("failure.cap")
-          : t("failure.retryLater", {
-              delay: formatDelay(failure.retryAfterSeconds, locale),
-            });
+      if (failure.retryAfterSeconds === null) {
+        message = t("failure.cap");
+        next = t("refusal.next.contact");
+      } else {
+        message = t("failure.retryLater", {
+          delay: formatDelay(failure.retryAfterSeconds, locale),
+        });
+      }
       break;
     case "expired":
       message = t("verif.request.expired");
@@ -46,6 +50,7 @@ export function FailureNotice({
   return (
     <ErrorNotice>
       <span data-failure={failure.key}>{message}</span>
+      {next === null ? null : <p data-failure-next="">{next}</p>}
     </ErrorNotice>
   );
 }

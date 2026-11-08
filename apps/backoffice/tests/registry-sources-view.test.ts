@@ -168,9 +168,9 @@ describe("L2E-23: a change is checked in its shapes, then shown as former and ne
     expect(saveFailureText(undefined)).toBeNull();
   });
 
-  it("states what the screen cannot do yet: no source for a country that has none, no State of the United States (EC-L2E-23-1)", () => {
+  it("states what the screen cannot do yet: no source for a country that has none, no State of the United States, and no internal ticket number on screen (L2EU-8)", () => {
     expect(t.addLimit).toMatch(/État américain/);
-    expect(t.addLimit).toMatch(/EC-L2E-23-1/);
+    expect(t.addLimit).not.toMatch(/EC-L2E-/);
     expect(t.leadAgent).toMatch(/Lecture seule/);
   });
 });

@@ -209,6 +209,24 @@ test("a creator proves the ownership of a network account in French, from the li
   await expect(audienceRow(page).locator("a")).toHaveCount(0);
   await expect(page.getByText(copy.line.needIdentifier)).toHaveCount(1);
   await expect(page.locator("[data-badge]")).toHaveCount(0);
+  // The line with no handle offers the way to the field to fill, never the button that starts a request
+  // nobody could process (L2EU-3): the link takes the focus to the field.
+  const tiktokRow = page.locator(
+    '[data-verification-line="tiktok"] [data-verification-row="account_verified"]',
+  );
+  await expect(
+    tiktokRow.getByRole("link", { name: new RegExp(copy.line.cta.start) }),
+  ).toHaveCount(0);
+  const fill = tiktokRow.getByRole("link", {
+    name: new RegExp(copy.line.cta.fillIdentifier),
+  });
+  await expect(fill).toHaveCount(1);
+  const fieldId = (await fill.getAttribute("href"))?.slice(1) ?? "";
+  expect(fieldId).toMatch(/^creator-network-.+-handle$/);
+  await fill.click();
+  await expect
+    .poll(() => page.evaluate(() => document.activeElement?.id))
+    .toBe(fieldId);
 
   // Screen 1: what the badge states and does not state, what the brands read, and no request exists
   // yet (RG1, RG2, RG96).
@@ -1449,6 +1467,22 @@ test("an agent decides an audience request, from the creator's deposit to the da
   await page.getByLabel(T.record.followers).fill("47 301");
   await expect(main.getByText(T.comparison.stale)).toBeVisible();
   await page.getByLabel(T.record.followers).fill("47 300");
+
+  // Giving the request back with work typed opens a panel, by the button and by «l»: « Garder la demande »
+  // and «Échap» close it and nothing typed is lost; the request is still held (L2EU-7).
+  const release = main.getByRole("heading", { name: T.release.title });
+  await page.getByRole("button", { name: T.decision.release }).click();
+  await expect(release).toBeVisible();
+  await page.getByRole("button", { name: T.release.keep }).click();
+  await expect(release).toHaveCount(0);
+  await expect(page.getByLabel(T.record.followers)).toHaveValue("47 300");
+  await page.keyboard.press("l");
+  await expect(release).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(release).toHaveCount(0);
+  await expect(page.getByLabel(T.record.handleAudience)).toHaveValue(
+    "camille_cuisine",
+  );
 
   // The grant comes by its recap and never by a key alone; the expiry is announced, and what the badge does not state.
   await expect(main.getByText(T.decision.expiryAudience)).toBeVisible();

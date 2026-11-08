@@ -329,6 +329,7 @@ function AffirmStep({
       {journey.previous === null ? null : (
         <BrandRequestState state={journey.previous} />
       )}
+      <p>{t("brand.affirm.todo")}</p>
       <p>{t("brand.affirm.intro")}</p>
       <ul className={LIST_CLASSES}>
         <li>{t("brand.affirm.items.domain")}</li>
@@ -359,7 +360,6 @@ function AffirmStep({
           {t("brand.affirm.preview.never")}
         </p>
       </div>
-      <p>{t("brand.affirm.todo")}</p>
       <p className={MEMBER_FIELD_HELP_CLASSES}>{t("brandBlock.optional")}</p>
       <div className={ACTIONS_CLASSES}>
         <MemberButton

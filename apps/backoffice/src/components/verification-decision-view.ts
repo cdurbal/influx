@@ -363,6 +363,19 @@ export const EMPTY_DRAFT: Draft = {
   reexamineCode: null,
 };
 
+/**
+ * What giving the request back asks first (L2EU-7): the work typed on the screen (identifier, figures,
+ * period, code, comment) lives nowhere else, so a gesture that would drop it opens a confirmation, and
+ * an untouched screen gives the request back at once. The screen keeps nothing, hence the comparison
+ * with the empty draft.
+ */
+export function releaseStepOf(draft: Draft): "confirm" | "release" {
+  const keys = Object.keys(EMPTY_DRAFT) as (keyof Draft)[];
+  return keys.some((key) => draft[key] !== EMPTY_DRAFT[key])
+    ? "confirm"
+    : "release";
+}
+
 export type Checked<Body> =
   { ok: true; body: Body } | { ok: false; problem: Problem };
 

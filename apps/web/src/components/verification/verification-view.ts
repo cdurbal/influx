@@ -333,6 +333,20 @@ export function hostLineIdsOf(
   return hosts;
 }
 
+/**
+ * The first identifier of a network line the creator has not filled in, the handle before the link
+ * (L2EU-3): the agent needs both to know where to look for the code. Null when both are there.
+ */
+export function missingIdentifierOf(line: {
+  handle: string | null;
+  profileUrl: string | null;
+}): "handle" | "profileUrl" | null {
+  if ((line.handle ?? "").trim() === "") {
+    return "handle";
+  }
+  return (line.profileUrl ?? "").trim() === "" ? "profileUrl" : null;
+}
+
 // --- The steps of the audience journey ---------------------------------------------------------
 
 /**
@@ -450,11 +464,20 @@ export function audienceActionOf(
     return "restart";
   }
   if (row.request?.kind === "refused") {
-    return refusalViewOf(row.request.refusal).next === "redeposit"
+    return canRestartAudience(refusalViewOf(row.request.refusal))
       ? "restart"
       : null;
   }
   return "start";
+}
+
+/**
+ * Whether a refusal leaves the audience journey open again: the evidence to deposit again, or the
+ * account to make public for the time of the reading (08 RG38bis, the likeliest refusal of an audience;
+ * L2EU-1: without it the creator is left with no button). The other reasons point elsewhere.
+ */
+function canRestartAudience(view: RefusalView): boolean {
+  return view.next === "redeposit" || view.next === "makePublic";
 }
 
 /** The key, in `verification`, of the label of each action of the audience row. */

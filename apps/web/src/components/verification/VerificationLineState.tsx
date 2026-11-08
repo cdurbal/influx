@@ -14,6 +14,7 @@ import { memberButtonClasses } from "@/components/member/ui/button-classes";
 import { GROUP_TITLE_CLASSES } from "@/components/creator-profile/creator-profile-classes";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import { Link } from "@/i18n/navigation";
+import { lineControlIdOf } from "@/components/creator-profile/creator-networks-view";
 import { audienceJourneyHref, ownershipJourneyHref } from "@/lib/member-paths";
 import { routing, type AppLocale } from "@/i18n/routing";
 import { BadgeLine } from "./BadgeLine";
@@ -25,6 +26,7 @@ import {
   isOwnershipEstablished,
   levelRowOf,
   lineOfNetwork,
+  missingIdentifierOf,
   ownershipActionOf,
   type LevelRow,
 } from "./verification-view";
@@ -88,9 +90,12 @@ export function VerificationLineState({
     const action = ownershipActionOf(ownership);
     const established = isOwnershipEstablished(held);
     const audienceAction = audienceActionOf(audience, established);
-    const noIdentifier =
-      (line.handle ?? "").trim() === "" ||
-      (line.profileUrl ?? "").trim() === "";
+    // Without a handle and a link the agent cannot look for the code: the row says so and leads to the
+    // field to fill, instead of a button that would send a request nobody can process (L2EU-3).
+    const missing =
+      action !== null && ownership.badge === null
+        ? missingIdentifierOf(line)
+        : null;
     body = (
       <dl className="flex flex-col gap-4">
         <div className={ROW_CLASSES} data-verification-row="account_verified">
@@ -101,12 +106,35 @@ export function VerificationLineState({
               network={network}
               absent={t("line.absent.account")}
             />
-            {action !== null && noIdentifier && ownership.badge === null ? (
+            {missing !== null ? (
               <Notice tone="info" announce={false}>
                 {t("line.needIdentifier")}
               </Notice>
             ) : null}
-            {action === null ? null : (
+            {action === null ? null : missing !== null ? (
+              <div>
+                <a
+                  href={`#${lineControlIdOf(line.id, missing)}`}
+                  className={memberButtonClasses("secondary")}
+                  data-verification-action="fillIdentifier"
+                  onClick={(event) => {
+                    const field = document.getElementById(
+                      lineControlIdOf(line.id, missing),
+                    );
+                    if (field !== null) {
+                      event.preventDefault();
+                      field.focus();
+                    }
+                  }}
+                >
+                  {t("line.cta.fillIdentifier")}
+                  <span className="sr-only">
+                    {" "}
+                    {t("line.cta.on", { network })}
+                  </span>
+                </a>
+              </div>
+            ) : (
               <div>
                 <Link
                   href={ownershipJourneyHref(line.networkCode, locale)}

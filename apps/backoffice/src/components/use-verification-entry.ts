@@ -53,6 +53,7 @@ import {
   openFailure,
   reexamineCheck,
   reexaminedNotice,
+  releaseStepOf,
   refusalOf,
   rejectCheck,
   rejectedNotice,
@@ -98,7 +99,7 @@ type GrantPlan =
   | { ok: false; problem: Problem };
 
 export type VerificationPanel =
-  "grant" | "reject" | "reexamine" | "force" | "help" | null;
+  "grant" | "reject" | "reexamine" | "release" | "force" | "help" | null;
 
 /** The figures the agent typed, the answer of the database, and the typing the answer speaks of. */
 export type Comparison = {
@@ -437,6 +438,19 @@ export function useVerificationEntry(
     [list, perform, queue, router],
   );
 
+  /** « Je rends la main » and ‹l›: typed work is never dropped without a confirmation (L2EU-7). */
+  const askRelease = useCallback(
+    (view: VerificationOpenResponse) => {
+      if (releaseStepOf(draft) === "confirm") {
+        setProblem(null);
+        setPanel("release");
+        return;
+      }
+      release(view);
+    },
+    [draft, release],
+  );
+
   const extend = useCallback(
     (view: VerificationOpenResponse) =>
       void perform(
@@ -570,7 +584,7 @@ export function useVerificationEntry(
         setPanel(panel === "help" ? null : "help");
       } else if (busy === null && mode === "deciding") {
         if (shortcut === "release") {
-          release(readyView);
+          askRelease(readyView);
         } else if (shortcut === "publish") {
           openGrant(readyView);
         } else {
@@ -581,7 +595,7 @@ export function useVerificationEntry(
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [ready, panel, busy, release, openGrant]);
+  }, [ready, panel, busy, askRelease, openGrant]);
 
   return {
     screen,
@@ -605,6 +619,7 @@ export function useVerificationEntry(
     reexamine,
     compare,
     release,
+    askRelease,
     extend,
     resume,
     retryOpening,

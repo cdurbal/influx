@@ -77,7 +77,8 @@
       "audienceStart": "Verify my audience",
       "audienceResume": "Resume the upload",
       "audienceRestart": "Upload a screenshot again",
-      "audienceRefresh": "Refresh my audience"
+      "audienceRefresh": "Refresh my audience",
+      "fillIdentifier": "Fill in the handle and the link"
     }
   },
   "state": {
@@ -382,7 +383,7 @@
         "title": "Choose one of the two ways",
         "dns": {
           "title": "A DNS record",
-          "text": "At your domain's registrar, add a TXT record that contains the code. It can take a while to become visible."
+          "text": "At your domain's registrar, add, at the root of your domain, a TXT record that contains the code. It can take a while to become visible."
         },
         "page": {
           "title": "A page of your website",
