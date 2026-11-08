@@ -158,10 +158,14 @@ export type RefusedActionCode =
   | "identity.internal_invitation"
   | "ops.read_health"
   | "queue.force_release_claim"
-  // 0215: not an admin action, the act of an agent on an entry of an account he holds (15 RG36, CA19)
+  // 0229 (L2ES-3): the write of a registry source, an administrator's (06 RG101)
+  | "verification.set_registry_source"
+  | "verification.add_registry_source"
+  // 0215: not an admin action, the act of an internal on an entry of an account he holds (15 RG36,
+  // CA19); since 0229 an administrator journals it too (EC-L2C-fix-2-2)
   | "queue.conflict_of_interest";
 
-/** 0134: backoffice.action_refused on the agent's own account (influx_agent only). */
+/** 0134: backoffice.action_refused on the caller's own account (an admin: conflict of interest only, 0229). */
 export async function recordRefusedAction(
   tx: Transaction,
   actionCode: RefusedActionCode,

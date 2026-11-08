@@ -68,6 +68,6 @@ export async function unlessHeld(
   target: RequestTarget,
 ): Promise<typeof CONFLICT_OF_INTEREST | null> {
   return target.ownerAgentId === context.accountId
-    ? conflictOfInterest(tx, context)
+    ? conflictOfInterest(tx)
     : null;
 }

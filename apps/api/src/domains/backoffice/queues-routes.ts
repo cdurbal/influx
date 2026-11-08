@@ -385,7 +385,7 @@ export function registerBackofficeQueueRoutes(
         // 15 RG36, 13 RG35, 17b §2.5: the account is the caller's to hold, not to examine; the
         // refusal is journaled (CA19) and the database refuses it too (0215)
         if (target.ownerAgentId === context.accountId) {
-          return conflictOfInterest(tx, context);
+          return conflictOfInterest(tx);
         }
         const opening = await openEntry(tx, entryId);
         // After the opening, never before: the view is no older than the version of the token

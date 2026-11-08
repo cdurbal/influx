@@ -86,10 +86,13 @@ export const revocationReasons = verification.table("revocation_reasons", {
   isActive: boolean("is_active").notNull().default(true),
 });
 
-/** 06 RG52, D79 (12), l2e/registres.md: the free public registers, one active per country. */
+/** 06 RG52, D79 (12), l2e/registres.md: the free public registers, one active per
+ * (country, subdivision) since 0229. */
 export const registrySources = verification.table("registry_sources", {
   id: uuid("id").primaryKey().defaultRandom(),
   countryCode: char("country_code", { length: 2 }),
+  // 0229 (L2E-US): a subdivision of reference.regions of the same country, or NULL (the whole country)
+  subdivisionCode: text("subdivision_code"),
   sourceType: text("source_type").notNull(),
   name: text("name").notNull(),
   url: text("url").notNull(),

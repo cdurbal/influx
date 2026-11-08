@@ -7,10 +7,10 @@
 //                                                   check by hand, activation; the former and the new
 //                                                   value are journaled by the database (RG101)
 // The write is the database's (0224): it refuses an agent and an unknown source alike (42501), so the API
-// asks the role to tell them apart. The agent's attempt is refused 403 and NOT journaled: the closed
-// list of `backoffice.record_refused_action()` has no code for it (EC-L2E-15-3). One active source per
-// country (409 `active_source_exists`: deactivate the first one before). Every answer is
-// `Cache-Control: no-store`. Nothing is logged here.
+// asks the role first. The agent's attempt is refused 403 and journaled (backoffice.action_refused
+// {verification.set_registry_source}, 0229, L2ES-3) in the transaction, which commits. One active source
+// per country and subdivision (409 `active_source_exists`: deactivate the first one before). Every
+// answer is `Cache-Control: no-store`. Nothing is logged here.
 import {
   updateVerificationRegistrySourceBodySchema,
   updateVerificationRegistrySourceResponseSchema,
@@ -30,7 +30,7 @@ import {
   type BackofficeContext,
 } from "../identity/backoffice-session.ts";
 import type { IdentityApp } from "../identity/routes.ts";
-import { isForbidden } from "./action-guards.ts";
+import { adminOnly, isForbidden, unlessRefused } from "./action-guards.ts";
 import {
   listRegistrySources,
   readRegistrySourceById,
@@ -49,11 +49,11 @@ const FIELD_OF_CONSTRAINT: Readonly<Record<string, string>> = {
   registry_sources_url: "url",
 };
 
-/** The refusal of the door as the API answers it; anything else, unchanged (a 500). */
-function refusalOf(error: unknown, role: BackofficeContext["role"]): unknown {
+/** The refusal of the door as the API answers it (to an administrator); anything else, unchanged (a 500). */
+function refusalOf(error: unknown): unknown {
   if (isForbidden(error)) {
-    // an agent is refused the write; an unknown source is an unknown address for an administrator
-    return new ApiError(role === "admin" ? "not_found" : "forbidden");
+    // the agent never reaches the door (adminOnly): an unknown source is an unknown address
+    return new ApiError("not_found");
   }
   switch (sqlStateOf(error)) {
     case "22023":
@@ -122,21 +122,32 @@ export function registerVerificationRegistryRoutes(
         request.params as VerificationRegistrySourceParams
       ).id.toLowerCase();
       const body = request.body as UpdateVerificationRegistrySourceBody;
-      return inSession(request, reply, async (tx, context) => {
-        try {
-          // a savepoint: the refusal of the door leaves the transaction readable
-          await tx.transaction((savepoint) =>
-            setRegistrySource(savepoint, id, body),
-          );
-        } catch (error) {
-          throw refusalOf(error, context.role);
-        }
-        const source = await readRegistrySourceById(tx, id);
-        if (source === null) {
-          throw new ApiError("not_found");
-        }
-        return updateVerificationRegistrySourceResponseSchema.parse({ source });
-      });
+      return unlessRefused(
+        await inSession(request, reply, (tx, context) =>
+          adminOnly(
+            tx,
+            context,
+            "verification.set_registry_source",
+            async () => {
+              try {
+                // a savepoint: the refusal of the door leaves the transaction readable
+                await tx.transaction((savepoint) =>
+                  setRegistrySource(savepoint, id, body),
+                );
+              } catch (error) {
+                throw refusalOf(error);
+              }
+              const source = await readRegistrySourceById(tx, id);
+              if (source === null) {
+                throw new ApiError("not_found");
+              }
+              return updateVerificationRegistrySourceResponseSchema.parse({
+                source,
+              });
+            },
+          ),
+        ),
+      );
     },
   );
 }

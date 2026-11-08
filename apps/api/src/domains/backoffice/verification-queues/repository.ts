@@ -735,7 +735,10 @@ export type RegistrySourceRow = {
   checkedOn: string;
 };
 
-/** The active registers a brand of this country may be checked against: its own, or GLEIF (06 RG52). */
+/**
+ * The active registers a brand of this country may be checked against: its own, the registers of its
+ * States after it (0229, L2E-US), or GLEIF last (06 RG52).
+ */
 export async function readRegistrySources(
   tx: Transaction,
   countryCode: string,
@@ -752,7 +755,7 @@ export async function readRegistrySources(
            name, url, to_char(checked_on, 'YYYY-MM-DD') as checked_on
       from verification.registry_sources
      where is_active and (source_type = 'gleif' or country_code = ${countryCode})
-     order by (country_code is null), name, id`);
+     order by (country_code is null), (subdivision_code is not null), subdivision_code, name, id`);
   return rows.map((row) => ({
     id: row.id,
     sourceType: row.source_type,

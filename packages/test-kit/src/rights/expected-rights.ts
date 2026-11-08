@@ -2781,6 +2781,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|function|backoffice.lift_brevo_suppression(uuid,uuid,text,text)|EXECUTE",
   "influx_admin|function|backoffice.read_apollo_settings()|EXECUTE",
   "influx_agent|function|backoffice.record_refused_action(text)|EXECUTE",
+  // 0229 (L2F commit 03, EC-L2C-fix-2-2): an administrator journals his conflict of interest only
+  "influx_admin|function|backoffice.record_refused_action(text)|EXECUTE",
   "influx_identity_definer|column|leads.contact_sync_states.account_id|SELECT",
   "influx_identity_definer|column|leads.contact_sync_states.destination|SELECT",
   "influx_identity_definer|column|leads.contact_sync_states.last_error_code|SELECT",
@@ -4427,6 +4429,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|function|verification.reject_request(uuid,text,text,text,text)|EXECUTE",
   "influx_admin|function|verification.release_request(uuid)|EXECUTE",
   "influx_admin|function|verification.set_registry_source(uuid,text,text,date,boolean)|EXECUTE",
+  // 0229 (L2F commit 03, L2E-US): an administrator adds a source (the function refuses the agent)
+  "influx_admin|function|verification.add_registry_source(text,text,text,text,date,boolean)|EXECUTE",
   "influx_agent|function|verification.compare_request_figures(uuid,text,bigint,integer,bigint,integer)|EXECUTE",
   "influx_agent|function|verification.extend_request_claim(uuid)|EXECUTE",
   "influx_agent|function|verification.force_release_request_claim(uuid,text)|EXECUTE",
@@ -4440,6 +4444,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_agent|function|verification.reject_request(uuid,text,text,text,text)|EXECUTE",
   "influx_agent|function|verification.release_request(uuid)|EXECUTE",
   "influx_agent|function|verification.set_registry_source(uuid,text,text,date,boolean)|EXECUTE",
+  "influx_agent|function|verification.add_registry_source(text,text,text,text,date,boolean)|EXECUTE",
   "influx_verification_definer|column|backoffice.claim_release_reasons.code|SELECT",
   "influx_verification_definer|column|backoffice.claim_release_reasons.is_active|SELECT",
   "influx_verification_definer|column|backoffice.operational_settings.key|SELECT",
@@ -4522,15 +4527,17 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_verification_definer|column|verification.ownership_codes.observed_platform_account_ref|UPDATE",
   "influx_verification_definer|column|verification.ownership_codes.request_id|SELECT",
   "influx_verification_definer|column|verification.ownership_codes.revoked_at|SELECT",
-  "influx_verification_definer|column|verification.registry_sources.checked_on|SELECT,UPDATE",
-  "influx_verification_definer|column|verification.registry_sources.country_code|SELECT",
+  "influx_verification_definer|column|verification.registry_sources.checked_on|INSERT,SELECT,UPDATE",
+  "influx_verification_definer|column|verification.registry_sources.country_code|INSERT,SELECT",
   "influx_verification_definer|column|verification.registry_sources.id|SELECT",
-  "influx_verification_definer|column|verification.registry_sources.is_active|SELECT,UPDATE",
-  "influx_verification_definer|column|verification.registry_sources.name|SELECT,UPDATE",
-  "influx_verification_definer|column|verification.registry_sources.source_type|SELECT",
+  "influx_verification_definer|column|verification.registry_sources.is_active|INSERT,SELECT,UPDATE",
+  "influx_verification_definer|column|verification.registry_sources.name|INSERT,SELECT,UPDATE",
+  "influx_verification_definer|column|verification.registry_sources.source_type|INSERT,SELECT",
+  // 0229 (L2F commit 03, L2E-US): the subdivision of a source, read and written by add_registry_source
+  "influx_verification_definer|column|verification.registry_sources.subdivision_code|INSERT,SELECT",
   "influx_verification_definer|column|verification.registry_sources.updated_at|SELECT",
-  "influx_verification_definer|column|verification.registry_sources.updated_by_account_id|UPDATE",
-  "influx_verification_definer|column|verification.registry_sources.url|SELECT,UPDATE",
+  "influx_verification_definer|column|verification.registry_sources.updated_by_account_id|INSERT,UPDATE",
+  "influx_verification_definer|column|verification.registry_sources.url|INSERT,SELECT,UPDATE",
   "influx_verification_definer|column|verification.rejection_reasons.code|SELECT",
   "influx_verification_definer|column|verification.rejection_reasons.escalates_to_admin|SELECT",
   "influx_verification_definer|column|verification.rejection_reasons.is_active|SELECT",
@@ -4591,6 +4598,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_verification_definer|function|verification.request_review_token(uuid)|EXECUTE",
   "influx_verification_definer|function|verification.require_agent(boolean)|EXECUTE",
   "influx_verification_definer|function|verification.set_registry_source(uuid,text,text,date,boolean)|EXECUTE",
+  "influx_verification_definer|function|verification.add_registry_source(text,text,text,text,date,boolean)|EXECUTE",
   "influx_verification_definer|schema|audit|USAGE",
   "influx_verification_definer|schema|backoffice|USAGE",
   "influx_verification_definer|schema|identity|USAGE",
@@ -5076,6 +5084,9 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "verification.reject_request(uuid,text,text,text,text)":
     "influx_verification_definer",
   "verification.set_registry_source(uuid,text,text,date,boolean)":
+    "influx_verification_definer",
+  // 0229 (L2F commit 03, L2E-US): an administrator adds a source of a country or of a State.
+  "verification.add_registry_source(text,text,text,text,date,boolean)":
     "influx_verification_definer",
   // 0227 (L2E commit 16): the worker's reads of the verification e-mails and of the badge level.
   "leads.read_brevo_verification_email(bigint,text)": "influx_leads_definer",

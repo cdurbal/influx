@@ -81,7 +81,7 @@ export function registerBackofficeQueueLogoRoutes(
               // 15 RG36, 13 RG35: the account is the caller's to hold, not to examine; the refusal
               // is journaled (CA19) and the database refuses it too (0215)
               if (target.ownerAgentId === context.accountId) {
-                return conflictOfInterest(tx, context);
+                return conflictOfInterest(tx);
               }
               return readReviewLogo(tx, entryId, logoId);
             },

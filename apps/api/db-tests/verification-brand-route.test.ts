@@ -1005,6 +1005,15 @@ describe("L2E-B7 the registry sources: read by agent and admin, written by an ad
     );
     expect(byAgent.statusCode).toBe(403);
     expect((await sourceOf("GB", "national")).name).toBe(before.name);
+    // L2ES-3 (0229): the agent's attempt is journalled under its code, required role admin
+    const [refusal] = await migration<{ payload: Record<string, unknown> }[]>`
+      select payload from audit.audit_events
+       where event_type = 'backoffice.action_refused' and subject_id = ${agent.accountId}
+       order by seq desc limit 1`;
+    expect(refusal?.payload).toEqual({
+      action_code: "verification.set_registry_source",
+      required_role: "admin",
+    });
 
     try {
       const done = await callBo(

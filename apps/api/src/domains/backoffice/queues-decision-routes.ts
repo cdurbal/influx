@@ -205,7 +205,7 @@ export function registerBackofficeQueueDecisionRoutes(
       throw new ApiError("not_found");
     }
     if (target.ownerAgentId === context.accountId) {
-      return conflictOfInterest(tx, context);
+      return conflictOfInterest(tx);
     }
     return run(tx, context, entryId, act);
   }
