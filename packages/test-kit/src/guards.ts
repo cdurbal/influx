@@ -206,7 +206,7 @@ export const RELAY_FILES = {
  */
 export const BROWSER_RELAY_CLIENT_FILE = "src/browser/relay-client.ts";
 export const BROWSER_RELAY_CLIENT_SHA256 =
-  "05a387cf976fa145a5ed4e3dd4c27740e1874f3fd3c2add5efbed7e5c30225dd";
+  "2232339f1b8391b0bf6d903845a3489dc11818dadbbb4129765180289f6ecb3e";
 
 /** The package of the plumbing of both fronts (arbitration PL-07). */
 export const WEB_PLATFORM_PACKAGE = "@influx/web-platform";

@@ -13,7 +13,11 @@ const anySchema = {
       : { success: false as const },
 };
 
-function stubFetch(status: number, payload: unknown): Sent[] {
+function stubFetch(
+  status: number,
+  payload: unknown,
+  extraHeaders: Record<string, string> = {},
+): Sent[] {
   const sent: Sent[] = [];
   vi.stubGlobal(
     "fetch",
@@ -22,7 +26,7 @@ function stubFetch(status: number, payload: unknown): Sent[] {
       return Promise.resolve(
         new Response(JSON.stringify(payload), {
           status,
-          headers: { "content-type": "application/json" },
+          headers: { "content-type": "application/json", ...extraHeaders },
         }),
       );
     }),
@@ -102,6 +106,43 @@ describe("callRelay answers", () => {
       code: "image_rejected",
       issues: ["too_small"],
     });
+  });
+
+  it("hands over the delay of Retry-After, whole seconds only (L2E 18, 08 RG60)", async () => {
+    const envelope = {
+      error: {
+        code: "conflict",
+        details: [{ path: "request", issue: "retry_after" }],
+      },
+    };
+    stubFetch(409, envelope, { "retry-after": "3600" });
+    expect(
+      await callRelay("POST", "/v1/me/verification/requests", anySchema),
+    ).toEqual({
+      kind: "failed",
+      code: "conflict",
+      issues: ["retry_after"],
+      retryAfterSeconds: 3600,
+    });
+    // a date, a negative or a huge number, an empty header: no delay is invented
+    for (const header of [
+      "Wed, 21 Oct 2026 07:28:00 GMT",
+      "-5",
+      "99999999999",
+      "",
+    ]) {
+      stubFetch(409, envelope, { "retry-after": header });
+      const result = await callRelay(
+        "POST",
+        "/v1/me/verification/requests",
+        anySchema,
+      );
+      expect(result, header).toEqual({
+        kind: "failed",
+        code: "conflict",
+        issues: ["retry_after"],
+      });
+    }
   });
 
   it("reports a 401 as unauthenticated and a network failure as failed", async () => {

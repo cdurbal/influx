@@ -12,6 +12,7 @@ export {
   CircleAlert as CircleAlertIcon,
   CircleCheck as CircleCheckIcon,
   Clock as ClockIcon,
+  Copy as CopyIcon,
   Database as DatabaseIcon,
   Eye as EyeIcon,
   EyeOff as EyeOffIcon,

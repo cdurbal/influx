@@ -2,7 +2,12 @@
 // which entries a role sees, in which order, and which one is active. Pure functions, tested alone
 // (tests/member-nav.test.ts); the shell (src/components/member/MemberShell.tsx) only draws them.
 import type { SignupDoor } from "@influx/contracts/auth";
-import { ACCOUNT_PAGES, accountPagesOf, type MemberPage } from "./member-paths";
+import {
+  ACCOUNT_PAGES,
+  accountPagesOf,
+  PARENT_PAGES,
+  type MemberPage,
+} from "./member-paths";
 
 /** Every entry a space will have (17 §2.1); "relations" is the fourth entry of both spaces. */
 export type NavEntry =
@@ -88,12 +93,16 @@ export type ActivePlace = { entry: NavEntry; sub: MemberPage | null };
  * The place of a page (17 §2.3, D74): a page of a rubric marks the rubric as its ancestor and
  * itself as the current sub-entry ({ account, accountData }); the page of an entry, page-menu
  * included, marks the entry itself ({ account, null }, { home, null }); null for the journey and
- * an unknown path.
+ * an unknown path. A page that hangs below another one (PARENT_PAGES: the verification of a network
+ * below the profile, L2E) takes the place of its parent.
  */
-export function activePlaceOf(page: MemberPage | null): ActivePlace | null {
-  if (page === null) {
+export function activePlaceOf(
+  pageOrChild: MemberPage | null,
+): ActivePlace | null {
+  if (pageOrChild === null) {
     return null;
   }
+  const page = PARENT_PAGES[pageOrChild] ?? pageOrChild;
   const entries = Object.values(SPACE_ENTRIES).flat();
   for (const { entry } of entries) {
     // Every page a role may have counts (the profile included).

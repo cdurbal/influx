@@ -15,6 +15,7 @@ export type MemberPage =
   | "accountHub"
   | "accountDetails"
   | "accountProfile"
+  | "accountVerificationOwnership"
   | "accountPreferences"
   | "accountSessions"
   | "accountData";
@@ -34,6 +35,12 @@ export const MEMBER_PAGE_SLUGS: Readonly<
   accountDetails: { fr: "compte/informations", en: "account/details" },
   // "Mon profil de marque" (17 §4.2, M2; EC-L2B-7) for a brand, "Mon profil" (17 §5.2, C2; L2D) for a creator
   accountProfile: { fr: "compte/profil", en: "account/profile" },
+  // "Faire vérifier mon compte" (17 §5.3, C3; L2E): the ownership journey of one network line, a child of
+  // the profile (modele.md §6); the network is the `network` of the query, never a segment (J4S-7).
+  accountVerificationOwnership: {
+    fr: "compte/profil/verification/propriete",
+    en: "account/profile/verification/ownership",
+  },
   accountPreferences: { fr: "compte/preferences", en: "account/preferences" },
   accountSessions: { fr: "compte/sessions", en: "account/sessions" },
   accountData: { fr: "compte/donnees", en: "account/data" },
@@ -61,6 +68,34 @@ export const PROFILE_ACCOUNT_PAGE =
 
 /** Every page of the rubric "mon compte" a member can have in its column. */
 export type AccountSubPage = AccountPage | typeof PROFILE_ACCOUNT_PAGE;
+
+/**
+ * The pages that hang below another one in the column: the profile stays the active sub-entry while
+ * a creator verifies a network line (L2E, commit 18). They are not entries of their own.
+ */
+export const PARENT_PAGES: Readonly<Partial<Record<MemberPage, MemberPage>>> = {
+  accountVerificationOwnership: PROFILE_ACCOUNT_PAGE,
+};
+
+/** The name of the query parameter that carries the network of a verification journey (a reference-list code, never an identifier of an account). */
+export const NETWORK_QUERY_PARAMETER = "network";
+
+/** A network code as the reference list writes it: snake_case, at most 63 characters (0201). */
+export function isNetworkCode(value: string): boolean {
+  return value.length <= 63 && /^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(value);
+}
+
+/**
+ * The path of the ownership journey of a network, in the CURRENT language and without the prefix
+ * (for the localized `Link`): the page, then the network as a query parameter. The query never
+ * reaches `ops`: the collector sends the pathname only (J4S-7).
+ */
+export function ownershipJourneyHref(
+  networkCode: string,
+  locale: AppLocale,
+): string {
+  return `${memberPageHref("accountVerificationOwnership", locale)}?${NETWORK_QUERY_PARAMETER}=${networkCode}`;
+}
 
 /**
  * The pages of "mon compte" a member reaches, in the order of the column and the page-menu: the

@@ -6,8 +6,9 @@
 // indicators after them, the source AND the date of the figures on every line (RG49), the choice of
 // the main account that says out loud which line it unchecked (CA11), "Confirmer mes chiffres"
 // (RG116). The fields only display the draft and report a change: the patch, the checks and the
-// bands are creator-networks-view.ts and apps/api. No badge, no screenshot (L2E, C3); no amount,
-// rate, net or price (D78).
+// bands are creator-networks-view.ts and apps/api. The badge and the state of the verification of
+// each line are components/verification's (L2E, commit 18), drawn at the foot of the card; no
+// screenshot here (C3); no amount, rate, net or price (D78).
 import type { CreatorNetworkLine } from "@influx/contracts/creator-profile";
 import {
   CREATOR_HANDLE_MAX_LENGTH,
@@ -16,6 +17,7 @@ import {
 } from "@influx/contracts/creator-profile";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import { useMember } from "@/components/member/member-context";
 import { LayerBadge } from "@/components/member/ui/LayerBadge";
 import { MemberButton } from "@/components/member/ui/MemberButton";
 import { Notice } from "@/components/member/ui/Notice";
@@ -46,6 +48,12 @@ import {
   type LineFieldKey,
 } from "./creator-networks-view";
 import type { CreatorNetworksState } from "./use-creator-networks";
+import {
+  useCreatorVerification,
+  type CreatorVerificationState,
+} from "@/components/verification/use-creator-verification";
+import { VerificationLineState } from "@/components/verification/VerificationLineState";
+import { hostLineIdsOf } from "@/components/verification/verification-view";
 
 const LINE_CLASSES =
   "flex flex-col gap-5 rounded-card border-(length:--border-width-thin) border-border-default bg-surface-raised p-inset-card";
@@ -118,6 +126,11 @@ export function NetworksFields({
 }: BlockProps) {
   const t = useTranslations("creatorProfile");
   const [now] = useState(() => new Date());
+  const { signedOut } = useMember();
+  // The state of the verification of every line: one read for the block (08 RG13, L2E commit 18).
+  const verification = useCreatorVerification({
+    onSignedOut: () => signedOut(null),
+  });
   if (state.phase === "loading") {
     return (
       <p role="status" className="text-sm text-text-secondary">
@@ -135,6 +148,7 @@ export function NetworksFields({
       </div>
     );
   }
+  const hosts = hostLineIdsOf(state.lines);
   return (
     <>
       <p className={MEMBER_FIELD_HELP_CLASSES}>{t("networks.intro")}</p>
@@ -148,6 +162,7 @@ export function NetworksFields({
           key={line.id}
           line={line}
           state={state}
+          verification={hosts.has(line.id) ? verification : null}
           now={now}
           labelOf={labelOf}
           bandLabelOf={bandLabelOf}
@@ -173,12 +188,15 @@ export function NetworksFields({
 function NetworkLine({
   line,
   state,
+  verification,
   now,
   labelOf,
   bandLabelOf,
 }: {
   line: CreatorNetworkLine;
   state: CreatorNetworksState;
+  /** The verification of the network, on the line that speaks for it (hostLineIdsOf); null on the others. */
+  verification: CreatorVerificationState | null;
   now: Date;
   labelOf: (networkCode: string) => string;
   bandLabelOf: (group: string, code: string) => string;
@@ -443,6 +461,14 @@ function NetworkLine({
           </div>
         ))}
       </div>
+
+      {verification === null ? null : (
+        <VerificationLineState
+          line={line}
+          network={network}
+          verification={verification}
+        />
+      )}
     </article>
   );
 }

@@ -1,0 +1,205 @@
+{
+  "meta": {
+    "ownership": "Verify my account"
+  },
+  "verif": {
+    "badge": {
+      "accountVerified": {
+        "label": "Account verified — {network}, on {date}",
+        "help": "INFLUX confirmed this account belongs to the registered creator."
+      },
+      "audienceVerified": {
+        "label": "Audience verified — {network}, on {date}",
+        "help": "Figures observed by INFLUX in the {network} native dashboard, period {start} to {end}. INFLUX makes no claim about follower authenticity."
+      },
+      "toRefresh": "Audience verified on {date} — verification needs refreshing.",
+      "toReconfirm": "Account verified on {date} — to be reconfirmed after a handle change."
+    },
+    "figures": {
+      "observed": "Observed by INFLUX on {date}.",
+      "declared": "Declared by the creator on {date}."
+    },
+    "ownership": {
+      "instructions": "Paste this code into your {network} bio. We check it online ourselves. You can remove it as soon as the check is recorded.",
+      "neverAsk": "INFLUX will never ask for your password, access to your account, or a code you received by message.",
+      "codeExpiry": "This code is valid until {date}."
+    },
+    "evidence": {
+      "instructions": "What we need to see: your account name, the period shown, your follower count. Hide or crop anything about other people.",
+      "freshness": "Your screenshot must cover a period ending less than 30 days ago."
+    },
+    "request": {
+      "pending": "Your request is being reviewed. We answer within 1 business day.",
+      "duplicate": "A request for this network has been open since {date}.",
+      "expired": "Your code has expired. You can generate a new one."
+    },
+    "expiry": {
+      "reminder": "Your verified audience expires on {date}. Upload a recent screenshot to keep it.",
+      "toRefresh": "Your verified audience needs refreshing. It stays visible with its date until {date}.",
+      "removed": "Your verified audience has expired. Your figures are shown as declared again."
+    },
+    "revoked": {
+      "notice": "Your badge was removed: {reason}"
+    },
+    "dispute": {
+      "open": "You can appeal this decision for 30 days."
+    },
+    "advertiser": {
+      "disclaimer": "This badge means a figure was checked by INFLUX against evidence on the date shown. It does not guarantee follower authenticity or campaign results."
+    }
+  },
+  "line": {
+    "title": "Verification of this account",
+    "loading": "Reading the state of the verification…",
+    "unavailable": "The state of the verification could not be read. Nothing is lost.",
+    "retry": "Try again",
+    "account": "Account ownership",
+    "audience": "Audience",
+    "needIdentifier": "First fill in the handle and the link of this account: without them, the agent does not know where to look for the code.",
+    "absent": {
+      "account": "Not verified yet. An INFLUX agent confirms that this account is yours by reading a code on your public profile.",
+      "audience": "Not verified yet.",
+      "audienceNeedsAccount": "The audience is verified once the ownership of the account is confirmed on this network."
+    },
+    "cta": {
+      "start": "Verify this account",
+      "resume": "Resume the verification",
+      "restart": "Ask for the verification again",
+      "renew": "Generate a new code",
+      "reconfirm": "Reconfirm this account",
+      "see": "See the request",
+      "on": "for {network}"
+    }
+  },
+  "state": {
+    "requested": "Request open since {date}",
+    "started": "Request not sent, started on {date}",
+    "refused": "Request refused on {date}"
+  },
+  "refusal": {
+    "agentMessage": "Note from the INFLUX team:",
+    "reason": {
+      "missing_evidence": "No evidence was attached to your request.",
+      "evidence_too_old": "The period shown on your screenshot ended more than 30 days ago.",
+      "evidence_unreadable": "The account or the period cannot be read on your screenshot.",
+      "evidence_wrong_source": "Only the network's official statistics are accepted. A screenshot from a third-party measurement tool cannot be used.",
+      "evidence_too_wide": "Your screenshot shows information about other people. Crop it following our instructions.",
+      "ownership_not_proven": "The verification code was not found on your profile.",
+      "account_not_public": "We could not view your profile without being logged in. Make it public for the time of the check, or give up verifying this network.",
+      "ownership_prerequisite": "We first check that this account belongs to you, before observing your figures.",
+      "evidence_inconsistent": "The information provided does not match.",
+      "evidence_suspected_forgery": "We cannot accept this document.",
+      "shared_account": "This account seems to be run by several people. We cannot establish its ownership for an identified person.",
+      "agency_managed": "Accounts managed by an agency are not supported for the moment.",
+      "terms_breach": "Your profile does not comply with the INFLUX terms of use.",
+      "minor": "INFLUX is for adults only: we cannot process your request.",
+      "account_unavailable": "Your request cannot be processed while your account is suspended.",
+      "other": "Your request could not be accepted as it stands. The message from the INFLUX team:"
+    },
+    "next": {
+      "redeposit": "You will be able to upload new evidence, then ask for the verification again.",
+      "restartOwnership": "You can start the proof of ownership again: you will be given a new code.",
+      "makePublic": "Make your account public for the time of the check, then ask for the verification again.",
+      "askOwnershipFirst": "First have the ownership of this account verified.",
+      "contact": "To discuss it, contact INFLUX from the help on the sign-in screen.",
+      "none": "No new request is possible for the moment."
+    }
+  },
+  "ownership": {
+    "title": "Verify my {network} account",
+    "back": "My profile",
+    "backPrefix": "Back to",
+    "loading": "Loading the verification…",
+    "unavailable": "We cannot show the verification right now. Nothing is lost: try again in a few minutes.",
+    "retry": "Try again",
+    "steps": {
+      "progress": "Step {current} of {total}: {name}",
+      "affirm": "What the badge states",
+      "code": "Copy the code",
+      "confirm": "Confirmation"
+    },
+    "affirm": {
+      "title": "What this badge states",
+      "intro": "Once an INFLUX agent has seen the code on your profile, the badge states four things, and not one more.",
+      "items": {
+        "fact": "That a precise fact was observed: here, that this account belongs to the registered creator.",
+        "evidence": "That it was observed from evidence, not from a declaration: the agent reads the code on your public profile.",
+        "agent": "That it was observed by a named INFLUX agent. The name stays internal.",
+        "date": "That it was observed on a given date, from a given source: the date is shown next to the badge."
+      },
+      "not": {
+        "title": "What it does not state",
+        "authenticity": "INFLUX makes no claim about follower authenticity.",
+        "stability": "That the audience will stay stable.",
+        "performance": "What performance a campaign will get.",
+        "quality": "That the creator is serious, professional, reliable or of quality.",
+        "commitments": "That the creator will keep their commitments."
+      },
+      "preview": {
+        "title": "What brands will see",
+        "example": "Example: the date shown will be the date of the check.",
+        "never": "Never shown: the handle of your account, a link to your profile, the name of the agent, the internal notes."
+      },
+      "todo": "To get it, INFLUX gives you a code to paste into the bio of your {network} account. An agent reads it online, without being logged in. It takes a few minutes.",
+      "continue": "I understand, get my code"
+    },
+    "code": {
+      "title": "Copy your code",
+      "label": "Your code",
+      "copy": "Copy",
+      "copied": "Code copied",
+      "copyFailed": "Copying did not work: select the code and copy it by hand.",
+      "where": {
+        "instagram": "Where to paste it: in the bio of your Instagram profile.",
+        "tiktok": "Where to paste it: in the bio of your TikTok profile.",
+        "youtube": "Where to paste it: in the description of your YouTube channel (About section).",
+        "facebook": "Where to paste it: in the intro of your Facebook page.",
+        "linkedin": "Where to paste it: in the About section of your LinkedIn page.",
+        "x": "Where to paste it: in the bio of your X profile.",
+        "snapchat": "Where to paste it: in the description of your public Snapchat profile.",
+        "twitch": "Where to paste it: in the About panel of your Twitch channel.",
+        "pinterest": "Where to paste it: in the description of your Pinterest profile.",
+        "threads": "Where to paste it: in the bio of your Threads profile.",
+        "other": "Where to paste it: in a public, editable field of your profile, such as the bio or the description."
+      },
+      "public": "Your account must be viewable without logging in: if the code is not publicly visible, ownership is not established.",
+      "notAccepted": {
+        "title": "What we do not accept",
+        "intro": "Only the code read online by the agent counts. None of these is accepted as proof:",
+        "dm": "a private message sent from the account",
+        "connected": "a screenshot of a logged-in space",
+        "bio": "a screenshot of the bio field",
+        "oath": "a sworn statement",
+        "link": "a profile link alone",
+        "video": "a video call",
+        "credentials": "handing over credentials"
+      },
+      "pasted": "I pasted the code",
+      "renew": "New code",
+      "renewExpired": "Generate a new code",
+      "renewHelp": "A new code replaces the previous one right away."
+    },
+    "confirm": {
+      "title": "Request sent",
+      "body": "Request sent. An INFLUX agent will verify your account.",
+      "keepCode": "Leave the code in your bio until the check is recorded. You can then remove it.",
+      "state": "The state of the request is shown in the line of this network on your profile.",
+      "back": "See the state on my profile"
+    },
+    "done": {
+      "title": "Account verified",
+      "removeCode": "The check is recorded: you can remove the code from your bio.",
+      "back": "See my profile"
+    },
+    "cancel": "Cancel the request"
+  },
+  "failure": {
+    "retryLater": "A request was refused a short while ago. You will be able to make a new one in {delay}.",
+    "cap": "Several requests were refused in the last days: a new request is not possible for the moment.",
+    "alreadyVerified": "The ownership of this account is already verified on this network.",
+    "notDraft": "This request has already been sent or can no longer be changed. The screen has just been updated.",
+    "gone": "This request no longer exists. The screen has just been updated.",
+    "accountUnavailable": "Your request cannot be processed while your account is suspended.",
+    "unavailable": "The service is not answering. Nothing is lost: try again in a moment."
+  }
+}

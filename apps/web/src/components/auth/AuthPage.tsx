@@ -27,6 +27,7 @@ const PAGE_TITLES = {
   accountHub: "account.meta.hub",
   accountDetails: "account.meta.details",
   accountProfile: "account.meta.profile",
+  accountVerificationOwnership: "verification.meta.ownership",
   accountPreferences: "account.meta.preferences",
   accountSessions: "account.meta.sessions",
   accountData: "account.meta.data",
@@ -85,7 +86,7 @@ export function AuthMessages({
  * The texts of the spaces, given once by (space)/layout.tsx: `auth` and `account` for the homes and
  * "mon compte" (the blocking terms screen, 17 §6.7, can show on any page), `member` for the shell,
  * `brandProfile` for the brand's profile (17 §4.2) and its labels of lists, `creatorProfile` for the
- * creator's (17 §5.2).
+ * creator's (17 §5.2), `verification` for the badge of a creator's network line (L2E, 08 RG93).
  */
 export function SpaceMessages({
   locale,
@@ -94,11 +95,18 @@ export function SpaceMessages({
   locale: AppLocale;
   children: ReactNode;
 }) {
-  const { auth, account, member, brandProfile, creatorProfile } =
+  const { auth, account, member, brandProfile, creatorProfile, verification } =
     MESSAGES[locale];
   return (
     <NextIntlClientProvider
-      messages={{ auth, account, member, brandProfile, creatorProfile }}
+      messages={{
+        auth,
+        account,
+        member,
+        brandProfile,
+        creatorProfile,
+        verification,
+      }}
     >
       {children}
     </NextIntlClientProvider>

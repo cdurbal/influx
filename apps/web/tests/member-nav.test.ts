@@ -30,6 +30,10 @@ import {
   spaceOf,
   spaceRedirectOf,
   TERMS_EXEMPT_PAGES,
+  isNetworkCode,
+  NETWORK_QUERY_PARAMETER,
+  ownershipJourneyHref,
+  PARENT_PAGES,
   type MemberPage,
 } from "@/lib/member-paths";
 
@@ -150,6 +154,7 @@ describe("TD2.4: the active entry of each page", () => {
     accountHub: "account",
     accountDetails: "account",
     accountProfile: "account",
+    accountVerificationOwnership: "account",
     accountPreferences: "account",
     accountSessions: "account",
     accountData: "account",
@@ -356,5 +361,57 @@ describe("L2B-11, L2D-12: the profile leads the pages of Compte, a brand's or a 
     });
     expect(ACCOUNT_PAGES).not.toContain("accountProfile");
     expect(isTermsExempt("accountProfile")).toBe(false);
+  });
+
+  it("addresses the ownership journey below the profile, in both languages, with the network in the query and the profile kept active (L2E 18)", () => {
+    expect(MEMBER_PAGE_SLUGS.accountVerificationOwnership).toEqual({
+      fr: "compte/profil/verification/propriete",
+      en: "account/profile/verification/ownership",
+    });
+    expect(NETWORK_QUERY_PARAMETER).toBe("network");
+    expect(ownershipJourneyHref("instagram", "fr")).toBe(
+      "/compte/profil/verification/propriete?network=instagram",
+    );
+    expect(ownershipJourneyHref("tiktok", "en")).toBe(
+      "/account/profile/verification/ownership?network=tiktok",
+    );
+    for (const locale of LOCALES) {
+      const href = memberPageHref("accountVerificationOwnership", locale);
+      expect(memberPageOfPath(href, locale), href).toBe(
+        "accountVerificationOwnership",
+      );
+    }
+    expect(
+      memberPageOfPath("/account/profile/verification/ownership", "fr"),
+    ).toBeNull();
+    expect(PARENT_PAGES).toEqual({
+      accountVerificationOwnership: "accountProfile",
+    });
+    expect(activePlaceOf("accountVerificationOwnership")).toEqual({
+      entry: "account",
+      sub: "accountProfile",
+    });
+    expect(ACCOUNT_PAGES).not.toContain("accountVerificationOwnership");
+    expect(isTermsExempt("accountVerificationOwnership")).toBe(false);
+  });
+
+  it("reads a network code as the reference list writes it, and nothing else", () => {
+    for (const code of ["instagram", "x", "tiktok", "some_network_2"]) {
+      expect(isNetworkCode(code), code).toBe(true);
+    }
+    for (const code of [
+      "",
+      "Instagram",
+      "insta gram",
+      "insta-gram",
+      "_instagram",
+      "instagram_",
+      "a__b",
+      "@camille",
+      "../etc",
+      "a".repeat(64),
+    ]) {
+      expect(isNetworkCode(code), code).toBe(false);
+    }
   });
 });

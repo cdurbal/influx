@@ -144,6 +144,19 @@ describe("badges and notices", () => {
     expect(markup).toMatch(/<svg[^>]*aria-hidden="true"/);
   });
 
+  it("writes the verified badge as the whole sentence of RG93 when the caller gives one, same look (L2E 18, EC-L2E-9)", () => {
+    const markup = html(
+      createElement(VerifiedBadge, {
+        text: "Compte vérifié — Instagram, le 3 mars 2026",
+      }),
+    );
+    expect(markup).toContain("Compte vérifié — Instagram, le 3 mars 2026");
+    expect(markup).not.toContain(" · ");
+    expect(markup).toContain("text-verified-text");
+    expect(markup).toContain("bg-verified-bg");
+    expect(markup).toMatch(/<svg[^>]*aria-hidden="true"/);
+  });
+
   it("fills a status badge with the opaque ground of its own family, never green (RK-11)", () => {
     const grounds = {
       neutral: "bg-surface-raised",
